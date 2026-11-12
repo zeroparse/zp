@@ -120,9 +120,9 @@ stars text 42
 - **Errors.** `ParseAST` returns the errors of `Parse`. After `#recover`, an `Error` in a list of a join type stays
   in the list as `*Error`; where a struct type is expected it becomes `nil` (it is among the returned
   `SyntaxErrors` anyway).
-- **Speed.** When no action reads a field of a struct value that has no plain form (a node, a named node type, a join, an `any` or a record), the generated
-  parser builds the values directly, without the
-  nodes `Parse` makes: on the benchmarks `ParseAST` then takes 0.7 to 1.0 times the time of `Parse` and 0.3 to 0.4 times
+- **Speed.** When every value has a Go type of its own and actions read the fields of struct values that have no
+  plain form (a node, a named node type, a join, an `any` or a record) only to copy them, the generated parser builds
+  the values directly, without the nodes `Parse` makes: on the benchmarks `ParseAST` then takes 0.7 to 1.0 times the time of `Parse` and 0.3 to 0.4 times
   the memory (JSON 5.7 → 3.9 ms and 9.1 → 2.6 MB; XML, CSV, the left-recursive calculator and the
   outline grammar alike; the Operators Rule calculator is about as fast). Otherwise
   `ParseAST` runs `Parse` and converts the tree, which takes about 0.95 times the time of `Parse` and 0.3 times the
@@ -130,6 +130,13 @@ stars text 42
   [benchmark results](../benchmarks.md#typed-values-parseast-of-zp-gen--types). The
   [design record](../design/records/012-typed-values.md) explains both. The types, their conversions and the typed rules add about
   as much code to `parser.go` as the parser itself.
+
+  An action copies such a field when it writes `x.F`, where every value of `x` has one struct type, in a place that
+  holds a value of the declared type of `F`: the value of a field of that type in a struct constructor and, in such
+  a place of a list type, an argument of `concat` or, for an element, an argument of `list` or the result of the
+  function of `map`. So `RuleDef{Name: $d.Name, Comments: concat($d.Comments, $more)}` copies, while any other read,
+  such as `text($d.Name)`, `len($d.Comments)`, a cast, a comparison or a copy into a field of another type, makes
+  `ParseAST` convert the tree.
 - **Scratch reuse.** The typed runtime clears discarded undo entries after rollback, rule return and captured
   repetition elements. Parser recycling also clears saved-capture backing slices, so overwritten values do not remain
   reachable through pooled scratch after a later failed parse. Returned values remain valid. Output strings may still retain their own backing storage.
@@ -143,7 +150,8 @@ stars text 42
   `any` result can hold a nil `*Node`.
   Recovery and conversion follow `ParseAST`, including `Error` values in joins and nil where
   a struct is expected. Direct typed execution uses the same full grammar guard as
-  `ParseAST`; unsupported result or struct-field types and field-reading actions use Node conversion.
+  `ParseAST`; unsupported result or struct-field types and actions that read fields without a plain form other than
+  to copy them use Node conversion.
   A rule whose value is an int, string or bool returns that Go type.
   `ParseRule` continues to return `*Node`, and `ParseAST` continues to use the configured start rule.
 

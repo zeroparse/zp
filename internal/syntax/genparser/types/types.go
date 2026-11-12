@@ -45,8 +45,10 @@ type ActionBind struct {
 // ActionBlock is the struct type ActionBlock.
 type ActionBlock struct {
 	rt.Span
-	Actions  []ActionStmt
-	Comments []Comment
+	Actions      []ActionStmt
+	Comments     []Comment
+	zpr_Actions  rt.Span
+	zpr_Comments rt.Span
 }
 
 // ActionGroup is the struct type ActionGroup.
@@ -70,16 +72,20 @@ type Atomic struct {
 // Attr is the struct type Attr.
 type Attr struct {
 	rt.Span
-	Name   *Ident
-	Args   []AttrValue
-	KwArgs []*AttrNamed
+	Name       *Ident
+	Args       []AttrValue
+	KwArgs     []*AttrNamed
+	zpr_Args   rt.Span
+	zpr_KwArgs rt.Span
 }
 
 // AttrArgs is the struct type AttrArgs.
 type AttrArgs struct {
 	rt.Span
-	Args   []AttrValue
-	KwArgs []*AttrNamed
+	Args       []AttrValue
+	KwArgs     []*AttrNamed
+	zpr_Args   rt.Span
+	zpr_KwArgs rt.Span
 }
 
 // AttrNamed is the struct type AttrNamed.
@@ -113,8 +119,9 @@ type BinaryOp struct {
 // Call is the struct type Call.
 type Call struct {
 	rt.Span
-	X    ActionExpr
-	Args []ActionExpr
+	X        ActionExpr
+	Args     []ActionExpr
+	zpr_Args rt.Span
 }
 
 // Capture is the struct type Capture.
@@ -162,11 +169,13 @@ type Choice struct {
 // CommentGap is the struct type CommentGap.
 type CommentGap struct {
 	rt.Span
-	Trailing    []string
-	HasTrailing bool
-	Leading     string
-	Detached    []*SourceComment
-	HasNext     bool
+	Trailing     []string
+	HasTrailing  bool
+	Leading      string
+	Detached     []*SourceComment
+	HasNext      bool
+	zpr_Trailing rt.Span
+	zpr_Detached rt.Span
 }
 
 // CommentGroup is the struct type CommentGroup.
@@ -178,11 +187,13 @@ type CommentGroup struct {
 // Constructor is the struct type Constructor.
 type Constructor struct {
 	rt.Span
-	X        ActionExpr
-	Inits    []*InitField
-	Args     []ActionExpr
-	Comments []Comment
-	Head     *SourceLead
+	X            ActionExpr
+	Inits        []*InitField
+	Args         []ActionExpr
+	Comments     []Comment
+	Head         *SourceLead
+	zpr_Args     rt.Span
+	zpr_Comments rt.Span
 }
 
 // Discard is the struct type Discard.
@@ -194,11 +205,12 @@ type Discard struct {
 // Field is the struct type Field.
 type Field struct {
 	rt.Span
-	Name       *Ident
-	Type       Type
-	Comments   []Comment
-	SourceSpan *FieldBody
-	Source     *SourceItem
+	Name         *Ident
+	Type         Type
+	Comments     []Comment
+	SourceSpan   *FieldBody
+	Source       *SourceItem
+	zpr_Comments rt.Span
 }
 
 // FieldAccess is the struct type FieldAccess.
@@ -218,13 +230,16 @@ type FieldBody struct {
 // File is the struct type File.
 type File struct {
 	rt.Span
-	Pkg              PkgDecl
-	Decls            []Decl
-	Comments         []Comment
-	TrailingComments []Comment
-	Text             string
-	Head             *SourceLead
-	Gaps             []*CommentGap
+	Pkg                  PkgDecl
+	Decls                []Decl
+	Comments             []Comment
+	TrailingComments     []Comment
+	Text                 string
+	Head                 *SourceLead
+	Gaps                 []*CommentGap
+	zpr_Decls            rt.Span
+	zpr_Comments         rt.Span
+	zpr_TrailingComments rt.Span
 }
 
 // GapFlag is the struct type GapFlag.
@@ -241,22 +256,24 @@ type IgnoreCase struct {
 // Infix is the struct type Infix.
 type Infix struct {
 	rt.Span
-	Assoc      string
-	Expr       RuleExpr
-	Action     Action
-	Comments   []Comment
-	SourceSpan *OperatorsOperatorBody
-	Source     *SourceItem
+	Assoc        string
+	Expr         RuleExpr
+	Action       Action
+	Comments     []Comment
+	SourceSpan   *OperatorsOperatorBody
+	Source       *SourceItem
+	zpr_Comments rt.Span
 }
 
 // InitField is the struct type InitField.
 type InitField struct {
 	rt.Span
-	Name       *Ident
-	Val        ActionExpr
-	Comments   []Comment
-	SourceSpan *InitFieldBody
-	Source     *SourceItem
+	Name         *Ident
+	Val          ActionExpr
+	Comments     []Comment
+	SourceSpan   *InitFieldBody
+	Source       *SourceItem
+	zpr_Comments rt.Span
 }
 
 // InitFieldBody is the struct type InitFieldBody.
@@ -305,9 +322,10 @@ type LevelCall struct {
 // ListConstructor is the struct type ListConstructor.
 type ListConstructor struct {
 	rt.Span
-	Elem     Type
-	Items    []ActionExpr
-	Comments []Comment
+	Elem         Type
+	Items        []ActionExpr
+	Comments     []Comment
+	zpr_Comments rt.Span
 }
 
 // ListType is the struct type ListType.
@@ -345,31 +363,36 @@ type OneOrMore struct {
 // OperatorsLevel is the struct type OperatorsLevel.
 type OperatorsLevel struct {
 	rt.Span
-	Name       *Ident
-	Operators  []OpsOperator
-	Comments   []Comment
-	Head       *SourceLead
-	SourceSpan *OperatorsLevelBody
-	Source     *SourceItem
+	Name          *Ident
+	Operators     []OpsOperator
+	Comments      []Comment
+	Head          *SourceLead
+	SourceSpan    *OperatorsLevelBody
+	Source        *SourceItem
+	zpr_Operators rt.Span
+	zpr_Comments  rt.Span
 }
 
 // OperatorsLevelBody is the struct type OperatorsLevelBody.
 type OperatorsLevelBody struct {
 	rt.Span
-	Name      *Ident
-	Operators []OpsOperator
-	Head      *SourceLead
-	Comments  []Comment
+	Name          *Ident
+	Operators     []OpsOperator
+	Head          *SourceLead
+	Comments      []Comment
+	zpr_Operators rt.Span
+	zpr_Comments  rt.Span
 }
 
 // OperatorsOperand is the struct type OperatorsOperand.
 type OperatorsOperand struct {
 	rt.Span
-	Expr       RuleExpr
-	Action     Action
-	Comments   []Comment
-	SourceSpan *OperatorsOperandBody
-	Source     *SourceItem
+	Expr         RuleExpr
+	Action       Action
+	Comments     []Comment
+	SourceSpan   *OperatorsOperandBody
+	Source       *SourceItem
+	zpr_Comments rt.Span
 }
 
 // OperatorsOperandBody is the struct type OperatorsOperandBody.
@@ -390,18 +413,20 @@ type OperatorsOperatorBody struct {
 // OperatorsRule is the struct type OperatorsRule.
 type OperatorsRule struct {
 	rt.Span
-	Items    []OperatorsStmt
-	Comments []Comment
-	Head     *SourceLead
+	Items        []OperatorsStmt
+	Comments     []Comment
+	Head         *SourceLead
+	zpr_Comments rt.Span
 }
 
 // OperatorsSkip is the struct type OperatorsSkip.
 type OperatorsSkip struct {
 	rt.Span
-	Expr       RuleExpr
-	Comments   []Comment
-	SourceSpan *OperatorsSkipBody
-	Source     *SourceItem
+	Expr         RuleExpr
+	Comments     []Comment
+	SourceSpan   *OperatorsSkipBody
+	Source       *SourceItem
+	zpr_Comments rt.Span
 }
 
 // OperatorsSkipBody is the struct type OperatorsSkipBody.
@@ -425,9 +450,10 @@ type OptionalType struct {
 // Pkg is the struct type Pkg.
 type Pkg struct {
 	rt.Span
-	Name     *Ident
-	Comments []Comment
-	Source   *SourceMetadata
+	Name         *Ident
+	Comments     []Comment
+	Source       *SourceMetadata
+	zpr_Comments rt.Span
 }
 
 // PkgBody is the struct type PkgBody.
@@ -439,28 +465,32 @@ type PkgBody struct {
 // Postfix is the struct type Postfix.
 type Postfix struct {
 	rt.Span
-	Expr       RuleExpr
-	Action     Action
-	Comments   []Comment
-	SourceSpan *OperatorsOperatorBody
-	Source     *SourceItem
+	Expr         RuleExpr
+	Action       Action
+	Comments     []Comment
+	SourceSpan   *OperatorsOperatorBody
+	Source       *SourceItem
+	zpr_Comments rt.Span
 }
 
 // Predicate is the struct type Predicate.
 type Predicate struct {
 	rt.Span
-	Actions  []ActionStmt
-	Comments []Comment
+	Actions      []ActionStmt
+	Comments     []Comment
+	zpr_Actions  rt.Span
+	zpr_Comments rt.Span
 }
 
 // Prefix is the struct type Prefix.
 type Prefix struct {
 	rt.Span
-	Expr       RuleExpr
-	Action     Action
-	Comments   []Comment
-	SourceSpan *OperatorsOperatorBody
-	Source     *SourceItem
+	Expr         RuleExpr
+	Action       Action
+	Comments     []Comment
+	SourceSpan   *OperatorsOperatorBody
+	Source       *SourceItem
+	zpr_Comments rt.Span
 }
 
 // Recover is the struct type Recover.
@@ -490,25 +520,29 @@ type RepeatBounds struct {
 // RuleDef is the struct type RuleDef.
 type RuleDef struct {
 	rt.Span
-	Attrs      []*Attr
-	Name       *Ident
-	Type       Type
-	Expr       RuleExpr
-	Action     Action
-	Comments   []Comment
-	SourceSpan *RuleDefBody
-	Source     *SourceItem
+	Attrs        []*Attr
+	Name         *Ident
+	Type         Type
+	Expr         RuleExpr
+	Action       Action
+	Comments     []Comment
+	SourceSpan   *RuleDefBody
+	Source       *SourceItem
+	zpr_Attrs    rt.Span
+	zpr_Comments rt.Span
 }
 
 // RuleDefBody is the struct type RuleDefBody.
 type RuleDefBody struct {
 	rt.Span
-	Attrs        []*Attr
-	AttrComments []Comment
-	Name         *Ident
-	Type         Type
-	Expr         RuleExpr
-	Action       Action
+	Attrs            []*Attr
+	AttrComments     []Comment
+	Name             *Ident
+	Type             Type
+	Expr             RuleExpr
+	Action           Action
+	zpr_Attrs        rt.Span
+	zpr_AttrComments rt.Span
 }
 
 // RuleGroup is the struct type RuleGroup.
@@ -533,10 +567,12 @@ type Sequence struct {
 // SourceBoundary is the struct type SourceBoundary.
 type SourceBoundary struct {
 	rt.Span
-	Trailing []string
-	Leading  string
-	Detached []*SourceComment
-	HasNext  bool
+	Trailing     []string
+	Leading      string
+	Detached     []*SourceComment
+	HasNext      bool
+	zpr_Trailing rt.Span
+	zpr_Detached rt.Span
 }
 
 // SourceComment is the struct type SourceComment.
@@ -548,26 +584,30 @@ type SourceComment struct {
 // SourceItem is the struct type SourceItem.
 type SourceItem struct {
 	rt.Span
-	Trailing []string
-	Next     *SourceLead
+	Trailing     []string
+	Next         *SourceLead
+	zpr_Trailing rt.Span
 }
 
 // SourceLead is the struct type SourceLead.
 type SourceLead struct {
 	rt.Span
-	Leading  string
-	Detached []*SourceComment
-	HasNext  bool
+	Leading      string
+	Detached     []*SourceComment
+	HasNext      bool
+	zpr_Detached rt.Span
 }
 
 // SourceMetadata is the struct type SourceMetadata.
 type SourceMetadata struct {
 	rt.Span
-	Span_    SourceSpan
-	Leading  string
-	Trailing []string
-	Detached []*SourceComment
-	Next     *SourceLead
+	Span_        SourceSpan
+	Leading      string
+	Trailing     []string
+	Detached     []*SourceComment
+	Next         *SourceLead
+	zpr_Trailing rt.Span
+	zpr_Detached rt.Span
 }
 
 // Stream is the struct type Stream.
@@ -579,9 +619,10 @@ type Stream struct {
 // StructType is the struct type StructType.
 type StructType struct {
 	rt.Span
-	Fields   []FieldSpec
-	Comments []Comment
-	Head     *SourceLead
+	Fields       []FieldSpec
+	Comments     []Comment
+	Head         *SourceLead
+	zpr_Comments rt.Span
 }
 
 // TupleType is the struct type TupleType.
@@ -593,11 +634,12 @@ type TupleType struct {
 // TypeAlias is the struct type TypeAlias.
 type TypeAlias struct {
 	rt.Span
-	Name       *Ident
-	Type       Type
-	Comments   []Comment
-	SourceSpan *TypeAliasBody
-	Source     *SourceItem
+	Name         *Ident
+	Type         Type
+	Comments     []Comment
+	SourceSpan   *TypeAliasBody
+	Source       *SourceItem
+	zpr_Comments rt.Span
 }
 
 // TypeAliasBody is the struct type TypeAliasBody.
@@ -610,18 +652,20 @@ type TypeAliasBody struct {
 // TypeApp is the struct type TypeApp.
 type TypeApp struct {
 	rt.Span
-	Name *Ident
-	Args []Type
+	Name     *Ident
+	Args     []Type
+	zpr_Args rt.Span
 }
 
 // TypeDef is the struct type TypeDef.
 type TypeDef struct {
 	rt.Span
-	Name       *Ident
-	Type       DefinedType
-	Comments   []Comment
-	SourceSpan *TypeDefBody
-	Source     *SourceItem
+	Name         *Ident
+	Type         DefinedType
+	Comments     []Comment
+	SourceSpan   *TypeDefBody
+	Source       *SourceItem
+	zpr_Comments rt.Span
 }
 
 // TypeDefBody is the struct type TypeDefBody.
@@ -653,12 +697,13 @@ type UnaryOp struct {
 // VarDef is the struct type VarDef.
 type VarDef struct {
 	rt.Span
-	Name       *Ident
-	Type       Type
-	Value      ActionExpr
-	Comments   []Comment
-	SourceSpan *VarDefBody
-	Source     *SourceItem
+	Name         *Ident
+	Type         Type
+	Value        ActionExpr
+	Comments     []Comment
+	SourceSpan   *VarDefBody
+	Source       *SourceItem
+	zpr_Comments rt.Span
 }
 
 // VarDefBody is the struct type VarDefBody.
@@ -958,6 +1003,41 @@ func (*VarRef) isActionStmt()                {}
 func (*ZeroOrMore) isAttrValue()             {}
 func (*ZeroOrMore) isRuleExpr()              {}
 
+// zpRangeCursor hands out the ranges that the lists and tuples of a field had where they were made, in the
+// order that a read of the field builds them: a list or a tuple before its elements, the elements in order, and
+// only those that are not nil. A field whose lists and tuples hold no list or tuple stores the one range in
+// One; a field of nested lists and tuples stores them all in All.
+type zpRangeCursor struct {
+	One rt.Span
+	All []rt.Span
+	I   int
+}
+
+// Next returns the next range; a cursor that has none left hands out the empty range at 0.
+func (c *zpRangeCursor) Next() rt.Span {
+	if c.All == nil {
+		return c.One
+	}
+	if c.I >= len(c.All) {
+		return rt.Span{}
+	}
+	r := c.All[c.I]
+	c.I++
+	return r
+}
+
+// zpListAt returns the list value of kids with the range r that the list had where it was made.
+func zpListAt(kids []any, r rt.Span) any {
+	return &rt.TSeq{Typ: rt.TypeListValue, Kids: kids, Span: r}
+}
+
+// zpListFieldAt is zpListAt that charges a step for each element (TParser.ListField).
+func zpListFieldAt(p *rt.TParser, kids []any, r rt.Span) any {
+	n := p.ListField(kids).(*rt.TSeq)
+	n.Span = r
+	return n
+}
+
 func (v *ActionBind) TName() string         { return "ActionBind" }
 func (v *ActionBind) TText() (string, bool) { return "", false }
 func (v *ActionBind) TKids() []any          { return nil }
@@ -1003,28 +1083,36 @@ func (v *ActionBlock) TField(name string) (any, bool) {
 			return nil, false
 		}
 		return func() any {
-			if v.Actions == nil {
-				return nil
-			}
-			kids := make([]any, len(v.Actions))
-			for i, x := range v.Actions {
-				kids[i] = rt.TBack(ZPHooks, x)
-			}
-			return rt.TListOf(kids)
+			zc := &zpRangeCursor{One: v.zpr_Actions}
+			return func() any {
+				if v.Actions == nil {
+					return nil
+				}
+				sp := zc.Next()
+				kids := make([]any, len(v.Actions))
+				for i, x := range v.Actions {
+					kids[i] = rt.TBack(ZPHooks, x)
+				}
+				return zpListAt(kids, sp)
+			}()
 		}(), true
 	case "Comments":
 		if v.Comments == nil {
 			return nil, false
 		}
 		return func() any {
-			if v.Comments == nil {
-				return nil
-			}
-			kids := make([]any, len(v.Comments))
-			for i, x := range v.Comments {
-				kids[i] = rt.TBack(ZPHooks, x)
-			}
-			return rt.TListOf(kids)
+			zc := &zpRangeCursor{One: v.zpr_Comments}
+			return func() any {
+				if v.Comments == nil {
+					return nil
+				}
+				sp := zc.Next()
+				kids := make([]any, len(v.Comments))
+				for i, x := range v.Comments {
+					kids[i] = rt.TBack(ZPHooks, x)
+				}
+				return zpListAt(kids, sp)
+			}()
 		}(), true
 	}
 	return nil, false
@@ -1037,28 +1125,36 @@ func (v *ActionBlock) TFieldSpend(p *rt.TParser, name string) (any, bool) {
 			return nil, false
 		}
 		return func() any {
-			if v.Actions == nil {
-				return nil
-			}
-			kids := make([]any, len(v.Actions))
-			for i, x := range v.Actions {
-				kids[i] = rt.TBack(ZPHooks, x)
-			}
-			return p.ListField(kids)
+			zc := &zpRangeCursor{One: v.zpr_Actions}
+			return func() any {
+				if v.Actions == nil {
+					return nil
+				}
+				sp := zc.Next()
+				kids := make([]any, len(v.Actions))
+				for i, x := range v.Actions {
+					kids[i] = rt.TBack(ZPHooks, x)
+				}
+				return zpListFieldAt(p, kids, sp)
+			}()
 		}(), true
 	case "Comments":
 		if v.Comments == nil {
 			return nil, false
 		}
 		return func() any {
-			if v.Comments == nil {
-				return nil
-			}
-			kids := make([]any, len(v.Comments))
-			for i, x := range v.Comments {
-				kids[i] = rt.TBack(ZPHooks, x)
-			}
-			return p.ListField(kids)
+			zc := &zpRangeCursor{One: v.zpr_Comments}
+			return func() any {
+				if v.Comments == nil {
+					return nil
+				}
+				sp := zc.Next()
+				kids := make([]any, len(v.Comments))
+				for i, x := range v.Comments {
+					kids[i] = rt.TBack(ZPHooks, x)
+				}
+				return zpListFieldAt(p, kids, sp)
+			}()
 		}(), true
 	}
 	return nil, false
@@ -1072,6 +1168,22 @@ func (v *ActionBlock) TZeroField(c *rt.TActCtx, name string) (any, bool) {
 		return c.NewList(nil), true
 	}
 	return nil, false
+}
+
+// TSetRanges sets the ranges that the list or tuple of field i had where it was made.
+func (v *ActionBlock) TSetRanges(i int, one rt.Span, all []rt.Span) {
+	switch i {
+	case 0:
+		v.zpr_Actions = one
+	case 1:
+		v.zpr_Comments = one
+	}
+}
+
+// TCopyRanges copies the ranges of the lists and tuples of from.
+func (v *ActionBlock) TCopyRanges(from *ActionBlock) {
+	v.zpr_Actions = from.zpr_Actions
+	v.zpr_Comments = from.zpr_Comments
 }
 
 func (v *ActionGroup) TName() string         { return "ActionGroup" }
@@ -1199,28 +1311,36 @@ func (v *Attr) TField(name string) (any, bool) {
 			return nil, false
 		}
 		return func() any {
-			if v.Args == nil {
-				return nil
-			}
-			kids := make([]any, len(v.Args))
-			for i, x := range v.Args {
-				kids[i] = rt.TBack(ZPHooks, x)
-			}
-			return rt.TListOf(kids)
+			zc := &zpRangeCursor{One: v.zpr_Args}
+			return func() any {
+				if v.Args == nil {
+					return nil
+				}
+				sp := zc.Next()
+				kids := make([]any, len(v.Args))
+				for i, x := range v.Args {
+					kids[i] = rt.TBack(ZPHooks, x)
+				}
+				return zpListAt(kids, sp)
+			}()
 		}(), true
 	case "KwArgs":
 		if v.KwArgs == nil {
 			return nil, false
 		}
 		return func() any {
-			if v.KwArgs == nil {
-				return nil
-			}
-			kids := make([]any, len(v.KwArgs))
-			for i, x := range v.KwArgs {
-				kids[i] = rt.TPtr(x)
-			}
-			return rt.TListOf(kids)
+			zc := &zpRangeCursor{One: v.zpr_KwArgs}
+			return func() any {
+				if v.KwArgs == nil {
+					return nil
+				}
+				sp := zc.Next()
+				kids := make([]any, len(v.KwArgs))
+				for i, x := range v.KwArgs {
+					kids[i] = rt.TPtr(x)
+				}
+				return zpListAt(kids, sp)
+			}()
 		}(), true
 	}
 	return nil, false
@@ -1235,28 +1355,36 @@ func (v *Attr) TFieldSpend(p *rt.TParser, name string) (any, bool) {
 			return nil, false
 		}
 		return func() any {
-			if v.Args == nil {
-				return nil
-			}
-			kids := make([]any, len(v.Args))
-			for i, x := range v.Args {
-				kids[i] = rt.TBack(ZPHooks, x)
-			}
-			return p.ListField(kids)
+			zc := &zpRangeCursor{One: v.zpr_Args}
+			return func() any {
+				if v.Args == nil {
+					return nil
+				}
+				sp := zc.Next()
+				kids := make([]any, len(v.Args))
+				for i, x := range v.Args {
+					kids[i] = rt.TBack(ZPHooks, x)
+				}
+				return zpListFieldAt(p, kids, sp)
+			}()
 		}(), true
 	case "KwArgs":
 		if v.KwArgs == nil {
 			return nil, false
 		}
 		return func() any {
-			if v.KwArgs == nil {
-				return nil
-			}
-			kids := make([]any, len(v.KwArgs))
-			for i, x := range v.KwArgs {
-				kids[i] = rt.TPtr(x)
-			}
-			return p.ListField(kids)
+			zc := &zpRangeCursor{One: v.zpr_KwArgs}
+			return func() any {
+				if v.KwArgs == nil {
+					return nil
+				}
+				sp := zc.Next()
+				kids := make([]any, len(v.KwArgs))
+				for i, x := range v.KwArgs {
+					kids[i] = rt.TPtr(x)
+				}
+				return zpListFieldAt(p, kids, sp)
+			}()
 		}(), true
 	}
 	return nil, false
@@ -1272,6 +1400,22 @@ func (v *Attr) TZeroField(c *rt.TActCtx, name string) (any, bool) {
 	return nil, false
 }
 
+// TSetRanges sets the ranges that the list or tuple of field i had where it was made.
+func (v *Attr) TSetRanges(i int, one rt.Span, all []rt.Span) {
+	switch i {
+	case 1:
+		v.zpr_Args = one
+	case 2:
+		v.zpr_KwArgs = one
+	}
+}
+
+// TCopyRanges copies the ranges of the lists and tuples of from.
+func (v *Attr) TCopyRanges(from *Attr) {
+	v.zpr_Args = from.zpr_Args
+	v.zpr_KwArgs = from.zpr_KwArgs
+}
+
 func (v *AttrArgs) TName() string         { return "AttrArgs" }
 func (v *AttrArgs) TText() (string, bool) { return "", false }
 func (v *AttrArgs) TKids() []any          { return nil }
@@ -1285,28 +1429,36 @@ func (v *AttrArgs) TField(name string) (any, bool) {
 			return nil, false
 		}
 		return func() any {
-			if v.Args == nil {
-				return nil
-			}
-			kids := make([]any, len(v.Args))
-			for i, x := range v.Args {
-				kids[i] = rt.TBack(ZPHooks, x)
-			}
-			return rt.TListOf(kids)
+			zc := &zpRangeCursor{One: v.zpr_Args}
+			return func() any {
+				if v.Args == nil {
+					return nil
+				}
+				sp := zc.Next()
+				kids := make([]any, len(v.Args))
+				for i, x := range v.Args {
+					kids[i] = rt.TBack(ZPHooks, x)
+				}
+				return zpListAt(kids, sp)
+			}()
 		}(), true
 	case "KwArgs":
 		if v.KwArgs == nil {
 			return nil, false
 		}
 		return func() any {
-			if v.KwArgs == nil {
-				return nil
-			}
-			kids := make([]any, len(v.KwArgs))
-			for i, x := range v.KwArgs {
-				kids[i] = rt.TPtr(x)
-			}
-			return rt.TListOf(kids)
+			zc := &zpRangeCursor{One: v.zpr_KwArgs}
+			return func() any {
+				if v.KwArgs == nil {
+					return nil
+				}
+				sp := zc.Next()
+				kids := make([]any, len(v.KwArgs))
+				for i, x := range v.KwArgs {
+					kids[i] = rt.TPtr(x)
+				}
+				return zpListAt(kids, sp)
+			}()
 		}(), true
 	}
 	return nil, false
@@ -1319,28 +1471,36 @@ func (v *AttrArgs) TFieldSpend(p *rt.TParser, name string) (any, bool) {
 			return nil, false
 		}
 		return func() any {
-			if v.Args == nil {
-				return nil
-			}
-			kids := make([]any, len(v.Args))
-			for i, x := range v.Args {
-				kids[i] = rt.TBack(ZPHooks, x)
-			}
-			return p.ListField(kids)
+			zc := &zpRangeCursor{One: v.zpr_Args}
+			return func() any {
+				if v.Args == nil {
+					return nil
+				}
+				sp := zc.Next()
+				kids := make([]any, len(v.Args))
+				for i, x := range v.Args {
+					kids[i] = rt.TBack(ZPHooks, x)
+				}
+				return zpListFieldAt(p, kids, sp)
+			}()
 		}(), true
 	case "KwArgs":
 		if v.KwArgs == nil {
 			return nil, false
 		}
 		return func() any {
-			if v.KwArgs == nil {
-				return nil
-			}
-			kids := make([]any, len(v.KwArgs))
-			for i, x := range v.KwArgs {
-				kids[i] = rt.TPtr(x)
-			}
-			return p.ListField(kids)
+			zc := &zpRangeCursor{One: v.zpr_KwArgs}
+			return func() any {
+				if v.KwArgs == nil {
+					return nil
+				}
+				sp := zc.Next()
+				kids := make([]any, len(v.KwArgs))
+				for i, x := range v.KwArgs {
+					kids[i] = rt.TPtr(x)
+				}
+				return zpListFieldAt(p, kids, sp)
+			}()
 		}(), true
 	}
 	return nil, false
@@ -1354,6 +1514,22 @@ func (v *AttrArgs) TZeroField(c *rt.TActCtx, name string) (any, bool) {
 		return c.NewList(nil), true
 	}
 	return nil, false
+}
+
+// TSetRanges sets the ranges that the list or tuple of field i had where it was made.
+func (v *AttrArgs) TSetRanges(i int, one rt.Span, all []rt.Span) {
+	switch i {
+	case 0:
+		v.zpr_Args = one
+	case 1:
+		v.zpr_KwArgs = one
+	}
+}
+
+// TCopyRanges copies the ranges of the lists and tuples of from.
+func (v *AttrArgs) TCopyRanges(from *AttrArgs) {
+	v.zpr_Args = from.zpr_Args
+	v.zpr_KwArgs = from.zpr_KwArgs
 }
 
 func (v *AttrNamed) TName() string         { return "AttrNamed" }
@@ -1515,14 +1691,18 @@ func (v *Call) TField(name string) (any, bool) {
 			return nil, false
 		}
 		return func() any {
-			if v.Args == nil {
-				return nil
-			}
-			kids := make([]any, len(v.Args))
-			for i, x := range v.Args {
-				kids[i] = rt.TBack(ZPHooks, x)
-			}
-			return rt.TListOf(kids)
+			zc := &zpRangeCursor{One: v.zpr_Args}
+			return func() any {
+				if v.Args == nil {
+					return nil
+				}
+				sp := zc.Next()
+				kids := make([]any, len(v.Args))
+				for i, x := range v.Args {
+					kids[i] = rt.TBack(ZPHooks, x)
+				}
+				return zpListAt(kids, sp)
+			}()
 		}(), true
 	}
 	return nil, false
@@ -1537,14 +1717,18 @@ func (v *Call) TFieldSpend(p *rt.TParser, name string) (any, bool) {
 			return nil, false
 		}
 		return func() any {
-			if v.Args == nil {
-				return nil
-			}
-			kids := make([]any, len(v.Args))
-			for i, x := range v.Args {
-				kids[i] = rt.TBack(ZPHooks, x)
-			}
-			return p.ListField(kids)
+			zc := &zpRangeCursor{One: v.zpr_Args}
+			return func() any {
+				if v.Args == nil {
+					return nil
+				}
+				sp := zc.Next()
+				kids := make([]any, len(v.Args))
+				for i, x := range v.Args {
+					kids[i] = rt.TBack(ZPHooks, x)
+				}
+				return zpListFieldAt(p, kids, sp)
+			}()
 		}(), true
 	}
 	return nil, false
@@ -1556,6 +1740,19 @@ func (v *Call) TZeroField(c *rt.TActCtx, name string) (any, bool) {
 		return c.NewList(nil), true
 	}
 	return nil, false
+}
+
+// TSetRanges sets the ranges that the list or tuple of field i had where it was made.
+func (v *Call) TSetRanges(i int, one rt.Span, all []rt.Span) {
+	switch i {
+	case 1:
+		v.zpr_Args = one
+	}
+}
+
+// TCopyRanges copies the ranges of the lists and tuples of from.
+func (v *Call) TCopyRanges(from *Call) {
+	v.zpr_Args = from.zpr_Args
 }
 
 func (v *Capture) TName() string         { return "Capture" }
@@ -1789,14 +1986,18 @@ func (v *CommentGap) TField(name string) (any, bool) {
 			return nil, false
 		}
 		return func() any {
-			if v.Trailing == nil {
-				return nil
-			}
-			kids := make([]any, len(v.Trailing))
-			for i, x := range v.Trailing {
-				kids[i] = any(x)
-			}
-			return rt.TListOf(kids)
+			zc := &zpRangeCursor{One: v.zpr_Trailing}
+			return func() any {
+				if v.Trailing == nil {
+					return nil
+				}
+				sp := zc.Next()
+				kids := make([]any, len(v.Trailing))
+				for i, x := range v.Trailing {
+					kids[i] = any(x)
+				}
+				return zpListAt(kids, sp)
+			}()
 		}(), true
 	case "HasTrailing":
 		return any(v.HasTrailing), true
@@ -1807,14 +2008,18 @@ func (v *CommentGap) TField(name string) (any, bool) {
 			return nil, false
 		}
 		return func() any {
-			if v.Detached == nil {
-				return nil
-			}
-			kids := make([]any, len(v.Detached))
-			for i, x := range v.Detached {
-				kids[i] = rt.TPtr(x)
-			}
-			return rt.TListOf(kids)
+			zc := &zpRangeCursor{One: v.zpr_Detached}
+			return func() any {
+				if v.Detached == nil {
+					return nil
+				}
+				sp := zc.Next()
+				kids := make([]any, len(v.Detached))
+				for i, x := range v.Detached {
+					kids[i] = rt.TPtr(x)
+				}
+				return zpListAt(kids, sp)
+			}()
 		}(), true
 	case "HasNext":
 		return any(v.HasNext), true
@@ -1837,14 +2042,18 @@ func (v *CommentGap) TFieldSpend(p *rt.TParser, name string) (any, bool) {
 			return nil, false
 		}
 		return func() any {
-			if v.Trailing == nil {
-				return nil
-			}
-			kids := make([]any, len(v.Trailing))
-			for i, x := range v.Trailing {
-				kids[i] = any(x)
-			}
-			return p.ListField(kids)
+			zc := &zpRangeCursor{One: v.zpr_Trailing}
+			return func() any {
+				if v.Trailing == nil {
+					return nil
+				}
+				sp := zc.Next()
+				kids := make([]any, len(v.Trailing))
+				for i, x := range v.Trailing {
+					kids[i] = any(x)
+				}
+				return zpListFieldAt(p, kids, sp)
+			}()
 		}(), true
 	case "HasTrailing":
 		return any(v.HasTrailing), true
@@ -1855,14 +2064,18 @@ func (v *CommentGap) TFieldSpend(p *rt.TParser, name string) (any, bool) {
 			return nil, false
 		}
 		return func() any {
-			if v.Detached == nil {
-				return nil
-			}
-			kids := make([]any, len(v.Detached))
-			for i, x := range v.Detached {
-				kids[i] = rt.TPtr(x)
-			}
-			return p.ListField(kids)
+			zc := &zpRangeCursor{One: v.zpr_Detached}
+			return func() any {
+				if v.Detached == nil {
+					return nil
+				}
+				sp := zc.Next()
+				kids := make([]any, len(v.Detached))
+				for i, x := range v.Detached {
+					kids[i] = rt.TPtr(x)
+				}
+				return zpListFieldAt(p, kids, sp)
+			}()
 		}(), true
 	case "HasNext":
 		return any(v.HasNext), true
@@ -1878,6 +2091,22 @@ func (v *CommentGap) TZeroField(c *rt.TActCtx, name string) (any, bool) {
 		return c.NewList(nil), true
 	}
 	return nil, false
+}
+
+// TSetRanges sets the ranges that the list or tuple of field i had where it was made.
+func (v *CommentGap) TSetRanges(i int, one rt.Span, all []rt.Span) {
+	switch i {
+	case 0:
+		v.zpr_Trailing = one
+	case 3:
+		v.zpr_Detached = one
+	}
+}
+
+// TCopyRanges copies the ranges of the lists and tuples of from.
+func (v *CommentGap) TCopyRanges(from *CommentGap) {
+	v.zpr_Trailing = from.zpr_Trailing
+	v.zpr_Detached = from.zpr_Detached
 }
 
 func (v *CommentGroup) TName() string         { return "CommentGroup" }
@@ -1963,28 +2192,36 @@ func (v *Constructor) TField(name string) (any, bool) {
 			return nil, false
 		}
 		return func() any {
-			if v.Args == nil {
-				return nil
-			}
-			kids := make([]any, len(v.Args))
-			for i, x := range v.Args {
-				kids[i] = rt.TBack(ZPHooks, x)
-			}
-			return rt.TListOf(kids)
+			zc := &zpRangeCursor{One: v.zpr_Args}
+			return func() any {
+				if v.Args == nil {
+					return nil
+				}
+				sp := zc.Next()
+				kids := make([]any, len(v.Args))
+				for i, x := range v.Args {
+					kids[i] = rt.TBack(ZPHooks, x)
+				}
+				return zpListAt(kids, sp)
+			}()
 		}(), true
 	case "Comments":
 		if v.Comments == nil {
 			return nil, false
 		}
 		return func() any {
-			if v.Comments == nil {
-				return nil
-			}
-			kids := make([]any, len(v.Comments))
-			for i, x := range v.Comments {
-				kids[i] = rt.TBack(ZPHooks, x)
-			}
-			return rt.TListOf(kids)
+			zc := &zpRangeCursor{One: v.zpr_Comments}
+			return func() any {
+				if v.Comments == nil {
+					return nil
+				}
+				sp := zc.Next()
+				kids := make([]any, len(v.Comments))
+				for i, x := range v.Comments {
+					kids[i] = rt.TBack(ZPHooks, x)
+				}
+				return zpListAt(kids, sp)
+			}()
 		}(), true
 	case "Head":
 		if v.Head == nil {
@@ -2018,28 +2255,36 @@ func (v *Constructor) TFieldSpend(p *rt.TParser, name string) (any, bool) {
 			return nil, false
 		}
 		return func() any {
-			if v.Args == nil {
-				return nil
-			}
-			kids := make([]any, len(v.Args))
-			for i, x := range v.Args {
-				kids[i] = rt.TBack(ZPHooks, x)
-			}
-			return p.ListField(kids)
+			zc := &zpRangeCursor{One: v.zpr_Args}
+			return func() any {
+				if v.Args == nil {
+					return nil
+				}
+				sp := zc.Next()
+				kids := make([]any, len(v.Args))
+				for i, x := range v.Args {
+					kids[i] = rt.TBack(ZPHooks, x)
+				}
+				return zpListFieldAt(p, kids, sp)
+			}()
 		}(), true
 	case "Comments":
 		if v.Comments == nil {
 			return nil, false
 		}
 		return func() any {
-			if v.Comments == nil {
-				return nil
-			}
-			kids := make([]any, len(v.Comments))
-			for i, x := range v.Comments {
-				kids[i] = rt.TBack(ZPHooks, x)
-			}
-			return p.ListField(kids)
+			zc := &zpRangeCursor{One: v.zpr_Comments}
+			return func() any {
+				if v.Comments == nil {
+					return nil
+				}
+				sp := zc.Next()
+				kids := make([]any, len(v.Comments))
+				for i, x := range v.Comments {
+					kids[i] = rt.TBack(ZPHooks, x)
+				}
+				return zpListFieldAt(p, kids, sp)
+			}()
 		}(), true
 	case "Head":
 		if v.Head == nil {
@@ -2062,6 +2307,22 @@ func (v *Constructor) TZeroField(c *rt.TActCtx, name string) (any, bool) {
 		return c.MadeOf(new(SourceLead)), true
 	}
 	return nil, false
+}
+
+// TSetRanges sets the ranges that the list or tuple of field i had where it was made.
+func (v *Constructor) TSetRanges(i int, one rt.Span, all []rt.Span) {
+	switch i {
+	case 2:
+		v.zpr_Args = one
+	case 3:
+		v.zpr_Comments = one
+	}
+}
+
+// TCopyRanges copies the ranges of the lists and tuples of from.
+func (v *Constructor) TCopyRanges(from *Constructor) {
+	v.zpr_Args = from.zpr_Args
+	v.zpr_Comments = from.zpr_Comments
 }
 
 func (v *Discard) TName() string         { return "Discard" }
@@ -2109,14 +2370,18 @@ func (v *Field) TField(name string) (any, bool) {
 			return nil, false
 		}
 		return func() any {
-			if v.Comments == nil {
-				return nil
-			}
-			kids := make([]any, len(v.Comments))
-			for i, x := range v.Comments {
-				kids[i] = rt.TBack(ZPHooks, x)
-			}
-			return rt.TListOf(kids)
+			zc := &zpRangeCursor{One: v.zpr_Comments}
+			return func() any {
+				if v.Comments == nil {
+					return nil
+				}
+				sp := zc.Next()
+				kids := make([]any, len(v.Comments))
+				for i, x := range v.Comments {
+					kids[i] = rt.TBack(ZPHooks, x)
+				}
+				return zpListAt(kids, sp)
+			}()
 		}(), true
 	case "SourceSpan":
 		if v.SourceSpan == nil {
@@ -2143,14 +2408,18 @@ func (v *Field) TFieldSpend(p *rt.TParser, name string) (any, bool) {
 			return nil, false
 		}
 		return func() any {
-			if v.Comments == nil {
-				return nil
-			}
-			kids := make([]any, len(v.Comments))
-			for i, x := range v.Comments {
-				kids[i] = rt.TBack(ZPHooks, x)
-			}
-			return p.ListField(kids)
+			zc := &zpRangeCursor{One: v.zpr_Comments}
+			return func() any {
+				if v.Comments == nil {
+					return nil
+				}
+				sp := zc.Next()
+				kids := make([]any, len(v.Comments))
+				for i, x := range v.Comments {
+					kids[i] = rt.TBack(ZPHooks, x)
+				}
+				return zpListFieldAt(p, kids, sp)
+			}()
 		}(), true
 	case "SourceSpan":
 		if v.SourceSpan == nil {
@@ -2176,6 +2445,19 @@ func (v *Field) TZeroField(c *rt.TActCtx, name string) (any, bool) {
 		return c.MadeOf(new(SourceItem)), true
 	}
 	return nil, false
+}
+
+// TSetRanges sets the ranges that the list or tuple of field i had where it was made.
+func (v *Field) TSetRanges(i int, one rt.Span, all []rt.Span) {
+	switch i {
+	case 2:
+		v.zpr_Comments = one
+	}
+}
+
+// TCopyRanges copies the ranges of the lists and tuples of from.
+func (v *Field) TCopyRanges(from *Field) {
+	v.zpr_Comments = from.zpr_Comments
 }
 
 func (v *FieldAccess) TName() string         { return "FieldAccess" }
@@ -2257,42 +2539,54 @@ func (v *File) TField(name string) (any, bool) {
 			return nil, false
 		}
 		return func() any {
-			if v.Decls == nil {
-				return nil
-			}
-			kids := make([]any, len(v.Decls))
-			for i, x := range v.Decls {
-				kids[i] = rt.TBack(ZPHooks, x)
-			}
-			return rt.TListOf(kids)
+			zc := &zpRangeCursor{One: v.zpr_Decls}
+			return func() any {
+				if v.Decls == nil {
+					return nil
+				}
+				sp := zc.Next()
+				kids := make([]any, len(v.Decls))
+				for i, x := range v.Decls {
+					kids[i] = rt.TBack(ZPHooks, x)
+				}
+				return zpListAt(kids, sp)
+			}()
 		}(), true
 	case "Comments":
 		if v.Comments == nil {
 			return nil, false
 		}
 		return func() any {
-			if v.Comments == nil {
-				return nil
-			}
-			kids := make([]any, len(v.Comments))
-			for i, x := range v.Comments {
-				kids[i] = rt.TBack(ZPHooks, x)
-			}
-			return rt.TListOf(kids)
+			zc := &zpRangeCursor{One: v.zpr_Comments}
+			return func() any {
+				if v.Comments == nil {
+					return nil
+				}
+				sp := zc.Next()
+				kids := make([]any, len(v.Comments))
+				for i, x := range v.Comments {
+					kids[i] = rt.TBack(ZPHooks, x)
+				}
+				return zpListAt(kids, sp)
+			}()
 		}(), true
 	case "TrailingComments":
 		if v.TrailingComments == nil {
 			return nil, false
 		}
 		return func() any {
-			if v.TrailingComments == nil {
-				return nil
-			}
-			kids := make([]any, len(v.TrailingComments))
-			for i, x := range v.TrailingComments {
-				kids[i] = rt.TBack(ZPHooks, x)
-			}
-			return rt.TListOf(kids)
+			zc := &zpRangeCursor{One: v.zpr_TrailingComments}
+			return func() any {
+				if v.TrailingComments == nil {
+					return nil
+				}
+				sp := zc.Next()
+				kids := make([]any, len(v.TrailingComments))
+				for i, x := range v.TrailingComments {
+					kids[i] = rt.TBack(ZPHooks, x)
+				}
+				return zpListAt(kids, sp)
+			}()
 		}(), true
 	case "Text":
 		return any(v.Text), true
@@ -2336,42 +2630,54 @@ func (v *File) TFieldSpend(p *rt.TParser, name string) (any, bool) {
 			return nil, false
 		}
 		return func() any {
-			if v.Decls == nil {
-				return nil
-			}
-			kids := make([]any, len(v.Decls))
-			for i, x := range v.Decls {
-				kids[i] = rt.TBack(ZPHooks, x)
-			}
-			return p.ListField(kids)
+			zc := &zpRangeCursor{One: v.zpr_Decls}
+			return func() any {
+				if v.Decls == nil {
+					return nil
+				}
+				sp := zc.Next()
+				kids := make([]any, len(v.Decls))
+				for i, x := range v.Decls {
+					kids[i] = rt.TBack(ZPHooks, x)
+				}
+				return zpListFieldAt(p, kids, sp)
+			}()
 		}(), true
 	case "Comments":
 		if v.Comments == nil {
 			return nil, false
 		}
 		return func() any {
-			if v.Comments == nil {
-				return nil
-			}
-			kids := make([]any, len(v.Comments))
-			for i, x := range v.Comments {
-				kids[i] = rt.TBack(ZPHooks, x)
-			}
-			return p.ListField(kids)
+			zc := &zpRangeCursor{One: v.zpr_Comments}
+			return func() any {
+				if v.Comments == nil {
+					return nil
+				}
+				sp := zc.Next()
+				kids := make([]any, len(v.Comments))
+				for i, x := range v.Comments {
+					kids[i] = rt.TBack(ZPHooks, x)
+				}
+				return zpListFieldAt(p, kids, sp)
+			}()
 		}(), true
 	case "TrailingComments":
 		if v.TrailingComments == nil {
 			return nil, false
 		}
 		return func() any {
-			if v.TrailingComments == nil {
-				return nil
-			}
-			kids := make([]any, len(v.TrailingComments))
-			for i, x := range v.TrailingComments {
-				kids[i] = rt.TBack(ZPHooks, x)
-			}
-			return p.ListField(kids)
+			zc := &zpRangeCursor{One: v.zpr_TrailingComments}
+			return func() any {
+				if v.TrailingComments == nil {
+					return nil
+				}
+				sp := zc.Next()
+				kids := make([]any, len(v.TrailingComments))
+				for i, x := range v.TrailingComments {
+					kids[i] = rt.TBack(ZPHooks, x)
+				}
+				return zpListFieldAt(p, kids, sp)
+			}()
 		}(), true
 	case "Text":
 		return any(v.Text), true
@@ -2412,6 +2718,25 @@ func (v *File) TZeroField(c *rt.TActCtx, name string) (any, bool) {
 		return c.NewList(nil), true
 	}
 	return nil, false
+}
+
+// TSetRanges sets the ranges that the list or tuple of field i had where it was made.
+func (v *File) TSetRanges(i int, one rt.Span, all []rt.Span) {
+	switch i {
+	case 1:
+		v.zpr_Decls = one
+	case 2:
+		v.zpr_Comments = one
+	case 3:
+		v.zpr_TrailingComments = one
+	}
+}
+
+// TCopyRanges copies the ranges of the lists and tuples of from.
+func (v *File) TCopyRanges(from *File) {
+	v.zpr_Decls = from.zpr_Decls
+	v.zpr_Comments = from.zpr_Comments
+	v.zpr_TrailingComments = from.zpr_TrailingComments
 }
 
 func (v *GapFlag) TName() string         { return "GapFlag" }
@@ -2485,14 +2810,18 @@ func (v *Infix) TField(name string) (any, bool) {
 			return nil, false
 		}
 		return func() any {
-			if v.Comments == nil {
-				return nil
-			}
-			kids := make([]any, len(v.Comments))
-			for i, x := range v.Comments {
-				kids[i] = rt.TBack(ZPHooks, x)
-			}
-			return rt.TListOf(kids)
+			zc := &zpRangeCursor{One: v.zpr_Comments}
+			return func() any {
+				if v.Comments == nil {
+					return nil
+				}
+				sp := zc.Next()
+				kids := make([]any, len(v.Comments))
+				for i, x := range v.Comments {
+					kids[i] = rt.TBack(ZPHooks, x)
+				}
+				return zpListAt(kids, sp)
+			}()
 		}(), true
 	case "SourceSpan":
 		if v.SourceSpan == nil {
@@ -2529,14 +2858,18 @@ func (v *Infix) TFieldSpend(p *rt.TParser, name string) (any, bool) {
 			return nil, false
 		}
 		return func() any {
-			if v.Comments == nil {
-				return nil
-			}
-			kids := make([]any, len(v.Comments))
-			for i, x := range v.Comments {
-				kids[i] = rt.TBack(ZPHooks, x)
-			}
-			return p.ListField(kids)
+			zc := &zpRangeCursor{One: v.zpr_Comments}
+			return func() any {
+				if v.Comments == nil {
+					return nil
+				}
+				sp := zc.Next()
+				kids := make([]any, len(v.Comments))
+				for i, x := range v.Comments {
+					kids[i] = rt.TBack(ZPHooks, x)
+				}
+				return zpListFieldAt(p, kids, sp)
+			}()
 		}(), true
 	case "SourceSpan":
 		if v.SourceSpan == nil {
@@ -2564,6 +2897,19 @@ func (v *Infix) TZeroField(c *rt.TActCtx, name string) (any, bool) {
 	return nil, false
 }
 
+// TSetRanges sets the ranges that the list or tuple of field i had where it was made.
+func (v *Infix) TSetRanges(i int, one rt.Span, all []rt.Span) {
+	switch i {
+	case 3:
+		v.zpr_Comments = one
+	}
+}
+
+// TCopyRanges copies the ranges of the lists and tuples of from.
+func (v *Infix) TCopyRanges(from *Infix) {
+	v.zpr_Comments = from.zpr_Comments
+}
+
 func (v *InitField) TName() string         { return "InitField" }
 func (v *InitField) TText() (string, bool) { return "", false }
 func (v *InitField) TKids() []any          { return nil }
@@ -2581,14 +2927,18 @@ func (v *InitField) TField(name string) (any, bool) {
 			return nil, false
 		}
 		return func() any {
-			if v.Comments == nil {
-				return nil
-			}
-			kids := make([]any, len(v.Comments))
-			for i, x := range v.Comments {
-				kids[i] = rt.TBack(ZPHooks, x)
-			}
-			return rt.TListOf(kids)
+			zc := &zpRangeCursor{One: v.zpr_Comments}
+			return func() any {
+				if v.Comments == nil {
+					return nil
+				}
+				sp := zc.Next()
+				kids := make([]any, len(v.Comments))
+				for i, x := range v.Comments {
+					kids[i] = rt.TBack(ZPHooks, x)
+				}
+				return zpListAt(kids, sp)
+			}()
 		}(), true
 	case "SourceSpan":
 		if v.SourceSpan == nil {
@@ -2615,14 +2965,18 @@ func (v *InitField) TFieldSpend(p *rt.TParser, name string) (any, bool) {
 			return nil, false
 		}
 		return func() any {
-			if v.Comments == nil {
-				return nil
-			}
-			kids := make([]any, len(v.Comments))
-			for i, x := range v.Comments {
-				kids[i] = rt.TBack(ZPHooks, x)
-			}
-			return p.ListField(kids)
+			zc := &zpRangeCursor{One: v.zpr_Comments}
+			return func() any {
+				if v.Comments == nil {
+					return nil
+				}
+				sp := zc.Next()
+				kids := make([]any, len(v.Comments))
+				for i, x := range v.Comments {
+					kids[i] = rt.TBack(ZPHooks, x)
+				}
+				return zpListFieldAt(p, kids, sp)
+			}()
 		}(), true
 	case "SourceSpan":
 		if v.SourceSpan == nil {
@@ -2648,6 +3002,19 @@ func (v *InitField) TZeroField(c *rt.TActCtx, name string) (any, bool) {
 		return c.MadeOf(new(SourceItem)), true
 	}
 	return nil, false
+}
+
+// TSetRanges sets the ranges that the list or tuple of field i had where it was made.
+func (v *InitField) TSetRanges(i int, one rt.Span, all []rt.Span) {
+	switch i {
+	case 2:
+		v.zpr_Comments = one
+	}
+}
+
+// TCopyRanges copies the ranges of the lists and tuples of from.
+func (v *InitField) TCopyRanges(from *InitField) {
+	v.zpr_Comments = from.zpr_Comments
 }
 
 func (v *InitFieldBody) TName() string         { return "InitFieldBody" }
@@ -2901,14 +3268,18 @@ func (v *ListConstructor) TField(name string) (any, bool) {
 			return nil, false
 		}
 		return func() any {
-			if v.Comments == nil {
-				return nil
-			}
-			kids := make([]any, len(v.Comments))
-			for i, x := range v.Comments {
-				kids[i] = rt.TBack(ZPHooks, x)
-			}
-			return rt.TListOf(kids)
+			zc := &zpRangeCursor{One: v.zpr_Comments}
+			return func() any {
+				if v.Comments == nil {
+					return nil
+				}
+				sp := zc.Next()
+				kids := make([]any, len(v.Comments))
+				for i, x := range v.Comments {
+					kids[i] = rt.TBack(ZPHooks, x)
+				}
+				return zpListAt(kids, sp)
+			}()
 		}(), true
 	}
 	return nil, false
@@ -2937,14 +3308,18 @@ func (v *ListConstructor) TFieldSpend(p *rt.TParser, name string) (any, bool) {
 			return nil, false
 		}
 		return func() any {
-			if v.Comments == nil {
-				return nil
-			}
-			kids := make([]any, len(v.Comments))
-			for i, x := range v.Comments {
-				kids[i] = rt.TBack(ZPHooks, x)
-			}
-			return p.ListField(kids)
+			zc := &zpRangeCursor{One: v.zpr_Comments}
+			return func() any {
+				if v.Comments == nil {
+					return nil
+				}
+				sp := zc.Next()
+				kids := make([]any, len(v.Comments))
+				for i, x := range v.Comments {
+					kids[i] = rt.TBack(ZPHooks, x)
+				}
+				return zpListFieldAt(p, kids, sp)
+			}()
 		}(), true
 	}
 	return nil, false
@@ -2958,6 +3333,19 @@ func (v *ListConstructor) TZeroField(c *rt.TActCtx, name string) (any, bool) {
 		return c.NewList(nil), true
 	}
 	return nil, false
+}
+
+// TSetRanges sets the ranges that the list or tuple of field i had where it was made.
+func (v *ListConstructor) TSetRanges(i int, one rt.Span, all []rt.Span) {
+	switch i {
+	case 2:
+		v.zpr_Comments = one
+	}
+}
+
+// TCopyRanges copies the ranges of the lists and tuples of from.
+func (v *ListConstructor) TCopyRanges(from *ListConstructor) {
+	v.zpr_Comments = from.zpr_Comments
 }
 
 func (v *ListType) TName() string         { return "ListType" }
@@ -3131,28 +3519,36 @@ func (v *OperatorsLevel) TField(name string) (any, bool) {
 			return nil, false
 		}
 		return func() any {
-			if v.Operators == nil {
-				return nil
-			}
-			kids := make([]any, len(v.Operators))
-			for i, x := range v.Operators {
-				kids[i] = rt.TBack(ZPHooks, x)
-			}
-			return rt.TListOf(kids)
+			zc := &zpRangeCursor{One: v.zpr_Operators}
+			return func() any {
+				if v.Operators == nil {
+					return nil
+				}
+				sp := zc.Next()
+				kids := make([]any, len(v.Operators))
+				for i, x := range v.Operators {
+					kids[i] = rt.TBack(ZPHooks, x)
+				}
+				return zpListAt(kids, sp)
+			}()
 		}(), true
 	case "Comments":
 		if v.Comments == nil {
 			return nil, false
 		}
 		return func() any {
-			if v.Comments == nil {
-				return nil
-			}
-			kids := make([]any, len(v.Comments))
-			for i, x := range v.Comments {
-				kids[i] = rt.TBack(ZPHooks, x)
-			}
-			return rt.TListOf(kids)
+			zc := &zpRangeCursor{One: v.zpr_Comments}
+			return func() any {
+				if v.Comments == nil {
+					return nil
+				}
+				sp := zc.Next()
+				kids := make([]any, len(v.Comments))
+				for i, x := range v.Comments {
+					kids[i] = rt.TBack(ZPHooks, x)
+				}
+				return zpListAt(kids, sp)
+			}()
 		}(), true
 	case "Head":
 		if v.Head == nil {
@@ -3182,28 +3578,36 @@ func (v *OperatorsLevel) TFieldSpend(p *rt.TParser, name string) (any, bool) {
 			return nil, false
 		}
 		return func() any {
-			if v.Operators == nil {
-				return nil
-			}
-			kids := make([]any, len(v.Operators))
-			for i, x := range v.Operators {
-				kids[i] = rt.TBack(ZPHooks, x)
-			}
-			return p.ListField(kids)
+			zc := &zpRangeCursor{One: v.zpr_Operators}
+			return func() any {
+				if v.Operators == nil {
+					return nil
+				}
+				sp := zc.Next()
+				kids := make([]any, len(v.Operators))
+				for i, x := range v.Operators {
+					kids[i] = rt.TBack(ZPHooks, x)
+				}
+				return zpListFieldAt(p, kids, sp)
+			}()
 		}(), true
 	case "Comments":
 		if v.Comments == nil {
 			return nil, false
 		}
 		return func() any {
-			if v.Comments == nil {
-				return nil
-			}
-			kids := make([]any, len(v.Comments))
-			for i, x := range v.Comments {
-				kids[i] = rt.TBack(ZPHooks, x)
-			}
-			return p.ListField(kids)
+			zc := &zpRangeCursor{One: v.zpr_Comments}
+			return func() any {
+				if v.Comments == nil {
+					return nil
+				}
+				sp := zc.Next()
+				kids := make([]any, len(v.Comments))
+				for i, x := range v.Comments {
+					kids[i] = rt.TBack(ZPHooks, x)
+				}
+				return zpListFieldAt(p, kids, sp)
+			}()
 		}(), true
 	case "Head":
 		if v.Head == nil {
@@ -3240,6 +3644,22 @@ func (v *OperatorsLevel) TZeroField(c *rt.TActCtx, name string) (any, bool) {
 	return nil, false
 }
 
+// TSetRanges sets the ranges that the list or tuple of field i had where it was made.
+func (v *OperatorsLevel) TSetRanges(i int, one rt.Span, all []rt.Span) {
+	switch i {
+	case 1:
+		v.zpr_Operators = one
+	case 2:
+		v.zpr_Comments = one
+	}
+}
+
+// TCopyRanges copies the ranges of the lists and tuples of from.
+func (v *OperatorsLevel) TCopyRanges(from *OperatorsLevel) {
+	v.zpr_Operators = from.zpr_Operators
+	v.zpr_Comments = from.zpr_Comments
+}
+
 func (v *OperatorsLevelBody) TName() string         { return "OperatorsLevelBody" }
 func (v *OperatorsLevelBody) TText() (string, bool) { return "", false }
 func (v *OperatorsLevelBody) TKids() []any          { return nil }
@@ -3255,14 +3675,18 @@ func (v *OperatorsLevelBody) TField(name string) (any, bool) {
 			return nil, false
 		}
 		return func() any {
-			if v.Operators == nil {
-				return nil
-			}
-			kids := make([]any, len(v.Operators))
-			for i, x := range v.Operators {
-				kids[i] = rt.TBack(ZPHooks, x)
-			}
-			return rt.TListOf(kids)
+			zc := &zpRangeCursor{One: v.zpr_Operators}
+			return func() any {
+				if v.Operators == nil {
+					return nil
+				}
+				sp := zc.Next()
+				kids := make([]any, len(v.Operators))
+				for i, x := range v.Operators {
+					kids[i] = rt.TBack(ZPHooks, x)
+				}
+				return zpListAt(kids, sp)
+			}()
 		}(), true
 	case "Head":
 		if v.Head == nil {
@@ -3274,14 +3698,18 @@ func (v *OperatorsLevelBody) TField(name string) (any, bool) {
 			return nil, false
 		}
 		return func() any {
-			if v.Comments == nil {
-				return nil
-			}
-			kids := make([]any, len(v.Comments))
-			for i, x := range v.Comments {
-				kids[i] = rt.TBack(ZPHooks, x)
-			}
-			return rt.TListOf(kids)
+			zc := &zpRangeCursor{One: v.zpr_Comments}
+			return func() any {
+				if v.Comments == nil {
+					return nil
+				}
+				sp := zc.Next()
+				kids := make([]any, len(v.Comments))
+				for i, x := range v.Comments {
+					kids[i] = rt.TBack(ZPHooks, x)
+				}
+				return zpListAt(kids, sp)
+			}()
 		}(), true
 	}
 	return nil, false
@@ -3296,14 +3724,18 @@ func (v *OperatorsLevelBody) TFieldSpend(p *rt.TParser, name string) (any, bool)
 			return nil, false
 		}
 		return func() any {
-			if v.Operators == nil {
-				return nil
-			}
-			kids := make([]any, len(v.Operators))
-			for i, x := range v.Operators {
-				kids[i] = rt.TBack(ZPHooks, x)
-			}
-			return p.ListField(kids)
+			zc := &zpRangeCursor{One: v.zpr_Operators}
+			return func() any {
+				if v.Operators == nil {
+					return nil
+				}
+				sp := zc.Next()
+				kids := make([]any, len(v.Operators))
+				for i, x := range v.Operators {
+					kids[i] = rt.TBack(ZPHooks, x)
+				}
+				return zpListFieldAt(p, kids, sp)
+			}()
 		}(), true
 	case "Head":
 		if v.Head == nil {
@@ -3315,14 +3747,18 @@ func (v *OperatorsLevelBody) TFieldSpend(p *rt.TParser, name string) (any, bool)
 			return nil, false
 		}
 		return func() any {
-			if v.Comments == nil {
-				return nil
-			}
-			kids := make([]any, len(v.Comments))
-			for i, x := range v.Comments {
-				kids[i] = rt.TBack(ZPHooks, x)
-			}
-			return p.ListField(kids)
+			zc := &zpRangeCursor{One: v.zpr_Comments}
+			return func() any {
+				if v.Comments == nil {
+					return nil
+				}
+				sp := zc.Next()
+				kids := make([]any, len(v.Comments))
+				for i, x := range v.Comments {
+					kids[i] = rt.TBack(ZPHooks, x)
+				}
+				return zpListFieldAt(p, kids, sp)
+			}()
 		}(), true
 	}
 	return nil, false
@@ -3338,6 +3774,22 @@ func (v *OperatorsLevelBody) TZeroField(c *rt.TActCtx, name string) (any, bool) 
 		return c.NewList(nil), true
 	}
 	return nil, false
+}
+
+// TSetRanges sets the ranges that the list or tuple of field i had where it was made.
+func (v *OperatorsLevelBody) TSetRanges(i int, one rt.Span, all []rt.Span) {
+	switch i {
+	case 1:
+		v.zpr_Operators = one
+	case 3:
+		v.zpr_Comments = one
+	}
+}
+
+// TCopyRanges copies the ranges of the lists and tuples of from.
+func (v *OperatorsLevelBody) TCopyRanges(from *OperatorsLevelBody) {
+	v.zpr_Operators = from.zpr_Operators
+	v.zpr_Comments = from.zpr_Comments
 }
 
 func (v *OperatorsOperand) TName() string         { return "OperatorsOperand" }
@@ -3357,14 +3809,18 @@ func (v *OperatorsOperand) TField(name string) (any, bool) {
 			return nil, false
 		}
 		return func() any {
-			if v.Comments == nil {
-				return nil
-			}
-			kids := make([]any, len(v.Comments))
-			for i, x := range v.Comments {
-				kids[i] = rt.TBack(ZPHooks, x)
-			}
-			return rt.TListOf(kids)
+			zc := &zpRangeCursor{One: v.zpr_Comments}
+			return func() any {
+				if v.Comments == nil {
+					return nil
+				}
+				sp := zc.Next()
+				kids := make([]any, len(v.Comments))
+				for i, x := range v.Comments {
+					kids[i] = rt.TBack(ZPHooks, x)
+				}
+				return zpListAt(kids, sp)
+			}()
 		}(), true
 	case "SourceSpan":
 		if v.SourceSpan == nil {
@@ -3391,14 +3847,18 @@ func (v *OperatorsOperand) TFieldSpend(p *rt.TParser, name string) (any, bool) {
 			return nil, false
 		}
 		return func() any {
-			if v.Comments == nil {
-				return nil
-			}
-			kids := make([]any, len(v.Comments))
-			for i, x := range v.Comments {
-				kids[i] = rt.TBack(ZPHooks, x)
-			}
-			return p.ListField(kids)
+			zc := &zpRangeCursor{One: v.zpr_Comments}
+			return func() any {
+				if v.Comments == nil {
+					return nil
+				}
+				sp := zc.Next()
+				kids := make([]any, len(v.Comments))
+				for i, x := range v.Comments {
+					kids[i] = rt.TBack(ZPHooks, x)
+				}
+				return zpListFieldAt(p, kids, sp)
+			}()
 		}(), true
 	case "SourceSpan":
 		if v.SourceSpan == nil {
@@ -3424,6 +3884,19 @@ func (v *OperatorsOperand) TZeroField(c *rt.TActCtx, name string) (any, bool) {
 		return c.MadeOf(new(SourceItem)), true
 	}
 	return nil, false
+}
+
+// TSetRanges sets the ranges that the list or tuple of field i had where it was made.
+func (v *OperatorsOperand) TSetRanges(i int, one rt.Span, all []rt.Span) {
+	switch i {
+	case 2:
+		v.zpr_Comments = one
+	}
+}
+
+// TCopyRanges copies the ranges of the lists and tuples of from.
+func (v *OperatorsOperand) TCopyRanges(from *OperatorsOperand) {
+	v.zpr_Comments = from.zpr_Comments
 }
 
 func (v *OperatorsOperandBody) TName() string         { return "OperatorsOperandBody" }
@@ -3529,14 +4002,18 @@ func (v *OperatorsRule) TField(name string) (any, bool) {
 			return nil, false
 		}
 		return func() any {
-			if v.Comments == nil {
-				return nil
-			}
-			kids := make([]any, len(v.Comments))
-			for i, x := range v.Comments {
-				kids[i] = rt.TBack(ZPHooks, x)
-			}
-			return rt.TListOf(kids)
+			zc := &zpRangeCursor{One: v.zpr_Comments}
+			return func() any {
+				if v.Comments == nil {
+					return nil
+				}
+				sp := zc.Next()
+				kids := make([]any, len(v.Comments))
+				for i, x := range v.Comments {
+					kids[i] = rt.TBack(ZPHooks, x)
+				}
+				return zpListAt(kids, sp)
+			}()
 		}(), true
 	case "Head":
 		if v.Head == nil {
@@ -3568,14 +4045,18 @@ func (v *OperatorsRule) TFieldSpend(p *rt.TParser, name string) (any, bool) {
 			return nil, false
 		}
 		return func() any {
-			if v.Comments == nil {
-				return nil
-			}
-			kids := make([]any, len(v.Comments))
-			for i, x := range v.Comments {
-				kids[i] = rt.TBack(ZPHooks, x)
-			}
-			return p.ListField(kids)
+			zc := &zpRangeCursor{One: v.zpr_Comments}
+			return func() any {
+				if v.Comments == nil {
+					return nil
+				}
+				sp := zc.Next()
+				kids := make([]any, len(v.Comments))
+				for i, x := range v.Comments {
+					kids[i] = rt.TBack(ZPHooks, x)
+				}
+				return zpListFieldAt(p, kids, sp)
+			}()
 		}(), true
 	case "Head":
 		if v.Head == nil {
@@ -3598,6 +4079,19 @@ func (v *OperatorsRule) TZeroField(c *rt.TActCtx, name string) (any, bool) {
 	return nil, false
 }
 
+// TSetRanges sets the ranges that the list or tuple of field i had where it was made.
+func (v *OperatorsRule) TSetRanges(i int, one rt.Span, all []rt.Span) {
+	switch i {
+	case 1:
+		v.zpr_Comments = one
+	}
+}
+
+// TCopyRanges copies the ranges of the lists and tuples of from.
+func (v *OperatorsRule) TCopyRanges(from *OperatorsRule) {
+	v.zpr_Comments = from.zpr_Comments
+}
+
 func (v *OperatorsSkip) TName() string         { return "OperatorsSkip" }
 func (v *OperatorsSkip) TText() (string, bool) { return "", false }
 func (v *OperatorsSkip) TKids() []any          { return nil }
@@ -3613,14 +4107,18 @@ func (v *OperatorsSkip) TField(name string) (any, bool) {
 			return nil, false
 		}
 		return func() any {
-			if v.Comments == nil {
-				return nil
-			}
-			kids := make([]any, len(v.Comments))
-			for i, x := range v.Comments {
-				kids[i] = rt.TBack(ZPHooks, x)
-			}
-			return rt.TListOf(kids)
+			zc := &zpRangeCursor{One: v.zpr_Comments}
+			return func() any {
+				if v.Comments == nil {
+					return nil
+				}
+				sp := zc.Next()
+				kids := make([]any, len(v.Comments))
+				for i, x := range v.Comments {
+					kids[i] = rt.TBack(ZPHooks, x)
+				}
+				return zpListAt(kids, sp)
+			}()
 		}(), true
 	case "SourceSpan":
 		if v.SourceSpan == nil {
@@ -3645,14 +4143,18 @@ func (v *OperatorsSkip) TFieldSpend(p *rt.TParser, name string) (any, bool) {
 			return nil, false
 		}
 		return func() any {
-			if v.Comments == nil {
-				return nil
-			}
-			kids := make([]any, len(v.Comments))
-			for i, x := range v.Comments {
-				kids[i] = rt.TBack(ZPHooks, x)
-			}
-			return p.ListField(kids)
+			zc := &zpRangeCursor{One: v.zpr_Comments}
+			return func() any {
+				if v.Comments == nil {
+					return nil
+				}
+				sp := zc.Next()
+				kids := make([]any, len(v.Comments))
+				for i, x := range v.Comments {
+					kids[i] = rt.TBack(ZPHooks, x)
+				}
+				return zpListFieldAt(p, kids, sp)
+			}()
 		}(), true
 	case "SourceSpan":
 		if v.SourceSpan == nil {
@@ -3678,6 +4180,19 @@ func (v *OperatorsSkip) TZeroField(c *rt.TActCtx, name string) (any, bool) {
 		return c.MadeOf(new(SourceItem)), true
 	}
 	return nil, false
+}
+
+// TSetRanges sets the ranges that the list or tuple of field i had where it was made.
+func (v *OperatorsSkip) TSetRanges(i int, one rt.Span, all []rt.Span) {
+	switch i {
+	case 1:
+		v.zpr_Comments = one
+	}
+}
+
+// TCopyRanges copies the ranges of the lists and tuples of from.
+func (v *OperatorsSkip) TCopyRanges(from *OperatorsSkip) {
+	v.zpr_Comments = from.zpr_Comments
 }
 
 func (v *OperatorsSkipBody) TName() string         { return "OperatorsSkipBody" }
@@ -3779,14 +4294,18 @@ func (v *Pkg) TField(name string) (any, bool) {
 			return nil, false
 		}
 		return func() any {
-			if v.Comments == nil {
-				return nil
-			}
-			kids := make([]any, len(v.Comments))
-			for i, x := range v.Comments {
-				kids[i] = rt.TBack(ZPHooks, x)
-			}
-			return rt.TListOf(kids)
+			zc := &zpRangeCursor{One: v.zpr_Comments}
+			return func() any {
+				if v.Comments == nil {
+					return nil
+				}
+				sp := zc.Next()
+				kids := make([]any, len(v.Comments))
+				for i, x := range v.Comments {
+					kids[i] = rt.TBack(ZPHooks, x)
+				}
+				return zpListAt(kids, sp)
+			}()
 		}(), true
 	case "Source":
 		if v.Source == nil {
@@ -3806,14 +4325,18 @@ func (v *Pkg) TFieldSpend(p *rt.TParser, name string) (any, bool) {
 			return nil, false
 		}
 		return func() any {
-			if v.Comments == nil {
-				return nil
-			}
-			kids := make([]any, len(v.Comments))
-			for i, x := range v.Comments {
-				kids[i] = rt.TBack(ZPHooks, x)
-			}
-			return p.ListField(kids)
+			zc := &zpRangeCursor{One: v.zpr_Comments}
+			return func() any {
+				if v.Comments == nil {
+					return nil
+				}
+				sp := zc.Next()
+				kids := make([]any, len(v.Comments))
+				for i, x := range v.Comments {
+					kids[i] = rt.TBack(ZPHooks, x)
+				}
+				return zpListFieldAt(p, kids, sp)
+			}()
 		}(), true
 	case "Source":
 		if v.Source == nil {
@@ -3832,6 +4355,19 @@ func (v *Pkg) TZeroField(c *rt.TActCtx, name string) (any, bool) {
 		return c.MadeOf(new(SourceMetadata)), true
 	}
 	return nil, false
+}
+
+// TSetRanges sets the ranges that the list or tuple of field i had where it was made.
+func (v *Pkg) TSetRanges(i int, one rt.Span, all []rt.Span) {
+	switch i {
+	case 1:
+		v.zpr_Comments = one
+	}
+}
+
+// TCopyRanges copies the ranges of the lists and tuples of from.
+func (v *Pkg) TCopyRanges(from *Pkg) {
+	v.zpr_Comments = from.zpr_Comments
 }
 
 func (v *PkgBody) TName() string         { return "PkgBody" }
@@ -3879,14 +4415,18 @@ func (v *Postfix) TField(name string) (any, bool) {
 			return nil, false
 		}
 		return func() any {
-			if v.Comments == nil {
-				return nil
-			}
-			kids := make([]any, len(v.Comments))
-			for i, x := range v.Comments {
-				kids[i] = rt.TBack(ZPHooks, x)
-			}
-			return rt.TListOf(kids)
+			zc := &zpRangeCursor{One: v.zpr_Comments}
+			return func() any {
+				if v.Comments == nil {
+					return nil
+				}
+				sp := zc.Next()
+				kids := make([]any, len(v.Comments))
+				for i, x := range v.Comments {
+					kids[i] = rt.TBack(ZPHooks, x)
+				}
+				return zpListAt(kids, sp)
+			}()
 		}(), true
 	case "SourceSpan":
 		if v.SourceSpan == nil {
@@ -3913,14 +4453,18 @@ func (v *Postfix) TFieldSpend(p *rt.TParser, name string) (any, bool) {
 			return nil, false
 		}
 		return func() any {
-			if v.Comments == nil {
-				return nil
-			}
-			kids := make([]any, len(v.Comments))
-			for i, x := range v.Comments {
-				kids[i] = rt.TBack(ZPHooks, x)
-			}
-			return p.ListField(kids)
+			zc := &zpRangeCursor{One: v.zpr_Comments}
+			return func() any {
+				if v.Comments == nil {
+					return nil
+				}
+				sp := zc.Next()
+				kids := make([]any, len(v.Comments))
+				for i, x := range v.Comments {
+					kids[i] = rt.TBack(ZPHooks, x)
+				}
+				return zpListFieldAt(p, kids, sp)
+			}()
 		}(), true
 	case "SourceSpan":
 		if v.SourceSpan == nil {
@@ -3948,6 +4492,19 @@ func (v *Postfix) TZeroField(c *rt.TActCtx, name string) (any, bool) {
 	return nil, false
 }
 
+// TSetRanges sets the ranges that the list or tuple of field i had where it was made.
+func (v *Postfix) TSetRanges(i int, one rt.Span, all []rt.Span) {
+	switch i {
+	case 2:
+		v.zpr_Comments = one
+	}
+}
+
+// TCopyRanges copies the ranges of the lists and tuples of from.
+func (v *Postfix) TCopyRanges(from *Postfix) {
+	v.zpr_Comments = from.zpr_Comments
+}
+
 func (v *Predicate) TName() string         { return "Predicate" }
 func (v *Predicate) TText() (string, bool) { return "", false }
 func (v *Predicate) TKids() []any          { return nil }
@@ -3961,28 +4518,36 @@ func (v *Predicate) TField(name string) (any, bool) {
 			return nil, false
 		}
 		return func() any {
-			if v.Actions == nil {
-				return nil
-			}
-			kids := make([]any, len(v.Actions))
-			for i, x := range v.Actions {
-				kids[i] = rt.TBack(ZPHooks, x)
-			}
-			return rt.TListOf(kids)
+			zc := &zpRangeCursor{One: v.zpr_Actions}
+			return func() any {
+				if v.Actions == nil {
+					return nil
+				}
+				sp := zc.Next()
+				kids := make([]any, len(v.Actions))
+				for i, x := range v.Actions {
+					kids[i] = rt.TBack(ZPHooks, x)
+				}
+				return zpListAt(kids, sp)
+			}()
 		}(), true
 	case "Comments":
 		if v.Comments == nil {
 			return nil, false
 		}
 		return func() any {
-			if v.Comments == nil {
-				return nil
-			}
-			kids := make([]any, len(v.Comments))
-			for i, x := range v.Comments {
-				kids[i] = rt.TBack(ZPHooks, x)
-			}
-			return rt.TListOf(kids)
+			zc := &zpRangeCursor{One: v.zpr_Comments}
+			return func() any {
+				if v.Comments == nil {
+					return nil
+				}
+				sp := zc.Next()
+				kids := make([]any, len(v.Comments))
+				for i, x := range v.Comments {
+					kids[i] = rt.TBack(ZPHooks, x)
+				}
+				return zpListAt(kids, sp)
+			}()
 		}(), true
 	}
 	return nil, false
@@ -3995,28 +4560,36 @@ func (v *Predicate) TFieldSpend(p *rt.TParser, name string) (any, bool) {
 			return nil, false
 		}
 		return func() any {
-			if v.Actions == nil {
-				return nil
-			}
-			kids := make([]any, len(v.Actions))
-			for i, x := range v.Actions {
-				kids[i] = rt.TBack(ZPHooks, x)
-			}
-			return p.ListField(kids)
+			zc := &zpRangeCursor{One: v.zpr_Actions}
+			return func() any {
+				if v.Actions == nil {
+					return nil
+				}
+				sp := zc.Next()
+				kids := make([]any, len(v.Actions))
+				for i, x := range v.Actions {
+					kids[i] = rt.TBack(ZPHooks, x)
+				}
+				return zpListFieldAt(p, kids, sp)
+			}()
 		}(), true
 	case "Comments":
 		if v.Comments == nil {
 			return nil, false
 		}
 		return func() any {
-			if v.Comments == nil {
-				return nil
-			}
-			kids := make([]any, len(v.Comments))
-			for i, x := range v.Comments {
-				kids[i] = rt.TBack(ZPHooks, x)
-			}
-			return p.ListField(kids)
+			zc := &zpRangeCursor{One: v.zpr_Comments}
+			return func() any {
+				if v.Comments == nil {
+					return nil
+				}
+				sp := zc.Next()
+				kids := make([]any, len(v.Comments))
+				for i, x := range v.Comments {
+					kids[i] = rt.TBack(ZPHooks, x)
+				}
+				return zpListFieldAt(p, kids, sp)
+			}()
 		}(), true
 	}
 	return nil, false
@@ -4030,6 +4603,22 @@ func (v *Predicate) TZeroField(c *rt.TActCtx, name string) (any, bool) {
 		return c.NewList(nil), true
 	}
 	return nil, false
+}
+
+// TSetRanges sets the ranges that the list or tuple of field i had where it was made.
+func (v *Predicate) TSetRanges(i int, one rt.Span, all []rt.Span) {
+	switch i {
+	case 0:
+		v.zpr_Actions = one
+	case 1:
+		v.zpr_Comments = one
+	}
+}
+
+// TCopyRanges copies the ranges of the lists and tuples of from.
+func (v *Predicate) TCopyRanges(from *Predicate) {
+	v.zpr_Actions = from.zpr_Actions
+	v.zpr_Comments = from.zpr_Comments
 }
 
 func (v *Prefix) TName() string         { return "Prefix" }
@@ -4049,14 +4638,18 @@ func (v *Prefix) TField(name string) (any, bool) {
 			return nil, false
 		}
 		return func() any {
-			if v.Comments == nil {
-				return nil
-			}
-			kids := make([]any, len(v.Comments))
-			for i, x := range v.Comments {
-				kids[i] = rt.TBack(ZPHooks, x)
-			}
-			return rt.TListOf(kids)
+			zc := &zpRangeCursor{One: v.zpr_Comments}
+			return func() any {
+				if v.Comments == nil {
+					return nil
+				}
+				sp := zc.Next()
+				kids := make([]any, len(v.Comments))
+				for i, x := range v.Comments {
+					kids[i] = rt.TBack(ZPHooks, x)
+				}
+				return zpListAt(kids, sp)
+			}()
 		}(), true
 	case "SourceSpan":
 		if v.SourceSpan == nil {
@@ -4083,14 +4676,18 @@ func (v *Prefix) TFieldSpend(p *rt.TParser, name string) (any, bool) {
 			return nil, false
 		}
 		return func() any {
-			if v.Comments == nil {
-				return nil
-			}
-			kids := make([]any, len(v.Comments))
-			for i, x := range v.Comments {
-				kids[i] = rt.TBack(ZPHooks, x)
-			}
-			return p.ListField(kids)
+			zc := &zpRangeCursor{One: v.zpr_Comments}
+			return func() any {
+				if v.Comments == nil {
+					return nil
+				}
+				sp := zc.Next()
+				kids := make([]any, len(v.Comments))
+				for i, x := range v.Comments {
+					kids[i] = rt.TBack(ZPHooks, x)
+				}
+				return zpListFieldAt(p, kids, sp)
+			}()
 		}(), true
 	case "SourceSpan":
 		if v.SourceSpan == nil {
@@ -4116,6 +4713,19 @@ func (v *Prefix) TZeroField(c *rt.TActCtx, name string) (any, bool) {
 		return c.MadeOf(new(SourceItem)), true
 	}
 	return nil, false
+}
+
+// TSetRanges sets the ranges that the list or tuple of field i had where it was made.
+func (v *Prefix) TSetRanges(i int, one rt.Span, all []rt.Span) {
+	switch i {
+	case 2:
+		v.zpr_Comments = one
+	}
+}
+
+// TCopyRanges copies the ranges of the lists and tuples of from.
+func (v *Prefix) TCopyRanges(from *Prefix) {
+	v.zpr_Comments = from.zpr_Comments
 }
 
 func (v *Recover) TName() string         { return "Recover" }
@@ -4239,14 +4849,18 @@ func (v *RuleDef) TField(name string) (any, bool) {
 			return nil, false
 		}
 		return func() any {
-			if v.Attrs == nil {
-				return nil
-			}
-			kids := make([]any, len(v.Attrs))
-			for i, x := range v.Attrs {
-				kids[i] = rt.TPtr(x)
-			}
-			return rt.TListOf(kids)
+			zc := &zpRangeCursor{One: v.zpr_Attrs}
+			return func() any {
+				if v.Attrs == nil {
+					return nil
+				}
+				sp := zc.Next()
+				kids := make([]any, len(v.Attrs))
+				for i, x := range v.Attrs {
+					kids[i] = rt.TPtr(x)
+				}
+				return zpListAt(kids, sp)
+			}()
 		}(), true
 	case "Name":
 		return tb0(v.Name), true
@@ -4261,14 +4875,18 @@ func (v *RuleDef) TField(name string) (any, bool) {
 			return nil, false
 		}
 		return func() any {
-			if v.Comments == nil {
-				return nil
-			}
-			kids := make([]any, len(v.Comments))
-			for i, x := range v.Comments {
-				kids[i] = rt.TBack(ZPHooks, x)
-			}
-			return rt.TListOf(kids)
+			zc := &zpRangeCursor{One: v.zpr_Comments}
+			return func() any {
+				if v.Comments == nil {
+					return nil
+				}
+				sp := zc.Next()
+				kids := make([]any, len(v.Comments))
+				for i, x := range v.Comments {
+					kids[i] = rt.TBack(ZPHooks, x)
+				}
+				return zpListAt(kids, sp)
+			}()
 		}(), true
 	case "SourceSpan":
 		if v.SourceSpan == nil {
@@ -4291,14 +4909,18 @@ func (v *RuleDef) TFieldSpend(p *rt.TParser, name string) (any, bool) {
 			return nil, false
 		}
 		return func() any {
-			if v.Attrs == nil {
-				return nil
-			}
-			kids := make([]any, len(v.Attrs))
-			for i, x := range v.Attrs {
-				kids[i] = rt.TPtr(x)
-			}
-			return p.ListField(kids)
+			zc := &zpRangeCursor{One: v.zpr_Attrs}
+			return func() any {
+				if v.Attrs == nil {
+					return nil
+				}
+				sp := zc.Next()
+				kids := make([]any, len(v.Attrs))
+				for i, x := range v.Attrs {
+					kids[i] = rt.TPtr(x)
+				}
+				return zpListFieldAt(p, kids, sp)
+			}()
 		}(), true
 	case "Name":
 		return tb0(v.Name), true
@@ -4313,14 +4935,18 @@ func (v *RuleDef) TFieldSpend(p *rt.TParser, name string) (any, bool) {
 			return nil, false
 		}
 		return func() any {
-			if v.Comments == nil {
-				return nil
-			}
-			kids := make([]any, len(v.Comments))
-			for i, x := range v.Comments {
-				kids[i] = rt.TBack(ZPHooks, x)
-			}
-			return p.ListField(kids)
+			zc := &zpRangeCursor{One: v.zpr_Comments}
+			return func() any {
+				if v.Comments == nil {
+					return nil
+				}
+				sp := zc.Next()
+				kids := make([]any, len(v.Comments))
+				for i, x := range v.Comments {
+					kids[i] = rt.TBack(ZPHooks, x)
+				}
+				return zpListFieldAt(p, kids, sp)
+			}()
 		}(), true
 	case "SourceSpan":
 		if v.SourceSpan == nil {
@@ -4350,6 +4976,22 @@ func (v *RuleDef) TZeroField(c *rt.TActCtx, name string) (any, bool) {
 	return nil, false
 }
 
+// TSetRanges sets the ranges that the list or tuple of field i had where it was made.
+func (v *RuleDef) TSetRanges(i int, one rt.Span, all []rt.Span) {
+	switch i {
+	case 0:
+		v.zpr_Attrs = one
+	case 5:
+		v.zpr_Comments = one
+	}
+}
+
+// TCopyRanges copies the ranges of the lists and tuples of from.
+func (v *RuleDef) TCopyRanges(from *RuleDef) {
+	v.zpr_Attrs = from.zpr_Attrs
+	v.zpr_Comments = from.zpr_Comments
+}
+
 func (v *RuleDefBody) TName() string         { return "RuleDefBody" }
 func (v *RuleDefBody) TText() (string, bool) { return "", false }
 func (v *RuleDefBody) TKids() []any          { return nil }
@@ -4363,28 +5005,36 @@ func (v *RuleDefBody) TField(name string) (any, bool) {
 			return nil, false
 		}
 		return func() any {
-			if v.Attrs == nil {
-				return nil
-			}
-			kids := make([]any, len(v.Attrs))
-			for i, x := range v.Attrs {
-				kids[i] = rt.TPtr(x)
-			}
-			return rt.TListOf(kids)
+			zc := &zpRangeCursor{One: v.zpr_Attrs}
+			return func() any {
+				if v.Attrs == nil {
+					return nil
+				}
+				sp := zc.Next()
+				kids := make([]any, len(v.Attrs))
+				for i, x := range v.Attrs {
+					kids[i] = rt.TPtr(x)
+				}
+				return zpListAt(kids, sp)
+			}()
 		}(), true
 	case "AttrComments":
 		if v.AttrComments == nil {
 			return nil, false
 		}
 		return func() any {
-			if v.AttrComments == nil {
-				return nil
-			}
-			kids := make([]any, len(v.AttrComments))
-			for i, x := range v.AttrComments {
-				kids[i] = rt.TBack(ZPHooks, x)
-			}
-			return rt.TListOf(kids)
+			zc := &zpRangeCursor{One: v.zpr_AttrComments}
+			return func() any {
+				if v.AttrComments == nil {
+					return nil
+				}
+				sp := zc.Next()
+				kids := make([]any, len(v.AttrComments))
+				for i, x := range v.AttrComments {
+					kids[i] = rt.TBack(ZPHooks, x)
+				}
+				return zpListAt(kids, sp)
+			}()
 		}(), true
 	case "Name":
 		return tb0(v.Name), true
@@ -4405,28 +5055,36 @@ func (v *RuleDefBody) TFieldSpend(p *rt.TParser, name string) (any, bool) {
 			return nil, false
 		}
 		return func() any {
-			if v.Attrs == nil {
-				return nil
-			}
-			kids := make([]any, len(v.Attrs))
-			for i, x := range v.Attrs {
-				kids[i] = rt.TPtr(x)
-			}
-			return p.ListField(kids)
+			zc := &zpRangeCursor{One: v.zpr_Attrs}
+			return func() any {
+				if v.Attrs == nil {
+					return nil
+				}
+				sp := zc.Next()
+				kids := make([]any, len(v.Attrs))
+				for i, x := range v.Attrs {
+					kids[i] = rt.TPtr(x)
+				}
+				return zpListFieldAt(p, kids, sp)
+			}()
 		}(), true
 	case "AttrComments":
 		if v.AttrComments == nil {
 			return nil, false
 		}
 		return func() any {
-			if v.AttrComments == nil {
-				return nil
-			}
-			kids := make([]any, len(v.AttrComments))
-			for i, x := range v.AttrComments {
-				kids[i] = rt.TBack(ZPHooks, x)
-			}
-			return p.ListField(kids)
+			zc := &zpRangeCursor{One: v.zpr_AttrComments}
+			return func() any {
+				if v.AttrComments == nil {
+					return nil
+				}
+				sp := zc.Next()
+				kids := make([]any, len(v.AttrComments))
+				for i, x := range v.AttrComments {
+					kids[i] = rt.TBack(ZPHooks, x)
+				}
+				return zpListFieldAt(p, kids, sp)
+			}()
 		}(), true
 	case "Name":
 		return tb0(v.Name), true
@@ -4448,6 +5106,22 @@ func (v *RuleDefBody) TZeroField(c *rt.TActCtx, name string) (any, bool) {
 		return c.NewList(nil), true
 	}
 	return nil, false
+}
+
+// TSetRanges sets the ranges that the list or tuple of field i had where it was made.
+func (v *RuleDefBody) TSetRanges(i int, one rt.Span, all []rt.Span) {
+	switch i {
+	case 0:
+		v.zpr_Attrs = one
+	case 1:
+		v.zpr_AttrComments = one
+	}
+}
+
+// TCopyRanges copies the ranges of the lists and tuples of from.
+func (v *RuleDefBody) TCopyRanges(from *RuleDefBody) {
+	v.zpr_Attrs = from.zpr_Attrs
+	v.zpr_AttrComments = from.zpr_AttrComments
 }
 
 func (v *RuleGroup) TName() string         { return "RuleGroup" }
@@ -4551,14 +5225,18 @@ func (v *SourceBoundary) TField(name string) (any, bool) {
 			return nil, false
 		}
 		return func() any {
-			if v.Trailing == nil {
-				return nil
-			}
-			kids := make([]any, len(v.Trailing))
-			for i, x := range v.Trailing {
-				kids[i] = any(x)
-			}
-			return rt.TListOf(kids)
+			zc := &zpRangeCursor{One: v.zpr_Trailing}
+			return func() any {
+				if v.Trailing == nil {
+					return nil
+				}
+				sp := zc.Next()
+				kids := make([]any, len(v.Trailing))
+				for i, x := range v.Trailing {
+					kids[i] = any(x)
+				}
+				return zpListAt(kids, sp)
+			}()
 		}(), true
 	case "Leading":
 		return any(v.Leading), true
@@ -4567,14 +5245,18 @@ func (v *SourceBoundary) TField(name string) (any, bool) {
 			return nil, false
 		}
 		return func() any {
-			if v.Detached == nil {
-				return nil
-			}
-			kids := make([]any, len(v.Detached))
-			for i, x := range v.Detached {
-				kids[i] = rt.TPtr(x)
-			}
-			return rt.TListOf(kids)
+			zc := &zpRangeCursor{One: v.zpr_Detached}
+			return func() any {
+				if v.Detached == nil {
+					return nil
+				}
+				sp := zc.Next()
+				kids := make([]any, len(v.Detached))
+				for i, x := range v.Detached {
+					kids[i] = rt.TPtr(x)
+				}
+				return zpListAt(kids, sp)
+			}()
 		}(), true
 	case "HasNext":
 		return any(v.HasNext), true
@@ -4597,14 +5279,18 @@ func (v *SourceBoundary) TFieldSpend(p *rt.TParser, name string) (any, bool) {
 			return nil, false
 		}
 		return func() any {
-			if v.Trailing == nil {
-				return nil
-			}
-			kids := make([]any, len(v.Trailing))
-			for i, x := range v.Trailing {
-				kids[i] = any(x)
-			}
-			return p.ListField(kids)
+			zc := &zpRangeCursor{One: v.zpr_Trailing}
+			return func() any {
+				if v.Trailing == nil {
+					return nil
+				}
+				sp := zc.Next()
+				kids := make([]any, len(v.Trailing))
+				for i, x := range v.Trailing {
+					kids[i] = any(x)
+				}
+				return zpListFieldAt(p, kids, sp)
+			}()
 		}(), true
 	case "Leading":
 		return any(v.Leading), true
@@ -4613,14 +5299,18 @@ func (v *SourceBoundary) TFieldSpend(p *rt.TParser, name string) (any, bool) {
 			return nil, false
 		}
 		return func() any {
-			if v.Detached == nil {
-				return nil
-			}
-			kids := make([]any, len(v.Detached))
-			for i, x := range v.Detached {
-				kids[i] = rt.TPtr(x)
-			}
-			return p.ListField(kids)
+			zc := &zpRangeCursor{One: v.zpr_Detached}
+			return func() any {
+				if v.Detached == nil {
+					return nil
+				}
+				sp := zc.Next()
+				kids := make([]any, len(v.Detached))
+				for i, x := range v.Detached {
+					kids[i] = rt.TPtr(x)
+				}
+				return zpListFieldAt(p, kids, sp)
+			}()
 		}(), true
 	case "HasNext":
 		return any(v.HasNext), true
@@ -4636,6 +5326,22 @@ func (v *SourceBoundary) TZeroField(c *rt.TActCtx, name string) (any, bool) {
 		return c.NewList(nil), true
 	}
 	return nil, false
+}
+
+// TSetRanges sets the ranges that the list or tuple of field i had where it was made.
+func (v *SourceBoundary) TSetRanges(i int, one rt.Span, all []rt.Span) {
+	switch i {
+	case 0:
+		v.zpr_Trailing = one
+	case 2:
+		v.zpr_Detached = one
+	}
+}
+
+// TCopyRanges copies the ranges of the lists and tuples of from.
+func (v *SourceBoundary) TCopyRanges(from *SourceBoundary) {
+	v.zpr_Trailing = from.zpr_Trailing
+	v.zpr_Detached = from.zpr_Detached
 }
 
 func (v *SourceComment) TName() string         { return "SourceComment" }
@@ -4687,14 +5393,18 @@ func (v *SourceItem) TField(name string) (any, bool) {
 			return nil, false
 		}
 		return func() any {
-			if v.Trailing == nil {
-				return nil
-			}
-			kids := make([]any, len(v.Trailing))
-			for i, x := range v.Trailing {
-				kids[i] = any(x)
-			}
-			return rt.TListOf(kids)
+			zc := &zpRangeCursor{One: v.zpr_Trailing}
+			return func() any {
+				if v.Trailing == nil {
+					return nil
+				}
+				sp := zc.Next()
+				kids := make([]any, len(v.Trailing))
+				for i, x := range v.Trailing {
+					kids[i] = any(x)
+				}
+				return zpListAt(kids, sp)
+			}()
 		}(), true
 	case "Next":
 		if v.Next == nil {
@@ -4712,14 +5422,18 @@ func (v *SourceItem) TFieldSpend(p *rt.TParser, name string) (any, bool) {
 			return nil, false
 		}
 		return func() any {
-			if v.Trailing == nil {
-				return nil
-			}
-			kids := make([]any, len(v.Trailing))
-			for i, x := range v.Trailing {
-				kids[i] = any(x)
-			}
-			return p.ListField(kids)
+			zc := &zpRangeCursor{One: v.zpr_Trailing}
+			return func() any {
+				if v.Trailing == nil {
+					return nil
+				}
+				sp := zc.Next()
+				kids := make([]any, len(v.Trailing))
+				for i, x := range v.Trailing {
+					kids[i] = any(x)
+				}
+				return zpListFieldAt(p, kids, sp)
+			}()
 		}(), true
 	case "Next":
 		if v.Next == nil {
@@ -4740,6 +5454,19 @@ func (v *SourceItem) TZeroField(c *rt.TActCtx, name string) (any, bool) {
 	return nil, false
 }
 
+// TSetRanges sets the ranges that the list or tuple of field i had where it was made.
+func (v *SourceItem) TSetRanges(i int, one rt.Span, all []rt.Span) {
+	switch i {
+	case 0:
+		v.zpr_Trailing = one
+	}
+}
+
+// TCopyRanges copies the ranges of the lists and tuples of from.
+func (v *SourceItem) TCopyRanges(from *SourceItem) {
+	v.zpr_Trailing = from.zpr_Trailing
+}
+
 func (v *SourceLead) TName() string         { return "SourceLead" }
 func (v *SourceLead) TText() (string, bool) { return "", false }
 func (v *SourceLead) TKids() []any          { return nil }
@@ -4755,14 +5482,18 @@ func (v *SourceLead) TField(name string) (any, bool) {
 			return nil, false
 		}
 		return func() any {
-			if v.Detached == nil {
-				return nil
-			}
-			kids := make([]any, len(v.Detached))
-			for i, x := range v.Detached {
-				kids[i] = rt.TPtr(x)
-			}
-			return rt.TListOf(kids)
+			zc := &zpRangeCursor{One: v.zpr_Detached}
+			return func() any {
+				if v.Detached == nil {
+					return nil
+				}
+				sp := zc.Next()
+				kids := make([]any, len(v.Detached))
+				for i, x := range v.Detached {
+					kids[i] = rt.TPtr(x)
+				}
+				return zpListAt(kids, sp)
+			}()
 		}(), true
 	case "HasNext":
 		return any(v.HasNext), true
@@ -4787,14 +5518,18 @@ func (v *SourceLead) TFieldSpend(p *rt.TParser, name string) (any, bool) {
 			return nil, false
 		}
 		return func() any {
-			if v.Detached == nil {
-				return nil
-			}
-			kids := make([]any, len(v.Detached))
-			for i, x := range v.Detached {
-				kids[i] = rt.TPtr(x)
-			}
-			return p.ListField(kids)
+			zc := &zpRangeCursor{One: v.zpr_Detached}
+			return func() any {
+				if v.Detached == nil {
+					return nil
+				}
+				sp := zc.Next()
+				kids := make([]any, len(v.Detached))
+				for i, x := range v.Detached {
+					kids[i] = rt.TPtr(x)
+				}
+				return zpListFieldAt(p, kids, sp)
+			}()
 		}(), true
 	case "HasNext":
 		return any(v.HasNext), true
@@ -4808,6 +5543,19 @@ func (v *SourceLead) TZeroField(c *rt.TActCtx, name string) (any, bool) {
 		return c.NewList(nil), true
 	}
 	return nil, false
+}
+
+// TSetRanges sets the ranges that the list or tuple of field i had where it was made.
+func (v *SourceLead) TSetRanges(i int, one rt.Span, all []rt.Span) {
+	switch i {
+	case 1:
+		v.zpr_Detached = one
+	}
+}
+
+// TCopyRanges copies the ranges of the lists and tuples of from.
+func (v *SourceLead) TCopyRanges(from *SourceLead) {
+	v.zpr_Detached = from.zpr_Detached
 }
 
 func (v *SourceMetadata) TName() string         { return "SourceMetadata" }
@@ -4827,28 +5575,36 @@ func (v *SourceMetadata) TField(name string) (any, bool) {
 			return nil, false
 		}
 		return func() any {
-			if v.Trailing == nil {
-				return nil
-			}
-			kids := make([]any, len(v.Trailing))
-			for i, x := range v.Trailing {
-				kids[i] = any(x)
-			}
-			return rt.TListOf(kids)
+			zc := &zpRangeCursor{One: v.zpr_Trailing}
+			return func() any {
+				if v.Trailing == nil {
+					return nil
+				}
+				sp := zc.Next()
+				kids := make([]any, len(v.Trailing))
+				for i, x := range v.Trailing {
+					kids[i] = any(x)
+				}
+				return zpListAt(kids, sp)
+			}()
 		}(), true
 	case "Detached":
 		if v.Detached == nil {
 			return nil, false
 		}
 		return func() any {
-			if v.Detached == nil {
-				return nil
-			}
-			kids := make([]any, len(v.Detached))
-			for i, x := range v.Detached {
-				kids[i] = rt.TPtr(x)
-			}
-			return rt.TListOf(kids)
+			zc := &zpRangeCursor{One: v.zpr_Detached}
+			return func() any {
+				if v.Detached == nil {
+					return nil
+				}
+				sp := zc.Next()
+				kids := make([]any, len(v.Detached))
+				for i, x := range v.Detached {
+					kids[i] = rt.TPtr(x)
+				}
+				return zpListAt(kids, sp)
+			}()
 		}(), true
 	case "Next":
 		if v.Next == nil {
@@ -4878,28 +5634,36 @@ func (v *SourceMetadata) TFieldSpend(p *rt.TParser, name string) (any, bool) {
 			return nil, false
 		}
 		return func() any {
-			if v.Trailing == nil {
-				return nil
-			}
-			kids := make([]any, len(v.Trailing))
-			for i, x := range v.Trailing {
-				kids[i] = any(x)
-			}
-			return p.ListField(kids)
+			zc := &zpRangeCursor{One: v.zpr_Trailing}
+			return func() any {
+				if v.Trailing == nil {
+					return nil
+				}
+				sp := zc.Next()
+				kids := make([]any, len(v.Trailing))
+				for i, x := range v.Trailing {
+					kids[i] = any(x)
+				}
+				return zpListFieldAt(p, kids, sp)
+			}()
 		}(), true
 	case "Detached":
 		if v.Detached == nil {
 			return nil, false
 		}
 		return func() any {
-			if v.Detached == nil {
-				return nil
-			}
-			kids := make([]any, len(v.Detached))
-			for i, x := range v.Detached {
-				kids[i] = rt.TPtr(x)
-			}
-			return p.ListField(kids)
+			zc := &zpRangeCursor{One: v.zpr_Detached}
+			return func() any {
+				if v.Detached == nil {
+					return nil
+				}
+				sp := zc.Next()
+				kids := make([]any, len(v.Detached))
+				for i, x := range v.Detached {
+					kids[i] = rt.TPtr(x)
+				}
+				return zpListFieldAt(p, kids, sp)
+			}()
 		}(), true
 	case "Next":
 		if v.Next == nil {
@@ -4920,6 +5684,22 @@ func (v *SourceMetadata) TZeroField(c *rt.TActCtx, name string) (any, bool) {
 		return c.MadeOf(new(SourceLead)), true
 	}
 	return nil, false
+}
+
+// TSetRanges sets the ranges that the list or tuple of field i had where it was made.
+func (v *SourceMetadata) TSetRanges(i int, one rt.Span, all []rt.Span) {
+	switch i {
+	case 2:
+		v.zpr_Trailing = one
+	case 3:
+		v.zpr_Detached = one
+	}
+}
+
+// TCopyRanges copies the ranges of the lists and tuples of from.
+func (v *SourceMetadata) TCopyRanges(from *SourceMetadata) {
+	v.zpr_Trailing = from.zpr_Trailing
+	v.zpr_Detached = from.zpr_Detached
 }
 
 func (v *Stream) TName() string         { return "Stream" }
@@ -4977,14 +5757,18 @@ func (v *StructType) TField(name string) (any, bool) {
 			return nil, false
 		}
 		return func() any {
-			if v.Comments == nil {
-				return nil
-			}
-			kids := make([]any, len(v.Comments))
-			for i, x := range v.Comments {
-				kids[i] = rt.TBack(ZPHooks, x)
-			}
-			return rt.TListOf(kids)
+			zc := &zpRangeCursor{One: v.zpr_Comments}
+			return func() any {
+				if v.Comments == nil {
+					return nil
+				}
+				sp := zc.Next()
+				kids := make([]any, len(v.Comments))
+				for i, x := range v.Comments {
+					kids[i] = rt.TBack(ZPHooks, x)
+				}
+				return zpListAt(kids, sp)
+			}()
 		}(), true
 	case "Head":
 		if v.Head == nil {
@@ -5016,14 +5800,18 @@ func (v *StructType) TFieldSpend(p *rt.TParser, name string) (any, bool) {
 			return nil, false
 		}
 		return func() any {
-			if v.Comments == nil {
-				return nil
-			}
-			kids := make([]any, len(v.Comments))
-			for i, x := range v.Comments {
-				kids[i] = rt.TBack(ZPHooks, x)
-			}
-			return p.ListField(kids)
+			zc := &zpRangeCursor{One: v.zpr_Comments}
+			return func() any {
+				if v.Comments == nil {
+					return nil
+				}
+				sp := zc.Next()
+				kids := make([]any, len(v.Comments))
+				for i, x := range v.Comments {
+					kids[i] = rt.TBack(ZPHooks, x)
+				}
+				return zpListFieldAt(p, kids, sp)
+			}()
 		}(), true
 	case "Head":
 		if v.Head == nil {
@@ -5044,6 +5832,19 @@ func (v *StructType) TZeroField(c *rt.TActCtx, name string) (any, bool) {
 		return c.MadeOf(new(SourceLead)), true
 	}
 	return nil, false
+}
+
+// TSetRanges sets the ranges that the list or tuple of field i had where it was made.
+func (v *StructType) TSetRanges(i int, one rt.Span, all []rt.Span) {
+	switch i {
+	case 1:
+		v.zpr_Comments = one
+	}
+}
+
+// TCopyRanges copies the ranges of the lists and tuples of from.
+func (v *StructType) TCopyRanges(from *StructType) {
+	v.zpr_Comments = from.zpr_Comments
 }
 
 func (v *TupleType) TName() string         { return "TupleType" }
@@ -5117,14 +5918,18 @@ func (v *TypeAlias) TField(name string) (any, bool) {
 			return nil, false
 		}
 		return func() any {
-			if v.Comments == nil {
-				return nil
-			}
-			kids := make([]any, len(v.Comments))
-			for i, x := range v.Comments {
-				kids[i] = rt.TBack(ZPHooks, x)
-			}
-			return rt.TListOf(kids)
+			zc := &zpRangeCursor{One: v.zpr_Comments}
+			return func() any {
+				if v.Comments == nil {
+					return nil
+				}
+				sp := zc.Next()
+				kids := make([]any, len(v.Comments))
+				for i, x := range v.Comments {
+					kids[i] = rt.TBack(ZPHooks, x)
+				}
+				return zpListAt(kids, sp)
+			}()
 		}(), true
 	case "SourceSpan":
 		if v.SourceSpan == nil {
@@ -5151,14 +5956,18 @@ func (v *TypeAlias) TFieldSpend(p *rt.TParser, name string) (any, bool) {
 			return nil, false
 		}
 		return func() any {
-			if v.Comments == nil {
-				return nil
-			}
-			kids := make([]any, len(v.Comments))
-			for i, x := range v.Comments {
-				kids[i] = rt.TBack(ZPHooks, x)
-			}
-			return p.ListField(kids)
+			zc := &zpRangeCursor{One: v.zpr_Comments}
+			return func() any {
+				if v.Comments == nil {
+					return nil
+				}
+				sp := zc.Next()
+				kids := make([]any, len(v.Comments))
+				for i, x := range v.Comments {
+					kids[i] = rt.TBack(ZPHooks, x)
+				}
+				return zpListFieldAt(p, kids, sp)
+			}()
 		}(), true
 	case "SourceSpan":
 		if v.SourceSpan == nil {
@@ -5184,6 +5993,19 @@ func (v *TypeAlias) TZeroField(c *rt.TActCtx, name string) (any, bool) {
 		return c.MadeOf(new(SourceItem)), true
 	}
 	return nil, false
+}
+
+// TSetRanges sets the ranges that the list or tuple of field i had where it was made.
+func (v *TypeAlias) TSetRanges(i int, one rt.Span, all []rt.Span) {
+	switch i {
+	case 2:
+		v.zpr_Comments = one
+	}
+}
+
+// TCopyRanges copies the ranges of the lists and tuples of from.
+func (v *TypeAlias) TCopyRanges(from *TypeAlias) {
+	v.zpr_Comments = from.zpr_Comments
 }
 
 func (v *TypeAliasBody) TName() string         { return "TypeAliasBody" }
@@ -5233,14 +6055,18 @@ func (v *TypeApp) TField(name string) (any, bool) {
 			return nil, false
 		}
 		return func() any {
-			if v.Args == nil {
-				return nil
-			}
-			kids := make([]any, len(v.Args))
-			for i, x := range v.Args {
-				kids[i] = rt.TBack(ZPHooks, x)
-			}
-			return rt.TListOf(kids)
+			zc := &zpRangeCursor{One: v.zpr_Args}
+			return func() any {
+				if v.Args == nil {
+					return nil
+				}
+				sp := zc.Next()
+				kids := make([]any, len(v.Args))
+				for i, x := range v.Args {
+					kids[i] = rt.TBack(ZPHooks, x)
+				}
+				return zpListAt(kids, sp)
+			}()
 		}(), true
 	}
 	return nil, false
@@ -5255,14 +6081,18 @@ func (v *TypeApp) TFieldSpend(p *rt.TParser, name string) (any, bool) {
 			return nil, false
 		}
 		return func() any {
-			if v.Args == nil {
-				return nil
-			}
-			kids := make([]any, len(v.Args))
-			for i, x := range v.Args {
-				kids[i] = rt.TBack(ZPHooks, x)
-			}
-			return p.ListField(kids)
+			zc := &zpRangeCursor{One: v.zpr_Args}
+			return func() any {
+				if v.Args == nil {
+					return nil
+				}
+				sp := zc.Next()
+				kids := make([]any, len(v.Args))
+				for i, x := range v.Args {
+					kids[i] = rt.TBack(ZPHooks, x)
+				}
+				return zpListFieldAt(p, kids, sp)
+			}()
 		}(), true
 	}
 	return nil, false
@@ -5274,6 +6104,19 @@ func (v *TypeApp) TZeroField(c *rt.TActCtx, name string) (any, bool) {
 		return c.NewList(nil), true
 	}
 	return nil, false
+}
+
+// TSetRanges sets the ranges that the list or tuple of field i had where it was made.
+func (v *TypeApp) TSetRanges(i int, one rt.Span, all []rt.Span) {
+	switch i {
+	case 1:
+		v.zpr_Args = one
+	}
+}
+
+// TCopyRanges copies the ranges of the lists and tuples of from.
+func (v *TypeApp) TCopyRanges(from *TypeApp) {
+	v.zpr_Args = from.zpr_Args
 }
 
 func (v *TypeDef) TName() string         { return "TypeDef" }
@@ -5293,14 +6136,18 @@ func (v *TypeDef) TField(name string) (any, bool) {
 			return nil, false
 		}
 		return func() any {
-			if v.Comments == nil {
-				return nil
-			}
-			kids := make([]any, len(v.Comments))
-			for i, x := range v.Comments {
-				kids[i] = rt.TBack(ZPHooks, x)
-			}
-			return rt.TListOf(kids)
+			zc := &zpRangeCursor{One: v.zpr_Comments}
+			return func() any {
+				if v.Comments == nil {
+					return nil
+				}
+				sp := zc.Next()
+				kids := make([]any, len(v.Comments))
+				for i, x := range v.Comments {
+					kids[i] = rt.TBack(ZPHooks, x)
+				}
+				return zpListAt(kids, sp)
+			}()
 		}(), true
 	case "SourceSpan":
 		if v.SourceSpan == nil {
@@ -5327,14 +6174,18 @@ func (v *TypeDef) TFieldSpend(p *rt.TParser, name string) (any, bool) {
 			return nil, false
 		}
 		return func() any {
-			if v.Comments == nil {
-				return nil
-			}
-			kids := make([]any, len(v.Comments))
-			for i, x := range v.Comments {
-				kids[i] = rt.TBack(ZPHooks, x)
-			}
-			return p.ListField(kids)
+			zc := &zpRangeCursor{One: v.zpr_Comments}
+			return func() any {
+				if v.Comments == nil {
+					return nil
+				}
+				sp := zc.Next()
+				kids := make([]any, len(v.Comments))
+				for i, x := range v.Comments {
+					kids[i] = rt.TBack(ZPHooks, x)
+				}
+				return zpListFieldAt(p, kids, sp)
+			}()
 		}(), true
 	case "SourceSpan":
 		if v.SourceSpan == nil {
@@ -5360,6 +6211,19 @@ func (v *TypeDef) TZeroField(c *rt.TActCtx, name string) (any, bool) {
 		return c.MadeOf(new(SourceItem)), true
 	}
 	return nil, false
+}
+
+// TSetRanges sets the ranges that the list or tuple of field i had where it was made.
+func (v *TypeDef) TSetRanges(i int, one rt.Span, all []rt.Span) {
+	switch i {
+	case 2:
+		v.zpr_Comments = one
+	}
+}
+
+// TCopyRanges copies the ranges of the lists and tuples of from.
+func (v *TypeDef) TCopyRanges(from *TypeDef) {
+	v.zpr_Comments = from.zpr_Comments
 }
 
 func (v *TypeDefBody) TName() string         { return "TypeDefBody" }
@@ -5509,14 +6373,18 @@ func (v *VarDef) TField(name string) (any, bool) {
 			return nil, false
 		}
 		return func() any {
-			if v.Comments == nil {
-				return nil
-			}
-			kids := make([]any, len(v.Comments))
-			for i, x := range v.Comments {
-				kids[i] = rt.TBack(ZPHooks, x)
-			}
-			return rt.TListOf(kids)
+			zc := &zpRangeCursor{One: v.zpr_Comments}
+			return func() any {
+				if v.Comments == nil {
+					return nil
+				}
+				sp := zc.Next()
+				kids := make([]any, len(v.Comments))
+				for i, x := range v.Comments {
+					kids[i] = rt.TBack(ZPHooks, x)
+				}
+				return zpListAt(kids, sp)
+			}()
 		}(), true
 	case "SourceSpan":
 		if v.SourceSpan == nil {
@@ -5545,14 +6413,18 @@ func (v *VarDef) TFieldSpend(p *rt.TParser, name string) (any, bool) {
 			return nil, false
 		}
 		return func() any {
-			if v.Comments == nil {
-				return nil
-			}
-			kids := make([]any, len(v.Comments))
-			for i, x := range v.Comments {
-				kids[i] = rt.TBack(ZPHooks, x)
-			}
-			return p.ListField(kids)
+			zc := &zpRangeCursor{One: v.zpr_Comments}
+			return func() any {
+				if v.Comments == nil {
+					return nil
+				}
+				sp := zc.Next()
+				kids := make([]any, len(v.Comments))
+				for i, x := range v.Comments {
+					kids[i] = rt.TBack(ZPHooks, x)
+				}
+				return zpListFieldAt(p, kids, sp)
+			}()
 		}(), true
 	case "SourceSpan":
 		if v.SourceSpan == nil {
@@ -5578,6 +6450,19 @@ func (v *VarDef) TZeroField(c *rt.TActCtx, name string) (any, bool) {
 		return c.MadeOf(new(SourceItem)), true
 	}
 	return nil, false
+}
+
+// TSetRanges sets the ranges that the list or tuple of field i had where it was made.
+func (v *VarDef) TSetRanges(i int, one rt.Span, all []rt.Span) {
+	switch i {
+	case 3:
+		v.zpr_Comments = one
+	}
+}
+
+// TCopyRanges copies the ranges of the lists and tuples of from.
+func (v *VarDef) TCopyRanges(from *VarDef) {
+	v.zpr_Comments = from.zpr_Comments
 }
 
 func (v *VarDefBody) TName() string         { return "VarDefBody" }
@@ -5644,6 +6529,51 @@ func (v *ZeroOrMore) TZeroField(c *rt.TActCtx, name string) (any, bool) {
 	return nil, false
 }
 
+func init() {
+	back := ZPHooks.Back
+	ZPHooks.Back = func(v any) any {
+		switch x := v.(type) {
+		case *Any:
+			return tb4(x)
+		case *BeginInput:
+			return tb5(x)
+		case *BeginLine:
+			return tb6(x)
+		case *Bottom:
+			return tb7(x)
+		case *CaptureRef:
+			return tb1(x)
+		case *Char:
+			return tb2(x)
+		case *Cut:
+			return tb8(x)
+		case *DefaultAction:
+			return tb9(x)
+		case *EndInput:
+			return tb10(x)
+		case *EndLine:
+			return tb11(x)
+		case *False:
+			return tb12(x)
+		case *Ident:
+			return tb0(x)
+		case *Int:
+			return tb3(x)
+		case *Nil:
+			return tb13(x)
+		case *String:
+			return tb14(x)
+		case *Top:
+			return tb15(x)
+		case *True:
+			return tb16(x)
+		case *VarRef:
+			return tb17(x)
+		}
+		return back(v)
+	}
+}
+
 func tb0(v *Ident) any {
 	if v == nil {
 		return nil
@@ -5672,11 +6602,109 @@ func tb3(v *Int) any {
 	return rt.TSetNodeType(rt.TBack(ZPHooks, &v.TNode), ZPNodeTypes[13])
 }
 
+func tb4(v *Any) any {
+	if v == nil {
+		return nil
+	}
+	return rt.TSetNodeType(rt.TBack(ZPHooks, &v.TNode), ZPNodeTypes[1])
+}
+
+func tb5(v *BeginInput) any {
+	if v == nil {
+		return nil
+	}
+	return rt.TSetNodeType(rt.TBack(ZPHooks, &v.TNode), ZPNodeTypes[2])
+}
+
+func tb6(v *BeginLine) any {
+	if v == nil {
+		return nil
+	}
+	return rt.TSetNodeType(rt.TBack(ZPHooks, &v.TNode), ZPNodeTypes[3])
+}
+
+func tb7(v *Bottom) any {
+	if v == nil {
+		return nil
+	}
+	return rt.TSetNodeType(rt.TBack(ZPHooks, &v.TNode), ZPNodeTypes[4])
+}
+
+func tb8(v *Cut) any {
+	if v == nil {
+		return nil
+	}
+	return rt.TSetNodeType(rt.TBack(ZPHooks, &v.TNode), ZPNodeTypes[7])
+}
+
+func tb9(v *DefaultAction) any {
+	if v == nil {
+		return nil
+	}
+	return rt.TSetNodeType(rt.TBack(ZPHooks, &v.TNode), ZPNodeTypes[8])
+}
+
+func tb10(v *EndInput) any {
+	if v == nil {
+		return nil
+	}
+	return rt.TSetNodeType(rt.TBack(ZPHooks, &v.TNode), ZPNodeTypes[9])
+}
+
+func tb11(v *EndLine) any {
+	if v == nil {
+		return nil
+	}
+	return rt.TSetNodeType(rt.TBack(ZPHooks, &v.TNode), ZPNodeTypes[10])
+}
+
+func tb12(v *False) any {
+	if v == nil {
+		return nil
+	}
+	return rt.TSetNodeType(rt.TBack(ZPHooks, &v.TNode), ZPNodeTypes[11])
+}
+
+func tb13(v *Nil) any {
+	if v == nil {
+		return nil
+	}
+	return rt.TSetNodeType(rt.TBack(ZPHooks, &v.TNode), ZPNodeTypes[14])
+}
+
+func tb14(v *String) any {
+	if v == nil {
+		return nil
+	}
+	return rt.TSetNodeType(rt.TBack(ZPHooks, &v.TNode), ZPNodeTypes[15])
+}
+
+func tb15(v *Top) any {
+	if v == nil {
+		return nil
+	}
+	return rt.TSetNodeType(rt.TBack(ZPHooks, &v.TNode), ZPNodeTypes[16])
+}
+
+func tb16(v *True) any {
+	if v == nil {
+		return nil
+	}
+	return rt.TSetNodeType(rt.TBack(ZPHooks, &v.TNode), ZPNodeTypes[17])
+}
+
+func tb17(v *VarRef) any {
+	if v == nil {
+		return nil
+	}
+	return rt.TSetNodeType(rt.TBack(ZPHooks, &v.TNode), ZPNodeTypes[18])
+}
+
 // ZPNodeTypes holds the registered indexes of the named node types by their generated index; index 0
 // is no named node type. It is for generated parsers.
 var ZPNodeTypes [19]uint16
 
-// ZPSchema_25f27ce226a57aef ties the parser package to this package: the parser refers to it once, so a
+// ZPSchema_e1ef0ad7a39338f5 ties the parser package to this package: the parser refers to it once, so a
 // parser and a types package generated from different schemas do not compile together.
 // It is for generated parsers; not a stable API.
-const ZPSchema_25f27ce226a57aef = 0
+const ZPSchema_e1ef0ad7a39338f5 = 0
