@@ -1,4 +1,6 @@
-// Package opt is the registry of the optimizations and their settings (design 063).
+// Package opt is the registry of the optimizations and their settings, and the driver that runs the
+// pass pipelines of the IR under them (design 063). It sits beside the IR pipelines so that every
+// backend that lowers from the IR, not only the generators, reads one registry.
 //
 // An optimization is a flag with a name. A pass of the Core IR pipeline is one (its name is the
 // pass's); so are the options of Flow lowering, what the printers emit, and the
@@ -162,7 +164,7 @@ type Settings struct {
 }
 
 // On reports whether the optimization is on. It panics for a name that is not registered, which is a
-// mistake in the generator and not in a request.
+// mistake in the backend and not in a request.
 func (s Settings) On(name string) bool { return s.Value(name) != 0 }
 
 // Value returns the value of the optimization: 0 or 1, or the parameter of an integer flag.

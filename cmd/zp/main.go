@@ -40,7 +40,7 @@ import (
 	"zeroparse.dev/zp/gen"
 	"zeroparse.dev/zp/grammar"
 	igen "zeroparse.dev/zp/internal/gen"
-	genopt "zeroparse.dev/zp/internal/gen/opt"
+	iropt "zeroparse.dev/zp/internal/ir/opt"
 )
 
 const usage = `usage: zp <command> [flags] [arguments]
@@ -746,9 +746,9 @@ func genCmd(args []string, stdout io.Writer) error {
 	sourceInfo := fs.Bool("source-info", false, "make the generated parser record the rule of each node and the names of captures")
 	defaultValue := fs.Bool("default-value", false, "make the generated parser drop value actions and declared rule types and return the default node tree (incompatible with -types)")
 	optimize := fs.String("optimize", "", "optimization profile: "+profileHelp()+"; no profile changes what the parser returns")
-	opt := fs.String("opt", "", "optimizations to give a value, separated by commas, as name or name=count: a name alone turns on an optimization that the profile leaves off, and 0 turns one off; applied after the profile and before -no-opt; the optimizations, with kind and default: "+genopt.Summaries())
-	noOpt := fs.String("no-opt", "", "optimizations to turn off after the profile is applied, separated by commas, for isolating a miscompilation or measuring one optimization; the optimizations, with kind and default: "+genopt.Summaries())
-	printAfter := fs.String("print-after", "", "write the Core IR to standard error after the named passes, separated by commas; a pass that does not apply to the parser prints nothing: "+strings.Join(genopt.PrintNames(), ", "))
+	opt := fs.String("opt", "", "optimizations to give a value, separated by commas, as name or name=count: a name alone turns on an optimization that the profile leaves off, and 0 turns one off; applied after the profile and before -no-opt; the optimizations, with kind and default: "+iropt.Summaries())
+	noOpt := fs.String("no-opt", "", "optimizations to turn off after the profile is applied, separated by commas, for isolating a miscompilation or measuring one optimization; the optimizations, with kind and default: "+iropt.Summaries())
+	printAfter := fs.String("print-after", "", "write the Core IR to standard error after the named passes, separated by commas; a pass that does not apply to the parser prints nothing: "+strings.Join(iropt.PrintNames(), ", "))
 	if err := fs.Parse(args); err != nil {
 		return err
 	}
@@ -822,11 +822,11 @@ func genCmd(args []string, stdout io.Writer) error {
 	if *noOpt != "" {
 		noOptNames = strings.Split(*noOpt, ",")
 	}
-	profile, err := genopt.Profile(*optimize)
+	profile, err := iropt.Profile(*optimize)
 	if err != nil {
 		return fmt.Errorf("-optimize: %w", err)
 	}
-	optValues, err := genopt.ParseValues(*opt)
+	optValues, err := iropt.ParseValues(*opt)
 	if err != nil {
 		return fmt.Errorf("-opt: %w", err)
 	}
@@ -838,7 +838,7 @@ func genCmd(args []string, stdout io.Writer) error {
 	if _, err := profile.Without(noOptNames...); err != nil {
 		return fmt.Errorf("-no-opt: %w", err)
 	}
-	if _, err := genopt.ParsePrintAfter(*printAfter); err != nil {
+	if _, err := iropt.ParsePrintAfter(*printAfter); err != nil {
 		return fmt.Errorf("-print-after: %w", err)
 	}
 	var printTo io.Writer
@@ -1140,8 +1140,8 @@ func firstLine(data []byte) string {
 // profileHelp describes the optimization profiles for the usage of -optimize: each name with what it is for.
 func profileHelp() string {
 	var parts []string
-	for _, name := range genopt.Profiles() {
-		parts = append(parts, name+" ("+genopt.ProfileDoc(name)+")")
+	for _, name := range iropt.Profiles() {
+		parts = append(parts, name+" ("+iropt.ProfileDoc(name)+")")
 	}
 	return strings.Join(parts, "; ")
 }

@@ -74,7 +74,7 @@ more times: the closure evaluator in `closure/eval.go`, bytecode expression code
 - Generated Go is printed from Flow IR: the typed rules and Operators Rule lines, and the rules and lines of the
   Node and recognizer tables. Generation fails if Flow IR prints none of the forms below for a rule, a line or the
   start rule of a stream parse, so no table has another route.
-- The lean value-free rules that `gen.RecFlowEligible` accepts print as direct rules, in the Node table and the
+- The lean value-free rules that Flow lowering accepts as flat rules print as direct rules, in the Node table and the
   recognizer (`gen.Generator.StartRecFlow`). A direct rule whose printed function would read its start
   or context, or whose variables have a type the printer cannot name, prints its framed body instead, as every
   other rule does: the rules that `gen.Generator.FlowNodeFrameOK` accepts print as the matcher of their framed body, which the

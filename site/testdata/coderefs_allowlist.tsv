@@ -723,17 +723,14 @@ docs/optimizations/mechanisms/G070-literal-text-predicates.md	codelink	internal/
 docs/optimizations/mechanisms/G070-literal-text-predicates.md	gofile	internal/gen/gen_literal_text_dispatch_test.go	1
 docs/optimizations/mechanisms/G090-variable-read-components.md	codelink	internal/compile/analysis.go	1
 docs/optimizations/mechanisms/G090-variable-read-components.md	gofile	internal/compile/analysis.go	1
-docs/optimizations/mechanisms/G100-generated-node-body-inlining.md	codelink	internal/gen/generator.go	1
 docs/optimizations/mechanisms/G100-generated-node-body-inlining.md	codelink	internal/gen/gogen/flow.go	1
 docs/optimizations/mechanisms/G100-generated-node-body-inlining.md	codelink	internal/gen/gogen/flowrule.go	1
 docs/optimizations/mechanisms/G100-generated-node-body-inlining.md	codelink	internal/gen/gogen/generator.go	1
-docs/optimizations/mechanisms/G100-generated-node-body-inlining.md	gofile	internal/gen/generator.go	1
 docs/optimizations/mechanisms/G100-generated-node-body-inlining.md	gofile	internal/gen/gogen/flow.go	1
 docs/optimizations/mechanisms/G100-generated-node-body-inlining.md	gofile	internal/gen/gogen/flowrule.go	1
 docs/optimizations/mechanisms/G100-generated-node-body-inlining.md	gofile	internal/gen/gogen/generator.go	1
 docs/optimizations/mechanisms/G100-generated-node-body-inlining.md	unexport	flowNodeFrameBody	1
 docs/optimizations/mechanisms/G100-generated-node-body-inlining.md	unexport	leanRuleBody	1
-docs/optimizations/mechanisms/G100-generated-node-body-inlining.md	unexport	leanRuleOK	1
 docs/optimizations/mechanisms/G110-one-pass-code-point-preparation.md	codelink	internal/engine/core/input.go	1
 docs/optimizations/mechanisms/G110-one-pass-code-point-preparation.md	codelink	internal/gen/tsgen/tsrt/runtime.ts	1
 docs/optimizations/mechanisms/G110-one-pass-code-point-preparation.md	codelink	runtime/runtime.go	1

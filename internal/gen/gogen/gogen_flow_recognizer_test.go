@@ -17,6 +17,7 @@ import (
 	"zeroparse.dev/zp/internal/gen"
 	"zeroparse.dev/zp/internal/gen/gogen"
 	"zeroparse.dev/zp/internal/gentest"
+	flowlower "zeroparse.dev/zp/internal/ir/flow/lower"
 )
 
 // TestGeneratedFlowRecognizerParity runs the generated recognizers printed from Flow IR against the
@@ -274,7 +275,7 @@ func TestFlowRecognizerFallbackMatchesEngine(t *testing.T) {
 	gh := &gogen.Hooks{}
 	gentest.SetGenHooks(t, gh)
 	gh.RefuseFlowRecRule = func(r *compile.Rule) bool {
-		if gen.RecFlowEligible(r) {
+		if flowlower.RecEligible(r) {
 			refused[r.Name] = true
 			return true
 		}

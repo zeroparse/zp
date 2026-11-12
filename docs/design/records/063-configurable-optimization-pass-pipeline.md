@@ -123,7 +123,7 @@ Documents.
 
 ### Flags
 
-The registry `internal/gen/opt` lists every optimization with a name, a kind (`Pass`, `Lowering`, `Printer`, `Runtime`), a
+The registry `internal/ir/opt` lists every optimization with a name, a kind (`Pass`, `Lowering`, `Printer`, `Runtime`), a
 description, its value in the `speed` profile and whether it changes the output. The Core pipeline names the passes, and a test checks that the
 registry has the name of every pass.
 
