@@ -1334,7 +1334,11 @@ The conditions below use these terms.
   shared calls, through its end and a call of the rule, the rule in the set
   is the one in whose body the continuation is at the shared calls, whose
   evaluation contains that of the unit, if the continuation can reach the end
-  of that body. The last case is a **restart**: in
+  of that body. A step of a growth after the first that condition 2 checks is
+  such a unit, with the first characters and the continuations that condition
+  2 gives it; its continuations follow the calls that start the growth, so
+  they have always left the body of the leader, and the rule in the set is the
+  one in whose body the continuation is at the shared calls. The last case is a **restart**: in
   `e = "(" (e R "x" / e) / "."` with `R = [ ]*`, the alternative `e R "x"`
   fails after its call of `e` ended at a position, and the alternative `e`
   ends `e` at the same position through the memo answer of the same call,

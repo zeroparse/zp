@@ -822,7 +822,13 @@ contains an activation is the innermost call evaluation that contains it, so
 $e_{l+1} = e'_l$ for $i \le l < k$, and every link evaluates $r$ at one
 position $p$. As the shared call is the first, $w_l$ examines no input before
 $p$, so it starts at $p$, and $\kappa_l$ reaches $e'_l$ from $p$ without
-consuming input. Call the body evaluations in progress the frames. Let $N_l$
+consuming input. A step of a growth after the first that is $w_l$ starts at
+$p$ as a unit, at the end of its seed. It returns the parser to $p$ when it is
+dropped, so for $l > i$ the hypothesis leaves it out, as a growth step left at
+$p$. When $w_i$ is one, the proof uses of it only what it uses of a unit at
+$p$: that it starts there as a unit and that from its end the parser starts
+no evaluation before $p$ until $\alpha_i$ (*Dropped steps*). An evaluation that
+the step starts before $p$ lies inside it and ends before it. Call the body evaluations in progress the frames. Let $N_l$
 be the innermost evaluation that contains $\alpha_{l-1}$ and $\alpha_l$. Since
 $w_l$ is the first abandoned evaluation below $N_l$ on the path to
 $\alpha_{l-1}$, every evaluation above $w_l$ on that path, up to $N_l$,
@@ -945,19 +951,20 @@ that $t$ nests at one end when $Y$ is in $E_t$. Let $X$ be an evaluation of a
 call of a rule $A$ of the recursion of $t$ that succeeds and ends at a
 position $p_0$, and $T$ an evaluation of $t$ inside $X$, other than $X$, that
 starts before $p_0$, ends at $p_0$ and holds a successful activation of a
-scanning source other than a bounded scan. Let no evaluation on the path from
-$X$ to $T$ be a dropped step of a growth, and let two evaluations at one
+scanning source other than a bounded scan. Let $T$ follow, in each dropped step
+of a growth on the path from $X$ to $T$, a read of the seed of that growth that
+succeeds, or a call whose result includes one, and let two evaluations at one
 position of a call that a unit and a continuation share, or that the
 comparison of a decided unit passes alike, end at one position. Then $A$ is in
 $E_t$, except in the cases that the end of the proof leaves open. So when the
 evaluations of $Z$ nest without a bound through $t$, each in the call $t$ of
 the one around it, all of those calls ending at one position, each holding a
-successful activation of such a source, and no dropped step of a growth lying
-between them, $t$ nests at one end: calls that start at that position nest
+successful activation of such a source, and each dropped step of a growth
+between them holding the inner one after a read of its seed, $t$ nests at one end: calls that start at that position nest
 only through left recursion, which the growths bound, so some call $X$ starts
-before the position and holds another, $T$, that does too, with no dropped
-step on the path between them, and the claim gives $Y$ in $E_t$. A nesting
-with a dropped step of a growth between its calls is left open.
+before the position and holds another, $T$, that does too, and the claim gives
+$Y$ in $E_t$. A nesting through a part that a dropped step evaluates at the
+position of its growth before a read of its seed is left open.
 
 *Proof.* By induction on the number of calls on the path from $X$ to $T$.
 Each call on that path is of a rule of the recursion of $t$, since $A$
@@ -974,15 +981,26 @@ the path by the second, up to $A$.
 Otherwise let $w$ be the first abandoned evaluation on the path below $X$. It
 contains $T$, and with it the activation, which succeeded before $w$ was
 abandoned, so $w$ is the expression of a lookahead or failed after one of its
-scanning sources examined input. It is no dropped step, so it is a unit that
-condition 2 checks, and it is committing. This is why the definition needs no
+scanning sources examined input, or is a dropped step. When it is no dropped
+step, it is a unit that condition 2 checks, and it is committing. When it is a
+dropped step of a growth $G$ whose seed ends at $e$, $T$ follows a read of the
+seed in it, so it starts at $e$ or after it, and *Dropped steps*, with the
+activation of $T$ in the place of $\alpha$ and the end of $X$ in the place of
+$\alpha'$, gives a unit in its place: the step itself, which condition 2
+checks as a unit that starts at $e$, when it fails, or the first evaluation
+$w'$ below it on the path that fails or is the expression of a lookahead,
+which starts at or before $e$, when it succeeds, or the unit that the claim
+gives again for a dropped step $w'$. Let $w$ be that unit from here on; it
+starts before $p_0$, since $T$ starts at $e$ or after it and before $p_0$. This is why the definition needs no
 case for the units that can fail only before their scanning sources examine
 input: no such unit lies on the path. Let $s < p_0$ be the start of $w$. The
 evaluations above $w$ on the path, up to $X$, succeed and are kept, so after
 $w$ the parser evaluates from $s$ a continuation $\kappa$ of $w$, through the
 ends of the enclosing expressions and, at the end of a rule body, through the
 call of the rule, and ends $X$ at $p_0$, returning to no position before $s$
-in between (*Restarts*). $\kappa$ consumes the input from $s$ to $p_0$, so it
+in between (*Restarts*). For the unit that a dropped step of $G$ gives,
+*Dropped steps* gives the same, with the continuation that it names, which
+goes on from $e$ after $G$ ends. $\kappa$ consumes the input from $s$ to $p_0$, so it
 begins with the calls that $w$ and $\kappa$ share or that the comparison passes
 alike, the **alike calls**, each starting at the end of the one before, which
 end at the same positions in $w$ and in $\kappa$. Those of them that start
@@ -1011,7 +1029,10 @@ alike call $S$ that ends at $p_0$ exists and starts before $p_0$:
 
 $\kappa$ evaluates $S$ in the body of a call $K$ on the path from $X$ to $w$:
 the call whose body holds $w$, or one whose body $\kappa$ reaches by leaving
-the bodies inside it through their ends. $K$ is kept and contains $S$ in its
+the bodies inside it through their ends. For the unit that a dropped step of
+$G$ gives, $S$ ends at $p_0$, after the result of the step, which ends at or
+before $e < p_0$, so $\kappa$ evaluates $S$ after $G$ ends, and $K$ is the call
+that starts $G$ or a call above it. $K$ is kept and contains $S$ in its
 match, so it ends at $p_0$, no later than $X$ and no earlier than $S$, and
 after $S$, $\kappa$ reaches the end of the body of $K$ without consuming
 input. $\kappa$ evaluates $S$ either directly in the body of $K$ or inside
@@ -1067,9 +1088,11 @@ the callee of $t$ in $E_t$, so that $t$ nests at one end. Besides the open
 points of that claim, two of its hypotheses are not shown here. First, $X$
 and $T$ must end at $p_0$, but the evaluations above are chosen because the
 current result of their leader ends at $p_0$, and a leader whose step at
-$p_0$ grows ends beyond $p_0$. Second, no dropped step of a growth may lie
-on the path from $X$ to $T$, and that path lies inside growths: the claim
-allows the kept growth steps on it, but the dropped ones are not excluded.
+$p_0$ grows ends beyond $p_0$. Second, $T$ must follow a read of the seed in
+each dropped step of a growth on the path from $X$ to $T$, and that path lies
+inside growths: the claim allows the kept growth steps on it and those
+dropped steps, but a dropped step that holds $T$ in a part that it evaluates
+at the position of its growth is not excluded.
 The claims above leave out the links between which the parser leaves or
 starts a growth step at the position, and so do not use this case.
 
@@ -1328,7 +1351,9 @@ ends. What remains is case (a). $\square$
 nothing, so the restarts, *Direct activations* and *Repeats* hold of it, with
 its own dropped steps and its own paths that enter a growth again. Let $\beta'$
 be a successful activation of $\sigma$ at $q$ in $\mathcal{R}$, $\beta$ the one
-before it, and $w$ and $\kappa$ as in the restarts, with no dropped step and no
+before it, and $w$ and $\kappa$ as in the restarts, where $w$ is the unit that
+*Dropped steps* gives when the abandoned evaluation is a dropped step, with no
+dropped step at the position of its growth, no step whose seed is empty and no
 path that enters the growth again of $\mathcal{R}$ leading from $w$ to
 $\beta'$. Let $e^k$ be the first of the calls that $w$ and $\kappa$ share whose
 evaluation inside $w$ holds a successful activation of $\sigma$ at $q$, let
@@ -1411,8 +1436,8 @@ start. And $z^\circ$ ends before $e^{k\prime}$ starts, so before $\mathcal{R}(Z)
 heads in the reference parse, $Z$ is not the head of its class. $\square$
 
 **Links lead to repeated evaluations.** Let the $i$-th link of $\sigma$ at $q$
-be memoized, and let every growth open at the start of $e_i$ or of $e'_i$ be
-open at the start of both. If an evaluation $Z$ of a key holds $\alpha_i$, it is not the head of its
+be memoized, and let every growth at the position of the link that is open at
+the start of $e_i$ or of $e'_i$ be open at the start of both. If an evaluation $Z$ of a key holds $\alpha_i$, it is not the head of its
 class, unless case (a) or (b) of the covered keys arises on the path from
 $\mathcal{R}(e_i)$ down to the call that corresponds to $Z$. Case (a) arises
 only at a call that is in a context of growths, or inside a lookahead while
@@ -1505,21 +1530,26 @@ $e_i$ and $e'_i$ are, grows it, since a growth of the leader open at the
 position would answer it, so it can read only another growth of its cycle at
 the position. A growth open at the start of both evaluations contains the
 innermost evaluation that contains $\alpha_{i-1}$ and $\alpha_i$, so a growth
-open at the start of only one of them started inside that evaluation, at the
-position of the link (Lemma 2 of the memoization proof): on the way to $e_i$,
+at the position of the link open at the start of only one of them started
+inside that evaluation (Lemma 2 of the memoization proof): on the way to $e_i$,
 ending before $e'_i$, or on the way to $e'_i$ after $e_i$ ended. Case 2 rules
-this out: $e_i$ and $e'_i$ are evaluations of a call that $w_i$ and its
+this out, apart from the growth of a step below: $e_i$ and $e'_i$ are evaluations of a call that $w_i$ and its
 continuation share, and two such calls of a rule of a cycle lie in the same
 growths of the cycle, so the growths of its cycle open at the start of $e_i$
 are those open at the start of $e'_i$. A growth of another cycle open at the
 start of only one of them is at the position of the link, so that evaluation
-is in a context of growths, where case (a) of the covered keys arises.
+is in a context of growths, where case (a) of the covered keys arises. When
+$w_i$ is a step of a growth $G$ after the first, $G$ is open at the start of
+$e_i$ and not of $e'_i$, which starts after $G$ ends; $G$ is at the position of
+the link only when the seed of the step is empty, and a call of a rule of its
+cycle there is then in a context of growths, where case (a) arises too.
 
 So by the claim above every linked $\alpha_i$ that is held by a head follows a
 link with case (a) or (b) of the covered keys on its path. A free $\alpha_i$ other than $\alpha_1$
 is the counterpart of a successful activation of $\mathcal{R}$ at $q$. That
-activation has no reference link when a dropped step or a path that enters a
-growth again of $\mathcal{R}$ leads to it. When it has one, of a memoized
+activation has no reference link when a dropped step at the position of its
+growth, a step whose seed is empty or a path that enters a growth again of
+$\mathcal{R}$ leads to it. When it has one, of a memoized
 rule as every link here is, by *Reference links lead to repeated evaluations*
 $\alpha_i$ is held by a head only with case (a) or (b) on its path.
 When no link of $\sigma$ at $q$ has either case on its path and every free $\alpha_i$
@@ -1587,14 +1617,14 @@ holds are part of step 1 of [Open Steps](#open-steps).
 **Activations held by heads.** Let no link of $\sigma$ at $q$ have case (a) or
 (b) of the covered keys on its path, and let every free $\alpha_i$ other than $\alpha_1$ be the
 counterpart of an activation of $\mathcal{R}$ that has a reference link with
-neither case (a) nor (b) on its path, or that a dropped step at the position of its growth or a path
-that enters a growth again of $\mathcal{R}$ leads to. Then, by the replayed
+neither case (a) nor (b) on its path, or that a dropped step at the position of its growth, a step
+whose seed is empty or a path that enters a growth again of $\mathcal{R}$ leads to. Then, by the replayed
 activations and since a class has at most six
 memoized evaluations, the successful activations of
 $\sigma$ at $q$ held by memoized evaluations are at most six times those
 held by heads, which are $\alpha_1$, those that case 5 or a dropped step at the position of its growth
-repeats, and the free ones that a dropped step at the position of its growth or a path that enters a
-growth again of $\mathcal{R}$ leads to, which step 1 of [Open Steps](#open-steps)
+repeats, and the free ones that a dropped step at the position of its growth, a step whose seed is
+empty or a path that enters a growth again of $\mathcal{R}$ leads to, which step 1 of [Open Steps](#open-steps)
 leaves to count. The free ones whose reference link meets case (a) or (b) are
 outside the hypothesis, and step 1 leaves them open too. Every activation owned by a memoized evaluation is held by it, so
 these bound the successful activations of $\sigma$ at $q$ that memoized
@@ -4737,8 +4767,8 @@ condition of the cost view that the [Cost View](cost-view.md) proof leaves open.
    activations alone. An activation need not follow a link of the parse: the
    memo can answer the shared call in the continuation (*Repeats*), and the
    claims follow it through its reference link instead. The activations of the
-   reference parse that a dropped step at the position of its growth or a path that enters a growth
-   again of the reference parse leads to, which have no reference link, are more than
+   reference parse that a dropped step at the position of its growth, a step whose seed is empty or a
+   path that enters a growth again of the reference parse leads to, which have no reference link, are more than
    those of the parse, and Lemma 5 must count those that are counterparts of
    activations of the parse; this is not shown. Nor are the activations of the
    reference parse whose reference link meets case (a) or (b) of the covered
@@ -4758,7 +4788,9 @@ condition of the cost view that the [Cost View](cost-view.md) proof leaves open.
    *Nesting at one end* shows that evaluations of a call that nest without a
    bound and end at one position, through restarts as well, make the call
    nest at one end, which keeps the call of `R` in that grammar from being
-   shared, apart from the three points that it leaves open; what remains is
+   shared, apart from the three points that it leaves open and a nesting
+   through a part that a dropped step evaluates at the position of its growth
+   before a read of its seed; what remains is
    to bound the frames left at the earlier positions by it. And the leaf links
    between which the parser leaves or starts, at their position, a growth
    step or an evaluation in a context of growths, which that claim leaves
@@ -4766,8 +4798,9 @@ condition of the cost view that the [Cost View](cost-view.md) proof leaves open.
    reads*); that case is argued from *Nesting at one end* but not proved:
    besides the three open points of that claim, it is not shown that the
    nested evaluations of a leader that it picks end at the position, since a
-   leader whose current result ends there can grow beyond it, nor that no
-   dropped step of a growth lies on the path between them. Third, the
+   leader whose current result ends there can grow beyond it, nor that each
+   dropped step of a growth on the path between them holds the inner one after
+   a read of its seed. Third, the
    memoized links that the comparison leaves out: in a Document parse, a link
    whose comparison meets an entry of an earlier parse that answers a call in
    a context of growths, or a call whose corresponding call in the later
@@ -4895,8 +4928,9 @@ condition of the cost view that the [Cost View](cost-view.md) proof leaves open.
    links inside a family, with the open parts of step 1, and the pairs that
    step 2 keeps. Second, the heads of keys
    whose first activation at a position is of a kind that *First activations
-   of heads* lists: the open parts of step 1, the activations that a dropped step at the position of its growth
-   or a path that enters a growth again of the reference parse leads to,
+   of heads* lists: the open parts of step 1, the activations that a dropped step at the position of its growth,
+   a step whose seed is empty or a path that enters a growth again of the
+   reference parse leads to,
    and the activations
    that *Heads hold what later growths hold* leaves out, through a result or
    step kept in a smaller lookahead state or the lookaheads that it observed,
@@ -4916,13 +4950,12 @@ condition of the cost view that the [Cost View](cost-view.md) proof leaves open.
    dropped step on the path of a restart, ordinary or of growth activations,
    a unit at the end of its seed or below it, and charge the repeats after a
    part that it evaluates at the position of its growth to the activations
-   there. Three points remain: the growth activations that a path that enters
-   the growth again repeats in the first step of the growth that it enters; a
-   check, claim by claim, that the claims from *Memoized links* to *Activations
-   held by heads*, written for a unit $w_i$ that is an evaluation starting at
-   the start of what it examines, hold when $w_i$ is a step of a growth after
-   the first, which starts at the position of its growth but is checked as a
-   unit at the end of its seed; and a check, claim by
+   there. The claims from *Memoized links* to *Activations held by heads* take
+   a step of a growth after the first as $w_i$, as a unit at the end of its
+   seed, apart from a step whose seed is empty, where the growth of the step
+   is at the position of the link. Two points remain: the growth activations
+   that a path that enters the growth again repeats in the first step of the
+   growth that it enters; and a check, claim by
    claim, that the claims from *Memoized links* to *Activations held by heads*
    and the family claims of this lemma use of a growth activation only what
    the correspondences after *Direct growth activations* give.
