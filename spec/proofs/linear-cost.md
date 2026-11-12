@@ -1625,10 +1625,12 @@ a leader in the context of the growth.
 *Proof.* In the step, $g$ evaluates before its left call at $p$ only what
 examines no input there: predicates and calls of rules off the cycle that
 match without examining the input, as `Z` with `Z = ""`. A shared call has the
-same result in both, since the memo answers it the second time, a leader
-called in the context grows again from the same growing results, or the rule
-repeats only its own scan, so each such call that $u$ shares ends at $p$ in
-$u$ as well and examines no input there. Condition 2 compares $u$ and $g$ after
+same result in both, since the memo answers it the second time, or the rule
+repeats only its own scan, or, for a leader called in a context of growths at
+$p$, it grows again from the same growing results, those of the growths at $p$
+in the step that contains $u$ and $g$, so the second growth evaluates what the
+first evaluated and costs at most what the first cost. So each such call that
+$u$ shares ends at $p$ in $u$ as well and examines no input there. Condition 2 compares $u$ and $g$ after
 the shared calls are removed from their starts, one after another, so the
 parts after them start at $p$, are compared as the unit and the continuation,
 and $g$ still makes its left call at $p$ through the seed; when they share no
