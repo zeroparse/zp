@@ -15,7 +15,7 @@ func TestRuleTypeWithPollParity(t *testing.T) {
 		TyTop, TyBottom, RuleTy{Name: "expr"}, NodeTy{Value: TyTop}, NodeTy{Value: ListTy{Elem: TyStringNode}}, TupleTy{Elems: []Ty{TyStringNode}},
 		NodeTy{Value: TupleTy{Elems: []Ty{OptTy{Elem: TyStringNode}, RuleTy{Name: "x"}}}, Caps: []CapIndex{{Name: "a", Paths: [][]int{{0}, {1, 0}}}, {Name: "b", Side: true}}}}
 	for _, typ := range cases {
-		p := &Program{Typed: check.NewShownInfo(map[string]Ty{"main": typ})}
+		p := shownProgram(map[string]Ty{"main": typ})
 		want, known := p.RuleType("main")
 		if !known {
 			t.Fatal("missing test rule")
@@ -34,7 +34,7 @@ func TestRuleTypeWithPollParity(t *testing.T) {
 			t.Fatal("type traversal changed its input")
 		}
 	}
-	for _, p := range []*Program{{}, {Typed: check.NewShownInfo(map[string]Ty{})}} {
+	for _, p := range []*Program{{}, shownProgram(map[string]Ty{})} {
 		for _, poll := range []func(){nil, func() {}} {
 			if got, ok := p.RuleTypeWithPoll("missing", poll); got != "" || ok {
 				t.Fatalf("missing=%q/%v", got, ok)
@@ -59,7 +59,7 @@ func TestRuleTypeWithPollCancelsWithinCollections(t *testing.T) {
 					t.Fatalf("%T did not preserve cancellation callback: %v", typ, got)
 				}
 			}()
-			p := &Program{Typed: check.NewShownInfo(map[string]Ty{"main": typ})}
+			p := shownProgram(map[string]Ty{"main": typ})
 			p.RuleTypeWithPoll("main", func() {
 				calls++
 				if calls == 32 {
@@ -120,4 +120,12 @@ func TestRuleTypeWithPollPreservesForeignPanic(t *testing.T) {
 			panic(replacement)
 		}
 	})
+}
+
+// shownProgram returns a program whose checker and its program hold types that show the types shown.
+func shownProgram(shown map[string]Ty) *Program {
+	info := check.NewShownInfo(shown)
+	p := &Program{Typed: info}
+	p.Checker().Typed = info
+	return p
 }
