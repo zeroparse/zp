@@ -2308,8 +2308,9 @@ growth at $p$, with $\alpha$ in its step $j$ and $\alpha'$ in a later step
 $j'$, and let $e_k$ be the end of the seed of step $k$. Then step $j$ is kept,
 and one of two cases holds.
 
-- *After the seed.* $\alpha'$ follows, in step $j'$, a read of the growing
-  result that succeeds, or a call whose result includes one. Then the path
+- *After the seed.* The path to $\alpha'$ goes on, in step $j'$, from the
+  end of a read of the growing result that succeeds, or of a call whose
+  result includes one. Then the path
   from step $j$ down to $\alpha$ holds a first abandoned evaluation $w$, a
   dropped step of a growth or a unit that starts at a position $s$ with
   $s \le q$ and $s \le e_{j+1}$, and the conclusion of the restarts holds for
@@ -2317,7 +2318,8 @@ and one of two cases holds.
   parser evaluates goes on, at the end of the body of the leader, through the
   reads of the seed in the steps after $j$.
 - *At the position of the growth.* Otherwise $\alpha'$ lies in a part that
-  step $j'$ evaluates on a path that reads no growing result that succeeds:
+  step $j'$ evaluates on a path that goes on from the end of no such read, as
+  after a lookahead that reads the seed and returns to $p$:
   the parts at $p$ that the claims of this lemma before *Calls in a context of
   growths* bound. Then step $j'$ is one of the constant number of steps of the
   growth that those claims leave out, or $q$ is at most a constant after $p$,
@@ -2350,8 +2352,9 @@ steps evaluate in between are no part of it, and the arguments of *Direct
 activations* and *Repeats*, which use of the continuation only that the parser
 consumes through it the input from the end of the shared calls to $q$, apply
 to $w$ and that continuation. In the second case $\alpha'$ lies in no part
-after a read that succeeds, so in a part that step $j'$ evaluates at $p$
-without reading a growing result that succeeds, through the later
+that goes on from the end of a read that succeeds, so in a part that step
+$j'$ evaluates at $p$, a lookahead that reads the seed and returns to $p$
+included, through the later
 alternatives after a growing unit fails, the parts that a unit goes on with at
 its start or what a unit examines at $p$ before a left call; *Evaluations that
 read no growing result*, *Results that do not include the seed*, *Sources at
@@ -2361,8 +2364,8 @@ own region of the step or in a call that the part makes. $\square$
 
 So the sequence $\alpha_1, \alpha_2, \ldots$ of Lemma 4 leaves out, beside case
 5 and the third case of *Dropped steps*, the activations of the second case: an activation
-that lies in a step of a growth, on a path that reads no growing result that
-succeeds, after an activation of $\sigma$ at $q$ in an earlier step of that
+that lies in a step of a growth, on a path that goes on from the end of no
+growing result that succeeds, after an activation of $\sigma$ at $q$ in an earlier step of that
 growth. Two activations of the sequence whose innermost common evaluation is a
 growth are then in the first case, so the claims of Lemma 4 apply to them as
 to the others. This lemma counts the activations of the second case. In a step
@@ -2627,8 +2630,9 @@ constant by the induction. This holds in the steps that the claims at $p$
 leave out too, whose parts at $p$ can examine the input far from $p$. When
 $q$ is more than a constant after $p$, the steps of one growth in the family
 that hold such an activation are the first of them, the constant number of
-steps that the claims at $p$ leave out and the steps that a pair kept by step
-2 of [Open Steps](#open-steps) enters. So the activations of $\sigma$ at $q$ in
+steps that the claims at $p$ leave out, the second step of a growth whose first
+result is empty and the steps that a pair kept by step 2 of
+[Open Steps](#open-steps) enters. So the activations of $\sigma$ at $q$ in
 the family region of $g$ number at most a constant, apart from a constant for
 each step of the family when $q$ is at most a constant after $p$, the
 activations inside calls of rules that call no rule, case 5 and the dropped
@@ -3231,8 +3235,7 @@ two consecutive ones is a growth, the later one is in the second case of
 *Repeats inside a growth*, whose count needs only an activation of $\sigma$
 at $q$ in an earlier step of the same growth, which $\alpha$ is, or it lies
 in the second step of a growth whose first result is empty, a single step of
-each growth, which the count takes with the first of the steps that hold such
-an activation. The count after that claim then applies to them as written.
+each growth, which the count lists with the steps that hold such an activation. The count after that claim then applies to them as written.
 For the pairs of the first kind, which the claim leaves where the later
 activation lies in a growth that starts after the earlier one, it uses of a
 pair only that both lie in one step of the innermost growth at $p$ that
