@@ -1,4 +1,4 @@
-package engine
+package value_test
 
 import (
 	"bytes"
@@ -9,6 +9,8 @@ import (
 	"strings"
 	"testing"
 
+	"zeroparse.dev/zp/internal/engine"
+	"zeroparse.dev/zp/internal/enginetest"
 	"zeroparse.dev/zp/internal/value"
 )
 
@@ -366,13 +368,13 @@ func TestNodeWriteJSONSliceIdentityIgnoresCapacity(t *testing.T) {
 // skips at its ends, not the range of the nodes inside it.
 func TestStructJSONHasRuleRange(t *testing.T) {
 	t.Parallel()
-	program := compileBare(t, `type P = { A node[string] }
+	program := enginetest.CompileBare(t, `type P = { A node[string] }
 rule main P = ws a:w ws $$ => P{A: $a}
 rule w node[string] = [a-z]+ #atomic
 rule ws = [ ]*`)
 	const want = `{"type":"P","start":0,"end":6,"fields":{"A":{"start":2,"end":4,"value":"ab"}}}`
-	for _, backend := range []Backend{Closure, Bytecode, BytecodeIterative} {
-		n, err := program.ParseWith("main", "  ab  ", ParseOptions{Backend: backend})
+	for _, backend := range []engine.Backend{engine.Closure, engine.Bytecode, engine.BytecodeIterative} {
+		n, err := program.ParseWith("main", "  ab  ", engine.ParseOptions{Backend: backend})
 		if err != nil {
 			t.Fatal(err)
 		}

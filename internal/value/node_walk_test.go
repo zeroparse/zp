@@ -1,10 +1,11 @@
-package engine
+package value_test
 
 import (
 	"errors"
 	"reflect"
 	"testing"
 
+	"zeroparse.dev/zp/internal/engine"
 	"zeroparse.dev/zp/internal/value"
 )
 
@@ -105,10 +106,10 @@ func TestWalkDeep(t *testing.T) {
 
 func TestCursorBoundariesAndUncontainedChildren(t *testing.T) {
 	t.Parallel()
-	for _, unit := range []PositionUnit{CodePoints, Bytes} {
+	for _, unit := range []engine.PositionUnit{engine.CodePoints, engine.Bytes} {
 		a, b, z := value.Ptr(value.Data{Start: 1, End: 3}), value.Ptr(value.Data{Start: 3, End: 4}), value.Ptr(value.Data{Start: 3, End: 3})
 		root := value.Ptr(value.Data{Start: 20, End: 21, Children: []*value.Node{a, b, z, a}})
-		c := Cursor{Root: root, Unit: unit}
+		c := engine.Cursor{Root: root, Unit: unit}
 		var got []*value.Node
 		callback := func(v value.WalkVisit) (value.WalkAction, error) {
 			got = append(got, v.Node)
@@ -138,7 +139,7 @@ func TestCursorBoundariesAndUncontainedChildren(t *testing.T) {
 			t.Fatal("negative position accepted")
 		}
 	}
-	if err := (Cursor{Unit: PositionUnit(99)}).At(0, func(value.WalkVisit) (value.WalkAction, error) { return value.WalkContinue, nil }); err == nil {
+	if err := (engine.Cursor{Unit: engine.PositionUnit(99)}).At(0, func(value.WalkVisit) (value.WalkAction, error) { return value.WalkContinue, nil }); err == nil {
 		t.Fatal("invalid unit accepted")
 	}
 }

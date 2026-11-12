@@ -1,4 +1,4 @@
-package engine_test
+package sample_test
 
 import (
 	"errors"

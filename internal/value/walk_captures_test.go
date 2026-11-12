@@ -1,10 +1,11 @@
-package engine
+package value_test
 
 import (
 	"strings"
 	"testing"
 
 	"zeroparse.dev/zp/internal/compile"
+	"zeroparse.dev/zp/internal/enginetest"
 	"zeroparse.dev/zp/internal/value"
 )
 
@@ -14,7 +15,7 @@ import (
 // time exponential in its length.
 func TestWalkHiddenCaptures(t *testing.T) {
 	t.Parallel()
-	prog := compileBare(t, `rule main = x
+	prog := enginetest.CompileBare(t, `rule main = x
 rule x = #operators {
     operand "x"
     level { prefix "-" }
@@ -43,7 +44,7 @@ rule x = #operators {
 // takes visits linear in its length.
 func TestWalkElementCaptures(t *testing.T) {
 	t.Parallel()
-	prog := compileBare(t, `rule main = x
+	prog := enginetest.CompileBare(t, `rule main = x
 rule x = #operators {
     operand "x"
     level { prefix "-" }
@@ -66,7 +67,7 @@ rule x = #operators {
 		t.Fatalf("%d visits, want %d", visits, 2*40+1)
 	}
 
-	prog = compileBare(t, `rule main = &s:word w:word "!"
+	prog = enginetest.CompileBare(t, `rule main = &s:word w:word "!"
 rule word = [a-z]+`, compile.Options{SourceInfo: true})
 	n, err = prog.Parse("main", "ab!")
 	if err != nil {
