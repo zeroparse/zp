@@ -41,6 +41,14 @@ rule T = "c" / "d" [a-z]* "!"
 		{"bounded repetition", stepMain + `rule S = (S "a" / "b") T
 rule T = "c" / "d" [a-z]#repeat(,3) "!"
 `, ClassLinear, ""},
+		// The tails R "!" and "+" "x" begin differently: each is committing against what
+		// follows E in s, R "?", on its own, after the shared call of R, while the choice of both
+		// shares no call with it.
+		{"tails compared one at a time", `@start
+rule s = E R "?" $$
+rule E = E R "!" / E "+" "x" / "x"
+rule R = [ ]*
+`, ClassLinear, ""},
 		{"expression", `@start
 rule main = E $$
 rule E = E "+" T / T
