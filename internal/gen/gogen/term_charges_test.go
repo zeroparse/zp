@@ -2,6 +2,7 @@ package gogen_test
 
 import (
 	"fmt"
+	"maps"
 	"regexp"
 	"strings"
 	"testing"
@@ -140,23 +141,8 @@ func checkTermCharges(t *testing.T, golden, what, unset, prefix string, all []ge
 		t.Skip("builds generated consumers")
 	}
 	terms := termChargeCases(t, all)
-	cases := make([]gentest.Case, len(terms))
-	for i, c := range terms {
-		cases[i] = c.Case
-		cases[i].Name = fmt.Sprintf("term %d", i)
-	}
 	got := map[string]string{}
-	key := func(i int, input, target string) string {
-		return fmt.Sprintf("%s/term %d: %s | %s %s", prefix, i, terms[i].Term, input, target)
-	}
-	inputIndex := func(i int, input string) int {
-		for j, in := range terms[i].Inputs {
-			if in == input {
-				return j
-			}
-		}
-		panic("no input")
-	}
+	key := func(i int, input, target string) string { return termChargeKey(prefix, terms, i, input, target) }
 	// The engine.
 	for i, c := range terms {
 		g, _ := parseTest(c.Src)
@@ -177,33 +163,7 @@ func checkTermCharges(t *testing.T, golden, what, unset, prefix string, all []ge
 		}
 	}
 	// Generated Go: the node parser's Parse and Recognize, and the typed parser's ParseAST.
-	rt := gentest.RuntimeCopy()
-	for _, run := range []struct {
-		name  string
-		opts  gen.GenOptions
-		parse string
-	}{{"go-node", gen.GenOptions{}, "Parse"}, {"go-typed", gen.GenOptions{Types: true}, "ParseAST"}} {
-		totals, problems := budgetTotalsWith(t, rt, prefix, cases, "main", nil, run.opts, run.parse)
-		for _, p := range problems {
-			t.Error(p)
-		}
-		for k, v := range totals {
-			m := regexp.MustCompile(`^` + prefix + `/term (\d+) \| (\d+) (\w+)$`).FindStringSubmatch(k)
-			if m == nil {
-				t.Fatalf("unexpected key %q", k)
-			}
-			var i, j int
-			fmt.Sscan(m[1], &i)
-			fmt.Sscan(m[2], &j)
-			f := strings.SplitN(v, " ", 3)
-			target := run.name
-			if m[3] == "recognize" {
-				target += "-recognize"
-			}
-			got[key(i, terms[i].Inputs[j], target)] = f[0] + " " + termOutcome(f[2])
-		}
-	}
-	_ = inputIndex
+	maps.Copy(got, goTermCharges(t, prefix, terms, nil))
 	// Generated TypeScript.
 	for i, c := range terms {
 		g, _ := parseTest(c.Src)
@@ -222,6 +182,51 @@ func checkTermCharges(t *testing.T, golden, what, unset, prefix string, all []ge
 		}
 	}
 	termChargesGoldenFile(golden, what, unset).Check(t, prefix+"/", got)
+}
+
+// termChargeKey is the key of the golden entry of term i of terms for the input on the target.
+func termChargeKey(prefix string, terms []gentest.TermCase, i int, input, target string) string {
+	return fmt.Sprintf("%s/term %d: %s | %s %s", prefix, i, terms[i].Term, input, target)
+}
+
+// goTermCharges returns the golden entries of the generated Go targets for terms: the charges of the node
+// parser's Parse and Recognize and of the typed parser's ParseAST. mutate, if not nil, edits each generated
+// parser before it is built.
+func goTermCharges(t *testing.T, prefix string, terms []gentest.TermCase, mutate func([]byte) []byte) map[string]string {
+	t.Helper()
+	cases := make([]gentest.Case, len(terms))
+	for i, c := range terms {
+		cases[i] = c.Case
+		cases[i].Name = fmt.Sprintf("term %d", i)
+	}
+	got := map[string]string{}
+	rt := gentest.RuntimeCopy()
+	for _, run := range []struct {
+		name  string
+		opts  gen.GenOptions
+		parse string
+	}{{"go-node", gen.GenOptions{}, "Parse"}, {"go-typed", gen.GenOptions{Types: true}, "ParseAST"}} {
+		totals, problems := budgetTotalsWith(t, rt, prefix, cases, "main", mutate, run.opts, run.parse)
+		for _, p := range problems {
+			t.Error(p)
+		}
+		for k, v := range totals {
+			m := regexp.MustCompile(`^` + prefix + `/term (\d+) \| (\d+) (\w+)$`).FindStringSubmatch(k)
+			if m == nil {
+				t.Fatalf("unexpected key %q", k)
+			}
+			var i, j int
+			fmt.Sscan(m[1], &i)
+			fmt.Sscan(m[2], &j)
+			f := strings.SplitN(v, " ", 3)
+			target := run.name
+			if m[3] == "recognize" {
+				target += "-recognize"
+			}
+			got[termChargeKey(prefix, terms, i, terms[i].Inputs[j], target)] = f[0] + " " + termOutcome(f[2])
+		}
+	}
+	return got
 }
 
 // tsChargeScript is a TypeScript consumer that prints, for each input, the least compute limit under which
