@@ -286,6 +286,17 @@ the observed form runs on generated Go only). A parse that reads no Document kee
 range of a call as the empty range at its position or as one unit, which the suite states as a configuration of
 the model. *Target*: where the range lives and how the Document counts.
 
+**Operators Rule descriptors and matches.** The operators, operand lines and trivia of an Operators Rule (`opr.led`,
+`opr.prefix`, `opr.count`, `opr.at`, `opr.operands`, `opr.operand`, `opr.line`, `opr.level`, `opr.infix`, `opr.postfix`,
+`opr.right`, `opr.nonAssoc`, `opr.scope`, `opr.hasSkip`), the match of an operator (`opr.attempt`, `opr.found`, `opr.op`,
+`opr.end`, `opr.cut`, `opr.env`, `opr.errs`), the state of the loop (`opr.setCutFailed`, `opr.cutFailed`,
+`opr.setNudBound`, `opr.nudBound`, `opr.setAfterEmpty`, `opr.afterEmpty`) and the records of the split forms (`oprLongest`, `oprNud`, `oprExpr`, a getter and a
+setter for each field, a field holding the zero value of its type until it is set) have a reference model, with
+conformance cases that run on the engine and, for all but the records, on generated Go. A harness that reaches
+the targets' printed bindings by reflection serves both. The operations that run grammar code or build values
+(`opr.skip`, `opr.match`, `opr.lineValue`, `opr.build`, `opr.buildTyped`, `opr.attemptMissing`, `opr.replay`) stay
+transitional until the scripted-rule model covers them. *Target*: the representation of lists, lines and attempts.
+
 **Recovery.** The recovered errors are an ordered list with marks, and immutable lists that entries share, so that
 a replay costs a constant however many errors it brings back and listing k errors visits fewer than 2k lists
 ([Lemma 14](../../../spec/proofs/linear-cost.md#lemma-14-shared-recovered-errors)). No list moves: a memo entry
