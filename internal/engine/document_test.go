@@ -160,6 +160,44 @@ func TestDocumentInputStartAnchors(t *testing.T) {
 	}
 }
 
+// TestDocumentResumesShiftedTail checks that an edit that shifts the text after it still lets a
+// repetition whose elements hold no positions reuse its old elements after the edit, moved by the
+// edit. A repetition whose elements do hold positions reuses none of them after the edit.
+func TestDocumentResumesShiftedTail(t *testing.T) {
+	t.Parallel()
+	const n = 200
+	cases := []struct {
+		grammar string
+		moved   bool
+	}{
+		{`rule main = ([a-z]+ #atomic ";")* $$`, true},
+		{`rule main = (at ";")* $$
+rule at = w:[a-z]+ #atomic => $w.Start`, false},
+	}
+	for _, c := range cases {
+		prog := mustCompile(t, c.grammar)
+		for _, b := range []Backend{Closure, Bytecode, BytecodeIterative} {
+			d, err := prog.NewDocumentWith("main", strings.Repeat("ab;", n), ParseOptions{Backend: b})
+			if err != nil {
+				t.Fatal(err)
+			}
+			if _, err := d.Parse(); err != nil {
+				t.Fatal(err)
+			}
+			if err := d.Edit(0, 0, "x;"); err != nil {
+				t.Fatal(err)
+			}
+			if _, err := d.Parse(); err != nil {
+				t.Fatal(err)
+			}
+			// The edit is at the start, so every reused element comes after it.
+			if got := d.Stats().ResumedElements; (got >= n) != c.moved || (!c.moved && got != 0) {
+				t.Errorf("%s, %q: %d elements reused after an insertion before %d, moved %v", b, c.grammar, got, n, c.moved)
+			}
+		}
+	}
+}
+
 // TestDocumentMovesReusedTrees checks reused results after random batches of edits (several
 // edits between parses) on grammars with empty nodes, which can lie at an insertion point on
 // either side of it, and nodes reachable twice (as a child and a field).
