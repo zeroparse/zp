@@ -22,8 +22,12 @@ type sharedProgram = core.SharedProgram
 // Program is a compiled grammar. It can be used by multiple parses concurrently.
 type Program struct {
 	sharedProgram
-	// closureRules holds the rules the closure backend runs, by ID (rule.id).
-	closureRules []*core.Rule
+	// buildFamily builds the rules that the closure backend runs in a family, by ID (rule.id); it is
+	// nil when the closure backend cannot run the program (a program loaded without its grammar).
+	// families holds the rules of each family (closure.Inlined, closure.CallPreserving), built on
+	// first use.
+	buildFamily func(closure.Family) ([]*core.Rule, error)
+	families    [2]closureFamily
 
 	budgetOnce    sync.Once
 	budgetProgram *Program
@@ -47,10 +51,17 @@ type Program struct {
 	insErr  error
 }
 
-// newProgram returns the program that runs the static program sp with the rules of the closure
-// backend.
-func newProgram(sp *compile.Program, closureRules []*core.Rule) *Program {
-	prog := &Program{closureRules: closureRules}
+// closureFamily holds the rules of a closure family once a parse needs them.
+type closureFamily struct {
+	once  sync.Once
+	rules []*core.Rule
+	err   error
+}
+
+// newProgram returns the program that runs the static program sp; buildFamily builds the rules of
+// the closure backend in a family, or is nil when that backend cannot run sp.
+func newProgram(sp *compile.Program, buildFamily func(closure.Family) ([]*core.Rule, error)) *Program {
+	prog := &Program{buildFamily: buildFamily}
 	core.InitSharedProgram(&prog.sharedProgram, sp)
 	return prog
 }
@@ -145,8 +156,10 @@ func buildControlled(g *grammar.Grammar, opts compile.Options, flags []compile.R
 // saved-program loading keep their ordinary path with no active control.
 // Polls cover grammar AST validation, source normalization, rule/dependency
 // loops, shared success proofs, expression checking, type checking, the Core IR
-// build, its analysis, passes and verification, and closure construction.
-// Shared metadata and individual operations still have uncancellable stretches.
+// build, its analysis, passes and verification. The closures are built from the
+// Core IR when a parse first needs them, outside the compilation, and are not
+// interrupted. Shared metadata and individual operations still have
+// uncancellable stretches.
 // This is not a wall-clock latency guarantee.
 func CompileContext(ctx context.Context, g *grammar.Grammar, opts Options) (prog *Program, err error) {
 	if err := ctx.Err(); err != nil {
@@ -174,9 +187,12 @@ func buildNamed(g *grammar.Grammar, opts compile.Options, flags []compile.RuleFl
 	if err != nil {
 		return nil, err
 	}
-	rules, err := closure.Build(prog, control, !opts.ControlledDispatch)
+	m, err := closure.Core(prog, control)
 	if err != nil {
 		return nil, err
 	}
-	return newProgram(prog, rules), nil
+	// The closures of each family are built from m on first use, inside the parse that needs them
+	// and outside the compilation and its control (Build only reads m).
+	plainDispatch := !opts.ControlledDispatch
+	return newProgram(prog, func(f closure.Family) ([]*core.Rule, error) { return closure.Build(prog, m, plainDispatch, f) }), nil
 }

@@ -78,7 +78,7 @@ func TestCompileContextPhaseCancellation(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	for _, phase := range []string{"static-analysis", "success-proof", "failure-proof", "cut-proof", "dependency-graph", "type-checking", "type-inference", "matcher-construction", "list-constructor-type", "core-build", "core-analysis", "core-passes", "core-pass-terminals", "core-pass-guards", "core-pass-scans", "core-pass-class-runs", "core-verify", "closure-build"} {
+	for _, phase := range []string{"static-analysis", "success-proof", "failure-proof", "cut-proof", "dependency-graph", "type-checking", "type-inference", "list-constructor-type", "core-build", "core-analysis", "core-passes", "core-pass-terminals", "core-pass-guards", "core-pass-scans", "core-pass-class-runs", "core-verify", "closure-core"} {
 		t.Run(phase, func(t *testing.T) {
 			ctx := compileTestContext(t, 1)
 			control := &cancel.Control{Ctx: ctx}
@@ -130,14 +130,6 @@ func TestCompileContextPhaseCancellation(t *testing.T) {
 				}
 				c := &compile.Compiler{Prog: p.Static(), Control: control}
 				c.CheckTerm(&grammar.ListConstructor{Elem: elem}, compile.NewScope(), nil)
-			case "matcher-construction":
-				// The closure builder polls for each Core node: a sequence with no class or
-				// guard reaches the checkpoint only through those polls.
-				items := make([]ir.Node, 1024)
-				for i := range items {
-					items[i] = &ir.Lit{Text: "a"}
-				}
-				_, _ = closure.Matcher(&compile.Program{DescTable: []string{`"a"`}}, &ir.Module{Exps: []string{`"a"`}}, &ir.Seq{Items: items}, nil, control, false)
 			case "core-build":
 				_, _ = corebuild.CoreControlled(p.Static(), control)
 			case "core-analysis", "core-passes", "core-pass-terminals", "core-pass-guards", "core-pass-scans", "core-pass-class-runs", "core-verify":
@@ -167,8 +159,8 @@ func TestCompileContextPhaseCancellation(t *testing.T) {
 				case "core-verify":
 					_ = ir.Verify(m)
 				}
-			case "closure-build":
-				_, _ = closure.Build(p.Static(), control, false)
+			case "closure-core":
+				_, _ = closure.Core(p.Static(), control)
 			}
 			t.Fatal("phase completed without cancellation")
 		})

@@ -337,7 +337,7 @@ func newCompileWalker(c *compile.Compiler) *compile.Walker[struct{}] {
 func closureExprMatcher(t *testing.T, prog *compile.Program, e grammar.Expr, plainDispatch bool) core.Matcher {
 	t.Helper()
 	m, found := closureExprCore(t, prog, e)
-	f, err := closure.Matcher(prog, m, found, nil, nil, plainDispatch)
+	f, err := closure.Matcher(prog, m, found, nil, plainDispatch)
 	if err != nil {
 		t.Fatal(err)
 	}

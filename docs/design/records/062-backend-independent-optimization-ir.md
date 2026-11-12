@@ -402,9 +402,11 @@ Closures and bytecode therefore compile each program in two **families**:
 | Call-preserving | Traced and profiled parses, and Document parses | Every rule reference stays a full `Call` |
 
 A parse selects its family from its options when it starts, so no rule call checks the mode, and
-`noPlain` disappears. `plain` is derived for each family when its program is built or loaded and is not
-stored in modules: false for every rule in the call-preserving family, and computed from the rule table
-as today in the inlined family. `Compile` checks the grammar and builds Core IR; each family's program is
+`noPlain` disappears from the call sites. The plain path is chosen for each family when its program is
+built or loaded and is not stored in modules: no call site takes it in the call-preserving family, and
+the call sites of plain rules (computed from the rule table as today) take it in the inlined family.
+The `plain` fact of a rule itself is the same in both families, because a full call still uses it to
+leave the call protocol of a plain rule out of the count against a Document's default limit. `Compile` checks the grammar and builds Core IR; each family's program is
 built on first use under its own `sync.Once`, as the recognizer is, because a `Program` is shared across
 goroutines. A user that only parses Documents, such as the language server, never builds the inlined
 family. Every compile error, such as `undefined rule`, which the closure lowering reports today
@@ -680,16 +682,19 @@ stage of its first consumer, so its differential tests and negative controls run
 5. **Closures**, in both families. The closure backend is built from Core IR: one closure per node after
    the closure pipeline, with actions, predicates and bindings run as term programs compiled from Core IR
    terms. The grammar-driven construction of closures is removed; `closure/builder.go` stays as the
-   Core-driven builder. What remains of the stage: the two families, with the gate of unchanged results
-   and engine event streams and event-free equality of the two families; then the removal of the
-   closures' `noPlain` checks and of what the compile walker still computes only for the old closure
-   construction. The cost gate is still open: `Compile` now builds Core IR and runs the closure pipeline
-   and verification for every grammar, which it did not before. `Compile` plus the first-use build of the
+   Core-driven builder. `Compile` builds Core IR and runs the closure pipeline under the compile
+   control and keeps the module; the closures of each family are built from that module, which the
+   builds only read, on first use and without interruption. A call site of a plain rule takes the plain
+   path only in the inlined family, so the closures no longer check `noPlain`; the families are checked
+   by their budget charges, which are those of the former run-time choice, and by event-free equality on
+   the corpus. What remains of the stage is the removal of what the compile walker still computes only
+   for the old closure construction. The cost gate is still open: `Compile` now builds Core IR and runs
+   the closure pipeline and verification for every grammar, which it did not before. `Compile` plus the first-use build of the
    inlined family is to be within noise of the former `Compile` in time and allocations, and the
    first-use build of the call-preserving family is to be measured; both measurements are made with the
    benchmark work that follows the structural changes. If `Compile` time regresses, the remedies to
-   measure are building Core IR per rule on first use and skipping optimizing passes and closure
-   construction for compilations that only report diagnostics, such as the language server's
+   measure are building Core IR per rule on first use and skipping the optimizing passes for
+   compilations that only report diagnostics, such as the language server's
    `CompileContext`.
 
 New optimizations (wider inlining, case-pair folding, slot sharing across alternatives) come after the

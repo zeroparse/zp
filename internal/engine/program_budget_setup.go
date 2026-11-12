@@ -4,14 +4,16 @@ import (
 	"fmt"
 
 	"zeroparse.dev/zp/internal/compile"
+	"zeroparse.dev/zp/internal/engine/closure"
 	"zeroparse.dev/zp/internal/engine/core"
 	"zeroparse.dev/zp/internal/engine/vm"
 )
 
 // admitParse validates fixed metadata and resolves the limits (core.ResolveLimits) for the input text (empty for a stream) before caller Context methods. Callers
 // resolve an empty start to the default start rule first. Lazy setup
-// is not charged, but active calls check immediately around each component.
-func (prog *Program) admitParse(start string, o ParseOptions, stream bool, text string) (*Program, *core.Rule, *core.BudgetControl, error) {
+// is not charged, but active calls check immediately around each component. It resolves the rule
+// in the closure family f that the parse runs, building that family on first use.
+func (prog *Program) admitParse(start string, o ParseOptions, f closure.Family, stream bool, text string) (*Program, *core.Rule, *core.BudgetControl, error) {
 	if err := prog.CheckStart(start); err != nil {
 		return nil, nil, nil, err
 	}
@@ -23,7 +25,7 @@ func (prog *Program) admitParse(start string, o ParseOptions, stream bool, text 
 		if err != nil {
 			return nil, nil, nil, err
 		}
-		return ins.admitParse(start, o, stream, text)
+		return ins.admitParse(start, o, f, stream, text)
 	}
 	if _, err := core.DepthLimit(o, prog.backend(o.Backend)); err != nil {
 		return nil, nil, nil, err
@@ -41,10 +43,10 @@ func (prog *Program) admitParse(start string, o ParseOptions, stream bool, text 
 			if err != nil {
 				return nil, nil, nil, err
 			}
-			r, err := active.rule(o.Backend, start)
+			r, err := active.rule(o.Backend, start, f)
 			return active, r, nil, err
 		}
-		r, err := prog.rule(o.Backend, start)
+		r, err := prog.rule(o.Backend, start, f)
 		if err != nil {
 			return nil, nil, nil, err
 		}
@@ -85,7 +87,7 @@ func (prog *Program) admitParse(start string, o ParseOptions, stream bool, text 
 	if err != nil {
 		return nil, nil, nil, err
 	}
-	r, err := active.prepareControlledRule(o.Backend, start, c)
+	r, err := active.prepareControlledRule(o.Backend, start, f, c)
 	return active, r, c, err
 }
 
@@ -118,9 +120,17 @@ func (prog *Program) preflightRule(b Backend, name string, stream bool) (bool, e
 	return false, fmt.Errorf("rule %s is not defined", name)
 }
 
-func (prog *Program) prepareControlledRule(b Backend, name string, c *core.BudgetControl) (*core.Rule, error) {
-	if !core.BudgetControlsEnabled || c == nil || prog.backend(b) == Closure {
-		return prog.rule(b, name)
+func (prog *Program) prepareControlledRule(b Backend, name string, f closure.Family, c *core.BudgetControl) (*core.Rule, error) {
+	if !core.BudgetControlsEnabled || c == nil {
+		return prog.rule(b, name, f)
+	}
+	if prog.backend(b) == Closure {
+		// The closures of the family are built on first use and not interrupted; the checks
+		// before (prepareControlledProgram's last) and after the build observe the parse's
+		// context and budget.
+		r, err := prog.rule(b, name, f)
+		c.Check()
+		return r, err
 	}
 	c.Check()
 	m := prog.Module()
@@ -132,7 +142,7 @@ func (prog *Program) prepareControlledRule(b Backend, name string, c *core.Budge
 		prog.ivmOnce.Do(func() { prog.ivm = vm.NewIterative(m) })
 	}
 	c.Check()
-	return prog.rule(b, name)
+	return prog.rule(b, name, f)
 }
 
 // prepareControlledProgram builds the metered closure graph only when needed.

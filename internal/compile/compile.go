@@ -174,7 +174,7 @@ type Rule struct {
 	// position (parser.firstCall), or -1.
 	Seen int
 	// Plain reports that the rule is never memoized except by Document and has no captures, so
-	// call runs it with invokePlain (the closure backend calls invokePlain directly).
+	// call runs it with invokePlain (the inlined rules of the closure backend call InvokePlain directly).
 	Plain bool
 	// Rec reports that the rule is on a cycle of the call graph, or calls itself: only such rules
 	// can nest without bound, so only their entries count against the nesting limit.

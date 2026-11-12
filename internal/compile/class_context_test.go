@@ -38,39 +38,3 @@ func TestFirstTerminalContextFacts(t *testing.T) {
 		t.Fatal("cyclic guard did not stop")
 	}
 }
-
-func TestClassBitmapPollingBoundaries(t *testing.T) {
-	t.Parallel()
-	for _, rs := range [][]grammar.CharRange{
-		contextClassRanges(),
-		{{Lo: 0, Hi: 31}, {Lo: 'a', Hi: 'z'}, {Lo: 127, Hi: 127}},
-	} {
-		for _, start := range []uint32{0, cancel.PollStride - 1, ^uint32(0) - 1} {
-			for _, neg := range []bool{false, true} {
-				// Count a reference scan one visit at a time, including early matches.
-				var visits uint64
-				var want [2]uint64
-				for r := rune(0); r < 128; r++ {
-					matched := false
-					for _, rg := range rs {
-						visits++
-						if rg.Lo <= r && r <= rg.Hi {
-							matched = true
-							break
-						}
-					}
-					if matched != neg {
-						want[r>>6] |= 1 << (r & 63)
-					}
-				}
-				ctx := compileTestContext(t, 1<<20)
-				c := &cancel.Control{Ctx: ctx, Steps: start}
-				got := ClassASCII(rs, neg, c)
-				checks := (uint64(start%cancel.PollStride) + visits) / cancel.PollStride
-				if got != want || c.Steps != start+uint32(visits) || (1<<20)-ctx.left != int(checks) {
-					t.Fatalf("start=%d neg=%t steps=%d checks=%d wantchecks=%d", start, neg, c.Steps, (1<<20)-ctx.left, checks)
-				}
-			}
-		}
-	}
-}

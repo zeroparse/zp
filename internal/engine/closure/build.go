@@ -12,30 +12,55 @@ import (
 	"zeroparse.dev/zp/internal/value"
 )
 
-// Build builds the closure backend's form of the program prog from its Core IR, optimized by the
-// closure pipeline (guards and scans), and returns the rules the parser runs, by ID. control is the
-// control of the compilation, or nil: the Core build, its passes, Verify and the construction of
-// the closures poll it; plainDispatch leaves out the budget charge of the loop
-// iterations. A failure is an internal error: the program compiled, so its Core IR and terms build.
-func Build(prog *compile.Program, control *cancel.Control, plainDispatch bool) ([]*core.Rule, error) {
+// Family selects one of the two rule sets that Build builds from a program. A parse runs one family
+// from start to end, chosen by what it observes of the rule calls.
+type Family uint8
+
+const (
+	// Inlined is the family of the parses that observe no rule call: a call site of a plain rule
+	// (compile.Rule.Plain) runs the rule with core.Parser.InvokePlain, which leaves out the call
+	// protocol of core.Parser.Call that such a rule does not need.
+	Inlined Family = iota
+	// CallPreserving is the family of the parses that observe or memoize every rule call (traced
+	// parses, whose tracer Call reports to, and the parses of a Document, which memoize plain rules
+	// too): every call site of every rule goes through core.Parser.Call.
+	CallPreserving
+)
+
+// Core builds the Core IR of the program prog and optimizes it with the closure pipeline (guards
+// and scans), for Build. control is the control of the compilation, or nil: the Core build, its
+// passes and Verify poll it. The module returned keeps no control, so the rules built from it do
+// not keep the compilation's context. A failure other than a cancellation is an internal error:
+// the program compiled, so its Core IR builds.
+func Core(prog *compile.Program, control *cancel.Control) (*ir.Module, error) {
 	m, err := build.CoreControlled(prog, control)
 	if err != nil {
 		return nil, fmt.Errorf("internal error: Core IR: %w", err)
 	}
-	defer func() { m.Control = nil }() // the rules must not keep the compilation's context
+	defer func() { m.Control = nil }()
 	if _, err := ir.Run(m, &ir.Env{}, ir.RunOptions{}); err != nil {
 		return nil, fmt.Errorf("internal error: %w", err)
 	}
-	b, err := newBuilder(prog, m, control, plainDispatch)
+	return m, nil
+}
+
+// Build builds the closure backend's form of the program prog from its Core IR m (Core), and
+// returns the rules of the family f that the parser runs, by ID. plainDispatch leaves out the
+// budget charge of the loop iterations. Build only reads m, so the families of a program can be
+// built from the same module, at different times. A failure is an internal error: the program
+// compiled, so its terms build. The build runs when a parse first needs the family, outside the
+// compilation, so no control interrupts it.
+func Build(prog *compile.Program, m *ir.Module, plainDispatch bool, f Family) ([]*core.Rule, error) {
+	b, err := newBuilder(prog, m, plainDispatch)
 	if err != nil {
 		return nil, err
 	}
-	all := append(append([]*compile.Rule(nil), prog.RuleList...), prog.Twins...)
-	if len(all) != len(m.Rules) {
-		return nil, fmt.Errorf("internal error: %d rules in Core IR, %d in the program", len(m.Rules), len(all))
+	b.family = f
+	if len(b.static) != len(m.Rules) {
+		return nil, fmt.Errorf("internal error: %d rules in Core IR, %d in the program", len(m.Rules), len(b.static))
 	}
 	for _, cr := range m.Rules {
-		sr := all[cr.ID]
+		sr := b.static[cr.ID]
 		b.cur = sr
 		if o, ok := cr.Body.(*ir.OperatorsRule); ok {
 			err = b.operatorsRule(sr, cr, o)
@@ -66,8 +91,9 @@ func Build(prog *compile.Program, control *cancel.Control, plainDispatch bool) (
 }
 
 // newBuilder returns the builder of the closure form of the module m of the program prog.
-func newBuilder(prog *compile.Program, m *ir.Module, control *cancel.Control, plainDispatch bool) (*Builder, error) {
-	b := &Builder{prog: prog, m: m, control: control, plainDispatch: plainDispatch, accepts: map[*ir.Class]func(*core.Parser, rune) bool{}}
+func newBuilder(prog *compile.Program, m *ir.Module, plainDispatch bool) (*Builder, error) {
+	b := &Builder{prog: prog, m: m, plainDispatch: plainDispatch, accepts: map[*ir.Class]func(*core.Parser, rune) bool{}}
+	b.static = append(append([]*compile.Rule(nil), prog.RuleList...), prog.Twins...)
 	ids := make(map[string]core.ExpID, len(prog.DescTable))
 	for i, d := range prog.DescTable {
 		if _, ok := ids[d]; !ok {
@@ -85,9 +111,10 @@ func newBuilder(prog *compile.Program, m *ir.Module, control *cancel.Control, pl
 }
 
 // Matcher returns the matcher of the node n, in the capture scope scope, of the Core IR module m
-// of the program prog. It is for the tests of package engine, which check single closures.
-func Matcher(prog *compile.Program, m *ir.Module, n ir.Node, scope []ir.Slot, control *cancel.Control, plainDispatch bool) (core.Matcher, error) {
-	b, err := newBuilder(prog, m, control, plainDispatch)
+// of the program prog, in the inlined family. It is for the tests of package engine, which check
+// single closures.
+func Matcher(prog *compile.Program, m *ir.Module, n ir.Node, scope []ir.Slot, plainDispatch bool) (core.Matcher, error) {
+	b, err := newBuilder(prog, m, plainDispatch)
 	if err != nil {
 		return nil, err
 	}
@@ -118,7 +145,7 @@ func (b *Builder) accept(c *ir.Class) func(*core.Parser, rune) bool {
 	for _, r := range c.Ranges {
 		cc.Ranges = append(cc.Ranges, grammar.CharRange{Lo: r.Lo, Hi: r.Hi})
 	}
-	f := ClassAcceptControlled(cc, b.control)
+	f := ClassAccept(cc)
 	b.accepts[c] = f
 	return f
 }
@@ -133,7 +160,6 @@ func (b *Builder) failf(format string, args ...any) core.Matcher {
 
 // node builds the matcher of the Core IR node n in the current scope.
 func (b *Builder) node(n ir.Node) core.Matcher {
-	b.control.Poll()
 	want := n.Attrs().Want
 	switch n := n.(type) {
 	case *ir.Lit:
