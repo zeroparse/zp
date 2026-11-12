@@ -1224,13 +1224,15 @@ func NormalView(g *grammar.Grammar, matching bool, control *cancel.Control) (*gr
 	if len(errs) > 0 {
 		return nil, errs
 	}
-	an := AnalyzeControlled(rules, control)
-	memo, _ := memoizedRules(rules, an, control)
+	rf, err := classifierFacts(g, rules, control)
+	if err != nil {
+		return nil, err
+	}
 	opts := costView
 	if matching {
 		opts = viewOptions{labels: true, inline: true}
 	}
-	v := normalizeRules(rules, an, memo, opts, control)
+	v := normalizeRules(rules, rf.an, rf.memo, opts, control)
 	byName := map[string]*grammar.RuleDef{}
 	for _, r := range v.rules {
 		byName[r.Name] = r

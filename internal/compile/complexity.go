@@ -2,6 +2,7 @@ package compile
 
 import (
 	"fmt"
+	"maps"
 	"slices"
 	"strings"
 	"unicode/utf8"
@@ -145,7 +146,12 @@ func prepareTypedClassifier(g *grammar.Grammar, start string, control *cancel.Co
 	if start == "" {
 		start = prog.DefaultStartRule
 	}
-	k := newViewClassifier(prog.Grammar, control.Rules(prog.Grammar), start, control)
+	rules := control.Rules(prog.Grammar)
+	rf, err := classifierFacts(prog.Grammar, rules, control)
+	if err != nil {
+		return nil, nil
+	}
+	k := newViewClassifier(prog.Grammar, rules, rf, start, control)
 	k.types = prog.ValueRecord()
 	return k, names
 }
@@ -165,7 +171,7 @@ func prepareBaseClassifier(g *grammar.Grammar, start string, control *cancel.Con
 	return prepareClassifierWith(g, start, control, newClassifier)
 }
 
-func prepareClassifierWith(g *grammar.Grammar, start string, control *cancel.Control, build func(*grammar.Grammar, []*grammar.RuleDef, string, *cancel.Control) *classifier) (*classifier, desugar.InlineNames, error) {
+func prepareClassifierWith(g *grammar.Grammar, start string, control *cancel.Control, build func(*grammar.Grammar, []*grammar.RuleDef, *ruleFacts, string, *cancel.Control) *classifier) (*classifier, desugar.InlineNames, error) {
 	control.Check()
 	names := desugar.InlineNames{}
 	if desugar.HasInlineAction(g, control) {
@@ -196,20 +202,22 @@ func prepareClassifierWith(g *grammar.Grammar, start string, control *cancel.Con
 	if start == "" {
 		start = def
 	}
-	k := build(g, rules, start, control)
+	rf, err := classifierFacts(g, rules, control)
+	if err != nil {
+		return nil, nil, err
+	}
+	k := build(g, rules, rf, start, control)
 	k.inlineNames = names
 	return k, names, nil
 }
 
-// newViewClassifier returns a classifier of the normal view of rules (normal_view.go) from start.
-// What the runtime decides by the grammar as it is written stays decided by rules: the
-// left-recursion cycles and their leaders, the memoized rules, the variables that key the memo, and
-// the run sites.
-func newViewClassifier(g *grammar.Grammar, rules []*grammar.RuleDef, start string, control *cancel.Control) *classifier {
-	an := AnalyzeControlled(rules, control)
-	memo, _ := memoizedRules(rules, an, control)
-	v := normalizeRules(rules, an, memo, costView, control)
-	k := newClassifierOf(g, v.rules, rules, an, start, control)
+// newViewClassifier returns a classifier of the normal view of rules (normal_view.go) from start,
+// with the rule facts rf of rules. What the runtime decides by the grammar as it is written stays
+// decided by rules: the left-recursion cycles and their leaders, the memoized rules, the variables
+// that key the memo, and the run sites.
+func newViewClassifier(g *grammar.Grammar, rules []*grammar.RuleDef, rf *ruleFacts, start string, control *cancel.Control) *classifier {
+	v := normalizeRules(rules, rf.an, rf.memo, costView, control)
+	k := newClassifierOf(g, v.rules, rules, rf, start, control)
 	k.viewText = v.text
 	return k
 }
@@ -249,6 +257,7 @@ type classifier struct {
 	byName  map[string]*grammar.RuleDef
 	start   string
 	an      *Analysis
+	facts   *ruleFacts   // the rule facts of the grammar, of which an is part
 	types   *ValueRecord // the value types of the terms, or nil if they are unknown
 	// combinations is the product of the sizes of the value sets of the variables with finite
 	// values, which checkValues computes.
@@ -275,7 +284,7 @@ type classifier struct {
 	vars    map[string][]string
 	varType map[string]string
 
-	nullRule    map[string]bool
+	nullRule    map[string]bool // the nullable rules with token insertion enabled (ruleFacts.nullable); read only
 	firstRule   map[string]charset
 	boundedRule map[string]bool
 	reachFrom   map[string]map[string]bool
@@ -338,16 +347,17 @@ type classifier struct {
 	viewText map[grammar.Expr]string
 }
 
-func newClassifier(g *grammar.Grammar, rules []*grammar.RuleDef, start string, control *cancel.Control) *classifier {
-	return newClassifierOf(g, rules, rules, AnalyzeControlled(rules, control), start, control)
+func newClassifier(g *grammar.Grammar, rules []*grammar.RuleDef, rf *ruleFacts, start string, control *cancel.Control) *classifier {
+	return newClassifierOf(g, rules, rules, rf, start, control)
 }
 
 // newClassifierOf returns a classifier of the bodies of rules, which are those of base or a view
-// of them. The analysis an of base, its variables and its memoization stand for the grammar.
-func newClassifierOf(g *grammar.Grammar, rules, base []*grammar.RuleDef, an *Analysis, start string, control *cancel.Control) *classifier {
+// of them. The rule facts rf of base stand for the grammar: its analysis, its variables, its
+// memoization and its nullable rules.
+func newClassifierOf(g *grammar.Grammar, rules, base []*grammar.RuleDef, rf *ruleFacts, start string, control *cancel.Control) *classifier {
 	k := &classifier{control: control, g: g, rules: rules, start: start, byName: map[string]*grammar.RuleDef{},
 		calls: map[string][]string{}, scc: map[string]int{}, recursive: map[string]bool{}, memo: map[string]bool{},
-		varType: map[string]string{}, nullRule: map[string]bool{}, firstRule: map[string]charset{},
+		varType: map[string]string{}, nullRule: rf.nullable, firstRule: map[string]charset{},
 		boundedRule: map[string]bool{}, reachFrom: map[string]map[string]bool{}, local: map[string]*source{}, walked: map[string][]*source{},
 		ruleSrc: map[string]*source{}, follow: map[string]charset{}, growing: map[int]map[string]charset{},
 		captures: map[string]map[string][]grammar.Expr{}, sourceIndex: map[sourceKey]*source{},
@@ -356,9 +366,9 @@ func newClassifierOf(g *grammar.Grammar, rules, base []*grammar.RuleDef, an *Ana
 	for _, r := range rules {
 		k.byName[r.Name] = r
 	}
-	k.an = an
-	k.vars = ruleVariablesControlled(base, control)
-	k.memo, k.members = memoizedRules(base, k.an, control)
+	k.an, k.facts = rf.an, rf
+	k.vars = rf.vars
+	k.memo, k.members = maps.Clone(rf.memo), rf.members
 	if len(base) != len(rules) || !slices.Equal(base, rules) {
 		k.base = base
 	}
@@ -386,39 +396,6 @@ func newClassifierOf(g *grammar.Grammar, rules, base []*grammar.RuleDef, an *Ana
 		}
 	}
 	return k
-}
-
-// memoizedRules returns the rules whose results every parse memoizes: the leaders of
-// left-recursion cycles, and the rules that are neither on a cycle nor transient. Another rule of a
-// cycle is memoized only outside the growths whose seeds it reads, so it counts as not memoized. A
-// rule that
-// contains #missing, directly or through its callees, is not memoized when missing tokens are
-// enabled, so it counts as not memoized unless it is a leader.
-func memoizedRules(rules []*grammar.RuleDef, an *Analysis, control *cancel.Control) (out, members map[string]bool) {
-	transient := transientRules(rules, control)
-	missing := missingRules(rules, control)
-	out, members = map[string]bool{}, map[string]bool{}
-	for _, r := range rules {
-		out[r.Name] = an.leaders[r.Name] || !an.cyclic[r.Name] && !transient[r.Name] && !missing[r.Name]
-		members[r.Name] = an.cyclic[r.Name] && !an.leaders[r.Name] && !transient[r.Name] && !missing[r.Name]
-	}
-	return out, members
-}
-
-// missingRules returns the rules that contain #missing, directly or through their callees.
-func missingRules(rules []*grammar.RuleDef, control *cancel.Control) map[string]bool {
-	out := map[string]bool{}
-	calls := map[string][]string{}
-	for _, r := range rules {
-		calls[r.Name] = allCallsControlled(r.Expr, nil, control)
-		walkExprControlled(r.Expr, func(e grammar.Expr) {
-			if a, ok := e.(*grammar.Attributed); ok && hasPragma(a, "missing") {
-				out[r.Name] = true
-			}
-		}, control)
-	}
-	propagate(rules, calls, out, control)
-	return out
 }
 
 func varTypeName(v *grammar.VarDef) string {
