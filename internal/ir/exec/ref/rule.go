@@ -86,10 +86,15 @@ func (m *Model) callRule(o *exec.Op, args []any) ([]any, bool) {
 	flag := func(f func(s RuleSpec) bool) ([]any, bool) {
 		return []any{f(m.spec(args[0].(RuleRef).Index))}, true
 	}
+	// A parse in the missing-token mode memoizes none of the rules that insert missing tokens.
+	missing := func() bool {
+		i := args[0].(RuleRef).Index
+		return m.cfg.Missing && int(i) < len(m.cfg.MissingRules) && m.cfg.MissingRules[i]
+	}
 	switch o.Name {
 	case "rule.memo":
 		return flag(func(s RuleSpec) bool {
-			return s.Memo || m.cfg.DocCallMemo && m.cfg.Document && s.DocMemo
+			return (s.Memo || m.cfg.DocCallMemo && m.cfg.Document && s.DocMemo) && !missing()
 		})
 	case "rule.leader":
 		return flag(func(s RuleSpec) bool { return s.Leader })
@@ -99,7 +104,7 @@ func (m *Model) callRule(o *exec.Op, args []any) ([]any, bool) {
 		return flag(func(s RuleSpec) bool { return s.DocMemo })
 	case "rule.docOnlyMemo":
 		return flag(func(s RuleSpec) bool {
-			only := s.DocMemo && !s.Memo && !s.Leader
+			only := s.DocMemo && !s.Memo && !s.Leader && !missing()
 			if m.cfg.DocCallMemo {
 				only = only && m.cfg.Document
 			}
@@ -199,13 +204,16 @@ func RuleName(index int64) string { return fmt.Sprint("r", index) }
 
 // Observe returns what the model holds of a component for the conformance suite to compare with an
 // implementation's: the evaluations of rule bodies, for component ops.Rules, and the events that the
-// observation delivered, for component ops.Obs. It returns nil for any other component.
+// observation delivered, for component ops.Obs, and the tokens inserted in the missing-token mode, for
+// ops.Rec. It returns nil for any other component or parse.
 func (m *Model) Observe(component string) []string {
 	switch component {
 	case ops.Rules:
 		return append([]string{}, m.rule.log...)
 	case ops.Obs:
 		return append([]string{}, m.obs.events...)
+	case ops.Rec:
+		return m.observeMissing()
 	}
 	return nil
 }
