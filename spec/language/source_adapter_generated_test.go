@@ -5,6 +5,7 @@ import (
 	"os"
 	"path/filepath"
 	"runtime"
+	"strings"
 	"testing"
 
 	"zeroparse.dev/zp/grammar"
@@ -70,6 +71,21 @@ func TestGeneratedSourceParserMatchesEngine(t *testing.T) {
 		inputs = append(inputs, mutatedSource(rng, corpus))
 	}
 	cases := []gentest.Case{{Name: "zp.zp", Src: self, Inputs: inputs}}
+	// Control: the name of a rule is built from its expression in the generated parser. The comparison must notice.
+	t.Run("control", func(t *testing.T) {
+		hits := 0
+		got := gentest.GeneratedParsersMismatches(t, goBin, cases, gen.GenOptions{}, func(code []byte) []byte {
+			const from, to = `c.NewStruct("RuleDef", "Attrs", c.Member(c.Cap(1), "Attrs"), "Name", c.Member(c.Cap(1), "Name")`, `c.NewStruct("RuleDef", "Attrs", c.Member(c.Cap(1), "Attrs"), "Name", c.Member(c.Cap(1), "Expr")`
+			hits += strings.Count(string(code), from)
+			return []byte(strings.ReplaceAll(string(code), from, to))
+		})
+		if hits == 0 {
+			t.Fatal("the generated parser has no construction of a rule to change")
+		}
+		if len(got) == 0 {
+			t.Errorf("the comparison does not notice a changed rule name (%d changes)", hits)
+		}
+	})
 	t.Run("values", func(t *testing.T) { gentest.GeneratedParsersCorpus(t, goBin, cases, gen.GenOptions{}) })
 	t.Run("source info", func(t *testing.T) { gentest.GeneratedParsersCorpus(t, goBin, cases, gen.GenOptions{SourceInfo: true}) })
 }
