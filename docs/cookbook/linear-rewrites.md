@@ -1,6 +1,7 @@
 # Rewrite a Grammar to Linear Cost
 
-**Problem.** `zp lint -classify` reports that the cost of a parse grows faster than the input, and you want the
+**Problem.** `zp lint -classify` reports that the cost of a parse grows faster than the input, or a grammar declared
+[`@linear`](../guide/linting.md#declaring-linear-cost) does not compile, and you want the
 grammar to cost the same per character on a long input as on a short one. You need, for each cause the
 [specification names](../../spec/runtime/parsing.md#classes-of-growth), a rewrite, its measured effect, and what it changes in the
 parse.

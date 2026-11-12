@@ -322,6 +322,16 @@ func (g *Grammar) allComments(control *metadataControl) []*Comment {
 		}
 	}
 	add(g.File.Pkg.Break)
+	for _, attr := range g.File.Pkg.Attrs {
+		control.poll()
+		addLayout(attr.Layout)
+		addList(attr.ArgsLayout)
+		for _, arg := range attr.expressionArgs(control) {
+			expr(arg)
+		}
+	}
+	addAll(g.File.Pkg.AttrBreaks)
+	add(g.File.Pkg.KeywordBreak)
 	for _, s := range g.File.Decls {
 		control.poll()
 		switch s := s.(type) {

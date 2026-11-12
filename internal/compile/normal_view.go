@@ -936,7 +936,7 @@ func (v *normalView) attributed(a *grammar.Attributed) grammar.Expr {
 func (v *normalView) inline(r *grammar.Ref) grammar.Expr {
 	rd := v.byName[r.Name]
 	if rd == nil || r.Level != "" || v.memo[r.Name] || v.an.cyclic[r.Name] || v.inlining[r.Name] ||
-		rd.Action != nil || len(rd.Attrs) != 0 {
+		rd.Action != nil || slices.ContainsFunc(rd.Attrs, func(a *grammar.Attribute) bool { return !desugar.IsLinear(a) }) {
 		return nil
 	}
 	if body, ok := v.inlined[r.Name]; ok {

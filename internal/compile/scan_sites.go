@@ -3,6 +3,7 @@ package compile
 import (
 	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/cancel"
+	"zeroparse.dev/zp/internal/desugar"
 )
 
 // Scan sites.
@@ -111,10 +112,11 @@ func pureScan(e grammar.Expr, control *cancel.Control) bool {
 	return ok
 }
 
-// hasAttrsBesidesStart reports whether rd has an attribute or pragma other than @start.
+// hasAttrsBesidesStart reports whether rd has an attribute or pragma other than @start and
+// @linear, which only add checks.
 func hasAttrsBesidesStart(rd *grammar.RuleDef) bool {
 	for _, a := range rd.Attrs {
-		if a.Pragma || a.Name != "start" {
+		if (a.Pragma || a.Name != "start") && !desugar.IsLinear(a) {
 			return true
 		}
 	}

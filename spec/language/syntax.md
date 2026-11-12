@@ -53,12 +53,17 @@ rule file_contents = (
     decl*
     comments $$
 )
-rule package_entry = &(comments "package" !ident_char) package_stmt
+rule package_entry = &(comments (package_attrs / "package" !ident_char)) package_stmt
+// The attributes of the package clause reach a line that starts with "package".
+rule package_attrs = "@" (!("package" !ident_char) attr_unit / nl comments &"@")* nl comments "package" !ident_char
 rule package_stmt = (
     &source_remaining comments
     package_body &source_item_tail stmt_end
 )
-rule package_body = "package" -word_end #cut ident
+rule package_body = (
+    (attr decl_attr_gap)*
+    "package" -word_end #cut ident
+)
 rule decl = (
     !(comments $$)
     (type_decl / var_decl / rule_decl / _|_)
