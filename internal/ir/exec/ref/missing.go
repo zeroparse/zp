@@ -145,12 +145,29 @@ func (m *Model) observeMissing() []string {
 func (m *Model) errsQuantity(o *exec.Op, args []any) int64 {
 	switch o.Name {
 	case "missing.replay":
-		if l, ok := args[0].(*Entry).errs.(*ErrList); ok {
+		// The errors are copied one by one only to leave out those of tokens already present; otherwise
+		// they are shared as rec.add shares them.
+		e := args[0].(*Entry)
+		if l, ok := e.errs.(*ErrList); ok && m.missing.repeats(e.seed) {
 			return int64(l.n)
 		}
 		return 0
 	}
 	panic("ref: no quantity errs for " + o.Name)
+}
+
+// repeats reports whether recording the tokens again finds one of them present: inserted before, or
+// earlier among them.
+func (s *missingState) repeats(tokens []missingToken) bool {
+	seen := map[[2]int64]bool{}
+	for _, t := range tokens {
+		k := [2]int64{t.site, t.pos}
+		if s.installed[k] || seen[k] {
+			return true
+		}
+		seen[k] = true
+	}
+	return false
 }
 
 // tokensQuantity returns ops.QTokens for a call of o with args, in the state before the call.
