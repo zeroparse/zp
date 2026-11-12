@@ -1,8 +1,8 @@
 package closure
 
 import (
-	"unicode/utf8"
 	"zeroparse.dev/zp/internal/cancel"
+	ir "zeroparse.dev/zp/internal/ir/core"
 
 	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/compile"
@@ -10,129 +10,128 @@ import (
 	"zeroparse.dev/zp/internal/value"
 )
 
-// Builder builds the closure backend's form of a program: a matcher per expression, and the
-// bodies, values and actions of the rules.
+// Builder builds the closure backend's form of a program from its Core IR (Build): a matcher per
+// node, and the bodies, values and actions of the rules.
 type Builder struct {
 	prog *compile.Program
+	m    *ir.Module
 	// control is the budget control of the compilation, or nil.
 	control *cancel.Control
 	// plainDispatch leaves out the budget charge of the loop iterations (Options.ControlledDispatch
 	// builds the metered closure graph).
 	plainDispatch bool
 	// rules holds the rules the parser runs, by ID (staticRule.ID). They are made when a body or a
-	// call needs them and get the facts of their static rules in Finish.
+	// call needs them and get the facts of their static rules in Build.
 	rules []*core.Rule
-	// looks numbers the lookaheads (Parser.LookBegin).
-	looks int
-	// terms are the terms whose programs Finish makes.
-	terms []pendingTerm
+	// descs maps the expectations of the module (ir.Module.Exps) to those of the program
+	// (compile.Program.DescTable), which the parser records.
+	descs []core.ExpID
+	// accepts holds the membership test of each class of the module.
+	accepts map[*ir.Class]func(*core.Parser, rune) bool
+	// cur is the static rule whose body is being built, and scope the capture scope of the node
+	// being built.
+	cur   *compile.Rule
+	scope *compile.Scope
+	// err is the first internal error of the build.
+	err error
 }
 
-var _ compile.ExprBuilder[core.Matcher] = (*Builder)(nil)
-
-// NewBuilder returns the builder of the closure backend's form for the compiler c.
-func NewBuilder(c *compile.Compiler, plainDispatch bool) *Builder {
-	return &Builder{prog: c.Prog, control: c.Control, plainDispatch: plainDispatch}
-}
-
-// rule returns the rule the parser runs for the static rule r.
-func (b *Builder) rule(r *compile.Rule) *core.Rule {
-	for len(b.rules) <= r.ID {
+// rule returns the rule the parser runs for the static rule of the ID id.
+func (b *Builder) rule(id int) *core.Rule {
+	for len(b.rules) <= id {
 		b.rules = append(b.rules, nil)
 	}
-	if b.rules[r.ID] == nil {
-		b.rules[r.ID] = &core.Rule{}
+	if b.rules[id] == nil {
+		b.rules[id] = &core.Rule{}
 	}
-	return b.rules[r.ID]
-}
-
-// Finish gives the rules the facts that the compiler found out about them, once it is done, makes
-// the programs of their terms, and returns them by ID.
-func (b *Builder) Finish() ([]*core.Rule, error) {
-	if err := b.compileTerms(); err != nil {
-		return nil, err
-	}
-	for _, rs := range [][]*compile.Rule{b.prog.RuleList, b.prog.Twins} {
-		for _, sr := range rs {
-			r := b.rule(sr)
-			*core.StaticRuleOf(r) = *sr
-			r.InitVals = b.prog.Vars.ValuesOf(sr.Vars)
-			r.VarSlots = b.prog.Vars.Slots(sr.Vars)
-			if sr.NodeType != "" {
-				r.NodeKinds = value.NewNodeTypeKinds(sr.NodeType)
-			}
-			if sr.OpNodeType != "" {
-				r.OpKinds = value.NewNodeTypeKinds(sr.OpNodeType)
-			}
-		}
-	}
-	return b.rules, nil
+	return b.rules[id]
 }
 
 // charges reports whether the loops charge the budget for each iteration. A rule call charges in
 // core.Parser.Call and InvokePlain, whichever graph runs it.
 func (b *Builder) charges() bool { return core.BudgetControlsEnabled && !b.plainDispatch }
 
-func (b *Builder) RuleBody(sr *compile.Rule, m core.Matcher) {
-	r := b.rule(sr)
+// ruleBody completes the rule sr, whose Core IR is cr, with its body m.
+func (b *Builder) ruleBody(sr *compile.Rule, cr *ir.Rule, m core.Matcher) error {
+	r := b.rule(sr.ID)
 	r.Kinds = value.NewRuleKinds(sr.Name)
 	if sr.Splice {
 		r.Value = func(_ *core.Parser, v *value.Node, _ int) *value.Node { return v }
 	} else {
-		r.Value = scopeValueOf(b.prog, sr.BodyExpr())
+		r.Value = scopeValueOf(cr.Finish.Shape)
 	}
 	r.Body = func(p *core.Parser, _ int) (*value.Node, bool) { return m(p) }
-	if sr.Action != nil {
-		var set func(*core.TermProgram)
-		r.Act = evaluator(&set)
-		b.termLater(sr.Action, sr.Scope, compile.RuleProjections(b.prog, sr), set)
+	if cr.Finish.Kind == ir.FinishAction {
+		t, err := b.term(cr.Finish.Action, compile.RuleProjections(b.prog, sr))
+		if err != nil {
+			return err
+		}
+		r.Act = t.Eval
 	}
+	return nil
 }
 
-func (b *Builder) OperatorsRule(sr *compile.Rule, skip core.Matcher, hasSkip bool, operands, operators []compile.OpLine[core.Matcher]) {
-	r := b.rule(sr)
+// operatorsRule completes the Operators Rule sr, whose Core IR is cr, with its lines.
+func (b *Builder) operatorsRule(sr *compile.Rule, cr *ir.Rule, o *ir.OperatorsRule) error {
+	r := b.rule(sr.ID)
 	r.Kinds = value.NewRuleKinds(sr.Name)
 	// The lines build the rule's value.
 	r.Value = func(_ *core.Parser, v *value.Node, _ int) *value.Node { return v }
 	pr := &core.OperatorsRule{}
 	r.OperatorsRule = pr
-	if hasSkip {
-		pr.Skip = skip
+	if o.Skip != nil {
+		b.scope = scopeOf(o.Skip.Scope)
+		pr.Skip = b.node(o.Skip.Body)
 	}
-	for _, l := range operands {
-		pr.Operands = append(pr.Operands, b.line(l))
+	for _, l := range o.Operands {
+		pl, err := b.line(l)
+		if err != nil {
+			return err
+		}
+		pr.Operands = append(pr.Operands, pl)
 	}
-	for _, l := range operators {
-		o := &core.OperatorsRuleOp{Id: l.ID, Kind: l.Kind, Assoc: l.Assoc, Level: l.Level, Line: b.line(l)}
-		if l.Kind == grammar.Prefix {
-			pr.Prefix = append(pr.Prefix, o)
+	for _, x := range o.Ops {
+		pl, err := b.line(x.Line)
+		if err != nil {
+			return err
+		}
+		op := &core.OperatorsRuleOp{Id: x.ID, Kind: x.Kind, Assoc: x.Assoc, Level: x.Level, Line: pl}
+		if x.Kind == grammar.Prefix {
+			pr.Prefix = append(pr.Prefix, op)
 		} else {
-			pr.Led = append(pr.Led, o)
+			pr.Led = append(pr.Led, op)
 		}
 	}
 	r.Body = func(p *core.Parser, min int) (*value.Node, bool) { return p.OperatorsRuleParse(r, min) }
-	if sr.Action != nil {
+	if cr.Finish.Kind == ir.FinishAction {
 		// The whole-rule action runs once per call, after the fold (core.Parser.Finish).
-		var set func(*core.TermProgram)
-		r.Act = evaluator(&set)
-		b.termLater(sr.Action, sr.Scope, nil, set)
+		b.scope = scopeOf(nil)
+		t, err := b.term(cr.Finish.Action, nil)
+		if err != nil {
+			return err
+		}
+		r.Act = t.Eval
 	}
+	return nil
 }
 
-func (b *Builder) line(l compile.OpLine[core.Matcher]) *core.OperatorsRuleLine {
-	pl := &core.OperatorsRuleLine{Scope: l.Scope, M: l.Form, Key: l.Key}
-	pl.Value, pl.Single, pl.Shape = scopeValueOf(b.prog, l.Expr), compile.SingleModeOf(b.prog, l.Expr), compile.ShaperOf(b.prog, l.Expr)
+// line builds a line of an Operators Rule.
+func (b *Builder) line(l *ir.OpLine) (*core.OperatorsRuleLine, error) {
+	b.scope = scopeOf(l.Scope)
+	pl := &core.OperatorsRuleLine{Scope: b.scope, M: b.node(l.Body), Key: l}
+	pl.Value, pl.Single, pl.Shape = scopeValueOf(l.Shape), compile.SingleMode(l.Shape.Mode), shaper(l.Shape)
 	if l.Action != nil {
-		var set func(*core.TermProgram)
-		pl.Act = evaluator(&set)
-		b.termLater(l.Action, l.Scope, nil, set)
+		t, err := b.term(l.Action, nil)
+		if err != nil {
+			return nil, err
+		}
+		pl.Act = t.Eval
 	}
-	return pl
+	return pl, nil
 }
 
-func (b *Builder) Literal(e *grammar.Literal, desc core.ExpID, build bool) core.Matcher {
-	val := value.LiteralValue(e.Value)
-	if e.IgnoreCase {
+func (b *Builder) literal(val string, fold bool, desc core.ExpID, build bool) core.Matcher {
+	if fold {
 		rs := compile.FoldedRunes([]rune(val))
 		return func(p *core.Parser) (*value.Node, bool) {
 			start := p.Pos
@@ -161,16 +160,8 @@ func (b *Builder) Literal(e *grammar.Literal, desc core.ExpID, build bool) core.
 	}
 }
 
-func (b *Builder) Class(e *grammar.CharClass, desc core.ExpID, build bool) core.Matcher {
-	return single(build, desc, ClassAcceptControlled(e, b.control))
-}
-
-func (b *Builder) Any(build bool) core.Matcher {
-	return single(build, compile.IDAny, func(*core.Parser, rune) bool { return true })
-}
-
-func (b *Builder) Call(sr *compile.Rule, min int) core.Matcher {
-	r := b.rule(sr)
+func (b *Builder) call(id, min int) core.Matcher {
+	r := b.rule(id)
 	return func(p *core.Parser) (*value.Node, bool) {
 		if r.Plain && !p.NoPlain {
 			return p.InvokePlain(r, min) // what call does for such a rule, without its checks
@@ -179,7 +170,7 @@ func (b *Builder) Call(sr *compile.Rule, min int) core.Matcher {
 	}
 }
 
-func (b *Builder) Seq(ms []core.Matcher, flat, valued []bool, n int, build bool) core.Matcher {
+func (b *Builder) seq(ms []core.Matcher, flat, valued []bool, n int, build bool) core.Matcher {
 	// The value is the tuple node of the elements, flattened through nested sequences.
 	return func(p *core.Parser) (*value.Node, bool) {
 		start := p.Pos
@@ -209,14 +200,14 @@ func (b *Builder) Seq(ms []core.Matcher, flat, valued []bool, n int, build bool)
 	}
 }
 
-func (b *Builder) Choice(e *grammar.Choice, ms []core.Matcher, firsts []compile.First, build bool) core.Matcher {
-	guards := make([]firstGuard, len(e.Alts))
+func (b *Builder) choice(alts []*ir.Alt, ms []core.Matcher, build bool) core.Matcher {
+	guards := make([]firstGuard, len(alts))
 	guarded := false
-	for i, alt := range e.Alts {
+	for i, alt := range alts {
 		if build {
-			ms[i] = singleMatcher(b.prog, alt, ms[i])
+			ms[i] = singleMatcher(alt.Body.Attrs().Shape, ms[i])
 		}
-		guards[i] = b.Guard(firsts[i])
+		guards[i] = b.guard(alt.Guard)
 		guarded = guarded || guards[i].accept != nil
 	}
 	if guarded {
@@ -278,25 +269,24 @@ type firstGuard struct {
 	depth  int
 }
 
-// Guard returns the test of the next character that the alternative beginning with f.term needs.
-func (b *Builder) Guard(f compile.First) firstGuard {
-	switch t := f.Term.(type) {
-	case *grammar.Literal:
-		r0, _ := utf8.DecodeRuneInString(t.Value)
-		if t.IgnoreCase {
-			f0 := compile.FoldASCIIRune(r0)
-			return firstGuard{func(_ *core.Parser, r rune) bool { return compile.FoldASCIIRune(r) == f0 }, f.Desc, f.Depth}
-		}
-		return firstGuard{func(_ *core.Parser, r rune) bool { return r == r0 }, f.Desc, f.Depth}
-	case *grammar.CharClass:
-		return firstGuard{ClassAcceptControlled(t, b.control), f.Desc, f.Depth}
+// guard returns the test of the next character that the alternative guarded by f needs.
+func (b *Builder) guard(f *ir.First) firstGuard {
+	switch {
+	case f == nil:
+		return firstGuard{}
+	case f.Lit && f.Fold:
+		f0 := f.Rune
+		return firstGuard{func(_ *core.Parser, r rune) bool { return compile.FoldASCIIRune(r) == f0 }, b.desc(f.Exp), f.Depth}
+	case f.Lit:
+		r0 := f.Rune
+		return firstGuard{func(_ *core.Parser, r rune) bool { return r == r0 }, b.desc(f.Exp), f.Depth}
 	}
-	return firstGuard{}
+	return firstGuard{b.accept(f.Class), b.desc(f.Exp), f.Depth}
 }
 
-func (b *Builder) Optional(e *grammar.Optional, m core.Matcher, build bool) core.Matcher {
+func (b *Builder) optional(body ir.Node, m core.Matcher, build bool) core.Matcher {
 	if build {
-		m = singleMatcher(b.prog, e.Expr, m)
+		m = singleMatcher(body.Attrs().Shape, m)
 	}
 	return func(p *core.Parser) (*value.Node, bool) {
 		m0 := p.Mark()
@@ -316,10 +306,8 @@ func (b *Builder) Optional(e *grammar.Optional, m core.Matcher, build bool) core
 	}
 }
 
-func (b *Builder) And(m core.Matcher, keepsState bool) core.Matcher {
-	b.looks++
-	site := b.looks
-	if keepsState {
+func (b *Builder) and(m core.Matcher, site int) core.Matcher {
+	if site == 0 {
 		// A lookahead that leaves captures or bindings is no observation (Parser.LookBegin).
 		site = -1
 	}
@@ -336,9 +324,7 @@ func (b *Builder) And(m core.Matcher, keepsState bool) core.Matcher {
 	}
 }
 
-func (b *Builder) Not(m core.Matcher) core.Matcher {
-	b.looks++
-	site := b.looks
+func (b *Builder) not(m core.Matcher, site int) core.Matcher {
 	return func(p *core.Parser) (*value.Node, bool) {
 		m0 := p.Mark()
 		prevCut := p.Cut
@@ -353,7 +339,7 @@ func (b *Builder) Not(m core.Matcher) core.Matcher {
 	}
 }
 
-func (b *Builder) Atomic(m core.Matcher, build bool) core.Matcher {
+func (b *Builder) atomic(m core.Matcher, build bool) core.Matcher {
 	return func(p *core.Parser) (*value.Node, bool) {
 		start := p.Pos
 		if _, ok := m(p); !ok {
@@ -366,16 +352,17 @@ func (b *Builder) Atomic(m core.Matcher, build bool) core.Matcher {
 	}
 }
 
-func (b *Builder) Discard(m core.Matcher) core.Matcher {
+func (b *Builder) discard(m core.Matcher) core.Matcher {
 	return func(p *core.Parser) (*value.Node, bool) {
 		_, ok := m(p)
 		return nil, ok
 	}
 }
 
-func (b *Builder) Capture(e *grammar.Capture, slot int, m core.Matcher, projected, build bool) core.Matcher {
-	if !projected {
-		m = captureMatcher(b.prog, e.Expr, m)
+func (b *Builder) capture(n *ir.Capture, m core.Matcher, build bool) core.Matcher {
+	slot := n.Slot
+	if n.Project == "" {
+		m = captureMatcher(n.Body.Attrs().Shape, m)
 	}
 	return func(p *core.Parser) (*value.Node, bool) {
 		v, ok := m(p)
@@ -389,29 +376,29 @@ func (b *Builder) Capture(e *grammar.Capture, slot int, m core.Matcher, projecte
 	}
 }
 
-func (b *Builder) Cut() core.Matcher {
+func (b *Builder) cut() core.Matcher {
 	return func(p *core.Parser) (*value.Node, bool) {
 		p.Cut = true
 		return nil, true
 	}
 }
 
-func (b *Builder) Empty() core.Matcher {
+func (b *Builder) empty() core.Matcher {
 	// _ matches the empty input and has no value.
 	return func(p *core.Parser) (*value.Node, bool) { return nil, true }
 }
 
-func (b *Builder) Fail() core.Matcher {
+func (b *Builder) fail() core.Matcher {
 	return func(p *core.Parser) (*value.Node, bool) { return nil, false }
 }
 
-func (b *Builder) Anchor(e grammar.Expr, desc core.ExpID) core.Matcher {
-	switch e.(type) {
-	case *grammar.BeginInput:
+func (b *Builder) anchor(kind ir.AnchorKind, desc core.ExpID) core.Matcher {
+	switch kind {
+	case ir.BeginInput:
 		return anchor(func(p *core.Parser) bool { return p.AtInputStart() }, desc)
-	case *grammar.EndInput:
+	case ir.EndInput:
 		return anchor(func(p *core.Parser) bool { return p.AtEOF() }, desc)
-	case *grammar.BeginLine:
+	case ir.BeginLine:
 		return anchor(func(p *core.Parser) bool { return p.AtLineStart() }, desc)
 	}
 	return anchor(func(p *core.Parser) bool {
@@ -447,26 +434,15 @@ func single(build bool, desc core.ExpID, accept func(*core.Parser, rune) bool) c
 	}
 }
 
-func (b *Builder) Predicate(e *grammar.Predicate, s *compile.Scope) core.Matcher {
-	if a, ok := e.Term.(*grammar.Bind); ok {
-		slot, t := b.prog.Vars.Index(a.Name), &termSite{}
-		b.termLater(a.Value, s, nil, func(p *core.TermProgram) { t.term = p })
-		return func(p *core.Parser) (*value.Node, bool) { return nil, bind(p, slot, t) }
-	}
-	t := &termSite{}
-	b.termLater(e.Term, s, nil, func(p *core.TermProgram) { t.term = p })
-	return func(p *core.Parser) (*value.Node, bool) { return nil, predicate(p, t) }
-}
-
 // ScanRepeat advances over the repetition without saving and restoring state per element.
 // Expectations are recorded as for a general repetition (once, at the position that did not match
 // last).
-func (b *Builder) ScanRepeat(e *grammar.Repeat, desc core.ExpID, scan int) core.Matcher {
-	accept := func(*core.Parser, rune) bool { return true }
-	if x, ok := e.Expr.(*grammar.CharClass); ok {
-		accept = ClassAcceptControlled(x, b.control)
+func (b *Builder) scanRepeat(n *ir.Scan) core.Matcher {
+	accept, desc := func(*core.Parser, rune) bool { return true }, compile.IDAny
+	if n.Class != nil {
+		accept, desc = b.accept(n.Class), b.desc(n.Class.Exp)
 	}
-	min, max := e.Min, e.Max
+	min, max, scan := n.Min, n.Max, n.Site
 	charge := b.charges()
 	if scan != 0 && max < 0 {
 		return b.scanSite(accept, desc, min, charge, scan)
@@ -601,8 +577,7 @@ func (b *Builder) scanSiteList(m core.Matcher, elemValue func(*core.Parser, *val
 
 // SkipRepeat is Repeat for the skip-run site skip, value-free and without a scope, whose walks
 // record the rest of them from each position and reuse the records (core/skip_runs.go).
-func (b *Builder) SkipRepeat(e *grammar.Repeat, m core.Matcher, skip int) core.Matcher {
-	min := e.Min
+func (b *Builder) skipRepeat(min int, m core.Matcher, skip int) core.Matcher {
 	charge := b.charges()
 	keyEnv := !b.prog.EnvFree(skip)
 	return func(p *core.Parser) (*value.Node, bool) {
@@ -640,9 +615,7 @@ func (b *Builder) SkipRepeat(e *grammar.Repeat, m core.Matcher, skip int) core.M
 // record the rest of them from each position and reuse the records (core/skip_runs.go). The
 // iterations have a scope of their own where they capture; build says whether they have values,
 // which the walk gathers in a list.
-func (b *Builder) runRepeat(e *grammar.Repeat, m core.Matcher, elemScope *compile.Scope, ownScope, build bool, run int) core.Matcher {
-	min := e.Min
-	elemValue := scopeValueOf(b.prog, e.Expr)
+func (b *Builder) runRepeat(min int, m core.Matcher, elemValue func(*core.Parser, *value.Node, int) *value.Node, elemScope *compile.Scope, ownScope, build bool, run int) core.Matcher {
 	charge := b.charges()
 	keyEnv := !b.prog.EnvFree(run)
 	return func(p *core.Parser) (*value.Node, bool) {
@@ -697,14 +670,23 @@ func (b *Builder) runRepeat(e *grammar.Repeat, m core.Matcher, elemScope *compil
 	}
 }
 
-func (b *Builder) Repeat(e *grammar.Repeat, m core.Matcher, elemScope *compile.Scope, ownScope, build, stream bool, site int, shiftable bool, in *compile.Rule, run, scan int) core.Matcher {
+func (b *Builder) repeat(n *ir.Repeat, m core.Matcher, elemScope *compile.Scope, ownScope, build, stream bool) core.Matcher {
+	min, max, site, shiftable, in, run := n.Min, n.Max, n.Resume, n.Shiftable, b.cur, n.Run
+	// A repetition that delivers stream elements is no scan site; one that builds values uses the
+	// site's second number.
+	scan := 0
+	if !stream && n.ScanSite != 0 {
+		scan = n.ScanSite
+		if build {
+			scan++
+		}
+	}
+	elemValue := scopeValueOf(n.Body.Attrs().Shape)
 	// A run site walks as a plain repetition until its walks overlap, and keeps records after.
 	var hot core.Matcher
 	if run != 0 {
-		hot = b.runRepeat(e, m, elemScope, ownScope, build, run)
+		hot = b.runRepeat(min, m, elemValue, elemScope, ownScope, build, run)
 	}
-	min, max := e.Min, e.Max
-	elemValue := scopeValueOf(b.prog, e.Expr)
 	var rs *core.RunSite
 	if site != 0 {
 		rs = &core.RunSite{Id: site, M: m, Scope: elemScope, OwnScope: ownScope, Build: build, Min: min, Max: max, Shiftable: shiftable, Value: elemValue}
@@ -789,8 +771,7 @@ func (b *Builder) Repeat(e *grammar.Repeat, m core.Matcher, elemScope *compile.S
 
 // ProjectRepeat gathers the values of a capture of the elements, which share one capture frame:
 // nothing refers to an element's frame once its value is taken.
-func (b *Builder) ProjectRepeat(e *grammar.Repeat, m core.Matcher, slot, n int) core.Matcher {
-	min, max := e.Min, e.Max
+func (b *Builder) projectRepeat(min, max int, m core.Matcher, slot, n int) core.Matcher {
 	charge := b.charges()
 	return func(p *core.Parser) (*value.Node, bool) {
 		start := p.Pos
@@ -830,33 +811,13 @@ func (b *Builder) ProjectRepeat(e *grammar.Repeat, m core.Matcher, slot, n int) 
 	}
 }
 
-func (b *Builder) Missing(m core.Matcher, site int, expected string, build bool) core.Matcher {
-	return core.MissingLiteral(m, site, expected, build)
-}
-
-func (b *Builder) ErrorMessage(m core.Matcher, msg core.ExpID, missingScope bool) core.Matcher {
-	m = errorAttr(m, msg)
-	if missingScope {
-		m = core.MissingErrorScope(m, msg)
-	}
-	return m
-}
-
-func (b *Builder) Diagnostic(m core.Matcher, name core.ExpID) core.Matcher {
-	return diagnosticAttr(m, name)
-}
-
-func (b *Builder) Recover(e grammar.Expr, m, skip core.Matcher, build bool) core.Matcher {
-	// What recovers is one element: the value of the expression, or the error. The walker builds
-	// no value for an expression without one, which stays without one.
+func (b *Builder) recover(body ir.Node, m, skip core.Matcher, build bool) core.Matcher {
 	if build {
-		m = captureMatcher(b.prog, e, m)
+		m = captureMatcher(body.Attrs().Shape, m)
 	}
 	return recoverAttr(m, skip, build)
 }
 
-// errorAttr replaces the expectations of a failed expression with the message msg (an ID with
-// MsgBit set). The message is reported at the farthest position reached within the expression.
 func errorAttr(m core.Matcher, msg core.ExpID) core.Matcher {
 	return func(p *core.Parser) (*value.Node, bool) {
 		v, ok, far, expected := core.Tracked(p, m)
@@ -911,8 +872,13 @@ func recoverAttr(m, skip core.Matcher, build bool) core.Matcher {
 
 // singleMatcher returns a matcher of the value of e where it takes one element (an alternative or
 // the operand of ?), from the building matcher m of e. Without a value the result is nil.
-func singleMatcher(prog *compile.Program, e grammar.Expr, m core.Matcher) core.Matcher {
-	mode, sh := compile.SingleModeOf(prog, e), compile.ShaperOf(prog, e)
+// shaper returns the runtime's shaper of a value of the shape s.
+func shaper(s ir.Shape) compile.Shaper {
+	return compile.Shaper{Elems: s.Elems, Shared: s.Shared, K: s.K}
+}
+
+func singleMatcher(s ir.Shape, m core.Matcher) core.Matcher {
+	mode, sh := compile.SingleMode(s.Mode), shaper(s)
 	if mode == compile.SinglePass && !sh.Elems {
 		return m
 	}
@@ -927,10 +893,8 @@ func singleMatcher(prog *compile.Program, e grammar.Expr, m core.Matcher) core.M
 	}
 }
 
-// captureMatcher is singleMatcher for a capture or a recovered expression, whose value is the
-// unit node of the range matched when e has no value.
-func captureMatcher(prog *compile.Program, e grammar.Expr, m core.Matcher) core.Matcher {
-	mode, sh := compile.SingleModeOf(prog, e), compile.ShaperOf(prog, e)
+func captureMatcher(s ir.Shape, m core.Matcher) core.Matcher {
+	mode, sh := compile.SingleMode(s.Mode), shaper(s)
 	if mode == compile.SinglePass && !sh.Elems {
 		return m
 	}
@@ -947,10 +911,9 @@ func captureMatcher(prog *compile.Program, e grammar.Expr, m core.Matcher) core.
 	}
 }
 
-// scopeValue returns the value of a scope whose body e matched [start, p.pos) with the result v.
-func scopeValueOf(prog *compile.Program, e grammar.Expr) func(p *core.Parser, v *value.Node, start int) *value.Node {
-	sh := compile.ShaperOf(prog, e)
-	if compile.ScopeTuple(prog, e) {
+func scopeValueOf(s ir.Shape) func(p *core.Parser, v *value.Node, start int) *value.Node {
+	sh := shaper(s)
+	if s.Tuple {
 		return func(p *core.Parser, v *value.Node, start int) *value.Node { return core.ShapeTuple(p, sh, v, start) }
 	}
 	return func(_ *core.Parser, v *value.Node, _ int) *value.Node { return sh.One(v) }

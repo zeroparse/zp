@@ -22,6 +22,14 @@ type Program interface {
 	SkipSite(e *grammar.Repeat) int
 	// ScanSite returns the number of the scan site of the repetition (core.Repeat.ScanSite).
 	ScanSite(e *grammar.Repeat) int
+	// RunSite returns the number of the run site of the repetition (core.Repeat.Run).
+	RunSite(e *grammar.Repeat) int
+	// Resumable reports whether a repetition of the element e can be resumed by a Document
+	// (core.Repeat.Resume), and Positional whether a rule e calls reads positions.
+	Resumable(e grammar.Expr) bool
+	Positional(e grammar.Expr) bool
+	// MissingTokens reports that the grammar uses #missing (core.Label.MissingScope).
+	MissingTokens() bool
 }
 
 // Input holds the rules and declarations that the builder reads from a program.

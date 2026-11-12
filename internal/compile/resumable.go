@@ -8,15 +8,19 @@ import (
 // resumable reports whether a repetition with the element e can be resumed. An element whose
 // captures are written to the enclosing scope (those inside &, when the element has no captures of
 // its own) cannot be: reusing it would not write them.
-func (c *Compiler) resumable(e grammar.Expr) bool {
-	control := c.Control
+func (c *Compiler) resumable(e grammar.Expr) bool { return c.Prog.resumable(e, c.Control) }
+
+// Resumable is resumable without a compile control (build.Program).
+func (prog *Program) Resumable(e grammar.Expr) bool { return prog.resumable(e, nil) }
+
+func (prog *Program) resumable(e grammar.Expr, control *cancel.Control) bool {
 	ok := elementScopedControlled(e, control) || !anyCapture(e, control)
 	walkExprControlled(e, func(x grammar.Expr) {
 		switch x := x.(type) {
 		case *grammar.Predicate:
 			ok = false
 		case *grammar.Ref:
-			if r := c.Prog.ByName[x.Name]; r == nil || len(r.Vars) > 0 {
+			if r := prog.ByName[x.Name]; r == nil || len(r.Vars) > 0 {
 				ok = false
 			}
 		}
@@ -37,12 +41,16 @@ func anyCapture(e grammar.Expr, control *cancel.Control) bool {
 }
 
 // positional reports whether the value of e may contain position values.
-func (c *Compiler) positional(e grammar.Expr) bool {
-	control := c.Control
+func (c *Compiler) positional(e grammar.Expr) bool { return c.Prog.positional(e, c.Control) }
+
+// Positional is positional without a compile control (build.Program).
+func (prog *Program) Positional(e grammar.Expr) bool { return prog.positional(e, nil) }
+
+func (prog *Program) positional(e grammar.Expr, control *cancel.Control) bool {
 	found := false
 	walkExprControlled(e, func(x grammar.Expr) {
 		if x, ok := x.(*grammar.Ref); ok {
-			if r := c.Prog.ByName[x.Name]; r == nil || r.Positional {
+			if r := prog.ByName[x.Name]; r == nil || r.Positional {
 				found = true
 			}
 		}
