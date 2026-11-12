@@ -165,7 +165,7 @@ zp: linear.zp:8:10: the grammar from start rule main is declared @linear, but th
 
 Every command that compiles the grammar, `zp parse` and `zp gen` among them, fails the same way, and so do `zp.Compile`
 and the editor. Each error ends with the rewrite for its kind of cause and a link to the section of the cookbook recipe
-[Rewrite a Grammar to Linear Cost](../cookbook/linear-rewrites.md) that shows it; a reason for the class unknown links to
+Rewrite a Grammar to Linear Cost that shows it; a reason for the class unknown links to
 the recipe as a whole. Here the cause is a repetition restarted after backtracking, and `A = "a" "c"` makes the grammar
 valid.
 
