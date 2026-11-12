@@ -1,5 +1,7 @@
 package compile
 
+import "zeroparse.dev/zp/internal/ir/core"
+
 // ExpID is an expectation (an index into descs). If MsgBit is set, it is an @error message.
 type ExpID int32
 
@@ -22,4 +24,4 @@ const (
 )
 
 // FixedDescs are the descriptions of the fixed expectations, in ExpID order.
-var FixedDescs = []string{"any character", "beginning of input", "end of input", "beginning of line", "end of line"}
+var FixedDescs = core.FixedDescs
