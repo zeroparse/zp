@@ -1974,6 +1974,67 @@ choices, since every cycle of left calls passes through a leader, and by those
 results. Each step except the last ends with a result longer than its seed, so
 no such result ends two steps. $\square$
 
+**Values bound from a growing result.** Let a step of a growth of a leader $R$
+at $p$ bind, at $p$, a variable that an evaluation of the step reads to a
+value that reads a growing result of the cycle at $p$. Then $R$ is the only
+leader of its cycle, and either no rule that $R$ reaches contains a scanning
+source other than bounded scans, or no evaluation that reads the value
+consumes input, and a step that succeeds on a path through the binding ends
+the growth. So the values of the variables change in the growth only through
+such bindings. In the first case the steps evaluate no scanning source
+outside the left calls, so the claims of this lemma on scanning sources and
+on failures after them have nothing to bound in the growth, and the claims
+on nested growths do not apply, since those need two leaders. In the second
+case the claims hold as stated, except that the steps that *Failures at the
+position of the growth* leaves out include one for each key at $p$ of a
+memoized rule that reads the value, at most $K$ for each rule.
+
+*Proof.* The values that the step reads at $p$ are those of the call that
+starts the growth, the same in every step, apart from the bindings that the
+step makes at $p$. A binding whose value reads no growing result binds the
+same value in every step (*Evaluations that read no growing result*). One
+whose value reads one, through a capture or the value of a call whose result
+includes a read, is still at $p$ although that result ends after $p$, so the
+read lies in a positive lookahead at $p$; a negative lookahead undoes its
+bindings ([Variables](../language/predicates.md#variables)). The read is a
+call at $p$ of a rule of the cycle, so a left call, made in a body of the
+cycle (*Calls in a context of growths*), and condition 5 forbids a lookahead
+that makes a left call in a cycle with more than one leader. The variable is
+read by an evaluation of the step, so the cycle reads it, and its binding may
+not run before a call into the cycle that may run before consuming input
+([Left Recursion](../language/parser-expressions.md#left-recursion)): no
+evaluation that the binding reaches makes a call at $p$ of a rule of the
+cycle, and the value reaches the reads of the growing result neither directly
+nor through a binding that it reaches.
+
+The expression of the lookahead reaches every rule of the cycle through its
+left call, and every rule that $R$ reaches. If one of those contains a
+scanning source other than a bounded scan, the expression contains it, and
+condition 2 checks it, as the expression of a lookahead, whether or not it
+fails. It cannot evaluate the left call before it examines the input, since
+it is not an alternative; it is not decided, since only a unit that is not a
+lookahead is; and it has no word on the path to the left call, which comes
+before it consumes input. So, after the calls that it shares with its
+continuations, which end at $p$ before the left call, its first characters
+and those of its continuations are disjoint, or no scanning source remains
+in it, which the left call that remains rules out. Its first characters
+include those of $R$, and in a step with a non-empty seed the character at
+$p$ is among them, so nothing that the parser evaluates after the lookahead,
+through the ends of the enclosing expressions and the bodies, consumes it.
+Every evaluation that reads the value, directly or through the value of a
+rule whose body holds the binding, comes after the lookahead on the path
+through the binding, so none consumes input, and a step that succeeds on
+such a path ends at $p$, with a result no longer than its seed, and ends the
+growth.
+
+In the first case, every evaluation of a step lies in a body of a rule
+that $R$ reaches, and a nested growth at $p$ needs a second leader of the
+cycle (*Calls in a context of growths*). In the second case, an evaluation that reads the value consumes no input, so it
+fails after a scanning source has examined input only inside a memoized call
+at $p$ (condition 3), which the memo answers in every step after the first
+with the same key, and the steps whose path through the binding fails end
+as where it fails, with values that do not change. $\square$
+
 **Failures at the position of the growth.** Leave out the steps of the claim above and
 the first, the one whose seed is empty and the last. In every other step, let
 $x$ be an evaluation at $p$ that calls no rule of the cycle at $p$ and fails
@@ -5189,14 +5250,11 @@ condition of the cost view that the [Cost View](cost-view.md) proof leaves open.
    the later alternatives after a growing unit fails, the parts that a unit
    goes on with at its start after a path through its left call fails, and
    what a unit examines there before a left call without consuming input,
-   also when the unit and the continuation share calls. Two cases
-   remain. The first is the
-   values of variables: *Results that do not include the seed* and the claims
-   after it count the steps for each combination of the values that an
-   evaluation reads, and the step must show that a binding made at the
-   position of the growth from a growing result, through a capture of a left
-   call in a lookahead, gives no more combinations than $K$ allows. The
-   second is a unit that its continuation decides: the unit fails within three
+   also when the unit and the continuation share calls, and shows that the
+   values of the variables change in a growth only through a binding at its
+   position from a growing result, which leaves those claims in force (*Values
+   bound from a growing result*). One case
+   remains: a unit that its continuation decides: the unit fails within three
    symbols in every step but a constant number, but among the symbols that it
    passes alike, a call of a rule that calls no rule repeats its own scan in
    each step, at the same position, and nothing yet bounds the number of such
