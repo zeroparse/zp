@@ -527,7 +527,9 @@ Steps](#open-steps)). Third, *Activations held by heads* bounds the successful
 activations owned by memoized evaluations from Lemma 3, *Replayed activations*
 and *Links to heads*, with no
 count of the evaluations in a context of growths, and with the second bound
-gives $A_s$. Last, this claim bounds the evaluations of the rules that are not
+gives $A_s$. It rests on no bound of Lemma 5, so Lemma 5 uses it, applied to
+the growths at calls as scanning sources, for the growth activations that
+memoized evaluations own (*Growths at many positions*). Last, this claim bounds the evaluations of the rules that are not
 memoized and $A_f$.
 
 The claims from here to *Nothing in a memoized link is a head* concern the
@@ -2510,6 +2512,14 @@ starts $g$; it
    succeeds and no call whose result includes one. When that path reads no
    growing result at $p$ at all, the conclusion of the second case of
    *Repeats inside a growth* holds for the step $\alpha$.
+3. In the second case of part 2, let the path read a growing result at $p$,
+   and let the values of the variables not change in $g$. Then the steps of
+   $g$ that start an outer growth on such a path number at most a constant.
+   So the successful growth activations of a source at a position that lie
+   inside the one before them, in the order in which the successful growth
+   activations of the source at that position start, number at most a
+   constant times $K\hat{n}$, apart from those for which the conclusion of
+   the second case of *Repeats inside a growth* holds for that one.
 
 *Proof.* 1. A growth evaluates the body again while the result gets longer
 ([Evaluations of Rules](../runtime/parsing.md#evaluations-of-rules)): its
@@ -2537,22 +2547,190 @@ one of the constant number of steps of $g$ that they leave out, or $q$ at
 most a constant after $p$, or the unit and its continuation a pair that
 step 2 of [Open Steps](#open-steps) keeps, as in the second case of
 *Repeats inside a growth*. If $p' = q$, $g'$ is an outer growth at $q$, and its
-key has at most two. $\square$
+key has at most two.
+
+3. A read of a growing result at $p$ is a call at $p$ of a rule of a cycle
+that reads a growth of its own cycle open at $p$ ([Lemma 2 of the memoization
+proof](memoization.md#lemma-2-reading-an-open-growth)). On the path none
+reads the growing result of $g$ and succeeds, and no result on it includes
+one, so each read is of one of three kinds. A read of a growth of another
+cycle that was in progress when $g$ started reads a result that does not
+change before $g$ ends (*Evaluations that read no growing result*). A growth
+of another cycle that the step starts at $p$ reads no growing result of the
+cycle of $g$, since a rule of another cycle reads only those of its own, and
+its call is in no context of growths ([Evaluations of
+Rules](../runtime/parsing.md#evaluations-of-rules)), so the memo stores its
+result and answers the call in the later steps, which make it in the same
+lookahead state. A growth of another leader of the cycle of $g$ that the step
+starts at $p$ is of the first or the third kind of *Growths inside a step*,
+since a result of the second kind includes the growing result of $g$, so it
+has the result of an earlier growth that it takes again or one of a constant
+number of results. The other evaluations that the path makes at $p$ call no
+rule of the cycle at $p$, and the steps evaluate them alike (*Evaluations
+that read no growing result*). So the alternatives that the path takes at $p$
+and the results that it reads there take a constant number of combinations
+over the steps of $g$, and each fixes where the path leaves $p$. What the path
+evaluates after that reads no growing result at $p$, so the steps evaluate it
+alike for one combination. The call that starts $g'$ is a call of a leader,
+which the parse memoizes, and no growth of its cycle is in progress at $p'$,
+since $g'$ is outer, so the call is in no context of growths: the memo stores
+the result of $g'$ when $g'$ ends and answers the call in every later step
+that makes it for the same combination. So the outer growths on such paths
+start in at most one step of $g$ for each combination.
+
+For the second sentence, let $\alpha'$ lie inside the activation $\alpha$
+before it, a step of an outer growth $g$. By part 2, the growth of $\alpha'$
+starts in $\alpha$ on a path of the second case or at $q$, where it is one of
+at most two for its key. If the path reads no growing result at $p$, the
+conclusion of *Repeats inside a growth* holds for $\alpha$. Otherwise
+$\alpha$ is one of the constant number of steps of $g$ above. Each $\alpha'$
+has one activation before it, so these $\alpha'$ number at most as many as
+those steps over all the outer growths and the outer growths at the
+positions, at most a constant times the number of outer growths, which part
+1 bounds by a constant times $K\hat{n}$. $\square$
 
 Lemma 4 bounds the successful activations of a source at a position from the
 restarts, *Direct activations* and the links, which it proves for
 iterations, operators and skip expressions. Part 2 is the first point of the
 restarts for growth activations, where an iteration has $\alpha'$ inside
 $\alpha$ only through a left call that condition 3 excludes: a step starts at
-the start of its growth, before the position of its activation. What remains
-is to apply the rest of those claims to growth activations, where a growth
-activation differs from an iteration in two ways: it starts at $p$, not at
-$q$, and reads the input from $p$ to $q$ through its seed, which it does not
-evaluate; and the parts that it evaluates at $p$ before its read can
-examine input past $q$, which the claims before *Calls in a context of
-growths* bound only in all but a constant number of steps. Part 2 also leaves
-an outer growth $g'$ that starts before $q$ after a read of the growing result
-of a growth that $\alpha$ nests at $p$, a result that ends before $q$.
+the start of its growth, before the position of its activation. Part 3
+counts the activations that lie inside the one before them. The claims below
+give the rest of the restarts, *Direct activations* and *Repeats* for growth
+activations, which differ from an iteration in that they start at $p$, not
+at $q$, and read the input from $p$ to $q$ through their seed. Let $c_W$ be
+the length of the longest word of a unit that is committing by its words
+(case 4), a constant of the grammar. The successful growth activations at $q$
+whose growth starts after $q - c_W$ number at most a constant times $K$,
+since the outer growths at a position are at most two for each key there;
+they are counted so, and the claims leave them out.
+
+**Restarts of growth activations.** Let $\alpha$ and $\alpha'$ be successful
+growth activations of one source at $q$, $\alpha$ first, of outer growths $g$
+at $p$ and $g'$ at $p'$, let $\alpha'$ not lie inside $\alpha$, and let $N$
+be the innermost evaluation that contains both. If $N$ is no growth, the
+conclusion of the restarts holds with the start of $g'$ for the start of
+$\alpha'$: on the path from $N$ down to $\alpha$ there is a first abandoned
+evaluation $w$ below $N$, a dropped step of a growth or a committing unit
+that starts at a position $s \le p$, and from the end of $w$ to the start of
+$g'$ the parser starts no evaluation at a position before $s$. If $N$ is a
+growth, the two cases of *Repeats inside a growth* hold with the start of
+$g'$ for $\alpha'$.
+
+*Proof.* $\alpha$ starts first, so it does not lie inside $\alpha'$. Let $N$
+be no growth. It has a child $c_1$ that contains $\alpha$ and a later child
+$c_2$ that contains $\alpha'$. If $N$ tries $c_2$ after $c_1$ failed, $c_1$ is
+abandoned. Otherwise $c_1$ succeeded and $N$ continues at its end, so
+$p' \ge \mathrm{end}(c_1)$. If no evaluation on the path from $c_1$ down to
+$\alpha$ were abandoned, each would succeed with a result that contains the
+result of the next; $\alpha$ is kept, since its result becomes the current
+result of $g$, and $g$ returns a result no shorter, so $\mathrm{end}(c_1)$
+would be at or after the end of the result of $\alpha$, which is after $q$,
+while $p' \le q$. So $w$ exists. It contains the call that starts $g$, so
+$s \le p$, and the rest of the proof of the restarts applies with the start
+of $g'$ for that of $\alpha'$: an evaluation that returns the parser before
+$s$ would enclose $w$ and fail before $g'$ starts, on the path from $N$ to
+$w$, where nothing fails; and a unit $w$ holds the call that starts $g$, a
+scanning source, and is the expression of a lookahead or failed after
+$\alpha$ succeeded, so condition 2 makes it committing. Let $N$ be a growth
+at $p_N$, with $\alpha$ in its step $j$ and $\alpha'$ in a later step $j'$.
+In the first case of *Repeats inside a growth*, $g'$ starts after a read of
+the growing result of $N$ that succeeds, or after a call whose result
+includes one, so $p' \ge e_{j'} \ge e_{j+1}$ for the ends $e_k$ of the seeds
+of $N$; if nothing on the path from step $j$ down to $\alpha$ were
+abandoned, the result of $\alpha$, which ends after $q \ge p'$, would lie in
+the result of step $j$, which ends at $e_{j+1}$. The rest of that proof
+applies as written. In the second case $g'$ lies in a part that step $j'$
+evaluates at $p_N$ on a path that reads no growing result of $N$ that
+succeeds, and it consumes input past $q$, so the unit that holds it does,
+and the claims at the position of the growth bound it as they bound
+$\alpha'$ there. $\square$
+
+**Direct growth activations.** A growth activation is **direct** in the body
+evaluation that makes the call that starts its growth. Let $E$ be a body
+evaluation of a rule $Z$ that is not a growth step, and $\sigma$ the growth
+at a call of the body of $Z$. Of the successful growth activations of
+$\sigma$ at $q$ whose growth starts at or before $q - c_W$, at most two are
+direct in $E$, unless a path that enters the growth again leads from the
+abandoned unit to a later one (case 5); when there are two, their growths
+are the two outer growths of one key, one inside a lookahead and one outside
+them. Let $\alpha$ and $\alpha'$ be such activations direct in different
+body evaluations of $Z$, with no dropped step and no path that enters the
+growth again leading from the abandoned unit to $\alpha'$, and their
+innermost common evaluation no growth. Then $\alpha$ lies in the evaluation
+inside $w$ of a call that $w$ and its continuation share and that contains
+the body evaluation in which $\alpha$ is direct.
+
+*Proof.* Let $\alpha$ and $\alpha'$ be two, $\alpha$ first, of growths $g$ at
+$p$ and $g'$ at $p'$, started by evaluations $c_1$ and $c_2$ of the call made
+by $E$. They are distinct, since the steps of one growth have distinct seeds,
+and $c_2$, made by $E$, is not inside $c_1$, so $\alpha'$ is not inside
+$\alpha$. Their innermost common evaluation lies in the body of $E$ below
+every call, so it is no growth, and the claim above gives $w$. Below $c_1$
+the path to $\alpha$ holds only $g$, which succeeds, and its kept step
+$\alpha$, so $w$ is a unit of the body of $E$ that holds $c_1$. Let $\kappa$
+and $t$ be as in *Direct activations*. If $c_1$ is not one of the calls that
+$w$ and $\kappa$ share, it comes after them, so $p \ge t$, and the path of
+$w$ that holds $\alpha$ consumes after them the input from $t$ to the end of
+the result of $\alpha$, after $q$: before $c_1$ when $p > t$, in $g$
+otherwise. The character at $t$ is then a first character of $w$ after the
+shared calls. $c_2$ is not a shared call in $\kappa$: such a call ends where
+the call at the same place in $w$ ends, at or before $t \le q$, and the
+result of $g'$ ends after $q$. So $g'$ starts at $p' \ge t$ after them and
+consumes the input past $q$, and every path of $\kappa$ reaches the positions
+after $t$ only through the shared calls and the character at $t$, which is
+then a first character of $\kappa$ after them too. In case 1 this
+contradicts disjointness. Case 3 does not hold, since $c_1$ starts a growth,
+a scanning source, after the shared calls. In case 4 the path of $w$ that
+holds $\alpha$ matched its word $W$ from $t$, and $\kappa$ consumes the input
+up to past $q$ on every path that does not fail, stop or meet a known
+negative lookahead before $t + |W|$, so $q < t + |W| \le p' + c_W$, which the
+claim leaves out. So, outside case 5, $c_1$ is a shared call. Its evaluation
+in $\kappa$ has the same result (case 2), which ends after $q$, so $g'$, which
+starts at or before $q$ and ends after it, lies in that evaluation, as the
+shared calls before it end at or before $p$ and what follows it starts after
+$q$. That evaluation is made in the body of $E$ before $\kappa$ leaves it,
+and $c_2$ lies in it with no call between, so it is $c_2$: a call of the
+leader of $g$ at $p$ with the key of $c_1$. The call is in no context of
+growths, since $g'$ is outer, so the memo answers it in the lookahead state
+of $c_1$ or a greater one, and $g'$ is the other outer growth of that key.
+So a third activation direct in $E$ would be in a third outer growth of the
+key, which does not exist.
+
+For the last sentence, the argument above, with any $w$ on the path from the
+innermost common evaluation to $\alpha$, shows that $\alpha$ lies in a call
+that $w$ and $\kappa$ share, outside case 5 and the activations that start
+after $q - c_W$, as in *Repeats*. That call contains $c_1$, so it is $c_1$ or
+contains $E$. If it is $c_1$, then $w$ lies in the body of $E$, and the
+paragraph above puts $\alpha'$ in a call made by $E$, direct in $E$. $\square$
+
+So the successful growth activations of $\sigma$ at $q$, outside those that
+start after $q - c_W$, case 5, the dropped steps, the second case of
+*Repeats inside a growth* and those of part 3, are at most two for each body
+evaluation in which they are direct, and the first of each, in the order in
+which they start, form a sequence $\alpha_1, \alpha_2, \ldots$ as in
+*Repeats*: direct in distinct body evaluations of $Z$, with $\alpha_{i-1}$ in
+the evaluation $e_i$ of a call shared by a committing unit and its
+continuation, which contains the body evaluation of $\alpha_{i-1}$, and the
+links, free activations and reference links defined from them. The owner of a
+growth activation is that of the call that starts its growth, and the
+evaluations that hold it are those that hold that call. The rule of a link
+holds a call, so every link is memoized and no leaf link arises, and the
+holder of $\alpha_i$ lies in $e'_i$ when $\alpha_i$ follows a link, since
+$e'_i$ contains the body evaluation in which $\alpha_i$ is direct. The
+growth activations owned by memoized evaluations are those of *Activations
+held by heads*, whose count rests on Lemma 3, *Replayed activations* and
+*Links to heads* and on no bound of this lemma, so part 1 can use it in the
+order of Lemma 4; the others are those of the families of growths.
+Three points remain open. A reference link of $\mathcal{R}$, which stores
+nothing, can be the call that starts the growth itself, between two growth
+activations direct in one body evaluation; *Reference links lead to repeated
+evaluations* then holds the activation outside $e^{k\prime}$, and it is not
+shown that its holder is no head. The growth activations that case 5 or a
+dropped step repeats are not counted. And the claims from *Memoized links* to
+*Activations held by heads* and the family claims of this lemma are applied
+to growth activations by the correspondences above, and not checked one by
+one for a use of an activation that starts at its position.
 
 ## Lemma 6 (Values and Copies)
 
@@ -4549,14 +4727,15 @@ condition of the cost view that the [Cost View](cost-view.md) proof leaves open.
    leader in the body of another rule, as the repetitions of a scanning
    source. *Growths at many positions* bounds the steps of the outer growths
    by a constant times $K\hat{n}$ plus their successful growth activations,
-   and shows for these the first point of the restarts, that one does not
-   lie inside another but in bounded cases, apart from an outer growth that
-   starts after the read of a growing result, ending before the position of
-   the activation, of a growth that the step nests at its own position. What
-   remains is to apply the rest of the restarts, *Direct activations* and the
-   links of Lemma 4 to growth activations, which start at the start of their
-   growth, before the position of the activation, and read the input up to it
-   through their seed.
+   and with *Restarts of growth activations* and *Direct growth activations*
+   gives these the restarts, *Direct activations* and *Repeats* of Lemma 4,
+   apart from a constant times $K\hat{n}$ of them. Three points remain: a
+   reference link of $\mathcal{R}$ that is the call that starts the growth
+   itself, whose activation is held outside $e^{k\prime}$; the growth
+   activations that case 5 or a dropped step repeats; and a check, claim by
+   claim, that the claims from *Memoized links* to *Activations held by heads*
+   and the family claims of this lemma use of a growth activation only what
+   the correspondences after *Direct growth activations* give.
 5. **Chains of bindings in Lemma 11.** The bound $L = O(n)$ that
    [Classification](../runtime/parsing.md#classification) states, which the
    theorem does not use. *Values of variables* in Lemma 11 proves it given
