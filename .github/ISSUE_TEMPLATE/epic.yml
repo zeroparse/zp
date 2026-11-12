@@ -1,0 +1,44 @@
+name: "Epic"
+description: "A parent issue that groups related items under one goal"
+projects: ["zeroparse/2"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Category: the Category of the epic's goal. Set the Category and Tier fields in the project after filing, and link the children as sub-issues.
+  - type: textarea
+    id: goal
+    attributes:
+      label: "Goal"
+      description: "The end state the children together reach."
+    validations:
+      required: true
+  - type: textarea
+    id: scope
+    attributes:
+      label: "Scope"
+      description: "What the epic covers and what it leaves out."
+    validations:
+      required: true
+  - type: textarea
+    id: children
+    attributes:
+      label: "Children"
+      description: "The child issues, one per line (also linked as sub-issues)."
+      placeholder: "- #"
+    validations:
+      required: true
+  - type: textarea
+    id: completion
+    attributes:
+      label: "Completion criterion"
+      description: "What makes the epic complete; the epic closes when all children are done."
+    validations:
+      required: true
+  - type: textarea
+    id: related
+    attributes:
+      label: "Related"
+      description: "Related issues, specification, guides and design records."
+    validations:
+      required: false
