@@ -5,6 +5,7 @@ import (
 	"errors"
 	"testing"
 	"zeroparse.dev/zp/internal/cancel"
+	"zeroparse.dev/zp/internal/check"
 
 	"zeroparse.dev/zp/grammar"
 )
@@ -26,7 +27,7 @@ func TestCompileMetadataCollectionCancellation(t *testing.T) {
 		{"arguments", func(c *cancel.Control) { expressionArgs(c, a) }},
 		{"call-walk", func(c *cancel.Control) { allCallsControlled(expr, nil, c) }},
 		{"type-check-arguments", func(c *cancel.Control) {
-			(&ValueInference{control: c}).predicates(expr, &valueEnv{})
+			check.PollPredicates(c, expr)
 		}},
 		{"stream-walk", func(c *cancel.Control) { (&Compiler{Control: c}).checkStream(expr) }},
 	} {
@@ -88,5 +89,5 @@ func TestTypeCheckEmptyAttributeCancellation(t *testing.T) {
 			t.Fatalf("empty attribute rows did not stop: %v", failure)
 		}
 	}()
-	(&ValueInference{control: control}).predicates(&grammar.Attributed{Expr: &grammar.Literal{Value: "a"}, Attrs: attrs}, &valueEnv{})
+	check.PollPredicates(control, &grammar.Attributed{Expr: &grammar.Literal{Value: "a"}, Attrs: attrs})
 }

@@ -73,7 +73,7 @@ func CoreProjecting(prog *compile.Program, origin map[core.Node]grammar.Expr, pr
 	if b.rec != nil {
 		b.m.Typed = true
 		b.m.Types = map[string]core.Type{}
-		k := &compile.TypeResolver{Prog: prog}
+		k := &compile.TypeResolver{Prog: prog.Checker()}
 		for name := range prog.Types {
 			b.m.Types[name] = k.ResolveNamed(name, grammar.Pos{})
 		}

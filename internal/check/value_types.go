@@ -1,4 +1,4 @@
-package compile
+package check
 
 import (
 	"maps"
@@ -16,8 +16,8 @@ import (
 // ordinary typed value and the syntax tree is built from one generic node[T, C]. These types are
 // the types the checker checks the grammar with (checkTypes).
 
-// valueElem is an element of the tuple an expression contributes to its scope.
-type valueElem struct {
+// ValueElem is an element of the tuple an expression contributes to its scope.
+type ValueElem struct {
 	t    Ty
 	caps []CapIndex // the captures in this element, with paths relative to it
 }
@@ -26,7 +26,7 @@ type valueElem struct {
 // referred to from an action is known when the action is checked. The rules of a cycle of
 // references are computed together as the least fixed point of their values.
 type ValueInference struct {
-	Prog    *Program
+	Prog    *Checker
 	control *cancel.Control
 	Rules   map[string]*grammar.RuleDef
 	Out     map[string]Ty
@@ -90,7 +90,7 @@ func (v *ValueInference) scope(e grammar.Expr, caps []CapIndex) {
 
 // ValueTypes returns the value type of each rule of a type-checked program. It is computed on
 // demand: nothing uses it for compilation yet.
-func (p *Program) ValueTypes() map[string]Ty {
+func (p *Checker) ValueTypes() map[string]Ty {
 	if p.Typed == nil {
 		return nil
 	}
@@ -101,7 +101,7 @@ func (p *Program) ValueTypes() map[string]Ty {
 }
 
 // ValueType is ValueType.
-func (p *Program) ValueType(name string) (string, bool) {
+func (p *Checker) ValueType(name string) (string, bool) {
 	t, ok := p.ValueTypes()[name]
 	if !ok {
 		return "", false
@@ -110,7 +110,7 @@ func (p *Program) ValueType(name string) (string, bool) {
 }
 
 // valueErrors returns the errors of actions in the value model of a type-checked program.
-func (p *Program) valueErrors() diag.ErrorList {
+func (p *Checker) ValueErrors() diag.ErrorList {
 	if p.ValueTypes() == nil {
 		return nil
 	}
@@ -118,19 +118,19 @@ func (p *Program) valueErrors() diag.ErrorList {
 }
 
 // ValueTypes returns the value type of each rule, and the errors of the actions.
-func ValueTypes(p *Program, control *cancel.Control) (map[string]Ty, diag.ErrorList) {
+func ValueTypes(p *Checker, control *cancel.Control) (map[string]Ty, diag.ErrorList) {
 	return valueTypesChecked(p, control, nil, nil)
 }
 
 // valueTypesChecked is valueTypes recording the node member accesses in nodeMembers and the
 // types of the program's parts in rec, each if not nil.
-func valueTypesChecked(p *Program, control *cancel.Control, nodeMembers map[*grammar.Member]bool, rec *ValueRecord) (map[string]Ty, diag.ErrorList) {
+func valueTypesChecked(p *Checker, control *cancel.Control, nodeMembers map[*grammar.Member]bool, rec *ValueRecord) (map[string]Ty, diag.ErrorList) {
 	v := &ValueInference{Prog: p, control: control, Rules: map[string]*grammar.RuleDef{}, Out: map[string]Ty{}, Approx: map[string]Ty{}, Computing: map[string]bool{}, nodeMembers: nodeMembers, rec: rec}
-	rules := p.Grammar.Rules()
+	rules := p.Grammar().Rules()
 	for _, rd := range rules {
 		v.Rules[rd.Name] = rd
 	}
-	v.cycle = ruleCycles(rules, v.Rules, control)
+	v.cycle = RuleCycles(rules, v.Rules, control)
 	for _, rd := range rules {
 		control.Poll()
 		v.ruleValue(rd.Name)
@@ -138,13 +138,13 @@ func valueTypesChecked(p *Program, control *cancel.Control, nodeMembers map[*gra
 	if rec != nil {
 		rec.Rules = maps.Clone(v.Out)
 	}
-	return pruneSpliceTypes(p, rules, v.Out), v.final
+	return PruneSpliceTypes(p, rules, v.Out), v.final
 }
 
-// pruneSpliceTypes returns the value types of the rules that have a type of their own: a splice
+// PruneSpliceTypes returns the value types of the rules that have a type of their own: a splice
 // rule makes no node, so it has a type only where a recursive call of it is an element of its own,
 // and then only because another type refers to it.
-func pruneSpliceTypes(p *Program, rules []*grammar.RuleDef, out map[string]Ty) map[string]Ty {
+func PruneSpliceTypes(p *Checker, rules []*grammar.RuleDef, out map[string]Ty) map[string]Ty {
 	var queue []string
 	kept := map[string]bool{}
 	for _, rd := range rules {
@@ -179,10 +179,10 @@ func pruneSpliceTypes(p *Program, rules []*grammar.RuleDef, out map[string]Ty) m
 	return pruned
 }
 
-// ruleCycles returns the strongly connected components of the references between rules that
+// RuleCycles returns the strongly connected components of the references between rules that
 // have a cycle, for each of their rules. The value of a rule can only depend on the rules it
 // refers to, directly or through other rules, since a rule type comes from a reference.
-func ruleCycles(rules []*grammar.RuleDef, byName map[string]*grammar.RuleDef, control *cancel.Control) map[string][]string {
+func RuleCycles(rules []*grammar.RuleDef, byName map[string]*grammar.RuleDef, control *cancel.Control) map[string][]string {
 	refs := map[string][]string{}
 	for _, rd := range rules {
 		control.Poll()
@@ -312,16 +312,16 @@ func (v *ValueInference) ruleValue(name string) Ty {
 
 // spliceElems returns the elements a call of the splice rule name contributes: those of its body,
 // without the captures, which end with the rule.
-func (v *ValueInference) spliceElems(name string, body grammar.Expr) []valueElem {
+func (v *ValueInference) spliceElems(name string, body grammar.Expr) []ValueElem {
 	if v.spliced == nil {
 		v.spliced = map[string]bool{}
 	}
 	v.spliced[name] = true
 	defer delete(v.spliced, name)
-	var out []valueElem
+	var out []ValueElem
 	for _, el := range v.elems(body) {
 		if el.t != nil {
-			out = append(out, valueElem{t: el.t})
+			out = append(out, ValueElem{t: el.t})
 		}
 	}
 	return out
@@ -373,7 +373,7 @@ func (v *ValueInference) predicates(e grammar.Expr, env *valueEnv) {
 	case *grammar.Predicate:
 		if a, ok := e.Term.(*grammar.Bind); ok {
 			t := v.term(a.Value, env)
-			if d := v.Prog.Vars.Lookup(a.Name); d != nil {
+			if d := v.Prog.Vars().Lookup(a.Name); d != nil {
 				switch {
 				case !v.assignable(t, d.Typ):
 					v.errorf(a.Diagnostic(), "cannot use %s as %s in the binding of variable %s%s", v.display(t), d.Typ, a.Name, v.castHint(t, d.Typ))
@@ -385,7 +385,7 @@ func (v *ValueInference) predicates(e grammar.Expr, env *valueEnv) {
 			v.term(e.Term, env)
 		}
 	case *grammar.Repeat:
-		if elementScopedControlled(e.Expr, v.control) {
+		if v.Prog.ElementScoped(e.Expr, v.control) {
 			v.predicates(e.Expr, inner(e.Expr))
 		} else {
 			v.predicates(e.Expr, env)
@@ -445,7 +445,7 @@ func (v *ValueInference) ScopeValue(e grammar.Expr) Ty {
 
 // tupleNode is the node of the tuple of elems, with their captures. An element without a type
 // holds only captures kept beside the tuple.
-func tupleNode(elems []valueElem) NodeTy {
+func tupleNode(elems []ValueElem) NodeTy {
 	n := NodeTy{Value: TupleTy{Elems: []Ty{}}}
 	var ts []Ty
 	for _, el := range elems {
@@ -473,12 +473,12 @@ func tupleNode(elems []valueElem) NodeTy {
 // capture. Several elements become the node of their tuple. ok is false when e has no value;
 // the result then holds the captures kept beside the tuple in e. The captures of the result may be
 // changed without changing its type.
-func (v *ValueInference) single(e grammar.Expr) (valueElem, bool) {
+func (v *ValueInference) single(e grammar.Expr) (ValueElem, bool) {
 	return oneElem(v.elems(e), v.isSeq(e))
 }
 
-func oneElem(elems []valueElem, seq bool) (valueElem, bool) {
-	var vals []valueElem
+func oneElem(elems []ValueElem, seq bool) (ValueElem, bool) {
+	var vals []ValueElem
 	var side []CapIndex
 	for _, el := range elems {
 		if el.t == nil {
@@ -489,14 +489,14 @@ func oneElem(elems []valueElem, seq bool) (valueElem, bool) {
 	}
 	switch {
 	case len(vals) == 0:
-		return valueElem{caps: side}, false
+		return ValueElem{caps: side}, false
 	case len(vals) == 1 && !seq:
 		el := vals[0]
 		el.caps = append(slices.Clone(el.caps), side...)
 		return el, true
 	}
 	n := tupleNode(elems)
-	return valueElem{t: n, caps: slices.Clone(n.Caps)}, true
+	return ValueElem{t: n, caps: slices.Clone(n.Caps)}, true
 }
 
 // isSeq is isSeq (value_shape.go) for the elements elems returns: a call of a splice rule whose
@@ -504,12 +504,12 @@ func oneElem(elems []valueElem, seq bool) (valueElem, bool) {
 func (v *ValueInference) isSeq(e grammar.Expr) bool {
 	var seen map[string]bool
 	for {
-		switch x := ungroupExpr(e).(type) {
+		switch x := UngroupExpr(e).(type) {
 		case *grammar.Seq:
 			return true
 		case *grammar.Attributed:
 			// An attribute other than recovery only labels e; recovery makes it one element.
-			if recovers(x) {
+			if Recovers(x) {
 				return false
 			}
 			e = x.Expr
@@ -530,24 +530,24 @@ func (v *ValueInference) isSeq(e grammar.Expr) bool {
 }
 
 // elems returns the elements e contributes to the tuple of its scope.
-func (v *ValueInference) elems(e grammar.Expr) []valueElem {
+func (v *ValueInference) elems(e grammar.Expr) []ValueElem {
 	v.control.Poll()
 	switch e := e.(type) {
 	case *grammar.Group:
 		return v.elems(e.Expr)
 	case *grammar.Seq:
-		var out []valueElem
+		var out []ValueElem
 		for _, it := range e.Items {
 			out = append(out, v.elems(it)...)
 		}
 		return out
 	case *grammar.Literal, *grammar.CharClass, *grammar.Any, *grammar.Atomic:
-		return []valueElem{{t: TyStringNode}}
+		return []ValueElem{{t: TyStringNode}}
 	case *grammar.Ref:
 		if body, ok := v.Prog.SpliceBody(e.Name); ok && !v.spliced[e.Name] {
 			return v.spliceElems(e.Name, body)
 		}
-		return []valueElem{{t: RuleTy{Name: e.Name}}}
+		return []ValueElem{{t: RuleTy{Name: e.Name}}}
 	case *grammar.Choice:
 		var ts []Ty
 		valueless := false
@@ -594,15 +594,15 @@ func (v *ValueInference) elems(e grammar.Expr) []valueElem {
 			if count[c.Name] < alts {
 				c = maybeCap(c)
 			}
-			caps = mergeCap(caps, c)
+			caps = MergeCap(caps, c)
 		}
-		return []valueElem{{t: t, caps: caps}}
+		return []ValueElem{{t: t, caps: caps}}
 	case *grammar.Optional:
 		el, ok := v.single(e.Expr)
 		if v.bottom(e.Expr) {
 			// An operand of type _|_ never matches: a? matches the empty input and is nil, of type
 			// *_|_, the optional type whose only value is nil. Its captures are never made.
-			el, ok = valueElem{t: TyBottom, caps: neverMade(el.caps)}, true
+			el, ok = ValueElem{t: TyBottom, caps: neverMade(el.caps)}, true
 		}
 		if !ok && len(el.caps) == 0 {
 			return nil
@@ -614,21 +614,21 @@ func (v *ValueInference) elems(e grammar.Expr) []valueElem {
 		if ok {
 			el.t = types.Vopt(el.t)
 		}
-		return []valueElem{el}
+		return []ValueElem{el}
 	case *grammar.Repeat:
 		if v.bottom(e.Expr) {
 			// An element of type _|_ never matches: a* is the empty list, of type []_|_, the list
 			// type whose only value is the empty list (a+ has the type _|_, see bottom).
-			return []valueElem{{t: NodeTy{Value: ListTy{Elem: TyBottom}}}}
+			return []ValueElem{{t: NodeTy{Value: ListTy{Elem: TyBottom}}}}
 		}
-		return []valueElem{{t: NodeTy{Value: ListTy{Elem: v.ScopeValue(e.Expr)}}}}
+		return []ValueElem{{t: NodeTy{Value: ListTy{Elem: v.ScopeValue(e.Expr)}}}}
 	case *grammar.Capture:
 		el, ok := v.single(e.Expr)
 		if !ok {
 			el.t = NodeTy{Value: TupleTy{Elems: []Ty{}}}
 		}
 		el.caps = append([]CapIndex{{Name: e.Name, Paths: [][]int{{}}, T: el.t}}, el.caps...)
-		return []valueElem{el}
+		return []ValueElem{el}
 	case *grammar.Attributed:
 		elems := v.elems(e.Expr)
 		for _, a := range e.Attrs {
@@ -643,7 +643,7 @@ func (v *ValueInference) elems(e grammar.Expr) []valueElem {
 			el, ok := oneElem(elems, v.isSeq(e.Expr))
 			switch {
 			case v.bottom(e.Expr):
-				el = valueElem{t: TyBottom, caps: neverMade(el.caps)}
+				el = ValueElem{t: TyBottom, caps: neverMade(el.caps)}
 			case !ok:
 				continue
 			}
@@ -652,7 +652,7 @@ func (v *ValueInference) elems(e grammar.Expr) []valueElem {
 			} else {
 				el.t = Vjoin(el.t, TyErr)
 			}
-			elems = []valueElem{el}
+			elems = []ValueElem{el}
 		}
 		return elems
 	case *grammar.And:
@@ -665,10 +665,10 @@ func (v *ValueInference) elems(e grammar.Expr) []valueElem {
 		if len(caps) == 0 {
 			return nil
 		}
-		return []valueElem{{caps: caps}}
+		return []ValueElem{{caps: caps}}
 	case *grammar.InlineAction:
 		// Inline actions are lowered to rules (inline_actions.go) before value types are computed.
-		return []valueElem{{t: TyAny}}
+		return []ValueElem{{t: TyAny}}
 	}
 	// Top, bottom, anchors, negative lookaheads, discards, the cut and predicates have no value.
 	return nil
@@ -706,7 +706,7 @@ func (v *ValueInference) bottom(e grammar.Expr) bool {
 	case *grammar.Repeat:
 		return e.Min > 0 && v.bottom(e.Expr)
 	case *grammar.Attributed:
-		return !recovers(e) && v.bottom(e.Expr)
+		return !Recovers(e) && v.bottom(e.Expr)
 	case *grammar.Capture:
 		return v.bottom(e.Expr)
 	case *grammar.Atomic:
@@ -730,25 +730,25 @@ func (v *ValueInference) bottomRule(name string) bool {
 // with the others, as the greatest set of rules whose bodies have the type _|_ when the calls of
 // the rules of the set do: a rule that only calls itself, as r = "a" r, never matches. The set is
 // computed once, from the rules that the program has when it is first asked.
-func (p *Program) bottomRules(control *cancel.Control) map[string]bool {
+func (p *Checker) bottomRules(control *cancel.Control) map[string]bool {
 	if p == nil {
 		return nil
 	}
 	p.bottomsOnce.Do(func() {
 		set := map[string]bool{}
 		var names []string
-		for name, r := range p.ByName {
-			if r != nil && r.Def != nil && r.Def.Action == nil && r.Def.Type == nil {
+		p.EachRule(func(name string, r RuleInfo) {
+			if r.Def != nil && r.Def.Action == nil && r.Def.Type == nil {
 				set[name] = true
 				names = append(names, name)
 			}
-		}
+		})
 		sort.Strings(names)
 		w := &ValueInference{Prog: p, control: control, bottoms: set}
 		for changed := true; changed; {
 			changed = false
 			for _, name := range names {
-				if set[name] && !w.bottom(p.ByName[name].Def.Expr) {
+				if set[name] && !w.bottom(p.Rule(name).Def.Expr) {
 					set[name], changed = false, true
 				}
 			}
@@ -768,7 +768,7 @@ func (p *Program) bottomRules(control *cancel.Control) map[string]bool {
 func neverMade(caps []CapIndex) []CapIndex {
 	var out []CapIndex
 	for _, c := range caps {
-		out = mergeCap(out, maybeCap(CapIndex{Name: c.Name, Side: true, T: c.T, Maybe: c.Maybe, Set: c.Set}))
+		out = MergeCap(out, maybeCap(CapIndex{Name: c.Name, Side: true, T: c.T, Maybe: c.Maybe, Set: c.Set}))
 	}
 	return out
 }
@@ -782,8 +782,8 @@ func maybeCap(c CapIndex) CapIndex {
 	return c
 }
 
-// mergeCap adds c to caps, joining the types and locations of captures of the same name.
-func mergeCap(caps []CapIndex, c CapIndex) []CapIndex {
+// MergeCap adds c to caps, joining the types and locations of captures of the same name.
+func MergeCap(caps []CapIndex, c CapIndex) []CapIndex {
 	for i, o := range caps {
 		if o.Name != c.Name {
 			continue
@@ -833,7 +833,7 @@ func (v *ValueInference) operatorsRule(rd *grammar.RuleDef, pr *grammar.Operator
 	if rd.Type != nil {
 		// Each line that does not fit is reported on its own.
 		d, bad := v.resolve(rd.Type), false
-		dn, converts := v.Prog.operatorsNodeType(rd)
+		dn, converts := v.Prog.OperatorsNodeType(rd)
 		for i, t := range ts {
 			if converts && operators[i] {
 				// The node of an operator is converted to the named node type.
@@ -933,7 +933,7 @@ func (v *ValueInference) operatorsLines(rd *grammar.RuleDef, pr *grammar.Operato
 			v.control.Poll()
 			op, ok := v.single(o.Expr)
 			if !ok {
-				op = valueElem{t: NodeTy{Value: TupleTy{Elems: []Ty{}}}}
+				op = ValueElem{t: NodeTy{Value: TupleTy{Elems: []Ty{}}}}
 			}
 			v.scope(o.Expr, op.caps)
 			v.predicates(o.Expr, &valueEnv{caps: op.caps})
@@ -952,14 +952,14 @@ func (v *ValueInference) operatorsLines(rd *grammar.RuleDef, pr *grammar.Operato
 				}
 				continue
 			}
-			var elems []valueElem
+			var elems []ValueElem
 			switch o.Kind {
 			case "prefix":
-				elems = []valueElem{{t: op.t, caps: []CapIndex{{Name: "op", Paths: [][]int{{}}, T: op.t}}}, {t: self, caps: []CapIndex{{Name: "rhs", Paths: [][]int{{}}, T: self}}}}
+				elems = []ValueElem{{t: op.t, caps: []CapIndex{{Name: "op", Paths: [][]int{{}}, T: op.t}}}, {t: self, caps: []CapIndex{{Name: "rhs", Paths: [][]int{{}}, T: self}}}}
 			case "postfix":
-				elems = []valueElem{{t: self, caps: []CapIndex{{Name: "lhs", Paths: [][]int{{}}, T: self}}}, {t: op.t, caps: []CapIndex{{Name: "op", Paths: [][]int{{}}, T: op.t}}}}
+				elems = []ValueElem{{t: self, caps: []CapIndex{{Name: "lhs", Paths: [][]int{{}}, T: self}}}, {t: op.t, caps: []CapIndex{{Name: "op", Paths: [][]int{{}}, T: op.t}}}}
 			default:
-				elems = []valueElem{{t: self, caps: []CapIndex{{Name: "lhs", Paths: [][]int{{}}, T: self}}}, {t: op.t, caps: []CapIndex{{Name: "op", Paths: [][]int{{}}, T: op.t}}}, {t: self, caps: []CapIndex{{Name: "rhs", Paths: [][]int{{}}, T: self}}}}
+				elems = []ValueElem{{t: self, caps: []CapIndex{{Name: "lhs", Paths: [][]int{{}}, T: self}}}, {t: op.t, caps: []CapIndex{{Name: "op", Paths: [][]int{{}}, T: op.t}}}, {t: self, caps: []CapIndex{{Name: "rhs", Paths: [][]int{{}}, T: self}}}}
 			}
 			tuples[len(ts)] = true
 			operators[len(ts)] = true
@@ -969,8 +969,8 @@ func (v *ValueInference) operatorsLines(rd *grammar.RuleDef, pr *grammar.Operato
 	return ts, tuples, operators
 }
 
-// ungroupExpr returns e without its enclosing parentheses.
-func ungroupExpr(e grammar.Expr) grammar.Expr {
+// UngroupExpr returns e without its enclosing parentheses.
+func UngroupExpr(e grammar.Expr) grammar.Expr {
 	for {
 		g, ok := e.(*grammar.Group)
 		if !ok {
@@ -979,3 +979,9 @@ func ungroupExpr(e grammar.Expr) grammar.Expr {
 		e = g.Expr
 	}
 }
+
+// Type returns the type of the element.
+func (e ValueElem) Type() Ty { return e.t }
+
+// Captures returns the captures in the element, with paths relative to it.
+func (e ValueElem) Captures() []CapIndex { return e.caps }
