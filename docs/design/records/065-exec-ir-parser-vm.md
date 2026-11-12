@@ -277,8 +277,10 @@ components' models that its contract names: the reuse count and examined input o
 of the expectations, the position and the recovered-error entry; it charges what those parts charge, and it stops
 being transitional only once every component it writes has a model. The growth loop (the steps, jumps and runs of a
 growth in a context, and the canonical identities of equal seeds) builds on the same state and stays transitional
-until it has a model of its own; the missing-token mode, in which no result in a context is memoized, is outside
-the cases. *Shared*: what a result depends on and when it is reused, the seed identities, the present sets, the
+until it has a model of its own, and so does keeping the result of a leader, which is the last result of its
+growth; the missing-token mode, in which no result in a context is memoized, and Document parses are outside the
+cases. One target charges for converting the dependencies that a frame ended into stored ones when the frame ends
+and the other when the result is kept, so both `ctx.pop` and `ctx.keep` declare that cost. *Shared*: what a result depends on and when it is reused, the seed identities, the present sets, the
 order of the dependency sets. *Target*: table layout, keys and hashing, allocation of results, the width of the
 present sets. The differential tests against the engine on random cycle grammars, with negative controls that
 break each check, and the linearity tests of the growth shapes remain the checks of the whole.

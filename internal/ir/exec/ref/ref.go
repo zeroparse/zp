@@ -336,11 +336,14 @@ func (m *Model) Allows(o *exec.Op, args []any) bool {
 	case "rec.truncate", "rec.since":
 		return args[0].(int64) >= 0 && args[0].(int64) <= int64(len(m.rec))
 	}
-	return m.allowsExp(o, args) && m.allowsDoc(o, args) && (!isOpr(o.Name) || m.allowsOpr(o, args))
+	return m.allowsExp(o, args) && m.allowsDoc(o, args) && (!isOpr(o.Name) || m.allowsOpr(o, args)) && m.allowsCtx(o, args)
 }
 
 // Quantity returns the cost quantity name for a call of o with args, in the state before the call.
 func (m *Model) Quantity(name string, o *exec.Op, args []any) int64 {
+	if q, ok := m.ctxQuantity(name, o, args); ok {
+		return q
+	}
 	switch name {
 	case ops.QKeyScan:
 		n := int64(0)

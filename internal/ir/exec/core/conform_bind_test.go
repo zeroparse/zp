@@ -52,3 +52,19 @@ func TestEngineOprBindingsCurrent(t *testing.T) {
 		t.Errorf("%s is stale; run go generate ./internal/ir/exec/core", EngineOprBindingsFile)
 	}
 }
+
+// TestEngineCtxBindingsCurrent checks that the engine's conformance bindings of the dependency memo
+// are those the engine's printer prints now.
+func TestEngineCtxBindingsCurrent(t *testing.T) {
+	want, err := EngineCtxBindings()
+	if err != nil {
+		t.Fatal(err)
+	}
+	got, err := os.ReadFile(EngineCtxBindingsFile)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if string(got) != want {
+		t.Errorf("%s is stale; run go generate ./internal/ir/exec/core", EngineCtxBindingsFile)
+	}
+}
