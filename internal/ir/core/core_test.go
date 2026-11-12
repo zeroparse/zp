@@ -450,19 +450,16 @@ func TestVerifyRejects(t *testing.T) {
 			c.Alts[1].Guard = &First{Lit: true, Rune: 'b', Exp: c.Alts[1].Body.(*Lit).Exp}
 			return m
 		}, "terminal: guarded alternative"},
-		{"stream outside a start rule", func() *Module {
-			return module(rule(0, "a", &Stream{Repeat: &Repeat{Max: -1, Body: lit("a")}}))
-		}, "stream not at the top of a start rule"},
 		{"stream below the top", func() *Module {
 			m := module(rule(0, "a", seq(lit("b"), &Opt{Body: &Stream{Repeat: &Repeat{Max: -1, Body: lit("a")}}})))
 			m.Starts = []int{0}
 			return m
-		}, "stream not at the top of a start rule"},
+		}, "stream not at the top of a rule body"},
 		{"stream below a label below the top", func() *Module {
 			m := module(rule(0, "a", &Label{Body: seq(lit("b"), &Opt{Body: &Stream{Repeat: &Repeat{Max: -1, Body: lit("a")}}})}))
 			m.Starts = []int{0}
 			return m
-		}, "stream not at the top of a start rule"},
+		}, "stream not at the top of a rule body"},
 		{"terminal", func() *Module {
 			return module(rule(0, "a", &Terminal{Body: seq(lit("a"), &Any{})}))
 		}, "terminal: Any"},
@@ -548,7 +545,7 @@ func TestVerifyRejects(t *testing.T) {
 			m := module(rule(0, "a", seq(&Capture{Slot: 0, Name: "x", Body: inner}), "x", "y"))
 			m.Starts = []int{0}
 			return m
-		}, "stream not at the top of a start rule"},
+		}, "stream not at the top of a rule body"},
 		{"class expectation", func() *Module {
 			m := module(rule(0, "a", class('a', 'z')))
 			m.Classes[0].Exp = 99
@@ -658,19 +655,28 @@ func TestVerifyRejects(t *testing.T) {
 }
 
 // TestVerifyAcceptsStreamInLabeledSequence checks that a stream in a sequence that a label wraps, or in
-// a sequence nested in a label, is at the top of a start rule, as in the grammar.
+// a sequence nested in a label, is at the top of a rule body, as in the grammar, whether or not the
+// rule is a start rule. Only in a start rule does the stream have the Commit effect.
 func TestVerifyAcceptsStreamInLabeledSequence(t *testing.T) {
 	stream := func() *Stream { return &Stream{Repeat: &Repeat{Max: -1, Body: lit("a")}} }
-	for name, body := range map[string]Node{
-		"label around the sequence": &Label{Body: seq(stream(), lit("!"))},
-		"label around the stream":   seq(&Label{Body: stream()}, lit("!")),
-		"nested labeled sequence":   seq(&Label{Body: seq(lit("b"), stream())}, lit("!")),
+	for name, body := range map[string]func() Node{
+		"stream":                    func() Node { return stream() },
+		"label around the sequence": func() Node { return &Label{Body: seq(stream(), lit("!"))} },
+		"label around the stream":   func() Node { return seq(&Label{Body: stream()}, lit("!")) },
+		"nested labeled sequence":   func() Node { return seq(&Label{Body: seq(lit("b"), stream())}, lit("!")) },
 	} {
-		m := module(rule(0, "a", body))
-		m.Starts = []int{0}
-		Analyze(m)
-		if err := Verify(m); err != nil {
-			t.Errorf("%s: %v", name, err)
+		for _, start := range []bool{true, false} {
+			m := module(rule(0, "a", body()))
+			if start {
+				m.Starts = []int{0}
+			}
+			Analyze(m)
+			if err := Verify(m); err != nil {
+				t.Errorf("%s, start %v: %v", name, start, err)
+			}
+			if got := m.Rules[0].Body.Attrs().Eff.Set&EffCommit != 0; got != start {
+				t.Errorf("%s, start %v: commit %v", name, start, got)
+			}
 		}
 	}
 }

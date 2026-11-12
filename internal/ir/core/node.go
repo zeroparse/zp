@@ -298,9 +298,9 @@ type Missing struct {
 	Lit *Lit
 }
 
-// Stream is the #stream repetition of a start rule: in a stream parse, the invocation of the
-// rule that starts the parse delivers each element as it completes (EffCommit). Elsewhere it is
-// its repetition.
+// Stream is the #stream repetition at the top of a rule body: in a stream parse, the invocation
+// of the start rule that starts the parse delivers each element as it completes (EffCommit, in a
+// start rule). Elsewhere, and in every rule that is not a start rule, it is its repetition.
 type Stream struct {
 	base
 	Repeat *Repeat

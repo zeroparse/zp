@@ -114,7 +114,7 @@ The summary of a node is the union of its children's, with these differences.
   an `OperatorsRule` line's action add Raise when their term can raise.
 - `Recover` can fail only when its body can fail and its skip can fail or match without consuming input, and adds
   Recover. `Missing` is consume, fail, expect, recover and raise: its literal fails where it may not be inserted, and an
-  insertion can exceed the limit of missing tokens. `Stream` adds Commit.
+  insertion can exceed the limit of missing tokens. `Stream` adds Commit in a start rule.
 - `Scan` consumes and expects, and can fail if its minimum is positive.
 
 A rule's own effects, as its callers see them, are those of its body without Capture, Bind and Cut.
