@@ -1,6 +1,7 @@
 package tsgen_test
 
 import (
+	"strconv"
 	"strings"
 	"testing"
 
@@ -75,6 +76,61 @@ rule item = ("a" "!") #recover(skip=(!";" .)*) ";"`, `"a!;ab;".repeat(n / 6)`},
 			out := gentest.RunTSGrammarScriptWith(t, g, script, gen.GenOptions{Start: "main", LimitControls: true})
 			if out != "ok\n" {
 				t.Fatalf("got %q", out)
+			}
+		})
+	}
+}
+
+// memoryGrowthScript prints by how much the memory count of a parse grows from 200 items to 400:
+// the count is the least memory limit that the parse passes.
+const memoryGrowthScript = `import * as p from "./parser.ts";
+const ok = (s: string, memory: number): boolean => p.parseWithOptions(s, { limits: { memory } }).error === null;
+function count(n: number): number {
+  const s = "a ".repeat(n);
+  let lo = 1, hi = 1 << 30;
+  while (lo < hi) {
+    const mid = Math.floor((lo + hi) / 2);
+    if (ok(s, mid)) hi = mid; else lo = mid + 1;
+  }
+  return lo;
+}
+console.log(String(count(400) - count(200)));
+`
+
+// The values that actions build are counted whichever path builds them: a list, a tuple, a struct
+// and a converted node each add, per item, the bytes of the size model over an action that returns
+// the matched node.
+func TestGeneratedTSMemoryLimitValues(t *testing.T) {
+	t.Parallel()
+	const decls = "type S = node[string]\ntype P = { A node[string] }\n"
+	count := func(t *testing.T, action string) int {
+		g, err := parseTest(decls + "rule main = item* !.\nrule item = w:[a-z] \" \" => " + action)
+		if err != nil {
+			t.Fatal(err)
+		}
+		out := gentest.RunTSGrammarScriptWith(t, g, memoryGrowthScript, gen.GenOptions{Start: "main", LimitControls: true})
+		v, err := strconv.Atoi(strings.TrimSpace(out))
+		if err != nil {
+			t.Fatalf("output %q", out)
+		}
+		return v
+	}
+	base := count(t, "$w")
+	// The bytes per item by the size model: a Node is 112 bytes, an array of n elements 48 + 8n (32
+	// when empty), and an object of k fields 24 + 8k.
+	for _, c := range []struct {
+		name, action string
+		perItem      int
+	}{
+		{"list", "list($w)", 112 + 56},            // the list node and its child list
+		{"tuple", "($w, $w)", 112 + 64},           // the tuple node and its child list
+		{"struct", "P{A: $w}", 112 + 48 + 8 + 40}, // the node, its field array, slot and record
+		{"convert", "S{$w}", 112 + 8 + 32 + 32},   // the copy of the node with its child and field lists
+	} {
+		t.Run(c.name, func(t *testing.T) {
+			got := (count(t, c.action) - base) / 200
+			if got != c.perItem {
+				t.Fatalf("%s adds %d bytes per item over returning the node, want %d", c.action, got, c.perItem)
 			}
 		})
 	}
