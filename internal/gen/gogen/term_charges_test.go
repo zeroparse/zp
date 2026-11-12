@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"regexp"
 	"strings"
+	"sync"
 	"testing"
 
 	"zeroparse.dev/zp/internal/compile"
@@ -204,8 +205,14 @@ func checkTermCharges(t *testing.T, golden, what, unset, prefix string, all []ge
 		}
 	}
 	_ = inputIndex
-	// Generated TypeScript.
-	for i, c := range terms {
+	// Generated TypeScript: one node process per term, run in parallel.
+	var gotMu sync.Mutex
+	indexes := make([]int, len(terms))
+	for i := range indexes {
+		indexes[i] = i
+	}
+	gentest.EachParallel(t, indexes, func(t *testing.T, i int) {
+		c := terms[i]
 		g, _ := parseTest(c.Src)
 		var ins []string
 		for _, in := range c.Inputs {
@@ -216,11 +223,13 @@ func checkTermCharges(t *testing.T, golden, what, unset, prefix string, all []ge
 		if len(lines) != len(c.Inputs) {
 			t.Fatalf("term %d: %d lines for %d inputs:\n%s", i, len(lines), len(c.Inputs), out)
 		}
+		gotMu.Lock()
+		defer gotMu.Unlock()
 		for j, in := range c.Inputs {
 			n, res, _ := strings.Cut(lines[j], " ")
 			got[key(i, in, "ts-node")] = n + " " + termOutcome(res)
 		}
-	}
+	})
 	termChargesGoldenFile(golden, what, unset).Check(t, prefix+"/", got)
 }
 
