@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"unsafe"
 
+	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/bytecode"
 	"zeroparse.dev/zp/internal/compile"
 	"zeroparse.dev/zp/internal/engine/core"
@@ -22,15 +23,12 @@ type Program struct {
 	bytes    [][]byte   // UTF-8 of the decoded literal strings
 	literals []string   // matching text; aliases m.Strings unless normalization is needed
 	scopes   [][]string // names in the scope table
-	fields   [][]string // names in the field lists
 	ascii    []asciiSet // the ASCII part of each class, as a bitmap
 	descs    []string   // expectation table: fixedDescs followed by the string table (string i has index numFixedDescs+i)
 	// runSites holds, at the index of each REPEAT that a Document can resume, how to resume it.
 	runSites []*vmRunSite
-	// fieldTypes holds the type of each ECAST, by the string index of its text
-	// (nil when the module has none); typeNames are the module's type names it resolves.
-	fieldTypes []*compile.FieldType
-	typeNames  map[string]bool
+	// terms holds the programs of the module's terms (Module.Terms).
+	terms []*core.TermProgram
 	// nodeKinds holds the kinds of the module's named node types by the string index of their
 	// names, at every index of the name (nil when the module has none).
 	nodeKinds []*value.NodeTypeKinds
@@ -133,15 +131,6 @@ func buildVMProgram(m *bytecode.Module, bodies vmBodies) *Program {
 	for i := range m.Classes {
 		vm.ascii = append(vm.ascii, newASCIISet(&m.Classes[i]))
 	}
-	for _, fl := range m.FieldLists {
-		vm.fields = append(vm.fields, vm.names(fl))
-	}
-	for _, in := range m.Exprs {
-		switch {
-		case in.Op == bytecode.ECast:
-			vm.checkType(int(in.A))
-		}
-	}
 	var nodeTypes map[string]*value.NodeTypeKinds
 	for _, t := range m.Types {
 		if t.Node >= 0 {
@@ -161,6 +150,12 @@ func buildVMProgram(m *bytecode.Module, bodies vmBodies) *Program {
 	}
 	vtable := compile.ModuleVarTable(m)
 	vm.vars = vtable
+	terms, err := vm.loadTerms()
+	if err != nil {
+		// Loading a module file checks its terms (CheckTerms); a compiled module's are the compiler's.
+		panic(fmt.Sprintf("internal error: %v", err))
+	}
+	vm.terms = terms
 	for i := range m.Rules {
 		ri := &m.Rules[i]
 		r := &core.Rule{
@@ -184,11 +179,7 @@ func buildVMProgram(m *bytecode.Module, bodies vmBodies) *Program {
 		r.Kinds = value.NewRuleKinds(r.Name)
 		r.Value = func(_ *core.Parser, v *value.Node, _ int) *value.Node { return v } // the code pushes the value of the body's scope
 		if ri.Action >= 0 {
-			var locals []string
-			if ri.OperatorsRule >= 0 {
-				locals = compile.OperatorsRuleActionLocals
-			}
-			r.Act = vm.evaluator(ri.Action, locals)
+			r.Act = vm.terms[ri.Action].Eval
 		}
 		vm.rules = append(vm.rules, r)
 		if _, twin := vm.byName[r.Name]; !twin { // value-free twins follow the original rules
@@ -265,53 +256,9 @@ func (vm *Program) line(l *bytecode.LineInfo, operator bool) *core.OperatorsRule
 		pl.Single, pl.Shape = compile.SingleTuple, compile.Shaper{Elems: true}
 	}
 	if l.Action >= 0 {
-		var locals []string
-		if operator {
-			locals = operatorLocals
-		}
-		pl.Act = vm.evaluator(l.Action, locals)
+		pl.Act = vm.terms[l.Action].Eval
 	}
 	return pl
-}
-
-// checkType returns the check type whose text is string i of the module.
-func (vm *Program) checkType(i int) *compile.FieldType {
-	if vm.fieldTypes == nil {
-		vm.fieldTypes, vm.typeNames = make([]*compile.FieldType, len(vm.m.Strings)), compile.ModuleTypeNames(vm.m)
-	}
-	if vm.fieldTypes[i] == nil {
-		// Loading validated the text. A module built in memory with an invalid one gets a type
-		// that no value fits.
-		t, err := compile.ParseFieldType(vm.m.Strings[i], vm.typeNames)
-		if err != nil {
-			t = &compile.FieldType{Kind: compile.FtJoin, Text: vm.m.Strings[i]}
-		}
-		vm.fieldTypes[i] = t
-	}
-	return vm.fieldTypes[i]
-}
-
-// cast runs ECAST at ip on the value v, and returns v if it fits.
-//
-//go:noinline
-func (vm *Program) cast(p *core.Parser, v any, pos, ip int) (any, error) {
-	in := &vm.m.Exprs[ip]
-	if t := vm.fieldTypes[in.A]; t == nil || !p.FieldConforms(t, v) {
-		if t == nil {
-			t = &compile.FieldType{Text: vm.m.Strings[in.A]}
-		}
-		return nil, p.CastError(v, t, pos, int(in.B), int(in.C))
-	}
-	return v, nil
-}
-
-// convert runs ENODE at ip on the value v, and returns it converted.
-//
-//go:noinline
-func (vm *Program) convert(p *core.Parser, v any, ip int) (any, error) {
-	// The module file checks that the type of every ENODE is a declared node type, whose kinds
-	// nodeKinds holds at the index of its name.
-	return p.Convert(vm.nodeKinds[vm.m.Exprs[ip].A], v)
 }
 
 func (vm *Program) operatorsRule(pi *bytecode.OperatorsRuleInfo) *core.OperatorsRule {
@@ -351,9 +298,7 @@ type Machine struct {
 	ents     []vmEntry  // entry stack
 	labs     []labState // state of the label, recovery and skip entries on ents
 	reps     []repState
-	scans    []scanWalk // the walks of scan sites in progress that gather a list
-	lists    []int      // starts on KidStack of the lists being gathered by ELISTBEGIN
-	funcSlab []vmFunc
+	scans    []scanWalk       // the walks of scan sites in progress that gather a list
 	posSlab  []int            // positions pushed as values (newPos); stream splits keep it
 	freeRuns []*core.RunState // runStates of finished repetitions (newRunState)
 	driver   vmDriverState
@@ -378,7 +323,6 @@ func machineOf(p *core.Parser) *Machine {
 
 // SplitChunks keeps the position chunk, so its bytes stay charged.
 func (mc *Machine) SplitChunks() {
-	mc.funcSlab = nil
 	if len(mc.posSlab) > 0 {
 		mc.p.MemUsed += core.PtrChunk * uint64(unsafe.Sizeof(0))
 	}
@@ -422,7 +366,7 @@ func (mc *Machine) RetainedBytes() uint64 {
 func (mc *Machine) StackBytes() uint64 {
 	return mc.RetainedBytes() + uint64(cap(mc.ents))*uint64(unsafe.Sizeof(vmEntry{})) +
 		uint64(cap(mc.labs))*uint64(unsafe.Sizeof(labState{})) + uint64(cap(mc.reps))*uint64(unsafe.Sizeof(repState{})) + uint64(cap(mc.scans))*uint64(unsafe.Sizeof(scanWalk{})) +
-		uint64(cap(mc.lists))*uint64(unsafe.Sizeof(0)) + uint64(cap(mc.freeRuns))*uint64(unsafe.Sizeof((*core.RunState)(nil)))
+		uint64(cap(mc.freeRuns))*uint64(unsafe.Sizeof((*core.RunState)(nil)))
 }
 
 // NewMachine returns VM state that holds vals as its value stack, as a Document keeps it between
@@ -434,23 +378,6 @@ func (mc *Machine) Values() []any { return mc.vals }
 
 // Parser returns the parser that mc serves, or nil when it serves none.
 func (mc *Machine) Parser() *core.Parser { return mc.p }
-
-// newFunc allocates a copy of the lambda f from a chunk and returns it.
-func (mc *Machine) newFunc(f vmFunc) *vmFunc {
-	if len(mc.funcSlab) == 0 {
-		if mc.p.PrivatePrefixAlloc() {
-			n := new(vmFunc)
-			*n = f
-			return n
-		}
-		mc.funcSlab = make([]vmFunc, core.NodeChunk/4)
-		mc.p.MemUsed += core.NodeChunk / 4 * uint64(unsafe.Sizeof(vmFunc{}))
-	}
-	n := &mc.funcSlab[0]
-	mc.funcSlab = mc.funcSlab[1:]
-	*n = f
-	return n
-}
 
 // --- Running matching code ---
 
@@ -663,7 +590,7 @@ func (mc *Machine) step(vm *Program, b *vmBody, resume, rok bool, rv *value.Node
 		case bytecode.OpScan, bytecode.OpScanWide:
 			min, max := int(in.B), int(in.C)
 			if in.Op == bytecode.OpScanWide {
-				min, max = int(m.Exprs[in.B].Integer()), int(m.Exprs[in.C].Integer())
+				min, max = int(m.Ints[in.B]), int(m.Ints[in.C])
 			}
 			count := 0
 			for max < 0 || count < max {
@@ -820,7 +747,7 @@ func (mc *Machine) step(vm *Program, b *vmBody, resume, rok bool, rv *value.Node
 			}
 			min, max := int(in.A), int(in.B)
 			if in.Op == bytecode.OpRepeatWide {
-				min, max = int(m.Exprs[in.A].Integer()), int(m.Exprs[in.B].Integer())
+				min, max = int(m.Ints[in.A]), int(m.Ints[in.B])
 			}
 			mc.reps = append(mc.reps, repState{min: min, max: max, scope: int(in.C), base: len(mc.vals)})
 			if p.Runs != nil && p.Silent == 0 {
@@ -845,7 +772,7 @@ func (mc *Machine) step(vm *Program, b *vmBody, resume, rok bool, rv *value.Node
 		case bytecode.OpSkipRepeat:
 			min := int(in.A)
 			if in.C&1 == 1 {
-				min = int(m.Exprs[in.A].Integer())
+				min = int(m.Ints[in.A])
 			}
 			mc.reps = append(mc.reps, repState{min: min, max: -1, scope: -1, base: len(mc.vals), skip: true})
 			p.SkipBegin(int(in.B), in.C&2 == 0)
@@ -1212,255 +1139,72 @@ func (mc *Machine) single(size int, b bool) {
 	}
 }
 
-// --- Running expression code ---
+// --- Terms ---
 
-// vmFunc is a bytecode lambda.
-type vmFunc struct {
-	vm     *Program
-	entry  int
-	n      int
-	locals []any
-	ctx    *core.EvalCtx
-}
+// The VM implements the backend state of core.
+var _ core.BackendState = (*Machine)(nil)
 
-func (f *vmFunc) Arity() int { return f.n }
-
-// The VM implements the interfaces of core for lambdas and backend state.
-var (
-	_ core.Function     = (*vmFunc)(nil)
-	_ core.BackendState = (*Machine)(nil)
-)
-
-func (f *vmFunc) Apply(x, y any) (any, error) {
-	// The locals are placed on the expression stack below the operands of the body.
-	p := f.ctx.P
-	p.Spend()
-	base := len(p.Estack)
-	p.Estack = append(core.AppendSpend(p, p.Estack, f.locals), x)
-	if f.n == 2 {
-		p.Estack = append(p.Estack, y)
-	}
-	v, err := f.vm.eval(f.ctx, f.entry, p.Estack[base:len(p.Estack):len(p.Estack)])
-	p.Estack = p.Estack[:base]
-	return v, err
-}
-
-// evaluator returns an evaluator for an action in expression code. If operator is set, $lhs,
-// $rhs, and $op are locals.
-// operatorLocals are the locals of an operator line's action, in the order the compiler numbers
-// them.
-var operatorLocals = []string{"lhs", "rhs", "op"}
-
-// noLocals holds the initial values of the most locals an evaluator has.
-var noLocals [3]any
-
-// evaluator returns the evaluator of the expression code at entry, whose locals are named names
-// in the order the compiler numbers them: those of an Operators Rule operator line or whole-rule
-// action, or none.
-func (vm *Program) evaluator(entry int, names []string) core.Evaluator {
-	if len(names) == 0 {
-		return func(ctx *core.EvalCtx) (any, error) { return vm.eval(ctx, entry, nil) }
-	}
-	n := len(names)
-	return func(ctx *core.EvalCtx) (any, error) {
-		p := ctx.P
-		base := len(p.Estack)
-		p.Estack = append(p.Estack, noLocals[:n]...)
-		locals := p.Estack[base : base+n : base+n]
-		for l := ctx.Locals; l != nil; l = l.Next {
-			p.Spend()
-			for i, name := range names {
-				if l.Name == name {
-					locals[i] = value.UnboxValue(l.Val)
-					break
-				}
-			}
-		}
-		v, err := vm.eval(ctx, entry, locals)
-		p.Estack = p.Estack[:base]
-		return v, err
-	}
-}
-
-// isFunction is the operation term.isFunction.
+// isFunction is the operation term.isFunction. A lowered term has no function values: the lambdas
+// of map, filter and the folds are evaluated in place.
 func isFunction(v any) bool {
 	_, ok := v.(core.Function)
 	return ok
 }
 
-// eval evaluates expression code from ip until ERET. The operands are kept on the parser's
-// expression stack (p.Estack) above its current top, so evaluations nested through lambdas
-// (vmFunc.apply) share one area; the stack is back at its original height when eval returns.
-func (vm *Program) eval(ctx *core.EvalCtx, ip int, locals []any) (v any, err error) {
-	m := vm.m
-	p := ctx.P
-	mc := machineOf(p)
-	stack := p.Estack
-	base := len(stack)
-	pop := func() any {
-		v := stack[len(stack)-1]
-		stack = stack[:len(stack)-1]
-		return v
+// loadTerms makes the programs of the module's terms.
+func (vm *Program) loadTerms() ([]*core.TermProgram, error) {
+	return LoadTerms(vm.m)
+}
+
+// LoadTerms makes the programs of the terms of the module m, checking each (core.LoadTerm). A
+// loader calls it to reject a module file whose term code is invalid.
+func LoadTerms(m *bytecode.Module) ([]*core.TermProgram, error) {
+	if len(m.Terms) == 0 {
+		return nil, nil
 	}
-	lists := len(mc.lists)
-	defer func() {
-		p.Estack = stack[:base]
-		if err != nil { // the gathered elements go with the term (term.dropKids)
-			mc.lists = mc.lists[:lists]
+	types := moduleTermTypes(m)
+	terms := make([]*core.TermProgram, len(m.Terms))
+	for i := range m.Terms {
+		t, err := core.LoadTerm(&m.Terms[i], m.Strings, len(m.Vars), types)
+		if err != nil {
+			return nil, fmt.Errorf("term %d: %w", i, err)
 		}
-	}()
-	for {
-		in := &m.Exprs[ip]
-		switch in.Op {
-		case bytecode.EInt:
-			stack = append(stack, int(int64(in.A)+int64(in.B)<<32))
-		case bytecode.EStr:
-			stack = append(stack, m.Strings[in.A])
-		case bytecode.EBool:
-			stack = append(stack, in.A == 1)
-		case bytecode.ENil:
-			stack = append(stack, nil)
-		case bytecode.ECap:
-			stack = append(stack, value.UnboxNode(ctx.Frame.Vals[in.A]))
-		case bytecode.EItem:
-			n := int(in.A)
-			if n == 0 {
-				stack = append(stack, ctx.NewList(ctx.Items))
-			} else if n > len(ctx.Items) {
-				return nil, p.ActionIndexError(n, len(ctx.Items))
-			} else {
-				stack = append(stack, core.NodeOrNil(ctx.Items[n-1]))
-			}
-		case bytecode.ELocal:
-			stack = append(stack, locals[in.A])
-		case bytecode.EVar:
-			stack = append(stack, ctx.P.VarValue(int(in.A)))
-		case bytecode.EMember:
-			x := pop()
-			o, err := ctx.Member(x, m.Strings[in.A])
-			if err != nil {
-				return nil, err
-			}
-			stack = append(stack, o)
-		case bytecode.ENew:
-			names := vm.fields[in.B]
-			top := len(stack) - len(names)
-			v, err := ctx.NewStruct(m.Strings[in.A], names, stack[top:]) // NewStruct does not retain vals
-			if err != nil {
-				return nil, err
-			}
-			stack = append(stack[:top], v)
-		case bytecode.ECast, bytecode.ENode:
-			// ECAST and ENODE share the case: a case of its own slows down the whole loop.
-			var v any
-			var err error
-			switch in.Op {
-			case bytecode.ECast:
-				v, err = vm.cast(p, pop(), ctx.Start, ip)
-			default:
-				v, err = vm.convert(p, pop(), ip)
-			}
-			if err != nil {
-				return nil, err
-			}
-			stack = append(stack, v)
-		case bytecode.EBin:
-			r := pop()
-			l := pop()
-			v, err := p.ValueBinary(m.Strings[in.A], l, r)
-			if err != nil {
-				return nil, err
-			}
-			stack = append(stack, v)
-		case bytecode.EUnary:
-			v, err := p.ValueUnary(m.Strings[in.A], pop())
-			if err != nil {
-				return nil, err
-			}
-			stack = append(stack, v)
-		case bytecode.EAnd, bytecode.EOr:
-			op := "&&"
-			if in.Op == bytecode.EOr {
-				op = "||"
-			}
-			b, err := p.ValueLogic(op, stack[len(stack)-1])
-			if err != nil {
-				return nil, err
-			}
-			if b == (in.Op == bytecode.EOr) {
-				ip = int(in.A)
-				continue
-			}
-			stack = stack[:len(stack)-1]
-		case bytecode.EBoolChk:
-			if _, err := p.ValueLogic(m.Strings[in.A], stack[len(stack)-1]); err != nil {
-				return nil, err
-			}
-		case bytecode.EFunc:
-			if len(locals) > 0 {
-				// The locals may be on the expression stack, and a function can outlive the lambda that
-				// created it (when the lambda returns it).
-				locals = core.AppendSpend(p, []any(nil), locals)
-			}
-			stack = append(stack, mc.newFunc(vmFunc{vm: vm, entry: int(in.A), n: int(in.B), locals: locals, ctx: ctx}))
-		case bytecode.ECall:
-			// The arguments stay on the stack during the call: lambdas called by the built-in push
-			// above them, and built-ins do not retain args.
-			top := len(stack) - int(in.B)
-			p.Estack = stack
-			v, err := ctx.Builtin(bytecode.BuiltinNames[in.A], stack[top:])
-			stack = p.Estack
-			if err != nil {
-				return nil, err
-			}
-			stack = append(stack[:top], v)
-		case bytecode.ETextChk:
-			if _, err := ctx.TextString(stack[len(stack)-1]); err != nil {
-				return nil, err
-			}
-		case bytecode.ETextEq:
-			// Both values were checked by ETEXTCHK.
-			ls, _ := ctx.TextString(stack[len(stack)-2])
-			rs, _ := ctx.TextString(stack[len(stack)-1])
-			stack = append(stack[:len(stack)-2], p.ValueEqual(ls, rs) != (in.A == 1))
-		case bytecode.EListBegin:
-			mc.lists = append(mc.lists, len(p.KidStack))
-		case bytecode.EListPush:
-			top := len(stack) - int(in.A)
-			if err := ctx.PushElems("list", stack[top:]); err != nil {
-				return nil, err
-			}
-			stack = stack[:top]
-		case bytecode.ETuple:
-			top := len(stack) - int(in.A)
-			base := len(p.KidStack)
-			for _, v := range stack[top:] {
-				p.Spend()
-				if err := ctx.Push("tuple", v); err != nil {
-					p.DropKids(base)
-					return nil, err
-				}
-			}
-			stack = append(stack[:top], ctx.TupleNode(p.Kids(base)))
-		case bytecode.EMapPush:
-			top := len(stack) - 2
-			p.Estack = stack // the function's calls push above its arguments
-			err := ctx.PushElems("map", stack[top:])
-			stack = p.Estack
-			if err != nil {
-				return nil, err
-			}
-			stack = stack[:top]
-		case bytecode.EListEnd:
-			b := mc.lists[len(mc.lists)-1]
-			mc.lists = mc.lists[:len(mc.lists)-1]
-			stack = append(stack, ctx.ListNode(p.Kids(b)))
-		case bytecode.ERet:
-			return stack[len(stack)-1], nil
-		default:
-			return nil, fmt.Errorf("vm: invalid expression instruction %v at %d", in.Op, ip)
+		terms[i] = t
+	}
+	return terms, nil
+}
+
+// moduleTermTypes resolves the types that the term code of m names from its type table.
+func moduleTermTypes(m *bytecode.Module) core.TermTypes {
+	nodeTypes := map[string]*value.NodeTypeKinds{}
+	structs := map[string]*value.NodeKind{}
+	for _, t := range m.Types {
+		name := m.Strings[t.Name]
+		if t.Node >= 0 {
+			nodeTypes[name] = value.NewNodeTypeKinds(name)
+		} else {
+			structs[name] = value.KindOf(name, "")
 		}
-		ip++
+	}
+	var typeNames map[string]bool
+	casts := map[string]*compile.FieldType{}
+	return core.TermTypes{
+		NodeType: func(name string) *value.NodeTypeKinds { return nodeTypes[name] },
+		Struct:   func(name string) *value.NodeKind { return structs[name] },
+		Cast: func(text string) (*compile.FieldType, error) {
+			if t, ok := casts[text]; ok {
+				return t, nil
+			}
+			if typeNames == nil {
+				typeNames = compile.ModuleTypeNames(m)
+			}
+			t, err := compile.ParseFieldType(text, typeNames)
+			if err != nil {
+				return nil, err
+			}
+			casts[text] = t
+			return t, nil
+		},
 	}
 }
 
@@ -1502,4 +1246,47 @@ func (mc *Machine) freeRunState(r *core.RunState) {
 	r.Old = nil
 	mc.p.ReleaseRunLists(r)
 	mc.freeRuns = append(mc.freeRuns, r)
+}
+
+// CompileTerms makes the term code of the module m that the compiler made of prog
+// (compile.Program.BytecodeTerms): the program of each term site, compiled from its Core IR term
+// (core.CompileTerm). It does so once per program, and does nothing for a module that holds its term
+// code already, such as a loaded one.
+func CompileTerms(prog *compile.Program, m *bytecode.Module) {
+	prog.BytecodeTermsOnce.Do(func() {
+		if len(prog.BytecodeTerms) == 0 {
+			return
+		}
+		terms, err := core.CoreTerms(prog)
+		if err != nil {
+			panic(err)
+		}
+		strs := map[string]int{}
+		for i, s := range m.Strings {
+			if _, ok := strs[s]; !ok {
+				strs[s] = i
+			}
+		}
+		str := func(s string) int {
+			if i, ok := strs[s]; ok {
+				return i
+			}
+			strs[s] = len(m.Strings)
+			m.Strings = append(m.Strings, s)
+			return len(m.Strings) - 1
+		}
+		for i, site := range prog.BytecodeTerms {
+			t, ok := terms[site.Term]
+			if !ok {
+				panic(fmt.Sprintf("internal error: no Core IR of the term %s", grammar.FormatTerm(site.Term)))
+			}
+			tp, err := core.CompileTerm(t, core.TermEnv{Prog: prog, Scope: site.Scope, Proj: site.Proj})
+			if err != nil {
+				panic(fmt.Sprintf("internal error: %v", err))
+			}
+			if m.Terms[i], err = tp.Export(str); err != nil {
+				panic(fmt.Sprintf("internal error: %v", err))
+			}
+		}
+	})
 }

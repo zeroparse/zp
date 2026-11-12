@@ -96,7 +96,8 @@ func termCaseList(cs []gentest.TermCase) []gentest.Case {
 }
 
 // TestTermEngineBackends checks that the engine's closure backend, its bytecode VM and its iterative
-// VM give one value or one error for every generated term, in both position units. Their charges differ
+// VM give one value or one error for every generated term, in both position units, and that the VMs
+// running the program saved to a file and loaded again give it too. Their charges differ
 // by design today (zp.Limits: counts depend on backend); the test only requires that every backend
 // reports one and logs how far apart the backends are.
 func TestTermEngineBackends(t *testing.T) {
@@ -108,6 +109,14 @@ func TestTermEngineBackends(t *testing.T) {
 			prog, err := engine.Compile(g, compile.Options{})
 			if err != nil {
 				t.Fatal(err)
+			}
+			data, err := prog.MarshalBinary("main")
+			if err != nil {
+				t.Fatal(err)
+			}
+			loaded, _, err := engine.LoadProgram(data)
+			if err != nil {
+				t.Fatalf("%s: %v", c.Name, err)
 			}
 			for _, in := range c.Inputs {
 				for _, unit := range []engine.PositionUnit{engine.CodePoints, engine.Bytes} {
@@ -124,6 +133,12 @@ func TestTermEngineBackends(t *testing.T) {
 							want = got
 						} else if got != want {
 							t.Errorf("%s: input %q unit %d: backend %d gives\n %s\nclosure gives\n %s", c.Name, in, unit, b, got, want)
+						}
+					}
+					for _, b := range []engine.Backend{engine.Bytecode, engine.BytecodeIterative} {
+						n, err := loaded.ParseWith("main", in, engine.ParseOptions{Backend: b, Unit: unit, Limits: limits.Limits{Compute: 1 << 50}})
+						if got := gentest.ResultJSON(n, err); got != want {
+							t.Errorf("%s: input %q unit %d: loaded backend %d gives\n %s\nclosure gives\n %s", c.Name, in, unit, b, got, want)
 						}
 					}
 				}

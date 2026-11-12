@@ -168,11 +168,16 @@ func TestCompiledFieldChecksValidation(t *testing.T) {
 	}
 	for _, text := range []string{"Other", "[]", "*(Int)", "Int |", "(Int | Match", "Int  | Match", "[]Int)", "", "terminal", "Missing"} {
 		m.Strings = append(append([]string(nil), prog.Module().Strings...), text)
-		m.Exprs = append([]bytecode.Instr(nil), prog.Module().Exprs...)
-		for i := range m.Exprs {
-			if m.Exprs[i].Op == bytecode.ECast {
-				m.Exprs[i].A = int32(len(m.Strings) - 1)
+		m.Terms = cloneTerms(prog.Module().Terms)
+		casts := 0
+		for i := range m.Terms {
+			for k := range m.Terms[i].Casts {
+				m.Terms[i].Casts[k].Type = len(m.Strings) - 1
+				casts++
 			}
+		}
+		if casts == 0 {
+			t.Fatal("no cast in the term code")
 		}
 		if err := compile.ValidateModule(&m); err == nil || !strings.Contains(err.Error(), "invalid field type") {
 			t.Errorf("type text %q: %v", text, err)

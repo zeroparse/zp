@@ -107,15 +107,21 @@ func TestNodeConstructorCompiledVersions(t *testing.T) {
 		if _, _, err := LoadProgram(data); err == nil || !strings.Contains(err.Error(), "compile the grammar again") {
 			t.Fatalf("wrong ISA accepted: %v", err)
 		}
-		module := p.Module()
-		for i := range module.Exprs {
-			if module.Exprs[i].Op == bytecode.ENew {
-				module.Exprs[i].B = -1
+		module := *p.Module()
+		module.Terms = cloneTerms(module.Terms)
+		mutated := false
+		for i := range module.Terms {
+			if x := module.Terms[i].Structs; len(x) > 0 {
+				x[0].Type = module.Rules[0].Name // a rule, not a struct type
+				mutated = true
 				break
 			}
 		}
-		if err := compile.ValidateModule(module); err == nil {
-			t.Fatal("invalid constructor field list accepted")
+		if !mutated {
+			t.Fatal("no struct literal in the term code")
+		}
+		if err := compile.ValidateModule(&module); err == nil || !strings.Contains(err.Error(), "is not a struct type") {
+			t.Fatalf("invalid struct literal type accepted: %v", err)
 		}
 	}
 	for _, source := range []string{`rule main = "x"`, `rule main = v1:"x" => []node[string]{$v1}`} {

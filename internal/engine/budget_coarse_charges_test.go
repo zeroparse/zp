@@ -54,7 +54,7 @@ func TestBudgetCoarseChargesPerIteration(t *testing.T) {
 		{"capture call", "rule main = item* $$\nrule item = x:\"a\" {len(text($x)) == 1}", func(k int) string { return strings.Repeat("a", k) },
 			[3]uint64{11, 11, 11}, [3]uint64{7, 7, 7}},
 		{"projected", "type L = { N int }\nrule main = xs:(-\",\" r:x)* $$ => L{N: len(map($xs, (e) => e.$r))}\nrule x = [a-z] #atomic",
-			func(k int) string { return strings.Repeat(",a", k) }, [3]uint64{13, 14, 14}, [3]uint64{8, 8, 8}},
+			func(k int) string { return strings.Repeat(",a", k) }, [3]uint64{13, 11, 11}, [3]uint64{8, 8, 8}},
 		{"prefix", "rule main = expr $$\nrule expr = #operators {\n    operand \"a\"\n    level {\n        infix left \"+\"\n    }\n    level {\n        prefix \"-\"\n    }\n}",
 			func(k int) string { return strings.Repeat("-", k) + "a" }, [3]uint64{7, 7, 7}, [3]uint64{7, 7, 7}},
 		{"infix", "rule main = expr $$\nrule expr = #operators {\n    operand \"a\"\n    level {\n        infix left \"+\"\n    }\n}",

@@ -5,6 +5,8 @@ import (
 	"testing"
 )
 
+// TestModuleDisassembly checks the disassembly of a module as the compiler makes it: the engine makes
+// the term code of its terms, so the term is empty.
 func TestModuleDisassembly(t *testing.T) {
 	t.Parallel()
 	prog := mustCompile(t, `type P = { K node[string]; N int }
@@ -36,15 +38,9 @@ key:
     16  ENDLABEL   
     17  ATOMIC     build=1
     18  RETURN     
-exprs:
+terms:
 main.action:
-     0  ECAP       0
-     1  ECAP       1
-     2  ECALL      len argc=1
-     3  EINT       1
-     4  EBIN       "+"
-     5  ENEW       P fields=[K N]
-     6  ERET       
+  term 0 regs=[0 0 0 0]
 `
 	if got != want {
 		t.Errorf("got\n%s", got)

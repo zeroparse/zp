@@ -7,20 +7,23 @@ import (
 // Module is a grammar compiled to bytecode. It is the only thing the VM runs.
 // The instruction set and its semantics are specified in spec/bytecode/README.md.
 type Module struct {
-	Strings    []string   // string table
-	Classes    []Class    // character class table
-	Types      []TypeInfo // type table (struct fields and named node types)
-	FieldLists [][]int    // field name lists for new (string table indices)
-	Scopes     [][]int    // scopes of repetition elements (lists of capture names)
-	Vars       []VarInfo  // variable table
-	Rules      []RuleInfo // rule table
+	Strings []string   // string table
+	Classes []Class    // character class table
+	Types   []TypeInfo // type table (struct fields and named node types)
+	Scopes  [][]int    // scopes of repetition elements (lists of capture names)
+	Vars    []VarInfo  // variable table
+	Rules   []RuleInfo // rule table
 	// Starts holds the rule table indices of the start rules, the rules where parsing may begin,
 	// in declaration order, and DefaultStart that of the default one.
 	Starts         []int
 	DefaultStart   int
 	OperatorsRules []OperatorsRuleInfo
 	Code           []Instr // matching code
-	Exprs          []Instr // expression code (actions and predicates)
+	// Ints holds the wide integers that REPEATW, SCANW and SKIPREPEAT refer to: repetition bounds
+	// beyond the range of an operand.
+	Ints []int64
+	// Terms holds the term code of the actions, predicates and bindings.
+	Terms []Term
 	// SourceInfo reports that the values record source information (Options.SourceInfo).
 	SourceInfo bool
 	// DefaultValue reports that value actions were dropped (Options.DefaultValue).
@@ -101,7 +104,7 @@ type RuleInfo struct {
 	Name   int // string table index
 	Entry  int // start of the body code (for a OperatorsRule expression rule, a OPERATORS_RULE instruction followed by RETURN)
 	Scope  []int
-	Action int // start of the action's expression code (-1 if none)
+	Action int // term of the action (index of Terms, -1 if none)
 	// NodeType is the named node type the rule's value is converted to (string table index, -1 if
 	// none).
 	NodeType int
@@ -148,7 +151,7 @@ type OperatorsRuleInfo struct {
 type LineInfo struct {
 	Entry  int
 	Scope  []int
-	Action int // start of the expression code (-1 if none)
+	Action int // term of the action (index of Terms, -1 if none)
 	IsSeq  bool
 }
 
@@ -179,11 +182,6 @@ const (
 type Instr struct {
 	Op      Op
 	A, B, C int32
-}
-
-// Integer decodes the signed integer held by an EINT instruction.
-func (in Instr) Integer() int64 {
-	return int64(in.A) + int64(in.B)<<32
 }
 
 // Op is an opcode.
@@ -251,9 +249,9 @@ const (
 	OpCall
 	// OPERATORS_RULE p: parse the expression of OperatorsRule table p and push the value (used in rule bodies).
 	OpOperatorsRule
-	// PRED e: evaluate expression code e and fail if it is false or an error.
+	// PRED t: evaluate term t and fail if it is false or an error.
 	OpPred
-	// BIND name, e: define the variable name with the value of expression code e.
+	// BIND name, e: define the variable name with the value of term e.
 	OpBind
 	// LABEL m, d: start @error (d=0) or @diagnostic (d=1).
 	OpLabel
@@ -279,9 +277,9 @@ const (
 	// class's expectation and go to l (the next alternative of a choice, which this alternative
 	// could not match). Otherwise continue.
 	OpGuard
-	// REPEATW min, max, sc: REPEAT with bounds stored in EINT instructions of Exprs.
+	// REPEATW min, max, sc: REPEAT with bounds stored in Ints.
 	OpRepeatWide
-	// SCANW c, min, max: SCAN with bounds stored in EINT instructions of Exprs.
+	// SCANW c, min, max: SCAN with bounds stored in Ints.
 	OpScanWide
 	// SPREAD n, t: pop the value a splice rule returned and push its n elements: the children of the
 	// tuple node it returned if t is 1, else its one element (n is 1) or none (n is 0).
@@ -294,95 +292,13 @@ const (
 	// (from 1) without an element scope, which ITER, NEXT and ENDREPEAT then run as for REPEAT. Its
 	// walks record the rest of them from each position, and once the repetition has matched min
 	// elements, ITER reuses the record of the current position and goes to its l. If w is 1, min
-	// is stored in the EINT instruction A of Exprs.
+	// is stored in Ints at A.
 	OpSkipRepeat
 	// SCANSITE c, min, s: SCAN with an unbounded maximum for the scan site s (from 1) of a pure
 	// rule. After its first characters it takes the rest of the walk from the record of the walk's
 	// start if there is one, and records the walk if not.
 	OpScanSite
 )
-
-// Expression instructions
-const (
-	// EINT v: push the integer v.
-	EInt Op = iota + 100
-	// ESTR s: push the string s.
-	EStr
-	// EBOOL v: push a boolean.
-	EBool
-	// ENIL: push nil.
-	ENil
-	// ECAP s: push the value of capture slot s.
-	ECap
-	// EITEM n: push $n.
-	EItem
-	// ELOCAL i: push the i-th local (lambda argument, $lhs, $rhs, $op).
-	ELocal
-	// EVAR name: push the value of a variable.
-	EVar
-	// EMEMBER name: pop a value and push its field.
-	EMember
-	// ENEW t, f: build a struct of type t from as many values as there are names in field name list
-	// f.
-	ENew
-	// EBIN op: binary operation (op is a string table index).
-	EBin
-	// EUNARY op: unary operation.
-	EUnary
-	// EAND l / EOR l: short-circuit evaluation. Check the boolean; if the result is determined, leave
-	// the value and go to l.
-	EAnd
-	EOr
-	// EBOOLCHK op: check that the top value is a boolean.
-	EBoolChk
-	// EFUNC entry, n: push a lambda with n parameters.
-	EFunc
-	// ECALL f, n: call built-in function f with n arguments.
-	ECall
-	// ERET: return the expression's value.
-	ERet
-	// ETEXTCHK: check that text(x) of the top value x is defined (instruction set 2).
-	ETextChk
-	// ETEXTEQ neg: pop two values and push whether their texts are equal (unequal if neg)
-	// (instruction set 2).
-	ETextEq
-	// ELISTBEGIN: start gathering list elements (instruction set 2).
-	EListBegin
-	// ELISTPUSH n: pop n values and add them as elements, like list (instruction set 2).
-	EListPush
-	// EMAPPUSH: pop a list and a function and add the results of the function, like map
-	// (instruction set 2).
-	EMapPush
-	// ELISTEND: push a list of the elements gathered since the matching ELISTBEGIN
-	// (instruction set 2).
-	EListEnd
-	// eRetired124 was ETERMINAL, which built a terminal of a declared type (ISA 5 to 13).
-	eRetired124
-	// eRetired125 was ECHECK, which checked a constructed field value against its declared type
-	// (ISA 9 to 23).
-	eRetired125
-	// ECAST t: fail unless the top value fits type t, the type of a cast x.(T); the value stays
-	// (ISA 12).
-	ECast
-	// ENODE t: pop a node and push it converted to the named node type t (B is 0).
-	ENode
-	// ETUPLE n: pop n values and push a tuple value of them, in order.
-	ETuple
-)
-
-// Built-in function indices
-const (
-	BuiltinLen = iota
-	BuiltinText
-	BuiltinFoldl
-	BuiltinFoldr
-	BuiltinMap
-	BuiltinList
-	BuiltinConcat
-	BuiltinFilter
-)
-
-var BuiltinNames = []string{"len", "text", "foldl", "foldr", "map", "list", "concat", "filter"}
 
 var opNames = map[Op]string{
 	OpStr: "STR", OpClass: "CLASS", OpAny: "ANY", OpTop: "TOP", OpFail: "FAIL", OpAssert: "ASSERT",
@@ -393,12 +309,6 @@ var opNames = map[Op]string{
 	OpEndLabel: "ENDLABEL", OpRecover: "RECOVER", OpEndRecover: "ENDRECOVER", OpEndSkip: "ENDSKIP",
 	OpReturn: "RETURN", OpEnd: "END", OpScan: "SCAN", OpGuard: "GUARD",
 	OpRepeatWide: "REPEATW", OpScanWide: "SCANW", OpStrFold: "STRF", OpSkipRepeat: "SKIPREPEAT", OpScanSite: "SCANSITE",
-	EInt: "EINT", EStr: "ESTR", EBool: "EBOOL", ENil: "ENIL", ECap: "ECAP", EItem: "EITEM",
-	ELocal: "ELOCAL", EVar: "EVAR", EMember: "EMEMBER", ENew: "ENEW", EBin: "EBIN", EUnary: "EUNARY",
-	EAnd: "EAND", EOr: "EOR", EBoolChk: "EBOOLCHK", EFunc: "EFUNC", ECall: "ECALL", ERet: "ERET",
-	ETextChk: "ETEXTCHK", ETextEq: "ETEXTEQ", EListBegin: "ELISTBEGIN", EListPush: "ELISTPUSH",
-	EMapPush: "EMAPPUSH", EListEnd: "ELISTEND",
-	ECast: "ECAST", ENode: "ENODE", ETuple: "ETUPLE",
 }
 
 func (o Op) String() string {
@@ -411,4 +321,4 @@ func (o Op) String() string {
 // ISAVersion is the instruction set of the value model, the only one supported. Earlier
 // versions built the previous syntax trees, so their files are not loaded and need to be
 // compiled again.
-const ISAVersion = 33
+const ISAVersion = 34

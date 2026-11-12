@@ -7,7 +7,7 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/internal/bytecode"
-	"zeroparse.dev/zp/internal/compile"
+	"zeroparse.dev/zp/internal/engine/vm"
 	"zeroparse.dev/zp/internal/gentest"
 	"zeroparse.dev/zp/internal/value"
 )
@@ -86,15 +86,21 @@ func TestFilterCompiledInstructionSet(t *testing.T) {
 	if ordinary.Module().InstructionSetVersion() != bytecode.ISAVersion {
 		t.Fatal("filter support changed the ordinary instruction set")
 	}
-	module := mustCompile(t, gentest.FilterIdentitySource).Module()
-	for i := range module.Exprs {
-		if module.Exprs[i].Op == bytecode.ECall && module.Exprs[i].A == bytecode.BuiltinFilter {
-			module.Exprs[i].B = 0
-			if err := compile.ValidateModule(module); err == nil || !strings.Contains(err.Error(), "filter requires two arguments") {
-				t.Fatalf("invalid filter call arity: %v", err)
+	// The term code of the filter is checked when a file is loaded: an operand out of range for its
+	// kind is rejected.
+	m := *mustCompile(t, gentest.FilterIdentitySource).Module()
+	m.Terms = cloneTerms(m.Terms)
+	if _, err := vm.LoadTerms(&m); err != nil {
+		t.Fatal(err)
+	}
+	for i := range m.Terms {
+		if code := m.Terms[i].Code; len(code) > 0 {
+			code[0].Dst = int32(1 << 20)
+			if _, err := vm.LoadTerms(&m); err == nil || !strings.Contains(err.Error(), "invalid operand") {
+				t.Fatalf("invalid filter term operand: %v", err)
 			}
 			return
 		}
 	}
-	t.Fatal("fixture emitted no filter call")
+	t.Fatal("fixture emitted no term code")
 }

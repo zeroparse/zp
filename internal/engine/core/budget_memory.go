@@ -115,7 +115,7 @@ func (p *Parser) heldBytes() uint64 {
 	if p.Reader != nil {
 		n += uint64(p.Reader.Size())
 	}
-	n += uint64(cap(p.KidStack))*ptrBytes + uint64(cap(p.Estack))*anyBytes + p.terms.bytes()
+	n += uint64(cap(p.KidStack))*ptrBytes + p.terms.bytes()
 	n += uint64(cap(p.Trail))*uint64(unsafe.Sizeof(Undo{})) + uint64(cap(p.Recovered))*recEntryBytes
 	n += uint64(cap(p.Created))*ptrBytes + uint64(cap(p.Exp))*expIDBytes
 	n += uint64(cap(p.Gamma))*uint64(unsafe.Sizeof(growRec{})) + uint64(cap(p.seedReadLog))*intBytes

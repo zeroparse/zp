@@ -10,6 +10,7 @@ import (
 	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/bytecode"
 	"zeroparse.dev/zp/internal/compile"
+	"zeroparse.dev/zp/internal/engine/vm"
 )
 
 // The compiled grammar format (.zpc), specified in the File format section of
@@ -214,6 +215,9 @@ func LoadProgram(data []byte) (*Program, string, error) {
 		return nil, "", r.Err
 	}
 	if err := compile.ValidateModule(m); err != nil {
+		return nil, "", fmt.Errorf("invalid compiled grammar: %w", err)
+	}
+	if _, err := vm.LoadTerms(m); err != nil {
 		return nil, "", fmt.Errorf("invalid compiled grammar: %w", err)
 	}
 	prog := moduleProgram(m)

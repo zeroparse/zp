@@ -24,18 +24,18 @@ func (m *Module) Disassemble() string {
 	}
 	// Label the start positions of rules and Operators Rule sections.
 	labels := map[int][]string{}
-	elabels := map[int][]string{}
+	tlabels := map[int][]string{}
 	for _, r := range m.Rules {
 		name := m.Strings[r.Name]
 		labels[r.Entry] = append(labels[r.Entry], name+":")
 		if r.Action >= 0 {
-			elabels[r.Action] = append(elabels[r.Action], name+".action:")
+			tlabels[r.Action] = append(tlabels[r.Action], name+".action:")
 		}
 	}
 	line := func(l LineInfo, name string) {
 		labels[l.Entry] = append(labels[l.Entry], name+":")
 		if l.Action >= 0 {
-			elabels[l.Action] = append(elabels[l.Action], name+".action:")
+			tlabels[l.Action] = append(tlabels[l.Action], name+".action:")
 		}
 	}
 	for i, p := range m.OperatorsRules {
@@ -95,12 +95,16 @@ func (m *Module) Disassemble() string {
 		}
 		fmt.Fprintf(&b, "  %4d  %-10s %s\n", i, in.Op, m.operands(in, str, names))
 	}
-	b.WriteString("exprs:\n")
-	for i, in := range m.Exprs {
-		for _, l := range elabels[i] {
+	if len(m.Ints) > 0 {
+		fmt.Fprintf(&b, "ints: %v\n", m.Ints)
+	}
+	b.WriteString("terms:\n")
+	for i, t := range m.Terms {
+		for _, l := range tlabels[i] {
 			fmt.Fprintf(&b, "%s\n", l)
 		}
-		fmt.Fprintf(&b, "  %4d  %-10s %s\n", i, in.Op, m.operands(in, str, names))
+		fmt.Fprintf(&b, "  term %d regs=%v\n", i, t.Regs)
+		m.disassembleTerm(&b, &t, str)
 	}
 	return b.String()
 }
@@ -124,7 +128,7 @@ func (m *Module) operands(in Instr, str func(int) string, names func([]int) stri
 			return fmt.Sprintf("-> %d run=%d build=%d%s", a, c, bb&1, envFreeNote(bb))
 		}
 		return fmt.Sprintf("-> %d", a)
-	case OpJump, OpChoice, OpCommit, OpRecover, OpEndRecover, EAnd, EOr:
+	case OpJump, OpChoice, OpCommit, OpRecover, OpEndRecover:
 		return fmt.Sprintf("-> %d", a)
 	case OpSeq:
 		return fmt.Sprintf("n=%d", a)
@@ -139,7 +143,7 @@ func (m *Module) operands(in Instr, str func(int) string, names func([]int) stri
 		return fmt.Sprintf("%s depth=%d -> %d", m.Strings[m.Classes[a].Desc], bb, c) // the expectation as written
 	case OpScan, OpScanWide:
 		if in.Op == OpScanWide {
-			bb, c = int(m.Exprs[bb].Integer()), int(m.Exprs[c].Integer())
+			bb, c = int(m.Ints[bb]), int(m.Ints[c])
 		}
 		cl := "any"
 		if a >= 0 {
@@ -154,7 +158,7 @@ func (m *Module) operands(in Instr, str func(int) string, names func([]int) stri
 		return fmt.Sprintf("%s min=%d site=%d", cl, bb, c)
 	case OpRepeat, OpRepeatWide:
 		if in.Op == OpRepeatWide {
-			a, bb = int(m.Exprs[a].Integer()), int(m.Exprs[bb].Integer())
+			a, bb = int(m.Ints[a]), int(m.Ints[bb])
 		}
 		sc := "-"
 		if c >= 0 {
@@ -163,7 +167,7 @@ func (m *Module) operands(in Instr, str func(int) string, names func([]int) stri
 		return fmt.Sprintf("min=%d max=%d scope=%s", a, bb, sc)
 	case OpSkipRepeat:
 		if c&1 == 1 {
-			a = int(m.Exprs[a].Integer())
+			a = int(m.Ints[a])
 		}
 		return fmt.Sprintf("min=%d site=%d%s", a, bb, envFreeNote(c))
 	case OpNext:
@@ -189,42 +193,14 @@ func (m *Module) operands(in Instr, str func(int) string, names func([]int) stri
 	case OpOperatorsRule:
 		return fmt.Sprintf("operatorsRule%d", a)
 	case OpPred:
-		return fmt.Sprintf("expr=%d", a)
+		return fmt.Sprintf("term=%d", a)
 	case OpBind:
-		return fmt.Sprintf("%s expr=%d", varName(m, a), bb)
+		return fmt.Sprintf("%s term=%d", varName(m, a), bb)
 	case OpLabel:
 		if bb == 1 {
 			return str(a) + " mode=diagnostic"
 		}
 		return str(a)
-	case EVar:
-		return varName(m, a)
-	case EStr, EUnary, EBoolChk, EMember, EBin:
-		return str(a)
-	case EInt:
-		return strconv.FormatInt(int64(a)+int64(bb)<<32, 10)
-	case EItem, ELocal, ECap, EListPush, ETuple:
-		return strconv.Itoa(a)
-	case EBool:
-		return strconv.FormatBool(a == 1)
-	case ETextEq:
-		if a == 1 {
-			return "!="
-		}
-		return "=="
-	case ENew:
-		return fmt.Sprintf("%s fields=%s", m.Strings[a], names(m.FieldLists[bb]))
-	case ECast:
-		if bb > 0 {
-			return fmt.Sprintf("%s at=%d:%d", strconv.Quote(m.Strings[a]), bb, c)
-		}
-		return strconv.Quote(m.Strings[a])
-	case ENode:
-		return m.Strings[a]
-	case EFunc:
-		return fmt.Sprintf("entry=%d params=%d", a, bb)
-	case ECall:
-		return fmt.Sprintf("%s argc=%d", BuiltinNames[a], bb)
 	}
 	return ""
 }
@@ -244,4 +220,39 @@ func envFreeNote(flags int) string {
 		return " env-free"
 	}
 	return ""
+}
+
+// disassembleTerm renders the pools and the instructions of the term t. The opcodes of term code
+// belong to the engine, so instructions show their numbers.
+func (m *Module) disassembleTerm(b *strings.Builder, t *Term, str func(int) string) {
+	for i, c := range t.Consts {
+		v := "nil"
+		switch c.Kind {
+		case ConstInt:
+			v = strconv.FormatInt(c.Int, 10)
+		case ConstString:
+			v = str(int(c.Int))
+		case ConstBool:
+			v = strconv.FormatBool(c.Int == 1)
+		}
+		fmt.Fprintf(b, "    const %d %s\n", i, v)
+	}
+	for i, n := range t.Names {
+		fmt.Fprintf(b, "    name %d %s\n", i, str(n))
+	}
+	for i, x := range t.Members {
+		fmt.Fprintf(b, "    member %d kind=%d %s %s\n", i, x.Kind, str(x.Name), str(x.Field))
+	}
+	for i, n := range t.NodeTypes {
+		fmt.Fprintf(b, "    node %d %s\n", i, str(n))
+	}
+	for i, x := range t.Casts {
+		fmt.Fprintf(b, "    cast %d %s at=%d:%d\n", i, str(x.Type), x.Line, x.Col)
+	}
+	for i, x := range t.Structs {
+		fmt.Fprintf(b, "    struct %d %s fields=%d\n", i, str(x.Type), x.Fields)
+	}
+	for pc, in := range t.Code {
+		fmt.Fprintf(b, "  %4d  T%-3d %d %d %d %d\n", pc, in.Op, in.Dst, in.A, in.B, in.C)
+	}
 }

@@ -113,9 +113,9 @@ func EngineClosureTerms() (string, error) {
 }
 
 // EngineVMTerms returns the Go file of the term compositions for the bytecode VM, which holds a term
-// as the entry of its expression code.
+// as its index in the module's terms, whose programs (core.TermProgram) it loads with the module.
 func EngineVMTerms() (string, error) {
-	return engineTerms("vm", &execgo.Target{Recv: "vm *Program", Params: "p *core.Parser"}, "int", "", "vm.eval(ctx, t, nil)")
+	return engineTerms("vm", &execgo.Target{Recv: "vm *Program", Params: "p *core.Parser"}, "int", "", "vm.terms[t].Eval(ctx)")
 }
 
 // engineBackendFuncs are the compositions that each backend of the engine prints into its own

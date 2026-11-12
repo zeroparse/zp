@@ -8,14 +8,13 @@ import (
 )
 
 // TestModuleVariableValidation checks that a module whose code names a variable that its table
-// does not declare is rejected, wherever the variable appears: an operand is a slot of the table,
-// and a rule lists names.
+// does not declare is rejected, wherever the variable appears in the match code: an operand is a slot
+// of the table, and a rule lists names. Term code is checked when the engine loads it.
 func TestModuleVariableValidation(t *testing.T) {
 	t.Parallel()
 	fresh := func() *bytecode.Module {
 		m := *mustCompile(t, varModuleSource).BytecodeModule()
 		m.Strings = append([]string(nil), m.Strings...)
-		m.Exprs = append([]bytecode.Instr(nil), m.Exprs...)
 		m.Code = append([]bytecode.Instr(nil), m.Code...)
 		m.Rules = append([]bytecode.RuleInfo(nil), m.Rules...)
 		return &m
@@ -32,15 +31,6 @@ func TestModuleVariableValidation(t *testing.T) {
 		want   string
 		mutate func(m *bytecode.Module) bool
 	}{
-		{"read", "variable 3 out of range", func(m *bytecode.Module) bool {
-			for i := range m.Exprs {
-				if m.Exprs[i].Op == bytecode.EVar {
-					m.Exprs[i].A = int32(len(m.Vars))
-					return true
-				}
-			}
-			return false
-		}},
 		{"binding", "variable 3 out of range", func(m *bytecode.Module) bool {
 			for i := range m.Code {
 				if m.Code[i].Op == bytecode.OpBind {
