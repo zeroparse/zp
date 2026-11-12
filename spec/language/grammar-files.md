@@ -486,8 +486,14 @@ each reason for the class unknown, and, for the class linear given an
 environment bound, each reason for the bound, is an error at its position in the
 grammar, or at its rule when it has none. A cause that two declarations share is
 reported once. The error names the declaration, gives the witness or reason of
-the classification and suggests rewriting the construct, with a link to the
-recipe of linear rewrites in the documentation. The check rests on
+the classification and suggests a rewrite with a link to the recipe of linear
+rewrites in the documentation. Each cause comes from one pattern of that recipe:
+a repetition restarted after backtracking, a lookahead over a scan, a recovery
+skip followed by failure, a left-recursive rule or an Operators Rule that grows
+again, a binding that diverges, or a value that grows from itself. The error
+gives the rewrite of the pattern of its cause and links to the recipe's section
+for it; a reason, and a cause of no pattern in the recipe, gets general advice
+and the link to the recipe. The check rests on
 the classification, which can be pessimistic: a grammar whose parses do cost
 linear time is rejected when the classifier cannot prove it.
 
@@ -505,7 +511,7 @@ input that `"a"*` scanned, the cost from `main` grows as n², and the grammar is
 invalid:
 
 ```text
-scan.zp:6:10: the grammar from start rule main is declared @linear, but the cost can grow as n^2: after the alternative at 5:14 in rule main fails, the later alternative "a" at 5:18 in rule main can start again inside the input that the repetition "a"* at 6:10 in rule A examined; this repeats in the repetition (A / "a")* at 5:13 in rule main; rewrite it so that the cost stays linear (see https://zeroparse.dev/docs/cookbook/linear-rewrites/)
+scan.zp:6:10: the grammar from start rule main is declared @linear, but the cost can grow as n^2: after the alternative at 5:14 in rule main fails, the later alternative "a" at 5:18 in rule main can start again inside the input that the repetition "a"* at 6:10 in rule A examined; this repeats in the repetition (A / "a")* at 5:13 in rule main; scan once: put the scan and what may follow it in one alternative (see https://zeroparse.dev/docs/cookbook/linear-rewrites/#a-repetition-restarted-after-backtracking)
 ```
 
 `@linear` on `A` alone is valid in that grammar: parsing that begins at `A`

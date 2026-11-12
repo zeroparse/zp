@@ -160,12 +160,14 @@ zp lint -g linear.zp
 ```
 
 ```text
-zp: linear.zp:8:10: the grammar from start rule main is declared @linear, but the cost can grow as n^2: after the alternative at 6:14 in rule main fails, the later alternative "a" at 6:18 in rule main can start again inside the input that the repetition "a"* at 8:10 in rule A examined; this repeats in the repetition (A / "a")* at 6:13 in rule main; rewrite it so that the cost stays linear (see https://zeroparse.dev/docs/cookbook/linear-rewrites/)
+zp: linear.zp:8:10: the grammar from start rule main is declared @linear, but the cost can grow as n^2: after the alternative at 6:14 in rule main fails, the later alternative "a" at 6:18 in rule main can start again inside the input that the repetition "a"* at 8:10 in rule A examined; this repeats in the repetition (A / "a")* at 6:13 in rule main; scan once: put the scan and what may follow it in one alternative (see https://zeroparse.dev/docs/cookbook/linear-rewrites/#a-repetition-restarted-after-backtracking)
 ```
 
 Every command that compiles the grammar, `zp parse` and `zp gen` among them, fails the same way, and so do `zp.Compile`
-and the editor. The cookbook recipe that the error links to, Rewrite a Grammar to Linear Cost, has a rewrite for each
-cause; here `A = "a" "c"` makes the grammar valid.
+and the editor. Each error ends with the rewrite for its kind of cause and a link to the section of the cookbook recipe
+[Rewrite a Grammar to Linear Cost](../cookbook/linear-rewrites.md) that shows it; a reason for the class unknown links to
+the recipe as a whole. Here the cause is a repetition restarted after backtracking, and `A = "a" "c"` makes the grammar
+valid.
 
 `@linear` on the line before a rule declares the cost of parsing that begins at that rule, as if it were the start
 rule, together with every rule it calls and the skip expressions of its `#recover`. Declare the rules whose cost you
