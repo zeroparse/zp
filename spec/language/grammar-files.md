@@ -476,9 +476,16 @@ arguments and MUST appear at most once on a declaration.
 
 A declaration covers every rule that parsing from its rule reaches, through rule
 calls, the expressions of [attributes and pragmas](pragmas.md), including the
-skip expressions of [`#recover`](pragmas.md#recover), and Operators Rules. The
-declaration is a check of the grammar and changes neither matching nor values
-nor cost.
+skip expressions of [`#recover`](pragmas.md#recover), and Operators Rules. Once
+a grammar can import rules from another grammar, the rules it imports are
+covered in the same way: a declaration covers every rule that parsing from its
+rule reaches, wherever the rule is defined. The declaration is a check of the
+grammar and changes neither matching nor values nor cost.
+
+The promise is that of the class Linear, so it holds under the conditions of
+[Classification](../runtime/parsing.md#classification): a parse with
+missing-token insertion is outside it, and a grammar declared `@linear` can cost
+more than linear time in such a parse.
 
 The grammar is valid only if the [classification](../runtime/parsing.md#classification)
 from each declared rule is Linear. Otherwise each cause of the classification,
