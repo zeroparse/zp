@@ -16,7 +16,7 @@ import (
 )
 
 // TestStructuralInputFacts requires the untyped module that Run checks before compiling, built
-// from structuralInput, to have the rule facts of the typed module of every corpus grammar and
+// from compile.StructuralInput as structuralErrors builds it, to have the rule facts of the typed module of every corpus grammar and
 // variant the compiler accepts, and no fact error: an error there would add itself to the
 // compiler's errors only when compilation fails, so a false one would go unnoticed on success.
 // Under Recognize the compiler drops the actions of the rules whose values are not needed, so the
@@ -60,7 +60,8 @@ func structuralInputFacts(t *testing.T, path string) int {
 		if err != nil {
 			t.Fatalf("%s: %v", name, err)
 		}
-		in, _ := structuralInput(canon, nil)
+		defs, _ := desugar.UniqueRules(canon.Grammar, nil)
+		in := compile.StructuralInput(canon.Grammar, defs, canon.Starts)
 		untyped, err := build.Structural(in, nil)
 		if err != nil {
 			t.Fatalf("%s: %v", name, err)
