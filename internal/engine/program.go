@@ -56,6 +56,9 @@ type closureFamily struct {
 	once  sync.Once
 	rules []*core.Rule
 	err   error
+	// done reports that the build returned; a build that panicked leaves it false, and the
+	// family then reports an error instead of running no rules.
+	done bool
 }
 
 // newProgram returns the program that runs the static program sp; buildFamily builds the rules of

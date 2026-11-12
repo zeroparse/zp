@@ -155,7 +155,11 @@ func (prog *Program) familyRules(f closure.Family) ([]*core.Rule, error) {
 			return
 		}
 		fam.rules, fam.err = prog.buildFamily(f)
+		fam.done = true
 	})
+	if !fam.done {
+		return nil, fmt.Errorf("internal error: the closure family %d was not built", f)
+	}
 	return fam.rules, fam.err
 }
 

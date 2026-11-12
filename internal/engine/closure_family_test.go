@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"strings"
+	"sync"
 	"testing"
 
 	"zeroparse.dev/zp/internal/cancel"
@@ -246,5 +247,56 @@ func TestClosureFamiliesLeaveModuleUnchanged(t *testing.T) {
 				}
 			}
 		})
+	}
+}
+
+// TestClosureFamiliesBuildConcurrently builds both families of each corpus grammar from one module
+// at once, as two parses of different families may. Build only reads the module; under the race
+// detector a write to it, also to a part that Print does not show, fails this test.
+func TestClosureFamiliesBuildConcurrently(t *testing.T) {
+	t.Parallel()
+	for _, c := range gentest.GenCorpus(t) {
+		t.Run(c.Name, func(t *testing.T) {
+			sp := mustCompile(t, c.Src).Static()
+			m, err := closure.Core(sp, nil)
+			if err != nil {
+				t.Fatal(err)
+			}
+			var wg sync.WaitGroup
+			errs := make([]error, 4)
+			for i := range errs {
+				wg.Go(func() {
+					_, errs[i] = closure.Build(sp, m, i%2 == 0, closure.Family(i/2))
+				})
+			}
+			wg.Wait()
+			for i, err := range errs {
+				if err != nil {
+					t.Errorf("build %d: %v", i, err)
+				}
+			}
+		})
+	}
+}
+
+// TestClosureFamilyBuildPanicIsAnError checks that a family whose build panicked reports an error
+// on later use instead of running no rules.
+func TestClosureFamilyBuildPanicIsAnError(t *testing.T) {
+	t.Parallel()
+	prog := mustCompile(t, `rule main = "a" $$`)
+	prog.buildFamily = func(closure.Family) ([]*core.Rule, error) { panic("build failed") }
+	func() {
+		defer func() {
+			if recover() == nil {
+				t.Fatal("the first use did not panic")
+			}
+		}()
+		_, _ = prog.familyRules(closure.Inlined)
+	}()
+	if _, err := prog.familyRules(closure.Inlined); err == nil || !strings.Contains(err.Error(), "was not built") {
+		t.Fatalf("err = %v, want the family not built", err)
+	}
+	if r, err := prog.rule(Closure, "main", closure.Inlined); err == nil {
+		t.Fatalf("the start rule %v of a family that was not built", r)
 	}
 }

@@ -252,7 +252,9 @@ func TestBudgetDocumentCallerPanicAtBoundaries(t *testing.T) {
 	budgetDocumentVariants(t, func(t *testing.T, base ParseOptions) {
 		last := 3
 		if prog.SelectBackend(base.Backend) == Closure {
-			last += 2 // Checks around lazy closure preparation precede execution.
+			// The checks around the lazy controlled program and the one after the build of the
+			// call-preserving closure family precede execution.
+			last += 3
 		}
 		for at := 0; at <= last; at++ {
 			t.Run(fmt.Sprint(at), func(t *testing.T) {

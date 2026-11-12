@@ -80,8 +80,8 @@ func (prog *Program) PrepareRun(b Backend, c *core.BudgetControl) (document.Runn
 	}
 	if active.backend(b) == Closure && active.Grammar != nil {
 		// A Document parse runs the call-preserving family (its parser sets NoPlain): build it
-		// here, between checks of the control, rather than inside the parse.
-		c.Check()
+		// here, after the check that ends prepareControlledProgram and before one more, rather than
+		// inside the parse.
 		if _, err := active.familyRules(closure.CallPreserving); err != nil {
 			return nil, err
 		}
