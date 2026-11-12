@@ -36,6 +36,10 @@ type builder struct {
 	// that the view builds adds to.
 	exps    map[string]core.ExpID
 	classes map[string]*core.Class
+	// inlined holds the view of the body of each rule whose calls N13 replaces, or nil for a rule
+	// whose calls stay; inlining holds the rules whose bodies are being rewritten for it.
+	inlined  map[int]core.Node
+	inlining map[int]bool
 }
 
 // on reports whether the rule l applies.
@@ -159,13 +163,28 @@ func (b *builder) rewrite(n core.Node) core.Node {
 			return b.built(&c, x)
 		}
 	case *core.Label:
-		if body := b.node(x.Body); body != x.Body {
+		body := b.node(x.Body)
+		if b.opts.Labels && b.on(N7) {
+			// A label changes the messages of syntax errors only.
+			b.count(N7)
+			return body
+		}
+		if body != x.Body {
 			c := *x
 			c.Body = body
 			return b.built(&c, x)
 		}
 	case *core.Recover:
 		return b.recover(x)
+	case *core.Call:
+		if b.opts.Inline && b.on(N13) && b.depth == 0 {
+			// Inside a value that a predicate reads the call stays: the body of a rule with several
+			// items would add them to the sequence around the call instead of being one element.
+			if body := b.inline(x); body != nil {
+				b.count(N13)
+				return body
+			}
+		}
 	case *core.Stream:
 		// The rules keep a repetition a repetition, so the stream keeps its repetition.
 		if r, ok := b.node(x.Repeat).(*core.Repeat); ok && r != x.Repeat {
@@ -174,7 +193,7 @@ func (b *builder) rewrite(n core.Node) core.Node {
 			return b.built(&c, x)
 		}
 	}
-	// Terminals, calls, predicates, bindings, #missing and Operators Rules are kept as they are:
+	// Terminals, the other calls, predicates, bindings, #missing and Operators Rules are kept as they are:
 	// the classifier reads their structure as the runtime runs it.
 	return n
 }
@@ -486,6 +505,51 @@ func (b *builder) lookahead(l *core.Look) core.Node {
 	c := *l
 	c.Body = body
 	return b.built(&c, l)
+}
+
+// inline returns the view of the body of the rule that c calls when P1 lets the call be replaced
+// by it, or nil: the rule is not memoized, so the call costs what its body costs, it is on no
+// left-recursion cycle, it is not a start rule, and its body has no action, binding, capture or
+// cut that the call would delimit, and does not call the rule itself.
+func (b *builder) inline(c *core.Call) core.Node {
+	id := c.Rule
+	r, f := b.src.Module.Rules[id], &b.src.Facts.Rules[id]
+	// Every parse memoizes a rule that is neither transient nor on a path to a #missing insertion.
+	memo := !f.Transient && !f.Missing
+	if c.Level != 0 || memo || f.Cyclic() || b.inlining[id] || r.Finish.Kind == core.FinishAction ||
+		slices.Contains(b.src.Module.Starts, id) {
+		return nil
+	}
+	if body, ok := b.inlined[id]; ok {
+		return body
+	}
+	ok := !facts.LooseCut(r.Body)
+	core.Walk(r.Body, func(n core.Node) {
+		switch n := n.(type) {
+		case *core.Capture, *core.BindNode, *core.OperatorsRule, *core.Stream, *core.Recover, *core.Missing, *core.Nest:
+			ok = false
+		case *core.Call:
+			ok = ok && n.Rule != id
+		}
+	})
+	if b.inlined == nil {
+		b.inlined, b.inlining = map[int]core.Node{}, map[int]bool{}
+	}
+	if !ok {
+		b.inlined[id] = nil
+		return nil
+	}
+	b.inlining[id] = true
+	depth := b.depth
+	b.depth = 0
+	if b.values.valued[id] {
+		b.depth = 1
+	}
+	body := b.fix(r.Body)
+	b.depth = depth
+	b.inlining[id] = false
+	b.inlined[id] = body
+	return body
 }
 
 // idempotent reports the conditions on X of R3 under which a repetition of X evaluated again

@@ -376,6 +376,13 @@ var normalViewCases = []struct {
 	{name: "P1 inlines a rule that is not memoized", rule: ruleN13, body: `a "x"` + "\nrule a = \"y\" \"z\"", want: `"y" "z" "x"`, opts: viewOptions{inline: true}},
 	{name: "N13 is off for the classifier", body: `a "x"` + "\nrule a = \"y\" \"z\"", want: `a "x"`},
 	{name: "P1 keeps a rule with a capture", body: `a "x"` + "\nrule a = c:\"y\" \"z\"", want: `a "x"`, opts: viewOptions{inline: true}},
+	{name: "P1 keeps a rule with a loose cut", body: `a "x"` + "\nrule a = \"y\" #cut \"z\"", want: `a "x"`, opts: viewOptions{inline: true}},
+	{name: "P1 keeps a start rule", body: `s "x"` + "\n@start\nrule s = \"y\" \"z\"", want: `s "x"`, opts: viewOptions{inline: true}},
+	{name: "P1 keeps a rule that calls itself", body: `a` + "\nrule a = \"x\" a m / \"y\"\nrule m = \"m\" #missing", want: `a`, opts: viewOptions{inline: true}},
+	{name: "P1 keeps a rule of a left-recursion cycle", body: `a` + "\nrule a = b \"x\" / \"y\"\nrule b = a \"z\"", want: `a`, opts: viewOptions{inline: true}},
+	{name: "P1 inlines a call whose value no predicate reads of a rule that one reads elsewhere", rule: ruleN13,
+		body: `y:a {len($y) == 2} a` + "\nrule a = \"r\"* \"r\"*",
+		want: `y:a {len($y) == 2} "r"*`, opts: viewOptions{inline: true}},
 	{name: "P1 is off for the classifier", body: `a "x"` + "\nrule a = \"y\" \"z\"", want: `a "x"`},
 }
 
