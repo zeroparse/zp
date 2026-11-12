@@ -96,3 +96,20 @@ func TestMergeErrors(t *testing.T) {
 }
 
 func grammarPos(line int) grammar.Pos { return grammar.Pos{Line: line, Col: 1} }
+
+// TestRunRejectsStreamOnCycleInAnyRule requires Run to reject a #stream on a left-recursion cycle
+// in a rule that is not a start rule, with the message and position given here rather than the
+// compiler's: the module makes a Stream only in a start rule, so the facts alone do not see this
+// #stream, and the error must not be lost when the compiler stops reporting the errors that
+// depend on the facts.
+func TestRunRejectsStreamOnCycleInAnyRule(t *testing.T) {
+	t.Parallel()
+	g, err := compiletest.Parse("@start\nrule main = r $$\nrule r = (r / \"y\")+ #stream")
+	if err != nil {
+		t.Fatal(err)
+	}
+	const want = "3:21: #stream cannot be used in rule r, which is on a left-recursion cycle; growing the recursion would re-evaluate elements already delivered"
+	if _, err := Run(g, compile.Options{}, nil); err == nil || err.Error() != want {
+		t.Fatalf("Run error %v, want %s", err, want)
+	}
+}
