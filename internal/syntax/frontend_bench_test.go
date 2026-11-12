@@ -1,6 +1,7 @@
 package syntax
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -69,12 +70,57 @@ var frontends = []struct {
 	{"manual", func(src string) (any, error) { return Parse(src) }},
 	{"manual-aa", func(src string) (any, error) { return Parse(src) }},
 	{"generated", parseGenerated},
+	{"generated-exp", func(src string) (any, error) { return parseGeneratedWith(src, genparser.WithExpectations()) }},
+	{"manual-partial", parsePartialManual},
+	{"generated-partial", func(src string) (any, error) { return parsePartialGenerated(src) }},
+	{"generated-partial-exp", func(src string) (any, error) { return parsePartialGenerated(src, genparser.WithExpectations()) }},
+}
+
+// parsePartialManual is ParsePartial, with its errors as the error.
+func parsePartialManual(src string) (any, error) {
+	g, errs := ParsePartial(src)
+	if len(errs) > 0 {
+		return g, errs
+	}
+	return g, nil
+}
+
+// parsePartialGenerated parses src as ParsePartial does with the generated parser: the syntax
+// errors of the parse, then the declarations that are complete and the errors of the checks.
+func parsePartialGenerated(src string, opts ...genparser.ParseOption) (any, error) {
+	text, _ := WithoutInvalidCharacters(src)
+	f, err := genparser.ParseAST(text, opts...)
+	var errs ErrorList
+	if err != nil {
+		var list genparser.SyntaxErrors
+		var one *genparser.SyntaxError
+		var out []SourceError
+		switch {
+		case errors.As(err, &list):
+			for _, e := range list {
+				out = append(out, SourceError{Offset: e.Pos, Msg: e.Message()})
+			}
+		case errors.As(err, &one):
+			out = append(out, SourceError{Offset: one.Pos, Msg: one.Message()})
+		default:
+			return nil, err
+		}
+		errs = SourceErrors(src, out)
+	}
+	g, checks := FromPartialSourceTree(src, f)
+	errs = append(errs, checks...)
+	if len(errs) > 0 {
+		return g, errs
+	}
+	return g, nil
 }
 
 // parseGenerated parses src by the generated parser and its adapter.
-func parseGenerated(src string) (any, error) {
+func parseGenerated(src string) (any, error) { return parseGeneratedWith(src) }
+
+func parseGeneratedWith(src string, opts ...genparser.ParseOption) (any, error) {
 	text, invalid := WithoutInvalidCharacters(src)
-	f, err := genparser.ParseAST(text)
+	f, err := genparser.ParseAST(text, opts...)
 	if err != nil {
 		return nil, err
 	}
