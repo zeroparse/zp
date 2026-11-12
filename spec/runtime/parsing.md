@@ -1820,7 +1820,18 @@ necessary.
    follows the left calls of S in the body of R, followed by what follows R,
    and what follows the reads of the growing results of the cycle outside the
    body of R can begin with the same character. Otherwise R grows past the
-   result of S only where the growth of S stops.
+   result of S only where the growth of S stops. In a cycle with more than one
+   leader, moreover, no `#cut` in a body of a rule of the cycle can be passed
+   after a left call in the alternative, iteration or option that it commits,
+   and no lookahead in such a body can make a left call. A leader grows again
+   in each step of another leader at its position, and the first step of that
+   growth reads its own failed seed: a cut passed after a left call, or a
+   lookahead that reads the growing result, can make a later step take an
+   alternative that the first step did not reach. In
+   `S = S "w" / R "z"` with `R = (R #cut "b" / S "y" / "c") / S "x"`, the
+   cut keeps a later step of `R` from ending with `"c"`, so that it reaches
+   `S "x"`, and on `cb...bz xz...xz` each step of `S` grows `R` over the `b`
+   characters again before `R` reads the growing result of `S`.
 
 ### Cost View
 
