@@ -48,13 +48,17 @@ func CheckTypesControlled(prog *Checker, errs *diag.ErrorList, control *cancel.C
 	}
 
 	// Check the values.
+	// Every compilation builds Core IR, which reads the types of the program's parts, so the
+	// inference records them as it checks.
 	nodeMembers := map[*grammar.Member]bool{}
-	values, valueErrs := valueTypesChecked(prog, control, nodeMembers, nil)
+	rec := newValueRecord()
+	values, valueErrs := valueTypesChecked(prog, control, nodeMembers, rec)
 	*errs = append(*errs, valueErrs...)
 
 	// Keep the types for code generation (typedGo).
-	info := &TypeInfo{Fields: map[string][]typedField{}, Aliases: map[string]Ty{}, NodeMembers: nodeMembers, Values: values, valueErrs: valueErrs}
+	info := &TypeInfo{Fields: map[string][]typedField{}, Aliases: map[string]Ty{}, NodeMembers: nodeMembers, Values: values, valueErrs: valueErrs, rec: rec}
 	info.valuesOnce.Do(func() {})
+	info.recOnce.Do(func() {})
 	info.shown = shownRuleTypes(prog, rules, values, control)
 	k.report = false
 	for _, td := range control.Types(prog.Grammar()) {
@@ -84,15 +88,16 @@ type TypeInfo struct {
 	// NodeMembers reports, for each member access of an action, whether it reads only node
 	// members (.Start, .End, .Value) and never a struct field.
 	NodeMembers map[*grammar.Member]bool
-	// rec holds the types of the terms, scopes and rules of the checked program, made on first
-	// use by Program.ValueRecord.
+	// rec holds the types of the terms, scopes and rules of the checked program, recorded by the
+	// inference of the type check (or, for type information made without it, on first use by
+	// ValueRecord).
 	rec     *ValueRecord
 	recOnce sync.Once
 }
 
 // ValueRecord returns the types the value inference gives the parts of the type-checked program
-// (valueRecord), or nil if its types were not checked. Only code generation reads them, so they
-// are recorded by a second run of the inference on first use rather than on every Compile.
+// (valueRecord), or nil if its types were not checked. The type check records them; type
+// information made without it records them by a run of the inference on first use.
 func (p *Checker) ValueRecord() *ValueRecord {
 	if p.Typed == nil {
 		return nil
