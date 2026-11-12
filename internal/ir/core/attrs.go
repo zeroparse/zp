@@ -11,13 +11,18 @@ import "unicode/utf8"
 // counting one level for each call of a recursive rule on the way (a Nest is of a rule that is not
 // recursive).
 func Analyze(m *Module) {
-	a := &analyzer{m: m, null: make([]bool, len(m.Rules)), ins: make([]bool, len(m.Rules)), eff: make([]Effect, len(m.Rules))}
+	a := &analyzer{m: m, null: make([]bool, len(m.Rules)), ins: make([]bool, len(m.Rules)), eff: make([]Effect, len(m.Rules)),
+		start: make([]bool, len(m.Rules))}
+	for _, s := range m.Starts {
+		a.start[s] = true
+	}
 	for changed := true; changed; {
 		changed = false
 		for _, r := range m.Rules {
 			if r == nil {
 				continue
 			}
+			a.cur = r.ID
 			n, in, e := a.node(r.Body)
 			if r.Finish.Kind == FinishAction && Raises(r.Finish.Action) {
 				e.Set |= EffRaise
@@ -46,6 +51,9 @@ type analyzer struct {
 	first []*First
 	// state is 0 for a rule whose First is not computed, 1 while it is computed, 2 after.
 	state []uint8
+	// start holds the start rules, and cur is the rule whose body is analyzed.
+	start []bool
+	cur   int
 }
 
 // node sets the Nullable, NullableIns and Eff attributes of n and its subexpressions and returns
@@ -188,7 +196,10 @@ func (a *analyzer) node(n Node) (bool, bool, Effects) {
 		e.Set = EffConsume | EffFail | EffExpect | EffRecover | EffRaise
 	case *Stream:
 		null, ins, e = a.node(n.Repeat)
-		e.Set |= EffCommit
+		// Only the invocation of a start rule that starts a stream parse delivers elements.
+		if a.start[a.cur] {
+			e.Set |= EffCommit
+		}
 	case *Scan:
 		// A scan records the expectation of the character where it stops.
 		null = n.Min == 0

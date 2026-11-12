@@ -58,7 +58,7 @@ the guard's class, so that a guard that already read the character lets the clas
 | `Label` | [`@error` or `@diagnostic`](../language/attributes.md): on failure of its body, the expectations recorded inside are replaced by the message (`@error`) or renamed to it (`@diagnostic`) |
 | `Recover` | [`#recover`](../language/pragmas.md#recover). The skip expression builds no value |
 | `Missing` | [`#missing`](../language/pragmas.md#missing): it matches its literal or, while missing-token insertion is active, inserts it, which can exceed the limit of missing tokens |
-| `Stream` | The [`#stream`](../language/pragmas.md#stream) repetition of a start rule: in a stream parse, the invocation of the rule that starts the parse delivers each element as it completes. Elsewhere it is its repetition |
+| `Stream` | The [`#stream`](../language/pragmas.md#stream) repetition at the top of a rule body, in any rule: in a stream parse, the invocation of the start rule that starts the parse delivers each element as it completes. Elsewhere, and in a rule that is not a start rule, it is its repetition |
 
 ## Optimized Forms
 

@@ -137,8 +137,9 @@ rule pair P = n:[0-9]+ s:[a-z] => P{N: len($n), S: text($s)}
 	}
 }
 
-// TestCoreBuildStreamAndMissing checks that #stream at the top of a start rule builds a Stream,
-// elsewhere a repetition, and that #missing builds a Missing of its literal.
+// TestCoreBuildStreamAndMissing checks that #stream at the top of a rule body builds a Stream in
+// every rule, also one that starts no parse, where it delivers nothing (no Commit effect), and that
+// #missing builds a Missing of its literal.
 func TestCoreBuildStreamAndMissing(t *testing.T) {
 	prog := coreProgram(t, `@start
 rule main = x:item* #stream $$
@@ -162,8 +163,8 @@ rule inner = "b"* #stream
 			t.Errorf("Print does not contain %q:\n%s", want, got)
 		}
 	}
-	if _, ok := m.Rules[2].Body.(*core.Repeat); !ok {
-		t.Errorf("inner: %T, want the repetition of a rule that starts no parse", m.Rules[2].Body)
+	if _, ok := m.Rules[2].Body.(*core.Stream); !ok {
+		t.Errorf("inner: %T, want the Stream of a rule that starts no parse", m.Rules[2].Body)
 	}
 	if m.Rules[0].Body.Attrs().Eff.Set&core.EffCommit == 0 || m.Rules[2].Body.Attrs().Eff.Set&core.EffCommit != 0 {
 		t.Errorf("commit effects: main %v, inner %v", m.Rules[0].Body.Attrs().Eff, m.Rules[2].Body.Attrs().Eff)

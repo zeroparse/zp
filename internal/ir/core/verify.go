@@ -14,8 +14,8 @@ import (
 //   - the call graph (Calls, SCC, Cyclic) is that of the rules' bodies, and a Nest of rule r
 //     occurs only in rules outside r's component of the call graph and only inside Nests of
 //     rules outside it;
-//   - an OperatorsRule is the whole body of its rule; a Stream is at the top of a start rule:
-//     its body, an item of its body sequence or the body of a capture that is one of these, or
+//   - an OperatorsRule is the whole body of its rule; a Stream is at the top of a rule body:
+//     the body, an item of its body sequence or the body of a capture that is one of these, or
 //     the body of labels at one of these places;
 //   - every Capture and SlotRef names a slot of its enclosing scope, by index and name;
 //   - the bodies of negative lookaheads, Text, Drop and the skip expressions of Recover write no
@@ -60,12 +60,10 @@ func Verify(m *Module) error {
 			return fmt.Errorf("rule %s: no value type", r.Name)
 		}
 	}
-	start := map[int]bool{}
 	for _, s := range m.Starts {
 		if err := v.ruleRef(s); err != nil {
 			return fmt.Errorf("start: %w", err)
 		}
-		start[s] = true
 	}
 	if err := v.callGraph(); err != nil {
 		return err
@@ -74,7 +72,7 @@ func Verify(m *Module) error {
 		if r == nil {
 			continue
 		}
-		v.rule, v.start = r, start[r.ID]
+		v.rule = r
 		v.top = topNodes(r.Body)
 		if err := v.scope(r.Scope); err != nil {
 			return fmt.Errorf("rule %s: %w", r.Name, err)
@@ -93,7 +91,6 @@ type verifier struct {
 	m       *Module
 	classes map[*Class]bool
 	rule    *Rule
-	start   bool
 	// top holds the nodes of the rule's body where a Stream may occur.
 	top map[Node]bool
 	// nests holds the components of the rules of the Nests around the node being checked.
@@ -342,8 +339,8 @@ func (v *verifier) node(n Node, scope []Slot) error {
 			return fmt.Errorf("missing without literal")
 		}
 	case *Stream:
-		if !v.start || !v.top[n] {
-			return fmt.Errorf("stream not at the top of a start rule")
+		if !v.top[n] {
+			return fmt.Errorf("stream not at the top of a rule body")
 		}
 	case *Scan:
 		if n.Min < 0 || n.Max >= 0 && n.Max < n.Min {
