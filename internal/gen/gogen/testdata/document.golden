@@ -62,6 +62,7 @@ corpus/0/direct value-free decoding and anchors	88e3cc5aae8b2c0233939936
 corpus/0/direct value-free fallback calls	bc672214340e56a420951281
 corpus/0/direct value-free rollback	c5739d8570dcfcb26937c309
 corpus/0/empty operand and infix	f43897ab3c6fd980c50647b7
+corpus/0/empty operand and right infix	9229784f3b2394ed9bc648f8
 corpus/0/empty prefix and postfix	751fb990e29366c2acfb6206
 corpus/0/error attr	fd567b405d8d8cb52c6d10cb
 corpus/0/error node as a capture value	a922f82cdaaf9e117f25b862
@@ -424,6 +425,7 @@ corpus/1/direct value-free decoding and anchors	88e3cc5aae8b2c0233939936
 corpus/1/direct value-free fallback calls	bc672214340e56a420951281
 corpus/1/direct value-free rollback	c5739d8570dcfcb26937c309
 corpus/1/empty operand and infix	f43897ab3c6fd980c50647b7
+corpus/1/empty operand and right infix	9229784f3b2394ed9bc648f8
 corpus/1/empty prefix and postfix	751fb990e29366c2acfb6206
 corpus/1/error attr	fd567b405d8d8cb52c6d10cb
 corpus/1/error node as a capture value	a922f82cdaaf9e117f25b862
