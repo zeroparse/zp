@@ -62,8 +62,7 @@ variant and through the growths that the later one makes again, apart from the
 activations that a dropped step of a growth or a path that enters the growth
 again repeats, which Lemma 5 counts before it, and with no count of the
 evaluations in a context of growths. It leaves the sum open for the sources of rules that call no rule and are not
-memoized, for the links of a leader with a growth of its cycle open at the
-start of only one of the two evaluations, and, in a Document parse or through results kept in a context of
+memoized, and, in a Document parse or through results kept in a context of
 growths, for the links that the comparison leaves out. Lemmas 2 and 10 and the
 bound of Lemma 4 on the activations that do not succeed leave out the operands
 and the operator parts that an Operators Rule tries outside its activations,
@@ -1393,12 +1392,16 @@ the position. A growth open at the start of both evaluations contains the
 innermost evaluation that contains $\alpha_{i-1}$ and $\alpha_i$, so a growth
 open at the start of only one of them started inside that evaluation, at the
 position of the link (Lemma 2 of the memoization proof): on the way to $e_i$,
-ending before $e'_i$, or on the way to $e'_i$ after $e_i$ ended.
+ending before $e'_i$, or on the way to $e'_i$ after $e_i$ ended. Case 2 rules
+this out: $e_i$ and $e'_i$ are evaluations of a call that $w_i$ and its
+continuation share, and two such calls of a rule of a cycle lie in the same
+growths of the cycle, so the growths of its cycle open at the start of $e_i$
+are those open at the start of $e'_i$. A growth of another cycle open at the
+start of only one of them is at the position of the link, so that evaluation
+is in a context of growths, where case (a) of the covered keys arises.
 
 So by the claim above every linked $\alpha_i$ that is held by a head follows a
-link of one of two kinds: a link of a leader with a growth open at the start of
-one of its evaluations and not at that of the other, or a link with case (a) or
-(b) of the covered keys on its path. A free $\alpha_i$ other than $\alpha_1$
+link with case (a) or (b) of the covered keys on its path. A free $\alpha_i$ other than $\alpha_1$
 is the counterpart of a successful activation of $\mathcal{R}$ at $q$. That
 activation has no reference link when a dropped step or a path that enters a
 growth again of $\mathcal{R}$ leads to it, or when a shared call up to the one
@@ -1454,8 +1457,8 @@ in $\mathcal{R}(e_i)$ excludes case (c) of the covered keys. Another
 activation at any depth of $Z$ does the same. $\square$
 
 So the body evaluations of $R$ that hold the $\alpha_i$ start at most at one
-position for each free $i$, each link of the two kinds that *Links to
-heads* leaves out, each memoized link whose two evaluations read a growth open
+position for each free $i$, each link that *Links to heads* leaves
+out, each memoized link whose two evaluations read a growth open
 at their start, which *Memoized links keep positions* leaves out, and each
 activation that case 5 or a dropped step repeats. For a leaf link $j$ whose shared call is the first, so that
 $w_j$ starts at $p_j$, a head that holds $\alpha_j$ starts at $p_j$ or before
@@ -1468,8 +1471,8 @@ here without its proof, which would rest on the restarts and the claim above.
 Its proof, a bound on these heads and a bound on the activations that one head
 holds are part of step 1 of [Open Steps](#open-steps).
 
-**Activations held by heads.** Let no link of $\sigma$ at $q$ be of the two
-kinds above, and let every free $\alpha_i$ other than $\alpha_1$ be the
+**Activations held by heads.** Let no link of $\sigma$ at $q$ have case (a) or
+(b) of the covered keys on its path, and let every free $\alpha_i$ other than $\alpha_1$ be the
 counterpart of an activation of $\mathcal{R}$ that has a reference link with
 neither case (a) nor (b) on its path, or that a dropped step or a path that
 enters a growth again of $\mathcal{R}$ leads to. Then, by the replayed
@@ -1498,20 +1501,12 @@ unit `-r "x"` fails. Their keys differ in variant, so each evaluation is the
 first of its key, but the second is not the first of the class, and its
 activations are charged to those of the first.
 
-Three parts remain part of step 1 of [Open Steps](#open-steps). When $R$ calls
+Two parts remain part of step 1 of [Open Steps](#open-steps). When $R$ calls
 no rule and is not memoized at its calls, the $\alpha_i$ held by heads are at
-most the free ones, $\alpha_1$ among them, the links of the two kinds and the
-leaf links that lead to one, and a leaf link can leave a
+most the free ones, $\alpha_1$ among them, the links with case (a) or (b) on
+their path and the leaf links that lead to one, and a leaf link can leave a
 memoized evaluation that is not a head through the end of its body and reach
-the call again in the evaluation around it, which can be a head. A link of a
-leader with a growth open at the start of only one of its evaluations compares
-two growths whose steps read different results of another leader of the
-cycle: the unit can reach $e_i$ inside a step of a growth of that leader which
-it starts at the position, from a shorter growing result than the last, and
-the continuation reach $e'_i$ after that growth has ended, where the memo
-answers the call of that leader with the final result, so that the calls
-inside $e'_i$ after it are made at other positions than those inside $e_i$.
-And in a Document parse a link can
+the call again in the evaluation around it, which can be a head. And in a Document parse a link can
 meet an entry of an earlier parse that answers a call in a context of growths,
 or a call whose corresponding call in the later evaluation is in a smaller
 lookahead state, in a context of growths or of the other variant, and a link
@@ -4232,9 +4227,10 @@ condition of the cost view that the [Cost View](cost-view.md) proof leaves open.
    the head, which can be in a context of growths and of either variant, and
    show, by comparing the two evaluations of a memoized link in the reference
    parse, in either lookahead state and either variant, that the link leads to
-   an activation held by an evaluation that is not a head, when every growth
-   open at the start of one evaluation is open at the start of the other and
-   the comparison meets no
+   an activation held by an evaluation that is not a head, which holds for
+   the growths open at the start of the two evaluations since the two calls
+   of a rule of a cycle that a unit and its continuation share lie in the
+   same growths of the cycle, when the comparison meets no
    entry of an earlier Document parse that answers a call in a context of
    growths, or a call whose corresponding call in the later evaluation is in a
    smaller lookahead state, in a context of growths or of the other variant,
@@ -4286,9 +4282,7 @@ condition of the cost view that the [Cost View](cost-view.md) proof leaves open.
    nested evaluations of a leader that it picks end at the position, since a
    leader whose current result ends there can grow beyond it, nor that no
    dropped step of a growth lies on the path between them. Third, the
-   memoized links that the comparison leaves out: a link of a leader with a
-   growth of its cycle open at the start of only one of its two evaluations,
-   which then read different results of another leader of the cycle; in a Document parse, a link
+   memoized links that the comparison leaves out: in a Document parse, a link
    whose comparison meets an entry of an earlier parse that answers a call in
    a context of growths, or a call whose corresponding call in the later
    evaluation is in a smaller lookahead state, in a context of growths or of
