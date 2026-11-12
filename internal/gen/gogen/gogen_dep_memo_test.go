@@ -63,7 +63,8 @@ func testGeneratedLeftRecursionDependencyMemo(t *testing.T) {
 // input of length 10,000; with limit controls, within the default budget, which grows linearly with
 // the input and counts work that evaluations do not show, such as the scan of the jumps recorded
 // for a seed. The shapes of gentest.ContextStoreShapes, whose constant is large, are compared at
-// gentest.ContextStoreSizes instead, without the long input.
+// gentest.ContextStoreSizes instead, without the long input; with limit controls, within
+// gentest.ContextStoreBudgetPerUnit for each unit of the input.
 func TestGeneratedLeftRecursionDependencyMemoLinear(t *testing.T) {
 	t.Parallel()
 	gentest.EachMode(t, testGeneratedLeftRecursionDependencyMemoLinear)
@@ -83,6 +84,7 @@ func testGeneratedLeftRecursionDependencyMemoLinear(t *testing.T) {
 	}
 	shapes := gentest.SampledShapes()
 	costly := len(shapes)
+	controls := gentest.FixtureBudgetControls(t)
 	shapes = append(shapes, gentest.ContextStoreShapes...)
 	var imports, calls strings.Builder
 	for i, s := range shapes {
@@ -94,9 +96,16 @@ func testGeneratedLeftRecursionDependencyMemoLinear(t *testing.T) {
 			sizes, long = gentest.ContextStoreSizes[:], 0
 		}
 		for _, n := range sizes {
-			in := strconv.Quote(s.Input(n))
-			fmt.Fprintf(&calls, "\t{ var p zprt.Profile; if _, err := %s.Parse(%s, zprt.WithProfile(&p)); err != nil { panic(err) }; fmt.Print(p.Snapshot().Evals, \" \") }\n", pkg, in)
-			fmt.Fprintf(&calls, "\t{ var p zprt.Profile; if _, err := %s.ParseAST(%s, zprt.WithProfile(&p)); err != nil { panic(err) }; fmt.Print(p.Snapshot().Evals, \" \") }\n", pkg, in)
+			input := s.Input(n)
+			in := strconv.Quote(input)
+			// The shapes of gentest.ContextStoreShapes cost more per unit of input than the default
+			// budget grants, so with controls they get a budget linear in the input with their constant.
+			limit := ""
+			if i >= costly && controls {
+				limit = fmt.Sprintf(", zprt.WithLimits(zprt.Limits{Compute: %d})", gentest.ContextStoreBudgetPerUnit*uint64(len(input)))
+			}
+			fmt.Fprintf(&calls, "\t{ var p zprt.Profile; if _, err := %s.Parse(%s, zprt.WithProfile(&p)%s); err != nil { panic(err) }; fmt.Print(p.Snapshot().Evals, \" \") }\n", pkg, in, limit)
+			fmt.Fprintf(&calls, "\t{ var p zprt.Profile; if _, err := %s.ParseAST(%s, zprt.WithProfile(&p)%s); err != nil { panic(err) }; fmt.Print(p.Snapshot().Evals, \" \") }\n", pkg, in, limit)
 		}
 		if long == 0 {
 			calls.WriteString("\tfmt.Print(true, \" \", true)\n")

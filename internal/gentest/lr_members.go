@@ -452,6 +452,13 @@ var ContextStoreSizes = [2]int{10, 40}
 // ContextStoreGrowth bounds the ratio of the evaluations at the two ContextStoreSizes.
 const ContextStoreGrowth = 5
 
+// ContextStoreBudgetPerUnit is the compute limit, for each unit of the input, under which generated
+// parsers with limit controls parse ContextStoreShapes at ContextStoreSizes. Their work is linear in
+// the input, but each unit costs tens of thousands of units of compute, beyond the default budget:
+// nine dependencies cost about 26,000 for each unit of a large input, and up to 44,000 for each
+// unit at the smaller size, where the work at the start of the input is spread over fewer units.
+const ContextStoreBudgetPerUnit = 1 << 16
+
 // DependencyMemoShape is a grammar whose leaders grow inside the growth of another leader at the
 // same position, with an input family whose parse evaluates a number of calls linear in its length.
 // Rules holds the rules after "rule main = ".
