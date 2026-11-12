@@ -1560,53 +1560,6 @@ $p$ except the first, the one whose seed is empty and, when $u$ is committing
 for $g$ by its words, a constant number of others, an evaluation of $u$ at $p$
 examines at most a constant amount of the input.
 
-The claim covers the pairs that share no call. The next claim shows that a pair
-that shares a call under the definition of [Conditions for Linear
-Cost](../runtime/parsing.md#conditions-for-linear-cost) is, in the steps that the
-claim does not except, a growing unit followed by a growing unit, apart from one
-case that step 2 of [Open Steps](#open-steps) keeps.
-
-**Calls shared with a growing unit.** Let $u$ and $g$ be as in the claim above,
-except that they share a call, and let a step of the growth at $p$, other than
-the first and the one whose seed is empty, evaluate $u$ at $p$. Then the first
-call that they share is a call at $p$ of a leader of the cycle, which $u$ makes
-before it evaluates anything that examines the input, through left calls of
-rules of the cycle. If $u$ evaluates nothing else before that call, $u$ begins
-with a left call in that step and is a growing unit there.
-
-*Proof.* In the step, the first thing that $g$ evaluates is its left call at
-$p$, directly or through calls of rules of the cycle: a left call of the
-leader that grows at $p$ reads the seed, and one of another leader grows it in
-the context of that growth. A call of a rule of the
-cycle other than a leader at a left call is not memoized at the call, since
-such a rule is memoized only at calls that are not left calls, and it calls a
-rule, so it is not a call that a unit and a continuation share; the first thing
-that its body evaluates is again a left call. So the first call that $g$
-evaluates and that can be shared is a call of a leader $R'$ at $p$, and $g$
-examines no input before it, so no shared literal comes before it either. By
-the definition of sharing, $u$ makes the same call at $p$ before anything else
-that examines the input, directly or as the first thing that the bodies of the
-calls that it starts with evaluate. The body that holds $u$ started at $p$,
-since the step started at $p$ and positions do not decrease, so each call on
-the way from that body to the call of $R'$ is made before its caller's body
-consumes input and is found by the analysis of left calls
-([Growths of Left Recursion](../runtime/parsing.md#growths-of-left-recursion)).
-Each rule on the way is reached from the rule of $u$ through such calls and
-reaches it through $R'$, which is on the cycle, so it is on the cycle, and each
-of the calls is a left call. $\square$
-
-So in the steps that the claim does not except, an evaluation of $u$ at $p$
-that makes the shared call before anything else is an evaluation of a growing
-unit, which the claim leaves out and the paragraphs below count with the other
-growing units. What remains is a unit that evaluates, before the shared call of
-the leader, only expressions that examine no input, such as the predicate in an
-alternative `{ok} E R "!"` before `E "+" T`. It is no growing unit by the
-definition, since the predicate is evaluated first, yet in the step it examines
-the input from the end of the result of the leader, as a growing unit does, and
-condition 2 checks it only as an alternative that is not growing, against the
-later alternatives of its choice and not against what follows the calls that
-start the growth. Step 2 of [Open Steps](#open-steps) keeps this case.
-
 *Proof.* As a continuation of $u$, $g$ examines the input from $p$ through the
 seed. The seeds of the steps are the results of the steps before them and grow
 longer at each step, so at most one of them is empty. In any other step after
@@ -1629,6 +1582,63 @@ step, apart from those inside a memoized evaluation there, which Lemma 4
 counts. This lemma counts the others (step 4 of [Open Steps](#open-steps)), from
 the claims of Lemma 4 that count nothing and not from its count of the
 activations that memoized evaluations own.
+
+The claim covers the pairs that share no call. The next claim shows that a pair
+that shares a call under the definition of [Conditions for Linear
+Cost](../runtime/parsing.md#conditions-for-linear-cost) is, in the steps that the
+claim does not except, a growing unit followed by a growing unit, apart from one
+case that step 2 of [Open Steps](#open-steps) keeps.
+
+**Calls shared with a growing unit.** Let $u$ and $g$ be as in the claim above,
+except that they share a call, and let a step of the growth at $p$, other than
+the first and the one whose seed is empty, evaluate $u$ at $p$. Then the first
+call that they share is a call at $p$ of a leader of the cycle, which $u$ makes
+before it evaluates anything that examines the input, through left calls of
+rules of the cycle. If $u$ calls no rule before that call other than those
+through which it makes it, $u$ is a growing unit, and the step evaluates it
+as one: its left call reads the seed or grows a leader in the context of the
+growth.
+
+*Proof.* In the step, the first thing that $g$ evaluates is its left call at
+$p$, directly or through calls of rules of the cycle: a left call of the
+leader that grows at $p$ reads the seed, and one of another leader grows it in
+the context of that growth. A call of a rule of the
+cycle other than a leader at a left call is not memoized at the call, since
+such a rule is memoized only at calls that are not left calls, and it calls a
+rule, so it is not a call that a unit and a continuation share; the first thing
+that its body evaluates is again a left call. So the first call that $g$
+evaluates and that can be shared is a call of a leader $R'$ at $p$, and $g$
+examines no input before it, so no shared literal comes before it either. By
+the definition of sharing, $u$ makes the same call at $p$ before anything else
+that examines the input, directly or as the first thing that the bodies of the
+calls that it starts with evaluate. The body that holds $u$ started at $p$,
+since the step started at $p$ and positions do not decrease, so each call on
+the way from that body to the call of $R'$ is made before its caller's body
+consumes input and is found by the analysis of left calls
+([Growths of Left Recursion](../runtime/parsing.md#growths-of-left-recursion)).
+Each rule on the way is reached from the rule of $u$ through such calls and
+reaches it through $R'$, which is on the cycle, so it is on the cycle, and each
+of the calls is a left call. If $u$ calls no other rule before the call of
+$R'$, the first evaluation in $u$ on the path of the step that examines the
+input or calls a rule is the first call on that way, a left call, and what
+comes before it examines no input and calls no rule, as a predicate does. The
+definition of a growing unit counts such a unit, and when what comes before
+the left call can also consume input on another path, the unit is checked
+both as a growing unit and as one that is not growing. $\square$
+
+So in the steps that the claim does not except, an evaluation of $u$ at $p$
+that calls no other rule before the shared call, as the alternative
+`{ok} E R "!"` before `E "+" T` does, is an evaluation of a growing unit,
+which the claim leaves out and the paragraphs below count with the
+other growing units. What remains is a unit that calls, before the shared call
+of the leader, a rule whose evaluation examines no input, as `Z` in an
+alternative `Z E R "!"` with `Z = ""`. It is no growing unit by the
+definition, since its first call is not a left call, yet in the step it
+examines the input from the end of the result of the leader, as a growing unit
+does, and condition 2 checks it only as an alternative that is not growing,
+against the later alternatives of its choice and not against what follows the
+calls that start the growth. Step 2 of [Open Steps](#open-steps) keeps this
+case.
 
 The growing units of a step examine the input from the end of the seed. The
 input from the end of one seed to the end of the next is examined by one
@@ -3557,12 +3567,12 @@ condition of the cost view that the [Cost View](cost-view.md) proof leaves open.
    Lemma 5 bounds a unit followed by a growing unit with which it shares no
    call, in all but a constant number of steps, and *Calls shared with a
    growing unit* shows that a pair with a shared call is, in those steps, a
-   growing unit followed by a growing unit, unless the unit evaluates
-   expressions that examine no input, such as a predicate, before the shared
-   call of the leader. Such a unit examines the input from the end of the
-   leader's result, as a growing unit does, but condition 2 checks it only as
-   an alternative that is not growing. The proof must still bound that case,
-   or the definition of a growing unit must take in such a unit, the later
+   growing unit followed by a growing unit, unless the unit calls, before the
+   shared call of the leader, a rule whose evaluation examines no input. Such
+   a unit examines the input from the end of the leader's result, as a growing
+   unit does, but condition 2 checks it only as an alternative that is not
+   growing. The proof must still bound that case, or the definition of a
+   growing unit must take in such a unit, the later
    alternatives that a step evaluates after a growing unit fails, in the first
    step and in the step where the growth stops, and the case where the first
    step of a growth matches a part before the left call, as through `F` in
