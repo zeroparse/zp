@@ -726,10 +726,6 @@ docs/optimizations/mechanisms/G070-literal-text-predicates.md	codelink	internal/
 docs/optimizations/mechanisms/G070-literal-text-predicates.md	gofile	internal/gen/gen_literal_text_dispatch_test.go	1
 docs/optimizations/mechanisms/G070-literal-text-predicates.md	gofile	internal/gen/gogen/generator.go	1
 docs/optimizations/mechanisms/G070-literal-text-predicates.md	gofile	internal/gen/tsgen/generator.go	1
-docs/optimizations/mechanisms/G080-equal-capture-type-reuse.md	codelink	internal/compile/check.go	1
-docs/optimizations/mechanisms/G080-equal-capture-type-reuse.md	gofile	internal/compile/check.go	1
-docs/optimizations/mechanisms/G085-action-free-positional-items.md	codelink	internal/compile/check.go	1
-docs/optimizations/mechanisms/G085-action-free-positional-items.md	gofile	internal/compile/check.go	1
 docs/optimizations/mechanisms/G090-variable-read-components.md	codelink	internal/compile/analysis.go	1
 docs/optimizations/mechanisms/G090-variable-read-components.md	gofile	internal/compile/analysis.go	1
 docs/optimizations/mechanisms/G100-generated-node-body-inlining.md	codelink	internal/gen/generator.go	1
