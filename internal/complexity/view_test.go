@@ -162,14 +162,47 @@ var ported = []complexity.Law{complexity.N1, complexity.N2, complexity.N3, compl
 // normal view's unit tests apply them (compile.TestCostViewMatchesCases).
 var offCorpus = []complexity.Law{complexity.N3, complexity.N5, complexity.N9, complexity.N10}
 
-// TestViewMatchesLaws checks the view against the view on the grammar's rules
-// (compile.CostViewRules) on the corpus: with the ported rules together and with each alone, both
-// count the same rewrites of each rule and write the same rules.
-func TestViewMatchesLaws(t *testing.T) {
-	sets := [][]complexity.Law{ported}
-	for _, l := range ported {
-		sets = append(sets, []complexity.Law{l})
+// TestViewLabelsAndInlineNeedOptions checks that N7 and N13 apply only when Labels and Inline
+// select them, whatever Laws holds.
+func TestViewLabelsAndInlineNeedOptions(t *testing.T) {
+	cs := sourceOf(t, "rule main = a @error(\"e\") \"x\"\nrule a = \"y\" \"z\"\n")
+	all := []complexity.Law{complexity.N7, complexity.N13}
+	for _, opts := range []complexity.Options{{}, {Laws: all}, {Labels: true, Inline: true}} {
+		v := complexity.Build(viewSource(cs), opts, nil)
+		on := opts.Labels && opts.Inline
+		for _, l := range all {
+			if got := v.Applied[l] > 0; got != on {
+				t.Errorf("options %+v: %s applied %v, want %v", opts, l, got, on)
+			}
+		}
 	}
+}
+
+// lawSet is a set of rules that the differential test compares the views with, for the
+// classifier's view or, with matching, for the view of matching (compile.NormalView with
+// matching).
+type lawSet struct {
+	laws     []complexity.Law
+	matching bool
+}
+
+// lawSets returns the sets that the differential test compares: the ported rules together and
+// each alone for the classifier's view, and the ported rules with N7 and N13 together, N7 alone
+// and N13 alone for the view of matching. The first set holds every rule compared.
+func lawSets() []lawSet {
+	all := append(slices.Clone(ported), complexity.N7, complexity.N13)
+	sets := []lawSet{{all, true}, {ported, false}}
+	for _, l := range ported {
+		sets = append(sets, lawSet{[]complexity.Law{l}, false})
+	}
+	return append(sets, lawSet{[]complexity.Law{complexity.N7}, true}, lawSet{[]complexity.Law{complexity.N13}, true})
+}
+
+// TestViewMatchesLaws checks the view against the view on the grammar's rules
+// (compile.CostViewRules) on the corpus: with each set of lawSets, both count the same rewrites of
+// each rule and write the same rules.
+func TestViewMatchesLaws(t *testing.T) {
+	sets := lawSets()
 	srcs := corpus(t)
 	seen := map[complexity.Law]int{}
 	var mu sync.Mutex
@@ -182,16 +215,17 @@ func TestViewMatchesLaws(t *testing.T) {
 					t.Fatal(err)
 				}
 				cs := sourceOf(t, src)
-				for _, laws := range sets {
+				for _, set := range sets {
+					laws, matching := set.laws, set.matching
 					names := make([]string, len(laws))
 					for i, l := range laws {
 						names[i] = string(l)
 					}
-					rv, err := compile.CostViewRules(g, false, names, nil)
+					rv, err := compile.CostViewRules(g, matching, names, nil)
 					if err != nil {
 						t.Fatal(err)
 					}
-					v := complexity.Build(viewSource(cs), complexity.Options{Laws: laws}, nil)
+					v := complexity.Build(viewSource(cs), complexity.Options{Labels: matching, Inline: matching, Laws: laws}, nil)
 					applied := map[string]int{}
 					for l, n := range v.Applied {
 						applied[string(l)] = n
@@ -221,7 +255,7 @@ func TestViewMatchesLaws(t *testing.T) {
 		}
 	})
 	t.Logf("rewrites on the corpus: %v", seen)
-	for _, l := range ported {
+	for _, l := range sets[0].laws {
 		switch off := slices.Contains(offCorpus, l); {
 		case seen[l] == 0 && !off:
 			t.Errorf("the corpus applies no %s: the comparison does not test it", l)

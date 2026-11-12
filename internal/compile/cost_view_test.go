@@ -14,11 +14,30 @@ import (
 var costViewPorted = []complexity.Law{complexity.N1, complexity.N2, complexity.N3, complexity.N4, complexity.N5,
 	complexity.N6, complexity.N8, complexity.N9, complexity.N10, complexity.N11, complexity.N12}
 
+// costViewLawSet is a set of rules that the differential tests compare the views with, for the
+// classifier's view or, with matching, for the view of matching (NormalView with matching).
+type costViewLawSet struct {
+	laws     []complexity.Law
+	matching bool
+}
+
+// costViewLawSets returns the sets that the differential tests compare: the ported rules together
+// and each alone for the classifier's view, and the ported rules with N7 and N13 together, N7
+// alone and N13 alone for the view of matching. The first set holds every rule compared.
+func costViewLawSets() []costViewLawSet {
+	all := append(slices.Clone(costViewPorted), complexity.N7, complexity.N13)
+	sets := []costViewLawSet{{all, true}, {costViewPorted, false}}
+	for _, l := range costViewPorted {
+		sets = append(sets, costViewLawSet{[]complexity.Law{l}, false})
+	}
+	return append(sets, costViewLawSet{[]complexity.Law{complexity.N7}, true}, costViewLawSet{[]complexity.Law{complexity.N13}, true})
+}
+
 // TestCostViewMatchesCases checks the cost view built on Core IR against the view of this package
 // on the grammars of the view's unit tests, which reach the conditions of the rules that the
-// corpus does not: with the ported rules together and with each alone, both count the same
-// rewrites of each rule, write the same rules, and build expressions that stand for the same text. A grammar that the classifier's input cannot be
-// built from is skipped; most can.
+// corpus does not: with each set of costViewLawSets, both count the same rewrites of each rule,
+// write the same rules, and build expressions that stand for the same text. A grammar that the
+// classifier's input cannot be built from is skipped; most can.
 func TestCostViewMatchesCases(t *testing.T) {
 	var srcs []string
 	for _, c := range normalViewCases {
@@ -42,10 +61,6 @@ func TestCostViewMatchesCases(t *testing.T) {
 	for _, c := range valueShapeCases {
 		srcs = append(srcs, c.src+"\n")
 	}
-	sets := [][]complexity.Law{costViewPorted}
-	for _, l := range costViewPorted {
-		sets = append(sets, []complexity.Law{l})
-	}
 	compared := 0
 	seen := map[complexity.Law]int{}
 	for _, src := range srcs {
@@ -59,17 +74,18 @@ func TestCostViewMatchesCases(t *testing.T) {
 			continue
 		}
 		compared++
-		for _, laws := range sets {
+		for _, set := range costViewLawSets() {
+			laws, matching := set.laws, set.matching
 			names := make([]string, len(laws))
 			for i, l := range laws {
 				names[i] = string(l)
 			}
-			rv, err := CostViewRules(g, false, names, nil)
+			rv, err := CostViewRules(g, matching, names, nil)
 			if err != nil {
 				t.Fatalf("%s: %v", src, err)
 			}
 			v := complexity.Build(&complexity.Source{Module: cs.Module, Origin: cs.Origin, Facts: cs.Facts},
-				complexity.Options{Laws: laws}, nil)
+				complexity.Options{Labels: matching, Inline: matching, Laws: laws}, nil)
 			applied := map[string]int{}
 			for l, n := range v.Applied {
 				applied[string(l)] = n
@@ -99,7 +115,7 @@ func TestCostViewMatchesCases(t *testing.T) {
 	if compared < len(srcs)*9/10 {
 		t.Errorf("only %d of %d grammars compared", compared, len(srcs))
 	}
-	for _, l := range costViewPorted {
+	for _, l := range costViewLawSets()[0].laws {
 		if seen[l] == 0 {
 			t.Errorf("no grammar applies %s: the comparison does not test it", l)
 		}
