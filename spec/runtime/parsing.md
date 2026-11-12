@@ -996,8 +996,9 @@ The conditions below use these terms.
   lambda, but not from the list that the fold visits. A member of a node
   holds what the capture that it names holds. A read of a variable holds what
   the values that the bindings which can reach it bind hold: the bindings of
-  the variable earlier in the body of the rule that reads it, and those in the
-  rules that can call that rule, directly or indirectly. A comparison, an arithmetic
+  the variable in the body of the rule that reads it that can be evaluated
+  before it, a later one in a repetition included, and those in the rules
+  that can call that rule, directly or indirectly. A comparison, an arithmetic
   operation, `len`, a predicate and a binding hold none of what they read. The **value of a rule** is the value of its action, of
   the actions of an Operators Rule, or, in a rule without an action, of an
   inline action that is its expression or an alternative of it, through
@@ -1214,8 +1215,11 @@ The conditions below use these terms.
   the first, the left call reads the seed, and the unit examines the input
   from the end of the seed. In the first step, the left call fails before the
   unit examines any input, and the unit fails with it when it reaches the
-  leader only through choices whose later alternatives cannot succeed without
-  their own left call, in its body and in the rules of the cycle on the way,
+  leader only through expressions that fail when it fails and through choices
+  whose later alternatives cannot succeed without their own left call, in its
+  body and in the rules of the cycle on the way, and not through an option, a
+  repetition, a negative lookahead or the base of a `#recover`, which go on
+  after the call fails,
   as `add` in `expr = add / term; add = expr "+" term`. Otherwise, as through
   `F` in `E = F "+" X / Y; F = E / M` or through the group in
   `E = (E "z" / M) "+" X / Y`, the unit can go on at its start after a path
@@ -1547,9 +1551,9 @@ necessary.
    sequence of the rule body has the binding in one element and a call that
    can reach its rule again in a later element, each at any depth of the
    expressions that keep the bindings made in them after they succeed, which
-   are all but a negative lookahead and a call: groups, options, choices,
-   captures, discards, atomic expressions, attributed expressions and positive
-   lookaheads, so that `&({v := v + v}) "y" r` passes the value of the
+   are all expressions but a negative lookahead and a call, such as groups,
+   options, choices, captures, discards, atomic expressions, attributed
+   expressions and positive lookaheads, so that `&({v := v + v}) "y" r` passes the value of the
    binding to the call `r`; or when the binding is part of the element of a
    repetition or of an Operators Rule, which applies its parts again at each
    operator, outside a negative lookahead. A binding and a call in
@@ -1663,7 +1667,14 @@ necessary.
    a failure after it is a failure of an enclosing unit, which this condition
    checks in turn. The expression of a lookahead is abandoned even when it
    matches, and a growing unit and a unit of an Operators Rule are checked
-   whether or not they can fail after a source. A unit whose only scanning
+   whether or not they can fail after a source. A unit that contains a
+   scanning source and can evaluate a left call before it examines the
+   input, and that is not an alternative of a choice, fails this condition,
+   as the lookahead `&E` in `E = &E "A" [a-z]* "?" / E [a-z] / "A"` does.
+   The checks of growing units are made for alternatives, and after such a
+   lookahead succeeds, the unit around it goes on at its start, where it
+   examines the input as an alternative that is not growing would, though no
+   path through its left call failed. A unit whose only scanning
    sources are bounded scans contains no scanning source in this sense: a
    restart repeats them, and their bound counts the repetition.
 3. **Growth.** No scanning source can be evaluated, outside the left call that
@@ -1794,7 +1805,10 @@ necessary.
    growth of R, which covers again the input that later steps cover. The step
    can drop the result when the call is in a lookahead, an option, a
    repetition or the base of a `#recover`, in an alternative followed by an
-   alternative that is a growing unit, or in a rule of the cycle that is
+   alternative, the last one included, that can evaluate a left call before
+   it consumes input, whether or not it examines the input first, as
+   `S "q"` in `S = R "z" / S "q"` and `"w"? S "q"` in
+   `S = R "z" / "w"? S "q" / "y"` can, or in a rule of the cycle that is
    not a leader. The growth of R can go on with the growth of S when what
    follows the left calls of S in the body of R, followed by what follows R,
    and what follows the reads of the growing results of the cycle outside the
