@@ -157,6 +157,12 @@ rule main = S $$
 rule S = R "z" / S "q" / R
 rule R = R "b" / S "y" / "c"
 `, ClassUnknown, -1, -1}, // s4b
+	{"thrown", "cut after a left call makes a later step take an alternative the first did not reach", `@start
+rule main = S $$
+rule S = S "w" / R "z" / "c" Bs
+rule Bs = "b" Bs / ""
+rule R = (R #cut "b" / S "y" / "c") / S "x"
+`, ClassUnknown, -1, -1}, // s4d
 	{"thrown", "nested reads", `@start
 rule main = S $$
 rule S = S "q" / R "s" / "y"
