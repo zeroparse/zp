@@ -1156,10 +1156,13 @@ The conditions below use these terms.
   fails when something inside it fails, including a later part of its own
   sequence and a rule that it calls.
 - A **growing unit** is a unit whose evaluation begins with a left call: the
-  left call is the first expression that it evaluates, directly or through
-  calls of rules of the cycle, such as the alternative `E "+" T` in
-  `E = E "+" T / T`. A unit that evaluates anything before its left call, such
-  as `("y")? E S "q"`, is not a growing unit. A unit that follows something
+  first evaluation in it that examines the input or calls a rule is a left
+  call, directly or through calls of rules of the cycle, such as the
+  alternative `E "+" T` in `E = E "+" T / T`. Expressions that examine no input
+  and call no rule, such as a predicate, may come before the left call: the
+  alternative `{ok} E "!"` is a growing unit too. A unit that examines the
+  input or calls another rule before its left call, such as `("y")? E S "q"`
+  or `Z E "!"` with a rule `Z` off the cycle, is not a growing unit. A unit that follows something
   that can match without consuming input can be reached in both ways, such as
   the alternative `E` in `E = "y"? (E / "z") "q" / "x"`: without the `"y"` it
   is a growing unit, and after the `"y"` its call is at a new position, where
@@ -1179,8 +1182,8 @@ The conditions below use these terms.
   alternatives of its choice. A body of a leader is evaluated only in the
   steps of its growth, and in the first step its own left calls read the
   failed seed, so for a unit of a leader this check follows only the paths
-  that evaluate something other than a left call of that leader first, from
-  there. A unit of another rule of the cycle is checked as an alternative that
+  that examine the input or call a rule other than through a left call of that
+  leader first, from there. A unit of another rule of the cycle is checked as an alternative that
   is not growing also when a call that is not a left call, or one after
   something that can match without consuming input, evaluates its rule,
   directly or through left calls of rules of the cycle other than leaders:
@@ -1729,7 +1732,7 @@ necessary.
    growth of R, which covers again the input that later steps cover. The step
    can drop the result when the call is in a lookahead, an option, a
    repetition or the base of a `#recover`, in an alternative followed by an
-   alternative that begins with a left call, or in a rule of the cycle that is
+   alternative that begins with a left call, as a growing unit does, or in a rule of the cycle that is
    not a leader. The growth of R can go on with the growth of S when what
    follows the left calls of S in the body of R, followed by what follows R,
    and what follows the reads of the growing results of the cycle outside the
