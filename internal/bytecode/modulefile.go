@@ -259,6 +259,7 @@ func (r *Decoder) ReadModule() *Module {
 	}
 	m.Code = r.code()
 	n = r.Count()
+	m.Ints = sized[int64](n)
 	for i := 0; i < n && r.Err == nil; i++ {
 		m.Ints = append(m.Ints, r.int64())
 	}
@@ -283,30 +284,45 @@ func (r *Decoder) int64() int64 {
 	return n
 }
 
+// sized returns an empty slice with room for n elements, or nil for none. n is a count that Count
+// bounded by the bytes left, and each element takes at least one byte, so the room is a small
+// multiple of the data (as for ints); a term, much larger than its least encoding, grows instead.
+func sized[T any](n int) []T {
+	if n == 0 {
+		return nil
+	}
+	return make([]T, 0, n)
+}
+
 func (r *Decoder) term() Term {
 	var t Term
 	for i := range t.Regs {
 		t.Regs[i] = r.Uint()
 	}
 	n := r.Count()
+	t.Consts = sized[TermConst](n)
 	for i := 0; i < n && r.Err == nil; i++ {
 		t.Consts = append(t.Consts, TermConst{Kind: int(r.Byte()), Int: r.int64()})
 	}
 	t.Names = r.ints()
 	n = r.Count()
+	t.Members = sized[TermMember](n)
 	for i := 0; i < n && r.Err == nil; i++ {
 		t.Members = append(t.Members, TermMember{Kind: int(r.int32()), Name: int(r.int32()), Field: int(r.int32())})
 	}
 	t.NodeTypes = r.ints()
 	n = r.Count()
+	t.Casts = sized[TermCast](n)
 	for i := 0; i < n && r.Err == nil; i++ {
 		t.Casts = append(t.Casts, TermCast{Type: int(r.int32()), Line: int(r.int32()), Col: int(r.int32())})
 	}
 	n = r.Count()
+	t.Structs = sized[TermStruct](n)
 	for i := 0; i < n && r.Err == nil; i++ {
 		t.Structs = append(t.Structs, TermStruct{Type: int(r.int32()), Fields: int(r.int32())})
 	}
 	n = r.Count()
+	t.Code = sized[TermInstr](n)
 	for i := 0; i < n && r.Err == nil; i++ {
 		t.Code = append(t.Code, TermInstr{Op: r.Byte(), Dst: r.int32(), A: r.int32(), B: r.int32(), C: r.int32()})
 	}
