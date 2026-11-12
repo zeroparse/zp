@@ -420,6 +420,11 @@ func TestClassifyComplexity(t *testing.T) {
 		// A cut commits the choice of k after "c", so k fails on "c" "y" and the lookahead passes:
 		// on ("cyx")^n "e" each step scans f to the end again.
 		{"later alternative behind a lookahead with a cut", "rule main = x $$\nrule x = \"c\" \"y\" f \"!\" / !k \"c\" \"y\" \"x\" x / \"e\"\nrule k = \"c\" #cut \"q\" / \"c\" \"y\"\nrule f = [cxye]*\n", ClassPoly, 2},
+		// The same when another alternative lies between the cut and the one that matches, when the
+		// cut is in a later alternative before it, and when it is in the skip of a #recover.
+		{"later alternative behind a lookahead with a cut two alternatives before", "rule main = x $$\nrule x = \"c\" \"y\" f \"!\" / !k \"c\" \"y\" \"x\" x / \"e\"\nrule k = \"c\" #cut \"q\" / \"z\" / \"c\" \"y\"\nrule f = [cxye]*\n", ClassPoly, 2},
+		{"later alternative behind a lookahead with a cut in a later alternative", "rule main = x $$\nrule x = \"c\" \"y\" f \"!\" / !k \"c\" \"y\" \"x\" x / \"e\"\nrule k = \"z\" / \"c\" #cut \"q\" / \"c\" \"y\"\nrule f = [cxye]*\n", ClassPoly, 2},
+		{"later alternative behind a lookahead with a cut in a recovery skip", "rule main = x $$\nrule x = \"c\" \"y\" f \"!\" / !k \"c\" \"y\" \"x\" x / \"e\"\nrule k = (\"c\" \"q\") #recover(skip=(#cut \"w\")) / \"c\" \"y\"\nrule f = [cxye]*\n", ClassPoly, 2},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			c := classifySource(t, tc.src)

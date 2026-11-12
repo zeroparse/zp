@@ -906,6 +906,9 @@ func TestStrictConditions(t *testing.T) {
 		// the body fails without trying "a" "y" and the lookahead passes on either side.
 		{"a later lookahead with a cut before the matching alternative", `"a" "y" "z" "w"`, `!("a" #cut "q" / "a" "y") "a" "y" "z"`, false, false, "same-bound"},
 		{"a lookahead with a cut before the matching alternative", `!("a" #cut "q" / "a" "y") "a" "y" "z" "w"`, `"a" "y" "z"`, false, false, "same-bound"},
+		{"a later lookahead with a cut two alternatives before the matching one", `"a" "y" "z" "w"`, `!("a" #cut "q" / "z" / "a" "y") "a" "y" "z"`, false, false, "same-bound"},
+		{"a later lookahead with a cut in a later alternative before the matching one", `"a" "y" "z" "w"`, `!("z" / "a" #cut "q" / "a" "y") "a" "y" "z"`, false, false, "same-bound"},
+		{"a later lookahead with a cut in a recovery skip before the matching alternative", `"a" "y" "z" "w"`, `!(("a" "q") #recover(skip=(#cut "w")) / "a" "y") "a" "y" "z"`, false, false, "same-bound"},
 		{"a later lookahead with a cut after the matching alternative", `"a" "y" "z" "w"`, `!("a" "y" / "a" #cut "q") "a" "y" "z"`, true, true, ""},
 	} {
 		src := "rule p = " + c.p + "\nrule q = " + c.q + "\n" + rules
