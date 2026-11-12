@@ -1,4 +1,4 @@
-# Incremental Documents in Generated Go
+# Incremental Documents in Generated Parsers
 
 Generate with `zp gen -g grammar.zp -module example.com/parser -document -o parser`, or pass
 `Document: true` to `gen.Go`. This adds a mutable Node `Document` alongside the ordinary batch `Parse` and
@@ -58,8 +58,30 @@ Both `Document.Parse` and `Document.ParseAST` return owned syntax diagnostics: r
 their `Expected` and `Messages` slices are copied; ordinary failures are freshly constructed. Mutating a returned
 error cannot affect memoized errors or a later parse. Parsing, diagnostic copying and typed publication share one
 budget; interruption returns the result type's zero value and clears reusable state as needed for a retry.
-`-document` cannot be combined with `-lang ts`; engine-only Document controls such as `EditBatch` are separate work. See the [direct typed measurements](../design/records/044-generated-incremental-and-stream-parsers.md#local-measurements-for-direct-typed-document-matching)
+Engine-only Document controls such as `EditBatch` are not generated. See the [direct typed measurements](../design/records/044-generated-incremental-and-stream-parsers.md#local-measurements-for-direct-typed-document-matching)
 and the [conversion fallback measurements](../design/records/044-generated-incremental-and-stream-parsers.md#local-measurements-for-typed-go-document-conversion).
+
+## TypeScript Documents
+
+With `-lang ts`, `-document` (or `Document: true` in `gen.TypeScript`) adds `createDocument` to `parser.ts`:
+
+```ts
+const { document: doc, error } = createDocument("first draft", { unit: CodePoints });
+if (error !== null) throw error;
+let result = doc!.parse();
+const editError = doc!.edit(6, 11, "revision");
+result = doc!.parse();
+```
+
+`createDocument(input, options)` copies the input and reads the options once; they become the defaults of
+every `parse`, and `document` is null when they are invalid. `edit(start, end, replacement)` follows the Go
+contract and returns an `Error` or null; a string replacement is encoded as UTF-8, with lone surrogates as
+U+FFFD, and a `Uint8Array` replacement is taken as it is, so edits can join invalid bytes into characters.
+`text()` returns the text as the nodes hold it, and `bytes()` returns a copy of the exact input, invalid bytes
+included. `parse(options?)` returns the `ParseResult` of `parse`, and with `-types` the Document also has
+`parseAST(options?)`. An invocation cannot change the unit or the expectations, and a `parse` or `edit` made
+from a trace callback of a parse returns an error. The TypeScript Document parses its whole text on each
+`parse`: it keeps no results between parses and has no `stats`.
 
 ## Related Topics
 

@@ -73,9 +73,6 @@ func GenerateParser(g *grammar.Grammar, c gen.Compiler, opts gen.GenOptions, h *
 	if opts.Runtime != gen.RuntimeImport && opts.RuntimeModule != "" {
 		return nil, fmt.Errorf("the TypeScript runtime module can only be set with the import runtime mode")
 	}
-	if opts.Document {
-		return nil, fmt.Errorf("Document generation is only supported for Go")
-	}
 	if opts.Stream {
 		return nil, fmt.Errorf("stream generation is only supported for Go")
 	}
@@ -243,6 +240,9 @@ export function recognizeWithOptions(input: string | Uint8Array, options?: %[1]s
 		}
 		out.WriteString(typed)
 	}
+	if opts.Document {
+		tsg.document(&out, start, opts.Types)
+	}
 	if len(tsg.FieldTypes) > 0 {
 		out.WriteString(tsg.fieldCheckSource())
 	}
@@ -351,6 +351,10 @@ type Generator struct {
 	reachErr error
 	// printed holds, for each table, the rules that the printed code of each rule calls (by ID).
 	printed map[string]map[int][]int
+	// startType and startRepr are, with types, the TypeScript type of the start rule's value and the
+	// recipe that converts it (typedTS).
+	startType string
+	startRepr int
 	// ExecFuncs counts the functions printed from Exec IR (execRoute).
 	ExecFuncs int
 	// LoweredTerms counts the terms printed from Exec IR (termStmts).
@@ -920,4 +924,34 @@ func tsIntList(xs []int) string {
 		q[i] = strconv.Itoa(x)
 	}
 	return "[" + strings.Join(q, ", ") + "]"
+}
+
+// document writes the Document of the start rule: createDocument and, with types, the Document's
+// parseAST, which converts the Node result as parseAST does.
+func (g *Generator) document(out *strings.Builder, start *compile.Rule, types bool) {
+	fmt.Fprintf(out, `/**
+ * Document is an incremental Document of the start rule %[1]s: a text that edit changes, and parse,
+ * which returns what parse of the whole current text returns. It is mutable and parses its whole
+ * text on each parse.
+ */
+export class Document extends DocumentBase {
+`, start.Name)
+	if types {
+		fmt.Fprintf(out, `  /** parseAST parses the current text and converts its completed Node result, as parseAST does. */
+  parseAST(options?: %[1]s): Types.TypedParseResult<%[2]s> {
+    return this.parseWith<Types.TypedParseResult<%[2]s>>(options, (r, control) => astResult<%[2]s>(r, %[3]d, control), error => ({ value: null, error }));
+  }
+`, g.optionsType, g.startType, g.startRepr)
+	}
+	fmt.Fprintf(out, `}
+
+/**
+ * createDocument makes a Document of input, which it copies, with options as the defaults of its
+ * parses; document is null when the options are invalid, with the error.
+ */
+export function createDocument(input: string | Uint8Array, options?: %[1]s): { document: Document | null; error: Error | null } {
+  return createDocumentBase(G, input, options, (bytes, defaults, o) => new Document(G, R%[2]d, nseen, bytes, defaults, o));
+}
+
+`, g.optionsType, start.ID)
 }

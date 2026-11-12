@@ -94,6 +94,7 @@ func (g *Generator) typedTS(start *compile.Rule) (types, parser string, err erro
 	st := t.RuleRef(start.Name)
 	repr := t.recipe(st)
 	stType := qualifyTypes(t.tsType(st))
+	g.startType, g.startRepr = stType, repr
 	b.WriteString("\n// --- Typed values (zp gen -types) ---\n\n")
 	// With limit controls every parse is controlled, so parseAST takes the path of parseASTWithOptions.
 	astBody := fmt.Sprintf("astResult<%s>(run(G, R%d, nseen, input, unit), %d)", stType, start.ID, repr)

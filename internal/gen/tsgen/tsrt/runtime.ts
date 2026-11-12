@@ -1284,6 +1284,186 @@ export function result(p: Parser, v: R): ParseResult {
   return { node: null, error: p.makeError(p.farthest, p.control === null ? p.exp.slice(p.expBase, p.expTop) : copyIDsSpend(p.exp, p.expBase, p.expTop, p.control)) };
 }
 
+// --- Documents ---
+
+// documentBusyMessage is the message of the error of a parse or an edit of a Document that is already
+// parsing, which only a trace callback of that parse can make.
+const documentBusyMessage = "document is already parsing";
+
+// optionsSnapshot reads each option of options once, so that a getter runs once for the defaults of a
+// Document and once for each invocation.
+function optionsSnapshot(options: ParseOptions | undefined): ParseOptions | undefined {
+  if (options == null) return options;
+  const out: { [key: string]: unknown } = { ...options };
+  const limits = out["limits"];
+  if (limits != null && typeof limits === "object") out["limits"] = { ...limits };
+  return out as ParseOptions;
+}
+
+/**
+ * DocumentBase is the Document of a generated parser: a text that edits change, and the parse of
+ * the configured start rule over it. A parse returns what a parse of the whole current text returns;
+ * this Document parses the whole text again each time. A Document is mutable, not a snapshot, and a
+ * parse or an edit made while it parses, from a trace callback, fails.
+ */
+export class DocumentBase {
+  private readonly g: Grammar;
+  private readonly start: Rule;
+  private readonly seen: number;
+  private readonly unit: Unit;
+  private readonly expectations: boolean;
+  private readonly defaults: ParseOptions | undefined;
+  private input: Uint8Array;
+  private parsing = false;
+
+  constructor(g: Grammar, start: Rule, seen: number, input: Uint8Array, defaults: ParseOptions | undefined, resolved: ResolvedParseOptions) {
+    this.g = g;
+    this.start = start;
+    this.seen = seen;
+    this.input = input;
+    this.defaults = defaults;
+    this.unit = resolved.unit;
+    this.expectations = resolved.expectations;
+  }
+
+  /** text returns the current text. Invalid UTF-8 bytes are U+FFFD in CodePoints, and in Bytes the surrogates U+DC80-U+DCFF, as in the text of nodes. */
+  text(): string {
+    return documentText(this.input, this.unit);
+  }
+
+  /** bytes returns a copy of the current text as UTF-8 bytes, invalid bytes included. */
+  bytes(): Uint8Array {
+    return this.input.slice();
+  }
+
+  /**
+   * edit replaces [start,end), in the position unit of the Document, with replacement: a string as
+   * its UTF-8 encoding (lone surrogates as U+FFFD), bytes as they are. For an invalid range or, in
+   * Bytes, a position inside a character, it returns an error and changes nothing.
+   */
+  edit(start: number, end: number, replacement: string | Uint8Array): Error | null {
+    if (this.parsing) return new Error(documentBusyMessage);
+    const b = this.input;
+    const length = this.unit === Bytes ? b.length : documentRuneCount(b);
+    if (!Number.isSafeInteger(start) || !Number.isSafeInteger(end) || start < 0 || end < start || end > length) {
+      return new Error(`invalid range [${start},${end}) for text of length ${length}`);
+    }
+    let startByte = start;
+    let endByte = end;
+    if (this.unit === Bytes) {
+      for (const pos of [start, end]) {
+        if (!documentByteBoundary(b, pos)) return new Error(`position ${pos} is not at a character boundary`);
+      }
+    } else {
+      startByte = documentByteOffset(b, start);
+      endByte = documentByteOffset(b, end);
+    }
+    const r = typeof replacement === "string" ? encodeUTF8(replacement) : replacement;
+    const out = new Uint8Array(b.length - (endByte - startByte) + r.length);
+    out.set(b.subarray(0, startByte), 0);
+    out.set(r, startByte);
+    out.set(b.subarray(endByte), startByte + r.length);
+    this.input = out;
+    return null;
+  }
+
+  /**
+   * parse parses the current text with the configured start rule, applying the invocation options
+   * after the defaults of the Document. An invocation cannot change the unit or the expectations.
+   */
+  parse(options?: ParseOptions): ParseResult {
+    return this.parseWith(options, r => r, error => ({ node: null, error }));
+  }
+
+  /**
+   * parseWith is parse that hands the result to convert in the same invocation, under the same limit
+   * controls. It is for generated parsers.
+   */
+  protected parseWith<T>(options: ParseOptions | undefined, convert: (r: ParseResult, control: BudgetControl | null) => T, fail: (error: Error) => T): T {
+    if (this.parsing) return fail(new Error(documentBusyMessage));
+    const invocation = optionsSnapshot(options);
+    const merged = invocation == null ? this.defaults : { ...this.defaults, ...invocation };
+    const input = this.input;
+    const o = resolveOptions(this.g, merged, input);
+    if (o instanceof Error) return fail(o);
+    if (o.unit !== this.unit) return fail(new Error("document parse cannot change unit"));
+    if (o.expectations !== this.expectations) return fail(new Error("document parse cannot change expectations"));
+    this.parsing = true;
+    try {
+      return withObservedOptions(o, control => convert(run(this.g, this.start, this.seen, input, o.unit, o.maxDepth, control, o), control), fail);
+    } finally {
+      this.parsing = false;
+    }
+  }
+}
+
+// createDocumentBase validates the options of a Document of input, which is copied, and makes the
+// Document with make. Like a parse, it decodes the input under the limit controls of the options. It
+// is for generated parsers.
+export function createDocumentBase<D>(g: Grammar, input: string | Uint8Array, options: ParseOptions | undefined,
+  make: (input: Uint8Array, defaults: ParseOptions | undefined, o: ResolvedParseOptions) => D): { document: D | null; error: Error | null } {
+  const defaults = optionsSnapshot(options);
+  const bytes = typeof input === "string" ? encodeUTF8(input) : input.slice();
+  const o = resolveOptions(g, defaults, bytes);
+  if (o instanceof Error) return { document: null, error: o };
+  const error = withBudgetControl<Error | null>(o, control => {
+    if (control !== null) {
+      new Parser(g, bytes, o.unit, 0, o.maxDepth, control);
+      control.check();
+    }
+    return null;
+  }, e => e);
+  if (error !== null) return { document: null, error };
+  return { document: make(bytes, defaults, o), error: null };
+}
+
+// documentText returns the text of the UTF-8 bytes b: invalid bytes are U+FFFD in CodePoints and the
+// surrogates U+DC80-U+DCFF in Bytes (see decodeBytes).
+function documentText(b: Uint8Array, unit: Unit): string {
+  const cps = new Int32Array(b.length);
+  let j = 0;
+  for (let i = 0; i < b.length; i += decodedSize) {
+    let c = decodeRune(b, i, b.length);
+    if (unit === Bytes && decodedSize === 1 && c === 0xfffd) {
+      c = 0xdc00 + b[i]!;
+    }
+    cps[j++] = c;
+  }
+  return codePointsString(cps.subarray(0, j));
+}
+
+// documentRuneCount returns the number of characters of the UTF-8 bytes b, an invalid byte each.
+function documentRuneCount(b: Uint8Array): number {
+  let n = 0;
+  for (let i = 0; i < b.length; i += decodedSize) {
+    decodeRune(b, i, b.length);
+    n++;
+  }
+  return n;
+}
+
+// documentByteOffset returns the offset in b of the character index of b.
+function documentByteOffset(b: Uint8Array, index: number): number {
+  let i = 0;
+  for (let k = 0; k < index && i < b.length; k++) {
+    decodeRune(b, i, b.length);
+    i += decodedSize;
+  }
+  return i;
+}
+
+// documentByteBoundary reports whether pos is outside every valid UTF-8 sequence of b, or at its start.
+function documentByteBoundary(b: Uint8Array, pos: number): boolean {
+  if (pos >= b.length || (b[pos]! & 0xc0) !== 0x80) return true;
+  for (let start = pos - 1; start >= Math.max(0, pos - 3); start--) {
+    if ((b[start]! & 0xc0) !== 0x80) {
+      decodeRune(b, start, b.length);
+      return start + decodedSize <= pos;
+    }
+  }
+  return true;
+}
+
 // --- Input ---
 
 // decodedSize is the size of the sequence decodeRune decoded last.
