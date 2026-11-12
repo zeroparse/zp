@@ -87,7 +87,12 @@ the previous one ended. A symbol is one of:
 - a **match**: a call, a literal, a character class, `.`, or a repetition with an upper bound other than 1, taken whole;
 - a **negative** or **positive lookahead** `!K` or `&K`;
 - a **skip**: an expression that consumes nothing and decides nothing for the analysis (a predicate, a cut, an anchor);
-- a **stop**: an expression that the analysis does not look into, after which it decides nothing.
+- a **stop**: an expression that the analysis does not look into, after which it decides nothing;
+- in strict mode, a **dead** symbol: a part that no evaluation passes, such as `_|_`, the normal view's form of `!X X`.
+  It ends the path, so the paths of an expression also cover the evaluations that fail there, and a unit that never
+  succeeds has the paths of what it evaluates before it fails instead of no path at all, which would decide every
+  continuation. The comparison without the strict conditions keeps no such path: an alternative that never succeeds
+  excludes every later one.
 
 A sequence concatenates the paths of its items, a choice and an option collect the paths of their parts, and a
 repetition with an upper bound of 1 is an option of its expression. The paths of an expression are a superset in this
@@ -154,6 +159,13 @@ cannot both succeed. It walks both from the start:
   with a match of an alternative of K. The match follows q into a call by matching each path of the callee against the
   rest of that alternative, from where the symbols before the call left off. **A positive lookahead** `&K` in p decides
   when K and the next symbol of q are disjoint. Lookaheads in q decide symmetrically.
+- **A dead symbol** on one side decides: that side fails there, having examined nothing beyond the symbols passed alike.
+- **Neither side can go on**: in strict mode none of the above decides where both sides are stuck before they consume
+  more input, each at a dead symbol, a symbol that matches no character, a `!K` that the rest of its own path must
+  match, or a `&K` disjoint from its own next symbol. Two paths that fail at one point after the symbols passed alike
+  bound nothing, and a path of a unit compared with its own copy, which a continuation reaches through a left call of
+  the unit's rule, can only reach such a point: in a growth that call reads the growing result while each step
+  evaluates the unit again.
 - **Expansion**: otherwise, a call or repetition on one side is replaced by its paths, the side whose callee reaches the
   other first, and each path must part.
 

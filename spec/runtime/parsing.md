@@ -1428,27 +1428,40 @@ The conditions below use these terms.
   evaluation of the expression that succeeds succeeds on the symbols of one
   path in order, each starting where the one before it ended; an expression
   that is not looked into, such as `#recover` or an Operators Rule, ends the
-  path without deciding anything. The unit decides the continuation when every
-  path of the unit, compared with every path of the continuation from their
-  common start, passes symbols that both evaluate alike and then **parts** at a
-  decisive symbol that at most one of them can pass, within three symbols: the
-  symbols passed alike and the decisive one together. Two symbols are alike
-  when they are calls of one rule that is not on a left-recursion cycle and
-  reads no variable, or reads variables and is called with the same variables
-  on both sides, equal literals, equal character classes or `.`, or calls of
-  one trivia rule (below). A literal that is a prefix of the other, literals
-  that are equal up to case, overlapping character classes, and a literal and
-  a class that contains its first character are passed by the characters that
-  they have in common, each step counting as one symbol; a call that is not
-  alike stands for the paths of the body of its rule, each of which must part.
+  path without deciding anything. A part that no evaluation passes, such as
+  `_|_`, to which the normal view reduces `!"b" "b"`, is a **dead** symbol and
+  ends the path too: the paths also cover the evaluations that fail there, so a
+  unit that never succeeds has the paths of what it evaluates before it fails,
+  and these must part like any other. The unit decides the continuation when
+  every path of the unit, compared with every path of the continuation from
+  their common start, passes symbols that both evaluate alike and then
+  **parts** at a decisive symbol that at most one of them can pass, within
+  three symbols: the symbols passed alike and the decisive one together. Two
+  symbols are alike when they are calls of one rule that is not on a
+  left-recursion cycle and reads no variable, or reads variables and is called
+  with the same variables on both sides, equal literals, equal character
+  classes or `.`, or calls of one trivia rule (below). A literal that is a
+  prefix of the other, literals that are equal up to case, overlapping
+  character classes, and a literal and a class that contains its first
+  character are passed by the characters that they have in common, each step
+  counting as one symbol; a call that is not alike stands for the paths of the
+  body of its rule, each of which must part.
   The decisive symbol is one on each side that cannot both match at the
   position: first characters that are disjoint, two literals of which neither
   is a prefix of the other, or two character classes with no character in
   common; a negative lookahead `!K` on one side that the rest of the other side
   must match, or a positive lookahead `&K` on one side whose expression and the
-  next symbol of the other side are disjoint; or, in the continuation, the end
-  of the parse, which costs a constant. The strict conditions make what the
-  continuation evaluates again bounded:
+  next symbol of the other side are disjoint; a dead symbol on one side; or, in
+  the continuation, the end of the parse, which costs a constant. A symbol at
+  which neither side can go on is not decisive: the two do not part where each,
+  before it consumes more input, reaches a dead symbol, a symbol that matches
+  no character, a negative lookahead `!K` that the rest of its own path must
+  match, or a positive lookahead `&K` whose expression and its own next symbol
+  are disjoint. So a path of the unit never parts from its own copy, which the
+  continuation reaches through a left call of the rule of the unit: in a
+  growth that call reads the growing result instead of evaluating the copy,
+  while each step of the growth evaluates the unit again. The strict
+  conditions make what the continuation evaluates again bounded:
   - every symbol passed alike is **cheap**: evaluating it again where the unit
     evaluated it costs the continuation at most a constant or what the unit
     paid for it there. An expression without a scanning source is cheap, as is

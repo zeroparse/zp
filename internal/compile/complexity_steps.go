@@ -169,7 +169,7 @@ func (k *classifier) checkStepUnit(u *unit) {
 			if decidedUnitsOn {
 				tail := *u
 				tail.self = self
-				if k.unitDecided(&tail, u.conts) {
+				if decided, _ := k.unitDecided(&tail, u.conts); decided {
 					continue
 				}
 			}
