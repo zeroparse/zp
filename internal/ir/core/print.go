@@ -25,10 +25,22 @@ func PrintNode(m *Module, n Node, attrs bool) string {
 	return p.b.String()
 }
 
+// PrintNodeGen returns the text form of a node with its attributes, without the engine's own
+// numbers: the run site and resume number of a repetition, the site of a #missing and whether an
+// @error labels inserted tokens. The generators do not read them, so nodes with the same text
+// there generate the same code.
+func PrintNodeGen(m *Module, n Node) string {
+	p := &printer{m: m, attrs: true, gen: true}
+	p.node(n, 0)
+	return p.b.String()
+}
+
 type printer struct {
 	m     *Module
 	attrs bool
-	b     strings.Builder
+	// gen leaves out the engine's numbers (PrintNodeGen).
+	gen bool
+	b   strings.Builder
 }
 
 func (p *printer) rule(r *Rule) {
@@ -142,6 +154,15 @@ func (p *printer) node(n Node, d int) {
 		if n.ScanSite != 0 {
 			fmt.Fprintf(&p.b, " scan-site=%d", n.ScanSite)
 		}
+		if n.Run != 0 && !p.gen {
+			fmt.Fprintf(&p.b, " run=%d", n.Run)
+		}
+		if n.Resume != 0 && !p.gen {
+			fmt.Fprintf(&p.b, " resume=%d", n.Resume)
+			if n.Shiftable {
+				p.b.WriteString(" shiftable")
+			}
+		}
 	case *Look:
 		if n.Neg {
 			p.line(d, "not")
@@ -192,11 +213,17 @@ func (p *printer) node(n Node, d int) {
 			p.line(d, "diagnostic %q", p.exp(n.Exp))
 		} else {
 			p.line(d, "error %q", p.exp(n.Exp))
+			if n.MissingScope && !p.gen {
+				p.b.WriteString(" missing-scope")
+			}
 		}
 	case *Recover:
 		p.line(d, "recover")
 	case *Missing:
 		p.line(d, "missing")
+		if n.Site != 0 && !p.gen {
+			fmt.Fprintf(&p.b, " site=%d", n.Site)
+		}
 	case *Stream:
 		p.line(d, "stream")
 	case *Scan:

@@ -17,17 +17,18 @@ value is converted to a node type. The rule's body follows, indented one level.
 |:--|:--|
 | `Lit` | `lit "text"`, or `lit "text"i` if case-insensitive |
 | `ClassNode` | `class [a-z]`: ranges, with `^` after the bracket if negated. A code point that is not a printable ASCII character, or is `-`, `]`, `\` or `^`, is written `\uXXXX` |
-| `Any`, `Cut`, `Succeed`, `FailNode`, `Seq`, `Opt`, `Text`, `Drop`, `Recover`, `Missing`, `Stream`, `Terminal` | `any`, `cut`, `succeed`, `fail`, `seq`, `opt`, `text`, `drop`, `recover`, `missing`, `stream`, `terminal` |
+| `Any`, `Cut`, `Succeed`, `FailNode`, `Seq`, `Opt`, `Text`, `Drop`, `Recover`, `Stream`, `Terminal` | `any`, `cut`, `succeed`, `fail`, `seq`, `opt`, `text`, `drop`, `recover`, `stream`, `terminal` |
 | `Anchor` | `anchor begin-input`, `end-input`, `begin-line` or `end-line` |
 | `Choice` | `choice`, with each alternative as an `alt` line, followed by ` guard=` and the first terminal, and ` class` for a guarded class |
-| `Repeat` | `repeat min max`, then ` scope=[names]`, ` project=name`, ` site=n` and ` scan-site=n` if present |
+| `Repeat` | `repeat min max`, then ` scope=[names]`, ` project=name`, ` site=n`, ` scan-site=n`, ` run=n` and ` resume=n` if present, and ` shiftable` after a resume number whose elements may move |
 | `Look` | `and` or, if negative, `not` |
 | `Call` | `call id:name`, then ` level=n` if not 0 |
 | `Nest` | `nest id:name` |
 | `OperatorsRule` | `operators`, then its lines: `skip`, `operand` and `op id kind assoc level=n`, each with `scope=[names]`, the shape, ` => action` if it has one, and its body below |
 | `Capture` | `capture slot name`, then ` project=field` if present |
 | `Pred`, `BindNode` | `pred term`, `bind name = term` |
-| `Label` | `error "message"` or `diagnostic "message"` |
+| `Label` | `error "message"` or `diagnostic "message"`, then ` missing-scope` if the message labels inserted tokens |
+| `Missing` | `missing`, then ` site=n` if present; its body follows |
 | `Scan` | `scan class min max`, or `scan any min max`, then ` scan-site=n` if present |
 | `ClassRun` | `classrun` and its classes |
 
@@ -73,7 +74,7 @@ The module as built from the compiled grammar, printed without attributes:
 rule 0 main want memo transient scope=[items] scope-value(elems,k=1,mode=2,tuple)
   seq
     capture 0 items
-      repeat 1 -1
+      repeat 1 -1 resume=1 shiftable
         call 1:item
     anchor end-input
 rule 1 item memo transient scope=[n] => Item{Name: $0:n}!
@@ -89,13 +90,13 @@ rule 1 item memo transient scope=[n] => Item{Name: $0:n}!
           lit ";"
 rule 2 name want memo transient plain scope-value(k=1,mode=1)
   text
-    repeat 1 -1
+    repeat 1 -1 scan-site=1
       class [a-z]
 rule 3 ws want memo transient plain twin=4 scope-value(k=1,mode=1)
-  repeat 0 -1
+  repeat 0 -1 scan-site=3 resume=2 shiftable
     class [\u0020\u0009]
 rule 4 ws memo transient plain novalue
-  repeat 0 -1
+  repeat 0 -1 scan-site=3
     class [\u0020\u0009]
 ```
 
@@ -108,14 +109,14 @@ The same module after guards and scans were introduced and analysis was run, pri
 rule 0 main want memo transient scope=[items] scope-value(elems,k=1,mode=2,tuple)
   seq [want(elems,k=1,mode=2,tuple) consume,fail,expect,capture[0],raise,call]
     capture 0 items [want(k=1,mode=1,tuple) consume,fail,expect,capture[0],raise,call]
-      repeat 1 -1 [want(k=1,mode=1) consume,fail,expect,raise,call]
+      repeat 1 -1 resume=1 shiftable [want(k=1,mode=1) consume,fail,expect,raise,call]
         call 1:item [want(k=1,mode=1) consume,fail,expect,raise,call]
     anchor end-input [want(k=0,mode=0,tuple) nullable fail,expect]
 rule 1 item memo transient scope=[n] => Item{Name: $0:n}!
-  seq [consume,fail,expect,capture[0],raise,call]
-    call 4:ws [nullable consume,expect,raise,call]
-    capture 0 n [consume,fail,expect,capture[0],raise,call]
-      call 2:name [want(k=1,mode=1) consume,fail,expect,raise,call]
+  seq [consume,fail,expect,capture[0],call]
+    call 4:ws [nullable consume,expect,call]
+    capture 0 n [consume,fail,expect,capture[0],call]
+      call 2:name [want(k=1,mode=1) consume,fail,expect,call]
     opt [nullable consume,expect]
       choice [consume,fail,expect]
         alt guard=','
@@ -124,7 +125,7 @@ rule 1 item memo transient scope=[n] => Item{Name: $0:n}!
           lit ";" [first=';' consume,fail,expect]
 rule 2 name want memo transient plain scope-value(k=1,mode=1)
   text [want(k=1,mode=1) consume,fail,expect]
-    scan [a-z] 1 -1 [consume,fail,expect]
+    scan [a-z] 1 -1 scan-site=1 [consume,fail,expect]
 ```
 
 `name` shows a `Scan` in place of the value-free repetition under `#atomic`; `item` shows the guards of the two

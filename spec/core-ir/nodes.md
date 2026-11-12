@@ -24,7 +24,7 @@ the expectation a node records, the capture slots it writes and its effects (see
 | `Seq` | A [sequence](../language/parser-expressions.md#sequence) |
 | `Choice` | An [ordered choice](../language/parser-expressions.md#ordered-choice). An alternative can carry a guard (see below) |
 | `Opt` | An [optional](../language/parser-expressions.md#optional) |
-| `Repeat` | A [repetition](../language/parser-expressions.md#repetition) with the bounds Min and Max; a negative Max is unbounded. With a Scope, each iteration has fresh capture slots, which the element's value carries. With Project, the element builds no value and the repetition gathers the named capture of each element. A Site numbers a [skip-run site](../runtime/parsing.md#skip-runs), whose walks record and reuse the rest of a walk from each position; a ScanSite numbers a [scan site](../runtime/parsing.md#scan-sites), whose walks record and reuse the rest of a walk from their start, under the number after it for a walk that builds a value |
+| `Repeat` | A [repetition](../language/parser-expressions.md#repetition) with the bounds Min and Max; a negative Max is unbounded. With a Scope, each iteration has fresh capture slots, which the element's value carries. With Project, the element builds no value and the repetition gathers the named capture of each element. A Site numbers a [skip-run site](../runtime/parsing.md#skip-runs), whose walks record and reuse the rest of a walk from each position; a ScanSite numbers a [scan site](../runtime/parsing.md#scan-sites), whose walks record and reuse the rest of a walk from their start, under the number after it for a walk that builds a value. A Run numbers a [run site](../runtime/parsing.md#run-sites); a repetition that delivers stream elements has none. A Resume numbers the repetition among those whose elements a [Document parse](../runtime/documents.md#reuse-model) can reuse after an edit, and Shiftable marks one whose element reads no positions, so that reused elements may move with an edit |
 | `Look` | A [lookahead](../language/parser-expressions.md#lookahead), positive or negative. Its body runs in a silent scope, so it neither consumes nor records expectations |
 | `Cut` | [`#cut`](../language/parser-expressions.md#cut). It sets the cut flag of the enclosing choice, option or repetition |
 
@@ -55,9 +55,9 @@ the guard's class, so that a guard that already read the character lets the clas
 
 | Node | Meaning |
 |:--|:--|
-| `Label` | [`@error` or `@diagnostic`](../language/attributes.md): on failure of its body, the expectations recorded inside are replaced by the message (`@error`) or renamed to it (`@diagnostic`) |
+| `Label` | [`@error` or `@diagnostic`](../language/attributes.md): on failure of its body, the expectations recorded inside are replaced by the message (`@error`) or renamed to it (`@diagnostic`). MissingScope marks an `@error`, in a module whose grammar uses `#missing`, whose message labels the diagnostics of the tokens inserted inside it |
 | `Recover` | [`#recover`](../language/pragmas.md#recover). The skip expression builds no value |
-| `Missing` | [`#missing`](../language/pragmas.md#missing): it matches its literal or, while missing-token insertion is active, inserts it, which can exceed the limit of missing tokens |
+| `Missing` | [`#missing`](../language/pragmas.md#missing): it matches its literal or, while missing-token insertion is active, inserts it, which can exceed the limit of missing tokens. Its body matches the literal: the literal itself, or the literal under the attributes written before `#missing`, such as `@error`. Site numbers the `#missing` attribute from 1 within the module; at a position, each site inserts at most once |
 | `Stream` | The [`#stream`](../language/pragmas.md#stream) repetition of a start rule: in a stream parse, the invocation of the rule that starts the parse delivers each element as it completes. Elsewhere it is its repetition |
 
 ## Optimized Forms

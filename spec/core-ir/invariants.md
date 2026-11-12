@@ -14,7 +14,7 @@ analysis, and the verifier of the IR package checks them on an analyzed module, 
 - A `Stream` is at the top of a start rule: its body, an item of its body sequence, or the body of a capture that is one
   of these, or the body of labels at one of these places. A sequence wrapped in labels or nested in the body sequence
   counts as the body sequence, as groups and attributes other than `#recover` and `#missing` do in the grammar.
-- A `Missing` has a non-empty literal.
+- A `Missing` has a non-empty literal and a body.
 
 ## Names and Interning
 
