@@ -202,7 +202,6 @@ func rejectedSources(t *testing.T) []string {
 // keeps each case fast. For the sources that both frontends reject it counts
 // how the errors differ, as harmReport tells.
 func TestCanonicalFrontendMutations(t *testing.T) {
-	p, _ := sourceGrammar(t)
 	corpus := mutationCorpus(t)
 	for _, seed := range mutationSeeds {
 		t.Run(fmt.Sprintf("seed %d", seed), func(t *testing.T) {
@@ -215,13 +214,13 @@ func TestCanonicalFrontendMutations(t *testing.T) {
 				if _, err := zp.ParseGrammar(s); err == nil {
 					accepted++
 				}
-				if !compareGrammars(t, p, fmt.Sprintf("mutation %d (%q)", i, s), s) {
+				if !compareGrammars(t, fmt.Sprintf("mutation %d (%q)", i, s), s) {
 					failed++
 					if failed >= 8 {
 						t.Fatal("too many differences")
 					}
 				}
-				stats.add(t, p, s, edits)
+				stats.add(t, s, edits)
 			}
 			// A comparison of sources that are all rejected shows nothing about the AST.
 			if accepted < mutationCases/20 {

@@ -9,6 +9,9 @@ import (
 
 	"zeroparse.dev/zp"
 	"zeroparse.dev/zp/grammar"
+	"zeroparse.dev/zp/internal/syntax"
+	"zeroparse.dev/zp/internal/syntax/genparser"
+	"zeroparse.dev/zp/internal/syntax/genparser/types"
 )
 
 // The comparison of the frontends is only worth something if it sees a change
@@ -167,11 +170,10 @@ func swapNodeTypes(g *grammar.Grammar, check func(path string)) int {
 // #atomic for #stream, which the JSON form does not name, and requires the
 // comparison to report it.
 func TestGrammarComparisonSeesNodeTypes(t *testing.T) {
-	p, _ := sourceGrammar(t)
 	total := 0
 	for _, src := range append(append([]string(nil), ownershipCorpus...), nodeBases...) {
 		manual, merr := zp.ParseGrammar(src)
-		g, err := adaptCanonical(p, src)
+		g, err := adaptCanonical(src)
 		if merr != nil || err != nil {
 			continue
 		}
@@ -192,11 +194,10 @@ func TestGrammarComparisonSeesNodeTypes(t *testing.T) {
 // grammar the adapter builds, for each grammar of the parity corpora, and
 // requires the comparison with the unchanged grammar to report it.
 func TestGrammarComparisonSeesEveryField(t *testing.T) {
-	p, _ := sourceGrammar(t)
 	total, kinds := 0, map[string]bool{}
 	for _, src := range append(append([]string(nil), ownershipCorpus...), nodeBases...) {
 		manual, merr := zp.ParseGrammar(src)
-		g, err := adaptCanonical(p, src)
+		g, err := adaptCanonical(src)
 		if merr != nil || err != nil {
 			continue
 		}
@@ -246,9 +247,30 @@ var mutantProbes = []string{
 	"rule a = x // t\n/* b */ // c\nrule b = y\n",
 }
 
+// TestGrammarComparisonSeesMutantGrammars runs each mutant by the engine, whose
+// tree the tests move into the typed values of the adapter. The unchanged
+// grammar, run the same way, must agree with the hand-written parser and with
+// the generated parser on the whole corpus, so that a mutant that disagrees is
+// told apart by its change, not by the way it runs.
 func TestGrammarComparisonSeesMutantGrammars(t *testing.T) {
-	_, source := sourceGrammar(t)
+	p, source := sourceGrammar(t)
 	corpus := append(append(append([]string(nil), ownershipCorpus...), nodeBases...), mutantProbes...)
+	unchanged := bridgedFrontend(t, p)
+	for _, src := range corpus {
+		if d := grammarDiff(t, unchanged, src); d != "" {
+			t.Fatalf("%q: the unchanged grammar run by the engine: %s", src, d)
+		}
+		g, err := unchanged(src)
+		want, werr := adaptCanonical(src)
+		if (err != nil) != (werr != nil) || err != nil && err.Error() != werr.Error() {
+			t.Fatalf("%q: the engine run rejects with %v, the generated parser with %v", src, err, werr)
+		}
+		if err == nil {
+			if d := firstDifference(grammarJSON(t, want), grammarJSON(t, g)); d != "" {
+				t.Fatalf("%q: the engine run and the generated parser differ at %s", src, d)
+			}
+		}
+	}
 	for _, m := range grammarMutants {
 		t.Run(m.name, func(t *testing.T) {
 			if strings.Count(source, m.old) != 1 {
@@ -259,11 +281,106 @@ func TestGrammarComparisonSeesMutantGrammars(t *testing.T) {
 				t.Fatalf("the mutant grammar does not compile: %v", err)
 			}
 			for _, src := range corpus {
-				if grammarDiff(t, mutant, src) != "" {
+				if grammarDiff(t, bridgedFrontend(t, mutant), src) != "" {
 					return
 				}
 			}
 			t.Fatal("no source of the corpus shows the mutant")
+		})
+	}
+}
+
+// brokenTrees change the typed values of a parse in one way before the adapter
+// reads them: a broken adapter, or a generated parser that builds wrong values.
+// Each must make the comparison with the hand-written parser fail on some
+// source of the corpora.
+var brokenTrees = []struct {
+	name   string
+	change func(f *types.File) bool
+}{
+	{"comment gaps are lost", func(f *types.File) bool {
+		changed := len(f.Gaps) > 0
+		f.Gaps = nil
+		return changed
+	}},
+	{"choices are reversed", func(f *types.File) bool {
+		return eachTreeValue(f, func(c *types.Choice) { c.L, c.R = c.R, c.L })
+	}},
+	{"rule references start one later", func(f *types.File) bool {
+		return eachTreeValue(f, func(r *types.RuleRef) {
+			if r.End > r.Start+1 {
+				r.Start++
+			}
+		})
+	}},
+	{"repeat ranges become counts", func(f *types.File) bool {
+		return eachTreeValue(f, func(r *types.Repeat) { r.Range_ = false })
+	}},
+	{"capture names are swapped for their text", func(f *types.File) bool {
+		return eachTreeValue(f, func(c *types.CaptureRef) { c.Value = "$z" })
+	}},
+}
+
+// eachTreeValue calls change on every value of type *T in the tree of f and
+// reports whether there was one.
+func eachTreeValue[T any](f *types.File, change func(*T)) bool {
+	found := false
+	seen := map[uintptr]bool{}
+	var walk func(v reflect.Value)
+	walk = func(v reflect.Value) {
+		switch v.Kind() {
+		case reflect.Pointer:
+			if v.IsNil() || seen[v.Pointer()] {
+				return
+			}
+			seen[v.Pointer()] = true
+			if x, ok := v.Interface().(*T); ok {
+				change(x)
+				found = true
+			}
+			walk(v.Elem())
+		case reflect.Interface:
+			if !v.IsNil() {
+				walk(v.Elem())
+			}
+		case reflect.Slice:
+			for i := 0; i < v.Len(); i++ {
+				walk(v.Index(i))
+			}
+		case reflect.Struct:
+			for i := 0; i < v.NumField(); i++ {
+				if v.Type().Field(i).IsExported() {
+					walk(v.Field(i))
+				}
+			}
+		}
+	}
+	walk(reflect.ValueOf(f))
+	return found
+}
+
+func TestGrammarComparisonSeesBrokenAdapters(t *testing.T) {
+	corpus := append(append(append([]string(nil), ownershipCorpus...), nodeBases...), mutantProbes...)
+	for _, b := range brokenTrees {
+		t.Run(b.name, func(t *testing.T) {
+			changed := 0
+			broken := func(src string) (*grammar.Grammar, error) {
+				text, invalid := syntax.WithoutInvalidCharacters(src)
+				f, err := genparser.ParseAST(text)
+				if err != nil || invalid {
+					return adaptCanonical(src)
+				}
+				if b.change(f) {
+					changed++
+				}
+				return syntax.FromSourceTree(src, f)
+			}
+			for _, src := range corpus {
+				if grammarDiff(t, broken, src) != "" {
+					return
+				}
+			}
+			t.Fatalf("no source of the corpus shows the broken adapter (%d trees changed)", changed)
 		})
 	}
 }
