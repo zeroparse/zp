@@ -2496,6 +2496,82 @@ the successful activations of $\sigma$ at $q$ that growth steps and
 evaluations in a context of growths own are at most a constant, apart from
 those kinds and the parts that that claim leaves.
 
+The growth steps themselves remain. By *Calls in a context of growths* and
+*Growths inside a step*, the steps of the growths that are not outer are
+charged to the outer growths whose families hold them, to the input that those
+consume and to scanning sources, so what is left is the steps of the outer
+growths. Each starts at a call of a rule of the cycle that is not a left call
+or a call of a leader in the body of another rule, or through the left calls
+of the cycle from such a call, which is the scanning source that [Conditions
+for Linear Cost](../runtime/parsing.md#conditions-for-linear-cost) names at
+the call, and an outer
+growth can start at each position, as the growths of `R` at each `a` in its
+example do. The following claim counts them as the activations of that source.
+
+**Growths at many positions.** Let $g$ be an outer growth at $p$ whose
+first step succeeds, and let $e_1 < e_2 < \dots < e_m$ be the ends of
+its results that become its current result, in order. For $1 \le i < m$, the
+step of $g$ whose seed ends at $e_i$ and whose result ends at $e_{i+1}$ is a
+**growth activation** at $e_i$ of the scanning source at the call that
+starts $g$; it
+**succeeds**, since it consumes $e_{i+1} - e_i > 0$ past its seed. Then:
+
+1. $g$ takes at most two steps that are not growth activations, and the
+   outer growths number at most two for each key, so the steps of the outer
+   growths number at most a constant times $K\hat{n}$ plus the number of
+   successful growth activations.
+2. Let $\alpha$ and $\alpha'$ be successful growth activations of one source
+   at $q$, of outer growths $g$ at $p$ and $g'$ at $p'$, with $\alpha'$ inside
+   $\alpha$. Then $p < p' = q$ and $g'$ is the outer growth of its key at $q$,
+   one of at most two; or $p < p' < q$ and $g'$ lies in a part of $\alpha$
+   on a path that passes through no read of the growing result of $g$ that
+   succeeds and no call whose result includes one. When that path reads no
+   growing result at $p$ at all, the conclusion of the second case of
+   *Repeats inside a growth* holds for the step $\alpha$.
+
+*Proof.* 1. A growth evaluates the body again while the result gets longer
+([Evaluations of Rules](../runtime/parsing.md#evaluations-of-rules)): its
+first step gives the result that ends at $e_1$, each later step that gives a
+longer result is a growth activation, and the first step that does not ends
+the growth, so $g$ takes at most $m + 1$ steps, of which $m - 1$ are growth
+activations. A growth whose first step fails takes one step. An outer growth
+is a growth of a key, and a key has at most two (*Families of growths*); the
+keys at a position number at most a constant times $K$.
+
+2. $\alpha'$ is a step of $g'$, so $g'$ starts inside $\alpha$, at
+$p' \ge p$. If $p' = p$, $g'$ starts while $g$ grows at $p$; the two calls
+are of one source, so of rules of one cycle, and $g'$ is not outer. So
+$p' > p$, and $p' \le e'_1 \le q$, where $e'_1$ ends the first result of
+$g'$. Step $\alpha$ evaluates the body of the leader of $g$ from $p$, and
+an evaluation inside it that starts at a position after $p$ and before $q$
+lies on a path that passes through no read of the growing result of $g$ that
+succeeds and no call whose result includes one, since such a read ends at the
+end $q$ of the seed and such a result at $q$ or later. If $p' < q$, $g'$ lies
+on such a path. When the path reads no growing result at $p$, it is a part
+at $p$ that the claims before *Calls in a context of growths* bound, and since
+$g'$ consumes input past $q$ for its activation $\alpha'$, so does the unit of
+$\alpha$ that contains it: those claims make $\alpha$
+one of the constant number of steps of $g$ that they leave out, or $q$ at
+most a constant after $p$, or the unit and its continuation a pair that
+step 2 of [Open Steps](#open-steps) keeps, as in the second case of
+*Repeats inside a growth*. If $p' = q$, $g'$ is an outer growth at $q$, and its
+key has at most two. $\square$
+
+Lemma 4 bounds the successful activations of a source at a position from the
+restarts, *Direct activations* and the links, which it proves for
+iterations, operators and skip expressions. Part 2 is the first point of the
+restarts for growth activations, where an iteration has $\alpha'$ inside
+$\alpha$ only through a left call that condition 3 excludes: a step starts at
+the start of its growth, before the position of its activation. What remains
+is to apply the rest of those claims to growth activations, where a growth
+activation differs from an iteration in two ways: it starts at $p$, not at
+$q$, and reads the input from $p$ to $q$ through its seed, which it does not
+evaluate; and the parts that it evaluates at $p$ before its read can
+examine input past $q$, which the claims before *Calls in a context of
+growths* bound only in all but a constant number of steps. Part 2 also leaves
+an outer growth $g'$ that starts before $q$ after a read of the growing result
+of a growth that $\alpha$ nests at $p$, a result that ends before $q$.
+
 ## Lemma 6 (Values and Copies)
 
 Under conditions 1, 2 and 4, the size of the values that actions and
@@ -4486,7 +4562,16 @@ condition of the cost view that the [Cost View](cost-view.md) proof leaves open.
    with the open gap stated with (D) of the memoization proof. Third, the growths that start at many positions, each at
    a call of a rule of the cycle that is not a left call or at a call of a
    leader in the body of another rule, as the repetitions of a scanning
-   source.
+   source. *Growths at many positions* bounds the steps of the outer growths
+   by a constant times $K\hat{n}$ plus their successful growth activations,
+   and shows for these the first point of the restarts, that one does not
+   lie inside another but in bounded cases, apart from an outer growth that
+   starts after the read of a growing result, ending before the position of
+   the activation, of a growth that the step nests at its own position. What
+   remains is to apply the rest of the restarts, *Direct activations* and the
+   links of Lemma 4 to growth activations, which start at the start of their
+   growth, before the position of the activation, and read the input up to it
+   through their seed.
 5. **Chains of bindings in Lemma 11.** The bound $L = O(n)$ that
    [Classification](../runtime/parsing.md#classification) states, which the
    theorem does not use. *Values of variables* in Lemma 11 proves it given
