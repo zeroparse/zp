@@ -141,8 +141,12 @@ func (v *View) withParts(n core.Node, e grammar.Expr) (grammar.Expr, error) {
 	}
 	switch e := e.(type) {
 	case *grammar.Repeat:
+		r, ok := n.(*core.Repeat)
+		if !ok {
+			return nil, fmt.Errorf("a built %T of a %T", n, e)
+		}
 		c := *e
-		c.Expr = x
+		c.Expr, c.Min, c.Max = x, r.Min, r.Max
 		return &c, nil
 	case *grammar.Optional:
 		c := *e
