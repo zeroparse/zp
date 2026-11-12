@@ -42,6 +42,34 @@ func TestStructuralErrorsMatchCompile(t *testing.T) {
 	}
 }
 
+// TestRunErrorsMatchCompile requires Run to report the compiler's errors, in its order, for
+// grammars where the compiler reports an error that depends on the facts together with errors
+// that do not: a second #stream in a cyclic rule is reported once, as the compiler does, and so is
+// a #stream on a cycle after one that is not at the top of the body.
+func TestRunErrorsMatchCompile(t *testing.T) {
+	t.Parallel()
+	for _, tc := range []struct{ name, src string }{
+		{"second stream on a cycle", "@start\nrule main = (main / \"y\")+ #stream (\"z\")+ #stream"},
+		{"stream on a cycle after a nested one", "@start\nrule main = (main / \"y\")+ (\"x\"+ #stream)? (\"z\")+ #stream"},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			g, err := compiletest.Parse(tc.src)
+			if err != nil {
+				t.Fatal(err)
+			}
+			_, cerr := compiletest.Compile(g, compile.Options{})
+			if cerr == nil {
+				t.Fatal("compile accepted the grammar")
+			}
+			_, rerr := Run(g, compile.Options{}, nil)
+			if rerr == nil || rerr.Error() != cerr.Error() {
+				t.Fatalf("Run errors\n%v\ncompile errors\n%v", rerr, cerr)
+			}
+		})
+	}
+}
+
 // TestMergeErrors requires a fact error the compiler did not report to be added in position order,
 // and the compiler's error to be returned as is if it has them all.
 func TestMergeErrors(t *testing.T) {
@@ -54,6 +82,16 @@ func TestMergeErrors(t *testing.T) {
 	got := mergeErrors(diag.ErrorList{a, c}, diag.ErrorList{b})
 	if l := got.(diag.ErrorList); len(l) != 3 || l[0] != a || l[1] != b || l[2] != c {
 		t.Fatalf("merged: %v", got)
+	}
+	// The compiler's order is kept even where it is not the order of the positions.
+	d := pos(4)
+	got = mergeErrors(diag.ErrorList{d, a, c}, diag.ErrorList{b})
+	if l := got.(diag.ErrorList); len(l) != 4 || l[0] != b || l[1] != d || l[2] != a || l[3] != c {
+		t.Fatalf("merged into an unsorted list: %v", got)
+	}
+	got = mergeErrors(diag.ErrorList{c, a}, diag.ErrorList{d})
+	if l := got.(diag.ErrorList); len(l) != 3 || l[0] != c || l[1] != a || l[2] != d {
+		t.Fatalf("appended: %v", got)
 	}
 }
 

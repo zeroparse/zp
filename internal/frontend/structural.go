@@ -80,8 +80,10 @@ func structuralInput(canon *compile.Canonical, control *cancel.Control) (*build.
 	return in, rules
 }
 
-// mergeErrors returns the compiler's error with the fact errors it does not report, in the order of
-// their positions. If the compiler reports all of them, it returns the compiler's error unchanged.
+// mergeErrors returns the compiler's error with the fact errors it does not report. The compiler's
+// errors keep their order; each added error goes before the first error already in the list that
+// comes after it in the source, or last. If the compiler reports all of them, it returns the compiler's error
+// unchanged.
 func mergeErrors(err error, factErrs diag.ErrorList) error {
 	list, ok := err.(diag.ErrorList)
 	if !ok || len(factErrs) == 0 {
@@ -89,18 +91,22 @@ func mergeErrors(err error, factErrs diag.ErrorList) error {
 	}
 	merged := slices.Clone(list)
 	for _, fe := range factErrs {
-		if !slices.ContainsFunc(list, func(e *diag.Error) bool { return *e == *fe }) {
-			merged = append(merged, fe)
+		if slices.ContainsFunc(list, func(e *diag.Error) bool { return *e == *fe }) {
+			continue
 		}
+		i := slices.IndexFunc(merged, func(e *diag.Error) bool { return before(fe.Pos, e.Pos) })
+		if i < 0 {
+			i = len(merged)
+		}
+		merged = slices.Insert(merged, i, fe)
 	}
 	if len(merged) == len(list) {
 		return err
 	}
-	slices.SortStableFunc(merged, func(a, b *diag.Error) int {
-		if a.Pos.Line != b.Pos.Line {
-			return a.Pos.Line - b.Pos.Line
-		}
-		return a.Pos.Col - b.Pos.Col
-	})
 	return merged
+}
+
+// before reports whether a comes before b in the source.
+func before(a, b grammar.Pos) bool {
+	return a.Line < b.Line || a.Line == b.Line && a.Col < b.Col
 }
