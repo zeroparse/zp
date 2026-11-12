@@ -107,7 +107,7 @@ func GenerateParser(g *grammar.Grammar, c gen.Compiler, opts gen.GenOptions, h *
 			return nil, err
 		}
 	}
-	live, err := reachableRules(prog, rec, start)
+	live, err := reachableRules(prog, rec, start, opts.Document)
 	if err != nil {
 		return nil, err
 	}
