@@ -45,6 +45,9 @@ func BenchmarkDocumentVMValuesUnchanged(b *testing.B) {
 // A Document keeps the backend state of its last parse, but not the parser that ran it: the
 // parser holds the whole parse state (runs, trail, slabs), which the next parse replaces.
 func TestDocumentKeptMachineReleasesParser(t *testing.T) {
+	if !document.ReuseDocumentVMValues {
+		t.Skip("the reference build keeps no machine in the Document")
+	}
 	// The lambda makes the closure backend use its machine too.
 	prog := mustCompile(t, `rule main = ls:line* $$ => map($ls, (l) => l)
 rule line = [a-z]+ "\n"`)

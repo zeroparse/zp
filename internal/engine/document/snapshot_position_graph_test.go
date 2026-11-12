@@ -6,7 +6,9 @@ import (
 	"errors"
 	"testing"
 
+	"zeroparse.dev/zp/internal/engine/core"
 	"zeroparse.dev/zp/internal/limits"
+	"zeroparse.dev/zp/internal/value"
 )
 
 func TestSnapshotPositionOverlayZeroAndOverflow(t *testing.T) {
@@ -17,11 +19,11 @@ func TestSnapshotPositionOverlayZeroAndOverflow(t *testing.T) {
 		previous.positions[i] = snapshotPositionDelta{start: -3, end: 4, gen: 9}
 		next.nodes[i] = snapshotRecord{start: 0, end: 9, gen: 9}
 	}
-	p := &parser{control: newBudgetControl(nil, limits.Limits{})}
+	p := &core.Parser{Control: core.NewBudgetControl(nil, limits.Limits{})}
 	shared := shareSnapshotGraph(p, &previous, next)
 	n := snapshotHandle(&shared, 1)
 	materialized := (&Snapshot{graph: shared}).Materialize()
-	if shared.at(0) != previous.at(0) || shared.positions == nil || n.Start() != 0 || n.End() != 9 || materialized.Start != 0 || materialized.End != 9 || materialized.gen != 9 {
+	if shared.at(0) != previous.at(0) || shared.positions == nil || n.Start() != 0 || n.End() != 9 || materialized.Start() != 0 || materialized.End() != 9 || value.D(materialized).Gen != 9 {
 		t.Fatal("zero start or current generation was lost during exact re-sharing")
 	}
 	for i := range previous.nodes {
@@ -36,27 +38,29 @@ func TestSnapshotPositionOverlayZeroAndOverflow(t *testing.T) {
 }
 
 func TestSnapshotPositionOverlayCyclesAndTypedNil(t *testing.T) {
-	root := &Node{Start: 0, End: 128, Children: make([]*Node, 128)}
-	root.Fields = Fields{{"self", root}, {"typedNil", (*Node)(nil)}, {"scalarPosition", 42}}
-	for i := range root.Children {
-		root.Children[i] = &Node{Start: int32(i), End: int32(i + 1), gen: 1}
+	root := value.Ptr(value.Data{Start: 0, End: 128, Children: make([]*value.Node, 128)})
+	value.D(root).Fields = value.Fields{{Name: "self", Value: root}, {Name: "typedNil", Value: (*value.Node)(nil)}, {Name: "scalarPosition", Value: 42}}
+	for i := range value.D(root).Children {
+		value.D(root).Children[i] = value.Ptr(value.Data{Start: int32(i), End: int32(i + 1), Gen: 1})
 	}
-	previous, err := freezeSnapshotGraph(&parser{}, root)
+	previous, err := freezeSnapshotGraph(&core.Parser{}, root)
 	if err != nil {
 		t.Fatal(err)
 	}
 	shifted := root.Clone()
-	shifted.Start, shifted.End, shifted.gen = 3, 131, 2
-	for _, n := range shifted.Children {
-		n.Start += 3
-		n.End += 3
-		n.gen = 2
+	sd := value.D(shifted)
+	sd.Start, sd.End, sd.Gen = 3, 131, 2
+	for _, n := range sd.Children {
+		d := value.D(n)
+		d.Start += 3
+		d.End += 3
+		d.Gen = 2
 	}
-	next, err := freezeSnapshotGraph(&parser{}, shifted)
+	next, err := freezeSnapshotGraph(&core.Parser{}, shifted)
 	if err != nil {
 		t.Fatal(err)
 	}
-	shared := shareSnapshotGraph(&parser{}, &previous, next)
+	shared := shareSnapshotGraph(&core.Parser{}, &previous, next)
 	s := &Snapshot{graph: shared}
 	if shared.positions == nil {
 		t.Fatal("shifted cyclic graph did not share payloads")
@@ -71,18 +75,18 @@ func TestSnapshotPositionOverlayCyclesAndTypedNil(t *testing.T) {
 		t.Fatal("scalar action value shifted")
 	}
 	materialized := s.Materialize()
-	if self, _ := materialized.Fields.Get("self"); self != materialized {
+	if self, _ := value.D(materialized).Fields.Get("self"); self != materialized {
 		t.Fatal("materialized cycle changed")
 	}
-	for i, n := range materialized.Children {
-		if n.Start != int32(i+3) || n.End != int32(i+4) || n.gen != 2 {
+	for i, n := range value.D(materialized).Children {
+		if n.Start() != i+3 || n.End() != i+4 || value.D(n).Gen != 2 {
 			t.Fatal("current metadata lost")
 		}
 	}
 }
 
 func TestSnapshotPositionOverlayBudgetAndRetry(t *testing.T) {
-	if !budgetControlsEnabled {
+	if !core.BudgetControlsEnabled {
 		t.Skip("budget control reference")
 	}
 	previous := snapshotGraph{nodes: make([]snapshotRecord, 128), root: 1}
@@ -90,7 +94,7 @@ func TestSnapshotPositionOverlayBudgetAndRetry(t *testing.T) {
 	for i := range next.nodes {
 		next.nodes[i] = snapshotRecord{start: 3, end: 5, gen: 1}
 	}
-	p := &parser{control: newBudgetControl(nil, limits.Limits{Compute: 264})}
+	p := &core.Parser{Control: core.NewBudgetControl(nil, limits.Limits{Compute: 264})}
 	err := catchFatal(t, func() { shareSnapshotGraph(p, &previous, next) })
 	var limit *limits.LimitError
 	if !errors.As(err, &limit) || limit.Kind != limits.LimitCompute || limit.Requested != 3 {
@@ -99,7 +103,7 @@ func TestSnapshotPositionOverlayBudgetAndRetry(t *testing.T) {
 	if previous.positions != nil || next.positions != nil || previous.nodes[0].start != 0 || next.nodes[0].start != 3 {
 		t.Fatal("interrupted copy changed the input graphs")
 	}
-	shared := shareSnapshotGraph(&parser{}, &previous, next)
+	shared := shareSnapshotGraph(&core.Parser{}, &previous, next)
 	if shared.positions == nil || snapshotHandle(&shared, 1).Start() != 3 {
 		t.Fatal("retry lost shifted positions")
 	}
