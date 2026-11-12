@@ -148,17 +148,20 @@ func (v *verifier) callGraph() error {
 
 // topNodes returns the nodes of a rule body where a Stream may occur: the body, the items of its
 // sequence, also those of a sequence that a label or a nested sequence wraps, and the body of a
-// capture that is one of these, each with the labels around it.
+// capture or a label that is one of these, where the grammar allows #stream.
 func topNodes(body Node) map[Node]bool {
 	top := map[Node]bool{}
 	mark := func(n Node) {
 		for {
 			top[n] = true
-			l, ok := n.(*Label)
-			if !ok {
+			switch x := n.(type) {
+			case *Label:
+				n = x.Body
+			case *Capture:
+				n = x.Body
+			default:
 				return
 			}
-			n = l.Body
 		}
 	}
 	var items func(n Node)
@@ -173,9 +176,6 @@ func topNodes(body Node) map[Node]bool {
 		if s, ok := n.(*Seq); ok {
 			for _, it := range s.Items {
 				mark(it)
-				if c, ok := it.(*Capture); ok {
-					mark(c.Body)
-				}
 				items(it)
 			}
 		}

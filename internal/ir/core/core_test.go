@@ -539,10 +539,9 @@ func TestVerifyRejects(t *testing.T) {
 				rule(1, "b", &Nest{Rule: 0, Body: &Capture{Slot: 0, Name: "x", Body: lit("a")}}, "x"),
 			)
 		}, "slot 0 x not in scope [y]"},
-		{"stream in a capture of a capture", func() *Module {
+		{"stream in a capture below the top", func() *Module {
 			stream := &Stream{Repeat: &Repeat{Max: -1, Body: lit("a")}}
-			inner := &Capture{Slot: 1, Name: "y", Body: stream}
-			m := module(rule(0, "a", seq(&Capture{Slot: 0, Name: "x", Body: inner}), "x", "y"))
+			m := module(rule(0, "a", seq(lit("b"), &Opt{Body: &Capture{Slot: 0, Name: "x", Body: stream}}), "x"))
 			m.Starts = []int{0}
 			return m
 		}, "stream not at the top of a rule body"},
@@ -655,8 +654,8 @@ func TestVerifyRejects(t *testing.T) {
 }
 
 // TestVerifyAcceptsStreamInLabeledSequence checks that a stream in a sequence that a label wraps, or in
-// a sequence nested in a label, is at the top of a rule body, as in the grammar, whether or not the
-// rule is a start rule. Only in a start rule does the stream have the Commit effect.
+// a sequence nested in a label, or in captures and labels at such a place, is at the top of a rule
+// body, as in the grammar, whether or not the rule is a start rule. Only in a start rule does the stream have the Commit effect.
 func TestVerifyAcceptsStreamInLabeledSequence(t *testing.T) {
 	stream := func() *Stream { return &Stream{Repeat: &Repeat{Max: -1, Body: lit("a")}} }
 	for name, body := range map[string]func() Node{
@@ -664,9 +663,14 @@ func TestVerifyAcceptsStreamInLabeledSequence(t *testing.T) {
 		"label around the sequence": func() Node { return &Label{Body: seq(stream(), lit("!"))} },
 		"label around the stream":   func() Node { return seq(&Label{Body: stream()}, lit("!")) },
 		"nested labeled sequence":   func() Node { return seq(&Label{Body: seq(lit("b"), stream())}, lit("!")) },
+		"capture as the body":       func() Node { return &Capture{Slot: 0, Name: "x", Body: stream()} },
+		"capture of a capture": func() Node {
+			return seq(&Capture{Slot: 0, Name: "x", Body: &Capture{Slot: 1, Name: "y", Body: stream()}})
+		},
+		"label in a capture": func() Node { return seq(&Capture{Slot: 0, Name: "x", Body: &Label{Body: stream()}}, lit("!")) },
 	} {
 		for _, start := range []bool{true, false} {
-			m := module(rule(0, "a", body()))
+			m := module(rule(0, "a", body(), "x", "y"))
 			if start {
 				m.Starts = []int{0}
 			}
