@@ -75,15 +75,14 @@ type ctxResult struct {
 	silent   bool
 }
 
-// growRec is a growth in progress: the leader's key, its cycle and bit, its current seed and the
-// seed's identity. A growth in no context holds its seed in inl (seed is nil), which no table
+// growRec is a growth in progress: the leader's key, its cycle and index (Rule.leaderIndex), its
+// current seed and the seed's identity. A growth in no context holds its seed in inl (seed is nil), which no table
 // shares, so that its steps allocate nothing.
 type growRec struct {
 	rule, min int32
 	pos       int
 	cycle     int32
-	bit       uint32
-	idx       int32 // Rule.leaderIndex
+	idx       int32
 	seed      *ctxResult
 	id        uint64
 	inl       ctxResult
@@ -276,19 +275,14 @@ type ctxCallState struct {
 	framed  bool   // the call records its dependencies
 }
 
-// setLeaderBits numbers the leaders of each cycle of rules (Rule.leaderIndex) and gives the first
-// maxLeaderBits of each a bit (Rule.leaderBit).
-func setLeaderBits(rules []*Rule) {
+// numberLeaders numbers the leaders of each cycle of rules (Rule.leaderIndex).
+func numberLeaders(rules []*Rule) {
 	n := map[int32]int32{}
 	for _, r := range rules {
-		r.leaderBit, r.leaderIndex = 0, 0
+		r.leaderIndex = 0
 		if r.Leader && r.Cycle != 0 {
-			k := n[r.Cycle]
+			r.leaderIndex = n[r.Cycle]
 			n[r.Cycle]++
-			r.leaderIndex = k
-			if k < maxLeaderBits {
-				r.leaderBit = 1 << k
-			}
 		}
 	}
 }
@@ -337,11 +331,11 @@ func (p *Parser) gammaFind(gp int, rule, min int32) int {
 func (p *Parser) present(gp int) uint32 {
 	var m uint32
 	for i := gp; i < len(p.gamma); i++ {
-		b := p.gamma[i].bit
-		if b == 0 {
+		k := p.gamma[i].idx
+		if k >= maxLeaderBits {
 			return p.presentWide(gp)
 		}
-		m |= b
+		m |= 1 << k
 	}
 	return m
 }
@@ -366,11 +360,13 @@ func (p *Parser) presentWide(gp int) uint32 {
 	return presentWide | uint32(p.intern(key))
 }
 
-// intern returns a number below 2^31 for key that no other key has while a growth is in progress
-// (more keys than that would not fit in memory). The numbers
-// identify present sets and outcomes too large for a word; they appear only in the context tables
-// and dependencies of growths in progress, and the parser forgets them when the last growth ends
-// (growEnd).
+// intern returns a number from 1 for key that no other key has while a growth is in progress. The
+// numbers identify present sets and outcomes too large for a word; they appear only in the context
+// tables and dependencies of growths in progress, so the parser forgets them and numbers again
+// from 1 when the last growth ends (growEnd). They stay below 2^31, as more keys would not fit in
+// memory. Like the chunks of the allocators, an entry is charged to memUsed when it is made and is
+// not given back when it is forgotten: the charge is bounded by the compute unit each entry
+// spends.
 func (p *Parser) intern(key []byte) uint64 {
 	if v, ok := p.interned[string(key)]; ok {
 		return v
@@ -436,8 +432,7 @@ func (p *Parser) ctxPush(c *ctxCallState) {
 
 // The ways a memoized call stores its result (ctxPop).
 const (
-	storeNone = iota // nowhere: unused, as every call in a context records its dependencies
-	storeMemo        // in the memo, with the present set of the call
+	storeMemo = iota // in the memo, with the present set of the call
 	storeCtx         // in the table of the context (ctxKeep)
 )
 
@@ -1009,7 +1004,7 @@ func (p *Parser) growBegin(r *Rule, min int) growState {
 		p.gamma = append(p.gamma, growRec{})
 	}
 	rec := &p.gamma[g.gi]
-	rec.rule, rec.min, rec.pos, rec.cycle, rec.bit, rec.idx, rec.id = g.rule, g.min, g.start, r.Cycle, r.leaderBit, r.leaderIndex, failSeed
+	rec.rule, rec.min, rec.pos, rec.cycle, rec.idx, rec.id = g.rule, g.min, g.start, r.Cycle, r.leaderIndex, failSeed
 	if g.gp < g.gi {
 		// The seeds of a growth in a context can be shared by equal results (canonicalSeed).
 		rec.seed = &ctxResult{end: g.start, examined: p.examinedNow()}
@@ -1167,6 +1162,7 @@ func (p *Parser) growEnd(g *growState) ctxResult {
 	p.gamma = p.gamma[:g.gi]
 	if g.gi == 0 && len(p.interned) > 0 {
 		clear(p.interned)
+		p.internSeq = 0
 	}
 	p.Pos = best.end
 	p.Recovered = p.Recovered[:g.rec]

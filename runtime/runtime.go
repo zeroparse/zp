@@ -894,10 +894,9 @@ type Rule struct {
 	// any other rule: a call of a rule of a cycle can read the seeds of the cycle's leaders that grow
 	// at its position (context_memo.go).
 	Cycle int32
-	// leaderIndex numbers the leaders of each cycle from 0, and leaderBit is the bit of a leader
-	// in the present sets of the results of its cycle, or 0 (setLeaderBits).
+	// leaderIndex numbers the leaders of each cycle from 0 (numberLeaders); the first maxLeaderBits
+	// of a cycle have the bit 1<<leaderIndex in the present sets of its results.
 	leaderIndex int32
-	leaderBit   uint32
 	// DocMemo means Documents memoize the rule, transient or not, as the engine does for a leader
 	// and for a rule marked for memoization.
 	DocMemo bool
@@ -1054,7 +1053,7 @@ func (g *grammar) DeclareStruct(name string, fieldZeros ...string) {
 func (g *grammar) SetRules(rules []*Rule, nseen int) {
 	g.rules, g.nseen = rules, nseen
 	defer g.indexInitVals()
-	setLeaderBits(rules)
+	numberLeaders(rules)
 	for _, r := range rules {
 		r.g = g
 		r.kinds = newRuleKinds(r.Name)
@@ -1452,13 +1451,10 @@ type Parser struct {
 	looks    []lookRec
 	obsGuard []int32
 	seedSeq  uint64
-	// interned and internSeq number keys too large for a word (intern).
-	interned  map[string]uint64
-	internSeq uint64
-	unit      PositionUnit
-	In        []rune // code points (CodePoints)
-	bs        string // the input (Bytes)
-	n         int    // input length in units
+	unit     PositionUnit
+	In       []rune // code points (CodePoints)
+	bs       string // the input (Bytes)
+	n        int    // input length in units
 	// src and offs give token text without copying in CodePoints mode: offs[i] is the byte offset
 	// of code point i (len(in)+1 entries). For invalid UTF-8, offs is nil until the first text
 	// replaces src by the decoded input (with U+FFFD substituted) and builds its table; decoded
@@ -1542,6 +1538,10 @@ type Parser struct {
 	// moved maps the nodes of a value that holds a node more than once to their copies
 	// (documentMove).
 	moved map[*Node]*Node
+	// interned and internSeq number keys too large for a word while a growth is in progress (intern).
+	// They come last, away from the fields of every parse.
+	interned  map[string]uint64
+	internSeq uint64
 }
 
 // documentState owns reusable memo entries. The regular Parse path never sets

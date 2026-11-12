@@ -64,6 +64,7 @@ const (
 	CtxNarrowPresent              // a context whose present set needs more than a word records nothing
 	CtxNarrowOutcome              // a lookahead whose examined range needs more than a word is not stored
 	CtxStrictMissing              // a parse with missing-token insertion keeps no result in a context
+	CtxStoreInserts               // rules that insert tokens keep their results in contexts too
 )
 
 // growRec is a growth in progress: the leader's key, its current seed and the seed's identity.
@@ -278,7 +279,7 @@ func (p *Parser) strictCtx() bool {
 // nothing and reads only seeds of leaders that insert nothing, so its results do not depend on
 // the insertions, and are kept in contexts as in a parse without insertion.
 func (p *Parser) inserts(r *Rule) bool {
-	return p.Missing != nil && r.Missing
+	return p.Missing != nil && r.Missing && ContextMemoMutation != CtxStoreInserts
 }
 
 // gammaAt returns the index of the first growth of the cycle at pos that the innermost growths
@@ -357,11 +358,13 @@ func (p *Parser) presentWide(gp int) uint64 {
 	return p.intern(key, presentWide)
 }
 
-// intern returns the identity of key: tag with a number below 2^60 that no other key has while a
-// growth is in progress. The identities are those of present sets and outcomes too large for a word
-// (presentWide, obsWide); they appear
-// only in the context tables and dependencies of growths in progress, and the parser forgets them
-// when the last growth ends (GrowEnd).
+// intern returns the identity of key: tag with a number from 1 that no other key has while a growth
+// is in progress. The identities are those of present sets and outcomes too large for a word
+// (presentWide, obsWide); they appear only in the context tables and dependencies of growths in
+// progress, so the parser forgets them and numbers again from 1 when the last growth ends
+// (GrowEnd). The numbers stay below 2^60, as more keys would not fit in memory. Like the chunks of
+// the allocators, an entry is charged to MemUsed when it is made and is not given back when it is
+// forgotten: the charge is bounded by the compute unit each entry spends.
 func (p *Parser) intern(key []byte, tag uint64) uint64 {
 	if v, ok := p.interned[string(key)]; ok {
 		return v
