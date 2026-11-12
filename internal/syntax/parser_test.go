@@ -163,11 +163,11 @@ func TestParseErrors(t *testing.T) {
 		{`foo`, `1:1: expected type, var or rule declaration`},
 		{"rule a = (b\nrule c = d", `2:8: expected rule expression`},
 		{`type A = { X }`, `1:14: expected field type`},
-		{`type A struct { X }`, `1:8: expected '= {', '= node[' or '~'`},
-		{`type A = B`, `1:8: expected '= {', '= node[' or '~'`},
+		{`type A struct { X }`, `1:8: a struct type is defined as type Name = { ... }`},
+		{`type A = B`, `1:8: expected '{' or 'node[' after '='; write type Name ~ Type for an alias`},
 		{`type A B`, `1:8: expected '= {', '= node[' or '~'`},
 		{`type A = node[string, int]`, `1:23: a node type takes one type argument`},
-		{`type A = node`, `1:8: expected '= {', '= node[' or '~'`},
+		{`type A = node`, `1:8: expected '{' or 'node[' after '='; write type Name ~ Type for an alias`},
 		{`rule a = #operators { level { infix "+" } }`, `1:37: expected left, right, or none associativity`},
 		{"rule a = #operators\n{ operand \"x\" }", `1:10: expected rule expression`},
 		{`rule a = #operators`, `1:10: expected rule expression`},
@@ -270,7 +270,7 @@ func TestParseRejectsTerminalType(t *testing.T) {
 	if !ok || len(list) != 1 {
 		t.Fatalf("got %v, want exactly one error", err)
 	}
-	const want = "expected '= {', '= node[' or '~'"
+	const want = "a terminal type is the struct type Name = { Text string }"
 	if list[0].Msg != want || list[0].Pos != (grammar.Pos{Line: 1, Col: 8}) {
 		t.Errorf("got %v, want 1:8: %s", err, want)
 	}
@@ -323,20 +323,20 @@ func TestParsePositionalConstructorArity(t *testing.T) {
 	}
 }
 
-// The retired type names are not names of types: Parse rejects them where a type is expected, and
-// the legacy reader of zp fix still reads them.
+// The retired type names are not names of types: Parse rejects them where a type is expected, with
+// the type to write instead, and the legacy reader of zp fix still reads them.
 func TestParseRejectsRetiredTypeNames(t *testing.T) {
-	for _, name := range []string{"terminal", "Match", "Seq", "List", "Operator", "Error"} {
-		for _, position := range []struct{ name, src, want string }{
-			{"struct field", "type R = { F NAME }", "expected field type"},
-			{"alias", "type R ~ NAME", "expected type"},
-			{"rule type", "rule r NAME = \"x\"", "expected '=' after rule header"},
-			{"list", "type R ~ []NAME", "expected type"},
-			{"pointer", "type R = { F *NAME }", "expected field type"},
-			{"join", "type R ~ int | NAME", "syntax error: expected"},
-			{"nested", "type R = { F []*NAME }", "expected field type"},
-			{"type application", "type R = { F NAME[int] }", "expected field type"},
-			{"cast", "rule r = x:\"x\" => $x.(NAME)", "syntax error: expected"},
+	for _, name := range []string{"terminal", "Match", "Seq", "List", "Operator", "Error", "Missing"} {
+		for _, position := range []struct{ name, src string }{
+			{"struct field", "type R = { F NAME }"},
+			{"alias", "type R ~ NAME"},
+			{"rule type", "rule r NAME = \"x\""},
+			{"list", "type R ~ []NAME"},
+			{"pointer", "type R = { F *NAME }"},
+			{"join", "type R ~ int | NAME"},
+			{"nested", "type R = { F []*NAME }"},
+			{"type application", "type R = { F NAME[int] }"},
+			{"cast", "rule r = x:\"x\" => $x.(NAME)"},
 		} {
 			t.Run(name+"/"+position.name, func(t *testing.T) {
 				src := strings.Replace(position.src, "NAME", name, 1)
@@ -346,8 +346,9 @@ func TestParseRejectsRetiredTypeNames(t *testing.T) {
 					t.Fatalf("got %v, want exactly one error", err)
 				}
 				col := strings.Index(src, name) + 1
-				if !strings.HasPrefix(list[0].Msg, position.want) || list[0].Pos != (grammar.Pos{Line: 1, Col: col}) {
-					t.Errorf("got %v, want 1:%d: %s", err, col, position.want)
+				want := fmt.Sprintf("%s is not a type; write %s", name, valueTypeNames[name])
+				if list[0].Msg != want || list[0].Pos != (grammar.Pos{Line: 1, Col: col}) {
+					t.Errorf("got %v, want 1:%d: %s", err, col, want)
 				}
 				if _, _, err := parseLegacy(src); err != nil {
 					t.Errorf("parseLegacy: %v", err)
@@ -368,7 +369,7 @@ func TestParseRejectsBareNode(t *testing.T) {
 	} {
 		_, err := Parse(src)
 		list, ok := err.(ErrorList)
-		if !ok || len(list) != 1 || list[0].Msg != bareNode+" (zp fix rewrites it)" {
+		if !ok || len(list) != 1 || list[0].Msg != bareNode {
 			t.Errorf("Parse(%q): got %v, want one error %q", src, err, bareNode)
 		}
 		fixed, err := Fix(src)

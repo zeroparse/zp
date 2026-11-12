@@ -100,13 +100,33 @@ func sourceErrorsOf(src string, err error) ([]SourceError, bool) {
 	case errors.As(err, &list):
 		out := make([]SourceError, 0, len(list))
 		for _, e := range list {
-			out = append(out, SourceError{Offset: e.Pos, Msg: e.Message()})
+			out = append(out, SourceError{Offset: e.Pos, Msg: message(e)})
 		}
 		return out, true
 	case errors.As(err, &one):
-		return []SourceError{{Offset: one.Pos, Msg: one.Message()}}, true
+		return []SourceError{{Offset: one.Pos, Msg: message(one)}}, true
 	}
 	return nil, false
+}
+
+// trivia are the names that the grammar of the source gives to white space and to the start of a
+// comment. Either may stand between any two tokens, so naming them in what a syntax error expects
+// tells nothing.
+var trivia = map[string]bool{"whitespace": true, "comment": true}
+
+// message is the message of a syntax error of the generated parser without the trivia among the
+// expected items.
+func message(e *genparser.SyntaxError) string {
+	if len(e.Messages) > 0 {
+		return e.Message()
+	}
+	kept := &genparser.SyntaxError{}
+	for _, x := range e.Expected {
+		if !trivia[x] {
+			kept.Expected = append(kept.Expected, x)
+		}
+	}
+	return kept.Message()
 }
 
 // deepestOpening returns the code point offset in src of the first opening

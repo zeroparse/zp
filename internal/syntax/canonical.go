@@ -532,6 +532,14 @@ func (c *canonical) types(list []types.Type) []grammar.TypeExpr {
 	return out
 }
 
+// typeName reports a retired name of a concrete syntax tree type, which the grammar reads as the
+// name of a type, with the type that replaces it.
+func (c *canonical) typeName(name *types.Ident) {
+	if replacement, ok := valueTypeNames[name.Value]; ok {
+		c.errs.add(c.pos.At(name.Start), fmt.Sprintf("%s is not a type; write %s", name.Value, replacement))
+	}
+}
+
 // typ builds a type expression: a types.Type, or the types.DefinedType of a
 // type definition.
 func (c *canonical) typ(n any) grammar.TypeExpr {
@@ -539,8 +547,9 @@ func (c *canonical) typ(n any) grammar.TypeExpr {
 	case *types.TypeRef:
 		t := &grammar.TypeRef{Name: c.name(n.Name)}
 		if t.Name == "node" {
-			c.errs.add(c.pos.At(n.Name.Start), bareNode+" (zp fix rewrites it)")
+			c.errs.add(c.pos.At(n.Name.Start), bareNode)
 		}
+		c.typeName(n.Name)
 		c.span(&t.SourceInfo, n)
 		return t
 	case *types.Bottom:
@@ -549,6 +558,7 @@ func (c *canonical) typ(n any) grammar.TypeExpr {
 		return t
 	case *types.TypeApp:
 		t := &grammar.TypeApp{Name: c.name(n.Name)}
+		c.typeName(n.Name)
 		t.Args = c.types(n.Args)
 		c.span(&t.SourceInfo, n)
 		return t
