@@ -116,8 +116,8 @@ lists: in every parse of the engine, whose traces report them, and in a
 [Document](../runtime/documents.md) parse of a generated Go parser. A parse that records
 no range may, in (D), take two observations to be the same when the
 expressions of both lookaheads matched or both failed, and two current results
-to be equal whatever their ranges. Lemma 4 then gives $y$ its outcome but not
-necessarily the range $\rho$: an observed lookahead leaves nothing
+to be equal whatever their ranges. Lemma 4 asks nothing of ranges and gives
+$y$ its outcome all the same: an observed lookahead leaves nothing
 after it but whether its expression matched, and its range enters only the
 range of the call around it. For such a parse the proof below holds
 with the ranges left out, that is, with soundness, Lemma 3, Lemma 4 and the
@@ -355,13 +355,17 @@ in a context $\Gamma_1$ with the present set $P$, have the outcome $\omega$
 and the range $\rho$, and let a call $y$ of the same key in a state
 $\lambda' \ge \lambda$, in a context $\Gamma_2$ with the present set $P$, find
 each growth that $x$ read open with a current result that **matches** the one
-that $x$ read, and each lookahead at $p$ that $x$ observed with the same
-observation. A current result matches another when it is equal to it or, if
-$\lambda' = 1$, agrees with it and has the same examined range. Then $y$ has the
-range $\rho$, and the outcome $\omega$ if $\lambda' = 0$, and one that agrees
-with $\omega$ if $\lambda' = 1$. Outside the lookaheads that $x$ observed, the
-two evaluations make the same calls at the same positions and take the same
-decisions.
+that $x$ read, and each lookahead at $p$ that $x$ observed with an observation
+that matches the one that $x$ made. Apart from their examined ranges, a
+current result matches another when it is equal to it or, if $\lambda' = 1$,
+agrees with it, and an observation matches another when the expressions of
+both lookaheads matched or both failed. Then $y$ has the outcome $\omega$ if
+$\lambda' = 0$, and one that agrees with $\omega$ if $\lambda' = 1$, and a
+range contained in the hull of $\rho$ and of the ranges of the current results
+and observed lookaheads that $y$ reads; that hull is $\rho$ itself when those
+ranges are the ones that $x$ read. Outside the lookaheads that $x$ observed,
+the two evaluations make the same calls at the same positions and take the
+same decisions.
 
 *Proof.* Compare the evaluations of $x$ and $y$ from their start. They take
 the same steps as long as each step reads the same state, or one that differs
@@ -380,9 +384,9 @@ A step inside a lookahead within $x$ is in state $1$ in both.
 A call of a leader at $p$ is answered with a current result in both or in
 neither: only a growth of the cycle of the rule can answer it (Lemma 2), and
 the present sets are equal; when it is, the results match, since $x$ read it,
-so they have the same $s$, $q$ and examined range and values that agree. A
+so they have the same $s$ and $q$ and values that agree. A
 lookahead at $p$ that reads such a growth and that
-$x$ observed has the same outcome and range in both, and nothing else of it
+$x$ observed matched in both or failed in both, and nothing else of it
 remains after it: by (A1) its expression records no expected item and no
 farthest failure; a failing expression and a negative lookahead have no other
 effect; and an observed positive lookahead leaves no capture or binding, those
@@ -397,10 +401,13 @@ at a later position reads no growth open at the start of $x$ (Lemma 2), so by
 Lemma 1 its outcomes in the two evaluations are equal when the states are, and
 agree otherwise.
 
-So the two evaluations take the same decisions, with the same steps and
-examined ranges, and their outcomes differ at most where the current results
-that they read and the lookahead states differ: not at all when
-$\lambda' = 0$, and only in what agreement allows when $\lambda' = 1$.
+So the two evaluations take the same decisions, with the same steps, and
+their outcomes differ at most where the current results that they read and the
+lookahead states differ: not at all when $\lambda' = 0$, and only in what
+agreement allows when $\lambda' = 1$. They examine the same input outside the
+current results and observed lookaheads that they read, and a caller takes the
+hull with the range of each outcome it records, so the range of $y$ is
+contained in the hull of $\rho$ and of the ranges of those that $y$ reads.
 $\square$
 
 ## Theorem (Memoization Never Changes the Result)
@@ -459,16 +466,27 @@ following.
 4. *A call answered from an entry.* By (I3) the entry is sound, so by Lemma 3
    (I1) and (I2) hold for $x$. A call answered from a result that (D) keeps,
    in its state or in a smaller one, was answered under the conditions of
-   Lemma 4, and that result was the outcome and range of an evaluation of
+   Lemma 4, and that result was the outcome and range of an evaluation $x'$ of
    $\mathcal{M}$ that completed before, which satisfies (I1) and (I2). The
-   current results that the two read are equal in both parses in state $0$ and
-   agree in state $1$, by (I1), so they match in $\mathcal{R}$ as they do in
-   $\mathcal{M}$. By Lemma 4 the outcome of $x$ in $\mathcal{R}$ is then that
-   of the earlier evaluation in $\mathcal{R}$ if $x$ is in state $0$, and
-   agrees with it if $x$ is in state $1$, and agreement is an equivalence, so
-   (I1) and (I2) hold for $x$. A step of a growth
-   answered in the same way has by Lemma 4 the outcome that evaluating it
-   gives, or one that agrees with it in state $1$. In a run of steps of a growth of $L$ taken at once, from current
+   current results and observations that $x$ and $x'$ read are equal in
+   $\mathcal{M}$, and by (I1) their outcomes in $\mathcal{R}$ are those in
+   $\mathcal{M}$ in state $0$ and agree with them in state $1$, so they match
+   in $\mathcal{R}$ as they do in $\mathcal{M}$. By Lemma 4 the outcome of $x$
+   in $\mathcal{R}$ is then that of $x'$ in $\mathcal{R}$ if $x$ is in state
+   $0$, and agrees with it if $x$ is in state $1$, and agreement is an
+   equivalence, so (I1) holds for $x$. By Lemma 4 the range of $x$ in
+   $\mathcal{R}$ is contained in the hull of the range of $x'$ in
+   $\mathcal{R}$ and of the ranges in $\mathcal{R}$ of the current results and
+   observed lookaheads that $x$ reads. Each of these is contained in the range
+   of $x'$ in $\mathcal{M}$, which $\mathcal{M}$ gives $x$: the first by (I2)
+   for $x'$, and the others by (I2) for the evaluations that gave them in
+   $\mathcal{M}$, whose ranges are those of the current results and
+   observations that $x'$ read, which the range of $x'$ contains, since a
+   caller takes the hull with each range that it records. So (I2) holds for
+   $x$. A step of a growth answered in the same way has by Lemma 4 the outcome
+   that evaluating it gives, or one that agrees with it in state $1$, and by
+   the same argument a range that its range in $\mathcal{M}$ contains. In a
+   run of steps of a growth of $L$ taken at once, from current
    results $r_0, \dots, r_{k-1}$ to $r_1, \dots, r_k$, step $i$ read only the
    growth of $L$, with the current result $r_{i-1}$, and observed lookaheads.
    The run is taken from a current result equal to $r_0$, and each of those
@@ -477,7 +495,10 @@ following.
    of $L$ is the same whatever that result is, so each lookahead also has that
    observation while the current result is $r_{i-1}$. By induction on $i$,
    Lemma 4 gives step $i$ the outcome $r_i$, or one that agrees with it in
-   state $1$, so the run has the outcomes that evaluating its steps gives.
+   state $1$, and, by the argument for a call, a range in $\mathcal{R}$ that
+   the range of $r_i$ in $\mathcal{M}$ contains, since that range contains the
+   range of $r_{i-1}$ and of the observations of step $i$. So the run has the
+   outcomes that evaluating its steps gives, and (I2) holds for it.
 5. *A call that evaluates the body of a rule, or grows a leader.* A body
    evaluation is nested in $x$ and satisfies (I1) and (I2). A growth evaluates
    the body with the current result fixed, compares the end of its outcome with
