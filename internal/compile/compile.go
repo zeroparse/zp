@@ -244,6 +244,9 @@ type Compiler struct {
 	missingSiteIDs map[*grammar.Attribute]int
 	// runSites numbers the repetitions that a Document can resume (resumable.go).
 	runSites int
+	// lowering reports a walk of CompileProgram: the program is checked, and the walk reads it
+	// without writing the rule flags and projections that Check recorded.
+	lowering bool
 }
 
 // desc returns the index of an expectation string (adding it to Program.DescTable).
@@ -641,9 +644,10 @@ func checkWith[M any](g *grammar.Grammar, opts Options, flags []RuleFlags, names
 
 // CompileProgram lowers the program that Check made to a backend's form: it walks the rule bodies
 // again, in the order Check walked them, and calls the builder that builder returns for the
-// compiler, which builds the bodies. The walk decides nothing new: the scopes, twins, sites and
-// expectations are those of the checked program, and it reports no errors, because Check reported
-// them; it returns an error only for a program that Check did not make.
+// compiler, which builds the bodies. The walk decides nothing new and writes nothing of the
+// program: the scopes, twins, rule flags, projections, sites and expectations are those of the
+// checked program, so one program may be lowered several times at once. It reports no errors,
+// because Check reported them; it returns an error only for a program that Check did not make.
 func CompileProgram[M any](prog *Program, control *cancel.Control, builder func(*Compiler) ExprBuilder[M]) error {
 	if prog == nil || !prog.checked {
 		return errors.New("compile: the program was not made by Check")
@@ -651,18 +655,16 @@ func CompileProgram[M any](prog *Program, control *cancel.Control, builder func(
 	control.Check()
 	// Without an analysis (an, ins) the walk skips the checks that read one, as it does for the
 	// rule flags of a loaded program; the expectation IDs are found again in the table.
-	c := &Compiler{Control: control, Prog: prog, opts: prog.Opts, descIDs: make(map[string]ExpID, len(prog.DescTable))}
+	c := &Compiler{Control: control, Prog: prog, opts: prog.Opts, descIDs: make(map[string]ExpID, len(prog.DescTable)), lowering: true}
 	for i, d := range prog.DescTable {
 		if _, ok := c.descIDs[d]; !ok {
 			c.descIDs[d] = ExpID(i)
 		}
 	}
+	// The checker's shape control is Check's: lowering writes nothing of the checked program, so
+	// that programs may be lowered while others read them, and it polls control as it walks.
 	if control != nil {
-		prog.Checker().SetShapeControl(control)
-		defer func() {
-			prog.Checker().SetShapeControl(nil)
-			c.Control = nil
-		}()
+		defer func() { c.Control = nil }()
 	}
 	descs, twins := len(prog.DescTable), len(prog.Twins)
 	w := &Walker[M]{Compiler: c, Builder: builder(c)}
