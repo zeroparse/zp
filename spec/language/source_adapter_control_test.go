@@ -229,7 +229,7 @@ var grammarMutants = []struct{ name, old, new string }{
 	{"top takes a name", `rule top Top = ("_" !ident_char) #atomic`, `rule top Top = ("_") #atomic`},
 	{"plus is not an operator", `infix left "+" / "-" !"-"`, `infix left "-" !"-"`},
 	{"list type becomes optional", `prefix "[]" => ListType{Type: $rhs}`, `prefix "[]" => OptionalType{Type: $rhs}`},
-	{"zero is not an escape", `[ntrfvab0]`, `[ntrfvab]`},
+	{"an action string has no escapes", `("\"" ("\\" . / [^"\\\n])* "\"" !"[")`, `("\"" [^"\\\n]* "\"" !"[")`},
 	{"none is not an associativity", `("left" / "right" / "none")`, `("left" / "right")`},
 	{"ignore-case suffix is another letter", `("i" !ident_char)?`, `("j" !ident_char)?`},
 	{"block comments do not start a comment", `rule source_comment_start = "//" / "/*"`, `rule source_comment_start = "//"`},
@@ -242,6 +242,7 @@ var grammarMutants = []struct{ name, old, new string }{
 var mutantProbes = []string{
 	"rule a = _x\n",
 	"rule a = \"\\0\"\n",
+	"rule a = x => \"a\\\"b\"\n",
 	"rule e = #operators { operand \"1\"\n level l { infix none \"==\" } }\n",
 	"rule a = x\n// a\n/* b */\nrule b = y\n",
 	"rule a = x // t\n/* b */ // c\nrule b = y\n",

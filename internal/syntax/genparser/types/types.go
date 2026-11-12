@@ -1139,6 +1139,7 @@ func (v *ActionBlock) TFieldSpend(p *rt.TParser, name string) (any, bool) {
 				sp := zc.Next()
 				kids := make([]any, len(v.Actions))
 				for i, x := range v.Actions {
+					p.Spend()
 					kids[i] = rt.TBack(ZPHooks, x)
 				}
 				return zpListFieldAt(p, kids, sp)
@@ -1157,6 +1158,7 @@ func (v *ActionBlock) TFieldSpend(p *rt.TParser, name string) (any, bool) {
 				sp := zc.Next()
 				kids := make([]any, len(v.Comments))
 				for i, x := range v.Comments {
+					p.Spend()
 					kids[i] = rt.TBack(ZPHooks, x)
 				}
 				return zpListFieldAt(p, kids, sp)
@@ -1258,6 +1260,7 @@ func (v *ActionTuple) TFieldSpend(p *rt.TParser, name string) (any, bool) {
 			}
 			kids := make([]any, len(v.Elems))
 			for i, x := range v.Elems {
+				p.Spend()
 				kids[i] = rt.TBack(ZPHooks, x)
 			}
 			return p.ListField(kids)
@@ -1369,6 +1372,7 @@ func (v *Attr) TFieldSpend(p *rt.TParser, name string) (any, bool) {
 				sp := zc.Next()
 				kids := make([]any, len(v.Args))
 				for i, x := range v.Args {
+					p.Spend()
 					kids[i] = rt.TBack(ZPHooks, x)
 				}
 				return zpListFieldAt(p, kids, sp)
@@ -1387,6 +1391,7 @@ func (v *Attr) TFieldSpend(p *rt.TParser, name string) (any, bool) {
 				sp := zc.Next()
 				kids := make([]any, len(v.KwArgs))
 				for i, x := range v.KwArgs {
+					p.Spend()
 					kids[i] = rt.TPtr(x)
 				}
 				return zpListFieldAt(p, kids, sp)
@@ -1485,6 +1490,7 @@ func (v *AttrArgs) TFieldSpend(p *rt.TParser, name string) (any, bool) {
 				sp := zc.Next()
 				kids := make([]any, len(v.Args))
 				for i, x := range v.Args {
+					p.Spend()
 					kids[i] = rt.TBack(ZPHooks, x)
 				}
 				return zpListFieldAt(p, kids, sp)
@@ -1503,6 +1509,7 @@ func (v *AttrArgs) TFieldSpend(p *rt.TParser, name string) (any, bool) {
 				sp := zc.Next()
 				kids := make([]any, len(v.KwArgs))
 				for i, x := range v.KwArgs {
+					p.Spend()
 					kids[i] = rt.TPtr(x)
 				}
 				return zpListFieldAt(p, kids, sp)
@@ -1731,6 +1738,7 @@ func (v *Call) TFieldSpend(p *rt.TParser, name string) (any, bool) {
 				sp := zc.Next()
 				kids := make([]any, len(v.Args))
 				for i, x := range v.Args {
+					p.Spend()
 					kids[i] = rt.TBack(ZPHooks, x)
 				}
 				return zpListFieldAt(p, kids, sp)
@@ -1899,6 +1907,7 @@ func (v *CharClass) TFieldSpend(p *rt.TParser, name string) (any, bool) {
 			}
 			kids := make([]any, len(v.Items))
 			for i, x := range v.Items {
+				p.Spend()
 				kids[i] = rt.TBack(ZPHooks, x)
 			}
 			return p.ListField(kids)
@@ -2056,6 +2065,7 @@ func (v *CommentGap) TFieldSpend(p *rt.TParser, name string) (any, bool) {
 				sp := zc.Next()
 				kids := make([]any, len(v.Trailing))
 				for i, x := range v.Trailing {
+					p.Spend()
 					kids[i] = any(x)
 				}
 				return zpListFieldAt(p, kids, sp)
@@ -2078,6 +2088,7 @@ func (v *CommentGap) TFieldSpend(p *rt.TParser, name string) (any, bool) {
 				sp := zc.Next()
 				kids := make([]any, len(v.Detached))
 				for i, x := range v.Detached {
+					p.Spend()
 					kids[i] = rt.TPtr(x)
 				}
 				return zpListFieldAt(p, kids, sp)
@@ -2153,6 +2164,7 @@ func (v *CommentGroup) TFieldSpend(p *rt.TParser, name string) (any, bool) {
 			}
 			kids := make([]any, len(v.Lines))
 			for i, x := range v.Lines {
+				p.Spend()
 				kids[i] = rt.TBack(ZPHooks, x)
 			}
 			return p.ListField(kids)
@@ -2252,6 +2264,7 @@ func (v *Constructor) TFieldSpend(p *rt.TParser, name string) (any, bool) {
 			}
 			kids := make([]any, len(v.Inits))
 			for i, x := range v.Inits {
+				p.Spend()
 				kids[i] = rt.TPtr(x)
 			}
 			return p.ListField(kids)
@@ -2269,6 +2282,7 @@ func (v *Constructor) TFieldSpend(p *rt.TParser, name string) (any, bool) {
 				sp := zc.Next()
 				kids := make([]any, len(v.Args))
 				for i, x := range v.Args {
+					p.Spend()
 					kids[i] = rt.TBack(ZPHooks, x)
 				}
 				return zpListFieldAt(p, kids, sp)
@@ -2287,6 +2301,7 @@ func (v *Constructor) TFieldSpend(p *rt.TParser, name string) (any, bool) {
 				sp := zc.Next()
 				kids := make([]any, len(v.Comments))
 				for i, x := range v.Comments {
+					p.Spend()
 					kids[i] = rt.TBack(ZPHooks, x)
 				}
 				return zpListFieldAt(p, kids, sp)
@@ -2422,6 +2437,7 @@ func (v *Field) TFieldSpend(p *rt.TParser, name string) (any, bool) {
 				sp := zc.Next()
 				kids := make([]any, len(v.Comments))
 				for i, x := range v.Comments {
+					p.Spend()
 					kids[i] = rt.TBack(ZPHooks, x)
 				}
 				return zpListFieldAt(p, kids, sp)
@@ -2644,6 +2660,7 @@ func (v *File) TFieldSpend(p *rt.TParser, name string) (any, bool) {
 				sp := zc.Next()
 				kids := make([]any, len(v.Decls))
 				for i, x := range v.Decls {
+					p.Spend()
 					kids[i] = rt.TBack(ZPHooks, x)
 				}
 				return zpListFieldAt(p, kids, sp)
@@ -2662,6 +2679,7 @@ func (v *File) TFieldSpend(p *rt.TParser, name string) (any, bool) {
 				sp := zc.Next()
 				kids := make([]any, len(v.Comments))
 				for i, x := range v.Comments {
+					p.Spend()
 					kids[i] = rt.TBack(ZPHooks, x)
 				}
 				return zpListFieldAt(p, kids, sp)
@@ -2680,6 +2698,7 @@ func (v *File) TFieldSpend(p *rt.TParser, name string) (any, bool) {
 				sp := zc.Next()
 				kids := make([]any, len(v.TrailingComments))
 				for i, x := range v.TrailingComments {
+					p.Spend()
 					kids[i] = rt.TBack(ZPHooks, x)
 				}
 				return zpListFieldAt(p, kids, sp)
@@ -2702,6 +2721,7 @@ func (v *File) TFieldSpend(p *rt.TParser, name string) (any, bool) {
 			}
 			kids := make([]any, len(v.Gaps))
 			for i, x := range v.Gaps {
+				p.Spend()
 				kids[i] = rt.TPtr(x)
 			}
 			return p.ListField(kids)
@@ -2872,6 +2892,7 @@ func (v *Infix) TFieldSpend(p *rt.TParser, name string) (any, bool) {
 				sp := zc.Next()
 				kids := make([]any, len(v.Comments))
 				for i, x := range v.Comments {
+					p.Spend()
 					kids[i] = rt.TBack(ZPHooks, x)
 				}
 				return zpListFieldAt(p, kids, sp)
@@ -2979,6 +3000,7 @@ func (v *InitField) TFieldSpend(p *rt.TParser, name string) (any, bool) {
 				sp := zc.Next()
 				kids := make([]any, len(v.Comments))
 				for i, x := range v.Comments {
+					p.Spend()
 					kids[i] = rt.TBack(ZPHooks, x)
 				}
 				return zpListFieldAt(p, kids, sp)
@@ -3195,6 +3217,7 @@ func (v *Lambda) TFieldSpend(p *rt.TParser, name string) (any, bool) {
 			}
 			kids := make([]any, len(v.Params))
 			for i, x := range v.Params {
+				p.Spend()
 				kids[i] = tb0(x)
 			}
 			return p.ListField(kids)
@@ -3305,6 +3328,7 @@ func (v *ListConstructor) TFieldSpend(p *rt.TParser, name string) (any, bool) {
 			}
 			kids := make([]any, len(v.Items))
 			for i, x := range v.Items {
+				p.Spend()
 				kids[i] = rt.TBack(ZPHooks, x)
 			}
 			return p.ListField(kids)
@@ -3322,6 +3346,7 @@ func (v *ListConstructor) TFieldSpend(p *rt.TParser, name string) (any, bool) {
 				sp := zc.Next()
 				kids := make([]any, len(v.Comments))
 				for i, x := range v.Comments {
+					p.Spend()
 					kids[i] = rt.TBack(ZPHooks, x)
 				}
 				return zpListFieldAt(p, kids, sp)
@@ -3592,6 +3617,7 @@ func (v *OperatorsLevel) TFieldSpend(p *rt.TParser, name string) (any, bool) {
 				sp := zc.Next()
 				kids := make([]any, len(v.Operators))
 				for i, x := range v.Operators {
+					p.Spend()
 					kids[i] = rt.TBack(ZPHooks, x)
 				}
 				return zpListFieldAt(p, kids, sp)
@@ -3610,6 +3636,7 @@ func (v *OperatorsLevel) TFieldSpend(p *rt.TParser, name string) (any, bool) {
 				sp := zc.Next()
 				kids := make([]any, len(v.Comments))
 				for i, x := range v.Comments {
+					p.Spend()
 					kids[i] = rt.TBack(ZPHooks, x)
 				}
 				return zpListFieldAt(p, kids, sp)
@@ -3738,6 +3765,7 @@ func (v *OperatorsLevelBody) TFieldSpend(p *rt.TParser, name string) (any, bool)
 				sp := zc.Next()
 				kids := make([]any, len(v.Operators))
 				for i, x := range v.Operators {
+					p.Spend()
 					kids[i] = rt.TBack(ZPHooks, x)
 				}
 				return zpListFieldAt(p, kids, sp)
@@ -3761,6 +3789,7 @@ func (v *OperatorsLevelBody) TFieldSpend(p *rt.TParser, name string) (any, bool)
 				sp := zc.Next()
 				kids := make([]any, len(v.Comments))
 				for i, x := range v.Comments {
+					p.Spend()
 					kids[i] = rt.TBack(ZPHooks, x)
 				}
 				return zpListFieldAt(p, kids, sp)
@@ -3861,6 +3890,7 @@ func (v *OperatorsOperand) TFieldSpend(p *rt.TParser, name string) (any, bool) {
 				sp := zc.Next()
 				kids := make([]any, len(v.Comments))
 				for i, x := range v.Comments {
+					p.Spend()
 					kids[i] = rt.TBack(ZPHooks, x)
 				}
 				return zpListFieldAt(p, kids, sp)
@@ -4042,6 +4072,7 @@ func (v *OperatorsRule) TFieldSpend(p *rt.TParser, name string) (any, bool) {
 			}
 			kids := make([]any, len(v.Items))
 			for i, x := range v.Items {
+				p.Spend()
 				kids[i] = rt.TBack(ZPHooks, x)
 			}
 			return p.ListField(kids)
@@ -4059,6 +4090,7 @@ func (v *OperatorsRule) TFieldSpend(p *rt.TParser, name string) (any, bool) {
 				sp := zc.Next()
 				kids := make([]any, len(v.Comments))
 				for i, x := range v.Comments {
+					p.Spend()
 					kids[i] = rt.TBack(ZPHooks, x)
 				}
 				return zpListFieldAt(p, kids, sp)
@@ -4157,6 +4189,7 @@ func (v *OperatorsSkip) TFieldSpend(p *rt.TParser, name string) (any, bool) {
 				sp := zc.Next()
 				kids := make([]any, len(v.Comments))
 				for i, x := range v.Comments {
+					p.Spend()
 					kids[i] = rt.TBack(ZPHooks, x)
 				}
 				return zpListFieldAt(p, kids, sp)
@@ -4355,6 +4388,7 @@ func (v *Pkg) TFieldSpend(p *rt.TParser, name string) (any, bool) {
 				sp := zc.Next()
 				kids := make([]any, len(v.Attrs))
 				for i, x := range v.Attrs {
+					p.Spend()
 					kids[i] = rt.TPtr(x)
 				}
 				return zpListFieldAt(p, kids, sp)
@@ -4375,6 +4409,7 @@ func (v *Pkg) TFieldSpend(p *rt.TParser, name string) (any, bool) {
 				sp := zc.Next()
 				kids := make([]any, len(v.Comments))
 				for i, x := range v.Comments {
+					p.Spend()
 					kids[i] = rt.TBack(ZPHooks, x)
 				}
 				return zpListFieldAt(p, kids, sp)
@@ -4482,6 +4517,7 @@ func (v *PkgBody) TFieldSpend(p *rt.TParser, name string) (any, bool) {
 				sp := zc.Next()
 				kids := make([]any, len(v.Attrs))
 				for i, x := range v.Attrs {
+					p.Spend()
 					kids[i] = rt.TPtr(x)
 				}
 				return zpListFieldAt(p, kids, sp)
@@ -4500,6 +4536,7 @@ func (v *PkgBody) TFieldSpend(p *rt.TParser, name string) (any, bool) {
 				sp := zc.Next()
 				kids := make([]any, len(v.AttrComments))
 				for i, x := range v.AttrComments {
+					p.Spend()
 					kids[i] = rt.TBack(ZPHooks, x)
 				}
 				return zpListFieldAt(p, kids, sp)
@@ -4600,6 +4637,7 @@ func (v *Postfix) TFieldSpend(p *rt.TParser, name string) (any, bool) {
 				sp := zc.Next()
 				kids := make([]any, len(v.Comments))
 				for i, x := range v.Comments {
+					p.Spend()
 					kids[i] = rt.TBack(ZPHooks, x)
 				}
 				return zpListFieldAt(p, kids, sp)
@@ -4707,6 +4745,7 @@ func (v *Predicate) TFieldSpend(p *rt.TParser, name string) (any, bool) {
 				sp := zc.Next()
 				kids := make([]any, len(v.Actions))
 				for i, x := range v.Actions {
+					p.Spend()
 					kids[i] = rt.TBack(ZPHooks, x)
 				}
 				return zpListFieldAt(p, kids, sp)
@@ -4725,6 +4764,7 @@ func (v *Predicate) TFieldSpend(p *rt.TParser, name string) (any, bool) {
 				sp := zc.Next()
 				kids := make([]any, len(v.Comments))
 				for i, x := range v.Comments {
+					p.Spend()
 					kids[i] = rt.TBack(ZPHooks, x)
 				}
 				return zpListFieldAt(p, kids, sp)
@@ -4823,6 +4863,7 @@ func (v *Prefix) TFieldSpend(p *rt.TParser, name string) (any, bool) {
 				sp := zc.Next()
 				kids := make([]any, len(v.Comments))
 				for i, x := range v.Comments {
+					p.Spend()
 					kids[i] = rt.TBack(ZPHooks, x)
 				}
 				return zpListFieldAt(p, kids, sp)
@@ -5056,6 +5097,7 @@ func (v *RuleDef) TFieldSpend(p *rt.TParser, name string) (any, bool) {
 				sp := zc.Next()
 				kids := make([]any, len(v.Attrs))
 				for i, x := range v.Attrs {
+					p.Spend()
 					kids[i] = rt.TPtr(x)
 				}
 				return zpListFieldAt(p, kids, sp)
@@ -5082,6 +5124,7 @@ func (v *RuleDef) TFieldSpend(p *rt.TParser, name string) (any, bool) {
 				sp := zc.Next()
 				kids := make([]any, len(v.Comments))
 				for i, x := range v.Comments {
+					p.Spend()
 					kids[i] = rt.TBack(ZPHooks, x)
 				}
 				return zpListFieldAt(p, kids, sp)
@@ -5202,6 +5245,7 @@ func (v *RuleDefBody) TFieldSpend(p *rt.TParser, name string) (any, bool) {
 				sp := zc.Next()
 				kids := make([]any, len(v.Attrs))
 				for i, x := range v.Attrs {
+					p.Spend()
 					kids[i] = rt.TPtr(x)
 				}
 				return zpListFieldAt(p, kids, sp)
@@ -5220,6 +5264,7 @@ func (v *RuleDefBody) TFieldSpend(p *rt.TParser, name string) (any, bool) {
 				sp := zc.Next()
 				kids := make([]any, len(v.AttrComments))
 				for i, x := range v.AttrComments {
+					p.Spend()
 					kids[i] = rt.TBack(ZPHooks, x)
 				}
 				return zpListFieldAt(p, kids, sp)
@@ -5426,6 +5471,7 @@ func (v *SourceBoundary) TFieldSpend(p *rt.TParser, name string) (any, bool) {
 				sp := zc.Next()
 				kids := make([]any, len(v.Trailing))
 				for i, x := range v.Trailing {
+					p.Spend()
 					kids[i] = any(x)
 				}
 				return zpListFieldAt(p, kids, sp)
@@ -5446,6 +5492,7 @@ func (v *SourceBoundary) TFieldSpend(p *rt.TParser, name string) (any, bool) {
 				sp := zc.Next()
 				kids := make([]any, len(v.Detached))
 				for i, x := range v.Detached {
+					p.Spend()
 					kids[i] = rt.TPtr(x)
 				}
 				return zpListFieldAt(p, kids, sp)
@@ -5569,6 +5616,7 @@ func (v *SourceItem) TFieldSpend(p *rt.TParser, name string) (any, bool) {
 				sp := zc.Next()
 				kids := make([]any, len(v.Trailing))
 				for i, x := range v.Trailing {
+					p.Spend()
 					kids[i] = any(x)
 				}
 				return zpListFieldAt(p, kids, sp)
@@ -5665,6 +5713,7 @@ func (v *SourceLead) TFieldSpend(p *rt.TParser, name string) (any, bool) {
 				sp := zc.Next()
 				kids := make([]any, len(v.Detached))
 				for i, x := range v.Detached {
+					p.Spend()
 					kids[i] = rt.TPtr(x)
 				}
 				return zpListFieldAt(p, kids, sp)
@@ -5781,6 +5830,7 @@ func (v *SourceMetadata) TFieldSpend(p *rt.TParser, name string) (any, bool) {
 				sp := zc.Next()
 				kids := make([]any, len(v.Trailing))
 				for i, x := range v.Trailing {
+					p.Spend()
 					kids[i] = any(x)
 				}
 				return zpListFieldAt(p, kids, sp)
@@ -5799,6 +5849,7 @@ func (v *SourceMetadata) TFieldSpend(p *rt.TParser, name string) (any, bool) {
 				sp := zc.Next()
 				kids := make([]any, len(v.Detached))
 				for i, x := range v.Detached {
+					p.Spend()
 					kids[i] = rt.TPtr(x)
 				}
 				return zpListFieldAt(p, kids, sp)
@@ -5930,6 +5981,7 @@ func (v *StructType) TFieldSpend(p *rt.TParser, name string) (any, bool) {
 			}
 			kids := make([]any, len(v.Fields))
 			for i, x := range v.Fields {
+				p.Spend()
 				kids[i] = rt.TBack(ZPHooks, x)
 			}
 			return p.ListField(kids)
@@ -5947,6 +5999,7 @@ func (v *StructType) TFieldSpend(p *rt.TParser, name string) (any, bool) {
 				sp := zc.Next()
 				kids := make([]any, len(v.Comments))
 				for i, x := range v.Comments {
+					p.Spend()
 					kids[i] = rt.TBack(ZPHooks, x)
 				}
 				return zpListFieldAt(p, kids, sp)
@@ -6024,6 +6077,7 @@ func (v *TupleType) TFieldSpend(p *rt.TParser, name string) (any, bool) {
 			}
 			kids := make([]any, len(v.Types))
 			for i, x := range v.Types {
+				p.Spend()
 				kids[i] = rt.TBack(ZPHooks, x)
 			}
 			return p.ListField(kids)
@@ -6103,6 +6157,7 @@ func (v *TypeAlias) TFieldSpend(p *rt.TParser, name string) (any, bool) {
 				sp := zc.Next()
 				kids := make([]any, len(v.Comments))
 				for i, x := range v.Comments {
+					p.Spend()
 					kids[i] = rt.TBack(ZPHooks, x)
 				}
 				return zpListFieldAt(p, kids, sp)
@@ -6228,6 +6283,7 @@ func (v *TypeApp) TFieldSpend(p *rt.TParser, name string) (any, bool) {
 				sp := zc.Next()
 				kids := make([]any, len(v.Args))
 				for i, x := range v.Args {
+					p.Spend()
 					kids[i] = rt.TBack(ZPHooks, x)
 				}
 				return zpListFieldAt(p, kids, sp)
@@ -6321,6 +6377,7 @@ func (v *TypeDef) TFieldSpend(p *rt.TParser, name string) (any, bool) {
 				sp := zc.Next()
 				kids := make([]any, len(v.Comments))
 				for i, x := range v.Comments {
+					p.Spend()
 					kids[i] = rt.TBack(ZPHooks, x)
 				}
 				return zpListFieldAt(p, kids, sp)
@@ -6560,6 +6617,7 @@ func (v *VarDef) TFieldSpend(p *rt.TParser, name string) (any, bool) {
 				sp := zc.Next()
 				kids := make([]any, len(v.Comments))
 				for i, x := range v.Comments {
+					p.Spend()
 					kids[i] = rt.TBack(ZPHooks, x)
 				}
 				return zpListFieldAt(p, kids, sp)
@@ -6843,7 +6901,7 @@ func tb17(v *VarRef) any {
 // is no named node type. It is for generated parsers.
 var ZPNodeTypes [19]uint16
 
-// ZPSchema_3886303e55a8dff6 ties the parser package to this package: the parser refers to it once, so a
+// ZPSchema_2f3baa996eddc35c ties the parser package to this package: the parser refers to it once, so a
 // parser and a types package generated from different schemas do not compile together.
 // It is for generated parsers; not a stable API.
-const ZPSchema_3886303e55a8dff6 = 0
+const ZPSchema_2f3baa996eddc35c = 0

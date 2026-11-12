@@ -131,7 +131,6 @@ func TestSyntaxSummaryRejects(t *testing.T) {
 		"spaced attribute name":       `rule a = "a" @ name`,
 		"attribute and group":         `rule a = "a" @error(message=)`,
 		"unterminated string":         `rule a = "a`,
-		"unknown escape":              `rule a = "\x"`,
 		"newline in string":           "rule a = \"a\n\"",
 		"empty class":                 `rule a = []`,
 		"unterminated block comment":  `rule a = /* x "a"`,
@@ -147,6 +146,11 @@ func TestSyntaxSummaryRejects(t *testing.T) {
 		if _, err := p.Parse(src, zp.RecognizeOnly()); err == nil {
 			t.Errorf("%s: %q is accepted", name, src)
 		}
+	}
+	// The grammar accepts any character after a backslash; the decoding of the literal rejects an
+	// unknown escape, as the reference parser does.
+	if _, err := zp.ParseGrammar(`rule a = "\x"`); err == nil {
+		t.Error("unknown escape: the reference parser accepts it")
 	}
 	for name, src := range map[string]string{
 		"reserved name preserved":    `rule _a = "a"`,

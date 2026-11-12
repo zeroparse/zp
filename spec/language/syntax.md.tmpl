@@ -24,6 +24,10 @@ before the first error of the reference is accepted only in the named forms.
 
 ## Simple Grammar
 
+In a string or a character class the grammar accepts any character after a backslash. A
+literal with an unknown or invalid escape is still an error, found when the literal is
+decoded, so that a definition with such a mistake is kept in a partial parse.
+
 This syntax view omits result types, Value Actions, captures, metadata attributes
 and recovery handling. Unnecessary grouping is removed while retaining
 parentheses required by precedence or source layout. Predicate Actions and matching pragmas remain, including
