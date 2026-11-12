@@ -255,7 +255,7 @@ func (k *classifier) walk(e grammar.Expr, c wctx) {
 	k.control.Poll()
 	switch e.(type) {
 	case *grammar.Seq, *grammar.Choice, *grammar.Group, *grammar.Optional, *grammar.Capture, *grammar.Discard,
-		*grammar.Atomic, *grammar.Ref, *grammar.Predicate:
+		*grammar.Atomic, *grammar.Ref, *grammar.Predicate, *grammar.And:
 	default:
 		c.strictFrom = len(c.seqs)
 	}
@@ -285,9 +285,7 @@ func (k *classifier) walk(e grammar.Expr, c wctx) {
 				}
 				growing := false
 				if k.an.cyclic[c.rule] && c.mayStart {
-					if first := k.firstEvaluated(alt); first != nil && k.sameCycle(c.rule, first.Name) && first.Level == "" {
-						growing = true
-					}
+					growing = k.startsWithLeftCall(c.rule, alt, leftExamine)
 				}
 				if s, cut := topCut(alt); cutPrefixesOn && !growing && len(conts) > 0 && cut > 0 {
 					prefix := s.Items[:cut]
@@ -369,7 +367,7 @@ func (k *classifier) walk(e grammar.Expr, c wctx) {
 // analyzes growing units only as alternatives.
 func (k *classifier) leftUnit(u *unit, c wctx, e grammar.Expr) {
 	if k.an.cyclic[c.rule] && c.mayStart {
-		if first := k.firstEvaluated(e); first != nil && k.sameCycle(c.rule, first.Name) {
+		if k.startsWithLeftCall(c.rule, e, leftExamine) {
 			u.unsupported = u.kind.String() + " begins with a left call"
 		}
 	}
@@ -381,7 +379,9 @@ func (k *classifier) walkLookahead(e, body grammar.Expr, c wctx, not bool) {
 	k.leftUnit(u, c, body)
 	cc := c.push(u).with(&cont{})
 	cc.inNot = c.inNot || not
-	cc.seqs, cc.strictFrom = nil, 0
+	if not {
+		cc.seqs, cc.strictFrom = nil, 0
+	}
 	k.walk(body, cc)
 }
 
@@ -415,7 +415,12 @@ func (k *classifier) walkRef(e *grammar.Ref, c wctx) {
 	if !k.sameCycle(c.rule, e.Name) || !c.mayStart {
 		k.outside[e] = true
 	}
-	if k.an.cyclic[e.Name] && (!k.sameCycle(c.rule, e.Name) || !c.mustStart) {
+	// The growth of a cycle is a scanning source at every call of its rules other than a left call,
+	// and at a call of a leader in the body of another rule: the growth that starts at a left call
+	// in a rule of the cycle that is not a leader, or in a step of another leader, goes on past
+	// what the unit around it keeps.
+	if k.an.cyclic[e.Name] && (!k.sameCycle(c.rule, e.Name) || !c.mustStart ||
+		(k.an.leaders[e.Name] && c.rule != e.Name)) {
 		k.addSource(c, exprPos(e), "the growth of the left-recursive rule "+e.Name+" at a new position")
 		k.srcExprs[e] = true
 	}
@@ -1419,8 +1424,25 @@ func (k *classifier) leftPaths(start *cont, cycle int, grower string) (paths, fi
 					visit(rest.then(alt), depth)
 				}
 				return
+			case *grammar.Predicate, *grammar.Cut, *grammar.Top, *grammar.BeginInput, *grammar.EndInput,
+				*grammar.BeginLine, *grammar.EndLine:
+				// Nothing is examined before a left call that follows: the growth goes on there.
+				if len(rest.items) == 0 {
+					first = append(first, rest)
+					return
+				}
+				p = rest
 			case *grammar.Ref:
 				if !k.an.cyclic[e.Name] || k.an.cycle[e.Name] != cycle || e.Level != "" {
+					if len(rest.items) > 0 && k.passesBefore(e, leftExamine) {
+						// A call that can match without examining the input: what follows it
+						// can start a growth, and the call may also examine input first.
+						if !k.examinesNothing(e.Name, map[string]bool{}, true) {
+							first = append(first, p)
+						}
+						p = rest
+						continue
+					}
 					first = append(first, p)
 					return
 				}
@@ -1463,7 +1485,7 @@ func (k *classifier) checkGrowingUnit(u *unit) {
 	}
 	var conts []contSpec
 	for _, later := range u.choice.Alts[u.index+1:] {
-		if f := k.firstEvaluated(later); f == nil || !k.sameCycle(u.rule, f.Name) || f.Level != "" {
+		if !k.startsWithLeftCall(u.rule, later, leftExamine) {
 			continue
 		}
 		paths, _, ok := k.leftPaths(u.after.then(later), u.cycle, "")

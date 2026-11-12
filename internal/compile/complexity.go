@@ -196,7 +196,9 @@ func prepareClassifierWith(g *grammar.Grammar, start string, control *cancel.Con
 	if start == "" {
 		start = def
 	}
-	return build(g, rules, start, control), names, nil
+	k := build(g, rules, start, control)
+	k.inlineNames = names
+	return k, names, nil
 }
 
 // newViewClassifier returns a classifier of the normal view of rules (normal_view.go) from start.
@@ -299,6 +301,9 @@ type classifier struct {
 	runRestart      map[*grammar.Repeat]bool
 	runBad          map[string]bool
 	includesMemo    map[sizeKey]bool
+	varBinding      map[string][]varBind // the bindings of each variable (see varBinds)
+	inlineNames     desugar.InlineNames  // the hidden rules of the inline actions of the rules
+	readingVars     map[string]bool      // the variables whose read sizeOf is following
 	feedsMemo       map[feedKey]bool
 	heldMemo        map[sizeKey][]sizeKey
 	sizes           sizeMemo              // the size degrees of the values of rules (complexity_sizes.go)
