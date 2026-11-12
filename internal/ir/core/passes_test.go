@@ -226,3 +226,34 @@ func TestPassesGuardFoldedLiteral(t *testing.T) {
 		t.Errorf("got:\n%s\nwant:\n%s", got, want)
 	}
 }
+
+// TestPassesScanThroughStream checks that a #stream repetition of a rule that is not a start rule,
+// which delivers no elements, becomes the Scan that its repetition alone becomes, and that the
+// #stream repetition of a start rule keeps its repetition.
+func TestPassesScanThroughStream(t *testing.T) {
+	// main = "x"; r = [a-z]* #stream; s = [a-z]*   (value-free; main, or r, is the start rule)
+	mod := func(start int) *Module {
+		r := &Stream{Repeat: &Repeat{Max: -1, Body: class('a', 'z')}}
+		s := &Repeat{Max: -1, Body: class('a', 'z')}
+		m := valueFree(module(rule(0, "main", lit("x")), rule(1, "r", r), rule(2, "s", s)))
+		m.Starts = []int{start}
+		passes(t, m, Scans)
+		return m
+	}
+	m := mod(0)
+	got, want := PrintNode(m, m.Rules[1].Body, false), PrintNode(m, m.Rules[2].Body, false)
+	if got != want {
+		t.Errorf("non-start #stream rule after scans:\n%s\nwant, as the repetition alone:\n%s", got, want)
+	}
+	if _, ok := m.Rules[1].Body.(*Scan); !ok {
+		t.Errorf("non-start #stream rule after scans: %T, want *core.Scan", m.Rules[1].Body)
+	}
+	m = mod(1)
+	st, ok := m.Rules[1].Body.(*Stream)
+	if !ok {
+		t.Fatalf("start #stream rule after scans: %T, want *core.Stream", m.Rules[1].Body)
+	}
+	if st.Repeat == nil || st.Repeat.Body == nil {
+		t.Errorf("start #stream rule lost its repetition")
+	}
+}

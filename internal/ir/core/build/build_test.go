@@ -171,6 +171,37 @@ rule inner = "b"* #stream
 	}
 }
 
+// TestFollowRepeatsThroughStream checks that the Scan that takes the place of the #stream
+// repetition of a rule that is not a start rule gets the origin of that repetition.
+func TestFollowRepeatsThroughStream(t *testing.T) {
+	prog := coreProgram(t, `@start
+rule main = inner $$
+rule inner = [a-z]* #stream
+`)
+	origin := map[core.Node]grammar.Expr{}
+	m, err := build.CoreFrom(prog, origin)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, r := range m.Rules {
+		r.Want = false
+		core.Walk(r.Body, func(n core.Node) { n.Attrs().Want = false })
+	}
+	core.Analyze(m)
+	repeats := build.FollowRepeats(m, origin)
+	core.Scans(m)
+	for _, f := range repeats {
+		f()
+	}
+	s, ok := m.Rules[1].Body.(*core.Scan)
+	if !ok {
+		t.Fatalf("inner after scans: %T, want *core.Scan", m.Rules[1].Body)
+	}
+	if _, ok := origin[s].(*grammar.Repeat); !ok {
+		t.Errorf("origin of the scan: %T, want *grammar.Repeat", origin[s])
+	}
+}
+
 // TestCoreBuildCallLevels checks the minimum binding level of calls of an Operators Rule, and that
 // a level the rule lacks, or a level of a rule that has none, is an error.
 func TestCoreBuildCallLevels(t *testing.T) {

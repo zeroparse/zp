@@ -168,26 +168,45 @@ func leadingClassNode(n Node) *ClassNode {
 }
 
 // Scans replaces every value-free repetition of a class or of any character by a Scan, except a
-// skip-run site, which records its walks as any repetition does.
+// skip-run site, which records its walks as any repetition does. A Stream that delivers no elements
+// (no EffCommit: its rule is not a start rule) is only its repetition, so it is replaced as that
+// repetition is; a Stream that may deliver elements keeps its repetition.
 func Scans(m *Module) {
 	for _, r := range m.Rules {
 		if r == nil {
 			continue
 		}
 		r.Body = Rewrite(r.Body, func(n Node) Node {
-			rep, ok := n.(*Repeat)
-			if !ok || rep.Attrs().Want || rep.Project != "" || rep.Scope != nil || rep.Site != 0 {
-				return n
-			}
-			switch body := rep.Body.(type) {
-			case *ClassNode:
-				return &Scan{base: rep.base, Class: body.Class, Min: rep.Min, Max: rep.Max}
-			case *Any:
-				return &Scan{base: rep.base, Min: rep.Min, Max: rep.Max}
+			switch x := n.(type) {
+			case *Repeat:
+				if s := scanOf(x); s != nil {
+					return s
+				}
+			case *Stream:
+				if x.Attrs().Eff.Set&EffCommit == 0 {
+					if s := scanOf(x.Repeat); s != nil {
+						return s
+					}
+				}
 			}
 			return n
 		})
 	}
+}
+
+// scanOf returns the Scan that replaces rep, or nil if rep is not a value-free repetition of a class
+// or of any character, or is a skip-run site.
+func scanOf(rep *Repeat) *Scan {
+	if rep.Attrs().Want || rep.Project != "" || rep.Scope != nil || rep.Site != 0 {
+		return nil
+	}
+	switch body := rep.Body.(type) {
+	case *ClassNode:
+		return &Scan{base: rep.base, Class: body.Class, Min: rep.Min, Max: rep.Max}
+	case *Any:
+		return &Scan{base: rep.base, Min: rep.Min, Max: rep.Max}
+	}
+	return nil
 }
 
 // ClassRuns replaces every run of two or more consecutive classes in a value-free sequence by a
