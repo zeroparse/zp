@@ -4,11 +4,11 @@ import (
 	"errors"
 	"fmt"
 	"strconv"
-	"strings"
 	"sync"
 	"zeroparse.dev/zp/internal/cancel"
 	"zeroparse.dev/zp/internal/check"
 	"zeroparse.dev/zp/internal/diag"
+	"zeroparse.dev/zp/internal/ir/core"
 
 	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/bytecode"
@@ -837,77 +837,20 @@ func visible(e grammar.Expr) bool {
 	return true
 }
 
-// hasCaptures reports whether the expression contains captures (excluding nested repetitions),
-// also inside positive lookaheads.
-// elementScopedControlled reports whether the repetition element e gets a capture scope of its own
-// per iteration: when it contains captures (hasCaptures), or its predicates read captures, which
-// can then only be its own (made inside &) or, an error, those of the enclosing scope. Every
-// backend and generator must decide the same way, since the scope decides where captures are
-// written.
+// elementScopedControlled is check.ElementScopedControlled.
 func elementScopedControlled(e grammar.Expr, control *cancel.Control) bool {
-	control.Poll()
-	return hasCapturesControlled(e, control) || predicatesReadCaptures(e, control)
+	return check.ElementScopedControlled(e, control)
 }
 
-// predicatesReadCaptures reports whether a predicate in e refers to a capture.
-func predicatesReadCaptures(e grammar.Expr, control *cancel.Control) bool {
-	control.Poll()
-	found := false
-	walkExprControlled(e, func(x grammar.Expr) {
-		if p, ok := x.(*grammar.Predicate); ok {
-			WalkTerm(p.Term, func(t grammar.Term) {
-				control.Poll()
-				if _, ok := t.(*grammar.CaptureRef); ok {
-					found = true
-				}
-			})
-		}
-	}, control)
-	return found
-}
-
+// hasCapturesControlled is check.HasCapturesControlled.
 func hasCapturesControlled(e grammar.Expr, control *cancel.Control) bool {
-	control.Poll()
-	switch e := e.(type) {
-	case *grammar.Capture:
-		return true
-	case *grammar.Seq:
-		for _, it := range e.Items {
-			control.Poll()
-			if hasCapturesControlled(it, control) {
-				return true
-			}
-		}
-	case *grammar.Choice:
-		for _, alt := range e.Alts {
-			control.Poll()
-			if hasCapturesControlled(alt, control) {
-				return true
-			}
-		}
-	case *grammar.Optional:
-		return hasCapturesControlled(e.Expr, control)
-	case *grammar.Attributed:
-		return hasCapturesControlled(e.Expr, control)
-	case *grammar.Group:
-		return hasCapturesControlled(e.Expr, control)
-	case *grammar.And:
-		// The captures of a positive lookahead are kept beside the element's value.
-		return hasCapturesControlled(e.Expr, control)
-	}
-	return false
+	return check.HasCapturesControlled(e, control)
 }
 
 func quote(s string) string { return strconv.Quote(s) }
 
-// LiteralDesc is the expectation text of a literal, as written: a case-insensitive literal keeps its
-// suffix i.
-func LiteralDesc(e *grammar.Literal) string {
-	if e.IgnoreCase {
-		return quote(e.Value) + "i"
-	}
-	return quote(e.Value)
-}
+// LiteralDesc is core.LiteralDesc.
+func LiteralDesc(e *grammar.Literal) string { return core.LiteralDesc(e) }
 
 // FoldASCIIRune maps A-Z to a-z and leaves every other rune as it is: the folding of #ignorecase
 // and of the suffix i, which is ASCII only.
@@ -967,31 +910,8 @@ func firstTerminal(prog *Program, e grammar.Expr, depth int, seen map[string]boo
 	return nil, 0
 }
 
-// CharClassString returns the character class as grammar syntax writes it, which names the class
-// in expectations.
-func CharClassString(e *grammar.CharClass) string {
-	var b strings.Builder
-	b.WriteString("[")
-	if e.Negated {
-		b.WriteString("^")
-	}
-	esc := func(r rune) string {
-		switch r {
-		case '-', '[', ']', '^', '\\':
-			return `\` + string(r)
-		}
-		s := strconv.QuoteRune(r)
-		return s[1 : len(s)-1]
-	}
-	for _, rg := range e.Ranges {
-		b.WriteString(esc(rg.Lo))
-		if rg.Hi != rg.Lo {
-			b.WriteString("-" + esc(rg.Hi))
-		}
-	}
-	b.WriteString("]")
-	return b.String()
-}
+// CharClassString is core.CharClassString.
+func CharClassString(e *grammar.CharClass) string { return core.CharClassString(e) }
 
 // levelMin returns the minimum binding level of a call with a binding level.
 func (c *Compiler) levelMin(e *grammar.Ref, r *Rule) int {
@@ -1009,19 +929,8 @@ func (c *Compiler) levelMin(e *grammar.Ref, r *Rule) int {
 	return 0
 }
 
-// IsStream reports whether the expression is an expression with the #stream pragma.
-func IsStream(e grammar.Expr) bool {
-	a, ok := e.(*grammar.Attributed)
-	if !ok {
-		return false
-	}
-	for _, at := range a.Attrs {
-		if at.Name == "stream" {
-			return true
-		}
-	}
-	return false
-}
+// IsStream is check.IsStream.
+func IsStream(e grammar.Expr) bool { return check.IsStream(e) }
 
 // checkStream checks that #stream appears only at the top level of a rule body (the body itself
 // or an element of a sequence) of a rule outside every left-recursion cycle and reports whether it
@@ -1054,63 +963,11 @@ func (c *Compiler) checkStream(body grammar.Expr) bool {
 	return n > 0
 }
 
-// StreamTops returns the expressions of a rule body where #stream is allowed: the body, the items
-// of its top-level sequence (also those of a sequence grouped in an item) and the expression a
-// capture of such an item holds, each with the groups and the attributes other than #recover and
-// #missing around it.
-func StreamTops(body grammar.Expr) map[grammar.Expr]bool {
-	top := map[grammar.Expr]bool{}
-	var mark func(e grammar.Expr)
-	mark = func(e grammar.Expr) {
-		for e != nil {
-			top[e] = true
-			switch x := e.(type) {
-			case *grammar.Group:
-				e = x.Expr
-			case *grammar.Attributed:
-				if recovers(x) {
-					return
-				}
-				e = x.Expr
-			case *grammar.Capture:
-				mark(x.Expr)
-				return
-			default:
-				return
-			}
-		}
-	}
-	var items func(e grammar.Expr)
-	items = func(e grammar.Expr) {
-		if seq, ok := SeeThrough(e).(*grammar.Seq); ok {
-			for _, it := range seq.Items {
-				mark(it)
-				items(it)
-			}
-		}
-	}
-	mark(body)
-	items(body)
-	return top
-}
+// StreamTops is check.StreamTops.
+func StreamTops(body grammar.Expr) map[grammar.Expr]bool { return check.StreamTops(body) }
 
-// SeeThrough returns e without the groups and the attributes other than #recover and #missing
-// around it.
-func SeeThrough(e grammar.Expr) grammar.Expr {
-	for {
-		switch x := e.(type) {
-		case *grammar.Group:
-			e = x.Expr
-		case *grammar.Attributed:
-			if recovers(x) {
-				return e
-			}
-			e = x.Expr
-		default:
-			return e
-		}
-	}
-}
+// SeeThrough is check.SeeThrough.
+func SeeThrough(e grammar.Expr) grammar.Expr { return check.SeeThrough(e) }
 
 // ElementScoped reports whether the repetition element e gets a capture scope of its own per
 // iteration (elementScopedControlled).

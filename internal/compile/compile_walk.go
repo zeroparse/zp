@@ -519,9 +519,5 @@ func (c *Walker[M]) operatorsRuleLine(e grammar.Expr, action grammar.Term, local
 	return l
 }
 
-// LeanLine reports whether the value of an Operators Rule line is unused: the line is an operand
-// line with an action, which reads captures only. An operator line's value is $op or its element.
-// The bytecode compiler uses the same test.
-func LeanLine(action grammar.Term, locals []string) bool {
-	return action != nil && locals == nil
-}
+// LeanLine is check.LeanLine.
+func LeanLine(action grammar.Term, locals []string) bool { return check.LeanLine(action, locals) }
