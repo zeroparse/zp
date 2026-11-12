@@ -1,4 +1,4 @@
-protocol 10
+protocol 11
 const BaseString untyped int = 0
 const Bytes PositionUnit = 1
 const CodePoints PositionUnit = 0
@@ -329,6 +329,8 @@ method (*TActCtx) PushList(...any)
 method (*TActCtx) PushMap(any, func(any) any)
 method (*TActCtx) Result(func(*TActCtx) (any, any), string) any
 method (*TActCtx) TermCastFailed(any, *FieldType, int, int) any
+method (*TActCtx) TermCompare(int, TOperand, TOperand) (any, any)
+method (*TActCtx) TermFieldOperand(any, string) (TOperand, any)
 method (*TActCtx) TermRaise(any)
 method (*TActCtx) Text(any) any
 method (*TActCtx) TextStr(any) string
