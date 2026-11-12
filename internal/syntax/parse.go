@@ -149,6 +149,7 @@ var typeSpellings = map[string]string{
 type messages struct {
 	toks []token
 	pos  *sourceast.Positions
+	ends []bool // see lineEndsStatement
 }
 
 func newMessages(src string) *messages {
@@ -199,22 +200,27 @@ func (m *messages) message(e *genparser.SyntaxError) string {
 }
 
 // lineEndsStatement reports whether a line break before the token i ends a statement: no
-// parenthesis or bracket is open there, or a brace is the innermost open delimiter.
+// parenthesis or bracket is open there, or a brace is the innermost open delimiter. The answers for
+// every token are found in one pass over the tokens, the first time one is asked for.
 func (m *messages) lineEndsStatement(i int) bool {
-	var open []string
-	for _, t := range m.toks[:i] {
-		if t.kind == tPunct {
-			switch t.text {
-			case "(", "[", "{":
-				open = append(open, t.text)
-			case ")", "]", "}":
-				if len(open) > 0 {
-					open = open[:len(open)-1]
+	if m.ends == nil {
+		m.ends = make([]bool, len(m.toks))
+		var open []string
+		for k, t := range m.toks {
+			m.ends[k] = len(open) == 0 || open[len(open)-1] == "{"
+			if t.kind == tPunct {
+				switch t.text {
+				case "(", "[", "{":
+					open = append(open, t.text)
+				case ")", "]", "}":
+					if len(open) > 0 {
+						open = open[:len(open)-1]
+					}
 				}
 			}
 		}
 	}
-	return len(open) == 0 || open[len(open)-1] == "{"
+	return m.ends[i]
 }
 
 // expects reports whether every part of msg says what is expected, so that what was found may
