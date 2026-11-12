@@ -2165,6 +2165,134 @@ those parts holds there. Bounding that by the activations of the sequence in
 the growth, summed over the positions, is part of step 4 of [Open
 Steps](#open-steps), as are the pairs that step 2 keeps.
 
+**Families of growths.** A growth of a leader at $p$ is **outer** when no
+growth of its cycle is in progress at $p$ where its call is made. The
+**family** of a growth $g$ at $p$ is its steps with every growth step and every
+evaluation in a context of growths that the parse makes at $p$ inside them, and
+the **family region** of $g$ is the part of the family outside the calls that
+are memoized evaluations and outside the growths at other positions. An
+activation owned by a growth step or by an evaluation in a context of growths
+lies in the family region of exactly one outer growth: its owner is at a
+position $p'$ where a growth of the cycle of its rule is in progress, so it is
+made in a step of the first of those growths, which is outer (*Calls in a
+context of growths*), and it lies in no memoized evaluation inside that step,
+which would own it, nor in a growth at another position, whose steps would.
+A **growth of a key** is a growth whose call reads no growth open at its start;
+its key is the leader, position, level and combination of the values of the
+variables that the leader reads. An outer growth is one, since its call can
+read only a growth of its cycle at $p$ ([Lemma 2 of the memoization
+proof](memoization.md#lemma-2-reading-an-open-growth)). The first growth of a
+key is the **head** of the key. A key has at most two outer growths, one inside
+a lookahead and one outside them (the outline above).
+
+**Covered growths.** Let $x$ be an evaluation of the parse, a call or a step
+of a growth, and let $z$ be a call of a leader inside $\mathcal{R}(x)$ that
+reads no growth open at its start. Then the parse makes a growth of the key of
+$z$ before $x$ ends, outside cases (a), (b) and (c) of the covered keys.
+
+*Proof.* The induction of the covered keys applies with $z$ a call of a
+leader. Where the parse evaluates every call and step on the path, it
+evaluates the call of $z$, which a growth of the leader that is open at the
+position would answer, so the call grows the leader there and reads no growth
+open at its start: a growth of the key. Where the first call $y$ that the parse
+does not evaluate is $z$ itself, an entry that answers it was stored by an
+earlier growth of the leader at the position, since a call of a leader that
+evaluates grows ([Growths of Left
+Recursion](../runtime/parsing.md#growths-of-left-recursion)), and the call of
+that growth read no growth open at its start ((S)); a result or step that the
+parse keeps comes from an earlier growth of the key in the same way. The other
+cases of the induction lead, as there, to an earlier evaluation that holds a
+call with the key of $z$ that reads no growth open at its start. $\square$
+
+**Heads hold what later growths hold.** Let a growth $g$ of a key hold, in its
+family region, a successful activation of a source $\sigma$ at $q$. Then the
+head of its key holds a successful activation of $\sigma$ at $q$ in its family
+region, unless a result or a step that the parse reuses inside the head was
+kept in a smaller lookahead state, or holds the place of the activation inside
+a lookahead that it observed, which the open gap stated with (D) of the
+memoization proof leaves out.
+
+*Proof.* The calls of $g$ and of the head $h$ read no growth open at their
+start and have one key, so $\mathcal{R}(g)$ and $\mathcal{R}(h)$ take the same
+steps, a leader having no twin (*Counterparts*). The activation of $g$ is the
+counterpart of one in $\mathcal{R}(g)$, which corresponds to one of the same
+source at the same position, which succeeds, in $\mathcal{R}(h)$, at a place
+that lies, as in $\mathcal{R}(g)$, at $p$ in a step, in a context of growths
+or in a call of a rule that the parse does not memoize. Follow the path from
+$\mathcal{R}(h)$ down to that place. If the parse evaluates every call and
+step on it, $h$ holds the activation there. Otherwise let $y$ be the first
+call or step on it that the parse does not evaluate. The parse does not skip
+an alternative on the path, which encloses an activation (*Counterparts*), and
+does not answer $y$ with the current result of an open growth, since
+$\mathcal{R}(y)$ would then make no call. The calls on the path are made at
+$p$, where $h$ is in their context, or are calls of rules that the parse does
+not memoize, which it never answers. So it answers $y$ from a result or a step
+computed while at least the growths of the context of $y$ were in progress, or
+takes $y$ in a run of such steps ([Evaluations of
+Rules](../runtime/parsing.md#evaluations-of-rules)), and that result or step is
+that of an evaluation $y'$ made earlier inside $h$. By the argument of [Lemma
+4 of the memoization
+proof](memoization.md#lemma-4-answering-from-a-dependent-result), as in the
+covered keys, $\mathcal{R}(y)$ and $\mathcal{R}(y')$ take the same steps
+outside the lookaheads that $y'$ observed, so outside the gap above the path
+goes on to the same place in $\mathcal{R}(y')$, which lies in the family region
+of $h$ as well. By induction on the order of the evaluations, $h$ holds a
+successful activation of $\sigma$ at $q$ there. $\square$
+
+The claim maps no activation of $g$ to one of $h$ one to one. Two growths of a
+key take the same steps in $\mathcal{R}$, but the parse can reuse a result or
+a step in a context of growths in one of them and evaluate it again in the
+other, since it takes results that it has not shown equal as different
+(*Reuse in a context*): the activations that $g$ then evaluates again are
+repeats of activations of its own family at the same position. The count below
+therefore charges to the heads only whether a growth holds an activation at
+$q$, and counts the repeats inside each family on their own, with no reuse,
+as *Reuse in a context* requires of every bound of this lemma.
+
+**Links lead to later growths.** Let the $i$-th link of $\sigma$ at $q$ satisfy
+the hypotheses of *Links lead to repeated evaluations*, and let $\alpha_i$ lie
+in the family region of a growth $g$ of a key, with $e'_i$ outside the family
+of $g$. Then $g$ is not the head of its key, unless case (a) or (b) of the
+covered keys arises on the path from $\mathcal{R}(e_i)$ to the call that
+corresponds to that of $g$.
+
+*Proof.* $e'_i$ contains $\alpha_i$, which lies inside $g$. An evaluation
+inside $g$ outside its family is a memoized evaluation, a growth at another
+position or an evaluation inside one, and an activation in it lies in no
+family region of $g$; so $e'_i$ is not inside $g$, and it is the call that
+grows $g$ or encloses it. As in *Links lead to repeated evaluations*, $\mathcal{R}(e_i)$ and
+$\mathcal{R}(e'_i)$ take the same steps up to the variants of their calls, so
+the call $z^\circ$ at the place of the call of $g$ in $\mathcal{R}(e_i)$ is a
+call of the leader of $g$ with its key, which reads no growth open at its
+start by the argument given there, and holds an activation at the place of
+$\alpha_i$, which excludes case (c). By *Covered growths*, outside cases (a)
+and (b), the parse made a growth of that key before $e_i$ ended, and so before
+$g$ started. $\square$
+
+The same argument, with *Heads in the reference parse* for growths of a key in
+place of evaluations of a key, shows that a free $\alpha_i$ held by a head of a
+key is the counterpart of an activation of $\mathcal{R}$ that has no reference
+link, or whose reference link meets case (a) or (b), or whose reference link
+$(e^k, e^{k\prime})$ has $e^{k\prime}$ inside the family of the head.
+
+So the successful activations of $\sigma$ at $q$ that growth steps and
+evaluations in a context of growths own are counted in two parts. First, the
+outer growths whose family regions hold one: by the claim above and since a
+key has at most two outer growths, they are at most two for each key whose
+head holds one; a head that holds one holds an $\alpha_i$ that is $\alpha_1$,
+free or linked through a link inside its family, or that a link of a kind
+that *Links to heads* leaves out or a leaf link leads to; and an $\alpha_i$
+lies in the family regions of at most as many heads as the cycle has leaders,
+since the growths at one position that enclose one another have distinct
+leaders (*Calls in a context of growths*). Second, in the family region of one outer
+growth, the activations of $\sigma$ at $q$ after the first one there, counted
+with no reuse in a context of growths. Two of them are related through a call
+that the family evaluates at $p$ or a call of a rule that calls no rule
+(*Repeats* and *Repeats inside a growth*): a shared call whose later
+evaluation is a memoized evaluation would own the later activation. Bounding the second part, and the
+heads that hold free activations, at each position, is part of step 4 of
+[Open Steps](#open-steps).
+
 ## Lemma 6 (Values and Copies)
 
 Under conditions 1, 2 and 4, the size of the values that actions and
@@ -4120,8 +4248,12 @@ condition of the cost view that the [Cost View](cost-view.md) proof leaves open.
    common evaluation is a growth, which the restarts of Lemma 4 leave out, as
    the restarts relate the others, unless the later one lies in a part that a
    step evaluates at the position of the growth without reading a growing
-   result (*Repeats inside a growth*). One part remains: the sum over the
-   positions below.
+   result (*Repeats inside a growth*). It splits the sum over the positions
+   for the activations that growth steps and evaluations in a context of
+   growths own into the outer growths whose families hold one, which it
+   charges to the heads of their keys, and the repeats inside one family
+   (*Families of growths* to *Links lead to later growths*). What remains of
+   that sum is described below.
    Lemma 4
    bounds the activations owned by memoized evaluations after this lemma, in
    the order that it states: the growth steps, the evaluations in a context of
@@ -4137,20 +4269,26 @@ condition of the cost view that the [Cost View](cost-view.md) proof leaves open.
    repeated evaluations*, *Links lead to repeated evaluations*, *Links to heads*,
    *Memoized links keep positions* and *Nothing in a memoized link is a head*,
    with the definitions between them; *Activations that do not succeed* and *Activations held by heads* come
-   after this step. The links and *Memoized links* bound the repetitions of an
-   activation at one position through one rule, position and level; the sum
-   over the positions, which *Activations held by heads* makes for the
-   activations that memoized evaluations own by charging them to the heads,
-   must be made here for those that growth steps own, which are not
-   evaluations of a key, and those that evaluations in a context of growths
-   own, and for the growths
-   that start at many positions, each at a call of a rule of the cycle that is
-   not a left call or at a call of a leader in the body of another rule, as
-   the repetitions of a scanning source. It must also count the activations
-   that *Repeats inside a growth* leaves out of the sequence of Lemma 4: in
-   the constant number of steps of each growth that the claims at the position
-   of the growth leave out, at each position, by the activations of the
-   sequence inside the growth.
+   after this step. Three counts remain. First, the repeats inside one family:
+   the activations of a source at a position in the family region of one outer
+   growth after the first one there, which are related through a call that the
+   family evaluates at the position of the growth or a call of a rule that
+   calls no rule, with no reuse in a context of growths. *Calls in a context of
+   growths* bounds the evaluations that one step makes at that position, and
+   *Growths inside a step* the steps of the growths that it nests, but neither
+   bounds how many of them hold an activation at one later position. This
+   includes the activations that *Repeats inside a growth* leaves out of the
+   sequence of Lemma 4, in the constant number of steps of each growth that the
+   claims at the position of the growth leave out, and the leaf links inside a
+   family, with the open parts of step 1. Second, the heads of keys that hold a
+   free activation or one that a link of a kind that *Links to heads* leaves
+   out leads to, and the activations that *Heads hold what later growths hold*
+   leaves out, through a result or step kept in a smaller lookahead state or
+   the lookaheads that it observed, with the open gap stated with (D) of the
+   memoization proof. Third, the growths that start at many positions, each at
+   a call of a rule of the cycle that is not a left call or at a call of a
+   leader in the body of another rule, as the repetitions of a scanning
+   source.
 5. **Chains of bindings in Lemma 11.** The bound $L = O(n)$ that
    [Classification](../runtime/parsing.md#classification) states, which the
    theorem does not use. *Values of variables* in Lemma 11 proves it given
