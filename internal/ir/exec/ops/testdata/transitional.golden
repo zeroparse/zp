@@ -2028,6 +2028,20 @@ transitional op opr.nudBound() int
   contract:
     // Returns what the last opr.setNudBound recorded.
 
+transitional op opr.setAfterEmpty(empty bool)
+  component operators
+  writes operators
+  cost <= 0
+  contract:
+    // Records whether the right operand that the next expression parses follows an infix operator applied without consuming input.
+
+transitional op opr.afterEmpty() bool
+  component operators
+  reads operators
+  cost <= 0
+  contract:
+    // Returns what the last opr.setAfterEmpty recorded.
+
 transitional op oprLongest.l(st LongestState) Operators
   component suspended
   reads suspended
@@ -2279,6 +2293,20 @@ transitional op oprExpr.setBound(st ExprState, x int)
   cost <= 0
   contract:
     // Sets the field bound of the record st to x.
+
+transitional op oprExpr.guard(st ExprState) int
+  component suspended
+  reads suspended
+  cost <= 0
+  contract:
+    // Returns the field guard of the record st.
+
+transitional op oprExpr.setGuard(st ExprState, x int)
+  component suspended
+  writes suspended
+  cost <= 0
+  contract:
+    // Sets the field guard of the record st to x.
 
 transitional op oprExpr.m0(st ExprState) Mark
   component suspended

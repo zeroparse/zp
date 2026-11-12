@@ -1486,6 +1486,9 @@ type Parser struct {
 	// cutFailed reports that a candidate of the last longest failed after a cut. It sits next to
 	// Cut, in the padding after it.
 	cutFailed bool
+	// afterEmpty reports that the next expression is the right operand of an infix operator applied
+	// without consuming input. It sits in the same padding.
+	afterEmpty bool
 	// nudBound is the binding level above which no operator can follow the start of the expression
 	// that the last start parsed.
 	nudBound int

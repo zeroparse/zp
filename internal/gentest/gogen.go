@@ -395,6 +395,14 @@ rule e = #operators {
     operand "a"?
     level { infix left _ }
 }`, []string{"a", "", "aa"}},
+		// The right operand of an empty right-associative operator does not apply it again before it
+		// consumes input.
+		{"empty operand and right infix", `rule main = e "," e $$
+rule e = #operators {
+    operand "x"
+    operand ""
+    level { infix right "" }
+}`, []string{"x,", ",", "xx,x", "x,xxx", "xx"}},
 		{"anchors and classes", `rule main = (^ [a-z]+ #atomic $ "\n"?)* $$ [^\n]? _`, []string{"ab\ncd\n", "ab\n1", "日本", "é\n\xff"}},
 		{"scans", `rule main = a:[a-z]* -[0-9] #repeat(2, 3) -. #repeat(1, 2) -[^,]+ "," rest:.* #atomic`, []string{"ab12xy,z", "123,", "1", "abc12éq,é"}},
 	}

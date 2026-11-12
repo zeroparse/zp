@@ -816,6 +816,9 @@ type TParser struct {
 	// cutFailed reports that a candidate of the last longest failed after a cut. It is last, so
 	// that it moves no other field.
 	cutFailed bool
+	// afterEmpty reports that the next expression is the right operand of an infix operator applied
+	// without consuming input. It sits in the padding after cutFailed.
+	afterEmpty bool
 	// nudBound is the binding level above which no operator can follow the start of the expression
 	// that the last start parsed.
 	nudBound int

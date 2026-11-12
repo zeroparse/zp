@@ -68,7 +68,7 @@ var engineOperatorSpecs = func() []goSpec {
 
 // engineOperatorSplit are the split forms of the Operators Rule loop.
 var engineOperatorSplit = []string{"triviaBegin", "triviaEnd", "longestBegin", "longestNext", "longestStep", "nudBegin", "nudPrefix",
-	"nudRhs", "nudNext", "nudOperand", "exprStart", "exprLoop", "exprLed", "exprRhs"}
+	"nudRhs", "nudNext", "nudOperand", "exprBegin", "exprStart", "exprLoop", "exprLed", "exprRhs"}
 
 // engineStreamSpecs are the functions of the stream mechanism of the engine. Every backend, the
 // iterative VM among them, delivers and commits an element in straight-line code that runs no rule
@@ -368,6 +368,10 @@ func engineTarget() *execgo.Target {
 			return "p.nudBound = " + a[0]
 		case "opr.nudBound":
 			return "p.nudBound"
+		case "opr.setAfterEmpty":
+			return "p.afterEmpty = " + a[0]
+		case "opr.afterEmpty":
+			return "p.afterEmpty"
 		case "rec.none":
 			return a[0] + ".None()"
 		case "budget.charge":

@@ -82,6 +82,7 @@ type ExprState struct {
 	Lhs      *value.Node
 	LastNone int
 	Bound    int
+	Guard    int
 	M0       Mark
 	A        OperatorsRuleAttempt
 }

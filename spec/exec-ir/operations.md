@@ -280,6 +280,8 @@ The operations of the component `operators`.
 | `transitional op opr.cutFailed() bool` | reads operators | `0` | Reports what the last opr.setCutFailed recorded. |
 | `transitional op opr.setNudBound(bound int)` | writes operators | `0` | Records the binding level above which no operator can follow the start of an expression. |
 | `transitional op opr.nudBound() int` | reads operators | `0` | Returns what the last opr.setNudBound recorded. |
+| `transitional op opr.setAfterEmpty(empty bool)` | writes operators | `0` | Records whether the right operand that the next expression parses follows an infix operator applied without consuming input. |
+| `transitional op opr.afterEmpty() bool` | reads operators | `0` | Returns what the last opr.setAfterEmpty recorded. |
 
 ## Suspended Calls
 
@@ -336,6 +338,8 @@ The operations of the component `suspended`.
 | `transitional op oprExpr.setLastNone(st ExprState, x int)` | writes suspended | `0` | Sets the field lastNone of the record st to x. |
 | `transitional op oprExpr.bound(st ExprState) int` | reads suspended | `0` | Returns the field bound of the record st. |
 | `transitional op oprExpr.setBound(st ExprState, x int)` | writes suspended | `0` | Sets the field bound of the record st to x. |
+| `transitional op oprExpr.guard(st ExprState) int` | reads suspended | `0` | Returns the field guard of the record st. |
+| `transitional op oprExpr.setGuard(st ExprState, x int)` | writes suspended | `0` | Sets the field guard of the record st to x. |
 | `transitional op oprExpr.m0(st ExprState) Mark` | reads suspended | `0` | Returns the field m0 of the record st. |
 | `transitional op oprExpr.setM0(st ExprState, x Mark)` | writes suspended | `0` | Sets the field m0 of the record st to x. |
 | `transitional op oprExpr.a(st ExprState) Attempt` | reads suspended | `0` | Returns the field a of the record st. |

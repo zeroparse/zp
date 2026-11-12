@@ -28,6 +28,11 @@ func (p *Parser) OperatorsRuleParse(r *Rule, min int) (*value.Node, bool) {
 //
 // Printed from Exec IR function operatorsExpr of internal/ir/exec/core, specialized for budget, missing.
 func (p *Parser) operatorsRuleExpr(r *Rule, min int) (*value.Node, bool) {
+	guard := -1
+	if p.afterEmpty {
+		guard = p.Pos
+	}
+	p.afterEmpty = false
 	lhs, ok := p.operatorsRuleNud(r)
 	if !ok {
 		return nil, false
@@ -57,6 +62,10 @@ func (p *Parser) operatorsRuleExpr(r *Rule, min int) (*value.Node, bool) {
 			p.Reset(m0)
 			break
 		}
+		if start == guard && a.End == start {
+			p.Reset(m0)
+			break
+		}
 		p.Pos = a.End
 		p.Env = a.Env
 		if p.Missing != nil || !a.Errs.None() {
@@ -75,6 +84,7 @@ func (p *Parser) operatorsRuleExpr(r *Rule, min int) (*value.Node, bool) {
 		if op.Assoc == grammar.AssocRight {
 			rmin--
 		}
+		p.afterEmpty = p.Pos == start
 		rhs, rok := p.OperatorsRuleParse(r, rmin)
 		if !rok {
 			if a.Cut {
@@ -421,6 +431,16 @@ func (p *Parser) NudOperand(r *Rule, st *NudState, v *value.Node, ok bool) (*val
 	return nil, false, false
 }
 
+// ExprBegin begins the expression st, before its start.
+// Printed from Exec IR function exprBegin of internal/ir/exec/core, specialized for budget, missing.
+func (p *Parser) ExprBegin(st *ExprState) {
+	st.Guard = -1
+	if p.afterEmpty {
+		st.Guard = p.Pos
+	}
+	p.afterEmpty = false
+}
+
 // ExprStart takes the start
 // lhs of an expression, whose parse reported ok, into the record st: done is set when nothing can
 // follow it.
@@ -467,6 +487,10 @@ func (p *Parser) ExprLed(r *Rule, st *ExprState) (bool, bool, int) {
 		p.Reset(st.M0)
 		return true, true, -1
 	}
+	if st.M0.Pos == st.Guard && st.A.End == st.M0.Pos {
+		p.Reset(st.M0)
+		return true, true, -1
+	}
 	p.Pos = st.A.End
 	p.Env = st.A.Env
 	if p.Missing != nil || !st.A.Errs.None() {
@@ -485,6 +509,7 @@ func (p *Parser) ExprLed(r *Rule, st *ExprState) (bool, bool, int) {
 	if op.Assoc == grammar.AssocRight {
 		rmin--
 	}
+	p.afterEmpty = p.Pos == st.M0.Pos
 	return false, true, rmin
 }
 

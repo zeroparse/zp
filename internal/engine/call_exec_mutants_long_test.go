@@ -272,6 +272,15 @@ func TestOperatorsLoopMutantsFail(t *testing.T) {
 			{{"LongestStep", "\tp.Frame = f\n", ""}},
 			{{"LongestStep", "\tst.I = st.I + 1\n", "\tst.I = st.I + 2\n"}},
 		}},
+		// The right operand of an infix operator applied without consuming input.
+		{"^TestOperatorsEmptyInfixTerminates$", ".", [][]funcEdit{
+			{{"operatorsRuleExpr", "if start == guard && a.End == start {", "if false {"}},
+			{{"operatorsRuleExpr", "p.afterEmpty = p.Pos == start", "p.afterEmpty = false"}},
+			{{"operatorsRuleExpr", "\tp.afterEmpty = false\n", ""}},
+			{{"ExprLed", "if st.M0.Pos == st.Guard && st.A.End == st.M0.Pos {", "if false {"}},
+			{{"ExprLed", "p.afterEmpty = p.Pos == st.M0.Pos", "p.afterEmpty = false"}},
+			{{"ExprBegin", "\tp.afterEmpty = false\n", ""}},
+		}},
 		{"^TestBackendsMatchOnCorpus$", ".", [][]funcEdit{
 			{{"Longest", "p.Pos > best.End", "p.Pos >= best.End"}},
 			{{"LongestStep", "p.Pos > st.Best.End", "p.Pos >= st.Best.End"}},

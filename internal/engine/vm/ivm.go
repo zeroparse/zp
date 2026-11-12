@@ -517,6 +517,7 @@ func (f *operatorsRuleFrame) next(mc *ivmMachine, vm *Program, res iresult) (ifr
 	for {
 		switch f.state {
 		case pBegin:
+			p.ExprBegin(&f.st)
 			f.state = pNud
 			return mc.nudFrame(f.r), iresult{}, false
 		case pNud:

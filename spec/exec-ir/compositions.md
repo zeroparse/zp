@@ -75,6 +75,7 @@ The loop of an Operators Rule: the longest operator match, binding levels, prefi
 | `func nudRhs(r Rule, st NudState, rhs Value, rok bool) (Value, bool, bool) [budget, missing]` | Ends the application of a prefix operator to its operand rhs, whose parse reported rok: with done set it returns the result of the start, and otherwise the parse goes on with the operand lines. |
 | `func nudNext(r Rule, st NudState) (Line, bool) [budget, missing]` | Returns the next operand line of the start st, which the caller runs and passes to nudOperand, and false after the last one, when the start fails. |
 | `func nudOperand(r Rule, st NudState, v Value, ok bool) (Value, bool, bool) [budget, missing]` | Ends the operand line that nudNext returned, with its value v and success ok: with done set it returns the result of the start, and otherwise the next line is tried. |
+| `func exprBegin(st ExprState) [budget, missing]` | Begins the expression st, before its start. |
 | `func exprStart(r Rule, st ExprState, lhs Value, ok bool) (bool, bool) [budget, missing]` | Takes the start lhs of an expression, whose parse reported ok, into the record st: done is set when nothing can follow it. |
 | `func exprLoop(st ExprState) [budget, missing]` | Begins an iteration of the loop of the expression st; the caller then skips the trivia and runs the longest match of the operators into the record. |
 | `func exprLed(r Rule, st ExprState) (bool, bool, int) [budget, missing]` | Settles the longest match in the record st: with done set it ends the expression, with the level of a right operand to parse it returns that level, and with a negative level the loop goes on. |
@@ -173,6 +174,7 @@ row includes what its backends print into packages of their own.
 | nudRhs |  |  | `[budget, missing]` |  |
 | nudNext |  |  | `[budget, missing]` |  |
 | nudOperand |  |  | `[budget, missing]` |  |
+| exprBegin |  |  | `[budget, missing]` |  |
 | exprStart |  |  | `[budget, missing]` |  |
 | exprLoop |  |  | `[budget, missing]` |  |
 | exprLed |  |  | `[budget, missing]` |  |

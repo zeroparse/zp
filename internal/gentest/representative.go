@@ -38,7 +38,10 @@ func Representative(cases []Case) []Case {
 }
 
 // alwaysRepresentative names the cases that the default tier keeps whatever their hash.
-var alwaysRepresentative = map[string]bool{}
+var alwaysRepresentative = map[string]bool{
+	// A generated parser that nests without end on it crashes instead of failing one case.
+	"empty operand and right infix": true,
+}
 
 func caseFamily(name string) string {
 	if i := strings.IndexByte(name, ':'); i >= 0 {

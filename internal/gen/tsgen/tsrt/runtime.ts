@@ -4602,6 +4602,10 @@ export class Parser {
   // that the last start parsed.
   nudBound = 0;
 
+  // afterEmpty reports that the next expression is the right operand of an infix operator applied
+  // without consuming input.
+  afterEmpty = false;
+
   // operatorsRuleParse parses an expression with operators that bind tighter than min.
   // Its text is printed from Exec IR (internal/ir/exec/core).
   operatorsRuleParse(r: Rule, min: number): R {

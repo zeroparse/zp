@@ -328,6 +328,10 @@ func goTarget(s goSpec) *execgo.Target {
 			return "p.nudBound = " + a[0]
 		case "opr.nudBound":
 			return "p.nudBound"
+		case "opr.setAfterEmpty":
+			return "p.afterEmpty = " + a[0]
+		case "opr.afterEmpty":
+			return "p.afterEmpty"
 		case "call.tracked":
 			if typed {
 				return "p.TypedDocument != nil"

@@ -158,9 +158,11 @@ position, with the captures of each candidate in its frame.`
 	// a step: fail fails the expression, brk ends the loop with the left operand, and next goes on.
 	type exits struct{ fail, brk, next func(*Builder) }
 	// loopState names where a step of the loop reads and writes the state of the expression: bound is
-	// the tightest level that may follow the start or the last operator applied.
+	// the tightest level that may follow the start or the last operator applied, and guard is where
+	// the expression began when it is the right operand of an infix operator applied without
+	// consuming input, and -1 otherwise.
 	type loopState struct {
-		a, m0, start, min, lastNone, bound Expr
+		a, m0, start, min, lastNone, bound, guard Expr
 		setLastNone, setBound              func(*Builder, Expr)
 	}
 	// ledStep settles the match a of the loop: it ends the loop, or applies the operator, and ends the
@@ -179,6 +181,13 @@ position, with the captures of each candidate in its frame.`
 			b.Do("reset", s.m0)
 			x.brk(b)
 		})
+		// The right operand of an infix operator applied without consuming input does not apply an
+		// empty operator again before it consumes input: it would begin the same expression at the
+		// same position without end.
+		b.If(And(Eq(s.start, s.guard), Eq(C("opr.end", a), s.start)), func(b *Builder) {
+			b.Do("reset", s.m0)
+			x.brk(b)
+		})
 		apply(b, a)
 		b.If(C("opr.postfix", op), func(b *Builder) {
 			build(b, lhs, Null(value))
@@ -189,6 +198,14 @@ position, with the captures of each candidate in its frame.`
 		})
 		b.Let("rmin", level)
 		b.If(C("opr.right", op), func(b *Builder) { b.Set("rmin", Bin("-", L("rmin"), Int(1))) })
+		b.Do("opr.setAfterEmpty", Eq(R(ops.Pos), s.start))
+	}
+	// guardAt binds where the expression that begins here is guarded (see loopState) to the place
+	// set, and clears the record that opr.setAfterEmpty made for it.
+	guardAt := func(b *Builder, init, set func(b *Builder, x Expr)) {
+		init(b, Int(-1))
+		b.If(C("opr.afterEmpty"), func(b *Builder) { set(b, R(ops.Pos)) })
+		b.Do("opr.setAfterEmpty", BoolC(false))
 	}
 	// rhsStep ends the step of an infix operator with its right operand in the locals rhs and rok.
 	rhsStep := func(b *Builder, s loopState, op, level Expr, x exits, build func(b *Builder, lhs, rhs Expr), lhs Expr) {
@@ -255,6 +272,7 @@ min. Each level of its recursion (the operand of a prefix operator, the right op
 operator) counts against the nesting limit, like the entry of a recursive rule.`
 
 		expr := m.AddFunc(exprName, []Param{P("r", rule), P("min", TInt)}, results, feats, func(b *Builder) {
+			guardAt(b, func(b *Builder, x Expr) { b.Let("guard", x) }, func(b *Builder, x Expr) { b.Set("guard", x) })
 			if typed {
 				b.LetN([]string{"lhs", "lstart", "ok"}, C(nudName, r))
 			} else {
@@ -272,7 +290,7 @@ operator) counts against the nesting limit, like the entry of a recursive rule.`
 				start := b.Let("start", C("frame.markPos", L("m0")))
 				b.Do("skipTrivia", r)
 				a := b.Let("a", C("longest", L("led")))
-				s := loopState{a: a, m0: L("m0"), start: start, min: L("min"), lastNone: L("lastNone"), bound: L("bound"),
+				s := loopState{a: a, m0: L("m0"), start: start, min: L("min"), lastNone: L("lastNone"), bound: L("bound"), guard: L("guard"),
 					setLastNone: func(b *Builder, x Expr) { b.Set("lastNone", x) },
 					setBound:    func(b *Builder, x Expr) { b.Set("bound", x) }}
 				x := exits{fail: func(b *Builder) { b.Return(Null(value), BoolC(false)) },
@@ -443,11 +461,15 @@ result of the start, and otherwise the next line is tried.`, func(b *Builder) {
 	// The loop of an expression. Its steps return done with the success of the expression, whose value
 	// is the left operand in the record.
 	exprState := func() loopState {
-		return loopState{a: ex("a"), m0: ex("m0"), start: C("frame.markPos", ex("m0")), min: ex("min"), lastNone: ex("lastNone"), bound: ex("bound"),
+		return loopState{a: ex("a"), m0: ex("m0"), start: C("frame.markPos", ex("m0")), min: ex("min"), lastNone: ex("lastNone"), bound: ex("bound"), guard: ex("guard"),
 			setLastNone: func(b *Builder, x Expr) { b.Do("oprExpr.setLastNone", st, x) },
 			setBound:    func(b *Builder, x Expr) { b.Do("oprExpr.setBound", st, x) }}
 	}
 	exprBuild := func(b *Builder, lhs, rhs Expr) { b.Do("oprExpr.setLhs", st, C("opr.build", r, ex("a"), lhs, rhs)) }
+	split("exprBegin", []Param{exprSt}, nil, `exprBegin begins the expression st, before its start.`, func(b *Builder) {
+		set := func(b *Builder, x Expr) { b.Do("oprExpr.setGuard", st, x) }
+		guardAt(b, set, set)
+	})
 	split("exprStart", []Param{P("r", rule), exprSt, P("lhs", value), P("ok", TBool)}, []Type{TBool, TBool}, `exprStart takes the start
 lhs of an expression, whose parse reported ok, into the record st: done is set when nothing can
 follow it.`, func(b *Builder) {

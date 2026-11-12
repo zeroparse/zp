@@ -26,6 +26,11 @@ func (p *Parser) OperatorsRuleParse(r *Rule, min int) (*Node, bool) {
 //
 // Printed from Exec IR function operatorsExpr of internal/ir/exec/core, specialized for budget.
 func (p *Parser) operatorsRuleExpr(r *Rule, min int) (*Node, bool) {
+	guard := -1
+	if p.afterEmpty {
+		guard = p.Pos
+	}
+	p.afterEmpty = false
 	lhs, ok := p.operatorsRuleNud(r)
 	if !ok {
 		return nil, false
@@ -55,6 +60,10 @@ func (p *Parser) operatorsRuleExpr(r *Rule, min int) (*Node, bool) {
 			p.Reset(m0)
 			break
 		}
+		if start == guard && a.end == start {
+			p.Reset(m0)
+			break
+		}
 		p.Pos = a.end
 		p.Env = a.env
 		if !a.errs.none() {
@@ -73,6 +82,7 @@ func (p *Parser) operatorsRuleExpr(r *Rule, min int) (*Node, bool) {
 		if op.Assoc == "right" {
 			rmin--
 		}
+		p.afterEmpty = p.Pos == start
 		rhs, rok := p.OperatorsRuleParse(r, rmin)
 		if !rok {
 			if a.cut {
@@ -250,6 +260,11 @@ func (p *TParser) OperatorsRuleParse(r *TRule, min int) (any, bool) {
 //
 // Printed from Exec IR function operatorsExprTyped of internal/ir/exec/core, specialized for budget, typed.
 func (p *TParser) operatorsRuleExpr(r *TRule, min int) (any, bool) {
+	guard := -1
+	if p.afterEmpty {
+		guard = p.Pos
+	}
+	p.afterEmpty = false
 	lhs, lstart, ok := p.operatorsRuleNud(r)
 	if !ok {
 		return nil, false
@@ -279,6 +294,10 @@ func (p *TParser) operatorsRuleExpr(r *TRule, min int) (any, bool) {
 			p.Reset(m0)
 			break
 		}
+		if start == guard && a.end == start {
+			p.Reset(m0)
+			break
+		}
 		p.Pos = a.end
 		p.Env = a.env
 		if !a.errs.none() {
@@ -297,6 +316,7 @@ func (p *TParser) operatorsRuleExpr(r *TRule, min int) (any, bool) {
 		if op.Assoc == "right" {
 			rmin--
 		}
+		p.afterEmpty = p.Pos == start
 		rhs, rok := p.OperatorsRuleParse(r, rmin)
 		if !rok {
 			if a.cut {

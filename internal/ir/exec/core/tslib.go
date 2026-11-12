@@ -360,6 +360,10 @@ var tsTarget = &exects.Target{
 			return "this.nudBound = " + a[0]
 		case "opr.nudBound":
 			return "this.nudBound"
+		case "opr.setAfterEmpty":
+			return "this.afterEmpty = " + a[0]
+		case "opr.afterEmpty":
+			return "this.afterEmpty"
 		case "budget.charge":
 			if k, ok := c.Args[0].(*exec.Const); ok && k.Value == uint64(1) {
 				return "this.spend()"

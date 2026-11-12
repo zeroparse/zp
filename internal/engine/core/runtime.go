@@ -203,6 +203,7 @@ type Parser struct {
 	oplocals   [3]Local       // $lhs, $rhs and $op of a OperatorsRule operator action
 	Saved      []*value.Node  // captures saved across a reset in longest
 	cutFailed  bool           // a candidate of the last longest match failed after a cut
+	afterEmpty bool           // the next expression is the right operand of an infix operator that consumed no input
 	nudBound   int            // the binding level above which no operator can follow the last start of an expression
 	kidRoom    int            // the room on KidStack that this parse has paid for (growKids), whatever its capacity
 }

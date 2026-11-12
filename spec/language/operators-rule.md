@@ -177,7 +177,13 @@ infix left _ // application    f x (empty operator part)
   is written. An infix operator that is applied without consuming any input
   (an empty operator part and an empty right operand, with no `skip` text)
   ends the expression after it is applied, as an iteration that consumes no
-  input ends a repetition; otherwise it would be applied indefinitely.
+  input ends a repetition; otherwise it would be applied indefinitely. The right
+  operand of an operator part that consumed no input (with no `skip` text) does
+  not apply such a part itself until it has consumed input; otherwise a
+  right-associative operator would begin the same expression at the same
+  position again without end. With `operand "x"`, `operand ""` and
+  `infix right ""`, the input `x` is one application of the operator to `x` and
+  an empty right operand.
 - **Backtracking.** If an operator part matches but its right operand cannot be
   parsed, the operator is not applied and the expression ends before the
   operator. For a prefix operator, the parser then tries the `operand` items at
