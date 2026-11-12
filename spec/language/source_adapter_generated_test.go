@@ -71,13 +71,14 @@ func TestGeneratedSourceParserMatchesEngine(t *testing.T) {
 		inputs = append(inputs, mutatedSource(rng, corpus))
 	}
 	cases := []gentest.Case{{Name: "zp.zp", Src: self, Inputs: inputs}}
-	// Control: the name of a rule is built from its expression in the generated parser. The comparison must notice.
+	// Control: the generated parser builds the name of a rule from the expression of its body. The
+	// comparison must notice.
 	t.Run("control", func(t *testing.T) {
 		hits := 0
 		got := gentest.GeneratedParsersMismatches(t, goBin, cases, gen.GenOptions{}, func(code []byte) []byte {
-			const from, to = `c.NewStruct("RuleDef", "Attrs", c.Member(c.Cap(1), "Attrs"), "Name", c.Member(c.Cap(1), "Name")`, `c.NewStruct("RuleDef", "Attrs", c.Member(c.Cap(1), "Attrs"), "Name", c.Member(c.Cap(1), "Expr")`
-			hits += strings.Count(string(code), from)
-			return []byte(strings.ReplaceAll(string(code), from, to))
+			changed, n := ruleNameFromExpr(string(code))
+			hits += n
+			return []byte(changed)
 		})
 		if hits == 0 {
 			t.Fatal("the generated parser has no construction of a rule to change")
@@ -88,4 +89,21 @@ func TestGeneratedSourceParserMatchesEngine(t *testing.T) {
 	})
 	t.Run("values", func(t *testing.T) { gentest.GeneratedParsersCorpus(t, goBin, cases, gen.GenOptions{}) })
 	t.Run("source info", func(t *testing.T) { gentest.GeneratedParsersCorpus(t, goBin, cases, gen.GenOptions{SourceInfo: true}) })
+}
+
+// ruleNameFromExpr changes the action of the generated parser that makes a RuleDef so that it reads
+// the Name of the rule's body from its Expr member, and reports how many reads it changed.
+func ruleNameFromExpr(code string) (string, int) {
+	const from, to = `c.Cap(1), "Name", "Name")`, `c.Cap(1), "Expr", "Expr")`
+	made := strings.Index(code, `c.TermStruct("RuleDef", `)
+	if made < 0 {
+		return code, 0
+	}
+	action := strings.LastIndex(code[:made], ".Action = func(")
+	if action < 0 {
+		return code, 0
+	}
+	body := code[action:made]
+	n := strings.Count(body, from)
+	return code[:action] + strings.ReplaceAll(body, from, to) + code[made:], n
 }
