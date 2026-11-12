@@ -456,17 +456,17 @@ termchargescast/term 34: list($z, (F{}).F13)[0].(Many) | aaaaa ts-node	77 action
 termchargescast/term 35: list(Inner{N: 1}, (F{}).F14)[0].(Inner) | aaaa engine-closure	80 ok
 termchargescast/term 35: list(Inner{N: 1}, (F{}).F14)[0].(Inner) | aaaa engine-iterative	78 ok
 termchargescast/term 35: list(Inner{N: 1}, (F{}).F14)[0].(Inner) | aaaa engine-vm	78 ok
-termchargescast/term 35: list(Inner{N: 1}, (F{}).F14)[0].(Inner) | aaaa go-node	38 ok
+termchargescast/term 35: list(Inner{N: 1}, (F{}).F14)[0].(Inner) | aaaa go-node	37 ok
 termchargescast/term 35: list(Inner{N: 1}, (F{}).F14)[0].(Inner) | aaaa go-node-recognize	18 ok
-termchargescast/term 35: list(Inner{N: 1}, (F{}).F14)[0].(Inner) | aaaa go-typed	40 ok
+termchargescast/term 35: list(Inner{N: 1}, (F{}).F14)[0].(Inner) | aaaa go-typed	39 ok
 termchargescast/term 35: list(Inner{N: 1}, (F{}).F14)[0].(Inner) | aaaa go-typed-recognize	18 ok
 termchargescast/term 35: list(Inner{N: 1}, (F{}).F14)[0].(Inner) | aaaa ts-node	50 ok
 termchargescast/term 35: list(Inner{N: 1}, (F{}).F14)[0].(Inner) | aaaaa engine-closure	86 ok
 termchargescast/term 35: list(Inner{N: 1}, (F{}).F14)[0].(Inner) | aaaaa engine-iterative	83 ok
 termchargescast/term 35: list(Inner{N: 1}, (F{}).F14)[0].(Inner) | aaaaa engine-vm	83 ok
-termchargescast/term 35: list(Inner{N: 1}, (F{}).F14)[0].(Inner) | aaaaa go-node	44 ok
+termchargescast/term 35: list(Inner{N: 1}, (F{}).F14)[0].(Inner) | aaaaa go-node	43 ok
 termchargescast/term 35: list(Inner{N: 1}, (F{}).F14)[0].(Inner) | aaaaa go-node-recognize	22 ok
-termchargescast/term 35: list(Inner{N: 1}, (F{}).F14)[0].(Inner) | aaaaa go-typed	46 ok
+termchargescast/term 35: list(Inner{N: 1}, (F{}).F14)[0].(Inner) | aaaaa go-typed	45 ok
 termchargescast/term 35: list(Inner{N: 1}, (F{}).F14)[0].(Inner) | aaaaa go-typed-recognize	22 ok
 termchargescast/term 35: list(Inner{N: 1}, (F{}).F14)[0].(Inner) | aaaaa ts-node	57 ok
 termchargescast/term 36: list(Num{$x}, (F{}).F14)[0].(Inner) | aaaa engine-closure	9 action in main: cannot cast Num to Inner at input position 0 (line 1, column 1)
@@ -504,33 +504,33 @@ termchargescast/term 37: list(1, (F{}).F14)[0].(Inner) | aaaaa ts-node	77 action
 termchargescast/term 38: list(list(Inner{N: 1}, Inner{N: 2}), (F{}).F15)[0].([]Inner) | aaaa engine-closure	100 ok
 termchargescast/term 38: list(list(Inner{N: 1}, Inner{N: 2}), (F{}).F15)[0].([]Inner) | aaaa engine-iterative	98 ok
 termchargescast/term 38: list(list(Inner{N: 1}, Inner{N: 2}), (F{}).F15)[0].([]Inner) | aaaa engine-vm	98 ok
-termchargescast/term 38: list(list(Inner{N: 1}, Inner{N: 2}), (F{}).F15)[0].([]Inner) | aaaa go-node	52 ok
+termchargescast/term 38: list(list(Inner{N: 1}, Inner{N: 2}), (F{}).F15)[0].([]Inner) | aaaa go-node	50 ok
 termchargescast/term 38: list(list(Inner{N: 1}, Inner{N: 2}), (F{}).F15)[0].([]Inner) | aaaa go-node-recognize	18 ok
-termchargescast/term 38: list(list(Inner{N: 1}, Inner{N: 2}), (F{}).F15)[0].([]Inner) | aaaa go-typed	59 ok
+termchargescast/term 38: list(list(Inner{N: 1}, Inner{N: 2}), (F{}).F15)[0].([]Inner) | aaaa go-typed	57 ok
 termchargescast/term 38: list(list(Inner{N: 1}, Inner{N: 2}), (F{}).F15)[0].([]Inner) | aaaa go-typed-recognize	18 ok
 termchargescast/term 38: list(list(Inner{N: 1}, Inner{N: 2}), (F{}).F15)[0].([]Inner) | aaaa ts-node	66 ok
 termchargescast/term 38: list(list(Inner{N: 1}, Inner{N: 2}), (F{}).F15)[0].([]Inner) | aaaaa engine-closure	106 ok
 termchargescast/term 38: list(list(Inner{N: 1}, Inner{N: 2}), (F{}).F15)[0].([]Inner) | aaaaa engine-iterative	103 ok
 termchargescast/term 38: list(list(Inner{N: 1}, Inner{N: 2}), (F{}).F15)[0].([]Inner) | aaaaa engine-vm	103 ok
-termchargescast/term 38: list(list(Inner{N: 1}, Inner{N: 2}), (F{}).F15)[0].([]Inner) | aaaaa go-node	58 ok
+termchargescast/term 38: list(list(Inner{N: 1}, Inner{N: 2}), (F{}).F15)[0].([]Inner) | aaaaa go-node	56 ok
 termchargescast/term 38: list(list(Inner{N: 1}, Inner{N: 2}), (F{}).F15)[0].([]Inner) | aaaaa go-node-recognize	22 ok
-termchargescast/term 38: list(list(Inner{N: 1}, Inner{N: 2}), (F{}).F15)[0].([]Inner) | aaaaa go-typed	65 ok
+termchargescast/term 38: list(list(Inner{N: 1}, Inner{N: 2}), (F{}).F15)[0].([]Inner) | aaaaa go-typed	63 ok
 termchargescast/term 38: list(list(Inner{N: 1}, Inner{N: 2}), (F{}).F15)[0].([]Inner) | aaaaa go-typed-recognize	22 ok
 termchargescast/term 38: list(list(Inner{N: 1}, Inner{N: 2}), (F{}).F15)[0].([]Inner) | aaaaa ts-node	73 ok
 termchargescast/term 39: list(list(Inner{N: 1}, 2), (F{}).F15)[0].([]Inner) | aaaa engine-closure	9 action in main: cannot cast []_ to []Inner at input position 0 (line 1, column 1)
 termchargescast/term 39: list(list(Inner{N: 1}, 2), (F{}).F15)[0].([]Inner) | aaaa engine-iterative	9 action in main: cannot cast []_ to []Inner at input position 0 (line 1, column 1)
 termchargescast/term 39: list(list(Inner{N: 1}, 2), (F{}).F15)[0].([]Inner) | aaaa engine-vm	9 action in main: cannot cast []_ to []Inner at input position 0 (line 1, column 1)
-termchargescast/term 39: list(list(Inner{N: 1}, 2), (F{}).F15)[0].([]Inner) | aaaa go-node	228 action in main: cannot cast []_ to []Inner at input position 0 (line 1, column 1)
+termchargescast/term 39: list(list(Inner{N: 1}, 2), (F{}).F15)[0].([]Inner) | aaaa go-node	227 action in main: cannot cast []_ to []Inner at input position 0 (line 1, column 1)
 termchargescast/term 39: list(list(Inner{N: 1}, 2), (F{}).F15)[0].([]Inner) | aaaa go-node-recognize	18 ok
-termchargescast/term 39: list(list(Inner{N: 1}, 2), (F{}).F15)[0].([]Inner) | aaaa go-typed	229 action in main: cannot cast []_ to []Inner at input position 0 (line 1, column 1)
+termchargescast/term 39: list(list(Inner{N: 1}, 2), (F{}).F15)[0].([]Inner) | aaaa go-typed	228 action in main: cannot cast []_ to []Inner at input position 0 (line 1, column 1)
 termchargescast/term 39: list(list(Inner{N: 1}, 2), (F{}).F15)[0].([]Inner) | aaaa go-typed-recognize	18 ok
 termchargescast/term 39: list(list(Inner{N: 1}, 2), (F{}).F15)[0].([]Inner) | aaaa ts-node	83 action in main: cannot cast []_ to []Inner at input position 0 (line 1, column 1)
 termchargescast/term 39: list(list(Inner{N: 1}, 2), (F{}).F15)[0].([]Inner) | aaaaa engine-closure	11 action in main: cannot cast []_ to []Inner at input position 0 (line 1, column 1)
 termchargescast/term 39: list(list(Inner{N: 1}, 2), (F{}).F15)[0].([]Inner) | aaaaa engine-iterative	11 action in main: cannot cast []_ to []Inner at input position 0 (line 1, column 1)
 termchargescast/term 39: list(list(Inner{N: 1}, 2), (F{}).F15)[0].([]Inner) | aaaaa engine-vm	11 action in main: cannot cast []_ to []Inner at input position 0 (line 1, column 1)
-termchargescast/term 39: list(list(Inner{N: 1}, 2), (F{}).F15)[0].([]Inner) | aaaaa go-node	235 action in main: cannot cast []_ to []Inner at input position 0 (line 1, column 1)
+termchargescast/term 39: list(list(Inner{N: 1}, 2), (F{}).F15)[0].([]Inner) | aaaaa go-node	234 action in main: cannot cast []_ to []Inner at input position 0 (line 1, column 1)
 termchargescast/term 39: list(list(Inner{N: 1}, 2), (F{}).F15)[0].([]Inner) | aaaaa go-node-recognize	22 ok
-termchargescast/term 39: list(list(Inner{N: 1}, 2), (F{}).F15)[0].([]Inner) | aaaaa go-typed	236 action in main: cannot cast []_ to []Inner at input position 0 (line 1, column 1)
+termchargescast/term 39: list(list(Inner{N: 1}, 2), (F{}).F15)[0].([]Inner) | aaaaa go-typed	235 action in main: cannot cast []_ to []Inner at input position 0 (line 1, column 1)
 termchargescast/term 39: list(list(Inner{N: 1}, 2), (F{}).F15)[0].([]Inner) | aaaaa go-typed-recognize	22 ok
 termchargescast/term 39: list(list(Inner{N: 1}, 2), (F{}).F15)[0].([]Inner) | aaaaa ts-node	91 action in main: cannot cast []_ to []Inner at input position 0 (line 1, column 1)
 termchargescast/term 3: list("s", (F{}).F1)[0].(string) | aaaa engine-closure	41 ok

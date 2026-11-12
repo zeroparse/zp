@@ -309,5 +309,5 @@ var missingBindingOps = []string{"missing.active", "missing.recompute", "missing
 // EngineMissingBindings returns the Go test file of the conformance bindings of the missing-token mode
 // for package core of the engine, the only target that has the mode.
 func EngineMissingBindings() (string, error) {
-	return bindingFile("core", missingBindingOps, engineTarget())
+	return bindingFile("core", missingBindingOps, engineTarget(), "")
 }

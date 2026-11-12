@@ -240,7 +240,7 @@ termchargesmember/term 35: (Inner{}).Q | 😀 ts-node	16 ok
 termchargesmember/term 36: (R{In: Inner{Q: Leaf{V: 3}}}).In.Q | a engine-closure	23 ok
 termchargesmember/term 36: (R{In: Inner{Q: Leaf{V: 3}}}).In.Q | a engine-iterative	20 ok
 termchargesmember/term 36: (R{In: Inner{Q: Leaf{V: 3}}}).In.Q | a engine-vm	20 ok
-termchargesmember/term 36: (R{In: Inner{Q: Leaf{V: 3}}}).In.Q | a go-node	21 ok
+termchargesmember/term 36: (R{In: Inner{Q: Leaf{V: 3}}}).In.Q | a go-node	18 ok
 termchargesmember/term 36: (R{In: Inner{Q: Leaf{V: 3}}}).In.Q | a go-node-recognize	6 ok
 termchargesmember/term 36: (R{In: Inner{Q: Leaf{V: 3}}}).In.Q | a go-typed	9 ok
 termchargesmember/term 36: (R{In: Inner{Q: Leaf{V: 3}}}).In.Q | a go-typed-recognize	6 ok
@@ -248,7 +248,7 @@ termchargesmember/term 36: (R{In: Inner{Q: Leaf{V: 3}}}).In.Q | a ts-node	24 ok
 termchargesmember/term 37: (R{In: Inner{Q: Leaf{V: 3}}}).In.Q | 😀 engine-closure	29 ok
 termchargesmember/term 37: (R{In: Inner{Q: Leaf{V: 3}}}).In.Q | 😀 engine-iterative	26 ok
 termchargesmember/term 37: (R{In: Inner{Q: Leaf{V: 3}}}).In.Q | 😀 engine-vm	26 ok
-termchargesmember/term 37: (R{In: Inner{Q: Leaf{V: 3}}}).In.Q | 😀 go-node	27 ok
+termchargesmember/term 37: (R{In: Inner{Q: Leaf{V: 3}}}).In.Q | 😀 go-node	24 ok
 termchargesmember/term 37: (R{In: Inner{Q: Leaf{V: 3}}}).In.Q | 😀 go-node-recognize	12 ok
 termchargesmember/term 37: (R{In: Inner{Q: Leaf{V: 3}}}).In.Q | 😀 go-typed	15 ok
 termchargesmember/term 37: (R{In: Inner{Q: Leaf{V: 3}}}).In.Q | 😀 go-typed-recognize	12 ok
@@ -256,7 +256,7 @@ termchargesmember/term 37: (R{In: Inner{Q: Leaf{V: 3}}}).In.Q | 😀 ts-node	27 
 termchargesmember/term 38: (R{In: Inner{Q: Leaf{V: $x.End}}}).In.Q.V | a engine-closure	25 ok
 termchargesmember/term 38: (R{In: Inner{Q: Leaf{V: $x.End}}}).In.Q.V | a engine-iterative	21 ok
 termchargesmember/term 38: (R{In: Inner{Q: Leaf{V: $x.End}}}).In.Q.V | a engine-vm	21 ok
-termchargesmember/term 38: (R{In: Inner{Q: Leaf{V: $x.End}}}).In.Q.V | a go-node	23 ok
+termchargesmember/term 38: (R{In: Inner{Q: Leaf{V: $x.End}}}).In.Q.V | a go-node	20 ok
 termchargesmember/term 38: (R{In: Inner{Q: Leaf{V: $x.End}}}).In.Q.V | a go-node-recognize	6 ok
 termchargesmember/term 38: (R{In: Inner{Q: Leaf{V: $x.End}}}).In.Q.V | a go-typed	8 ok
 termchargesmember/term 38: (R{In: Inner{Q: Leaf{V: $x.End}}}).In.Q.V | a go-typed-recognize	6 ok
@@ -264,7 +264,7 @@ termchargesmember/term 38: (R{In: Inner{Q: Leaf{V: $x.End}}}).In.Q.V | a ts-node
 termchargesmember/term 39: (R{In: Inner{Q: Leaf{V: $x.End}}}).In.Q.V | 😀 engine-closure	31 ok
 termchargesmember/term 39: (R{In: Inner{Q: Leaf{V: $x.End}}}).In.Q.V | 😀 engine-iterative	27 ok
 termchargesmember/term 39: (R{In: Inner{Q: Leaf{V: $x.End}}}).In.Q.V | 😀 engine-vm	27 ok
-termchargesmember/term 39: (R{In: Inner{Q: Leaf{V: $x.End}}}).In.Q.V | 😀 go-node	29 ok
+termchargesmember/term 39: (R{In: Inner{Q: Leaf{V: $x.End}}}).In.Q.V | 😀 go-node	26 ok
 termchargesmember/term 39: (R{In: Inner{Q: Leaf{V: $x.End}}}).In.Q.V | 😀 go-node-recognize	12 ok
 termchargesmember/term 39: (R{In: Inner{Q: Leaf{V: $x.End}}}).In.Q.V | 😀 go-typed	14 ok
 termchargesmember/term 39: (R{In: Inner{Q: Leaf{V: $x.End}}}).In.Q.V | 😀 go-typed-recognize	12 ok
@@ -296,7 +296,7 @@ termchargesmember/term 41: (R{}).L == nil | 😀 ts-node	17 ok
 termchargesmember/term 42: (R{L: list()}).L != nil | a engine-closure	13 ok
 termchargesmember/term 42: (R{L: list()}).L != nil | a engine-iterative	13 ok
 termchargesmember/term 42: (R{L: list()}).L != nil | a engine-vm	13 ok
-termchargesmember/term 42: (R{L: list()}).L != nil | a go-node	14 ok
+termchargesmember/term 42: (R{L: list()}).L != nil | a go-node	13 ok
 termchargesmember/term 42: (R{L: list()}).L != nil | a go-node-recognize	6 ok
 termchargesmember/term 42: (R{L: list()}).L != nil | a go-typed	9 ok
 termchargesmember/term 42: (R{L: list()}).L != nil | a go-typed-recognize	6 ok
@@ -304,7 +304,7 @@ termchargesmember/term 42: (R{L: list()}).L != nil | a ts-node	18 ok
 termchargesmember/term 43: (R{L: list()}).L != nil | 😀 engine-closure	19 ok
 termchargesmember/term 43: (R{L: list()}).L != nil | 😀 engine-iterative	19 ok
 termchargesmember/term 43: (R{L: list()}).L != nil | 😀 engine-vm	19 ok
-termchargesmember/term 43: (R{L: list()}).L != nil | 😀 go-node	20 ok
+termchargesmember/term 43: (R{L: list()}).L != nil | 😀 go-node	19 ok
 termchargesmember/term 43: (R{L: list()}).L != nil | 😀 go-node-recognize	12 ok
 termchargesmember/term 43: (R{L: list()}).L != nil | 😀 go-typed	15 ok
 termchargesmember/term 43: (R{L: list()}).L != nil | 😀 go-typed-recognize	12 ok
@@ -328,7 +328,7 @@ termchargesmember/term 45: (R{}).O | 😀 ts-node	14 ok
 termchargesmember/term 46: (R{O: text($x)}).O | a engine-closure	13 ok
 termchargesmember/term 46: (R{O: text($x)}).O | a engine-iterative	13 ok
 termchargesmember/term 46: (R{O: text($x)}).O | a engine-vm	13 ok
-termchargesmember/term 46: (R{O: text($x)}).O | a go-node	13 ok
+termchargesmember/term 46: (R{O: text($x)}).O | a go-node	12 ok
 termchargesmember/term 46: (R{O: text($x)}).O | a go-node-recognize	6 ok
 termchargesmember/term 46: (R{O: text($x)}).O | a go-typed	8 ok
 termchargesmember/term 46: (R{O: text($x)}).O | a go-typed-recognize	6 ok
@@ -336,7 +336,7 @@ termchargesmember/term 46: (R{O: text($x)}).O | a ts-node	16 ok
 termchargesmember/term 47: (R{O: text($x)}).O | 😀 engine-closure	19 ok
 termchargesmember/term 47: (R{O: text($x)}).O | 😀 engine-iterative	19 ok
 termchargesmember/term 47: (R{O: text($x)}).O | 😀 engine-vm	19 ok
-termchargesmember/term 47: (R{O: text($x)}).O | 😀 go-node	19 ok
+termchargesmember/term 47: (R{O: text($x)}).O | 😀 go-node	18 ok
 termchargesmember/term 47: (R{O: text($x)}).O | 😀 go-node-recognize	12 ok
 termchargesmember/term 47: (R{O: text($x)}).O | 😀 go-typed	14 ok
 termchargesmember/term 47: (R{O: text($x)}).O | 😀 go-typed-recognize	12 ok
@@ -344,7 +344,7 @@ termchargesmember/term 47: (R{O: text($x)}).O | 😀 ts-node	19 ok
 termchargesmember/term 48: (R{A: 7}).A | a engine-closure	13 ok
 termchargesmember/term 48: (R{A: 7}).A | a engine-iterative	13 ok
 termchargesmember/term 48: (R{A: 7}).A | a engine-vm	13 ok
-termchargesmember/term 48: (R{A: 7}).A | a go-node	13 ok
+termchargesmember/term 48: (R{A: 7}).A | a go-node	12 ok
 termchargesmember/term 48: (R{A: 7}).A | a go-node-recognize	6 ok
 termchargesmember/term 48: (R{A: 7}).A | a go-typed	8 ok
 termchargesmember/term 48: (R{A: 7}).A | a go-typed-recognize	6 ok
@@ -352,7 +352,7 @@ termchargesmember/term 48: (R{A: 7}).A | a ts-node	15 ok
 termchargesmember/term 49: (R{A: 7}).A | 😀 engine-closure	19 ok
 termchargesmember/term 49: (R{A: 7}).A | 😀 engine-iterative	19 ok
 termchargesmember/term 49: (R{A: 7}).A | 😀 engine-vm	19 ok
-termchargesmember/term 49: (R{A: 7}).A | 😀 go-node	19 ok
+termchargesmember/term 49: (R{A: 7}).A | 😀 go-node	18 ok
 termchargesmember/term 49: (R{A: 7}).A | 😀 go-node-recognize	12 ok
 termchargesmember/term 49: (R{A: 7}).A | 😀 go-typed	14 ok
 termchargesmember/term 49: (R{A: 7}).A | 😀 go-typed-recognize	12 ok
@@ -368,7 +368,7 @@ termchargesmember/term 4: $x.End - $x.Start | a ts-node	14 ok
 termchargesmember/term 50: (R{B: text($x)}).B | a engine-closure	13 ok
 termchargesmember/term 50: (R{B: text($x)}).B | a engine-iterative	13 ok
 termchargesmember/term 50: (R{B: text($x)}).B | a engine-vm	13 ok
-termchargesmember/term 50: (R{B: text($x)}).B | a go-node	13 ok
+termchargesmember/term 50: (R{B: text($x)}).B | a go-node	12 ok
 termchargesmember/term 50: (R{B: text($x)}).B | a go-node-recognize	6 ok
 termchargesmember/term 50: (R{B: text($x)}).B | a go-typed	8 ok
 termchargesmember/term 50: (R{B: text($x)}).B | a go-typed-recognize	6 ok
@@ -376,7 +376,7 @@ termchargesmember/term 50: (R{B: text($x)}).B | a ts-node	16 ok
 termchargesmember/term 51: (R{B: text($x)}).B | 😀 engine-closure	19 ok
 termchargesmember/term 51: (R{B: text($x)}).B | 😀 engine-iterative	19 ok
 termchargesmember/term 51: (R{B: text($x)}).B | 😀 engine-vm	19 ok
-termchargesmember/term 51: (R{B: text($x)}).B | 😀 go-node	19 ok
+termchargesmember/term 51: (R{B: text($x)}).B | 😀 go-node	18 ok
 termchargesmember/term 51: (R{B: text($x)}).B | 😀 go-node-recognize	12 ok
 termchargesmember/term 51: (R{B: text($x)}).B | 😀 go-typed	14 ok
 termchargesmember/term 51: (R{B: text($x)}).B | 😀 go-typed-recognize	12 ok
@@ -384,7 +384,7 @@ termchargesmember/term 51: (R{B: text($x)}).B | 😀 ts-node	19 ok
 termchargesmember/term 52: (R{L: list(1, 2, 3)}).L | a engine-closure	26 ok
 termchargesmember/term 52: (R{L: list(1, 2, 3)}).L | a engine-iterative	26 ok
 termchargesmember/term 52: (R{L: list(1, 2, 3)}).L | a engine-vm	26 ok
-termchargesmember/term 52: (R{L: list(1, 2, 3)}).L | a go-node	26 ok
+termchargesmember/term 52: (R{L: list(1, 2, 3)}).L | a go-node	25 ok
 termchargesmember/term 52: (R{L: list(1, 2, 3)}).L | a go-node-recognize	6 ok
 termchargesmember/term 52: (R{L: list(1, 2, 3)}).L | a go-typed	32 ok
 termchargesmember/term 52: (R{L: list(1, 2, 3)}).L | a go-typed-recognize	6 ok
@@ -392,7 +392,7 @@ termchargesmember/term 52: (R{L: list(1, 2, 3)}).L | a ts-node	29 ok
 termchargesmember/term 53: (R{L: list(1, 2, 3)}).L | 😀 engine-closure	32 ok
 termchargesmember/term 53: (R{L: list(1, 2, 3)}).L | 😀 engine-iterative	32 ok
 termchargesmember/term 53: (R{L: list(1, 2, 3)}).L | 😀 engine-vm	32 ok
-termchargesmember/term 53: (R{L: list(1, 2, 3)}).L | 😀 go-node	32 ok
+termchargesmember/term 53: (R{L: list(1, 2, 3)}).L | 😀 go-node	31 ok
 termchargesmember/term 53: (R{L: list(1, 2, 3)}).L | 😀 go-node-recognize	12 ok
 termchargesmember/term 53: (R{L: list(1, 2, 3)}).L | 😀 go-typed	38 ok
 termchargesmember/term 53: (R{L: list(1, 2, 3)}).L | 😀 go-typed-recognize	12 ok
@@ -400,7 +400,7 @@ termchargesmember/term 53: (R{L: list(1, 2, 3)}).L | 😀 ts-node	32 ok
 termchargesmember/term 54: (R{L: list($x.Start, 2)}).L[1] | a engine-closure	21 ok
 termchargesmember/term 54: (R{L: list($x.Start, 2)}).L[1] | a engine-iterative	21 ok
 termchargesmember/term 54: (R{L: list($x.Start, 2)}).L[1] | a engine-vm	21 ok
-termchargesmember/term 54: (R{L: list($x.Start, 2)}).L[1] | a go-node	22 ok
+termchargesmember/term 54: (R{L: list($x.Start, 2)}).L[1] | a go-node	21 ok
 termchargesmember/term 54: (R{L: list($x.Start, 2)}).L[1] | a go-node-recognize	6 ok
 termchargesmember/term 54: (R{L: list($x.Start, 2)}).L[1] | a go-typed	21 ok
 termchargesmember/term 54: (R{L: list($x.Start, 2)}).L[1] | a go-typed-recognize	6 ok
@@ -408,7 +408,7 @@ termchargesmember/term 54: (R{L: list($x.Start, 2)}).L[1] | a ts-node	27 ok
 termchargesmember/term 55: (R{L: list($x.Start, 2)}).L[1] | 😀 engine-closure	27 ok
 termchargesmember/term 55: (R{L: list($x.Start, 2)}).L[1] | 😀 engine-iterative	27 ok
 termchargesmember/term 55: (R{L: list($x.Start, 2)}).L[1] | 😀 engine-vm	27 ok
-termchargesmember/term 55: (R{L: list($x.Start, 2)}).L[1] | 😀 go-node	28 ok
+termchargesmember/term 55: (R{L: list($x.Start, 2)}).L[1] | 😀 go-node	27 ok
 termchargesmember/term 55: (R{L: list($x.Start, 2)}).L[1] | 😀 go-node-recognize	12 ok
 termchargesmember/term 55: (R{L: list($x.Start, 2)}).L[1] | 😀 go-typed	27 ok
 termchargesmember/term 55: (R{L: list($x.Start, 2)}).L[1] | 😀 go-typed-recognize	12 ok
@@ -416,7 +416,7 @@ termchargesmember/term 55: (R{L: list($x.Start, 2)}).L[1] | 😀 ts-node	30 ok
 termchargesmember/term 56: (R{T: ($x.End, "t")}).T | a engine-closure	22 ok
 termchargesmember/term 56: (R{T: ($x.End, "t")}).T | a engine-iterative	22 ok
 termchargesmember/term 56: (R{T: ($x.End, "t")}).T | a engine-vm	22 ok
-termchargesmember/term 56: (R{T: ($x.End, "t")}).T | a go-node	22 ok
+termchargesmember/term 56: (R{T: ($x.End, "t")}).T | a go-node	21 ok
 termchargesmember/term 56: (R{T: ($x.End, "t")}).T | a go-node-recognize	6 ok
 termchargesmember/term 56: (R{T: ($x.End, "t")}).T | a go-typed	17 ok
 termchargesmember/term 56: (R{T: ($x.End, "t")}).T | a go-typed-recognize	6 ok
@@ -424,7 +424,7 @@ termchargesmember/term 56: (R{T: ($x.End, "t")}).T | a ts-node	26 ok
 termchargesmember/term 57: (R{T: ($x.End, "t")}).T | 😀 engine-closure	28 ok
 termchargesmember/term 57: (R{T: ($x.End, "t")}).T | 😀 engine-iterative	28 ok
 termchargesmember/term 57: (R{T: ($x.End, "t")}).T | 😀 engine-vm	28 ok
-termchargesmember/term 57: (R{T: ($x.End, "t")}).T | 😀 go-node	28 ok
+termchargesmember/term 57: (R{T: ($x.End, "t")}).T | 😀 go-node	27 ok
 termchargesmember/term 57: (R{T: ($x.End, "t")}).T | 😀 go-node-recognize	12 ok
 termchargesmember/term 57: (R{T: ($x.End, "t")}).T | 😀 go-typed	23 ok
 termchargesmember/term 57: (R{T: ($x.End, "t")}).T | 😀 go-typed-recognize	12 ok
@@ -432,7 +432,7 @@ termchargesmember/term 57: (R{T: ($x.End, "t")}).T | 😀 ts-node	29 ok
 termchargesmember/term 58: (R{O: "o"}).O.(string) | a engine-closure	13 ok
 termchargesmember/term 58: (R{O: "o"}).O.(string) | a engine-iterative	13 ok
 termchargesmember/term 58: (R{O: "o"}).O.(string) | a engine-vm	13 ok
-termchargesmember/term 58: (R{O: "o"}).O.(string) | a go-node	13 ok
+termchargesmember/term 58: (R{O: "o"}).O.(string) | a go-node	12 ok
 termchargesmember/term 58: (R{O: "o"}).O.(string) | a go-node-recognize	6 ok
 termchargesmember/term 58: (R{O: "o"}).O.(string) | a go-typed	8 ok
 termchargesmember/term 58: (R{O: "o"}).O.(string) | a go-typed-recognize	6 ok
@@ -440,7 +440,7 @@ termchargesmember/term 58: (R{O: "o"}).O.(string) | a ts-node	16 ok
 termchargesmember/term 59: (R{O: "o"}).O.(string) | 😀 engine-closure	19 ok
 termchargesmember/term 59: (R{O: "o"}).O.(string) | 😀 engine-iterative	19 ok
 termchargesmember/term 59: (R{O: "o"}).O.(string) | 😀 engine-vm	19 ok
-termchargesmember/term 59: (R{O: "o"}).O.(string) | 😀 go-node	19 ok
+termchargesmember/term 59: (R{O: "o"}).O.(string) | 😀 go-node	18 ok
 termchargesmember/term 59: (R{O: "o"}).O.(string) | 😀 go-node-recognize	12 ok
 termchargesmember/term 59: (R{O: "o"}).O.(string) | 😀 go-typed	14 ok
 termchargesmember/term 59: (R{O: "o"}).O.(string) | 😀 go-typed-recognize	12 ok
@@ -456,7 +456,7 @@ termchargesmember/term 5: $x.End - $x.Start | 😀 ts-node	17 ok
 termchargesmember/term 60: (R{In: Inner{N: $x.End}}).In.N | a engine-closure	20 ok
 termchargesmember/term 60: (R{In: Inner{N: $x.End}}).In.N | a engine-iterative	17 ok
 termchargesmember/term 60: (R{In: Inner{N: $x.End}}).In.N | a engine-vm	17 ok
-termchargesmember/term 60: (R{In: Inner{N: $x.End}}).In.N | a go-node	18 ok
+termchargesmember/term 60: (R{In: Inner{N: $x.End}}).In.N | a go-node	16 ok
 termchargesmember/term 60: (R{In: Inner{N: $x.End}}).In.N | a go-node-recognize	6 ok
 termchargesmember/term 60: (R{In: Inner{N: $x.End}}).In.N | a go-typed	8 ok
 termchargesmember/term 60: (R{In: Inner{N: $x.End}}).In.N | a go-typed-recognize	6 ok
@@ -464,7 +464,7 @@ termchargesmember/term 60: (R{In: Inner{N: $x.End}}).In.N | a ts-node	22 ok
 termchargesmember/term 61: (R{In: Inner{N: $x.End}}).In.N | 😀 engine-closure	26 ok
 termchargesmember/term 61: (R{In: Inner{N: $x.End}}).In.N | 😀 engine-iterative	23 ok
 termchargesmember/term 61: (R{In: Inner{N: $x.End}}).In.N | 😀 engine-vm	23 ok
-termchargesmember/term 61: (R{In: Inner{N: $x.End}}).In.N | 😀 go-node	24 ok
+termchargesmember/term 61: (R{In: Inner{N: $x.End}}).In.N | 😀 go-node	22 ok
 termchargesmember/term 61: (R{In: Inner{N: $x.End}}).In.N | 😀 go-node-recognize	12 ok
 termchargesmember/term 61: (R{In: Inner{N: $x.End}}).In.N | 😀 go-typed	14 ok
 termchargesmember/term 61: (R{In: Inner{N: $x.End}}).In.N | 😀 go-typed-recognize	12 ok
@@ -488,7 +488,7 @@ termchargesmember/term 63: (Inner{}).N | 😀 ts-node	14 ok
 termchargesmember/term 64: list(R{}, R{A: 2})[1].A + len(list(R{}, R{A: 2})[0].L) | a engine-closure	45 ok
 termchargesmember/term 64: list(R{}, R{A: 2})[1].A + len(list(R{}, R{A: 2})[0].L) | a engine-iterative	44 ok
 termchargesmember/term 64: list(R{}, R{A: 2})[1].A + len(list(R{}, R{A: 2})[0].L) | a engine-vm	44 ok
-termchargesmember/term 64: list(R{}, R{A: 2})[1].A + len(list(R{}, R{A: 2})[0].L) | a go-node	33 ok
+termchargesmember/term 64: list(R{}, R{A: 2})[1].A + len(list(R{}, R{A: 2})[0].L) | a go-node	31 ok
 termchargesmember/term 64: list(R{}, R{A: 2})[1].A + len(list(R{}, R{A: 2})[0].L) | a go-node-recognize	6 ok
 termchargesmember/term 64: list(R{}, R{A: 2})[1].A + len(list(R{}, R{A: 2})[0].L) | a go-typed	29 ok
 termchargesmember/term 64: list(R{}, R{A: 2})[1].A + len(list(R{}, R{A: 2})[0].L) | a go-typed-recognize	6 ok
@@ -496,7 +496,7 @@ termchargesmember/term 64: list(R{}, R{A: 2})[1].A + len(list(R{}, R{A: 2})[0].L
 termchargesmember/term 65: list(R{}, R{A: 2})[1].A + len(list(R{}, R{A: 2})[0].L) | 😀 engine-closure	51 ok
 termchargesmember/term 65: list(R{}, R{A: 2})[1].A + len(list(R{}, R{A: 2})[0].L) | 😀 engine-iterative	50 ok
 termchargesmember/term 65: list(R{}, R{A: 2})[1].A + len(list(R{}, R{A: 2})[0].L) | 😀 engine-vm	50 ok
-termchargesmember/term 65: list(R{}, R{A: 2})[1].A + len(list(R{}, R{A: 2})[0].L) | 😀 go-node	39 ok
+termchargesmember/term 65: list(R{}, R{A: 2})[1].A + len(list(R{}, R{A: 2})[0].L) | 😀 go-node	37 ok
 termchargesmember/term 65: list(R{}, R{A: 2})[1].A + len(list(R{}, R{A: 2})[0].L) | 😀 go-node-recognize	12 ok
 termchargesmember/term 65: list(R{}, R{A: 2})[1].A + len(list(R{}, R{A: 2})[0].L) | 😀 go-typed	35 ok
 termchargesmember/term 65: list(R{}, R{A: 2})[1].A + len(list(R{}, R{A: 2})[0].L) | 😀 go-typed-recognize	12 ok
@@ -504,7 +504,7 @@ termchargesmember/term 65: list(R{}, R{A: 2})[1].A + len(list(R{}, R{A: 2})[0].L
 termchargesmember/term 66: map(list(R{}, R{L: list(4)}), (r) => len(r.L)) | a engine-closure	62 ok
 termchargesmember/term 66: map(list(R{}, R{L: list(4)}), (r) => len(r.L)) | a engine-iterative	49 ok
 termchargesmember/term 66: map(list(R{}, R{L: list(4)}), (r) => len(r.L)) | a engine-vm	49 ok
-termchargesmember/term 66: map(list(R{}, R{L: list(4)}), (r) => len(r.L)) | a go-node	37 ok
+termchargesmember/term 66: map(list(R{}, R{L: list(4)}), (r) => len(r.L)) | a go-node	36 ok
 termchargesmember/term 66: map(list(R{}, R{L: list(4)}), (r) => len(r.L)) | a go-node-recognize	6 ok
 termchargesmember/term 66: map(list(R{}, R{L: list(4)}), (r) => len(r.L)) | a go-typed	37 ok
 termchargesmember/term 66: map(list(R{}, R{L: list(4)}), (r) => len(r.L)) | a go-typed-recognize	6 ok
@@ -512,7 +512,7 @@ termchargesmember/term 66: map(list(R{}, R{L: list(4)}), (r) => len(r.L)) | a ts
 termchargesmember/term 67: map(list(R{}, R{L: list(4)}), (r) => len(r.L)) | 😀 engine-closure	68 ok
 termchargesmember/term 67: map(list(R{}, R{L: list(4)}), (r) => len(r.L)) | 😀 engine-iterative	55 ok
 termchargesmember/term 67: map(list(R{}, R{L: list(4)}), (r) => len(r.L)) | 😀 engine-vm	55 ok
-termchargesmember/term 67: map(list(R{}, R{L: list(4)}), (r) => len(r.L)) | 😀 go-node	43 ok
+termchargesmember/term 67: map(list(R{}, R{L: list(4)}), (r) => len(r.L)) | 😀 go-node	42 ok
 termchargesmember/term 67: map(list(R{}, R{L: list(4)}), (r) => len(r.L)) | 😀 go-node-recognize	12 ok
 termchargesmember/term 67: map(list(R{}, R{L: list(4)}), (r) => len(r.L)) | 😀 go-typed	43 ok
 termchargesmember/term 67: map(list(R{}, R{L: list(4)}), (r) => len(r.L)) | 😀 go-typed-recognize	12 ok
@@ -520,7 +520,7 @@ termchargesmember/term 67: map(list(R{}, R{L: list(4)}), (r) => len(r.L)) | 😀
 termchargesmember/term 68: foldl(0, list(R{In: Inner{N: 1}}, R{}), (a, r) => a + r.In.N + r.T[0]) | a engine-closure	129 ok
 termchargesmember/term 68: foldl(0, list(R{In: Inner{N: 1}}, R{}), (a, r) => a + r.In.N + r.T[0]) | a engine-iterative	86 ok
 termchargesmember/term 68: foldl(0, list(R{In: Inner{N: 1}}, R{}), (a, r) => a + r.In.N + r.T[0]) | a engine-vm	86 ok
-termchargesmember/term 68: foldl(0, list(R{In: Inner{N: 1}}, R{}), (a, r) => a + r.In.N + r.T[0]) | a go-node	48 ok
+termchargesmember/term 68: foldl(0, list(R{In: Inner{N: 1}}, R{}), (a, r) => a + r.In.N + r.T[0]) | a go-node	46 ok
 termchargesmember/term 68: foldl(0, list(R{In: Inner{N: 1}}, R{}), (a, r) => a + r.In.N + r.T[0]) | a go-node-recognize	6 ok
 termchargesmember/term 68: foldl(0, list(R{In: Inner{N: 1}}, R{}), (a, r) => a + r.In.N + r.T[0]) | a go-typed	19 ok
 termchargesmember/term 68: foldl(0, list(R{In: Inner{N: 1}}, R{}), (a, r) => a + r.In.N + r.T[0]) | a go-typed-recognize	6 ok
@@ -528,7 +528,7 @@ termchargesmember/term 68: foldl(0, list(R{In: Inner{N: 1}}, R{}), (a, r) => a +
 termchargesmember/term 69: foldl(0, list(R{In: Inner{N: 1}}, R{}), (a, r) => a + r.In.N + r.T[0]) | 😀 engine-closure	135 ok
 termchargesmember/term 69: foldl(0, list(R{In: Inner{N: 1}}, R{}), (a, r) => a + r.In.N + r.T[0]) | 😀 engine-iterative	92 ok
 termchargesmember/term 69: foldl(0, list(R{In: Inner{N: 1}}, R{}), (a, r) => a + r.In.N + r.T[0]) | 😀 engine-vm	92 ok
-termchargesmember/term 69: foldl(0, list(R{In: Inner{N: 1}}, R{}), (a, r) => a + r.In.N + r.T[0]) | 😀 go-node	54 ok
+termchargesmember/term 69: foldl(0, list(R{In: Inner{N: 1}}, R{}), (a, r) => a + r.In.N + r.T[0]) | 😀 go-node	52 ok
 termchargesmember/term 69: foldl(0, list(R{In: Inner{N: 1}}, R{}), (a, r) => a + r.In.N + r.T[0]) | 😀 go-node-recognize	12 ok
 termchargesmember/term 69: foldl(0, list(R{In: Inner{N: 1}}, R{}), (a, r) => a + r.In.N + r.T[0]) | 😀 go-typed	25 ok
 termchargesmember/term 69: foldl(0, list(R{In: Inner{N: 1}}, R{}), (a, r) => a + r.In.N + r.T[0]) | 😀 go-typed-recognize	12 ok
@@ -544,35 +544,19 @@ termchargesmember/term 6: (R{}).A | a ts-node	11 ok
 termchargesmember/term 70: text($x.$y) + text($x.$z) | a engine-closure	23 ok
 termchargesmember/term 70: text($x.$y) + text($x.$z) | a engine-iterative	25 ok
 termchargesmember/term 70: text($x.$y) + text($x.$z) | a engine-vm	26 ok
-termchargesmember/term 70: text($x.$y) + text($x.$z) | a go-node	23 ok
+termchargesmember/term 70: text($x.$y) + text($x.$z) | a go-node	21 ok
 termchargesmember/term 70: text($x.$y) + text($x.$z) | a go-node-recognize	7 ok
-termchargesmember/term 70: text($x.$y) + text($x.$z) | a go-typed	20 ok
+termchargesmember/term 70: text($x.$y) + text($x.$z) | a go-typed	18 ok
 termchargesmember/term 70: text($x.$y) + text($x.$z) | a go-typed-recognize	7 ok
 termchargesmember/term 70: text($x.$y) + text($x.$z) | a ts-node	30 ok
 termchargesmember/term 70: text($x.$y) + text($x.$z) | ab engine-closure	31 ok
 termchargesmember/term 70: text($x.$y) + text($x.$z) | ab engine-iterative	32 ok
 termchargesmember/term 70: text($x.$y) + text($x.$z) | ab engine-vm	33 ok
-termchargesmember/term 70: text($x.$y) + text($x.$z) | ab go-node	34 ok
+termchargesmember/term 70: text($x.$y) + text($x.$z) | ab go-node	30 ok
 termchargesmember/term 70: text($x.$y) + text($x.$z) | ab go-node-recognize	9 ok
-termchargesmember/term 70: text($x.$y) + text($x.$z) | ab go-typed	31 ok
+termchargesmember/term 70: text($x.$y) + text($x.$z) | ab go-typed	27 ok
 termchargesmember/term 70: text($x.$y) + text($x.$z) | ab go-typed-recognize	9 ok
 termchargesmember/term 70: text($x.$y) + text($x.$z) | ab ts-node	38 ok
-termchargesmember/term 71: (R{B: text($x.$y) + text($x.$z)}).B | a engine-closure	28 ok
-termchargesmember/term 71: (R{B: text($x.$y) + text($x.$z)}).B | a engine-iterative	29 ok
-termchargesmember/term 71: (R{B: text($x.$y) + text($x.$z)}).B | a engine-vm	30 ok
-termchargesmember/term 71: (R{B: text($x.$y) + text($x.$z)}).B | a go-node	28 ok
-termchargesmember/term 71: (R{B: text($x.$y) + text($x.$z)}).B | a go-node-recognize	7 ok
-termchargesmember/term 71: (R{B: text($x.$y) + text($x.$z)}).B | a go-typed	22 ok
-termchargesmember/term 71: (R{B: text($x.$y) + text($x.$z)}).B | a go-typed-recognize	7 ok
-termchargesmember/term 71: (R{B: text($x.$y) + text($x.$z)}).B | a ts-node	35 ok
-termchargesmember/term 71: (R{B: text($x.$y) + text($x.$z)}).B | ab engine-closure	36 ok
-termchargesmember/term 71: (R{B: text($x.$y) + text($x.$z)}).B | ab engine-iterative	36 ok
-termchargesmember/term 71: (R{B: text($x.$y) + text($x.$z)}).B | ab engine-vm	37 ok
-termchargesmember/term 71: (R{B: text($x.$y) + text($x.$z)}).B | ab go-node	39 ok
-termchargesmember/term 71: (R{B: text($x.$y) + text($x.$z)}).B | ab go-node-recognize	9 ok
-termchargesmember/term 71: (R{B: text($x.$y) + text($x.$z)}).B | ab go-typed	33 ok
-termchargesmember/term 71: (R{B: text($x.$y) + text($x.$z)}).B | ab go-typed-recognize	9 ok
-termchargesmember/term 71: (R{B: text($x.$y) + text($x.$z)}).B | ab ts-node	43 ok
 termchargesmember/term 7: (R{}).A | 😀 engine-closure	18 ok
 termchargesmember/term 7: (R{}).A | 😀 engine-iterative	18 ok
 termchargesmember/term 7: (R{}).A | 😀 engine-vm	18 ok
