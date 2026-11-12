@@ -46,6 +46,70 @@ func FromSourceTree(src string, root *types.File) (g *grammar.Grammar, err error
 	return g, nil
 }
 
+// FromPartialSourceTree builds the grammar of a source with syntax errors from
+// the tree that the generated parser recovers from it, as ParsePartial
+// returns it: the declarations that are complete. A declaration that holds an
+// error (a recovered span, or a missing part) is left out, as is a package
+// clause with an error, so a definition with an error in the middle is
+// missing. The errors returned are those of the checks that the grammar does
+// not make, in the declarations kept; the syntax errors are the caller's, in
+// the form of SourceErrors. root must come from a parse of src with the
+// default position unit.
+func FromPartialSourceTree(src string, root *types.File) (*grammar.Grammar, ErrorList) {
+	c := &canonical{src: []rune(src), pos: sourceast.NewPositions(src), partial: true}
+	g := &grammar.Grammar{}
+	if root == nil {
+		return g, nil
+	}
+	c.comments = root.Comments
+	c.gapList = c.gaps(root)
+	if root.Pkg != nil {
+		if pkg, ok := root.Pkg.(*types.Pkg); ok && pkg != nil {
+			c.try(func() { c.pkg(&g.File.Pkg, pkg) })
+		}
+	}
+	for _, d := range root.Decls {
+		var out grammar.Decl
+		if c.try(func() { out = c.decl(d) }) {
+			g.File.Decls = append(g.File.Decls, out)
+		}
+	}
+	if infos, err := c.pos.Claim(c.gapList, c.nodes); err == nil {
+		for i, info := range infos {
+			if c.targets[i] != nil {
+				*c.targets[i] = info
+			}
+		}
+	}
+	if len(g.File.Decls) > 0 || g.File.Pkg.Name != "" {
+		g.File.Pos = c.pos.At(c.nextToken(0))
+		g.File.End = c.pos.At(c.tokensEnd(root))
+	} else {
+		g.File.Pos = c.pos.At(len(c.src))
+		g.File.End = g.File.Pos
+	}
+	return g, c.errs.list
+}
+
+// try runs build, which adds a node of the tree, and reports whether it
+// completed. When it fails on an error of the tree, it takes back the nodes,
+// parameters and errors that it added, so that the node is left out whole.
+func (c *canonical) try(build func()) (ok bool) {
+	nodes, targets, params, errs := len(c.nodes), len(c.targets), c.params, len(c.errs.list)
+	defer func() {
+		if x := recover(); x != nil {
+			if _, isTree := x.(treeError); !isTree {
+				panic(x)
+			}
+			c.nodes, c.targets, c.params = c.nodes[:nodes], c.targets[:targets], params
+			c.errs.list = c.errs.list[:errs]
+			ok = false
+		}
+	}()
+	build()
+	return true
+}
+
 // treeError reports a source tree that is not the tree of a valid parse: a
 // recovered syntax error or a value the adapter does not know.
 type treeError string
@@ -67,6 +131,8 @@ type canonical struct {
 	gapList  []sourceast.Gap
 	// params are the parameters of the lambdas that enclose the value being built.
 	params []string
+	// partial is set when the tree has recovered syntax errors: a nil gap is skipped.
+	partial bool
 }
 
 func (c *canonical) fail(format string, args ...any) {
@@ -279,6 +345,9 @@ func (c *canonical) gaps(root *types.File) []sourceast.Gap {
 	gaps := make([]sourceast.Gap, 0, len(root.Gaps))
 	for _, g := range root.Gaps {
 		if g == nil {
+			if c.partial {
+				continue
+			}
 			c.fail("the source tree has a syntax error in a comment gap")
 		}
 		gap := sourceast.Gap{Start: g.Start, End: g.End}
