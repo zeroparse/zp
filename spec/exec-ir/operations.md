@@ -205,20 +205,20 @@ The operations of the component `rules`.
 | `transitional op rule.invoke(r Rule, min int) (Value, bool) noreturn` | writes rules, pos, silent | `0` | Runs the rule's body at the binding level min in a frame of its own and makes the rule's value; on failure the position is unspecified. |
 | `transitional op rule.invokePlain(r Rule, min int) (Value, bool) noreturn` | writes rules, pos, silent | `0` | Runs the plain body of a rule without captures and returns its result, at the start position on failure. |
 | `transitional op rule.run(inv Body) (Value, bool) noreturn` | writes rules, pos, silent | `0` | Runs the invocation inv of a rule at binding level 0 and returns its result. |
-| `transitional op opr.led(r Rule) Operators` | none | `0` | Returns the infix and postfix operators of the Operators Rule r, in declaration order. |
-| `transitional op opr.prefix(r Rule) Operators` | none | `0` | Returns the prefix operators of the Operators Rule r, in declaration order. |
-| `transitional op opr.count(l Operators) int` | none | `0` | Returns the number of operators of l. |
-| `transitional op opr.at(l Operators, i int) Operator` | none | `0` | Returns operator i of l. Requires: 0 <= i < opr.count(l). |
-| `transitional op opr.operands(r Rule) int` | none | `0` | Returns the number of operand lines of the Operators Rule r. |
-| `transitional op opr.operand(r Rule, i int) Line` | none | `0` | Returns operand line i of the Operators Rule r, in declaration order. Requires: 0 <= i < opr.operands(r). |
-| `transitional op opr.line(op Operator) Line` | none | `0` | Returns the line of the operator op. |
-| `transitional op opr.level(op Operator) int` | none | `0` | Returns the binding power of the operator op: the higher, the tighter it binds. |
-| `transitional op opr.infix(op Operator) bool` | none | `0` | Reports whether the operator op is an infix operator. |
-| `transitional op opr.postfix(op Operator) bool` | none | `0` | Reports whether the operator op is a postfix operator. |
-| `transitional op opr.right(op Operator) bool` | none | `0` | Reports whether the operator op associates to the right. |
-| `transitional op opr.nonAssoc(op Operator) bool` | none | `0` | Reports whether the operator op does not associate. |
-| `transitional op opr.scope(l Line) int` | none | `0` | Returns the number of capture slots of the line l. |
-| `transitional op opr.hasSkip(r Rule) bool` | none | `0` | Reports whether the Operators Rule r skips trivia between its operands and operators. |
+| `op opr.led(r Rule) Operators` | none | `0` | Returns the infix and postfix operators of the Operators Rule r, in declaration order. |
+| `op opr.prefix(r Rule) Operators` | none | `0` | Returns the prefix operators of the Operators Rule r, in declaration order. |
+| `op opr.count(l Operators) int` | none | `0` | Returns the number of operators of l. |
+| `op opr.at(l Operators, i int) Operator` | none | `0` | Returns operator i of l. Requires: 0 <= i < opr.count(l). |
+| `op opr.operands(r Rule) int` | none | `0` | Returns the number of operand lines of the Operators Rule r. |
+| `op opr.operand(r Rule, i int) Line` | none | `0` | Returns operand line i of the Operators Rule r, in declaration order. Requires: 0 <= i < opr.operands(r). |
+| `op opr.line(op Operator) Line` | none | `0` | Returns the line of the operator op. |
+| `op opr.level(op Operator) int` | none | `0` | Returns the binding power of the operator op: the higher, the tighter it binds. |
+| `op opr.infix(op Operator) bool` | none | `0` | Reports whether the operator op is an infix operator. |
+| `op opr.postfix(op Operator) bool` | none | `0` | Reports whether the operator op is a postfix operator. |
+| `op opr.right(op Operator) bool` | none | `0` | Reports whether the operator op associates to the right. |
+| `op opr.nonAssoc(op Operator) bool` | none | `0` | Reports whether the operator op does not associate. |
+| `op opr.scope(l Line) int` | none | `0` | Returns the number of capture slots of the line l. |
+| `op opr.hasSkip(r Rule) bool` | none | `0` | Reports whether the Operators Rule r skips trivia between its operands and operators. |
 | `transitional op opr.skip(r Rule) bool noreturn` | writes rules, pos, silent, cut | `0` | Runs the trivia expression of the Operators Rule r and reports whether it matched; on failure the position is unspecified. Requires: opr.hasSkip(r). |
 | `transitional op opr.match(l Line) (Value, bool) noreturn` | writes rules, pos, silent, cut | `0` | Runs the expression of the line l in the current frame and returns its value and success; on failure the position is unspecified. A cut in the expression sets the cut register. |
 
@@ -268,18 +268,18 @@ The operations of the component `operators`.
 
 | Declaration | State | Cost | Contract |
 |:--|:--|:--|:--|
-| `transitional op opr.attempt(op Operator, f Frame, v Value, start int, cut bool, errs Errs) Attempt` | reads env, pos | `0` | Returns the match of op from start to the position with the value v, the captures of f, the variable environment, the cut flag cut and the recovered errors errs. |
+| `op opr.attempt(op Operator, f Frame, v Value, start int, cut bool, errs Errs) Attempt` | reads env, pos | `0` | Returns the match of op from start to the position with the value v, the captures of f, the variable environment, the cut flag cut and the recovered errors errs. |
 | `transitional op opr.attemptMissing(op Operator, f Frame, v Value, start int, cut bool, errs Errs, mark int) Attempt [missing] noreturn` | reads env, pos, recovered | `0` | Is opr.attempt in a parse that can insert missing tokens: the match also holds a copy of the tokens inserted after mark. |
-| `transitional op opr.found(a Attempt) bool` | none | `0` | Reports whether a is a match, not the null attempt. |
-| `transitional op opr.op(a Attempt) Operator` | none | `0` | Returns the operator of the match a. Requires: opr.found(a). |
-| `transitional op opr.end(a Attempt) int` | none | `0` | Returns where the match a ended. Requires: opr.found(a). |
-| `transitional op opr.cut(a Attempt) bool` | none | `0` | Reports whether the match a cut. Requires: opr.found(a). |
-| `transitional op opr.env(a Attempt) Scope` | none | `0` | Returns the variable environment after the match a. Requires: opr.found(a). |
-| `transitional op opr.errs(a Attempt) Errs` | none | `0` | Returns the errors that the match a recovered. Requires: opr.found(a). |
-| `transitional op opr.setCutFailed(failed bool)` | writes operators | `0` | Records whether a candidate of the longest match failed after a cut. |
-| `transitional op opr.cutFailed() bool` | reads operators | `0` | Reports what the last opr.setCutFailed recorded. |
-| `transitional op opr.setNudBound(bound int)` | writes operators | `0` | Records the binding level above which no operator can follow the start of an expression. |
-| `transitional op opr.nudBound() int` | reads operators | `0` | Returns what the last opr.setNudBound recorded. |
+| `op opr.found(a Attempt) bool` | none | `0` | Reports whether a is a match, not the null attempt. |
+| `op opr.op(a Attempt) Operator` | none | `0` | Returns the operator of the match a. Requires: opr.found(a). |
+| `op opr.end(a Attempt) int` | none | `0` | Returns where the match a ended. Requires: opr.found(a). |
+| `op opr.cut(a Attempt) bool` | none | `0` | Reports whether the match a cut. Requires: opr.found(a). |
+| `op opr.env(a Attempt) Scope` | none | `0` | Returns the variable environment after the match a. Requires: opr.found(a). |
+| `op opr.errs(a Attempt) Errs` | none | `0` | Returns the errors that the match a recovered. Requires: opr.found(a). |
+| `op opr.setCutFailed(failed bool)` | writes operators | `0` | Records whether a candidate of the longest match failed after a cut. |
+| `op opr.cutFailed() bool` | reads operators | `0` | Reports what the last opr.setCutFailed recorded. |
+| `op opr.setNudBound(bound int)` | writes operators | `0` | Records the binding level above which no operator can follow the start of an expression. |
+| `op opr.nudBound() int` | reads operators | `0` | Returns what the last opr.setNudBound recorded. |
 
 ## Suspended Calls
 
@@ -300,46 +300,46 @@ The operations of the component `suspended`.
 | `op call.high(st CallState) int [document]` | reads suspended | `0` | Returns the end of the examined input of the enclosing call that st holds. Requires: st holds a call that call.save saved. |
 | `op call.low(st CallState) int [document]` | reads suspended | `0` | Returns the start of the examined input of the enclosing call that st holds. Requires: st holds a call that call.save saved. |
 | `op call.missing(st CallState) int [missing]` | reads suspended | `0` | Returns the mark of the missing-token record that st holds. Requires: st holds a call that call.save saved. |
-| `transitional op oprLongest.l(st LongestState) Operators` | reads suspended | `0` | Returns the field l of the record st. |
-| `transitional op oprLongest.setL(st LongestState, x Operators)` | writes suspended | `0` | Sets the field l of the record st to x. |
-| `transitional op oprLongest.i(st LongestState) int` | reads suspended | `0` | Returns the field i of the record st. |
-| `transitional op oprLongest.setI(st LongestState, x int)` | writes suspended | `0` | Sets the field i of the record st to x. |
-| `transitional op oprLongest.m0(st LongestState) Mark` | reads suspended | `0` | Returns the field m0 of the record st. |
-| `transitional op oprLongest.setM0(st LongestState, x Mark)` | writes suspended | `0` | Sets the field m0 of the record st to x. |
-| `transitional op oprLongest.best(st LongestState) Attempt` | reads suspended | `0` | Returns the field best of the record st. |
-| `transitional op oprLongest.setBest(st LongestState, x Attempt)` | writes suspended | `0` | Sets the field best of the record st to x. |
-| `transitional op oprLongest.cutFailed(st LongestState) bool` | reads suspended | `0` | Returns the field cutFailed of the record st. |
-| `transitional op oprLongest.setCutFailed(st LongestState, x bool)` | writes suspended | `0` | Sets the field cutFailed of the record st to x. |
-| `transitional op oprLongest.prevFrame(st LongestState) Frame` | reads suspended | `0` | Returns the field prevFrame of the record st. |
-| `transitional op oprLongest.setPrevFrame(st LongestState, x Frame)` | writes suspended | `0` | Sets the field prevFrame of the record st to x. |
-| `transitional op oprLongest.prevCut(st LongestState) bool` | reads suspended | `0` | Returns the field prevCut of the record st. |
-| `transitional op oprLongest.setPrevCut(st LongestState, x bool)` | writes suspended | `0` | Sets the field prevCut of the record st to x. |
-| `transitional op oprLongest.f(st LongestState) Frame` | reads suspended | `0` | Returns the field f of the record st. |
-| `transitional op oprLongest.setF(st LongestState, x Frame)` | writes suspended | `0` | Sets the field f of the record st to x. |
-| `transitional op oprNud.m0(st NudState) Mark` | reads suspended | `0` | Returns the field m0 of the record st. |
-| `transitional op oprNud.setM0(st NudState, x Mark)` | writes suspended | `0` | Sets the field m0 of the record st to x. |
-| `transitional op oprNud.a(st NudState) Attempt` | reads suspended | `0` | Returns the field a of the record st. |
-| `transitional op oprNud.setA(st NudState, x Attempt)` | writes suspended | `0` | Sets the field a of the record st to x. |
-| `transitional op oprNud.i(st NudState) int` | reads suspended | `0` | Returns the field i of the record st. |
-| `transitional op oprNud.setI(st NudState, x int)` | writes suspended | `0` | Sets the field i of the record st to x. |
-| `transitional op oprNud.prevFrame(st NudState) Frame` | reads suspended | `0` | Returns the field prevFrame of the record st. |
-| `transitional op oprNud.setPrevFrame(st NudState, x Frame)` | writes suspended | `0` | Sets the field prevFrame of the record st to x. |
-| `transitional op oprNud.prevCut(st NudState) bool` | reads suspended | `0` | Returns the field prevCut of the record st. |
-| `transitional op oprNud.setPrevCut(st NudState, x bool)` | writes suspended | `0` | Sets the field prevCut of the record st to x. |
-| `transitional op oprNud.f(st NudState) Frame` | reads suspended | `0` | Returns the field f of the record st. |
-| `transitional op oprNud.setF(st NudState, x Frame)` | writes suspended | `0` | Sets the field f of the record st to x. |
-| `transitional op oprExpr.min(st ExprState) int` | reads suspended | `0` | Returns the field min of the record st. |
-| `transitional op oprExpr.setMin(st ExprState, x int)` | writes suspended | `0` | Sets the field min of the record st to x. |
-| `transitional op oprExpr.lhs(st ExprState) Value` | reads suspended | `0` | Returns the field lhs of the record st. |
-| `transitional op oprExpr.setLhs(st ExprState, x Value)` | writes suspended | `0` | Sets the field lhs of the record st to x. |
-| `transitional op oprExpr.lastNone(st ExprState) int` | reads suspended | `0` | Returns the field lastNone of the record st. |
-| `transitional op oprExpr.setLastNone(st ExprState, x int)` | writes suspended | `0` | Sets the field lastNone of the record st to x. |
-| `transitional op oprExpr.bound(st ExprState) int` | reads suspended | `0` | Returns the field bound of the record st. |
-| `transitional op oprExpr.setBound(st ExprState, x int)` | writes suspended | `0` | Sets the field bound of the record st to x. |
-| `transitional op oprExpr.m0(st ExprState) Mark` | reads suspended | `0` | Returns the field m0 of the record st. |
-| `transitional op oprExpr.setM0(st ExprState, x Mark)` | writes suspended | `0` | Sets the field m0 of the record st to x. |
-| `transitional op oprExpr.a(st ExprState) Attempt` | reads suspended | `0` | Returns the field a of the record st. |
-| `transitional op oprExpr.setA(st ExprState, x Attempt)` | writes suspended | `0` | Sets the field a of the record st to x. |
+| `op oprLongest.l(st LongestState) Operators` | reads suspended | `0` | Returns the field l of the record st: what the last set of it stored, and before the first the zero value of its type (0, false, the list of no operators, the zero backtracking point, no frame, value or match). |
+| `op oprLongest.setL(st LongestState, x Operators)` | writes suspended | `0` | Sets the field l of the record st to x. |
+| `op oprLongest.i(st LongestState) int` | reads suspended | `0` | Returns the field i of the record st: what the last set of it stored, and before the first the zero value of its type (0, false, the list of no operators, the zero backtracking point, no frame, value or match). |
+| `op oprLongest.setI(st LongestState, x int)` | writes suspended | `0` | Sets the field i of the record st to x. |
+| `op oprLongest.m0(st LongestState) Mark` | reads suspended | `0` | Returns the field m0 of the record st: what the last set of it stored, and before the first the zero value of its type (0, false, the list of no operators, the zero backtracking point, no frame, value or match). |
+| `op oprLongest.setM0(st LongestState, x Mark)` | writes suspended | `0` | Sets the field m0 of the record st to x. |
+| `op oprLongest.best(st LongestState) Attempt` | reads suspended | `0` | Returns the field best of the record st: what the last set of it stored, and before the first the zero value of its type (0, false, the list of no operators, the zero backtracking point, no frame, value or match). |
+| `op oprLongest.setBest(st LongestState, x Attempt)` | writes suspended | `0` | Sets the field best of the record st to x. |
+| `op oprLongest.cutFailed(st LongestState) bool` | reads suspended | `0` | Returns the field cutFailed of the record st: what the last set of it stored, and before the first the zero value of its type (0, false, the list of no operators, the zero backtracking point, no frame, value or match). |
+| `op oprLongest.setCutFailed(st LongestState, x bool)` | writes suspended | `0` | Sets the field cutFailed of the record st to x. |
+| `op oprLongest.prevFrame(st LongestState) Frame` | reads suspended | `0` | Returns the field prevFrame of the record st: what the last set of it stored, and before the first the zero value of its type (0, false, the list of no operators, the zero backtracking point, no frame, value or match). |
+| `op oprLongest.setPrevFrame(st LongestState, x Frame)` | writes suspended | `0` | Sets the field prevFrame of the record st to x. |
+| `op oprLongest.prevCut(st LongestState) bool` | reads suspended | `0` | Returns the field prevCut of the record st: what the last set of it stored, and before the first the zero value of its type (0, false, the list of no operators, the zero backtracking point, no frame, value or match). |
+| `op oprLongest.setPrevCut(st LongestState, x bool)` | writes suspended | `0` | Sets the field prevCut of the record st to x. |
+| `op oprLongest.f(st LongestState) Frame` | reads suspended | `0` | Returns the field f of the record st: what the last set of it stored, and before the first the zero value of its type (0, false, the list of no operators, the zero backtracking point, no frame, value or match). |
+| `op oprLongest.setF(st LongestState, x Frame)` | writes suspended | `0` | Sets the field f of the record st to x. |
+| `op oprNud.m0(st NudState) Mark` | reads suspended | `0` | Returns the field m0 of the record st: what the last set of it stored, and before the first the zero value of its type (0, false, the list of no operators, the zero backtracking point, no frame, value or match). |
+| `op oprNud.setM0(st NudState, x Mark)` | writes suspended | `0` | Sets the field m0 of the record st to x. |
+| `op oprNud.a(st NudState) Attempt` | reads suspended | `0` | Returns the field a of the record st: what the last set of it stored, and before the first the zero value of its type (0, false, the list of no operators, the zero backtracking point, no frame, value or match). |
+| `op oprNud.setA(st NudState, x Attempt)` | writes suspended | `0` | Sets the field a of the record st to x. |
+| `op oprNud.i(st NudState) int` | reads suspended | `0` | Returns the field i of the record st: what the last set of it stored, and before the first the zero value of its type (0, false, the list of no operators, the zero backtracking point, no frame, value or match). |
+| `op oprNud.setI(st NudState, x int)` | writes suspended | `0` | Sets the field i of the record st to x. |
+| `op oprNud.prevFrame(st NudState) Frame` | reads suspended | `0` | Returns the field prevFrame of the record st: what the last set of it stored, and before the first the zero value of its type (0, false, the list of no operators, the zero backtracking point, no frame, value or match). |
+| `op oprNud.setPrevFrame(st NudState, x Frame)` | writes suspended | `0` | Sets the field prevFrame of the record st to x. |
+| `op oprNud.prevCut(st NudState) bool` | reads suspended | `0` | Returns the field prevCut of the record st: what the last set of it stored, and before the first the zero value of its type (0, false, the list of no operators, the zero backtracking point, no frame, value or match). |
+| `op oprNud.setPrevCut(st NudState, x bool)` | writes suspended | `0` | Sets the field prevCut of the record st to x. |
+| `op oprNud.f(st NudState) Frame` | reads suspended | `0` | Returns the field f of the record st: what the last set of it stored, and before the first the zero value of its type (0, false, the list of no operators, the zero backtracking point, no frame, value or match). |
+| `op oprNud.setF(st NudState, x Frame)` | writes suspended | `0` | Sets the field f of the record st to x. |
+| `op oprExpr.min(st ExprState) int` | reads suspended | `0` | Returns the field min of the record st: what the last set of it stored, and before the first the zero value of its type (0, false, the list of no operators, the zero backtracking point, no frame, value or match). |
+| `op oprExpr.setMin(st ExprState, x int)` | writes suspended | `0` | Sets the field min of the record st to x. |
+| `op oprExpr.lhs(st ExprState) Value` | reads suspended | `0` | Returns the field lhs of the record st: what the last set of it stored, and before the first the zero value of its type (0, false, the list of no operators, the zero backtracking point, no frame, value or match). |
+| `op oprExpr.setLhs(st ExprState, x Value)` | writes suspended | `0` | Sets the field lhs of the record st to x. |
+| `op oprExpr.lastNone(st ExprState) int` | reads suspended | `0` | Returns the field lastNone of the record st: what the last set of it stored, and before the first the zero value of its type (0, false, the list of no operators, the zero backtracking point, no frame, value or match). |
+| `op oprExpr.setLastNone(st ExprState, x int)` | writes suspended | `0` | Sets the field lastNone of the record st to x. |
+| `op oprExpr.bound(st ExprState) int` | reads suspended | `0` | Returns the field bound of the record st: what the last set of it stored, and before the first the zero value of its type (0, false, the list of no operators, the zero backtracking point, no frame, value or match). |
+| `op oprExpr.setBound(st ExprState, x int)` | writes suspended | `0` | Sets the field bound of the record st to x. |
+| `op oprExpr.m0(st ExprState) Mark` | reads suspended | `0` | Returns the field m0 of the record st: what the last set of it stored, and before the first the zero value of its type (0, false, the list of no operators, the zero backtracking point, no frame, value or match). |
+| `op oprExpr.setM0(st ExprState, x Mark)` | writes suspended | `0` | Sets the field m0 of the record st to x. |
+| `op oprExpr.a(st ExprState) Attempt` | reads suspended | `0` | Returns the field a of the record st: what the last set of it stored, and before the first the zero value of its type (0, false, the list of no operators, the zero backtracking point, no frame, value or match). |
+| `op oprExpr.setA(st ExprState, x Attempt)` | writes suspended | `0` | Sets the field a of the record st to x. |
 
 ## Stream Window
 

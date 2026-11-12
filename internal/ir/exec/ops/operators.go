@@ -125,21 +125,21 @@ frame.save does.`,
 		Requires: `The last frame.save copied the slots of f, and nothing parsed since.`})
 
 	// The descriptors of an Operators Rule.
-	add(&exec.Op{Name: "opr.led", Component: Rules, Params: r, Results: []exec.Type{opsList},
+	m.AddOp(&exec.Op{Name: "opr.led", Component: Rules, Params: r, Results: []exec.Type{opsList},
 		Contract: `Returns the infix and postfix operators of the Operators Rule r, in declaration order.`})
-	add(&exec.Op{Name: "opr.prefix", Component: Rules, Params: r, Results: []exec.Type{opsList},
+	m.AddOp(&exec.Op{Name: "opr.prefix", Component: Rules, Params: r, Results: []exec.Type{opsList},
 		Contract: `Returns the prefix operators of the Operators Rule r, in declaration order.`})
-	add(&exec.Op{Name: "opr.count", Component: Rules, Params: []exec.Param{exec.P("l", opsList)}, Results: []exec.Type{exec.TInt},
+	m.AddOp(&exec.Op{Name: "opr.count", Component: Rules, Params: []exec.Param{exec.P("l", opsList)}, Results: []exec.Type{exec.TInt},
 		Contract: `Returns the number of operators of l.`})
-	add(&exec.Op{Name: "opr.at", Component: Rules, Params: []exec.Param{exec.P("l", opsList), exec.P("i", exec.TInt)},
+	m.AddOp(&exec.Op{Name: "opr.at", Component: Rules, Params: []exec.Param{exec.P("l", opsList), exec.P("i", exec.TInt)},
 		Results: []exec.Type{op}, Requires: `0 <= i < opr.count(l).`, Contract: `Returns operator i of l.`})
-	add(&exec.Op{Name: "opr.operands", Component: Rules, Params: r, Results: []exec.Type{exec.TInt},
+	m.AddOp(&exec.Op{Name: "opr.operands", Component: Rules, Params: r, Results: []exec.Type{exec.TInt},
 		Contract: `Returns the number of operand lines of the Operators Rule r.`})
-	add(&exec.Op{Name: "opr.operand", Component: Rules, Params: append(r, exec.P("i", exec.TInt)), Results: []exec.Type{line},
+	m.AddOp(&exec.Op{Name: "opr.operand", Component: Rules, Params: append(r, exec.P("i", exec.TInt)), Results: []exec.Type{line},
 		Requires: `0 <= i < opr.operands(r).`, Contract: `Returns operand line i of the Operators Rule r, in declaration order.`})
-	add(&exec.Op{Name: "opr.line", Component: Rules, Params: o, Results: []exec.Type{line},
+	m.AddOp(&exec.Op{Name: "opr.line", Component: Rules, Params: o, Results: []exec.Type{line},
 		Contract: `Returns the line of the operator op.`})
-	add(&exec.Op{Name: "opr.level", Component: Rules, Params: o, Results: []exec.Type{exec.TInt},
+	m.AddOp(&exec.Op{Name: "opr.level", Component: Rules, Params: o, Results: []exec.Type{exec.TInt},
 		Contract: `Returns the binding power of the operator op: the higher, the tighter it binds.`})
 	for _, x := range []struct{ name, doc string }{
 		{"opr.infix", "Reports whether the operator op is an infix operator."},
@@ -147,11 +147,11 @@ frame.save does.`,
 		{"opr.right", "Reports whether the operator op associates to the right."},
 		{"opr.nonAssoc", "Reports whether the operator op does not associate."},
 	} {
-		add(&exec.Op{Name: x.name, Component: Rules, Params: o, Results: []exec.Type{exec.TBool}, Contract: x.doc})
+		m.AddOp(&exec.Op{Name: x.name, Component: Rules, Params: o, Results: []exec.Type{exec.TBool}, Contract: x.doc})
 	}
-	add(&exec.Op{Name: "opr.scope", Component: Rules, Params: []exec.Param{exec.P("l", line)}, Results: []exec.Type{exec.TInt},
+	m.AddOp(&exec.Op{Name: "opr.scope", Component: Rules, Params: []exec.Param{exec.P("l", line)}, Results: []exec.Type{exec.TInt},
 		Contract: `Returns the number of capture slots of the line l.`})
-	add(&exec.Op{Name: "opr.hasSkip", Component: Rules, Params: r, Results: []exec.Type{exec.TBool},
+	m.AddOp(&exec.Op{Name: "opr.hasSkip", Component: Rules, Params: r, Results: []exec.Type{exec.TBool},
 		Contract: `Reports whether the Operators Rule r skips trivia between its operands and operators.`})
 
 	// The grammar code and the values of an Operators Rule.
@@ -180,7 +180,7 @@ or the node of the tuple (lhs, operator, rhs) with the line's captures.`})
 where the value of the application starts.`})
 
 	// The matches of operators.
-	add(&exec.Op{Name: "opr.attempt", Component: Opr, Params: append(o, exec.P("f", frame), exec.P("v", value),
+	m.AddOp(&exec.Op{Name: "opr.attempt", Component: Opr, Params: append(o, exec.P("f", frame), exec.P("v", value),
 		exec.P("start", exec.TInt), exec.P("cut", exec.TBool), exec.P("errs", errs)), Results: []exec.Type{attempt},
 		Reads: []string{Env, Pos},
 		Contract: `Returns the match of op from start to the position with the value v, the captures of f, the
@@ -194,25 +194,25 @@ inserted after mark.`})
 		Cost: exec.Cost{Terms: []exec.CostTerm{{Coef: 1, Quantity: QErrs}}},
 		Contract: `Records again the tokens that the match a inserted and the errors it recovered, as rec.add does for
 the errors outside the missing-token mode.`})
-	add(&exec.Op{Name: "opr.found", Component: Opr, Params: a, Results: []exec.Type{exec.TBool},
+	m.AddOp(&exec.Op{Name: "opr.found", Component: Opr, Params: a, Results: []exec.Type{exec.TBool},
 		Contract: `Reports whether a is a match, not the null attempt.`})
-	add(&exec.Op{Name: "opr.op", Component: Opr, Params: a, Results: []exec.Type{op},
+	m.AddOp(&exec.Op{Name: "opr.op", Component: Opr, Params: a, Results: []exec.Type{op},
 		Requires: `opr.found(a).`, Contract: `Returns the operator of the match a.`})
-	add(&exec.Op{Name: "opr.end", Component: Opr, Params: a, Results: []exec.Type{exec.TInt},
+	m.AddOp(&exec.Op{Name: "opr.end", Component: Opr, Params: a, Results: []exec.Type{exec.TInt},
 		Requires: `opr.found(a).`, Contract: `Returns where the match a ended.`})
-	add(&exec.Op{Name: "opr.cut", Component: Opr, Params: a, Results: []exec.Type{exec.TBool},
+	m.AddOp(&exec.Op{Name: "opr.cut", Component: Opr, Params: a, Results: []exec.Type{exec.TBool},
 		Requires: `opr.found(a).`, Contract: `Reports whether the match a cut.`})
-	add(&exec.Op{Name: "opr.env", Component: Opr, Params: a, Results: []exec.Type{scope},
+	m.AddOp(&exec.Op{Name: "opr.env", Component: Opr, Params: a, Results: []exec.Type{scope},
 		Requires: `opr.found(a).`, Contract: `Returns the variable environment after the match a.`})
-	add(&exec.Op{Name: "opr.errs", Component: Opr, Params: a, Results: []exec.Type{errs},
+	m.AddOp(&exec.Op{Name: "opr.errs", Component: Opr, Params: a, Results: []exec.Type{errs},
 		Requires: `opr.found(a).`, Contract: `Returns the errors that the match a recovered.`})
-	add(&exec.Op{Name: "opr.setCutFailed", Component: Opr, Params: []exec.Param{exec.P("failed", exec.TBool)},
+	m.AddOp(&exec.Op{Name: "opr.setCutFailed", Component: Opr, Params: []exec.Param{exec.P("failed", exec.TBool)},
 		Writes: []string{Opr}, Contract: `Records whether a candidate of the longest match failed after a cut.`})
-	add(&exec.Op{Name: "opr.cutFailed", Component: Opr, Results: []exec.Type{exec.TBool}, Reads: []string{Opr},
+	m.AddOp(&exec.Op{Name: "opr.cutFailed", Component: Opr, Results: []exec.Type{exec.TBool}, Reads: []string{Opr},
 		Contract: `Reports what the last opr.setCutFailed recorded.`})
-	add(&exec.Op{Name: "opr.setNudBound", Component: Opr, Params: []exec.Param{exec.P("bound", exec.TInt)},
+	m.AddOp(&exec.Op{Name: "opr.setNudBound", Component: Opr, Params: []exec.Param{exec.P("bound", exec.TInt)},
 		Writes: []string{Opr}, Contract: `Records the binding level above which no operator can follow the start of an expression.`})
-	add(&exec.Op{Name: "opr.nudBound", Component: Opr, Results: []exec.Type{exec.TInt}, Reads: []string{Opr},
+	m.AddOp(&exec.Op{Name: "opr.nudBound", Component: Opr, Results: []exec.Type{exec.TInt}, Reads: []string{Opr},
 		Contract: `Returns what the last opr.setNudBound recorded.`})
 
 	// The records of the split forms of the loop, which their caller holds between two steps.
@@ -231,9 +231,12 @@ the errors outside the missing-token mode.`})
 	} {
 		st := exec.P("st", m.AddHandle(rec.handle, Suspended, rec.doc))
 		for _, f := range rec.fields {
-			add(&exec.Op{Name: rec.prefix + "." + f.name, Component: Suspended, Params: []exec.Param{st}, Results: []exec.Type{f.t},
-				Reads: []string{Suspended}, Contract: `Returns the field ` + f.name + ` of the record st.`})
-			add(&exec.Op{Name: rec.prefix + ".set" + strings.ToUpper(f.name[:1]) + f.name[1:], Component: Suspended,
+			m.AddOp(&exec.Op{Name: rec.prefix + "." + f.name, Component: Suspended, Params: []exec.Param{st}, Results: []exec.Type{f.t},
+				Reads: []string{Suspended},
+				Contract: `Returns the field ` + f.name + ` of the record st: what the last set of it stored, and before the
+first the zero value of its type (0, false, the list of no operators, the zero backtracking point, no frame,
+value or match).`})
+			m.AddOp(&exec.Op{Name: rec.prefix + ".set" + strings.ToUpper(f.name[:1]) + f.name[1:], Component: Suspended,
 				Params: []exec.Param{st, exec.P("x", f.t)}, Writes: []string{Suspended},
 				Contract: `Sets the field ` + f.name + ` of the record st to x.`})
 		}

@@ -42,6 +42,9 @@ type Config struct {
 	// range at its position, where the others start it as [pos, pos+1) (as the engine does: its matches
 	// extend the examined input to the end of each unit they read).
 	DocEmptyEnter bool
+	// Oprs are the Operators Rules of a case, the rules of the indexes of RuleRef for the operations
+	// of the Operators Rule family.
+	Oprs []OprRule
 }
 
 // Datum is the model's handle of a value. Its identifier stands for the value that Value returns.
@@ -126,6 +129,15 @@ type Model struct {
 	// call: the doc operations
 	doc  docState
 	regs map[string]any
+
+	// the Operators Rule family: the handles of the rules of Config.Oprs, made when asked for, and
+	// what opr.setCutFailed and opr.setNudBound recorded
+	oprs      []*oprRule
+	operands  [][]*OprLine
+	noOprs    OprList
+	zeroMark  *Opaque
+	cutFailed bool
+	nudBound  int64
 }
 
 // Err is an Err handle of the model.
@@ -316,7 +328,7 @@ func (m *Model) Allows(o *exec.Op, args []any) bool {
 	case "rec.truncate", "rec.since":
 		return args[0].(int64) >= 0 && args[0].(int64) <= int64(len(m.rec))
 	}
-	return m.allowsExp(o, args) && m.allowsDoc(o, args)
+	return m.allowsExp(o, args) && m.allowsDoc(o, args) && (!isOpr(o.Name) || m.allowsOpr(o, args))
 }
 
 // Quantity returns the cost quantity name for a call of o with args, in the state before the call.
@@ -521,6 +533,9 @@ func (m *Model) Call(o *exec.Op, args []any) []any {
 		return res
 	}
 	if res, ok := m.callDoc(o, args); ok {
+		return res
+	}
+	if res, ok := m.callOpr(o, args); ok {
 		return res
 	}
 	panic(fmt.Sprintf("ref: no model of %s", o.Name))

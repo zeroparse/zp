@@ -1802,25 +1802,25 @@ transitional op frame.restore(f Frame)
   requires:
     // The last frame.save copied the slots of f, and nothing parsed since.
 
-transitional op opr.led(r Rule) Operators
+op opr.led(r Rule) Operators
   component rules
   cost <= 0
   contract:
     // Returns the infix and postfix operators of the Operators Rule r, in declaration order.
 
-transitional op opr.prefix(r Rule) Operators
+op opr.prefix(r Rule) Operators
   component rules
   cost <= 0
   contract:
     // Returns the prefix operators of the Operators Rule r, in declaration order.
 
-transitional op opr.count(l Operators) int
+op opr.count(l Operators) int
   component rules
   cost <= 0
   contract:
     // Returns the number of operators of l.
 
-transitional op opr.at(l Operators, i int) Operator
+op opr.at(l Operators, i int) Operator
   component rules
   cost <= 0
   contract:
@@ -1828,13 +1828,13 @@ transitional op opr.at(l Operators, i int) Operator
   requires:
     // 0 <= i < opr.count(l).
 
-transitional op opr.operands(r Rule) int
+op opr.operands(r Rule) int
   component rules
   cost <= 0
   contract:
     // Returns the number of operand lines of the Operators Rule r.
 
-transitional op opr.operand(r Rule, i int) Line
+op opr.operand(r Rule, i int) Line
   component rules
   cost <= 0
   contract:
@@ -1842,49 +1842,49 @@ transitional op opr.operand(r Rule, i int) Line
   requires:
     // 0 <= i < opr.operands(r).
 
-transitional op opr.line(op Operator) Line
+op opr.line(op Operator) Line
   component rules
   cost <= 0
   contract:
     // Returns the line of the operator op.
 
-transitional op opr.level(op Operator) int
+op opr.level(op Operator) int
   component rules
   cost <= 0
   contract:
     // Returns the binding power of the operator op: the higher, the tighter it binds.
 
-transitional op opr.infix(op Operator) bool
+op opr.infix(op Operator) bool
   component rules
   cost <= 0
   contract:
     // Reports whether the operator op is an infix operator.
 
-transitional op opr.postfix(op Operator) bool
+op opr.postfix(op Operator) bool
   component rules
   cost <= 0
   contract:
     // Reports whether the operator op is a postfix operator.
 
-transitional op opr.right(op Operator) bool
+op opr.right(op Operator) bool
   component rules
   cost <= 0
   contract:
     // Reports whether the operator op associates to the right.
 
-transitional op opr.nonAssoc(op Operator) bool
+op opr.nonAssoc(op Operator) bool
   component rules
   cost <= 0
   contract:
     // Reports whether the operator op does not associate.
 
-transitional op opr.scope(l Line) int
+op opr.scope(l Line) int
   component rules
   cost <= 0
   contract:
     // Returns the number of capture slots of the line l.
 
-transitional op opr.hasSkip(r Rule) bool
+op opr.hasSkip(r Rule) bool
   component rules
   cost <= 0
   contract:
@@ -1942,7 +1942,7 @@ transitional op opr.buildTyped(r Rule, a Attempt, lhs Value, lstart int, rhs Val
     // Is opr.build for typed values, where lhs, if it is not a node, starts at lstart; it also returns
     // where the value of the application starts.
 
-transitional op opr.attempt(op Operator, f Frame, v Value, start int, cut bool, errs Errs) Attempt
+op opr.attempt(op Operator, f Frame, v Value, start int, cut bool, errs Errs) Attempt
   component operators
   reads env, pos
   cost <= 0
@@ -1971,13 +1971,13 @@ transitional op opr.replay(a Attempt)
     // Records again the tokens that the match a inserted and the errors it recovered, as rec.add does for
     // the errors outside the missing-token mode.
 
-transitional op opr.found(a Attempt) bool
+op opr.found(a Attempt) bool
   component operators
   cost <= 0
   contract:
     // Reports whether a is a match, not the null attempt.
 
-transitional op opr.op(a Attempt) Operator
+op opr.op(a Attempt) Operator
   component operators
   cost <= 0
   contract:
@@ -1985,7 +1985,7 @@ transitional op opr.op(a Attempt) Operator
   requires:
     // opr.found(a).
 
-transitional op opr.end(a Attempt) int
+op opr.end(a Attempt) int
   component operators
   cost <= 0
   contract:
@@ -1993,7 +1993,7 @@ transitional op opr.end(a Attempt) int
   requires:
     // opr.found(a).
 
-transitional op opr.cut(a Attempt) bool
+op opr.cut(a Attempt) bool
   component operators
   cost <= 0
   contract:
@@ -2001,7 +2001,7 @@ transitional op opr.cut(a Attempt) bool
   requires:
     // opr.found(a).
 
-transitional op opr.env(a Attempt) Scope
+op opr.env(a Attempt) Scope
   component operators
   cost <= 0
   contract:
@@ -2009,7 +2009,7 @@ transitional op opr.env(a Attempt) Scope
   requires:
     // opr.found(a).
 
-transitional op opr.errs(a Attempt) Errs
+op opr.errs(a Attempt) Errs
   component operators
   cost <= 0
   contract:
@@ -2017,308 +2017,348 @@ transitional op opr.errs(a Attempt) Errs
   requires:
     // opr.found(a).
 
-transitional op opr.setCutFailed(failed bool)
+op opr.setCutFailed(failed bool)
   component operators
   writes operators
   cost <= 0
   contract:
     // Records whether a candidate of the longest match failed after a cut.
 
-transitional op opr.cutFailed() bool
+op opr.cutFailed() bool
   component operators
   reads operators
   cost <= 0
   contract:
     // Reports what the last opr.setCutFailed recorded.
 
-transitional op opr.setNudBound(bound int)
+op opr.setNudBound(bound int)
   component operators
   writes operators
   cost <= 0
   contract:
     // Records the binding level above which no operator can follow the start of an expression.
 
-transitional op opr.nudBound() int
+op opr.nudBound() int
   component operators
   reads operators
   cost <= 0
   contract:
     // Returns what the last opr.setNudBound recorded.
 
-transitional op oprLongest.l(st LongestState) Operators
+op oprLongest.l(st LongestState) Operators
   component suspended
   reads suspended
   cost <= 0
   contract:
-    // Returns the field l of the record st.
+    // Returns the field l of the record st: what the last set of it stored, and before the
+    // first the zero value of its type (0, false, the list of no operators, the zero backtracking point, no frame,
+    // value or match).
 
-transitional op oprLongest.setL(st LongestState, x Operators)
+op oprLongest.setL(st LongestState, x Operators)
   component suspended
   writes suspended
   cost <= 0
   contract:
     // Sets the field l of the record st to x.
 
-transitional op oprLongest.i(st LongestState) int
+op oprLongest.i(st LongestState) int
   component suspended
   reads suspended
   cost <= 0
   contract:
-    // Returns the field i of the record st.
+    // Returns the field i of the record st: what the last set of it stored, and before the
+    // first the zero value of its type (0, false, the list of no operators, the zero backtracking point, no frame,
+    // value or match).
 
-transitional op oprLongest.setI(st LongestState, x int)
+op oprLongest.setI(st LongestState, x int)
   component suspended
   writes suspended
   cost <= 0
   contract:
     // Sets the field i of the record st to x.
 
-transitional op oprLongest.m0(st LongestState) Mark
+op oprLongest.m0(st LongestState) Mark
   component suspended
   reads suspended
   cost <= 0
   contract:
-    // Returns the field m0 of the record st.
+    // Returns the field m0 of the record st: what the last set of it stored, and before the
+    // first the zero value of its type (0, false, the list of no operators, the zero backtracking point, no frame,
+    // value or match).
 
-transitional op oprLongest.setM0(st LongestState, x Mark)
+op oprLongest.setM0(st LongestState, x Mark)
   component suspended
   writes suspended
   cost <= 0
   contract:
     // Sets the field m0 of the record st to x.
 
-transitional op oprLongest.best(st LongestState) Attempt
+op oprLongest.best(st LongestState) Attempt
   component suspended
   reads suspended
   cost <= 0
   contract:
-    // Returns the field best of the record st.
+    // Returns the field best of the record st: what the last set of it stored, and before the
+    // first the zero value of its type (0, false, the list of no operators, the zero backtracking point, no frame,
+    // value or match).
 
-transitional op oprLongest.setBest(st LongestState, x Attempt)
+op oprLongest.setBest(st LongestState, x Attempt)
   component suspended
   writes suspended
   cost <= 0
   contract:
     // Sets the field best of the record st to x.
 
-transitional op oprLongest.cutFailed(st LongestState) bool
+op oprLongest.cutFailed(st LongestState) bool
   component suspended
   reads suspended
   cost <= 0
   contract:
-    // Returns the field cutFailed of the record st.
+    // Returns the field cutFailed of the record st: what the last set of it stored, and before the
+    // first the zero value of its type (0, false, the list of no operators, the zero backtracking point, no frame,
+    // value or match).
 
-transitional op oprLongest.setCutFailed(st LongestState, x bool)
+op oprLongest.setCutFailed(st LongestState, x bool)
   component suspended
   writes suspended
   cost <= 0
   contract:
     // Sets the field cutFailed of the record st to x.
 
-transitional op oprLongest.prevFrame(st LongestState) Frame
+op oprLongest.prevFrame(st LongestState) Frame
   component suspended
   reads suspended
   cost <= 0
   contract:
-    // Returns the field prevFrame of the record st.
+    // Returns the field prevFrame of the record st: what the last set of it stored, and before the
+    // first the zero value of its type (0, false, the list of no operators, the zero backtracking point, no frame,
+    // value or match).
 
-transitional op oprLongest.setPrevFrame(st LongestState, x Frame)
+op oprLongest.setPrevFrame(st LongestState, x Frame)
   component suspended
   writes suspended
   cost <= 0
   contract:
     // Sets the field prevFrame of the record st to x.
 
-transitional op oprLongest.prevCut(st LongestState) bool
+op oprLongest.prevCut(st LongestState) bool
   component suspended
   reads suspended
   cost <= 0
   contract:
-    // Returns the field prevCut of the record st.
+    // Returns the field prevCut of the record st: what the last set of it stored, and before the
+    // first the zero value of its type (0, false, the list of no operators, the zero backtracking point, no frame,
+    // value or match).
 
-transitional op oprLongest.setPrevCut(st LongestState, x bool)
+op oprLongest.setPrevCut(st LongestState, x bool)
   component suspended
   writes suspended
   cost <= 0
   contract:
     // Sets the field prevCut of the record st to x.
 
-transitional op oprLongest.f(st LongestState) Frame
+op oprLongest.f(st LongestState) Frame
   component suspended
   reads suspended
   cost <= 0
   contract:
-    // Returns the field f of the record st.
+    // Returns the field f of the record st: what the last set of it stored, and before the
+    // first the zero value of its type (0, false, the list of no operators, the zero backtracking point, no frame,
+    // value or match).
 
-transitional op oprLongest.setF(st LongestState, x Frame)
+op oprLongest.setF(st LongestState, x Frame)
   component suspended
   writes suspended
   cost <= 0
   contract:
     // Sets the field f of the record st to x.
 
-transitional op oprNud.m0(st NudState) Mark
+op oprNud.m0(st NudState) Mark
   component suspended
   reads suspended
   cost <= 0
   contract:
-    // Returns the field m0 of the record st.
+    // Returns the field m0 of the record st: what the last set of it stored, and before the
+    // first the zero value of its type (0, false, the list of no operators, the zero backtracking point, no frame,
+    // value or match).
 
-transitional op oprNud.setM0(st NudState, x Mark)
+op oprNud.setM0(st NudState, x Mark)
   component suspended
   writes suspended
   cost <= 0
   contract:
     // Sets the field m0 of the record st to x.
 
-transitional op oprNud.a(st NudState) Attempt
+op oprNud.a(st NudState) Attempt
   component suspended
   reads suspended
   cost <= 0
   contract:
-    // Returns the field a of the record st.
+    // Returns the field a of the record st: what the last set of it stored, and before the
+    // first the zero value of its type (0, false, the list of no operators, the zero backtracking point, no frame,
+    // value or match).
 
-transitional op oprNud.setA(st NudState, x Attempt)
+op oprNud.setA(st NudState, x Attempt)
   component suspended
   writes suspended
   cost <= 0
   contract:
     // Sets the field a of the record st to x.
 
-transitional op oprNud.i(st NudState) int
+op oprNud.i(st NudState) int
   component suspended
   reads suspended
   cost <= 0
   contract:
-    // Returns the field i of the record st.
+    // Returns the field i of the record st: what the last set of it stored, and before the
+    // first the zero value of its type (0, false, the list of no operators, the zero backtracking point, no frame,
+    // value or match).
 
-transitional op oprNud.setI(st NudState, x int)
+op oprNud.setI(st NudState, x int)
   component suspended
   writes suspended
   cost <= 0
   contract:
     // Sets the field i of the record st to x.
 
-transitional op oprNud.prevFrame(st NudState) Frame
+op oprNud.prevFrame(st NudState) Frame
   component suspended
   reads suspended
   cost <= 0
   contract:
-    // Returns the field prevFrame of the record st.
+    // Returns the field prevFrame of the record st: what the last set of it stored, and before the
+    // first the zero value of its type (0, false, the list of no operators, the zero backtracking point, no frame,
+    // value or match).
 
-transitional op oprNud.setPrevFrame(st NudState, x Frame)
+op oprNud.setPrevFrame(st NudState, x Frame)
   component suspended
   writes suspended
   cost <= 0
   contract:
     // Sets the field prevFrame of the record st to x.
 
-transitional op oprNud.prevCut(st NudState) bool
+op oprNud.prevCut(st NudState) bool
   component suspended
   reads suspended
   cost <= 0
   contract:
-    // Returns the field prevCut of the record st.
+    // Returns the field prevCut of the record st: what the last set of it stored, and before the
+    // first the zero value of its type (0, false, the list of no operators, the zero backtracking point, no frame,
+    // value or match).
 
-transitional op oprNud.setPrevCut(st NudState, x bool)
+op oprNud.setPrevCut(st NudState, x bool)
   component suspended
   writes suspended
   cost <= 0
   contract:
     // Sets the field prevCut of the record st to x.
 
-transitional op oprNud.f(st NudState) Frame
+op oprNud.f(st NudState) Frame
   component suspended
   reads suspended
   cost <= 0
   contract:
-    // Returns the field f of the record st.
+    // Returns the field f of the record st: what the last set of it stored, and before the
+    // first the zero value of its type (0, false, the list of no operators, the zero backtracking point, no frame,
+    // value or match).
 
-transitional op oprNud.setF(st NudState, x Frame)
+op oprNud.setF(st NudState, x Frame)
   component suspended
   writes suspended
   cost <= 0
   contract:
     // Sets the field f of the record st to x.
 
-transitional op oprExpr.min(st ExprState) int
+op oprExpr.min(st ExprState) int
   component suspended
   reads suspended
   cost <= 0
   contract:
-    // Returns the field min of the record st.
+    // Returns the field min of the record st: what the last set of it stored, and before the
+    // first the zero value of its type (0, false, the list of no operators, the zero backtracking point, no frame,
+    // value or match).
 
-transitional op oprExpr.setMin(st ExprState, x int)
+op oprExpr.setMin(st ExprState, x int)
   component suspended
   writes suspended
   cost <= 0
   contract:
     // Sets the field min of the record st to x.
 
-transitional op oprExpr.lhs(st ExprState) Value
+op oprExpr.lhs(st ExprState) Value
   component suspended
   reads suspended
   cost <= 0
   contract:
-    // Returns the field lhs of the record st.
+    // Returns the field lhs of the record st: what the last set of it stored, and before the
+    // first the zero value of its type (0, false, the list of no operators, the zero backtracking point, no frame,
+    // value or match).
 
-transitional op oprExpr.setLhs(st ExprState, x Value)
+op oprExpr.setLhs(st ExprState, x Value)
   component suspended
   writes suspended
   cost <= 0
   contract:
     // Sets the field lhs of the record st to x.
 
-transitional op oprExpr.lastNone(st ExprState) int
+op oprExpr.lastNone(st ExprState) int
   component suspended
   reads suspended
   cost <= 0
   contract:
-    // Returns the field lastNone of the record st.
+    // Returns the field lastNone of the record st: what the last set of it stored, and before the
+    // first the zero value of its type (0, false, the list of no operators, the zero backtracking point, no frame,
+    // value or match).
 
-transitional op oprExpr.setLastNone(st ExprState, x int)
+op oprExpr.setLastNone(st ExprState, x int)
   component suspended
   writes suspended
   cost <= 0
   contract:
     // Sets the field lastNone of the record st to x.
 
-transitional op oprExpr.bound(st ExprState) int
+op oprExpr.bound(st ExprState) int
   component suspended
   reads suspended
   cost <= 0
   contract:
-    // Returns the field bound of the record st.
+    // Returns the field bound of the record st: what the last set of it stored, and before the
+    // first the zero value of its type (0, false, the list of no operators, the zero backtracking point, no frame,
+    // value or match).
 
-transitional op oprExpr.setBound(st ExprState, x int)
+op oprExpr.setBound(st ExprState, x int)
   component suspended
   writes suspended
   cost <= 0
   contract:
     // Sets the field bound of the record st to x.
 
-transitional op oprExpr.m0(st ExprState) Mark
+op oprExpr.m0(st ExprState) Mark
   component suspended
   reads suspended
   cost <= 0
   contract:
-    // Returns the field m0 of the record st.
+    // Returns the field m0 of the record st: what the last set of it stored, and before the
+    // first the zero value of its type (0, false, the list of no operators, the zero backtracking point, no frame,
+    // value or match).
 
-transitional op oprExpr.setM0(st ExprState, x Mark)
+op oprExpr.setM0(st ExprState, x Mark)
   component suspended
   writes suspended
   cost <= 0
   contract:
     // Sets the field m0 of the record st to x.
 
-transitional op oprExpr.a(st ExprState) Attempt
+op oprExpr.a(st ExprState) Attempt
   component suspended
   reads suspended
   cost <= 0
   contract:
-    // Returns the field a of the record st.
+    // Returns the field a of the record st: what the last set of it stored, and before the
+    // first the zero value of its type (0, false, the list of no operators, the zero backtracking point, no frame,
+    // value or match).
 
-transitional op oprExpr.setA(st ExprState, x Attempt)
+op oprExpr.setA(st ExprState, x Attempt)
   component suspended
   writes suspended
   cost <= 0
