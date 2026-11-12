@@ -8,7 +8,7 @@
 termchargesstruct/term 0: S{K: 1} | aa engine-closure	14 ok
 termchargesstruct/term 0: S{K: 1} | aa engine-iterative	15 ok
 termchargesstruct/term 0: S{K: 1} | aa engine-vm	15 ok
-termchargesstruct/term 0: S{K: 1} | aa go-node	15 ok
+termchargesstruct/term 0: S{K: 1} | aa go-node	14 ok
 termchargesstruct/term 0: S{K: 1} | aa go-node-recognize	9 ok
 termchargesstruct/term 0: S{K: 1} | aa go-typed	11 ok
 termchargesstruct/term 0: S{K: 1} | aa go-typed-recognize	9 ok
@@ -16,7 +16,7 @@ termchargesstruct/term 0: S{K: 1} | aa ts-node	20 ok
 termchargesstruct/term 10: S{A: $z, B: $y} | aa engine-closure	18 ok
 termchargesstruct/term 10: S{A: $z, B: $y} | aa engine-iterative	19 ok
 termchargesstruct/term 10: S{A: $z, B: $y} | aa engine-vm	19 ok
-termchargesstruct/term 10: S{A: $z, B: $y} | aa go-node	20 ok
+termchargesstruct/term 10: S{A: $z, B: $y} | aa go-node	18 ok
 termchargesstruct/term 10: S{A: $z, B: $y} | aa go-node-recognize	9 ok
 termchargesstruct/term 10: S{A: $z, B: $y} | aa go-typed	11 ok
 termchargesstruct/term 10: S{A: $z, B: $y} | aa go-typed-recognize	9 ok
@@ -24,7 +24,7 @@ termchargesstruct/term 10: S{A: $z, B: $y} | aa ts-node	24 ok
 termchargesstruct/term 11: S{A: $z, B: $y} | 😀😀 engine-closure	30 ok
 termchargesstruct/term 11: S{A: $z, B: $y} | 😀😀 engine-iterative	31 ok
 termchargesstruct/term 11: S{A: $z, B: $y} | 😀😀 engine-vm	31 ok
-termchargesstruct/term 11: S{A: $z, B: $y} | 😀😀 go-node	32 ok
+termchargesstruct/term 11: S{A: $z, B: $y} | 😀😀 go-node	30 ok
 termchargesstruct/term 11: S{A: $z, B: $y} | 😀😀 go-node-recognize	21 ok
 termchargesstruct/term 11: S{A: $z, B: $y} | 😀😀 go-typed	23 ok
 termchargesstruct/term 11: S{A: $z, B: $y} | 😀😀 go-typed-recognize	21 ok
@@ -32,7 +32,7 @@ termchargesstruct/term 11: S{A: $z, B: $y} | 😀😀 ts-node	29 ok
 termchargesstruct/term 12: S{I: Inner{N: 1}} | aa engine-closure	17 ok
 termchargesstruct/term 12: S{I: Inner{N: 1}} | aa engine-iterative	18 ok
 termchargesstruct/term 12: S{I: Inner{N: 1}} | aa engine-vm	18 ok
-termchargesstruct/term 12: S{I: Inner{N: 1}} | aa go-node	19 ok
+termchargesstruct/term 12: S{I: Inner{N: 1}} | aa go-node	17 ok
 termchargesstruct/term 12: S{I: Inner{N: 1}} | aa go-node-recognize	9 ok
 termchargesstruct/term 12: S{I: Inner{N: 1}} | aa go-typed	11 ok
 termchargesstruct/term 12: S{I: Inner{N: 1}} | aa go-typed-recognize	9 ok
@@ -40,7 +40,7 @@ termchargesstruct/term 12: S{I: Inner{N: 1}} | aa ts-node	23 ok
 termchargesstruct/term 13: S{I: Inner{N: 1}} | 😀😀 engine-closure	29 ok
 termchargesstruct/term 13: S{I: Inner{N: 1}} | 😀😀 engine-iterative	30 ok
 termchargesstruct/term 13: S{I: Inner{N: 1}} | 😀😀 engine-vm	30 ok
-termchargesstruct/term 13: S{I: Inner{N: 1}} | 😀😀 go-node	31 ok
+termchargesstruct/term 13: S{I: Inner{N: 1}} | 😀😀 go-node	29 ok
 termchargesstruct/term 13: S{I: Inner{N: 1}} | 😀😀 go-node-recognize	21 ok
 termchargesstruct/term 13: S{I: Inner{N: 1}} | 😀😀 go-typed	23 ok
 termchargesstruct/term 13: S{I: Inner{N: 1}} | 😀😀 go-typed-recognize	21 ok
@@ -48,7 +48,7 @@ termchargesstruct/term 13: S{I: Inner{N: 1}} | 😀😀 ts-node	28 ok
 termchargesstruct/term 14: S{L: list($y, $x)} | aa engine-closure	22 ok
 termchargesstruct/term 14: S{L: list($y, $x)} | aa engine-iterative	23 ok
 termchargesstruct/term 14: S{L: list($y, $x)} | aa engine-vm	23 ok
-termchargesstruct/term 14: S{L: list($y, $x)} | aa go-node	22 ok
+termchargesstruct/term 14: S{L: list($y, $x)} | aa go-node	21 ok
 termchargesstruct/term 14: S{L: list($y, $x)} | aa go-node-recognize	9 ok
 termchargesstruct/term 14: S{L: list($y, $x)} | aa go-typed	20 ok
 termchargesstruct/term 14: S{L: list($y, $x)} | aa go-typed-recognize	9 ok
@@ -56,7 +56,7 @@ termchargesstruct/term 14: S{L: list($y, $x)} | aa ts-node	29 ok
 termchargesstruct/term 15: S{L: list($y, $x)} | 😀😀 engine-closure	34 ok
 termchargesstruct/term 15: S{L: list($y, $x)} | 😀😀 engine-iterative	35 ok
 termchargesstruct/term 15: S{L: list($y, $x)} | 😀😀 engine-vm	35 ok
-termchargesstruct/term 15: S{L: list($y, $x)} | 😀😀 go-node	34 ok
+termchargesstruct/term 15: S{L: list($y, $x)} | 😀😀 go-node	33 ok
 termchargesstruct/term 15: S{L: list($y, $x)} | 😀😀 go-node-recognize	21 ok
 termchargesstruct/term 15: S{L: list($y, $x)} | 😀😀 go-typed	32 ok
 termchargesstruct/term 15: S{L: list($y, $x)} | 😀😀 go-typed-recognize	21 ok
@@ -64,7 +64,7 @@ termchargesstruct/term 15: S{L: list($y, $x)} | 😀😀 ts-node	34 ok
 termchargesstruct/term 16: S{A: $x, B: $y, K: 3, I: Inner{N: 4}, L: list($x)} | aa engine-closure	55 ok
 termchargesstruct/term 16: S{A: $x, B: $y, K: 3, I: Inner{N: 4}, L: list($x)} | aa engine-iterative	56 ok
 termchargesstruct/term 16: S{A: $x, B: $y, K: 3, I: Inner{N: 4}, L: list($x)} | aa engine-vm	56 ok
-termchargesstruct/term 16: S{A: $x, B: $y, K: 3, I: Inner{N: 4}, L: list($x)} | aa go-node	61 ok
+termchargesstruct/term 16: S{A: $x, B: $y, K: 3, I: Inner{N: 4}, L: list($x)} | aa go-node	55 ok
 termchargesstruct/term 16: S{A: $x, B: $y, K: 3, I: Inner{N: 4}, L: list($x)} | aa go-node-recognize	9 ok
 termchargesstruct/term 16: S{A: $x, B: $y, K: 3, I: Inner{N: 4}, L: list($x)} | aa go-typed	16 ok
 termchargesstruct/term 16: S{A: $x, B: $y, K: 3, I: Inner{N: 4}, L: list($x)} | aa go-typed-recognize	9 ok
@@ -72,7 +72,7 @@ termchargesstruct/term 16: S{A: $x, B: $y, K: 3, I: Inner{N: 4}, L: list($x)} | 
 termchargesstruct/term 17: S{A: $x, B: $y, K: 3, I: Inner{N: 4}, L: list($x)} | 😀😀 engine-closure	67 ok
 termchargesstruct/term 17: S{A: $x, B: $y, K: 3, I: Inner{N: 4}, L: list($x)} | 😀😀 engine-iterative	68 ok
 termchargesstruct/term 17: S{A: $x, B: $y, K: 3, I: Inner{N: 4}, L: list($x)} | 😀😀 engine-vm	68 ok
-termchargesstruct/term 17: S{A: $x, B: $y, K: 3, I: Inner{N: 4}, L: list($x)} | 😀😀 go-node	73 ok
+termchargesstruct/term 17: S{A: $x, B: $y, K: 3, I: Inner{N: 4}, L: list($x)} | 😀😀 go-node	67 ok
 termchargesstruct/term 17: S{A: $x, B: $y, K: 3, I: Inner{N: 4}, L: list($x)} | 😀😀 go-node-recognize	21 ok
 termchargesstruct/term 17: S{A: $x, B: $y, K: 3, I: Inner{N: 4}, L: list($x)} | 😀😀 go-typed	28 ok
 termchargesstruct/term 17: S{A: $x, B: $y, K: 3, I: Inner{N: 4}, L: list($x)} | 😀😀 go-typed-recognize	21 ok
@@ -80,7 +80,7 @@ termchargesstruct/term 17: S{A: $x, B: $y, K: 3, I: Inner{N: 4}, L: list($x)} | 
 termchargesstruct/term 18: S{K: 1}.K | aa engine-closure	16 ok
 termchargesstruct/term 18: S{K: 1}.K | aa engine-iterative	16 ok
 termchargesstruct/term 18: S{K: 1}.K | aa engine-vm	16 ok
-termchargesstruct/term 18: S{K: 1}.K | aa go-node	17 ok
+termchargesstruct/term 18: S{K: 1}.K | aa go-node	16 ok
 termchargesstruct/term 18: S{K: 1}.K | aa go-node-recognize	9 ok
 termchargesstruct/term 18: S{K: 1}.K | aa go-typed	11 ok
 termchargesstruct/term 18: S{K: 1}.K | aa go-typed-recognize	9 ok
@@ -88,7 +88,7 @@ termchargesstruct/term 18: S{K: 1}.K | aa ts-node	22 ok
 termchargesstruct/term 19: S{K: 1}.K | 😀😀 engine-closure	28 ok
 termchargesstruct/term 19: S{K: 1}.K | 😀😀 engine-iterative	28 ok
 termchargesstruct/term 19: S{K: 1}.K | 😀😀 engine-vm	28 ok
-termchargesstruct/term 19: S{K: 1}.K | 😀😀 go-node	29 ok
+termchargesstruct/term 19: S{K: 1}.K | 😀😀 go-node	28 ok
 termchargesstruct/term 19: S{K: 1}.K | 😀😀 go-node-recognize	21 ok
 termchargesstruct/term 19: S{K: 1}.K | 😀😀 go-typed	23 ok
 termchargesstruct/term 19: S{K: 1}.K | 😀😀 go-typed-recognize	21 ok
@@ -96,7 +96,7 @@ termchargesstruct/term 19: S{K: 1}.K | 😀😀 ts-node	27 ok
 termchargesstruct/term 1: S{K: 1} | 😀😀 engine-closure	26 ok
 termchargesstruct/term 1: S{K: 1} | 😀😀 engine-iterative	27 ok
 termchargesstruct/term 1: S{K: 1} | 😀😀 engine-vm	27 ok
-termchargesstruct/term 1: S{K: 1} | 😀😀 go-node	27 ok
+termchargesstruct/term 1: S{K: 1} | 😀😀 go-node	26 ok
 termchargesstruct/term 1: S{K: 1} | 😀😀 go-node-recognize	21 ok
 termchargesstruct/term 1: S{K: 1} | 😀😀 go-typed	23 ok
 termchargesstruct/term 1: S{K: 1} | 😀😀 go-typed-recognize	21 ok
@@ -104,7 +104,7 @@ termchargesstruct/term 1: S{K: 1} | 😀😀 ts-node	25 ok
 termchargesstruct/term 20: S{A: $y, K: 1}.K | aa engine-closure	23 ok
 termchargesstruct/term 20: S{A: $y, K: 1}.K | aa engine-iterative	23 ok
 termchargesstruct/term 20: S{A: $y, K: 1}.K | aa engine-vm	23 ok
-termchargesstruct/term 20: S{A: $y, K: 1}.K | aa go-node	25 ok
+termchargesstruct/term 20: S{A: $y, K: 1}.K | aa go-node	23 ok
 termchargesstruct/term 20: S{A: $y, K: 1}.K | aa go-node-recognize	9 ok
 termchargesstruct/term 20: S{A: $y, K: 1}.K | aa go-typed	11 ok
 termchargesstruct/term 20: S{A: $y, K: 1}.K | aa go-typed-recognize	9 ok
@@ -112,7 +112,7 @@ termchargesstruct/term 20: S{A: $y, K: 1}.K | aa ts-node	28 ok
 termchargesstruct/term 21: S{A: $y, K: 1}.K | 😀😀 engine-closure	35 ok
 termchargesstruct/term 21: S{A: $y, K: 1}.K | 😀😀 engine-iterative	35 ok
 termchargesstruct/term 21: S{A: $y, K: 1}.K | 😀😀 engine-vm	35 ok
-termchargesstruct/term 21: S{A: $y, K: 1}.K | 😀😀 go-node	37 ok
+termchargesstruct/term 21: S{A: $y, K: 1}.K | 😀😀 go-node	35 ok
 termchargesstruct/term 21: S{A: $y, K: 1}.K | 😀😀 go-node-recognize	21 ok
 termchargesstruct/term 21: S{A: $y, K: 1}.K | 😀😀 go-typed	23 ok
 termchargesstruct/term 21: S{A: $y, K: 1}.K | 😀😀 go-typed-recognize	21 ok
@@ -120,7 +120,7 @@ termchargesstruct/term 21: S{A: $y, K: 1}.K | 😀😀 ts-node	33 ok
 termchargesstruct/term 22: S{I: Inner{N: 1}}.I.N | aa engine-closure	21 ok
 termchargesstruct/term 22: S{I: Inner{N: 1}}.I.N | aa engine-iterative	20 ok
 termchargesstruct/term 22: S{I: Inner{N: 1}}.I.N | aa engine-vm	20 ok
-termchargesstruct/term 22: S{I: Inner{N: 1}}.I.N | aa go-node	22 ok
+termchargesstruct/term 22: S{I: Inner{N: 1}}.I.N | aa go-node	20 ok
 termchargesstruct/term 22: S{I: Inner{N: 1}}.I.N | aa go-node-recognize	9 ok
 termchargesstruct/term 22: S{I: Inner{N: 1}}.I.N | aa go-typed	11 ok
 termchargesstruct/term 22: S{I: Inner{N: 1}}.I.N | aa go-typed-recognize	9 ok
@@ -128,7 +128,7 @@ termchargesstruct/term 22: S{I: Inner{N: 1}}.I.N | aa ts-node	27 ok
 termchargesstruct/term 23: S{I: Inner{N: 1}}.I.N | 😀😀 engine-closure	33 ok
 termchargesstruct/term 23: S{I: Inner{N: 1}}.I.N | 😀😀 engine-iterative	32 ok
 termchargesstruct/term 23: S{I: Inner{N: 1}}.I.N | 😀😀 engine-vm	32 ok
-termchargesstruct/term 23: S{I: Inner{N: 1}}.I.N | 😀😀 go-node	34 ok
+termchargesstruct/term 23: S{I: Inner{N: 1}}.I.N | 😀😀 go-node	32 ok
 termchargesstruct/term 23: S{I: Inner{N: 1}}.I.N | 😀😀 go-node-recognize	21 ok
 termchargesstruct/term 23: S{I: Inner{N: 1}}.I.N | 😀😀 go-typed	23 ok
 termchargesstruct/term 23: S{I: Inner{N: 1}}.I.N | 😀😀 go-typed-recognize	21 ok
@@ -136,39 +136,39 @@ termchargesstruct/term 23: S{I: Inner{N: 1}}.I.N | 😀😀 ts-node	32 ok
 termchargesstruct/term 24: len(S{L: list($y, $x)}.L) | aa engine-closure	24 ok
 termchargesstruct/term 24: len(S{L: list($y, $x)}.L) | aa engine-iterative	24 ok
 termchargesstruct/term 24: len(S{L: list($y, $x)}.L) | aa engine-vm	24 ok
-termchargesstruct/term 24: len(S{L: list($y, $x)}.L) | aa go-node	24 ok
+termchargesstruct/term 24: len(S{L: list($y, $x)}.L) | aa go-node	23 ok
 termchargesstruct/term 24: len(S{L: list($y, $x)}.L) | aa go-node-recognize	9 ok
-termchargesstruct/term 24: len(S{L: list($y, $x)}.L) | aa go-typed	24 ok
+termchargesstruct/term 24: len(S{L: list($y, $x)}.L) | aa go-typed	23 ok
 termchargesstruct/term 24: len(S{L: list($y, $x)}.L) | aa go-typed-recognize	9 ok
 termchargesstruct/term 24: len(S{L: list($y, $x)}.L) | aa ts-node	32 ok
 termchargesstruct/term 25: len(S{L: list($y, $x)}.L) | 😀😀 engine-closure	36 ok
 termchargesstruct/term 25: len(S{L: list($y, $x)}.L) | 😀😀 engine-iterative	36 ok
 termchargesstruct/term 25: len(S{L: list($y, $x)}.L) | 😀😀 engine-vm	36 ok
-termchargesstruct/term 25: len(S{L: list($y, $x)}.L) | 😀😀 go-node	36 ok
+termchargesstruct/term 25: len(S{L: list($y, $x)}.L) | 😀😀 go-node	35 ok
 termchargesstruct/term 25: len(S{L: list($y, $x)}.L) | 😀😀 go-node-recognize	21 ok
-termchargesstruct/term 25: len(S{L: list($y, $x)}.L) | 😀😀 go-typed	36 ok
+termchargesstruct/term 25: len(S{L: list($y, $x)}.L) | 😀😀 go-typed	35 ok
 termchargesstruct/term 25: len(S{L: list($y, $x)}.L) | 😀😀 go-typed-recognize	21 ok
 termchargesstruct/term 25: len(S{L: list($y, $x)}.L) | 😀😀 ts-node	37 ok
 termchargesstruct/term 26: S{A: $z, K: 2}.A == nil | aa engine-closure	20 ok
 termchargesstruct/term 26: S{A: $z, K: 2}.A == nil | aa engine-iterative	20 ok
 termchargesstruct/term 26: S{A: $z, K: 2}.A == nil | aa engine-vm	20 ok
-termchargesstruct/term 26: S{A: $z, K: 2}.A == nil | aa go-node	22 ok
+termchargesstruct/term 26: S{A: $z, K: 2}.A == nil | aa go-node	20 ok
 termchargesstruct/term 26: S{A: $z, K: 2}.A == nil | aa go-node-recognize	9 ok
-termchargesstruct/term 26: S{A: $z, K: 2}.A == nil | aa go-typed	22 ok
+termchargesstruct/term 26: S{A: $z, K: 2}.A == nil | aa go-typed	20 ok
 termchargesstruct/term 26: S{A: $z, K: 2}.A == nil | aa go-typed-recognize	9 ok
 termchargesstruct/term 26: S{A: $z, K: 2}.A == nil | aa ts-node	28 ok
 termchargesstruct/term 27: S{A: $z, K: 2}.A == nil | 😀😀 engine-closure	32 ok
 termchargesstruct/term 27: S{A: $z, K: 2}.A == nil | 😀😀 engine-iterative	32 ok
 termchargesstruct/term 27: S{A: $z, K: 2}.A == nil | 😀😀 engine-vm	32 ok
-termchargesstruct/term 27: S{A: $z, K: 2}.A == nil | 😀😀 go-node	34 ok
+termchargesstruct/term 27: S{A: $z, K: 2}.A == nil | 😀😀 go-node	32 ok
 termchargesstruct/term 27: S{A: $z, K: 2}.A == nil | 😀😀 go-node-recognize	21 ok
-termchargesstruct/term 27: S{A: $z, K: 2}.A == nil | 😀😀 go-typed	34 ok
+termchargesstruct/term 27: S{A: $z, K: 2}.A == nil | 😀😀 go-typed	32 ok
 termchargesstruct/term 27: S{A: $z, K: 2}.A == nil | 😀😀 go-typed-recognize	21 ok
 termchargesstruct/term 27: S{A: $z, K: 2}.A == nil | 😀😀 ts-node	33 ok
 termchargesstruct/term 2: S{A: $y, K: 1} | aa engine-closure	18 ok
 termchargesstruct/term 2: S{A: $y, K: 1} | aa engine-iterative	19 ok
 termchargesstruct/term 2: S{A: $y, K: 1} | aa engine-vm	19 ok
-termchargesstruct/term 2: S{A: $y, K: 1} | aa go-node	20 ok
+termchargesstruct/term 2: S{A: $y, K: 1} | aa go-node	18 ok
 termchargesstruct/term 2: S{A: $y, K: 1} | aa go-node-recognize	9 ok
 termchargesstruct/term 2: S{A: $y, K: 1} | aa go-typed	11 ok
 termchargesstruct/term 2: S{A: $y, K: 1} | aa go-typed-recognize	9 ok
@@ -176,7 +176,7 @@ termchargesstruct/term 2: S{A: $y, K: 1} | aa ts-node	24 ok
 termchargesstruct/term 3: S{A: $y, K: 1} | 😀😀 engine-closure	30 ok
 termchargesstruct/term 3: S{A: $y, K: 1} | 😀😀 engine-iterative	31 ok
 termchargesstruct/term 3: S{A: $y, K: 1} | 😀😀 engine-vm	31 ok
-termchargesstruct/term 3: S{A: $y, K: 1} | 😀😀 go-node	32 ok
+termchargesstruct/term 3: S{A: $y, K: 1} | 😀😀 go-node	30 ok
 termchargesstruct/term 3: S{A: $y, K: 1} | 😀😀 go-node-recognize	21 ok
 termchargesstruct/term 3: S{A: $y, K: 1} | 😀😀 go-typed	23 ok
 termchargesstruct/term 3: S{A: $y, K: 1} | 😀😀 go-typed-recognize	21 ok
@@ -184,7 +184,7 @@ termchargesstruct/term 3: S{A: $y, K: 1} | 😀😀 ts-node	29 ok
 termchargesstruct/term 4: S{A: $x, B: $y} | aa engine-closure	18 ok
 termchargesstruct/term 4: S{A: $x, B: $y} | aa engine-iterative	19 ok
 termchargesstruct/term 4: S{A: $x, B: $y} | aa engine-vm	19 ok
-termchargesstruct/term 4: S{A: $x, B: $y} | aa go-node	20 ok
+termchargesstruct/term 4: S{A: $x, B: $y} | aa go-node	18 ok
 termchargesstruct/term 4: S{A: $x, B: $y} | aa go-node-recognize	9 ok
 termchargesstruct/term 4: S{A: $x, B: $y} | aa go-typed	11 ok
 termchargesstruct/term 4: S{A: $x, B: $y} | aa go-typed-recognize	9 ok
@@ -192,7 +192,7 @@ termchargesstruct/term 4: S{A: $x, B: $y} | aa ts-node	24 ok
 termchargesstruct/term 5: S{A: $x, B: $y} | 😀😀 engine-closure	30 ok
 termchargesstruct/term 5: S{A: $x, B: $y} | 😀😀 engine-iterative	31 ok
 termchargesstruct/term 5: S{A: $x, B: $y} | 😀😀 engine-vm	31 ok
-termchargesstruct/term 5: S{A: $x, B: $y} | 😀😀 go-node	32 ok
+termchargesstruct/term 5: S{A: $x, B: $y} | 😀😀 go-node	30 ok
 termchargesstruct/term 5: S{A: $x, B: $y} | 😀😀 go-node-recognize	21 ok
 termchargesstruct/term 5: S{A: $x, B: $y} | 😀😀 go-typed	23 ok
 termchargesstruct/term 5: S{A: $x, B: $y} | 😀😀 go-typed-recognize	21 ok
@@ -200,7 +200,7 @@ termchargesstruct/term 5: S{A: $x, B: $y} | 😀😀 ts-node	29 ok
 termchargesstruct/term 6: S{A: $y, B: $x} | aa engine-closure	18 ok
 termchargesstruct/term 6: S{A: $y, B: $x} | aa engine-iterative	19 ok
 termchargesstruct/term 6: S{A: $y, B: $x} | aa engine-vm	19 ok
-termchargesstruct/term 6: S{A: $y, B: $x} | aa go-node	20 ok
+termchargesstruct/term 6: S{A: $y, B: $x} | aa go-node	18 ok
 termchargesstruct/term 6: S{A: $y, B: $x} | aa go-node-recognize	9 ok
 termchargesstruct/term 6: S{A: $y, B: $x} | aa go-typed	11 ok
 termchargesstruct/term 6: S{A: $y, B: $x} | aa go-typed-recognize	9 ok
@@ -208,7 +208,7 @@ termchargesstruct/term 6: S{A: $y, B: $x} | aa ts-node	24 ok
 termchargesstruct/term 7: S{A: $y, B: $x} | 😀😀 engine-closure	30 ok
 termchargesstruct/term 7: S{A: $y, B: $x} | 😀😀 engine-iterative	31 ok
 termchargesstruct/term 7: S{A: $y, B: $x} | 😀😀 engine-vm	31 ok
-termchargesstruct/term 7: S{A: $y, B: $x} | 😀😀 go-node	32 ok
+termchargesstruct/term 7: S{A: $y, B: $x} | 😀😀 go-node	30 ok
 termchargesstruct/term 7: S{A: $y, B: $x} | 😀😀 go-node-recognize	21 ok
 termchargesstruct/term 7: S{A: $y, B: $x} | 😀😀 go-typed	23 ok
 termchargesstruct/term 7: S{A: $y, B: $x} | 😀😀 go-typed-recognize	21 ok
@@ -216,7 +216,7 @@ termchargesstruct/term 7: S{A: $y, B: $x} | 😀😀 ts-node	29 ok
 termchargesstruct/term 8: S{A: $z, K: 2} | aa engine-closure	18 ok
 termchargesstruct/term 8: S{A: $z, K: 2} | aa engine-iterative	19 ok
 termchargesstruct/term 8: S{A: $z, K: 2} | aa engine-vm	19 ok
-termchargesstruct/term 8: S{A: $z, K: 2} | aa go-node	20 ok
+termchargesstruct/term 8: S{A: $z, K: 2} | aa go-node	18 ok
 termchargesstruct/term 8: S{A: $z, K: 2} | aa go-node-recognize	9 ok
 termchargesstruct/term 8: S{A: $z, K: 2} | aa go-typed	11 ok
 termchargesstruct/term 8: S{A: $z, K: 2} | aa go-typed-recognize	9 ok
@@ -224,7 +224,7 @@ termchargesstruct/term 8: S{A: $z, K: 2} | aa ts-node	24 ok
 termchargesstruct/term 9: S{A: $z, K: 2} | 😀😀 engine-closure	30 ok
 termchargesstruct/term 9: S{A: $z, K: 2} | 😀😀 engine-iterative	31 ok
 termchargesstruct/term 9: S{A: $z, K: 2} | 😀😀 engine-vm	31 ok
-termchargesstruct/term 9: S{A: $z, K: 2} | 😀😀 go-node	32 ok
+termchargesstruct/term 9: S{A: $z, K: 2} | 😀😀 go-node	30 ok
 termchargesstruct/term 9: S{A: $z, K: 2} | 😀😀 go-node-recognize	21 ok
 termchargesstruct/term 9: S{A: $z, K: 2} | 😀😀 go-typed	23 ok
 termchargesstruct/term 9: S{A: $z, K: 2} | 😀😀 go-typed-recognize	21 ok
