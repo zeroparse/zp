@@ -104,6 +104,20 @@ func RuleCases() []Case {
 		b.Assert(exec.Not(exec.L("ok4")), "every later evaluation does as the last one of the script")
 	})
 
+	// The captures that a match sets become fields of its value: rule.invoke charges the search for them
+	// and the walk of the fields before each one, and nothing for a failure or a match that set none.
+	add("rule_invoke_captures", RuleConfig(ref.RuleSpec{Captures: 3, Body: []ref.Eval{
+		{OK: true, Len: 1, Captures: []int64{0, 2}}, {OK: true, Captures: []int64{2, 1, 0}}, {OK: true, Len: 2},
+		{Captures: []int64{1}},
+	}}), func(b *exec.Builder) {
+		for k := range 3 {
+			b.LetN([]string{fmt.Sprint("v", k), fmt.Sprint("ok", k)}, exec.C("rule.invoke", rule(0), i(0)))
+		}
+		b.Assert(exec.Eq(pos, i(3)), "the captures leave the position to the body")
+		b.LetN([]string{"v3", "ok3"}, exec.C("rule.invoke", rule(0), i(0)))
+		b.Assert(exec.Not(exec.L("ok3")), "a failure attaches no capture")
+	})
+
 	add("rule_invoke_errors", RuleConfig(ref.RuleSpec{Body: []ref.Eval{{OK: true, Len: 2, Errs: []int64{4, 5}}, {Errs: []int64{6}}}}),
 		func(b *exec.Builder) {
 			b.LetN([]string{"v1", "ok1"}, exec.C("rule.invoke", rule(0), i(0)))
@@ -178,6 +192,11 @@ func RandomRuleConfig(rng *rand.Rand, document bool) ref.Config {
 			e := ref.Eval{OK: rng.IntN(3) > 0, Len: rng.Int64N(4), Charge: uint64(rng.IntN(3)), Touch: rng.Int64N(6)}
 			for range rng.IntN(3) {
 				e.Errs = append(e.Errs, rng.Int64N(50))
+			}
+			for k := range s.Captures {
+				if rng.IntN(2) == 0 {
+					e.Captures = append(e.Captures, k)
+				}
 			}
 			s.Body = append(s.Body, e)
 		}

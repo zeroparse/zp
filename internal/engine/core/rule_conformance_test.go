@@ -71,9 +71,16 @@ func scriptRules(rules []*Rule, cfg ref.Config, eval func(index int64, p *Parser
 		r.Leader, r.Plain, r.Positional, r.Rec = s.Leader, s.DocPlain, s.Positional, s.Rec
 		r.Scope = &compile.Scope{}
 		for k := range s.Captures {
-			r.Scope.Names = append(r.Scope.Names, fmt.Sprint("c", k))
+			r.Scope.Names = append(r.Scope.Names, ref.CaptureName(k))
 		}
+		// Every other rule's value is the tuple of the body's one element, as a sequence's is, so that
+		// the suite also holds the shaping of a value to the cost of the call.
 		r.Value = func(p *Parser, v *value.Node, start int) *value.Node { return v }
+		if i%2 == 1 {
+			r.Value = func(p *Parser, v *value.Node, start int) *value.Node {
+				return ShapeTuple(p, compile.Shaper{K: 1}, v, start)
+			}
+		}
 		index := int64(i)
 		r.Body = func(p *Parser, min int) (*value.Node, bool) { return eval(index, p, min) }
 	}
@@ -96,6 +103,9 @@ func (m *ruleMachine) evaluate(index int64, p *Parser, level int) (*value.Node, 
 	}
 	if e.Touch > 0 {
 		p.confDocTouch(start + int(e.Touch))
+	}
+	for _, k := range e.Captures {
+		p.Frame.Vals[k] = value.Ptr(value.Data{})
 	}
 	p.Pos = start + int(e.Len)
 	if !e.OK {
@@ -176,6 +186,7 @@ func ruleSuites() []conform.Suite {
 		New: func(c ref.Config) conform.Impl { return newRuleMachine(c, false) }}
 	controlled := s
 	controlled.Name = "engine rules, controlled"
+	controlled.Exact = ruleExact
 	controlled.New = func(c ref.Config) conform.Impl { return newRuleMachine(c, true) }
 	return []conform.Suite{s, controlled}
 }
@@ -265,6 +276,55 @@ func TestEngineRuleConformanceDetectsBrokenEngine(t *testing.T) {
 		})
 	}
 }
+
+// ruleExact are the operations of the rules whose charges the controlled suite holds to their exact
+// cost, with the captures of the cases matched and attached as fields.
+var ruleExact = []string{"rule.invoke", "rule.invokePlain"}
+
+// TestEngineRuleChargesArePinned is the negative control of the charges: the engine whose rule.invoke
+// charges one more unit for each field it attaches, or whose rule.invokePlain charges one more unit,
+// fails the controlled suite.
+func TestEngineRuleChargesArePinned(t *testing.T) {
+	invoke := func(m *ruleMachine, args []any, f func(r *Rule, min int) (*value.Node, bool)) (*value.Node, bool) {
+		p := m.p
+		p.Pos = int(m.regs[ops.Pos].(int64))
+		defer func() { m.regs[ops.Pos] = int64(p.Pos) }()
+		return f(args[0].(*Rule), int(args[1].(int64)))
+	}
+	variants := map[string]func(m *ruleMachine, args []any) []any{
+		"rule.invoke charges one more for each field it attaches": func(m *ruleMachine, args []any) []any {
+			v, ok := invoke(m, args, m.p.confRuleInvoke)
+			if ok && v != nil {
+				for range value.D(v).Fields {
+					m.p.Spend()
+				}
+			}
+			return []any{v, ok}
+		},
+		"rule.invokePlain charges one more": func(m *ruleMachine, args []any) []any {
+			v, ok := invoke(m, args, m.p.confRuleInvokePlain)
+			m.p.Spend()
+			return []any{v, ok}
+		},
+	}
+	for name, v := range variants {
+		t.Run(name, func(t *testing.T) {
+			op := strings.Fields(name)[0]
+			s := ruleSuites()[1]
+			s.Name = name
+			s.New = func(c ref.Config) conform.Impl {
+				return meteredBrokenRule{brokenRule{newRuleMachine(c, true).(meteredRule).ruleMachine, op, v}}
+			}
+			if fails, _ := ruleConformanceFailures(s, 100, 60); len(fails) == 0 {
+				t.Fatal("no case detected the changed charge")
+			}
+		})
+	}
+}
+
+type meteredBrokenRule struct{ brokenRule }
+
+func (m meteredBrokenRule) Used() uint64 { return m.p.Control.Used }
 
 // brokenRule is the engine with one operation of the rules replaced.
 type brokenRule struct {

@@ -294,10 +294,11 @@ cases that run on generated Go and the engine. The body is the grammar's code, w
 states what each evaluation of a body does (its charges, the errors it recovers, how far it examines the input,
 where it ends and whether it matches), and the model and each target run that script, the target through a rule
 whose body calls the target's own operations, so that compositions that call rules can be checked without a
-grammar. A call charges one unit, what the body and the rule's action charge, one unit for each capture name to
-find the captures that matched and, when one did, one more for each name and what setting the fields charges, on
-every backend. A script sets no capture, so the cases check only the search; a case with a matched capture needs a
-capture in the script vocabulary. A target whose Document parse calls rules through the call protocol of a parse from scratch (the engine)
+grammar. A call charges one unit, what the body and the rule's action charge, and, after a match, one unit for
+each capture name to find the captures that matched and, when one did, one more for each name and what setting the
+fields charges. A script may set captures, which the rule attaches to its value; the engine charges each call to the
+unit, and the generated Go runtime one unit less, since its call charges that unit before it invokes the rule.
+Shaping the value and converting it to the rule's node type charge nothing on any backend. A target whose Document parse calls rules through the call protocol of a parse from scratch (the engine)
 reports there through `rule.memo` the rules that the Document memoizes, which the suite states as a configuration
 of the model. *Target*: how rules and their bodies are represented and called.
 
