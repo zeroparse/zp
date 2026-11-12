@@ -47,7 +47,10 @@ func newCtxMachine(cfg ref.Config, controlled bool) conform.Impl {
 	for i, cr := range cfg.CtxRules {
 		m.ctxRules = append(m.ctxRules, &Rule{Id: i, Cycle: int32(cr.Cycle), Leader: cr.Leader})
 	}
-	setLeaderBits(m.ctxRules)
+	numberLeaders(m.ctxRules)
+	if maxLeaderBits != ref.CtxLeaderBits {
+		panic("runtime binding: the model gives a bit to another number of leaders")
+	}
 	m.binder = conform.Binder{Methods: confCtxBindings(m.p), Conv: ctxConv{m}}
 	if controlled {
 		return meteredCtx{m}
@@ -100,6 +103,12 @@ func (m *ctxMachine) Call(o *exec.Op, args []any) []any {
 		// The run compares the position that the operation wrote with the model's.
 		m.regs[ops.Pos] = int64(p.Pos)
 	}
+	switch o.Name {
+	case "ctx.pop", "ctx.storeMemo", "ctx.storeCtx":
+		// The runtime numbers the ways to store a result from storeMemo, as no call of it stores
+		// nowhere; the model's values number nowhere too.
+		res[0] = map[int64]int64{storeMemo: ref.CtxStoreMemo, storeCtx: ref.CtxStoreCtx}[res[0].(int64)]
+	}
 	return res[:len(o.Results)]
 }
 
@@ -113,13 +122,18 @@ func (m *ctxMachine) testOp(name string, args []any) {
 	case ref.CtxGrowOp:
 		r := args[0].(*Rule)
 		p.gamma = append(p.gamma, growRec{rule: int32(r.Id), min: int32(args[1].(int64)), pos: p.Pos, cycle: r.Cycle,
-			bit: r.leaderBit, seed: seed(args[2].(bool), args[3].(int64)), id: uint64(args[4].(int64))})
+			idx: r.leaderIndex, seed: seed(args[2].(bool), args[3].(int64)), id: uint64(args[4].(int64))})
 	case ref.CtxReseedOp:
 		g := &p.gamma[len(p.gamma)-1]
 		g.seed, g.id = seed(args[0].(bool), args[1].(int64)), uint64(args[2].(int64))
 	case ref.CtxUngrowOp:
 		p.dropTable(len(p.gamma) - 1)
 		p.gamma = p.gamma[:len(p.gamma)-1]
+		if len(p.gamma) == 0 {
+			// As growEnd does.
+			clear(p.interned)
+			p.internSeq = 0
+		}
 	case ref.CtxLookBeginOp:
 		p.LookBegin(int(args[0].(int64)))
 	case ref.CtxLookEndOp:

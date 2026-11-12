@@ -49,7 +49,10 @@ func newCtxMachine(cfg ref.Config, controlled bool) conform.Impl {
 		r := &Rule{}
 		r.ID, r.Cycle, r.Leader = i, int(cr.Cycle), cr.Leader
 		if cr.Leader && cr.Cycle != 0 {
-			if k := leaders[cr.Cycle]; k < 32 {
+			// The model gives a bit to the leaders that the generated parsers do (ref.CtxLeaderBits).
+			k := leaders[cr.Cycle]
+			r.LeaderIndex = k
+			if k < ref.CtxLeaderBits {
 				r.LeaderBit = 1 << k
 			}
 			leaders[cr.Cycle]++
@@ -121,7 +124,7 @@ func (m *ctxMachine) testOp(name string, args []any) {
 	case ref.CtxGrowOp:
 		r := args[0].(*Rule)
 		p.Gamma = append(p.Gamma, growRec{key: MemoKey{Rule: r.ID, Pos: p.Pos, Min: int(args[1].(int64))},
-			seed: seed(args[2].(bool), args[3].(int64)), id: uint64(args[4].(int64)), bit: r.LeaderBit, cycle: int32(r.Cycle)})
+			seed: seed(args[2].(bool), args[3].(int64)), id: uint64(args[4].(int64)), bit: r.LeaderBit, idx: int32(r.LeaderIndex), cycle: int32(r.Cycle)})
 	case ref.CtxReseedOp:
 		g := &p.Gamma[len(p.Gamma)-1]
 		pos := p.Pos
@@ -131,6 +134,9 @@ func (m *ctxMachine) testOp(name string, args []any) {
 	case ref.CtxUngrowOp:
 		p.dropTable(len(p.Gamma) - 1)
 		p.Gamma = p.Gamma[:len(p.Gamma)-1]
+		if len(p.Gamma) == 0 {
+			clear(p.interned) // as GrowEnd does
+		}
 	case ref.CtxLookBeginOp:
 		p.LookBegin(int(args[0].(int64)))
 	case ref.CtxLookEndOp:

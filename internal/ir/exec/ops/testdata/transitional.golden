@@ -843,7 +843,7 @@ op ctx.enter(r Rule, min int) (Ctx, CtxResult)
   reads growth, rules
   writes growth
   noreturn
-  cost <= 1
+  cost <= 1 + 1*present
   contract:
     // Begins a memoized call of the rule at the position: returns its context state and, if the
     // rule is a leader that grows at the position, its current seed, which the call reads (with the
@@ -891,7 +891,8 @@ op ctx.allows(c Ctx, e Entry) bool
   contract:
     // Reports whether the call with the context state c may reuse the memo entry e: always outside a
     // context, and in one only when the leaders growing there are among those that grew where e was stored
-    // (its present set).
+    // (its present set). An entry holds a present set of one word of bits, so it answers no call in a context
+    // with a leader that has no bit there.
 
 op ctx.active(c Ctx) bool
   component growth
@@ -927,8 +928,9 @@ op ctx.pop(c Ctx) int
   cost <= 0 + 1*deps
   contract:
     // Ends recording the dependencies of the evaluation and returns where its result goes:
-    // ctx.storeMemo for the memo (it read no seed and made no observation), ctx.storeCtx for the table of
-    // the context, or another value for nowhere (its context's leaders have no present set).
+    // ctx.storeMemo for the memo (it read no seed, made no observation and its context's leaders all have
+    // a bit in a word of bits), ctx.storeCtx for the table of the context, or another value for nowhere
+    // (its context records no dependencies).
 
 op ctx.storeMemo() int
   component growth
@@ -975,7 +977,7 @@ transitional op grow.begin(r Rule, min int) Grow
   reads growth, rules
   writes growth
   noreturn
-  cost <= 1
+  cost <= 1 + 1*present
   contract:
     // Starts the growth of the leader at the binding level min at the position from a failure,
     // charging one unit: the growth is in a context when other leaders of its cycle grow at the position.
