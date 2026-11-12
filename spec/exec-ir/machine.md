@@ -196,7 +196,7 @@ quantities are the following.
 | `page_index` | The call's position divided by 1,024. |
 | `pages` | The number of 1,024-position regions of all rules that deferred memoization has recorded calls in. |
 | `pending_edits` | The number of edits since the entry under the call's key was stored or last found, counting an entry that memo.splice removed and a target may still hold: the edits that a target which applies them to an entry when it finds it has yet to apply. |
-| `present` | The work of naming the present set of the call's context when a leader in it has no bit in a word of bits: one for each growth of the context, and one more when no call named that set since the first growth in progress began; 0 when every leader of the context has a bit. |
+| `present` | The work of naming the present set of the call's context when a leader in it has no bit in a word of bits: one for each growth of the context, and one more when no operation named that set since the first growth in progress began; 0 when every leader of the context has a bit. Which leaders of a cycle have a bit depends on the target, because the width of the word of bits does: 63 in the engine and 31 in the generated Go and TypeScript parsers and the model, so the quantity is the one of the target that runs. |
 | `pruned` | The number of memo entries stored before the call's position argument. |
 | `run_elems` | The number of elements of the finished run. |
 | `run_growth` | The number of new elements the run holds, when one more makes their count a power of two, and 0 otherwise: the copy that doubling storage stands for, whatever capacity it has. |
