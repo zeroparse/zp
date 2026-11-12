@@ -501,7 +501,7 @@ termchargesmember/term 65: list(R{}, R{A: 2})[1].A + len(list(R{}, R{A: 2})[0].L
 termchargesmember/term 65: list(R{}, R{A: 2})[1].A + len(list(R{}, R{A: 2})[0].L) | 😀 go-typed	35 ok
 termchargesmember/term 65: list(R{}, R{A: 2})[1].A + len(list(R{}, R{A: 2})[0].L) | 😀 go-typed-recognize	12 ok
 termchargesmember/term 65: list(R{}, R{A: 2})[1].A + len(list(R{}, R{A: 2})[0].L) | 😀 ts-node	47 ok
-termchargesmember/term 66: map(list(R{}, R{L: list(4)}), (r) => len(r.L)) | a engine-closure	62 ok
+termchargesmember/term 66: map(list(R{}, R{L: list(4)}), (r) => len(r.L)) | a engine-closure	48 ok
 termchargesmember/term 66: map(list(R{}, R{L: list(4)}), (r) => len(r.L)) | a engine-iterative	49 ok
 termchargesmember/term 66: map(list(R{}, R{L: list(4)}), (r) => len(r.L)) | a engine-vm	49 ok
 termchargesmember/term 66: map(list(R{}, R{L: list(4)}), (r) => len(r.L)) | a go-node	36 ok
@@ -509,7 +509,7 @@ termchargesmember/term 66: map(list(R{}, R{L: list(4)}), (r) => len(r.L)) | a go
 termchargesmember/term 66: map(list(R{}, R{L: list(4)}), (r) => len(r.L)) | a go-typed	37 ok
 termchargesmember/term 66: map(list(R{}, R{L: list(4)}), (r) => len(r.L)) | a go-typed-recognize	6 ok
 termchargesmember/term 66: map(list(R{}, R{L: list(4)}), (r) => len(r.L)) | a ts-node	45 ok
-termchargesmember/term 67: map(list(R{}, R{L: list(4)}), (r) => len(r.L)) | 😀 engine-closure	68 ok
+termchargesmember/term 67: map(list(R{}, R{L: list(4)}), (r) => len(r.L)) | 😀 engine-closure	54 ok
 termchargesmember/term 67: map(list(R{}, R{L: list(4)}), (r) => len(r.L)) | 😀 engine-iterative	55 ok
 termchargesmember/term 67: map(list(R{}, R{L: list(4)}), (r) => len(r.L)) | 😀 engine-vm	55 ok
 termchargesmember/term 67: map(list(R{}, R{L: list(4)}), (r) => len(r.L)) | 😀 go-node	42 ok
@@ -517,7 +517,7 @@ termchargesmember/term 67: map(list(R{}, R{L: list(4)}), (r) => len(r.L)) | 😀
 termchargesmember/term 67: map(list(R{}, R{L: list(4)}), (r) => len(r.L)) | 😀 go-typed	43 ok
 termchargesmember/term 67: map(list(R{}, R{L: list(4)}), (r) => len(r.L)) | 😀 go-typed-recognize	12 ok
 termchargesmember/term 67: map(list(R{}, R{L: list(4)}), (r) => len(r.L)) | 😀 ts-node	48 ok
-termchargesmember/term 68: foldl(0, list(R{In: Inner{N: 1}}, R{}), (a, r) => a + r.In.N + r.T[0]) | a engine-closure	129 ok
+termchargesmember/term 68: foldl(0, list(R{In: Inner{N: 1}}, R{}), (a, r) => a + r.In.N + r.T[0]) | a engine-closure	93 ok
 termchargesmember/term 68: foldl(0, list(R{In: Inner{N: 1}}, R{}), (a, r) => a + r.In.N + r.T[0]) | a engine-iterative	86 ok
 termchargesmember/term 68: foldl(0, list(R{In: Inner{N: 1}}, R{}), (a, r) => a + r.In.N + r.T[0]) | a engine-vm	86 ok
 termchargesmember/term 68: foldl(0, list(R{In: Inner{N: 1}}, R{}), (a, r) => a + r.In.N + r.T[0]) | a go-node	46 ok
@@ -525,7 +525,7 @@ termchargesmember/term 68: foldl(0, list(R{In: Inner{N: 1}}, R{}), (a, r) => a +
 termchargesmember/term 68: foldl(0, list(R{In: Inner{N: 1}}, R{}), (a, r) => a + r.In.N + r.T[0]) | a go-typed	19 ok
 termchargesmember/term 68: foldl(0, list(R{In: Inner{N: 1}}, R{}), (a, r) => a + r.In.N + r.T[0]) | a go-typed-recognize	6 ok
 termchargesmember/term 68: foldl(0, list(R{In: Inner{N: 1}}, R{}), (a, r) => a + r.In.N + r.T[0]) | a ts-node	67 ok
-termchargesmember/term 69: foldl(0, list(R{In: Inner{N: 1}}, R{}), (a, r) => a + r.In.N + r.T[0]) | 😀 engine-closure	135 ok
+termchargesmember/term 69: foldl(0, list(R{In: Inner{N: 1}}, R{}), (a, r) => a + r.In.N + r.T[0]) | 😀 engine-closure	99 ok
 termchargesmember/term 69: foldl(0, list(R{In: Inner{N: 1}}, R{}), (a, r) => a + r.In.N + r.T[0]) | 😀 engine-iterative	92 ok
 termchargesmember/term 69: foldl(0, list(R{In: Inner{N: 1}}, R{}), (a, r) => a + r.In.N + r.T[0]) | 😀 engine-vm	92 ok
 termchargesmember/term 69: foldl(0, list(R{In: Inner{N: 1}}, R{}), (a, r) => a + r.In.N + r.T[0]) | 😀 go-node	52 ok

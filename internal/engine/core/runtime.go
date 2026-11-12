@@ -202,6 +202,7 @@ type Parser struct {
 	// A negative count tracks the exact-size prefix budget before #stream.
 	NodeChunks int
 	ectx       EvalCtx        // area for UseCtx
+	terms      termRegs       // registers of term programs (TermProgram.Eval)
 	item       [1]*parse.Node // the element list of an action whose body is not a sequence (one)
 	oplocals   [3]Local       // $lhs, $rhs and $op of a OperatorsRule operator action
 	Saved      []*parse.Node  // captures saved across a reset in longest
@@ -401,7 +402,7 @@ func (p *Parser) Unisolate(m ExpMark) (far int, inner []ExpID) {
 // the backend built for it.
 type Rule struct {
 	staticRule
-	// Kinds are the node kinds the rule makes (value.NewRuleKinds).
+	// Kinds are the node kinds the rule makes (noderep.NewRuleKinds).
 	Kinds noderep.RuleKinds
 	// Body matches the body of the rule at the current position and returns its node; min is the
 	// binding level of the call (see Call).

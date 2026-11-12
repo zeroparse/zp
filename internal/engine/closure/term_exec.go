@@ -11,8 +11,8 @@ import "zeroparse.dev/zp/internal/engine/core"
 func predicate(p *core.Parser, t *termSite) bool {
 	created := len(p.Created)
 	kids := len(p.KidStack)
-	ctx := p.UseCtx(core.EvalCtx{P: p, Scope: t.scope, Frame: p.Frame, Start: p.Pos, End: p.Pos, Cbase: len(p.Created)})
-	v, err := evalTerm(ctx, t.term)
+	ctx := p.UseCtx(core.EvalCtx{P: p, Frame: p.Frame, Start: p.Pos, End: p.Pos, Cbase: len(p.Created)})
+	v, err := t.term.Eval(ctx)
 	ok := err == nil
 	if !ok {
 		p.DropKids(kids)
@@ -35,8 +35,8 @@ func predicate(p *core.Parser, t *termSite) bool {
 func bind(p *core.Parser, slot int, t *termSite) bool {
 	created := len(p.Created)
 	kids := len(p.KidStack)
-	ctx := p.UseCtx(core.EvalCtx{P: p, Scope: t.scope, Frame: p.Frame, Start: p.Pos, End: p.Pos, Cbase: len(p.Created)})
-	v, err := evalTerm(ctx, t.term)
+	ctx := p.UseCtx(core.EvalCtx{P: p, Frame: p.Frame, Start: p.Pos, End: p.Pos, Cbase: len(p.Created)})
+	v, err := t.term.Eval(ctx)
 	ok := err == nil
 	if !ok {
 		p.DropKids(kids)

@@ -190,5 +190,9 @@ func lower(prog *compile.Program, opts compile.Options, control *cancel.Control)
 	if err != nil {
 		return nil, err
 	}
-	return newProgram(prog, b.Finish()), nil
+	rules, err := b.Finish()
+	if err != nil {
+		return nil, err
+	}
+	return newProgram(prog, rules), nil
 }

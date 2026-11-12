@@ -397,7 +397,7 @@ termchargeshull/term 53: len(S{}.L) | 😀😀 go-node-recognize	21 ok
 termchargeshull/term 53: len(S{}.L) | 😀😀 go-typed	26 ok
 termchargeshull/term 53: len(S{}.L) | 😀😀 go-typed-recognize	21 ok
 termchargeshull/term 53: len(S{}.L) | 😀😀 ts-node	25 ok
-termchargeshull/term 54: len(map(list($x, $y), (n) => n.End)) | aa engine-closure	41 ok
+termchargeshull/term 54: len(map(list($x, $y), (n) => n.End)) | aa engine-closure	27 ok
 termchargeshull/term 54: len(map(list($x, $y), (n) => n.End)) | aa engine-iterative	30 ok
 termchargeshull/term 54: len(map(list($x, $y), (n) => n.End)) | aa engine-vm	30 ok
 termchargeshull/term 54: len(map(list($x, $y), (n) => n.End)) | aa go-node	28 ok
@@ -405,7 +405,7 @@ termchargeshull/term 54: len(map(list($x, $y), (n) => n.End)) | aa go-node-recog
 termchargeshull/term 54: len(map(list($x, $y), (n) => n.End)) | aa go-typed	24 ok
 termchargeshull/term 54: len(map(list($x, $y), (n) => n.End)) | aa go-typed-recognize	9 ok
 termchargeshull/term 54: len(map(list($x, $y), (n) => n.End)) | aa ts-node	39 ok
-termchargeshull/term 55: len(map(list($x, $y), (n) => n.End)) | 😀😀 engine-closure	53 ok
+termchargeshull/term 55: len(map(list($x, $y), (n) => n.End)) | 😀😀 engine-closure	39 ok
 termchargeshull/term 55: len(map(list($x, $y), (n) => n.End)) | 😀😀 engine-iterative	42 ok
 termchargeshull/term 55: len(map(list($x, $y), (n) => n.End)) | 😀😀 engine-vm	42 ok
 termchargeshull/term 55: len(map(list($x, $y), (n) => n.End)) | 😀😀 go-node	40 ok
@@ -413,7 +413,7 @@ termchargeshull/term 55: len(map(list($x, $y), (n) => n.End)) | 😀😀 go-node
 termchargeshull/term 55: len(map(list($x, $y), (n) => n.End)) | 😀😀 go-typed	36 ok
 termchargeshull/term 55: len(map(list($x, $y), (n) => n.End)) | 😀😀 go-typed-recognize	21 ok
 termchargeshull/term 55: len(map(list($x, $y), (n) => n.End)) | 😀😀 ts-node	44 ok
-termchargeshull/term 56: len(concat(list($x), list($y, 1))) | aa engine-closure	25 ok
+termchargeshull/term 56: len(concat(list($x), list($y, 1))) | aa engine-closure	23 ok
 termchargeshull/term 56: len(concat(list($x), list($y, 1))) | aa engine-iterative	24 ok
 termchargeshull/term 56: len(concat(list($x), list($y, 1))) | aa engine-vm	24 ok
 termchargeshull/term 56: len(concat(list($x), list($y, 1))) | aa go-node	23 ok
@@ -421,7 +421,7 @@ termchargeshull/term 56: len(concat(list($x), list($y, 1))) | aa go-node-recogni
 termchargeshull/term 56: len(concat(list($x), list($y, 1))) | aa go-typed	20 ok
 termchargeshull/term 56: len(concat(list($x), list($y, 1))) | aa go-typed-recognize	9 ok
 termchargeshull/term 56: len(concat(list($x), list($y, 1))) | aa ts-node	32 ok
-termchargeshull/term 57: len(concat(list($x), list($y, 1))) | 😀😀 engine-closure	37 ok
+termchargeshull/term 57: len(concat(list($x), list($y, 1))) | 😀😀 engine-closure	35 ok
 termchargeshull/term 57: len(concat(list($x), list($y, 1))) | 😀😀 engine-iterative	36 ok
 termchargeshull/term 57: len(concat(list($x), list($y, 1))) | 😀😀 engine-vm	36 ok
 termchargeshull/term 57: len(concat(list($x), list($y, 1))) | 😀😀 go-node	35 ok
@@ -429,7 +429,7 @@ termchargeshull/term 57: len(concat(list($x), list($y, 1))) | 😀😀 go-node-r
 termchargeshull/term 57: len(concat(list($x), list($y, 1))) | 😀😀 go-typed	32 ok
 termchargeshull/term 57: len(concat(list($x), list($y, 1))) | 😀😀 go-typed-recognize	21 ok
 termchargeshull/term 57: len(concat(list($x), list($y, 1))) | 😀😀 ts-node	37 ok
-termchargeshull/term 58: len(concat(list($x), list($y, $z))) | aa engine-closure	25 ok
+termchargeshull/term 58: len(concat(list($x), list($y, $z))) | aa engine-closure	23 ok
 termchargeshull/term 58: len(concat(list($x), list($y, $z))) | aa engine-iterative	24 ok
 termchargeshull/term 58: len(concat(list($x), list($y, $z))) | aa engine-vm	24 ok
 termchargeshull/term 58: len(concat(list($x), list($y, $z))) | aa go-node	22 ok
@@ -437,7 +437,7 @@ termchargeshull/term 58: len(concat(list($x), list($y, $z))) | aa go-node-recogn
 termchargeshull/term 58: len(concat(list($x), list($y, $z))) | aa go-typed	20 ok
 termchargeshull/term 58: len(concat(list($x), list($y, $z))) | aa go-typed-recognize	9 ok
 termchargeshull/term 58: len(concat(list($x), list($y, $z))) | aa ts-node	32 ok
-termchargeshull/term 59: len(concat(list($x), list($y, $z))) | 😀😀 engine-closure	37 ok
+termchargeshull/term 59: len(concat(list($x), list($y, $z))) | 😀😀 engine-closure	35 ok
 termchargeshull/term 59: len(concat(list($x), list($y, $z))) | 😀😀 engine-iterative	36 ok
 termchargeshull/term 59: len(concat(list($x), list($y, $z))) | 😀😀 engine-vm	36 ok
 termchargeshull/term 59: len(concat(list($x), list($y, $z))) | 😀😀 go-node	34 ok

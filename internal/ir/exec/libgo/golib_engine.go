@@ -111,9 +111,9 @@ func printEngineStream() (string, error) {
 func printEngineDocument() (string, error) { return printEngineSpecs(engineDocumentSpecs) }
 
 // printEngineClosureTerms returns the Go file of the term compositions for the closure backend, which
-// holds a term as a site of its matcher.
+// holds a term as a site of its matcher with the term's program (core.TermProgram).
 func printEngineClosureTerms() (string, error) {
-	return engineTerms("closure", &execgo.Target{Params: "p *core.Parser"}, "*termSite", "Scope: t.scope, ", "evalTerm(ctx, t.term)")
+	return engineTerms("closure", &execgo.Target{Params: "p *core.Parser"}, "*termSite", "", "t.term.Eval(ctx)")
 }
 
 // printEngineVMTerms returns the Go file of the term compositions for the bytecode VM, which holds a term

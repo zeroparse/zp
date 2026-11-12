@@ -10,9 +10,6 @@ import (
 	"strings"
 	"testing"
 
-	"zeroparse.dev/zp/grammar"
-	"zeroparse.dev/zp/internal/compile"
-	"zeroparse.dev/zp/internal/engine/closure"
 	"zeroparse.dev/zp/internal/engine/core"
 	"zeroparse.dev/zp/internal/value"
 	"zeroparse.dev/zp/runtime/noderep"
@@ -116,14 +113,6 @@ func TestBudgetActionErrorProducersAreEager(t *testing.T) {
 		name string
 		make func(*core.Parser) error
 	}{
-		{"undefined variable", func(p *core.Parser) error {
-			_, err := closure.MachineOf(p).Eval(&core.EvalCtx{P: p}, &grammar.VarRef{Name: long})
-			return err
-		}},
-		{"undefined capture", func(p *core.Parser) error {
-			_, err := closure.MachineOf(p).Eval(&core.EvalCtx{P: p, Scope: &compile.Scope{}}, &grammar.CaptureRef{Name: long})
-			return err
-		}},
 		{"invalid member", func(p *core.Parser) error { _, err := (&core.EvalCtx{P: p}).Member(1, long); return err }},
 		{"missing field", func(p *core.Parser) error {
 			_, err := (&core.EvalCtx{P: p}).Member(value.Ptr(value.Data{Kind: prog.TypeKind("A")}), long)

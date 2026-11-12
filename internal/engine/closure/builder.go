@@ -26,6 +26,8 @@ type Builder struct {
 	rules []*core.Rule
 	// looks numbers the lookaheads (Parser.LookBegin).
 	looks int
+	// terms are the terms whose programs Finish makes.
+	terms []pendingTerm
 }
 
 var _ compile.ExprBuilder[core.Matcher] = (*Builder)(nil)
@@ -46,9 +48,12 @@ func (b *Builder) rule(r *compile.Rule) *core.Rule {
 	return b.rules[r.ID]
 }
 
-// Finish gives the rules the facts that the compiler found out about them, once it is done, and
-// returns them by ID.
-func (b *Builder) Finish() []*core.Rule {
+// Finish gives the rules the facts that the compiler found out about them, once it is done, makes
+// the programs of their terms, and returns them by ID.
+func (b *Builder) Finish() ([]*core.Rule, error) {
+	if err := b.compileTerms(); err != nil {
+		return nil, err
+	}
 	for _, rs := range [][]*compile.Rule{b.prog.RuleList, b.prog.Twins} {
 		for _, sr := range rs {
 			r := b.rule(sr)
@@ -63,7 +68,7 @@ func (b *Builder) Finish() []*core.Rule {
 			}
 		}
 	}
-	return b.rules
+	return b.rules, nil
 }
 
 // charges reports whether the loops charge the budget for each iteration. A rule call charges in
@@ -80,7 +85,9 @@ func (b *Builder) RuleBody(sr *compile.Rule, m core.Matcher) {
 	}
 	r.Body = func(p *core.Parser, _ int) (*parse.Node, bool) { return m(p) }
 	if sr.Action != nil {
-		r.Act = termEvaluator(sr.Action)
+		var set func(*core.TermProgram)
+		r.Act = evaluator(&set)
+		b.termLater(sr.Action, sr.Scope, compile.RuleProjections(b.prog, sr), set)
 	}
 }
 
@@ -108,7 +115,9 @@ func (b *Builder) OperatorsRule(sr *compile.Rule, skip core.Matcher, hasSkip boo
 	r.Body = func(p *core.Parser, min int) (*parse.Node, bool) { return p.OperatorsRuleParse(r, min) }
 	if sr.Action != nil {
 		// The whole-rule action runs once per call, after the fold (core.Parser.Finish).
-		r.Act = termEvaluator(sr.Action)
+		var set func(*core.TermProgram)
+		r.Act = evaluator(&set)
+		b.termLater(sr.Action, sr.Scope, nil, set)
 	}
 }
 
@@ -116,7 +125,9 @@ func (b *Builder) line(l compile.OpLine[core.Matcher]) *core.OperatorsRuleLine {
 	pl := &core.OperatorsRuleLine{Scope: l.Scope, M: l.Form, Key: l.Key}
 	pl.Value, pl.Single, pl.Shape = scopeValueOf(b.prog, l.Expr), compile.SingleModeOf(b.prog, l.Expr), compile.ShaperOf(b.prog, l.Expr)
 	if l.Action != nil {
-		pl.Act = termEvaluator(l.Action)
+		var set func(*core.TermProgram)
+		pl.Act = evaluator(&set)
+		b.termLater(l.Action, l.Scope, nil, set)
 	}
 	return pl
 }
@@ -440,10 +451,12 @@ func single(build bool, desc core.ExpID, accept func(*core.Parser, rune) bool) c
 
 func (b *Builder) Predicate(e *grammar.Predicate, s *compile.Scope) core.Matcher {
 	if a, ok := e.Term.(*grammar.Bind); ok {
-		slot, t := b.prog.Vars.Index(a.Name), &termSite{term: a.Value, scope: s}
+		slot, t := b.prog.Vars.Index(a.Name), &termSite{}
+		b.termLater(a.Value, s, nil, func(p *core.TermProgram) { t.term = p })
 		return func(p *core.Parser) (*parse.Node, bool) { return nil, bind(p, slot, t) }
 	}
-	t := &termSite{term: e.Term, scope: s}
+	t := &termSite{}
+	b.termLater(e.Term, s, nil, func(p *core.TermProgram) { t.term = p })
 	return func(p *core.Parser) (*parse.Node, bool) { return nil, predicate(p, t) }
 }
 
