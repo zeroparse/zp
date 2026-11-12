@@ -160,6 +160,17 @@ func (v *Record) TZeroField(c *rt.TActCtx, name string) (any, bool) {
 	return nil, false
 }
 
+func init() {
+	back := ZPHooks.Back
+	ZPHooks.Back = func(v any) any {
+		switch x := v.(type) {
+		case *Field:
+			return tb0(x)
+		}
+		return back(v)
+	}
+}
+
 func tb0(v *Field) any {
 	if v == nil {
 		return nil
@@ -171,7 +182,7 @@ func tb0(v *Field) any {
 // is no named node type. It is for generated parsers.
 var ZPNodeTypes [2]uint16
 
-// ZPSchema_e70ab694b3604300 ties the parser package to this package: the parser refers to it once, so a
+// ZPSchema_fc736caa271f00e2 ties the parser package to this package: the parser refers to it once, so a
 // parser and a types package generated from different schemas do not compile together.
 // It is for generated parsers; not a stable API.
-const ZPSchema_e70ab694b3604300 = 0
+const ZPSchema_fc736caa271f00e2 = 0

@@ -1201,6 +1201,51 @@ func (v *XMLDecl) TZeroField(c *rt.TActCtx, name string) (any, bool) {
 	return nil, false
 }
 
+func init() {
+	back := ZPHooks.Back
+	ZPHooks.Back = func(v any) any {
+		switch x := v.(type) {
+		case *AttValue:
+			return tb2(x)
+		case *CDSect:
+			return tb12(x)
+		case *CharData:
+			return tb13(x)
+		case *CharRef:
+			return tb14(x)
+		case *Comment:
+			return tb15(x)
+		case *EncName:
+			return tb10(x)
+		case *EntityRef:
+			return tb16(x)
+		case *EntityValue:
+			return tb4(x)
+		case *Keyword:
+			return tb1(x)
+		case *Name:
+			return tb0(x)
+		case *Nmtoken:
+			return tb5(x)
+		case *Occurrence:
+			return tb3(x)
+		case *PERef:
+			return tb17(x)
+		case *PIData:
+			return tb8(x)
+		case *PubidLiteral:
+			return tb6(x)
+		case *SystemLiteral:
+			return tb7(x)
+		case *Version:
+			return tb9(x)
+		case *YesNo:
+			return tb11(x)
+		}
+		return back(v)
+	}
+}
+
 func tb0(v *Name) any {
 	if v == nil {
 		return nil
@@ -1285,11 +1330,53 @@ func tb11(v *YesNo) any {
 	return rt.TSetNodeType(rt.TBack(ZPHooks, &v.TNode), ZPNodeTypes[18])
 }
 
+func tb12(v *CDSect) any {
+	if v == nil {
+		return nil
+	}
+	return rt.TSetNodeType(rt.TBack(ZPHooks, &v.TNode), ZPNodeTypes[2])
+}
+
+func tb13(v *CharData) any {
+	if v == nil {
+		return nil
+	}
+	return rt.TSetNodeType(rt.TBack(ZPHooks, &v.TNode), ZPNodeTypes[3])
+}
+
+func tb14(v *CharRef) any {
+	if v == nil {
+		return nil
+	}
+	return rt.TSetNodeType(rt.TBack(ZPHooks, &v.TNode), ZPNodeTypes[4])
+}
+
+func tb15(v *Comment) any {
+	if v == nil {
+		return nil
+	}
+	return rt.TSetNodeType(rt.TBack(ZPHooks, &v.TNode), ZPNodeTypes[5])
+}
+
+func tb16(v *EntityRef) any {
+	if v == nil {
+		return nil
+	}
+	return rt.TSetNodeType(rt.TBack(ZPHooks, &v.TNode), ZPNodeTypes[7])
+}
+
+func tb17(v *PERef) any {
+	if v == nil {
+		return nil
+	}
+	return rt.TSetNodeType(rt.TBack(ZPHooks, &v.TNode), ZPNodeTypes[13])
+}
+
 // ZPNodeTypes holds the registered indexes of the named node types by their generated index; index 0
 // is no named node type. It is for generated parsers.
 var ZPNodeTypes [19]uint16
 
-// ZPSchema_fffcf7e83e2174f5 ties the parser package to this package: the parser refers to it once, so a
+// ZPSchema_b044f4d2cb8d65a3 ties the parser package to this package: the parser refers to it once, so a
 // parser and a types package generated from different schemas do not compile together.
 // It is for generated parsers; not a stable API.
-const ZPSchema_fffcf7e83e2174f5 = 0
+const ZPSchema_b044f4d2cb8d65a3 = 0
