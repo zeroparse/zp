@@ -2,6 +2,9 @@ package engine
 
 import (
 	"fmt"
+	"math/rand"
+	"regexp"
+	"strings"
 	"testing"
 
 	"zeroparse.dev/zp/internal/compile"
@@ -19,7 +22,8 @@ func contextStoreGrowth(t *testing.T, prog *Program, s gentest.DependencyMemoSha
 		var pr Profile
 		o.Trace = pr.Trace
 		o.Limits = limits.Limits{Compute: limits.Unlimited}
-		if _, err := prog.ParseWith("", s.Input(m), o); err != nil {
+		// With missing-token insertion, the parse reports the insertion as an error.
+		if r, err := prog.ParseWith("", s.Input(m), o); err != nil && (r == nil || o.MissingTokens == 0) {
 			t.Fatalf("%s %s m=%d: %v", s.Name, o.Backend, m, err)
 		}
 		all[i] = pr.Evals
@@ -83,5 +87,82 @@ func TestContextStoreBoundsControls(t *testing.T) {
 				}
 			}
 		}()
+	}
+}
+
+// missingChain is the shape of TestContextStoreMissingInsertion: a chain whose rules insert nothing,
+// in a grammar where main inserts a missing ";" after it.
+var missingChain = gentest.DependencyMemoShape{Name: "missing-token insertion", Rules: gentest.ContextChain(2, 1, true), Input: gentest.ContextChainInput}
+
+// TestContextStoreMissingInsertion checks that a parse with missing-token insertion keeps the
+// results of rules that insert nothing in contexts: their evaluations at one position do not grow
+// with the input, as without insertion.
+func TestContextStoreMissingInsertion(t *testing.T) {
+	t.Parallel()
+	prog := mustCompile(t, "@start\nrule main = "+missingChain.Rules, compile.Options{SourceInfo: true})
+	if msg, ok := contextStoreBounded(t, prog, missingChain, ParseOptions{Backend: Closure, MissingTokens: 1}); !ok {
+		t.Error(msg)
+	}
+}
+
+// TestContextStoreMissingInsertionControl checks that TestContextStoreMissingInsertion detects a
+// parse with insertion that keeps no result in a context.
+func TestContextStoreMissingInsertionControl(t *testing.T) {
+	prog := mustCompile(t, "@start\nrule main = "+missingChain.Rules, compile.Options{SourceInfo: true})
+	core.ContextMemoMutation = core.CtxStrictMissing
+	defer func() { core.ContextMemoMutation = 0 }()
+	if msg, ok := contextStoreBounded(t, prog, missingChain, ParseOptions{Backend: Closure, MissingTokens: 1}); ok {
+		t.Errorf("CtxStrictMissing not detected: %s", msg)
+	}
+}
+
+// TestContextStoreMissingRandom checks that keeping results in contexts in parses with
+// missing-token insertion changes only the cost: random cycle grammars, some of whose literals may
+// be inserted, give the same results, errors and expectations as without memos, where some
+// rules of the cycles insert tokens and others read their seeds.
+func TestContextStoreMissingRandom(t *testing.T) {
+	t.Parallel()
+	seeds := 40
+	if gentest.Long() {
+		seeds = 400
+	}
+	lit := regexp.MustCompile(`"[a-z]"`)
+	checked := 0
+	for s := int64(0); s < int64(seeds); s++ {
+		c := gentest.RandomCycleGrammar(s, false)
+		rng := rand.New(rand.NewSource(s))
+		src := lit.ReplaceAllStringFunc(c.Src, func(l string) string {
+			if rng.Intn(3) == 0 {
+				return l + " #missing"
+			}
+			return l
+		})
+		if !strings.Contains(src, "#missing") {
+			continue
+		}
+		g, err := parseTest(src)
+		if err != nil {
+			continue
+		}
+		if _, err := Compile(g, compile.Options{}); err != nil {
+			continue
+		}
+		checked++
+		memo, ref := mustCompile(t, src), mustCompile(t, src, compile.Options{DisableMemo: true})
+		for _, in := range c.Inputs {
+			for _, recognize := range []bool{false, true} {
+				o := ParseOptions{Backend: Closure, Recognize: recognize, MissingTokens: 3}
+				got, err := memo.ParseWith("", in, o)
+				o.ContextMemoOff = true
+				want, wantErr := ref.ParseWith("", in, o)
+				a, b := gentest.ResultJSON(got, err), gentest.ResultJSON(want, wantErr)
+				if a != b && !strings.Contains(a+b, "budget") && !strings.Contains(a+b, "limit") {
+					t.Errorf("seed %d %q recognize=%v:\n%s\n got %s\nwant %s", s, in, recognize, src, a, b)
+				}
+			}
+		}
+	}
+	if checked < seeds/4 {
+		t.Fatalf("only %d of %d grammars compiled with insertion", checked, seeds)
 	}
 }
