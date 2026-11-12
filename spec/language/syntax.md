@@ -63,7 +63,13 @@ rule decl = (
     !(comments $$)
     (type_decl / var_decl / rule_decl / _|_)
 )
-rule stmt_end = horizontal stmt_sep
+// A declaration that is complete but followed by a closing bracket instead of a separator is kept: the
+// error is reported and the rest of its statement is skipped. Any other text there could continue the
+// declaration, so the declaration fails as a whole, and the error is where the farthest attempt stopped.
+rule stmt_end = horizontal (stmt_sep / stmt_skip)
+// The recovered value is discarded and replaced by an empty list because concat does not yet accept a
+// "[]T | error" value in the type checker; use concat directly once the checker accepts it.
+rule stmt_skip = &[)\]}] -stmt_sep
 rule item_end = horizontal item_sep
 rule field_end = horizontal field_sep
 rule stmt_sep = block_sep / empty_stmt_sep
