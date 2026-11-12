@@ -121,29 +121,51 @@ func (w *Encoder) term(t *Term) {
 	for _, n := range t.Regs {
 		w.Uint(n)
 	}
-	w.Uint(len(t.Consts))
-	for _, c := range t.Consts {
-		w.Byte(byte(c.Kind))
-		w.Body.Write(binary.AppendVarint(nil, c.Int))
+	// Most terms use few of their pools: a byte whose bits 0 to 5 mark the pools that are not empty
+	// (constants, names, member reads, node types, casts and struct literals), then those pools.
+	lens := t.poolLens()
+	var mask byte
+	for i, n := range lens {
+		if n != 0 {
+			mask |= 1 << i
+		}
 	}
-	w.ints(t.Names)
-	w.Uint(len(t.Members))
-	for _, x := range t.Members {
-		w.Int(x.Kind)
-		w.Int(x.Name)
-		w.Int(x.Field)
+	w.Byte(mask)
+	if lens[0] != 0 {
+		w.Uint(len(t.Consts))
+		for _, c := range t.Consts {
+			w.Byte(byte(c.Kind))
+			w.Body.Write(binary.AppendVarint(nil, c.Int))
+		}
 	}
-	w.ints(t.NodeTypes)
-	w.Uint(len(t.Casts))
-	for _, x := range t.Casts {
-		w.Int(x.Type)
-		w.Int(x.Line)
-		w.Int(x.Col)
+	if lens[1] != 0 {
+		w.ints(t.Names)
 	}
-	w.Uint(len(t.Structs))
-	for _, x := range t.Structs {
-		w.Int(x.Type)
-		w.Int(x.Fields)
+	if lens[2] != 0 {
+		w.Uint(len(t.Members))
+		for _, x := range t.Members {
+			w.Int(x.Kind)
+			w.Int(x.Name)
+			w.Int(x.Field)
+		}
+	}
+	if lens[3] != 0 {
+		w.ints(t.NodeTypes)
+	}
+	if lens[4] != 0 {
+		w.Uint(len(t.Casts))
+		for _, x := range t.Casts {
+			w.Int(x.Type)
+			w.Int(x.Line)
+			w.Int(x.Col)
+		}
+	}
+	if lens[5] != 0 {
+		w.Uint(len(t.Structs))
+		for _, x := range t.Structs {
+			w.Int(x.Type)
+			w.Int(x.Fields)
+		}
 	}
 	w.Uint(len(t.Code))
 	for _, in := range t.Code {
@@ -305,29 +327,58 @@ func sized[T any](n int) []T {
 	return make([]T, 0, n)
 }
 
+// poolLens returns the lengths of the pools of t, in the order a module writes them.
+func (t *Term) poolLens() [6]int {
+	return [6]int{len(t.Consts), len(t.Names), len(t.Members), len(t.NodeTypes), len(t.Casts), len(t.Structs)}
+}
+
 func (r *Decoder) term() Term {
 	var t Term
 	for i := range t.Regs {
 		t.Regs[i] = r.Uint()
 	}
-	n := r.Count()
+	mask := r.Byte()
+	if r.Err == nil && mask > 0x3f {
+		r.Fail("invalid term pool mask %#x", mask)
+	}
+	// count reads the length of pool i: zero if the mask leaves it out, else not zero, so that each
+	// term has one encoding.
+	count := func(i int) int {
+		if mask&(1<<i) == 0 || r.Err != nil {
+			return 0
+		}
+		n := r.Count()
+		if r.Err == nil && n == 0 {
+			r.Fail("term pool marked but empty")
+		}
+		return n
+	}
+	n := count(0)
 	t.Consts = sized[TermConst](n)
 	for i := 0; i < n && r.Err == nil; i++ {
 		t.Consts = append(t.Consts, TermConst{Kind: int(r.Byte()), Int: r.int64()})
 	}
-	t.Names = r.ints()
-	n = r.Count()
+	n = count(1)
+	t.Names = sized[int](n)
+	for i := 0; i < n && r.Err == nil; i++ {
+		t.Names = append(t.Names, int(r.int32()))
+	}
+	n = count(2)
 	t.Members = sized[TermMember](n)
 	for i := 0; i < n && r.Err == nil; i++ {
 		t.Members = append(t.Members, TermMember{Kind: int(r.int32()), Name: int(r.int32()), Field: int(r.int32())})
 	}
-	t.NodeTypes = r.ints()
-	n = r.Count()
+	n = count(3)
+	t.NodeTypes = sized[int](n)
+	for i := 0; i < n && r.Err == nil; i++ {
+		t.NodeTypes = append(t.NodeTypes, int(r.int32()))
+	}
+	n = count(4)
 	t.Casts = sized[TermCast](n)
 	for i := 0; i < n && r.Err == nil; i++ {
 		t.Casts = append(t.Casts, TermCast{Type: int(r.int32()), Line: int(r.int32()), Col: int(r.int32())})
 	}
-	n = r.Count()
+	n = count(5)
 	t.Structs = sized[TermStruct](n)
 	for i := 0; i < n && r.Err == nil; i++ {
 		t.Structs = append(t.Structs, TermStruct{Type: int(r.int32()), Fields: int(r.int32())})
