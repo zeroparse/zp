@@ -437,6 +437,9 @@ func TestBudgetStreamCommitAfterDelivery(t *testing.T) {
 			// Force the normal inactive-capacity clear at the next commit.
 			p.Trail = make([]core.Undo, 0, 129)
 			p.Memo.Base = p.Pos - 1024
+			// The commit charges the work of the mechanisms that the build selects: the
+			// capture frames it releases, the trail capacity it clears (129 here, in chunks of
+			// 128, the last of one step).
 			frames, keep := 0, 0
 			for i := range p.FrameSlab {
 				frames++
@@ -446,6 +449,13 @@ func TestBudgetStreamCommitAfterDelivery(t *testing.T) {
 				}
 			}
 			frames += len(p.FrameSlab) - keep
+			if !core.StreamFrameScratch {
+				frames = 0
+			}
+			trail := 128
+			if !core.StreamUndoCleanup {
+				trail = -1
+			}
 			copyCount := 0
 			if removed := p.Pos - 1 - p.Base; removed > 0 && 2*removed >= len(p.In)+len(p.Bs) {
 				copyCount = len(p.In) + len(p.Bs) - removed
@@ -460,7 +470,7 @@ func TestBudgetStreamCommitAfterDelivery(t *testing.T) {
 					lineSteps = min(p.Pos-1, p.Loaded()) - p.Base
 				}
 			}
-			controller.Limits.Compute = controller.Used + uint64(lineSteps+copyCount+frames+128)
+			controller.Limits.Compute = controller.Used + uint64(lineSteps+copyCount+frames+trail)
 			return nil
 		}, o)
 		var we *limits.LimitError
