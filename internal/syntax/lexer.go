@@ -114,9 +114,15 @@ type lexer struct {
 	// depth counts the open delimiters; actionDepth is the depth at the "=>".
 	depth, actionDepth int
 	inAction           bool
-	newlines           int // line breaks since the previous token or comment
-	lineComment        *grammar.Comment
-	comments           []*grammar.Comment
+	// Nesting (see nest): the levels open at the previous token, whether a name or literal before
+	// it may still be the name of a capture, and whether the source is already reported as too deep.
+	levels          []level
+	delimiters      int // the levelDelimiter entries of levels
+	pendingPop      bool
+	reportedTooDeep bool
+	newlines        int // line breaks since the previous token or comment
+	lineComment     *grammar.Comment
+	comments        []*grammar.Comment
 }
 
 func (l *lexer) pos() grammar.Pos { return grammar.Pos{Line: l.line, Col: l.col} }
@@ -300,6 +306,7 @@ func lexContext(ctx context.Context, src string, errs *errorList) (toks []token,
 		toks = append(toks, t)
 		l.prev = t
 		l.track(t)
+		l.nest(t)
 		if t.kind == tEOF {
 			l.checkCancel()
 			return toks, nil
@@ -529,10 +536,12 @@ func (l *lexer) skipSpace() (space, newline bool) {
 				l.advance()
 				l.advance()
 				depth := 1
+				l.checkLevels(l.delimiters+depth, c.Pos)
 				for l.i < len(l.src) && depth > 0 {
 					switch {
 					case l.hasPrefix("/*"):
 						depth++
+						l.checkLevels(l.delimiters+depth, l.pos())
 						l.advance()
 						l.advance()
 					case l.hasPrefix("*/"):
@@ -780,4 +789,100 @@ func (l *lexer) minimumInteger() bool {
 		}
 	}
 	return !isIdentPart(l.peekAt(len(minimumIntegerText)))
+}
+
+// msgNestingTooDeep is the error of a source that nests deeper than maxLevels.
+const msgNestingTooDeep = "nesting too deep"
+
+// maxLevels is the deepest nesting of a source, as the language specification states it. The
+// recursion of both parsers is bounded much further down, so that this check, and not the
+// parsers, decides which sources nest too deep.
+const maxLevels = 500
+
+// level is a level of nesting that a token opens.
+type level uint8
+
+const (
+	levelDelimiter level = iota // an opening parenthesis, bracket or brace, until its closing one
+	levelPrefix                 // a prefix operator, until its operand
+	levelArrow                  // "=>", until the item, statement or bracket that holds it ends
+)
+
+// prefixTokens are the tokens that may be a prefix operator: of rule expressions, of values, of
+// types, and the ":" of a capture. Each opens a level wherever it stands; after an operand, the
+// level ends at the next one.
+var prefixTokens = map[string]bool{"!": true, "&": true, "-": true, "*": true, ":": true, "[]": true}
+
+// operandTokens are the punctuation that is an operand by itself.
+var operandTokens = map[string]bool{"$$": true, "$": true, "^^": true, "^": true, "_|_": true, "...": true, ".": true}
+
+// nest follows the levels of nesting that t opens and closes, and reports the first place where
+// more than maxLevels are open as "nesting too deep". A block comment opens a level inside the
+// brackets around it, and each comment nested in it one more. An operand ends
+// the prefix operators before it once the next token shows that it is not the name of a capture.
+// Outside brackets, the end of a line ends every level; a "," or ";" ends the levels opened since
+// the innermost bracket.
+func (l *lexer) nest(t token) {
+	if l.pendingPop {
+		l.pendingPop = false
+		if !(t.kind == tPunct && t.text == ":") {
+			l.popPrefixes()
+		}
+	}
+	if t.lineBefore && l.delimiters == 0 {
+		l.levels = l.levels[:0]
+	}
+	if t.kind != tPunct {
+		l.pendingPop = t.kind != tEOF
+		return
+	}
+	switch t.text {
+	case "(", "[", "{":
+		l.delimiters++
+		l.open(levelDelimiter, t.pos)
+	case ")", "]", "}":
+		for len(l.levels) > 0 {
+			last := l.levels[len(l.levels)-1]
+			l.levels = l.levels[:len(l.levels)-1]
+			if last == levelDelimiter {
+				l.delimiters--
+				break
+			}
+		}
+		l.popPrefixes()
+	case ",", ";":
+		for len(l.levels) > 0 && l.levels[len(l.levels)-1] != levelDelimiter {
+			l.levels = l.levels[:len(l.levels)-1]
+		}
+	case "=>":
+		l.open(levelArrow, t.pos)
+	default:
+		switch {
+		case prefixTokens[t.text]:
+			l.open(levelPrefix, t.pos)
+		case operandTokens[t.text]:
+			l.popPrefixes()
+		}
+	}
+}
+
+// popPrefixes ends the prefix operators whose operand has ended.
+func (l *lexer) popPrefixes() {
+	for len(l.levels) > 0 && l.levels[len(l.levels)-1] == levelPrefix {
+		l.levels = l.levels[:len(l.levels)-1]
+	}
+}
+
+// open opens a level at pos.
+func (l *lexer) open(k level, pos grammar.Pos) {
+	l.levels = append(l.levels, k)
+	l.checkLevels(len(l.levels), pos)
+}
+
+// checkLevels reports the first place where more than maxLevels levels are open.
+func (l *lexer) checkLevels(n int, pos grammar.Pos) {
+	if n > maxLevels && !l.reportedTooDeep {
+		l.reportedTooDeep = true
+		l.errs.add(pos, msgNestingTooDeep)
+	}
 }

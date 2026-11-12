@@ -155,13 +155,13 @@ func TestFormatRoundTrip(t *testing.T) {
 
 func TestParseErrors(t *testing.T) {
 	for _, tc := range []struct{ in, want string }{
-		{`rule a = `, `1:10: expected rule expression`},
+		{`rule a = `, `1:10: expected an expression, found end of file`},
 		{`rule a = "abc`, `1:10: unterminated string`},
 		{`rule a = [a-`, `1:10: unterminated character class`},
-		{`rule a = []`, `1:10: expected rule expression`},
+		{`rule a = []`, `1:10: expected an expression, found end of file`},
 		{`rule a = [z-a]`, `1:10: invalid range 'z'-'a'`},
 		{`foo`, `1:1: expected type, var or rule declaration`},
-		{"rule a = (b\nrule c = d", `2:8: expected rule expression`},
+		{"rule a = (b\nrule c = d", `2:8: expected closing parenthesis for rule group, found '='`},
 		{`type A = { X }`, `1:14: expected field type`},
 		{`type A struct { X }`, `1:8: a struct type is defined as type Name = { ... }`},
 		{`type A = B`, `1:8: expected '{' or 'node[' after '='; write type Name ~ Type for an alias`},
@@ -169,11 +169,11 @@ func TestParseErrors(t *testing.T) {
 		{`type A = node[string, int]`, `1:23: a node type takes one type argument`},
 		{`type A = node`, `1:8: expected '{' or 'node[' after '='; write type Name ~ Type for an alias`},
 		{`rule a = #operators { level { infix "+" } }`, `1:37: expected left, right, or none associativity`},
-		{"rule a = #operators\n{ operand \"x\" }", `1:10: expected rule expression`},
-		{`rule a = #operators`, `1:10: expected rule expression`},
-		{`rule a = #operators( operand "x" )`, `1:10: expected rule expression`},
+		{"rule a = #operators\n{ operand \"x\" }", `1:10: expected an expression, found '#'`},
+		{`rule a = #operators`, `1:10: expected an expression, found '#'`},
+		{`rule a = #operators( operand "x" )`, `1:10: expected an expression, found '#'`},
 		{`rule a = x => A{X 1}`, `1:19: expected closing brace for constructor`},
-		{"rule a = %\nrule b = c", `1:10: expected rule expression`},
+		{"rule a = %\nrule b = c", `1:10: expected an expression, found '%'`},
 		{"rule a = `", "1:10: unexpected character '`'"},
 	} {
 		t.Run(tc.in, func(t *testing.T) {

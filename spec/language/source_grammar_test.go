@@ -328,7 +328,7 @@ func TestSourceGrammarRecovery(t *testing.T) {
 		name, src, message string
 		defs               int
 	}{
-		{"declaration", "rule broken =\nrule after = \"ok\"", "expected rule expression", 2},
+		{"declaration", "rule broken =\nrule after = \"ok\"", "expected an expression", 2},
 		{"header", "rule = \"bad\"; rule after = \"ok\"", "expected rule name", 2},
 		{"field", "type T = {\n Broken\n Good node\n}\nrule after = \"ok\"", "expected field type", 2},
 		{"operand", "rule expression = #operators {\n operand\n operand \"ok\"\n level { infix left \"+\" }\n}\nrule after = \"ok\"", "expected operand expression", 2},
@@ -337,8 +337,8 @@ func TestSourceGrammarRecovery(t *testing.T) {
 		{"literal delimiter", "type T = { Bad = \"}\", Good node }\nrule after = \"ok\"", "expected field type", 2},
 		{"comment delimiter", "type T = { Bad = /* } */ 1; Good node }\nrule after = \"ok\"", "expected field type", 2},
 		{"action delimiter", "rule predicate = { bad = \"}\"; true }\nrule after = \"ok\"", "expected semicolon", 2},
-		{"broken multiline group", "rule broken = (\nrule after = \"ok\"\n)", "expected rule expression", 3},
-		{"end of file", "rule broken =", "expected rule expression", 1},
+		{"broken multiline group", "rule broken = (\nrule after = \"ok\"\n)", "expected closing parenthesis for rule group", 3},
+		{"end of file", "rule broken =", "expected an expression", 1},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			var want string

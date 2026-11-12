@@ -40,8 +40,8 @@ func TestOldSpellingsReportCurrentSyntax(t *testing.T) {
 // tokens, and names a newline instead of listing its characters.
 func TestSyntaxErrorsExpectNoTrivia(t *testing.T) {
 	for _, c := range []struct{ src, want string }{
-		{"@start rule a = \"x\"", `1:8: syntax error: expected newline`},
-		{`rule a = x:"x" => $x.1`, `1:22: syntax error: expected "(", [a-zA-Z_]`},
+		{"@start rule a = \"x\"", `1:8: expected newline, found 'rule'`},
+		{`rule a = x:"x" => $x.1`, `1:22: expected "(", [a-zA-Z_], found 1`},
 	} {
 		_, err := Parse(c.src)
 		if err == nil {
@@ -61,7 +61,7 @@ func TestSyntaxErrorsExpectNoTrivia(t *testing.T) {
 				continue
 			}
 			for _, line := range strings.Split(err.Error(), "\n") {
-				expected, ok := strings.CutPrefix(line[strings.Index(line, " ")+1:], "syntax error: expected ")
+				expected, ok := strings.CutPrefix(line[strings.Index(line, " ")+1:], "expected ")
 				if !ok {
 					continue
 				}

@@ -232,4 +232,25 @@ recognized outside shielded string and character data.
 
 An implementation MAY limit source nesting depth and reported errors. The
 reference implementation reports at most 100 errors, with the last indicating
-that more exist, and rejects parenthesis nesting deeper than about 500 levels.
+that more exist, and rejects a source that nests deeper than 500 levels,
+reporting `nesting too deep` at the token that opens level 501 along with the
+other errors of the source. It counts the levels on the tokens, outside
+strings and character classes:
+
+- An opening parenthesis, bracket or brace opens a level. Its closing
+  delimiter ends it and every level opened after it.
+- Each `!`, `&`, `-`, `*`, `:` and `[]` opens a level, wherever it stands,
+  because each may be a prefix operator: of a rule expression, of a value, of
+  a type, or the `:` of a capture. The level ends at the first name, literal,
+  character class, capture reference, `$$`, `$`, `^^`, `^`, `_|_`, `...`, `.`
+  or closing delimiter after it, unless that is a name followed by `:`, which
+  continues a chain of captures.
+- Each `=>` opens a level.
+- A `,` or `;` ends the levels opened after the innermost open bracket. With no
+  bracket open, so does a line break.
+- A block comment nests one level deeper than the brackets open around it,
+  and each block comment nested in it one more; the levels of operators and
+  `=>` do not count for comments.
+
+So `((x))`, `!!x`, `a:b:x`, `[][]T` and `(y) => (z) => y` each nest two
+levels.

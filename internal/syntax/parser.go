@@ -35,10 +35,10 @@ func (l ErrorList) Error() string {
 // maxErrors is the number of errors reported at most; a last error says that there are more.
 const maxErrors = 100
 
-// maxNesting bounds the nesting of the parser's recursive calls (see enter), about two for each
-// level of parentheses: deeper nesting of expressions, values and types is an error, so that a
-// malformed or hostile source cannot overflow the stack.
-const maxNesting = 1000
+// maxNesting bounds the nesting of the parser's recursive calls (see enter), at most two for each
+// level of nesting that the lexer counts. The lexer rejects a source deeper than maxLevels, so the
+// bound only keeps the recursion of such a source from growing with it.
+const maxNesting = 100 * maxLevels
 
 type errorList struct{ list ErrorList }
 

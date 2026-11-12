@@ -103,8 +103,8 @@ rule empty_field_sep = ";" / nl / &"}" / &$$
 // after a name, ")" or "]" opens a bracket, and any other "[" that is not "[]" starts a class, which ends at
 // its "]" or at the end of the line; so a "[" that does not close on its line is never tried as a bracket
 // group too. The item and field recoveries consume their own separator and stop before the next item.
-rule stmt_sync = -comments (attrs_prefix / sync_unit) sync_top* (sync_open (!decl_start sync_unit)*)? (";" / nl / &$$)
-rule sync_top = attr_call / sync_class / sync_closed / sync_word / !sync_open !top_start sync_unit
+rule stmt_sync = -comments (attrs_prefix / sync_unit) sync_top* (sync_open (!decl_start (sync_attrs / sync_unit))*)? (";" / nl / &$$)
+rule sync_top = attr_call / sync_class / sync_closed / sync_word / !sync_open !top_start (sync_top_attrs / sync_unit)
 rule sync_open = "(" / "{" / "[" / (!digit ident_char+ / ")" / "]") "["
 rule sync_class = "[" !"]" ("\\" . / [^\]\\\n])* "]"?
 rule attr_call = "@" ident_char+ space_no_line* attr_paren
@@ -113,9 +113,9 @@ rule sync_word = !digit ident_char+ sync_index
 rule sync_closed = (sync_closed_paren / sync_closed_bracket) sync_index / sync_closed_brace
 rule sync_index = sync_closed_bracket* !"["
 rule sync_inner = attr_call / sync_class / sync_closed / sync_word
-rule sync_closed_paren = "(" (sync_inner / !")" !sync_open !decl_start sync_unit)* ")"
-rule sync_closed_brace = "{" (sync_inner / !"}" !sync_open !decl_start sync_unit)* "}"
-rule sync_closed_bracket = "[" (sync_inner / !"]" !sync_open !decl_start sync_unit)* "]"
+rule sync_closed_paren = "(" (sync_inner / !")" !sync_open !decl_start (sync_attrs / sync_unit))* ")"
+rule sync_closed_brace = "{" (sync_inner / !"}" !sync_open !decl_start (sync_attrs / sync_unit))* "}"
+rule sync_closed_bracket = "[" (sync_inner / !"]" !sync_open !decl_start (sync_attrs / sync_unit))* "]"
 // A declaration at the top level: a keyword that is not part of a longer name, the attributes of a rule, or
 // an attribute named like a keyword.
 rule top_start = (nl / ";") comments (decl_keyword !ident_char / attrs_start / "@" decl_keyword !ident_char)
@@ -147,6 +147,12 @@ rule sync_unit = source_string / source_class / inline_comment / comment_line / 
 // later one, through attributes alone. Inside a bracket the rule must have the shape of a declaration.
 rule attrs_start = "@" (!("rule" !ident_char) attr_unit / nl comments &"@")* (nl comments)? "rule" !ident_char
 rule attrs_decl = "@" (!("rule" !ident_char) attr_unit / nl comments &"@")* (nl comments)? &rule_shape
+// A line of attributes where no declaration starts is skipped with the lines of attributes that follow it,
+// so that the places to resume at are not looked for again from each of these lines: from any of them, the
+// attributes reach the same end, where no rule follows. At the top level, a line that starts with an
+// attribute named like a keyword starts a declaration, so the skip stops before it.
+rule sync_attrs = (nl / ";") comments "@" (!("rule" !ident_char) attr_unit / nl comments &"@")*
+rule sync_top_attrs = (nl / ";") comments "@" (!("rule" !ident_char) attr_unit / nl comments &("@" !(decl_keyword !ident_char)))*
 rule attr_unit = ident_char / space_no_line / "@" / source_string / inline_comment / comment_line / attr_paren
 rule attr_paren = "(" (attr_paren / source_string / inline_comment / comment_line / !("(" / ")") .)* ")"
 rule item_sync = -comments (sync_ml / !(";" / nl / "}") .)* (";" / nl / &"}" / &$$)
@@ -310,7 +316,7 @@ rule cut = ("#cut" !ident_char !"(") #atomic
 rule cut_spelling = &"--" _|_
 rule predicate = action_block
 rule repeat_args = (
-    "(" {ml := true} -ws (repeat_range / repeat_count) -ws
+    "(" {ml := true} -ws (repeat_range / repeat_count / _|_) -ws
     -")"
 )
 rule repeat_range = repeat_from / repeat_to

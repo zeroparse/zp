@@ -26,9 +26,9 @@ type layoutReplay struct {
 }
 
 // replayLayout sets the raw formatter state of g, which the canonical
-// frontend built from src, as Parse sets it.
-func replayLayout(src string, g *grammar.Grammar) {
-	r := &layoutReplay{p: &parser{toks: lex(src, &errorList{}), errs: &errorList{}}, starts: map[grammar.Pos]int{}, ends: map[grammar.Pos]int{}}
+// frontend built from the source of the tokens toks, as Parse sets it.
+func replayLayout(toks []token, g *grammar.Grammar) {
+	r := &layoutReplay{p: &parser{toks: toks, errs: &errorList{}}, starts: map[grammar.Pos]int{}, ends: map[grammar.Pos]int{}}
 	for i, t := range r.p.toks {
 		r.starts[t.pos] = i
 		r.ends[t.end] = i
