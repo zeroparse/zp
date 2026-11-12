@@ -228,23 +228,33 @@ var DependencyMemoControlSeeds = struct{ Cuts, Recovering []int64 }{
 }
 
 // WideContextCase returns the random cycle grammar 341 with cuts, padded with 63 leaders P1..P63
-// that the cycle enters through r2, so that every leader of the cycle but 63 has no bit in a word
-// of present bits on every backend. It parses "bc" to 1:3, but gives 1:2 where all wide present
-// sets share one identity, as a result that evaluated a leader afresh then answers a call where
-// that leader grows.
+// that the cycle enters through r2, so that the padding takes the 63 bits of the engine's word of
+// present bits and every other leader of the cycle has none. It parses "bc" to 1:3, but gives
+// 1:2 where all wide present sets share one identity, as a result that evaluated a leader afresh
+// then answers a call where that leader grows.
 func WideContextCase() Case {
 	c := RandomCycleGrammar(341, true)
+	src := mustReplace(c.Src, "rule r2 = r4 / \"b\"", "rule r2 = r4 / \"b\" / P1 \"q\"")
+	src = mustReplace(src, "rule main = r0", "rule main = P1")
 	var b strings.Builder
-	b.WriteString(strings.Replace(c.Src, "rule r2 = r4 / \"b\"", "rule r2 = r4 / \"b\" / P1 \"q\"", 1))
-	b.WriteString("")
+	b.WriteString(src)
 	for i := 1; i < 63; i++ {
 		fmt.Fprintf(&b, "rule P%d = P%d \"z\" / P%d\n", i, i, i+1)
 	}
 	b.WriteString("rule P63 = P63 \"z\" / r0\n")
-	c.Src = strings.Replace(b.String(), "rule main = r0", "rule main = P1", 1)
+	c.Src = b.String()
 	c.Name = "random cycle grammar 341 with cuts and 63 padding leaders"
 	c.Inputs = append(c.Inputs, "bc", "bcb", "bcc")
 	return c
+}
+
+// mustReplace replaces the first old in s with new, and panics if s has no old, so that a change of
+// the grammar a case is derived from cannot silently drop what the case is about.
+func mustReplace(s, old, new string) string {
+	if !strings.Contains(s, old) {
+		panic("gentest: grammar has no " + strconv.Quote(old))
+	}
+	return strings.Replace(s, old, new, 1)
 }
 
 // DependencyMemoControlCases returns the grammars of DependencyMemoControlSeeds.
