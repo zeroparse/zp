@@ -5,8 +5,6 @@ import (
 	"strings"
 	"testing"
 	"time"
-
-	"zeroparse.dev/zp"
 )
 
 // The recovery of a declaration skips to the next one over the brackets it opens. A bracket that is not
@@ -178,14 +176,6 @@ func TestScaleAttemptsAbsorbNoise(t *testing.T) {
 // tree, which is the work of the generated frontend of ParseGrammar. The sources are valid, so the
 // recovery does not run; the measure shows the cost of the lookahead that ends a list at a declaration.
 func BenchmarkCanonicalFrontend(b *testing.B) {
-	self, err := os.ReadFile("../../zp.zp")
-	if err != nil {
-		b.Fatal(err)
-	}
-	p, err := zp.CompileSource(string(self), "main")
-	if err != nil {
-		b.Fatal(err)
-	}
 	for _, c := range []struct{ name, path string }{
 		{"zp.zp", "../../zp.zp"},
 		{"golang", "../../testdata/grammars/golang/golang.zp"},
@@ -199,7 +189,7 @@ func BenchmarkCanonicalFrontend(b *testing.B) {
 		b.Run(c.name, func(b *testing.B) {
 			b.SetBytes(int64(len(src)))
 			for i := 0; i < b.N; i++ {
-				if _, err := adaptCanonical(p, src); err != nil {
+				if _, err := adaptCanonical(src); err != nil {
 					b.Fatal(err)
 				}
 			}

@@ -26,14 +26,13 @@ var enumerationContexts = []string{"rule a = \x00", "rule a = b => \x00", "type 
 // TestCanonicalFrontendEnumeration compares the frontends on every combination of up to
 // enumerationLength tokens of the alphabet after each context, joined by a space and directly.
 func TestCanonicalFrontendEnumeration(t *testing.T) {
-	p, _ := sourceGrammar(t)
 	acceptedTotal.Store(0)
 	t.Run("contexts", func(t *testing.T) {
 		for _, ctx := range enumerationContexts {
 			for _, join := range []string{" ", ""} {
 				t.Run(fmt.Sprintf("%q join %q", ctx, join), func(t *testing.T) {
 					t.Parallel()
-					enumerate(t, p, ctx, join)
+					enumerate(t, ctx, join)
 				})
 			}
 		}
@@ -44,7 +43,7 @@ func TestCanonicalFrontendEnumeration(t *testing.T) {
 	}
 }
 
-func enumerate(t *testing.T, p *zp.Parser, ctx, join string) {
+func enumerate(t *testing.T, ctx, join string) {
 	failed, accepted, total := 0, 0, 0
 	stats := newHarmStats()
 	var walk func(ctx, join string, toks []string, depth int)
@@ -56,11 +55,11 @@ func enumerate(t *testing.T, p *zp.Parser, ctx, join string) {
 			head, tail, _ := strings.Cut(ctx, "\x00")
 			src := head + strings.Join(toks, join) + tail + "\n"
 			total++
-			stats.add(t, p, src, nil)
+			stats.add(t, src, nil)
 			if _, err := zp.ParseGrammar(src); err == nil {
 				accepted++
 			}
-			if d := grammarDiff(t, p, src); d != "" {
+			if d := grammarDiff(t, adaptCanonical, src); d != "" {
 				failed++
 				t.Errorf("%q: %s", src, d)
 			}

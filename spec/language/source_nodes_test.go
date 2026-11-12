@@ -670,7 +670,7 @@ func compareNodes(t *testing.T, p *zp.Parser, name, src string) bool {
 		return false
 	}
 	compared++
-	if !compareGrammars(t, p, name, src) {
+	if !compareGrammars(t, name, src) {
 		return false
 	}
 	want, got := manualNodes(t, manual), canonicalNodes(t, src, n)
