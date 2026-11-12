@@ -6,6 +6,7 @@ import (
 
 	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/desugar"
+	"zeroparse.dev/zp/internal/frontend"
 )
 
 // A Rewrite is a change to the source of a grammar that fixes a finding without changing what the
@@ -37,10 +38,22 @@ type Rewrite struct {
 func (r Rewrite) IsValid() bool { return r.Start.IsValid() && r.End.IsValid() }
 
 // Rewrites returns, for each finding of the lint run of g from start, its Rewrite or the zero
-// Rewrite. The findings must come from Config.Run or Config.RunUnchecked on the same g and start.
-// Like RunUnchecked, Rewrites does not check its precondition that g compiles and start is a start
-// rule of g. Cancellation discards the result.
-func Rewrites(ctx context.Context, g *grammar.Grammar, start string, findings []Finding) (out []Rewrite, err error) {
+// Rewrite. The findings must come from Config.Run on the same g and start. Rewrites returns an
+// error, and no rewrites, if g does not compile or start is not a start rule of g. Cancellation
+// discards the result.
+func Rewrites(ctx context.Context, g *grammar.Grammar, start string, findings []Finding) ([]Rewrite, error) {
+	res, err := checkGrammar(ctx, g)
+	if err != nil {
+		return nil, err
+	}
+	if _, err := resolveStart(res, start); err != nil {
+		return nil, err
+	}
+	return rewritesOf(ctx, res, g, findings)
+}
+
+// rewritesOf is Rewrites for a grammar the front end checked to the result res.
+func rewritesOf(ctx context.Context, res *frontend.Result, g *grammar.Grammar, findings []Finding) (out []Rewrite, err error) {
 	if err := ctx.Err(); err != nil {
 		return nil, err
 	}
@@ -61,7 +74,7 @@ func Rewrites(ctx context.Context, g *grammar.Grammar, start string, findings []
 	if lowerErr != nil {
 		lowered = g
 	}
-	l := &linter{control: control, an: newAnalysisControlled(lowered, control)}
+	l := &linter{control: control, an: newAnalysisControlled(lowered, control, tablesOf(res))}
 	out = make([]Rewrite, len(findings))
 	for i, f := range findings {
 		control.poll()

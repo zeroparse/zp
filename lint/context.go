@@ -4,23 +4,24 @@ import (
 	"context"
 
 	"zeroparse.dev/zp/grammar"
+	"zeroparse.dev/zp/internal/frontend"
 	"zeroparse.dev/zp/internal/grammaranalysis"
 )
 
-// runContext is the cancellable form of runUnchecked, behind Config.RunUnchecked.
+// runContext lints g, which the front end checked to the result res, from start.
 // Cancellation discards all findings, including those accumulated before the
-// stopping point. Without an active control it is runUnchecked. Polling covers lint-owned
+// stopping point. Without an active control nothing polls. Polling covers lint-owned
 // analysis, check and suppression loops, recursive analyses and result sorting.
 // Shared success proofs, metadata walks, character-range work and diagnostic
 // formatting also poll. Other individual operations retain unpolled spans; no
 // wall-clock bound is promised.
-func runContext(ctx context.Context, g *grammar.Grammar, start string, opts options) (findings []Finding, err error) {
+func runContext(ctx context.Context, res *frontend.Result, g *grammar.Grammar, start string, opts options) (findings []Finding, err error) {
 	if err := ctx.Err(); err != nil {
 		return nil, err
 	}
 	if ctx.Done() == nil {
 		opts.values = ctx
-		return runUnchecked(g, start, opts), nil
+		return run(res, g, start, opts, nil), nil
 	}
 	defer func() {
 		if failure := recover(); failure != nil {
@@ -31,7 +32,7 @@ func runContext(ctx context.Context, g *grammar.Grammar, start string, opts opti
 			}
 		}
 	}()
-	return run(g, start, opts, &lintControl{ctx: ctx}), nil
+	return run(res, g, start, opts, &lintControl{ctx: ctx}), nil
 }
 
 // Recursive proof routines unwind only to runContext and Rewrites. A control belongs to one

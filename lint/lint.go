@@ -2,8 +2,8 @@
 // match, expressions that have no effect, captures that are never read, and grammar shapes that
 // defeat incremental parsing.
 //
-// Config.Run compiles a grammar to check it before it lints it; Config.RunUnchecked lints a grammar
-// its caller has already compiled. The checks work on the grammar AST alone. Each check reports
+// Config.Run checks a grammar with the front end before it lints it. The checks work on the
+// grammar AST, with the rule facts of the front end. Each check reports
 // only what it can prove from the grammar (the exceptions are the performance hints, which have
 // the severity Hint); see docs/design/records/018-grammar-linting.md for the reasoning behind each
 // one.
@@ -21,6 +21,7 @@ import (
 	"zeroparse.dev/zp/internal/compile"
 	"zeroparse.dev/zp/internal/desugar"
 	"zeroparse.dev/zp/internal/frontend"
+	"zeroparse.dev/zp/internal/lintrun"
 )
 
 // Severity tells how likely a finding is to be a mistake.
@@ -169,13 +170,30 @@ func (c Config) Run(ctx context.Context, g *grammar.Grammar, start string) ([]Fi
 	if err != nil {
 		return nil, err
 	}
-	prog := res.Program
-	if start == "" {
-		start = prog.DefaultStartRule
-	} else if err := prog.CheckStart(start); err != nil {
+	if start, err = resolveStart(res, start); err != nil {
 		return nil, err
 	}
-	return runContext(ctx, g, start, opts)
+	return runContext(ctx, res, g, start, opts)
+}
+
+// resolveStart returns start, or the default start rule if it is empty, after checking that it is
+// a start rule of the grammar of res.
+func resolveStart(res *frontend.Result, start string) (string, error) {
+	if start == "" {
+		return res.Program.DefaultStartRule, nil
+	}
+	return start, res.Program.CheckStart(start)
+}
+
+func init() {
+	lintrun.Run = func(ctx context.Context, res *frontend.Result, g *grammar.Grammar, start string) (any, error) {
+		findings, err := runContext(ctx, res, g, start, options{})
+		return findings, err
+	}
+	lintrun.Rewrites = func(ctx context.Context, res *frontend.Result, g *grammar.Grammar, start string, findings any) (any, error) {
+		out, err := rewritesOf(ctx, res, g, findings.([]Finding))
+		return out, err
+	}
 }
 
 // checkGrammar runs the front end on g. Cancellation discards the result and its errors.
@@ -196,20 +214,6 @@ func checkGrammar(ctx context.Context, g *grammar.Grammar) (res *frontend.Result
 		}
 	}()
 	return frontend.Run(g, compile.Options{}, &cancel.Control{Ctx: ctx})
-}
-
-// RunUnchecked lints g from start as Run does, without compiling g: it is for a caller that has
-// already compiled g, such as an editor that lints after each change. Its precondition is that g
-// compiles and that start is a start rule of g (the default start rule of a compiled grammar is
-// zp.Parser.DefaultStart); Run checks this, RunUnchecked does not, and the findings for any
-// other g or start are unspecified. It returns an error only if c.Disable names an unknown check
-// or ctx ends; cancellation discards all findings.
-func (c Config) RunUnchecked(ctx context.Context, g *grammar.Grammar, start string) ([]Finding, error) {
-	opts, err := c.options()
-	if err != nil {
-		return nil, err
-	}
-	return runContext(ctx, g, start, opts)
 }
 
 // options validates c.Disable and returns the options of the run.
@@ -238,12 +242,8 @@ type options struct {
 	values context.Context
 }
 
-// runUnchecked lints g from start without a cancellation control. g must compile; start may be "".
-func runUnchecked(g *grammar.Grammar, start string, opts options) []Finding {
-	return run(g, start, opts, nil)
-}
-
-func run(g *grammar.Grammar, start string, opts options, control *lintControl) []Finding {
+// run lints g, which the front end checked to the result res, from start.
+func run(res *frontend.Result, g *grammar.Grammar, start string, opts options, control *lintControl) []Finding {
 	control.check()
 	// Each inline action is a rule of its own with its captures and cuts: lint the grammar with
 	// them lowered to hidden rules, and report their findings as the inline actions written.
@@ -252,7 +252,7 @@ func run(g *grammar.Grammar, start string, opts options, control *lintControl) [
 		lowered, names = g, nil // a grammar that does not compile is not linted properly
 	}
 	control.check()
-	l := &linter{control: control, opts: opts, an: newAnalysisControlled(lowered, control)}
+	l := &linter{control: control, opts: opts, an: newAnalysisControlled(lowered, control, tablesOf(res))}
 	for _, c := range []struct {
 		name string
 		run  func(*linter)

@@ -43,6 +43,12 @@ func Run(g *grammar.Grammar, opts compile.Options, control *cancel.Control) (*Re
 	if err != nil {
 		return nil, mergeErrors(names.Rewrite(err), factErrs)
 	}
+	return FromProgram(prog, control)
+}
+
+// FromProgram builds the Result of a program that was compiled already, for a caller that keeps
+// the program for its own use and must not compile the grammar twice.
+func FromProgram(prog *compile.Program, control *cancel.Control) (*Result, error) {
 	origin := map[core.Node]grammar.Expr{}
 	m, err := build.CoreFrom(prog, origin)
 	if err != nil {

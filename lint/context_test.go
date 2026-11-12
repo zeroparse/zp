@@ -59,7 +59,7 @@ func lintManyRules() string {
 func TestRunContextCancellationDiscardsFindings(t *testing.T) {
 	g := lintContextGrammar(t, lintManyRules())
 	count := lintTestContext(t, 0)
-	complete, err := runContext(count, g, "main", options{})
+	complete, err := testRunContext(count, g, "main", options{})
 	if err != nil || len(complete) < 256 || count.calls < 4 {
 		t.Fatalf("inadequate fixture: findings=%d calls=%d err=%v", len(complete), count.calls, err)
 	}
@@ -67,7 +67,7 @@ func TestRunContextCancellationDiscardsFindings(t *testing.T) {
 	// Deterministic baseline counting avoids sleeps and fixed wall-clock limits.
 	for _, cancelAt := range []int{1, 3, count.calls - 1} {
 		ctx := lintTestContext(t, cancelAt)
-		findings, err := runContext(ctx, g, "main", options{})
+		findings, err := testRunContext(ctx, g, "main", options{})
 		if findings != nil || !errors.Is(err, context.Canceled) {
 			t.Fatalf("cancelAt=%d returned partial findings %v / %v", cancelAt, findings, err)
 		}
@@ -88,7 +88,7 @@ func TestLintContextPhaseCancellation(t *testing.T) {
 			}()
 			switch phase {
 			case "analysis":
-				newAnalysisControlled(g, control)
+				testNewAnalysisControlled(g, control)
 			case "success-proof", "failure-proof", "cut-proof":
 				items := make([]grammar.Expr, 1024)
 				for i := range items {
@@ -144,7 +144,7 @@ func TestRunContextOrdinaryParity(t *testing.T) {
 		g := lintContextGrammar(t, source)
 		for _, opts := range []options{{}, {Disable: map[string]bool{CheckUnreachableRule: true}}} {
 			want := runUnchecked(g, "main", opts)
-			got, err := runContext(lintTestContext(t, 0), g, "main", opts)
+			got, err := testRunContext(lintTestContext(t, 0), g, "main", opts)
 			if err != nil || !reflect.DeepEqual(got, want) {
 				t.Fatalf("controlled lint changed findings: %v / %v, %v", got, want, err)
 			}

@@ -1,7 +1,6 @@
 package lint
 
 import (
-	"slices"
 	"strings"
 	"unicode/utf8"
 
@@ -54,15 +53,11 @@ type analysis struct {
 	cycles int
 }
 
-func newAnalysis(g *grammar.Grammar) *analysis {
-	return newAnalysisControlled(g, nil)
-}
-
-func newAnalysisControlled(g *grammar.Grammar, control *lintControl) *analysis {
+func newAnalysisControlled(g *grammar.Grammar, control *lintControl, tables ruleTables) *analysis {
 	control.poll()
 
 	a := &analysis{control: control, g: g, rules: map[string]*grammar.RuleDef{}, nullable: [2]map[string]bool{{}, {}}, canMatch: map[string]bool{},
-		baseCase: map[string]bool{}, leftRecursive: map[string]bool{}, engineNullable: map[string]bool{},
+		baseCase:  map[string]bool{},
 		matchMemo: map[matchKey]matchResult{}, prefixMemo: map[string]prefixResult{}, busy: map[string]bool{}}
 	for _, r := range control.rules(g) {
 		control.poll()
@@ -71,50 +66,8 @@ func newAnalysisControlled(g *grammar.Grammar, control *lintControl) *analysis {
 			a.order = append(a.order, r)
 		}
 	}
-	// Left recursion first: the other analyses use it (through matchPrefix).
-	for changed := true; changed; {
-		control.poll()
-		changed = false
-		for _, r := range a.order {
-			control.poll()
-			if !a.engineNullable[r.Name] && a.isEngineNullable(r.Expr) {
-				a.engineNullable[r.Name], changed = true, true
-			}
-		}
-	}
-	left := map[string][]string{}
-	for _, r := range a.order {
-		control.poll()
-		left[r.Name] = a.leftCalls(r.Expr, nil)
-	}
-	// Match the compiler's graph/proof fixed point: breaking one cycle can
-	// prove a rule successful and expose more unreachable call edges.
-	for {
-		control.poll()
-		clear(a.leftRecursive)
-		for _, r := range a.order {
-			control.poll()
-			if findCycleControlled(r.Name, left, control) != nil {
-				a.leftRecursive[r.Name] = true
-			}
-		}
-		if control == nil {
-			a.engineSucceeding = grammaranalysis.SucceedingRules(a.order, a.leftRecursive)
-		} else {
-			a.engineSucceeding = grammaranalysis.SucceedingRulesWithPoll(a.order, a.leftRecursive, control.poll)
-		}
-		next := map[string][]string{}
-		changed := false
-		for _, r := range a.order {
-			control.poll()
-			next[r.Name] = a.leftCalls(r.Expr, nil)
-			changed = changed || !slices.Equal(left[r.Name], next[r.Name])
-		}
-		if !changed {
-			break
-		}
-		left = next
-	}
+	// The rule tables of the front end's facts: the other analyses use them (through matchPrefix).
+	a.engineNullable, a.leftRecursive, a.engineSucceeding = tables.nullable, tables.cyclic, tables.succeeds
 	for _, end := range []bool{false, true} {
 		control.poll()
 		set := a.nullable[b2i(end)]

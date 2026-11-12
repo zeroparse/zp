@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"strings"
 
+	"zeroparse.dev/zp/internal/frontend"
+	"zeroparse.dev/zp/internal/lintrun"
 	"zeroparse.dev/zp/lint"
 )
 
@@ -69,7 +71,22 @@ func (a *analysis) lintFindingsContext(ctx context.Context) ([]lint.Finding, err
 	if a.lintCached {
 		return a.lintCache, nil
 	}
-	return (lint.Config{}).RunUnchecked(ctx, a.g, a.prog.DefaultStart())
+	res, err := a.frontResult()
+	if err != nil {
+		return nil, err
+	}
+	findings, err := lintrun.Run(ctx, res, a.g, a.prog.DefaultStart())
+	if err != nil {
+		return nil, err
+	}
+	return findings.([]lint.Finding), nil
+}
+
+// frontResult returns the front-end result of the compiled grammar, built from the program that
+// the analysis already has, so that the grammar is not compiled again.
+func (a *analysis) frontResult() (*frontend.Result, error) {
+	a.front.once.Do(func() { a.front.res, a.front.err = frontend.FromProgram(a.prog.Static(), nil) })
+	return a.front.res, a.front.err
 }
 
 // cacheLintContext commits a complete lint result; cancelled work retains no partial cache.

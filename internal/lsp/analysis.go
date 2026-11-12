@@ -6,11 +6,13 @@ import (
 	"fmt"
 	"sort"
 	"strings"
+	"sync"
 	"unicode/utf8"
 	"zeroparse.dev/zp/internal/diag"
 
 	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/engine"
+	"zeroparse.dev/zp/internal/frontend"
 	"zeroparse.dev/zp/internal/syntax"
 	"zeroparse.dev/zp/lint"
 )
@@ -74,7 +76,9 @@ type analysis struct {
 	g          *grammar.Grammar
 	syntaxErrs syntax.ErrorList
 	// prog is the compiled grammar, nil if the source has errors.
-	prog       *engine.Program
+	prog *engine.Program
+	// front is the front-end result of prog, built once for the linter; nil without prog.
+	front      *frontCell
 	diags      []Diagnostic
 	lintCache  []lint.Finding
 	lintCached bool
@@ -114,6 +118,14 @@ func analyzeContextSafely(ctx context.Context, text string) (a *analysis, err er
 		analyzeHook(text)
 	}
 	return analyzeContext(ctx, text)
+}
+
+// frontCell holds the front-end result of a program, built on first use. Copies of an analysis
+// share it.
+type frontCell struct {
+	once sync.Once
+	res  *frontend.Result
+	err  error
 }
 
 // failedAnalysis returns the analysis to use for text when analyzing it failed with err: good, the
@@ -206,7 +218,7 @@ func (a *analysis) compileContextControlled(ctx context.Context, control *render
 		return err
 	}
 	if err == nil {
-		a.prog = prog
+		a.prog, a.front = prog, &frontCell{}
 		return nil
 	}
 	var list diag.ErrorList

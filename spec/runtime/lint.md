@@ -30,9 +30,6 @@ linter, identified by a name.
   If the grammar does not compile, or the start rule is not a start rule of the grammar, it returns
   an error and no findings. Cancelling the context stops the compilation and the checks and
   discards all findings. An empty start rule selects the default start rule.
-- `lint.Config.RunUnchecked` returns the same findings as `Run` for a grammar that compiles and a
-  start rule of it, without compiling the grammar. It does not check either condition; its findings
-  for any other input are unspecified. Cancelling its context discards all findings.
 - `zp lint` accepts ZeroParse source and grammar JSON; a compiled grammar holds no
   grammar and is an error. The start rule is the one `-s` names, otherwise the
   default start rule of the grammar. A grammar that does not compile is reported with its compile

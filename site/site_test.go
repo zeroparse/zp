@@ -207,7 +207,7 @@ func TestBuild(t *testing.T) {
 			"type SyntaxError struct", `id="TraceEvent.LineCol"`,
 		},
 		"reference/gen/index.html":       {`id="Go.Generate"`, `id="Generator"`, `id="RuntimeMode.String"`, "Content []byte"},
-		"reference/lint/index.html":      {`id="Config.Run"`, `id="Config.RunUnchecked"`, `id="Checks"`, `id="Severity.String"`},
+		"reference/lint/index.html":      {`id="Config.Run"`, `id="Checks"`, `id="Severity.String"`},
 		"reference/grammar/index.html":   {`id="Format"`, `id="Grammar.Rules"`, "type RuleDef struct"},
 		"reference/cli/index.html":       {`id="cmd-parse"`, "<code>-g string</code>", "-backend string", `id="commands"`},
 		"docs/design/records/index.html": {"012. Typed Values in Generated Parsers", "Implemented"},

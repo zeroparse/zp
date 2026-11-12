@@ -180,15 +180,11 @@ func TestGrammarLint(t *testing.T) {
 
 `lint.Config{Classify: true}` reports the [`super-linear`](#super-linear) hints, as `-classify` does.
 
-A program that has already compiled the grammar, such as an editor that lints after each change, can skip the
-second compilation with `Config.RunUnchecked`. It does not check that the grammar compiles or that the start rule is
-one, and its findings for any other grammar are unspecified.
-
 A grammar decoded from JSON has no source positions; its findings have the zero
 `Pos` and name the rule they are in.
 
 `lint.Severity` is encoded as text (`"hint"`, `"warning"` or `"error"`), in the `-f json` output and by
-`MarshalText` and `UnmarshalText`. `lint.Rewrites` returns the automatic fix of each finding; `Rewrite.IsValid`
+`MarshalText` and `UnmarshalText`. `lint.Rewrites` takes the grammar, the start rule and the findings of `Config.Run`, returns an error if the grammar does not compile, and otherwise returns the automatic fix of each finding; `Rewrite.IsValid`
 reports whether a finding has one, since the rewrite of a finding without a fix is the zero value.
 
 ## Severities
