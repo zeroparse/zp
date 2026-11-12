@@ -1680,45 +1680,45 @@ transitional op missing.replay(e Entry)
   requires:
     // The parse runs in the missing-token mode.
 
-transitional op frame.mark() Mark
+op frame.mark() Mark
   component frames
   reads frames, env, recovered
   cost <= 0
   contract:
     // Returns a backtracking point at the position.
 
-transitional op frame.markPos(m Mark) int
+op frame.markPos(m Mark) int
   component frames
   cost <= 0
   contract:
     // Returns the position of the backtracking point m.
 
-transitional op frame.markRec(m Mark) int
+op frame.markRec(m Mark) int
   component frames
   cost <= 0
   contract:
     // Returns the number of the errors recovered before the backtracking point m, as rec.mark does.
 
-transitional op frame.markEnv(m Mark) Scope
+op frame.markEnv(m Mark) Scope
   component frames
   cost <= 0
   contract:
     // Returns the variable environment of the backtracking point m.
 
-transitional op frame.markMissing(m Mark) int
+op frame.markMissing(m Mark) int
   component frames
   features missing
   cost <= 0
   contract:
     // Returns the mark of the missing-token record at the backtracking point m, as missing.mark does.
 
-transitional op frame.markTrail(m Mark) int
+op frame.markTrail(m Mark) int
   component frames
   cost <= 0
   contract:
     // Returns the length of the trail at the backtracking point m.
 
-transitional op frame.undo(trail int)
+op frame.undo(trail int)
   component frames
   reads frames
   writes frames
@@ -1730,21 +1730,21 @@ transitional op frame.undo(trail int)
   requires:
     // trail is at most the length of the trail.
 
-transitional op frame.current() Frame
+op frame.current() Frame
   component frames
   reads frames
   cost <= 0
   contract:
     // Returns the frame that captures write to.
 
-transitional op frame.use(f Frame)
+op frame.use(f Frame)
   component frames
   writes frames
   cost <= 0
   contract:
     // Makes f the frame that captures write to.
 
-transitional op frame.open(n int) Frame
+op frame.open(n int) Frame
   component frames
   writes frames
   noreturn
@@ -1753,7 +1753,7 @@ transitional op frame.open(n int) Frame
     // Returns a new frame of n empty slots, which lives until the parse ends. A frame of no slots is
     // never written, so it may be shared.
 
-transitional op frame.set(slot int, v Value)
+op frame.set(slot int, v Value)
   component frames
   reads frames
   writes frames
@@ -1765,7 +1765,7 @@ transitional op frame.set(slot int, v Value)
   requires:
     // slot is a slot of the current frame.
 
-transitional op frame.close(f Frame)
+op frame.close(f Frame)
   component frames
   writes frames
   cost <= 0
@@ -1775,13 +1775,13 @@ transitional op frame.close(f Frame)
   requires:
     // No trail entry and no current frame refer to f.
 
-transitional op frame.slots(f Frame) int
+op frame.slots(f Frame) int
   component frames
   cost <= 0
   contract:
     // Returns the number of slots of f.
 
-transitional op frame.save(f Frame)
+op frame.save(f Frame)
   component frames
   reads frames
   writes frames
@@ -1790,7 +1790,7 @@ transitional op frame.save(f Frame)
   contract:
     // Copies the slots of f aside, charging the copy as the target charges copies of values.
 
-transitional op frame.restore(f Frame)
+op frame.restore(f Frame)
   component frames
   reads frames
   writes frames

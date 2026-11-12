@@ -149,7 +149,7 @@ func bindingFile(pkg string, names []string, t *execgo.Target, table string, imp
 	}
 	if table != "" {
 		// The table of the bindings by operation, for a harness that cannot name unexported methods.
-		b.WriteString("\n// " + table + " returns the bindings of p by the name of the operation.\nfunc " + table + "(p *Parser) map[string]any {\n\treturn map[string]any{\n")
+		b.WriteString("\n// " + table + " returns the bindings of p by the name of the operation.\nfunc " + table + "(" + t.Recv + ") map[string]any {\n\treturn map[string]any{\n")
 		for i, f := range fs {
 			b.WriteString("\t\t" + strconv.Quote(names[i]) + ": p." + f.Name + ",\n")
 		}
@@ -227,4 +227,36 @@ func EngineCtxBindings() (string, error) {
 // package runtime, for the node runtime's Parser.
 func GoCtxBindings() (string, error) {
 	return bindingFile("runtime", ctxBindingOps, goTarget(goSpec{fn: "expect", name: "Expect"}), "confCtxBindings")
+}
+
+// frameBindingOps are the frame operations that conformance cases cover.
+var frameBindingOps = []string{
+	"frame.mark", "frame.markPos", "frame.markRec", "frame.markEnv", "frame.markMissing", "frame.markTrail",
+	"frame.undo", "frame.current", "frame.use", "frame.open", "frame.set", "frame.close", "frame.slots",
+	"frame.save", "frame.restore",
+}
+
+// frameBindingGoOps are the frame operations of the Go runtime, which has no missing-token record.
+var frameBindingGoOps = slices.DeleteFunc(slices.Clone(frameBindingOps), func(n string) bool { return n == "frame.markMissing" })
+
+// EngineFrameBindingsFile is the file of the engine's conformance bindings of the capture frames,
+// relative to the directory of this package. It is a test file of package core of the engine.
+const EngineFrameBindingsFile = "../../../engine/core/frame_bind_exec_test.go"
+
+// EngineFrameBindings returns the Go test file of the conformance bindings of the capture frames for
+// package core of the engine.
+func EngineFrameBindings() (string, error) {
+	return bindingFile("core", frameBindingOps, engineTarget(), "confFrameBindings", "zeroparse.dev/zp/internal/value")
+}
+
+// GoFrameBindings returns the Go test file of the conformance bindings of the capture frames for
+// package runtime, for the node runtime's Parser.
+func GoFrameBindings() (string, error) {
+	return bindingFile("runtime", frameBindingGoOps, goTarget(goSpec{fn: "expect", name: "Expect"}), "confFrameBindings")
+}
+
+// GoTypedFrameBindings returns the Go test file of the conformance bindings of the capture frames for
+// package runtime, for the typed runtime's TParser.
+func GoTypedFrameBindings() (string, error) {
+	return bindingFile("runtime", frameBindingGoOps, goTarget(goSpec{fn: "reset", typed: true, name: "Reset"}), "confTFrameBindings")
 }
