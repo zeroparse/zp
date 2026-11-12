@@ -146,7 +146,8 @@ func optionsFamily(o ParseOptions) closure.Family {
 }
 
 // familyRules returns the rules that the closure backend runs in the family f, by ID (rule.id),
-// building them on first use.
+// building them on first use. The build that returns last drops the Core IR, which no later build
+// reads; a build that panicked counts as returned, since its family only reports an error after.
 func (prog *Program) familyRules(f closure.Family) ([]*core.Rule, error) {
 	fam := &prog.families[f]
 	fam.once.Do(func() {
@@ -154,7 +155,14 @@ func (prog *Program) familyRules(f closure.Family) ([]*core.Rule, error) {
 			fam.err = errClosureNeedsSource
 			return
 		}
-		fam.rules, fam.err = prog.buildFamily(f)
+		// Every build reads coreIR before its own decrement, and each family builds once, so
+		// the decrement that reaches zero follows every read.
+		defer func() {
+			if prog.unbuilt.Add(-1) == 0 {
+				prog.coreIR = nil
+			}
+		}()
+		fam.rules, fam.err = prog.buildFamily(prog.coreIR, f)
 		fam.done = true
 	})
 	if !fam.done {

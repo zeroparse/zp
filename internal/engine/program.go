@@ -4,15 +4,17 @@ import (
 	"context"
 	"slices"
 	"sync"
-	"zeroparse.dev/zp/internal/cancel"
+	"sync/atomic"
 
 	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/bytecode"
+	"zeroparse.dev/zp/internal/cancel"
 	"zeroparse.dev/zp/internal/compile"
 	"zeroparse.dev/zp/internal/desugar"
 	"zeroparse.dev/zp/internal/engine/closure"
 	"zeroparse.dev/zp/internal/engine/core"
 	"zeroparse.dev/zp/internal/engine/vm"
+	ir "zeroparse.dev/zp/internal/ir/core"
 )
 
 // sharedProgram names the part of a program that every backend shares, so that Program embeds it
@@ -22,12 +24,16 @@ type sharedProgram = core.SharedProgram
 // Program is a compiled grammar. It can be used by multiple parses concurrently.
 type Program struct {
 	sharedProgram
-	// buildFamily builds the rules that the closure backend runs in a family, by ID (rule.id); it is
-	// nil when the closure backend cannot run the program (a program loaded without its grammar).
-	// families holds the rules of each family (closure.Inlined, closure.CallPreserving), built on
-	// first use.
-	buildFamily func(closure.Family) ([]*core.Rule, error)
+	// buildFamily builds, from the program's Core IR, the rules that the closure backend runs in a
+	// family, by ID (rule.id); it is nil when the closure backend cannot run the program (a program
+	// loaded without its grammar). families holds the rules of each family (closure.Inlined,
+	// closure.CallPreserving), built on first use.
+	buildFamily func(*ir.Module, closure.Family) ([]*core.Rule, error)
 	families    [2]closureFamily
+	// coreIR is the Core IR that buildFamily reads. Nothing else reads it, so it is dropped once
+	// every family has been built: unbuilt counts the families whose build has not returned.
+	coreIR  *ir.Module
+	unbuilt atomic.Int32
 
 	budgetOnce    sync.Once
 	budgetProgram *Program
@@ -62,9 +68,10 @@ type closureFamily struct {
 }
 
 // newProgram returns the program that runs the static program sp; buildFamily builds the rules of
-// the closure backend in a family, or is nil when that backend cannot run sp.
-func newProgram(sp *compile.Program, buildFamily func(closure.Family) ([]*core.Rule, error)) *Program {
-	prog := &Program{buildFamily: buildFamily}
+// the closure backend in a family from the Core IR m, or is nil when that backend cannot run sp.
+func newProgram(sp *compile.Program, m *ir.Module, buildFamily func(*ir.Module, closure.Family) ([]*core.Rule, error)) *Program {
+	prog := &Program{buildFamily: buildFamily, coreIR: m}
+	prog.unbuilt.Store(int32(len(prog.families)))
 	core.InitSharedProgram(&prog.sharedProgram, sp)
 	return prog
 }
@@ -210,5 +217,7 @@ func lower(prog *compile.Program, opts compile.Options, control *cancel.Control)
 	// The closures of each family are built from m on first use, inside the parse that needs them
 	// and outside the compilation and its control (Build only reads m).
 	plainDispatch := !opts.ControlledDispatch
-	return newProgram(prog, func(f closure.Family) ([]*core.Rule, error) { return closure.Build(prog, m, plainDispatch, f) }), nil
+	return newProgram(prog, m, func(m *ir.Module, f closure.Family) ([]*core.Rule, error) {
+		return closure.Build(prog, m, plainDispatch, f)
+	}), nil
 }

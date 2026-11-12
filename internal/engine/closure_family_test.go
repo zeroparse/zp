@@ -6,9 +6,11 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"runtime"
 	"strings"
 	"sync"
 	"testing"
+	"weak"
 
 	"zeroparse.dev/zp/internal/cancel"
 	"zeroparse.dev/zp/internal/compile"
@@ -284,7 +286,7 @@ func TestClosureFamiliesBuildConcurrently(t *testing.T) {
 func TestClosureFamilyBuildPanicIsAnError(t *testing.T) {
 	t.Parallel()
 	prog := mustCompile(t, `rule main = "a" $$`)
-	prog.buildFamily = func(closure.Family) ([]*core.Rule, error) { panic("build failed") }
+	prog.buildFamily = func(*ir.Module, closure.Family) ([]*core.Rule, error) { panic("build failed") }
 	func() {
 		defer func() {
 			if recover() == nil {
@@ -299,4 +301,37 @@ func TestClosureFamilyBuildPanicIsAnError(t *testing.T) {
 	if r, err := prog.rule(Closure, "main", closure.Inlined); err == nil {
 		t.Fatalf("the start rule %v of a family that was not built", r)
 	}
+}
+
+// TestClosureFamiliesReleaseTheCoreIR checks that a program keeps its Core IR until both closure
+// families are built, and that nothing retains the module after that.
+func TestClosureFamiliesReleaseTheCoreIR(t *testing.T) {
+	prog := mustCompile(t, `rule main = item+ $$
+rule item = "a" / "b"`)
+	if prog.coreIR == nil {
+		t.Fatal("the compiled program holds no Core IR")
+	}
+	module := weak.Make(prog.coreIR)
+	if _, err := prog.familyRules(closure.Inlined); err != nil {
+		t.Fatal(err)
+	}
+	if prog.coreIR == nil {
+		t.Fatal("the Core IR was dropped while the call-preserving family was not built")
+	}
+	if _, err := prog.familyRules(closure.CallPreserving); err != nil {
+		t.Fatal(err)
+	}
+	if prog.coreIR != nil {
+		t.Fatal("the Core IR is kept after both families were built")
+	}
+	runtime.GC()
+	if module.Value() != nil {
+		t.Fatal("the Core IR is still reachable after both families were built")
+	}
+	for _, f := range []closure.Family{closure.Inlined, closure.CallPreserving} {
+		if _, err := prog.rule(Closure, "main", f); err != nil {
+			t.Errorf("family %d after the release: %v", f, err)
+		}
+	}
+	runtime.KeepAlive(prog)
 }

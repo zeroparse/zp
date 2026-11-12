@@ -65,7 +65,7 @@ func captureCheckProgram(src string) (*Program, error) {
 	if err != nil {
 		return nil, err
 	}
-	p := newProgram(&compile.Program{Grammar: g, Types: map[string]grammar.TypeDecl{}}, nil)
+	p := newProgram(&compile.Program{Grammar: g, Types: map[string]grammar.TypeDecl{}}, nil, nil)
 	for _, d := range g.Types() {
 		p.Types[d.DeclName()] = d
 	}

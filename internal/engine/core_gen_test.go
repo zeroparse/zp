@@ -96,7 +96,7 @@ func coreGenerate(src string, opts gen.GenOptions) (*gengo.Generator, bool) {
 // recognizerOf returns the recognizer of the program that the generator g prints, compiled as
 // Program.Recognizer compiles it.
 func recognizerOf(g *gengo.Generator) (*compile.Program, error) {
-	rec, err := newProgram(g.Prog, nil).Recognizer()
+	rec, err := newProgram(g.Prog, nil, nil).Recognizer()
 	if err != nil {
 		return nil, err
 	}

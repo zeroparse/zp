@@ -266,5 +266,5 @@ func moduleProgram(m *bytecode.Module) *Program {
 	prog.Vars = compile.ModuleVarTable(m)
 	prog.StartRules, prog.DefaultStartRule = moduleStarts(m), moduleDefaultStart(m)
 	prog.BytecodeOnce.Do(func() { prog.Bytecode = m })
-	return newProgram(prog, nil)
+	return newProgram(prog, nil, nil)
 }
