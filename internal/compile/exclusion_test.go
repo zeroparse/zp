@@ -910,6 +910,12 @@ func TestStrictConditions(t *testing.T) {
 		{"a later lookahead with a cut in a later alternative before the matching one", `"a" "y" "z" "w"`, `!("z" / "a" #cut "q" / "a" "y") "a" "y" "z"`, false, false, "same-bound"},
 		{"a later lookahead with a cut in a recovery skip before the matching alternative", `"a" "y" "z" "w"`, `!(("a" "q") #recover(skip=(#cut "w")) / "a" "y") "a" "y" "z"`, false, false, "same-bound"},
 		{"a later lookahead with a cut after the matching alternative", `"a" "y" "z" "w"`, `!("a" "y" / "a" #cut "q") "a" "y" "z"`, true, true, ""},
+		// The match of the lookahead evaluates s alike with the unit. Where the continuation reaches
+		// a copy of the unit through a left call, each growth step evaluates the unit again, so a
+		// scan in that call could repeat in every step: a call that the match evaluates alike must
+		// contain no scanning source.
+		{"a later lookahead that matches a shared call that scans", `s "c" "d"`, `!(s "c") s "e"`, true, false, "qnot-notcheap"},
+		{"a later lookahead that matches a shared call that does not scan", `idc "c" "d"`, `!(idc "c") idc "e"`, true, true, ""},
 	} {
 		src := "rule p = " + c.p + "\nrule q = " + c.q + "\n" + rules
 		if got, tag := comparePaths(t, src, false, 3); got != c.loose {

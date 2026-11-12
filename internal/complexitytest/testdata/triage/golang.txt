@@ -1,4 +1,4 @@
-# golang: unknown (degree 0, witnessed degree 8), 24 witnesses, 154 reasons
+# golang: unknown (degree 0, witnessed degree 8), 24 witnesses, 156 reasons
 
 ## comments (16) -> F97
 672:119 sp: the cost can grow as n^5: after the lookahead at 672:112 in rule sp fails, what follows the lookahead !("/*" (!"*/" [^\n])* "\n") can start again inside the input that the repetition (!"*/" [^\n])* at 672:119 in rule sp examined; it is evaluated again inside an iteration of the repetition at 672:11 in rule sp; it is evaluated again inside the lookahead at 555:29 in rule goPrimary; it is evaluated again inside the operator part at 555:17 in rule goPrimary; this repeats in the recursion of rule goPrimary
@@ -32,7 +32,7 @@
 757:24 decDigits: the cost can grow as n^3: after the alternative at 750:26 in rule imagLit fails, the later alternative hexFloat "i" at 750:45 in rule imagLit can start again inside the input that the repetition ("_"? [0-9])* at 757:24 in rule decDigits examined; it is evaluated again inside the alternative at 743:22 in rule basicLit; this repeats in the recursion of rule literalOperand
 757:24 decDigits: the cost can grow as n^3: after the alternative at 750:45 in rule imagLit fails, the later alternative imagInt "i" at 750:60 in rule imagLit can start again inside the input that the repetition ("_"? [0-9])* at 757:24 in rule decDigits examined; it is evaluated again inside the alternative at 743:22 in rule basicLit; this repeats in the recursion of rule literalOperand
 
-## nested (154) -> F100
+## nested (156) -> F100
 134:43 constSpec: the option at 134:43 in rule constSpec is not committing against what follows the option typeSp?, and units that are not committing are nested in it without bound through a recursion of rule calls
 134:54 constSpec: the option at 134:54 in rule constSpec is not committing against what follows the option valuesSp?, and units that are not committing are nested in it without bound through a recursion of rule calls
 142:26 varSpec: the alternative at 142:26 in rule varSpec is not committing against the later alternative varSpecUntyped at 142:41 in rule varSpec, and units that are not committing are nested in it without bound through a recursion of rule calls
@@ -144,6 +144,7 @@
 517:27 operatorsExpr: the option at 517:27 in rule operatorsExpr is not committing against what follows the option exprSp?, and units that are not committing are nested in it without bound through a recursion of rule calls
 519:17 operatorsExpr: the operator part at 519:17 in rule operatorsExpr is not committing against the operator part "(" -ws ")" !(-sp "{") at 518:17 in rule operatorsExpr, and units that are not committing are nested in it without bound through a recursion of rule calls
 520:17 operatorsExpr: the operator part at 520:17 in rule operatorsExpr is not committing against what follows the Operators Rule, and units that are not committing are nested in it without bound through a recursion of rule calls
+530:51 literalOperand: the alternative at 530:51 in rule literalOperand is not committing against the later alternative funcType at 530:61 in rule literalOperand, and units that are not committing are nested in it without bound through a recursion of rule calls
 531:34 indexList: an iteration of the repetition at 531:34 in rule indexList is not committing against what follows the repetition (-sp "," -ws t:typ)+, and units that are not committing are nested in it without bound through a recursion of rule calls
 536:28 litValue: the option at 536:28 in rule litValue is not committing against what follows the option elements?, and units that are not committing are nested in it without bound through a recursion of rule calls
 537:36 elements: an iteration of the repetition at 537:36 in rule elements is not committing against what follows the repetition (-sp "," -ws e:element)*, and units that are not committing are nested in it without bound through a recursion of rule calls
@@ -178,6 +179,7 @@
 605:17 hoperatorsExpr: the operator part at 605:17 in rule hoperatorsExpr is not committing against the operator part "(" -ws ")" at 604:17 in rule hoperatorsExpr, and units that are not committing are nested in it without bound through a recursion of rule calls
 608:59 hoperand: the lookahead at 608:59 in rule hoperand is not committing against what follows the lookahead !(parenCompositeType -sp "{"), and units that are not committing are nested in it without bound through a recursion of rule calls
 608:103 hoperand: the alternative at 608:103 in rule hoperand is not committing against the later alternative o:funcType at 608:115 in rule hoperand, and units that are not committing are nested in it without bound through a recursion of rule calls
+608:128 hoperand: the alternative at 608:128 in rule hoperand is not committing against the later alternative o:arrayType !(-sp "{") at 608:146 in rule hoperand, and units that are not committing are nested in it without bound through a recursion of rule calls
 619:17 guardPrimary: the operator part at 619:17 in rule guardPrimary is not committing against the operator part dot -ws s:ident at 617:17 in rule guardPrimary, and units that are not committing are nested in it without bound through a recursion of rule calls
 620:17 guardPrimary: the operator part at 620:17 in rule guardPrimary is not committing against the operator part "[" -ws i:indexList "]" at 621:17 in rule guardPrimary, and units that are not committing are nested in it without bound through a recursion of rule calls
 621:17 guardPrimary: the operator part at 621:17 in rule guardPrimary is not committing against the operator part "[" -ws i:expr -sp ("," -ws)? "]" at 620:17 in rule guardPrimary, and units that are not committing are nested in it without bound through a recursion of rule calls

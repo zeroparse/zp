@@ -1520,7 +1520,10 @@ The conditions below use these terms.
   neither does a negative lookahead that a path of the unit passes before it
   parts; when `!K` is on the side of the continuation, the alternatives of
   `K` before `A` cost a constant, as a lookahead that only the continuation
-  evaluates does.
+  evaluates does, and no call of `A` that the unit passes alike contains a
+  scanning source: where the continuation reaches a copy of the unit through
+  a left call, each step of the growth evaluates the unit again, and the
+  scan of such a call would repeat in every step.
   So `!("c" L "y")`, with `L` a recursion of its own, decides nothing against
   `"c" W "y"` with another rule `W`: no symbol of that side passes the call of
   `L`.

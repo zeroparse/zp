@@ -2212,8 +2212,7 @@ shared calls, and one step for each memoized rule. $\square$
 **Decided units at the position of the growth.** In the steps that
 *Failures at the position of the growth* does not leave out, let the unit $V$
 that holds $x$ be decided by its continuation $g$, and let $C$ be a call of a
-rule that calls no rule that $V$ passes alike before it parts. Then, apart
-from the case that step 2 of [Open Steps](#open-steps) keeps, $C$
+rule that calls no rule that $V$ passes alike before it parts. Then $C$
 examines at most a constant amount of the input, and $V$ fails at $p$ at the
 decisive symbol, within the symbols that the alternative of a decisive
 negative lookahead reads, or inside a unit that condition 2 checks at $p$.
@@ -2265,21 +2264,19 @@ examined. $K$ is the expression of a lookahead and so a unit, which can be
 committing in any of its ways, by its words among them; this case uses only
 the form of a decisive $!K$, not the way in which $K$ is committing. The
 literals, classes and lookaheads of $V$ there cost a constant. Each call of
-$V$ that passes a call of $A$ is cheap: the memo answers it, it holds no
-scanning source and examines what Lemma 1 bounds, or its rule calls no rule,
-and a call whose body is cheap in all its parts reduces to these.
-In the last case the call is a call of $K$ as well, so $K$ contains a
-scanning source, and by the form of a decisive $!K$ that lookahead is
-neither on the side of $V$ nor among the negative lookaheads that $V$ passes
-before it parts, so it is not an earlier symbol of $P$: it precedes the copy.
-Step 2 of [Open Steps](#open-steps) keeps that case.
+$V$ that passes a call of $A$ is alike with it, a call of the same rule, and
+holds no scanning source: when $!K$ precedes the copy, it is on the side of
+the continuation, where the form of a decisive $!K$ excludes a call of $A$
+that the unit passes alike and that contains a scanning source; when it is
+an earlier symbol of $P$, it is a negative lookahead that $V$ passes before
+it parts, and $K$ contains no scanning source at all. So each such call
+examines what Lemma 1 bounds, the memo answering it or not.
 
 A symbol of $V$'s side that decides, a dead symbol, a lookahead or the end of
 the parse, fails $V$ at $p$ as well: a negative lookahead of $V$'s side
 contains no scanning source by the form of a decisive $!K$, so it examines
 what Lemma 1 bounds, and a positive lookahead of $V$'s side is evaluated by
-$V$ at $p$ as part of the unit that condition 2 checks. So, outside the case
-that step 2 keeps, $V$ examines at most a constant amount of the input beyond
+$V$ at $p$ as part of the unit that condition 2 checks. So $V$ examines at most a constant amount of the input beyond
 what Lemma 1 bounds in every step that the claims above do not leave out.
 $\square$
 
@@ -2565,9 +2562,7 @@ and one of two cases holds.
   after a lookahead that reads the seed and returns to $p$:
   the parts at $p$ that the claims of this lemma before *Calls in a context of
   growths* bound. Then step $j'$ is one of the constant number of steps of the
-  growth that those claims leave out, or $q$ is at most a constant after $p$,
-  or the unit that holds $\alpha'$ and its continuation are a pair that step 2
-  of [Open Steps](#open-steps) keeps.
+  growth that those claims leave out, or $q$ is at most a constant after $p$.
 
 *Proof.* A growth drops at most its last step, so step $j$, which comes before
 step $j'$, is kept, and its result, from $p$ to $e_{j+1}$, is the seed of step
@@ -2637,7 +2632,6 @@ holds at $q$ (*Consecutive repeats inside a family*). So these $\alpha'$
 number at most the activations that dropped steps hold in such parts, which
 these claims count with those of the second case, a growth having at most one
 dropped step.
-The pairs that step 2 of [Open Steps](#open-steps) keeps remain open.
 
 **Families of growths.** A growth of a leader at $p$ is **outer** when no
 growth of its cycle is in progress at $p$ where its call is made. The
@@ -2873,13 +2867,12 @@ constant by the induction. This holds in the steps that the claims at $p$
 leave out too, whose parts at $p$ can examine the input far from $p$. When
 $q$ is more than a constant after $p$, the steps of one growth in the family
 that hold such an activation are the first of them, the constant number of
-steps that the claims at $p$ leave out, the second step of a growth whose first
-result is empty and the steps that a pair kept by step 2 of
-[Open Steps](#open-steps) enters. So the activations of $\sigma$ at $q$ in
+steps that the claims at $p$ leave out and the second step of a growth whose first
+result is empty. So the activations of $\sigma$ at $q$ in
 the family region of $g$ number at most a constant, apart from a constant for
 each step of the family when $q$ is at most a constant after $p$, the
 activations inside calls of rules that call no rule, case 5 and the dropped
-steps, and the pairs that step 2 of [Open Steps](#open-steps) keeps.
+steps.
 
 **First activations of heads.** Let $h$ be the head of a key whose family
 region holds a successful activation of $\sigma$ at $q$ of the sequence
@@ -2999,8 +2992,7 @@ at $p$ that the claims before *Calls in a context of growths* bound, and since
 $g'$ consumes input past $q$ for its activation $\alpha'$, so does the unit of
 $\alpha$ that contains it: those claims make $\alpha$
 one of the constant number of steps of $g$ that they leave out, or $q$ at
-most a constant after $p$, or the unit and its continuation a pair that
-step 2 of [Open Steps](#open-steps) keeps, as in the second case of
+most a constant after $p$, as in the second case of
 *Repeats inside a growth*. If $p' = q$, $g'$ is an outer growth at $q$, and its
 key has at most two.
 
@@ -5303,7 +5295,8 @@ A new condition enters the proof in one of two ways.
 
 ## Open Steps
 
-The outlines leave steps 1 to 6 to be made precise, and step 7 is the part of the
+The outlines leave steps 1 and 3 to 6 to be made precise, step 2 lists what
+Lemma 5 proves of the continuations of growing units, and step 7 is the part of the
 condition of the cost view that the [Cost View](cost-view.md) proof leaves open.
 
 1. **Counting activations in Lemma 4.** The claims of Lemma 4 reduce the scanned
@@ -5408,13 +5401,7 @@ condition of the cost view that the [Cost View](cost-view.md) proof leaves open.
    position from a growing result, which leaves those claims in force (*Values
    bound from a growing result*), and that a decided unit examines a constant
    amount of the input there (*Decided units at the position of the growth*).
-   One case of that claim is open: a unit decided at a negative lookahead
-   `!K` that precedes the copy of its path, on the side of the continuation,
-   where a call of `K` that the unit passes alike is a call of a rule that
-   calls no rule and contains a scanning source. The unit repeats that scan in
-   each step where `K` is answered by the memo, so the proof must show that
-   another condition excludes such a lookahead, or the specification must
-   restrict it.
+   No part of this step remains open.
 3. **Operators Rules.** Lemma 4 places the operators that an Operators Rule
    applies and its units among the activations and units of its claims, with the
    operator parts that an enclosing level tries again as a continuation of an
@@ -5489,8 +5476,7 @@ condition of the cost view that the [Cost View](cost-view.md) proof leaves open.
    position in the family region of one outer growth by a constant, apart from
    a constant for each step at the positions at most a constant after the
    growth, and leave the activations inside calls of rules that call no rule, the leaf
-   links inside a family, with the open parts of step 1, and the pairs that
-   step 2 keeps. Second, the heads of keys
+   links inside a family, with the open parts of step 1. Second, the heads of keys
    whose first activation at a position is of a kind that *First activations
    of heads* lists: the open parts of step 1, the activations that a dropped step at the position of its growth
    or a path that enters a growth again of the
