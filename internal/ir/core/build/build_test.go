@@ -161,7 +161,7 @@ rule inner = "b"* #stream
 		"    capture 0 x\n      stream\n        repeat 0 -1 resume=1 shiftable\n",
 		"      seq\n        lit \"a\"\n        missing site=1\n          lit \";\"\n",
 		"        missing site=2\n          error \"colon\" missing-scope\n            lit \":\"\n",
-		"  repeat 0 -1 run=1 resume=2 shiftable\n",
+		"  stream\n    repeat 0 -1 resume=2 shiftable\n",
 	} {
 		if !strings.Contains(got, want) {
 			t.Errorf("Print does not contain %q:\n%s", want, got)
@@ -193,8 +193,8 @@ rule inner = u:(v:"b"* #stream)
 	}
 	got := core.Print(m, false)
 	for _, want := range []string{
-		"    capture 0 x\n      capture 1 y\n        stream\n          repeat 0 -1\n",
-		"  capture 0 u\n    capture 1 v\n      stream\n        repeat 0 -1\n",
+		"    capture 0 x\n      capture 1 y\n        stream\n          repeat 0 -1 resume=1 shiftable\n",
+		"  capture 0 u\n    capture 1 v\n      stream\n        repeat 0 -1 resume=2 shiftable\n",
 	} {
 		if !strings.Contains(got, want) {
 			t.Errorf("Print does not contain %q:\n%s", want, got)
