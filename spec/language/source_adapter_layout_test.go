@@ -68,34 +68,21 @@ func rawLayout(lines []string, path string, v reflect.Value) []string {
 
 var layoutIndex = regexp.MustCompile(`\[\d+\]`)
 
-// layoutPending matches the places whose raw layout the canonical frontend
-// does not build yet: inside rule expressions, actions, variable values and
-// attribute arguments. The comments that those places do not take go to the
-// line break of their declaration, or the one before its body or action, so a source that differs there is logged
-// whatever else differs; a source that differs only elsewhere fails.
-var layoutPending = regexp.MustCompile(`\.(Expr|Action|Value)\(|\.ArgsLayout\.|RuleDef\)\.(Break|BodyBreak|ActionBreak)\.|^format$`)
-
 // layoutDifference describes where the hand-written parser and the canonical
 // frontend build a different grammar for src, raw layout included. class is
-// the first place that differs, as its path without list indexes; pending
-// reports whether any place that differs is one that layoutPending matches.
-// class is "" when the two agree, or when either rejects src.
-func layoutDifference(src string) (class, detail string, pending bool) {
+// the first place that differs, as its path without list indexes, or
+// "format" when only the text that Format writes differs. class is "" when the
+// two agree, or when either rejects src.
+func layoutDifference(src string) (class, detail string) {
 	manual, err := zp.ParseGrammar(src)
 	if err != nil {
-		return "", "", false
+		return "", ""
 	}
 	got, err := adaptCanonical(src)
 	if err != nil {
-		return "", "", false
+		return "", ""
 	}
 	want, have := rawLayout(nil, "", reflect.ValueOf(manual)), rawLayout(nil, "", reflect.ValueOf(got))
-	for _, line := range symmetricDifference(want, have) {
-		path, _, _ := strings.Cut(line, " = ")
-		if layoutPending.MatchString(path) {
-			pending = true
-		}
-	}
 	for i := 0; i < max(len(want), len(have)); i++ {
 		var w, h string
 		if i < len(want) {
@@ -112,30 +99,12 @@ func layoutDifference(src string) (class, detail string, pending bool) {
 			path = h
 		}
 		path, _, _ = strings.Cut(path, " = ")
-		return layoutIndex.ReplaceAllString(path, "[]"), fmt.Sprintf("\n manual:    %s\n canonical: %s", w, h), pending
+		return layoutIndex.ReplaceAllString(path, "[]"), fmt.Sprintf("\n manual:    %s\n canonical: %s", w, h)
 	}
 	if a, b := grammar.Format(manual), grammar.Format(got); a != b {
-		return "format", fmt.Sprintf("\nmanual:\n%s\ncanonical:\n%s", a, b), true
+		return "format", fmt.Sprintf("\nmanual:\n%s\ncanonical:\n%s", a, b)
 	}
-	return "", "", false
-}
-
-// symmetricDifference returns the lines that are in only one of a and b.
-func symmetricDifference(a, b []string) []string {
-	count := map[string]int{}
-	for _, l := range a {
-		count[l]++
-	}
-	for _, l := range b {
-		count[l]--
-	}
-	var out []string
-	for l, n := range count {
-		if n != 0 {
-			out = append(out, l)
-		}
-	}
-	return out
+	return "", ""
 }
 
 // withComment inserts a comment at a pseudo-random offset of src that is
@@ -185,20 +154,16 @@ func TestCanonicalLayout(t *testing.T) {
 	}
 	classes := map[string]int{}
 	examples := map[string]string{}
-	settled := map[string]int{} // the sources of a class that differ only outside layoutPending
 	compared := 0
 	for _, src := range inputs {
 		if _, err := zp.ParseGrammar(src); err == nil {
 			compared++
 		}
-		class, detail, pending := layoutDifference(src)
+		class, detail := layoutDifference(src)
 		if class == "" {
 			continue
 		}
 		classes[class]++
-		if !pending {
-			settled[class]++
-		}
 		if _, ok := examples[class]; !ok {
 			examples[class] = fmt.Sprintf("%q%s", src, detail)
 		}
@@ -211,12 +176,7 @@ func TestCanonicalLayout(t *testing.T) {
 	total := 0
 	for _, k := range keys {
 		total += classes[k]
-		t.Logf("%5d %s\n%s", classes[k], k, examples[k])
+		t.Errorf("the canonical frontend builds a different raw layout or format for %d sources at %s, as for\n%s", classes[k], k, examples[k])
 	}
 	t.Logf("%d of %d accepted sources differ", total, compared)
-	for _, k := range keys {
-		if settled[k] > 0 {
-			t.Errorf("the canonical frontend builds a different raw layout for %d sources at %s, with no difference in rule expressions, actions, values or attribute arguments", settled[k], k)
-		}
-	}
 }
