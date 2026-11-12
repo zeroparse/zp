@@ -824,7 +824,7 @@ func (a *astConv) toError(n *Node) *Error {
 	for _, name := range t.NodeTypes {
 		// A node of a named node type converts as the node it was converted from (baseNode).
 		n, _ := t.G.Prog.NodeTypeOf(name)
-		fmt.Fprintf(b, "func (a *astConv) %[4]s(n *Node) *%[1]s {\n\ta.spend()\n\tif n == nil || n.Type() != %[2]q {\n\t\treturn nil\n\t}\n\tif v, ok := a.values[n]; ok { return v.(*%[1]s) }\n\tu := %[3]s\n\tif u == nil {\n\t\treturn nil\n\t}\n\tv := &%[1]s{*u}\n\ta.remember(n, v)\n\treturn v\n}\n\n", t.ref(name), name, t.conv(n.Underlying(), "n.BaseNode()"), convName(name))
+		fmt.Fprintf(b, "func (a *astConv) %[4]s(n *Node) *%[1]s {\n\ta.spend()\n\tif n == nil || n.Type() != %[2]q {\n\t\treturn nil\n\t}\n\tif v, ok := a.values[n]; ok { return v.(*%[1]s) }\n\tu := %[3]s\n\tif u == nil {\n\t\treturn nil\n\t}\n\tv := &%[1]s{%[5]s: *u}\n\ta.remember(n, v)\n\treturn v\n}\n\n", t.ref(name), name, t.conv(n.Underlying(), "n.BaseNode()"), convName(name), embeddedName(t.goType(n.Underlying())))
 	}
 	for _, name := range t.structs {
 		fmt.Fprintf(b, "func (a *astConv) %[4]s(n *Node) *%[1]s {\n\ta.spend()\n\tif n == nil || n.Type() != %[2]q {\n\t\treturn nil\n\t}\n\tif v, ok := a.values[n]; ok { return v.(*%[1]s) }\n\tv := astNew(&a.t%[5]s)\n\ta.remember(n, v)\n\tv.%[3]s = %[3]s{Start: int(n.RawStart), End: int(n.RawEnd)}\n", t.ref(name), name, span, convName(name), name)
@@ -1610,4 +1610,17 @@ func tupleName(name string) bool {
 		return false
 	}
 	return strings.Trim(digits, "0123456789") == ""
+}
+
+// embeddedName returns the name of the field that embeds the Go type typ (such as *TNode[string] or
+// *types.TNode[any]) in a struct: the type name without pointer, package and type arguments. The
+// literal of the struct of a named node type is keyed by it, since go vet reports an unkeyed
+// literal of a struct that another package declares.
+func embeddedName(typ string) string {
+	typ = strings.TrimPrefix(typ, "*")
+	typ, _, _ = strings.Cut(typ, "[")
+	if i := strings.LastIndexByte(typ, '.'); i >= 0 {
+		typ = typ[i+1:]
+	}
+	return typ
 }
