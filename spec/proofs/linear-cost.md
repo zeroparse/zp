@@ -536,7 +536,12 @@ scanning sources other than bounded scans, whose activations Lemma 13 counts.
 By the restarts above, a successful activation of such a source is repeated at a
 position only after a dropped step of a growth, which Lemma 5 counts, or after a
 committing unit that contains the earlier one is abandoned, and the parser does
-not return before the start of that unit until the repetition. The ways in which
+not return before the start of that unit until the repetition. The restarts
+leave out two activations whose innermost common evaluation is a growth;
+*Repeats inside a growth* in Lemma 5 shows that they are related in the same
+way, through a unit whose continuation goes on through the reads of the seed,
+unless the later one lies in a part that a step evaluates at the position of
+the growth without reading a growing result, which Lemma 5 counts. The ways in which
 a unit is committing give the following cases.
 
 1. *Disjoint first characters.* The continuation does not consume the
@@ -663,7 +668,9 @@ answers that call, and the next activation at the space lies in the call of
 `R` that `main` makes after it, in no evaluation of `s`.
 
 So the successful activations of $\sigma$ at $q$, $\alpha_1, \alpha_2, \ldots$
-in the order in which they start, outside case 5 and dropped steps, are direct
+in the order in which they start, outside case 5, dropped steps and the
+repeats at the position of a growth that *Repeats inside a growth* of Lemma 5
+leaves out, are direct
 in distinct body evaluations of $R$, and for $i \ge 2$, $\alpha_{i-1}$ lies in
 the evaluation $e_i$ of a call shared by a committing unit $w_i$ and its
 continuation, inside $w_i$. When $\alpha_i$ lies in an evaluation $e'_i$ of the
@@ -2081,6 +2088,82 @@ includes the growing result of $S$ in all its results from the first that is
 not empty, or reads it only on paths that fail, or not at all. So it is
 bounded as those kinds are, and the comparison changes the constant of the
 bound, not its form. $\square$
+
+**Repeats inside a growth.** The restarts of Lemma 4 leave out two successful
+activations whose innermost common evaluation is a growth. Let $\alpha$ and
+$\alpha'$ be successful activations of a scanning source $\sigma$ that start at
+$q$, $\alpha$ first, let the innermost evaluation that contains both be a
+growth at $p$, with $\alpha$ in its step $j$ and $\alpha'$ in a later step
+$j'$, and let $e_k$ be the end of the seed of step $k$. Then step $j$ is kept,
+and one of two cases holds.
+
+- *After the seed.* $\alpha'$ follows, in step $j'$, a read of the growing
+  result that succeeds, or a call whose result includes one. Then the path
+  from step $j$ down to $\alpha$ holds a first abandoned evaluation $w$, a
+  dropped step of a growth or a unit that starts at a position $s$ with
+  $s \le q$ and $s \le e_{j+1}$, and the conclusion of the restarts holds for
+  $\alpha$ and $\alpha'$ with this $w$, where the continuation of $w$ that the
+  parser evaluates goes on, at the end of the body of the leader, through the
+  reads of the seed in the steps after $j$.
+- *At the position of the growth.* Otherwise $\alpha'$ lies in a part that
+  step $j'$ evaluates on a path that reads no growing result that succeeds:
+  the parts at $p$ that the claims of this lemma before *Calls in a context of
+  growths* bound. Then step $j'$ is one of the constant number of steps of the
+  growth that those claims leave out, or $q$ is at most a constant after $p$,
+  or the unit that holds $\alpha'$ and its continuation are a pair that step 2
+  of [Open Steps](#open-steps) keeps.
+
+*Proof.* A growth drops at most its last step, so step $j$, which comes before
+step $j'$, is kept, and its result, from $p$ to $e_{j+1}$, is the seed of step
+$j + 1$; the seeds grow longer, so $e_{j+1} \le e_{j'}$. In the first case
+$\alpha'$ starts at or after the end of a read that succeeds or of a result
+that includes one, so $q \ge e_{j'} \ge e_{j+1}$. If no evaluation on the path
+from step $j$ down to $\alpha$ were abandoned, the input that $\alpha$ consumes
+from $q$ would lie in the result of step $j$, which ends at $e_{j+1}$, so $w$
+exists. As in the restarts, the evaluations above $w$ on that path succeed,
+are no expression of a lookahead and no dropped step, so $w$ is a dropped step
+or a unit, and its parent goes on after it at $s$, inside the result of step
+$j$, so $s \le e_{j+1}$. From the end of $w$ the parser returns to no position
+before $s$ in step $j$, by the argument of the restarts, and then starts the
+steps after $j$ at $p$; each of them reaches positions after $p$ only by a part
+at $p$ that reads no growing result, or by a read of the seed, which ends at
+the end of the seed, at or after $e_{j+1}$, and so at or after $s$. Up to
+$\alpha'$, which follows such a read, the parser therefore evaluates, from
+$s$ on, what follows $w$ in step $j$ up to the end of the body of the leader
+and then what follows the reads of the seed, step after step: this is a
+continuation of $w$ in the sense of [Conditions for Linear
+Cost](../runtime/parsing.md#conditions-for-linear-cost), which continues at the
+end of a rule body through every call of the rule, the reads of the seed
+included. So condition 2 checks $w$ against it, the parts at $p$ that the
+steps evaluate in between are no part of it, and the arguments of *Direct
+activations* and *Repeats*, which use of the continuation only that the parser
+consumes through it the input from the end of the shared calls to $q$, apply
+to $w$ and that continuation. In the second case $\alpha'$ lies in no part
+after a read that succeeds, so in a part that step $j'$ evaluates at $p$
+without reading a growing result that succeeds, through the later
+alternatives after a growing unit fails, the parts that a unit goes on with at
+its start or what a unit examines at $p$ before a left call; *Evaluations that
+read no growing result*, *Results that do not include the seed*, *Sources at
+fixed offsets*, *Calls shared with a growing unit* and *Failures at the
+position of the growth* bound these as stated, whether $\alpha'$ lies in the
+own region of the step or in a call that the part makes. $\square$
+
+So the sequence $\alpha_1, \alpha_2, \ldots$ of Lemma 4 leaves out, beside case
+5 and the dropped steps, the activations of the second case: an activation
+that lies in a step of a growth, on a path that reads no growing result that
+succeeds, after an activation of $\sigma$ at $q$ in an earlier step of that
+growth. Two activations of the sequence whose innermost common evaluation is a
+growth are then in the first case, so the claims of Lemma 4 apply to them as
+to the others. This lemma counts the activations of the second case. In a step
+that the claims at $p$ do not leave out, they lie in parts that examine at most
+a constant amount of the input, so they number at most a constant for each
+step. In the constant number of steps of a growth that the claims leave out,
+the parts that hold them read no growing result and are evaluated alike in
+every step that reaches them (*Evaluations that read no growing result*), so
+at each position they number at most a constant times what one evaluation of
+those parts holds there. Bounding that by the activations of the sequence in
+the growth, summed over the positions, is part of step 4 of [Open
+Steps](#open-steps), as are the pairs that step 2 keeps.
 
 ## Lemma 6 (Values and Copies)
 
@@ -4033,7 +4116,12 @@ condition of the cost view that the [Cost View](cost-view.md) proof leaves open.
    that the outer growth consumes, apart from the growths at calls that are
    scanning sources (*Steps that begin anew*, *Growths inside a step*), and
    shows that these bounds do not rest on reuse in a context (*Reuse in a
-   context*). One part remains: the sum over the positions below.
+   context*). It also relates two activations at one position whose innermost
+   common evaluation is a growth, which the restarts of Lemma 4 leave out, as
+   the restarts relate the others, unless the later one lies in a part that a
+   step evaluates at the position of the growth without reading a growing
+   result (*Repeats inside a growth*). One part remains: the sum over the
+   positions below.
    Lemma 4
    bounds the activations owned by memoized evaluations after this lemma, in
    the order that it states: the growth steps, the evaluations in a context of
@@ -4058,7 +4146,11 @@ condition of the cost view that the [Cost View](cost-view.md) proof leaves open.
    own, and for the growths
    that start at many positions, each at a call of a rule of the cycle that is
    not a left call or at a call of a leader in the body of another rule, as
-   the repetitions of a scanning source.
+   the repetitions of a scanning source. It must also count the activations
+   that *Repeats inside a growth* leaves out of the sequence of Lemma 4: in
+   the constant number of steps of each growth that the claims at the position
+   of the growth leave out, at each position, by the activations of the
+   sequence inside the growth.
 5. **Chains of bindings in Lemma 11.** The bound $L = O(n)$ that
    [Classification](../runtime/parsing.md#classification) states, which the
    theorem does not use. *Values of variables* in Lemma 11 proves it given
