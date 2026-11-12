@@ -1,4 +1,7 @@
 // Package fixture runs JSON-described examples against ZeroParse grammars.
+//
+// It is internal: its only user is the zp test command, and the JSON format of a fixture suite is not
+// yet declared stable, so the package is not offered as a public API.
 package fixture
 
 import (

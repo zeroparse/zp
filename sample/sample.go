@@ -1,6 +1,10 @@
 // Package sample generates inputs that a grammar accepts, for testing code that consumes parse results
 // and for seeding fuzz tests.
 //
+// Its audience is Go programs that test their own grammars and parse results, such as fuzz tests and
+// table tests; the zp command uses it for the same purpose. At v0.x its API is unstable and may change
+// in any release.
+//
 // A Generator walks the grammar AST of a parser from its start rule and writes candidate inputs, making
 // random decisions at ordered choices, repetitions, optional expressions and Operators Rule expressions. The
 // decisions are reproducible: the same parser, options and seed give the same inputs with the same
