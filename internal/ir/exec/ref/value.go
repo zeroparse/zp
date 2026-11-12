@@ -44,6 +44,7 @@ type V struct {
 	// or the list of Items. S is the text of the range of every node.
 	Shape Shape
 	// Caps are the captures of a node by name; a capture that did not match is absent and reads as nil.
+	// For a node of UnknownShape, a nil Caps means that its captures are unknown as well.
 	Caps map[string]V
 }
 
@@ -55,6 +56,10 @@ const (
 	StringNode Shape = iota
 	TupleNode
 	ListNode
+	// UnknownShape is the shape of a node whose range and text are known but whose value and type are
+	// not, such as a node that a generator has produced without tracking its elements. Every operation
+	// that reads its value or its type reads Unknown.
+	UnknownShape
 )
 
 // Node returns a node of the input of the shape with the text and the range, the elements of a tuple
@@ -66,6 +71,8 @@ func Node(shape Shape, text string, start, end int, items []V, caps map[string]V
 // nodeValue is the value of a node, .Value: its string, its tuple or its list of elements.
 func (v V) nodeValue() V {
 	switch v.Shape {
+	case UnknownShape:
+		need(Unknown)
 	case TupleNode:
 		return Tuple(v.Items...)
 	case ListNode:
@@ -114,6 +121,8 @@ func (v V) TypeName() string {
 		return "node[" + Tuple(v.Items...).TypeName() + "]"
 	case ListNode:
 		return "node[[]_]"
+	case UnknownShape:
+		return "node"
 	}
 	return "node[string]"
 }
