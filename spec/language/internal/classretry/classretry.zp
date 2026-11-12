@@ -1,0 +1,4 @@
+// A character class that a choice tries again from every "[" until the end of the line.
+@start
+rule main = (c / .)*
+rule c = "[" ("\\" . / [^\]\\\n])* "]"
