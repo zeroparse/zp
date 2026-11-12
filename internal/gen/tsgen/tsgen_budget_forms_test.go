@@ -100,7 +100,7 @@ for (const unit of [p.CodePoints, p.Bytes]) {
   for (const error of [withSignal.error, withBudget.error, withRecognize]) {
     check(error !== null && error.message.includes("generated without limit controls"), "a control option is rejected");
   }
-  const rejected = [{ signal: { aborted: false } }, { limits: { compute: 1 } }] as unknown as p.ParseOptions[];
+  const rejected = [{ signal: { aborted: false } }, { limits: { compute: 1 } }, { limits: { memory: 1 } }] as unknown as p.ParseOptions[];
   for (const options of rejected) {
     for (const error of [p.parseWithOptions(input, options).error, p.parseRuleWithOptions("fast", "z", options).error, p.recognizeWithOptions(input, options), p.parseASTWithOptions(input, options).error]) {
       check(error !== null && error.message.includes("generated without limit controls"), "a control option is rejected by every entry point: " + JSON.stringify(options));
@@ -116,7 +116,7 @@ for (const unit of [p.CodePoints, p.Bytes]) {
   check(p.parseWithOptions(input, { unit, limits: { input: 5 } }).error === null, "an input as long as the limit parses");
   // A removed or misspelled option is an error, not ignored.
   const unknown: [object, RegExp][] = [[{ budget: 1 }, /^unknown parse option: budget$/], [{ maxInput: 1 }, /^unknown parse option: maxInput$/],
-    [{ maxDepth: 1 }, /^unknown parse option: maxDepth$/], [{ limits: { memory: 1 } }, /^unknown limit: memory$/]];
+    [{ maxDepth: 1 }, /^unknown parse option: maxDepth$/], [{ limits: { bytes: 1 } }, /^unknown limit: bytes$/]];
   for (const [options, want] of unknown) {
     const o = { unit, ...options } as unknown as p.ParseOptions;
     for (const error of [p.parseWithOptions(input, o).error, p.parseRuleWithOptions("fast", "z", o).error, p.recognizeWithOptions(input, o), p.parseASTWithOptions(input, o).error]) {
@@ -146,7 +146,7 @@ for (const unit of [p.CodePoints, p.Bytes]) {
   check(p.parse(input, unit).error === null, "a parse after an interruption");
   // A removed or misspelled option is an error, not ignored.
   const unknown: [object, RegExp][] = [[{ budget: 1 }, /^unknown parse option: budget$/], [{ maxInput: 1 }, /^unknown parse option: maxInput$/],
-    [{ maxDepth: 1 }, /^unknown parse option: maxDepth$/], [{ limits: { memory: 1 } }, /^unknown limit: memory$/]];
+    [{ maxDepth: 1 }, /^unknown parse option: maxDepth$/], [{ limits: { bytes: 1 } }, /^unknown limit: bytes$/]];
   for (const [options, want] of unknown) {
     const o = { unit, ...options } as unknown as p.ParseOptions;
     for (const error of [p.parseWithOptions(input, o).error, p.parseRuleWithOptions("fast", "z", o).error, p.recognizeWithOptions(input, o), p.parseASTWithOptions(input, o).error]) {
