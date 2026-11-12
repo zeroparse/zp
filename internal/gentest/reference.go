@@ -281,6 +281,18 @@ func main() {
 
 func GeneratedTypesCorpus(t *testing.T, goBin string, cases []Case, reference gen.GenOptions, requiredTyped ...int) {
 	t.Helper()
+	for _, p := range GeneratedTypesProblems(t, goBin, cases, reference, nil, requiredTyped...) {
+		t.Error(p)
+	}
+}
+
+// GeneratedTypesProblems is GeneratedTypesCorpus but it returns a description of every result that
+// differs from the engine instead of failing on it. mutate, when not nil, rewrites the typed
+// parser.go of each case before it is built, so that a test can require that a changed typed parser
+// is reported. The value of a parse that recovers from errors is compared as well as one without.
+func GeneratedTypesProblems(t *testing.T, goBin string, cases []Case, reference gen.GenOptions, mutate func([]byte) []byte, requiredTyped ...int) (problems []string) {
+	t.Helper()
+	problemf := func(format string, args ...any) { problems = append(problems, fmt.Sprintf(format, args...)) }
 	dir := t.TempDir()
 	write := func(name, content string) {
 		path := filepath.Join(dir, name)
@@ -294,7 +306,8 @@ func GeneratedTypesCorpus(t *testing.T, goBin string, cases []Case, reference ge
 	var inputs [][]string
 	var wantErr []string
 	// wantValue holds the canonical form of the engine's value of each input, and accepted tells
-	// which inputs the engine accepts; the canonical typed values of accepted inputs must equal it.
+	// which inputs the engine returns a value for, with or without errors; the canonical typed values of
+	// those inputs must equal it.
 	var wantValue []any
 	var accepted []bool
 	typedRuntime := 0
@@ -304,6 +317,16 @@ func GeneratedTypesCorpus(t *testing.T, goBin string, cases []Case, reference ge
 			t.Fatalf("%s: %v", c.Name, err)
 		}
 		code := GeneratePackage(t, dir, fmt.Sprintf("g%d", i), g, gen.GenOptions{Start: "main", Types: true, SourceInfo: true})
+		if mutate != nil {
+			path := filepath.Join(dir, fmt.Sprintf("g%d", i), "parser.go")
+			orig, err := os.ReadFile(path)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if err := os.WriteFile(path, mutate(orig), 0o644); err != nil {
+				t.Fatal(err)
+			}
+		}
 		if strings.Contains(code, "TParse(trules") {
 			typedRuntime++
 		}
@@ -324,9 +347,9 @@ func GeneratedTypesCorpus(t *testing.T, goBin string, cases []Case, reference ge
 		for _, in := range c.Inputs {
 			n, err := prog(in, false, false)
 			wantErr = append(wantErr, fmt.Sprint(err))
-			accepted = append(accepted, err == nil)
+			accepted = append(accepted, n != nil)
 			var val any
-			if err == nil {
+			if n != nil {
 				b, merr := json.Marshal(n)
 				if merr != nil {
 					t.Fatalf("%s: input %q: %v", c.Name, in, merr)
@@ -435,14 +458,14 @@ func main() {
 		t.Fatalf("go run: %v\n%s", err, stderr.String())
 	}
 	if stderr.Len() > 0 {
-		t.Errorf("the typed runtime differs from the reference route:\n%s", stderr.String())
+		problemf("the typed runtime differs from the reference route:\n%s", stderr.String())
 	}
 	minimum := 5
 	if len(requiredTyped) != 0 {
 		minimum = requiredTyped[0]
 	}
 	if typedRuntime < minimum {
-		t.Errorf("only %d of %d grammars use the typed runtime", typedRuntime, len(cases))
+		problemf("only %d of %d grammars use the typed runtime", typedRuntime, len(cases))
 	}
 	t.Logf("%d of %d grammars use the typed runtime", typedRuntime, len(cases))
 	lines := strings.Split(strings.TrimSuffix(string(out), "\n"), "\n")
@@ -477,15 +500,15 @@ func main() {
 	for _, c := range cases {
 		for _, in := range c.Inputs {
 			if got[k].Err != wantErr[k] {
-				t.Errorf("%s: input %q: error %s, want %s", c.Name, in, got[k].Err, wantErr[k])
+				problemf("%s: input %q: error %s, want %s", c.Name, in, got[k].Err, wantErr[k])
 			}
 			if accepted[k] {
 				if err := CanonicalTypedMatches(canonical[k], wantValue[k]); err != nil {
-					t.Errorf("%s: input %q: typed value %s: %v", c.Name, in, got[k].Value, err)
+					problemf("%s: input %q: typed value %s: %v", c.Name, in, got[k].Value, err)
 				}
 			}
 			if want, ok := aliasTypedGoldens[c.Name]; ok && in == "éé" && string(got[k].Value) != want {
-				t.Errorf("%s: typed alias value is %s, want %s", c.Name, got[k].Value, want)
+				problemf("%s: typed alias value is %s, want %s", c.Name, got[k].Value, want)
 			}
 			k++
 		}
@@ -512,9 +535,10 @@ func main() {
 		enc.Encode(typed[i])
 		want = strings.ReplaceAll(want, "g37", fmt.Sprintf("g%d", len(cases)-1))
 		if got := strings.TrimSuffix(b.String(), "\n"); got != want {
-			t.Errorf("typed %q:\n got %s\nwant %s", cases[len(cases)-1].Inputs[i], got, want)
+			problemf("typed %q:\n got %s\nwant %s", cases[len(cases)-1].Inputs[i], got, want)
 		}
 	}
+	return problems
 }
 
 // inputBytes returns inputs as byte slices, which JSON carries exactly (as base64); JSON

@@ -89,7 +89,9 @@ var engineDroppedKeys = []string{"rule", "captures"}
 //   - a node (string, tuple, list or named node) is {"start", "end", "value"}, with "type" for a
 //     named node type; the value of a tuple or list is an array;
 //   - a struct is {"type", "start", "end", "fields"}: its range is that of the rule that built it,
-//     and its fields are keyed by their grammar names.
+//     and its fields are keyed by their grammar names;
+//   - input skipped by error recovery is {"start", "end", "error"}, which becomes the struct Error
+//     with the field Message.
 //
 // Keys other than the dropped ones are errors, so the canonical form never hides a difference.
 func CanonicalEngine(v any) (any, error) {
@@ -105,6 +107,14 @@ func CanonicalEngine(v any) (any, error) {
 		}
 		return out, nil
 	case map[string]any:
+		if msg, ok := v["error"]; ok {
+			// Input skipped by error recovery: the typed value is the runtime's Error, a struct with a
+			// span and a Message. Its "expected" has no typed counterpart.
+			if err := onlyKeys(v, "start", "end", "error", "expected"); err != nil {
+				return nil, err
+			}
+			return map[string]any{"type": "Error", "start": v["start"], "end": v["end"], "fields": map[string]any{"Message": msg}}, nil
+		}
 		if _, ok := v["fields"]; ok {
 			if err := onlyKeys(v, "type", "start", "end", "fields"); err != nil {
 				return nil, err
