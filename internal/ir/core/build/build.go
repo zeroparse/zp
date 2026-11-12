@@ -855,11 +855,16 @@ func (b *coreBuilder) termNode(t grammar.Term, s *coreScope, env map[string]*cor
 }
 
 // FollowRepeats returns functions that, once the scan pass has run, give the scan that took the
-// place of each repetition with an origin the origin of the repetition.
+// place of each repetition with an origin the origin of the repetition. A scan that took the place
+// of a Stream gets the origin of the Stream's repetition.
 func FollowRepeats(m *core.Module, origin map[core.Node]grammar.Expr) []func() {
 	var out []func()
 	visit := func(at func() core.Node) {
-		if rep, ok := at().(*core.Repeat); ok {
+		rep, ok := at().(*core.Repeat)
+		if st, isStream := at().(*core.Stream); isStream {
+			rep, ok = st.Repeat, true
+		}
+		if ok {
 			if e, ok := origin[rep]; ok {
 				out = append(out, func() {
 					if s, ok := at().(*core.Scan); ok {

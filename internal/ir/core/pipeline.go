@@ -89,7 +89,9 @@ var Pipeline = &pipeline.Pipeline[*Module, *Env]{
 			},
 		},
 		{
-			Name:        PassScans,
+			Name: PassScans,
+			// A Stream is replaced as its repetition only where it delivers no elements (Eff).
+			Requires:    []pipeline.Analysis{AttributesAnalysis},
 			Invalidates: []pipeline.Analysis{AttributesAnalysis},
 			Obligation:  "Consumes the same input and records the same expectations as the repetition it replaces.",
 			Run: func(m *Module, e *Env) error {

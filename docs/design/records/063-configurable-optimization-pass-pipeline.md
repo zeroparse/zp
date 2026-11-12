@@ -94,9 +94,11 @@ The four Core passes, declared:
 |:--|:--|:--|:--|:--|:--|
 | `terminals` | | `attributes` | | Typed table, lean, no observability | Same input consumed and expectations recorded as the expression it replaces |
 | `guards` | `attributes` | | `terminals` | Always; guarded classes only when ordinary | A guard equals the alternative's first terminal |
-| `scans` | | `attributes` | | Always | Same input consumed and expectations recorded |
+| `scans` | `attributes` | `attributes` | | Always | Same input consumed and expectations recorded |
 | `class-runs` | | `attributes` | `guards` | Typed table, lean | Same input consumed and expectations recorded; the first class of a guarded alternative is left alone |
 
+`scans` replaces a `#stream` repetition only where it delivers no elements, which its effects tell, so it requires
+`attributes`; after `guards` they are valid already, so this adds no analysis run unless `guards` is turned off.
 `class-runs` reads the `Want` attribute and the guard marks, not the attributes that `Analyze` computes, so it requires
 no analysis; it is declared `After guards` because it must leave the first class of a guarded alternative alone.
 `Analyze` is not a pass but the way the manager makes `attributes` valid. It is deterministic over an unchanged tree, so
