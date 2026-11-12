@@ -552,7 +552,7 @@ The parity tests parse in a worker with a 1 GB stack, so that they also check th
 Generated TypeScript supports every feature of the grammar language: Rule Expressions, Operators Rules, left recursion, Predicates and variables, actions, built-in functions, `@error` and
 `#recover`. It adds `parseRule` for another start rule, a `unit` argument for the position unit, `recognize` (with
 `-recognize`) for matching without a tree, and `limits.input` and `limits.depth`, and with `-limits` `signal` and the compute limit, in the options-aware
-entry points. With `-document` it adds [`createDocument`](generated-documents.md#typescript-documents), a Document that parses its whole text on each parse. It has no `#stream` and `ParseStream`: `#stream` is an ordinary repetition, as in Go.
+entry points. With `-document` it adds [`createDocument`](generated-documents.md#typescript-documents), a Document that reuses the results of earlier parses as the Go `Document` does. It has no `#stream` and `ParseStream`: `#stream` is an ordinary repetition, as in Go.
 Typed values (`-types`) give interfaces and aliases and `parseAST`/`parseASTWithOptions` for the configured start rule,
 while `parse` still returns Nodes. The [specification](../../spec/runtime/generated-parsers.md#compatibility-and-support) has
 the complete table of what each target supports.

@@ -11,8 +11,8 @@ The opt-in generated Go `Document` supports Node parsing and direct typed increm
 eligible grammars as batch typed parsing; other typed results use Node conversion. The opt-in generated Go
 `ParseStream` reads Node streams from an `io.Reader`, and with typed values `ParseStreamAST` passes the elements
 as typed values. Ordinary batch parsing remains available and unchanged by default. The generated TypeScript
-`createDocument` has the Document API but parses its whole text on each parse. Repetition resumption, memo reuse
-in TypeScript Documents and TypeScript streams are not implemented.
+`createDocument` has the Document API and reuses memo results as the Go Node `Document` does. Repetition resumption
+and TypeScript streams are not implemented.
 
 ## Existing Contracts and Goals
 
@@ -211,7 +211,7 @@ behavior internally without public element callbacks, rather than panicking. Thi
 
 `createDocument(input: string | Uint8Array, options?: ParseOptions)` is implemented, returning a discriminated
 `{document,error}` result, with `document` null on configuration failure. Copy byte input; resolve option getters
-once. Methods `text()`, `edit(start,end,replacement)`, `parse(options?)`, `stats()` (once parses reuse results) and, with types, `parseAST(options?)` follow the
+once. Methods `text()`, `edit(start,end,replacement)`, `parse(options?)`, `stats()` and, with types, `parseAST(options?)` follow the
 Go contracts and existing TS result/error conventions. Edit returns an Error or null, without partial mutation.
 In Bytes, propose `bytes(): Uint8Array` returning a copy for lossless invalid input; text() uses the existing
 surrogateescape representation. Replacements accept the same string/byte types. Preserve both units, number|bigint
@@ -257,7 +257,8 @@ failure may keep valid cache entries.
 An edit keeps the completed memo entries that examined only input before it and moves those that examined only input
 after it, except results of rules that read positions and results with recovered errors; the others are dropped.
 The Node Document copies the kept entries and moves the Nodes of a moved result, in copies, when it is reused; the
-typed Document relinks its entries and moves only basic values. Neither resumes repetitions. Any broader reuse must retain the exact
+typed Document relinks its entries and moves only basic values. The TypeScript Document keeps and moves entries as the
+Node Document does. None resumes repetitions. Any broader reuse must retain the exact
 restrictions for predicates/variable reads, enclosing capture writes, recovered errors, provisional LR seeds and
 positional values on length-changing edits. Every empty successful iteration counts once and stops. Preserve
 repetition finite maxima/minima, cut scope, Operators Rule candidate-local diagnostics, and lookahead expectations.
