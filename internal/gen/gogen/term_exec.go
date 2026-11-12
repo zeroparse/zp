@@ -54,7 +54,7 @@ func (g *Generator) lowered(t irc.Term, s *compile.Scope, locals map[string]stri
 	if t == nil || g.fieldCompared(t) {
 		return "", false
 	}
-	l, err := lower.Term(t, lower.TermOptions{Result: result, StructCall: g.Table == "trules", Unbounded: g.NoBudget})
+	l, err := lower.Term(t, lower.TermOptions{Result: result, StructCall: g.Table == "trules", Unbounded: g.NoBudget, Proj: g.Proj})
 	if err == lower.ErrUnsupported {
 		return "", false
 	}
@@ -179,6 +179,15 @@ func (g *Generator) termTarget(s *compile.Scope, locals map[string]string) *exec
 				return "c.P.Kids(" + a[0] + ")"
 			case "seq.step":
 				return "c.P.Spend()"
+			case "seq.len":
+				return "len(" + a[0] + ")"
+			case "val.unbox":
+				// As the term printer reads a parameter, which may hold a box.
+				return g.pick("UnboxValue(", "(") + a[0] + ")"
+			case lower.OpTermKeep:
+				return fmt.Sprintf("c.P.KidStack = append(c.P.KidStack, %s[%s])", a[0], a[1])
+			case lower.OpTermCopyList:
+				return g.pick("any(c.NewList(", "(c.NewList(") + a[0] + "))"
 			case lower.OpTermStruct:
 				t := c.Imm.(lower.TermNew).New
 				return fmt.Sprintf("c.%s(%q, %d)", rtTermStruct, t.Type, len(t.Fields))
@@ -195,7 +204,8 @@ func (g *Generator) termTarget(s *compile.Scope, locals map[string]string) *exec
 		Name: termConstName,
 		Pure: func(c *exec.Call) bool {
 			switch c.Callee {
-			case lower.OpTermConst, lower.OpTermName, lower.OpTermField, lower.OpTermCtx, lower.OpTermFromStr, "val.fromBool":
+			case lower.OpTermConst, lower.OpTermName, lower.OpTermField, lower.OpTermCtx, lower.OpTermFromStr, "val.fromBool",
+				"val.unbox", "seq.len":
 				return true
 			}
 			return false

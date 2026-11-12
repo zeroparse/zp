@@ -265,8 +265,8 @@ Details:
 - Without `-s`, the grammar's default start rule is used.
 - With `-runtime import`, the module of the generated package requires `zeroparse.dev/zp/runtime`
   (`go get zeroparse.dev/zp/runtime@vX.Y.Z`, the version of `zp`). `parser.go` refers to the runtime protocol it was
-  generated for (`const _ = rt.Protocol8`), so a runtime that does not implement that protocol fails the build with
-  `undefined: rt.Protocol8` on that line. Regenerate the parser with the `zp` of the runtime version, or require a
+  generated for (`const _ = rt.Protocol9`), so a runtime that does not implement that protocol fails the build with
+  `undefined: rt.Protocol9` on that line. Regenerate the parser with the `zp` of the runtime version, or require a
   runtime version that implements the protocol.
 
 ### Choosing Entry Points

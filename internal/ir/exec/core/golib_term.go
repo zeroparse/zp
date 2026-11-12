@@ -30,6 +30,7 @@ var GoTermExports = map[string]string{
 	"binary": "TermBinary", "unary": "TermUnary", "logic": "TermLogic", "member": "TermMember",
 	"length": "TermLength", "text": "TermText", "convert": "TermConvert", "conforms": "TermConforms",
 	"push": "TermPush", "pushItems": "TermPushItems", "hull": "TermHull", "cover": "TermCover", "made": "TermMade",
+	"items": "TermItems", "itemAt": "TermItemAt", "filterKeep": "TermFilterKeep",
 }
 
 // goTermSpecs are the compositions of the operators of terms in the node and the typed runtime.

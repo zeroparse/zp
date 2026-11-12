@@ -8,7 +8,10 @@ Parser.TermBinary
 Parser.TermConforms
 Parser.TermConvert
 Parser.TermCover
+Parser.TermFilterKeep
 Parser.TermHull
+Parser.TermItemAt
+Parser.TermItems
 Parser.TermLength
 Parser.TermLogic
 Parser.TermMade
@@ -23,7 +26,10 @@ TParser.TermBinary
 TParser.TermConforms
 TParser.TermConvert
 TParser.TermCover
+TParser.TermFilterKeep
 TParser.TermHull
+TParser.TermItemAt
+TParser.TermItems
 TParser.TermLength
 TParser.TermLogic
 TParser.TermMade

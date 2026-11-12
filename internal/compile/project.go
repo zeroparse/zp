@@ -248,11 +248,20 @@ func projField(t grammar.Term) (string, bool) {
 		return "", false
 	}
 	x, ok := m.X.(*grammar.CaptureRef)
-	if !ok || x.Name != l.Params[0] || !strings.HasPrefix(m.Name, "$") && nodeMembers[m.Name] {
+	if !ok || x.Name != l.Params[0] {
 		return "", false
 	}
-	// e.$f and e.f read the same capture of an element.
-	return strings.TrimPrefix(m.Name, "$"), true
+	return ProjectionField(m.Name)
+}
+
+// ProjectionField reports whether the member name, read of the element of a map call, reads a capture
+// of the element that a projection can stand for, and returns the capture: e.$f and e.f read the same
+// capture f, while the members of a node (Start, End, ...) are not captures.
+func ProjectionField(name string) (string, bool) {
+	if !strings.HasPrefix(name, "$") && nodeMembers[name] {
+		return "", false
+	}
+	return strings.TrimPrefix(name, "$"), true
 }
 
 // directCapture returns the capture of name that e makes unconditionally: e itself, or an item of
