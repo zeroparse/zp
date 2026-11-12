@@ -586,7 +586,7 @@ func (p *Parser) GrowBegin(key MemoKey, r *Rule) GrowState {
 		p.RecordMissingSeed(g.Best, g.missing)
 	}
 	p.Gamma = append(p.Gamma, growRec{key: key, seed: g.Best, id: failSeed, bit: r.LeaderBit, idx: int32(r.LeaderIndex), cycle: int32(cycle)})
-	if gp < g.gi && !p.strictCtx() {
+	if gp < g.gi && !p.strictCtx() && !p.inserts(r) {
 		g.present = p.present(gp)
 		g.ctx = p.recordsIn(g.present)
 	}
