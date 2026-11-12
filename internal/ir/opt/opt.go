@@ -2,7 +2,7 @@
 // pass pipelines of the IR under them (design 063). It sits beside the IR pipelines so that every
 // backend that lowers from the IR, not only the generators, reads one registry.
 //
-// An optimization is a flag with a name. A pass of the Core IR or Flow IR pipeline is one (its name is the
+// An optimization is a flag with a name. A pass of the Core, Flow or Exec IR pipeline is one (its name is the
 // pass's); so are the options of Flow lowering, what the printers emit, and the
 // controls of the runtime structures that they emit. A Settings value says which are on, and an
 // integer parameter where there is one. A profile is a preset: a name for fixed values of flags,
@@ -18,6 +18,7 @@ import (
 	"strings"
 
 	"zeroparse.dev/zp/internal/ir/core"
+	"zeroparse.dev/zp/internal/ir/exec"
 	"zeroparse.dev/zp/internal/ir/flow"
 )
 
@@ -36,6 +37,8 @@ const (
 	Runtime
 	// FlowPass is a pass over Flow IR (internal/ir/flow, Pipeline).
 	FlowPass
+	// ExecPass is a pass over Exec IR (internal/ir/exec, Pipeline).
+	ExecPass
 )
 
 func (k Kind) String() string {
@@ -48,6 +51,8 @@ func (k Kind) String() string {
 		return "printer"
 	case FlowPass:
 		return "flow pass"
+	case ExecPass:
+		return "exec pass"
 	}
 	return "runtime"
 }
@@ -104,7 +109,7 @@ func check(flags []Flag) error {
 			return fmt.Errorf("flag %s is on or off but its speed value is %d", f.Name, f.Default)
 		case f.ChangesOutput && f.Default != 0:
 			return fmt.Errorf("flag %s changes the output but is on in the speed profile: it must be an opt-in", f.Name)
-		case f.Name == PrintBuild || f.Name == PrintFlow || f.Name == PrintAll:
+		case f.Name == PrintBuild || f.Name == PrintFlow || f.Name == PrintExec || f.Name == PrintAll:
 			return fmt.Errorf("flag %s has the name of a step that -print-after selects", f.Name)
 		}
 		seen[f.Name] = true
@@ -354,17 +359,21 @@ const (
 	PrintBuild = "build"
 	// PrintFlow is a function of Flow IR as the lowering made it.
 	PrintFlow = "flow"
+	// PrintExec is a function of Exec IR as the lowering from Flow IR made it.
+	PrintExec = "exec"
 	// PrintAll selects every step and every pass.
 	PrintAll = "all"
 )
 
 // PrintNames returns the names that select what to print after, in the order the steps run: "build",
-// the Core passes, "flow", the Flow passes, and "all".
+// the Core passes, "flow", the Flow passes, "exec", the Exec passes, and "all".
 func PrintNames() []string {
 	out := []string{PrintBuild}
 	out = append(out, core.Pipeline.Names()...)
 	out = append(out, PrintFlow)
 	out = append(out, flow.Pipeline.Names()...)
+	out = append(out, PrintExec)
+	out = append(out, exec.Pipeline.Names()...)
 	return append(out, PrintAll)
 }
 

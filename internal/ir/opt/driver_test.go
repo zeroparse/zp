@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/internal/ir/core"
+	"zeroparse.dev/zp/internal/ir/exec"
 	"zeroparse.dev/zp/internal/ir/flow"
 	"zeroparse.dev/zp/internal/ir/pipeline"
 )
@@ -149,6 +150,79 @@ func TestDriverRunFlow(t *testing.T) {
 		t.Fatal(err)
 	}
 	if n := strings.Count(dump.String(), "-- Flow IR of r in the typed table after "); n != 1+len(flow.Pipeline.Passes) {
+		t.Errorf("all printed %d sections:\n%s", n, dump.String())
+	}
+}
+
+// testExecPass is an Exec pass of the tests: it sets the documentation of every function, which keeps
+// the module valid.
+const testExecPass = "test-exec-doc"
+
+func execModule() *exec.Module {
+	m := exec.NewModule("m")
+	m.AddFunc("r", nil, nil, nil, func(*exec.Builder) {})
+	return m
+}
+
+// An Exec pass runs when its flag is on and a flag turns it off; the dumps show each function of the
+// module as lowered under "exec" and after each selected pass, and a pass that breaks the module is
+// named with VerifyEach.
+func TestDriverRunExec(t *testing.T) {
+	flags := Flags
+	Flags = append(slices.Clone(Flags), Flag{Name: testExecPass, Kind: ExecPass, Default: 1, Doc: "documents"}, Flag{Name: "test-exec-break", Kind: ExecPass, Doc: "breaks"})
+	t.Cleanup(func() { Flags = flags })
+	p := *exec.Pipeline
+	p.Passes = append(slices.Clone(p.Passes),
+		pipeline.Pass[*exec.Module, *exec.Env]{Name: testExecPass, Obligation: "a comment changes nothing",
+			Run: func(m *exec.Module, _ *exec.Env) error {
+				for _, f := range m.Funcs {
+					f.Doc = "tested"
+				}
+				return nil
+			}},
+		pipeline.Pass[*exec.Module, *exec.Env]{Name: "test-exec-break", Obligation: "none: it breaks the module",
+			Run: func(m *exec.Module, _ *exec.Env) error {
+				m.Funcs = append(m.Funcs, m.Funcs[0])
+				return nil
+			}})
+	run := func(m *exec.Module, env *exec.Env, o exec.RunOptions) ([]string, error) {
+		return p.Run(m, env, o.Options(env))
+	}
+	var dump strings.Builder
+	m := execModule()
+	if err := (&Driver{ExecRun: run, PrintAfter: []string{PrintExec, testExecPass}, PrintTo: &dump}).RunExec("rules", m, false); err != nil {
+		t.Fatal(err)
+	}
+	if m.Funcs[0].Doc != "tested" {
+		t.Error("the pass did not run")
+	}
+	for _, label := range []string{"-- Exec IR of r in the rules table after exec --", "-- Exec IR of r in the rules table after " + testExecPass + " --"} {
+		if !strings.Contains(dump.String(), label) {
+			t.Errorf("dump lacks %q:\n%s", label, dump.String())
+		}
+	}
+	off, err := Settings{}.Without(testExecPass)
+	if err != nil {
+		t.Fatal(err)
+	}
+	m = execModule()
+	if err := (&Driver{Opt: off, ExecRun: run}).RunExec("rules", m, false); err != nil || m.Funcs[0].Doc != "" {
+		t.Errorf("the pass ran although the flag turned it off (%v)", err)
+	}
+	on, err := Settings{}.With("test-exec-break", 1)
+	if err != nil {
+		t.Fatal(err)
+	}
+	err = (&Driver{Opt: on, ExecRun: run, VerifyEach: true}).RunExec("rules", execModule(), false)
+	if err == nil || !strings.Contains(err.Error(), "after pass test-exec-break:") {
+		t.Errorf("a broken module: %v", err)
+	}
+	// The real pipeline leaves the module alone and prints only the lowered functions.
+	dump.Reset()
+	if err := (&Driver{PrintAfter: []string{PrintAll}, PrintTo: &dump}).RunExec("typed", execModule(), true); err != nil {
+		t.Fatal(err)
+	}
+	if n := strings.Count(dump.String(), "-- Exec IR of r in the typed table after "); n != 1+len(exec.Pipeline.Passes) {
 		t.Errorf("all printed %d sections:\n%s", n, dump.String())
 	}
 }

@@ -53,7 +53,7 @@ zp gen -g <grammar> [-lang go|ts] [-module <import path>] [-pkg <package>]
 | `-observability` | `Observability` | Generate tracing and profiling, specified in [Observability](observability.md) |
 | `-source-info` | `SourceInfo` | Make the parser record [source information](nodes.md#source-information): the rule of each node and the names of captures. Without it, `Node.Rule`, `Node.Field` and `Node.Fields` of a parsed node are empty and the outputs omit them |
 | `-default-value` | `DefaultValue` | Make the parser return default values, as [Default Values](../language/actions.md#default-values) describes. Cannot be combined with `-types`, because the types come from the dropped actions |
-| `-optimize` | `Optimize` | The [optimization profile](#optimization-options): `speed` (default, also the empty name), `memory` or `size`. An unknown profile is an error that lists the valid names. Rejected with `-runtime only` |
+| `-optimize` | `Optimize` | The [optimization profile](#optimization-settings): `speed` (default, also the empty name), `memory` or `size`. An unknown profile is an error that lists the valid names. Rejected with `-runtime only` |
 | `-opt` | `Opt` (a map from name to value) | Gives single optimizations a value, as `name` or `name=count`. Rejected with `-runtime only` |
 | `-no-opt` | `NoOpt` | Turns the named optimizations off. Rejected with `-runtime only` |
 | `-print-after` | `PrintAfter` and `PrintTo` | Writes the intermediate representation to standard error (`PrintTo`, which `PrintAfter` requires) after the named steps and passes. Rejected with `-runtime only` |
@@ -85,14 +85,16 @@ zp gen -g <grammar> [-lang go|ts] [-module <import path>] [-pkg <package>]
   namespace with `parser.go` and `api.go`: a grammar type may be named `Node`,
   `Parser`, `Walk`, `ParseOption` or like any other export of the runtime.
 
-### Optimization Options
+### Optimization Settings
 
-An optimization is a named setting of the generator that changes the code a parser is generated as, and the
-memory and time it needs, but not what it returns. It is either on or off, or it has a count where
-`0` is off. Each optimization has a kind: `pass` (a transformation of the generator's intermediate
-representation), `lowering` (an option of the step that lowers it toward the printers), `printer` (a choice
-of what the Go and TypeScript printers emit) or `runtime` (a control of the runtime structures that the
-printers emit). `zp gen -h` lists every optimization with its kind, its default and whether it takes a
+The optimization settings are a profile and the values of named optimizations. They are not part of
+the grammar's meaning: an optimization changes the code a parser is generated as, and the memory and
+time it needs, but not what it returns. It is either on or off, or it has a count where `0` is off.
+Each optimization has a kind: `pass` (a transformation of the Core IR, the first intermediate
+representation built from the grammar), `flow pass` and `exec pass` (a transformation of the Flow IR
+and the Exec IR that are lowered from it), `lowering` (an option of a step that lowers one
+representation toward the next), `printer` (a choice of what the Go and TypeScript printers emit) or
+`runtime` (a control of the runtime structures that the printers emit). `zp gen -h` lists every optimization with its kind, its default and whether it takes a
 count.
 
 - **No option changes what a parser returns.** For every accepted combination of `-optimize`, `-opt` and
@@ -112,7 +114,8 @@ count.
 - **Languages.** The options apply to Go and TypeScript. An optimization that concerns only one language,
   such as the slabs of typed Go values, has no effect on the other, and naming it is not an error.
 - **`-print-after`** takes `build` (the Core IR of each rule table as built), the name of a Core pass,
-  `flow` (each function printed from Flow IR, as lowered from Core IR), the name of a Flow pass, or `all`.
+  `flow` (each function printed from Flow IR, as lowered from Core IR), the name of a Flow pass, `exec`
+  (each function printed from Exec IR, as lowered from Flow IR), the name of an Exec pass, or `all`.
   A pass that does not apply to the parser prints nothing. An unknown name is an error that lists the
   valid ones.
 

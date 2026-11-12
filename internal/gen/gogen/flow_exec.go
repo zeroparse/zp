@@ -41,6 +41,7 @@ func (p *flowPrinter) execPrint(f *flow.Func) (*lower.Lowered, execgo.BodyResult
 	if err != nil {
 		panic(fmt.Errorf("rule %s of table %s: %w", f.Name, p.g.Table, err))
 	}
+	p.g.ExecPasses(l.Module)
 	return l, execgo.Body(l.Module, l.Func, p.execTarget(), l.Vars)
 }
 

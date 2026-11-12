@@ -100,11 +100,11 @@ type GenOptions struct {
 	Opt      map[string]int
 	NoOpt    []string
 	// PrintAfter lists the steps and passes (opt.PrintNames) after which the IR is written to PrintTo,
-	// as text: the Core IR once for each Core module the generator builds, and the Flow IR once for
-	// each function it prints from Flow IR.
+	// as text: the Core IR once for each Core module the generator builds, and the Flow IR and the
+	// Exec IR once for each function it prints from them.
 	PrintAfter string
 	PrintTo    io.Writer
-	// VerifyEachPass verifies the Core IR and the Flow IR after every pass instead of once at the end, so that an
+	// VerifyEachPass verifies the Core, Flow and Exec IR after every pass instead of once at the end, so that an
 	// internal error names the first pass that broke an invariant. Tests and diagnosis set it; it
 	// costs generation time and changes no output.
 	VerifyEachPass bool

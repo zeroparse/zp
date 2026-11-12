@@ -9,6 +9,7 @@ import (
 	"zeroparse.dev/zp/internal/gen/gogen"
 	"zeroparse.dev/zp/internal/gentest"
 	"zeroparse.dev/zp/internal/ir/core"
+	"zeroparse.dev/zp/internal/ir/exec"
 	"zeroparse.dev/zp/internal/ir/flow"
 	"zeroparse.dev/zp/internal/ir/pipeline"
 )
@@ -143,6 +144,53 @@ rule num = [0-9]+
 	opts.VerifyEachPass = true
 	_, err = gogen.GenerateParser(pg, gentest.Compile, opts, hooks)
 	if err == nil || !strings.Contains(err.Error(), "after pass break-flow:") {
+		t.Fatalf("with VerifyEachPass: %v", err)
+	}
+}
+
+// brokenExec is an Exec pass that declares the first function of the module twice, which exec.Verify
+// rejects.
+var brokenExec = pipeline.Pass[*exec.Module, *exec.Env]{
+	Name:       "break-exec",
+	Obligation: "none: it breaks the module on purpose",
+	Run: func(m *exec.Module, _ *exec.Env) error {
+		m.Funcs = append(m.Funcs, m.Funcs[0])
+		return nil
+	},
+}
+
+// Every function that the generator prints from Exec IR runs through the Exec pipeline, and an Exec
+// pass that breaks a module is caught by the Exec verifier: at the end of the run without
+// VerifyEachPass, and by name right after the pass with it.
+func TestVerifyEachPassNamesTheBreakingExecPass(t *testing.T) {
+	pg, err := parseTest(`rule main = (word / num / -" ")* $$
+rule word = "if" / "else" / [a-z]+
+rule num = [0-9]+
+`)
+	if err != nil {
+		t.Fatal(err)
+	}
+	p := *exec.Pipeline
+	p.Passes = append(slices.Clone(exec.Pipeline.Passes), brokenExec)
+	runs := 0
+	hooks := &gogen.Hooks{ExecRun: func(m *exec.Module, env *exec.Env, o exec.RunOptions) ([]string, error) {
+		runs++
+		po := o.Options(env)
+		// The mutant is not a registered optimization, which the settings of the generator would refuse.
+		po.Enabled = func(name string) bool { return name == brokenExec.Name || env.On(name) }
+		return p.Run(m, env, po)
+	}}
+	opts := gen.GenOptions{Types: true, TypedOnly: true, Module: "example.com/p", Runtime: gen.RuntimeImport}
+	_, err = gogen.GenerateParser(pg, gentest.Compile, opts, hooks)
+	if err == nil || !strings.Contains(err.Error(), "verification:") || strings.Contains(err.Error(), "break-exec") {
+		t.Fatalf("without VerifyEachPass: %v", err)
+	}
+	if runs == 0 {
+		t.Fatal("no module ran through the Exec pipeline")
+	}
+	opts.VerifyEachPass = true
+	_, err = gogen.GenerateParser(pg, gentest.Compile, opts, hooks)
+	if err == nil || !strings.Contains(err.Error(), "after pass break-exec:") {
 		t.Fatalf("with VerifyEachPass: %v", err)
 	}
 }

@@ -6,6 +6,7 @@ import (
 	"slices"
 
 	"zeroparse.dev/zp/internal/ir/core"
+	"zeroparse.dev/zp/internal/ir/exec"
 	"zeroparse.dev/zp/internal/ir/flow"
 )
 
@@ -18,8 +19,9 @@ type Driver struct {
 	// Opt holds the optimizations that are on.
 	Opt Settings
 	// PrintAfter lists the names (PrintNames) after which a unit is written to PrintTo; "all"
-	// selects every step and pass, "build" the Core IR before the first Core pass and "flow" each
-	// Flow function before the first Flow pass.
+	// selects every step and pass, "build" the Core IR before the first Core pass, "flow" each
+	// Flow function before the first Flow pass and "exec" each Exec function before the first Exec
+	// pass.
 	PrintAfter []string
 	PrintTo    io.Writer
 	// VerifyEach verifies the unit after every pass instead of once at the end, so that the error
@@ -34,6 +36,9 @@ type Driver struct {
 	// FlowRun, if set, runs the Flow passes in place of flow.Run, for tests that run a pipeline of
 	// their own.
 	FlowRun func(f *flow.Func, env *flow.Env, o flow.RunOptions) ([]string, error)
+	// ExecRun, if set, runs the Exec passes in place of exec.RunPasses, for tests that run a pipeline
+	// of their own.
+	ExecRun func(m *exec.Module, env *exec.Env, o exec.RunOptions) ([]string, error)
 }
 
 // prints reports whether the unit is dumped after the named pass.
@@ -92,6 +97,37 @@ func (d *Driver) RunFlow(table string, f *flow.Func, observe bool) error {
 		}
 	}
 	if _, err := run(f, env, flow.RunOptions{Dump: dump, VerifyEach: d.VerifyEach}); err != nil {
+		return fmt.Errorf("internal error: %w", err)
+	}
+	return nil
+}
+
+// RunExec runs the pipeline of Exec passes on the module m, which the lowering of one function from
+// Flow IR made and verified, with the optimizations of the driver; observe is as for RunFlow. The
+// module belongs to the table named table, which the printed Exec IR of its functions is labeled
+// with, as the dump of "exec" before the first pass. A failure is an internal error that names the
+// pass.
+func (d *Driver) RunExec(table string, m *exec.Module, observe bool) error {
+	env := &exec.Env{Observe: observe, Flag: d.Opt.On}
+	run := exec.RunPasses
+	if d.ExecRun != nil {
+		run = d.ExecRun
+	}
+	var dump func(pass string, m *exec.Module)
+	if len(d.PrintAfter) > 0 && d.PrintTo != nil {
+		dump = func(pass string, m *exec.Module) {
+			if pass == PrintBuild {
+				pass = PrintExec
+			}
+			if !d.prints(pass) {
+				return
+			}
+			for _, f := range m.Funcs {
+				fmt.Fprintf(d.PrintTo, "-- Exec IR of %s in the %s table after %s --\n%s\n", f.Name, table, pass, exec.FuncString(f))
+			}
+		}
+	}
+	if _, err := run(m, env, exec.RunOptions{Dump: dump, VerifyEach: d.VerifyEach}); err != nil {
 		return fmt.Errorf("internal error: %w", err)
 	}
 	return nil

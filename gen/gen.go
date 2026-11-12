@@ -147,7 +147,8 @@ type Go struct {
 	// PrintAfter lists, separated by commas, the steps and passes after which the intermediate
 	// representation of the generator is written to PrintTo as text, for debugging the generator:
 	// build and the names of the Core passes for the Core IR, flow and the names of the Flow passes
-	// for the Flow IR, or all. It needs PrintTo.
+	// for the Flow IR, exec and the names of the Exec passes for the Exec IR, or all. It needs
+	// PrintTo.
 	PrintAfter string
 	PrintTo    io.Writer
 }
@@ -250,7 +251,8 @@ type TypeScript struct {
 	// PrintAfter lists, separated by commas, the steps and passes after which the intermediate
 	// representation of the generator is written to PrintTo as text, for debugging the generator:
 	// build and the names of the Core passes for the Core IR, flow and the names of the Flow passes
-	// for the Flow IR, or all. It needs PrintTo.
+	// for the Flow IR, exec and the names of the Exec passes for the Exec IR, or all. It needs
+	// PrintTo.
 	PrintAfter string
 	PrintTo    io.Writer
 }

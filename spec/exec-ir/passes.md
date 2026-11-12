@@ -5,6 +5,17 @@ running the result gives the same results, calls the same operations with the sa
 ends the same way as running the original. Passes rely only on the meaning of statements and expressions and on the
 declarations of operations (their state, features and laws), never on how a target implements an operation.
 
+## The Pass Pipeline
+
+The functions that a backend prints from Exec IR are lowered from Flow IR one at a time, each into a module of its
+own (see [Lowering From Flow IR](lowering.md)). Each such module then goes through the pass pipeline of Exec IR: the
+passes in their declared order. A pass has a name that no pass of Core IR or Flow IR has, and that is also the name
+of the optimization that turns it off; a pass that is off, or that does not apply to the build, does not run. The
+module MUST satisfy the [invariants](invariants.md) after the last pass: verification runs after the last pass, or
+after every pass when asked, and a violation names the pass after which it was found. Lowering has verified the
+module, so a run in which no pass runs does not verify it again. The pipeline defines no pass yet; the
+transformations below are used by the compositions and the printers.
+
 ## Specialization
 
 Specializing a function for a set of features, which are features of the module, makes a copy of it in which each
