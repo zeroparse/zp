@@ -3,6 +3,7 @@ package engine
 import (
 	"testing"
 
+	"zeroparse.dev/zp/internal/engine/core"
 	"zeroparse.dev/zp/internal/gentest"
 	"zeroparse.dev/zp/internal/limits"
 )
@@ -17,6 +18,10 @@ func TestMemoLookaheadStateEvaluations(t *testing.T) {
 		prog := mustCompile(t, c.Src)
 		for _, b := range []Backend{Closure, Bytecode, BytecodeIterative} {
 			for _, lim := range []limits.Limits{{}, {Compute: 1 << 40}} {
+				if lim.Compute != 0 && !core.BudgetControlsEnabled {
+					// The reference build has no budget controls, so a limit builds no controlled graph.
+					continue
+				}
 				for _, recognize := range []bool{false, true} {
 					var pr Profile
 					// The parses with recovered errors end with a syntax error.
