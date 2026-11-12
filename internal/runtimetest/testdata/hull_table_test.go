@@ -38,7 +38,7 @@ func TestValueHullTable(t *testing.T) {
 			if controlled {
 				before = c.P.Control.budgetUsed()
 			}
-			c.P.termHull(c, kind == "tuple", n.RawChildren)
+			c.P.TermHull(c, kind == "tuple", n.RawChildren)
 			if controlled {
 				return rng, int(c.P.Control.budgetUsed() - before)
 			}
@@ -65,7 +65,7 @@ func TestValueHullTable(t *testing.T) {
 			if controlled {
 				before = tc.P.Control.budgetUsed()
 			}
-			tc.P.termHull(tc, kind == "tuple", n.Kids)
+			tc.P.TermHull(tc, kind == "tuple", n.Kids)
 			if controlled {
 				return rng, int(tc.P.Control.budgetUsed() - before)
 			}

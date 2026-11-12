@@ -292,6 +292,120 @@ func testTermDifferentialDetectsBrokenTargets(t *testing.T) {
 	}
 }
 
+// TestTermConstructorsDetectBrokenTargets is the negative control of TestTermFixedGeneratedTargets for
+// the constructors printed from Exec IR (tuples, lists, concat and structs) on generated Go (node and
+// typed) and TypeScript parsers: each mutant changes one pattern of the lowered code or, for typed Go, of
+// the struct constructors it calls, which must occur, and the comparison with the engine (for typed Go,
+// also with the parser that converts its nodes) on the fixed struct, hull, push and cast terms must then
+// fail. The control changes nothing and must find no mismatch.
+func TestTermConstructorsDetectBrokenTargets(t *testing.T) {
+	t.Parallel()
+	gentest.EachMode(t, testTermConstructorsDetectBrokenTargets)
+}
+
+func testTermConstructorsDetectBrokenTargets(t *testing.T) {
+	if testing.Short() {
+		t.Skip("builds generated consumers")
+	}
+	var all []gentest.TermCase
+	for _, set := range [][]gentest.TermCase{gentest.StructTermCases(), gentest.HullTermCases(), gentest.PushTermCases(),
+		gentest.CastTermCases()} {
+		all = append(all, set...)
+	}
+	cases, _ := wellTypedCases(t, all)
+	list := termCaseList(cases)
+	for i := range list {
+		list[i].Name = fmt.Sprintf("%d %s", i, list[i].Name)
+	}
+	type mutant struct{ name, from, to string }
+	check := func(target string, m mutant, hits int, got []string) {
+		t.Logf("%s: %s: parsers changed %d of %d cases, mismatches %d", target, m.name, hits, len(list), len(got))
+		switch {
+		case hits == 0:
+			t.Errorf("%s: %s: the generated code has no %q", target, m.name, m.from)
+		case m.from == m.to && len(got) != 0:
+			t.Errorf("%s: %s: %d mismatches without a change: %v", target, m.name, len(got), got)
+		case m.from != m.to && len(got) == 0:
+			t.Errorf("%s: %s: no generated term notices", target, m.name)
+		}
+	}
+	goBin := filepath.Join(runtime.GOROOT(), "bin", "go")
+	for _, m := range []mutant{
+		{"control: unchanged", `c.P.TermHull(c, `, `c.P.TermHull(c, `},
+		{"a tuple becomes a list", `c.P.TermHull(c, true, `, `c.P.TermHull(c, false, `},
+		{"a list becomes a tuple", `c.P.TermHull(c, false, `, `c.P.TermHull(c, true, `},
+		{"concat pushes no elements", `c.P.TermPushItems(c, "concat", `, `c.P.TermPushItems(c, "concat", any(nil)); _ = (`},
+		{"an element is pushed as nil", `c.P.TermPush(c, "list", `, `c.P.TermPush(c, "list", any(nil)); _ = (`},
+		{"a field is set to nil", `c.TermSetField(`, `c.TermSetFieldNil(`},
+		{"a struct ignores the ranges of its fields", `c.P.TermCover(`, `termCoverFirst(c.P, `},
+	} {
+		hits := 0
+		got := gentest.GeneratedParsersMismatches(t, goBin, list, gen.GenOptions{}, func(code []byte) []byte {
+			s := string(code)
+			if strings.Contains(s, m.from) {
+				hits++
+				s = strings.ReplaceAll(s, m.from, m.to)
+				if strings.Contains(m.to, "TermSetFieldNil") {
+					s += "\nfunc tsfNil(c *rt.ActCtx, n *rt.Node, name string, _ any) { c.TermSetField(n, name, nil) }\n"
+					s = strings.ReplaceAll(s, "c.TermSetFieldNil(", "tsfNil(c, ")
+				}
+				if strings.HasPrefix(m.to, "termCoverFirst(") {
+					// Each field is covered as if it were the first, so the range is that of the last node.
+					s += "\nfunc termCoverFirst(p *rt.Parser, n *rt.Node, v any, _ bool) bool { return p.TermCover(n, v, true) }\n"
+				}
+			}
+			return []byte(s)
+		})
+		check("Go", m, hits, got)
+	}
+	// Typed Go: the typed parsers against the parsers that convert their nodes and against the engine.
+	for _, m := range []mutant{
+		{"control: unchanged", `c.P.TermHull(c, `, `c.P.TermHull(c, `},
+		{"a tuple becomes a list", `c.P.TermHull(c, true, `, `c.P.TermHull(c, false, `},
+		{"a list becomes a tuple", `c.P.TermHull(c, false, `, `c.P.TermHull(c, true, `},
+		{"concat pushes no elements", `c.P.TermPushItems(c, "concat", `, `c.P.TermPushItems(c, "concat", any(nil)); _ = (`},
+		{"an element is pushed as nil", `c.P.TermPush(c, "list", `, `c.P.TermPush(c, "list", any(nil)); _ = (`},
+		// The constructor takes its first two fields in the other order, as a call that passed them
+		// out of declaration order would.
+		{"two fields of a struct are swapped", `final bool, f0 any, f1 any`, `final bool, f1 any, f0 any`},
+		{"a struct ignores the ranges of its fields", `return c.MadeOf(v, `, `return c.MadeOf(v) // `},
+	} {
+		hits := 0
+		got := gentest.GeneratedTypesMismatches(t, goBin, list, gen.GenOptions{ConvertTypes: true}, func(code []byte) []byte {
+			s := string(code)
+			if strings.Contains(s, m.from) {
+				hits++
+				s = strings.ReplaceAll(s, m.from, m.to)
+			}
+			return []byte(s)
+		}, 0)
+		check("typed Go", m, hits, got)
+	}
+	node, err := exec.LookPath("node")
+	if err != nil {
+		return
+	}
+	for _, m := range []mutant{
+		{"control: unchanged", `c.p.termHull(c, `, `c.p.termHull(c, `},
+		{"a tuple becomes a list", `c.p.termHull(c, true, `, `c.p.termHull(c, false, `},
+		{"a list becomes a tuple", `c.p.termHull(c, false, `, `c.p.termHull(c, true, `},
+		{"concat pushes no elements", `c.p.termPushItems(c, "concat", `, `c.p.termPushItems(c, "concat", null); void (`},
+		{"an element is pushed as nil", `c.p.termPush(c, "list", `, `c.p.termPush(c, "list", null); void (`},
+		{"a field is set to nil", `c.termSetField(`, `((n: Node, f: string, _v: Value) => c.termSetField(n, f, null))(`},
+		{"a struct ignores the ranges of its fields", `c.p.termCover(`, `((n: Node, v: Value, _f: boolean) => c.p.termCover(n, v, true))(`},
+	} {
+		hits := 0
+		got := gentest.TSParsersMismatches(t, node, list, gen.GenOptions{}, func(code string) string {
+			if strings.Contains(code, m.from) {
+				hits++
+				code = strings.ReplaceAll(code, m.from, m.to)
+			}
+			return code
+		})
+		check("TypeScript", m, hits, got)
+	}
+}
+
 // referenceTerm returns the term of the generated case: the action of the rule main, or the predicate
 // that precedes the optional "b".
 func referenceTerm(t *testing.T, c gentest.TermCase) grammar.Term {

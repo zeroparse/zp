@@ -614,7 +614,8 @@ func (g *termGen) optionalTerm(depth int, s scope) string {
 // MemberTermCases returns fixed terms that read every kind of member on the struct types of
 // TermCasesWide: the range of a node, a capture of a node, and each field of R and Inner, set by the
 // constructor or left unset so that it reads as its zero value, alone and as the operand of an
-// operator, an index or len. Unlike the generated cases, each read is sure to occur.
+// operator, an index or len, and the captures of a node, alone and in the field of a struct. Unlike the
+// generated cases, each read is sure to occur.
 func MemberTermCases() []TermCase {
 	actions := []struct{ typ, term string }{
 		{"int", "$x.Start"},
@@ -677,6 +678,11 @@ func MemberTermCases() []TermCase {
 	}
 	out = append(out, TermCase{Case: Case{Name: "member: capture", Src: capture, Inputs: []string{"a", "ab"}},
 		Term: "text($x.$y) + text($x.$z)", Type: "string", Kind: TermAction, Lit: "a", Captures: subCaptures})
+	// The same reads in the field of a struct, whose literal a target may make another way than the reads
+	// alone.
+	inStruct := "(R{B: text($x.$y) + text($x.$z)}).B"
+	out = append(out, TermCase{Case: Case{Name: "member: capture in a struct", Src: strings.Replace(capture, "text($x.$y) + text($x.$z)", inStruct, 1),
+		Inputs: []string{"a", "ab"}}, Term: inStruct, Type: "string", Kind: TermAction, Lit: "a", Captures: subCaptures})
 	return out
 }
 
@@ -737,7 +743,8 @@ const structPrelude = "type Inner = { N int }\n" +
 	"type S = { A *node[string]; B *node[string]; K int; I Inner; L []node[string] }\n@start\n"
 
 // StructTermCases returns fixed terms that make a struct value whose fields hold nodes: none, one, two,
-// a struct, a list and a node that did not match (nil), as the value of a rule and under a read of a field.
+// a struct, a list and a node that did not match (nil), as the value of a rule, under a read of a field and
+// as elements of a list, where the value shows the range of each struct.
 // The range of a struct covers the ranges of the field values that are nodes and is the range of the rule if
 // there is none, so each of the cases shows the range logic through the units it charges. The rule captures
 // two nodes, of one literal each, and a third that does not match, each on a literal of one byte and one
@@ -758,6 +765,10 @@ func StructTermCases() []TermCase {
 		{"int", "S{I: Inner{N: 1}}.I.N"},
 		{"int", "len(S{L: list($y, $x)}.L)"},
 		{"bool", "S{A: $z, K: 2}.A == nil"},
+		// A struct that is not the value of the rule keeps the range of its fields, which the list shows.
+		{"[]S", "list(S{A: $x, B: $y}, S{B: $y})"},
+		{"[]S", "list(S{B: $x}, S{A: $y, K: 1})"},
+		{"[]S", "list(S{K: 1}, S{A: $x, B: $z})"},
 	}
 	var out []TermCase
 	for _, a := range cases {

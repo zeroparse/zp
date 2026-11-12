@@ -1842,9 +1842,9 @@ func ttypeName(v any) string {
 func (c *TActCtx) MadeOf(n TVal, fields ...any) any {
 	first := true
 	for _, f := range fields {
-		first = c.P.termCover(n, f, first)
+		first = c.P.TermCover(n, f, first)
 	}
-	c.P.termMade(c, n, first)
+	c.P.TermMade(c, n, first)
 	return n
 }
 
@@ -1856,7 +1856,7 @@ func (c *TActCtx) NewList(items []any) any {
 
 // listNode returns a list value with the child list kids (which it takes over). Its range, which
 // the value model does not show, covers the elements that are nodes.
-func (c *TActCtx) listNode(kids []any) TVal { return c.P.termHull(c, false, kids) }
+func (c *TActCtx) listNode(kids []any) TVal { return c.P.TermHull(c, false, kids) }
 
 // Tuple returns a tuple value of the arguments, as a tuple literal builds it.
 func (c *TActCtx) Tuple(args ...any) any {
@@ -1865,7 +1865,7 @@ func (c *TActCtx) Tuple(args ...any) any {
 		c.P.Spend()
 		c.push("tuple", a)
 	}
-	return c.P.termHull(c, true, c.P.Kids(base))
+	return c.P.TermHull(c, true, c.P.Kids(base))
 }
 
 // newSeq is the operation val.seq.
@@ -2023,7 +2023,7 @@ func (c *TActCtx) PushList(args ...any) {
 }
 
 func (c *TActCtx) PushItems(v any) {
-	if f := c.P.termPushItems(c, "concat", v); f != nil {
+	if f := c.P.TermPushItems(c, "concat", v); f != nil {
 		panic(f)
 	}
 }
@@ -2307,7 +2307,7 @@ func (c *TActCtx) ListItems(fn string, v any) []any {
 // push pushes v as the next element of the list or the tuple that fn makes, as the composition push
 // (term_exec.go) does.
 func (c *TActCtx) push(fn string, v any) {
-	if f := c.P.termPush(c, fn, v); f != nil {
+	if f := c.P.TermPush(c, fn, v); f != nil {
 		panic(f)
 	}
 }

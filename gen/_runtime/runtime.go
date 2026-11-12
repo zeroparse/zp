@@ -3441,21 +3441,35 @@ func typeName(v any) string {
 }
 
 func (c *ActCtx) NewStruct(typ string, kv ...any) any {
-	k := c.P.g.TypeKinds[typ]
-	if k == nil {
-		k = KindOf(typ, "")
-	}
-	n := c.P.NewNode(Node{RawKind: k, RawFields: c.P.fields(len(kv) / 2)})
+	n := c.TermStruct(typ, len(kv)/2)
 	first := true
 	for i := 0; i < len(kv); i += 2 {
 		c.P.Spend()
 		v := kv[i+1]
-		c.P.setValueField(&n.RawFields, kv[i].(string), v)
-		first = c.P.termCover(n, v, first)
+		c.TermSetField(n, kv[i].(string), v)
+		first = c.P.TermCover(n, v, first)
 	}
-	c.P.termMade(c, n, first)
+	c.P.TermMade(c, n, first)
 	return n
 }
+
+// TermStruct returns a new struct of the type typ with no field set and an empty range, with room for
+// n fields: the operation term.struct of a term that makes a struct.
+//
+// TermStruct is for generated parsers; not a stable API.
+func (c *ActCtx) TermStruct(typ string, n int) *Node {
+	k := c.P.g.TypeKinds[typ]
+	if k == nil {
+		k = KindOf(typ, "")
+	}
+	return c.P.NewNode(Node{RawKind: k, RawFields: c.P.fields(n)})
+}
+
+// TermSetField sets the field name of the struct n, which a term is making, to v: the operation
+// term.setField.
+//
+// TermSetField is for generated parsers; not a stable API.
+func (c *ActCtx) TermSetField(n *Node, name string, v any) { c.P.setValueField(&n.RawFields, name, v) }
 
 func (c *ActCtx) NewList(items []*Node) *Node {
 	kids := c.P.Nodes(len(items))
@@ -3465,7 +3479,7 @@ func (c *ActCtx) NewList(items []*Node) *Node {
 
 // listNode returns a list value with the child list kids (which it takes over). Its range, which
 // the value model does not show, covers the elements that are nodes.
-func (c *ActCtx) listNode(kids []*Node) *Node { return c.P.termHull(c, false, kids) }
+func (c *ActCtx) listNode(kids []*Node) *Node { return c.P.TermHull(c, false, kids) }
 
 // Tuple returns a tuple value of the arguments, as a tuple literal builds it.
 func (c *ActCtx) Tuple(args ...any) any {
@@ -3474,7 +3488,7 @@ func (c *ActCtx) Tuple(args ...any) any {
 		c.P.Spend()
 		c.push("tuple", a)
 	}
-	return c.P.termHull(c, true, c.P.Kids(base))
+	return c.P.TermHull(c, true, c.P.Kids(base))
 }
 
 // TOperand is an operand of a comparison: a string field read without boxing it (Str, with
@@ -3636,7 +3650,7 @@ func (c *ActCtx) PushList(args ...any) {
 }
 
 func (c *ActCtx) PushItems(v any) {
-	if f := c.P.termPushItems(c, "concat", v); f != nil {
+	if f := c.P.TermPushItems(c, "concat", v); f != nil {
 		panic(f)
 	}
 }

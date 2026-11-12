@@ -1,5 +1,17 @@
 ## main action
-not lowered: New
+func term() Datum {
+  let tv1, tf1 = member(term.ctx(), 3, term.read([$rs]), term.name([Value]), term.field([Value of Value]))
+  if (tf1 != null(Fail)) {
+    term.raise(tf1)
+  }
+  let tn2 = term.struct([File])
+  let tfirst3 = true
+  seq.step()
+  term.setField([Records], tn2, tv1)
+  tfirst3 = cover(tn2, tv1, tfirst3)
+  made(term.ctx(), tn2, tfirst3)
+  return term.fromObj(tn2)
+}
 
 ## record action
 not lowered: New, concat, list, map, Lambda, param

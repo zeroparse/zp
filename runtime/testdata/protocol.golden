@@ -1,4 +1,4 @@
-protocol 7
+protocol 8
 const BaseString untyped int = 0
 const Bytes PositionUnit = 1
 const CodePoints PositionUnit = 0
@@ -152,6 +152,8 @@ method (*ActCtx) PushItems(any)
 method (*ActCtx) PushList(...any)
 method (*ActCtx) PushMap(any, func(any) any)
 method (*ActCtx) TermCastFailed(any, *FieldType, int, int)
+method (*ActCtx) TermSetField(*Node, string, any)
+method (*ActCtx) TermStruct(string, int) *Node
 method (*ActCtx) Text(any) any
 method (*ActCtx) TextStr(any) string
 method (*ActCtx) Tuple(...any) any
@@ -275,10 +277,15 @@ method (*Parser) StreamsIn(int, bool) bool
 method (*Parser) TermBinary(int, any, any) (any, any)
 method (*Parser) TermConforms(*FieldType, any) bool
 method (*Parser) TermConvert(*nodeTypeKinds, any) (any, any)
+method (*Parser) TermCover(*Node, any, bool) bool
+method (*Parser) TermHull(*ActCtx, bool, []*Node) *Node
 method (*Parser) TermLength(any) (any, any)
 method (*Parser) TermLogic(int, any) (bool, any)
+method (*Parser) TermMade(*ActCtx, *Node, bool)
 method (*Parser) TermMember(*ActCtx, int, any, string, string) (any, any)
 method (*Parser) TermNodeType(string) *nodeTypeKinds
+method (*Parser) TermPush(*ActCtx, string, any) any
+method (*Parser) TermPushItems(*ActCtx, string, any) any
 method (*Parser) TermText(any) (string, any)
 method (*Parser) TermUnary(int, any) (any, any)
 method (*Parser) Text(int, int) string
@@ -386,9 +393,14 @@ method (*TParser) TConvertResultOwned(*TRule, any, any) any
 method (*TParser) TermBinary(int, any, any) (any, any)
 method (*TParser) TermConforms(*FieldType, any) bool
 method (*TParser) TermConvert(uint16, any) (any, any)
+method (*TParser) TermCover(TVal, any, bool) bool
+method (*TParser) TermHull(*TActCtx, bool, []any) TVal
 method (*TParser) TermLength(any) (any, any)
 method (*TParser) TermLogic(int, any) (bool, any)
+method (*TParser) TermMade(*TActCtx, TVal, bool)
 method (*TParser) TermMember(*TActCtx, int, any, string, string) (any, any)
+method (*TParser) TermPush(*TActCtx, string, any) any
+method (*TParser) TermPushItems(*TActCtx, string, any) any
 method (*TParser) TermText(any) (string, any)
 method (*TParser) TermUnary(int, any) (any, any)
 method (*TParser) UseCtx(TActCtx) *TActCtx
