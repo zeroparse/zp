@@ -800,7 +800,7 @@ func (p *tsFlowPrinter) expr(x flow.Expr) string {
 		if p.dry {
 			return "p.predicate(a)"
 		}
-		return fmt.Sprintf("p.predicate(%s)", p.g.predicateFunc(x.Node.Term, p.grammarTerm(x.Node), gen.FrameScope(x.Caps)))
+		return fmt.Sprintf("p.predicate(%s)", p.g.predicateFunc(x.Node.Term, gen.FrameScope(x.Caps)))
 	case *flow.Bind:
 		if x.Caps.Vars != nil {
 			panic(tsFlowUnsupported("a bind that reads variables"))
@@ -814,7 +814,7 @@ func (p *tsFlowPrinter) expr(x flow.Expr) string {
 		}
 		// The function is declared only if the rule keeps the printed text.
 		name := p.g.Name("a")
-		p.decl(name, p.g.actionFunc(name, x.Node.Term, b.Value, gen.FrameScope(x.Caps), nil))
+		p.decl(name, p.g.actionFunc(name, x.Node.Term, gen.FrameScope(x.Caps), nil))
 		return fmt.Sprintf("p.bind(%d, %s)", p.g.Prog.Vars.Index(b.Name), name)
 	case *flow.CallOutline:
 		return p.outline(x)
@@ -913,8 +913,8 @@ func (p *tsFlowPrinter) scopeNames(n *flow.Names) string {
 	return name
 }
 
-// grammarTerm returns the term of the grammar predicate that the node n is built from, which the
-// term printer prints.
+// grammarTerm returns the term of the grammar predicate that the node n is built from, for the name
+// of the variable that a binding sets.
 func (p *tsFlowPrinter) grammarTerm(n core.Node) grammar.Term {
 	e, ok := p.g.Flow.Origin[n].(*grammar.Predicate)
 	if !ok {
