@@ -39,7 +39,7 @@ rule item = [a-z]+ #atomic`,
 		Inputs: []string{"a!", "a,b,c!", "a,b", ",a!", "a,,b!", "", "a,b,!", "ab,cd!x"}},
 	{Name: "cut and variables", Src: `type R = { Names node[_]; N int }
 var n int = 0
-rule main R = i:item "!" => R{Names: $i.Names, N: n}
+rule main R = i:item "!" => R{Names: $i.Names, N: n + len($i.Names)}
 rule item R = ("a" #cut {n := n + 1} xs:name+ => R{Names: $xs, N: 0}) / ("b" {n := n + 2} xs:name* => R{Names: $xs, N: 0})
 rule name = [a-z] #atomic ","?`,
 		Inputs: []string{"ab,c,!", "b!", "bx!", "a!", "a", "c!", "bxy,z!", ""}},
