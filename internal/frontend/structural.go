@@ -5,7 +5,6 @@ import (
 
 	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/cancel"
-	"zeroparse.dev/zp/internal/check"
 	"zeroparse.dev/zp/internal/compile"
 	"zeroparse.dev/zp/internal/desugar"
 	"zeroparse.dev/zp/internal/diag"
@@ -24,7 +23,8 @@ func structuralErrors(g *grammar.Grammar, opts compile.Options, names desugar.In
 	if err != nil {
 		return nil
 	}
-	in, defs := structuralInput(canon, control)
+	defs, _ := desugar.UniqueRules(canon.Grammar, control)
+	in := compile.StructuralInput(canon.Grammar, defs, canon.Starts)
 	origin := map[core.Node]grammar.Expr{}
 	m, err := build.Structural(in, origin)
 	if err != nil {
@@ -50,40 +50,10 @@ func structuralErrors(g *grammar.Grammar, opts compile.Options, names desugar.In
 	return names.Rewrite(out).(diag.ErrorList)
 }
 
-// structuralInput returns the input of the untyped module of the canonical grammar and its rule
-// definitions by ID: the rules once each, as the compiler takes them.
-func structuralInput(canon *compile.Canonical, control *cancel.Control) (*build.Input, []*grammar.RuleDef) {
-	rules, _ := desugar.UniqueRules(canon.Grammar, control)
-	in := &build.Input{ByName: map[string]*build.Rule{}}
-	for i, rd := range rules {
-		_, operators := rd.Expr.(*grammar.OperatorsRule)
-		r := &build.Rule{ID: i, Name: rd.Name, Def: rd, Body: rd.Expr, Action: rd.Action,
-			Splice: desugar.HiddenRule(rd.Name) && rd.Action == nil && !rd.DefaultAction && !operators}
-		in.Rules = append(in.Rules, r)
-		in.ByName[rd.Name] = r
-	}
-	for _, name := range canon.Starts {
-		if r := in.ByName[name]; r != nil {
-			in.Starts = append(in.Starts, r)
-		}
-	}
-	for _, d := range canon.Grammar.File.Decls {
-		if vd, ok := d.(*grammar.VarDef); ok {
-			if in.Vars == nil {
-				in.Vars = check.NewVarTable()
-			}
-			if in.Vars.Lookup(vd.Name) == nil {
-				in.Vars.Add(&check.VarDecl{Name: vd.Name})
-			}
-		}
-	}
-	return in, rules
-}
-
 // mergeErrors returns the compiler's error with the fact errors it does not report. The compiler's
 // errors keep their order; each added error goes before the first error already in the list that
-// comes after it in the source, or last. If the compiler reports all of them, it returns the compiler's error
-// unchanged.
+// comes after it in the source, or last. If the compiler reports all of them, it returns the
+// compiler's error unchanged.
 func mergeErrors(err error, factErrs diag.ErrorList) error {
 	list, ok := err.(diag.ErrorList)
 	if !ok || len(factErrs) == 0 {
