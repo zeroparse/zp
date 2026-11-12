@@ -2431,10 +2431,7 @@ $\alpha_j$ is $\alpha_1$; or it lies in a call of a rule that calls no rule;
 or it follows a link, or is free with a reference link, with case (a) or (b)
 of the covered keys on its path; or it is free and the counterpart of an
 activation of $\mathcal{R}$ that a dropped step or a path that enters a growth
-again of $\mathcal{R}$ leads to; or it follows a link, or its counterpart a
-reference link, whose later evaluation is a call of a rule off the cycle in a
-context of growths and whose earlier evaluation lies outside the family region
-of $h$, or of $\mathcal{R}(h)$; or a result or a step that the parse reuses
+again of $\mathcal{R}$ leads to; or a result or a step that the parse reuses
 inside $h$ meets the gap of *Heads hold what later growths hold*.
 
 *Proof.* Let $\alpha_j$ be none of these, so $j \ge 2$. If it is linked, the
@@ -2442,10 +2439,12 @@ link is memoized, since $\alpha_j$ lies in no call of a rule that calls no
 rule. By *Links lead to later growths*, $e'_j$ lies inside the family of $h$,
 so it is a call in a context of growths at the position $p'$ of a growth $G$
 of that family: an evaluation of the family that is a memoized evaluation
-would own $\alpha_j$. The rule of the link is memoized at the call, so it is
-off the cycle, which the list excludes, or a leader of the cycle of $G$, a
-rule of a cycle other than a leader being memoized only at a call that is no
-left call. Then $e_j$, made by the call that $w_j$ shares with its
+would own $\alpha_j$. The rule of the link is memoized at the call and on
+the cycle of $G$, since a call of a rule on no cycle of the growths at $p'$
+is in no context of growths ([Evaluations of
+Rules](../runtime/parsing.md#evaluations-of-rules)), so it is a leader, a rule
+of a cycle other than a leader being memoized only at a call that is no left
+call. Then $e_j$, made by the call that $w_j$ shares with its
 continuation, lies in the same growths of the cycle (case 2), so inside $G$
 at $p'$, in its context and in the family region of $h$, and $e_j$ and
 $e'_j$ take the same steps. If it is free, its counterpart in $\mathcal{R}$
@@ -2473,10 +2472,7 @@ leaders, and as many for each activation of the kinds that the claim lists.
 Those kinds are the open parts of step 1 of [Open Steps](#open-steps), the
 gap stated with (D) of the memoization proof, the activations that a dropped
 step or a path that enters a growth again of $\mathcal{R}$ leads to, which
-step 1 leaves to count too, and the links of a rule off the cycle whose later
-evaluation is in a context of growths inside $h$ while the earlier one is
-not, which this proof does not bound: the head of the class of the key of
-that call is then outside $h$, and nothing yet charges $h$ to it. With the at most two outer growths of each
+step 1 leaves to count too. With the at most two outer growths of each
 key and the constant of *Consecutive repeats inside a family* for each family,
 the successful activations of $\sigma$ at $q$ that growth steps and
 evaluations in a context of growths own are at most a constant, apart from
@@ -4469,8 +4465,7 @@ condition of the cost view that the [Cost View](cost-view.md) proof leaves open.
    whose first activation at a position is of a kind that *First activations
    of heads* lists: the open parts of step 1, the activations that a dropped
    step or a path that enters a growth again of the reference parse leads to,
-   the links of a rule off the cycle whose later evaluation is in a context of
-   growths inside the head while the earlier one is not, and the activations
+   and the activations
    that *Heads hold what later growths hold* leaves out, through a result or
    step kept in a smaller lookahead state or the lookaheads that it observed,
    with the open gap stated with (D) of the memoization proof. Third, the growths that start at many positions, each at
