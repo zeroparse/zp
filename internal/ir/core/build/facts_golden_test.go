@@ -1,4 +1,4 @@
-package build
+package build_test
 
 import (
 	"fmt"
@@ -9,6 +9,7 @@ import (
 	"zeroparse.dev/zp/internal/compiletest"
 	"zeroparse.dev/zp/internal/factstest"
 	"zeroparse.dev/zp/internal/ir/core"
+	"zeroparse.dev/zp/internal/ir/core/build"
 )
 
 // TestCoreFactsGolden compares the rule facts that Core IR's analysis computes on the module of
@@ -25,7 +26,7 @@ func TestCoreFactsGolden(t *testing.T) {
 		if err != nil {
 			t.Fatalf("%s: %v", path, err)
 		}
-		m, err := CoreFrom(prog, nil)
+		m, err := build.CoreFrom(prog, nil)
 		if err != nil {
 			t.Fatalf("%s: %v", path, err)
 		}
@@ -68,7 +69,7 @@ func TestRecoverAndMissingNullability(t *testing.T) {
 		{`rule a = ("x" #missing #recover(skip="y")) "z"`, false, true},
 		{`rule a = "(" #missing a "x" / "y"`, false, true},
 	} {
-		m, err := CoreFrom(compiletest.Program(t, tc.src, compile.Options{}), nil)
+		m, err := build.CoreFrom(compiletest.Program(t, tc.src, compile.Options{}), nil)
 		if err != nil {
 			t.Fatal(err)
 		}

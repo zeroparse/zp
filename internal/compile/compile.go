@@ -971,10 +971,10 @@ func SeeThrough(e grammar.Expr) grammar.Expr { return check.SeeThrough(e) }
 
 // ElementScoped reports whether the repetition element e gets a capture scope of its own per
 // iteration (elementScopedControlled).
-func ElementScoped(e grammar.Expr) bool { return elementScopedControlled(e, nil) }
+func ElementScoped(e grammar.Expr) bool { return check.ElementScoped(e) }
 
 // HasCaptures reports whether e contains a capture.
-func HasCaptures(e grammar.Expr) bool { return hasCapturesControlled(e, nil) }
+func HasCaptures(e grammar.Expr) bool { return check.HasCaptures(e) }
 
 // WhereName returns the text that names the rule in the message of a failed action.
 func (r *Rule) WhereName() string {

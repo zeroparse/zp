@@ -13,9 +13,9 @@
 // every capture written in it, including unreachable ones, in the order they are first met
 // (coreLayout).
 //
-// A type-checked program gives the module its checked types (compile.ValueRecord): those of the rules'
+// A type-checked program gives the module its checked types (check.ValueRecord): those of the rules'
 // values, of the capture slots, of every term and of the named types and variables. The
-// expectations of the module begin with the fixed ones of the runtime (compile.FixedDescs), so that Any
+// expectations of the module begin with the fixed ones of the runtime (core.FixedDescs), so that Any
 // and the anchors, which name none, record those of the same index. A #stream repetition at the
 // top of a start rule is a Stream; elsewhere it streams nothing and is built as its repetition.
 package build
@@ -24,9 +24,10 @@ import (
 	"fmt"
 
 	"zeroparse.dev/zp/grammar"
-	"zeroparse.dev/zp/internal/compile"
+	"zeroparse.dev/zp/internal/check"
 	"zeroparse.dev/zp/internal/desugar"
 	"zeroparse.dev/zp/internal/ir/core"
+	"zeroparse.dev/zp/internal/types"
 	"zeroparse.dev/zp/internal/value"
 )
 
@@ -34,24 +35,24 @@ import (
 // the position of its ID. Shapes are those of the value model (internal/compile/value_shape.go);
 // Analyze has not run. If origin is not nil, it records the expression each node is built from
 // (the innermost one, for nodes built from a chain of expressions).
-func CoreFrom(prog *compile.Program, origin map[core.Node]grammar.Expr) (*core.Module, error) {
+func CoreFrom(prog Program, origin map[core.Node]grammar.Expr) (*core.Module, error) {
 	return CoreProjecting(prog, origin, true)
 }
 
 // CoreProjecting is CoreFrom; if project is false, no repetition gathers the values of a
-// capture (compile.RuleProjections is ignored), the shape of the values the recognizer's table
+// capture (Rule.Projections is ignored), the shape of the values the recognizer's table
 // writes its actions for (the Go generator's projections).
-func CoreProjecting(prog *compile.Program, origin map[core.Node]grammar.Expr, project bool) (*core.Module, error) {
-	all := append(append([]*compile.Rule(nil), prog.RuleList...), prog.Twins...)
-	b := &coreBuilder{prog: prog, m: &core.Module{Rules: make([]*core.Rule, len(all))}, origin: origin,
-		exps: map[string]core.ExpID{}, classes: map[string]*core.Class{}, starts: map[*compile.Rule]bool{}}
+func CoreProjecting(prog Program, origin map[core.Node]grammar.Expr, project bool) (*core.Module, error) {
+	in := prog.CoreInput()
+	all := in.Rules
+	b := &coreBuilder{prog: prog, in: in, chk: prog.Checker(), m: &core.Module{Rules: make([]*core.Rule, len(all))}, origin: origin,
+		exps: map[string]core.ExpID{}, classes: map[string]*core.Class{}, starts: map[*Rule]bool{}}
 	b.noProject = !project
-	b.rec = prog.ValueRecord()
-	for _, d := range compile.FixedDescs {
+	b.rec = b.chk.ValueRecord()
+	for _, d := range core.FixedDescs {
 		b.exp(d)
 	}
-	for _, name := range prog.StartRules {
-		r := prog.ByName[name]
+	for _, r := range in.Starts {
 		b.starts[r] = true
 		b.m.Starts = append(b.m.Starts, r.ID)
 	}
@@ -73,13 +74,13 @@ func CoreProjecting(prog *compile.Program, origin map[core.Node]grammar.Expr, pr
 	if b.rec != nil {
 		b.m.Typed = true
 		b.m.Types = map[string]core.Type{}
-		k := &compile.TypeResolver{Prog: prog.Checker()}
-		for name := range prog.Types {
+		k := &check.TypeResolver{Prog: b.chk}
+		for name := range in.Types {
 			b.m.Types[name] = k.ResolveNamed(name, grammar.Pos{})
 		}
 	}
-	if prog.Vars != nil {
-		for _, d := range prog.Vars.List {
+	if in.Vars != nil {
+		for _, d := range in.Vars.List {
 			b.m.Vars = append(b.m.Vars, &core.VarDecl{Name: d.Name, Type: d.Typ, Init: d.Init})
 		}
 	}
@@ -88,9 +89,11 @@ func CoreProjecting(prog *compile.Program, origin map[core.Node]grammar.Expr, pr
 }
 
 type coreBuilder struct {
-	prog *compile.Program
+	prog Program
+	in   *Input
+	chk  *check.Checker
 	m    *core.Module
-	cur  *compile.Rule
+	cur  *Rule
 	// noProject builds no projected repetition: proj stays empty.
 	noProject bool
 	// proj holds the projected repetition captures of the rule being built (ruleProjections).
@@ -100,12 +103,12 @@ type coreBuilder struct {
 	// origin, if not nil, records the expression each node is built from.
 	origin map[core.Node]grammar.Expr
 	// rec holds the checked types of the program, nil if it has none.
-	rec *compile.ValueRecord
+	rec *check.ValueRecord
 	// exps and classes intern the expectations and classes of the module.
 	exps    map[string]core.ExpID
 	classes map[string]*core.Class
 	// starts holds the start rules.
-	starts map[*compile.Rule]bool
+	starts map[*Rule]bool
 	// streamTop holds the expressions of the rule being built where #stream makes a Stream: its
 	// body, the items of its body sequence and the operands of captures that are one of these.
 	streamTop map[grammar.Expr]bool
@@ -114,7 +117,7 @@ type coreBuilder struct {
 }
 
 // callLevel returns the minimum binding level of a call of the rule r (core.Call.Level).
-func callLevel(e *grammar.Ref, r *compile.Rule) (int, error) {
+func callLevel(e *grammar.Ref, r *Rule) (int, error) {
 	if e.Level == "" {
 		return 0, nil
 	}
@@ -143,7 +146,7 @@ func (b *coreBuilder) exp(d string) core.ExpID {
 
 // class returns the class of a character class expression, interning it.
 func (b *coreBuilder) class(e *grammar.CharClass) *core.Class {
-	d := compile.CharClassString(e)
+	d := core.CharClassString(e)
 	key := fmt.Sprint(e.Negated, e.Ranges, d)
 	if c, ok := b.classes[key]; ok {
 		return c
@@ -161,7 +164,7 @@ func (b *coreBuilder) class(e *grammar.CharClass) *core.Class {
 // captures of its body.
 type coreScope struct {
 	names []string
-	types map[string]compile.Ty
+	types map[string]types.Ty
 }
 
 // scope returns a scope with the slots names for the scope body e.
@@ -207,7 +210,7 @@ func (s *coreScope) lookup(name string) (int, bool) {
 	return 0, false
 }
 
-func (b *coreBuilder) rule(r *compile.Rule) (*core.Rule, error) {
+func (b *coreBuilder) rule(r *Rule) (*core.Rule, error) {
 	b.cur = r
 	cr := &core.Rule{ID: r.ID, Name: r.Name, Where: r.WhereName(), Want: !r.Lean}
 	if b.rec != nil && !r.Novalue {
@@ -227,7 +230,7 @@ func (b *coreBuilder) rule(r *compile.Rule) (*core.Rule, error) {
 		cr.Finish = core.Finish{Kind: core.FinishSplice}
 		if r.Action != nil && !r.Novalue {
 			// The whole-rule action runs once per call on the folded value, $value.
-			env := map[string]*core.Local{compile.OperatorsRuleValue: {Kind: core.LocalValue, Name: compile.OperatorsRuleValue}}
+			env := map[string]*core.Local{check.OperatorsRuleValue: {Kind: core.LocalValue, Name: check.OperatorsRuleValue}}
 			b.final = r.Action
 			cr.Finish.Action, err = b.term(r.Action, b.scope(nil, o), env)
 			b.final = nil
@@ -239,19 +242,19 @@ func (b *coreBuilder) rule(r *compile.Rule) (*core.Rule, error) {
 		return cr, nil
 	}
 	if !b.noProject {
-		b.proj = compile.RuleProjections(b.prog, r)
+		b.proj = r.Projections()
 	}
 	defer func() { b.proj = nil }()
-	body := r.BodyExpr()
-	b.streamTop = compile.StreamTops(body)
-	s := b.scope(coreLayout(b.prog, r, b.proj, body, !r.Lean).names, body)
+	body := r.Body
+	b.streamTop = check.StreamTops(body)
+	s := b.scope(coreLayout(r, b.proj, body, !r.Lean).names, body)
 	n, err := b.expr(body, s, !r.Lean)
 	if err != nil {
 		return nil, err
 	}
 	cr.Body = n
 	cr.Finish.NodeType = r.NodeType
-	cr.Finish.Shape = coreShape(b.prog, body)
+	cr.Finish.Shape = coreShape(b.chk, body)
 	switch {
 	case r.Novalue:
 		cr.Finish.Kind = core.FinishNone
@@ -309,13 +312,13 @@ func (b *coreBuilder) opLine(e grammar.Expr, action grammar.Term, operator, skip
 	if operator {
 		locals = []string{"lhs", "rhs", "op"}
 	}
-	build := !skip && !b.cur.Novalue && !compile.LeanLine(action, locals)
-	s := b.scope(coreLayout(b.prog, b.cur, nil, e, build).names, e)
+	build := !skip && !b.cur.Novalue && !check.LeanLine(action, locals)
+	s := b.scope(coreLayout(b.cur, nil, e, build).names, e)
 	body, err := b.expr(e, s, build)
 	if err != nil {
 		return nil, err
 	}
-	l := &core.OpLine{Body: body, Shape: coreShape(b.prog, e)}
+	l := &core.OpLine{Body: body, Shape: coreShape(b.chk, e)}
 	if action != nil && !b.cur.Novalue {
 		env := map[string]*core.Local{}
 		if operator {
@@ -335,16 +338,16 @@ func (b *coreBuilder) opLine(e grammar.Expr, action grammar.Term, operator, skip
 }
 
 // coreShape returns the static shape of the value of e.
-func coreShape(prog *compile.Program, e grammar.Expr) core.Shape {
-	elems := compile.IsElems(prog, e)
-	return core.Shape{Elems: elems, K: compile.ValuedCount(prog, e), Mode: core.SingleMode(compile.SingleModeOf(prog, e)), Tuple: compile.ScopeTuple(prog, e),
-		Shared: elems && compile.SharesTuple(prog, e)}
+func coreShape(chk *check.Checker, e grammar.Expr) core.Shape {
+	elems := check.IsElems(chk, e)
+	return core.Shape{Elems: elems, K: check.ValuedCount(chk, e), Mode: core.SingleMode(check.SingleModeOf(chk, e)), Tuple: check.ScopeTuple(chk, e),
+		Shared: elems && check.SharesTuple(chk, e)}
 }
 
 // coreLayout returns the frame layout of a scope with the body e: the captures written in it in
 // the order they are first met, unreachable ones included, following the build policy of the
 // rule r with the projections proj.
-func coreLayout(prog *compile.Program, r *compile.Rule, proj map[string]string, e grammar.Expr, build bool) *coreScope {
+func coreLayout(r *Rule, proj map[string]string, e grammar.Expr, build bool) *coreScope {
 	s := &coreScope{}
 	var visit func(grammar.Expr, bool)
 	visit = func(e grammar.Expr, build bool) {
@@ -370,13 +373,13 @@ func coreLayout(prog *compile.Program, r *compile.Rule, proj map[string]string, 
 				visit(alt, build)
 			}
 		case *grammar.Repeat:
-			if !compile.ElementScoped(e.Expr) {
+			if !check.ElementScoped(e.Expr) {
 				visit(e.Expr, build)
 			}
 		case *grammar.Optional:
 			visit(e.Expr, build)
 		case *grammar.And:
-			visit(e.Expr, build && compile.HasCaptures(e.Expr))
+			visit(e.Expr, build && check.HasCaptures(e.Expr))
 		case *grammar.Not:
 			visit(e.Expr, false)
 		case *grammar.Atomic:
@@ -401,7 +404,7 @@ func coreLayout(prog *compile.Program, r *compile.Rule, proj map[string]string, 
 // its value is wanted, and its shape.
 func (b *coreBuilder) set(n core.Node, e grammar.Expr, want bool) core.Node {
 	a := n.Attrs()
-	a.Want, a.Shape = want, coreShape(b.prog, e)
+	a.Want, a.Shape = want, coreShape(b.chk, e)
 	return n
 }
 
@@ -421,7 +424,7 @@ func (b *coreBuilder) node(e grammar.Expr, s *coreScope, build bool) (core.Node,
 	case *grammar.Literal:
 		n := &core.Lit{Text: value.LiteralValue(e.Value), Fold: e.IgnoreCase}
 		if n.Text != "" {
-			n.Exp = b.exp(compile.LiteralDesc(e))
+			n.Exp = b.exp(core.LiteralDesc(e))
 		}
 		return b.set(n, e, build), nil
 	case *grammar.CharClass:
@@ -429,7 +432,7 @@ func (b *coreBuilder) node(e grammar.Expr, s *coreScope, build bool) (core.Node,
 	case *grammar.Any:
 		return b.set(&core.Any{}, e, build), nil
 	case *grammar.Ref:
-		r := b.prog.ByName[e.Name]
+		r := b.in.ByName[e.Name]
 		if r == nil {
 			return nil, fmt.Errorf("undefined rule %s", e.Name)
 		}
@@ -470,12 +473,12 @@ func (b *coreBuilder) node(e grammar.Expr, s *coreScope, build bool) (core.Node,
 		}
 		return b.set(&core.Opt{Body: x}, e, build), nil
 	case *grammar.And:
-		x, err := b.expr(e.Expr, s, build && compile.HasCaptures(e.Expr))
+		x, err := b.expr(e.Expr, s, build && check.HasCaptures(e.Expr))
 		if err != nil {
 			return nil, err
 		}
-		if compile.LookKeepsState(e.Expr) {
-			// Its captures and bindings outlast it: no observation (compile.LookKeepsState).
+		if check.LookKeepsState(e.Expr) {
+			// Its captures and bindings outlast it: no observation (check.LookKeepsState).
 			return b.set(&core.Look{Body: x}, e, false), nil
 		}
 		b.looks++
@@ -567,7 +570,7 @@ func (b *coreBuilder) node(e grammar.Expr, s *coreScope, build bool) (core.Node,
 // attributed builds e under its attributes Attrs[:i+1], the last one outermost.
 func (b *coreBuilder) attributed(e *grammar.Attributed, i int, s *coreScope, build bool) (core.Node, error) {
 	if i < 0 {
-		if rep, ok := e.Expr.(*grammar.Repeat); ok && compile.IsStream(e) && b.starts[b.cur] && b.streamTop[e] {
+		if rep, ok := e.Expr.(*grammar.Repeat); ok && check.IsStream(e) && b.starts[b.cur] && b.streamTop[e] {
 			x, err := b.expr(rep, s, build)
 			if err != nil {
 				return nil, err
@@ -616,7 +619,7 @@ func (b *coreBuilder) attributed(e *grammar.Attributed, i int, s *coreScope, bui
 		if build {
 			// What recovers is one element: the value of the expression, or the error. Its shape
 			// gives an expression without a value no element, which its users then leave out.
-			n.Attrs().Want, n.Attrs().Shape = true, coreShape(b.prog, e)
+			n.Attrs().Want, n.Attrs().Shape = true, coreShape(b.chk, e)
 		}
 		return n, nil
 	case "stream":
@@ -643,8 +646,8 @@ func (b *coreBuilder) attributed(e *grammar.Attributed, i int, s *coreScope, bui
 func (b *coreBuilder) repeat(e *grammar.Repeat, s *coreScope, build bool, field string) (core.Node, error) {
 	n := &core.Repeat{Min: e.Min, Max: e.Max, Project: field, Site: b.prog.SkipSite(e), ScanSite: b.prog.ScanSite(e)}
 	es := s
-	if field != "" || compile.ElementScoped(e.Expr) {
-		es = b.scope(coreLayout(b.prog, b.cur, b.proj, e.Expr, build && field == "").names, e.Expr)
+	if field != "" || check.ElementScoped(e.Expr) {
+		es = b.scope(coreLayout(b.cur, b.proj, e.Expr, build && field == "").names, e.Expr)
 	}
 	x, err := b.expr(e.Expr, es, build && field == "")
 	if err != nil {
@@ -718,16 +721,16 @@ func (b *coreBuilder) termNode(t grammar.Term, s *coreScope, env map[string]*cor
 			if err != nil {
 				return nil, err
 			}
-			n, ok := b.prog.NodeTypeOf(t.Type) // the type's own name, also for an alias of it
+			n, ok := b.chk.NodeTypeOf(t.Type) // the type's own name, also for an alias of it
 			if !ok {
 				return nil, fmt.Errorf("%s is not a named node type", t.Type)
 			}
 			proven := b.rec != nil && b.rec.Proven[t]
 			return &core.Convert{NodeType: n.Name, X: x, Proven: proven}, nil
 		}
-		name, spec := b.prog.StructType(t.Type)
+		name, spec := b.chk.StructType(t.Type)
 		n := &core.New{Type: name, Final: grammar.Term(t) == b.final}
-		for _, f := range compile.DefFields(spec) {
+		for _, f := range check.DefFields(spec) {
 			n.Declared = append(n.Declared, f.Name)
 		}
 		for _, f := range t.Fields {
