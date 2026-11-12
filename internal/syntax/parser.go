@@ -422,7 +422,7 @@ var keywords = map[string]bool{
 func (p *parser) file() *grammar.Grammar {
 	g := &grammar.Grammar{}
 
-	if p.is("package") || p.is("@") && p.attributesReach(p.i, "package") {
+	if p.is("package") || p.is("@") && p.attributesReach(p.i, "package", true) {
 		p.packageClause(&g.File.Pkg)
 	}
 	for p.tok().kind != tEOF {
@@ -559,13 +559,14 @@ func (p *parser) attributesStart(i int) bool {
 	if t := p.toks[i]; t.kind != tPunct || t.text != "@" || !t.lineBefore {
 		return false
 	}
-	return p.attributesReach(i, "rule")
+	return p.attributesReach(i, "rule", false)
 }
 
 // attributesReach reports whether the "@" at token i reaches a line that starts
 // with keyword through attributes alone, without an "=" outside their
-// parentheses.
-func (p *parser) attributesReach(i int, keyword string) bool {
+// parentheses. With sameLine, keyword also counts on the line of the last
+// attribute, so that the clause it starts reports the missing newline.
+func (p *parser) attributesReach(i int, keyword string, sameLine bool) bool {
 	depth := 0
 	for j := i + 1; j < len(p.toks); j++ {
 		p.poll()
@@ -580,6 +581,8 @@ func (p *parser) attributesReach(i int, keyword string) bool {
 			if t.kind != tPunct || t.text != "@" {
 				return false
 			}
+		case sameLine && depth == 0 && t.kind == tIdent && t.text == keyword:
+			return true
 		case t.kind == tPunct && t.text == "(":
 			depth++
 		case t.kind == tPunct && t.text == ")":
