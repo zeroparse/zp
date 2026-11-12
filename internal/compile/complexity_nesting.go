@@ -174,9 +174,14 @@ func (k *classifier) addRestart(r restart) {
 }
 
 // bodyEnds calls end with the rule of each body whose end the path c can reach without consuming
-// input: the body of the rule of owner, or the body of a caller that the path reached after it
-// left that one. The paths of an operand or an operator part end with the part, after which the
-// Operators Rule of owner can end.
+// input: the body of the rule of owner, or the body of a rule that the path reached after it left
+// that one. The first is the body in which the path is at its start, the one the restart needs.
+// For the continuation of a growth that starts at a call of a rule of the cycle other than the
+// leader, that is the body of that rule (bodyThen), not the one of its caller: the evaluations
+// that the growth restarts are the ones of that call. The bodies that the path reaches after it
+// are reported too; the second clause adds those rules anyway within the recursion. The paths of
+// an operand or an operator part end with the part, after which the Operators Rule of owner can
+// end.
 func (k *classifier) bodyEnds(c *cont, owner *unit, end func(rule string)) {
 	seen := map[string]bool{}
 	var walk func(c *cont)
@@ -187,6 +192,11 @@ func (k *classifier) bodyEnds(c *cont, owner *unit, end func(rule string)) {
 				return
 			}
 			if c.next != nil {
+				if c.end != endNone {
+					// The end of a body that the path entered at a call, after which it goes
+					// on after the call.
+					end(c.rule)
+				}
 				continue
 			}
 			switch {

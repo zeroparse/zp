@@ -1,9 +1,14 @@
 package compile
 
 import (
+	"fmt"
 	"os"
+	"slices"
 	"strings"
 	"testing"
+
+	"zeroparse.dev/zp/internal/starttest"
+	"zeroparse.dev/zp/internal/syntax"
 )
 
 // nestingRestarts are grammars whose cost is quadratic because a unit restarts a nesting: the
@@ -259,6 +264,80 @@ func TestScanOnlyNestings(t *testing.T) {
 		c := classifySource(t, "@start\n"+tc.src)
 		if linear := c.Class == ClassLinear; linear == scanOnlyNestingRejected[tc.name] {
 			t.Errorf("%s: class %v with scan sites: %v", tc.name, c.Class, c.Reasons)
+		}
+	}
+}
+
+// TestRestartRuleAtGrowthStart checks the rule of a restart through the continuation of a growth
+// that starts at a call of a rule of the cycle other than the leader. The continuation is the rest
+// of the body of that rule after its left call, and then what follows the call. The rule of the
+// restart is the one in whose body the continuation is at the shared calls: the rule of the call,
+// not its caller, even when what follows the call in the caller consumes input.
+func TestRestartRuleAtGrowthStart(t *testing.T) {
+	// The step of the growth of R has two tails, M W "x" in R and, through the left call of M in
+	// R, the rest of M; each starts with a call of M, and the first fails after the scan W. The
+	// growth that starts at the call of M at 3:12 continues with the call of M at 4:12, and then M
+	// can end. So each tail's call of M nests at one end by E3 through itself, with M its callee,
+	// although W "x" follows the call at 3:12 in R.
+	src := "@start\nrule main = R $$\nrule R = R M W \"x\" / M / \".\"\nrule M = R M / \"m\"\nrule W = [ ]*\n"
+	g, err := syntax.Parse(src)
+	if err != nil {
+		t.Fatal(err)
+	}
+	k, _, err := prepareClassifier(starttest.MarkAll(g), "main", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	k.classify()
+	const what = "what follows the call M at 3:12 in rule R"
+	var got []string
+	compared := false
+	for _, u := range k.units {
+		if u.kind != unitStep || u.rule != "R" {
+			continue
+		}
+		for _, cs := range u.conts {
+			if cs.what != what {
+				continue
+			}
+			for _, self := range k.selfPaths(u) {
+				compared = true
+				k.restarts, k.nestDry = nil, true
+				k.strip(self, cs.paths, u)
+				k.nestDry = false
+				for _, r := range k.restarts {
+					got = append(got, fmt.Sprintf("%s %s at %d:%d", r.rule, r.call.Name, exprPos(r.call).Line, exprPos(r.call).Col))
+				}
+			}
+		}
+	}
+	if !compared {
+		t.Fatalf("no step unit of R compared with %s", what)
+	}
+	slices.Sort(got)
+	got = slices.Compact(got)
+	if want := []string{"M M at 3:12", "M M at 4:12"}; !slices.Equal(got, want) {
+		t.Errorf("restarts %q, want %q", got, want)
+	}
+}
+
+// TestRestartAheadAtGrowthStart checks that the restart through the continuation of a growth that
+// starts at a call of M, a rule of the cycle other than the leader R, is found before the checks:
+// the unit C2 W "x" and that continuation evaluate the call of C2 alike, after which the
+// continuation ends the body of M, and E2 then adds R, which calls M at its end, and C2, which
+// calls R at its end. What follows the call of M in C consumes input, so the caller C adds
+// nothing.
+func TestRestartAheadAtGrowthStart(t *testing.T) {
+	withoutScanSites(t)
+	src := "@start\nrule main = C $$\nrule C = \"[\" M \"]\"\nrule M = R C2\nrule R = R C2 W \"x\" / M U / \".\"\n" +
+		"rule C2 = \"(\" R\nrule U = \"!\"?\nrule W = [ ]*\n"
+	c := classifySource(t, src)
+	if c.Class == ClassLinear {
+		t.Fatalf("class linear: %v", c.Reasons)
+	}
+	for _, r := range c.Reasons {
+		if strings.Contains(r.Message, "found only after it relied on the call") {
+			t.Errorf("restart found only in the checks: %s", r.Message)
 		}
 	}
 }
