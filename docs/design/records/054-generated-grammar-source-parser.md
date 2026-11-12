@@ -288,7 +288,8 @@ error, at a cost that grows with the source, and hide the growth. Looking for
 the next declaration at each line of a run of attribute lines, each time to
 the end of the run, grows with the square of the run: 4,000 such lines in an
 open group take over a second, 32,000 lines over five minutes. The skip of attribute
-lines above keeps it linear; the two families of attribute lines in an open group fail without it.
+lines above keeps it linear; the four families of attribute lines fail without
+it, with ratios of 58 to 268.
 
 ### One Frontend
 
