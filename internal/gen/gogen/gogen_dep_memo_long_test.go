@@ -191,8 +191,9 @@ func depMemoPackages(t *testing.T, cases []gentest.Case) ([]depMemoPackage, []ge
 // (none if ""), parses their inputs, untyped and typed, with a program built with the GOFLAGS flags
 // and returns the outcomes. The values record the rules that produced them: two step results that
 // differ only in that are different seeds. The program runs for at most limit (no bound if
-// limit <= 0) and stops before the test's deadline; the results also give how long it ran and
-// whether it was stopped, with the outcomes printed by then.
+// limit <= 0) and is killed before the test's deadline. A stop at the bound is reported as
+// stopped, with the outcomes printed by then; a stop at the deadline is an error. The results also
+// give how long it ran.
 func depMemoOutcomes(t *testing.T, goBin string, pkgs []depMemoPackage, rt []gen.GeneratedFile, mutation, flags string, limit time.Duration) (string, time.Duration, bool, error) {
 	dir, err := os.MkdirTemp("", "depmemo-")
 	if err != nil {
@@ -278,8 +279,11 @@ func main() {
 	start := time.Now()
 	out, err := cmd.CombinedOutput()
 	took := time.Since(start)
-	if err != nil && ctx.Err() != nil {
+	if err != nil && gentest.ChildStoppedAtBound(ctx) {
 		return string(out), took, true, nil
+	}
+	if err != nil && ctx.Err() != nil {
+		return "", took, false, fmt.Errorf("stopped by the test's deadline, not at its bound (%v); raise -timeout: %v\n%s", limit, err, out)
 	}
 	if err != nil {
 		return "", took, false, fmt.Errorf("%v\n%s", err, out)
