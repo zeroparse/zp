@@ -1,7 +1,6 @@
 package lower
 
 import (
-	"errors"
 	"fmt"
 	"slices"
 	"strconv"
@@ -27,15 +26,11 @@ import (
 //
 // The leaves of a term (constants, captures, locals and variables), the context of the evaluation and
 // the static operands of the compositions (a member's name, a node type, the checked type of a cast)
-// are transitional operations whose immediate operand the target prints, as its term printer does.
+// are transitional operations whose immediate operand the target prints.
 //
 // A built-in function that takes a function (map, filter, foldl, foldr) is a loop over the elements of
 // its list argument: each step charges the step of the element (seq.step), binds the parameters of the
 // lambda to locals of the loop and evaluates its body in place.
-
-// ErrUnsupported reports a term that holds a kind of term that Term does not lower yet; the caller
-// prints the whole term the way it did before.
-var ErrUnsupported = errors.New("lower: term kind not lowered")
 
 // TermConst is the immediate operand of term.const: an int, a string, a bool or nil.
 type TermConst struct{ Value any }
@@ -164,10 +159,12 @@ type TermOptions struct {
 	Proj map[string]string
 }
 
-// Term lowers the term t, or returns ErrUnsupported if t holds a kind of term that it does not lower.
+// Term lowers the term t. It reports an error if t is not a term that the front end builds: a
+// built-in other than those of the language, one with arguments of the wrong number, or a lambda that
+// is not the function argument of map, filter, foldl or foldr.
 func Term(t ir.Term, o TermOptions) (*TermLowered, error) {
-	if !TermSupported(t) {
-		return nil, ErrUnsupported
+	if !wellFormed(t) {
+		return nil, fmt.Errorf("lower: a term that the front end does not build: %s", ir.TermString(t))
 	}
 	m, err := termModule()
 	if err != nil {
@@ -204,15 +201,20 @@ func Term(t ir.Term, o TermOptions) (*TermLowered, error) {
 	return &TermLowered{Module: m, Func: fn, Result: o.Result}, nil
 }
 
-// TermSupported reports whether Term lowers t.
-func TermSupported(t ir.Term) bool {
+// wellFormed reports whether t is a term that Term lowers: the built-ins of the language with their
+// arguments, lambdas only as their function arguments, and parameters only in the bodies of their
+// lambdas.
+func wellFormed(t ir.Term) bool {
 	ok := true
+	args := map[*ir.Lambda]bool{} // the lambdas that are the function arguments of built-ins
 	ir.WalkTerm(t, func(x ir.Term) {
 		switch x := x.(type) {
 		case *ir.Const, *ir.SlotRef, *ir.VarRef, *ir.Member, *ir.Binary, *ir.Unary, *ir.Convert, *ir.Cast,
-			*ir.Tuple, *ir.New, *ir.Local, *ir.Lambda:
-			// A lambda is an argument of a built-in, checked with it below, and a parameter is read only in
-			// the body of its lambda.
+			*ir.Tuple, *ir.New, *ir.Local:
+		case *ir.Lambda:
+			// WalkTerm visits a built-in before its arguments; a parameter is read only in the body of
+			// its lambda.
+			ok = ok && args[x]
 		case *ir.Builtin:
 			switch x.Func {
 			case "len", "text":
@@ -228,11 +230,33 @@ func TermSupported(t ir.Term) bool {
 			default:
 				ok = false
 			}
+			if n := len(x.Args); ok && n > 0 {
+				if f, isLambda := x.Args[n-1].(*ir.Lambda); isLambda {
+					args[f] = true
+				}
+			}
 		default:
 			ok = false
 		}
 	})
-	return ok
+	return ok && scoped(t, nil)
+}
+
+// scoped reports whether every parameter that t reads is read in the body of its lambda; in holds
+// the lambdas that enclose t.
+func scoped(t ir.Term, in []*ir.Lambda) bool {
+	switch x := t.(type) {
+	case *ir.Local:
+		return x.Kind != ir.LocalParam || slices.Contains(in, x.Lambda)
+	case *ir.Lambda:
+		in = append(in[:len(in):len(in)], x)
+	}
+	for _, c := range ir.TermChildren(t) {
+		if !scoped(c, in) {
+			return false
+		}
+	}
+	return true
 }
 
 // plain reports whether t is not a lambda.
@@ -311,7 +335,7 @@ func addTermOps(m *exec.Module) {
 	op(&exec.Op{Name: OpTermConst, Results: []exec.Type{datum}, Imm: "the constant (TermConst)",
 		Contract: "Returns the constant in Imm."})
 	op(&exec.Op{Name: OpTermRead, Results: []exec.Type{datum}, Reads: reads, Imm: "the capture, local or variable (TermRead)",
-		Contract: "Returns the value of the capture, the local or the variable in Imm, as the term printer reads it."})
+		Contract: "Returns the value of the capture, the local or the variable in Imm, as the target reads a leaf of an action."})
 	op(&exec.Op{Name: OpTermCtx, Results: []exec.Type{exec.THandle(ops.Act)}, Reads: reads,
 		Contract: "Returns the context of the evaluation of the term."})
 	op(&exec.Op{Name: OpTermName, Results: []exec.Type{exec.THandle(ops.Name)}, Imm: "the name (a string)",
@@ -625,8 +649,7 @@ func (l *termLowerer) concatParts(b *exec.Builder, t *ir.Builtin) {
 }
 
 // fusable reports whether every argument of the concat call t is a call of list or map or a fusable
-// concat, whose elements concatParts pushes as they are made, as compile.Fusable, which the term
-// printer follows, decides.
+// concat, whose elements concatParts pushes as they are made, as compile.Fusable decides.
 func fusable(t *ir.Builtin) bool {
 	for _, a := range t.Args {
 		call, ok := a.(*ir.Builtin)
@@ -788,7 +811,6 @@ func (l *termLowerer) logic(b *exec.Builder, t *ir.Binary) exec.Expr {
 	return r
 }
 
-// textArg returns the argument of t if t is a call text(x).
 // comparison reports whether op is a comparison operator.
 func comparison(op string) bool {
 	switch op {
@@ -868,6 +890,7 @@ func textMembership(t ir.Term) (ir.Term, []string, bool) {
 	return x, lits, true
 }
 
+// textArg returns the argument of t if t is a call text(x).
 func textArg(t ir.Term) (ir.Term, bool) {
 	if c, ok := t.(*ir.Builtin); ok && c.Func == "text" && len(c.Args) == 1 {
 		return c.Args[0], true

@@ -5,7 +5,6 @@ import (
 	"strconv"
 	"strings"
 
-	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/compile"
 	irc "zeroparse.dev/zp/internal/ir/core"
 	"zeroparse.dev/zp/internal/ir/exec"
@@ -17,9 +16,9 @@ import (
 
 // Terms printed from Exec IR.
 //
-// A term of a kind that lower.Term lowers is printed from Exec IR: the calls of the compositions of the
-// runtime (TermBinary, ...) with the failure of each checked after it, the leaves as the term printer
-// prints them. Any other term is printed by the term printer (term), whole.
+// Every term is lowered by lower.Term and printed from Exec IR: the calls of the compositions of the
+// runtime (TermBinary, ...) with the failure of each checked after it, and the leaves, which read
+// the captures and variables of the action.
 
 // The runtime methods that print the operations term.nodeType (of the Node runtime) and
 // term.castError.
@@ -31,61 +30,64 @@ const (
 )
 
 // loweredBody returns the body of a function that returns the value of the term t of Core IR and its
-// failure, printed from Exec IR, or reports false if t is printed by the term printer. The scope s and the locals resolve
-// the leaves as for term.
-func (g *Generator) loweredBody(t irc.Term, s *compile.Scope, locals map[string]string) (string, bool) {
+// failure, printed from Exec IR. The scope s and the locals resolve the leaves (leaf).
+func (g *Generator) loweredBody(t irc.Term, s *compile.Scope, locals map[string]string) string {
 	return g.lowered(t, s, locals, "", false)
 }
 
 // loweredStmts returns the statements that compute the value of the term t into a local that they
-// declare, and the name of the local, or reports false as loweredBody does. The locals of the
-// computation are scoped to a block.
-func (g *Generator) loweredStmts(t irc.Term, s *compile.Scope, locals map[string]string) (string, string, bool) {
+// declare, and the name of the local, as loweredBody does. The locals of the computation are scoped
+// to a block.
+func (g *Generator) loweredStmts(t irc.Term, s *compile.Scope, locals map[string]string) (string, string) {
 	res := fmt.Sprintf("tr%d", g.LoweredTerms)
-	text, ok := g.lowered(t, s, locals, res, false)
-	if !ok {
-		return "", "", false
-	}
-	return fmt.Sprintf("var %s any\n{\n%s}\n", res, text), res, true
+	text := g.lowered(t, s, locals, res, false)
+	return fmt.Sprintf("var %s any\n{\n%s}\n", res, text), res
 }
 
 // lowered prints the term t from Exec IR, into the local result if it is not empty; dispatch makes a
 // predicate that compares the text of a capture with literals test them at once (text-dispatch).
-func (g *Generator) lowered(t irc.Term, s *compile.Scope, locals map[string]string, result string, dispatch bool) (string, bool) {
+func (g *Generator) lowered(t irc.Term, s *compile.Scope, locals map[string]string, result string, dispatch bool) string {
 	if t == nil {
-		return "", false
+		panic(fmt.Errorf("rule %s: a term without Core IR", g.Cur.Name))
 	}
 	l, err := lower.Term(t, lower.TermOptions{Result: result, StructCall: g.Table == "trules", Unbounded: g.NoBudget, Proj: g.Proj,
 		FieldCompare: g.Table == "trules" && g.Opt.On("field-compare"), TextDispatch: dispatch})
-	if err == lower.ErrUnsupported {
-		return "", false
-	}
 	if err != nil {
 		panic(fmt.Errorf("rule %s: %w", g.Cur.Name, err))
 	}
 	res := execgo.Body(l.Module, l.Func, g.termTarget(s, locals), nil)
 	g.LoweredTerms++
-	return res.Text, true
+	return res.Text
 }
 
 // actionBody returns the body of a function that returns the value of the term ct of Core IR and its
-// failure, printed from Exec IR if lower.Term lowers it, and otherwise the body that the term printer
-// prints for t, the grammar term that ct is built from, whose evaluation error panics.
-func (g *Generator) actionBody(ct irc.Term, t grammar.Term, s *compile.Scope, locals map[string]string) string {
-	if body, ok := g.loweredBody(ct, s, locals); ok {
-		return body
-	}
-	return g.termBody(t, s, locals) + ", nil"
+// failure.
+func (g *Generator) actionBody(ct irc.Term, s *compile.Scope, locals map[string]string) string {
+	return g.loweredBody(ct, s, locals)
 }
 
-// predicate returns the body of the function of a predicate with the term ct of Core IR, built from
-// the grammar term t: a membership of a captured text in literals tests them at once without limit
-// controls (text-dispatch).
-func (g *Generator) predicate(ct irc.Term, t grammar.Term, s *compile.Scope) string {
-	if body, ok := g.lowered(ct, s, nil, "", g.Opt.On("text-dispatch")); ok {
-		return body
+// predicate returns the body of the function of a predicate with the term ct of Core IR: a
+// membership of a captured text in literals tests them at once without limit controls
+// (text-dispatch).
+func (g *Generator) predicate(ct irc.Term, s *compile.Scope) string {
+	return g.lowered(ct, s, nil, "", g.Opt.On("text-dispatch"))
+}
+
+// leaf returns the expression that reads the capture (or, if variable is set, the variable) name of
+// an action: a local that holds it (a parameter or $lhs, $rhs and $op, which may hold boxes that
+// stand for their values), the local that a frame printed in place keeps it in, or the slot of the
+// scope s.
+func (g *Generator) leaf(name string, variable bool, s *compile.Scope, locals map[string]string) string {
+	if variable {
+		return fmt.Sprintf("c.Var(%d)", g.Prog.Vars.Index(name))
 	}
-	return g.predicateBody(t, s, nil)
+	if l, ok := locals[name]; ok {
+		return g.pick("UnboxValue(", "(") + l + ")"
+	}
+	if g.caps != nil {
+		return g.caps[name]
+	}
+	return fmt.Sprintf("c.Cap(%d)", s.Slots[name])
 }
 
 // termTarget returns the Go implementation of the operations of a lowered term whose leaves the scope
@@ -117,11 +119,11 @@ func (g *Generator) termTarget(s *compile.Scope, locals map[string]string) *exec
 			case lower.OpTermRead:
 				switch x := c.Imm.(lower.TermRead).Term.(type) {
 				case *irc.SlotRef:
-					return g.term(&grammar.CaptureRef{Name: x.Name}, s, locals)
+					return g.leaf(x.Name, false, s, locals)
 				case *irc.Local:
-					return g.term(&grammar.CaptureRef{Name: x.Name}, s, locals)
+					return g.leaf(x.Name, false, s, locals)
 				case *irc.VarRef:
-					return g.term(&grammar.VarRef{Name: x.Name}, s, locals)
+					return g.leaf(x.Name, true, s, locals)
 				}
 			case lower.OpTermCtx:
 				return "c"
@@ -161,7 +163,7 @@ func (g *Generator) termTarget(s *compile.Scope, locals map[string]string) *exec
 			case "seq.len":
 				return "len(" + a[0] + ")"
 			case "val.unbox":
-				// As the term printer reads a parameter, which may hold a box.
+				// A parameter may hold a box, which stands for its value.
 				return g.pick("UnboxValue(", "(") + a[0] + ")"
 			case lower.OpTermKeep:
 				return fmt.Sprintf("c.P.KidStack = append(c.P.KidStack, %s[%s])", a[0], a[1])

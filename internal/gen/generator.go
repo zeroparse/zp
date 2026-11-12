@@ -190,54 +190,6 @@ func (g *Generator) Projections(r *compile.Rule) map[string]string {
 	return compile.RuleProjections(g.Prog, r)
 }
 
-// Projected reports whether the map call t reads a projected capture (Projections), and returns
-// the capture.
-func (g *Generator) Projected(t *grammar.Call, locals map[string]string) (grammar.Term, bool) {
-	x, ok := compile.ProjectedMap(t, g.Proj, func(name string) bool { _, local := locals[name]; return local })
-	return x, ok
-}
-
-// LiteralTextMembership recognizes a side-effect-free disjunction of text
-// equality checks against one captured value. Restricting the capture to a
-// direct reference makes evaluating text once observably equivalent to the
-// original ordered comparisons.
-func LiteralTextMembership(t grammar.Term) (string, []string, bool) {
-	var name string
-	var literals []string
-	var walk func(grammar.Term) bool
-	walk = func(t grammar.Term) bool {
-		if b, ok := t.(*grammar.Binary); ok && b.Op == "||" {
-			return walk(b.L) && walk(b.R)
-		}
-		b, ok := t.(*grammar.Binary)
-		if !ok || b.Op != "==" {
-			return false
-		}
-		var capture *grammar.CaptureRef
-		var literal *grammar.StringLit
-		if x, ok := compile.TextArg(b.L); ok {
-			capture, _ = x.(*grammar.CaptureRef)
-			literal, _ = b.R.(*grammar.StringLit)
-		}
-		if capture == nil || literal == nil {
-			if x, ok := compile.TextArg(b.R); ok {
-				capture, _ = x.(*grammar.CaptureRef)
-				literal, _ = b.L.(*grammar.StringLit)
-			}
-		}
-		if capture == nil || literal == nil || (name != "" && name != capture.Name) {
-			return false
-		}
-		name = capture.Name
-		literals = append(literals, literal.Value)
-		return true
-	}
-	if !walk(t) || len(literals) < 2 {
-		return "", nil, false
-	}
-	return name, literals, true
-}
-
 // FlowState holds the Core IR of the typed rules while they are printed from Flow IR.
 type FlowState struct {
 	M      *core.Module
