@@ -341,46 +341,50 @@ min begins.`,
 		Contract: `Reports to the observation of the parse that the call that the last unmatched obs.enter began
 ends, with its success ok, at pos, and with the end of the input it examined if known.`,
 		Requires: `The parse is observed.`})
-	add(&exec.Op{Name: "doc.examinedBegin", Component: Call, Results: []exec.Type{exec.TInt}, Reads: []string{Call},
+	m.AddOp(&exec.Op{Name: "doc.examinedBegin", Component: Call, Results: []exec.Type{exec.TInt}, Reads: []string{Call, Pos},
 		Writes: []string{Call}, Features: []string{Document},
 		Contract: `Starts measuring how far an observed call examines the input: in a Document parse, the
 frontier of the call starts at the position. Returns the enclosing call's frontier, for
 doc.examinedEnd. The call itself, and any memo entry it reads or records, extends the frontier as in
-an unobserved parse, so that observation does not change reuse.`})
-	add(&exec.Op{Name: "doc.examinedEnd", Component: Call, Params: []exec.Param{exec.P("enclosing", exec.TInt)},
+an unobserved parse, so that observation does not change reuse. Outside a Document parse it starts
+nothing and returns 0.`})
+	m.AddOp(&exec.Op{Name: "doc.examinedEnd", Component: Call, Params: []exec.Param{exec.P("enclosing", exec.TInt)},
 		Results: []exec.Type{exec.TInt, exec.TBool}, Reads: []string{Call}, Writes: []string{Call}, Features: []string{Document},
 		Contract: `Ends measuring the frontier of an observed call and merges it into the enclosing one; returns
 the call's frontier and true in a Document parse, and false otherwise.`,
 		Requires: `enclosing is the result of the matching doc.examinedBegin.`})
-	add(&exec.Op{Name: "doc.enter", Component: Call, Params: []exec.Param{exec.P("pos", exec.TInt)},
+	m.AddOp(&exec.Op{Name: "doc.enter", Component: Call, Params: []exec.Param{exec.P("pos", exec.TInt)},
 		Results: []exec.Type{exec.TInt, exec.TInt}, Reads: []string{Call}, Writes: []string{Call}, Features: []string{Document},
 		Contract: `Begins a rule call at pos in a Document parse: returns the examined input of the enclosing call,
 its end and its start, and starts the call's examined input at pos: as [pos, pos+1), or, in a target
 whose matches extend the examined input to the end of each unit they read and whose calls do not
-extend it past their end, as the empty range at pos.`})
-	add(&exec.Op{Name: "doc.leave", Component: Call, Params: []exec.Param{exec.P("high", exec.TInt), exec.P("low", exec.TInt)},
+extend it past their end, as the empty range at pos.`,
+		Requires: `The parse reads a Document.`})
+	m.AddOp(&exec.Op{Name: "doc.leave", Component: Call, Params: []exec.Param{exec.P("high", exec.TInt), exec.P("low", exec.TInt)},
 		Reads: []string{Call}, Writes: []string{Call}, Features: []string{Document},
 		Contract: `Ends a rule call in a Document parse: the examined input of the enclosing call becomes the smallest
 range that holds [low, high) and the call's.`,
-		Requires: `high and low are the results of the matching doc.enter.`})
+		Requires: `The parse reads a Document; high and low are the results of the matching doc.enter.`})
 	doc := []string{Document}
 	inDoc := `The parse reads a Document.`
-	add(&exec.Op{Name: "doc.active", Component: Call, Results: []exec.Type{exec.TBool}, Reads: []string{Call}, Features: doc,
+	m.AddOp(&exec.Op{Name: "doc.active", Component: Call, Results: []exec.Type{exec.TBool}, Reads: []string{Call}, Features: doc,
 		Contract: `Reports whether the parse reads a Document.`})
-	add(&exec.Op{Name: "doc.touch", Component: Call, Params: []exec.Param{exec.P("end", exec.TInt)}, Reads: []string{Call},
+	m.AddOp(&exec.Op{Name: "doc.touch", Component: Call, Params: []exec.Param{exec.P("end", exec.TInt)}, Reads: []string{Call},
 		Writes: []string{Call}, Features: doc,
-		Contract: `Extends the examined frontier of the current call to end, if end is past it.`})
-	add(&exec.Op{Name: "doc.touchFrom", Component: Call, Params: []exec.Param{exec.P("from", exec.TInt)}, Reads: []string{Call},
+		Contract: `Extends the examined frontier of the current call to end, if end is past it. A parse that reads
+no Document keeps none.`})
+	m.AddOp(&exec.Op{Name: "doc.touchFrom", Component: Call, Params: []exec.Param{exec.P("from", exec.TInt)}, Reads: []string{Call},
 		Writes: []string{Call}, Features: doc,
-		Contract: `Extends the examined input of the current call back to from, if from is before its start.`})
-	add(&exec.Op{Name: "doc.low", Component: Call, Results: []exec.Type{exec.TInt}, Reads: []string{Call},
+		Contract: `Extends the examined input of the current call back to from, if from is before its start. A parse
+that reads no Document keeps none.`})
+	m.AddOp(&exec.Op{Name: "doc.low", Component: Call, Results: []exec.Type{exec.TInt}, Reads: []string{Call},
 		Features: doc, Contract: `Returns the start of the input that the current call examined so far.`, Requires: inDoc})
-	add(&exec.Op{Name: "doc.high", Component: Call, Results: []exec.Type{exec.TInt}, Reads: []string{Call},
+	m.AddOp(&exec.Op{Name: "doc.high", Component: Call, Results: []exec.Type{exec.TInt}, Reads: []string{Call},
 		Features: doc, Contract: `Returns the examined frontier of the current call: the end of the input it examined
 so far, exclusive.`, Requires: inDoc})
-	add(&exec.Op{Name: "doc.reused", Component: Call, Writes: []string{Call}, Features: doc,
+	m.AddOp(&exec.Op{Name: "doc.reused", Component: Call, Writes: []string{Call}, Features: doc,
 		Contract: `Counts a reused memo entry in the statistics of the Document.`, Requires: inDoc})
-	add(&exec.Op{Name: "doc.evaluated", Component: Call, Writes: []string{Call}, Features: doc,
+	m.AddOp(&exec.Op{Name: "doc.evaluated", Component: Call, Writes: []string{Call}, Features: doc,
 		Contract: `Counts an evaluated rule body in the statistics of the Document.`, Requires: inDoc})
 	add(&exec.Op{Name: "call.body", Component: Call, Params: call, Results: result, Writes: append([]string{Call}, regs...),
 		NoReturn: true,

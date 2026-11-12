@@ -277,6 +277,15 @@ grows next, so the model allows reading an entry of it only until a write reache
 merging the set entry by entry respects. *Target*: membership filters, stack layout, where kept sets live
 and how their memory is accounted.
 
+**Examined input.** In a Document parse the active rule call examines a range of the input, which a call starts at its
+position, widens as it reads and merges into the enclosing call's range when it ends; the operations `doc.enter`,
+`doc.leave`, `doc.touch`, `doc.touchFrom`, `doc.low`, `doc.high`, the observed form `doc.examinedBegin` and
+`doc.examinedEnd`, and the counts `doc.reused` and `doc.evaluated` are operations of the call bookkeeping with a
+reference model and conformance cases that run on generated Go and the engine (which does not observe calls, so
+the observed form runs on generated Go only). A parse that reads no Document keeps no range. A target may start the
+range of a call as the empty range at its position or as one unit, which the suite states as a configuration of
+the model. *Target*: where the range lives and how the Document counts.
+
 **Recovery.** The recovered errors are an ordered list with marks, and immutable lists that entries share, so that
 a replay costs a constant however many errors it brings back and listing k errors visits fewer than 2k lists
 ([Lemma 14](../../../spec/proofs/linear-cost.md#lemma-14-shared-recovered-errors)). No list moves: a memo entry

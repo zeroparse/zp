@@ -36,6 +36,12 @@ type Config struct {
 	RuleVars [][]int64
 	// NoExpectations makes a parse that does not record expectations (exp.recording is false).
 	NoExpectations bool
+	// Document makes a Document parse (doc.active is true).
+	Document bool
+	// DocEmptyEnter models a target whose doc.enter starts the examined range of a call as the empty
+	// range at its position, where the others start it as [pos, pos+1) (as the engine does: its matches
+	// extend the examined input to the end of each unit they read).
+	DocEmptyEnter bool
 }
 
 // Datum is the model's handle of a value. Its identifier stands for the value that Value returns.
@@ -116,6 +122,10 @@ type Model struct {
 
 	// expected
 	exp expState
+
+	// call: the doc operations
+	doc  docState
+	regs map[string]any
 }
 
 // Err is an Err handle of the model.
@@ -306,7 +316,7 @@ func (m *Model) Allows(o *exec.Op, args []any) bool {
 	case "rec.truncate", "rec.since":
 		return args[0].(int64) >= 0 && args[0].(int64) <= int64(len(m.rec))
 	}
-	return m.allowsExp(o, args)
+	return m.allowsExp(o, args) && m.allowsDoc(o, args)
 }
 
 // Quantity returns the cost quantity name for a call of o with args, in the state before the call.
@@ -508,6 +518,9 @@ func (m *Model) Call(o *exec.Op, args []any) []any {
 		return nil
 	}
 	if res, ok := m.callExp(o, args); ok {
+		return res
+	}
+	if res, ok := m.callDoc(o, args); ok {
 		return res
 	}
 	panic(fmt.Sprintf("ref: no model of %s", o.Name))
