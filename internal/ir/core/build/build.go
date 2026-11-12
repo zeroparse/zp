@@ -43,12 +43,20 @@ func CoreFrom(prog Program, origin map[core.Node]grammar.Expr) (*core.Module, er
 // capture (Rule.Projections is ignored), the shape of the values the recognizer's table
 // writes its actions for (the Go generator's projections).
 func CoreProjecting(prog Program, origin map[core.Node]grammar.Expr, project bool) (*core.Module, error) {
+	return coreModule(prog, origin, project)
+}
+
+// coreModule builds the module of prog. A program without a checker (see Structural) builds an
+// untyped module.
+func coreModule(prog Program, origin map[core.Node]grammar.Expr, project bool) (*core.Module, error) {
 	in := prog.CoreInput()
 	all := in.Rules
 	b := &coreBuilder{prog: prog, in: in, chk: prog.Checker(), m: &core.Module{Rules: make([]*core.Rule, len(all))}, origin: origin,
 		exps: map[string]core.ExpID{}, classes: map[string]*core.Class{}, starts: map[*Rule]bool{}}
 	b.noProject = !project
-	b.rec = b.chk.ValueRecord()
+	if b.chk != nil {
+		b.rec = b.chk.ValueRecord()
+	}
 	for _, d := range core.FixedDescs {
 		b.exp(d)
 	}
@@ -339,6 +347,9 @@ func (b *coreBuilder) opLine(e grammar.Expr, action grammar.Term, operator, skip
 
 // coreShape returns the static shape of the value of e.
 func coreShape(chk *check.Checker, e grammar.Expr) core.Shape {
+	if chk == nil {
+		return core.Shape{} // an untyped module has no shapes
+	}
 	elems := check.IsElems(chk, e)
 	return core.Shape{Elems: elems, K: check.ValuedCount(chk, e), Mode: core.SingleMode(check.SingleModeOf(chk, e)), Tuple: check.ScopeTuple(chk, e),
 		Shared: elems && check.SharesTuple(chk, e)}
@@ -721,6 +732,9 @@ func (b *coreBuilder) termNode(t grammar.Term, s *coreScope, env map[string]*cor
 			if err != nil {
 				return nil, err
 			}
+			if b.chk == nil {
+				return &core.Convert{NodeType: t.Type, X: x}, nil
+			}
 			n, ok := b.chk.NodeTypeOf(t.Type) // the type's own name, also for an alias of it
 			if !ok {
 				return nil, fmt.Errorf("%s is not a named node type", t.Type)
@@ -728,10 +742,16 @@ func (b *coreBuilder) termNode(t grammar.Term, s *coreScope, env map[string]*cor
 			proven := b.rec != nil && b.rec.Proven[t]
 			return &core.Convert{NodeType: n.Name, X: x, Proven: proven}, nil
 		}
-		name, spec := b.chk.StructType(t.Type)
+		name := t.Type
+		var spec *grammar.TypeDef
+		if b.chk != nil {
+			name, spec = b.chk.StructType(t.Type)
+		}
 		n := &core.New{Type: name, Final: grammar.Term(t) == b.final}
-		for _, f := range check.DefFields(spec) {
-			n.Declared = append(n.Declared, f.Name)
+		if b.chk != nil {
+			for _, f := range check.DefFields(spec) {
+				n.Declared = append(n.Declared, f.Name)
+			}
 		}
 		for _, f := range t.Fields {
 			v, err := sub(f.Value)
