@@ -1,6 +1,8 @@
 package syntax
 
 import (
+	"errors"
+	"fmt"
 	"strings"
 	"testing"
 )
@@ -87,6 +89,45 @@ func TestSyntaxErrorsExpectNoTrivia(t *testing.T) {
 					}
 				}
 			}
+		}
+	}
+}
+
+// An old spelling, a lowercase member and a variable value that fails are errors where they stand,
+// also when the declaration fails again further on: the first error of the source is the one that
+// the reference parser reports first, with its message.
+func TestFirstErrorStaysAtTheMistake(t *testing.T) {
+	for _, c := range []struct{ src, want string }{
+		{`rule a =--#operators { operand "1" }`, `1:9: the cut is written #cut`},
+		{"rule a = (\n b\n @error(me--sage=\"x\") rule\n", `3:11: the cut is written #cut; expected closing parenthesis for attribute arguments`},
+		{`rule a = x:"x" => $1 +`, `1:19: a capture is read by name: label the element (x:...) and write $x instead of $1`},
+		{`rule a = b => W{A: $a, B: $,b C: $c}`, `1:27: expected initializer value, found '$'`},
+		{`rule a = b => $ l + "+"`, `1:15: expected a value, "...", "{", found '$'`},
+		{`rule a = b => N{A: x.yA: 1}`, `1:22: a capture is read with .$yA`},
+		{"rule a = {\n type > 0\n ru.e == 1& & y\n}", `3:5: a capture is read with .$e`},
+		{"var x int /* a */ = /\nvar y bool", `1:21: expected the initial value, found '/'`},
+		{"var x int\nvar y = \n", `3:1: expected the initial value, found end of file`},
+	} {
+		first := func(err error) string {
+			var list ErrorList
+			if !errors.As(err, &list) || len(list) == 0 {
+				return fmt.Sprint(err)
+			}
+			f := list[0]
+			for _, e := range list[1:] {
+				if e.Pos.Line < f.Pos.Line || e.Pos.Line == f.Pos.Line && e.Pos.Col < f.Pos.Col {
+					f = e
+				}
+			}
+			return f.Error()
+		}
+		_, err := Parse(c.src)
+		if got := first(err); got != c.want {
+			t.Errorf("Parse(%q):\n got %s\nwant %s", c.src, got, c.want)
+		}
+		_, ref := ParseReference(c.src)
+		if g, r := strings.SplitN(first(err), ": ", 2)[0], strings.SplitN(first(ref), ": ", 2)[0]; g != r {
+			t.Errorf("Parse(%q): first error at %s, the reference at %s", c.src, g, r)
 		}
 	}
 }
