@@ -46,7 +46,10 @@ The classifier works with three notions.
   the next iteration of the enclosing repetition, what follows an option.
 
 A unit is **committing** for a continuation if abandoning it means that nothing the parser evaluates next can read what
-the scan read again. A grammar whose units are all committing, and whose other conditions hold, is linear. A unit that contains a
+the scan read again. It can be committing in four ways: its first characters and those of the continuation differ
+once the calls that both make first are set aside; all its scans lie inside those shared calls, which the continuation
+reuses; the word it begins with, such as a keyword, rules out the continuation before the end of the word; or the
+[exclusion analysis](#the-exclusion-analysis) shows that the two part within a few symbols. A grammar whose units are all committing, and whose other conditions hold, is linear. A unit that contains a
 scanning source and is not committing, because a continuation can start again inside the input the source examined, is a
 cause. Causes nested in one another through rule calls
 raise the degree: a repetition restarted inside a restarted repetition is cubic.
@@ -56,8 +59,10 @@ flowchart TD
   G[Grammar as written] --> V[Normal view]
   V --> C[Collect units, sources, bindings]
   C --> K{Committing for each continuation?}
-  K -- by first characters --> OK[Linear]
-  K -- by exclusion analysis --> OK
+  K -- first characters differ after shared calls --> OK[Linear]
+  K -- every scan lies inside the shared calls --> OK
+  K -- its words exclude the continuation --> OK
+  K -- exclusion analysis: they part within a few symbols --> OK
   K -- no --> W[Cause with a witness]
   W --> P[Polynomial or exponential, or unknown]
 ```
