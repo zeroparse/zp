@@ -658,16 +658,18 @@ func TestVerifyRejects(t *testing.T) {
 	}
 }
 
-// TestVerifyAcceptsStreamInLabeledSequence checks that a stream in a sequence that a label wraps, or in
-// a sequence nested in a label, is at the top of a start rule, as in the grammar.
+// TestVerifyAcceptsStreamInLabeledSequence checks that a stream in a sequence that a label wraps, in
+// a sequence nested in a label, or captured in a label, is at the top of a start rule, as in the
+// grammar.
 func TestVerifyAcceptsStreamInLabeledSequence(t *testing.T) {
 	stream := func() *Stream { return &Stream{Repeat: &Repeat{Max: -1, Body: lit("a")}} }
 	for name, body := range map[string]Node{
 		"label around the sequence": &Label{Body: seq(stream(), lit("!"))},
 		"label around the stream":   seq(&Label{Body: stream()}, lit("!")),
 		"nested labeled sequence":   seq(&Label{Body: seq(lit("b"), stream())}, lit("!")),
+		"capture in a label":        seq(&Label{Body: &Capture{Slot: 0, Name: "x", Body: stream()}}, lit("!")),
 	} {
-		m := module(rule(0, "a", body))
+		m := module(rule(0, "a", body, "x"))
 		m.Starts = []int{0}
 		Analyze(m)
 		if err := Verify(m); err != nil {
