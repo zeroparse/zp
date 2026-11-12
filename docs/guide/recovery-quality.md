@@ -11,17 +11,16 @@ recovering parser and count what it repairs.
   [`zp sample`](sampling-and-fuzzing.md), each changed by one mutation (`delete`, `insert`, `replace`, `duplicate`,
   `swap` or `truncate`) that the ready-made grammar rejects. Only inputs with a separator (a `,`) are kept, because
   recovery here works on the elements of a list, so an input without one has no place to recover at. Each language has
-  about 300 inputs, fixed in `testdata/recovery/`, together with the offset of the mutation.
-- **Grammars.** The ready-made grammars have no recovery. The recovering variants (`testdata/recovery/json.zp` and
-  `cel.zp`) add `#recover` to one element of the language and nothing else: the members of a JSON object and the
+  about 300 inputs, fixed and kept with the offset of the mutation.
+- **Grammars.** The ready-made grammars have no recovery. The recovering variants of the JSON and CEL grammars add `#recover` to one element of the language and nothing else: the members of a JSON object and the
   elements of an array, and the arguments, list elements, map entries and message fields of CEL. Each skips up to the
   next `,` or bracket, the pattern of [Recover Inside a List](recovery.md#recover-inside-a-list), and labels the
-  closers.
+  closers. These recovery points were chosen as the simplest ones a grammar author would add, one per kind of list element, not tuned to the corpus.
 - **Measures.** For each input the recovering parser either fails (no tree) or returns a tree with recovered errors.
   A recovered parse is *one error* if it reports exactly one error, the number of mutations, and *located* if every
   error value overlaps the 8 bytes around the mutation. *Skipped* is the share of the input that the error values
   cover: the input given up to repair the rest.
-- **Results** are recomputed by `go test ./internal/recoveryquality`, which fails when this table is stale.
+- **Results** are recomputed by the project's test suite, which fails when this table is stale.
 
 ## Results
 
