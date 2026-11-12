@@ -881,8 +881,8 @@ func TestStrictConditions(t *testing.T) {
 	}{
 		{"p ends after shared symbols", `"a"`, `"a" "b"`, false, true, ""},
 		{"an option that scans", `([a-z]* "x")? "c"`, `"1"`, true, false, "pstop"},
-		{"a negative lookahead that scans", `!([a-z]* "x") "c"`, `"d"`, true, false, "pnot-notcheap"},
-		{"a positive lookahead that scans", `&([a-z]* "x") "c"`, `"d"`, true, false, "pand-notcheap"},
+		{"a negative lookahead that scans", `!([a-z]* "x") "c"`, `"d"`, true, false, "pnot-source"},
+		{"a positive lookahead that scans", `&([a-z]* "x") "c"`, `"d"`, true, false, "pand-source"},
 		{"a later negative lookahead that scans", `"c"`, `!([a-z]* "x") "d"`, true, false, "qnot-notcheap"},
 		{"a later positive lookahead that scans", `"c"`, `&([a-z]* "x") "d"`, true, false, "qand-notcheap"},
 		// The memo does not answer id, which calls a rule with #missing.

@@ -474,33 +474,37 @@ func TestComplexityReasonsOutrankPolynomialCauses(t *testing.T) {
 // without both.
 func TestClassifyCarriedGrowth(t *testing.T) {
 	t.Parallel()
+	// A growth that starts at a left call in a rule of another leader is a scanning source where
+	// a unit throws it away, so a grammar that reads the growth of one leader in another is
+	// unknown even where the growth is kept; the first two keep the cause that the growth is
+	// grown again over the same input.
 	for _, tc := range []struct {
 		name, src string
-		class     ComplexityClass
+		cause     bool
 	}{
 		// The lookahead drops the growth of R from each seed of S, which goes on over the "q" of
 		// later steps.
-		{"tree carried in a lookahead", "rule main = S $$\nrule S = &R S \"q\" / \"y\"\nrule R = R \"q\" / S\n", ClassPoly},
+		{"tree carried in a lookahead", "rule main = S $$\nrule S = &R S \"q\" / \"y\"\nrule R = R \"q\" / S\n", true},
 		// The growth of R fails at "!" and S grows by its next alternative.
-		{"tree carried before a growing alternative", "rule main = S $$\nrule S = R \"!\" / S \"q\" / \"y\"\nrule R = R \"q\" / S\n", ClassPoly},
+		{"tree carried before a growing alternative", "rule main = S $$\nrule S = R \"!\" / S \"q\" / \"y\"\nrule R = R \"q\" / S\n", true},
 		// When R "s" fails, S cannot grow, so R grows past the seed of S once.
-		{"nested reads", "rule main = S $$\nrule S = S \"q\" / R \"s\" / \"y\"\nrule R = R \"r\" / S \"t\"\n", ClassLinear},
+		{"nested reads", "rule main = S $$\nrule S = S \"q\" / R \"s\" / \"y\"\nrule R = R \"r\" / S \"t\"\n", false},
 		// R grows from the seed of S only after a "t", where S cannot grow.
-		{"lookahead regrowth", "rule main = S $$\nrule S = &R S \"q\" / \"y\"\nrule R = R (\"q\" / \"r\") / S \"t\" / \"y\"\n", ClassLinear},
-		{"three leaders", "rule main = S $$\nrule S = &R S \"q\" / \"y\"\nrule R = &T R \"q\" / \"y\"\nrule T = T \"q\" / S \"z\" / \"y\"\n", ClassLinear},
+		{"lookahead regrowth", "rule main = S $$\nrule S = &R S \"q\" / \"y\"\nrule R = R (\"q\" / \"r\") / S \"t\" / \"y\"\n", false},
+		{"three leaders", "rule main = S $$\nrule S = &R S \"q\" / \"y\"\nrule R = &T R \"q\" / \"y\"\nrule T = T \"q\" / S \"z\" / \"y\"\n", false},
 		// R is after S's growing alternative, so a step that drops it does not grow.
-		{"tree carried after the growing alternative", "rule main = S $$\nrule S = S \"q\" / R \"!\" / \"y\"\nrule R = R \"q\" / S\n", ClassLinear},
+		{"tree carried after the growing alternative", "rule main = S $$\nrule S = S \"q\" / R \"!\" / \"y\"\nrule R = R \"q\" / S\n", false},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			c := classifySource(t, tc.src)
-			if c.Class != tc.class {
-				t.Fatalf("class %v, want %v\ncauses %v\nreasons %v", c.Class, tc.class, c.Causes, c.Reasons)
+			if c.Class != ClassUnknown {
+				t.Fatalf("class %v, want %v\ncauses %v\nreasons %v", c.Class, ClassUnknown, c.Causes, c.Reasons)
 			}
-			if tc.class != ClassPoly {
+			if !tc.cause {
 				return
 			}
-			if c.Degree != 2 || len(c.Causes) != 1 {
-				t.Fatalf("degree %d causes %v, want one cause of degree 2", c.Degree, c.Causes)
+			if c.WitnessedDegree != 2 || len(c.Causes) != 1 {
+				t.Fatalf("witnessed degree %d causes %v, want one cause of degree 2", c.WitnessedDegree, c.Causes)
 			}
 			if m := c.Causes[0].Message; !strings.Contains(m, "grows R where S grows") || !strings.Contains(m, "growing result of S") {
 				t.Errorf("witness %q does not name R and S", m)

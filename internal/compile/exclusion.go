@@ -632,7 +632,11 @@ func litStep(a, b *grammar.Literal) (restA, restB *grammar.Literal, excl, ok boo
 	if a.Value == "" || b.Value == "" {
 		return nil, nil, false, false
 	}
-	fold := a.IgnoreCase || b.IgnoreCase
+	if a.IgnoreCase != b.IgnoreCase {
+		// The analysis passes and decides only literals of the same case sensitivity.
+		return nil, nil, false, false
+	}
+	fold := a.IgnoreCase
 	av, bv := []rune(a.Value), []rune(b.Value)
 	n := min(len(av), len(bv))
 	for i := range n {
@@ -643,10 +647,6 @@ func litStep(a, b *grammar.Literal) (restA, restB *grammar.Literal, excl, ok boo
 		if x != y {
 			return nil, nil, true, true
 		}
-	}
-	if a.IgnoreCase != b.IgnoreCase {
-		// The characters agree up to case; the analysis does not follow mixed literals further.
-		return nil, nil, false, false
 	}
 	switch {
 	case len(av) < len(bv):
@@ -779,23 +779,27 @@ func (x excl) excludes(s exclState) (ok bool, item, n int) {
 			s.i++
 			continue
 		case symNot:
+			// Only the unit evaluates its lookahead, beyond the position where the two part when
+			// it decides, so in strict mode it must reach no scanning source: the continuation
+			// does not evaluate its calls at the positions where the unit did, and the memo does
+			// not bound what they examine.
+			if x.strict && x.k.containsSource(a.e) {
+				return x.no("pnot-source", a, nil)
+			}
 			if x.implies(s.q[s.j:], a.e) {
 				return true, a.item, s.steps + 1
-			}
-			if x.strict && !x.cheapAll(a.e) {
-				return x.no("pnot-notcheap", a, nil)
 			}
 			s.i++
 			continue
 		case symAnd:
-			if j, _ := x.nextMatch(s.q, s.j); j < len(s.q) && s.q[j].kind == symMatch && x.disjoint(a.e, s.q[j].e) {
+			if j, ok := x.nextMatch(s.q, s.j); ok && j < len(s.q) && s.q[j].kind == symMatch && x.disjoint(a.e, s.q[j].e) {
 				return true, a.item, s.steps + 1
 			}
-			if s.j < len(s.q) && s.q[s.j].kind == symAnd && x.disjoint(a.e, s.q[s.j].e) {
+			if s.j < len(s.q) && s.q[s.j].kind == symAnd && x.disjoint(a.e, s.q[s.j].e) && (!x.strict || x.freshAll(s.q[s.j].e)) {
 				return true, a.item, s.steps + 1
 			}
-			if x.strict && !x.cheapAll(a.e) {
-				return x.no("pand-notcheap", a, nil)
+			if x.strict && x.k.containsSource(a.e) {
+				return x.no("pand-source", a, nil)
 			}
 			s.i++
 			continue
@@ -843,11 +847,13 @@ func (x excl) excludes(s exclState) (ok bool, item, n int) {
 			s.j++
 			continue
 		case symAnd:
-			if x.disjoint(a.e, b.e) {
-				return true, a.item, s.steps + 1
-			}
+			// Only the continuation evaluates its lookahead, also where it decides, so in strict
+			// mode it must cost a constant.
 			if x.strict && !x.freshAll(b.e) {
 				return x.no("qand-notcheap", a, &b)
+			}
+			if x.disjoint(a.e, b.e) {
+				return true, a.item, s.steps + 1
 			}
 			s.j++
 			continue

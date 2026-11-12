@@ -570,7 +570,7 @@ func (k *classifier) sizeOf(t grammar.Term, tc termCtx, mode sizeMode) content {
 	case *grammar.Cast:
 		return k.sizeOf(t.X, tc, mode)
 	case *grammar.VarRef:
-		c.vars = true
+		c = k.varSize(t.Name, tc, mode)
 	case *grammar.CaptureRef:
 		if p, ok := tc.params[t.Name]; ok && (t.Param || tc.lambda) {
 			if p.acc {
@@ -655,6 +655,60 @@ func (k *classifier) sizeOf(t grammar.Term, tc termCtx, mode sizeMode) content {
 	return c
 }
 
+// varBind is a binding of a variable in the rule that holds it.
+type varBind struct {
+	rule string
+	b    *grammar.Bind
+}
+
+// varBinds returns the bindings of the variable v in all the rules.
+func (k *classifier) varBinds(v string) []varBind {
+	if k.varBinding == nil {
+		k.varBinding = map[string][]varBind{}
+		for _, r := range k.rules {
+			walkRuleTerms(r, func(t grammar.Term) {
+				if b, ok := t.(*grammar.Bind); ok {
+					k.varBinding[b.Name] = append(k.varBinding[b.Name], varBind{r.Name, b})
+				}
+			})
+		}
+	}
+	return k.varBinding[v]
+}
+
+// varSize describes the size of the value that a read of the variable v in the rule of tc holds:
+// the value of the variable, and what the values bound by the bindings that can reach the read
+// hold, which are its bindings earlier in the rule that reads it and its bindings in every rule
+// that can call that rule, directly or indirectly. What a binding binds is measured in the rule of
+// the binding, so that a call on a recursion with it is a call on a recursion with that rule.
+func (k *classifier) varSize(v string, tc termCtx, mode sizeMode) content {
+	c := content{vars: true}
+	if k.readingVars[v] {
+		return c
+	}
+	if k.readingVars == nil {
+		k.readingVars = map[string]bool{}
+	}
+	k.readingVars[v] = true
+	defer delete(k.readingVars, v)
+	for _, b := range k.varBinds(v) {
+		if from, to := k.holder(b.rule), k.holder(tc.rule); from != to && !k.reachable(from)[to] && !k.reachable(b.rule)[tc.rule] {
+			continue
+		}
+		c.add(k.sizeOf(b.b.Value, termCtx{rule: b.rule}, mode))
+	}
+	return c
+}
+
+// holder returns the rule as written that holds rule: the rule itself, or the rule that holds the
+// inline action that a hidden rule stands for.
+func (k *classifier) holder(rule string) string {
+	if h, ok := k.inlineNames.Holder(rule); ok {
+		return h
+	}
+	return rule
+}
+
 // sizeOfAny describes the size of the value of t without looking at how it is built: anything
 // that the captures and variables it reads can hold.
 func (k *classifier) sizeOfAny(t grammar.Term, tc termCtx) content {
@@ -685,7 +739,7 @@ func (k *classifier) sizeOfAny(t grammar.Term, tc termCtx) content {
 					c.add(d)
 				}
 			case *grammar.VarRef:
-				c.vars = true
+				c.add(k.varSize(x.Name, tc, textSize))
 			}
 		})
 		c.unbounded = true
@@ -863,6 +917,12 @@ func (k *classifier) exprSize(e grammar.Expr, tc termCtx, mode sizeMode, name st
 				c.held = map[string]int{name: 1}
 			}
 		}
+		// The value of a call holds what the variables that its rule reads hold.
+		for _, v := range k.vars[x.Name] {
+			d := k.varSize(v, termCtx{rule: x.Name}, mode)
+			d.vars, d.unbounded = false, false
+			c.add(d)
+		}
 		return c
 	}
 	return k.deepSize(e, tc, name)
@@ -901,6 +961,12 @@ func (k *classifier) includes(rule string, mode sizeMode) bool {
 		return v
 	}
 	k.includesMemo[key] = true
+	// A read of a variable that includes is called from is followed afresh: a cycle through the
+	// values of rules ends at the assumption above, and one through the bindings of a variable at
+	// the read in progress within this evaluation.
+	reading := k.readingVars
+	k.readingVars = nil
+	defer func() { k.readingVars = reading }()
 	r := k.byName[rule]
 	v := true
 	tc := termCtx{rule: rule}
