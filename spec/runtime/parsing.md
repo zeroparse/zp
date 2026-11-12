@@ -1322,15 +1322,14 @@ The conditions below use these terms.
   calls, and a rule of a left-recursion cycle other than a leader at a call
   that is not a left call. The call has the same result in both: the memo
   answers it the second time, or, for a leader in a context of growths, it
-  grows again from the same growing results, or the rule repeats only its own
-  scan, so the continuation pays for it at most what the unit paid. In the
-  same way the two share a literal that is not empty when every path of both
-  that examines the input begins with it, and the literal has the same case
-  sensitivity in both: both consume it or both fail where they begin, so the
-  calls after it are made at the same position in both. Below, a shared
-  literal counts among the shared calls. Calls of one rule with different
-  level restrictions, such as `e` and `level(e, hi)`, are different calls
-  with different results. An
+  grows again, or the rule repeats only its own scan, so the continuation pays
+  for it at most what the unit paid. In the same way the two share a literal
+  that is not empty when every path of both that examines the input begins
+  with it, and the literal has the same case sensitivity in both: both consume
+  it or both fail where they begin, so the calls after it are made at the same
+  position in both. Below, a shared literal counts among the shared calls.
+  Calls of one rule with different level restrictions, such as `e` and
+  `level(e, hi)`, are different calls with different results. An
   Operators Rule evaluates its `skip` before anything else at its start,
   before an operand or a prefix operator part, and continues at the same
   position when the `skip` does not match, so the call that its `skip`
