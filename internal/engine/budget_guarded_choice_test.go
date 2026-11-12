@@ -30,13 +30,23 @@ func budgetGuardedChoiceExpr() *grammar.Choice {
 func budgetGuardedChoiceProgram(t *testing.T) (*Program, *grammar.Choice) {
 	t.Helper()
 	choice := budgetGuardedChoiceExpr()
-	main := &grammar.Choice{Alts: []grammar.Expr{
-		&grammar.Seq{Items: []grammar.Expr{
-			&grammar.Not{Expr: choice},
-			&grammar.Literal{Value: "z"},
-		}},
-		&grammar.Ref{Name: "fallback"},
-	}}
+	return budgetGuardedChoiceProgramOf(t, choice, &grammar.Seq{Items: []grammar.Expr{
+		&grammar.Not{Expr: choice},
+		&grammar.Literal{Value: "z"},
+	}}), choice
+}
+
+// budgetGuardedChoiceValueProgram places the choice where it builds the value of main.
+func budgetGuardedChoiceValueProgram(t *testing.T) (*Program, *grammar.Choice) {
+	t.Helper()
+	choice := budgetGuardedChoiceExpr()
+	return budgetGuardedChoiceProgramOf(t, choice, choice), choice
+}
+
+// budgetGuardedChoiceProgramOf compiles main = first / fallback, where first holds choice.
+func budgetGuardedChoiceProgramOf(t *testing.T, choice *grammar.Choice, first grammar.Expr) *Program {
+	t.Helper()
+	main := &grammar.Choice{Alts: []grammar.Expr{first, &grammar.Ref{Name: "fallback"}}}
 	g := &grammar.Grammar{File: grammar.File{Decls: []grammar.Decl{
 		&grammar.RuleDef{Name: "main", Expr: main},
 		&grammar.RuleDef{Name: "fallback", Expr: &grammar.Literal{Value: "z"}},
@@ -46,7 +56,7 @@ func budgetGuardedChoiceProgram(t *testing.T) (*Program, *grammar.Choice) {
 	if err != nil {
 		t.Fatalf("compile guarded-choice grammar: %v", err)
 	}
-	return prog, choice
+	return prog
 }
 
 func budgetGuardedChoiceSnapshot(n *value.Node) *value.Node {
@@ -72,11 +82,29 @@ func budgetGuardedChoiceSnapshot(n *value.Node) *value.Node {
 // A guarded choice is straight-line code: skipping its alternatives charges nothing, and the one
 // peek that reads the input is its only charge. The size of the grammar bounds the skips between two
 // charges, as it bounds the straight-line code of a generated rule.
+// The choice is checked where it builds no value (under a lookahead) and where it builds the value
+// of its rule, whose alternatives are wrapped to give single values.
 func TestBudgetGuardedChoiceSilentSkipLoopBudgetAndCancellation(t *testing.T) {
 	t.Parallel()
-	prog, choice := budgetGuardedChoiceProgram(t)
-	m := closureExprMatcher(t, prog.Static(), choice, false)
+	for _, build := range []bool{false, true} {
+		program := budgetGuardedChoiceProgram
+		if build {
+			program = budgetGuardedChoiceValueProgram
+		}
+		t.Run("build="+strconv.FormatBool(build), func(t *testing.T) {
+			t.Parallel()
+			prog, choice := program(t)
+			n := closureExprNode(t, prog.Static(), choice)
+			if n.Attrs().Want != build {
+				t.Fatalf("the choice builds a value: %v, want %v", n.Attrs().Want, build)
+			}
+			budgetGuardedChoiceSilentSkip(t, prog, closureExprMatcher(t, prog.Static(), choice, false))
+		})
+	}
+}
 
+func budgetGuardedChoiceSilentSkip(t *testing.T, prog *Program, m core.Matcher) {
+	t.Helper()
 	for _, unit := range []PositionUnit{Bytes, CodePoints} {
 		t.Run(unit.String()+"/budget", func(t *testing.T) {
 			p := core.NewParser(&prog.sharedProgram, "z", unit, false)
