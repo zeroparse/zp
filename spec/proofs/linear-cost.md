@@ -687,8 +687,11 @@ repeats at the position of a growth that *Repeats inside a growth* of Lemma 5
 leaves out, are direct
 in distinct body evaluations of $R$, and for $i \ge 2$, $\alpha_{i-1}$ lies in
 the evaluation $e_i$ of a call shared by a committing unit $w_i$ and its
-continuation, inside $w_i$. When $\alpha_i$ lies in an evaluation $e'_i$ of the
-same call at the same position, made after $w_i$ is abandoned, $i$ is
+continuation $\kappa_i$, inside $w_i$, where $\kappa_i$ is the continuation
+that the parser evaluates from the start of $w_i$ the last time before
+$\alpha_i$, as in *Direct activations*. When $\alpha_i$ lies in the evaluation
+$e'_i$ of that call that $\kappa_i$ makes, at the same position (case 2), and
+so after $w_i$ is abandoned, $i$ is
 **linked**, and the pair $(e_i, e'_i)$ is the $i$-th **link**; otherwise $i$ is
 **free**, as is $i = 1$. *Reference links* below gives each activation of the
 reference parse such a pair, which the free ones lack in the parse.
@@ -1333,26 +1336,39 @@ rule that reads no variable, so their calls have keys of one class: the call
 in a committing unit and the call in its continuation can differ in variant, one
 evaluating the twin where its value is discarded and the other the rule. A
 growth open at the start of both contains both, and so the innermost
-evaluation that contains $\alpha_{i-1}$ and $\alpha_i$, which is no growth
-(*Restarts*), so that evaluation lies in one step of the growth, during which
-its current result does not change. So the two calls find the same growths
-open with the same current results. When neither reads one,
+evaluation $N$ that contains $\alpha_{i-1}$ and $\alpha_i$. When $N$ is no
+growth (*Restarts*), it lies in one step of the growth, during which its
+current result does not change. When $N$ is a growth, the two activations are
+of the first case of *Repeats inside a growth* of Lemma 5, in different steps
+of $N$. Every other growth open at the start of both contains $N$, and so
+lies around one step of it as above. Neither call reads the growing result of
+$N$: a call reads only growths of the cycle of its rule at its position
+([Lemma 2 of the memoization
+proof](memoization.md#lemma-2-reading-an-open-growth)), and a call of a rule
+of that cycle that $w_i$ and $\kappa_i$ share is reached in $\kappa_i$ without
+leaving the body of a rule of the cycle (case 2), so in the step of $N$ that
+holds $w_i$, while $e'_i$ holds $\alpha_i$, which lies in a later step. So the
+two calls find the growths that they read open with the same current results.
+When neither reads one,
 $\mathcal{R}(e_i)$ and $\mathcal{R}(e'_i)$ take the same steps up to the
 variants of their calls (*Counterparts*). Otherwise the rule of the link is a leader, which
 has no twin, and they take the same steps by the argument of [Lemma 4 of the
 memoization
 proof](memoization.md#lemma-4-answering-from-a-dependent-result): the state
 that their steps read differs at most in the lookahead state, which reaches no
-decision of the parser (*Counterparts*), and the growths open at their start,
-which are the same with the same current results. $Z$ holds $\alpha_i$, which lies in $e'_i$, and $e'_i$ is
+decision of the parser (*Counterparts*), and the growths that they read, which
+are open at both with the same current results. $Z$ holds $\alpha_i$, which lies in $e'_i$, and $e'_i$ is
 made by a call of a rule that the parse memoizes, so $Z$ is $e'_i$ or is
 evaluated inside it. So $Z$ is the counterpart of $\mathcal{R}(e'_i)$ or of a
 call $z$ inside it, and $\mathcal{R}(e_i)$, or a call $z^\circ$ at the same
 place in it, has a key of the class of $Z$. $Z$ is not $e'_i$ when the rule of
 the link is a leader, since an evaluation of a key is of no leader, and $z$
 reads no growth open at its start, since the call of $Z$ reads none.
-$z^\circ$ reads none either: a growth open at its start was open at the start
-of $e_i$, and so at that of $e'_i$ with the same current result, or started
+$z^\circ$ reads none either: a growth open at its start that it reads was
+open at the start of $e_i$, at the position of $e_i$ and of the cycle of its
+rule, since every call between them is made there without consuming input, so
+$e_i$ reads it, it is not the growth $N$ above, and it is open at the start of
+$e'_i$ with the same current result; or it started
 inside $\mathcal{R}(e_i)$ and corresponds to one that started at the same
 place inside $\mathcal{R}(e'_i)$, and $z$, which takes the same steps, reads
 neither. $\mathcal{R}(Z)$ holds the counterpart of
