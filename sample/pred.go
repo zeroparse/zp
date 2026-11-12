@@ -4,24 +4,29 @@ import (
 	"unicode/utf8"
 
 	"zeroparse.dev/zp/grammar"
+	"zeroparse.dev/zp/internal/ir/exec/ref"
 )
 
 // Kinds of generated values (see val).
 const (
 	vNone    = iota // no value: lookahead, discard, anchors, predicates
 	vNil            // an optional expression or a capture that did not match
-	vText           // a string
-	vList           // a repetition
-	vNode           // another node (Seq, ...)
+	vText           // a string node
+	vList           // a list node: a repetition
+	vNode           // another node, whose elements the generator does not track (Seq, ...)
 	vUnknown        // the result of an action, or of a OperatorsRule expression
 )
 
 // val describes the value that the parser will build for a generated expression, as far as the
-// generator can tell. Predicates read it through captures.
+// generator can tell. Predicates read it through captures, in the form of the reference evaluator of
+// terms (see refValue).
 type val struct {
 	kind       int
-	start, end int // the range of the input it covers
-	n          int // the number of elements of a list
+	start, end int      // the range of the input it covers, in bytes
+	items      []val    // the values of the iterations of a list
+	caps       *capture // the captures of a node of a rule or of an iteration
+	// capsKnown is set on a node whose captures are caps: the node of a rule or of an iteration.
+	capsKnown bool
 }
 
 // capture is a capture made in the current scope (a persistent list).
@@ -29,75 +34,170 @@ type capture struct {
 	name string
 	v    val
 	next *capture
+	// ref caches the value in the form of the reference evaluator: the text and the range of a value
+	// do not change once it is generated.
+	ref *ref.V
 }
 
 // variable is a variable definition (a persistent list; the nearest definition comes first).
 type variable struct {
 	name string
-	v    pval
+	v    ref.V
 	next *variable
 }
 
-// Kinds of predicate values.
-const (
-	pUnknown = iota
-	pNil
-	pInt
-	pString
-	pBool
-	pNode
-)
-
-// pval is the value of a term in a predicate. pUnknown means that the generator cannot compute it.
-type pval struct {
-	kind int
-	i    int
-	s    string
-	b    bool
-	node val
-}
-
-var unknownVal = pval{kind: pUnknown}
-
-// initialValue returns the initial value of the declared variable v: its literal initializer, or
-// the zero value of its type.
-func initialValue(v *grammar.VarDef) pval {
-	if v.Value != nil {
-		if lit, ok := literal(v.Value); ok {
-			return lit
-		}
-		return unknownVal
-	}
-	if ref, ok := v.Type.(*grammar.TypeRef); ok {
-		switch ref.Name {
+// zeroValue is the zero value of a variable or a field of the type t, Unknown where the generator
+// does not tell it.
+func zeroValue(t grammar.TypeExpr) ref.V {
+	if r, ok := t.(*grammar.TypeRef); ok {
+		switch r.Name {
 		case "int":
-			return pval{kind: pInt}
+			return ref.Int(0)
 		case "string":
-			return pval{kind: pString}
+			return ref.Str("")
 		case "bool":
-			return pval{kind: pBool}
+			return ref.Bool(false)
 		}
 	}
-	return unknownVal
+	return ref.Unknown
 }
 
-// literal returns the value of an int, string or bool literal, or of a negated int literal.
-func literal(t grammar.Term) (pval, bool) {
-	switch t := t.(type) {
-	case *grammar.TermGroup:
-		return literal(t.Term)
-	case *grammar.IntLit:
-		return pval{kind: pInt, i: t.Value}, true
-	case *grammar.StringLit:
-		return pval{kind: pString, s: t.Value}, true
-	case *grammar.BoolLit:
-		return pval{kind: pBool, b: t.Value}, true
-	case *grammar.Unary:
-		if lit, ok := t.X.(*grammar.IntLit); ok && t.Op == "-" {
-			return pval{kind: pInt, i: -lit.Value}, true
+// terms holds what the reference evaluator needs of the grammar besides the input: the zero values of
+// the fields of its struct types, its aliases, and the initial values of its variables.
+type terms struct {
+	zeros    map[string]map[string]ref.V
+	aliases  map[string]grammar.TypeExpr
+	initVars *variable
+}
+
+func newTerms(g *grammar.Grammar) *terms {
+	t := &terms{zeros: map[string]map[string]ref.V{}, aliases: map[string]grammar.TypeExpr{}}
+	for _, d := range g.Types() {
+		switch d := d.(type) {
+		case *grammar.TypeDef:
+			if s, ok := d.Type.(*grammar.StructType); ok {
+				z := map[string]ref.V{}
+				for _, f := range s.Fields {
+					z[f.Name] = zeroValue(f.Type)
+				}
+				t.zeros[d.Name] = z
+			}
+		case *grammar.TypeAlias:
+			t.aliases[d.Name] = d.Type
 		}
 	}
-	return unknownVal, false
+	// The variables in order: an initializer may read those declared before it.
+	for _, v := range g.Vars() {
+		init := zeroValue(v.Type)
+		if v.Value != nil {
+			init = ref.Unknown
+			env := &ref.TermEnv{Zeros: t.zeros, Aliases: t.aliases, Vars: t.vars(t.initVars)}
+			if x, failed, known := evaluate(env, v.Value); known && !failed {
+				init = x
+			}
+		}
+		t.initVars = &variable{name: v.Name, v: init, next: t.initVars}
+	}
+	return t
+}
+
+// vars returns the values of the variables of the list vs.
+func (*terms) vars(vs *variable) map[string]ref.V {
+	m := map[string]ref.V{}
+	for v := vs; v != nil; v = v.next {
+		if _, ok := m[v.name]; !ok {
+			m[v.name] = v.v
+		}
+	}
+	return m
+}
+
+// evaluate evaluates the term t with the reference evaluator. known is false when the value or the
+// failure depends on what the generator does not know, or when the evaluator does not model t.
+func evaluate(env *ref.TermEnv, t grammar.Term) (v ref.V, failed, known bool) {
+	defer func() {
+		if recover() != nil {
+			v, failed, known = ref.Unknown, false, false
+		}
+	}()
+	v, msg := env.Eval(t)
+	return v, msg != "", v.Kind != ref.KUnknown
+}
+
+// decide decides the predicate term t with the reference evaluator (see evaluate for known).
+func decide(env *ref.TermEnv, t grammar.Term) (holds, known bool) {
+	defer func() {
+		if recover() != nil {
+			holds, known = false, false
+		}
+	}()
+	return env.Decide(t)
+}
+
+// env returns the environment of a term at the current point of the generation: the captures of the
+// scope, the variables and the grammar's types. Positions are in code points, the default unit of the
+// parser that checks the candidates.
+func (g *gen) env() *ref.TermEnv {
+	caps := map[string]ref.V{}
+	for c := g.caps; c != nil; c = c.next {
+		if _, ok := caps[c.name]; ok {
+			continue // the nearest capture of the name comes first
+		}
+		if c.ref == nil {
+			v := g.refValue(c.v, true)
+			c.ref = &v
+		}
+		caps[c.name] = *c.ref
+	}
+	t := g.in.terms
+	return &ref.TermEnv{Captures: caps, Vars: t.vars(g.vars), Zeros: t.zeros, Aliases: t.aliases}
+}
+
+// refValue returns v in the form of the reference evaluator, as the value of a capture or else as an
+// element of a list. Where the generator cannot tell the value that the parser builds, it is Unknown,
+// or a node of ref.UnknownShape when only its range, text and perhaps captures are known.
+func (g *gen) refValue(v val, capture bool) ref.V {
+	switch v.kind {
+	case vNil:
+		if capture {
+			return ref.Nil // a capture that did not match
+		}
+	case vText, vList, vNode:
+		text := g.slice(v.start, v.end)
+		start := g.units(v.start)
+		end := start + utf8.RuneCountInString(text)
+		switch v.kind {
+		case vText:
+			return ref.Node(ref.StringNode, text, start, end, nil, nil)
+		case vList:
+			items := make([]ref.V, len(v.items))
+			for i, it := range v.items {
+				items[i] = g.refValue(it, false)
+			}
+			return ref.Node(ref.ListNode, text, start, end, items, nil)
+		}
+		var caps map[string]ref.V
+		if v.capsKnown {
+			caps = map[string]ref.V{}
+			for c := v.caps; c != nil; c = c.next {
+				if _, ok := caps[c.name]; !ok {
+					caps[c.name] = g.refValue(c.v, true)
+				}
+			}
+		}
+		return ref.V{Kind: ref.KNode, Shape: ref.UnknownShape, S: text, Start: start, End: end, Caps: caps}
+	}
+	// An element that did not match, a value-less expression, whose value the generator does not
+	// model, and the value of an action.
+	return ref.Unknown
+}
+
+// units returns the byte offset off of the input known so far in code points.
+func (g *gen) units(off int) int {
+	if off <= len(g.out) {
+		return utf8.RuneCount(g.out[:off])
+	}
+	return utf8.RuneCount(g.out) + utf8.RuneCountInString(g.forced[:min(off-len(g.out), len(g.forced))])
 }
 
 // predicate evaluates the predicate e. It returns false only when the parser's predicate would
@@ -105,234 +205,12 @@ func literal(t grammar.Term) (pval, bool) {
 // parser. A variable definition is returned as def.
 func (g *gen) predicate(e *grammar.Predicate) (ok bool, def *variable) {
 	if a, isBind := e.Term.(*grammar.Bind); isBind {
-		v, err := g.eval(a.Value)
-		if err {
+		v, failed, known := evaluate(g.env(), a.Value)
+		if known && failed {
 			return false, nil
 		}
 		return true, &variable{name: a.Name, v: v}
 	}
-	v, err := g.eval(e.Term)
-	if err {
-		return false, nil
-	}
-	return !(v.kind == pBool && !v.b), nil
-}
-
-// eval evaluates the term t. err is true if the evaluation certainly fails.
-func (g *gen) eval(t grammar.Term) (v pval, err bool) {
-	switch t := t.(type) {
-	case *grammar.IntLit:
-		return pval{kind: pInt, i: t.Value}, false
-	case *grammar.StringLit:
-		return pval{kind: pString, s: t.Value}, false
-	case *grammar.BoolLit:
-		return pval{kind: pBool, b: t.Value}, false
-	case *grammar.NilLit:
-		return pval{kind: pNil}, false
-	case *grammar.CaptureRef:
-		for c := g.caps; c != nil; c = c.next {
-			if c.name == t.Name {
-				if c.v.kind == vNil || c.v.kind == vNone {
-					return pval{kind: pNil}, false
-				}
-				return pval{kind: pNode, node: c.v}, false
-			}
-		}
-		// A capture that did not match is nil.
-		return pval{kind: pNil}, false
-	case *grammar.VarRef:
-		for v := g.vars; v != nil; v = v.next {
-			if v.name == t.Name {
-				return v.v, false
-			}
-		}
-		// Reading an undefined variable is an error.
-		return unknownVal, true
-	case *grammar.Call:
-		return g.call(t)
-	case *grammar.Cast:
-		// A cast that holds keeps its value.
-		return g.eval(t.X)
-	case *grammar.Unary:
-		x, err := g.eval(t.X)
-		if err || x.kind == pUnknown {
-			return unknownVal, err
-		}
-		switch {
-		case t.Op == "!" && x.kind == pBool:
-			return pval{kind: pBool, b: !x.b}, false
-		case t.Op == "-" && x.kind == pInt:
-			return pval{kind: pInt, i: -x.i}, false
-		}
-		return unknownVal, false
-	case *grammar.Binary:
-		return g.binary(t)
-	}
-	return unknownVal, false
-}
-
-func (g *gen) call(t *grammar.Call) (pval, bool) {
-	if len(t.Args) != 1 || (t.Func != "len" && t.Func != "text") {
-		return unknownVal, false
-	}
-	x, err := g.eval(t.Args[0])
-	if err || x.kind == pUnknown {
-		return unknownVal, err
-	}
-	switch t.Func {
-	case "len":
-		switch {
-		case x.kind == pString:
-			return pval{kind: pInt, i: utf8.RuneCountInString(x.s)}, false
-		case x.kind == pNode && x.node.kind == vText:
-			return pval{kind: pInt, i: utf8.RuneCountInString(g.slice(x.node.start, x.node.end))}, false
-		case x.kind == pNode && x.node.kind == vList:
-			return pval{kind: pInt, i: x.node.n}, false
-		}
-	case "text":
-		if x.kind == pNode && x.node.kind != vUnknown {
-			return pval{kind: pString, s: g.slice(x.node.start, x.node.end)}, false
-		}
-	}
-	return unknownVal, false
-}
-
-func (g *gen) binary(t *grammar.Binary) (pval, bool) {
-	l, err := g.eval(t.L)
-	if err {
-		return unknownVal, true
-	}
-	// Short-circuit operators with three-valued logic.
-	if t.Op == "&&" || t.Op == "||" {
-		if l.kind == pBool && l.b == (t.Op == "||") {
-			return l, false
-		}
-		r, err := g.eval(t.R)
-		if err {
-			// The parser evaluates the right side only if the left side does not decide; when the
-			// left side is unknown, it may decide.
-			if l.kind == pBool {
-				return unknownVal, true
-			}
-			return unknownVal, false
-		}
-		switch {
-		case r.kind == pBool && r.b == (t.Op == "||"):
-			return r, false
-		case l.kind == pBool && r.kind == pBool:
-			return pval{kind: pBool, b: t.Op == "&&"}, false
-		}
-		return unknownVal, false
-	}
-	r, err := g.eval(t.R)
-	if err {
-		return unknownVal, true
-	}
-	if l.kind == pUnknown || r.kind == pUnknown {
-		return unknownVal, false
-	}
-	switch t.Op {
-	case "==", "!=":
-		eq, known := equal(l, r)
-		if !known {
-			return unknownVal, false
-		}
-		return pval{kind: pBool, b: eq == (t.Op == "==")}, false
-	case "<", ">", "<=", ">=":
-		var c int
-		switch {
-		case l.kind == pInt && r.kind == pInt:
-			c = cmpInt(l.i, r.i)
-		case l.kind == pString && r.kind == pString:
-			c = cmpString(l.s, r.s)
-		default:
-			return unknownVal, false
-		}
-		var b bool
-		switch t.Op {
-		case "<":
-			b = c < 0
-		case ">":
-			b = c > 0
-		case "<=":
-			b = c <= 0
-		default:
-			b = c >= 0
-		}
-		return pval{kind: pBool, b: b}, false
-	case "+":
-		switch {
-		case l.kind == pInt && r.kind == pInt:
-			return pval{kind: pInt, i: l.i + r.i}, false
-		case l.kind == pString && r.kind == pString:
-			return pval{kind: pString, s: l.s + r.s}, false
-		}
-	case "-", "*", "/", "%":
-		if l.kind != pInt || r.kind != pInt {
-			return unknownVal, false
-		}
-		switch t.Op {
-		case "-":
-			return pval{kind: pInt, i: l.i - r.i}, false
-		case "*":
-			return pval{kind: pInt, i: l.i * r.i}, false
-		}
-		if r.i == 0 {
-			return unknownVal, true
-		}
-		if t.Op == "/" {
-			return pval{kind: pInt, i: l.i / r.i}, false
-		}
-		return pval{kind: pInt, i: l.i % r.i}, false
-	}
-	return unknownVal, false
-}
-
-// equal compares two known values.
-func equal(l, r pval) (eq, known bool) {
-	if l.kind == pNil || r.kind == pNil {
-		other := l
-		if l.kind == pNil {
-			other = r
-		}
-		switch {
-		case other.kind == pNil:
-			return true, true
-		case other.kind == pNode && other.node.kind != vUnknown:
-			return false, true
-		}
-		return false, false
-	}
-	if l.kind != r.kind {
-		return false, false
-	}
-	switch l.kind {
-	case pInt:
-		return l.i == r.i, true
-	case pString:
-		return l.s == r.s, true
-	case pBool:
-		return l.b == r.b, true
-	}
-	return false, false
-}
-
-func cmpInt(a, b int) int {
-	switch {
-	case a < b:
-		return -1
-	case a > b:
-		return 1
-	}
-	return 0
-}
-
-func cmpString(a, b string) int {
-	switch {
-	case a < b:
-		return -1
-	case a > b:
-		return 1
-	}
-	return 0
+	holds, known := decide(g.env(), e.Term)
+	return holds || !known, nil
 }

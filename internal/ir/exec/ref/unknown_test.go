@@ -78,7 +78,7 @@ func unknownEnv(x V) *TermEnv {
 }
 
 func hasUnknown(v V) bool {
-	if v.Kind == KUnknown {
+	if v.Kind == KUnknown || (v.Kind == KNode && v.Shape == UnknownShape) {
 		return true
 	}
 	for _, x := range v.Items {

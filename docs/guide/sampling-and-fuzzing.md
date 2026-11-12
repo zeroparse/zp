@@ -222,24 +222,24 @@ rules 74/74 (100%), alternatives 89/89 (100%)
 ```
 
 Not every grammar is like that. The Python grammar of [alpha-parsers/python](../../testdata/grammars/python/python.zp) keeps the
-indentation of the current block packed in a variable and compares it in predicates (`stmt_sep`, `indented_block`),
-which the generator rarely satisfies by chance, so it misses the rules that need them:
+indentation of the current block packed in a variable and compares it in predicates (`stmt_sep`, `indented_block`).
+The generator evaluates these predicates on the indentation it generated, but few of the indentations it tries
+match the block's, so it seldom gets past the first line of a block and misses the rules that need more:
 
-<!-- example: skip: the coverage of this grammar differs from the text -->
 ```bash
 zp sample -g testdata/grammars/python/python.zp -n 50 -seed 1 -coverage > /dev/null
 ```
 
 ```text
-rules 93/336 (28%), alternatives 86/471 (18%)
+rules 122/336 (36%), alternatives 113/471 (24%)
 missed rule: stmt_sep
-missed rule: block
 missed rule: indented_block
+missed rule: clause_sep
 ...
 unreachable: keyword
 ```
 
-More inputs reach more (200 inputs cover 43% of the rules), but such a grammar is better tested with real inputs: the
+More inputs reach more (200 inputs cover 46% of the rules), but such a grammar is better tested with real inputs: the
 tests of the ready-made parsers use the specifications and the reference implementations of their languages.
 
 With `-f json`, the report is the `coverage` member of the document. Coverage is measured on the way the generator
@@ -611,8 +611,9 @@ parser would read differently:
 - after stopping a repetition or skipping an optional expression, the element must not match there (repetitions are
   greedy);
 - `!e` must not match; for `&e`, a text for `e` is generated and the input must continue with it;
-- predicates are evaluated on the generated text, with captures, variables, `len`, `text`, comparisons and arithmetic,
-  so indentation (as in [examples/outline](../../examples/outline/outline.zp)) and matching tags (as in
+- predicates are evaluated as the parser evaluates them, on the values that the generated text gives: captures with
+  their text and positions, the elements of repetitions and the captures of rule nodes and iterations, variables,
+  built-in functions, operators and casts, so indentation (as in [examples/outline](../../examples/outline/outline.zp)) and matching tags (as in
   [alpha-parsers/xml](../../testdata/grammars/xml/xml.zp)) work;
 - Operators Rule expressions are generated as chains of operands and operators, avoiding chains of `infix none` operators,
   with the outer infix/postfix tail filtered by level-restricted calls. Prefixes remain available at every operand
@@ -646,8 +647,8 @@ a later cut can still make that RHS fail. When led parts cannot commit, the chec
 unfinished future tail; its endpoint is only a witness. Unsupported cuts, predicates, Operators Rule references, left
 recursion, recovery and exhausted matching remain inconclusive. Every returned input is still parsed and accepted.
 
-What the generator cannot evaluate, it leaves to the parser: predicates over values built by actions or over struct
-fields, and lookaheads into Operators Rules or left-recursive rules. Those constructs are handled only by generating
+What the generator cannot evaluate, it leaves to the parser: predicates over values built by actions or over the
+elements of sequences, and lookaheads into Operators Rules or left-recursive rules. Those constructs are handled only by generating
 and checking, which costs attempts; a grammar where most choices depend on them yields fewer inputs per second and
 lower coverage. In practice:
 

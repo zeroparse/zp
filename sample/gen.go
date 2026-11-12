@@ -3,6 +3,7 @@ package sample
 import (
 	"cmp"
 	"slices"
+	"strings"
 	"unicode/utf8"
 
 	"zeroparse.dev/zp/grammar"
@@ -134,7 +135,7 @@ func newGen(in *info, cfg *config) *gen {
 // exercised.
 func (g *gen) attempt() (string, []int, bool) {
 	g.out, g.forced, g.endAt, g.pending = g.out[:0], "", -1, nil
-	g.caps, g.vars, g.sib = nil, g.in.initVars, nil
+	g.caps, g.vars, g.sib = nil, g.in.terms.initVars, nil
 	clear(g.active)
 	g.rule = -1
 	g.depth, g.steps, g.matchWork = 0, 0, 0
@@ -454,7 +455,7 @@ func (g *gen) gen(e grammar.Expr, k cont) bool {
 		g.vars = vars
 		return ok
 	case *grammar.Top:
-		return k(val{kind: vText, start: pos, end: pos})
+		return k(val{kind: vNode, start: pos, end: pos})
 	case *grammar.Cut:
 		return k(val{kind: vNone, start: pos, end: pos})
 	case *grammar.Bottom:
@@ -613,11 +614,20 @@ func (g *gen) genRepeat(e *grammar.Repeat, k cont) bool {
 		want = min(want, e.Max)
 		limit = min(limit, e.Max)
 	}
-	var iter func(i int) bool
-	iter = func(i int) bool {
+	// items holds the values of the iterations so far, the last first.
+	list := func(items *item, end int) val {
+		v := val{kind: vList, start: start, end: end}
+		for it := items; it != nil; it = it.next {
+			v.items = append(v.items, it.v)
+		}
+		slices.Reverse(v.items)
+		return v
+	}
+	var iter func(i int, items *item) bool
+	iter = func(i int, items *item) bool {
 		s0 := g.steps
 		done := func() bool {
-			return k(val{kind: vList, start: start, end: len(g.out), n: i})
+			return k(list(items, len(g.out)))
 		}
 		another := func() bool {
 			if i >= limit {
@@ -628,17 +638,22 @@ func (g *gen) genRepeat(e *grammar.Repeat, k cont) bool {
 			if scoped {
 				g.caps = nil // each iteration is a capture scope
 			}
-			ok := g.gen(e.Expr, func(val) bool {
+			ok := g.gen(e.Expr, func(v val) bool {
 				inner := g.caps
 				g.caps = caps
+				if scoped {
+					// The value of the iteration is a node whose captures are those of the iteration.
+					v = val{kind: vNode, start: pos, end: len(g.out), caps: inner, capsKnown: true}
+				}
+				items := &item{v: v, next: items}
 				var ok bool
 				if len(g.out) == pos {
 					// The first empty iteration ends the repetition, even below
 					// its minimum. Retry a consuming body instead of inventing
 					// further empty iterations.
-					ok = i+1 >= e.Min && k(val{kind: vList, start: start, end: pos, n: i + 1})
+					ok = i+1 >= e.Min && k(list(items, pos))
 				} else {
-					ok = iter(i + 1)
+					ok = iter(i+1, items)
 				}
 				g.caps = inner
 				return ok
@@ -668,7 +683,13 @@ func (g *gen) genRepeat(e *grammar.Repeat, k cont) bool {
 		// doomed decision before the repetition expensive to undo.
 		return stop() || ((g.steps-s0 <= quickFailure || i < want+2) && g.retry(s0) && another())
 	}
-	return iter(0)
+	return iter(0, nil)
+}
+
+// item is the value of an iteration of a repetition (a persistent list).
+type item struct {
+	v    val
+	next *item
 }
 
 // genAnd handles the lookahead &e. It first generates a text for e and requires the input to continue
@@ -866,7 +887,6 @@ func (g *gen) callRule(ri *ruleInfo, level, key string, k cont) bool {
 	ret := func(v val) bool {
 		// Return to the caller.
 		innerCaps, innerVars, innerSib := g.caps, g.vars, g.sib
-		hadCaps := g.caps != nil
 		g.active[ri.index]--
 		if recursive {
 			g.depth--
@@ -877,7 +897,7 @@ func (g *gen) callRule(ri *ruleInfo, level, key string, k cont) bool {
 		} else {
 			g.sib = sib
 		}
-		ok := k(ruleValue(ri, v, start, len(g.out), hadCaps))
+		ok := k(ruleValue(ri, v, start, len(g.out), innerCaps, true))
 		g.active[ri.index]++
 		if recursive {
 			g.depth++
@@ -909,19 +929,28 @@ func (g *gen) reuseRule(ri *ruleInfo, key, text string, k cont) bool {
 	return g.emit(text, func(start int) bool {
 		sib := g.sib
 		g.sib = &sibling{key: key, text: text, next: sib}
-		ok := k(ruleValue(ri, val{kind: vNode}, start, len(g.out), true))
+		// The captures of the earlier call are not kept.
+		ok := k(ruleValue(ri, val{kind: vNode, start: start, end: len(g.out)}, start, len(g.out), nil, false))
 		g.sib = sib
 		return ok
 	})
 }
 
-// ruleValue returns the value of a rule whose body produced v.
-func ruleValue(ri *ruleInfo, v val, start, end int, hadCaps bool) val {
+// ruleValue returns the value of a rule whose body produced v, given the captures of its body when
+// known is set.
+func ruleValue(ri *ruleInfo, v val, start, end int, caps *capture, known bool) val {
 	switch {
 	case ri.def.Action != nil || ri.operatorsRule != nil:
 		return val{kind: vUnknown, start: start, end: end}
-	case hadCaps:
-		return val{kind: vNode, start: start, end: end}
+	case strings.HasPrefix(ri.def.Name, "_"):
+		// A hidden rule makes no node: its value is that of its expression, and its captures end with it.
+		return v
+	case ri.def.Type != nil || caps != nil || !known:
+		// A node of the rule, of the declared type when there is one.
+		return val{kind: vNode, start: start, end: end, caps: caps, capsKnown: known}
+	case v.kind == vNode && !v.capsKnown:
+		// The node of the rule's own sequence, without captures.
+		v.capsKnown = true
 	}
 	return v
 }

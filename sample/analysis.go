@@ -69,8 +69,9 @@ type info struct {
 	compared map[*grammar.Capture]bool
 	// alphabet holds the literal strings and sample characters of the grammar, for mutations.
 	alphabet []string
-	// initVars holds the declared variables with their initial values; every attempt starts from it.
-	initVars *variable
+	// terms holds what predicates read of the grammar, and the declared variables with their initial
+	// values, from which every attempt starts.
+	terms *terms
 }
 
 func analyze(g *grammar.Grammar, start string) *info {
@@ -100,9 +101,7 @@ func analyze(g *grammar.Grammar, start string) *info {
 		in.targets = append(in.targets, target{kind: targetRule, rule: r.Name})
 	}
 	in.start = in.rules[start]
-	for _, v := range g.Vars() {
-		in.initVars = &variable{name: v.Name, v: initialValue(v), next: in.initVars}
-	}
+	in.terms = newTerms(g)
 	// Targets inside rule bodies.
 	for _, ri := range in.order {
 		walk(ri.def.Expr, func(e grammar.Expr) {
