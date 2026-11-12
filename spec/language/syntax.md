@@ -174,9 +174,18 @@ rule type_def = comments type_def_body &source_item_tail stmt_end
 // Its typed node retains the actual parse span without repeating recovery.
 rule type_alias_body = "type" -word_end #cut ident -ws "~" -ws type_expr
 rule type_def_body = (
-    "type" -word_end #cut ident -ws
+    "type" -word_end #cut ident -ws -type_def_spelling
     -(&("=" comments ("{" / "node[" !"]")) "=" -ws)
     (struct_type / node_type)
+)
+// A type definition written in a spelling that the language no longer has fails with the
+// definition in the current syntax. The check of each spelling stands outside its message, so a
+// spelling that is absent leaves the expectations of the definition as they are.
+rule type_def_spelling = (
+    !(("struct" / "terminal") !ident_char / "=" !(comments ("{" / "node[" !"]")))
+    / &("struct" !ident_char) _|_
+    / &("terminal" !ident_char) _|_
+    / &"=" _|_
 )
 // The node type of a named node type takes one type argument.
 rule node_type = (
@@ -189,8 +198,8 @@ rule field_body = ident -ws type_expr
 rule type_expr = #operators {
     skip ws
     operand bottom
-    operand !retired_type ident type_args
-    operand !retired_type ident
+    operand ident type_args
+    operand ident
     operand type_group
     operand struct_type
     level join { infix left "|" }
@@ -206,9 +215,6 @@ rule struct_type = (
     "{" {ml := false} &source_head_open field_spec* comments
     -"}"
 )
-
-// The names terminal, Match, Seq, List, Operator and Error are not node types.
-rule retired_type = ("terminal" / "Match" / "Seq" / "List" / "Operator" / "Error") !ident_char
 
 // The brackets of type arguments follow the name directly.
 rule type_args = "[" {ml := true} -ws type_expr (-ws "," -ws type_expr)* -ws ","? -ws "]"
@@ -233,7 +239,8 @@ rule rule_decl = comments rule_def_body &source_item_tail stmt_end
 rule rule_def_body = (
     (attr decl_attr_gap)*
     "rule" -word_end #cut ident -ws type_expr? -ws
-    -"=" -ws (ops_rule_body / rule_body_expr) trailing_action?
+    -"=" -ws -operators_spelling
+    (ops_rule_body / rule_body_expr) trailing_action?
 )
 // Declaration attributes may share a line; the last one ends its line before "rule".
 rule decl_attr_gap = decl_attr_same_line / decl_attr_line_end
@@ -246,7 +253,7 @@ rule whole_action = "=>" -ws action
 rule trailing_action = -ws whole_action
 rule rule_expr = #operators {
     skip ws
-    operand rule_group / predicate / level_call / bottom / top / begin_input / begin_line / end_input / end_line / any / cut / string / string_open / char_class / rule_ref
+    operand rule_group / predicate / level_call / bottom / top / begin_input / begin_line / end_input / end_line / any / cut / string / string_open / char_class / rule_ref / cut_spelling
     level ordered_choice { infix left "/" }
     level sequence { infix left _ }
     level prefix {
@@ -273,6 +280,7 @@ rule rule_expr = #operators {
 // Operators Rule starts.
 rule unknown_pragma = "#" !(known_pragma !ident_char) ident _|_
 rule rule_body_expr = !legacy_operators_start rule_expr
+rule operators_spelling = !legacy_operators_start / _|_
 // An Operators Rule starts with #operators. A rule that starts with operators { and an item is an
 // error; operators {x == 1} is a reference followed by a predicate.
 rule legacy_operators_start = "operators" !ident_char horizontal "{" comments (
@@ -302,6 +310,9 @@ rule end_input = "$$" #atomic
 rule end_line = ("$" !(ident_start / digit)) #atomic
 rule any = ("." !"..") #atomic
 rule cut = ("#cut" !ident_char !"(") #atomic
+// The cut was once written --. That spelling is an error in the current syntax, from which the
+// parse recovers.
+rule cut_spelling = &"--" _|_
 rule predicate = action_block
 rule repeat_args = (
     "(" {ml := true} -ws (repeat_range / repeat_count) -ws
@@ -389,7 +400,7 @@ rule action_bind_stmt = ident -ws ":=" -ws action_expr
 rule action_expr = lambda / action_ops
 rule action_ops = #operators {
     skip !(ws "[" !"]") ws
-    operand list_constructor / constructor / call / action_tuple / action_group / int / action_string / true_lit / false_lit / nil_lit / capture_ref / var_ref
+    operand list_constructor / constructor / call / action_tuple / action_group / int / action_string / true_lit / false_lit / nil_lit / capture_ref / var_ref / index_capture
     level disjunction { infix left "||" }
     level conjunction { infix left "&&" }
     level comparison { infix none "==" / "!=" / "<=" / ">=" / "<" / ">" }
@@ -402,14 +413,10 @@ rule action_ops = #operators {
     level field_access {
         postfix "." -ws capture_ref
         postfix "." -ws cast_type
-        postfix "." -ws !capture_member ident
+        postfix "." -ws ident
         postfix index_suffix
     }
 }
-// x.name with a lowercase name is an error, because a capture is read with x.$name: the fields of a node
-// start with an uppercase letter, and startPos, endPos, children, expected and message are members of every node.
-// A name is ASCII, so the check is exact; the adapter makes it again for a tree it is given.
-rule capture_member = !(("startPos" / "endPos" / "children" / "expected" / "message") !ident_char) [a-z_]
 // The brackets of an index open their own delimiter, and a rule of its own keeps ml from
 // reaching the rest of the action.
 rule index_suffix = "[" {ml := true} -ws action_expr -ws "]"
@@ -459,6 +466,9 @@ rule true_lit = ("true" !ident_char) #atomic
 rule false_lit = ("false" !ident_char) #atomic
 rule nil_lit = ("nil" !ident_char) #atomic
 rule capture_ref = (&("$" ident) "$" ident #atomic) #atomic
+// A capture is read by its label. $ and a number, a spelling the language no longer has, is an
+// error from which the parse recovers.
+rule index_capture = &("$" digit) _|_
 rule var_name = (!(true_lit / false_lit / nil_lit / bottom) ident) #atomic
 rule var_ref = (!bottom ident !"(") #atomic
 
@@ -477,15 +487,18 @@ rule source_comments = -source_non_comment* (comment -source_non_comment*)* $$
 rule source_non_comment = source_string / source_class / incomplete_comment / !("//" / "/*") .
 rule source_string = "\"" ("\\" . / [^"\\\n])* "\""?
 rule source_class = "[" ("\\" . / [^\]\\\n])* "]"?
-rule incomplete_comment = !inline_comment "/*" .* $$
+rule incomplete_comment = !inline_comment comment_open .* $$
 rule comment = comment_group / inline_comment
+// White space and comments may stand between any two tokens. The source parser leaves them out of
+// what a syntax error expects, by these names.
+rule comment_open = "/*"
 rule comment_group = comment_line (-nl -space_no_line* comment_line)*
 rule line_comment = comment_line
 rule comment_line = ("//" [^\n\r]*) #atomic
-rule inline_comment = "/*" (inline_comment / !("/*" / "*/") .)* #atomic "*/"
-rule block_no_line = "/*" (block_no_line / !("/*" / "*/" / nl) .)* #atomic "*/"
+rule inline_comment = comment_open (inline_comment / !("/*" / "*/") .)* #atomic "*/"
+rule block_no_line = comment_open (block_no_line / !("/*" / "*/" / nl) .)* #atomic "*/"
 rule block_with_line = (
-    "/*"
+    comment_open
     ((block_no_line / !("/*" / "*/" / nl) .)* (nl / block_with_line) (inline_comment / !("/*" / "*/") .)*)
     #atomic "*/"
 )
