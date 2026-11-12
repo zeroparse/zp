@@ -65,6 +65,7 @@ func TestContextStoreBoundsControls(t *testing.T) {
 		shape    string
 	}{
 		{core.CtxCapDeps, "seven dependencies"},
+		{core.CtxNarrowPresent, "70 leaders"},
 	} {
 		var s gentest.DependencyMemoShape
 		for _, x := range gentest.ContextStoreShapes {

@@ -45,10 +45,21 @@ import (
 // failSeed is the identity of the failure that every growth starts from.
 const failSeed uint64 = 1
 
-// maxLeaderBits is the number of leaders of a cycle that have a bit in present sets; a context with
-// any other leader cannot be told from others, and its results are evaluated again. A context holds
-// leaders of one cycle only, so the bits are given for each cycle.
-const maxLeaderBits = 32
+// maxLeaderBits is the number of leaders of a cycle that have a bit in present sets. A context holds
+// leaders of one cycle only, so the bits are given for each cycle. The present set of a context
+// with any other leader is the identity that intern gives its words of bits, tagged presentWide.
+const maxLeaderBits = 31
+
+// presentWide tags the identity of a present set that does not fit in a word of bits, which no word
+// of bits equals. A memo entry holds a word of bits, so a result in such a context goes to the table
+// of the context even if it read no seed (ctxPop), and no entry answers a call there (memoAllows).
+const presentWide uint32 = 1 << 31
+
+// The kinds of keys that intern holds.
+const (
+	internPresent = iota
+	internOutcome
+)
 
 // ctxResult is a result that a context keeps: a seed, the result of a growth step, or the result of
 // a call that read a seed. It holds a node (Parser) or a typed value (TParser).
@@ -72,6 +83,7 @@ type growRec struct {
 	pos       int
 	cycle     int32
 	bit       uint32
+	idx       int32 // Rule.leaderIndex
 	seed      *ctxResult
 	id        uint64
 	inl       ctxResult
@@ -259,21 +271,22 @@ type ctxCallState struct {
 	gp      int    // the index in gamma of the first growth of the context
 	present uint32 // the present set
 	ctx     bool   // the call is in a context
-	known   bool   // the present set tells the context from others
 	framed  bool   // the call records its dependencies
 }
 
-// setLeaderBits gives the first maxLeaderBits leaders of each cycle of rules a bit each
-// (Rule.leaderBit).
+// setLeaderBits numbers the leaders of each cycle of rules (Rule.leaderIndex) and gives the first
+// maxLeaderBits of each a bit (Rule.leaderBit).
 func setLeaderBits(rules []*Rule) {
-	n := map[int32]int{}
+	n := map[int32]int32{}
 	for _, r := range rules {
-		r.leaderBit = 0
+		r.leaderBit, r.leaderIndex = 0, 0
 		if r.Leader && r.Cycle != 0 {
-			if k := n[r.Cycle]; k < maxLeaderBits {
+			k := n[r.Cycle]
+			n[r.Cycle]++
+			r.leaderIndex = k
+			if k < maxLeaderBits {
 				r.leaderBit = 1 << k
 			}
-			n[r.Cycle]++
 		}
 	}
 }
@@ -317,18 +330,56 @@ func (p *Parser) gammaFind(gp int, rule, min int32) int {
 	return -1
 }
 
-// present returns the present set of the context gamma[gp:], and false if a leader in it has no
-// bit.
-func (p *Parser) present(gp int) (uint32, bool) {
+// present returns the present set of the context gamma[gp:]: the bits of its leaders, or the
+// identity of the set if a leader has no bit (presentWide).
+func (p *Parser) present(gp int) uint32 {
 	var m uint32
 	for i := gp; i < len(p.gamma); i++ {
 		b := p.gamma[i].bit
 		if b == 0 {
-			return 0, false
+			return p.presentWide(gp)
 		}
 		m |= b
 	}
-	return m, true
+	return m
+}
+
+// presentWide returns the identity of the present set of the context gamma[gp:]: its words of
+// bits, by Rule.leaderIndex, interned.
+func (p *Parser) presentWide(gp int) uint32 {
+	var w []uint64
+	for i := gp; i < len(p.gamma); i++ {
+		p.Spend()
+		k := int(p.gamma[i].idx)
+		for len(w) <= k/64 {
+			w = append(w, 0)
+		}
+		w[k/64] |= 1 << (k % 64)
+	}
+	key := make([]byte, 1, 1+8*len(w))
+	key[0] = internPresent
+	for _, x := range w {
+		key = binary.LittleEndian.AppendUint64(key, x)
+	}
+	return presentWide | uint32(p.intern(key))
+}
+
+// intern returns a number for key that no other key has while a growth is in progress. The numbers
+// identify present sets and outcomes too large for a word; they appear only in the context tables
+// and dependencies of growths in progress, and the parser forgets them when the last growth ends
+// (growEnd).
+func (p *Parser) intern(key []byte) uint64 {
+	if v, ok := p.interned[string(key)]; ok {
+		return v
+	}
+	if p.interned == nil {
+		p.interned = map[string]uint64{}
+	}
+	p.Spend()
+	p.internSeq++
+	p.interned[string(key)] = p.internSeq
+	p.memUsed += internBytes + uint64(len(key))
+	return p.internSeq
 }
 
 // ctxEnter computes the context of a memoized call of r, a rule of a cycle, at the current position
@@ -347,7 +398,7 @@ func (p *Parser) ctxEnter(c *ctxCallState, r *Rule, min int) *ctxResult {
 		}
 	}
 	c.ctx = true
-	c.present, c.known = p.present(gp)
+	c.present = p.present(gp)
 	return nil
 }
 
@@ -355,13 +406,13 @@ func (p *Parser) ctxEnter(c *ctxCallState, r *Rule, min int) *ctxResult {
 // in the context c: every leader that grows there grew when it was evaluated, and did not matter
 // to it.
 func (c *ctxCallState) memoAllows(present uint32) bool {
-	return !c.ctx || c.known && c.present&^present == 0
+	return !c.ctx || c.present&^present == 0
 }
 
 // ctxLookup returns the result kept in the context c for a call of rule at level min with the
 // variable values env, or nil.
 func (p *Parser) ctxLookup(c *ctxCallState, rule, min int, env []any) *ctxResult {
-	if !c.known {
+	if !c.ctx {
 		return nil
 	}
 	s := p.ctxFind(p.Pos, c.gp, ctxHeadKey{kind: ctxCall, id: int32(rule), min: int32(min), present: c.present}, env)
@@ -374,7 +425,7 @@ func (p *Parser) ctxLookup(c *ctxCallState, rule, min int, env []any) *ctxResult
 
 // ctxPush starts recording the dependencies of a call in the context c.
 func (p *Parser) ctxPush(c *ctxCallState) {
-	if c.known {
+	if c.ctx {
 		p.pushFrame(p.Pos, c.gp)
 		c.framed = true
 	}
@@ -382,26 +433,27 @@ func (p *Parser) ctxPush(c *ctxCallState) {
 
 // The ways a memoized call stores its result (ctxPop).
 const (
-	storeNone = iota // the call is in a context that cannot be told from others
+	storeNone = iota // nowhere: unused, as every call in a context records its dependencies
 	storeMemo        // in the memo, with the present set of the call
 	storeCtx         // in the table of the context (ctxKeep)
 )
 
 // ctxPop ends the dependencies of a call in the context c and returns how the call stores its
-// result: in the table of the context if it read a seed or made an observation, and otherwise in
-// the memo. The dependencies stay readable for ctxKeep until ctxDone.
+// result: in the table of the context if it read a seed or made an observation or its present set
+// has no word of bits (presentWide), and otherwise in the memo. The dependencies stay readable for ctxKeep until ctxDone.
 func (p *Parser) ctxPop(c *ctxCallState) int {
 	switch {
 	case c.framed:
 		_, p.popped = p.popFrame()
+		if c.present&presentWide != 0 {
+			return storeCtx
+		}
 		for _, d := range p.popped {
 			if d.kind != depShadow {
 				return storeCtx
 			}
 		}
 		return storeMemo
-	case c.ctx:
-		return storeNone
 	}
 	return storeMemo
 }
@@ -883,9 +935,9 @@ func (p *Parser) lookEnd(ok bool) {
 		return
 	}
 	val, ok2 := obsOutcome(ok, f.pos, examined)
-	present, known := p.present(f.gp)
+	present := p.present(f.gp)
 	sd, _ := p.stored(ds)
-	if ok2 && known {
+	if ok2 {
 		p.ctxStore(f.pos, f.gp, ctxHeadKey{kind: ctxLook, id: site, present: present}, sd, &ctxSlot{id: val})
 	}
 	out := make([]dep, 0, len(ds)+1)
@@ -949,7 +1001,7 @@ func (p *Parser) growBegin(r *Rule, min int) growState {
 		p.gamma = append(p.gamma, growRec{})
 	}
 	rec := &p.gamma[g.gi]
-	rec.rule, rec.min, rec.pos, rec.cycle, rec.bit, rec.id = g.rule, g.min, g.start, r.Cycle, r.leaderBit, failSeed
+	rec.rule, rec.min, rec.pos, rec.cycle, rec.bit, rec.idx, rec.id = g.rule, g.min, g.start, r.Cycle, r.leaderBit, r.leaderIndex, failSeed
 	if g.gp < g.gi {
 		// The seeds of a growth in a context can be shared by equal results (canonicalSeed).
 		rec.seed = &ctxResult{end: g.start, examined: p.examinedNow()}
@@ -961,7 +1013,7 @@ func (p *Parser) growBegin(r *Rule, min int) growState {
 	}
 	if g.gp < g.gi {
 		// The present set of the steps includes the leader's own growth.
-		g.present, g.ctx = p.present(g.gp)
+		g.present, g.ctx = p.present(g.gp), true
 	}
 	return g
 }
@@ -1105,6 +1157,9 @@ func (p *Parser) growEnd(g *growState) ctxResult {
 	best := *p.seedAt(g.gi)
 	clear(p.gamma[g.gi:]) // release the seeds
 	p.gamma = p.gamma[:g.gi]
+	if g.gi == 0 && len(p.interned) > 0 {
+		clear(p.interned)
+	}
 	p.Pos = best.end
 	p.Recovered = p.Recovered[:g.rec]
 	p.recAdd(best.errs)

@@ -167,7 +167,10 @@ type Parser struct {
 	obsGuard []int32
 	ctxs     []*ctxTable
 	seedSeq  uint64
-	grown    *MemoEntry
+	// interned and internSeq give identities to keys too large for a word (intern).
+	interned  map[string]uint64
+	internSeq uint64
+	grown     *MemoEntry
 	// ContextMemoOff evaluates again every call of a rule of a left-recursion cycle in a context
 	// and every step of a growth there, instead of reusing a result (ParseOptions.ContextMemoOff).
 	ContextMemoOff bool
@@ -568,7 +571,8 @@ type runStep struct {
 // GrowBegin starts the growth of a leader at the current position from a failure. A growth in a
 // context, where another leader grows, memoizes its steps (GrowNext); the body is evaluated
 // repeatedly, and the result at the point where the match stops growing is adopted.
-func (p *Parser) GrowBegin(key MemoKey, bit uint64, cycle int) GrowState {
+func (p *Parser) GrowBegin(key MemoKey, r *Rule) GrowState {
+	cycle := r.Cycle
 	// One compute unit before each evaluation of the body, the seed's included; it is charged before
 	// the memo changes, so that a parse stopped by the budget publishes nothing.
 	p.Spend()
@@ -581,10 +585,10 @@ func (p *Parser) GrowBegin(key MemoKey, bit uint64, cycle int) GrowState {
 	if p.Missing != nil {
 		p.RecordMissingSeed(g.Best, g.missing)
 	}
-	p.Gamma = append(p.Gamma, growRec{key: key, seed: g.Best, id: failSeed, bit: bit, cycle: cycle})
+	p.Gamma = append(p.Gamma, growRec{key: key, seed: g.Best, id: failSeed, bit: r.LeaderBit, idx: int32(r.LeaderIndex), cycle: int32(cycle)})
 	if gp < g.gi && !p.strictCtx() {
-		present, known := p.present(gp)
-		g.ctx, g.present = known, present
+		g.present = p.present(gp)
+		g.ctx = p.recordsIn(g.present)
 	}
 	return g
 }
@@ -858,6 +862,9 @@ func (p *Parser) GrowEnd(r *Rule, g *GrowState) (*value.Node, bool) {
 	p.recordJumps(g)
 	p.dropTable(g.gi)
 	p.Gamma = p.Gamma[:g.gi]
+	if len(p.Gamma) == 0 && len(p.interned) > 0 {
+		clear(p.interned)
+	}
 	best := g.Best
 	if g.ctx {
 		// The seed may be shared by equal results of other growths (canonicalSeed).
