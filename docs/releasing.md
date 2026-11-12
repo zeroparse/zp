@@ -15,6 +15,8 @@ Go modules give a v0 version no compatibility guarantee. ZeroParse states its in
 | The grammar language: `.zp` syntax and meaning ([specification](../spec/README.md)) | Stable in intent. A change that breaks a grammar is announced with how to update the grammar |
 | The API of generated Go parsers (`Parse`, `ParseAST`, the options and the error types) | Stable in intent. A generated parser carries the runtime of the generator that produced it, so regenerate it after upgrading ZeroParse |
 | The module API, including the `zp` and `grammar` packages | May change in any release; changes are announced |
+| The testing packages `sample` (input generation) and `editfuzz` (incremental-parsing fuzzing), and the sequence files of `editfuzz` | Public so that Go programs can test their own grammars and documents; unstable: may change in any release |
+| The fixture suites of `zp test` (the JSON format) | Unstable: may change in any release; the runner is internal, not a Go API |
 | The runtime module `zeroparse.dev/zp/runtime`, as generated code uses it with `zp gen -runtime import` | Judged by its protocol version (see [the runtime protocol](#the-runtime-protocol)), not by the release version |
 | Compiled grammars (`.zpc`) and the bytecode: container version 8, instruction-set version 31 ([bytecode specification](../spec/bytecode/README.md)) | Unstable: may change in any release. A loader accepts only its own versions and asks for the grammar to be compiled again |
 | The JSON forms of grammars and nodes | Unstable: may change in any release |

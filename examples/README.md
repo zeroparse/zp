@@ -18,7 +18,7 @@ go run ./examples/calculator "1 + 2 * (3 - 4) ^ 2"
 
 ## Testing
 
-`examples_test.go` parses every `testdata/*.txt` file in each directory with every `.zp` grammar in that directory and compares the result with the corresponding `testdata/*.golden` file.
+The `examples` package holds only this test: its runner checks every example, and the calculator is a separate `main` package. `examples_test.go` parses every `testdata/*.txt` file in each directory with every `.zp` grammar in that directory and compares the result with the corresponding `testdata/*.golden` file.
 Grammars in the same directory (such as `calc.zp` and `calc_lr.zp`) must produce the same results. Where a result legitimately depends on how a grammar is written, such as the expectations in a syntax error, a per-grammar golden file `<input>.<grammar>.golden` (for example `error.calc_lr.golden`) overrides the shared one.
 
 ```bash
