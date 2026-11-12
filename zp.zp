@@ -4,6 +4,9 @@ package zp
 
 // ml reports whether line breaks are allowed between tokens inside the enclosing delimiters.
 var ml bool
+// junk is set while a declaration is parsed again after it failed: text that cannot continue a complete
+// declaration is then skipped, and the declaration is kept.
+var junk bool
 
 type Ident = node[string]
 type Int = node[string]
@@ -66,7 +69,7 @@ type InlineComment = { Start node[string]; Body node[string]; End node[string] }
 type RuleDef = { Attrs []Attr; Name Ident; Type *Type; Expr RuleExpr; Action *Action; Comments []Comment; SourceSpan RuleDefBody; Source SourceItem }
 type RuleDefBody = { Attrs []Attr; AttrComments []Comment; Name Ident; Type *Type; Expr RuleExpr; Action *Action }
 type RuleExpr ~ (
-    RuleRef | LevelCall | RuleGroup | InlineAction | Sequence | Choice | Discard | Lookahead | Top | Bottom | BeginLine | BeginInput | EndLine | EndInput | Any | Cut | String | CharClass | Optional | ZeroOrMore | OneOrMore | Repeat | Capture | Predicate | Atomic | Stream | MissingPragma | IgnoreCase | Recover | Attributed | OperatorsRule
+    RuleRef | LevelCall | RuleGroup | InlineAction | Sequence | Choice | Discard | Lookahead | Top | Bottom | BeginLine | BeginInput | EndLine | EndInput | Any | Cut | String | CharClass | Optional | ZeroOrMore | OneOrMore | Repeat | Capture | Predicate | Atomic | Stream | MissingPragma | IgnoreCase | Recover | Attributed | OperatorsRule | error
 )
 type RuleRef = { Name Ident }
 type LevelCall = { Rule Ident; Level Ident }
@@ -194,17 +197,22 @@ rule package_body PkgBody = (
 }
 rule decl Decl = (
     !(comments $$)
-    d:((type_decl / var_decl / rule_decl / _|_ @error(message="expected type, var or rule declaration")) #recover(skip=stmt_sync))
+    d:((type_decl / var_decl / rule_decl / junk_decl / _|_ @error(message="expected type, var or rule declaration")) #recover(skip=stmt_sync))
 ) => $d
+// A declaration that failed is parsed again with junk set, so that a complete declaration followed by text
+// that is not a separator is kept and the text is reported. The first parse stays strict, so the errors of a
+// declaration that has not ended are reported where the farthest attempt stopped.
+rule junk_decl Decl = {junk := true} d:(type_decl / var_decl / rule_decl) {junk := false} => $d
 // A declaration that is complete but followed by a closing bracket instead of a separator is kept: the
 // error is reported and the rest of its statement is skipped. Any other text there could continue the
 // declaration, so the declaration fails as a whole, and the error is where the farthest attempt stopped.
 rule stmt_end []Comment = (
-    cs:horizontal tail:(stmt_sep / stmt_skip)
+    cs:horizontal tail:(stmt_sep / stmt_skip / stmt_junk)
 ) => concat($cs, $tail)
 // The recovered value is discarded and replaced by an empty list because concat does not yet accept a
 // "[]T | error" value in the type checker; use concat directly once the checker accepts it.
 rule stmt_skip []Comment = &[)\]}] -((stmt_sep @error(message="expected semicolon, newline, or end of file")) #recover(skip=stmt_sync)) => list()
+rule stmt_junk []Comment = {junk} &(decl_keyword !ident_char / "=" ![=>] / "/*") -((stmt_sep @error(message="expected semicolon, newline, or end of file")) #recover(skip=stmt_sync)) => list()
 rule item_end []Comment = (
     cs:horizontal tail:(item_sep @error(message="expected semicolon, newline, or closing brace"))
 ) => concat($cs, $tail)
@@ -405,7 +413,7 @@ rule whole_action Action = "=>" -ws a:(action @error(message="expected value act
 rule trailing_action Action = -ws a:whole_action => $a
 rule rule_expr RuleExpr = #operators {
     skip ws
-    operand rule_group / predicate / level_call / bottom / top / begin_input / begin_line / end_input / end_line / any / cut / string / char_class / rule_ref
+    operand rule_group / predicate / level_call / bottom / top / begin_input / begin_line / end_input / end_line / any / cut / string / string_open / char_class / rule_ref
     level ordered_choice { infix left "/" => Choice{L: $lhs, R: $rhs} }
     level sequence { infix left _ => Sequence{L: $lhs, R: $rhs} }
     level prefix {
@@ -703,6 +711,12 @@ rule digit = [0-9]
 // A backslash escapes any character: the decoding of the literal reports an unknown or invalid
 // escape, so that the declaration with the mistake is kept.
 rule string String = ("\"" ("\\" . / [^"\\\n])* "\"" #atomic ("i" !ident_char)?) #atomic
+// A string of a rule expression that is not closed on its line is recovered as an error that spans the
+// string to the end of the line, where it stood for the literal the user is typing; the decoding of the
+// source takes its text. A string of an action is not recovered: the rest of the action would then be read
+// as statements, and the errors that follow would differ from the reference.
+rule string_open RuleExpr | error = (&"\"" _|_ @error(message="unterminated string")) #recover(skip=string_open_text)
+rule string_open_text = "\"" ("\\" . / [^"\\\n])*
 // A string of an action has no ignorecase suffix.
 rule action_string String = ("\"" ("\\" . / [^"\\\n])* "\"" !"[") #atomic
 rule char_class CharClass = (

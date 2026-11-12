@@ -789,7 +789,7 @@ type ActionExpr interface{ isActionExpr() }
 // ActionStmt is the join type ActionStmt ~ ActionBind | Int | String | True | False | Nil | CaptureRef | VarRef | BinaryOp | UnaryOp | FieldAccess | CaptureAccess | Cast | Call | Constructor | ListConstructor | ActionTuple | ActionGroup | Lambda | error. Error (left by #recover) also implements it.
 type ActionStmt interface{ isActionStmt() }
 
-// AttrValue is the join type AttrValue ~ Int | String | True | False | Nil | RuleRef | LevelCall | RuleGroup | InlineAction | Sequence | Choice | Discard | Lookahead | Top | Bottom | BeginLine | BeginInput | EndLine | EndInput | Any | Cut | CharClass | Optional | ZeroOrMore | OneOrMore | Repeat | Capture | Predicate | Atomic | Stream | MissingPragma | IgnoreCase | Recover | Attributed | OperatorsRule. Error (left by #recover) also implements it.
+// AttrValue is the join type AttrValue ~ Int | String | True | False | Nil | RuleRef | LevelCall | RuleGroup | InlineAction | Sequence | Choice | Discard | Lookahead | Top | Bottom | BeginLine | BeginInput | EndLine | EndInput | Any | Cut | CharClass | Optional | ZeroOrMore | OneOrMore | Repeat | Capture | Predicate | Atomic | Stream | MissingPragma | IgnoreCase | Recover | Attributed | OperatorsRule | error. Error (left by #recover) also implements it.
 type AttrValue interface{ isAttrValue() }
 
 // CharClassItem is the join type CharClassItem ~ Char | CharRng. Error (left by #recover) also implements it.
@@ -816,7 +816,7 @@ type OpsOperator interface{ isOpsOperator() }
 // PkgDecl is the join type PkgDecl ~ Pkg | error. Error (left by #recover) also implements it.
 type PkgDecl interface{ isPkgDecl() }
 
-// RuleExpr is the join type RuleExpr ~ RuleRef | LevelCall | RuleGroup | InlineAction | Sequence | Choice | Discard | Lookahead | Top | Bottom | BeginLine | BeginInput | EndLine | EndInput | Any | Cut | String | CharClass | Optional | ZeroOrMore | OneOrMore | Repeat | Capture | Predicate | Atomic | Stream | MissingPragma | IgnoreCase | Recover | Attributed | OperatorsRule. Error (left by #recover) also implements it.
+// RuleExpr is the join type RuleExpr ~ RuleRef | LevelCall | RuleGroup | InlineAction | Sequence | Choice | Discard | Lookahead | Top | Bottom | BeginLine | BeginInput | EndLine | EndInput | Any | Cut | String | CharClass | Optional | ZeroOrMore | OneOrMore | Repeat | Capture | Predicate | Atomic | Stream | MissingPragma | IgnoreCase | Recover | Attributed | OperatorsRule | error. Error (left by #recover) also implements it.
 type RuleExpr interface{ isRuleExpr() }
 
 // SourceSpan is the join type SourceSpan ~ PkgBody | TypeDefBody | TypeAliasBody | VarDefBody | RuleDefBody | FieldBody | OperatorsSkipBody | OperatorsOperandBody | OperatorsLevelBody | OperatorsOperatorBody | InitFieldBody. Error (left by #recover) also implements it.

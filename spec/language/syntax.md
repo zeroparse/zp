@@ -43,6 +43,9 @@ package zp
 
 // ml reports whether line breaks are allowed between tokens inside the enclosing delimiters.
 var ml bool
+// junk is set while a declaration is parsed again after it failed: text that cannot continue a complete
+// declaration is then skipped, and the declaration is kept.
+var junk bool
 
 // File and statements. Delimiter-owned expressions enable multiline trivia;
 // declaration and item lists keep physical newlines as statement boundaries.
@@ -70,15 +73,20 @@ rule package_body = (
 )
 rule decl = (
     !(comments $$)
-    (type_decl / var_decl / rule_decl / _|_)
+    (type_decl / var_decl / rule_decl / junk_decl / _|_)
 )
+// A declaration that failed is parsed again with junk set, so that a complete declaration followed by text
+// that is not a separator is kept and the text is reported. The first parse stays strict, so the errors of a
+// declaration that has not ended are reported where the farthest attempt stopped.
+rule junk_decl = {junk := true} (type_decl / var_decl / rule_decl) {junk := false}
 // A declaration that is complete but followed by a closing bracket instead of a separator is kept: the
 // error is reported and the rest of its statement is skipped. Any other text there could continue the
 // declaration, so the declaration fails as a whole, and the error is where the farthest attempt stopped.
-rule stmt_end = horizontal (stmt_sep / stmt_skip)
+rule stmt_end = horizontal (stmt_sep / stmt_skip / stmt_junk)
 // The recovered value is discarded and replaced by an empty list because concat does not yet accept a
 // "[]T | error" value in the type checker; use concat directly once the checker accepts it.
 rule stmt_skip = &[)\]}] -stmt_sep
+rule stmt_junk = {junk} &(decl_keyword !ident_char / "=" ![=>] / "/*") -stmt_sep
 rule item_end = horizontal item_sep
 rule field_end = horizontal field_sep
 rule stmt_sep = block_sep / empty_stmt_sep
@@ -238,7 +246,7 @@ rule whole_action = "=>" -ws action
 rule trailing_action = -ws whole_action
 rule rule_expr = #operators {
     skip ws
-    operand rule_group / predicate / level_call / bottom / top / begin_input / begin_line / end_input / end_line / any / cut / string / char_class / rule_ref
+    operand rule_group / predicate / level_call / bottom / top / begin_input / begin_line / end_input / end_line / any / cut / string / string_open / char_class / rule_ref
     level ordered_choice { infix left "/" }
     level sequence { infix left _ }
     level prefix {
@@ -488,6 +496,12 @@ rule digit = [0-9]
 // A backslash escapes any character: the decoding of the literal reports an unknown or invalid
 // escape, so that the declaration with the mistake is kept.
 rule string = ("\"" ("\\" . / [^"\\\n])* "\"" #atomic ("i" !ident_char)?) #atomic
+// A string of a rule expression that is not closed on its line is recovered as an error that spans the
+// string to the end of the line, where it stood for the literal the user is typing; the decoding of the
+// source takes its text. A string of an action is not recovered: the rest of the action would then be read
+// as statements, and the errors that follow would differ from the reference.
+rule string_open = &"\"" _|_
+rule string_open_text = "\"" ("\\" . / [^"\\\n])*
 // A string of an action has no ignorecase suffix.
 rule action_string = ("\"" ("\\" . / [^"\\\n])* "\"" !"[") #atomic
 rule char_class = (
