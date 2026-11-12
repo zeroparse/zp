@@ -117,7 +117,7 @@ type lexer struct {
 	// Nesting (see nest): the levels open at the previous token, whether a name or literal before
 	// it may still be the name of a capture, and whether the source is already reported as too deep.
 	levels          []level
-	delimiters      int // the delimiter entries of levels
+	delimiters      []level // the delimiter entries of levels, the innermost last
 	pendingPop      bool
 	reportedTooDeep bool
 	newlines        int // line breaks since the previous token or comment
@@ -536,12 +536,12 @@ func (l *lexer) skipSpace() (space, newline bool) {
 				l.advance()
 				l.advance()
 				depth := 1
-				l.checkLevels(l.delimiters+depth, c.Pos)
+				l.checkLevels(len(l.delimiters)+depth, c.Pos)
 				for l.i < len(l.src) && depth > 0 {
 					switch {
 					case l.hasPrefix("/*"):
 						depth++
-						l.checkLevels(l.delimiters+depth, l.pos())
+						l.checkLevels(len(l.delimiters)+depth, l.pos())
 						l.advance()
 						l.advance()
 					case l.hasPrefix("*/"):
@@ -837,9 +837,9 @@ func (l *lexer) nest(t token) {
 	}
 	if t.lineBefore {
 		switch {
-		case l.delimiters == 0:
+		case len(l.delimiters) == 0:
 			l.levels = l.levels[:0]
-		case l.innermostBrace():
+		case l.delimiters[len(l.delimiters)-1] == levelBrace:
 			l.popToDelimiter()
 		}
 	}
@@ -849,17 +849,15 @@ func (l *lexer) nest(t token) {
 	}
 	switch t.text {
 	case "(", "[":
-		l.delimiters++
 		l.open(levelDelimiter, t.pos)
 	case "{":
-		l.delimiters++
 		l.open(levelBrace, t.pos)
 	case ")", "]", "}":
 		for len(l.levels) > 0 {
 			last := l.levels[len(l.levels)-1]
 			l.levels = l.levels[:len(l.levels)-1]
 			if last.delimiter() {
-				l.delimiters--
+				l.delimiters = l.delimiters[:len(l.delimiters)-1]
 				break
 			}
 		}
@@ -885,16 +883,6 @@ func (l *lexer) popToDelimiter() {
 	}
 }
 
-// innermostBrace reports whether the innermost open delimiter is a brace.
-func (l *lexer) innermostBrace() bool {
-	for i := len(l.levels) - 1; i >= 0; i-- {
-		if l.levels[i].delimiter() {
-			return l.levels[i] == levelBrace
-		}
-	}
-	return false
-}
-
 // popPrefixes ends the prefix operators whose operand has ended.
 func (l *lexer) popPrefixes() {
 	for len(l.levels) > 0 && l.levels[len(l.levels)-1] == levelPrefix {
@@ -902,8 +890,14 @@ func (l *lexer) popPrefixes() {
 	}
 }
 
-// open opens a level at pos.
+// open opens a level at pos. Once the source is reported as too deep, only delimiters are still
+// kept, which the closing ones match, so that operators without an end do not pile up.
 func (l *lexer) open(k level, pos grammar.Pos) {
+	if k.delimiter() {
+		l.delimiters = append(l.delimiters, k)
+	} else if l.reportedTooDeep {
+		return
+	}
 	l.levels = append(l.levels, k)
 	l.checkLevels(len(l.levels), pos)
 }

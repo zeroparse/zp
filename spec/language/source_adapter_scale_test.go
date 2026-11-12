@@ -49,6 +49,9 @@ var scaleSources = []struct {
 	{"attribute lines after a broken declaration", func(n int) string { return "rule a = x )\n" + strings.Repeat("@ q\n", n/4) }},
 	{"keyword attribute lines in an open group", func(n int) string { return "rule a = (x\n" + strings.Repeat("@type\n", n/6) }},
 	{"attribute arguments on lines in an open group", func(n int) string { return "rule a = (x\n" + strings.Repeat("@q(\n)\n", n/6) }},
+	{"prefix operators on lines in a group", func(n int) string { return "rule a = (" + strings.Repeat("!\n", 4*n) + "x)" }},
+	{"prefix operators on lines in braces", func(n int) string { return "rule a = {" + strings.Repeat("!\n", 4*n) + "x}" }},
+	{"negations on lines in a value group", func(n int) string { return "rule a = x => (" + strings.Repeat("-\n", 4*n) + "1)" }},
 }
 
 // bestTime returns the least time over a few runs of run.
