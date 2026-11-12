@@ -485,6 +485,7 @@ func (k *classifier) classify() *Complexity {
 	k.computeFollow()
 	k.addRetried()
 	k.checkUnits()
+	k.checkCutLeftCalls()
 	k.checkRestarts()
 	k.checkGrowth()
 	k.checkCarriedGrowth()
