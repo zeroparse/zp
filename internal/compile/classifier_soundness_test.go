@@ -168,7 +168,14 @@ rule top = item* $$
 rule item = x "!" / r "?" / "."
 rule x = r "a"
 rule r = r "c" / x "d" / "e"
-`, ClassPoly, 2, -1}, // w2
+`, ClassPoly, 2, -1}, // w2: the spec does not share r (it is reached through x); no super-linear input is known
+	// The call S after "c" lies after leaving the body of S, outside the growth of S that the
+	// unit sees, so it is not shared and the alternative is not committing. Without the record of
+	// the bodies a path has left, the grammar is classified linear.
+	{"shared calls", "a call of a cycle rule after leaving the body of a rule of the cycle is not shared", `@start
+rule main = S $$
+rule S = S "c" S / "x"
+`, ClassUnknown, -1, -1}, // reduced from seed 1655
 	{"thrown", "nested reads", `@start
 rule main = S $$
 rule S = S "q" / R "s" / "y"
