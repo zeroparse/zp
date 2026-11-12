@@ -457,6 +457,8 @@ func Rewrite(n Node, f func(Node) Node) Node {
 	case *Recover:
 		x.Body = Rewrite(x.Body, f)
 		x.Skip = Rewrite(x.Skip, f)
+	case *Missing:
+		x.Body = Rewrite(x.Body, f)
 	case *Stream:
 		if r, ok := Rewrite(x.Repeat, f).(*Repeat); ok {
 			x.Repeat = r
