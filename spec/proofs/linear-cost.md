@@ -1236,9 +1236,7 @@ before it, and $w$ and $\kappa$ as in the restarts, with no dropped step and no
 path that enters the growth again of $\mathcal{R}$ leading from $w$ to
 $\beta'$. Let $e^k$ be the first of the calls that $w$ and $\kappa$ share whose
 evaluation inside $w$ holds a successful activation of $\sigma$ at $q$, let
-$\beta_f$ be the first such activation in it, and let no shared call up to
-$e^k$ read a growth open at its start, neither in its evaluation inside $w$
-nor in the one that $\kappa$ makes. Then $\kappa$ evaluates the call of $e^k$ again at its position,
+$\beta_f$ be the first such activation in it. Then $\kappa$ evaluates the call of $e^k$ again at its position,
 as $e^{k\prime}$, which takes the steps of $e^k$ up to the variants of its
 calls, and $\beta'$ is the activation of $e^{k\prime}$ that corresponds to
 $\beta_f$. The pair $(e^k, e^{k\prime})$ is the **reference link** of $\beta'$;
@@ -1248,20 +1246,23 @@ it joins $\beta'$ to $\beta_f$, which need not be $\beta$.
 $\mathcal{R}$ evaluates every call, and $\kappa$, every path of which that
 examines the input begins with the shared calls, evaluates them in order, each
 at the position where it ends in $w$ (case 2). The evaluation in $\kappa$ of a
-shared call up to $e^k$ and the one inside $w$ read no growth open at their
-start, so they take the same steps up to the variants of their calls
-(*Counterparts*): a shared call before $e^k$ holds no successful activation of
+shared call up to $e^k$ and the one inside $w$ take the same steps up to the
+variants of their calls. Where neither reads a growth open at its start, this
+is *Counterparts*. A call that reads a growth open at its start is at the
+position of that growth and of a rule of its cycle ([Lemma 2 of the
+memoization proof](memoization.md#lemma-2-reading-an-open-growth)), and two
+such calls that a unit and its continuation share lie in the same growths of
+the cycle, which have the same growing results at both (case 2), so the two
+evaluations read the same results and take the same steps. So a shared call before $e^k$ holds no successful activation of
 $\sigma$ at $q$ in $\kappa$ either, and nor does $e^{k\prime}$ before the
 activation that corresponds to $\beta_f$. Nothing that the parser evaluates between the end of $w$ and that
 activation holds one either, since $\beta'$ is the first after $\beta$, which
 lies in $w$. So $\beta'$ is that activation. $\square$
 
-The hypothesis on the growths is not derived from the conditions: the
-evaluation of a shared call in $\kappa$ starts after $w$ ends, inside the
-growths that start on the way to it, which are not open at the start of its
-evaluation inside $w$. An activation for which a shared call up to $e^k$ reads a growth open at its
-start, in either evaluation, has no reference link here; step 1 of [Open
-Steps](#open-steps) leaves those activations to count.
+The claim needs no hypothesis on the growths open at the start of the shared
+calls: a call reads only growths of its own cycle at its position, and
+sharing keeps the two calls of a rule of a cycle in the same growths of the
+cycle.
 
 **Heads in the reference parse.** Let $Z$ be an evaluation of a key in the
 parse, the head of its class. Then, outside cases (a) and (b) of the covered
@@ -1301,10 +1302,15 @@ call of a rule that the parse memoizes, so $\mathcal{R}(Z)$ is $e^{k\prime}$ or
 lies inside it, and the call $z^\circ$ at the same place in $e^k$, which takes
 the same steps up to variants, has a key of the class of $Z$ and holds an
 activation at the place of $\beta'$. It reads no
-growth open at its start: $e^k$ reads none that was open at its own start,
-and one that started inside $e^k$ corresponds to one that started at the same
-place inside $e^{k\prime}$, which $\mathcal{R}(Z)$, taking the same steps as
-$z^\circ$, does not read, since the call of $Z$ reads no growth open at its
+growth open at its start. A growth that it reads and that was open at the
+start of $e^k$ is at the position of $z^\circ$, which is then the position of
+$e^k$, and of the cycle of the rule of $e^k$, since every call between them is
+made there without consuming input ([Lemma 2 of the memoization
+proof](memoization.md#lemma-2-reading-an-open-growth)); so it is open at the
+start of $e^{k\prime}$ too (case 2). One that started inside $e^k$ corresponds
+to one that started at the same place inside $e^{k\prime}$. $\mathcal{R}(Z)$,
+taking the same steps as $z^\circ$, would read the corresponding growth,
+which it does not, since the call of $Z$ reads no growth open at its
 start. And $z^\circ$ ends before $e^{k\prime}$ starts, so before $\mathcal{R}(Z)$ starts. By the
 heads in the reference parse, $Z$ is not the head of its class. $\square$
 
@@ -1404,12 +1410,10 @@ So by the claim above every linked $\alpha_i$ that is held by a head follows a
 link with case (a) or (b) of the covered keys on its path. A free $\alpha_i$ other than $\alpha_1$
 is the counterpart of a successful activation of $\mathcal{R}$ at $q$. That
 activation has no reference link when a dropped step or a path that enters a
-growth again of $\mathcal{R}$ leads to it, or when a shared call up to the one
-that holds the first activation repeated, inside the unit or in the
-continuation, reads a growth open at its start. When it has one, of a memoized
+growth again of $\mathcal{R}$ leads to it. When it has one, of a memoized
 rule as every link here is, by *Reference links lead to repeated evaluations*
 $\alpha_i$ is held by a head only with case (a) or (b) on its path.
-When no link of $\sigma$ at $q$ is of these kinds and every free $\alpha_i$
+When no link of $\sigma$ at $q$ has either case on its path and every free $\alpha_i$
 other than $\alpha_1$ is the counterpart of an activation with a reference
 link, with neither case on its path, at most one of the
 $\alpha_i$ is held by a head, memoized or in a context of growths. This claim counts nothing: it rests on the links and
@@ -1482,9 +1486,8 @@ $\sigma$ at $q$ held by memoized evaluations are at most six times those
 held by heads, which are $\alpha_1$, those that case 5 or a dropped step
 repeats, and the free ones that a dropped step or a path that enters a growth
 again of $\mathcal{R}$ leads to, which step 1 of [Open Steps](#open-steps)
-leaves to count. The free ones without a reference link because a shared call
-reads a growth open at its start, and those whose reference link meets case
-(a) or (b), are outside the hypothesis, and step 1 leaves them open too. Every activation owned by a memoized evaluation is held by it, so
+leaves to count. The free ones whose reference link meets case (a) or (b) are
+outside the hypothesis, and step 1 leaves them open too. Every activation owned by a memoized evaluation is held by it, so
 these bound the successful activations of $\sigma$ at $q$ that memoized
 evaluations own, apart from those that case 5 or a dropped step repeats, which
 Lemma 5 counts. The comparison with $\mathcal{R}$ needs no order between the
@@ -4252,11 +4255,8 @@ condition of the cost view that the [Cost View](cost-view.md) proof leaves open.
    the reference parse leads to, which have no reference link, are more than
    those of the parse, and Lemma 5 must count those that are counterparts of
    activations of the parse; this is not shown. Nor are the activations of the
-   reference parse that have no reference link because a shared call, up to
-   the one that holds the first activation repeated, reads a growth open at its
-   start, in its evaluation inside the unit or in the one that the
-   continuation makes, nor those whose reference link meets case (a) or (b)
-   of the covered keys. Three parts are open.
+   reference parse whose reference link meets case (a) or (b) of the covered
+   keys. Three parts are open.
    The first two are for a source in a rule that calls no rule and is not
    memoized at its calls. First, the leaf links that lead to an
    activation held by a head: such a link can leave a memoized evaluation that
