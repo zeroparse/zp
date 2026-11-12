@@ -174,7 +174,11 @@ rule, together with every rule it calls and the skip expressions of its `#recove
 want to keep, such as a statement rule that an editor reparses, when the grammar as a whole is not linear yet. In the
 grammar above, `@linear` on `A` is valid, since `A` alone scans once: the restart is caused by `main`, which the
 declaration on `A` does not cover. The class linear given an environment bound does not satisfy `@linear`; its reasons
-are the errors. The exact rules are in [Declared Linear Cost](../../spec/language/grammar-files.md#declared-linear-cost).
+are the errors.
+
+`@linear` promises what the class Linear promises, and a parse with missing-token insertion is outside that promise:
+insertion keeps fewer memo results and records, so an editor parse that recovers by inserting tokens can cost more than
+linear time even in a grammar declared `@linear`. The exact rules are in [Declared Linear Cost](../../spec/language/grammar-files.md#declared-linear-cost).
 
 ## From Go
 
