@@ -119,6 +119,8 @@ const (
 	tJumpF  // continue at dst if n[a] is false
 	tRet    // return a[a]
 	tRetErr // return the failure a[a]
+	// Fused.
+	tField // step; set field names[c] of the struct a[a] to a[b]; n[dst] = cover(a[a], a[b], n[dst])
 )
 
 type termInstr struct {
@@ -222,8 +224,33 @@ func (c *termCompiler) declare(name string, t exec.Type) (termReg, error) {
 }
 
 func (c *termCompiler) emit(in termInstr) int {
-	c.prog.code = append(c.prog.code, in)
-	return len(c.prog.code) - 1
+	code := c.prog.code
+	k := len(code)
+	switch {
+	case in.op == tCover && in.dst == in.c && k >= 2 && code[k-2].op == tStep && code[k-1].op == tSetField &&
+		code[k-1].a == in.a && code[k-1].b == in.b:
+		// A field of a struct literal: its step, the field and the cover of its value, in one
+		// instruction. No jump goes to the field or the cover, which follow the step at once.
+		code[k-2] = termInstr{op: tField, dst: in.dst, a: in.a, b: in.b, c: code[k-1].c}
+		c.prog.code = code[:k-1]
+		return k - 2
+	case in.op == tRet && k >= 1 && code[k-1].op == tMoveA && code[k-1].dst == in.a && !c.jumpsTo(int32(k)):
+		// The return of a register moved into another just before: return the source.
+		code[k-1] = termInstr{op: tRet, a: code[k-1].a}
+		return k - 1
+	}
+	c.prog.code = append(code, in)
+	return k
+}
+
+// jumpsTo reports whether a jump of the code emitted so far goes to the instruction at pc.
+func (c *termCompiler) jumpsTo(pc int32) bool {
+	for _, in := range c.prog.code {
+		if (in.op == tJump || in.op == tJumpF) && in.dst == pc {
+			return true
+		}
+	}
+	return false
 }
 
 // results returns the result types of the operation or function callee.

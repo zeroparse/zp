@@ -317,6 +317,7 @@ each pool operand. Lambdas are evaluated in place, so no value of a term is a fu
 | 45 | `JUMPF` | Continue at instruction D if n[A] is 0. |
 | 46 | `RET` | End the evaluation with the value a[A]. |
 | 47 | `RETERR` | End the evaluation with the failure a[A]. |
+| 48 | `FIELD` | Charge one step, set field name C of the struct a[A] to a[B], and n[D] = `cover`(a[A], a[B], n[D] ≠ 0): `STEP`, `SETFIELD` and `COVER` with D = C in one instruction. |
 
 The pools of a term hold its constants (nil, an int, a string or a bool), its names (the names of built-in functions,
 Operators Rule locals and struct fields), its member reads (the [member kind](../exec-ir/values.md#member-kinds), the

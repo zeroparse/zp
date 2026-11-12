@@ -177,6 +177,11 @@ func (t *TermProgram) run(c *EvalCtx, a []any, n []int, s [][]*parse.Node, ts []
 			a[in.dst] = p.NewNode(value.Data{Kind: st.kind, Fields: p.fields(st.fields)})
 		case tSetField:
 			p.SetValueField(&value.D(a[in.a].(*parse.Node)).Fields, t.names[in.c], a[in.b])
+		case tField:
+			p.Spend()
+			x := a[in.a].(*parse.Node)
+			p.SetValueField(&value.D(x).Fields, t.names[in.c], a[in.b])
+			n[in.dst] = b2i(p.termCover(x, a[in.b], n[in.dst] != 0))
 		case tCover:
 			n[in.dst] = b2i(p.termCover(a[in.a].(*parse.Node), a[in.b], n[in.c] != 0))
 		case tMade:

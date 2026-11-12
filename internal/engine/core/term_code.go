@@ -144,6 +144,7 @@ var termOperands = map[termOp][4]uint8{
 	tJumpF:    {oJump, oN},
 	tRet:      {oNone, oA},
 	tRetErr:   {oNone, oA},
+	tField:    {oN, oA, oA, oName},
 }
 
 // LoadTerm makes the TermProgram of the term code x of a module with the string table strs and

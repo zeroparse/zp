@@ -19,6 +19,7 @@ var termOpNames = map[string]termOp{
 	"HULL": tHull, "ITEMS": tItems, "ITEMAT": tItemAt, "SEQLEN": tSeqLen, "STEP": tStep,
 	"KEEP": tKeep, "FILTER": tFilter, "COPY": tCopy, "STRUCT": tStruct, "SETFIELD": tSetField,
 	"COVER": tCover, "MADE": tMade, "JUMP": tJump, "JUMPF": tJumpF, "RET": tRet, "RETERR": tRetErr,
+	"FIELD": tField,
 }
 
 // TestSpecTermOpcodes checks that the opcodes of term code are those of the table in
