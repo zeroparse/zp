@@ -163,7 +163,6 @@ type termCompiler struct {
 	m      *exec.Module
 	prog   *TermProgram
 	locals map[string]termReg
-	// loops holds the start and the pending exits of the loops being translated.
 }
 
 func fileOf(t exec.Type) (int, bool) {

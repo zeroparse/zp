@@ -1,18 +1,18 @@
 # A040: Action Operand Scratch
 
-Actions and predicates need evaluation contexts, argument windows and
+Actions and predicates need evaluation contexts, operand storage and
 constructor field lists. Reusing invocation-local scratch avoids allocating
 those containers for every expression.
 
 ## Mechanism and Invariants
 
-The parser keeps an evaluation context, expression stack, one-element action
-buffer and operator locals. Evaluators push operands above the current stack
-height and restore it after nested evaluation. Built-ins and constructors cannot
-retain these temporary windows; published values receive separate ownership.
-Lambda environments that must survive a nested call keep their own context.
-Cleanup on failed predicates must drop any gathered children and construction
-tracking.
+The parser keeps an evaluation context, the register files of term programs,
+a one-element action buffer and operator locals. A term program takes its
+registers above the current top of each file and gives them back, cleared,
+when it returns, so nested evaluations reuse the same storage. Built-ins and
+constructors cannot retain registers; published values receive separate
+ownership. Cleanup on failed predicates must drop any gathered children and
+construction tracking.
 
 ## Scope and State
 
@@ -41,7 +41,7 @@ Evidence records: [014](../014-one-operand-stack-for-vm-expression-code.md),
 [028](../028-field-lists-and-list-built-ins-without-allocation-in-the-generated-parsers.md).
 
 Source owners: [`evalCtx`](../../../internal/engine/core/eval.go), [`engine term programs`](../../../internal/engine/core/),
-[`vm.Program.eval`](../../../internal/engine/vm/vm.go), [`parser.estack and operator
+[`term registers and operator
 locals`](../../../internal/engine/core/runtime.go), [`generated
 ActCtx`](../../../runtime/runtime.go), [`typed evaluation
 scratch`](../../../runtime/typed.go), [`Parser action

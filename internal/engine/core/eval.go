@@ -39,7 +39,7 @@ type EvalCtx struct {
 	Frame      *Frame
 	Items      []*parse.Node // elements referenced by $n
 	Start, End int           // range matched by the rule
-	Locals     *Local        // lambda arguments and OperatorsRule's $lhs, $rhs, $op
+	Locals     *Local        // the locals of an OperatorsRule action ($value, $lhs, $rhs, $op)
 	Cbase      int           // start, in p.Created, of the nodes created by this evaluation
 }
 
