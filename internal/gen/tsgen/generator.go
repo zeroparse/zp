@@ -46,8 +46,9 @@ const tsRuntimeMarker = "// --- Runtime ---\n"
 // expressions, as in the Go generator; the embedded runtime (tsrt) mirrors runtime. opts.Package
 // is not used. opts.Types adds declarations and Node-to-value conversion entry points.
 // maxLeaderBits is the number of leaders of each left-recursion cycle that have a bit in the present
-// sets of the runtime's dependency memo (Rule.leaderBit), as in the Go runtime.
-const maxLeaderBits = 32
+// sets of the runtime's dependency memo (Rule.leaderBit), as in the Go runtime. The sign bit stays
+// clear: a negative present set is the identity of a larger one (Parser.presentOf).
+const maxLeaderBits = 31
 
 func Generate(g *grammar.Grammar, c gen.Compiler, opts gen.GenOptions) ([]gen.GeneratedFile, error) {
 	return GenerateParser(g, c, opts, nil)
@@ -508,9 +509,14 @@ func (g *Generator) rules() {
 		if r.Cycle != 0 {
 			fmt.Fprintf(init, "%s.cycle = %d;\n", g.ruleVar(r), r.Cycle)
 			if r.Leader {
-				// The first maxLeaderBits leaders of each cycle have a bit in present sets.
-				if k := leaders[r.Cycle]; k < maxLeaderBits {
-					fmt.Fprintf(init, "%s.leaderBit = %d;\n", g.ruleVar(r), int32(uint32(1)<<k))
+				// The leaders of each cycle are numbered, and the first maxLeaderBits have a bit in
+				// present sets.
+				k := leaders[r.Cycle]
+				if k > 0 {
+					fmt.Fprintf(init, "%s.leaderIndex = %d;\n", g.ruleVar(r), k)
+				}
+				if k < maxLeaderBits {
+					fmt.Fprintf(init, "%s.leaderBit = %d;\n", g.ruleVar(r), 1<<k)
 				}
 				leaders[r.Cycle]++
 			}

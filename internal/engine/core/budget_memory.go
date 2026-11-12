@@ -58,7 +58,9 @@ const (
 	// wideKeyBytes is what a key of a set of more than maxCtxDeps dependencies takes beyond a
 	// valsKey, besides the bytes of its values.
 	wideKeyBytes = uint64(unsafe.Sizeof(wideKey{})) - uint64(unsafe.Sizeof(valsKey{}))
-	jumpBytes    = uint64(unsafe.Sizeof(jumpKey{})) + uint64(unsafe.Sizeof(jumpRec{}))
+	// internBytes is an identity in the map of intern, besides the bytes of its key.
+	internBytes = stringBytes + 8
+	jumpBytes   = uint64(unsafe.Sizeof(jumpKey{})) + uint64(unsafe.Sizeof(jumpRec{}))
 	// mapBytes is the header of a map; an element of a map is counted as its key and value.
 	mapBytes = 48
 	// memoIndexEntryBytes is an element of a hash index of a memo chain, and of the map of indexes.

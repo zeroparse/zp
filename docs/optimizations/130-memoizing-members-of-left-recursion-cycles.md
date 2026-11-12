@@ -29,15 +29,17 @@ result of an evaluation:
 - **What a result depends on.** A call records the seeds it read, each by its identity, a number that the growth
   step that produced the seed gives it; for each lookahead whose evaluation read a seed and that leaves nothing
   after it but its outcome, that outcome and its examined range, in place of those seeds; and the present set, the
-  leaders that grew at the position, one bit each for the first 32 leaders of a cycle. A positive lookahead whose
-  expression makes a capture or binds a variable outside the rules it calls, or that matches after recovering from
-  an error, leaves more than its outcome, so the seeds it read count as read by the call.
+  leaders that grew at the position, one bit each for the leaders of a cycle that a word holds (63 in the engine, 31
+  in generated parsers), or, where a leader has no bit, a number that the parser gives the set's words of bits. A
+  positive lookahead whose expression makes a capture or binds a variable outside the rules it calls, or that
+  matches after recovering from an error, leaves more than its outcome, so the seeds it read count as read by the
+  call.
 - **Where a result goes.** A result that read no seed and observed no lookahead goes to the memo with its present
   set, and answers a call in any context whose leaders it includes. Any other result goes to the table of its
   context, which lasts while the first growth of the context lasts, and answers a call in a context with the same
   present set where the seeds it read have the same identities and the lookaheads it observed have the same
-  outcomes. A context whose leaders do not all have a bit cannot be told from others, and its results are
-  evaluated again.
+  outcomes. A memo entry holds a word of bits, so in a context whose present set is a number, every result goes to
+  the table of the context and no memo entry answers a call.
 - **Growths in a context.** A growth in a context memoizes its steps in the table, with its own seed among the seeds
   a step reads, and records runs of steps that read no seed but their own as jumps: from each seed of the run, the
   seed at its end, with the observations, expectations and examined input of the steps. A later growth of the leader
@@ -245,8 +247,7 @@ where no growth of its cycle is in progress at its position stores its result in
 Adopted on every backend. A growth that begins from a result that includes the seed of another growth at its
 position is new in each step of that growth; when it covers the input that later steps cover, it covers it again in
 each step, which [Conditions for Linear Cost](../../spec/runtime/parsing.md#conditions-for-linear-cost) excludes as
-condition 5. A context with more than 32 leaders of one cycle is not memoized, and its calls are evaluated again. A
-result with more than six seeds and observations keys its results by the six values and the bytes of the others, in a
+condition 5. A result with more than six seeds and observations keys its results by the six values and the bytes of the others, in a
 second map of its set. The jumps from a seed are a list that a growth scans for one whose
 observations hold. In a shape where every step reads a successful lookahead over another leader
 (`S = &R S "q" / "y"`, `R = &S R "q" / "y"` on `y` and n `q`), each step records a jump from the same seed that

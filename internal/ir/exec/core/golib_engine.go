@@ -550,7 +550,7 @@ func engineTarget() *execgo.Target {
 		case "ctx.storeCtx":
 			return "storeCtx"
 		case "grow.begin":
-			return fmt.Sprintf("p.GrowBegin(p.GrowKey(%s, %s), %[1]s.LeaderBit, %[1]s.Cycle)", a[0], a[1])
+			return fmt.Sprintf("p.GrowBegin(p.GrowKey(%s, %s), %[1]s)", a[0], a[1])
 		case "grow.next":
 			return "p.GrowNext(&" + a[0] + ")"
 		case "grow.step":
