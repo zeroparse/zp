@@ -33,6 +33,7 @@ var complexityMemoSources = []string{
 // cycle is memoized only outside the growths it reads, so the classifier counts it as not
 // memoized.
 func TestComplexityMemoPolicy(t *testing.T) {
+	t.Parallel()
 	srcs := map[string]string{}
 	for i, src := range complexityMemoSources {
 		srcs[string(rune('a'+i))] = src
@@ -52,6 +53,7 @@ func TestComplexityMemoPolicy(t *testing.T) {
 	}
 	for name, src := range srcs {
 		t.Run(name, func(t *testing.T) {
+			t.Parallel()
 			g, err := syntax.Parse(src)
 			if err != nil {
 				t.Fatal(err)
@@ -606,6 +608,7 @@ func TestComplexityGrowingBindings(t *testing.T) {
 // classification, on the grammars of the repository and on bindings in inline actions, whose rule
 // is the rule that holds them.
 func TestGrowingBindingsAlone(t *testing.T) {
+	t.Parallel()
 	srcs := map[string]string{
 		"recursion":     "var s string = \"a\"\nrule main = r $$\nrule r = \"x\" {s := s + s} r / \"\"\n",
 		"inline action": "var s string = \"a\"\nrule main = r $$\nrule r = ((\"x\" {s := s + s})* => 1) \"y\"\n",
@@ -626,6 +629,7 @@ func TestGrowingBindingsAlone(t *testing.T) {
 	}
 	for name, src := range srcs {
 		t.Run(name, func(t *testing.T) {
+			t.Parallel()
 			c := classifySource(t, src)
 			g, err := syntax.Parse(src)
 			if err != nil {

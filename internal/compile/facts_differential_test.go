@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"math/rand/v2"
 	"strings"
+	"sync/atomic"
 	"testing"
 
 	"zeroparse.dev/zp/grammar"
@@ -22,38 +23,47 @@ import (
 // that exist only with insertion enabled, and hidden rules.
 func TestFactsDifferential(t *testing.T) {
 	t.Parallel()
-	compiled := 0
-	for seed := range uint64(factsSeeds) {
-		src := (&factsGrammar{r: rand.New(rand.NewPCG(seed, 53))}).source()
-		g, err := compiletest.Parse(src)
-		if err != nil {
-			t.Fatalf("seed %d: %v\n%s", seed, err, src)
+	var compiled atomic.Int64
+	eachSeed(t, factsSeeds, func(t *testing.T, seed uint64) {
+		if factsDifferentialSeed(t, seed) {
+			compiled.Add(1)
 		}
-		prog, err := compiletest.Compile(g, compile.Options{})
-		if err != nil {
-			if testing.Verbose() {
-				t.Logf("seed %d: %v", seed, err)
-			}
-			continue // a binding before a left call, a type error
-		}
-		compiled++
-		want := factstest.Render(compile.ProgramFacts(prog))
-		origin := map[core.Node]grammar.Expr{}
-		m, err := build.CoreFrom(prog, origin)
-		if err != nil {
-			t.Fatalf("seed %d: %v\n%s", seed, err, src)
-		}
-		for _, r := range m.Rules {
-			r.Policy = core.Policy{}
-		}
-		if got := factstest.Render(factstest.CoreRules(m, facts.Compute(m, nil), origin)); got != want {
-			t.Fatalf("seed %d: facts differ\n%s\ncompile:\n%s\ncore:\n%s", seed, src, want, got)
-		}
-	}
+	})
 	// The generator must write mostly valid grammars, or the comparison proves little.
-	if compiled < factsSeeds*3/4 {
-		t.Errorf("only %d of %d random grammars compile", compiled, factsSeeds)
+	if n := compiled.Load(); n < factsSeeds*3/4 {
+		t.Errorf("only %d of %d random grammars compile", n, factsSeeds)
 	}
+}
+
+// factsDifferentialSeed compares the facts of the grammar of one seed and reports whether the
+// grammar compiles.
+func factsDifferentialSeed(t *testing.T, seed uint64) bool {
+	t.Helper()
+	src := (&factsGrammar{r: rand.New(rand.NewPCG(seed, 53))}).source()
+	g, err := compiletest.Parse(src)
+	if err != nil {
+		t.Fatalf("seed %d: %v\n%s", seed, err, src)
+	}
+	prog, err := compiletest.Compile(g, compile.Options{})
+	if err != nil {
+		if testing.Verbose() {
+			t.Logf("seed %d: %v", seed, err)
+		}
+		return false // a binding before a left call, a type error
+	}
+	want := factstest.Render(compile.ProgramFacts(prog))
+	origin := map[core.Node]grammar.Expr{}
+	m, err := build.CoreFrom(prog, origin)
+	if err != nil {
+		t.Fatalf("seed %d: %v\n%s", seed, err, src)
+	}
+	for _, r := range m.Rules {
+		r.Policy = core.Policy{}
+	}
+	if got := factstest.Render(factstest.CoreRules(m, facts.Compute(m, nil), origin)); got != want {
+		t.Fatalf("seed %d: facts differ\n%s\ncompile:\n%s\ncore:\n%s", seed, src, want, got)
+	}
+	return true
 }
 
 // factsGrammar writes one random grammar.

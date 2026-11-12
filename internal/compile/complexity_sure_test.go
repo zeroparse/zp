@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"math/rand/v2"
 	"strings"
+	"sync/atomic"
 	"testing"
 
 	"zeroparse.dev/zp"
@@ -94,23 +95,23 @@ func TestSurelyConsumes(t *testing.T) {
 		iterations = 300
 	}
 	inputs := words(chars, 5)
-	claims := 0
-	for seed := range iterations {
-		g := &sureGrammar{r: rand.New(rand.NewPCG(uint64(seed), 11))}
+	var claims atomic.Int64
+	eachSeed(t, uint64(iterations), func(t *testing.T, seed uint64) {
+		g := &sureGrammar{r: rand.New(rand.NewPCG(seed, 11))}
 		rules := g.source()
 		parsed, err := zp.ParseGrammar(rules)
 		if err != nil {
-			continue
+			return
 		}
 		sure, err := compile.SurelyConsumed(starttest.MarkAll(parsed), chars)
 		if err != nil {
-			continue
+			return
 		}
 		for _, r := range g.rules {
 			if sure[r] == "" {
 				continue
 			}
-			claims++
+			claims.Add(1)
 			check := fmt.Sprintf("rule main = (%s* ![%s] / !%s*) .* $$\n", r, sure[r], r)
 			p, err := complexitytest.Compile(check + rules)
 			if err != nil {
@@ -122,9 +123,9 @@ func TestSurelyConsumes(t *testing.T) {
 				}
 			}
 		}
+	})
+	if n := claims.Load(); n < int64(iterations/10) {
+		t.Errorf("only %d claims in %d grammars", n, iterations)
 	}
-	if claims < iterations/10 {
-		t.Errorf("only %d claims in %d grammars", claims, iterations)
-	}
-	t.Logf("%d claims", claims)
+	t.Logf("%d claims", claims.Load())
 }
