@@ -276,13 +276,13 @@ var tsTarget = &exects.Target{
 		case "seq.step":
 			return "this.spend()"
 		case "val.seq":
-			return fmt.Sprintf("new Node(%s ? typeTupleValue : typeListValue, \"\", 0, 0, \"\", %s, noFields, false, false)", a[1], a[2])
+			return fmt.Sprintf("this.counted(new Node(%s ? typeTupleValue : typeListValue, \"\", 0, 0, \"\", %s, noFields, false, false), nodeBytes)", a[1], a[2])
 		case "node.typeName":
 			return a[0]
 		case "node.hasBase":
 			return "(nodeShape(" + a[0] + ") <= shapeList)"
 		case "node.convert":
-			return fmt.Sprintf("retypeNode(%s, %s)", a[0], a[1])
+			return fmt.Sprintf("this.retyped(%s, %s)", a[0], a[1])
 		case "depth.exit":
 			return "this.depth--"
 		case "frame.markPos", "frame.markEnv", "frame.markTrail", "frame.markRec":
