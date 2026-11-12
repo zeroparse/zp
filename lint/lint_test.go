@@ -21,8 +21,7 @@ func lintSource(t *testing.T, src string, opts options) ([]string, []Finding) {
 	return lintSourceWith(t, syntax.Parse, src, opts)
 }
 
-// lintSourceWith is lintSource with the given parser, so a case can use the retired syntax
-// through syntax.ParseLegacy.
+// lintSourceWith is lintSource with the given parser.
 func lintSourceWith(t *testing.T, parse func(string) (*grammar.Grammar, error), src string, opts options) ([]string, []Finding) {
 	t.Helper()
 	g, err := parse(src)
@@ -70,31 +69,13 @@ type lintCase struct {
 	want []string // "line:col severity check", in order
 	// msg, if set, must appear in the message of the first finding.
 	msg string
-	// legacy parses src with syntax.ParseLegacy, for grammars that reach the engine as JSON in
-	// the retired syntax.
-	legacy bool
-	// fix rewrites src with syntax.Fix before parsing it, for grammars written in a removed syntax.
-	fix bool
 }
 
 func runCases(t *testing.T, cases []lintCase) {
 	t.Helper()
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
-			parse := syntax.Parse
-			if tc.legacy {
-				parse = syntax.ParseLegacy
-			}
-			if tc.fix {
-				parse = func(src string) (*grammar.Grammar, error) {
-					fixed, err := syntax.Fix(src)
-					if err != nil {
-						return nil, err
-					}
-					return syntax.Parse(fixed)
-				}
-			}
-			got, fs := lintSourceWith(t, parse, tc.src, options{})
+			got, fs := lintSourceWith(t, syntax.Parse, tc.src, options{})
 			if !slices.Equal(got, tc.want) {
 				var msgs []string
 				for _, f := range fs {
@@ -261,10 +242,6 @@ func TestUnusedCapture(t *testing.T) {
 		{name: "repetition element read by its predicate", src: `rule main = (x:"a" {len($x) > 0})* => nil`},
 		{name: "lambda parameter of the same name", src: `rule main = r:(x:"a")* x:"b" => map($r, (x) => x.$x)`,
 			want: []string{"1:24 warning unused-capture"}},
-		// zp fix wraps the body of a terminal rule in a capture of its own, which leaves the
-		// capture the terminal discarded unused.
-		{name: "terminal type", src: "type T terminal\nrule main T = a:\"x\"", want: []string{"2:18 warning unused-capture"},
-			msg: "the action does not refer to it", fix: true},
 		{name: "text struct", src: "type T = { Text string }\nrule main T = t:(a:\"x\") => T{Text: text($t)}", want: []string{"2:18 warning unused-capture"},
 			msg: "the action does not refer to it"},
 		{name: "operatorsRule operator action", src: "rule main = #operators {\n    operand [0-9]\n    level { infix left o:\"+\" => $lhs }\n}",

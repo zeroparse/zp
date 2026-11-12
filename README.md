@@ -117,7 +117,6 @@ zp profile -g grammar.zp < input.txt         # cost per rule, with hints on wast
 zp lint -g grammar.zp                        # likely mistakes: dead alternatives, unused captures, ...
 zp lsp                                         # language server for editors (errors, formatting, rename, ...)
 zp fmt -w grammar.zp                         # format in place, comments kept
-zp fix -w grammar.zp                         # rewrite older syntax to the current one
 zp compile -g grammar.zp -o grammar.zpc    # precompile
 zp gen -g grammar.zp -module example.com/calc -o calc  # generate a standalone Go parser
 zp gen -g grammar.zp -module example.com/calc -types -o calc # ... with Go types for the grammar's types

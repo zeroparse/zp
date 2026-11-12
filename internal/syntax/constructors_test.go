@@ -7,8 +7,8 @@ import (
 	"zeroparse.dev/zp/grammar"
 )
 
-// A positional constructor of one argument is the source form zp fix rewrites; parseLegacy
-// reads it as the text struct constructor it means.
+// Typed list and struct constructors parse and format; a positional constructor keeps its
+// arguments, which convert values to a named node type.
 func TestTypedConstructorsParseAndFormat(t *testing.T) {
 	const src = `type Foo = { Name string; Children []Foo }
 type Int = { Text string }
@@ -23,7 +23,7 @@ rule grouped = "x" => (
     [][]Foo{[]Foo{Foo{}}}
 )
 `
-	g, forms, err := parseLegacy(src)
+	g, err := Parse(src)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -59,20 +59,19 @@ rule grouped = "x" => (
 		t.Fatalf("pointer list nil item: %#v", list("pointers").Items[0])
 	}
 	terminal, ok := rules["terminal"].Action.(*grammar.New)
-	if !ok || terminal.Type != "Int" || len(terminal.Fields) != 1 || terminal.Fields[0].Name != "Text" || !forms.positional[terminal] {
+	if !ok || terminal.Type != "Int" || len(terminal.Fields) != 0 || len(terminal.Args) != 1 {
 		t.Fatalf("positional constructor: %#v", rules["terminal"].Action)
 	}
 	emptyTerminal, ok := rules["terminal_empty"].Action.(*grammar.New)
-	if !ok || emptyTerminal.Type != "Int" || len(emptyTerminal.Fields) != 0 || forms.positional[emptyTerminal] {
+	if !ok || emptyTerminal.Type != "Int" || len(emptyTerminal.Fields) != 0 || len(emptyTerminal.Args) != 0 {
 		t.Fatalf("empty constructor source was not preserved: %#v", rules["terminal_empty"].Action)
 	}
-	// A positional constructor of two arguments was never a terminal constructor: it keeps
-	// both arguments and is not one that Fix rewrites.
-	g2, forms2, err := parseLegacy("type Int = { Text string }\nrule r = \"x\" => Int{\"a\", \"b\"}")
+	// A positional constructor of two arguments keeps both.
+	g2, err := Parse("type Int = { Text string }\nrule r = \"x\" => Int{\"a\", \"b\"}")
 	if err != nil {
 		t.Fatal(err)
 	}
-	if n := g2.File.Decls[1].(*grammar.RuleDef).Action.(*grammar.New); len(n.Fields) != 2 || forms2.positional[n] {
+	if n := g2.File.Decls[1].(*grammar.RuleDef).Action.(*grammar.New); len(n.Args) != 2 || len(n.Fields) != 0 {
 		t.Fatalf("positional constructor of two arguments: %#v", n)
 	}
 	if _, ok := rules["fields"].Action.(*grammar.New); !ok {
@@ -83,7 +82,7 @@ rule grouped = "x" => (
 	for _, want := range []string{
 		"type Pair = { Left []Foo; Right []Foo }",
 		"Pair{Left: []Foo{Foo{}}, Right: []Foo{Foo{}}}",
-		"Int{Text: \"0\"}",
+		"Int{\"0\"}",
 		"rule grouped = \"x\" => (\n",
 	} {
 		if !strings.Contains(formatted, want) {
@@ -94,20 +93,5 @@ rule grouped = "x" => (
 		t.Fatalf("formatted source does not parse: %v\n%s", err, formatted)
 	} else if out := grammar.Format(again); out != formatted {
 		t.Fatalf("format is not stable:\n%s\n%s", formatted, out)
-	}
-}
-
-// Fix rewrites the terminal type and the one-argument constructor of a grammar that also has a
-// constructor of two arguments, which it leaves for the compiler to report.
-func TestFixKeepsPositionalConstructorOfTwoArguments(t *testing.T) {
-	const src = "type N terminal\nrule n N = [a-z]\nrule m N = x:n => N{text($x)}\nrule m2 N = x:n => N{\"a\", \"b\"}\n"
-	got, err := Fix(src)
-	if err != nil {
-		t.Fatal(err)
-	}
-	for _, want := range []string{"type N = { Text string }", "N{Text: $x.Text}", `N{"a", "b"}`} {
-		if !strings.Contains(got, want) {
-			t.Errorf("Fix output lacks %q:\n%s", want, got)
-		}
 	}
 }

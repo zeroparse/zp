@@ -75,7 +75,7 @@ func (c *canonical) action(n *value.Node) grammar.Term {
 		// The text is $name.
 		name := n.Text()[1:]
 		if slices.Contains(c.params, name) {
-			c.errorAt(n, "lambda parameters are written without $: write %s; run zp fix to rewrite $%s", name, name)
+			c.errorAt(n, "lambda parameters are written without $: write %s", name)
 		}
 		t := &grammar.CaptureRef{Name: name}
 		c.span(&t.SourceInfo, n)
@@ -113,7 +113,7 @@ func (c *canonical) action(n *value.Node) grammar.Term {
 		t.X = c.action(nodeField(n, "X"))
 		name := nodeField(n, "Name")
 		if captureMember(t.Name) {
-			c.errorAt(name, "a capture is read with .$%s; run zp fix to rewrite .%s", t.Name, t.Name)
+			c.errorAt(name, "a capture is read with .$%s", t.Name)
 		}
 		c.created(c.span(&t.SourceInfo, n), name.Start())
 		return t

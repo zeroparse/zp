@@ -35,7 +35,7 @@ character ranges are checked in chunks of at most 256 ranges between polls.
 
 Validation rejects a nil grammar, missing required children, nil entries in
 node collections, interfaces holding typed nil pointers, unsupported embedded
-node types, pointer cycles, negative positional references and malformed
+node types, pointer cycles and malformed
 repetition and character-range bounds. A repetition's minimum must be nonnegative; a finite
 maximum must be at least the minimum. Any negative maximum means unbounded,
 as documented by `grammar.Repeat`. Shared subtrees, empty collections and

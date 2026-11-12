@@ -1,9 +1,11 @@
 package engine
 
 import (
+	"bytes"
 	"strings"
 	"testing"
 
+	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/compile"
 )
 
@@ -89,10 +91,18 @@ rule opt *TYPE = x:val? => $x`
 			}
 		}
 	}
-	// node without a type argument is not a type: the grammar API and earlier syntax reach the
-	// checker with it.
-	for _, typ := range []string{"node", "*node", "[]node"} {
-		g, err := parseLegacyTest(strings.ReplaceAll(src, "TYPE", typ))
+	// node without a type argument is not a type: the source syntax rejects it, and a grammar
+	// from the grammar API or JSON reaches the checker with it.
+	for _, typ := range []string{"Bare", "*Bare", "[]Bare"} {
+		parsed, err := parseTest(strings.ReplaceAll(src, "TYPE", typ))
+		if err != nil {
+			t.Fatal(err)
+		}
+		data, err := grammar.MarshalJSON(parsed)
+		if err != nil {
+			t.Fatal(err)
+		}
+		g, err := grammar.DecodeJSON(bytes.ReplaceAll(data, []byte(`"Bare"`), []byte(`"node"`)))
 		if err != nil {
 			t.Fatal(err)
 		}

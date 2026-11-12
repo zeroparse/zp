@@ -206,8 +206,6 @@ func TermPos(t grammar.Term, def grammar.Pos) grammar.Pos {
 		return TermPos(t.Term, def)
 	case *grammar.CaptureRef:
 		return t.Diagnostic()
-	case *grammar.IndexRef:
-		return t.Diagnostic()
 	case *grammar.VarRef:
 		return t.Diagnostic()
 	case *grammar.Member:

@@ -10,11 +10,9 @@ func TestPredicateBlocksStatementValidation(t *testing.T) {
 	for _, source := range []string{
 		`var x int
 rule main = {x := 1; len(true)} "a"`,
-		`rule main = {true; $1 == nil} "a"`,
 		`rule main = {true; text($missing) == "a"} "a"`,
 	} {
-		// ParseLegacy reads $1, which still reaches the checker from JSON grammars.
-		g, err := parseLegacyTest(source)
+		g, err := parseTest(source)
 		if err != nil {
 			t.Fatal(err)
 		}

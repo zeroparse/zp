@@ -20,12 +20,6 @@ func parseTest(src string) (*grammar.Grammar, error) {
 	return starttest.MarkAll(g), err
 }
 
-// parseLegacyTest is parseTest for the legacy syntax.
-func parseLegacyTest(src string) (*grammar.Grammar, error) {
-	g, err := syntax.ParseLegacy(src)
-	return starttest.MarkAll(g), err
-}
-
 // compileStatic compiles g as the engine does, without building matchers; flags, if not nil,
 // replace static analysis and type checking.
 func compileStatic(g *grammar.Grammar, opts Options, flags []RuleFlags) (*Program, error) {

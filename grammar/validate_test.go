@@ -69,7 +69,6 @@ func TestValidateRequiredChildren(t *testing.T) {
 		{"recovery body", expressionGrammar(&Recovery{Skip: &Top{}}), "$.file.decls[0].expr.expr"},
 		{"recovery skip", expressionGrammar(&Recovery{Expr: &Top{}}), "$.file.decls[0].expr.skip"},
 		{"stream body", expressionGrammar(&Stream{}), "$.file.decls[0].expr.expr"},
-		{"negative index", termGrammar(&IndexRef{Index: -1}), "$.file.decls[0].action.index"},
 		{"negative minimum", expressionGrammar(&Repeat{Expr: &Top{}, Min: -1, Max: -1}), "$.file.decls[0].expr.min"},
 		{"reversed bounds", expressionGrammar(&Repeat{Expr: &Top{}, Min: 2, Max: 1}), "$.file.decls[0].expr.max"},
 	} {
@@ -185,7 +184,6 @@ func TestValidateCompatibility(t *testing.T) {
 		expressionGrammar(&Repeat{Expr: &Top{}, Max: -2}),
 		expressionGrammar(&Repeat{Expr: &Top{}, Min: 0, Max: 0}),
 		expressionGrammar(&Repeat{Expr: &Top{}, Min: 2, Max: 2}),
-		termGrammar(&IndexRef{Index: 0}), termGrammar(&IndexRef{Index: 2}),
 		expressionGrammar(&OperatorsRule{Operands: []*OperatorsRuleOperand{{Expr: &Top{}}}, Levels: []*OperatorsRuleLevel{{}}}),
 		sampleGrammar(),
 	} {

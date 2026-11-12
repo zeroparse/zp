@@ -604,8 +604,8 @@ func (v *ValueInference) termType(t grammar.Term, env *valueEnv) Ty {
 	case *grammar.Binary:
 		return v.binary(t, env)
 	}
-	// Positional captures are rejected when names are resolved, bindings are checked with the
-	// predicates that make them, and statement blocks are rejected when the program is compiled.
+	// Bindings are checked with the predicates that make them, and statement blocks are rejected
+	// when the program is compiled.
 	return TyAny
 }
 

@@ -366,7 +366,7 @@ func (k *classifier) growthOf(t grammar.Term, env growthEnv, tc termCtx) (growth
 		}
 		// A value bound outside the fold, of the size that the classifier knows for it.
 		return k.outsideShape(t, tc), nil
-	case *grammar.VarRef, *grammar.IndexRef:
+	case *grammar.VarRef:
 		if k.isInt(t, tc) {
 			return zero, nil
 		}

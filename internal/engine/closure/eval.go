@@ -129,9 +129,6 @@ func (cm *Machine) Eval(c *core.EvalCtx, t grammar.Term) (any, error) {
 		}
 		return nil, c.P.ActionError("undefined capture $", t.Name)
 
-	case *grammar.IndexRef:
-		return nil, c.P.ActionError("positional captures are removed")
-
 	case *grammar.VarRef:
 		slot := c.P.Prog.Vars.Index(t.Name)
 		if slot < 0 {

@@ -441,7 +441,7 @@ func (c *canonical) typ(n *value.Node) grammar.TypeExpr {
 	case "TypeRef":
 		t := &grammar.TypeRef{Name: textField(n, "Name")}
 		if t.Name == "node" {
-			c.errs.add(c.pos.At(nodeField(n, "Name").Start()), bareNode+" (zp fix rewrites it)")
+			c.errs.add(c.pos.At(nodeField(n, "Name").Start()), bareNode)
 		}
 		c.span(&t.SourceInfo, n)
 		return t

@@ -60,7 +60,6 @@ func TestProjectionMetadataCancellation(t *testing.T) {
 			ruleProjectionsControlled(&Program{}, &Rule{Def: &grammar.RuleDef{Expr: expr}, Action: &grammar.StringLit{}}, c)
 		}},
 		{"action-use", func(c *cancel.Control) { markProjectedMaps(term, nil, map[*grammar.Call]bool{}, c) }},
-		{"action-indices", func(c *cancel.Control) { usesItems(term, c) }},
 	} {
 		t.Run(phase.name, func(t *testing.T) {
 			control := &cancel.Control{Ctx: compileTestContext(t, 1)}

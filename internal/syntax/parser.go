@@ -70,31 +70,6 @@ func Parse(src string) (*grammar.Grammar, error) {
 	return g, nil
 }
 
-// legacyForms locates the removed forms that parseLegacy represents in the current syntax tree.
-type legacyForms struct {
-	// terminals are the definitions written type T terminal, parsed as T = { Text string }. The
-	// source of a definition's spec is the word terminal.
-	terminals map[*grammar.TypeDef]bool
-	// positional are the constructors written T{x}, parsed as T{Text: x}.
-	positional map[*grammar.New]bool
-}
-
-// parseLegacy parses src like Parse but accepts the removed syntax that zp fix rewrites:
-// positional captures, lambda parameters written $x, terminal types, positional constructors
-// and the retired names of concrete syntax tree types. Terminal types and positional
-// constructors are parsed as the text structs that replace them, and located in the returned
-// legacyForms.
-func parseLegacy(src string) (*grammar.Grammar, *legacyForms, error) {
-	errs := &errorList{}
-	forms := &legacyForms{terminals: map[*grammar.TypeDef]bool{}, positional: map[*grammar.New]bool{}}
-	p := &parser{toks: lex(src, errs), errs: errs, legacy: forms}
-	g := p.file()
-	if len(errs.list) > 0 {
-		return nil, nil, errs.list
-	}
-	return g, forms, nil
-}
-
 // ParseExpr parses a single parser expression. It is intended for tests.
 func ParseExpr(src string) (expr grammar.Expr, err error) {
 	errs := &errorList{}
@@ -127,9 +102,6 @@ type parser struct {
 	// before the token.
 	inlined int
 	errs    *errorList
-	// legacy, if not nil, accepts the removed syntax that zp fix rewrites (see parseLegacy) and
-	// records where it is.
-	legacy *legacyForms
 	// params holds the parameters of the lambdas whose bodies are being parsed, innermost last.
 	params []string
 	ctx    context.Context
@@ -623,7 +595,7 @@ func (p *parser) typeDecl() (sourceResult grammar.TypeDecl) {
 	specStart := p.i
 	switch {
 	case p.is("struct"):
-		p.errorf("a struct type is defined as type %s = {...}; run zp fix to rewrite type %s struct", name.text, name.text)
+		p.errorf("a struct type is defined as type %s = {...}", name.text)
 		panic(bail{})
 	case p.is("=") && p.peek(1).kind == tPunct && p.peek(1).text == "{":
 		p.next()
@@ -638,17 +610,8 @@ func (p *parser) typeDecl() (sourceResult grammar.TypeDecl) {
 		p.sourceNode(st, specStart)
 		return def(st)
 	case p.is("terminal"):
-		if p.legacy == nil {
-			p.errorf("a terminal type is the struct type %s = { Text string }; run zp fix to rewrite type %s terminal", name.text, name.text)
-			panic(bail{})
-		}
-		p.next()
-		p.header = false
-		st := &grammar.StructType{Fields: []*grammar.Field{{Name: "Text", Type: &grammar.TypeRef{Name: "string"}}}}
-		p.sourceNode(st, specStart)
-		td := def(st)
-		p.legacy.terminals[td] = true
-		return td
+		p.errorf("a terminal type is the struct type %s = { Text string }", name.text)
+		panic(bail{})
 	case p.is("=") && p.peek(1).kind == tIdent && p.peek(1).text == "node" && p.peek(2).text == "[":
 		// A named node type: type N = node[T].
 		p.next()
@@ -663,7 +626,7 @@ func (p *parser) typeDecl() (sourceResult grammar.TypeDecl) {
 		td.HeaderComments = append(td.HeaderComments, gap...)
 		return td
 	case p.is("="):
-		p.errorf("expected '{' or 'node[' after '='; write type %s ~ <type> for an alias (zp fix rewrites type %s = <type>)", name.text, name.text)
+		p.errorf("expected '{' or 'node[' after '='; write type %s ~ <type> for an alias", name.text)
 		panic(bail{})
 	case p.accept("~"):
 		p.header = false
@@ -775,10 +738,10 @@ func (p *parser) typeTerm() (sourceResult grammar.TypeExpr) {
 		return &grammar.TypeRef{SourceInfo: grammar.SourceInfo{Pos: t.pos}, Name: t.text}
 	}
 	name := p.ident()
-	if replacement, ok := valueTypeNames[name.text]; ok && p.legacy == nil {
-		p.errs.add(name.pos, fmt.Sprintf("%s is not a type; write %s (zp fix rewrites it)", name.text, replacement))
-	} else if name.text == "node" && !p.is("[") && p.legacy == nil {
-		p.errs.add(name.pos, bareNode+" (zp fix rewrites it)")
+	if replacement, ok := valueTypeNames[name.text]; ok {
+		p.errs.add(name.pos, fmt.Sprintf("%s is not a type; write %s", name.text, replacement))
+	} else if name.text == "node" && !p.is("[") {
+		p.errs.add(name.pos, bareNode)
 	}
 	if p.is("[") {
 		// The lexer makes "[" a bracket only directly after the name: T[U].
@@ -942,7 +905,7 @@ func (p *parser) ruleDef() (sourceResult *grammar.RuleDef) {
 	p.header = false
 	rd.HeaderComments = p.headerContents(headerFrom)
 	if !p.boundary() && p.isOldOperatorsStart() {
-		p.errorf("an Operators Rule is written #operators { ... }; run zp fix to rewrite operators {")
+		p.errorf("an Operators Rule is written #operators { ... }")
 		panic(bail{})
 	}
 	if !p.boundary() && p.isOperatorsWord() && !p.isOperatorsStart() {
@@ -1678,7 +1641,7 @@ func (p *parser) isOldOperatorsStart() bool { return oldOperatorsStart(p.peek) }
 // written without the pragma: operators, a { on the same line, and an item that starts with one
 // of the item words followed by something that cannot continue a term. A body such as
 // operators {x == 1} or operators {level {x} > 0} is a reference to a rule named operators
-// followed by a predicate. The parser's hint and zp fix both use it.
+// followed by a predicate. The parser's hint uses it.
 func oldOperatorsStart(at func(int) token) bool {
 	if t := at(0); t.kind != tIdent || t.text != "operators" {
 		return false
@@ -1939,7 +1902,7 @@ func (p *parser) primary() (sourceResult grammar.Expr) {
 				return &grammar.Cut{SourceInfo: grammar.SourceInfo{Pos: t.pos}}
 			}
 		case "--":
-			p.errorf("the cut is written #cut; run zp fix to rewrite --")
+			p.errorf("the cut is written #cut")
 			panic(bail{})
 		case "^^":
 			p.next()
@@ -2121,7 +2084,7 @@ func (p *parser) tryLambda() (sourceResult grammar.Term) {
 		if i > 0 {
 			elem = p.takeTermLayout()
 		}
-		if t := p.tok(); p.legacy == nil && t.kind == tIdent && (t.text == "true" || t.text == "false" || t.text == "nil") {
+		if t := p.tok(); t.kind == tIdent && (t.text == "true" || t.text == "false" || t.text == "nil") {
 			p.errs.addRange(t.pos, t.end, fmt.Sprintf("%s cannot name a lambda parameter", t.text))
 		}
 		p.next()
@@ -2253,8 +2216,8 @@ func (p *parser) unary() (sourceResult grammar.Term) {
 			continue
 		}
 		name := p.ident()
-		if p.legacy == nil && captureMember(name.text) {
-			p.errs.addRange(name.pos, name.end, fmt.Sprintf("a capture is read with .$%s; run zp fix to rewrite .%s", name.text, name.text))
+		if captureMember(name.text) {
+			p.errs.addRange(name.pos, name.end, fmt.Sprintf("a capture is read with .$%s", name.text))
 		}
 		x = &grammar.Member{SourceInfo: grammar.SourceInfo{Pos: name.pos}, X: x, Name: name.text}
 		p.sourceNode(x, sourceStart)
@@ -2296,16 +2259,15 @@ func (p *parser) termPrimary() (sourceResult grammar.Term) {
 		return &grammar.StringLit{Value: t.text}
 	case tCapture:
 		p.next()
-		if p.legacy == nil && slices.Contains(p.params, t.text) {
-			p.errs.addRange(t.pos, t.end, fmt.Sprintf("lambda parameters are written without $: write %s; run zp fix to rewrite $%s", t.text, t.text))
+		if slices.Contains(p.params, t.text) {
+			p.errs.addRange(t.pos, t.end, fmt.Sprintf("lambda parameters are written without $: write %s", t.text))
 		}
 		return &grammar.CaptureRef{SourceInfo: grammar.SourceInfo{Pos: t.pos}, Name: t.text}
 	case tIndex:
 		p.next()
-		if p.legacy == nil {
-			p.errs.addRange(t.pos, t.end, fmt.Sprintf("positional captures are removed: label the element (x:...) and write $x; run zp fix to rewrite $%d", t.num))
-		}
-		return &grammar.IndexRef{SourceInfo: grammar.SourceInfo{Pos: t.pos}, Index: t.num}
+		// The error fails the parse; the literal only keeps the term well formed.
+		p.errs.addRange(t.pos, t.end, fmt.Sprintf("a capture is read by name: label the element (x:...) and write $x instead of $%d", t.num))
+		return &grammar.IntLit{Value: t.num}
 	case tIdent:
 		switch t.text {
 		case "true", "false":
@@ -2415,20 +2377,8 @@ func (p *parser) newTerm() (sourceResult grammar.Term) {
 		args, trailing := p.listItems("}")
 		n := &grammar.New{SourceInfo: grammar.SourceInfo{Pos: nameToken.pos}, Type: nameToken.text}
 		finish(n, trailing)
-		if p.legacy == nil {
-			// A positional constructor converts its value to a named node type.
-			n.Args = args
-			return n
-		}
-		// Every argument is kept, as a Text field, so that Fix still rewrites the terms inside
-		// them; only a constructor of one argument is a terminal constructor that Fix rewrites, and
-		// the compiler reports any other (zp fix leaves it as it is).
-		for _, arg := range args {
-			n.Fields = append(n.Fields, &grammar.FieldInit{Name: "Text", Value: arg})
-		}
-		if p.legacy != nil && len(args) == 1 {
-			p.legacy.positional[n] = true
-		}
+		// A positional constructor converts its value to a named node type.
+		n.Args = args
 		return n
 	}
 	n := &grammar.New{SourceInfo: grammar.SourceInfo{Pos: nameToken.pos}, Type: nameToken.text}
@@ -2596,10 +2546,17 @@ func (p *parser) takeAfter(layout **grammar.SourceLayout) {
 	t.lineComment, t.comments = nil, nil
 }
 
-// ParseLegacy parses src like Parse but accepts the removed syntax that zp fix rewrites, with
-// the meaning Fix gives it. Grammar ASTs decoded from JSON may still hold some of these forms,
-// such as positional captures, which the engine reports; ParseLegacy builds such ASTs from source.
-func ParseLegacy(src string) (*grammar.Grammar, error) {
-	g, _, err := parseLegacy(src)
-	return g, err
+// valueTypeNames maps the reserved names of concrete syntax tree types to the value types that
+// replace them.
+var valueTypeNames = map[string]string{
+	"terminal": "node[string]",
+	"Match":    "node[string]",
+	"Seq":      "node[_]",
+	"List":     "node[_]",
+	"Operator": "node[_]",
+	"Error":    "error",
+	"Missing":  "missing",
 }
+
+// bareNode is the message for node without a type argument.
+const bareNode = "node takes a type argument: write node[T] with the type T of the node's value"

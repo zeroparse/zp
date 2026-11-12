@@ -614,7 +614,7 @@ func (l *linter) unusedCaptures() {
 			for _, o := range pr.Operands {
 				control.poll()
 				if o.Action != nil {
-					l.scopeCaptures(o.Expr, o.Action, usesIndex(o.Action, control), "the operand's action does not refer to it")
+					l.scopeCaptures(o.Expr, o.Action, "the operand's action does not refer to it")
 				}
 			}
 			for _, lv := range pr.Levels {
@@ -622,23 +622,22 @@ func (l *linter) unusedCaptures() {
 				for _, op := range lv.Operators {
 					control.poll()
 					if op.Action != nil {
-						l.scopeCaptures(op.Expr, op.Action, false, "the operator's action does not refer to it")
+						l.scopeCaptures(op.Expr, op.Action, "the operator's action does not refer to it")
 					}
 				}
 			}
 			return
 		}
 		if r.Action != nil {
-			l.scopeCaptures(r.Expr, r.Action, usesIndex(r.Action, control), "the action does not refer to it")
+			l.scopeCaptures(r.Expr, r.Action, "the action does not refer to it")
 		}
 	})
 }
 
 // scopeCaptures reports the captures of a rule body (or an Operators Rule line) that are never read: the
 // body's own captures that neither action nor predicates refer to, and the captures inside
-// repetitions whose values are discarded. kept reports whether the value of the body itself can
-// be read ($n in the action).
-func (l *linter) scopeCaptures(body grammar.Expr, action grammar.Term, kept bool, why string) {
+// repetitions whose values are discarded.
+func (l *linter) scopeCaptures(body grammar.Expr, action grammar.Term, why string) {
 	control := l.control
 	control.poll()
 
@@ -656,7 +655,7 @@ func (l *linter) scopeCaptures(body grammar.Expr, action grammar.Term, kept bool
 			}
 			visit(e.Expr, true)
 		case *grammar.Repeat:
-			l.elementCaptures(e.Expr, kept || inCapture)
+			l.elementCaptures(e.Expr, inCapture)
 		default:
 			forChildren(e, func(c grammar.Expr) { control.poll(); visit(c, inCapture) }, control)
 		}
@@ -683,7 +682,7 @@ func (l *linter) elementCaptures(elem grammar.Expr, kept bool) {
 			}
 			visit(e.Expr, true)
 		case *grammar.Repeat:
-			l.elementCaptures(e.Expr, kept || inCapture)
+			l.elementCaptures(e.Expr, inCapture)
 		default:
 			forChildren(e, func(c grammar.Expr) { control.poll(); visit(c, inCapture) }, control)
 		}
@@ -796,17 +795,6 @@ func captureRefsControlled(t grammar.Term, params []string, refs map[string]bool
 	case *grammar.Bind:
 		captureRefsControlled(t.Value, params, refs, control)
 	}
-}
-
-func usesIndex(t grammar.Term, control *lintControl) bool {
-	found := false
-	walkTerm(t, func(x grammar.Term) {
-		control.poll()
-		if _, ok := x.(*grammar.IndexRef); ok {
-			found = true
-		}
-	})
-	return found
 }
 
 // --- duplicate-capture ---

@@ -255,12 +255,12 @@ and every guide. Saved bytecode and schema formats need new versions.
 - **Casts are written `x.(T)`.** The postfix form chains with field access and
   fails at run time with an action error when the value is not a `T`.
 - **Migration replaces the old syntax at once.** No compatibility mode is
-  kept. A `zp fix` rewrite handles the mechanical parts (struct definitions,
-  `--` to `#cut`, positional to named captures, lambda parameters), and the
-  repository grammars and `alpha-parsers/` are migrated with it.
+  kept: the repository grammars and `alpha-parsers/` are migrated with the
+  change (struct definitions, `--` to `#cut`, positional to named captures,
+  lambda parameters).
 - **Terminal types become one-field structs.** A terminal type names the kind
   of a token, and joins of them, such as `Number | String | Bool`, tell the
-  kinds apart, which `node[string]` cannot do. `zp fix` rewrites
+  kinds apart, which `node[string]` cannot do. The migration rewrites
   `type T terminal` to `type T = { Text string }`, a rule `rule r T = e`
   without an action to `rule r T = t:(e) #atomic => T{Text: text($t)}`
   (without `#atomic` when `e` has captures, which predicates may read), and a
