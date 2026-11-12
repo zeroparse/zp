@@ -919,8 +919,9 @@ export interface Rule {
   // cycle numbers the left-recursion cycle of a leader or member from 1, or is 0 for a rule on no
   // cycle. The results of the rules of a cycle depend on the growths of its leaders (CtxCall).
   cycle: number;
-  // leaderBit is the bit of a leader in the present sets of the results of its cycle, or 0: the
-  // first 32 leaders of each cycle have one.
+  // leaderIndex numbers the leaders of each cycle from 0, and leaderBit is the bit of a leader in
+  // the present sets of the results of its cycle, or 0: the first 31 leaders of each cycle have one.
+  leaderIndex: number;
   leaderBit: number;
   // seen is the rule's index among the memoized rules whose memoization is deferred to the second
   // call at a position (firstCall), or -1.
@@ -992,6 +993,7 @@ export function mkRule(
     leader,
     rec: false,
     cycle: 0,
+    leaderIndex: 0,
     leaderBit: 0,
     seen,
     operatorsRule: null,
@@ -2013,8 +2015,8 @@ const ctxCallKind = 0;
 const ctxStepKind = 1;
 const ctxLookKind = 2;
 
-// The ways a memoized call stores its result (Parser.ctxPop): nowhere, as the call is in a context
-// that cannot be told from others; in the memo; in the table of the context.
+// The ways a memoized call stores its result (Parser.ctxPop): nowhere (unused, as every call in a
+// context records its dependencies); in the memo; in the table of the context.
 export const storeNone = 0;
 export const storeMemo = 1;
 export const storeCtx = 2;
@@ -2036,38 +2038,37 @@ export function newCtxResult(node: R, end: number, silent: boolean, errs: Errs, 
 }
 
 // CtxCall is the context of a memoized call of a rule of a cycle (Parser.ctxEnter): the index in
-// gamma of the first growth of the context, its present set, whether the call is in a context,
-// whether the present set tells the context from others, and whether the call records its
-// dependencies.
+// gamma of the first growth of the context, its present set (Parser.presentOf), whether the call is
+// in a context, and whether the call records its dependencies.
 export interface CtxCall {
   gp: number;
   present: number;
   ctx: boolean;
-  known: boolean;
   framed: boolean;
 }
 
 // noCtx is the context of a call where no growth is in progress, which nothing changes.
-export const noCtx: CtxCall = { gp: 0, present: 0, ctx: false, known: false, framed: false };
+export const noCtx: CtxCall = { gp: 0, present: 0, ctx: false, framed: false };
 
 export function newCtxCall(): CtxCall {
-  return { gp: 0, present: 0, ctx: false, known: false, framed: false };
+  return { gp: 0, present: 0, ctx: false, framed: false };
 }
 
 // memoAllows reports whether a result in the memo with the present set present answers a call in
 // the context c: every leader that grows there grew when it was evaluated, and did not matter to it.
 export function memoAllows(c: CtxCall, present: number): boolean {
-  return !c.ctx || c.known && (c.present & ~present) === 0;
+  return !c.ctx || (c.present & ~present) === 0;
 }
 
-// GrowRec is a growth in progress: the leader's key, its position, cycle and bit, its current seed
-// and the seed's identity.
+// GrowRec is a growth in progress: the leader's key, its position, cycle, bit and index, its current
+// seed and the seed's identity.
 interface GrowRec {
   rule: number;
   min: number;
   pos: number;
   cycle: number;
   bit: number;
+  idx: number;
   seed: CtxResult;
   id: number;
 }
@@ -2268,6 +2269,9 @@ export class Parser {
   foundSet: CtxSet | null = null; // the set of the result that ctxFind last returned
   obsGuard: number[] = [];
   seedSeq = 0;
+  // interned and internSeq number keys too large for a word (intern).
+  interned = new Map<string, number>();
+  internSeq = 0;
   farthest = 0;
   // expectations makes expect record expectations (ParseOptions.expectations). Without it a record
   // holds at most expFar.
@@ -3496,18 +3500,49 @@ export class Parser {
     return -1;
   }
 
-  // presentOf returns the present set of the context gamma[gp:], or null if a leader in it has no
-  // bit.
-  presentOf(gp: number): number | null {
+  // presentOf returns the present set of the context gamma[gp:]: the bits of its leaders, or, if a
+  // leader has no bit, the negated number that intern gives its words of bits (presentWide), which
+  // no set of bits equals. A memo entry holds bits, so a result in such a context goes to the table
+  // of the context even if it read no seed (ctxPop), and no entry answers a call there (memoAllows).
+  presentOf(gp: number): number {
     let m = 0;
     for (let i = gp; i < this.gamma.length; i++) {
       const b = this.gamma[i]!.bit;
       if (b === 0) {
-        return null;
+        return this.presentWide(gp);
       }
       m |= b;
     }
     return m;
+  }
+
+  // presentWide returns the identity of the present set of the context gamma[gp:]: its words of
+  // bits, by Rule.leaderIndex, interned and negated.
+  presentWide(gp: number): number {
+    const w: number[] = [];
+    for (let i = gp; i < this.gamma.length; i++) {
+      this.spend();
+      const k = this.gamma[i]!.idx;
+      while (w.length <= k >> 5) {
+        w.push(0);
+      }
+      w[k >> 5] = (w[k >> 5] ?? 0) | (1 << (k & 31));
+    }
+    return -this.intern("p" + w.join(","));
+  }
+
+  // intern returns a positive number for key that no other key has while a growth is in progress.
+  // The numbers identify present sets too large for a word; they appear only in the context tables
+  // and dependencies of growths in progress, and the parser forgets them when the last growth ends
+  // (growEnd).
+  intern(key: string): number {
+    let v = this.interned.get(key);
+    if (v === undefined) {
+      this.spend();
+      v = ++this.internSeq;
+      this.interned.set(key, v);
+    }
+    return v;
   }
 
   // ctxEnter computes the context c of a memoized call of r, a rule of a cycle, at the current
@@ -3527,18 +3562,14 @@ export class Parser {
       }
     }
     c.ctx = true;
-    const present = this.presentOf(gp);
-    if (present !== null) {
-      c.present = present;
-      c.known = true;
-    }
+    c.present = this.presentOf(gp);
     return null;
   }
 
   // ctxLookup returns the result kept in the context c for a call of rule at level min with the
   // variable values env, or null.
   ctxLookup(c: CtxCall, rule: number, min: number, env: Value[] | null): CtxResult | null {
-    if (!c.known) {
+    if (!c.ctx) {
       return null;
     }
     const s = this.ctxFind(this.pos, c.gp, headKey(ctxCallKind, rule, min, c.present), c.present, env);
@@ -3551,27 +3582,27 @@ export class Parser {
 
   // ctxPush starts recording the dependencies of a call in the context c.
   ctxPush(c: CtxCall): void {
-    if (c.known) {
+    if (c.ctx) {
       this.pushFrame(this.pos, c.gp);
       c.framed = true;
     }
   }
 
   // ctxPop ends the dependencies of a call in the context c and returns how the call stores its
-  // result: in the table of the context if it read a seed or made an observation, and otherwise in
-  // the memo. The dependencies stay readable for ctxKeep until ctxDone.
+  // result: in the table of the context if it read a seed or made an observation or its present set
+  // has no word of bits (presentWide), and otherwise in the memo. The dependencies stay readable for
+  // ctxKeep until ctxDone.
   ctxPop(c: CtxCall): number {
     if (c.framed) {
       this.popped = this.popFrame().deps;
+      if (c.present < 0) {
+        return storeCtx;
+      }
       for (const d of this.popped) {
         if (d.kind !== depShadow) {
           return storeCtx;
         }
       }
-      return storeMemo;
-    }
-    if (c.ctx) {
-      return storeNone;
     }
     return storeMemo;
   }
@@ -3973,10 +4004,8 @@ export class Parser {
     const val = ok ? 1 : 0;
     const present = this.presentOf(f.gp);
     const sd = this.stored(ds);
-    if (present !== null) {
-      this.alloc(objectBytes(8));
+    this.alloc(objectBytes(8));
     this.ctxStore(f.pos, f.gp, headKey(ctxLookKind, site, 0, present), sd, newSlot(null, val, null));
-    }
     const out: Dep[] = [{ kind: depObs, idx: site, d: f.depth, val }];
     for (const d of ds) {
       out.push(d.kind === depSeed ? { kind: depShadow, idx: d.idx, d: f.depth, val: d.val } : d);
@@ -3994,14 +4023,11 @@ export class Parser {
     const gp = this.gammaAt(start, r.cycle);
     const g: GrowState = { rule: r.id, min, start, rec: this.recovered.length, gi, gp, ctx: false, present: 0, done: false, exp: 0, run: [] };
     this.alloc(objectBytes(7) + objectBytes(7));
-    this.gamma.push({ rule: r.id, min, pos: start, cycle: r.cycle, bit: r.leaderBit, seed: newCtxResult(undefined, start, false, noErrs, 0, noExp), id: failSeed });
+    this.gamma.push({ rule: r.id, min, pos: start, cycle: r.cycle, bit: r.leaderBit, idx: r.leaderIndex, seed: newCtxResult(undefined, start, false, noErrs, 0, noExp), id: failSeed });
     if (gp < gi) {
       // The present set of the steps includes the leader's own growth.
-      const present = this.presentOf(gp);
-      if (present !== null) {
-        g.present = present;
-        g.ctx = true;
-      }
+      g.present = this.presentOf(gp);
+      g.ctx = true;
     }
     return g;
   }
@@ -4133,6 +4159,9 @@ export class Parser {
     this.dropTable(g.gi);
     const best = this.gamma[g.gi]!.seed;
     this.gamma.length = g.gi;
+    if (g.gi === 0 && this.interned.size > 0) {
+      this.interned.clear();
+    }
     this.pos = best.end;
     this.recovered.length = g.rec;
     this.recAdd(best.errs);

@@ -101,7 +101,7 @@ func TestBudgetDiagnosticRecoveredLists(t *testing.T) {
 						}
 					}
 				case "LR snapshot":
-					g := p.GrowBegin(key, 0, 0)
+					g := p.GrowBegin(key, &core.Rule{})
 					seed := g.Best
 					p.Pos = 1
 					pushRecords()

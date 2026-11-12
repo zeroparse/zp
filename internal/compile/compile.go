@@ -154,9 +154,11 @@ type Rule struct {
 	// one cycle, and is 0 for any other rule: a result reads only the seeds of the growths of its own
 	// cycle.
 	Cycle int
-	// LeaderBit is the bit of a leader in the sets of growths that a memoized result was evaluated
-	// with (NumberLeaders), or 0 for a rule that is not a leader and for a leader numbered past 63.
-	LeaderBit uint64
+	// LeaderIndex numbers the leaders of each cycle from 0 (NumberLeaders): a leader's member in the
+	// sets of growths that a memoized result was evaluated with. LeaderBit is 1<<LeaderIndex for the
+	// first MaxLeaderBits leaders of a cycle, whose sets fit in a word, and 0 for any other rule.
+	LeaderIndex int
+	LeaderBit   uint64
 	// Stream reports that the top level of the rule body has a #stream repetition.
 	Stream bool
 	// Positional reports that the result may depend on position values (analysis.positional).
@@ -733,16 +735,23 @@ func NumberSeen(lists ...[]*Rule) int {
 	return n
 }
 
-// NumberLeaders gives the first 64 leaders of rules, in order, a bit each (Rule.LeaderBit).
+// MaxLeaderBits is the number of leaders of a cycle that have a bit (Rule.LeaderBit). The engine
+// keeps the last bit of a word to tell the identity of a larger set from a word of bits.
+const MaxLeaderBits = 63
+
+// NumberLeaders numbers the leaders of each cycle of rules, in order (Rule.LeaderIndex), and gives
+// the first MaxLeaderBits of each a bit (Rule.LeaderBit).
 func NumberLeaders(rules []*Rule) {
-	n := 0
+	n := map[int]int{}
 	for _, r := range rules {
-		r.LeaderBit = 0
+		r.LeaderIndex, r.LeaderBit = 0, 0
 		if r.Leader {
-			if n < 64 {
-				r.LeaderBit = 1 << n
+			k := n[r.Cycle]
+			n[r.Cycle]++
+			r.LeaderIndex = k
+			if k < MaxLeaderBits {
+				r.LeaderBit = 1 << k
 			}
-			n++
 		}
 	}
 }

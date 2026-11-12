@@ -30,7 +30,7 @@ func TestDocumentSeedDependentResultsNotInMemo(t *testing.T) {
 		head, m := leader(1, 1), member(2)
 		var headCall core.CallState
 		p.CallBegin(head, 0, &headCall)
-		growth := p.GrowBegin(p.GrowKey(head, 0), head.LeaderBit, head.Cycle)
+		growth := p.GrowBegin(p.GrowKey(head, 0), head)
 		if !p.GrowNext(&growth) {
 			t.Fatal("the growth did not evaluate its first step")
 		}
@@ -61,7 +61,7 @@ func TestDocumentSeedDependentResultsNotInMemo(t *testing.T) {
 		head, m := leader(1, 1), member(2)
 		var headCall core.CallState
 		p.CallBegin(head, 0, &headCall)
-		growth := p.GrowBegin(p.GrowKey(head, 0), head.LeaderBit, head.Cycle)
+		growth := p.GrowBegin(p.GrowKey(head, 0), head)
 		p.GrowNext(&growth)
 		var mCall core.CallState
 		p.CallBegin(m, 0, &mCall)
@@ -82,14 +82,14 @@ func TestDocumentSeedDependentResultsNotInMemo(t *testing.T) {
 		outer, inner := leader(1, 1), leader(2, 2)
 		var outerCall core.CallState
 		p.CallBegin(outer, 0, &outerCall)
-		outerGrow := p.GrowBegin(p.GrowKey(outer, 0), outer.LeaderBit, outer.Cycle)
+		outerGrow := p.GrowBegin(p.GrowKey(outer, 0), outer)
 		p.GrowNext(&outerGrow)
 		var innerCall core.CallState
 		_, _, hit := p.CallBegin(inner, 0, &innerCall)
 		if hit {
 			t.Fatal("the inner leader was reused before it grew")
 		}
-		innerGrow := p.GrowBegin(p.GrowKey(inner, 0), inner.LeaderBit, inner.Cycle)
+		innerGrow := p.GrowBegin(p.GrowKey(inner, 0), inner)
 		if !p.GrowNext(&innerGrow) {
 			t.Fatal("the inner growth did not evaluate its first step")
 		}

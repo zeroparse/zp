@@ -113,12 +113,12 @@ type CallState struct {
 // CtxState is the context state of a memoized call (see context_memo.go).
 type CtxState struct {
 	// gp is the index in Gamma of the first growth of the rule's cycle at the position. ctx reports
-	// a call in a context, with the present set present (known); framed reports that the call
-	// records its dependencies.
-	gp         int
-	present    uint64
-	ctx, known bool
-	framed     bool
+	// a call in a context, with the present set present; framed reports that the call records its
+	// dependencies.
+	gp      int
+	present uint64
+	ctx     bool
+	framed  bool
 	// ds are the dependencies that the call's evaluation recorded, and sd those that a result kept
 	// in its context stores (ctxPop).
 	ds []dep
@@ -157,15 +157,16 @@ func (p *Parser) ctxEnter(c *CtxState, r *Rule, min int) ctxHit {
 		}
 	}
 	c.ctx = true
-	c.present, c.known = p.present(gp)
-	c.framed = c.known && !p.strictCtx()
+	c.present = p.present(gp)
+	c.framed = !p.strictCtx() && p.recordsIn(c.present)
 	return ctxHit{}
 }
 
 // ctxAllows reports whether the call in a context with the state c may reuse the memo entry e:
-// when every leader that grows here grew when e was evaluated, and did not matter to it.
+// when every leader that grows here grew when e was evaluated, and did not matter to it. No entry
+// answers a call in a context whose present set has no word of bits (presentWide).
 func (p *Parser) ctxAllows(c *CtxState, e *MemoEntry) bool {
-	return ContextMemoMutation == CtxIgnorePresent || c.known && !p.strictCtx() && c.present&^e.Present == 0
+	return ContextMemoMutation == CtxIgnorePresent || !p.strictCtx() && c.present&^e.Present == 0
 }
 
 // ctxLookup returns the result kept in the context of the call of rule r at binding level min with
@@ -208,9 +209,10 @@ func (p *Parser) ctxReplay(h ctxHit, seed bool) {
 }
 
 // ctxPop ends recording the dependencies of the evaluation of a call in a context and returns
-// where its result goes: storeMemo for a result that read no seed, storeCtx for one that did, and
-// storeNowhere for a call whose context records no dependencies. A result that goes nowhere is
-// dropped: the last result of a leader's growth is not retained.
+// where its result goes: storeMemo for a result that read no seed, storeCtx for one that did or
+// whose context's present set has no word of bits (presentWide), and storeNowhere for a call whose
+// context records no dependencies. A result that goes nowhere is dropped: the last result of a
+// leader's growth is not retained.
 func (p *Parser) ctxPop(c *CtxState) int {
 	if !c.framed {
 		p.grown = nil
@@ -218,7 +220,7 @@ func (p *Parser) ctxPop(c *CtxState) int {
 	}
 	_, c.ds = p.popFrame()
 	sd, read := p.stored(c.ds)
-	if !read {
+	if !read && c.present&presentWide == 0 {
 		return storeMemo
 	}
 	c.sd = sd

@@ -29,7 +29,7 @@ var depMemoTSMutations = map[string][][2]string{
 		{"if (o.v !== d.val || !o.free) {", "if (false) {"},
 	},
 	"present growths": {
-		{"return !c.ctx || c.known && (c.present & ~present) === 0;\n", "return true;\n"},
+		{"return !c.ctx || (c.present & ~present) === 0;\n", "return true;\n"},
 	},
 	"canonical seeds": {
 		{"if (c.e.errs === null && this.nodesEqual(", "if (true || this.nodesEqual("},
