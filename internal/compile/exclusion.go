@@ -1,6 +1,7 @@
 package compile
 
 import (
+	"fmt"
 	"slices"
 
 	"zeroparse.dev/zp/grammar"
@@ -25,6 +26,12 @@ var (
 	decidedUnitsOn = true
 	decidedUnitsK  = 3
 )
+
+// deadPathsOn makes the strict analysis keep the paths that reach a part that no evaluation passes
+// (symDead) and refuse to count as decisive a symbol at which neither side can go on. It is on by
+// default; the variable is a test hook, whose off setting is the analysis that let a unit that never
+// succeeds decide every continuation for want of paths.
+var deadPathsOn = true
 
 const (
 	exclPaths  = 256 // the most paths of an expression that the analysis enumerates
@@ -61,6 +68,11 @@ const (
 	// nestsOps). Each nested evaluation that ends there evaluates what follows again, so a call
 	// after the mark that the memo does not answer and that scans is not cheap.
 	symUp
+	// symDead is a part that no evaluation passes, such as the normal view's form of !"b" "b". In
+	// strict mode a path that reaches one ends there: an expression that never succeeds still has
+	// the paths of what it evaluates before it fails, which the comparison must part from the
+	// continuation like any other.
+	symDead
 )
 
 // sym is a symbol of a path; item is the index of the top-level item of the alternative that it
@@ -94,6 +106,8 @@ type excl struct {
 	// continuation mark the end of the body of its rule (exitMark), and the comparison records the
 	// calls that both evaluate alike for nestsAt (checkRestarts).
 	owner *unit
+	// last is the tag of the latest comparison that the analysis did not decide (no).
+	last *string
 }
 
 // exitMark marks, in a path of a continuation, the end of the body of rule: of the rule of the
@@ -138,7 +152,7 @@ type opsPaths struct {
 
 func newExcl(k *classifier, strict bool, maxK int) excl {
 	work := exclBudget
-	return excl{k: k, strict: strict, maxK: maxK, follow: exclFollow, cheapR: map[cheapKey]int8{}, opsR: map[opsKey]opsPaths{}, work: &work}
+	return excl{k: k, strict: strict, maxK: maxK, follow: exclFollow, cheapR: map[cheapKey]int8{}, opsR: map[opsKey]opsPaths{}, work: &work, last: new(string)}
 }
 
 // spend charges n steps to the budget and reports whether the budget is exhausted. The first time
@@ -294,6 +308,9 @@ func (x excl) pathsOf(e grammar.Expr, item int) (paths [][]sym, ok bool) {
 		*grammar.BeginLine, *grammar.EndLine:
 		return one(sym{symSkip, e, item})
 	case *grammar.Bottom:
+		if x.strict && deadPathsOn {
+			return one(sym{symDead, e, item})
+		}
 		return nil, true
 	case *grammar.Group:
 		return x.paths(e.Expr, item)
@@ -382,12 +399,12 @@ func (x excl) body(s sym) ([][]sym, bool) {
 	return x.paths(def.Expr, s.item)
 }
 
-// concatPaths returns every path of ps followed by a path of qs; a path that ends with a stop, or
-// has exclLen symbols, is not extended.
+// concatPaths returns every path of ps followed by a path of qs; a path that ends with a stop or a
+// dead symbol, or has exclLen symbols, is not extended.
 func concatPaths(ps, qs [][]sym) ([][]sym, bool) {
 	var next [][]sym
 	for _, p := range ps {
-		if n := len(p); n > 0 && p[n-1].kind == symStop {
+		if n := len(p); n > 0 && (p[n-1].kind == symStop || p[n-1].kind == symDead) {
 			next = append(next, p)
 			continue
 		}
@@ -717,7 +734,7 @@ func zeroBinds(p []sym, i int) bool {
 		switch p[i].kind {
 		case symBind:
 			return true
-		case symMatch, symStop:
+		case symMatch, symStop, symDead:
 			return false
 		}
 	}
@@ -747,6 +764,18 @@ func (x excl) nextMatch(q []sym, j int) (int, bool) {
 // symbols that the decision examines (those passed alike and the decisive one).
 func (x excl) excludes(s exclState) (ok bool, item, n int) {
 	k := x.k
+	// decisive reports a decision at the symbols at hand. In strict mode a symbol at which neither
+	// side can go on is not decisive: both fail there after the symbols that they evaluate alike,
+	// so the decision bounds nothing. In particular a path of the unit never parts from its own
+	// copy, which the continuation reaches through a left call of the rule of the unit: in a
+	// growth that call reads the growing result instead of evaluating the copy, while each step
+	// evaluates the unit again.
+	decisive := func(a sym, item, n int) (bool, int, int) {
+		if x.strict && deadPathsOn && x.stuck(s.p, s.i) && x.stuck(s.q, s.j) {
+			return x.no("dead", a, nil)
+		}
+		return true, item, n
+	}
 	for {
 		k.control.Poll()
 		if x.spend(1) {
@@ -778,9 +807,12 @@ func (x excl) excludes(s exclState) (ok bool, item, n int) {
 			}
 			s.i++
 			continue
+		case symDead:
+			// The unit fails here, having examined nothing beyond the symbols passed alike.
+			return decisive(a, a.item, s.steps+1)
 		case symNot:
 			if x.implies(s.q[s.j:], a.e) {
-				return true, a.item, s.steps + 1
+				return decisive(a, a.item, s.steps+1)
 			}
 			if x.strict && !x.cheapAll(a.e) {
 				return x.no("pnot-notcheap", a, nil)
@@ -789,10 +821,10 @@ func (x excl) excludes(s exclState) (ok bool, item, n int) {
 			continue
 		case symAnd:
 			if j, _ := x.nextMatch(s.q, s.j); j < len(s.q) && s.q[j].kind == symMatch && x.disjoint(a.e, s.q[j].e) {
-				return true, a.item, s.steps + 1
+				return decisive(a, a.item, s.steps+1)
 			}
 			if s.j < len(s.q) && s.q[s.j].kind == symAnd && x.disjoint(a.e, s.q[s.j].e) {
-				return true, a.item, s.steps + 1
+				return decisive(a, a.item, s.steps+1)
 			}
 			if x.strict && !x.cheapAll(a.e) {
 				return x.no("pand-notcheap", a, nil)
@@ -814,6 +846,9 @@ func (x excl) excludes(s exclState) (ok bool, item, n int) {
 			return x.no("q-end", a, &b)
 		case symStop:
 			return x.no("qstop", a, &b)
+		case symDead:
+			// The continuation fails here, after the symbols passed alike.
+			return decisive(a, a.item, s.steps+1)
 		case symSkip:
 			s.j++
 			continue
@@ -835,7 +870,7 @@ func (x excl) excludes(s exclState) (ok bool, item, n int) {
 			// The continuation evaluates the lookahead: the alternatives before the one that matches
 			// what the unit matched are its own evaluations, and must cost a constant in strict mode.
 			if end, alt, ok := x.impliesAt(s.p[s.i:], b.e); ok && (!x.strict || x.freshBefore(b.e, alt)) {
-				return true, s.p[s.i+end].item, s.steps + 1
+				return decisive(a, s.p[s.i+end].item, s.steps+1)
 			}
 			if x.strict && !x.freshAll(b.e) {
 				return x.no("qnot-notcheap", a, &b)
@@ -844,7 +879,7 @@ func (x excl) excludes(s exclState) (ok bool, item, n int) {
 			continue
 		case symAnd:
 			if x.disjoint(a.e, b.e) {
-				return true, a.item, s.steps + 1
+				return decisive(a, a.item, s.steps+1)
 			}
 			if x.strict && !x.freshAll(b.e) {
 				return x.no("qand-notcheap", a, &b)
@@ -865,7 +900,7 @@ func (x excl) excludes(s exclState) (ok bool, item, n int) {
 			}
 		}
 		if x.disjoint(a.e, b.e) {
-			return true, a.item, s.steps + 1
+			return decisive(a, a.item, s.steps+1)
 		}
 		// Two calls of one trivia rule at one position end alike, so they do not count toward the
 		// bound; in strict mode the second must be cheap, as the memo of a trivia rule makes it.
@@ -893,7 +928,7 @@ func (x excl) excludes(s exclState) (ok bool, item, n int) {
 				return x.no("lit-fold", a, &b)
 			}
 			if excl {
-				return true, a.item, s.steps + 1
+				return decisive(a, a.item, s.steps+1)
 			}
 			if s.steps+1 >= x.maxK {
 				return x.no("lit-bound", a, &b)
@@ -977,6 +1012,33 @@ func (x excl) excludes(s exclState) (ok bool, item, n int) {
 	}
 }
 
+// stuck reports whether the path p cannot go on from its symbol i before it consumes more input:
+// it reaches a dead symbol, a negative lookahead !K that the rest of p must match, a positive
+// lookahead &K whose expression and the next symbol of p are disjoint, or a symbol that matches no
+// character.
+func (x excl) stuck(p []sym, i int) bool {
+	for ; i < len(p); i++ {
+		switch s := p[i]; s.kind {
+		case symDead:
+			return true
+		case symSkip, symBind, symEnv, symUp:
+		case symNot:
+			if x.implies(p[i+1:], s.e) {
+				return true
+			}
+		case symAnd:
+			if j, _ := x.nextMatch(p, i+1); j < len(p) && p[j].kind == symMatch && x.disjoint(s.e, p[j].e) {
+				return true
+			}
+		case symMatch:
+			return !x.k.nullable(s.e) && len(x.k.first(s.e)) == 0
+		default:
+			return false
+		}
+	}
+	return false
+}
+
 // recordAlike records, for checkRestarts, the call a of the unit that the continuation evaluates
 // alike at s.q[s.j], when the continuation can then reach the end of a body without consuming
 // input (restart): the body of the rule of the unit, or the body of the caller that the
@@ -999,6 +1061,8 @@ func (x excl) recordAlike(s exclState, a sym) {
 			if !x.k.nullable(b.e) {
 				return
 			}
+		case symDead:
+			return
 		default:
 			// A path that the analysis does not follow further, or the end of the parse, which
 			// comes after the end of the body in which the call is.
@@ -1277,10 +1341,12 @@ func (k *classifier) decideAlt(ch *grammar.Choice, i, maxK int) altDecision {
 // continuations within decidedUnitsK symbols, or finds that the unit evaluates nothing but
 // symbols that the continuation evaluates alike and cheap ones. The continuation then evaluates
 // again only the symbols that both evaluate alike, which are cheap, and fails at the decisive one
-// at its first character, or examines again only the constant input of the cheap symbols.
-func (k *classifier) unitDecided(u *unit, conts []contSpec) bool {
+// at its first character, or examines again only the constant input of the cheap symbols. When
+// it does not decide the unit, why says so for a path of the unit that cannot succeed, or a
+// comparison that stops where both fail, and is "" otherwise.
+func (k *classifier) unitDecided(u *unit, conts []contSpec) (ok bool, why string) {
 	if u.kind == unitLookahead {
-		return false
+		return false, ""
 	}
 	x := newExcl(k, true, decidedUnitsK)
 	x.owner = u
@@ -1288,7 +1354,7 @@ func (k *classifier) unitDecided(u *unit, conts []contSpec) bool {
 	for _, c := range u.self {
 		p, ok := x.followPaths(c)
 		if !ok {
-			return false
+			return false, ""
 		}
 		ps = append(ps, p...)
 	}
@@ -1296,18 +1362,24 @@ func (k *classifier) unitDecided(u *unit, conts []contSpec) bool {
 		for _, c := range cs.paths {
 			qs, ok := x.followPaths(c)
 			if !ok {
-				return false
+				return false, ""
 			}
 			for _, p := range ps {
 				for _, q := range qs {
 					if ok, _, _ := x.excludes(exclState{p: p, q: q}); !ok {
-						return false
+						switch {
+						case *x.last == "dead":
+							why = "both fail at one point after symbols that they evaluate alike, which does not part them"
+						case len(p) > 0 && p[len(p)-1].kind == symDead:
+							why = fmt.Sprintf("%s does not part from it on a path on which it cannot succeed", u.kind)
+						}
+						return false, why
 					}
 				}
 			}
 		}
 	}
-	return true
+	return true, ""
 }
 
 // binds reports whether evaluating e can bind a variable in the scope that it is evaluated in: e
@@ -1332,6 +1404,7 @@ var exclTrace func(tag string, a sym, b *sym)
 
 // no reports an undecided comparison to exclTrace.
 func (x excl) no(tag string, a sym, b *sym) (bool, int, int) {
+	*x.last = tag
 	if exclTrace != nil {
 		exclTrace(tag, a, b)
 	}

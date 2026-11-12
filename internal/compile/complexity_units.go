@@ -1370,8 +1370,14 @@ func (k *classifier) checkUnits() {
 		}
 		conts := k.withoutReentry(u)
 		if ok, what := k.committing(u, u.self, conts); !ok {
-			if decidedUnitsOn && k.unitDecided(u, conts) {
-				continue
+			if decidedUnitsOn {
+				ok, why := k.unitDecided(u, conts)
+				if ok {
+					continue
+				}
+				if why != "" {
+					what += " (" + why + ")"
+				}
 			}
 			u.nc, u.witness = true, what
 		}
