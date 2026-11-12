@@ -338,7 +338,6 @@ func (p *parser) inlineGap() bool {
 	}
 	line := p.toks[p.i-1].end.Line
 	step := func(c *grammar.Comment) bool {
-		p.poll()
 		if !strings.HasPrefix(c.Text, "/*") || c.Pos.Line != line {
 			return false
 		}

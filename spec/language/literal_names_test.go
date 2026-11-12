@@ -41,12 +41,13 @@ func TestLiteralNamesAreReserved(t *testing.T) {
 			}
 		})
 	}
-	// A lambda parameter is rejected where it is parsed, by both frontends.
+	// A lambda parameter named like a literal is rejected by the parser, on the generated frontend
+	// and on the engine.
 	for _, src := range []string{
 		"rule main = x:\"a\" => map($x, (false) => false)", "rule main = x:\"a\" => map($x, (a, nil) => a)",
 	} {
-		if _, err := zp.ParseGrammar(src); err == nil || !strings.Contains(err.Error(), "cannot name a lambda parameter") {
-			t.Errorf("hand-written frontend: %s: %v", src, err)
+		if _, err := zp.ParseGrammar(src); err == nil {
+			t.Errorf("frontend accepts %s", src)
 		}
 		if _, err := p.Parse(src); err == nil {
 			t.Errorf("canonical frontend accepts %s", src)

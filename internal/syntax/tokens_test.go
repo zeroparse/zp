@@ -226,7 +226,7 @@ func TestLineEnds(t *testing.T) {
 func TestIncompletePackageClause(t *testing.T) {
 	for _, src := range []string{"package", "package ", "package {", "package\nrule a = \"x\"", "package 1\nrule a = \"x\""} {
 		g, errs := ParsePartial(src)
-		if len(errs) != 1 || !strings.HasPrefix(errs[0].Msg, "expected identifier") {
+		if len(errs) != 1 || !strings.HasPrefix(errs[0].Msg, "expected package name") {
 			t.Errorf("%q: errors %v", src, errs)
 		}
 		if strings.Contains(src, "rule a") && (len(g.File.Decls) != 1 || g.Rules()[0].Name != "a") {

@@ -487,6 +487,9 @@ func (r *layoutReplay) lambda(l *grammar.Lambda) {
 		}
 		p.next() // the parameter
 		p.takeAfter(&elem)
+		if i+1 == len(l.Params) {
+			l.TrailingComma = p.is(",")
+		}
 		if i+1 < len(l.Params) || l.TrailingComma {
 			p.next() // ,
 			p.afterCommaLayout(&elem, ")")

@@ -172,7 +172,7 @@ func swapNodeTypes(g *grammar.Grammar, check func(path string)) int {
 func TestGrammarComparisonSeesNodeTypes(t *testing.T) {
 	total := 0
 	for _, src := range append(append([]string(nil), ownershipCorpus...), nodeBases...) {
-		manual, merr := zp.ParseGrammar(src)
+		manual, merr := syntax.ParseReference(src)
 		g, err := adaptCanonical(src)
 		if merr != nil || err != nil {
 			continue
@@ -196,7 +196,7 @@ func TestGrammarComparisonSeesNodeTypes(t *testing.T) {
 func TestGrammarComparisonSeesEveryField(t *testing.T) {
 	total, kinds := 0, map[string]bool{}
 	for _, src := range append(append([]string(nil), ownershipCorpus...), nodeBases...) {
-		manual, merr := zp.ParseGrammar(src)
+		manual, merr := syntax.ParseReference(src)
 		g, err := adaptCanonical(src)
 		if merr != nil || err != nil {
 			continue

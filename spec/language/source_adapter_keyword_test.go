@@ -7,7 +7,7 @@ import (
 	"strings"
 	"testing"
 
-	"zeroparse.dev/zp"
+	"zeroparse.dev/zp/internal/syntax"
 )
 
 // keywordNameCorpus are grammars that use rule, type and var as names: fields, rule references and
@@ -53,7 +53,7 @@ var keywordNameCorpus = []string{
 func TestKeywordNamesAreNotDeclarations(t *testing.T) {
 	junk := []string{"/ /\n", "/ / v\n", ") )\n", " ?? \n"}
 	for _, src := range keywordNameCorpus {
-		if _, err := zp.ParseGrammar(src); err != nil {
+		if _, err := syntax.ParseReference(src); err != nil {
 			t.Fatalf("%q is not valid: %v", src, err)
 		}
 		if _, err := adaptCanonical(src); err != nil {
@@ -67,7 +67,7 @@ func TestKeywordNamesAreNotDeclarations(t *testing.T) {
 		}
 		for _, j := range junk {
 			bad := src[:end+1] + j
-			_, merr := zp.ParseGrammar(bad)
+			_, merr := syntax.ParseReference(bad)
 			_, err := adaptCanonical(bad)
 			if merr == nil || err == nil {
 				continue // the junk made the text valid
@@ -97,7 +97,7 @@ func TestKeywordNamesAreNotDeclarations(t *testing.T) {
 		"rule a = (\n rule b\n c d ) )\n",
 		"rule a = {\n var / t\n y\n y\n y\n y\n y\n y\n y\n y\n y\n y\n}/ / v\n",
 	} {
-		_, merr := zp.ParseGrammar(c)
+		_, merr := syntax.ParseReference(c)
 		_, err := adaptCanonical(c)
 		if merr == nil || err == nil {
 			t.Fatalf("%q must be rejected by both frontends: %v, %v", c, merr, err)
@@ -170,7 +170,7 @@ func keywordFormCorpus(n int) []string {
 }
 
 func isValidGrammar(src string) bool {
-	_, err := zp.ParseGrammar(src)
+	_, err := syntax.ParseReference(src)
 	return err == nil
 }
 
@@ -253,7 +253,7 @@ func TestUnterminatedLiteralIsOneError(t *testing.T) {
 		// An indented line with a keyword in the group is not a declaration.
 		"rule a0 = {\n var != \"={\n var != \"=\"\n}\nrule a1 = x:\"a\" {\n type := \"=\"\n}\n",
 	} {
-		_, merr := zp.ParseGrammar(src)
+		_, merr := syntax.ParseReference(src)
 		_, err := adaptCanonical(src)
 		if merr == nil || err == nil {
 			t.Fatalf("%q must be rejected by both frontends: %v, %v", src, merr, err)
@@ -274,7 +274,7 @@ func TestUnterminatedLiteralKeepsTheNextError(t *testing.T) {
 		"rule a = [x\n@\nrule b = c\n",
 		"type T = { A \"x\n@\nrule b = c\n",
 	} {
-		_, merr := zp.ParseGrammar(src)
+		_, merr := syntax.ParseReference(src)
 		_, err := adaptCanonical(src)
 		if merr == nil || err == nil {
 			t.Fatalf("%q must be rejected by both frontends: %v, %v", src, merr, err)
@@ -298,7 +298,7 @@ func TestUnterminatedLiteralBeforeIndentedDeclaration(t *testing.T) {
 		"rule a = {\n \"={\n  rule b = {\nrule c = )\n",
 		"rule a = \"x\n  rule b = c\nrule d = )\n",
 	} {
-		_, merr := zp.ParseGrammar(src)
+		_, merr := syntax.ParseReference(src)
 		_, err := adaptCanonical(src)
 		if merr == nil || err == nil {
 			t.Fatalf("%q must be rejected by both frontends: %v, %v", src, merr, err)

@@ -60,7 +60,7 @@ func TestPartialSourceTree(t *testing.T) {
 	for i := 0; i < 3000; i++ {
 		s := mutatedSource(rng, corpus)
 		cases++
-		mg, merrs := syntax.ParsePartial(s)
+		mg, merrs := syntax.ParsePartialReference(s)
 		if len(merrs) == 0 {
 			continue
 		}
@@ -138,7 +138,7 @@ func TestPartialKeepsDeclarationsOfRepositoryGrammars(t *testing.T) {
 			}
 		}
 		src := strings.Join(lines, "")
-		mg, merrs := syntax.ParsePartial(src)
+		mg, merrs := syntax.ParsePartialReference(src)
 		gg, gerrs := partialCanonical(src)
 		if len(merrs) > 0 && len(gerrs) == 0 {
 			t.Errorf("%s: the canonical partial parse reports no error", file)
@@ -162,7 +162,7 @@ func TestPartialKeepsDeclarationsWithInvalidEscapes(t *testing.T) {
 		"rule a = \"\\u{110000}\"\nrule b = \"y\"\n",
 		"rule a = x => \"\\z\"\nrule b = \"y\"\n",
 	} {
-		mg, merrs := syntax.ParsePartial(src)
+		mg, merrs := syntax.ParsePartialReference(src)
 		gg, gerrs := partialCanonical(src)
 		if len(merrs) == 0 || len(gerrs) == 0 || merrs[0].Pos != gerrs[0].Pos || merrs[0].Msg != gerrs[0].Msg {
 			t.Errorf("%q: errors: manual %v, canonical %v", src, merrs, gerrs)
@@ -191,7 +191,7 @@ func TestPartialKeepsDeclarationsOfEditingStates(t *testing.T) {
 	}
 	for _, c := range cases {
 		g, errs := partialCanonical(c.src)
-		mg, merrs := syntax.ParsePartial(c.src)
+		mg, merrs := syntax.ParsePartialReference(c.src)
 		var names []string
 		for _, d := range g.File.Decls {
 			switch d := d.(type) {

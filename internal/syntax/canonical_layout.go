@@ -86,8 +86,9 @@ func (r *layoutReplay) header(pos grammar.Pos, read func()) {
 
 func (r *layoutReplay) file(g *grammar.Grammar) {
 	p := r.p
-	if p.is("package") {
-		g.File.Pkg.Break = p.statementBreak()
+	if pkg := &g.File.Pkg; len(pkg.Attrs) > 0 || p.is("package") {
+		pkg.Break = p.statementBreak()
+		pkg.AttrBreaks, pkg.KeywordBreak = r.attributes(pkg.Attrs)
 		pos := p.next().pos
 		r.header(pos, func() { p.next() })
 		r.separator()
@@ -173,7 +174,7 @@ func (r *layoutReplay) ruleDef(d *grammar.RuleDef) {
 		r.seekStart(d.Pos)
 	}
 	d.Break = p.statementBreak()
-	r.attributes(d)
+	d.AttrBreaks, d.KeywordBreak = r.attributes(d.Attrs)
 	pos := p.next().pos // rule
 	r.header(pos, func() {
 		p.next() // the name
@@ -205,15 +206,15 @@ func (r *layoutReplay) ruleDef(d *grammar.RuleDef) {
 	}
 }
 
-// attributes replays the declaration attributes of d, and the line break
-// before its rule keyword.
-func (r *layoutReplay) attributes(d *grammar.RuleDef) {
+// attributes replays the declaration attributes of a rule or the package
+// clause, and returns their line breaks and the line break before the
+// keyword that follows them.
+func (r *layoutReplay) attributes(attrs []*grammar.Attribute) (breaks []*grammar.LineBreak, keywordBreak *grammar.LineBreak) {
 	p := r.p
-	if len(d.Attrs) == 0 {
-		return
+	if len(attrs) == 0 {
+		return nil, nil
 	}
-	var breaks []*grammar.LineBreak
-	for i, a := range d.Attrs {
+	for i, a := range attrs {
 		var b *grammar.LineBreak
 		var gap []*grammar.Comment
 		if i > 0 {
@@ -237,8 +238,7 @@ func (r *layoutReplay) attributes(d *grammar.RuleDef) {
 			a.Layout.Before = gap
 		}
 	}
-	d.AttrBreaks = breaks
-	d.KeywordBreak = p.lineBreak()
+	return breaks, p.lineBreak()
 }
 
 func (r *layoutReplay) attribute(a *grammar.Attribute) {

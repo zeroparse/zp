@@ -120,51 +120,6 @@ func tokenizeContext(ctx context.Context, src string) ([]Token, error) {
 	return out, nil
 }
 
-// ParsePartial parses src like Parse, but returns the grammar even when there are errors. After an
-// error the parser skips to the next rule or type, so the grammar holds the definitions that parsed
-// to the end; a definition with an error in the middle is missing. Errors that do not stop the
-// parser of a definition, such as an invalid escape sequence, leave the definition in the grammar.
-func ParsePartial(src string) (*grammar.Grammar, ErrorList) {
-	g, errs, _ := parsePartialContext(nil, src)
-	return g, errs
-}
-
-// ParsePartialContext is ParsePartial with cancellation during lexing and
-// parsing. Cancelled calls return no grammar or diagnostics.
-func ParsePartialContext(ctx context.Context, src string) (*grammar.Grammar, ErrorList, error) {
-	return parsePartialContext(ctx, src)
-}
-
-func parsePartialContext(ctx context.Context, src string) (g *grammar.Grammar, diagnostics ErrorList, parseErr error) {
-	defer func() {
-		if value := recover(); value != nil {
-			if cancelled, ok := value.(parseCancelled); ok {
-				g, diagnostics, parseErr = nil, nil, cancelled.err
-				return
-			}
-			panic(value)
-		}
-	}()
-	errs := &errorList{}
-	toks, err := lexContext(ctx, src, errs)
-	if err != nil {
-		return nil, nil, err
-	}
-	if ctx != nil {
-		if err := ctx.Err(); err != nil {
-			return nil, nil, err
-		}
-	}
-	p := &parser{toks: toks, errs: errs, ctx: ctx}
-	g = p.file()
-	if ctx != nil {
-		if err := ctx.Err(); err != nil {
-			return nil, nil, err
-		}
-	}
-	return g, errs.list, nil
-}
-
 // IsRuleName reports whether s can name a rule: an identifier, or "_" followed by ASCII letters,
 // digits and "_", which makes a hidden rule. The name "_" alone is not a rule name.
 func IsRuleName(s string) bool {
