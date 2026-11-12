@@ -91,7 +91,6 @@ Each linked mechanism page describes its source, eligibility, interactions, cont
 | [A100](mechanisms/A100-document-vm-value-stack.md) | Reuse bounded VM value stack for Document parses | RVM/IVM Document paths only | — | ✓ | ✓ | — | — | — | Default | zp_reference_document_vm_values |
 | [A110](mechanisms/A110-expected-set-ids.md) | Interned expectation IDs and shared windows | All six; backend storage differs | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | Default | None maintained |
 | [A120](mechanisms/A120-source-token-text.md) | Source substring token text | All six subject to input representation; stream separately | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | Default | None maintained |
-| [A130](mechanisms/A130-closure-lambda-arenas.md) | LIFO lambda call/context arenas | C only; VM allocation separate | ✓ | — | — | — | — | — | Default | None maintained |
 | [A140](mechanisms/A140-construction-tracking-release.md) | Release completed construction tracking | All six default; TS timing unmeasured | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | Default | None maintained |
 | [A150](mechanisms/A150-vm-position-and-lambda-chunks.md) | VM boxed positions and lambda chunks | RVM/IVM only | — | ✓ | ✓ | — | — | — | Default | None maintained |
 | [A160](mechanisms/A160-whole-input-scratch-pooling.md) | Pool whole-input scratch across calls | C/RVM/IVM/GN/TG; TS N/A | ✓ | ✓ | ✓ | ✓ | ✓ | — | Default | None maintained |
