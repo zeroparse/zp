@@ -239,66 +239,77 @@ func init() {
 	rules[1].Body = e2
 	rules[2].Body = e5
 	rules[2].Action = func(c *rt.ActCtx) (any, any) {
-		tn1 := c.TermStruct("Binary", 3)
-		tfirst2 := true
+		tf1 := c.Cap(0)
+		tf2 := c.Cap(1)
+		tf3 := c.Cap(2)
+		tn4 := c.TermStruct("Binary", 3)
+		tfirst5 := true
 		c.P.Spend()
-		c.TermSetField(tn1, "Left", c.Cap(0))
-		tfirst2 = c.P.TermCover(tn1, c.Cap(0), tfirst2)
+		c.TermSetField(tn4, "Left", tf1)
+		tfirst5 = c.P.TermCover(tn4, tf1, tfirst5)
 		c.P.Spend()
-		c.TermSetField(tn1, "Op", c.Cap(1))
-		tfirst2 = c.P.TermCover(tn1, c.Cap(1), tfirst2)
+		c.TermSetField(tn4, "Op", tf2)
+		tfirst5 = c.P.TermCover(tn4, tf2, tfirst5)
 		c.P.Spend()
-		c.TermSetField(tn1, "Right", c.Cap(2))
-		tfirst2 = c.P.TermCover(tn1, c.Cap(2), tfirst2)
-		c.P.TermMade(c, tn1, tfirst2)
-		return any(tn1), nil
+		c.TermSetField(tn4, "Right", tf3)
+		tfirst5 = c.P.TermCover(tn4, tf3, tfirst5)
+		c.P.TermMade(c, tn4, tfirst5)
+		return any(tn4), nil
 	}
 	rules[3].Body = e6
 	rules[4].Body = e10
 	rules[4].Action = func(c *rt.ActCtx) (any, any) {
-		tn1 := c.TermStruct("Binary", 3)
-		tfirst2 := true
+		tf1 := c.Cap(0)
+		tf2 := c.Cap(1)
+		tf3 := c.Cap(2)
+		tn4 := c.TermStruct("Binary", 3)
+		tfirst5 := true
 		c.P.Spend()
-		c.TermSetField(tn1, "Left", c.Cap(0))
-		tfirst2 = c.P.TermCover(tn1, c.Cap(0), tfirst2)
+		c.TermSetField(tn4, "Left", tf1)
+		tfirst5 = c.P.TermCover(tn4, tf1, tfirst5)
 		c.P.Spend()
-		c.TermSetField(tn1, "Op", c.Cap(1))
-		tfirst2 = c.P.TermCover(tn1, c.Cap(1), tfirst2)
+		c.TermSetField(tn4, "Op", tf2)
+		tfirst5 = c.P.TermCover(tn4, tf2, tfirst5)
 		c.P.Spend()
-		c.TermSetField(tn1, "Right", c.Cap(2))
-		tfirst2 = c.P.TermCover(tn1, c.Cap(2), tfirst2)
-		c.P.TermMade(c, tn1, tfirst2)
-		return any(tn1), nil
+		c.TermSetField(tn4, "Right", tf3)
+		tfirst5 = c.P.TermCover(tn4, tf3, tfirst5)
+		c.P.TermMade(c, tn4, tfirst5)
+		return any(tn4), nil
 	}
 	rules[5].Body = e11
 	rules[6].Body = e12
 	rules[6].Action = func(c *rt.ActCtx) (any, any) {
-		tn1 := c.TermStruct("Unary", 2)
-		tfirst2 := true
+		tf1 := c.Cap(0)
+		tf2 := c.Cap(1)
+		tn3 := c.TermStruct("Unary", 2)
+		tfirst4 := true
 		c.P.Spend()
-		c.TermSetField(tn1, "Op", c.Cap(0))
-		tfirst2 = c.P.TermCover(tn1, c.Cap(0), tfirst2)
+		c.TermSetField(tn3, "Op", tf1)
+		tfirst4 = c.P.TermCover(tn3, tf1, tfirst4)
 		c.P.Spend()
-		c.TermSetField(tn1, "X", c.Cap(1))
-		tfirst2 = c.P.TermCover(tn1, c.Cap(1), tfirst2)
-		c.P.TermMade(c, tn1, tfirst2)
-		return any(tn1), nil
+		c.TermSetField(tn3, "X", tf2)
+		tfirst4 = c.P.TermCover(tn3, tf2, tfirst4)
+		c.P.TermMade(c, tn3, tfirst4)
+		return any(tn3), nil
 	}
 	rules[8].Body = e15
 	rules[8].Action = func(c *rt.ActCtx) (any, any) {
-		tn1 := c.TermStruct("Binary", 3)
-		tfirst2 := true
+		tf1 := c.Cap(0)
+		tf2 := c.Cap(1)
+		tf3 := c.Cap(2)
+		tn4 := c.TermStruct("Binary", 3)
+		tfirst5 := true
 		c.P.Spend()
-		c.TermSetField(tn1, "Left", c.Cap(0))
-		tfirst2 = c.P.TermCover(tn1, c.Cap(0), tfirst2)
+		c.TermSetField(tn4, "Left", tf1)
+		tfirst5 = c.P.TermCover(tn4, tf1, tfirst5)
 		c.P.Spend()
-		c.TermSetField(tn1, "Op", c.Cap(1))
-		tfirst2 = c.P.TermCover(tn1, c.Cap(1), tfirst2)
+		c.TermSetField(tn4, "Op", tf2)
+		tfirst5 = c.P.TermCover(tn4, tf2, tfirst5)
 		c.P.Spend()
-		c.TermSetField(tn1, "Right", c.Cap(2))
-		tfirst2 = c.P.TermCover(tn1, c.Cap(2), tfirst2)
-		c.P.TermMade(c, tn1, tfirst2)
-		return any(tn1), nil
+		c.TermSetField(tn4, "Right", tf3)
+		tfirst5 = c.P.TermCover(tn4, tf3, tfirst5)
+		c.P.TermMade(c, tn4, tfirst5)
+		return any(tn4), nil
 	}
 	rules[9].Body = e16
 	rules[9].Action = func(c *rt.ActCtx) (any, any) {

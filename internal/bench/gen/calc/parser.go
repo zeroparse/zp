@@ -215,61 +215,72 @@ func init() {
 			}, Value: sh11},
 		},
 		Prefix: []*rt.OperatorsRuleOp{{Id: 2, Kind: "prefix", Assoc: "", Level: 3, Line: &rt.OperatorsRuleLine{Scope: []string{}, M: e19, Action: func(c *rt.ActCtx) (any, any) {
-			tn1 := c.TermStruct("Unary", 2)
-			tfirst2 := true
+			tf1 := rt.UnboxValue(c.Op)
+			tf2 := rt.UnboxValue(c.Rhs)
+			tn3 := c.TermStruct("Unary", 2)
+			tfirst4 := true
 			c.P.Spend()
-			c.TermSetField(tn1, "Op", rt.UnboxValue(c.Op))
-			tfirst2 = c.P.TermCover(tn1, rt.UnboxValue(c.Op), tfirst2)
+			c.TermSetField(tn3, "Op", tf1)
+			tfirst4 = c.P.TermCover(tn3, tf1, tfirst4)
 			c.P.Spend()
-			c.TermSetField(tn1, "X", rt.UnboxValue(c.Rhs))
-			tfirst2 = c.P.TermCover(tn1, rt.UnboxValue(c.Rhs), tfirst2)
-			c.P.TermMade(c, tn1, tfirst2)
-			return any(tn1), nil
+			c.TermSetField(tn3, "X", tf2)
+			tfirst4 = c.P.TermCover(tn3, tf2, tfirst4)
+			c.P.TermMade(c, tn3, tfirst4)
+			return any(tn3), nil
 		}, Value: sh5}}},
 		Led: []*rt.OperatorsRuleOp{{Id: 0, Kind: "infix", Assoc: "left", Level: 1, Line: &rt.OperatorsRuleLine{Scope: []string{}, M: e14, Action: func(c *rt.ActCtx) (any, any) {
-			tn1 := c.TermStruct("Binary", 3)
-			tfirst2 := true
+			tf1 := rt.UnboxValue(c.Lhs)
+			tf2 := rt.UnboxValue(c.Op)
+			tf3 := rt.UnboxValue(c.Rhs)
+			tn4 := c.TermStruct("Binary", 3)
+			tfirst5 := true
 			c.P.Spend()
-			c.TermSetField(tn1, "Left", rt.UnboxValue(c.Lhs))
-			tfirst2 = c.P.TermCover(tn1, rt.UnboxValue(c.Lhs), tfirst2)
+			c.TermSetField(tn4, "Left", tf1)
+			tfirst5 = c.P.TermCover(tn4, tf1, tfirst5)
 			c.P.Spend()
-			c.TermSetField(tn1, "Op", rt.UnboxValue(c.Op))
-			tfirst2 = c.P.TermCover(tn1, rt.UnboxValue(c.Op), tfirst2)
+			c.TermSetField(tn4, "Op", tf2)
+			tfirst5 = c.P.TermCover(tn4, tf2, tfirst5)
 			c.P.Spend()
-			c.TermSetField(tn1, "Right", rt.UnboxValue(c.Rhs))
-			tfirst2 = c.P.TermCover(tn1, rt.UnboxValue(c.Rhs), tfirst2)
-			c.P.TermMade(c, tn1, tfirst2)
-			return any(tn1), nil
+			c.TermSetField(tn4, "Right", tf3)
+			tfirst5 = c.P.TermCover(tn4, tf3, tfirst5)
+			c.P.TermMade(c, tn4, tfirst5)
+			return any(tn4), nil
 		}, Value: sh5}},
 			{Id: 1, Kind: "infix", Assoc: "left", Level: 2, Line: &rt.OperatorsRuleLine{Scope: []string{}, M: e18, Action: func(c *rt.ActCtx) (any, any) {
-				tn1 := c.TermStruct("Binary", 3)
-				tfirst2 := true
+				tf1 := rt.UnboxValue(c.Lhs)
+				tf2 := rt.UnboxValue(c.Op)
+				tf3 := rt.UnboxValue(c.Rhs)
+				tn4 := c.TermStruct("Binary", 3)
+				tfirst5 := true
 				c.P.Spend()
-				c.TermSetField(tn1, "Left", rt.UnboxValue(c.Lhs))
-				tfirst2 = c.P.TermCover(tn1, rt.UnboxValue(c.Lhs), tfirst2)
+				c.TermSetField(tn4, "Left", tf1)
+				tfirst5 = c.P.TermCover(tn4, tf1, tfirst5)
 				c.P.Spend()
-				c.TermSetField(tn1, "Op", rt.UnboxValue(c.Op))
-				tfirst2 = c.P.TermCover(tn1, rt.UnboxValue(c.Op), tfirst2)
+				c.TermSetField(tn4, "Op", tf2)
+				tfirst5 = c.P.TermCover(tn4, tf2, tfirst5)
 				c.P.Spend()
-				c.TermSetField(tn1, "Right", rt.UnboxValue(c.Rhs))
-				tfirst2 = c.P.TermCover(tn1, rt.UnboxValue(c.Rhs), tfirst2)
-				c.P.TermMade(c, tn1, tfirst2)
-				return any(tn1), nil
+				c.TermSetField(tn4, "Right", tf3)
+				tfirst5 = c.P.TermCover(tn4, tf3, tfirst5)
+				c.P.TermMade(c, tn4, tfirst5)
+				return any(tn4), nil
 			}, Value: sh5}},
 			{Id: 3, Kind: "infix", Assoc: "right", Level: 4, Line: &rt.OperatorsRuleLine{Scope: []string{}, M: e21, Action: func(c *rt.ActCtx) (any, any) {
-				tn1 := c.TermStruct("Binary", 3)
-				tfirst2 := true
+				tf1 := rt.UnboxValue(c.Lhs)
+				tf2 := rt.UnboxValue(c.Op)
+				tf3 := rt.UnboxValue(c.Rhs)
+				tn4 := c.TermStruct("Binary", 3)
+				tfirst5 := true
 				c.P.Spend()
-				c.TermSetField(tn1, "Left", rt.UnboxValue(c.Lhs))
-				tfirst2 = c.P.TermCover(tn1, rt.UnboxValue(c.Lhs), tfirst2)
+				c.TermSetField(tn4, "Left", tf1)
+				tfirst5 = c.P.TermCover(tn4, tf1, tfirst5)
 				c.P.Spend()
-				c.TermSetField(tn1, "Op", rt.UnboxValue(c.Op))
-				tfirst2 = c.P.TermCover(tn1, rt.UnboxValue(c.Op), tfirst2)
+				c.TermSetField(tn4, "Op", tf2)
+				tfirst5 = c.P.TermCover(tn4, tf2, tfirst5)
 				c.P.Spend()
-				c.TermSetField(tn1, "Right", rt.UnboxValue(c.Rhs))
-				tfirst2 = c.P.TermCover(tn1, rt.UnboxValue(c.Rhs), tfirst2)
-				c.P.TermMade(c, tn1, tfirst2)
-				return any(tn1), nil
+				c.TermSetField(tn4, "Right", tf3)
+				tfirst5 = c.P.TermCover(tn4, tf3, tfirst5)
+				c.P.TermMade(c, tn4, tfirst5)
+				return any(tn4), nil
 			}, Value: sh5}}},
 	}
 	rules[1].Body = func(p *rt.Parser, min int) (*rt.Node, bool) { return p.OperatorsRuleParse(rules[1], min) }

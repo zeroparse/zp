@@ -351,13 +351,14 @@ func init() {
 		}
 		tk3 := c.P.Kids(tm1)
 		tn4 := c.P.TermHull(c, false, tk3)
-		tn5 := c.TermStruct("Object", 1)
-		tfirst6 := true
+		tf5 := any(tn4)
+		tn6 := c.TermStruct("Object", 1)
+		tfirst7 := true
 		c.P.Spend()
-		c.TermSetField(tn5, "Members", any(tn4))
-		tfirst6 = c.P.TermCover(tn5, any(tn4), tfirst6)
-		c.P.TermMade(c, tn5, tfirst6)
-		return any(tn5), nil
+		c.TermSetField(tn6, "Members", tf5)
+		tfirst7 = c.P.TermCover(tn6, tf5, tfirst7)
+		c.P.TermMade(c, tn6, tfirst7)
+		return any(tn6), nil
 	}
 	rules[3].Body = e8
 	rules[3].Action = func(c *rt.ActCtx) (any, any) {
@@ -377,16 +378,18 @@ func init() {
 	}
 	rules[4].Body = e10
 	rules[4].Action = func(c *rt.ActCtx) (any, any) {
-		tn1 := c.TermStruct("Member", 2)
-		tfirst2 := true
+		tf1 := c.Cap(0)
+		tf2 := c.Cap(1)
+		tn3 := c.TermStruct("Member", 2)
+		tfirst4 := true
 		c.P.Spend()
-		c.TermSetField(tn1, "Key", c.Cap(0))
-		tfirst2 = c.P.TermCover(tn1, c.Cap(0), tfirst2)
+		c.TermSetField(tn3, "Key", tf1)
+		tfirst4 = c.P.TermCover(tn3, tf1, tfirst4)
 		c.P.Spend()
-		c.TermSetField(tn1, "Value", c.Cap(1))
-		tfirst2 = c.P.TermCover(tn1, c.Cap(1), tfirst2)
-		c.P.TermMade(c, tn1, tfirst2)
-		return any(tn1), nil
+		c.TermSetField(tn3, "Value", tf2)
+		tfirst4 = c.P.TermCover(tn3, tf2, tfirst4)
+		c.P.TermMade(c, tn3, tfirst4)
+		return any(tn3), nil
 	}
 	rules[5].Body = e13
 	rules[5].Action = func(c *rt.ActCtx) (any, any) {
@@ -398,13 +401,14 @@ func init() {
 		}
 		tk3 := c.P.Kids(tm1)
 		tn4 := c.P.TermHull(c, false, tk3)
-		tn5 := c.TermStruct("Array", 1)
-		tfirst6 := true
+		tf5 := any(tn4)
+		tn6 := c.TermStruct("Array", 1)
+		tfirst7 := true
 		c.P.Spend()
-		c.TermSetField(tn5, "Elements", any(tn4))
-		tfirst6 = c.P.TermCover(tn5, any(tn4), tfirst6)
-		c.P.TermMade(c, tn5, tfirst6)
-		return any(tn5), nil
+		c.TermSetField(tn6, "Elements", tf5)
+		tfirst7 = c.P.TermCover(tn6, tf5, tfirst7)
+		c.P.TermMade(c, tn6, tfirst7)
+		return any(tn6), nil
 	}
 	rules[6].Body = e15
 	rules[6].Action = func(c *rt.ActCtx) (any, any) {

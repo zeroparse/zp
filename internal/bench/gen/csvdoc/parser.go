@@ -113,13 +113,14 @@ func init() {
 		}
 		tk4 := c.P.Kids(tm1)
 		tn5 := c.P.TermHull(c, false, tk4)
-		tn6 := c.TermStruct("Record", 1)
-		tfirst7 := true
+		tf6 := any(tn5)
+		tn7 := c.TermStruct("Record", 1)
+		tfirst8 := true
 		c.P.Spend()
-		c.TermSetField(tn6, "Fields", any(tn5))
-		tfirst7 = c.P.TermCover(tn6, any(tn5), tfirst7)
-		c.P.TermMade(c, tn6, tfirst7)
-		return any(tn6), nil
+		c.TermSetField(tn7, "Fields", tf6)
+		tfirst8 = c.P.TermCover(tn7, tf6, tfirst8)
+		c.P.TermMade(c, tn7, tfirst8)
+		return any(tn7), nil
 	}
 	rules[2].Body = e10
 	rules[4].Body = e13

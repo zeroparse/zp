@@ -1069,38 +1069,43 @@ func init() {
 	zpGrammar.SetRules(rules, 18)
 	rules[0].Body = e2
 	rules[0].Action = func(c *rt.ActCtx) (any, any) {
-		tm1 := len(c.P.KidStack)
+		tf1 := c.Cap(0)
+		tm2 := len(c.P.KidStack)
 		c.P.Spend()
-		tf2 := c.P.TermPushItems(c, "concat", c.Cap(1))
-		if tf2 != nil {
-			return nil, tf2
-		}
-		c.P.Spend()
-		tf3 := c.P.TermPushItems(c, "concat", c.Cap(3))
+		tf3 := c.P.TermPushItems(c, "concat", c.Cap(1))
 		if tf3 != nil {
 			return nil, tf3
 		}
-		tk4 := c.P.Kids(tm1)
-		tn5 := c.P.TermHull(c, false, tk4)
-		tn6 := c.TermStruct("Document", 5)
-		tfirst7 := true
 		c.P.Spend()
-		c.TermSetField(tn6, "Decl", c.Cap(0))
-		tfirst7 = c.P.TermCover(tn6, c.Cap(0), tfirst7)
+		tf4 := c.P.TermPushItems(c, "concat", c.Cap(3))
+		if tf4 != nil {
+			return nil, tf4
+		}
+		tk5 := c.P.Kids(tm2)
+		tn6 := c.P.TermHull(c, false, tk5)
+		tf7 := any(tn6)
+		tf8 := c.Cap(2)
+		tf9 := c.Cap(4)
+		tf10 := c.Cap(5)
+		tn11 := c.TermStruct("Document", 5)
+		tfirst12 := true
 		c.P.Spend()
-		c.TermSetField(tn6, "Prolog", any(tn5))
-		tfirst7 = c.P.TermCover(tn6, any(tn5), tfirst7)
+		c.TermSetField(tn11, "Decl", tf1)
+		tfirst12 = c.P.TermCover(tn11, tf1, tfirst12)
 		c.P.Spend()
-		c.TermSetField(tn6, "Doctype", c.Cap(2))
-		tfirst7 = c.P.TermCover(tn6, c.Cap(2), tfirst7)
+		c.TermSetField(tn11, "Prolog", tf7)
+		tfirst12 = c.P.TermCover(tn11, tf7, tfirst12)
 		c.P.Spend()
-		c.TermSetField(tn6, "Root", c.Cap(4))
-		tfirst7 = c.P.TermCover(tn6, c.Cap(4), tfirst7)
+		c.TermSetField(tn11, "Doctype", tf8)
+		tfirst12 = c.P.TermCover(tn11, tf8, tfirst12)
 		c.P.Spend()
-		c.TermSetField(tn6, "Epilog", c.Cap(5))
-		tfirst7 = c.P.TermCover(tn6, c.Cap(5), tfirst7)
-		c.P.TermMade(c, tn6, tfirst7)
-		return any(tn6), nil
+		c.TermSetField(tn11, "Root", tf9)
+		tfirst12 = c.P.TermCover(tn11, tf9, tfirst12)
+		c.P.Spend()
+		c.TermSetField(tn11, "Epilog", tf10)
+		tfirst12 = c.P.TermCover(tn11, tf10, tfirst12)
+		c.P.TermMade(c, tn11, tfirst12)
+		return any(tn11), nil
 	}
 	rules[1].Body = e4
 	rules[1].Action = func(c *rt.ActCtx) (any, any) {
@@ -1113,19 +1118,22 @@ func init() {
 	}
 	rules[3].Body = e8
 	rules[3].Action = func(c *rt.ActCtx) (any, any) {
-		tn1 := c.TermStruct("XMLDecl", 3)
-		tfirst2 := true
+		tf1 := c.Cap(0)
+		tf2 := c.Cap(1)
+		tf3 := c.Cap(2)
+		tn4 := c.TermStruct("XMLDecl", 3)
+		tfirst5 := true
 		c.P.Spend()
-		c.TermSetField(tn1, "Version", c.Cap(0))
-		tfirst2 = c.P.TermCover(tn1, c.Cap(0), tfirst2)
+		c.TermSetField(tn4, "Version", tf1)
+		tfirst5 = c.P.TermCover(tn4, tf1, tfirst5)
 		c.P.Spend()
-		c.TermSetField(tn1, "Encoding", c.Cap(1))
-		tfirst2 = c.P.TermCover(tn1, c.Cap(1), tfirst2)
+		c.TermSetField(tn4, "Encoding", tf2)
+		tfirst5 = c.P.TermCover(tn4, tf2, tfirst5)
 		c.P.Spend()
-		c.TermSetField(tn1, "Standalone", c.Cap(2))
-		tfirst2 = c.P.TermCover(tn1, c.Cap(2), tfirst2)
-		c.P.TermMade(c, tn1, tfirst2)
-		return any(tn1), nil
+		c.TermSetField(tn4, "Standalone", tf3)
+		tfirst5 = c.P.TermCover(tn4, tf3, tfirst5)
+		c.P.TermMade(c, tn4, tfirst5)
+		return any(tn4), nil
 	}
 	rules[4].Body = e12
 	rules[4].Action = func(c *rt.ActCtx) (any, any) {
@@ -1145,40 +1153,45 @@ func init() {
 	}
 	rules[13].Body = e31
 	rules[13].Action = func(c *rt.ActCtx) (any, any) {
-		tn1 := c.TermStruct("PI", 2)
-		tfirst2 := true
+		tf1 := c.Cap(0)
+		tf2 := c.Cap(1)
+		tn3 := c.TermStruct("PI", 2)
+		tfirst4 := true
 		c.P.Spend()
-		c.TermSetField(tn1, "Target", c.Cap(0))
-		tfirst2 = c.P.TermCover(tn1, c.Cap(0), tfirst2)
+		c.TermSetField(tn3, "Target", tf1)
+		tfirst4 = c.P.TermCover(tn3, tf1, tfirst4)
 		c.P.Spend()
-		c.TermSetField(tn1, "Data", c.Cap(1))
-		tfirst2 = c.P.TermCover(tn1, c.Cap(1), tfirst2)
-		c.P.TermMade(c, tn1, tfirst2)
-		return any(tn1), nil
+		c.TermSetField(tn3, "Data", tf2)
+		tfirst4 = c.P.TermCover(tn3, tf2, tfirst4)
+		c.P.TermMade(c, tn3, tfirst4)
+		return any(tn3), nil
 	}
 	rules[15].Body = e39
 	rules[15].Action = func(c *rt.ActCtx) (any, any) {
-		tm1 := len(c.P.KidStack)
+		tf1 := c.Cap(0)
+		tf2 := c.Cap(1)
+		tm3 := len(c.P.KidStack)
 		c.P.Spend()
-		tf2 := c.P.TermPushItems(c, "concat", c.Cap(2))
-		if tf2 != nil {
-			return nil, tf2
+		tf4 := c.P.TermPushItems(c, "concat", c.Cap(2))
+		if tf4 != nil {
+			return nil, tf4
 		}
-		tk3 := c.P.Kids(tm1)
-		tn4 := c.P.TermHull(c, false, tk3)
-		tn5 := c.TermStruct("Doctype", 3)
-		tfirst6 := true
+		tk5 := c.P.Kids(tm3)
+		tn6 := c.P.TermHull(c, false, tk5)
+		tf7 := any(tn6)
+		tn8 := c.TermStruct("Doctype", 3)
+		tfirst9 := true
 		c.P.Spend()
-		c.TermSetField(tn5, "Name", c.Cap(0))
-		tfirst6 = c.P.TermCover(tn5, c.Cap(0), tfirst6)
+		c.TermSetField(tn8, "Name", tf1)
+		tfirst9 = c.P.TermCover(tn8, tf1, tfirst9)
 		c.P.Spend()
-		c.TermSetField(tn5, "ExternalID", c.Cap(1))
-		tfirst6 = c.P.TermCover(tn5, c.Cap(1), tfirst6)
+		c.TermSetField(tn8, "ExternalID", tf2)
+		tfirst9 = c.P.TermCover(tn8, tf2, tfirst9)
 		c.P.Spend()
-		c.TermSetField(tn5, "Subset", any(tn4))
-		tfirst6 = c.P.TermCover(tn5, any(tn4), tfirst6)
-		c.P.TermMade(c, tn5, tfirst6)
-		return any(tn5), nil
+		c.TermSetField(tn8, "Subset", tf7)
+		tfirst9 = c.P.TermCover(tn8, tf7, tfirst9)
+		c.P.TermMade(c, tn8, tfirst9)
+		return any(tn8), nil
 	}
 	rules[16].Body = e41
 	rules[16].Action = func(c *rt.ActCtx) (any, any) {
@@ -1192,26 +1205,29 @@ func init() {
 	rules[19].Body = e46
 	rules[20].Body = e48
 	rules[20].Action = func(c *rt.ActCtx) (any, any) {
-		tn1 := c.TermStruct("ExternalID", 1)
-		tfirst2 := true
+		tf1 := c.Cap(0)
+		tn2 := c.TermStruct("ExternalID", 1)
+		tfirst3 := true
 		c.P.Spend()
-		c.TermSetField(tn1, "System", c.Cap(0))
-		tfirst2 = c.P.TermCover(tn1, c.Cap(0), tfirst2)
-		c.P.TermMade(c, tn1, tfirst2)
-		return any(tn1), nil
+		c.TermSetField(tn2, "System", tf1)
+		tfirst3 = c.P.TermCover(tn2, tf1, tfirst3)
+		c.P.TermMade(c, tn2, tfirst3)
+		return any(tn2), nil
 	}
 	rules[21].Body = e50
 	rules[21].Action = func(c *rt.ActCtx) (any, any) {
-		tn1 := c.TermStruct("ExternalID", 2)
-		tfirst2 := true
+		tf1 := c.Cap(0)
+		tf2 := c.Cap(1)
+		tn3 := c.TermStruct("ExternalID", 2)
+		tfirst4 := true
 		c.P.Spend()
-		c.TermSetField(tn1, "Public", c.Cap(0))
-		tfirst2 = c.P.TermCover(tn1, c.Cap(0), tfirst2)
+		c.TermSetField(tn3, "Public", tf1)
+		tfirst4 = c.P.TermCover(tn3, tf1, tfirst4)
 		c.P.Spend()
-		c.TermSetField(tn1, "System", c.Cap(1))
-		tfirst2 = c.P.TermCover(tn1, c.Cap(1), tfirst2)
-		c.P.TermMade(c, tn1, tfirst2)
-		return any(tn1), nil
+		c.TermSetField(tn3, "System", tf2)
+		tfirst4 = c.P.TermCover(tn3, tf2, tfirst4)
+		c.P.TermMade(c, tn3, tfirst4)
+		return any(tn3), nil
 	}
 	rules[22].Body = e51
 	rules[22].Action = func(c *rt.ActCtx) (any, any) {
@@ -1223,16 +1239,18 @@ func init() {
 	}
 	rules[28].Body = e62
 	rules[28].Action = func(c *rt.ActCtx) (any, any) {
-		tn1 := c.TermStruct("ElementDecl", 2)
-		tfirst2 := true
+		tf1 := c.Cap(0)
+		tf2 := c.Cap(1)
+		tn3 := c.TermStruct("ElementDecl", 2)
+		tfirst4 := true
 		c.P.Spend()
-		c.TermSetField(tn1, "Name", c.Cap(0))
-		tfirst2 = c.P.TermCover(tn1, c.Cap(0), tfirst2)
+		c.TermSetField(tn3, "Name", tf1)
+		tfirst4 = c.P.TermCover(tn3, tf1, tfirst4)
 		c.P.Spend()
-		c.TermSetField(tn1, "Content", c.Cap(1))
-		tfirst2 = c.P.TermCover(tn1, c.Cap(1), tfirst2)
-		c.P.TermMade(c, tn1, tfirst2)
-		return any(tn1), nil
+		c.TermSetField(tn3, "Content", tf2)
+		tfirst4 = c.P.TermCover(tn3, tf2, tfirst4)
+		c.P.TermMade(c, tn3, tfirst4)
+		return any(tn3), nil
 	}
 	rules[32].Body = e75
 	rules[32].Action = func(c *rt.ActCtx) (any, any) {
@@ -1257,13 +1275,14 @@ func init() {
 		}
 		tk9 := c.P.Kids(tm1)
 		tn10 := c.P.TermHull(c, false, tk9)
-		tn11 := c.TermStruct("Mixed", 1)
-		tfirst12 := true
+		tf11 := any(tn10)
+		tn12 := c.TermStruct("Mixed", 1)
+		tfirst13 := true
 		c.P.Spend()
-		c.TermSetField(tn11, "Names", any(tn10))
-		tfirst12 = c.P.TermCover(tn11, any(tn10), tfirst12)
-		c.P.TermMade(c, tn11, tfirst12)
-		return any(tn11), nil
+		c.TermSetField(tn12, "Names", tf11)
+		tfirst13 = c.P.TermCover(tn12, tf11, tfirst13)
+		c.P.TermMade(c, tn12, tfirst13)
+		return any(tn12), nil
 	}
 	rules[33].Body = e77
 	rules[33].Action = func(c *rt.ActCtx) (any, any) {
@@ -1279,16 +1298,18 @@ func init() {
 		}
 		tk4 := c.P.Kids(tm1)
 		tn5 := c.P.TermHull(c, false, tk4)
-		tn6 := c.TermStruct("Choice", 2)
-		tfirst7 := true
+		tf6 := any(tn5)
+		tf7 := c.Cap(2)
+		tn8 := c.TermStruct("Choice", 2)
+		tfirst9 := true
 		c.P.Spend()
-		c.TermSetField(tn6, "Items", any(tn5))
-		tfirst7 = c.P.TermCover(tn6, any(tn5), tfirst7)
+		c.TermSetField(tn8, "Items", tf6)
+		tfirst9 = c.P.TermCover(tn8, tf6, tfirst9)
 		c.P.Spend()
-		c.TermSetField(tn6, "Occur", c.Cap(2))
-		tfirst7 = c.P.TermCover(tn6, c.Cap(2), tfirst7)
-		c.P.TermMade(c, tn6, tfirst7)
-		return any(tn6), nil
+		c.TermSetField(tn8, "Occur", tf7)
+		tfirst9 = c.P.TermCover(tn8, tf7, tfirst9)
+		c.P.TermMade(c, tn8, tfirst9)
+		return any(tn8), nil
 	}
 	rules[34].Body = e80
 	rules[34].Action = func(c *rt.ActCtx) (any, any) {
@@ -1304,67 +1325,76 @@ func init() {
 		}
 		tk4 := c.P.Kids(tm1)
 		tn5 := c.P.TermHull(c, false, tk4)
-		tn6 := c.TermStruct("Sequence", 2)
-		tfirst7 := true
+		tf6 := any(tn5)
+		tf7 := c.Cap(2)
+		tn8 := c.TermStruct("Sequence", 2)
+		tfirst9 := true
 		c.P.Spend()
-		c.TermSetField(tn6, "Items", any(tn5))
-		tfirst7 = c.P.TermCover(tn6, any(tn5), tfirst7)
+		c.TermSetField(tn8, "Items", tf6)
+		tfirst9 = c.P.TermCover(tn8, tf6, tfirst9)
 		c.P.Spend()
-		c.TermSetField(tn6, "Occur", c.Cap(2))
-		tfirst7 = c.P.TermCover(tn6, c.Cap(2), tfirst7)
-		c.P.TermMade(c, tn6, tfirst7)
-		return any(tn6), nil
+		c.TermSetField(tn8, "Occur", tf7)
+		tfirst9 = c.P.TermCover(tn8, tf7, tfirst9)
+		c.P.TermMade(c, tn8, tfirst9)
+		return any(tn8), nil
 	}
 	rules[35].Body = e82
 	rules[36].Body = e83
 	rules[36].Action = func(c *rt.ActCtx) (any, any) {
-		tn1 := c.TermStruct("NameParticle", 2)
-		tfirst2 := true
-		c.P.Spend()
-		c.TermSetField(tn1, "Name", c.Cap(0))
-		tfirst2 = c.P.TermCover(tn1, c.Cap(0), tfirst2)
-		c.P.Spend()
-		c.TermSetField(tn1, "Occur", c.Cap(1))
-		tfirst2 = c.P.TermCover(tn1, c.Cap(1), tfirst2)
-		c.P.TermMade(c, tn1, tfirst2)
-		return any(tn1), nil
-	}
-	rules[38].Body = e87
-	rules[38].Action = func(c *rt.ActCtx) (any, any) {
-		ti1, tf1 := c.P.TermItems("map", c.Cap(1))
-		if tf1 != nil {
-			return nil, tf1
-		}
-		tv2 := any(c.NewList(ti1))
-		tn3 := c.TermStruct("AttlistDecl", 2)
+		tf1 := c.Cap(0)
+		tf2 := c.Cap(1)
+		tn3 := c.TermStruct("NameParticle", 2)
 		tfirst4 := true
 		c.P.Spend()
-		c.TermSetField(tn3, "Name", c.Cap(0))
-		tfirst4 = c.P.TermCover(tn3, c.Cap(0), tfirst4)
+		c.TermSetField(tn3, "Name", tf1)
+		tfirst4 = c.P.TermCover(tn3, tf1, tfirst4)
 		c.P.Spend()
-		c.TermSetField(tn3, "Defs", tv2)
-		tfirst4 = c.P.TermCover(tn3, tv2, tfirst4)
+		c.TermSetField(tn3, "Occur", tf2)
+		tfirst4 = c.P.TermCover(tn3, tf2, tfirst4)
 		c.P.TermMade(c, tn3, tfirst4)
 		return any(tn3), nil
 	}
+	rules[38].Body = e87
+	rules[38].Action = func(c *rt.ActCtx) (any, any) {
+		tf1 := c.Cap(0)
+		ti2, tf2 := c.P.TermItems("map", c.Cap(1))
+		if tf2 != nil {
+			return nil, tf2
+		}
+		tv3 := any(c.NewList(ti2))
+		tn4 := c.TermStruct("AttlistDecl", 2)
+		tfirst5 := true
+		c.P.Spend()
+		c.TermSetField(tn4, "Name", tf1)
+		tfirst5 = c.P.TermCover(tn4, tf1, tfirst5)
+		c.P.Spend()
+		c.TermSetField(tn4, "Defs", tv3)
+		tfirst5 = c.P.TermCover(tn4, tv3, tfirst5)
+		c.P.TermMade(c, tn4, tfirst5)
+		return any(tn4), nil
+	}
 	rules[39].Body = e88
 	rules[39].Action = func(c *rt.ActCtx) (any, any) {
-		tn1 := c.TermStruct("AttDef", 4)
-		tfirst2 := true
+		tf1 := c.Cap(0)
+		tf2 := c.Cap(1)
+		tf3 := c.Cap(2)
+		tf4 := c.Cap(3)
+		tn5 := c.TermStruct("AttDef", 4)
+		tfirst6 := true
 		c.P.Spend()
-		c.TermSetField(tn1, "Name", c.Cap(0))
-		tfirst2 = c.P.TermCover(tn1, c.Cap(0), tfirst2)
+		c.TermSetField(tn5, "Name", tf1)
+		tfirst6 = c.P.TermCover(tn5, tf1, tfirst6)
 		c.P.Spend()
-		c.TermSetField(tn1, "Type", c.Cap(1))
-		tfirst2 = c.P.TermCover(tn1, c.Cap(1), tfirst2)
+		c.TermSetField(tn5, "Type", tf2)
+		tfirst6 = c.P.TermCover(tn5, tf2, tfirst6)
 		c.P.Spend()
-		c.TermSetField(tn1, "Default", c.Cap(2))
-		tfirst2 = c.P.TermCover(tn1, c.Cap(2), tfirst2)
+		c.TermSetField(tn5, "Default", tf3)
+		tfirst6 = c.P.TermCover(tn5, tf3, tfirst6)
 		c.P.Spend()
-		c.TermSetField(tn1, "Value", c.Cap(3))
-		tfirst2 = c.P.TermCover(tn1, c.Cap(3), tfirst2)
-		c.P.TermMade(c, tn1, tfirst2)
-		return any(tn1), nil
+		c.TermSetField(tn5, "Value", tf4)
+		tfirst6 = c.P.TermCover(tn5, tf4, tfirst6)
+		c.P.TermMade(c, tn5, tfirst6)
+		return any(tn5), nil
 	}
 	rules[44].Body = e106
 	rules[44].Action = func(c *rt.ActCtx) (any, any) {
@@ -1380,13 +1410,14 @@ func init() {
 		}
 		tk4 := c.P.Kids(tm1)
 		tn5 := c.P.TermHull(c, false, tk4)
-		tn6 := c.TermStruct("NotationType", 1)
-		tfirst7 := true
+		tf6 := any(tn5)
+		tn7 := c.TermStruct("NotationType", 1)
+		tfirst8 := true
 		c.P.Spend()
-		c.TermSetField(tn6, "Names", any(tn5))
-		tfirst7 = c.P.TermCover(tn6, any(tn5), tfirst7)
-		c.P.TermMade(c, tn6, tfirst7)
-		return any(tn6), nil
+		c.TermSetField(tn7, "Names", tf6)
+		tfirst8 = c.P.TermCover(tn7, tf6, tfirst8)
+		c.P.TermMade(c, tn7, tfirst8)
+		return any(tn7), nil
 	}
 	rules[45].Body = e108
 	rules[45].Action = func(c *rt.ActCtx) (any, any) {
@@ -1402,54 +1433,62 @@ func init() {
 		}
 		tk4 := c.P.Kids(tm1)
 		tn5 := c.P.TermHull(c, false, tk4)
-		tn6 := c.TermStruct("Enumeration", 1)
-		tfirst7 := true
+		tf6 := any(tn5)
+		tn7 := c.TermStruct("Enumeration", 1)
+		tfirst8 := true
 		c.P.Spend()
-		c.TermSetField(tn6, "Values", any(tn5))
-		tfirst7 = c.P.TermCover(tn6, any(tn5), tfirst7)
-		c.P.TermMade(c, tn6, tfirst7)
-		return any(tn6), nil
+		c.TermSetField(tn7, "Values", tf6)
+		tfirst8 = c.P.TermCover(tn7, tf6, tfirst8)
+		c.P.TermMade(c, tn7, tfirst8)
+		return any(tn7), nil
 	}
 	rules[47].Body = e112
 	rules[47].Action = func(c *rt.ActCtx) (any, any) {
-		tn1 := c.TermStruct("EntityDecl", 5)
-		tfirst2 := true
+		tf1 := c.Cap(0)
+		tf2 := c.Cap(1)
+		tf3 := c.Cap(2)
+		tf4 := c.Cap(3)
+		tn5 := c.TermStruct("EntityDecl", 5)
+		tfirst6 := true
 		c.P.Spend()
-		c.TermSetField(tn1, "Parameter", any(false))
-		tfirst2 = c.P.TermCover(tn1, any(false), tfirst2)
+		c.TermSetField(tn5, "Parameter", any(false))
+		tfirst6 = c.P.TermCover(tn5, any(false), tfirst6)
 		c.P.Spend()
-		c.TermSetField(tn1, "Name", c.Cap(0))
-		tfirst2 = c.P.TermCover(tn1, c.Cap(0), tfirst2)
+		c.TermSetField(tn5, "Name", tf1)
+		tfirst6 = c.P.TermCover(tn5, tf1, tfirst6)
 		c.P.Spend()
-		c.TermSetField(tn1, "Value", c.Cap(1))
-		tfirst2 = c.P.TermCover(tn1, c.Cap(1), tfirst2)
+		c.TermSetField(tn5, "Value", tf2)
+		tfirst6 = c.P.TermCover(tn5, tf2, tfirst6)
 		c.P.Spend()
-		c.TermSetField(tn1, "ExternalID", c.Cap(2))
-		tfirst2 = c.P.TermCover(tn1, c.Cap(2), tfirst2)
+		c.TermSetField(tn5, "ExternalID", tf3)
+		tfirst6 = c.P.TermCover(tn5, tf3, tfirst6)
 		c.P.Spend()
-		c.TermSetField(tn1, "NData", c.Cap(3))
-		tfirst2 = c.P.TermCover(tn1, c.Cap(3), tfirst2)
-		c.P.TermMade(c, tn1, tfirst2)
-		return any(tn1), nil
+		c.TermSetField(tn5, "NData", tf4)
+		tfirst6 = c.P.TermCover(tn5, tf4, tfirst6)
+		c.P.TermMade(c, tn5, tfirst6)
+		return any(tn5), nil
 	}
 	rules[48].Body = e113
 	rules[48].Action = func(c *rt.ActCtx) (any, any) {
-		tn1 := c.TermStruct("EntityDecl", 4)
-		tfirst2 := true
+		tf1 := c.Cap(0)
+		tf2 := c.Cap(1)
+		tf3 := c.Cap(2)
+		tn4 := c.TermStruct("EntityDecl", 4)
+		tfirst5 := true
 		c.P.Spend()
-		c.TermSetField(tn1, "Parameter", any(true))
-		tfirst2 = c.P.TermCover(tn1, any(true), tfirst2)
+		c.TermSetField(tn4, "Parameter", any(true))
+		tfirst5 = c.P.TermCover(tn4, any(true), tfirst5)
 		c.P.Spend()
-		c.TermSetField(tn1, "Name", c.Cap(0))
-		tfirst2 = c.P.TermCover(tn1, c.Cap(0), tfirst2)
+		c.TermSetField(tn4, "Name", tf1)
+		tfirst5 = c.P.TermCover(tn4, tf1, tfirst5)
 		c.P.Spend()
-		c.TermSetField(tn1, "Value", c.Cap(1))
-		tfirst2 = c.P.TermCover(tn1, c.Cap(1), tfirst2)
+		c.TermSetField(tn4, "Value", tf2)
+		tfirst5 = c.P.TermCover(tn4, tf2, tfirst5)
 		c.P.Spend()
-		c.TermSetField(tn1, "ExternalID", c.Cap(2))
-		tfirst2 = c.P.TermCover(tn1, c.Cap(2), tfirst2)
-		c.P.TermMade(c, tn1, tfirst2)
-		return any(tn1), nil
+		c.TermSetField(tn4, "ExternalID", tf3)
+		tfirst5 = c.P.TermCover(tn4, tf3, tfirst5)
+		c.P.TermMade(c, tn4, tfirst5)
+		return any(tn4), nil
 	}
 	rules[49].Body = e114
 	rules[49].Action = func(c *rt.ActCtx) (any, any) {
@@ -1457,71 +1496,79 @@ func init() {
 	}
 	rules[52].Body = e120
 	rules[52].Action = func(c *rt.ActCtx) (any, any) {
-		tn1 := c.TermStruct("NotationDecl", 2)
-		tfirst2 := true
+		tf1 := c.Cap(0)
+		tf2 := c.Cap(1)
+		tn3 := c.TermStruct("NotationDecl", 2)
+		tfirst4 := true
 		c.P.Spend()
-		c.TermSetField(tn1, "Name", c.Cap(0))
-		tfirst2 = c.P.TermCover(tn1, c.Cap(0), tfirst2)
+		c.TermSetField(tn3, "Name", tf1)
+		tfirst4 = c.P.TermCover(tn3, tf1, tfirst4)
 		c.P.Spend()
-		c.TermSetField(tn1, "ExternalID", c.Cap(1))
-		tfirst2 = c.P.TermCover(tn1, c.Cap(1), tfirst2)
-		c.P.TermMade(c, tn1, tfirst2)
-		return any(tn1), nil
+		c.TermSetField(tn3, "ExternalID", tf2)
+		tfirst4 = c.P.TermCover(tn3, tf2, tfirst4)
+		c.P.TermMade(c, tn3, tfirst4)
+		return any(tn3), nil
 	}
 	rules[54].Body = e122
 	rules[54].Action = func(c *rt.ActCtx) (any, any) {
-		tn1 := c.TermStruct("ExternalID", 2)
-		tfirst2 := true
+		tf1 := c.Cap(0)
+		tf2 := c.Cap(1)
+		tn3 := c.TermStruct("ExternalID", 2)
+		tfirst4 := true
 		c.P.Spend()
-		c.TermSetField(tn1, "Public", c.Cap(0))
-		tfirst2 = c.P.TermCover(tn1, c.Cap(0), tfirst2)
+		c.TermSetField(tn3, "Public", tf1)
+		tfirst4 = c.P.TermCover(tn3, tf1, tfirst4)
 		c.P.Spend()
-		c.TermSetField(tn1, "System", c.Cap(1))
-		tfirst2 = c.P.TermCover(tn1, c.Cap(1), tfirst2)
-		c.P.TermMade(c, tn1, tfirst2)
-		return any(tn1), nil
+		c.TermSetField(tn3, "System", tf2)
+		tfirst4 = c.P.TermCover(tn3, tf2, tfirst4)
+		c.P.TermMade(c, tn3, tfirst4)
+		return any(tn3), nil
 	}
 	rules[55].Body = e127
 	rules[55].Action = func(c *rt.ActCtx) (any, any) {
-		ti1, tf1 := c.P.TermItems("map", c.Cap(1))
-		if tf1 != nil {
-			return nil, tf1
+		tf1 := c.Cap(0)
+		ti2, tf2 := c.P.TermItems("map", c.Cap(1))
+		if tf2 != nil {
+			return nil, tf2
 		}
-		tv2 := any(c.NewList(ti1))
-		tm3 := len(c.P.KidStack)
+		tv3 := any(c.NewList(ti2))
+		tm4 := len(c.P.KidStack)
 		c.P.Spend()
-		tf4 := c.P.TermPushItems(c, "concat", c.Cap(2))
-		if tf4 != nil {
-			return nil, tf4
+		tf5 := c.P.TermPushItems(c, "concat", c.Cap(2))
+		if tf5 != nil {
+			return nil, tf5
 		}
-		tk5 := c.P.Kids(tm3)
-		tn6 := c.P.TermHull(c, false, tk5)
-		tn7 := c.TermStruct("Element", 3)
-		tfirst8 := true
+		tk6 := c.P.Kids(tm4)
+		tn7 := c.P.TermHull(c, false, tk6)
+		tf8 := any(tn7)
+		tn9 := c.TermStruct("Element", 3)
+		tfirst10 := true
 		c.P.Spend()
-		c.TermSetField(tn7, "Name", c.Cap(0))
-		tfirst8 = c.P.TermCover(tn7, c.Cap(0), tfirst8)
+		c.TermSetField(tn9, "Name", tf1)
+		tfirst10 = c.P.TermCover(tn9, tf1, tfirst10)
 		c.P.Spend()
-		c.TermSetField(tn7, "Attrs", tv2)
-		tfirst8 = c.P.TermCover(tn7, tv2, tfirst8)
+		c.TermSetField(tn9, "Attrs", tv3)
+		tfirst10 = c.P.TermCover(tn9, tv3, tfirst10)
 		c.P.Spend()
-		c.TermSetField(tn7, "Content", any(tn6))
-		tfirst8 = c.P.TermCover(tn7, any(tn6), tfirst8)
-		c.P.TermMade(c, tn7, tfirst8)
-		return any(tn7), nil
+		c.TermSetField(tn9, "Content", tf8)
+		tfirst10 = c.P.TermCover(tn9, tf8, tfirst10)
+		c.P.TermMade(c, tn9, tfirst10)
+		return any(tn9), nil
 	}
 	rules[56].Body = e128
 	rules[56].Action = func(c *rt.ActCtx) (any, any) {
-		tn1 := c.TermStruct("Attribute", 2)
-		tfirst2 := true
+		tf1 := c.Cap(0)
+		tf2 := c.Cap(1)
+		tn3 := c.TermStruct("Attribute", 2)
+		tfirst4 := true
 		c.P.Spend()
-		c.TermSetField(tn1, "Name", c.Cap(0))
-		tfirst2 = c.P.TermCover(tn1, c.Cap(0), tfirst2)
+		c.TermSetField(tn3, "Name", tf1)
+		tfirst4 = c.P.TermCover(tn3, tf1, tfirst4)
 		c.P.Spend()
-		c.TermSetField(tn1, "Value", c.Cap(1))
-		tfirst2 = c.P.TermCover(tn1, c.Cap(1), tfirst2)
-		c.P.TermMade(c, tn1, tfirst2)
-		return any(tn1), nil
+		c.TermSetField(tn3, "Value", tf2)
+		tfirst4 = c.P.TermCover(tn3, tf2, tfirst4)
+		c.P.TermMade(c, tn3, tfirst4)
+		return any(tn3), nil
 	}
 	rules[57].Body = e129
 	rules[57].Action = func(c *rt.ActCtx) (any, any) {

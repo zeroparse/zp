@@ -217,24 +217,26 @@ func init() {
 	}
 	rules[2].Body = e4
 	rules[2].Action = func(c *rt.ActCtx) (any, any) {
-		tm1 := len(c.P.KidStack)
+		tf1 := c.Cap(1)
+		tm2 := len(c.P.KidStack)
 		c.P.Spend()
-		tf2 := c.P.TermPushItems(c, "concat", c.Cap(2))
-		if tf2 != nil {
-			return nil, tf2
+		tf3 := c.P.TermPushItems(c, "concat", c.Cap(2))
+		if tf3 != nil {
+			return nil, tf3
 		}
-		tk3 := c.P.Kids(tm1)
-		tn4 := c.P.TermHull(c, false, tk3)
-		tn5 := c.TermStruct("Item", 2)
-		tfirst6 := true
+		tk4 := c.P.Kids(tm2)
+		tn5 := c.P.TermHull(c, false, tk4)
+		tf6 := any(tn5)
+		tn7 := c.TermStruct("Item", 2)
+		tfirst8 := true
 		c.P.Spend()
-		c.TermSetField(tn5, "Text", c.Cap(1))
-		tfirst6 = c.P.TermCover(tn5, c.Cap(1), tfirst6)
+		c.TermSetField(tn7, "Text", tf1)
+		tfirst8 = c.P.TermCover(tn7, tf1, tfirst8)
 		c.P.Spend()
-		c.TermSetField(tn5, "Children", any(tn4))
-		tfirst6 = c.P.TermCover(tn5, any(tn4), tfirst6)
-		c.P.TermMade(c, tn5, tfirst6)
-		return any(tn5), nil
+		c.TermSetField(tn7, "Children", tf6)
+		tfirst8 = c.P.TermCover(tn7, tf6, tfirst8)
+		c.P.TermMade(c, tn7, tfirst8)
+		return any(tn7), nil
 	}
 	rules[3].Body = e5
 	rules[3].Action = func(c *rt.ActCtx) (any, any) {
