@@ -1981,16 +1981,18 @@ anew* states. A cut whose committed part holds the read, or a call whose
 result includes one, before the cut is passed after a left call of that part,
 which condition 5 excludes. $\square$
 
-So the hypothesis of plain reads in the claims of this lemma is a consequence
-of the conditions. Without that clause of condition 5, a cut passed after a
+So the claims of this lemma that apply *Steps that begin anew* to the growths
+that nest at $p$ need no hypothesis on the reads: condition 5 makes them plain. Without that clause of condition 5, a cut passed after a
 read can make the enclosing choice fail where the first step went on, and a
 lookahead can change its outcome between steps, so that a later step takes an
 alternative that the first step did not reach.
 
 **Growths inside a step.** Let a step of the growth of a leader $S$ at $p$,
 after the first, start a growth of another leader $R$ at $p$, let $e$ be the
-end of the seed of the step, and let the hypotheses of *Steps that begin anew*
-hold for $R$ and $S$. Then the growth of $R$ is of one of three kinds.
+end of the seed of the step, and let the values of the variables not change in
+the growths of $R$ and $S$. Their reads are plain (*Plain reads*), so *Steps
+that begin anew* applies to both. Then the growth of $R$ is of one of three
+kinds.
 
 1. It reads no growing result of $S$, or growing results that the parse finds
    equal to those that an earlier growth of $R$ in the context read, and it
@@ -3832,7 +3834,9 @@ names a term or condition of the specification and the lemmas that use it.
   source: the fifth case of Lemma 4, with Lemma 5.
 - Condition 2 for growing units and their continuations: Lemma 5,
   *Sources at fixed offsets*.
-- Condition 3 (Growth) and condition 5 (Carried growth): Lemma 5.
+- Condition 3 (Growth) and condition 5 (Carried growth): Lemma 5. The cuts
+  and lookaheads after left calls in a cycle with more than one leader: Lemma
+  5, *Plain reads*.
 - Condition 1 (Variables), with the bindings that bind a value that the input
   determines, which give the class Linear given an environment bound: Lemma 3
   through $K$, and *Values of variables* in Lemma 11. The variables with
@@ -4023,13 +4027,13 @@ condition of the cost view that the [Cost View](cost-view.md) proof leaves open.
    excludes the grammar.
 4. **Contexts of growths in Lemma 5.** Lemma 5 bounds the evaluations that a
    step of a growth makes in its context outside the growths that it nests
-   (*Calls in a context of growths*), and, when the reads of the growths are
-   plain, the steps of a growth of a leader inside a step of another one by
-   the input that the outer growth consumes, apart from the growths at calls
-   that are scanning sources (*Steps that begin anew*, *Growths inside a
-   step*), and shows that these bounds do not rest on reuse in a context
-   (*Reuse in a context*), and that condition 5 makes the reads plain
-   (*Plain reads*). One part remains: the sum over the positions below.
+   (*Calls in a context of growths*), shows that condition 5 makes the reads
+   of the growths that nest at one position plain (*Plain reads*), bounds the
+   steps of a growth of a leader inside a step of another one by the input
+   that the outer growth consumes, apart from the growths at calls that are
+   scanning sources (*Steps that begin anew*, *Growths inside a step*), and
+   shows that these bounds do not rest on reuse in a context (*Reuse in a
+   context*). One part remains: the sum over the positions below.
    Lemma 4
    bounds the activations owned by memoized evaluations after this lemma, in
    the order that it states: the growth steps, the evaluations in a context of
