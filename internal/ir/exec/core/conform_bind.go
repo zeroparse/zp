@@ -75,13 +75,22 @@ func expBindingOps() []string {
 }
 
 // bindings returns the module of the compositions with a binding function for each operation of
-// names, and the bindings in that order.
+// names, and the bindings in that order. A context state (ops.Ctx) is a value that the operations
+// change in place, so a binding returns each one it takes after its results, for the harness to keep.
 func bindings(names []string) (*exec.Module, []*exec.Func) {
 	m := Build()
 	var fs []*exec.Func
 	for _, name := range names {
 		o := m.Op(name)
-		f := m.AddFunc(ExpBindingName(name), o.Params, o.Results, nil, func(b *exec.Builder) {
+		var states []exec.Expr
+		results := slices.Clone(o.Results)
+		for _, p := range o.Params {
+			if p.Type == exec.THandle(ops.Ctx) {
+				states = append(states, exec.L(p.Name))
+				results = append(results, p.Type)
+			}
+		}
+		f := m.AddFunc(ExpBindingName(name), o.Params, results, nil, func(b *exec.Builder) {
 			args := make([]exec.Expr, len(o.Params))
 			for i, p := range o.Params {
 				args[i] = exec.L(p.Name)
@@ -89,6 +98,9 @@ func bindings(names []string) (*exec.Module, []*exec.Func) {
 			switch len(o.Results) {
 			case 0:
 				b.Do(name, args...)
+				if len(states) > 0 {
+					b.Return(states...)
+				}
 			case 1:
 				// A declared result, since a nil result has no type of its own.
 				// A result that a parameter does not name.
@@ -98,13 +110,13 @@ func bindings(names []string) (*exec.Module, []*exec.Func) {
 				}
 				b.Var(res, o.Results[0])
 				b.Set(res, exec.C(name, args...))
-				b.Return(exec.L(res))
+				b.Return(append([]exec.Expr{exec.L(res)}, states...)...)
 			default:
 				rs := make([]string, len(o.Results))
 				for i := range rs {
 					rs[i] = "r" + string(rune('0'+i))
 				}
-				b.Return(b.LetN(rs, exec.C(name, args...))...)
+				b.Return(append(b.LetN(rs, exec.C(name, args...)), states...)...)
 			}
 		})
 		f.Doc = ExpBindingName(name) + " runs " + name + " for the conformance suite."
@@ -191,4 +203,28 @@ func EngineOprBindings() (string, error) {
 // for package runtime, for the node runtime's Parser.
 func GoOprBindings() (string, error) {
 	return bindingFile("runtime", oprBindingDescriptorOps, goTarget(goSpec{fn: "expect", name: "Expect"}), "confOprBindings")
+}
+
+// ctxBindingOps are the operations of the dependency memo of left recursion that conformance cases
+// cover.
+var ctxBindingOps = []string{
+	"ctx.enter", "ctx.found", "ctx.ok", "ctx.value", "ctx.replay", "ctx.allows", "ctx.active",
+	"ctx.lookup", "ctx.push", "ctx.pop", "ctx.storeMemo", "ctx.storeCtx", "memo.setPresent",
+	"ctx.keep", "ctx.done",
+}
+
+// EngineCtxBindingsFile is the file of the engine's conformance bindings of the dependency memo,
+// relative to the directory of this package. It is a test file of package core of the engine.
+const EngineCtxBindingsFile = "../../../engine/core/ctx_bind_exec_test.go"
+
+// EngineCtxBindings returns the Go test file of the conformance bindings of the dependency memo for
+// package core of the engine.
+func EngineCtxBindings() (string, error) {
+	return bindingFile("core", ctxBindingOps, engineTarget(), "confCtxBindings", "zeroparse.dev/zp/internal/value")
+}
+
+// GoCtxBindings returns the Go test file of the conformance bindings of the dependency memo for
+// package runtime, for the node runtime's Parser.
+func GoCtxBindings() (string, error) {
+	return bindingFile("runtime", ctxBindingOps, goTarget(goSpec{fn: "expect", name: "Expect"}), "confCtxBindings")
 }
