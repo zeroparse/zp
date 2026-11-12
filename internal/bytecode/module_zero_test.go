@@ -1,4 +1,4 @@
-package engine
+package bytecode_test
 
 import (
 	"strings"
@@ -6,6 +6,7 @@ import (
 
 	"zeroparse.dev/zp/internal/bytecode"
 	"zeroparse.dev/zp/internal/compile"
+	"zeroparse.dev/zp/internal/enginetest"
 )
 
 // TestModuleZeroDescriptorValidation checks that a module whose zero descriptors are not well formed
@@ -15,7 +16,7 @@ import (
 // value has, pass.
 func TestModuleZeroDescriptorValidation(t *testing.T) {
 	t.Parallel()
-	prog := compileBare(t, "type In = { N int }\ntype Z = { I int; T (int, string); S In }\nrule z Z = \"z\" => Z{}\nrule main = x:z $$ => $x.I\n")
+	prog := enginetest.CompileBare(t, "type In = { N int }\ntype Z = { I int; T (int, string); S In }\nrule z Z = \"z\" => Z{}\nrule main = x:z $$ => $x.I\n")
 	base := prog.Module()
 	if err := compile.ValidateModule(base); err != nil {
 		t.Fatal(err)
