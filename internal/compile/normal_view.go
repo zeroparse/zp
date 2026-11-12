@@ -59,6 +59,9 @@ type viewOptions struct {
 	labels bool
 	// inline applies N13. It changes which evaluations the memo answers.
 	inline bool
+	// laws, if not nil, holds the only rules that apply, for comparing views that apply some
+	// rules only. N7 and N13 apply only if labels and inline select them, too.
+	laws map[viewRule]bool
 }
 
 // costView is the view that the complexity classifier reads: every rule but N7 and N13.
@@ -149,6 +152,9 @@ func (v *normalView) fix(e grammar.Expr) grammar.Expr {
 
 func (v *normalView) count(r viewRule) { v.applied[r]++ }
 
+// on reports whether the rule r applies.
+func (v *normalView) on(r viewRule) bool { return v.opts.laws == nil || v.opts.laws[r] }
+
 // expr rewrites the parts of e and then e. It returns e itself when nothing changes. An expression
 // that it builds in place of e stands for the text of e.
 func (v *normalView) expr(e grammar.Expr) grammar.Expr {
@@ -189,6 +195,15 @@ func (v *normalView) rewrite(e grammar.Expr) grammar.Expr {
 	v.control.Poll()
 	switch x := e.(type) {
 	case *grammar.Group:
+		if !v.on(ruleN1) {
+			inner := v.expr(x.Expr)
+			if inner == x.Expr {
+				return x
+			}
+			c := *x
+			c.Expr = inner
+			return &c
+		}
 		v.count(ruleN1)
 		return v.expr(x.Expr)
 	case *grammar.Seq:
@@ -197,8 +212,10 @@ func (v *normalView) rewrite(e grammar.Expr) grammar.Expr {
 		return v.choice(x)
 	case *grammar.Repeat:
 		inner := v.expr(x.Expr)
-		if r := v.nestedRepeat(x, inner); r != nil {
-			return r
+		if v.on(ruleN10) {
+			if r := v.nestedRepeat(x, inner); r != nil {
+				return r
+			}
 		}
 		if inner == x.Expr {
 			return x
@@ -252,7 +269,7 @@ func (v *normalView) rewrite(e grammar.Expr) grammar.Expr {
 	case *grammar.Attributed:
 		return v.attributed(x)
 	case *grammar.Ref:
-		if v.opts.inline && v.depth == 0 {
+		if v.opts.inline && v.on(ruleN13) && v.depth == 0 {
 			// Inside a value that a predicate reads the call stays: the body of a rule with several
 			// items would add them to the sequence around the call instead of being one element.
 			if body := v.inline(x); body != nil {
@@ -277,7 +294,7 @@ func (v *normalView) seq(s *grammar.Seq) grammar.Expr {
 		if n != it {
 			changed = true
 		}
-		if inner, ok := n.(*grammar.Seq); ok {
+		if inner, ok := n.(*grammar.Seq); ok && v.on(ruleN1) {
 			// S1: a sequence in a sequence adds its elements to the surrounding one.
 			v.count(ruleN1)
 			changed = true
@@ -295,14 +312,14 @@ func (v *normalView) seq(s *grammar.Seq) grammar.Expr {
 		}
 	}
 	for i := 0; i+1 < len(items); i++ {
-		if _, ok := items[i].(*grammar.Bottom); ok {
+		if _, ok := items[i].(*grammar.Bottom); ok && v.on(ruleN4) {
 			// S2: nothing after a bottom is evaluated.
 			v.count(ruleN4)
 			items, changed = items[:i+1], true
 			break
 		}
 	}
-	if len(items) == 1 {
+	if len(items) == 1 && v.on(ruleN1) {
 		_, bottom := items[0].(*grammar.Bottom)
 		if bottom || v.depth == 0 && !v.observed(items[0]) {
 			// A sequence of one item matches as the item does, and has the value of a tuple of
@@ -326,9 +343,10 @@ func (v *normalView) seq(s *grammar.Seq) grammar.Expr {
 func (v *normalView) adjacent(a, b grammar.Expr) grammar.Expr {
 	ra, aRep := a.(*grammar.Repeat)
 	rb, bRep := b.(*grammar.Repeat)
-	if bRep && rb.Max < 0 && rb.Min <= 1 && v.depth == 0 && !v.observed(a, b) {
+	if bRep && rb.Max < 0 && rb.Min <= 1 && v.depth == 0 && (v.on(ruleN9) || v.on(ruleN11)) && !v.observed(a, b) {
 		x := rb.Expr
 		switch {
+		case !v.on(ruleN9):
 		case aRep && ra.Max < 0 && ra.Min <= 1 && rb.Min == 0 && v.same(ra.Expr, x) && v.idempotent(x):
 			// R3 and R4: X* X* and X+ X* match as the first repetition does. The second evaluates
 			// X once more where the first stopped, in a state that differs only by bindings that X
@@ -342,18 +360,18 @@ func (v *normalView) adjacent(a, b grammar.Expr) grammar.Expr {
 			c.Min = 1
 			return &c
 		}
-		if o, ok := a.(*grammar.Optional); ok && rb.Min == 0 && v.same(o.Expr, x) && v.idempotent(x) && !v.an.isNullable(x) {
+		if o, ok := a.(*grammar.Optional); ok && v.on(ruleN9) && rb.Min == 0 && v.same(o.Expr, x) && v.idempotent(x) && !v.an.isNullable(x) {
 			// R4: X? X* matches as X* does.
 			v.count(ruleN9)
 			return rb
 		}
-		if aRep && ra.Max < 0 && ra.Min == 0 && rb.Min == 0 {
+		if aRep && ra.Max < 0 && ra.Min == 0 && rb.Min == 0 && v.on(ruleN11) {
 			if r := v.unroll(ra, rb); r != nil {
 				return r
 			}
 		}
 	}
-	if n, ok := a.(*grammar.Not); ok && v.depth == 0 && v.same(n.Expr, b) && boundedTerminal(b) {
+	if n, ok := a.(*grammar.Not); ok && v.on(ruleN12) && v.depth == 0 && v.same(n.Expr, b) && boundedTerminal(b) {
 		// K4: !X X never matches. X examines a bounded amount of input, so the view drops a
 		// constant cost. !X X has the type of X and _|_ has the type _|_, which a choice around it
 		// leaves out of its join: (-"b" / !"a" "a") is one element, nil or a string, and
@@ -448,7 +466,7 @@ func (v *normalView) choice(ch *grammar.Choice) grammar.Expr {
 		if n != alt {
 			changed = true
 		}
-		if inner, ok := n.(*grammar.Choice); ok && (i == len(ch.Alts)-1 || !slices.ContainsFunc(inner.Alts, v.cut)) {
+		if inner, ok := n.(*grammar.Choice); ok && v.on(ruleN1) && (i == len(ch.Alts)-1 || !slices.ContainsFunc(inner.Alts, v.cut)) {
 			// C2: a choice that is the last alternative splices always; an earlier one splices
 			// when no cut in it would commit the outer choice instead of it.
 			v.count(ruleN1)
@@ -466,7 +484,7 @@ func (v *normalView) choice(ch *grammar.Choice) grammar.Expr {
 	drops := v.depth == 0
 	var kept []grammar.Expr
 	for i, alt := range alts {
-		if _, ok := alt.(*grammar.Bottom); ok {
+		if _, ok := alt.(*grammar.Bottom); ok && v.on(ruleN4) {
 			// C4: a bottom alternative fails at once and records nothing.
 			v.count(ruleN4)
 			changed = true
@@ -476,7 +494,7 @@ func (v *normalView) choice(ch *grammar.Choice) grammar.Expr {
 			kept = append(kept, alt)
 			continue
 		}
-		if v.subsumed(alt, kept) {
+		if v.on(ruleN3) && v.subsumed(alt, kept) {
 			// C1 and C5: an earlier alternative matched wherever this one could, and when it
 			// failed, this one fails in the same state.
 			v.count(ruleN3)
@@ -484,7 +502,7 @@ func (v *normalView) choice(ch *grammar.Choice) grammar.Expr {
 			continue
 		}
 		kept = append(kept, alt)
-		if v.an.AlwaysSucceeds(alt) || leadingCut(alt) {
+		if v.on(ruleN2) && (v.an.AlwaysSucceeds(alt) || leadingCut(alt)) {
 			// C3: no later alternative is tried after one that always succeeds; T2: nor after a
 			// cut that the alternative passes before anything else.
 			if i < len(alts)-1 {
@@ -495,7 +513,7 @@ func (v *normalView) choice(ch *grammar.Choice) grammar.Expr {
 		}
 	}
 	alts = kept
-	if len(alts) > 0 {
+	if len(alts) > 0 && v.on(ruleN6) {
 		// T2: a cut in the last alternative commits a choice that has nothing left to try.
 		if last := v.dropCuts(alts[len(alts)-1], true); last != alts[len(alts)-1] {
 			v.count(ruleN6)
@@ -504,6 +522,9 @@ func (v *normalView) choice(ch *grammar.Choice) grammar.Expr {
 		}
 	}
 	for i := range alts {
+		if !v.on(ruleN6) {
+			break
+		}
 		// T2: a cut that ends an alternative commits when nothing in it can fail any more.
 		if a := v.dropCuts(alts[i], false); a != alts[i] {
 			v.count(ruleN6)
@@ -512,11 +533,15 @@ func (v *normalView) choice(ch *grammar.Choice) grammar.Expr {
 			alts[i] = a
 		}
 	}
-	if merged, ok := v.mergeChars(alts); ok {
-		alts, changed = merged, true
+	if v.on(ruleN8) {
+		if merged, ok := v.mergeChars(alts); ok {
+			alts, changed = merged, true
+		}
 	}
-	if factored, ok := v.factor(alts, ch); ok {
-		alts, changed = factored, true
+	if v.on(ruleN12) {
+		if factored, ok := v.factor(alts, ch); ok {
+			alts, changed = factored, true
+		}
 	}
 	switch {
 	case len(alts) == 0:
@@ -875,11 +900,17 @@ func (v *normalView) lookahead(e grammar.Expr, body grammar.Expr, not bool) gram
 	}
 	switch in := inner.(type) {
 	case *grammar.And:
+		if !v.on(ruleN5) {
+			break
+		}
 		// K2: &&X is &X and !&X is !X: the outer lookahead keeps the result of the inner one,
 		// which returns to its start.
 		v.count(ruleN5)
 		return rebuild(not, in.Expr)
 	case *grammar.Not:
+		if !v.on(ruleN5) {
+			break
+		}
 		if !not {
 			// K2: &!X is !X.
 			v.count(ruleN5)
@@ -908,11 +939,11 @@ func (v *normalView) attributed(a *grammar.Attributed) grammar.Expr {
 	var attrs []*grammar.Attribute
 	for _, at := range a.Attrs {
 		switch {
-		case at.Name == "recover" && !shaped && v.an.AlwaysSucceeds(inner):
+		case at.Name == "recover" && v.on(ruleN6) && !shaped && v.an.AlwaysSucceeds(inner):
 			// V1: a recovery of an expression that always succeeds never runs its skip.
 			v.count(ruleN6)
 			continue
-		case v.opts.labels && (at.Name == "error" || at.Name == "diagnostic"):
+		case v.opts.labels && v.on(ruleN7) && (at.Name == "error" || at.Name == "diagnostic"):
 			// A label changes the messages of syntax errors only.
 			v.count(ruleN7)
 			continue
@@ -1208,7 +1239,7 @@ func exprSource(e grammar.Expr) grammar.SourceInfo {
 // exclusion of alternatives, needs. Without matching it is the view that the complexity
 // classifier reads. g must compile.
 func NormalView(g *grammar.Grammar, matching bool, control *cancel.Control) (*grammar.Grammar, error) {
-	v, g, err := normalViewOf(g, matching, control)
+	v, g, err := normalViewOf(g, matching, nil, control)
 	if err != nil {
 		return nil, err
 	}
