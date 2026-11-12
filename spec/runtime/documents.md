@@ -173,6 +173,13 @@ inherit its context or compute limits.
 | `snapshot.Materialize()` | A new independent mutable `*Node` graph. Each call creates a separate graph |
 
 `SnapshotNode` is a read-only handle. Its zero value represents a nil node.
+`Kind`, `Len` and `Value` answer as `Node.Kind`, `Node.Len` and `Node.Value` do
+for the node that was frozen ([Node Model](nodes.md#node-model)), and each takes
+constant time: `Kind` is what the node stands for, `Len` is `ChildCount` for a
+tuple or list and 0 for any other node, and `Value` is the value of a `KindValue`
+node or the string of a `KindString` node and nil for any other. On the zero
+value `Len` is 0 and `Value` is nil, and `Kind` panics, as `Node.Kind` does not
+accept a nil node.
 `ChildCount` and `Child` address the elements of a tuple or list node, and `ChildCount` includes nil slots. `Field(name)` returns a value and a
 presence flag that distinguishes an absent field from a present nil value; a typed
 nil `*Node` field becomes a zero handle and an untyped nil stays nil. `Fields()`
