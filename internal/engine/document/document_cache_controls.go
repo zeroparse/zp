@@ -28,7 +28,7 @@ func (d *Document) ResetHistory() {
 	d.edits, d.runs, d.kids, d.machine = nil, nil, nil, nil
 	d.runGen, d.resumed = 0, 0
 	d.in.Offs, d.in.Lines = nil, nil
-	d.previousSnapshot = weak.Pointer[snapshotGraph]{}
+	d.previousSnapshot, d.previousRoot = weak.Pointer[snapshotGraph]{}, 0
 }
 
 // historyBytes returns the bytes of the repetition records and edits the Document retains, as a
