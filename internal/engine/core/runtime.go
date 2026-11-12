@@ -199,6 +199,7 @@ type Parser struct {
 	// A negative count tracks the exact-size prefix budget before #stream.
 	NodeChunks int
 	ectx       EvalCtx        // area for UseCtx
+	terms      termRegs       // registers of term programs (TermProgram.Eval)
 	item       [1]*value.Node // the element list of an action whose body is not a sequence (one)
 	oplocals   [3]Local       // $lhs, $rhs and $op of a OperatorsRule operator action
 	Saved      []*value.Node  // captures saved across a reset in longest

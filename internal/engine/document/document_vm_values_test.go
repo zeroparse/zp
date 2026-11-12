@@ -12,7 +12,6 @@ import (
 
 	"zeroparse.dev/zp/internal/compile"
 	. "zeroparse.dev/zp/internal/engine"
-	"zeroparse.dev/zp/internal/engine/closure"
 	"zeroparse.dev/zp/internal/engine/core"
 	"zeroparse.dev/zp/internal/engine/vm"
 	"zeroparse.dev/zp/internal/value"
@@ -45,7 +44,6 @@ func BenchmarkDocumentVMValuesUnchanged(b *testing.B) {
 // A Document keeps the backend state of its last parse, but not the parser that ran it: the
 // parser holds the whole parse state (runs, trail, slabs), which the next parse replaces.
 func TestDocumentKeptMachineReleasesParser(t *testing.T) {
-	// The lambda makes the closure backend use its machine too.
 	prog := mustCompile(t, `rule main = ls:line* $$ => map($ls, (l) => l)
 rule line = [a-z]+ "\n"`)
 	for _, backend := range []Backend{Closure, Bytecode, BytecodeIterative} {
@@ -67,9 +65,10 @@ rule line = [a-z]+ "\n"`)
 					if mc.Parser() != nil {
 						t.Fatal("kept machine refers to the finished parser")
 					}
-				case *closure.Machine:
-					if mc.P != nil {
-						t.Fatal("kept machine refers to the finished parser")
+				case nil:
+					// The closure backend keeps no state beside the parser.
+					if backend != Closure {
+						t.Fatalf("document kept no machine")
 					}
 				default:
 					t.Fatalf("document kept %T", doc.Machine())

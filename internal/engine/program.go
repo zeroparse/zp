@@ -177,5 +177,9 @@ func buildNamed(g *grammar.Grammar, opts compile.Options, flags []compile.RuleFl
 	if err != nil {
 		return nil, err
 	}
-	return newProgram(prog, b.Finish()), nil
+	rules, err := b.Finish()
+	if err != nil {
+		return nil, err
+	}
+	return newProgram(prog, rules), nil
 }

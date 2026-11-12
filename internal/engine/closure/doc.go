@@ -1,10 +1,9 @@
 // Package closure is the closure backend of the engine: it builds a Go closure for every
-// expression of a compiled program, and evaluates actions and other value expressions on the
-// grammar AST. Builder implements compile.ExprBuilder and returns the rules that the parser of
-// package core runs; Machine is the backend state that the evaluation of a parse keeps beside the
-// parser.
+// expression of a compiled program, and evaluates actions and other value expressions with the
+// term programs of package core (core.TermProgram), compiled from the Core IR of the program.
+// Builder implements compile.ExprBuilder and returns the rules that the parser of package core runs.
 //
-// MachineOf, Machine.Eval, Machine.P, Builder.Guard, ClassAccept and ClassAcceptControlled are
+// Builder.Guard, ClassAccept and ClassAcceptControlled are
 // exported for the tests of package engine, which check the closure backend through programs
 // that only that package compiles; the engine itself needs only NewBuilder and Builder.
 //
