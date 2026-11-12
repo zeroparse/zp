@@ -335,8 +335,11 @@ charges below settle it, whether opening a frame charges for its slots (see [Cos
 
 **Budget, nesting and observation.** Charging adds to the one work budget, checks the limit and, at intervals the
 target chooses, cancellation through a host operation; it does not return when the parse is interrupted, and charges
-are never rolled back. The nesting limit is fatal when exceeded. Observation reports go to a host sink. The
-silent depth is a register that functions assign, not an operation. *Shared*: when a charge interrupts and when
+are never rolled back. The nesting limit is fatal when exceeded. Observation reports go to a host sink: the
+operations of the component `observe` (`obs.active`, `obs.enter`, `obs.exit` and the count of the memo entries a
+call reuses) have a reference model of the calls that have
+begun and not ended and of the events a trace delivers, and conformance cases that compare those events after each
+call, on generated Go (the engine traces a call on a path of its own and has none of them). The silent depth is a register that functions assign, not an operation. *Shared*: when a charge interrupts and when
 each event reports. *Target*: counter representation, the cancellation interval and the sink.
 
 **Stream window.** A commit is the composition `streamCommit`: it makes everything before a position final.
