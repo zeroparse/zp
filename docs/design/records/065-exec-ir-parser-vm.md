@@ -258,11 +258,30 @@ it decides how many bodies run, which `Evaluated` reports; *shared*: the policy 
 dense or sparse pages, word size, counter width.
 
 **Left-recursion contexts and growth.** The dependency memo of
-[Evaluations of Rules](../../../spec/runtime/parsing.md#evaluations-of-rules) is declared as transitional
-operations, with the cost bounds that a static test requires, and has no reference model. *Shared*: what a result
-depends on and when it is reused, the seed identities, the present sets. *Target*: table layout, keys and hashing,
-allocation of results. The differential tests against the engine on random cycle grammars, with negative controls
-that break each check, and the linearity tests of the growth shapes are the checks.
+[Evaluations of Rules](../../../spec/runtime/parsing.md#evaluations-of-rules) has a reference model of its state:
+the growths in progress, each the key of a leader at a position with its cycle, its leader bit, its seed and the
+seed's identity; a stack of dependency frames, which record the seeds that an evaluation read, by identity, the
+lookaheads it observed, by outcome, and the seeds those lookaheads read (their shadows), which a frame that
+cannot check an observation depends on instead; and a table for the first growth of a cycle at a position. For
+each head (the rule, level and present set of a call, or the site and present set of a lookahead) the table holds
+dependency sets in the order of their first store, each mapping the values of its dependencies to results. A
+reuse takes the first set whose dependencies all have values in the current context and, in it, the result of
+equal key values; a store of the same values and key replaces the result, and a result with more dependencies
+than a set indexes is not kept. The `ctx` operations have this model and conformance cases that run on the engine
+and generated Go. The cases do not run the growth loop: operations that exist only for conformance install a
+growth with a seed and identity that the case chooses, change the seed of the innermost growth, end it (dropping
+the table it began), and begin and end a lookahead through each target's own lookahead entry points, so that the
+`ctx` operations are checked apart from how growth steps compute identities. An operation that writes components
+other than its own (`ctx.replay`, later `grow.step` and `grow.end`) is modelled as the composition of those
+components' models that its contract names: the reuse count and examined input of the call bookkeeping, the merge
+of the expectations, the position and the recovered-error entry; it charges what those parts charge, and it stops
+being transitional only once every component it writes has a model. The growth loop (the steps, jumps and runs of a
+growth in a context, and the canonical identities of equal seeds) builds on the same state and stays transitional
+until it has a model of its own; the missing-token mode, in which no result in a context is memoized, is outside
+the cases. *Shared*: what a result depends on and when it is reused, the seed identities, the present sets, the
+order of the dependency sets. *Target*: table layout, keys and hashing, allocation of results, the width of the
+present sets. The differential tests against the engine on random cycle grammars, with negative controls that
+break each check, and the linearity tests of the growth shapes remain the checks of the whole.
 
 **Expectations.** The expectation record is an insertion-ordered set of expectation identifiers at the farthest
 position. Recording an expectation, keeping a set (which reuses the set kept last when it holds the same
