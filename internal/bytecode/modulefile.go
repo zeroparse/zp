@@ -242,6 +242,7 @@ func (r *Decoder) ReadModule() *Module {
 	m.SourceInfo = r.Bool()
 	m.DefaultValue = r.Bool()
 	n = r.Count()
+	m.Classes = sized[Class](n)
 	for i := 0; i < n && r.Err == nil; i++ {
 		c := Class{Negated: r.Bool(), Desc: int(r.int32())}
 		k := r.Count()
@@ -251,18 +252,22 @@ func (r *Decoder) ReadModule() *Module {
 		m.Classes = append(m.Classes, c)
 	}
 	n = r.Count()
+	m.Types = sized[TypeInfo](n)
 	for i := 0; i < n && r.Err == nil; i++ {
 		m.Types = append(m.Types, TypeInfo{Name: int(r.int32()), Fields: r.ints(), Zeros: r.ints(), Node: int(r.int32())})
 	}
 	n = r.Count()
+	m.Scopes = sized[[]int](n)
 	for i := 0; i < n && r.Err == nil; i++ {
 		m.Scopes = append(m.Scopes, r.ints())
 	}
 	n = r.Count()
+	m.Vars = sized[VarInfo](n)
 	for i := 0; i < n && r.Err == nil; i++ {
 		m.Vars = append(m.Vars, VarInfo{Name: int(r.int32()), Type: int(r.int32()), Int: r.Int(), Str: int(r.int32())})
 	}
 	n = r.Count()
+	m.Rules = sized[RuleInfo](n)
 	for i := 0; i < n && r.Err == nil; i++ {
 		ri := RuleInfo{
 			Name: int(r.int32()), Entry: int(r.int32()), Scope: r.ints(), Action: int(r.int32()),
@@ -274,6 +279,7 @@ func (r *Decoder) ReadModule() *Module {
 	m.Starts = r.ints()
 	m.DefaultStart = int(r.int32())
 	n = r.Count()
+	m.OperatorsRules = sized[OperatorsRuleInfo](n)
 	for i := 0; i < n && r.Err == nil; i++ {
 		p := OperatorsRuleInfo{Skip: int(r.int32())}
 		k := r.Count()
@@ -297,6 +303,7 @@ func (r *Decoder) ReadModule() *Module {
 		m.Ints = append(m.Ints, r.int64())
 	}
 	n = r.Count()
+	m.Terms = sized[Term](n)
 	for i := 0; i < n && r.Err == nil; i++ {
 		m.Terms = append(m.Terms, r.term())
 	}
