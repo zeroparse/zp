@@ -68,9 +68,11 @@ func IsSeqOf(spliceBody func(string) (grammar.Expr, bool), e grammar.Expr) bool 
 
 // ValuedCount returns the number of tuple elements e contributes: its elements with a value.
 // Elements without one only hold captures kept beside the tuple.
-func ValuedCount(p *Checker, e grammar.Expr) int {
+func ValuedCount(p *Checker, e grammar.Expr) int { return valuedCount(ShapeElems(p, e)) }
+
+func valuedCount(elems []ValueElem) int {
 	n := 0
-	for _, el := range ShapeElems(p, e) {
+	for _, el := range elems {
 		if el.t != nil {
 			n++
 		}
@@ -124,8 +126,10 @@ const (
 
 // SingleModeOf returns how single takes the value of e.
 func SingleModeOf(p *Checker, e grammar.Expr) SingleMode {
-	k := ValuedCount(p, e)
-	seq := isSeq(p, e)
+	return singleMode(ValuedCount(p, e), isSeq(p, e))
+}
+
+func singleMode(k int, seq bool) SingleMode {
 	switch {
 	case k == 0:
 		return SingleNone
@@ -137,10 +141,19 @@ func SingleModeOf(p *Checker, e grammar.Expr) SingleMode {
 
 // ScopeTuple reports whether the value of a scope with the body e (a rule body, a repetition
 // element or an Operators Rule line) is the node of its tuple, rather than its one element.
-func ScopeTuple(p *Checker, e grammar.Expr) bool {
+func ScopeTuple(p *Checker, e grammar.Expr) bool { return scopeTuple(ShapeElems(p, e), isSeq(p, e)) }
+
+func scopeTuple(elems []ValueElem, seq bool) bool {
+	return seq || len(elems) != 1 || elems[0].t == nil || len(elems[0].caps) != 0
+}
+
+// ShapeFacts returns what ValuedCount, SingleModeOf and ScopeTuple return for e, from one
+// computation of its elements.
+func ShapeFacts(p *Checker, e grammar.Expr) (k int, mode SingleMode, tuple bool) {
 	elems := ShapeElems(p, e)
 	seq := isSeq(p, e)
-	return seq || len(elems) != 1 || elems[0].t == nil || len(elems[0].caps) != 0
+	k = valuedCount(elems)
+	return k, singleMode(k, seq), scopeTuple(elems, seq)
 }
 
 // Shaper converts the result of an expression's matcher to the value where it takes one element

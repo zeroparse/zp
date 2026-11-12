@@ -371,8 +371,8 @@ func coreShape(chk *check.Checker, e grammar.Expr) core.Shape {
 		return core.Shape{} // an untyped module has no shapes
 	}
 	elems := check.IsElems(chk, e)
-	return core.Shape{Elems: elems, K: check.ValuedCount(chk, e), Mode: core.SingleMode(check.SingleModeOf(chk, e)), Tuple: check.ScopeTuple(chk, e),
-		Shared: elems && check.SharesTuple(chk, e)}
+	k, mode, tuple := check.ShapeFacts(chk, e)
+	return core.Shape{Elems: elems, K: k, Mode: core.SingleMode(mode), Tuple: tuple, Shared: elems && check.SharesTuple(chk, e)}
 }
 
 // coreLayout returns the frame layout of a scope with the body e: the captures written in it in
