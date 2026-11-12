@@ -526,8 +526,11 @@ parsers provide an opt-in `Document` with `NewDocument`, `Text`, `Edit`, `Parse`
 `Stats` and `Node.Clone`, and, with typed values, `Document.ParseAST`; they have
 neither `EditBatch`, `Version`, `Unit`, `Snapshot`, `CacheStats`, `ResetHistory`
 nor change notifications, and their `Stats` has only `Evaluated` and `Reused`.
-Generated TypeScript parsers have no document. See
-[Generated Parsers](generated-parsers.md).
+Generated TypeScript parsers provide an opt-in `Document` with `createDocument`,
+`text`, `bytes`, `edit`, `parse` and, with typed values, `parseAST`; it parses
+its whole text on each parse, reuses no result of an earlier parse and has no
+`stats`. See
+[Generated Parsers](generated-parsers.md#incremental-documents).
 
 ## Conformance
 
