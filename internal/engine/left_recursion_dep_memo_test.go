@@ -167,6 +167,7 @@ func TestLeftRecursionDependencyMemoControls(t *testing.T) {
 		{"present growths", core.CtxIgnorePresent, false},
 		{"canonical seeds", core.CtxNoCanonical, false},
 		{"jumps over observations of the growing seed", core.CtxJumpAnySeed, false},
+		{"wide present identity", core.CtxConstWide, false},
 		{"replayed observations", core.CtxStaleReplay, true},
 		{"observations replayed in the current context", core.CtxNoReplayObs, true},
 	} {

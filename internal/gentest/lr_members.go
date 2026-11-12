@@ -227,9 +227,29 @@ var DependencyMemoControlSeeds = struct{ Cuts, Recovering []int64 }{
 	Recovering: []int64{267},
 }
 
+// WideContextCase returns the random cycle grammar 341 with cuts, padded with 63 leaders P1..P63
+// that the cycle enters through r2, so that every leader of the cycle but 63 has no bit in a word
+// of present bits on every backend. It parses "bc" to 1:3, but gives 1:2 where all wide present
+// sets share one identity, as a result that evaluated a leader afresh then answers a call where
+// that leader grows.
+func WideContextCase() Case {
+	c := RandomCycleGrammar(341, true)
+	var b strings.Builder
+	b.WriteString(strings.Replace(c.Src, "rule r2 = r4 / \"b\"", "rule r2 = r4 / \"b\" / P1 \"q\"", 1))
+	b.WriteString("")
+	for i := 1; i < 63; i++ {
+		fmt.Fprintf(&b, "rule P%d = P%d \"z\" / P%d\n", i, i, i+1)
+	}
+	b.WriteString("rule P63 = P63 \"z\" / r0\n")
+	c.Src = strings.Replace(b.String(), "rule main = r0", "rule main = P1", 1)
+	c.Name = "random cycle grammar 341 with cuts and 63 padding leaders"
+	c.Inputs = append(c.Inputs, "bc", "bcb", "bcc")
+	return c
+}
+
 // DependencyMemoControlCases returns the grammars of DependencyMemoControlSeeds.
 func DependencyMemoControlCases() []Case {
-	var cases []Case
+	cases := []Case{WideContextCase()}
 	for _, s := range DependencyMemoControlSeeds.Cuts {
 		cases = append(cases, RandomCycleGrammar(s, true))
 	}
@@ -348,6 +368,7 @@ rule L = T "!" / &T S "q" "q"`,
 			Inputs: []string{"a", "ax", "axb", "axxb", "", "xa", "ab", "yax", "ayx"},
 		})
 	}
+	cases = append(cases, WideContextCase())
 	for s := int64(0); s < int64(seeds); s++ {
 		cases = append(cases, RandomCycleGrammar(s, false), RandomCycleGrammar(s, true), RandomRecoveringCycleGrammar(s))
 	}
