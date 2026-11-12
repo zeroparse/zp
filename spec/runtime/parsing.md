@@ -1384,29 +1384,39 @@ The conditions below use these terms.
   right operand.
   A unit that is not a lookahead is also committing for a continuation that
   it **decides**. A **path** of an expression is a sequence of symbols, each a
-  call, a literal, a character class, `.` or a lookahead, such that every
+  call, a literal, a character class, `.`, a lookahead, a repetition that is
+  passed whole, or a predicate, a `#cut` or an anchor, such that every
   evaluation of the expression that succeeds succeeds on the symbols of one
-  path in order, each starting where the one before it ended; an expression
-  that is not looked into, such as `#recover` or an Operators Rule, ends the
-  path without deciding anything. The unit decides the continuation when every
+  path in order, each starting where the one before it ended. A predicate, a
+  `#cut` and an anchor consume nothing and decide nothing, so the comparison
+  passes them on either side; a predicate that binds a variable ends the
+  agreement of the variables (below). An expression that is not looked into,
+  such as `#recover` or an Operators Rule, ends the path without deciding
+  anything. The unit decides the continuation when every
   path of the unit, compared with every path of the continuation from their
   common start, passes symbols that both evaluate alike and then **parts** at a
   decisive symbol that at most one of them can pass, within three symbols: the
   symbols passed alike and the decisive one together. Two symbols are alike
   when they are calls of one rule that is not on a left-recursion cycle and
   reads no variable, or reads variables and is called with the same variables
-  on both sides, equal literals, equal character classes or `.`, or calls of
-  one trivia rule (below). A literal that is a prefix of the other, literals
+  on both sides, and with the same level restriction or with none on both,
+  equal literals, equal character classes or `.`, equal repetitions that are
+  cheap in all their parts and whose calls are alike in the same sense, which
+  match alike because a repetition is greedy, or calls of one trivia rule
+  (below). A literal that is a prefix of the other, literals
   that are equal up to case, overlapping character classes, and a literal and
   a class that contains its first character are passed by the characters that
   they have in common, each step counting as one symbol; a call that is not
   alike stands for the paths of the body of its rule, each of which must part.
   The decisive symbol is one on each side that cannot both match at the
-  position: first characters that are disjoint, two literals of which neither
-  is a prefix of the other, or two character classes with no character in
+  position: first characters that are disjoint, of two symbols neither of
+  which can match without consuming input, since such a symbol passes
+  whatever the character there, two literals of which neither is a prefix of
+  the other, or two character classes with no character in
   common; a negative lookahead `!K` on one side that the rest of the other side
   must match, or a positive lookahead `&K` on one side whose expression and the
-  next symbol of the other side are disjoint; or, in the continuation, the end
+  next symbol of the other side cannot match without consuming input and have
+  disjoint first characters; or, in the continuation, the end
   of the parse, which costs a constant. The strict conditions make what the
   continuation evaluates again bounded:
   - every symbol passed alike is **cheap**: evaluating it again where the unit
@@ -1422,7 +1432,10 @@ The conditions below use these terms.
     in what follows a call that nests at one end, or after an operand of an
     Operators Rule that nests;
   - an option, choice, repetition or lookahead that a path passes is looked
-    into only when all its parts are cheap;
+    into only when it is cheap in all its parts, the expression itself
+    included: it has no scanning source of its own and each call in it is
+    cheap. A repetition without an upper bound that is not a bounded scan is
+    a scanning source, so it is never looked into and ends the path;
   - a lookahead that only the continuation evaluates, or an alternative of it
     before the one that the unit's match implies, costs a constant: it has no
     scanning source of its own, and each call in it is answered by the memo or
