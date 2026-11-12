@@ -149,7 +149,7 @@ Structural queries are checked against the schema. The query compiler validates 
 
 ## Testing and Performance
 
-The tests cover the export, decoding and validation of the JSON contract, the semantic diff, the refusal of schema export by loaded compiled grammars and the backend agreement. They are in `schema/*_test.go` (decoding, validation, the diff and its classification), `internal/schema/*_test.go` (the export), `internal/engine/output_schema_*_test.go` and `internal/engine/compiled_schema_test.go`. Export time and allocations are measured separately from parse and code generation, with `internal/engine/output_schema_export_bench_test.go`, `internal/engine/output_schema_validate_bench_test.go` and `schema/diff_bench_test.go`.
+The tests cover the export, decoding and validation of the JSON contract, the semantic diff, the refusal of schema export by loaded compiled grammars and the backend agreement. They are in `schema/*_test.go` (decoding, validation, the diff and its classification), `internal/schema/*_test.go` (the export), `internal/engine/output_schema_*_test.go` and `internal/engine/compiled_schema_test.go`. Export time and allocations are measured separately from parse and code generation, with `internal/schema/output_schema_export_bench_test.go`, `schema/output_schema_validate_bench_test.go` and `schema/diff_bench_test.go`.
 
 ## Performance and Results
 
@@ -180,7 +180,7 @@ counts. Ordinary diff cases used less time and fewer allocations, with about
 allocated less. These are synthetic preparation/validation workloads, not
 parser input-path measurements.
 
-Retaining the `cst/List` identity is measured with `internal/engine/output_schema_export_bench_test.go`,
+Retaining the `cst/List` identity is measured with `internal/schema/output_schema_export_bench_test.go`,
 with Go 1.27.1 on an
 Apple M3 Max (darwin/arm64), `GOMAXPROCS=4`, `GOGC=100`, no memory limit, and
 three alternating serial pairs at 200 ms per sample. A reachable list
