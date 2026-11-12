@@ -1,13 +1,13 @@
 package language_test
 
 import (
-	"errors"
 	"strings"
 	"testing"
 	"unicode"
 
 	"zeroparse.dev/zp"
 	"zeroparse.dev/zp/internal/syntax"
+	"zeroparse.dev/zp/internal/syntax/genparser"
 )
 
 // The positions of the errors of the canonical frontend come from SourceErrors, which moves the
@@ -18,20 +18,8 @@ import (
 
 // rawErrors returns the errors that the generated parser returns for src, with its offsets.
 func rawErrors(src string, err error) []syntax.SourceError {
-	var list zp.SyntaxErrors
-	var one *zp.SyntaxError
-	switch {
-	case errors.As(err, &list):
-	case errors.As(err, &one):
-		list = zp.SyntaxErrors{one}
-	default:
-		return nil
-	}
-	out := make([]syntax.SourceError, len(list))
-	for i, e := range list {
-		out[i] = syntax.SourceError{Offset: e.Pos, Msg: e.Message()}
-	}
-	return out
+	errs, _ := sourceErrorsOf(err)
+	return errs
 }
 
 // placements are other ways to put an error at the offset where the generated parser failed.
@@ -114,7 +102,6 @@ func firstOffsetOf(src string, err error) (int, bool) {
 // TestPositionPlacementsAreSeen runs, for the sources that both frontends reject with the same
 // first error, each other placement and requires that some source gets a different first error.
 func TestPositionPlacementsAreSeen(t *testing.T) {
-	p, _ := sourceGrammar(t)
 	seen := make([]int, len(placements))
 	example := make([]string, len(placements))
 	for _, src := range rejectedSources(t) {
@@ -123,7 +110,7 @@ func TestPositionPlacementsAreSeen(t *testing.T) {
 		if invalid || merr == nil {
 			continue
 		}
-		_, perr := p.Parse(text)
+		_, perr := genparser.ParseAST(text)
 		if perr == nil {
 			continue
 		}

@@ -2,18 +2,19 @@ package syntax
 
 import (
 	"fmt"
+	"reflect"
 	"strconv"
 	"strings"
 
 	"zeroparse.dev/zp/grammar"
+	"zeroparse.dev/zp/internal/syntax/genparser/types"
 	"zeroparse.dev/zp/internal/syntax/sourceast"
-	"zeroparse.dev/zp/internal/value"
 )
 
 // FromSourceTree builds the public grammar AST from the canonical source tree:
-// the File node that the grammar zp.zp parses src into. root must come from a
-// parse of src that reported no syntax error and use code point positions (the
-// default position unit).
+// the File that the grammar zp.zp parses src into, as the typed values of its
+// generated parser. root must come from a parse of src that reported no syntax
+// error and use code point positions (the default position unit).
 //
 // The canonical grammar keeps the syntax of the source and the comment groups
 // of every gap between tokens. This adapter gives the nodes of the AST their
@@ -24,7 +25,7 @@ import (
 // grammar. The AST holds the syntax and ownership that Format needs of a
 // node, but not yet the raw comment tokens that Layout and the line breaks
 // keep; formatting an AST built here writes comments by ownership alone.
-func FromSourceTree(src string, root *value.Node) (g *grammar.Grammar, err error) {
+func FromSourceTree(src string, root *types.File) (g *grammar.Grammar, err error) {
 	c := &canonical{src: []rune(src), pos: sourceast.NewPositions(src)}
 	defer func() {
 		if x := recover(); x != nil {
@@ -35,7 +36,7 @@ func FromSourceTree(src string, root *value.Node) (g *grammar.Grammar, err error
 			g, err = nil, t
 		}
 	}()
-	if root == nil || root.Type() != "File" {
+	if root == nil {
 		c.fail("the source tree is not a File")
 	}
 	g = c.file(root)
@@ -46,7 +47,7 @@ func FromSourceTree(src string, root *value.Node) (g *grammar.Grammar, err error
 }
 
 // treeError reports a source tree that is not the tree of a valid parse: a
-// recovered syntax error or a node the adapter does not know.
+// recovered syntax error or a value the adapter does not know.
 type treeError string
 
 func (e treeError) Error() string { return string(e) }
@@ -62,7 +63,7 @@ type canonical struct {
 	targets []*grammar.SourceInfo
 	// comments are all the comments of the file in order, and gapList its
 	// comment gaps.
-	comments []*value.Node
+	comments []types.Comment
 	gapList  []sourceast.Gap
 	// params are the parameters of the lambdas that enclose the value being built.
 	params []string
@@ -72,44 +73,27 @@ func (c *canonical) fail(format string, args ...any) {
 	panic(treeError(fmt.Sprintf(format, args...)))
 }
 
-// Access to the fields of the tree.
+// Access to the values of the tree.
 
-func nodeField(n *value.Node, name string) *value.Node {
-	child, _ := n.Field(name).(*value.Node)
-	return child
+// ranged is a value of the tree: every value has the range of source it covers.
+type ranged interface{ Range() (start, end int) }
+
+func start(x ranged) int { s, _ := x.Range(); return s }
+
+func end(x ranged) int { _, e := x.Range(); return e }
+
+// text returns the source that x covers.
+func (c *canonical) text(x ranged) string {
+	s, e := x.Range()
+	return string(c.src[s:e])
 }
 
-func listField(n *value.Node, name string) []*value.Node {
-	l := nodeField(n, name)
-	if l == nil {
-		return nil
+// name returns the text of an identifier, or fails on a missing one.
+func (c *canonical) name(id *types.Ident) string {
+	if id == nil {
+		c.fail("the source tree has no name where one is required")
 	}
-	out := make([]*value.Node, 0, l.Len())
-	for _, e := range l.Elems() {
-		out = append(out, e)
-	}
-	return out
-}
-
-func textField(n *value.Node, name string) string { return nodeField(n, name).Text() }
-
-func stringField(n *value.Node, name string) string {
-	s, _ := n.Field(name).(string)
-	return s
-}
-
-func boolField(n *value.Node, name string) bool {
-	b, _ := n.Field(name).(bool)
-	return b
-}
-
-func stringsField(n *value.Node, name string) []string {
-	var out []string
-	for _, e := range listField(n, name) {
-		s, _ := e.Value().(string)
-		out = append(out, s)
-	}
-	return out
+	return id.Value
 }
 
 // Source information.
@@ -179,9 +163,10 @@ func (c *canonical) add(target *grammar.SourceInfo, events ...sourceast.Event) i
 	return len(c.nodes) - 1
 }
 
-// span records a node with the span of the tree node n.
-func (c *canonical) span(target *grammar.SourceInfo, n *value.Node) int {
-	return c.add(target, sourceast.Event{Start: n.Start(), End: n.End()})
+// span records a node with the span of the tree value n.
+func (c *canonical) span(target *grammar.SourceInfo, n ranged) int {
+	s, e := n.Range()
+	return c.add(target, sourceast.Event{Start: s, End: e})
 }
 
 // created records the position the hand-written parser gave node i before it
@@ -204,16 +189,35 @@ func (c *canonical) last() int { return len(c.nodes) - 1 }
 
 // each builds the elements of a comma-separated list. The outermost node of an
 // element claims the trailing group after the comma that follows it.
-func (c *canonical) each(n *value.Node, field string, build func(*value.Node)) {
-	for _, a := range listField(n, field) {
+func each[T any](c *canonical, list []T, build func(T)) {
+	for _, a := range list {
 		build(a)
-		c.later(c.last(), c.separators(a.End(), ',', 1))
+		r, ok := any(a).(ranged)
+		if !ok || isNil(a) {
+			c.fail("the source tree has a syntax error in a list")
+		}
+		c.later(c.last(), c.separators(end(r), ',', 1))
 	}
 }
 
-// statement records the node of a statement or list element with its span.
-func (c *canonical) statement(target *grammar.SourceInfo, n *value.Node, sep []int, comma bool) {
-	i := c.span(target, nodeField(n, "SourceSpan"))
+// isNil reports whether x, a value of the tree, is missing: a nil interface or
+// a nil pointer, which the typed tree holds where recovery left an error in a
+// place of a struct type.
+func isNil(x any) bool {
+	if x == nil {
+		return true
+	}
+	v := reflect.ValueOf(x)
+	return v.Kind() == reflect.Pointer && v.IsNil()
+}
+
+// statement records the node of a statement or list element with span, the
+// body of the statement without its comments.
+func (c *canonical) statement(target *grammar.SourceInfo, span ranged, sep []int, comma bool) {
+	if isNil(span) {
+		c.fail("the source tree has a syntax error in a statement")
+	}
+	i := c.span(target, span)
 	if comma {
 		c.later(i, sep)
 		return
@@ -221,9 +225,10 @@ func (c *canonical) statement(target *grammar.SourceInfo, n *value.Node, sep []i
 	c.joined(i, sep)
 }
 
-// errorAt reports a check failure on the tree node n.
-func (c *canonical) errorAt(n *value.Node, format string, args ...any) {
-	c.errorRange(n.Start(), n.End(), fmt.Sprintf(format, args...))
+// errorAt reports a check failure on the tree value n.
+func (c *canonical) errorAt(n ranged, format string, args ...any) {
+	s, e := n.Range()
+	c.errorRange(s, e, fmt.Sprintf(format, args...))
 }
 
 func (c *canonical) errorRange(start, end int, msg string) {
@@ -232,19 +237,20 @@ func (c *canonical) errorRange(start, end int, msg string) {
 
 // File.
 
-func (c *canonical) file(root *value.Node) *grammar.Grammar {
+func (c *canonical) file(root *types.File) *grammar.Grammar {
 	g := &grammar.Grammar{}
-	c.comments = listField(root, "Comments")
+	c.comments = root.Comments
 	c.gapList = c.gaps(root)
 	hasToken := false
-	if pkg := nodeField(root, "Pkg"); pkg != nil {
-		if pkg.Type() != "Pkg" {
+	if root.Pkg != nil {
+		pkg, ok := root.Pkg.(*types.Pkg)
+		if !ok || pkg == nil {
 			c.fail("the source tree has a syntax error in the package clause")
 		}
 		hasToken = true
 		c.pkg(&g.File.Pkg, pkg)
 	}
-	for _, d := range listField(root, "Decls") {
+	for _, d := range root.Decls {
 		hasToken = true
 		g.File.Decls = append(g.File.Decls, c.decl(d))
 	}
@@ -269,28 +275,36 @@ func (c *canonical) file(root *value.Node) *grammar.Grammar {
 }
 
 // gaps returns the comment gaps of the tree.
-func (c *canonical) gaps(root *value.Node) []sourceast.Gap {
-	var gaps []sourceast.Gap
-	for _, g := range listField(root, "Gaps") {
-		gap := sourceast.Gap{Start: g.Start(), End: g.End()}
-		gap.Trailing = stringsField(g, "Trailing")
-		gap.HasTrailing = boolField(g, "HasTrailing")
-		gap.Leading = stringField(g, "Leading")
-		gap.HasNext = boolField(g, "HasNext")
-		for _, d := range listField(g, "Detached") {
-			gap.Detached = append(gap.Detached, stringField(d, "Text"))
+func (c *canonical) gaps(root *types.File) []sourceast.Gap {
+	gaps := make([]sourceast.Gap, 0, len(root.Gaps))
+	for _, g := range root.Gaps {
+		if g == nil {
+			c.fail("the source tree has a syntax error in a comment gap")
+		}
+		gap := sourceast.Gap{Start: g.Start, End: g.End}
+		if len(g.Trailing) > 0 {
+			gap.Trailing = g.Trailing
+		}
+		gap.HasTrailing = g.HasTrailing
+		gap.Leading = g.Leading
+		gap.HasNext = g.HasNext
+		for _, d := range g.Detached {
+			gap.Detached = append(gap.Detached, d.Text)
 		}
 		gaps = append(gaps, gap)
+	}
+	if len(gaps) == 0 {
+		return nil
 	}
 	return gaps
 }
 
 // tokensEnd returns the offset where the last token of the source ends.
-func (c *canonical) tokensEnd(root *value.Node) int {
+func (c *canonical) tokensEnd(root *types.File) int {
 	// A gap that reaches the end of the input starts where the last token ends.
-	if gaps := listField(root, "Gaps"); len(gaps) > 0 {
-		if g := gaps[len(gaps)-1]; g.End() == len(c.src) {
-			return g.Start()
+	if gaps := root.Gaps; len(gaps) > 0 {
+		if g := gaps[len(gaps)-1]; g.End == len(c.src) {
+			return g.Start
 		}
 	}
 	end := len(c.src)
@@ -300,78 +314,91 @@ func (c *canonical) tokensEnd(root *value.Node) int {
 	return end
 }
 
-func (c *canonical) pkg(p *grammar.Pkg, n *value.Node) {
-	body := nodeField(nodeField(n, "Source"), "Span")
-	p.Name = textField(n, "Name")
+func (c *canonical) pkg(p *grammar.Pkg, n *types.Pkg) {
+	if n.Source == nil || isNil(n.Source.Span_) {
+		c.fail("the source tree has a syntax error in the package clause")
+	}
+	body := n.Source.Span_.(ranged)
+	p.Name = c.name(n.Name)
 	i := c.span(&p.SourceInfo, body)
-	c.joined(i, c.separators(body.End(), ';', 1<<30))
-	name := nodeField(n, "Name")
-	p.HeaderComments = c.commentsIn(body.Start()+len("package"), name.Start())
+	c.joined(i, c.separators(end(body), ';', 1<<30))
+	p.HeaderComments = c.commentsIn(start(body)+len("package"), n.Name.Start)
 }
 
-func (c *canonical) decl(d *value.Node) grammar.Decl {
-	span := nodeField(d, "SourceSpan")
-	var sep []int
-	if span != nil {
-		sep = c.separators(span.End(), ';', 1<<30)
+// semicolons returns the semicolons after the body of a declaration.
+func (c *canonical) semicolons(span ranged) []int {
+	if isNil(span) {
+		c.fail("the source tree has a syntax error in a declaration")
 	}
-	switch d.Type() {
-	case "TypeDef":
-		def := &grammar.TypeDef{Name: textField(d, "Name")}
-		ty := nodeField(d, "Type")
-		name := nodeField(d, "Name")
-		eq := c.nextToken(name.End())
-		def.HeaderComments = c.commentsIn(span.Start()+len("type"), name.Start())
-		def.HeaderComments = append(def.HeaderComments, c.commentsIn(name.End(), eq)...)
-		if ty.Type() == "StructType" {
+	return c.separators(end(span), ';', 1<<30)
+}
+
+func (c *canonical) decl(d types.Decl) grammar.Decl {
+	switch d := d.(type) {
+	case *types.TypeDef:
+		sep := c.semicolons(d.SourceSpan)
+		def := &grammar.TypeDef{Name: c.name(d.Name)}
+		name := d.Name
+		eq := c.nextToken(name.End)
+		def.HeaderComments = c.commentsIn(d.SourceSpan.Start+len("type"), name.Start)
+		def.HeaderComments = append(def.HeaderComments, c.commentsIn(name.End, eq)...)
+		if st, ok := d.Type.(*types.StructType); ok && st != nil {
 			// The hand-written parser completes the struct from the "=".
-			def.Type = c.structType(ty, eq)
+			def.Type = c.structType(st, eq)
 		} else {
-			def.Type = c.typ(ty)
-			def.HeaderComments = append(def.HeaderComments, c.commentsIn(eq+1, ty.Start())...)
+			if isNil(d.Type) {
+				c.fail("the source tree has a syntax error in a declaration")
+			}
+			def.Type = c.typ(d.Type)
+			def.HeaderComments = append(def.HeaderComments, c.commentsIn(eq+1, start(d.Type.(ranged)))...)
 		}
-		c.statement(&def.SourceInfo, d, sep, false)
+		c.statement(&def.SourceInfo, d.SourceSpan, sep, false)
 		return def
-	case "TypeAlias":
-		alias := &grammar.TypeAlias{Name: textField(d, "Name")}
-		name := nodeField(d, "Name")
-		ty := nodeField(d, "Type")
-		tilde := c.nextToken(name.End())
-		alias.HeaderComments = c.commentsIn(span.Start()+len("type"), name.Start())
-		alias.HeaderComments = append(alias.HeaderComments, c.commentsIn(name.End(), tilde)...)
-		alias.HeaderComments = append(alias.HeaderComments, c.commentsIn(tilde+1, ty.Start())...)
-		alias.Type = c.typ(ty)
-		c.statement(&alias.SourceInfo, d, sep, false)
+	case *types.TypeAlias:
+		sep := c.semicolons(d.SourceSpan)
+		alias := &grammar.TypeAlias{Name: c.name(d.Name)}
+		name := d.Name
+		if isNil(d.Type) {
+			c.fail("the source tree has a syntax error in a declaration")
+		}
+		ty := d.Type.(ranged)
+		tilde := c.nextToken(name.End)
+		alias.HeaderComments = c.commentsIn(d.SourceSpan.Start+len("type"), name.Start)
+		alias.HeaderComments = append(alias.HeaderComments, c.commentsIn(name.End, tilde)...)
+		alias.HeaderComments = append(alias.HeaderComments, c.commentsIn(tilde+1, start(ty))...)
+		alias.Type = c.typ(d.Type)
+		c.statement(&alias.SourceInfo, d.SourceSpan, sep, false)
 		return alias
-	case "VarDef":
-		v := &grammar.VarDef{Name: textField(d, "Name")}
-		name := nodeField(d, "Name")
-		v.HeaderComments = c.commentsIn(span.Start()+len("var"), name.Start())
-		if t := nodeField(d, "Type"); t != nil {
-			v.HeaderComments = append(v.HeaderComments, c.commentsIn(name.End(), t.Start())...)
-			v.Type = c.typ(t)
+	case *types.VarDef:
+		sep := c.semicolons(d.SourceSpan)
+		v := &grammar.VarDef{Name: c.name(d.Name)}
+		name := d.Name
+		v.HeaderComments = c.commentsIn(d.SourceSpan.Start+len("var"), name.Start)
+		if !isNil(d.Type) {
+			v.HeaderComments = append(v.HeaderComments, c.commentsIn(name.End, start(d.Type.(ranged)))...)
+			v.Type = c.typ(d.Type)
 		}
-		if val := nodeField(d, "Value"); val != nil {
-			v.Value = c.action(val)
+		if !isNil(d.Value) {
+			v.Value = c.action(d.Value)
 		}
-		c.statement(&v.SourceInfo, d, sep, false)
+		c.statement(&v.SourceInfo, d.SourceSpan, sep, false)
 		return v
-	case "RuleDef":
-		return c.ruleDef(d, span, sep)
+	case *types.RuleDef:
+		return c.ruleDef(d, c.semicolons(d.SourceSpan))
 	}
 	c.fail("the source tree has a syntax error in a declaration")
 	return nil
 }
 
-func (c *canonical) ruleDef(d, span *value.Node, sep []int) *grammar.RuleDef {
-	rd := &grammar.RuleDef{Name: textField(d, "Name")}
-	attrs := listField(d, "Attrs")
-	keyword := span.Start()
+func (c *canonical) ruleDef(d *types.RuleDef, sep []int) *grammar.RuleDef {
+	rd := &grammar.RuleDef{Name: c.name(d.Name)}
+	attrs := d.Attrs
+	keyword := d.SourceSpan.Start
 	for _, attr := range attrs {
 		rd.Attrs = append(rd.Attrs, c.attr(attr))
 	}
 	if len(attrs) > 0 {
-		keyword = c.nextToken(attrs[len(attrs)-1].End())
+		keyword = c.nextToken(attrs[len(attrs)-1].End)
 		// No source-bearing node starts at "rule" after attributes, so the
 		// declaration owns the comments before it.
 		for _, g := range c.gapList {
@@ -381,26 +408,24 @@ func (c *canonical) ruleDef(d, span *value.Node, sep []int) *grammar.RuleDef {
 			}
 		}
 	}
-	name := nodeField(d, "Name")
-	ty := nodeField(d, "Type")
-	expr := nodeField(d, "Expr")
+	name := d.Name
 	// The header holds the comments before the name, the type and the "=".
-	rd.HeaderComments = c.commentsIn(keyword+len("rule"), name.Start())
-	from := name.End()
-	if ty != nil {
-		rd.Type = c.typ(ty)
+	rd.HeaderComments = c.commentsIn(keyword+len("rule"), name.Start)
+	from := name.End
+	if !isNil(d.Type) {
+		rd.Type = c.typ(d.Type)
 		var gaps [][2]int
-		from = c.typeHeader(ty, from, &gaps)
+		from = c.typeHeader(d.Type, from, &gaps)
 		for _, g := range gaps {
 			rd.HeaderComments = append(rd.HeaderComments, c.commentsIn(g[0], g[1])...)
 		}
 	}
 	rd.HeaderComments = append(rd.HeaderComments, c.commentsIn(from, c.nextToken(from))...)
-	rd.Expr = c.rule(expr)
-	if a := nodeField(d, "Action"); a != nil {
-		rd.Action, rd.DefaultAction = c.actionOrDefault(a)
+	rd.Expr = c.rule(d.Expr)
+	if !isNil(d.Action) {
+		rd.Action, rd.DefaultAction = c.actionOrDefault(d.Action)
 	}
-	c.statement(&rd.SourceInfo, d, sep, false)
+	c.statement(&rd.SourceInfo, d.SourceSpan, sep, false)
 	if len(attrs) > 0 {
 		// The hand-written parser gives a rule with attributes the position of
 		// "rule" for diagnostics.
@@ -411,114 +436,118 @@ func (c *canonical) ruleDef(d, span *value.Node, sep []int) *grammar.RuleDef {
 
 // Types.
 
-func (c *canonical) structType(n *value.Node, start int) *grammar.StructType {
+func (c *canonical) structType(n *types.StructType, start int) *grammar.StructType {
 	st := &grammar.StructType{Fields: nil}
-	for _, f := range listField(n, "Fields") {
-		if f.Type() != "Field" {
+	for _, spec := range n.Fields {
+		f, ok := spec.(*types.Field)
+		if !ok || f == nil || f.SourceSpan == nil || isNil(f.Type) {
 			c.fail("the source tree has a syntax error in a struct field")
 		}
-		span := nodeField(f, "SourceSpan")
-		field := &grammar.Field{Name: textField(f, "Name")}
-		name := nodeField(f, "Name")
-		ty := nodeField(f, "Type")
-		field.HeaderComments = c.commentsIn(name.End(), ty.Start())
-		field.Type = c.typ(ty)
-		c.statement(&field.SourceInfo, f, c.separators(span.End(), ';', 1), false)
+		field := &grammar.Field{Name: c.name(f.Name)}
+		field.HeaderComments = c.commentsIn(f.Name.End, start0(f.Type))
+		field.Type = c.typ(f.Type)
+		c.statement(&field.SourceInfo, f.SourceSpan, c.separators(f.SourceSpan.End, ';', 1), false)
 		st.Fields = append(st.Fields, field)
 	}
-	c.add(&st.SourceInfo, sourceast.Event{Start: start, End: n.End()})
+	c.add(&st.SourceInfo, sourceast.Event{Start: start, End: n.End})
 	return st
 }
 
-func (c *canonical) types(n *value.Node, field string) []grammar.TypeExpr {
+// start0 returns the start of a value of the tree that is known to be present.
+func start0(x any) int { return start(x.(ranged)) }
+
+func (c *canonical) types(list []types.Type) []grammar.TypeExpr {
 	var out []grammar.TypeExpr
-	c.each(n, field, func(a *value.Node) { out = append(out, c.typ(a)) })
+	each(c, list, func(a types.Type) { out = append(out, c.typ(a)) })
 	return out
 }
 
-func (c *canonical) typ(n *value.Node) grammar.TypeExpr {
-	switch n.Type() {
-	case "TypeRef":
-		t := &grammar.TypeRef{Name: textField(n, "Name")}
+// typ builds a type expression: a types.Type, or the types.DefinedType of a
+// type definition.
+func (c *canonical) typ(n any) grammar.TypeExpr {
+	switch n := n.(type) {
+	case *types.TypeRef:
+		t := &grammar.TypeRef{Name: c.name(n.Name)}
 		if t.Name == "node" {
-			c.errs.add(c.pos.At(nodeField(n, "Name").Start()), bareNode+" (zp fix rewrites it)")
+			c.errs.add(c.pos.At(n.Name.Start), bareNode+" (zp fix rewrites it)")
 		}
 		c.span(&t.SourceInfo, n)
 		return t
-	case "Bottom":
-		t := &grammar.TypeRef{Name: n.Text()}
+	case *types.Bottom:
+		t := &grammar.TypeRef{Name: n.Value}
 		c.span(&t.SourceInfo, n)
 		return t
-	case "TypeApp":
-		t := &grammar.TypeApp{Name: textField(n, "Name")}
-		t.Args = c.types(n, "Args")
+	case *types.TypeApp:
+		t := &grammar.TypeApp{Name: c.name(n.Name)}
+		t.Args = c.types(n.Args)
 		c.span(&t.SourceInfo, n)
 		return t
-	case "TypeGroup":
+	case *types.TypeGroup:
 		t := &grammar.TypeGroup{}
-		t.Type = c.typ(nodeField(n, "Type"))
+		t.Type = c.typ(n.Type)
 		c.span(&t.SourceInfo, n)
 		return t
-	case "TupleType":
+	case *types.TupleType:
 		t := &grammar.TupleType{}
-		t.Types = c.types(n, "Types")
+		t.Types = c.types(n.Types)
 		c.span(&t.SourceInfo, n)
 		return t
-	case "StructType":
-		return c.structType(n, n.Start())
-	case "OptionalType":
+	case *types.StructType:
+		return c.structType(n, n.Start)
+	case *types.OptionalType:
 		t := &grammar.OptionalType{}
-		t.Elem = c.typ(nodeField(n, "Type"))
+		t.Elem = c.typ(n.Type)
 		c.span(&t.SourceInfo, n)
 		return t
-	case "ListType":
+	case *types.ListType:
 		t := &grammar.ListType{}
-		t.Elem = c.typ(nodeField(n, "Type"))
+		t.Elem = c.typ(n.Type)
 		c.span(&t.SourceInfo, n)
 		return t
-	case "JoinType":
+	case *types.JoinType:
 		t := &grammar.JoinType{}
-		for _, o := range flatten(n, "JoinType") {
+		for _, o := range flattenJoin(n) {
 			t.Types = append(t.Types, c.typ(o))
 		}
 		c.span(&t.SourceInfo, n)
 		return t
-	case "MeetType":
+	case *types.MeetType:
 		t := &grammar.MeetType{}
-		for _, o := range flatten(n, "MeetType") {
+		for _, o := range flattenMeet(n) {
 			t.Types = append(t.Types, c.typ(o))
 		}
 		c.span(&t.SourceInfo, n)
 		return t
 	}
-	c.fail("unexpected type node %s", n.Type())
+	c.fail("unexpected type %T", n)
 	return nil
 }
 
-// flatten returns the operands of a chain of binary nodes of one type, which
-// the public AST holds in one node.
-func flatten(n *value.Node, typ string) []*value.Node {
-	if n.Type() != typ {
-		return []*value.Node{n}
+// The flatten functions return the operands of a chain of binary nodes of one
+// type, which the public AST holds in one node.
+
+func flattenJoin(n types.Type) []types.Type {
+	if j, ok := n.(*types.JoinType); ok && j != nil {
+		return append(flattenJoin(j.L), j.R)
 	}
-	return append(flatten(nodeField(n, "L"), typ), nodeField(n, "R"))
+	return []types.Type{n}
+}
+
+func flattenMeet(n types.Type) []types.Type {
+	if m, ok := n.(*types.MeetType); ok && m != nil {
+		return append(flattenMeet(m.L), m.R)
+	}
+	return []types.Type{n}
 }
 
 // typeHeader collects the gaps before the tokens of a type in a rule header,
 // where the hand-written parser reads the tokens as part of the header: all
 // but those inside delimiters and the closing ones. from is the offset where
 // the token before the type ends; it returns where the type ends.
-func (c *canonical) typeHeader(t *value.Node, from int, gaps *[][2]int) int {
+func (c *canonical) typeHeader(t types.Type, from int, gaps *[][2]int) int {
 	gap := func(to int) { *gaps = append(*gaps, [2]int{from, to}) }
-	switch t.Type() {
-	case "ListType":
-		gap(t.Start())
-		return c.typeHeader(nodeField(t, "Type"), t.Start()+len("[]"), gaps)
-	case "OptionalType":
-		gap(t.Start())
-		return c.typeHeader(nodeField(t, "Type"), t.Start()+len("*"), gaps)
-	case "JoinType", "MeetType":
-		for i, o := range flatten(t, t.Type()) {
+	chain := func(operands []types.Type) int {
+		for i, o := range operands {
 			if i > 0 {
 				op := c.nextToken(from)
 				gap(op)
@@ -527,13 +556,26 @@ func (c *canonical) typeHeader(t *value.Node, from int, gaps *[][2]int) int {
 			from = c.typeHeader(o, from, gaps)
 		}
 		return from
-	case "StructType":
-		return t.End()
+	}
+	switch t := t.(type) {
+	case *types.ListType:
+		gap(t.Start)
+		return c.typeHeader(t.Type, t.Start+len("[]"), gaps)
+	case *types.OptionalType:
+		gap(t.Start)
+		return c.typeHeader(t.Type, t.Start+len("*"), gaps)
+	case *types.JoinType:
+		return chain(flattenJoin(t))
+	case *types.MeetType:
+		return chain(flattenMeet(t))
+	case *types.StructType:
+		return t.End
 	}
 	// A name, a name with arguments, a group and a tuple have one token before
 	// the delimiters of their own.
-	gap(t.Start())
-	return t.End()
+	r := t.(ranged)
+	gap(start(r))
+	return end(r)
 }
 
 // commentsIn returns the contents of the comments between the offsets from and
@@ -541,16 +583,21 @@ func (c *canonical) typeHeader(t *value.Node, from int, gaps *[][2]int) int {
 func (c *canonical) commentsIn(from, to int) []string {
 	var out []string
 	for _, cm := range c.comments {
-		if cm.Start() < from || cm.End() > to {
+		r, ok := cm.(ranged)
+		if !ok || isNil(cm) {
+			c.fail("the source tree has a syntax error in a comment")
+		}
+		if s, e := r.Range(); s < from || e > to {
 			continue
 		}
-		if cm.Type() == "CommentGroup" {
-			for _, line := range listField(cm, "Lines") {
-				out = append(out, c.commentContent(line.Start(), line.End()))
+		if g, ok := cm.(*types.CommentGroup); ok {
+			for _, line := range g.Lines {
+				out = append(out, c.commentContent(line.Start, line.End))
 			}
 			continue
 		}
-		out = append(out, c.commentContent(cm.Start(), cm.End()))
+		s, e := r.Range()
+		out = append(out, c.commentContent(s, e))
 	}
 	return out
 }
@@ -571,12 +618,13 @@ func (c *canonical) commentContent(start, end int) string {
 // Literals. The lexer decodes the text of a string or a character class, so a
 // literal has the value and the errors it has in the hand-written parser.
 
-// decode runs read, a lexer method, on the source of the tree node n and
+// decode runs read, a lexer method, on the source of the tree value n and
 // reports the errors it finds at their place in the whole source.
-func (c *canonical) decode(n *value.Node, read func(*lexer)) {
-	l := &lexer{line: 1, col: 1, errs: &errorList{}, src: c.src[n.Start():n.End()]}
+func (c *canonical) decode(n ranged, read func(*lexer)) {
+	s, e := n.Range()
+	l := &lexer{line: 1, col: 1, errs: &errorList{}, src: c.src[s:e]}
 	read(l)
-	origin := c.pos.At(n.Start())
+	origin := c.pos.At(s)
 	at := func(p grammar.Pos) grammar.Pos {
 		if !p.IsValid() {
 			return p
@@ -592,26 +640,26 @@ func (c *canonical) decode(n *value.Node, read func(*lexer)) {
 }
 
 // literal builds the string literal n, with its suffix i.
-func (c *canonical) literal(n *value.Node) *grammar.Literal {
+func (c *canonical) literal(n *types.String) *grammar.Literal {
 	lit := &grammar.Literal{}
 	c.decode(n, func(l *lexer) {
 		// The suffix i follows the closing quote, so the lexer stops there.
 		lit.Value = l.string()
 	})
-	lit.IgnoreCase = strings.HasSuffix(n.Text(), "i") && !strings.HasSuffix(n.Text(), "\"")
+	lit.IgnoreCase = strings.HasSuffix(n.Value, "i") && !strings.HasSuffix(n.Value, "\"")
 	return lit
 }
 
-func (c *canonical) stringValue(n *value.Node) string {
+func (c *canonical) stringValue(n *types.String) string {
 	return c.literal(n).Value
 }
 
 // integer decodes the digits of the decimal literal n, which may follow a sign.
-func (c *canonical) integer(n *value.Node) int {
+func (c *canonical) integer(n *types.Int) int {
 	if n == nil {
 		c.fail("the source tree has no number where one is required")
 	}
-	text := n.Text()
+	text := n.Value
 	digits := text
 	for len(digits) > 0 && digits[len(digits)-1] >= '0' && digits[len(digits)-1] <= '9' {
 		digits = digits[:len(digits)-1]
@@ -623,7 +671,7 @@ func (c *canonical) integer(n *value.Node) int {
 	}
 	v, err := strconv.Atoi(digits)
 	if err != nil {
-		c.errorRange(n.End()-len(digits), n.End(), "invalid number "+digits)
+		c.errorRange(n.End-len(digits), n.End, "invalid number "+digits)
 		return 0
 	}
 	if negative {

@@ -22,7 +22,7 @@ cd "$sourcebench_repo"
 go test -c -o "$sourcebench_dir/syntax.test" ./internal/syntax
 cd internal/syntax
 "$sourcebench_dir/syntax.test" -test.run '^TestFrontendSamples$' >&2
-sourcebench_frontends='manual manual-aa generated-typed'
+sourcebench_frontends='manual manual-aa generated'
 sourcebench_round=0
 while [ "$sourcebench_round" -lt "$sourcebench_rounds" ]; do
 	# Rotate the order of the frontends by the round number.

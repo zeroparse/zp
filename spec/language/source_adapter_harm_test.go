@@ -105,9 +105,9 @@ func shortMsg(m string) string {
 
 // add compares the errors of the frontends on src, which edits changed in the ranges of code points that
 // edits holds (nil when it is not known).
-func (s *harmStats) add(t *testing.T, p *zp.Parser, src string, edits [][2]int) {
+func (s *harmStats) add(t *testing.T, src string, edits [][2]int) {
 	_, merr := zp.ParseGrammar(src)
-	_, err := adaptCanonical(p, src)
+	_, err := adaptCanonical(src)
 	if merr == nil || err == nil {
 		return
 	}
@@ -579,7 +579,6 @@ func related(rs []rune, a, b int) bool {
 // of the classification, of the grammar or of the reference parser that moves an error from one class to
 // another shows here, and not only in a share of the mutated sources.
 func TestErrorPositionClasses(t *testing.T) {
-	p, _ := sourceGrammar(t)
 	cases := []struct{ class, src string }{
 		{"same", "rule main= _t\nrule _t = "},
 		{"near", "rule x = #operators { opera"},
@@ -599,7 +598,7 @@ func TestErrorPositionClasses(t *testing.T) {
 	}
 	for _, c := range cases {
 		_, merr := zp.ParseGrammar(c.src)
-		_, err := adaptCanonical(p, c.src)
+		_, err := adaptCanonical(c.src)
 		h, g := errorsOf(c.src, merr), errorsOf(c.src, err)
 		if len(h) == 0 || len(g) == 0 {
 			t.Errorf("%q: both frontends must reject it: %v, %v", c.src, merr, err)

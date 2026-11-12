@@ -51,16 +51,15 @@ var keywordNameCorpus = []string{
 // mistake after them to be reported where the reference reports it, with no error in the valid text
 // before it: the recovery after a mistake must not read that text as declarations.
 func TestKeywordNamesAreNotDeclarations(t *testing.T) {
-	p, _ := sourceGrammar(t)
 	junk := []string{"/ /\n", "/ / v\n", ") )\n", " ?? \n"}
 	for _, src := range keywordNameCorpus {
 		if _, err := zp.ParseGrammar(src); err != nil {
 			t.Fatalf("%q is not valid: %v", src, err)
 		}
-		if _, err := adaptCanonical(p, src); err != nil {
+		if _, err := adaptCanonical(src); err != nil {
 			t.Errorf("%q: the canonical frontend rejects it: %v", src, err)
 		}
-		compareGrammars(t, p, "keyword names", src)
+		compareGrammars(t, "keyword names", src)
 		// The junk follows the last closing delimiter, so that everything before it is valid.
 		end := len(src) - 1
 		for end > 0 && src[end] != '}' && src[end] != ')' && src[end] != ']' {
@@ -69,7 +68,7 @@ func TestKeywordNamesAreNotDeclarations(t *testing.T) {
 		for _, j := range junk {
 			bad := src[:end+1] + j
 			_, merr := zp.ParseGrammar(bad)
-			_, err := adaptCanonical(p, bad)
+			_, err := adaptCanonical(bad)
 			if merr == nil || err == nil {
 				continue // the junk made the text valid
 			}
@@ -99,7 +98,7 @@ func TestKeywordNamesAreNotDeclarations(t *testing.T) {
 		"rule a = {\n var / t\n y\n y\n y\n y\n y\n y\n y\n y\n y\n y\n}/ / v\n",
 	} {
 		_, merr := zp.ParseGrammar(c)
-		_, err := adaptCanonical(p, c)
+		_, err := adaptCanonical(c)
 		if merr == nil || err == nil {
 			t.Fatalf("%q must be rejected by both frontends: %v, %v", c, merr, err)
 		}
@@ -180,7 +179,6 @@ func isValidGrammar(src string) bool {
 // one of them, to report errors only in the broken declaration: the recovery must not read the lines
 // that start with a keyword as declarations or find a bracket in a string.
 func TestKeywordFormsAreNotDeclarations(t *testing.T) {
-	p, _ := sourceGrammar(t)
 	rng := rand.New(rand.NewSource(5))
 	broken := []string{"rule zz = )\n", "rule zz \"y\" )\n", "type ZZ = }\n", "rule zz = ( b\n", "var zz = ]\n", "@x(a=1)\nrule zz = )\n"}
 	valid := 0
@@ -193,7 +191,7 @@ func TestKeywordFormsAreNotDeclarations(t *testing.T) {
 			continue
 		}
 		valid++
-		if !compareGrammars(t, p, "keyword forms", g) {
+		if !compareGrammars(t, "keyword forms", g) {
 			continue
 		}
 		j := broken[rng.Intn(len(broken))]
@@ -207,7 +205,7 @@ func TestKeywordFormsAreNotDeclarations(t *testing.T) {
 			cases = append(cases, brokenAt{j + g, 0, len(j)})
 		}
 		for _, bad := range cases {
-			_, err := adaptCanonical(p, bad.src)
+			_, err := adaptCanonical(bad.src)
 			if err == nil {
 				continue // the broken declaration made the text valid
 			}
@@ -230,7 +228,6 @@ func TestKeywordFormsAreNotDeclarations(t *testing.T) {
 // or swallows the closing bracket of its group, at the declaration after it, where the hand-written parser
 // reports nothing more.
 func TestUnterminatedLiteralIsOneError(t *testing.T) {
-	p, _ := sourceGrammar(t)
 	for _, src := range []string{
 		"rule a = \"x\nrule b = \"y\"\n",
 		"rule a = [a-z\nrule b = \"y\"\n",
@@ -257,7 +254,7 @@ func TestUnterminatedLiteralIsOneError(t *testing.T) {
 		"rule a0 = {\n var != \"={\n var != \"=\"\n}\nrule a1 = x:\"a\" {\n type := \"=\"\n}\n",
 	} {
 		_, merr := zp.ParseGrammar(src)
-		_, err := adaptCanonical(p, src)
+		_, err := adaptCanonical(src)
 		if merr == nil || err == nil {
 			t.Fatalf("%q must be rejected by both frontends: %v, %v", src, merr, err)
 		}
@@ -272,14 +269,13 @@ func TestUnterminatedLiteralIsOneError(t *testing.T) {
 // unterminated literal to stay: a failure at an attribute without a name is not the closing bracket that
 // the literal swallowed.
 func TestUnterminatedLiteralKeepsTheNextError(t *testing.T) {
-	p, _ := sourceGrammar(t)
 	for _, src := range []string{
 		"rule a = \"x\n@\nrule b = c\n",
 		"rule a = [x\n@\nrule b = c\n",
 		"type T = { A \"x\n@\nrule b = c\n",
 	} {
 		_, merr := zp.ParseGrammar(src)
-		_, err := adaptCanonical(p, src)
+		_, err := adaptCanonical(src)
 		if merr == nil || err == nil {
 			t.Fatalf("%q must be rejected by both frontends: %v, %v", src, merr, err)
 		}
@@ -295,7 +291,6 @@ func TestUnterminatedLiteralKeepsTheNextError(t *testing.T) {
 // parser ends a group at it; the drop of the failure after the literal must not take the errors of that
 // declaration for the literal's.
 func TestUnterminatedLiteralBeforeIndentedDeclaration(t *testing.T) {
-	p, _ := sourceGrammar(t)
 	for _, src := range []string{
 		"rule a = \"x\n  rule b = {\nrule c = d\n",
 		"rule a = {\n \"={\n  rule b = {\nrule e = c\n",
@@ -304,7 +299,7 @@ func TestUnterminatedLiteralBeforeIndentedDeclaration(t *testing.T) {
 		"rule a = \"x\n  rule b = c\nrule d = )\n",
 	} {
 		_, merr := zp.ParseGrammar(src)
-		_, err := adaptCanonical(p, src)
+		_, err := adaptCanonical(src)
 		if merr == nil || err == nil {
 			t.Fatalf("%q must be rejected by both frontends: %v, %v", src, merr, err)
 		}
@@ -319,13 +314,12 @@ func TestUnterminatedLiteralBeforeIndentedDeclaration(t *testing.T) {
 // the source, as the hand-written parser reports them. The grammar lists the failure that ends the parse
 // before the mistakes it recovered from.
 func TestCanonicalErrorsAreInTheOrderOfTheSource(t *testing.T) {
-	p, _ := sourceGrammar(t)
 	for _, src := range []string{
 		"rule a = {\n x \"{\n var = 1\n}\nrule c = d\n",
 		"rule a = {\n x \"{\n}\n  rule b; rule c = d\n",
 		"rule a = )\nrule b = )\nrule c = {\n  x ) \n}\n",
 	} {
-		_, err := adaptCanonical(p, src)
+		_, err := adaptCanonical(src)
 		errs := errorsOf(src, err)
 		if len(errs) < 2 {
 			t.Fatalf("%q: want at least two errors: %v", src, err)
