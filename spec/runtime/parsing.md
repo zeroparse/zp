@@ -1034,7 +1034,8 @@ The conditions below use these terms.
 - A **scanning source** is one of the following: a repetition without an upper
   bound, the skip expression of a `#recover` that is not a
   [reused skip](#skip-runs), the growth of a left-recursion
-  cycle at every call of a rule of the cycle other than a left call, the
+  cycle at every call of a rule of the cycle other than a left call and at
+  every call of a leader in the body of another rule, the
   operators that an Operators Rule applies, and a copying operation with an
   operand, other than the value of a variable, that is not bounded in size by
   a constant of the grammar. A call of a rule of the cycle after input has
@@ -1044,7 +1045,13 @@ The conditions below use these terms.
   at a new position and can apply operators itself (see
   [Parsing Rules](../language/operators-rule.md#parsing-rules)), so a unit of
   an Operators Rule contains a scanning source when its right operand can
-  apply an operator. Copying the
+  apply an operator. A call of a leader `R` in the body of another rule starts a growth of
+  `R` wherever that body is evaluated while `R` does not grow at the
+  position: where a rule that is not a leader is called and no growth of the
+  cycle is in progress, and in a step of another leader. A unit around such a
+  call can throw away what the growth consumed, as `R "z"` does in
+  `S = R "z" / "a"` with `R = R [ab] / S "b"` on `abab...`, and a call of `S`
+  at each later `a` grows `R` again over the rest of the input. Copying the
   value of a variable costs at most L, the bound of
   [Classification](#classification), in each evaluation, which condition 4
   counts instead. An expression **contains** a scanning source when the
@@ -1677,8 +1684,8 @@ necessary.
    path through its left call failed. A unit whose only scanning
    sources are bounded scans contains no scanning source in this sense: a
    restart repeats them, and their bound counts the repetition.
-3. **Growth.** No scanning source can be evaluated, outside the left call that
-   grows, at the position where a left-recursive rule grows, in its body or in
+3. **Growth.** No scanning source can be evaluated, outside the left calls of
+   rules of the cycle, at the position where a left-recursive rule grows, in its body or in
    the body of another rule of its cycle, other than inside a call, memoized
    at the call, of a rule that is not on the cycle. Each step of the growth
    evaluates these bodies again at that position.
