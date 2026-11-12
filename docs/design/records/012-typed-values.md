@@ -132,7 +132,7 @@ It runs in both position units.
 
 ### Conversion After the Parse
 
-Otherwise `ParseAST` calls `Parse` and converts the tree. The converter (`astConv`) has one method per type and per
+Otherwise `ParseAST` calls `Parse` and converts the tree. The generated converter has one method per type and per
 list type, looks fields up by name, and allocates the values of each type, and the elements of lists, in chunks, as
 the runtime does nodes. The parse itself is unchanged, so the typed result is exactly the engine's tree in another
 form.
