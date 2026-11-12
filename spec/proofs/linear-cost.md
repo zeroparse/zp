@@ -648,18 +648,38 @@ continues from its start.
 at $q$, $\alpha$ first, direct in different body evaluations of $R$, and let
 no dropped step of a growth and no path that enters the growth again lead from
 the abandoned unit to $\alpha'$. With $w$ and $\kappa$ as above, $\alpha$ lies
-in the evaluation inside $w$ of a call that $w$ and $\kappa$ share, which
+in the evaluation inside $w$ of a call that $w$ and $\kappa$ share, or
+$\alpha'$ lies in the evaluation inside $\kappa$ of such a call; the call
 starts at or before $q$.
 
-*Proof.* If $\alpha$ is in none of the shared calls, the proof above applies:
-$\alpha$ is in $w$ after the shared calls, inside a call of $w$ or not, so the
-character at $t$ is a first character of both, and a call of $w$ after the
-shared calls that contains $\alpha$ contains a scanning source, so case 3 does
-not hold either. So $\alpha$ is in a shared call, which starts at or before
-$q$. For a unit that is committing only by case 6 the claim is open: the
-activations that the continuation repeats lie in calls that the comparison
-passes alike, which need not be shared ([Decided
-Units](decided-units.md#open-points), point 1). $\square$
+*Proof.* If $\alpha$ is in none of the shared calls inside $w$ and $\alpha'$ in
+none of them inside $\kappa$, the proof above applies: $\alpha$ is in $w$ after
+the shared calls and $\alpha'$ in $\kappa$ after them, inside a call or not,
+so the character at $t$ is a first character of both, and a call of $w$ after
+the shared calls that contains $\alpha$ contains a scanning source, so case 3
+does not hold either. So one of them is in a shared call, which starts at or
+before $q$. For a unit that is committing only by case 6, the [Decided
+Units](decided-units.md#lemma-5-repeated-activations) proof shows the claim
+with the calls that the comparison passes alike in the place of the shared
+calls, apart from the cases that it leaves open. $\square$
+
+The claim does not place $\alpha$ in a shared call when $\alpha'$ lies in one:
+a shared call can examine input past its end, in a unit inside it, and the
+next activation after it inside the unit can lie in a call that is not
+shared:
+
+```zp
+@start
+rule main = a a "b" / a "y"
+rule a = "."? ([ ]* "z")?
+```
+
+On `.`, a space and `y`, the unit `a a "b"` shares the call of `a` at $0$
+with its continuation `a "y"`. That call scans the space at $1$ in its
+option, which fails at `y`, and ends at $1$; the second call of `a`, at $1$,
+scans the space again in its option, and so does the call of `a` at $0$ that
+the continuation makes. The second of these three activations lies in no
+shared call, and the third lies in the shared call inside the continuation.
 
 The claim does not place $\alpha'$ in an evaluation of the same call. The part
 of the shared call that holds $\alpha$ can be an abandoned unit that examined
@@ -683,8 +703,9 @@ So the successful activations of $\sigma$ at $q$, $\alpha_1, \alpha_2, \ldots$
 in the order in which they start, outside case 5 and dropped steps, are direct
 in distinct body evaluations of $R$, and for $i \ge 2$, $\alpha_{i-1}$ lies in
 the evaluation $e_i$ of a call shared by a committing unit $w_i$ and its
-continuation, inside $w_i$. When $\alpha_i$ lies in an evaluation $e'_i$ of the
-same call at the same position, made after $w_i$ is abandoned, $i$ is
+continuation, inside $w_i$, or $\alpha_i$ lies in the evaluation of such a call
+inside the continuation. When both hold, with $\alpha_i$ in an evaluation $e'_i$
+of the same call at the same position, made after $w_i$ is abandoned, $i$ is
 **linked**, and the pair $(e_i, e'_i)$ is the $i$-th **link**; otherwise $i$ is
 **free**, as is $i = 1$. *Reference links* below gives each activation of the
 reference parse such a pair, which the free ones lack in the parse.
@@ -1289,7 +1310,13 @@ calls, and $\beta'$ is the activation of $e^{k\prime}$ that corresponds to
 $\beta_f$. The pair $(e^k, e^{k\prime})$ is the **reference link** of $\beta'$;
 it joins $\beta'$ to $\beta_f$, which need not be $\beta$.
 
-*Proof.* By *Repeats*, $\beta$ lies in a shared call, so $e^k$ exists.
+*Proof.* By *Repeats*, $\beta$ lies in a shared call inside $w$, or $\beta'$
+lies in the evaluation of one inside $\kappa$. In the second case the
+evaluation of that call inside $w$ takes the same steps up to the variants of
+its calls when neither of the two reads a growth open at its start
+(*Counterparts*), so it holds an activation at the place of $\beta'$. So $e^k$
+exists, unless a shared call reads such a growth, which leaves $\beta'$
+without a reference link, as below.
 $\mathcal{R}$ evaluates every call, and $\kappa$, every path of which that
 examines the input begins with the shared calls, evaluates them in order, each
 at the position where it ends in $w$ (case 2). The evaluation in $\kappa$ of a

@@ -12,8 +12,9 @@ of [Lemma 4](linear-cost.md#lemma-4-scanned-cost) of the Linear Cost proof, as
 [Adding a Condition](linear-cost.md#adding-a-condition) requires: Lemmas 1 to 4
 state what an evaluation does along a path, that symbols passed alike end
 alike, what a cheap symbol costs again, and that at most one side passes a
-decisive symbol, and the theorem gives the conclusion of *Direct activations*
-for a decided unit. The points that it leaves open are listed at the end.
+decisive symbol, the theorem gives the conclusion of *Direct activations*
+for a decided unit, and Lemma 5 places the activations that a decided unit
+and its continuation repeat in the calls that the comparison passes alike. The points that it leaves open are listed at the end.
 
 ## Setting
 
@@ -376,18 +377,128 @@ The proof does not use the bound of three symbols. That bound and the work
 budget of the comparison keep the classification finite; the cost argument
 holds for a settled pair of any length.
 
+## Lemma 5 (Repeated Activations)
+
+The claims of [Lemma 4](linear-cost.md#lemma-4-scanned-cost) of the Linear
+Cost proof that follow *Direct activations*, from *Repeats* on, link each successful activation of a source
+at a position to an earlier one through a call that a committing unit shares
+with its continuation. For a decided unit, the calls that the comparison
+passes alike take that place.
+
+An **alike call** of a pair of paths of a unit and its continuation is a call
+that is a step of the pair, or a call that the body of an alike call makes
+when that call is not memoized at its place and its body is cheap in all its
+parts. Both sides evaluate a step at one position (Lemma 2), with the same
+values of the variables that its rule reads, and the two evaluations of the
+body of an alike call that is not memoized take the same steps (Lemma 3), so
+they make the alike calls in it at the same places and positions. A rule of
+an alike call is on no left-recursion cycle, so no evaluation of an alike call
+reads a growth ([Lemma 2 of the Memoization
+proof](memoization.md#lemma-2-reading-an-open-growth)).
+
+In the setting of *Repeats*, let $\alpha$ and $\alpha'$ be successful
+activations of a scanning source $\sigma$ of the body of a rule $R$ at $q$,
+$\alpha$ first, direct in different body evaluations of $R$, with $w$ and
+$\kappa$ as there, and let $w$ decide $\kappa$. If $\sigma$ is the operators of
+an Operators Rule, let its evaluation that contains $\alpha$ not contain $w$.
+Let $\pi$ be the current path of $w$ at the moment $\alpha$ starts and $\rho$
+that of $\kappa$ at the moment $\alpha'$ starts, with each call that the
+comparison expands replaced by the current path of its body, and let the pair
+$(\pi, \rho)$ not part at a negative lookahead of $\kappa$. Then:
+
+1. $\alpha$ lies in the evaluation inside $w$ of an alike call of the pair, or
+   $\alpha'$ in the evaluation inside $\kappa$ of one, and the innermost alike
+   call that holds it is of a rule that is memoized at its place or calls no
+   rule;
+2. in the reference parse $\mathcal{R}$ of the Linear Cost proof, which
+   stores nothing, if $\alpha$ is the successful activation of $\sigma$ at $q$
+   that comes last before $\alpha'$, then $\alpha'$ lies in the evaluation
+   inside $\kappa$ of an alike call.
+
+*Proof.* The pair is a pair of paths of $w$ and $\kappa$, so it is settled.
+Every evaluation that contains $\alpha$ is in progress when $\alpha$ starts, so
+by Lemma 1 $\alpha$ lies in the last symbol of $\pi$ that $w$ has started, or
+in a stop of $\pi$. A literal, a class and `.` hold no activation, nor does a
+call that the comparison drops, whose `X` has no scanning source, nor a
+repetition passed alike, a lookahead that the comparison passes or a negative
+one on which it decides, which reach no scanning source through the rules
+that they call. Nor do the symbols with which a side meets a negative decisive
+lookahead of the other side, which are evaluated where the other side
+evaluates the matching items of that lookahead's expression, which reaches no
+scanning source; the hypothesis leaves out a negative lookahead of $\kappa$. A
+settled pair has no stop before the point where it parts. So $\alpha$ lies in a
+step, which is then a call, or in the decisive symbol of $\pi$, a call or a
+positive lookahead, or in a symbol or a stop after it. The same holds of
+$\alpha'$ in $\rho$, since a lookahead that only $\kappa$ evaluates holds no
+activation: each call in it is answered by the memo or reaches no scanning
+source.
+
+Suppose that neither lies in a step. By item 3 of Lemma 1 and Lemma 2, both
+sides passed every step and reached the decisive point at one position $t$,
+and $q \ge t$. If both passed their decisive symbols, Lemma 4 is contradicted;
+if the decisive symbol of $\rho$ is the end of the parse, $\rho$ has nothing
+after it. Otherwise one of them lies in the decisive symbol $D$ of its side, a
+call or a positive lookahead, whose evaluation, or that of its expression,
+reaches $q$ from $t$ through evaluations that consume input from $t$ on, so
+that, as in the theorem, the character at $t$ is a first character of $D$. The
+decisive symbol of the other side, or its expression, cannot match without
+consuming input and has first characters disjoint from those of $D$, so the
+other side neither passed it, which would consume the character at $t$ as one
+of its first characters, nor lies in it, by the same argument. So one of them
+lies in a step.
+
+A call that is a step is cheap, and the side whose activation it holds
+evaluates it. If its rule is memoized at its place or calls no rule, it is
+the call of item 1. Otherwise it is cheap because the body of its rule is
+cheap in all its parts: that body has no scanning source of its own, so the
+activation lies in a call that it makes, which is an alike call and cheap
+again. The depth of these calls is finite, as in Lemma 3, which gives item 1.
+
+For item 2, suppose that $\alpha'$ lies in no alike call inside $\kappa$. By
+the cases above, $\alpha$ lies in a step $c$ of $\pi$ inside $w$, and
+$\alpha'$ at or after the decisive point of $\rho$, so $\kappa$ passed every
+step of $\rho$, $c$ among them, at the position where $w$ evaluated it, before
+$\alpha'$ started. The two evaluations of $c$ have one key and read no growth,
+so in $\mathcal{R}$ they take the same steps up to the variants of their calls
+(*Counterparts* of the Linear Cost proof). The one in $\kappa$ then holds a successful
+activation of $\sigma$ at $q$ at the place of $\alpha$, after $\alpha$ and
+before $\alpha'$, against the choice of $\alpha$. $\square$
+
+So in $\mathcal{R}$, under the hypotheses above, each successful activation of $\sigma$ at $q$ that follows
+another lies in the evaluation inside $\kappa$ of an alike call, whose
+evaluation inside $w$ takes the same steps, and the innermost alike call that
+holds it is of a rule that is memoized or calls no rule. This is the
+reference link of *Reference links* with an alike call in the place of the
+shared call.
+
+The claims that count the links use of a shared call only the following.
+*Memoized links* and *Links lead to repeated evaluations* use that the two
+evaluations of the link are of one rule at one position and level whose
+calls have keys of one class, which holds of an alike call, whose two
+evaluations read the same values of the variables (Lemma 2). *Calls that call
+no rule* uses of the first shared call that the unit starts at its position
+and that the continuation reaches it without consuming input, which holds of
+an alike call that is the first step of its pair or lies inside the first
+step through alike calls, and that a call that the continuation reaches after
+leaving a rule body through its end, in what follows a call that nests at one
+end, is not shared. The strict comparison makes such a step not cheap when
+the memo does not answer it and it contains a scanning source, as the step
+that holds the call of a leaf link does, so that step is not passed alike. That
+claim does not use that its rule reads no variable.
+
 ## Open Points
 
-1. **Repeated activations in alike calls.** The theorem places every
-   activation that the continuation makes again before the point where the
-   paths part in a call that the unit evaluated at the same position (Lemma 3).
-   *Repeats* and the claims of Lemma 4 of the Linear Cost proof that count
-   the links, *Memoized links* and *Calls that call no rule*, are stated for
-   the calls that a unit and a continuation share. They must still be shown
-   for the calls that a decided comparison passes alike, including those that
-   are cheap only through their bodies, the calls of trivia rules and the
-   calls in failed attempts of parts that the comparison looks into, before
-   case 6 of Lemma 4 is complete.
+1. **Repeated activations in alike calls.** Lemma 5 places a repeated
+   activation in an alike call when the pair does not part at a negative
+   lookahead of the continuation. When it does, the unit can hold the
+   activation in a call with which it meets that lookahead, after its steps,
+   and the continuation can reach the same position again after it passes
+   the lookahead. The lookahead's expression is itself a unit whose
+   continuation is what follows the lookahead, and its calls are answered by
+   the memo where they match the calls of the unit, so its own condition is
+   expected to exclude this, but it is not shown. As for shared calls, the
+   leaf links whose alike call is not the first step of its pair remain open
+   with the second part of step 1 of the Linear Cost proof's open steps.
 2. **Units of an Operators Rule.** The theorem leaves out the activations of an
    Operators Rule whose evaluation contains the unit, where the paths of the
    unit and of the continuation pass the parts of that rule. They rest on the
