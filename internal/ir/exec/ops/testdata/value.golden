@@ -916,8 +916,9 @@ host op seq.step()
   noreturn
   cost <= 1
   contract:
-    // Charges the step of examining one element of a list or a tuple against its type. A target that bounds
-    // the work charges one unit; a target that does not charges nothing.
+    // Charges the step of one element of a list or a tuple: an element that is examined against its type,
+    // walked by a built-in function or made by a constructor. A target that bounds the work charges one unit; a target
+    // that does not charges nothing.
 
 op seq.len(items Seq) int
   component value

@@ -342,7 +342,23 @@ func init() {
 	}
 	rules[1].Body = e2
 	rules[2].Body = e5
-	rules[2].Action = func(c *rt.ActCtx) any { return c.NewStruct("Object", "Members", c.Concat(c.Cap(0))) }
+	rules[2].Action = func(c *rt.ActCtx) any {
+		tm1 := len(c.P.KidStack)
+		c.P.Spend()
+		tf2 := c.P.TermPushItems(c, "concat", c.Cap(0))
+		if tf2 != nil {
+			panic(tf2)
+		}
+		tk3 := c.P.Kids(tm1)
+		tn4 := c.P.TermHull(c, false, tk3)
+		tn5 := c.TermStruct("Object", 1)
+		tfirst6 := true
+		c.P.Spend()
+		c.TermSetField(tn5, "Members", any(tn4))
+		tfirst6 = c.P.TermCover(tn5, any(tn4), tfirst6)
+		c.P.TermMade(c, tn5, tfirst6)
+		return any(tn5)
+	}
 	rules[3].Body = e8
 	rules[3].Action = func(c *rt.ActCtx) any {
 		b_35 := len(c.P.KidStack)
@@ -351,9 +367,36 @@ func init() {
 		return c.EndList(b_35)
 	}
 	rules[4].Body = e10
-	rules[4].Action = func(c *rt.ActCtx) any { return c.NewStruct("Member", "Key", c.Cap(0), "Value", c.Cap(1)) }
+	rules[4].Action = func(c *rt.ActCtx) any {
+		tn1 := c.TermStruct("Member", 2)
+		tfirst2 := true
+		c.P.Spend()
+		c.TermSetField(tn1, "Key", c.Cap(0))
+		tfirst2 = c.P.TermCover(tn1, c.Cap(0), tfirst2)
+		c.P.Spend()
+		c.TermSetField(tn1, "Value", c.Cap(1))
+		tfirst2 = c.P.TermCover(tn1, c.Cap(1), tfirst2)
+		c.P.TermMade(c, tn1, tfirst2)
+		return any(tn1)
+	}
 	rules[5].Body = e13
-	rules[5].Action = func(c *rt.ActCtx) any { return c.NewStruct("Array", "Elements", c.Concat(c.Cap(0))) }
+	rules[5].Action = func(c *rt.ActCtx) any {
+		tm1 := len(c.P.KidStack)
+		c.P.Spend()
+		tf2 := c.P.TermPushItems(c, "concat", c.Cap(0))
+		if tf2 != nil {
+			panic(tf2)
+		}
+		tk3 := c.P.Kids(tm1)
+		tn4 := c.P.TermHull(c, false, tk3)
+		tn5 := c.TermStruct("Array", 1)
+		tfirst6 := true
+		c.P.Spend()
+		c.TermSetField(tn5, "Elements", any(tn4))
+		tfirst6 = c.P.TermCover(tn5, any(tn4), tfirst6)
+		c.P.TermMade(c, tn5, tfirst6)
+		return any(tn5)
+	}
 	rules[6].Body = e15
 	rules[6].Action = func(c *rt.ActCtx) any {
 		b_36 := len(c.P.KidStack)
@@ -2110,11 +2153,11 @@ func i0(p *rt.TParser) (any, bool) {
 	c = p.UseCtx(rt.TActCtx{P: p, Start: start, End: p.Pos, Cbase: len(p.Created)})
 	p.Where = "main"
 	{
-		var tr2 any
+		var tr5 any
 		{
-			tr2 = k1
+			tr5 = k1
 		}
-		v = tr2
+		v = tr5
 	}
 	v = c.Finish(v)
 	return v, true
@@ -2268,7 +2311,22 @@ L6:
 	}
 	c = p.UseCtx(rt.TActCtx{P: p, Start: start, End: p.Pos, Cbase: len(p.Created)})
 	p.Where = "object"
-	v = tmk_Object(c, true, c.Concat(k1))
+	{
+		var tr6 any
+		{
+			tm1 := len(c.P.KidStack)
+			c.P.Spend()
+			tf2 := c.P.TermPushItems(c, "concat", k1)
+			if tf2 != nil {
+				panic(tf2)
+			}
+			tk3 := c.P.Kids(tm1)
+			tn4 := c.P.TermHull(c, false, tk3)
+			tv5 := tmk_Object(c, true, any(tn4))
+			tr6 = tv5
+		}
+		v = tr6
+	}
 	p.Depth--
 	return v, true
 fail:
@@ -2387,7 +2445,14 @@ func i4(p *rt.TParser) (any, bool) {
 	k4 = v6
 	c = p.UseCtx(rt.TActCtx{P: p, Start: start, End: p.Pos, Cbase: len(p.Created)})
 	p.Where = "member"
-	v = tmk_Member(c, true, k1, k4)
+	{
+		var tr7 any
+		{
+			tv1 := tmk_Member(c, true, k1, k4)
+			tr7 = tv1
+		}
+		v = tr7
+	}
 	p.Depth--
 	return v, true
 fail:
@@ -2442,7 +2507,22 @@ L6:
 	}
 	c = p.UseCtx(rt.TActCtx{P: p, Start: start, End: p.Pos, Cbase: len(p.Created)})
 	p.Where = "array"
-	v = tmk_Array(c, true, c.Concat(k1))
+	{
+		var tr8 any
+		{
+			tm1 := len(c.P.KidStack)
+			c.P.Spend()
+			tf2 := c.P.TermPushItems(c, "concat", k1)
+			if tf2 != nil {
+				panic(tf2)
+			}
+			tk3 := c.P.Kids(tm1)
+			tn4 := c.P.TermHull(c, false, tk3)
+			tv5 := tmk_Array(c, true, any(tn4))
+			tr8 = tv5
+		}
+		v = tr8
+	}
 	p.Depth--
 	return v, true
 fail:
@@ -2556,11 +2636,11 @@ func i7(p *rt.TParser) (any, bool) {
 	c = p.UseCtx(rt.TActCtx{P: p, Start: start, End: p.Pos, Cbase: len(p.Created)})
 	p.Where = "string"
 	{
-		var tr3 any
+		var tr9 any
 		{
-			tr3 = k1
+			tr9 = k1
 		}
-		v = tr3
+		v = tr9
 	}
 	v = c.Finish(v)
 	return v, true
@@ -3084,4 +3164,4 @@ fail:
 
 const _ = types.ZPSchema_341a4aaa83c568ba
 
-const _ = rt.Protocol7
+const _ = rt.Protocol8

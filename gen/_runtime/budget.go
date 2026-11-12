@@ -1644,7 +1644,7 @@ func (c *ActCtx) ListItems(fn string, v any) []*Node {
 // push pushes v as the next element of the list or the tuple that fn makes, as the composition push
 // (term_exec.go) does.
 func (c *ActCtx) push(fn string, v any) {
-	if f := c.P.termPush(c, fn, v); f != nil {
+	if f := c.P.TermPush(c, fn, v); f != nil {
 		panic(f)
 	}
 }

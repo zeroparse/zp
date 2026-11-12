@@ -4863,16 +4863,28 @@ export class Actx {
   }
 
   newStruct(typ: string, ...kv: Value[]): Value {
-    const n = new Node(typ, "", 0, 0, "", noNodes, noFields, false, false);
+    const n = this.termStruct(typ);
     let first = true;
     for (let i = 0; i < kv.length; i += 2) {
       this.spend();
       const v = kv[i + 1];
-      setField(n, kv[i] as string, v!, this.p.control);
+      this.termSetField(n, kv[i] as string, v!);
       first = this.p.termCover(n, v!, first);
     }
     this.p.termMade(this, n, first);
     return n;
+  }
+
+  // termStruct returns a new struct of the type typ with no field set and an empty range: the
+  // operation term.struct of a term that makes a struct.
+  termStruct(typ: string): Node {
+    return new Node(typ, "", 0, 0, "", noNodes, noFields, false, false);
+  }
+
+  // termSetField sets the field name of the struct n, which a term is making, to v: the operation
+  // term.setField.
+  termSetField(n: Node, name: string, v: Value): void {
+    setField(n, name, v, this.p.control);
   }
 
   newList(items: readonly (Node | null)[]): Node {
