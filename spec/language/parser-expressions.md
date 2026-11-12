@@ -376,7 +376,11 @@ or an optional expression counts as a choice between matching one more time and
 stopping: if an iteration fails after passing a cut, the whole repetition (or
 optional expression) fails instead of stopping. The effect of a cut never
 extends beyond the rule that contains it: it does not affect choices in the
-calling rule.
+calling rule. Nor does it extend beyond a lookahead: a cut inside the
+expression of `&a` or `!a` commits only choices inside that expression, so
+when the expression fails after the cut, the lookahead succeeds or fails as for
+any other failure of its expression, and the choices around the lookahead can
+still try their other alternatives.
 
 ### Capture
 
