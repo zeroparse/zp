@@ -27,8 +27,10 @@ values that actions build from reshaped values, on step 7. Lemma 12
 and its corollary add what a [Document](../runtime/documents.md) parse charges
 beyond the cost: they are proved given the same counts, step 3 and the bounds of
 [Work of a Document Parse](../runtime/documents.md#work-of-a-document-parse), in
-terms of what the Document retains, which step 6 of [Open Steps](#open-steps)
-leaves unbounded. After Lemma 12 an argument, not a proof, shows that the units
+terms of what the Document retains; over a sequence of parses, the total that it
+retains drops out, and what each parse moves and the lengths of its chains
+remain, which step 6 of [Open Steps](#open-steps) leaves unbounded. After
+Lemma 12 an argument, not a proof, shows that the units
 which the default budget counts for a Document parse are at most those of a
 parse of the same text from scratch.
 Lemma 14 bounds the work of the recovered errors, which $C$ does not count, by a
@@ -3050,6 +3052,68 @@ of rules that only a Document memoizes, which can be several under one key on a
 chain of more than 32 entries; these include keys of earlier texts, which the
 $K$ of the parse does not count. $G$ grows with deletions and shrinks with insertions.
 
+**Over a sequence of parses.** Let $P_1, \dots, P_m$ be the Document parses, in
+order, that follow the last drop of the memo entries and the run records of a
+Document, or its creation, and that complete, so that none of them drops the
+memo ([Reuse Model](../runtime/documents.md#reuse-model)). For $P_j$, let
+$\hat{n}_j$, $K_j$, $L_j$, $Q_j$, $E_j$, $B_j$ and $G_j$ be the terms of
+Lemma 12, and $A_j$ its $A$, with $A_0 = 0$. Let $\Lambda_j$ be one plus the
+greatest size of a key that $P_j$ hashes to build an index, or $1$ if it builds
+none, and let the **moved size** $V_j$ be the sum of one plus the number of
+children and fields of each distinct node that a move of $P_j$ visits or
+copies, an empty node counted once however often it is copied. Then the Document units of $P_1, \dots, P_m$ add up to at
+most
+
+$$c \sum_{j=1}^{m} \Big( \big( (L_j + 1)(Q_j + 1) + \Lambda_j Q_j + T + \log_2 (A_{j-1} + 2) + B_j + 1 \big) A_j + A_{j-1} + (E_j + B_j + 1) V_j + \hat{n}_j + G_j \Big)$$
+
+for a constant $c$, where $A_j$ is at most a constant times $K_j \hat{n}_j$, as in
+Lemma 12. No term counts what the Document retains as a whole: each memo entry
+counts where a parse stores it and where a walk removes it, the records count in
+the parse that made them and the next one, and a node counts in each parse that
+moves it.
+
+*Proof.* The proof of Lemma 12 bounds each charge of $P_j$; its terms in $W$
+come from four kinds of work, and the others are already in the form above.
+
+- *Removed entries.* Every memo entry was stored by a parse, and no entry is
+  stored twice: a store links a new entry. Since the memo was last dropped, every
+  store was made by one of $P_1, \dots, P_m$, and a removed entry leaves its chain
+  for good, so the entries removed in all of the parses number at most the
+  stores of $P_1, \dots, P_{m-1}$, at most $A_1 + \dots + A_{m-1}$.
+- *Indexes.* A parse builds an index in a lookup or a store, at most one for
+  each, so at most $A_j$ times, and each build hashes the at most $Q_j$ keys of
+  its chain, each at most $\Lambda_j$ units, in place of the $W$ of Lemma 12.
+- *Records.* A record that a parse searches or scans is a record of the previous
+  parse, resumed across one edit; a record resumed whole needs no search, and
+  each iteration that it reuses is an activation. The records of $P_{j-1}$ hold
+  at most the iterations that $P_{j-1}$ recorded, each charged one unit when it
+  recorded the run, so at most $A_{j-1}$ in all. So a search charges at most
+  $1 + \log_2 (A_{j-1} + 2)$ units, the scans that pass every iteration of a
+  record charge at most $A_{j-1}$ in all, and the room asked for is at most the
+  iterations of one such record or those of a record resumed whole, which are
+  activations, so the length of the stack and the charges for the room are at
+  most a constant times $A_{j-1} + A_j$.
+- *Moves.* A value moves when a lookup finds its entry or a run reuses its
+  iteration, at most once in a parse, so at most $A_j$ values move. A node that
+  does not start where it ends moves at most once in a parse, so the visits of
+  such nodes, with their children and fields, come to at most $V_j$. The
+  references by which a move reaches an empty node are a value that moves or a
+  child or field of a node that the move visits or copies, at most $A_j + V_j$,
+  and each copies at most $B_j + 1$ units. A group of nodes that account for the
+  same number of edits has a distinct node that the move visits or copies, and
+  replays at most $E_j$ edits, so the replays come to at most $E_j V_j$.
+
+The slots charge at most $2 (\hat{n}_j + G_j)$ in $P_j$, as in Lemma 12, and the
+other charges are those of Lemma 12, bounded by the terms in $A_j$. Summing over
+the parses gives the bound. $\square$
+
+So over the sequence the walks, the indexes and the records cost a constant
+times the work of the parses, for given chain lengths and key sizes, and the
+total size that the Document retains enters no term. The moves remain: $V_j$ is
+at most the $W$ of $P_j$, and a node that every parse after an edit reuses moves
+in each of them, so the moves do not add up to the stores. Each move replays at
+most $E_j$ edits for each group of nodes, which the bound keeps as a factor.
+
 ## Corollary (Compute of a Document Parse)
 
 Under the conditions of the theorem and given Lemmas 4 to 6 and step 3, a parse of a
@@ -3653,32 +3717,37 @@ condition of the cost view that the [Cost View](cost-view.md) proof leaves open.
    caller and read there through a variable, which condition 4 checks; and
    that a chain that takes neither repeats each binding a bounded number of
    times, as `s = a:A {x := $a} A` does when `A` binds `x`.
-6. **What a Document retains in Lemma 12.** The bound of Lemma 12 is in terms of
-   $W$, $B$, $G$ and $Q$, which depend on the history of the Document. A bound by
-   the $n$, $K$ and $L$ of the parse would have to show that the nodes a parse
-   moves are at most a constant times what a parse of the same text from scratch
-   builds. That does not follow even if the calls of the parse are among those
-   of the parse from scratch, which is not proved, and a node moves once in a
-   parse, for three reasons. Nodes that the parse
-   from scratch shares can be distinct here, since the values that a parse
+6. **What a Document parse moves in Lemma 12.** The bound of Lemma 12 is in
+   terms of $W$, $B$, $G$ and $Q$, which depend on the history of the Document.
+   *Over a sequence of parses* removes the total retained size $W$: over the
+   parses since the memo was last dropped, a removed entry counts where a parse
+   stored it, an index and a record count in the parses that use them, and what
+   remains of $W$ is the moved size $V_j$ of each parse, with $B_j$, $G_j$, $Q_j$
+   and the key sizes $\Lambda_j$. A bound by the $n$, $K$ and $L$ of the parse
+   would have to show that the nodes a parse moves are at most a constant times
+   what a parse of the same text from scratch builds. That does not follow even
+   if the calls of the parse are among those of the parse from scratch, which is
+   not proved, and a node moves once in a parse, for two reasons. Nodes that the
+   parse from scratch shares can be distinct here, since the values that a parse
    reuses were built by different parses: a call in a context of growths stores
    no entry, a lookup outside a lookahead does not take an entry stored inside
    one, and entries joined by a deletion each keep their value, so the step must
    bound the evaluations of one key whose nodes stay reachable, which needs a
-   form of Lemmas 4 and 5 local to a region of the text. An empty node is copied
-   for each reference to it, not once. And the replays of the edits in a move
-   multiply the nodes by up to $E$. Apart from what moves, $Q$, $G$ and the entries of
-   $W$ count what earlier texts left in the memo, which it keeps until a store,
-   an edit, the walk of a chain or the drop of the table removes it. An entry
-   that no parse has stored or found to answer a lookup in the last 128 edits
-   lags: a lookup treats it as a miss, and a walk that meets it removes it
-   without comparing it
+   form of Lemmas 4 and 5 local to a region of the text. And an empty node is
+   copied for each reference to it, not once. The replays of the edits in a move
+   multiply the nodes by up to $E$, a factor that the bound keeps. $Q$, $G$ and
+   the keys that $\Lambda_j$ measures count what earlier texts left in the memo,
+   which it keeps until a store, an edit, the walk of a chain or the drop of the
+   table removes it. An entry that no parse has stored or found to answer a
+   lookup in the last 128 edits lags: a lookup treats it as a miss, and a walk
+   that meets it removes it without comparing it
    ([Work of a Document Parse](../runtime/documents.md#work-of-a-document-parse)),
-   so the entries of earlier texts, the comparisons of a key with them, which
-   are Document work, and the steps along their chains are bounded by the work
-   of that window of edits, not by $n$, $K$ and $L$. The step is to bound these
-   terms, or to change what a Document retains so that they are bounded, and
-   then to restate that section with the tighter bounds.
+   so the entries of earlier texts that a chain holds are bounded by the work of
+   that window of edits, not by $n$, $K$ and $L$. The step is to bound $V_j$,
+   $B_j$, $G_j$, $Q_j$ and $\Lambda_j$, or to change what a Document reuses so
+   that they are bounded, and then to restate that section with the tighter
+   bounds. The memory that a Document keeps between parses is not a cost, and
+   this proof does not bound it.
 7. **Values built from reshaped values.** The [Cost View](cost-view.md) proof
    bounds the cost of the written grammar by a constant times that of its view,
    except for the values that actions build from a reshaped value: the value of
