@@ -232,6 +232,10 @@ type TypeScript struct {
 	// Recognize also generates recognize, which checks the input against the start rule without
 	// building a tree, like a parse with zp.RecognizeOnly.
 	Recognize bool
+	// Document also generates createDocument, which makes a mutable Document of the start rule:
+	// edit changes its text, and parse returns what parse of the whole current text returns, as
+	// the Go Document does. With Types, the Document also has parseAST.
+	Document bool
 	// MaxDepth is the generated parser's default nested rule-call limit. Zero selects 100,000;
 	// negative values and values that are not exact JavaScript integers fail generation.
 	// Individual invocations may override it with limits.depth.
@@ -262,7 +266,7 @@ type TypeScript struct {
 //     RuntimeModule with RuntimeImport, and
 //   - types.ts with Types, the declarations of the grammar's types, which parser.ts imports.
 //
-// Generated TypeScript parsers have no stream or incremental parsing.
+// Generated TypeScript parsers have no stream parsing.
 func (c TypeScript) Generate(g *grammar.Grammar, start string) ([]File, error) {
 	runtime, err := c.Runtime.internal()
 	if err != nil {
@@ -279,6 +283,7 @@ func (c TypeScript) Generate(g *grammar.Grammar, start string) ([]File, error) {
 		LimitControls: c.LimitControls,
 		Expectations:  c.Expectations,
 		Recognize:     c.Recognize,
+		Document:      c.Document,
 		MaxDepth:      c.MaxDepth,
 		Optimize:      c.Optimize,
 		Opt:           c.Opt,

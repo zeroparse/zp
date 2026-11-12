@@ -10,8 +10,9 @@ This design covers incremental Documents and committed stream parsing in standal
 The opt-in generated Go `Document` supports Node parsing and direct typed incremental matching for the same
 eligible grammars as batch typed parsing; other typed results use Node conversion. The opt-in generated Go
 `ParseStream` reads Node streams from an `io.Reader`, and with typed values `ParseStreamAST` passes the elements
-as typed values. Ordinary batch parsing remains available and unchanged by default. Repetition resumption and
-TypeScript Documents/streams are not implemented.
+as typed values. Ordinary batch parsing remains available and unchanged by default. The generated TypeScript
+`createDocument` has the Document API but parses its whole text on each parse. Repetition resumption, memo reuse
+in TypeScript Documents and TypeScript streams are not implemented.
 
 ## Existing Contracts and Goals
 
@@ -34,7 +35,8 @@ TS VM, immutable snapshots, a new text-storage algorithm, or recognition on Docu
 ## Current and Proposed APIs
 
 The current Go Document is opt-in through `gen.Go{Document: true}` or the `-document` CLI option. It selects the
-configured start rule and can be combined with typed Go generation (`-types`), but not TypeScript generation.
+configured start rule and can be combined with typed Go generation (`-types`). With TypeScript generation it adds
+`createDocument`, described below.
 For grammars eligible for direct batch typed parsing, `Document.ParseAST` uses direct typed incremental matching;
 other grammars keep the Node-result conversion path. Existing generation without `Document`/`-document`
 retains the batch source path. A generated `Document` is a mutable parse view, not an immutable snapshot.
@@ -207,9 +209,9 @@ behavior internally without public element callbacks, rather than panicking. Thi
 
 ### TypeScript Document and Push Streams
 
-Propose `createDocument(input: string | Uint8Array, options?: ParseOptions)` returning a discriminated
+`createDocument(input: string | Uint8Array, options?: ParseOptions)` is implemented, returning a discriminated
 `{document,error}` result, with `document` null on configuration failure. Copy byte input; resolve option getters
-once. Methods `text()`, `edit(start,end,replacement)`, `parse(options?)`, `stats()` and, with types, `parseAST(options?)` follow the
+once. Methods `text()`, `edit(start,end,replacement)`, `parse(options?)`, `stats()` (once parses reuse results) and, with types, `parseAST(options?)` follow the
 Go contracts and existing TS result/error conventions. Edit returns an Error or null, without partial mutation.
 In Bytes, propose `bytes(): Uint8Array` returning a copy for lossless invalid input; text() uses the existing
 surrogateescape representation. Replacements accept the same string/byte types. Preserve both units, number|bigint
@@ -281,7 +283,7 @@ values; no pooled parser or conversion arena is shared between concurrent invoca
 | Closure and both engine VMs | Existing Document/Reader stream oracle; both position units |
 | Generated Go Node | Current opt-in prefix-memo Document and Reader stream with pull iteration and diagnostic controls |
 | Generated typed Go | Direct typed `Document.ParseAST` for batch-eligible grammars; Node conversion fallback otherwise; streams convert committed elements |
-| Generated TS Node/typed conversion | Documents and streams remain proposed; streams require continuation lowering |
+| Generated TS Node/typed conversion | Documents without memo reuse (each parse parses the whole text); memo reuse and streams remain proposed; streams require continuation lowering |
 | Recognition | Continue rejecting Document/stream mode; batch recognition is unaffected |
 
 This source-generation feature needs no .zpc or ISA change by itself. If continuation tables are instead stored
@@ -293,7 +295,7 @@ for colliding grammar declarations; generating helper methods must not alter exi
 
 The current implementation adds the generated Go Node Document with prefix-only memo reuse, plus direct typed
 matching for batch-eligible grammars and per-call Node conversion for other typed results, and the Go Node Reader
-stream with its typed elements, pull iteration and diagnostic controls. Remaining work includes TS Documents, and TS push
+stream with its typed elements, pull iteration and diagnostic controls. Remaining work includes memo reuse in TS Documents, and TS push
 continuations. Snapshot/versioned-tree work is a
 separate dependency only if immutable views are exposed; do not block the mutable Document compatibility path on it.
 Chunked input storage is a separate measured experiment: start with the current contiguous edit contract.

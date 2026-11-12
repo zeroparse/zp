@@ -388,8 +388,12 @@ rule main = "a"`)
 	if err != nil || !strings.Contains(typed, "func (d *Document) ParseAST(") {
 		t.Fatalf("-document -types: %v", err)
 	}
-	if _, err := runCLI(t, "", "gen", "-lang", "ts", "-g", g, "-document"); err == nil || !strings.Contains(err.Error(), "-document") {
+	dir, err := runGenTS(t, "-g", g, "-document")
+	if err != nil {
 		t.Fatalf("-lang ts -document: %v", err)
+	}
+	if ts, err := os.ReadFile(filepath.Join(dir, "parser.ts")); err != nil || !strings.Contains(string(ts), "export function createDocument(") {
+		t.Fatalf("-lang ts -document: missing createDocument: %v", err)
 	}
 }
 

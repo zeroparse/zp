@@ -110,9 +110,9 @@ Commands:
       or to refresh the copy. With
       -types, types for the grammar's types and ParseAST (parseAST in TypeScript),
       which returns the result as typed values, are generated too.
-      -document adds a Go incremental Document; with -types it also provides
-      Document.ParseAST. Without -limits the Document runs without
-      budget charges. It cannot be combined with -lang ts.
+      -document adds an incremental Document; with -types it also provides
+      Document.ParseAST (parseAST in TypeScript). Without -limits the
+      Document runs without budget charges.
       -stream adds Go ParseStream, which reads an io.Reader and passes each
       committed element of the start rule's #stream repetition to a callback.
       It cannot be combined with -types or -lang ts.
@@ -847,7 +847,7 @@ func genCmd(args []string, stdout io.Writer) error {
 	start := fs.String("s", "", "start rule of the generated Parse function (default: the grammar's default start rule)")
 	output := fs.String("o", "", "output directory")
 	types := fs.Bool("types", false, "also generate typed values and ParseAST (parseAST in TypeScript)")
-	document := fs.Bool("document", false, "also generate a Go incremental Document (typed ParseAST with -types; incompatible with -lang ts)")
+	document := fs.Bool("document", false, "also generate an incremental Document (typed ParseAST with -types)")
 	stream := fs.Bool("stream", false, "also generate Go ParseStream and Iterate for the start rule's #stream repetition (and their typed forms with -types; incompatible with -lang ts)")
 	observability := fs.Bool("observability", false, "emit opt-in rule tracing and profiling for Go batch/Documents and TypeScript batch parsing, including typed entry points")
 	expectations := fs.Bool("expectations", false, "generate a parser that records what a syntax error expects (the expected list and @error messages); without it the error reports only the farthest failure position")
@@ -900,8 +900,8 @@ func genCmd(args []string, stdout io.Writer) error {
 			}
 		}
 	case "ts":
-		if *pkg != "" || *module != "" || *nodoc || *document || *stream || *typedOnly {
-			return fmt.Errorf("-pkg, -module, -nodoc, -document, -stream and -typed-only are not supported with -lang ts")
+		if *pkg != "" || *module != "" || *nodoc || *stream || *typedOnly {
+			return fmt.Errorf("-pkg, -module, -nodoc, -stream and -typed-only are not supported with -lang ts")
 		}
 		if *output == "" {
 			return fmt.Errorf("-o (an output directory) is required")
@@ -970,6 +970,7 @@ func genCmd(args []string, stdout io.Writer) error {
 			LimitControls: *limitControls,
 			Expectations:  *expectations,
 			Recognize:     *recognize,
+			Document:      *document,
 			MaxDepth:      *maxDepth,
 			Optimize:      *optimize,
 			Opt:           optValues,

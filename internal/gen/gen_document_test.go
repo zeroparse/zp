@@ -22,7 +22,8 @@ func testGenerateDocumentCombinations(t *testing.T) {
 	if err != nil || !strings.Contains(string(typed), "func (d *Document) ParseAST(") {
 		t.Fatalf("typed Document generation: %v", err)
 	}
-	if _, err := gentest.GenerateTSBundle(g, gen.GenOptions{Start: "main", Document: true}); err == nil {
-		t.Fatal("TypeScript Document generation was accepted")
+	ts, err := gentest.GenerateTSBundle(g, gen.GenOptions{Start: "main", Document: true, Types: true})
+	if err != nil || !strings.Contains(string(ts), "export function createDocument(") || !strings.Contains(string(ts), "  parseAST(options?: ") {
+		t.Fatalf("typed TypeScript Document generation: %v", err)
 	}
 }
