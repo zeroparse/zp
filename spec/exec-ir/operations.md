@@ -183,10 +183,10 @@ The operations of the component `observe`.
 
 | Declaration | State | Cost | Contract |
 |:--|:--|:--|:--|
-| `transitional op obs.memoHit() [observe]` | writes observe | `0` | Counts a reuse of a memo entry in the observation, if the parse is observed. |
-| `transitional op obs.active() bool [observe]` | reads observe | `0` | Reports whether the parse is observed. |
-| `transitional op obs.enter(r Rule, pos int, min int) [observe] noreturn` | writes observe | `0` | Reports to the observation of the parse that a call of the rule at pos and binding level min begins. Requires: The parse is observed. |
-| `transitional op obs.exit(ok bool, pos int, examined int, known bool) [observe] noreturn` | writes observe | `0` | Reports to the observation of the parse that the call that the last unmatched obs.enter began ends, with its success ok, at pos, and with the end of the input it examined if known. Requires: The parse is observed. |
+| `op obs.memoHit() [observe]` | writes observe | `0` | Counts a reuse of a memo entry in the observation, if the parse is observed. |
+| `op obs.active() bool [observe]` | reads observe | `0` | Reports whether the parse is observed. |
+| `op obs.enter(r Rule, pos int, min int) [observe] noreturn` | writes observe | `0` | Reports to the observation of the parse that a call of the rule at pos and binding level min begins. Requires: The parse is observed. |
+| `op obs.exit(ok bool, pos int, examined int, known bool) [observe] noreturn` | writes observe | `0` | Reports to the observation of the parse that the call that the last unmatched obs.enter began ends, with its success ok, at pos, and with the end of the input it examined if known. Requires: The parse is observed, and a call that obs.enter began has not ended. |
 
 ## Rules
 

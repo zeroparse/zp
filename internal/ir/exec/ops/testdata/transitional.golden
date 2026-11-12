@@ -1010,7 +1010,7 @@ transitional op grow.end(g Grow) CtxResult
     // errors replace the entries recorded since the growth began. Outside the missing-token mode they are
     // recorded as rec.add does, at no cost; in that mode as missing.replay does.
 
-transitional op obs.memoHit()
+op obs.memoHit()
   component observe
   writes observe
   features observe
@@ -1018,7 +1018,7 @@ transitional op obs.memoHit()
   contract:
     // Counts a reuse of a memo entry in the observation, if the parse is observed.
 
-transitional op obs.active() bool
+op obs.active() bool
   component observe
   reads observe
   features observe
@@ -1026,7 +1026,7 @@ transitional op obs.active() bool
   contract:
     // Reports whether the parse is observed.
 
-transitional op obs.enter(r Rule, pos int, min int)
+op obs.enter(r Rule, pos int, min int)
   component observe
   writes observe
   features observe
@@ -1038,7 +1038,7 @@ transitional op obs.enter(r Rule, pos int, min int)
   requires:
     // The parse is observed.
 
-transitional op obs.exit(ok bool, pos int, examined int, known bool)
+op obs.exit(ok bool, pos int, examined int, known bool)
   component observe
   writes observe
   features observe
@@ -1048,7 +1048,7 @@ transitional op obs.exit(ok bool, pos int, examined int, known bool)
     // Reports to the observation of the parse that the call that the last unmatched obs.enter began
     // ends, with its success ok, at pos, and with the end of the input it examined if known.
   requires:
-    // The parse is observed.
+    // The parse is observed, and a call that obs.enter began has not ended.
 
 op doc.examinedBegin() int
   component call

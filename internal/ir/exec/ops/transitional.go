@@ -342,20 +342,20 @@ recovered as the list that rec.since returns for that mark; a step that failed h
 errors replace the entries recorded since the growth began. Outside the missing-token mode they are
 recorded as rec.add does, at no cost; in that mode as missing.replay does.`})
 
-	add(&exec.Op{Name: "obs.memoHit", Component: Obs, Writes: []string{Obs}, Features: []string{Observe},
+	m.AddOp(&exec.Op{Name: "obs.memoHit", Component: Obs, Writes: []string{Obs}, Features: []string{Observe},
 		Contract: `Counts a reuse of a memo entry in the observation, if the parse is observed.`})
-	add(&exec.Op{Name: "obs.active", Component: Obs, Results: []exec.Type{exec.TBool}, Reads: []string{Obs}, Features: []string{Observe},
+	m.AddOp(&exec.Op{Name: "obs.active", Component: Obs, Results: []exec.Type{exec.TBool}, Reads: []string{Obs}, Features: []string{Observe},
 		Contract: `Reports whether the parse is observed.`})
-	add(&exec.Op{Name: "obs.enter", Component: Obs, Params: []exec.Param{exec.P("r", rule), exec.P("pos", exec.TInt), exec.P("min", exec.TInt)},
+	m.AddOp(&exec.Op{Name: "obs.enter", Component: Obs, Params: []exec.Param{exec.P("r", rule), exec.P("pos", exec.TInt), exec.P("min", exec.TInt)},
 		Writes: []string{Obs}, Features: []string{Observe}, NoReturn: true,
 		Contract: `Reports to the observation of the parse that a call of the rule at pos and binding level
 min begins.`,
 		Requires: `The parse is observed.`})
-	add(&exec.Op{Name: "obs.exit", Component: Obs, Params: []exec.Param{exec.P("ok", exec.TBool), exec.P("pos", exec.TInt),
+	m.AddOp(&exec.Op{Name: "obs.exit", Component: Obs, Params: []exec.Param{exec.P("ok", exec.TBool), exec.P("pos", exec.TInt),
 		exec.P("examined", exec.TInt), exec.P("known", exec.TBool)}, Writes: []string{Obs}, Features: []string{Observe}, NoReturn: true,
 		Contract: `Reports to the observation of the parse that the call that the last unmatched obs.enter began
 ends, with its success ok, at pos, and with the end of the input it examined if known.`,
-		Requires: `The parse is observed.`})
+		Requires: `The parse is observed, and a call that obs.enter began has not ended.`})
 	m.AddOp(&exec.Op{Name: "doc.examinedBegin", Component: Call, Results: []exec.Type{exec.TInt}, Reads: []string{Call, Pos},
 		Writes: []string{Call}, Features: []string{Document},
 		Contract: `Starts measuring how far an observed call examines the input: in a Document parse, the

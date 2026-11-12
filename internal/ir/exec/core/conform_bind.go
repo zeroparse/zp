@@ -90,7 +90,7 @@ func bindings(names []string) (*exec.Module, []*exec.Func) {
 				results = append(results, p.Type)
 			}
 		}
-		f := m.AddFunc(ExpBindingName(name), o.Params, results, nil, func(b *exec.Builder) {
+		f := m.AddFunc(ExpBindingName(name), o.Params, results, o.Features, func(b *exec.Builder) {
 			args := make([]exec.Expr, len(o.Params))
 			for i, p := range o.Params {
 				args[i] = exec.L(p.Name)
@@ -283,4 +283,18 @@ func EngineRuleBindings() (string, error) {
 // package runtime, for the node runtime's Parser.
 func GoRuleBindings() (string, error) {
 	return bindingFile("runtime", ruleBindingOps, goTarget(goSpec{fn: "expect", name: "Expect"}), "")
+}
+
+// obsBindingOps are the operations of the observation of a parse.
+var obsBindingOps = []string{"obs.active", "obs.memoHit", "obs.enter", "obs.exit"}
+
+// GoObsBindingsFile is the file of the conformance bindings of the observation that the test of the
+// runtime prints, relative to the copy of the runtime.
+const GoObsBindingsFile = "obs_bind_exec_test.go"
+
+// GoObsBindings returns the Go test file of the conformance bindings of the observation for package
+// runtime, for the node runtime's Parser. The engine has no observation of this kind: it traces a call
+// on a path of its own.
+func GoObsBindings() (string, error) {
+	return bindingFile("runtime", obsBindingOps, goTarget(goSpec{fn: "expect", name: "Expect"}), "")
 }

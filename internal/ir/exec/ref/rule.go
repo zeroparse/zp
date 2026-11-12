@@ -198,12 +198,14 @@ func (m *Model) Unspecified(o *exec.Op, res []any) []string {
 func RuleName(index int64) string { return fmt.Sprint("r", index) }
 
 // Observe returns what the model holds of a component for the conformance suite to compare with an
-// implementation's: the evaluations of rule bodies, for component ops.Rules. It returns nil for any
-// other component.
+// implementation's: the evaluations of rule bodies, for component ops.Rules, and the events that the
+// observation delivered, for component ops.Obs. It returns nil for any other component.
 func (m *Model) Observe(component string) []string {
 	switch component {
 	case ops.Rules:
 		return append([]string{}, m.rule.log...)
+	case ops.Obs:
+		return append([]string{}, m.obs.events...)
 	}
 	return nil
 }

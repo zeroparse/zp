@@ -55,6 +55,8 @@ type Config struct {
 	// parse from scratch (as the engine's does): rule.memo reports the rules that the Document parse
 	// memoizes, and rule.docOnlyMemo is false outside a Document parse.
 	DocCallMemo bool
+	// Observed makes a parse that is observed (obs.active is true).
+	Observed bool
 }
 
 // Datum is the model's handle of a value. Its identifier stands for the value that Value returns.
@@ -157,6 +159,9 @@ type Model struct {
 	frm frameState
 	// rules
 	rule ruleState
+
+	// observe
+	obs obsState
 }
 
 // Err is an Err handle of the model.
@@ -348,6 +353,9 @@ func (m *Model) Allows(o *exec.Op, args []any) bool {
 		return args[0].(int64) >= 0 && args[0].(int64) < int64(len(m.env.vals))
 	case "rec.truncate", "rec.since":
 		return args[0].(int64) >= 0 && args[0].(int64) <= int64(len(m.rec))
+	}
+	if allowed, ok := m.allowsObs(o); ok {
+		return allowed
 	}
 	if allowed, ok := m.allowsRule(o, args); ok {
 		return allowed
@@ -583,6 +591,9 @@ func (m *Model) Call(o *exec.Op, args []any) []any {
 		return res
 	}
 	if res, ok := m.callFrame(o, args); ok {
+		return res
+	}
+	if res, ok := m.callObs(o, args); ok {
 		return res
 	}
 	panic(fmt.Sprintf("ref: no model of %s", o.Name))
