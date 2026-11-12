@@ -843,8 +843,6 @@ func (c *bcompiler) term(t grammar.Term, s *Scope, locals []string) {
 			}
 		}
 		c.eemit(bytecode.ECap, int32(s.Slots[t.Name]), 0)
-	case *grammar.IndexRef:
-		c.eemit(bytecode.EItem, int32(t.Index), 0)
 	case *grammar.VarRef:
 		c.eemit(bytecode.EVar, int32(c.prog.Vars.Index(t.Name)), 0)
 	case *grammar.Member:

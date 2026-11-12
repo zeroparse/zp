@@ -1322,15 +1322,6 @@ func (vm *Program) eval(ctx *core.EvalCtx, ip int, locals []any) (v any, err err
 			stack = append(stack, nil)
 		case bytecode.ECap:
 			stack = append(stack, value.UnboxNode(ctx.Frame.Vals[in.A]))
-		case bytecode.EItem:
-			n := int(in.A)
-			if n == 0 {
-				stack = append(stack, ctx.NewList(ctx.Items))
-			} else if n > len(ctx.Items) {
-				return nil, p.ActionIndexError(n, len(ctx.Items))
-			} else {
-				stack = append(stack, core.NodeOrNil(ctx.Items[n-1]))
-			}
 		case bytecode.ELocal:
 			stack = append(stack, locals[in.A])
 		case bytecode.EVar:
