@@ -144,7 +144,8 @@ func buildControlled(g *grammar.Grammar, opts compile.Options, flags []compile.R
 // discards the entire program and accumulated diagnostics. Existing Compile and
 // saved-program loading keep their ordinary path with no active control.
 // Polls cover grammar AST validation, source normalization, rule/dependency
-// loops, shared success proofs, expression construction and type checking.
+// loops, shared success proofs, expression checking, type checking, the Core IR
+// build, its analysis, passes and verification, and closure construction.
 // Shared metadata and individual operations still have uncancellable stretches.
 // This is not a wall-clock latency guarantee.
 func CompileContext(ctx context.Context, g *grammar.Grammar, opts Options) (prog *Program, err error) {

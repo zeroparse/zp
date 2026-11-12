@@ -14,13 +14,15 @@ import (
 
 // Build builds the closure backend's form of the program prog from its Core IR, optimized by the
 // closure pipeline (guards and scans), and returns the rules the parser runs, by ID. control is the
-// budget control of the compilation, or nil; plainDispatch leaves out the budget charge of the loop
+// control of the compilation, or nil: the Core build, its passes, Verify and the construction of
+// the closures poll it; plainDispatch leaves out the budget charge of the loop
 // iterations. A failure is an internal error: the program compiled, so its Core IR and terms build.
 func Build(prog *compile.Program, control *cancel.Control, plainDispatch bool) ([]*core.Rule, error) {
-	m, err := build.CoreFrom(prog, nil)
+	m, err := build.CoreControlled(prog, control)
 	if err != nil {
 		return nil, fmt.Errorf("internal error: Core IR: %w", err)
 	}
+	defer func() { m.Control = nil }() // the rules must not keep the compilation's context
 	if _, err := ir.Run(m, &ir.Env{}, ir.RunOptions{}); err != nil {
 		return nil, fmt.Errorf("internal error: %w", err)
 	}
@@ -131,6 +133,7 @@ func (b *Builder) failf(format string, args ...any) core.Matcher {
 
 // node builds the matcher of the Core IR node n in the current scope.
 func (b *Builder) node(n ir.Node) core.Matcher {
+	b.control.Poll()
 	want := n.Attrs().Want
 	switch n := n.(type) {
 	case *ir.Lit:

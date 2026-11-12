@@ -6,10 +6,12 @@ import (
 	"zeroparse.dev/zp/internal/desugar"
 )
 
-// ExprBuilder builds the executable form M of a program's rule bodies while the compiler walks them
-// (walker). The walk decides every static fact of the program — expectation IDs, value-free twins,
-// capture slots, resumable repetitions, missing-token sites — and reports the errors; the builder is
-// given those facts and only builds. Each method builds the form of one construct from the forms of
+// ExprBuilder builds a form M of a program's rule bodies while the compiler walks them (walker). The
+// walk checks the bodies and reports the errors, and decides the expectation IDs, value-free twins
+// and capture slots of the program. The engine builds nothing during the walk (NoExprs): its closures
+// are built from Core IR, which numbers resumable repetitions and missing-token sites itself. The
+// walk still counts those sites for the builder's methods; that count and this interface go when
+// the walk is reduced to checking. Each method builds the form of one construct from the forms of
 // its parts.
 type ExprBuilder[M any] interface {
 	// Literal matches the literal e, recording the expectation desc where it fails.

@@ -677,14 +677,20 @@ stage of its first consumer, so its differential tests and negative controls run
    programs of each mode load and run in their family; the VM benchmarks, `Compile` cost and
    saved-file size. Then remove the match and expression-code lowering of `bcompile.go` and the VMs'
    `noPlain` checks.
-5. **Closures**, in both families. Gate: unchanged results and engine event streams; event-free equality
-   of the two families; `Compile` plus the first-use build of the inlined family within noise of today's
-   `Compile` in time and allocations, and the first-use build of the call-preserving family measured; these
-   two measurements are made with the benchmark work that follows the structural changes. Then remove the closure builder (`closure/builder.go`), its helpers, the term compilation of
-   `closure/eval.go` and `noPlain`. If `Compile` time
-   regresses, the stage does not flip; the remedies to measure are building Core IR per rule on first use
-   and skipping optimizing passes and closure construction for compilations that only report diagnostics,
-   such as the language server's `CompileContext`.
+5. **Closures**, in both families. The closure backend is built from Core IR: one closure per node after
+   the closure pipeline, with actions, predicates and bindings run as term programs compiled from Core IR
+   terms. The grammar-driven construction of closures is removed; `closure/builder.go` stays as the
+   Core-driven builder. What remains of the stage: the two families, with the gate of unchanged results
+   and engine event streams and event-free equality of the two families; then the removal of the
+   closures' `noPlain` checks and of what the compile walker still computes only for the old closure
+   construction. The cost gate is still open: `Compile` now builds Core IR and runs the closure pipeline
+   and verification for every grammar, which it did not before. `Compile` plus the first-use build of the
+   inlined family is to be within noise of the former `Compile` in time and allocations, and the
+   first-use build of the call-preserving family is to be measured; both measurements are made with the
+   benchmark work that follows the structural changes. If `Compile` time regresses, the remedies to
+   measure are building Core IR per rule on first use and skipping optimizing passes and closure
+   construction for compilations that only report diagnostics, such as the language server's
+   `CompileContext`.
 
 New optimizations (wider inlining, case-pair folding, slot sharing across alternatives) come after the
 stage that gives them a consumer and follow the same gates.

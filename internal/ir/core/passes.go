@@ -63,6 +63,7 @@ func TerminalLeaves(n Node) (leaves int, choice, ok bool) {
 // rules' choices are not.
 func Terminals(m *Module, rule func(*Rule) bool) {
 	for _, r := range m.Rules {
+		m.Control.Poll()
 		if r == nil || !rule(r) {
 			continue
 		}
@@ -130,6 +131,7 @@ func terminals(n Node, build bool) Node {
 // Analyze has run.
 func Guards(m *Module, classes bool) {
 	for _, r := range m.Rules {
+		m.Control.Poll()
 		if r != nil {
 			guards(r.Body, classes)
 		}
@@ -172,6 +174,7 @@ func leadingClassNode(n Node) *ClassNode {
 // number.
 func Scans(m *Module) {
 	for _, r := range m.Rules {
+		m.Control.Poll()
 		if r == nil {
 			continue
 		}
@@ -197,6 +200,7 @@ func Scans(m *Module) {
 // entry: the classes charge nothing for their own entries.
 func ClassRuns(m *Module) {
 	for _, r := range m.Rules {
+		m.Control.Poll()
 		if r == nil {
 			continue
 		}

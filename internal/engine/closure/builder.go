@@ -15,7 +15,7 @@ import (
 type Builder struct {
 	prog *compile.Program
 	m    *ir.Module
-	// control is the budget control of the compilation, or nil.
+	// control is the control of the compilation, or nil; node polls it for each node it builds.
 	control *cancel.Control
 	// plainDispatch leaves out the budget charge of the loop iterations (Options.ControlledDispatch
 	// builds the metered closure graph).
@@ -62,13 +62,28 @@ func (b *Builder) ruleBody(sr *compile.Rule, cr *ir.Rule, m core.Matcher) error 
 	}
 	r.Body = func(p *core.Parser, _ int) (*value.Node, bool) { return m(p) }
 	if cr.Finish.Kind == ir.FinishAction {
-		t, err := b.term(cr.Finish.Action, compile.RuleProjections(b.prog, sr))
+		t, err := b.term(cr.Finish.Action, projections(cr.Body))
 		if err != nil {
 			return err
 		}
 		r.Act = t.Eval
 	}
 	return nil
+}
+
+// projections returns the projected captures of a rule body, mapped to the field each gathers
+// (ir.Capture.Project): the action reads the list of such a capture as the values of that field.
+func projections(body ir.Node) map[string]string {
+	var proj map[string]string
+	ir.Walk(body, func(n ir.Node) {
+		if c, ok := n.(*ir.Capture); ok && c.Project != "" {
+			if proj == nil {
+				proj = map[string]string{}
+			}
+			proj[c.Name] = c.Project
+		}
+	})
+	return proj
 }
 
 // operatorsRule completes the Operators Rule sr, whose Core IR is cr, with its lines.

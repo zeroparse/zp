@@ -22,6 +22,7 @@ package build
 
 import (
 	"fmt"
+	"zeroparse.dev/zp/internal/cancel"
 
 	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/check"
@@ -39,15 +40,27 @@ func CoreFrom(prog Program, origin map[core.Node]grammar.Expr) (*core.Module, er
 	return CoreProjecting(prog, origin, true)
 }
 
+// CoreControlled is CoreFrom under the control of a compilation: the build polls control for each
+// expression it builds, and the module keeps it (core.Module.Control) for the passes that follow.
+// A cancellation unwinds as cancel.Cancellation.
+func CoreControlled(prog Program, control *cancel.Control) (*core.Module, error) {
+	return coreBuild(prog, nil, true, control)
+}
+
 // CoreProjecting is CoreFrom; if project is false, no repetition gathers the values of a
 // capture (Rule.Projections is ignored), the shape of the values the recognizer's table
 // writes its actions for (the Go generator's projections).
 func CoreProjecting(prog Program, origin map[core.Node]grammar.Expr, project bool) (*core.Module, error) {
+	return coreBuild(prog, origin, project, nil)
+}
+
+func coreBuild(prog Program, origin map[core.Node]grammar.Expr, project bool, control *cancel.Control) (*core.Module, error) {
 	in := prog.CoreInput()
 	all := in.Rules
 	b := &coreBuilder{prog: prog, in: in, chk: prog.Checker(), m: &core.Module{Rules: make([]*core.Rule, len(all))}, origin: origin,
 		exps: map[string]core.ExpID{}, classes: map[string]*core.Class{}, starts: map[*Rule]bool{}}
 	b.noProject = !project
+	b.m.Control = control
 	b.rec = b.chk.ValueRecord()
 	for _, d := range core.FixedDescs {
 		b.exp(d)
@@ -426,6 +439,7 @@ func (b *coreBuilder) expr(e grammar.Expr, s *coreScope, build bool) (core.Node,
 }
 
 func (b *coreBuilder) node(e grammar.Expr, s *coreScope, build bool) (core.Node, error) {
+	b.m.Control.Poll()
 	switch e := e.(type) {
 	case *grammar.Literal:
 		n := &core.Lit{Text: value.LiteralValue(e.Value), Fold: e.IgnoreCase}

@@ -8,6 +8,7 @@ import "slices"
 func CallGraph(m *Module) {
 	m.Calls = make([][]int, len(m.Rules))
 	for i, r := range m.Rules {
+		m.Control.Poll()
 		if r != nil {
 			m.Calls[i] = calls(r.Body)
 		}

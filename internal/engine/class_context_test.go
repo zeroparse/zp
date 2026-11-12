@@ -45,7 +45,7 @@ func TestClassConstructionContextCancellation(t *testing.T) {
 		{"bitmap", func(c *cancel.Control) { compile.ClassASCII(cl.Ranges, false, c) }},
 		{"accept-construction", func(c *cancel.Control) { closure.ClassAcceptControlled(cl, c) }},
 		{"matcher", func(c *cancel.Control) {
-			newCompileWalker(&compile.Compiler{Control: c}).Expr(cl, compile.NewScope(), true)
+			_, _ = closure.Matcher(&compile.Program{DescTable: []string{"c"}}, &ir.Module{Exps: []string{"c"}}, &ir.ClassNode{Class: coreClass(cl)}, nil, c, false)
 		}},
 		{"choice-guard", func(c *cancel.Control) {
 			ic := coreClass(cl)
