@@ -103,6 +103,38 @@ func TestViewOrigins(t *testing.T) {
 	}
 }
 
+// TestViewMatchesNoLaws is the base of the differential tests of the laws: with no law applied,
+// the view on the grammar's rules (compile.CostViewRules) rewrites nothing and writes the rules as
+// the identity view does.
+func TestViewMatchesNoLaws(t *testing.T) {
+	srcs := corpus(t)
+	for p, src := range srcs {
+		t.Run(p, func(t *testing.T) {
+			t.Parallel()
+			g, err := syntax.Parse(src)
+			if err != nil {
+				t.Fatal(err)
+			}
+			want, applied, err := compile.CostViewRules(g, false, []string{}, nil)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if len(applied) != 0 {
+				t.Errorf("rewrites with no law: %v", applied)
+			}
+			cs := sourceOf(t, src)
+			v := complexity.Build(viewSource(cs), complexity.Options{}, nil)
+			rules, err := v.Grammar(cs.Rules)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if got, want := formatRules(rules), formatRules(want); got != want {
+				t.Errorf("view differs:\n%s\nwant:\n%s", got, want)
+			}
+		})
+	}
+}
+
 // TestViewGrammarNeedsOrigins is the negative control of TestViewOrigins: without the origin of
 // a node it cannot write, Grammar fails instead of writing something else.
 func TestViewGrammarNeedsOrigins(t *testing.T) {
