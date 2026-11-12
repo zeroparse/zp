@@ -1,9 +1,13 @@
 package complexity
 
 import (
+	"fmt"
 	"maps"
 	"slices"
+	"strings"
+	"unicode/utf8"
 
+	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/cancel"
 	"zeroparse.dev/zp/internal/ir/core"
 	"zeroparse.dev/zp/internal/ir/core/facts"
@@ -25,6 +29,13 @@ type builder struct {
 	values *values
 	cur    int
 	depth  int
+	// cheap are the rules whose calls evaluated again cost at most a constant factor of their
+	// first evaluation (cheapRules).
+	cheap []bool
+	// exps and classes intern the expectations and classes of the view's module, which a class
+	// that the view builds adds to.
+	exps    map[string]core.ExpID
+	classes map[string]*core.Class
 }
 
 // on reports whether the rule l applies.
@@ -61,9 +72,26 @@ func (b *builder) standsFor(x, n core.Node) {
 	if b.orig[x] {
 		return
 	}
-	if _, ok := b.view.Text[x]; !ok {
-		b.view.Text[x] = b.view.textOf(n)
+	b.standsForText(x, b.view.textOf(n))
+}
+
+// standsForText records that x, if the view built it, stands for the source text t.
+func (b *builder) standsForText(x core.Node, t string) {
+	if b.orig[x] {
+		return
 	}
+	if _, ok := b.view.Text[x]; !ok {
+		b.view.Text[x] = t
+	}
+}
+
+// textOfAll returns the source texts that ns stand for, joined by sep.
+func (b *builder) textOfAll(ns []core.Node, sep string) string {
+	ts := make([]string, len(ns))
+	for i, n := range ns {
+		ts[i] = b.view.textOf(n)
+	}
+	return strings.Join(ts, sep)
 }
 
 // built records that x, a node the view builds, replaces n with new parts: it is written as the
@@ -149,7 +177,7 @@ func (b *builder) rewrite(n core.Node) core.Node {
 	return n
 }
 
-// seq applies N1 (splice) and N4 (leading bottom) to a sequence.
+// seq applies N1 (splice), N4 (leading bottom) and N12 (!X X) to a sequence.
 func (b *builder) seq(s *core.Seq) core.Node {
 	changed := false
 	var items []core.Node
@@ -166,6 +194,14 @@ func (b *builder) seq(s *core.Seq) core.Node {
 			continue
 		}
 		items = append(items, n)
+	}
+	for i := 0; i+1 < len(items); i++ {
+		if m := b.adjacent(items[i], items[i+1]); m != nil {
+			b.standsForText(m, b.textOfAll(items[i:i+2], " "))
+			items = slices.Replace(slices.Clip(items), i, i+2, m)
+			changed = true
+			i = max(i-2, -1)
+		}
 	}
 	for i := 0; i+1 < len(items); i++ {
 		if _, ok := items[i].(*core.FailNode); ok && b.on(N4) {
@@ -193,7 +229,21 @@ func (b *builder) seq(s *core.Seq) core.Node {
 	return b.built(&core.Seq{Items: items}, s)
 }
 
-// choice applies N1 (flatten), N2, N4 and N6 (cuts) to a choice.
+// adjacent rewrites two items in a row into one, or returns nil.
+func (b *builder) adjacent(x, y core.Node) core.Node {
+	if n, ok := x.(*core.Look); ok && n.Neg && b.on(N12) && b.depth == 0 && b.same(n.Body, y) && boundedTerminal(y) {
+		// K4: !X X never matches. X examines a bounded amount of input, so the view drops a
+		// constant cost. !X X has the type of X and _|_ has the type _|_, which a choice around it
+		// leaves out of its join: (-"b" / !"a" "a") is one element, nil or a string, and
+		// (-"b" / _|_) none. So the rewrite stays where a predicate can read the value. X makes
+		// no capture, so only depth decides.
+		b.count(N12)
+		return &core.FailNode{}
+	}
+	return nil
+}
+
+// choice applies N1 (flatten), N2, N3, N4, N6 (cuts), N8 and N12 (left factoring) to a choice.
 func (b *builder) choice(ch *core.Choice) core.Node {
 	applied := maps.Clone(b.view.Applied)
 	changed := false
@@ -215,8 +265,8 @@ func (b *builder) choice(ch *core.Choice) core.Node {
 		}
 		alts = append(alts, n)
 	}
-	// C3 and T2 drop alternatives that never give the value of the choice, but they can drop
-	// every alternative with a value and keep one without: the choice that gave nil gives no
+	// C1, C3, C5 and T2 drop alternatives that never give the value of the choice, but they can
+	// drop every alternative with a value and keep one without: the choice that gave nil gives no
 	// element then, as (_ / "b") with "b" dropped. So they apply only where no predicate can read
 	// the value. A bottom alternative adds nothing to the value of the choice, which joins the
 	// types of its alternatives, so C4 applies everywhere.
@@ -229,10 +279,18 @@ func (b *builder) choice(ch *core.Choice) core.Node {
 			changed = true
 			continue
 		}
-		kept = append(kept, alt)
 		if !drops {
+			kept = append(kept, alt)
 			continue
 		}
+		if b.on(N3) && b.subsumed(alt, kept) {
+			// C1 and C5: an earlier alternative matched wherever this one could, and when it
+			// failed, this one fails in the same state.
+			b.count(N3)
+			changed = true
+			continue
+		}
+		kept = append(kept, alt)
 		if b.on(N2) && (b.src.Facts.Succeeds(alt) || leadingCut(alt)) {
 			// C3: no later alternative is tried after one that always succeeds; T2: nor after a
 			// cut that the alternative passes before anything else.
@@ -265,6 +323,16 @@ func (b *builder) choice(ch *core.Choice) core.Node {
 			alts[i] = n
 		}
 	}
+	if b.on(N8) {
+		if merged, ok := b.mergeChars(alts); ok {
+			alts, changed = merged, true
+		}
+	}
+	if b.on(N12) {
+		if factored, ok := b.factor(alts); ok {
+			alts, changed = factored, true
+		}
+	}
 	switch {
 	case len(alts) == 0:
 		return b.built(&core.FailNode{}, ch)
@@ -287,6 +355,214 @@ func (b *builder) choice(ch *core.Choice) core.Node {
 }
 
 func looseCutAlt(a *core.Alt) bool { return facts.LooseCut(a.Body) }
+
+// same reports whether two nodes are the same expression: they print the same, whatever their
+// positions in the module.
+func (b *builder) same(x, y core.Node) bool {
+	if x == y {
+		return true
+	}
+	return core.PrintNode(b.src.Module, x, false) == core.PrintNode(b.src.Module, y, false)
+}
+
+// subsumed reports whether an earlier alternative covers alt: it equals alt or is a prefix of
+// it, and evaluating it again costs at most what its first evaluation cost.
+func (b *builder) subsumed(alt core.Node, earlier []core.Node) bool {
+	for _, e := range earlier {
+		if !b.evaluatedAgainCheaply(e) {
+			continue
+		}
+		if b.same(e, alt) || b.prefix(items(e), items(alt)) {
+			return true
+		}
+		if l, ok := e.(*core.Lit); ok && !l.Fold {
+			if m, ok := alt.(*core.Lit); ok && !m.Fold && len(m.Text) > len(l.Text) && strings.HasPrefix(m.Text, l.Text) {
+				return true
+			}
+		}
+	}
+	return false
+}
+
+// prefix reports whether pre is a proper prefix of all.
+func (b *builder) prefix(pre, all []core.Node) bool {
+	if len(pre) >= len(all) {
+		return false
+	}
+	for i, x := range pre {
+		if !b.same(x, all[i]) {
+			return false
+		}
+	}
+	return true
+}
+
+// items returns the items of a sequence, or n as the only item.
+func items(n core.Node) []core.Node {
+	if s, ok := n.(*core.Seq); ok {
+		return s.Items
+	}
+	return []core.Node{n}
+}
+
+// mergeChars applies C9 to the runs of two or more alternatives that each match one character of a
+// class: a class without negation or a literal of one character, matched with case.
+func (b *builder) mergeChars(alts []core.Node) ([]core.Node, bool) {
+	var out []core.Node
+	changed := false
+	for i := 0; i < len(alts); {
+		j := i
+		var ranges []core.Range
+		for j < len(alts) {
+			rs, ok := singleChars(alts[j])
+			if !ok {
+				break
+			}
+			ranges = append(ranges, rs...)
+			j++
+		}
+		if j-i >= 2 {
+			b.count(N8)
+			changed = true
+			class := &core.ClassNode{Class: b.class(ranges)}
+			b.standsForText(class, b.textOfAll(alts[i:j], " / "))
+			out = append(out, class)
+			i = j
+			continue
+		}
+		out = append(out, alts[i])
+		i++
+	}
+	return out, changed
+}
+
+// singleChars returns the characters of a node that matches exactly one of them. A replacement
+// character is left out: a literal that holds one also matches input that is not valid UTF-8.
+func singleChars(n core.Node) ([]core.Range, bool) {
+	switch x := n.(type) {
+	case *core.ClassNode:
+		if x.Class.Negated || len(x.Class.Ranges) == 0 {
+			return nil, false
+		}
+		for _, r := range x.Class.Ranges {
+			if r.Lo <= utf8.RuneError && utf8.RuneError <= r.Hi {
+				return nil, false
+			}
+		}
+		return x.Class.Ranges, true
+	case *core.Lit:
+		r, n := utf8.DecodeRuneInString(x.Text)
+		if x.Fold || n == 0 || n != len(x.Text) || r == utf8.RuneError {
+			return nil, false
+		}
+		return []core.Range{{Lo: r, Hi: r}}, true
+	}
+	return nil, false
+}
+
+// class returns the class of the characters of rs, sorted and merged, as the view's module holds
+// it: equal classes are one class, and its expectation is that of a class the grammar writes.
+func (b *builder) class(rs []core.Range) *core.Class {
+	rs = slices.Clone(rs)
+	slices.SortFunc(rs, func(x, y core.Range) int { return int(x.Lo) - int(y.Lo) })
+	var ranges []grammar.CharRange
+	for _, r := range rs {
+		if r.Lo > r.Hi {
+			continue
+		}
+		if n := len(ranges); n > 0 && int64(r.Lo) <= int64(ranges[n-1].Hi)+1 {
+			ranges[n-1].Hi = max(ranges[n-1].Hi, r.Hi)
+			continue
+		}
+		ranges = append(ranges, grammar.CharRange{Lo: r.Lo, Hi: r.Hi})
+	}
+	d := core.CharClassString(&grammar.CharClass{Ranges: ranges})
+	m := b.view.Module
+	if b.classes == nil {
+		b.exps, b.classes = map[string]core.ExpID{}, map[string]*core.Class{}
+		for i, e := range m.Exps {
+			b.exps[e] = core.ExpID(i)
+		}
+		for _, c := range m.Classes {
+			b.classes[fmt.Sprint(c.Negated, c.Ranges, m.Exps[c.Exp])] = c
+		}
+		m.Exps, m.Classes = slices.Clip(m.Exps), slices.Clip(m.Classes)
+	}
+	c := &core.Class{}
+	for _, r := range ranges {
+		c.Ranges = append(c.Ranges, core.Range{Lo: r.Lo, Hi: r.Hi})
+	}
+	key := fmt.Sprint(false, c.Ranges, d)
+	if k, ok := b.classes[key]; ok {
+		return k
+	}
+	id, ok := b.exps[d]
+	if !ok {
+		id = core.ExpID(len(m.Exps))
+		b.exps[d] = id
+		m.Exps = append(m.Exps, d)
+	}
+	c.Exp = id
+	b.classes[key] = c
+	m.Classes = append(m.Classes, c)
+	return c
+}
+
+// factor applies C6 to runs of alternatives that begin with the same item: p b / p c becomes
+// p (b / c), where p is the longest prefix that the alternatives of the run share. The alternatives
+// have no cut that could commit the choice, and p evaluated again costs at most what its first
+// evaluation cost (evaluatedAgainCheaply), which is what the view drops. A run whose shared prefix
+// is not cheap as a whole is left as it is: factoring a part of it would hide from the classifier
+// the shared calls that it strips itself.
+func (b *builder) factor(alts []core.Node) ([]core.Node, bool) {
+	if b.depth > 0 {
+		return alts, false
+	}
+	var out []core.Node
+	changed := false
+	for i := 0; i < len(alts); {
+		first := items(alts[i])
+		j, n := i+1, len(first)
+		if len(first) > 1 && !facts.LooseCut(alts[i]) {
+			for j < len(alts) && !facts.LooseCut(alts[j]) {
+				next := items(alts[j])
+				if len(next) < 2 || !b.same(first[0], next[0]) {
+					break
+				}
+				m := 1
+				for m < min(n, len(next)) && b.same(first[m], next[m]) {
+					m++
+				}
+				n = m
+				j++
+			}
+		}
+		prefix := first[:min(n, len(first))]
+		if j-i < 2 || !b.evaluatedAgainCheaply(&core.Seq{Items: prefix}) || b.values.observed(b.cur, alts[i:j]...) {
+			out = append(out, alts[i])
+			i++
+			continue
+		}
+		b.count(N12)
+		changed = true
+		// Each rest stands for its alternative, and the choice of the rests for the run; the
+		// factored sequence stands for the first alternative of the run, since the prefix that it
+		// evaluates first is that alternative's. A rest that is a node of the module keeps its own
+		// text.
+		run := &core.Choice{Alts: make([]*core.Alt, 0, j-i)}
+		for _, a := range alts[i:j] {
+			r := b.seqOf(a.(*core.Seq), items(a)[len(prefix):], false)
+			b.standsFor(r, a)
+			run.Alts = append(run.Alts, &core.Alt{Body: r})
+		}
+		b.standsForText(run, b.textOfAll(alts[i:j], " / "))
+		f := &core.Seq{Items: append(slices.Clone(prefix), run)}
+		b.standsFor(f, alts[i])
+		out = append(out, f)
+		i = j
+	}
+	return out, changed
+}
 
 // sameValueBare reports whether n has the same value alone as it has as the only alternative of
 // a choice, where a sequence around the choice takes it. The nodes it accepts are one element in
