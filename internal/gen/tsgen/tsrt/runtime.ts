@@ -1234,16 +1234,32 @@ export function resolveOptions(g: Grammar, options: ParseOptions | undefined, in
 
 // run parses the whole input of the grammar g with rule r of a rule table with seen rules that have rule.seen set.
 // With document set, it parses with the parser of a Document parse (DocumentParser).
-export function run(g: Grammar, r: Rule, seen: number, input: string | Uint8Array, unit: Unit | undefined, maxDepth = g.maxDepth, control: BudgetControl | null = null, traceOptions: ResolvedParseOptions | null = null, document = false): ParseResult {
+export function run(g: Grammar, r: Rule, seen: number, input: string | Uint8Array, unit: Unit | undefined, maxDepth = g.maxDepth, control: BudgetControl | null = null, traceOptions: ResolvedParseOptions | null = null, document: DocumentMemo | null = null): ParseResult {
   let p: Parser | null = null;
   try {
     // Made inside the try, so that decoding the input fails as parsing does.
     const u = unit === Bytes ? Bytes : CodePoints;
-    p = document ? new DocumentParser(g, input, u, seen, maxDepth, control) : new Parser(g, input, u, seen, maxDepth, control);
+    if (document !== null) {
+      const d = new DocumentParser(g, input, u, seen, maxDepth, control);
+      d.memoState = document;
+      d.slots = document.slots;
+      document.pending = 0;
+      p = d;
+    } else {
+      p = new Parser(g, input, u, seen, maxDepth, control);
+    }
     p.expectations = traceOptions?.expectations === true;
     p.observation = traceOptions?.profile != null ? new ProfileObservation(traceOptions) : traceOptions?.trace == null ? null : new Observation(traceOptions);
-    return result(p, p.call(r, 0));
+    if (document === null) return result(p, p.call(r, 0));
+    const d = p as DocumentParser;
+    const res = publishDocumentResult(result(d, d.call(r, 0)));
+    document.slots = d.slots;
+    document.evaluated = d.evaluated;
+    document.reused = d.reused;
+    return res;
   } catch (x) {
+    // A parse that ends with an exception leaves no memo for the next one.
+    document?.clear();
     if (x instanceof Fatal) {
       if (control !== null) throw x;
       return { node: null, error: x.err };
@@ -1291,6 +1307,15 @@ export function result(p: Parser, v: R): ParseResult {
 
 // --- Documents ---
 
+// publishDocumentResult returns res with copies of its recovered errors, which memo entries of the
+// Document hold and later parses reuse.
+function publishDocumentResult(res: ParseResult): ParseResult {
+  const e = res.error;
+  if (!(e instanceof SyntaxErrors)) return res;
+  const errors = e.errors.map(x => new SyntaxError(x.pos, x.line, x.col, x.expected.slice(), x.messages.slice()));
+  return { node: res.node, error: new SyntaxErrors(errors) };
+}
+
 // documentBusyMessage is the message of the error of a parse or an edit of a Document that is already
 // parsing, which only a trace callback of that parse can make.
 const documentBusyMessage = "document is already parsing";
@@ -1303,6 +1328,157 @@ function optionsSnapshot(options: ParseOptions | undefined): ParseOptions | unde
   const limits = out["limits"];
   if (limits != null && typeof limits === "object") out["limits"] = { ...limits };
   return out as ParseOptions;
+}
+
+// pendingEditLimit is the number of edits between two parses after which the next parse starts
+// without the memo, and the number of edits after which an entry that no parse found or stored is
+// removed: keeping up with more edits costs more than parsing again.
+const pendingEditLimit = 128;
+
+// DocumentEdit is an edit as the memo sees it (DocumentMemo.splice): the input [start, end) is
+// replaced with input delta units longer, and the input after end decodes as before.
+interface DocumentEdit {
+  start: number;
+  end: number;
+  delta: number;
+}
+
+/**
+ * DocumentMemo is the memo that a Document keeps from one parse to the next. An edit splices it:
+ * results that examined only input before the edit stay, results that examined only input after it
+ * move by the edit's change of length, and the others are removed. A parse that ends with an
+ * exception leaves it empty.
+ */
+export class DocumentMemo {
+  slots: (MemoEntry | null | undefined)[] = [];
+  // shifts holds, for each entry that edits moved, the shift that its value still has to take
+  // (DocumentParser.documentMove), or is null when no entry has one.
+  shifts: Map<MemoEntry, number> | null = null;
+  // epoch counts the edits of the Document (MemoEntry.seen), pending those since the last parse.
+  epoch = 0;
+  pending = 0;
+  // evaluated and reused are the statistics of the last parse.
+  evaluated = 0;
+  reused = 0;
+
+  clear(): void {
+    this.slots = [];
+    this.shifts = null;
+  }
+
+  // edit applies an edit to the memo: after more than pendingEditLimit edits since the last parse,
+  // the next parse starts without it.
+  edit(ed: DocumentEdit): void {
+    this.pending++;
+    this.epoch++;
+    if (this.pending > pendingEditLimit) {
+      this.clear();
+      return;
+    }
+    this.splice(ed);
+  }
+
+  // splice copies the entries that the edit keeps into new slots: those that examined only input
+  // before the edit stay; those that examined only input after it, with no recovered errors and not
+  // pinned, move by its delta, with what their values must move recorded in shifts; the others are
+  // removed, with those that more than pendingEditLimit edits have passed since a parse stored them
+  // or found them.
+  splice(ed: DocumentEdit): void {
+    const slots: (MemoEntry | null | undefined)[] = [];
+    let shifts: Map<MemoEntry, number> | null = null;
+    for (let pos = 0; pos < this.slots.length; pos++) {
+      for (let e = this.slots[pos] || null; e !== null; e = e.next) {
+        let to = pos;
+        const from = e.from === fromBefore ? pos - 1 : pos;
+        if (e.from === noRecord || this.epoch - e.seen > pendingEditLimit) {
+          continue;
+        } else if (e.examined <= ed.start) {
+          // Before the edit.
+        } else if (from >= ed.end && !e.pinned && e.errs === noErrs) {
+          to = pos + ed.delta;
+        } else {
+          continue;
+        }
+        const c: MemoEntry = { ...e, next: null };
+        let shift = this.shifts?.get(e) ?? 0;
+        if (to !== pos) {
+          c.end += ed.delta;
+          c.examined += ed.delta;
+          c.far += ed.delta;
+          shift += ed.delta;
+        }
+        // A result without a node holds no positions.
+        if (shift !== 0 && c.node) {
+          if (shifts === null) shifts = new Map();
+          shifts.set(c, shift);
+        }
+        c.next = slots[to] || null;
+        slots[to] = c;
+      }
+    }
+    this.slots = slots;
+    this.shifts = shifts;
+  }
+}
+
+// basicValue reports whether v holds no positions: null, a boolean, a number or a string.
+function basicValue(v: unknown): boolean {
+  return v === null || v === undefined || typeof v === "boolean" || typeof v === "number" || typeof v === "bigint" || typeof v === "string";
+}
+
+// movable reports whether moveNode can move n: its fields and box hold only nodes and basic values.
+// visited holds the nodes already checked.
+function movable(n: Node | null, visited: Set<Node>): boolean {
+  if (n === null || visited.has(n)) return true;
+  visited.add(n);
+  if (!basicValue(n.box)) return false;
+  for (const c of n.children) {
+    if (!movable(c, visited)) return false;
+  }
+  for (const f of n.fields) {
+    if (f.value instanceof Node) {
+      if (!movable(f.value, visited)) return false;
+    } else if (!basicValue(f.value)) {
+      return false;
+    }
+  }
+  return true;
+}
+
+// moveNode returns a copy of the movable node n with its positions and those of its descendants moved
+// by shift. moved maps the nodes copied so far to their copies, so that a node that occurs more than
+// once is copied once and its copies are shared as it was.
+function moveNode(n: Node | null, shift: number, moved: Map<Node, Node>): Node | null {
+  if (n === null) return null;
+  const done = moved.get(n);
+  if (done !== undefined) return done;
+  const c: Node = Object.assign(Object.create(Object.getPrototypeOf(n)), n);
+  moved.set(n, c);
+  c.start += shift;
+  c.end += shift;
+  if (n.children.length !== 0) c.children = n.children.map(k => moveNode(k, shift, moved));
+  if (n.fields.length !== 0) {
+    c.fields = n.fields.map(f => (f.value instanceof Node ? { name: f.name, value: moveNode(f.value, shift, moved) } : f));
+  }
+  return c;
+}
+
+/** DocumentStats are the statistics of the last parse of a Document. */
+export interface DocumentStats {
+  /** evaluated is the number of rule evaluations. */
+  evaluated: number;
+  /** reused is the number of results reused instead of evaluating a rule again. */
+  reused: number;
+}
+
+// lastRuneInvalid reports whether the last character of b[0:end] is an invalid byte: a byte that does
+// not end a valid UTF-8 sequence that starts in the 4 bytes before end.
+function lastRuneInvalid(b: Uint8Array, end: number): boolean {
+  if (b[end - 1]! < 0x80) return false;
+  let start = end - 1;
+  for (const lim = Math.max(end - 4, 0); start > lim && (b[start]! & 0xc0) === 0x80; start--);
+  decodeRune(b, start, end);
+  return start + decodedSize !== end || (decodedSize === 1 && b[start]! >= 0x80);
 }
 
 /**
@@ -1320,6 +1496,7 @@ export class DocumentBase {
   private readonly defaults: ParseOptions | undefined;
   private input: Uint8Array;
   private parsing = false;
+  private readonly memo = new DocumentMemo();
 
   constructor(g: Grammar, start: Rule, seen: number, input: Uint8Array, defaults: ParseOptions | undefined, resolved: ResolvedParseOptions) {
     this.g = g;
@@ -1364,12 +1541,39 @@ export class DocumentBase {
       endByte = documentByteOffset(b, end);
     }
     const r = typeof replacement === "string" ? encodeUTF8(replacement) : replacement;
+    // The replacement can complete an incomplete UTF-8 sequence before start, turning invalid bytes,
+    // each a separate character, into one character. Such a sequence has at most 3 bytes, each one
+    // position in either unit, so results that examined them are not kept.
+    let reuse = start;
+    for (let i = 0; i < 3 && i < startByte && lastRuneInvalid(b, startByte - i); i++) reuse--;
+    const ed: DocumentEdit = { start: reuse, end, delta: r.length - (endByte - startByte) };
+    if (this.unit !== Bytes) {
+      // The replacement can also end with the start of a sequence that the continuation bytes after
+      // end, each a separate character, complete. Past those, the characters are the same.
+      let endX = endByte;
+      while (endX < b.length && endX - endByte < 3 && (b[endX]! & 0xc0) === 0x80) endX++;
+      ed.end = end + endX - endByte;
+      const reuseByte = startByte - (start - reuse);
+      const before = b.subarray(reuseByte, startByte);
+      const after = b.subarray(endByte, endX);
+      const window = new Uint8Array(before.length + r.length + after.length);
+      window.set(before, 0);
+      window.set(r, before.length);
+      window.set(after, before.length + r.length);
+      ed.delta = documentRuneCount(window) - (ed.end - reuse);
+    }
     const out = new Uint8Array(b.length - (endByte - startByte) + r.length);
     out.set(b.subarray(0, startByte), 0);
     out.set(r, startByte);
     out.set(b.subarray(endByte), startByte + r.length);
     this.input = out;
+    this.memo.edit(ed);
     return null;
+  }
+
+  /** stats returns the rule evaluations and the reused results of the last parse. */
+  stats(): DocumentStats {
+    return { evaluated: this.memo.evaluated, reused: this.memo.reused };
   }
 
   /**
@@ -1395,7 +1599,7 @@ export class DocumentBase {
     if (o.expectations !== this.expectations) return fail(new Error("document parse cannot change expectations"));
     this.parsing = true;
     try {
-      return withObservedOptions(o, control => convert(run(this.g, this.start, this.seen, input, o.unit, o.maxDepth, control, o, true), control), fail);
+      return withObservedOptions(o, control => convert(run(this.g, this.start, this.seen, input, o.unit, o.maxDepth, control, o, this.memo), control), fail);
     } finally {
       this.parsing = false;
     }
@@ -1763,26 +1967,30 @@ export interface MemoEntry {
   examined: number;
   from: number;
   pinned: boolean;
+  // seen is the edit count of the Document (DocumentMemo.epoch) when a parse last stored the entry or
+  // found it to answer a lookup.
+  seen: number;
 }
 
 // The starts of the input that a call of a Document parse examined (MemoEntry.from).
 const noRecord = 0;
 const fromPos = 1;
 const fromBefore = 2;
-void noRecord;
 
 export function newEntry(node: R, ok: boolean, end: number, silent: boolean, errs: Errs): MemoEntry {
-  return { node, errs, expected: noExp, next: null, env: null, end, far: 0, rule: 0, min: 0, ok, silent, present: 0, examined: 0, from: noRecord, pinned: false };
+  return { node, errs, expected: noExp, next: null, env: null, end, far: 0, rule: 0, min: 0, ok, silent, present: 0, examined: 0, from: noRecord, pinned: false, seen: 0 };
 }
 
 export const noExp: number[] = [];
 
 // SkipRecord is what the rest of a walk of a skip-run site from a position did: where it ended, and
-// its farthest failure and the expectations there (see skipBegin).
+// its farthest failure and the expectations there (see skipBegin), and in a Document parse the end of
+// the input it examined.
 interface SkipRecord {
   end: number;
   far: number;
   exp: number[];
+  examined: number;
 }
 
 // SCAN_HOT_SPAN is the number of characters that a walk of a scan site matches before it looks for the
@@ -1847,6 +2055,7 @@ interface SkipVisit {
   pos: number;
   far: number;
   exp: number[];
+  examined: number;
 }
 
 // mergeSkipExpected returns the expectations a, then those of b not in a.
@@ -2325,6 +2534,12 @@ export class Parser {
   skipFar = 0;
   skipBase = 0;
   skipHitRec: SkipRecord | null = null;
+  // skipHigh is the examined input of the enclosing call (docHigh) while a recording visit runs.
+  skipHigh = 0;
+  // docHigh and docLow bound the input that the active rule call of a Document parse examined,
+  // [docLow, docHigh). Outside a Document parse nothing reads them.
+  docHigh = 0;
+  docLow = 0;
 
   // scanTables are the records of the walks of scan sites by site, scanCold whether each site is hot,
   // by 2*site, plus 1 in a lookahead, and scanHotNow, scanHit and scanRec the state of the walk that
@@ -2814,6 +3029,16 @@ export class Parser {
     this.frame[slot] = v;
   }
 
+  // documentTouch records, in a Document parse, that the active rule call examined the input before
+  // end; documentTouchFrom extends that input back to from. Other parses record nothing.
+  documentTouch(end: number): void {
+    void end;
+  }
+
+  documentTouchFrom(from: number): void {
+    void from;
+  }
+
   // peek returns the character at the current position (-1 at the end) and sets psize to its size
   // in units.
   peek(): number {
@@ -3071,6 +3296,8 @@ export class Parser {
       return false;
     }
     this.spend();
+    this.documentTouch(r.examined);
+    this.documentTouchFrom(this.pos - 1);
     this.mergeKept(r.far, r.exp);
     this.pos = r.end;
     this.skipHitRec = r;
@@ -3087,8 +3314,11 @@ export class Parser {
       return;
     }
     this.skipClose();
-    this.skipVisits.push({ pos: this.pos, far: 0, exp: noExp });
+    this.skipVisits.push({ pos: this.pos, far: 0, exp: noExp, examined: 0 });
     this.skipOpen = true;
+    // The visit measures the input it examines from its position on.
+    this.skipHigh = this.docHigh;
+    this.docHigh = this.pos;
     this.skipFar = this.farthest;
     this.skipBase = this.expBase;
     this.expBase = this.expTop;
@@ -3112,6 +3342,8 @@ export class Parser {
     v.far = far;
     v.exp = this.keep(from, to);
     this.mergeExpected(far, from, to);
+    v.examined = this.docHigh;
+    this.docHigh = Math.max(this.skipHigh, this.docHigh);
   }
 
   // skipEnd ends the walk and records the rest of it from each position it visited recording.
@@ -3123,12 +3355,12 @@ export class Parser {
     if (next === null && n > 0) {
       // The last iteration failed or matched nothing: the walk ended at its start.
       const v = vs[--n]!;
-      next = { end: v.pos, far: v.far, exp: v.exp };
+      next = { end: v.pos, far: v.far, exp: v.exp, examined: v.examined };
       this.skipPut(v.pos, next);
     }
     for (let i = n - 1; i >= 0; i--) {
       const v = vs[i]!;
-      const r: SkipRecord = { end: next!.end, far: next!.far, exp: next!.exp };
+      const r: SkipRecord = { end: next!.end, far: next!.far, exp: next!.exp, examined: Math.max(v.examined, next!.examined) };
       if (v.far > r.far) {
         r.far = v.far;
         r.exp = v.exp;
@@ -4929,10 +5161,9 @@ export class Parser {
  * without this bookkeeping.
  */
 export class DocumentParser extends Parser {
-  // docHigh and docLow bound the input that the active rule call examined, [docLow, docHigh).
-  docHigh = 0;
-  docLow = 0;
-  // evaluated and reused count the rule evaluations and the reused memo results of the parse.
+  // memoState is the memo that the Document keeps between parses, with what edits did to it.
+  memoState: DocumentMemo = new DocumentMemo();
+  // evaluated and reused count the rule evaluations and the reused results of the parse.
   evaluated = 0;
   reused = 0;
 
@@ -4960,20 +5191,102 @@ export class DocumentParser extends Parser {
     return super.invokePlainBody(r, min);
   }
 
-  // documentTouch records that the active rule call examined the input before end.
-  documentTouch(end: number): void {
+  override documentTouch(end: number): void {
     if (end > this.docHigh) this.docHigh = end;
   }
 
-  // documentTouchFrom extends the input that the active rule call examined back to from.
-  documentTouchFrom(from: number): void {
+  override documentTouchFrom(from: number): void {
     if (from < this.docLow) this.docLow = from;
   }
 
-  // documentMove moves the value of the entry e by the shift that edits gave it, and reports whether
-  // it could. A parse starts with an empty memo, so no entry has a shift.
+  // documentTouchLine records that a line start test at the position examined the unit before it.
+  documentTouchLine(): void {
+    if (this.pos > this.docHigh) this.docHigh = this.pos;
+    if (this.pos - 1 < this.docLow) this.docLow = this.pos - 1;
+  }
+
+  // The terminals record the input they examine: a character, the length of a literal, the unit
+  // before a line start, and the end of the input past the last character.
+  override peek(): number {
+    const c = super.peek();
+    this.documentTouch(this.pos + (c < 0 ? 1 : this.psize));
+    return c;
+  }
+
+  override matchLiteral(lit: Lit, desc: number, build: boolean): R {
+    this.documentTouch(this.pos + (this.unit === Bytes ? lit.bytes.length : lit.cps.length));
+    return super.matchLiteral(lit, desc, build);
+  }
+
+  override atLineStart(): boolean {
+    this.documentTouchLine();
+    return super.atLineStart();
+  }
+
+  override atEnd(): boolean {
+    this.documentTouch(this.pos + 1);
+    return super.atEnd();
+  }
+
+  // An expectation at pos examined the input there.
+  override expect(pos: number, id: number): void {
+    this.expectDocument(pos, id);
+  }
+
+  override mergeKept(far: number, ids: number[]): void {
+    this.mergeKeptDocument(far, ids);
+  }
+
+  override mergeExpected(far: number, from: number, to: number): void {
+    this.mergeExpectedDocument(far, from, to);
+  }
+
+  // expectDocument, mergeKeptDocument and mergeExpectedDocument are printed from Exec IR
+  // (internal/ir/exec/core).
+  expectDocument(pos: number, id: number): void {
+    throw new Error("the printed method replaces this one");
+  }
+
+  mergeKeptDocument(far: number, ids: number[]): void {
+    throw new Error("the printed method replaces this one");
+  }
+
+  mergeExpectedDocument(far: number, from: number, to: number): void {
+    throw new Error("the printed method replaces this one");
+  }
+
+  // A result that a context kept was made inside the growth of its leader, whose call examined what
+  // the result did; the unit before the position counts as examined, since the result does not record
+  // whether it examined it.
+  override replayCtx(e: CtxResult, seed: boolean): void {
+    this.documentTouchFrom(this.pos - 1);
+    this.reused++;
+    super.replayCtx(e, seed);
+  }
+
+  // A lookup or a store stamps the entry as current in the text of this parse (MemoEntry.seen).
+  override memoGet(rule: number, pos: number, min: number, env: Value[] | null): MemoEntry | null {
+    const e = super.memoGet(rule, pos, min, env);
+    if (e !== null) e.seen = this.memoState.epoch;
+    return e;
+  }
+
+  override memoPut(rule: number, pos: number, min: number, env: Value[] | null, e: MemoEntry): void {
+    e.seen = this.memoState.epoch;
+    super.memoPut(rule, pos, min, env, e);
+  }
+
+  // documentMove moves the nodes of the value of e by the shift that edits gave e (DocumentMemo.splice),
+  // in copies, since the value may be part of a result already returned, and reports whether it
+  // could: a value that holds a host value other than a node or a basic value is not moved.
   documentMove(e: MemoEntry): boolean {
-    void e;
+    const shifts = this.memoState.shifts;
+    if (shifts === null) return true;
+    const shift = shifts.get(e);
+    if (shift === undefined) return true;
+    if (!movable(e.node!, new Set())) return false;
+    e.node = moveNode(e.node!, shift, new Map());
+    shifts.delete(e);
     return true;
   }
 
