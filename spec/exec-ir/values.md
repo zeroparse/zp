@@ -166,7 +166,7 @@ whose element type is top charges none, and a tuple of another length is refused
 | `op node.isType(n Obj, t FType) bool` | none | `0` | Reports whether the type name of n is the name of the type t: a struct type or a named node type. Requires: t is of kind named. |
 | `op node.isMissing(n Obj) bool` | none | `0` | Reports whether n is the error value of a missing token. A target that has no missing tokens reports false. |
 | `op node.children(n Obj) Seq` | none | `0` | Returns the elements of the list value or the tuple value n, and the children of any other node. Law: pure: equal arguments give equal results. |
-| `host op seq.step() noreturn` | none | `1` | Charges the step of examining one element of a list or a tuple against its type. A target that bounds the work charges one unit; a target that does not charges nothing. |
+| `host op seq.step() noreturn` | none | `1` | Charges the step of one element of a list or a tuple: an element that is examined against its type, walked by a built-in function or made by a constructor. A target that bounds the work charges one unit; a target that does not charges nothing. |
 | `op seq.len(items Seq) int` | none | `0` | Returns the number of elements. Requires: items came from seq.items. |
 | `op seq.at(items Seq, i int) Datum` | none | `0` | Returns element i as a value: the value a box holds, and nil for a missing element. Requires: items came from seq.items, and 0 <= i < seq.len(items). |
 

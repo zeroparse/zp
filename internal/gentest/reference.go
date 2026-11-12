@@ -3,6 +3,7 @@ package gentest
 import (
 	"encoding/json"
 	"fmt"
+	"io/fs"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -279,8 +280,23 @@ func main() {
 	return got, want
 }
 
+// GeneratedTypesCorpus generates the typed Go parser of each case and the same parser through the
+// reference route of reference, and fails the test where their values or errors differ, or differ from
+// the engine's (GeneratedTypesMismatches).
 func GeneratedTypesCorpus(t *testing.T, goBin string, cases []Case, reference gen.GenOptions, requiredTyped ...int) {
 	t.Helper()
+	for _, m := range GeneratedTypesMismatches(t, goBin, cases, reference, nil, requiredTyped...) {
+		t.Error(m)
+	}
+}
+
+// GeneratedTypesMismatches runs the comparisons of GeneratedTypesCorpus and returns a description of each
+// difference instead of failing on it. The Go files of each typed parser (not those of the reference
+// route) are changed with mutate when it is not nil, so that a negative control can require some.
+func GeneratedTypesMismatches(t *testing.T, goBin string, cases []Case, reference gen.GenOptions, mutate func([]byte) []byte, requiredTyped ...int) []string {
+	t.Helper()
+	var mismatches []string
+	fail := func(format string, args ...any) { mismatches = append(mismatches, fmt.Sprintf(format, args...)) }
 	dir := t.TempDir()
 	write := func(name, content string) {
 		path := filepath.Join(dir, name)
@@ -304,11 +320,14 @@ func GeneratedTypesCorpus(t *testing.T, goBin string, cases []Case, reference ge
 			t.Fatalf("%s: %v", c.Name, err)
 		}
 		code := GeneratePackage(t, dir, fmt.Sprintf("g%d", i), g, gen.GenOptions{Start: "main", Types: true, SourceInfo: true})
+		if mutate != nil {
+			mutatePackage(t, filepath.Join(dir, fmt.Sprintf("g%d", i)), mutate)
+		}
 		if strings.Contains(code, "TParse(trules") {
 			typedRuntime++
 		}
 		if c.Name == "OperatorsRule prefix-part cuts" && !strings.Contains(code, "TParse(trules") {
-			t.Error("OperatorsRule prefix-part cuts: typed runtime is not exercised")
+			fail("OperatorsRule prefix-part cuts: typed runtime is not exercised")
 		}
 		// The same through the reference route: Node conversion for the full
 		// corpus, or a disabled optimization for focused differential tests.
@@ -434,15 +453,17 @@ func main() {
 	if err != nil {
 		t.Fatalf("go run: %v\n%s", err, stderr.String())
 	}
-	if stderr.Len() > 0 {
-		t.Errorf("the typed runtime differs from the reference route:\n%s", stderr.String())
+	for _, m := range strings.SplitAfter(stderr.String(), "\n") {
+		if m != "" {
+			fail("the typed runtime differs from the reference route: %s", m)
+		}
 	}
 	minimum := 5
 	if len(requiredTyped) != 0 {
 		minimum = requiredTyped[0]
 	}
 	if typedRuntime < minimum {
-		t.Errorf("only %d of %d grammars use the typed runtime", typedRuntime, len(cases))
+		fail("only %d of %d grammars use the typed runtime", typedRuntime, len(cases))
 	}
 	t.Logf("%d of %d grammars use the typed runtime", typedRuntime, len(cases))
 	lines := strings.Split(strings.TrimSuffix(string(out), "\n"), "\n")
@@ -477,21 +498,21 @@ func main() {
 	for _, c := range cases {
 		for _, in := range c.Inputs {
 			if got[k].Err != wantErr[k] {
-				t.Errorf("%s: input %q: error %s, want %s", c.Name, in, got[k].Err, wantErr[k])
+				fail("%s: input %q: error %s, want %s", c.Name, in, got[k].Err, wantErr[k])
 			}
 			if accepted[k] {
 				if err := CanonicalTypedMatches(canonical[k], wantValue[k]); err != nil {
-					t.Errorf("%s: input %q: typed value %s: %v", c.Name, in, got[k].Value, err)
+					fail("%s: input %q: typed value %s: %v", c.Name, in, got[k].Value, err)
 				}
 			}
 			if want, ok := aliasTypedGoldens[c.Name]; ok && in == "éé" && string(got[k].Value) != want {
-				t.Errorf("%s: typed alias value is %s, want %s", c.Name, got[k].Value, want)
+				fail("%s: typed alias value is %s, want %s", c.Name, got[k].Value, want)
 			}
 			k++
 		}
 	}
 	if cases[len(cases)-1].Name != "typed" {
-		return
+		return mismatches
 	}
 	typed := got[len(got)-3:]
 	for i, want := range []string{
@@ -512,8 +533,27 @@ func main() {
 		enc.Encode(typed[i])
 		want = strings.ReplaceAll(want, "g37", fmt.Sprintf("g%d", len(cases)-1))
 		if got := strings.TrimSuffix(b.String(), "\n"); got != want {
-			t.Errorf("typed %q:\n got %s\nwant %s", cases[len(cases)-1].Inputs[i], got, want)
+			fail("typed %q:\n got %s\nwant %s", cases[len(cases)-1].Inputs[i], got, want)
 		}
+	}
+	return mismatches
+}
+
+// mutatePackage changes every Go file under dir with mutate.
+func mutatePackage(t *testing.T, dir string, mutate func([]byte) []byte) {
+	t.Helper()
+	err := filepath.WalkDir(dir, func(path string, d fs.DirEntry, err error) error {
+		if err != nil || d.IsDir() || !strings.HasSuffix(path, ".go") {
+			return err
+		}
+		data, err := os.ReadFile(path)
+		if err != nil {
+			return err
+		}
+		return os.WriteFile(path, mutate(data), 0o644)
+	})
+	if err != nil {
+		t.Fatal(err)
 	}
 }
 

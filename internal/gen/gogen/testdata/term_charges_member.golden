@@ -544,19 +544,35 @@ termchargesmember/term 6: (R{}).A | a ts-node	11 ok
 termchargesmember/term 70: text($x.$y) + text($x.$z) | a engine-closure	23 ok
 termchargesmember/term 70: text($x.$y) + text($x.$z) | a engine-iterative	25 ok
 termchargesmember/term 70: text($x.$y) + text($x.$z) | a engine-vm	26 ok
-termchargesmember/term 70: text($x.$y) + text($x.$z) | a go-node	22 ok
+termchargesmember/term 70: text($x.$y) + text($x.$z) | a go-node	23 ok
 termchargesmember/term 70: text($x.$y) + text($x.$z) | a go-node-recognize	7 ok
-termchargesmember/term 70: text($x.$y) + text($x.$z) | a go-typed	19 ok
+termchargesmember/term 70: text($x.$y) + text($x.$z) | a go-typed	20 ok
 termchargesmember/term 70: text($x.$y) + text($x.$z) | a go-typed-recognize	7 ok
 termchargesmember/term 70: text($x.$y) + text($x.$z) | a ts-node	30 ok
 termchargesmember/term 70: text($x.$y) + text($x.$z) | ab engine-closure	31 ok
 termchargesmember/term 70: text($x.$y) + text($x.$z) | ab engine-iterative	32 ok
 termchargesmember/term 70: text($x.$y) + text($x.$z) | ab engine-vm	33 ok
-termchargesmember/term 70: text($x.$y) + text($x.$z) | ab go-node	32 ok
+termchargesmember/term 70: text($x.$y) + text($x.$z) | ab go-node	34 ok
 termchargesmember/term 70: text($x.$y) + text($x.$z) | ab go-node-recognize	9 ok
-termchargesmember/term 70: text($x.$y) + text($x.$z) | ab go-typed	29 ok
+termchargesmember/term 70: text($x.$y) + text($x.$z) | ab go-typed	31 ok
 termchargesmember/term 70: text($x.$y) + text($x.$z) | ab go-typed-recognize	9 ok
 termchargesmember/term 70: text($x.$y) + text($x.$z) | ab ts-node	38 ok
+termchargesmember/term 71: (R{B: text($x.$y) + text($x.$z)}).B | a engine-closure	28 ok
+termchargesmember/term 71: (R{B: text($x.$y) + text($x.$z)}).B | a engine-iterative	29 ok
+termchargesmember/term 71: (R{B: text($x.$y) + text($x.$z)}).B | a engine-vm	30 ok
+termchargesmember/term 71: (R{B: text($x.$y) + text($x.$z)}).B | a go-node	28 ok
+termchargesmember/term 71: (R{B: text($x.$y) + text($x.$z)}).B | a go-node-recognize	7 ok
+termchargesmember/term 71: (R{B: text($x.$y) + text($x.$z)}).B | a go-typed	22 ok
+termchargesmember/term 71: (R{B: text($x.$y) + text($x.$z)}).B | a go-typed-recognize	7 ok
+termchargesmember/term 71: (R{B: text($x.$y) + text($x.$z)}).B | a ts-node	35 ok
+termchargesmember/term 71: (R{B: text($x.$y) + text($x.$z)}).B | ab engine-closure	36 ok
+termchargesmember/term 71: (R{B: text($x.$y) + text($x.$z)}).B | ab engine-iterative	36 ok
+termchargesmember/term 71: (R{B: text($x.$y) + text($x.$z)}).B | ab engine-vm	37 ok
+termchargesmember/term 71: (R{B: text($x.$y) + text($x.$z)}).B | ab go-node	39 ok
+termchargesmember/term 71: (R{B: text($x.$y) + text($x.$z)}).B | ab go-node-recognize	9 ok
+termchargesmember/term 71: (R{B: text($x.$y) + text($x.$z)}).B | ab go-typed	33 ok
+termchargesmember/term 71: (R{B: text($x.$y) + text($x.$z)}).B | ab go-typed-recognize	9 ok
+termchargesmember/term 71: (R{B: text($x.$y) + text($x.$z)}).B | ab ts-node	43 ok
 termchargesmember/term 7: (R{}).A | 😀 engine-closure	18 ok
 termchargesmember/term 7: (R{}).A | 😀 engine-iterative	18 ok
 termchargesmember/term 7: (R{}).A | 😀 engine-vm	18 ok

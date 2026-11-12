@@ -14,7 +14,7 @@ import (
 // TestGeneratedRuleEntryCharge checks, on the checked-in parsers generated with limit controls, that every
 // matcher function of the Node and typed tables (rule bodies, framed bodies, flat-rule methods and the
 // lines and skips of Operators Rules) begins with one Spend and has no other Spend before its first
-// loop; a typed wrapper u<N> or i<N> that only saves and restores state around a call of another matcher
+// loop (the steps that the code of a term charges, isTermStep, are not the rule's); a typed wrapper u<N> or i<N> that only saves and restores state around a call of another matcher
 // function charges nothing itself, and neither does the Document-dispatch wrapper s<N> of a plain rule,
 // which hands the call to DocumentCall or calls the body ds<N> that charges the entry. The lowered function of Flow IR charges no entry of its own (flow.Func.Entered); the method that holds it does, so a rule
 // whose method lost the charge would consume input uncharged without Verify noticing.
@@ -61,7 +61,7 @@ func TestGeneratedRuleEntryCharge(t *testing.T) {
 				if _, loop := x.(*goast.ForStmt); loop {
 					return false
 				}
-				if isStepCall(x) {
+				if isStepCall(x) && !isTermStep(x) {
 					steps++
 				}
 				return true
@@ -83,6 +83,19 @@ func isStepCall(x goast.Node) bool {
 	}
 	s, ok := c.Fun.(*goast.SelectorExpr)
 	return ok && s.Sel.Name == "Spend"
+}
+
+// isTermStep reports whether the step call x is c.P.Spend(): the step that the code of a term, printed
+// inside the matcher function, charges for an element it makes or a field it sets, as the runtime's
+// constructors charge it. It bounds the work of the term, not the entry of the rule.
+func isTermStep(x goast.Node) bool {
+	s := x.(*goast.CallExpr).Fun.(*goast.SelectorExpr)
+	inner, ok := s.X.(*goast.SelectorExpr)
+	if !ok || inner.Sel.Name != "P" {
+		return false
+	}
+	id, ok := inner.X.(*goast.Ident)
+	return ok && id.Name == "c"
 }
 
 func startsWithStep(b *goast.BlockStmt) bool {

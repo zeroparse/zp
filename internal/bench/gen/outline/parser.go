@@ -209,7 +209,26 @@ func init() {
 	rules[1].Body = e3
 	rules[1].Action = func(c *rt.ActCtx) any { return c.NewList(c.ListItems("map", c.Cap(0))) }
 	rules[2].Body = e4
-	rules[2].Action = func(c *rt.ActCtx) any { return c.NewStruct("Item", "Text", c.Cap(1), "Children", c.Concat(c.Cap(2))) }
+	rules[2].Action = func(c *rt.ActCtx) any {
+		tm1 := len(c.P.KidStack)
+		c.P.Spend()
+		tf2 := c.P.TermPushItems(c, "concat", c.Cap(2))
+		if tf2 != nil {
+			panic(tf2)
+		}
+		tk3 := c.P.Kids(tm1)
+		tn4 := c.P.TermHull(c, false, tk3)
+		tn5 := c.TermStruct("Item", 2)
+		tfirst6 := true
+		c.P.Spend()
+		c.TermSetField(tn5, "Text", c.Cap(1))
+		tfirst6 = c.P.TermCover(tn5, c.Cap(1), tfirst6)
+		c.P.Spend()
+		c.TermSetField(tn5, "Children", any(tn4))
+		tfirst6 = c.P.TermCover(tn5, any(tn4), tfirst6)
+		c.P.TermMade(c, tn5, tfirst6)
+		return any(tn5)
+	}
 	rules[3].Body = e5
 	rules[3].Action = func(c *rt.ActCtx) any {
 		return c.Cap(1)
@@ -970,11 +989,11 @@ func i0(p *rt.TParser) (any, bool) {
 	c = p.UseCtx(rt.TActCtx{P: p, Start: start, End: p.Pos, Cbase: len(p.Created)})
 	p.Where = "main"
 	{
-		var tr11 any
+		var tr12 any
 		{
-			tr11 = k1
+			tr12 = k1
 		}
-		v = tr11
+		v = tr12
 	}
 	v = c.Finish(v)
 	p.Env = prevEnv
@@ -1111,7 +1130,22 @@ L12:
 	k7 = v10
 	c = p.UseCtx(rt.TActCtx{P: p, Start: start, End: p.Pos, Cbase: len(p.Created)})
 	p.Where = "item"
-	v = tmk_Item(c, true, k4, c.Concat(k7))
+	{
+		var tr14 any
+		{
+			tm1 := len(c.P.KidStack)
+			c.P.Spend()
+			tf2 := c.P.TermPushItems(c, "concat", k7)
+			if tf2 != nil {
+				panic(tf2)
+			}
+			tk3 := c.P.Kids(tm1)
+			tn4 := c.P.TermHull(c, false, tk3)
+			tv5 := tmk_Item(c, true, k4, any(tn4))
+			tr14 = tv5
+		}
+		v = tr14
+	}
 	p.Depth--
 	return v, true
 fail:
@@ -1197,11 +1231,11 @@ L3:
 	c = p.UseCtx(rt.TActCtx{P: p, Start: start, End: p.Pos, Cbase: len(p.Created)})
 	p.Where = "children"
 	{
-		var tr15 any
+		var tr17 any
 		{
-			tr15 = k10
+			tr17 = k10
 		}
-		v = tr15
+		v = tr17
 	}
 	v = c.Finish(v)
 	p.Depth--
@@ -1358,4 +1392,4 @@ fail:
 
 const _ = types.ZPSchema_3851c59bf7b450ca
 
-const _ = rt.Protocol6
+const _ = rt.Protocol99
