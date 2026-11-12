@@ -2,6 +2,7 @@ package build_test
 
 import (
 	"regexp"
+	"strings"
 	"testing"
 
 	"zeroparse.dev/zp/internal/compile"
@@ -17,9 +18,21 @@ import (
 // values that it builds (Evaluations of Rules in spec/runtime/parsing.md).
 func TestTwinBodies(t *testing.T) {
 	callee := regexp.MustCompile(`call \d+:`)
-	// Resume numbers count the repetitions as built, and a value-free repetition of one
-	// character matches as a scan and is never resumed, so only they may differ.
-	resume := regexp.MustCompile(` resume=\d+( shiftable)?`)
+	// Resume numbers count the repetitions as built, so they differ. A value-free repetition of
+	// one character matches as a scan and is never resumed, so a repetition of the twin may lack
+	// the resume facts of the rule's; where both are resumed, they agree on shiftable.
+	resume := regexp.MustCompile(` resume=\d+`)
+	resumeFacts := regexp.MustCompile(` resume=\d+( shiftable)?`)
+	normalize := func(body, twin string) (string, string) {
+		bl, tl := strings.Split(callee.ReplaceAllString(body, "call "), "\n"), strings.Split(callee.ReplaceAllString(twin, "call "), "\n")
+		for i := range min(len(bl), len(tl)) {
+			if !resume.MatchString(tl[i]) {
+				bl[i] = resumeFacts.ReplaceAllString(bl[i], "")
+			}
+		}
+		join := func(lines []string) string { return resume.ReplaceAllString(strings.Join(lines, "\n"), " resume") }
+		return join(bl), join(tl)
+	}
 	twins := 0
 	for _, path := range factstest.Corpus {
 		g, err := compiletest.Parse(factstest.Read(t, path))
@@ -39,8 +52,7 @@ func TestTwinBodies(t *testing.T) {
 				continue
 			}
 			twins++
-			rule := resume.ReplaceAllString(callee.ReplaceAllString(core.PrintNode(m, r.Body, false), "call "), "")
-			twin := resume.ReplaceAllString(callee.ReplaceAllString(core.PrintNode(m, r.Twin.Body, false), "call "), "")
+			rule, twin := normalize(core.PrintNode(m, r.Body, false), core.PrintNode(m, r.Twin.Body, false))
 			if rule != twin {
 				t.Errorf("%s: the twin of %s has another body:\n%s\nthe rule:\n%s", path, r.Name, twin, rule)
 			}

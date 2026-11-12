@@ -310,6 +310,23 @@ func newCompileWalker(c *compile.Compiler) *compile.Walker[struct{}] {
 // one that a node of Core IR is built from.
 func closureExprMatcher(t *testing.T, prog *compile.Program, e grammar.Expr, plainDispatch bool) core.Matcher {
 	t.Helper()
+	m, found := closureExprCore(t, prog, e)
+	f, err := closure.Matcher(prog, m, found, nil, nil, plainDispatch)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return f
+}
+
+// closureExprNode returns the Core IR node, after the passes, that closureExprMatcher builds for e.
+func closureExprNode(t *testing.T, prog *compile.Program, e grammar.Expr) ir.Node {
+	t.Helper()
+	_, n := closureExprCore(t, prog, e)
+	return n
+}
+
+func closureExprCore(t *testing.T, prog *compile.Program, e grammar.Expr) (*ir.Module, ir.Node) {
+	t.Helper()
 	origin := map[ir.Node]grammar.Expr{}
 	m, err := irbuild.CoreFrom(prog, origin)
 	if err != nil {
@@ -329,9 +346,5 @@ func closureExprMatcher(t *testing.T, prog *compile.Program, e grammar.Expr, pla
 	if found == nil {
 		t.Fatal("no Core IR node of the expression")
 	}
-	f, err := closure.Matcher(prog, m, found, nil, nil, plainDispatch)
-	if err != nil {
-		t.Fatal(err)
-	}
-	return f
+	return m, found
 }
