@@ -317,34 +317,36 @@ conformance cases that run on the engine and, for all but the records, on genera
 the targets' printed bindings by reflection serves both. The operations that run grammar code or build values
 (`opr.skip`, `opr.match`, the value of a line, `opr.build`, `opr.buildTyped`, `opr.attemptMissing`, `opr.replay`) stay
 transitional until the scripted-rule model covers them. *Target*: the representation of lists, lines and attempts.
-**Rules.** What the grammar says of a rule (whether a parse from scratch or a Document parse memoizes it, whether it
-leads a cycle, its captures, whether its results depend on positions) and the evaluation of its body are the
-operations of the component `rules` other than `rule.run` (`rule.memo`, `rule.leader`, `rule.plain`, their Document
-forms, `rule.positional`, `rule.id`, `rule.invoke` and `rule.invokePlain`), with a reference model and conformance
-cases that run on generated Go and the engine. The body is the grammar's code, which the machine does not model: a case
-states what each evaluation of a body does (its charges, the errors it recovers, how far it examines the input,
-where it ends and whether it matches), and the model and each target run that script, the target through a rule
-whose body calls the target's own operations, so that compositions that call rules can be checked without a
-grammar. A call charges one unit, what the body and the rule's action charge, and, after a match, one unit for
-each capture name to find the captures that matched and, when one did, one more for each name and what setting the
-fields charges. A script may set captures, which the rule attaches to its value; the engine charges each call to the
-unit, and the generated Go runtime one unit less, since its call charges that unit before it invokes the rule.
-Shaping the value and converting it to the rule's node type charge nothing on any backend. A target whose Document parse calls rules through the call protocol of a parse from scratch (the engine)
-reports there through `rule.memo` the rules that the Document memoizes, which the suite states as a configuration
-of the model. *Target*: how rules and their bodies are represented and called.
 
-**Recovery.** The recovered errors are an ordered list with marks, and immutable lists that entries share, so that
-a replay costs a constant however many errors it brings back and listing k errors visits fewer than 2k lists
-([Lemma 14](../../../spec/proofs/linear-cost.md#lemma-14-shared-recovered-errors)). No list moves: a memo entry
-that holds recovered errors stops being valid where an edit would move it. The operations are under
-conformance, with the identity of each error and of each list compared after every write, on generated Go and
-the engine; TypeScript stays on its parity tests. The operations of the missing-token mode, which only the engine
-has, have a reference model of the tokens a parse inserts and conformance cases that compare them after each write,
-on the engine; a rule that can insert a token is not memoized in that mode. The growth operations `grow.step` and
-`grow.end` stay transitional: they record a seed's errors again, a write to the recovered errors from another
-component that the verifier allows only for transitional operations, and where that write belongs depends on the
-design of the left-recursion context, which also replays a call's errors and is not settled. *Target*: the representation of entries and lists, the scratch a stream keeps, and where the sites
-that make an error record it: grammar code and the recovery of each engine write the push in their own language.
+**Rules.** What the grammar says of a rule (whether a parse from scratch or a Document parse memoizes it, whether it
+leads a cycle, its captures, whether its results depend on positions) and the evaluation of its body are the operations
+of the component `rules` other than `rule.run` (`rule.memo`, `rule.leader`, `rule.plain`, their Document forms,
+`rule.positional`, `rule.id`, `rule.invoke` and `rule.invokePlain`), with a reference model and conformance cases that
+run on generated Go and the engine. The body is the grammar's code, which the machine does not model: a case states what
+each evaluation of a body does (its charges, the errors it recovers, how far it examines the input, where it ends and
+whether it matches), and the model and each target run that script, the target through a rule whose body calls the
+target's own operations, so that compositions that call rules can be checked without a grammar. A call charges one unit,
+what the body and the rule's action charge, and, after a match, one unit for each capture name to find the captures that
+matched and, when one did, one more for each name and what setting the fields charges. A script may set captures, which
+the rule attaches to its value; the engine charges each call to the unit, and the generated Go runtime one unit less,
+since its call charges that unit before it invokes the rule. Shaping the value and converting it to the rule's node type
+charge nothing on any backend. A target whose Document parse calls rules through the call protocol of a parse from
+scratch (the engine) reports there through `rule.memo` the rules that the Document memoizes, which the suite states as a
+configuration of the model. *Target*: how rules and their bodies are represented and called.
+
+**Recovery.** The recovered errors are an ordered list with marks, and immutable lists that entries share, so that a
+replay costs a constant however many errors it brings back and listing k errors visits fewer than 2k lists ([Lemma
+14](../../../spec/proofs/linear-cost.md#lemma-14-shared-recovered-errors)). No list moves: a memo entry that holds
+recovered errors stops being valid where an edit would move it. The operations are under conformance, with the identity
+of each error and of each list compared after every write, on generated Go and the engine; TypeScript stays on its
+parity tests. The operations of the missing-token mode, which only the engine has, have a reference model of the tokens
+a parse inserts and conformance cases that compare them after each write, on the engine; a rule that can insert a token
+is not memoized in that mode. The growth operations `grow.step` and `grow.end` stay transitional: they record a seed's
+errors again, a write to the recovered errors from another component that the verifier allows only for transitional
+operations, and where that write belongs depends on the design of the left-recursion context, which also replays a
+call's errors and is not settled. *Target*: the representation of entries and lists, the scratch a stream keeps, and
+where the sites that make an error record it: grammar code and the recovery of each engine write the push in their own
+language.
 
 **Variable environment.** A persistent environment: a binding makes a new environment that shares what it can,
 and an equal binding keeps the environment it is, so that what depends on its identity stays valid. The
@@ -373,14 +375,14 @@ targets stay within the bounds. *Target*:
 the representation of a mark (a struct in Go, four numbers in TypeScript), pooling and scratch reuse, and, until the
 charges below settle it, whether opening a frame charges for its slots (see [Cost Contracts](#cost-contracts)).
 
-**Budget, nesting and observation.** Charging adds to the one work budget, checks the limit and, at intervals the
-target chooses, cancellation through a host operation; it does not return when the parse is interrupted, and charges
-are never rolled back. The nesting limit is fatal when exceeded. Observation reports go to a host sink: the
-operations of the component `observe` (`obs.active`, `obs.enter`, `obs.exit` and the count of the memo entries a
-call reuses) have a reference model of the calls that have
-begun and not ended and of the events a trace delivers, and conformance cases that compare those events after each
-call, on generated Go (the engine traces a call on a path of its own and has none of them). The silent depth is a register that functions assign, not an operation. *Shared*: when a charge interrupts and when
-each event reports. *Target*: counter representation, the cancellation interval and the sink.
+**Budget, nesting and observation.** Charging adds to the one work budget, checks the limit and, at intervals the target
+chooses, cancellation through a host operation; it does not return when the parse is interrupted, and charges are never
+rolled back. The nesting limit is fatal when exceeded. Observation reports go to a host sink: the operations of the
+component `observe` (`obs.active`, `obs.enter`, `obs.exit` and the count of the memo entries a call reuses) have a
+reference model of the calls that have begun and not ended and of the events a trace delivers, and conformance cases
+that compare those events after each call, on generated Go (the engine traces a call on a path of its own and has none
+of them). The silent depth is a register that functions assign, not an operation. *Shared*: when a charge interrupts and
+when each event reports. *Target*: counter representation, the cancellation interval and the sink.
 
 **Stream window.** A commit is the composition `streamCommit`: it makes everything before a position final.
 Discarding input, releasing the scratch and the node memory of the delivered elements, and dropping the records
