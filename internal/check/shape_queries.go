@@ -16,6 +16,13 @@ func ElementScopedControlled(e grammar.Expr, control *cancel.Control) bool {
 	return HasCapturesControlled(e, control) || predicatesReadCaptures(e, control)
 }
 
+// ElementScoped reports whether the repetition element e gets a capture scope of its own per
+// iteration (ElementScopedControlled).
+func ElementScoped(e grammar.Expr) bool { return ElementScopedControlled(e, nil) }
+
+// HasCaptures reports whether e contains a capture.
+func HasCaptures(e grammar.Expr) bool { return HasCapturesControlled(e, nil) }
+
 // predicatesReadCaptures reports whether a predicate in e refers to a capture.
 func predicatesReadCaptures(e grammar.Expr, control *cancel.Control) bool {
 	control.Poll()

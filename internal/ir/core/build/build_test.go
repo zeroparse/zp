@@ -1,4 +1,4 @@
-package build
+package build_test
 
 import (
 	"slices"
@@ -9,6 +9,7 @@ import (
 	"zeroparse.dev/zp/internal/compile"
 	"zeroparse.dev/zp/internal/compiletest"
 	"zeroparse.dev/zp/internal/ir/core"
+	"zeroparse.dev/zp/internal/ir/core/build"
 )
 
 func TestCoreBuildShapes(t *testing.T) {
@@ -20,7 +21,7 @@ rule d = "d"
 	if prog.HasMissing {
 		t.Fatal("does not compile")
 	}
-	m, err := CoreFrom(prog, nil)
+	m, err := build.CoreFrom(prog, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -78,7 +79,7 @@ var k int = 2
 rule main P = p:pair xs:(-"," q:pair)* => P{N: $p.N + len($xs) * k, S: $p.S}
 rule pair P = n:[0-9]+ s:[a-z] => P{N: len($n), S: text($s)}
 `)
-	m, err := CoreFrom(prog, nil)
+	m, err := build.CoreFrom(prog, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -144,7 +145,7 @@ rule main = x:item* #stream $$
 rule item = "a" ";" #missing / inner
 rule inner = "b"* #stream
 `)
-	m, err := CoreFrom(prog, nil)
+	m, err := build.CoreFrom(prog, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -179,7 +180,7 @@ rule e = #operators {
     level product { infix left "*" }
 }
 `)
-	m, err := CoreFrom(prog, nil)
+	m, err := build.CoreFrom(prog, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -192,11 +193,11 @@ rule e = #operators {
 	if !slices.Equal(levels, []int{1, 0}) {
 		t.Errorf("levels %v, want [1 0]", levels)
 	}
-	e := prog.RuleList[1]
-	if _, err := callLevel(&grammar.Ref{Name: "e", Level: "power"}, e); err == nil {
+	e := prog.CoreInput().Rules[1]
+	if _, err := build.CallLevel(&grammar.Ref{Name: "e", Level: "power"}, e); err == nil {
 		t.Error("unknown level: no error")
 	}
-	if _, err := callLevel(&grammar.Ref{Name: "main", Level: "sum"}, prog.RuleList[0]); err == nil {
+	if _, err := build.CallLevel(&grammar.Ref{Name: "main", Level: "sum"}, prog.CoreInput().Rules[0]); err == nil {
 		t.Error("level of a rule without levels: no error")
 	}
 }

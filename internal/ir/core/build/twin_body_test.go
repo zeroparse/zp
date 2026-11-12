@@ -1,4 +1,4 @@
-package build
+package build_test
 
 import (
 	"regexp"
@@ -8,6 +8,7 @@ import (
 	"zeroparse.dev/zp/internal/compiletest"
 	"zeroparse.dev/zp/internal/factstest"
 	"zeroparse.dev/zp/internal/ir/core"
+	"zeroparse.dev/zp/internal/ir/core/build"
 )
 
 // TestTwinBodies checks that the value-free twin of every rule of the corpus grammars has the
@@ -26,7 +27,7 @@ func TestTwinBodies(t *testing.T) {
 		if err != nil {
 			t.Fatalf("%s: %v", path, err)
 		}
-		m, err := CoreFrom(prog, nil)
+		m, err := build.CoreFrom(prog, nil)
 		if err != nil {
 			t.Fatalf("%s: %v", path, err)
 		}
@@ -62,7 +63,7 @@ func TestTwinMemoPolicy(t *testing.T) {
 		if err != nil {
 			t.Fatalf("%s: %v", path, err)
 		}
-		m, err := CoreFrom(prog, nil)
+		m, err := build.CoreFrom(prog, nil)
 		if err != nil {
 			t.Fatalf("%s: %v", path, err)
 		}
