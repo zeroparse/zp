@@ -38,7 +38,9 @@ and a repetition the concatenations of any number of paths of its expression,
 with at least as many as its lower bound and at most as many as its upper
 bound. As the specification states, the comparison **looks into** an option,
 a choice, a repetition or a lookahead only when it is cheap in all its parts,
-the expression itself included. Every other expression, `#recover`, attributed expressions and Operators
+the expression itself included, and a lookahead of the unit that it passes, or
+a negative lookahead of the unit on which it decides, reaches no scanning
+source, through the rules that it calls as well. Every other expression, `#recover`, attributed expressions and Operators
 Rules among them, is a **stop**: a path that reaches it ends with it, and the
 comparison decides nothing at it. In particular a repetition without an upper
 bound that is not a bounded scan is never looked into.
@@ -136,13 +138,16 @@ a rule body that binds. Equal literals with the same case sensitivity, equal
 character classes and `.` examine the same character at $p$ and agree on it.
 Where the comparison passes two symbols by a character that they have in
 common, the step is a single character that both accept at $p$, which both
-consume or neither does.
+consume or neither does: two literals passed so have the same case
+sensitivity, and are compared up to case only when both are case-insensitive.
 
-Two equal repetitions whose calls are alike in the same sense evaluate the same
-expression, whose terminals agree as above and whose calls match alike, and
-which reads the same variables on both sides, so by induction on the structure
-of the expression each iteration of one, started where the same iteration of
-the other started, fails in both or ends at one position in both. A repetition
+Two equal repetitions that the comparison passes alike evaluate the same
+expression, which contains no predicate, `#cut`, `#recover`, attributed
+expression or Operators Rule, whose terminals agree as above and whose calls
+are alike in the sense above, and which reads the same variables on both
+sides. So by induction on the structure of the expression each iteration of
+one, started where the same iteration of the other started, fails in both or
+ends at one position in both. A repetition
 is greedy: it stops at the same iteration in both, after the same number of
 iterations, so both match or both fail, and both end at one position.
 
@@ -221,10 +226,11 @@ after passing every step. Then at most one of them passes it.
 
 The decisive symbols are those of the specification: symbols by first
 characters cannot match without consuming input, and a positive lookahead
-decides against a symbol that, like its expression, cannot. Two literals
-decide when neither can match at a position where the other matches, which for
-literals with the same case sensitivity means that neither is a prefix of the
-other. A negative lookahead `!K` on one side decides when every
+decides against a symbol, or against a positive lookahead of the other side,
+that, like its expression, cannot. Two literals decide when they have the same
+case sensitivity and neither is a prefix of the other, compared up to case
+when both are case-insensitive, so that neither can match at a position where
+the other matches. A negative lookahead `!K` on one side decides when every
 evaluation that passes the next symbols of the other side's path, in order from
 $t$, matches an alternative of $K$ at $t$; the other side passes the decisive
 point when it passes those symbols. The end of the parse is
@@ -242,8 +248,8 @@ the alternative of $K$ that they match consists of calls, literals, classes and
 call of $K$ matches as the alike call of that side does, although $K$ is
 evaluated in another lookahead state. If one side passes `&K`, then $K$ matches
 at $t$ and consumes the character at $t$, which is a first character of $K$;
-the next symbol of the other side, matching at $t$, would consume it as one of
-its own. When the continuation's path ends with the end of the parse, the
+the next symbol of the other side, or the expression of its positive
+lookahead, matching at $t$, would consume it as one of its own. When the continuation's path ends with the end of the parse, the
 continuation evaluates nothing after it. $\square$
 
 ## Theorem (Decided Units in Lemma 4)
@@ -261,10 +267,8 @@ exists: a decided unit gives the conclusion of case 1.
 
 Moreover, until $\kappa$ passes the point where its current path parts from
 the path of $w$ along which $w$ failed, every activation of a scanning source
-that $\kappa$ makes lies in one of the calls of Lemma 3 or, where that point is
-a negative lookahead of $w$, in a call with which $\kappa$ meets an item of the
-lookahead's expression at the position where $w$ evaluated that item; outside
-them its body evaluations make no activation, as in case 3 of Lemma 4.
+that $\kappa$ makes lies in one of the calls of Lemma 3; outside them its body
+evaluations make no activation, as in case 3 of Lemma 4.
 
 *Proof.* $w$ is not a lookahead, so it is abandoned by failing.
 
@@ -273,10 +277,12 @@ of $w$ at the moment $\alpha$ starts. By Lemma 1, $\alpha$ lies inside a
 symbol of $\pi$, inside a stop of $\pi$, or in a failed attempt or a dropped
 call. It is direct in $E$, so it lies in no call made in $E$, which rules out a
 call symbol, a dropped call and the calls of a failed attempt; a literal, a
-class or `.` holds no activation; a lookahead symbol that the comparison passes
-or decides on is cheap in all its parts, and so are a repetition that it
-passes whole and a failed attempt, so none of them contains a scanning source
-of its own. What remains is that the activation is
+class or `.` holds no activation; a lookahead of $w$ that the comparison passes,
+or a negative one on which it decides, reaches no scanning source, and a
+repetition that it passes whole and a failed attempt are cheap in all their
+parts, so none of them contains a scanning source of its own. A positive
+lookahead of $w$ on which the comparison decides may contain one; it is taken
+below. What remains is that the activation is
 made by a construct that encloses several symbols of $\pi$: an iteration of a
 repetition that $\pi$ passes, an operator applied by an Operators Rule whose
 parts $\pi$ passes, or an evaluation of a skip expression that $\pi$ passes. A
@@ -285,10 +291,13 @@ Operators Rule that $w$ evaluates as a whole is a stop, and one whose parts
 $\pi$ passes contains $w$, which the hypothesis excludes; and a skip expression
 of a `#recover` that $w$ evaluates lies in that `#recover`, which is a stop,
 since $w$ is no base of it, the base of a `#recover` holding no evaluation of
-its own skip expression. So $\alpha$ lies in a stop of $\pi$.
+its own skip expression. So $\alpha$ lies in a stop of $\pi$, or in a positive
+lookahead of $w$ on which the comparison decides.
 
 The same holds of $\alpha'$ in $\kappa$, with its current path $\rho$ at the
-moment $\alpha'$ starts, by the same argument, with two more cases for a
+moment $\alpha'$ starts, by the same argument, since a lookahead of $\kappa$
+that only $\kappa$ evaluates has no scanning source of its own, with two more
+cases for a
 construct that encloses symbols of $\rho$ and started before $w$ ended. An
 evaluation of the place of $\sigma$ that encloses $w$ cannot hold $\alpha$,
 which lies in $w$, since the place of $\sigma$ is not evaluated inside its own
@@ -303,17 +312,34 @@ the evaluation of $\sigma$ that holds $\alpha'$ does not enclose $w$ for the
 same reason, so it is a new evaluation of a stop.
 
 Replace in $\pi$ and $\rho$ each call that the comparison expands by the
-current path of the evaluation of its body (Lemma 1); this moves no stop that
-holds $\alpha$ or $\alpha'$, since neither lies in a call. The pair
-$(\pi, \rho)$ so obtained is a pair of paths of $w$ and $\kappa$, so it is
-settled. If the path of $w$ ends before they part, $\pi$ has no stop, which
-contradicts the first step. Otherwise both have their stops after the point
-where they part, so by item 3 of Lemma 1, $w$ passed every step and the
-decisive symbol before it started the stop that holds $\alpha$, and $\kappa$
-did the same before $\alpha'$. By Lemma 2 both reached the decisive symbol at
-the same position $t$, and by Lemma 4 at most one of them passed it. If the
-decisive symbol of $\rho$ is the end of the parse, $\rho$ has no stop after it.
-Each case contradicts the first step.
+current path of the evaluation of its body (Lemma 1); this moves no stop or
+lookahead that holds $\alpha$ or $\alpha'$, since neither lies in a call. The
+pair $(\pi, \rho)$ so obtained is a pair of paths of $w$ and $\kappa$, so it
+is settled. If the path of $w$ ends before they part, $\pi$ has neither a stop
+nor a decisive lookahead, which contradicts the first step. Otherwise a stop
+that holds $\alpha$ or $\alpha'$ lies after the point where the paths part,
+and a lookahead that holds one of them is the decisive symbol of its side. By
+item 3 of Lemma 1, each side passed every step before it started the stop or
+the lookahead, and by Lemma 2 both reached the decisive point at the same
+position $t$.
+
+If both activations lie in stops, both sides passed their decisive symbols
+before them, and by Lemma 4 at most one of them did; if the decisive symbol of
+$\rho$ is the end of the parse, $\rho$ has no stop after it. Otherwise one of
+them lies in the expression $K$ of a positive lookahead `&K` that its side
+evaluates at $t$. It is a successful activation, so it consumes the character
+at its start $q \ge t$, and the evaluation of $K$ from $t$ that holds it
+reaches $q$ only through evaluations that consume input from $t$ on. The
+first of them consumes the character at $t$ before $K$, or a lookahead in it,
+consumed anything, so by the definition of first characters that character
+is a first character of $K$. The decisive symbol of the other side, or its
+expression when it is a positive lookahead, cannot match without consuming
+input and has first characters disjoint from those of $K$, so it fails at
+$t$. The activation of the other side then lies neither
+in a stop after its decisive symbol, which it did not pass, nor in that
+symbol, which would make it a positive lookahead whose expression consumed
+the character at $t$ as a first character. Each case contradicts the first
+step.
 
 For the second claim, let $\pi$ be the path along which $w$ failed. By Lemma 1
 what $\kappa$ evaluates before the point where its current path parts from
@@ -331,13 +357,19 @@ nothing (Lemma 2): its rule's `X` fails once at a position, which costs a
 constant when `X` has no scanning source, the condition under which the
 specification drops it. Lemma 3 places every activation of these evaluations
 in the calls that it lists. At the decisive point itself, when the symbols
-decide by first characters, as literals or as classes, the symbol of the side
-that does not accept the character at $t$ examines nothing beyond $t$: if
-$\kappa$ passes its symbol, $w$ examined nothing past $t$ there, and otherwise
-$\kappa$ examines only $t$. A lookahead of $\kappa$ is one of the last cases of
+decide by first characters, the symbol of the side whose first characters do
+not contain the character at $t$ examines no input beyond $t$: by the
+definition of first characters, they include the characters that it can
+consume first and those that each lookahead that it can evaluate before it
+consumes input can consume first, through rule calls, so it examines input
+beyond $t$ neither by consuming nor through such a lookahead. Literals and
+classes examine at most their own characters. So if $\kappa$ passes its
+symbol, $w$ examined nothing past $t$ there, and otherwise $\kappa$ examines
+nothing past $t$. A lookahead of $\kappa$ is one of the last cases of
 Lemma 3; the symbols with which $\kappa$ meets a negative lookahead of $w$ are
 calls, literals, classes and `.` evaluated where $w$ evaluated the matching
-items of the lookahead's expression, so outside calls they cost a constant;
+items of the lookahead's expression, with which they match alike (Lemma 4), and
+that expression reaches no scanning source, so they make no activation;
 and the end of the parse costs a constant. $\square$
 
 The proof does not use the bound of three symbols. That bound and the work
@@ -353,11 +385,8 @@ holds for a settled pair of any length.
    the links, *Memoized links* and *Calls that call no rule*, are stated for
    the calls that a unit and a continuation share. They must still be shown
    for the calls that a decided comparison passes alike, including those that
-   are cheap only through their bodies, the calls of trivia rules, the calls
-   in failed attempts of parts that the comparison looks into and the calls
-   with which the continuation meets a negative lookahead of the unit, which
-   need not be cheap and repeat what the unit evaluated inside the lookahead,
-   in another lookahead state, before
+   are cheap only through their bodies, the calls of trivia rules and the
+   calls in failed attempts of parts that the comparison looks into, before
    case 6 of Lemma 4 is complete.
 2. **Units of an Operators Rule.** The theorem leaves out the activations of an
    Operators Rule whose evaluation contains the unit, where the paths of the

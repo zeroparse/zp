@@ -1400,22 +1400,30 @@ The conditions below use these terms.
   when they are calls of one rule that is not on a left-recursion cycle and
   reads no variable, or reads variables and is called with the same variables
   on both sides, and with the same level restriction or with none on both,
-  equal literals, equal character classes or `.`, equal repetitions that are
-  cheap in all their parts and whose calls are alike in the same sense, which
-  match alike because a repetition is greedy, or calls of one trivia rule
-  (below). A literal that is a prefix of the other, literals
-  that are equal up to case, overlapping character classes, and a literal and
-  a class that contains its first character are passed by the characters that
-  they have in common, each step counting as one symbol; a call that is not
-  alike stands for the paths of the body of its rule, each of which must part.
+  equal literals of the same case sensitivity, equal character classes or
+  `.`, equal repetitions that reach no scanning source, through the rules
+  that they call as well, which match alike because a repetition is greedy,
+  when they contain no predicate, `#cut`, `#recover`, attributed expression or
+  Operators Rule, and call only rules that are not on a left-recursion cycle
+  and read no variable or are called with the same variables on both sides,
+  or calls of one trivia rule (below). Two literals of the same case
+  sensitivity of which one is a prefix of the other, two case-insensitive
+  literals that are equal up to case, overlapping character classes, and a
+  literal and a class that contains its first character are passed by the
+  characters that they have in common, each step counting as one symbol;
+  literals of different case sensitivity are neither passed nor decisive. A
+  call that is not alike stands for the paths of the body of its rule, each
+  of which must part.
   The decisive symbol is one on each side that cannot both match at the
   position: first characters that are disjoint, of two symbols neither of
   which can match without consuming input, since such a symbol passes
-  whatever the character there, two literals of which neither is a prefix of
-  the other, or two character classes with no character in
+  whatever the character there; two literals of the same case sensitivity of
+  which neither is a prefix of the other, compared up to case when both are
+  case-insensitive; two character classes with no character in
   common; a negative lookahead `!K` on one side that the rest of the other side
-  must match, or a positive lookahead `&K` on one side whose expression and the
-  next symbol of the other side cannot match without consuming input and have
+  must match; a positive lookahead `&K` on one side whose expression and the
+  next symbol of the other side, or a positive lookahead `&K'` at the same
+  point of the other side, cannot match without consuming input and have
   disjoint first characters; or, in the continuation, the end
   of the parse, which costs a constant. The strict conditions make what the
   continuation evaluates again bounded:
@@ -1436,10 +1444,21 @@ The conditions below use these terms.
     included: it has no scanning source of its own and each call in it is
     cheap. A repetition without an upper bound that is not a bounded scan is
     a scanning source, so it is never looked into and ends the path;
-  - a lookahead that only the continuation evaluates, or an alternative of it
-    before the one that the unit's match implies, costs a constant: it has no
-    scanning source of its own, and each call in it is answered by the memo or
-    reaches no scanning source.
+  - a lookahead of the unit that the comparison passes, and a negative
+    lookahead of the unit on which it decides, reach no scanning source,
+    through the rules that they call as well. Only the unit evaluates such a
+    lookahead, and its expression can examine the input beyond the position
+    where the two part, which the continuation then passes, so that the next
+    evaluation of the unit after it examines that input again; a memo answer
+    does not bound this, as the next evaluation is at another position. A
+    positive lookahead of the unit that decides by its first characters
+    needs no such condition: it examines the input beyond its position only
+    after its expression consumes the character there, which is then one of
+    its first characters, and the next symbol of the other side fails on it;
+  - a lookahead that only the continuation evaluates, decisive or not, or an
+    alternative of it before the one that the unit's match implies, costs a
+    constant: it has no scanning source of its own, and each call in it is
+    answered by the memo or reaches no scanning source.
 
   A **trivia rule** is a rule whose body is a greedy repetition `X*`, atomic or
   not, where `X` cannot match without consuming input, and that neither it nor
@@ -1458,11 +1477,14 @@ The conditions below use these terms.
 
   After a unit that its continuation decides is abandoned, the continuation
   evaluates again only cheap symbols before it parts. At the decisive symbol it
-  does not consume the character at which the two part, fails within a cheap
-  lookahead, or ends the parse, and a unit that ends after cheap symbols
-  examined no more than the continuation evaluates again at their costs.
-  Nothing then starts a scanning source again inside the input that the unit
-  examined beyond the cheap symbols that both evaluate alike.
+  does not consume the character at which the two part, fails within a
+  lookahead that costs a constant, matches the expression of a negative
+  lookahead of the unit, which examined no more than a constant, or ends the
+  parse, and a unit that
+  ends after cheap symbols examined no more than the continuation evaluates
+  again at their costs. Nothing then starts a scanning source again inside the
+  input that the unit examined beyond the cheap symbols that both evaluate
+  alike.
 - A path of a later alternative of an alternative of a rule of a
   left-recursion cycle **enters the growth again** when it reaches a left call
   of a leader of the cycle before it examines the input, directly or through

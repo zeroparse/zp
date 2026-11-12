@@ -170,7 +170,21 @@ lookahead, whitespace by convention, and no longest match. The measurements belo
 The comparison above is a statement about the language: p and q cannot both succeed. The classifier needs a statement
 about cost, which the **strict** form of the comparison adds. It requires that every symbol passed alike be **cheap**,
 and it looks into an option, a choice, a repetition or a lookahead only when all its parts are cheap, since a path does
-not show the attempts that fail inside them, which can examine input.
+not show the attempts that fail inside them, which can examine input. A lookahead of U that the comparison passes, and a
+negative lookahead of U on which it decides, must moreover reach no scanning source, through the rules that they call
+as well: only U evaluates them, their expression can examine input beyond the position where U and C part, and C then
+passes that position, so the next evaluation of U examines that input again from a later position, where no memo entry
+answers it. Cheapness bounds a second evaluation at the same position and so does not suffice there.
+
+Counterexample: in `main = ( !(a ([a-z] #cut)* "!" / a) a ";" / a )* $$` with `a = "a"`, the continuation `a` matches
+the expression of the lookahead, so the unit decides it at `!K`. On `a`×n, `K` scans to the end of the input at each
+position before its second alternative matches, the unit fails, and the continuation consumes one character: the
+smallest compute limit of a full parse grows from 66260 at n = 250 to 257510 at n = 500 and 1015010 at n = 1000. The
+same holds when the scan is a memoized rule that `K` calls, and for a positive lookahead of U that the comparison
+passes, as `&k` with `k = "q" s "!" / "q"` and `s = ([q] #cut)*` before a symbol that parts from `"q"`. The rule above
+excludes all three. A positive lookahead of U that decides by its first characters needs no such rule: its expression
+examines input beyond its position only after consuming the character there, which is then one of its first
+characters, and the symbol of C, whose first characters are disjoint, fails on it.
 
 A symbol is cheap when its second evaluation at the position where the unit evaluated it costs the continuation a
 constant, or no more than the unit paid for it there:
@@ -230,11 +244,13 @@ with every path of C pass the symbols σ_1, ..., σ_m alike, with m < k, and par
   that U's match implies, are fresh. In strict mode each costs C a constant by the last row of the table: it has no
   scanning source of its own, its calls are answered by the memo at a cost that Lemma 4 charges to the first evaluation
   at that position (case 2), or reach no scanning source (case 3).
-- At d, at most one of U and C passes. If d is a literal, a class or a symbol whose first characters decide, C does not
-  consume the character at which they part, which is case 1 of Lemma 4 at the position after the shared symbols. If d
-  is a lookahead of U whose expression C must match, C fails within that match, and in strict mode the expression is
-  cheap in all its parts, so the match costs C what the shared symbols do. If d is the end of the parse, C ends the
-  parse after the shared symbols at a constant cost.
+- At d, at most one of U and C passes. If d is a literal, a class or a symbol whose first characters decide, the side
+  whose first characters do not contain the character at which they part examines nothing beyond it, since first
+  characters include those of the lookaheads evaluated before input is consumed: either C does not consume that
+  character, which is case 1 of Lemma 4 at the position after the shared symbols, or U examined nothing past it. If d
+  is a negative lookahead `!K` of U whose expression C must match, C passes d, and U examined input beyond the shared
+  symbols only inside `K`, which in strict mode reaches no scanning source, so a constant. If d is the end of the
+  parse, C ends the parse after the shared symbols at a constant cost.
 - If U ends after shared and cheap symbols, it examined nothing more than C evaluates again at the costs of the table,
   which is case 3.
 
@@ -360,7 +376,10 @@ which Lemma 1 bounds by a constant when they contain no scanning source.
 **Exclusion.** Each decisive case is a statement about two expressions at one position: disjoint first characters cannot
 both be consumed; two literals that are not prefixes of each other cannot both match; a negative lookahead `!K` fails
 wherever q's rest matches K, and q's rest must match K to succeed; a positive lookahead `&K` succeeds only where K
-matches, and K and q's next symbol cannot both match there. Expansion replaces a symbol by the paths of the expression
+matches, and K and q's next symbol, or the expression of q's positive lookahead at that point, cannot both match there.
+Literals take part only with the same case sensitivity, compared up to case when both are case-insensitive: a
+case-insensitive literal and a case-sensitive one that agree up to case can both match, and the comparison neither
+passes nor decides on such a pair. Expansion replaces a symbol by the paths of the expression
 it stands for, which is a superset, so a decision on every expanded path is a decision on every evaluation.
 
 **Cut prefixes against the restarts.** The restarts of Lemma 4 take the first abandoned evaluation w on the path from N
@@ -371,8 +390,9 @@ that condition 2 checks. Growing alternatives are excluded, as the growth reente
 
 **Decided units against the cases of Lemma 4.** [Cost of a Decided Unit](#cost-of-a-decided-unit) gives the argument:
 up to the decisive symbol, the continuation evaluates again only cheap symbols, each bounded by case 2 or 3, and at the
-decisive symbol it does not consume the character where the two part (case 1 at a later position), fails within a
-cheap lookahead expression, or ends the parse.
+decisive symbol it does not consume the character where the two part (case 1 at a later position), matches the
+expression of a negative lookahead of the unit that reaches no scanning source, or ends the parse. The paper proof is
+[Decided Units](../../../spec/proofs/decided-units.md).
 
 **Gaps.**
 

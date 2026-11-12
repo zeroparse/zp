@@ -583,8 +583,10 @@ a unit is committing give the following cases.
    activations lie in calls that the memo counts or that repeat a scan of the
    unit at the same position, and a scanning source of the unit lies in an
    expression that the comparison does not look into, which neither side
-   reaches without passing the decisive symbol ([Decided
-   Units](decided-units.md)).
+   reaches without passing the decisive symbol, or in a positive lookahead of
+   the unit that decides by its first characters, whose expression consumes
+   the character at which the two part before it examines more, so that the
+   continuation does not pass it ([Decided Units](decided-units.md)).
 
 A unit that fails only before its sources examined input gives back no more
 input than its parts before the sources examined, which Lemma 1 bounds. A unit
