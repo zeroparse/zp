@@ -1,11 +1,12 @@
 //go:build !zp_snapshot_sharing_reference
 
-package engine
+package document_test
 
 import (
 	"runtime"
 	"testing"
 
+	. "zeroparse.dev/zp/internal/engine"
 	"zeroparse.dev/zp/internal/value"
 )
 
