@@ -9,9 +9,9 @@ import (
 	"zeroparse.dev/zp/internal/gen"
 	irc "zeroparse.dev/zp/internal/ir/core"
 	"zeroparse.dev/zp/internal/ir/exec"
-	"zeroparse.dev/zp/internal/ir/exec/core"
+	"zeroparse.dev/zp/internal/ir/exec/execcore"
 	"zeroparse.dev/zp/internal/ir/exec/execgo"
-	"zeroparse.dev/zp/internal/ir/exec/lower"
+	"zeroparse.dev/zp/internal/ir/exec/execlower"
 	"zeroparse.dev/zp/internal/ir/exec/ops"
 )
 
@@ -51,8 +51,8 @@ func (g *Generator) lowered(t irc.Term, s *compile.Scope, locals map[string]stri
 	if t == nil || g.fieldCompared(t) {
 		return "", false
 	}
-	l, err := lower.Term(t, lower.TermOptions{Result: result})
-	if err == lower.ErrUnsupported {
+	l, err := execlower.Term(t, execlower.TermOptions{Result: result})
+	if err == execlower.ErrUnsupported {
 		return "", false
 	}
 	if err != nil {
@@ -114,7 +114,7 @@ func (g *Generator) termTarget(s *compile.Scope, locals map[string]string) *exec
 	return &execgo.Target{
 		Handle: func(name string) string { return handles[name] },
 		FuncName: func(name string) string {
-			n, ok := core.GoTermExports[name]
+			n, ok := execcore.GoTermExports[name]
 			if !ok {
 				panic("gogen: the runtime does not export the composition " + name)
 			}
@@ -122,8 +122,8 @@ func (g *Generator) termTarget(s *compile.Scope, locals map[string]string) *exec
 		},
 		Op: func(c *exec.Call, a []string) string {
 			switch c.Callee {
-			case lower.OpTermConst:
-				switch v := c.Imm.(lower.TermConst).Value.(type) {
+			case execlower.OpTermConst:
+				switch v := c.Imm.(execlower.TermConst).Value.(type) {
 				case nil:
 					return "any(nil)"
 				case string:
@@ -131,8 +131,8 @@ func (g *Generator) termTarget(s *compile.Scope, locals map[string]string) *exec
 				default:
 					return fmt.Sprintf("any(%v)", v)
 				}
-			case lower.OpTermRead:
-				switch x := c.Imm.(lower.TermRead).Term.(type) {
+			case execlower.OpTermRead:
+				switch x := c.Imm.(execlower.TermRead).Term.(type) {
 				case *irc.SlotRef:
 					return g.term(&grammar.CaptureRef{Name: x.Name}, s, locals)
 				case *irc.Local:
@@ -140,25 +140,25 @@ func (g *Generator) termTarget(s *compile.Scope, locals map[string]string) *exec
 				case *irc.VarRef:
 					return g.term(&grammar.VarRef{Name: x.Name}, s, locals)
 				}
-			case lower.OpTermCtx:
+			case execlower.OpTermCtx:
 				return "c"
-			case lower.OpTermName:
+			case execlower.OpTermName:
 				return strconv.Quote(c.Imm.(string))
-			case lower.OpTermNodeType:
+			case execlower.OpTermNodeType:
 				if g.Table == "trules" {
 					return g.nodeTypeID(c.Imm.(string))
 				}
 				return "c.P." + rtTermNodeType + "(" + strconv.Quote(c.Imm.(string)) + ")"
-			case lower.OpTermCastType:
-				return g.castTypeVar(c.Imm.(lower.TermCast).Cast)
-			case lower.OpTermRaise:
+			case execlower.OpTermCastType:
+				return g.castTypeVar(c.Imm.(execlower.TermCast).Cast)
+			case execlower.OpTermRaise:
 				return "panic(" + a[0] + ")"
-			case lower.OpTermCastError:
-				x := c.Imm.(lower.TermCast).Cast
+			case execlower.OpTermCastError:
+				x := c.Imm.(execlower.TermCast).Cast
 				return fmt.Sprintf("c.%s(%s, %s, %d, %d)", rtTermCastFailed, a[0], g.castTypeVar(x), x.Line, x.Col)
-			case lower.OpTermTextEqual:
+			case execlower.OpTermTextEqual:
 				return "c.P.TextEqual(" + a[0] + ", " + a[1] + ")"
-			case lower.OpTermFromStr, "val.fromBool":
+			case execlower.OpTermFromStr, "val.fromBool":
 				return "any(" + a[0] + ")"
 			}
 			panic("gogen: term operation " + c.Callee)
@@ -167,7 +167,7 @@ func (g *Generator) termTarget(s *compile.Scope, locals map[string]string) *exec
 		Name: termConstName,
 		Pure: func(c *exec.Call) bool {
 			switch c.Callee {
-			case lower.OpTermConst, lower.OpTermName, lower.OpTermCtx, lower.OpTermFromStr, "val.fromBool":
+			case execlower.OpTermConst, execlower.OpTermName, execlower.OpTermCtx, execlower.OpTermFromStr, "val.fromBool":
 				return true
 			}
 			return false
@@ -180,7 +180,7 @@ func (g *Generator) termTarget(s *compile.Scope, locals map[string]string) *exec
 // exports for them.
 func loweredTermNames() []string {
 	names := []string{rtTermNodeType, rtTermCastFailed}
-	for _, n := range core.GoTermExports {
+	for _, n := range execcore.GoTermExports {
 		names = append(names, n)
 	}
 	return names

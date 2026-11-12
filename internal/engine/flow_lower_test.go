@@ -6,7 +6,7 @@ import (
 	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/ir/core"
 	"zeroparse.dev/zp/internal/ir/flow"
-	flowlower "zeroparse.dev/zp/internal/ir/flow/lower"
+	flowlower "zeroparse.dev/zp/internal/ir/flow/flowlower"
 )
 
 // TestFlowVerifiesCorpus lowers every typed rule of the corpus that Flow IR covers, from the Core

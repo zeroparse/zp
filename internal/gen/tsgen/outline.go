@@ -2,7 +2,7 @@ package tsgen
 
 import (
 	"zeroparse.dev/zp/internal/ir/core"
-	flowlower "zeroparse.dev/zp/internal/ir/flow/lower"
+	flowlower "zeroparse.dev/zp/internal/ir/flow/flowlower"
 )
 
 // Outlining of the generated TypeScript.

@@ -34,7 +34,7 @@ for the tables alone and made them an opt-in.
 Evidence records: [105](../105-character-class-tables.md),
 [136](../136-measured-effect-of-the-generation-flags.md).
 
-Source owners: [`class table lowering`](../../../internal/ir/flow/lower/lower.go),
+Source owners: [`class table lowering`](../../../internal/ir/flow/flowlower/lower.go),
 [`Class`](../../../runtime/class.go).
 
 The [comparison policy](../../design/records/024-optimization-mechanism-controls.md)

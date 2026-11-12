@@ -9,9 +9,9 @@ import (
 	"zeroparse.dev/zp/internal/gen"
 	irc "zeroparse.dev/zp/internal/ir/core"
 	"zeroparse.dev/zp/internal/ir/exec"
-	"zeroparse.dev/zp/internal/ir/exec/core"
+	"zeroparse.dev/zp/internal/ir/exec/execcore"
 	"zeroparse.dev/zp/internal/ir/exec/exects"
-	"zeroparse.dev/zp/internal/ir/exec/lower"
+	"zeroparse.dev/zp/internal/ir/exec/execlower"
 	"zeroparse.dev/zp/internal/ir/exec/ops"
 )
 
@@ -29,8 +29,8 @@ func (g *Generator) termStmts(ct irc.Term, t grammar.Term, s *compile.Scope, loc
 	if ct == nil || !g.castsChecked(t) {
 		return "", false
 	}
-	l, err := lower.Term(ct, lower.TermOptions{Steps: !g.NoBudget})
-	if err == lower.ErrUnsupported {
+	l, err := execlower.Term(ct, execlower.TermOptions{Steps: !g.NoBudget})
+	if err == execlower.ErrUnsupported {
 		return "", false
 	}
 	if err != nil {
@@ -87,13 +87,13 @@ func (g *Generator) predicateFunc(ct irc.Term, t grammar.Term, s *compile.Scope)
 func (g *Generator) termTarget(s *compile.Scope, locals map[string]string) *exects.Target {
 	return &exects.Target{
 		Self:     "c.p",
-		Handle:   core.TSHandle,
-		FuncName: core.TSTermMethod,
+		Handle:   execcore.TSHandle,
+		FuncName: execcore.TSTermMethod,
 		Reg:      func(name string) string { panic("tsgen: a lowered term reads the register " + name) },
 		Op: func(c *exec.Call, a []string) string {
 			switch c.Callee {
-			case lower.OpTermConst:
-				switch v := c.Imm.(lower.TermConst).Value.(type) {
+			case execlower.OpTermConst:
+				switch v := c.Imm.(execlower.TermConst).Value.(type) {
 				case nil:
 					return "null"
 				case string:
@@ -103,8 +103,8 @@ func (g *Generator) termTarget(s *compile.Scope, locals map[string]string) *exec
 				default:
 					return fmt.Sprint(v)
 				}
-			case lower.OpTermRead:
-				switch x := c.Imm.(lower.TermRead).Term.(type) {
+			case execlower.OpTermRead:
+				switch x := c.Imm.(execlower.TermRead).Term.(type) {
 				case *irc.SlotRef:
 					return g.termBody(&grammar.CaptureRef{Name: x.Name}, s, locals)
 				case *irc.Local:
@@ -112,23 +112,23 @@ func (g *Generator) termTarget(s *compile.Scope, locals map[string]string) *exec
 				case *irc.VarRef:
 					return g.termBody(&grammar.VarRef{Name: x.Name}, s, locals)
 				}
-			case lower.OpTermCtx:
+			case execlower.OpTermCtx:
 				return "c"
-			case lower.OpTermName, lower.OpTermNodeType:
+			case execlower.OpTermName, execlower.OpTermNodeType:
 				return TsString(c.Imm.(string))
-			case lower.OpTermCastType:
-				return g.castTypeVar(c.Imm.(lower.TermCast).Cast)
-			case lower.OpTermRaise:
+			case execlower.OpTermCastType:
+				return g.castTypeVar(c.Imm.(execlower.TermCast).Cast)
+			case execlower.OpTermRaise:
 				return "evalError(" + a[0] + " as string)"
-			case lower.OpTermCastError:
-				x := c.Imm.(lower.TermCast).Cast
+			case execlower.OpTermCastError:
+				x := c.Imm.(execlower.TermCast).Cast
 				return fmt.Sprintf("castFailed(c, %s, %s, %d, %d)", a[0], g.castTypeVar(x), x.Line, x.Col)
-			case lower.OpTermTextEqual:
+			case execlower.OpTermTextEqual:
 				// As the term printer does, == of two strings, which charges as it does.
-				return fmt.Sprintf("c.p.%s(%d, %s, %s)[0] === true", core.TSTermMethod("binary"), ops.BinaryCode("=="), a[0], a[1])
-			case lower.OpTermFromStr, "val.fromBool":
+				return fmt.Sprintf("c.p.%s(%d, %s, %s)[0] === true", execcore.TSTermMethod("binary"), ops.BinaryCode("=="), a[0], a[1])
+			case execlower.OpTermFromStr, "val.fromBool":
 				return a[0]
-			case lower.OpTermSpend:
+			case execlower.OpTermSpend:
 				return "c.spend()"
 			}
 			panic("tsgen: term operation " + c.Callee)

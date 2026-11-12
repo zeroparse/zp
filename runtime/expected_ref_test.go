@@ -6,7 +6,7 @@ import (
 	"testing"
 )
 
-// The hand-written forms of the expectation record that the compositions of internal/ir/exec/core
+// The hand-written forms of the expectation record that the compositions of internal/ir/exec/execcore
 // replaced, kept as the reference model of TestExpectRecordMatchesReference.
 
 func (p *Parser) refExpect(pos int, id ExpID) {

@@ -1,4 +1,4 @@
-package core
+package execcore
 
 import (
 	"fmt"
@@ -149,7 +149,7 @@ func tsTermError() string {
 
 // tsTarget is the TypeScript implementation of the operations in the runtime's Parser class.
 var tsTarget = &exects.Target{
-	Source: "internal/ir/exec/core",
+	Source: "internal/ir/exec/execcore",
 	Packed: ops.Value,
 	Parts: map[string][]exects.Part{
 		// The set of an isolation is the range of the stack of the record that it ended.

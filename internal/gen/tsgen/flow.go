@@ -11,7 +11,7 @@ import (
 	"zeroparse.dev/zp/internal/gen"
 	"zeroparse.dev/zp/internal/ir/core"
 	"zeroparse.dev/zp/internal/ir/flow"
-	flowlower "zeroparse.dev/zp/internal/ir/flow/lower"
+	flowlower "zeroparse.dev/zp/internal/ir/flow/flowlower"
 	"zeroparse.dev/zp/internal/value"
 )
 

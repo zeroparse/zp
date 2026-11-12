@@ -4,7 +4,7 @@ import "zeroparse.dev/zp/internal/ir/exec"
 
 // Val is the component of the value primitives: the operations on the values of terms. A primitive
 // acts on one kind of value and has none of the policy of an operator: the compositions binary,
-// unary, equal, index and logic (internal/ir/exec/core) decide which primitive applies, which
+// unary, equal, index and logic (internal/ir/exec/execcore) decide which primitive applies, which
 // operands are valid, and which failure a term reports.
 const Val = "value"
 

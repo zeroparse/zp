@@ -1,4 +1,4 @@
-package lower_test
+package execlower_test
 
 import (
 	"flag"
@@ -13,7 +13,7 @@ import (
 	"zeroparse.dev/zp/internal/ir/core"
 	irbuild "zeroparse.dev/zp/internal/ir/core/build"
 	"zeroparse.dev/zp/internal/ir/exec"
-	"zeroparse.dev/zp/internal/ir/exec/lower"
+	"zeroparse.dev/zp/internal/ir/exec/execlower"
 )
 
 var update = flag.Bool("update", false, "update golden files")
@@ -77,8 +77,8 @@ func dumpTerms(t *testing.T, m *core.Module) string {
 			return
 		}
 		fmt.Fprintf(&b, "## %s %s\n", rule, what)
-		l, err := lower.Term(x, lower.TermOptions{})
-		if err == lower.ErrUnsupported {
+		l, err := execlower.Term(x, execlower.TermOptions{})
+		if err == execlower.ErrUnsupported {
 			fmt.Fprintf(&b, "not lowered: %s\n\n", unsupported(x))
 			return
 		}

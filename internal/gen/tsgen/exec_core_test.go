@@ -4,13 +4,13 @@ import (
 	"strings"
 	"testing"
 
-	"zeroparse.dev/zp/internal/ir/exec/core"
+	"zeroparse.dev/zp/internal/ir/exec/execcore"
 )
 
 // TestSubstituteMethods checks that the printed compositions replace the hand-written methods of
 // the runtime, with the comment lines before them, and nothing else.
 func TestSubstituteMethods(t *testing.T) {
-	ms, err := core.TSMethods()
+	ms, err := execcore.TSMethods()
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -45,7 +45,7 @@ func TestSubstituteMethods(t *testing.T) {
 // TestSubstituteMethodsRefusesMalformedRuntime checks that a runtime without the method, with it
 // twice, or without its closing brace at the class body's indentation stops the substitution.
 func TestSubstituteMethodsRefusesMalformedRuntime(t *testing.T) {
-	m := []core.TSMethod{{Name: "grow", Text: "  grow() {}\n"}}
+	m := []execcore.TSMethod{{Name: "grow", Text: "  grow() {}\n"}}
 	for name, src := range map[string]string{
 		"missing":          "class P {\n  other() {\n  }\n}\n",
 		"twice":            "class P {\n  grow() {\n  }\n  grow() {\n  }\n}\n",
@@ -65,7 +65,7 @@ func TestSubstituteMethodsRefusesMalformedRuntime(t *testing.T) {
 // TestPrintedMethodsHaveNoConstantTest checks that a condition the TypeScript library prints as a
 // constant leaves no test in the printed methods.
 func TestPrintedMethodsHaveNoConstantTest(t *testing.T) {
-	ms, err := core.TSMethods()
+	ms, err := execcore.TSMethods()
 	if err != nil {
 		t.Fatal(err)
 	}
