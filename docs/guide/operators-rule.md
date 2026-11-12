@@ -711,9 +711,10 @@ can call any rule; and the rules of a statement grammar call the rule that holds
 
 ## Pitfalls
 
-**The words `rule`, `operand`, `level`, `skip`, `prefix`, `postfix` and `infix` are contextual words.** A rule called
-`operand` can be defined, but every reference to it is a syntax error (`expected an expression, found 'operand'`);
-pick another name such as `atom`. The complete list is in
+**The words `rule`, `operand`, `level`, `skip`, `prefix`, `postfix` and `infix` are contextual words.** They are
+syntax only where a declaration or an Operators Rule item starts; anywhere else they are ordinary names. A rule called
+`operand` can be defined and referenced, even as `operand operand`, but a name such as `atom` keeps the item easier to
+read. The complete list is in
 [Lexical Structure](../../spec/language/lexical.md#contextual-words).
 
 **An operand cannot call its own rule at the start.** It would be left recursion inside the loop. The compiler says so:
