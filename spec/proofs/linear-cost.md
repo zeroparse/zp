@@ -2756,12 +2756,55 @@ growth activations owned by memoized evaluations are those of *Activations
 held by heads*, whose count rests on Lemma 3, *Replayed activations* and
 *Links to heads* and on no bound of this lemma, so part 1 can use it in the
 order of Lemma 4; the others are those of the families of growths.
-Three points remain open. A reference link of $\mathcal{R}$, which stores
-nothing, can be the call that starts the growth itself, between two growth
-activations direct in one body evaluation; *Reference links lead to repeated
-evaluations* then holds the activation outside $e^{k\prime}$, and it is not
-shown that its holder is no head. The growth activations that case 5 or a
-dropped step repeats are not counted. And the claims from *Memoized links* to
+
+**Second outer growths.** The outer growths of a key are at most two, the
+first inside a lookahead and the second outside them. They read no growth
+open at their start, so their steps have the same results, which the
+lookahead state does not change (*Counterparts*), and each successful growth
+activation of the second at $q$ is matched to the one of the first at $q$.
+An outer growth has at most one step whose seed ends at $q$, so the
+successful growth activations at $q$ of the second outer growths, of all
+sources, are at most those of the first outer growths, which are none of
+them. A bound on the others that leaves out any of the former therefore
+bounds them too, doubled.
+
+Two kinds of growth activation that the claims above leave out are of second
+outer growths. First, a reference link of $\mathcal{R}$, which stores
+nothing, can be the call that starts the growth itself, $e^{k\prime}$, the
+counterpart of the call $c_2$ that starts the growth of a free $\alpha_i$,
+with $e^k$ an earlier call of the same leader at the same position, level
+and values; *Reference links lead to repeated evaluations* then places the
+activation outside $e^{k\prime}$, in the holder of $c_2$, and does not
+apply. The two calls lie in the same growths of the cycle (case 2), and
+$c_2$ is in none, since its growth is outer, so $e^k$ reads no growth open
+at its start. Follow the path from the evaluation of $\mathcal{R}$ where the
+parse begins down to $e^k$, as in *Heads in the reference parse*; the parse
+skips no alternative on it, since $e^k$ holds $\beta_f$. If the parse
+evaluates every call and step on it, it grows the leader at the counterpart
+of $e^k$, outside contexts of growths, before $c_2$. Otherwise the first call
+or step $y$ that it does not evaluate contains $e^k$ in $\mathcal{R}$ and not
+$e^{k\prime}$, since the parse evaluates $c_2$, so it is answered before
+$c_2$ starts, and the induction of the covered keys gives a growth of the key
+of $e^k$ before then, outside cases (a) and (b): it applies to a call of a
+leader that reads no growth open at its start as to the others, since the
+parse answers such a call only from an entry that a growth of its key
+outside contexts stored. Either way an outer growth of the key of $c_2$
+precedes it, and the growth of $\alpha_i$ is the second outer growth of its
+key. Second, a path that enters the growth again (case 5) leaves out of
+condition 2 only an alternative that evaluates its scanning sources inside
+calls that are memoized at the call and read no variable, the call that
+starts a growth among them, and what follows the call of the leader that the
+path reaches holds no scanning source ([Conditions for Linear
+Cost](../runtime/parsing.md#conditions-for-linear-cost)). Where the
+alternative is evaluated again, and in the steps of that growth after the
+first, which evaluate the bodies of the cycle again before the left call at
+the same positions, the memo answers each call that started an outer growth
+before, in the same lookahead state or a greater one, so a growth activation
+that the path repeats there is of the second outer growth of its key.
+
+Two points remain open. The growth activations that a dropped step repeats,
+and those that case 5 repeats in the first step of the growth that the path
+enters, are not counted. And the claims from *Memoized links* to
 *Activations held by heads* and the family claims of this lemma are applied
 to growth activations by the correspondences above, and not checked one by
 one for a use of an activation that starts at its position.
@@ -4760,10 +4803,14 @@ condition of the cost view that the [Cost View](cost-view.md) proof leaves open.
    by a constant times $K\hat{n}$ plus their successful growth activations,
    and with *Restarts of growth activations* and *Direct growth activations*
    gives these the restarts, *Direct activations* and *Repeats* of Lemma 4,
-   apart from a constant times $K\hat{n}$ of them. Three points remain: a
-   reference link of $\mathcal{R}$ that is the call that starts the growth
-   itself, whose activation is held outside $e^{k\prime}$; the growth
-   activations that case 5 or a dropped step repeats; and a check, claim by
+   apart from a constant times $K\hat{n}$ of them. *Second outer growths*
+   matches the growth activations of the second outer growth of a key to those
+   of the first, and places there the free activations whose reference link
+   is the call that starts the growth itself and the growth activations that
+   a path that enters the growth again repeats outside the first step of that
+   growth. Two points remain: the growth activations that a dropped step
+   repeats, or that such a path repeats in the first step of the growth that
+   it enters; and a check, claim by
    claim, that the claims from *Memoized links* to *Activations held by heads*
    and the family claims of this lemma use of a growth activation only what
    the correspondences after *Direct growth activations* give.
