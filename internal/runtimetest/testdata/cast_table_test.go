@@ -58,13 +58,13 @@ func nodeCastValue(c *ActCtx, v conform.CastValue) any {
 	case "err":
 		return &Node{RawKind: kindError, RawTerminal: true, RawStart: 2, RawEnd: 4, RawText: "x"}
 	case "struct":
-		return c.NewStruct(v.Name)
+		return c.fxStruct(v.Name)
 	case "box":
 		return &Node{RawKind: kindBox, box: 1}
 	case "list":
-		return c.List(elems()...)
+		return c.fxList(elems()...)
 	case "tupleValue":
-		return c.Tuple(elems()...)
+		return c.fxTuple(elems()...)
 	}
 	panic("no value " + v.Kind)
 }

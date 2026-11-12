@@ -14,12 +14,12 @@ import (
 	"zeroparse.dev/zp/internal/ir/exec/conform"
 )
 
-// structScript makes the structs of cases.json on the TypeScript runtime (Actx.newStruct, over the printed
+// structScript makes the structs of cases.json on the TypeScript runtime (fxStruct of tsCompose, over the printed
 // methods termCover and termMade) and prints the range of each, and whether the context recorded it, in
 // order. The input of the parser is input.txt.
 const structScript = `import { readFileSync } from "node:fs";
 import * as p from "./parser.ts";
-const CONTROLLED = false;
+` + tsCompose + `const CONTROLLED = false;
 const P = Object.create(p.Parser.prototype);
 P.control = CONTROLLED ? new p.BudgetControl({ signal: null, budget: 0 } as unknown as p.ResolvedParseOptions) : null;
 P.created = [];
@@ -42,11 +42,11 @@ console.log(JSON.stringify(cases.map((fields) => {
     const before = P.created.length;
     const kv: p.Value[] = [];
     fields.forEach((f, i) => kv.push("F" + i, values[f]!));
-    const n = c.newStruct("S", ...kv) as p.Node;
+    const n = fxStruct(c, "S", ...kv) as p.Node;
     const recorded = P.created.length === before + 1 && P.created[before] === n;
     return n.start + "-" + n.end + (recorded ? "RECORDED" : "");
   } catch (x) {
-    return x instanceof p.EvalError ? "error: " + x.msg : "exception: " + String(x);
+    return x instanceof FxError ? "error: " + x.msg : "exception: " + String(x);
   }
 })));
 `

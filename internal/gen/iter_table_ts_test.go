@@ -14,12 +14,12 @@ import (
 	"zeroparse.dev/zp/internal/ir/exec/conform"
 )
 
-// iterScript runs the calls of calls.json on the TypeScript runtime (rtFold, Actx.mapList and filterList, over
+// iterScript runs the calls of calls.json on the TypeScript runtime (fxFold, fxMap and fxFilter of tsCompose, over
 // the printed methods termItemAt and termFilterKeep) and prints the canonical result of each
 // (conform.MemberCanon) and the units it charged, in order. The input of the parser is input.txt.
 const iterScript = `import { readFileSync } from "node:fs";
 import * as p from "./parser.ts";
-const CONTROLLED = false;
+` + tsCompose + `const CONTROLLED = false;
 const P = Object.create(p.Parser.prototype);
 P.control = CONTROLLED ? new p.BudgetControl({ signal: null, budget: 1e15 } as unknown as p.ResolvedParseOptions) : null;
 P.created = [];
@@ -29,7 +29,7 @@ P.offs = null;
 P.unit = p.Bytes;
 const c = new p.Actx(P);
 const values: Record<string, p.Value> = {
-  "nil": null, "1": 1, '"ab"': "ab", "true": true, "[1, 2]": c.list(1, 2), "[]": c.list(),
+  "nil": null, "1": 1, '"ab"': "ab", "true": true, "[1, 2]": fxList(c, 1, 2), "[]": fxList(c),
 };
 const canon = (v: p.Value): string => {
   if (v === null || v === undefined) return "nil";
@@ -45,11 +45,11 @@ const canon = (v: p.Value): string => {
 };
 const call = (fn: string, v: p.Value): p.Value => {
   switch (fn) {
-    case "foldl": case "foldr": return p.rtFold(c, fn, fn === "foldr", null, v, (_acc, item) => item);
-    case "map": return c.mapList(v, (item) => item);
-    case "filter": return c.filterList(v, (item) => item === 1);
+    case "foldl": case "foldr": return fxFold(c, fn, fn === "foldr", null, v, (_acc, item) => item);
+    case "map": return fxMap(c, v, (item) => item);
+    case "filter": return fxFilter(c, v, (item) => item === 1);
   }
-  return c.filterList(v, (item) => item);
+  return fxFilter(c, v, (item) => item);
 };
 const used = (): number => (CONTROLLED ? (P.control as any).budgetUsed : 0);
 const calls: [string, string][] = JSON.parse(readFileSync("calls.json", "utf8"));
@@ -58,7 +58,7 @@ console.log(JSON.stringify(calls.map(([fn, v]) => {
   try {
     return canon(call(fn, values[v]!)) + "\t" + (used() - before);
   } catch (x) {
-    return (x instanceof p.EvalError ? "error: " + x.msg : "exception: " + String(x)) + "\t" + (used() - before);
+    return (x instanceof FxError ? "error: " + x.msg : "exception: " + String(x)) + "\t" + (used() - before);
   }
 })));
 `
@@ -143,7 +143,6 @@ func TestPrintedIterMutantsTypeScript(t *testing.T) {
 	}
 	t.Parallel()
 	mutants := []struct{ name, sig, old, new string }{
-		{"a fold step charges nothing", "rtFold(c: Actx,", "c.spend();", ""},
 		{"foldr passes the elements from the first", "termItemAt(items:", "if (right) {", "if (false) {"},
 		{"the folds pass the elements in each other's order", "termItemAt(items:", "if (right) {", "if (!right) {"},
 		{"an iteration passes a box", "termItemAt(items:", "return unboxValue(items[i]!);", "return items[i]!;"},

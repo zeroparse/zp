@@ -674,8 +674,6 @@ func (p *TParser) run(r *TRule, input string, o parseOptions, ext any) (v any, e
 			switch x := x.(type) {
 			case fatal:
 				v, err = nil, x.err
-			case evalError: // in an action (predicates recover their own)
-				v, err = nil, p.wrapEvalError(p.Where, x.msg)
 			default:
 				panic(x)
 			}
@@ -1456,16 +1454,6 @@ func (p *TParser) TConvertResult(r *TRule, v any) any {
 	return n
 }
 
-// Convert evaluates a node type constructor T{v} (ActCtx.Convert): it converts v to the named node
-// type with the index nt.
-func (c *TActCtx) Convert(nt uint16, v any) any {
-	n, e := c.P.TermConvert(nt, v)
-	if e != nil {
-		panic(e)
-	}
-	return n
-}
-
 // TSetNodeType gives v, a string, tuple or list node that back made, the named node type nt.
 //
 // TSetNodeType is for generated parsers; not a stable API.
@@ -1786,7 +1774,7 @@ func (c *TActCtx) Finish(v any) any {
 	}
 	if t == nil {
 		if _, isFn := v.(func(...any) any); isFn {
-			c.P.evalErrorf("result must be a value, got a function")
+			c.P.actionFailed(c.P.Where, c.P.evalErrorValue("result must be a value, got a function"))
 		}
 		return v
 	}
@@ -1801,14 +1789,6 @@ func (p *TParser) DropCreated(base int) {
 
 // evalTerm is Parser.evalTerm for the typed runtime.
 func (p *TParser) evalTerm(t func(*TActCtx) (any, any)) (v any, ok bool) {
-	defer func() {
-		if x := recover(); x != nil {
-			if _, isEval := x.(evalError); !isEval {
-				panic(x)
-			}
-			ok = false
-		}
-	}()
 	v, f := t(p.UseCtx(TActCtx{P: p, F: p.Frame, Start: p.Pos, End: p.Pos, Cbase: len(p.Created)}))
 	return v, f == nil
 }
@@ -1874,16 +1854,6 @@ func (c *TActCtx) NewList(items []any) any {
 // the value model does not show, covers the elements that are nodes.
 func (c *TActCtx) listNode(kids []any) TVal { return c.P.TermHull(c, false, kids) }
 
-// Tuple returns a tuple value of the arguments, as a tuple literal builds it.
-func (c *TActCtx) Tuple(args ...any) any {
-	base := len(c.P.KidStack)
-	for _, a := range args {
-		c.P.Spend()
-		c.push("tuple", a)
-	}
-	return c.P.TermHull(c, true, c.P.Kids(base))
-}
-
 // newSeq is the operation val.seq.
 func (c *TActCtx) newSeq(tuple bool, kids []any) TVal {
 	typ := TypeListValue
@@ -1903,18 +1873,8 @@ type tstrFields interface {
 	TStrField(name string) (string, bool)
 }
 
-// FieldOperand reads x.Name as member does, keeping a string field of a struct unboxed.
-func (c *TActCtx) FieldOperand(x any, name string) TOperand {
-	// A string field of a struct costs no steps to read under budget controls either: see TFieldSpend.
-	if n, ok := x.(tstrFields); ok {
-		if s, ok := n.TStrField(name); ok {
-			return TOperand{Str: s, IsStr: true}
-		}
-	}
-	return TOperand{V: c.Member(x, name)}
-}
-
-// TermFieldOperand is FieldOperand that returns the failure of the member read instead of raising it.
+// TermFieldOperand reads x.name as TermMember does, keeping a string field of a struct unboxed, and
+// returns the failure of the read.
 //
 // TermFieldOperand is for generated parsers; not a stable API.
 func (c *TActCtx) TermFieldOperand(x any, name string) (TOperand, any) {
@@ -1929,7 +1889,8 @@ func (c *TActCtx) TermFieldOperand(x any, name string) (TOperand, any) {
 	return TOperand{V: v}, e
 }
 
-// TermCompare is Compare that returns the failure of the comparison instead of raising it.
+// TermCompare applies a comparison operator as TermBinary does, comparing two strings directly, and
+// returns the failure of the comparison.
 //
 // TermCompare is for generated parsers; not a stable API.
 func (c *TActCtx) TermCompare(op int, l, r TOperand) (any, any) {
@@ -1947,32 +1908,6 @@ func (c *TActCtx) TermCompare(op int, l, r TOperand) (any, any) {
 	return c.P.TermBinary(op, l.value(), r.value())
 }
 
-// Compare applies a comparison operator as binary does, comparing two strings directly.
-func (c *TActCtx) Compare(op int, l, r TOperand) any {
-	if !l.IsStr {
-		l.Str, l.IsStr = l.V.(string)
-	}
-	if !r.IsStr {
-		r.Str, r.IsStr = r.V.(string)
-	}
-	if l.IsStr && r.IsStr {
-		if v, ok := c.P.compareStrings(op, l.Str, r.Str); ok {
-			return v
-		}
-	}
-	return c.Binary(op, l.value(), r.value())
-}
-
-// Member reads x.name, as the composition member (term_exec.go) does.
-func (c *TActCtx) Member(x any, name string) any {
-	kind, field := memberKind(name)
-	v, e := c.P.TermMember(c, kind, x, name, field)
-	if e != nil {
-		panic(e)
-	}
-	return v
-}
-
 // memberZero is the operation node.zero: a typed struct holds every field of its type, and makes the zero
 // value of a list or struct field that it holds as nil (unset) when it is read.
 func (p *TParser) memberZero(c *TActCtx, n TVal, name string) (any, bool) {
@@ -1988,97 +1923,6 @@ func (p *TParser) memberZero(c *TActCtx, n TVal, name string) (any, bool) {
 // TZeroField is for generated parsers; not a stable API.
 type tzeroFields interface {
 	TZeroField(c *TActCtx, name string) (any, bool)
-}
-
-// Length is the built-in function len, as the composition length (term_exec.go) makes it.
-func (c *TActCtx) Length(x any) any {
-	v, e := c.P.TermLength(x)
-	if e != nil {
-		panic(e)
-	}
-	return v
-}
-
-// Text is the built-in function text, as the composition text (term_exec.go) makes it.
-func (c *TActCtx) Text(x any) any {
-	s, e := c.P.TermText(x)
-	if e != nil {
-		panic(e)
-	}
-	return s
-}
-
-// TextStr returns text(x) as a string. Comparisons of two texts use it directly, since storing a
-// string in an interface allocates.
-
-func (c *TActCtx) TextStr(x any) string {
-	s, e := c.P.TermText(x)
-	if e != nil {
-		panic(e)
-	}
-	return s
-}
-
-func (c *TActCtx) MapList(list any, f func(item any) any) any {
-	base := len(c.P.KidStack)
-	c.PushMap(list, f)
-	return c.EndList(base)
-}
-
-func (c *TActCtx) FilterList(list any, f func(item any) any) any {
-	base := len(c.P.KidStack)
-	items := c.ListItems("filter", list)
-	for i := range items {
-		c.P.Spend()
-		keep, e := c.P.TermFilterKeep(f(c.P.TermItemAt(items, i, false)))
-		if e != nil {
-			panic(e)
-		}
-		if keep {
-			c.P.KidStack = append(c.P.KidStack, items[i])
-		}
-	}
-	return c.EndList(base)
-}
-
-func (c *TActCtx) List(args ...any) any {
-	base := len(c.P.KidStack)
-	c.PushList(args...)
-	return c.EndList(base)
-}
-
-func (c *TActCtx) Concat(args ...any) any {
-	base := len(c.P.KidStack)
-	for _, a := range args {
-		c.P.Spend()
-		c.PushItems(a)
-	}
-	return c.EndList(base)
-}
-
-func (c *TActCtx) PushMap(list any, f func(item any) any) {
-	items := c.ListItems("map", list)
-	for i := range items {
-		c.P.Spend()
-		c.push("map", f(c.P.TermItemAt(items, i, false)))
-	}
-}
-
-func (c *TActCtx) PushList(args ...any) {
-	for _, a := range args {
-		c.P.Spend()
-		c.push("list", a)
-	}
-}
-
-func (c *TActCtx) PushItems(v any) {
-	if f := c.P.TermPushItems(c, "concat", v); f != nil {
-		panic(f)
-	}
-}
-
-func (c *TActCtx) EndList(base int) any {
-	return c.listNode(c.P.Kids(base))
 }
 
 // --- Operators Rule expressions ---
@@ -2216,16 +2060,6 @@ func (p *TParser) convertOperator(r *TRule, v any) any {
 	return n
 }
 
-// Binary applies the binary operator with the code op (OpAdd ...) to l and r, failing the action if
-// its operands are not valid.
-func (c *TActCtx) Binary(op int, l, r any) any {
-	v, e := c.P.TermBinary(op, l, r)
-	if e != nil {
-		panic(e)
-	}
-	return v
-}
-
 func (p *TParser) PushKid(v any) { p.Spend(); p.KidStack = append(p.KidStack, v) }
 func (p *TParser) setValueField(n *TSeq, name string, v any) {
 	if p.Control != nil {
@@ -2277,14 +2111,6 @@ func (p *TParser) valueFieldControlled(n TVal, name string) (any, bool) {
 	}
 	return nil, true
 }
-func (c *TActCtx) Fold(fn string, right bool, acc, list any, f func(acc, item any) any) any {
-	items := c.ListItems(fn, list)
-	for i := range items {
-		c.P.Spend()
-		acc = f(acc, c.P.TermItemAt(items, i, right))
-	}
-	return acc
-}
 
 // ListField materializes a typed struct's list field during an action read.
 // The ordinary TField path remains independent of a parser or budget controller.
@@ -2307,56 +2133,4 @@ func (p *TParser) ListField(kids []any) any {
 		first = false
 	}
 	return n
-}
-
-// Unary applies the unary operator with the code op (OpNeg, OpNot) to v.
-func (c *TActCtx) Unary(op int, v any) any {
-	r, e := c.P.TermUnary(op, v)
-	if e != nil {
-		panic(e)
-	}
-	return r
-}
-
-// logical checks the operand x of the logical operator with the code op (OpAnd, OpOr) and returns it.
-func (p *TParser) logical(op int, x any) bool {
-	b, e := p.TermLogic(op, x)
-	if e != nil {
-		panic(e)
-	}
-	return b
-}
-
-// And evaluates l && r: r is evaluated only if l is true.
-func (c *TActCtx) And(l any, r func() any) any {
-	if !c.P.logical(OpAnd, l) {
-		return false
-	}
-	return c.P.logical(OpAnd, r())
-}
-
-// Or evaluates l || r: r is evaluated only if l is false.
-func (c *TActCtx) Or(l any, r func() any) any {
-	if c.P.logical(OpOr, l) {
-		return true
-	}
-	return c.P.logical(OpOr, r())
-}
-
-// ListItems returns the elements of v, an argument of the built-in function fn that takes a list, as
-// the composition items (term_exec.go) reads them.
-func (c *TActCtx) ListItems(fn string, v any) []any {
-	items, e := c.P.TermItems(fn, v)
-	if e != nil {
-		panic(e)
-	}
-	return items
-}
-
-// push pushes v as the next element of the list or the tuple that fn makes, as the composition push
-// (term_exec.go) does.
-func (c *TActCtx) push(fn string, v any) {
-	if f := c.P.TermPush(c, fn, v); f != nil {
-		panic(f)
-	}
 }

@@ -23,11 +23,11 @@ func TestValueHullTable(t *testing.T) {
 				for _, e := range elems {
 					args = append(args, vals[e])
 				}
-				n = c.Tuple(args...).(*Node)
+				n = c.fxTuple(args...).(*Node)
 			} else {
 				base := len(c.P.KidStack)
 				for _, e := range elems {
-					c.push("list", vals[e])
+					c.fxPush("list", vals[e])
 				}
 				items := slices.Clone(c.P.KidStack[base:])
 				c.P.DropKids(base)
@@ -56,7 +56,7 @@ func TestValueHullTable(t *testing.T) {
 			}
 			var n *TSeq
 			if kind == "tuple" {
-				n = tc.Tuple(args...).(*TSeq)
+				n = tc.fxTuple(args...).(*TSeq)
 			} else {
 				n = tc.NewList(args).(*TSeq)
 			}

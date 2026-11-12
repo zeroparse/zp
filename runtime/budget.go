@@ -814,16 +814,6 @@ func (p *Parser) compareStrings(op int, l, r string) (bool, bool) {
 	return false, false
 }
 
-// Binary applies the binary operator with the code op (OpAdd ...) to l and r, failing the action if
-// its operands are not valid.
-func (c *ActCtx) Binary(op int, l, r any) any {
-	v, e := c.P.TermBinary(op, l, r)
-	if e != nil {
-		panic(e)
-	}
-	return v
-}
-
 // detachedText constructs normalized text when malformed source bytes prevent
 // slicing the original string. Allocation and Grow remain nonpreemptible.
 func (p *Parser) detachedText(start, end int) string {
@@ -1520,15 +1510,6 @@ func (p *Parser) undoCaptures(from int) {
 	}
 }
 
-func (c *ActCtx) Fold(fn string, right bool, acc, list any, f func(acc, item any) any) any {
-	items := c.ListItems(fn, list)
-	for i := range items {
-		c.P.Spend()
-		acc = f(acc, c.P.TermItemAt(items, i, right))
-	}
-	return acc
-}
-
 // actionErrorText accounts for eager engine-owned error text, including errors
 // discarded by predicates. Counter reservations precede each fragment copy.
 func (p *Parser) actionErrorText(parts ...string) string {
@@ -1546,14 +1527,8 @@ func (p *Parser) actionErrorText(parts ...string) string {
 	return out.String()
 }
 
-// evalErrorf accepts the engine's fixed %s/%d leaf formats. The inactive path
-// retains fmt semantics; active formatting splits known pieces before copying.
-func (p *Parser) evalErrorf(format string, args ...any) {
-	panic(p.evalErrorValue(format, args...))
-}
-
-// evalErrorValue returns the failure that evalErrorf raises, as a value, so that a composition can
-// return it (see termError).
+// evalErrorValue returns the failure of a term with the message that format makes of args, which a
+// composition returns (see termError).
 func (p *Parser) evalErrorValue(format string, args ...any) evalError {
 	if p != nil && p.Control != nil {
 		return p.evalErrorfControlled(format, args...)
@@ -1595,56 +1570,4 @@ func (p *Parser) wrapEvalError(where, message string) error {
 		return fmt.Errorf("action in %s: %s", where, message)
 	}
 	return errors.New(p.actionErrorText("action in ", where, ": ", message))
-}
-
-// Unary applies the unary operator with the code op (OpNeg, OpNot) to v.
-func (c *ActCtx) Unary(op int, v any) any {
-	r, e := c.P.TermUnary(op, v)
-	if e != nil {
-		panic(e)
-	}
-	return r
-}
-
-// logical checks the operand x of the logical operator with the code op (OpAnd, OpOr) and returns it.
-func (p *Parser) logical(op int, x any) bool {
-	b, e := p.TermLogic(op, x)
-	if e != nil {
-		panic(e)
-	}
-	return b
-}
-
-// And evaluates l && r: r is evaluated only if l is true.
-func (c *ActCtx) And(l any, r func() any) any {
-	if !c.P.logical(OpAnd, l) {
-		return false
-	}
-	return c.P.logical(OpAnd, r())
-}
-
-// Or evaluates l || r: r is evaluated only if l is false.
-func (c *ActCtx) Or(l any, r func() any) any {
-	if c.P.logical(OpOr, l) {
-		return true
-	}
-	return c.P.logical(OpOr, r())
-}
-
-// ListItems returns the elements of v, an argument of the built-in function fn that takes a list, as
-// the composition items (term_exec.go) reads them.
-func (c *ActCtx) ListItems(fn string, v any) []*Node {
-	items, e := c.P.TermItems(fn, v)
-	if e != nil {
-		panic(e)
-	}
-	return items
-}
-
-// push pushes v as the next element of the list or the tuple that fn makes, as the composition push
-// (term_exec.go) does.
-func (c *ActCtx) push(fn string, v any) {
-	if f := c.P.TermPush(c, fn, v); f != nil {
-		panic(f)
-	}
 }

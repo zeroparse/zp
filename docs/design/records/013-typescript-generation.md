@@ -84,8 +84,9 @@ The runtime hides each difference, so that results are the engine's, not merely 
   Unicode (Node.js 24 has Unicode 16, Go 1.27 Unicode 17: thousands of code points differ), so the runtime holds
   Go's table instead: the lengths of the alternating runs of rejected and accepted code points, in
   base 36, about 3 KB. The table is that of the Go that generates the parser.
-- **No `panic`.** Fatal errors and evaluation errors are thrown as plain objects (`Fatal`, `EvalError`, not `Error`
-  subclasses, so throwing them captures no stack trace), and caught where `runtime` recovers. Results are
+- **No `panic`.** Fatal errors are thrown as plain `Fatal` objects (not an `Error` subclass, so throwing them
+  captures no stack trace), and caught where `runtime` recovers. A failed evaluation of a term is a value that the
+  generated code returns, not an exception. Results are
   `Node | null` on success and `undefined` on failure, instead of `(value, ok)` pairs.
 - **The stack is small.** Rule calls recurse, as in Go, but Node.js's default stack holds only some hundreds to a few
   thousand nested rule calls. The generated code calls literals and rules inline to save frames, the runtime turns a

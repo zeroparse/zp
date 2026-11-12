@@ -20,7 +20,7 @@ import (
 // table (conform.CastType and conform.CastValue).
 const castScript = `import { readFileSync } from "node:fs";
 import * as p from "./parser.ts";
-const CONTROLLED = false;
+` + tsCompose + `const CONTROLLED = false;
 const P = Object.create(p.Parser.prototype);
 P.control = CONTROLLED ? new p.BudgetControl({ signal: null, budget: 1e15 } as unknown as p.ResolvedParseOptions) : null;
 P.created = [];
@@ -40,10 +40,10 @@ const build = (v: V): p.Value => {
     case "tuple": return new p.Node("tuple", "", 2, 5, "", [text(), text()], p.noFields, false, false);
     case "rep": return new p.Node("list", "", 2, 5, "", [text(), text()], p.noFields, false, false);
     case "err": return new p.Node("error", "", 2, 4, "x", p.noNodes, p.noFields, false, true);
-    case "struct": return c.newStruct(v.Name);
-    case "box": c.push("list", 1); return P.kidStack.pop()! as p.Value;
-    case "list": return c.list(...elems());
-    case "tupleValue": return c.tuple(...elems());
+    case "struct": return fxStruct(c, v.Name);
+    case "box": fxPush(c, "list", 1); return P.kidStack.pop()! as p.Value;
+    case "list": return fxList(c, ...elems());
+    case "tupleValue": return fxTuple(c, ...elems());
   }
   throw new Error("no value " + v.Kind);
 };

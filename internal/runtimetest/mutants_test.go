@@ -67,8 +67,6 @@ var goMutants = []goMutant{
 	{"the end of a hull is the earliest", "term_exec.go", "TermHull", "ee > hi", "ee < hi"},
 	{"a later element replaces the range of a hull", "term_exec.go", "TermHull", "if first || es < lo {", "if true {"},
 	{"an empty hull is not at the start of the rule", "term_exec.go", "TermHull", "lo := rs", "lo := 0"},
-	{"a fold step charges nothing", "budget.go", "Fold", "c.P.Spend()\n\t\tacc = f(acc", "acc = f(acc"},
-	{"a typed fold step charges nothing", "typed.go", "Fold", "c.P.Spend()\n\t\tacc = f(acc", "acc = f(acc"},
 	{"foldr passes the elements from the first", "term_exec.go", "TermItemAt", "if right {", "if false {"},
 	{"the folds pass the elements in each other's order", "term_exec.go", "TermItemAt", "if right {", "if !right {"},
 	{"an iteration passes a box", "term_exec.go", "TermItemAt", "return UnboxNode(items[i])", "return items[i]"},
@@ -102,10 +100,6 @@ func TestPrintedOperatorMutants(t *testing.T) {
 		}
 		if m.file == "budget.go" || m.fn == "strAdd" || m.fn == "strEq" {
 			heads = []string{"func (p *Parser) "}
-		}
-		if m.fn == "Fold" {
-			// The loops of the built-in functions are methods of the action contexts.
-			heads = []string{map[string]string{"budget.go": "func (c *ActCtx) ", "typed.go": "func (c *TActCtx) "}[m.file]}
 		}
 		if strings.Contains(m.old, "UnboxValue") || strings.Contains(m.old, "UnboxNode") {
 			heads = heads[:1] // a typed value is never boxed

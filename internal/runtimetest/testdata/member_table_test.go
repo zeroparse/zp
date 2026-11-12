@@ -81,9 +81,9 @@ func nodeMemberFixture(controlled bool) (*ActCtx, map[string]any) {
 		conform.MemberNil:   nil,
 		conform.MemberInt:   1,
 		conform.MemberNode:  node,
-		conform.MemberEmpty: c.NewStruct("S"),
-		conform.MemberSet:   c.NewStruct("S", "A", 3, "B", "x"),
-		conform.MemberList:  c.List(),
+		conform.MemberEmpty: c.fxStruct("S"),
+		conform.MemberSet:   c.fxStruct("S", "A", 3, "B", "x"),
+		conform.MemberList:  c.fxList(),
 	}
 }
 
@@ -159,13 +159,13 @@ func TestValueMemberTable(t *testing.T) {
 	for _, controlled := range []bool{false, true} {
 		c, vals := nodeMemberFixture(controlled)
 		if err := conform.RunMembers("node", func(value, member string) string {
-			return memberRead(func() any { return c.Member(vals[value], member) }, memberCanon)
+			return memberRead(func() any { return c.fxMember(vals[value], member) }, memberCanon)
 		}); err != nil {
 			t.Errorf("controlled=%v: %v", controlled, err)
 		}
 		tc, tvals := typedMemberFixture(controlled)
 		if err := conform.RunMembers("typed", func(value, member string) string {
-			return memberRead(func() any { return tc.Member(tvals[value], member) }, tmemberCanon)
+			return memberRead(func() any { return tc.fxMember(tvals[value], member) }, tmemberCanon)
 		}); err != nil {
 			t.Errorf("controlled=%v: %v", controlled, err)
 		}

@@ -22,7 +22,7 @@ func TestValueStructTable(t *testing.T) {
 				kv = append(kv, fmt.Sprintf("F%d", i), vals[f])
 			}
 			before := len(c.P.created)
-			n := c.NewStruct("S", kv...).(*Node)
+			n := c.fxStruct("S", kv...).(*Node)
 			return structResult(n.RawStart, n.RawEnd, len(c.P.created) == before+1 && c.P.created[before] == n)
 		}); err != nil {
 			t.Errorf("controlled=%v: %v", controlled, err)

@@ -14,12 +14,12 @@ import (
 	"zeroparse.dev/zp/internal/ir/exec/conform"
 )
 
-// memberScript runs the reads of reads.json on the member reads of the TypeScript runtime (Actx.member,
-// over the printed method termMember) and prints the canonical result of each (conform.MemberCanon), in
+// memberScript runs the reads of reads.json on the member reads of the TypeScript runtime (fxMember
+// of tsCompose, over the printed method termMember) and prints the canonical result of each (conform.MemberCanon), in
 // order. The fixture is that of the member table: its struct types come from structs.json.
 const memberScript = `import { readFileSync } from "node:fs";
 import * as p from "./parser.ts";
-const CONTROLLED = false;
+` + tsCompose + `const CONTROLLED = false;
 const P = Object.create(p.Parser.prototype);
 P.control = CONTROLLED ? new p.BudgetControl({ signal: null, budget: 0 } as unknown as p.ResolvedParseOptions) : null;
 P.created = [];
@@ -32,7 +32,7 @@ const seven = new p.Node(p.typeBox, "", 0, 0, "", p.noNodes, p.noFields, false, 
 seven.box = 7;
 p.setField(node, "y", seven, null);
 const values: Record<string, p.Value> = {
-  "nil": null, "1": 1, "node": node, "S{}": c.newStruct("S"), 'S{A: 3, B: "x"}': c.newStruct("S", "A", 3, "B", "x"), "[]": c.list(),
+  "nil": null, "1": 1, "node": node, "S{}": fxStruct(c, "S"), 'S{A: 3, B: "x"}': fxStruct(c, "S", "A", 3, "B", "x"), "[]": fxList(c),
 };
 const canon = (v: p.Value): string => {
   if (v === null || v === undefined) return "nil";
@@ -50,9 +50,9 @@ const canon = (v: p.Value): string => {
 const reads: [string, string][] = JSON.parse(readFileSync("reads.json", "utf8"));
 console.log(JSON.stringify(reads.map(([v, m]) => {
   try {
-    return canon(c.member(values[v]!, m));
+    return canon(fxMember(c, values[v]!, m));
   } catch (x) {
-    return x instanceof p.EvalError ? "error: " + x.msg : "exception: " + String(x);
+    return x instanceof FxError ? "error: " + x.msg : "exception: " + String(x);
   }
 })));
 `

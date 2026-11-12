@@ -160,8 +160,9 @@ type TermOptions struct {
 }
 
 // Term lowers the term t. It reports an error if t is not a term that the front end builds: a
-// built-in other than those of the language, one with arguments of the wrong number, or a lambda that
-// is not the function argument of map, filter, foldl or foldr.
+// built-in other than those of the language, one with arguments of the wrong number, a lambda that
+// is not the function argument of map, filter, foldl or foldr, or a parameter read outside the body
+// of its lambda.
 func Term(t ir.Term, o TermOptions) (*TermLowered, error) {
 	if !wellFormed(t) {
 		return nil, fmt.Errorf("lower: a term that the front end does not build: %s", ir.TermString(t))

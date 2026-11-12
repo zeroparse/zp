@@ -441,7 +441,6 @@ docs/optimizations/121-inactive-budget-control-checks.md	unexport	clearSpend	2
 docs/optimizations/121-inactive-budget-control-checks.md	unexport	compareText	1
 docs/optimizations/121-inactive-budget-control-checks.md	unexport	controlledFirstCallPrepare	1
 docs/optimizations/121-inactive-budget-control-checks.md	unexport	copySpend	2
-docs/optimizations/121-inactive-budget-control-checks.md	unexport	evalErrorf	1
 docs/optimizations/121-inactive-budget-control-checks.md	unexport	memoEnv	1
 docs/optimizations/121-inactive-budget-control-checks.md	unexport	memoGet	2
 docs/optimizations/121-inactive-budget-control-checks.md	unexport	memoPut	4

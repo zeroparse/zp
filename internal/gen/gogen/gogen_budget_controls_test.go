@@ -157,16 +157,14 @@ func TestFatalNotRecovered(t *testing.T){
 func TestStringAndMalformedTextBudget(t *testing.T){
  text:=strings.Repeat("a",300)+"é"
  p:=&zprt.Parser{Control:zprt.X_newBudgetControl(context.Background(),Limits{Compute:100000})}
- c:=&zprt.ActCtx{P:p}
- for _,op:=range []int{zprt.OpEq,zprt.OpNe,zprt.OpLt,zprt.OpLe,zprt.OpGt,zprt.OpGe,zprt.OpAdd}{
-  got:=c.Binary(op,text,text)
-  want,_:=p.TermBinary(op,text,text)
-  if !reflect.DeepEqual(got,want){t.Fatalf("string op %d: %v want %v",op,got,want)}
+ for op,want:=range map[int]any{zprt.OpEq:true,zprt.OpNe:false,zprt.OpLt:false,zprt.OpLe:true,zprt.OpGt:false,zprt.OpGe:true,zprt.OpAdd:text+text}{
+  got,f:=p.TermBinary(op,text,strings.Clone(text))
+  if f!=nil || !reflect.DeepEqual(got,want){t.Fatalf("string op %d: %v (failure %v) want %v",op,got,f,want)}
  }
  if p.Control.X_budgetUsed()==0{t.Fatal("string spend not charged")}
  for _,invoke:=range []func(*zprt.Parser){
-  func(p *zprt.Parser){(&zprt.ActCtx{P:p}).Binary(zprt.OpEq,text,strings.Clone(text))},
-  func(p *zprt.Parser){(&zprt.ActCtx{P:p}).Binary(zprt.OpAdd,text,text)},
+  func(p *zprt.Parser){p.TermBinary(zprt.OpEq,text,strings.Clone(text))},
+  func(p *zprt.Parser){p.TermBinary(zprt.OpAdd,text,text)},
   func(p *zprt.Parser){p.X_unitLen(text)},
  }{
   p:=&zprt.Parser{Control:zprt.X_newBudgetControl(context.Background(),Limits{Compute:127})}

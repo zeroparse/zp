@@ -14,12 +14,12 @@ import (
 	"zeroparse.dev/zp/internal/ir/exec/conform"
 )
 
-// hullScript makes the tuples and lists of cases.json on the TypeScript runtime (Actx.tuple and
+// hullScript makes the tuples and lists of cases.json on the TypeScript runtime (fxTuple of tsCompose and
 // Actx.newList, over the printed method termHull), prints the range of each, and the units that the
 // composition charges over the elements again, in order. The input of the parser is input.txt.
 const hullScript = `import { readFileSync } from "node:fs";
 import * as p from "./parser.ts";
-const CONTROLLED = false;
+` + tsCompose + `const CONTROLLED = false;
 const P = Object.create(p.Parser.prototype);
 P.control = CONTROLLED ? new p.BudgetControl({ signal: null, budget: 1e15 } as unknown as p.ResolvedParseOptions) : null;
 P.created = [];
@@ -40,20 +40,20 @@ const used = (): number => (CONTROLLED ? (P.control as any).budgetUsed : 0);
 // pushed returns the elements that list makes of vs.
 const pushed = (vs: p.Value[]): (p.Node | null)[] => {
   const base = P.kidStack.length;
-  for (const v of vs) c.push("list", v);
+  for (const v of vs) fxPush(c, "list", v);
   return P.kidStack.splice(base);
 };
 const cases: [string, string[]][] = JSON.parse(readFileSync("cases.json", "utf8"));
 console.log(JSON.stringify(cases.map(([kind, elems]) => {
   try {
     const vs = elems.map((e) => values[e]!);
-    const n = (kind === "tuple" ? c.tuple(...vs) : c.newList(pushed(vs))) as p.Node;
+    const n = (kind === "tuple" ? fxTuple(c, ...vs) : c.newList(pushed(vs))) as p.Node;
     const rng = n.start + "-" + n.end;
     const before = used();
     P.termHull(c, kind === "tuple", n.children);
     return rng + " " + (used() - before);
   } catch (x) {
-    return x instanceof p.EvalError ? "error: " + x.msg : "exception: " + String(x);
+    return x instanceof FxError ? "error: " + x.msg : "exception: " + String(x);
   }
 })));
 `

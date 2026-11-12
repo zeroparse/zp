@@ -271,16 +271,6 @@ func (n *Node) BaseNode() *Node {
 	return &c
 }
 
-// Convert evaluates a node type constructor T{v}: it converts v to the named node type typ, as the
-// composition convert (term_exec.go) does.
-func (c *ActCtx) Convert(typ string, v any) any {
-	n, e := c.P.TermConvert(c.P.g.NodeTypes[typ], v)
-	if e != nil {
-		panic(e)
-	}
-	return n
-}
-
 // TermNodeType returns the named node type typ, the operand of TermConvert.
 //
 // TermNodeType is for generated parsers; not a stable API.
@@ -876,11 +866,11 @@ func (l SyntaxErrors) Error() string {
 
 // Rule is for generated parsers; not a stable API.
 type Rule struct {
-	kinds  ruleKinds // the node kinds the rule makes (set by setKinds)
-	Id     int
-	Name   string
-	Scope  []string // capture names of the rule body, in slot order
-	Body   func(p *Parser, min int) (*Node, bool)
+	kinds ruleKinds // the node kinds the rule makes (set by setKinds)
+	Id    int
+	Name  string
+	Scope []string // capture names of the rule body, in slot order
+	Body  func(p *Parser, min int) (*Node, bool)
 	// Action returns the value of the rule's action and the failure that ends its evaluation, nil if
 	// it does not fail.
 	Action func(c *ActCtx) (any, any)
@@ -3321,11 +3311,9 @@ func (p *Parser) NewErrorNode(start int, e *SyntaxError) *Node {
 
 // --- Actions and predicates ---
 
-// evalError is an error in evaluating a value expression. It fails the whole parse in an action and
-// makes a predicate fail.
+// evalError is the failure of a term, which the compositions return as a value. It fails the whole
+// parse in an action and makes a predicate fail.
 type evalError struct{ msg string }
-
-func evalErrorf(format string, args ...any) { panic(evalError{fmt.Sprintf(format, args...)}) }
 
 // ActCtx is the context of evaluating an action or a predicate.
 //
@@ -3348,16 +3336,7 @@ func (p *Parser) useCtx(c ActCtx) *ActCtx {
 }
 
 func (c *ActCtx) result(action func(*ActCtx) (any, any), where string) (n *Node) {
-	defer func() {
-		c.P.dropCreated(c.cbase)
-		if x := recover(); x != nil {
-			e, ok := x.(evalError)
-			if !ok {
-				panic(x)
-			}
-			panic(fatal{c.P.wrapEvalError(where, e.msg)})
-		}
-	}()
+	defer c.P.dropCreated(c.cbase)
 	v, f := action(c)
 	if f != nil {
 		c.P.actionFailed(where, f)
@@ -3368,7 +3347,7 @@ func (c *ActCtx) result(action func(*ActCtx) (any, any), where string) (n *Node)
 	n, ok := v.(*Node)
 	if !ok {
 		if _, isFn := v.(func(...any) any); isFn {
-			c.P.evalErrorf("result must be a value, got a function")
+			c.P.actionFailed(where, c.P.evalErrorValue("result must be a value, got a function"))
 		}
 		// A value other than a node travels boxed, with the range of the action's input.
 		return c.P.NewNode(Node{RawKind: kindBox, box: v, RawStart: int32(c.start), RawEnd: int32(c.end)})
@@ -3392,17 +3371,9 @@ func (p *Parser) dropCreated(base int) {
 	p.created = p.created[:base]
 }
 
-// evalTerm is the operation term.eval: it reports false for a term that fails. Any other panic, an
+// evalTerm is the operation term.eval: it reports false for a term that fails. A panic, an
 // interruption among them, ends the parse and passes through.
 func (p *Parser) evalTerm(t func(*ActCtx) (any, any)) (v any, ok bool) {
-	defer func() {
-		if x := recover(); x != nil {
-			if _, isEval := x.(evalError); !isEval {
-				panic(x)
-			}
-			ok = false
-		}
-	}()
 	v, f := t(p.useCtx(ActCtx{P: p, f: p.Frame, start: p.Pos, end: p.Pos, cbase: len(p.created)}))
 	return v, f == nil
 }
@@ -3454,19 +3425,6 @@ func typeName(v any) string {
 	return fmt.Sprintf("%T", v)
 }
 
-func (c *ActCtx) NewStruct(typ string, kv ...any) any {
-	n := c.TermStruct(typ, len(kv)/2)
-	first := true
-	for i := 0; i < len(kv); i += 2 {
-		c.P.Spend()
-		v := kv[i+1]
-		c.TermSetField(n, kv[i].(string), v)
-		first = c.P.TermCover(n, v, first)
-	}
-	c.P.TermMade(c, n, first)
-	return n
-}
-
 // TermStruct returns a new struct of the type typ with no field set and an empty range, with room for
 // n fields: the operation term.struct of a term that makes a struct.
 //
@@ -3495,16 +3453,6 @@ func (c *ActCtx) NewList(items []*Node) *Node {
 // the value model does not show, covers the elements that are nodes.
 func (c *ActCtx) listNode(kids []*Node) *Node { return c.P.TermHull(c, false, kids) }
 
-// Tuple returns a tuple value of the arguments, as a tuple literal builds it.
-func (c *ActCtx) Tuple(args ...any) any {
-	base := len(c.P.KidStack)
-	for _, a := range args {
-		c.P.Spend()
-		c.push("tuple", a)
-	}
-	return c.P.TermHull(c, true, c.P.Kids(base))
-}
-
 // TOperand is an operand of a comparison: a string field read without boxing it (Str, with
 // IsStr), or any other value (V).
 //
@@ -3520,16 +3468,6 @@ func (o TOperand) value() any {
 		return o.Str
 	}
 	return o.V
-}
-
-// Member reads x.name, as the composition member (term_exec.go) does.
-func (c *ActCtx) Member(x any, name string) any {
-	kind, field := memberKind(name)
-	v, e := c.P.TermMember(c, kind, x, name, field)
-	if e != nil {
-		panic(e)
-	}
-	return v
 }
 
 // memberZero is the operation node.zero: the zero value of the declared type of the field name of the
@@ -3556,122 +3494,28 @@ func (c *ActCtx) zeroValue(d string) (any, string) {
 	case 'b':
 		return false, d[1:]
 	case 'l':
-		return c.List(), d[1:]
+		return c.listNode(c.P.Kids(len(c.P.KidStack))), d[1:]
 	case '(':
-		var elems []any
+		base := len(c.P.KidStack)
 		d = d[1:]
 		for d != "" && d[0] != ')' {
 			var e any
 			e, d = c.zeroValue(d)
-			elems = append(elems, e)
+			c.P.Spend()
+			if f := c.P.TermPush(c, "tuple", e); f != nil {
+				panic("runtime: a zero value is not a tuple element") // zero values are never functions
+			}
 		}
-		return c.Tuple(elems...), strings.TrimPrefix(d, ")")
+		return c.P.TermHull(c, true, c.P.Kids(base)), strings.TrimPrefix(d, ")")
 	case '{':
 		// The zero value of a struct type is a struct with no field set, whose fields read as their own
 		// zero values, so that making it costs the same whatever the type holds.
 		name, rest, _ := strings.Cut(d[1:], "}")
-		return c.NewStruct(name), rest
+		n := c.TermStruct(name, 0)
+		c.P.TermMade(c, n, true)
+		return n, rest
 	}
 	return nil, d[1:]
-}
-
-// Length is the built-in function len, as the composition length (term_exec.go) makes it.
-func (c *ActCtx) Length(x any) any {
-	v, e := c.P.TermLength(x)
-	if e != nil {
-		panic(e)
-	}
-	return v
-}
-
-// Text is the built-in function text, as the composition text (term_exec.go) makes it.
-func (c *ActCtx) Text(x any) any {
-	s, e := c.P.TermText(x)
-	if e != nil {
-		panic(e)
-	}
-	return s
-}
-
-// TextStr returns text(x) as a string. Comparisons of two texts use it directly, since storing a
-// string in an interface allocates.
-func (c *ActCtx) TextStr(x any) string {
-	s, e := c.P.TermText(x)
-	if e != nil {
-		panic(e)
-	}
-	return s
-}
-
-// The list built-ins gather the elements on KidStack (lambdas that build lists push above them)
-// and hand the copied-out slice to the list node. If one fails, the error unwinds to the action
-// (which fails the parse) or the predicate (which pops what was gathered).
-
-func (c *ActCtx) MapList(list any, f func(item any) any) any {
-	base := len(c.P.KidStack)
-	c.PushMap(list, f)
-	return c.EndList(base)
-}
-
-func (c *ActCtx) FilterList(list any, f func(item any) any) any {
-	base := len(c.P.KidStack)
-	items := c.ListItems("filter", list)
-	for i := range items {
-		c.P.Spend()
-		keep, e := c.P.TermFilterKeep(f(c.P.TermItemAt(items, i, false)))
-		if e != nil {
-			panic(e)
-		}
-		if keep {
-			c.P.KidStack = append(c.P.KidStack, items[i])
-		}
-	}
-	return c.EndList(base)
-}
-
-func (c *ActCtx) List(args ...any) any {
-	base := len(c.P.KidStack)
-	c.PushList(args...)
-	return c.EndList(base)
-}
-
-func (c *ActCtx) Concat(args ...any) any {
-	base := len(c.P.KidStack)
-	for _, a := range args {
-		c.P.Spend()
-		c.PushItems(a)
-	}
-	return c.EndList(base)
-}
-
-// PushMap, PushList and PushItems push the elements that map, list and concat make from their
-// arguments. A concat call whose arguments are all list, map or such concat calls is generated
-// as pushes for its arguments followed by EndList, so that they build no intermediate list.
-
-func (c *ActCtx) PushMap(list any, f func(item any) any) {
-	items := c.ListItems("map", list)
-	for i := range items {
-		c.P.Spend()
-		c.push("map", f(c.P.TermItemAt(items, i, false)))
-	}
-}
-
-func (c *ActCtx) PushList(args ...any) {
-	for _, a := range args {
-		c.P.Spend()
-		c.push("list", a)
-	}
-}
-
-func (c *ActCtx) PushItems(v any) {
-	if f := c.P.TermPushItems(c, "concat", v); f != nil {
-		panic(f)
-	}
-}
-
-// EndList returns a list of the elements pushed since base.
-func (c *ActCtx) EndList(base int) any {
-	return c.listNode(c.P.Kids(base))
 }
 
 // --- Operators Rule expressions ---

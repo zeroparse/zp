@@ -95,7 +95,7 @@ rule ops Int | O = #operators {
 	if n := strings.Count(string(code), "CheckResult("); n != 0 {
 		t.Fatalf("generated %d result checks", n)
 	}
-	if n := strings.Count(string(code), "c.Cast(") + strings.Count(string(code), "c.P.TermConforms("); n != 3 {
+	if n := strings.Count(string(code), "c.P.TermConforms("); n != 3 {
 		t.Fatalf("generated %d casts, want 3", n)
 	}
 }

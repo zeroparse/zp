@@ -1,4 +1,4 @@
-protocol 11
+protocol 12
 const BaseString untyped int = 0
 const Bytes PositionUnit = 1
 const CodePoints PositionUnit = 0
@@ -131,33 +131,11 @@ func WithTrace(func(TraceEvent)) ParseOption
 func WithTraceFilter(...string) ParseOption
 func WithTraceMaxDepth(int) ParseOption
 func WithUnit(PositionUnit) ParseOption
-method (*ActCtx) And(any, func() any) any
-method (*ActCtx) Binary(int, any, any) any
 method (*ActCtx) Cap(int) any
-method (*ActCtx) Cast(any, *FieldType, int, int) any
-method (*ActCtx) Concat(...any) any
-method (*ActCtx) Convert(string, any) any
-method (*ActCtx) EndList(int) any
-method (*ActCtx) FilterList(any, func(any) any) any
-method (*ActCtx) Fold(string, bool, any, any, func(any, any) any) any
-method (*ActCtx) Length(any) any
-method (*ActCtx) List(...any) any
-method (*ActCtx) ListItems(string, any) []*Node
-method (*ActCtx) MapList(any, func(any) any) any
-method (*ActCtx) Member(any, string) any
 method (*ActCtx) NewList([]*Node) *Node
-method (*ActCtx) NewStruct(string, ...any) any
-method (*ActCtx) Or(any, func() any) any
-method (*ActCtx) PushItems(any)
-method (*ActCtx) PushList(...any)
-method (*ActCtx) PushMap(any, func(any) any)
 method (*ActCtx) TermCastFailed(any, *FieldType, int, int) any
 method (*ActCtx) TermSetField(*Node, string, any)
 method (*ActCtx) TermStruct(string, int) *Node
-method (*ActCtx) Text(any) any
-method (*ActCtx) TextStr(any) string
-method (*ActCtx) Tuple(...any) any
-method (*ActCtx) Unary(int, any) any
 method (*ActCtx) Var(int) any
 method (*BudgetControl) Charge(uint64)
 method (*BudgetControl) ChargeDoc(uint64)
@@ -304,38 +282,15 @@ method (*StreamPull) Close()
 method (*StreamPull) Next() (T, bool, error)
 method (*SyntaxError) Error() string
 method (*SyntaxError) Message() string
-method (*TActCtx) And(any, func() any) any
-method (*TActCtx) Binary(int, any, any) any
 method (*TActCtx) Cap(int) any
-method (*TActCtx) Cast(any, *FieldType, int, int) any
-method (*TActCtx) Compare(int, TOperand, TOperand) any
-method (*TActCtx) Concat(...any) any
-method (*TActCtx) Convert(uint16, any) any
-method (*TActCtx) EndList(int) any
-method (*TActCtx) FieldOperand(any, string) TOperand
-method (*TActCtx) FilterList(any, func(any) any) any
 method (*TActCtx) Finish(any) any
-method (*TActCtx) Fold(string, bool, any, any, func(any, any) any) any
-method (*TActCtx) Length(any) any
-method (*TActCtx) List(...any) any
-method (*TActCtx) ListItems(string, any) []any
 method (*TActCtx) MadeOf(TVal, ...any) any
-method (*TActCtx) MapList(any, func(any) any) any
-method (*TActCtx) Member(any, string) any
 method (*TActCtx) NewList([]any) any
-method (*TActCtx) Or(any, func() any) any
-method (*TActCtx) PushItems(any)
-method (*TActCtx) PushList(...any)
-method (*TActCtx) PushMap(any, func(any) any)
 method (*TActCtx) Result(func(*TActCtx) (any, any), string) any
 method (*TActCtx) TermCastFailed(any, *FieldType, int, int) any
 method (*TActCtx) TermCompare(int, TOperand, TOperand) (any, any)
 method (*TActCtx) TermFieldOperand(any, string) (TOperand, any)
 method (*TActCtx) TermRaise(any)
-method (*TActCtx) Text(any) any
-method (*TActCtx) TextStr(any) string
-method (*TActCtx) Tuple(...any) any
-method (*TActCtx) Unary(int, any) any
 method (*TActCtx) Var(int) any
 method (*TError) TField(string) (any, bool)
 method (*TError) TFresh() bool

@@ -289,33 +289,14 @@ var TsPrintRuns = sync.OnceValue(func() string {
 	return b.String()
 })
 
-// fieldCheckSource returns the run-time type checks the parser uses: castValue if called, which the
-// runtime's fieldConforms serves.
+// fieldCheckSource returns the run-time type check the parser uses: castFailure if called, which
+// the runtime's fieldConforms serves.
 func (g *Generator) fieldCheckSource() string {
-	src := ""
-	for _, f := range []string{"castValue", "castFailure"} {
-		if strings.Contains(g.Init.String(), f+"(") || strings.Contains(g.Vars.String(), f+"(") || strings.Contains(g.Methods.String(), f+"(") {
-			src += tsCheckSources[f]
-		}
+	const f = "castFailure"
+	if strings.Contains(g.Init.String(), f+"(") || strings.Contains(g.Vars.String(), f+"(") || strings.Contains(g.Methods.String(), f+"(") {
+		return "\n" + tsCastFailure + "\n"
 	}
-	return src
-}
-
-// tsCheckSources are the check functions of fieldCheckSource, by name.
-var tsCheckSources = map[string]string{
-	"castFailure": "\n" + tsCastFailure + "\n",
-	"castValue": `
-// castValue returns v if it fits t, the type of a cast, and raises an evaluation error otherwise.
-// The error names the input position where the action started and, when gline is positive, the
-// grammar position of the cast.
-function castValue(c: Actx, v: Value, t: FieldType, gline: number, gcol: number): Value {
-  if (!c.p.fieldConforms(t, v)) {
-    const e = c.p.makeError(c.start, []);
-    return evalError(` + "`cannot cast ${typeName(v)} to ${t.text} at input position ${c.start} (line ${e.line}, column ${e.col})${gline > 0 ? `; cast at grammar position ${gline}:${gcol}` : \"\"}`" + `);
-  }
-  return v;
-}
-`,
+	return ""
 }
 
 // tsFieldTypeDecl declares the check type variable v.

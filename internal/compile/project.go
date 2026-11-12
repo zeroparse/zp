@@ -161,9 +161,9 @@ func ruleProjectionsControlled(prog *Program, r *Rule, control *cancel.Control) 
 	return proj
 }
 
-// ProjectedMap reports whether the call t is map($x, (e) => e.$f) for a projected capture x (proj
+// projectedMap reports whether the call t is map($x, (e) => e.$f) for a projected capture x (proj
 // as from ruleProjections; locals are names bound by enclosing lambdas).
-func ProjectedMap(t *grammar.Call, proj map[string]string, local func(string) bool) (*grammar.CaptureRef, bool) {
+func projectedMap(t *grammar.Call, proj map[string]string, local func(string) bool) (*grammar.CaptureRef, bool) {
 	if proj == nil || t.Func != "map" || len(t.Args) != 2 {
 		return nil, false
 	}
@@ -185,7 +185,7 @@ func markProjectedMaps(t grammar.Term, proj map[string]string, set map[*grammar.
 		control.Poll()
 		switch t := t.(type) {
 		case *grammar.Call:
-			if _, ok := ProjectedMap(t, proj, func(name string) bool { return shadow[name] }); ok {
+			if _, ok := projectedMap(t, proj, func(name string) bool { return shadow[name] }); ok {
 				set[t] = true
 				return
 			}

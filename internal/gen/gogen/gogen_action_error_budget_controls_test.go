@@ -103,28 +103,24 @@ func TestActionTextFragmentsAndFlatPrefix(t *testing.T){
  if e.Error()!=want || errors.Unwrap(e)!=nil || p.Control.X_budgetUsed()!=uint64(len(want)+8){t.Fatal("flat wrapper contract",e)}
  p.Control=zprt.X_newBudgetControl(nil,Limits{Compute:uint64(len(want)+7)});_,e=catchActionText(func(){p.X_wrapEvalError(where,message)});if !errors.Is(e,ErrLimit){t.Fatal("one-short wrapper",e)}
 }
-func TestActionHelperErrorsAndShortCircuit(t *testing.T){
+func TestTermCompositionErrorText(t *testing.T){
  long:=strings.Repeat("Kind",2048);n:=&Node{RawKind:zprt.KindOf(long,"")};tn:=&zprt.TSeq{Typ:"tuple",Kids:make([]any,2048)}
+ raise:=func(f any){if f!=nil{panic(f)}}
  for _,typed:=range []bool{false,true}{
-  p:=&zprt.Parser{};tp:=&zprt.TParser{Parser:p};called:=0
+  p:=&zprt.Parser{};tp:=&zprt.TParser{Parser:p}
   cases:=[]func(){
-   func(){if typed{(&zprt.TActCtx{P:tp}).Unary(zprt.OpNeg,tn)}else{(&zprt.ActCtx{P:p}).Unary(zprt.OpNeg,n)}},
-   func(){if typed{(&zprt.TActCtx{P:tp}).Binary(zprt.OpAdd,tn,1)}else{(&zprt.ActCtx{P:p}).Binary(zprt.OpAdd,n,1)}},
-   func(){right:=func()any{called++;return true};if typed{(&zprt.TActCtx{P:tp}).And(tn,right)}else{(&zprt.ActCtx{P:p}).And(n,right)}},
-   func(){right:=func()any{called++;return false};if typed{(&zprt.TActCtx{P:tp}).Or(tn,right)}else{(&zprt.ActCtx{P:p}).Or(n,right)}},
-   func(){if typed{(&zprt.TActCtx{P:tp}).ListItems(long,1)}else{(&zprt.ActCtx{P:p}).ListItems(long,1)}},
-   func(){fn:=func(...any)any{return nil};if typed{(&zprt.TActCtx{P:tp}).X_push(long,fn)}else{(&zprt.ActCtx{P:p}).X_push(long,fn)}},
+   func(){if typed{_,f:=tp.TermUnary(zprt.OpNeg,tn);raise(f)}else{_,f:=p.TermUnary(zprt.OpNeg,n);raise(f)}},
+   func(){if typed{_,f:=tp.TermBinary(zprt.OpAdd,tn,1);raise(f)}else{_,f:=p.TermBinary(zprt.OpAdd,n,1);raise(f)}},
+   func(){if typed{_,f:=tp.TermLogic(zprt.OpAnd,tn);raise(f)}else{_,f:=p.TermLogic(zprt.OpAnd,n);raise(f)}},
+   func(){if typed{_,f:=tp.TermLogic(zprt.OpOr,tn);raise(f)}else{_,f:=p.TermLogic(zprt.OpOr,n);raise(f)}},
+   func(){if typed{_,f:=tp.TermItems(long,1);raise(f)}else{_,f:=p.TermItems(long,1);raise(f)}},
+   func(){fn:=func(...any)any{return nil};if typed{raise(tp.TermPush(&zprt.TActCtx{P:tp},long,fn))}else{raise(p.TermPush(&zprt.ActCtx{P:p},long,fn))}},
   }
   for _,run:=range cases{
    p.Control=nil;ordinary,e:=catchActionText(run);if e!=nil || ordinary==""{t.Fatal("ordinary helper error",e)}
    p.Control=zprt.X_newBudgetControl(nil,Limits{Compute:1<<50});active,e:=catchActionText(run);if e!=nil || active!=ordinary{t.Fatal("active helper error changed",e)}
    p.Control=zprt.X_newBudgetControl(nil,Limits{Compute:256});partial,e:=catchActionText(run);if partial!="" || !errors.Is(e,ErrLimit){t.Fatal("helper error unbounded",e)}
   }
-  if called!=0{t.Fatal("invalid boolean operand evaluated RHS")}
-  p.Control=zprt.X_newBudgetControl(nil,Limits{Compute:1<<50});called=0
-  right:=func()any{called++;return true};var and,or any
-  if typed{c:=&zprt.TActCtx{P:tp};and=c.And(false,right);or=c.Or(true,right)}else{c:=&zprt.ActCtx{P:p};and=c.And(false,right);or=c.Or(true,right)}
-  if and!=false || or!=true || called!=0{t.Fatal("valid short circuit changed")}
  }
 }
 `

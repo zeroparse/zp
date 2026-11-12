@@ -11,13 +11,14 @@ is small. The helpers are therefore split: the test, the call of a `...Controlle
 holds the charging body, and the ordinary body stay in the helper; the controlled body is a
 separate unexported function. This covers `appendSpend`, `copySpend`, `clearSpend`, `growSpend`, the
 typed `memoGet` and `memoPut`, `valueField`, `setValueField`, `compareText`, `sortExpected` and
-`evalErrorf`. `Keep`, which
+the constructor of the failure of a term. `Keep`, which
 compares an expectation set with the set kept last, charges each comparison through `Spend`,
 whose inlined test of the control does the same.
 
-The operators of terms (`Binary`, `Unary`, `And`, `Or`), the member reads (`Member`) and the
-walks and pushes of the list built-ins (`Fold`, `ListItems`, `push`, `PushItems`) are not split.
-Each calls a composition printed once into `term_exec.go`, with one body for both cases; the only
+The operations of terms are not split: the operators (`TermBinary`, `TermUnary`, `TermLogic`), the
+member reads (`TermMember`) and the walks and pushes of the list built-ins (`TermItems`,
+`TermItemAt`, `TermPush`, `TermPushItems`) are compositions printed once into `term_exec.go`, which
+the lowered code of a term calls, with one body for both cases; the only
 tests of the control are in the string primitives `strCmp` and `strEq`, which charge a comparison
 of two strings, in the helper that appends the elements concat copies, which charges them, in the field
 read, which charges the fields it scans, and in the error constructor, which charges the pieces of

@@ -5012,19 +5012,6 @@ export class Fatal {
   }
 }
 
-// EvalError is an error in evaluating a value expression. It fails the whole parse in an action
-// and makes a predicate fail.
-export class EvalError {
-  msg: string;
-  constructor(msg: string) {
-    this.msg = msg;
-  }
-}
-
-export function evalError(msg: string): never {
-  throw new EvalError(msg);
-}
-
 // Actx is the context of evaluating an action or a predicate.
 export class Actx {
   p: Parser;
@@ -5043,56 +5030,18 @@ export class Actx {
 
   spend(): void { this.p.spend(); }
 
-  // binary applies the binary operator with the code op (the index in the binary operators), failing the
-  // action if its operands are not valid.
-  binary(op: number, l: Value, r: Value): Value {
-    const [v, e] = this.p.termBinary(op, l, r);
-    if (e !== null) {
-      return evalError(e as string);
-    }
-    return v;
-  }
-
-  // unary applies the unary operator with the code op to x.
-  unary(op: number, x: Value): Value {
-    const [v, e] = this.p.termUnary(op, x);
-    if (e !== null) {
-      return evalError(e as string);
-    }
-    return v;
-  }
-
-  // logic checks the operand x of the logical operator with the code op and returns it.
-  logic(op: number, x: Value): boolean {
-    const [b, e] = this.p.termLogic(op, x);
-    if (e !== null) {
-      return evalError(e as string);
-    }
-    return b;
-  }
-
-  // and evaluates l && r: r is evaluated only if l is true.
-  and(l: Value, r: () => Value): Value {
-    return this.logic(0, l) && this.logic(0, r());
-  }
-
-  // or evaluates l || r: r is evaluated only if l is false.
-  or(l: Value, r: () => Value): Value {
-    return this.logic(1, l) || this.logic(1, r());
-  }
-
   result(action: Action, where: string): Node | null {
     try {
       const [v, f] = action(this);
       if (f !== null) {
-        return evalError(f as string);
+        return this.failed(where, f as string);
       }
       if (v === null) {
         return null;
       }
       if (!(v instanceof Node)) {
         if (typeof (v as unknown) === "function") {
-          return evalError("result must be a value, got a function");
+          return this.failed(where, "result must be a value, got a function");
         }
         // A value other than a node travels boxed, with the range of the action's input.
         this.p.alloc(nodeBytes);
@@ -5112,14 +5061,14 @@ export class Actx {
       }
       n.fresh = false; // the value of an action is final (see the engine's actionResult)
       return n;
-    } catch (x) {
-      if (x instanceof EvalError) {
-        throw new Fatal(new Error(`action in ${where}: ${x.msg}`));
-      }
-      throw x;
     } finally {
       this.p.created.length = this.cbase;
     }
+  }
+
+  // failed ends the parse with the failure msg of the action in where.
+  failed(where: string, msg: string): never {
+    throw new Fatal(new Error(`action in ${where}: ${msg}`));
   }
 
   cap(slot: number): Value {
@@ -5129,28 +5078,6 @@ export class Actx {
   // variable returns the value of the variable in slot i.
   variable(slot: number): Value {
     return this.p.variable(slot);
-  }
-
-  // convert evaluates a node type constructor T{v}: it converts v to the named node type typ.
-  convert(typ: string, v: Value): Value {
-    const [n, e] = this.p.termConvert(typ, v);
-    if (e !== null) {
-      return evalError(e as string);
-    }
-    return n;
-  }
-
-  newStruct(typ: string, ...kv: Value[]): Value {
-    const n = this.termStruct(typ);
-    let first = true;
-    for (let i = 0; i < kv.length; i += 2) {
-      this.spend();
-      const v = kv[i + 1];
-      this.termSetField(n, kv[i] as string, v!);
-      first = this.p.termCover(n, v!, first);
-    }
-    this.p.termMade(this, n, first);
-    return n;
   }
 
   // termStruct returns a new struct of the type typ with no field set and an empty range: the
@@ -5178,27 +5105,6 @@ export class Actx {
     return this.p.termHull(this, false, kids);
   }
 
-  // tuple returns a tuple value of the arguments, as a tuple literal builds it.
-  tuple(...args: Value[]): Value {
-    const base = this.p.kidStack.length;
-    this.spend();
-    for (const a of args) {
-      this.spend();
-      this.push("tuple", a);
-    }
-    return this.p.termHull(this, true, this.p.kids(base));
-  }
-
-  // member reads x.name, as the composition member does.
-  member(x: Value, name: string): Value {
-    const kind = this.p.memberKind(name);
-    const [v, e] = this.p.termMember(this, kind, x, name, this.p.memberName(kind, name));
-    if (e !== null) {
-      return evalError(e as string);
-    }
-    return v;
-  }
-
   // memberZero is the operation node.zero: the zero value of the declared type of the field name of the
   // struct n, or undefined if its type declares no such field.
   memberZero(n: Node, name: string): Value | undefined {
@@ -5217,57 +5123,32 @@ export class Actx {
       case "b":
         return [false, i + 1];
       case "l":
-        return [this.list(), i + 1];
+        this.spend();
+        return [this.listNode(this.p.kids(this.p.kidStack.length)), i + 1];
       case "(": {
-        const elems: Value[] = [];
+        const base = this.p.kidStack.length;
+        this.spend();
         i++;
         while (i < d.length && d[i] !== ")") {
           let e: Value;
           [e, i] = this.zeroValue(d, i);
-          elems.push(e);
+          this.spend();
+          if (this.p.termPush(this, "tuple", e) !== null) {
+            throw new Error("runtime: a zero value is not a tuple element"); // zero values are never functions
+          }
         }
-        return [this.tuple(...elems), i + 1];
+        return [this.p.termHull(this, true, this.p.kids(base)), i + 1];
       }
       case "{": {
         // The zero value of a struct type is a struct with no field set, whose fields read as their own
         // zero values, so that making it costs the same whatever the type holds.
         const end = d.indexOf("}", i);
-        return [this.newStruct(d.slice(i + 1, end)), end + 1];
+        const n = this.termStruct(d.slice(i + 1, end));
+        this.p.termMade(this, n, true);
+        return [n, end + 1];
       }
     }
     return [null, i + 1];
-  }
-
-  // length is the built-in function len, as the composition length makes it.
-  length(x: Value): Value {
-    const [v, e] = this.p.termLength(x);
-    if (e !== null) {
-      return evalError(e as string);
-    }
-    return v;
-  }
-
-  text(x: Value): Value {
-    return this.textStr(x);
-  }
-
-  // textStr returns text(x) as a string, as the composition text makes it.
-  textStr(x: Value): string {
-    const [s, e] = this.p.termText(x);
-    if (e !== null) {
-      return evalError(e as string);
-    }
-    return s;
-  }
-
-  // listItems returns the elements of v, an argument of the built-in function fn that takes a list,
-  // as the composition items reads them.
-  listItems(fn: string, v: Value): readonly (Node | null)[] {
-    const [items, e] = this.p.termItems(fn, v);
-    if (e !== null) {
-      return evalError(e as string);
-    }
-    return items;
   }
 
   // box is the operation val.box: x boxed with the range of the input, as the result of an action
@@ -5279,85 +5160,6 @@ export class Actx {
     return b;
   }
 
-  // The list built-ins gather the elements on kidStack (lambdas that build lists push above them)
-  // and hand the copied-out slice to the list node. If one fails, the error unwinds to the action
-  // (which fails the parse) or the predicate (which pops what was gathered).
-
-  mapList(list: Value, f: (item: Value) => Value): Value {
-    const base = this.p.kidStack.length;
-    this.pushMap(list, f);
-    return this.endList(base);
-  }
-
-  filterList(list: Value, f: (item: Value) => Value): Value {
-    const base = this.p.kidStack.length;
-    const items = this.listItems("filter", list);
-    for (let i = 0; i < items.length; i++) {
-      this.spend();
-      const [keep, e] = this.p.termFilterKeep(f(this.p.termItemAt(items, i, false)));
-      if (e !== null) {
-        return evalError(e as string);
-      }
-      if (keep) {
-        this.p.kidStack.push(items[i]!);
-      }
-    }
-    return this.endList(base);
-  }
-
-  list(...args: Value[]): Value {
-    const base = this.p.kidStack.length;
-    this.pushList(...args);
-    return this.endList(base);
-  }
-
-  concat(...args: Value[]): Value {
-    const base = this.p.kidStack.length;
-    for (const a of args) {
-      this.spend();
-      this.pushItems(a);
-    }
-    return this.endList(base);
-  }
-
-  // pushMap, pushList and pushItems push the elements that map, list and concat make from their
-  // arguments. A concat call whose arguments are all list, map or such concat calls is generated
-  // as pushes for its arguments followed by endList, so that they build no intermediate list.
-
-  pushMap(list: Value, f: (item: Value) => Value): void {
-    this.spend();
-    const items = this.listItems("map", list);
-    for (let i = 0; i < items.length; i++) {
-      this.spend();
-      this.push("map", f(this.p.termItemAt(items, i, false)));
-    }
-  }
-
-  // push pushes v as the next element of the list or the tuple that fn makes, as the composition push
-  // does.
-  push(fn: string, v: Value): void {
-    const e = this.p.termPush(this, fn, v);
-    if (e !== null) {
-      evalError(e as string);
-    }
-  }
-
-  pushList(...args: Value[]): void {
-    this.spend();
-    for (const a of args) {
-      this.spend();
-      this.push("list", a);
-    }
-  }
-
-  pushItems(v: Value): void {
-    this.spend();
-    const e = this.p.termPushItems(this, "concat", v);
-    if (e !== null) {
-      evalError(e as string);
-    }
-  }
-
   // pushAll pushes items on the parser's kidStack in order, charging one unit for each (the primitive
   // act.pushAll).
   pushAll(items: readonly (Node | null)[]): void {
@@ -5367,10 +5169,6 @@ export class Actx {
     }
   }
 
-  // endList returns a list of the elements pushed since base.
-  endList(base: number): Value {
-    return this.listNode(this.p.kids(base));
-  }
 }
 
 export function typeName(v: unknown): string {
@@ -5422,15 +5220,6 @@ export function valueTypeName(shape: number, name: string, elems: number): strin
 // tupleTerm is the type term of a tuple of n elements of unknown types.
 export function tupleTerm(n: number): string {
   return n === 1 ? "(_,)" : `(${Array<string>(n).fill("_").join(", ")})`;
-}
-
-export function rtFold(c: Actx, fn: string, right: boolean, acc: Value, list: Value, f: (acc: Value, item: Value) => Value): Value {
-  const items = c.listItems(fn, list);
-  for (let i = 0; i < items.length; i++) {
-    c.spend();
-    acc = f(acc, c.p.termItemAt(items, i, right));
-  }
-  return acc;
 }
 
 // --- Ints ---
@@ -5595,4 +5384,4 @@ export interface OperatorsRuleAttempt {
 
 // Declarations that the code generated for a grammar may not use, read here so that projects
 // compiling with noUnusedLocals accept the module.
-void [idBeginInput, idBeginLine, idEndLine, rtFold];
+void [idBeginInput, idBeginLine, idEndLine];

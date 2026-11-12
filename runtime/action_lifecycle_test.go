@@ -4,8 +4,8 @@ import "testing"
 
 func TestActionTrackingReleasesReferences(t *testing.T) {
 	// Any value but a function is a result: a value other than a node is boxed. An action fails by
-	// returning its failure ("failure") or, printed by the term printer, by an evaluation error ("error").
-	for _, name := range []string{"nil", "node", "value", "invalid", "error", "failure"} {
+	// returning its failure ("failure"); a function as its value ends the parse too ("invalid").
+	for _, name := range []string{"nil", "node", "value", "invalid", "failure"} {
 		t.Run(name, func(t *testing.T) {
 			prefix := &Node{RawText: "keep"}
 			made := &Node{RawFresh: true}
@@ -24,19 +24,20 @@ func TestActionTrackingReleasesReferences(t *testing.T) {
 						return 1, nil
 					case "invalid":
 						return func(...any) any { return nil }, nil
-					case "error":
-						evalErrorf("failed")
 					case "failure":
 						return nil, evalError{"failed"}
 					}
 					return nil, nil
 				}, "test")
 			}()
-			if (panicValue != nil) != (name == "invalid" || name == "error" || name == "failure") {
+			if (panicValue != nil) != (name == "invalid" || name == "failure") {
 				t.Fatalf("unexpected panic: %v", panicValue)
 			}
-			if f, ok := panicValue.(fatal); (name == "error" || name == "failure") && (!ok || f.err.Error() != "action in test: failed") {
+			if f, ok := panicValue.(fatal); name == "failure" && (!ok || f.err.Error() != "action in test: failed") {
 				t.Fatalf("failure ends the parse with %v", panicValue)
+			}
+			if f, ok := panicValue.(fatal); name == "invalid" && (!ok || f.err.Error() != "action in test: result must be a value, got a function") {
+				t.Fatalf("a function as the result ends the parse with %v", panicValue)
 			}
 			if len(p.created) != 1 || p.created[0] != prefix || p.created[:cap(p.created)][1] != nil {
 				t.Fatal("tracking retains a discarded reference or changed its prefix")
@@ -53,7 +54,7 @@ func TestTypedActionTrackingReleasesReferences(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			prefix := &TSeq{Typ: "keep"}
 			made := &TSeq{fresh: true}
-			p := &TParser{Parser: &Parser{}, Created: []TVal{prefix, made}}
+			p := &TParser{Parser: &Parser{}, Where: "test", Created: []TVal{prefix, made}}
 			c := &TActCtx{P: p, Cbase: 1, Start: 3, End: 4}
 			var got any
 			var panicValue any
@@ -71,6 +72,9 @@ func TestTypedActionTrackingReleasesReferences(t *testing.T) {
 			}()
 			if (panicValue != nil) != (name == "invalid") {
 				t.Fatalf("unexpected panic: %v", panicValue)
+			}
+			if f, ok := panicValue.(fatal); name == "invalid" && (!ok || f.err.Error() != "action in test: result must be a value, got a function") {
+				t.Fatalf("a function as the result ends the parse with %v", panicValue)
 			}
 			if len(p.Created) != 1 || p.Created[0] != prefix || p.Created[:cap(p.Created)][1] != nil {
 				t.Fatal("tracking retains a discarded reference or changed its prefix")

@@ -34,8 +34,8 @@ func nodeBuiltinFixture(controlled bool) (*ActCtx, map[string]any) {
 		conform.BuiltinBool:   true,
 		conform.BuiltinText:   text,
 		conform.BuiltinNode:   &Node{RawKind: RawKindSeq, RawStart: 2, RawEnd: 5, RawChildren: []*Node{text, text}},
-		conform.BuiltinPair:   c.List(1, 2),
-		conform.MemberList:    c.List(),
+		conform.BuiltinPair:   c.fxList(1, 2),
+		conform.MemberList:    c.fxList(),
 		conform.BuiltinFunc:   func(x any) any { return x },
 	}
 }
@@ -79,13 +79,13 @@ func TestValueBuiltinTable(t *testing.T) {
 			return memberRead(func() any {
 				switch call {
 				case conform.CallLen:
-					return c.Length(v)
+					return fxValue(c.P.TermLength(v))
 				case conform.CallText:
-					return c.TextStr(v)
+					return fxValue(c.P.TermText(v))
 				case conform.CallConvert:
-					return c.Convert(conform.BuiltinType, v)
+					return fxValue(c.P.TermConvert(c.P.g.NodeTypes[conform.BuiltinType], v))
 				}
-				return c.listNode(c.ListItems(conform.BuiltinFn(call), v))
+				return c.listNode(c.fxItems(conform.BuiltinFn(call), v))
 			}, memberCanon)
 		}); err != nil {
 			t.Errorf("controlled=%v: %v", controlled, err)
@@ -96,13 +96,13 @@ func TestValueBuiltinTable(t *testing.T) {
 			return memberRead(func() any {
 				switch call {
 				case conform.CallLen:
-					return tc.Length(v)
+					return fxValue(tc.P.TermLength(v))
 				case conform.CallText:
-					return tc.TextStr(v)
+					return fxValue(tc.P.TermText(v))
 				case conform.CallConvert:
-					return tc.Convert(builtinTypeNt, v)
+					return fxValue(tc.P.TermConvert(builtinTypeNt, v))
 				}
-				return &TSeq{Typ: TypeListValue, Kids: tc.ListItems(conform.BuiltinFn(call), v)}
+				return &TSeq{Typ: TypeListValue, Kids: tc.fxItems(conform.BuiltinFn(call), v)}
 			}, tmemberCanon)
 		}); err != nil {
 			t.Errorf("controlled=%v: %v", controlled, err)

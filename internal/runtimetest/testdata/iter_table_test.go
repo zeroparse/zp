@@ -7,10 +7,10 @@ import (
 )
 
 // The iteration table (conform.IterCases) on the compositions itemAt and filterKeep of the node and the typed
-// runtime (TermItemAt and TermFilterKeep, printed from Exec IR), through the methods of a context
+// runtime (TermItemAt and TermFilterKeep, printed from Exec IR), through the helpers of compose_test.go
 // for foldl, foldr, map and filter.
 
-// iterCall calls the built-in function of the iteration table's call on v through the methods of a context:
+// iterCall calls the built-in function of the iteration table's call on v through the helpers of compose_test.go:
 // fold, mapList and filterList are those of the node or the typed runtime.
 func iterCall(call string, v any, fold func(fn string, right bool, acc, list any, f func(acc, item any) any) any,
 	mapList, filterList func(list any, f func(item any) any) any) any {
@@ -33,7 +33,7 @@ func TestValueIterTable(t *testing.T) {
 			if controlled {
 				before = c.P.Control.budgetUsed()
 			}
-			got := memberRead(func() any { return iterCall(call, vals[value], c.Fold, c.MapList, c.FilterList) }, memberCanon)
+			got := memberRead(func() any { return iterCall(call, vals[value], c.fxFold, c.fxMap, c.fxFilter) }, memberCanon)
 			if controlled {
 				return got, int(c.P.Control.budgetUsed() - before)
 			}
@@ -47,7 +47,7 @@ func TestValueIterTable(t *testing.T) {
 			if controlled {
 				before = tc.P.Control.budgetUsed()
 			}
-			got := memberRead(func() any { return iterCall(call, tvals[value], tc.Fold, tc.MapList, tc.FilterList) }, tmemberCanon)
+			got := memberRead(func() any { return iterCall(call, tvals[value], tc.fxFold, tc.fxMap, tc.fxFilter) }, tmemberCanon)
 			if controlled {
 				return got, int(tc.P.Control.budgetUsed() - before)
 			}

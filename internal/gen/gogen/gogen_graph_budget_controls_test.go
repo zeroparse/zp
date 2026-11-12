@@ -76,6 +76,12 @@ import("context";"errors";"fmt";"reflect";"strings";"testing")
 const conversion = CONVERT
 func graphParser(limit uint64)*zprt.Parser{p:=&zprt.Parser{Control:zprt.X_newBudgetControl(nil,Limits{Compute:limit})};p.X_setGrammar(zpGrammar);return p}
 func graphFatal(f func())(err error){defer func(){if x:=recover();x!=nil{v,ok:=x.(zprt.X_fatal);if !ok{panic(x)};err=v.X_err}}();f();return nil}
+// The helpers below call the term compositions as lowered terms do: a field read through TermMember,
+// and a fold that reads the items and steps through them with TermItemAt.
+func nodeMember(p *zprt.Parser,x any,name string)any{v,f:=p.TermMember(&zprt.ActCtx{P:p},zprt.MemberField,x,name,name);if f!=nil{panic(f)};return v}
+func typedMember(tp *zprt.TParser,x any,name string)any{v,f:=tp.TermMember(&zprt.TActCtx{P:tp},zprt.MemberField,x,name,name);if f!=nil{panic(f)};return v}
+func nodeFold(p *zprt.Parser,fn string,right bool,acc,list any,step func(acc,item any)any)any{items,f:=p.TermItems(fn,list);if f!=nil{panic(f)};for i:=range items{p.Spend();acc=step(acc,p.TermItemAt(items,i,right))};return acc}
+func typedFold(tp *zprt.TParser,fn string,right bool,acc,list any,step func(acc,item any)any)any{items,f:=tp.TermItems(fn,list);if f!=nil{panic(f)};for i:=range items{tp.Spend();acc=step(acc,tp.TermItemAt(items,i,right))};return acc}
 func requireGraphLimit(t *testing.T,p *zprt.Parser,f func()){
  t.Helper();err:=graphFatal(f)
  if !errors.Is(err,ErrLimit){t.Fatal("operation escaped budget",err)}
@@ -90,9 +96,9 @@ func TestGraphFields(t *testing.T){
  for i:=range fs{name:=fmt.Sprintf("field%d",i);fs[i]=NodeField{name,i};tn.X_fields[i]=zprt.X_tfield{name,i}}
  for _,typed:=range []bool{false,true}{
   p:=graphParser(32);tp:=&zprt.TParser{Parser:p};node:=&Node{RawFields:fs}
-  requireGraphLimit(t,p,func(){if typed{(&zprt.TActCtx{P:tp}).Member(tn,"absent-field-with-distinct-length")}else{(&zprt.ActCtx{P:p}).Member(node,"absent-field-with-distinct-length")}})
+  requireGraphLimit(t,p,func(){if typed{typedMember(tp,tn,"absent-field-with-distinct-length")}else{nodeMember(p,node,"absent-field-with-distinct-length")}})
   p.Control=zprt.X_newBudgetControl(nil,Limits{Compute:100000})
-  var got any;if typed{got=(&zprt.TActCtx{P:tp}).Member(tn,"field299")}else{got=(&zprt.ActCtx{P:p}).Member(node,"field299")}
+  var got any;if typed{got=typedMember(tp,tn,"field299")}else{got=nodeMember(p,node,"field299")}
   if got!=299{t.Fatal("field read changed",got)}
   p.Control=zprt.X_newBudgetControl(nil,Limits{Compute:32})
   requireGraphLimit(t,p,func(){if typed{tp.X_setValueField(tn,"field299",nodes[0])}else{p.X_setValueField(&fs,"field299",nodes[0])}})
@@ -133,28 +139,28 @@ func TestTypedFieldMaterialization(t *testing.T){
  for i:=range bag.Items{bag.Items[i]=&Leaf{Span:Span{Start:i+3,End:i+4},Text:"a"};bag.Nested[i]=[]*Leaf{bag.Items[i]}}
  for _,name:=range []string{"Items","Nested"}{
   p:=graphParser(32);tp:=&zprt.TParser{Parser:p};var result any
-  requireGraphLimit(t,p,func(){result=(&zprt.TActCtx{P:tp}).Member(bag,name)})
+  requireGraphLimit(t,p,func(){result=typedMember(tp,bag,name)})
   if result!=nil{t.Fatal("partial field published")}
   p.Control=zprt.X_newBudgetControl(nil,Limits{Compute:100000})
-  got:=(&zprt.TActCtx{P:tp}).Member(bag,name).(*zprt.TSeq);ordinary,_:=bag.TField(name)
+  got:=typedMember(tp,bag,name).(*zprt.TSeq);ordinary,_:=bag.TField(name)
   want:=ordinary.(*zprt.TSeq)
   if !reflect.DeepEqual(got,want) || got.Start!=3 || got.End!=303{t.Fatal("field materialization changed",name)}
   wantSteps:=uint64(2*len(bag.Items));if name=="Nested"{wantSteps+=uint64(2*len(bag.Nested))};if p.Control.X_budgetUsed()!=wantSteps{t.Fatal("list field spend omitted",name,p.Control.X_budgetUsed(),wantSteps)}
   if name=="Items"{got.Kids[0]=nil;if bag.Items[0]==nil{t.Fatal("field result aliases input")}}
  }
  p:=graphParser(32);tp:=&zprt.TParser{Parser:p};empty:=&Bag{Items:[]*Leaf{},Nested:nil}
- if got:=(&zprt.TActCtx{P:tp}).Member(empty,"Items");got==nil || len(got.(*zprt.TSeq).Kids)!=0{t.Fatal("empty field changed")}
- if got:=(&zprt.TActCtx{P:tp}).Member(empty,"Nested");got==nil || len(got.(*zprt.TSeq).Kids)!=0{t.Fatal("nil field is not the empty list")}
+ if got:=typedMember(tp,empty,"Items");got==nil || len(got.(*zprt.TSeq).Kids)!=0{t.Fatal("empty field changed")}
+ if got:=typedMember(tp,empty,"Nested");got==nil || len(got.(*zprt.TSeq).Kids)!=0{t.Fatal("nil field is not the empty list")}
 }
 func TestGraphFoldOrderAndBudget(t *testing.T){
  nodes,values:=graphKids()
  for _,typed:=range []bool{false,true}{for _,right:=range []bool{false,true}{
   p:=graphParser(32);tp:=&zprt.TParser{Parser:p};visits:=0
   f:=func(acc,item any)any{visits++;return item}
-  requireGraphLimit(t,p,func(){if typed{(&zprt.TActCtx{P:tp}).Fold("foldl",right,nil,&zprt.TSeq{Typ:"list",Kids:values},f)}else{(&zprt.ActCtx{P:p}).Fold("foldl",right,nil,&Node{RawKind:zprt.RawKindList,RawChildren:nodes},f)}})
+  requireGraphLimit(t,p,func(){if typed{typedFold(tp,"foldl",right,nil,&zprt.TSeq{Typ:"list",Kids:values},f)}else{nodeFold(p,"foldl",right,nil,&Node{RawKind:zprt.RawKindList,RawChildren:nodes},f)}})
   if visits!=32{t.Fatal("fold advanced past budget",visits)}
   p.Control=zprt.X_newBudgetControl(nil,Limits{Compute:100000});visits=0
-  var got any;if typed{got=(&zprt.TActCtx{P:tp}).Fold("foldl",right,nil,&zprt.TSeq{Typ:"list",Kids:values},f)}else{got=(&zprt.ActCtx{P:p}).Fold("foldl",right,nil,&Node{RawKind:zprt.RawKindList,RawChildren:nodes},f)}
+  var got any;if typed{got=typedFold(tp,"foldl",right,nil,&zprt.TSeq{Typ:"list",Kids:values},f)}else{got=nodeFold(p,"foldl",right,nil,&Node{RawKind:zprt.RawKindList,RawChildren:nodes},f)}
   index:=299;if right{index=0};want:=any(nodes[index]);if typed{want=values[index]};if visits!=300 || got!=want{t.Fatal("fold order changed",visits)}
  }}
 }

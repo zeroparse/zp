@@ -152,7 +152,7 @@ func (g *Generator) castTypeVar(x *irc.Cast) string {
 
 // tsCastFailure is the check function castFailure of fieldCheckSource.
 var tsCastFailure = strings.TrimSpace(`
-// castFailure returns the failure of a cast of v to t, a type that v does not fit (castValue).
+// castFailure returns the failure of a cast of v to t, a type that v does not fit.
 function castFailure(c: Actx, v: Value, t: FieldType, gline: number, gcol: number): string {
   const e = c.p.makeError(c.start, []);
   return (` + "`cannot cast ${typeName(v)} to ${t.text} at input position ${c.start} (line ${e.line}, column ${e.col})${gline > 0 ? `; cast at grammar position ${gline}:${gcol}` : \"\"}`" + `);

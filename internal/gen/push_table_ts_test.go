@@ -19,7 +19,7 @@ import (
 // pushed and the units it charged. The input of the parser is input.txt.
 const pushScript = `import { readFileSync } from "node:fs";
 import * as p from "./parser.ts";
-const CONTROLLED = false;
+` + tsCompose + `const CONTROLLED = false;
 const P = Object.create(p.Parser.prototype);
 P.control = CONTROLLED ? new p.BudgetControl({ signal: null, budget: 1e15 } as unknown as p.ResolvedParseOptions) : null;
 P.created = [];
@@ -29,7 +29,7 @@ P.offs = null;
 P.unit = p.Bytes;
 const c = new p.Actx(P);
 const values: Record<string, p.Value> = {
-  "nil": null, "1": 1, '"ab"': "ab", "true": true, "[1, 2]": c.list(1, 2), "[]": c.list(),
+  "nil": null, "1": 1, '"ab"': "ab", "true": true, "[1, 2]": fxList(c, 1, 2), "[]": fxList(c),
   "func": ((x: p.Value) => x) as unknown as p.Value,
 };
 const canon = (v: p.Value): string => {

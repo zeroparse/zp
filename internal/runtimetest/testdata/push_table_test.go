@@ -8,7 +8,7 @@ import (
 )
 
 // The push table (conform.PushCases) on the compositions push and pushItems of the node and the typed runtime
-// (termPush and termPushItems, printed from Exec IR), through the methods that a generated parser calls for the
+// (TermPush and TermPushItems, printed from Exec IR), as a generated parser calls them for the
 // elements of list, map, a tuple literal and concat.
 
 func TestValuePushTable(t *testing.T) {
@@ -22,9 +22,9 @@ func TestValuePushTable(t *testing.T) {
 			}
 			got := memberRead(func() any {
 				if call == conform.CallPush {
-					c.push(conform.PushFn(call), vals[value])
+					c.fxPush(conform.PushFn(call), vals[value])
 				} else {
-					c.PushItems(vals[value])
+					c.fxPushItems(vals[value])
 				}
 				return nil
 			}, memberCanon)
@@ -58,9 +58,9 @@ func TestValuePushTable(t *testing.T) {
 			}
 			got := memberRead(func() any {
 				if call == conform.CallPush {
-					tc.push(conform.PushFn(call), tvals[value])
+					tc.fxPush(conform.PushFn(call), tvals[value])
 				} else {
-					tc.PushItems(tvals[value])
+					tc.fxPushItems(tvals[value])
 				}
 				return nil
 			}, tmemberCanon)

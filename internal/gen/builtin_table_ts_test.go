@@ -14,11 +14,11 @@ import (
 	"zeroparse.dev/zp/internal/ir/exec/conform"
 )
 
-// builtinScript runs the calls of calls.json on the TypeScript runtime (Actx.length, textStr, listItems and
-// convert, over the printed methods termLength, termText, termItems and termConvert) and prints the canonical result of each (conform.MemberCanon), in order. The input of the parser is input.txt.
+// builtinScript runs the calls of calls.json on the TypeScript runtime (the printed methods termLength,
+// termText, termItems and termConvert) and prints the canonical result of each (conform.MemberCanon), in order. The input of the parser is input.txt.
 const builtinScript = `import { readFileSync } from "node:fs";
 import * as p from "./parser.ts";
-const CONTROLLED = false;
+` + tsCompose + `const CONTROLLED = false;
 const P = Object.create(p.Parser.prototype);
 P.control = CONTROLLED ? new p.BudgetControl({ signal: null, budget: 0 } as unknown as p.ResolvedParseOptions) : null;
 P.created = [];
@@ -31,8 +31,8 @@ const text = new p.Node("string", "", 2, 4, "xyz", p.noNodes, p.noFields, false,
 const values: Record<string, p.Value> = {
   "nil": null, "1": 1, '"ab"': "ab", "true": true, "text": text,
   "node": new p.Node("tuple", "", 2, 5, "", [text, text], p.noFields, false, false),
-  "[1, 2]": c.list(1, 2), "[]": c.list(), "func": ((x: p.Value) => x) as unknown as p.Value,
-  "typed": p.convertNode("M", text), "box": (c.push("list", 1), P.kidStack.pop()!),
+  "[1, 2]": fxList(c, 1, 2), "[]": fxList(c), "func": ((x: p.Value) => x) as unknown as p.Value,
+  "typed": p.convertNode("M", text), "box": (fxPush(c, "list", 1), P.kidStack.pop()!),
 };
 const canon = (v: p.Value): string => {
   if (v === null || v === undefined) return "nil";
@@ -49,18 +49,18 @@ const canon = (v: p.Value): string => {
 };
 const call = (fn: string, v: p.Value): p.Value => {
   switch (fn) {
-    case "len": return c.length(v);
-    case "text": return c.textStr(v);
-    case "convert": return c.convert("N", v);
+    case "len": return fxValue(P.termLength(v));
+    case "text": return fxValue(P.termText(v));
+    case "convert": return fxValue(P.termConvert("N", v));
   }
-  return c.listNode([...c.listItems("concat", v)]);
+  return c.listNode([...fxItems(c, "concat", v)]);
 };
 const calls: [string, string][] = JSON.parse(readFileSync("calls.json", "utf8"));
 console.log(JSON.stringify(calls.map(([fn, v]) => {
   try {
     return canon(call(fn, values[v]!));
   } catch (x) {
-    return x instanceof p.EvalError ? "error: " + x.msg : "exception: " + String(x);
+    return x instanceof FxError ? "error: " + x.msg : "exception: " + String(x);
   }
 })));
 `

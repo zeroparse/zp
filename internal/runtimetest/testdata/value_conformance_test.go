@@ -220,7 +220,7 @@ func TestValueBoxedOperands(t *testing.T) {
 }
 
 // TestValueCompareStrings holds the comparison of two unboxed strings of the typed runtime
-// (TActCtx.Compare, whose fast path decides in compareStrings) to the composition TermBinary on
+// (TActCtx.TermCompare, whose fast path decides in compareStrings) to the composition TermBinary on
 // every pair of strings of the pool, for each comparison operator: the same answer and, under a
 // budget control, the same units, which a fast path that skips the control would not charge.
 // compareStrings is written by hand, so the composition is its reference.
@@ -256,7 +256,10 @@ func TestValueCompareStrings(t *testing.T) {
 					if e != nil {
 						t.Fatalf("controlled=%v: %q op %d %q fails: %v", controlled, l, op, r, e)
 					}
-					got := c.Compare(op, TOperand{Str: l, IsStr: true}, TOperand{Str: r, IsStr: true})
+					got, f := c.TermCompare(op, TOperand{Str: l, IsStr: true}, TOperand{Str: r, IsStr: true})
+					if f != nil {
+						t.Fatalf("controlled=%v: %q op %d %q fails: %v", controlled, l, op, r, f)
+					}
 					if got != want {
 						t.Errorf("controlled=%v: %q op %d %q = %v, want %v", controlled, l, op, r, got, want)
 					}

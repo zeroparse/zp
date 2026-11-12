@@ -553,8 +553,7 @@ var tsTarget = &exects.Target{
 			return fmt.Sprintf("let %s = noCtx;\nlet %s: CtxResult | null = null;\nif (%s.cycle !== 0 && this.gamma.length !== 0) {\n  %s = newCtxCall();\n  %s = this.ctxEnter(%s, %s, %s);\n}",
 				c, seed, a[0], c, seed, c, a[0], a[1]), true
 		case "term.eval":
-			return fmt.Sprintf("let %s: Value = null;\nlet %s = true;\ntry {\n  const r = %[3]s(this.useCtx(this.frame, this.pos, this.pos, null, null, null));\n  %[1]s = r[0];\n  %[2]s = r[1] === null;\n"+
-				"} catch (x) {\n  if (!(x instanceof EvalError)) {\n    throw x;\n  }\n  %[2]s = false;\n}", dst[0], dst[1], a[0]), true
+			return fmt.Sprintf("const %[1]sR = %[3]s(this.useCtx(this.frame, this.pos, this.pos, null, null, null));\nlet %[1]s: Value = %[1]sR[0];\nlet %[2]s = %[1]sR[1] === null;", dst[0], dst[1], a[0]), true
 		case "rec.add":
 			return "this.recAdd(" + a[0] + ");", true
 		case "exp.copy":

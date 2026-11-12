@@ -159,7 +159,7 @@ export function testReleased():boolean {
  traceProbes.length=0;return clean;
 }
 export function testThrownValues():unknown[] {
- return [null,undefined,17,"marker",{marker:true},new Error("error"),new RangeError("Maximum call stack size exceeded"),new Fatal(new Error("private fatal")),new EvalError("private eval"),new SignalPanic({marker:true}),new TraceFailure({marker:true},{})];
+ return [null,undefined,17,"marker",{marker:true},new Error("error"),new RangeError("Maximum call stack size exceeded"),new Fatal(new Error("private fatal")),new SignalPanic({marker:true}),new TraceFailure({marker:true},{})];
 }
 `
 
