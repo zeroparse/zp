@@ -11,7 +11,7 @@ import (
 // Value-free rules of the Node runtime printed from Flow IR.
 //
 // The rules of a recognizer (recRules) and the lean rules of the Node table (rules) that
-// gen.RecFlowEligible accepts are built as Core IR, lowered by flowlower.Lower and printed by
+// flowlower.RecEligible accepts are built as Core IR, lowered by flowlower.Lower and printed by
 // flowPrinter for the untyped Node runtime. The other rules print their framed body from Flow IR as
 // well (flowNodeFrameBody), in the same output. Both tables share the helpers whose printed text is
 // equal. The text passes run on the whole output afterwards.

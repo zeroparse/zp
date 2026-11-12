@@ -16,8 +16,8 @@ import (
 // and statements of the one method that calls the rule's body, up to the rule's value, wrapped by
 // flatMethod or leanRuleBody. A framed rule keeps a runtime frame: its body (flowNodeFrameBody) is
 // printed from Flow IR into the matcher of the rule, but the runtime drives the frame, the growth of
-// a left-recursion seed or the finalization of a cut or a recovery. The predicates flowBodyOK
-// and leanRuleOK select which rules take which shape.
+// a left-recursion seed or the finalization of a cut or a recovery. The predicates flowlower.BodyOK
+// and flowlower.RecEligible select which rules take which shape.
 //
 // The runtime runs a rule with a method per expression, captures in a frame with a trail that
 // backtracking undoes, and an action evaluated in a context that reads the frame. A flat rule

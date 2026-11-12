@@ -156,10 +156,10 @@ func (g *Generator) flowStreamBody(r *compile.Rule, scope *compile.Scope) string
 // controls (Options.Budget) the method that holds the function charges its entry and the function charges
 // each iteration of a repetition, as Flow IR makes them explicit.
 func (g *Generator) flowOperatorsRuleBody(l *core.OpLine, e grammar.Expr, scope *compile.Scope, build bool) string {
-	if g.Flow == nil || l == nil || !gen.FlowLineOK(e) || !flowlower.FramedBody(l.Body) {
+	if g.Flow == nil || l == nil || !flowlower.LineOK(e) || !flowlower.FramedBody(l.Body) {
 		return ""
 	}
-	if g.Table != "trules" && !gen.FlowBodyOK(e, true, true) {
+	if g.Table != "trules" && !flowlower.BodyOK(e, true, true) {
 		return ""
 	}
 	f, err := flowlower.LowerFrame(g.Flow.M, g.Flow.M.Rules[g.Cur.ID], l.Body, l.Scope, build, g.Cur.Name, g.Flow.Opts)

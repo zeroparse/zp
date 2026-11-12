@@ -60,7 +60,7 @@ func (g *Generator) flowRule(r *compile.Rule, scope *compile.Scope) (call string
 	var f *flow.Func
 	var slots []core.Slot
 	cr := g.Flow.M.Rules[r.ID]
-	if gen.RecFlowEligible(r) && flowlower.LocalRule(cr) {
+	if flowlower.RecEligible(r) && flowlower.LocalRule(cr) {
 		var err error
 		if f, err = flowlower.Lower(g.Flow.M, cr, r.Name, g.Flow.Opts); err != nil {
 			panic(fmt.Errorf("rule %s of table %s: %w", r.Name, g.Table, err)) // LocalRule holds
@@ -945,7 +945,7 @@ func tsUnisolate(s *flow.Set) (*flow.Unisolate, bool) {
 // the line. It sets scope to the capture scope of the line. With budget controls the runtime loop that
 // runs the line charges its entry and the function charges each iteration of a repetition.
 func (g *Generator) flowLine(l *core.OpLine, e grammar.Expr, scope *compile.Scope, build bool) (string, bool) {
-	if g.Flow == nil || l == nil || !gen.FlowLineOK(e) || !flowlower.FramedBody(l.Body) {
+	if g.Flow == nil || l == nil || !flowlower.LineOK(e) || !flowlower.FramedBody(l.Body) {
 		return "", false
 	}
 	f, err := flowlower.LowerFrame(g.Flow.M, g.Flow.M.Rules[g.Cur.ID], l.Body, l.Scope, build, g.Cur.Name, g.Flow.Opts)

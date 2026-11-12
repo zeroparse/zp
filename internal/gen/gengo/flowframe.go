@@ -2,7 +2,7 @@ package gengo
 
 import (
 	"zeroparse.dev/zp/internal/compile"
-	"zeroparse.dev/zp/internal/gen"
+	flowlower "zeroparse.dev/zp/internal/ir/flow/lower"
 )
 
 // typedFrameComment reports whether the body of the typed rule r is printed in place under the
@@ -15,7 +15,7 @@ func (g *Generator) typedFrameComment(r *compile.Rule) (string, bool) {
 	} else if !exprRecovers(r.BodyExpr()) {
 		return "", false
 	}
-	if !gen.FlowBodyOK(r.BodyExpr(), true, true) {
+	if !flowlower.BodyOK(r.BodyExpr(), true, true) {
 		return "", false
 	}
 	return comment, true

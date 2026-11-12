@@ -10,7 +10,7 @@ import (
 // terminal regions (in rules lowered to Go-local code of lean parsers without observability), term
 // rewrites (with literal text dispatch and unboxed field comparisons unless disabled), choice guards
 // (with guarded classes in ordinary parsers), scans and, in lean parsers, class runs. With a hook
-// (Generator.CoreHook, tests), it calls the hook with the module after it is built and after each
+// (opt.Driver.CoreHook, tests), it calls the hook with the module after it is built and after each
 // pass.
 func (g *Generator) TypedCore(origin map[core.Node]grammar.Expr) (*core.Module, error) {
 	m, err := irbuild.CoreFrom(g.Prog, origin)

@@ -14,8 +14,8 @@ import (
 
 	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/gen"
-	genopt "zeroparse.dev/zp/internal/gen/opt"
 	"zeroparse.dev/zp/internal/gentest"
+	genopt "zeroparse.dev/zp/internal/ir/opt"
 )
 
 // optimizationCases are grammars on which the optimizations of lean typed Go act, with inputs at their
@@ -130,7 +130,7 @@ func TestOptimizationsHaveTests(t *testing.T) {
 
 // A registry with an optimization that changes the output, which no flag of the real one does yet,
 // shows the test check on its positive path: such a flag must name a contract test in place of a
-// disabled-form test (TestOutputChangingFlagRegistry in internal/gen/opt checks the opt-in rule).
+// disabled-form test (TestOutputChangingFlagRegistry in internal/ir/opt checks the opt-in rule).
 func TestOutputChangingFlagChecks(t *testing.T) {
 	fake := genopt.Flag{Name: "fake-output", Kind: genopt.Printer, Doc: "changes the generated API", ChangesOutput: true}
 	flags := append(slices.Clone(genopt.Flags), fake)

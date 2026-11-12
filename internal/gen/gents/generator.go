@@ -15,8 +15,8 @@ import (
 	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/compile"
 	"zeroparse.dev/zp/internal/gen"
-	"zeroparse.dev/zp/internal/gen/opt"
 	"zeroparse.dev/zp/internal/ir/core"
+	"zeroparse.dev/zp/internal/ir/opt"
 )
 
 //go:embed tsrt/runtime.ts
