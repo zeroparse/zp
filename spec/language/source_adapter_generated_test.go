@@ -19,9 +19,9 @@ import (
 
 // TestGeneratedSourceParserMatchesEngine runs the canonical grammar as a generated Go parser on the
 // sources of the differential tests (the grammars of the repository, the documentation examples and
-// mutated windows of them) and requires the trees, with their positions, and the errors of the engine
-// that the other tests of this package parse with. The adapter reads the tree of the engine, so a
-// generated parser that agrees with it is covered by the comparison with the hand-written parser.
+// mutated windows of them) and requires the trees, with their positions, and the errors of the engine.
+// The comparisons with the hand-written parser read the typed values of the checked-in parser; this
+// test holds the generated parser to the engine, which the tests of mutated grammars run.
 func TestGeneratedSourceParserMatchesEngine(t *testing.T) {
 	if testing.Short() {
 		t.Skip("builds generated code")

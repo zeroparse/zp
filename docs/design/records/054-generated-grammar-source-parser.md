@@ -284,9 +284,8 @@ semantic validation pipeline.
 
 The end state is one frontend: the default switches to the generated typed
 parser, which builds its source tree directly, with no intermediate generic
-node tree. The adapter that reads the generic node tree, which the differential
-tests use today, is interim, and the typed parser needs an adapter of its own to
-`grammar.Grammar`. Layout and formatting parity is a separate goal from the
+node tree. One adapter reads the typed source tree and builds `grammar.Grammar`;
+the differential tests compare its result with the manual parser's. Layout and formatting parity is a separate goal from the
 acceptance, grammar and diagnostic parity that the switch requires.
 
 Keep the manual parser as the initial default. When parser-performance work is
@@ -370,10 +369,14 @@ without network access or a prior generated artifact outside the repository.
   acceptance and grammar. The long tier covers about 3.8 million sources, of
   which about 3.1 million are rejected by both; none of those has an error in
   the classes `extra` or `other earlier`, and the others stay in the forms
-  above. Run the canonical grammar as a generated Go parser on the sources of
-  the mutation corpus and require the engine's trees, positions and errors,
-  so that a result of the engine that the adapter reads is the result of the
-  generated parser too.
+  above. The adapter reads the typed values of the checked-in generated
+  parser. Run the canonical grammar as a generated Go parser on the sources of
+  the mutation corpus and require the engine's trees, positions and errors.
+  Changed copies of the source grammar run on the engine, whose tree the tests
+  move into the typed values by type and field name; the unchanged grammar run
+  this way must agree with the generated parser on the corpora. Deliberately
+  wrong typed values (lost comment gaps, reversed choices, shifted spans,
+  changed repeat bounds and capture names) must each make the comparison fail.
 - Verify clean-checkout bootstrap, deterministic generation, root Go tests,
   all parser modules, CLI commands, site examples and generated parser checks.
 - Benchmark parse-only time, bytes/op and allocations on small common

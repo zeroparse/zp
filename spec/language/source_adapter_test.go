@@ -12,6 +12,7 @@ import (
 	"zeroparse.dev/zp"
 	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/syntax"
+	"zeroparse.dev/zp/internal/syntax/genparser"
 )
 
 // The generated source parser, with its adapter, must build the grammar that
@@ -20,37 +21,56 @@ import (
 // grammar and of its source metadata. The raw comment tokens that only the
 // formatter reads are not in it.
 
-// adaptCanonical parses src with the canonical grammar and builds the public AST from the tree.
-// It rejects a source with the errors in the form of the hand-written parser, a syntax.ErrorList:
-// the lexical errors, then the errors of the grammar or of the checks on the tree.
-func adaptCanonical(p *zp.Parser, src string) (*grammar.Grammar, error) {
+// adaptCanonical parses src with the generated parser of the canonical grammar
+// and builds the public AST from its typed values. It rejects a source with
+// the errors in the form of the hand-written parser, a syntax.ErrorList: the
+// lexical errors, then the errors of the grammar or of the checks on the tree.
+func adaptCanonical(src string) (*grammar.Grammar, error) {
 	text, invalid := syntax.WithoutInvalidCharacters(src)
-	n, err := p.Parse(text)
+	f, err := genparser.ParseAST(text)
 	if err != nil {
 		return nil, canonicalErrors(src, err)
 	}
 	if invalid {
 		return nil, syntax.SourceErrors(src, nil)
 	}
-	return syntax.FromSourceTree(src, n)
+	return syntax.FromSourceTree(src, f)
 }
 
 // canonicalErrors converts the error that the canonical grammar returns for src.
 func canonicalErrors(src string, err error) error {
+	errs, ok := sourceErrorsOf(err)
+	if !ok {
+		return err
+	}
+	return syntax.SourceErrors(src, errs)
+}
+
+// sourceErrorsOf returns the syntax errors of a parse by the generated parser
+// or by the engine, and whether err holds them.
+func sourceErrorsOf(err error) ([]syntax.SourceError, bool) {
+	var out []syntax.SourceError
+	var glist genparser.SyntaxErrors
+	var gone *genparser.SyntaxError
 	var list zp.SyntaxErrors
 	var one *zp.SyntaxError
 	switch {
+	case errors.As(err, &glist):
+		for _, e := range glist {
+			out = append(out, syntax.SourceError{Offset: e.Pos, Msg: e.Message()})
+		}
+	case errors.As(err, &gone):
+		out = append(out, syntax.SourceError{Offset: gone.Pos, Msg: gone.Message()})
 	case errors.As(err, &list):
+		for _, e := range list {
+			out = append(out, syntax.SourceError{Offset: e.Pos, Msg: e.Message()})
+		}
 	case errors.As(err, &one):
-		list = zp.SyntaxErrors{one}
+		out = append(out, syntax.SourceError{Offset: one.Pos, Msg: one.Message()})
 	default:
-		return err
+		return nil, false
 	}
-	errs := make([]syntax.SourceError, len(list))
-	for i, e := range list {
-		errs[i] = syntax.SourceError{Offset: e.Pos, Msg: e.Message()}
-	}
-	return syntax.SourceErrors(src, errs)
+	return out, true
 }
 
 // grammarJSON returns the JSON form of g, indented one value to a line, and
@@ -119,14 +139,14 @@ func firstDifference(want, got []string) string {
 	return ""
 }
 
-// grammarDiff describes how the hand-written parser and the canonical grammar
-// with its adapter disagree on src: one accepts it and the other does not, or
-// both accept it and build different ASTs. It returns "" when they agree. Where
-// both reject src, only the rejection is compared.
-func grammarDiff(t *testing.T, p *zp.Parser, src string) string {
+// grammarDiff describes how the hand-written parser and a canonical frontend,
+// such as adaptCanonical, disagree on src: one accepts it and the other does
+// not, or both accept it and build different ASTs. It returns "" when they
+// agree. Where both reject src, only the rejection is compared.
+func grammarDiff(t *testing.T, frontend func(string) (*grammar.Grammar, error), src string) string {
 	t.Helper()
 	manual, merr := zp.ParseGrammar(src)
-	got, err := adaptCanonical(p, src)
+	got, err := frontend(src)
 	switch {
 	case merr != nil && err != nil:
 		return ""
@@ -141,11 +161,11 @@ func grammarDiff(t *testing.T, p *zp.Parser, src string) string {
 	return ""
 }
 
-// compareGrammars reports whether the frontends agree on src, as grammarDiff
-// tells.
-func compareGrammars(t *testing.T, p *zp.Parser, name, src string) bool {
+// compareGrammars reports whether the hand-written parser and adaptCanonical
+// agree on src, as grammarDiff tells.
+func compareGrammars(t *testing.T, name, src string) bool {
 	t.Helper()
-	if d := grammarDiff(t, p, src); d != "" {
+	if d := grammarDiff(t, adaptCanonical, src); d != "" {
 		t.Errorf("%s: %s", name, d)
 		return false
 	}
@@ -178,12 +198,11 @@ var frontendRejections = []string{
 }
 
 func TestCanonicalFrontendRejections(t *testing.T) {
-	p, _ := sourceGrammar(t)
 	for _, src := range frontendRejections {
 		if _, err := zp.ParseGrammar(src); err == nil {
 			t.Errorf("%q: the hand-written parser accepts it", src)
 		}
-		if _, err := adaptCanonical(p, src); err == nil {
+		if _, err := adaptCanonical(src); err == nil {
 			t.Errorf("%q: the canonical frontend accepts it", src)
 		}
 	}
@@ -211,11 +230,10 @@ var frontendAgreements = []string{
 }
 
 func TestCanonicalFrontendAgreements(t *testing.T) {
-	p, _ := sourceGrammar(t)
 	for _, src := range frontendAgreements {
 		if _, err := zp.ParseGrammar(src); err != nil {
 			t.Errorf("%q: the hand-written parser rejects it: %v", src, err)
 		}
-		compareGrammars(t, p, src, src)
+		compareGrammars(t, src, src)
 	}
 }
