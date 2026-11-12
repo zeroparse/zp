@@ -1,10 +1,13 @@
 package compile
 
 import (
+	"slices"
+	"sync"
 	"testing"
 
 	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/desugar"
+	"zeroparse.dev/zp/internal/factstest"
 	"zeroparse.dev/zp/internal/syntax"
 )
 
@@ -461,3 +464,70 @@ func TestNormalViewKeepsValueShapes(t *testing.T) {
 		})
 	}
 }
+
+// TestNormalViewLawSwitch requires the law switch of the view to gate every rewrite: on every
+// corpus grammar, with one law on, the view counts rewrites of that law only, and with none on it
+// rewrites nothing. With every law on, each law but N7 and N13 rewrites some grammar of the corpus
+// or of lawsGrammar, so the check is not vacuous for those.
+func TestNormalViewLawSwitch(t *testing.T) {
+	t.Parallel()
+	laws := []viewRule{ruleN1, ruleN2, ruleN3, ruleN4, ruleN5, ruleN6, ruleN7, ruleN8, ruleN9, ruleN10, ruleN11, ruleN12, ruleN13}
+	var mu sync.Mutex
+	seen := map[viewRule]bool{}
+	t.Run("corpus", func(t *testing.T) {
+		for _, path := range append(slices.Clone(factstest.Corpus), "laws") {
+			t.Run(path, func(t *testing.T) {
+				t.Parallel()
+				src := lawsGrammar
+				if path != "laws" {
+					src = factstest.Read(t, path)
+				}
+				g, err := syntax.Parse(src)
+				if err != nil {
+					t.Fatal(err)
+				}
+				for _, matching := range []bool{false, true} {
+					all, _, err := normalViewOf(g, matching, nil, nil)
+					if err != nil {
+						t.Fatal(err)
+					}
+					mu.Lock()
+					for r, n := range all.applied {
+						seen[r] = seen[r] || n > 0
+					}
+					mu.Unlock()
+					none, _, _ := normalViewOf(g, matching, []string{}, nil)
+					if len(none.applied) != 0 {
+						t.Errorf("matching %v, no law: %v", matching, none.applied)
+					}
+					_, rules, err := classifierRules(g, nil)
+					if err != nil {
+						t.Fatal(err)
+					}
+					for i, r := range none.rules {
+						if got, want := grammar.FormatExpr(r.Expr), grammar.FormatExpr(rules[i].Expr); got != want {
+							t.Errorf("matching %v, no law: rule %s is %s, want %s", matching, r.Name, got, want)
+						}
+					}
+					for _, l := range laws {
+						one, _, _ := normalViewOf(g, matching, []string{string(l)}, nil)
+						for r, n := range one.applied {
+							if r != l && n > 0 {
+								t.Errorf("matching %v, law %s alone: %d rewrites of %s", matching, l, n, r)
+							}
+						}
+					}
+				}
+			})
+		}
+	})
+	for _, l := range laws[:12] {
+		if l != ruleN7 && !seen[l] {
+			t.Errorf("no corpus grammar applies %s", l)
+		}
+	}
+}
+
+// lawsGrammar applies the laws that no corpus grammar applies: N3 (a duplicate alternative), N5
+// (stacked lookaheads), N9 (repetitions in a row) and N10 (a nested repetition).
+const lawsGrammar = "@start\nrule main = (\"ab\" / \"ab\") &(&\"b\") \"b\" \"c\"* \"c\"* (\"d\"+)*\n"

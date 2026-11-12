@@ -67,10 +67,10 @@ func classifierRules(g *grammar.Grammar, control *cancel.Control) (*grammar.Gram
 }
 
 // CostViewRules returns the rules of the normal view of g (NormalView) and the number of rewrites
-// of each normalization rule, by its name ("N1" to "N13"). It is what the cost view built on Core
-// IR is compared with.
-func CostViewRules(g *grammar.Grammar, matching bool, control *cancel.Control) ([]*grammar.RuleDef, map[string]int, error) {
-	v, _, err := normalViewOf(g, matching, control)
+// of each normalization rule, by its name ("N1" to "N13"). If laws is not nil, only the rules it
+// names apply. It is what the cost view built on Core IR is compared with.
+func CostViewRules(g *grammar.Grammar, matching bool, laws []string, control *cancel.Control) ([]*grammar.RuleDef, map[string]int, error) {
+	v, _, err := normalViewOf(g, matching, laws, control)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -82,8 +82,8 @@ func CostViewRules(g *grammar.Grammar, matching bool, control *cancel.Control) (
 }
 
 // normalViewOf returns the normal view of the classifier's rules of g, and the grammar they are
-// rules of.
-func normalViewOf(g *grammar.Grammar, matching bool, control *cancel.Control) (*view, *grammar.Grammar, error) {
+// rules of. If laws is not nil, only the rules it names apply.
+func normalViewOf(g *grammar.Grammar, matching bool, laws []string, control *cancel.Control) (*view, *grammar.Grammar, error) {
 	g, rules, err := classifierRules(g, control)
 	if err != nil {
 		return nil, nil, err
@@ -95,6 +95,12 @@ func normalViewOf(g *grammar.Grammar, matching bool, control *cancel.Control) (*
 	opts := costView
 	if matching {
 		opts = viewOptions{labels: true, inline: true}
+	}
+	if laws != nil {
+		opts.laws = map[viewRule]bool{}
+		for _, l := range laws {
+			opts.laws[viewRule(l)] = true
+		}
 	}
 	return normalizeRules(rules, rf.an, rf.memo, opts, control), g, nil
 }
