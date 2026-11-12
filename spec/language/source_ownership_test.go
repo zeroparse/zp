@@ -165,6 +165,16 @@ func canonicalOwners(t *testing.T, src string, root *zp.Node) map[string]grammar
 				if err != nil {
 					t.Fatal(err)
 				}
+				// A package clause with attributes has the position of "package" for diagnostics.
+				if attrs, ok := pkg.Field("Attrs").(*zp.Node); ok && attrs != nil && len(elems(attrs)) > 0 {
+					attrs := elems(attrs)
+					off := nextToken([]rune(src), int(attrs[len(attrs)-1].End()))
+					keyword, err := positions.Source(sourceast.Metadata{Start: off, End: off})
+					if err != nil {
+						t.Fatal(err)
+					}
+					s.DiagnosticPos = keyword.Pos
+				}
 				owners[fmt.Sprintf("Pkg@%d:%d", s.Pos.Line, s.Pos.Col)] = s
 				lead = canonicalLead(t, sourceField(t, meta, "Next"))
 			} else if pkg != nil {
