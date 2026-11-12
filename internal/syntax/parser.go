@@ -581,7 +581,7 @@ func (p *parser) attributesReach(i int, keyword string, sameLine bool) bool {
 			if t.kind != tPunct || t.text != "@" {
 				return false
 			}
-		case sameLine && depth == 0 && t.kind == tIdent && t.text == keyword:
+		case sameLine && depth == 0 && t.kind == tIdent && t.text == keyword && (p.toks[j-1].kind != tPunct || p.toks[j-1].text != "@"):
 			return true
 		case t.kind == tPunct && t.text == "(":
 			depth++

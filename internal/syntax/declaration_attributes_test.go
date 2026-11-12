@@ -246,6 +246,18 @@ func TestPackageAttributesErrors(t *testing.T) {
 	}
 }
 
+// TestPackageAttributeNamedPackage checks that an attribute named package, on the line of other
+// attributes, is an attribute of the rule that follows, not the start of the package clause.
+func TestPackageAttributeNamedPackage(t *testing.T) {
+	g, err := Parse("@start @package\nrule a = \"x\"\n")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if rd := g.Rules(); len(rd) != 1 || len(rd[0].Attrs) != 2 || rd[0].Attrs[1].Name != "package" || len(g.File.Pkg.Attrs) != 0 {
+		t.Errorf("rules %v, package attributes %v; want rule a with @start @package", rd, g.File.Pkg.Attrs)
+	}
+}
+
 func TestPackageAttributesFormat(t *testing.T) {
 	for _, tc := range []struct{ name, src, want string }{
 		{"one", "@linear\npackage p\nrule a = \"x\"\n", "@linear\npackage p\nrule a = \"x\"\n"},
