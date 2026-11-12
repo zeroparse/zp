@@ -26,6 +26,7 @@ Details that this specification does not state are defined by the code.
 | 4 | [Attributes and Effects](attributes.md) | The attributes of a node, nullability, first terminals, the effects and the facts of the rules |
 | 5 | [Invariants](invariants.md) | What a well-formed module guarantees and what verification checks |
 | 6 | [Text Form](text-form.md) | The printed form of a module, with a worked example |
+| 7 | [Cost View](cost-view.md) | The module the complexity classifier reads: derived from the grammar's module by the rewrites of the cost view |
 
 The [Glossary](../glossary.md) lists the terms of the specifications.
 

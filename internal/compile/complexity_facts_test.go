@@ -10,7 +10,6 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/grammar"
-	"zeroparse.dev/zp/internal/desugar"
 	"zeroparse.dev/zp/internal/factstest"
 	"zeroparse.dev/zp/internal/starttest"
 	"zeroparse.dev/zp/internal/syntax"
@@ -40,37 +39,25 @@ func classifierCorpus(t *testing.T) map[string]string {
 	return srcs
 }
 
-// classifierRules returns the rules the classifier reads for g: inline actions lowered, attributes
-// normalized and each rule once.
-func classifierRules(t *testing.T, g *grammar.Grammar) (*grammar.Grammar, []*grammar.RuleDef) {
+// testClassifierRules returns the rules the classifier reads for g (classifierRules).
+func testClassifierRules(t *testing.T, g *grammar.Grammar) (*grammar.Grammar, []*grammar.RuleDef) {
 	t.Helper()
-	if desugar.HasInlineAction(g, nil) {
-		lowered, errs := desugar.LowerInlineActionsControlled(g, desugar.InlineNames{}, nil)
-		if errs != nil {
-			t.Fatal(errs)
-		}
-		g = lowered
-	}
-	g, err := desugar.NormalizeAttributesControlled(g, false, nil)
+	g, rules, err := classifierRules(g, nil)
 	if err != nil {
 		t.Fatal(err)
-	}
-	rules, errs := desugar.UniqueRules(g, nil)
-	if len(errs) > 0 {
-		t.Fatal(errs)
 	}
 	return g, rules
 }
 
 // testRuleFacts returns the rule facts of rules, the rules of g, for a test of the normal view,
 // which may take rules that the classifier would canonicalize first: the facts are those of the
-// canonical rules of g (classifierRules), by name. The view tests also take grammars that the
+// canonical rules of g (testClassifierRules), by name. The view tests also take grammars that the
 // compiler rejects (a predicate that reads a capture out of its scope), of which Core IR cannot
 // be built; for those it takes the analyses of the grammar, with the leaders and the rules off
 // every cycle that are not transient memoized (none of those grammars has #missing).
 func testRuleFacts(t *testing.T, g *grammar.Grammar, rules []*grammar.RuleDef) *ruleFacts {
 	t.Helper()
-	canon, canonRules := classifierRules(t, g)
+	canon, canonRules := testClassifierRules(t, g)
 	if rf, err := classifierFacts(canon, canonRules, nil); err == nil {
 		return rf
 	} else if _, cerr := compileStatic(starttest.MarkAll(g), Options{}, nil); cerr == nil {
@@ -128,7 +115,7 @@ func TestClassifierFactsMatchAnalysis(t *testing.T) {
 				t.Fatal(err)
 			}
 			for _, g := range []*grammar.Grammar{parsed, starttest.MarkAll(parsed)} {
-				g, rules := classifierRules(t, g)
+				g, rules := testClassifierRules(t, g)
 				rf := testRuleFacts(t, g, rules)
 				if got, want := renderRuleFacts(rules, rf), renderRuleFacts(rules, astRuleFacts(rules)); got != want {
 					t.Errorf("facts differ\nfacts:\n%s\nanalysis:\n%s", got, want)
@@ -145,7 +132,7 @@ func TestClassifierFactsDetectsDifference(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	g, rules := classifierRules(t, g)
+	g, rules := testClassifierRules(t, g)
 	rf := testRuleFacts(t, g, rules)
 	want := renderRuleFacts(rules, rf)
 	for _, flip := range []func(*ruleFacts){
