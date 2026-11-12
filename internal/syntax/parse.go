@@ -3,16 +3,20 @@ package syntax
 import (
 	"context"
 	"errors"
+	"sort"
+	"strings"
 
 	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/syntax/genparser"
+	"zeroparse.dev/zp/internal/syntax/sourceast"
 )
 
-// sourceLimits are the limits of the source parser. Depth bounds the nesting of its recursive
-// rule calls: about 500 levels of parentheses in rule expressions, actions and types, so that a
-// malformed or hostile source does not build a tree that the consumers of the grammar AST cannot
-// walk. Compute is unlimited: a caller stops a long parse with its context.
-var sourceLimits = genparser.WithLimits(genparser.Limits{Depth: 2500, Compute: genparser.Unlimited})
+// sourceLimits are the limits of the source parser. The lexer rejects a source that nests deeper
+// than maxLevels; the parser keeps its default bound on nested recursive rule calls, which is far
+// above what maxLevels allows, so that its recursion stays bounded on a source that the lexer
+// rejects. Compute is unlimited: the recovery of the grammar is linear, and a caller stops a long
+// parse with its context.
+var sourceLimits = genparser.WithLimits(genparser.Limits{Compute: genparser.Unlimited})
 
 // Parse parses the ZeroParse source code src.
 //
@@ -87,24 +91,33 @@ func ParsePartialContext(ctx context.Context, src string) (*grammar.Grammar, Err
 }
 
 // sourceErrorsOf returns the syntax errors that the generated parser reports
-// in err for src, and whether err holds them. A source nested deeper than the
-// depth limit of the parser is reported as "nesting too deep" at the opening
-// delimiter where the nesting is deepest.
+// in err for src, and whether err holds them. A source that the parser cannot
+// nest has no syntax errors to report: the lexer reports it as nesting too
+// deep, and SourceErrors adds the lexical errors. Should the lexer not, the
+// source is reported as nesting too deep at its deepest opening delimiter.
 func sourceErrorsOf(src string, err error) ([]SourceError, bool) {
 	var list genparser.SyntaxErrors
 	var one *genparser.SyntaxError
 	var limit *genparser.LimitError
 	switch {
 	case errors.As(err, &limit) && limit.Kind == genparser.LimitDepth:
-		return []SourceError{{Offset: deepestOpening(src), Msg: "nesting too deep"}}, true
+		lexical := &errorList{}
+		lex(src, lexical)
+		for _, e := range lexical.list {
+			if e.Msg == msgNestingTooDeep {
+				return nil, true
+			}
+		}
+		return []SourceError{{Offset: deepestOpening(src), Msg: msgNestingTooDeep}}, true
 	case errors.As(err, &list):
+		m := newMessages(src)
 		out := make([]SourceError, 0, len(list))
 		for _, e := range list {
-			out = append(out, SourceError{Offset: e.Pos, Msg: message(e)})
+			out = append(out, SourceError{Offset: e.Pos, Msg: m.message(e)})
 		}
 		return out, true
 	case errors.As(err, &one):
-		return []SourceError{{Offset: one.Pos, Msg: message(one)}}, true
+		return []SourceError{{Offset: one.Pos, Msg: newMessages(src).message(one)}}, true
 	}
 	return nil, false
 }
@@ -114,19 +127,79 @@ func sourceErrorsOf(src string, err error) ([]SourceError, bool) {
 // tells nothing.
 var trivia = map[string]bool{"whitespace": true, "comment": true}
 
-// message is the message of a syntax error of the generated parser without the trivia among the
-// expected items.
-func message(e *genparser.SyntaxError) string {
+// starts are the expected items that the name of an operand of the grammar of the source covers:
+// the prefix operators, and the "(" of a lambda or the name of a capture, which start an
+// expression or a value as well.
+var starts = map[string]map[string]bool{
+	"an expression": {`"!"`: true, `"&"`: true, `"-"`: true, `[a-zA-Z_]`: true},
+	"a value":       {`"!"`: true, `"-"`: true, `"("`: true},
+}
+
+// messages words the syntax errors of the generated parser for a source, with the tokens of the
+// lexer around each error.
+type messages struct {
+	toks []token
+	pos  *sourceast.Positions
+}
+
+func newMessages(src string) *messages {
+	return &messages{toks: lex(src, &errorList{}), pos: sourceast.NewPositions(src)}
+}
+
+// message is the message of a syntax error e. Without explicit messages, it lists what e expects,
+// without the trivia, and with the items that a named operand covers left to the name. A message
+// that says only what is expected also says what was found: the token at the error. An error after the
+// name of a pragma that does not exist names it, and an expected value on the line after "=>" is
+// the mistake of a value that does not start on the line of its "=>".
+func (m *messages) message(e *genparser.SyntaxError) string {
+	var msg string
 	if len(e.Messages) > 0 {
-		return e.Message()
+		msg = e.Message()
+	} else {
+		covered := map[string]bool{}
+		for _, x := range e.Expected {
+			for x := range starts[x] {
+				covered[x] = true
+			}
+		}
+		kept := &genparser.SyntaxError{}
+		for _, x := range e.Expected {
+			if !trivia[x] && !covered[x] {
+				kept.Expected = append(kept.Expected, x)
+			}
+		}
+		msg = strings.TrimPrefix(kept.Message(), "syntax error: ")
 	}
-	kept := &genparser.SyntaxError{}
-	for _, x := range e.Expected {
-		if !trivia[x] {
-			kept.Expected = append(kept.Expected, x)
+	i := m.tokenAt(e.Pos)
+	switch {
+	case msg == "unknown pragma" && i >= 2 && m.toks[i-1].kind == tIdent && m.toks[i-2].kind == tPunct && m.toks[i-2].text == "#":
+		return msg + " #" + m.toks[i-1].text
+	case strings.HasPrefix(msg, "expected a value") && i >= 1 && m.toks[i].lineBefore && m.toks[i-1].kind == tPunct && m.toks[i-1].text == "=>":
+		return "multiline expressions require their own open delimiter"
+	case expects(msg):
+		return msg + ", found " + m.toks[i].String()
+	}
+	return msg
+}
+
+// expects reports whether every part of msg says what is expected, so that what was found may
+// follow it. A part that gives a hint does not.
+func expects(msg string) bool {
+	for part := range strings.SplitSeq(msg, "; ") {
+		if !strings.HasPrefix(part, "expected ") {
+			return false
 		}
 	}
-	return kept.Message()
+	return true
+}
+
+// tokenAt returns the index of the token at or after the code point offset i.
+func (m *messages) tokenAt(i int) int {
+	at := m.pos.At(i)
+	return sort.Search(len(m.toks)-1, func(k int) bool {
+		p := m.toks[k].pos
+		return p.Line > at.Line || p.Line == at.Line && p.Col >= at.Col
+	})
 }
 
 // deepestOpening returns the code point offset in src of the first opening

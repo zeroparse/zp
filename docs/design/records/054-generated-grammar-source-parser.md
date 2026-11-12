@@ -12,8 +12,9 @@ own complete grammar. It is the only frontend of the source APIs and commands:
 the language server. The hand-written recursive-descent parser stays in the
 repository only as the oracle of the differential tests and as the reader of
 the removed syntax that `zp fix` rewrites; no API or command selects it. The
-generated frontend accepts and rejects the same sources as the oracle and
-builds the same grammar ASTs. On a rejected source it reports the first error
+generated frontend accepts and rejects the same sources as the oracle, also at
+the nesting limit of the language specification, which both apply through the
+same lexer, and builds the same grammar ASTs. On a rejected source it reports the first error
 at the place the oracle does or, in the forms named in the
 [Diagnostic Contract](#diagnostic-contract), at another place of the same
 mistake, and it reports no error at a declaration without a mistake. Message
@@ -149,6 +150,25 @@ diagnostic that the grammar cannot name dynamically needs no runtime support.
 The adapter reports the checks the grammar does not make with the reference
 messages where that is direct.
 
+A syntax error says what is expected and what was found, the token at the
+error: `expected an expression, found end of file`. The grammar names the
+operands of rule expressions and of values, so a list of the tokens that start
+one reads `an expression` or `a value`; white space and comment openers are
+not listed, because they may stand anywhere. Explicit messages of the grammar
+cover a pragma that does not exist (`unknown pragma #foo`), `#repeat` without
+a count, a group or block that is not closed, and the old spellings that the
+reference named. A value on the line after its `=>` is reported as the
+reference reports it. Message differences that remain: `#ignorecase(...)` is
+reported as a list of what may follow the expression, at the `#`, not as an
+argument it does not take; the reference's messages about a pragma or its
+arguments that do not follow directly, a `nil` lambda parameter, attributes
+on a declaration other than a rule, and an Operators Rule followed by a pragma
+other than `#ignorecase` are lists of what is expected; after a complete value
+or expression, an error lists the operators that may follow (`=> 0x`), where
+the reference names a missing separator; an attribute value lists the
+literals besides `an expression`; and `#repeat(1,` expects the closing
+parenthesis, where the reference expects the bound, which may be left out.
+
 1. **Acceptance.** Both parsers accept exactly the same sources and build the
    same grammar for each.
 2. **No misleading error.** The generated parser reports an error at a mistake
@@ -228,6 +248,11 @@ brackets that the declaration opens:
   its opening on, only a place with the shape of a declaration resumes.
 - Strings, classes and block comments are skipped as units, so that a bracket
   or a keyword inside them counts for nothing.
+- A run of attribute lines where no declaration starts is skipped as a unit
+  with the lines of attributes that follow it, because the attributes reach
+  the same end from each of its lines. At the top level the run stops before a
+  line that starts with an attribute named like a keyword, which starts a
+  declaration.
 
 The shape of a declaration is `rule`, `type` or `var` at the start of a line
 or after a semicolon, then a bare `=` or `~` on the line before any `;`, `{`,
@@ -253,13 +278,17 @@ declaration; the reference reads it as a declaration (and may report errors in
 the valid body), the generated parser does not. A declaration that starts in
 the middle of a line is likewise not resumed at.
 
-The recovery is linear. A test parses failing sources of 11 families (nested
-groups, brackets, attributes, strings and comments) of 2,000 and 16,000
-repetitions and requires that the time grows less than 24 times for 8 times
-the size; the measured ratios are 7.3 to 8.2.
-The detector is shown to fail on quadratic work, but no committed control makes
-the generated parser itself quadratic: lookaheads to the end of the source added
-to the recovery rules measured linear, for a cause that is not established.
+The recovery is linear. A test parses failing sources of 21 families (nested
+groups, brackets, attributes, attribute lines, strings and comments) with
+`Parse` and its limits, at a size where the parse takes over 20 ms and at 8
+times that size, and requires that the time grows less than 24 times; the
+measured ratios are 5.3 to 16.9 on a loaded machine. Under the default work limit of a generated
+parser, a parse that grows faster than the source would end early with a limit
+error, at a cost that grows with the source, and hide the growth. Looking for
+the next declaration at each line of a run of attribute lines, each time to
+the end of the run, grows with the square of the run: 4,000 such lines in an
+open group take over a second, 32,000 lines over five minutes. The skip of attribute
+lines above keeps it linear; the two families of attribute lines in an open group fail without it.
 
 ### One Frontend
 
@@ -268,10 +297,15 @@ there is no per-call or process-wide parser selection. `Compile` of an already
 constructed `grammar.Grammar` is unaffected. A partial parse for editors runs
 the parser with recovery and keeps the declarations that are complete (see
 [Diagnostic Contract](#diagnostic-contract)); it observes the caller's context
-for cancellation. The frontend bounds the nesting of recursive rule calls, so
-that a malformed or hostile source cannot build a tree that the consumers of
-the grammar AST cannot walk, and reports a deeper source as `nesting too deep`
-at its deepest opening delimiter.
+for cancellation. The lexer applies the nesting limit of the
+[language specification](../../../spec/language/lexical.md#limits), which the
+oracle shares, so that a malformed or hostile source cannot build a tree that
+the consumers of the grammar AST cannot walk. It reports `nesting too deep` at
+the token that opens the level beyond the limit, with the syntax errors of the
+source. The generated parser keeps its default bound on nested recursive rule
+calls, far above what the limit allows, only to bound its recursion on a source
+that the lexer rejects. The work of a parse is not limited: the recovery is
+linear, and a caller stops a long parse with its context.
 
 The generated parser's concrete source-AST shape is checked against the typed
 nodes declared by the root grammar. Its adapter is then checked against the

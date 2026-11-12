@@ -6,7 +6,7 @@ import (
 	"testing"
 	"time"
 
-	"zeroparse.dev/zp/internal/syntax/genparser"
+	"zeroparse.dev/zp/internal/syntax"
 	"zeroparse.dev/zp/spec/language/internal/classretry"
 )
 
@@ -17,6 +17,9 @@ import (
 // class again from every later "[". These sources fail, and the parse time of 8 times as many brackets
 // is compared with the time of the first size. The generated parser of the grammar source keeps no
 // records of the walks that the engine reuses, so the grammar itself must keep the recovery linear.
+// The sources are parsed by syntax.Parse, with the limits of the source APIs: the default limit on
+// the work of a generated parser would end a parse that grows faster than the source early, at a
+// cost that grows with the source, and hide the growth.
 var scaleSources = []struct {
 	name string
 	make func(n int) string
@@ -42,6 +45,10 @@ var scaleSources = []struct {
 	{"indexes of groups", func(n int) string { return "rule a = " + strings.Repeat("(a)[", n/4) + "\nrule b = c\n" }},
 	{"classes in open groups", func(n int) string { return "rule a = " + strings.Repeat("( [", n/3) + "\nrule b = c\n" }},
 	{"open index on each line", func(n int) string { return "rule a = " + strings.Repeat("x[\n", n/3) + "\nrule b = c\n" }},
+	{"attribute lines in an open group", func(n int) string { return "rule a = (x\n" + strings.Repeat("@ q\n", n/4) }},
+	{"attribute lines after a broken declaration", func(n int) string { return "rule a = x )\n" + strings.Repeat("@ q\n", n/4) }},
+	{"keyword attribute lines in an open group", func(n int) string { return "rule a = (x\n" + strings.Repeat("@type\n", n/6) }},
+	{"attribute arguments on lines in an open group", func(n int) string { return "rule a = (x\n" + strings.Repeat("@q(\n)\n", n/6) }},
 }
 
 // bestTime returns the least time over a few runs of run.
@@ -95,7 +102,7 @@ func TestRecoveryScalesLinearly(t *testing.T) {
 		t.Run(c.name, func(t *testing.T) {
 			ratio, ok := scalesLinearly(t, 2000, func(n int) time.Duration {
 				src := c.make(n)
-				return bestTime(func() { genparser.ParseAST(src) })
+				return bestTime(func() { syntax.Parse(src) })
 			})
 			if !ok {
 				t.Errorf("the time grows %.1f times for %d times as many brackets in each attempt (limit 24)", ratio, scaleFactor)
