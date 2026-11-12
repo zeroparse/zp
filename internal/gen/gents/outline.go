@@ -76,7 +76,7 @@ func outlineNodes(m *core.Module, build bool) map[core.Node]bool {
 		count := map[string]int{}
 		for _, in := range all {
 			if in.size >= outlineDuplicate && in.size < outlineLarge && candidate(in) {
-				in.key = core.PrintNode(m, in.n, true)
+				in.key = core.PrintNodeGen(m, in.n)
 				count[in.key]++
 			}
 		}

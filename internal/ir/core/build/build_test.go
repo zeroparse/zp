@@ -34,7 +34,7 @@ rule d = "d"
 	for _, want := range []string{
 		"scope=[a b h] => $0:a",
 		"  seq\n    capture 0 a\n      call 1:x\n",
-		"    capture 1 b\n      repeat 0 -1\n",
+		"    capture 1 b\n      repeat 0 -1 resume=1 shiftable\n",
 		"    text\n      seq\n",
 		"    drop\n      lit \"f\"\n",
 		"    not\n      lit \"g\"\n",
@@ -140,11 +140,12 @@ rule pair P = n:[0-9]+ s:[a-z] => P{N: len($n), S: text($s)}
 
 // TestCoreBuildStreamAndMissing checks that #stream at the top of a rule body builds a Stream in
 // every rule, also one that starts no parse, where it delivers nothing (no Commit effect), and that
-// #missing builds a Missing of its literal.
+// #missing builds a Missing of its literal, numbered per attribute and keeping an @error written
+// before it, which then labels inserted tokens.
 func TestCoreBuildStreamAndMissing(t *testing.T) {
 	prog := coreProgram(t, `@start
 rule main = x:item* #stream $$
-rule item = "a" ";" #missing / inner
+rule item = "a" ";" #missing / inner / "c" ":" @error(message="colon") #missing
 rule inner = "b"* #stream
 `)
 	m, err := build.CoreFrom(prog, nil)
@@ -157,8 +158,10 @@ rule inner = "b"* #stream
 	}
 	got := core.Print(m, false)
 	for _, want := range []string{
-		"    capture 0 x\n      stream\n        repeat 0 -1\n",
-		"      seq\n        lit \"a\"\n        missing\n          lit \";\"\n",
+		"    capture 0 x\n      stream\n        repeat 0 -1 resume=1 shiftable\n",
+		"      seq\n        lit \"a\"\n        missing site=1\n          lit \";\"\n",
+		"        missing site=2\n          error \"colon\" missing-scope\n            lit \":\"\n",
+		"  repeat 0 -1 run=1 resume=2 shiftable\n",
 	} {
 		if !strings.Contains(got, want) {
 			t.Errorf("Print does not contain %q:\n%s", want, got)

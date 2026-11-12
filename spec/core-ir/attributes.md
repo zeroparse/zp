@@ -25,7 +25,7 @@ NullableIns, for a parse with token insertion enabled. They differ only through 
   is. `Text`, `Drop`, `Capture`, `Label`, `Terminal` and `Stream` are nullable as their bodies are.
 - `Recover` is nullable as its body is: when the body fails, a skip that consumes nothing is no recovery, so the node
   succeeds without consuming input only through its body.
-- `Missing` is nullable as its literal is, and NullableIns: an insertion consumes no input.
+- `Missing` is nullable as its body is, and NullableIns: an insertion consumes no input.
 - `FailNode` and `ClassRun` are not.
 
 ## First Terminals
