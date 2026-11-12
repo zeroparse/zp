@@ -847,7 +847,11 @@ that $t$ nests at one end when $Y$ is in $E_t$. Let $X$ be an evaluation of a
 call of a rule $A$ of the recursion of $t$ that succeeds and ends at a
 position $p_0$, and $T$ an evaluation of $t$ inside $X$, other than $X$, that
 starts before $p_0$, ends at $p_0$ and holds a successful activation of a
-scanning source other than a bounded scan. Let no evaluation on the path from
+scanning source other than a bounded scan. Let $T$ contain more than $N$
+evaluations of $t$, each in the one around it, all ending at $p_0$, where $N$
+is the largest number of calls that the comparison of a decided unit of the
+grammar expands along a pair of paths before they part or the path of the
+unit ends, which its work budget bounds. Let no evaluation on the path from
 $X$ to $T$ be a dropped step of a growth, and let two evaluations at one
 position of a call that a unit and a continuation share, or that the
 comparison of a decided unit passes alike, end at one position. Then $A$ is in
@@ -857,8 +861,9 @@ the one around it, all of those calls ending at one position, each holding a
 successful activation of such a source, and no dropped step of a growth lying
 between them, $t$ nests at one end: calls that start at that position nest
 only through left recursion, which the growths bound, so some call $X$ starts
-before the position and holds another, $T$, that does too, with no dropped
-step on the path between them, and the claim gives $Y$ in $E_t$. A nesting
+before the position and holds another, $T$, that does too and holds more than
+$N$ of them, with no dropped step on the path between them, and the claim
+gives $Y$ in $E_t$. A nesting
 with a dropped step of a growth between its calls is left open.
 
 *Proof.* By induction on the number of calls on the path from $X$ to $T$.
@@ -891,15 +896,56 @@ end at the same positions in $w$ and in $\kappa$. Those of them that start
 before $p_0$ lie in the match of $X$ in $\kappa$, so they end at or before
 $p_0$.
 
-$T$ does not start at or after the end $u$ of the alike calls in $w$. If it
-did, $w$ would examine, after the alike calls, the character at $u$, on its
+When $w$ shares calls with $\kappa$, $T$ does not start at or after the end
+$u$ of the alike calls in $w$. If it did, $w$ would examine, after the alike calls, the character at $u$, on its
 way to $T$ or in $T$, which consumes the input from its start to $p_0$, and
 $\kappa$, which reaches $p_0 > u$ after the alike calls, would consume that
 character too, which disjoint first characters exclude; and a unit has no
 scanning source after the alike calls only if $T$ there holds none. So $T$ is
 one of the alike calls, or lies inside one of them, or $w$ looks through it to
-reach them, which then lie in its body. In each of these cases the first
-alike call $S$ that ends at $p_0$ exists and starts before $p_0$:
+reach them, which then lie in its body.
+
+When $w$ decides $\kappa$, the same holds with the alike calls taken to be the
+calls among the steps of the comparison ([Decided
+Units](decided-units.md#setting)). The character at $p_0 - 1$ lies in the
+match of $T$ and of each evaluation of $t$ that $T$ holds and that ends at
+$p_0$, so the innermost of them, $T_m$, consumes it. Let $\pi$ be the current
+path of $w$ at the moment $T$ ends, with each call that the comparison expands
+replaced by the current path of its body, and $\rho$ that of $\kappa$ at the
+moment $\kappa$ ends $X$; the pair is settled, and by Lemma 2 of that proof
+both sides pass the steps at the same positions and reach the point where they
+part, if they do, at one position $d$. Let $D$ be the symbol of $\pi$ in whose
+evaluation $w$ consumes the character at $p_0 - 1$. $D$ does not lie inside
+$T_m$: $w$ would then have looked through every evaluation of $t$ that $T$
+holds down to $T_m$, more than $N$ calls. So $D$ is or holds an evaluation of
+$t$ that ends at $p_0$, and with it a successful activation of a scanning
+source. It is therefore no literal, class or `.`, no repetition that the
+comparison passes alike, which reaches no scanning source, no lookahead that
+the comparison passes or a negative one on which it decides, which reach none
+either, and no symbol with which $w$ meets a negative decisive lookahead of
+$\kappa$, whose calls are those of the expression of the lookahead.
+
+Suppose that $D$ is the decisive symbol of $w$ or lies after it. $\kappa$
+consumes the input from $s$ to $p_0$, so it consumes the character at
+$d \le p_0 - 1$ after the steps, and all its symbols up to there succeeded,
+$X$ succeeding: it passed its decisive symbol, which is therefore not the end
+of the parse. If $D$ lies after the decisive symbol of $w$, both passed their
+decisive symbols, which contradicts [Lemma 4 of Decided
+Units](decided-units.md#lemma-4-decisive-symbols). If $D$ is that symbol, a
+call by first characters or a positive lookahead, its evaluation, or that of
+its expression, reaches $p_0 - 1$ from $d$ through evaluations that consume
+input from $d$ on, so, as in the theorem of that proof, the character at $d$
+is a first character of it. The decisive symbol of $\kappa$, or the
+expression of its positive lookahead, consumed that character as a first
+character of its own, and the two have disjoint first characters.
+
+So $D$ is a step before the decisive point, a call, and it is $T$, lies
+around $T$, or lies in the body of $T$, which $w$ then looks through. By
+Lemma 2 of that proof it ends at the same position in $\kappa$, which lies in
+the match of $X$, so it ends at $p_0$.
+
+In each of these cases the first alike call $S$ that ends at $p_0$ exists and
+starts before $p_0$:
 
 - (a) $T$ is an alike call, and $S = T$.
 - (b) $w$ looks through $T$: the last alike call inside $T$ ends at $p_0$, since
@@ -908,8 +954,8 @@ alike call $S$ that ends at $p_0$ exists and starts before $p_0$:
   looking through $t$.
 - (c) $T$ lies inside an alike call, and no evaluation between them is
   abandoned: that call ends at $p_0$, at the end of $T$, and is $S$. Its evaluation in $w$ succeeds,
-  ends at $p_0$ and holds $T$ with fewer calls between, so by induction its
-  rule $B$ is in $E_t$.
+  ends at $p_0$ and holds $T$ with fewer calls between, and $T$ still holds
+  the evaluations of $t$ below it, so by induction its rule $B$ is in $E_t$.
 
 $\kappa$ evaluates $S$ in the body of a call $K$ on the path from $X$ to $w$:
 the call whose body holds $w$, or one whose body $\kappa$ reaches by leaving
@@ -944,10 +990,10 @@ results, and that the shared calls of a unit and its continuation there end
 at one position is argued from the unit and the continuation starting in one
 step, where a read of the seed returns one seed, but not shown. The paragraph
 that places $T$ among the alike calls is written for disjoint first
-characters and for a unit without a scanning source after the alike calls;
-for words that exclude the continuation and for decided units, the proof of
-*Direct activations* shows the same for an activation after the word or the
-decisive symbol, and it must still be shown for the end of $T$. And when $T$
+characters, for a unit without a scanning source after the alike calls and
+for decided units; for words that exclude the continuation, the proof of
+*Direct activations* shows the same for an activation after the word, and it
+must still be shown for the end of $T$. And when $T$
 lies inside an alike call in a unit abandoned inside it, that call can end
 before $p_0$, and the cases above do not apply.
 
@@ -964,7 +1010,8 @@ evaluations nest, each in the next, and since a new one starts at a new
 position, it is made by a call whose callee is a rule of the cycle, as a left
 call of a rule of the cycle starts no new evaluation at a new position. One of
 the finitely many call places, $t$, makes unboundedly many of them, and
-*Nesting at one end*, with $X$ an outer and $T$ an inner one of them, would put
+*Nesting at one end*, with $X$ an outer and $T$ an inner one of them that
+holds more than $N$ of them, would put
 the callee of $t$ in $E_t$, so that $t$ nests at one end. Besides the open
 points of that claim, two of its hypotheses are not shown here. First, $X$
 and $T$ must end at $p_0$, but the evaluations above are chosen because the

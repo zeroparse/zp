@@ -393,15 +393,7 @@ holds for a settled pair of any length.
    unit and of the continuation pass the parts of that rule. They rest on the
    treatment of Operators Rules in Lemma 4 (step 3 of the Linear Cost proof's
    open steps).
-3. **The end of $T$ in *Nesting at one end*.** Lemma 2 gives the hypothesis of
-   that claim for the calls that the comparison passes alike, in any context of
-   growths, since they are calls of rules on no left-recursion cycle. The
-   paragraph of that proof that places $T$ among the alike calls is written
-   for disjoint first characters and for a unit without a scanning source
-   after the alike calls; for a decided unit, the theorem above shows the
-   conclusion for an activation, and it must still be shown for the end of
-   $T$.
-4. **Calls inside growths.** Calls of rules of a left-recursion cycle are never
+3. **Calls inside growths.** Calls of rules of a left-recursion cycle are never
    alike, so inside a growth the comparison parts before such a call or not at
    all. This limits the units that are decided; it leaves no case of the proof
    open.
