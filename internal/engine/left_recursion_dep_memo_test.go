@@ -11,6 +11,7 @@ import (
 	"zeroparse.dev/zp/internal/compile"
 	"zeroparse.dev/zp/internal/engine/core"
 	"zeroparse.dev/zp/internal/gentest"
+	"zeroparse.dev/zp/internal/limits"
 )
 
 // depMemoGrammars returns the grammars that the dependency memo tests compare
@@ -57,7 +58,7 @@ func depMemoDiffers(t *testing.T, c gentest.Case, limit int, unexamined, paralle
 		o.ContextMemoUnexamined, o.ContextMemoOff = false, true
 		want, wantErr := ref.ParseWith("", j.in, o)
 		a, b := gentest.ResultJSON(got, err), gentest.ResultJSON(want, wantErr)
-		if a != b && !strings.Contains(a+b, "budget") && !strings.Contains(a+b, "limit") {
+		if a != b && !endedByResourceLimit(a, b) {
 			return fmt.Sprintf("%s %q %s recognize=%v:\n got %s\nwant %s", c.Name, j.in, j.backend, j.rec, a, b)
 		}
 		return ""
@@ -92,6 +93,14 @@ func depMemoDiffers(t *testing.T, c gentest.Case, limit int, unexamined, paralle
 		}
 	}
 	return diffs, true
+}
+
+// endedByResourceLimit reports whether either result is the compute or memory limit error of the
+// parse (limits.Error), which may stop two parses of one input at different points. Other errors
+// that mention a limit, such as the missing-token insertion limit, are real differences.
+func endedByResourceLimit(a, b string) bool {
+	both := a + b
+	return strings.Contains(both, "parse compute limit exceeded") || strings.Contains(both, "parse memory limit exceeded")
 }
 
 func countNonEmpty(s []string) int {
@@ -240,7 +249,7 @@ func TestLeftRecursionDependencyMemoUnexamined(t *testing.T) {
 				got, err := memo.ParseWith("", in, ParseOptions{Backend: backend, ContextMemoUnexamined: true})
 				want, wantErr := ref.ParseWith("", in, ParseOptions{Backend: backend, ContextMemoOff: true})
 				a, b := gentest.ResultJSON(got, err), gentest.ResultJSON(want, wantErr)
-				if a != b && !strings.Contains(a+b, "budget") && !strings.Contains(a+b, "limit") {
+				if a != b && !endedByResourceLimit(a, b) {
 					if n++; n <= 5 {
 						t.Errorf("%s\n%q %s:\n got %s\nwant %s", c.Src, in, backend, a, b)
 					}
@@ -263,5 +272,27 @@ func TestLeftRecursionDependencyMemoUnexamined(t *testing.T) {
 		if strict, loose := evals(false), evals(true); loose >= strict {
 			t.Errorf("%s: %d evaluations without examined ranges, %d with them", b, loose, strict)
 		}
+	}
+}
+
+// TestEndedByResourceLimit checks that the filter of depMemoDiffers skips only the errors of an
+// exhausted compute or memory limit, as the parser reports them, and not the missing-token
+// insertion limit: a store that keeps results of rules that insert tokens differs from the
+// reference exactly there.
+func TestEndedByResourceLimit(t *testing.T) {
+	prog := mustCompile(t, "@start\nrule main = \"a\" #missing \"b\" #missing \"c\" #missing")
+	got, err := prog.ParseWith("", "", ParseOptions{Backend: Closure, MissingTokens: 1})
+	ins := gentest.ResultJSON(got, err)
+	if !strings.Contains(ins, "insertion limit") || endedByResourceLimit(ins, "") || endedByResourceLimit("", ins) {
+		t.Errorf("the insertion limit error %s must not count as a resource limit", ins)
+	}
+	loop := mustCompile(t, "@start\nrule main = \"a\"+")
+	got, err = loop.ParseWith("", strings.Repeat("a", 100), ParseOptions{Backend: Closure, Limits: limits.Limits{Compute: 5}})
+	res := gentest.ResultJSON(got, err)
+	if !strings.Contains(res, "compute limit") || !endedByResourceLimit(res, "x") || !endedByResourceLimit("x", res) {
+		t.Errorf("the compute limit error %s must count as a resource limit", res)
+	}
+	if endedByResourceLimit(`{"err":"1:1: syntax error"}`, `{"err":"budget"}`) {
+		t.Error("an unrelated error counted as a resource limit")
 	}
 }
