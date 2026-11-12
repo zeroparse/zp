@@ -1080,6 +1080,8 @@ export function startIn(table: Rule[], defined: readonly string[], starts: reado
 export interface Limits {
   /** The cost of the parse. Zero selects the default of max(2^20, 1024 times the input length in the position unit). */
   compute?: number;
+  /** Bytes of storage the parse takes into use, estimated from the sizes of the runtime's objects. Zero and Unlimited, the default, set no bound; a parse whose count passes it fails at the next poll with a ParseInterruptionError of kind "memory-limit". */
+  memory?: number;
   /** Longest input accepted, in the position unit. Zero and Unlimited, the default, set no bound; a longer input fails before any work with a ParseInterruptionError of kind "input-limit". */
   input?: number;
   /** Nesting of recursive rule calls. Zero selects the default of the grammar; a deeper parse fails with a ParseInterruptionError of kind "depth-limit". Unlimited is an error, because rule calls nest on the JavaScript stack. */
@@ -1153,7 +1155,7 @@ function defaultBudget(n: number): number {
 }
 
 /** The limits of a parser generated without limit controls: the input and depth limits. */
-export type PlainLimits = Omit<Limits, "compute">;
+export type PlainLimits = Omit<Limits, "compute" | "memory">;
 
 /**
  * The options of a parser generated without limit controls: those of ParseOptions except the
@@ -1163,7 +1165,7 @@ export type PlainParseOptions = Omit<ParseOptions, "signal" | "limits"> & { limi
 
 // parseOptionKeys and limitKeys are the keys of ParseOptions and Limits.
 const parseOptionKeys = new Set(["unit", "expectations", "signal", "limits", "trace", "traceRules", "traceMaxDepth", "profile"]);
-const limitKeys = new Set(["compute", "input", "depth"]);
+const limitKeys = new Set(["compute", "memory", "input", "depth"]);
 
 // resolveOptions validates options for a parse of input. A zero compute limit of a parser generated with
 // limit controls resolves to the default budget of the input, and Unlimited resolves to no budget (zero).
@@ -1181,8 +1183,8 @@ export function resolveOptions(g: Grammar, options: ParseOptions | undefined, in
       if (!limitKeys.has(key)) return new Error(`unknown limit: ${key}`);
     }
   }
-  if (!g.controlled && (options?.signal != null || ((limits?.compute ?? 0) !== 0 && limits?.compute !== Unlimited))) {
-    return new Error("this parser was generated without limit controls (generate with -limits to use signal and the compute limit)");
+  if (!g.controlled && (options?.signal != null || ((limits?.compute ?? 0) !== 0 && limits?.compute !== Unlimited) || ((limits?.memory ?? 0) !== 0 && limits?.memory !== Unlimited))) {
+    return new Error("this parser was generated without limit controls (generate with -limits to use signal and the compute and memory limits)");
   }
   if (!g.observable && (options?.profile != null || options?.trace != null || options?.traceRules !== undefined || options?.traceMaxDepth !== undefined)) {
     return new Error("trace and profile options are only supported by a parser generated with observability");
@@ -1212,6 +1214,10 @@ export function resolveOptions(g: Grammar, options: ParseOptions | undefined, in
   if (!Number.isSafeInteger(requested) || requested < 0) {
     return new Error(`compute limit must be a non-negative safe integer: ${requested}`);
   }
+  const memory = limits?.memory ?? 0;
+  if (!Number.isSafeInteger(memory) || memory < 0) {
+    return new Error(`memory limit must be a non-negative safe integer: ${memory}`);
+  }
   const maxInput = limits?.input ?? 0;
   if (!Number.isSafeInteger(maxInput) || maxInput < 0) {
     return new Error(`input limit must be a non-negative safe integer: ${maxInput}`);
@@ -1221,7 +1227,7 @@ export function resolveOptions(g: Grammar, options: ParseOptions | undefined, in
     if (over !== null) return new ParseInterruptionError("input-limit", maxInput, 0, over);
   }
   const budget = requested === Unlimited ? 0 : requested !== 0 ? requested : g.controlled ? defaultBudget(inputUnits(input, unit)) : 0;
-  return { unit, maxDepth: depth === 0 ? g.maxDepth : depth, expectations: options?.expectations === true, signal, budget, trace, traceRules, traceMaxDepth, profile, profileClock };
+  return { unit, maxDepth: depth === 0 ? g.maxDepth : depth, expectations: options?.expectations === true, signal, budget, memory: memory === Unlimited ? 0 : memory, trace, traceRules, traceMaxDepth, profile, profileClock };
 }
 
 // run parses the whole input of the grammar g with rule r of a rule table with seen rules that have rule.seen set.
@@ -2138,6 +2144,8 @@ export class Parser {
   spend(n = 1): void { this.control?.charge(n); }
   // spendUnits charges n units as n calls of spend() do (BudgetControl.chargeUnits).
   spendUnits(n: number): void { this.control?.chargeUnits(n); }
+  // alloc counts n bytes of storage taken into use for the memory limit; only a controlled parse counts.
+  alloc(n: number): void { const c = this.control; if (c !== null) c.mem += n; }
 
   constructor(g: Grammar, input: string | Uint8Array, unit: Unit, stride: number, maxDepth: number, control: BudgetControl | null = null) {
     this.g = g;
