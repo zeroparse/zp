@@ -78,7 +78,10 @@ nothing, and that is the right answer: the flag says what the user does not want
 
 ## The Registry
 
-An optimization is a **flag** with a name in one registry (`internal/gen/opt`). Passes are not the only optimizations, and
+An optimization is a **flag** with a name in one registry (`internal/ir/opt`), which sits beside the IR pipelines rather
+than in a generator, so that every backend that lowers from the IR reads the same flags. The same package holds the driver
+that runs the pipelines under a set of flags: it turns passes off by name, verifies after each pass on request and writes
+the dumps that `-print-after` selects. Passes are not the only optimizations, and
 the registry gives all of them the same interface. A flag has a kind, which says what it changes.
 
 | Kind | What it changes | Examples |

@@ -2,17 +2,15 @@ package gen
 
 import (
 	"fmt"
-	"io"
-	"slices"
 	"strings"
 
 	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/compile"
-	"zeroparse.dev/zp/internal/gen/opt"
 	"zeroparse.dev/zp/internal/ir/core"
 	irbuild "zeroparse.dev/zp/internal/ir/core/build"
 	"zeroparse.dev/zp/internal/ir/flow"
 	flowlower "zeroparse.dev/zp/internal/ir/flow/lower"
+	"zeroparse.dev/zp/internal/ir/opt"
 	"zeroparse.dev/zp/internal/limits"
 )
 
@@ -39,20 +37,9 @@ type Generator struct {
 	literalNames map[string]string
 	methodKeys   []generatedMethod
 	literalKeys  []string
-	// Opt holds the optimizations that are on (GenOptions.Optimize, Opt and NoOpt).
-	Opt opt.Settings
-	// CoreHook, if set, is called with the module after it is built and after each pass that runs on
-	// it (core.RunOptions.Dump).
-	CoreHook func(pass string, m *core.Module)
-	// PrintAfter lists the passes after which the Core IR of each module is written to PrintTo
-	// (GenOptions.PrintAfter); "all" selects every pass.
-	PrintAfter []string
-	PrintTo    io.Writer
-	// VerifyEach verifies the Core IR after every pass (GenOptions.VerifyEachPass).
-	VerifyEach bool
-	// CoreRun, if set, runs the Core passes in place of core.Run, for tests that generate with a
-	// pipeline of their own.
-	CoreRun func(m *core.Module, env *core.Env, o core.RunOptions) ([]string, error)
+	// Driver runs the pipelines of the IR with the optimizations that are on (GenOptions.Optimize, Opt
+	// and NoOpt), the dumps of GenOptions.PrintAfter and the verification of GenOptions.VerifyEachPass.
+	opt.Driver
 	// Flow holds the Core IR of the typed rules while they are printed from Flow IR, or nil;
 	// flowRules counts the rules printed from Flow IR as flat rules and flowFrames the bodies
 	// and lines printed as matchers of runtime-owned frames.
@@ -268,48 +255,15 @@ func (g *Generator) FailFlow(what string) {
 	}
 }
 
-// FlowLineOK reports whether the Operators Rule line e is a framed body that Flow IR can print
-// inside the runtime-owned frame of its rule.
-func FlowLineOK(e grammar.Expr) bool {
-	return FlowBodyOK(e, true, true)
-}
-
-// flowFrameExprOK reports whether the body of the rule r is one that Flow IR prints as a framed body of the
-// Node or recognizer table: as flatRuleOK, except that a body may cut or recover, and that the rule may be a
-// left-recursion leader. Flow IR lowers a cut as the typed table does (a flag per backtracking point,
-// published to the runtime's cut flag on return), so the
-// runtime's frame, memo and finish ownership are the same. The runtime owns the growth of a leader's seed
-// around its body, so the body is the matcher of any other rule; its left-recursive alternatives have no
-// first set and are never guarded. The runtime's RecoverAttr sequence is lowered inline, with NewErrorNode
-// building the error node.
-func flowFrameExprOK(r *compile.Rule) bool {
-	return FlowBodyOK(r.BodyExpr(), true, true)
-}
-
 // FlowNodeFrameOK reports whether the rule r of the Node or recognizer table is printed from Flow IR as
-// a framed body, with its Core rule.
-//
-// Core IR gathers the values of a projected repetition (Project), and the actions that read it expect
-// that shape. The Node table writes its actions with the projections of the rule (Generator.Projections),
-// which are the ones Core IR makes, so a Core-lowered body agrees with them. The recognizer's table writes
-// its actions without projections, so its Core IR is built without them (irbuild.CoreProjecting) and agrees with
-// them as well; either table's body is eligible when its action reads only captures of the frame.
+// a framed body (flowlower.NodeFrameOK), with its Core rule. The typed table has no framed bodies.
 func (g *Generator) FlowNodeFrameOK(r *compile.Rule) (*core.Rule, bool) {
-	if g.Flow == nil || g.Table == "trules" || !flowFrameExprOK(r) {
+	if g.Flow == nil || g.Table == "trules" {
 		return nil, false
 	}
 	cr := g.Flow.M.Rules[r.ID]
-	if !flowlower.FramedBody(cr.Body) {
+	if !flowlower.NodeFrameOK(r, cr) {
 		return nil, false
-	}
-	if r.Action != nil {
-		known := compile.NewScope()
-		for _, sl := range cr.Scope {
-			known.Slot(sl.Name)
-		}
-		if !frameRefsKnown(r.Action, known) {
-			return nil, false
-		}
 	}
 	return cr, true
 }
@@ -321,51 +275,6 @@ func FrameScope(c flow.Captures) *compile.Scope {
 		s.Slot(name)
 	}
 	return s
-}
-
-// RecFlowEligible reports whether the rule r of the Node table or of the recognizer table is printed
-// from Flow IR as a flat rule: a lean value-free rule (leanRuleOK). Its captures
-// are Flow statements as in any rule; a semantic predicate keeps a rule out of leanRuleOK.
-func RecFlowEligible(r *compile.Rule) bool {
-	if !leanRuleOK(r) {
-		return false
-	}
-	ok := true
-	compile.WalkExpr(r.BodyExpr(), func(e grammar.Expr) {
-		switch e.(type) {
-		case *grammar.Predicate:
-			ok = false
-		}
-	})
-	return ok
-}
-
-// RunCore runs the pipeline of Core passes on m in the mode, with the optimizations of the generator. local
-// selects the rules that terminal regions are made in, and prepareScans is called around the scans
-// (core.Env). The module is the one of the table named table, which the printed Core IR is
-// labeled with. A failure is an internal error that names the pass.
-func (g *Generator) RunCore(table string, m *core.Module, mode core.Mode, local func(*core.Rule) bool, prepareScans func(*core.Module) func()) error {
-	env := &core.Env{Mode: mode, Flag: g.Opt.On, Local: local, PrepareScans: prepareScans}
-	run := core.Run
-	if g.CoreRun != nil {
-		run = g.CoreRun
-	}
-	dump := g.CoreHook
-	if len(g.PrintAfter) > 0 && g.PrintTo != nil {
-		hook := dump
-		dump = func(pass string, m *core.Module) {
-			if hook != nil {
-				hook(pass, m)
-			}
-			if slices.Contains(g.PrintAfter, pass) || slices.Contains(g.PrintAfter, "all") {
-				fmt.Fprintf(g.PrintTo, "-- Core IR of the %s table after %s --\n%s\n", table, pass, core.Print(m, true))
-			}
-		}
-	}
-	if _, err := run(m, env, core.RunOptions{Dump: dump, VerifyEach: g.VerifyEach}); err != nil {
-		return fmt.Errorf("internal error: %w", err)
-	}
-	return nil
 }
 
 // StartRecFlow builds the Core IR of the program rec (the recognizer, or the program of the Node
@@ -399,130 +308,11 @@ func (g *Generator) StartRecFlow(rec *compile.Program) error {
 	return nil
 }
 
-func frameRefsKnown(t grammar.Term, s *compile.Scope, locals ...string) bool {
-	ok := true
-	capRefs(t, func(name string) {
-		if slices.Contains(locals, name) {
-			return
-		}
-		if _, found := s.Slots[name]; !found {
-			ok = false
-		}
-	})
-	return ok
-}
-
-// flatRuleOK reports whether the rule r can be printed as a flat rule: it is not a left-recursion
-// leader and its body has no cut, recovery or Operators Rule.
-func flatRuleOK(r *compile.Rule) bool {
-	return !r.Leader && FlowBodyOK(r.BodyExpr(), false, false)
-}
-
-// FlowBodyOK reports whether Flow IR can print the expression e in place. A cut is allowed if cuts is
-// set and a recovery attribute if recovery is set; an Operators Rule never is.
-func FlowBodyOK(expr grammar.Expr, cuts, recovery bool) bool {
-	ok := true
-	compile.WalkExpr(expr, func(e grammar.Expr) {
-		switch e := e.(type) {
-		case *grammar.Cut:
-			if !cuts {
-				ok = false
-			}
-		case *grammar.OperatorsRule:
-			ok = false
-		case *grammar.Attributed:
-			for _, a := range e.Attrs {
-				if a.Name == "recover" && !recovery {
-					ok = false
-				}
-			}
-		}
-	})
-	return ok
-}
-
-// leanRuleOK selects value-free plain rules of the Node runtime. Captures
-// unused by recognition are omitted; predicates keep the general code because
-// they can require values, capture frames and variable bindings.
-func leanRuleOK(r *compile.Rule) bool {
-	if !r.Plain || !r.Lean || !r.Novalue || !flatRuleOK(r) {
-		return false
-	}
-	ok := true
-	compile.WalkExpr(r.BodyExpr(), func(e grammar.Expr) {
-		if _, predicate := e.(*grammar.Predicate); predicate {
-			ok = false
-		}
-	})
-	return ok
-}
-
 // GuardedClasses reports whether the first class of a guarded alternative consumes the character that
 // the guard read: the parser prints bodies in their ordinary form, and the guards and their guarded
 // classes are on.
 func (g *Generator) GuardedClasses() bool {
 	return g.Ordinary && g.Opt.On(core.PassGuards) && g.Opt.On(core.FlagGuardedClasses)
-}
-
-// capRefs calls f with the name of each capture the term t refers to outside lambdas that bind
-// the name.
-func capRefs(t grammar.Term, f func(name string)) {
-	var walk func(t grammar.Term, shadow map[string]bool)
-	walk = func(t grammar.Term, shadow map[string]bool) {
-		switch t := t.(type) {
-		case *grammar.CaptureRef:
-			if !shadow[t.Name] {
-				f(t.Name)
-			}
-		case *grammar.Lambda:
-			inner := map[string]bool{}
-			for k := range shadow {
-				inner[k] = true
-			}
-			for _, p := range t.Params {
-				inner[p] = true
-			}
-			walk(t.Body, inner)
-		default:
-			walkChildren(t, func(x grammar.Term) { walk(x, shadow) })
-		}
-	}
-	walk(t, map[string]bool{})
-}
-
-// walkChildren calls f with the direct subterms of t (those walkTerm visits next).
-func walkChildren(t grammar.Term, f func(grammar.Term)) {
-	switch t := t.(type) {
-	case *grammar.Member:
-		f(t.X)
-	case *grammar.New:
-		for _, fi := range t.Fields {
-			f(fi.Value)
-		}
-	case *grammar.ListConstructor:
-		for _, item := range t.Items {
-			f(item)
-		}
-	case *grammar.TupleLit:
-		for _, x := range t.Elems {
-			f(x)
-		}
-	case *grammar.Call:
-		for _, a := range t.Args {
-			f(a)
-		}
-	case *grammar.Lambda:
-		f(t.Body)
-	case *grammar.Binary:
-		f(t.L)
-		f(t.R)
-	case *grammar.Unary:
-		f(t.X)
-	case *grammar.Cast:
-		f(t.X)
-	case *grammar.Bind:
-		f(t.Value)
-	}
 }
 
 // CstJoin reports whether the join has members that stay *Node. The members are read as

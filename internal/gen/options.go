@@ -12,7 +12,7 @@ import (
 
 	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/compile"
-	"zeroparse.dev/zp/internal/gen/opt"
+	"zeroparse.dev/zp/internal/ir/opt"
 )
 
 // GenOptions configures code generation.

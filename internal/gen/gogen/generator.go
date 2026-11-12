@@ -14,8 +14,9 @@ import (
 	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/compile"
 	"zeroparse.dev/zp/internal/gen"
-	"zeroparse.dev/zp/internal/gen/opt"
 	"zeroparse.dev/zp/internal/ir/core"
+	flowlower "zeroparse.dev/zp/internal/ir/flow/lower"
+	"zeroparse.dev/zp/internal/ir/opt"
 )
 
 // defaultPackageName returns the package name of the generated code for a module path: its last
@@ -80,7 +81,7 @@ type Hooks struct {
 	// functions printed from Exec IR (execRoute) it leaves undeclared the locals that no statement
 	// other than an assignment reads.
 	FlowVarsMutantUses bool
-	// CoreRun runs the Core passes in place of core.Run (gen.Generator.CoreRun), so that a test
+	// CoreRun runs the Core passes in place of core.Run (opt.Driver.CoreRun), so that a test
 	// generates with a pipeline of its own, for example one with a pass that breaks the module added.
 	CoreRun func(m *core.Module, env *core.Env, o core.RunOptions) ([]string, error)
 }
@@ -600,7 +601,7 @@ func (g *Generator) rules() {
 				flats[r] = d
 				continue
 			}
-		} else if gen.RecFlowEligible(r) {
+		} else if flowlower.RecEligible(r) {
 			// flowRecRule returns nil for a rule whose printed function would read its start or context, and
 			// for one whose types it cannot name; such a rule takes its framed body below and is called through
 			// the rule table (plainCall).

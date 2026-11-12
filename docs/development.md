@@ -34,8 +34,8 @@ This document describes the repository layout and architecture, how to run tests
 | `runtime/` | Runtime package of generated Go parsers, imported by them or copied into them (`zeroparse.dev/zp/runtime`) |
 | `internal/gen/gogen/` | Go generator: prints the parser, its types package and the runtime copy from the compiled program and Exec IR, and leaves out what the entry points cannot reach |
 | `internal/gen/tsgen/` | TypeScript generator: prints the parser, its types and its runtime files from the compiled program and Exec IR |
-| `internal/gen/opt/` | The registry of the generation-time optimizations (flags with a kind and a `speed` value) and of the `speed`, `memory` and `size` profiles |
-| `internal/ir/` | The internal representations between a compiled program and generated code: `core/` (Core IR, its builder in `core/build/` and its passes), `flow/` (Flow IR and its lowering in `flow/lower/`), `exec/` (Exec IR: the operations of the parser VM in `exec/ops/`, the compositions in `exec/core/`, the lowering from Flow IR in `exec/lower/`, the passes in `exec/pass/`, the Go and TypeScript printers in `exec/execgo/` and `exec/exects/`, and the reference models and conformance suite in `exec/ref/` and `exec/conform/`) and `pipeline/` (the runner of declared passes). See [Core, Flow and Exec IR](design/intermediate-representations.md) |
+| `internal/ir/` | The internal representations between a compiled program and generated code: `core/` (Core IR, its builder in `core/build/` and its passes), `flow/` (Flow IR, and in `flow/lower/` its lowering and which compiled rules it lowers), `exec/` (Exec IR: the operations of the parser VM in `exec/ops/`, the compositions in `exec/core/`, the lowering from Flow IR in `exec/lower/`, the passes in `exec/pass/`, the Go and TypeScript printers in `exec/execgo/` and `exec/exects/`, and the reference models and conformance suite in `exec/ref/` and `exec/conform/`) and `pipeline/` (the runner of declared passes). See [Core, Flow and Exec IR](design/intermediate-representations.md) |
+| `internal/ir/opt/` | The registry of the optimizations (flags with a kind and a `speed` value) and of the `speed`, `memory` and `size` profiles, and the driver that runs the IR pass pipelines under them with their dumps and verification |
 | `internal/gen/tsgen/tsrt/` | Source of `runtime.ts`, the runtime that generated TypeScript parsers import (joined from `runtime.ts`, `budget.ts`, `trace.ts` and `profile.ts`) |
 | `cmd/zp/` | Command-line tool |
 | `examples/` | Small example grammars that show the features, with golden tests |
@@ -118,8 +118,9 @@ Generated Go `-stream` adds a Node `ParseStream` that follows the engine's Reade
 call counts with the engine across chunkings, units, controls, observability and Document generation; changes to
 the stream runtime should keep it and the bounded-memory consumer in `TestGeneratedStreamAPI` passing.
 
-Generation-time optimizations are the flags of one registry (`internal/gen/opt`), and the Core passes are a pipeline
-declared in `internal/ir/core/pipeline.go` and run by the generic manager in `internal/ir/pipeline`
+Optimizations are the flags of one registry (`internal/ir/opt`), and the Core passes are a pipeline
+declared in `internal/ir/core/pipeline.go`, run by the generic manager in `internal/ir/pipeline` under the settings of
+the driver in `internal/ir/opt`
 ([design 063](design/records/063-configurable-optimization-pass-pipeline.md)). To add an optimization:
 
 1. Declare a pass with its `Requires`, `Invalidates`, `After`, `Applies` and `Obligation`, or add a lowering or
