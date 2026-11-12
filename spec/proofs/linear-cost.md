@@ -2307,9 +2307,9 @@ growth, the activations of $\sigma$ at $q$ after the first one there, counted
 with no reuse in a context of growths. Two of them are related through a call
 that the family evaluates at $p$ or a call of a rule that calls no rule
 (*Repeats* and *Repeats inside a growth*): a shared call whose later
-evaluation is a memoized evaluation would own the later activation. Bounding the second part, and the
-heads that hold free activations, at each position, is part of step 4 of
-[Open Steps](#open-steps); the following claim reduces the second part.
+evaluation is a memoized evaluation would own the later activation. The
+following claims bound the second part and, in *First activations of heads*,
+the heads of the first part.
 
 **Repeats inside a family.** Let $g$ be an outer growth at $p$, let the values
 of the variables not change in the growths of its family, and let the parse
@@ -2423,6 +2423,64 @@ the family region of $g$ number at most a constant, apart from a constant for
 each step of the family when $q$ is at most a constant after $p$, the
 activations inside calls of rules that call no rule, case 5 and the dropped
 steps, and the pairs that step 2 of [Open Steps](#open-steps) keeps.
+
+**First activations of heads.** Let $h$ be the head of a key whose family
+region holds a successful activation of $\sigma$ at $q$ of the sequence
+$\alpha_1, \alpha_2, \ldots$, and let $\alpha_j$ be the first one there. Then
+$\alpha_j$ is $\alpha_1$; or it lies in a call of a rule that calls no rule;
+or it follows a link, or is free with a reference link, with case (a) or (b)
+of the covered keys on its path; or it is free and the counterpart of an
+activation of $\mathcal{R}$ that a dropped step or a path that enters a growth
+again of $\mathcal{R}$ leads to; or it follows a link, or its counterpart a
+reference link, whose later evaluation is a call of a rule off the cycle in a
+context of growths and whose earlier evaluation lies outside the family region
+of $h$, or of $\mathcal{R}(h)$; or a result or a step that the parse reuses
+inside $h$ meets the gap of *Heads hold what later growths hold*.
+
+*Proof.* Let $\alpha_j$ be none of these, so $j \ge 2$. If it is linked, the
+link is memoized, since $\alpha_j$ lies in no call of a rule that calls no
+rule. By *Links lead to later growths*, $e'_j$ lies inside the family of $h$,
+so it is a call in a context of growths at the position $p'$ of a growth $G$
+of that family: an evaluation of the family that is a memoized evaluation
+would own $\alpha_j$. The rule of the link is memoized at the call, so it is
+off the cycle, which the list excludes, or a leader of the cycle of $G$, a
+rule of a cycle other than a leader being memoized only at a call that is no
+left call. Then $e_j$, made by the call that $w_j$ shares with its
+continuation, lies in the same growths of the cycle (case 2), so inside $G$
+at $p'$, in its context and in the family region of $h$, and $e_j$ and
+$e'_j$ take the same steps. If it is free, its counterpart in $\mathcal{R}$
+has a reference link $(e^k, e^{k\prime})$ with $e^{k\prime}$ inside the family
+of $\mathcal{R}(h)$, by the remark after *Links lead to later growths*, and
+$e^k$ lies in the family region of $\mathcal{R}(h)$ for the same reasons.
+Either way, the place of $\alpha_j$ inside the later evaluation, or of its
+counterpart, corresponds to a place inside the earlier one, which is evaluated
+first, at $q$, in the family region of $h$ or of $\mathcal{R}(h)$. Follow the
+path from $h$ down to that place as in the proof of *Heads hold what later
+growths hold*: the parse evaluates every call and step on it, or answers the
+first one $y$ that it does not evaluate from an evaluation $y'$ made earlier
+inside $h$ in the family region, whose path goes on to the same place outside
+the gap. By induction on the order of the evaluations, $h$ holds a successful
+activation of $\sigma$ at $q$ in its family region before $\alpha_j$, which
+lies outside case 5 and the dropped steps as $\alpha_j$ does, or one that
+*Repeats inside a growth* leaves out of the sequence and that follows an
+earlier one of the same growth; either way $\alpha_j$ is not the first one
+there. $\square$
+
+So for each position $q$, the heads whose family regions hold an activation
+of the sequence are at most as many as the cycle has leaders for $\alpha_1$,
+since the growths at one position that enclose one another have distinct
+leaders, and as many for each activation of the kinds that the claim lists.
+Those kinds are the open parts of step 1 of [Open Steps](#open-steps), the
+gap stated with (D) of the memoization proof, the activations that a dropped
+step or a path that enters a growth again of $\mathcal{R}$ leads to, which
+step 1 leaves to count too, and the links of a rule off the cycle whose later
+evaluation is in a context of growths inside $h$ while the earlier one is
+not, which this proof does not bound: the head of the class of the key of
+that call is then outside $h$, and nothing yet charges $h$ to it. With the at most two outer growths of each
+key and the constant of *Consecutive repeats inside a family* for each family,
+the successful activations of $\sigma$ at $q$ that growth steps and
+evaluations in a context of growths own are at most a constant, apart from
+those kinds and the parts that that claim leaves.
 
 ## Lemma 6 (Values and Copies)
 
@@ -4379,7 +4437,11 @@ condition of the cost view that the [Cost View](cost-view.md) proof leaves open.
    for the activations that growth steps and evaluations in a context of
    growths own into the outer growths whose families hold one, which it
    charges to the heads of their keys, and the repeats inside one family
-   (*Families of growths* to *Links lead to later growths*). What remains of
+   (*Families of growths* to *Links lead to later growths*), bounds the
+   repeats inside one family by a constant at each position (*Repeats inside
+   a family*, *Consecutive repeats inside a family*), and bounds the heads
+   whose family regions hold an activation at a position by the kinds of
+   first activation that *First activations of heads* lists. What remains of
    that sum is described below.
    Lemma 4
    bounds the activations owned by memoized evaluations after this lemma, in
@@ -4404,11 +4466,14 @@ condition of the cost view that the [Cost View](cost-view.md) proof leaves open.
    growth, and leave the activations inside calls of rules that call no rule, the leaf
    links inside a family, with the open parts of step 1, and the pairs that
    step 2 keeps. Second, the heads of keys
-   that hold a free activation or one that a link of a kind that *Links to heads* leaves
-   out leads to, and the activations that *Heads hold what later growths hold*
-   leaves out, through a result or step kept in a smaller lookahead state or
-   the lookaheads that it observed, with the open gap stated with (D) of the
-   memoization proof. Third, the growths that start at many positions, each at
+   whose first activation at a position is of a kind that *First activations
+   of heads* lists: the open parts of step 1, the activations that a dropped
+   step or a path that enters a growth again of the reference parse leads to,
+   the links of a rule off the cycle whose later evaluation is in a context of
+   growths inside the head while the earlier one is not, and the activations
+   that *Heads hold what later growths hold* leaves out, through a result or
+   step kept in a smaller lookahead state or the lookaheads that it observed,
+   with the open gap stated with (D) of the memoization proof. Third, the growths that start at many positions, each at
    a call of a rule of the cycle that is not a left call or at a call of a
    leader in the body of another rule, as the repetitions of a scanning
    source.
