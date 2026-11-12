@@ -84,7 +84,9 @@ evaluating it, under these conditions:
   and a lookahead state at least the state of the result, as (L) allows for an
   entry, from it only if each growth that it read is open with an
   equal current result and each observed lookahead has the same observation,
-  as a result kept in the same way gives it. Only a lookahead that leaves
+  as a result kept in the same way gives it. In a parse that records examined
+  ranges, equal current results have equal ranges too, and the same
+  observations equal ranges of the lookaheads. Only a lookahead that leaves
   nothing after it but whether its expression matched is observed: a negative
   lookahead, or a positive one whose expression makes no capture and binds no
   variable outside the rules that it calls. The growths that another

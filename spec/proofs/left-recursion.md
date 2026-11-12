@@ -201,7 +201,8 @@ Let a call of a leader with key $\kappa$ start at $p$ in a state $\sigma$ and a
 context $\Gamma$. There is exactly one growth $r_0, \dots, r_k$ for it, which
 is a function of $\kappa$, $\sigma$, $\Gamma$ and the current results in
 $\Gamma$ alone. $\mathcal{M}$ passes through the same current results, in the
-same order, with the same $k$, however it chooses what to store and reuse.
+same order, with the same $k$, however it chooses what to store and reuse; in
+lookahead state $1$ its current results agree with them (Memoization Lemma 1).
 
 *Proof.* **The growth is a function.** Let a call $c$ at $p$ be at chain
 length $m$ (Lemma 1). Its context is the sequence of the open growths at $p$ of
@@ -241,7 +242,9 @@ function of its start in each step; it is not shared between steps, which is
 
 **$\mathcal{M}$ passes through the same results.** By induction on the steps
 of the growth, $\mathcal{M}$ and $\mathcal{R}$ have the same current result
-$r_{i-1}$ before step $i$. Suppose they do. The step is one of:
+$r_{i-1}$ before step $i$, or in lookahead state $1$ current results that
+agree. Suppose they do. Below, "the outcome of $B(r_{i-1})$" means that outcome
+in state $0$ and one that agrees with it in state $1$. The step is one of:
 
 - *Evaluated.* The body evaluation in $\mathcal{M}$ has the outcome of
   $B(r_{i-1})$ by the Memoization theorem, item 5 (its nested evaluations
@@ -250,16 +253,19 @@ $r_{i-1}$ before step $i$. Suppose they do. The step is one of:
   of (D) of the Memoization proof, with the same present set and each growth
   that the step read open with an equal current result, and each observed
   lookahead with the same observation. By Memoization Lemma 4 the outcome is
-  $B(r_{i-1})$.
+  that of $B(r_{i-1})$: equal to it in state $0$, and in state $1$ one that
+  agrees with it.
 - *Taken in a run.* $\mathcal{M}$ takes steps $i, \dots, i + m - 1$ at once from
   a current result equal to $r_{i-1}$, with the observations of their
   lookaheads unchanged. By the Memoization theorem, item 4, the run has the
   outcomes of the steps $B(r_{i-1}), \dots$. By (A5) each of them adopted its
   result, so $\mathcal{M}$'s current result is $r_{i+m-1}$ as in
-  $\mathcal{R}$, and the step $i + m$ is next.
+  $\mathcal{R}$, or agrees with it in state $1$, and the step $i + m$ is next.
 
-In each case the outcome is $\omega_i$, so the decision whether to adopt it
-(a match that ends farther than $r_{i-1}$) is the same, and so is the stop. The
+In each case the outcome is $\omega_i$, or in state $1$ one that agrees with
+it. Agreeing outcomes both match or both fail and end at the same position, so
+the decision whether to adopt it (a match that ends farther than $r_{i-1}$) is
+the same, and so is the stop. The
 two parses stop after $k + 1$ steps with the result $r_k$. $\square$
 
 ## Consequences
