@@ -419,10 +419,17 @@ rule action_ops = #operators {
     level field_access {
         postfix "." -ws capture_ref
         postfix "." -ws cast_type
-        postfix "." -ws ident
+        postfix "." -ws -member_spelling ident
         postfix index_suffix
     }
 }
+// x.name with a lowercase name is an error at the name, because a capture is read with x.$name: the
+// fields of a node start with an uppercase letter, and startPos, endPos, children, expected and
+// message are members of every node. A name is ASCII, so the check is exact.
+rule member_spelling = (
+    !(!(("startPos" / "endPos" / "children" / "expected" / "message") !ident_char) [a-z_])
+    / _|_
+)
 // The brackets of an index open their own delimiter, and a rule of its own keeps ml from
 // reaching the rest of the action.
 rule index_suffix = "[" {ml := true} -ws action_expr -ws "]"

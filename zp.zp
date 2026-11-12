@@ -621,10 +621,17 @@ rule action_ops ActionExpr = #operators {
     level field_access {
         postfix "." -ws c:capture_ref => CaptureAccess{X: $lhs, Capture: $c}
         postfix "." -ws t:cast_type => Cast{X: $lhs, Type: $t}
-        postfix "." -ws name:(ident @diagnostic(name="identifier")) => FieldAccess{X: $lhs, Name: $name}
+        postfix "." -ws -member_spelling name:(ident @diagnostic(name="identifier")) => FieldAccess{X: $lhs, Name: $name}
         postfix i:index_suffix => BinaryOp{Op: "[]", L: $lhs, R: $i}
     }
 }
+// x.name with a lowercase name is an error at the name, because a capture is read with x.$name: the
+// fields of a node start with an uppercase letter, and startPos, endPos, children, expected and
+// message are members of every node. A name is ASCII, so the check is exact.
+rule member_spelling = (
+    !(!(("startPos" / "endPos" / "children" / "expected" / "message") !ident_char) [a-z_])
+    / _|_ @error(message="a capture is read with .$")
+)
 // The brackets of an index open their own delimiter, and a rule of its own keeps ml from
 // reaching the rest of the action.
 rule index_suffix ActionExpr = "[" {ml := true} -ws i:action_expr -ws "]" => $i
