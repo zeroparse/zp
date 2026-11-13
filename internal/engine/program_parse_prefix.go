@@ -70,7 +70,7 @@ func (prog *Program) ParsePrefixWith(start, input string, o ParseOptions) (resul
 
 func (prog *Program) runPrefix(p *core.Parser, b Backend, start string) (result PrefixResult, err error) {
 	p.Aborted = false
-	r, err := prog.rule(b, start, family(p))
+	r, err := prog.rule(b, start, family(p), p.Control)
 	if err != nil {
 		return PrefixResult{}, err
 	}

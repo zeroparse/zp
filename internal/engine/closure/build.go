@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"zeroparse.dev/zp/grammar"
+	"zeroparse.dev/zp/internal/cancel"
 	"zeroparse.dev/zp/internal/compile"
 	"zeroparse.dev/zp/internal/engine/core"
 	ir "zeroparse.dev/zp/internal/ir/core"
@@ -28,17 +29,19 @@ const (
 )
 
 // Core builds the Core IR of the program prog and optimizes it with the closure pipeline (guards
-// and scans), for Build. It runs when a parse first needs a family, outside the compilation, so no
-// control interrupts it. A failure is an internal error: the program compiled, so its Core IR
-// builds.
-func Core(prog *compile.Program) (*ir.Module, error) {
-	m, err := build.CoreFrom(prog, nil)
+// and scans), for Build. It runs when a parse first needs a family, outside the compilation: the
+// build and the passes poll control, the parse's (nil for none), and a cancellation unwinds as
+// cancel.Cancellation. The module returned does not keep control. A failure is an internal error:
+// the program compiled, so its Core IR builds.
+func Core(prog *compile.Program, control *cancel.Control) (*ir.Module, error) {
+	m, err := build.CoreControlled(prog, control)
 	if err != nil {
 		return nil, fmt.Errorf("internal error: Core IR: %w", err)
 	}
 	if _, err := ir.Run(m, &ir.Env{}, ir.RunOptions{}); err != nil {
 		return nil, fmt.Errorf("internal error: %w", err)
 	}
+	m.Control = nil
 	return m, nil
 }
 

@@ -82,7 +82,7 @@ func (prog *Program) PrepareRun(b Backend, c *core.BudgetControl) (document.Runn
 		// A Document parse runs the call-preserving family (its parser sets NoPlain): build it
 		// here, after the check that ends prepareControlledProgram and before one more, rather than
 		// inside the parse.
-		if _, err := active.familyRules(closure.CallPreserving); err != nil {
+		if _, err := active.familyRules(closure.CallPreserving, c); err != nil {
 			return nil, err
 		}
 		c.Check()

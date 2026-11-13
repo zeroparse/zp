@@ -129,7 +129,7 @@ func BenchmarkMemoLifecycle(b *testing.B) {
 					b.Fatal(err)
 				}
 				// Prepare lazy VM compilation outside the timed interval.
-				if _, err := prog.rule(backend, "main", closure.Inlined); err != nil {
+				if _, err := prog.rule(backend, "main", closure.Inlined, nil); err != nil {
 					b.Fatal(err)
 				}
 				b.SetBytes(int64(len(c.line) * 10000))

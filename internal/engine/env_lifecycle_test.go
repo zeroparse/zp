@@ -92,7 +92,7 @@ rule main = {limit := 1} {i := 0} {j := 0} (` + c.body + `)* $$`)
 					if err != nil {
 						b.Fatal(err)
 					}
-					if _, err := prog.rule(backend, "main", closure.Inlined); err != nil {
+					if _, err := prog.rule(backend, "main", closure.Inlined, nil); err != nil {
 						b.Fatal(err)
 					}
 					input := strings.Repeat("a", n)

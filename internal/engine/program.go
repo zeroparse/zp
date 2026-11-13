@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"slices"
 	"sync"
+	"sync/atomic"
 
 	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/bytecode"
@@ -58,14 +59,14 @@ type Program struct {
 	insErr  error
 }
 
-// closureFamily holds the rules of a closure family once a parse needs them.
+// closureFamily holds the rules of a closure family once a parse needs them. The build runs under
+// mu; built is set once rules and err are final. A build that the parse's context cancels leaves
+// the family unbuilt, and the next parse that needs it builds it.
 type closureFamily struct {
-	once  sync.Once
+	built atomic.Bool
+	mu    sync.Mutex
 	rules []*core.Rule
 	err   error
-	// done reports that the build returned; a build that panicked leaves it false, and the
-	// family then reports an error instead of running no rules.
-	done bool
 }
 
 // newProgram returns the program that runs the static program sp; buildFamily builds the rules of
@@ -112,19 +113,39 @@ func (c *closureCore) share() {
 }
 
 // module returns the Core IR for the build of a family, building it if it is not held; the build
-// calls done when it returns.
-func (c *closureCore) module() (*ir.Module, error) {
+// calls done when it returns. The build polls ctx, the context of the parse that needs the family
+// (nil for none): if it ends, module returns a buildCancelled with its error and holds no module.
+func (c *closureCore) module(ctx context.Context) (m *ir.Module, err error) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
-	if c.m == nil {
-		m, err := closure.Core(c.sp)
-		if err != nil {
-			return nil, err
-		}
-		c.m = m
+	if c.m != nil {
+		return c.m, nil
 	}
-	return c.m, nil
+	var control *cancel.Control
+	if ctx != nil {
+		control = &cancel.Control{Ctx: ctx}
+		defer func() {
+			if x := recover(); x != nil {
+				cancelled, ok := x.(cancel.Cancellation)
+				if !ok {
+					panic(x)
+				}
+				m, err = nil, buildCancelled{cancelled.Err}
+			}
+		}()
+	}
+	if m, err = closure.Core(c.sp, control); err != nil {
+		return nil, err
+	}
+	c.m = m
+	return m, nil
 }
+
+// buildCancelled is the error of a build of the Core IR that the parse's context ended: err is the
+// context's error, which the parse reports.
+type buildCancelled struct{ err error }
+
+func (e buildCancelled) Error() string { return e.err.Error() }
 
 // done records that the build of a family returned, and drops the Core IR after the last one.
 func (c *closureCore) done() {
@@ -259,8 +280,9 @@ func compileChecked(g *grammar.Grammar, opts compile.Options, control *cancel.Co
 // Polls cover grammar AST validation, source normalization, rule/dependency
 // loops, shared success proofs, expression checking and type checking. The Core
 // IR and the closures built from it are made when a parse first needs them,
-// outside the compilation, and are not interrupted. Shared metadata and individual operations still have
-// uncancellable stretches.
+// outside the compilation: the parse's own context interrupts the Core IR build
+// and its passes, not the closures. Shared metadata and individual operations
+// still have uncancellable stretches.
 // This is not a wall-clock latency guarantee.
 func CompileContext(ctx context.Context, g *grammar.Grammar, opts Options) (prog *Program, err error) {
 	if err := ctx.Err(); err != nil {
@@ -283,7 +305,7 @@ func CompileContext(ctx context.Context, g *grammar.Grammar, opts Options) (prog
 
 // lower returns the program that runs the checked program prog. Its Core IR and the closures of
 // each family built from it are made on first use, inside the parse that needs them and outside the
-// compilation and its control (closureCore).
+// compilation and its control; the parse's context interrupts the Core IR build (closureCore).
 func lower(prog *compile.Program) *Program {
 	return closureProgram(prog, newClosureCore(prog), true)
 }

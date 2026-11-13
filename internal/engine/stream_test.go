@@ -127,7 +127,7 @@ func TestParseStreamDiscardsInput(t *testing.T) {
 		maxBuf = max(maxBuf, len(p.In))
 		return nil
 	}
-	main, err := prog.rule(Closure, "main", closure.Inlined)
+	main, err := prog.rule(Closure, "main", closure.Inlined, nil)
 	if err != nil {
 		t.Fatal(err)
 	}

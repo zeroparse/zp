@@ -347,7 +347,7 @@ func closureExprCore(t *testing.T, prog *compile.Program, e grammar.Expr) (*ir.M
 // inlinedRules returns the rules that the closure backend runs in the inlined family, by ID.
 func inlinedRules(t testing.TB, prog *Program) []*core.Rule {
 	t.Helper()
-	rules, err := prog.familyRules(closure.Inlined)
+	rules, err := prog.familyRules(closure.Inlined, nil)
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -112,7 +112,7 @@ func BenchmarkNilActionStream(b *testing.B) {
 	}
 	for _, backend := range []Backend{Closure, Bytecode, BytecodeIterative} {
 		b.Run(backend.String(), func(b *testing.B) {
-			if _, err := prog.rule(backend, "main", closure.Inlined); err != nil {
+			if _, err := prog.rule(backend, "main", closure.Inlined, nil); err != nil {
 				b.Fatal(err)
 			}
 			b.SetBytes(10000)

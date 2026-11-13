@@ -407,15 +407,17 @@ built or loaded and is not stored in modules: no call site takes it in the call-
 the call sites of plain rules (computed from the rule table as today) take it in the inlined family.
 The `plain` fact of a rule itself is the same in both families, because a full call still uses it to
 leave the call protocol of a plain rule out of the count against a Document's default limit. `Compile` checks the grammar; the Core IR and each family's program are
-built on first use, the family under its own `sync.Once`, as the recognizer is, because a `Program` is shared across
+built on first use, each family once, under its own lock, because a `Program` is shared across
 goroutines. A user that only parses Documents, such as the language server, never builds the inlined
 family. Every compile error, such as `undefined rule`, which the closure lowering reports today
 (`compiler.errorf` in `compile.go`), is reported by the checker inside `Compile`, and the Core IR builder reports only internal errors, so
 building the Core IR or a family cannot fail on a grammar that compiled; an inconsistency found while building one is an
 internal error, not a user error. A first-use build runs inside the parse that needs it, which checks its
-context and budget control before and after the build, outside the `sync.Once`, as
-`prepareControlledProgram` does today. The build itself is not interrupted, so a cancelled parse never
-leaves an interrupted build cached in the shared `Program`; its duration is part of the first-use cost
+context and budget control before and after the build, as `prepareControlledProgram` does today. The
+parse's context also interrupts the build of the Core IR and its passes, which take the polls that
+`CompileContext` took while `Compile` built the Core IR; the closures themselves are built without
+interruption. An interrupted build leaves neither the Core IR nor the family in the shared `Program`,
+so the next parse that needs the family builds it; the build's duration is part of the first-use cost
 that [Performance and Results](#performance-and-results) measures. In the budget-controlled program, entering a `Nest` charges at least one step, as a call does, so the
 budget invariants of the [Flow IR specification](../../../spec/flow-ir/invariants.md#budget) hold.
 
@@ -694,7 +696,8 @@ stage of its first consumer, so its differential tests and negative controls run
    terms. The grammar-driven construction of closures is removed; `closure/builder.go` stays as the
    Core-driven builder. The first build of a family builds Core IR and runs the closure pipeline, and
    the program keeps the module until both families are built; the closures of each family are built
-   from that module, which the builds only read, on first use and without interruption. Nothing else
+   from that module, which the builds only read, on first use and without interruption (the parse's
+   context interrupts only the Core IR build and its passes). Nothing else
    reads the module, so the program drops it after the second build; it stays as long as a family
    is unbuilt. The metered program that runs the parses under budget controls runs the same checked
    program and builds its families from the same module, which then stays until its families are built

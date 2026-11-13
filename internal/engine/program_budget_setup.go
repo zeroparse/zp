@@ -42,10 +42,10 @@ func (prog *Program) admitParse(start string, o ParseOptions, f closure.Family, 
 			if err != nil {
 				return nil, nil, nil, err
 			}
-			r, err := active.rule(o.Backend, start, f)
+			r, err := active.rule(o.Backend, start, f, nil)
 			return active, r, nil, err
 		}
-		r, err := prog.rule(o.Backend, start, f)
+		r, err := prog.rule(o.Backend, start, f, nil)
 		if err != nil {
 			return nil, nil, nil, err
 		}
@@ -121,13 +121,13 @@ func (prog *Program) preflightRule(b Backend, name string, stream bool) (bool, e
 
 func (prog *Program) prepareControlledRule(b Backend, name string, f closure.Family, c *core.BudgetControl) (*core.Rule, error) {
 	if !core.BudgetControlsEnabled || c == nil {
-		return prog.rule(b, name, f)
+		return prog.rule(b, name, f, nil)
 	}
 	if prog.backend(b) == Closure {
-		// The closures of the family are built on first use and not interrupted; the checks
-		// before (prepareControlledProgram's last) and after the build observe the parse's
-		// context and budget.
-		r, err := prog.rule(b, name, f)
+		// The family is built on first use: the parse's context interrupts the build of its Core
+		// IR, not the closures; the checks before (prepareControlledProgram's last) and after the
+		// build observe the parse's context and budget.
+		r, err := prog.rule(b, name, f, c)
 		c.Check()
 		return r, err
 	}
@@ -144,7 +144,7 @@ func (prog *Program) prepareControlledRule(b Backend, name string, f closure.Fam
 		prog.ivmOnce.Do(func() { prog.ivm = vm.NewIterative(m, terms) })
 	}
 	c.Check()
-	return prog.rule(b, name, f)
+	return prog.rule(b, name, f, c)
 }
 
 // prepareControlledProgram returns the program that runs the closure parses under the budget

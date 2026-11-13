@@ -41,9 +41,9 @@ type Module struct {
 	// Typed reports that the module carries the checked types of the program: every term but a
 	// lambda, every capture slot and every rule's value have one.
 	Typed bool
-	// Control is the control of the compilation that builds the module, or nil. The analysis, the
-	// passes and Verify poll it for each rule they visit, so that a cancelled compilation stops
-	// inside them; a cancellation unwinds as cancel.Cancellation.
+	// Control is the control of the work that builds the module (the parse that first needs it),
+	// or nil. The analysis, the passes and Verify poll it for each rule they visit, so that cancelled
+	// work stops inside them; a cancellation unwinds as cancel.Cancellation.
 	Control *cancel.Control
 }
 

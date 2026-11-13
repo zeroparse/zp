@@ -18,7 +18,7 @@ func TestBudgetContextAttributionPreservesVMFaults(t *testing.T) {
 	for _, backend := range []Backend{Bytecode, BytecodeIterative} {
 		t.Run(backend.String(), func(t *testing.T) {
 			prog := mustCompile(t, `rule main = "z" $$`)
-			if _, err := prog.rule(backend, "main", closure.Inlined); err != nil {
+			if _, err := prog.rule(backend, "main", closure.Inlined, nil); err != nil {
 				t.Fatal(err)
 			}
 			// Corrupt the prepared VM, bypassing the saved-module validator, to

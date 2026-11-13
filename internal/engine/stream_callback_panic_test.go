@@ -198,7 +198,7 @@ func TestStreamNormalCallerReturnKeepsVMFaultAttribution(t *testing.T) {
 			for _, phase := range []string{"reader", "emit"} {
 				t.Run(fmt.Sprintf("%s/%s/%s", b, u, phase), func(t *testing.T) {
 					prog := mustCompile(t, "rule main = item* #stream $$\nrule item = \"a\"")
-					if _, err := prog.rule(b, "main", closure.Inlined); err != nil {
+					if _, err := prog.rule(b, "main", closure.Inlined, nil); err != nil {
 						t.Fatal(err)
 					}
 					// Corrupt the prepared module after a normal caller return. This fault is

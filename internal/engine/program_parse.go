@@ -1,6 +1,7 @@
 package engine
 
 import (
+	"context"
 	"fmt"
 	"io"
 	"math"
@@ -146,47 +147,77 @@ func optionsFamily(o ParseOptions) closure.Family {
 }
 
 // familyRules returns the rules that the closure backend runs in the family f, by ID (rule.id),
-// building them on first use. The build that returns last among those that read the Core IR drops
-// it (closureCore); a build that panicked counts as returned, since its family only reports an
-// error after.
-func (prog *Program) familyRules(f closure.Family) ([]*core.Rule, error) {
+// building them on first use. The build of the Core IR polls the context of c, the parse's budget
+// control (nil for none); if the context ends, familyRules returns its error and leaves the family
+// unbuilt. The build that returns last among those that read the Core IR drops it (closureCore); a
+// build that panicked counts as returned, since its family only reports an error after.
+func (prog *Program) familyRules(f closure.Family, c *core.BudgetControl) ([]*core.Rule, error) {
 	fam := &prog.families[f]
-	fam.once.Do(func() {
-		if prog.buildFamily == nil {
-			fam.err = errClosureNeedsSource
-			return
+	if !fam.built.Load() {
+		if err := prog.buildFamilyRules(fam, f, c); err != nil {
+			return nil, err
 		}
-		defer prog.coreIR.done()
-		m, err := prog.coreIR.module()
-		if err != nil {
-			fam.err, fam.done = err, true
-			return
-		}
-		fam.rules, fam.err = prog.buildFamily(m, f)
-		fam.done = true
-	})
-	if !fam.done {
-		return nil, fmt.Errorf("internal error: the closure family %d was not built", f)
 	}
 	return fam.rules, fam.err
 }
 
+// buildFamilyRules builds the family f into fam unless it is built (familyRules). It returns an
+// error only for a build that the parse's context cancelled.
+func (prog *Program) buildFamilyRules(fam *closureFamily, f closure.Family, c *core.BudgetControl) error {
+	fam.mu.Lock()
+	defer fam.mu.Unlock()
+	if fam.built.Load() {
+		return nil
+	}
+	if prog.buildFamily == nil {
+		fam.err = errClosureNeedsSource
+		fam.built.Store(true)
+		return nil
+	}
+	var ctx context.Context
+	if c != nil {
+		ctx = c.Ctx
+	}
+	returned := false
+	defer func() {
+		if !returned {
+			fam.err = fmt.Errorf("internal error: the closure family %d was not built", f)
+			fam.built.Store(true)
+			prog.coreIR.done()
+		}
+	}()
+	m, err := prog.coreIR.module(ctx)
+	if cancelled, ok := err.(buildCancelled); ok {
+		returned = true
+		return cancelled.err
+	}
+	if err == nil {
+		fam.rules, err = prog.buildFamily(m, f)
+	}
+	returned = true
+	fam.err = err
+	fam.built.Store(true)
+	prog.coreIR.done()
+	return nil
+}
+
 // closureRule returns the rule the closure backend runs for the rule name in the family f, or nil
 // if there is none.
-func (prog *Program) closureRule(name string, f closure.Family) (*core.Rule, error) {
+func (prog *Program) closureRule(name string, f closure.Family, c *core.BudgetControl) (*core.Rule, error) {
 	sr := prog.ByName[name]
 	if sr == nil {
 		return nil, nil
 	}
-	rules, err := prog.familyRules(f)
+	rules, err := prog.familyRules(f, c)
 	if err != nil {
 		return nil, err
 	}
 	return rules[sr.ID], nil
 }
 
-// rule returns the rule name for backend b; the closure backend returns it from the family f.
-func (prog *Program) rule(b Backend, name string, f closure.Family) (*core.Rule, error) {
+// rule returns the rule name for backend b; the closure backend returns it from the family f, which
+// it builds on first use under the parse's budget control c (familyRules).
+func (prog *Program) rule(b Backend, name string, f closure.Family, c *core.BudgetControl) (*core.Rule, error) {
 	if err := desugar.EntryError(name); err != nil {
 		return nil, err
 	}
@@ -214,7 +245,7 @@ func (prog *Program) rule(b Backend, name string, f closure.Family) (*core.Rule,
 			return nil, errClosureNeedsSource
 		}
 		var err error
-		if r, err = prog.closureRule(name, f); err != nil {
+		if r, err = prog.closureRule(name, f, c); err != nil {
 			return nil, err
 		}
 	default:
@@ -271,7 +302,7 @@ func recoverParse(x any, b Backend, err *error) {
 // Run parses the whole input of p with the start rule start.
 func (prog *Program) Run(p *core.Parser, b Backend, start string) (n *parse.Node, err error) {
 	p.Aborted = false
-	r, err := prog.rule(b, start, family(p))
+	r, err := prog.rule(b, start, family(p), p.Control)
 	if err != nil {
 		return nil, err
 	}

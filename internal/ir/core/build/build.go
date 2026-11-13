@@ -45,8 +45,9 @@ func CoreFrom(prog Program, origin map[core.Node]grammar.Expr) (*core.Module, er
 	return CoreProjecting(prog, origin, true)
 }
 
-// CoreControlled is CoreFrom under the control of a compilation: the build polls control for each
-// expression it builds, and the module keeps it (core.Module.Control) for the passes that follow.
+// CoreControlled is CoreFrom under the control of the work that builds it: the build polls control
+// for each expression it builds, and the module keeps it (core.Module.Control) for the passes that
+// follow.
 // A cancellation unwinds as cancel.Cancellation.
 func CoreControlled(prog Program, control *cancel.Control) (*core.Module, error) {
 	return coreModule(prog, nil, true, control)

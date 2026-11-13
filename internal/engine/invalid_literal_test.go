@@ -190,7 +190,7 @@ func BenchmarkByteLiteralMatching(b *testing.B) {
 					}
 					return p
 				}()
-				if _, err := prog.rule(backend, "main", closure.Inlined); err != nil {
+				if _, err := prog.rule(backend, "main", closure.Inlined, nil); err != nil {
 					b.Fatal(err)
 				}
 				for _, unit := range []parse.PositionUnit{parse.Bytes, parse.CodePoints} {

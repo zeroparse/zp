@@ -33,7 +33,7 @@ func BenchmarkStreamFrameScratch(b *testing.B) {
 			b.Fatal(err)
 		}
 		for _, backend := range []Backend{Closure, Bytecode, BytecodeIterative} {
-			if _, err := prog.rule(backend, "main", closure.Inlined); err != nil {
+			if _, err := prog.rule(backend, "main", closure.Inlined, nil); err != nil {
 				b.Fatal(err)
 			}
 			for _, unit := range []parse.PositionUnit{parse.CodePoints, parse.Bytes} {

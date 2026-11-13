@@ -368,7 +368,7 @@ rule other = "b"`)
 	m := loaded.Module()
 	for _, backend := range []Backend{Bytecode, BytecodeIterative} {
 		for _, name := range moduleRuleNames(m) {
-			r, err := loaded.rule(backend, name, closure.Inlined)
+			r, err := loaded.rule(backend, name, closure.Inlined, nil)
 			if err != nil {
 				t.Fatal(err)
 			}
