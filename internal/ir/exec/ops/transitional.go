@@ -323,7 +323,8 @@ a bit in a word of bits), ctx.storeCtx for the table of the context, or another 
 	}
 	m.AddOp(&exec.Op{Name: "memo.setPresent", Component: Memo, Params: append(entryArg, ctxArg), Reads: []string{Growth},
 		Writes:   []string{Memo},
-		Contract: `Records with the entry e the present set of the context state c, for ctx.allows.`})
+		Contract: `Records with the entry e the present set of the context state c, for ctx.allows.`,
+		Requires: `The present set of c fits in a word of bits, which a call whose result ctx.pop sends to the memo meets.`})
 	m.AddOp(&exec.Op{Name: "ctx.keep", Component: Growth, Params: []exec.Param{ctxArg, exec.P("r", rule), exec.P("pos", exec.TInt),
 		exec.P("min", exec.TInt), exec.P("key", values), exec.P("ok", exec.TBool), exec.P("end", exec.TInt), exec.P("silent", exec.TBool),
 		exec.P("value", value), exec.P("errs", errs), exec.P("far", exec.TInt), exec.P("k", kept)},

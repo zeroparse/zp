@@ -951,6 +951,8 @@ op memo.setPresent(e Entry, c Ctx)
   cost <= 0
   contract:
     // Records with the entry e the present set of the context state c, for ctx.allows.
+  requires:
+    // The present set of c fits in a word of bits, which a call whose result ctx.pop sends to the memo meets.
 
 op ctx.keep(c Ctx, r Rule, pos int, min int, key Values, ok bool, end int, silent bool, value Value, errs Errs, far int, k ExpKept)
   component growth
