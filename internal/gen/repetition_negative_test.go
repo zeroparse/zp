@@ -10,11 +10,11 @@ import (
 	"strings"
 	"testing"
 
+	"zeroparse.dev/zp/core"
 	"zeroparse.dev/zp/internal/compile"
 	"zeroparse.dev/zp/internal/engine"
 	"zeroparse.dev/zp/internal/gen"
 	"zeroparse.dev/zp/internal/gentest"
-	"zeroparse.dev/zp/runtime/parse"
 )
 
 // Generated parsers retain negative maxima directly in their implementation-int
@@ -40,7 +40,7 @@ func testGeneratedNegativeMaximum(t *testing.T) {
 	}
 	var expected []string
 	for _, input := range []string{"", "é", "ééé", "x", "éx"} {
-		for _, unit := range []parse.PositionUnit{parse.CodePoints, parse.Bytes} {
+		for _, unit := range []core.PositionUnit{core.CodePoints, core.Bytes} {
 			n, err := p.ParseWith("main", input, engine.ParseOptions{Unit: unit, Expectations: true})
 			expected = append(expected, gentest.ResultJSON(n, err))
 		}

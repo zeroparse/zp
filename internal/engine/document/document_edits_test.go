@@ -8,20 +8,20 @@ import (
 
 	"zeroparse.dev/zp/internal/engine/document"
 
+	"zeroparse.dev/zp/core"
 	. "zeroparse.dev/zp/internal/engine"
-	"zeroparse.dev/zp/internal/engine/core"
-	"zeroparse.dev/zp/runtime/parse"
+	ecore "zeroparse.dev/zp/internal/engine/core"
 )
 
 func TestDocumentBatchOriginalUTF8Boundaries(t *testing.T) {
 	p := mustCompile(t, `rule main = .*`)
-	for _, prefix := range []string{"", strings.Repeat("a", core.DocumentPieceMinSize)} {
+	for _, prefix := range []string{"", strings.Repeat("a", ecore.DocumentPieceMinSize)} {
 		text := prefix + "\xc3x\xa9"
-		d, _ := p.NewDocumentWith("main", text, ParseOptions{Unit: parse.Bytes})
+		d, _ := p.NewDocumentWith("main", text, ParseOptions{Unit: core.Bytes})
 		n := len(prefix)
 		// Deleting x joins the original invalid bytes. The later edit remains valid
 		// in original coordinates although it would be interior in sequential text.
-		edits := []parse.TextEdit{{Start: n + 1, End: n + 2, Text: ""}, {Start: n + 2, End: n + 3, Text: "\xa9"}}
+		edits := []core.TextEdit{{Start: n + 1, End: n + 2, Text: ""}, {Start: n + 2, End: n + 3, Text: "\xa9"}}
 		if err := d.EditBatch(d.Version(), edits...); err != nil {
 			t.Fatal(err)
 		}
@@ -44,13 +44,13 @@ func TestDocumentBatchOriginalUTF8Boundaries(t *testing.T) {
 }
 
 func TestDocumentBatchPreservesPiecePromotion(t *testing.T) {
-	if !core.DocumentPieceInput {
+	if !ecore.DocumentPieceInput {
 		t.Skip("piece input disabled by reference build")
 	}
 	p := mustCompile(t, `rule main = .* $$`)
-	for _, unit := range []parse.PositionUnit{parse.CodePoints, parse.Bytes} {
+	for _, unit := range []core.PositionUnit{core.CodePoints, core.Bytes} {
 		for _, promoted := range []bool{false, true} {
-			text := strings.Repeat("x", core.DocumentPieceMinSize)
+			text := strings.Repeat("x", ecore.DocumentPieceMinSize)
 			if promoted {
 				text = "x"
 			}
@@ -59,14 +59,14 @@ func TestDocumentBatchPreservesPiecePromotion(t *testing.T) {
 				t.Fatal(err)
 			}
 			if promoted {
-				if err := d.Edit(1, 1, strings.Repeat("x", core.DocumentPieceMinSize)); err != nil {
+				if err := d.Edit(1, 1, strings.Repeat("x", ecore.DocumentPieceMinSize)); err != nil {
 					t.Fatal(err)
 				}
 			}
 			if d.Input().Pieces == nil {
 				t.Fatal("missing initial/promoted pieces")
 			}
-			if err := d.EditBatch(d.Version(), parse.TextEdit{Start: 0, End: d.Input().Loaded(), Text: "é"}); err != nil {
+			if err := d.EditBatch(d.Version(), core.TextEdit{Start: 0, End: d.Input().Loaded(), Text: "é"}); err != nil {
 				t.Fatal(err)
 			}
 			if d.Input().Pieces == nil || d.Text() != "é" {
@@ -90,11 +90,11 @@ func TestDocumentBatchPreservesPiecePromotion(t *testing.T) {
 func TestDocumentBatchValidationPreservesState(t *testing.T) {
 	p := mustCompile(t, `rule main = ("é" / .)* $$`)
 	for _, large := range []bool{false, true} {
-		for _, unit := range []parse.PositionUnit{parse.CodePoints, parse.Bytes} {
+		for _, unit := range []core.PositionUnit{core.CodePoints, core.Bytes} {
 			for _, back := range []Backend{Closure, Bytecode, BytecodeIterative} {
 				text := "éab"
 				if large {
-					text += strings.Repeat("x", core.DocumentPieceMinSize)
+					text += strings.Repeat("x", ecore.DocumentPieceMinSize)
 				}
 				d, err := p.NewDocumentWith("main", text, ParseOptions{Unit: unit, Backend: back})
 				if err != nil {
@@ -108,16 +108,16 @@ func TestDocumentBatchValidationPreservesState(t *testing.T) {
 				beforeVersion, beforeText := d.Version(), d.Text()
 				input := *d.Input()
 				memo, runs, stats, runGen, resumed := d.Memo(), d.Runs(), d.Stats(), d.RunGen(), d.Resumed()
-				editsCopy := append([]core.DocEdit(nil), d.Edits()...)
-				rejects := [][]parse.TextEdit{
+				editsCopy := append([]ecore.DocEdit(nil), d.Edits()...)
+				rejects := [][]core.TextEdit{
 					{{Start: -1, End: 0, Text: "x"}}, {{Start: 0, End: -1, Text: "x"}}, {{Start: 0, End: d.Input().Loaded() + 1, Text: "x"}},
 					{{Start: 1, End: 1, Text: "x"}, {Start: 0, End: 0, Text: "y"}}, {{Start: 0, End: 2, Text: "x"}, {Start: 1, End: 3, Text: "y"}}, {{Start: 0, End: 0, Text: "x"}, {Start: 0, End: 1, Text: "y"}},
 				}
-				if unit == parse.Bytes {
-					rejects = append(rejects, []parse.TextEdit{{Start: 0, End: 0, Text: "x"}, {Start: 1, End: 1, Text: "y"}})
+				if unit == core.Bytes {
+					rejects = append(rejects, []core.TextEdit{{Start: 0, End: 0, Text: "x"}, {Start: 1, End: 1, Text: "y"}})
 				}
 				for _, changes := range rejects {
-					saved := append([]parse.TextEdit(nil), changes...)
+					saved := append([]core.TextEdit(nil), changes...)
 					if err := d.EditBatch(beforeVersion, changes...); err == nil || !strings.Contains(err.Error(), "edit ") {
 						t.Fatal("invalid edits accepted or unindexed error", changes, err)
 					}
@@ -127,7 +127,7 @@ func TestDocumentBatchValidationPreservesState(t *testing.T) {
 				}
 				// A no-op batch still commits once and discards reuse, without changing
 				// the last parse's statistics or earlier returned result Nodes.
-				if err := d.EditBatch(beforeVersion, parse.TextEdit{Start: 0, End: 0, Text: ""}); err != nil {
+				if err := d.EditBatch(beforeVersion, core.TextEdit{Start: 0, End: 0, Text: ""}); err != nil {
 					t.Fatal(err)
 				}
 				if d.Version().Sequence() != beforeVersion.Sequence()+1 || d.Memo() == memo || d.Runs() != nil || d.Edits() != nil || d.Stats() != stats || dump(t, old, nil) != beforeTree {
@@ -143,7 +143,7 @@ func TestDocumentVersionTransitions(t *testing.T) {
 	d, _ := p.NewDocument("main", "abc")
 	other, _ := p.NewDocument("main", "abc")
 	first := d.Version()
-	if first.Sequence() != 1 || first == other.Version() || first == (DocumentVersion{}) || d.Unit() != parse.CodePoints {
+	if first.Sequence() != 1 || first == other.Version() || first == (DocumentVersion{}) || d.Unit() != core.CodePoints {
 		t.Fatal("initial identity/unit")
 	}
 	for i := 0; i < 2; i++ {
@@ -155,7 +155,7 @@ func TestDocumentVersionTransitions(t *testing.T) {
 	if err := d.EditBatch(first); err != nil || d.Version() != first {
 		t.Fatal("empty batch changed revision")
 	}
-	for _, edit := range []parse.TextEdit{{Start: 0, End: 0, Text: ""}, {Start: 0, End: 1, Text: "a"}, {Start: 1, End: 2, Text: "x"}} {
+	for _, edit := range []core.TextEdit{{Start: 0, End: 0, Text: ""}, {Start: 0, End: 1, Text: "a"}, {Start: 1, End: 2, Text: "x"}} {
 		before := d.Version()
 		if err := d.Edit(edit.Start, edit.End, edit.Text); err != nil {
 			t.Fatal(err)
@@ -181,7 +181,7 @@ func TestDocumentVersionTransitions(t *testing.T) {
 	last := d.Version()
 	text := d.Text()
 	memo := d.Memo()
-	for _, call := range []func() error{func() error { return d.Edit(0, 0, "") }, func() error { return d.EditBatch(last, parse.TextEdit{Start: 0, End: 0, Text: ""}) }} {
+	for _, call := range []func() error{func() error { return d.Edit(0, 0, "") }, func() error { return d.EditBatch(last, core.TextEdit{Start: 0, End: 0, Text: ""}) }} {
 		if err := call(); err == nil || d.Version() != last || d.Text() != text || d.Memo() != memo {
 			t.Fatal("overflow was not atomic")
 		}

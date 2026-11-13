@@ -4,7 +4,7 @@ import (
 	"strings"
 	"testing"
 
-	"zeroparse.dev/zp"
+	"zeroparse.dev/zp/engine"
 )
 
 // An error value that #recover produces carries a range and a message, not matched text, so
@@ -17,7 +17,7 @@ func TestTextRejectsErrorValues(t *testing.T) {
 		"rule main = x:(\"a\" #recover(skip=\"b\")) {text($x) == \"b\"} \"c\"\n",
 		"rule main = x:(\"a\" #recover(skip=\"b\")) => len(text($x))\n",
 	} {
-		_, err := zp.CompileSource(src, "main")
+		_, err := engine.CompileSource(src, "main")
 		if err == nil || !strings.Contains(err.Error(), "text: invalid argument") {
 			t.Errorf("%q: error %v, want text: invalid argument", src, err)
 		}

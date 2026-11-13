@@ -3,13 +3,13 @@ package query_test
 import (
 	"testing"
 
-	"zeroparse.dev/zp"
+	"zeroparse.dev/zp/core"
+	"zeroparse.dev/zp/core/noderep"
+	"zeroparse.dev/zp/engine"
 	"zeroparse.dev/zp/internal/gentest"
 	"zeroparse.dev/zp/internal/starttest"
 	"zeroparse.dev/zp/internal/value"
 	"zeroparse.dev/zp/query"
-	"zeroparse.dev/zp/runtime/noderep"
-	"zeroparse.dev/zp/runtime/parse"
 )
 
 // queryShapeCase nests unions, optional values and lists of declared types.
@@ -56,12 +56,12 @@ func TestStructuralQueryNestedShapesAreSound(t *testing.T) {
 	}
 	schemas, patterns, recovered := 0, 0, 0
 	for _, c := range cases {
-		g, err := zp.ParseGrammar(c.Src)
+		g, err := engine.ParseGrammar(c.Src)
 		if err != nil {
 			continue
 		}
 		start := g.Rules()[0].Name
-		p, err := zp.Compile(starttest.MarkAll(g), start, zp.WithSourceInfo())
+		p, err := engine.Compile(starttest.MarkAll(g), start, engine.WithSourceInfo())
 		if err != nil {
 			continue
 		}
@@ -76,7 +76,7 @@ func TestStructuralQueryNestedShapesAreSound(t *testing.T) {
 		}
 		for _, in := range c.Inputs {
 			// Recovered parses report errors with their trees.
-			root, _ := p.Parse(in, zp.WithMissingTokens(3))
+			root, _ := p.Parse(in, engine.WithMissingTokens(3))
 			if root == nil {
 				continue
 			}
@@ -85,7 +85,7 @@ func TestStructuralQueryNestedShapesAreSound(t *testing.T) {
 				t.Fatal(err)
 			}
 			for _, m := range candidates {
-				n := m.Captures[0].Value.(*parse.Node)
+				n := m.Captures[0].Value.(*core.Node)
 				pattern := describeQueryValue(n, 3)
 				patterns++
 				if value.ShapeOf(n) == noderep.ShapeError {
@@ -113,7 +113,7 @@ func TestStructuralQueryNestedShapesAreSound(t *testing.T) {
 // describeQueryValue returns a pattern that matches v, describing it to the given depth.
 func describeQueryValue(v any, depth int) query.Pattern {
 	v = value.UnboxValue(v)
-	n, _ := v.(*parse.Node)
+	n, _ := v.(*core.Node)
 	p := query.Pattern{Category: queryCategory(v)}
 	if n == nil || depth == 0 {
 		return p
@@ -155,7 +155,7 @@ func describeQueryValue(v any, depth int) query.Pattern {
 // queryCategory returns the query category of an unboxed value.
 func queryCategory(v any) string {
 	switch v := v.(type) {
-	case *parse.Node:
+	case *core.Node:
 		if v == nil {
 			return "nil"
 		}

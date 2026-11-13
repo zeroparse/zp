@@ -14,8 +14,8 @@ import (
 	"fmt"
 	"strings"
 
-	"zeroparse.dev/zp"
-	"zeroparse.dev/zp/runtime/parse"
+	"zeroparse.dev/zp/engine"
+	"zeroparse.dev/zp/core"
 )
 
 const grammar = `package kv
@@ -36,16 +36,16 @@ rule key Key =  ([a-z_]+) #atomic
 rule value Value =  ([0-9]+) #atomic `
 
 func main() {
-	p, err := zp.CompileSource(grammar, "main")
+	p, err := engine.CompileSource(grammar, "main")
 	if err != nil {
 		panic(err)
 	}
-	err = p.ParseStream(strings.NewReader("#version 2\na=1\nb=2\n"), func(n *parse.Node) error {
+	err = p.ParseStream(strings.NewReader("#version 2\na=1\nb=2\n"), func(n *core.Node) error {
 		switch n.Type() {
 		case "Header":
-			fmt.Println("header, version", n.Field("Version").(*parse.Node).Text())
+			fmt.Println("header, version", n.Field("Version").(*core.Node).Text())
 		case "Pair":
-			fmt.Println("pair", n.Field("Key").(*parse.Node).Text(), "=", n.Field("Value").(*parse.Node).Text())
+			fmt.Println("pair", n.Field("Key").(*core.Node).Text(), "=", n.Field("Value").(*core.Node).Text())
 		}
 		return nil
 	})

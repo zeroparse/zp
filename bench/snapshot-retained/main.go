@@ -10,17 +10,17 @@ import (
 	"runtime"
 	"strings"
 
-	"zeroparse.dev/zp"
-	"zeroparse.dev/zp/runtime/parse"
+	"zeroparse.dev/zp/core"
+	"zeroparse.dev/zp/engine"
 )
 
 type legacyResult struct {
-	version zp.DocumentVersion
-	unit    parse.PositionUnit
+	version engine.DocumentVersion
+	unit    core.PositionUnit
 	text    string
-	root    *parse.Node
+	root    *core.Node
 	err     error
-	stats   parse.ParseStats
+	stats   core.ParseStats
 }
 
 type result struct {
@@ -55,33 +55,33 @@ func run() error {
 	if *size < 1 || *versions < 1 || *window < 0 {
 		return fmt.Errorf("size and versions must be positive; window must be nonnegative")
 	}
-	var backend zp.Backend
+	var backend engine.Backend
 	switch *backendName {
 	case "closure":
-		backend = zp.Closure
+		backend = engine.Closure
 	case "bytecode":
-		backend = zp.Bytecode
+		backend = engine.Bytecode
 	case "bytecode-iterative":
-		backend = zp.BytecodeIterative
+		backend = engine.BytecodeIterative
 	default:
 		return fmt.Errorf("invalid backend %q", *backendName)
 	}
-	var unit parse.PositionUnit
+	var unit core.PositionUnit
 	switch *unitName {
 	case "codepoints":
-		unit = parse.CodePoints
+		unit = core.CodePoints
 	case "bytes":
-		unit = parse.Bytes
+		unit = core.Bytes
 	default:
 		return fmt.Errorf("invalid unit %q", *unitName)
 	}
-	parser, err := zp.CompileSource(`@start
+	parser, err := engine.CompileSource(`@start
 rule main = item* $$
 rule item = [a-z]`, "main")
 	if err != nil {
 		return err
 	}
-	doc, err := parser.NewDocument(strings.Repeat("a", *size), zp.WithBackend(backend), zp.WithUnit(unit))
+	doc, err := parser.NewDocument(strings.Repeat("a", *size), engine.WithBackend(backend), engine.WithUnit(unit))
 	if err != nil {
 		return err
 	}

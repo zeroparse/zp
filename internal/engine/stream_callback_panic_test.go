@@ -8,11 +8,11 @@ import (
 	"strings"
 	"testing"
 
+	"zeroparse.dev/zp/core"
 	"zeroparse.dev/zp/internal/bytecode"
-	"zeroparse.dev/zp/internal/engine/core"
+	ecore "zeroparse.dev/zp/internal/engine/core"
 	"zeroparse.dev/zp/internal/gentest"
 	"zeroparse.dev/zp/internal/value"
-	"zeroparse.dev/zp/runtime/parse"
 )
 
 type streamRuntimePanicToken struct{ phase string }
@@ -55,7 +55,7 @@ func TestStreamCallerPanicIdentity(t *testing.T) {
 	t.Parallel()
 	prog := mustCompile(t, gentest.Records)
 	for _, b := range []Backend{Closure, Bytecode, BytecodeIterative} {
-		for _, u := range []parse.PositionUnit{parse.CodePoints, parse.Bytes} {
+		for _, u := range []core.PositionUnit{core.CodePoints, core.Bytes} {
 			for _, traced := range []bool{false, true} {
 				for _, buffered := range []bool{false, true} {
 					for _, phase := range []string{"reader", "emit"} {
@@ -86,10 +86,10 @@ func TestStreamCallerPanicIdentity(t *testing.T) {
 									}
 								}
 								var err error
-								var nodes []*parse.Node
+								var nodes []*core.Node
 								var before []string
 								got := catchStreamPanic(func() {
-									err = prog.ParseStreamWith("main", reader, func(n *parse.Node) error {
+									err = prog.ParseStreamWith("main", reader, func(n *core.Node) error {
 										nodes = append(nodes, n)
 										before = append(before, gentest.ResultJSON(n, nil))
 										if phase == "emit" && len(nodes) == 2 {
@@ -107,11 +107,11 @@ func TestStreamCallerPanicIdentity(t *testing.T) {
 								if traced && (event.Rule != "main" || event.Depth != 1 || event.Pos != 0) {
 									t.Fatal("saved event metadata changed")
 								}
-								if value.D(nodes[0].Field("k").(*parse.Node)).Text != "a" || value.D(nodes[1].Field("v").(*parse.Node)).Text != "22" {
+								if value.D(nodes[0].Field("k").(*core.Node)).Text != "a" || value.D(nodes[1].Field("v").(*core.Node)).Text != "22" {
 									t.Fatal("delivered fields changed")
 								}
 								retryCount := 0
-								if err := prog.ParseStreamWith("main", strings.NewReader("#records\nxy=3\n"), func(*parse.Node) error { retryCount++; return nil }, ParseOptions{Backend: b, Unit: u}); err != nil || retryCount != 1 {
+								if err := prog.ParseStreamWith("main", strings.NewReader("#records\nxy=3\n"), func(*core.Node) error { retryCount++; return nil }, ParseOptions{Backend: b, Unit: u}); err != nil || retryCount != 1 {
 									t.Fatalf("retry error=%v emitted=%d", err, retryCount)
 								}
 								for i, n := range nodes {
@@ -132,7 +132,7 @@ func TestStreamCallerReturnedErrorIdentity(t *testing.T) {
 	t.Parallel()
 	prog := mustCompile(t, gentest.Records)
 	for _, b := range []Backend{Closure, Bytecode, BytecodeIterative} {
-		for _, u := range []parse.PositionUnit{parse.CodePoints, parse.Bytes} {
+		for _, u := range []core.PositionUnit{core.CodePoints, core.Bytes} {
 			for _, traced := range []bool{false, true} {
 				for _, phase := range []string{"reader", "emit"} {
 					t.Run(fmt.Sprintf("%s/%s/trace=%t/%s", b, u, traced, phase), func(t *testing.T) {
@@ -148,7 +148,7 @@ func TestStreamCallerReturnedErrorIdentity(t *testing.T) {
 						count := 0
 						var err error
 						got := catchStreamPanic(func() {
-							err = prog.ParseStreamWith("main", r, func(*parse.Node) error {
+							err = prog.ParseStreamWith("main", r, func(*core.Node) error {
 								count++
 								if phase == "emit" && count == 2 {
 									return stop
@@ -170,7 +170,7 @@ func TestStreamReaderPanicInsideTraceKeepsOriginalValue(t *testing.T) {
 	t.Parallel()
 	prog := mustCompile(t, gentest.Records)
 	for _, b := range []Backend{Closure, Bytecode, BytecodeIterative} {
-		for _, u := range []parse.PositionUnit{parse.CodePoints, parse.Bytes} {
+		for _, u := range []core.PositionUnit{core.CodePoints, core.Bytes} {
 			t.Run(b.String()+"/"+u.String(), func(t *testing.T) {
 				token := &streamRuntimePanicToken{"nested reader"}
 				r := &streamCallbackReader{panicValue: token}
@@ -178,7 +178,7 @@ func TestStreamReaderPanicInsideTraceKeepsOriginalValue(t *testing.T) {
 				got := catchStreamPanic(func() {
 					err = prog.ParseStreamWith("main", r, nil, ParseOptions{Backend: b, Unit: u, Trace: func(e TraceEvent) {
 						if e.Kind == TraceEnter && e.Rule == "main" {
-							core.TraceParser(e).Fill(1)
+							ecore.TraceParser(e).Fill(1)
 						}
 					}})
 				})
@@ -193,11 +193,11 @@ func TestStreamReaderPanicInsideTraceKeepsOriginalValue(t *testing.T) {
 func TestStreamNormalCallerReturnKeepsVMFaultAttribution(t *testing.T) {
 	t.Parallel()
 	for _, b := range []Backend{Bytecode, BytecodeIterative} {
-		for _, u := range []parse.PositionUnit{parse.CodePoints, parse.Bytes} {
+		for _, u := range []core.PositionUnit{core.CodePoints, core.Bytes} {
 			for _, phase := range []string{"reader", "emit"} {
 				t.Run(fmt.Sprintf("%s/%s/%s", b, u, phase), func(t *testing.T) {
 					prog := mustCompile(t, "rule main = item* #stream $$\nrule item = \"a\"")
-					if _, err := prog.rule(b, "main", core.Inlined, nil); err != nil {
+					if _, err := prog.rule(b, "main", ecore.Inlined, nil); err != nil {
 						t.Fatal(err)
 					}
 					// Corrupt the prepared module after a normal caller return. This fault is
@@ -210,7 +210,7 @@ func TestStreamNormalCallerReturnKeepsVMFaultAttribution(t *testing.T) {
 					count := 0
 					var err error
 					got := catchStreamPanic(func() {
-						err = prog.ParseStreamWith("main", r, func(*parse.Node) error {
+						err = prog.ParseStreamWith("main", r, func(*core.Node) error {
 							count++
 							if phase == "emit" {
 								damage()
@@ -233,9 +233,9 @@ func TestStreamNormalCallerReturnKeepsVMFaultAttribution(t *testing.T) {
 func TestStreamKeepsCallerBufferedReader(t *testing.T) {
 	t.Parallel()
 	prog := mustCompile(t, gentest.Records)
-	for _, u := range []parse.PositionUnit{parse.CodePoints, parse.Bytes} {
+	for _, u := range []core.PositionUnit{core.CodePoints, core.Bytes} {
 		reader := bufio.NewReader(strings.NewReader("#records\na=1\n"))
-		if p := core.NewStreamParser(&prog.sharedProgram, reader, u); p.Reader != reader {
+		if p := ecore.NewStreamParser(&prog.sharedProgram, reader, u); p.Reader != reader {
 			t.Fatal("stream parser replaced caller's buffered reader")
 		}
 	}

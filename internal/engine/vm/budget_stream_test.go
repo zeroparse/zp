@@ -6,22 +6,22 @@ import (
 	"strings"
 	"testing"
 
-	"zeroparse.dev/zp/internal/engine/core"
+	"zeroparse.dev/zp/core"
+	ecore "zeroparse.dev/zp/internal/engine/core"
 	"zeroparse.dev/zp/internal/value"
-	"zeroparse.dev/zp/runtime/parse"
 )
 
 func TestBudgetStreamDiscardAndStackClear(t *testing.T) {
-	for _, u := range []parse.PositionUnit{parse.Bytes, parse.CodePoints} {
+	for _, u := range []core.PositionUnit{core.Bytes, core.CodePoints} {
 		t.Run(u.String(), func(t *testing.T) {
-			in := core.Input{Unit: u, Eof: true, BaseLine: 1, BaseCol: 1, Lines: []int{0}, Control: core.NewBudgetControl(nil, parse.Limits{Compute: 128})}
-			if u == parse.Bytes {
+			in := ecore.Input{Unit: u, Eof: true, BaseLine: 1, BaseCol: 1, Lines: []int{0}, Control: ecore.NewBudgetControl(nil, core.Limits{Compute: 128})}
+			if u == core.Bytes {
 				in.Bs = []byte(strings.Repeat("a", 258))
 			} else {
 				in.In = []rune(strings.Repeat("a", 258))
 			}
 			got := catchStreamPanic(func() { in.Discard(129) })
-			if _, ok := got.(core.Fatal); !ok || in.Base != 0 || in.Control.Used != 128 {
+			if _, ok := got.(ecore.Fatal); !ok || in.Base != 0 || in.Control.Used != 128 {
 				t.Fatalf("discard interruption=%v base=%d steps=%d", got, in.Base, in.Control.Used)
 			}
 		})
@@ -29,13 +29,13 @@ func TestBudgetStreamDiscardAndStackClear(t *testing.T) {
 	for _, phase := range []string{"trail", "values"} {
 		t.Run(phase, func(t *testing.T) {
 			// Each phase interrupts the cleanup of one store, which its reference build leaves out.
-			if phase == "trail" && !core.StreamUndoCleanup || phase == "values" && !core.StreamStackCleanup {
+			if phase == "trail" && !ecore.StreamUndoCleanup || phase == "values" && !ecore.StreamStackCleanup {
 				t.Skip("the build does not clear the inactive capacity of this store")
 			}
 			node := value.Ptr(value.Data{Text: "owned"})
-			p := &core.Parser{Input: core.Input{Unit: parse.Bytes, Eof: true, Bs: []byte(strings.Repeat("a", 3000)), BaseLine: 1, BaseCol: 1, Lines: []int{0}, Control: core.NewBudgetControl(nil, parse.Limits{Compute: 953 + 128})}, Memo: core.NewMemoTable()}
+			p := &ecore.Parser{Input: ecore.Input{Unit: core.Bytes, Eof: true, Bs: []byte(strings.Repeat("a", 3000)), BaseLine: 1, BaseCol: 1, Lines: []int{0}, Control: ecore.NewBudgetControl(nil, core.Limits{Compute: 953 + 128})}, Memo: ecore.NewMemoTable()}
 			if phase == "trail" {
-				p.Trail = make([]core.Undo, 0, 129)
+				p.Trail = make([]ecore.Undo, 0, 129)
 			} else {
 				machineOf(p).vals = make([]any, 1, 130)
 				machineOf(p).vals[0] = node
@@ -44,7 +44,7 @@ func TestBudgetStreamDiscardAndStackClear(t *testing.T) {
 				}
 			}
 			got := catchStreamPanic(func() { p.Commit(2048) })
-			if _, ok := got.(core.Fatal); !ok || p.Base != 2047 || p.Memo.Base != 0 || value.D(node).Text != "owned" {
+			if _, ok := got.(ecore.Fatal); !ok || p.Base != 2047 || p.Memo.Base != 0 || value.D(node).Text != "owned" {
 				t.Fatalf("commit %s interruption=%v base=%d pruned=%d", phase, got, p.Base, p.Memo.Base)
 			}
 			if phase == "values" && (machineOf(p).vals[0] != node || machineOf(p).vals[:cap(machineOf(p).vals)][129] != node) {

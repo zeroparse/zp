@@ -3,7 +3,7 @@ package bench
 import (
 	"testing"
 
-	"zeroparse.dev/zp"
+	"zeroparse.dev/zp/engine"
 	gtermsheavy "zeroparse.dev/zp/internal/bench/gen/termsheavy"
 	gtermspred "zeroparse.dev/zp/internal/bench/gen/termspred"
 	"zeroparse.dev/zp/internal/bench/inputs"
@@ -35,7 +35,7 @@ func TestTermWorkloads(t *testing.T) {
 			p := load(t, w.grammar)
 			input := inputs.TermsInput(50)
 			for _, be := range backends {
-				if _, err := p.Parse(input, zp.WithBackend(be.b)); err != nil {
+				if _, err := p.Parse(input, engine.WithBackend(be.b)); err != nil {
 					t.Fatalf("%s: %v", be.name, err)
 				}
 			}
@@ -59,7 +59,7 @@ func BenchmarkTerms(b *testing.B) {
 					b.SetBytes(int64(len(input)))
 					b.ReportAllocs()
 					for b.Loop() {
-						if _, err := p.Parse(input, zp.WithBackend(be.b)); err != nil {
+						if _, err := p.Parse(input, engine.WithBackend(be.b)); err != nil {
 							b.Fatal(err)
 						}
 					}

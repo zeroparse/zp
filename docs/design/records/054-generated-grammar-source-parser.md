@@ -87,7 +87,7 @@ The checked-in generated Go source is the bootstrap artifact used during an
 ordinary build. Regeneration must be reproducible and must not invoke the
 parser being regenerated to construct itself at runtime. Keep the generator
 and generated parser in package boundaries that avoid an import cycle through
-`zp.CompileSource` or grammar compilation. A generation check fails when the
+`engine.CompileSource` or grammar compilation. A generation check fails when the
 generated source is stale.
 
 ### Incremental Source Span Construction

@@ -9,7 +9,7 @@ import (
 	"os"
 	"strings"
 
-	"zeroparse.dev/zp"
+	"zeroparse.dev/zp/engine"
 	"zeroparse.dev/zp/schema"
 )
 
@@ -69,9 +69,9 @@ func schemaImpactText(impacts []schema.Impact) string {
 }
 
 // schemaOptions returns the export options of the -all-rules flag.
-func schemaOptions(allRules bool) []zp.SchemaOption {
+func schemaOptions(allRules bool) []engine.SchemaOption {
 	if allRules {
-		return []zp.SchemaOption{zp.WithAllSchemaRules()}
+		return []engine.SchemaOption{engine.WithAllSchemaRules()}
 	}
 	return nil
 }

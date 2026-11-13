@@ -61,7 +61,7 @@ digits. `assign` is a sequence, so a tuple of its six valued elements; and `main
 `^^` and `$$` have no value and the sequence therefore has a single element.
 
 Source information adds the rule that produced each node and the names of the captures. It is off by default, because
-most programs do not need it; ask for it with `-source-info` (`zp.WithSourceInfo()` in Go):
+most programs do not need it; ask for it with `-source-info` (`engine.WithSourceInfo()` in Go):
 
 ```bash
 zp parse -g assign.zp -f sexpr -source-info -i 'ab = 12;'
@@ -307,10 +307,10 @@ This is the idiom of the calculator example.
 
 ## Using the Tree From Go
 
-`Parser.Parse` returns a `*parse.Node`, which is opaque: `Kind()` says whether it is a string node, a tuple, a list, an
+`Parser.Parse` returns a `*core.Node`, which is opaque: `Kind()` says whether it is a string node, a tuple, a list, an
 error value or a struct, and the methods that fit the kind read it: `Start()` and `End()`, `Text()`, `Len()`, `Elem(i)`
 and `Elems()`, `Field(name)` and `Fields()` for the fields of a struct, and `Value()`. `Rule()` and the capture names are
-there only if the parser was compiled with `zp.WithSourceInfo()`. Reading values is covered in
+there only if the parser was compiled with `engine.WithSourceInfo()`. Reading values is covered in
 [Reading Trees](reading-trees.md), walking the tree and selecting nodes by position in [Walking
 Trees](walking-trees.md), and the node model is defined in [Nodes and Values](../../spec/runtime/nodes.md).
 
@@ -337,7 +337,7 @@ allocated the following, in megabytes (10^6 bytes) of `TotalAlloc` measured arou
 
 These choices matter most when a grammar captures many repeated values. Measure your own input and inspect the resulting tree to ensure that discarding text does not remove information your application needs.
 
-If you only need to know whether the input is valid, use `zp parse -check` (`zp.RecognizeOnly()`): it builds no
+If you only need to know whether the input is valid, use `zp parse -check` (`engine.RecognizeOnly()`): it builds no
 values and runs no actions.
 
 ## Troubleshooting

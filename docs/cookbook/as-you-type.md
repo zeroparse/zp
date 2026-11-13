@@ -46,15 +46,15 @@ import (
 	"strings"
 	"time"
 
-	"zeroparse.dev/zp"
-	"zeroparse.dev/zp/runtime/parse"
+	"zeroparse.dev/zp/engine"
+	"zeroparse.dev/zp/core"
 )
 
 //go:embed settings.zp
 var grammar string
 
 func main() {
-	p, err := zp.CompileSource(grammar, "main")
+	p, err := engine.CompileSource(grammar, "main")
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -86,7 +86,7 @@ func main() {
 		_, err := doc.Parse() // an editor would show the errors and use the tree where it can
 		elapsed := time.Since(start)
 		var n int
-		if errs, ok := err.(parse.SyntaxErrors); ok {
+		if errs, ok := err.(core.SyntaxErrors); ok {
 			n = len(errs)
 		}
 		fmt.Printf("typed %-12q %8s  evaluated %5d  reused %5d  errors %d\n",
@@ -137,9 +137,9 @@ parse from scratch  5.243ms
   takes the number of lines as an argument). Reuse is about four times faster here, not independent of the size, and
   the grammar decides how much: see below.
 - **Errors are part of the result.** A half-typed line is an error, and `Parse` returns the tree together with a
-  `parse.SyntaxErrors`, as in the previous recipe. After `timeout = 30;` is complete, the errors are gone.
+  `core.SyntaxErrors`, as in the previous recipe. After `timeout = 30;` is complete, the errors are gone.
 - **`Edit(start, end, text)` counts in the position unit of the document** (code points by default; `Bytes` with
-  `zp.WithUnit(parse.Bytes)` when `NewDocument` is created). It only records the change; the next `Parse` does the work, and
+  `engine.WithUnit(core.Bytes)` when `NewDocument` is created). It only records the change; the next `Parse` does the work, and
   several edits can come before one.
 
 ## Writing a Grammar That Reuses Well

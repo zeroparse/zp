@@ -3,7 +3,7 @@ package runtime
 import (
 	"testing"
 
-	"zeroparse.dev/zp/runtime/parse"
+	"zeroparse.dev/zp/core"
 )
 
 // A Document charges the two passes of its source by the size of each character it decodes, so the
@@ -17,7 +17,7 @@ func TestSetControlledSourceInDocumentChargesTwoUnitsPerByte(t *testing.T) {
 	for _, s := range []string{"", "abc", "é", "日本語", "a\xffb", "\xe6\x97", long, long + "é日" + long, long[:100] + "\xff\xfe" + long[:100]} {
 		var p *Parser
 		spend := func(limit uint64) (used uint64, err error) {
-			p = &Parser{Control: newBudgetControl(nil, parse.Limits{Compute: limit}), Document: &documentState{}}
+			p = &Parser{Control: newBudgetControl(nil, core.Limits{Compute: limit}), Document: &documentState{}}
 			defer func() {
 				if x := recover(); x != nil {
 					err = x.(fatal).err

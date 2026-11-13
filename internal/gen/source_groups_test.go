@@ -3,12 +3,12 @@ package gen_test
 import (
 	"testing"
 
+	"zeroparse.dev/zp/core"
 	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/compile"
 	"zeroparse.dev/zp/internal/engine"
 	"zeroparse.dev/zp/internal/gen"
 	"zeroparse.dev/zp/internal/gentest"
-	"zeroparse.dev/zp/runtime/parse"
 )
 
 func TestSourceGroupsExecutableParity(t *testing.T) {
@@ -53,7 +53,7 @@ rule number Alias = v1:[0-9]+ => Number{Text: text($v1)}
 			t.Fatal(err)
 		}
 		for _, backend := range []engine.Backend{engine.Closure, engine.Bytecode, engine.BytecodeIterative} {
-			for _, unit := range []parse.PositionUnit{parse.CodePoints, parse.Bytes} {
+			for _, unit := range []core.PositionUnit{core.CodePoints, core.Bytes} {
 				for _, source := range []string{"123", "0", "", "x"} {
 					opts := engine.ParseOptions{Expectations: true, Backend: backend, Unit: unit}
 					if got, want := gentest.ResultJSON(p.ParseWith("main", source, opts)), gentest.ResultJSON(ref.ParseWith("main", source, opts)); got != want {

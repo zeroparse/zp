@@ -56,8 +56,8 @@ import (
 	"strconv"
 	"strings"
 
-	"zeroparse.dev/zp"
-	"zeroparse.dev/zp/runtime/parse"
+	"zeroparse.dev/zp/engine"
+	"zeroparse.dev/zp/core"
 )
 
 //go:embed filter.zp
@@ -70,10 +70,10 @@ type Record map[string]any
 type value func(Record) any
 
 // text returns the text of a Num, Str, Bool or Field node.
-func text(n *parse.Node) string { return n.Text() }
+func text(n *core.Node) string { return n.Text() }
 
 // compile turns a tree into closures, so that the tree is walked once, not once per record.
-func compile(n *parse.Node) value {
+func compile(n *core.Node) value {
 	switch n.Type() {
 	case "Num":
 		v, _ := strconv.ParseFloat(text(n), 64)
@@ -88,13 +88,13 @@ func compile(n *parse.Node) value {
 		name := text(n)
 		return func(r Record) any { return r[name] }
 	case "Not":
-		x := compile(n.Field("X").(*parse.Node))
+		x := compile(n.Field("X").(*core.Node))
 		return func(r Record) any { return x(r) != true }
 	}
 	// Binary
-	op := n.Field("Op").(*parse.Node).Text()
-	l := compile(n.Field("Left").(*parse.Node))
-	r := compile(n.Field("Right").(*parse.Node))
+	op := n.Field("Op").(*core.Node).Text()
+	l := compile(n.Field("Left").(*core.Node))
+	r := compile(n.Field("Right").(*core.Node))
 	switch op {
 	case "and":
 		return func(rec Record) any { return l(rec) == true && r(rec) == true }
@@ -149,7 +149,7 @@ func compare(op string, a, b any) bool {
 }
 
 // Compile parses a filter and returns a predicate.
-func Compile(p *zp.Parser, src string) (func(Record) bool, error) {
+func Compile(p *engine.Parser, src string) (func(Record) bool, error) {
 	tree, err := p.Parse(src)
 	if err != nil {
 		return nil, err
@@ -159,7 +159,7 @@ func Compile(p *zp.Parser, src string) (func(Record) bool, error) {
 }
 
 func main() {
-	p, err := zp.CompileSource(grammar, "main")
+	p, err := engine.CompileSource(grammar, "main")
 	if err != nil {
 		log.Fatal(err)
 	}

@@ -5,7 +5,7 @@ import (
 	"slices"
 	"testing"
 
-	"zeroparse.dev/zp/runtime/parse"
+	"zeroparse.dev/zp/core"
 )
 
 // The hand-written forms of the expectation record that the compositions of internal/ir/exec/core
@@ -153,7 +153,7 @@ func TestKeepMatchesReference(t *testing.T) {
 			newP := func() *Parser {
 				p := &Parser{}
 				if controlled {
-					p.Control = newBudgetControl(nil, parse.Limits{Compute: 1 << 40})
+					p.Control = newBudgetControl(nil, core.Limits{Compute: 1 << 40})
 				}
 				return p
 			}
@@ -217,7 +217,7 @@ func TestExpectRecordMatchesReference(t *testing.T) {
 							p.Document = &documentState{}
 						}
 						if controlled {
-							p.Control = newBudgetControl(nil, parse.Limits{Compute: 1 << 40})
+							p.Control = newBudgetControl(nil, core.Limits{Compute: 1 << 40})
 						}
 						return p
 					}
@@ -332,7 +332,7 @@ func TestNonRecordingRecordHoldsOnePlaceholder(t *testing.T) {
 		for round := 0; round < 400; round++ {
 			p := &Parser{}
 			if controlled {
-				p.Control = newBudgetControl(nil, parse.Limits{Compute: 1 << 40})
+				p.Control = newBudgetControl(nil, core.Limits{Compute: 1 << 40})
 			}
 			var marks []ExpMark
 			for step := 0; step < 80; step++ {

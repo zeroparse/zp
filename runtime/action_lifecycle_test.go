@@ -3,7 +3,7 @@ package runtime
 import (
 	"testing"
 
-	"zeroparse.dev/zp/runtime/parse"
+	"zeroparse.dev/zp/core"
 )
 
 func TestActionTrackingReleasesReferences(t *testing.T) {
@@ -13,9 +13,9 @@ func TestActionTrackingReleasesReferences(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			prefix := nodeOfData(&Data{Text: "keep"})
 			made := nodeOfData(&Data{Fresh: true})
-			p := &Parser{created: []*parse.Node{prefix}}
+			p := &Parser{created: []*core.Node{prefix}}
 			c := &ActCtx{P: p, cbase: 1, start: 3, end: 4}
-			var got *parse.Node
+			var got *core.Node
 			var panicValue any
 			func() {
 				defer func() { panicValue = recover() }()

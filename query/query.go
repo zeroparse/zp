@@ -12,10 +12,10 @@ import (
 	"sort"
 	"strings"
 
+	"zeroparse.dev/zp/core"
+	"zeroparse.dev/zp/core/noderep"
 	"zeroparse.dev/zp/internal/limits"
 	"zeroparse.dev/zp/internal/value"
-	"zeroparse.dev/zp/runtime/noderep"
-	"zeroparse.dev/zp/runtime/parse"
 	"zeroparse.dev/zp/schema"
 )
 
@@ -59,7 +59,7 @@ type Edge struct {
 type Capture struct {
 	Name, Category string
 	Value          any
-	Parent         *parse.Node
+	Parent         *core.Node
 	Path           []Edge
 }
 
@@ -68,7 +68,7 @@ type Match struct{ Captures []Capture }
 
 type options struct {
 	ctx    context.Context
-	limits parse.Limits
+	limits core.Limits
 }
 
 // Option configures one query evaluation.
@@ -81,7 +81,7 @@ func WithContext(ctx context.Context) Option {
 
 // WithLimits bounds the budget a query may spend. Budget is charged for traversal, matching, paths and
 // results. A zero or Unlimited limit means an unlimited budget.
-func WithLimits(limits parse.Limits) Option {
+func WithLimits(limits core.Limits) Option {
 	return func(o *options) { o.limits = limits }
 }
 
@@ -239,7 +239,7 @@ func (p *Pattern) usesRule() bool {
 // context for cancellation.
 type budget struct {
 	ctx    context.Context
-	limits parse.Limits
+	limits core.Limits
 	used   uint64
 }
 
@@ -250,7 +250,7 @@ func (b *budget) charge(n uint64) error {
 		}
 	}
 	if limits.ExceedsLimit(b.used, n, b.limits.Compute) {
-		return &parse.LimitError{Kind: parse.LimitCompute, Limit: b.limits.Compute, Used: b.used, Requested: n}
+		return &core.LimitError{Kind: core.LimitCompute, Limit: b.limits.Compute, Used: b.used, Requested: n}
 	}
 	b.used = limits.SaturatingAdd(b.used, n)
 	return nil
@@ -264,7 +264,7 @@ func (b *budget) charge(n uint64) error {
 // therefore charges no input. Cancellation, compute limit exhaustion and cycles (ErrCycle)
 // return an error without partial results. A query with a rule constraint reports
 // ErrNoSourceInfo when the graph has nodes but none records a rule.
-func (q *Query) Matches(root *parse.Node, opts ...Option) ([]Match, error) {
+func (q *Query) Matches(root *core.Node, opts ...Option) ([]Match, error) {
 	if q == nil {
 		return nil, fmt.Errorf("nil structural query")
 	}
@@ -279,7 +279,7 @@ func (q *Query) Matches(root *parse.Node, opts ...Option) ([]Match, error) {
 	results := []Match{}
 	sawNode, sawRule := false, false
 	err := visitGraph(root, b, func(v graphVisit) error {
-		n, ok := v.Value.(*parse.Node)
+		n, ok := v.Value.(*core.Node)
 		if !ok || n == nil {
 			return nil
 		}
@@ -335,7 +335,7 @@ func (q *Query) match(v graphVisit, b *budget) ([]Capture, bool, error) {
 		if p.Category != "" && category != p.Category {
 			return nil, false, nil
 		}
-		n, _ := v.Value.(*parse.Node)
+		n, _ := v.Value.(*core.Node)
 		if p.Type != "" {
 			if p.Type == "error" {
 				if category != "error" {
@@ -401,7 +401,7 @@ func (q *Query) match(v graphVisit, b *budget) ([]Capture, bool, error) {
 }
 
 // hasElements reports whether n is a tuple or list, or a node whose value is one.
-func hasElements(n *parse.Node) bool {
+func hasElements(n *core.Node) bool {
 	if n == nil {
 		return false
 	}
@@ -414,7 +414,7 @@ func hasElements(n *parse.Node) bool {
 
 // nodeValue returns the value of the node n: its text, or a tuple or list value sharing its
 // elements.
-func nodeValue(n *parse.Node) any {
+func nodeValue(n *core.Node) any {
 	switch value.ShapeOf(n) {
 	case noderep.ShapeTuple:
 		return value.Ptr(value.Data{Kind: noderep.TupleValueKind, Start: value.D(n).Start, End: value.D(n).End, Children: value.D(n).Children})
@@ -436,7 +436,7 @@ func valueCategory(v any) (string, error) {
 	switch v := v.(type) {
 	case nil:
 		return "nil", nil
-	case *parse.Node:
+	case *core.Node:
 		if v == nil {
 			return "nil", nil
 		}

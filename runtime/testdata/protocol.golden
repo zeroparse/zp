@@ -1,4 +1,4 @@
-protocol 13
+protocol 14
 const BaseString untyped int = 0
 const ExpFar ExpID = 536870912
 const IdAny ExpID = 0
@@ -52,32 +52,32 @@ const TypeTupleValue untyped string = "(tuple)"
 func AllocSlice[T any](*Chunk[T], int) []T
 func Alloc[T any](*Chunk[T]) *T
 func AsTval(any) TVal
-func BaseNode(*zeroparse.dev/zp/runtime/parse.Node) *zeroparse.dev/zp/runtime/parse.Node
-func D(*zeroparse.dev/zp/runtime/parse.Node) *Data
-func DocumentParseConverted[T any](*documentState, parseOptions, func(*zeroparse.dev/zp/runtime/parse.Node, *BudgetControl, error) T) (T, error)
-func IterateNodes(*grammar, []ParseOption, func(func(*zeroparse.dev/zp/runtime/parse.Node) error) error) (*zeroparse.dev/zp/runtime/parse.StreamIterator, error)
+func BaseNode(*zeroparse.dev/zp/core.Node) *zeroparse.dev/zp/core.Node
+func D(*zeroparse.dev/zp/core.Node) *Data
+func DocumentParseConverted[T any](*documentState, parseOptions, func(*zeroparse.dev/zp/core.Node, *BudgetControl, error) T) (T, error)
+func IterateNodes(*grammar, []ParseOption, func(func(*zeroparse.dev/zp/core.Node) error) error) (*zeroparse.dev/zp/core.StreamIterator, error)
 func IterateStream[T any](*grammar, []ParseOption, func(func(T) error) error) (*StreamPull[T], error)
-func KindOf(string, string) *zeroparse.dev/zp/runtime/noderep.Kind
+func KindOf(string, string) *zeroparse.dev/zp/core/noderep.Kind
 func MakeDocument(*Rule, string, []ParseOption) (*Document, error)
 func NewBudgetClass([]BudgetRange, bool) *BudgetClass
 func NewGrammar(int) *grammar
-func NewNode(zeroparse.dev/zp/runtime/parse.NodeKind, int, int, string, []*zeroparse.dev/zp/runtime/parse.Node, string, zeroparse.dev/zp/runtime/noderep.Fields, any) *zeroparse.dev/zp/runtime/parse.Node
+func NewNode(zeroparse.dev/zp/core.NodeKind, int, int, string, []*zeroparse.dev/zp/core.Node, string, zeroparse.dev/zp/core/noderep.Fields, any) *zeroparse.dev/zp/core.Node
 func NewNodeTypeKinds(string) *nodeTypeKinds
 func NewRules[S interface{~struct{Name string; Value *Shaper; Flags uint8; Seen int32; Scope uint16; Vars uint16}}, E interface{~struct{Id int; Where string; NodeType string; OpNodeType string; Cycle int32}}]([]S, [][]string, []E) []*Rule
 func NewTError(int, int, string) *TError
 func NewTRules([]*Rule) []*TRule
-func RawField(*zeroparse.dev/zp/runtime/parse.Node, string) any
+func RawField(*zeroparse.dev/zp/core.Node, string) any
 func RenamedExpected(*Parser, []ExpID, ExpID) []ExpID
 func ResolveOptions(*grammar, []ParseOption) (parseOptions, error)
-func RunParse(*Rule, string, []ParseOption) (*zeroparse.dev/zp/runtime/parse.Node, error)
-func RunParseConverted[T any](*Rule, string, parseOptions, func(*zeroparse.dev/zp/runtime/parse.Node, *BudgetControl, error) T) (T, error)
-func RunParseResolved(*Rule, string, parseOptions) (*zeroparse.dev/zp/runtime/parse.Node, error)
-func RunParseStream(*Rule, io.Reader, func(*zeroparse.dev/zp/runtime/parse.Node) error, []ParseOption) error
-func RunParseStreamWithBudget(*Rule, io.Reader, func(*zeroparse.dev/zp/runtime/parse.Node, *BudgetControl) error, []ParseOption) error
-func SetNodeElems(*zeroparse.dev/zp/runtime/parse.Node, []*zeroparse.dev/zp/runtime/parse.Node)
-func SetNodeField(*zeroparse.dev/zp/runtime/parse.Node, string, any)
-func SetNodeStart(*zeroparse.dev/zp/runtime/parse.Node, int)
-func SetNodeText(*zeroparse.dev/zp/runtime/parse.Node, string)
+func RunParse(*Rule, string, []ParseOption) (*zeroparse.dev/zp/core.Node, error)
+func RunParseConverted[T any](*Rule, string, parseOptions, func(*zeroparse.dev/zp/core.Node, *BudgetControl, error) T) (T, error)
+func RunParseResolved(*Rule, string, parseOptions) (*zeroparse.dev/zp/core.Node, error)
+func RunParseStream(*Rule, io.Reader, func(*zeroparse.dev/zp/core.Node) error, []ParseOption) error
+func RunParseStreamWithBudget(*Rule, io.Reader, func(*zeroparse.dev/zp/core.Node, *BudgetControl) error, []ParseOption) error
+func SetNodeElems(*zeroparse.dev/zp/core.Node, []*zeroparse.dev/zp/core.Node)
+func SetNodeField(*zeroparse.dev/zp/core.Node, string, any)
+func SetNodeStart(*zeroparse.dev/zp/core.Node, int)
+func SetNodeText(*zeroparse.dev/zp/core.Node, string)
 func TAs[T any](any) T
 func TBack(*TPubHooks, any) any
 func TDeref[T any](*T) any
@@ -97,23 +97,23 @@ func TPubNodeIn(*TPubHooks, any, any) *TNode[any]
 func TRegisterNodeType(string, func(any, TVal) any) uint16
 func TSetNodeType(any, uint16) any
 func TypedDocumentParse[T any](*Document, *TRule, parseOptions, budgetControlSetter, func(any) T) (T, error)
-func UnboxNode(*zeroparse.dev/zp/runtime/parse.Node) any
+func UnboxNode(*zeroparse.dev/zp/core.Node) any
 func UnboxValue(any) any
 func WithContext(context.Context) ParseOption
-func WithDiagnosticCallback(func(*zeroparse.dev/zp/runtime/parse.SyntaxError) error) ParseOption
+func WithDiagnosticCallback(func(*zeroparse.dev/zp/core.SyntaxError) error) ParseOption
 func WithDiagnosticLimit(int) ParseOption
 func WithExpectations() ParseOption
-func WithLimits(zeroparse.dev/zp/runtime/parse.Limits) ParseOption
+func WithLimits(zeroparse.dev/zp/core.Limits) ParseOption
 func WithProfile(*Profile) ParseOption
 func WithTrace(func(TraceEvent)) ParseOption
 func WithTraceFilter(...string) ParseOption
 func WithTraceMaxDepth(int) ParseOption
-func WithUnit(zeroparse.dev/zp/runtime/parse.PositionUnit) ParseOption
+func WithUnit(zeroparse.dev/zp/core.PositionUnit) ParseOption
 method (*ActCtx) Cap(int) any
-method (*ActCtx) NewList([]*zeroparse.dev/zp/runtime/parse.Node) *zeroparse.dev/zp/runtime/parse.Node
+method (*ActCtx) NewList([]*zeroparse.dev/zp/core.Node) *zeroparse.dev/zp/core.Node
 method (*ActCtx) TermCastFailed(any, *FieldType, int, int) any
-method (*ActCtx) TermSetField(*zeroparse.dev/zp/runtime/parse.Node, string, any)
-method (*ActCtx) TermStruct(string, int) *zeroparse.dev/zp/runtime/parse.Node
+method (*ActCtx) TermSetField(*zeroparse.dev/zp/core.Node, string, any)
+method (*ActCtx) TermStruct(string, int) *zeroparse.dev/zp/core.Node
 method (*ActCtx) Var(int) any
 method (*BudgetControl) Charge(uint64)
 method (*BudgetControl) ChargeDoc(uint64)
@@ -126,11 +126,11 @@ method (*Class) Has(rune) bool
 method (*Document) BeginParse() error
 method (*Document) Edit(int, int, string) error
 method (*Document) EndParse()
-method (*Document) Parse(...ParseOption) (*zeroparse.dev/zp/runtime/parse.Node, error)
+method (*Document) Parse(...ParseOption) (*zeroparse.dev/zp/core.Node, error)
 method (*Document) ResolveParseOptions([]ParseOption) (parseOptions, error)
-method (*Document) Stats() zeroparse.dev/zp/runtime/parse.ParseStats
+method (*Document) Stats() zeroparse.dev/zp/core.ParseStats
 method (*Document) Text() string
-method (*Parser) Anchor(bool, ExpID) (*zeroparse.dev/zp/runtime/parse.Node, bool)
+method (*Parser) Anchor(bool, ExpID) (*zeroparse.dev/zp/core.Node, bool)
 method (*Parser) AtEnd() bool
 method (*Parser) AtEndBatch() bool
 method (*Parser) AtEndBatchOrdinary() bool
@@ -141,65 +141,65 @@ method (*Parser) AtLineStart() bool
 method (*Parser) AtLineStartBatch() bool
 method (*Parser) AtLineStartBatchOrdinary() bool
 method (*Parser) AtLineStartOrdinary() bool
-method (*Parser) AttachCaptures(*zeroparse.dev/zp/runtime/parse.Node, []string, *CaptureFrame, int, int) *zeroparse.dev/zp/runtime/parse.Node
+method (*Parser) AttachCaptures(*zeroparse.dev/zp/core.Node, []string, *CaptureFrame, int, int) *zeroparse.dev/zp/core.Node
 method (*Parser) Bind(int, func(*ActCtx) (any, any)) bool
-method (*Parser) Call(*Rule, int) (*zeroparse.dev/zp/runtime/parse.Node, bool)
-method (*Parser) DiagnosticAttr(matcher, ExpID) (*zeroparse.dev/zp/runtime/parse.Node, bool)
+method (*Parser) Call(*Rule, int) (*zeroparse.dev/zp/core.Node, bool)
+method (*Parser) DiagnosticAttr(matcher, ExpID) (*zeroparse.dev/zp/core.Node, bool)
 method (*Parser) DropKids(int)
-method (*Parser) EmitStream(*zeroparse.dev/zp/runtime/parse.Node, int)
+method (*Parser) EmitStream(*zeroparse.dev/zp/core.Node, int)
 method (*Parser) Enter()
-method (*Parser) ErrorAttr(matcher, ExpID) (*zeroparse.dev/zp/runtime/parse.Node, bool)
+method (*Parser) ErrorAttr(matcher, ExpID) (*zeroparse.dev/zp/core.Node, bool)
 method (*Parser) ExaminedBegin() int
 method (*Parser) ExaminedEnd(int) (int, bool)
 method (*Parser) Expect(int, ExpID)
 method (*Parser) ExpectBudget(int, ExpID)
 method (*Parser) ExpectOrdinary(int, ExpID)
-method (*Parser) Finish(*Rule, *CaptureFrame, *zeroparse.dev/zp/runtime/parse.Node, int) *zeroparse.dev/zp/runtime/parse.Node
+method (*Parser) Finish(*Rule, *CaptureFrame, *zeroparse.dev/zp/core.Node, int) *zeroparse.dev/zp/core.Node
 method (*Parser) FirstCall(*Rule) bool
-method (*Parser) InvokePlain(*Rule, int) (*zeroparse.dev/zp/runtime/parse.Node, bool)
+method (*Parser) InvokePlain(*Rule, int) (*zeroparse.dev/zp/core.Node, bool)
 method (*Parser) Isolate(int) ExpMark
 method (*Parser) Keep([]ExpID) []ExpID
-method (*Parser) Kids(int) []*zeroparse.dev/zp/runtime/parse.Node
+method (*Parser) Kids(int) []*zeroparse.dev/zp/core.Node
 method (*Parser) LiteralText(int, string) string
 method (*Parser) LookBegin(int)
 method (*Parser) LookEnd(bool)
-method (*Parser) MakeError(int, []ExpID) *zeroparse.dev/zp/runtime/parse.SyntaxError
+method (*Parser) MakeError(int, []ExpID) *zeroparse.dev/zp/core.SyntaxError
 method (*Parser) Mark() Mark
-method (*Parser) MatchAny(bool) (*zeroparse.dev/zp/runtime/parse.Node, bool)
-method (*Parser) MatchAnyOrdinary(bool) (*zeroparse.dev/zp/runtime/parse.Node, bool)
-method (*Parser) MatchLiteral([]rune, string, ExpID, bool) (*zeroparse.dev/zp/runtime/parse.Node, bool)
-method (*Parser) MatchLiteralFold([]rune, ExpID, bool) (*zeroparse.dev/zp/runtime/parse.Node, bool)
-method (*Parser) MatchLiteralFoldOrdinary([]rune, ExpID, bool) (*zeroparse.dev/zp/runtime/parse.Node, bool)
-method (*Parser) MatchLiteralOrdinary([]rune, string, ExpID, bool) (*zeroparse.dev/zp/runtime/parse.Node, bool)
+method (*Parser) MatchAny(bool) (*zeroparse.dev/zp/core.Node, bool)
+method (*Parser) MatchAnyOrdinary(bool) (*zeroparse.dev/zp/core.Node, bool)
+method (*Parser) MatchLiteral([]rune, string, ExpID, bool) (*zeroparse.dev/zp/core.Node, bool)
+method (*Parser) MatchLiteralFold([]rune, ExpID, bool) (*zeroparse.dev/zp/core.Node, bool)
+method (*Parser) MatchLiteralFoldOrdinary([]rune, ExpID, bool) (*zeroparse.dev/zp/core.Node, bool)
+method (*Parser) MatchLiteralOrdinary([]rune, string, ExpID, bool) (*zeroparse.dev/zp/core.Node, bool)
 method (*Parser) MergeExpected(int, []ExpID)
-method (*Parser) NewBranch(*zeroparse.dev/zp/runtime/noderep.Kind, int, []*zeroparse.dev/zp/runtime/parse.Node) *zeroparse.dev/zp/runtime/parse.Node
-method (*Parser) NewBranchOrdinary(*zeroparse.dev/zp/runtime/noderep.Kind, int, []*zeroparse.dev/zp/runtime/parse.Node) *zeroparse.dev/zp/runtime/parse.Node
-method (*Parser) NewErrorNode(int, *zeroparse.dev/zp/runtime/parse.SyntaxError) *zeroparse.dev/zp/runtime/parse.Node
+method (*Parser) NewBranch(*zeroparse.dev/zp/core/noderep.Kind, int, []*zeroparse.dev/zp/core.Node) *zeroparse.dev/zp/core.Node
+method (*Parser) NewBranchOrdinary(*zeroparse.dev/zp/core/noderep.Kind, int, []*zeroparse.dev/zp/core.Node) *zeroparse.dev/zp/core.Node
+method (*Parser) NewErrorNode(int, *zeroparse.dev/zp/core.SyntaxError) *zeroparse.dev/zp/core.Node
 method (*Parser) NewFrame(int) *CaptureFrame
-method (*Parser) NewNode(Data) *zeroparse.dev/zp/runtime/parse.Node
-method (*Parser) NewNodeOrdinary(Data) *zeroparse.dev/zp/runtime/parse.Node
-method (*Parser) NewTerminal(int, string) *zeroparse.dev/zp/runtime/parse.Node
-method (*Parser) NewTerminalOrdinary(int, string) *zeroparse.dev/zp/runtime/parse.Node
+method (*Parser) NewNode(Data) *zeroparse.dev/zp/core.Node
+method (*Parser) NewNodeOrdinary(Data) *zeroparse.dev/zp/core.Node
+method (*Parser) NewTerminal(int, string) *zeroparse.dev/zp/core.Node
+method (*Parser) NewTerminalOrdinary(int, string) *zeroparse.dev/zp/core.Node
 method (*Parser) NextOrdinary() (rune, int, bool)
-method (*Parser) Nodes(int) []*zeroparse.dev/zp/runtime/parse.Node
-method (*Parser) OperatorsRuleParse(*Rule, int) (*zeroparse.dev/zp/runtime/parse.Node, bool)
+method (*Parser) Nodes(int) []*zeroparse.dev/zp/core.Node
+method (*Parser) OperatorsRuleParse(*Rule, int) (*zeroparse.dev/zp/core.Node, bool)
 method (*Parser) Peek() (rune, int, bool)
 method (*Parser) PeekOrdinary() (rune, int, bool)
 method (*Parser) Predicate(func(*ActCtx) (any, any)) bool
-method (*Parser) PushRecovered(*zeroparse.dev/zp/runtime/parse.SyntaxError)
-method (*Parser) RecoverAttr(matcher, matcher, bool) (*zeroparse.dev/zp/runtime/parse.Node, bool)
-method (*Parser) RecoveryErrorText(*zeroparse.dev/zp/runtime/parse.SyntaxError) string
+method (*Parser) PushRecovered(*zeroparse.dev/zp/core.SyntaxError)
+method (*Parser) RecoverAttr(matcher, matcher, bool) (*zeroparse.dev/zp/core.Node, bool)
+method (*Parser) RecoveryErrorText(*zeroparse.dev/zp/core.SyntaxError) string
 method (*Parser) RejectBudgetClass(rune, *BudgetClass) bool
 method (*Parser) Reset(Mark)
 method (*Parser) Restore(int, int)
 method (*Parser) ScanEnd(int, int, int)
-method (*Parser) ScanKids(int, int, int, int) []*zeroparse.dev/zp/runtime/parse.Node
+method (*Parser) ScanKids(int, int, int, int) []*zeroparse.dev/zp/core.Node
 method (*Parser) ScanReach(int, int, int) int
-method (*Parser) ScopeValue(Shaper, *zeroparse.dev/zp/runtime/parse.Node, int) *zeroparse.dev/zp/runtime/parse.Node
-method (*Parser) SetCapture(int, *zeroparse.dev/zp/runtime/parse.Node)
-method (*Parser) ShapeCapture(Shaper, *zeroparse.dev/zp/runtime/parse.Node, int) *zeroparse.dev/zp/runtime/parse.Node
-method (*Parser) ShapeSingle(Shaper, *zeroparse.dev/zp/runtime/parse.Node, int) (*zeroparse.dev/zp/runtime/parse.Node, bool)
-method (*Parser) Single(int, bool) (*zeroparse.dev/zp/runtime/parse.Node, bool)
+method (*Parser) ScopeValue(Shaper, *zeroparse.dev/zp/core.Node, int) *zeroparse.dev/zp/core.Node
+method (*Parser) SetCapture(int, *zeroparse.dev/zp/core.Node)
+method (*Parser) ShapeCapture(Shaper, *zeroparse.dev/zp/core.Node, int) *zeroparse.dev/zp/core.Node
+method (*Parser) ShapeSingle(Shaper, *zeroparse.dev/zp/core.Node, int) (*zeroparse.dev/zp/core.Node, bool)
+method (*Parser) Single(int, bool) (*zeroparse.dev/zp/core.Node, bool)
 method (*Parser) SkipBegin(int)
 method (*Parser) SkipEnd()
 method (*Parser) SkipHit() bool
@@ -211,14 +211,14 @@ method (*Parser) StreamsIn(int, bool) bool
 method (*Parser) TermBinary(int, any, any) (any, any)
 method (*Parser) TermConforms(*FieldType, any) bool
 method (*Parser) TermConvert(*nodeTypeKinds, any) (any, any)
-method (*Parser) TermCover(*zeroparse.dev/zp/runtime/parse.Node, any, bool) bool
+method (*Parser) TermCover(*zeroparse.dev/zp/core.Node, any, bool) bool
 method (*Parser) TermFilterKeep(any) (bool, any)
-method (*Parser) TermHull(*ActCtx, bool, []*zeroparse.dev/zp/runtime/parse.Node) *zeroparse.dev/zp/runtime/parse.Node
-method (*Parser) TermItemAt([]*zeroparse.dev/zp/runtime/parse.Node, int, bool) any
-method (*Parser) TermItems(string, any) ([]*zeroparse.dev/zp/runtime/parse.Node, any)
+method (*Parser) TermHull(*ActCtx, bool, []*zeroparse.dev/zp/core.Node) *zeroparse.dev/zp/core.Node
+method (*Parser) TermItemAt([]*zeroparse.dev/zp/core.Node, int, bool) any
+method (*Parser) TermItems(string, any) ([]*zeroparse.dev/zp/core.Node, any)
 method (*Parser) TermLength(any) (any, any)
 method (*Parser) TermLogic(int, any) (bool, any)
-method (*Parser) TermMade(*ActCtx, *zeroparse.dev/zp/runtime/parse.Node, bool)
+method (*Parser) TermMade(*ActCtx, *zeroparse.dev/zp/core.Node, bool)
 method (*Parser) TermMember(*ActCtx, int, any, string, string) (any, any)
 method (*Parser) TermNodeType(string) *nodeTypeKinds
 method (*Parser) TermPush(*ActCtx, string, any) any
@@ -342,21 +342,21 @@ method (*observation) Enter(string, int, int)
 method (*observation) Evaluated()
 method (*observation) Exit(bool, int, int, bool)
 method (*observation) Skipped(string, int, int)
-method (*zeroparse.dev/zp/runtime/noderep.Kind) IsNodeType() bool
-method (*zeroparse.dev/zp/runtime/noderep.Kind) RuleName() string
-method (*zeroparse.dev/zp/runtime/noderep.Kind) TypeName() string
+method (*zeroparse.dev/zp/core/noderep.Kind) IsNodeType() bool
+method (*zeroparse.dev/zp/core/noderep.Kind) RuleName() string
+method (*zeroparse.dev/zp/core/noderep.Kind) TypeName() string
 method (Span) Range() (int, int)
-method (zeroparse.dev/zp/runtime/noderep.Fields) Get(string) (any, bool)
-method (zeroparse.dev/zp/runtime/noderep.Fields) Sorted() zeroparse.dev/zp/runtime/noderep.Fields
+method (zeroparse.dev/zp/core/noderep.Fields) Get(string) (any, bool)
+method (zeroparse.dev/zp/core/noderep.Fields) Sorted() zeroparse.dev/zp/core/noderep.Fields
 type ActCtx struct{P *Parser; Lhs any; Rhs any; Op any; Value any}
 type BudgetClass struct{}
 type BudgetControl struct{}
 type BudgetRange struct{Lo rune; Hi rune}
-type CaptureFrame struct{Vals []*zeroparse.dev/zp/runtime/parse.Node}
+type CaptureFrame struct{Vals []*zeroparse.dev/zp/core.Node}
 type Chunk[T any] struct{}
 type Class struct{ASCII [2]uint64; Wide []rune; Neg bool}
 type ClassStep struct{C *Class; ID ExpID}
-type Data = zeroparse.dev/zp/runtime/noderep.Data[zeroparse.dev/zp/runtime/parse.Node]
+type Data = zeroparse.dev/zp/core/noderep.Data[zeroparse.dev/zp/core.Node]
 type Document struct{State *documentState}
 type DocumentSliceKey struct{First any; Length int; Capacity int}
 type Env struct{}
@@ -369,11 +369,11 @@ type OperatorsRule struct{Skip matcher; Operands []*OperatorsRuleLine; Prefix []
 type OperatorsRuleLine struct{Scope []string; M matcher; Action func(*ActCtx) (any, any); Value Shaper}
 type OperatorsRuleOp struct{Id int; Kind string; Assoc string; Level int; Line *OperatorsRuleLine}
 type ParseOption func(*parseOptions)
-type Parser struct{Control *BudgetControl; Observation *observation; Document *documentState; In []rune; Pos int; MaxDepth int; Depth int; Env *Env; Frame *CaptureFrame; Trail []undo; Cut bool; Silent int; Expectations bool; Recovered []recEntry; KidStack []*zeroparse.dev/zp/runtime/parse.Node; Stream *streamInput}
+type Parser struct{Control *BudgetControl; Observation *observation; Document *documentState; In []rune; Pos int; MaxDepth int; Depth int; Env *Env; Frame *CaptureFrame; Trail []undo; Cut bool; Silent int; Expectations bool; Recovered []recEntry; KidStack []*zeroparse.dev/zp/core.Node; Stream *streamInput}
 type Profile struct{}
 type ProfileLocation struct{Pos int; Level int}
 type ProfileSnapshot struct{Parses int; Entered int; Calls int; Evals int; MemoHits int; Skipped int; Time time.Duration; Rules []RuleProfile}
-type Rule struct{Id int; Name string; Scope []string; Body func(*Parser, int) (*zeroparse.dev/zp/runtime/parse.Node, bool); Action func(*ActCtx) (any, any); Value Shaper; NodeType string; OpNodeType string; Memo bool; Leader bool; Rec bool; Cycle int32; DocMemo bool; Positional bool; Seen int; OperatorsRule *OperatorsRule; Novalue bool; Splice bool; Where string; Vars []string}
+type Rule struct{Id int; Name string; Scope []string; Body func(*Parser, int) (*zeroparse.dev/zp/core.Node, bool); Action func(*ActCtx) (any, any); Value Shaper; NodeType string; OpNodeType string; Memo bool; Leader bool; Rec bool; Cycle int32; DocMemo bool; Positional bool; Seen int; OperatorsRule *OperatorsRule; Novalue bool; Splice bool; Where string; Vars []string}
 type RuleExtra struct{Id int; Where string; NodeType string; OpNodeType string; Cycle int32}
 type RuleProfile struct{Rule string; Entered int; Calls int; Evals int; MemoHits int; Matched int; Failed int; Consumed int; Skipped int; SkipReasons []SkipReasonCount; Repeats int; MaxEvals int; MaxEvalsAt ProfileLocation; Examined int; ExaminedKnown bool; Wasted int; WastedKnown bool; Time time.Duration; SelfTime time.Duration}
 type RuleSpec struct{Name string; Value *Shaper; Flags uint8; Seen int32; Scope uint16; Vars uint16}
@@ -403,26 +403,26 @@ type TypedDocumentCloneBase struct{Control *BudgetControl; Values map[any]any; S
 type TypedDocumentCloneTask struct{Source any; Target any}
 type budgetControlSetter interface{SetBudgetControl(*BudgetControl)}
 type documentState struct{}
-type grammar struct{Starts []string; DefaultStart string; Descs []string; Expectations bool; StructFields map[string]*structFields; TypeKinds map[string]*zeroparse.dev/zp/runtime/noderep.Kind; NodeTypes map[string]*nodeTypeKinds; SourceInfo bool; Observable bool; NoBudgetControls bool}
-type matcher = func(*Parser) (*zeroparse.dev/zp/runtime/parse.Node, bool)
-type nodeTypeKinds [3]*zeroparse.dev/zp/runtime/noderep.Kind
+type grammar struct{Starts []string; DefaultStart string; Descs []string; Expectations bool; StructFields map[string]*structFields; TypeKinds map[string]*zeroparse.dev/zp/core/noderep.Kind; NodeTypes map[string]*nodeTypeKinds; SourceInfo bool; Observable bool; NoBudgetControls bool}
+type matcher = func(*Parser) (*zeroparse.dev/zp/core.Node, bool)
+type nodeTypeKinds [3]*zeroparse.dev/zp/core/noderep.Kind
 type observation struct{}
 type parseOptions struct{}
 type recEntry struct{}
 type singleMode uint8
-type streamInput struct{Emit func(*zeroparse.dev/zp/runtime/parse.Node, *BudgetControl) error}
+type streamInput struct{Emit func(*zeroparse.dev/zp/core.Node, *BudgetControl) error}
 type structFields struct{}
 type tmatcher = func(*TParser) (any, bool)
 type tundo struct{}
 type typedDocumentState struct{}
 type undo struct{}
-type zeroparse.dev/zp/runtime/noderep.Data[N any] struct{Kind *zeroparse.dev/zp/runtime/noderep.Kind; Start int32; End int32; Text string; Children []*N; Fields zeroparse.dev/zp/runtime/noderep.Fields; Fresh bool; Terminal bool; Labeled bool; Mark uint32; Box any}
-type zeroparse.dev/zp/runtime/noderep.Fields []zeroparse.dev/zp/runtime/noderep.NodeField
-type zeroparse.dev/zp/runtime/noderep.Kind struct{Type string; Rule string; Reserved int; Base int}
-type zeroparse.dev/zp/runtime/noderep.NodeField struct{Name string; Value any}
+type zeroparse.dev/zp/core/noderep.Data[N any] struct{Kind *zeroparse.dev/zp/core/noderep.Kind; Start int32; End int32; Text string; Children []*N; Fields zeroparse.dev/zp/core/noderep.Fields; Fresh bool; Terminal bool; Labeled bool; Mark uint32; Box any}
+type zeroparse.dev/zp/core/noderep.Fields []zeroparse.dev/zp/core/noderep.NodeField
+type zeroparse.dev/zp/core/noderep.Kind struct{Type string; Rule string; Reserved int; Base int}
+type zeroparse.dev/zp/core/noderep.NodeField struct{Name string; Value any}
 var DocumentBusy error
 var EmptyFrame *CaptureFrame
 var EmptyTFrame *TCaptureFrame
-var ListKind *zeroparse.dev/zp/runtime/noderep.Kind
-var MatchKind *zeroparse.dev/zp/runtime/noderep.Kind
-var SeqKind *zeroparse.dev/zp/runtime/noderep.Kind
+var ListKind *zeroparse.dev/zp/core/noderep.Kind
+var MatchKind *zeroparse.dev/zp/core/noderep.Kind
+var SeqKind *zeroparse.dev/zp/core/noderep.Kind

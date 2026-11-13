@@ -26,10 +26,10 @@ type refPackage struct {
 }
 
 var refPackages = []refPackage{
-	{dir: ".", importPath: modulePath, url: "reference/zp/", title: "Package zp", label: "zp"},
+	{dir: "engine", importPath: modulePath + "/engine", url: "reference/engine/", title: "Package zp/engine", label: "zp/engine"},
+	{dir: "core", importPath: modulePath + "/core", url: "reference/core/", title: "Package zp/core", label: "zp/core"},
 	{dir: "grammar", importPath: modulePath + "/grammar", url: "reference/grammar/", title: "Package zp/grammar", label: "zp/grammar"},
-	{dir: "runtime/parse", importPath: modulePath + "/runtime/parse", url: "reference/parse/", title: "Package zp/runtime/parse", label: "zp/runtime/parse"},
-	{dir: "runtime/noderep", importPath: modulePath + "/runtime/noderep", url: "reference/noderep/", title: "Package zp/runtime/noderep", label: "zp/runtime/noderep"},
+	{dir: "core/noderep", importPath: modulePath + "/core/noderep", url: "reference/noderep/", title: "Package zp/core/noderep", label: "zp/core/noderep"},
 	{dir: "runtime", importPath: modulePath + "/runtime", url: "reference/runtime/", title: "Package zp/runtime", label: "zp/runtime"},
 	{dir: "gen", importPath: modulePath + "/gen", url: "reference/gen/", title: "Package zp/gen", label: "zp/gen"},
 	{dir: "lint", importPath: modulePath + "/lint", url: "reference/lint/", title: "Package zp/lint", label: "zp/lint"},

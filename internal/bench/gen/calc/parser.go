@@ -4,14 +4,14 @@
 package calc
 
 import (
+	"zeroparse.dev/zp/core"
 	types "zeroparse.dev/zp/internal/bench/gen/calc/types"
 	rt "zeroparse.dev/zp/runtime"
-	"zeroparse.dev/zp/runtime/parse"
 )
 
 // Parse parses the whole input with the rule main. Options select position units, depth, cancellation and compute limits.
 // If the parse recovered from errors with #recover, it returns the node together with SyntaxErrors.
-func Parse(input string, opts ...rt.ParseOption) (*parse.Node, error) {
+func Parse(input string, opts ...rt.ParseOption) (*core.Node, error) {
 	return rt.RunParse(rules[0], input, opts)
 }
 
@@ -31,7 +31,7 @@ var zpGrammar = rt.NewGrammar(100000)
 
 // ParseRule parses the whole input with the start rule name, a rule marked @start; an empty
 // name selects the grammar's default start rule.
-func ParseRule(name, input string, opts ...rt.ParseOption) (*parse.Node, error) {
+func ParseRule(name, input string, opts ...rt.ParseOption) (*core.Node, error) {
 	o, err := rt.ResolveOptions(zpGrammar, opts)
 	if err != nil {
 		return nil, err
@@ -284,7 +284,7 @@ func init() {
 				return any(tn4), nil
 			}, Value: sh5}}},
 	}
-	rules[1].Body = func(p *rt.Parser, min int) (*parse.Node, bool) { return p.OperatorsRuleParse(rules[1], min) }
+	rules[1].Body = func(p *rt.Parser, min int) (*core.Node, bool) { return p.OperatorsRuleParse(rules[1], min) }
 	zpGrammar.DeclareStruct("Binary", "Left", "-", "Op", "-", "Right", "-")
 	zpGrammar.TypeKinds["Binary"] = rt.KindOf("Binary", "")
 	zpGrammar.DeclareStruct("Unary", "Op", "-", "X", "-")
@@ -304,7 +304,7 @@ func init() {
 			{Id: 1, Kind: "infix", Assoc: "left", Level: 2, Line: &rt.OperatorsRuleLine{Scope: []string{}, M: e27, Action: nil, Value: sh5}},
 			{Id: 3, Kind: "infix", Assoc: "right", Level: 4, Line: &rt.OperatorsRuleLine{Scope: []string{}, M: e29, Action: nil, Value: sh5}}},
 	}
-	recRules[1].Body = func(p *rt.Parser, min int) (*parse.Node, bool) { return p.OperatorsRuleParse(recRules[1], min) }
+	recRules[1].Body = func(p *rt.Parser, min int) (*core.Node, bool) { return p.OperatorsRuleParse(recRules[1], min) }
 	zpGrammar.Starts = []string{"main"}
 	zpGrammar.DefaultStart = "main"
 	zpRecGrammar.Share(zpGrammar)
@@ -339,10 +339,10 @@ func init() {
 	trules[1].Body = func(p *rt.TParser, min int) (any, bool) { return p.OperatorsRuleParse(trules[1], min) }
 }
 
-func e1(p *rt.Parser, _ int) (*parse.Node, bool) {
+func e1(p *rt.Parser, _ int) (*core.Node, bool) {
 	p.Spend()
 	var ok bool
-	var v2 *parse.Node
+	var v2 *core.Node
 	if v2, ok = p.Call(rules[1], 0); !ok {
 		goto fail
 	}
@@ -359,13 +359,13 @@ fail:
 	return nil, false
 }
 
-func e3(p *rt.Parser, _ int) (*parse.Node, bool) {
+func e3(p *rt.Parser, _ int) (*core.Node, bool) {
 	p.Spend()
 	var x1, size, x2, x3, x7, x8 int
 	var ch rune
 	var ok bool
 	var x4 rt.Mark
-	var v9 *parse.Node
+	var v9 *core.Node
 	x1 = p.Pos
 	x2 = p.Pos
 	x3 = 0
@@ -433,7 +433,7 @@ fail:
 	return nil, false
 }
 
-func e6(p *rt.Parser) (*parse.Node, bool) {
+func e6(p *rt.Parser) (*core.Node, bool) {
 	p.Spend()
 	var ok bool
 	if _, ok = r4(p); !ok {
@@ -444,10 +444,10 @@ fail:
 	return nil, false
 }
 
-func e7(p *rt.Parser) (*parse.Node, bool) {
+func e7(p *rt.Parser) (*core.Node, bool) {
 	p.Spend()
 	var ok bool
-	var v1 *parse.Node
+	var v1 *core.Node
 	if v1, ok = r2(p); !ok {
 		goto fail
 	}
@@ -456,10 +456,10 @@ fail:
 	return nil, false
 }
 
-func e10(p *rt.Parser) (*parse.Node, bool) {
+func e10(p *rt.Parser) (*core.Node, bool) {
 	p.Spend()
 	var ok bool
-	var v2 *parse.Node
+	var v2 *core.Node
 	if (p.Pos < len(p.In) && p.In[p.Pos] == 40) && p.Control.Take(1) {
 		p.Pos++
 	} else if _, ok = p.MatchLiteral(lit8, "(", 8, false); !ok {
@@ -482,10 +482,10 @@ fail:
 	return nil, false
 }
 
-func e14(p *rt.Parser) (*parse.Node, bool) {
+func e14(p *rt.Parser) (*core.Node, bool) {
 	p.Spend()
 	var x1 rt.Mark
-	var v2, v9, v13 *parse.Node
+	var v2, v9, v13 *core.Node
 	var x4 rune
 	var x5, ok bool
 	var x8, x12 int
@@ -535,10 +535,10 @@ fail:
 	return nil, false
 }
 
-func e18(p *rt.Parser) (*parse.Node, bool) {
+func e18(p *rt.Parser) (*core.Node, bool) {
 	p.Spend()
 	var x1 rt.Mark
-	var v2, v9, v13, v17 *parse.Node
+	var v2, v9, v13, v17 *core.Node
 	var x4 rune
 	var x5, ok bool
 	var x8, x12, x16 int
@@ -604,10 +604,10 @@ fail:
 	return nil, false
 }
 
-func e19(p *rt.Parser) (*parse.Node, bool) {
+func e19(p *rt.Parser) (*core.Node, bool) {
 	p.Spend()
 	var x1 rt.Mark
-	var v2, v9, v13 *parse.Node
+	var v2, v9, v13 *core.Node
 	var x4 rune
 	var x5, ok bool
 	var x8, x12 int
@@ -657,11 +657,11 @@ fail:
 	return nil, false
 }
 
-func e21(p *rt.Parser) (*parse.Node, bool) {
+func e21(p *rt.Parser) (*core.Node, bool) {
 	p.Spend()
 	var x1 int
 	var ok bool
-	var v2 *parse.Node
+	var v2 *core.Node
 	x1 = p.Pos
 	if (p.Pos < len(p.In) && p.In[p.Pos] == 94) && p.Control.Take(1) {
 		p.Pos++
@@ -674,7 +674,7 @@ fail:
 	return nil, false
 }
 
-func r2(p *rt.Parser) (*parse.Node, bool) {
+func r2(p *rt.Parser) (*core.Node, bool) {
 	p.Spend()
 	start, trail := p.Pos, len(p.Trail)
 	prevEnv, prevCut := p.Env, p.Cut
@@ -691,9 +691,9 @@ func r2(p *rt.Parser) (*parse.Node, bool) {
 	return v, ok
 }
 
-func r4(p *rt.Parser) (*parse.Node, bool) {
+func r4(p *rt.Parser) (*core.Node, bool) {
 	p.Spend()
-	var v *parse.Node
+	var v *core.Node
 	var ch rune
 	var size, x1, x2 int
 	var ok bool
@@ -723,9 +723,9 @@ func r4(p *rt.Parser) (*parse.Node, bool) {
 	return v, true
 }
 
-func e22(p *rt.Parser, _ int) (*parse.Node, bool) {
+func e22(p *rt.Parser, _ int) (*core.Node, bool) {
 	p.Spend()
-	var v *parse.Node
+	var v *core.Node
 	var ok bool
 	if _, ok = p.Call(recRules[1], 0); !ok {
 		goto fail
@@ -743,7 +743,7 @@ fail:
 	return nil, false
 }
 
-func e23(p *rt.Parser) (*parse.Node, bool) {
+func e23(p *rt.Parser) (*core.Node, bool) {
 	p.Spend()
 	var ok bool
 	if _, ok = q3(p); !ok {
@@ -754,7 +754,7 @@ fail:
 	return nil, false
 }
 
-func e24(p *rt.Parser) (*parse.Node, bool) {
+func e24(p *rt.Parser) (*core.Node, bool) {
 	p.Spend()
 	var ok bool
 	if _, ok = q2(p); !ok {
@@ -765,7 +765,7 @@ fail:
 	return nil, false
 }
 
-func e25(p *rt.Parser) (*parse.Node, bool) {
+func e25(p *rt.Parser) (*core.Node, bool) {
 	p.Spend()
 	var ok bool
 	if (p.Pos < len(p.In) && p.In[p.Pos] == 40) && p.Control.Take(1) {
@@ -789,7 +789,7 @@ fail:
 	return nil, false
 }
 
-func e26(p *rt.Parser) (*parse.Node, bool) {
+func e26(p *rt.Parser) (*core.Node, bool) {
 	p.Spend()
 	var x1 rt.Mark
 	var x3 rune
@@ -834,7 +834,7 @@ fail:
 	return nil, false
 }
 
-func e27(p *rt.Parser) (*parse.Node, bool) {
+func e27(p *rt.Parser) (*core.Node, bool) {
 	p.Spend()
 	var x1 rt.Mark
 	var x3 rune
@@ -892,7 +892,7 @@ fail:
 	return nil, false
 }
 
-func e28(p *rt.Parser) (*parse.Node, bool) {
+func e28(p *rt.Parser) (*core.Node, bool) {
 	p.Spend()
 	var x1 rt.Mark
 	var x3 rune
@@ -937,7 +937,7 @@ fail:
 	return nil, false
 }
 
-func e29(p *rt.Parser) (*parse.Node, bool) {
+func e29(p *rt.Parser) (*core.Node, bool) {
 	p.Spend()
 	var ok bool
 	if (p.Pos < len(p.In) && p.In[p.Pos] == 94) && p.Control.Take(1) {
@@ -950,10 +950,10 @@ fail:
 	return nil, false
 }
 
-func q2(p *rt.Parser) (*parse.Node, bool) {
+func q2(p *rt.Parser) (*core.Node, bool) {
 	p.Spend()
 	var start, size, x1, x2, x3, x6, x7 int
-	var v *parse.Node
+	var v *core.Node
 	var ch rune
 	var ok bool
 	start = p.Pos
@@ -1024,9 +1024,9 @@ fail:
 	return nil, false
 }
 
-func q3(p *rt.Parser) (*parse.Node, bool) {
+func q3(p *rt.Parser) (*core.Node, bool) {
 	p.Spend()
-	var v *parse.Node
+	var v *core.Node
 	var ch rune
 	var size, x1, x2 int
 	var ok bool
@@ -1457,4 +1457,4 @@ func s4(p *rt.TParser) (any, bool) {
 
 const _ = types.ZPSchema_1758b48940b2027f
 
-const _ = rt.Protocol13
+const _ = rt.Protocol14

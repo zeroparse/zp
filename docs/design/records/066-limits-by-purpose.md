@@ -359,7 +359,7 @@ the first release.
 | TypeScript `budget`, `maxInput`, `maxDepth` | `limits: { compute, input, depth }`, plus `memory` |
 | TypeScript `"budget-limit"` | `"compute-limit"`, plus `"memory-limit"` and `"depth-limit"` |
 
-The rename touches `zp.go`, `internal/limits`, `runtime/budget.go`, the generated `api.go` template, the TypeScript
+The rename touches `engine/`, `internal/limits`, `runtime/budget.go`, the generated `api.go` template, the TypeScript
 runtime, `cmd/zp`, `cmd/playground`, and the specification pages for parsing, generated parsers, streaming and
 Documents. `Limits`, `WithLimits`, `LimitError`, `LimitKind`, `ErrLimit` and `Unlimited` keep their names
 ([decision 1](#decisions)).

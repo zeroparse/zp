@@ -2,7 +2,7 @@
 
 package core
 
-import "zeroparse.dev/zp/runtime/parse"
+import "zeroparse.dev/zp/core"
 
 // confRuleMemo runs rule.memo for the conformance suite.
 // Printed from Exec IR function confRuleMemo of internal/ir/exec/core.
@@ -62,14 +62,14 @@ func (p *Parser) confRuleId(r *Rule) int {
 
 // confRuleInvoke runs rule.invoke for the conformance suite.
 // Printed from Exec IR function confRuleInvoke of internal/ir/exec/core.
-func (p *Parser) confRuleInvoke(r *Rule, min int) (*parse.Node, bool) {
+func (p *Parser) confRuleInvoke(r *Rule, min int) (*core.Node, bool) {
 	r0, r1 := p.invoke(r, min)
 	return r0, r1
 }
 
 // confRuleInvokePlain runs rule.invokePlain for the conformance suite.
 // Printed from Exec IR function confRuleInvokePlain of internal/ir/exec/core.
-func (p *Parser) confRuleInvokePlain(r *Rule, min int) (*parse.Node, bool) {
+func (p *Parser) confRuleInvokePlain(r *Rule, min int) (*core.Node, bool) {
 	r0, r1 := p.InvokePlain(r, min)
 	return r0, r1
 }

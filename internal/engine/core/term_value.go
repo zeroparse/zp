@@ -3,10 +3,10 @@ package core
 import (
 	"strings"
 
+	"zeroparse.dev/zp/core"
+	"zeroparse.dev/zp/core/noderep"
 	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/value"
-	"zeroparse.dev/zp/runtime/noderep"
-	"zeroparse.dev/zp/runtime/parse"
 )
 
 // The value primitives of terms (ops.AddValue) of the engine. The compositions of the operators in
@@ -87,7 +87,7 @@ func valKind(x any) int {
 // unboxed is the operation val.unbox: the value that a node pointer stands for: nil for a nil
 // pointer, the value of a box, and otherwise v.
 func unboxed(v any) any {
-	if n, ok := v.(*parse.Node); ok {
+	if n, ok := v.(*core.Node); ok {
 		if n == nil {
 			return nil
 		}
@@ -120,11 +120,11 @@ func intIndex(x any, n int) (int, bool) {
 }
 
 // valItems is the operation seq.items.
-func valItems(x any) ([]*parse.Node, bool) {
+func valItems(x any) ([]*core.Node, bool) {
 	switch x := x.(type) {
 	case nil:
 		return nil, true
-	case *parse.Node:
+	case *core.Node:
 		if x == nil {
 			return nil, true
 		}
@@ -168,8 +168,8 @@ func (p *Parser) strEq(l, r any) bool {
 }
 
 // nodeOf is the operation node.of: x as a node, list, tuple or struct.
-func nodeOf(x any) (*parse.Node, bool) {
-	n, ok := x.(*parse.Node)
+func nodeOf(x any) (*core.Node, bool) {
+	n, ok := x.(*core.Node)
 	return n, ok && n != nil
 }
 
@@ -183,7 +183,7 @@ func seqKind(tuple bool) *noderep.Kind {
 
 // elemSpan is the operation seq.span: an element of a list or a tuple is a node, boxed if it was a scalar,
 // and nil adds no range.
-func elemSpan(it *parse.Node) (int, int, bool) {
+func elemSpan(it *core.Node) (int, int, bool) {
 	if it == nil {
 		return 0, 0, false
 	}
@@ -191,15 +191,15 @@ func elemSpan(it *parse.Node) (int, int, bool) {
 }
 
 // setSpan is the operation node.setSpan.
-func setSpan(n *parse.Node, start, end int) {
+func setSpan(n *core.Node, start, end int) {
 	value.D(n).Start, value.D(n).End = int32(start), int32(end)
 }
 
 // made is the operation act.made.
-func (c *EvalCtx) made(n *parse.Node) { c.P.Created = append(c.P.Created, n) }
+func (c *EvalCtx) made(n *core.Node) { c.P.Created = append(c.P.Created, n) }
 
 // isStruct is the operation node.isStruct.
-func (p *Parser) isStruct(n *parse.Node) bool {
+func (p *Parser) isStruct(n *core.Node) bool {
 	_, ok := p.Prog.Types[n.Type()].(*grammar.TypeDef)
 	return ok
 }

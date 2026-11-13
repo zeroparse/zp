@@ -6,7 +6,7 @@ import (
 	"strings"
 	"unicode/utf8"
 
-	"zeroparse.dev/zp/runtime/parse"
+	"zeroparse.dev/zp/core"
 )
 
 // DocumentPiece is an immutable range of source text. In CodePoints mode text
@@ -21,8 +21,8 @@ type DocumentPiece struct {
 	LargeOffs []int
 }
 
-func newDocumentPiece(text string, unit parse.PositionUnit) DocumentPiece {
-	if unit == parse.Bytes {
+func newDocumentPiece(text string, unit core.PositionUnit) DocumentPiece {
+	if unit == core.Bytes {
 		return DocumentPiece{Text: text}
 	}
 	runes := []rune(text)
@@ -52,15 +52,15 @@ func (p DocumentPiece) byteOffset(i int) int {
 	return int(p.Offs[i] - p.Offs[0])
 }
 
-func (p DocumentPiece) length(unit parse.PositionUnit) int {
-	if unit == parse.Bytes {
+func (p DocumentPiece) length(unit core.PositionUnit) int {
+	if unit == core.Bytes {
 		return len(p.Text)
 	}
 	return len(p.Runes)
 }
 
-func (p DocumentPiece) Sub(from, to int, unit parse.PositionUnit) DocumentPiece {
-	if unit == parse.Bytes {
+func (p DocumentPiece) Sub(from, to int, unit core.PositionUnit) DocumentPiece {
+	if unit == core.Bytes {
 		return DocumentPiece{Text: p.Text[from:to]}
 	}
 	lo, hi := p.byteOffset(from), p.byteOffset(to)
@@ -73,8 +73,8 @@ func (p DocumentPiece) Sub(from, to int, unit parse.PositionUnit) DocumentPiece 
 	return sub
 }
 
-func (p DocumentPiece) Substring(from, to int, unit parse.PositionUnit) string {
-	if unit == parse.Bytes {
+func (p DocumentPiece) Substring(from, to int, unit core.PositionUnit) string {
+	if unit == core.Bytes {
 		return p.Text[from:to]
 	}
 	lo, hi := p.byteOffset(from), p.byteOffset(to)
@@ -92,7 +92,7 @@ func (p DocumentPiece) Substring(from, to int, unit parse.PositionUnit) string {
 // plus at most twice the length of the document, and a parse that takes only
 // short texts across an edit copies only those.
 type documentPieces struct {
-	unit   parse.PositionUnit
+	unit   core.PositionUnit
 	Parts  []DocumentPiece
 	N      int
 	Full   string
@@ -104,7 +104,7 @@ type documentPieces struct {
 	copied int
 }
 
-func NewDocumentPieces(text string, unit parse.PositionUnit) *documentPieces {
+func NewDocumentPieces(text string, unit core.PositionUnit) *documentPieces {
 	p := newDocumentPiece(text, unit)
 	d := &documentPieces{unit: unit, N: p.length(unit)}
 	if d.N != 0 {
@@ -130,7 +130,7 @@ func (d *documentPieces) At(pos int) (rune, bool) {
 		return 0, false
 	}
 	i, off := d.find(pos)
-	if d.unit == parse.Bytes {
+	if d.unit == core.Bytes {
 		return rune(d.Parts[i].Text[off]), true
 	}
 	return d.Parts[i].Runes[off], true
@@ -140,7 +140,7 @@ func (in *Input) decodePieces(i int) (r rune, size, examined int, ok bool) {
 	if i >= in.Pieces.N {
 		return 0, 0, i + 1, false
 	}
-	if in.Unit == parse.CodePoints {
+	if in.Unit == core.CodePoints {
 		r, _ = in.Pieces.At(i)
 		return r, 1, i + 1, true
 	}
@@ -168,7 +168,7 @@ func (in *Input) decodePieces(i int) (r rune, size, examined int, ok bool) {
 
 func (p *Parser) matchLiteralPieces(rs []rune, bs []byte) bool {
 	var k, n int
-	if p.Unit == parse.Bytes {
+	if p.Unit == core.Bytes {
 		n = len(bs)
 		for k < n {
 			p.spendRead(1)
@@ -194,7 +194,7 @@ func (p *Parser) matchLiteralPieces(rs []rune, bs []byte) bool {
 		p.Pos += n
 		return true
 	}
-	if p.Unit == parse.Bytes && p.LiteralHasReplacement(rs) {
+	if p.Unit == core.Bytes && p.LiteralHasReplacement(rs) {
 		return p.matchLiteralRunes(rs)
 	}
 	p.touch(p.Pos + k + 1)
@@ -205,7 +205,7 @@ func (p *Parser) matchLiteralPieces(rs []rune, bs []byte) bool {
 // ValidBoundary applies the byte-position edit rule to the logical sequence,
 // including UTF-8 scalars that cross two immutable pieces.
 func (d *documentPieces) ValidBoundary(pos int) error {
-	if d.unit != parse.Bytes || pos == d.N {
+	if d.unit != core.Bytes || pos == d.N {
 		return nil
 	}
 	b, _ := d.At(pos)
@@ -324,7 +324,7 @@ func (d *documentPieces) crossingText(i, start, end int, spend func(uint64)) str
 // not nil) with the size of each bounded step before taking it; reading the whole document, as
 // Document.Text does, needs no table.
 func (d *documentPieces) fullText(start, end int, spend func(uint64)) string {
-	if d.unit == parse.Bytes {
+	if d.unit == core.Bytes {
 		return d.Full[start:end]
 	}
 	if start == 0 && end == d.N {
@@ -401,11 +401,11 @@ func (d *documentPieces) buildFullOffs(spend func(uint64)) {
 // cases improve in both position units.
 const DocumentPieceMinSize = 4 << 10
 
-func UseDocumentPieces(text string, unit parse.PositionUnit) bool {
+func UseDocumentPieces(text string, unit core.PositionUnit) bool {
 	if !DocumentPieceInput {
 		return false
 	}
-	if unit == parse.Bytes {
+	if unit == core.Bytes {
 		return len(text) >= DocumentPieceMinSize
 	}
 	return utf8.RuneCountInString(text) >= DocumentPieceMinSize

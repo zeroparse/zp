@@ -8,7 +8,7 @@ import (
 	"slices"
 	"strings"
 
-	"zeroparse.dev/zp"
+	"zeroparse.dev/zp/engine"
 )
 
 // traceCmd prints the rule calls of a parse as an indented call tree, or as JSON lines.
@@ -28,7 +28,7 @@ func traceCmd(args []string, stdin io.Reader, stdout io.Writer) error {
 	}
 	w := bufio.NewWriter(stdout)
 	t := &tracePrinter{w: w, json: *format == "json", showDepth: *showDepth, rules: rules, failures: *failures}
-	_, perr := p.Parse(src, append(opts, zp.WithTrace(t.event))...)
+	_, perr := p.Parse(src, append(opts, engine.WithTrace(t.event))...)
 	t.flush()
 	if err := w.Flush(); err != nil {
 		return err
@@ -51,7 +51,7 @@ type tracePrinter struct {
 	// if rules is empty).
 	root int
 	// pending is an enter event not printed yet, since the next event shown may be its exit.
-	pending      *zp.TraceEvent
+	pending      *engine.TraceEvent
 	pendingPos   string
 	pendingDepth int
 	err          error
@@ -59,17 +59,17 @@ type tracePrinter struct {
 
 // depth returns the depth at which the event is shown (1 for the top call shown), or 0 if it is
 // hidden.
-func (t *tracePrinter) depth(e zp.TraceEvent) int {
+func (t *tracePrinter) depth(e engine.TraceEvent) int {
 	d := e.Depth
 	if len(t.rules) > 0 {
 		if t.root == 0 {
-			if e.Kind == zp.TraceExit || !slices.Contains(t.rules, e.Rule) {
+			if e.Kind == engine.TraceExit || !slices.Contains(t.rules, e.Rule) {
 				return 0
 			}
 			t.root = e.Depth
 		}
 		d = e.Depth - t.root + 1
-		if e.Kind == zp.TraceExit && d == 1 {
+		if e.Kind == engine.TraceExit && d == 1 {
 			t.root = 0
 		}
 	}
@@ -79,7 +79,7 @@ func (t *tracePrinter) depth(e zp.TraceEvent) int {
 	return d
 }
 
-func (t *tracePrinter) event(e zp.TraceEvent) {
+func (t *tracePrinter) event(e engine.TraceEvent) {
 	d := t.depth(e)
 	if d == 0 || t.err != nil {
 		return
@@ -88,7 +88,7 @@ func (t *tracePrinter) event(e zp.TraceEvent) {
 		t.printJSON(e)
 		return
 	}
-	if e.Kind == zp.TraceEnter {
+	if e.Kind == engine.TraceEnter {
 		t.flush()
 		t.pending, t.pendingPos, t.pendingDepth = &e, position(e, e.Pos), d
 		return
@@ -113,7 +113,7 @@ func (t *tracePrinter) flush() {
 	t.pending = nil
 }
 
-func callName(e zp.TraceEvent) string {
+func callName(e engine.TraceEvent) string {
 	s := e.Rule
 	if e.Level != 0 {
 		s += fmt.Sprintf("(level %d)", e.Level)
@@ -124,13 +124,13 @@ func callName(e zp.TraceEvent) string {
 	return s
 }
 
-func position(e zp.TraceEvent, pos int) string {
+func position(e engine.TraceEvent, pos int) string {
 	line, col := e.LineCol(pos)
-	return zp.Location{Pos: pos, Line: line, Col: col}.String()
+	return engine.Location{Pos: pos, Line: line, Col: col}.String()
 }
 
 // result describes the outcome of the call that e ends.
-func (t *tracePrinter) result(e zp.TraceEvent) string {
+func (t *tracePrinter) result(e engine.TraceEvent) string {
 	var b strings.Builder
 	if e.Matched {
 		fmt.Fprintf(&b, "matched %s-%s %s", position(e, e.Pos), position(e, e.End), snippet(e.Text(), 40))
@@ -181,10 +181,10 @@ type failureJSON struct {
 	Messages []string `json:"messages,omitempty"`
 }
 
-func (t *tracePrinter) printJSON(e zp.TraceEvent) {
+func (t *tracePrinter) printJSON(e engine.TraceEvent) {
 	j := traceJSON{Event: e.Kind.String(), Rule: e.Rule, Level: e.Level, Depth: e.Depth, Pos: e.Pos, Lookahead: e.Lookahead}
 	j.Line, j.Col = e.LineCol(e.Pos)
-	if e.Kind == zp.TraceExit {
+	if e.Kind == engine.TraceExit {
 		j.Matched, j.End, j.Evals, j.Examined = &e.Matched, &e.End, &e.Evals, &e.Examined
 		j.EndLine, j.EndCol = e.LineCol(e.End)
 		j.Memo = e.Memo

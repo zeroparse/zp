@@ -36,8 +36,8 @@ bad=0
 for t in $tags; do
 	echo "test-reference-tags: $t" >&2
 	pkgs=$(constrained -w "^//go:build .*$t" | xargs -n1 dirname | sort -u)
-	go vet -tags "$t" ./internal/engine/... ./internal/apitest $pkgs || { echo "test-reference-tags: $t: vet failed" >&2; bad=1; continue; }
-	go test -count=1 -short -tags "$t" ./internal/engine/... ./internal/apitest $pkgs || { echo "test-reference-tags: $t: tests failed" >&2; bad=1; }
+	go vet -tags "$t" ./internal/engine/... ./engine $pkgs || { echo "test-reference-tags: $t: vet failed" >&2; bad=1; continue; }
+	go test -count=1 -short -tags "$t" ./internal/engine/... ./engine $pkgs || { echo "test-reference-tags: $t: tests failed" >&2; bad=1; }
 done
 [ "$bad" = 0 ] && echo "test-reference-tags: all tags pass" >&2
 exit "$bad"

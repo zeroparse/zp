@@ -9,18 +9,18 @@ import (
 	"strings"
 	"testing"
 
+	"zeroparse.dev/zp/core"
+	"zeroparse.dev/zp/core/noderep"
 	"zeroparse.dev/zp/internal/engine"
 	"zeroparse.dev/zp/internal/enginetest"
 	"zeroparse.dev/zp/internal/value"
-	"zeroparse.dev/zp/runtime/noderep"
-	"zeroparse.dev/zp/runtime/parse"
 )
 
 // referenceJSON builds the JSON shape of a value with encoding/json, without invoking
 // Node.MarshalJSON: a string, tuple or list node is {start, end, value} (with rule when it has
 // one), and a struct is {type, start, end, fields}. It is intentionally used only for shallow, acyclic test
 // values without captures.
-func referenceJSON(n *parse.Node) any {
+func referenceJSON(n *core.Node) any {
 	if n == nil {
 		return nil
 	}
@@ -55,7 +55,7 @@ func referenceJSON(n *parse.Node) any {
 
 func referenceField(val any) any {
 	switch value := val.(type) {
-	case *parse.Node:
+	case *core.Node:
 		return referenceJSON(value)
 	case []any:
 		if value == nil {
@@ -85,8 +85,8 @@ func TestNodeWriteJSONMatchesReferenceShape(t *testing.T) {
 			{Name: "emptyList", Value: []any{}},
 		},
 	})
-	tuple := value.Ptr(value.Data{Kind: noderep.KindOf("tuple", "pair"), Start: 1, End: 8, Children: []*parse.Node{child, nil, child}})
-	for _, n := range []*parse.Node{record, tuple} {
+	tuple := value.Ptr(value.Data{Kind: noderep.KindOf("tuple", "pair"), Start: 1, End: 8, Children: []*core.Node{child, nil, child}})
+	for _, n := range []*core.Node{record, tuple} {
 		want, err := json.Marshal(referenceJSON(n))
 		if err != nil {
 			t.Fatal(err)
@@ -110,7 +110,7 @@ func TestNodeWriteJSONMatchesReferenceShape(t *testing.T) {
 
 func TestNodeWriteJSONNilAndFields(t *testing.T) {
 	t.Parallel()
-	var n *parse.Node
+	var n *core.Node
 	got, err := n.MarshalJSON()
 	if err != nil || string(got) != "null" {
 		t.Fatalf("nil MarshalJSON = %q, %v; want null, nil", got, err)
@@ -126,7 +126,7 @@ func TestNodeWriteJSONNilAndFields(t *testing.T) {
 
 	// The fields of a struct encode as an object with names in lexicographic order.
 	fields := noderep.Fields{{Name: "child", Value: value.Ptr(value.Data{Kind: noderep.MatchKind, Text: "x"})}, {Name: "bytes", Value: []byte{1, 2}}}
-	got, err = value.NewNode(parse.KindStruct, 0, 0, "", nil, "T", fields, nil).MarshalJSON()
+	got, err = value.NewNode(core.KindStruct, 0, 0, "", nil, "T", fields, nil).MarshalJSON()
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -134,7 +134,7 @@ func TestNodeWriteJSONNilAndFields(t *testing.T) {
 		t.Fatalf("struct fields JSON = %s, want it to contain %s", got, want)
 	}
 	listFields := noderep.Fields{{Name: "nil", Value: []any(nil)}, {Name: "empty", Value: []any{}}}
-	got, err = value.NewNode(parse.KindStruct, 0, 0, "", nil, "T", listFields, nil).MarshalJSON()
+	got, err = value.NewNode(core.KindStruct, 0, 0, "", nil, "T", listFields, nil).MarshalJSON()
 	if err != nil || !strings.Contains(string(got), `{"empty":[],"nil":null}`) {
 		t.Fatalf("struct nil/empty list fields JSON = %s, %v; want {\"empty\":[],\"nil\":null} in it", got, err)
 	}
@@ -143,7 +143,7 @@ func TestNodeWriteJSONNilAndFields(t *testing.T) {
 func TestNodeWriteJSONSharedNodesAndCycles(t *testing.T) {
 	t.Parallel()
 	leaf := value.Ptr(value.Data{Kind: noderep.MatchKind, Text: "shared"})
-	root := value.Ptr(value.Data{Kind: noderep.SeqKind, Children: []*parse.Node{leaf, leaf}})
+	root := value.Ptr(value.Data{Kind: noderep.SeqKind, Children: []*core.Node{leaf, leaf}})
 	data, err := root.MarshalJSON()
 	if err != nil {
 		t.Fatal(err)
@@ -154,19 +154,19 @@ func TestNodeWriteJSONSharedNodesAndCycles(t *testing.T) {
 
 	for _, makeCycle := range []struct {
 		name string
-		make func() *parse.Node
+		make func() *core.Node
 	}{
-		{"child", func() *parse.Node {
+		{"child", func() *core.Node {
 			n := value.Ptr(value.Data{Kind: noderep.SeqKind})
-			value.D(n).Children = []*parse.Node{n}
+			value.D(n).Children = []*core.Node{n}
 			return n
 		}},
-		{"field", func() *parse.Node {
+		{"field", func() *core.Node {
 			n := value.Ptr(value.Data{Kind: noderep.KindOf("R", "")})
 			value.D(n).Fields = noderep.Fields{{Name: "self", Value: n}}
 			return n
 		}},
-		{"slice", func() *parse.Node {
+		{"slice", func() *core.Node {
 			var values []any
 			values = append(values, nil)
 			values[0] = values
@@ -216,7 +216,7 @@ func TestNodeWriteJSONDeepAndStandardLibraryLimit(t *testing.T) {
 	current := root
 	for i := 1; i < depth; i++ {
 		child := value.Ptr(value.Data{Kind: noderep.SeqKind})
-		value.D(current).Children = []*parse.Node{child}
+		value.D(current).Children = []*core.Node{child}
 		current = child
 	}
 	var sink countingWriter

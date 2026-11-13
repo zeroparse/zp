@@ -6,13 +6,13 @@ import (
 	"strconv"
 	"strings"
 
+	"zeroparse.dev/zp/core/noderep"
 	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/compile"
 	"zeroparse.dev/zp/internal/gen"
 	"zeroparse.dev/zp/internal/ir/core"
 	"zeroparse.dev/zp/internal/ir/flow"
 	flowlower "zeroparse.dev/zp/internal/ir/flow/lower"
-	"zeroparse.dev/zp/runtime/noderep"
 )
 
 // Typed Go rules printed from Flow IR.

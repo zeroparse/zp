@@ -8,7 +8,7 @@ import (
 	"strconv"
 	"testing"
 
-	"zeroparse.dev/zp"
+	"zeroparse.dev/zp/engine"
 	"zeroparse.dev/zp/internal/gen"
 	"zeroparse.dev/zp/internal/gentest"
 	"zeroparse.dev/zp/internal/starttest"
@@ -21,11 +21,11 @@ import (
 func TestDocumentEmptyEnterReuse(t *testing.T) {
 	gentest.NeedsBudgetControls(t)
 	const src = "rule main = pad \"a\"+\nrule pad = \"\""
-	g, err := zp.ParseGrammar(src)
+	g, err := engine.ParseGrammar(src)
 	if err != nil {
 		t.Fatal(err)
 	}
-	p, err := zp.Compile(starttest.MarkAll(g), "main")
+	p, err := engine.Compile(starttest.MarkAll(g), "main")
 	if err != nil {
 		t.Fatal(err)
 	}

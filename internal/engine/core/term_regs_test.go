@@ -3,10 +3,10 @@ package core
 import (
 	"testing"
 
+	"zeroparse.dev/zp/core/noderep"
 	"zeroparse.dev/zp/internal/compile"
 	ir "zeroparse.dev/zp/internal/ir/core"
 	"zeroparse.dev/zp/internal/value"
-	"zeroparse.dev/zp/runtime/noderep"
 )
 
 // TestTermEvalClearsRegisters checks that a term program gives its registers back cleared: the

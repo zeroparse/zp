@@ -17,13 +17,13 @@ import (
 	"sync"
 	"unicode/utf8"
 
-	"zeroparse.dev/zp/runtime/noderep"
-	"zeroparse.dev/zp/runtime/parse"
+	"zeroparse.dev/zp/core"
+	"zeroparse.dev/zp/core/noderep"
 )
 
 // isNode reports whether n is a node of the value model (a string node, a tuple or list node, or
 // an error value) rather than a struct, a box or a list or tuple value.
-func isNode(n *parse.Node) bool {
+func isNode(n *core.Node) bool {
 	if k := D(n).Kind; k != nil && k.Base >= 0 && k.Base <= noderep.BaseError {
 		return true
 	}
@@ -34,7 +34,7 @@ func isNode(n *parse.Node) bool {
 // nil, and n otherwise.
 //
 // UnboxNode is for generated parsers; not a stable API.
-func UnboxNode(n *parse.Node) any {
+func UnboxNode(n *core.Node) any {
 	if n == nil {
 		return nil
 	}
@@ -48,7 +48,7 @@ func UnboxNode(n *parse.Node) any {
 //
 // UnboxValue is for generated parsers; not a stable API.
 func UnboxValue(v any) any {
-	if n, ok := v.(*parse.Node); ok {
+	if n, ok := v.(*core.Node); ok {
 		return UnboxNode(n)
 	}
 	return v
@@ -56,7 +56,7 @@ func UnboxValue(v any) any {
 
 // nodeValue returns the Value of the node n: its text for a string node, and a tuple or list
 // value sharing its elements otherwise.
-func (p *Parser) nodeValue(n *parse.Node) any {
+func (p *Parser) nodeValue(n *core.Node) any {
 	switch {
 	case D(n).Terminal:
 		return D(n).Text
@@ -89,7 +89,7 @@ func NewNodeTypeKinds(typ string) *nodeTypeKinds {
 // convert returns the node of the named node type of ks that the value v converts to: a copy of
 // v with the same range and content, or v itself if it already has the type. It reports false if
 // v is not a string, tuple or list node.
-func (ks *nodeTypeKinds) convert(v any) (*parse.Node, bool) {
+func (ks *nodeTypeKinds) convert(v any) (*core.Node, bool) {
 	n, ok := nodeOf(v)
 	if !ok || !hasBase(n) {
 		return nil, false
@@ -99,14 +99,14 @@ func (ks *nodeTypeKinds) convert(v any) (*parse.Node, bool) {
 
 // hasBase reports whether n is a string, tuple or list node, of a named node type or not: a node
 // that a conversion converts. It is the operation node.hasBase.
-func hasBase(n *parse.Node) bool {
+func hasBase(n *core.Node) bool {
 	return D(n).Kind != nil && D(n).Kind.Base >= 0 && D(n).Kind.Base <= noderep.BaseList
 }
 
 // retype returns n, a string, tuple or list node, as a node of the named node type of ks: a copy of
 // n with the same range and content, or n itself if it already has the type. It is the operation
 // node.convert.
-func (ks *nodeTypeKinds) retype(n *parse.Node) *parse.Node {
+func (ks *nodeTypeKinds) retype(n *core.Node) *core.Node {
 	k := ks[D(n).Kind.Base]
 	if D(n).Kind == k {
 		return n
@@ -115,7 +115,7 @@ func (ks *nodeTypeKinds) retype(n *parse.Node) *parse.Node {
 	c.Kind, c.Fresh = k, false
 	if D(n).Fresh {
 		// The rule that made n may still change it; the copy keeps what it holds now.
-		c.Children = append([]*parse.Node(nil), D(n).Children...)
+		c.Children = append([]*core.Node(nil), D(n).Children...)
 	}
 	c.Fields = append(noderep.Fields(nil), D(n).Fields...)
 	return nodeOfData(&c)
@@ -123,7 +123,7 @@ func (ks *nodeTypeKinds) retype(n *parse.Node) *parse.Node {
 
 // convertOwned gives n, a node that nothing else holds, the named node type of ks in place. It
 // reports false if n is not a string, tuple or list node.
-func (ks *nodeTypeKinds) convertOwned(n *parse.Node) bool {
+func (ks *nodeTypeKinds) convertOwned(n *core.Node) bool {
 	if n == nil || !hasBase(n) {
 		return false
 	}
@@ -133,7 +133,7 @@ func (ks *nodeTypeKinds) convertOwned(n *parse.Node) bool {
 
 // BaseNode returns the node n of a named node type as the string, tuple or list node it was
 // converted from: a copy with the kind of that node (n itself for other nodes).
-func BaseNode(n *parse.Node) *parse.Node {
+func BaseNode(n *core.Node) *core.Node {
 	if !D(n).Kind.IsNodeType() {
 		return n
 	}
@@ -148,7 +148,7 @@ func BaseNode(n *parse.Node) *parse.Node {
 func (p *Parser) TermNodeType(typ string) *nodeTypeKinds { return p.g.NodeTypes[typ] }
 
 // RawField returns the value of the field or capture name, whether or not it is public.
-func RawField(n *parse.Node, name string) any {
+func RawField(n *core.Node, name string) any {
 	if n == nil {
 		return nil
 	}
@@ -194,7 +194,7 @@ type Rule struct {
 	Id    int
 	Name  string
 	Scope []string // capture names of the rule body, in slot order
-	Body  func(p *Parser, min int) (*parse.Node, bool)
+	Body  func(p *Parser, min int) (*core.Node, bool)
 	// Action returns the value of the rule's action and the failure that ends its evaluation, nil if
 	// it does not fail.
 	Action func(c *ActCtx) (any, any)
@@ -438,10 +438,10 @@ func (g *grammar) StartError(name string) error {
 type ParseOption func(*parseOptions)
 
 type parseOptions struct {
-	unit     parse.PositionUnit
+	unit     core.PositionUnit
 	maxDepth int
 	context  context.Context
-	limits   parse.Limits
+	limits   core.Limits
 	control  *BudgetControl
 	prepared bool
 	// expectations selects the recording of expectations; ResolveOptions rejects it for a parser
@@ -457,13 +457,13 @@ type parseOptions struct {
 	// streaming is set by the stream entry points, which alone accept the
 	// diagnostic options.
 	streaming          bool
-	diagnostic         func(*parse.SyntaxError) error
+	diagnostic         func(*core.SyntaxError) error
 	diagnosticLimit    int
 	diagnosticLimitSet bool
 }
 
 // WithUnit selects the unit of input positions (CodePoints by default).
-func WithUnit(unit parse.PositionUnit) ParseOption { return func(o *parseOptions) { o.unit = unit } }
+func WithUnit(unit core.PositionUnit) ParseOption { return func(o *parseOptions) { o.unit = unit } }
 
 // WithExpectations makes the parse record what a syntax error expects and the messages of @error,
 // which the SyntaxError then lists. Without it the error carries the farthest failure position only.
@@ -479,7 +479,7 @@ func WithContext(ctx context.Context) ParseOption { return func(o *parseOptions)
 // of an earlier WithLimits, including the construction defaults of a Document, and a zero field
 // leaves it unchanged. A field that no option sets takes its default; Unlimited disables a limit.
 // Counters are never rolled back.
-func WithLimits(limits parse.Limits) ParseOption {
+func WithLimits(limits core.Limits) ParseOption {
 	return func(o *parseOptions) { o.limits = mergeLimits(o.limits, limits) }
 }
 
@@ -520,7 +520,7 @@ func resolveDepth(depth uint64, def int) (int, error) {
 	switch {
 	case depth == 0:
 		return def, nil
-	case depth == parse.Unlimited:
+	case depth == core.Unlimited:
 		return 0, fmt.Errorf("a generated parser does not accept an unlimited depth: it nests rule calls on the goroutine stack")
 	case depth > math.MaxInt:
 		return math.MaxInt, nil
@@ -559,22 +559,22 @@ func prepareOptions(o parseOptions, n uint64, stream bool) parseOptions {
 		o.prepared = true
 		l, adaptive := o.limits, false
 		// A limit beyond math.MaxInt bounds no stream.
-		if l.Input != 0 && l.Input != parse.Unlimited && l.Input <= math.MaxInt {
+		if l.Input != 0 && l.Input != core.Unlimited && l.Input <= math.MaxInt {
 			o.maxInput = int(l.Input)
 		}
 		l.Input = 0 // checked on entry, or by the stream; it needs no control
-		if l.Memory == parse.Unlimited {
+		if l.Memory == core.Unlimited {
 			l.Memory = 0 // the default of Memory is Unlimited
 		}
 		switch {
-		case l.Compute == parse.Unlimited:
+		case l.Compute == core.Unlimited:
 			l.Compute = 0
 		case l.Compute == 0 && o.controls && stream:
 			l.Compute, adaptive = defaultBudgetFloor, true
 		case l.Compute == 0 && o.controls:
 			l.Compute = defaultBudget(n)
 		}
-		if o.context != nil || l != (parse.Limits{}) {
+		if o.context != nil || l != (core.Limits{}) {
 			o.control = newBudgetControl(o.context, l)
 			if o.control != nil {
 				o.control.adaptive = adaptive
@@ -600,13 +600,13 @@ func (o parseOptions) forDocument() parseOptions {
 // where the count of code points decides.
 func prepareText(o parseOptions, text string) parseOptions {
 	if !o.prepared {
-		if max := o.limits.Input; max != 0 && max != parse.Unlimited {
+		if max := o.limits.Input; max != 0 && max != core.Unlimited {
 			n := uint64(len(text))
-			if n > max && o.unit == parse.CodePoints {
+			if n > max && o.unit == core.CodePoints {
 				n = uint64(utf8.RuneCountInString(text))
 			}
 			if n > max {
-				panic(fatal{err: &parse.LimitError{Kind: parse.LimitInput, Limit: max, Requested: n}})
+				panic(fatal{err: &core.LimitError{Kind: core.LimitInput, Limit: max, Requested: n}})
 			}
 		}
 	}
@@ -633,7 +633,7 @@ func recoverParse[T any](v *T, err *error) {
 // RunParse parses the whole input with rule r.
 //
 // RunParse is for generated parsers; not a stable API.
-func RunParse(r *Rule, input string, opts []ParseOption) (n *parse.Node, err error) {
+func RunParse(r *Rule, input string, opts []ParseOption) (n *core.Node, err error) {
 	o, err := ResolveOptions(r.g, opts)
 	if err != nil {
 		return nil, err
@@ -642,14 +642,14 @@ func RunParse(r *Rule, input string, opts []ParseOption) (n *parse.Node, err err
 }
 
 // RunParseResolved is for generated parsers; not a stable API.
-func RunParseResolved(r *Rule, input string, o parseOptions) (n *parse.Node, err error) {
+func RunParseResolved(r *Rule, input string, o parseOptions) (n *core.Node, err error) {
 	defer recoverParse(&n, &err)
 	return parseResolvedSpend(r, input, o)
 }
 
 // parseResolvedSpend lets a conversion boundary distinguish engine interruption
 // from an ordinary nil result without inspecting caller-owned error values.
-func parseResolvedSpend(r *Rule, input string, o parseOptions) (n *parse.Node, err error) {
+func parseResolvedSpend(r *Rule, input string, o parseOptions) (n *core.Node, err error) {
 	o = prepareText(o, input)
 	p, _ := ppool.Get().(*Parser)
 	if p == nil {
@@ -662,8 +662,8 @@ func parseResolvedSpend(r *Rule, input string, o parseOptions) (n *parse.Node, e
 	o.control.attachMemory(p)
 	p.Observation = newObservation(&o.observe)
 	p.MaxDepth = o.maxDepth
-	if o.unit == parse.Bytes {
-		p.unit, p.bs, p.n = parse.Bytes, input, len(input)
+	if o.unit == core.Bytes {
+		p.unit, p.bs, p.n = core.Bytes, input, len(input)
 	} else {
 		p.setSource(input)
 	}
@@ -673,7 +673,7 @@ func parseResolvedSpend(r *Rule, input string, o parseOptions) (n *parse.Node, e
 	p.Control.Check()
 	if ok && p.Pos == p.n {
 		if len(p.Recovered) > 0 {
-			return v, parse.SyntaxErrors(p.recoveredErrors())
+			return v, core.SyntaxErrors(p.recoveredErrors())
 		}
 		return v, nil
 	}
@@ -765,7 +765,7 @@ type Parser struct {
 	looks    []lookRec
 	obsGuard []int32
 	seedSeq  uint64
-	unit     parse.PositionUnit
+	unit     core.PositionUnit
 	In       []rune // code points (CodePoints)
 	bs       string // the input (Bytes)
 	n        int    // input length in units
@@ -781,9 +781,9 @@ type Parser struct {
 	decoded bool
 	Pos     int
 
-	MaxDepth int       // invocation-local maximum nesting
-	Depth    int       // nesting of recursive rule calls
-	created  []*parse. // struct nodes made by the action being evaluated (from ActCtx.Cbase)
+	MaxDepth int      // invocation-local maximum nesting
+	Depth    int      // nesting of recursive rule calls
+	created  []*core. // struct nodes made by the action being evaluated (from ActCtx.Cbase)
 			Node
 	Env      *Env
 	envDepth int // the depth of Env (grammar.envDepth)
@@ -823,16 +823,16 @@ type Parser struct {
 
 	// Result slabs, the stack that gathers repetition children, and the reused
 	// evaluation context.
-	nodeSlab  []parse.Node
-	ptrSlab   []*parse.Node
-	KidStack  []*parse.Node
+	nodeSlab  []core.Node
+	ptrSlab   []*core.Node
+	KidStack  []*core.Node
 	frameSlab []CaptureFrame // per-parse reference allocation only
 	// Capture slots are private scratch, separate from returned child lists.
 	captureScratch frameScratch
 	fieldSlab      []noderep.NodeField
 	lines          []int // positions where lines start (MakeError)
 	ac             ActCtx
-	saved          []*parse. // captures saved across a reset in longest
+	saved          []*core. // captures saved across a reset in longest
 			Node
 	// skipTables are the records of the walks of skip-run sites, indexed by 2*site, plus 1 in a
 	// lookahead; skip is the walk in progress (skip_runs.go).
@@ -853,7 +853,7 @@ type Parser struct {
 	docLow int
 	// moved maps the nodes of a value that holds a node more than once to their copies
 	// (documentMove).
-	moved map[*parse.Node]*parse.Node
+	moved map[*core.Node]*core.Node
 	// interned and internSeq number keys too large for a word while a growth is in progress (intern).
 	// They come last, away from the fields of every parse.
 	interned  map[string]uint64
@@ -865,7 +865,7 @@ type Parser struct {
 type documentState struct {
 	root *Rule
 	text string
-	unit parse.PositionUnit
+	unit core.PositionUnit
 	// expectations is the recording mode of the Document, fixed at its construction.
 	expectations bool
 	memo         memoTable
@@ -1154,7 +1154,7 @@ func (t *memoTable) sparsePage(pos, r int) *[16]uint64 {
 }
 
 type memoEntry struct {
-	node     *parse.Node
+	node     *core.Node
 	errs     recEntry   // errors recovered in this call, recorded again on reuse
 	expected []ExpID    // expectations at far, recorded again on reuse
 	next     *memoEntry // next entry at the same position
@@ -1339,7 +1339,7 @@ func (t *memoTable) alloc() *memoEntry {
 }
 
 // CaptureFrame is for generated parsers; not a stable API.
-type CaptureFrame struct{ Vals []*parse.Node }
+type CaptureFrame struct{ Vals []*core.Node }
 
 // EmptyFrame is for generated parsers; not a stable API.
 var EmptyFrame = &CaptureFrame{}
@@ -1351,10 +1351,10 @@ const (
 
 // NewNode returns a copy of v allocated from the node slab. A slab stays alive while any of its
 // nodes is referenced.
-func (p *Parser) NewNode(v Data) *parse.Node {
+func (p *Parser) NewNode(v Data) *core.Node {
 	p.Spend()
 	if len(p.nodeSlab) == 0 {
-		p.nodeSlab = make([]parse.Node, nodeChunk)
+		p.nodeSlab = make([]core.Node, nodeChunk)
 		p.memUsed += nodeChunk * nodeBytes
 		if p.Stream != nil {
 			p.Stream.nodeChunks++
@@ -1367,9 +1367,9 @@ func (p *Parser) NewNode(v Data) *parse.Node {
 }
 
 // NewNodeOrdinary is NewNode in an ordinary parse (ExpectOrdinary).
-func (p *Parser) NewNodeOrdinary(v Data) *parse.Node {
+func (p *Parser) NewNodeOrdinary(v Data) *core.Node {
 	if len(p.nodeSlab) == 0 {
-		p.nodeSlab = make([]parse.Node, nodeChunk)
+		p.nodeSlab = make([]core.Node, nodeChunk)
 		if p.Stream != nil {
 			p.Stream.nodeChunks++
 		}
@@ -1382,15 +1382,15 @@ func (p *Parser) NewNodeOrdinary(v Data) *parse.Node {
 
 // NewTerminal returns the node of text matched from start to the current position, allocated like
 // NewNode(Data{Kind: noderep.MatchKind, ...}).
-func (p *Parser) NewTerminal(start int, text string) *parse.Node {
+func (p *Parser) NewTerminal(start int, text string) *core.Node {
 	p.Spend()
 	return p.NewTerminalOrdinary(start, text)
 }
 
 // NewTerminalOrdinary is NewTerminal in an ordinary parse (ExpectOrdinary).
-func (p *Parser) NewTerminalOrdinary(start int, text string) *parse.Node {
+func (p *Parser) NewTerminalOrdinary(start int, text string) *core.Node {
 	if len(p.nodeSlab) == 0 {
-		p.nodeSlab = make([]parse.Node, nodeChunk)
+		p.nodeSlab = make([]core.Node, nodeChunk)
 		p.memUsed += nodeChunk * nodeBytes
 		if p.Stream != nil {
 			p.Stream.nodeChunks++
@@ -1404,15 +1404,15 @@ func (p *Parser) NewTerminalOrdinary(start int, text string) *parse.Node {
 
 // NewBranch returns the node of kind (noderep.SeqKind or noderep.ListKind) with children from start to the
 // current position, allocated like NewNode(Data{Kind: kind, ...}).
-func (p *Parser) NewBranch(kind *noderep.Kind, start int, children []*parse.Node) *parse.Node {
+func (p *Parser) NewBranch(kind *noderep.Kind, start int, children []*core.Node) *core.Node {
 	p.Spend()
 	return p.NewBranchOrdinary(kind, start, children)
 }
 
 // NewBranchOrdinary is NewBranch in an ordinary parse (ExpectOrdinary).
-func (p *Parser) NewBranchOrdinary(kind *noderep.Kind, start int, children []*parse.Node) *parse.Node {
+func (p *Parser) NewBranchOrdinary(kind *noderep.Kind, start int, children []*core.Node) *core.Node {
 	if len(p.nodeSlab) == 0 {
-		p.nodeSlab = make([]parse.Node, nodeChunk)
+		p.nodeSlab = make([]core.Node, nodeChunk)
 		p.memUsed += nodeChunk * nodeBytes
 		if p.Stream != nil {
 			p.Stream.nodeChunks++
@@ -1425,16 +1425,16 @@ func (p *Parser) NewBranchOrdinary(kind *noderep.Kind, start int, children []*pa
 }
 
 // Nodes returns a child list of length and capacity n from the pointer slab.
-func (p *Parser) Nodes(n int) []*parse.Node {
+func (p *Parser) Nodes(n int) []*core.Node {
 	if n == 0 {
-		return []*parse.Node{}
+		return []*core.Node{}
 	}
 	if n > ptrChunk/4 {
 		p.memUsed += uint64(n) * ptrBytes
-		return make([]*parse.Node, n)
+		return make([]*core.Node, n)
 	}
 	if len(p.ptrSlab) < n {
-		p.ptrSlab = make([]*parse.Node, ptrChunk)
+		p.ptrSlab = make([]*core.Node, ptrChunk)
 		p.memUsed += ptrChunk * ptrBytes
 	}
 	s := p.ptrSlab[:n:n]
@@ -1459,7 +1459,7 @@ func (p *Parser) fields(n int) noderep.Fields {
 }
 
 // Kids returns p.KidStack[base:] as a child list and pops it.
-func (p *Parser) Kids(base int) []*parse.Node {
+func (p *Parser) Kids(base int) []*core.Node {
 	ks := p.Nodes(len(p.KidStack) - base)
 	copySpend(p, ks, p.KidStack[base:])
 	p.DropKids(base)
@@ -1499,7 +1499,7 @@ const nodeFrameScratch = true
 // Append-only allocation also preserves retained OperatorsRule attempts and undo marks.
 type frameScratch struct {
 	frames  []*[nodeChunk]CaptureFrame
-	slots   []*[ptrChunk]*parse.Node
+	slots   []*[ptrChunk]*core.Node
 	frameN  int
 	slotCI  int
 	slotOff int
@@ -1513,7 +1513,7 @@ func (a *frameScratch) alloc(n int) *CaptureFrame {
 	if n > ptrChunk/4 {
 		// Large individual scopes are exact allocations, never pooled.
 		a.large += frameBytes + uint64(n)*ptrBytes
-		return &CaptureFrame{Vals: make([]*parse.Node, n)}
+		return &CaptureFrame{Vals: make([]*core.Node, n)}
 	}
 	ci := a.frameN / nodeChunk
 	if ci == len(a.frames) {
@@ -1526,7 +1526,7 @@ func (a *frameScratch) alloc(n int) *CaptureFrame {
 		a.slotOff = 0
 	}
 	if a.slotCI == len(a.slots) {
-		a.slots = append(a.slots, new([ptrChunk]*parse.Node))
+		a.slots = append(a.slots, new([ptrChunk]*core.Node))
 	}
 	f.Vals = a.slots[a.slotCI][a.slotOff : a.slotOff+n : a.slotOff+n]
 	a.slotOff += n
@@ -1561,7 +1561,7 @@ func (a *frameScratch) reset() {
 type undo struct {
 	f    *CaptureFrame
 	slot int
-	old  *parse.Node
+	old  *core.Node
 }
 
 // Env is for generated parsers; not a stable API. It is a persistent vector with one current
@@ -1704,7 +1704,7 @@ func (p *Parser) Mark() Mark {
 	return Mark{Pos: p.Pos, env: p.Env, Trail: len(p.Trail), recovered: len(p.Recovered)}
 }
 
-func (p *Parser) SetCapture(slot int, v *parse.Node) {
+func (p *Parser) SetCapture(slot int, v *core.Node) {
 	p.Trail = append(p.Trail, undo{f: p.Frame, slot: slot, old: p.Frame.Vals[slot]})
 	p.Frame.Vals[slot] = v
 }
@@ -1823,7 +1823,7 @@ func (p *Parser) Peek() (rune, int, bool) {
 		p.documentTouch(p.Pos + 1)
 		return 0, 0, false
 	}
-	if p.unit == parse.Bytes {
+	if p.unit == core.Bytes {
 		if c := p.bs[p.Pos]; c < utf8.RuneSelf {
 			p.documentTouch(p.Pos + 1)
 			return rune(c), 1, true
@@ -1855,7 +1855,7 @@ func (p *Parser) PeekOrdinary() (rune, int, bool) {
 	if p.Pos >= p.n {
 		return 0, 0, false
 	}
-	if p.unit == parse.Bytes {
+	if p.unit == core.Bytes {
 		if c := p.bs[p.Pos]; c < utf8.RuneSelf {
 			return rune(c), 1, true
 		}
@@ -1866,7 +1866,7 @@ func (p *Parser) PeekOrdinary() (rune, int, bool) {
 }
 
 func (p *Parser) unitLen(s string) int {
-	if p.Control != nil && p.unit != parse.Bytes {
+	if p.Control != nil && p.unit != core.Bytes {
 		count := 0
 		for off := 0; off < len(s); {
 			p.spendValue(min(utf8.UTFMax, len(s)-off))
@@ -1877,7 +1877,7 @@ func (p *Parser) unitLen(s string) int {
 		return count
 	}
 
-	if p.unit == parse.Bytes {
+	if p.unit == core.Bytes {
 		return len(s)
 	}
 	return utf8.RuneCountInString(s)
@@ -1924,7 +1924,7 @@ func (p *Parser) Text(start, end int) string {
 	if p.Stream != nil {
 		return p.streamText(start, end)
 	}
-	if p.unit == parse.Bytes {
+	if p.unit == core.Bytes {
 		return p.bs[start:end]
 	}
 	if p.offs == nil && !p.decoded {
@@ -1944,11 +1944,11 @@ func (p *Parser) Text(start, end int) string {
 
 type fatal struct{ err error }
 
-func (p *Parser) MakeError(pos int, expected []ExpID) *parse.SyntaxError {
+func (p *Parser) MakeError(pos int, expected []ExpID) *core.SyntaxError {
 	if p.Control != nil {
 		return p.makeControlledError(pos, expected)
 	}
-	e := &parse.SyntaxError{Pos: pos}
+	e := &core.SyntaxError{Pos: pos}
 	for _, x := range expected {
 		if x == ExpFar {
 			continue
@@ -1969,7 +1969,7 @@ func (p *Parser) MakeError(pos int, expected []ExpID) *parse.SyntaxError {
 	if p.lines == nil {
 		p.lines = append(p.lines, 0)
 		for i := 0; i < p.n; i++ {
-			if p.unit == parse.Bytes && p.bs[i] == '\n' || p.unit == parse.CodePoints && p.In[i] == '\n' {
+			if p.unit == core.Bytes && p.bs[i] == '\n' || p.unit == core.CodePoints && p.In[i] == '\n' {
 				p.lines = append(p.lines, i+1)
 			}
 		}
@@ -2012,7 +2012,7 @@ func (p *Parser) releaseObservation() {
 }
 
 // invoke evaluates the body of r and makes the rule's value.
-func (p *Parser) invoke(r *Rule, min int) (*parse.Node, bool) {
+func (p *Parser) invoke(r *Rule, min int) (*core.Node, bool) {
 	if p.Document != nil || p.Observation != nil {
 		p.evaluating()
 	}
@@ -2039,7 +2039,7 @@ func (p *Parser) invoke(r *Rule, min int) (*parse.Node, bool) {
 // InvokePlain is an unmemoized call of a rule without captures: invoke without the capture
 // frame (the body never writes one, so the caller's stays current), with the failure handling of
 // call.
-func (p *Parser) InvokePlain(r *Rule, min int) (*parse.Node, bool) {
+func (p *Parser) InvokePlain(r *Rule, min int) (*core.Node, bool) {
 	if p.Observation != nil {
 		return p.invokePlainObserved(r, min)
 	}
@@ -2047,7 +2047,7 @@ func (p *Parser) InvokePlain(r *Rule, min int) (*parse.Node, bool) {
 }
 
 // invokePlainBody is InvokePlain without observation.
-func (p *Parser) invokePlainBody(r *Rule, min int) (*parse.Node, bool) {
+func (p *Parser) invokePlainBody(r *Rule, min int) (*core.Node, bool) {
 	if p.Document != nil || p.Observation != nil {
 		p.evaluating()
 	}
@@ -2084,7 +2084,7 @@ func (p *Parser) evaluating() {
 
 // TooDeep fails the parse for exceeding the nesting limit.
 func (p *Parser) TooDeep() {
-	panic(fatal{err: &parse.LimitError{Kind: parse.LimitDepth, Limit: uint64(p.MaxDepth), Used: uint64(p.MaxDepth), Requested: 1}})
+	panic(fatal{err: &core.LimitError{Kind: core.LimitDepth, Limit: uint64(p.MaxDepth), Used: uint64(p.MaxDepth), Requested: 1}})
 }
 
 // Enter counts one more nested entry of a recursive rule and fails the parse beyond the nesting
@@ -2104,7 +2104,7 @@ func (p *Parser) Restore(pos, rec int) {
 }
 
 // Finish makes the rule's value from the value of its body.
-func (p *Parser) Finish(r *Rule, f *CaptureFrame, v *parse.Node, start int) *parse.Node {
+func (p *Parser) Finish(r *Rule, f *CaptureFrame, v *core.Node, start int) *core.Node {
 	v, owned := p.finishValue(r, f, v, start)
 	if r.nodeKinds != nil {
 		if owned && r.nodeKinds.convertOwned(v) {
@@ -2116,7 +2116,7 @@ func (p *Parser) Finish(r *Rule, f *CaptureFrame, v *parse.Node, start int) *par
 }
 
 // convertResult converts v, the value of rule r, to the rule's named node type.
-func (p *Parser) convertResult(r *Rule, v *parse.Node) *parse.Node {
+func (p *Parser) convertResult(r *Rule, v *core.Node) *core.Node {
 	n, ok := r.nodeKinds.convert(UnboxNode(v))
 	if !ok {
 		panic(fatal{fmt.Errorf("cannot convert %s to %s in result of rule %s", typeName(UnboxNode(v)), r.NodeType, r.where())})
@@ -2124,7 +2124,7 @@ func (p *Parser) convertResult(r *Rule, v *parse.Node) *parse.Node {
 	return n
 }
 
-func (p *Parser) finishValue(r *Rule, f *CaptureFrame, v *parse.Node, start int) (*parse.Node, bool) {
+func (p *Parser) finishValue(r *Rule, f *CaptureFrame, v *core.Node, start int) (*core.Node, bool) {
 	if r.Novalue {
 		return nil, false
 	}
@@ -2160,7 +2160,7 @@ func (p *Parser) finishValue(r *Rule, f *CaptureFrame, v *parse.Node, start int)
 
 // AttachCaptures attaches the non-nil captures as fields of the node. A node of another rule, or
 // one that is itself captured, is first wrapped in a tuple node.
-func (p *Parser) AttachCaptures(v *parse.Node, names []string, f *CaptureFrame, start, end int) *parse.Node {
+func (p *Parser) AttachCaptures(v *core.Node, names []string, f *CaptureFrame, start, end int) *core.Node {
 	found := false
 	wrap := v == nil || !D(v).Fresh
 	for _, c := range f.Vals {
@@ -2191,7 +2191,7 @@ func (p *Parser) AttachCaptures(v *parse.Node, names []string, f *CaptureFrame, 
 	return v
 }
 
-func nodeOrNil(n *parse.Node) any {
+func nodeOrNil(n *core.Node) any {
 	if n == nil {
 		return nil
 	}
@@ -2234,14 +2234,14 @@ type Shaper struct {
 }
 
 // shapeTuple returns the tuple node of the result v of a match of [start, p.Pos).
-func (p *Parser) shapeTuple(s Shaper, v *parse.Node, start int) *parse.Node {
+func (p *Parser) shapeTuple(s Shaper, v *core.Node, start int) *core.Node {
 	if s.Elems {
 		if s.Shared && v != nil {
 			return p.NewNode(Data{Kind: noderep.SeqKind, Start: D(v).Start, End: D(v).End, Children: D(v).Children, Fresh: true})
 		}
 		return v
 	}
-	var kids []*parse.Node
+	var kids []*core.Node
 	if s.K == 1 {
 		kids = p.Nodes(1)
 		kids[0] = v
@@ -2250,7 +2250,7 @@ func (p *Parser) shapeTuple(s Shaper, v *parse.Node, start int) *parse.Node {
 }
 
 // one returns the one element of the result v.
-func (s Shaper) one(v *parse.Node) *parse.Node {
+func (s Shaper) one(v *core.Node) *core.Node {
 	if s.Elems {
 		if v == nil || len(D(v).Children) == 0 {
 			return nil
@@ -2262,7 +2262,7 @@ func (s Shaper) one(v *parse.Node) *parse.Node {
 
 // ShapeSingle returns the value of the result v where the expression takes one element; ok is
 // false when it has no value.
-func (p *Parser) ShapeSingle(s Shaper, v *parse.Node, start int) (*parse.Node, bool) {
+func (p *Parser) ShapeSingle(s Shaper, v *core.Node, start int) (*core.Node, bool) {
 	switch s.Mode {
 	case singlePass:
 		return s.one(v), true
@@ -2274,7 +2274,7 @@ func (p *Parser) ShapeSingle(s Shaper, v *parse.Node, start int) (*parse.Node, b
 
 // ShapeCapture is ShapeSingle for a capture or a recovered expression, whose value is the unit
 // node of the range matched when the expression has no value.
-func (p *Parser) ShapeCapture(s Shaper, v *parse.Node, start int) *parse.Node {
+func (p *Parser) ShapeCapture(s Shaper, v *core.Node, start int) *core.Node {
 	v, ok := p.ShapeSingle(s, v, start)
 	if !ok {
 		v = p.NewNode(Data{Kind: noderep.SeqKind, Start: int32(start), End: int32(p.Pos), Fresh: true})
@@ -2283,7 +2283,7 @@ func (p *Parser) ShapeCapture(s Shaper, v *parse.Node, start int) *parse.Node {
 }
 
 // ScopeValue returns the value of a scope whose body matched [start, p.Pos) with the result v.
-func (p *Parser) ScopeValue(s Shaper, v *parse.Node, start int) *parse.Node {
+func (p *Parser) ScopeValue(s Shaper, v *core.Node, start int) *core.Node {
 	if s.Tuple {
 		return p.shapeTuple(s, v, start)
 	}
@@ -2295,18 +2295,18 @@ func (p *Parser) ScopeValue(s Shaper, v *parse.Node, start int) *parse.Node {
 // LiteralText returns source bytes if replacement decoding accepted a shorter
 // spelling than the literal, retaining the usual constant-text success path.
 func (p *Parser) LiteralText(start int, text string) string {
-	if p.unit == parse.Bytes && p.Pos-start != len(text) {
+	if p.unit == core.Bytes && p.Pos-start != len(text) {
 		return p.Text(start, p.Pos)
 	}
 	return text
 }
 
-func (p *Parser) MatchLiteral(rs []rune, text string, desc ExpID, build bool) (*parse.Node, bool) {
+func (p *Parser) MatchLiteral(rs []rune, text string, desc ExpID, build bool) (*core.Node, bool) {
 	if p.Stream != nil {
 		return p.streamMatchLiteral(rs, text, desc, build)
 	}
 	start := p.Pos
-	if p.unit == parse.Bytes {
+	if p.unit == core.Bytes {
 		p.documentTouch(start + len(text))
 		if !p.hasLiteralPrefix(text) {
 			return p.matchReplacementLiteral(rs, text, desc, build)
@@ -2333,7 +2333,7 @@ func (p *Parser) MatchLiteral(rs []rune, text string, desc ExpID, build bool) (*
 // letter lowercased, and each input character is folded the same way before it is compared, so
 // only ASCII letters ignore case. The node text is the consumed input. Peek records the examined
 // characters and the work of each one, so the loop needs no bookkeeping of its own.
-func (p *Parser) MatchLiteralFold(rs []rune, desc ExpID, build bool) (*parse.Node, bool) {
+func (p *Parser) MatchLiteralFold(rs []rune, desc ExpID, build bool) (*core.Node, bool) {
 	start := p.Pos
 	for _, want := range rs {
 		got, size, ok := p.Peek()
@@ -2350,7 +2350,7 @@ func (p *Parser) MatchLiteralFold(rs []rune, desc ExpID, build bool) (*parse.Nod
 }
 
 // MatchLiteralFoldOrdinary is MatchLiteralFold in an ordinary parse (ExpectOrdinary).
-func (p *Parser) MatchLiteralFoldOrdinary(rs []rune, desc ExpID, build bool) (*parse.Node, bool) {
+func (p *Parser) MatchLiteralFoldOrdinary(rs []rune, desc ExpID, build bool) (*core.Node, bool) {
 	start := p.Pos
 	for _, want := range rs {
 		got, size, ok := p.PeekOrdinary()
@@ -2376,7 +2376,7 @@ func foldASCIIRune(r rune) rune {
 
 // matchReplacementLiteral is the cold path for raw-byte mismatches. An
 // invalid input byte and valid U+FFFD decode alike, but occupy different sizes.
-func (p *Parser) matchReplacementLiteral(rs []rune, text string, desc ExpID, build bool) (*parse.Node, bool) {
+func (p *Parser) matchReplacementLiteral(rs []rune, text string, desc ExpID, build bool) (*core.Node, bool) {
 	start := p.Pos
 	if !p.literalHasReplacement(rs) {
 		p.Expect(start, desc)
@@ -2397,12 +2397,12 @@ func (p *Parser) matchReplacementLiteral(rs []rune, text string, desc ExpID, bui
 }
 
 // MatchLiteralOrdinary is MatchLiteral in an ordinary parse (ExpectOrdinary).
-func (p *Parser) MatchLiteralOrdinary(rs []rune, text string, desc ExpID, build bool) (*parse.Node, bool) {
+func (p *Parser) MatchLiteralOrdinary(rs []rune, text string, desc ExpID, build bool) (*core.Node, bool) {
 	if p.Stream != nil {
 		return p.streamMatchLiteral(rs, text, desc, build)
 	}
 	start := p.Pos
-	if p.unit == parse.Bytes {
+	if p.unit == core.Bytes {
 		if !strings.HasPrefix(p.bs[p.Pos:], text) {
 			return p.matchReplacementLiteral(rs, text, desc, build)
 		}
@@ -2423,7 +2423,7 @@ func (p *Parser) MatchLiteralOrdinary(rs []rune, text string, desc ExpID, build 
 }
 
 // MatchAnyOrdinary is MatchAny in an ordinary parse (ExpectOrdinary).
-func (p *Parser) MatchAnyOrdinary(build bool) (*parse.Node, bool) {
+func (p *Parser) MatchAnyOrdinary(build bool) (*core.Node, bool) {
 	_, size, ok := p.PeekOrdinary()
 	if !ok {
 		p.ExpectOrdinary(p.Pos, IdAny)
@@ -2432,7 +2432,7 @@ func (p *Parser) MatchAnyOrdinary(build bool) (*parse.Node, bool) {
 	return p.Single(size, build)
 }
 
-func (p *Parser) MatchAny(build bool) (*parse.Node, bool) {
+func (p *Parser) MatchAny(build bool) (*core.Node, bool) {
 	_, size, ok := p.Peek()
 	if !ok {
 		p.Expect(p.Pos, IdAny)
@@ -2442,7 +2442,7 @@ func (p *Parser) MatchAny(build bool) (*parse.Node, bool) {
 }
 
 // Single consumes one character of size units.
-func (p *Parser) Single(size int, build bool) (*parse.Node, bool) {
+func (p *Parser) Single(size int, build bool) (*core.Node, bool) {
 	start := p.Pos
 	p.Pos += size
 	if !build {
@@ -2451,7 +2451,7 @@ func (p *Parser) Single(size int, build bool) (*parse.Node, bool) {
 	return p.NewNode(Data{Kind: noderep.MatchKind, Start: int32(start), End: int32(p.Pos), Text: p.Text(start, p.Pos), Terminal: true, Fresh: true}), true
 }
 
-func (p *Parser) Anchor(ok bool, desc ExpID) (*parse.Node, bool) {
+func (p *Parser) Anchor(ok bool, desc ExpID) (*core.Node, bool) {
 	if ok {
 		return nil, true
 	}
@@ -2467,7 +2467,7 @@ func (p *Parser) AtLineStart() bool {
 	if p.Pos == 0 {
 		return true
 	}
-	if p.unit == parse.Bytes {
+	if p.unit == core.Bytes {
 		return p.bs[p.Pos-1] == '\n'
 	}
 	return p.In[p.Pos-1] == '\n'
@@ -2481,7 +2481,7 @@ func (p *Parser) AtLineStartOrdinary() bool {
 	if p.Pos == 0 {
 		return true
 	}
-	if p.unit == parse.Bytes {
+	if p.unit == core.Bytes {
 		return p.bs[p.Pos-1] == '\n'
 	}
 	return p.In[p.Pos-1] == '\n'
@@ -2531,7 +2531,7 @@ func (p *Parser) AtLineStartBatch() bool {
 	if p.Pos == 0 {
 		return true
 	}
-	if p.unit == parse.Bytes {
+	if p.unit == core.Bytes {
 		return p.bs[p.Pos-1] == '\n'
 	}
 	return p.In[p.Pos-1] == '\n'
@@ -2542,7 +2542,7 @@ func (p *Parser) AtLineStartBatchOrdinary() bool {
 	if p.Pos == 0 {
 		return true
 	}
-	if p.unit == parse.Bytes {
+	if p.unit == core.Bytes {
 		return p.bs[p.Pos-1] == '\n'
 	}
 	return p.In[p.Pos-1] == '\n'
@@ -2550,11 +2550,11 @@ func (p *Parser) AtLineStartBatchOrdinary() bool {
 
 // --- Attributes ---
 
-type matcher = func(p *Parser) (*parse.Node, bool)
+type matcher = func(p *Parser) (*core.Node, bool)
 
 // tracked runs m with a separate expectation record and returns its farthest position and
 // expectations (valid only until the next record; see unisolate).
-func (p *Parser) tracked(m matcher) (v *parse.Node, ok bool, far int, expected []ExpID) {
+func (p *Parser) tracked(m matcher) (v *core.Node, ok bool, far int, expected []ExpID) {
 	mark := p.Isolate(p.Pos)
 	v, ok = m(p)
 	far, expected = p.Unisolate(mark)
@@ -2563,7 +2563,7 @@ func (p *Parser) tracked(m matcher) (v *parse.Node, ok bool, far int, expected [
 
 // ErrorAttr replaces the expectations of a failing m with the message msg (an ID with MsgBit),
 // reported at the farthest position m reached.
-func (p *Parser) ErrorAttr(m matcher, msg ExpID) (*parse.Node, bool) {
+func (p *Parser) ErrorAttr(m matcher, msg ExpID) (*core.Node, bool) {
 	v, ok, far, expected := p.tracked(m)
 	if ok {
 		p.MergeExpected(far, expected)
@@ -2573,7 +2573,7 @@ func (p *Parser) ErrorAttr(m matcher, msg ExpID) (*parse.Node, bool) {
 	return nil, false
 }
 
-func (p *Parser) DiagnosticAttr(m matcher, name ExpID) (*parse.Node, bool) {
+func (p *Parser) DiagnosticAttr(m matcher, name ExpID) (*core.Node, bool) {
 	v, ok, far, expected := p.tracked(m)
 	if ok {
 		p.MergeExpected(far, expected)
@@ -2598,7 +2598,7 @@ func RenamedExpected(p *Parser, expected []ExpID, name ExpID) []ExpID {
 
 // RecoverAttr records the error of a failing m, skips what skip matches and returns an Error
 // node. It fails without recovering when skip fails or skips nothing.
-func (p *Parser) RecoverAttr(m, skip matcher, build bool) (*parse.Node, bool) {
+func (p *Parser) RecoverAttr(m, skip matcher, build bool) (*core.Node, bool) {
 	m0 := p.Mark()
 	v, ok, far, expected := p.tracked(m)
 	if ok {
@@ -2625,7 +2625,7 @@ func (p *Parser) RecoverAttr(m, skip matcher, build bool) (*parse.Node, bool) {
 // NewNode.
 //
 // NewErrorNode is for generated parsers; not a stable API.
-func (p *Parser) NewErrorNode(start int, e *parse.SyntaxError) *parse.Node {
+func (p *Parser) NewErrorNode(start int, e *core.SyntaxError) *core.Node {
 	return p.NewNode(Data{Kind: noderep.ErrorKind, Start: int32(start), End: int32(p.Pos), Fields: noderep.Fields{{Name: "message", Value: p.RecoveryErrorText(e)}}, Fresh: true, Terminal: true})
 }
 
@@ -2655,7 +2655,7 @@ func (p *Parser) useCtx(c ActCtx) *ActCtx {
 	return &p.ac
 }
 
-func (c *ActCtx) result(action func(*ActCtx) (any, any), where string) (n *parse.Node) {
+func (c *ActCtx) result(action func(*ActCtx) (any, any), where string) (n *core.Node) {
 	defer c.P.dropCreated(c.cbase)
 	v, f := action(c)
 	if f != nil {
@@ -2664,7 +2664,7 @@ func (c *ActCtx) result(action func(*ActCtx) (any, any), where string) (n *parse
 	if v == nil {
 		return nil
 	}
-	n, ok := v.(*parse.Node)
+	n, ok := v.(*core.Node)
 	if !ok {
 		if _, isFn := v.(func(...any) any); isFn {
 			c.P.actionFailed(where, c.P.evalErrorValue("result must be a value, got a function"))
@@ -2724,7 +2724,7 @@ func typeName(v any) string {
 	switch v := v.(type) {
 	case nil:
 		return "nil"
-	case *parse.Node:
+	case *core.Node:
 		if v == nil {
 			return "nil"
 		}
@@ -2749,7 +2749,7 @@ func typeName(v any) string {
 // n fields: the operation term.struct of a term that makes a struct.
 //
 // TermStruct is for generated parsers; not a stable API.
-func (c *ActCtx) TermStruct(typ string, n int) *parse.Node {
+func (c *ActCtx) TermStruct(typ string, n int) *core.Node {
 	k := c.P.g.TypeKinds[typ]
 	if k == nil {
 		k = KindOf(typ, "")
@@ -2761,11 +2761,11 @@ func (c *ActCtx) TermStruct(typ string, n int) *parse.Node {
 // term.setField.
 //
 // TermSetField is for generated parsers; not a stable API.
-func (c *ActCtx) TermSetField(n *parse.Node, name string, v any) {
+func (c *ActCtx) TermSetField(n *core.Node, name string, v any) {
 	c.P.setValueField(&D(n).Fields, name, v)
 }
 
-func (c *ActCtx) NewList(items []*parse.Node) *parse.Node {
+func (c *ActCtx) NewList(items []*core.Node) *core.Node {
 	kids := c.P.Nodes(len(items))
 	copySpend(c.P, kids, items)
 	return c.listNode(kids)
@@ -2773,7 +2773,7 @@ func (c *ActCtx) NewList(items []*parse.Node) *parse.Node {
 
 // listNode returns a list value with the child list kids (which it takes over). Its range, which
 // the value model does not show, covers the elements that are nodes.
-func (c *ActCtx) listNode(kids []*parse.Node) *parse.Node { return c.P.TermHull(c, false, kids) }
+func (c *ActCtx) listNode(kids []*core.Node) *core.Node { return c.P.TermHull(c, false, kids) }
 
 // TOperand is an operand of a comparison: a string field read without boxing it (Str, with
 // IsStr), or any other value (V).
@@ -2794,7 +2794,7 @@ func (o TOperand) value() any {
 
 // memberZero is the operation node.zero: the zero value of the declared type of the field name of the
 // struct n, and false if its type declares no such field.
-func (p *Parser) memberZero(c *ActCtx, n *parse.Node, name string) (any, bool) {
+func (p *Parser) memberZero(c *ActCtx, n *core.Node, name string) (any, bool) {
 	zero, ok := p.g.StructFields[n.Type()].zeros[name]
 	if !ok {
 		return nil, false
@@ -2872,21 +2872,21 @@ type OperatorsRuleOp struct {
 type operatorsRuleAttempt struct {
 	op         *OperatorsRuleOp
 	frame      *CaptureFrame
-	v          *parse.Node
+	v          *core.Node
 	start, end int
 	env        *Env
 	cut        bool
 	errs       recEntry
 }
 
-func (p *Parser) lineResult(r *Rule, l *OperatorsRuleLine, f *CaptureFrame, v *parse.Node, start int) *parse.Node {
+func (p *Parser) lineResult(r *Rule, l *OperatorsRuleLine, f *CaptureFrame, v *core.Node, start int) *core.Node {
 	if r.Novalue {
 		return nil
 	}
 	return p.lineValue(r, l, f, v, start)
 }
 
-func (p *Parser) lineValue(r *Rule, l *OperatorsRuleLine, f *CaptureFrame, v *parse.Node, start int) *parse.Node {
+func (p *Parser) lineValue(r *Rule, l *OperatorsRuleLine, f *CaptureFrame, v *core.Node, start int) *core.Node {
 	if l.Action != nil {
 		c := p.useCtx(ActCtx{P: p, f: f, start: start, end: p.Pos, cbase: len(p.created)})
 		return c.result(l.Action, r.where())
@@ -2906,7 +2906,7 @@ func (p *Parser) lineValue(r *Rule, l *OperatorsRuleLine, f *CaptureFrame, v *pa
 
 // convertOperator converts v, the value of an operator of rule r, to the named node type of the
 // rule's operators.
-func (p *Parser) convertOperator(r *Rule, v *parse.Node) *parse.Node {
+func (p *Parser) convertOperator(r *Rule, v *core.Node) *core.Node {
 	n, ok := r.opKinds.convert(UnboxNode(v))
 	if !ok {
 		panic(fatal{fmt.Errorf("cannot convert %s to %s in result of rule %s", typeName(UnboxNode(v)), r.OpNodeType, r.where())})
@@ -2914,7 +2914,7 @@ func (p *Parser) convertOperator(r *Rule, v *parse.Node) *parse.Node {
 	return n
 }
 
-func (p *Parser) operatorsRuleBuild(r *Rule, a *operatorsRuleAttempt, lhs, rhs *parse.Node) *parse.Node {
+func (p *Parser) operatorsRuleBuild(r *Rule, a *operatorsRuleAttempt, lhs, rhs *core.Node) *core.Node {
 	if r.Novalue {
 		return nil
 	}
@@ -2949,7 +2949,7 @@ func (p *Parser) operatorsRuleBuild(r *Rule, a *operatorsRuleAttempt, lhs, rhs *
 	}
 	// Without an action, the application is the node of the tuple (lhs, op, rhs) of the line's
 	// kind, with those captures.
-	var kids []*parse.Node
+	var kids []*core.Node
 	var fields noderep.Fields
 	switch a.op.Kind {
 	case "prefix":

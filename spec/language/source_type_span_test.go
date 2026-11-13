@@ -3,7 +3,7 @@ package language_test
 import (
 	"reflect"
 	"testing"
-	"zeroparse.dev/zp"
+	"zeroparse.dev/zp/engine"
 	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/syntax"
 	"zeroparse.dev/zp/internal/syntax/sourceast"
@@ -36,14 +36,14 @@ func TestCanonicalTypeDeclarationSpans(t *testing.T) {
 	}
 }
 
-func assertCanonicalTypeSpans(t *testing.T, p *zp.Parser, source string, expected []string) {
+func assertCanonicalTypeSpans(t *testing.T, p *engine.Parser, source string, expected []string) {
 	t.Helper()
 	manual, err := syntax.ParseReference(source)
 	if err != nil {
 		t.Fatal(err)
 	}
-	for _, backend := range []zp.Backend{zp.Closure, zp.Bytecode, zp.BytecodeIterative} {
-		n, err := p.Parse(source, zp.WithBackend(backend))
+	for _, backend := range []engine.Backend{engine.Closure, engine.Bytecode, engine.BytecodeIterative} {
+		n, err := p.Parse(source, engine.WithBackend(backend))
 		if err != nil {
 			t.Fatalf("%v: %v", backend, err)
 		}

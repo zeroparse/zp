@@ -4,9 +4,9 @@ import (
 	"context"
 	"testing"
 
+	"zeroparse.dev/zp/core"
+	"zeroparse.dev/zp/core/noderep"
 	"zeroparse.dev/zp/internal/ir/exec/conform"
-	"zeroparse.dev/zp/runtime/noderep"
-	"zeroparse.dev/zp/runtime/parse"
 )
 
 // The member table (conform.MemberCases) on the composition member of the node and the typed runtime
@@ -23,7 +23,7 @@ func memberCanon(x any) string {
 		return conform.MemberCanon("string", x, nil)
 	case bool:
 		return conform.MemberCanon("bool", x, nil)
-	case *parse.Node:
+	case *core.Node:
 		if x == nil {
 			return conform.MemberCanon("nil", nil, nil)
 		}
@@ -74,7 +74,7 @@ func nodeMemberFixture(controlled bool) (*ActCtx, map[string]any) {
 	}
 	p := &Parser{g: g}
 	if controlled {
-		p.Control = newBudgetControl(context.Background(), parse.Limits{Compute: 1 << 62})
+		p.Control = newBudgetControl(context.Background(), core.Limits{Compute: 1 << 62})
 	}
 	c := &ActCtx{P: p}
 	node := nodeOfData(&Data{Kind: SeqKind, Start: 2, End: 5})
@@ -138,7 +138,7 @@ func tmemberCanon(x any) string {
 func typedMemberFixture(controlled bool) (*TActCtx, map[string]any) {
 	p := &Parser{}
 	if controlled {
-		p.Control = newBudgetControl(context.Background(), parse.Limits{Compute: 1 << 62})
+		p.Control = newBudgetControl(context.Background(), core.Limits{Compute: 1 << 62})
 	}
 	c := &TActCtx{P: &TParser{Parser: p}}
 	s := func(a int, b string) *memberStruct {

@@ -53,15 +53,15 @@ import (
 	_ "embed"
 	"testing"
 
-	"zeroparse.dev/zp"
+	"zeroparse.dev/zp/engine"
 	"zeroparse.dev/zp/sample"
 )
 
 //go:embed version.zp
 var grammar string
 
-func compile(t testing.TB) *zp.Parser {
-	p, err := zp.CompileSource(grammar, "main")
+func compile(t testing.TB) *engine.Parser {
+	p, err := engine.CompileSource(grammar, "main")
 	if err != nil {
 		t.Fatal(err)
 	}

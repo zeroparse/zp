@@ -5,7 +5,7 @@ import (
 )
 
 // The Document, its snapshots and change notifications are declared in the document package. The
-// engine re-exports them under the same names for the root package.
+// engine re-exports them under the same names for the package engine.
 
 type (
 	Document        = document.Document

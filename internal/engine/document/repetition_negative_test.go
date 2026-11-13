@@ -5,16 +5,16 @@ import (
 	"strings"
 	"testing"
 
+	"zeroparse.dev/zp/core"
 	"zeroparse.dev/zp/internal/compile"
 	. "zeroparse.dev/zp/internal/engine"
-	"zeroparse.dev/zp/internal/engine/core"
-	"zeroparse.dev/zp/runtime/parse"
+	ecore "zeroparse.dev/zp/internal/engine/core"
 )
 
 func TestNegativeMaximumDocumentsAndStreams(t *testing.T) {
 	// Force recording of this short repetition so edits exercise resumption.
-	defer func(n int) { core.MinRecorded = n }(core.MinRecorded)
-	core.MinRecorded = 1
+	defer func(n int) { ecore.MinRecorded = n }(ecore.MinRecorded)
+	ecore.MinRecorded = 1
 	for _, maximum := range negativeMaxima() {
 		g := grammarWithNegativeMaximum(t, `rule main = "é"* #stream $$`, maximum)
 		p, err := Compile(g, compile.Options{})
@@ -34,19 +34,19 @@ func TestNegativeMaximumDocumentsAndStreams(t *testing.T) {
 						}
 						continue
 					}
-					for _, unit := range []parse.PositionUnit{parse.CodePoints, parse.Bytes} {
+					for _, unit := range []core.PositionUnit{core.CodePoints, core.Bytes} {
 						opts := ParseOptions{Backend: b, Unit: unit}
 						streamOpts := opts
 						if prog == loaded {
 							streamOpts = servedBy(mode, opts)
 						}
 						var got []string
-						err := prog.ParseStreamWith("main", strings.NewReader("ééé"), func(n *parse.Node) error {
+						err := prog.ParseStreamWith("main", strings.NewReader("ééé"), func(n *core.Node) error {
 							got = append(got, resultJSON(n, nil))
 							return nil
 						}, streamOpts)
 						var want []string
-						we := p.ParseStreamWith("main", strings.NewReader("ééé"), func(n *parse.Node) error {
+						we := p.ParseStreamWith("main", strings.NewReader("ééé"), func(n *core.Node) error {
 							want = append(want, resultJSON(n, nil))
 							return nil
 						}, ParseOptions{Unit: unit})
@@ -73,7 +73,7 @@ func TestNegativeMaximumDocumentsAndStreams(t *testing.T) {
 								t.Fatal("edited Document did not resume repetition elements")
 							}
 							at := 50
-							if unit == parse.Bytes {
+							if unit == core.Bytes {
 								at *= len("é")
 							}
 							if err := d.Edit(at, at, "é"); err != nil {

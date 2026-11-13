@@ -7,10 +7,10 @@ import (
 	"strconv"
 	"strings"
 
+	"zeroparse.dev/zp/core/noderep"
 	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/compile"
 	"zeroparse.dev/zp/internal/gen"
-	"zeroparse.dev/zp/runtime/noderep"
 )
 
 // TsReservedTypes are the names types.ts declares itself, or imports. A grammar type with one of

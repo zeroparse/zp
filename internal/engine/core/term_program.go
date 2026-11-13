@@ -3,6 +3,7 @@ package core
 import (
 	"fmt"
 
+	"zeroparse.dev/zp/core/noderep"
 	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/compile"
 	ir "zeroparse.dev/zp/internal/ir/core"
@@ -10,7 +11,6 @@ import (
 	"zeroparse.dev/zp/internal/ir/exec/lower"
 	"zeroparse.dev/zp/internal/ir/exec/ops"
 	"zeroparse.dev/zp/internal/value"
-	"zeroparse.dev/zp/runtime/noderep"
 )
 
 // Terms of the engine lowered from Exec IR.

@@ -7,10 +7,10 @@ import (
 	"strings"
 	"testing"
 
+	"zeroparse.dev/zp/core"
 	"zeroparse.dev/zp/internal/compile"
 	"zeroparse.dev/zp/internal/gentest"
 	"zeroparse.dev/zp/internal/syntax"
-	"zeroparse.dev/zp/runtime/parse"
 )
 
 func TestStreamCaptureRecognition(t *testing.T) {
@@ -49,7 +49,7 @@ func TestStreamCaptureRecognition(t *testing.T) {
 							wantClosureRefused(t, err)
 							continue
 						}
-						for _, unit := range []parse.PositionUnit{parse.CodePoints, parse.Bytes} {
+						for _, unit := range []core.PositionUnit{core.CodePoints, core.Bytes} {
 							opts := ParseOptions{Backend: backend, Unit: unit}
 							for _, recognize := range []bool{false, true} {
 								opts.Recognize = recognize
@@ -68,7 +68,7 @@ func TestStreamCaptureRecognition(t *testing.T) {
 								continue
 							}
 							count := 0
-							err := program.ParseStreamWith("main", strings.NewReader(tc.input), func(*parse.Node) error { count++; return nil }, opts)
+							err := program.ParseStreamWith("main", strings.NewReader(tc.input), func(*core.Node) error { count++; return nil }, opts)
 							if count != tc.count || (err == nil) != tc.ok {
 								t.Errorf("stream %s/%s: %d, %v; want %d success=%v", backend, unit, count, err, tc.count, tc.ok)
 							}
@@ -148,7 +148,7 @@ func TestStreamRecognitionCompiled(t *testing.T) {
 				continue
 			}
 			var got []string
-			err := p.ParseStreamWith("main", strings.NewReader("aa"), func(n *parse.Node) error {
+			err := p.ParseStreamWith("main", strings.NewReader("aa"), func(n *core.Node) error {
 				got = append(got, n.Text())
 				return nil
 			}, ParseOptions{Backend: b})

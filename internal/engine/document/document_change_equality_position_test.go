@@ -5,8 +5,8 @@ package document
 import (
 	"testing"
 
+	"zeroparse.dev/zp/core/noderep"
 	"zeroparse.dev/zp/internal/value"
-	"zeroparse.dev/zp/runtime/noderep"
 )
 
 func TestDocumentChangesDirectoryEqualityUsesPositionOverlay(t *testing.T) {

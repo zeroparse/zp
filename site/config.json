@@ -475,9 +475,9 @@
           "title": "Go API Reference",
           "match": [
             "reference/README.md",
-            "reference/zp/README.md",
+            "reference/engine/README.md",
+            "reference/core/README.md",
             "reference/grammar/README.md",
-            "reference/parse/README.md",
             "reference/noderep/README.md",
             "reference/runtime/README.md",
             "reference/gen/README.md",
@@ -489,9 +489,9 @@
           ],
           "first": [
             "reference/README.md",
-            "reference/zp/README.md",
+            "reference/engine/README.md",
+            "reference/core/README.md",
             "reference/grammar/README.md",
-            "reference/parse/README.md",
             "reference/noderep/README.md",
             "reference/runtime/README.md",
             "reference/gen/README.md",

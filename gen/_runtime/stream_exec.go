@@ -2,7 +2,7 @@
 
 package runtime
 
-import "zeroparse.dev/zp/runtime/parse"
+import "zeroparse.dev/zp/core"
 
 // EmitStream passes a committed element v of the start rule's #stream repetition to the caller and
 // commits the input before end. The recovered errors committed so far are reported first, so that an
@@ -10,7 +10,7 @@ import "zeroparse.dev/zp/runtime/parse"
 // once emitted: a caller error ends the parse unchanged.
 //
 // Printed from Exec IR function streamEmit of internal/ir/exec/core, specialized for stream.
-func (p *Parser) EmitStream(v *parse.Node, end int) {
+func (p *Parser) EmitStream(v *core.Node, end int) {
 	p.Control.Check()
 	p.streamReport()
 	p.streamDeliver(v)

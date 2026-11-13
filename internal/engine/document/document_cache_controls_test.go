@@ -3,17 +3,17 @@ package document
 import (
 	"testing"
 
-	"zeroparse.dev/zp/internal/engine/core"
-	"zeroparse.dev/zp/runtime/parse"
+	"zeroparse.dev/zp/core"
+	ecore "zeroparse.dev/zp/internal/engine/core"
 )
 
 func TestCacheControlsRetiredAndRunAccounting(t *testing.T) {
-	d := &Document{memo: core.NewMemoTable()}
+	d := &Document{memo: ecore.NewMemoTable()}
 	live := d.memo.Alloc()
-	d.memo.Put(core.MemoKey{Rule: 1, Pos: 0}, live)
+	d.memo.Put(ecore.MemoKey{Rule: 1, Pos: 0}, live)
 	retired := d.memo.Alloc()
 	d.memo.Retire(retired)
-	d.runs = map[core.RunKey]*core.RunRecord{{Site: 1}: {Elems: make([]core.RunElem, 7, 11)}}
+	d.runs = map[ecore.RunKey]*ecore.RunRecord{{Site: 1}: {Elems: make([]ecore.RunElem, 7, 11)}}
 	got := d.CacheStats()
 	if got.LiveMemoEntries != 1 || got.RetiredMemoEntries != 1 || got.RepetitionElements != 7 || got.EstimatedBytes == 0 {
 		t.Fatalf("stats: %+v", got)
@@ -22,7 +22,7 @@ func TestCacheControlsRetiredAndRunAccounting(t *testing.T) {
 		t.Fatal("inspection mutated cache")
 	}
 	d.ResetHistory()
-	if got := d.CacheStats(); got != (parse.CacheStats{}) {
+	if got := d.CacheStats(); got != (core.CacheStats{}) {
 		t.Fatalf("reset: %+v", got)
 	}
 }

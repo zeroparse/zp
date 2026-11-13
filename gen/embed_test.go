@@ -7,7 +7,7 @@ import (
 	"strings"
 	"testing"
 
-	"zeroparse.dev/zp"
+	"zeroparse.dev/zp/engine"
 	"zeroparse.dev/zp/gen"
 )
 
@@ -18,7 +18,7 @@ func TestGenerateGoEmbeddedPackageBuilds(t *testing.T) {
 	if testing.Short() {
 		t.Skip("builds a generated parser")
 	}
-	g, err := zp.ParseGrammar(`type Pair = { Key node[string]; Value node[string] }
+	g, err := engine.ParseGrammar(`type Pair = { Key node[string]; Value node[string] }
 @start
 rule main Pair = k:[a-z]+ #atomic "=" v:[0-9]+ #atomic => Pair{Key: $k, Value: $v}`)
 	if err != nil {

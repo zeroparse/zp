@@ -57,7 +57,7 @@ import (
 	"strings"
 	"testing"
 
-	zpparse "zeroparse.dev/zp/runtime/parse"
+	zpparse "zeroparse.dev/zp/core"
 )
 
 func leastBudget(t *testing.T, parse func(budget uint64) error) uint64 {

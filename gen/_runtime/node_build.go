@@ -1,8 +1,8 @@
 package runtime
 
 import (
-	"zeroparse.dev/zp/runtime/noderep"
-	"zeroparse.dev/zp/runtime/parse"
+	"zeroparse.dev/zp/core"
+	"zeroparse.dev/zp/core/noderep"
 )
 
 // The functions in this file build and change nodes for the tests of packages outside runtime, which
@@ -15,24 +15,24 @@ import (
 // fields its fields (or captures), and value the value of a KindValue node.
 //
 // NewNode is for generated parsers and tests; not a stable API.
-func NewNode(k parse.NodeKind, start, end int, text string, elems []*parse.Node, typ string, fields noderep.Fields, value any) *parse.Node {
+func NewNode(k core.NodeKind, start, end int, text string, elems []*core.Node, typ string, fields noderep.Fields, value any) *core.Node {
 	d := &Data{Start: int32(start), End: int32(end), Text: text, Children: elems, Fields: fields, Box: value}
 	switch k {
-	case parse.KindString:
+	case core.KindString:
 		d.Kind, d.Terminal = noderep.MatchKind, true
-	case parse.KindTuple:
+	case core.KindTuple:
 		d.Kind = noderep.SeqKind
-	case parse.KindList:
+	case core.KindList:
 		d.Kind = noderep.ListKind
-	case parse.KindError:
+	case core.KindError:
 		d.Kind = noderep.ErrorKind
-	case parse.KindStruct:
+	case core.KindStruct:
 		d.Kind = KindOf(typ, "")
-	case parse.KindTupleValue:
+	case core.KindTupleValue:
 		d.Kind = noderep.TupleValueKind
-	case parse.KindListValue:
+	case core.KindListValue:
 		d.Kind = noderep.ListValueKind
-	case parse.KindValue:
+	case core.KindValue:
 		d.Kind = noderep.BoxKind
 	}
 	return nodeOfData(d)
@@ -41,24 +41,24 @@ func NewNode(k parse.NodeKind, start, end int, text string, elems []*parse.Node,
 // SetNodeElems replaces the elements of the tuple or list n, which can make a cycle.
 //
 // SetNodeElems is for generated parsers and tests; not a stable API.
-func SetNodeElems(n *parse.Node, elems []*parse.Node) { D(n).Children = elems }
+func SetNodeElems(n *core.Node, elems []*core.Node) { D(n).Children = elems }
 
 // SetNodeText replaces the string of the KindString node n.
 //
 // SetNodeText is for generated parsers and tests; not a stable API.
-func SetNodeText(n *parse.Node, text string) {
+func SetNodeText(n *core.Node, text string) {
 	D(n).Text = text
 }
 
 // SetNodeStart replaces the start of the range of n.
 //
 // SetNodeStart is for generated parsers and tests; not a stable API.
-func SetNodeStart(n *parse.Node, start int) { D(n).Start = int32(start) }
+func SetNodeStart(n *core.Node, start int) { D(n).Start = int32(start) }
 
 // SetNodeField sets the field name of n to v, adding it if absent.
 //
 // SetNodeField is for generated parsers and tests; not a stable API.
-func SetNodeField(n *parse.Node, name string, v any) {
+func SetNodeField(n *core.Node, name string, v any) {
 	for i := range D(n).Fields {
 		if D(n).Fields[i].Name == name {
 			D(n).Fields[i].Value = v

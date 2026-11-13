@@ -9,11 +9,11 @@ import (
 	"strings"
 	"testing"
 
+	"zeroparse.dev/zp/core"
 	. "zeroparse.dev/zp/internal/engine"
-	"zeroparse.dev/zp/internal/engine/core"
+	ecore "zeroparse.dev/zp/internal/engine/core"
 	"zeroparse.dev/zp/internal/engine/document"
 	"zeroparse.dev/zp/internal/value"
-	"zeroparse.dev/zp/runtime/parse"
 )
 
 func TestSnapshotPositionOverlaysAcrossEdits(t *testing.T) {
@@ -32,7 +32,7 @@ rule item = x:[a-z] => Item{At: $x.Start, Text: text($x)}`,
 				t.Fatal(err)
 			}
 			var versions []*Snapshot
-			var expected []*parse.Node
+			var expected []*core.Node
 			for _, edit := range []struct {
 				start, end int
 				text       string
@@ -71,7 +71,7 @@ rule item = x:[a-z] => Item{At: $x.Start, Text: text($x)}`,
 	}
 }
 
-func equalSnapshotNodePositions(got document.SnapshotNode, want *parse.Node) bool {
+func equalSnapshotNodePositions(got document.SnapshotNode, want *core.Node) bool {
 	if !got.Valid() || want == nil {
 		return got.Valid() == (want != nil)
 	}
@@ -84,7 +84,7 @@ func equalSnapshotNodePositions(got document.SnapshotNode, want *parse.Node) boo
 		}
 	}
 	for _, field := range value.D(want).Fields {
-		if child, ok := field.Value.(*parse.Node); ok {
+		if child, ok := field.Value.(*core.Node); ok {
 			v, exists := got.Field(field.Name)
 			handle, valid := v.(document.SnapshotNode)
 			if !exists || !valid || !equalSnapshotNodePositions(handle, child) {
@@ -134,7 +134,7 @@ rule item = .`)
 
 func TestSnapshotPositionOverlayCancellationDuringMetadataCopy(t *testing.T) {
 	t.Parallel()
-	if !core.BudgetControlsEnabled {
+	if !ecore.BudgetControlsEnabled {
 		t.Skip("budget control reference")
 	}
 	prog := mustCompile(t, `rule main = -[ ]* item* $$

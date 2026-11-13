@@ -14,7 +14,7 @@ import (
 	"strings"
 	"testing"
 
-	"zeroparse.dev/zp"
+	"zeroparse.dev/zp/engine"
 )
 
 var update = flag.Bool("update", false, "update golden files")
@@ -34,7 +34,7 @@ func TestExamples(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			p, err := zp.CompileSource(string(src), "main")
+			p, err := engine.CompileSource(string(src), "main")
 			if err != nil {
 				t.Fatalf("%s:%v", gpath, err)
 			}
@@ -49,7 +49,7 @@ func TestExamples(t *testing.T) {
 				}
 				// Print the tree and the errors, including those recovered with #recover.
 				var got string
-				n, err := p.Parse(string(data), zp.WithExpectations())
+				n, err := p.Parse(string(data), engine.WithExpectations())
 				if n != nil {
 					got = n.String()
 				}

@@ -102,7 +102,7 @@ func testGeneratedLeftRecursionDependencyMemoLinear(t *testing.T) {
 			// budget grants, so with controls they get a budget linear in the input with their constant.
 			limit := ""
 			if i >= costly && controls {
-				limit = fmt.Sprintf(", zprt.WithLimits(parse.Limits{Compute: %d})", gentest.ContextStoreBudgetPerUnit*uint64(len(input)))
+				limit = fmt.Sprintf(", zprt.WithLimits(core.Limits{Compute: %d})", gentest.ContextStoreBudgetPerUnit*uint64(len(input)))
 			}
 			fmt.Fprintf(&calls, "\t{ var p zprt.Profile; if _, err := %s.Parse(%s, zprt.WithProfile(&p)%s); err != nil { panic(err) }; fmt.Print(p.Snapshot().Evals, \" \") }\n", pkg, in, limit)
 			fmt.Fprintf(&calls, "\t{ var p zprt.Profile; if _, err := %s.ParseValue(%s, zprt.WithProfile(&p)%s); err != nil { panic(err) }; fmt.Print(p.Snapshot().Evals, \" \") }\n", pkg, in, limit)
@@ -121,10 +121,10 @@ import (
 	"fmt"
 
 	zprt "zeroparse.dev/zp/runtime"
-	"zeroparse.dev/zp/runtime/parse"
+	"zeroparse.dev/zp/core"
 ` + imports.String() + `)
 
-var _ parse.Limits
+var _ core.Limits
 
 func main() {
 ` + calls.String() + `}

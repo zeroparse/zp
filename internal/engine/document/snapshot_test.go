@@ -9,13 +9,13 @@ import (
 
 	"zeroparse.dev/zp/internal/engine/document"
 
+	"zeroparse.dev/zp/core"
 	. "zeroparse.dev/zp/internal/engine"
-	"zeroparse.dev/zp/internal/engine/core"
-	"zeroparse.dev/zp/runtime/parse"
+	ecore "zeroparse.dev/zp/internal/engine/core"
 )
 
 func TestSnapshotControlledFreezeBudgetAndRetry(t *testing.T) {
-	if !core.BudgetControlsEnabled {
+	if !ecore.BudgetControlsEnabled {
 		t.Skip("budget controls reference")
 	}
 	prog := mustCompile(t, `rule main = .* $$`)
@@ -26,15 +26,15 @@ func TestSnapshotControlledFreezeBudgetAndRetry(t *testing.T) {
 		}
 		// A memo-hit parse succeeds with this allowance. Capturing its
 		// existing graph and text must still consume the same invocation.
-		o.Limits = parse.Limits{Compute: 100}
+		o.Limits = core.Limits{Compute: 100}
 		if _, err := d.ParseWith(o); err != nil {
 			t.Fatal("memo-hit fixture", err)
 		}
 		s, err := d.SnapshotWith(o)
-		if s != nil || !errors.Is(err, parse.ErrLimit) || d.Memo().Len() != 0 || d.Runs() != nil || d.Kids() != nil || d.Machine() != nil {
+		if s != nil || !errors.Is(err, core.ErrLimit) || d.Memo().Len() != 0 || d.Runs() != nil || d.Kids() != nil || d.Machine() != nil {
 			t.Fatal("freeze interruption", s, err)
 		}
-		o.Limits = parse.Limits{}
+		o.Limits = core.Limits{}
 		s, err = d.SnapshotWith(o)
 		if s == nil || err != nil || s.Text() != d.Text() {
 			t.Fatal("retry", err)
@@ -43,16 +43,16 @@ func TestSnapshotControlledFreezeBudgetAndRetry(t *testing.T) {
 			t.Fatal("fresh mismatch")
 		}
 		// A cached parse fits, but copying all 8192 input bytes does not.
-		o.Limits = parse.Limits{Compute: 4096}
+		o.Limits = core.Limits{Compute: 4096}
 		if _, err := d.ParseWith(o); err != nil {
 			t.Fatal("compute limit memo-hit fixture", err)
 		}
 		s, err = d.SnapshotWith(o)
-		var limit *parse.LimitError
-		if s != nil || !errors.As(err, &limit) || limit.Kind != parse.LimitCompute {
+		var limit *core.LimitError
+		if s != nil || !errors.As(err, &limit) || limit.Kind != core.LimitCompute {
 			t.Fatal("text-freeze compute limit", s, err)
 		}
-		o.Limits = parse.Limits{}
+		o.Limits = core.Limits{}
 		if s, err = d.SnapshotWith(o); s == nil || err != nil {
 			t.Fatal("compute limit retry", err)
 		}
@@ -69,8 +69,8 @@ func TestSnapshotControlledFreezeBudgetAndRetry(t *testing.T) {
 }
 
 func TestSnapshotDiagnosticCopyAndNilResult(t *testing.T) {
-	original := parse.SyntaxErrors{&parse.SyntaxError{Expected: []string{}, Messages: []string{"problem"}}, nil}
-	copy := document.CopySnapshotError(&core.Parser{}, original).(parse.SyntaxErrors)
+	original := core.SyntaxErrors{&core.SyntaxError{Expected: []string{}, Messages: []string{"problem"}}, nil}
+	copy := document.CopySnapshotError(&ecore.Parser{}, original).(core.SyntaxErrors)
 	original[0].Messages[0] = "changed"
 	original[0] = nil
 	if copy[0].Messages[0] != "problem" || copy[0].Expected == nil || copy[1] != nil {
@@ -127,7 +127,7 @@ rule item = [a-zé]`)
 			t.Fatal(err)
 		}
 		failed, err := d.SnapshotWith(o)
-		var syntax *parse.SyntaxError
+		var syntax *core.SyntaxError
 		if failed == nil || failed.Root().Valid() || !errors.As(err, &syntax) || failed.Text() != "!é" {
 			t.Fatal("failed revision", err)
 		}
@@ -137,7 +137,7 @@ rule item = [a-zé]`)
 		if failed.Error().Error() != before {
 			t.Fatal("returned error alias")
 		}
-		copy := failed.Error().(*parse.SyntaxError)
+		copy := failed.Error().(*core.SyntaxError)
 		copy.Expected[0] = "again"
 		copy.Line = 999
 		if failed.Error().Error() != before {
@@ -147,7 +147,7 @@ rule item = [a-zé]`)
 }
 
 func TestSnapshotFreezeCancellationAndContextPanic(t *testing.T) {
-	if !core.BudgetControlsEnabled {
+	if !ecore.BudgetControlsEnabled {
 		t.Skip("budget controls reference")
 	}
 	prog := mustCompile(t, `rule main = .* $$`)
@@ -212,7 +212,7 @@ rule x = "(" x ")" / "a"`, "((a))", 1, false},
 				t.Fatal("snapshot error outcome", s, err)
 			}
 			if fixture.recovered {
-				var received parse.SyntaxErrors
+				var received core.SyntaxErrors
 				if !errors.As(err, &received) || !s.Root().Valid() || len(received) == 0 {
 					t.Fatal("recovered outcome", err)
 				}
@@ -223,7 +223,7 @@ rule x = "(" x ")" / "a"`, "((a))", 1, false},
 				if s.Error().Error() != before {
 					t.Fatal("returned recovered alias")
 				}
-				copy := s.Error().(parse.SyntaxErrors)
+				copy := s.Error().(core.SyntaxErrors)
 				copy[0].Pos = 888
 				copy[0].Messages = []string{"other"}
 				if s.Error().Error() != before {

@@ -1,7 +1,7 @@
 package core
 
 import (
-	"zeroparse.dev/zp/runtime/parse"
+	"zeroparse.dev/zp/core"
 )
 
 // Tracing reports every rule call of a parse to a function (ParseOptions.Trace). It is built
@@ -77,7 +77,7 @@ type TraceEvent struct {
 	exp []ExpID
 	// rec is the errors of a bounded stream's tail, and recs, otherwise, the entries of the record of
 	// recovered errors that the call left, which Recovered lists.
-	rec  []*parse.SyntaxError
+	rec  []*core.SyntaxError
 	recs []RecEntry
 }
 
@@ -109,7 +109,7 @@ func (e TraceEvent) Text() string {
 // and what was expected there, as a parse that failed there would report it. It is nil when the
 // call recorded no expectation (inside a lookahead, or when nothing failed). A call that matched
 // can have one too: the input after its match was tried and rejected.
-func (e TraceEvent) Failure() *parse.SyntaxError {
+func (e TraceEvent) Failure() *core.SyntaxError {
 	if e.p == nil || len(e.exp) == 0 {
 		return nil
 	}
@@ -120,7 +120,7 @@ func (e TraceEvent) Failure() *parse.SyntaxError {
 // recovered from during the call, in nested calls too, or taken from the memo with the call's
 // result. The expectations of a recovered error are not part of Failure: recovering removes them
 // from the record of the call that contains the #recover.
-func (e TraceEvent) Recovered() []*parse.SyntaxError {
+func (e TraceEvent) Recovered() []*core.SyntaxError {
 	if e.recs != nil {
 		return appendRecErrors(nil, e.recs)
 	}
@@ -193,7 +193,7 @@ func (p *Parser) SetTrace(fn func(TraceEvent)) {
 }
 
 // tracedCall reports a call of r, runs it with call, and reports its result.
-func (p *Parser) tracedCall(r *Rule, min int) (*parse.Node, bool) {
+func (p *Parser) tracedCall(r *Rule, min int) (*core.Node, bool) {
 	p.TraceEnter(r, min)
 	p.Tr.direct = true
 	v, ok := p.Call(r, min)

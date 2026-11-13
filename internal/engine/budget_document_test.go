@@ -7,13 +7,13 @@ import (
 	"fmt"
 	"testing"
 
-	"zeroparse.dev/zp/runtime/parse"
+	"zeroparse.dev/zp/core"
 )
 
 func budgetDocumentVariants(t *testing.T, run func(*testing.T, ParseOptions)) {
 	t.Helper()
 	for _, b := range []Backend{Closure, Bytecode, BytecodeIterative} {
-		for _, u := range []parse.PositionUnit{parse.CodePoints, parse.Bytes} {
+		for _, u := range []core.PositionUnit{core.CodePoints, core.Bytes} {
 			t.Run(fmt.Sprintf("%s/%s", b, u), func(t *testing.T) { run(t, ParseOptions{Backend: b, Unit: u}) })
 		}
 	}

@@ -4,10 +4,10 @@ import (
 	"strings"
 	"testing"
 
+	"zeroparse.dev/zp/core"
 	"zeroparse.dev/zp/internal/bytecode"
 	"zeroparse.dev/zp/internal/compile"
 	"zeroparse.dev/zp/internal/gentest"
-	"zeroparse.dev/zp/runtime/parse"
 )
 
 // compileMessage compiles src and returns the error message, or "" if it compiles.
@@ -44,7 +44,7 @@ rule other R = {n := n + 1} "b" => R{N: n, S: s, B: b, M: m, Z: z}
 	prog := mustCompile(t, src)
 	const want = `R{B: false, M: -3, N: 7, S: "init", Z: 0}`
 	for _, backend := range []Backend{Closure, Bytecode, BytecodeIterative} {
-		for _, unit := range []parse.PositionUnit{parse.CodePoints, parse.Bytes} {
+		for _, unit := range []core.PositionUnit{core.CodePoints, core.Bytes} {
 			opts := ParseOptions{Backend: backend, Unit: unit}
 			n, err := prog.ParseWith("main", "a", opts)
 			if err != nil || n.String() != want {
@@ -78,7 +78,7 @@ rule item E = {n := n + 1} "a" => E{N: n}
 `)
 	for _, backend := range []Backend{Closure, Bytecode, BytecodeIterative} {
 		var got []string
-		err := streamed.ParseStreamWith("main", strings.NewReader("aaa"), func(n *parse.Node) error {
+		err := streamed.ParseStreamWith("main", strings.NewReader("aaa"), func(n *core.Node) error {
 			got = append(got, n.String())
 			return nil
 		}, ParseOptions{Backend: backend})

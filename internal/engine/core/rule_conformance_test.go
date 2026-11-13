@@ -7,13 +7,13 @@ import (
 	"strings"
 	"testing"
 
+	"zeroparse.dev/zp/core"
 	"zeroparse.dev/zp/internal/compile"
 	"zeroparse.dev/zp/internal/ir/exec"
 	"zeroparse.dev/zp/internal/ir/exec/conform"
 	"zeroparse.dev/zp/internal/ir/exec/ops"
 	"zeroparse.dev/zp/internal/ir/exec/ref"
 	"zeroparse.dev/zp/internal/value"
-	"zeroparse.dev/zp/runtime/parse"
 )
 
 // The engine's operations of the rules under conformance: every operation runs through its binding in
@@ -66,7 +66,7 @@ type meteredRule struct{ *ruleMachine }
 func (m meteredRule) Used() uint64 { return m.p.Control.Used }
 
 // scriptRules gives the rules of cfg.RuleVars the properties of cfg.RuleSpecs, and bodies that run eval.
-func scriptRules(rules []*Rule, cfg ref.Config, eval func(index int64, p *Parser, min int) (*parse.Node, bool)) {
+func scriptRules(rules []*Rule, cfg ref.Config, eval func(index int64, p *Parser, min int) (*core.Node, bool)) {
 	for i, r := range rules {
 		var s ref.RuleSpec
 		if i < len(cfg.RuleSpecs) {
@@ -83,19 +83,19 @@ func scriptRules(rules []*Rule, cfg ref.Config, eval func(index int64, p *Parser
 		}
 		// Every other rule's value is the tuple of the body's one element, as a sequence's is, so that
 		// the suite also holds the shaping of a value to the cost of the call.
-		r.Value = func(p *Parser, v *parse.Node, start int) *parse.Node { return v }
+		r.Value = func(p *Parser, v *core.Node, start int) *core.Node { return v }
 		if i%2 == 1 {
-			r.Value = func(p *Parser, v *parse.Node, start int) *parse.Node {
+			r.Value = func(p *Parser, v *core.Node, start int) *core.Node {
 				return ShapeTuple(p, compile.Shaper{K: 1}, v, start)
 			}
 		}
 		index := int64(i)
-		r.Body = func(p *Parser, min int) (*parse.Node, bool) { return eval(index, p, min) }
+		r.Body = func(p *Parser, min int) (*core.Node, bool) { return eval(index, p, min) }
 	}
 }
 
 // evaluate runs the next evaluation of the script of the rule with the index on the engine.
-func (m *ruleMachine) evaluate(index int64, p *Parser, level int) (*parse.Node, bool) {
+func (m *ruleMachine) evaluate(index int64, p *Parser, level int) (*core.Node, bool) {
 	var e ref.Eval
 	if s := m.spec(index); len(s.Body) > 0 {
 		e = s.Body[min(m.evals[index], int64(len(s.Body)-1))]
@@ -114,7 +114,7 @@ func (m *ruleMachine) evaluate(index int64, p *Parser, level int) (*parse.Node, 
 		c := p.Control
 		p.Control = nil
 		for _, t := range e.Missing {
-			err := m.Err(t.Err).(*parse.SyntaxError)
+			err := m.Err(t.Err).(*core.SyntaxError)
 			if p.InsertMissing(MissingTokenEvent{MissingTokenSite{int(t.Site), int(t.Pos)}, err}) {
 				p.PushRecovered(err)
 			}
@@ -159,7 +159,7 @@ func (m *ruleMachine) Call(o *exec.Op, args []any) (res []any) {
 	defer interrupt()
 	p := m.p
 	rule := func() *Rule { return args[0].(*Rule) }
-	invoke := func(f func(r *Rule, min int) (*parse.Node, bool)) []any {
+	invoke := func(f func(r *Rule, min int) (*core.Node, bool)) []any {
 		p.Pos = int(m.regs[ops.Pos].(int64))
 		defer func() { m.regs[ops.Pos] = int64(p.Pos) }()
 		v, ok := f(rule(), int(args[1].(int64)))
@@ -357,7 +357,7 @@ func TestEngineRuleChargesArePinned(t *testing.T) {
 	if !BudgetControlsEnabled {
 		t.Skip("the variants break a charge, and the reference build charges nothing")
 	}
-	invoke := func(m *ruleMachine, args []any, f func(r *Rule, min int) (*parse.Node, bool)) (*parse.Node, bool) {
+	invoke := func(m *ruleMachine, args []any, f func(r *Rule, min int) (*core.Node, bool)) (*core.Node, bool) {
 		p := m.p
 		p.Pos = int(m.regs[ops.Pos].(int64))
 		defer func() { m.regs[ops.Pos] = int64(p.Pos) }()

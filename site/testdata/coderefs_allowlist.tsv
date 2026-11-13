@@ -1,6 +1,5 @@
 # Violations of the Code References rule that are still to be fixed (see docs/documentation-style.md).
 # The list only shrinks. Columns: file, category, token, number of references.
-docs/design/architecture.md	gofile	zp.go	1
 docs/design/cost-analysis.md	gofile	internal/compile/run_sites.go	1
 docs/design/intermediate-representations.md	qualified	core.Verify	1
 docs/design/records/001-grammar-json.md	gofile	grammar/ast.go	1
@@ -14,7 +13,6 @@ docs/design/records/007-streaming-and-incremental-parsing.md	gofile	resume.go	1
 docs/design/records/007-streaming-and-incremental-parsing.md	unexport	moveValue	1
 docs/design/records/008-code-generation.md	gofile	internal/gen/gengo/gengo_test.go	1
 docs/design/records/009-compiled-grammar-format.md	gofile	internal/engine/compiled_test.go	1
-docs/design/records/010-bytecode-vm.md	qualified	engine.Compile	1
 docs/design/records/010-bytecode-vm.md	qualified	engine.Program	1
 docs/design/records/012-typed-values.md	gofile	internal/gen/gengo/flowrule.go	1
 docs/design/records/012-typed-values.md	gofile	runtime/runtime.go	1
@@ -37,7 +35,6 @@ docs/design/records/016-web-site-and-playground.md	gofile	site/site_test.go	1
 docs/design/records/017-language-server.md	gofile	internal/lsp/analysis.go	1
 docs/design/records/017-language-server.md	gofile	internal/lsp/jsonrpc.go	1
 docs/design/records/017-language-server.md	gofile	internal/lsp/text.go	1
-docs/design/records/017-language-server.md	qualified	engine.Compile	1
 docs/design/records/017-language-server.md	qualified	syntax.Error	1
 docs/design/records/017-language-server.md	qualified	syntax.ParsePartial	1
 docs/design/records/017-language-server.md	qualified	syntax.Tokenize	1
@@ -73,12 +70,10 @@ docs/design/records/032-versioned-document-snapshots.md	codelink	internal/engine
 docs/design/records/032-versioned-document-snapshots.md	codelink	internal/engine/core/runtime.go	1
 docs/design/records/032-versioned-document-snapshots.md	codelink	internal/engine/document/document.go	1
 docs/design/records/032-versioned-document-snapshots.md	codelink	internal/engine/document/document_abort_test.go	1
-docs/design/records/032-versioned-document-snapshots.md	codelink	zp.go	1
 docs/design/records/032-versioned-document-snapshots.md	gofile	internal/engine/core/input.go	1
 docs/design/records/032-versioned-document-snapshots.md	gofile	internal/engine/core/runtime.go	1
 docs/design/records/032-versioned-document-snapshots.md	gofile	internal/engine/document/document.go	1
 docs/design/records/032-versioned-document-snapshots.md	gofile	internal/engine/document/document_abort_test.go	1
-docs/design/records/032-versioned-document-snapshots.md	gofile	zp.go	1
 docs/design/records/032-versioned-document-snapshots.md	unexport	moveResult	1
 docs/design/records/033-cancellable-parses-and-budgets.md	codelink	internal/engine/core/input.go	2
 docs/design/records/033-cancellable-parses-and-budgets.md	codelink	internal/engine/core/resume.go	1
@@ -88,7 +83,6 @@ docs/design/records/033-cancellable-parses-and-budgets.md	codelink	internal/engi
 docs/design/records/033-cancellable-parses-and-budgets.md	codelink	internal/engine/vm/vm.go	1
 docs/design/records/033-cancellable-parses-and-budgets.md	codelink	runtime/runtime.go	1
 docs/design/records/033-cancellable-parses-and-budgets.md	codelink	runtime/typed.go	1
-docs/design/records/033-cancellable-parses-and-budgets.md	codelink	zp.go	1
 docs/design/records/033-cancellable-parses-and-budgets.md	gofile	internal/engine/core/input.go	2
 docs/design/records/033-cancellable-parses-and-budgets.md	gofile	internal/engine/core/resume.go	1
 docs/design/records/033-cancellable-parses-and-budgets.md	gofile	internal/engine/document/document.go	1
@@ -97,22 +91,17 @@ docs/design/records/033-cancellable-parses-and-budgets.md	gofile	internal/engine
 docs/design/records/033-cancellable-parses-and-budgets.md	gofile	internal/engine/vm/vm.go	1
 docs/design/records/033-cancellable-parses-and-budgets.md	gofile	runtime/runtime.go	1
 docs/design/records/033-cancellable-parses-and-budgets.md	gofile	runtime/typed.go	1
-docs/design/records/033-cancellable-parses-and-budgets.md	gofile	zp.go	1
 docs/design/records/033-cancellable-parses-and-budgets.md	unexport	recoverParse	1
 docs/design/records/035-incremental-cache-controls.md	codelink	internal/engine/core/memo.go	1
 docs/design/records/035-incremental-cache-controls.md	codelink	internal/engine/core/resume.go	1
 docs/design/records/035-incremental-cache-controls.md	codelink	internal/engine/document/document.go	1
-docs/design/records/035-incremental-cache-controls.md	codelink	zp.go	1
 docs/design/records/035-incremental-cache-controls.md	gofile	internal/engine/core/memo.go	1
 docs/design/records/035-incremental-cache-controls.md	gofile	internal/engine/core/resume.go	1
 docs/design/records/035-incremental-cache-controls.md	gofile	internal/engine/document/document.go	1
 docs/design/records/035-incremental-cache-controls.md	gofile	resume.go	1
-docs/design/records/035-incremental-cache-controls.md	gofile	zp.go	1
 docs/design/records/035-incremental-cache-controls.md	unexport	memoTable	1
 docs/design/records/036-stream-iteration-and-diagnostics.md	codelink	internal/engine/program_parse.go	1
-docs/design/records/036-stream-iteration-and-diagnostics.md	codelink	zp.go	1
 docs/design/records/036-stream-iteration-and-diagnostics.md	gofile	internal/engine/program_parse.go	1
-docs/design/records/036-stream-iteration-and-diagnostics.md	gofile	zp.go	1
 docs/design/records/037-replayable-edit-fuzzing.md	codelink	internal/engine/document/document.go	1
 docs/design/records/037-replayable-edit-fuzzing.md	codelink	sample/sample.go	1
 docs/design/records/037-replayable-edit-fuzzing.md	gofile	internal/engine/document/document.go	1
@@ -326,7 +315,6 @@ docs/design/records/066-limits-by-purpose.md	gofile	runtime.go	1
 docs/design/records/066-limits-by-purpose.md	gofile	runtime/budget.go	1
 docs/design/records/066-limits-by-purpose.md	gofile	runtime/runtime.go	1
 docs/design/records/066-limits-by-purpose.md	gofile	runtime/typed.go	1
-docs/design/records/066-limits-by-purpose.md	gofile	zp.go	1
 docs/design/records/066-limits-by-purpose.md	unexport	appendSpend	1
 docs/design/records/066-limits-by-purpose.md	unexport	chargeSlow	1
 docs/design/records/066-limits-by-purpose.md	unexport	chargeValueBytes	1

@@ -8,9 +8,9 @@ import (
 	"strings"
 	"testing"
 
+	"zeroparse.dev/zp/core"
 	. "zeroparse.dev/zp/internal/engine"
-	"zeroparse.dev/zp/internal/engine/core"
-	"zeroparse.dev/zp/runtime/parse"
+	ecore "zeroparse.dev/zp/internal/engine/core"
 )
 
 // TestDocumentLeftRecursionAbortedGrowth interrupts a Document parse while a
@@ -64,12 +64,12 @@ rule t = t "*" "a" / "a"`, "a*a+a+a*a*a"},
 						case "cancel":
 							cancel()
 						case "steps":
-							core.TraceParser(e).Control.Limits.Compute = core.TraceParser(e).Control.Used
+							ecore.TraceParser(e).Control.Limits.Compute = ecore.TraceParser(e).Control.Used
 						case "panic":
 							panic("interrupt growth")
 						}
 					}
-					var n *parse.Node
+					var n *core.Node
 					func() {
 						defer func() {
 							if x := recover(); x != nil && (cause != "panic" || x != "interrupt growth") {
@@ -87,7 +87,7 @@ rule t = t "*" "a" / "a"`, "a*a+a+a*a*a"},
 							t.Fatalf("node=%v err=%v", n, err)
 						}
 					case "steps":
-						if n != nil || !errors.Is(err, parse.ErrLimit) {
+						if n != nil || !errors.Is(err, core.ErrLimit) {
 							t.Fatalf("node=%v err=%v", n, err)
 						}
 					}

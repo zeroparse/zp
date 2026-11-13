@@ -4,11 +4,11 @@ import (
 	"context"
 	"testing"
 
+	"zeroparse.dev/zp/core"
+	"zeroparse.dev/zp/core/noderep"
 	"zeroparse.dev/zp/internal/compile"
-	"zeroparse.dev/zp/internal/engine/core"
+	ecore "zeroparse.dev/zp/internal/engine/core"
 	"zeroparse.dev/zp/internal/value"
-	"zeroparse.dev/zp/runtime/noderep"
-	"zeroparse.dev/zp/runtime/parse"
 )
 
 // catchFatal runs f and returns the error of the Fatal panic it raises, or nil.
@@ -18,7 +18,7 @@ func catchFatal(t *testing.T, f func()) error {
 	func() {
 		defer func() {
 			if v := recover(); v != nil {
-				fatal, ok := v.(core.Fatal)
+				fatal, ok := v.(ecore.Fatal)
 				if !ok {
 					t.Fatalf("panic = %T(%v), want fatal", v, v)
 				}
@@ -32,25 +32,25 @@ func catchFatal(t *testing.T, f func()) error {
 
 func catchStreamPanic(f func()) (val any) { defer func() { val = recover() }(); f(); return }
 
-func stateBudgetParser(lim parse.Limits) *core.Parser {
-	prog := &core.SharedProgram{}
-	core.InitSharedProgram(prog, &compile.Program{})
-	return &core.Parser{Prog: prog, Input: core.Input{Control: core.NewBudgetControl(nil, lim)}}
+func stateBudgetParser(lim core.Limits) *ecore.Parser {
+	prog := &ecore.SharedProgram{}
+	ecore.InitSharedProgram(prog, &compile.Program{})
+	return &ecore.Parser{Prog: prog, Input: ecore.Input{Control: ecore.NewBudgetControl(nil, lim)}}
 }
 
-func undoFixture(p *core.Parser) (*core.Frame, []*parse.Node) {
+func undoFixture(p *ecore.Parser) (*ecore.Frame, []*core.Node) {
 	old0 := value.Ptr(value.Data{Text: "old-zero", Fields: noderep.Fields{{Name: "keep", Value: "zero"}}})
 	first0 := value.Ptr(value.Data{Text: "first-zero"})
 	latest0 := value.Ptr(value.Data{Text: "latest-zero"})
 	old1 := value.Ptr(value.Data{Text: "old-one"})
 	last1 := value.Ptr(value.Data{Text: "last-one"})
-	f := &core.Frame{Vals: []*parse.Node{latest0, old1}}
-	p.Trail = []core.Undo{{F: f, Slot: 0, Old: old0}, {F: f, Slot: 0, Old: first0}, {F: f, Slot: 1, Old: old1}, {F: f, Slot: 1, Old: last1}}
-	return f, []*parse.Node{old0, first0, old1, last1, latest0}
+	f := &ecore.Frame{Vals: []*core.Node{latest0, old1}}
+	p.Trail = []ecore.Undo{{F: f, Slot: 0, Old: old0}, {F: f, Slot: 0, Old: first0}, {F: f, Slot: 1, Old: old1}, {F: f, Slot: 1, Old: last1}}
+	return f, []*core.Node{old0, first0, old1, last1, latest0}
 }
 
-func diagnosticParser(lim parse.Limits) *core.Parser {
-	return &core.Parser{Input: core.Input{Control: core.NewBudgetControl(nil, lim)}}
+func diagnosticParser(lim core.Limits) *ecore.Parser {
+	return &ecore.Parser{Input: ecore.Input{Control: ecore.NewBudgetControl(nil, lim)}}
 }
 
 type pollingContext struct {

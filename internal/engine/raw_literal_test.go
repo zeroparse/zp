@@ -6,11 +6,11 @@ import (
 	"strings"
 	"testing"
 
+	"zeroparse.dev/zp/core"
 	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/compile"
 	"zeroparse.dev/zp/internal/gentest"
 	"zeroparse.dev/zp/internal/value"
-	"zeroparse.dev/zp/runtime/parse"
 )
 
 func TestRawInvalidASTLiterals(t *testing.T) {
@@ -71,7 +71,7 @@ func TestRawInvalidASTLiterals(t *testing.T) {
 							wantClosureRefused(t, err)
 							continue
 						}
-						for _, unit := range []parse.PositionUnit{parse.CodePoints, parse.Bytes} {
+						for _, unit := range []core.PositionUnit{core.CodePoints, core.Bytes} {
 							for _, input := range []string{raw, string([]rune(raw)), raw + "x", string([]rune(raw)) + "x", raw + raw, string([]rune(raw)) + string([]rune(raw)), "é", "éx", "other", "", "\xffx", "\x80x"} {
 								opts := ParseOptions{Backend: backend, Unit: unit}
 								n, err := prog.ParseWith("main", input, servedBy(modes[name], opts))
@@ -93,7 +93,7 @@ func TestRawInvalidASTLiterals(t *testing.T) {
 								}
 								if err == nil {
 									// JSON replaces malformed strings, so compare raw match text too.
-									gotMatch, wantMatch := n.Field("T").(*parse.Node), wn.Field("T").(*parse.Node)
+									gotMatch, wantMatch := n.Field("T").(*core.Node), wn.Field("T").(*core.Node)
 									if value.D(gotMatch).Text != value.D(wantMatch).Text || value.D(gotMatch).Start != value.D(wantMatch).Start || value.D(gotMatch).End != value.D(wantMatch).End {
 										t.Errorf("%s %s/%s input=%x: match %x [%d,%d), want %x [%d,%d)", name, backend, unit, input, value.D(gotMatch).Text, value.D(gotMatch).Start, value.D(gotMatch).End, value.D(wantMatch).Text, value.D(wantMatch).Start, value.D(wantMatch).End)
 									}

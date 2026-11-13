@@ -1,4 +1,4 @@
-// Package value gives the engine access to the representation of parse.Node: the parsers, the
+// Package value gives the engine access to the representation of core.Node: the parsers, the
 // Document, the compiler and the structural query build and read nodes through D. It also holds
 // the node helpers that only the engine needs.
 package value
@@ -8,22 +8,22 @@ import (
 	"strings"
 	"unsafe"
 
-	"zeroparse.dev/zp/runtime/noderep"
-	"zeroparse.dev/zp/runtime/parse"
+	"zeroparse.dev/zp/core"
+	"zeroparse.dev/zp/core/noderep"
 )
 
-// Data is the representation of a parse.Node.
-type Data = noderep.Data[parse.Node]
+// Data is the representation of a core.Node.
+type Data = noderep.Data[core.Node]
 
-// D returns the representation of n. A parse.Node holds its representation as its only field.
-func D(n *parse.Node) *Data { return (*Data)(unsafe.Pointer(n)) }
+// D returns the representation of n. A core.Node holds its representation as its only field.
+func D(n *core.Node) *Data { return (*Data)(unsafe.Pointer(n)) }
 
 // Of returns the node with the representation d.
-func Of(d Data) parse.Node { return *(*parse.Node)(unsafe.Pointer(&d)) }
+func Of(d Data) core.Node { return *(*core.Node)(unsafe.Pointer(&d)) }
 
 // Ptr returns a new node with the representation d.
-func Ptr(d Data) *parse.Node {
-	n := new(parse.Node)
+func Ptr(d Data) *core.Node {
+	n := new(core.Node)
 	*D(n) = d
 	return n
 }
@@ -31,7 +31,7 @@ func Ptr(d Data) *parse.Node {
 // IsNode reports whether n is a node of the value model (a string node, a tuple or list node, a
 // node of a named node type, or an error value) rather than a struct, a box or a list or tuple
 // value.
-func IsNode(n *parse.Node) bool {
+func IsNode(n *core.Node) bool {
 	if k := D(n).Kind; k != nil && k.Base >= 0 && k.Base <= noderep.BaseMissing {
 		return true
 	}
@@ -40,7 +40,7 @@ func IsNode(n *parse.Node) bool {
 
 // UnboxNode returns the value that the carrier n stands for: the box's value for a box, nil for
 // nil, and n otherwise.
-func UnboxNode(n *parse.Node) any {
+func UnboxNode(n *core.Node) any {
 	if n == nil {
 		return nil
 	}
@@ -52,7 +52,7 @@ func UnboxNode(n *parse.Node) any {
 
 // UnboxValue is UnboxNode for a value that may be a carrier.
 func UnboxValue(v any) any {
-	if n, ok := v.(*parse.Node); ok {
+	if n, ok := v.(*core.Node); ok {
 		return UnboxNode(n)
 	}
 	return v
@@ -74,8 +74,8 @@ func NewNodeTypeKinds(typ string) *NodeTypeKinds {
 // Convert returns the node of the named node type of ks that the value v converts to: a copy of
 // v with the same range and content, or v itself if it already has the type. It reports false if
 // v is not a string, tuple or list node.
-func (ks *NodeTypeKinds) Convert(v any) (*parse.Node, bool) {
-	n, ok := v.(*parse.Node)
+func (ks *NodeTypeKinds) Convert(v any) (*core.Node, bool) {
+	n, ok := v.(*core.Node)
 	if !ok || n == nil || !HasBase(n) {
 		return nil, false
 	}
@@ -84,14 +84,14 @@ func (ks *NodeTypeKinds) Convert(v any) (*parse.Node, bool) {
 
 // HasBase reports whether n is a string, tuple or list node, of a named node type or not: a node that
 // a conversion converts.
-func HasBase(n *parse.Node) bool {
+func HasBase(n *core.Node) bool {
 	k := D(n).Kind
 	return k != nil && k.Base >= 0 && k.Base <= noderep.BaseList
 }
 
 // Retype returns n, a string, tuple or list node (HasBase), as a node of the named node type of ks: a
 // copy of n with the same range and content, or n itself if it already has the type.
-func (ks *NodeTypeKinds) Retype(n *parse.Node) *parse.Node {
+func (ks *NodeTypeKinds) Retype(n *core.Node) *core.Node {
 	d := D(n)
 	k := ks[d.Kind.Base]
 	if d.Kind == k {
@@ -110,7 +110,7 @@ func (ks *NodeTypeKinds) Retype(n *parse.Node) *parse.Node {
 
 // ConvertOwned gives n, a node that nothing else holds, the named node type of ks in place. It
 // reports false if n is not a string, tuple or list node.
-func (ks *NodeTypeKinds) ConvertOwned(n *parse.Node) bool {
+func (ks *NodeTypeKinds) ConvertOwned(n *core.Node) bool {
 	if n == nil || !HasBase(n) {
 		return false
 	}
@@ -119,33 +119,33 @@ func (ks *NodeTypeKinds) ConvertOwned(n *parse.Node) bool {
 }
 
 // FieldOf returns the value of the field name of n.
-func FieldOf(n *parse.Node, name string) (any, bool) {
+func FieldOf(n *core.Node, name string) (any, bool) {
 	return D(n).Fields.Get(name)
 }
 
 // ShapeOf returns what n stands for in the value model.
-func ShapeOf(n *parse.Node) noderep.Shape { return noderep.ShapeOfKind(D(n).Kind, D(n).Terminal) }
+func ShapeOf(n *core.Node) noderep.Shape { return noderep.ShapeOfKind(D(n).Kind, D(n).Terminal) }
 
-// KindOfShape returns the parse.NodeKind of a node that has the shape. It agrees with
-// parse.Node.Kind, which TestKindOfShape checks.
-func KindOfShape(shape noderep.Shape) parse.NodeKind {
+// KindOfShape returns the core.NodeKind of a node that has the shape. It agrees with
+// core.Node.Kind, which TestKindOfShape checks.
+func KindOfShape(shape noderep.Shape) core.NodeKind {
 	switch shape {
 	case noderep.ShapeString:
-		return parse.KindString
+		return core.KindString
 	case noderep.ShapeTuple:
-		return parse.KindTuple
+		return core.KindTuple
 	case noderep.ShapeList:
-		return parse.KindList
+		return core.KindList
 	case noderep.ShapeError:
-		return parse.KindError
+		return core.KindError
 	case noderep.ShapeBox:
-		return parse.KindValue
+		return core.KindValue
 	case noderep.ShapeTupleValue:
-		return parse.KindTupleValue
+		return core.KindTupleValue
 	case noderep.ShapeListValue:
-		return parse.KindListValue
+		return core.KindListValue
 	}
-	return parse.KindStruct
+	return core.KindStruct
 }
 
 // ValueTypeName names the type of a value of the given shape in messages, in the terms of the
@@ -180,6 +180,6 @@ func tupleTerm(n int) string {
 
 // CaptureLocations returns the locations of the captures of the tuple node n, in name order (see
 // noderep.CaptureLocations).
-func CaptureLocations(n *parse.Node) []noderep.CaptureLocation {
+func CaptureLocations(n *core.Node) []noderep.CaptureLocation {
 	return noderep.CaptureLocations(D(n), D)
 }

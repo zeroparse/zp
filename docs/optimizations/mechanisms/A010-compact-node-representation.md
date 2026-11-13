@@ -36,7 +36,7 @@ Evidence records: [003](../003-node-fields-as-a-slice-54a5774.md),
 [063](../063-a-smaller-node.md),
 [064](../064-a-smaller-node-in-generated-parsers.md).
 
-Source owners: the `runtime/parse` package (nodes), the `runtime/noderep` package (their representation and kinds),
+Source owners: the `core` package (nodes), the `core/noderep` package (their representation and kinds),
 [`generated Node and Fields`](../../../runtime/runtime.go).
 
 The [comparison policy](../../design/records/024-optimization-mechanism-controls.md)

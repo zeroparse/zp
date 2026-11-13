@@ -10,6 +10,7 @@ import (
 	"strings"
 	"testing"
 
+	"zeroparse.dev/zp/core"
 	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/compile"
 	"zeroparse.dev/zp/internal/compiletest"
@@ -17,12 +18,11 @@ import (
 	"zeroparse.dev/zp/internal/gentest"
 	ischema "zeroparse.dev/zp/internal/schema"
 	"zeroparse.dev/zp/internal/syntax"
-	"zeroparse.dev/zp/runtime/parse"
 	"zeroparse.dev/zp/schema"
 )
 
 // UseEngine makes gentest compile the grammars that tests generate parsers for with the engine,
-// and compare the generated parsers with it, as package zp does. Call it from an init function of
+// and compare the generated parsers with it, as package engine does. Call it from an init function of
 // the test package.
 func UseEngine() {
 	gentest.Compile = CompileForGenerator
@@ -126,10 +126,10 @@ func CompileMessage(t testing.TB, src string, opts ...compile.Options) string {
 func Reference(t *testing.T, src string, opts compile.Options) gentest.ReferenceParse {
 	t.Helper()
 	prog := CompileBare(t, src, opts)
-	return func(input string, bytes, recognize bool) (*parse.Node, error) {
-		unit := parse.CodePoints
+	return func(input string, bytes, recognize bool) (*core.Node, error) {
+		unit := core.CodePoints
 		if bytes {
-			unit = parse.Bytes
+			unit = core.Bytes
 		}
 		return prog.ParseWith("main", input, engine.ParseOptions{Unit: unit, Recognize: recognize, Expectations: true})
 	}

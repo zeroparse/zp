@@ -10,11 +10,11 @@ import (
 	"testing"
 	"testing/iotest"
 
+	"zeroparse.dev/zp/core"
 	"zeroparse.dev/zp/internal/bytecode"
 	"zeroparse.dev/zp/internal/compile"
-	"zeroparse.dev/zp/internal/engine/core"
+	ecore "zeroparse.dev/zp/internal/engine/core"
 	"zeroparse.dev/zp/internal/gentest"
-	"zeroparse.dev/zp/runtime/parse"
 )
 
 // scanSiteGrammars are the grammars with scan sites of the tests of all targets.
@@ -41,9 +41,9 @@ func scanSitesMatchWithoutRecords(t *testing.T) {
 		}
 		plain := compileWithoutScanSites(t, g.Src)
 		inputs := scanSiteInputs(g.Alphabet, rng)
-		hits := core.ScanHits.Load()
+		hits := ecore.ScanHits.Load()
 		for _, b := range []Backend{Closure, Bytecode, BytecodeIterative} {
-			hitsB := core.ScanHits.Load()
+			hitsB := ecore.ScanHits.Load()
 			if diffs := skipRunMismatches(t, prog, inputs, b); len(diffs) > 0 {
 				t.Errorf("%s, %s: %d parses differ without records, first:\n%s", g.Name, b, len(diffs), diffs[0])
 			}
@@ -57,11 +57,11 @@ func scanSitesMatchWithoutRecords(t *testing.T) {
 					}
 				}
 			}
-			if core.ScanHotSpan <= 2 && core.ScanHits.Load() == hitsB {
+			if ecore.ScanHotSpan <= 2 && ecore.ScanHits.Load() == hitsB {
 				t.Errorf("%s, %s: no call was answered from a record", g.Name, b)
 			}
 		}
-		if core.ScanHotSpan <= 2 && core.ScanHits.Load() == hits {
+		if ecore.ScanHotSpan <= 2 && ecore.ScanHits.Load() == hits {
 			t.Errorf("%s: no call was answered from a record", g.Name)
 		}
 	}
@@ -97,18 +97,18 @@ func TestScanSitesAreMarked(t *testing.T) {
 // TestScanSitesReuseRecords checks that a parse that restarts a scan at one position in each level
 // of a recursion fits a budget that is linear in the input with records, and exceeds it without them.
 func TestScanSitesReuseRecords(t *testing.T) {
-	if !core.BudgetControlsEnabled {
+	if !ecore.BudgetControlsEnabled {
 		t.Skip("budget controls are unavailable in the reference build")
 	}
-	defer func() { core.SkipRecordsOff = false }()
+	defer func() { ecore.SkipRecordsOff = false }()
 	prog := mustCompile(t, scanSiteGrammars[2].Src)
 	in := strings.Repeat("(", 400) + strings.Repeat(" ", 400)
-	o := ParseOptions{Backend: Closure, Limits: parse.Limits{Compute: 200_000}}
-	core.SkipRecordsOff = false
+	o := ParseOptions{Backend: Closure, Limits: core.Limits{Compute: 200_000}}
+	ecore.SkipRecordsOff = false
 	if _, err := prog.ParseWith("main", in, o); err != nil {
 		t.Errorf("the parse with records: %v", err)
 	}
-	core.SkipRecordsOff = true
+	ecore.SkipRecordsOff = true
 	if _, err := prog.ParseWith("main", in, o); err == nil {
 		t.Errorf("the parse without records fits the budget")
 	}
@@ -117,9 +117,9 @@ func TestScanSitesReuseRecords(t *testing.T) {
 // TestScanSitesInDocuments checks that a Document parse after edits inside and next to a run that a
 // record covers gives the tree and errors of a fresh parse of the text.
 func TestScanSitesInDocuments(t *testing.T) {
-	defer func(n int) { core.ScanHotSpan = n }(core.ScanHotSpan)
-	core.ScanHotSpan = 2
-	hits := core.ScanHits.Load()
+	defer func(n int) { ecore.ScanHotSpan = n }(ecore.ScanHotSpan)
+	ecore.ScanHotSpan = 2
+	hits := ecore.ScanHits.Load()
 	for _, g := range scanSiteGrammars {
 		for _, b := range []Backend{Closure, Bytecode, BytecodeIterative} {
 			if d := scanDocumentMismatch(t, g.Src, g.Alphabet, b); d != "" {
@@ -127,7 +127,7 @@ func TestScanSitesInDocuments(t *testing.T) {
 			}
 		}
 	}
-	if core.ScanHits.Load() == hits {
+	if ecore.ScanHits.Load() == hits {
 		t.Errorf("no call was answered from a record")
 	}
 }
@@ -183,18 +183,18 @@ func scanDocumentMismatch(t *testing.T, src, alphabet string, b Backend) string 
 // record without its end only costs the walk again, and one without its examined range examines the
 // same input. Neither changes a result, and the budget is where they show.
 func TestScanSitesNegativeControls(t *testing.T) {
-	if !core.BudgetControlsEnabled {
+	if !ecore.BudgetControlsEnabled {
 		t.Skip("budget controls are unavailable in the reference build")
 	}
-	defer func() { core.SkipRecordMutation = 0 }()
+	defer func() { ecore.SkipRecordMutation = 0 }()
 	prog := mustCompile(t, scanSiteGrammars[2].Src)
 	in := strings.Repeat("(", 400) + strings.Repeat(" ", 400)
-	o := ParseOptions{Backend: Closure, Limits: parse.Limits{Compute: 200_000}}
+	o := ParseOptions{Backend: Closure, Limits: core.Limits{Compute: 200_000}}
 	for _, m := range []struct {
 		name string
 		mut  int
-	}{{"end", core.SkipKeepPos}, {"making", core.SkipNeverRecord}} {
-		core.SkipRecordMutation = m.mut
+	}{{"end", ecore.SkipKeepPos}, {"making", ecore.SkipNeverRecord}} {
+		ecore.SkipRecordMutation = m.mut
 		if _, err := prog.ParseWith("main", in, o); err == nil {
 			t.Errorf("a record without its %s goes unseen", m.name)
 		}
@@ -204,8 +204,8 @@ func TestScanSitesNegativeControls(t *testing.T) {
 // TestScanSitesInStreams checks that a stream that delivers a run of a scan site in pieces, so
 // that a call ends where the available input does, emits what a parse of the whole text builds.
 func TestScanSitesInStreams(t *testing.T) {
-	defer func(n int) { core.ScanHotSpan = n }(core.ScanHotSpan)
-	core.ScanHotSpan = 2
+	defer func(n int) { ecore.ScanHotSpan = n }(ecore.ScanHotSpan)
+	ecore.ScanHotSpan = 2
 	prog := mustCompile(t, `rule main = row* #stream $$
 rule row = ws "x" ws ";" / ws "x" ws "!" / ws "y" ws ";"
 rule ws = [ ]*`)
@@ -220,9 +220,9 @@ rule ws = [ ]*`)
 // record. On the bytecode backends the walks of ws build lists, which the valued ITER serves.
 func scanSitesInStreams(t *testing.T, prog *Program, b Backend) {
 	t.Helper()
-	hits := core.ScanHits.Load()
+	hits := ecore.ScanHits.Load()
 	defer func() {
-		if core.ScanHits.Load() == hits {
+		if ecore.ScanHits.Load() == hits {
 			t.Errorf("%s: no stream parse was answered from a record", b)
 		}
 	}()
@@ -238,12 +238,12 @@ func scanSitesInStreams(t *testing.T, prog *Program, b Backend) {
 		text := sb.String()
 		var want []string
 		o := ParseOptions{Backend: b, Expectations: true}
-		core.SkipRecordsOff = true
-		werr := prog.ParseStreamWith("main", strings.NewReader(text), func(n *parse.Node) error { want = append(want, skipDump(t, n, nil)); return nil }, o)
-		core.SkipRecordsOff = false
+		ecore.SkipRecordsOff = true
+		werr := prog.ParseStreamWith("main", strings.NewReader(text), func(n *core.Node) error { want = append(want, skipDump(t, n, nil)); return nil }, o)
+		ecore.SkipRecordsOff = false
 		for _, mk := range []func(io.Reader) io.Reader{iotest.OneByteReader, iotest.HalfReader, iotest.DataErrReader} {
 			var got []string
-			err := prog.ParseStreamWith("main", mk(strings.NewReader(text)), func(n *parse.Node) error { got = append(got, skipDump(t, n, nil)); return nil }, o)
+			err := prog.ParseStreamWith("main", mk(strings.NewReader(text)), func(n *core.Node) error { got = append(got, skipDump(t, n, nil)); return nil }, o)
 			if (err == nil) != (werr == nil) || strings.Join(got, "|") != strings.Join(want, "|") {
 				t.Fatalf("%s: text %q: got %v (%v), want %v (%v)", b, text, got, err, want, werr)
 			}
@@ -255,9 +255,9 @@ func scanSitesInStreams(t *testing.T, prog *Program, b Backend) {
 func scanSteps(t *testing.T, prog *Program, in string, b Backend) uint64 {
 	t.Helper()
 	var steps uint64
-	o := ParseOptions{Backend: b, Limits: parse.Limits{Compute: 1 << 40}, Trace: func(e TraceEvent) {
+	o := ParseOptions{Backend: b, Limits: core.Limits{Compute: 1 << 40}, Trace: func(e TraceEvent) {
 		if e.Kind == TraceExit && e.Rule == "main" {
-			steps = core.TraceParser(e).Control.Used
+			steps = ecore.TraceParser(e).Control.Used
 		}
 	}}
 	prog.ParseWith("main", in, o)
@@ -270,13 +270,13 @@ func scanSteps(t *testing.T, prog *Program, in string, b Backend) uint64 {
 // record), which is
 // the number of its steps divided by the span at most. Reuse only lowers the charge.
 func TestScanSitesChargeBounds(t *testing.T) {
-	if !core.BudgetControlsEnabled {
+	if !ecore.BudgetControlsEnabled {
 		t.Skip("budget controls are unavailable in the reference build")
 	}
 	for _, span := range []int{64, 1} {
 		func() {
-			defer func(n int) { core.ScanHotSpan = n }(core.ScanHotSpan)
-			core.ScanHotSpan = span
+			defer func(n int) { ecore.ScanHotSpan = n }(ecore.ScanHotSpan)
+			ecore.ScanHotSpan = span
 			rng := rand.New(rand.NewSource(137))
 			for _, g := range scanSiteGrammars {
 				prog := mustCompile(t, g.Src)
@@ -385,7 +385,7 @@ func compileWithout(t *testing.T, src string, flag *bool) *Program {
 	}
 	for _, p := range []*Program{prog, rec} {
 		for _, b := range []Backend{Closure, Bytecode, BytecodeIterative} {
-			p.ParseWith("main", "", ParseOptions{Backend: b, Limits: parse.Limits{Compute: 1 << 40}})
+			p.ParseWith("main", "", ParseOptions{Backend: b, Limits: core.Limits{Compute: 1 << 40}})
 		}
 	}
 	return prog
@@ -399,8 +399,8 @@ rule ws = [ ]*`
 // shorter than that of run sites are answered from records on every backend: the hot span of scan
 // sites is its own (core.ScanHotSpan), not that of run sites.
 func TestScanSitesHitAtTheirOwnHotSpan(t *testing.T) {
-	if core.ScanHotSpan >= core.RunHotSpan {
-		t.Fatalf("the hot span of scan sites (%d) is not below that of run sites (%d)", core.ScanHotSpan, core.RunHotSpan)
+	if ecore.ScanHotSpan >= ecore.RunHotSpan {
+		t.Fatalf("the hot span of scan sites (%d) is not below that of run sites (%d)", ecore.ScanHotSpan, ecore.RunHotSpan)
 	}
 	prog := mustCompile(t, scanSpanProbe)
 	rec, err := prog.Recognizer()
@@ -410,13 +410,13 @@ func TestScanSitesHitAtTheirOwnHotSpan(t *testing.T) {
 	// Parsing walks the scan sites that build values and recognition those that do not.
 	for name, p := range map[string]*Program{"parse": prog, "recognize": rec} {
 		for _, b := range []Backend{Closure, Bytecode, BytecodeIterative} {
-			for _, n := range []int{core.ScanHotSpan + 4, 40, core.RunHotSpan - 1} {
+			for _, n := range []int{ecore.ScanHotSpan + 4, 40, ecore.RunHotSpan - 1} {
 				in := strings.Repeat(" ", n) + "e"
-				before := core.ScanHits.Load()
+				before := ecore.ScanHits.Load()
 				if _, err := p.ParseWith("main", in, ParseOptions{Backend: b}); err != nil {
 					t.Fatalf("%s, %s: run of %d: %v", name, b, n, err)
 				}
-				if core.ScanHits.Load() == before {
+				if ecore.ScanHits.Load() == before {
 					t.Errorf("%s, %s: a run of %d spaces was not answered from a record", name, b, n)
 				}
 			}
@@ -429,10 +429,10 @@ func TestScanSitesHitAtTheirOwnHotSpan(t *testing.T) {
 // other state.
 func TestScanSitesInConcurrentParses(t *testing.T) {
 	prog := mustCompile(t, scanSpanProbe)
-	lim := parse.Limits{Compute: 1 << 40}
-	if !core.BudgetControlsEnabled {
+	lim := core.Limits{Compute: 1 << 40}
+	if !ecore.BudgetControlsEnabled {
 		// The reference build has no budget controls; the parses still share the counters.
-		lim = parse.Limits{}
+		lim = core.Limits{}
 	}
 	var wg sync.WaitGroup
 	for g := 0; g < 8; g++ {
@@ -460,11 +460,11 @@ func TestScanSitesInConcurrentParses(t *testing.T) {
 // in spec/runtime/parsing.md); each of the units, and the characters that are charged, change these
 // numbers (the mutations that drop the slot or the store change them).
 func TestScanSitesChargeIsPinned(t *testing.T) {
-	if !core.BudgetControlsEnabled {
+	if !ecore.BudgetControlsEnabled {
 		t.Skip("budget controls are unavailable in the reference build")
 	}
-	defer func(n int) { core.ScanHotSpan = n }(core.ScanHotSpan)
-	core.ScanHotSpan = 16
+	defer func(n int) { ecore.ScanHotSpan = n }(ecore.ScanHotSpan)
+	ecore.ScanHotSpan = 16
 	prog, plain := mustCompile(t, scanSpanProbe), compileWithoutScanSites(t, scanSpanProbe)
 	type steps struct{ scan, plain uint64 }
 	want := map[Backend]map[int]steps{
@@ -488,7 +488,7 @@ func scanExamined(t *testing.T, prog *Program, in string, o ParseOptions) (out [
 	t.Helper()
 	o.Trace = func(e TraceEvent) {
 		if e.Kind == TraceExit {
-			out = append(out, fmt.Sprintf("%s@%d hw=%d", e.Rule, e.Pos, core.TraceParser(e).Hw))
+			out = append(out, fmt.Sprintf("%s@%d hw=%d", e.Rule, e.Pos, ecore.TraceParser(e).Hw))
 		}
 	}
 	n, err := prog.ParseWith("main", in, o)
@@ -514,7 +514,7 @@ rule r = ("xxxxxxxxxxxxxxxxxxxxyzzzzzB" / "x") [x]*`
 // examined (the high-water mark that the memo and the incremental parse rely on) is the same with
 // and without scan sites, for walks that look up a record, find one and store one.
 func TestScanSitesKeepTheExaminedRange(t *testing.T) {
-	defer func(n int) { core.ScanHotSpan = n }(core.ScanHotSpan)
+	defer func(n int) { ecore.ScanHotSpan = n }(ecore.ScanHotSpan)
 	rng := rand.New(rand.NewSource(139))
 	grammars := append([]struct{ Name, Src, Alphabet string }{
 		{"a lookahead that examines further", scanLookahead, " abdz"},
@@ -522,11 +522,11 @@ func TestScanSitesKeepTheExaminedRange(t *testing.T) {
 		{"invalid bytes examined with the bytes that follow", scanInvalidBytes, "\xffz!?é"},
 	}, scanSiteGrammars...)
 	for _, span := range []int{16, 2} {
-		core.ScanHotSpan = span
+		ecore.ScanHotSpan = span
 		for _, g := range grammars {
 			prog, plain := mustCompile(t, g.Src), compileWithoutScanSites(t, g.Src)
 			inputs := append([]string{strings.Repeat(" ", 30) + "z", strings.Repeat(" ", 20) + "z ", strings.Repeat("x", 20) + "yzzzzzA!", strings.Repeat("x", 20) + "yzzzzzA?", strings.Repeat("\xff", 20) + "!zzz", strings.Repeat("\xff", 20) + "!z", strings.Repeat("é", 20) + "!zzz", strings.Repeat("é", 20) + "?"}, scanSiteInputs(g.Alphabet, rng)...)
-			for _, unit := range []parse.PositionUnit{parse.CodePoints, parse.Bytes} {
+			for _, unit := range []core.PositionUnit{core.CodePoints, core.Bytes} {
 				for _, b := range []Backend{Closure, Bytecode, BytecodeIterative} {
 					o := ParseOptions{Backend: b, Unit: unit}
 					for _, in := range inputs {
@@ -572,11 +572,11 @@ func TestScanSitesShareRecordsWithLookaheads(t *testing.T) {
 			if skipDump(t, n, err) != skipDump(t, wn, werr) {
 				t.Errorf("%s: the results differ", b)
 			}
-			before := core.ScanHits.Load()
+			before := ecore.ScanHits.Load()
 			if _, err := rec.ParseWith("main", in, ParseOptions{Backend: b}); err != nil {
 				t.Fatal(err)
 			}
-			if hits := core.ScanHits.Load() - before; hits != 2 {
+			if hits := ecore.ScanHits.Load() - before; hits != 2 {
 				t.Errorf("%s: %d walks were answered from a record, want 2", b, hits)
 			}
 		}
@@ -588,9 +588,9 @@ func TestScanSitesShareRecordsWithLookaheads(t *testing.T) {
 func documentSteps(t *testing.T, prog *Program, b Backend, text string, a, e int, ins string) (first, edit uint64) {
 	t.Helper()
 	var steps uint64
-	o := ParseOptions{Backend: b, Limits: parse.Limits{Compute: 1 << 40}, Trace: func(ev TraceEvent) {
+	o := ParseOptions{Backend: b, Limits: core.Limits{Compute: 1 << 40}, Trace: func(ev TraceEvent) {
 		if ev.Kind == TraceExit && ev.Rule == "main" {
-			steps = core.TraceParser(ev).Control.Used
+			steps = ecore.TraceParser(ev).Control.Used
 		}
 	}}
 	d, err := prog.NewDocumentWith("main", text, o)
@@ -613,7 +613,7 @@ func documentSteps(t *testing.T, prog *Program, b Backend, text string, a, e int
 // the first), and the second inside the first sixteen characters, where the walk that follows the
 // resumed part goes on past the hot span.
 func TestScanSitesResumeInDocuments(t *testing.T) {
-	if !core.BudgetControlsEnabled {
+	if !ecore.BudgetControlsEnabled {
 		t.Skip("budget controls are unavailable in the reference build")
 	}
 	const src = `rule main = (ws "a" / ws "b" / ws "c" / ws "d" / ws "e")* $$

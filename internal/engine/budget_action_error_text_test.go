@@ -10,10 +10,10 @@ import (
 	"strings"
 	"testing"
 
-	"zeroparse.dev/zp/internal/engine/core"
+	"zeroparse.dev/zp/core"
+	"zeroparse.dev/zp/core/noderep"
+	ecore "zeroparse.dev/zp/internal/engine/core"
 	"zeroparse.dev/zp/internal/value"
-	"zeroparse.dev/zp/runtime/noderep"
-	"zeroparse.dev/zp/runtime/parse"
 )
 
 func TestBudgetActionErrorTextReservationsAndOwnership(t *testing.T) {
@@ -21,30 +21,30 @@ func TestBudgetActionErrorTextReservationsAndOwnership(t *testing.T) {
 	for _, parts := range [][]string{{""}, {"", "", ""}, {"a", "", "λ\xff"}, {strings.Repeat("n", 8192)}} {
 		want := strings.Join(parts, "")
 		steps := uint64(len(want) + 2*len(parts))
-		p := diagnosticParser(parse.Limits{Compute: steps})
+		p := diagnosticParser(core.Limits{Compute: steps})
 		retained := p.ActionError(parts...)
 		if retained.Error() != want || p.Control.Used != steps {
 			t.Fatalf("builder parity/spend: %q %d", retained, p.Control.Used)
 		}
-		p.Control = core.NewBudgetControl(nil, parse.Limits{Compute: steps - 1})
+		p.Control = ecore.NewBudgetControl(nil, core.Limits{Compute: steps - 1})
 		var partial error
-		if err := catchFatal(t, func() { partial = p.ActionError(parts...) }); !errors.Is(err, parse.ErrLimit) || partial != nil {
+		if err := catchFatal(t, func() { partial = p.ActionError(parts...) }); !errors.Is(err, core.ErrLimit) || partial != nil {
 			t.Fatalf("one-short formatting: fatal=%v partial=%v", err, partial)
 		}
-		p.Control = core.NewBudgetControl(nil, parse.Limits{Compute: 100})
+		p.Control = ecore.NewBudgetControl(nil, core.Limits{Compute: 100})
 		if got := p.ActionError("retry").Error(); got != "retry" || retained.Error() != want {
 			t.Fatal("retry changed owned text")
 		}
 	}
 	// The second 128-byte write is rejected atomically.
-	p := diagnosticParser(parse.Limits{Compute: 130})
+	p := diagnosticParser(core.Limits{Compute: 130})
 	err := catchFatal(t, func() { _ = p.ActionError(strings.Repeat("x", 512)) })
-	var limit *parse.LimitError
-	if !errors.As(err, &limit) || limit.Kind != parse.LimitCompute || limit.Used != 130 || limit.Requested != 128 || p.Control.Used != 130 {
+	var limit *core.LimitError
+	if !errors.As(err, &limit) || limit.Kind != core.LimitCompute || limit.Used != 130 || limit.Requested != 128 || p.Control.Used != 130 {
 		t.Fatalf("chunk reservation: %v", err)
 	}
 	for _, parts := range [][]string{make([]string, 320), {strings.Repeat("x", 1024)}} {
-		p.Control = core.NewBudgetControl(newPollingContext(1), parse.Limits{})
+		p.Control = ecore.NewBudgetControl(newPollingContext(1), core.Limits{})
 		if err := catchFatal(t, func() { _ = p.ActionError(parts...) }); !errors.Is(err, context.Canceled) {
 			t.Fatalf("fragment/copy cancellation: %v", err)
 		}
@@ -53,19 +53,19 @@ func TestBudgetActionErrorTextReservationsAndOwnership(t *testing.T) {
 
 func TestBudgetActionErrorFinalPrefixIsFlatAndBounded(t *testing.T) {
 	t.Parallel()
-	cause := core.ActionTextError("division by zero")
+	cause := ecore.ActionTextError("division by zero")
 	where := strings.Repeat("rule", 512)
 	want := "action in " + where + ": " + cause.Error()
-	p := diagnosticParser(parse.Limits{Compute: uint64(len(want) + 8)})
+	p := diagnosticParser(core.Limits{Compute: uint64(len(want) + 8)})
 	err := catchFatal(t, func() { p.FailAction(where, cause) })
 	if err.Error() != want || errors.Unwrap(err) != nil || errors.Is(err, cause) || p.Control.Used != uint64(len(want)+8) {
 		t.Fatalf("final error contract: %v", err)
 	}
-	p.Control = core.NewBudgetControl(nil, parse.Limits{Compute: uint64(len(want) + 7)})
-	if err := catchFatal(t, func() { p.FailAction(where, cause) }); !errors.Is(err, parse.ErrLimit) {
+	p.Control = ecore.NewBudgetControl(nil, core.Limits{Compute: uint64(len(want) + 7)})
+	if err := catchFatal(t, func() { p.FailAction(where, cause) }); !errors.Is(err, core.ErrLimit) {
 		t.Fatalf("one-short wrapper: %v", err)
 	}
-	p.Control = core.NewBudgetControl(newPollingContext(1), parse.Limits{})
+	p.Control = ecore.NewBudgetControl(newPollingContext(1), core.Limits{})
 	if err := catchFatal(t, func() { p.FailAction(where, cause) }); !errors.Is(err, context.Canceled) {
 		t.Fatalf("wrapper cancellation: %v", err)
 	}
@@ -91,14 +91,14 @@ func TestBudgetActionErrorOpaqueFormattingPreservesNative(t *testing.T) {
 	t.Parallel()
 	for _, cause := range []error{errors.New("ordinary"), actionFormattingError{}, actionFormattingError{panics: true}} {
 		want := fmt.Sprintf("action in r: %v", cause)
-		p := diagnosticParser(parse.Limits{Compute: 1 << 50})
+		p := diagnosticParser(core.Limits{Compute: 1 << 50})
 		if got := catchFatal(t, func() { p.FailAction("r", cause) }); got.Error() != want || errors.Unwrap(got) != nil {
 			t.Fatalf("opaque native formatting: %q, want %q", got, want)
 		}
 	}
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
-	p := actionBudgetParser(ctx, parse.Limits{}, parse.Bytes)
+	p := actionBudgetParser(ctx, core.Limits{}, core.Bytes)
 	if err := catchFatal(t, func() { p.FailAction("r", actionFormattingError{cancel: cancel}) }); err != context.Canceled {
 		t.Fatalf("opaque boundary cancellation: %v", err)
 	}
@@ -111,34 +111,37 @@ func TestBudgetActionErrorProducersAreEager(t *testing.T) {
 	node := value.Ptr(value.Data{Kind: &noderep.Kind{Type: long}})
 	producers := []struct {
 		name string
-		make func(*core.Parser) error
+		make func(*ecore.Parser) error
 	}{
-		{"invalid member", func(p *core.Parser) error { _, err := (&core.EvalCtx{P: p}).Member(1, long); return err }},
-		{"missing field", func(p *core.Parser) error {
-			_, err := (&core.EvalCtx{P: p}).Member(value.Ptr(value.Data{Kind: prog.TypeKind("A")}), long)
+		{"invalid member", func(p *ecore.Parser) error { _, err := (&ecore.EvalCtx{P: p}).Member(1, long); return err }},
+		{"missing field", func(p *ecore.Parser) error {
+			_, err := (&ecore.EvalCtx{P: p}).Member(value.Ptr(value.Data{Kind: prog.TypeKind("A")}), long)
 			return err
 		}},
-		{"function field", func(p *core.Parser) error {
-			_, err := (&core.EvalCtx{P: p}).NewStruct("A", []string{long}, []any{budgetActionFunc{params: 1}})
+		{"function field", func(p *ecore.Parser) error {
+			_, err := (&ecore.EvalCtx{P: p}).NewStruct("A", []string{long}, []any{budgetActionFunc{params: 1}})
 			return err
 		}},
-		{"unary type", func(p *core.Parser) error { _, err := p.ValueUnary("-", node); return err }},
-		{"binary type", func(p *core.Parser) error { _, err := p.ValueBinary("+", node, 1); return err }},
-		{"list name", func(p *core.Parser) error { _, err := p.ValueListItems(long, 1); return err }},
-		{"element name", func(p *core.Parser) error {
-			return (&core.EvalCtx{P: p}).Push(long, budgetActionFunc{})
+		{"unary type", func(p *ecore.Parser) error { _, err := p.ValueUnary("-", node); return err }},
+		{"binary type", func(p *ecore.Parser) error { _, err := p.ValueBinary("+", node, 1); return err }},
+		{"list name", func(p *ecore.Parser) error { _, err := p.ValueListItems(long, 1); return err }},
+		{"element name", func(p *ecore.Parser) error {
+			return (&ecore.EvalCtx{P: p}).Push(long, budgetActionFunc{})
 		}},
-		{"text type", func(p *core.Parser) error { _, err := (&core.EvalCtx{P: p}).TextString(budgetActionFunc{}); return err }},
+		{"text type", func(p *ecore.Parser) error {
+			_, err := (&ecore.EvalCtx{P: p}).TextString(budgetActionFunc{})
+			return err
+		}},
 	}
 	for _, tc := range producers {
 		t.Run(tc.name, func(t *testing.T) {
-			p := diagnosticParser(parse.Limits{Compute: 1 << 50})
+			p := diagnosticParser(core.Limits{Compute: 1 << 50})
 			p.Prog = &prog.sharedProgram
 			owned := tc.make(p)
 			if owned == nil {
 				t.Fatal("expected expression error")
 			}
-			if _, ok := owned.(core.ActionTextError); !ok {
+			if _, ok := owned.(ecore.ActionTextError); !ok {
 				t.Fatalf("not owned text: %T", owned)
 			}
 			p.Control = nil
@@ -146,9 +149,9 @@ func TestBudgetActionErrorProducersAreEager(t *testing.T) {
 			if native.Error() != owned.Error() {
 				t.Fatalf("native %q differs from controlled %q", native, owned)
 			}
-			p.Control = core.NewBudgetControl(nil, parse.Limits{Compute: 1})
+			p.Control = ecore.NewBudgetControl(nil, core.Limits{Compute: 1})
 			var partial error
-			if err := catchFatal(t, func() { partial = tc.make(p) }); !errors.Is(err, parse.ErrLimit) || partial != nil {
+			if err := catchFatal(t, func() { partial = tc.make(p) }); !errors.Is(err, core.ErrLimit) || partial != nil {
 				t.Fatalf("leaf was not eager: fatal=%v partial=%v", err, partial)
 			}
 		})

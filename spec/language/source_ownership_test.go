@@ -9,11 +9,11 @@ import (
 	"sort"
 	"strings"
 	"testing"
-	"zeroparse.dev/zp"
+	"zeroparse.dev/zp/core"
+	"zeroparse.dev/zp/engine"
 	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/syntax"
 	"zeroparse.dev/zp/internal/syntax/sourceast"
-	"zeroparse.dev/zp/runtime/parse"
 )
 
 // The canonical grammar and the hand-written frontend must assign the same
@@ -73,7 +73,7 @@ func manualOwners(t *testing.T, g *grammar.Grammar) map[string]grammar.SourceInf
 	return owners
 }
 
-func canonicalLead(t *testing.T, n *parse.Node) sourceast.Lead {
+func canonicalLead(t *testing.T, n *core.Node) sourceast.Lead {
 	t.Helper()
 	if n == nil {
 		return sourceast.Lead{}
@@ -81,7 +81,7 @@ func canonicalLead(t *testing.T, n *parse.Node) sourceast.Lead {
 	var l sourceast.Lead
 	l.Leading, _ = n.Field("Leading").(string)
 	l.HasNext, _ = n.Field("HasNext").(bool)
-	if d, ok := n.Field("Detached").(*parse.Node); ok && d != nil {
+	if d, ok := n.Field("Detached").(*core.Node); ok && d != nil {
 		for _, c := range elems(d) {
 			l.Detached = append(l.Detached, c.Field("Text").(string))
 		}
@@ -90,7 +90,7 @@ func canonicalLead(t *testing.T, n *parse.Node) sourceast.Lead {
 }
 
 // canonicalOwners converts the ownership records of the canonical tree.
-func canonicalOwners(t *testing.T, src string, root *parse.Node) map[string]grammar.SourceInfo {
+func canonicalOwners(t *testing.T, src string, root *core.Node) map[string]grammar.SourceInfo {
 	t.Helper()
 	positions := sourceast.NewPositions(src)
 	owners := map[string]grammar.SourceInfo{}
@@ -101,7 +101,7 @@ func canonicalOwners(t *testing.T, src string, root *parse.Node) map[string]gram
 		"InitField": "InitField", "OperatorsSkip": "OperatorsSkip",
 	}
 	// list converts the statements of one list; an error node owns nothing.
-	list := func(head sourceast.Lead, statements *parse.Node) {
+	list := func(head sourceast.Lead, statements *core.Node) {
 		if statements == nil {
 			return
 		}
@@ -127,8 +127,8 @@ func canonicalOwners(t *testing.T, src string, root *parse.Node) map[string]gram
 		}
 		for i, s := range elems(statements) {
 			// A rule with attributes has the position of "rule" for diagnostics.
-			if attrs := s.Field("Attrs"); kind[i] == "RuleDef" && attrs != nil && len(elems(attrs.(*parse.Node))) > 0 {
-				attrs := elems(attrs.(*parse.Node))
+			if attrs := s.Field("Attrs"); kind[i] == "RuleDef" && attrs != nil && len(elems(attrs.(*core.Node))) > 0 {
+				attrs := elems(attrs.(*core.Node))
 				off := nextToken([]rune(src), int(attrs[len(attrs)-1].End()))
 				keyword, err := positions.Source(sourceast.Metadata{Start: off, End: off})
 				if err != nil {
@@ -143,19 +143,19 @@ func canonicalOwners(t *testing.T, src string, root *parse.Node) map[string]gram
 			}
 		}
 	}
-	var walk func(*parse.Node)
-	walk = func(n *parse.Node) {
+	var walk func(*core.Node)
+	walk = func(n *core.Node) {
 		if n == nil {
 			return
 		}
 		head := func() sourceast.Lead {
-			h, _ := n.Field("Head").(*parse.Node)
+			h, _ := n.Field("Head").(*core.Node)
 			return canonicalLead(t, h)
 		}
 		switch n.Type() {
 		case "File":
 			lead := head()
-			if pkg, ok := n.Field("Pkg").(*parse.Node); ok && pkg != nil && pkg.Type() == "Pkg" {
+			if pkg, ok := n.Field("Pkg").(*core.Node); ok && pkg != nil && pkg.Type() == "Pkg" {
 				meta := sourceField(t, pkg, "Source")
 				span := sourceField(t, meta, "Span")
 				m := sourceast.Metadata{Start: int(span.Start()), End: int(span.End()), Leading: meta.Field("Leading").(string), Trailing: stringList(meta, "Trailing")}
@@ -167,7 +167,7 @@ func canonicalOwners(t *testing.T, src string, root *parse.Node) map[string]gram
 					t.Fatal(err)
 				}
 				// A package clause with attributes has the position of "package" for diagnostics.
-				if attrs, ok := pkg.Field("Attrs").(*parse.Node); ok && attrs != nil && len(elems(attrs)) > 0 {
+				if attrs, ok := pkg.Field("Attrs").(*core.Node); ok && attrs != nil && len(elems(attrs)) > 0 {
 					attrs := elems(attrs)
 					off := nextToken([]rune(src), int(attrs[len(attrs)-1].End()))
 					keyword, err := positions.Source(sourceast.Metadata{Start: off, End: off})
@@ -195,7 +195,7 @@ func canonicalOwners(t *testing.T, src string, root *parse.Node) map[string]gram
 			if name == "SourceSpan" || name == "Source" {
 				continue
 			}
-			if c, ok := v.(*parse.Node); ok {
+			if c, ok := v.(*core.Node); ok {
 				walk(c)
 			}
 		}
@@ -217,7 +217,7 @@ func sortedKeys(m map[string]grammar.SourceInfo) []string {
 }
 
 // assertOwnerParity requires identical owners from both frontends for src.
-func assertOwnerParity(t *testing.T, p *zp.Parser, name, src string) {
+func assertOwnerParity(t *testing.T, p *engine.Parser, name, src string) {
 	t.Helper()
 	manual, err := syntax.ParseReference(src)
 	if err != nil {

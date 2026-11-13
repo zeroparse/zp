@@ -8,9 +8,9 @@ import (
 
 	"zeroparse.dev/zp/internal/engine/document"
 
+	"zeroparse.dev/zp/core"
 	. "zeroparse.dev/zp/internal/engine"
-	"zeroparse.dev/zp/internal/engine/core"
-	"zeroparse.dev/zp/runtime/parse"
+	ecore "zeroparse.dev/zp/internal/engine/core"
 )
 
 // TestDocumentEditKeepsMemo checks that an edit keeps exactly the memo entries the rules in
@@ -38,9 +38,9 @@ func TestDocumentEditKeepsMemo(t *testing.T) {
 				ins += pieces[rng.Intn(len(pieces))]
 			}
 			delta := len([]rune(ins)) - (end - start)
-			want := map[*core.MemoEntry]int{}
-			doc.Memo().Each(func(e *core.MemoEntry) {
-				if !core.AdvanceEntry(e, doc.Edits()) {
+			want := map[*ecore.MemoEntry]int{}
+			doc.Memo().Each(func(e *ecore.MemoEntry) {
+				if !ecore.AdvanceEntry(e, doc.Edits()) {
 					return // invalidated by an earlier edit, and not looked up since
 				}
 				switch {
@@ -55,7 +55,7 @@ func TestDocumentEditKeepsMemo(t *testing.T) {
 				t.Fatal(err)
 			}
 			// Entries are brought up to date when they are looked up: do it for every entry.
-			got := map[*core.MemoEntry]int{}
+			got := map[*ecore.MemoEntry]int{}
 			m := doc.Memo()
 			for idx, head := range m.Slots {
 				at := idx
@@ -65,7 +65,7 @@ func TestDocumentEditKeepsMemo(t *testing.T) {
 					t.Fatalf("edit %d: entry in the gap", i)
 				}
 				for e := head; e != nil; e = e.Next {
-					if !core.AdvanceEntry(e, doc.Edits()) {
+					if !ecore.AdvanceEntry(e, doc.Edits()) {
 						continue
 					}
 					if e.Pos != at {
@@ -175,7 +175,7 @@ rule r = [a-z]+`)
 func TestDocumentEditText(t *testing.T) {
 	prog := mustCompile(t, `rule main = .*`)
 	pieces := []string{"a", "é", "日本", "\n", "\xff", "z\xe3\x81", ""}
-	for _, unit := range []parse.PositionUnit{parse.CodePoints, parse.Bytes} {
+	for _, unit := range []core.PositionUnit{core.CodePoints, core.Bytes} {
 		doc, err := prog.NewDocumentWith("main", "héllo, 世界\n", ParseOptions{Unit: unit})
 		if err != nil {
 			t.Fatal(err)
@@ -186,11 +186,11 @@ func TestDocumentEditText(t *testing.T) {
 		for i := 0; i < 3000; i++ {
 			piece := pieces[rng.Intn(len(pieces))]
 			var start, end int
-			if unit == parse.Bytes {
+			if unit == core.Bytes {
 				// Edit at character boundaries of the current bytes.
 				var bounds []int
 				for k := 0; k <= len(refBytes); k++ {
-					if core.ValidBoundary(string(refBytes), parse.Bytes, k) == nil {
+					if ecore.ValidBoundary(string(refBytes), core.Bytes, k) == nil {
 						bounds = append(bounds, k)
 					}
 				}
@@ -211,10 +211,10 @@ func TestDocumentEditText(t *testing.T) {
 				t.Fatal(err)
 			}
 			wantText := string(refBytes)
-			if unit == parse.CodePoints {
+			if unit == core.CodePoints {
 				wantText = string(ref)
 			}
-			want := core.NewInput(wantText, unit)
+			want := ecore.NewInput(wantText, unit)
 			got := doc.Input()
 			if got.Loaded() != want.Loaded() || doc.Text() != wantText {
 				t.Fatalf("%v, edit %d: [%d,%d) -> %q: text differs from a fresh read", unit, i, start, end, piece)

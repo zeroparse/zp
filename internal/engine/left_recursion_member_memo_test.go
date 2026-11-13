@@ -5,9 +5,9 @@ import (
 	"strings"
 	"testing"
 
+	"zeroparse.dev/zp/core"
 	"zeroparse.dev/zp/internal/compile"
 	"zeroparse.dev/zp/internal/gentest"
-	"zeroparse.dev/zp/runtime/parse"
 )
 
 // nestedLeftRecursionEvals parses the input on every backend and returns the number of rule
@@ -117,7 +117,7 @@ rule f = [0-9] / "(" e ")"`,
 		memo, plain := mustCompile(t, src), mustCompile(t, src, compile.Options{DisableMemo: true})
 		for _, in := range inputs[gi] {
 			for _, backend := range []Backend{Closure, Bytecode, BytecodeIterative} {
-				for _, unit := range []parse.PositionUnit{parse.CodePoints, parse.Bytes} {
+				for _, unit := range []core.PositionUnit{core.CodePoints, core.Bytes} {
 					for _, missing := range []int{0, 12} {
 						for _, recognize := range []bool{false, true} {
 							o := ParseOptions{Backend: backend, Unit: unit, MissingTokens: missing, Recognize: recognize}
@@ -141,9 +141,9 @@ rule f = [0-9] / "(" e ")"`,
 func memberMemoDiffers(t *testing.T, c gentest.Case, full bool) []string {
 	t.Helper()
 	memo, plain := mustCompile(t, c.Src), mustCompile(t, c.Src, compile.Options{DisableMemo: true})
-	units := []parse.PositionUnit{parse.CodePoints}
+	units := []core.PositionUnit{core.CodePoints}
 	if full {
-		units = append(units, parse.Bytes)
+		units = append(units, core.Bytes)
 	}
 	var diffs []string
 	for _, in := range c.Inputs {

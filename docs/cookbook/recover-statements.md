@@ -50,8 +50,8 @@ import (
 	"os"
 	"strings"
 
-	"zeroparse.dev/zp"
-	"zeroparse.dev/zp/runtime/parse"
+	"zeroparse.dev/zp/engine"
+	"zeroparse.dev/zp/core"
 )
 
 //go:embed script.zp
@@ -70,13 +70,13 @@ set f = 6;
 `
 
 func main() {
-	p, err := zp.CompileSource(grammar, "main")
+	p, err := engine.CompileSource(grammar, "main")
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
 	}
 	root, err := p.Parse(source)
-	var errs parse.SyntaxErrors
+	var errs core.SyntaxErrors
 	if err != nil && !errors.As(err, &errs) {
 		fmt.Fprintln(os.Stderr, err) // not a recovered parse: no tree
 		os.Exit(1)
@@ -86,23 +86,23 @@ func main() {
 	}
 
 	// The outline: how many statements were read at each level, and where the bad ones are.
-	var outline func(n *parse.Node, indent string)
-	outline = func(list *parse.Node, indent string) {
+	var outline func(n *core.Node, indent string)
+	outline = func(list *core.Node, indent string) {
 		for _, n := range list.Elems() {
-			if n.Kind() == parse.KindError {
+			if n.Kind() == core.KindError {
 				fmt.Printf("%sERROR %q\n", indent, strings.TrimSpace(source[n.Start():n.End()]))
 				continue
 			}
 			switch n.Type() {
 			case "Set":
-				fmt.Printf("%sset %s\n", indent, n.Field("Name").(*parse.Node).Text())
+				fmt.Printf("%sset %s\n", indent, n.Field("Name").(*core.Node).Text())
 			case "Block":
-				fmt.Printf("%sif %s\n", indent, n.Field("Cond").(*parse.Node).Text())
-				outline(n.Field("Body").(*parse.Node), indent+"  ")
+				fmt.Printf("%sif %s\n", indent, n.Field("Cond").(*core.Node).Text())
+				outline(n.Field("Body").(*core.Node), indent+"  ")
 			}
 		}
 	}
-	outline(root.Field("Body").(*parse.Node), "")
+	outline(root.Field("Body").(*core.Node), "")
 }
 ```
 
@@ -133,7 +133,7 @@ the block that holds them, and `if nested` is still a block with its own list.
   its own line only, and the `}` that closes the block stays for the `block` rule.
 - Each `@error` replaces the mechanical list of expected characters with one message at the position where the statement
   went wrong.
-- `Parse` returns the tree and a `parse.SyntaxErrors` together, so the program checks for that type before treating the
+- `Parse` returns the tree and a `core.SyntaxErrors` together, so the program checks for that type before treating the
   error as a failure.
 
 ## Variations and Limits

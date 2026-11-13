@@ -1,5 +1,5 @@
 // Package editfuzz checks incremental parsing with a grammar against fresh parses by applying sequences of
-// edits to a zp.Document, and saves a failing sequence as a file that replays it exactly.
+// edits to a engine.Document, and saves a failing sequence as a file that replays it exactly.
 //
 // A Sequence is a versioned event log: the initial text, then edit, undo, redo and checkpoint operations.
 // At the start and at each checkpoint, the Document's parse result is compared with a fresh parse of the
@@ -27,9 +27,9 @@ import (
 	"slices"
 	"sort"
 
-	"zeroparse.dev/zp"
+	"zeroparse.dev/zp/core"
+	"zeroparse.dev/zp/engine"
 	"zeroparse.dev/zp/internal/cliflag"
-	"zeroparse.dev/zp/runtime/parse"
 )
 
 // Version is the version of the Sequence format that this package reads and writes.
@@ -128,12 +128,12 @@ type Sequence struct {
 	// sources.
 	GrammarSHA256 string
 	Start         string
-	Backend       zp.Backend
-	Unit          parse.PositionUnit
+	Backend       engine.Backend
+	Unit          core.PositionUnit
 	// Limits bound the Documents and the fresh parses of a replay. A Document that reuses earlier work
 	// spends less than a fresh parse, so a check in which either parse exhausts its budget compares
 	// nothing. The saved format does not record the limits, so a replay supplies them again.
-	Limits parse.Limits
+	Limits core.Limits
 	// Seed is the seed that generated the sequence, kept only as provenance: replay does not use it.
 	Seed       uint64
 	Initial    []byte
@@ -251,8 +251,8 @@ func (s *Sequence) UnmarshalJSON(data []byte) error {
 var sequenceFields = []string{"version", "grammar_sha256", "grammar_normalization", "start", "backend", "unit", "seed",
 	"text_encoding", "initial_base64", "operations"}
 
-func backendName(b zp.Backend) (string, error) {
-	if b == zp.DefaultBackend {
+func backendName(b engine.Backend) (string, error) {
+	if b == engine.DefaultBackend {
 		return "", errors.New("a sequence needs an explicit backend")
 	}
 	if _, err := cliflag.ParseBackend(b.String()); err != nil {
@@ -268,8 +268,8 @@ func checkHash(h string) error {
 	return nil
 }
 
-func unitName(u parse.PositionUnit) (string, error) {
-	if u != parse.CodePoints && u != parse.Bytes {
+func unitName(u core.PositionUnit) (string, error) {
+	if u != core.CodePoints && u != core.Bytes {
 		return "", fmt.Errorf("unknown unit %d", u)
 	}
 	return u.String(), nil

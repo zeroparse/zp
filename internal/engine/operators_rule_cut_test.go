@@ -6,11 +6,11 @@ import (
 	"strings"
 	"testing"
 
+	"zeroparse.dev/zp/core"
+	"zeroparse.dev/zp/core/noderep"
 	"zeroparse.dev/zp/internal/compile"
 	"zeroparse.dev/zp/internal/gentest"
 	"zeroparse.dev/zp/internal/value"
-	"zeroparse.dev/zp/runtime/noderep"
-	"zeroparse.dev/zp/runtime/parse"
 )
 
 func TestOperatorsRulePrefixPartCuts(t *testing.T) {
@@ -20,7 +20,7 @@ func TestOperatorsRulePrefixPartCuts(t *testing.T) {
 		for _, c := range gentest.PrefixPartCutInputs {
 			t.Run(fmt.Sprintf("%s/memo=%t", c.Input, !disableMemo), func(t *testing.T) {
 				for _, backend := range []Backend{Closure, Bytecode, BytecodeIterative} {
-					for _, unit := range []parse.PositionUnit{parse.CodePoints, parse.Bytes} {
+					for _, unit := range []core.PositionUnit{core.CodePoints, core.Bytes} {
 						n, err := prog.ParseWith("main", c.Input, ParseOptions{Expectations: true, Backend: backend, Unit: unit})
 						if c.Kind == "" {
 							if n != nil || err == nil || !strings.Contains(err.Error(), "syntax error") {
@@ -29,7 +29,7 @@ func TestOperatorsRulePrefixPartCuts(t *testing.T) {
 						} else if n == nil || n.Type() != c.Kind {
 							t.Fatalf("%v/%v: got %v, %v; want %s", backend, unit, n, err, c.Kind)
 						} else if c.Kind == noderep.TypeError {
-							var recovered parse.SyntaxErrors
+							var recovered core.SyntaxErrors
 							if !errors.As(err, &recovered) || len(recovered) != 1 {
 								t.Fatalf("%v/%v: expected one recovered error, got %v", backend, unit, err)
 							}
@@ -55,7 +55,7 @@ func TestOperatorsRulePrefixPartCuts(t *testing.T) {
 							case "i":
 								wantOp = "a"
 							}
-							op, ok := n.Field("Op").(*parse.Node)
+							op, ok := n.Field("Op").(*core.Node)
 							if !ok || leafText(op) != wantOp {
 								t.Fatalf("%v/%v: wrong operator capture: %v; want %q", backend, unit, op, wantOp)
 							}
@@ -81,7 +81,7 @@ func BenchmarkOperatorsRulePrefixPartCut(b *testing.B) {
 		{"operand", "ca"}, {"matched-cut", "c-za"}, {"competing-uncut-fallback", "f-x"},
 	} {
 		for _, backend := range []Backend{Closure, Bytecode, BytecodeIterative} {
-			for _, unit := range []parse.PositionUnit{parse.CodePoints, parse.Bytes} {
+			for _, unit := range []core.PositionUnit{core.CodePoints, core.Bytes} {
 				b.Run(fmt.Sprintf("%s/%s/unit=%d", c.name, backend, unit), func(b *testing.B) {
 					opts := ParseOptions{Expectations: true, Backend: backend, Unit: unit}
 					b.ReportAllocs()
@@ -98,7 +98,7 @@ func BenchmarkOperatorsRulePrefixPartCut(b *testing.B) {
 
 // leafText returns the text of the strings in the value of n, in order: the text an operator
 // matched when its line is a sequence.
-func leafText(n *parse.Node) string {
+func leafText(n *core.Node) string {
 	if n == nil {
 		return ""
 	}

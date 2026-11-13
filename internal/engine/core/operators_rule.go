@@ -1,11 +1,11 @@
 package core
 
 import (
+	"zeroparse.dev/zp/core"
+	"zeroparse.dev/zp/core/noderep"
 	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/compile"
 	"zeroparse.dev/zp/internal/value"
-	"zeroparse.dev/zp/runtime/noderep"
-	"zeroparse.dev/zp/runtime/parse"
 )
 
 // OperatorsRule is a compiled Operators Rule expression. Binding levels are numbered from 1 in declaration
@@ -25,7 +25,7 @@ type OperatorsRuleLine struct {
 	Act   Evaluator // action (nil if none)
 	// Value makes the value of an operand line without an action, and single that of an operator
 	// line's operator, from the value of the line's expression.
-	Value  func(p *Parser, v *parse.Node, start int) *parse.Node
+	Value  func(p *Parser, v *core.Node, start int) *core.Node
 	Single compile.SingleMode
 	Shape  compile.Shaper
 	Entry  int // start of the bytecode (bytecode backend only)
@@ -45,7 +45,7 @@ type OperatorsRuleOp struct {
 type OperatorsRuleAttempt struct {
 	Op         *OperatorsRuleOp
 	Frame      *Frame
-	V          *parse.Node
+	V          *core.Node
 	Start, End int
 	Env        *Env
 	Cut        bool
@@ -81,7 +81,7 @@ type NudState struct {
 // caller sets Min and puts the longest match of each iteration in A; Lhs is the value so far.
 type ExprState struct {
 	Min      int
-	Lhs      *parse.Node
+	Lhs      *core.Node
 	LastNone int
 	Bound    int
 	Guard    int
@@ -102,7 +102,7 @@ func (p *Parser) ApplyRecovered(a *OperatorsRuleAttempt) {
 
 // LineResult builds the value of an operand line, and checks it against the rule's declared type
 // if needed.
-func (p *Parser) LineResult(r *Rule, l *OperatorsRuleLine, f *Frame, v *parse.Node, start int, locals *Local) *parse.Node {
+func (p *Parser) LineResult(r *Rule, l *OperatorsRuleLine, f *Frame, v *core.Node, start int, locals *Local) *core.Node {
 	if r.Novalue {
 		return nil
 	}
@@ -126,7 +126,7 @@ func (p *Parser) LineResult(r *Rule, l *OperatorsRuleLine, f *Frame, v *parse.No
 
 // convertOperator converts v, the value of an operator of rule r, to the named node type of the
 // rule's operators.
-func (p *Parser) convertOperator(r *Rule, v *parse.Node) *parse.Node {
+func (p *Parser) convertOperator(r *Rule, v *core.Node) *core.Node {
 	n, ok := r.OpKinds.Convert(value.UnboxNode(v))
 	if !ok {
 		p.Fail("cannot convert %s to %s in result of rule %s", TypeName(value.UnboxNode(v)), r.OpNodeType, r.WhereName())
@@ -135,7 +135,7 @@ func (p *Parser) convertOperator(r *Rule, v *parse.Node) *parse.Node {
 }
 
 // OperatorsRuleBuild builds the value of an operator application.
-func (p *Parser) OperatorsRuleBuild(r *Rule, a *OperatorsRuleAttempt, lhs, rhs *parse.Node) *parse.Node {
+func (p *Parser) OperatorsRuleBuild(r *Rule, a *OperatorsRuleAttempt, lhs, rhs *core.Node) *core.Node {
 	if r.Novalue {
 		return nil
 	}
@@ -181,7 +181,7 @@ func (p *Parser) OperatorsRuleBuild(r *Rule, a *OperatorsRuleAttempt, lhs, rhs *
 	}
 	// Without an action, the application is the node of the tuple (lhs, op, rhs) of the line's
 	// kind, with those captures.
-	var kids []*parse.Node
+	var kids []*core.Node
 	var fields noderep.Fields
 	switch a.Op.Kind {
 	case grammar.Prefix:

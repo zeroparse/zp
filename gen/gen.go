@@ -91,14 +91,14 @@ type Go struct {
 	// start rule and ParseRuleValue for named rules. The types are declared in the package
 	// Module/types, so Module is required.
 	Types bool
-	// DefaultValue makes the generated parser produce default values, as zp.WithDefaultValue
+	// DefaultValue makes the generated parser produce default values, as engine.WithDefaultValue
 	// does for a compiled parser. It cannot be combined with Types.
 	DefaultValue bool
-	// SourceInfo makes the generated parser record source information, as zp.WithSourceInfo
+	// SourceInfo makes the generated parser record source information, as engine.WithSourceInfo
 	// does for a compiled parser.
 	SourceInfo bool
 	// Expectations makes the generated parser record what a syntax error expects: the expectations
-	// at the farthest failure and the messages of @error, as zp.WithExpectations does for a
+	// at the farthest failure and the messages of @error, as engine.WithExpectations does for a
 	// compiled parser. Without it the parser keeps no table of expectations, and a syntax error
 	// reports the farthest failure position with an empty Expected list and no Messages.
 	Expectations bool
@@ -113,7 +113,7 @@ type Go struct {
 	// limit controls.
 	LimitControls bool
 	// Recognize also generates a function Recognize, which checks the input against the start
-	// rule without building a tree, like a parse with zp.RecognizeOnly.
+	// rule without building a tree, like a parse with engine.RecognizeOnly.
 	Recognize bool
 	// MaxDepth is the generated parser's default nested rule-call limit. Zero selects 100,000;
 	// negative values fail generation. Individual invocations may override it with Limits.Depth.
@@ -124,7 +124,7 @@ type Go struct {
 	Document bool
 	// Stream generates ParseStream, which reads the input from an io.Reader and passes each
 	// committed element of the start rule's #stream repetition to a callback, as
-	// zp.Parser.ParseStream does. The start rule must have a #stream repetition. With Types it
+	// engine.Parser.ParseStream does. The start rule must have a #stream repetition. With Types it
 	// also generates ParseStreamValue and IterateValue, which pass the typed value of each element.
 	Stream bool
 	// TypedOnly generates only the typed entry points of a parser: ParseValue and its siblings, and
@@ -217,14 +217,14 @@ type TypeScript struct {
 	// parseValueWithOptions, which convert the completed Node result into plain objects and arrays.
 	// Declared aliases preserve the target value type.
 	Types bool
-	// DefaultValue makes the generated parser produce default values, as zp.WithDefaultValue
+	// DefaultValue makes the generated parser produce default values, as engine.WithDefaultValue
 	// does for a compiled parser. It cannot be combined with Types.
 	DefaultValue bool
-	// SourceInfo makes the generated parser record source information, as zp.WithSourceInfo
+	// SourceInfo makes the generated parser record source information, as engine.WithSourceInfo
 	// does for a compiled parser.
 	SourceInfo bool
 	// Expectations makes the generated parser record what a syntax error expects: the expectations
-	// at the farthest failure and the messages of @error, as zp.WithExpectations does for a
+	// at the farthest failure and the messages of @error, as engine.WithExpectations does for a
 	// compiled parser. Without it the parser keeps no table of expectations, and a syntax error
 	// reports the farthest failure position with an empty expected list and no messages.
 	Expectations bool
@@ -239,7 +239,7 @@ type TypeScript struct {
 	// without limit controls.
 	LimitControls bool
 	// Recognize also generates recognize, which checks the input against the start rule without
-	// building a tree, like a parse with zp.RecognizeOnly.
+	// building a tree, like a parse with engine.RecognizeOnly.
 	Recognize bool
 	// Document also generates createDocument, which makes a mutable Document of the start rule:
 	// edit changes its text, and parse returns what parse of the whole current text returns, as
@@ -269,7 +269,7 @@ type TypeScript struct {
 }
 
 // Generate generates the files of a TypeScript parser for g: its parse(input) parses from the
-// rule start (see Generator) and returns the same trees and errors as a zp.Parser. The files
+// rule start (see Generator) and returns the same trees and errors as a engine.Parser. The files
 // are
 //
 //   - runtime.ts, the runtime, which does not depend on the grammar (with RuntimeEmbed),
@@ -342,14 +342,14 @@ func check(g *grammar.Grammar, opts compile.Options, flags []compile.RuleFlags) 
 	return prog, nil
 }
 
-// runtimeFiles holds a copy of the files of the runtime's packages (the runtime package and
-// its subdirectories noderep and parse), which Go.Generate copies into packages generated with
+// runtimeFiles holds a copy of the files of the runtime package and of the packages core and
+// core/noderep, which Go.Generate copies into packages generated with
 // RuntimeEmbed and reads to qualify the names generated code uses from them. The copy lives in this
-// package rather than in package zp so that only programs that generate code carry it;
+// package rather than in package engine so that only programs that generate code carry it;
 // TestRuntimeCopy keeps it equal to the runtime, and go generate refreshes it.
 //
 //go:generate go run copy_runtime.go
-//go:embed _runtime/*.go _runtime/noderep/*.go _runtime/parse/*.go
+//go:embed _runtime/*.go _runtime/core/*.go _runtime/core/noderep/*.go
 var runtimeFiles embed.FS
 
 // runtimeSource is the embedded copy of the runtime, which Go generation gives to the generator.

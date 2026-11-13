@@ -7,6 +7,7 @@ import (
 	"io/fs"
 	"os"
 	"path/filepath"
+	"strings"
 	"sync"
 	"testing"
 
@@ -14,9 +15,24 @@ import (
 )
 
 // RuntimeSource is the runtime source that tests give to the generator: the live runtime
-// directory of this module, so that a test exercises the runtime as it is being edited. Package gen
-// generates from its embedded copy instead.
-func RuntimeSource() fs.FS { return os.DirFS(filepath.Join(moduleRoot(), "runtime")) }
+// directory of this module at its root and the live core directory in core, so that a test
+// exercises the packages as they are being edited. Package gen generates from its embedded copy
+// instead.
+func RuntimeSource() fs.FS { return runtimeDirs(moduleRoot()) }
+
+// runtimeDirs is the file system of RuntimeSource over the module root it holds. It is a string, so
+// that the generator caches what it parses from it.
+type runtimeDirs string
+
+func (r runtimeDirs) Open(name string) (fs.File, error) {
+	if !fs.ValidPath(name) {
+		return nil, &fs.PathError{Op: "open", Path: name, Err: fs.ErrInvalid}
+	}
+	if name == "core" || strings.HasPrefix(name, "core/") {
+		return os.DirFS(string(r)).Open(name)
+	}
+	return os.DirFS(filepath.Join(string(r), "runtime")).Open(name)
+}
 
 // WithRuntime returns opts with RuntimeSource set to the live runtime directory.
 func WithRuntime(opts gen.GenOptions) gen.GenOptions {

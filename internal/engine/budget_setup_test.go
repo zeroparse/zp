@@ -9,9 +9,9 @@ import (
 	"strings"
 	"testing"
 
-	"zeroparse.dev/zp/internal/engine/core"
+	"zeroparse.dev/zp/core"
+	ecore "zeroparse.dev/zp/internal/engine/core"
 	"zeroparse.dev/zp/internal/gentest"
-	"zeroparse.dev/zp/runtime/parse"
 )
 
 type setupPhaseContext struct {
@@ -202,7 +202,7 @@ func TestBudgetSetupPreCancelledLeavesColdProgramsUnprepared(t *testing.T) {
 					ctx, cancel := context.WithCancel(context.Background())
 					cancel()
 					traceCalls := 0
-					n, err := p.ParseWith("main", strings.Repeat("a", 8192), ParseOptions{Backend: backend, Recognize: recognize, Context: ctx, Limits: parse.Limits{Compute: 1}, Trace: func(TraceEvent) { traceCalls++ }})
+					n, err := p.ParseWith("main", strings.Repeat("a", 8192), ParseOptions{Backend: backend, Recognize: recognize, Context: ctx, Limits: core.Limits{Compute: 1}, Trace: func(TraceEvent) { traceCalls++ }})
 					if n != nil || !errors.Is(err, context.Canceled) || traceCalls != 0 {
 						t.Fatalf("ParseWith node=%v err=%v traces=%d", n, err, traceCalls)
 					}
@@ -214,7 +214,7 @@ func TestBudgetSetupPreCancelledLeavesColdProgramsUnprepared(t *testing.T) {
 					docProg := setupProgram(t, `rule main = "a" $$`, moduleOnly)
 					ctx, cancel = context.WithCancel(context.Background())
 					cancel()
-					d, err := docProg.NewDocumentWith("main", strings.Repeat("a", 8192), ParseOptions{Backend: backend, Context: ctx, Limits: parse.Limits{Compute: 1}})
+					d, err := docProg.NewDocumentWith("main", strings.Repeat("a", 8192), ParseOptions{Backend: backend, Context: ctx, Limits: core.Limits{Compute: 1}})
 					if d != nil || !errors.Is(err, context.Canceled) {
 						t.Fatalf("NewDocumentWith document=%v err=%v", d, err)
 					}
@@ -228,7 +228,7 @@ func TestBudgetSetupPreCancelledLeavesColdProgramsUnprepared(t *testing.T) {
 					cancel()
 					reader := &setupCountingReader{r: strings.NewReader(text)}
 					emits, traces := 0, 0
-					err = streamProg.ParseStreamWith("main", reader, func(*parse.Node) error { emits++; return nil }, ParseOptions{Backend: backend, Context: ctx, Limits: parse.Limits{Compute: 1}, Trace: func(TraceEvent) { traces++ }})
+					err = streamProg.ParseStreamWith("main", reader, func(*core.Node) error { emits++; return nil }, ParseOptions{Backend: backend, Context: ctx, Limits: core.Limits{Compute: 1}, Trace: func(TraceEvent) { traces++ }})
 					if !errors.Is(err, context.Canceled) || reader.reads != 0 || emits != 0 || traces != 0 {
 						t.Fatalf("ParseStreamWith err=%v reads=%d emits=%d traces=%d", err, reader.reads, emits, traces)
 					}
@@ -250,7 +250,7 @@ func TestBudgetSetupPostBackendChecksStopBeforePublication(t *testing.T) {
 				prog := setupProgram(t, `rule main = [a-z]* #atomic $$`, moduleOnly)
 				gate := newSetupPhaseContext(func() bool { return setupBackendReady(prog, backend) })
 				traceCalls := 0
-				n, err := prog.ParseWith("main", strings.Repeat("a", 8192), ParseOptions{Backend: backend, Context: gate, Limits: parse.Limits{Compute: 1}, Trace: func(TraceEvent) { traceCalls++ }})
+				n, err := prog.ParseWith("main", strings.Repeat("a", 8192), ParseOptions{Backend: backend, Context: gate, Limits: core.Limits{Compute: 1}, Trace: func(TraceEvent) { traceCalls++ }})
 				if n != nil || !errors.Is(err, context.Canceled) || !gate.triggered || traceCalls != 0 {
 					t.Fatalf("ParseWith node=%v err=%v gate=%t traces=%d", n, err, gate.triggered, traceCalls)
 				}
@@ -261,7 +261,7 @@ func TestBudgetSetupPostBackendChecksStopBeforePublication(t *testing.T) {
 
 				docProg := setupProgram(t, `rule main = "a" $$`, moduleOnly)
 				docGate := newSetupPhaseContext(func() bool { return setupBackendReady(docProg, backend) })
-				doc, err := docProg.NewDocumentWith("main", strings.Repeat("a", 8192), ParseOptions{Backend: backend, Context: docGate, Limits: parse.Limits{Compute: 1}})
+				doc, err := docProg.NewDocumentWith("main", strings.Repeat("a", 8192), ParseOptions{Backend: backend, Context: docGate, Limits: core.Limits{Compute: 1}})
 				if doc != nil || !errors.Is(err, context.Canceled) || !docGate.triggered {
 					t.Fatalf("NewDocumentWith document=%v err=%v gate=%t", doc, err, docGate.triggered)
 				}
@@ -274,14 +274,14 @@ func TestBudgetSetupPostBackendChecksStopBeforePublication(t *testing.T) {
 				streamGate := newSetupPhaseContext(func() bool { return setupBackendReady(streamProg, backend) })
 				reader := &setupCountingReader{r: strings.NewReader("#records\na=1\n")}
 				emits, traces := 0, 0
-				err = streamProg.ParseStreamWith("main", reader, func(*parse.Node) error { emits++; return nil }, ParseOptions{Backend: backend, Context: streamGate, Limits: parse.Limits{Compute: 1}, Trace: func(TraceEvent) { traces++ }})
+				err = streamProg.ParseStreamWith("main", reader, func(*core.Node) error { emits++; return nil }, ParseOptions{Backend: backend, Context: streamGate, Limits: core.Limits{Compute: 1}, Trace: func(TraceEvent) { traces++ }})
 				if !errors.Is(err, context.Canceled) || !streamGate.triggered || reader.reads != 0 || emits != 0 || traces != 0 {
 					t.Fatalf("ParseStreamWith err=%v gate=%t reads=%d emits=%d traces=%d", err, streamGate.triggered, reader.reads, emits, traces)
 				}
 				assertSetupBackendState(t, streamProg, backend, true)
 				reader = &setupCountingReader{r: strings.NewReader("#records\nxy=3\n")}
 				emits = 0
-				if err := streamProg.ParseStreamWith("main", reader, func(*parse.Node) error { emits++; return nil }, ParseOptions{Backend: backend}); err != nil || emits != 1 {
+				if err := streamProg.ParseStreamWith("main", reader, func(*core.Node) error { emits++; return nil }, ParseOptions{Backend: backend}); err != nil || emits != 1 {
 					t.Fatalf("ParseStreamWith retry err=%v emits=%d", err, emits)
 				}
 			})
@@ -324,7 +324,7 @@ func TestBudgetSetupRecognizerPhaseChecks(t *testing.T) {
 			prog := setupProgram(t, `rule main = "a" $$`, false)
 			gate := newSetupPhaseContext(func() bool { return tc.ready(prog) })
 			traceCalls := 0
-			n, err := prog.ParseWith("main", strings.Repeat("a", 8192), ParseOptions{Backend: tc.backend, Recognize: true, Context: gate, Limits: parse.Limits{Compute: 1}, Trace: func(TraceEvent) { traceCalls++ }})
+			n, err := prog.ParseWith("main", strings.Repeat("a", 8192), ParseOptions{Backend: tc.backend, Recognize: true, Context: gate, Limits: core.Limits{Compute: 1}, Trace: func(TraceEvent) { traceCalls++ }})
 			if n != nil || !errors.Is(err, context.Canceled) || !gate.triggered || traceCalls != 0 {
 				t.Fatalf("recognition node=%v err=%v gate=%t traces=%d", n, err, gate.triggered, traceCalls)
 			}
@@ -348,22 +348,22 @@ func TestBudgetSetupRecognizerPhaseChecks(t *testing.T) {
 // its spent budget directly; API fixtures above verify the outer panic boundary.
 func TestBudgetSetupInputPreparationPanicIdentity(t *testing.T) {
 	t.Parallel()
-	for _, unit := range []parse.PositionUnit{parse.Bytes, parse.CodePoints} {
+	for _, unit := range []core.PositionUnit{core.Bytes, core.CodePoints} {
 		t.Run(unit.String(), func(t *testing.T) {
 			token := &budgetContextPanicToken{phase: "input materialization"}
 			ctx := newBudgetContextErrPanic(token, 2)
-			c := core.NewBudgetControl(ctx, parse.Limits{})
+			c := ecore.NewBudgetControl(ctx, core.Limits{})
 			ctx.control, ctx.armed = c, true
 			completed := false
 			got := budgetContextRecover(func() {
-				_ = core.NewControlledTextInput(strings.Repeat("a", 8192), unit, true, nil, c)
+				_ = ecore.NewControlledTextInput(strings.Repeat("a", 8192), unit, true, nil, c)
 				completed = true
 			})
-			attributed, ok := got.(core.ContextPanic)
+			attributed, ok := got.(ecore.ContextPanic)
 			if !ok || attributed.Value != token || completed {
 				t.Fatalf("panic=%#v completed=%t", got, completed)
 			}
-			if unit == parse.CodePoints && c.Used == 0 {
+			if unit == core.CodePoints && c.Used == 0 {
 				t.Fatal("CodePoints fixture did not enter preparation loop")
 			}
 		})
@@ -397,7 +397,7 @@ func TestBudgetSetupPostBackendPanicIdentity(t *testing.T) {
 					callbacks := 0
 					reader := &setupCountingReader{r: strings.NewReader("#records\na=1\n")}
 					o := ParseOptions{Backend: backend, Context: gate, Trace: func(TraceEvent) { callbacks++ }}
-					var n *parse.Node
+					var n *core.Node
 					var d *Document
 					var err error
 					got := budgetContextRecover(func() {
@@ -407,7 +407,7 @@ func TestBudgetSetupPostBackendPanicIdentity(t *testing.T) {
 						case "document":
 							d, err = prog.NewDocumentWith("main", "#records\na=1\n", o)
 						case "stream":
-							err = prog.ParseStreamWith("main", reader, func(*parse.Node) error { callbacks++; return nil }, o)
+							err = prog.ParseStreamWith("main", reader, func(*core.Node) error { callbacks++; return nil }, o)
 						}
 					})
 					if got != token || n != nil || d != nil || err != nil || callbacks != 0 || reader.reads != 0 {
@@ -437,7 +437,7 @@ func TestBudgetSetupConcurrentColdCalls(t *testing.T) {
 			if aborted {
 				cancel()
 			}
-			o := ParseOptions{Backend: []Backend{Closure, Bytecode, BytecodeIterative}[i%3], Unit: []parse.PositionUnit{parse.Bytes, parse.CodePoints}[i%2], Recognize: i%5 == 0, Context: ctx}
+			o := ParseOptions{Backend: []Backend{Closure, Bytecode, BytecodeIterative}[i%3], Unit: []core.PositionUnit{core.Bytes, core.CodePoints}[i%2], Recognize: i%5 == 0, Context: ctx}
 			n, err := prog.ParseWith("main", "abc", o)
 			if aborted {
 				if n != nil || !errors.Is(err, context.Canceled) {

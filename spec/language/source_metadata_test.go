@@ -3,7 +3,7 @@ package language_test
 import (
 	"reflect"
 	"testing"
-	"zeroparse.dev/zp"
+	"zeroparse.dev/zp/engine"
 	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/syntax"
 	"zeroparse.dev/zp/internal/syntax/sourceast"
@@ -26,8 +26,8 @@ func TestCanonicalPackageMetadataParity(t *testing.T) {
 	} {
 		t.Run(src, func(t *testing.T) {
 			manual, manualErr := syntax.ParseReference(src)
-			for _, backend := range []zp.Backend{zp.Closure, zp.Bytecode, zp.BytecodeIterative} {
-				n, err := p.Parse(src, zp.WithBackend(backend))
+			for _, backend := range []engine.Backend{engine.Closure, engine.Bytecode, engine.BytecodeIterative} {
+				n, err := p.Parse(src, engine.WithBackend(backend))
 				if (err == nil) != (manualErr == nil) {
 					t.Fatalf("acceptance differs: manual=%v canonical=%v", manualErr, err)
 				}

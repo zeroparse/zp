@@ -9,9 +9,9 @@ import (
 	"strings"
 	"testing"
 
+	"zeroparse.dev/zp/core"
 	"zeroparse.dev/zp/internal/engine/document"
 	"zeroparse.dev/zp/internal/gentest"
-	"zeroparse.dev/zp/runtime/parse"
 )
 
 const maxInputGrammar = `rule main = [a-zé]* $$`
@@ -24,11 +24,11 @@ func maxInputVariants(t *testing.T, run func(t *testing.T, o ParseOptions)) {
 
 func wantInputLimit(t *testing.T, err error, limit, length uint64) {
 	t.Helper()
-	var le *parse.LimitError
-	if !errors.As(err, &le) || !errors.Is(err, parse.ErrLimit) {
+	var le *core.LimitError
+	if !errors.As(err, &le) || !errors.Is(err, core.ErrLimit) {
 		t.Fatalf("error %v, want a LimitError", err)
 	}
-	if le.Kind != parse.LimitInput || le.Limit != limit || le.Requested != length || le.Used != 0 {
+	if le.Kind != core.LimitInput || le.Limit != limit || le.Requested != length || le.Used != 0 {
 		t.Errorf("LimitError %+v, want kind input, limit %d, requested %d", *le, limit, length)
 	}
 	want := fmt.Sprintf("parse input limit exceeded: limit %d, length %d", limit, length)
@@ -45,14 +45,14 @@ func TestMaxInputBatch(t *testing.T) {
 	text := strings.Repeat("é", 10) // 10 code points, 20 bytes
 	maxInputVariants(t, func(t *testing.T, o ParseOptions) {
 		units := uint64(10)
-		if o.Unit == parse.Bytes {
+		if o.Unit == core.Bytes {
 			units = 20
 		}
 		for _, c := range []struct {
 			max  uint64
 			fail bool
-		}{{0, false}, {parse.Unlimited, false}, {units, false}, {units + 1, false}, {units - 1, true}, {1, true}} {
-			o.Limits = parse.Limits{Input: c.max}
+		}{{0, false}, {core.Unlimited, false}, {units, false}, {units + 1, false}, {units - 1, true}, {1, true}} {
+			o.Limits = core.Limits{Input: c.max}
 			_, err := prog.ParseWith("main", text, o)
 			if c.fail {
 				wantInputLimit(t, err, c.max, units)
@@ -61,7 +61,7 @@ func TestMaxInputBatch(t *testing.T) {
 			}
 		}
 		// The check does not depend on the budget and does not need one.
-		o.Limits = parse.Limits{Input: 1, Compute: parse.Unlimited}
+		o.Limits = core.Limits{Input: 1, Compute: core.Unlimited}
 		_, err := prog.ParseWith("main", text, o)
 		wantInputLimit(t, err, 1, units)
 		// Recognition and a prefix parse apply the same limit.
@@ -81,7 +81,7 @@ func TestMaxInputBeforeParsing(t *testing.T) {
 	prog := mustCompile(t, `rule main = [a-z]* $$`)
 	ctx, cancel := context.WithCancel(context.Background())
 	cancel()
-	_, err := prog.ParseWith("main", "abc", ParseOptions{Context: ctx, Limits: parse.Limits{Input: 2}})
+	_, err := prog.ParseWith("main", "abc", ParseOptions{Context: ctx, Limits: core.Limits{Input: 2}})
 	wantInputLimit(t, err, 2, 3)
 }
 
@@ -94,13 +94,13 @@ func TestMaxInputStream(t *testing.T) {
 	maxInputVariants(t, func(t *testing.T, o ParseOptions) {
 		n := uint64(len(text)) // ASCII: units equal bytes
 		run := func(max uint64, size int) (string, error) {
-			o.Limits = parse.Limits{Input: max}
+			o.Limits = core.Limits{Input: max}
 			var out []string
 			r := &budgetStreamReader{chunks: chunks(text, size)}
-			err := prog.ParseStreamWith("main", r, func(v *parse.Node) error { out = append(out, gentest.ResultJSON(v, nil)); return nil }, o)
+			err := prog.ParseStreamWith("main", r, func(v *core.Node) error { out = append(out, gentest.ResultJSON(v, nil)); return nil }, o)
 			return fmt.Sprint(out), err
 		}
-		for _, max := range []uint64{0, parse.Unlimited, n, n + 1} {
+		for _, max := range []uint64{0, core.Unlimited, n, n + 1} {
 			for _, size := range []int{1, 7, len(text)} {
 				if _, err := run(max, size); err != nil {
 					t.Errorf("MaxInput %d, chunk size %d: %v", max, size, err)
@@ -110,8 +110,8 @@ func TestMaxInputStream(t *testing.T) {
 		var want string
 		for _, size := range []int{1, 7, len(text)} {
 			out, err := run(n-1, size)
-			var le *parse.LimitError
-			if !errors.As(err, &le) || le.Kind != parse.LimitInput || le.Limit != n-1 {
+			var le *core.LimitError
+			if !errors.As(err, &le) || le.Kind != core.LimitInput || le.Limit != n-1 {
 				t.Fatalf("chunk size %d: error %v, want a LimitError of kind input", size, err)
 			}
 			if le.Requested != n {
@@ -126,7 +126,7 @@ func TestMaxInputStream(t *testing.T) {
 		}
 		// A limit far below the first demand fails with the units demanded so far.
 		_, err := run(4, 1)
-		var le *parse.LimitError
+		var le *core.LimitError
 		if !errors.As(err, &le) || le.Limit != 4 || le.Requested < 5 {
 			t.Errorf("limit 4: error %v", err)
 		}
@@ -138,7 +138,7 @@ func TestMaxInputDocument(t *testing.T) {
 	t.Parallel()
 	prog := mustCompile(t, maxInputGrammar)
 	maxInputVariants(t, func(t *testing.T, o ParseOptions) {
-		o.Limits = parse.Limits{Input: 5}
+		o.Limits = core.Limits{Input: 5}
 		if _, err := prog.NewDocumentWith("main", "abcdef", o); err == nil {
 			t.Fatal("a text over the limit created a Document")
 		} else {
@@ -167,7 +167,7 @@ func TestMaxInputDocument(t *testing.T) {
 		if err := d.Edit(0, 0, "f"); err != nil {
 			t.Fatal(err)
 		}
-		o.Limits = parse.Limits{}
+		o.Limits = core.Limits{}
 		if _, err := d.ParseWith(o); err != nil {
 			t.Errorf("without MaxInput: %v", err)
 		}

@@ -1,6 +1,6 @@
 package core
 
-import "zeroparse.dev/zp/runtime/parse"
+import "zeroparse.dev/zp/core"
 
 // The engine's implementations of the operations of the stream compositions printed in
 // stream_exec.go.
@@ -68,7 +68,7 @@ func (p *Parser) ReportRecovered() error {
 	if p.Diagnosed > len(p.Recovered) {
 		p.Diagnosed = len(p.Recovered)
 	}
-	var errs []*parse.SyntaxError
+	var errs []*core.SyntaxError
 	for p.Diagnosed < len(p.Recovered) {
 		if e := p.Recovered[p.Diagnosed]; e.list == nil {
 			// An error, delivered without listing it.
@@ -94,7 +94,7 @@ func (p *Parser) ReportRecovered() error {
 
 // reportRecovered delivers the recovered error original to the diagnostic callback, as a copy that
 // the callback owns, and to the diagnostic tail.
-func (p *Parser) reportRecovered(original *parse.SyntaxError) error {
+func (p *Parser) reportRecovered(original *core.SyntaxError) error {
 	if BudgetControlsEnabled {
 		p.Control.Check()
 	}

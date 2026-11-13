@@ -5,34 +5,34 @@ import (
 	"reflect"
 	"testing"
 
+	"zeroparse.dev/zp/core"
+	"zeroparse.dev/zp/core/noderep"
 	"zeroparse.dev/zp/internal/value"
-	"zeroparse.dev/zp/runtime/noderep"
-	"zeroparse.dev/zp/runtime/parse"
 )
 
 func TestWalkEdgeOrderAndSharedParents(t *testing.T) {
 	t.Parallel()
 	shared := value.Ptr(value.Data{Text: "shared"})
-	left := value.Ptr(value.Data{Children: []*parse.Node{shared}})
+	left := value.Ptr(value.Data{Children: []*core.Node{shared}})
 	right := value.Ptr(value.Data{Fields: noderep.Fields{{Name: "nested", Value: []any{shared, nil, 7}}}})
-	root := value.Ptr(value.Data{Children: []*parse.Node{left, right, nil}, Fields: noderep.Fields{{Name: "z", Value: false}, {Name: "a", Value: shared}}})
+	root := value.Ptr(value.Data{Children: []*core.Node{left, right, nil}, Fields: noderep.Fields{{Name: "z", Value: false}, {Name: "a", Value: shared}}})
 	var got []string
-	var parents []*parse.Node
-	err := parse.Walk(root, func(v parse.WalkVisit) (parse.WalkAction, error) {
+	var parents []*core.Node
+	err := core.Walk(root, func(v core.WalkVisit) (core.WalkAction, error) {
 		switch v.Edge.Kind {
-		case parse.WalkRoot:
+		case core.WalkRoot:
 			got = append(got, "root")
-		case parse.WalkChild:
+		case core.WalkChild:
 			got = append(got, "child")
-		case parse.WalkField:
+		case core.WalkField:
 			got = append(got, v.Edge.FieldName)
-		case parse.WalkListElement:
+		case core.WalkListElement:
 			got = append(got, "list")
 		}
 		if v.Node == shared {
 			parents = append(parents, v.Parent)
 		}
-		return parse.WalkContinue, nil
+		return core.WalkContinue, nil
 	})
 	if err != nil {
 		t.Fatal(err)
@@ -41,7 +41,7 @@ func TestWalkEdgeOrderAndSharedParents(t *testing.T) {
 	if !reflect.DeepEqual(got, want) {
 		t.Fatalf("visits = %v, want %v", got, want)
 	}
-	if !reflect.DeepEqual(parents, []*parse.Node{left, right, root}) {
+	if !reflect.DeepEqual(parents, []*core.Node{left, right, root}) {
 		t.Fatal("shared edge parents lost")
 	}
 	if value.D(root).Fields[0].Name != "z" {
@@ -51,37 +51,37 @@ func TestWalkEdgeOrderAndSharedParents(t *testing.T) {
 
 func TestWalkCyclesAndControls(t *testing.T) {
 	t.Parallel()
-	n := &parse.Node{}
-	value.D(n).Children = []*parse.Node{n}
-	var cycle *parse.CycleError
-	err := parse.Walk(n, func(parse.WalkVisit) (parse.WalkAction, error) { return parse.WalkContinue, nil })
-	if !errors.As(err, &cycle) || len(cycle.Path) != 2 || cycle.Path[1].Kind != parse.WalkChild {
+	n := &core.Node{}
+	value.D(n).Children = []*core.Node{n}
+	var cycle *core.CycleError
+	err := core.Walk(n, func(core.WalkVisit) (core.WalkAction, error) { return core.WalkContinue, nil })
+	if !errors.As(err, &cycle) || len(cycle.Path) != 2 || cycle.Path[1].Kind != core.WalkChild {
 		t.Fatalf("cycle = %#v, %v", cycle, err)
 	}
 	list := make([]any, 1)
 	list[0] = list
 	n = value.Ptr(value.Data{Fields: noderep.Fields{{Name: "x", Value: list}}})
-	err = parse.Walk(n, func(parse.WalkVisit) (parse.WalkAction, error) { return parse.WalkContinue, nil })
+	err = core.Walk(n, func(core.WalkVisit) (core.WalkAction, error) { return core.WalkContinue, nil })
 	if !errors.As(err, &cycle) || len(cycle.Path) != 3 {
 		t.Fatalf("list cycle = %v", err)
 	}
 	sentinel := errors.New("callback")
-	if err := parse.Walk(n, func(parse.WalkVisit) (parse.WalkAction, error) { return parse.WalkContinue, sentinel }); err != sentinel {
+	if err := core.Walk(n, func(core.WalkVisit) (core.WalkAction, error) { return core.WalkContinue, sentinel }); err != sentinel {
 		t.Fatal(err)
 	}
-	for _, action := range []parse.WalkAction{parse.WalkSkip, parse.WalkStop} {
+	for _, action := range []core.WalkAction{core.WalkSkip, core.WalkStop} {
 		count := 0
-		if err := parse.Walk(n, func(parse.WalkVisit) (parse.WalkAction, error) { count++; return action, nil }); err != nil || count != 1 {
+		if err := core.Walk(n, func(core.WalkVisit) (core.WalkAction, error) { count++; return action, nil }); err != nil || count != 1 {
 			t.Fatalf("control %d = %d, %v", action, count, err)
 		}
 	}
 	count := 0
-	if err := parse.Walk(nil, func(v parse.WalkVisit) (parse.WalkAction, error) {
+	if err := core.Walk(nil, func(v core.WalkVisit) (core.WalkAction, error) {
 		count++
 		if v.Value != nil || v.Node != nil || v.Depth != 0 {
 			t.Fatal(v)
 		}
-		return parse.WalkContinue, nil
+		return core.WalkContinue, nil
 	}); err != nil || count != 1 {
 		t.Fatal(err, count)
 	}
@@ -89,17 +89,17 @@ func TestWalkCyclesAndControls(t *testing.T) {
 
 func TestWalkDeep(t *testing.T) {
 	t.Parallel()
-	n := &parse.Node{}
+	n := &core.Node{}
 	const depth = 20000
 	for i := 0; i < depth; i++ {
 		n = value.Ptr(value.Data{Fields: noderep.Fields{{Name: "next", Value: []any{n}}}})
 	}
 	count := 0
-	if err := parse.Walk(n, func(v parse.WalkVisit) (parse.WalkAction, error) {
+	if err := core.Walk(n, func(v core.WalkVisit) (core.WalkAction, error) {
 		if v.Node != nil {
 			count++
 		}
-		return parse.WalkContinue, nil
+		return core.WalkContinue, nil
 	}); err != nil || count != depth+1 {
 		t.Fatal(count, err)
 	}
@@ -107,26 +107,26 @@ func TestWalkDeep(t *testing.T) {
 
 func TestCursorBoundariesAndUncontainedChildren(t *testing.T) {
 	t.Parallel()
-	for _, unit := range []parse.PositionUnit{parse.CodePoints, parse.Bytes} {
+	for _, unit := range []core.PositionUnit{core.CodePoints, core.Bytes} {
 		a, b, z := value.Ptr(value.Data{Start: 1, End: 3}), value.Ptr(value.Data{Start: 3, End: 4}), value.Ptr(value.Data{Start: 3, End: 3})
-		root := value.Ptr(value.Data{Start: 20, End: 21, Children: []*parse.Node{a, b, z, a}})
-		c := parse.Cursor{Root: root, Unit: unit}
-		var got []*parse.Node
-		callback := func(v parse.WalkVisit) (parse.WalkAction, error) {
+		root := value.Ptr(value.Data{Start: 20, End: 21, Children: []*core.Node{a, b, z, a}})
+		c := core.Cursor{Root: root, Unit: unit}
+		var got []*core.Node
+		callback := func(v core.WalkVisit) (core.WalkAction, error) {
 			got = append(got, v.Node)
-			return parse.WalkContinue, nil
+			return core.WalkContinue, nil
 		}
 		if err := c.At(3, callback); err != nil {
 			t.Fatal(err)
 		}
-		if !reflect.DeepEqual(got, []*parse.Node{b, z}) {
+		if !reflect.DeepEqual(got, []*core.Node{b, z}) {
 			t.Fatalf("point = %v", got)
 		}
 		got = nil
 		if err := c.Range(1, 3, callback); err != nil {
 			t.Fatal(err)
 		}
-		if !reflect.DeepEqual(got, []*parse.Node{a, a}) {
+		if !reflect.DeepEqual(got, []*core.Node{a, a}) {
 			t.Fatal("range must preserve shared edges and exclude upper bound")
 		}
 		got = nil
@@ -140,7 +140,7 @@ func TestCursorBoundariesAndUncontainedChildren(t *testing.T) {
 			t.Fatal("negative position accepted")
 		}
 	}
-	if err := (parse.Cursor{Unit: parse.PositionUnit(99)}).At(0, func(parse.WalkVisit) (parse.WalkAction, error) { return parse.WalkContinue, nil }); err == nil {
+	if err := (core.Cursor{Unit: core.PositionUnit(99)}).At(0, func(core.WalkVisit) (core.WalkAction, error) { return core.WalkContinue, nil }); err == nil {
 		t.Fatal("invalid unit accepted")
 	}
 }
@@ -151,15 +151,15 @@ func TestWalkSliceIdentityIgnoresCapacity(t *testing.T) {
 	x[0] = x[:1:1]
 	root := value.Ptr(value.Data{Fields: noderep.Fields{{Name: "x", Value: x}}})
 	visits := 0
-	err := parse.Walk(root, func(parse.WalkVisit) (parse.WalkAction, error) {
+	err := core.Walk(root, func(core.WalkVisit) (core.WalkAction, error) {
 		visits++
-		return parse.WalkContinue, nil
+		return core.WalkContinue, nil
 	})
-	var cycle *parse.CycleError
+	var cycle *core.CycleError
 	if !errors.As(err, &cycle) {
 		t.Fatalf("capacity-limited slice cycle = %v, want CycleError", err)
 	}
-	want := []parse.WalkEdge{{Kind: parse.WalkRoot}, {Kind: parse.WalkField, FieldName: "x"}, {Kind: parse.WalkListElement, ListIndex: 0}}
+	want := []core.WalkEdge{{Kind: core.WalkRoot}, {Kind: core.WalkField, FieldName: "x"}, {Kind: core.WalkListElement, ListIndex: 0}}
 	if visits != 2 || !reflect.DeepEqual(cycle.Path, want) {
 		t.Fatalf("cycle detected after %d visits at %v, want 2 visits at %v", visits, cycle.Path, want)
 	}

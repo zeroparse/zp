@@ -7,11 +7,11 @@ import (
 	"strings"
 	"testing"
 
+	"zeroparse.dev/zp/core"
 	"zeroparse.dev/zp/internal/compile"
 	"zeroparse.dev/zp/internal/ir/exec"
 	"zeroparse.dev/zp/internal/ir/exec/conform"
 	"zeroparse.dev/zp/internal/ir/exec/ref"
-	"zeroparse.dev/zp/runtime/parse"
 )
 
 // The engine's Operators Rule descriptors, matches of operators and records of the split forms of the
@@ -61,7 +61,7 @@ func newOprMachine(cfg ref.Config) conform.Impl {
 			or.Operands = append(or.Operands, line(s))
 		}
 		if r.Skip {
-			or.Skip = func(p *Parser) (*parse.Node, bool) { return nil, true }
+			or.Skip = func(p *Parser) (*core.Node, bool) { return nil, true }
 		}
 		m.oprRules = append(m.oprRules, &Rule{OperatorsRule: or})
 	}
@@ -82,7 +82,7 @@ func (m *oprMachine) Handle(name string) any {
 	case conform.OprMarkOp:
 		return &markBox{m.p.Mark()}
 	case conform.OprNodeOp:
-		return new(parse.Node)
+		return new(core.Node)
 	case conform.OprRecordOp("oprLongest"):
 		return &LongestState{}
 	case conform.OprRecordOp("oprNud"):

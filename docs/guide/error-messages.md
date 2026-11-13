@@ -105,7 +105,7 @@ zp: 1:1: syntax error: expected "(", [0-9]
 Lines and columns are 1-based. A tab counts as one column, and only a line feed starts a new line (in CRLF text, the
 carriage return is the last column of its line). Columns are counted in the
 [position unit](../../spec/runtime/parsing.md#positions): code points by default, bytes with `-unit bytes`
-(`zp.WithUnit(parse.Bytes)` in Go). The two differ only after non-ASCII text:
+(`engine.WithUnit(core.Bytes)` in Go). The two differ only after non-ASCII text:
 
 ```zp
 // unit.zp
@@ -172,8 +172,8 @@ input is read.
 | Outcome | `node` | `err` |
 |:--|:--|:--|
 | The input matches | the tree | `nil` |
-| The input does not match | `nil` | a `*parse.SyntaxError` |
-| The parse recovered with `#recover` or an enabled `#missing` | the tree, with `error` values | `parse.SyntaxErrors`, a list of `*parse.SyntaxError` |
+| The input does not match | `nil` | a `*core.SyntaxError` |
+| The parse recovered with `#recover` or an enabled `#missing` | the tree, with `error` values | `core.SyntaxErrors`, a list of `*core.SyntaxError` |
 | An action failed at run time (for example, reading a field the node does not have) | `nil` | an ordinary error, not a syntax error |
 
 The last row is not subject to backtracking or recovery: it aborts the parse. A `*SyntaxError` has these fields:
@@ -196,11 +196,11 @@ recorded.
 
 | Parse | How to record |
 |:--|:--|
-| `Parser.Parse`, `ParseStream`, `ParsePrefix`, `Document` | Pass `zp.WithExpectations()`. A `Document` fixes it when it is created |
+| `Parser.Parse`, `ParseStream`, `ParsePrefix`, `Document` | Pass `engine.WithExpectations()`. A `Document` fixes it when it is created |
 | Generated Go or TypeScript parser | Generate with `-expectations` (`Expectations` in `gen.Go` and `gen.TypeScript`), then pass `WithExpectations()` (Go) or `{ expectations: true }` (TypeScript) to the parse. Generating with the flag alone does not record |
 
 ```go
-node, err := p.Parse(input, zp.WithExpectations())
+node, err := p.Parse(input, engine.WithExpectations())
 // err: 1:8: syntax error: expected "(", [0-9]
 ```
 

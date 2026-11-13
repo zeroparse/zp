@@ -8,8 +8,8 @@ import (
 	"strings"
 	"testing"
 
-	"zeroparse.dev/zp/internal/engine/core"
-	"zeroparse.dev/zp/runtime/parse"
+	"zeroparse.dev/zp/core"
+	ecore "zeroparse.dev/zp/internal/engine/core"
 )
 
 // These public-API probes exercise large action error strings at the final
@@ -70,7 +70,7 @@ rule ` + longRule + ` = a:"a" => A{N: 1 / (len($a) - 1)}`,
 		t.Run(probe.name, func(t *testing.T) {
 			prog := mustCompile(t, probe.grammar)
 			for _, backend := range []Backend{Closure, Bytecode, BytecodeIterative} {
-				for _, unit := range []parse.PositionUnit{parse.Bytes, parse.CodePoints} {
+				for _, unit := range []core.PositionUnit{core.Bytes, core.CodePoints} {
 					recognizeModes := []bool{false}
 					if probe.captureAction {
 						recognizeModes = []bool{false, true}
@@ -86,7 +86,7 @@ rule ` + longRule + ` = a:"a" => A{N: 1 / (len($a) - 1)}`,
 						}
 						wantNode, wantErr := prog.ParseWith(probe.start, probe.input, base)
 						limited := base
-						limited.Limits = parse.Limits{Compute: 1 << 50}
+						limited.Limits = core.Limits{Compute: 1 << 50}
 						gotNode, gotErr := prog.ParseWith(probe.start, probe.input, limited)
 						if (gotNode == nil) != (wantNode == nil) || actionErrorNodeText(gotNode) != actionErrorNodeText(wantNode) || actionErrorMessage(gotErr) != actionErrorMessage(wantErr) {
 							t.Fatalf("%v/%v generous limits changed result: node=%v err=%v; want node=%v err=%v", backend, unit, gotNode, gotErr, wantNode, wantErr)
@@ -100,7 +100,7 @@ rule ` + longRule + ` = a:"a" => A{N: 1 / (len($a) - 1)}`,
 
 						for _, mode := range []string{"budget", "cancel"} {
 							enteredFallback := 0
-							opts := ParseOptions{Backend: backend, Unit: unit, Recognize: recognize, Limits: parse.Limits{Compute: 1 << 50}}
+							opts := ParseOptions{Backend: backend, Unit: unit, Recognize: recognize, Limits: core.Limits{Compute: 1 << 50}}
 							if mode == "cancel" {
 								opts.Context = context.Background()
 							}
@@ -114,12 +114,12 @@ rule ` + longRule + ` = a:"a" => A{N: 1 / (len($a) - 1)}`,
 									if mode == "budget" {
 										// Public smoke coverage for fatal propagation. Exact formatter-phase
 										// exhaustion is covered by focused builder whiteboxes.
-										core.TraceParser(e).Control.Limits.Compute = core.TraceParser(e).Control.Used + 256
+										ecore.TraceParser(e).Control.Limits.Compute = ecore.TraceParser(e).Control.Used + 256
 									} else {
 										poll := newPollingContext(2)
-										core.TraceParser(e).Control.Ctx = poll
-										core.TraceParser(e).Control.SinceCheck = 0
-										core.TraceParser(e).Control.SinceCheck = 0
+										ecore.TraceParser(e).Control.Ctx = poll
+										ecore.TraceParser(e).Control.SinceCheck = 0
+										ecore.TraceParser(e).Control.SinceCheck = 0
 									}
 								}
 							}
@@ -128,8 +128,8 @@ rule ` + longRule + ` = a:"a" => A{N: 1 / (len($a) - 1)}`,
 								t.Fatalf("%v/%v/%s: arm=%t node=%v err=%v", backend, unit, mode, armed, n, err)
 							}
 							if mode == "budget" {
-								var limit *parse.LimitError
-								if !errors.As(err, &limit) || limit.Kind != parse.LimitCompute {
+								var limit *core.LimitError
+								if !errors.As(err, &limit) || limit.Kind != core.LimitCompute {
 									t.Fatalf("%v/%v budget interruption=%v, want LimitCompute", backend, unit, err)
 								}
 							}
@@ -159,7 +159,7 @@ func actionErrorMessage(err error) string {
 	return err.Error()
 }
 
-func actionErrorNodeText(node *parse.Node) string {
+func actionErrorNodeText(node *core.Node) string {
 	if node == nil {
 		return ""
 	}

@@ -48,7 +48,7 @@ const (
 var (
 	compiledModeNames = [...]string{CompiledParse: "parse", CompiledRecognize: "recognize", CompiledDocument: "document"}
 	// compiledModeAPI names the modes in the Go API, for error messages.
-	compiledModeAPI = [...]string{CompiledParse: "zp.CompiledParse", CompiledRecognize: "zp.CompiledRecognize", CompiledDocument: "zp.CompiledDocument"}
+	compiledModeAPI = [...]string{CompiledParse: "engine.CompiledParse", CompiledRecognize: "engine.CompiledRecognize", CompiledDocument: "engine.CompiledDocument"}
 )
 
 // String returns the name of the mode: parse, recognize or document.

@@ -76,7 +76,7 @@ import (
 	"strings"
 	"testing"
 
-	zpparse "zeroparse.dev/zp/runtime/parse"
+	zpparse "zeroparse.dev/zp/core"
 )
 
 func chargesEachElement(t *testing.T, before, unit, after string, want uint64, parse func(text string, budget uint64) error) {

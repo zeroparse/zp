@@ -11,7 +11,7 @@ position unit.
 
 ## Scope and Terminology
 
-The **engine** is the `zp.Parser` that parses with a compiled grammar. A
+The **engine** is the `engine.Parser` that parses with a compiled grammar. A
 **generated parser** is the source that `gen.Go`, `gen.TypeScript` (package
 `zeroparse.dev/zp/gen`) or `zp gen` writes. The **generation options** select optional parts of the
 output. The **generated package** is the Go package named by `-pkg`; the
@@ -148,8 +148,8 @@ const (
   package of the generated package's runtime, defined in
   [Nodes and Values](nodes.md) and [Parsing](parsing.md#syntax-errors), and so are
   the position units, limits and traversal. With `import` they are the types that
-  the engine uses (`zeroparse.dev/zp/runtime/parse`). With `embed` the copy of the
-  runtime declares them again (`internal/runtime/parse`), so they are different Go
+  the engine uses (`zeroparse.dev/zp/core`). With `embed` the copy of the
+  runtime declares them again (`internal/runtime/core`), so they are different Go
   types from the engine's; errors are then tested with `errors.As` against the
   generated types. Node JSON is identical to the engine's.
 - Options apply in order. A final `Limits.Depth` of `Unlimited` returns a configuration

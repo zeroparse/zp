@@ -4,11 +4,11 @@ import (
 	"errors"
 	"fmt"
 	"sync"
+	"zeroparse.dev/zp/core/noderep"
 	"zeroparse.dev/zp/internal/cancel"
 	"zeroparse.dev/zp/internal/check"
 	"zeroparse.dev/zp/internal/diag"
 	"zeroparse.dev/zp/internal/ir/core"
-	"zeroparse.dev/zp/runtime/noderep"
 
 	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/bytecode"

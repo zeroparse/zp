@@ -40,7 +40,7 @@ func TestGenerateDocumentNode(t *testing.T) {
 		"parser_test.go": `package fixture
 import (
 	zprt "zeroparse.dev/zp/runtime"
-	"zeroparse.dev/zp/runtime/noderep"
+	"zeroparse.dev/zp/core/noderep"
   "context"
   "encoding/json"
   "fmt"

@@ -4,7 +4,7 @@ import (
 	"runtime"
 	"testing"
 
-	"zeroparse.dev/zp"
+	"zeroparse.dev/zp/engine"
 )
 
 // BenchmarkCompileCorpus complements post-GC retained heap with compilation
@@ -17,14 +17,14 @@ func BenchmarkCompileCorpus(b *testing.B) {
 				b.Fatal(err)
 			}
 			for range 4 {
-				if _, err := zp.CompileSource(source, "main"); err != nil {
+				if _, err := engine.CompileSource(source, "main"); err != nil {
 					b.Fatal(err)
 				}
 			}
 			runtime.GC()
 			b.ReportAllocs()
 			for b.Loop() {
-				p, err := zp.CompileSource(source, "main")
+				p, err := engine.CompileSource(source, "main")
 				if err != nil {
 					b.Fatal(err)
 				}

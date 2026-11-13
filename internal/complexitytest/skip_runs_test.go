@@ -5,9 +5,9 @@ import (
 	"runtime"
 	"testing"
 
-	"zeroparse.dev/zp"
-	"zeroparse.dev/zp/internal/engine/core"
-	"zeroparse.dev/zp/runtime/parse"
+	"zeroparse.dev/zp/core"
+	"zeroparse.dev/zp/engine"
+	ecore "zeroparse.dev/zp/internal/engine/core"
 )
 
 // skipRunControls returns the E8 controls whose walks a parse without skip-run records repeats.
@@ -29,10 +29,10 @@ func skipRunControls(t *testing.T) []Control {
 // recording of walks: with walks that never record, every one is quadratic on every backend. It
 // sets package state, so it does not run in parallel.
 func TestSkipRunsNeverRecordControl(t *testing.T) {
-	core.SkipRecordMutation = core.SkipNeverRecord
-	defer func() { core.SkipRecordMutation = 0 }()
+	ecore.SkipRecordMutation = ecore.SkipNeverRecord
+	defer func() { ecore.SkipRecordMutation = 0 }()
 	controls := skipRunControls(t)
-	progs := make([]*zp.Parser, len(controls))
+	progs := make([]*engine.Parser, len(controls))
 	for i, c := range controls {
 		p, err := Compile(c.Source)
 		if err != nil {
@@ -73,7 +73,7 @@ func TestSkipRunsLinearMemory(t *testing.T) {
 				var before, after runtime.MemStats
 				runtime.GC()
 				runtime.ReadMemStats(&before)
-				if _, err := p.Parse(in, zp.WithBackend(b), zp.WithLimits(parse.Limits{Compute: parse.Unlimited})); err != nil {
+				if _, err := p.Parse(in, engine.WithBackend(b), engine.WithLimits(core.Limits{Compute: core.Unlimited})); err != nil {
 					t.Fatalf("%s, %s: %v", c.Name, BackendName(b), err)
 				}
 				runtime.ReadMemStats(&after)
@@ -122,12 +122,12 @@ func TestAlternatingWalksTurnHot(t *testing.T) {
 			t.Fatal(err)
 		}
 		for _, b := range Backends {
-			turns := core.RunHotTurns.Load()
+			turns := ecore.RunHotTurns.Load()
 			s, err := Measure(p, c.Input, double(100), b, Cap)
 			if err != nil {
 				t.Fatalf("%s, %s: %v", c.Name, BackendName(b), err)
 			}
-			if core.RunHotTurns.Load() == turns {
+			if ecore.RunHotTurns.Load() == turns {
 				t.Errorf("%s, %s: no run site turned hot", c.Name, BackendName(b))
 			}
 			if got := Classify(s); got != Poly(2) {

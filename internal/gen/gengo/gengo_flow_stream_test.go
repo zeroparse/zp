@@ -137,7 +137,7 @@ func firstLineDifference(a, b string) string {
 var (
 	streamBodyRef  = regexp.MustCompile(`(?m)^\tstreamRule\.Body = (e\d+)$`)
 	batchBodyRef   = regexp.MustCompile(`(?m)^\trules\[\d+\]\.Body = (e\d+)$`)
-	streamMethodRe = regexp.MustCompile(`(?ms)^func (e\d+)\(p \*rt\.Parser(?:, _ int)?\) \(\*parse\.Node, bool\) \{\n.*?^\}\n`)
+	streamMethodRe = regexp.MustCompile(`(?ms)^func (e\d+)\(p \*rt\.Parser(?:, _ int)?\) \(\*core\.Node, bool\) \{\n.*?^\}\n`)
 	methodRefRe    = regexp.MustCompile(`\be\d+\b`)
 	scopeVarRe     = regexp.MustCompile(`\bscope\d+\b`)
 	// streamStatements are the statements that the stream repetition adds to the batch body.
@@ -219,10 +219,10 @@ import (
 	"strings"
 
 	zprt "zeroparse.dev/zp/runtime"
-	"zeroparse.dev/zp/runtime/parse"
+	"zeroparse.dev/zp/core"
 IMPORTS)
 
-var entries = []func(io.Reader, func(*parse.Node) error, ...zprt.ParseOption) error{
+var entries = []func(io.Reader, func(*core.Node) error, ...zprt.ParseOption) error{
 ENTRIES}
 
 func sum(v any) string {
@@ -263,12 +263,12 @@ func main() {
 				var events []zprt.TraceEvent
 				var elems []any
 				reads := 0
-				emit := func(n *parse.Node) error { elems = append(elems, [2]any{reads, n}); return nil }
+				emit := func(n *core.Node) error { elems = append(elems, [2]any{reads, n}); return nil }
 				err := entries[i](&reader{s: in, chunk: chunk, reads: &reads}, emit, zprt.WithTrace(func(e zprt.TraceEvent) { events = append(events, e) }))
 				var prof zprt.Profile
 				reads = 0
 				elems2 := 0
-				perr := entries[i](&reader{s: in, chunk: chunk, reads: &reads}, func(*parse.Node) error { elems2++; return nil }, zprt.WithProfile(&prof))
+				perr := entries[i](&reader{s: in, chunk: chunk, reads: &reads}, func(*core.Node) error { elems2++; return nil }, zprt.WithProfile(&prof))
 				snap := prof.Snapshot()
 				snap.Time = 0
 				for k := range snap.Rules {

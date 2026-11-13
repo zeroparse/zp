@@ -7,7 +7,7 @@ import (
 	"testing"
 	"zeroparse.dev/zp/internal/complexity"
 
-	"zeroparse.dev/zp"
+	"zeroparse.dev/zp/engine"
 	"zeroparse.dev/zp/internal/complexitytest"
 	"zeroparse.dev/zp/internal/starttest"
 )
@@ -98,7 +98,7 @@ func TestSurelyConsumes(t *testing.T) {
 	for seed := range iterations {
 		g := &sureGrammar{r: rand.New(rand.NewPCG(uint64(seed), 11))}
 		rules := g.source()
-		parsed, err := zp.ParseGrammar(rules)
+		parsed, err := engine.ParseGrammar(rules)
 		if err != nil {
 			continue
 		}

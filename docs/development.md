@@ -6,7 +6,7 @@ This document describes the repository layout and architecture, how to run tests
 
 | Path | Contents |
 |:--|:--|
-| `zp.go` | Public API of package `zp` (`ParseGrammar`, `Compile`, `CompileSource`, `Parser.Parse`, and others), which joins the engine to the output schema (`Parser.OutputSchema`) |
+| `engine/` | Public API that compiles and runs parsers at run time (`ParseGrammar`, `Compile`, `CompileSource`, `Parser.Parse`, `Document`, and others), which joins the engine to the output schema (`Parser.OutputSchema`), with its behavior tests (package `engine_test`) |
 | `gen/` | Public package of code generation (`gen.Go`, `gen.TypeScript`, `gen.Generator`), which joins the engine to the generators of `internal/gen/`. It embeds the copy of the runtime that generated Go packages carry (`gen/_runtime`, refreshed by `go generate ./gen` and checked against `runtime/` by a test) |
 | `grammar/` | Grammar AST, structural validation (`Validate`), JSON conversion (`MarshalJSON`, `UnmarshalJSON`, strict `DecodeJSON`) and formatting as ZeroParse source (`Format`, which preserves comments). Public package. |
 | `internal/grammaranalysis/` | Conservative success and cut proofs shared by the compiler and linter |
@@ -19,7 +19,7 @@ This document describes the repository layout and architecture, how to run tests
 | `zp.zp` | Typed source grammar and recoverable syntax tree; the generated source-parser integration is [proposed](design/records/054-generated-grammar-source-parser.md). |
 | `internal/syntax/` | Frontend of ZeroParse source code (source → `grammar.Grammar`): `genparser/` holds the typed Go parser generated from `zp.zp`, checked in and regenerated with `go generate ./internal/syntax`, and the adapter builds the grammar AST from its typed values; the hand-written parser is the oracle of the differential tests and the reader of the removed syntax that `zp fix` rewrites |
 | `internal/compile/` | Compiler and static analysis: type checking, call and dependency analysis, the walk of rule bodies that decides their static facts, and the bytecode compiler |
-| `internal/engine/` | Parser runtime: `Compile`, compiled grammars, streams and limit controls, built on `internal/engine/core/`, the closure backend of `internal/engine/closure/`, the bytecode VMs of `internal/engine/vm/` and the Document of `internal/engine/document/`. It does not import the generators or the output schema: package `gen` joins the generators to it, and the root package the schema export |
+| `internal/engine/` | Parser runtime: `Compile`, compiled grammars, streams and limit controls, built on `internal/engine/core/`, the closure backend of `internal/engine/closure/`, the bytecode VMs of `internal/engine/vm/` and the Document of `internal/engine/document/`. It does not import the generators or the output schema: package `gen` joins the generators to it, and package `engine` the schema export |
 | `internal/engine/core/` | The part of the parser runtime that every backend shares: the parser state, input, memo table, expectations, values, built-ins of actions, limit controls, tracing and stream state, and the parse options, results and errors that `internal/engine` re-exports. Its package documentation states what a backend provides and what it may use |
 | `internal/engine/closure/` | The closure backend: builds a closure graph for each rule body and evaluates actions on the grammar AST |
 | `internal/engine/vm/` | The bytecode backend: the recursive and iterative VMs, which run a compiled module over the same instruction loop |
@@ -27,14 +27,13 @@ This document describes the repository layout and architecture, how to run tests
 | `schema/` | Output schema: the description of the values a grammar can produce (`schema.Output`), its JSON form and validation, and `Compare`, which reports how two schemas differ and whether each change breaks a reader. Public package; it imports only the standard library |
 | `query/` | Structural queries: patterns that match values of parse results, checked against an output schema when they compile (`Compile`, `Prepare`, `Query.Matches`). Public package |
 | `internal/schema/` | The export of a checked program's output schema as a `schema.Output` |
-| `internal/apitest/` | The behavior tests of package `zp`, from outside it: they call its public API, with internal packages only to build values, to mark start rules and to count how often options apply; the root package keeps its source and its documentation examples (`example*_test.go`), and a test checks that no other test file is added to it |
-| `internal/value/` | The engine's access to the representation of `parse.Node` (`D`) and the node helpers that only the engine needs |
+| `internal/value/` | The engine's access to the representation of `core.Node` (`D`) and the node helpers that only the engine needs |
 | `internal/limits/` | Defaults of the limits of a parse invocation and overflow-safe budget arithmetic, shared by the parser, the Document and package `query` |
 | `internal/bytecode/` | The bytecode instruction set and module, its disassembly, the encoding of modules in compiled grammars and the validation of loaded modules |
 | `internal/gen/` | What the Go and TypeScript generators share: generation options, the runtime mode of generated Go parsers, generated files, and the generator state both print with (the program and rule being printed, the expectation table, shared names, the Flow IR state of recognizer rules and the action value resolver) |
 | `runtime/` | Runtime package of generated Go parsers, imported by them or copied into them (`zeroparse.dev/zp/runtime`) |
-| `runtime/parse/` | The types that the engine and generated Go parsers share: nodes with their JSON form, traversal and cursors, the stream iterator, limits and their errors, position units, syntax errors, edits and statistics (`zeroparse.dev/zp/runtime/parse`) |
-| `runtime/noderep/` | The representation of `parse.Node` that the parsers build and read; not a stable API |
+| `core/` | The types that the engine and generated Go parsers share: nodes with their JSON form, traversal and cursors, the stream iterator, limits and their errors, position units, syntax errors, edits and statistics (`zeroparse.dev/zp/core`) |
+| `core/noderep/` | The representation of `core.Node` that the parsers build and read; not a stable API |
 | `internal/gen/gengo/` | Go generator: prints the parser, its types package and the runtime copy from the compiled program and Exec IR, and leaves out what the entry points cannot reach |
 | `internal/gen/gents/` | TypeScript generator: prints the parser, its types and its runtime files from the compiled program and Exec IR |
 | `internal/ir/` | The internal representations between a compiled program and generated code: `core/` (Core IR, its builder in `core/build/` and its passes), `flow/` (Flow IR, and in `flow/lower/` its lowering and which compiled rules it lowers), `exec/` (Exec IR: the operations of the parser VM in `exec/ops/`, the compositions in `exec/core/` and their Go library printing in `exec/libgo/`, the lowering from Flow IR in `exec/lower/`, the passes in `exec/pass/`, the Go and TypeScript printers in `exec/execgo/` and `exec/exects/`, the specification-table reader of their tests in `exec/spectest/`, and the reference models and conformance suite in `exec/ref/` and `exec/conform/`) and `pipeline/` (the runner of declared passes). See [Core, Flow and Exec IR](design/intermediate-representations.md) |
@@ -211,7 +210,7 @@ The top-level tests of `internal/engine` call `t.Parallel()`. A test stays seque
 Engine tests write grammars in ZeroParse source and compare results using the S-expression form of nodes (`Node.String`).
 The `check` helper also verifies that the result is the same with memoization disabled, with every backend (closure, recursive bytecode, iterative bytecode), with both position units, in recognition-only mode, and with tracing on.
 
-The behavior of package `zp` is tested from outside it by `internal/apitest`; the root package holds only its documentation examples, in `example*_test.go` files; `TestRootHoldsOnlyExamples` fails when another test file or a non-example function appears there. Tests of an engine mechanism that package `zp` exposes through traces and profiles (the memo, evaluation counts, twins) are in `internal/apitest` too. Measure its coverage with `go test -coverpkg=zeroparse.dev/zp ./internal/apitest`.
+The behavior of package `engine` is tested from outside it, by the tests of package `engine_test` in `engine/`: they call its public API, with internal packages only to build values, to mark start rules and to count how often options apply. Tests of an engine mechanism that package `engine` exposes through traces and profiles (the memo, evaluation counts, twins) are there too. The module root holds no Go package; `TestModuleRootHoldsNoPackage` fails when a Go file appears there.
 
 `internal/gen/gengo/gengo_pool_lifecycle_test.go` checks generated Node and typed parser cleanup after oversized
 inputs, retained results, and error/retry reuse in both position units.
@@ -248,14 +247,14 @@ control. Controlled row-count, reference/focus and boundary tests cover these re
 distinguishes equivalent small-tree work from wide-tree display reduction; real browser checks cover DOM/WASM wiring.
 
 The same-source budget-control reference build compiles and tests the engine packages without core budget-control
-instrumentation. After changing test files of `internal/engine` or `internal/apitest`, check that both builds compile
-with `go vet ./internal/engine/... ./internal/apitest` and
-`go vet -tags zp_budget_controls_reference ./internal/engine/... ./internal/apitest`; test files that use helpers
+instrumentation. After changing test files of `internal/engine` or `engine`, check that both builds compile
+with `go vet ./internal/engine/... ./engine` and
+`go vet -tags zp_budget_controls_reference ./internal/engine/... ./engine`; test files that use helpers
 defined in untagged files keep both builds compiling.
 The other reference tags (`zp_reference_*` and `zp_snapshot_*_reference`) likewise select the simpler or the
 former form of an optimized mechanism. The candidate tag `zp_snapshot_position_overlays` instead selects an opt-in
 representation that the default build has not adopted. `hack/test-reference-tags.sh [tag...]` vets and tests
-with `-short` the engine packages, `internal/apitest` and every package with a file constrained by a tag, under
+with `-short` the engine packages, `engine` and every package with a file constrained by a tag, under
 every tag of the tree or the tags it is given; it rejects a tag that no build constraint names. A test whose
 feature a tag removes skips under that tag. The run takes tens of minutes: run it after changing budget-control
 code, a reference variant or the tests of the engine packages; a landing batch runs it when it touches such code.

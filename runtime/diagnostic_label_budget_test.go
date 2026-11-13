@@ -4,7 +4,7 @@ import (
 	"errors"
 	"testing"
 
-	"zeroparse.dev/zp/runtime/parse"
+	"zeroparse.dev/zp/core"
 )
 
 func TestDiagnosticRenameAccountsForLargeExpectationSets(t *testing.T) {
@@ -12,7 +12,7 @@ func TestDiagnosticRenameAccountsForLargeExpectationSets(t *testing.T) {
 	for i := range ids {
 		ids[i] = ExpID(i + 1)
 	}
-	p := &Parser{Control: newBudgetControl(nil, parse.Limits{Compute: 64})}
+	p := &Parser{Control: newBudgetControl(nil, core.Limits{Compute: 64})}
 	var got error
 	func() {
 		defer func() {
@@ -26,7 +26,7 @@ func TestDiagnosticRenameAccountsForLargeExpectationSets(t *testing.T) {
 		}()
 		RenamedExpected(p, ids, 999)
 	}()
-	if !errors.Is(got, parse.ErrLimit) {
+	if !errors.Is(got, core.ErrLimit) {
 		t.Fatalf("rename compute limit = %v, want ErrLimit", got)
 	}
 	if p.Control.budgetUsed() != 64 {

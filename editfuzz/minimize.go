@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"errors"
 
-	"zeroparse.dev/zp"
+	"zeroparse.dev/zp/engine"
 )
 
 // DefaultMaxAttempts is the number of candidate replays that Minimize tries when maxAttempts is zero.
@@ -28,7 +28,7 @@ func Minimize(src []byte, seq *Sequence, maxAttempts int) (*Sequence, *Mismatch,
 }
 
 type minimizer struct {
-	p           *zp.Parser
+	p           *engine.Parser
 	fingerprint string
 	attempts    int
 	max         int
@@ -36,7 +36,7 @@ type minimizer struct {
 	mismatch    *Mismatch
 }
 
-func minimize(p *zp.Parser, seq *Sequence, maxAttempts int) (*Sequence, *Mismatch, int, error) {
+func minimize(p *engine.Parser, seq *Sequence, maxAttempts int) (*Sequence, *Mismatch, int, error) {
 	var m *Mismatch
 	if err := replay(p, seq); !errors.As(err, &m) {
 		if err == nil {

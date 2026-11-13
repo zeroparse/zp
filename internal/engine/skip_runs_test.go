@@ -8,10 +8,10 @@ import (
 	"strings"
 	"testing"
 
+	"zeroparse.dev/zp/core"
 	"zeroparse.dev/zp/internal/compile"
-	"zeroparse.dev/zp/internal/engine/core"
+	ecore "zeroparse.dev/zp/internal/engine/core"
 	"zeroparse.dev/zp/internal/gentest"
-	"zeroparse.dev/zp/runtime/parse"
 )
 
 // skipRunGrammars are the grammars with skip-run sites that the tests parse.
@@ -19,17 +19,17 @@ var skipRunGrammars = gentest.SkipRunGrammars
 
 // skipDump is dump with the expectations and messages of every syntax error, which the message
 // of an error leaves out when it has messages.
-func skipDump(t *testing.T, n *parse.Node, err error) string {
+func skipDump(t *testing.T, n *core.Node, err error) string {
 	t.Helper()
 	s := dump(t, n, err)
-	var errs []*parse.SyntaxError
-	var list parse.SyntaxErrors
-	var one *parse.SyntaxError
+	var errs []*core.SyntaxError
+	var list core.SyntaxErrors
+	var one *core.SyntaxError
 	switch {
 	case errors.As(err, &list):
 		errs = list
 	case errors.As(err, &one):
-		errs = []*parse.SyntaxError{one}
+		errs = []*core.SyntaxError{one}
 	}
 	for _, e := range errs {
 		s += fmt.Sprintf(" [%d %q %q]", e.Pos, e.Expected, e.Messages)
@@ -56,10 +56,10 @@ func skipRunMismatch(t *testing.T, prog *Program, in string, o ParseOptions) []s
 	t.Helper()
 	var diffs []string
 	{
-		core.SkipRecordsOff = true
+		ecore.SkipRecordsOff = true
 		n, err := prog.ParseWith("main", in, o)
 		want := skipDump(t, n, err)
-		core.SkipRecordsOff = false
+		ecore.SkipRecordsOff = false
 		n, err = prog.ParseWith("main", in, o)
 		if got := skipDump(t, n, err); got != want {
 			diffs = append(diffs, "input "+strings.ReplaceAll(in, "\n", `\n`)+"\n got  "+got+"\n want "+want)
@@ -107,7 +107,7 @@ func TestSkipRunsMatchParsesWithoutRecords(t *testing.T) {
 // Records are reused from the third walk over a position on, which the nested family reaches at
 // once.
 func TestSkipRunsNegativeControls(t *testing.T) {
-	defer func() { core.SkipRecordMutation = 0 }()
+	defer func() { ecore.SkipRecordMutation = 0 }()
 	var prog *Program
 	for _, g := range skipRunGrammars {
 		if g.Name == "nested recovery" {
@@ -118,17 +118,17 @@ func TestSkipRunsNegativeControls(t *testing.T) {
 		mutation int
 		input    string
 	}{
-		{core.SkipKeepPos, "((((a"},
-		{core.SkipNoExpected, "((((a"},
-		{core.SkipEarlyStore, "((((((a("},
+		{ecore.SkipKeepPos, "((((a"},
+		{ecore.SkipNoExpected, "((((a"},
+		{ecore.SkipEarlyStore, "((((((a("},
 	} {
-		core.SkipRecordMutation = tc.mutation
+		ecore.SkipRecordMutation = tc.mutation
 		for _, b := range []Backend{Closure, Bytecode, BytecodeIterative} {
 			if diffs := skipRunMismatches(t, prog, []string{tc.input}, b); len(diffs) == 0 {
 				t.Errorf("mutation %d, %s: no difference on %q", tc.mutation, b, tc.input)
 			}
 		}
-		core.SkipRecordMutation = 0
+		ecore.SkipRecordMutation = 0
 	}
 }
 
@@ -137,7 +137,7 @@ func TestSkipRunsNegativeControls(t *testing.T) {
 // the result of the unlimited parse, and an unlimited parse after each stopped one does too. The
 // nested family stops in recording walks at most budgets.
 func TestSkipRunsBudgetAbort(t *testing.T) {
-	if !core.BudgetControlsEnabled {
+	if !ecore.BudgetControlsEnabled {
 		t.Skip("budget controls are unavailable in the reference build")
 	}
 	var prog *Program
@@ -152,9 +152,9 @@ func TestSkipRunsBudgetAbort(t *testing.T) {
 		want := skipDump(t, n, err)
 		stopped := 0
 		for budget := uint64(1); ; budget++ {
-			o := ParseOptions{Backend: b, Expectations: true, Limits: parse.Limits{Compute: budget}}
+			o := ParseOptions{Backend: b, Expectations: true, Limits: core.Limits{Compute: budget}}
 			n, err := prog.ParseWith("main", in, o)
-			if errors.Is(err, parse.ErrLimit) {
+			if errors.Is(err, core.ErrLimit) {
 				stopped++
 				n, err := prog.ParseWith("main", in, ParseOptions{Backend: b, Expectations: true})
 				if got := skipDump(t, n, err); got != want {
@@ -177,7 +177,7 @@ func TestSkipRunsBudgetAbort(t *testing.T) {
 // give the results of fresh parses with skip-run records, and that random edits detect records
 // that leave out the end or the start of their examined range.
 func TestSkipRunsDocument(t *testing.T) {
-	defer func() { core.SkipRecordMutation = 0 }()
+	defer func() { ecore.SkipRecordMutation = 0 }()
 	var progs []*Program
 	var alphabets []string
 	for _, g := range skipRunGrammars {
@@ -185,8 +185,8 @@ func TestSkipRunsDocument(t *testing.T) {
 			progs, alphabets = append(progs, mustCompile(t, g.Src)), append(alphabets, g.Alphabet)
 		}
 	}
-	for _, mutation := range []int{0, core.SkipNoExamined, core.SkipNoFrom} {
-		core.SkipRecordMutation = mutation
+	for _, mutation := range []int{0, ecore.SkipNoExamined, ecore.SkipNoFrom} {
+		ecore.SkipRecordMutation = mutation
 		for _, b := range []Backend{Closure, Bytecode, BytecodeIterative} {
 			detected := false
 			for i, prog := range progs {
@@ -208,7 +208,7 @@ func TestSkipRunsDocument(t *testing.T) {
 // result can also run past the end of its input; the panic counts as a difference.
 func skipRunDocumentDiff(t *testing.T, prog *Program, alphabet string, b Backend) (diff string) {
 	t.Helper()
-	if core.SkipRecordMutation != 0 {
+	if ecore.SkipRecordMutation != 0 {
 		defer func() {
 			if e := recover(); e != nil {
 				diff = fmt.Sprint("panic: ", e)
@@ -238,10 +238,10 @@ func skipRunDocumentDiff(t *testing.T, prog *Program, alphabet string, b Backend
 		}
 		n, err := doc.Parse()
 		got := skipDump(t, n, err)
-		mutation := core.SkipRecordMutation
-		core.SkipRecordsOff, core.SkipRecordMutation = true, 0
+		mutation := ecore.SkipRecordMutation
+		ecore.SkipRecordsOff, ecore.SkipRecordMutation = true, 0
 		fn, ferr := prog.ParseWith("main", doc.Text(), o)
-		core.SkipRecordsOff, core.SkipRecordMutation = false, mutation
+		ecore.SkipRecordsOff, ecore.SkipRecordMutation = false, mutation
 		if want := skipDump(t, fn, ferr); got != want {
 			return "edit " + strings.ReplaceAll(doc.Text(), "\n", `\n`) + "\n got  " + got + "\n want " + want
 		}
@@ -257,10 +257,10 @@ func TestSkipRunsStream(t *testing.T) {
 rule x = ("b" #recover(skip=[ac]+)) "d"`)
 	input := strings.Repeat(strings.Repeat("a", 40)+"c"+strings.Repeat("a", 9)+"e"+strings.Repeat("a", 20)+"d", 50)
 	run := func(off bool, b Backend) string {
-		core.SkipRecordsOff = off
-		defer func() { core.SkipRecordsOff = false }()
+		ecore.SkipRecordsOff = off
+		defer func() { ecore.SkipRecordsOff = false }()
 		var out strings.Builder
-		err := prog.ParseStreamWith("main", strings.NewReader(input), func(n *parse.Node) error {
+		err := prog.ParseStreamWith("main", strings.NewReader(input), func(n *core.Node) error {
 			out.WriteString(skipDump(t, n, nil) + "\n")
 			return nil
 		}, ParseOptions{Backend: b, Expectations: true})

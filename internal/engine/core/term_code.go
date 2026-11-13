@@ -3,11 +3,11 @@ package core
 import (
 	"fmt"
 
+	"zeroparse.dev/zp/core/noderep"
 	"zeroparse.dev/zp/internal/bytecode"
 	"zeroparse.dev/zp/internal/compile"
 	"zeroparse.dev/zp/internal/ir/exec/ops"
 	"zeroparse.dev/zp/internal/value"
-	"zeroparse.dev/zp/runtime/noderep"
 )
 
 // Term code: a TermProgram as a bytecode module stores it (bytecode.Term), so that a saved program

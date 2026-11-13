@@ -11,10 +11,10 @@ import (
 	"path/filepath"
 	"strings"
 
-	"zeroparse.dev/zp"
+	"zeroparse.dev/zp/core"
 	"zeroparse.dev/zp/editfuzz"
+	"zeroparse.dev/zp/engine"
 	"zeroparse.dev/zp/internal/cliflag"
-	"zeroparse.dev/zp/runtime/parse"
 )
 
 func editFuzzCmd(args []string, stdout io.Writer) error {
@@ -76,7 +76,7 @@ func editFuzzCmd(args []string, stdout io.Writer) error {
 			return err
 		}
 	}
-	var bs []zp.Backend
+	var bs []engine.Backend
 	for _, name := range strings.Split(*backends, ",") {
 		b, err := cliflag.ParseBackend(name)
 		if err != nil {
@@ -84,7 +84,7 @@ func editFuzzCmd(args []string, stdout io.Writer) error {
 		}
 		bs = append(bs, b)
 	}
-	var us []parse.PositionUnit
+	var us []core.PositionUnit
 	for _, name := range strings.Split(*units, ",") {
 		u, err := cliflag.ParseUnit(name)
 		if err != nil {
@@ -105,7 +105,7 @@ func editFuzzCmd(args []string, stdout io.Writer) error {
 	return nil
 }
 
-func editFuzzReplay(src []byte, path, save string, minimize bool, maxAttempts int, limits parse.Limits, stdout io.Writer) error {
+func editFuzzReplay(src []byte, path, save string, minimize bool, maxAttempts int, limits core.Limits, stdout io.Writer) error {
 	seq, err := editfuzz.Load(path)
 	if err != nil {
 		return err

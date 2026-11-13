@@ -16,11 +16,11 @@ import (
 	"strings"
 	"testing"
 
+	"zeroparse.dev/zp/core"
 	"zeroparse.dev/zp/internal/compile"
 	"zeroparse.dev/zp/internal/engine"
 	"zeroparse.dev/zp/internal/gen"
 	"zeroparse.dev/zp/internal/gentest"
-	"zeroparse.dev/zp/runtime/parse"
 )
 
 // streamRun is one stream parse of a differential test. The reader returns
@@ -541,9 +541,9 @@ func main() {
 func engineStream(prog *engine.Program, v streamRun) string {
 	r := &chunkReader{s: string(v.Input), chunk: v.Chunk, eofWithData: v.EOFWithData, fail: v.Fail}
 	var res streamResult
-	var emit func(*parse.Node) error
+	var emit func(*core.Node) error
 	if !v.NilEmit {
-		emit = func(n *parse.Node) error {
+		emit = func(n *core.Node) error {
 			b, err := json.Marshal(n)
 			if err != nil {
 				panic(err)
@@ -556,12 +556,12 @@ func engineStream(prog *engine.Program, v streamRun) string {
 			return nil
 		}
 	}
-	o := engine.ParseOptions{Expectations: true, Unit: parse.CodePoints, DiagnosticLimit: v.Limit, DiagnosticLimitSet: v.LimitSet}
+	o := engine.ParseOptions{Expectations: true, Unit: core.CodePoints, DiagnosticLimit: v.Limit, DiagnosticLimitSet: v.LimitSet}
 	if v.Bytes {
-		o.Unit = parse.Bytes
+		o.Unit = core.Bytes
 	}
 	if v.Diag {
-		o.DiagnosticCallback = func(e *parse.SyntaxError) error {
+		o.DiagnosticCallback = func(e *core.SyntaxError) error {
 			res.Diags = append(res.Diags, fmt.Sprint(len(res.Emits), " ", e.Error()))
 			e.Expected, e.Messages, e.Pos = append(e.Expected, "mutated"), nil, -1
 			if len(res.Diags) == v.DiagStopAt {
@@ -572,9 +572,9 @@ func engineStream(prog *engine.Program, v streamRun) string {
 	}
 	var err error
 	if v.Iterate {
-		var it *parse.StreamIterator
+		var it *core.StreamIterator
 		if it, err = prog.Iterate("main", r, o); err == nil {
-			err = drain(it.Next, it.Close, emit, func(err error) bool { return err == parse.ErrStreamClosed })
+			err = drain(it.Next, it.Close, emit, func(err error) bool { return err == core.ErrStreamClosed })
 		}
 	} else {
 		err = prog.ParseStreamWith("main", r, emit, o)
@@ -1062,7 +1062,7 @@ const generatedRecoveringStreamConsumer = `package recovering
 
 import (
 	zprt "zeroparse.dev/zp/runtime"
-	"zeroparse.dev/zp/runtime/parse"
+	"zeroparse.dev/zp/core"
 	"errors"
 	"io"
 	"runtime"
@@ -1105,7 +1105,7 @@ func TestDiagnosticLimitBoundsMemory(t *testing.T) {
 			}
 			return nil
 		}, WithUnit(unit), zprt.WithDiagnosticLimit(3), zprt.WithDiagnosticCallback(func(*SyntaxError) error { diags++; return nil }))
-		var truncated *parse.TruncatedSyntaxErrors
+		var truncated *core.TruncatedSyntaxErrors
 		if !errors.As(err, &truncated) || truncated.Total != n || truncated.Dropped != n-3 || truncated.CountsSaturated || count != 2*n || diags != n {
 			t.Fatal(err, count, diags)
 		}
@@ -1202,7 +1202,7 @@ func TestIterateValue(t *testing.T) {
 		t.Fatal(ok, err)
 	}
 	it.Close()
-	if _, ok, err := it.Next(); ok || err != parse.ErrStreamClosed {
+	if _, ok, err := it.Next(); ok || err != core.ErrStreamClosed {
 		t.Fatal(ok, err)
 	}
 	// A callback panic reaches the caller of Next unchanged.

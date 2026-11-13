@@ -9,8 +9,8 @@ import (
 	"io"
 	"testing"
 
-	"zeroparse.dev/zp/internal/engine/core"
-	"zeroparse.dev/zp/runtime/parse"
+	"zeroparse.dev/zp/core"
+	ecore "zeroparse.dev/zp/internal/engine/core"
 )
 
 type streamRefillResult struct {
@@ -37,15 +37,15 @@ func (r *streamRefillScript) Read(dst []byte) (int, error) {
 	return copy(dst, result.data), result.err
 }
 
-func streamRefillObserver(reader io.Reader, control *core.BudgetControl) (*core.StreamReaderObserver, *error) {
+func streamRefillObserver(reader io.Reader, control *ecore.BudgetControl) (*ecore.StreamReaderObserver, *error) {
 	var readErr error
-	return &core.StreamReaderObserver{Reader: reader, Result: &readErr, Control: control}, &readErr
+	return &ecore.StreamReaderObserver{Reader: reader, Result: &readErr, Control: control}, &readErr
 }
 
 func TestStreamReaderObserverChargesEachUnderlyingRead(t *testing.T) {
 	t.Parallel()
 	reader := &streamRefillScript{results: []streamRefillResult{{data: []byte("a")}, {data: []byte("b")}}}
-	control := core.NewBudgetControl(nil, parse.Limits{Compute: 2})
+	control := ecore.NewBudgetControl(nil, core.Limits{Compute: 2})
 	observer, _ := streamRefillObserver(reader, control)
 	for i, want := range []byte("ab") {
 		var dst [1]byte
@@ -66,19 +66,19 @@ func TestStreamReaderObserverBoundsBufioRetries(t *testing.T) {
 	t.Parallel()
 	t.Run("empty retries", func(t *testing.T) {
 		reader := &streamRefillScript{results: []streamRefillResult{{}, {}, {}, {}}}
-		control := core.NewBudgetControl(nil, parse.Limits{Compute: 3})
+		control := ecore.NewBudgetControl(nil, core.Limits{Compute: 3})
 		observer, _ := streamRefillObserver(reader, control)
 		buffered := bufio.NewReader(observer)
 		limitErr := catchFatal(t, func() { _, _ = buffered.ReadByte() })
-		var limit *parse.LimitError
-		if !errors.As(limitErr, &limit) || limit.Kind != parse.LimitCompute || limit.Used != 3 || limit.Requested != 1 || reader.reads != 3 {
+		var limit *core.LimitError
+		if !errors.As(limitErr, &limit) || limit.Kind != core.LimitCompute || limit.Used != 3 || limit.Requested != 1 || reader.reads != 3 {
 			t.Fatalf("error=%v reads=%d spent=%d", limitErr, reader.reads, control.Used)
 		}
 	})
 	for _, max := range []uint64{1, 2} {
 		t.Run(map[uint64]string{1: "one-short split rune", 2: "exact split rune"}[max], func(t *testing.T) {
 			reader := &streamRefillScript{results: []streamRefillResult{{data: []byte{0xc3}}, {data: []byte{0xa9}}}}
-			control := core.NewBudgetControl(nil, parse.Limits{Compute: max})
+			control := ecore.NewBudgetControl(nil, core.Limits{Compute: max})
 			observer, _ := streamRefillObserver(reader, control)
 			buffered := bufio.NewReader(observer)
 			var r rune
@@ -86,8 +86,8 @@ func TestStreamReaderObserverBoundsBufioRetries(t *testing.T) {
 			var readErr error
 			limitErr := catchFatal(t, func() { r, size, readErr = buffered.ReadRune() })
 			if max == 1 {
-				var limit *parse.LimitError
-				if !errors.As(limitErr, &limit) || limit.Kind != parse.LimitCompute || limit.Used != 1 || limit.Requested != 1 || reader.reads != 1 || size != 0 {
+				var limit *core.LimitError
+				if !errors.As(limitErr, &limit) || limit.Kind != core.LimitCompute || limit.Used != 1 || limit.Requested != 1 || reader.reads != 1 || size != 0 {
 					t.Fatalf("error=%v reads=%d rune=%q size=%d", limitErr, reader.reads, r, size)
 				}
 			} else if limitErr != nil || readErr != nil || r != 'é' || size != 2 || reader.reads != 2 {
@@ -107,11 +107,11 @@ func TestBudgetStreamEmptyRefillBudget(t *testing.T) {
 rule row = .+ #atomic`)
 	budgetStreamVariants(t, func(t *testing.T, o ParseOptions) {
 		reader := &budgetCancelledRefillReader{cancel: func() {}}
-		o.Limits = parse.Limits{Compute: 64}
+		o.Limits = core.Limits{Compute: 64}
 		emits := 0
-		err := prog.ParseStreamWith("main", reader, func(*parse.Node) error { emits++; return nil }, o)
-		var limit *parse.LimitError
-		if !errors.As(err, &limit) || limit.Kind != parse.LimitCompute || limit.Used != 64 || limit.Requested != 1 || reader.calls == 0 || reader.calls > 64 || emits != 0 {
+		err := prog.ParseStreamWith("main", reader, func(*core.Node) error { emits++; return nil }, o)
+		var limit *core.LimitError
+		if !errors.As(err, &limit) || limit.Kind != core.LimitCompute || limit.Used != 64 || limit.Requested != 1 || reader.calls == 0 || reader.calls > 64 || emits != 0 {
 			t.Fatalf("error=%v calls=%d emits=%d", err, reader.calls, emits)
 		}
 	})
@@ -120,7 +120,7 @@ rule row = .+ #atomic`)
 func TestStreamReaderObserverOneShortFailsBeforeCallerRead(t *testing.T) {
 	t.Parallel()
 	reader := &streamRefillScript{results: []streamRefillResult{{data: []byte("a")}, {data: []byte("b")}}}
-	control := core.NewBudgetControl(nil, parse.Limits{Compute: 1})
+	control := ecore.NewBudgetControl(nil, core.Limits{Compute: 1})
 	observer, _ := streamRefillObserver(reader, control)
 	var first [1]byte
 	if n, err := observer.Read(first[:]); n != 1 || err != nil || first[0] != 'a' {
@@ -128,7 +128,7 @@ func TestStreamReaderObserverOneShortFailsBeforeCallerRead(t *testing.T) {
 	}
 	var second [1]byte
 	limitErr := catchFatal(t, func() { _, _ = observer.Read(second[:]) })
-	if !errors.Is(limitErr, parse.ErrLimit) {
+	if !errors.Is(limitErr, core.ErrLimit) {
 		t.Fatalf("second read error=%v, want ErrLimit", limitErr)
 	}
 	if reader.reads != 1 || control.Used != 1 {
@@ -142,7 +142,7 @@ func TestStreamReaderObserverCancellationAndReadErrorPrecedence(t *testing.T) {
 	t.Parallel()
 	t.Run("cancellation before exhausted reservation", func(t *testing.T) {
 		ctx, cancel := context.WithCancel(context.Background())
-		control := core.NewBudgetControl(ctx, parse.Limits{Compute: 1})
+		control := ecore.NewBudgetControl(ctx, core.Limits{Compute: 1})
 		control.Charge(1)
 		cancel()
 		reader := &streamRefillScript{results: []streamRefillResult{{data: []byte("x")}}}
@@ -162,7 +162,7 @@ func TestStreamReaderObserverCancellationAndReadErrorPrecedence(t *testing.T) {
 			ctx, cancel := context.WithCancel(context.Background())
 			defer cancel()
 			reader := &streamRefillScript{results: []streamRefillResult{{err: returned}}, onRead: func(int) { cancel() }}
-			control := core.NewBudgetControl(ctx, parse.Limits{Compute: 1})
+			control := ecore.NewBudgetControl(ctx, core.Limits{Compute: 1})
 			observer, result := streamRefillObserver(reader, control)
 			fatalErr := catchFatal(t, func() { _, _ = observer.Read(make([]byte, 1)) })
 			if returned == io.EOF {

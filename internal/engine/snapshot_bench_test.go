@@ -6,19 +6,19 @@ import (
 	"strings"
 	"testing"
 
+	"zeroparse.dev/zp/core"
 	"zeroparse.dev/zp/internal/compile"
-	"zeroparse.dev/zp/runtime/parse"
 )
 
 var snapshotBenchmarkResult any
 
 type snapshotLegacyResult struct {
 	version DocumentVersion
-	unit    parse.PositionUnit
+	unit    core.PositionUnit
 	text    string
-	root    *parse.Node
+	root    *core.Node
 	err     error
-	stats   parse.ParseStats
+	stats   core.ParseStats
 }
 
 // Compare complete capture and later materialization against a legacy Parse
@@ -35,7 +35,7 @@ rule item = [a-z]`)
 		b.Fatal(err)
 	}
 	for _, size := range []int{4 << 10, 64 << 10} {
-		for _, unit := range []parse.PositionUnit{parse.CodePoints, parse.Bytes} {
+		for _, unit := range []core.PositionUnit{core.CodePoints, core.Bytes} {
 			for _, back := range []Backend{Closure, Bytecode, BytecodeIterative} {
 				base := ParseOptions{Unit: unit, Backend: back}
 				d, err := prog.NewDocumentWith("main", strings.Repeat("a", size), base)

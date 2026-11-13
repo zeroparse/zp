@@ -4,12 +4,12 @@ import (
 	"fmt"
 	"unsafe"
 
+	"zeroparse.dev/zp/core"
+	"zeroparse.dev/zp/core/noderep"
 	"zeroparse.dev/zp/internal/bytecode"
 	"zeroparse.dev/zp/internal/compile"
-	"zeroparse.dev/zp/internal/engine/core"
+	ecore "zeroparse.dev/zp/internal/engine/core"
 	"zeroparse.dev/zp/internal/value"
-	"zeroparse.dev/zp/runtime/noderep"
-	"zeroparse.dev/zp/runtime/parse"
 )
 
 // Program is a module prepared for execution. Rule calls, memoization, left recursion, and
@@ -17,8 +17,8 @@ import (
 // bodies, Operators Rule sections, actions, and predicates run as bytecode.
 type Program struct {
 	m        *bytecode.Module
-	rules    []*core.Rule
-	byName   map[string]*core.Rule
+	rules    []*ecore.Rule
+	byName   map[string]*ecore.Rule
 	nseen    int        // number of rules with rule.seen set
 	runes    [][]rune   // code points of each string in the string table
 	bytes    [][]byte   // UTF-8 of the decoded literal strings
@@ -29,7 +29,7 @@ type Program struct {
 	// runSites holds, at the index of each REPEAT that a Document can resume, how to resume it.
 	runSites []*vmRunSite
 	// terms holds the programs of the module's terms (Module.Terms).
-	terms []*core.TermProgram
+	terms []*ecore.TermProgram
 	// nodeKinds holds the kinds of the module's named node types by the string index of their
 	// names, at every index of the name (nil when the module has none).
 	nodeKinds []*value.NodeTypeKinds
@@ -89,16 +89,16 @@ func (vm *Program) runSite(ip int) *vmRunSite {
 // vmBodies returns the body of the rule r, whose code starts at entry in vm. Each driver of the
 // VM passes its own to buildVMProgram, deciding how a body runs the code: the recursive VM's
 // execBody calls exec, which recurses for each rule call.
-type vmBodies func(vm *Program, r *core.Rule, entry int) func(p *core.Parser, min int) (*parse.Node, bool)
+type vmBodies func(vm *Program, r *ecore.Rule, entry int) func(p *ecore.Parser, min int) (*core.Node, bool)
 
 // New prepares a module for execution with the recursive model, in the family f; terms are the
 // programs of its terms (LoadTerms).
-func New(m *bytecode.Module, terms []*core.TermProgram, f core.Family) *Program {
+func New(m *bytecode.Module, terms []*ecore.TermProgram, f ecore.Family) *Program {
 	return buildVMProgram(m, terms, f, execBody)
 }
 
 // Rule returns the rule called name, or nil when the module has none.
-func (vm *Program) Rule(name string) *core.Rule { return vm.byName[name] }
+func (vm *Program) Rule(name string) *ecore.Rule { return vm.byName[name] }
 
 // Descs returns the expectation table of the program: compile.FixedDescs followed by the string
 // table.
@@ -109,16 +109,16 @@ func (vm *Program) Descs() []string { return vm.descs }
 func (vm *Program) NumSeen() int { return vm.nseen }
 
 // execBody runs a rule body with the recursive model: each call recurses into exec.
-func execBody(vm *Program, r *core.Rule, entry int) func(p *core.Parser, min int) (*parse.Node, bool) {
-	return func(p *core.Parser, min int) (*parse.Node, bool) {
+func execBody(vm *Program, r *ecore.Rule, entry int) func(p *ecore.Parser, min int) (*core.Node, bool) {
+	return func(p *ecore.Parser, min int) (*core.Node, bool) {
 		v, ok, _ := machineOf(p).exec(vm, entry, r, min)
 		return v, ok
 	}
 }
 
 // buildVMProgram prepares a module for execution in the family f. bodies makes the rule bodies.
-func buildVMProgram(m *bytecode.Module, terms []*core.TermProgram, f core.Family, bodies vmBodies) *Program {
-	vm := &Program{m: m, byName: map[string]*core.Rule{}, descs: append(append([]string(nil), compile.FixedDescs...), m.Strings...)}
+func buildVMProgram(m *bytecode.Module, terms []*ecore.TermProgram, f ecore.Family, bodies vmBodies) *Program {
+	vm := &Program{m: m, byName: map[string]*ecore.Rule{}, descs: append(append([]string(nil), compile.FixedDescs...), m.Strings...)}
 	vm.literals = m.Strings
 	normalized := false
 	for i, s := range m.Strings {
@@ -161,7 +161,7 @@ func buildVMProgram(m *bytecode.Module, terms []*core.TermProgram, f core.Family
 	vm.terms = terms
 	for i := range m.Rules {
 		ri := &m.Rules[i]
-		r := &core.Rule{
+		r := &ecore.Rule{
 			ID: i, Name: m.Strings[ri.Name], Scope: vm.scope(ri.Scope),
 			Memo: ri.Memo, Leader: ri.Leader, Member: ri.Member, Cycle: ri.Cycle, Positional: ri.Positional, Novalue: ri.NoValue, Transient: ri.Transient, Rec: ri.Rec, Splice: ri.Splice, Vars: vm.names(ri.Vars),
 		}
@@ -180,7 +180,7 @@ func buildVMProgram(m *bytecode.Module, terms []*core.TermProgram, f core.Family
 			}
 		}
 		r.Kinds = noderep.NewRuleKinds(r.Name)
-		r.Value = func(_ *core.Parser, v *parse.Node, _ int) *parse.Node { return v } // the code pushes the value of the body's scope
+		r.Value = func(_ *ecore.Parser, v *core.Node, _ int) *core.Node { return v } // the code pushes the value of the body's scope
 		if ri.Action >= 0 {
 			r.Act = vm.terms[ri.Action].Eval
 		}
@@ -191,7 +191,7 @@ func buildVMProgram(m *bytecode.Module, terms []*core.TermProgram, f core.Family
 	}
 	statics := make([]*compile.Rule, len(vm.rules))
 	for i, r := range vm.rules {
-		statics[i] = core.StaticRuleOf(r)
+		statics[i] = ecore.StaticRuleOf(r)
 	}
 	vm.nseen = compile.NumberSeen(statics)
 	compile.NumberLeaders(statics)
@@ -204,7 +204,7 @@ func buildVMProgram(m *bytecode.Module, terms []*core.TermProgram, f core.Family
 	vm.direct = make([]bool, len(vm.rules))
 	for i, r := range vm.rules {
 		r.Plain = !r.Leader && (!r.Memo || r.Transient) && len(r.Scope.Names) == 0
-		vm.direct[i] = r.Plain && f == core.Inlined
+		vm.direct[i] = r.Plain && f == ecore.Inlined
 	}
 	for i := range m.Rules {
 		ri, r := &m.Rules[i], vm.rules[i]
@@ -242,8 +242,8 @@ func (vm *Program) scope(ids []int) *compile.Scope {
 
 // block returns a matcher that runs the code of an Operators Rule section. It sets p.cut if a cut is passed
 // within the section.
-func (vm *Program) block(entry int) core.Matcher {
-	return func(p *core.Parser) (*parse.Node, bool) {
+func (vm *Program) block(entry int) ecore.Matcher {
+	return func(p *ecore.Parser) (*core.Node, bool) {
 		v, ok, cut := machineOf(p).exec(vm, entry, nil, 0)
 		if cut {
 			p.Cut = true
@@ -252,11 +252,11 @@ func (vm *Program) block(entry int) core.Matcher {
 	}
 }
 
-func (vm *Program) line(l *bytecode.LineInfo, operator bool) *core.OperatorsRuleLine {
+func (vm *Program) line(l *bytecode.LineInfo, operator bool) *ecore.OperatorsRuleLine {
 	// The code pushes the line's value already: the value of an operand line's scope, or the
 	// operator's value, which is the node of its tuple if IsSeq (its captures are attached to it).
-	pl := &core.OperatorsRuleLine{Scope: vm.scope(l.Scope), M: vm.block(l.Entry), Entry: l.Entry, Single: compile.SinglePass,
-		Value: func(_ *core.Parser, v *parse.Node, _ int) *parse.Node { return v }}
+	pl := &ecore.OperatorsRuleLine{Scope: vm.scope(l.Scope), M: vm.block(l.Entry), Entry: l.Entry, Single: compile.SinglePass,
+		Value: func(_ *ecore.Parser, v *core.Node, _ int) *core.Node { return v }}
 	if operator && l.IsSeq {
 		pl.Single, pl.Shape = compile.SingleTuple, compile.Shaper{Elems: true}
 	}
@@ -266,16 +266,16 @@ func (vm *Program) line(l *bytecode.LineInfo, operator bool) *core.OperatorsRule
 	return pl
 }
 
-func (vm *Program) operatorsRule(pi *bytecode.OperatorsRuleInfo) *core.OperatorsRule {
-	pr := &core.OperatorsRule{SkipEntry: pi.Skip}
+func (vm *Program) operatorsRule(pi *bytecode.OperatorsRuleInfo) *ecore.OperatorsRule {
+	pr := &ecore.OperatorsRule{SkipEntry: pi.Skip}
 	if pi.Skip >= 0 {
 		pr.Skip = vm.block(pi.Skip)
 	}
 	for i := range pi.Operands {
 		pr.Operands = append(pr.Operands, vm.line(&pi.Operands[i], false))
 	}
-	op := func(o *bytecode.OpInfo) *core.OperatorsRuleOp {
-		po := &core.OperatorsRuleOp{Id: o.ID, Level: o.Level, Line: vm.line(&o.Line, true)}
+	op := func(o *bytecode.OpInfo) *ecore.OperatorsRuleOp {
+		po := &ecore.OperatorsRuleOp{Id: o.ID, Level: o.Level, Line: vm.line(&o.Line, true)}
 		po.Kind = []string{"prefix", "postfix", "infix"}[o.Kind]
 		if o.Kind == bytecode.OperatorInfix {
 			po.Assoc = []string{"left", "right", "none"}[o.Assoc]
@@ -298,14 +298,14 @@ func (vm *Program) operatorsRule(pi *bytecode.OperatorsRuleInfo) *core.Operators
 // driver built on this VM that needs state of its own, such as frames, embeds Machine in that
 // state and points driver at it.
 type Machine struct {
-	p        *core.Parser
+	p        *ecore.Parser
 	vals     []any      // value stack
 	ents     []vmEntry  // entry stack
 	labs     []labState // state of the label, recovery and skip entries on ents
 	reps     []repState
-	scans    []scanWalk       // the walks of scan sites in progress that gather a list
-	posSlab  []int            // positions pushed as values (newPos); stream splits keep it
-	freeRuns []*core.RunState // runStates of finished repetitions (newRunState)
+	scans    []scanWalk        // the walks of scan sites in progress that gather a list
+	posSlab  []int             // positions pushed as values (newPos); stream splits keep it
+	freeRuns []*ecore.RunState // runStates of finished repetitions (newRunState)
 	driver   vmDriverState
 }
 
@@ -317,7 +317,7 @@ type vmDriverState interface {
 }
 
 // machineOf returns the VM state of the parse that p runs, making it on first use.
-func machineOf(p *core.Parser) *Machine {
+func machineOf(p *ecore.Parser) *Machine {
 	if mc, ok := p.Backend.(*Machine); ok {
 		return mc
 	}
@@ -329,13 +329,13 @@ func machineOf(p *core.Parser) *Machine {
 // SplitChunks keeps the position chunk, so its bytes stay charged.
 func (mc *Machine) SplitChunks() {
 	if len(mc.posSlab) > 0 {
-		mc.p.MemUsed += core.PtrChunk * uint64(unsafe.Sizeof(0))
+		mc.p.MemUsed += ecore.PtrChunk * uint64(unsafe.Sizeof(0))
 	}
 }
 
-func (mc *Machine) ClearInactive() { core.ClearSpend(mc.p, mc.vals[len(mc.vals):cap(mc.vals)]) }
+func (mc *Machine) ClearInactive() { ecore.ClearSpend(mc.p, mc.vals[len(mc.vals):cap(mc.vals)]) }
 
-func (mc *Machine) Attach(p *core.Parser) { mc.p = p }
+func (mc *Machine) Attach(p *ecore.Parser) { mc.p = p }
 
 // Keep keeps only the value stack, whose capacity a Document reuses (reuseDocumentVMValues), and
 // the reset driver state.
@@ -371,7 +371,7 @@ func (mc *Machine) RetainedBytes() uint64 {
 func (mc *Machine) StackBytes() uint64 {
 	return mc.RetainedBytes() + uint64(cap(mc.ents))*uint64(unsafe.Sizeof(vmEntry{})) +
 		uint64(cap(mc.labs))*uint64(unsafe.Sizeof(labState{})) + uint64(cap(mc.reps))*uint64(unsafe.Sizeof(repState{})) + uint64(cap(mc.scans))*uint64(unsafe.Sizeof(scanWalk{})) +
-		uint64(cap(mc.freeRuns))*uint64(unsafe.Sizeof((*core.RunState)(nil)))
+		uint64(cap(mc.freeRuns))*uint64(unsafe.Sizeof((*ecore.RunState)(nil)))
 }
 
 // NewMachine returns VM state that holds vals as its value stack, as a Document keeps it between
@@ -382,7 +382,7 @@ func NewMachine(vals []any) *Machine { return &Machine{vals: vals} }
 func (mc *Machine) Values() []any { return mc.vals }
 
 // Parser returns the parser that mc serves, or nil when it serves none.
-func (mc *Machine) Parser() *core.Parser { return mc.p }
+func (mc *Machine) Parser() *ecore.Parser { return mc.p }
 
 // --- Running matching code ---
 
@@ -411,12 +411,12 @@ type vmEntry struct {
 
 // labState is the state of a label, recovery or skip entry.
 type labState struct {
-	msg  int32        // eLabel: message
-	mode int32        // eLabel: 0 for @error, 1 for @diagnostic
-	far  int          // eLabel, eRecover: saved farthest failure. eSkip: recovered failure
-	base int          // eLabel, eRecover: saved start of the expectation record (ExpMark)
-	bits uint64       // eLabel, eRecover: saved membership filter
-	exp  []core.ExpID // eSkip: expectations of the recovered failure
+	msg  int32         // eLabel: message
+	mode int32         // eLabel: 0 for @error, 1 for @diagnostic
+	far  int           // eLabel, eRecover: saved farthest failure. eSkip: recovered failure
+	base int           // eLabel, eRecover: saved start of the expectation record (ExpMark)
+	bits uint64        // eLabel, eRecover: saved membership filter
+	exp  []ecore.ExpID // eSkip: expectations of the recovered failure
 }
 
 // pushLab pushes an entry of kind with the state l.
@@ -436,27 +436,27 @@ func (mc *Machine) popLab(e *vmEntry) labState {
 type vmSave struct {
 	pos                          int
 	vals, reps, trail, recovered int32
-	env                          *core.Env
-	frame                        *core.Frame
+	env                          *ecore.Env
+	frame                        *ecore.Frame
 }
 
 type repState struct {
 	min, max, count int
 	scope           int
-	base            int            // bottom of the element values
-	run             *core.RunState // the run being recorded in a Document parse, or nil
-	skip            bool           // a skip-run site (SKIPREPEAT) or a run site whose walk has begun
-	build           bool           // a run site whose walk gathers the element values
-	cold            bool           // a run site that is not hot: an ordinary repetition until its end
-	scan, hot, hit  bool           // the walk of a scan site has reached ScanHotSpan elements; the site is hot; it took the rest from a record
-	coldStart, site int            // where the walk of a cold run site or of a scan site began, and its number
+	base            int             // bottom of the element values
+	run             *ecore.RunState // the run being recorded in a Document parse, or nil
+	skip            bool            // a skip-run site (SKIPREPEAT) or a run site whose walk has begun
+	build           bool            // a run site whose walk gathers the element values
+	cold            bool            // a run site that is not hot: an ordinary repetition until its end
+	scan, hot, hit  bool            // the walk of a scan site has reached ScanHotSpan elements; the site is hot; it took the rest from a record
+	coldStart, site int             // where the walk of a cold run site or of a scan site began, and its number
 }
 
 // scanWalk is the state of the walk of a scan site that builds a list, beyond that of its repState
 // (core/scan_sites.go). The walks in progress are a stack, in the order of their repetitions.
 type scanWalk struct {
 	hw0  int
-	kids []*parse.Node // the elements of the record that the walk took the rest from
+	kids []*core.Node // the elements of the record that the walk took the rest from
 }
 
 func (mc *Machine) save() vmSave {
@@ -471,7 +471,7 @@ func (mc *Machine) restore(s *vmSave) {
 	mc.vals = mc.vals[:s.vals]
 	mc.reps = mc.reps[:s.reps]
 	p.UndoCaptures(int(s.trail))
-	p.Trail = p.Trail[:core.Min2(int(s.trail), len(p.Trail))]
+	p.Trail = p.Trail[:ecore.Min2(int(s.trail), len(p.Trail))]
 	p.Recovered = p.Recovered[:s.recovered]
 	p.Env = s.env
 	p.Frame = s.frame
@@ -484,18 +484,18 @@ func (mc *Machine) pop() any {
 	return v
 }
 
-func asNodeValue(v any) *parse.Node {
+func asNodeValue(v any) *core.Node {
 	if v == nil {
 		return nil
 	}
-	return v.(*parse.Node)
+	return v.(*core.Node)
 }
 
 // exec runs matching code from ip until RETURN or END (the recursive model). On success it
 // returns the pushed value. cut reports whether a cut belonging to no choice was passed (used
 // in Operators Rule sections). Rule calls and Operators Rule expressions call the shared runtime (call,
 // OperatorsRuleParse) through host recursion.
-func (mc *Machine) exec(vm *Program, ip int, r *core.Rule, min int) (result *parse.Node, ok bool, cut bool) {
+func (mc *Machine) exec(vm *Program, ip int, r *ecore.Rule, min int) (result *core.Node, ok bool, cut bool) {
 	p := mc.p
 	bv := mc.newBody(ip, r, min)
 	b := &bv
@@ -522,12 +522,12 @@ func (mc *Machine) exec(vm *Program, ip int, r *core.Rule, min int) (result *par
 type vmBody struct {
 	ip                  int
 	vbase, ebase, rbase int
-	r                   *core.Rule
+	r                   *ecore.Rule
 	min                 int
 	cut                 bool // a cut belonging to no choice was passed
 }
 
-func (mc *Machine) newBody(ip int, r *core.Rule, min int) vmBody {
+func (mc *Machine) newBody(ip int, r *ecore.Rule, min int) vmBody {
 	return vmBody{ip: ip, vbase: len(mc.vals), ebase: len(mc.ents), rbase: len(mc.reps), r: r, min: min}
 }
 
@@ -540,7 +540,7 @@ const (
 
 // step runs code until it finishes or reaches a rule call or an Operators Rule expression.
 // If resume is set, it resumes with the result (ok, v) of the suspended instruction.
-func (mc *Machine) step(vm *Program, b *vmBody, resume, rok bool, rv *parse.Node) (ev int, result *parse.Node, ok bool) {
+func (mc *Machine) step(vm *Program, b *vmBody, resume, rok bool, rv *core.Node) (ev int, result *core.Node, ok bool) {
 	p := mc.p
 	m := vm.m
 	code := m.Code
@@ -563,7 +563,7 @@ func (mc *Machine) step(vm *Program, b *vmBody, resume, rok bool, rv *parse.Node
 		case bytecode.OpStr:
 			start := p.Pos
 			if !p.MatchLiteral(vm.runes[in.A], vm.bytes[in.A]) {
-				p.Expect(start, compile.NumFixedDescs+core.ExpID(in.B))
+				p.Expect(start, compile.NumFixedDescs+ecore.ExpID(in.B))
 				goto fail
 			}
 			if in.C == 1 {
@@ -572,7 +572,7 @@ func (mc *Machine) step(vm *Program, b *vmBody, resume, rok bool, rv *parse.Node
 		case bytecode.OpStrFold:
 			start := p.Pos
 			if !p.MatchLiteralFold(vm.runes[in.A]) {
-				p.Expect(start, compile.NumFixedDescs+core.ExpID(in.B))
+				p.Expect(start, compile.NumFixedDescs+ecore.ExpID(in.B))
 				goto fail
 			}
 			if in.C == 1 {
@@ -581,14 +581,14 @@ func (mc *Machine) step(vm *Program, b *vmBody, resume, rok bool, rv *parse.Node
 		case bytecode.OpClass:
 			ch, size, ok := p.Peek()
 			if !ok || !vm.has(p, in.A, ch) {
-				p.Expect(p.Pos, compile.NumFixedDescs+core.ExpID(in.B))
+				p.Expect(p.Pos, compile.NumFixedDescs+ecore.ExpID(in.B))
 				goto fail
 			}
 			mc.single(size, in.C == 1)
 		case bytecode.OpGuard:
 			ch, _, ok := p.Peek()
 			if !(ok && vm.has(p, in.A, ch)) && p.Depth+int(in.B) <= p.MaxDepth {
-				p.Expect(p.Pos, compile.NumFixedDescs+core.ExpID(m.Classes[in.A].Desc))
+				p.Expect(p.Pos, compile.NumFixedDescs+ecore.ExpID(m.Classes[in.A].Desc))
 				ip = int(in.C)
 				continue
 			}
@@ -603,7 +603,7 @@ func (mc *Machine) step(vm *Program, b *vmBody, resume, rok bool, rv *parse.Node
 				ch, size, ok := p.Peek()
 				if !ok || in.A >= 0 && !vm.has(p, in.A, ch) {
 					if in.A >= 0 {
-						p.Expect(p.Pos, compile.NumFixedDescs+core.ExpID(m.Classes[in.A].Desc))
+						p.Expect(p.Pos, compile.NumFixedDescs+ecore.ExpID(m.Classes[in.A].Desc))
 					} else {
 						p.Expect(p.Pos, compile.IDAny)
 					}
@@ -620,11 +620,11 @@ func (mc *Machine) step(vm *Program, b *vmBody, resume, rok bool, rv *parse.Node
 			// after ScanHotSpan characters from the record of its start, or records itself.
 			start, site, count, hot, hit, hw0 := p.Pos, int(in.C), 0, false, false, 0
 			for {
-				if count == core.ScanHotSpan {
+				if count == ecore.ScanHotSpan {
 					hot, hw0 = p.ScanHot(site), p.Hw
 					p.Hw = 0
 					if hot {
-						var rec core.ScanRecord
+						var rec ecore.ScanRecord
 						if rec, hit = p.ScanLookup(site, start); hit {
 							p.ScanJump(rec)
 							count = rec.Count()
@@ -635,7 +635,7 @@ func (mc *Machine) step(vm *Program, b *vmBody, resume, rok bool, rv *parse.Node
 				ch, size, ok := p.Peek()
 				if !ok || in.A >= 0 && !vm.has(p, in.A, ch) {
 					if in.A >= 0 {
-						p.Expect(p.Pos, compile.NumFixedDescs+core.ExpID(m.Classes[in.A].Desc))
+						p.Expect(p.Pos, compile.NumFixedDescs+ecore.ExpID(m.Classes[in.A].Desc))
 					} else {
 						p.Expect(p.Pos, compile.IDAny)
 					}
@@ -644,7 +644,7 @@ func (mc *Machine) step(vm *Program, b *vmBody, resume, rok bool, rv *parse.Node
 				p.Pos += size
 				count++
 			}
-			if count >= core.ScanHotSpan {
+			if count >= ecore.ScanHotSpan {
 				p.FinishScan(site, start, count, hot, hit, hw0)
 			}
 			if count < int(in.B) {
@@ -665,7 +665,7 @@ func (mc *Machine) step(vm *Program, b *vmBody, resume, rok bool, rv *parse.Node
 			goto fail
 		case bytecode.OpAssert:
 			var ok bool
-			var desc core.ExpID
+			var desc ecore.ExpID
 			switch in.A {
 			case 0:
 				ok, desc = p.AtInputStart(), compile.IDBeginInput
@@ -747,7 +747,7 @@ func (mc *Machine) step(vm *Program, b *vmBody, resume, rok bool, rv *parse.Node
 				mc.vals = mc.vals[:len(mc.vals)-1]
 			}
 		case bytecode.OpRepeat, bytecode.OpRepeatWide:
-			if core.StreamPrefixIsolation && p.Emit != nil && b.r != nil && p.StreamsIn(b.r.ID, b.r.Rec) && vm.isStreamRepeat(ip) {
+			if ecore.StreamPrefixIsolation && p.Emit != nil && b.r != nil && p.StreamsIn(b.r.ID, b.r.Rec) && vm.isStreamRepeat(ip) {
 				p.StartStreamChunks()
 			}
 			min, max := int(in.A), int(in.B)
@@ -789,13 +789,13 @@ func (mc *Machine) step(vm *Program, b *vmBody, resume, rok bool, rv *parse.Node
 			}
 			// A repetition that a Document resumes neither looks up nor makes records. This only keeps
 			// its cost and reuse as they were: any record would be exact. No test tells the two apart.
-			if scanSite > 0 && rep.run == nil && rep.count == core.ScanHotSpan && !rep.scan {
+			if scanSite > 0 && rep.run == nil && rep.count == ecore.ScanHotSpan && !rep.scan {
 				// The walk of a scan site has reached its ScanHotSpan-th element: as closure's scanSiteList.
 				rep.scan, rep.site, rep.coldStart = true, scanSite, *mc.vals[rep.base-1].(*int)
 				w := scanWalk{hw0: p.Hw}
 				p.Hw = 0
 				if rep.hot = p.ScanHot(scanSite); rep.hot {
-					var rec core.ScanRecord
+					var rec ecore.ScanRecord
 					if rec, rep.hit = p.ScanLookup(scanSite, rep.coldStart); rep.hit {
 						p.ScanJump(rec)
 						rep.count = rec.Count()
@@ -859,7 +859,7 @@ func (mc *Machine) step(vm *Program, b *vmBody, resume, rok bool, rv *parse.Node
 			rep := &mc.reps[len(mc.reps)-1]
 			if rep.scope >= 0 {
 				if in.B == 3 { // a projected repetition: the value is the field's capture
-					var v *parse.Node
+					var v *core.Node
 					if int(in.C) < len(p.Frame.Vals) { // (a corrupted file may name another slot)
 						v = p.Frame.Vals[in.C]
 					}
@@ -876,7 +876,7 @@ func (mc *Machine) step(vm *Program, b *vmBody, resume, rok bool, rv *parse.Node
 			}
 			rep.count++
 			if rep.run != nil {
-				var v *parse.Node
+				var v *core.Node
 				if in.B != 0 {
 					v = asNodeValue(mc.vals[len(mc.vals)-1])
 				}
@@ -923,7 +923,7 @@ func (mc *Machine) step(vm *Program, b *vmBody, resume, rok bool, rv *parse.Node
 			if rep.count < rep.min {
 				goto fail
 			}
-			if rep.cold && p.Pos-rep.coldStart >= core.RunHotSpan {
+			if rep.cold && p.Pos-rep.coldStart >= ecore.RunHotSpan {
 				p.RunWalked(rep.site, rep.coldStart)
 			}
 			if rep.run != nil {
@@ -931,7 +931,7 @@ func (mc *Machine) step(vm *Program, b *vmBody, resume, rok bool, rv *parse.Node
 				mc.freeRunState(rep.run)
 			}
 			if in.A == 1 {
-				var kids []*parse.Node
+				var kids []*core.Node
 				if rep.scan && rep.hit {
 					kids = mc.scans[len(mc.scans)-1].kids // (shared with the record; no element came after it)
 				} else {
@@ -994,7 +994,7 @@ func (mc *Machine) step(vm *Program, b *vmBody, resume, rok bool, rv *parse.Node
 			e := mc.ents[len(mc.ents)-1]
 			mc.ents = mc.ents[:len(mc.ents)-1]
 			l := mc.popLab(&e)
-			far, inner := p.Unisolate(core.ExpMark{Far: l.far, Base: l.base, Bits: l.bits})
+			far, inner := p.Unisolate(ecore.ExpMark{Far: l.far, Base: l.base, Bits: l.bits})
 			p.MergeExpected(far, inner)
 		case bytecode.OpRecover:
 			mk := p.Isolate(p.Pos)
@@ -1003,7 +1003,7 @@ func (mc *Machine) step(vm *Program, b *vmBody, resume, rok bool, rv *parse.Node
 			e := mc.ents[len(mc.ents)-1]
 			mc.ents = mc.ents[:len(mc.ents)-1]
 			l := mc.popLab(&e)
-			far, inner := p.Unisolate(core.ExpMark{Far: l.far, Base: l.base, Bits: l.bits})
+			far, inner := p.Unisolate(ecore.ExpMark{Far: l.far, Base: l.base, Bits: l.bits})
 			p.MergeExpected(far, inner)
 			ip = int(in.A)
 			continue
@@ -1022,7 +1022,7 @@ func (mc *Machine) step(vm *Program, b *vmBody, resume, rok bool, rv *parse.Node
 				mc.push(p.NewNode(value.Data{Kind: noderep.ErrorKind, Start: int32(e.save.pos), End: int32(p.Pos), Fields: noderep.Fields{{Name: "message", Value: p.RecoveryErrorText(se)}}, Fresh: true, Terminal: true}))
 			}
 		case bytecode.OpReturn, bytecode.OpEnd:
-			var v *parse.Node
+			var v *core.Node
 			if len(mc.vals) > b.vbase { // skip code builds no values
 				v = asNodeValue(mc.vals[len(mc.vals)-1])
 			}
@@ -1081,16 +1081,16 @@ func (mc *Machine) unwind(m *bytecode.Module, ebase int) (ip int, ok bool) {
 			return int(e.ip), true
 		case eLabel:
 			l := mc.popLab(&e)
-			far, inner := p.Unisolate(core.ExpMark{Far: l.far, Base: l.base, Bits: l.bits})
+			far, inner := p.Unisolate(ecore.ExpMark{Far: l.far, Base: l.base, Bits: l.bits})
 			if l.mode == 0 {
-				p.Expect(far, core.MsgBit|(compile.NumFixedDescs+core.ExpID(l.msg)))
+				p.Expect(far, ecore.MsgBit|(compile.NumFixedDescs+ecore.ExpID(l.msg)))
 			} else {
-				p.MergeExpected(far, core.RenamedExpected(p, inner, compile.NumFixedDescs+core.ExpID(l.msg)))
+				p.MergeExpected(far, ecore.RenamedExpected(p, inner, compile.NumFixedDescs+ecore.ExpID(l.msg)))
 			}
 			continue
 		case eRecover:
 			l := mc.popLab(&e)
-			far, inner := p.Unisolate(core.ExpMark{Far: l.far, Base: l.base, Bits: l.bits})
+			far, inner := p.Unisolate(ecore.ExpMark{Far: l.far, Base: l.base, Bits: l.bits})
 			exp := p.Keep(inner) // keep them while skip runs
 			mc.restore(&e.save)
 			mc.pushLab(eSkip, 0, e.save, labState{far: far, exp: exp})
@@ -1117,12 +1117,12 @@ func newASCIISet(cl *bytecode.Class) asciiSet {
 }
 
 // has reports whether the character ch is in class a.
-func (vm *Program) has(p *core.Parser, a int32, ch rune) bool {
+func (vm *Program) has(p *ecore.Parser, a int32, ch rune) bool {
 	if uint32(ch) < 128 {
 		return vm.ascii[a][ch>>6]&(1<<(ch&63)) != 0
 	}
 	cl := &vm.m.Classes[a]
-	if !core.BudgetControlsEnabled || p.Control == nil || len(cl.Ranges) <= 4 {
+	if !ecore.BudgetControlsEnabled || p.Control == nil || len(cl.Ranges) <= 4 {
 		return cl.Has(ch)
 	}
 	for k := 0; k < len(cl.Ranges); k += 2 {
@@ -1147,26 +1147,26 @@ func (mc *Machine) single(size int, b bool) {
 // --- Terms ---
 
 // The VM implements the backend state of core.
-var _ core.BackendState = (*Machine)(nil)
+var _ ecore.BackendState = (*Machine)(nil)
 
 // isFunction is the operation term.isFunction. A lowered term has no function values: the lambdas
 // of map, filter and the folds are evaluated in place.
 func isFunction(v any) bool {
-	_, ok := v.(core.Function)
+	_, ok := v.(ecore.Function)
 	return ok
 }
 
 // LoadTerms makes the programs of the terms of the module m, checking each (core.LoadTerm). A
 // loader calls it to reject a module file whose term code is invalid.
-func LoadTerms(m *bytecode.Module) ([]*core.TermProgram, error) {
+func LoadTerms(m *bytecode.Module) ([]*ecore.TermProgram, error) {
 	if len(m.Terms) == 0 {
 		return nil, nil
 	}
-	return core.LoadTerms(m.Terms, m.Strings, len(m.Vars), moduleTermTypes(m))
+	return ecore.LoadTerms(m.Terms, m.Strings, len(m.Vars), moduleTermTypes(m))
 }
 
 // moduleTermTypes resolves the types that the term code of m names from its type table.
-func moduleTermTypes(m *bytecode.Module) core.TermTypes {
+func moduleTermTypes(m *bytecode.Module) ecore.TermTypes {
 	nodeTypes := map[string]*value.NodeTypeKinds{}
 	structs := map[string]*noderep.Kind{}
 	for _, t := range m.Types {
@@ -1179,7 +1179,7 @@ func moduleTermTypes(m *bytecode.Module) core.TermTypes {
 	}
 	var typeNames map[string]bool
 	casts := map[string]*compile.FieldType{}
-	return core.TermTypes{
+	return ecore.TermTypes{
 		NodeType: func(name string) *value.NodeTypeKinds { return nodeTypes[name] },
 		Struct:   func(name string) *noderep.Kind { return structs[name] },
 		Cast: func(text string) (*compile.FieldType, error) {
@@ -1213,8 +1213,8 @@ func (vm *Program) isStreamRepeat(ip int) bool {
 // time.
 func (mc *Machine) newPos(pos int) *int {
 	if len(mc.posSlab) == 0 {
-		mc.posSlab = make([]int, core.PtrChunk)
-		mc.p.MemUsed += core.PtrChunk * uint64(unsafe.Sizeof(0))
+		mc.posSlab = make([]int, ecore.PtrChunk)
+		mc.p.MemUsed += ecore.PtrChunk * uint64(unsafe.Sizeof(0))
 	}
 	n := &mc.posSlab[0]
 	mc.posSlab = mc.posSlab[1:]
@@ -1223,17 +1223,17 @@ func (mc *Machine) newPos(pos int) *int {
 }
 
 // newRunState returns a RunState for a VM repetition, reusing a freed one.
-func (mc *Machine) newRunState() *core.RunState {
+func (mc *Machine) newRunState() *ecore.RunState {
 	if n := len(mc.freeRuns); n > 0 {
 		r := mc.freeRuns[n-1]
 		mc.freeRuns = mc.freeRuns[:n-1]
 		return r
 	}
-	return &core.RunState{}
+	return &ecore.RunState{}
 }
 
 // freeRunState makes the RunState of a finished repetition available to later ones.
-func (mc *Machine) freeRunState(r *core.RunState) {
+func (mc *Machine) freeRunState(r *ecore.RunState) {
 	r.Old = nil
 	mc.p.ReleaseRunLists(r)
 	mc.freeRuns = append(mc.freeRuns, r)

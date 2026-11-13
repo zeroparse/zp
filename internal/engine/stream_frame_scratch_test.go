@@ -7,11 +7,11 @@ import (
 	"strings"
 	"testing"
 
+	"zeroparse.dev/zp/core"
 	"zeroparse.dev/zp/internal/compile"
-	"zeroparse.dev/zp/internal/engine/core"
+	ecore "zeroparse.dev/zp/internal/engine/core"
 	"zeroparse.dev/zp/internal/gentest"
 	"zeroparse.dev/zp/internal/value"
-	"zeroparse.dev/zp/runtime/parse"
 )
 
 const frameScratchGrammar = `rule main = h:"#head\n" #atomic items:record* #stream $$ {text($h) == "#head\n"}
@@ -32,16 +32,16 @@ func BenchmarkStreamFrameScratch(b *testing.B) {
 			b.Fatal(err)
 		}
 		for _, backend := range []Backend{Closure, Bytecode, BytecodeIterative} {
-			if _, err := prog.rule(backend, "main", core.Inlined, nil); err != nil {
+			if _, err := prog.rule(backend, "main", ecore.Inlined, nil); err != nil {
 				b.Fatal(err)
 			}
-			for _, unit := range []parse.PositionUnit{parse.CodePoints, parse.Bytes} {
+			for _, unit := range []core.PositionUnit{core.CodePoints, core.Bytes} {
 				b.Run(fmt.Sprintf("%d/%s/%s", size, backend, unit), func(b *testing.B) {
 					b.SetBytes(int64(len(input)))
 					b.ReportAllocs()
 					for b.Loop() {
 						count := 0
-						err := prog.ParseStreamWith("main", strings.NewReader(input), func(*parse.Node) error {
+						err := prog.ParseStreamWith("main", strings.NewReader(input), func(*core.Node) error {
 							count++
 							return nil
 						}, ParseOptions{Backend: backend, Unit: unit})
@@ -72,11 +72,11 @@ rule item = x:"x" #atomic / e:"" #atomic`, strings.Repeat("x", 300), 301, false,
 	} {
 		prog := mustCompile(t, tc.src)
 		for _, backend := range []Backend{Closure, Bytecode, BytecodeIterative} {
-			for _, unit := range []parse.PositionUnit{parse.CodePoints, parse.Bytes} {
+			for _, unit := range []core.PositionUnit{core.CodePoints, core.Bytes} {
 				t.Run(fmt.Sprintf("%s/%s/%s", tc.name, backend, unit), func(t *testing.T) {
-					var retained []*parse.Node
+					var retained []*core.Node
 					var snapshots [][]byte
-					err := prog.ParseStreamWith("main", strings.NewReader(tc.input), func(n *parse.Node) error {
+					err := prog.ParseStreamWith("main", strings.NewReader(tc.input), func(n *core.Node) error {
 						snapshot, err := n.MarshalJSON()
 						if err != nil {
 							return err
@@ -129,7 +129,7 @@ func checkStreamFrameScratchRetainedResults(t *testing.T, src string) {
 		// One large element crosses both the pointer and capture-frame chunks.
 		n := 1 + i%4
 		if i == 160 {
-			n = core.NodeChunk + 37
+			n = ecore.NodeChunk + 37
 		}
 		for j := range n {
 			fmt.Fprintf(&input, "%d,", i+j)
@@ -137,17 +137,17 @@ func checkStreamFrameScratchRetainedResults(t *testing.T, src string) {
 		input.WriteByte('\n')
 	}
 	for _, backend := range []Backend{Closure, Bytecode, BytecodeIterative} {
-		for _, unit := range []parse.PositionUnit{parse.CodePoints, parse.Bytes} {
+		for _, unit := range []core.PositionUnit{core.CodePoints, core.Bytes} {
 			t.Run(fmt.Sprintf("%s/%s", backend, unit), func(t *testing.T) {
 				opts := ParseOptions{Backend: backend, Unit: unit}
 				whole, err := prog.ParseWith("main", input.String(), opts)
 				if err != nil {
 					t.Fatal(err)
 				}
-				want := value.D(whole.Field("items").(*parse.Node)).Children
-				var retained []*parse.Node
+				want := value.D(whole.Field("items").(*core.Node)).Children
+				var retained []*core.Node
 				var snapshots [][]byte
-				err = prog.ParseStreamWith("main", strings.NewReader(input.String()), func(n *parse.Node) error {
+				err = prog.ParseStreamWith("main", strings.NewReader(input.String()), func(n *core.Node) error {
 					snapshot, err := n.MarshalJSON()
 					if err != nil {
 						return err
@@ -179,10 +179,10 @@ func checkStreamFrameScratchRetainedResults(t *testing.T, src string) {
 
 func TestStreamFrameScratchClearsDeadFrames(t *testing.T) {
 	t.Parallel()
-	if !core.StreamFrameScratch {
+	if !ecore.StreamFrameScratch {
 		t.Skip("reference build does not reuse capture frames")
 	}
-	p := core.NewParser(&mustCompile(t, `rule main = "a"`).sharedProgram, "a", parse.CodePoints, false)
+	p := ecore.NewParser(&mustCompile(t, `rule main = "a"`).sharedProgram, "a", core.CodePoints, false)
 	root := p.NewFrame(1)
 	root.Vals[0] = value.Ptr(value.Data{Text: "live root"})
 	p.Frame = root
@@ -197,11 +197,11 @@ func TestStreamFrameScratchClearsDeadFrames(t *testing.T) {
 	}
 	// The root can remain in an older chunk after a large element. The current
 	// chunk is then entirely dead, while the older live root must survive.
-	for range core.NodeChunk + 7 {
+	for range ecore.NodeChunk + 7 {
 		p.NewFrame(1).Vals[0] = value.Ptr(value.Data{Text: "large element"})
 	}
 	p.ResetStreamFrames()
-	if len(p.FrameSlab) != 0 || cap(p.FrameSlab) != core.NodeChunk || value.D(root.Vals[0]).Text != "live root" {
+	if len(p.FrameSlab) != 0 || cap(p.FrameSlab) != ecore.NodeChunk || value.D(root.Vals[0]).Text != "live root" {
 		t.Fatal("large element prevented scratch reuse or damaged the older root")
 	}
 	for _, f := range p.FrameSlab[:cap(p.FrameSlab)] {

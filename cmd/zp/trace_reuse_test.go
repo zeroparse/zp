@@ -7,7 +7,7 @@ import (
 	"strings"
 	"testing"
 
-	"zeroparse.dev/zp"
+	"zeroparse.dev/zp/engine"
 )
 
 // Exercise the CLI formatters with real Document events: an ordinary trace
@@ -15,7 +15,7 @@ import (
 func TestTraceReusedElementsPresentation(t *testing.T) {
 	for _, format := range []string{"text", "json"} {
 		t.Run(format, func(t *testing.T) {
-			p, err := zp.CompileSource(`@start
+			p, err := engine.CompileSource(`@start
 rule main = lines $$
 rule lines = line*
 rule line = [a-z]+ #atomic "\n"`, "main")
@@ -24,9 +24,9 @@ rule line = [a-z]+ #atomic "\n"`, "main")
 			}
 			var out bytes.Buffer
 			printer := tracePrinter{w: bufio.NewWriter(&out), json: format == "json", rules: []string{"main"}, showDepth: 1}
-			var profile zp.Profile
+			var profile engine.Profile
 			active := false
-			doc, err := p.NewDocument(strings.Repeat("ab\n", 32), zp.WithTrace(func(e zp.TraceEvent) {
+			doc, err := p.NewDocument(strings.Repeat("ab\n", 32), engine.WithTrace(func(e engine.TraceEvent) {
 				if active {
 					printer.event(e)
 					profile.Trace(e)

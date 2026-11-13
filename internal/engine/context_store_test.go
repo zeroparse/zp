@@ -7,10 +7,10 @@ import (
 	"strings"
 	"testing"
 
+	"zeroparse.dev/zp/core"
 	"zeroparse.dev/zp/internal/compile"
-	"zeroparse.dev/zp/internal/engine/core"
+	ecore "zeroparse.dev/zp/internal/engine/core"
 	"zeroparse.dev/zp/internal/gentest"
-	"zeroparse.dev/zp/runtime/parse"
 )
 
 // contextStoreGrowth parses the shape at the two gentest.ContextStoreSizes on the backend and
@@ -21,7 +21,7 @@ func contextStoreGrowth(t *testing.T, prog *Program, s gentest.DependencyMemoSha
 	for i, m := range gentest.ContextStoreSizes {
 		var pr Profile
 		o.Trace = pr.Trace
-		o.Limits = parse.Limits{Compute: parse.Unlimited}
+		o.Limits = core.Limits{Compute: core.Unlimited}
 		// With missing-token insertion, the parse reports the insertion as an error.
 		if r, err := prog.ParseWith("", s.Input(m), o); err != nil && (r == nil || o.MissingTokens == 0) {
 			t.Fatalf("%s %s m=%d: %v", s.Name, o.Backend, m, err)
@@ -68,8 +68,8 @@ func TestContextStoreBoundsControls(t *testing.T) {
 		mutation int
 		shape    string
 	}{
-		{core.CtxCapDeps, "seven dependencies"},
-		{core.CtxNarrowPresent, "70 leaders"},
+		{ecore.CtxCapDeps, "seven dependencies"},
+		{ecore.CtxNarrowPresent, "70 leaders"},
 	} {
 		var s gentest.DependencyMemoShape
 		for _, x := range gentest.ContextStoreShapes {
@@ -79,8 +79,8 @@ func TestContextStoreBoundsControls(t *testing.T) {
 		}
 		prog := mustCompile(t, "@start\nrule main = "+s.Rules, compile.Options{SourceInfo: true})
 		func() {
-			core.ContextMemoMutation = c.mutation
-			defer func() { core.ContextMemoMutation = 0 }()
+			ecore.ContextMemoMutation = c.mutation
+			defer func() { ecore.ContextMemoMutation = 0 }()
 			for _, b := range []Backend{Closure, Bytecode, BytecodeIterative} {
 				if msg, ok := contextStoreBounded(t, prog, s, ParseOptions{Backend: b}); ok {
 					t.Errorf("mutation %d not detected: %s", c.mutation, msg)
@@ -109,8 +109,8 @@ func TestContextStoreMissingInsertion(t *testing.T) {
 // parse with insertion that keeps no result in a context.
 func TestContextStoreMissingInsertionControl(t *testing.T) {
 	prog := mustCompile(t, "@start\nrule main = "+missingChain.Rules, compile.Options{SourceInfo: true})
-	core.ContextMemoMutation = core.CtxStrictMissing
-	defer func() { core.ContextMemoMutation = 0 }()
+	ecore.ContextMemoMutation = ecore.CtxStrictMissing
+	defer func() { ecore.ContextMemoMutation = 0 }()
 	if msg, ok := contextStoreBounded(t, prog, missingChain, ParseOptions{Backend: Closure, MissingTokens: 1}); ok {
 		t.Errorf("CtxStrictMissing not detected: %s", msg)
 	}
@@ -134,8 +134,8 @@ func TestContextStoreMissingRandom(t *testing.T) {
 // TestContextStoreMissingRandomControl checks that TestContextStoreMissingRandom detects rules
 // that insert tokens keeping their results in contexts.
 func TestContextStoreMissingRandomControl(t *testing.T) {
-	core.ContextMemoMutation = core.CtxStoreInserts
-	defer func() { core.ContextMemoMutation = 0 }()
+	ecore.ContextMemoMutation = ecore.CtxStoreInserts
+	defer func() { ecore.ContextMemoMutation = 0 }()
 	if len(missingRandomMismatches(t, 40)) == 0 {
 		t.Error("CtxStoreInserts not detected")
 	}

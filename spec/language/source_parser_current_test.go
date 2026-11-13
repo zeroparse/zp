@@ -7,7 +7,7 @@ import (
 	"slices"
 	"testing"
 
-	"zeroparse.dev/zp"
+	"zeroparse.dev/zp/engine"
 	"zeroparse.dev/zp/gen"
 )
 
@@ -17,7 +17,7 @@ import (
 // of the generator, is not compared.
 func TestGeneratedSourceParserCurrent(t *testing.T) {
 	_, src := sourceGrammar(t)
-	g, err := zp.ParseGrammar(src)
+	g, err := engine.ParseGrammar(src)
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -7,13 +7,13 @@ import (
 	"strings"
 	"testing"
 
+	"zeroparse.dev/zp/core"
 	. "zeroparse.dev/zp/internal/engine"
-	"zeroparse.dev/zp/internal/engine/core"
-	"zeroparse.dev/zp/runtime/parse"
+	ecore "zeroparse.dev/zp/internal/engine/core"
 )
 
 func TestDocumentChangesComparisonInterruptionPublication(t *testing.T) {
-	if !core.BudgetControlsEnabled {
+	if !ecore.BudgetControlsEnabled {
 		t.Skip("the reference build has no limits to interrupt the snapshot")
 	}
 	prog := mustCompile(t, `rule main = .* #atomic $$`)
@@ -31,18 +31,18 @@ func TestDocumentChangesComparisonInterruptionPublication(t *testing.T) {
 		d.DrainChanges()
 		// Force interruption during the shared parse/capture/comparison invocation.
 		limited := o
-		limited.Limits = parse.Limits{Compute: 1}
-		if s, err := d.SnapshotWith(limited); s != nil || !errors.Is(err, parse.ErrLimit) {
+		limited.Limits = core.Limits{Compute: 1}
+		if s, err := d.SnapshotWith(limited); s != nil || !errors.Is(err, core.ErrLimit) {
 			t.Fatal(s, err)
 		}
 		events := d.DrainChanges()
-		if len(events) != 1 || events[0].Kind != parse.ChangeOutcome || events[0].Output != parse.OutputUnavailable || d.ChangeBaseline() != nil {
+		if len(events) != 1 || events[0].Kind != core.ChangeOutcome || events[0].Output != core.OutputUnavailable || d.ChangeBaseline() != nil {
 			t.Fatal("interrupted outcome published baseline", events)
 		}
 		if _, err := d.SnapshotWith(o); err != nil {
 			t.Fatal(err)
 		}
-		if got := d.DrainChanges()[0].Output; got != parse.OutputMayHaveChanged {
+		if got := d.DrainChanges()[0].Output; got != core.OutputMayHaveChanged {
 			t.Fatal("retry bridged unavailable comparison", got)
 		}
 	})
@@ -56,7 +56,7 @@ rule word = [a-zé]+ #atomic`)
 		var index map[string]int
 		var highlights []string
 		var consumerVersion DocumentVersion
-		for _, edit := range []parse.TextEdit{{Start: 0, End: 0, Text: ""}, {Start: 0, End: 1, Text: "z"}, {Start: 0, End: 0, Text: "q"}, {Start: 0, End: 1, Text: "!"}, {Start: 0, End: 1, Text: "b"}, {Start: 0, End: 1, Text: ""}} {
+		for _, edit := range []core.TextEdit{{Start: 0, End: 0, Text: ""}, {Start: 0, End: 1, Text: "z"}, {Start: 0, End: 0, Text: "q"}, {Start: 0, End: 1, Text: "!"}, {Start: 0, End: 1, Text: "b"}, {Start: 0, End: 1, Text: ""}} {
 			if err := d.Edit(edit.Start, edit.End, edit.Text); err != nil {
 				t.Fatal(err)
 			}
@@ -66,7 +66,7 @@ rule word = [a-zé]+ #atomic`)
 			}
 			refresh := index == nil
 			for _, c := range d.DrainChanges() {
-				refresh = refresh || c.FullRefresh || c.From != consumerVersion || c.Invalidated || c.Output != parse.OutputUnchanged
+				refresh = refresh || c.FullRefresh || c.From != consumerVersion || c.Invalidated || c.Output != core.OutputUnchanged
 				consumerVersion = c.To
 			}
 			if refresh {
@@ -88,7 +88,7 @@ func TestDocumentChangesEditCoordinatesAndQueue(t *testing.T) {
 		d := newChangeTestDocument(t, prog, "aéz", o, 8)
 		base := d.Version()
 		end := 2
-		if o.Unit == parse.Bytes {
+		if o.Unit == core.Bytes {
 			end = 3
 		}
 		if err := d.Edit(1, end, "é"); err != nil {
@@ -100,7 +100,7 @@ func TestDocumentChangesEditCoordinatesAndQueue(t *testing.T) {
 		if err := d.EditBatch(d.Version()); err != nil {
 			t.Fatal(err)
 		}
-		edits := []parse.TextEdit{{Start: 0, End: 1, Text: "b"}, {Start: end, End: end + 1, Text: "c"}}
+		edits := []core.TextEdit{{Start: 0, End: 1, Text: "b"}, {Start: end, End: end + 1, Text: "c"}}
 		batchBase := d.Version()
 		if err := d.EditBatch(batchBase, edits...); err != nil {
 			t.Fatal(err)
@@ -114,14 +114,14 @@ func TestDocumentChangesEditCoordinatesAndQueue(t *testing.T) {
 			t.Fatal("base coordinates or ownership", changes)
 		}
 		for _, c := range changes {
-			if c.Unit != o.Unit || !c.Invalidated || c.Reevaluation != "unknown" || c.Output != parse.OutputMayHaveChanged {
+			if c.Unit != o.Unit || !c.Invalidated || c.Reevaluation != "unknown" || c.Output != core.OutputMayHaveChanged {
 				t.Fatal("edit status", c)
 			}
 		}
 		if len(d.DrainChanges()) != 0 || d.Text() != "béc" {
 			t.Fatal("drain or text")
 		}
-		if err := d.EditBatch(base, parse.TextEdit{Start: 0, End: 1}); err == nil {
+		if err := d.EditBatch(base, core.TextEdit{Start: 0, End: 1}); err == nil {
 			t.Fatal("stale batch accepted")
 		}
 		if len(d.DrainChanges()) != 0 {
@@ -139,13 +139,13 @@ rule main Entry = x:([a-z]+ #atomic) $$ => Entry{Name: text($x), At: $x.Start}`)
 		if err != nil {
 			t.Fatal(err)
 		}
-		if got := d.DrainChanges()[0].Output; got != parse.OutputMayHaveChanged {
+		if got := d.DrainChanges()[0].Output; got != core.OutputMayHaveChanged {
 			t.Fatal("initial status", got)
 		}
 		if _, err := d.Snapshot(); err != nil {
 			t.Fatal(err)
 		}
-		if got := d.DrainChanges()[0].Output; got != parse.OutputUnchanged {
+		if got := d.DrainChanges()[0].Output; got != core.OutputUnchanged {
 			t.Fatal("same revision", got)
 		}
 		if err := d.Edit(0, 2, "bb"); err != nil {
@@ -154,7 +154,7 @@ rule main Entry = x:([a-z]+ #atomic) $$ => Entry{Name: text($x), At: $x.Start}`)
 		if _, err := d.Snapshot(); err != nil {
 			t.Fatal(err)
 		}
-		if got := d.DrainChanges()[1].Output; got != parse.OutputChanged {
+		if got := d.DrainChanges()[1].Output; got != core.OutputChanged {
 			t.Fatal("scalar replacement", got)
 		}
 		if val, _ := old.Root().Field("Name"); val != "aa" {
@@ -166,11 +166,11 @@ rule main Entry = x:([a-z]+ #atomic) $$ => Entry{Name: text($x), At: $x.Start}`)
 		if _, err := d.Snapshot(); err != nil {
 			t.Fatal(err)
 		}
-		if got := d.DrainChanges()[1].Output; got != parse.OutputUnchanged {
+		if got := d.DrainChanges()[1].Output; got != core.OutputUnchanged {
 			t.Fatal("identity replacement", got)
 		}
 		// The reference build has no cancellation to interrupt the snapshot.
-		if core.BudgetControlsEnabled {
+		if ecore.BudgetControlsEnabled {
 			ctx, cancel := context.WithCancel(context.Background())
 			cancel()
 			cancelled := o
@@ -178,13 +178,13 @@ rule main Entry = x:([a-z]+ #atomic) $$ => Entry{Name: text($x), At: $x.Start}`)
 			if s, err := d.SnapshotWith(cancelled); s != nil || !errors.Is(err, context.Canceled) {
 				t.Fatal("cancelled snapshot", s, err)
 			}
-			if got := d.DrainChanges()[0].Output; got != parse.OutputUnavailable {
+			if got := d.DrainChanges()[0].Output; got != core.OutputUnavailable {
 				t.Fatal("unavailable status", got)
 			}
 			if _, err := d.Snapshot(); err != nil {
 				t.Fatal(err)
 			}
-			if got := d.DrainChanges()[0].Output; got != parse.OutputMayHaveChanged {
+			if got := d.DrainChanges()[0].Output; got != core.OutputMayHaveChanged {
 				t.Fatal("retry bridged unavailable outcome", got)
 			}
 		}
@@ -205,7 +205,7 @@ func TestDocumentChangesTerminalTextAndDiagnostics(t *testing.T) {
 		if _, err := d.Snapshot(); err != nil {
 			t.Fatal(err)
 		}
-		if got := d.DrainChanges()[1].Output; got != parse.OutputChanged {
+		if got := d.DrainChanges()[1].Output; got != core.OutputChanged {
 			t.Fatal("terminal text omitted", got)
 		}
 		if err := d.Edit(0, 2, "!"); err != nil {
@@ -214,13 +214,13 @@ func TestDocumentChangesTerminalTextAndDiagnostics(t *testing.T) {
 		if s, err := d.Snapshot(); s == nil || err == nil {
 			t.Fatal("syntax outcome missing", s, err)
 		}
-		if got := d.DrainChanges()[1].Output; got != parse.OutputChanged {
+		if got := d.DrainChanges()[1].Output; got != core.OutputChanged {
 			t.Fatal("syntax output omitted", got)
 		}
 		if s, err := d.Snapshot(); s == nil || err == nil {
 			t.Fatal("syntax retry missing", s, err)
 		}
-		if got := d.DrainChanges()[0].Output; got != parse.OutputUnchanged {
+		if got := d.DrainChanges()[0].Output; got != core.OutputUnchanged {
 			t.Fatal("identical diagnostic", got)
 		}
 	})

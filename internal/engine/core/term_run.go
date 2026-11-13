@@ -3,8 +3,8 @@ package core
 import (
 	"unsafe"
 
+	"zeroparse.dev/zp/core"
 	"zeroparse.dev/zp/internal/value"
-	"zeroparse.dev/zp/runtime/parse"
 )
 
 // termRegs holds the registers of the term programs that a parser evaluates, in four files (see
@@ -13,13 +13,13 @@ import (
 type termRegs struct {
 	a []any
 	n []int
-	s [][]*parse.Node
+	s [][]*core.Node
 	t []string
 }
 
 func (r *termRegs) bytes() uint64 {
 	return uint64(cap(r.a))*anyBytes + uint64(cap(r.n))*intBytes +
-		uint64(cap(r.s))*uint64(unsafe.Sizeof([]*parse.Node(nil))) + uint64(cap(r.t))*uint64(unsafe.Sizeof(""))
+		uint64(cap(r.s))*uint64(unsafe.Sizeof([]*core.Node(nil))) + uint64(cap(r.t))*uint64(unsafe.Sizeof(""))
 }
 
 // growRegs extends s by n registers. The registers above the tops are zero: Eval clears what it
@@ -55,7 +55,7 @@ func b2i(b bool) int {
 	return 0
 }
 
-func (t *TermProgram) run(c *EvalCtx, a []any, n []int, s [][]*parse.Node, ts []string) (any, error) {
+func (t *TermProgram) run(c *EvalCtx, a []any, n []int, s [][]*core.Node, ts []string) (any, error) {
 	p := c.P
 	code := t.code
 	var err error
@@ -176,16 +176,16 @@ func (t *TermProgram) run(c *EvalCtx, a []any, n []int, s [][]*parse.Node, ts []
 			st := &t.structs[in.a]
 			a[in.dst] = p.NewNode(value.Data{Kind: st.kind, Fields: p.fields(st.fields)})
 		case tSetField:
-			p.SetValueField(&value.D(a[in.a].(*parse.Node)).Fields, t.names[in.c], a[in.b])
+			p.SetValueField(&value.D(a[in.a].(*core.Node)).Fields, t.names[in.c], a[in.b])
 		case tField:
 			p.Spend()
-			x := a[in.a].(*parse.Node)
+			x := a[in.a].(*core.Node)
 			p.SetValueField(&value.D(x).Fields, t.names[in.c], a[in.b])
 			n[in.dst] = b2i(p.termCover(x, a[in.b], n[in.dst] != 0))
 		case tCover:
-			n[in.dst] = b2i(p.termCover(a[in.a].(*parse.Node), a[in.b], n[in.c] != 0))
+			n[in.dst] = b2i(p.termCover(a[in.a].(*core.Node), a[in.b], n[in.c] != 0))
 		case tMade:
-			p.termMade(c, a[in.a].(*parse.Node), n[in.b] != 0)
+			p.termMade(c, a[in.a].(*core.Node), n[in.b] != 0)
 		case tJump:
 			pc = int(in.dst) - 1
 		case tJumpF:

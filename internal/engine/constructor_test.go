@@ -6,12 +6,12 @@ import (
 	"strings"
 	"testing"
 
+	"zeroparse.dev/zp/core"
 	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/bytecode"
 	"zeroparse.dev/zp/internal/compile"
 	"zeroparse.dev/zp/internal/gentest"
 	"zeroparse.dev/zp/internal/value"
-	"zeroparse.dev/zp/runtime/parse"
 )
 
 // constructorGrammar builds text structs in typed list constructors, through an alias too.
@@ -41,7 +41,7 @@ func TestTypedNodeConstructors(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		for _, unit := range []parse.PositionUnit{parse.CodePoints, parse.Bytes} {
+		for _, unit := range []core.PositionUnit{core.CodePoints, core.Bytes} {
 			var want string
 			for _, backend := range []Backend{Closure, Bytecode, BytecodeIterative} {
 				n, err := p.ParseWith("main", "😀", ParseOptions{Backend: backend, Unit: unit})
@@ -54,22 +54,22 @@ func TestTypedNodeConstructors(t *testing.T) {
 				} else if got != want {
 					t.Fatalf("%s/%s differs: %s / %s", backend, unit, got, want)
 				}
-				items := n.Field("Items").(*parse.Node)
-				if len(value.D(items).Children) != 2 || value.D(items).Children[0].Kind() != parse.KindStruct || value.D(items).Children[0].Field("Text") != "0" || value.D(items).Children[1].Field("Text") != "😀" || value.D(items).Children[1].Type() != "Int" {
+				items := n.Field("Items").(*core.Node)
+				if len(value.D(items).Children) != 2 || value.D(items).Children[0].Kind() != core.KindStruct || value.D(items).Children[0].Field("Text") != "0" || value.D(items).Children[1].Field("Text") != "😀" || value.D(items).Children[1].Type() != "Int" {
 					t.Fatal(got)
 				}
 				end := int32(1)
-				if unit == parse.Bytes {
+				if unit == core.Bytes {
 					end = 4
 				}
 				if value.D(items).Start != 0 || value.D(items).End != end || value.D(value.D(items).Children[0]).Start != 0 || value.D(value.D(items).Children[0]).End != end {
 					t.Fatal(got)
 				}
-				maybe := n.Field("Maybe").(*parse.Node)
+				maybe := n.Field("Maybe").(*core.Node)
 				if len(value.D(maybe).Children) != 2 || value.D(maybe).Children[0] != nil {
 					t.Fatal(got)
 				}
-				empty := n.Field("Empty").(*parse.Node)
+				empty := n.Field("Empty").(*core.Node)
 				if empty == nil || len(value.D(empty).Children) != 0 || value.D(empty).Start != 0 || value.D(empty).End != 0 {
 					t.Fatal(got)
 				}
@@ -95,7 +95,7 @@ func TestNodeConstructorCompiledVersions(t *testing.T) {
 			t.Fatal(err)
 		}
 		for _, backend := range []Backend{Bytecode, BytecodeIterative} {
-			for _, unit := range []parse.PositionUnit{parse.CodePoints, parse.Bytes} {
+			for _, unit := range []core.PositionUnit{core.CodePoints, core.Bytes} {
 				opts := ParseOptions{Backend: backend, Unit: unit}
 				if got, want := gentest.ResultJSON(loaded.ParseWith("main", "😀", servedBy(mode, opts))), gentest.ResultJSON(p.ParseWith("main", "😀", opts)); got != want {
 					t.Fatalf("loaded constructors: %s / %s", got, want)

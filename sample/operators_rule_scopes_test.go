@@ -9,8 +9,8 @@ import (
 	"strings"
 	"testing"
 
-	"zeroparse.dev/zp"
-	"zeroparse.dev/zp/runtime/parse"
+	"zeroparse.dev/zp/core"
+	"zeroparse.dev/zp/engine"
 	"zeroparse.dev/zp/sample"
 )
 
@@ -104,9 +104,9 @@ rule inner = e`, "a<a=(a=a=a)", false},
 	} {
 		t.Run(c.name, func(t *testing.T) {
 			p := compile(t, "rule main = &("+strconv.Quote(c.input)+" $$) "+c.body+" $$\n"+c.rules)
-			for _, unit := range []parse.PositionUnit{parse.CodePoints, parse.Bytes} {
-				for _, backend := range []zp.Backend{zp.Closure, zp.Bytecode, zp.BytecodeIterative} {
-					_, err := p.Parse(c.input, zp.WithUnit(unit), zp.WithBackend(backend))
+			for _, unit := range []core.PositionUnit{core.CodePoints, core.Bytes} {
+				for _, backend := range []engine.Backend{engine.Closure, engine.Bytecode, engine.BytecodeIterative} {
+					_, err := p.Parse(c.input, engine.WithUnit(unit), engine.WithBackend(backend))
 					if (err == nil) != c.valid {
 						t.Fatalf("unit%v backend%v: runtime=%v expectedvalid%t", unit, backend, err, c.valid)
 					}

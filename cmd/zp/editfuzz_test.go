@@ -7,9 +7,9 @@ import (
 	"strings"
 	"testing"
 
-	"zeroparse.dev/zp"
+	"zeroparse.dev/zp/core"
 	"zeroparse.dev/zp/editfuzz"
-	"zeroparse.dev/zp/runtime/parse"
+	"zeroparse.dev/zp/engine"
 )
 
 const editFuzzGrammar = "@start\nrule main = (word / other)* $$\nrule word = [a-z]+ #atomic\nrule other = .\n"
@@ -53,7 +53,7 @@ func TestEditFuzzReplay(t *testing.T) {
 	g := filepath.Join(dir, "g.zp")
 	os.WriteFile(g, []byte(editFuzzGrammar), 0o644)
 	seq := &editfuzz.Sequence{GrammarSHA256: editfuzz.GrammarHash([]byte(editFuzzGrammar)), Start: "main",
-		Backend: zp.Bytecode, Unit: parse.Bytes, Initial: []byte("ab"), Operations: []editfuzz.Operation{
+		Backend: engine.Bytecode, Unit: core.Bytes, Initial: []byte("ab"), Operations: []editfuzz.Operation{
 			{Kind: editfuzz.Edit, Start: 2, End: 2, Text: []byte("\xc3")}, {Kind: editfuzz.Checkpoint},
 			{Kind: editfuzz.Edit, Start: 3, End: 3, Text: []byte("\xa9")}, {Kind: editfuzz.Undo}, {Kind: editfuzz.Checkpoint}}}
 	path, err := editfuzz.Save(dir, seq)

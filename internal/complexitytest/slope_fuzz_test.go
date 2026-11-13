@@ -12,11 +12,11 @@ import (
 	"sync"
 	"testing"
 
-	"zeroparse.dev/zp"
+	"zeroparse.dev/zp/core"
+	"zeroparse.dev/zp/engine"
 	"zeroparse.dev/zp/internal/complexity"
-	"zeroparse.dev/zp/internal/engine/core"
+	ecore "zeroparse.dev/zp/internal/engine/core"
 	"zeroparse.dev/zp/internal/starttest"
-	"zeroparse.dev/zp/runtime/parse"
 )
 
 // The slope gate holds the classifier to what it says against measured cost. It writes random
@@ -192,20 +192,20 @@ func (g *slopeGrammar) source() string {
 
 // spent returns the cost of a parse, its Compute. It reports a parse that used up slopeCap as
 // capped.
-func spent(p *zp.Parser, input string, b zp.Backend) (cost uint64, capped bool) {
-	_, err := p.Parse(input, zp.WithBackend(b), zp.WithLimits(parse.Limits{Compute: slopeCap}),
-		zp.WithTrace(func(e zp.TraceEvent) {
-			if c := core.TraceParser(e).Control; c != nil {
+func spent(p *engine.Parser, input string, b engine.Backend) (cost uint64, capped bool) {
+	_, err := p.Parse(input, engine.WithBackend(b), engine.WithLimits(core.Limits{Compute: slopeCap}),
+		engine.WithTrace(func(e engine.TraceEvent) {
+			if c := ecore.TraceParser(e).Control; c != nil {
 				cost = c.Used
 			}
 		}))
-	var le *parse.LimitError
+	var le *core.LimitError
 	return cost, errors.As(err, &le)
 }
 
 // slopeHit measures one input on one backend at four doubling sizes and describes a slope above
 // limit that holds at each of them, or returns "".
-func slopeHit(p *zp.Parser, build func(int) string, b zp.Backend, limit float64) string {
+func slopeHit(p *engine.Parser, build func(int) string, b engine.Backend, limit float64) string {
 	var costs [4]uint64
 	for i := range costs {
 		c, capped := spent(p, build(slopeSize<<i), b)
@@ -232,7 +232,7 @@ func slopeHit(p *zp.Parser, build func(int) string, b zp.Backend, limit float64)
 // slopeLimit returns the slope above which the class of the grammar is false, or 0 when the class
 // makes no statement to hold it to.
 func slopeLimit(src string) (limit float64, class *complexity.Complexity) {
-	g, err := zp.ParseGrammar(src)
+	g, err := engine.ParseGrammar(src)
 	if err != nil {
 		return 0, class
 	}

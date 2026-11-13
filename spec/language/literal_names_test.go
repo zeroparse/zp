@@ -4,7 +4,7 @@ import (
 	"strings"
 	"testing"
 
-	"zeroparse.dev/zp"
+	"zeroparse.dev/zp/engine"
 	"zeroparse.dev/zp/grammar"
 )
 
@@ -26,7 +26,7 @@ func TestLiteralNamesAreReserved(t *testing.T) {
 	p, _ := sourceGrammar(t)
 	for _, tc := range literalNameSources {
 		t.Run(tc.name, func(t *testing.T) {
-			g, err := zp.ParseGrammar(tc.src)
+			g, err := engine.ParseGrammar(tc.src)
 			if err != nil {
 				t.Fatalf("hand-written frontend: %v", err)
 			}
@@ -36,7 +36,7 @@ func TestLiteralNamesAreReserved(t *testing.T) {
 			if err := grammar.Validate(g); err == nil || !strings.Contains(err.Error(), tc.want) {
 				t.Fatalf("Validate: got %v; want %q", err, tc.want)
 			}
-			if _, err := zp.CompileSource(tc.src, "main"); err == nil || !strings.Contains(err.Error(), tc.want) {
+			if _, err := engine.CompileSource(tc.src, "main"); err == nil || !strings.Contains(err.Error(), tc.want) {
 				t.Fatalf("CompileSource: got %v; want %q", err, tc.want)
 			}
 		})
@@ -46,7 +46,7 @@ func TestLiteralNamesAreReserved(t *testing.T) {
 	for _, src := range []string{
 		"rule main = x:\"a\" => map($x, (false) => false)", "rule main = x:\"a\" => map($x, (a, nil) => a)",
 	} {
-		if _, err := zp.ParseGrammar(src); err == nil {
+		if _, err := engine.ParseGrammar(src); err == nil {
 			t.Errorf("frontend accepts %s", src)
 		}
 		if _, err := p.Parse(src); err == nil {
@@ -64,7 +64,7 @@ func TestLiteralNamesAreReserved(t *testing.T) {
 		"rule truely = \"a\"", "var nilable bool\nrule main = \"a\"", "rule main = true_:\"a\" => $true_",
 		"type True = { N int }", "rule main = x:\"a\" => map($x, (nilx) => nilx)",
 	} {
-		g, err := zp.ParseGrammar(src)
+		g, err := engine.ParseGrammar(src)
 		if err != nil {
 			t.Fatalf("%s: %v", src, err)
 		}

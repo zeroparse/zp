@@ -73,8 +73,8 @@ import (
 	"path/filepath"
 	"testing"
 
-	"zeroparse.dev/zp"
-	"zeroparse.dev/zp/runtime/parse"
+	"zeroparse.dev/zp/engine"
+	"zeroparse.dev/zp/core"
 	"zeroparse.dev/zp/editfuzz"
 )
 
@@ -104,12 +104,12 @@ func TestEditsMatchFreshParses(t *testing.T) {
 	texts := corpus(t)
 	backends := []struct {
 		name    string
-		backend zp.Backend
-	}{{"closure", zp.Closure}, {"bytecode", zp.Bytecode}, {"bytecode-iterative", zp.BytecodeIterative}}
+		backend engine.Backend
+	}{{"closure", engine.Closure}, {"bytecode", engine.Bytecode}, {"bytecode-iterative", engine.BytecodeIterative}}
 	units := []struct {
 		name string
-		unit parse.PositionUnit
-	}{{"codepoints", parse.CodePoints}, {"bytes", parse.Bytes}}
+		unit core.PositionUnit
+	}{{"codepoints", core.CodePoints}, {"bytes", core.Bytes}}
 	for _, b := range backends {
 		for _, u := range units {
 			t.Run(b.name+"/"+u.name, func(t *testing.T) {
@@ -149,7 +149,7 @@ func TestDedent(t *testing.T) {
 	seq := &editfuzz.Sequence{
 		GrammarSHA256: editfuzz.GrammarHash(grammar),
 		Start:         "main",
-		Backend:       zp.Closure,
+		Backend:       engine.Closure,
 		Initial:       []byte("a:\n  b: 1\n  c: 2\nd: 3\n"),
 		Operations: []editfuzz.Operation{
 			{Kind: editfuzz.Edit, Start: 3, End: 5, Text: nil}, // "  b: 1" loses its indentation

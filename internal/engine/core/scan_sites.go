@@ -3,9 +3,9 @@ package core
 import (
 	"sync/atomic"
 
+	"zeroparse.dev/zp/core"
+	"zeroparse.dev/zp/core/noderep"
 	"zeroparse.dev/zp/internal/value"
-	"zeroparse.dev/zp/runtime/noderep"
-	"zeroparse.dev/zp/runtime/parse"
 )
 
 // Scan sites: the records of the walks of the single-character repetitions in pure rules
@@ -29,7 +29,7 @@ type ScanRecord = skipRecord
 func (r skipRecord) Count() int { return r.far }
 
 // Kids returns the elements of a walk that builds a value. They are shared by the lists of the walks.
-func (r skipRecord) Kids() []*parse.Node { return r.vals.slice() }
+func (r skipRecord) Kids() []*core.Node { return r.vals.slice() }
 
 // ScanHotSpan is the number of characters that a walk of a scan site matches before it looks for the
 // record of its start, and the length of a walk that can turn the site hot (RunHotSpan for run
@@ -92,7 +92,7 @@ func (p *Parser) ScanJump(rec skipRecord) {
 // guard stores nothing if that were not so, because more input would then change the walk. With the
 // guard made to panic, the tests of the engine package, which include streams, pass; other packages
 // were not run that way.
-func (p *Parser) ScanStore(site, start, examined, count int, kids []*parse.Node) {
+func (p *Parser) ScanStore(site, start, examined, count int, kids []*core.Node) {
 	if SkipRecordMutation == SkipNeverRecord || !(p.Eof || examined <= p.Loaded()) {
 		return
 	}
@@ -123,7 +123,7 @@ func (p *Parser) ScanStore(site, start, examined, count int, kids []*parse.Node)
 // EndScanWalk ends a walk of a scan site that reached its ScanHotSpan-th iteration: unless it took
 // the rest from a record, it records itself (with the elements, if it built a value) if the site is
 // hot and notes that it walked if not. hw0 is the high-water mark before the walk reached the span.
-func (p *Parser) EndScanWalk(site, start, count int, kids []*parse.Node, hot, hit bool, hw0 int) {
+func (p *Parser) EndScanWalk(site, start, count int, kids []*core.Node, hot, hit bool, hw0 int) {
 	if !hit {
 		if hot {
 			p.ScanStore(site, start, p.Hw, count, kids)
@@ -143,8 +143,8 @@ func (p *Parser) FinishScan(site, start, count int, hot, hit bool, hw0 int) {
 // FinishScanList ends a walk of a scan site that builds a value and reached its ScanHotSpan-th
 // character: it returns the list of the elements, those of the record if the walk took the rest from
 // it, and records the walk if the site is hot and the walk did not.
-func (p *Parser) FinishScanList(site, start, base, count int, hot, hit bool, rec skipRecord, hw0 int) *parse.Node {
-	var kids []*parse.Node
+func (p *Parser) FinishScanList(site, start, base, count int, hot, hit bool, rec skipRecord, hw0 int) *core.Node {
+	var kids []*core.Node
 	if hit {
 		clear(p.KidStack[base:])
 		p.KidStack = p.KidStack[:base]

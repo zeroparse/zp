@@ -24,7 +24,7 @@ func TestVanityPages(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	for _, name := range []string{"zp/index.html", "zp/cmd/zp/index.html", "zp/grammar/index.html", "zp/runtime/index.html", "alpha-parsers/index.html"} {
+	for _, name := range []string{"zp/index.html", "zp/cmd/zp/index.html", "zp/grammar/index.html", "zp/engine/index.html", "zp/core/index.html", "zp/runtime/index.html", "alpha-parsers/index.html"} {
 		if _, ok := pages[name]; !ok {
 			t.Errorf("missing vanity page %s", name)
 		}
@@ -67,8 +67,8 @@ func TestVanityCoversPackages(t *testing.T) {
 	if len(missing) > 0 {
 		t.Errorf("package directories without a page: %v", missing)
 	}
-	if len(dirs) == 0 || dirs[0] != "" {
-		t.Errorf("the module root is not a package directory: %v", dirs)
+	if len(dirs) > 0 && dirs[0] == "" {
+		t.Errorf("the module root is a package directory: %v", dirs)
 	}
 }
 

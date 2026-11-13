@@ -1,8 +1,8 @@
 package value
 
 import (
-	"zeroparse.dev/zp/runtime/noderep"
-	"zeroparse.dev/zp/runtime/parse"
+	"zeroparse.dev/zp/core"
+	"zeroparse.dev/zp/core/noderep"
 )
 
 // The functions in this file build and change nodes for the tests of packages outside the engine,
@@ -12,42 +12,42 @@ import (
 // NewNode returns a node of kind k with the range [start, end). text is the string of a
 // KindString node, elems the elements of a tuple or list, typ the type name of a KindStruct node,
 // fields its fields (or captures), and value the value of a KindValue node.
-func NewNode(k parse.NodeKind, start, end int, text string, elems []*parse.Node, typ string, fields noderep.Fields, value any) *parse.Node {
+func NewNode(k core.NodeKind, start, end int, text string, elems []*core.Node, typ string, fields noderep.Fields, value any) *core.Node {
 	n := Ptr(Data{Start: int32(start), End: int32(end), Text: text, Children: elems, Fields: fields, Box: value})
 	d := D(n)
 	switch k {
-	case parse.KindString:
+	case core.KindString:
 		d.Kind, d.Terminal = noderep.MatchKind, true
-	case parse.KindTuple:
+	case core.KindTuple:
 		d.Kind = noderep.SeqKind
-	case parse.KindList:
+	case core.KindList:
 		d.Kind = noderep.ListKind
-	case parse.KindError:
+	case core.KindError:
 		d.Kind = noderep.ErrorKind
-	case parse.KindStruct:
+	case core.KindStruct:
 		d.Kind = noderep.KindOf(typ, "")
-	case parse.KindTupleValue:
+	case core.KindTupleValue:
 		d.Kind = noderep.TupleValueKind
-	case parse.KindListValue:
+	case core.KindListValue:
 		d.Kind = noderep.ListValueKind
-	case parse.KindValue:
+	case core.KindValue:
 		d.Kind = noderep.BoxKind
 	}
 	return n
 }
 
 // SetNodeElems replaces the elements of the tuple or list n, which can make a cycle.
-func SetNodeElems(n *parse.Node, elems []*parse.Node) { D(n).Children = elems }
+func SetNodeElems(n *core.Node, elems []*core.Node) { D(n).Children = elems }
 
 // SetNodeText replaces the string of the KindString node n.
-func SetNodeText(n *parse.Node, text string) {
+func SetNodeText(n *core.Node, text string) {
 	D(n).Text = text
 }
 
 // SetNodeStart replaces the start of the range of n.
-func SetNodeStart(n *parse.Node, start int) { D(n).Start = int32(start) }
+func SetNodeStart(n *core.Node, start int) { D(n).Start = int32(start) }
 
 // SetNodeField sets the field name of n to v, adding it if absent.
-func SetNodeField(n *parse.Node, name string, v any) {
+func SetNodeField(n *core.Node, name string, v any) {
 	noderep.SetField(&D(n).Fields, name, v)
 }

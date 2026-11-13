@@ -20,8 +20,8 @@ import (
 	"os"
 	"strconv"
 
-	"zeroparse.dev/zp"
-	"zeroparse.dev/zp/runtime/parse"
+	"zeroparse.dev/zp/engine"
+	"zeroparse.dev/zp/core"
 )
 
 //go:embed csv.zp
@@ -31,7 +31,7 @@ func main() {
 	whole := flag.Bool("whole", false, "read all the input and call Parse instead of ParseStream")
 	flag.Parse()
 
-	p, err := zp.CompileSource(grammar, "main")
+	p, err := engine.CompileSource(grammar, "main")
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(2)
@@ -40,12 +40,12 @@ func main() {
 	var rows int
 	var total float64
 	// sum adds up the third column of a record. The first record is the header.
-	sum := func(rec *parse.Node) error {
+	sum := func(rec *core.Node) error {
 		rows++
 		if rows == 1 {
 			return nil
 		}
-		fields := rec.Field("Fields").(*parse.Node)
+		fields := rec.Field("Fields").(*core.Node)
 		if fields.Len() != 3 {
 			return fmt.Errorf("record %d (offset %d): want 3 fields, got %d", rows, rec.Start(), fields.Len())
 		}
@@ -69,7 +69,7 @@ func main() {
 			fmt.Fprintln(os.Stderr, err)
 			os.Exit(1)
 		}
-		for _, rec := range tree.Field("Records").(*parse.Node).Elems() {
+		for _, rec := range tree.Field("Records").(*core.Node).Elems() {
 			if err := sum(rec); err != nil {
 				fmt.Fprintln(os.Stderr, err)
 				os.Exit(1)
@@ -132,7 +132,7 @@ says the quoted field never ended.
 - The first record is the header: `sum` skips it by counting. `ParseStream` does not return it separately.
 - The callback validates each record. Its error stops the stream and `ParseStream` returns it unchanged, so the program
   wraps it with the record's `Start()` offset.
-- A record that the grammar cannot read (here, a quoted field that never ends) is a `*parse.SyntaxError` with the line and
+- A record that the grammar cannot read (here, a quoted field that never ends) is a `*core.SyntaxError` with the line and
   column in the whole input, after the records before it were delivered.
 
 ## Variations and Limits

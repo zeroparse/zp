@@ -4,10 +4,10 @@ import (
 	"strings"
 	"testing"
 
+	"zeroparse.dev/zp/core/noderep"
 	"zeroparse.dev/zp/internal/bytecode"
 	"zeroparse.dev/zp/internal/ir/exec/ops"
 	"zeroparse.dev/zp/internal/value"
-	"zeroparse.dev/zp/runtime/noderep"
 )
 
 // TestLoadTermRejectsEachCheck checks the operand and pool checks of LoadTerm one by one: each case

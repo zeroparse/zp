@@ -9,7 +9,7 @@ import (
 	"strings"
 	"testing"
 
-	"zeroparse.dev/zp"
+	"zeroparse.dev/zp/engine"
 	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/syntax"
 	"zeroparse.dev/zp/internal/syntax/genparser"
@@ -280,7 +280,7 @@ func TestGrammarComparisonSeesMutantGrammars(t *testing.T) {
 			if strings.Count(source, m.old) != 1 {
 				t.Fatalf("the mutant must change exactly one place, found %d", strings.Count(source, m.old))
 			}
-			mutant, err := zp.CompileSource(strings.Replace(source, m.old, m.new, 1), "main")
+			mutant, err := engine.CompileSource(strings.Replace(source, m.old, m.new, 1), "main")
 			if err != nil {
 				t.Fatalf("the mutant grammar does not compile: %v", err)
 			}

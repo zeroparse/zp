@@ -18,8 +18,8 @@ import (
 	"strings"
 	"testing"
 
-	"zeroparse.dev/zp"
-	"zeroparse.dev/zp/runtime/parse"
+	"zeroparse.dev/zp/core"
+	"zeroparse.dev/zp/engine"
 	"zeroparse.dev/zp/sample"
 )
 
@@ -49,13 +49,13 @@ const (
 	endTable   = "<!-- recovery-quality-table:end -->"
 )
 
-func compile(t *testing.T, path string) *zp.Parser {
+func compile(t *testing.T, path string) *engine.Parser {
 	t.Helper()
 	src, err := os.ReadFile(path)
 	if err != nil {
 		t.Fatal(err)
 	}
-	p, err := zp.CompileSource(string(src), "main")
+	p, err := engine.CompileSource(string(src), "main")
 	if err != nil {
 		t.Fatalf("%s: %v", path, err)
 	}
@@ -124,21 +124,21 @@ func writeCorpus(t *testing.T, name string, cases []testCase) {
 }
 
 // errorRanges collects the ranges of the error values of a tree.
-func errorRanges(n *parse.Node, out *[][2]int, seen map[*parse.Node]bool) {
+func errorRanges(n *core.Node, out *[][2]int, seen map[*core.Node]bool) {
 	if n == nil || seen[n] {
 		return
 	}
 	seen[n] = true
 	switch n.Kind() {
-	case parse.KindError:
+	case core.KindError:
 		*out = append(*out, [2]int{n.Start(), n.End()})
-	case parse.KindStruct:
+	case core.KindStruct:
 		for _, v := range n.Fields() {
-			if c, ok := v.(*parse.Node); ok {
+			if c, ok := v.(*core.Node); ok {
 				errorRanges(c, out, seen)
 			}
 		}
-	case parse.KindTuple, parse.KindList, parse.KindTupleValue, parse.KindListValue:
+	case core.KindTuple, core.KindList, core.KindTupleValue, core.KindListValue:
 		for _, c := range n.Elems() {
 			errorRanges(c, out, seen)
 		}
@@ -154,9 +154,9 @@ type outcome struct {
 	skipped   float64 // fraction of the input that the error values cover
 }
 
-func measure(p *zp.Parser, c testCase) outcome {
+func measure(p *engine.Parser, c testCase) outcome {
 	node, err := p.Parse(c.Input)
-	var recovered parse.SyntaxErrors
+	var recovered core.SyntaxErrors
 	switch {
 	case err == nil:
 		// The mutation is accepted by the recovering grammar too (it is invalid only for the ready-made one):
@@ -164,7 +164,7 @@ func measure(p *zp.Parser, c testCase) outcome {
 		return outcome{}
 	case errors.As(err, &recovered) && node != nil:
 		var rs [][2]int
-		errorRanges(node, &rs, map[*parse.Node]bool{})
+		errorRanges(node, &rs, map[*core.Node]bool{})
 		o := outcome{recovered: true, errors: len(recovered), located: len(rs) > 0}
 		covered := 0
 		for _, r := range rs {

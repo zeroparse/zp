@@ -32,7 +32,7 @@ var goMutants = []goMutant{
 	{"a remainder floors", "term_exec.go", "TermBinary", `any(l.(int) % r.(int))`, `any(func() int { m := l.(int) % r.(int); if m != 0 && (m < 0) != (r.(int) < 0) { m += r.(int) }; return m }())`},
 	{"a division floors", "term_exec.go", "TermBinary", `any(l.(int) / r.(int))`, `any(func() int { q := l.(int) / r.(int); if (l.(int)%r.(int) != 0) && ((l.(int) < 0) != (r.(int) < 0)) { q-- }; return q }())`},
 	{"a box is not opened", "term_exec.go", "termEqual", "a := UnboxValue(l)", "a := l"},
-	{"a boxed string compares without the budget control", "term_exec.go", "termEqual", "a := UnboxValue(l)\n\tb := UnboxValue(r)\n", "a := UnboxValue(l)\n\tb := UnboxValue(r)\n\tif _, boxed := l.(*parse.Node); boxed {\n\t\tif sa, ok := a.(string); ok {\n\t\t\tif sb, ok := b.(string); ok {\n\t\t\t\treturn sa == sb, true\n\t\t\t}\n\t\t}\n\t}\n"},
+	{"a boxed string compares without the budget control", "term_exec.go", "termEqual", "a := UnboxValue(l)\n\tb := UnboxValue(r)\n", "a := UnboxValue(l)\n\tb := UnboxValue(r)\n\tif _, boxed := l.(*core.Node); boxed {\n\t\tif sa, ok := a.(string); ok {\n\t\t\tif sb, ok := b.(string); ok {\n\t\t\t\treturn sa == sb, true\n\t\t\t}\n\t\t}\n\t}\n"},
 	{"! of a bool does not negate", "term_exec.go", "TermUnary", "return any(!x.(bool)), nil", "return any(x.(bool)), nil"},
 	{"a logical operand need not be a bool", "term_exec.go", "TermLogic", "if valKind(x) != 3 {", "if false {"},
 	{"Start reads the value", "term_exec.go", "TermMember", "if kind == 1 {", "if kind == 0 {"},

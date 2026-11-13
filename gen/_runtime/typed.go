@@ -6,8 +6,8 @@ import (
 	"sync/atomic"
 	"unsafe"
 
-	"zeroparse.dev/zp/runtime/noderep"
-	"zeroparse.dev/zp/runtime/parse"
+	"zeroparse.dev/zp/core"
+	"zeroparse.dev/zp/core/noderep"
 )
 
 // The typed runtime, appended to generated parsers made with zp gen -types. It parses like the
@@ -662,9 +662,9 @@ func (p *TParser) run(r *TRule, input string, o parseOptions, ext any) (v any, e
 	p.Ext = ext
 	p.setGrammar(r.g)
 	p.Expectations = o.expectations
-	if o.unit == parse.Bytes {
+	if o.unit == core.Bytes {
 		// p.In stays empty: direct rules read code points from it while p.Pos < len(p.In).
-		p.unit, p.bs, p.n, p.In = parse.Bytes, input, len(input), p.In[:0]
+		p.unit, p.bs, p.n, p.In = core.Bytes, input, len(input), p.In[:0]
 	} else {
 		p.setSource(input)
 	}
@@ -696,7 +696,7 @@ func (p *TParser) run(r *TRule, input string, o parseOptions, ext any) (v any, e
 			errors := p.recoveredErrors()
 			p.chargeValues(len(errors))
 			p.Control.Check()
-			return v, parse.SyntaxErrors(errors)
+			return v, core.SyntaxErrors(errors)
 		}
 		return v, nil
 	}

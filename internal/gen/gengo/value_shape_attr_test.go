@@ -6,11 +6,11 @@ import (
 	"strings"
 	"testing"
 
+	"zeroparse.dev/zp/core"
 	"zeroparse.dev/zp/internal/compile"
 	"zeroparse.dev/zp/internal/engine"
 	"zeroparse.dev/zp/internal/gen"
 	"zeroparse.dev/zp/internal/gentest"
-	"zeroparse.dev/zp/runtime/parse"
 )
 
 // attributeRE matches the @diagnostic and @error attributes of attributeShapeCases.
@@ -85,7 +85,7 @@ func TestStreamSeesThroughGroupsAndAttributes(t *testing.T) {
 			for _, in := range inputs {
 				run := func(p *engine.Program) (string, error) {
 					var got []string
-					err := p.ParseStreamWith("main", strings.NewReader(in), func(n *parse.Node) error {
+					err := p.ParseStreamWith("main", strings.NewReader(in), func(n *core.Node) error {
 						got = append(got, fmt.Sprint(n))
 						return nil
 					}, engine.ParseOptions{Expectations: true, Backend: backend})

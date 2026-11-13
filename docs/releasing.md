@@ -17,8 +17,8 @@ Go modules give a v0 version no compatibility guarantee. ZeroParse states its in
 | The module API, including the `zp` and `grammar` packages | May change in any release; changes are announced |
 | The testing packages `sample` (input generation) and `editfuzz` (incremental-parsing fuzzing), and the sequence files of `editfuzz` | Public so that Go programs can test their own grammars and documents; unstable: may change in any release |
 | The fixture suites of `zp test` (the JSON format) | Unstable: may change in any release; the runner is internal, not a Go API |
-| The package `zeroparse.dev/zp/runtime/parse`: the nodes, limits, positions, errors, edits and statistics that `zp` and generated Go parsers share | Stable in intent, as part of the API of generated parsers |
-| The packages `zeroparse.dev/zp/runtime` and `zeroparse.dev/zp/runtime/noderep`, as generated code uses them with `zp gen -runtime import` | Not a stable API. Judged by the protocol version (see [the runtime protocol](#the-runtime-protocol)), not by the release version |
+| The package `zeroparse.dev/zp/core`: the nodes, limits, positions, errors, edits and statistics that `zp` and generated Go parsers share | Stable in intent, as part of the API of generated parsers |
+| The packages `zeroparse.dev/zp/runtime` and `zeroparse.dev/zp/core/noderep`, as generated code uses them with `zp gen -runtime import` | Not a stable API. Judged by the protocol version (see [the runtime protocol](#the-runtime-protocol)), not by the release version |
 | Compiled grammars (`.zpc`) and the bytecode: container version 8, instruction-set version 35 ([bytecode specification](../spec/bytecode/README.md)) | Unstable: may change in any release. A loader accepts only its own versions and asks for the grammar to be compiled again |
 | The JSON forms of grammars and nodes | Unstable: may change in any release |
 | Ready-made parsers (`zeroparse.dev/alpha-parsers`) | Not part of a release: a separate repository, used from a checkout next to this one with a `go.work` |
@@ -36,7 +36,7 @@ reach, and what they mean, including the encoding of the data generated parsers 
 
 - The runtime declares a constant `ProtocolN` for each protocol version N it implements.
 - A parser generated with `-runtime import` refers to the constant of the protocol it was generated for, so a parser
-  and a runtime that do not match fail to build (`undefined: rt.Protocol13`), never at run time.
+  and a runtime that do not match fail to build (`undefined: rt.Protocol14`), never at run time.
 - The protocol version increases whenever that interface changes; a test of the runtime compares the declarations
   with the ones recorded for the current version and fails otherwise. A change of meaning or data encoding that keeps
   the declarations needs the same increase, and no test detects it.

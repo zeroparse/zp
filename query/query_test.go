@@ -7,16 +7,16 @@ import (
 	"strings"
 	"testing"
 
+	"zeroparse.dev/zp/core"
+	"zeroparse.dev/zp/core/noderep"
 	"zeroparse.dev/zp/internal/value"
-	"zeroparse.dev/zp/runtime/noderep"
-	"zeroparse.dev/zp/runtime/parse"
 	"zeroparse.dev/zp/schema"
 )
 
 func TestStructuralQuerySharedEdgesAndCaptures(t *testing.T) {
 	leaf := value.Ptr(value.Data{Kind: noderep.KindOf(noderep.TypeString, "identifier"), Terminal: true, Text: "hello"})
-	tuple := value.Ptr(value.Data{Kind: noderep.TupleValueKind, Children: []*parse.Node{leaf}})
-	list := value.Ptr(value.Data{Kind: noderep.ListValueKind, Children: []*parse.Node{nil, leaf}})
+	tuple := value.Ptr(value.Data{Kind: noderep.TupleValueKind, Children: []*core.Node{leaf}})
+	list := value.Ptr(value.Data{Kind: noderep.ListValueKind, Children: []*core.Node{nil, leaf}})
 	root := value.Ptr(value.Data{Kind: noderep.KindOf("Pair", ""), Fields: noderep.Fields{{Name: "z", Value: list}, {Name: "a", Value: leaf}, {Name: "t", Value: tuple}}})
 	q, err := Compile(Pattern{Rule: "identifier", Capture: "name", Value: &Pattern{Category: "string", Capture: "text"}}, nil)
 	if err != nil {
@@ -30,7 +30,7 @@ func TestStructuralQuerySharedEdgesAndCaptures(t *testing.T) {
 		t.Fatalf("matches %d", len(got))
 	}
 	want := [][]Edge{{{Kind: "field", Name: "a"}}, {{Kind: "field", Name: "t"}, {Kind: "element", Index: 0}}, {{Kind: "field", Name: "z"}, {Kind: "element", Index: 1}}}
-	parents := []*parse.Node{root, tuple, list}
+	parents := []*core.Node{root, tuple, list}
 	for i, m := range got {
 		if len(m.Captures) != 2 || m.Captures[0].Value != leaf || m.Captures[0].Category != "node" || m.Captures[0].Parent != parents[i] || !reflect.DeepEqual(m.Captures[0].Path, want[i]) {
 			t.Fatalf("capture %d: %+v", i, m)
@@ -46,7 +46,7 @@ func TestStructuralQueryElementsSeeThroughNodes(t *testing.T) {
 	a := value.Ptr(value.Data{Kind: noderep.MatchKind, Terminal: true, Text: "a"})
 	b := value.Ptr(value.Data{Kind: noderep.BoxKind, Box: 7})
 	look := value.Ptr(value.Data{Kind: noderep.MatchKind, Terminal: true, Text: "!"})
-	tuple := value.Ptr(value.Data{Kind: noderep.SeqKind, Children: []*parse.Node{a, b}, Fields: noderep.Fields{{Name: "x", Value: a}, {Name: "y", Value: look}}})
+	tuple := value.Ptr(value.Data{Kind: noderep.SeqKind, Children: []*core.Node{a, b}, Fields: noderep.Fields{{Name: "x", Value: a}, {Name: "y", Value: look}}})
 	elements := Pattern{Category: "node", Elements: []Pattern{{Value: &Pattern{Category: "string"}, Capture: "first"}, {Category: "int", Capture: "second"}}}
 	val := Pattern{Value: &Pattern{Category: "tuple", Elements: []Pattern{{}, {Category: "int"}}, Capture: "value"}}
 	for name, tc := range map[string]struct {
@@ -72,7 +72,7 @@ func TestStructuralQueryElementsSeeThroughNodes(t *testing.T) {
 		if name == "elements" && (got[0].Captures[0].Value != a || got[0].Captures[1].Value != 7) {
 			t.Fatalf("element values: %+v", got[0].Captures)
 		}
-		if v, ok := got[0].Captures[0].Value.(*parse.Node); name == "value" && (!ok || value.ShapeOf(v) != noderep.ShapeTupleValue || len(value.D(v).Children) != 2) {
+		if v, ok := got[0].Captures[0].Value.(*core.Node); name == "value" && (!ok || value.ShapeOf(v) != noderep.ShapeTupleValue || len(value.D(v).Children) != 2) {
 			t.Fatalf("node value: %+v", got[0].Captures[0])
 		}
 	}
@@ -128,13 +128,13 @@ func TestStructuralQueryAllOrError(t *testing.T) {
 		t.Fatal(err)
 	}
 	root := value.Ptr(value.Data{Kind: noderep.SeqKind})
-	value.D(root).Children = []*parse.Node{root}
+	value.D(root).Children = []*core.Node{root}
 	got, err := q.Matches(root)
 	if got != nil || !errors.Is(err, ErrCycle) {
 		t.Fatalf("cycle: %v %v", got, err)
 	}
 	list := value.Ptr(value.Data{Kind: noderep.ListValueKind})
-	value.D(list).Children = []*parse.Node{list}
+	value.D(list).Children = []*core.Node{list}
 	value.D(root).Children = nil
 	value.D(root).Fields = noderep.Fields{{Name: "cycle", Value: list}}
 	value.D(root).Kind = noderep.KindOf("S", "")
@@ -150,12 +150,12 @@ func TestStructuralQueryAllOrError(t *testing.T) {
 		t.Fatalf("cancel: %v %v", got, err)
 	}
 	// A leaf costs one visit, one pattern, one capture and one match.
-	got, err = q.Matches(root, WithLimits(parse.Limits{Compute: 4}))
+	got, err = q.Matches(root, WithLimits(core.Limits{Compute: 4}))
 	if err != nil || len(got) != 1 {
 		t.Fatalf("exact limit: %v %v", got, err)
 	}
-	got, err = q.Matches(root, WithLimits(parse.Limits{Compute: 3}))
-	if got != nil || !errors.Is(err, parse.ErrLimit) {
+	got, err = q.Matches(root, WithLimits(core.Limits{Compute: 3}))
+	if got != nil || !errors.Is(err, core.ErrLimit) {
 		t.Fatalf("limit: %v %v", got, err)
 	}
 }
@@ -166,10 +166,10 @@ func TestStructuralQueryCycleThroughValues(t *testing.T) {
 		t.Fatal(err)
 	}
 	root := value.Ptr(value.Data{Kind: noderep.SeqKind})
-	list := value.Ptr(value.Data{Kind: noderep.ListValueKind, Children: []*parse.Node{root}})
-	value.D(root).Children = []*parse.Node{list}
+	list := value.Ptr(value.Data{Kind: noderep.ListValueKind, Children: []*core.Node{root}})
+	value.D(root).Children = []*core.Node{list}
 	// The repeated node is rejected before its contents are reserved.
-	budget := &budget{limits: parse.Limits{Compute: 100}}
+	budget := &budget{limits: core.Limits{Compute: 100}}
 	visits := 0
 	err = visitGraph(root, budget, func(graphVisit) error {
 		visits++
@@ -178,7 +178,7 @@ func TestStructuralQueryCycleThroughValues(t *testing.T) {
 	if !errors.Is(err, ErrCycle) || visits != 2 {
 		t.Fatalf("first back edge: visits=%d steps=%d err=%v", visits, budget.used, err)
 	}
-	results, err := q.Matches(root, WithLimits(parse.Limits{Compute: 100}))
+	results, err := q.Matches(root, WithLimits(core.Limits{Compute: 100}))
 	if results != nil || !errors.Is(err, ErrCycle) {
 		t.Fatalf("value cycle: %+v, %v", results, err)
 	}

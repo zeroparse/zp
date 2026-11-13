@@ -1,12 +1,12 @@
 // Package limits holds the defaults of the limits of one parse invocation
-// (parse.Limits) and the overflow-safe arithmetic used to spend budget against
+// (core.Limits) and the overflow-safe arithmetic used to spend budget against
 // them. The parser, the document and the structural query share it.
 package limits
 
 import (
 	"math"
 
-	"zeroparse.dev/zp/runtime/parse"
+	"zeroparse.dev/zp/core"
 )
 
 // Default limits on call nesting depth. Backends that run recursively use the host stack, so
@@ -36,8 +36,8 @@ func DefaultBudget(n uint64) uint64 {
 
 // Merge returns l with every nonzero field of o in place of the field of l: the limits of a later
 // WithLimits over those of an earlier one. A zero field of o keeps the field of l.
-func Merge(l, o parse.Limits) parse.Limits {
-	return parse.Limits{Compute: nonzero(o.Compute, l.Compute), Memory: nonzero(o.Memory, l.Memory), Input: nonzero(o.Input, l.Input), Depth: nonzero(o.Depth, l.Depth)}
+func Merge(l, o core.Limits) core.Limits {
+	return core.Limits{Compute: nonzero(o.Compute, l.Compute), Memory: nonzero(o.Memory, l.Memory), Input: nonzero(o.Input, l.Input), Depth: nonzero(o.Depth, l.Depth)}
 }
 
 // nonzero returns v, or def if v is zero.

@@ -3,9 +3,9 @@ package query
 import (
 	"sort"
 
+	"zeroparse.dev/zp/core"
+	"zeroparse.dev/zp/core/noderep"
 	"zeroparse.dev/zp/internal/value"
-	"zeroparse.dev/zp/runtime/noderep"
-	"zeroparse.dev/zp/runtime/parse"
 )
 
 // graphVisit is the adapter boundary for a future common graph walker. Each event contains a
@@ -15,7 +15,7 @@ import (
 // walker rejects active-path cycles and charges before discovery.
 type graphVisit struct {
 	Value  any
-	parent *parse.Node
+	parent *core.Node
 	path   []Edge
 }
 type visitFrame struct {
@@ -25,15 +25,15 @@ type visitFrame struct {
 
 // visitGraph calls visit for every value reachable from root, in the order graphVisit
 // describes, charging the spend to b.
-func visitGraph(root *parse.Node, b *budget, visit func(graphVisit) error) error {
+func visitGraph(root *core.Node, b *budget, visit func(graphVisit) error) error {
 	frames := []visitFrame{{visit: graphVisit{Value: value.UnboxNode(root)}}}
-	nodes := map[*parse.Node]bool{}
+	nodes := map[*core.Node]bool{}
 	for len(frames) > 0 {
 		f := frames[len(frames)-1]
 		frames = frames[:len(frames)-1]
 		v := f.visit
 		if f.leave {
-			delete(nodes, v.Value.(*parse.Node))
+			delete(nodes, v.Value.(*core.Node))
 			continue
 		}
 		if err := b.charge(uint64(1 + len(v.path))); err != nil {
@@ -42,7 +42,7 @@ func visitGraph(root *parse.Node, b *budget, visit func(graphVisit) error) error
 		if _, err := valueCategory(v.Value); err != nil {
 			return err
 		}
-		x, ok := v.Value.(*parse.Node)
+		x, ok := v.Value.(*core.Node)
 		if ok && x != nil {
 			if nodes[x] {
 				return ErrCycle

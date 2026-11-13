@@ -5,9 +5,9 @@ import (
 	"strings"
 	"testing"
 
+	"zeroparse.dev/zp/core"
 	"zeroparse.dev/zp/internal/compile"
-	"zeroparse.dev/zp/internal/engine/core"
-	"zeroparse.dev/zp/runtime/parse"
+	ecore "zeroparse.dev/zp/internal/engine/core"
 )
 
 // manyVariablesGrammar declares n variables whose names share a long prefix. The start rule
@@ -31,8 +31,8 @@ func manyVariablesGrammar(n int) string {
 func TestManyVariables(t *testing.T) {
 	t.Parallel()
 	prog := mustCompile(t, manyVariablesGrammar(280))
-	var l parse.Limits
-	if core.BudgetControlsEnabled {
+	var l core.Limits
+	if ecore.BudgetControlsEnabled {
 		l.Compute = 1 << 40
 	}
 	for _, backend := range []Backend{Closure, Bytecode, BytecodeIterative} {
@@ -51,14 +51,14 @@ func minBudget(t testing.TB, prog *Program, backend Backend, input string) uint6
 	t.Helper()
 	lo, hi := uint64(1), uint64(1)
 	for {
-		if _, err := prog.ParseWith("main", input, ParseOptions{Backend: backend, Limits: parse.Limits{Compute: hi}}); err == nil {
+		if _, err := prog.ParseWith("main", input, ParseOptions{Backend: backend, Limits: core.Limits{Compute: hi}}); err == nil {
 			break
 		}
 		lo, hi = hi, hi*2
 	}
 	for lo < hi {
 		mid := (lo + hi) / 2
-		if _, err := prog.ParseWith("main", input, ParseOptions{Backend: backend, Limits: parse.Limits{Compute: mid}}); err == nil {
+		if _, err := prog.ParseWith("main", input, ParseOptions{Backend: backend, Limits: core.Limits{Compute: mid}}); err == nil {
 			hi = mid
 		} else {
 			lo = mid + 1
@@ -68,7 +68,7 @@ func minBudget(t testing.TB, prog *Program, backend Backend, input string) uint6
 }
 
 func TestManyVariablesBudget(t *testing.T) {
-	if !core.BudgetControlsEnabled {
+	if !ecore.BudgetControlsEnabled {
 		t.Skip("budget controls are unavailable in the reference build")
 	}
 	prog := mustCompile(t, manyVariablesGrammar(280))
@@ -93,7 +93,7 @@ func BenchmarkManyVariables(b *testing.B) {
 				opts := ParseOptions{Backend: backend}
 				if controlled {
 					name = fmt.Sprintf("%d/%s/controlled", n, backend)
-					opts.Limits = parse.Limits{Compute: 1 << 40}
+					opts.Limits = core.Limits{Compute: 1 << 40}
 				}
 				b.Run(name, func(b *testing.B) {
 					b.ReportAllocs()

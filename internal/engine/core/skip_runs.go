@@ -3,9 +3,9 @@ package core
 import (
 	"sync/atomic"
 
+	"zeroparse.dev/zp/core"
+	"zeroparse.dev/zp/core/noderep"
 	"zeroparse.dev/zp/internal/value"
-	"zeroparse.dev/zp/runtime/noderep"
-	"zeroparse.dev/zp/runtime/parse"
 )
 
 // Skip runs: the records of the walks of skip-run sites (compile/skip_sites.go; see "Skip Runs" in
@@ -83,7 +83,7 @@ type skipKey struct {
 // never written once a record refers to it, except below lo: a walk that reaches a record whose
 // suffix starts at lo puts its own elements before it, and shares the rest.
 type valBuf struct {
-	a  []*parse.Node
+	a  []*core.Node
 	lo int
 }
 
@@ -93,7 +93,7 @@ type valSuffix struct {
 	i   int
 }
 
-func (s valSuffix) slice() []*parse.Node {
+func (s valSuffix) slice() []*core.Node {
 	if s.buf == nil {
 		return nil
 	}
@@ -239,7 +239,7 @@ type skipWalk struct {
 	// of the walk makes. placed reports that the list is placed in buf from lo on, so that the
 	// records share it.
 	build  bool
-	vals   []*parse.Node
+	vals   []*core.Node
 	placed bool
 	buf    *valBuf
 	lo     int
@@ -350,7 +350,7 @@ func (p *Parser) skipBegin(site int, build, keyEnv bool) {
 
 // SkipValue adds the value of the iteration that matched. Nodes in records are shared by the lists
 // that reuse them, so a node that the rule that made it may still change is final from here.
-func (p *Parser) SkipValue(v *parse.Node) {
+func (p *Parser) SkipValue(v *core.Node) {
 	w := p.walk()
 	if v != nil {
 		value.D(v).Fresh = false
@@ -484,10 +484,10 @@ func (p *Parser) SkipEnd() {
 // is false. The list may share its elements with the lists of other walks. Clearing the gathered
 // values is charged if chargeClear is set, as the closure backend charges clearing its element stack;
 // the bytecode machine pops its elements uncharged.
-func (p *Parser) SkipEndList(start int, build, chargeClear bool) *parse.Node {
+func (p *Parser) SkipEndList(start int, build, chargeClear bool) *core.Node {
 	p.skipEnd()
 	w := p.walk()
-	var kids []*parse.Node
+	var kids []*core.Node
 	if build {
 		if w.placed {
 			kids = w.buf.a[w.lo:len(w.buf.a):len(w.buf.a)]
@@ -585,7 +585,7 @@ func (p *Parser) skipLink(w *skipWalk, r *skipRecord, v skipVisit, rest *RecEntr
 // laid out. It writes vals in place before the tail where the buffer has room there that no record
 // refers to, and otherwise copies the tail with room to spare, so that a walk that goes on to
 // reach a record again finds it.
-func (p *Parser) placeVals(vals []*parse.Node, tail valSuffix) (*valBuf, int) {
+func (p *Parser) placeVals(vals []*core.Node, tail valSuffix) (*valBuf, int) {
 	n := len(vals)
 	if n == 0 && tail.buf != nil {
 		return tail.buf, tail.i
@@ -604,7 +604,7 @@ func (p *Parser) placeVals(vals []*parse.Node, tail valSuffix) (*valBuf, int) {
 	if tl > 0 {
 		slack = n + tl
 	}
-	a := make([]*parse.Node, slack+n+tl)
+	a := make([]*core.Node, slack+n+tl)
 	p.skipBytes += uint64(len(a)) * ptrBytes
 	CopySpend(p, a[slack:], vals)
 	if tl > 0 {

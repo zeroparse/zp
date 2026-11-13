@@ -7,10 +7,10 @@ import (
 	"sync"
 	"testing"
 
+	"zeroparse.dev/zp/core"
 	"zeroparse.dev/zp/internal/compile"
 	"zeroparse.dev/zp/internal/gentest"
 	"zeroparse.dev/zp/internal/value"
-	"zeroparse.dev/zp/runtime/parse"
 )
 
 // TestBackendsMatchOnCorpus checks that the bytecode VM returns the same results as the closure
@@ -28,7 +28,7 @@ func TestBackendsMatchOnCorpus(t *testing.T) {
 			// Projected repetitions (internal/compile/project.go) give what the repetitions as written give.
 			prog, plain := mustCompile(t, c.Src), mustCompile(t, c.Src, compile.Options{NoProjections: true})
 			for _, in := range c.Inputs {
-				for _, u := range []parse.PositionUnit{parse.CodePoints, parse.Bytes} {
+				for _, u := range []core.PositionUnit{core.CodePoints, core.Bytes} {
 					n1, err1 := prog.ParseWith("main", in, ParseOptions{Expectations: true, Unit: u})
 					n2, err2 := plain.ParseWith("main", in, ParseOptions{Expectations: true, Unit: u})
 					if a, b := gentest.ResultJSON(n1, err1), gentest.ResultJSON(n2, err2); a != b {
@@ -46,11 +46,11 @@ func TestBackendsMatchOnStream(t *testing.T) {
 	prog := mustCompile(t, gentest.Records)
 	inputs := []string{"#records\na=1\nbc=22\n", "#records\na=1\nb\n", "#rec"}
 	for _, in := range inputs {
-		for _, u := range []parse.PositionUnit{parse.CodePoints, parse.Bytes} {
+		for _, u := range []core.PositionUnit{core.CodePoints, core.Bytes} {
 			var out [3]string
 			for i, b := range []Backend{Closure, Bytecode, BytecodeIterative} {
 				var got []string
-				err := prog.ParseStreamWith("main", strings.NewReader(in), func(n *parse.Node) error {
+				err := prog.ParseStreamWith("main", strings.NewReader(in), func(n *core.Node) error {
 					got = append(got, fmt.Sprintf("%s [%d,%d)", n, value.D(n).Start, value.D(n).End))
 					return nil
 				}, ParseOptions{Expectations: true, Unit: u, Backend: b})
@@ -106,7 +106,7 @@ rule x = #operators {
 	const depth = 3 * DefaultMaxDepth
 	for _, in := range []string{strings.Repeat("-", depth) + "x", strings.Repeat("x^", depth) + "x"} {
 		for _, b := range []Backend{Closure, Bytecode, BytecodeIterative} {
-			if _, err := prog.ParseWith("main", in, ParseOptions{Expectations: true, Backend: b, Limits: parse.Limits{Depth: uint64(DefaultMaxDepth)}}); err == nil || !strings.Contains(err.Error(), "nesting too deep") {
+			if _, err := prog.ParseWith("main", in, ParseOptions{Expectations: true, Backend: b, Limits: core.Limits{Depth: uint64(DefaultMaxDepth)}}); err == nil || !strings.Contains(err.Error(), "nesting too deep") {
 				t.Errorf("%v, input %.10q...: got %v, want a nesting error", b, in, err)
 			}
 		}
@@ -147,9 +147,9 @@ rule e = #operators {
 			{strings.Repeat("-;x^;-x;", 128), 2, true}, // failed child frames must also release depth
 		} {
 			for _, backend := range []Backend{Closure, Bytecode, BytecodeIterative} {
-				for _, unit := range []parse.PositionUnit{parse.CodePoints, parse.Bytes} {
+				for _, unit := range []core.PositionUnit{core.CodePoints, core.Bytes} {
 					for _, recognize := range []bool{false, true} {
-						opts := ParseOptions{Expectations: true, Backend: backend, Unit: unit, Limits: parse.Limits{Depth: uint64(tc.depth)}, Recognize: recognize}
+						opts := ParseOptions{Expectations: true, Backend: backend, Unit: unit, Limits: core.Limits{Depth: uint64(tc.depth)}, Recognize: recognize}
 						n, err := prog.ParseWith("main", tc.input, opts)
 						if (err == nil) != tc.ok {
 							t.Errorf("memo disabled %v, %s/%s, recognize %v depth %d input %.20q: %v, %v", disableMemo, backend, unit, recognize, tc.depth, tc.input, n, err)
@@ -173,7 +173,7 @@ rule e = #operators {
     level { prefix "-" }
 }`)
 	for _, backend := range []Backend{Closure, Bytecode, BytecodeIterative} {
-		for _, unit := range []parse.PositionUnit{parse.CodePoints, parse.Bytes} {
+		for _, unit := range []core.PositionUnit{core.CodePoints, core.Bytes} {
 			for _, tc := range []struct {
 				input string
 				count int
@@ -184,10 +184,10 @@ rule e = #operators {
 				{"x;x^x;x^x^x;", 2, false},
 			} {
 				count := 0
-				err := prog.ParseStreamWith("main", strings.NewReader(tc.input), func(*parse.Node) error {
+				err := prog.ParseStreamWith("main", strings.NewReader(tc.input), func(*core.Node) error {
 					count++
 					return nil
-				}, ParseOptions{Expectations: true, Backend: backend, Unit: unit, Limits: parse.Limits{Depth: 2}})
+				}, ParseOptions{Expectations: true, Backend: backend, Unit: unit, Limits: core.Limits{Depth: 2}})
 				if count != tc.count || (err == nil) != tc.ok {
 					t.Errorf("%s/%s input %.20q: emitted %d, err %v; want %d, success %v", backend, unit, tc.input, count, err, tc.count, tc.ok)
 				}

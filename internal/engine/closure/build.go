@@ -3,14 +3,14 @@ package closure
 import (
 	"fmt"
 
+	"zeroparse.dev/zp/core"
 	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/cancel"
 	"zeroparse.dev/zp/internal/compile"
-	"zeroparse.dev/zp/internal/engine/core"
+	ecore "zeroparse.dev/zp/internal/engine/core"
 	ir "zeroparse.dev/zp/internal/ir/core"
 	"zeroparse.dev/zp/internal/ir/core/build"
 	"zeroparse.dev/zp/internal/value"
-	"zeroparse.dev/zp/runtime/parse"
 )
 
 // Core builds the Core IR of the program prog and optimizes it with the closure pipeline (guards
@@ -36,7 +36,7 @@ func Core(prog *compile.Program, control *cancel.Control) (*ir.Module, error) {
 // built from the same module, at different times. A failure is an internal error: the program
 // compiled, so its terms build. The build runs when a parse first needs the family, outside the
 // compilation, so no control interrupts it.
-func Build(prog *compile.Program, m *ir.Module, plainDispatch bool, f core.Family) ([]*core.Rule, error) {
+func Build(prog *compile.Program, m *ir.Module, plainDispatch bool, f ecore.Family) ([]*ecore.Rule, error) {
 	b, err := newBuilder(prog, m, plainDispatch)
 	if err != nil {
 		return nil, err
@@ -61,9 +61,9 @@ func Build(prog *compile.Program, m *ir.Module, plainDispatch bool, f core.Famil
 			return nil, fmt.Errorf("rule %s: %w", sr.Name, err)
 		}
 		r := b.rule(sr.ID)
-		*core.StaticRuleOf(r) = *sr
+		*ecore.StaticRuleOf(r) = *sr
 		// The frame of the rule's captures has the slots of its Core IR scope.
-		core.StaticRuleOf(r).Scope = scopeOf(cr.Scope)
+		ecore.StaticRuleOf(r).Scope = scopeOf(cr.Scope)
 		r.InitVals = prog.Vars.ValuesOf(sr.Vars)
 		r.VarSlots = prog.Vars.Slots(sr.Vars)
 		if sr.NodeType != "" {
@@ -78,12 +78,12 @@ func Build(prog *compile.Program, m *ir.Module, plainDispatch bool, f core.Famil
 
 // newBuilder returns the builder of the closure form of the module m of the program prog.
 func newBuilder(prog *compile.Program, m *ir.Module, plainDispatch bool) (*Builder, error) {
-	b := &Builder{prog: prog, m: m, plainDispatch: plainDispatch, accepts: map[*ir.Class]func(*core.Parser, rune) bool{}}
+	b := &Builder{prog: prog, m: m, plainDispatch: plainDispatch, accepts: map[*ir.Class]func(*ecore.Parser, rune) bool{}}
 	b.static = append(append([]*compile.Rule(nil), prog.RuleList...), prog.Twins...)
-	ids := make(map[string]core.ExpID, len(prog.DescTable))
+	ids := make(map[string]ecore.ExpID, len(prog.DescTable))
 	for i, d := range prog.DescTable {
 		if _, ok := ids[d]; !ok {
-			ids[d] = core.ExpID(i)
+			ids[d] = ecore.ExpID(i)
 		}
 	}
 	for _, d := range m.Exps {
@@ -99,7 +99,7 @@ func newBuilder(prog *compile.Program, m *ir.Module, plainDispatch bool) (*Build
 // Matcher returns the matcher of the node n, in the capture scope scope, of the Core IR module m
 // of the program prog, in the inlined family. It is for the tests of package engine, which check
 // single closures.
-func Matcher(prog *compile.Program, m *ir.Module, n ir.Node, scope []ir.Slot, plainDispatch bool) (core.Matcher, error) {
+func Matcher(prog *compile.Program, m *ir.Module, n ir.Node, scope []ir.Slot, plainDispatch bool) (ecore.Matcher, error) {
 	b, err := newBuilder(prog, m, plainDispatch)
 	if err != nil {
 		return nil, err
@@ -120,10 +120,10 @@ func scopeOf(s []ir.Slot) *compile.Scope {
 }
 
 // desc returns the expectation of the program that the module's expectation id is.
-func (b *Builder) desc(id ir.ExpID) core.ExpID { return b.descs[id] }
+func (b *Builder) desc(id ir.ExpID) ecore.ExpID { return b.descs[id] }
 
 // accept returns the membership test of the class c.
-func (b *Builder) accept(c *ir.Class) func(*core.Parser, rune) bool {
+func (b *Builder) accept(c *ir.Class) func(*ecore.Parser, rune) bool {
 	if f, ok := b.accepts[c]; ok {
 		return f
 	}
@@ -137,7 +137,7 @@ func (b *Builder) accept(c *ir.Class) func(*core.Parser, rune) bool {
 }
 
 // fail records the first internal error of the build.
-func (b *Builder) failf(format string, args ...any) core.Matcher {
+func (b *Builder) failf(format string, args ...any) ecore.Matcher {
 	if b.err == nil {
 		b.err = fmt.Errorf("internal error: "+format, args...)
 	}
@@ -145,7 +145,7 @@ func (b *Builder) failf(format string, args ...any) core.Matcher {
 }
 
 // node builds the matcher of the Core IR node n in the current scope.
-func (b *Builder) node(n ir.Node) core.Matcher {
+func (b *Builder) node(n ir.Node) ecore.Matcher {
 	want := n.Attrs().Want
 	switch n := n.(type) {
 	case *ir.Lit:
@@ -153,11 +153,11 @@ func (b *Builder) node(n ir.Node) core.Matcher {
 	case *ir.ClassNode:
 		return single(want, b.desc(n.Class.Exp), b.accept(n.Class))
 	case *ir.Any:
-		return single(want, compile.IDAny, func(*core.Parser, rune) bool { return true })
+		return single(want, compile.IDAny, func(*ecore.Parser, rune) bool { return true })
 	case *ir.Call:
 		return b.call(n.Rule, n.Level)
 	case *ir.Seq:
-		ms := make([]core.Matcher, len(n.Items))
+		ms := make([]ecore.Matcher, len(n.Items))
 		flat := make([]bool, len(n.Items))
 		valued := make([]bool, len(n.Items))
 		for i, it := range n.Items {
@@ -168,7 +168,7 @@ func (b *Builder) node(n ir.Node) core.Matcher {
 		}
 		return b.seq(ms, flat, valued, n.Attrs().Shape.K, want)
 	case *ir.Choice:
-		ms := make([]core.Matcher, len(n.Alts))
+		ms := make([]ecore.Matcher, len(n.Alts))
 		for i, a := range n.Alts {
 			ms[i] = b.node(a.Body)
 		}
@@ -226,25 +226,25 @@ func (b *Builder) node(n ir.Node) core.Matcher {
 		return b.anchor(n.Kind, compile.IDEndLine)
 	case *ir.Pred:
 		t := b.termSite(n.Term)
-		return func(p *core.Parser) (*parse.Node, bool) { return nil, predicate(p, t) }
+		return func(p *ecore.Parser) (*core.Node, bool) { return nil, predicate(p, t) }
 	case *ir.BindNode:
 		slot, t := b.prog.Vars.Index(n.Var), b.termSite(n.Term)
-		return func(p *core.Parser) (*parse.Node, bool) { return nil, bind(p, slot, t) }
+		return func(p *ecore.Parser) (*core.Node, bool) { return nil, bind(p, slot, t) }
 	case *ir.Label:
 		m := b.node(n.Body)
 		if n.Diagnostic {
 			return diagnosticAttr(m, b.desc(n.Exp))
 		}
-		msg := core.MsgBit | b.desc(n.Exp)
+		msg := ecore.MsgBit | b.desc(n.Exp)
 		m = errorAttr(m, msg)
 		if n.MissingScope {
-			m = core.MissingErrorScope(m, msg)
+			m = ecore.MissingErrorScope(m, msg)
 		}
 		return m
 	case *ir.Recover:
 		return b.recover(n.Body, b.node(n.Body), b.node(n.Skip), want && n.Attrs().Shape.K > 0)
 	case *ir.Missing:
-		return core.MissingLiteral(b.node(n.Body), n.Site, n.Lit.Text, want)
+		return ecore.MissingLiteral(b.node(n.Body), n.Site, n.Lit.Text, want)
 	}
 	return b.failf("Core IR node %T in a closure program", n)
 }
@@ -262,7 +262,7 @@ func (b *Builder) termSite(t ir.Term) *termSite {
 }
 
 // repeatNode builds the repetition n; stream reports that it delivers stream elements.
-func (b *Builder) repeatNode(n *ir.Repeat, stream bool) core.Matcher {
+func (b *Builder) repeatNode(n *ir.Repeat, stream bool) ecore.Matcher {
 	if n.Site != 0 {
 		return b.skipRepeat(n.Min, b.node(n.Body), n.Site)
 	}

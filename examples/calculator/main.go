@@ -11,15 +11,15 @@ import (
 	"strconv"
 	"strings"
 
-	"zeroparse.dev/zp"
-	"zeroparse.dev/zp/runtime/parse"
+	"zeroparse.dev/zp/core"
+	"zeroparse.dev/zp/engine"
 )
 
 //go:embed calc.zp
 var grammar string
 
 func main() {
-	p, err := zp.CompileSource(grammar, "main")
+	p, err := engine.CompileSource(grammar, "main")
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
@@ -32,7 +32,7 @@ func main() {
 	fmt.Println(v)
 }
 
-func eval(p *zp.Parser, src string) (float64, error) {
+func eval(p *engine.Parser, src string) (float64, error) {
 	n, err := p.Parse(src)
 	if err != nil {
 		return 0, err
@@ -41,29 +41,29 @@ func eval(p *zp.Parser, src string) (float64, error) {
 }
 
 // evalNode evaluates the AST (Number, Binary, Unary) built by the actions of calc.zp.
-func evalNode(n *parse.Node) (float64, error) {
+func evalNode(n *core.Node) (float64, error) {
 	switch n.Type() {
 	case "Number":
 		return strconv.ParseFloat(n.Text(), 64)
 	case "Unary":
-		x, err := evalNode(n.Field("X").(*parse.Node))
+		x, err := evalNode(n.Field("X").(*core.Node))
 		if err != nil {
 			return 0, err
 		}
-		if n.Field("Op").(*parse.Node).Text() == "-" {
+		if n.Field("Op").(*core.Node).Text() == "-" {
 			return -x, nil
 		}
 		return x, nil
 	case "Binary":
-		l, err := evalNode(n.Field("Left").(*parse.Node))
+		l, err := evalNode(n.Field("Left").(*core.Node))
 		if err != nil {
 			return 0, err
 		}
-		r, err := evalNode(n.Field("Right").(*parse.Node))
+		r, err := evalNode(n.Field("Right").(*core.Node))
 		if err != nil {
 			return 0, err
 		}
-		switch op := n.Field("Op").(*parse.Node).Text(); op {
+		switch op := n.Field("Op").(*core.Node).Text(); op {
 		case "+":
 			return l + r, nil
 		case "-":

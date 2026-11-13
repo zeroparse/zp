@@ -8,8 +8,8 @@ import (
 	"io"
 	"testing"
 
-	"zeroparse.dev/zp/internal/engine/core"
-	"zeroparse.dev/zp/runtime/parse"
+	"zeroparse.dev/zp/core"
+	ecore "zeroparse.dev/zp/internal/engine/core"
 )
 
 type budgetCancelledRefillReader struct {
@@ -46,7 +46,7 @@ rule row = .+ #atomic`)
 				}
 				o.Context = ctx
 				emits := 0
-				err := prog.ParseStreamWith("main", reader, func(*parse.Node) error { emits++; return nil }, o)
+				err := prog.ParseStreamWith("main", reader, func(*core.Node) error { emits++; return nil }, o)
 				if !errors.Is(err, context.Canceled) || reader.calls != 1 || emits != 0 {
 					t.Fatalf("error=%v readercalls=%d emits=%d", err, reader.calls, emits)
 				}
@@ -61,7 +61,7 @@ func TestBudgetStreamRawReaderAdmission(t *testing.T) {
 	cancel()
 	caller := &budgetCancelledRefillReader{cancel: func() {}}
 	var returned error
-	observer := &core.StreamReaderObserver{Reader: caller, Result: &returned, Control: core.NewBudgetControl(ctx, parse.Limits{})}
+	observer := &ecore.StreamReaderObserver{Reader: caller, Result: &returned, Control: ecore.NewBudgetControl(ctx, core.Limits{})}
 	err := catchFatal(t, func() { _, _ = observer.Read(make([]byte, 4)) })
 	if !errors.Is(err, context.Canceled) || caller.calls != 0 || returned != nil {
 		t.Fatalf("error=%v calls=%d returned=%v", err, caller.calls, returned)
@@ -94,17 +94,17 @@ rule row = .+ #atomic`)
 		o.Context = &budgetRawReaderPanicContext{Context: ctx, reader: reader, token: token}
 		var saved TraceEvent
 		o.Trace = func(e TraceEvent) {
-			if core.TraceParser(saved) == nil {
+			if ecore.TraceParser(saved) == nil {
 				saved = e
 			}
 		}
 		var err error
 		got := budgetContextRecover(func() {
-			err = prog.ParseStreamWith("main", reader, func(*parse.Node) error { t.Fatal("unexpected emit"); return nil }, o)
+			err = prog.ParseStreamWith("main", reader, func(*core.Node) error { t.Fatal("unexpected emit"); return nil }, o)
 		})
 		if got != token || err != nil || reader.calls != 1 {
 			t.Fatalf("panic=%#v error=%v calls=%d", got, err, reader.calls)
 		}
-		assertTraceParserDetached(t, core.TraceParser(saved), false)
+		assertTraceParserDetached(t, ecore.TraceParser(saved), false)
 	})
 }

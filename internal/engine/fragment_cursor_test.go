@@ -3,8 +3,8 @@ package engine
 import (
 	"testing"
 
-	"zeroparse.dev/zp/internal/engine/core"
-	"zeroparse.dev/zp/runtime/parse"
+	"zeroparse.dev/zp/core"
+	ecore "zeroparse.dev/zp/internal/engine/core"
 )
 
 func TestFragmentCursorOriginalBytes(t *testing.T) {
@@ -23,7 +23,7 @@ func TestFragmentCursorOriginalBytes(t *testing.T) {
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
 			for _, indexed := range []bool{false, true} {
-				in := core.NewTextInput(tc.source, parse.CodePoints, indexed)
+				in := ecore.NewTextInput(tc.source, core.CodePoints, indexed)
 				for cursor, want := range tc.offsets {
 					if got := in.PrefixByteOffset(tc.source, cursor); got != want {
 						t.Fatalf("indexed=%v cursor=%d: byte endpoint=%d, want %d", indexed, cursor, got, want)
@@ -37,7 +37,7 @@ func TestFragmentCursorOriginalBytes(t *testing.T) {
 				}
 			}
 			// A byte-mode cursor can address a valid UTF-8 scalar's interior.
-			in := core.NewTextInput(tc.source, parse.Bytes, false)
+			in := ecore.NewTextInput(tc.source, core.Bytes, false)
 			for cursor := 0; cursor <= len(tc.source); cursor++ {
 				if got := in.PrefixByteOffset(tc.source, cursor); got != cursor {
 					t.Fatalf("byte cursor=%d: endpoint=%d", cursor, got)
@@ -52,12 +52,12 @@ func TestFragmentCursorMalformedPrefixParity(t *testing.T) {
 	prog := mustCompile(t, `rule main = . .`)
 	source := "😀\xffunconsumed"
 	for _, backend := range []Backend{Closure, Bytecode, BytecodeIterative} {
-		for _, unit := range []parse.PositionUnit{parse.CodePoints, parse.Bytes} {
+		for _, unit := range []core.PositionUnit{core.CodePoints, core.Bytes} {
 			for _, recognize := range []bool{false, true} {
 				options := ParseOptions{Backend: backend, Unit: unit, Recognize: recognize}
 				prefix, err := prog.ParsePrefixWith("main", source, options)
 				want := 2
-				if unit == parse.Bytes {
+				if unit == core.Bytes {
 					want = 5
 				}
 				if err != nil || prefix.Consumed != want || prefix.ConsumedBytes != 5 {

@@ -4,10 +4,10 @@ import (
 	"fmt"
 	"unicode"
 	"unicode/utf8"
+	"zeroparse.dev/zp/core/noderep"
 	"zeroparse.dev/zp/internal/cancel"
 	"zeroparse.dev/zp/internal/diag"
 	"zeroparse.dev/zp/internal/types"
-	"zeroparse.dev/zp/runtime/noderep"
 
 	"zeroparse.dev/zp/grammar"
 )

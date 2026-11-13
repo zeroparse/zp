@@ -4,28 +4,28 @@ import (
 	"strings"
 	"testing"
 
+	"zeroparse.dev/zp/core"
 	"zeroparse.dev/zp/internal/bytecode"
 	"zeroparse.dev/zp/internal/compile"
 	"zeroparse.dev/zp/internal/compiletest"
-	"zeroparse.dev/zp/internal/engine/core"
+	ecore "zeroparse.dev/zp/internal/engine/core"
 	"zeroparse.dev/zp/internal/value"
-	"zeroparse.dev/zp/runtime/parse"
 )
 
 // Completed calls can leave references beyond slice length. Stream commits
 // must release them at the next prune without disturbing active root values.
 func TestStreamStorageCommitReferences(t *testing.T) {
-	prog := &core.SharedProgram{}
-	core.InitSharedProgram(prog, compiletest.Program(t, `rule main = "a"`, compile.Options{SourceInfo: true}))
-	p := core.NewParser(prog, strings.Repeat("a", 4096), parse.CodePoints, false)
+	prog := &ecore.SharedProgram{}
+	ecore.InitSharedProgram(prog, compiletest.Program(t, `rule main = "a"`, compile.Options{SourceInfo: true}))
+	p := ecore.NewParser(prog, strings.Repeat("a", 4096), core.CodePoints, false)
 	live := value.Ptr(value.Data{Text: "live"})
 	dead := value.Ptr(value.Data{Text: "dead"})
 	root := p.NewFrame(1)
 	root.Vals[0] = live
 	p.Frame = root
-	p.Trail = make([]core.Undo, 3)
-	p.Trail[0] = core.Undo{F: root, Old: live}
-	p.Trail[2] = core.Undo{F: &core.Frame{Vals: []*parse.Node{dead}}, Old: dead}
+	p.Trail = make([]ecore.Undo, 3)
+	p.Trail[0] = ecore.Undo{F: root, Old: live}
+	p.Trail[2] = ecore.Undo{F: &ecore.Frame{Vals: []*core.Node{dead}}, Old: dead}
 	p.Trail = p.Trail[:1]
 	machineOf(p).vals = []any{live, dead, dead}
 	machineOf(p).vals = machineOf(p).vals[:1]
@@ -37,14 +37,14 @@ func TestStreamStorageCommitReferences(t *testing.T) {
 	if p.Memo.Base != 1024 || machineOf(p).vals[0] != live || root.Vals[0] != live {
 		t.Fatal("pruning damaged live root or active VM value")
 	}
-	if core.StreamUndoCleanup {
+	if ecore.StreamUndoCleanup {
 		for _, u := range p.Trail[:cap(p.Trail)] {
 			if u.F != nil || u.Old != nil {
 				t.Fatal("inactive undo entry retained a completed value")
 			}
 		}
 	}
-	if core.StreamStackCleanup {
+	if ecore.StreamStackCleanup {
 		for _, v := range machineOf(p).vals[len(machineOf(p).vals):cap(machineOf(p).vals)] {
 			if v != nil {
 				t.Fatal("inactive VM stack entry retained a completed value")

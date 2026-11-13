@@ -4,7 +4,7 @@
 call like any other package. By default the generated Go package depends only on the standard library: it carries a
 copy of the ZeroParse runtime in its `internal/runtime` directory, and it does not load or compile the grammar at run time.
 
-This guide shows how to generate a parser, what the generator supports compared with the engine (the `zp.Parser` of
+This guide shows how to generate a parser, what the generator supports compared with the engine (the `engine.Parser` of
 [Running Parsers](running-parsers.md)), how to keep generated code up to date, and when it is the right choice. The API
 of the generated Go package is in [The Generated Go API](generated-go-api.md), and the options that add typed values,
 documents and streams have guides of their own, linked below. `zp gen -lang ts` generates
@@ -20,7 +20,7 @@ TypeScript modules with the same behavior instead; it has a guide of its own, [T
 
 ## Why Generate
 
-| | Engine (`zp.CompileSource`) | Generated parser |
+| | Engine (`engine.CompileSource`) | Generated parser |
 |:--|:--|:--|
 | Speed | Closure backend by default | Generated Go takes 0.44–0.61× closure time in CodePoints and 0.50–0.66× in Bytes; direct typed values take 0.69–0.98× generated `Parse` time ([benchmarks](../benchmarks.md), [analysis](../performance.md#where-zeroparse-stands)) |
 | Dependencies | `zeroparse.dev/zp` | Standard library only (the runtime is copied into the package; `-runtime import` imports it from `zeroparse.dev/zp/runtime` instead) |
@@ -265,8 +265,8 @@ Details:
 - Without `-s`, the grammar's default start rule is used.
 - With `-runtime import`, the module of the generated package requires `zeroparse.dev/zp`
   (`go get zeroparse.dev/zp@vX.Y.Z`, the version of `zp`). `parser.go` refers to the runtime protocol it was
-  generated for (`const _ = rt.Protocol13`), so a runtime that does not implement that protocol fails the build with
-  `undefined: rt.Protocol13` on that line. Regenerate the parser with the `zp` of the required version, or require a
+  generated for (`const _ = rt.Protocol14`), so a runtime that does not implement that protocol fails the build with
+  `undefined: rt.Protocol14` on that line. Regenerate the parser with the `zp` of the required version, or require a
   version of `zeroparse.dev/zp` whose runtime implements the protocol.
 
 ### Choosing Entry Points
@@ -352,7 +352,7 @@ their own names.
 The same generator is available from Go, in package `zeroparse.dev/zp/gen`, for build tools that produce parsers programmatically:
 
 ```go
-g, err := zp.ParseGrammar(src)
+g, err := engine.ParseGrammar(src)
 if err != nil {
 	log.Fatal(err)
 }
@@ -450,7 +450,7 @@ var grammarSrc string
 
 // The files of pairsparser are up to date with pairs.zp.
 func TestGeneratedIsUpToDate(t *testing.T) {
-	g, err := zp.ParseGrammar(grammarSrc)
+	g, err := engine.ParseGrammar(grammarSrc)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -485,7 +485,7 @@ protects you from the two diverging (for example after an upgrade):
 
 ```go
 func TestGeneratedMatchesEngine(t *testing.T) {
-	p, err := zp.CompileSource(grammarSrc, "main")
+	p, err := engine.CompileSource(grammarSrc, "main")
 	if err != nil {
 		t.Fatal(err)
 	}

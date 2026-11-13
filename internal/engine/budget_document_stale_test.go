@@ -7,9 +7,9 @@ import (
 	"strings"
 	"testing"
 
-	"zeroparse.dev/zp/internal/engine/core"
+	"zeroparse.dev/zp/core"
+	ecore "zeroparse.dev/zp/internal/engine/core"
 	"zeroparse.dev/zp/internal/limits"
-	"zeroparse.dev/zp/runtime/parse"
 )
 
 // After edits that rewrite the end of the head and keep its length, the chain of each position still
@@ -24,14 +24,14 @@ func TestBudgetDocumentLeftoverEntriesAreNotCounted(t *testing.T) {
 		for _, n := range []int{100, 300} {
 			t.Run(fmt.Sprintf("%v/n=%d", back, n), func(t *testing.T) {
 				t.Parallel()
-				o := ParseOptions{Backend: back, Unit: parse.Bytes}
+				o := ParseOptions{Backend: back, Unit: core.Bytes}
 				d, err := prog.NewDocumentWith("main", envKeyText(n), o)
 				if err != nil {
 					t.Fatal(err)
 				}
 				var used, doc uint64
 				od := o
-				od.Trace = func(e TraceEvent) { c := core.TraceParser(e).Control; used, doc = c.Used, c.Doc }
+				od.Trace = func(e TraceEvent) { c := ecore.TraceParser(e).Control; used, doc = c.Used, c.Doc }
 				budget := limits.DefaultBudget(uint64(2*n + 1))
 				for k := 0; k < 12; k++ {
 					rep := fmt.Sprintf("%c%c", 'c'+k/6, 'c'+k%6)
@@ -44,7 +44,7 @@ func TestBudgetDocumentLeftoverEntriesAreNotCounted(t *testing.T) {
 					counted := used - doc
 					var fresh uint64
 					of := o
-					of.Trace = func(e TraceEvent) { c := core.TraceParser(e).Control; fresh = c.Used - c.Doc }
+					of.Trace = func(e TraceEvent) { c := ecore.TraceParser(e).Control; fresh = c.Used - c.Doc }
 					cur := strings.Repeat("a", n-2) + rep + ";" + strings.Repeat("b", n)
 					if _, err := prog.ParseWith("main", cur, of); err != nil {
 						t.Fatalf("edit %d: parse from scratch: %.100v", k, err)
@@ -70,14 +70,14 @@ func TestBudgetDocumentLeftoverEntriesAreBoundedByTheEditLimit(t *testing.T) {
 		t.Run(back.String(), func(t *testing.T) {
 			t.Parallel()
 			const n = 60
-			o := ParseOptions{Backend: back, Unit: parse.Bytes}
+			o := ParseOptions{Backend: back, Unit: core.Bytes}
 			d, err := prog.NewDocumentWith("main", envKeyText(n), o)
 			if err != nil {
 				t.Fatal(err)
 			}
 			var used uint64
 			od := o
-			od.Trace = func(e TraceEvent) { used = core.TraceParser(e).Control.Used }
+			od.Trace = func(e TraceEvent) { used = ecore.TraceParser(e).Control.Used }
 			var settled, last uint64
 			for k := 0; k < 230; k++ {
 				rep := fmt.Sprintf("%c%c", 'c'+k/20, 'c'+k%20)

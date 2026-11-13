@@ -7,24 +7,24 @@ import (
 
 	"zeroparse.dev/zp/internal/engine/document"
 
+	"zeroparse.dev/zp/core"
 	. "zeroparse.dev/zp/internal/engine"
-	"zeroparse.dev/zp/runtime/parse"
 )
 
 func TestCacheControlsResetPreservesDocument(t *testing.T) {
 	for _, backend := range []Backend{Closure, Bytecode, BytecodeIterative} {
-		for _, unit := range []parse.PositionUnit{parse.CodePoints, parse.Bytes} {
+		for _, unit := range []core.PositionUnit{core.CodePoints, core.Bytes} {
 			t.Run(backend.String()+"/"+unit.String(), func(t *testing.T) {
 				prog := mustCompile(t, `rule main = item* $$
 rule item = [a-z]+ "\n"`)
-				options := ParseOptions{Backend: backend, Unit: unit, Limits: parse.Limits{Depth: 12345}}
+				options := ParseOptions{Backend: backend, Unit: unit, Limits: core.Limits{Depth: 12345}}
 				text := strings.Repeat("word\n", 40)
 				d, err := prog.NewDocumentWith("main", text, options)
 				if err != nil {
 					t.Fatal(err)
 				}
 				d.ResetHistory()
-				if got := d.CacheStats(); got != (parse.CacheStats{}) {
+				if got := d.CacheStats(); got != (core.CacheStats{}) {
 					t.Fatalf("initial reset: %+v", got)
 				}
 				old, err := d.Parse()
@@ -48,7 +48,7 @@ rule item = [a-z]+ "\n"`)
 				before := dump(t, old, nil)
 				parseStats := d.Stats()
 				d.ResetHistory()
-				if got := d.CacheStats(); got != (parse.CacheStats{}) {
+				if got := d.CacheStats(); got != (core.CacheStats{}) {
 					t.Fatalf("reset: %+v", got)
 				}
 				if d.HasPreviousSnapshot() || oldSnapshot.Text() != text || !oldSnapshot.Root().Valid() {

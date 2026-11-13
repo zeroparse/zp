@@ -3,19 +3,19 @@ package document
 import (
 	"testing"
 
-	"zeroparse.dev/zp/internal/engine/core"
-	"zeroparse.dev/zp/runtime/parse"
+	"zeroparse.dev/zp/core"
+	ecore "zeroparse.dev/zp/internal/engine/core"
 )
 
 func TestDocumentDiagnosticContainers(t *testing.T) {
-	p := &core.Parser{}
+	p := &ecore.Parser{}
 	if copyDocumentDiagnostics(p, nil) != nil {
 		t.Fatal("nil diagnostics became nonnil")
 	}
-	if got := copyDocumentDiagnostics(p, parse.SyntaxErrors{}); got == nil || len(got) != 0 {
+	if got := copyDocumentDiagnostics(p, core.SyntaxErrors{}); got == nil || len(got) != 0 {
 		t.Fatal("empty diagnostics lost their shape")
 	}
-	src := parse.SyntaxErrors{
+	src := core.SyntaxErrors{
 		nil,
 		{Expected: []string{}, Messages: nil},
 		{Expected: []string{"token"}, Messages: []string{"original"}},

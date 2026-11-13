@@ -5,9 +5,9 @@ import (
 	"strings"
 	"testing"
 
+	"zeroparse.dev/zp/core"
 	"zeroparse.dev/zp/internal/compile"
 	"zeroparse.dev/zp/internal/gentest"
-	"zeroparse.dev/zp/runtime/parse"
 )
 
 // TestLeftRecursionRetainsReachableSuffixes pins the rule of "Growths of Left Recursion" in
@@ -51,7 +51,7 @@ func TestLeftRecursionIgnoresUnreachableRecoveryChain(t *testing.T) {
 			for _, options := range []compile.Options{{}, {DisableMemo: true}} {
 				p, q := mustCompile(t, original.String(), options), mustCompile(t, removed.String(), options)
 				for _, backend := range []Backend{Closure, Bytecode, BytecodeIterative} {
-					for _, unit := range []parse.PositionUnit{parse.CodePoints, parse.Bytes} {
+					for _, unit := range []core.PositionUnit{core.CodePoints, core.Bytes} {
 						o := ParseOptions{Backend: backend, Unit: unit}
 						got, err := p.ParseWith("r2", "", o)
 						want, wantErr := q.ParseWith("r2", "", o)
@@ -79,7 +79,7 @@ func TestLeftRecursionReachabilitySavedAndDocuments(t *testing.T) {
 							wantClosureRefused(t, err)
 							continue
 						}
-						for _, unit := range []parse.PositionUnit{parse.CodePoints, parse.Bytes} {
+						for _, unit := range []core.PositionUnit{core.CodePoints, core.Bytes} {
 							o := ParseOptions{Backend: backend, Unit: unit}
 							for _, text := range c.Inputs {
 								want, wantErr := p.ParseWith("main", text, o)
@@ -123,12 +123,12 @@ func TestLeftRecursionRecoverySkipStreams(t *testing.T) {
 		p := mustCompile(t, `rule main = (a "\n")* #stream $$
 rule a = "x" #recover(skip=a) / "y"`, options)
 		for _, backend := range []Backend{Closure, Bytecode, BytecodeIterative} {
-			for _, unit := range []parse.PositionUnit{parse.CodePoints, parse.Bytes} {
+			for _, unit := range []core.PositionUnit{core.CodePoints, core.Bytes} {
 				count := 0
-				err := p.ParseStreamWith("main", strings.NewReader("y\ny\n"), func(*parse.Node) error {
+				err := p.ParseStreamWith("main", strings.NewReader("y\ny\n"), func(*core.Node) error {
 					count++
 					return nil
-				}, ParseOptions{Backend: backend, Unit: unit, Limits: parse.Limits{Depth: 20}})
+				}, ParseOptions{Backend: backend, Unit: unit, Limits: core.Limits{Depth: 20}})
 				if err != nil || count != 2 {
 					t.Errorf("%s/%s memo disabled=%v: %d elements, %v", backend, unit, options.DisableMemo, count, err)
 				}
@@ -142,8 +142,8 @@ func TestLeftRecursionInRecoverySkip(t *testing.T) {
 	p := mustCompile(t, `rule main = a
 rule a = "x" #recover(skip=a) / "y"`)
 	for _, backend := range []Backend{Closure, Bytecode, BytecodeIterative} {
-		for _, unit := range []parse.PositionUnit{parse.CodePoints, parse.Bytes} {
-			n, err := p.ParseWith("main", "y", ParseOptions{Backend: backend, Unit: unit, Limits: parse.Limits{Depth: 20}})
+		for _, unit := range []core.PositionUnit{core.CodePoints, core.Bytes} {
+			n, err := p.ParseWith("main", "y", ParseOptions{Backend: backend, Unit: unit, Limits: core.Limits{Depth: 20}})
 			if err != nil || n.String() != `"y"@a` {
 				t.Errorf("%s/%s: got %v, %v; want y without a recursion-limit failure", backend, unit, n, err)
 			}
@@ -159,7 +159,7 @@ rule r2 = (("a" / r1 / "\n") / ("" / "\n")) #repeat(0, 1)`
 	for _, options := range []compile.Options{{}, {DisableMemo: true}} {
 		p, q := mustCompile(t, original, options), mustCompile(t, removed, options)
 		for _, backend := range []Backend{Closure, Bytecode, BytecodeIterative} {
-			for _, unit := range []parse.PositionUnit{parse.CodePoints, parse.Bytes} {
+			for _, unit := range []core.PositionUnit{core.CodePoints, core.Bytes} {
 				o := ParseOptions{Backend: backend, Unit: unit}
 				for _, input := range []string{"", "a", "\n", "aa", "b"} {
 					got, err := p.ParseWith("r2", input, o)
@@ -190,7 +190,7 @@ func TestLeftRecursionUnconditionalSuffixForms(t *testing.T) {
 			for _, options := range []compile.Options{{}, {DisableMemo: true}} {
 				p, q := mustCompile(t, original, options), mustCompile(t, removed, options)
 				for _, backend := range []Backend{Closure, Bytecode, BytecodeIterative} {
-					for _, unit := range []parse.PositionUnit{parse.CodePoints, parse.Bytes} {
+					for _, unit := range []core.PositionUnit{core.CodePoints, core.Bytes} {
 						for _, input := range []string{"", "a", "x", "xy", "\n", "aa", "b"} {
 							o := ParseOptions{Backend: backend, Unit: unit}
 							got, err := p.ParseWith("r2", input, o)

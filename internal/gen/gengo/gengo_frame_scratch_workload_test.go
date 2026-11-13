@@ -8,10 +8,10 @@ import (
 	"strings"
 	"testing"
 
+	"zeroparse.dev/zp/core"
 	"zeroparse.dev/zp/internal/engine"
 	"zeroparse.dev/zp/internal/gen"
 	"zeroparse.dev/zp/internal/gentest"
-	"zeroparse.dev/zp/runtime/parse"
 )
 
 const nodeFrameScratchGrammar = `type Tok = { Text string }
@@ -64,10 +64,10 @@ rule main Tok = t:(("é" / "�")* $$) #atomic => Tok{Text: text($t)}`, `func fr
 			var rows strings.Builder
 			if c.name != "typescript" {
 				for _, input := range []string{"", "é", "éé", "�", "é�", "é!", "\xff", "é\xff", "\xe2\x82"} {
-					for _, unit := range []parse.PositionUnit{parse.CodePoints, parse.Bytes} {
+					for _, unit := range []core.PositionUnit{core.CodePoints, core.Bytes} {
 						n, err := prog.ParseWith("main", input, engine.ParseOptions{Expectations: true, Unit: unit})
 						_, rerr := prog.ParseWith("main", input, engine.ParseOptions{Expectations: true, Unit: unit, Recognize: true})
-						fmt.Fprintf(&rows, "{%q,%s,%q,%q},\n", input, map[parse.PositionUnit]string{parse.CodePoints: "CodePoints", parse.Bytes: "Bytes"}[unit], gentest.ResultJSON(n, err), fmt.Sprint(rerr))
+						fmt.Fprintf(&rows, "{%q,%s,%q,%q},\n", input, map[core.PositionUnit]string{core.CodePoints: "CodePoints", core.Bytes: "Bytes"}[unit], gentest.ResultJSON(n, err), fmt.Sprint(rerr))
 					}
 				}
 			}

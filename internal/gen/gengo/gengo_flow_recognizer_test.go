@@ -131,7 +131,7 @@ func skipWithoutRewind(code []byte) []byte { return skipRewind.ReplaceAll(code, 
 var (
 	ruleBodyRef = regexp.MustCompile(`(?m)^\t(rules|recRules)\[(\d+)\]\.Body = (e\d+)$`)
 	funcBody    = func(name string) *regexp.Regexp {
-		return regexp.MustCompile(`(?ms)^func ` + name + `\(p \*rt\.Parser(?:, _ int)?\) \(\*parse\.Node, bool\) \{\n.*?^\}\n`)
+		return regexp.MustCompile(`(?ms)^func ` + name + `\(p \*rt\.Parser(?:, _ int)?\) \(\*core\.Node, bool\) \{\n.*?^\}\n`)
 	}
 )
 

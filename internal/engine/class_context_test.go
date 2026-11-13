@@ -11,12 +11,12 @@ import (
 	"weak"
 	"zeroparse.dev/zp/internal/cancel"
 
+	"zeroparse.dev/zp/core"
 	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/compile"
 	"zeroparse.dev/zp/internal/engine/closure"
-	"zeroparse.dev/zp/internal/engine/core"
+	ecore "zeroparse.dev/zp/internal/engine/core"
 	"zeroparse.dev/zp/internal/starttest"
-	"zeroparse.dev/zp/runtime/parse"
 )
 
 func contextClassRanges() []grammar.CharRange {
@@ -79,9 +79,9 @@ func TestClassConstructionContextFacts(t *testing.T) {
 				}
 				for _, r := range runes {
 					for _, active := range []bool{false, true} {
-						p := &core.Parser{}
+						p := &ecore.Parser{}
 						if active {
-							p.Control = core.NewBudgetControl(nil, parse.Limits{Compute: 1 << 30})
+							p.Control = ecore.NewBudgetControl(nil, core.Limits{Compute: 1 << 30})
 						}
 						expected := false
 						for _, rg := range rs {
@@ -104,7 +104,7 @@ func TestClassConstructionContextFacts(t *testing.T) {
 	cl = &grammar.CharClass{Ranges: rs}
 	accept := closure.ClassAccept(cl)
 	rs[0] = grammar.CharRange{Lo: 'a', Hi: 'a'}
-	if !accept(&core.Parser{}, 256) || accept(&core.Parser{}, 'a') {
+	if !accept(&ecore.Parser{}, 256) || accept(&ecore.Parser{}, 'a') {
 		t.Fatal("matcher aliases source range slice")
 	}
 }
@@ -133,7 +133,7 @@ func TestClassConstructionCompileContextParity(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			for _, unit := range []parse.PositionUnit{parse.Bytes, parse.CodePoints} {
+			for _, unit := range []core.PositionUnit{core.Bytes, core.CodePoints} {
 				for _, recognize := range []bool{false, true} {
 					for _, active := range []bool{false, true} {
 						for _, s := range []string{"a", "β", "z", "?", "", "aβ1"} {
@@ -142,7 +142,7 @@ func TestClassConstructionCompileContextParity(t *testing.T) {
 							// including its directly compiled recognition-only graph.
 							opts := ParseOptions{Unit: unit, Recognize: recognize}
 							if active {
-								opts.Limits = parse.Limits{Compute: 1 << 30}
+								opts.Limits = core.Limits{Compute: 1 << 30}
 							}
 							x, xe := a.ParseWith("main", s, opts)
 							y, ye := b.ParseWith("main", s, opts)

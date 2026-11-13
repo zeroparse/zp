@@ -16,9 +16,9 @@ import (
 	"slices"
 	"strings"
 
-	"zeroparse.dev/zp"
+	"zeroparse.dev/zp/core"
+	"zeroparse.dev/zp/engine"
 	"zeroparse.dev/zp/grammar"
-	"zeroparse.dev/zp/runtime/parse"
 )
 
 // FormatVersion is the only fixture format version understood by this package.
@@ -191,7 +191,7 @@ type RunOptions struct {
 	Backends    []string
 	Equivalence *bool
 	Context     context.Context
-	Limits      parse.Limits
+	Limits      core.Limits
 }
 
 // Outcome describes whether parsing matched cleanly, recovered, or rejected input.
@@ -353,7 +353,7 @@ func Load(path string) (*Suite, error) {
 	if strings.HasSuffix(grammarPath, ".json") {
 		suite.grammar, err = grammar.UnmarshalJSON(grammarBytes)
 	} else {
-		suite.grammar, err = zp.ParseGrammar(string(grammarBytes))
+		suite.grammar, err = engine.ParseGrammar(string(grammarBytes))
 	}
 	if err != nil {
 		return nil, fmt.Errorf("%s: grammar %s: %w", path, suite.Grammar, err)
@@ -388,13 +388,13 @@ func Run(suite *Suite, opts RunOptions) (Report, error) {
 			return report, err
 		}
 	}
-	unit := parse.CodePoints
+	unit := core.CodePoints
 	if suite.Unit == "bytes" {
-		unit = parse.Bytes
+		unit = core.Bytes
 	}
-	parsers := make(map[string]*zp.Parser, len(backends))
+	parsers := make(map[string]*engine.Parser, len(backends))
 	for _, backend := range backends {
-		p, err := zp.Compile(suite.grammar, suite.Start)
+		p, err := engine.Compile(suite.grammar, suite.Start)
 		if err != nil {
 			return Report{}, fmt.Errorf("compile grammar: %w", err)
 		}
@@ -601,21 +601,21 @@ func setGoldens(exp *Expectation, actual Actual) {
 	copy(exp.Errors, actual.Errors)
 }
 
-func runCase(p *zp.Parser, backend string, unit parse.PositionUnit, input string, ctx context.Context, limits parse.Limits) (Actual, error) {
-	var b zp.Backend
+func runCase(p *engine.Parser, backend string, unit core.PositionUnit, input string, ctx context.Context, limits core.Limits) (Actual, error) {
+	var b engine.Backend
 	switch backend {
 	case "default":
-		b = zp.DefaultBackend
+		b = engine.DefaultBackend
 	case "closure":
-		b = zp.Closure
+		b = engine.Closure
 	case "bytecode":
-		b = zp.Bytecode
+		b = engine.Bytecode
 	case "bytecode-iterative":
-		b = zp.BytecodeIterative
+		b = engine.BytecodeIterative
 	}
-	options := []zp.ParseOption{zp.WithExpectations(), zp.WithUnit(unit), zp.WithBackend(b), zp.WithLimits(limits)}
+	options := []engine.ParseOption{engine.WithExpectations(), engine.WithUnit(unit), engine.WithBackend(b), engine.WithLimits(limits)}
 	if ctx != nil {
-		options = append(options, zp.WithContext(ctx))
+		options = append(options, engine.WithContext(ctx))
 	}
 	node, parseErr := p.Parse(input, options...)
 	actual := Actual{}
@@ -627,8 +627,8 @@ func runCase(p *zp.Parser, backend string, unit parse.PositionUnit, input string
 		actual.Node = data
 		actual.Start, actual.End = intPointer(int(node.Start())), intPointer(int(node.End()))
 	}
-	var many parse.SyntaxErrors
-	var one *parse.SyntaxError
+	var many core.SyntaxErrors
+	var one *core.SyntaxError
 	switch {
 	case parseErr == nil:
 		actual.Outcome = Accepted
@@ -655,7 +655,7 @@ func runCase(p *zp.Parser, backend string, unit parse.PositionUnit, input string
 	return actual, nil
 }
 
-func errorLocation(e *parse.SyntaxError) ErrorLocation {
+func errorLocation(e *core.SyntaxError) ErrorLocation {
 	return ErrorLocation{Pos: e.Pos, Line: e.Line, Column: e.Col}
 }
 

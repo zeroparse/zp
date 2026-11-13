@@ -7,8 +7,8 @@ import (
 
 	"testing"
 
+	"zeroparse.dev/zp/core"
 	"zeroparse.dev/zp/internal/compile"
-	"zeroparse.dev/zp/runtime/parse"
 )
 
 func TestBudgetLazyClosureSavedFlagsAndOptions(t *testing.T) {
@@ -25,10 +25,10 @@ rule item = [a-z]+`)
 			if err != nil {
 				t.Fatal(err)
 			}
-			for _, unit := range []parse.PositionUnit{parse.CodePoints, parse.Bytes} {
+			for _, unit := range []core.PositionUnit{core.CodePoints, core.Bytes} {
 				o := ParseOptions{Unit: unit}
 				plain, plainErr := p.ParseWith("main", "abc,def", o)
-				o.Limits = parse.Limits{Compute: 1000000}
+				o.Limits = core.Limits{Compute: 1000000}
 				active, activeErr := p.ParseWith("main", "abc,def", o)
 				if gentest.ResultJSON(plain, plainErr) != gentest.ResultJSON(active, activeErr) || activeErr != nil {
 					t.Fatalf("options changed output: %v", activeErr)

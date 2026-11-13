@@ -9,7 +9,7 @@
 
 **One Grammar. Every Parser.**
 
-[![License](https://img.shields.io/badge/license-Apache--2.0-blue)](LICENCE) [![Go Reference](https://pkg.go.dev/badge/zeroparse.dev/zp.svg)](https://pkg.go.dev/zeroparse.dev/zp) [![Go](https://img.shields.io/badge/go-1.27.1+-00ADD8?logo=go&logoColor=white)](go.mod)
+[![License](https://img.shields.io/badge/license-Apache--2.0-blue)](LICENCE) [![Go Reference](https://pkg.go.dev/badge/zeroparse.dev/zp/engine.svg)](https://pkg.go.dev/zeroparse.dev/zp/engine) [![Go](https://img.shields.io/badge/go-1.27.1+-00ADD8?logo=go&logoColor=white)](go.mod)
 
 [Website](https://zeroparse.dev/) · [Playground](https://zeroparse.dev/playground/) · [Quick start](docs/tutorial/getting-started.md) · [Guides](docs/guide/README.md) · [Specification](spec/README.md) · [Examples](examples/)
 
@@ -89,21 +89,21 @@ Go 1.27.1 or later. No dependencies outside the standard library.
 **From Go**
 
 ```go
-p, err := zp.CompileSource(grammarSource, "main") // grammar errors come with positions
+p, err := engine.CompileSource(grammarSource, "main") // grammar errors come with positions
 
 node, err := p.Parse(input)                       // positions in code points by default
-p.Parse(input, zp.WithUnit(parse.Bytes))         // ... or in UTF-8 bytes
-p.Parse(input, zp.WithBackend(zp.Bytecode))   // pick a backend
-p.Parse(input, zp.RecognizeOnly())              // validate without building a tree
+p.Parse(input, engine.WithUnit(core.Bytes))         // ... or in UTF-8 bytes
+p.Parse(input, engine.WithBackend(engine.Bytecode))   // pick a backend
+p.Parse(input, engine.RecognizeOnly())              // validate without building a tree
 json.Marshal(node)                                // nodes encode with types and positions
 
-err = p.ParseStream(r, func(n *parse.Node) error { return nil }) // one #stream element at a time
+err = p.ParseStream(r, func(n *core.Node) error { return nil }) // one #stream element at a time
 
 doc, _ := p.NewDocument(text)
 doc.Edit(10, 12, "new text") // replace [10, 12)
 node, err = doc.Parse()      // reuses rule results the edit did not reach
 
-data, _ := p.MarshalBinary() // save; zp.LoadParser(data) skips parsing and checking
+data, _ := p.MarshalBinary() // save; engine.LoadParser(data) skips parsing and checking
 ```
 
 **From the command line**

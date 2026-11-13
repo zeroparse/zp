@@ -8,9 +8,9 @@ import (
 	"testing"
 	"unsafe"
 
+	"zeroparse.dev/zp/core"
 	"zeroparse.dev/zp/internal/compile"
-	"zeroparse.dev/zp/internal/engine/core"
-	"zeroparse.dev/zp/runtime/parse"
+	ecore "zeroparse.dev/zp/internal/engine/core"
 )
 
 var sparseMemoSynthetic = func() string {
@@ -96,7 +96,7 @@ func BenchmarkSparseMemoTypeScript(b *testing.B) {
 	}
 	for _, source := range sources {
 		for _, backend := range []Backend{Closure, Bytecode, BytecodeIterative} {
-			for _, unit := range []parse.PositionUnit{parse.CodePoints, parse.Bytes} {
+			for _, unit := range []core.PositionUnit{core.CodePoints, core.Bytes} {
 				for _, recognize := range []bool{false, true} {
 					name := "Parse"
 					if recognize {
@@ -122,7 +122,7 @@ func BenchmarkSparseMemoTypeScript(b *testing.B) {
 								b.Fatal(err)
 							}
 						}
-						p := core.NewParser(&target.sharedProgram, source.text, unit, !recognize)
+						p := ecore.NewParser(&target.sharedProgram, source.text, unit, !recognize)
 						p.DeferMemo = true
 						if _, err := target.Run(p, backend, "main"); err != nil {
 							b.Fatal(err)
@@ -140,8 +140,8 @@ func BenchmarkSparseMemoTypeScript(b *testing.B) {
 	}
 }
 
-func sparseMemoStorage(m *core.MemoTable) int {
-	size := cap(m.Seen)*8 + cap(m.Pages)*int(unsafe.Sizeof(core.SeenRulePages{}))
+func sparseMemoStorage(m *ecore.MemoTable) int {
+	size := cap(m.Seen)*8 + cap(m.Pages)*int(unsafe.Sizeof(ecore.SeenRulePages{}))
 	size += len(m.BitPages.Chunks)*64*16*8 + cap(m.BitPages.Chunks)*int(unsafe.Sizeof(uintptr(0)))
 	for _, dir := range m.Pages {
 		size += cap(dir.Pages) * int(unsafe.Sizeof(uintptr(0)))

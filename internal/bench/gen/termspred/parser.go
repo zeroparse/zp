@@ -4,14 +4,14 @@
 package termspred
 
 import (
+	"zeroparse.dev/zp/core"
 	types "zeroparse.dev/zp/internal/bench/gen/termspred/types"
 	rt "zeroparse.dev/zp/runtime"
-	"zeroparse.dev/zp/runtime/parse"
 )
 
 // Parse parses the whole input with the rule main. Options select position units, depth, cancellation and compute limits.
 // If the parse recovered from errors with #recover, it returns the node together with SyntaxErrors.
-func Parse(input string, opts ...rt.ParseOption) (*parse.Node, error) {
+func Parse(input string, opts ...rt.ParseOption) (*core.Node, error) {
 	return rt.RunParse(rules[0], input, opts)
 }
 
@@ -31,7 +31,7 @@ var zpGrammar = rt.NewGrammar(100000)
 
 // ParseRule parses the whole input with the start rule name, a rule marked @start; an empty
 // name selects the grammar's default start rule.
-func ParseRule(name, input string, opts ...rt.ParseOption) (*parse.Node, error) {
+func ParseRule(name, input string, opts ...rt.ParseOption) (*core.Node, error) {
 	o, err := rt.ResolveOptions(zpGrammar, opts)
 	if err != nil {
 		return nil, err
@@ -233,12 +233,12 @@ func init() {
 	trules[0].Entry = u0
 }
 
-func e2(p *rt.Parser, _ int) (*parse.Node, bool) {
+func e2(p *rt.Parser, _ int) (*core.Node, bool) {
 	p.Spend()
 	var x2, x3 int
 	var x5 rt.Mark
 	var ok bool
-	var v7, v8, v9 *parse.Node
+	var v7, v8, v9 *core.Node
 	x2, x3 = p.Pos, len(p.KidStack)
 	for {
 		p.Spend()
@@ -267,12 +267,12 @@ fail:
 	return nil, false
 }
 
-func e5(p *rt.Parser, _ int) (*parse.Node, bool) {
+func e5(p *rt.Parser, _ int) (*core.Node, bool) {
 	p.Spend()
 	var x2, x3, x4 int
 	var x5 rt.Mark
 	var ok bool
-	var v7, v8, v9 *parse.Node
+	var v7, v8, v9 *core.Node
 	x2, x3 = p.Pos, len(p.KidStack)
 	x4 = 0
 	for {
@@ -373,14 +373,14 @@ fail:
 	return nil, false
 }
 
-func e7(p *rt.Parser, _ int) (*parse.Node, bool) {
+func e7(p *rt.Parser, _ int) (*core.Node, bool) {
 	p.Spend()
 	var x1, x3, x4, x5, size, x8, x12 int
-	var x2 []*parse.Node
+	var x2 []*core.Node
 	var x6 rt.Mark
 	var ch rune
 	var ok bool
-	var v9, v10, v11, v13, v14 *parse.Node
+	var v9, v10, v11, v13, v14 *core.Node
 	x1 = p.Pos
 	x2 = p.Nodes(2)[:0]
 	x3, x5, x4 = p.Pos, len(p.KidStack), 0
@@ -431,7 +431,7 @@ fail:
 	return nil, false
 }
 
-func r2(p *rt.Parser) (*parse.Node, bool) {
+func r2(p *rt.Parser) (*core.Node, bool) {
 	p.Spend()
 	start, trail := p.Pos, len(p.Trail)
 	prevEnv, prevCut := p.Env, p.Cut
@@ -448,9 +448,9 @@ func r2(p *rt.Parser) (*parse.Node, bool) {
 	return v, ok
 }
 
-func e11(p *rt.Parser, _ int) (*parse.Node, bool) {
+func e11(p *rt.Parser, _ int) (*core.Node, bool) {
 	p.Spend()
-	var v *parse.Node
+	var v *core.Node
 	var x2 int
 	var ok bool
 	for {
@@ -477,12 +477,12 @@ fail:
 	return nil, false
 }
 
-func e12(p *rt.Parser, _ int) (*parse.Node, bool) {
+func e12(p *rt.Parser, _ int) (*core.Node, bool) {
 	p.Spend()
 	var x2, x3, x4 int
 	var x5 rt.Mark
 	var ok bool
-	var v7, v8, v9 *parse.Node
+	var v7, v8, v9 *core.Node
 	x2, x3 = p.Pos, len(p.KidStack)
 	x4 = 0
 	for {
@@ -583,7 +583,7 @@ fail:
 	return nil, false
 }
 
-func q2(p *rt.Parser) (*parse.Node, bool) {
+func q2(p *rt.Parser) (*core.Node, bool) {
 	p.Spend()
 	start, trail := p.Pos, len(p.Trail)
 	prevEnv, prevCut := p.Env, p.Cut
@@ -857,4 +857,4 @@ fail:
 
 const _ = types.ZPSchema_2e326dad401977ae
 
-const _ = rt.Protocol13
+const _ = rt.Protocol14

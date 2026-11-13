@@ -175,7 +175,7 @@ func (s *surface) add(line string) { s.lines[line] = true }
 
 // noderepPath is the import path of the node representation, which generated code reaches through
 // the runtime (Data) and which belongs to the protocol like the runtime's own declarations.
-const noderepPath = "zeroparse.dev/zp/runtime/noderep"
+const noderepPath = "zeroparse.dev/zp/core/noderep"
 
 // typeName records a type or alias declaration of the package or of noderep and walks what it
 // reaches.
@@ -407,14 +407,14 @@ func TestProtocolSurfaceSeesReachedTypes(t *testing.T) {
 	_, want := packageSurface(t, ".", nil)
 	for _, line := range []string{
 		"method (*grammar) DeclareStruct(string, ...string)",
-		"type zeroparse.dev/zp/runtime/noderep.Kind struct{Type string; Rule string; Reserved int; Base int}",
-		"method (*zeroparse.dev/zp/runtime/noderep.Kind) IsNodeType() bool",
+		"type zeroparse.dev/zp/core/noderep.Kind struct{Type string; Rule string; Reserved int; Base int}",
+		"method (*zeroparse.dev/zp/core/noderep.Kind) IsNodeType() bool",
 	} {
 		if !strings.Contains(want, line+"\n") {
 			t.Errorf("the interface lacks %q", line)
 		}
 	}
-	if !strings.Contains(want, "type zeroparse.dev/zp/runtime/noderep.Data[N any] struct{Kind *zeroparse.dev/zp/runtime/noderep.Kind; ") {
+	if !strings.Contains(want, "type zeroparse.dev/zp/core/noderep.Data[N any] struct{Kind *zeroparse.dev/zp/core/noderep.Kind; ") {
 		t.Errorf("the interface lacks the fields of noderep.Data")
 	}
 	dir := t.TempDir()

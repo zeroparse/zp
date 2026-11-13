@@ -7,7 +7,7 @@ import (
 	"strings"
 	"testing"
 
-	"zeroparse.dev/zp/runtime/parse"
+	"zeroparse.dev/zp/core"
 )
 
 // TestMemoIndexMatchesChain drives random lookups and stores of the three memo
@@ -41,7 +41,7 @@ func TestMemoIndexMatchesChain(t *testing.T) {
 			rng := rand.New(rand.NewSource(1))
 			p := &Parser{}
 			if k.budgeted {
-				p.Control = newBudgetControl(nil, parse.Limits{Compute: 1 << 40})
+				p.Control = newBudgetControl(nil, core.Limits{Compute: 1 << 40})
 			}
 			tp := &TParser{Parser: p}
 			var table *memoTable = &p.memo
@@ -158,7 +158,7 @@ func TestDocOnlyLookupComparesByIdentity(t *testing.T) {
 	clone := strings.Clone(big)
 	newParser := func() *Parser {
 		p := &Parser{}
-		p.Control = newBudgetControl(context.Background(), parse.Limits{Compute: 1 << 40})
+		p.Control = newBudgetControl(context.Background(), core.Limits{Compute: 1 << 40})
 		return p
 	}
 	cost := func(p *Parser, f func()) uint64 {

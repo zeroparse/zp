@@ -7,8 +7,8 @@ import (
 	"strings"
 	"testing"
 
+	"zeroparse.dev/zp/core"
 	"zeroparse.dev/zp/internal/gentest"
-	"zeroparse.dev/zp/runtime/parse"
 )
 
 func TestBudgetStreamReferenceAdmission(t *testing.T) {
@@ -16,12 +16,12 @@ func TestBudgetStreamReferenceAdmission(t *testing.T) {
 	prog := mustCompile(t, gentest.Records)
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
-	for _, o := range []ParseOptions{{Context: ctx}, {Limits: parse.Limits{Compute: 1}}, {Limits: parse.Limits{Memory: 1}}} {
+	for _, o := range []ParseOptions{{Context: ctx}, {Limits: core.Limits{Compute: 1}}, {Limits: core.Limits{Memory: 1}}} {
 		r := &streamCallbackReader{text: "#records\na=1\n"}
 		callbacks := 0
 		r.onRead = func() { callbacks++ }
 		o.Trace = func(TraceEvent) { callbacks++ }
-		err := prog.ParseStreamWith("main", r, func(*parse.Node) error { callbacks++; return nil }, o)
+		err := prog.ParseStreamWith("main", r, func(*core.Node) error { callbacks++; return nil }, o)
 		if err == nil || !strings.Contains(err.Error(), "reference build") || callbacks != 0 || r.offset != 0 || r.closed {
 			t.Fatalf("error=%v callbacks=%d offset=%d", err, callbacks, r.offset)
 		}
@@ -38,14 +38,14 @@ func TestMemoryLimitReferenceAdmission(t *testing.T) {
 	t.Parallel()
 	prog := mustCompile(t, gentest.Records)
 	const text = "#records\na=1\n"
-	o := ParseOptions{Limits: parse.Limits{Memory: 1 << 30}}
+	o := ParseOptions{Limits: core.Limits{Memory: 1 << 30}}
 	if n, err := prog.ParseWith("main", text, o); n != nil || err == nil || !strings.Contains(err.Error(), "reference build") {
 		t.Fatalf("batch: node=%v error=%v", n, err)
 	}
 	if d, err := prog.NewDocumentWith("main", text, o); d != nil || err == nil || !strings.Contains(err.Error(), "reference build") {
 		t.Fatalf("document: error=%v", err)
 	}
-	if _, err := prog.ParseWith("main", text, ParseOptions{Limits: parse.Limits{Memory: parse.Unlimited}}); err != nil {
+	if _, err := prog.ParseWith("main", text, ParseOptions{Limits: core.Limits{Memory: core.Unlimited}}); err != nil {
 		t.Fatal(err)
 	}
 }

@@ -7,22 +7,22 @@ import (
 	"fmt"
 	"testing"
 
+	"zeroparse.dev/zp/core"
+	"zeroparse.dev/zp/core/noderep"
 	"zeroparse.dev/zp/grammar"
-	"zeroparse.dev/zp/internal/engine/core"
+	ecore "zeroparse.dev/zp/internal/engine/core"
 	"zeroparse.dev/zp/internal/value"
-	"zeroparse.dev/zp/runtime/noderep"
-	"zeroparse.dev/zp/runtime/parse"
 )
 
 func TestBudgetValueCopyInterruptionPreservesChildren(t *testing.T) {
 	t.Parallel()
 	retained := value.Ptr(value.Data{Text: "retained", Start: 7, End: 9, Fields: noderep.Fields{{Name: "value", Value: "unchanged"}}})
-	p := &core.Parser{KidStack: make([]*parse.Node, 257)}
+	p := &ecore.Parser{KidStack: make([]*core.Node, 257)}
 	for i := range p.KidStack {
 		p.KidStack[i] = retained
 	}
-	p.Control = core.NewBudgetControl(nil, parse.Limits{Compute: 128})
-	if err := catchFatal(t, func() { p.Kids(0) }); !errors.Is(err, parse.ErrLimit) {
+	p.Control = ecore.NewBudgetControl(nil, core.Limits{Compute: 128})
+	if err := catchFatal(t, func() { p.Kids(0) }); !errors.Is(err, core.ErrLimit) {
 		t.Fatalf("copy interruption = %v", err)
 	}
 	// A failed copy does not publish a partial child list or clear its source.
@@ -62,22 +62,22 @@ func TestBudgetValueFieldAndEnvironmentWalks(t *testing.T) {
 	}
 	for _, run := range []struct {
 		name string
-		fn   func(*core.Parser)
+		fn   func(*ecore.Parser)
 	}{
-		{"get", func(p *core.Parser) { p.ValueField(fields, "absent") }},
-		{"set", func(p *core.Parser) { p.SetValueField(&fields, "absent", 42) }},
-		{"type fields", func(p *core.Parser) { p.HasValueField(st, "absent") }},
-		{"environment", func(p *core.Parser) {
+		{"get", func(p *ecore.Parser) { p.ValueField(fields, "absent") }},
+		{"set", func(p *ecore.Parser) { p.SetValueField(&fields, "absent", 42) }},
+		{"type fields", func(p *ecore.Parser) { p.HasValueField(st, "absent") }},
+		{"environment", func(p *ecore.Parser) {
 			for range 300 {
 				p.VarValue(299)
 			}
 		}},
 	} {
 		t.Run(run.name, func(t *testing.T) {
-			p := &core.Parser{}
+			p := &ecore.Parser{}
 			p.SetVars(values)
-			p.Control = core.NewBudgetControl(nil, parse.Limits{Compute: 128})
-			if err := catchFatal(t, func() { run.fn(p) }); !errors.Is(err, parse.ErrLimit) {
+			p.Control = ecore.NewBudgetControl(nil, core.Limits{Compute: 128})
+			if err := catchFatal(t, func() { run.fn(p) }); !errors.Is(err, core.ErrLimit) {
 				t.Fatalf("walk interruption = %v", err)
 			}
 			if len(fields) != 300 || fields[299].Value != 299 {
@@ -90,12 +90,12 @@ func TestBudgetValueFieldAndEnvironmentWalks(t *testing.T) {
 func TestBudgetValueTrackingCleanupAfterInterruption(t *testing.T) {
 	t.Parallel()
 	retained := value.Ptr(value.Data{Text: "retained"})
-	p := &core.Parser{Created: make([]*parse.Node, 258)}
+	p := &ecore.Parser{Created: make([]*core.Node, 258)}
 	for i := range p.Created {
 		p.Created[i] = retained
 	}
-	p.Control = core.NewBudgetControl(nil, parse.Limits{Compute: 128})
-	if err := catchFatal(t, func() { p.DropCreated(1) }); !errors.Is(err, parse.ErrLimit) {
+	p.Control = ecore.NewBudgetControl(nil, core.Limits{Compute: 128})
+	if err := catchFatal(t, func() { p.DropCreated(1) }); !errors.Is(err, core.ErrLimit) {
 		t.Fatalf("tracking cleanup interruption = %v", err)
 	}
 	// The interruption boundary must disable controls before mandatory cleanup.

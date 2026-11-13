@@ -3,7 +3,7 @@ package runtime
 import (
 	"unsafe"
 
-	"zeroparse.dev/zp/runtime/parse"
+	"zeroparse.dev/zp/core"
 )
 
 // Scan sites: the records of the walks of the repetitions of one character without a maximum in
@@ -36,7 +36,7 @@ const scanHotSpan = 16
 // typed one).
 type scanRecord struct {
 	end, count int
-	kids       []*parse.Node
+	kids       []*core.Node
 	tkids      []any
 }
 
@@ -106,7 +106,7 @@ func (p *Parser) ScanEnd(site, start, count int) {
 // scanHotSpan characters or more that took the rest from a record, the elements of the record, which
 // it shares (the gathered ones are dropped); otherwise the gathered elements, which a walk of that
 // length records at a hot site.
-func (p *Parser) ScanKids(site, start, base, count int) []*parse.Node {
+func (p *Parser) ScanKids(site, start, base, count int) []*core.Node {
 	if count < scanHotSpan {
 		return p.Kids(base)
 	}

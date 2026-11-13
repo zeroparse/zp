@@ -36,13 +36,13 @@ import (
 	"slices"
 	"strings"
 
-	"zeroparse.dev/zp"
+	"zeroparse.dev/zp/core"
+	"zeroparse.dev/zp/engine"
 	"zeroparse.dev/zp/gen"
 	"zeroparse.dev/zp/grammar"
-	"zeroparse.dev/zp/internal/engine"
+	iengine "zeroparse.dev/zp/internal/engine"
 	igen "zeroparse.dev/zp/internal/gen"
 	iropt "zeroparse.dev/zp/internal/ir/opt"
-	"zeroparse.dev/zp/runtime/parse"
 )
 
 const usage = `usage: zp <command> [flags] [arguments]
@@ -404,13 +404,13 @@ func formatSource(name string, src []byte, write, list bool, stdout io.Writer) e
 }
 
 func formatSourceMode(name string, src []byte, write, list, syntaxOnly bool, stdout io.Writer) error {
-	if zp.IsCompiled(src) {
+	if engine.IsCompiled(src) {
 		return fmt.Errorf("%s: a compiled grammar is not ZeroParse source and holds none; format the grammar source it was compiled from", name)
 	}
 	if t := bytes.TrimSpace(src); len(t) > 0 && t[0] == '{' {
 		return fmt.Errorf("%s: JSON is not ZeroParse source; use zp convert to convert it", name)
 	}
-	g, err := zp.ParseGrammar(string(src))
+	g, err := engine.ParseGrammar(string(src))
 	if err != nil {
 		return fileError(name, err)
 	}
@@ -503,7 +503,7 @@ func convertCmd(args []string, stdout io.Writer) error {
 	target := *to
 	if target == "" {
 		switch {
-		case zp.IsCompiled(data):
+		case engine.IsCompiled(data):
 			return compiledNeedsSource(path, "convert")
 		case filepath.Ext(path) == ".json":
 			target = "zp"
@@ -568,14 +568,14 @@ func loadGrammar(path, command string) (*grammar.Grammar, error) {
 	if err != nil {
 		return nil, err
 	}
-	if zp.IsCompiled(data) {
+	if engine.IsCompiled(data) {
 		return nil, compiledNeedsSource(path, command)
 	}
 	var g *grammar.Grammar
 	if strings.HasSuffix(path, ".json") {
 		g, err = grammar.UnmarshalJSON(data)
 	} else {
-		g, err = zp.ParseGrammar(string(data))
+		g, err = engine.ParseGrammar(string(data))
 	}
 	if err != nil {
 		return nil, fileError(path, err)
@@ -585,12 +585,12 @@ func loadGrammar(path, command string) (*grammar.Grammar, error) {
 
 // loadSourceParser compiles the grammar source at path for command, starting at the rule start
 // (the grammar's default start rule if empty); see loadGrammar.
-func loadSourceParser(path, start, command string) (*zp.Parser, error) {
+func loadSourceParser(path, start, command string) (*engine.Parser, error) {
 	g, err := loadGrammar(path, command)
 	if err != nil {
 		return nil, err
 	}
-	p, err := zp.Compile(g, start)
+	p, err := engine.Compile(g, start)
 	if err != nil {
 		return nil, fileError(path, err)
 	}
@@ -627,25 +627,25 @@ func runParse(args []string, stdin io.Reader, stdout io.Writer) error {
 	if *format != "json" && *format != "sexpr" {
 		return fmt.Errorf("unknown format %q", *format)
 	}
-	var unit zp.ParseOption
+	var unit engine.ParseOption
 	switch *unitName {
 	case "codepoints":
-		unit = zp.WithUnit(parse.CodePoints)
+		unit = engine.WithUnit(core.CodePoints)
 	case "bytes":
-		unit = zp.WithUnit(parse.Bytes)
+		unit = engine.WithUnit(core.Bytes)
 	default:
 		return fmt.Errorf("unknown unit %q", *unitName)
 	}
-	var backend zp.ParseOption
+	var backend engine.ParseOption
 	switch *backendName {
 	case "":
-		backend = zp.WithBackend(zp.DefaultBackend)
+		backend = engine.WithBackend(engine.DefaultBackend)
 	case "closure":
-		backend = zp.WithBackend(zp.Closure)
+		backend = engine.WithBackend(engine.Closure)
 	case "bytecode":
-		backend = zp.WithBackend(zp.Bytecode)
+		backend = engine.WithBackend(engine.Bytecode)
 	case "bytecode-iterative":
-		backend = zp.WithBackend(zp.BytecodeIterative)
+		backend = engine.WithBackend(engine.BytecodeIterative)
 	default:
 		return fmt.Errorf("unknown backend %q", *backendName)
 	}
@@ -654,13 +654,13 @@ func runParse(args []string, stdin io.Reader, stdout io.Writer) error {
 		if isFlagSet(fs, "i") {
 			r = strings.NewReader(*input)
 		}
-		return p.ParseStream(r, func(n *parse.Node) error {
+		return p.ParseStream(r, func(n *core.Node) error {
 			if *format == "sexpr" {
 				_, err := fmt.Fprintln(stdout, n)
 				return err
 			}
 			return json.NewEncoder(stdout).Encode(n)
-		}, unit, backend, lim.option(), zp.WithExpectations())
+		}, unit, backend, lim.option(), engine.WithExpectations())
 	}
 	src := *input
 	if !isFlagSet(fs, "i") {
@@ -671,13 +671,13 @@ func runParse(args []string, stdin io.Reader, stdout io.Writer) error {
 		src = string(b)
 	}
 	if *check {
-		if _, err := p.Parse(src, unit, backend, lim.option(), zp.WithExpectations(), zp.RecognizeOnly()); err != nil {
+		if _, err := p.Parse(src, unit, backend, lim.option(), engine.WithExpectations(), engine.RecognizeOnly()); err != nil {
 			return err
 		}
 		fmt.Fprintln(stdout, "ok")
 		return nil
 	}
-	node, perr := p.Parse(src, unit, backend, lim.option(), zp.WithExpectations())
+	node, perr := p.Parse(src, unit, backend, lim.option(), engine.WithExpectations())
 	if node == nil {
 		return perr
 	}
@@ -705,13 +705,13 @@ type compileFlags struct {
 }
 
 // options returns the compile options of the flags.
-func (f compileFlags) options() []zp.CompileOption {
-	var opts []zp.CompileOption
+func (f compileFlags) options() []engine.CompileOption {
+	var opts []engine.CompileOption
 	if f.sourceInfo {
-		opts = append(opts, zp.WithSourceInfo())
+		opts = append(opts, engine.WithSourceInfo())
 	}
 	if f.defaultValue {
-		opts = append(opts, zp.WithDefaultValue())
+		opts = append(opts, engine.WithDefaultValue())
 	}
 	return opts
 }
@@ -945,7 +945,7 @@ func (m genRuntime) generated() gen.RuntimeMode {
 // ownedFiles returns the files below dir that a generation in mode owns: it writes them, and
 // removes those of an earlier generation that it did not write again. Only mode never touches
 // parser.go, api.go or types/types.go, which belong to the parser; the other modes own them and
-// internal/runtime with its noderep and parse packages. Other files of the directories are never touched.
+// internal/runtime with its core and core/noderep packages. Other files of the directories are never touched.
 func ownedFiles(dir string, mode genRuntime, ts bool) []string {
 	var owned []string
 	if ts {
@@ -964,7 +964,7 @@ func ownedFiles(dir string, mode genRuntime, ts bool) []string {
 		owned = append(owned, filepath.Join(dir, "parser.go"), filepath.Join(dir, "api.go"), filepath.Join(dir, "types", "types.go"))
 	}
 	// The copy of the runtime is the runtime package and its own packages in subdirectories.
-	for _, pattern := range []string{"*.go", filepath.Join("noderep", "*.go"), filepath.Join("parse", "*.go")} {
+	for _, pattern := range []string{"*.go", filepath.Join("core", "*.go"), filepath.Join("core", "noderep", "*.go")} {
 		rt, _ := filepath.Glob(filepath.Join(dir, "internal", "runtime", pattern))
 		owned = append(owned, rt...)
 	}
@@ -1064,7 +1064,7 @@ func writeGenerated(dir string, files []gen.File, mode genRuntime, ts bool) erro
 		}
 	}
 	// Directories that the removal emptied.
-	for _, sub := range []string{filepath.Join("internal", "runtime", "noderep"), filepath.Join("internal", "runtime", "parse"), filepath.Join("internal", "runtime"), "internal", "types"} {
+	for _, sub := range []string{filepath.Join("internal", "runtime", "core", "noderep"), filepath.Join("internal", "runtime", "core"), filepath.Join("internal", "runtime"), "internal", "types"} {
 		os.Remove(filepath.Join(dir, sub)) // fails, harmlessly, unless empty
 	}
 	return nil
@@ -1074,13 +1074,13 @@ func writeGenerated(dir string, files []gen.File, mode genRuntime, ts bool) erro
 // the rule start. A compiled grammar is loaded as is, without being
 // compiled again; if start is empty, it keeps the start rule saved in it,
 // and other grammars start at main.
-func loadParser(path, start string, flags compileFlags) (*zp.Parser, error) {
+func loadParser(path, start string, flags compileFlags) (*engine.Parser, error) {
 	data, err := os.ReadFile(path)
 	if err != nil {
 		return nil, err
 	}
-	if zp.IsCompiled(data) {
-		p, err := zp.LoadParser(data)
+	if engine.IsCompiled(data) {
+		p, err := engine.LoadParser(data)
 		if err != nil {
 			return nil, fmt.Errorf("%s: %w", path, err)
 		}
@@ -1099,7 +1099,7 @@ func loadParser(path, start string, flags compileFlags) (*zp.Parser, error) {
 	if err != nil {
 		return nil, err
 	}
-	p, err := zp.Compile(g, start, flags.options()...)
+	p, err := engine.Compile(g, start, flags.options()...)
 	if err != nil {
 		return nil, fileError(path, err)
 	}
@@ -1120,11 +1120,11 @@ func compileCmd(args []string) error {
 	if *grammarPath == "" || *output == "" {
 		return fmt.Errorf("-g and -o are required")
 	}
-	m, err := engine.ParseCompiledMode(*modeName)
+	m, err := iengine.ParseCompiledMode(*modeName)
 	if err != nil {
 		return fmt.Errorf("compile: %w", err)
 	}
-	mode := zp.CompiledMode(m)
+	mode := engine.CompiledMode(m)
 	p, err := loadParser(*grammarPath, *start, compileFlags{sourceInfo: *sourceInfo, defaultValue: *defaultValue})
 	if err != nil {
 		return err

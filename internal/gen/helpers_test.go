@@ -7,7 +7,7 @@ import (
 )
 
 // The tests of this package compile the grammars that they generate parsers for with the engine,
-// as package zp does.
+// as package engine does.
 func init() { enginetest.UseEngine() }
 
 func TestMain(m *testing.M) { enginetest.Main(m) }

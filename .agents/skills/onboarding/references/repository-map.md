@@ -7,7 +7,7 @@ before choosing an edit location:
 
 | Concern | First stop |
 |:--|:--|
-| Public Go API and grammar AST | `zp.go`, `grammar/` |
+| Public Go API and grammar AST | `engine/`, `grammar/` |
 | Grammar source parsing | `internal/syntax/` |
 | Compiler and static analysis | `internal/compile/` |
 | Runtime: execution, bytecode VMs, Documents, streams and limit controls | `internal/engine/` (shared state in `core/`, backends in `closure/` and `vm/`, the Document in `document/`) |

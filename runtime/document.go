@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"unicode/utf8"
 
-	"zeroparse.dev/zp/runtime/parse"
+	"zeroparse.dev/zp/core"
 )
 
 // Document incrementally parses the configured start rule. It belongs to one
@@ -51,7 +51,7 @@ func MakeDocument(root *Rule, text string, opts []ParseOption) (d *Document, err
 	p.setGrammar(root.g)
 	p.Expectations = o.expectations
 	o.control.attachMemory(p)
-	if o.unit == parse.CodePoints {
+	if o.unit == core.CodePoints {
 		p.setSource(text)
 	} else if o.control != nil {
 		p.SpendRead(uint64(len(text)))
@@ -87,7 +87,7 @@ func (d *Document) Edit(start, end int, text string) error {
 
 // Parse parses the current text, applying invocation options after the
 // Document's construction defaults. An invocation cannot change its unit.
-func (d *Document) Parse(opts ...ParseOption) (*parse.Node, error) {
+func (d *Document) Parse(opts ...ParseOption) (*core.Node, error) {
 	if err := d.BeginParse(); err != nil {
 		return nil, err
 	}
@@ -123,9 +123,9 @@ func (d *Document) ResolveParseOptions(opts []ParseOption) (parseOptions, error)
 
 // Stats returns the evaluation and reuse counts of the last Parse. A generated Document reuses
 // memo results only, never repetition elements, so every reuse is a memo hit.
-func (d *Document) Stats() parse.ParseStats {
+func (d *Document) Stats() core.ParseStats {
 	s := d.State.stats
-	return parse.ParseStats{Evaluated: s.Evaluated, Reused: s.Reused, MemoHits: s.Reused}
+	return core.ParseStats{Evaluated: s.Evaluated, Reused: s.Reused, MemoHits: s.Reused}
 }
 
 // A slice's first element, length and capacity identify an exact slice view.
@@ -141,7 +141,7 @@ type DocumentSliceKey struct {
 }
 
 // newDocumentState parses only the configured start rule.
-func newDocumentState(root *Rule, text string, unit parse.PositionUnit) *documentState {
+func newDocumentState(root *Rule, text string, unit core.PositionUnit) *documentState {
 	return &documentState{root: root, text: text, unit: unit}
 }
 
@@ -159,14 +159,14 @@ type documentEdit struct{ start, end, delta int }
 // when it can change how the input after end decodes.
 func (d *documentState) editReuse(start, end int, replacement string) (ed documentEdit, err error) {
 	length := len(d.text)
-	if d.unit != parse.Bytes {
+	if d.unit != core.Bytes {
 		length = utf8.RuneCountInString(d.text)
 	}
 	if start < 0 || end < start || end > length {
 		return documentEdit{}, fmt.Errorf("invalid range [%d,%d) for text of length %d", start, end, length)
 	}
 	startByte, endByte := start, end
-	if d.unit == parse.Bytes {
+	if d.unit == core.Bytes {
 		if err := documentByteBoundary(d.text, start); err != nil {
 			return documentEdit{}, err
 		}
@@ -189,7 +189,7 @@ func (d *documentState) editReuse(start, end int, replacement string) (ed docume
 		reuse--
 	}
 	ed = documentEdit{start: reuse, end: end, delta: len(replacement) - (endByte - startByte)}
-	if d.unit != parse.Bytes {
+	if d.unit != core.Bytes {
 		// The replacement can also end with the start of a sequence that the continuation bytes after
 		// end, each a separate character, complete. Past those, the characters are the same.
 		endX := endByte
@@ -322,7 +322,7 @@ func (p *Parser) documentMove(e *memoEntry) bool {
 	}
 	if shared {
 		if p.moved == nil {
-			p.moved = map[*parse.Node]*parse.Node{}
+			p.moved = map[*core.Node]*core.Node{}
 		}
 		e.node = p.moveShared(e.node, int32(shift))
 		clear(p.moved)
@@ -335,7 +335,7 @@ func (p *Parser) documentMove(e *memoEntry) bool {
 
 // movable reports whether moveNode can move n: its fields and box hold only nodes and basic values;
 // and whether a node occurs in n more than once. It marks the nodes it visits with mark.
-func (p *Parser) movable(n *parse.Node, mark uint32) (movable, shared bool) {
+func (p *Parser) movable(n *core.Node, mark uint32) (movable, shared bool) {
 	if n == nil {
 		return true, false
 	}
@@ -355,7 +355,7 @@ func (p *Parser) movable(n *parse.Node, mark uint32) (movable, shared bool) {
 		shared = shared || sh
 	}
 	for _, f := range D(n).Fields {
-		if c, ok := f.Value.(*parse.Node); ok {
+		if c, ok := f.Value.(*core.Node); ok {
 			ok, sh := p.movable(c, mark)
 			if !ok {
 				return false, false
@@ -380,7 +380,7 @@ func basicValue(v any) bool {
 
 // moveNode returns a copy of the movable node n, in which no node occurs twice, with its positions
 // and those of its descendants moved by shift.
-func (p *Parser) moveNode(n *parse.Node, shift int32) *parse.Node {
+func (p *Parser) moveNode(n *core.Node, shift int32) *core.Node {
 	if n == nil {
 		return nil
 	}
@@ -397,7 +397,7 @@ func (p *Parser) moveNode(n *parse.Node, shift int32) *parse.Node {
 	if D(n).Fields != nil {
 		D(c).Fields = p.fields(len(D(n).Fields))
 		for _, f := range D(n).Fields {
-			if k, ok := f.Value.(*parse.Node); ok {
+			if k, ok := f.Value.(*core.Node); ok {
 				f.Value = p.moveNode(k, shift)
 			}
 			D(c).Fields = append(D(c).Fields, f)
@@ -408,7 +408,7 @@ func (p *Parser) moveNode(n *parse.Node, shift int32) *parse.Node {
 
 // moveShared is moveNode for a value that holds a node more than once: moved holds the copies made
 // so far, which it shares.
-func (p *Parser) moveShared(n *parse.Node, shift int32) *parse.Node {
+func (p *Parser) moveShared(n *core.Node, shift int32) *core.Node {
 	if n == nil {
 		return nil
 	}
@@ -429,7 +429,7 @@ func (p *Parser) moveShared(n *parse.Node, shift int32) *parse.Node {
 	if D(n).Fields != nil {
 		D(c).Fields = p.fields(len(D(n).Fields))
 		for _, f := range D(n).Fields {
-			if k, ok := f.Value.(*parse.Node); ok {
+			if k, ok := f.Value.(*core.Node); ok {
 				f.Value = p.moveShared(k, shift)
 			}
 			D(c).Fields = append(D(c).Fields, f)
@@ -470,15 +470,15 @@ func documentByteBoundary(text string, pos int) error {
 // parse retains completed memo entries after ordinary syntax failures. A
 // panic or budget interruption discards all entries because they may depend on
 // unfinished left-recursion growth or partially evaluated actions.
-func (d *documentState) parse(o parseOptions) (*parse.Node, error) {
-	return DocumentParseConverted(d, o, func(n *parse.Node, _ *BudgetControl, _ error) *parse.Node { return n })
+func (d *documentState) parse(o parseOptions) (*core.Node, error) {
+	return DocumentParseConverted(d, o, func(n *core.Node, _ *BudgetControl, _ error) *core.Node { return n })
 }
 
 // DocumentParseConverted keeps Node parsing and final typed conversion inside
 // the same limit-controlled invocation and memo cleanup boundary.
 //
 // DocumentParseConverted is for generated parsers; not a stable API.
-func DocumentParseConverted[T any](d *documentState, o parseOptions, convert func(*parse.Node, *BudgetControl, error) T) (res T, err error) {
+func DocumentParseConverted[T any](d *documentState, o parseOptions, convert func(*core.Node, *BudgetControl, error) T) (res T, err error) {
 	defer recoverParse(&res, &err)
 	if o.unit != d.unit {
 		return res, fmt.Errorf("document parse cannot change unit")
@@ -499,7 +499,7 @@ func DocumentParseConverted[T any](d *documentState, o parseOptions, convert fun
 	p.Expectations = o.expectations
 	p.Observation = newObservation(&o.observe)
 	defer p.releaseObservation()
-	if d.unit == parse.Bytes {
+	if d.unit == core.Bytes {
 		p.bs, p.n = d.text, len(d.text)
 	} else {
 		p.setSource(d.text)
@@ -522,11 +522,11 @@ func DocumentParseConverted[T any](d *documentState, o parseOptions, convert fun
 	p.Control.Check()
 	v, ok := p.Call(d.root, 0)
 	p.Control.Check()
-	var n *parse.Node
+	var n *core.Node
 	if ok && p.Pos == p.n {
 		n = v
 		if len(p.Recovered) > 0 {
-			err = parse.SyntaxErrors(p.recoveredErrors())
+			err = core.SyntaxErrors(p.recoveredErrors())
 		}
 	} else {
 		if ok {
@@ -547,12 +547,12 @@ func publishDocumentError(p *Parser, err error) error {
 	// The copy is work that only a Document parse does.
 	defer p.Control.FreeEnd(p.Control.FreeBegin(true))
 	switch e := err.(type) {
-	case parse.SyntaxErrors:
+	case core.SyntaxErrors:
 		if e == nil {
 			return e
 		}
 		p.spendValue(len(e))
-		out := make(parse.SyntaxErrors, len(e))
+		out := make(core.SyntaxErrors, len(e))
 		for i, item := range e {
 			out[i] = cloneDocumentError(p, item)
 		}
@@ -562,12 +562,12 @@ func publishDocumentError(p *Parser, err error) error {
 	return err
 }
 
-func cloneDocumentError(p *Parser, e *parse.SyntaxError) *parse.SyntaxError {
+func cloneDocumentError(p *Parser, e *core.SyntaxError) *core.SyntaxError {
 	p.Spend()
 	if e == nil {
 		return nil
 	}
-	out := new(parse.SyntaxError)
+	out := new(core.SyntaxError)
 	*out = *e
 	if e.Expected != nil {
 		p.spendValue(len(e.Expected))

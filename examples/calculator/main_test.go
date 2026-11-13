@@ -3,11 +3,11 @@ package main
 import (
 	"testing"
 
-	"zeroparse.dev/zp"
+	"zeroparse.dev/zp/engine"
 )
 
 func TestEval(t *testing.T) {
-	p, err := zp.CompileSource(grammar, "main")
+	p, err := engine.CompileSource(grammar, "main")
 	if err != nil {
 		t.Fatal(err)
 	}

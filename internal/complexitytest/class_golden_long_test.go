@@ -8,7 +8,7 @@ import (
 	"strings"
 	"testing"
 
-	"zeroparse.dev/zp"
+	"zeroparse.dev/zp/engine"
 	"zeroparse.dev/zp/internal/complexity"
 	"zeroparse.dev/zp/internal/factstest"
 	"zeroparse.dev/zp/internal/starttest"
@@ -22,7 +22,7 @@ func TestClassGolden(t *testing.T) {
 		for i, path := range factstest.Corpus {
 			t.Run(path, func(t *testing.T) {
 				t.Parallel()
-				g, err := zp.ParseGrammar(factstest.Read(t, path))
+				g, err := engine.ParseGrammar(factstest.Read(t, path))
 				if err != nil {
 					t.Fatal(err)
 				}

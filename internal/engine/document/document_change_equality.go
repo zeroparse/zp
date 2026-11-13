@@ -1,19 +1,19 @@
 package document
 
 import (
-	"zeroparse.dev/zp/internal/engine/core"
-	"zeroparse.dev/zp/runtime/parse"
+	"zeroparse.dev/zp/core"
+	ecore "zeroparse.dev/zp/internal/engine/core"
 )
 
 // equalChangeDiagnostics compares complete supported diagnostic values. Unknown
 // diagnostic types conservatively differ rather than running uncontrolled code.
-func equalChangeDiagnostics(p *core.Parser, a, b error) bool {
+func equalChangeDiagnostics(p *ecore.Parser, a, b error) bool {
 	if a == nil || b == nil {
 		return a == nil && b == nil
 	}
 	switch x := a.(type) {
-	case *parse.SyntaxError:
-		y, ok := b.(*parse.SyntaxError)
+	case *core.SyntaxError:
+		y, ok := b.(*core.SyntaxError)
 		if !ok {
 			return false
 		}
@@ -36,8 +36,8 @@ func equalChangeDiagnostics(p *core.Parser, a, b error) bool {
 			}
 		}
 		return true
-	case parse.SyntaxErrors:
-		y, ok := b.(parse.SyntaxErrors)
+	case core.SyntaxErrors:
+		y, ok := b.(core.SyntaxErrors)
 		if !ok || (x == nil) != (y == nil) || len(x) != len(y) {
 			return false
 		}
@@ -53,7 +53,7 @@ func equalChangeDiagnostics(p *core.Parser, a, b error) bool {
 	}
 }
 
-func equalChangeText(p *core.Parser, a, b string) bool {
+func equalChangeText(p *ecore.Parser, a, b string) bool {
 	p.Spend()
 	if len(a) != len(b) {
 		return false
@@ -70,7 +70,7 @@ func equalChangeText(p *core.Parser, a, b string) bool {
 }
 
 func equalChangeSnapshots(a, b *Snapshot) bool {
-	return equalChangeSnapshotsControlled(&core.Parser{}, a, b)
+	return equalChangeSnapshotsControlled(&ecore.Parser{}, a, b)
 }
 
 // equalChangeSnapshotsControlled compares corresponding immutable directory IDs.
@@ -78,7 +78,7 @@ func equalChangeSnapshots(a, b *Snapshot) bool {
 // Exact directory equality proves equal metadata, ordered edges and alias topology,
 // including cycles. A different directory layout may conservatively differ; no
 // allocation or isomorphism search is needed to establish unchanged output.
-func equalChangeSnapshotsControlled(p *core.Parser, a, b *Snapshot) bool {
+func equalChangeSnapshotsControlled(p *ecore.Parser, a, b *Snapshot) bool {
 	p.Control.Check()
 	p.Spend()
 	if a.Unit() != b.Unit() || !equalChangeDiagnostics(p, a.parseError, b.parseError) {

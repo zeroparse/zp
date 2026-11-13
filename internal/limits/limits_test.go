@@ -5,26 +5,26 @@ import (
 	"math"
 	"testing"
 
-	"zeroparse.dev/zp/runtime/parse"
+	"zeroparse.dev/zp/core"
 )
 
 func TestLimitError(t *testing.T) {
 	for _, tc := range []struct {
-		err  *parse.LimitError
+		err  *core.LimitError
 		want string
 	}{
 		{nil, "parse limit exceeded"},
-		{&parse.LimitError{Kind: parse.LimitCompute, Limit: 5, Used: 4, Requested: 2}, "parse compute limit exceeded: limit 5, used 4, requested 2"},
-		{&parse.LimitError{Kind: parse.LimitInput, Limit: 5, Requested: 9}, "parse input limit exceeded: limit 5, length 9"},
-		{&parse.LimitError{Kind: parse.LimitDepth, Limit: 7, Used: 7, Requested: 1}, "nesting too deep: more than 7 nested recursive rule calls"},
-		{&parse.LimitError{Kind: parse.LimitMemory, Limit: 100, Used: 140}, "parse memory limit exceeded: limit 100, used 140"},
+		{&core.LimitError{Kind: core.LimitCompute, Limit: 5, Used: 4, Requested: 2}, "parse compute limit exceeded: limit 5, used 4, requested 2"},
+		{&core.LimitError{Kind: core.LimitInput, Limit: 5, Requested: 9}, "parse input limit exceeded: limit 5, length 9"},
+		{&core.LimitError{Kind: core.LimitDepth, Limit: 7, Used: 7, Requested: 1}, "nesting too deep: more than 7 nested recursive rule calls"},
+		{&core.LimitError{Kind: core.LimitMemory, Limit: 100, Used: 140}, "parse memory limit exceeded: limit 100, used 140"},
 	} {
 		if got := tc.err.Error(); got != tc.want {
 			t.Errorf("Error() = %q, want %q", got, tc.want)
 		}
 	}
-	var err error = &parse.LimitError{Kind: parse.LimitCompute}
-	if !errors.Is(err, parse.ErrLimit) {
+	var err error = &core.LimitError{Kind: core.LimitCompute}
+	if !errors.Is(err, core.ErrLimit) {
 		t.Error("errors.Is(LimitError, ErrLimit) = false")
 	}
 	if errors.Is(err, errors.New("parse limit exceeded")) {
@@ -34,13 +34,13 @@ func TestLimitError(t *testing.T) {
 
 // A later WithLimits overrides the nonzero fields only.
 func TestMerge(t *testing.T) {
-	for _, tc := range []struct{ l, o, want parse.Limits }{
-		{parse.Limits{}, parse.Limits{}, parse.Limits{}},
-		{parse.Limits{Compute: 1, Input: 2, Depth: 3}, parse.Limits{}, parse.Limits{Compute: 1, Input: 2, Depth: 3}},
-		{parse.Limits{Compute: 1, Input: 2}, parse.Limits{Depth: 3}, parse.Limits{Compute: 1, Input: 2, Depth: 3}},
-		{parse.Limits{Compute: 1, Input: 2, Depth: 3}, parse.Limits{Input: parse.Unlimited, Depth: 9}, parse.Limits{Compute: 1, Input: parse.Unlimited, Depth: 9}},
-		{parse.Limits{Compute: 1, Memory: 4}, parse.Limits{Depth: 3}, parse.Limits{Compute: 1, Memory: 4, Depth: 3}},
-		{parse.Limits{Memory: 4}, parse.Limits{Memory: parse.Unlimited}, parse.Limits{Memory: parse.Unlimited}},
+	for _, tc := range []struct{ l, o, want core.Limits }{
+		{core.Limits{}, core.Limits{}, core.Limits{}},
+		{core.Limits{Compute: 1, Input: 2, Depth: 3}, core.Limits{}, core.Limits{Compute: 1, Input: 2, Depth: 3}},
+		{core.Limits{Compute: 1, Input: 2}, core.Limits{Depth: 3}, core.Limits{Compute: 1, Input: 2, Depth: 3}},
+		{core.Limits{Compute: 1, Input: 2, Depth: 3}, core.Limits{Input: core.Unlimited, Depth: 9}, core.Limits{Compute: 1, Input: core.Unlimited, Depth: 9}},
+		{core.Limits{Compute: 1, Memory: 4}, core.Limits{Depth: 3}, core.Limits{Compute: 1, Memory: 4, Depth: 3}},
+		{core.Limits{Memory: 4}, core.Limits{Memory: core.Unlimited}, core.Limits{Memory: core.Unlimited}},
 	} {
 		if got := Merge(tc.l, tc.o); got != tc.want {
 			t.Errorf("Merge(%+v, %+v) = %+v, want %+v", tc.l, tc.o, got, tc.want)

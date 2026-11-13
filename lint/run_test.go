@@ -8,13 +8,13 @@ import (
 	"testing"
 	"time"
 
-	"zeroparse.dev/zp"
+	"zeroparse.dev/zp/engine"
 	"zeroparse.dev/zp/internal/complexity"
 	"zeroparse.dev/zp/lint"
 )
 
 func TestRun(t *testing.T) {
-	g, err := zp.ParseGrammar("@start\nrule main = \"a\" / \"ab\"\nrule unused = \"x\"")
+	g, err := engine.ParseGrammar("@start\nrule main = \"a\" / \"ab\"\nrule unused = \"x\"")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -42,7 +42,7 @@ func TestRun(t *testing.T) {
 		t.Errorf("disabled: %v %v", fs, err)
 	}
 	// Every start rule is used, whichever one is linted from.
-	several, err := zp.ParseGrammar("@start(default)\nrule main = \"a\"\n@start\nrule other = \"x\"\nrule unused = \"y\"")
+	several, err := engine.ParseGrammar("@start(default)\nrule main = \"a\"\n@start\nrule other = \"x\"\nrule unused = \"y\"")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -63,14 +63,14 @@ func TestRun(t *testing.T) {
 	if fs, err := (lint.Config{Disable: []string{"shadowed-alternative"}}).Run(context.Background(), g, ""); err != nil || len(fs) != 1 || fs[0].Rule != "unused" || !strings.Contains(fs[0].Message, "main does not call it") {
 		t.Errorf("default start: %v %v", fs, err)
 	}
-	inner, err := zp.ParseGrammar("@start\nrule main = inner\nrule inner = \"a\"")
+	inner, err := engine.ParseGrammar("@start\nrule main = inner\nrule inner = \"a\"")
 	if err != nil {
 		t.Fatal(err)
 	}
 	if _, err := (lint.Config{}).Run(context.Background(), inner, "inner"); err == nil || !strings.Contains(err.Error(), "rule inner is not a start rule") {
 		t.Errorf("not a start rule: %v", err)
 	}
-	bad, err := zp.ParseGrammar("@start\nrule main = undefined")
+	bad, err := engine.ParseGrammar("@start\nrule main = undefined")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -90,7 +90,7 @@ func TestRun(t *testing.T) {
 }
 
 func TestRunOptionsAndCancellation(t *testing.T) {
-	g, err := zp.ParseGrammar("@start\nrule main = \"a\" / \"ab\"\nrule unused = \"x\"")
+	g, err := engine.ParseGrammar("@start\nrule main = \"a\" / \"ab\"\nrule unused = \"x\"")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -117,7 +117,7 @@ func TestRunOptionsAndCancellation(t *testing.T) {
 
 // TestRunClassify checks the checks that come from the classification of the cost, through Run, with and without a context that can end.
 func TestRunClassify(t *testing.T) {
-	g, err := zp.ParseGrammar("var s string = \"a\"\n@start\nrule main = (a / \"a\")* $$\nrule a = \"a\"* \"c\" / \"x\" {s := s + s} a\n")
+	g, err := engine.ParseGrammar("var s string = \"a\"\n@start\nrule main = (a / \"a\")* $$\nrule a = \"a\"* \"c\" / \"x\" {s := s + s} a\n")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -152,7 +152,7 @@ func TestRunClassify(t *testing.T) {
 // once, and passes that classification, whose causes are the super-linear findings, to the sink
 // of its context.
 func TestRunClassifySink(t *testing.T) {
-	g, err := zp.ParseGrammar("@start\nrule main = (a / \"a\")* $$\nrule a = \"a\"* \"c\"\n")
+	g, err := engine.ParseGrammar("@start\nrule main = (a / \"a\")* $$\nrule a = \"a\"* \"c\"\n")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -186,7 +186,7 @@ func TestRunDuplicateRule(t *testing.T) {
 		"@start\nrule main = main \"a\" / \"a\"\nrule main = main \"b\" / \"b\"",
 		"@start\nrule main = a\nrule a = \"a\" main?\nrule main = a \"b\"",
 	} {
-		g, err := zp.ParseGrammar(src)
+		g, err := engine.ParseGrammar(src)
 		if err != nil {
 			t.Fatal(err)
 		}

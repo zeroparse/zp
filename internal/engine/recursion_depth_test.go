@@ -6,7 +6,7 @@ import (
 	"strings"
 	"testing"
 
-	"zeroparse.dev/zp/runtime/parse"
+	"zeroparse.dev/zp/core"
 )
 
 var depthBackends = []Backend{Closure, Bytecode, BytecodeIterative}
@@ -29,15 +29,15 @@ rule digit = [0-9]`)
 				if limit < 1 {
 					continue
 				}
-				_, err := prog.ParseWith("main", in, ParseOptions{Backend: b, Limits: parse.Limits{Depth: uint64(limit)}})
+				_, err := prog.ParseWith("main", in, ParseOptions{Backend: b, Limits: core.Limits{Depth: uint64(limit)}})
 				if want := n+1 > limit; (err != nil) != want {
 					t.Errorf("%v: %d nested, limit %d: error %v, want an error: %v", b, n, limit, err, want)
 				}
 				if err != nil && err.Error() != fmt.Sprintf("nesting too deep: more than %d nested recursive rule calls", limit) {
 					t.Errorf("%v: %d nested, limit %d: error %v", b, n, limit, err)
 				}
-				var le *parse.LimitError
-				if err != nil && (!errors.As(err, &le) || *le != (parse.LimitError{Kind: parse.LimitDepth, Limit: uint64(limit), Used: uint64(limit), Requested: 1})) {
+				var le *core.LimitError
+				if err != nil && (!errors.As(err, &le) || *le != (core.LimitError{Kind: core.LimitDepth, Limit: uint64(limit), Used: uint64(limit), Requested: 1})) {
 					t.Errorf("%v: %d nested, limit %d: error %#v, want a LimitDepth error", b, n, limit, err)
 				}
 			}
@@ -59,12 +59,12 @@ rule nest = "(" item ")"`)
 		in := strings.Repeat("(", n) + "x" + strings.Repeat(")", n)
 		for _, b := range depthBackends {
 			for limit := 1; limit <= 2*n+3; limit++ {
-				_, err := prog.ParseWith("main", in, ParseOptions{Backend: b, Limits: parse.Limits{Depth: uint64(limit)}})
+				_, err := prog.ParseWith("main", in, ParseOptions{Backend: b, Limits: core.Limits{Depth: uint64(limit)}})
 				if want := 2*n+2 > limit; (err != nil) != want {
 					t.Errorf("%v: %d nested, limit %d: error %v, want an error: %v", b, n, limit, err, want)
 				}
-				var le *parse.LimitError
-				if err != nil && (!errors.As(err, &le) || le.Kind != parse.LimitDepth) {
+				var le *core.LimitError
+				if err != nil && (!errors.As(err, &le) || le.Kind != core.LimitDepth) {
 					t.Errorf("%v: %d nested, limit %d: error %#v, want a LimitDepth error", b, n, limit, err)
 				}
 			}
@@ -82,7 +82,7 @@ rule c = d
 rule d = [0-9]+`)
 	in := strings.Repeat("12,34;", 500)
 	for _, b := range depthBackends {
-		if _, err := prog.ParseWith("main", in, ParseOptions{Backend: b, Limits: parse.Limits{Depth: 1}}); err != nil {
+		if _, err := prog.ParseWith("main", in, ParseOptions{Backend: b, Limits: core.Limits{Depth: 1}}); err != nil {
 			t.Errorf("%v: %v", b, err)
 		}
 	}
@@ -117,11 +117,11 @@ rule nest = "(" nest ")" / leaf
 rule leaf = "x"`)
 	const n = 2 * DefaultMaxDepthIterative / 1000
 	in := strings.Repeat("(", n) + "x" + strings.Repeat(")", n)
-	unlimited := parse.Limits{Depth: parse.Unlimited}
+	unlimited := core.Limits{Depth: core.Unlimited}
 	if _, err := prog.ParseWith("main", in, ParseOptions{Backend: BytecodeIterative, Limits: unlimited}); err != nil {
 		t.Errorf("iterative: %v", err)
 	}
-	if _, err := prog.ParseWith("main", in, ParseOptions{Backend: BytecodeIterative, Limits: parse.Limits{Depth: n}}); err == nil {
+	if _, err := prog.ParseWith("main", in, ParseOptions{Backend: BytecodeIterative, Limits: core.Limits{Depth: n}}); err == nil {
 		t.Error("iterative: a finite depth below the nesting accepted")
 	}
 	for _, b := range []Backend{Default, Closure, Bytecode} {
@@ -166,7 +166,7 @@ rule other = ("-")+ #stream`},
 		prog := mustCompile(t, c.src)
 		for _, b := range depthBackends {
 			count := 0
-			err := prog.ParseStreamWith("main", strings.NewReader("x;x;x;-"), func(*parse.Node) error { count++; return nil }, ParseOptions{Backend: b})
+			err := prog.ParseStreamWith("main", strings.NewReader("x;x;x;-"), func(*core.Node) error { count++; return nil }, ParseOptions{Backend: b})
 			if err != nil || count != 3 {
 				t.Errorf("%s/%v: emitted %d, error %v; want 3", c.name, b, count, err)
 			}

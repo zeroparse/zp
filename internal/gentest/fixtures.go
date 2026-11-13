@@ -199,7 +199,7 @@ func RuntimeCopyWith(t testing.TB, patch func(name, src string) string, extra ma
 // module root: the runtime package first, then the packages it imports, which are copied
 // unchanged. A copy holds only them, so a test module that requires it builds generated code
 // against them and nothing else of this module.
-var copiedPackages = []string{"runtime", "runtime/noderep", "runtime/parse"}
+var copiedPackages = []string{"runtime", "core", "core/noderep"}
 
 func writeRuntimeCopy(dir string, patch func(name, src string) string, extra map[string]string) {
 	must := func(err error) {

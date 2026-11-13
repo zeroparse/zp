@@ -3,12 +3,12 @@ package core
 import (
 	"testing"
 
+	"zeroparse.dev/zp/core"
+	"zeroparse.dev/zp/core/noderep"
 	"zeroparse.dev/zp/internal/compile"
 	"zeroparse.dev/zp/internal/compiletest"
 	"zeroparse.dev/zp/internal/ir/exec/conform"
 	"zeroparse.dev/zp/internal/value"
-	"zeroparse.dev/zp/runtime/noderep"
-	"zeroparse.dev/zp/runtime/parse"
 )
 
 // builtinFunc is a function of the fixture of the built-in table, which is not a value of a term.
@@ -24,9 +24,9 @@ func TestEngineValueBuiltinTable(t *testing.T) {
 	for _, controlled := range []bool{false, true} {
 		prog := &SharedProgram{}
 		InitSharedProgram(prog, compiletest.Program(t, "@start\nrule main = \"a\"\n", compile.Options{}))
-		p := &Parser{Prog: prog, Input: NewInput(conform.BuiltinInput, parse.Bytes)}
+		p := &Parser{Prog: prog, Input: NewInput(conform.BuiltinInput, core.Bytes)}
 		if controlled {
-			p.Control = NewBudgetControl(nil, parse.Limits{Compute: 1 << 62})
+			p.Control = NewBudgetControl(nil, core.Limits{Compute: 1 << 62})
 		}
 		c := &EvalCtx{P: p}
 		text := p.NewNode(value.Data{Kind: noderep.MatchKind, Terminal: true, Text: "xyz", Start: 2, End: 4})
@@ -36,7 +36,7 @@ func TestEngineValueBuiltinTable(t *testing.T) {
 			conform.BuiltinString: "ab",
 			conform.BuiltinBool:   true,
 			conform.BuiltinText:   text,
-			conform.BuiltinNode:   p.NewNode(value.Data{Kind: noderep.SeqKind, Start: 2, End: 5, Children: []*parse.Node{text, text}}),
+			conform.BuiltinNode:   p.NewNode(value.Data{Kind: noderep.SeqKind, Start: 2, End: 5, Children: []*core.Node{text, text}}),
 			conform.MemberList:    c.ListNode(nil),
 			conform.BuiltinFunc:   builtinFunc{},
 			conform.BuiltinTyped:  value.NewNodeTypeKinds(conform.BuiltinOther).Retype(text),
@@ -44,7 +44,7 @@ func TestEngineValueBuiltinTable(t *testing.T) {
 		nt := value.NewNodeTypeKinds(conform.BuiltinType)
 		one, _ := element(c, "list", 1)
 		two, _ := element(c, "list", 2)
-		vals[conform.BuiltinPair] = c.ListNode([]*parse.Node{one, two})
+		vals[conform.BuiltinPair] = c.ListNode([]*core.Node{one, two})
 		vals[conform.BuiltinBox] = one
 		err := conform.RunBuiltins("engine", func(call, v string) string {
 			var got any
@@ -57,7 +57,7 @@ func TestEngineValueBuiltinTable(t *testing.T) {
 			case conform.CallConvert:
 				got, err = p.Convert(nt, vals[v])
 			default:
-				var items []*parse.Node
+				var items []*core.Node
 				items, err = p.ValueListItems(conform.BuiltinFn(call), vals[v])
 				got = c.ListNode(items)
 			}
@@ -74,7 +74,7 @@ func TestEngineValueBuiltinTable(t *testing.T) {
 
 // element returns v as the composition push makes it an element of a list or a tuple that fn makes, and pops
 // it again: the tables build the elements of their fixtures with it.
-func element(c *EvalCtx, fn string, v any) (*parse.Node, error) {
+func element(c *EvalCtx, fn string, v any) (*core.Node, error) {
 	base := len(c.P.KidStack)
 	if err := c.Push(fn, v); err != nil {
 		return nil, err

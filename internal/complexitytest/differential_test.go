@@ -8,7 +8,7 @@ import (
 	"strings"
 	"testing"
 
-	"zeroparse.dev/zp"
+	"zeroparse.dev/zp/engine"
 	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/complexity"
 	"zeroparse.dev/zp/internal/engine/core"
@@ -250,12 +250,12 @@ func linearClaims(t *testing.T, count int, claimsLinear func(*grammar.Grammar) b
 			src = shared[n-count-2*(count/4)]
 			inputs = SharedContinuationInputs
 		}
-		g, err := zp.ParseGrammar(src)
+		g, err := engine.ParseGrammar(src)
 		if err != nil {
 			t.Fatalf("generated grammar %d does not parse: %v\n%s", n, err, src)
 		}
 		g = starttest.MarkAll(g)
-		p, err := zp.Compile(g, "main")
+		p, err := engine.Compile(g, "main")
 		if err != nil {
 			continue // left recursion without a base case, a repetition of nothing and the like
 		}
@@ -270,7 +270,7 @@ func linearClaims(t *testing.T, count int, claimsLinear func(*grammar.Grammar) b
 			continue // the claim is counted, but the reference build cannot measure it
 		}
 	measure:
-		for _, backend := range []zp.Backend{zp.Closure, zp.Bytecode} {
+		for _, backend := range []engine.Backend{engine.Closure, engine.Bytecode} {
 			for i, build := range inputs {
 				s := Series{Sizes: differentialSizes}
 				for _, size := range differentialSizes {

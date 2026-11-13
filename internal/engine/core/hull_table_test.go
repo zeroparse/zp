@@ -4,12 +4,12 @@ import (
 	"fmt"
 	"testing"
 
+	"zeroparse.dev/zp/core"
+	"zeroparse.dev/zp/core/noderep"
 	"zeroparse.dev/zp/internal/compile"
 	"zeroparse.dev/zp/internal/compiletest"
 	"zeroparse.dev/zp/internal/ir/exec/conform"
 	"zeroparse.dev/zp/internal/value"
-	"zeroparse.dev/zp/runtime/noderep"
-	"zeroparse.dev/zp/runtime/parse"
 )
 
 // TestEngineValueHullTable runs the hull table (conform.HullCases) on the engine's composition hull
@@ -18,9 +18,9 @@ func TestEngineValueHullTable(t *testing.T) {
 	for _, controlled := range []bool{false, true} {
 		prog := &SharedProgram{}
 		InitSharedProgram(prog, compiletest.Program(t, "@start\nrule main = \"a\"\n", compile.Options{}))
-		p := &Parser{Prog: prog, Input: NewInput(conform.BuiltinInput, parse.Bytes)}
+		p := &Parser{Prog: prog, Input: NewInput(conform.BuiltinInput, core.Bytes)}
 		if controlled {
-			p.Control = NewBudgetControl(nil, parse.Limits{Compute: 1 << 62})
+			p.Control = NewBudgetControl(nil, core.Limits{Compute: 1 << 62})
 		}
 		c := &EvalCtx{P: p, Start: conform.StructRuleStart, End: conform.StructRuleEnd}
 		text := p.NewNode(value.Data{Kind: noderep.MatchKind, Terminal: true, Text: "xyz", Start: 2, End: 4})
@@ -29,12 +29,12 @@ func TestEngineValueHullTable(t *testing.T) {
 			conform.MemberInt:     1,
 			conform.BuiltinString: "ab",
 			conform.BuiltinText:   text,
-			conform.BuiltinNode:   p.NewNode(value.Data{Kind: noderep.SeqKind, Start: 2, End: 5, Children: []*parse.Node{text, text}}),
+			conform.BuiltinNode:   p.NewNode(value.Data{Kind: noderep.SeqKind, Start: 2, End: 5, Children: []*core.Node{text, text}}),
 			conform.StructLate:    p.NewNode(value.Data{Kind: noderep.MatchKind, Terminal: true, Text: "q", Start: 7, End: 9}),
 		}
 		// The budget-controls reference build charges nothing, so its units are not checked.
 		err := conform.RunHulls("engine", controlled && BudgetControlsEnabled, func(kind string, elems []string) (string, int) {
-			var kids []*parse.Node
+			var kids []*core.Node
 			for _, e := range elems {
 				n, err := element(c, kind, vals[e])
 				if err != nil {
@@ -42,7 +42,7 @@ func TestEngineValueHullTable(t *testing.T) {
 				}
 				kids = append(kids, n)
 			}
-			var n *parse.Node
+			var n *core.Node
 			if kind == "tuple" {
 				n = c.TupleNode(kids)
 			} else {

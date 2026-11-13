@@ -3,13 +3,13 @@ package document
 import (
 	"testing"
 
+	"zeroparse.dev/zp/core"
+	"zeroparse.dev/zp/core/noderep"
 	"zeroparse.dev/zp/internal/value"
-	"zeroparse.dev/zp/runtime/noderep"
-	"zeroparse.dev/zp/runtime/parse"
 )
 
 func TestDocumentChangesDirectoryEqualityHasBoundedScratch(t *testing.T) {
-	root := value.Ptr(value.Data{Kind: noderep.KindOf("Root", "main"), Children: make([]*parse.Node, 4096)})
+	root := value.Ptr(value.Data{Kind: noderep.KindOf("Root", "main"), Children: make([]*core.Node, 4096)})
 	for i := range value.D(root).Children {
 		value.D(root).Children[i] = value.Ptr(value.Data{Kind: noderep.KindOf("Leaf", "item"), Start: int32(i), End: int32(i + 1), Text: "a", Terminal: true})
 	}
@@ -29,11 +29,11 @@ func TestDocumentChangesDirectoryEqualityHasBoundedScratch(t *testing.T) {
 }
 
 func TestDocumentChangesDirectoryEqualityChecksIDEdges(t *testing.T) {
-	leaf := func() *parse.Node {
+	leaf := func() *core.Node {
 		return value.Ptr(value.Data{Kind: noderep.KindOf("Leaf", "item"), Text: "x", Terminal: true})
 	}
 	first, second := leaf(), leaf()
-	root := value.Ptr(value.Data{Children: []*parse.Node{first, second, first}, Fields: noderep.Fields{{Name: "link", Value: first}, {Name: "cycle", Value: nil}}})
+	root := value.Ptr(value.Data{Children: []*core.Node{first, second, first}, Fields: noderep.Fields{{Name: "link", Value: first}, {Name: "cycle", Value: nil}}})
 	value.D(root).Fields[1].Value = root
 	a := changeGraphSnapshot(t, root)
 	changed := root.Clone()
@@ -57,7 +57,7 @@ func TestDocumentChangesDirectoryEqualityChecksIDEdges(t *testing.T) {
 }
 
 func TestDocumentChangesDirectoryEqualitySupportsChunkedChildStorage(t *testing.T) {
-	root := value.Ptr(value.Data{Children: make([]*parse.Node, snapshotChildChunkSize+1)})
+	root := value.Ptr(value.Data{Children: make([]*core.Node, snapshotChildChunkSize+1)})
 	for i := range value.D(root).Children {
 		value.D(root).Children[i] = value.Ptr(value.Data{Text: "x", Terminal: true})
 	}

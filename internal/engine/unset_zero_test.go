@@ -5,9 +5,9 @@ import (
 	"strings"
 	"testing"
 
-	"zeroparse.dev/zp/internal/engine/core"
+	"zeroparse.dev/zp/core"
+	ecore "zeroparse.dev/zp/internal/engine/core"
 	"zeroparse.dev/zp/internal/gentest"
-	"zeroparse.dev/zp/runtime/parse"
 )
 
 // TestUnsetFieldsReadZero pins the value of each field type that a constructor left unset, on every
@@ -55,8 +55,8 @@ func TestZeroValueOfDeepStructTypes(t *testing.T) {
 	t.Parallel()
 	// The limit checks that the zero value is not built in full; the reference build has no
 	// budget controls and rejects a limit, so there only the value is checked.
-	var lim parse.Limits
-	if core.BudgetControlsEnabled {
+	var lim core.Limits
+	if ecore.BudgetControlsEnabled {
 		lim.Compute = 1 << 12
 	}
 	const depth = 24

@@ -9,8 +9,8 @@ import (
 	"fmt"
 	"testing"
 
-	"zeroparse.dev/zp/internal/engine/core"
-	"zeroparse.dev/zp/runtime/parse"
+	"zeroparse.dev/zp/core"
+	ecore "zeroparse.dev/zp/internal/engine/core"
 )
 
 // Compare the public parse result and exported diagnostic records with and
@@ -126,11 +126,11 @@ rule atom Atom = t:("a") #atomic => Atom{Text: text($t)}`,
 	}
 
 	type result struct {
-		Node                 *parse.Node
+		Node                 *core.Node
 		Err                  error
 		ErrorText, ErrorType string
 	}
-	marshal := func(t *testing.T, node *parse.Node, err error) []byte {
+	marshal := func(t *testing.T, node *core.Node, err error) []byte {
 		t.Helper()
 		got := result{Node: node, Err: err}
 		if err != nil {
@@ -146,14 +146,14 @@ rule atom Atom = t:("a") #atomic => Atom{Text: text($t)}`,
 		t.Run(tc.name, func(t *testing.T) {
 			prog := mustCompile(t, tc.grammar)
 			for _, backend := range []Backend{Closure, Bytecode, BytecodeIterative} {
-				for _, unit := range []parse.PositionUnit{parse.Bytes, parse.CodePoints} {
+				for _, unit := range []core.PositionUnit{core.Bytes, core.CodePoints} {
 					for _, recognize := range []bool{false, true} {
 						t.Run(fmt.Sprintf("%v/%v/recognize=%t", backend, unit, recognize), func(t *testing.T) {
 							memoObserved, recoveredObserved := false, false
 							trace := func(e TraceEvent) {
 								// Force eager recording for this fixture, on both paths.
 								if e.Kind == TraceEnter {
-									core.TraceParser(e).DeferMemo = false
+									ecore.TraceParser(e).DeferMemo = false
 								}
 								if e.Kind == TraceExit && e.Memo && e.Rule == "r" {
 									memoObserved = true
@@ -165,13 +165,13 @@ rule atom Atom = t:("a") #atomic => Atom{Text: text($t)}`,
 									base.Trace = trace
 								}
 								wantNode, wantErr := prog.ParseWith("main", input, base)
-								var recovered parse.SyntaxErrors
+								var recovered core.SyntaxErrors
 								if errors.As(wantErr, &recovered) && len(recovered) > 0 {
 									recoveredObserved = true
 								}
 								want := marshal(t, wantNode, wantErr)
 								limited := base
-								limited.Limits = parse.Limits{Compute: 1 << 50}
+								limited.Limits = core.Limits{Compute: 1 << 50}
 								gotNode, gotErr := prog.ParseWith("main", input, limited)
 								got := marshal(t, gotNode, gotErr)
 								if !bytes.Equal(got, want) {

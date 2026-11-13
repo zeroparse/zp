@@ -4,14 +4,14 @@ import (
 	"strings"
 	"testing"
 
+	"zeroparse.dev/zp/core"
 	"zeroparse.dev/zp/internal/compile"
 	"zeroparse.dev/zp/internal/gentest"
-	"zeroparse.dev/zp/runtime/parse"
 )
 
 // operatorsNodeTypeNames returns the type names of the nodes of n, pre-order, with their children
 // in parentheses.
-func operatorsNodeTypeNames(n *parse.Node) string {
+func operatorsNodeTypeNames(n *core.Node) string {
 	if n == nil {
 		return "nil"
 	}

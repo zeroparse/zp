@@ -1,6 +1,6 @@
 package gentest
 
-import "zeroparse.dev/zp/runtime/noderep"
+import "zeroparse.dev/zp/core/noderep"
 
 // One shared grammar keeps the same scope/selection cases in the engine and generated Go/TS corpus.
 const PrefixPartCuts = `type Atom = { Text string }

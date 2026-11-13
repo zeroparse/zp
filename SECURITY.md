@@ -82,14 +82,14 @@ These behaviors are documented, so they are limits of ZeroParse today, not vulne
 ### What a Parse Bounds Today
 
 - **Nesting, on by default.** A parse fails with `nesting too deep: more than N nested recursive rule calls` once recursive rule calls (rules on a cycle of calls) nest deeper
-  than 100,000, or 10,000,000 on the iterative VM (`zp.BytecodeIterative`), which keeps rule calls on its own stack.
+  than 100,000, or 10,000,000 on the iterative VM (`engine.BytecodeIterative`), which keeps rule calls on its own stack.
   Generated Go and generated TypeScript have the same default of 100,000. `Limits.Depth`, `zp gen -max-depth`
   and the TypeScript `limits.depth` option change it. On Node.js's default stack, generated TypeScript reaches a few
   hundred to a few thousand nested recursive rule calls and then returns an error
   ([TypeScript](docs/guide/typescript.md#deep-nesting-and-the-javascript-stack)).
 - **Compute, on by default.** A parse stops once its spent budget exceeds its compute limit, whatever the grammar's
   class of growth. A zero `Compute` selects `max(2^20, 1024 * n)` for an input of `n` units,
-  `zp.WithLimits(parse.Limits{Compute: ...})` sets another limit and `parse.Unlimited` disables it; `zp.WithContext` adds
+  `engine.WithLimits(core.Limits{Compute: ...})` sets another limit and `core.Unlimited` disables it; `engine.WithContext` adds
   cancellation and deadlines. Generated parsers have the compute limit and these options only when generated with
   `-limits` (TypeScript: `signal` and `limits.compute`); this is planned to become the default at the first release
   ([Default Limits](#default-limits)). For a given artifact, input and options, the counts are the same on every run.
@@ -104,7 +104,7 @@ These behaviors are documented, so they are limits of ZeroParse today, not vulne
 - **Stream memory, by working set.** A `ParseStream` parse releases the input, the memo entries and each element as it
   goes, so its memory is bounded by the working set (the largest element, the memo entries of the last few elements
   and your callback's own state), not by the input length. It keeps the list of recovered errors until the end unless
-  `zp.WithDiagnosticLimit` bounds it ([Streaming](docs/guide/streaming.md#memory)).
+  `engine.WithDiagnosticLimit` bounds it ([Streaming](docs/guide/streaming.md#memory)).
 
 ### What the Caller Must Bound
 
@@ -137,7 +137,7 @@ for any grammar that parses untrusted input.
 4. Set `Memory` when a parse must stay within a number of bytes.
 5. Keep the default nesting limit or lower it. For input that nests deeply, use the iterative VM instead of raising
    the limit.
-6. Bound recovered errors in a stream with `zp.WithDiagnosticLimit`, and bound the number of open `Document`s.
+6. Bound recovered errors in a stream with `engine.WithDiagnosticLimit`, and bound the number of open `Document`s.
 7. Load compiled grammars only from sources you trust.
 
 ### Default Limits

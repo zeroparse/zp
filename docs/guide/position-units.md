@@ -23,9 +23,9 @@ the `Pos` and `Col` of syntax errors, `.Start` and `.End` in actions, the `len` 
 
 ```go
 n, _ := p.Parse("あい=3")
-fmt.Println(n.Elem(0).Field("Key").(*parse.Node).End()) // 2
-n, _ = p.Parse("あい=3", zp.WithUnit(parse.Bytes))
-fmt.Println(n.Elem(0).Field("Key").(*parse.Node).End()) // 6
+fmt.Println(n.Elem(0).Field("Key").(*core.Node).End()) // 2
+n, _ = p.Parse("あい=3", engine.WithUnit(core.Bytes))
+fmt.Println(n.Elem(0).Field("Key").(*core.Node).End()) // 6
 ```
 
 Syntax errors follow the unit, too (the same `あい=x` input, with the error at the `x`):

@@ -3,7 +3,7 @@ package core
 import (
 	"unicode/utf8"
 
-	"zeroparse.dev/zp/runtime/parse"
+	"zeroparse.dev/zp/core"
 )
 
 // PrefixByteOffset translates a successful batch cursor back to the original
@@ -11,7 +11,7 @@ import (
 // source. This is separate from text(): malformed UTF-8 is normalized in node
 // text, but consumed bytes must still refer to the original source snapshot.
 func (in *Input) PrefixByteOffset(source string, end int) int {
-	if end == 0 || in.Unit == parse.Bytes {
+	if end == 0 || in.Unit == core.Bytes {
 		return end
 	}
 	if len(in.Offs) > end {

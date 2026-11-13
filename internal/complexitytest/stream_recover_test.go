@@ -5,23 +5,23 @@ import (
 	"strings"
 	"testing"
 
-	"zeroparse.dev/zp"
-	"zeroparse.dev/zp/runtime/parse"
+	"zeroparse.dev/zp/core"
+	"zeroparse.dev/zp/engine"
 )
 
 // streamSteps returns the smallest budget with which a stream parse of input finishes, found by
 // bisection with a relative tolerance of 0.4%.
-func streamSteps(t *testing.T, p *zp.Parser, input string, b zp.Backend) uint64 {
+func streamSteps(t *testing.T, p *engine.Parser, input string, b engine.Backend) uint64 {
 	t.Helper()
 	finishes := func(budget uint64) bool {
-		err := p.ParseStream(strings.NewReader(input), func(*parse.Node) error { return nil },
-			zp.WithBackend(b), zp.WithLimits(parse.Limits{Compute: budget}))
-		var le *parse.LimitError
-		if errors.As(err, &le) && le.Kind == parse.LimitCompute {
+		err := p.ParseStream(strings.NewReader(input), func(*core.Node) error { return nil },
+			engine.WithBackend(b), engine.WithLimits(core.Limits{Compute: budget}))
+		var le *core.LimitError
+		if errors.As(err, &le) && le.Kind == core.LimitCompute {
 			return false
 		}
-		var one *parse.SyntaxError
-		var many parse.SyntaxErrors
+		var one *core.SyntaxError
+		var many core.SyntaxErrors
 		if err != nil && !errors.As(err, &one) && !errors.As(err, &many) {
 			t.Fatalf("%s: %v", BackendName(b), err)
 		}

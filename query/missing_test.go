@@ -4,7 +4,7 @@ import (
 	"strings"
 	"testing"
 
-	"zeroparse.dev/zp"
+	"zeroparse.dev/zp/engine"
 	"zeroparse.dev/zp/query"
 	"zeroparse.dev/zp/schema"
 )
@@ -15,7 +15,7 @@ rule semi = ";" #missing`
 
 func missingSchema(t *testing.T) *schema.Output {
 	t.Helper()
-	return mustSchema(t, mustCompile(t, missingSchemaGrammar), zp.WithAllSchemaRules())
+	return mustSchema(t, mustCompile(t, missingSchemaGrammar), engine.WithAllSchemaRules())
 }
 
 // Patterns of errors apply to the values of the shape missing, and others do not.

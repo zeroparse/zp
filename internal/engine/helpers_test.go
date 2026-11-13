@@ -10,17 +10,17 @@ import (
 	ir "zeroparse.dev/zp/internal/ir/core"
 	irbuild "zeroparse.dev/zp/internal/ir/core/build"
 
+	"zeroparse.dev/zp/core"
+	"zeroparse.dev/zp/core/noderep"
 	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/compile"
 	"zeroparse.dev/zp/internal/engine/closure"
-	"zeroparse.dev/zp/internal/engine/core"
+	ecore "zeroparse.dev/zp/internal/engine/core"
 	"zeroparse.dev/zp/internal/engine/vm"
 	"zeroparse.dev/zp/internal/gentest"
 	"zeroparse.dev/zp/internal/starttest"
 	"zeroparse.dev/zp/internal/syntax"
 	"zeroparse.dev/zp/internal/value"
-	"zeroparse.dev/zp/runtime/noderep"
-	"zeroparse.dev/zp/runtime/parse"
 )
 
 // parseTest parses ZeroParse source for a test whose subject is not start rules: unless the source
@@ -156,8 +156,8 @@ func mustParse(src string) *grammar.Grammar {
 // points, matches the result of parsing in code points.
 func checkUnits(t *testing.T, prog *Program, start, input string, b Backend) {
 	t.Helper()
-	n1, err1 := prog.ParseWith(start, input, ParseOptions{Expectations: true, Unit: parse.CodePoints, Backend: b})
-	n2, err2 := prog.ParseWith(start, input, ParseOptions{Expectations: true, Unit: parse.Bytes, Backend: b})
+	n1, err1 := prog.ParseWith(start, input, ParseOptions{Expectations: true, Unit: core.CodePoints, Backend: b})
+	n2, err2 := prog.ParseWith(start, input, ParseOptions{Expectations: true, Unit: core.Bytes, Backend: b})
 	n2, err2 = toCodePoints(input, n2, err2)
 	if a, b := gentest.ResultJSON(n1, err1), gentest.ResultJSON(n2, err2); a != b {
 		t.Errorf("input %q: results differ between units\n codepoints %s\n bytes      %s", input, a, b)
@@ -167,13 +167,13 @@ func checkUnits(t *testing.T, prog *Program, start, input string, b Backend) {
 // checkBackends checks that every backend produces the same result (value, positions, errors).
 func checkBackends(t *testing.T, prog *Program, start, input string) {
 	t.Helper()
-	for _, u := range []parse.PositionUnit{parse.CodePoints, parse.Bytes} {
+	for _, u := range []core.PositionUnit{core.CodePoints, core.Bytes} {
 		n1, err1 := prog.ParseWith(start, input, ParseOptions{Expectations: true, Unit: u})
 		want := gentest.ResultJSON(n1, err1)
 		checkRecognize(t, prog, start, input, u, err1)
 		// The default budget runs the controlled form; Unlimited runs the uncontrolled one, which must
 		// give the same result on inputs within the default.
-		if n0, err0 := prog.ParseWith(start, input, ParseOptions{Expectations: true, Unit: u, Limits: parse.Limits{Compute: parse.Unlimited}}); !errors.Is(err1, parse.ErrLimit) {
+		if n0, err0 := prog.ParseWith(start, input, ParseOptions{Expectations: true, Unit: u, Limits: core.Limits{Compute: core.Unlimited}}); !errors.Is(err1, core.ErrLimit) {
 			if got := gentest.ResultJSON(n0, err0); got != want {
 				t.Errorf("input %q (unit %v): Unlimited differs from the default budget\n default   %s\n unlimited %s", input, u, want, got)
 			}
@@ -191,10 +191,10 @@ func checkBackends(t *testing.T, prog *Program, start, input string) {
 // error as an ordinary parse (or succeeds if it does). Results are not compared when the
 // ordinary parse fails with a runtime error in an action (recognition does not evaluate
 // actions).
-func checkRecognize(t *testing.T, prog *Program, start, input string, u parse.PositionUnit, want error) {
+func checkRecognize(t *testing.T, prog *Program, start, input string, u core.PositionUnit, want error) {
 	t.Helper()
 	switch want.(type) {
-	case nil, *parse.SyntaxError, parse.SyntaxErrors:
+	case nil, *core.SyntaxError, core.SyntaxErrors:
 	default:
 		return
 	}
@@ -207,7 +207,7 @@ func checkRecognize(t *testing.T, prog *Program, start, input string, u parse.Po
 }
 
 // toCodePoints converts the positions in a result parsed in bytes to code points.
-func toCodePoints(input string, n *parse.Node, err error) (*parse.Node, error) {
+func toCodePoints(input string, n *core.Node, err error) (*core.Node, error) {
 	// Map byte offsets to code point positions (a byte in the middle of a character maps to that
 	// character's position).
 	cp := make([]int, len(input)+1)
@@ -248,9 +248,9 @@ func toCodePoints(input string, n *parse.Node, err error) (*parse.Node, error) {
 		_, c := lineCol(cp[off+col-1])
 		return fmt.Sprintf("%d:%d%s", line, c, rest)
 	}
-	seen := map[*parse.Node]*parse.Node{}
-	var conv func(*parse.Node) *parse.Node
-	conv = func(n *parse.Node) *parse.Node {
+	seen := map[*core.Node]*core.Node{}
+	var conv func(*core.Node) *core.Node
+	conv = func(n *core.Node) *core.Node {
 		if n == nil {
 			return nil
 		}
@@ -261,7 +261,7 @@ func toCodePoints(input string, n *parse.Node, err error) (*parse.Node, error) {
 		seen[n] = &c
 		value.D(&c).Start, value.D(&c).End = int32(cp[value.D(n).Start]), int32(cp[value.D(n).End])
 		if value.D(n).Children != nil {
-			value.D(&c).Children = make([]*parse.Node, len(value.D(n).Children))
+			value.D(&c).Children = make([]*core.Node, len(value.D(n).Children))
 			for i, ch := range value.D(n).Children {
 				value.D(&c).Children[i] = conv(ch)
 			}
@@ -270,7 +270,7 @@ func toCodePoints(input string, n *parse.Node, err error) (*parse.Node, error) {
 			value.D(&c).Fields = make(noderep.Fields, len(value.D(n).Fields))
 			for i, f := range value.D(n).Fields {
 				switch v := f.Value.(type) {
-				case *parse.Node:
+				case *core.Node:
 					f.Value = conv(v)
 				case string:
 					if n.Type() == noderep.TypeError && f.Name == "message" {
@@ -282,17 +282,17 @@ func toCodePoints(input string, n *parse.Node, err error) (*parse.Node, error) {
 		}
 		return &c
 	}
-	convErr := func(e *parse.SyntaxError) *parse.SyntaxError {
+	convErr := func(e *core.SyntaxError) *core.SyntaxError {
 		c := *e
 		c.Pos = cp[e.Pos]
 		c.Line, c.Col = lineCol(c.Pos)
 		return &c
 	}
 	switch e := err.(type) {
-	case *parse.SyntaxError:
+	case *core.SyntaxError:
 		err = convErr(e)
-	case parse.SyntaxErrors:
-		l := make(parse.SyntaxErrors, len(e))
+	case core.SyntaxErrors:
+		l := make(core.SyntaxErrors, len(e))
 		for i, x := range e {
 			l[i] = convErr(x)
 		}
@@ -304,7 +304,7 @@ func toCodePoints(input string, n *parse.Node, err error) (*parse.Node, error) {
 // closureExprMatcher returns the closure that the closure backend builds for the expression e of
 // the program prog, from the program's Core IR after the closure pipeline. The expression must be
 // one that a node of Core IR is built from.
-func closureExprMatcher(t *testing.T, prog *compile.Program, e grammar.Expr, plainDispatch bool) core.Matcher {
+func closureExprMatcher(t *testing.T, prog *compile.Program, e grammar.Expr, plainDispatch bool) ecore.Matcher {
 	t.Helper()
 	m, found := closureExprCore(t, prog, e)
 	f, err := closure.Matcher(prog, m, found, nil, plainDispatch)
@@ -346,9 +346,9 @@ func closureExprCore(t *testing.T, prog *compile.Program, e grammar.Expr) (*ir.M
 }
 
 // inlinedRules returns the rules that the closure backend runs in the inlined family, by ID.
-func inlinedRules(t testing.TB, prog *Program) []*core.Rule {
+func inlinedRules(t testing.TB, prog *Program) []*ecore.Rule {
 	t.Helper()
-	rules, err := prog.familyRules(core.Inlined, nil)
+	rules, err := prog.familyRules(ecore.Inlined, nil)
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"testing"
 
+	"zeroparse.dev/zp/core"
 	"zeroparse.dev/zp/internal/value"
-	"zeroparse.dev/zp/runtime/parse"
 )
 
 // movedKept is the number of copies of empty nodes that moveResult keeps in Parser.Moved for the next
@@ -34,7 +34,7 @@ func wantMovementState(t *testing.T, p *Parser, moved int) {
 func TestClearMovementSpend(t *testing.T) {
 	t.Parallel()
 	fill := func(p *Parser, moved, shifts int) {
-		p.Moved = map[*parse.Node]*parse.Node{}
+		p.Moved = map[*core.Node]*core.Node{}
 		for range moved {
 			n := value.Ptr(value.Data{})
 			p.Moved[n] = n
@@ -53,7 +53,7 @@ func TestClearMovementSpend(t *testing.T) {
 				wantMovementState(t, p, moved)
 			})
 			t.Run(fmt.Sprintf("%d copies and %d shifts with a control", moved, shifts), func(t *testing.T) {
-				p := &Parser{Input: Input{Control: NewBudgetControl(nil, parse.Limits{Compute: 1 << 30})}}
+				p := &Parser{Input: Input{Control: NewBudgetControl(nil, core.Limits{Compute: 1 << 30})}}
 				fill(p, moved, shifts)
 				used := p.Control.Used
 				p.ClearMovementSpend()
@@ -80,7 +80,7 @@ func TestClearMovementSpend(t *testing.T) {
 // size that is kept.
 func TestDocumentMoveWithoutControl(t *testing.T) {
 	t.Parallel()
-	moves := func(empty int) (*Parser, *parse.Node, []*parse.Node) {
+	moves := func(empty int) (*Parser, *core.Node, []*core.Node) {
 		p := &Parser{}
 		for range 3 {
 			p.Edits = append(p.Edits, DocEdit{Delta: 1})
@@ -88,8 +88,8 @@ func TestDocumentMoveWithoutControl(t *testing.T) {
 		p.Gen = 3
 		// A child moved through another result after one edit has a shift of its own to replay.
 		late := value.Ptr(value.Data{Start: 3, End: 4, Mark: 1})
-		children := []*parse.Node{late}
-		var empties []*parse.Node
+		children := []*core.Node{late}
+		var empties []*core.Node
 		for range empty {
 			c := value.Ptr(value.Data{Start: 3, End: 3})
 			empties = append(empties, c)

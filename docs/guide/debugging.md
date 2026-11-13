@@ -2,7 +2,7 @@
 
 This guide is about finding out what a grammar does with an input: which rules it calls where, why an input is
 rejected, and where the time of a parse goes. It covers three commands, `zp explain`, `zp trace` and
-`zp profile`, and the Go API behind them (`zp.WithTrace`, `zp.WithProfile`).
+`zp profile`, and the Go API behind them (`engine.WithTrace`, `engine.WithProfile`).
 
 Contents:
 
@@ -380,15 +380,15 @@ alternative makes again, or as failed calls of the alternatives themselves when 
 
 ## From Go
 
-`zp.WithTrace` passes every event to a function; the methods of the event read the parser, so call them from the
+`engine.WithTrace` passes every event to a function; the methods of the event read the parser, so call them from the
 function:
 
 ```go
-_, err = p.Parse("a=1;b=x", zp.WithTrace(func(e zp.TraceEvent) {
+_, err = p.Parse("a=1;b=x", engine.WithTrace(func(e engine.TraceEvent) {
 	indent := strings.Repeat("  ", e.Depth-1)
 	line, col := e.LineCol(e.Pos)
 	switch {
-	case e.Kind == zp.TraceEnter:
+	case e.Kind == engine.TraceEnter:
 		fmt.Printf("%s%s at %d:%d\n", indent, e.Rule, line, col)
 	case e.Matched:
 		fmt.Printf("%s%s matched %q\n", indent, e.Rule, e.Text())
@@ -423,13 +423,13 @@ also have `Matched`, `End`, `Memo`, `Evals`, `ReusedElements` and `Examined`, an
 (the farthest failure recorded during the call, as a `*SyntaxError`, or nil) and `Recovered` (the errors `#recover`
 recovered from during the call, whose expectations `Failure` does not include). `LineCol` converts a position.
 
-`zp.WithProfile` adds a parse to a `zp.Profile`, which can collect any number of parses, for example a whole test
+`engine.WithProfile` adds a parse to a `engine.Profile`, which can collect any number of parses, for example a whole test
 corpus:
 
 ```go
-var prof zp.Profile
+var prof engine.Profile
 for _, input := range inputs {
-	p.Parse(input, zp.WithProfile(&prof))
+	p.Parse(input, engine.WithProfile(&prof))
 }
 for _, r := range prof.Rules {
 	fmt.Println(r.Rule, r.Calls, r.Evals, r.Repeats, r.Wasted, r.SelfTime)

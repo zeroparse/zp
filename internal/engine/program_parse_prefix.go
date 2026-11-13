@@ -1,15 +1,15 @@
 package engine
 
 import (
-	"zeroparse.dev/zp/internal/engine/core"
+	ecore "zeroparse.dev/zp/internal/engine/core"
 
+	"zeroparse.dev/zp/core"
 	"zeroparse.dev/zp/internal/compile"
-	"zeroparse.dev/zp/runtime/parse"
 )
 
 // PrefixResult records the successful cursor independently of the rule's value.
 type PrefixResult struct {
-	Node          *parse.Node
+	Node          *core.Node
 	Consumed      int
 	ConsumedBytes int
 }
@@ -19,7 +19,7 @@ type PrefixResult struct {
 // and fatal errors return a zero result. Explicit EOF assertions still see the
 // entire supplied input.
 func (prog *Program) ParsePrefixWith(start, input string, o ParseOptions) (result PrefixResult, err error) {
-	if err := core.ValidateStreamDiagnostics(o, false); err != nil {
+	if err := ecore.ValidateStreamDiagnostics(o, false); err != nil {
 		return PrefixResult{}, err
 	}
 	if prog.HasMissing || o.MissingTokens > 0 {
@@ -27,9 +27,9 @@ func (prog *Program) ParsePrefixWith(start, input string, o ParseOptions) (resul
 	}
 	defer func() {
 		if x := recover(); x != nil {
-			if f, ok := x.(core.Fatal); ok {
+			if f, ok := x.(ecore.Fatal); ok {
 				result, err = PrefixResult{}, f.Err
-			} else if cp, ok := x.(core.ContextPanic); ok {
+			} else if cp, ok := x.(ecore.ContextPanic); ok {
 				panic(cp.Value)
 			} else {
 				panic(x)
@@ -45,11 +45,11 @@ func (prog *Program) ParsePrefixWith(start, input string, o ParseOptions) (resul
 		return PrefixResult{}, err
 	}
 	control.Check()
-	p := core.AcquirePooledParser(&active.sharedProgram)
+	p := ecore.AcquirePooledParser(&active.sharedProgram)
 	defer p.ReleaseBatchScratch()
-	p.Input = core.NewControlledTextInput(input, o.Unit, !o.Recognize, p.Scratch, control)
+	p.Input = ecore.NewControlledTextInput(input, o.Unit, !o.Recognize, p.Scratch, control)
 	control.AttachMemory(p)
-	p.MaxDepth, _ = core.DepthLimit(o, o.Backend) // admitParse rejected an invalid limit
+	p.MaxDepth, _ = ecore.DepthLimit(o, o.Backend) // admitParse rejected an invalid limit
 	p.Expectations = o.Expectations
 	p.DeferMemo = true
 	p.SetTrace(o.Trace)
@@ -68,18 +68,18 @@ func (prog *Program) ParsePrefixWith(start, input string, o ParseOptions) (resul
 	return result, err
 }
 
-func (prog *Program) runPrefix(p *core.Parser, b Backend, start string) (result PrefixResult, err error) {
+func (prog *Program) runPrefix(p *ecore.Parser, b Backend, start string) (result PrefixResult, err error) {
 	p.Aborted = false
-	r, err := prog.rule(b, start, core.FamilyOf(p), p.Control)
+	r, err := prog.rule(b, start, ecore.FamilyOf(p), p.Control)
 	if err != nil {
 		return PrefixResult{}, err
 	}
-	p.Descs = prog.descs(b, core.FamilyOf(p))
+	p.Descs = prog.descs(b, ecore.FamilyOf(p))
 	p.Memo.Stride = prog.NSeen
 	if be := prog.backend(b); be == Bytecode || be == BytecodeIterative {
-		p.Memo.Stride = prog.vmFor(be, core.FamilyOf(p)).NumSeen()
+		p.Memo.Stride = prog.vmFor(be, ecore.FamilyOf(p)).NumSeen()
 	}
-	p.Memo.Sparse = core.SparseMemo && p.Memo.Stride > 64 && p.Loaded() > 1024
+	p.Memo.Sparse = ecore.SparseMemo && p.Memo.Stride > 64 && p.Loaded() > 1024
 	defer func() {
 		if x := recover(); x != nil {
 			p.Aborted = true
@@ -94,7 +94,7 @@ func (prog *Program) runPrefix(p *core.Parser, b Backend, start string) (result 
 	}
 	result = PrefixResult{Node: v, Consumed: p.Pos}
 	if len(p.Recovered) > 0 {
-		err = parse.SyntaxErrors(p.RecoveredErrors())
+		err = core.SyntaxErrors(p.RecoveredErrors())
 	}
 	return result, err
 }

@@ -9,8 +9,8 @@ import (
 	"slices"
 	"unicode/utf8"
 
-	"zeroparse.dev/zp/runtime/noderep"
-	"zeroparse.dev/zp/runtime/parse"
+	"zeroparse.dev/zp/core"
+	"zeroparse.dev/zp/core/noderep"
 )
 
 // streamInput is the input of a stream parse. Positions are absolute; the
@@ -35,7 +35,7 @@ type streamInput struct {
 	// Emit receives the committed elements of the start rule's #stream
 	// repetition with the parse's budget control. Nil collects the repetition
 	// as a batch parse does.
-	Emit func(*parse.Node, *BudgetControl) error
+	Emit func(*core.Node, *BudgetControl) error
 	// memoBase is the position of memo.slots[0], the floor of the memo: the
 	// entries before it were discarded.
 	memoBase int
@@ -50,7 +50,7 @@ type streamInput struct {
 	// and diagnosedSkip errors of the entry after them were delivered too
 	// when it is the list diagnosedList, which took the place of delivered
 	// entries (compactDiagnosed).
-	diagnostic    func(*parse.SyntaxError) error
+	diagnostic    func(*core.SyntaxError) error
 	diagnosed     int
 	diagnosedSkip int
 	diagnosedList *errList
@@ -126,10 +126,10 @@ func (r *streamReader) Read(dst []byte) (int, error) {
 // committed element of the rule's #stream repetition to emit.
 //
 // RunParseStream is for generated parsers; not a stable API.
-func RunParseStream(r *Rule, reader io.Reader, emit func(*parse.Node) error, opts []ParseOption) error {
-	var e func(*parse.Node, *BudgetControl) error
+func RunParseStream(r *Rule, reader io.Reader, emit func(*core.Node) error, opts []ParseOption) error {
+	var e func(*core.Node, *BudgetControl) error
 	if emit != nil {
-		e = func(n *parse.Node, _ *BudgetControl) error { return emit(n) }
+		e = func(n *core.Node, _ *BudgetControl) error { return emit(n) }
 	}
 	return RunParseStreamWithBudget(r, reader, e, opts)
 }
@@ -138,16 +138,16 @@ func RunParseStream(r *Rule, reader io.Reader, emit func(*parse.Node) error, opt
 // control, so that converting elements to typed values is charged to it.
 //
 // RunParseStreamWithBudget is for generated parsers; not a stable API.
-func RunParseStreamWithBudget(r *Rule, reader io.Reader, emit func(*parse.Node, *BudgetControl) error, opts []ParseOption) (err error) {
+func RunParseStreamWithBudget(r *Rule, reader io.Reader, emit func(*core.Node, *BudgetControl) error, opts []ParseOption) (err error) {
 	o, err := ResolveOptions(r.g, append(opts[:len(opts):len(opts)], streaming))
 	if err != nil {
 		return err
 	}
 	if emit == nil && (o.diagnostic != nil || o.diagnosticLimit > 0) {
 		// A diagnostic-only stream still needs element commit boundaries.
-		emit = func(*parse.Node, *BudgetControl) error { return nil }
+		emit = func(*core.Node, *BudgetControl) error { return nil }
 	}
-	var n *parse.Node
+	var n *core.Node
 	defer recoverParse(&n, &err)
 	o = prepareOptions(o, 0, true)
 	if o.control != nil {
@@ -174,7 +174,7 @@ func RunParseStreamWithBudget(r *Rule, reader io.Reader, emit func(*parse.Node, 
 			return p.Stream.tail.result(p)
 		}
 		if len(p.Recovered) > 0 {
-			return parse.SyntaxErrors(p.recoveredErrors())
+			return core.SyntaxErrors(p.recoveredErrors())
 		}
 		return nil
 	}
@@ -212,7 +212,7 @@ func (p *Parser) streamReport() {
 
 // streamDeliver passes the element v to the callback of the stream parse; v is final from then on,
 // and a callback error ends the parse unchanged.
-func (p *Parser) streamDeliver(v *parse.Node) {
+func (p *Parser) streamDeliver(v *core.Node) {
 	if v != nil {
 		D(v).Fresh = false
 	}
@@ -304,7 +304,7 @@ func (p *Parser) reportRecovered() error {
 	if s.diagnosed > len(p.Recovered) {
 		s.diagnosed = len(p.Recovered)
 	}
-	var errs []*parse.SyntaxError
+	var errs []*core.SyntaxError
 	for s.diagnosed < len(p.Recovered) {
 		if e := p.Recovered[s.diagnosed]; e.list == nil {
 			// An error, delivered without listing it.
@@ -330,7 +330,7 @@ func (p *Parser) reportRecovered() error {
 
 // reportError delivers the recovered error original to the diagnostic callback, as a copy that the
 // callback owns, and to the retained tail.
-func (p *Parser) reportError(original *parse.SyntaxError) error {
+func (p *Parser) reportError(original *core.SyntaxError) error {
 	s := p.Stream
 	p.Control.Check()
 	if s.diagnostic != nil {
@@ -357,7 +357,7 @@ func streaming(o *parseOptions) { o.streaming = true }
 // that element and is returned unchanged. A nil callback disables delivery. The option is invalid
 // with other entry points. Recoveries after the #stream repetition are reported before the result.
 // With or without this option, recovered errors remain available at the end of the stream.
-func WithDiagnosticCallback(f func(*parse.SyntaxError) error) ParseOption {
+func WithDiagnosticCallback(f func(*core.SyntaxError) error) ParseOption {
 	return func(o *parseOptions) { o.diagnostic = f }
 }
 
@@ -377,7 +377,7 @@ const streamRecoveryScratchMax = 16
 // avoids shifting a large tail for each committed recovery.
 type streamDiagnosticTail struct {
 	limit           int
-	errors          parse.SyntaxErrors
+	errors          core.SyntaxErrors
 	head            int
 	total           uint64
 	dropped         uint64
@@ -387,7 +387,7 @@ type streamDiagnosticTail struct {
 	bytes uint64
 }
 
-func (t *streamDiagnosticTail) add(e *parse.SyntaxError) {
+func (t *streamDiagnosticTail) add(e *core.SyntaxError) {
 	t.bytes += syntaxErrorSize(e)
 	if t.total == math.MaxUint64 {
 		t.countsSaturated = true
@@ -423,10 +423,10 @@ func (t *streamDiagnosticTail) result(p *Parser) error {
 	ordered := t.errors
 	if t.head != 0 {
 		p.Control.Charge(uint64(len(t.errors)))
-		ordered = append(append(make(parse.SyntaxErrors, 0, len(t.errors)), t.errors[t.head:]...), t.errors[:t.head]...)
+		ordered = append(append(make(core.SyntaxErrors, 0, len(t.errors)), t.errors[t.head:]...), t.errors[:t.head]...)
 	}
 	p.Control.Check()
-	return &parse.TruncatedSyntaxErrors{Errors: ordered, Total: t.total, Dropped: t.dropped, CountsSaturated: t.countsSaturated}
+	return &core.TruncatedSyntaxErrors{Errors: ordered, Total: t.total, Dropped: t.dropped, CountsSaturated: t.countsSaturated}
 }
 
 var errIteratorStop = errors.New("stream iterator stopped")
@@ -462,11 +462,11 @@ func IterateStream[T any](g *grammar, opts []ParseOption, run func(emit func(T) 
 // iterator over the nodes that run passes to emit.
 //
 // IterateNodes is for generated parsers; not a stable API.
-func IterateNodes(g *grammar, opts []ParseOption, run func(emit func(*parse.Node) error) error) (*parse.StreamIterator, error) {
+func IterateNodes(g *grammar, opts []ParseOption, run func(emit func(*core.Node) error) error) (*core.StreamIterator, error) {
 	if err := validateStream(g, opts); err != nil {
 		return nil, err
 	}
-	return parse.NewStreamIterator(func(yield func(*parse.Node) bool) error { return run(emitTo(yield)) }), nil
+	return core.NewStreamIterator(func(yield func(*core.Node) bool) error { return run(emitTo(yield)) }), nil
 }
 
 // validateStream validates the options of a stream entry point of grammar g.
@@ -514,7 +514,7 @@ func (it *StreamPull[T]) Close() {
 	it.terminal = true
 	stop := it.stop
 	it.next, it.stop = nil, nil
-	defer func() { it.err = parse.ErrStreamClosed }()
+	defer func() { it.err = core.ErrStreamClosed }()
 	stop()
 }
 
@@ -530,7 +530,7 @@ func (p *Parser) streamDiscard(keep int) {
 	// Drop the line starts up to the new base; streamLineCol has scanned up to keep.
 	k, _ := slices.BinarySearch(s.nlStarts, keep+1)
 	s.nlStarts = s.nlStarts[:copy(s.nlStarts, s.nlStarts[k:])]
-	if p.unit == parse.Bytes {
+	if p.unit == core.Bytes {
 		p.SpendRead(uint64(len(s.bs) - n))
 		s.bs = s.bs[:copy(s.bs, s.bs[n:])]
 	} else {
@@ -596,7 +596,7 @@ func (p *Parser) streamFill(n int) bool {
 	if max := p.Stream.maxInput; max > 0 && n > max && p.Stream.loaded() > max {
 		// The outcome does not depend on how the reader chunks the stream: the parser needed the
 		// unit at MaxInput and the stream holds it. loaded is at least n unless the stream ended.
-		panic(fatal{err: &parse.LimitError{Kind: parse.LimitInput, Limit: uint64(max), Requested: uint64(min(n, p.Stream.loaded()))}})
+		panic(fatal{err: &core.LimitError{Kind: core.LimitInput, Limit: uint64(max), Requested: uint64(min(n, p.Stream.loaded()))}})
 	}
 	return ok
 }
@@ -606,7 +606,7 @@ func (p *Parser) streamFillTo(n int) bool {
 	for s.loaded() < n && !s.eof {
 		p.streamRead()
 		for s.reader.Buffered() > 0 {
-			if p.unit == parse.CodePoints {
+			if p.unit == core.CodePoints {
 				if b, _ := s.reader.Peek(s.reader.Buffered()); !utf8.FullRune(b) {
 					break
 				}
@@ -622,7 +622,7 @@ func (p *Parser) streamRead() {
 	p.Spend()
 	s := p.Stream
 	var err error
-	if p.unit == parse.Bytes {
+	if p.unit == core.Bytes {
 		var b byte
 		if b, err = s.reader.ReadByte(); err == nil {
 			s.bs = append(s.bs, b)
@@ -648,7 +648,7 @@ func (p *Parser) streamPeek() (rune, int, bool) {
 	if p.Pos < s.base || !p.streamFill(p.Pos+1) {
 		return 0, 0, false
 	}
-	if p.unit == parse.CodePoints {
+	if p.unit == core.CodePoints {
 		return s.in[p.Pos-s.base], 1, true
 	}
 	b := s.bs[p.Pos-s.base:]
@@ -676,10 +676,10 @@ func (p *Parser) streamByte(i int) (byte, bool) {
 
 // streamMatchLiteral is MatchLiteral on a stream. It reads only as far as the
 // literal matches.
-func (p *Parser) streamMatchLiteral(rs []rune, text string, desc ExpID, build bool) (*parse.Node, bool) {
+func (p *Parser) streamMatchLiteral(rs []rune, text string, desc ExpID, build bool) (*core.Node, bool) {
 	start := p.Pos
 	s := p.Stream
-	if p.unit == parse.Bytes {
+	if p.unit == core.Bytes {
 		for i := 0; i < len(text); i++ {
 			if c, ok := p.streamByte(p.Pos); !ok || c != text[i] {
 				p.Pos = start
@@ -708,7 +708,7 @@ func (p *Parser) streamAtLineStart() bool {
 	if p.Pos == 0 {
 		return true
 	}
-	if p.unit == parse.Bytes {
+	if p.unit == core.Bytes {
 		c, ok := p.streamByte(p.Pos - 1)
 		return ok && c == '\n'
 	}
@@ -732,7 +732,7 @@ func (p *Parser) streamText(start, end int) string {
 	}
 	c := &s.text
 	if start >= c.base && end <= c.end && c.source != "" {
-		if p.unit == parse.Bytes {
+		if p.unit == core.Bytes {
 			return c.source[start-c.base : end-c.base]
 		}
 		return c.source[c.offsets[start-c.base]:c.offsets[end-c.base]]
@@ -744,7 +744,7 @@ func (p *Parser) streamText(start, end int) string {
 	}
 	snap := streamTextSnapshot{base: start, end: start + min(streamTextChunk, s.loaded()-start)}
 	snap.source = p.streamCopy(snap.base, snap.end)
-	if p.unit == parse.Bytes {
+	if p.unit == core.Bytes {
 		*c = snap
 		return snap.source[:end-start]
 	}
@@ -775,7 +775,7 @@ func (p *Parser) streamText(start, end int) string {
 func (p *Parser) streamCopy(start, end int) string {
 	s := p.Stream
 	start, end = start-s.base, end-s.base
-	if p.unit == parse.Bytes {
+	if p.unit == core.Bytes {
 		if p.Control != nil {
 			p.Control.Charge(uint64(end - start))
 		}
@@ -800,7 +800,7 @@ func (p *Parser) streamLineCol(pos int) (int, int) {
 			s.lines = []int{0}
 			for i := range s.loaded() {
 				p.SpendRead(1)
-				if p.unit == parse.Bytes && s.bs[i] == '\n' || p.unit == parse.CodePoints && s.in[i] == '\n' {
+				if p.unit == core.Bytes && s.bs[i] == '\n' || p.unit == core.CodePoints && s.in[i] == '\n' {
 					s.lines = append(s.lines, i+1)
 				}
 			}
@@ -823,7 +823,7 @@ func (p *Parser) streamLineCol(pos int) (int, int) {
 	for ; s.nlScanned < pos; s.nlScanned++ {
 		p.SpendRead(1)
 		var nl bool
-		if p.unit == parse.Bytes {
+		if p.unit == core.Bytes {
 			nl = s.bs[s.nlScanned-s.base] == '\n'
 		} else {
 			nl = s.in[s.nlScanned-s.base] == '\n'

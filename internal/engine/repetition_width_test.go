@@ -8,11 +8,11 @@ import (
 	"strings"
 	"testing"
 
+	"zeroparse.dev/zp/core"
 	"zeroparse.dev/zp/internal/bytecode"
 	"zeroparse.dev/zp/internal/compile"
 	"zeroparse.dev/zp/internal/gentest"
 	"zeroparse.dev/zp/internal/value"
-	"zeroparse.dev/zp/runtime/parse"
 )
 
 func TestWideRepetitionModuleValidation(t *testing.T) {
@@ -131,7 +131,7 @@ func TestWideRepetitionBounds(t *testing.T) {
 							wantClosureRefused(t, err)
 							continue
 						}
-						for _, unit := range []parse.PositionUnit{parse.CodePoints, parse.Bytes} {
+						for _, unit := range []core.PositionUnit{core.CodePoints, core.Bytes} {
 							for _, input := range c.Inputs {
 								want, wantErr := prog.ParseWith("main", input, ParseOptions{Unit: unit})
 								got, gotErr := loaded.ParseWith("main", input, servedBy(mode, ParseOptions{Backend: backend, Unit: unit}))
@@ -169,10 +169,10 @@ func TestWideRepetitionDocumentsAndStreams(t *testing.T) {
 					wantClosureRefused(t, err)
 					continue
 				}
-				for _, unit := range []parse.PositionUnit{parse.CodePoints, parse.Bytes} {
+				for _, unit := range []core.PositionUnit{core.CodePoints, core.Bytes} {
 					opts := ParseOptions{Backend: backend, Unit: unit}
 					count := 0
-					err := p.ParseStreamWith("main", strings.NewReader("éé"), func(n *parse.Node) error {
+					err := p.ParseStreamWith("main", strings.NewReader("éé"), func(n *core.Node) error {
 						if value.D(n).Text != "é" {
 							t.Errorf("unexpected stream element: %s", gentest.ResultJSON(n, nil))
 						}

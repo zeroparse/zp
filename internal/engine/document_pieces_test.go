@@ -5,30 +5,30 @@ import (
 	"slices"
 	"testing"
 
-	"zeroparse.dev/zp/internal/engine/core"
-	"zeroparse.dev/zp/runtime/parse"
+	"zeroparse.dev/zp/core"
+	ecore "zeroparse.dev/zp/internal/engine/core"
 )
 
 func TestDocumentPiecesMatchFlatEdits(t *testing.T) {
 	t.Parallel()
 	insertions := []string{"", "a", "é", "日", "😀", "\n", "\xc3", "\xa9", "\xff", "\xe6\xbc"}
-	for _, unit := range []parse.PositionUnit{parse.Bytes, parse.CodePoints} {
+	for _, unit := range []core.PositionUnit{core.Bytes, core.CodePoints} {
 		t.Run(unit.String(), func(t *testing.T) {
 			const initial = "first\né日\xff\nlast"
-			d := core.NewDocumentPieces(initial, unit)
+			d := ecore.NewDocumentPieces(initial, unit)
 			flatBytes := []byte(initial)
 			flatRunes := []rune(initial)
 			rng := rand.New(rand.NewSource(76))
 			for edit := range 600 {
 				n := len(flatBytes)
-				if unit == parse.CodePoints {
+				if unit == core.CodePoints {
 					n = len(flatRunes)
 				}
 				start := rng.Intn(n + 1)
 				end := start + rng.Intn(n-start+1)
 				insert := insertions[rng.Intn(len(insertions))]
 				var wantDelta int
-				if unit == parse.Bytes {
+				if unit == core.Bytes {
 					wantDelta = len(insert) - (end - start)
 					flatBytes = slices.Replace(flatBytes, start, end, []byte(insert)...)
 				} else {
@@ -40,7 +40,7 @@ func TestDocumentPiecesMatchFlatEdits(t *testing.T) {
 					t.Fatalf("edit %d: delta %d, want %d", edit, got, wantDelta)
 				}
 				want := string(flatBytes)
-				if unit == parse.CodePoints {
+				if unit == core.CodePoints {
 					want = string(flatRunes)
 				}
 				if got := d.Text(0, d.N); got != want {
@@ -50,7 +50,7 @@ func TestDocumentPiecesMatchFlatEdits(t *testing.T) {
 					for pos := 0; pos < d.N; pos++ {
 						got, ok := d.At(pos)
 						var expected rune
-						if unit == parse.Bytes {
+						if unit == core.Bytes {
 							expected = rune(flatBytes[pos])
 						} else {
 							expected = flatRunes[pos]
@@ -63,7 +63,7 @@ func TestDocumentPiecesMatchFlatEdits(t *testing.T) {
 						a := rng.Intn(d.N)
 						b := a + rng.Intn(d.N-a+1)
 						wantRange := string(flatBytes[a:b])
-						if unit == parse.CodePoints {
+						if unit == core.CodePoints {
 							wantRange = string(flatRunes[a:b])
 						}
 						if got := d.Text(a, b); got != wantRange {
@@ -79,15 +79,15 @@ func TestDocumentPiecesMatchFlatEdits(t *testing.T) {
 func TestDocumentPieceLargeByteOffsets(t *testing.T) {
 	t.Parallel()
 	// Model a slice of a >2 GiB code-point chunk without allocating that input.
-	p := core.DocumentPiece{
+	p := ecore.DocumentPiece{
 		Text: "éa", Runes: []rune{'é', 'a'},
 		LargeOffs: []int{1<<31 + 4, 1<<31 + 6, 1<<31 + 7},
 	}
-	if got := p.Substring(0, 1, parse.CodePoints); got != "é" {
+	if got := p.Substring(0, 1, core.CodePoints); got != "é" {
 		t.Fatalf("substring: %q", got)
 	}
-	sub := p.Sub(1, 2, parse.CodePoints)
-	if got := sub.Substring(0, 1, parse.CodePoints); got != "a" {
+	sub := p.Sub(1, 2, core.CodePoints)
+	if got := sub.Substring(0, 1, core.CodePoints); got != "a" {
 		t.Fatalf("sliced large-offset piece: %q", got)
 	}
 }

@@ -1,20 +1,20 @@
 package core
 
 import (
+	"zeroparse.dev/zp/core"
+	"zeroparse.dev/zp/core/noderep"
 	"zeroparse.dev/zp/internal/compile"
 	"zeroparse.dev/zp/internal/value"
-	"zeroparse.dev/zp/runtime/noderep"
-	"zeroparse.dev/zp/runtime/parse"
 )
 
 // Matcher tries to match at the current position and returns the value and whether it
 // succeeded. On failure the position is unspecified; the caller restores it.
-type Matcher func(p *Parser) (*parse.Node, bool)
+type Matcher func(p *Parser) (*core.Node, bool)
 
 // Tracked runs m with a separate record of expectations. It returns the farthest position and
 // the expectations of that separate record (the expectations are valid only until the next
 // recording; see unisolate).
-func Tracked(p *Parser, m Matcher) (v *parse.Node, ok bool, far int, expected []ExpID) {
+func Tracked(p *Parser, m Matcher) (v *core.Node, ok bool, far int, expected []ExpID) {
 	mark := p.Isolate(p.Pos)
 	v, ok = m(p)
 	far, expected = p.Unisolate(mark)
@@ -34,14 +34,14 @@ func RenamedExpected(p *Parser, expected []ExpID, name ExpID) []ExpID {
 }
 
 // ShapeTuple returns the tuple node, shaped by s, of the result v of a match of [start, p.pos).
-func ShapeTuple(p *Parser, s compile.Shaper, v *parse.Node, start int) *parse.Node {
+func ShapeTuple(p *Parser, s compile.Shaper, v *core.Node, start int) *core.Node {
 	if s.Elems {
 		if s.Shared && v != nil {
 			return p.NewNode(value.Data{Kind: noderep.SeqKind, Start: value.D(v).Start, End: value.D(v).End, Children: value.D(v).Children, Fresh: true})
 		}
 		return v
 	}
-	var kids []*parse.Node
+	var kids []*core.Node
 	if s.K == 1 {
 		kids = p.Nodes(1)
 		kids[0] = v
@@ -51,7 +51,7 @@ func ShapeTuple(p *Parser, s compile.Shaper, v *parse.Node, start int) *parse.No
 
 // ShapeSingle returns the value, shaped by s, of the result v where the expression takes one
 // element; ok is false when it has no value.
-func ShapeSingle(p *Parser, s compile.Shaper, mode compile.SingleMode, v *parse.Node, start int) (*parse.Node, bool) {
+func ShapeSingle(p *Parser, s compile.Shaper, mode compile.SingleMode, v *core.Node, start int) (*core.Node, bool) {
 	switch mode {
 	case compile.SinglePass:
 		return s.One(v), true

@@ -5,7 +5,7 @@ import (
 	"slices"
 	"testing"
 
-	"zeroparse.dev/zp"
+	"zeroparse.dev/zp/engine"
 	"zeroparse.dev/zp/sample"
 )
 
@@ -21,7 +21,7 @@ func TestPythonCoverageFloor(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	p, err := zp.CompileSource(string(src), "main")
+	p, err := engine.CompileSource(string(src), "main")
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -15,10 +15,10 @@ import (
 	"strings"
 	"testing"
 
+	"zeroparse.dev/zp/core"
 	"zeroparse.dev/zp/internal/engine"
 	"zeroparse.dev/zp/internal/gen"
 	"zeroparse.dev/zp/internal/gentest"
-	"zeroparse.dev/zp/runtime/parse"
 )
 
 // observeProbeMain is the consumer of the generated packages with the prefix PREFIX: for each input and entry
@@ -359,7 +359,7 @@ func engineTraceMismatch(eng []engine.TraceEvent, got []observedEvent, in string
 			continue
 		}
 		end := subtreeEnd(ei)
-		if exit := eng[end-1]; !exit.Matched && exit.Examined <= firstCharEnd(in, e.Pos, parse.CodePoints) {
+		if exit := eng[end-1]; !exit.Matched && exit.Examined <= firstCharEnd(in, e.Pos, core.CodePoints) {
 			ei = end
 			continue
 		}
@@ -403,7 +403,7 @@ func checkObservations(t *testing.T, group string, cases []gentest.Case, start s
 				var eng []engine.TraceEvent
 				// Generated parsers record no examined range outside a Document parse, so they reuse
 				// the steps and lookahead outcomes of left-recursion contexts that differ only in it.
-				o := engine.ParseOptions{Expectations: true, Backend: engine.Closure, Unit: parse.CodePoints, Recognize: entry == "recognize",
+				o := engine.ParseOptions{Expectations: true, Backend: engine.Closure, Unit: core.CodePoints, Recognize: entry == "recognize",
 					ContextMemoUnexamined: true}
 				o.Trace = func(e engine.TraceEvent) { eng = append(eng, e) }
 				prog.ParseWith(start, c.Inputs[j], o)

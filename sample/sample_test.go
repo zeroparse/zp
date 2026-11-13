@@ -13,13 +13,13 @@ import (
 	"testing"
 	"time"
 
-	"zeroparse.dev/zp"
+	"zeroparse.dev/zp/engine"
 	"zeroparse.dev/zp/internal/starttest"
 	"zeroparse.dev/zp/sample"
 )
 
 // exampleParsers compiles every grammar in examples/.
-func exampleParsers(t *testing.T) map[string]*zp.Parser {
+func exampleParsers(t *testing.T) map[string]*engine.Parser {
 	t.Helper()
 	paths, err := filepath.Glob("../examples/*/*.zp")
 	more, err2 := filepath.Glob("../testdata/grammars/*/*.zp")
@@ -27,13 +27,13 @@ func exampleParsers(t *testing.T) map[string]*zp.Parser {
 	if err != nil || err2 != nil || len(paths) == 0 {
 		t.Fatalf("no example grammars: %v", err)
 	}
-	ps := map[string]*zp.Parser{}
+	ps := map[string]*engine.Parser{}
 	for _, path := range paths {
 		src, err := os.ReadFile(path)
 		if err != nil {
 			t.Fatal(err)
 		}
-		p, err := zp.CompileSource(string(src), "main")
+		p, err := engine.CompileSource(string(src), "main")
 		if err != nil {
 			t.Fatalf("%s: %v", path, err)
 		}
@@ -44,15 +44,15 @@ func exampleParsers(t *testing.T) map[string]*zp.Parser {
 
 // compileMarked compiles src with every rule a start rule, for tests whose grammars do not
 // annotate their start rules.
-func compileMarked(src string) (*zp.Parser, error) {
-	g, err := zp.ParseGrammar(src)
+func compileMarked(src string) (*engine.Parser, error) {
+	g, err := engine.ParseGrammar(src)
 	if err != nil {
 		return nil, err
 	}
-	return zp.Compile(starttest.MarkAll(g), "main")
+	return engine.Compile(starttest.MarkAll(g), "main")
 }
 
-func compile(t *testing.T, src string) *zp.Parser {
+func compile(t *testing.T, src string) *engine.Parser {
 	t.Helper()
 	p, err := compileMarked(src)
 	if err != nil {
@@ -62,11 +62,11 @@ func compile(t *testing.T, src string) *zp.Parser {
 }
 
 // checkParse checks that every input parses without errors on every backend.
-func checkParse(t *testing.T, p *zp.Parser, inputs []string) {
+func checkParse(t *testing.T, p *engine.Parser, inputs []string) {
 	t.Helper()
 	for _, in := range inputs {
-		for _, b := range []zp.Backend{zp.Closure, zp.Bytecode, zp.BytecodeIterative} {
-			if _, err := p.Parse(in, zp.WithBackend(b)); err != nil {
+		for _, b := range []engine.Backend{engine.Closure, engine.Bytecode, engine.BytecodeIterative} {
+			if _, err := p.Parse(in, engine.WithBackend(b)); err != nil {
 				t.Errorf("backend %v: generated input %q does not parse: %v", b, in, err)
 			}
 		}
@@ -461,12 +461,12 @@ func TestNoInput(t *testing.T) {
 		t.Error("expected an error for a start rule that can never match")
 	}
 	// A parser loaded from a compiled grammar, which holds no grammar AST, in each mode.
-	for _, mode := range []zp.CompiledMode{zp.CompiledParse, zp.CompiledRecognize, zp.CompiledDocument} {
+	for _, mode := range []engine.CompiledMode{engine.CompiledParse, engine.CompiledRecognize, engine.CompiledDocument} {
 		data, err := compile(t, `rule main = "a"`).Marshal(mode)
 		if err != nil {
 			t.Fatal(err)
 		}
-		q, err := zp.LoadParser(data)
+		q, err := engine.LoadParser(data)
 		if err != nil {
 			t.Fatal(err)
 		}

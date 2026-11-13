@@ -6,7 +6,7 @@ import (
 	"strings"
 	"testing"
 
-	"zeroparse.dev/zp"
+	"zeroparse.dev/zp/engine"
 	"zeroparse.dev/zp/grammar"
 )
 
@@ -68,8 +68,8 @@ func TestRewriteLanguage(t *testing.T) {
 				t.Fatal(err)
 			}
 			for _, in := range rw.Language {
-				_, eo := po.Parse(in, zp.WithBackend(zp.Closure))
-				_, er := pr.Parse(in, zp.WithBackend(zp.Closure))
+				_, eo := po.Parse(in, engine.WithBackend(engine.Closure))
+				_, er := pr.Parse(in, engine.WithBackend(engine.Closure))
 				if (eo == nil) != (er == nil) {
 					t.Errorf("input %q: original error %v, rewrite error %v", in, eo, er)
 				}
@@ -84,7 +84,7 @@ var zpFence = regexp.MustCompile("(?s)```zp\n(.*?)```")
 // the recipe and the controls compare equal when they differ in layout and the @start line only.
 func normalized(t *testing.T, src string) string {
 	t.Helper()
-	g, err := zp.ParseGrammar(src)
+	g, err := engine.ParseGrammar(src)
 	if err != nil {
 		t.Fatalf("%v\n%s", err, src)
 	}

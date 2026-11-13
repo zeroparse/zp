@@ -4,7 +4,7 @@ import (
 	"errors"
 	"testing"
 
-	"zeroparse.dev/zp"
+	"zeroparse.dev/zp/engine"
 	"zeroparse.dev/zp/internal/gentest"
 	"zeroparse.dev/zp/internal/starttest"
 	"zeroparse.dev/zp/sample"
@@ -17,11 +17,11 @@ func TestSampleCorpus(t *testing.T) {
 	t.Parallel()
 	for _, c := range gentest.GenCorpus(t) {
 		t.Run(c.Name, func(t *testing.T) {
-			ast, err := zp.ParseGrammar(c.Src)
+			ast, err := engine.ParseGrammar(c.Src)
 			if err != nil {
 				t.Fatal(err)
 			}
-			p, err := zp.Compile(starttest.MarkAll(ast), "main")
+			p, err := engine.Compile(starttest.MarkAll(ast), "main")
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -44,8 +44,8 @@ func TestSampleCorpus(t *testing.T) {
 				t.Fatal(err)
 			}
 			for _, in := range inputs {
-				for _, b := range []zp.Backend{zp.Closure, zp.Bytecode, zp.BytecodeIterative} {
-					if _, err := p.Parse(in, zp.WithBackend(b)); err != nil {
+				for _, b := range []engine.Backend{engine.Closure, engine.Bytecode, engine.BytecodeIterative} {
+					if _, err := p.Parse(in, engine.WithBackend(b)); err != nil {
 						t.Errorf("backend %v: generated input %q does not parse: %v", b, in, err)
 					}
 				}

@@ -8,9 +8,9 @@ import (
 	"strings"
 	"testing"
 
+	"zeroparse.dev/zp/core"
+	"zeroparse.dev/zp/core/noderep"
 	"zeroparse.dev/zp/internal/value"
-	"zeroparse.dev/zp/runtime/noderep"
-	"zeroparse.dev/zp/runtime/parse"
 )
 
 // snapshotPhaseContext changes state only while the freezer is on the stack.
@@ -58,7 +58,7 @@ func TestSnapshotUnsupportedLegacyFieldPreservesParseError(t *testing.T) {
 	}
 	value.D(legacy).Fields = noderep.Fields{{Name: "bad", Value: []int{1}}}
 	s, err := d.SnapshotWith(ParseOptions{})
-	var capture *parse.SnapshotCaptureError
+	var capture *core.SnapshotCaptureError
 	if s != nil || !errors.As(err, &capture) || capture.ValueType != reflect.TypeOf([]int{}) || !strings.Contains(capture.Path, "bad") || capture.ParseError != nil {
 		t.Fatal("unsupported legacy field", s, err)
 	}
@@ -82,14 +82,14 @@ func TestSnapshotUnsupportedBoxIsRejected(t *testing.T) {
 		t.Fatal(err)
 	}
 	value.D(legacy).Kind = noderep.TupleValueKind
-	value.SetNodeElems(legacy, []*parse.Node{value.NewNode(parse.KindValue, 0, 0, "", nil, "", nil, 5)})
+	value.SetNodeElems(legacy, []*core.Node{value.NewNode(core.KindValue, 0, 0, "", nil, "", nil, 5)})
 	s, err := d.SnapshotWith(ParseOptions{})
 	if err != nil || s.Root().Child(0).Value() != 5 {
 		t.Fatal("boxed int", s, err)
 	}
-	value.SetNodeElems(legacy, []*parse.Node{value.NewNode(parse.KindValue, 0, 0, "", nil, "", nil, []int{1})})
+	value.SetNodeElems(legacy, []*core.Node{value.NewNode(core.KindValue, 0, 0, "", nil, "", nil, []int{1})})
 	s, err = d.SnapshotWith(ParseOptions{})
-	var capture *parse.SnapshotCaptureError
+	var capture *core.SnapshotCaptureError
 	if s != nil || !errors.As(err, &capture) || capture.ValueType != reflect.TypeOf([]int{}) || !strings.Contains(capture.Path, "Children[0]") {
 		t.Fatal("unsupported boxed element", s, err)
 	}

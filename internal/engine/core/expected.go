@@ -33,6 +33,6 @@ func compareExpected(a, b string) int {
 func sortExpectedEntries(values []string) { slices.SortFunc(values, compareExpected) }
 
 // expectedTail is the end of a syntax error message whose list of expected entries leaves out rest
-// entries (parse.SyntaxError.ExpectedInMessage). It matches the text of parse.SyntaxError.Message,
+// entries (core.SyntaxError.ExpectedInMessage). It matches the text of core.SyntaxError.Message,
 // which TestBudgetDiagnosticRecoveryTextMatchesNative checks.
 func expectedTail(rest int) string { return fmt.Sprintf(", ... and %d more", rest) }

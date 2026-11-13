@@ -5,8 +5,8 @@ import (
 	"strings"
 	"testing"
 
+	"zeroparse.dev/zp/core"
 	"zeroparse.dev/zp/internal/compile"
-	"zeroparse.dev/zp/runtime/parse"
 )
 
 // BenchmarkDocumentInputEdit isolates storage and memo-splice costs from
@@ -28,7 +28,7 @@ func BenchmarkDocumentInputEdit(b *testing.B) {
 			name string
 			at   int
 		}{{"start", 0}, {"middle", size.n / 2}, {"end", size.n - 1}} {
-			for _, unit := range []parse.PositionUnit{parse.CodePoints, parse.Bytes} {
+			for _, unit := range []core.PositionUnit{core.CodePoints, core.Bytes} {
 				for _, mode := range []string{"insert-delete", "replace"} {
 					b.Run(fmt.Sprintf("%s/%s/%s/%s", size.name, pos.name, unit, mode), func(b *testing.B) {
 						doc, err := program.NewDocumentWith("main", strings.Repeat("a", size.n), ParseOptions{Unit: unit})

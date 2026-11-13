@@ -10,13 +10,13 @@ import (
 
 	"zeroparse.dev/zp/internal/engine/document"
 
+	"zeroparse.dev/zp/core"
+	"zeroparse.dev/zp/core/noderep"
 	"zeroparse.dev/zp/internal/compile"
 	. "zeroparse.dev/zp/internal/engine"
-	"zeroparse.dev/zp/internal/engine/core"
+	ecore "zeroparse.dev/zp/internal/engine/core"
 	"zeroparse.dev/zp/internal/engine/vm"
 	"zeroparse.dev/zp/internal/value"
-	"zeroparse.dev/zp/runtime/noderep"
-	"zeroparse.dev/zp/runtime/parse"
 )
 
 func BenchmarkDocumentVMValuesUnchanged(b *testing.B) {
@@ -56,8 +56,8 @@ rule line = [a-z]+ "\n"`)
 				t.Fatal(err)
 			}
 			for range 2 { // the second parse attaches the kept machine to a new parser
-				var parsed weak.Pointer[core.Parser]
-				if _, err := doc.ParseWithCapture(doc.ParseDefaults(), func(p *core.Parser, _ *parse.Node, err error) error {
+				var parsed weak.Pointer[ecore.Parser]
+				if _, err := doc.ParseWithCapture(doc.ParseDefaults(), func(p *ecore.Parser, _ *core.Node, err error) error {
 					parsed = weak.Make(p)
 					return err
 				}); err != nil {
@@ -92,14 +92,14 @@ func TestDocumentVMValueStorage(t *testing.T) {
 	prog := mustCompile(t, `rule main = line* $$
 rule line = [a-z / "é" / "😀"]+ #atomic "\n"`)
 	for _, backend := range []Backend{Closure, Bytecode, BytecodeIterative} {
-		for _, unit := range []parse.PositionUnit{parse.CodePoints, parse.Bytes} {
+		for _, unit := range []core.PositionUnit{core.CodePoints, core.Bytes} {
 			t.Run(fmt.Sprintf("%s/%s", backend, unit), func(t *testing.T) {
 				opts := ParseOptions{Backend: backend, Unit: unit}
 				doc, err := prog.NewDocumentWith("main", strings.Repeat("abé😀\n", 5000), opts)
 				if err != nil {
 					t.Fatal(err)
 				}
-				check := func() *parse.Node {
+				check := func() *core.Node {
 					t.Helper()
 					n, err := doc.Parse()
 					if got, want := resultJSON(n, err), resultJSON(prog.ParseWith("main", doc.Text(), opts)); got != want {
@@ -119,7 +119,7 @@ rule line = [a-z / "é" / "😀"]+ #atomic "\n"`)
 				if len(value.D(n).Children) != 1 || value.D(n).Children[0].Type() != noderep.TypeList || len(value.D(value.D(n).Children[0]).Children) != 5000 {
 					t.Fatal("expected one list containing all input lines")
 				}
-				retained := append([]*parse.Node(nil), value.D(value.D(n).Children[0]).Children[:3]...)
+				retained := append([]*core.Node(nil), value.D(value.D(n).Children[0]).Children[:3]...)
 				before := make([]string, len(retained))
 				for i, child := range retained {
 					before[i] = resultJSON(child, nil)
@@ -296,7 +296,7 @@ func TestDocumentVMValueStorageForEmptyInput(t *testing.T) {
 	// dropping an old large document's storage before a smaller parse.
 	prog := mustCompile(t, "rule main = "+strings.Repeat("item ", 2048)+"$$\nrule item = \"\" #atomic")
 	for _, backend := range []Backend{Bytecode, BytecodeIterative} {
-		for _, unit := range []parse.PositionUnit{parse.CodePoints, parse.Bytes} {
+		for _, unit := range []core.PositionUnit{core.CodePoints, core.Bytes} {
 			t.Run(fmt.Sprintf("%s/%s", backend, unit), func(t *testing.T) {
 				opts := ParseOptions{Backend: backend, Unit: unit}
 				doc, err := prog.NewDocumentWith("main", "", opts)

@@ -3,7 +3,7 @@ package runtime
 import (
 	"testing"
 
-	"zeroparse.dev/zp/runtime/parse"
+	"zeroparse.dev/zp/core"
 )
 
 // TestFirstCallChargeIndependentOfReusedStorage checks that the steps charged for the first-call
@@ -12,7 +12,7 @@ import (
 func TestFirstCallChargeIndependentOfReusedStorage(t *testing.T) {
 	for _, stride := range []int{10, 65, 130} {
 		run := func(p *Parser, n int) uint64 {
-			p.Control = newBudgetControl(nil, parse.Limits{Compute: 1 << 40})
+			p.Control = newBudgetControl(nil, core.Limits{Compute: 1 << 40})
 			p.n, p.memo.stride, p.memo.sparse = n, stride, stride > 64
 			for _, pos := range []int{0, 1, 63, 64, 1024, 1025, 3000, n - 1} {
 				p.Pos = pos

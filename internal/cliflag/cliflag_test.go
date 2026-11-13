@@ -3,17 +3,17 @@ package cliflag
 import (
 	"testing"
 
-	"zeroparse.dev/zp"
-	"zeroparse.dev/zp/runtime/parse"
+	"zeroparse.dev/zp/core"
+	"zeroparse.dev/zp/engine"
 )
 
 func TestParseBackend(t *testing.T) {
-	for _, b := range []zp.Backend{zp.Closure, zp.Bytecode, zp.BytecodeIterative} {
+	for _, b := range []engine.Backend{engine.Closure, engine.Bytecode, engine.BytecodeIterative} {
 		if got, err := ParseBackend(b.String()); err != nil || got != b {
 			t.Errorf("ParseBackend(%q) = %v, %v", b.String(), got, err)
 		}
 	}
-	for _, name := range []string{"", "nope", "Closure", zp.DefaultBackend.String()} {
+	for _, name := range []string{"", "nope", "Closure", engine.DefaultBackend.String()} {
 		if _, err := ParseBackend(name); err == nil {
 			t.Errorf("ParseBackend(%q) accepted an unknown backend", name)
 		}
@@ -21,7 +21,7 @@ func TestParseBackend(t *testing.T) {
 }
 
 func TestParseUnit(t *testing.T) {
-	for _, u := range []parse.PositionUnit{parse.CodePoints, parse.Bytes} {
+	for _, u := range []core.PositionUnit{core.CodePoints, core.Bytes} {
 		if got, err := ParseUnit(u.String()); err != nil || got != u {
 			t.Errorf("ParseUnit(%q) = %v, %v", u.String(), got, err)
 		}

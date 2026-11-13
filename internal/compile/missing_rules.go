@@ -2,8 +2,8 @@ package compile
 
 import (
 	"fmt"
+	"zeroparse.dev/zp/core/noderep"
 	"zeroparse.dev/zp/internal/cancel"
-	"zeroparse.dev/zp/runtime/noderep"
 
 	"zeroparse.dev/zp/grammar"
 )

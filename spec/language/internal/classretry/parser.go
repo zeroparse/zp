@@ -4,13 +4,13 @@
 package classretry
 
 import (
+	"zeroparse.dev/zp/core"
 	rt "zeroparse.dev/zp/runtime"
-	"zeroparse.dev/zp/runtime/parse"
 )
 
 // Parse parses the whole input with the rule main. Options select position units, depth, cancellation and compute limits.
 // If the parse recovered from errors with #recover, it returns the node together with SyntaxErrors.
-func Parse(input string, opts ...rt.ParseOption) (*parse.Node, error) {
+func Parse(input string, opts ...rt.ParseOption) (*core.Node, error) {
 	return rt.RunParse(rules[0], input, opts)
 }
 
@@ -19,7 +19,7 @@ var zpGrammar = rt.NewGrammar(100000)
 
 // ParseRule parses the whole input with the start rule name, a rule marked @start; an empty
 // name selects the grammar's default start rule.
-func ParseRule(name, input string, opts ...rt.ParseOption) (*parse.Node, error) {
+func ParseRule(name, input string, opts ...rt.ParseOption) (*core.Node, error) {
 	o, err := rt.ResolveOptions(zpGrammar, opts)
 	if err != nil {
 		return nil, err
@@ -75,10 +75,10 @@ func init() {
 	zpGrammar.NoBudgetControls = true
 }
 
-func e2(p *rt.Parser, _ int) (*parse.Node, bool) {
+func e2(p *rt.Parser, _ int) (*core.Node, bool) {
 	var x1, x2, size, x15 int
 	var x4, x6 rt.Mark
-	var v7, v13, v16, v17, v18 *parse.Node
+	var v7, v13, v16, v17, v18 *core.Node
 	var x9 rune
 	var x10, ok bool
 	x1, x2 = p.Pos, len(p.KidStack)
@@ -126,11 +126,11 @@ func e2(p *rt.Parser, _ int) (*parse.Node, bool) {
 	return v18, true
 }
 
-func e7(p *rt.Parser, _ int) (*parse.Node, bool) {
+func e7(p *rt.Parser, _ int) (*core.Node, bool) {
 	var x1, x3, x5, x6, x13, x18, x20, size, x22, x28, x32 int
-	var x2, x19 []*parse.Node
+	var x2, x19 []*core.Node
 	var ok, x15 bool
-	var v4, v11, v21, v23, v24, v25, v29, v30, v31, v33, v34 *parse.Node
+	var v4, v11, v21, v23, v24, v25, v29, v30, v31, v33, v34 *core.Node
 	var x8, x10 rt.Mark
 	var x14 rune
 	x1 = p.Pos
@@ -216,7 +216,7 @@ fail:
 	return nil, false
 }
 
-func r1(p *rt.Parser) (*parse.Node, bool) {
+func r1(p *rt.Parser) (*core.Node, bool) {
 	start, trail := p.Pos, len(p.Trail)
 	prevEnv, prevCut := p.Env, p.Cut
 	p.Cut = false
@@ -232,4 +232,4 @@ func r1(p *rt.Parser) (*parse.Node, bool) {
 	return v, ok
 }
 
-const _ = rt.Protocol13
+const _ = rt.Protocol14

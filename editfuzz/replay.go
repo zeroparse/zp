@@ -11,16 +11,16 @@ import (
 	"strings"
 	"unicode/utf8"
 
-	"zeroparse.dev/zp"
-	"zeroparse.dev/zp/runtime/parse"
+	"zeroparse.dev/zp/core"
+	"zeroparse.dev/zp/engine"
 )
 
 // A Mismatch is an operation after which the Document does not behave like a fresh parse: at a checkpoint
 // or the initial text, its result differs from a fresh parse of its text; after an edit, undo or redo,
 // its text is not the edited text; or an operation or a parse panicked.
 type Mismatch struct {
-	Backend zp.Backend
-	Unit    parse.PositionUnit
+	Backend engine.Backend
+	Unit    core.PositionUnit
 	// Event is the index of the operation, or -1 for the initial text.
 	Event int
 	// Text is the Document's text at a checkpoint, or its text before the operation that changed it
@@ -117,7 +117,7 @@ func Replay(src []byte, seq *Sequence) error {
 	return replay(p, seq)
 }
 
-func compileFor(src []byte, seq *Sequence) (*zp.Parser, error) {
+func compileFor(src []byte, seq *Sequence) (*engine.Parser, error) {
 	if GrammarHash(src) != seq.GrammarSHA256 {
 		return nil, &InvalidError{-1, errors.New("grammar source does not match the recorded hash")}
 	}
@@ -127,7 +127,7 @@ func compileFor(src []byte, seq *Sequence) (*zp.Parser, error) {
 	if _, err := unitName(seq.Unit); err != nil {
 		return nil, &InvalidError{-1, err}
 	}
-	p, err := zp.CompileSource(string(src), seq.Start)
+	p, err := engine.CompileSource(string(src), seq.Start)
 	if err != nil {
 		return nil, &InvalidError{-1, err}
 	}
@@ -141,14 +141,14 @@ type step struct {
 }
 
 type replayer struct {
-	p          *zp.Parser
+	p          *engine.Parser
 	seq        *Sequence
-	opts       []zp.ParseOption
-	doc        *zp.Document
+	opts       []engine.ParseOption
+	doc        *engine.Document
 	undo, redo []step
 }
 
-func replay(p *zp.Parser, seq *Sequence) error {
+func replay(p *engine.Parser, seq *Sequence) error {
 	r, err := start(p, seq)
 	if err != nil {
 		return err
@@ -167,8 +167,8 @@ func replay(p *zp.Parser, seq *Sequence) error {
 }
 
 // start creates the Document of seq's initial text and checks it.
-func start(p *zp.Parser, seq *Sequence) (r *replayer, err error) {
-	r = &replayer{p: p, seq: seq, opts: []zp.ParseOption{zp.WithExpectations(), zp.WithBackend(seq.Backend), zp.WithUnit(seq.Unit), zp.WithLimits(seq.Limits)}}
+func start(p *engine.Parser, seq *Sequence) (r *replayer, err error) {
+	r = &replayer{p: p, seq: seq, opts: []engine.ParseOption{engine.WithExpectations(), engine.WithBackend(seq.Backend), engine.WithUnit(seq.Unit), engine.WithLimits(seq.Limits)}}
 	initial := string(seq.Initial)
 	defer func() {
 		if x := recover(); x != nil {
@@ -194,7 +194,7 @@ func (r *replayer) mismatch(event int, text, path, document, fresh string) *Mism
 // textOf returns the text that a Document holds for s: s itself in Bytes, and s with each invalid byte
 // replaced by U+FFFD in CodePoints, where a Document holds decoded code points.
 func (r *replayer) textOf(s string) string {
-	if r.seq.Unit == parse.Bytes {
+	if r.seq.Unit == core.Bytes {
 		return s
 	}
 	var b strings.Builder
@@ -291,7 +291,7 @@ func (r *replayer) restore(target string) error {
 // spliced returns the text that the edit op should make of before.
 func (r *replayer) spliced(before string, op Operation) string {
 	start, end := op.Start, op.End
-	if r.seq.Unit != parse.Bytes {
+	if r.seq.Unit != core.Bytes {
 		b := boundaries(before)
 		start, end = b[start], b[end]
 	}
@@ -315,7 +315,7 @@ func boundaries(s string) []int {
 
 // diff returns the edit, in unit, that changes cur to target: the range of cur between their common
 // prefix and suffix of whole characters, and the replacement from target.
-func diff(cur, target string, unit parse.PositionUnit) (start, end int, text string) {
+func diff(cur, target string, unit core.PositionUnit) (start, end int, text string) {
 	bc, bt := boundaries(cur), boundaries(target)
 	nc, nt := len(bc)-1, len(bt)-1
 	char := func(s string, b []int, i int) string { return s[b[i]:b[i+1]] }
@@ -328,7 +328,7 @@ func diff(cur, target string, unit parse.PositionUnit) (start, end int, text str
 		suf++
 	}
 	text = target[bt[pre]:bt[nt-suf]]
-	if unit == parse.Bytes {
+	if unit == core.Bytes {
 		return bc[pre], bc[nc-suf], text
 	}
 	return pre, nc - suf, text
@@ -341,9 +341,9 @@ var corruptDocumentResult func(text string, tree map[string]any)
 func (r *replayer) check(event int) *Mismatch {
 	// Encode the Document's result before any other parse can move the nodes it shares.
 	var docErr, freshErr error
-	doc, docPanic := result(func() (n *parse.Node, err error) { n, docErr = r.doc.Parse(); return n, docErr })
+	doc, docPanic := result(func() (n *core.Node, err error) { n, docErr = r.doc.Parse(); return n, docErr })
 	text := r.doc.Text()
-	fresh, freshPanic := result(func() (*parse.Node, error) { n, err := r.p.Parse(text, r.opts...); freshErr = err; return n, err })
+	fresh, freshPanic := result(func() (*core.Node, error) { n, err := r.p.Parse(text, r.opts...); freshErr = err; return n, err })
 	if docPanic != "" || freshPanic != "" {
 		// A panic in the Document parse alone points at incremental parsing; in both, at the grammar or
 		// the engine.
@@ -386,7 +386,7 @@ func (r *replayer) check(event int) *Mismatch {
 // result parses and returns the value and error as a JSON-like tree: {"value": ..., "error": ...}, or the
 // panic value if the parse panicked. Strings that are not valid UTF-8, which JSON cannot hold, are also
 // listed quoted under "value_invalid_utf8", in tree order.
-func result(parse func() (*parse.Node, error)) (tree map[string]any, panicked string) {
+func result(parse func() (*core.Node, error)) (tree map[string]any, panicked string) {
 	defer func() {
 		if x := recover(); x != nil {
 			tree, panicked = nil, fmt.Sprint(x)
@@ -430,7 +430,7 @@ func expand(tree map[string]any) {
 }
 
 // invalidStrings returns the quoted texts and string values of the tree at n that are not valid UTF-8.
-func invalidStrings(n *parse.Node) []any {
+func invalidStrings(n *core.Node) []any {
 	if n == nil {
 		return nil
 	}
@@ -440,13 +440,13 @@ func invalidStrings(n *parse.Node) []any {
 			l = append(l, strconv.Quote(s))
 		}
 	}
-	err := parse.Walk(n, func(v parse.WalkVisit) (parse.WalkAction, error) {
+	err := core.Walk(n, func(v core.WalkVisit) (core.WalkAction, error) {
 		if v.Node != nil {
 			add(v.Node.Text())
 		} else if s, ok := v.Value.(string); ok {
 			add(s)
 		}
-		return parse.WalkContinue, nil
+		return core.WalkContinue, nil
 	})
 	if err != nil {
 		l = append(l, "walk: "+err.Error())
@@ -460,10 +460,10 @@ func errorTree(err error) any {
 	if err == nil {
 		return nil
 	}
-	syntax := func(e *parse.SyntaxError) any {
+	syntax := func(e *core.SyntaxError) any {
 		return map[string]any{"pos": e.Pos, "line": e.Line, "col": e.Col, "expected": anyList(e.Expected), "messages": anyList(e.Messages)}
 	}
-	var all parse.SyntaxErrors
+	var all core.SyntaxErrors
 	if errors.As(err, &all) {
 		errs := make([]any, len(all))
 		for i, e := range all {
@@ -471,7 +471,7 @@ func errorTree(err error) any {
 		}
 		return map[string]any{"kind": "syntax errors", "errors": errs}
 	}
-	var one *parse.SyntaxError
+	var one *core.SyntaxError
 	if errors.As(err, &one) {
 		return map[string]any{"kind": "syntax error", "error": syntax(one)}
 	}
@@ -571,6 +571,6 @@ func orRoot(path string) string {
 
 // budgetExhausted reports whether err is an exhausted budget.
 func budgetExhausted(err error) bool {
-	var l *parse.LimitError
-	return errors.As(err, &l) && l.Kind == parse.LimitCompute
+	var l *core.LimitError
+	return errors.As(err, &l) && l.Kind == core.LimitCompute
 }

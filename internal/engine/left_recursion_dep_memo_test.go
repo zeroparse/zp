@@ -9,10 +9,10 @@ import (
 	"sync/atomic"
 	"testing"
 
+	"zeroparse.dev/zp/core"
 	"zeroparse.dev/zp/internal/compile"
-	"zeroparse.dev/zp/internal/engine/core"
+	ecore "zeroparse.dev/zp/internal/engine/core"
 	"zeroparse.dev/zp/internal/gentest"
-	"zeroparse.dev/zp/runtime/parse"
 )
 
 // depMemoGrammars returns the grammars that the dependency memo tests compare
@@ -36,7 +36,7 @@ var limitBoundReferences = map[string][]string{
 // withoutLimitBoundReferences returns cases without the inputs of limitBoundReferences in a build
 // without budget controls, and cases otherwise.
 func withoutLimitBoundReferences(cases []gentest.Case) []gentest.Case {
-	if core.BudgetControlsEnabled {
+	if ecore.BudgetControlsEnabled {
 		return cases
 	}
 	kept := make([]gentest.Case, 0, len(cases))
@@ -202,18 +202,18 @@ func TestLeftRecursionDependencyMemoControls(t *testing.T) {
 		mutation   int
 		unexamined bool // a difference shows only without examined ranges
 	}{
-		{"seed identities", core.CtxIgnoreSeeds, false},
-		{"observations", core.CtxIgnoreObs, false},
-		{"present growths", core.CtxIgnorePresent, false},
-		{"canonical seeds", core.CtxNoCanonical, false},
-		{"jumps over observations of the growing seed", core.CtxJumpAnySeed, false},
-		{"wide present identity", core.CtxConstWide, false},
-		{"replayed observations", core.CtxStaleReplay, true},
-		{"observations replayed in the current context", core.CtxNoReplayObs, true},
+		{"seed identities", ecore.CtxIgnoreSeeds, false},
+		{"observations", ecore.CtxIgnoreObs, false},
+		{"present growths", ecore.CtxIgnorePresent, false},
+		{"canonical seeds", ecore.CtxNoCanonical, false},
+		{"jumps over observations of the growing seed", ecore.CtxJumpAnySeed, false},
+		{"wide present identity", ecore.CtxConstWide, false},
+		{"replayed observations", ecore.CtxStaleReplay, true},
+		{"observations replayed in the current context", ecore.CtxNoReplayObs, true},
 	} {
 		t.Run(m.name, func(t *testing.T) {
-			core.ContextMemoMutation = m.mutation
-			defer func() { core.ContextMemoMutation = 0 }()
+			ecore.ContextMemoMutation = m.mutation
+			defer func() { ecore.ContextMemoMutation = 0 }()
 			for _, c := range cases {
 				if diffs, _ := depMemoDiffers(t, c, 1, m.unexamined, false); len(diffs) > 0 {
 					return
@@ -330,10 +330,10 @@ func TestEndedByResourceLimit(t *testing.T) {
 	}
 	// The reference build without budget controls rejects a limit, so there the classifier reads
 	// the error that a parse ended by the compute limit returns.
-	res := gentest.ResultJSON(nil, &parse.LimitError{Kind: parse.LimitCompute, Limit: 5, Used: 4, Requested: 2})
-	if core.BudgetControlsEnabled {
+	res := gentest.ResultJSON(nil, &core.LimitError{Kind: core.LimitCompute, Limit: 5, Used: 4, Requested: 2})
+	if ecore.BudgetControlsEnabled {
 		loop := mustCompile(t, "@start\nrule main = \"a\"+")
-		res = gentest.ResultJSON(loop.ParseWith("", strings.Repeat("a", 100), ParseOptions{Backend: Closure, Limits: parse.Limits{Compute: 5}}))
+		res = gentest.ResultJSON(loop.ParseWith("", strings.Repeat("a", 100), ParseOptions{Backend: Closure, Limits: core.Limits{Compute: 5}}))
 	}
 	if !strings.Contains(res, "compute limit") || !endedByResourceLimit(res, "x") || !endedByResourceLimit("x", res) {
 		t.Errorf("the compute limit error %s must count as a resource limit", res)

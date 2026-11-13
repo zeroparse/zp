@@ -3,8 +3,8 @@ package core
 import (
 	"encoding/binary"
 
+	"zeroparse.dev/zp/core"
 	"zeroparse.dev/zp/internal/value"
-	"zeroparse.dev/zp/runtime/parse"
 )
 
 // The dependency memo of left recursion (see "Evaluations of Rules" in spec/runtime/parsing.md
@@ -930,7 +930,7 @@ func (p *Parser) canonicalSeed(pos, gp int, g growKey, e *MemoEntry) (*MemoEntry
 // nodesEqual reports whether two trees are equal, comparing at most *budget pairs of distinct nodes
 // (false beyond: two results that are not shown equal get different identities, which costs only
 // reuse).
-func nodesEqual(p *Parser, a, b *parse.Node, budget *int) bool {
+func nodesEqual(p *Parser, a, b *core.Node, budget *int) bool {
 	if a == b {
 		return true
 	}
@@ -957,8 +957,8 @@ func nodesEqual(p *Parser, a, b *parse.Node, budget *int) bool {
 		if fa.Name != fb.Name {
 			return false
 		}
-		na, aok := fa.Value.(*parse.Node)
-		nb, bok := fb.Value.(*parse.Node)
+		na, aok := fa.Value.(*core.Node)
+		nb, bok := fb.Value.(*core.Node)
 		switch {
 		case aok && bok:
 			if !nodesEqual(p, na, nb, budget) {

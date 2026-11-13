@@ -3,7 +3,7 @@ package schema_test
 import (
 	"testing"
 
-	"zeroparse.dev/zp"
+	"zeroparse.dev/zp/engine"
 	"zeroparse.dev/zp/schema"
 )
 
@@ -11,7 +11,7 @@ import (
 func TestCompareMissingAndError(t *testing.T) {
 	compile := func(typ string) *schema.Output {
 		t.Helper()
-		p, err := zp.CompileSource("type P = { S "+typ+" }\n@start\nrule main = \"(\" s:semi \")\" $$ => P{S: $s.("+typ+")}\nrule semi = \";\" #missing", "main")
+		p, err := engine.CompileSource("type P = { S "+typ+" }\n@start\nrule main = \"(\" s:semi \")\" $$ => P{S: $s.("+typ+")}\nrule semi = \";\" #missing", "main")
 		if err != nil {
 			t.Fatal(err)
 		}

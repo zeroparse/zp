@@ -4,12 +4,12 @@ import (
 	"fmt"
 	"testing"
 
+	"zeroparse.dev/zp/core"
+	"zeroparse.dev/zp/core/noderep"
 	"zeroparse.dev/zp/internal/compile"
 	"zeroparse.dev/zp/internal/compiletest"
 	"zeroparse.dev/zp/internal/ir/exec/conform"
 	"zeroparse.dev/zp/internal/value"
-	"zeroparse.dev/zp/runtime/noderep"
-	"zeroparse.dev/zp/runtime/parse"
 )
 
 // TestEngineValueStructTable runs the struct table (conform.StructCases) on the engine's compositions
@@ -19,9 +19,9 @@ func TestEngineValueStructTable(t *testing.T) {
 	for _, controlled := range []bool{false, true} {
 		prog := &SharedProgram{}
 		InitSharedProgram(prog, compiletest.Program(t, "type S = { F0 int }\n@start\nrule main = \"a\"\n", compile.Options{}))
-		p := &Parser{Prog: prog, Input: NewInput(conform.BuiltinInput, parse.Bytes)}
+		p := &Parser{Prog: prog, Input: NewInput(conform.BuiltinInput, core.Bytes)}
 		if controlled {
-			p.Control = NewBudgetControl(nil, parse.Limits{Compute: 1 << 62})
+			p.Control = NewBudgetControl(nil, core.Limits{Compute: 1 << 62})
 		}
 		c := &EvalCtx{P: p, Start: conform.StructRuleStart, End: conform.StructRuleEnd}
 		text := p.NewNode(value.Data{Kind: noderep.MatchKind, Terminal: true, Text: "xyz", Start: 2, End: 4})
@@ -30,7 +30,7 @@ func TestEngineValueStructTable(t *testing.T) {
 			conform.MemberInt:     1,
 			conform.BuiltinString: "ab",
 			conform.BuiltinText:   text,
-			conform.BuiltinNode:   p.NewNode(value.Data{Kind: noderep.SeqKind, Start: 2, End: 5, Children: []*parse.Node{text, text}}),
+			conform.BuiltinNode:   p.NewNode(value.Data{Kind: noderep.SeqKind, Start: 2, End: 5, Children: []*core.Node{text, text}}),
 			conform.StructLate:    p.NewNode(value.Data{Kind: noderep.MatchKind, Terminal: true, Text: "q", Start: 7, End: 9}),
 		}
 		err := conform.RunStructs("engine", func(fields []string) string {
@@ -90,7 +90,7 @@ func TestEngineValueStructTableTermCode(t *testing.T) {
 			conform.MemberInt:     1,
 			conform.BuiltinString: "ab",
 			conform.BuiltinText:   text,
-			conform.BuiltinNode:   value.Ptr(value.Data{Kind: noderep.SeqKind, Start: 2, End: 5, Children: []*parse.Node{text, text}}),
+			conform.BuiltinNode:   value.Ptr(value.Data{Kind: noderep.SeqKind, Start: 2, End: 5, Children: []*core.Node{text, text}}),
 			conform.StructLate:    value.Ptr(value.Data{Kind: noderep.MatchKind, Terminal: true, Text: "q", Start: 7, End: 9}),
 		}
 		err := conform.RunStructs("engine term code", func(fields []string) string {
@@ -98,9 +98,9 @@ func TestEngineValueStructTableTermCode(t *testing.T) {
 			var used [2]uint64
 			var fieldsOf [2]string // the same values in both, so the same pointers
 			for k, fused := range []bool{true, false} {
-				p := &Parser{Prog: prog, Input: NewInput(conform.BuiltinInput, parse.Bytes)}
+				p := &Parser{Prog: prog, Input: NewInput(conform.BuiltinInput, core.Bytes)}
 				if controlled {
-					p.Control = NewBudgetControl(nil, parse.Limits{Compute: 1 << 62})
+					p.Control = NewBudgetControl(nil, core.Limits{Compute: 1 << 62})
 				}
 				var locals *Local
 				for i, f := range fields {
@@ -111,7 +111,7 @@ func TestEngineValueStructTableTermCode(t *testing.T) {
 				if err != nil {
 					return "error: " + err.Error()
 				}
-				n := v.(*parse.Node)
+				n := v.(*core.Node)
 				got[k] = fmt.Sprintf("%d-%d", value.D(n).Start, value.D(n).End)
 				if len(p.Created) == 1 && p.Created[0] == n {
 					got[k] += conform.StructRecorded

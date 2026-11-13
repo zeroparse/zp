@@ -6,10 +6,10 @@ import (
 	"strings"
 	"testing"
 
+	"zeroparse.dev/zp/core"
 	"zeroparse.dev/zp/internal/compile"
-	"zeroparse.dev/zp/internal/engine/core"
+	ecore "zeroparse.dev/zp/internal/engine/core"
 	"zeroparse.dev/zp/internal/value"
-	"zeroparse.dev/zp/runtime/parse"
 )
 
 const memoizedStream = `rule main = item* #stream $$
@@ -26,10 +26,10 @@ func TestMemoizedStreamMemoryIsBounded(t *testing.T) {
 	for _, src := range []string{memoizedStream, leftRecursiveStream} {
 		prog := mustCompile(t, src)
 		for _, backend := range []Backend{Closure, Bytecode, BytecodeIterative} {
-			for _, unit := range []parse.PositionUnit{parse.CodePoints, parse.Bytes} {
+			for _, unit := range []core.PositionUnit{core.CodePoints, core.Bytes} {
 				var at [2]uint64
 				count := 0
-				err := prog.ParseStreamWith("main", &lineReader{line: "abc,abc\n", n: 60000}, func(*parse.Node) error {
+				err := prog.ParseStreamWith("main", &lineReader{line: "abc,abc\n", n: 60000}, func(*core.Node) error {
 					count++
 					if count == 20000 || count == 60000 {
 						var ms runtime.MemStats
@@ -54,7 +54,7 @@ func TestMemoizedStreamMemoryIsBounded(t *testing.T) {
 func TestDocumentReplacedMemoMemoryIsBounded(t *testing.T) {
 	prog := mustCompile(t, `rule main = .* #atomic $$`)
 	for _, backend := range []Backend{Closure, Bytecode, BytecodeIterative} {
-		for _, unit := range []parse.PositionUnit{parse.CodePoints, parse.Bytes} {
+		for _, unit := range []core.PositionUnit{core.CodePoints, core.Bytes} {
 			doc, err := prog.NewDocumentWith("main", strings.Repeat("a", 10000), ParseOptions{Backend: backend, Unit: unit})
 			if err != nil {
 				t.Fatal(err)
@@ -85,13 +85,13 @@ func TestDocumentReplacedMemoMemoryIsBounded(t *testing.T) {
 
 func TestMemoPruneKeepsActiveSeed(t *testing.T) {
 	t.Parallel()
-	table := core.NewMemoTable()
+	table := ecore.NewMemoTable()
 	seed := table.Alloc()
-	*seed = core.MemoEntry{Growing: true, Node: value.Ptr(value.Data{Text: "active"})}
-	table.Put(core.MemoKey{Rule: 1}, seed)
+	*seed = ecore.MemoEntry{Growing: true, Node: value.Ptr(value.Data{Text: "active"})}
+	table.Put(ecore.MemoKey{Rule: 1}, seed)
 	completed := table.Alloc()
-	*completed = core.MemoEntry{Node: value.Ptr(value.Data{Text: "retired"})}
-	table.Put(core.MemoKey{Rule: 2}, completed)
+	*completed = ecore.MemoEntry{Node: value.Ptr(value.Data{Text: "retired"})}
+	table.Put(ecore.MemoKey{Rule: 2}, completed)
 	table.Prune(1)
 	if seed.Node == nil || value.D(seed.Node).Text != "active" || !seed.Growing {
 		t.Fatal("pruning overwrote a stack-owned growth seed")
@@ -128,14 +128,14 @@ func BenchmarkMemoLifecycle(b *testing.B) {
 					b.Fatal(err)
 				}
 				// Prepare lazy VM compilation outside the timed interval.
-				if _, err := prog.rule(backend, "main", core.Inlined, nil); err != nil {
+				if _, err := prog.rule(backend, "main", ecore.Inlined, nil); err != nil {
 					b.Fatal(err)
 				}
 				b.SetBytes(int64(len(c.line) * 10000))
 				b.ReportAllocs()
 				b.ResetTimer()
 				for i := 0; i < b.N; i++ {
-					if err := prog.ParseStreamWith("main", &lineReader{line: c.line, n: 10000}, func(*parse.Node) error { return nil }, ParseOptions{Backend: backend}); err != nil {
+					if err := prog.ParseStreamWith("main", &lineReader{line: c.line, n: 10000}, func(*core.Node) error { return nil }, ParseOptions{Backend: backend}); err != nil {
 						b.Fatal(err)
 					}
 				}

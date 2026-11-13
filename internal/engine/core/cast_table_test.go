@@ -3,12 +3,12 @@ package core
 import (
 	"testing"
 
+	"zeroparse.dev/zp/core"
+	"zeroparse.dev/zp/core/noderep"
 	"zeroparse.dev/zp/internal/compile"
 	"zeroparse.dev/zp/internal/compiletest"
 	"zeroparse.dev/zp/internal/ir/exec/conform"
 	"zeroparse.dev/zp/internal/value"
-	"zeroparse.dev/zp/runtime/noderep"
-	"zeroparse.dev/zp/runtime/parse"
 )
 
 // engineFieldType returns the type of a cast of the table as the engine declares it.
@@ -31,18 +31,18 @@ func TestEngineValueCastTable(t *testing.T) {
 		src := "type S = { F int }\ntype T = { F int }\n@start\nrule main = \"a\"\n"
 		prog := &SharedProgram{}
 		InitSharedProgram(prog, compiletest.Program(t, src, compile.Options{}))
-		p := &Parser{Prog: prog, Input: NewInput(conform.BuiltinInput, parse.Bytes)}
+		p := &Parser{Prog: prog, Input: NewInput(conform.BuiltinInput, core.Bytes)}
 		if controlled {
-			p.Control = NewBudgetControl(nil, parse.Limits{Compute: 1 << 62})
+			p.Control = NewBudgetControl(nil, core.Limits{Compute: 1 << 62})
 		}
 		c := &EvalCtx{P: p}
 		var build func(v conform.CastValue) any
 		build = func(v conform.CastValue) any {
-			text := func() *parse.Node {
+			text := func() *core.Node {
 				return p.NewNode(value.Data{Kind: noderep.MatchKind, Terminal: true, Text: "xyz", Start: 2, End: 4})
 			}
-			elems := func() []*parse.Node {
-				var out []*parse.Node
+			elems := func() []*core.Node {
+				var out []*core.Node
 				for _, e := range v.Elems {
 					if e.Kind == "nilnode" {
 						out = append(out, nil)
@@ -60,7 +60,7 @@ func TestEngineValueCastTable(t *testing.T) {
 			case "nil":
 				return nil
 			case "nilnode":
-				return (*parse.Node)(nil)
+				return (*core.Node)(nil)
 			case "int":
 				return 1
 			case "string":
@@ -70,9 +70,9 @@ func TestEngineValueCastTable(t *testing.T) {
 			case "text":
 				return text()
 			case "tuple":
-				return p.NewNode(value.Data{Kind: noderep.SeqKind, Start: 2, End: 5, Children: []*parse.Node{text(), text()}})
+				return p.NewNode(value.Data{Kind: noderep.SeqKind, Start: 2, End: 5, Children: []*core.Node{text(), text()}})
 			case "rep":
-				return p.NewNode(value.Data{Kind: noderep.ListKind, Start: 2, End: 5, Children: []*parse.Node{text(), text()}})
+				return p.NewNode(value.Data{Kind: noderep.ListKind, Start: 2, End: 5, Children: []*core.Node{text(), text()}})
 			case "err":
 				return p.NewNode(value.Data{Kind: noderep.ErrorKind, Terminal: true, Text: "x", Start: 2, End: 4})
 			case "missing":

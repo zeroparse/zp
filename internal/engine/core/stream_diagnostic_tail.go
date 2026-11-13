@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"math"
 
-	"zeroparse.dev/zp/runtime/parse"
+	"zeroparse.dev/zp/core"
 )
 
 // Keep only small recovery scratch slices across stream elements. The
@@ -27,7 +27,7 @@ func ValidateStreamDiagnostics(o ParseOptions, stream bool) error {
 // The ring avoids shifting a large tail for each committed recovery.
 type StreamDiagnosticTail struct {
 	Limit           int
-	Errors          parse.SyntaxErrors
+	Errors          core.SyntaxErrors
 	head            int
 	Total           uint64
 	Dropped         uint64
@@ -37,7 +37,7 @@ type StreamDiagnosticTail struct {
 	bytes uint64
 }
 
-func (t *StreamDiagnosticTail) Add(e *parse.SyntaxError) {
+func (t *StreamDiagnosticTail) Add(e *core.SyntaxError) {
 	t.bytes += syntaxErrorSize(e)
 	if t.Total == math.MaxUint64 {
 		t.countsSaturated = true
@@ -71,23 +71,23 @@ func (t *StreamDiagnosticTail) Result(p *Parser) error {
 		if !t.truncated {
 			return t.Errors
 		}
-		return &parse.TruncatedSyntaxErrors{Errors: t.Errors, Total: t.Total, Dropped: t.Dropped, CountsSaturated: t.countsSaturated}
+		return &core.TruncatedSyntaxErrors{Errors: t.Errors, Total: t.Total, Dropped: t.Dropped, CountsSaturated: t.countsSaturated}
 	}
-	ordered := make(parse.SyntaxErrors, 0, len(t.Errors))
+	ordered := make(core.SyntaxErrors, 0, len(t.Errors))
 	ordered = t.appendLast(p, ordered, len(t.Errors))
 	p.Control.Check()
-	return &parse.TruncatedSyntaxErrors{Errors: ordered, Total: t.Total, Dropped: t.Dropped, CountsSaturated: t.countsSaturated}
+	return &core.TruncatedSyntaxErrors{Errors: ordered, Total: t.Total, Dropped: t.Dropped, CountsSaturated: t.countsSaturated}
 }
 
 // Preview includes recoveries from the successful suffix, which TraceExit
 // observes before ParseStreamWith collects them for the terminal result.
-func (t *StreamDiagnosticTail) Preview(p *Parser, suffix []*parse.SyntaxError) []*parse.SyntaxError {
+func (t *StreamDiagnosticTail) Preview(p *Parser, suffix []*core.SyntaxError) []*core.SyntaxError {
 	n := min(t.Limit, len(t.Errors)+len(suffix))
 	if n == 0 {
 		return nil
 	}
 	p.Control.Check()
-	out := make([]*parse.SyntaxError, 0, n)
+	out := make([]*core.SyntaxError, 0, n)
 	if len(suffix) >= n {
 		return AppendSpend(p, out, suffix[len(suffix)-n:])
 	}
@@ -97,7 +97,7 @@ func (t *StreamDiagnosticTail) Preview(p *Parser, suffix []*parse.SyntaxError) [
 
 // appendLast copies the last n retained errors in occurrence order. Each
 // contiguous segment is charged and copied in bounded chunks by AppendSpend.
-func (t *StreamDiagnosticTail) appendLast(p *Parser, dst parse.SyntaxErrors, n int) parse.SyntaxErrors {
+func (t *StreamDiagnosticTail) appendLast(p *Parser, dst core.SyntaxErrors, n int) core.SyntaxErrors {
 	if n == 0 {
 		return dst
 	}

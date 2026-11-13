@@ -43,11 +43,18 @@ var vanityRepos = []vanityRepo{
 func vanityPages(repo string) (map[string][]byte, error) {
 	files := map[string][]byte{}
 	for _, r := range vanityRepos {
+		// The module path itself always has a page, whether or not its root holds a package: the go
+		// command asks for it to resolve the module.
 		dirs := []string{""}
 		if r.Local {
-			var err error
-			if dirs, err = packageDirs(repo); err != nil {
+			pkgs, err := packageDirs(repo)
+			if err != nil {
 				return nil, err
+			}
+			for _, d := range pkgs {
+				if d != "" {
+					dirs = append(dirs, d)
+				}
 			}
 		}
 		for _, d := range dirs {

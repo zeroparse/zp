@@ -6,10 +6,10 @@ import (
 	"testing"
 	"time"
 
+	"zeroparse.dev/zp/core"
 	"zeroparse.dev/zp/internal/bytecode"
 	"zeroparse.dev/zp/internal/compile"
 	"zeroparse.dev/zp/internal/gentest"
-	"zeroparse.dev/zp/runtime/parse"
 )
 
 func TestNamedNodeTypesAcrossBackends(t *testing.T) {
@@ -38,7 +38,7 @@ func TestNamedNodeTypesAcrossBackends(t *testing.T) {
 			t.Errorf("missing %s in %s", want, got)
 		}
 	}
-	items, _ := n.Field("Items").(*parse.Node)
+	items, _ := n.Field("Items").(*core.Node)
 	if items == nil || items.Elem(0).Type() != "Ident" || items.Elem(1).Type() != "Num" {
 		t.Fatalf("item types: %s", got)
 	}

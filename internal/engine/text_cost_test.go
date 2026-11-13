@@ -8,8 +8,8 @@ import (
 	"strings"
 	"testing"
 
-	"zeroparse.dev/zp/internal/engine/core"
-	"zeroparse.dev/zp/runtime/parse"
+	"zeroparse.dev/zp/core"
+	ecore "zeroparse.dev/zp/internal/engine/core"
 )
 
 // nestedTextGrammar takes the text of every level of a nesting: the texts sum to the square of
@@ -26,7 +26,7 @@ func leastParseBudget(t *testing.T, parseFn func(budget uint64) error) uint64 {
 	t.Helper()
 	finishes := func(budget uint64) bool {
 		err := parseFn(budget)
-		if errors.Is(err, parse.ErrLimit) {
+		if errors.Is(err, core.ErrLimit) {
 			return false
 		}
 		if err != nil {
@@ -69,12 +69,12 @@ func TestTextCostIsConstantInWholeInputs(t *testing.T) {
 	prog := mustCompile(t, nestedTextGrammar)
 	inputs := []struct {
 		name   string
-		unit   parse.PositionUnit
+		unit   core.PositionUnit
 		center string
 	}{
-		{"bytes", parse.Bytes, "x"},
-		{"code points", parse.CodePoints, "é"},
-		{"invalid UTF-8", parse.CodePoints, "\xff"},
+		{"bytes", core.Bytes, "x"},
+		{"code points", core.CodePoints, "é"},
+		{"invalid UTF-8", core.CodePoints, "\xff"},
 	}
 	for _, b := range []Backend{Closure, Bytecode, BytecodeIterative} {
 		for _, in := range inputs {
@@ -85,7 +85,7 @@ func TestTextCostIsConstantInWholeInputs(t *testing.T) {
 					t.Fatalf("value %v, %v; want %q", n, err, want)
 				}
 				assertLinearText(t, []int{1024, 2048, 4096}, func(depth int, budget uint64) error {
-					_, err := prog.ParseWith("main", nestedTextInput(depth, in.center), ParseOptions{Backend: b, Unit: in.unit, Limits: parse.Limits{Compute: budget}})
+					_, err := prog.ParseWith("main", nestedTextInput(depth, in.center), ParseOptions{Backend: b, Unit: in.unit, Limits: core.Limits{Compute: budget}})
 					return err
 				})
 			})
@@ -97,12 +97,12 @@ func TestTextDecodesInvalidInputOnce(t *testing.T) {
 	t.Parallel()
 	source := strings.Repeat("é\xff", 1000)
 	want := strings.ToValidUTF8(source, "�")
-	c := core.NewBudgetControl(nil, parse.Limits{Compute: 1 << 30})
-	in := core.NewControlledTextInput(source, parse.CodePoints, false, nil, c)
+	c := ecore.NewBudgetControl(nil, core.Limits{Compute: 1 << 30})
+	in := ecore.NewControlledTextInput(source, core.CodePoints, false, nil, c)
 
 	// The decoding is interruptible and leaves nothing behind.
 	c.Limits.Compute = c.Used + 100
-	if err := catchFatal(t, func() { _ = in.Text(0, 2000) }); !errors.Is(err, parse.ErrLimit) {
+	if err := catchFatal(t, func() { _ = in.Text(0, 2000) }); !errors.Is(err, core.ErrLimit) {
 		t.Fatalf("decoding interruption: %v", err)
 	}
 	c.Limits.Compute = 1 << 30
@@ -118,7 +118,7 @@ func TestTextDecodesInvalidInputOnce(t *testing.T) {
 	}
 
 	// An edit of a flat Document decodes its source again.
-	doc := core.NewTextInput("a\xffb", parse.CodePoints, false)
+	doc := ecore.NewTextInput("a\xffb", core.CodePoints, false)
 	if got := doc.Text(0, 3); got != "a�b" {
 		t.Fatalf("text %q", got)
 	}
@@ -130,22 +130,22 @@ func TestTextDecodesInvalidInputOnce(t *testing.T) {
 
 func TestDocumentPieceTextFlattensOnce(t *testing.T) {
 	t.Parallel()
-	if !core.DocumentPieceInput {
+	if !ecore.DocumentPieceInput {
 		t.Skip("piece input is disabled")
 	}
-	for _, unit := range []parse.PositionUnit{parse.Bytes, parse.CodePoints} {
-		pieces := core.NewDocumentPieces(strings.Repeat("é", 8192), unit)
+	for _, unit := range []core.PositionUnit{core.Bytes, core.CodePoints} {
+		pieces := ecore.NewDocumentPieces(strings.Repeat("é", 8192), unit)
 		pieces.Replace(10, 11, "x\xff")
-		c := core.NewBudgetControl(nil, parse.Limits{Compute: 1 << 30})
-		in := core.Input{Unit: unit, Eof: true, BaseLine: 1, BaseCol: 1, Pieces: pieces, Control: c}
+		c := ecore.NewBudgetControl(nil, core.Limits{Compute: 1 << 30})
+		in := ecore.Input{Unit: unit, Eof: true, BaseLine: 1, BaseCol: 1, Pieces: pieces, Control: c}
 		flat := strings.Repeat("é", 8192)
-		if unit == parse.Bytes {
+		if unit == core.Bytes {
 			flat = flat[:10] + "x\xff" + flat[11:]
 		} else {
 			flat = string([]rune(flat)[:10]) + "x�" + string([]rune(flat)[11:])
 		}
 		at := func(i int) int { // the byte offset of position i of flat
-			if unit == parse.Bytes {
+			if unit == core.Bytes {
 				return i
 			}
 			return len(string([]rune(flat)[:i]))

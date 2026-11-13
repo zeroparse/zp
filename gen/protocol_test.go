@@ -10,7 +10,7 @@ import (
 	"strings"
 	"testing"
 
-	"zeroparse.dev/zp"
+	"zeroparse.dev/zp/engine"
 	"zeroparse.dev/zp/gen"
 	igen "zeroparse.dev/zp/internal/gen"
 	"zeroparse.dev/zp/internal/gentest"
@@ -35,7 +35,7 @@ func TestImportProtocol(t *testing.T) {
 	if testing.Short() {
 		t.Skip("builds a generated parser")
 	}
-	g, err := zp.ParseGrammar(`@start
+	g, err := engine.ParseGrammar(`@start
 rule main = [a-z]+ "=" [0-9]+`)
 	if err != nil {
 		t.Fatal(err)
@@ -86,14 +86,18 @@ rule main = [a-z]+ "=" [0-9]+`)
 		for _, f := range runtimeFiles {
 			// The copy names the copies of the runtime's packages; as a copy of this module's runtime it
 			// names them by their import paths in this module.
-			data := bytes.ReplaceAll(f.Content, []byte(`"`+copyPath), []byte(`"zeroparse.dev/zp/runtime/`))
+			data := bytes.ReplaceAll(f.Content, []byte(`"`+copyPath+"core"), []byte(`"zeroparse.dev/zp/core`))
 			if bump {
 				data = protocolName.ReplaceAllFunc(data, func(m []byte) []byte {
 					n, _ := strconv.Atoi(string(protocolName.FindSubmatch(m)[1]))
 					return []byte("const Protocol" + strconv.Itoa(n+1) + " = " + strconv.Itoa(n+1))
 				})
 			}
-			write("rt/runtime/"+strings.TrimPrefix(f.Path, "internal/runtime/"), data)
+			rel := strings.TrimPrefix(f.Path, "internal/runtime/")
+			if !strings.HasPrefix(rel, "core/") {
+				rel = "runtime/" + rel
+			}
+			write("rt/"+rel, data)
 		}
 		write("p/go.mod", []byte("module example.com/proto\n\ngo 1.27.1\n\nrequire zeroparse.dev/zp v0.0.0\n\nreplace zeroparse.dev/zp => ../rt\n"))
 		cmd := exec.Command("go", "build", "./...")
@@ -120,7 +124,7 @@ var goGenerated = regexp.MustCompile(`^// Code generated .* DO NOT EDIT\.$`)
 // TestGeneratedHeader checks that every generated Go and TypeScript file starts with the header that
 // names the generator version, and that generating twice gives the same files.
 func TestGeneratedHeader(t *testing.T) {
-	g, err := zp.ParseGrammar(`type Pair = { Key node[string]; Value node[string] }
+	g, err := engine.ParseGrammar(`type Pair = { Key node[string]; Value node[string] }
 @start
 rule main Pair = k:[a-z]+ #atomic "=" v:[0-9]+ #atomic => Pair{Key: $k, Value: $v}`)
 	if err != nil {

@@ -23,7 +23,7 @@ import (
 	"strings"
 	"time"
 
-	"zeroparse.dev/zp"
+	"zeroparse.dev/zp/engine"
 )
 
 // Three grammars for a file of "key = value" lines.
@@ -81,7 +81,7 @@ func live(build func() any) float64 {
 
 func main() {
 	for _, g := range grammars {
-		p, err := zp.CompileSource(g.grammar, "main")
+		p, err := engine.CompileSource(g.grammar, "main")
 		if err != nil {
 			log.Fatal(err)
 		}
@@ -201,7 +201,7 @@ import (
 	"strings"
 	"time"
 
-	"zeroparse.dev/zp"
+	"zeroparse.dev/zp/engine"
 )
 
 // Run it from the root of the repository: go run ./jsondoc testdata/grammars/json/json.zp
@@ -210,7 +210,7 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	p, err := zp.CompileSource(string(src), "main")
+	p, err := engine.CompileSource(string(src), "main")
 	if err != nil {
 		log.Fatal(err)
 	}

@@ -5,8 +5,8 @@ import (
 	"errors"
 	"unicode/utf8"
 
+	"zeroparse.dev/zp/core"
 	"zeroparse.dev/zp/internal/limits"
-	"zeroparse.dev/zp/runtime/parse"
 )
 
 // BudgetCheckInterval is the spend between two observations of cancellation.
@@ -17,7 +17,7 @@ const BudgetCheckInterval = uint64(256)
 // observed between chunks.
 type BudgetControl struct {
 	Ctx    context.Context
-	Limits parse.Limits
+	Limits core.Limits
 
 	// Used is the spend reserved so far; SinceCheck is the part of it since the
 	// last observation of cancellation.
@@ -61,15 +61,15 @@ type BudgetControl struct {
 // budget, which the result leaves zero. A stream does not know n: its default starts at the floor
 // and grows with the furthest position the parser demands (BudgetControl.Demand), which adaptive reports. The reference
 // build has no controls to charge, so no default applies there.
-func ResolveLimits(l parse.Limits, n uint64, stream bool) (resolved parse.Limits, adaptive bool) {
-	if l.Input == parse.Unlimited {
+func ResolveLimits(l core.Limits, n uint64, stream bool) (resolved core.Limits, adaptive bool) {
+	if l.Input == core.Unlimited {
 		l.Input = 0 // the default of Input is Unlimited
 	}
-	if l.Memory == parse.Unlimited {
+	if l.Memory == core.Unlimited {
 		l.Memory = 0 // the default of Memory is Unlimited
 	}
 	switch l.Compute {
-	case parse.Unlimited:
+	case core.Unlimited:
 		l.Compute = 0
 	case 0:
 		switch {
@@ -99,7 +99,7 @@ func (c *BudgetControl) Demand(n int) {
 // NewBudgetControl returns nil when neither cancellation nor a finite compute budget or memory
 // limit is active. A nil context is equivalent to context.Background. A context that can never be
 // canceled (Done is nil) is never polled.
-func NewBudgetControl(ctx context.Context, limits parse.Limits) *BudgetControl {
+func NewBudgetControl(ctx context.Context, limits core.Limits) *BudgetControl {
 	if ctx != nil && ctx.Done() == nil {
 		ctx = nil
 	}
@@ -254,8 +254,8 @@ func (c *BudgetControl) chargeSlow(n uint64, poll, exceeded bool) {
 		c.checkMemory()
 	}
 	if exceeded {
-		panic(Fatal{Err: &parse.LimitError{
-			Kind: parse.LimitCompute, Limit: c.Limits.Compute - c.Doc,
+		panic(Fatal{Err: &core.LimitError{
+			Kind: core.LimitCompute, Limit: c.Limits.Compute - c.Doc,
 			Used: c.Used - c.Doc, Requested: n,
 		}})
 	}
@@ -267,8 +267,8 @@ func (c *BudgetControl) chargeSlow(n uint64, poll, exceeded bool) {
 // InputUnits returns the length of s in units of the position unit. Below the size at which the
 // default budget leaves its floor the byte length stands in for the count of code points, which it
 // bounds from above.
-func InputUnits(s string, unit parse.PositionUnit) uint64 {
-	if unit == parse.Bytes || len(s) <= limits.DefaultBudgetFloor/limits.DefaultBudgetPerUnit {
+func InputUnits(s string, unit core.PositionUnit) uint64 {
+	if unit == core.Bytes || len(s) <= limits.DefaultBudgetFloor/limits.DefaultBudgetPerUnit {
 		return uint64(len(s))
 	}
 	return uint64(utf8.RuneCountInString(s))
@@ -280,7 +280,7 @@ var ErrNoControls = errors.New("budget controls are unavailable in the reference
 // CheckInput rejects an input of s that is longer than the resolved Input limit of l, in the position
 // unit. The check is O(1) unless the byte length passes the limit in CodePoints, where the exact
 // count decides: the byte length bounds the count from above.
-func CheckInput(l parse.Limits, s string, unit parse.PositionUnit) error {
+func CheckInput(l core.Limits, s string, unit core.PositionUnit) error {
 	if l.Input == 0 {
 		return nil
 	}
@@ -289,14 +289,14 @@ func CheckInput(l parse.Limits, s string, unit parse.PositionUnit) error {
 		return ErrNoControls
 	}
 	n := uint64(len(s))
-	if n > l.Input && unit == parse.CodePoints {
+	if n > l.Input && unit == core.CodePoints {
 		n = uint64(utf8.RuneCountInString(s))
 	}
 	return CheckInputUnits(l, n)
 }
 
 // CheckInputUnits rejects an input of n units that is longer than the resolved Input limit of l.
-func CheckInputUnits(l parse.Limits, n uint64) error {
+func CheckInputUnits(l core.Limits, n uint64) error {
 	if l.Input == 0 {
 		return nil
 	}
@@ -305,7 +305,7 @@ func CheckInputUnits(l parse.Limits, n uint64) error {
 		return ErrNoControls
 	}
 	if n > l.Input {
-		return &parse.LimitError{Kind: parse.LimitInput, Limit: l.Input, Requested: n}
+		return &core.LimitError{Kind: core.LimitInput, Limit: l.Input, Requested: n}
 	}
 	return nil
 }

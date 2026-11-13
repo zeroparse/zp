@@ -3,8 +3,8 @@ package engine
 import (
 	"testing"
 
-	"zeroparse.dev/zp/internal/engine/core"
-	"zeroparse.dev/zp/runtime/parse"
+	"zeroparse.dev/zp/core"
+	ecore "zeroparse.dev/zp/internal/engine/core"
 )
 
 // A wrapper can return a growing seed without examining another character.
@@ -23,7 +23,7 @@ rule seed = ""`,
 	} {
 		prog := mustCompile(t, src)
 		for _, input := range []string{"", "é", "éé", "é?"} {
-			for _, unit := range []parse.PositionUnit{parse.CodePoints, parse.Bytes} {
+			for _, unit := range []core.PositionUnit{core.CodePoints, core.Bytes} {
 				for _, backend := range []Backend{Closure, Bytecode, BytecodeIterative} {
 					for _, recognize := range []bool{false, true} {
 						o := ParseOptions{Unit: unit, Backend: backend, Recognize: recognize}
@@ -58,7 +58,7 @@ rule step = expr
 rule seed = ^ "é"`, "\né", true},
 	} {
 		prog := mustCompile(t, c.src)
-		for _, unit := range []parse.PositionUnit{parse.CodePoints, parse.Bytes} {
+		for _, unit := range []core.PositionUnit{core.CodePoints, core.Bytes} {
 			for _, backend := range []Backend{Closure, Bytecode, BytecodeIterative} {
 				for _, recognize := range []bool{false, true} {
 					seen := false
@@ -67,7 +67,7 @@ rule seed = ^ "é"`, "\né", true},
 						if e.Kind != TraceExit || e.Rule != "expr" || !e.Memo || !e.Matched {
 							return
 						}
-						seed, found := core.TraceParser(e).GrowingSeed(core.MemoKey{Rule: prog.ByName["expr"].ID, Pos: e.Pos})
+						seed, found := ecore.TraceParser(e).GrowingSeed(ecore.MemoKey{Rule: prog.ByName["expr"].ID, Pos: e.Pos})
 						if !found || !seed.Growing || !seed.Ok {
 							t.Fatal("successful growing seed is not available")
 						}

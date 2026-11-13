@@ -8,9 +8,9 @@ import (
 	"strings"
 	"testing"
 
-	"zeroparse.dev/zp"
+	"zeroparse.dev/zp/core"
+	"zeroparse.dev/zp/engine"
 	"zeroparse.dev/zp/gen"
-	"zeroparse.dev/zp/runtime/parse"
 )
 
 const commentOwnerExample = "// orphan\n\n// foo\npackage foo // trailing\n// trailing\n\n// B2\n// B2\n\n// B1\n// B1\nrule B = \"b\" // trailing\n// trailing\n"
@@ -22,9 +22,9 @@ func TestSourceCommentBoundaryGrammar(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	parsers := map[string]*zp.Parser{}
+	parsers := map[string]*engine.Parser{}
 	for _, rule := range []string{"start", "after", "owner_example"} {
-		p, err := zp.CompileSource(string(src), rule)
+		p, err := engine.CompileSource(string(src), rule)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -71,9 +71,9 @@ func TestSourceCommentBoundaryGrammar(t *testing.T) {
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
-			for _, unit := range []parse.PositionUnit{parse.CodePoints, parse.Bytes} {
-				for _, backend := range []zp.Backend{zp.Closure, zp.Bytecode, zp.BytecodeIterative} {
-					n, err := parsers[tc.rule].Parse(tc.input, zp.WithUnit(unit), zp.WithBackend(backend))
+			for _, unit := range []core.PositionUnit{core.CodePoints, core.Bytes} {
+				for _, backend := range []engine.Backend{engine.Closure, engine.Bytecode, engine.BytecodeIterative} {
+					n, err := parsers[tc.rule].Parse(tc.input, engine.WithUnit(unit), engine.WithBackend(backend))
 					if err != nil {
 						t.Fatalf("%v/%v: %v", unit, backend, err)
 					}
@@ -127,7 +127,7 @@ func TestSourceCommentBoundaryGeneratedGo(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	g, err := zp.ParseGrammar(string(src))
+	g, err := engine.ParseGrammar(string(src))
 	if err != nil {
 		t.Fatal(err)
 	}

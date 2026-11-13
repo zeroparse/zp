@@ -6,7 +6,7 @@ import (
 	"strconv"
 	"strings"
 
-	"zeroparse.dev/zp/runtime/noderep"
+	"zeroparse.dev/zp/core/noderep"
 )
 
 // GNode is a node of the value model: the range of input a rule or a valued subexpression

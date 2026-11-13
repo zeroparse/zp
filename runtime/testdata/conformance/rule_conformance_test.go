@@ -7,11 +7,11 @@ import (
 	"strings"
 	"testing"
 
+	"zeroparse.dev/zp/core"
 	"zeroparse.dev/zp/internal/ir/exec"
 	"zeroparse.dev/zp/internal/ir/exec/conform"
 	"zeroparse.dev/zp/internal/ir/exec/ops"
 	"zeroparse.dev/zp/internal/ir/exec/ref"
-	"zeroparse.dev/zp/runtime/parse"
 )
 
 // The operations of the rules of the node runtime under conformance: every operation runs through its
@@ -57,7 +57,7 @@ type meteredRule struct{ *ruleMachine }
 func (m meteredRule) Used() uint64 { return m.p.Control.budgetUsed() }
 
 // scriptRules gives the rules of cfg.RuleVars the properties of cfg.RuleSpecs, and bodies that run eval.
-func scriptRules(rules []*Rule, cfg ref.Config, eval func(index int64, p *Parser, min int) (*parse.Node, bool)) {
+func scriptRules(rules []*Rule, cfg ref.Config, eval func(index int64, p *Parser, min int) (*core.Node, bool)) {
 	for i, r := range rules {
 		var s ref.RuleSpec
 		if i < len(cfg.RuleSpecs) {
@@ -76,12 +76,12 @@ func scriptRules(rules []*Rule, cfg ref.Config, eval func(index int64, p *Parser
 			r.Value = Shaper{K: 1, Tuple: true}
 		}
 		index := int64(i)
-		r.Body = func(p *Parser, min int) (*parse.Node, bool) { return eval(index, p, min) }
+		r.Body = func(p *Parser, min int) (*core.Node, bool) { return eval(index, p, min) }
 	}
 }
 
 // evaluate runs the next evaluation of the script of the rule with the index on the runtime.
-func (m *ruleMachine) evaluate(index int64, p *Parser, level int) (*parse.Node, bool) {
+func (m *ruleMachine) evaluate(index int64, p *Parser, level int) (*core.Node, bool) {
 	var e ref.Eval
 	if s := m.spec(index); len(s.Body) > 0 {
 		e = s.Body[min(m.evals[index], int64(len(s.Body)-1))]
@@ -130,7 +130,7 @@ func (m *ruleMachine) Call(o *exec.Op, args []any) (res []any) {
 	defer interrupted()
 	p := m.p
 	rule := func() *Rule { return args[0].(*Rule) }
-	invoke := func(f func(r *Rule, min int) (*parse.Node, bool)) []any {
+	invoke := func(f func(r *Rule, min int) (*core.Node, bool)) []any {
 		p.Pos = int(m.regs[ops.Pos].(int64))
 		defer func() { m.regs[ops.Pos] = int64(p.Pos) }()
 		v, ok := f(rule(), int(args[1].(int64)))

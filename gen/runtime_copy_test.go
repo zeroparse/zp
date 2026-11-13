@@ -12,14 +12,14 @@ import (
 )
 
 // TestRuntimeCopy checks that _runtime, the copy of the runtime that package gen embeds,
-// holds exactly the non-test Go files of the runtime package and of its package directories
-// noderep and parse. Run go generate ./gen to refresh it.
+// holds exactly the non-test Go files of the runtime package and of the packages core and
+// core/noderep. Run go generate ./gen to refresh it.
 func TestRuntimeCopy(t *testing.T) {
-	read := func(root string) map[string][]byte {
+	read := func(root string, dirs map[string]string) map[string][]byte {
 		t.Helper()
 		files := map[string][]byte{}
-		for _, dir := range []string{".", "noderep", "parse"} {
-			paths, err := filepath.Glob(filepath.Join(root, dir, "*.go"))
+		for dir, src := range dirs {
+			paths, err := filepath.Glob(filepath.Join(root, src, "*.go"))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -36,7 +36,9 @@ func TestRuntimeCopy(t *testing.T) {
 		}
 		return files
 	}
-	want, got := read(filepath.Join("..", "runtime")), read("_runtime")
+	copied := map[string]string{".": ".", "core": "core", "core/noderep": "core/noderep"}
+	want := read("..", map[string]string{".": "runtime", "core": "core", "core/noderep": "core/noderep"})
+	got := read("_runtime", copied)
 	if len(want) == 0 {
 		t.Fatal("the runtime package has no files")
 	}
@@ -75,12 +77,12 @@ func TestGenerateRuntimeUsesEmbeddedCopy(t *testing.T) {
 			t.Fatal(err)
 		}
 		// The copy names the copies of the runtime's packages in its imports.
-		want = bytes.ReplaceAll(want, []byte(`"zeroparse.dev/zp/runtime/`), []byte(`"example.com/m/internal/runtime/`))
+		want = bytes.ReplaceAll(want, []byte(`"zeroparse.dev/zp/core`), []byte(`"example.com/m/internal/runtime/core`))
 		if !bytes.HasSuffix(f.Content, want) {
 			t.Errorf("%s is not the embedded copy", f.Path)
 		}
 	}
-	for _, sub := range []string{"noderep", "parse"} {
+	for _, sub := range []string{"core", "core/noderep"} {
 		if !slices.ContainsFunc(files, func(f gen.File) bool { return strings.HasPrefix(f.Path, "internal/runtime/"+sub+"/") }) {
 			t.Errorf("the copy has no package %s", sub)
 		}

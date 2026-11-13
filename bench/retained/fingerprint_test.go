@@ -7,13 +7,13 @@ import (
 	"strings"
 	"testing"
 
-	"zeroparse.dev/zp"
+	"zeroparse.dev/zp/core"
+	"zeroparse.dev/zp/engine"
 	"zeroparse.dev/zp/internal/value"
-	"zeroparse.dev/zp/runtime/parse"
 )
 
 func TestFingerprintTerminalFlag(t *testing.T) {
-	p, err := zp.CompileSource("@start\nrule main = v1:\"x\" => $v1\n", "main")
+	p, err := engine.CompileSource("@start\nrule main = v1:\"x\" => $v1\n", "main")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -51,7 +51,7 @@ func TestFingerprintTerminalFlag(t *testing.T) {
 }
 
 func TestFingerprintSharingAndNodeCycles(t *testing.T) {
-	hash := func(n *parse.Node) string {
+	hash := func(n *core.Node) string {
 		t.Helper()
 		h, err := fingerprint(n)
 		if err != nil {
@@ -66,9 +66,9 @@ func TestFingerprintSharingAndNodeCycles(t *testing.T) {
 		t.Fatal("fingerprint loses node sharing")
 	}
 	cycle := tupleNode()
-	value.SetNodeElems(cycle, []*parse.Node{cycle})
+	value.SetNodeElems(cycle, []*core.Node{cycle})
 	copyCycle := tupleNode()
-	value.SetNodeElems(copyCycle, []*parse.Node{copyCycle})
+	value.SetNodeElems(copyCycle, []*core.Node{copyCycle})
 	if hash(cycle) != hash(copyCycle) {
 		t.Fatal("fingerprint depends on pointer addresses")
 	}
@@ -119,14 +119,14 @@ func TestFingerprintDeepValuesAndCanonicalFields(t *testing.T) {
 	}
 }
 
-func stringNode(text string) *parse.Node {
-	return value.NewNode(parse.KindString, 0, len(text), text, nil, "", nil, nil)
+func stringNode(text string) *core.Node {
+	return value.NewNode(core.KindString, 0, len(text), text, nil, "", nil, nil)
 }
 
-func tupleNode(elems ...*parse.Node) *parse.Node {
-	return value.NewNode(parse.KindTuple, 0, 0, "", elems, "", nil, nil)
+func tupleNode(elems ...*core.Node) *core.Node {
+	return value.NewNode(core.KindTuple, 0, 0, "", elems, "", nil, nil)
 }
 
-func structNode() *parse.Node {
-	return value.NewNode(parse.KindStruct, 0, 0, "", nil, "S", nil, nil)
+func structNode() *core.Node {
+	return value.NewNode(core.KindStruct, 0, 0, "", nil, "S", nil, nil)
 }

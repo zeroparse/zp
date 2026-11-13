@@ -4,12 +4,12 @@ import (
 	"strings"
 	"testing"
 
+	"zeroparse.dev/zp/core"
+	"zeroparse.dev/zp/core/noderep"
 	"zeroparse.dev/zp/internal/compile"
 	"zeroparse.dev/zp/internal/compiletest"
 	"zeroparse.dev/zp/internal/ir/exec/conform"
 	"zeroparse.dev/zp/internal/value"
-	"zeroparse.dev/zp/runtime/noderep"
-	"zeroparse.dev/zp/runtime/parse"
 )
 
 // engineMemberCanon returns the canonical form of a value of the engine (conform.MemberCanon).
@@ -23,7 +23,7 @@ func engineMemberCanon(x any) string {
 		return conform.MemberCanon("string", x, nil)
 	case bool:
 		return conform.MemberCanon("bool", x, nil)
-	case *parse.Node:
+	case *core.Node:
 		if x == nil {
 			return conform.MemberCanon("nil", nil, nil)
 		}
@@ -64,7 +64,7 @@ func engineMemberFixture(t *testing.T, controlled bool) (*EvalCtx, map[string]an
 	}
 	p := &Parser{Prog: prog}
 	if controlled {
-		p.Control = NewBudgetControl(nil, parse.Limits{Compute: 1 << 62})
+		p.Control = NewBudgetControl(nil, core.Limits{Compute: 1 << 62})
 	}
 	c := &EvalCtx{P: p}
 	node := p.NewNode(value.Data{Kind: noderep.SeqKind, Start: 2, End: 5})

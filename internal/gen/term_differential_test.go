@@ -13,14 +13,14 @@ import (
 	"testing"
 	"unicode/utf8"
 
+	"zeroparse.dev/zp/core"
 	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/compile"
 	"zeroparse.dev/zp/internal/engine"
-	"zeroparse.dev/zp/internal/engine/core"
+	ecore "zeroparse.dev/zp/internal/engine/core"
 	"zeroparse.dev/zp/internal/gen"
 	"zeroparse.dev/zp/internal/gentest"
 	"zeroparse.dev/zp/internal/ir/exec/ref"
-	"zeroparse.dev/zp/runtime/parse"
 )
 
 // termDifferentialCases is the number of terms of each seed. The tests that run in the process
@@ -98,7 +98,7 @@ func termCaseList(cs []gentest.TermCase) []gentest.Case {
 // TestTermEngineBackends checks that the engine's closure backend, its bytecode VM and its iterative
 // VM give one value or one error for every generated term, in both position units, and that the VMs
 // running the program saved to a file and loaded again give it too. Their charges differ
-// by design today (parse.Limits: counts depend on backend); the test only requires that every backend
+// by design today (core.Limits: counts depend on backend); the test only requires that every backend
 // reports one and logs how far apart the backends are.
 func TestTermEngineBackends(t *testing.T) {
 	t.Parallel()
@@ -119,12 +119,12 @@ func TestTermEngineBackends(t *testing.T) {
 				t.Fatalf("%s: %v", c.Name, err)
 			}
 			for _, in := range c.Inputs {
-				for _, unit := range []parse.PositionUnit{parse.CodePoints, parse.Bytes} {
+				for _, unit := range []core.PositionUnit{core.CodePoints, core.Bytes} {
 					var want string
 					for _, b := range []engine.Backend{engine.Closure, engine.Bytecode, engine.BytecodeIterative} {
 						var used uint64
-						n, err := prog.ParseWith("main", in, engine.ParseOptions{Backend: b, Unit: unit, Limits: parse.Limits{Compute: 1 << 50},
-							Trace: func(e engine.TraceEvent) { used = core.TraceParser(e).Control.Used }})
+						n, err := prog.ParseWith("main", in, engine.ParseOptions{Backend: b, Unit: unit, Limits: core.Limits{Compute: 1 << 50},
+							Trace: func(e engine.TraceEvent) { used = ecore.TraceParser(e).Control.Used }})
 						got := gentest.ResultJSON(n, err)
 						if used == 0 {
 							t.Errorf("%s: backend %d reports no charges", c.Name, b)
@@ -136,7 +136,7 @@ func TestTermEngineBackends(t *testing.T) {
 						}
 					}
 					for _, b := range []engine.Backend{engine.Bytecode, engine.BytecodeIterative} {
-						n, err := loaded.ParseWith("main", in, engine.ParseOptions{Backend: b, Unit: unit, Limits: parse.Limits{Compute: 1 << 50}})
+						n, err := loaded.ParseWith("main", in, engine.ParseOptions{Backend: b, Unit: unit, Limits: core.Limits{Compute: 1 << 50}})
 						if got := gentest.ResultJSON(n, err); got != want {
 							t.Errorf("%s: input %q unit %d: loaded backend %d gives\n %s\nclosure gives\n %s", c.Name, in, unit, b, got, want)
 						}
@@ -701,12 +701,12 @@ func TestTermReferenceEvaluator(t *testing.T) {
 				t.Fatal(err)
 			}
 			term := referenceTerm(t, c)
-			for _, unit := range []parse.PositionUnit{parse.CodePoints, parse.Bytes} {
+			for _, unit := range []core.PositionUnit{core.CodePoints, core.Bytes} {
 				w := utf8.RuneCountInString(c.Lit)
-				if unit == parse.Bytes {
+				if unit == core.Bytes {
 					w = len(c.Lit)
 				}
-				env := &ref.TermEnv{Captures: map[string]ref.V{"x": ref.Node(ref.StringNode, c.Lit, 0, w, nil, nil)}, Bytes: unit == parse.Bytes,
+				env := &ref.TermEnv{Captures: map[string]ref.V{"x": ref.Node(ref.StringNode, c.Lit, 0, w, nil, nil)}, Bytes: unit == core.Bytes,
 					Start: 0, End: w, Line: 1, Col: 1, Zeros: referenceZeros(t, prog.Static(), "R", "Inner", "Leaf")}
 				in := c.Lit
 				if c.Kind == gentest.TermPredicate {
@@ -725,7 +725,7 @@ func TestTermReferenceEvaluator(t *testing.T) {
 // checkReference compares the engine's closure backend on the input in with the reference evaluator
 // in env: the value or the error of an action, and for a predicate, which precedes an optional "b",
 // whether the predicate held, by whether an input that ends in "b" parses.
-func checkReference(t *testing.T, c gentest.TermCase, prog *engine.Program, term grammar.Term, env *ref.TermEnv, unit parse.PositionUnit, in string) {
+func checkReference(t *testing.T, c gentest.TermCase, prog *engine.Program, term grammar.Term, env *ref.TermEnv, unit core.PositionUnit, in string) {
 	t.Helper()
 	v, msg := env.Eval(term)
 	n, err := prog.ParseWith("main", in, engine.ParseOptions{Backend: engine.Closure, Unit: unit})
@@ -791,8 +791,8 @@ func TestTermFixedReference(t *testing.T) {
 		zeros := referenceZeros(t, prog.Static(), structs...)
 		term := referenceTerm(t, c)
 		for _, in := range c.Inputs {
-			for _, unit := range []parse.PositionUnit{parse.CodePoints, parse.Bytes} {
-				bytes := unit == parse.Bytes
+			for _, unit := range []core.PositionUnit{core.CodePoints, core.Bytes} {
+				bytes := unit == core.Bytes
 				end := utf8.RuneCountInString(in)
 				if bytes {
 					end = len(in)

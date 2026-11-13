@@ -13,7 +13,7 @@ import (
 	"sync"
 	"testing"
 
-	"zeroparse.dev/zp"
+	"zeroparse.dev/zp/engine"
 	"zeroparse.dev/zp/gen"
 	"zeroparse.dev/zp/internal/gentest"
 )
@@ -98,7 +98,7 @@ func manifestOutputs(t *testing.T) ([]string, map[string]string) {
 					r.err = err
 					return
 				}
-				gr, err := zp.ParseGrammar(string(src))
+				gr, err := engine.ParseGrammar(string(src))
 				if err != nil {
 					r.err = fmt.Errorf("%s: %v", g.path, err)
 					return

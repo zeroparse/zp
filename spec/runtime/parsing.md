@@ -18,7 +18,7 @@ for.
 
 | Interface | How the start rule is selected |
 |:--|:--|
-| Go API | The `start` argument of `zp.Compile` and `zp.CompileSource`, where an empty name selects the default start rule; `Parser.WithStart` makes a parser with another start rule for whole-input parsing; `Parser.ParsePrefix` selects a start rule for one prefix parse without changing the configured start rule. Both take an empty name for the default start rule |
+| Go API | The `start` argument of `engine.Compile` and `engine.CompileSource`, where an empty name selects the default start rule; `Parser.WithStart` makes a parser with another start rule for whole-input parsing; `Parser.ParsePrefix` selects a start rule for one prefix parse without changing the configured start rule. Both take an empty name for the default start rule |
 | Command line | `zp parse -s <rule>`. It defaults to the start rule saved in a compiled grammar (`.zpc`), and otherwise to the default start rule |
 | Generated parsers | `Parse` uses the start rule selected when the parser was generated, the default start rule unless another was named; `ParseRule` and `ParseRuleValue` (`parseRule` and `parseRuleWithOptions` in TypeScript) take the name of a start rule, or an empty name for the default start rule |
 
@@ -65,9 +65,9 @@ The text of the string node is the matched input: byte mode keeps the invalid by
 while code-point mode substitutes U+FFFD. The literal's spelling need not have
 the same byte length as the matched input.
 
-The unit is selected with `zp.WithUnit(parse.Bytes)` in the Go API and with
+The unit is selected with `engine.WithUnit(core.Bytes)` in the Go API and with
 `zp parse -unit bytes` on the command line. In the Go API, `parse` names the package
-`zeroparse.dev/zp/runtime/parse`, which holds the types that the engine and generated
+`zeroparse.dev/zp/core`, which holds the types that the engine and generated
 parsers share: limits, position units, syntax errors, edits and statistics.
 
 ### Lines and Columns
@@ -122,7 +122,7 @@ whose expression has no valued element, such as `rule main = -"a"`, has the unit
 ### Nodes
 
 The value of a rule without an action is a node. The properties of a node, the
-Go type `parse.Node`, traversal, and the text and JSON renderings are defined in
+Go type `core.Node`, traversal, and the text and JSON renderings are defined in
 [Nodes and Values](nodes.md).
 
 ## Prefix Parsing
@@ -248,19 +248,19 @@ Recording is requested as follows.
 
 | Parse | Request |
 |:--|:--|
-| `Parser.Parse`, `ParseStream`, `ParsePrefix`, `Document` | The option `zp.WithExpectations()`. A `Document` fixes the mode when it is created; a later parse that asks for the other mode is an error |
+| `Parser.Parse`, `ParseStream`, `ParsePrefix`, `Document` | The option `engine.WithExpectations()`. A `Document` fixes the mode when it is created; a later parse that asks for the other mode is an error |
 | Generated Go and TypeScript parsers | Generate with the option `Expectations` (`-expectations` in `zp gen`), which gives the parser its table of expectations and a parse option `WithExpectations` (Go) or `expectations` (TypeScript). A parse records them only when it passes the option; a generated parser without the generation option has no table and no such option, and a parse of it that passes the runtime's `WithExpectations` or `expectations: true` returns an error |
 | `zp parse`, `zp debug`, `zp trace`, `zp explain`, `zp profile`, `zp test`, `zp editfuzz` and the playground | Always on |
 
 ### Errors in Go and on the Command Line
 
-In the Go API, a failed parse returns a `*parse.SyntaxError` with the fields `Pos`
+In the Go API, a failed parse returns a `*core.SyntaxError` with the fields `Pos`
 (the position in the position unit), `Line`, `Col`, `Expected` (every expected
 item, in the order above) and `Messages` (the messages of `@error` attributes), both empty unless
 expectations are recorded, and the methods
 `Error()`, which returns the text above with its position, and `Message()`, which
 returns it without the position. A parse that recovered errors returns the node and
-an error of type `parse.SyntaxErrors`, a list of `*SyntaxError`; `errors.As` tells it
+an error of type `core.SyntaxErrors`, a list of `*SyntaxError`; `errors.As` tells it
 apart from a fatal `*SyntaxError`, and the node is valid. The list holds only the
 recoveries that the result keeps: one that backtracking undoes, or that is
 inside a [lookahead](../language/parser-expressions.md#lookahead) or the
@@ -2382,7 +2382,7 @@ loop that only scans input, such as a repeated character class, is bounded by
 `Compute`. A cancelled
 context returns the error of the context (`errors.Is(err, context.Canceled)` or
 `context.DeadlineExceeded`); an exhausted limit returns an error that matches
-`parse.ErrLimit`, and `errors.As` with `*parse.LimitError` gives the
+`core.ErrLimit`, and `errors.As` with `*core.LimitError` gives the
 details. Stream parses and documents are specified in [Streaming](streaming.md)
 and [Incremental Documents](documents.md).
 

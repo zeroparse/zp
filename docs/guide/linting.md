@@ -163,7 +163,7 @@ zp lint -g linear.zp
 zp: linear.zp:8:10: the grammar from start rule main is declared @linear, but the cost can grow as n^2: after the alternative at 6:14 in rule main fails, the later alternative "a" at 6:18 in rule main can start again inside the input that the repetition "a"* at 8:10 in rule A examined; this repeats in the repetition (A / "a")* at 6:13 in rule main; scan once: put the scan and what may follow it in one alternative (see https://zeroparse.dev/docs/cookbook/linear-rewrites/#a-repetition-restarted-after-backtracking)
 ```
 
-Every command that compiles the grammar, `zp parse` and `zp gen` among them, fails the same way, and so do `zp.Compile`
+Every command that compiles the grammar, `zp parse` and `zp gen` among them, fails the same way, and so do `engine.Compile`
 and the editor. Each error ends with the rewrite for its kind of cause and a link to the section of the cookbook recipe
 Rewrite a Grammar to Linear Cost that shows it; a reason for the class unknown links to
 the recipe as a whole. Here the cause is a repetition restarted after backtracking, and `A = "a" "c"` makes the grammar
@@ -187,7 +187,7 @@ method takes a context, a grammar AST and the start rule. It returns an error, a
 does not compile or the context ends:
 
 ```go
-g, err := zp.ParseGrammar(src)
+g, err := engine.ParseGrammar(src)
 if err != nil {
 	log.Fatal(err)
 }
@@ -207,7 +207,7 @@ A test can keep a grammar free of mistakes:
 
 ```go
 func TestGrammarLint(t *testing.T) {
-	g, err := zp.ParseGrammar(grammarSource)
+	g, err := engine.ParseGrammar(grammarSource)
 	if err != nil {
 		t.Fatal(err)
 	}

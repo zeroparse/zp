@@ -10,10 +10,10 @@ import (
 	"strings"
 	"testing"
 
+	"zeroparse.dev/zp/core"
 	. "zeroparse.dev/zp/internal/engine"
-	"zeroparse.dev/zp/internal/engine/core"
+	ecore "zeroparse.dev/zp/internal/engine/core"
 	"zeroparse.dev/zp/internal/engine/vm"
-	"zeroparse.dev/zp/runtime/parse"
 )
 
 func TestBudgetDocumentAdmittedAbortAndRetry(t *testing.T) {
@@ -38,7 +38,7 @@ rule item = "a"`)
 				defer cancel()
 				o := base
 				o.Context = ctx
-				var saved *core.Parser
+				var saved *ecore.Parser
 				if phase == "setup" {
 					cancel()
 				}
@@ -47,7 +47,7 @@ rule item = "a"`)
 				}
 				if phase == "enter" || phase == "exit" {
 					o.Trace = func(e TraceEvent) {
-						saved = core.TraceParser(e)
+						saved = ecore.TraceParser(e)
 						if e.Rule == "main" && ((phase == "enter" && e.Kind == TraceEnter) || (phase == "exit" && e.Kind == TraceExit)) {
 							cancel()
 						}
@@ -56,7 +56,7 @@ rule item = "a"`)
 				n, err := d.ParseWith(o)
 				want := error(context.Canceled)
 				if phase == "steps" {
-					want = parse.ErrLimit
+					want = core.ErrLimit
 				}
 				if n != nil || !errors.Is(err, want) {
 					t.Fatalf("node=%v error=%v", n, err)
@@ -97,7 +97,7 @@ func TestBudgetDocumentConstruction(t *testing.T) {
 			case "input":
 				o.Limits.Compute = 1
 			case "steps":
-				if core.DocumentPieceInput && base.Unit == parse.Bytes {
+				if ecore.DocumentPieceInput && base.Unit == core.Bytes {
 					continue
 				}
 				o.Limits.Compute = 1
@@ -113,12 +113,12 @@ func TestBudgetDocumentConstruction(t *testing.T) {
 			if phase == "canceled" && !errors.Is(err, context.Canceled) {
 				t.Fatal(err)
 			}
-			if phase != "canceled" && !errors.Is(err, parse.ErrLimit) {
+			if phase != "canceled" && !errors.Is(err, core.ErrLimit) {
 				t.Fatal(err)
 			}
 		}
 		o := base
-		o.Limits = parse.Limits{Compute: 100000}
+		o.Limits = core.Limits{Compute: 100000}
 		d, err := prog.NewDocumentWith("main", "é💡abc", o)
 		if err != nil || d == nil {
 			t.Fatalf("fresh construction: %v", err)
@@ -126,13 +126,13 @@ func TestBudgetDocumentConstruction(t *testing.T) {
 		if d.Input().Control != nil {
 			t.Fatal("construction control retained")
 		}
-		var last *core.BudgetControl
+		var last *ecore.BudgetControl
 		o.Trace = func(e TraceEvent) {
 			if e.Kind == TraceEnter && e.Rule == "main" {
-				if core.TraceParser(e).Control == nil || core.TraceParser(e).Control == last || core.TraceParser(e).Control.Used > 1 { // at most the entry of the rule
+				if ecore.TraceParser(e).Control == nil || ecore.TraceParser(e).Control == last || ecore.TraceParser(e).Control.Used > 1 { // at most the entry of the rule
 					t.Fatal("parse inherited construction or previous counters")
 				}
-				last = core.TraceParser(e).Control
+				last = ecore.TraceParser(e).Control
 			}
 		}
 		for i := 0; i < 2; i++ {
@@ -159,10 +159,10 @@ func TestBudgetDocumentModeRejectionPreservesState(t *testing.T) {
 			o.Context = &budgetContextDonePanic{Context: context.Background(), token: &budgetContextPanicToken{phase: "must not consult"}}
 			switch mode {
 			case "unit":
-				if o.Unit == parse.Bytes {
-					o.Unit = parse.CodePoints
+				if o.Unit == core.Bytes {
+					o.Unit = core.CodePoints
 				} else {
-					o.Unit = parse.Bytes
+					o.Unit = core.Bytes
 				}
 			case "backend":
 				if o.Backend == Closure {
@@ -192,7 +192,7 @@ func TestBudgetDocumentModeRejectionPreservesState(t *testing.T) {
 
 func TestBudgetDocumentPreRunPreservesOversizedValues(t *testing.T) {
 	for _, backend := range []Backend{Bytecode, BytecodeIterative} {
-		for _, unit := range []parse.PositionUnit{parse.Bytes, parse.CodePoints} {
+		for _, unit := range []core.PositionUnit{core.Bytes, core.CodePoints} {
 			prog := mustCompile(t, `rule main = "a" $$`)
 			d, err := prog.NewDocumentWith("main", "a", ParseOptions{Backend: backend, Unit: unit})
 			if err != nil {
@@ -241,7 +241,7 @@ func budgetDocumentAssertPreserved(t *testing.T, d *Document, before Document) {
 func budgetDocumentAssertRetry(t *testing.T, d *Document) {
 	t.Helper()
 	o := d.ParseDefaults()
-	o.Context, o.Limits, o.Trace = nil, parse.Limits{}, nil
+	o.Context, o.Limits, o.Trace = nil, core.Limits{}, nil
 	if got, want := resultJSON(d.ParseWith(o)), resultJSON(d.Runner().(*Program).ParseWith(d.Start(), d.Text(), o)); got != want {
 		t.Fatalf("retry %s; fresh %s", got, want)
 	}
@@ -274,7 +274,7 @@ func TestBudgetDocumentCallerPanicAtBoundaries(t *testing.T) {
 				if at == 0 {
 					o.Context = &budgetContextDonePanic{Context: context.Background(), token: token}
 				}
-				var n *parse.Node
+				var n *core.Node
 				got := budgetContextRecover(func() { n, err = d.ParseWith(o) })
 				if got != token || n != nil {
 					t.Fatalf("panic=%v node=%v", got, n)
@@ -295,7 +295,7 @@ func TestBudgetDocumentCallerPanicAtBoundaries(t *testing.T) {
 
 func TestBudgetDocumentPreservesVMFaultAttribution(t *testing.T) {
 	for _, backend := range []Backend{Bytecode, BytecodeIterative} {
-		for _, unit := range []parse.PositionUnit{parse.Bytes, parse.CodePoints} {
+		for _, unit := range []core.PositionUnit{core.Bytes, core.CodePoints} {
 			prog := mustCompile(t, `rule main = "a" $$`)
 			d, err := prog.NewDocumentWith("main", "a", ParseOptions{Backend: backend, Unit: unit})
 			if err != nil {

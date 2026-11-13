@@ -7,15 +7,15 @@ import (
 	"strings"
 	"testing"
 
+	"zeroparse.dev/zp/core"
 	"zeroparse.dev/zp/internal/compile"
-	"zeroparse.dev/zp/internal/engine/core"
-	"zeroparse.dev/zp/runtime/parse"
+	ecore "zeroparse.dev/zp/internal/engine/core"
 )
 
 func TestSparseMemoRuleAndPageBoundaries(t *testing.T) {
 	t.Parallel()
 	for _, stride := range []int{63, 64, 65, 128, 175} {
-		memo := core.MemoTable{Stride: stride}
+		memo := ecore.MemoTable{Stride: stride}
 		positions := []int{0, 1, 63, 64, 1023, 1024, 1025, 65535}
 		for _, pos := range positions {
 			for _, rule := range []int{0, stride - 1} {
@@ -45,14 +45,14 @@ func TestSparseMemoRuleAndPageBoundaries(t *testing.T) {
 				}
 			}
 		}
-		if core.SparseMemo && stride > 64 && len(memo.Seen) != 0 {
+		if ecore.SparseMemo && stride > 64 && len(memo.Seen) != 0 {
 			t.Fatal("sparse path allocated the dense bitset")
 		}
 	}
 }
 
-func sparseMemoRecord(memo *core.MemoTable, pos, rule int) bool {
-	if core.SparseMemo && memo.Stride > 64 {
+func sparseMemoRecord(memo *ecore.MemoTable, pos, rule int) bool {
+	if ecore.SparseMemo && memo.Stride > 64 {
 		return memo.MarkSparseSeen(pos, rule)
 	}
 	return memo.MarkSeen(pos, rule)
@@ -60,7 +60,7 @@ func sparseMemoRecord(memo *core.MemoTable, pos, rule int) bool {
 
 func TestSparseMemoStrideChanges(t *testing.T) {
 	t.Parallel()
-	memo := core.MemoTable{}
+	memo := ecore.MemoTable{}
 	for _, stride := range []int{175, 65, 64, 128, 175} {
 		memo.Stride = stride
 		if !sparseMemoRecord(&memo, 1024, stride-1) || sparseMemoRecord(&memo, 1024, stride-1) {
@@ -74,17 +74,17 @@ func TestSparseMemoStrideChanges(t *testing.T) {
 
 func TestSparseMemoResetBounds(t *testing.T) {
 	t.Parallel()
-	for _, memo := range []core.MemoTable{
-		{Pages: make([]core.SeenRulePages, 0, core.MaxScratch/5+1)},
-		{Pages: make([]core.SeenRulePages, 0, core.MaxScratch/5), BitPages: core.Arena[[16]uint64]{Chunks: []*[64][16]uint64{new([64][16]uint64)}}},
-		{Pages: []core.SeenRulePages{{Pages: make([]*[16]uint64, 0, core.MaxScratch+1)}}},
+	for _, memo := range []ecore.MemoTable{
+		{Pages: make([]ecore.SeenRulePages, 0, ecore.MaxScratch/5+1)},
+		{Pages: make([]ecore.SeenRulePages, 0, ecore.MaxScratch/5), BitPages: ecore.Arena[[16]uint64]{Chunks: []*[64][16]uint64{new([64][16]uint64)}}},
+		{Pages: []ecore.SeenRulePages{{Pages: make([]*[16]uint64, 0, ecore.MaxScratch+1)}}},
 	} {
 		if memo.Reset() {
 			t.Fatal("oversized directory retained")
 		}
 	}
-	memo := core.MemoTable{Stride: 65}
-	for i := 0; i <= core.MaxScratch/16; i++ {
+	memo := ecore.MemoTable{Stride: 65}
+	for i := 0; i <= ecore.MaxScratch/16; i++ {
 		memo.MarkSparseSeen(i*1024, 0)
 	}
 	if memo.Reset() {
@@ -110,7 +110,7 @@ func TestSparseMemoParseControls(t *testing.T) {
 		t.Fatal("control no longer exercises sparse rule count")
 	}
 	for i, input := range []string{"const 日本語 = \"😀\";\nconst v = [1, 2].map(x => x + 1);\n", "function f( { return 1;", strings.Repeat("const 日本語 = 1 + 2;\n", 100), strings.Repeat("const a = 1;\n", 100) + "function f( { return 1;"} {
-		for _, unit := range []parse.PositionUnit{parse.CodePoints, parse.Bytes} {
+		for _, unit := range []core.PositionUnit{core.CodePoints, core.Bytes} {
 			for _, recognize := range []bool{false, true} {
 				checkTrace(t, prog, "main", input, ParseOptions{Unit: unit, Recognize: recognize})
 				for _, backend := range []Backend{Closure, Bytecode, BytecodeIterative} {
@@ -143,17 +143,17 @@ func TestSparseMemoInputSelection(t *testing.T) {
 		"/*" + strings.Repeat("a", 1020) + "*/",
 	} {
 		for _, backend := range []Backend{Closure, Bytecode, BytecodeIterative} {
-			for _, unit := range []parse.PositionUnit{parse.CodePoints, parse.Bytes} {
-				p := core.NewParser(&prog.sharedProgram, text, unit, true)
+			for _, unit := range []core.PositionUnit{core.CodePoints, core.Bytes} {
+				p := ecore.NewParser(&prog.sharedProgram, text, unit, true)
 				p.DeferMemo = true
 				if _, err := prog.Run(p, backend, "main"); err != nil {
 					t.Fatal(err)
 				}
 				want := len([]rune(text)) > 1024
-				if unit == parse.Bytes {
+				if unit == core.Bytes {
 					want = len(text) > 1024
 				}
-				want = want && core.SparseMemo
+				want = want && ecore.SparseMemo
 				if p.Memo.Sparse != want {
 					t.Fatalf("%s/%s: sparse=%t want=%t", backend, unit, p.Memo.Sparse, want)
 				}

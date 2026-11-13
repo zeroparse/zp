@@ -11,21 +11,21 @@ import (
 	"testing"
 	"unicode/utf8"
 
+	"zeroparse.dev/zp/core"
 	"zeroparse.dev/zp/internal/compile"
 	"zeroparse.dev/zp/internal/engine"
 	"zeroparse.dev/zp/internal/gen"
 	"zeroparse.dev/zp/internal/gen/gents"
 	"zeroparse.dev/zp/internal/gentest"
-	"zeroparse.dev/zp/runtime/parse"
 )
 
 // literalTextUnits computes JS text units from the documented byte-preserving
 // surrogate convention, independently of the TypeScript matcher.
-func literalTextUnits(input string, unit parse.PositionUnit) []rune {
+func literalTextUnits(input string, unit core.PositionUnit) []rune {
 	var units []rune
 	for i := 0; i < len(input); {
 		r, size := utf8.DecodeRuneInString(input[i:])
-		if unit == parse.Bytes && r == utf8.RuneError && size == 1 {
+		if unit == core.Bytes && r == utf8.RuneError && size == 1 {
 			units = append(units, 0xdc00+rune(input[i]))
 		} else if r > 0xffff {
 			r -= 0x10000
@@ -57,8 +57,8 @@ func TestGeneratedTSInvalidUTF8Literals(t *testing.T) {
 			var script, want strings.Builder
 			script.WriteString(`import {parse,recognize,marshal,Node,CodePoints,Bytes} from "./parser.ts";` + "\n")
 			for _, input := range tc.Inputs {
-				fmt.Fprintf(&script, `for (const unit of [CodePoints,Bytes]){const input=new Uint8Array(Buffer.from(%q,"base64"));const r=parse(input,unit);const rec=recognize(input,unit);if((rec?.message??null)!==(r.error?.message??null))throw new Error("recognition differs");const child=r.node?.field("T");const expected=unit===Bytes?String.fromCharCode(...%s):String.fromCharCode(...%s);if(!r.error && (!(child instanceof Node)||child.text!==expected))throw new Error("matched bytes differ");const out:Record<string,unknown>={};if(r.error)out["err"]=r.error.message;out["node"]=JSON.parse(marshal(r.node));console.log(JSON.stringify(out));}`+"\n", base64.StdEncoding.EncodeToString([]byte(input)), gents.TsInts(literalTextUnits(input, parse.Bytes)), gents.TsInts(literalTextUnits(input, parse.CodePoints)))
-				for _, unit := range []parse.PositionUnit{parse.CodePoints, parse.Bytes} {
+				fmt.Fprintf(&script, `for (const unit of [CodePoints,Bytes]){const input=new Uint8Array(Buffer.from(%q,"base64"));const r=parse(input,unit);const rec=recognize(input,unit);if((rec?.message??null)!==(r.error?.message??null))throw new Error("recognition differs");const child=r.node?.field("T");const expected=unit===Bytes?String.fromCharCode(...%s):String.fromCharCode(...%s);if(!r.error && (!(child instanceof Node)||child.text!==expected))throw new Error("matched bytes differ");const out:Record<string,unknown>={};if(r.error)out["err"]=r.error.message;out["node"]=JSON.parse(marshal(r.node));console.log(JSON.stringify(out));}`+"\n", base64.StdEncoding.EncodeToString([]byte(input)), gents.TsInts(literalTextUnits(input, core.Bytes)), gents.TsInts(literalTextUnits(input, core.CodePoints)))
+				for _, unit := range []core.PositionUnit{core.CodePoints, core.Bytes} {
 					n, err := prog.ParseWith("main", input, engine.ParseOptions{Expectations: true, Unit: unit})
 					want.WriteString(gentest.ResultJSON(n, err) + "\n")
 				}

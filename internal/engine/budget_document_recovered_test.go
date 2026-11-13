@@ -8,7 +8,7 @@ import (
 	"strings"
 	"testing"
 
-	"zeroparse.dev/zp/runtime/parse"
+	"zeroparse.dev/zp/core"
 )
 
 // recoverGrammar recovers an error at each item and shares the list of the errors between the results
@@ -28,7 +28,7 @@ func TestBudgetDocumentRecoveredErrorsWithinFresh(t *testing.T) {
 			o := ParseOptions{Backend: back}
 			for _, n := range []int{1 << 12, 1 << 14} {
 				fresh, doc, ferr, derr := freshAndDocumentUnits(t, prog, strings.Repeat("b;", n), o)
-				if errors.Is(ferr, parse.ErrLimit) || errors.Is(derr, parse.ErrLimit) {
+				if errors.Is(ferr, core.ErrLimit) || errors.Is(derr, core.ErrLimit) {
 					t.Fatalf("n=%d: parse from scratch: %.80v; Document parse: %.80v; want neither to exceed the limit", n, ferr, derr)
 				}
 				if doc > 3*fresh {

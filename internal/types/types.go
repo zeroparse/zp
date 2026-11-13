@@ -7,7 +7,7 @@ import (
 	"sort"
 	"strings"
 
-	"zeroparse.dev/zp/runtime/noderep"
+	"zeroparse.dev/zp/core/noderep"
 )
 
 // Ty is a type used in type checking.

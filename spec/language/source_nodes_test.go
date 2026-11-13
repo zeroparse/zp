@@ -5,11 +5,11 @@ import (
 	"reflect"
 	"sort"
 	"testing"
-	"zeroparse.dev/zp"
+	"zeroparse.dev/zp/core"
+	"zeroparse.dev/zp/engine"
 	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/syntax"
 	"zeroparse.dev/zp/internal/syntax/sourceast"
-	"zeroparse.dev/zp/runtime/parse"
 )
 
 // The canonical grammar keeps every comment of the source with the gaps between
@@ -76,12 +76,12 @@ func separators(src []rune, off int, sep rune, most int) []int {
 	return last
 }
 
-func fieldNode(n *parse.Node, name string) *parse.Node {
-	c, _ := n.Field(name).(*parse.Node)
+func fieldNode(n *core.Node, name string) *core.Node {
+	c, _ := n.Field(name).(*core.Node)
 	return c
 }
 
-func listNodes(n *parse.Node, name string) []*parse.Node {
+func listNodes(n *core.Node, name string) []*core.Node {
 	l := fieldNode(n, name)
 	if l == nil {
 		return nil
@@ -90,7 +90,7 @@ func listNodes(n *parse.Node, name string) []*parse.Node {
 }
 
 // stringList returns the strings of the list field name of n.
-func stringList(n *parse.Node, name string) []string {
+func stringList(n *core.Node, name string) []string {
 	var out []string
 	for _, e := range listNodes(n, name) {
 		out = append(out, e.Value().(string))
@@ -98,7 +98,7 @@ func stringList(n *parse.Node, name string) []string {
 	return out
 }
 
-func canonicalGaps(t *testing.T, root *parse.Node) []sourceast.Gap {
+func canonicalGaps(t *testing.T, root *core.Node) []sourceast.Gap {
 	t.Helper()
 	var gaps []sourceast.Gap
 	for _, g := range listNodes(root, "Gaps") {
@@ -131,7 +131,7 @@ func (s *shaper) add(label string, events ...sourceast.Event) int {
 	return len(s.nodes) - 1
 }
 
-func (s *shaper) span(label string, n *parse.Node) int {
+func (s *shaper) span(label string, n *core.Node) int {
 	return s.add(label, sourceast.Event{Start: n.Start(), End: n.End()})
 }
 
@@ -153,7 +153,7 @@ func (s *shaper) hide(i int) { s.hidden[i] = true }
 
 // list adds the nodes of the elements of a comma-separated list. The outermost
 // node of an element claims the trailing group after the comma that follows it.
-func (s *shaper) list(n *parse.Node, field string, add func(*parse.Node)) {
+func (s *shaper) list(n *core.Node, field string, add func(*core.Node)) {
 	for _, a := range listNodes(n, field) {
 		add(a)
 		s.later(len(s.nodes)-1, separators(s.src, a.End(), ',', 1))
@@ -162,15 +162,15 @@ func (s *shaper) list(n *parse.Node, field string, add func(*parse.Node)) {
 
 // flatten returns the operands of a chain of binary nodes of one type, which
 // the public AST holds in one node.
-func flatten(n *parse.Node, typ string) []*parse.Node {
+func flatten(n *core.Node, typ string) []*core.Node {
 	if n.Type() != typ {
-		return []*parse.Node{n}
+		return []*core.Node{n}
 	}
 	return append(flatten(fieldNode(n, "L"), typ), fieldNode(n, "R"))
 }
 
 // statement adds the node of a statement or list element with its span.
-func (s *shaper) statement(label string, n *parse.Node, sep []int) {
+func (s *shaper) statement(label string, n *core.Node, sep []int) {
 	span := sourceField(s.t, n, "SourceSpan")
 	i := s.span(label, span)
 	if label == "FieldInit" {
@@ -180,8 +180,8 @@ func (s *shaper) statement(label string, n *parse.Node, sep []int) {
 	s.joined(i, sep)
 }
 
-func (s *shaper) file(root *parse.Node) {
-	if pkg, ok := root.Field("Pkg").(*parse.Node); ok && pkg != nil && pkg.Type() == "Pkg" {
+func (s *shaper) file(root *core.Node) {
+	if pkg, ok := root.Field("Pkg").(*core.Node); ok && pkg != nil && pkg.Type() == "Pkg" {
 		span := sourceField(s.t, sourceField(s.t, pkg, "Source"), "Span")
 		attrs := listNodes(pkg, "Attrs")
 		for _, attr := range attrs {
@@ -200,7 +200,7 @@ func (s *shaper) file(root *parse.Node) {
 	}
 }
 
-func (s *shaper) decl(d *parse.Node) {
+func (s *shaper) decl(d *core.Node) {
 	span := sourceField(s.t, d, "SourceSpan")
 	sep := separators(s.src, span.End(), ';', 1<<30)
 	switch d.Type() {
@@ -251,7 +251,7 @@ func (s *shaper) decl(d *parse.Node) {
 
 // Types.
 
-func (s *shaper) structType(n *parse.Node, start int) {
+func (s *shaper) structType(n *core.Node, start int) {
 	for _, f := range listNodes(n, "Fields") {
 		span := sourceField(s.t, f, "SourceSpan")
 		s.typ(fieldNode(f, "Type"))
@@ -260,7 +260,7 @@ func (s *shaper) structType(n *parse.Node, start int) {
 	s.add("StructType", sourceast.Event{Start: start, End: n.End()})
 }
 
-func (s *shaper) typ(n *parse.Node) {
+func (s *shaper) typ(n *core.Node) {
 	switch n.Type() {
 	case "TypeRef", "Bottom":
 		s.span("TypeRef", n)
@@ -292,7 +292,7 @@ func (s *shaper) typ(n *parse.Node) {
 
 // pragma adds a node that a pragma completes twice: at the "#" and then, once
 // the suffix loop has it, from the start of its operand.
-func (s *shaper) pragma(label string, n, operand *parse.Node) int {
+func (s *shaper) pragma(label string, n, operand *core.Node) int {
 	hash := nextToken(s.src, operand.End())
 	i := s.add(label,
 		sourceast.Event{Start: hash, End: n.End()},
@@ -303,7 +303,7 @@ func (s *shaper) pragma(label string, n, operand *parse.Node) int {
 	return s.created(i, hash)
 }
 
-func (s *shaper) rule(n *parse.Node) {
+func (s *shaper) rule(n *core.Node) {
 	switch n.Type() {
 	case "RuleRef":
 		s.span("Ref", n)
@@ -376,14 +376,14 @@ func (s *shaper) rule(n *parse.Node) {
 }
 
 // bareLayer reports a pragma without arguments, which the source tree records as a layer of its own.
-func bareLayer(n *parse.Node) bool {
+func bareLayer(n *core.Node) bool {
 	return n.Type() == "MissingPragma" || n.Type() == "IgnoreCase"
 }
 
 // attributed adds the one node that a run of attributes and bare pragmas
 // becomes. It is completed again by every suffix after the first.
-func (s *shaper) attributed(n *parse.Node) {
-	var layers []*parse.Node // outermost first
+func (s *shaper) attributed(n *core.Node) {
+	var layers []*core.Node // outermost first
 	base := n
 	for base.Type() == "Attributed" || bareLayer(base) {
 		layers = append(layers, base)
@@ -412,11 +412,11 @@ func (s *shaper) attributed(n *parse.Node) {
 	s.add("Attributed", events...)
 }
 
-func (s *shaper) attribute(layer *parse.Node) {
+func (s *shaper) attribute(layer *core.Node) {
 	s.attr(fieldNode(layer, "Attr"))
 }
 
-func (s *shaper) attr(attr *parse.Node) {
+func (s *shaper) attr(attr *core.Node) {
 	for _, v := range listNodes(attr, "Args") {
 		s.attrValue(v)
 	}
@@ -429,7 +429,7 @@ func (s *shaper) attr(attr *parse.Node) {
 // attrValue completes the nodes of an argument. Numbers and keywords are read
 // without a node, and a string is completed as a literal that the attribute
 // then holds as its value.
-func (s *shaper) attrValue(v *parse.Node) {
+func (s *shaper) attrValue(v *core.Node) {
 	if v == nil {
 		return
 	}
@@ -442,7 +442,7 @@ func (s *shaper) attrValue(v *parse.Node) {
 	}
 }
 
-func (s *shaper) operators(n *parse.Node) {
+func (s *shaper) operators(n *core.Node) {
 	for _, it := range listNodes(n, "Items") {
 		span := sourceField(s.t, it, "SourceSpan")
 		sep := separators(s.src, span.End(), ';', 1<<30)
@@ -477,7 +477,7 @@ func (s *shaper) operators(n *parse.Node) {
 
 // block adds the statements of an action block. The statements of a predicate
 // are a block of their own unless there is exactly one.
-func (s *shaper) block(n *parse.Node, label string) {
+func (s *shaper) block(n *core.Node, label string) {
 	stmts := listNodes(n, "Actions")
 	for _, st := range stmts {
 		s.action(st)
@@ -494,7 +494,7 @@ func (s *shaper) block(n *parse.Node, label string) {
 	s.span("Predicate", n)
 }
 
-func (s *shaper) action(n *parse.Node) {
+func (s *shaper) action(n *core.Node) {
 	switch n.Type() {
 	case "Int":
 		s.span("IntLit", n)
@@ -568,7 +568,7 @@ func nodeKey(kind string, s grammar.SourceInfo) string {
 }
 
 // canonicalNodes assigns source information to every node of the canonical tree.
-func canonicalNodes(t *testing.T, src string, root *parse.Node) map[string]grammar.SourceInfo {
+func canonicalNodes(t *testing.T, src string, root *core.Node) map[string]grammar.SourceInfo {
 	t.Helper()
 	s := &shaper{t: t, src: []rune(src)}
 	s.file(root)
@@ -653,7 +653,7 @@ func manualNodes(t *testing.T, g *grammar.Grammar) map[string]grammar.SourceInfo
 }
 
 // assertNodeParity requires identical source information for every node of src.
-func assertNodeParity(t *testing.T, p *zp.Parser, name, src string) {
+func assertNodeParity(t *testing.T, p *engine.Parser, name, src string) {
 	t.Helper()
 	if !compareNodes(t, p, name, src) {
 		t.FailNow()
@@ -665,7 +665,7 @@ func assertNodeParity(t *testing.T, p *zp.Parser, name, src string) {
 // reject is skipped. compared counts the sources compareNodes compared.
 var compared int
 
-func compareNodes(t *testing.T, p *zp.Parser, name, src string) bool {
+func compareNodes(t *testing.T, p *engine.Parser, name, src string) bool {
 	t.Helper()
 	manual, merr := syntax.ParseReference(src)
 	n, err := p.Parse(src)

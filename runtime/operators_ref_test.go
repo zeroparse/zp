@@ -7,7 +7,7 @@ import (
 	"strings"
 	"testing"
 
-	"zeroparse.dev/zp/runtime/parse"
+	"zeroparse.dev/zp/core"
 )
 
 // The hand-written Operators Rule loop and reset that the compositions of internal/ir/exec/core
@@ -75,7 +75,7 @@ func (p *Parser) refApply(a *operatorsRuleAttempt) {
 func (p *Parser) refApplyErrors(a *operatorsRuleAttempt) {
 	p.recAdd(a.errs)
 }
-func (p *Parser) refOperatorsRuleParse(r *Rule, min int) (*parse.Node, bool) {
+func (p *Parser) refOperatorsRuleParse(r *Rule, min int) (*core.Node, bool) {
 	p.Depth++
 	if p.Depth > p.MaxDepth {
 		p.TooDeep()
@@ -84,7 +84,7 @@ func (p *Parser) refOperatorsRuleParse(r *Rule, min int) (*parse.Node, bool) {
 	p.Depth--
 	return v, ok
 }
-func (p *Parser) refOperatorsRuleExpr(r *Rule, min int) (*parse.Node, bool) {
+func (p *Parser) refOperatorsRuleExpr(r *Rule, min int) (*core.Node, bool) {
 	pr := r.OperatorsRule
 	// The right operand of an infix part that consumed no input does not apply an empty infix part
 	// at its start, which would begin the same expression again without end.
@@ -159,7 +159,7 @@ func (p *Parser) refOperatorsRuleExpr(r *Rule, min int) (*parse.Node, bool) {
 	}
 	return lhs, true
 }
-func (p *Parser) refOperatorsRuleNud(r *Rule) (*parse.Node, int, bool) {
+func (p *Parser) refOperatorsRuleNud(r *Rule) (*core.Node, int, bool) {
 	pr := r.OperatorsRule
 	p.refSkipTrivia(pr)
 	m0 := p.Mark()
@@ -201,8 +201,8 @@ func (p *Parser) refOperatorsRuleNud(r *Rule) (*parse.Node, int, bool) {
 type oprTrace struct {
 	in    string
 	envs  []*Env
-	errs  []*parse.SyntaxError
-	nodes []*parse.Node
+	errs  []*core.SyntaxError
+	nodes []*core.Node
 	log   []string
 }
 
@@ -219,7 +219,7 @@ func oprLine(rng *rand.Rand, tr *oprTrace, name, lit string, slots int) matcher 
 	recover := rng.Intn(5) == 0
 	env := rng.Intn(5) == 0
 	k := rng.Intn(len(tr.envs))
-	return func(p *Parser) (*parse.Node, bool) {
+	return func(p *Parser) (*core.Node, bool) {
 		tr.log = append(tr.log, fmt.Sprintf("%s@%d", name, p.Pos))
 		if !strings.HasPrefix(tr.in[p.Pos:], lit) {
 			return nil, false
@@ -311,7 +311,7 @@ func oprRule(rng *rand.Rand, tr *oprTrace) *Rule {
 		// A skip that needs a "#" after its spaces recovers an error and then fails after
 		// consuming them, so that skipTrivia must reset what it did.
 		hash := rng.Intn(2) == 0
-		pr.Skip = func(p *Parser) (*parse.Node, bool) {
+		pr.Skip = func(p *Parser) (*core.Node, bool) {
 			tr.log = append(tr.log, fmt.Sprintf("skip@%d", p.Pos))
 			if p.Pos == len(tr.in) || tr.in[p.Pos] != ' ' {
 				return nil, false
@@ -343,7 +343,7 @@ func TestOperatorsRuleMatchesReference(t *testing.T) {
 			tr := &oprTrace{}
 			for range 3 {
 				tr.envs = append(tr.envs, &Env{})
-				tr.errs = append(tr.errs, &parse.SyntaxError{Pos: len(tr.errs)})
+				tr.errs = append(tr.errs, &core.SyntaxError{Pos: len(tr.errs)})
 				tr.nodes = append(tr.nodes, nodeOfData(&Data{}))
 			}
 			r := oprRule(rng, tr)
@@ -353,13 +353,13 @@ func TestOperatorsRuleMatchesReference(t *testing.T) {
 			}
 			tr.in = in.String()
 			min := rng.Intn(3)
-			run := func(parseFn func(p *Parser) (*parse.Node, bool)) string {
+			run := func(parseFn func(p *Parser) (*core.Node, bool)) string {
 				tr.log = nil
 				p := &Parser{MaxDepth: 12}
 				if controlled {
-					p.Control = newBudgetControl(nil, parse.Limits{Compute: 1 << 40})
+					p.Control = newBudgetControl(nil, core.Limits{Compute: 1 << 40})
 				}
-				var v *parse.Node
+				var v *core.Node
 				var ok bool
 				fatalMsg := ""
 				func() {
@@ -391,8 +391,8 @@ func TestOperatorsRuleMatchesReference(t *testing.T) {
 				return fmt.Sprintf("v=%s ok=%v fatal=%q pos=%d errs=%v env=%d trail=%d frame=%v cut=%v depth=%d spent=%d log=%v",
 					oprShow(UnboxNode(v)), ok, fatalMsg, p.Pos, errs, env, len(p.Trail), p.Frame != nil, p.Cut, p.Depth, spent, tr.log)
 			}
-			got := run(func(p *Parser) (*parse.Node, bool) { return p.OperatorsRuleParse(r, min) })
-			want := run(func(p *Parser) (*parse.Node, bool) { return p.refOperatorsRuleParse(r, min) })
+			got := run(func(p *Parser) (*core.Node, bool) { return p.OperatorsRuleParse(r, min) })
+			want := run(func(p *Parser) (*core.Node, bool) { return p.refOperatorsRuleParse(r, min) })
 			if got != want {
 				t.Fatalf("controlled %v round %d input %q min %d:\nprinted   %s\nreference %s", controlled, round, tr.in, min, got, want)
 			}

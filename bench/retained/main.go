@@ -13,9 +13,9 @@ import (
 	"runtime"
 	"runtime/debug"
 
-	"zeroparse.dev/zp"
+	"zeroparse.dev/zp/core"
+	"zeroparse.dev/zp/engine"
 	"zeroparse.dev/zp/internal/bench/inputs"
-	"zeroparse.dev/zp/runtime/parse"
 )
 
 const forcedGCs = 3
@@ -100,10 +100,10 @@ func run(args []string, out io.Writer) error {
 
 	// Allocate the owner slice before the baseline so its backing storage is
 	// excluded. Input and source remain alive across both snapshots.
-	owners := make([]*zp.Parser, o.count)
+	owners := make([]*engine.Parser, o.count)
 	before := liveHeap()
 	for i := range owners {
-		owners[i], err = zp.CompileSource(source, "main")
+		owners[i], err = engine.CompileSource(source, "main")
 		if err != nil {
 			return fmt.Errorf("compilation %d: %w", i, err)
 		}
@@ -148,12 +148,12 @@ func corpus(repo, name string) (source, input string, err error) {
 func warm(source, input string, count int) (string, error) {
 	var result string
 	for i := 0; i < count; i++ {
-		p, err := zp.CompileSource(source, "main")
+		p, err := engine.CompileSource(source, "main")
 		if err != nil {
 			return "", fmt.Errorf("warmup compilation %d: %w", i, err)
 		}
 		if i == 0 {
-			n, err := p.Parse(input, zp.WithBackend(zp.Closure), zp.WithUnit(parse.CodePoints))
+			n, err := p.Parse(input, engine.WithBackend(engine.Closure), engine.WithUnit(core.CodePoints))
 			if err != nil {
 				return "", fmt.Errorf("full-input validation: %w", err)
 			}

@@ -99,8 +99,8 @@ Use `EditBatch` when one editor transaction contains several replacements. All r
 ```go
 base := doc.Version()
 err := doc.EditBatch(base,
-    parse.TextEdit{Start: 0, End: 2, Text: "xy"},
-    parse.TextEdit{Start: 3, End: 3, Text: "z"},
+    core.TextEdit{Start: 0, End: 2, Text: "xy"},
+    core.TextEdit{Start: 3, End: 3, Text: "z"},
 )
 if err != nil {
     return err
@@ -142,7 +142,7 @@ must keep the exact tree, text, diagnostics, and revision visible while the
 Document advances, capture them together:
 
 ```go
-snapshot, err := doc.Snapshot(zp.WithContext(ctx), zp.WithLimits(limits))
+snapshot, err := doc.Snapshot(engine.WithContext(ctx), engine.WithLimits(limits))
 if snapshot == nil {
     return err // cancellation or a compute limit publishes no partial snapshot
 }
@@ -178,8 +178,8 @@ read concurrently while the single-owner Document is edited or parsed.
 | `Fields()` | An owned slice of the fields, in original order |
 
 The snapshot graph preserves shared nodes and cycles. It freezes only field
-values of dynamic type nil, `int`, `string`, `bool`, or `*parse.Node`; an
-unsupported custom value returns `*parse.SnapshotCaptureError` and no Snapshot.
+values of dynamic type nil, `int`, `string`, `bool`, or `*core.Node`; an
+unsupported custom value returns `*core.SnapshotCaptureError` and no Snapshot.
 `Materialize` makes an independently mutable graph, preserving identities,
 cycles, nil slots, and nil versus allocated-empty collections. Use it when an
 existing API requires `*Node`; each call creates a separate graph.
@@ -218,7 +218,7 @@ import (
 	"fmt"
 	"log"
 
-	"zeroparse.dev/zp"
+	"zeroparse.dev/zp/engine"
 )
 
 const grammar = `@start
@@ -226,11 +226,11 @@ rule main =  line* $$
 rule line =  [a-z]+ "\n" `
 
 func main() {
-	p, err := zp.CompileSource(grammar, "main")
+	p, err := engine.CompileSource(grammar, "main")
 	if err != nil {
 		log.Fatal(err)
 	}
-	doc, err := p.NewDocument("ab\ncd\nef\n", zp.WithExpectations())
+	doc, err := p.NewDocument("ab\ncd\nef\n", engine.WithExpectations())
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -296,17 +296,17 @@ import (
 	"fmt"
 	"strings"
 
-	"zeroparse.dev/zp"
-	"zeroparse.dev/zp/runtime/parse"
+	"zeroparse.dev/zp/engine"
+	"zeroparse.dev/zp/core"
 )
 
-func js(n *parse.Node) string {
+func js(n *core.Node) string {
 	b, _ := json.Marshal(n)
 	return string(b)
 }
 
 func main() {
-	p, _ := zp.CompileSource(`@start
+	p, _ := engine.CompileSource(`@start
 rule main =  line* $$
 rule line =  [a-z]+ "\n" `, "main")
 	d, _ := p.NewDocument(strings.Repeat("ab\n", 100))

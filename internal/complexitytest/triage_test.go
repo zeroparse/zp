@@ -13,7 +13,7 @@ import (
 	"sync"
 	"testing"
 
-	"zeroparse.dev/zp"
+	"zeroparse.dev/zp/engine"
 	"zeroparse.dev/zp/gen"
 	"zeroparse.dev/zp/internal/complexity"
 )
@@ -27,7 +27,7 @@ func classifyFile(t *testing.T, path string) *complexity.Complexity {
 	if err != nil {
 		t.Fatal(err)
 	}
-	g, err := zp.ParseGrammar(string(src))
+	g, err := engine.ParseGrammar(string(src))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -185,7 +185,7 @@ func TestTriageMeasure(t *testing.T) {
 	for _, tg := range TriageGrammars {
 		paths[tg.Name] = tg.Path
 	}
-	parsers := map[string]*zp.Parser{}
+	parsers := map[string]*engine.Parser{}
 	for _, g := range TriageGroups() {
 		for _, f := range g.Families {
 			name := g.Grammar + "/" + g.ID + "/" + f.Name
@@ -199,7 +199,7 @@ func TestTriageMeasure(t *testing.T) {
 					if err != nil {
 						t.Fatal(err)
 					}
-					if p, err = zp.CompileSource(string(src), ""); err != nil {
+					if p, err = engine.CompileSource(string(src), ""); err != nil {
 						t.Fatal(err)
 					}
 					parsers[g.Grammar] = p
@@ -346,7 +346,7 @@ func generatedSteps(t, top *testing.T, name, path string, inputs []string, lenie
 		if err != nil {
 			t.Fatal(err)
 		}
-		g, err := zp.ParseGrammar(string(src))
+		g, err := engine.ParseGrammar(string(src))
 		if err != nil {
 			t.Fatal(err)
 		}

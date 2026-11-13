@@ -8,9 +8,9 @@ import (
 	"testing"
 	"time"
 
-	"zeroparse.dev/zp/internal/engine/core"
+	"zeroparse.dev/zp/core"
+	ecore "zeroparse.dev/zp/internal/engine/core"
 	"zeroparse.dev/zp/internal/gentest"
-	"zeroparse.dev/zp/runtime/parse"
 )
 
 //go:noinline
@@ -45,8 +45,8 @@ func TestDocumentVersionDoesNotRetainDocument(t *testing.T) {
 	t.Fatal("version token retained its document")
 }
 
-func batchOracle(text string, unit parse.PositionUnit, edits []parse.TextEdit) string {
-	if unit == parse.Bytes {
+func batchOracle(text string, unit core.PositionUnit, edits []core.TextEdit) string {
+	if unit == core.Bytes {
 		var out strings.Builder
 		pos := 0
 		for _, e := range edits {
@@ -85,12 +85,12 @@ rule item = .`, gentest.IncrementalGrammar, `rule main = ("a" @error("need a") #
 					wantClosureRefused(t, err)
 					continue
 				}
-				for _, unit := range []parse.PositionUnit{parse.CodePoints, parse.Bytes} {
+				for _, unit := range []core.PositionUnit{core.CodePoints, core.Bytes} {
 					for _, large := range []bool{false, true} {
 						t.Run(fmt.Sprintf("%d/%d/%s/%s/%v", gi, pi, back, unit, large), func(t *testing.T) {
 							initial := "é\xc3x\xa9\n"
 							if large {
-								initial += strings.Repeat("a", core.DocumentPieceMinSize)
+								initial += strings.Repeat("a", ecore.DocumentPieceMinSize)
 							}
 							d, err := p.NewDocumentWith("main", initial, ParseOptions{Backend: back, Unit: unit})
 							if err != nil {
@@ -106,17 +106,17 @@ rule item = .`, gentest.IncrementalGrammar, `rule main = ("a" @error("need a") #
 								}
 								before := d.Text()
 								positions := decodedBoundaries(before)
-								if unit == parse.CodePoints {
+								if unit == core.CodePoints {
 									for j := range positions {
 										positions[j] = j
 									}
 								}
-								var edits []parse.TextEdit
+								var edits []core.TextEdit
 								at := 0
 								for j := 0; j < 3 && at < len(positions); j++ {
 									start := at + rng.Intn(len(positions)-at)
 									end := start + rng.Intn(min(3, len(positions)-start))
-									edits = append(edits, parse.TextEdit{Start: positions[start], End: positions[end], Text: replacements[rng.Intn(len(replacements))]})
+									edits = append(edits, core.TextEdit{Start: positions[start], End: positions[end], Text: replacements[rng.Intn(len(replacements))]})
 									at = end + 1
 								}
 								wantText := batchOracle(before, unit, edits)

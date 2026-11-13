@@ -4,7 +4,7 @@ import (
 	"slices"
 	"testing"
 
-	"zeroparse.dev/zp/runtime/parse"
+	"zeroparse.dev/zp/core"
 )
 
 // TestTerminalPrepare checks the dispatch tables that Prepare builds: for each ASCII character,
@@ -134,7 +134,7 @@ func TestSkipTerminalAllocs(t *testing.T) {
 	tp := guardChoice([]*Class{letter('a'), letter('b'), letter('c'), letter('d')}, digit).Prepare()
 	for _, silent := range []int{0, 1} {
 		for _, in := range []string{"c1", "cx", "x", ""} {
-			p := &TParser{Parser: &Parser{unit: parse.Bytes, bs: in, n: len(in)}}
+			p := &TParser{Parser: &Parser{unit: core.Bytes, bs: in, n: len(in)}}
 			p.Silent = silent
 			if n := testing.AllocsPerRun(100, func() {
 				p.Pos = 0

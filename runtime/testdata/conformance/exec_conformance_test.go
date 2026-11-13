@@ -8,10 +8,10 @@ import (
 	"strings"
 	"testing"
 
+	"zeroparse.dev/zp/core"
 	"zeroparse.dev/zp/internal/ir/exec"
 	"zeroparse.dev/zp/internal/ir/exec/conform"
 	"zeroparse.dev/zp/internal/ir/exec/ref"
-	"zeroparse.dev/zp/runtime/parse"
 )
 
 // The generated Go runtime is the first implementation of the parser VM's pilot operations under
@@ -145,7 +145,7 @@ func recovery(p *Parser, lists recHandles, o *exec.Op, args []any) ([]any, bool)
 	case "rec.mark":
 		return []any{int64(len(p.Recovered))}, true
 	case "rec.push":
-		p.PushRecovered(args[0].(*parse.SyntaxError))
+		p.PushRecovered(args[0].(*core.SyntaxError))
 		return nil, true
 	case "rec.truncate":
 		p.Recovered = p.Recovered[:args[0].(int64)]
@@ -181,9 +181,9 @@ func newRTMachine(cfg ref.Config, controlled, sparse, stream bool) conform.Impl 
 	if controlled {
 		limit := cfg.Limit
 		if limit == 0 {
-			limit = parse.Unlimited
+			limit = core.Unlimited
 		}
-		p.Control = newBudgetControl(nil, parse.Limits{Compute: limit})
+		p.Control = newBudgetControl(nil, core.Limits{Compute: limit})
 	}
 	if m.metered {
 		return meteredRT{m}
@@ -199,7 +199,7 @@ func (m *rtMachine) Datum(id int64) any { return ref.Value(id) }
 
 func (m *rtMachine) Rule(index int64) any { return m.env.rules[index] }
 
-func (m *rtMachine) Err(id int64) any { return &parse.SyntaxError{Pos: int(id)} }
+func (m *rtMachine) Err(id int64) any { return &core.SyntaxError{Pos: int(id)} }
 
 func (m *rtMachine) Recovered() []int64 { return recoveredIDs(m.p) }
 
@@ -222,7 +222,7 @@ func interrupted() {
 			panic(x)
 		}
 		// The nesting limit is a LimitError too, of its own kind.
-		if le, limit := f.err.(*parse.LimitError); limit && le.Kind != parse.LimitDepth {
+		if le, limit := f.err.(*core.LimitError); limit && le.Kind != core.LimitDepth {
 			panic(exec.Interrupt{Reason: "limit"})
 		}
 		panic(exec.Interrupt{Reason: "nesting"})
@@ -394,7 +394,7 @@ func recoveredErrors(arg any) recEntry {
 	case *errorList:
 		return a.e
 	}
-	return recEntry{err: &parse.SyntaxError{}}
+	return recEntry{err: &core.SyntaxError{}}
 }
 
 // typedMachine binds the memo operations of the typed runtime, with the Document records of a typed
@@ -414,9 +414,9 @@ func newTypedMachine(cfg ref.Config, controlled bool) conform.Impl {
 	if controlled {
 		limit := cfg.Limit
 		if limit == 0 {
-			limit = parse.Unlimited
+			limit = core.Unlimited
 		}
-		p.Control = newBudgetControl(nil, parse.Limits{Compute: limit})
+		p.Control = newBudgetControl(nil, core.Limits{Compute: limit})
 		return meteredTyped{m}
 	}
 	return m
@@ -430,7 +430,7 @@ func (m *typedMachine) Datum(id int64) any { return ref.Value(id) }
 
 func (m *typedMachine) Rule(index int64) any { return m.env.rules[index] }
 
-func (m *typedMachine) Err(id int64) any { return &parse.SyntaxError{Pos: int(id)} }
+func (m *typedMachine) Err(id int64) any { return &core.SyntaxError{Pos: int(id)} }
 
 func (m *typedMachine) Recovered() []int64 { return recoveredIDs(m.p.Parser) }
 

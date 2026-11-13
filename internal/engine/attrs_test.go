@@ -5,9 +5,9 @@ import (
 	"strings"
 	"testing"
 
+	"zeroparse.dev/zp/core"
 	"zeroparse.dev/zp/internal/compile"
 	"zeroparse.dev/zp/internal/gentest"
-	"zeroparse.dev/zp/runtime/parse"
 )
 
 func TestErrorAttribute(t *testing.T) {
@@ -40,7 +40,7 @@ rule stmt = ([a-z]+ #atomic ";") #recover(skip=[^;]+ ";")`)
 	if got := n.String(); got != want {
 		t.Errorf("got  %s\nwant %s", got, want)
 	}
-	var errs parse.SyntaxErrors
+	var errs core.SyntaxErrors
 	if !errors.As(err, &errs) || len(errs) != 2 {
 		t.Fatalf("got %v", err)
 	}
@@ -50,7 +50,7 @@ rule stmt = ([a-z]+ #atomic ";") #recover(skip=[^;]+ ";")`)
 
 	// If the whole parse fails, only the final error is returned.
 	_, err = prog.ParseWith("main", "1x;ab", ParseOptions{Expectations: true})
-	var se *parse.SyntaxError
+	var se *core.SyntaxError
 	if !errors.As(err, &se) || se.Error() != `1:6: syntax error: expected ";", [^;], [a-z]` {
 		t.Errorf("got %v", err)
 	}
@@ -67,7 +67,7 @@ rule item = ("a" #atomic ";") #recover(skip=[^;]+ ";")`
 		if n == nil {
 			t.Fatalf("no tree: %v", err)
 		}
-		var errs parse.SyntaxErrors
+		var errs core.SyntaxErrors
 		// "x;" is reported only once (no duplicate from the memoized second item).
 		if !errors.As(err, &errs) || len(errs) != 1 {
 			t.Errorf("memo=%v: got %v", !opts.DisableMemo, err)
@@ -142,7 +142,7 @@ func TestRecoverWithoutValue(t *testing.T) {
 		prog := mustCompile(t, src)
 		for _, b := range []Backend{Closure, Bytecode, BytecodeIterative} {
 			n, err := prog.ParseWith("main", "x;b", ParseOptions{Expectations: true, Backend: b})
-			var errs parse.SyntaxErrors
+			var errs core.SyntaxErrors
 			if n == nil || !errors.As(err, &errs) || len(errs) != 1 {
 				t.Errorf("%v: got %v, %v\n%s", b, n, err, src)
 				continue
@@ -173,7 +173,7 @@ func TestRecoverWithoutValueAddsNoElement(t *testing.T) {
 		for i, in := range c.inputs {
 			for _, b := range []Backend{Closure, Bytecode, BytecodeIterative} {
 				n, err := prog.ParseWith("main", in, ParseOptions{Expectations: true, Backend: b})
-				var errs parse.SyntaxErrors
+				var errs core.SyntaxErrors
 				recovered := errors.As(err, &errs) && len(errs) == 1
 				if n == nil || (i == 0) != (err == nil) || i == 1 && !recovered {
 					t.Errorf("%v, %q: got %v, %v\n%s", b, in, n, err, c.src)
@@ -207,7 +207,7 @@ func TestRecoverWithValueIsOneElement(t *testing.T) {
 		for i, in := range c.inputs {
 			for _, b := range []Backend{Closure, Bytecode, BytecodeIterative} {
 				n, err := prog.ParseWith("main", in, ParseOptions{Expectations: true, Backend: b})
-				var errs parse.SyntaxErrors
+				var errs core.SyntaxErrors
 				recovered := errors.As(err, &errs) && len(errs) == 1
 				if n == nil || (i == 0) != (err == nil) || i == 1 && !recovered {
 					t.Errorf("%v, %q: got %v, %v\n%s", b, in, n, err, c.src)
@@ -228,7 +228,7 @@ func TestRecoverBottomGivesError(t *testing.T) {
 		for i, in := range c.Inputs {
 			for _, b := range []Backend{Closure, Bytecode, BytecodeIterative} {
 				n, err := prog.ParseWith("main", in, ParseOptions{Expectations: true, Backend: b})
-				var errs parse.SyntaxErrors
+				var errs core.SyntaxErrors
 				if got := n != nil && (err == nil || errors.As(err, &errs)); got != c.Accept[i] {
 					t.Errorf("%s, %v, %q: got %v, %v; want accepted %v", c.Name, b, in, n, err, c.Accept[i])
 				}
@@ -248,7 +248,7 @@ rule e = #operators {
     level { postfix "(" [0-9]+ #recover(skip=[^)\n]+) #atomic ")" }
 }`)
 	n, err := prog.ParseWith("main", "1(x)", ParseOptions{Expectations: true})
-	var errs parse.SyntaxErrors
+	var errs core.SyntaxErrors
 	if n == nil || !errors.As(err, &errs) || len(errs) != 1 || errs[0].Col != 3 {
 		t.Errorf("got %v, %v", n, err)
 	}

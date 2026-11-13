@@ -8,7 +8,7 @@ import (
 	"strings"
 	"testing"
 
-	"zeroparse.dev/zp"
+	"zeroparse.dev/zp/engine"
 	"zeroparse.dev/zp/schema"
 )
 
@@ -30,7 +30,7 @@ func TestSchemaExport(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	s, err := zp.CompileSource(schemaGrammar, "main")
+	s, err := engine.CompileSource(schemaGrammar, "main")
 	if err != nil {
 		t.Fatal(err)
 	}

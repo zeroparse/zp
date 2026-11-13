@@ -9,10 +9,10 @@ import (
 	"strings"
 	"testing"
 
-	"zeroparse.dev/zp"
+	"zeroparse.dev/zp/core"
+	"zeroparse.dev/zp/engine"
 	"zeroparse.dev/zp/internal/value"
 	"zeroparse.dev/zp/query"
-	"zeroparse.dev/zp/runtime/parse"
 	"zeroparse.dev/zp/schema"
 )
 
@@ -48,7 +48,7 @@ rule unused = "z"`, "main")
 			t.Fatalf("unstable schema: %s, %v", encoded, err)
 		}
 	}
-	all, err := p.OutputSchema(zp.WithAllSchemaRules())
+	all, err := p.OutputSchema(engine.WithAllSchemaRules())
 	if err != nil || len(all.Rules) != 3 {
 		t.Fatalf("all rules: %+v, %v", all, err)
 	}
@@ -66,24 +66,24 @@ rule unused = "z"`, "main")
 	if err != nil {
 		t.Fatal(err)
 	}
-	loaded, err := zp.LoadParser(data)
+	loaded, err := engine.LoadParser(data)
 	if err != nil {
 		t.Fatal(err)
 	}
 	// A compiled grammar holds no schema in any mode: the schema comes from the grammar source.
-	if _, err := loaded.OutputSchema(); !errors.Is(err, zp.ErrSchemaUnavailable) || !strings.Contains(err.Error(), "grammar source") {
+	if _, err := loaded.OutputSchema(); !errors.Is(err, engine.ErrSchemaUnavailable) || !strings.Contains(err.Error(), "grammar source") {
 		t.Fatalf("loaded parser schema: %v", err)
 	}
-	for _, mode := range []zp.CompiledMode{zp.CompiledParse, zp.CompiledRecognize, zp.CompiledDocument} {
+	for _, mode := range []engine.CompiledMode{engine.CompiledParse, engine.CompiledRecognize, engine.CompiledDocument} {
 		data, err := p.Marshal(mode)
 		if err != nil {
 			t.Fatal(err)
 		}
-		loaded, err := zp.LoadParser(data)
+		loaded, err := engine.LoadParser(data)
 		if err != nil {
 			t.Fatal(err)
 		}
-		if _, err := loaded.OutputSchema(); !errors.Is(err, zp.ErrSchemaUnavailable) || !strings.Contains(err.Error(), "grammar source") {
+		if _, err := loaded.OutputSchema(); !errors.Is(err, engine.ErrSchemaUnavailable) || !strings.Contains(err.Error(), "grammar source") {
 			t.Fatalf("%s mode: loaded parser schema: %v", mode, err)
 		}
 	}
@@ -136,10 +136,10 @@ func TestPublicStructuralQuerySharedEdgesAndLimits(t *testing.T) {
 	if partial, err := q.Matches(root, query.WithContext(ctx)); partial != nil || !errors.Is(err, context.Canceled) {
 		t.Fatalf("cancelled query: %+v, %v", partial, err)
 	}
-	if partial, err := q.Matches(root, query.WithLimits(parse.Limits{Compute: 1})); partial != nil || !errors.Is(err, parse.ErrLimit) {
+	if partial, err := q.Matches(root, query.WithLimits(core.Limits{Compute: 1})); partial != nil || !errors.Is(err, core.ErrLimit) {
 		t.Fatalf("limited query: %+v, %v", partial, err)
 	}
-	var kids []*parse.Node
+	var kids []*core.Node
 	for _, c := range root.Elems() {
 		kids = append(kids, c)
 	}

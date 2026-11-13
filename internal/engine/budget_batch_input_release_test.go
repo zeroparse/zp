@@ -9,12 +9,12 @@ import (
 	"unsafe"
 	"weak"
 
-	"zeroparse.dev/zp/internal/engine/core"
-	"zeroparse.dev/zp/runtime/parse"
+	"zeroparse.dev/zp/core"
+	ecore "zeroparse.dev/zp/internal/engine/core"
 )
 
 //go:noinline
-func batchInputReleaseFixture(t *testing.T, prog *Program, backend Backend, unit parse.PositionUnit, active bool) (weak.Pointer[byte], TraceEvent) {
+func batchInputReleaseFixture(t *testing.T, prog *Program, backend Backend, unit core.PositionUnit, active bool) (weak.Pointer[byte], TraceEvent) {
 	t.Helper()
 	text := strings.Repeat("a", 256<<10)
 	// Observe the original immutable string's backing allocation, rather than
@@ -36,8 +36,8 @@ func batchInputReleaseFixture(t *testing.T, prog *Program, backend Backend, unit
 		opts.Context = ctx
 	}
 	n, err := prog.ParseWith("main", text, opts)
-	if n != nil || err != nil || core.TraceParser(event) == nil {
-		t.Fatalf("recognition node=%v error=%v event parser=%p", n, err, core.TraceParser(event))
+	if n != nil || err != nil || ecore.TraceParser(event) == nil {
+		t.Fatalf("recognition node=%v error=%v event parser=%p", n, err, ecore.TraceParser(event))
 	}
 	runtime.KeepAlive(text)
 	return ref, event
@@ -47,10 +47,10 @@ func TestBudgetBatchTraceEventReleasesOriginalInputAfterGC(t *testing.T) {
 	t.Parallel()
 	prog := mustCompile(t, `rule main = "a"* $$`)
 	for _, backend := range []Backend{Closure, Bytecode, BytecodeIterative} {
-		for _, unit := range []parse.PositionUnit{parse.CodePoints, parse.Bytes} {
+		for _, unit := range []core.PositionUnit{core.CodePoints, core.Bytes} {
 			for _, active := range []bool{false, true} {
 				t.Run(fmt.Sprintf("%s/%s/active=%t", backend, unit, active), func(t *testing.T) {
-					if active && !core.BudgetControlsEnabled {
+					if active && !ecore.BudgetControlsEnabled {
 						t.Skip("active controls are unavailable in the reference build")
 					}
 					ref, event := batchInputReleaseFixture(t, prog, backend, unit, active)

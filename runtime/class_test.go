@@ -3,7 +3,7 @@ package runtime
 import (
 	"testing"
 
-	"zeroparse.dev/zp/runtime/parse"
+	"zeroparse.dev/zp/core"
 )
 
 // TestClassHas builds the tables the way the generator does for [a-c_ à-ÿ] and its negation and
@@ -40,9 +40,9 @@ func TestClassSkip(t *testing.T) {
 			notQ.ASCII[r>>6] |= 1 << (uint(r) & 63)
 		}
 	}
-	parser := func(unit parse.PositionUnit, in string, pos int) *TParser {
+	parser := func(unit core.PositionUnit, in string, pos int) *TParser {
 		p := &TParser{Parser: &Parser{unit: unit, Expectations: true}}
-		if unit == parse.Bytes {
+		if unit == core.Bytes {
 			p.bs, p.n = in, len(in)
 		} else {
 			p.In = []rune(in)
@@ -53,28 +53,28 @@ func TestClassSkip(t *testing.T) {
 	}
 	for _, tc := range []struct {
 		name    string
-		unit    parse.PositionUnit
+		unit    core.PositionUnit
 		in      string
 		pos     int
 		c       *Class
 		ok      bool
 		wantPos int
 	}{
-		{"ascii rune", parse.CodePoints, "xa", 1, letters, true, 2},
-		{"bit 63", parse.CodePoints, "?", 0, letters, true, 1},
-		{"bit 64 miss", parse.CodePoints, "@", 0, letters, false, 0},
-		{"bit 127 miss", parse.CodePoints, "\x7f", 0, letters, false, 0},
-		{"wide rune", parse.CodePoints, "é", 0, letters, true, 1},
-		{"wide miss", parse.CodePoints, "ā", 0, letters, false, 0},
-		{"end rune", parse.CodePoints, "a", 1, letters, false, 1},
-		{"ascii byte", parse.Bytes, "xz", 1, letters, true, 2},
-		{"ascii byte miss", parse.Bytes, "b", 0, letters, false, 0},
-		{"wide byte", parse.Bytes, "é", 0, letters, true, 2},
-		{"invalid byte", parse.Bytes, "\xff", 0, letters, false, 0},
-		{"invalid byte negated", parse.Bytes, "\xff", 0, notQ, true, 1},
-		{"negated wide", parse.Bytes, "ā", 0, notQ, true, 2},
-		{"negated miss", parse.CodePoints, "q", 0, notQ, false, 0},
-		{"end byte", parse.Bytes, "a", 1, letters, false, 1},
+		{"ascii rune", core.CodePoints, "xa", 1, letters, true, 2},
+		{"bit 63", core.CodePoints, "?", 0, letters, true, 1},
+		{"bit 64 miss", core.CodePoints, "@", 0, letters, false, 0},
+		{"bit 127 miss", core.CodePoints, "\x7f", 0, letters, false, 0},
+		{"wide rune", core.CodePoints, "é", 0, letters, true, 1},
+		{"wide miss", core.CodePoints, "ā", 0, letters, false, 0},
+		{"end rune", core.CodePoints, "a", 1, letters, false, 1},
+		{"ascii byte", core.Bytes, "xz", 1, letters, true, 2},
+		{"ascii byte miss", core.Bytes, "b", 0, letters, false, 0},
+		{"wide byte", core.Bytes, "é", 0, letters, true, 2},
+		{"invalid byte", core.Bytes, "\xff", 0, letters, false, 0},
+		{"invalid byte negated", core.Bytes, "\xff", 0, notQ, true, 1},
+		{"negated wide", core.Bytes, "ā", 0, notQ, true, 2},
+		{"negated miss", core.CodePoints, "q", 0, notQ, false, 0},
+		{"end byte", core.Bytes, "a", 1, letters, false, 1},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			p := parser(tc.unit, tc.in, tc.pos)
@@ -91,7 +91,7 @@ func TestClassSkip(t *testing.T) {
 		})
 	}
 	steps := []ClassStep{{letters, 1}, {notQ, 2}, {letters, 3}}
-	for _, unit := range []parse.PositionUnit{parse.CodePoints, parse.Bytes} {
+	for _, unit := range []core.PositionUnit{core.CodePoints, core.Bytes} {
 		p := parser(unit, "aéz", 0)
 		if !p.ClassesSkip(steps) || p.Pos != p.n {
 			t.Fatalf("unit %v: ClassesSkip(aéz) stopped at %d", unit, p.Pos)

@@ -6,10 +6,10 @@ import (
 	"strings"
 	"testing"
 
+	"zeroparse.dev/zp/core"
 	"zeroparse.dev/zp/internal/bytecode"
 	"zeroparse.dev/zp/internal/gentest"
 	"zeroparse.dev/zp/internal/value"
-	"zeroparse.dev/zp/runtime/parse"
 )
 
 func TestIndexAcrossBackends(t *testing.T) {
@@ -17,7 +17,7 @@ func TestIndexAcrossBackends(t *testing.T) {
 	for _, fixture := range gentest.IndexCases() {
 		t.Run(fixture.Name, func(t *testing.T) {
 			program := mustCompile(t, fixture.Src)
-			for _, unit := range []parse.PositionUnit{parse.CodePoints, parse.Bytes} {
+			for _, unit := range []core.PositionUnit{core.CodePoints, core.Bytes} {
 				for _, recognize := range []bool{false, true} {
 					for _, input := range fixture.Inputs {
 						baseline := gentest.ResultJSON(program.ParseWith("main", input, ParseOptions{Backend: Closure, Unit: unit, Recognize: recognize}))

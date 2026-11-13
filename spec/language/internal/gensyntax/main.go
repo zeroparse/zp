@@ -7,7 +7,7 @@ import (
 	"os"
 	"text/template"
 
-	"zeroparse.dev/zp"
+	"zeroparse.dev/zp/engine"
 	"zeroparse.dev/zp/grammar"
 )
 
@@ -23,7 +23,7 @@ func generate() error {
 	if err != nil {
 		return err
 	}
-	g, err := zp.ParseGrammar(string(full))
+	g, err := engine.ParseGrammar(string(full))
 	if err != nil {
 		return err
 	}

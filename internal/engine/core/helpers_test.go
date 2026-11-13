@@ -4,7 +4,7 @@ import (
 	"context"
 	"testing"
 
-	"zeroparse.dev/zp/runtime/parse"
+	"zeroparse.dev/zp/core"
 )
 
 // catchFatal runs f and returns the error of the Fatal panic it raises, or nil.
@@ -49,6 +49,6 @@ func (c *pollingContext) Err() error {
 }
 
 // diagnosticParser returns a parser that charges diagnostic work to a control with the limits.
-func diagnosticParser(limits parse.Limits) *Parser {
+func diagnosticParser(limits core.Limits) *Parser {
 	return &Parser{Input: Input{Control: NewBudgetControl(nil, limits)}}
 }

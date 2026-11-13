@@ -47,7 +47,10 @@ type repoCode struct {
 	codeDirs    map[string]bool // goDirs and their ancestors
 	declared    map[string]bool // every declared function, type, variable and constant name
 	unexported  map[string]bool // declared identifiers that start in lower case and have an upper-case letter
-	internalPkg map[string]bool // names of internal packages that no public package shares
+	internalPkg map[string]bool // names of internal packages
+	// publicExports holds, by package name, the exported top-level names of the public packages;
+	// a qualified name that a public package of that name exports refers to the public package.
+	publicExports map[string]map[string]bool
 }
 
 var (
@@ -61,7 +64,12 @@ var (
 	nameLineRe  = regexp.MustCompile("`([a-z]\\w*)` (\\d{2,})\\b")
 	spanRe      = regexp.MustCompile("`([^`\\n]+)`")
 	identPartRe = regexp.MustCompile(`[A-Za-z_]\w*`)
-	qualifiedRe = regexp.MustCompile(`\b([a-z]\w*)\.[A-Z]\w*`)
+	qualifiedRe = regexp.MustCompile(`\b([a-z]\w*)\.([A-Z]\w*)`)
+	// exportRe matches a top-level exported declaration or method, and exportSpecRe a spec
+	// in a parenthesized const, var or type block. Documents name a method of a public
+	// package's type as package.Method.
+	exportRe     = regexp.MustCompile(`^(?:func (?:\([^)]*\) )?|type |var |const )([A-Z]\w*)\b`)
+	exportSpecRe = regexp.MustCompile(`^\t([A-Z]\w*)\b`)
 	// publicNames are public names that coincide with identifiers of the code: a field of the
 	// Playground messages and a table of generated parsers.
 	publicNames = map[string]bool{"maxDepth": true, "recRules": true}
@@ -74,8 +82,8 @@ var (
 func loadRepoCode(t *testing.T, root string) *repoCode {
 	t.Helper()
 	c := &repoCode{root: root, goFiles: map[string]bool{}, goBases: map[string]bool{}, goDirs: map[string]bool{},
-		codeDirs: map[string]bool{}, declared: map[string]bool{}, unexported: map[string]bool{}, internalPkg: map[string]bool{}}
-	public := map[string]bool{}
+		codeDirs: map[string]bool{}, declared: map[string]bool{}, unexported: map[string]bool{}, internalPkg: map[string]bool{},
+		publicExports: map[string]map[string]bool{}}
 	err := filepath.WalkDir(root, func(p string, d fs.DirEntry, err error) error {
 		if err != nil {
 			return err
@@ -107,11 +115,17 @@ func loadRepoCode(t *testing.T, root string) *repoCode {
 			// generated parsers and inputs, which stand for the files of a reader's project
 		} else if under(rel, "internal") {
 			c.internalPkg[path.Base(path.Dir(rel))] = true
-		} else {
-			public[path.Base(path.Dir(rel))] = true
 		}
 		if strings.Contains(rel, "testdata/") {
 			return nil
+		}
+		var exports map[string]bool
+		if !under(rel, "internal") && !strings.HasSuffix(rel, "_test.go") {
+			name := path.Base(path.Dir(rel))
+			if c.publicExports[name] == nil {
+				c.publicExports[name] = map[string]bool{}
+			}
+			exports = c.publicExports[name]
 		}
 		f, err := os.Open(p)
 		if err != nil {
@@ -120,7 +134,20 @@ func loadRepoCode(t *testing.T, root string) *repoCode {
 		defer f.Close()
 		sc := bufio.NewScanner(f)
 		sc.Buffer(make([]byte, 1<<20), 1<<24)
+		inBlock := false
 		for sc.Scan() {
+			if line := sc.Text(); exports != nil {
+				switch {
+				case line == "const (" || line == "var (" || line == "type (":
+					inBlock = true
+				case line == ")":
+					inBlock = false
+				case exportRe.MatchString(line):
+					exports[exportRe.FindStringSubmatch(line)[1]] = true
+				case inBlock && exportSpecRe.MatchString(line):
+					exports[exportSpecRe.FindStringSubmatch(line)[1]] = true
+				}
+			}
 			for _, r := range []*regexp.Regexp{declFuncRe, declTypeRe, declVarRe} {
 				if m := r.FindStringSubmatch(sc.Text()); m != nil {
 					c.declared[m[1]] = true
@@ -134,9 +161,6 @@ func loadRepoCode(t *testing.T, root string) *repoCode {
 	})
 	if err != nil {
 		t.Fatal(err)
-	}
-	for name := range public {
-		delete(c.internalPkg, name)
 	}
 	delete(c.internalPkg, "_runtime")
 	// "value" and "types" are the usual names of variables and generated packages.
@@ -324,7 +348,7 @@ func (c *repoCode) codeRefsIn(rel string, data []byte, internal bool) []codeRef 
 				}
 			}
 			for _, q := range qualifiedRe.FindAllStringSubmatch(m[1], -1) {
-				if c.internalPkg[q[1]] && !seen[q[0]] {
+				if c.internalPkg[q[1]] && !c.publicExports[q[1]][q[2]] && !seen[q[0]] {
 					seen[q[0]] = true
 					add(i, refQualified, q[0])
 				}
@@ -470,8 +494,10 @@ func TestCodeReferencesScanner(t *testing.T) {
 		declared:    map[string]bool{"scanSpan": true, "seq": true},
 		unexported:  map[string]bool{"scanSpan": true},
 		internalPkg: map[string]bool{"core": true},
+		// a public package core, whose exports a qualified core name may refer to
+		publicExports: map[string]map[string]bool{"core": {"Node": true}},
 	}
-	doc := "See [scan](internal/engine/core/scan.go) and `scanSpan` and `core.ScanHotSpan`.\n" +
+	doc := "See [scan](internal/engine/core/scan.go) and `scanSpan` and `core.ScanHotSpan`, beside `core.Node`.\n" +
 		"The file scan.go:42 and line 7 of internal/engine/core/scan.go, in internal/engine/core and internal/engine/core/sub.\n" +
 		"A rule (`seq` 303) and a count `seq` 3.\n" +
 		"Run it as `go run main.go` and read main.go:3: error.\n" +

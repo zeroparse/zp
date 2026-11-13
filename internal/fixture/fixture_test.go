@@ -12,8 +12,8 @@ import (
 	"strings"
 	"testing"
 
-	"zeroparse.dev/zp/internal/engine/core"
-	"zeroparse.dev/zp/runtime/parse"
+	"zeroparse.dev/zp/core"
+	ecore "zeroparse.dev/zp/internal/engine/core"
 )
 
 func writeFixtureFile(t *testing.T, dir, name, body string) string {
@@ -84,7 +84,7 @@ func TestRunClassifiesNilNodeRecoveryAndRejection(t *testing.T) {
 }
 
 func TestRunRecordsRuntimeErrorAndContinues(t *testing.T) {
-	if !core.BudgetControlsEnabled {
+	if !ecore.BudgetControlsEnabled {
 		t.Skip("the reference build has no limits to produce the runtime error")
 	}
 	dir := t.TempDir()
@@ -95,7 +95,7 @@ func TestRunRecordsRuntimeErrorAndContinues(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	report, err := Run(suite, RunOptions{Limits: parse.Limits{Compute: 256}})
+	report, err := Run(suite, RunOptions{Limits: core.Limits{Compute: 256}})
 	if err != nil {
 		t.Fatal(err)
 	}

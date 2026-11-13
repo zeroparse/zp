@@ -8,13 +8,13 @@ import (
 	"strings"
 	"testing"
 
-	"zeroparse.dev/zp/internal/engine/core"
+	"zeroparse.dev/zp/core"
+	ecore "zeroparse.dev/zp/internal/engine/core"
 	"zeroparse.dev/zp/internal/gentest"
 	"zeroparse.dev/zp/internal/value"
-	"zeroparse.dev/zp/runtime/parse"
 )
 
-func assertTraceParserDetached(t *testing.T, p *core.Parser, aborted bool) {
+func assertTraceParserDetached(t *testing.T, p *ecore.Parser, aborted bool) {
 	t.Helper()
 	if p == nil {
 		t.Fatal("trace callback did not expose a parser")
@@ -59,7 +59,7 @@ func TestTraceLifecycleStreamDetachment(t *testing.T) {
 	t.Parallel()
 	prog := mustCompile(t, gentest.Records)
 	for _, b := range []Backend{Closure, Bytecode, BytecodeIterative} {
-		for _, u := range []parse.PositionUnit{parse.CodePoints, parse.Bytes} {
+		for _, u := range []core.PositionUnit{core.CodePoints, core.Bytes} {
 			for _, outcome := range []string{"success", "syntax", "reader-error", "emit-error", "trace-panic", "emit-panic"} {
 				t.Run(fmt.Sprintf("%s/%s/%s", b, u, outcome), func(t *testing.T) {
 					stop := errors.New("stream stopped")
@@ -74,11 +74,11 @@ func TestTraceLifecycleStreamDetachment(t *testing.T) {
 					}
 					r := &traceLifecycleClosingReader{Reader: reader}
 					var e TraceEvent
-					var nodes []*parse.Node
+					var nodes []*core.Node
 					var snapshots []string
 					err := error(nil)
 					got := traceLifecycleRecover(func() {
-						err = prog.ParseStreamWith("main", r, func(n *parse.Node) error {
+						err = prog.ParseStreamWith("main", r, func(n *core.Node) error {
 							nodes = append(nodes, n)
 							snapshots = append(snapshots, gentest.ResultJSON(n, nil))
 							if outcome == "emit-error" {
@@ -106,7 +106,7 @@ func TestTraceLifecycleStreamDetachment(t *testing.T) {
 							t.Fatalf("err=%v panic=%v nodes=%d", err, got, len(nodes))
 						}
 					case "syntax":
-						var se *parse.SyntaxError
+						var se *core.SyntaxError
 						if got != nil || !errors.As(err, &se) || len(nodes) != 1 {
 							t.Fatalf("err=%v panic=%v nodes=%d", err, got, len(nodes))
 						}
@@ -119,17 +119,17 @@ func TestTraceLifecycleStreamDetachment(t *testing.T) {
 							t.Fatalf("err=%v panic=%v nodes=%d", err, got, len(nodes))
 						}
 					}
-					assertTraceParserDetached(t, core.TraceParser(e), false) // Stream has no Document invalidation flag.
+					assertTraceParserDetached(t, ecore.TraceParser(e), false) // Stream has no Document invalidation flag.
 					if e.Rule != "main" || e.Depth != 1 || e.Pos != 0 {
 						t.Fatal("saved stream metadata changed")
 					}
 					if r.closed {
 						t.Fatal("parser closed caller's reader")
 					}
-					if value.D(nodes[0].Field("k").(*parse.Node)).Text != "a" || value.D(nodes[0].Field("v").(*parse.Node)).Text != "1" {
+					if value.D(nodes[0].Field("k").(*core.Node)).Text != "a" || value.D(nodes[0].Field("v").(*core.Node)).Text != "1" {
 						t.Fatal("emitted fields changed")
 					}
-					if err := prog.ParseStreamWith("main", strings.NewReader("#records\nxy=3\n"), func(*parse.Node) error { return nil }, ParseOptions{Backend: b, Unit: u}); err != nil {
+					if err := prog.ParseStreamWith("main", strings.NewReader("#records\nxy=3\n"), func(*core.Node) error { return nil }, ParseOptions{Backend: b, Unit: u}); err != nil {
 						t.Fatal(err)
 					}
 					for i, n := range nodes {

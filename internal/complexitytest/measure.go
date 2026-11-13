@@ -14,23 +14,23 @@ import (
 	"math"
 	"strings"
 
-	"zeroparse.dev/zp"
-	"zeroparse.dev/zp/internal/engine/core"
+	"zeroparse.dev/zp/core"
+	"zeroparse.dev/zp/engine"
+	ecore "zeroparse.dev/zp/internal/engine/core"
 	"zeroparse.dev/zp/internal/starttest"
-	"zeroparse.dev/zp/runtime/parse"
 )
 
 // Backends are the backends whose cost is measured.
-var Backends = []zp.Backend{zp.Closure, zp.Bytecode, zp.BytecodeIterative}
+var Backends = []engine.Backend{engine.Closure, engine.Bytecode, engine.BytecodeIterative}
 
 // BackendName names b for test output.
-func BackendName(b zp.Backend) string {
+func BackendName(b engine.Backend) string {
 	switch b {
-	case zp.Closure:
+	case engine.Closure:
 		return "closure"
-	case zp.Bytecode:
+	case engine.Bytecode:
 		return "bytecode"
-	case zp.BytecodeIterative:
+	case engine.BytecodeIterative:
 		return "iterative"
 	}
 	return fmt.Sprint(int(b))
@@ -38,12 +38,12 @@ func BackendName(b zp.Backend) string {
 
 // Compile compiles the ZeroParse source with every rule a start rule and main as the default start
 // rule.
-func Compile(src string) (*zp.Parser, error) {
-	g, err := zp.ParseGrammar(src)
+func Compile(src string) (*engine.Parser, error) {
+	g, err := engine.ParseGrammar(src)
 	if err != nil {
 		return nil, err
 	}
-	return zp.Compile(starttest.MarkAll(g), "")
+	return engine.Compile(starttest.MarkAll(g), "")
 }
 
 // Cost is the measured cost of one parse.
@@ -59,10 +59,10 @@ type Cost struct {
 
 // parses reports whether the parse of input finishes within budget, with or without a syntax
 // error. It returns the error of a parse that finished; an exhausted budget is not one.
-func parses(p *zp.Parser, input string, b zp.Backend, budget uint64) (bool, error) {
-	_, err := p.Parse(input, zp.WithBackend(b), zp.WithLimits(parse.Limits{Compute: budget}))
-	var le *parse.LimitError
-	if errors.As(err, &le) && le.Kind == parse.LimitCompute {
+func parses(p *engine.Parser, input string, b engine.Backend, budget uint64) (bool, error) {
+	_, err := p.Parse(input, engine.WithBackend(b), engine.WithLimits(core.Limits{Compute: budget}))
+	var le *core.LimitError
+	if errors.As(err, &le) && le.Kind == core.LimitCompute {
 		return false, nil
 	}
 	return true, err
@@ -74,28 +74,28 @@ func parses(p *zp.Parser, input string, b zp.Backend, budget uint64) (bool, erro
 //
 // The search stops when the interval is within 0.4% of the result, which moves a slope by less
 // than 0.01. ExactSteps searches to the unit.
-func Steps(p *zp.Parser, input string, b zp.Backend, cap uint64) (Cost, error) {
+func Steps(p *engine.Parser, input string, b engine.Backend, cap uint64) (Cost, error) {
 	return strict(steps(p, input, b, cap, 256))
 }
 
 // ExactSteps is Steps with a search to the unit.
-func ExactSteps(p *zp.Parser, input string, b zp.Backend, cap uint64) (Cost, error) {
+func ExactSteps(p *engine.Parser, input string, b engine.Backend, cap uint64) (Cost, error) {
 	return strict(steps(p, input, b, cap, 0))
 }
 
 // StepsLenient is Steps for an input that the grammar reports syntax errors for, such as one
 // that exercises error recovery: the cost of a parse that finishes with a syntax error carries
-// the error in Cost.ParseErr instead of failing. Only a *parse.SyntaxError or parse.SyntaxErrors
+// the error in Cost.ParseErr instead of failing. Only a *core.SyntaxError or core.SyntaxErrors
 // is accepted; any other error is returned.
-func StepsLenient(p *zp.Parser, input string, b zp.Backend, cap uint64) (Cost, error) {
+func StepsLenient(p *engine.Parser, input string, b engine.Backend, cap uint64) (Cost, error) {
 	return steps(p, input, b, cap, 256)
 }
 
 // isSyntaxError reports whether err is a syntax error of the input or the list of errors that a
 // parse recovered from. Any other error is a failure of the measurement.
 func isSyntaxError(err error) bool {
-	var one *parse.SyntaxError
-	var many parse.SyntaxErrors
+	var one *core.SyntaxError
+	var many core.SyntaxErrors
 	return errors.As(err, &one) || errors.As(err, &many)
 }
 
@@ -106,7 +106,7 @@ func strict(c Cost, err error) (Cost, error) {
 	return c, err
 }
 
-func steps(p *zp.Parser, input string, b zp.Backend, cap, tolDiv uint64) (Cost, error) {
+func steps(p *engine.Parser, input string, b engine.Backend, cap, tolDiv uint64) (Cost, error) {
 	ok, parseErr := parses(p, input, b, cap)
 	if !ok {
 		return Cost{Steps: cap, Capped: true}, nil
@@ -135,17 +135,17 @@ func steps(p *zp.Parser, input string, b zp.Backend, cap, tolDiv uint64) (Cost, 
 
 // StepsTraced returns the spend of a traced parse, read from the counter at the last event. It
 // stops at cap like Steps. A traced parse spends more than an untraced one; see the tests.
-func StepsTraced(p *zp.Parser, input string, b zp.Backend, cap uint64) (Cost, error) {
+func StepsTraced(p *engine.Parser, input string, b engine.Backend, cap uint64) (Cost, error) {
 	var used uint64
 	seen := false
-	_, err := p.Parse(input, zp.WithBackend(b), zp.WithLimits(parse.Limits{Compute: cap}),
-		zp.WithTrace(func(e zp.TraceEvent) {
-			if c := core.TraceParser(e).Control; c != nil {
+	_, err := p.Parse(input, engine.WithBackend(b), engine.WithLimits(core.Limits{Compute: cap}),
+		engine.WithTrace(func(e engine.TraceEvent) {
+			if c := ecore.TraceParser(e).Control; c != nil {
 				used, seen = c.Used, true
 			}
 		}))
-	var le *parse.LimitError
-	if errors.As(err, &le) && le.Kind == parse.LimitCompute {
+	var le *core.LimitError
+	if errors.As(err, &le) && le.Kind == core.LimitCompute {
 		return Cost{Steps: cap, Capped: true}, nil
 	}
 	if err != nil {
@@ -166,7 +166,7 @@ type Series struct {
 // Measure builds the input of every size with build, checks that it parses, and measures the
 // cost with the untraced Steps. The sizes are n, 2n and 4n for the three-point series of the
 // suite; any number of doubling sizes is accepted.
-func Measure(p *zp.Parser, build func(n int) string, sizes []int, b zp.Backend, cap uint64) (Series, error) {
+func Measure(p *engine.Parser, build func(n int) string, sizes []int, b engine.Backend, cap uint64) (Series, error) {
 	s := Series{Sizes: sizes}
 	for _, n := range sizes {
 		c, err := Steps(p, build(n), b, cap)

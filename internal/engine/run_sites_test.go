@@ -7,10 +7,10 @@ import (
 	"strings"
 	"testing"
 
+	"zeroparse.dev/zp/core"
 	"zeroparse.dev/zp/internal/compile"
-	"zeroparse.dev/zp/internal/engine/core"
+	ecore "zeroparse.dev/zp/internal/engine/core"
 	"zeroparse.dev/zp/internal/gentest"
-	"zeroparse.dev/zp/runtime/parse"
 )
 
 // runSiteGrammars are grammars with run sites (compile/run_sites.go): repetitions outside skip
@@ -115,17 +115,17 @@ var runValueInputs = map[string][]string{
 // hotSpans are the thresholds at which the differential tests of run sites run: the one of the
 // engine, at which the short inputs of the tests stay cold, and short ones, at which sites turn hot
 // in the middle of a parse and the records answer the walks after it.
-var hotSpans = []int{core.RunHotSpan, 2, 1}
+var hotSpans = []int{ecore.RunHotSpan, 2, 1}
 
 // atHotSpans runs f at each of hotSpans, and checks that the sites turn hot at the short ones.
 func atHotSpans(t *testing.T, f func(t *testing.T)) {
 	t.Helper()
-	defer func(n, m int) { core.RunHotSpan, core.ScanHotSpan = n, m }(core.RunHotSpan, core.ScanHotSpan)
+	defer func(n, m int) { ecore.RunHotSpan, ecore.ScanHotSpan = n, m }(ecore.RunHotSpan, ecore.ScanHotSpan)
 	for _, span := range hotSpans {
-		core.RunHotSpan, core.ScanHotSpan = span, span
-		turns := core.RunHotTurns.Load()
+		ecore.RunHotSpan, ecore.ScanHotSpan = span, span
+		turns := ecore.RunHotTurns.Load()
 		t.Run("span"+strconv.Itoa(span), f)
-		if span <= 2 && core.RunHotTurns.Load() == turns {
+		if span <= 2 && ecore.RunHotTurns.Load() == turns {
 			t.Errorf("no run site turned hot at span %d", span)
 		}
 	}
@@ -134,7 +134,7 @@ func atHotSpans(t *testing.T, f func(t *testing.T)) {
 // assertTurnedHot checks that a run site turned hot since turns, when the threshold is short.
 func assertTurnedHot(t *testing.T, name string, turns int64) {
 	t.Helper()
-	if core.RunHotSpan <= 2 && core.RunHotTurns.Load() == turns {
+	if ecore.RunHotSpan <= 2 && ecore.RunHotTurns.Load() == turns {
 		t.Errorf("%s: no run site turned hot", name)
 	}
 }
@@ -153,7 +153,7 @@ func runSitesMatchPlainRepetitions(t *testing.T) {
 		}
 		plain := compileWithout(t, g.Src, &compile.NoRunSites)
 		inputs := append(gentest.SkipRunInputs(g.Alphabet, 300, rng), runValueInputs[g.Name]...)
-		turns := core.RunHotTurns.Load()
+		turns := ecore.RunHotTurns.Load()
 		for _, b := range []Backend{Closure, Bytecode, BytecodeIterative} {
 			if diffs := skipRunMismatches(t, prog, inputs, b); len(diffs) > 0 {
 				t.Errorf("%s, %s: %d parses differ without records, first:\n%s", g.Name, b, len(diffs), diffs[0])
@@ -184,7 +184,7 @@ func runSitesOfLoadedPrograms(t *testing.T) {
 	for _, g := range runValueGrammars {
 		plain := compileWithout(t, g.Src, &compile.NoRunSites)
 		inputs := append(gentest.SkipRunInputs(g.Alphabet, 300, rng), runValueInputs[g.Name]...)
-		turns := core.RunHotTurns.Load()
+		turns := ecore.RunHotTurns.Load()
 		for _, mode := range []CompiledMode{CompiledParse, CompiledDocument} {
 			data, err := mustCompile(t, g.Src).Marshal("", mode)
 			if err != nil {
@@ -231,7 +231,7 @@ func runSitesMatchWithoutRecords(t *testing.T) {
 	for _, g := range runSiteGrammars {
 		prog := mustCompile(t, g.Src)
 		inputs := gentest.SkipRunInputs(g.Alphabet, 300, rng)
-		turns := core.RunHotTurns.Load()
+		turns := ecore.RunHotTurns.Load()
 		for _, b := range []Backend{Closure, Bytecode, BytecodeIterative} {
 			if diffs := skipRunMismatches(t, prog, inputs, b); len(diffs) > 0 {
 				t.Errorf("%s, %s: %d parses differ, first:\n%s", g.Name, b, len(diffs), diffs[0])
@@ -293,21 +293,21 @@ func TestRunSitesAreRestartable(t *testing.T) {
 // parse that restarts a scan at each position of the input fits a budget that is linear in the
 // input with records, and exceeds it without them.
 func TestRunSitesReuseRecords(t *testing.T) {
-	if !core.BudgetControlsEnabled {
+	if !ecore.BudgetControlsEnabled {
 		t.Skip("budget controls are unavailable in the reference build")
 	}
-	defer func() { core.SkipRecordsOff = false }()
+	defer func() { ecore.SkipRecordsOff = false }()
 	in := strings.Repeat("x", 400) + "z"
 	for _, g := range runSiteGrammars[:2] {
 		prog := mustCompile(t, g.Src)
 		for _, b := range []Backend{Closure, Bytecode, BytecodeIterative} {
-			o := ParseOptions{Backend: b, Limits: parse.Limits{Compute: 200_000}}
-			core.SkipRecordsOff = false
-			if _, err := prog.ParseWith("main", in, o); errors.Is(err, parse.ErrLimit) {
+			o := ParseOptions{Backend: b, Limits: core.Limits{Compute: 200_000}}
+			ecore.SkipRecordsOff = false
+			if _, err := prog.ParseWith("main", in, o); errors.Is(err, core.ErrLimit) {
 				t.Errorf("%s, %s: the parse with records exceeds the budget", g.Name, b)
 			}
-			core.SkipRecordsOff = true
-			if _, err := prog.ParseWith("main", in, o); !errors.Is(err, parse.ErrLimit) {
+			ecore.SkipRecordsOff = true
+			if _, err := prog.ParseWith("main", in, o); !errors.Is(err, core.ErrLimit) {
 				t.Errorf("%s, %s: the parse without records fits the budget", g.Name, b)
 			}
 		}
@@ -319,7 +319,7 @@ func TestRunSitesReuseRecords(t *testing.T) {
 // in a new environment at each position, fit a budget that is linear in the input on every backend,
 // and exceed it with plain repetitions.
 func TestRunSitesBoundValueControls(t *testing.T) {
-	if !core.BudgetControlsEnabled {
+	if !ecore.BudgetControlsEnabled {
 		t.Skip("budget controls are unavailable in the reference build")
 	}
 	cases := []struct{ Name, Src, Input string }{
@@ -341,17 +341,17 @@ func TestRunSitesBoundValueControls(t *testing.T) {
 			t.Fatal(err)
 		}
 		for _, b := range []Backend{Closure, Bytecode, BytecodeIterative} {
-			o := ParseOptions{Backend: b, Limits: parse.Limits{Compute: 150 * uint64(len(c.Input))}}
-			if _, err := prog.ParseWith("main", c.Input, o); errors.Is(err, parse.ErrLimit) {
+			o := ParseOptions{Backend: b, Limits: core.Limits{Compute: 150 * uint64(len(c.Input))}}
+			if _, err := prog.ParseWith("main", c.Input, o); errors.Is(err, core.ErrLimit) {
 				t.Errorf("%s, %s: the parse with records exceeds the budget", c.Name, b)
 			}
-			if _, err := loaded.ParseWith("main", c.Input, o); b != Closure && errors.Is(err, parse.ErrLimit) {
+			if _, err := loaded.ParseWith("main", c.Input, o); b != Closure && errors.Is(err, core.ErrLimit) {
 				t.Errorf("%s, %s: the parse of the loaded program exceeds the budget", c.Name, b)
 			}
 			// (The closure backend does not charge the iterations of plain loops over literals, so
 			// only the bytecode backends show that the control is quadratic without records; the
 			// controls of internal/complexitytest measure it on all three.)
-			if _, err := plain.ParseWith("main", c.Input, o); b != Closure && !errors.Is(err, parse.ErrLimit) {
+			if _, err := plain.ParseWith("main", c.Input, o); b != Closure && !errors.Is(err, core.ErrLimit) {
 				t.Errorf("%s, %s: the parse with plain repetitions fits the budget", c.Name, b)
 			}
 		}
@@ -361,27 +361,27 @@ func TestRunSitesBoundValueControls(t *testing.T) {
 // TestRunSitesNegativeControls checks that the comparisons of the hot path detect a key without the
 // environment and a hit that leaves the environment as it was, on the inputs that reach them.
 func TestRunSitesNegativeControls(t *testing.T) {
-	defer func(n int) { core.RunHotSpan = n; core.SkipRecordMutation = 0 }(core.RunHotSpan)
-	core.RunHotSpan = 1
+	defer func(n int) { ecore.RunHotSpan = n; ecore.SkipRecordMutation = 0 }(ecore.RunHotSpan)
+	ecore.RunHotSpan = 1
 	for _, tc := range []struct {
 		mutation int
 		grammar  string
 	}{
-		{core.SkipIgnoreEnv, "two environments at one position"},
-		{core.SkipKeepEnv, "bindings that a record restores"},
+		{ecore.SkipIgnoreEnv, "two environments at one position"},
+		{ecore.SkipKeepEnv, "bindings that a record restores"},
 	} {
 		for _, g := range runValueGrammars {
 			if g.Name != tc.grammar {
 				continue
 			}
 			prog := mustCompile(t, g.Src)
-			core.SkipRecordMutation = tc.mutation
+			ecore.SkipRecordMutation = tc.mutation
 			for _, b := range []Backend{Closure, Bytecode, BytecodeIterative} {
 				if diffs := skipRunMismatches(t, prog, runValueInputs[g.Name], b); len(diffs) == 0 {
 					t.Errorf("mutation %d, %s: no difference on the inputs of %s", tc.mutation, b, g.Name)
 				}
 			}
-			core.SkipRecordMutation = 0
+			ecore.SkipRecordMutation = 0
 		}
 	}
 	// The sites that the compiler keys by the environment must be keyed by it: a program compiled
@@ -455,8 +455,8 @@ func TestRunSitesKeyedByEnvironment(t *testing.T) {
 // starts cold and turns hot in the middle of a long parse gives the results of a parse without run
 // sites, with and without values, on every backend.
 func TestRunSitesTurnHotAtTheEngineThreshold(t *testing.T) {
-	if core.RunHotSpan != 64 {
-		t.Fatalf("threshold %d", core.RunHotSpan)
+	if ecore.RunHotSpan != 64 {
+		t.Fatalf("threshold %d", ecore.RunHotSpan)
 	}
 	in := strings.Repeat("x", 300) + "z" + strings.Repeat("x", 200) + "!"
 	for _, g := range append(runSiteGrammars[:2:2], runValueGrammars[0]) {
@@ -465,13 +465,13 @@ func TestRunSitesTurnHotAtTheEngineThreshold(t *testing.T) {
 		for _, b := range []Backend{Closure, Bytecode, BytecodeIterative} {
 			for _, exp := range []bool{true, false} {
 				o := ParseOptions{Backend: b, Expectations: exp}
-				turns := core.RunHotTurns.Load()
+				turns := ecore.RunHotTurns.Load()
 				n, err := prog.ParseWith("main", in, o)
 				wn, werr := plain.ParseWith("main", in, o)
 				if got, want := skipDump(t, n, err), skipDump(t, wn, werr); got != want {
 					t.Fatalf("%s, %s: results differ\n got  %s\n want %s", g.Name, b, got, want)
 				}
-				if core.RunHotTurns.Load() == turns {
+				if ecore.RunHotTurns.Load() == turns {
 					t.Errorf("%s, %s: no run site turned hot", g.Name, b)
 				}
 			}
@@ -486,21 +486,21 @@ func TestRunSitesDepthLimit(t *testing.T) {
 	in := strings.Repeat("(", 300)
 	prog := mustCompile(t, src)
 	plain := compileWithout(t, src, &compile.NoRunSites)
-	turns := core.RunHotTurns.Load()
+	turns := ecore.RunHotTurns.Load()
 	for _, depth := range []int{2, 5, 50, 299, 300, 301, 1000} {
 		for _, b := range []Backend{Closure, Bytecode, BytecodeIterative} {
-			o := ParseOptions{Backend: b, Limits: parse.Limits{Depth: uint64(depth)}}
+			o := ParseOptions{Backend: b, Limits: core.Limits{Depth: uint64(depth)}}
 			n, err := prog.ParseWith("main", in, o)
 			wn, werr := plain.ParseWith("main", in, o)
 			if got, want := skipDump(t, n, err), skipDump(t, wn, werr); got != want {
 				t.Errorf("depth %d, %s:\n got  %s\n want %s", depth, b, got, want)
 			}
-			if limited := errors.Is(err, parse.ErrLimit); limited != (depth <= 50) {
+			if limited := errors.Is(err, core.ErrLimit); limited != (depth <= 50) {
 				t.Errorf("depth %d, %s: limit error %v, err %v", depth, b, limited, err)
 			}
 		}
 	}
-	if core.RunHotTurns.Load() == turns {
+	if ecore.RunHotTurns.Load() == turns {
 		t.Error("no run site turned hot")
 	}
 }

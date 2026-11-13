@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"strconv"
 
-	"zeroparse.dev/zp"
+	"zeroparse.dev/zp/engine"
 )
 
 // Invalid is a near-miss invalid input: an input that the parser accepts, changed by one mutation so
@@ -30,7 +30,7 @@ func (g *Generator) Invalid() (Invalid, error) {
 			if in == base {
 				continue
 			}
-			if _, err := g.p.Parse(in, zp.WithExpectations()); err != nil {
+			if _, err := g.p.Parse(in, engine.WithExpectations()); err != nil {
 				return Invalid{Input: in, Base: base, Mutation: desc, Err: err}, nil
 			}
 		}

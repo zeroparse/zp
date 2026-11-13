@@ -3,23 +3,23 @@ package runtime
 import (
 	"unsafe"
 
-	"zeroparse.dev/zp/runtime/noderep"
-	"zeroparse.dev/zp/runtime/parse"
+	"zeroparse.dev/zp/core"
+	"zeroparse.dev/zp/core/noderep"
 )
 
-// Data is the representation of a parse.Node, which the runtime builds and reads nodes through.
+// Data is the representation of a core.Node, which the runtime builds and reads nodes through.
 //
 // Data is for generated parsers; not a stable API.
-type Data = noderep.Data[parse.Node]
+type Data = noderep.Data[core.Node]
 
-// D returns the representation of the node n. A parse.Node holds a Data as its only field, so
+// D returns the representation of the node n. A core.Node holds a Data as its only field, so
 // the conversion is free.
 //
 // D is for generated parsers; not a stable API.
-func D(n *parse.Node) *Data { return (*Data)(unsafe.Pointer(n)) }
+func D(n *core.Node) *Data { return (*Data)(unsafe.Pointer(n)) }
 
 // nodeOf returns the node whose representation is d.
-func nodeOfData(d *Data) *parse.Node { return (*parse.Node)(unsafe.Pointer(d)) }
+func nodeOfData(d *Data) *core.Node { return (*core.Node)(unsafe.Pointer(d)) }
 
 // The kinds of the reserved types without a rule that generated parsers name.
 //
@@ -47,4 +47,4 @@ const BaseString = noderep.BaseString
 var baseKinds = [...]*noderep.Kind{noderep.BaseString: noderep.MatchKind, noderep.BaseTuple: noderep.SeqKind, noderep.BaseList: noderep.ListKind}
 
 // shape returns what the node n stands for in the value model.
-func shape(n *parse.Node) noderep.Shape { return noderep.ShapeOfKind(D(n).Kind, D(n).Terminal) }
+func shape(n *core.Node) noderep.Shape { return noderep.ShapeOfKind(D(n).Kind, D(n).Terminal) }

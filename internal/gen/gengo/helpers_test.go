@@ -8,14 +8,14 @@ import (
 	"testing"
 	"unicode/utf8"
 
+	"zeroparse.dev/zp/core"
 	"zeroparse.dev/zp/internal/engine"
 	"zeroparse.dev/zp/internal/enginetest"
 	"zeroparse.dev/zp/internal/gentest"
-	"zeroparse.dev/zp/runtime/parse"
 )
 
 // The tests of this package compile the grammars that they generate parsers for with the engine,
-// as package zp does.
+// as package engine does.
 func init() { enginetest.UseEngine() }
 
 func TestMain(m *testing.M) { enginetest.Main(m) }
@@ -90,8 +90,8 @@ func ignoreCaseLines(t *testing.T, src string, inputs []string) string {
 
 // firstCharEnd returns the position after the character at pos in the unit u: what a call that
 // looks at that character only has examined, which is pos+1 at the end of the input.
-func firstCharEnd(input string, pos int, u parse.PositionUnit) int {
-	if u == parse.Bytes && pos < len(input) {
+func firstCharEnd(input string, pos int, u core.PositionUnit) int {
+	if u == core.Bytes && pos < len(input) {
 		_, size := utf8.DecodeRuneInString(input[pos:])
 		return pos + size
 	}

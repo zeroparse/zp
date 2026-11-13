@@ -5,8 +5,8 @@ import (
 	"strings"
 	"unicode/utf8"
 
-	"zeroparse.dev/zp/internal/engine/core"
-	"zeroparse.dev/zp/runtime/parse"
+	"zeroparse.dev/zp/core"
+	ecore "zeroparse.dev/zp/internal/engine/core"
 )
 
 // documentIdentity deliberately has nonzero size. Tokens retain only this
@@ -27,7 +27,7 @@ func (v DocumentVersion) Sequence() uint64 { return v.sequence }
 func (d *Document) Version() DocumentVersion { return DocumentVersion{d.identity, d.sequence} }
 
 // Unit returns the position unit selected at document construction.
-func (d *Document) Unit() parse.PositionUnit { return d.in.Unit }
+func (d *Document) Unit() core.PositionUnit { return d.in.Unit }
 
 func (d *Document) nextVersion() error {
 	if d.sequence == ^uint64(0) {
@@ -39,7 +39,7 @@ func (d *Document) nextVersion() error {
 // EditBatch atomically applies ordered, nonoverlapping replacements in base
 // coordinates. All edits are validated before any document state is changed.
 // A nonempty batch advances one revision and discards reusable parse caches.
-func (d *Document) EditBatch(base DocumentVersion, edits ...parse.TextEdit) error {
+func (d *Document) EditBatch(base DocumentVersion, edits ...core.TextEdit) error {
 	if base.identity == nil || base.identity != d.identity {
 		return fmt.Errorf("invalid document version identity")
 	}
@@ -59,14 +59,14 @@ func (d *Document) EditBatch(base DocumentVersion, edits ...parse.TextEdit) erro
 			return fail(fmt.Errorf("edits must have strictly increasing starts and nonoverlapping ranges"))
 		}
 	}
-	if d.in.Unit == parse.Bytes {
+	if d.in.Unit == core.Bytes {
 		for i, edit := range edits {
 			for _, pos := range []int{edit.Start, edit.End} {
 				var err error
-				if core.DocumentPieceInput && d.in.Pieces != nil {
+				if ecore.DocumentPieceInput && d.in.Pieces != nil {
 					err = d.in.Pieces.ValidBoundary(pos)
 				} else {
-					err = core.ValidBoundary(d.in.Src, parse.Bytes, pos)
+					err = ecore.ValidBoundary(d.in.Src, core.Bytes, pos)
 				}
 				if err != nil {
 					return fmt.Errorf("edit %d [%d,%d): %w", i, edit.Start, edit.End, err)
@@ -104,8 +104,8 @@ func (d *Document) EditBatch(base DocumentVersion, edits ...parse.TextEdit) erro
 			return fmt.Errorf("edit %d [%d,%d): %w", i, edit.Start, edit.End, err)
 		}
 		text := edit.Text
-		units := core.TextLen(d.in.Unit, text)
-		if d.in.Unit != parse.Bytes && !utf8.ValidString(text) {
+		units := ecore.TextLen(d.in.Unit, text)
+		if d.in.Unit != core.Bytes && !utf8.ValidString(text) {
 			text = string([]rune(text))
 		}
 		if err := add(text, units); err != nil {
@@ -125,12 +125,12 @@ func (d *Document) EditBatch(base DocumentVersion, edits ...parse.TextEdit) erro
 	in := newDocumentInput(text, d.in.Unit)
 	if d.in.Pieces != nil && in.Pieces == nil {
 		// Promotion is one-way, including batches that shrink the input.
-		in = core.Input{Unit: d.in.Unit, Eof: true, BaseLine: 1, BaseCol: 1, Pieces: core.NewDocumentPieces(text, d.in.Unit)}
+		in = ecore.Input{Unit: d.in.Unit, Eof: true, BaseLine: 1, BaseCol: 1, Pieces: ecore.NewDocumentPieces(text, d.in.Unit)}
 	}
 	// Publication follows all ordinary failure points. No Parse is performed;
 	// old result Nodes remain untouched until a later ordinary Parse.
 	d.in = in
-	d.memo = core.NewMemoTable()
+	d.memo = ecore.NewMemoTable()
 	d.edits, d.runs, d.kids, d.machine = nil, nil, nil, nil
 	d.runGen, d.resumed = 0, 0
 	d.sequence++
@@ -145,9 +145,9 @@ func checkedDocumentLength(length, added int) (int, error) {
 	return length + added, nil
 }
 
-func newDocumentInput(text string, unit parse.PositionUnit) core.Input {
-	if core.UseDocumentPieces(text, unit) {
-		return core.Input{Unit: unit, Eof: true, BaseLine: 1, BaseCol: 1, Pieces: core.NewDocumentPieces(text, unit)}
+func newDocumentInput(text string, unit core.PositionUnit) ecore.Input {
+	if ecore.UseDocumentPieces(text, unit) {
+		return ecore.Input{Unit: unit, Eof: true, BaseLine: 1, BaseCol: 1, Pieces: ecore.NewDocumentPieces(text, unit)}
 	}
-	return core.NewTextInput(text, unit, true)
+	return ecore.NewTextInput(text, unit, true)
 }

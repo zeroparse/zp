@@ -5,11 +5,11 @@ import (
 	"strings"
 	"testing"
 
+	"zeroparse.dev/zp/core"
 	"zeroparse.dev/zp/internal/engine"
-	"zeroparse.dev/zp/internal/engine/core"
+	ecore "zeroparse.dev/zp/internal/engine/core"
 	"zeroparse.dev/zp/internal/gen"
 	"zeroparse.dev/zp/internal/gentest"
-	"zeroparse.dev/zp/runtime/parse"
 )
 
 // termChargePairs are pairs of grammars whose second term handles one value more than the first at a
@@ -165,8 +165,8 @@ func TestEngineTermChargesPerValue(t *testing.T) {
 	used := func(src string, b engine.Backend, recognize bool) int64 {
 		prog := compileBare(t, src)
 		var n uint64
-		_, err := prog.ParseWith("main", "a", engine.ParseOptions{Backend: b, Recognize: recognize, Limits: parse.Limits{Compute: 1 << 50},
-			Trace: func(e engine.TraceEvent) { n = core.TraceParser(e).Control.Used }})
+		_, err := prog.ParseWith("main", "a", engine.ParseOptions{Backend: b, Recognize: recognize, Limits: core.Limits{Compute: 1 << 50},
+			Trace: func(e engine.TraceEvent) { n = ecore.TraceParser(e).Control.Used }})
 		if err != nil {
 			t.Fatalf("%s: %v", src, err)
 		}

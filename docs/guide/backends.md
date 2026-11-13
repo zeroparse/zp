@@ -25,18 +25,18 @@ closure backend serves as the reference. They differ in speed, memory, how they 
 
 | Backend | Option | How it runs | Needs the grammar AST |
 |:--|:--|:--|:--|
-| Closure | `zp.Closure` | Compiles Rule Expressions into Go closures | Yes |
-| Bytecode (recursive) | `zp.Bytecode` | A VM running [portable bytecode](../../spec/bytecode/README.md); rule calls use Go recursion | No |
-| Bytecode (iterative) | `zp.BytecodeIterative` | The same bytecode on a VM with its own call stack | No |
+| Closure | `engine.Closure` | Compiles Rule Expressions into Go closures | Yes |
+| Bytecode (recursive) | `engine.Bytecode` | A VM running [portable bytecode](../../spec/bytecode/README.md); rule calls use Go recursion | No |
+| Bytecode (iterative) | `engine.BytecodeIterative` | The same bytecode on a VM with its own call stack | No |
 | Generated Go | (not an option) | A Go parser generated ahead of time by `zp gen` | At generation time |
 
 The first three are selected per parse:
 
 ```go
-n, err := p.Parse("abc=12", zp.WithBackend(zp.BytecodeIterative))
+n, err := p.Parse("abc=12", engine.WithBackend(engine.BytecodeIterative))
 ```
 
-`zp.DefaultBackend`, used when you give no option, is the **closure backend for a parser compiled from a grammar and
+`engine.DefaultBackend`, used when you give no option, is the **closure backend for a parser compiled from a grammar and
 recursive bytecode for a parser loaded from a `.zpc` file**, which runs on the bytecode backends only. On the command
 line, `-backend closure|bytecode|bytecode-iterative` does the same.
 
@@ -78,7 +78,7 @@ of parentheses, plus the innermost one):
 | 1,000,000 deep | same error | same error | ok |
 
 ```go
-n, err := p.Parse(input, zp.WithBackend(zp.BytecodeIterative), zp.WithLimits(parse.Limits{Depth: 100}))
+n, err := p.Parse(input, engine.WithBackend(engine.BytecodeIterative), engine.WithLimits(core.Limits{Depth: 100}))
 // nesting too deep: more than 100 nested recursive rule calls
 ```
 
@@ -91,14 +91,14 @@ depth; exceeding the limit aborts the parse and discards its execution state.
 Two things to know:
 
 - Lowering the limit is safe on every backend and bounds active nested calls and Operators Rule frames. Input length and
-  total parsing cost have their own limits. A nesting error is a `*parse.LimitError` of kind `parse.LimitDepth`, so treat it like
+  total parsing cost have their own limits. A nesting error is a `*core.LimitError` of kind `core.LimitDepth`, so treat it like
   any parse failure.
 - **Raising the limit on the closure and recursive bytecode backends is limited by the Go stack.** Go's goroutine
   stack is capped at 1 GB by default; running past it is not a recoverable error but a fatal `stack overflow` that
   kills the process. In a trial with the grammar above, the closure backend parsed 300,000 levels with
   `Depth: 1_000_000`, but 1,000,000 levels with `Depth: 2_000_000` on the recursive bytecode backend crashed. If you
   need depth beyond the default, use `BytecodeIterative` rather than raising the limit. Only `BytecodeIterative`
-  accepts `Depth: parse.Unlimited`; the other backends reject it as an option error.
+  accepts `Depth: core.Unlimited`; the other backends reject it as an option error.
 
 Generated parsers have the same default of 100,000. The `MaxDepth` field of `gen.Go` or `zp gen -max-depth` sets a
 generated default; generated Go `Limits.Depth` and TypeScript options-aware entry points override it per invocation

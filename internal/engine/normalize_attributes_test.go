@@ -4,12 +4,12 @@ import (
 	"reflect"
 	"testing"
 
+	"zeroparse.dev/zp/core"
 	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/compile"
 	"zeroparse.dev/zp/internal/desugar"
-	"zeroparse.dev/zp/internal/engine/core"
+	ecore "zeroparse.dev/zp/internal/engine/core"
 	"zeroparse.dev/zp/internal/gentest"
-	"zeroparse.dev/zp/runtime/parse"
 )
 
 func TestNormalizationCopyOnChangeParity(t *testing.T) {
@@ -65,7 +65,7 @@ rule main (Alias) = {count := (1)} {(count == 1)} n:([0-9]+) => (Number{Text: (t
 				return
 			}
 			for _, backend := range []Backend{Closure, Bytecode, BytecodeIterative} {
-				for _, unit := range []parse.PositionUnit{parse.CodePoints, parse.Bytes} {
+				for _, unit := range []core.PositionUnit{core.CodePoints, core.Bytes} {
 					for _, input := range []string{"", "b", "ab", "aaab", "a;", "x;", "123", "1 + 2 * 3", "é"} {
 						opts := ParseOptions{Backend: backend, Unit: unit}
 						if actual, expected := gentest.ResultJSON(optimized.ParseWith("main", input, opts)), gentest.ResultJSON(eager.ParseWith("main", input, opts)); actual != expected {
@@ -77,7 +77,7 @@ rule main (Alias) = {count := (1)} {(count == 1)} n:([0-9]+) => (Number{Text: (t
 			// The closure parses above ran the controlled graph, which is built from the source grammar
 			// when the first parse needs it. It is compiled the way its program was, so the closure half
 			// of the comparison is of the two normalizations and not of one with itself.
-			if core.BudgetControlsEnabled {
+			if ecore.BudgetControlsEnabled {
 				for _, c := range []struct {
 					p     *Program
 					eager bool

@@ -19,28 +19,33 @@ import (
 	"zeroparse.dev/zp/internal/gen"
 )
 
-// The Go runtime of generated parsers is the package zeroparse.dev/zp/runtime, whose exported names that are documented as for generated parsers the generated code reaches, the
-// package parse, which declares the result types (Node, Limits, SyntaxError, ...) that generated
-// parsers share with the engine, and the node representation noderep, which both use. A generated
-// package either imports these packages or carries a copy of the files of its packages (embed
-// mode), which the generator reads from the source in GenOptions.RuntimeSource: the runtime package
-// at its root, and the others in the subdirectories runtimeSubpackages names.
+// The Go runtime of generated parsers is the package zeroparse.dev/zp/runtime, whose exported
+// names that are documented as for generated parsers the generated code reaches, together with the
+// package core, which declares the result types (Node, Limits, SyntaxError, ...) that generated
+// parsers share with the engine, and the node representation core/noderep, which both use. A
+// generated package either imports these packages or carries a copy of their files (embed mode),
+// which the generator reads from the source in GenOptions.RuntimeSource: the runtime package at its
+// root, and the others in the subdirectories runtimeSubpackages names.
 
-// runtimeImportPath is the import path of the runtime package in this module.
-const runtimeImportPath = "zeroparse.dev/zp/runtime"
+// modulePath is the path of this module, runtimeImportPath the import path of the runtime package
+// in it.
+const (
+	modulePath        = "zeroparse.dev/zp"
+	runtimeImportPath = modulePath + "/runtime"
+)
 
-// runtimeAlias is the name generated code gives to the runtime package, parseAlias the name it gives
-// to the package parse, and typesAlias the name it gives to the types package of a typed parser.
+// runtimeAlias is the name generated code gives to the runtime package, coreAlias the name it gives
+// to the package core, and typesAlias the name it gives to the types package of a typed parser.
 const (
 	runtimeAlias = "rt"
-	parseAlias   = "parse"
+	coreAlias    = "core"
 	TypesAlias   = "types"
 )
 
-// runtimeSubpackages are the packages of the runtime besides the runtime package, by their
-// directory under the runtime's, which is also their package name. Generated code names the
-// declarations of parse (parseAlias); the runtime and parse import noderep.
-var runtimeSubpackages = []string{"noderep", parseAlias}
+// runtimeSubpackages are the packages the runtime imports, by their directory in the runtime source
+// and relative to the module root, whose last element is their package name. Generated code names
+// the declarations of core (coreAlias); the runtime and core import core/noderep.
+var runtimeSubpackages = []string{"core/noderep", coreAlias}
 
 // runtimeCache memoizes the parsed runtime of each source, so that the many generations of one
 // process parse it once. The key is the source value of GenOptions.RuntimeSource, used only for a
@@ -58,13 +63,13 @@ type runtimeFile struct {
 	data []byte
 }
 
-// runtimeDecl is an exported top-level declaration of the runtime or of parse.
+// runtimeDecl is an exported top-level declaration of the runtime or of core.
 type runtimeDecl struct {
 	kind token.Token // token.TYPE, CONST, VAR or FUNC
 	doc  string
 	spec goast.Node
 	// pkg is the name generated code gives to the package that declares it: runtimeAlias or
-	// parseAlias.
+	// coreAlias.
 	pkg string
 }
 
@@ -107,7 +112,7 @@ func loadRuntime(opts gen.GenOptions) (*runtimeInfo, error) {
 
 // parseRuntime reads the files of the runtime package in fsys, and of the packages of
 // runtimeSubpackages in its subdirectories, and the exported declarations of the runtime and
-// parse.
+// core.
 func parseRuntime(fsys fs.FS) (*runtimeInfo, error) {
 	info := &runtimeInfo{Decls: map[string]*runtimeDecl{}}
 	fset := token.NewFileSet()
@@ -118,7 +123,7 @@ func parseRuntime(fsys fs.FS) (*runtimeInfo, error) {
 		}
 		pkg := runtimeAlias
 		if dir != "." {
-			pkg = dir
+			pkg = path.Base(dir)
 		}
 		for _, e := range entries {
 			name := e.Name()
@@ -131,7 +136,7 @@ func parseRuntime(fsys fs.FS) (*runtimeInfo, error) {
 				return nil, err
 			}
 			info.files = append(info.files, runtimeFile{name, data})
-			if pkg != runtimeAlias && pkg != parseAlias {
+			if pkg != runtimeAlias && pkg != coreAlias {
 				continue
 			}
 			f, err := goparser.ParseFile(fset, name, data, goparser.ParseComments|goparser.SkipObjectResolution)
@@ -162,7 +167,7 @@ func parseRuntime(fsys fs.FS) (*runtimeInfo, error) {
 }
 
 // addRuntimeDecls adds the exported top-level declarations of f, a file of the package that
-// generated code names pkg, to info. A name that both the runtime and parse declare is an error:
+// generated code names pkg, to info. A name that both the runtime and core declare is an error:
 // generated code could not tell which it names.
 func addRuntimeDecls(info *runtimeInfo, f *goast.File, pkg string) error {
 	add := func(name string, d *runtimeDecl) error {
@@ -223,7 +228,7 @@ func runtimeFiles(opts gen.GenOptions) ([]gen.GeneratedFile, error) {
 	base := runtimeImport(opts)
 	var paths []string
 	for _, sub := range runtimeSubpackages {
-		paths = append(paths, strconv.Quote(runtimeImportPath+"/"+sub), strconv.Quote(base+"/"+sub))
+		paths = append(paths, strconv.Quote(modulePath+"/"+sub), strconv.Quote(base+"/"+sub))
 	}
 	imports := strings.NewReplacer(paths...)
 	var out []gen.GeneratedFile
@@ -243,8 +248,17 @@ func runtimeImport(opts gen.GenOptions) string {
 	return runtimeImportPath
 }
 
-// parseImport returns the import path of the package parse for a generated package.
-func parseImport(opts gen.GenOptions) string { return runtimeImport(opts) + "/" + parseAlias }
+// coreImport returns the import path of the package core for a generated package.
+func coreImport(opts gen.GenOptions) string { return coreImportFor(runtimeImport(opts)) }
+
+// coreImportFor returns the import path of the package core that goes with the runtime whose import
+// path is rtImport: the package of this module, or the copy next to an embedded runtime.
+func coreImportFor(rtImport string) string {
+	if rtImport == runtimeImportPath {
+		return modulePath + "/" + coreAlias
+	}
+	return rtImport + "/" + coreAlias
+}
 
 // stdImports are the standard-library packages generated code may use, by the name it uses them
 // with.
@@ -270,11 +284,10 @@ type typesPackage struct {
 }
 
 // qualifyRuntime finishes the generated source body of a package. Every identifier that the body
-// leaves unresolved and that is an exported name of the runtime or of parse is that package's, and
+// leaves unresolved and that is an exported name of the runtime or of core is that package's, and
 // is qualified with it; one that the types package tp (if any) declares is qualified with the types
 // package. The standard-library packages the body uses are imported, the runtime, whose import path
-// is rtImport, parse (the subdirectory parse of the runtime's) if the body names it, and the types
-// package.
+// is rtImport, core (coreImportFor) if the body names it, and the types package.
 func qualifyRuntime(rtImport, body string, info *runtimeInfo, tp *typesPackage) (string, error) {
 	const prefix = "package p\n"
 	fset := token.NewFileSet()
@@ -367,9 +380,9 @@ func qualifyRuntime(rtImport, body string, info *runtimeInfo, tp *typesPackage) 
 		}
 		return true
 	})
-	parseUsed := false
+	coreUsed := false
 	for _, in := range inserts {
-		parseUsed = parseUsed || in.qualifier == parseAlias+"."
+		coreUsed = coreUsed || in.qualifier == coreAlias+"."
 	}
 	typesUsed := false
 	for _, off := range typeOffsets {
@@ -404,8 +417,8 @@ func qualifyRuntime(rtImport, body string, info *runtimeInfo, tp *typesPackage) 
 		fmt.Fprintf(&imports, "\t%q\n", p)
 	}
 	fmt.Fprintf(&imports, "\n\t%s %q\n", runtimeAlias, rtImport)
-	if parseUsed {
-		fmt.Fprintf(&imports, "\t%q\n", rtImport+"/"+parseAlias)
+	if coreUsed {
+		fmt.Fprintf(&imports, "\t%q\n", coreImportFor(rtImport))
 	}
 	if typesUsed {
 		fmt.Fprintf(&imports, "\t%s %q\n", TypesAlias, tp.ImportPath)
@@ -525,13 +538,13 @@ func apiNames(opts gen.GenOptions) []string {
 }
 
 // apiSource returns the source of the file of the generated package that re-exports the names of
-// the runtime and of parse that apiNames lists. Types, constants and variables are aliases;
+// the runtime and of core that apiNames lists. Types, constants and variables are aliases;
 // functions are wrappers that the compiler inlines.
 func apiSource(opts gen.GenOptions, info *runtimeInfo) (string, error) {
 	var b strings.Builder
 	fmt.Fprintf(&b, "%s\n\npackage %s\n\n", gen.Header(), opts.Package)
 	b.WriteString("import (\n\t\"context\"\n\n")
-	fmt.Fprintf(&b, "\t%q\n", parseImport(opts))
+	fmt.Fprintf(&b, "\t%q\n", coreImport(opts))
 	fmt.Fprintf(&b, "\t%s %q\n)\n\n", runtimeAlias, runtimeImport(opts))
 	b.WriteString("var _ context.Context\n\n")
 	for _, name := range apiNames(opts) {

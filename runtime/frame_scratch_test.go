@@ -4,8 +4,8 @@ import (
 	"encoding/json"
 	"testing"
 
-	"zeroparse.dev/zp/runtime/noderep"
-	"zeroparse.dev/zp/runtime/parse"
+	"zeroparse.dev/zp/core"
+	"zeroparse.dev/zp/core/noderep"
 )
 
 func TestNodeFrameScratchBoundaries(t *testing.T) {
@@ -73,7 +73,7 @@ func TestNodeFrameScratchReleaseOwnership(t *testing.T) {
 	}
 	chunks, slots := p.captureScratch.frames, p.captureScratch.slots
 	// Even unused backing must not keep overwritten or abandoned values alive.
-	chunks[0][nodeChunk-1].Vals = []*parse.Node{captured}
+	chunks[0][nodeChunk-1].Vals = []*core.Node{captured}
 	slots[0][ptrChunk-1] = captured
 	p.Trail = append(p.Trail, undo{f: f, old: captured})
 	p.saved = append(p.saved, captured)
@@ -104,11 +104,11 @@ func TestNodeFrameScratchReleaseOwnership(t *testing.T) {
 
 func TestNodeFrameScratchCompleteBackingBound(t *testing.T) {
 	for _, extra := range []int{0, 1} {
-		frameChunk, slotChunk := new([nodeChunk]CaptureFrame), new([ptrChunk]*parse.Node)
+		frameChunk, slotChunk := new([nodeChunk]CaptureFrame), new([ptrChunk]*core.Node)
 		f := make([]*[nodeChunk]CaptureFrame, 1)
 		f[0] = frameChunk
 		// The combined complete backing is exactly at or one word above the cap.
-		s := make([]*[ptrChunk]*parse.Node, 1, frameScratchLimit-9-3*nodeChunk-ptrChunk-cap(f)+extra)
+		s := make([]*[ptrChunk]*core.Node, 1, frameScratchLimit-9-3*nodeChunk-ptrChunk-cap(f)+extra)
 		s[0] = slotChunk
 		a := frameScratch{frames: f, slots: s, frameN: 1, slotOff: 1}
 		frameChunk[0].Vals = slotChunk[:1]
@@ -126,7 +126,7 @@ func TestNodeFrameScratchCompleteBackingBound(t *testing.T) {
 	}
 	for _, a := range []frameScratch{
 		{frames: make([]*[nodeChunk]CaptureFrame, 0, frameScratchLimit+1)},
-		{slots: make([]*[ptrChunk]*parse.Node, 0, frameScratchLimit+1)},
+		{slots: make([]*[ptrChunk]*core.Node, 0, frameScratchLimit+1)},
 	} {
 		a.reset()
 		if a.frames != nil || a.slots != nil {

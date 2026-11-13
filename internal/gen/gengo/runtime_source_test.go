@@ -14,9 +14,9 @@ import (
 // miniRuntime is a runtime source with one file whose text carries marker.
 func miniRuntime(marker string) fstest.MapFS {
 	return fstest.MapFS{
-		"rt.go":              {Data: []byte("package runtime\n\n// " + marker + "\nconst Protocol1 = 1\n")},
-		"noderep/noderep.go": {Data: []byte("package noderep\n")},
-		"parse/parse.go":     {Data: []byte("package parse\n")},
+		"rt.go":                   {Data: []byte("package runtime\n\n// " + marker + "\nconst Protocol1 = 1\n")},
+		"core/noderep/noderep.go": {Data: []byte("package noderep\n")},
+		"core/core.go":            {Data: []byte("package core\n")},
 	}
 }
 

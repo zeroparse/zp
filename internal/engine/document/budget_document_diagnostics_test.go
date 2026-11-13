@@ -7,9 +7,9 @@ import (
 	"errors"
 	"testing"
 
+	"zeroparse.dev/zp/core"
 	. "zeroparse.dev/zp/internal/engine"
-	"zeroparse.dev/zp/internal/engine/core"
-	"zeroparse.dev/zp/runtime/parse"
+	ecore "zeroparse.dev/zp/internal/engine/core"
 )
 
 func TestBudgetDocumentDiagnosticPublication(t *testing.T) {
@@ -38,12 +38,12 @@ func TestBudgetDocumentDiagnosticPublication(t *testing.T) {
 					t.Fatal("missing recovered error")
 				}
 				before := d.Memo()
-				var observed *core.Parser
+				var observed *ecore.Parser
 				var exitSteps uint64
 				publicationPolled := false
 				token := new(int)
-				syntaxError := &parse.SyntaxError{Messages: []string{"context error"}}
-				syntaxErrors := parse.SyntaxErrors{syntaxError}
+				syntaxError := &core.SyntaxError{Messages: []string{"context error"}}
+				syntaxErrors := core.SyntaxErrors{syntaxError}
 				ctx := &budgetContextAccessorContext{Context: context.Background(), done: make(chan struct{})}
 				ctx.fn = func() error {
 					if observed == nil || observed.Control.Used < exitSteps+2048 {
@@ -68,13 +68,13 @@ func TestBudgetDocumentDiagnosticPublication(t *testing.T) {
 				}
 				o.Trace = func(e TraceEvent) {
 					if e.Kind == TraceExit && e.Rule == "main" {
-						observed, exitSteps = core.TraceParser(e), core.TraceParser(e).Control.Used
+						observed, exitSteps = ecore.TraceParser(e), ecore.TraceParser(e).Control.Used
 						if mode == "budget" {
-							core.TraceParser(e).Control.Limits.Compute = exitSteps + 64
+							ecore.TraceParser(e).Control.Limits.Compute = exitSteps + 64
 						}
 					}
 				}
-				var result *parse.Node
+				var result *core.Node
 				var caught any
 				func() {
 					defer func() { caught = recover() }()
@@ -85,7 +85,7 @@ func TestBudgetDocumentDiagnosticPublication(t *testing.T) {
 				}
 				switch mode {
 				case "budget":
-					if caught != nil || !errors.Is(err, parse.ErrLimit) {
+					if caught != nil || !errors.Is(err, core.ErrLimit) {
 						t.Fatalf("budget: error=%v panic=%v", err, caught)
 					}
 				case "syntax-error":
@@ -93,7 +93,7 @@ func TestBudgetDocumentDiagnosticPublication(t *testing.T) {
 						t.Fatal("context SyntaxError identity changed")
 					}
 				case "syntax-errors":
-					got, ok := err.(parse.SyntaxErrors)
+					got, ok := err.(core.SyntaxErrors)
 					if caught != nil || !ok || len(got) != 1 || &got[0] != &syntaxErrors[0] {
 						t.Fatal("context SyntaxErrors identity changed")
 					}
@@ -126,18 +126,18 @@ func TestBudgetDocumentFatalSyntaxErrorsRemainUnchanged(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		original := parse.SyntaxErrors{&parse.SyntaxError{Messages: []string{"context failure"}}}
+		original := core.SyntaxErrors{&core.SyntaxError{Messages: []string{"context failure"}}}
 		ctx := &budgetContextAccessorContext{Context: context.Background(), done: make(chan struct{})}
 		o := base
 		o.Context = ctx
 		o.Trace = func(e TraceEvent) {
 			if e.Kind == TraceEnter && e.Rule == "main" {
 				ctx.fn = func() error { return original }
-				core.TraceParser(e).Control.Check()
+				ecore.TraceParser(e).Control.Check()
 			}
 		}
 		n, err := d.ParseWith(o)
-		got, ok := err.(parse.SyntaxErrors)
+		got, ok := err.(core.SyntaxErrors)
 		if n != nil || !ok || len(got) != 1 || &got[0] != &original[0] {
 			t.Fatal("fatal context error was mistaken for parser diagnostics")
 		}

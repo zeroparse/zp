@@ -7,10 +7,10 @@ import (
 	"strings"
 	"testing"
 
+	"zeroparse.dev/zp/core"
 	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/bytecode"
 	"zeroparse.dev/zp/internal/compile"
-	"zeroparse.dev/zp/runtime/parse"
 )
 
 // legacyStreamRecovery builds the bytecode emitted before recovery around a
@@ -78,14 +78,14 @@ rule item = "ab" @error(message="record") #recover(skip=[^a]+)`)
 			}
 			for _, backend := range []Backend{Closure, Bytecode, BytecodeIterative} {
 				if backend == Closure {
-					err := loaded.ParseStreamWith("main", strings.NewReader("abX!ab"), func(*parse.Node) error { return nil }, servedBy(mode, ParseOptions{Backend: backend}))
+					err := loaded.ParseStreamWith("main", strings.NewReader("abX!ab"), func(*core.Node) error { return nil }, servedBy(mode, ParseOptions{Backend: backend}))
 					wantClosureRefused(t, err)
 					continue
 				}
-				for _, unit := range []parse.PositionUnit{parse.CodePoints, parse.Bytes} {
+				for _, unit := range []core.PositionUnit{core.CodePoints, core.Bytes} {
 					count := 0
-					err := loaded.ParseStreamWith("main", strings.NewReader("abX!ab"), func(*parse.Node) error { count++; return nil }, servedBy(mode, ParseOptions{Backend: backend, Unit: unit}))
-					var recovered parse.SyntaxErrors
+					err := loaded.ParseStreamWith("main", strings.NewReader("abX!ab"), func(*core.Node) error { count++; return nil }, servedBy(mode, ParseOptions{Backend: backend, Unit: unit}))
+					var recovered core.SyntaxErrors
 					if !errors.As(err, &recovered) || len(recovered) != 1 || count != 3 {
 						t.Errorf("%s %s mode %s/%s: count=%d error=%v", body, mode, backend, unit, count, err)
 					}

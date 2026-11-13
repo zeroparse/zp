@@ -8,9 +8,9 @@ import (
 	"strings"
 	"testing"
 
+	"zeroparse.dev/zp/core"
 	. "zeroparse.dev/zp/internal/engine"
-	"zeroparse.dev/zp/internal/engine/core"
-	"zeroparse.dev/zp/runtime/parse"
+	ecore "zeroparse.dev/zp/internal/engine/core"
 )
 
 // The grammar takes the text of every level of a nesting. An edit of the center splits the
@@ -18,13 +18,13 @@ import (
 // the square of the depth, and the parse is linear only if a text costs a constant.
 func TestTextCostIsConstantInDocumentPieces(t *testing.T) {
 	t.Parallel()
-	if !core.DocumentPieceInput {
+	if !ecore.DocumentPieceInput {
 		t.Skip("piece input is disabled")
 	}
 	prog := mustCompile(t, `rule main = v:a $$ => $v
 rule a = s:("(" a ")" / [^()]) => text($s)`)
 	for _, b := range []Backend{Closure, Bytecode, BytecodeIterative} {
-		for _, u := range []parse.PositionUnit{parse.Bytes, parse.CodePoints} {
+		for _, u := range []core.PositionUnit{core.Bytes, core.CodePoints} {
 			t.Run(fmt.Sprintf("%v/%v", b, u), func(t *testing.T) {
 				t.Parallel()
 				parseFn := func(depth int, budget uint64) error {
@@ -69,7 +69,7 @@ func leastDocumentBudget(t *testing.T, parseFn func(budget uint64) error) uint64
 	t.Helper()
 	finishes := func(budget uint64) bool {
 		err := parseFn(budget)
-		if errors.Is(err, parse.ErrLimit) {
+		if errors.Is(err, core.ErrLimit) {
 			return false
 		}
 		if err != nil {

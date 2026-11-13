@@ -1,9 +1,9 @@
 package core
 
 import (
+	"zeroparse.dev/zp/core"
+	"zeroparse.dev/zp/core/noderep"
 	"zeroparse.dev/zp/internal/value"
-	"zeroparse.dev/zp/runtime/noderep"
-	"zeroparse.dev/zp/runtime/parse"
 )
 
 // Nodes and child slices created during a parse are allocated in bulk from per-parse chunks.
@@ -60,15 +60,15 @@ func (p *Parser) PrivatePrefixAlloc() bool {
 }
 
 // NewNode allocates a node with the representation d from a chunk and returns it.
-func (p *Parser) NewNode(d value.Data) *parse.Node {
+func (p *Parser) NewNode(d value.Data) *core.Node {
 	d.Mark = p.Gen
 	if len(p.NodeSlab) == 0 {
 		if p.PrivatePrefixAlloc() {
-			n := new(parse.Node)
+			n := new(core.Node)
 			*value.D(n) = d
 			return n
 		}
-		p.NodeSlab = make([]parse.Node, NodeChunk)
+		p.NodeSlab = make([]core.Node, NodeChunk)
 		p.NodeChunks++
 	}
 	n := &p.NodeSlab[0]
@@ -78,19 +78,19 @@ func (p *Parser) NewNode(d value.Data) *parse.Node {
 }
 
 // Nodes allocates a child slice of length n (and capacity n) from a chunk and returns it.
-func (p *Parser) Nodes(n int) []*parse.Node {
+func (p *Parser) Nodes(n int) []*core.Node {
 	if n == 0 {
-		return []*parse.Node{}
+		return []*core.Node{}
 	}
 	if n > PtrChunk/4 {
 		p.MemUsed += uint64(n) * ptrBytes
-		return make([]*parse.Node, n)
+		return make([]*core.Node, n)
 	}
 	if len(p.PtrSlab) < n {
 		if p.PrivatePrefixAlloc() {
-			return make([]*parse.Node, n)
+			return make([]*core.Node, n)
 		}
-		p.PtrSlab = make([]*parse.Node, PtrChunk)
+		p.PtrSlab = make([]*core.Node, PtrChunk)
 		p.MemUsed += PtrChunk * ptrBytes
 	}
 	s := p.PtrSlab[:n:n]
@@ -99,7 +99,7 @@ func (p *Parser) Nodes(n int) []*parse.Node {
 }
 
 // Kids returns p.KidStack[base:] as a child slice and resets the stack to base.
-func (p *Parser) Kids(base int) []*parse.Node {
+func (p *Parser) Kids(base int) []*core.Node {
 	ks := p.Nodes(len(p.KidStack) - base)
 	CopySpend(p, ks, p.KidStack[base:])
 	ClearSpend(p, p.KidStack[base:])
@@ -135,7 +135,7 @@ func (p *Parser) fields(n int) noderep.Fields {
 // one returns a slice holding only v, for the element list of an action. It is owned by the
 // parser and valid until the next call: the list is read only while the action is evaluated
 // (evaluations never nest), and $0 copies it.
-func (p *Parser) one(v *parse.Node) []*parse.Node {
+func (p *Parser) one(v *core.Node) []*core.Node {
 	p.item[0] = v
 	return p.item[:]
 }
@@ -151,7 +151,7 @@ func (p *Parser) NewFrame(n int) *Frame {
 		// an extra buffer pointer in every parser.
 		if len(p.FrameSlab) == cap(p.FrameSlab) {
 			if p.PrivatePrefixAlloc() {
-				return &Frame{Vals: make([]*parse.Node, n)}
+				return &Frame{Vals: make([]*core.Node, n)}
 			}
 			p.FrameSlab = make([]Frame, 0, NodeChunk)
 			p.MemUsed += NodeChunk * frameBytes
@@ -161,7 +161,7 @@ func (p *Parser) NewFrame(n int) *Frame {
 	} else {
 		if len(p.FrameSlab) == 0 {
 			if p.PrivatePrefixAlloc() {
-				return &Frame{Vals: make([]*parse.Node, n)}
+				return &Frame{Vals: make([]*core.Node, n)}
 			}
 			p.FrameSlab = make([]Frame, NodeChunk)
 			p.MemUsed += NodeChunk * frameBytes

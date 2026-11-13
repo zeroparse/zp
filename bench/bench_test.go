@@ -14,7 +14,8 @@ import (
 	"unicode/utf8"
 	"zeroparse.dev/zp/internal/bench/inputs"
 
-	"zeroparse.dev/zp"
+	"zeroparse.dev/zp/core"
+	"zeroparse.dev/zp/engine"
 	gcalc "zeroparse.dev/zp/internal/bench/gen/calc"
 	gcalclr "zeroparse.dev/zp/internal/bench/gen/calclr"
 	gcsv "zeroparse.dev/zp/internal/bench/gen/csv"
@@ -27,7 +28,6 @@ import (
 	goutline "zeroparse.dev/zp/internal/bench/gen/outline"
 	gxml "zeroparse.dev/zp/internal/bench/gen/xml"
 	rt "zeroparse.dev/zp/runtime"
-	"zeroparse.dev/zp/runtime/parse"
 )
 
 // workload is the grammar and input of one benchmark.
@@ -175,35 +175,35 @@ var workloads = []workload{
 
 var backends = []struct {
 	name string
-	b    zp.Backend
+	b    engine.Backend
 }{
-	{"closure", zp.Closure},
-	{"bytecode", zp.Bytecode},
-	{"iterative", zp.BytecodeIterative},
+	{"closure", engine.Closure},
+	{"bytecode", engine.Bytecode},
+	{"iterative", engine.BytecodeIterative},
 }
 
 var units = []struct {
 	name string
-	u    parse.PositionUnit
+	u    core.PositionUnit
 }{
-	{"codepoints", parse.CodePoints},
-	{"bytes", parse.Bytes},
+	{"codepoints", core.CodePoints},
+	{"bytes", core.Bytes},
 }
 
-func load(tb testing.TB, path string) *zp.Parser {
+func load(tb testing.TB, path string) *engine.Parser {
 	tb.Helper()
 	src, err := os.ReadFile(path)
 	if err != nil {
 		tb.Fatal(err)
 	}
-	p, err := zp.CompileSource(string(src), "main")
+	p, err := engine.CompileSource(string(src), "main")
 	if err != nil {
 		tb.Fatal(err)
 	}
 	return p
 }
 
-func parseOK(p *zp.Parser, w *workload, input string, opts ...zp.ParseOption) error {
+func parseOK(p *engine.Parser, w *workload, input string, opts ...engine.ParseOption) error {
 	n, err := p.Parse(input, opts...)
 	if w.partial && n != nil {
 		return nil
@@ -221,11 +221,11 @@ func TestWorkloads(t *testing.T) {
 			var want string
 			for _, be := range backends {
 				for _, u := range units {
-					n, err := p.Parse(input, zp.WithBackend(be.b), zp.WithUnit(u.u))
+					n, err := p.Parse(input, engine.WithBackend(be.b), engine.WithUnit(u.u))
 					if err != nil && !(w.partial && n != nil) {
 						t.Fatalf("%s/%s: %v", be.name, u.name, err)
 					}
-					if u.u == parse.Bytes {
+					if u.u == core.Bytes {
 						continue
 					}
 					got, _ := json.Marshal(n)
@@ -266,9 +266,9 @@ func TestWorkloads(t *testing.T) {
 func TestGeneratedDocumentAndStream(t *testing.T) {
 	type document interface {
 		Edit(start, end int, text string) error
-		Parse(...rt.ParseOption) (*parse.Node, error)
+		Parse(...rt.ParseOption) (*core.Node, error)
 	}
-	check := func(t *testing.T, input, marker string, newDoc func(string) (document, error), parse func(string, ...rt.ParseOption) (*parse.Node, error)) {
+	check := func(t *testing.T, input, marker string, newDoc func(string) (document, error), parse func(string, ...rt.ParseOption) (*core.Node, error)) {
 		at := utf8.RuneCountInString(input[:strings.Index(input, marker)+len(marker)])
 		doc, err := newDoc(input)
 		if err != nil {
@@ -315,7 +315,7 @@ func TestGeneratedDocumentAndStream(t *testing.T) {
 		input := inputs.CSVInput(500)
 		p := load(t, "../testdata/grammars/csv/csv.zp")
 		var want, got []string
-		if err := p.ParseStream(strings.NewReader(input), func(n *parse.Node) error {
+		if err := p.ParseStream(strings.NewReader(input), func(n *core.Node) error {
 			b, err := json.Marshal(n)
 			want = append(want, string(b))
 			return err
@@ -349,7 +349,7 @@ func BenchmarkParse(b *testing.B) {
 						b.SetBytes(int64(len(input)))
 						b.ReportAllocs()
 						for b.Loop() {
-							if err := parseOK(p, w, input, zp.WithBackend(be.b), zp.WithUnit(u.u)); err != nil {
+							if err := parseOK(p, w, input, engine.WithBackend(be.b), engine.WithUnit(u.u)); err != nil {
 								b.Fatal(err)
 							}
 						}
@@ -361,7 +361,7 @@ func BenchmarkParse(b *testing.B) {
 					b.SetBytes(int64(len(input)))
 					b.ReportAllocs()
 					for b.Loop() {
-						if err := w.gen(input, u.u == parse.Bytes); err != nil {
+						if err := w.gen(input, u.u == core.Bytes); err != nil {
 							b.Fatal(err)
 						}
 					}
@@ -406,7 +406,7 @@ func BenchmarkRecognize(b *testing.B) {
 					b.SetBytes(int64(len(input)))
 					b.ReportAllocs()
 					for b.Loop() {
-						if _, err := p.Parse(input, zp.WithBackend(be.b), zp.RecognizeOnly()); err != nil && !w.partial {
+						if _, err := p.Parse(input, engine.WithBackend(be.b), engine.RecognizeOnly()); err != nil && !w.partial {
 							b.Fatal(err)
 						}
 					}
@@ -473,7 +473,7 @@ func BenchmarkIncremental(b *testing.B) {
 	at := utf8.RuneCountInString(input[:strings.Index(input, "fn f150(")+len("fn f150(")])
 	for _, be := range backends {
 		b.Run(be.name+"/document", func(b *testing.B) {
-			doc, err := p.NewDocument(input, zp.WithBackend(be.b))
+			doc, err := p.NewDocument(input, engine.WithBackend(be.b))
 			if err != nil {
 				b.Fatal(err)
 			}
@@ -498,7 +498,7 @@ func BenchmarkIncremental(b *testing.B) {
 		b.Run(be.name+"/fresh", func(b *testing.B) {
 			b.ReportAllocs()
 			for b.Loop() {
-				if _, err := p.Parse(input, zp.WithBackend(be.b)); err != nil {
+				if _, err := p.Parse(input, engine.WithBackend(be.b)); err != nil {
 					b.Fatal(err)
 				}
 			}
@@ -537,7 +537,7 @@ func BenchmarkIncrementalLong(b *testing.B) {
 	at := utf8.RuneCountInString(input[:strings.Index(input, "\n25000,")+len("\n25000,")])
 	for _, be := range backends {
 		b.Run(be.name, func(b *testing.B) {
-			doc, err := p.NewDocument(input, zp.WithBackend(be.b))
+			doc, err := p.NewDocument(input, engine.WithBackend(be.b))
 			if err != nil {
 				b.Fatal(err)
 			}
@@ -579,7 +579,7 @@ func BenchmarkStream(b *testing.B) {
 			b.ReportAllocs()
 			for b.Loop() {
 				n := 0
-				err := p.ParseStream(strings.NewReader(input), func(*parse.Node) error { n++; return nil }, zp.WithBackend(be.b))
+				err := p.ParseStream(strings.NewReader(input), func(*core.Node) error { n++; return nil }, engine.WithBackend(be.b))
 				if err != nil || n != 50001 {
 					b.Fatalf("%d records: %v", n, err)
 				}
@@ -632,7 +632,7 @@ func BenchmarkPrepare(b *testing.B) {
 		b.Run(name+"/source", func(b *testing.B) {
 			b.ReportAllocs()
 			for b.Loop() {
-				if _, err := zp.CompileSource(string(src), "main"); err != nil {
+				if _, err := engine.CompileSource(string(src), "main"); err != nil {
 					b.Fatal(err)
 				}
 			}
@@ -641,15 +641,15 @@ func BenchmarkPrepare(b *testing.B) {
 		// compiled grammar of the matching mode builds when it is loaded.
 		for _, c := range []struct {
 			name string
-			opts []zp.ParseOption
+			opts []engine.ParseOption
 		}{
 			{"parse", nil},
-			{"document", []zp.ParseOption{zp.WithTrace(func(zp.TraceEvent) {})}},
+			{"document", []engine.ParseOption{engine.WithTrace(func(engine.TraceEvent) {})}},
 		} {
 			b.Run(name+"/first/"+c.name, func(b *testing.B) {
 				b.ReportAllocs()
 				for b.Loop() {
-					cp, err := zp.CompileSource(string(src), "main")
+					cp, err := engine.CompileSource(string(src), "main")
 					if err != nil {
 						b.Fatal(err)
 					}
@@ -658,22 +658,22 @@ func BenchmarkPrepare(b *testing.B) {
 			})
 		}
 		for _, c := range []struct {
-			mode zp.CompiledMode
-			opts []zp.ParseOption // a parse the mode serves
+			mode engine.CompiledMode
+			opts []engine.ParseOption // a parse the mode serves
 		}{
-			{zp.CompiledParse, nil},
-			{zp.CompiledRecognize, []zp.ParseOption{zp.RecognizeOnly()}},
-			{zp.CompiledDocument, []zp.ParseOption{zp.WithTrace(func(zp.TraceEvent) {})}},
+			{engine.CompiledParse, nil},
+			{engine.CompiledRecognize, []engine.ParseOption{engine.RecognizeOnly()}},
+			{engine.CompiledDocument, []engine.ParseOption{engine.WithTrace(func(engine.TraceEvent) {})}},
 		} {
 			data, err := p.Marshal(c.mode)
 			if err != nil {
 				b.Fatal(err)
 			}
-			opts := append([]zp.ParseOption{zp.WithBackend(zp.Bytecode)}, c.opts...)
+			opts := append([]engine.ParseOption{engine.WithBackend(engine.Bytecode)}, c.opts...)
 			b.Run(name+"/zpc/"+c.mode.String()+"/bytecode", func(b *testing.B) {
 				b.ReportAllocs()
 				for b.Loop() {
-					lp, err := zp.LoadParser(data)
+					lp, err := engine.LoadParser(data)
 					if err != nil {
 						b.Fatal(err)
 					}

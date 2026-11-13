@@ -15,7 +15,7 @@ import (
 	"strings"
 	"testing"
 
-	"zeroparse.dev/zp"
+	"zeroparse.dev/zp/engine"
 	"zeroparse.dev/zp/gen"
 )
 
@@ -146,11 +146,11 @@ func conformanceSchema(t *testing.T, path string) confSchema {
 	if err != nil {
 		t.Fatal(err)
 	}
-	p, err := zp.CompileSource(string(src), "")
+	p, err := engine.CompileSource(string(src), "")
 	if err != nil {
 		t.Fatalf("%s: %v", path, err)
 	}
-	s, err := p.OutputSchema(zp.WithAllSchemaRules())
+	s, err := p.OutputSchema(engine.WithAllSchemaRules())
 	if err != nil {
 		t.Fatalf("%s: schema: %v", path, err)
 	}
@@ -616,7 +616,7 @@ func checkTypedGeneration(t *testing.T, sc confSchema, g typedGeneration, src st
 			out = append(out, "Go: "+v)
 		}
 	}
-	gr, err := zp.ParseGrammar(src)
+	gr, err := engine.ParseGrammar(src)
 	if err != nil {
 		t.Fatal(err)
 	}

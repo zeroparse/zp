@@ -10,14 +10,14 @@ import (
 	"strings"
 	"testing"
 
+	"zeroparse.dev/zp/core"
 	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/bytecode"
 	"zeroparse.dev/zp/internal/compile"
 	. "zeroparse.dev/zp/internal/engine"
-	"zeroparse.dev/zp/internal/engine/core"
+	ecore "zeroparse.dev/zp/internal/engine/core"
 	"zeroparse.dev/zp/internal/starttest"
 	"zeroparse.dev/zp/internal/syntax"
-	"zeroparse.dev/zp/runtime/parse"
 )
 
 // The tests in this file's package parse with the engine's programs. These helpers are the
@@ -115,7 +115,7 @@ rule expr = #operators {
     level { prefix "-" }
 }`
 
-func dump(t *testing.T, n *parse.Node, err error) string {
+func dump(t *testing.T, n *core.Node, err error) string {
 	t.Helper()
 	data, jerr := json.Marshal(n)
 	if jerr != nil {
@@ -128,7 +128,7 @@ func dump(t *testing.T, n *parse.Node, err error) string {
 	return s
 }
 
-func resultJSON(n *parse.Node, err error) string {
+func resultJSON(n *core.Node, err error) string {
 	out := map[string]any{"node": n}
 	if err != nil {
 		out["err"] = err.Error()
@@ -203,7 +203,7 @@ type snapshotPhaseContext struct {
 	phase      string
 }
 
-func assertTraceParserDetached(t *testing.T, p *core.Parser, aborted bool) {
+func assertTraceParserDetached(t *testing.T, p *ecore.Parser, aborted bool) {
 	t.Helper()
 	if p == nil {
 		t.Fatal("trace callback did not expose a parser")
@@ -257,17 +257,17 @@ func newPollingContext(at int) *pollingContext {
 func budgetDocumentVariants(t *testing.T, run func(*testing.T, ParseOptions)) {
 	t.Helper()
 	for _, b := range []Backend{Closure, Bytecode, BytecodeIterative} {
-		for _, u := range []parse.PositionUnit{parse.CodePoints, parse.Bytes} {
+		for _, u := range []core.PositionUnit{core.CodePoints, core.Bytes} {
 			t.Run(fmt.Sprintf("%s/%s", b, u), func(t *testing.T) { run(t, ParseOptions{Backend: b, Unit: u}) })
 		}
 	}
 }
 
-func snapshotVariants(t *testing.T, run func(*testing.T, core.ParseOptions)) {
+func snapshotVariants(t *testing.T, run func(*testing.T, ecore.ParseOptions)) {
 	t.Helper()
-	for _, backend := range []core.Backend{core.Closure, core.Bytecode, core.BytecodeIterative} {
-		for _, unit := range []parse.PositionUnit{parse.CodePoints, parse.Bytes} {
-			t.Run(fmt.Sprintf("%s/%s", backend, unit), func(t *testing.T) { run(t, core.ParseOptions{Backend: backend, Unit: unit}) })
+	for _, backend := range []ecore.Backend{ecore.Closure, ecore.Bytecode, ecore.BytecodeIterative} {
+		for _, unit := range []core.PositionUnit{core.CodePoints, core.Bytes} {
+			t.Run(fmt.Sprintf("%s/%s", backend, unit), func(t *testing.T) { run(t, ecore.ParseOptions{Backend: backend, Unit: unit}) })
 		}
 	}
 }
@@ -340,7 +340,7 @@ type budgetContextErrPanic struct {
 	panicAt int
 	calls   int
 	token   *budgetContextPanicToken
-	control *core.BudgetControl
+	control *ecore.BudgetControl
 	atPanic uint64
 	since   uint64
 }

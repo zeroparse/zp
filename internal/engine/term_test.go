@@ -5,25 +5,25 @@ import (
 	"fmt"
 	"testing"
 
-	"zeroparse.dev/zp"
-	"zeroparse.dev/zp/internal/engine/core"
-	"zeroparse.dev/zp/runtime/parse"
+	"zeroparse.dev/zp/core"
+	"zeroparse.dev/zp/engine"
+	ecore "zeroparse.dev/zp/internal/engine/core"
 )
 
 // termBackends are the backends that print the term compositions.
 var termBackends = []struct {
 	name string
-	b    zp.Backend
-}{{"closure", zp.Closure}, {"bytecode", zp.Bytecode}, {"iterative", zp.BytecodeIterative}}
+	b    engine.Backend
+}{{"closure", engine.Closure}, {"bytecode", engine.Bytecode}, {"iterative", engine.BytecodeIterative}}
 
 // termResult returns the tree of input as JSON, or the error, on the backend b.
-func termResult(t *testing.T, src, input string, b zp.Backend) string {
+func termResult(t *testing.T, src, input string, b engine.Backend) string {
 	t.Helper()
-	p, err := zp.CompileSource(src, "main")
+	p, err := engine.CompileSource(src, "main")
 	if err != nil {
 		t.Fatal(err)
 	}
-	n, err := p.Parse(input, zp.WithBackend(b))
+	n, err := p.Parse(input, engine.WithBackend(b))
 	if err != nil {
 		return "error: " + err.Error()
 	}
@@ -102,12 +102,12 @@ rule main = ({n := 1 / 0} "a" / "a") $$ => n
 }
 
 // minimumCompute returns the smallest compute limit that parses input.
-func minimumCompute(t *testing.T, p *zp.Parser, input string, b zp.Backend) uint64 {
+func minimumCompute(t *testing.T, p *engine.Parser, input string, b engine.Backend) uint64 {
 	t.Helper()
 	lo, hi := uint64(0), uint64(1)<<20 // lo fails, hi parses
 	for hi-lo > 1 {
 		mid := (lo + hi) / 2
-		if _, err := p.Parse(input, zp.WithBackend(b), zp.WithLimits(parse.Limits{Compute: mid})); err != nil {
+		if _, err := p.Parse(input, engine.WithBackend(b), engine.WithLimits(core.Limits{Compute: mid})); err != nil {
 			lo = mid
 		} else {
 			hi = mid
@@ -120,7 +120,7 @@ func minimumCompute(t *testing.T, p *zp.Parser, input string, b zp.Backend) uint
 // created: one more node costs the five units of building it and gathering it, and the unit of
 // forgetting it.
 func TestTermChargesCreatedNodes(t *testing.T) {
-	if !core.BudgetControlsEnabled {
+	if !ecore.BudgetControlsEnabled {
 		t.Skip("budget controls are unavailable in the reference build")
 	}
 	src := func(term string) string {
@@ -129,11 +129,11 @@ func TestTermChargesCreatedNodes(t *testing.T) {
 	one, two := src(`list(T{N: 1})`), src(`list(T{N: 1}, T{N: 2})`)
 	for _, be := range termBackends {
 		t.Run(be.name, func(t *testing.T) {
-			p1, err := zp.CompileSource(one, "main")
+			p1, err := engine.CompileSource(one, "main")
 			if err != nil {
 				t.Fatal(err)
 			}
-			p2, err := zp.CompileSource(two, "main")
+			p2, err := engine.CompileSource(two, "main")
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -150,7 +150,7 @@ func TestTermChargesCreatedNodes(t *testing.T) {
 // it. Grammar code builds no node from what a term gathers, so the charge is where a value that
 // stayed behind would show.
 func TestTermChargesGatheredValues(t *testing.T) {
-	if !core.BudgetControlsEnabled {
+	if !ecore.BudgetControlsEnabled {
 		t.Skip("budget controls are unavailable in the reference build")
 	}
 	src := func(first string) string {
@@ -158,11 +158,11 @@ func TestTermChargesGatheredValues(t *testing.T) {
 	}
 	for _, be := range termBackends {
 		t.Run(be.name, func(t *testing.T) {
-			p1, err := zp.CompileSource(src("1"), "main")
+			p1, err := engine.CompileSource(src("1"), "main")
 			if err != nil {
 				t.Fatal(err)
 			}
-			p2, err := zp.CompileSource(src("1, 2"), "main")
+			p2, err := engine.CompileSource(src("1, 2"), "main")
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -178,7 +178,7 @@ func TestTermChargesGatheredValues(t *testing.T) {
 // walks them, so finding $op passes two locals more than finding $rhs. Neither "rhs" nor "lhs" has
 // the length of "op", so passing them compares no text, which has charges of its own.
 func TestTermChargesOperatorsLocals(t *testing.T) {
-	if !core.BudgetControlsEnabled {
+	if !ecore.BudgetControlsEnabled {
 		t.Skip("budget controls are unavailable in the reference build")
 	}
 	src := func(local string) string {
@@ -194,7 +194,7 @@ rule e = #operators {
 		t.Run(be.name, func(t *testing.T) {
 			cost := map[string]uint64{}
 			for _, local := range []string{"$rhs", "$op"} {
-				p, err := zp.CompileSource(src(local), "main")
+				p, err := engine.CompileSource(src(local), "main")
 				if err != nil {
 					t.Fatal(err)
 				}
@@ -219,7 +219,7 @@ func TestStructFieldValueReadOnce(t *testing.T) {
 	for _, be := range termBackends {
 		t.Run(be.name, func(t *testing.T) {
 			cost := func(action string) uint64 {
-				p, err := zp.CompileSource(src(action), "main")
+				p, err := engine.CompileSource(src(action), "main")
 				if err != nil {
 					t.Fatal(err)
 				}

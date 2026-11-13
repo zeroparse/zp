@@ -6,7 +6,7 @@ import (
 	"slices"
 	"testing"
 
-	"zeroparse.dev/zp/runtime/parse"
+	"zeroparse.dev/zp/core"
 )
 
 // referenceInvalidate is a copying splice, written from the contract of memo.splice. It returns
@@ -90,7 +90,7 @@ func TestInvalidateMatchesCopyingReference(t *testing.T) {
 					e.next = d.slots[pos]
 					d.slots[pos] = e
 					if r.Intn(8) == 0 {
-						e.errs = recEntry{err: &parse.SyntaxError{}}
+						e.errs = recEntry{err: &core.SyntaxError{}}
 					}
 					switch r.Intn(6) {
 					case 0: // incomplete: no metadata

@@ -3,7 +3,7 @@ package runtime
 import (
 	"fmt"
 
-	"zeroparse.dev/zp/runtime/parse"
+	"zeroparse.dev/zp/core"
 )
 
 // The typed Document runtime, appended to generated parsers made with both zp gen -types and
@@ -98,7 +98,7 @@ func TypedDocumentParse[T any](d *Document, root *TRule, o parseOptions, a budge
 	}
 	if parseErr != nil {
 		switch parseErr.(type) {
-		case *parse.SyntaxError, parse.SyntaxErrors:
+		case *core.SyntaxError, core.SyntaxErrors:
 		default:
 			return res, parseErr
 		}
@@ -117,12 +117,12 @@ func TypedDocumentParse[T any](d *Document, root *TRule, o parseOptions, a budge
 // too; publishing their original pointers or Expected/Messages slices would let caller mutation
 // alter a later parse.
 func typedDocumentError(err error, control *BudgetControl) error {
-	clone := func(e *parse.SyntaxError) *parse.SyntaxError {
+	clone := func(e *core.SyntaxError) *core.SyntaxError {
 		control.Charge(1)
 		if e == nil {
 			return nil
 		}
-		out := new(parse.SyntaxError)
+		out := new(core.SyntaxError)
 		*out = *e
 		if e.Expected != nil {
 			control.Charge(uint64(len(e.Expected)))
@@ -143,11 +143,11 @@ func typedDocumentError(err error, control *BudgetControl) error {
 		return out
 	}
 	switch e := err.(type) {
-	case *parse.SyntaxError:
+	case *core.SyntaxError:
 		return clone(e)
-	case parse.SyntaxErrors:
+	case core.SyntaxErrors:
 		control.Charge(uint64(len(e)))
-		out := make(parse.SyntaxErrors, len(e))
+		out := make(core.SyntaxErrors, len(e))
 		for i, item := range e {
 			out[i] = clone(item)
 		}

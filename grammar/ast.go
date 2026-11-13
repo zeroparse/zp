@@ -5,7 +5,7 @@
 // (VarDef) and rule definitions (RuleDef). A rule body is a parser expression (Expr),
 // and actions and predicates are value expressions (Term).
 //
-// Source text becomes a grammar with zp.ParseGrammar, and Format is its inverse on this AST: the
+// Source text becomes a grammar with engine.ParseGrammar, and Format is its inverse on this AST: the
 // printed text parses back to the same grammar. The AST also has a JSON form (MarshalJSON and
 // UnmarshalJSON), so tools can read and write grammars without the source syntax. Like all of the
 // module API at v0.x, this package may change in any release.

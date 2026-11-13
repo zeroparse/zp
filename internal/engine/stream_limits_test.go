@@ -6,10 +6,10 @@ import (
 	"strings"
 	"testing"
 
+	"zeroparse.dev/zp/core"
 	"zeroparse.dev/zp/internal/compile"
-	"zeroparse.dev/zp/internal/engine/core"
+	ecore "zeroparse.dev/zp/internal/engine/core"
 	"zeroparse.dev/zp/internal/gentest"
-	"zeroparse.dev/zp/runtime/parse"
 )
 
 func TestFiniteStreamRepetitions(t *testing.T) {
@@ -47,9 +47,9 @@ func TestFiniteStreamRepetitions(t *testing.T) {
 			for _, mode := range allModes {
 				programs = append(programs, saveLoad(t, prog, "main", mode))
 			}
-			for _, unit := range []parse.PositionUnit{parse.CodePoints, parse.Bytes} {
+			for _, unit := range []core.PositionUnit{core.CodePoints, core.Bytes} {
 				var expected []string
-				refErr := prog.ParseStreamWith("main", strings.NewReader(tc.input), func(n *parse.Node) error {
+				refErr := prog.ParseStreamWith("main", strings.NewReader(tc.input), func(n *core.Node) error {
 					expected = append(expected, gentest.ResultJSON(n, nil))
 					return nil
 				}, ParseOptions{Backend: Closure, Unit: unit})
@@ -73,7 +73,7 @@ func TestFiniteStreamRepetitions(t *testing.T) {
 							t.Errorf("batch %s/%s: error %v, want success %v", backend, unit, err, tc.ok)
 						}
 						var got []string
-						err := p.ParseStreamWith("main", strings.NewReader(tc.input), func(n *parse.Node) error {
+						err := p.ParseStreamWith("main", strings.NewReader(tc.input), func(n *core.Node) error {
 							got = append(got, gentest.ResultJSON(n, nil))
 							return nil
 						}, opts)
@@ -100,7 +100,7 @@ func TestZeroRepetitionDoesNotRunElement(t *testing.T) {
 		t.Run(src, func(t *testing.T) {
 			prog := mustCompile(t, src)
 			checkBackends(t, prog, "main", "ab")
-			for _, unit := range []parse.PositionUnit{parse.CodePoints, parse.Bytes} {
+			for _, unit := range []core.PositionUnit{core.CodePoints, core.Bytes} {
 				want, err := prog.ParseWith("main", "ab", ParseOptions{Unit: unit})
 				if err != nil {
 					t.Fatal(err)
@@ -127,9 +127,9 @@ func TestFiniteStreamConsumerError(t *testing.T) {
 	prog := mustCompile(t, `rule main = "a" #repeat(1, 2) #stream $$`)
 	stop := errors.New("consumer stopped")
 	for _, backend := range []Backend{Closure, Bytecode, BytecodeIterative} {
-		for _, unit := range []parse.PositionUnit{parse.CodePoints, parse.Bytes} {
+		for _, unit := range []core.PositionUnit{core.CodePoints, core.Bytes} {
 			count := 0
-			err := prog.ParseStreamWith("main", strings.NewReader("aaa"), func(*parse.Node) error {
+			err := prog.ParseStreamWith("main", strings.NewReader("aaa"), func(*core.Node) error {
 				count++
 				return stop
 			}, ParseOptions{Backend: backend, Unit: unit})
@@ -153,14 +153,14 @@ func BenchmarkStreamRepetitionLimit(b *testing.B) {
 		input := strings.Repeat("a", 10000)
 		for _, backend := range []Backend{Closure, Bytecode, BytecodeIterative} {
 			b.Run(tc.name+"/"+backend.String(), func(b *testing.B) {
-				if _, err := prog.rule(backend, "main", core.Inlined, nil); err != nil {
+				if _, err := prog.rule(backend, "main", ecore.Inlined, nil); err != nil {
 					b.Fatal(err)
 				}
 				b.SetBytes(int64(len(input)))
 				b.ReportAllocs()
 				for b.Loop() {
 					count := 0
-					err := prog.ParseStreamWith("main", strings.NewReader(input), func(*parse.Node) error {
+					err := prog.ParseStreamWith("main", strings.NewReader(input), func(*core.Node) error {
 						count++
 						return nil
 					}, ParseOptions{Backend: backend})

@@ -177,13 +177,13 @@ func goTarget(s goSpec) *execgo.Target {
 	typed := s.typed
 	t := &execgo.Target{Recv: "p *Parser", Source: "internal/ir/exec/core"}
 	handles := map[string]string{
-		ops.Rule: "*Rule", ops.Value: "*parse.Node", ops.Entry: "*memoEntry", ops.Values: "[]any", ops.Errs: "recEntry",
+		ops.Rule: "*Rule", ops.Value: "*core.Node", ops.Entry: "*memoEntry", ops.Values: "[]any", ops.Errs: "recEntry",
 		ops.ExpID: "ExpID", ops.Mark: "ExpMark", ops.Set: "[]ExpID", ops.Kept: "[]ExpID",
 		ops.Ctx: "ctxCallState", ops.Res: "*ctxResult", ops.Grow: "growState",
 		ops.Frame: "*CaptureFrame", ops.Backtrack: "Mark", ops.Scope: "*Env", ops.Operators: "[]*OperatorsRuleOp",
 		ops.Operator: "*OperatorsRuleOp", ops.Line: "*OperatorsRuleLine", ops.Attempt: "operatorsRuleAttempt",
-		ops.Term: "func(*ActCtx) (any, any)", ops.Datum: "any", ops.Seq: "[]*parse.Node",
-		ops.Obj: "*parse.Node", ops.Name: "string", ops.Str: "string", ops.Act: "*ActCtx", ops.Fail: "any", ops.Elem: "*parse.Node",
+		ops.Term: "func(*ActCtx) (any, any)", ops.Datum: "any", ops.Seq: "[]*core.Node",
+		ops.Obj: "*core.Node", ops.Name: "string", ops.Str: "string", ops.Act: "*ActCtx", ops.Fail: "any", ops.Elem: "*core.Node",
 		ops.NodeType: "*nodeTypeKinds", ops.FType: "*FieldType",
 	}
 	names := map[string]string{"streamEmit": "EmitStream", "streamCommit": "streamCommit", "streamsIn": "StreamsIn", "call": "Call", "grow": "grow", "unmemoized": "callUnmemoized", "memoized": "callMemo",

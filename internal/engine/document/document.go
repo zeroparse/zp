@@ -4,9 +4,9 @@ import (
 	"fmt"
 	"weak"
 
+	"zeroparse.dev/zp/core"
 	"zeroparse.dev/zp/internal/compile"
-	"zeroparse.dev/zp/internal/engine/core"
-	"zeroparse.dev/zp/runtime/parse"
+	ecore "zeroparse.dev/zp/internal/engine/core"
 )
 
 // Document parses a text that is edited repeatedly. It reuses the memo of the previous parse for
@@ -34,16 +34,16 @@ type Document struct {
 	sequence uint64
 	runner   Runner
 	start    string
-	back     core.Backend // resolved construction backend
-	defaults core.ParseOptions
-	in       core.Input // current text (fully loaded)
-	memo     *core.MemoTable
-	stats    parse.ParseStats
-	edits    []core.DocEdit // all edits so far; nodes record how many their positions account for
-	runs     map[core.RunKey]*core.RunRecord
-	runGen   uint32            // edit generation of runs; unchanged parses keep this map
-	kids     []*parse.Node     // the parser's stack of repetition values, kept for the next parse
-	machine  core.BackendState // the backend state of the last parse, cleared and kept for the next one
+	back     ecore.Backend // resolved construction backend
+	defaults ecore.ParseOptions
+	in       ecore.Input // current text (fully loaded)
+	memo     *ecore.MemoTable
+	stats    core.ParseStats
+	edits    []ecore.DocEdit // all edits so far; nodes record how many their positions account for
+	runs     map[ecore.RunKey]*ecore.RunRecord
+	runGen   uint32             // edit generation of runs; unchanged parses keep this map
+	kids     []*core.Node       // the parser's stack of repetition values, kept for the next parse
+	machine  ecore.BackendState // the backend state of the last parse, cleared and kept for the next one
 	// resumed is the number of repetition elements the last Parse resumed (for tests).
 	resumed int
 	// Candidate-only weak reference: dropped snapshots must remain collectible.
@@ -58,19 +58,19 @@ type Document struct {
 // for one parse and runs it.
 type Runner interface {
 	// SelectBackend returns the backend that a request for b runs on.
-	SelectBackend(b core.Backend) core.Backend
+	SelectBackend(b ecore.Backend) ecore.Backend
 	// PrepareRun returns the runner that parses on backend b under the budget control c.
-	PrepareRun(b core.Backend, c *core.BudgetControl) (Runner, error)
+	PrepareRun(b ecore.Backend, c *ecore.BudgetControl) (Runner, error)
 	// Shared returns the program part that a parser for this runner reads.
-	Shared() *core.SharedProgram
+	Shared() *ecore.SharedProgram
 	// Run parses p's input from the rule start on backend b.
-	Run(p *core.Parser, b core.Backend, start string) (*parse.Node, error)
+	Run(p *ecore.Parser, b ecore.Backend, start string) (*core.Node, error)
 }
 
 // New returns a Document that parses the text in from the rule start
 // with runner on backend back. o holds the construction options.
-func New(runner Runner, start string, back core.Backend, o core.ParseOptions, in core.Input) *Document {
-	return &Document{identity: new(documentIdentity), sequence: 1, runner: runner, start: start, back: back, defaults: o, in: in, memo: core.NewMemoTable()}
+func New(runner Runner, start string, back ecore.Backend, o ecore.ParseOptions, in ecore.Input) *Document {
+	return &Document{identity: new(documentIdentity), sequence: 1, runner: runner, start: start, back: back, defaults: o, in: in, memo: ecore.NewMemoTable()}
 }
 
 // maxEdits bounds the edit log: when it is full, the memo is dropped and the log restarts. It is a
@@ -79,23 +79,23 @@ var maxEdits = 1 << 16
 
 // ParseDefaults returns a copy of the construction options. Invocation counters
 // are separate from these defaults.
-func (d *Document) ParseDefaults() core.ParseOptions { return d.defaults }
+func (d *Document) ParseDefaults() ecore.ParseOptions { return d.defaults }
 
 // Text returns the current text.
 func (d *Document) Text() string { return d.in.Text(0, d.in.Loaded()) }
 
 // Stats returns the evaluation and memo usage counts of the last Parse.
-func (d *Document) Stats() parse.ParseStats { return d.stats }
+func (d *Document) Stats() core.ParseStats { return d.stats }
 
 // Parse parses the current text. Parser-produced syntax diagnostics belong to
 // this call; returned Nodes can share the Document's mutable graph.
-func (d *Document) Parse() (*parse.Node, error) { return d.ParseWith(d.defaults) }
+func (d *Document) Parse() (*core.Node, error) { return d.ParseWith(d.defaults) }
 
 // ParseWith parses using fully resolved options. Unit, effective backend and
 // recognition mode must match construction; this method does not merge defaults.
-func (d *Document) ParseWith(o core.ParseOptions) (*parse.Node, error) {
+func (d *Document) ParseWith(o ecore.ParseOptions) (*core.Node, error) {
 	if d.changes != nil {
-		var n *parse.Node
+		var n *core.Node
 		_, err := d.snapshotWith(o, &n)
 		return n, err
 	}
@@ -104,17 +104,17 @@ func (d *Document) ParseWith(o core.ParseOptions) (*parse.Node, error) {
 
 // parseWithCapture keeps parsing and result capture inside one interruption and
 // cleanup boundary. capture uses the same controller as the parser.
-func (d *Document) parseWithCapture(o core.ParseOptions, capture func(*core.Parser, *parse.Node, error) error) (n *parse.Node, err error) {
+func (d *Document) parseWithCapture(o ecore.ParseOptions, capture func(*ecore.Parser, *core.Node, error) error) (n *core.Node, err error) {
 	if d.runner.Shared().HasMissing || o.MissingTokens != 0 {
 		return nil, compile.MissingUnsupported("Document parsing")
 	}
-	if err := core.ValidateStreamDiagnostics(o, false); err != nil {
+	if err := ecore.ValidateStreamDiagnostics(o, false); err != nil {
 		return nil, err
 	}
 	if o.Unit != d.in.Unit || d.runner.SelectBackend(o.Backend) != d.back || o.Recognize || o.Expectations != d.defaults.Expectations {
 		return nil, fmt.Errorf("document parse cannot change unit, backend, recognition mode or expectations")
 	}
-	var p *core.Parser
+	var p *ecore.Parser
 	executionStarted := false
 	defer func() {
 		x := recover()
@@ -131,9 +131,9 @@ func (d *Document) parseWithCapture(o core.ParseOptions, capture func(*core.Pars
 			p.ReleaseTraceReferences()
 		}
 		if x != nil {
-			if f, ok := x.(core.Fatal); ok {
+			if f, ok := x.(ecore.Fatal); ok {
 				n, err = nil, f.Err
-			} else if cp, ok := x.(core.ContextPanic); ok {
+			} else if cp, ok := x.(ecore.ContextPanic); ok {
 				panic(cp.Value)
 			} else {
 				// run already classified VM faults; never classify again.
@@ -141,17 +141,17 @@ func (d *Document) parseWithCapture(o core.ParseOptions, capture func(*core.Pars
 			}
 		}
 	}()
-	depth, err := core.DepthLimit(o, d.back)
+	depth, err := ecore.DepthLimit(o, d.back)
 	if err != nil {
 		return nil, err
 	}
-	lim, _ := core.ResolveLimits(o.Limits, uint64(d.in.Loaded()), false)
-	if err := core.CheckInputUnits(lim, uint64(d.in.Loaded())); err != nil {
+	lim, _ := ecore.ResolveLimits(o.Limits, uint64(d.in.Loaded()), false)
+	if err := ecore.CheckInputUnits(lim, uint64(d.in.Loaded())); err != nil {
 		return nil, err
 	}
-	c := core.NewBudgetControl(o.Context, lim)
-	if !core.BudgetControlsEnabled && c != nil {
-		return nil, core.ErrNoControls
+	c := ecore.NewBudgetControl(o.Context, lim)
+	if !ecore.BudgetControlsEnabled && c != nil {
+		return nil, ecore.ErrNoControls
 	}
 	if c != nil && o.Limits.Compute == 0 && lim.Compute != 0 {
 		// The default limit counts what a parse from scratch counts; the work that only a Document
@@ -175,9 +175,9 @@ func (d *Document) parseWithCapture(o core.ParseOptions, capture func(*core.Pars
 		// records without copying the map or advancing their edit generation.
 		lastRuns = nil
 	} else {
-		runs = map[core.RunKey]*core.RunRecord{}
+		runs = map[ecore.RunKey]*ecore.RunRecord{}
 	}
-	p = &core.Parser{Prog: active.Shared(), Input: d.in, Memo: d.memo, MemoAll: true, NoPlain: true, MaxDepth: depth, Gen: gen, Edits: d.edits, Expectations: o.Expectations,
+	p = &ecore.Parser{Prog: active.Shared(), Input: d.in, Memo: d.memo, MemoAll: true, NoPlain: true, MaxDepth: depth, Gen: gen, Edits: d.edits, Expectations: o.Expectations,
 		Runs: runs, LastRuns: lastRuns, KidStack: d.kids}
 	p.Control = c
 	if c != nil && lim.Memory != 0 {
@@ -198,7 +198,7 @@ func (d *Document) parseWithCapture(o core.ParseOptions, capture func(*core.Pars
 		// Snapshot capture publishes its own diagnostics. Ordinary Parse must
 		// detach recovered errors from memo entries before exposing them.
 		if capture == nil {
-			if recovered, ok := err.(parse.SyntaxErrors); ok {
+			if recovered, ok := err.(core.SyntaxErrors); ok {
 				m := p.FreeBegin(true) // work of the Document that a parse from scratch does not do
 				err = copyDocumentDiagnostics(p, recovered)
 				p.FreeEnd(m)
@@ -214,7 +214,7 @@ func (d *Document) parseWithCapture(o core.ParseOptions, capture func(*core.Pars
 
 // finishParse transfers reusable state before any traced parser is detached.
 // Mandatory cleanup is unbudgeted, so interruption cannot abort it.
-func (d *Document) finishParse(p *core.Parser) {
+func (d *Document) finishParse(p *ecore.Parser) {
 	d.stats = p.ReportedStats()
 	d.kids = p.KidStack[:0]
 	clear(d.kids[:cap(d.kids)]) // let go of the nodes, even on a trace panic
@@ -233,7 +233,7 @@ func (d *Document) finishParse(p *core.Parser) {
 		// sort out which of its results a completed parse would have kept.
 		d.invalidateParseState()
 	} else {
-		core.KeepSeedResults(d.memo, p)
+		ecore.KeepSeedResults(d.memo, p)
 		d.runs, d.resumed = p.Runs, p.Resumed
 		d.runGen = p.Gen
 	}
@@ -244,7 +244,7 @@ func (d *Document) invalidateParseState() {
 	if d.machine != nil {
 		d.machine.Release()
 	}
-	d.memo = core.NewMemoTable()
+	d.memo = ecore.NewMemoTable()
 	d.runs, d.kids, d.machine, d.resumed = nil, nil, nil, 0
 }
 
@@ -256,13 +256,13 @@ func (d *Document) Edit(start, end int, text string) error {
 	if start < 0 || end < start || end > n {
 		return fmt.Errorf("invalid range [%d,%d) for text of length %d", start, end, n)
 	}
-	if d.in.Unit == parse.Bytes {
+	if d.in.Unit == core.Bytes {
 		for _, pos := range []int{start, end} {
 			var err error
-			if core.DocumentPieceInput && d.in.Pieces != nil {
+			if ecore.DocumentPieceInput && d.in.Pieces != nil {
 				err = d.in.Pieces.ValidBoundary(pos)
 			} else {
-				err = core.ValidBoundary(d.in.Src, parse.Bytes, pos)
+				err = ecore.ValidBoundary(d.in.Src, core.Bytes, pos)
 			}
 			if err != nil {
 				return err
@@ -275,17 +275,17 @@ func (d *Document) Edit(start, end int, text string) error {
 	from := d.Version()
 	delta := d.in.Replace(start, end, text)
 	d.sequence++
-	d.recordEdit(from, []parse.TextEdit{{Start: start, End: end, Text: text}})
-	if core.DocumentPieceInput && d.in.Pieces == nil && d.in.Loaded() >= core.DocumentPieceMinSize {
+	d.recordEdit(from, []core.TextEdit{{Start: start, End: end, Text: text}})
+	if ecore.DocumentPieceInput && d.in.Pieces == nil && d.in.Loaded() >= ecore.DocumentPieceMinSize {
 		// A small Document can grow into the measured range where the piece
 		// representation wins. Promote once, after the flat edit has completed.
-		d.in.Pieces = core.NewDocumentPieces(d.in.Text(0, d.in.Loaded()), d.in.Unit)
+		d.in.Pieces = ecore.NewDocumentPieces(d.in.Text(0, d.in.Loaded()), d.in.Unit)
 		d.in.In, d.in.Bs, d.in.Src, d.in.Offs, d.in.SrcOK = nil, nil, "", nil, false
 	}
 	if len(d.edits) == maxEdits {
-		d.memo, d.edits, d.runs = core.NewMemoTable(), nil, nil
+		d.memo, d.edits, d.runs = ecore.NewMemoTable(), nil, nil
 		return nil
 	}
-	d.edits = core.EditMemo(d.memo, d.edits, core.DocEdit{Start: start, End: end, Delta: delta})
+	d.edits = ecore.EditMemo(d.memo, d.edits, ecore.DocEdit{Start: start, End: end, Delta: delta})
 	return nil
 }

@@ -3,8 +3,8 @@ package value
 import (
 	"testing"
 
-	"zeroparse.dev/zp/runtime/noderep"
-	"zeroparse.dev/zp/runtime/parse"
+	"zeroparse.dev/zp/core"
+	"zeroparse.dev/zp/core/noderep"
 )
 
 var benchmarkNodeJSONBytes []byte
@@ -12,7 +12,7 @@ var benchmarkNodeJSONBytes []byte
 func BenchmarkNodeJSON(b *testing.B) {
 	for _, workload := range []struct {
 		name string
-		root *parse.Node
+		root *core.Node
 	}{
 		{name: "shallow", root: benchmarkShallowJSONNode()},
 		{name: "deep", root: benchmarkDeepJSONNode(512)},
@@ -31,8 +31,8 @@ func BenchmarkNodeJSON(b *testing.B) {
 	}
 }
 
-func benchmarkShallowJSONNode() *parse.Node {
-	children := make([]*parse.Node, 8)
+func benchmarkShallowJSONNode() *core.Node {
+	children := make([]*core.Node, 8)
 	for i := range children {
 		children[i] = Ptr(Data{
 			Kind:  noderep.KindOf("Token", "item"),
@@ -54,12 +54,12 @@ func benchmarkShallowJSONNode() *parse.Node {
 	})
 }
 
-func benchmarkDeepJSONNode(depth int) *parse.Node {
+func benchmarkDeepJSONNode(depth int) *core.Node {
 	root := Ptr(Data{Kind: noderep.KindOf("Tree", "branch")})
 	node := root
 	for i := 1; i < depth; i++ {
 		child := Ptr(Data{Kind: noderep.KindOf("Tree", "branch"), Start: int32(i), End: int32(i + 1)})
-		D(node).Children = []*parse.Node{child}
+		D(node).Children = []*core.Node{child}
 		node = child
 	}
 	D(node).Kind = noderep.KindOf("Token", "leaf")

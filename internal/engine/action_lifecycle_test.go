@@ -6,11 +6,11 @@ import (
 	"runtime"
 	"testing"
 
+	"zeroparse.dev/zp/core"
 	"zeroparse.dev/zp/internal/compile"
-	"zeroparse.dev/zp/internal/engine/core"
+	ecore "zeroparse.dev/zp/internal/engine/core"
 	"zeroparse.dev/zp/internal/gentest"
 	"zeroparse.dev/zp/internal/value"
-	"zeroparse.dev/zp/runtime/parse"
 )
 
 func TestActionResultReleasesTracking(t *testing.T) {
@@ -21,7 +21,7 @@ func TestActionResultReleasesTracking(t *testing.T) {
 		err   error
 	}{
 		{"nil", nil, nil},
-		{"typed nil", (*parse.Node)(nil), nil},
+		{"typed nil", (*core.Node)(nil), nil},
 		{"node", value.Ptr(value.Data{Start: 90, End: 91, Fresh: true}), nil},
 		{"error", nil, errors.New("action failed")},
 		{"boxed value", 1, nil},
@@ -29,14 +29,14 @@ func TestActionResultReleasesTracking(t *testing.T) {
 	} {
 		t.Run(c.name, func(t *testing.T) {
 			prefix := value.Ptr(value.Data{Text: "keep"})
-			p := &core.Parser{Created: []*parse.Node{prefix}}
-			ctx := &core.EvalCtx{P: p, Cbase: 1, Start: 3, End: 4}
+			p := &ecore.Parser{Created: []*core.Node{prefix}}
+			ctx := &ecore.EvalCtx{P: p, Cbase: 1, Start: 3, End: 4}
 			var panicked any
 			func() {
 				defer func() { panicked = recover() }()
-				n := p.ActionResult(ctx, func(*core.EvalCtx) (any, error) {
+				n := p.ActionResult(ctx, func(*ecore.EvalCtx) (any, error) {
 					p.Created = append(p.Created, value.Ptr(value.Data{Text: "temporary"}))
-					if n, ok := c.value.(*parse.Node); ok && n != nil {
+					if n, ok := c.value.(*core.Node); ok && n != nil {
 						p.Created = append(p.Created, n)
 					}
 					return c.value, c.err
@@ -64,12 +64,12 @@ func TestActionResultReleasesTracking(t *testing.T) {
 func TestNilActionStreamMemoryIsBounded(t *testing.T) {
 	prog := mustCompile(t, gentest.NilActionStream)
 	for _, backend := range []Backend{Closure, Bytecode, BytecodeIterative} {
-		for _, unit := range []parse.PositionUnit{parse.CodePoints, parse.Bytes} {
+		for _, unit := range []core.PositionUnit{core.CodePoints, core.Bytes} {
 			t.Run(fmt.Sprintf("%s/%s", backend, unit), func(t *testing.T) {
-				p := core.NewStreamParser(&prog.sharedProgram, &lineReader{line: "a", n: 60000}, unit)
+				p := ecore.NewStreamParser(&prog.sharedProgram, &lineReader{line: "a", n: 60000}, unit)
 				var at [2]uint64
 				count := 0
-				p.Emit = func(n *parse.Node) error {
+				p.Emit = func(n *core.Node) error {
 					count++
 					if n != nil || len(p.Created) != 0 {
 						return fmt.Errorf("element %d: node %v, tracking length %d", count, n, len(p.Created))
@@ -111,14 +111,14 @@ func BenchmarkNilActionStream(b *testing.B) {
 	}
 	for _, backend := range []Backend{Closure, Bytecode, BytecodeIterative} {
 		b.Run(backend.String(), func(b *testing.B) {
-			if _, err := prog.rule(backend, "main", core.Inlined, nil); err != nil {
+			if _, err := prog.rule(backend, "main", ecore.Inlined, nil); err != nil {
 				b.Fatal(err)
 			}
 			b.SetBytes(10000)
 			b.ReportAllocs()
 			b.ResetTimer()
 			for i := 0; i < b.N; i++ {
-				if err := prog.ParseStreamWith("main", &lineReader{line: "a", n: 10000}, func(*parse.Node) error { return nil }, ParseOptions{Backend: backend}); err != nil {
+				if err := prog.ParseStreamWith("main", &lineReader{line: "a", n: 10000}, func(*core.Node) error { return nil }, ParseOptions{Backend: backend}); err != nil {
 					b.Fatal(err)
 				}
 			}

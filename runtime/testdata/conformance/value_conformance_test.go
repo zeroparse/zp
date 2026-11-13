@@ -5,12 +5,12 @@ import (
 	"math"
 	"testing"
 
+	"zeroparse.dev/zp/core"
+	"zeroparse.dev/zp/core/noderep"
 	"zeroparse.dev/zp/internal/ir/exec"
 	"zeroparse.dev/zp/internal/ir/exec/conform"
 	"zeroparse.dev/zp/internal/ir/exec/ops"
 	"zeroparse.dev/zp/internal/ir/exec/ref"
-	"zeroparse.dev/zp/runtime/noderep"
-	"zeroparse.dev/zp/runtime/parse"
 )
 
 // The compositions of the operators of terms in the generated Go runtimes (TermBinary, TermUnary and
@@ -48,7 +48,7 @@ func (g goValues) Datum(v ref.V) any {
 		}
 		return &TSeq{Typ: "list", Kids: kids}
 	}
-	kids := make([]*parse.Node, len(v.Items))
+	kids := make([]*core.Node, len(v.Items))
 	for i, x := range v.Items {
 		if x.Kind != ref.KNil {
 			kids[i] = nodeOfData(&Data{Kind: noderep.BoxKind, Box: scalar(x)})
@@ -104,7 +104,7 @@ var (
 // controlledValues binds the compositions of a parser that runs under budget controls, whose string
 // operations take the bounded paths.
 func controlledValues() (node, typed goValues) {
-	control := newBudgetControl(context.Background(), parse.Limits{Compute: 1 << 62})
+	control := newBudgetControl(context.Background(), core.Limits{Compute: 1 << 62})
 	p := &Parser{Control: control}
 	tp := &TParser{Parser: &Parser{Control: control}}
 	return goValues{p.TermBinary, p.TermUnary, p.TermLogic, false}, goValues{tp.TermBinary, tp.TermUnary, tp.TermLogic, true}
@@ -197,7 +197,7 @@ func TestValueConformanceDetectsBrokenRuntime(t *testing.T) {
 // TestValueBoxedOperands holds == of the node runtime to the rule that a box counts as the value it
 // holds, which the pool of the conformance cannot show: it has no box.
 func TestValueBoxedOperands(t *testing.T) {
-	box := func(v any) *parse.Node { return nodeOfData(&Data{Kind: noderep.BoxKind, Box: v}) }
+	box := func(v any) *core.Node { return nodeOfData(&Data{Kind: noderep.BoxKind, Box: v}) }
 	p := &Parser{}
 	for _, c := range []struct {
 		op   int
@@ -226,7 +226,7 @@ func TestValueBoxedOperands(t *testing.T) {
 // side or both: the same answer and, under a budget control, the same units. The box only changes how
 // the operand is carried, so it must neither skip the charge of the comparison nor add one.
 func TestValueBoxedStringCharges(t *testing.T) {
-	box := func(v any) *parse.Node { return nodeOfData(&Data{Kind: noderep.BoxKind, Box: v}) }
+	box := func(v any) *core.Node { return nodeOfData(&Data{Kind: noderep.BoxKind, Box: v}) }
 	var strs []string
 	for _, v := range conform.ValuePool() {
 		if v.Kind == ref.KStr {
@@ -237,7 +237,7 @@ func TestValueBoxedStringCharges(t *testing.T) {
 	newSide := func(controlled bool) *Parser {
 		p := &Parser{}
 		if controlled {
-			p.Control = newBudgetControl(context.Background(), parse.Limits{Compute: 1 << 62})
+			p.Control = newBudgetControl(context.Background(), core.Limits{Compute: 1 << 62})
 		}
 		return p
 	}
@@ -306,7 +306,7 @@ func TestValueCompareStrings(t *testing.T) {
 	newSide := func(controlled bool) *TParser {
 		p := &Parser{}
 		if controlled {
-			p.Control = newBudgetControl(context.Background(), parse.Limits{Compute: 1 << 62})
+			p.Control = newBudgetControl(context.Background(), core.Limits{Compute: 1 << 62})
 		}
 		return &TParser{Parser: p}
 	}

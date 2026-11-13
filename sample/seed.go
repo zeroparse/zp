@@ -1,6 +1,6 @@
 package sample
 
-import "zeroparse.dev/zp"
+import "zeroparse.dev/zp/engine"
 
 // F is the part of *testing.F that Seed uses. (Taking an interface keeps the testing package out of
 // programs that import sample without seeding fuzz tests.)
@@ -21,7 +21,7 @@ type F interface {
 //			p.Parse(in) // must not panic
 //		})
 //	}
-func Seed(f F, p *zp.Parser, n int, opts ...Option) []string {
+func Seed(f F, p *engine.Parser, n int, opts ...Option) []string {
 	f.Helper()
 	inputs, err := Generate(p, n, opts...)
 	if err != nil {

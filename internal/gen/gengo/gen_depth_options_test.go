@@ -10,10 +10,10 @@ import (
 	"strings"
 	"testing"
 
+	"zeroparse.dev/zp/core"
 	"zeroparse.dev/zp/internal/engine"
 	"zeroparse.dev/zp/internal/gen"
 	"zeroparse.dev/zp/internal/gentest"
-	"zeroparse.dev/zp/runtime/parse"
 )
 
 // Differentially exercise every rule-call owner, including first-character
@@ -87,11 +87,11 @@ rule n Word = t:(("(" n ")" / "é") #recover(skip="?")) #atomic => Word{Text: te
 			var rows strings.Builder
 			for _, name := range []string{"main", prog.RuleList[len(prog.RuleList)-1].Name} {
 				for _, in := range c.Inputs {
-					for _, unit := range []parse.PositionUnit{parse.CodePoints, parse.Bytes} {
+					for _, unit := range []core.PositionUnit{core.CodePoints, core.Bytes} {
 						for _, limit := range []int{1, 2, 3, 4, 5, 6, 8, 20} {
-							_, err := prog.ParseWith(name, in, engine.ParseOptions{Expectations: true, Unit: unit, Limits: parse.Limits{Depth: uint64(limit)}})
-							_, recErr := prog.ParseWith(name, in, engine.ParseOptions{Expectations: true, Unit: unit, Limits: parse.Limits{Depth: uint64(limit)}, Recognize: true})
-							fmt.Fprintf(&rows, "{%q,%q,%s,%d,%q,%q},\n", name, in, map[parse.PositionUnit]string{parse.CodePoints: "CodePoints", parse.Bytes: "Bytes"}[unit], limit, fmt.Sprint(err), fmt.Sprint(recErr))
+							_, err := prog.ParseWith(name, in, engine.ParseOptions{Expectations: true, Unit: unit, Limits: core.Limits{Depth: uint64(limit)}})
+							_, recErr := prog.ParseWith(name, in, engine.ParseOptions{Expectations: true, Unit: unit, Limits: core.Limits{Depth: uint64(limit)}, Recognize: true})
+							fmt.Fprintf(&rows, "{%q,%q,%s,%d,%q,%q},\n", name, in, map[core.PositionUnit]string{core.CodePoints: "CodePoints", core.Bytes: "Bytes"}[unit], limit, fmt.Sprint(err), fmt.Sprint(recErr))
 						}
 					}
 				}

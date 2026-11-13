@@ -8,11 +8,11 @@ import (
 	"unicode/utf8"
 	"zeroparse.dev/zp/internal/diag"
 
+	"zeroparse.dev/zp/core"
 	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/compile"
 	"zeroparse.dev/zp/internal/gen"
 	"zeroparse.dev/zp/internal/gentest"
-	"zeroparse.dev/zp/runtime/parse"
 )
 
 func TestInvalidCharacterClassEntryPoints(t *testing.T) {
@@ -71,7 +71,7 @@ func TestUnicodeScalarRangeBackends(t *testing.T) {
 		g := mustParse(source)
 		cc := g.Rules()[0].Expr.(*grammar.Seq).Items[0].(*grammar.CharClass)
 		for _, backend := range []Backend{Closure, Bytecode, BytecodeIterative} {
-			for _, unit := range []parse.PositionUnit{parse.Bytes, parse.CodePoints} {
+			for _, unit := range []core.PositionUnit{core.Bytes, core.CodePoints} {
 				for _, r := range []rune{0, 'a', 0xd7fe, 0xd7ff, 0xe000, 0xe001, 0xfffd, 0xffff, 0x10000, utf8.MaxRune} {
 					want := r >= cc.Ranges[0].Lo && r <= cc.Ranges[0].Hi
 					if cc.Negated {

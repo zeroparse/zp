@@ -47,14 +47,14 @@ import (
 	"strconv"
 	"strings"
 
-	"zeroparse.dev/zp"
-	"zeroparse.dev/zp/runtime/parse"
+	"zeroparse.dev/zp/engine"
+	"zeroparse.dev/zp/core"
 )
 
 //go:embed expr.zp
 var grammar string
 
-func eval(n *parse.Node, vars map[string]float64) (float64, error) {
+func eval(n *core.Node, vars map[string]float64) (float64, error) {
 	switch n.Type() {
 	case "Num":
 		return strconv.ParseFloat(n.Text(), 64)
@@ -66,15 +66,15 @@ func eval(n *parse.Node, vars map[string]float64) (float64, error) {
 		}
 		return v, nil
 	}
-	l, err := eval(n.Field("Left").(*parse.Node), vars)
+	l, err := eval(n.Field("Left").(*core.Node), vars)
 	if err != nil {
 		return 0, err
 	}
-	r, err := eval(n.Field("Right").(*parse.Node), vars)
+	r, err := eval(n.Field("Right").(*core.Node), vars)
 	if err != nil {
 		return 0, err
 	}
-	switch n.Field("Op").(*parse.Node).Text() {
+	switch n.Field("Op").(*core.Node).Text() {
 	case "+":
 		return l + r, nil
 	case "-":
@@ -99,7 +99,7 @@ func lineCol(text string, off int) (int, int) {
 }
 
 // render replaces each {{ expression }} of the template by its value.
-func render(p *zp.Parser, template string, vars map[string]float64) (string, error) {
+func render(p *engine.Parser, template string, vars map[string]float64) (string, error) {
 	var out strings.Builder
 	pos := 0
 	for {
@@ -112,7 +112,7 @@ func render(p *zp.Parser, template string, vars map[string]float64) (string, err
 		base := pos + i + len("{{")
 		res, err := p.ParsePrefix("fragment", template[base:])
 		if err != nil {
-			var se *parse.SyntaxError
+			var se *core.SyntaxError
 			if errors.As(err, &se) {
 				line, col := lineCol(template, base+se.Pos)
 				return "", fmt.Errorf("%d:%d: %s", line, col, se.Message())
@@ -130,7 +130,7 @@ func render(p *zp.Parser, template string, vars map[string]float64) (string, err
 }
 
 func main() {
-	p, err := zp.CompileSource(grammar, "fragment")
+	p, err := engine.CompileSource(grammar, "fragment")
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
@@ -176,7 +176,7 @@ error: 1:10: unknown name "cost"
 
 ## Variations and Limits
 
-- Use `WithUnit(parse.Bytes)` when the surrounding text is processed in bytes, so that spans, errors and
+- Use `WithUnit(core.Bytes)` when the surrounding text is processed in bytes, so that spans, errors and
   `ConsumedBytes` all agree.
 - A delimiter that can appear inside the fragment, such as `}}` in a string literal, belongs in the grammar: the rule
   reads the string, so the scan never mistakes it for the end.

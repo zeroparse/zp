@@ -9,13 +9,13 @@ import (
 	"strconv"
 	"testing"
 
+	"zeroparse.dev/zp/core"
+	"zeroparse.dev/zp/core/noderep"
 	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/compile"
-	"zeroparse.dev/zp/internal/engine/core"
+	ecore "zeroparse.dev/zp/internal/engine/core"
 	"zeroparse.dev/zp/internal/starttest"
 	"zeroparse.dev/zp/internal/value"
-	"zeroparse.dev/zp/runtime/noderep"
-	"zeroparse.dev/zp/runtime/parse"
 )
 
 const budgetGuardedChoiceAlternatives = 512
@@ -60,20 +60,20 @@ func budgetGuardedChoiceProgramOf(t *testing.T, choice *grammar.Choice, first gr
 	return prog
 }
 
-func budgetGuardedChoiceSnapshot(n *parse.Node) *parse.Node {
+func budgetGuardedChoiceSnapshot(n *core.Node) *core.Node {
 	if n == nil {
 		return nil
 	}
 	copy := *n
 	if value.D(n).Children != nil {
-		value.D(&copy).Children = make([]*parse.Node, len(value.D(n).Children))
+		value.D(&copy).Children = make([]*core.Node, len(value.D(n).Children))
 		for i, child := range value.D(n).Children {
 			value.D(&copy).Children[i] = budgetGuardedChoiceSnapshot(child)
 		}
 	}
 	value.D(&copy).Fields = append(noderep.Fields(nil), value.D(n).Fields...)
 	for i := range value.D(&copy).Fields {
-		if child, ok := value.D(&copy).Fields[i].Value.(*parse.Node); ok {
+		if child, ok := value.D(&copy).Fields[i].Value.(*core.Node); ok {
 			value.D(&copy).Fields[i].Value = budgetGuardedChoiceSnapshot(child)
 		}
 	}
@@ -104,12 +104,12 @@ func TestBudgetGuardedChoiceSilentSkipLoopBudgetAndCancellation(t *testing.T) {
 	}
 }
 
-func budgetGuardedChoiceSilentSkip(t *testing.T, prog *Program, m core.Matcher) {
+func budgetGuardedChoiceSilentSkip(t *testing.T, prog *Program, m ecore.Matcher) {
 	t.Helper()
-	for _, unit := range []parse.PositionUnit{parse.Bytes, parse.CodePoints} {
+	for _, unit := range []core.PositionUnit{core.Bytes, core.CodePoints} {
 		t.Run(unit.String()+"/budget", func(t *testing.T) {
-			p := core.NewParser(&prog.sharedProgram, "z", unit, false)
-			p.Control = core.NewBudgetControl(nil, parse.Limits{Compute: 1})
+			p := ecore.NewParser(&prog.sharedProgram, "z", unit, false)
+			p.Control = ecore.NewBudgetControl(nil, core.Limits{Compute: 1})
 			p.Silent = 1
 			p.MaxDepth = budgetGuardedChoiceAlternatives + 1
 			if n, ok := m(p); n != nil || ok || p.Control.Used != 1 {
@@ -118,9 +118,9 @@ func budgetGuardedChoiceSilentSkip(t *testing.T, prog *Program, m core.Matcher) 
 		})
 
 		t.Run(unit.String()+"/cancel", func(t *testing.T) {
-			p := core.NewParser(&prog.sharedProgram, "z", unit, false)
+			p := ecore.NewParser(&prog.sharedProgram, "z", unit, false)
 			ctx := newPollingContext(1)
-			p.Control = core.NewBudgetControl(ctx, parse.Limits{})
+			p.Control = ecore.NewBudgetControl(ctx, core.Limits{})
 			p.Silent = 1
 			p.MaxDepth = budgetGuardedChoiceAlternatives + 1
 			if err := catchFatal(t, func() { _, _ = m(p) }); err != nil || p.Control.Used != 1 {
@@ -134,12 +134,12 @@ func TestBudgetGuardedChoiceExactSkipBudget(t *testing.T) {
 	t.Parallel()
 	prog, choice := budgetGuardedChoiceProgram(t)
 	m := closureExprMatcher(t, prog.Static(), choice, false)
-	for _, unit := range []parse.PositionUnit{parse.Bytes, parse.CodePoints} {
+	for _, unit := range []core.PositionUnit{core.Bytes, core.CodePoints} {
 		for _, text := range []string{"z", ""} {
 			for _, silent := range []bool{true, false} {
 				t.Run(unit.String()+"/input="+strconv.Quote(text)+"/silent="+strconv.FormatBool(silent), func(t *testing.T) {
-					p := core.NewParser(&prog.sharedProgram, text, unit, false)
-					p.Control = core.NewBudgetControl(nil, parse.Limits{Compute: 1})
+					p := ecore.NewParser(&prog.sharedProgram, text, unit, false)
+					p.Control = ecore.NewBudgetControl(nil, core.Limits{Compute: 1})
 					p.MaxDepth = budgetGuardedChoiceAlternatives + 1
 					if silent {
 						p.Silent = 1
@@ -162,7 +162,7 @@ func TestBudgetGuardedChoiceExactSkipBudget(t *testing.T) {
 
 func TestBudgetGuardedChoicePassingMatcherCharge(t *testing.T) {
 	t.Parallel()
-	for _, unit := range []parse.PositionUnit{parse.Bytes, parse.CodePoints} {
+	for _, unit := range []core.PositionUnit{core.Bytes, core.CodePoints} {
 		for _, skip := range []bool{false, true} {
 			t.Run(unit.String()+"/skip="+strconv.FormatBool(skip), func(t *testing.T) {
 				alts := []grammar.Expr{&grammar.Literal{Value: "z"}}
@@ -173,8 +173,8 @@ func TestBudgetGuardedChoicePassingMatcherCharge(t *testing.T) {
 				choice := &grammar.Choice{Alts: alts}
 				prog := compileExprProgram(t, &grammar.Not{Expr: choice})
 				m := closureExprMatcher(t, prog.Static(), choice, false)
-				p := core.NewParser(&prog.sharedProgram, "z", unit, false)
-				p.Control = core.NewBudgetControl(nil, parse.Limits{Compute: steps})
+				p := ecore.NewParser(&prog.sharedProgram, "z", unit, false)
+				p.Control = ecore.NewBudgetControl(nil, core.Limits{Compute: steps})
 				p.Silent = 1
 				if n, ok := m(p); n != nil || !ok || p.Pos != 1 || p.Control.Used != steps {
 					t.Fatalf("matching choice node=%v ok=%v pos=%d spent=%d", n, ok, p.Pos, p.Control.Used)
@@ -188,14 +188,14 @@ func TestBudgetGuardedChoicePublicParityAndFatalRetry(t *testing.T) {
 	t.Parallel()
 	prog, _ := budgetGuardedChoiceProgram(t)
 	for _, backend := range []Backend{Closure, Bytecode, BytecodeIterative} {
-		for _, unit := range []parse.PositionUnit{parse.Bytes, parse.CodePoints} {
+		for _, unit := range []core.PositionUnit{core.Bytes, core.CodePoints} {
 			for _, recognize := range []bool{false, true} {
 				t.Run(backend.String()+"/"+unit.String()+"/recognize="+strconv.FormatBool(recognize), func(t *testing.T) {
 					base := ParseOptions{Backend: backend, Unit: unit, Recognize: recognize}
 					for _, text := range []string{"z", "q", ""} {
 						want, wantErr := prog.ParseWith("main", text, base)
 						controlled := base
-						controlled.Limits = parse.Limits{Compute: 1 << 20}
+						controlled.Limits = core.Limits{Compute: 1 << 20}
 						got, gotErr := prog.ParseWith("main", text, controlled)
 						if !reflect.DeepEqual(got, want) || !reflect.DeepEqual(gotErr, wantErr) {
 							t.Fatalf("generous controls changed result: got=%#v/%#v want=%#v/%#v", got, gotErr, want, wantErr)
@@ -217,7 +217,7 @@ func TestBudgetGuardedChoicePublicParityAndFatalRetry(t *testing.T) {
 	}
 }
 
-func budgetGuardedChoiceFatalAndRetry(t *testing.T, prog *Program, backend Backend, unit parse.PositionUnit, recognize, cancel bool) {
+func budgetGuardedChoiceFatalAndRetry(t *testing.T, prog *Program, backend Backend, unit core.PositionUnit, recognize, cancel bool) {
 	t.Helper()
 	name := "budget"
 	if cancel {
@@ -230,20 +230,20 @@ func budgetGuardedChoiceFatalAndRetry(t *testing.T, prog *Program, backend Backe
 		}
 		snapshot := budgetGuardedChoiceSnapshot(retained)
 
-		var observed *core.Parser
+		var observed *ecore.Parser
 		fallbackEntries, exits := 0, 0
 		opts := ParseOptions{
 			Backend:   backend,
 			Unit:      unit,
 			Recognize: recognize,
-			Limits:    parse.Limits{Compute: 1 << 30},
+			Limits:    core.Limits{Compute: 1 << 30},
 			Trace: func(e TraceEvent) {
 				if e.Kind == TraceEnter && e.Rule == "main" {
-					observed = core.TraceParser(e)
+					observed = ecore.TraceParser(e)
 					if cancel {
-						core.TraceParser(e).Control.Ctx = newPollingContext(2)
+						ecore.TraceParser(e).Control.Ctx = newPollingContext(2)
 					} else {
-						core.TraceParser(e).Control.Limits.Compute = core.TraceParser(e).Control.Used + 1
+						ecore.TraceParser(e).Control.Limits.Compute = ecore.TraceParser(e).Control.Used + 1
 					}
 				}
 				if e.Kind == TraceEnter && e.Rule == "fallback" {
@@ -263,8 +263,8 @@ func budgetGuardedChoiceFatalAndRetry(t *testing.T, prog *Program, backend Backe
 				t.Fatalf("cancelled parse error=%v, want context cancellation", gotErr)
 			}
 		} else {
-			var limit *parse.LimitError
-			if !errors.As(gotErr, &limit) || limit.Kind != parse.LimitCompute {
+			var limit *core.LimitError
+			if !errors.As(gotErr, &limit) || limit.Kind != core.LimitCompute {
 				t.Fatalf("budgeted parse error=%v, want spend LimitError", gotErr)
 			}
 		}

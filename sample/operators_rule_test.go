@@ -9,8 +9,8 @@ import (
 	"strings"
 	"testing"
 
-	"zeroparse.dev/zp"
-	"zeroparse.dev/zp/runtime/parse"
+	"zeroparse.dev/zp/core"
+	"zeroparse.dev/zp/engine"
 	"zeroparse.dev/zp/sample"
 )
 
@@ -95,9 +95,9 @@ func TestSampleOperatorsRulePrefixBindings(t *testing.T) {
 					t.Fatalf("coverage=%t: Next = %q, %v; want %q", coverage, got, err, c.input)
 				}
 			}
-			for _, unit := range []parse.PositionUnit{parse.CodePoints, parse.Bytes} {
-				for _, backend := range []zp.Backend{zp.Closure, zp.Bytecode, zp.BytecodeIterative} {
-					if _, err := p.Parse(c.input, zp.WithUnit(unit), zp.WithBackend(backend)); err != nil {
+			for _, unit := range []core.PositionUnit{core.CodePoints, core.Bytes} {
+				for _, backend := range []engine.Backend{engine.Closure, engine.Bytecode, engine.BytecodeIterative} {
+					if _, err := p.Parse(c.input, engine.WithUnit(unit), engine.WithBackend(backend)); err != nil {
 						t.Errorf("unit=%v backend=%v: %v", unit, backend, err)
 					}
 				}
@@ -300,9 +300,9 @@ func TestSampleOperatorsRuleNoneCallerStops(t *testing.T) {
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
 			p := compile(t, "rule main = &("+strconv.Quote(c.input)+" $$) "+c.body+" $$\n"+c.rules)
-			for _, unit := range []parse.PositionUnit{parse.CodePoints, parse.Bytes} {
-				for _, backend := range []zp.Backend{zp.Closure, zp.Bytecode, zp.BytecodeIterative} {
-					if _, err := p.Parse(c.input, zp.WithUnit(unit), zp.WithBackend(backend)); err != nil {
+			for _, unit := range []core.PositionUnit{core.CodePoints, core.Bytes} {
+				for _, backend := range []engine.Backend{engine.Closure, engine.Bytecode, engine.BytecodeIterative} {
+					if _, err := p.Parse(c.input, engine.WithUnit(unit), engine.WithBackend(backend)); err != nil {
 						t.Fatalf("fresh unit=%v backend=%v: %v", unit, backend, err)
 					}
 				}
@@ -342,9 +342,9 @@ func TestSampleOperatorsRuleNoneCallerStops(t *testing.T) {
 	} {
 		t.Run(c.name, func(t *testing.T) {
 			p := compile(t, "rule main = &("+strconv.Quote(c.input)+" $$) "+c.body+" $$\n"+c.rules)
-			for _, unit := range []parse.PositionUnit{parse.CodePoints, parse.Bytes} {
-				for _, backend := range []zp.Backend{zp.Closure, zp.Bytecode, zp.BytecodeIterative} {
-					if _, err := p.Parse(c.input, zp.WithUnit(unit), zp.WithBackend(backend)); err == nil {
+			for _, unit := range []core.PositionUnit{core.CodePoints, core.Bytes} {
+				for _, backend := range []engine.Backend{engine.Closure, engine.Bytecode, engine.BytecodeIterative} {
+					if _, err := p.Parse(c.input, engine.WithUnit(unit), engine.WithBackend(backend)); err == nil {
 						t.Fatalf("invalid caller accepted: unit=%v backend=%v", unit, backend)
 					}
 				}

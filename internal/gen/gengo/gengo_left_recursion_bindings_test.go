@@ -10,11 +10,11 @@ import (
 	"strings"
 	"testing"
 
+	"zeroparse.dev/zp/core"
 	"zeroparse.dev/zp/internal/compile"
 	"zeroparse.dev/zp/internal/engine"
 	"zeroparse.dev/zp/internal/gen"
 	"zeroparse.dev/zp/internal/gentest"
-	"zeroparse.dev/zp/runtime/parse"
 )
 
 // typedLRBindingSource is lrBindingSource with typed values, so that ParseValue runs the typed
@@ -65,10 +65,10 @@ func testGeneratedLeftRecursionGuardIgnoresVariables(t *testing.T) {
 	var quoted []string
 	for _, in := range gentest.LRBindingInputs {
 		quoted = append(quoted, strconv.Quote(in))
-		for _, unit := range []parse.PositionUnit{parse.CodePoints, parse.Bytes} {
-			o := engine.ParseOptions{Expectations: true, Unit: unit, Limits: parse.Limits{Depth: 400}}
+		for _, unit := range []core.PositionUnit{core.CodePoints, core.Bytes} {
+			o := engine.ParseOptions{Expectations: true, Unit: unit, Limits: core.Limits{Depth: 400}}
 			n, err := prog.ParseWith("main", in, o)
-			_, recErr := prog.ParseWith("main", in, engine.ParseOptions{Expectations: true, Unit: unit, Limits: parse.Limits{Depth: 400}, Recognize: true})
+			_, recErr := prog.ParseWith("main", in, engine.ParseOptions{Expectations: true, Unit: unit, Limits: core.Limits{Depth: 400}, Recognize: true})
 			v, typedErr := typed.ParseWith("main", in, o)
 			line := fmt.Sprintf("%s %v %v | %v\n", gentest.ResultJSON(n, err), recErr, typedErr, typedN(v))
 			want.WriteString(line)
@@ -140,7 +140,7 @@ func main() {
 }
 
 // typedN returns the field N of an engine value of typedLRBindingSource.
-func typedN(n *parse.Node) string {
+func typedN(n *core.Node) string {
 	if n == nil {
 		return "<nil>"
 	}

@@ -5,11 +5,11 @@ import (
 	"strings"
 	"testing"
 
+	"zeroparse.dev/zp/core"
 	"zeroparse.dev/zp/internal/compile"
 	"zeroparse.dev/zp/internal/engine"
 	"zeroparse.dev/zp/internal/gen"
 	"zeroparse.dev/zp/internal/gentest"
-	"zeroparse.dev/zp/runtime/parse"
 )
 
 // TestGeneratedTSLeftRecursionGuardIgnoresVariables is TestLeftRecursionGuardIgnoresVariables
@@ -22,8 +22,8 @@ func TestGeneratedTSLeftRecursionGuardIgnoresVariables(t *testing.T) {
 	prog := compileBare(t, gentest.LRBindingSource, compile.Options{LeftRecursionBindings: true})
 	for _, in := range gentest.LRBindingInputs {
 		fmt.Fprintf(&script, "{ const r = parse(%q); const e = recognize(%[1]q); console.log(r.error === null ? String(r.node) : \"error: \" + r.error.message, e === null ? \"null\" : e.message); }\n", in)
-		n, err := prog.ParseWith("main", in, engine.ParseOptions{Expectations: true, Limits: parse.Limits{Depth: 400}})
-		_, recErr := prog.ParseWith("main", in, engine.ParseOptions{Expectations: true, Limits: parse.Limits{Depth: 400}, Recognize: true})
+		n, err := prog.ParseWith("main", in, engine.ParseOptions{Expectations: true, Limits: core.Limits{Depth: 400}})
+		_, recErr := prog.ParseWith("main", in, engine.ParseOptions{Expectations: true, Limits: core.Limits{Depth: 400}, Recognize: true})
 		if err != nil {
 			fmt.Fprintf(&want, "error: %v %v\n", err, recErr)
 		} else {

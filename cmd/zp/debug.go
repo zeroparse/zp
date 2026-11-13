@@ -10,8 +10,8 @@ import (
 	"strings"
 	"unicode/utf8"
 
-	"zeroparse.dev/zp"
-	"zeroparse.dev/zp/runtime/parse"
+	"zeroparse.dev/zp/core"
+	"zeroparse.dev/zp/engine"
 )
 
 // debugFlags are the flags that select the grammar, the input and how to parse it.
@@ -40,7 +40,7 @@ func newDebugFlags(name string) *debugFlags {
 }
 
 // load parses args and returns the parser, the input and the parse options the flags select.
-func (f *debugFlags) load(args []string, stdin io.Reader) (*zp.Parser, string, []zp.ParseOption, error) {
+func (f *debugFlags) load(args []string, stdin io.Reader) (*engine.Parser, string, []engine.ParseOption, error) {
 	if err := f.fs.Parse(args); err != nil {
 		return nil, "", nil, err
 	}
@@ -51,23 +51,23 @@ func (f *debugFlags) load(args []string, stdin io.Reader) (*zp.Parser, string, [
 		return nil, "", nil, fmt.Errorf("-g is required")
 	}
 	// The commands show what the grammar expected, so the parse records it.
-	opts := []zp.ParseOption{zp.WithExpectations()}
+	opts := []engine.ParseOption{engine.WithExpectations()}
 	switch *f.unit {
 	case "codepoints":
-		opts = append(opts, zp.WithUnit(parse.CodePoints))
+		opts = append(opts, engine.WithUnit(core.CodePoints))
 	case "bytes":
-		opts = append(opts, zp.WithUnit(parse.Bytes))
+		opts = append(opts, engine.WithUnit(core.Bytes))
 	default:
 		return nil, "", nil, fmt.Errorf("unknown unit %q", *f.unit)
 	}
 	switch *f.backend {
 	case "":
 	case "closure":
-		opts = append(opts, zp.WithBackend(zp.Closure))
+		opts = append(opts, engine.WithBackend(engine.Closure))
 	case "bytecode":
-		opts = append(opts, zp.WithBackend(zp.Bytecode))
+		opts = append(opts, engine.WithBackend(engine.Bytecode))
 	case "bytecode-iterative":
-		opts = append(opts, zp.WithBackend(zp.BytecodeIterative))
+		opts = append(opts, engine.WithBackend(engine.BytecodeIterative))
 	default:
 		return nil, "", nil, fmt.Errorf("unknown backend %q", *f.backend)
 	}
@@ -77,7 +77,7 @@ func (f *debugFlags) load(args []string, stdin io.Reader) (*zp.Parser, string, [
 		return nil, "", nil, err
 	}
 	// These commands trace the parse, which a compiled grammar serves in document mode.
-	if mode, loaded := p.CompiledMode(); loaded && mode != zp.CompiledDocument {
+	if mode, loaded := p.CompiledMode(); loaded && mode != engine.CompiledDocument {
 		return nil, "", nil, fmt.Errorf("%s: the compiled grammar is in %s mode; %s traces the parse, which needs document mode: compile it with -mode document, or use the grammar source", *f.grammar, mode, f.fs.Name())
 	}
 	src := *f.input

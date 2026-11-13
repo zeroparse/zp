@@ -72,7 +72,7 @@ const generatedGoGraphTypedRuleCheck = `for _,name:=range []string{"main","rollb
 const generatedGoGraphConsumer = `package PACKAGE
 
 import zprt "zeroparse.dev/zp/runtime"
-import "zeroparse.dev/zp/runtime/noderep"
+import "zeroparse.dev/zp/core/noderep"
 import("context";"errors";"fmt";"reflect";"strings";"testing")
 const conversion = CONVERT
 func graphParser(limit uint64)*zprt.Parser{p:=&zprt.Parser{Control:zprt.X_newBudgetControl(nil,Limits{Compute:limit})};p.X_setGrammar(zpGrammar);return p}

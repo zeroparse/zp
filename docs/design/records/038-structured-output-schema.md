@@ -10,7 +10,7 @@ Expose a deterministic, versioned description of grammar-declared types and infe
 
 ## Motivation
 
-ZeroParse parses declared `TypeDef` values in `grammar/ast.go`, checks and infers rule results internally, and generates typed Go and TypeScript results ([design 012](012-typed-values.md), [design 030](030-typed-typescript-values.md)). The public `parse.Node` representation also includes reserved CST kinds (`Match`, `Seq`, `List`, `Operator`, `Error`), captures, and scalar fields. A schema consumer cannot treat every Node as a declared AST type or infer a complete schema from observed parses. `zp.Parser` is the public compiled-grammar boundary; `engine.Program` and its inference structures are internal implementation details.
+ZeroParse parses declared `TypeDef` values in `grammar/ast.go`, checks and infers rule results internally, and generates typed Go and TypeScript results ([design 012](012-typed-values.md), [design 030](030-typed-typescript-values.md)). The public `core.Node` representation also includes reserved CST kinds (`Match`, `Seq`, `List`, `Operator`, `Error`), captures, and scalar fields. A schema consumer cannot treat every Node as a declared AST type or infer a complete schema from observed parses. `engine.Parser` is the public compiled-grammar boundary; `engine.Program` and its inference structures are internal implementation details.
 
 ## Goals and Non-Goals
 
@@ -126,7 +126,7 @@ The exit status of `zp schema diff` does not depend on the class; a script reads
 
 ## Implementation and Determinism
 
-Build the export from the checked grammar/type information behind `zp.Parser`, not generated source, reflection over an arbitrary result, or observed samples. Keep ordering explicit and encode recursive references by identity. Resolve schema options once in order; absent the all-rules option, use the configured start rule. Reject unresolved or unchecked internal shapes rather than emitting partial output. The tests check repeated exports and round trips, with semantic comparisons separate from exact-byte determinism. A future cross-grammar identity field requires a separately specified canonicalization and digest before it is added to the versioned format.
+Build the export from the checked grammar/type information behind `engine.Parser`, not generated source, reflection over an arbitrary result, or observed samples. Keep ordering explicit and encode recursive references by identity. Resolve schema options once in order; absent the all-rules option, use the configured start rule. Reject unresolved or unchecked internal shapes rather than emitting partial output. The tests check repeated exports and round trips, with semantic comparisons separate from exact-byte determinism. A future cross-grammar identity field requires a separately specified canonicalization and digest before it is added to the versioned format.
 
 ## Persistence
 

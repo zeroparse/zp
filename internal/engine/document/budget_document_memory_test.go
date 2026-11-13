@@ -8,8 +8,8 @@ import (
 	"strings"
 	"testing"
 
+	"zeroparse.dev/zp/core"
 	. "zeroparse.dev/zp/internal/engine"
-	"zeroparse.dev/zp/runtime/parse"
 )
 
 const documentMemoryGrammar = `type Pair = { K string; V string }
@@ -29,7 +29,7 @@ func documentMemoryInput(n int) string {
 // minDocumentMemory returns the smallest Memory under which parse succeeds, by bisection.
 func minDocumentMemory(t *testing.T, parseFn func(mem uint64) error) uint64 {
 	t.Helper()
-	if err := parseFn(parse.Unlimited - 1); err != nil {
+	if err := parseFn(core.Unlimited - 1); err != nil {
 		t.Fatalf("parse with the largest finite limit: %v", err)
 	}
 	lo, hi := uint64(0), uint64(1<<40)
@@ -44,9 +44,9 @@ func minDocumentMemory(t *testing.T, parseFn func(mem uint64) error) uint64 {
 	return hi
 }
 
-func memoryLimitError(err error) (*parse.LimitError, bool) {
-	var le *parse.LimitError
-	return le, errors.As(err, &le) && le.Kind == parse.LimitMemory
+func memoryLimitError(err error) (*core.LimitError, bool) {
+	var le *core.LimitError
+	return le, errors.As(err, &le) && le.Kind == core.LimitMemory
 }
 
 func TestDocumentMemoryLimit(t *testing.T) {
@@ -61,7 +61,7 @@ func TestDocumentMemoryLimit(t *testing.T) {
 				if err != nil {
 					t.Fatal(err)
 				}
-				_, err = d.ParseWith(ParseOptions{Backend: b, Limits: parse.Limits{Memory: mem}})
+				_, err = d.ParseWith(ParseOptions{Backend: b, Limits: core.Limits{Memory: mem}})
 				return err
 			}
 			m := minDocumentMemory(t, parseFresh)
@@ -85,7 +85,7 @@ func TestDocumentMemoryLimit(t *testing.T) {
 				t.Fatal("a parsed Document retains no bytes")
 			}
 			if le, ok := memoryLimitError(func() error {
-				_, err := d.ParseWith(ParseOptions{Backend: b, Limits: parse.Limits{Memory: r}})
+				_, err := d.ParseWith(ParseOptions{Backend: b, Limits: core.Limits{Memory: r}})
 				return err
 			}()); !ok || le.Used <= r {
 				t.Fatalf("limit %d, the retained bytes: %+v", r, le)
@@ -107,7 +107,7 @@ func TestDocumentMemoryLimit(t *testing.T) {
 			if r <= m {
 				t.Fatalf("retained %d bytes, want more than %d", r, m)
 			}
-			n, err := d.ParseWith(ParseOptions{Backend: b, Limits: parse.Limits{Memory: m}})
+			n, err := d.ParseWith(ParseOptions{Backend: b, Limits: core.Limits{Memory: m}})
 			if err != nil {
 				t.Fatalf("parse after dropping the history: %v", err)
 			}

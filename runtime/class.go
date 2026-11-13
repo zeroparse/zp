@@ -1,6 +1,6 @@
 package runtime
 
-import "zeroparse.dev/zp/runtime/parse"
+import "zeroparse.dev/zp/core"
 
 // Class is a character class for generated parsers; not a stable API. ASCII is the bitset of the
 // characters below 128 that the class matches, Wide the inclusive [lo, hi] pairs of the members at
@@ -57,7 +57,7 @@ func (p *TParser) ClassSkip(c *Class, id ExpID) bool {
 }
 
 func (p *TParser) classSkip(c *Class, id ExpID) bool {
-	if p.Stream == nil && p.unit == parse.Bytes && p.Pos < p.n {
+	if p.Stream == nil && p.unit == core.Bytes && p.Pos < p.n {
 		if b := uint32(p.bs[p.Pos]); b < 128 {
 			if c.ASCII[b>>6]>>(b&63)&1 != 0 {
 				p.Pos++

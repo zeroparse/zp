@@ -9,7 +9,7 @@ import (
 	"testing"
 	igen "zeroparse.dev/zp/internal/gen"
 
-	"zeroparse.dev/zp"
+	"zeroparse.dev/zp/engine"
 )
 
 func writeFile(t *testing.T, name, content string) string {
@@ -331,7 +331,7 @@ func TestGen(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	for _, want := range []string{igen.Header(), "package kv", "func Parse(input string, opts ...rt.ParseOption) (*parse.Node, error)"} {
+	for _, want := range []string{igen.Header(), "package kv", "func Parse(input string, opts ...rt.ParseOption) (*core.Node, error)"} {
 		if !strings.Contains(out, want) {
 			t.Errorf("missing %q", want)
 		}
@@ -518,9 +518,9 @@ func TestCompile(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if p, err := zp.LoadParser(data); err != nil {
+	if p, err := engine.LoadParser(data); err != nil {
 		t.Fatal(err)
-	} else if mode, ok := p.CompiledMode(); !ok || mode != zp.CompiledParse {
+	} else if mode, ok := p.CompiledMode(); !ok || mode != engine.CompiledParse {
 		t.Errorf("default mode %v %v, want parse", mode, ok)
 	}
 	// A compiled grammar holds no grammar: it does not convert, with or without -to.

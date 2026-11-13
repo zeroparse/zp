@@ -6,10 +6,10 @@ import (
 	"unicode/utf8"
 	"unsafe"
 
+	"zeroparse.dev/zp/core"
+	"zeroparse.dev/zp/core/noderep"
 	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/compile"
-	"zeroparse.dev/zp/runtime/noderep"
-	"zeroparse.dev/zp/runtime/parse"
 )
 
 // Value spend is charged like any other spend, though strings and collections can
@@ -180,7 +180,7 @@ func (p *Parser) ValueLogic(op string, x any) (bool, error) {
 }
 
 func (p *Parser) ValueTextLen(s string) int {
-	if !BudgetControlsEnabled || p.Control == nil || p.Unit == parse.Bytes {
+	if !BudgetControlsEnabled || p.Control == nil || p.Unit == core.Bytes {
 		return TextLen(p.Unit, s)
 	}
 	n := 0

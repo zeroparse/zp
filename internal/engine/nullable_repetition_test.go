@@ -5,9 +5,9 @@ import (
 	"strings"
 	"testing"
 
+	"zeroparse.dev/zp/core"
 	"zeroparse.dev/zp/internal/compile"
 	"zeroparse.dev/zp/internal/value"
-	"zeroparse.dev/zp/runtime/parse"
 )
 
 func TestNullableRepetitionMinimum(t *testing.T) {
@@ -34,7 +34,7 @@ func TestNullableRepetitionMinimum(t *testing.T) {
 								wantClosureRefused(t, err)
 								continue
 							}
-							for _, unit := range []parse.PositionUnit{parse.CodePoints, parse.Bytes} {
+							for _, unit := range []core.PositionUnit{core.CodePoints, core.Bytes} {
 								opts := ParseOptions{Backend: backend, Unit: unit}
 								for _, recognize := range []bool{false, true} {
 									opts.Recognize = recognize
@@ -49,7 +49,7 @@ func TestNullableRepetitionMinimum(t *testing.T) {
 								opts.Recognize = false
 								if p.checkMode(opts, false) == nil {
 									count := 0
-									err := p.ParseStreamWith("main", strings.NewReader(""), func(*parse.Node) error { count++; return nil }, opts)
+									err := p.ParseStreamWith("main", strings.NewReader(""), func(*core.Node) error { count++; return nil }, opts)
 									if count != bound.count || (err == nil) != bound.ok {
 										t.Errorf("stream %s/%s: %d values, %v; want %d, success=%v", backend, unit, count, err, bound.count, bound.ok)
 									}
@@ -86,13 +86,13 @@ func TestNullableRepetitionAfterConsumption(t *testing.T) {
 			for _, bound := range []string{fmt.Sprintf("#repeat(%d)", tc.min), fmt.Sprintf("#repeat(%d, )", tc.min)} {
 				p := mustCompile(t, "rule main = ("+body+")"+bound+" #stream $$\nrule r = \"é\" / _")
 				for _, backend := range []Backend{Closure, Bytecode, BytecodeIterative} {
-					for _, unit := range []parse.PositionUnit{parse.CodePoints, parse.Bytes} {
+					for _, unit := range []core.PositionUnit{core.CodePoints, core.Bytes} {
 						opts := ParseOptions{Backend: backend, Unit: unit}
 						if _, err := p.ParseWith("main", tc.input, opts); (err == nil) != tc.ok {
 							t.Errorf("%s%s/%q %s/%s: %v", body, bound, tc.input, backend, unit, err)
 						}
 						count := 0
-						err := p.ParseStreamWith("main", strings.NewReader(tc.input), func(*parse.Node) error { count++; return nil }, opts)
+						err := p.ParseStreamWith("main", strings.NewReader(tc.input), func(*core.Node) error { count++; return nil }, opts)
 						wantCount := min(len([]rune(tc.input))+1, tc.min)
 						if (err == nil) != tc.ok || count != wantCount {
 							t.Errorf("stream %s%s/%q %s/%s: %d, %v; want %d success=%v", body, bound, tc.input, backend, unit, count, err, wantCount, tc.ok)
@@ -109,7 +109,7 @@ func TestNullableRepetitionProjection(t *testing.T) {
 	for _, minimum := range []int{1, 2} {
 		p := mustCompile(t, fmt.Sprintf(`rule main = xs:(f:_) #repeat(%d, ) $$ => map($xs, (x) => x.$f)`, minimum))
 		for _, backend := range []Backend{Closure, Bytecode, BytecodeIterative} {
-			for _, unit := range []parse.PositionUnit{parse.CodePoints, parse.Bytes} {
+			for _, unit := range []core.PositionUnit{core.CodePoints, core.Bytes} {
 				if n, err := p.ParseWith("main", "", ParseOptions{Backend: backend, Unit: unit}); (err == nil) != (minimum == 1) || err == nil && len(value.D(n).Children) != 1 {
 					t.Errorf("projected min=%d %s/%s: %v, %v", minimum, backend, unit, n, err)
 				}

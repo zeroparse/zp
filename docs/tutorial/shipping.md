@@ -50,7 +50,7 @@ func main() {
 Config{Entries: [Entry{Key: Key("port"), Value: Number("8080")}]}
 ```
 
-The generated `Node` type mirrors `parse.Node`, and the generated parser gives the same trees and errors as the
+The generated `Node` type mirrors `core.Node`, and the generated parser gives the same trees and errors as the
 library. `config.ParseRule(name, input)` starts at another rule. The generated entry points accept functional
 options: `config.Parse(input, config.WithUnit(config.Bytes), config.WithLimits(config.Limits{Depth: 600_000}))`.
 `zp gen -max-depth 600000` sets the generated default; omitted or zero keeps 100,000.
@@ -67,11 +67,11 @@ zp parse -g config.zp -check -backend bytecode-iterative < example.conf   # vali
 ```
 
 ```go
-n, err := p.Parse("abc=12", zp.WithBackend(zp.Bytecode)) // also zp.WithUnit(parse.Bytes), zp.RecognizeOnly()
+n, err := p.Parse("abc=12", engine.WithBackend(engine.Bytecode)) // also engine.WithUnit(core.Bytes), engine.RecognizeOnly()
 ```
 
 `zp compile -g config.zp -o config.zpc` saves a compiled grammar that `zp parse` accepts in place of the
-`.zp` file (`zp parse -g config.zpc ...`), and `zp.LoadParser` loads it without recompiling. The file serves
+`.zp` file (`zp parse -g config.zpc ...`), and `engine.LoadParser` loads it without recompiling. The file serves
 the parses of one mode: `-mode parse` (the default) for parsing, `-mode recognize` for `-check`, and `-mode document`
 for documents and traces.
 `zp convert -to json config.zp` converts a grammar to JSON, which is handy for tools that generate grammars.

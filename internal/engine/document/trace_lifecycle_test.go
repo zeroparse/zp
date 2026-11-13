@@ -5,15 +5,15 @@ import (
 	"fmt"
 	"testing"
 
+	"zeroparse.dev/zp/core"
 	. "zeroparse.dev/zp/internal/engine"
-	"zeroparse.dev/zp/internal/engine/core"
-	"zeroparse.dev/zp/runtime/parse"
+	ecore "zeroparse.dev/zp/internal/engine/core"
 )
 
 func TestTraceLifecycleDocumentDetachment(t *testing.T) {
 	prog := mustCompile(t, records)
 	for _, b := range []Backend{Closure, Bytecode, BytecodeIterative} {
-		for _, u := range []parse.PositionUnit{parse.CodePoints, parse.Bytes} {
+		for _, u := range []core.PositionUnit{core.CodePoints, core.Bytes} {
 			for _, outcome := range []string{"success", "syntax", "trace-panic"} {
 				t.Run(fmt.Sprintf("%s/%s/%s", b, u, outcome), func(t *testing.T) {
 					text := "#records\na=1\nbc=22\n"
@@ -38,7 +38,7 @@ func TestTraceLifecycleDocumentDetachment(t *testing.T) {
 					if err != nil {
 						t.Fatal(err)
 					}
-					var n *parse.Node
+					var n *core.Node
 					got := traceLifecycleRecover(func() { n, err = d.Parse() })
 					switch outcome {
 					case "success":
@@ -46,7 +46,7 @@ func TestTraceLifecycleDocumentDetachment(t *testing.T) {
 							t.Fatalf("node=%v err=%v panic=%v", n, err, got)
 						}
 					case "syntax":
-						var se *parse.SyntaxError
+						var se *core.SyntaxError
 						if got != nil || n != nil || !errors.As(err, &se) {
 							t.Fatalf("node=%v err=%v panic=%v", n, err, got)
 						}
@@ -61,11 +61,11 @@ func TestTraceLifecycleDocumentDetachment(t *testing.T) {
 							t.Fatal("panic kept provisional document state")
 						}
 					}
-					assertTraceParserDetached(t, core.TraceParser(e), outcome == "trace-panic")
+					assertTraceParserDetached(t, ecore.TraceParser(e), outcome == "trace-panic")
 					if e.Kind != TraceEnter || e.Rule != "main" || e.Depth != 1 || e.Pos != 0 {
 						t.Fatal("saved event metadata changed")
 					}
-					var clone *parse.Node
+					var clone *core.Node
 					var before string
 					if n != nil {
 						clone = n.Clone()
@@ -79,7 +79,7 @@ func TestTraceLifecycleDocumentDetachment(t *testing.T) {
 						if _, err := d.Parse(); err != nil || d.Stats().Reused == 0 {
 							t.Fatal("unchanged document did not reuse memo")
 						}
-						assertTraceParserDetached(t, core.TraceParser(e), false)
+						assertTraceParserDetached(t, ecore.TraceParser(e), false)
 					}
 					fixed := "#records\nxy=3\n"
 					if err := d.Edit(0, len(text), fixed); err != nil {
@@ -88,7 +88,7 @@ func TestTraceLifecycleDocumentDetachment(t *testing.T) {
 					if got, want := resultJSON(d.Parse()), resultJSON(prog.ParseWith("main", fixed, ParseOptions{Backend: b, Unit: u})); got != want {
 						t.Fatalf("retry %s; fresh %s", got, want)
 					}
-					assertTraceParserDetached(t, core.TraceParser(e), false)
+					assertTraceParserDetached(t, ecore.TraceParser(e), false)
 					if clone != nil && resultJSON(clone, nil) != before {
 						t.Fatal("document teardown/retry changed cloned historical result")
 					}

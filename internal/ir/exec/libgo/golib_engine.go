@@ -208,13 +208,13 @@ func printEngineSpecs(specs []goSpec) (string, error) {
 func engineTarget() *execgo.Target {
 	t := &execgo.Target{Recv: "p *Parser", Source: "internal/ir/exec/core"}
 	handles := map[string]string{
-		ops.Rule: "*Rule", ops.Value: "*parse.Node", ops.Entry: "*MemoEntry", ops.Values: "KeyVals", ops.Errs: "RecEntry",
+		ops.Rule: "*Rule", ops.Value: "*core.Node", ops.Entry: "*MemoEntry", ops.Values: "KeyVals", ops.Errs: "RecEntry",
 		ops.Mark: "ExpMark", ops.Set: "[]ExpID", ops.Kept: "[]ExpID", ops.ExpID: "ExpID",
 		ops.Ctx: "CtxState", ops.Res: "ctxHit", ops.Grow: "GrowState", ops.CallState: "*CallState",
 		ops.Frame: "*Frame", ops.Backtrack: "Mark", ops.Scope: "*Env", ops.Operators: "[]*OperatorsRuleOp",
 		ops.Operator: "*OperatorsRuleOp", ops.Line: "*OperatorsRuleLine", ops.Attempt: "OperatorsRuleAttempt",
-		ops.Seq: "[]*parse.Node", ops.Datum: "any", ops.LongestState: "*LongestState", ops.NudState: "*NudState", ops.ExprState: "*ExprState", ops.EditLog: "[]DocEdit",
-		ops.Obj: "*parse.Node", ops.Name: "string", ops.Str: "string", ops.Act: "*EvalCtx", ops.Fail: "error", ops.Elem: "*parse.Node",
+		ops.Seq: "[]*core.Node", ops.Datum: "any", ops.LongestState: "*LongestState", ops.NudState: "*NudState", ops.ExprState: "*ExprState", ops.EditLog: "[]DocEdit",
+		ops.Obj: "*core.Node", ops.Name: "string", ops.Str: "string", ops.Act: "*EvalCtx", ops.Fail: "error", ops.Elem: "*core.Node",
 		ops.NodeType: "*value.NodeTypeKinds", ops.FType: "*compile.FieldType",
 	}
 	names := map[string]string{"engineCall": "Call", "engineCallDoc": "callDoc", "callBegin": "CallBegin", "callEnd": "CallEnd", "grow": "grow",
@@ -666,15 +666,15 @@ var engineImportPaths = []struct{ name, path string }{
 	{"compile", "zeroparse.dev/zp/internal/compile"},
 	{"grammar", "zeroparse.dev/zp/grammar"},
 	{"value", "zeroparse.dev/zp/internal/value"},
-	{"noderep", "zeroparse.dev/zp/runtime/noderep"},
-	{"parse", "zeroparse.dev/zp/runtime/parse"},
+	{"noderep", "zeroparse.dev/zp/core/noderep"},
+	{"core", "zeroparse.dev/zp/core"},
 }
 
 // runtimeImportPaths are the packages that the printed code of the Go runtime may name, by package
 // name.
 var runtimeImportPaths = []struct{ name, path string }{
-	{"noderep", "zeroparse.dev/zp/runtime/noderep"},
-	{"parse", "zeroparse.dev/zp/runtime/parse"},
+	{"noderep", "zeroparse.dev/zp/core/noderep"},
+	{"core", "zeroparse.dev/zp/core"},
 }
 
 // engineImports returns the import declaration of printed engine code: the standard packages std

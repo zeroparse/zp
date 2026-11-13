@@ -201,11 +201,11 @@ func TestBuild(t *testing.T) {
 			"One Grammar. Every Parser.", `class="feature"`, `id="live"`, `data-input="1 &#43; 2 * 3 ^ 2"`, `id="live-input" class="live-input" value="1 &#43; 2 * 3 ^ 2"`, "zp parse -g calc.zp",
 			`href="docs/tutorial/getting-started/"`, `id="install"`,
 		},
-		"reference/zp/index.html": {
+		"reference/engine/index.html": {
 			`id="CompileSource"`, `id="Parser.Parse"`, "pkg.go.dev",
 			`id="TraceEvent.LineCol"`,
 		},
-		"reference/parse/index.html": {
+		"reference/core/index.html": {
 			"type Limits struct", `id="LimitError.Error"`, "type SyntaxError struct", `id="SyntaxError.ExpectedInMessage"`,
 			"type Node struct", `id="Node.Clone"`, `id="NodeKind.String"`, `id="Cursor.At"`,
 		},
@@ -753,7 +753,7 @@ func TestNavigation(t *testing.T) {
 	}
 	for path, heading := range map[string]string{
 		"reference/index.html":         `<h1 id="api-reference">Go API Reference</h1>`,
-		"reference/zp/index.html":      `<h1 id="top">Package <code>zp</code></h1>`,
+		"reference/engine/index.html":  `<h1 id="top">Package <code>zp/engine</code></h1>`,
 		"reference/grammar/index.html": `<h1 id="top">Package <code>zp/grammar</code></h1>`,
 		"reference/cli/index.html":     `<h1 id="top">CLI Reference</h1>`,
 	} {

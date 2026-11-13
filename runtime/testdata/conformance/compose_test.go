@@ -1,6 +1,6 @@
 package runtime
 
-import "zeroparse.dev/zp/runtime/parse"
+import "zeroparse.dev/zp/core"
 
 // The tables call the compositions that generated parsers print from Exec IR (the Term functions of
 // term_exec.go) through these helpers, which compose them as the lowered terms do: a list or a tuple
@@ -59,7 +59,7 @@ func (c *ActCtx) fxMember(x any, name string) any {
 	return fxValue(c.P.TermMember(c, kind, x, name, field))
 }
 
-func (c *ActCtx) fxItems(fn string, v any) []*parse.Node { return fxValue(c.P.TermItems(fn, v)) }
+func (c *ActCtx) fxItems(fn string, v any) []*core.Node { return fxValue(c.P.TermItems(fn, v)) }
 
 func (c *ActCtx) fxPushItems(v any) { fxRaise(c.P.TermPushItems(c, "concat", v)) }
 

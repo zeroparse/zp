@@ -4,7 +4,7 @@ import (
 	"encoding/binary"
 	"reflect"
 
-	"zeroparse.dev/zp/runtime/parse"
+	"zeroparse.dev/zp/core"
 )
 
 // The dependency memo of left recursion, the same as the engine's (see "Evaluations of Rules" in
@@ -66,7 +66,7 @@ const (
 // ctxResult is a result that a context keeps: a seed, the result of a growth step, or the result of
 // a call that read a seed. It holds a node (Parser) or a typed value (TParser).
 type ctxResult struct {
-	node     *parse.Node
+	node     *core.Node
 	val      any
 	errs     recEntry
 	expected []ExpID
@@ -1066,7 +1066,7 @@ func (p *Parser) growNext(g *growState) bool {
 
 // growStep receives the result of a step, a node or a typed value, and adopts it as the seed if the
 // match grew.
-func (p *Parser) growStep(g *growState, node *parse.Node, val any, ok bool) {
+func (p *Parser) growStep(g *growState, node *core.Node, val any, ok bool) {
 	if !g.ctx {
 		best := &p.gamma[g.gi].inl
 		if !ok || (best.ok && p.Pos <= best.end) {
@@ -1340,7 +1340,7 @@ func (p *Parser) canonicalSeed(g *growState, e *ctxResult) (*ctxResult, uint64) 
 // nodesEqual reports whether two trees are equal, comparing at most *budget pairs of distinct nodes
 // (false beyond: two results that are not shown equal get different identities, which costs only
 // reuse).
-func (p *Parser) nodesEqual(a, b *parse.Node, budget *int) bool {
+func (p *Parser) nodesEqual(a, b *core.Node, budget *int) bool {
 	if a == b {
 		return true
 	}
@@ -1365,8 +1365,8 @@ func (p *Parser) nodesEqual(a, b *parse.Node, budget *int) bool {
 		if fa.Name != fb.Name {
 			return false
 		}
-		na, aok := fa.Value.(*parse.Node)
-		nb, bok := fb.Value.(*parse.Node)
+		na, aok := fa.Value.(*core.Node)
+		nb, bok := fb.Value.(*core.Node)
 		switch {
 		case aok && bok:
 			if !p.nodesEqual(na, nb, budget) {

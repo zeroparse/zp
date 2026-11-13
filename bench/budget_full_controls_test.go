@@ -8,7 +8,9 @@ import (
 	"errors"
 	"reflect"
 	"testing"
-	"zeroparse.dev/zp"
+	"zeroparse.dev/zp/core"
+	"zeroparse.dev/zp/core/noderep"
+	"zeroparse.dev/zp/engine"
 	gcalc "zeroparse.dev/zp/internal/bench/gen/calc"
 	gcalclr "zeroparse.dev/zp/internal/bench/gen/calclr"
 	gcsv "zeroparse.dev/zp/internal/bench/gen/csv"
@@ -17,8 +19,6 @@ import (
 	goutline "zeroparse.dev/zp/internal/bench/gen/outline"
 	gxml "zeroparse.dev/zp/internal/bench/gen/xml"
 	"zeroparse.dev/zp/internal/value"
-	"zeroparse.dev/zp/runtime/noderep"
-	"zeroparse.dev/zp/runtime/parse"
 )
 
 type fullGeneratedProbe struct {
@@ -197,25 +197,25 @@ func TestControlledFullWorkloads(t *testing.T) {
 					t.Run(be.name+"/"+u.name, func(t *testing.T) {
 						t.Parallel()
 						// Unlimited keeps the plain parse uncontrolled: a zero budget selects the default counter.
-						opts := []zp.ParseOption{zp.WithBackend(be.b), zp.WithUnit(u.u), zp.WithLimits(parse.Limits{Compute: parse.Unlimited})}
+						opts := []engine.ParseOption{engine.WithBackend(be.b), engine.WithUnit(u.u), engine.WithLimits(core.Limits{Compute: core.Unlimited})}
 						plain, plainErr := p.Parse(input, opts...)
 						want := check(plain, plainErr)
 						for _, mode := range []string{"budget", "context", "combined"} {
-							active := append([]zp.ParseOption{}, opts...)
+							active := append([]engine.ParseOption{}, opts...)
 							if mode != "context" {
-								active = append(active, zp.WithLimits(parse.Limits{Compute: ^uint64(0) - 1}))
+								active = append(active, engine.WithLimits(core.Limits{Compute: ^uint64(0) - 1}))
 							}
 							if mode != "budget" {
 								ctx, cancel := context.WithCancel(context.Background())
 								defer cancel()
-								active = append(active, zp.WithContext(ctx))
+								active = append(active, engine.WithContext(ctx))
 							}
 							n, err := p.Parse(input, active...)
 							if got := check(n, err); got != want {
 								t.Fatalf("%s full fingerprint differs", mode)
 							}
-							recNode, recErr := p.Parse(input, append(active, zp.RecognizeOnly())...)
-							plainRecNode, plainRecErr := p.Parse(input, append(opts, zp.RecognizeOnly())...)
+							recNode, recErr := p.Parse(input, append(active, engine.RecognizeOnly())...)
+							plainRecNode, plainRecErr := p.Parse(input, append(opts, engine.RecognizeOnly())...)
 							if recNode != nil || plainRecNode != nil {
 								t.Fatal("recognition returned a tree")
 							}
@@ -225,8 +225,8 @@ func TestControlledFullWorkloads(t *testing.T) {
 								t.Fatalf("%s recognition diagnostics differ", mode)
 							}
 						}
-						n, err := p.Parse(input, append(opts, zp.WithLimits(parse.Limits{Compute: 1}))...)
-						if n != nil || !errors.Is(err, parse.ErrLimit) {
+						n, err := p.Parse(input, append(opts, engine.WithLimits(core.Limits{Compute: 1}))...)
+						if n != nil || !errors.Is(err, core.ErrLimit) {
 							t.Fatalf("full-input interruption: %v", err)
 						}
 						retry, retryErr := p.Parse(input, opts...)
@@ -279,7 +279,7 @@ func TestControlledFullWorkloads(t *testing.T) {
 }
 
 func TestFullFingerprintDetectsObservableGraphChanges(t *testing.T) {
-	hash := func(n *parse.Node) string {
+	hash := func(n *core.Node) string {
 		t.Helper()
 		s, e := fullFingerprint(n)
 		if e != nil {
@@ -287,14 +287,14 @@ func TestFullFingerprintDetectsObservableGraphChanges(t *testing.T) {
 		}
 		return s
 	}
-	str := func(start, end int, text string) *parse.Node {
-		return value.NewNode(parse.KindString, start, end, text, nil, "", nil, nil)
+	str := func(start, end int, text string) *core.Node {
+		return value.NewNode(core.KindString, start, end, text, nil, "", nil, nil)
 	}
-	tuple := func(elems ...*parse.Node) *parse.Node {
-		return value.NewNode(parse.KindTuple, 0, 0, "", elems, "", nil, nil)
+	tuple := func(elems ...*core.Node) *core.Node {
+		return value.NewNode(core.KindTuple, 0, 0, "", elems, "", nil, nil)
 	}
-	object := func(fields ...noderep.NodeField) *parse.Node {
-		return value.NewNode(parse.KindStruct, 0, 0, "", nil, "T", noderep.Fields(fields), nil)
+	object := func(fields ...noderep.NodeField) *core.Node {
+		return value.NewNode(core.KindStruct, 0, 0, "", nil, "T", noderep.Fields(fields), nil)
 	}
 	if hash(str(0, 0, "\xff")) == hash(str(0, 0, "\xfe")) {
 		t.Fatal("raw invalid terminal bytes were replaced")
@@ -313,7 +313,7 @@ func TestFullFingerprintDetectsObservableGraphChanges(t *testing.T) {
 	if hash(fields) == hash(reordered) {
 		t.Fatal("field order was discarded")
 	}
-	if hash(tuple()) == hash(value.NewNode(parse.KindList, 0, 0, "", nil, "", nil, nil)) {
+	if hash(tuple()) == hash(value.NewNode(core.KindList, 0, 0, "", nil, "", nil, nil)) {
 		t.Fatal("the kind of an empty node was discarded")
 	}
 	shifted := str(1, 2, "x")
@@ -324,13 +324,13 @@ func TestFullFingerprintDetectsObservableGraphChanges(t *testing.T) {
 	if hash(fields) == hash(changed) {
 		t.Fatal("field values were discarded")
 	}
-	if hash(value.NewNode(parse.KindValue, 0, 0, "", nil, "", nil, 1)) == hash(value.NewNode(parse.KindValue, 0, 0, "", nil, "", nil, 2)) {
+	if hash(value.NewNode(core.KindValue, 0, 0, "", nil, "", nil, 1)) == hash(value.NewNode(core.KindValue, 0, 0, "", nil, "", nil, 2)) {
 		t.Fatal("carried values were discarded")
 	}
 	cycle := tuple()
-	value.SetNodeElems(cycle, []*parse.Node{cycle})
+	value.SetNodeElems(cycle, []*core.Node{cycle})
 	other := tuple()
-	value.SetNodeElems(other, []*parse.Node{other})
+	value.SetNodeElems(other, []*core.Node{other})
 	if hash(cycle) != hash(other) {
 		t.Fatal("equivalent cycles differ")
 	}

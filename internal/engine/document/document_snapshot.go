@@ -10,22 +10,22 @@ import (
 	"unsafe"
 	"weak"
 
+	"zeroparse.dev/zp/core"
+	"zeroparse.dev/zp/core/noderep"
 	"zeroparse.dev/zp/internal/compile"
-	"zeroparse.dev/zp/internal/engine/core"
+	ecore "zeroparse.dev/zp/internal/engine/core"
 	"zeroparse.dev/zp/internal/value"
-	"zeroparse.dev/zp/runtime/noderep"
-	"zeroparse.dev/zp/runtime/parse"
 )
 
 // Snapshot owns an immutable parse outcome for one document revision. Readers
 // may use it concurrently with later edits of its single-owner Document.
 type Snapshot struct {
 	version    DocumentVersion
-	unit       parse.PositionUnit
+	unit       core.PositionUnit
 	text       string
 	graph      snapshotGraph
 	parseError error
-	stats      parse.ParseStats
+	stats      core.ParseStats
 }
 
 type snapshotGraph struct {
@@ -130,7 +130,7 @@ type SnapshotField struct {
 func (s *Snapshot) Version() DocumentVersion { return s.version }
 
 // Unit returns the position unit of the captured graph.
-func (s *Snapshot) Unit() parse.PositionUnit { return s.unit }
+func (s *Snapshot) Unit() core.PositionUnit { return s.unit }
 
 // Text returns the captured text.
 func (s *Snapshot) Text() string { return s.text }
@@ -139,7 +139,7 @@ func (s *Snapshot) Text() string { return s.text }
 func (s *Snapshot) Root() SnapshotNode { return snapshotHandle(&s.graph, s.graph.root) }
 
 // Stats returns the evaluation and memo counts for this capture's parse.
-func (s *Snapshot) Stats() parse.ParseStats { return s.stats }
+func (s *Snapshot) Stats() core.ParseStats { return s.stats }
 
 // Error returns a defensive copy of the captured diagnostic.
 func (s *Snapshot) Error() error { return copySnapshotError(nil, s.parseError) }
@@ -209,7 +209,7 @@ func (n SnapshotNode) fields() noderep.Fields {
 }
 
 // Kind returns what the node stands for, as Node.Kind does. Like Node.Kind, it panics on a nil node.
-func (n SnapshotNode) Kind() parse.NodeKind {
+func (n SnapshotNode) Kind() core.NodeKind {
 	if !n.Valid() {
 		panic("zp: Kind of a nil snapshot node")
 	}
@@ -274,17 +274,17 @@ func (n SnapshotNode) Fields() []SnapshotField {
 
 // Materialize makes an independent mutable graph, preserving sharing, cycles,
 // nil child slots, and nil versus allocated-empty slices.
-func (s *Snapshot) Materialize() *parse.Node {
+func (s *Snapshot) Materialize() *core.Node {
 	if s.graph.root == 0 {
 		return nil
 	}
-	nodes := make([]*parse.Node, s.graph.count())
+	nodes := make([]*core.Node, s.graph.count())
 	for i := range nodes {
 		r := s.graph.at(i)
 		pos := s.graph.position(i, r)
 		nodes[i] = value.Ptr(value.Data{Kind: r.kind, Start: pos.start, End: pos.end, Text: r.text, Fresh: r.fresh, Terminal: r.terminal, Mark: pos.gen})
 	}
-	node := func(id int) *parse.Node {
+	node := func(id int) *core.Node {
 		if id == 0 {
 			return nil
 		}
@@ -295,14 +295,14 @@ func (s *Snapshot) Materialize() *parse.Node {
 		n := nodes[i]
 		if r.childChunked {
 			chunks := s.graph.childChunks[r]
-			value.D(n).Children = make([]*parse.Node, chunks.length)
+			value.D(n).Children = make([]*core.Node, chunks.length)
 			for part, ids := range chunks.parts {
 				for j, id := range ids {
 					value.D(n).Children[part*snapshotChildChunkSize+j] = node(id)
 				}
 			}
 		} else if r.children != nil {
-			value.D(n).Children = make([]*parse.Node, len(r.children))
+			value.D(n).Children = make([]*core.Node, len(r.children))
 			for j, id := range r.children {
 				value.D(n).Children[j] = node(id)
 			}
@@ -337,7 +337,7 @@ func (c *snapshotContext) Err() error {
 
 // SnapshotWith parses and freezes the current text with fully resolved options.
 // Cancellation and compute limits cover both phases; interruption returns nil.
-func (d *Document) SnapshotWith(o core.ParseOptions) (*Snapshot, error) {
+func (d *Document) SnapshotWith(o ecore.ParseOptions) (*Snapshot, error) {
 	return d.snapshotWith(o, nil)
 }
 
@@ -345,11 +345,11 @@ func (d *Document) SnapshotWith(o core.ParseOptions) (*Snapshot, error) {
 // snapshot. The depth limit is not one: a parse nested too deeply is a run-time error of the parse, which
 // a snapshot records as it records the error of an action.
 func interruptsSnapshot(err error) bool {
-	var le *parse.LimitError
-	return errors.As(err, &le) && le.Kind != parse.LimitDepth
+	var le *core.LimitError
+	return errors.As(err, &le) && le.Kind != core.LimitDepth
 }
 
-func (d *Document) snapshotWith(o core.ParseOptions, legacy **parse.Node) (*Snapshot, error) {
+func (d *Document) snapshotWith(o ecore.ParseOptions, legacy **core.Node) (*Snapshot, error) {
 	if d.runner.Shared().HasMissing || o.MissingTokens != 0 {
 		return nil, compile.MissingUnsupported("Document parsing")
 	}
@@ -359,8 +359,8 @@ func (d *Document) snapshotWith(o core.ParseOptions, legacy **parse.Node) (*Snap
 		o.Context = observed
 	}
 	var result *Snapshot
-	output := parse.OutputUnavailable
-	_, err := d.parseWithCapture(o, func(p *core.Parser, root *parse.Node, parseErr error) error {
+	output := core.OutputUnavailable
+	_, err := d.parseWithCapture(o, func(p *ecore.Parser, root *core.Node, parseErr error) error {
 		if observed != nil && observed.interrupted || interruptsSnapshot(parseErr) {
 			return parseErr
 		}
@@ -398,11 +398,11 @@ func (d *Document) snapshotWith(o core.ParseOptions, legacy **parse.Node) (*Snap
 		returnedError := copySnapshotError(p, err)
 		p.Control.Check()
 		candidate := &Snapshot{version: d.Version(), unit: d.Unit(), text: out.String(), graph: graph, parseError: err, stats: p.ReportedStats()}
-		nextOutput := parse.OutputMayHaveChanged
+		nextOutput := core.OutputMayHaveChanged
 		if d.changes != nil && d.changes.previous != nil {
-			nextOutput = parse.OutputChanged
+			nextOutput = core.OutputChanged
 			if equalChangeSnapshotsControlled(p, d.changes.previous, candidate) {
-				nextOutput = parse.OutputUnchanged
+				nextOutput = core.OutputUnchanged
 			}
 		}
 		p.Control.Check()
@@ -420,7 +420,7 @@ func (d *Document) snapshotWith(o core.ParseOptions, legacy **parse.Node) (*Snap
 	return result, err
 }
 
-func snapshotStrings(p *core.Parser, in []string) []string {
+func snapshotStrings(p *ecore.Parser, in []string) []string {
 	if in == nil {
 		return nil
 	}
@@ -428,12 +428,12 @@ func snapshotStrings(p *core.Parser, in []string) []string {
 	if p == nil {
 		copy(out, in)
 	} else {
-		core.CopySpend(p, out, in)
+		ecore.CopySpend(p, out, in)
 	}
 	return out
 }
-func copySnapshotError(p *core.Parser, err error) error {
-	syntax := func(e *parse.SyntaxError) *parse.SyntaxError {
+func copySnapshotError(p *ecore.Parser, err error) error {
+	syntax := func(e *core.SyntaxError) *core.SyntaxError {
 		if e == nil {
 			return nil
 		}
@@ -447,20 +447,20 @@ func copySnapshotError(p *core.Parser, err error) error {
 	switch e := err.(type) {
 	case nil:
 		return nil
-	case *parse.SyntaxError:
+	case *core.SyntaxError:
 		return syntax(e)
-	case parse.SyntaxErrors:
+	case core.SyntaxErrors:
 		if e == nil {
-			return parse.SyntaxErrors(nil)
+			return core.SyntaxErrors(nil)
 		}
-		out := make(parse.SyntaxErrors, len(e))
+		out := make(core.SyntaxErrors, len(e))
 		for i, x := range e {
 			out[i] = syntax(x)
 		}
 		return out
-	case *parse.LimitError:
+	case *core.LimitError:
 		if e == nil {
-			return (*parse.LimitError)(nil)
+			return (*core.LimitError)(nil)
 		}
 		out := *e
 		return &out
@@ -477,14 +477,14 @@ type snapshotEdge struct {
 	name  string
 }
 type snapshotFrame struct {
-	node     *parse.Node
+	node     *core.Node
 	id, next int
 	edge     snapshotEdge
 }
 
 // unsupportedBox returns the dynamic type of the value of a box node that a snapshot cannot hold, as
 // it cannot hold a field value of that type, and nil for any other node.
-func unsupportedBox(n *parse.Node) reflect.Type {
+func unsupportedBox(n *core.Node) reflect.Type {
 	if n == nil || value.D(n).Kind != noderep.BoxKind {
 		return nil
 	}
@@ -498,13 +498,13 @@ func unsupportedBox(n *parse.Node) reflect.Type {
 // freezeSnapshotGraph registers identities before following their edges. The
 // explicit DFS stack gives deterministic child-then-field rejection paths and
 // supports arbitrary depth and caller-created cycles without recursion.
-func freezeSnapshotGraph(p *core.Parser, root *parse.Node) (snapshotGraph, *parse.SnapshotCaptureError) {
+func freezeSnapshotGraph(p *ecore.Parser, root *core.Node) (snapshotGraph, *core.SnapshotCaptureError) {
 	var g snapshotGraph
 	if root == nil {
 		return g, nil
 	}
-	seen := make(map[*parse.Node]int)
-	register := func(n *parse.Node) (int, bool) {
+	seen := make(map[*core.Node]int)
+	register := func(n *core.Node) (int, bool) {
 		if n == nil {
 			return 0, false
 		}
@@ -524,21 +524,21 @@ func freezeSnapshotGraph(p *core.Parser, root *parse.Node) (snapshotGraph, *pars
 			// as a field, so a record stays as small as it was.
 			r.fields = noderep.Fields{{Value: value.D(n).Box}}
 		}
-		g.nodes = core.GrowSpend(p, g.nodes, 1)
+		g.nodes = ecore.GrowSpend(p, g.nodes, 1)
 		g.nodes = append(g.nodes, r)
 		id := len(g.nodes)
 		seen[n] = id
 		return id, true
 	}
 	if t := unsupportedBox(root); t != nil {
-		return snapshotGraph{}, &parse.SnapshotCaptureError{Path: "root", ValueType: t}
+		return snapshotGraph{}, &core.SnapshotCaptureError{Path: "root", ValueType: t}
 	}
 	g.root, _ = register(root)
 	stack := []snapshotFrame{{node: root, id: g.root}}
 	for len(stack) > 0 {
 		p.Spend()
 		f := &stack[len(stack)-1]
-		var child *parse.Node
+		var child *core.Node
 		var edge snapshotEdge
 		if f.next < len(value.D(f.node).Children) {
 			edge = snapshotEdge{child: true, index: f.next}
@@ -553,33 +553,33 @@ func freezeSnapshotGraph(p *core.Parser, root *parse.Node) (snapshotGraph, *pars
 			edge = snapshotEdge{index: i, name: field.Name}
 			var val any
 			switch v := field.Value.(type) {
-			case *parse.Node:
+			case *core.Node:
 				child = v
 			case nil, int, string, bool:
 				val = v
 			default:
-				return snapshotGraph{}, &parse.SnapshotCaptureError{Path: snapshotFieldPath(p, stack, edge), ValueType: reflect.TypeOf(v)}
+				return snapshotGraph{}, &core.SnapshotCaptureError{Path: snapshotFieldPath(p, stack, edge), ValueType: reflect.TypeOf(v)}
 			}
 			g.nodes[f.id-1].fields[i] = noderep.NodeField{Name: field.Name, Value: val}
 		}
 		if t := unsupportedBox(child); t != nil {
-			return snapshotGraph{}, &parse.SnapshotCaptureError{Path: snapshotFieldPath(p, stack, edge), ValueType: t}
+			return snapshotGraph{}, &core.SnapshotCaptureError{Path: snapshotFieldPath(p, stack, edge), ValueType: t}
 		}
 		id, fresh := register(child)
 		if edge.child {
 			g.nodes[f.id-1].children[edge.index] = id
-		} else if _, ok := value.D(f.node).Fields[edge.index].Value.(*parse.Node); ok {
+		} else if _, ok := value.D(f.node).Fields[edge.index].Value.(*core.Node); ok {
 			g.nodes[f.id-1].fields[edge.index].Value = snapshotRef(id)
 		}
 		f.next++
 		if fresh {
-			stack = core.GrowSpend(p, stack, 1)
+			stack = ecore.GrowSpend(p, stack, 1)
 			stack = append(stack, snapshotFrame{node: child, id: id, edge: edge})
 		}
 	}
 	return g, nil
 }
-func snapshotFieldPath(p *core.Parser, stack []snapshotFrame, edge snapshotEdge) string {
+func snapshotFieldPath(p *ecore.Parser, stack []snapshotFrame, edge snapshotEdge) string {
 	var out strings.Builder
 	out.WriteString("root")
 	write := func(e snapshotEdge) {
@@ -623,7 +623,7 @@ func snapshotFieldPath(p *core.Parser, stack []snapshotFrame, edge snapshotEdge)
 // of the same root was taken: the charge never depends on collection, or on what the previous
 // snapshot held. The reuse itself then runs unmetered, within what was charged, and still observes
 // cancellation.
-func (d *Document) shareWithPrevious(p *core.Parser, next snapshotGraph) snapshotGraph {
+func (d *Document) shareWithPrevious(p *ecore.Parser, next snapshotGraph) snapshotGraph {
 	if d.previousRoot != next.root {
 		return next
 	}
@@ -662,7 +662,7 @@ func snapshotSharingCharge(next *snapshotGraph) int {
 // shareSnapshotGraph reuses immutable records after freezing the current parse.
 // The default requires exact metadata; the private position-overlay candidate
 // keeps changed metadata separately. No mutable Node or parser slice is shared.
-func shareSnapshotGraph(p *core.Parser, previous *snapshotGraph, next snapshotGraph) snapshotGraph {
+func shareSnapshotGraph(p *ecore.Parser, previous *snapshotGraph, next snapshotGraph) snapshotGraph {
 	if previous == nil || previous.root != next.root {
 		return next
 	}
@@ -761,7 +761,7 @@ func shareSnapshotGraph(p *core.Parser, previous *snapshotGraph, next snapshotGr
 	return shared
 }
 
-func sameSnapshotPayload(p *core.Parser, ag *snapshotGraph, a *snapshotRecord, bg *snapshotGraph, b *snapshotRecord) bool {
+func sameSnapshotPayload(p *ecore.Parser, ag *snapshotGraph, a *snapshotRecord, bg *snapshotGraph, b *snapshotRecord) bool {
 	if a.kind != b.kind || a.fresh != b.fresh || a.terminal != b.terminal ||
 		ag.hasChildren(a) != bg.hasChildren(b) || (a.fields == nil) != (b.fields == nil) ||
 		ag.childCount(a) != bg.childCount(b) || len(a.fields) != len(b.fields) || len(a.text) != len(b.text) {
@@ -784,7 +784,7 @@ func sameSnapshotPayload(p *core.Parser, ag *snapshotGraph, a *snapshotRecord, b
 // point into an older flat child slice, but never into an old graph or parser.
 // Changed runs own exact-size backing arrays, so later snapshots do not retain
 // a whole discarded child slice through one changed run.
-func shareSnapshotChildren(p *core.Parser, previousGraph *snapshotGraph, previous, next *snapshotRecord) *snapshotChildChunks {
+func shareSnapshotChildren(p *ecore.Parser, previousGraph *snapshotGraph, previous, next *snapshotRecord) *snapshotChildChunks {
 	if len(next.children) < 4*snapshotChildChunkSize || !previousGraph.hasChildren(previous) {
 		return nil
 	}
@@ -813,7 +813,7 @@ func shareSnapshotChildren(p *core.Parser, previousGraph *snapshotGraph, previou
 			chunks[i] = previousGraph.childChunk(previous, i, end-start)
 		} else {
 			chunks[i] = make([]int, end-start)
-			core.CopySpend(p, chunks[i], next.children[start:end])
+			ecore.CopySpend(p, chunks[i], next.children[start:end])
 		}
 	}
 	length := len(next.children)
@@ -822,7 +822,7 @@ func shareSnapshotChildren(p *core.Parser, previousGraph *snapshotGraph, previou
 	return &snapshotChildChunks{parts: chunks, length: length}
 }
 
-func sameSnapshotRecord(p *core.Parser, ag *snapshotGraph, a *snapshotRecord, bg *snapshotGraph, b *snapshotRecord) bool {
+func sameSnapshotRecord(p *ecore.Parser, ag *snapshotGraph, a *snapshotRecord, bg *snapshotGraph, b *snapshotRecord) bool {
 	if !a.childChunked && !b.childChunked {
 		return sameFlatSnapshotRecord(p, a, b)
 	}
@@ -851,7 +851,7 @@ func sameSnapshotRecord(p *core.Parser, ag *snapshotGraph, a *snapshotRecord, bg
 	return true
 }
 
-func sameFlatSnapshotRecord(p *core.Parser, a, b *snapshotRecord) bool {
+func sameFlatSnapshotRecord(p *ecore.Parser, a, b *snapshotRecord) bool {
 	if a.kind != b.kind || a.start != b.start || a.end != b.end ||
 		a.fresh != b.fresh || a.terminal != b.terminal ||
 		a.gen != b.gen || (a.children == nil) != (b.children == nil) ||
@@ -879,7 +879,7 @@ func sameFlatSnapshotRecord(p *core.Parser, a, b *snapshotRecord) bool {
 	return true
 }
 
-func sameSnapshotChildren(p *core.Parser, ag *snapshotGraph, a *snapshotRecord, bg *snapshotGraph, b *snapshotRecord) bool {
+func sameSnapshotChildren(p *ecore.Parser, ag *snapshotGraph, a *snapshotRecord, bg *snapshotGraph, b *snapshotRecord) bool {
 	count := ag.childCount(a)
 	if !a.childChunked && !b.childChunked {
 		for offset := 0; offset < count; offset += 4096 {
@@ -901,7 +901,7 @@ func sameSnapshotChildren(p *core.Parser, ag *snapshotGraph, a *snapshotRecord, 
 	return true
 }
 
-func sameSnapshotFieldValue(p *core.Parser, a, b any) bool {
+func sameSnapshotFieldValue(p *ecore.Parser, a, b any) bool {
 	switch v := a.(type) {
 	case nil:
 		return b == nil

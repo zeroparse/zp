@@ -4,15 +4,15 @@ import (
 	"unsafe"
 	"weak"
 
-	"zeroparse.dev/zp/internal/engine/core"
-	"zeroparse.dev/zp/runtime/parse"
+	"zeroparse.dev/zp/core"
+	ecore "zeroparse.dev/zp/internal/engine/core"
 )
 
 // ResetHistory releases incremental reuse history without changing the text,
 // construction options or last parse statistics. Previously returned trees are
 // detached from future node movement; this does not undo earlier movement.
 func (d *Document) ResetHistory() {
-	d.memo = core.NewMemoTable()
+	d.memo = ecore.NewMemoTable()
 	d.edits, d.runs, d.kids, d.machine = nil, nil, nil, nil
 	d.runGen, d.resumed = 0, 0
 	d.in.Offs, d.in.Lines = nil, nil
@@ -25,15 +25,15 @@ func (d *Document) ResetHistory() {
 func (d *Document) historyBytes() uint64 {
 	var n uint64
 	for _, run := range d.runs {
-		n += uint64(unsafe.Sizeof(core.RunRecord{})) + uint64(cap(run.Elems))*uint64(unsafe.Sizeof(core.RunElem{}))
+		n += uint64(unsafe.Sizeof(ecore.RunRecord{})) + uint64(cap(run.Elems))*uint64(unsafe.Sizeof(ecore.RunElem{}))
 	}
-	return n + uint64(cap(d.edits))*uint64(unsafe.Sizeof(core.DocEdit{}))
+	return n + uint64(cap(d.edits))*uint64(unsafe.Sizeof(ecore.DocEdit{}))
 }
 
 // retainedBytes returns the bytes a parse under a memory limit starts with: the history, the memo
 // table's count, and the kept child and backend stacks.
 func (d *Document) retainedBytes() uint64 {
-	n := d.historyBytes() + uint64(cap(d.kids))*uint64(unsafe.Sizeof((*parse.Node)(nil)))
+	n := d.historyBytes() + uint64(cap(d.kids))*uint64(unsafe.Sizeof((*core.Node)(nil)))
 	if d.memo != nil {
 		n += d.memo.ChargedBytes()
 	}
@@ -45,8 +45,8 @@ func (d *Document) retainedBytes() uint64 {
 
 // CacheStats returns a point-in-time estimate of cache-owned retained buffers.
 // It does not measure process heap usage or bytes returned to the OS.
-func (d *Document) CacheStats() parse.CacheStats {
-	var s parse.CacheStats
+func (d *Document) CacheStats() core.CacheStats {
+	var s core.CacheStats
 	t := d.memo
 	if t != nil {
 		for _, head := range t.Slots {
@@ -57,14 +57,14 @@ func (d *Document) CacheStats() parse.CacheStats {
 		for e := t.Free; e != nil; e = e.Next {
 			s.RetiredMemoEntries++
 		}
-		s.EstimatedBytes += uint64(cap(t.Slots)) * uint64(unsafe.Sizeof((*core.MemoEntry)(nil)))
-		s.EstimatedBytes += uint64(cap(t.Chunks)) * uint64(unsafe.Sizeof([]core.MemoEntry(nil)))
+		s.EstimatedBytes += uint64(cap(t.Slots)) * uint64(unsafe.Sizeof((*ecore.MemoEntry)(nil)))
+		s.EstimatedBytes += uint64(cap(t.Chunks)) * uint64(unsafe.Sizeof([]ecore.MemoEntry(nil)))
 		for _, chunk := range t.Chunks {
-			s.EstimatedBytes += uint64(cap(chunk)) * uint64(unsafe.Sizeof(core.MemoEntry{}))
+			s.EstimatedBytes += uint64(cap(chunk)) * uint64(unsafe.Sizeof(ecore.MemoEntry{}))
 		}
 		s.EstimatedBytes += uint64(cap(t.Seen)) * uint64(unsafe.Sizeof(uint64(0)))
-		s.EstimatedBytes += uint64(cap(t.Calls)) * uint64(unsafe.Sizeof(core.SeenCalls{}))
-		s.EstimatedBytes += uint64(cap(t.Pages)) * uint64(unsafe.Sizeof(core.SeenRulePages{}))
+		s.EstimatedBytes += uint64(cap(t.Calls)) * uint64(unsafe.Sizeof(ecore.SeenCalls{}))
+		s.EstimatedBytes += uint64(cap(t.Pages)) * uint64(unsafe.Sizeof(ecore.SeenRulePages{}))
 		for _, dir := range t.Pages {
 			s.EstimatedBytes += uint64(cap(dir.Pages)) * uint64(unsafe.Sizeof((*[16]uint64)(nil)))
 		}
@@ -73,11 +73,11 @@ func (d *Document) CacheStats() parse.CacheStats {
 	}
 	for _, run := range d.runs {
 		s.RepetitionElements += len(run.Elems)
-		s.EstimatedBytes += uint64(unsafe.Sizeof(core.RunRecord{}))
-		s.EstimatedBytes += uint64(cap(run.Elems)) * uint64(unsafe.Sizeof(core.RunElem{}))
+		s.EstimatedBytes += uint64(unsafe.Sizeof(ecore.RunRecord{}))
+		s.EstimatedBytes += uint64(cap(run.Elems)) * uint64(unsafe.Sizeof(ecore.RunElem{}))
 	}
-	s.EstimatedBytes += uint64(cap(d.edits)) * uint64(unsafe.Sizeof(core.DocEdit{}))
-	s.EstimatedBytes += uint64(cap(d.kids)) * uint64(unsafe.Sizeof((*parse.Node)(nil)))
+	s.EstimatedBytes += uint64(cap(d.edits)) * uint64(unsafe.Sizeof(ecore.DocEdit{}))
+	s.EstimatedBytes += uint64(cap(d.kids)) * uint64(unsafe.Sizeof((*core.Node)(nil)))
 	if d.machine != nil {
 		s.EstimatedBytes += d.machine.RetainedBytes()
 	}

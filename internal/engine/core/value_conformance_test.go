@@ -4,13 +4,13 @@ import (
 	"context"
 	"testing"
 
+	"zeroparse.dev/zp/core"
+	"zeroparse.dev/zp/core/noderep"
 	"zeroparse.dev/zp/internal/ir/exec"
 	"zeroparse.dev/zp/internal/ir/exec/conform"
 	"zeroparse.dev/zp/internal/ir/exec/ops"
 	"zeroparse.dev/zp/internal/ir/exec/ref"
 	"zeroparse.dev/zp/internal/value"
-	"zeroparse.dev/zp/runtime/noderep"
-	"zeroparse.dev/zp/runtime/parse"
 )
 
 // engineValues binds the compositions of the operators to the engine's printed term_exec.go
@@ -30,7 +30,7 @@ func (e engineValues) parser() *Parser {
 func (engineValues) Datum(v ref.V) any {
 	if v.Kind == ref.KList || v.Kind == ref.KTuple {
 		p := &Parser{}
-		kids := make([]*parse.Node, len(v.Items))
+		kids := make([]*core.Node, len(v.Items))
 		for i, x := range v.Items {
 			if x.Kind != ref.KNil {
 				kids[i] = p.NewNode(value.Data{Kind: noderep.BoxKind, Box: engineValues{}.Datum(x)})
@@ -86,7 +86,7 @@ func (e engineValues) Call(o *exec.Op, args []any) []any {
 }
 
 func TestEngineValueConformance(t *testing.T) {
-	controlled := &Parser{Input: Input{Control: NewBudgetControl(context.Background(), parse.Limits{Compute: 1 << 62})}}
+	controlled := &Parser{Input: Input{Control: NewBudgetControl(context.Background(), core.Limits{Compute: 1 << 62})}}
 	for name, impl := range map[string]engineValues{"engine": {}, "engine controlled": {controlled}} {
 		s := conform.ValueSuite{Name: name, Impl: impl, Ops: []string{"binary", "unary", "logic"}}
 		if err := conform.RunValues(s); err != nil {
@@ -154,7 +154,7 @@ func TestEngineValueConformanceDetectsBrokenEvaluation(t *testing.T) {
 // an arithmetic operator.
 func TestEngineValueBoxedOperands(t *testing.T) {
 	p := &Parser{}
-	box := func(v any) *parse.Node { return p.NewNode(value.Data{Kind: noderep.BoxKind, Box: v}) }
+	box := func(v any) *core.Node { return p.NewNode(value.Data{Kind: noderep.BoxKind, Box: v}) }
 	for _, c := range []struct {
 		op   string
 		l, r any

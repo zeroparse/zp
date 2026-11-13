@@ -5,7 +5,7 @@ import (
 )
 
 // The parse options, results, errors and trace events are declared in the core package, which
-// every backend shares. The engine re-exports them under the same names for the root package.
+// every backend shares. The engine re-exports them under the same names for the package engine.
 
 type (
 	Backend      = core.Backend

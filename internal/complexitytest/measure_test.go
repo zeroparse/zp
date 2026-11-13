@@ -5,8 +5,8 @@ import (
 	"math"
 	"testing"
 
-	"zeroparse.dev/zp"
-	"zeroparse.dev/zp/runtime/parse"
+	"zeroparse.dev/zp/core"
+	"zeroparse.dev/zp/engine"
 )
 
 // series builds a series of three doubling sizes from f.
@@ -82,7 +82,7 @@ func TestOrderString(t *testing.T) {
 	}
 }
 
-func mustCompile(t *testing.T, src string) *zp.Parser {
+func mustCompile(t *testing.T, src string) *engine.Parser {
 	t.Helper()
 	p, err := Compile(src)
 	if err != nil {
@@ -153,8 +153,8 @@ func TestStepsLenient(t *testing.T) {
 		if err != nil || c.ParseErr == nil || c.Capped || c.Steps == 0 {
 			t.Errorf("%s: lenient cost %+v, %v", BackendName(b), c, err)
 		}
-		var se *parse.SyntaxError
-		var ses parse.SyntaxErrors
+		var se *core.SyntaxError
+		var ses core.SyntaxErrors
 		if !errors.As(c.ParseErr, &se) && !errors.As(c.ParseErr, &ses) {
 			t.Errorf("%s: ParseErr %T is no syntax error", BackendName(b), c.ParseErr)
 		}
@@ -197,8 +197,8 @@ func TestStepsLenientRejectsRuntimeError(t *testing.T) {
 			t.Errorf("%s: run-time error accepted as %T in %+v", BackendName(b), c.ParseErr, c)
 			continue
 		}
-		var se *parse.SyntaxError
-		var ses parse.SyntaxErrors
+		var se *core.SyntaxError
+		var ses core.SyntaxErrors
 		if errors.As(err, &se) || errors.As(err, &ses) {
 			t.Errorf("%s: error %v is a syntax error, want a run-time error", BackendName(b), err)
 		}
