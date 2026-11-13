@@ -1,4 +1,4 @@
-package core
+package libgo
 
 import (
 	"os"
@@ -8,111 +8,111 @@ import (
 // TestEngineExpBindingsCurrent checks that the engine's conformance bindings of the expectation record
 // are those the engine's printer prints now.
 func TestEngineExpBindingsCurrent(t *testing.T) {
-	want, err := EngineExpBindings()
+	want, err := printEngineExpBindings()
 	if err != nil {
 		t.Fatal(err)
 	}
-	got, err := os.ReadFile(EngineExpBindingsFile)
+	got, err := os.ReadFile(engineExpBindingsFile)
 	if err != nil {
 		t.Fatal(err)
 	}
 	if string(got) != want {
-		t.Errorf("%s is stale; run go generate ./internal/ir/exec/core", EngineExpBindingsFile)
+		t.Errorf("%s is stale; run go generate ./internal/ir/exec/libgo", engineExpBindingsFile)
 	}
 }
 
 // TestEngineDocBindingsCurrent checks that the engine's conformance bindings of the doc operations are
 // those the engine's printer prints now.
 func TestEngineDocBindingsCurrent(t *testing.T) {
-	want, err := EngineDocBindings()
+	want, err := printEngineDocBindings()
 	if err != nil {
 		t.Fatal(err)
 	}
-	got, err := os.ReadFile(EngineDocBindingsFile)
+	got, err := os.ReadFile(engineDocBindingsFile)
 	if err != nil {
 		t.Fatal(err)
 	}
 	if string(got) != want {
-		t.Errorf("%s is stale; run go generate ./internal/ir/exec/core", EngineDocBindingsFile)
+		t.Errorf("%s is stale; run go generate ./internal/ir/exec/libgo", engineDocBindingsFile)
 	}
 }
 
 // TestEngineOprBindingsCurrent checks that the engine's conformance bindings of the Operators Rule
 // operations are those the engine's printer prints now.
 func TestEngineOprBindingsCurrent(t *testing.T) {
-	want, err := EngineOprBindings()
+	want, err := printEngineOprBindings()
 	if err != nil {
 		t.Fatal(err)
 	}
-	got, err := os.ReadFile(EngineOprBindingsFile)
+	got, err := os.ReadFile(engineOprBindingsFile)
 	if err != nil {
 		t.Fatal(err)
 	}
 	if string(got) != want {
-		t.Errorf("%s is stale; run go generate ./internal/ir/exec/core", EngineOprBindingsFile)
+		t.Errorf("%s is stale; run go generate ./internal/ir/exec/libgo", engineOprBindingsFile)
 	}
 }
 
 // TestEngineCtxBindingsCurrent checks that the engine's conformance bindings of the dependency memo
 // are those the engine's printer prints now.
 func TestEngineCtxBindingsCurrent(t *testing.T) {
-	want, err := EngineCtxBindings()
+	want, err := printEngineCtxBindings()
 	if err != nil {
 		t.Fatal(err)
 	}
-	got, err := os.ReadFile(EngineCtxBindingsFile)
+	got, err := os.ReadFile(engineCtxBindingsFile)
 	if err != nil {
 		t.Fatal(err)
 	}
 	if string(got) != want {
-		t.Errorf("%s is stale; run go generate ./internal/ir/exec/core", EngineCtxBindingsFile)
+		t.Errorf("%s is stale; run go generate ./internal/ir/exec/libgo", engineCtxBindingsFile)
 	}
 }
 
 // TestEngineFrameBindingsCurrent checks that the engine's conformance bindings of the capture frames
 // are those the engine's printer prints now.
 func TestEngineFrameBindingsCurrent(t *testing.T) {
-	want, err := EngineFrameBindings()
+	want, err := printEngineFrameBindings()
 	if err != nil {
 		t.Fatal(err)
 	}
-	got, err := os.ReadFile(EngineFrameBindingsFile)
+	got, err := os.ReadFile(engineFrameBindingsFile)
 	if err != nil {
 		t.Fatal(err)
 	}
 	if string(got) != want {
-		t.Errorf("%s is stale; run go generate ./internal/ir/exec/core", EngineFrameBindingsFile)
+		t.Errorf("%s is stale; run go generate ./internal/ir/exec/libgo", engineFrameBindingsFile)
 	}
 }
 
 // TestEngineRuleBindingsCurrent checks that the engine's conformance bindings of the operations of the
 // rules are those the engine's printer prints now.
 func TestEngineRuleBindingsCurrent(t *testing.T) {
-	want, err := EngineRuleBindings()
+	want, err := printEngineRuleBindings()
 	if err != nil {
 		t.Fatal(err)
 	}
-	got, err := os.ReadFile(EngineRuleBindingsFile)
+	got, err := os.ReadFile(engineRuleBindingsFile)
 	if err != nil {
 		t.Fatal(err)
 	}
 	if string(got) != want {
-		t.Errorf("%s is stale; run go generate ./internal/ir/exec/core", EngineRuleBindingsFile)
+		t.Errorf("%s is stale; run go generate ./internal/ir/exec/libgo", engineRuleBindingsFile)
 	}
 }
 
 // TestEngineMissingBindingsCurrent checks that the engine's conformance bindings of the missing-token
 // mode are those the engine's printer prints now.
 func TestEngineMissingBindingsCurrent(t *testing.T) {
-	want, err := EngineMissingBindings()
+	want, err := printEngineMissingBindings()
 	if err != nil {
 		t.Fatal(err)
 	}
-	got, err := os.ReadFile(EngineMissingBindingsFile)
+	got, err := os.ReadFile(engineMissingBindingsFile)
 	if err != nil {
 		t.Fatal(err)
 	}
 	if string(got) != want {
-		t.Errorf("%s is stale; run go generate ./internal/ir/exec/core", EngineMissingBindingsFile)
+		t.Errorf("%s is stale; run go generate ./internal/ir/exec/libgo", engineMissingBindingsFile)
 	}
 }

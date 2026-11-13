@@ -1,4 +1,4 @@
-package core
+package libgo
 
 import (
 	"fmt"
@@ -16,6 +16,7 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/internal/ir/exec"
+	"zeroparse.dev/zp/internal/ir/exec/core"
 	"zeroparse.dev/zp/internal/ir/exec/ops"
 )
 
@@ -315,7 +316,7 @@ func TestEngineEditFormsCallNothing(t *testing.T) {
 		if strings.HasPrefix(name, "run.") {
 			continue
 		}
-		op := Build().Op(name)
+		op := core.Build().Op(name)
 		if op.Cost.Const != 0 || len(op.Cost.Terms) != 0 {
 			t.Errorf("%s declares cost %s", name, op.Cost)
 		}
@@ -355,7 +356,7 @@ var makesValues = map[string]bool{"node.zero": true}
 // transitional or host operation has no reference model to compute its quantities.
 func TestTransitionalAndHostCostsMatchCharges(t *testing.T) {
 	pkg, callees, charges := runtimeCalls(t)
-	for _, op := range Build().Ops {
+	for _, op := range core.Build().Ops {
 		if !op.Transitional && !op.Host || runsGrammar[op.Name] || makesValues[op.Name] {
 			continue
 		}

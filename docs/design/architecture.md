@@ -142,7 +142,8 @@ contract is [Observability](../../spec/runtime/observability.md).
 
 Packages that produce code for one target language are named role first, then the language: the parser
 generators `internal/gen/gengo/` and `internal/gen/gents/`, and the Exec IR printers `internal/ir/exec/execgo/`
-and `internal/ir/exec/exects/`.
+and `internal/ir/exec/exects/`. `internal/ir/exec/libgo/` prints the Exec IR compositions into the Go
+runtime and the engine.
 
 ## Related Topics
 

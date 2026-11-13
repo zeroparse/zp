@@ -1,17 +1,18 @@
-package core
+package gents
 
 import (
 	"fmt"
 	"strings"
 
 	"zeroparse.dev/zp/internal/ir/exec"
+	"zeroparse.dev/zp/internal/ir/exec/core"
 	"zeroparse.dev/zp/internal/ir/exec/exects"
 	"zeroparse.dev/zp/internal/ir/exec/ops"
 	"zeroparse.dev/zp/internal/ir/exec/pass"
 )
 
-// TSMethod is a printed method of the TypeScript runtime's Parser class.
-type TSMethod struct {
+// tsMethod is a printed method of the TypeScript runtime's Parser class.
+type tsMethod struct {
 	// Name is the method's name, Text its source, indented for the class body.
 	Name, Text string
 }
@@ -63,10 +64,10 @@ var tsSpecs = []struct {
 	{fn: "tupleConform", name: "tupleConform"},
 }
 
-// TSMethods returns the printed methods of the TypeScript runtime.
-func TSMethods() ([]TSMethod, error) {
-	m := Build()
-	var out []TSMethod
+// tsMethods returns the printed methods of the TypeScript runtime.
+func tsMethods() ([]tsMethod, error) {
+	m := core.Build()
+	var out []tsMethod
 	for _, s := range tsSpecs {
 		f, err := pass.Specialize(m, m.Func(s.fn), s.fn, s.on)
 		if err != nil {
@@ -76,11 +77,11 @@ func TSMethods() ([]TSMethod, error) {
 		if err != nil {
 			return nil, err
 		}
-		out = append(out, TSMethod{Name: s.name, Text: src})
+		out = append(out, tsMethod{Name: s.name, Text: src})
 	}
 	kind, name := tsMemberKind()
-	out = append(out, TSMethod{Name: "termError", Text: tsTermError()}, TSMethod{Name: "memberKind", Text: kind},
-		TSMethod{Name: "memberName", Text: name})
+	out = append(out, tsMethod{Name: "termError", Text: tsTermError()}, tsMethod{Name: "memberKind", Text: kind},
+		tsMethod{Name: "memberName", Text: name})
 	return out, nil
 }
 
@@ -124,12 +125,12 @@ func tsTermError() string {
 	b.WriteString("  termError(code: number, a: Value, b: Value, op: number, n: number): string {\n    switch (code) {\n")
 	for code, e := range ops.TermErrors {
 		var t strings.Builder
-		for _, seg := range splitMessage(e.Text) {
-			switch seg.hole {
+		for _, seg := range e.Segments() {
+			switch seg.Hole {
 			case "":
-				t.WriteString(strings.NewReplacer("\\", "\\\\", "`", "\\`", "$", "\\$").Replace(seg.text))
+				t.WriteString(strings.NewReplacer("\\", "\\\\", "`", "\\`", "$", "\\$").Replace(seg.Text))
 			case "a", "b":
-				t.WriteString("${typeName(" + seg.hole + ")}")
+				t.WriteString("${typeName(" + seg.Hole + ")}")
 			case "op":
 				t.WriteString("${" + tsOpTable(code) + "[op]}")
 			case "name":
@@ -570,10 +571,10 @@ var tsTarget = &exects.Target{
 	},
 }
 
-// TSTermMethod returns the name of the method of the TypeScript runtime's Parser class that the
+// tsTermMethod returns the name of the method of the TypeScript runtime's Parser class that the
 // composition fn is printed as, for printing calls of the compositions outside the runtime (lowered
 // terms).
-func TSTermMethod(fn string) string { return tsTarget.FuncName(fn) }
+func tsTermMethod(fn string) string { return tsTarget.FuncName(fn) }
 
-// TSHandle returns the TypeScript type of the handle type name in the TypeScript runtime.
-func TSHandle(name string) string { return tsTarget.Handle(name) }
+// tsHandle returns the TypeScript type of the handle type name in the TypeScript runtime.
+func tsHandle(name string) string { return tsTarget.Handle(name) }

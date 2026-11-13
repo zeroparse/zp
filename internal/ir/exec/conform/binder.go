@@ -21,10 +21,11 @@ type Converter interface {
 	FromImpl(v reflect.Value) (any, bool)
 }
 
-// Binder calls the printed bindings of a target (core.ExpBindingName) by reflection, so that one
-// harness serves the engine and the runtime. For the records of the split forms of the Operators
-// Rule loop it keeps the handle that each field was last set to, and returns it from the getter when
-// the binding returns the value that was set; any other value is a new handle.
+// Binder calls the printed bindings of a target (named as internal/ir/exec/libgo names them) by
+// reflection, so that one harness serves the engine and the runtime. For the records of the split
+// forms of the Operators Rule loop it keeps the handle that each field was last set to, and returns
+// it from the getter when the binding returns the value that was set; any other value is a new
+// handle.
 type Binder struct {
 	// Methods are the bindings of the target by operation name, as the printed table returns them.
 	Methods map[string]any

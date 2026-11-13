@@ -8,7 +8,7 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/internal/gentest"
-	"zeroparse.dev/zp/internal/ir/exec/core"
+	"zeroparse.dev/zp/internal/ir/exec/libgo"
 )
 
 func TestMain(m *testing.M) {
@@ -19,8 +19,8 @@ func TestMain(m *testing.M) {
 }
 
 // runtimeCopy writes the runtime module, with the tests of testdata and the conformance bindings that
-// the runtime's printer prints (core.GoExpBindings, core.GoDocBindings, core.GoRuleBindings, core.GoOprBindings,
-// core.GoCtxBindings, core.GoFrameBindings, core.GoTypedFrameBindings), into a temporary directory and
+// the runtime's printer prints (libgo.GoExpBindings, libgo.GoDocBindings, libgo.GoRuleBindings, libgo.GoOprBindings,
+// libgo.GoCtxBindings, libgo.GoFrameBindings, libgo.GoTypedFrameBindings), into a temporary directory and
 // returns it. mutate, if it is not nil, changes the source of a file of the runtime from its name.
 func runtimeCopy(t *testing.T, mutate func(name, src string) string) string {
 	t.Helper()
@@ -60,35 +60,35 @@ func runtimeCopy(t *testing.T, mutate func(name, src string) string) string {
 	for _, e := range tests {
 		copyFile(filepath.Join("testdata", e.Name()), filepath.Join(dir, e.Name()), nil)
 	}
-	bindings, err := core.GoExpBindings()
+	bindings, err := libgo.GoExpBindings()
 	if err != nil {
 		t.Fatal(err)
 	}
 	if err := os.WriteFile(filepath.Join(dir, "exp_bind_exec_test.go"), []byte(bindings), 0o644); err != nil {
 		t.Fatal(err)
 	}
-	docBindings, err := core.GoDocBindings()
+	docBindings, err := libgo.GoDocBindings()
 	if err != nil {
 		t.Fatal(err)
 	}
 	if err := os.WriteFile(filepath.Join(dir, "doc_bind_exec_test.go"), []byte(docBindings), 0o644); err != nil {
 		t.Fatal(err)
 	}
-	oprBindings, err := core.GoOprBindings()
+	oprBindings, err := libgo.GoOprBindings()
 	if err != nil {
 		t.Fatal(err)
 	}
 	if err := os.WriteFile(filepath.Join(dir, "opr_bind_exec_test.go"), []byte(oprBindings), 0o644); err != nil {
 		t.Fatal(err)
 	}
-	ctxBindings, err := core.GoCtxBindings()
+	ctxBindings, err := libgo.GoCtxBindings()
 	if err != nil {
 		t.Fatal(err)
 	}
 	if err := os.WriteFile(filepath.Join(dir, "ctx_bind_exec_test.go"), []byte(ctxBindings), 0o644); err != nil {
 		t.Fatal(err)
 	}
-	for file, print := range map[string]func() (string, error){"frame_bind_exec_test.go": core.GoFrameBindings, "tframe_bind_exec_test.go": core.GoTypedFrameBindings} {
+	for file, print := range map[string]func() (string, error){"frame_bind_exec_test.go": libgo.GoFrameBindings, "tframe_bind_exec_test.go": libgo.GoTypedFrameBindings} {
 		src, err := print()
 		if err != nil {
 			t.Fatal(err)
@@ -97,18 +97,18 @@ func runtimeCopy(t *testing.T, mutate func(name, src string) string) string {
 			t.Fatal(err)
 		}
 	}
-	ruleBindings, err := core.GoRuleBindings()
+	ruleBindings, err := libgo.GoRuleBindings()
 	if err != nil {
 		t.Fatal(err)
 	}
 	if err := os.WriteFile(filepath.Join(dir, "rule_bind_exec_test.go"), []byte(ruleBindings), 0o644); err != nil {
 		t.Fatal(err)
 	}
-	obsBindings, err := core.GoObsBindings()
+	obsBindings, err := libgo.GoObsBindings()
 	if err != nil {
 		t.Fatal(err)
 	}
-	if err := os.WriteFile(filepath.Join(dir, core.GoObsBindingsFile), []byte(obsBindings), 0o644); err != nil {
+	if err := os.WriteFile(filepath.Join(dir, libgo.GoObsBindingsFile), []byte(obsBindings), 0o644); err != nil {
 		t.Fatal(err)
 	}
 	mod := "module zeroparse.dev/zp/runtime\n\ngo 1.27.1\n\nrequire zeroparse.dev/zp v0.0.0\n\nreplace zeroparse.dev/zp => " + root + "\n"
