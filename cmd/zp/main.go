@@ -1116,10 +1116,11 @@ func compileCmd(args []string) error {
 	if *grammarPath == "" || *output == "" {
 		return fmt.Errorf("-g and -o are required")
 	}
-	mode, err := engine.ParseCompiledMode(*modeName)
+	m, err := engine.ParseCompiledMode(*modeName)
 	if err != nil {
 		return fmt.Errorf("compile: %w", err)
 	}
+	mode := zp.CompiledMode(m)
 	p, err := loadParser(*grammarPath, *start, compileFlags{sourceInfo: *sourceInfo, defaultValue: *defaultValue})
 	if err != nil {
 		return err

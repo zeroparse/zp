@@ -122,25 +122,28 @@ func WithUnit(u parse.PositionUnit) ParseOption {
 }
 
 // Backend selects how a grammar is executed. All backends produce identical results.
-type Backend = engine.Backend
+type Backend int
 
 const (
 	// DefaultBackend uses Closure for a parser compiled from a grammar and Bytecode for one
 	// loaded from a compiled grammar.
-	DefaultBackend = engine.Default
+	DefaultBackend = Backend(engine.Default)
 	// Closure compiles parsing expressions into Go closures.
-	Closure = engine.Closure
+	Closure = Backend(engine.Closure)
 	// Bytecode runs language-independent bytecode (see spec/bytecode/README.md) on a VM that uses Go
 	// recursion for rule calls.
-	Bytecode = engine.Bytecode
+	Bytecode = Backend(engine.Bytecode)
 	// BytecodeIterative runs the bytecode on a VM that keeps rule calls on its own stack, so deeply
 	// nested input does not consume the Go stack.
-	BytecodeIterative = engine.BytecodeIterative
+	BytecodeIterative = Backend(engine.BytecodeIterative)
 )
+
+// String returns the name of the backend.
+func (b Backend) String() string { return engine.Backend(b).String() }
 
 // WithBackend selects the backend.
 func WithBackend(b Backend) ParseOption {
-	return func(o *engine.ParseOptions) { o.Backend = b }
+	return func(o *engine.ParseOptions) { o.Backend = engine.Backend(b) }
 }
 
 // RecognizeOnly checks whether the input matches the grammar without building a tree. Parse then returns a
@@ -275,10 +278,15 @@ type Document struct {
 
 // DocumentVersion identifies one text revision of a Document. Its zero value
 // is invalid; tokens are comparable and do not retain document contents.
-type DocumentVersion = engine.DocumentVersion
+type DocumentVersion struct {
+	v engine.DocumentVersion
+}
+
+// Sequence returns the text revision number, starting at one.
+func (v DocumentVersion) Sequence() uint64 { return v.v.Sequence() }
 
 // Version returns the current text revision, initially sequence one.
-func (d *Document) Version() DocumentVersion { return d.doc.Version() }
+func (d *Document) Version() DocumentVersion { return DocumentVersion{d.doc.Version()} }
 
 // Unit returns the position unit selected when the document was constructed.
 func (d *Document) Unit() parse.PositionUnit { return d.doc.Unit() }
@@ -288,17 +296,116 @@ func (d *Document) Unit() parse.PositionUnit { return d.doc.Unit() }
 // boundaries. An empty batch validates base but changes nothing. A nonempty
 // batch advances one revision and clears parse caches without parsing.
 func (d *Document) EditBatch(base DocumentVersion, edits ...parse.TextEdit) error {
-	return d.doc.EditBatch(base, edits...)
+	return d.doc.EditBatch(base.v, edits...)
 }
 
-// Snapshot is an immutable document parse outcome.
-type Snapshot = engine.Snapshot
+// Snapshot is an immutable document parse outcome for one text revision. Readers may use it
+// concurrently with later edits of its Document.
+type Snapshot struct {
+	s *engine.Snapshot
+}
+
+// Version returns the captured text revision.
+func (s *Snapshot) Version() DocumentVersion { return DocumentVersion{s.s.Version()} }
+
+// Text returns the captured text.
+func (s *Snapshot) Text() string { return s.s.Text() }
+
+// Unit returns the position unit of the captured tree.
+func (s *Snapshot) Unit() parse.PositionUnit { return s.s.Unit() }
+
+// Root returns the captured root, or the zero handle for a nil result.
+func (s *Snapshot) Root() SnapshotNode { return SnapshotNode{s.s.Root()} }
+
+// Error returns a copy of the captured syntax diagnostic, or nil.
+func (s *Snapshot) Error() error { return s.s.Error() }
+
+// Stats returns the evaluation and memo counts of the captured parse.
+func (s *Snapshot) Stats() parse.ParseStats { return s.s.Stats() }
+
+// Materialize makes an independent mutable tree, preserving sharing, cycles, nil child slots,
+// and nil versus allocated-empty slices.
+func (s *Snapshot) Materialize() *parse.Node { return s.s.Materialize() }
 
 // SnapshotNode is a comparable read-only node handle; its zero value is nil.
-type SnapshotNode = engine.SnapshotNode
+type SnapshotNode struct {
+	n engine.SnapshotNode
+}
 
-// SnapshotField stores a read-only node handle or immutable scalar.
-type SnapshotField = engine.SnapshotField
+// Valid reports whether the handle denotes a non-nil node.
+func (n SnapshotNode) Valid() bool { return n.n.Valid() }
+
+// Kind returns what the node stands for, as Node.Kind does. Like Node.Kind, it panics on a nil
+// node.
+func (n SnapshotNode) Kind() parse.NodeKind { return n.n.Kind() }
+
+// Type returns the node type, or an empty string for nil.
+func (n SnapshotNode) Type() string { return n.n.Type() }
+
+// Rule returns the originating rule, or an empty string for nil.
+func (n SnapshotNode) Rule() string { return n.n.Rule() }
+
+// Start returns the inclusive start position.
+func (n SnapshotNode) Start() int32 { return n.n.Start() }
+
+// End returns the exclusive end position.
+func (n SnapshotNode) End() int32 { return n.n.End() }
+
+// Text returns terminal text.
+func (n SnapshotNode) Text() string { return n.n.Text() }
+
+// IsTerminal reports whether the node is terminal.
+func (n SnapshotNode) IsTerminal() bool { return n.n.IsTerminal() }
+
+// ChildCount returns the number of child slots, nil slots included.
+func (n SnapshotNode) ChildCount() int { return n.n.ChildCount() }
+
+// Child returns an indexed child; an invalid index panics like slice indexing.
+func (n SnapshotNode) Child(i int) SnapshotNode { return SnapshotNode{n.n.Child(i)} }
+
+// Len returns the number of elements of a tuple or a list (KindTuple, KindList, KindTupleValue,
+// KindListValue), counting nil elements, and 0 for other nodes and for nil, as Node.Len does.
+func (n SnapshotNode) Len() int { return n.n.Len() }
+
+// Value returns the value of a KindValue node (such as an int, a string or a bool) and the
+// string of a KindString node; it returns nil for other nodes and for nil, as Node.Value does.
+func (n SnapshotNode) Value() any { return snapshotValue(n.n.Value()) }
+
+// Field returns the value of the named field, a scalar or a SnapshotNode, and whether the field
+// is present: a present field may hold nil.
+func (n SnapshotNode) Field(name string) (any, bool) {
+	v, ok := n.n.Field(name)
+	return snapshotValue(v), ok
+}
+
+// Fields returns the fields in stored order, in a slice the caller owns. A nil node value is a
+// zero SnapshotNode.
+func (n SnapshotNode) Fields() []SnapshotField {
+	fs := n.n.Fields()
+	if fs == nil {
+		return nil
+	}
+	out := make([]SnapshotField, len(fs))
+	for i, f := range fs {
+		out[i] = SnapshotField{Name: f.Name, Value: snapshotValue(f.Value)}
+	}
+	return out
+}
+
+// SnapshotField is a field of a SnapshotNode. Its Value is an immutable scalar or a SnapshotNode,
+// never a mutable Node.
+type SnapshotField struct {
+	Name  string
+	Value any
+}
+
+// snapshotValue gives a field or node value with node handles as SnapshotNode.
+func snapshotValue(v any) any {
+	if h, ok := v.(engine.SnapshotNode); ok {
+		return SnapshotNode{h}
+	}
+	return v
+}
 
 // Snapshot parses and freezes this revision using construction defaults plus
 // opts. Cancellation and compute limits cover parsing, text, tree and diagnostics;
@@ -308,7 +415,11 @@ func (d *Document) Snapshot(opts ...ParseOption) (*Snapshot, error) {
 	for _, opt := range opts {
 		opt(&o)
 	}
-	return d.doc.SnapshotWith(o)
+	s, err := d.doc.SnapshotWith(o)
+	if s == nil {
+		return nil, err
+	}
+	return &Snapshot{s}, err
 }
 
 // NewDocument creates a Document for text. opts select its fixed unit and backend
@@ -354,22 +465,25 @@ func (d *Document) Stats() parse.ParseStats { return d.doc.Stats() }
 // CompiledMode is the mode of a compiled grammar file, chosen when it is saved. A file holds the
 // module of one mode and serves only the parses of that mode; the closure backend, Grammar and
 // OutputSchema need the grammar source.
-type CompiledMode = engine.CompiledMode
+type CompiledMode uint8
 
 const (
 	// CompiledParse serves Parse, ParsePrefix, ParseStream and Iterate without WithTrace or
 	// WithProfile.
-	CompiledParse = engine.CompiledParse
+	CompiledParse = CompiledMode(engine.CompiledParse)
 	// CompiledRecognize serves RecognizeOnly parses without WithTrace or WithProfile.
-	CompiledRecognize = engine.CompiledRecognize
+	CompiledRecognize = CompiledMode(engine.CompiledRecognize)
 	// CompiledDocument serves NewDocument, and Parse, ParsePrefix, ParseStream and Iterate with
 	// WithTrace or WithProfile.
-	CompiledDocument = engine.CompiledDocument
+	CompiledDocument = CompiledMode(engine.CompiledDocument)
 )
+
+// String returns the name of the mode: "parse", "recognize" or "document".
+func (m CompiledMode) String() string { return engine.CompiledMode(m).String() }
 
 // MarshalBinary encodes the parser in parse mode (CompiledParse); see Marshal.
 func (p *Parser) MarshalBinary() ([]byte, error) {
-	return p.prog.Marshal(p.start, CompiledParse)
+	return p.prog.Marshal(p.start, engine.CompiledParse)
 }
 
 // Marshal encodes the parser in the .zpc format: the bytecode of mode and the start rule.
@@ -377,7 +491,7 @@ func (p *Parser) MarshalBinary() ([]byte, error) {
 // A loaded parser is saved only in its own mode (CompiledMode), which reproduces the file it was
 // loaded from; saving another mode needs the grammar source.
 func (p *Parser) Marshal(mode CompiledMode) ([]byte, error) {
-	return p.prog.Marshal(p.start, mode)
+	return p.prog.Marshal(p.start, engine.CompiledMode(mode))
 }
 
 // IsCompiled reports whether data is a compiled grammar written by MarshalBinary or Marshal.
@@ -400,7 +514,10 @@ func LoadParser(data []byte) (*Parser, error) {
 
 // CompiledMode returns the mode of a parser loaded with LoadParser and true, or false for a parser
 // compiled from a grammar, which serves every mode.
-func (p *Parser) CompiledMode() (CompiledMode, bool) { return p.prog.Mode() }
+func (p *Parser) CompiledMode() (CompiledMode, bool) {
+	m, ok := p.prog.Mode()
+	return CompiledMode(m), ok
+}
 
 // WithStart returns a parser that starts at the rule name, which must be a start rule; an empty
 // name selects the grammar's default start rule. The compiled grammar is shared.
@@ -461,7 +578,18 @@ func (p *Parser) Iterate(r io.Reader, opts ...ParseOption) (*parse.StreamIterato
 // DocumentChange owns an edit operation or an outcome comparison. Edit From/To
 // advance source revisions; outcome From/To identify compared snapshots. Consumers
 // track those streams separately. FullRefresh requires rebuilding current state.
-type DocumentChange = engine.DocumentChange
+type DocumentChange struct {
+	Kind        parse.DocumentChangeKind
+	From, To    DocumentVersion
+	Unit        parse.PositionUnit
+	Edits       []parse.TextEdit
+	FullRefresh bool
+	// Invalidated is conservative: an accepted edit may affect the whole output.
+	// Reevaluation remains unknown; invalidation is not evidence of execution.
+	Invalidated  bool
+	Reevaluation string
+	Output       parse.OutputChange
+}
 
 // EnableChanges opts into bounded notifications and one retained comparison
 // snapshot. queueLimit bounds record count, not replacement or snapshot bytes.
@@ -474,7 +602,21 @@ func (d *Document) EnableChanges(queueLimit int) error { return d.doc.EnableChan
 
 // DrainChanges transfers queued events. Overflow produces one full-refresh
 // marker; draining resets the queue but retains the last comparison snapshot.
-func (d *Document) DrainChanges() []DocumentChange { return d.doc.DrainChanges() }
+func (d *Document) DrainChanges() []DocumentChange {
+	cs := d.doc.DrainChanges()
+	if cs == nil {
+		return nil
+	}
+	out := make([]DocumentChange, len(cs))
+	for i, c := range cs {
+		out[i] = DocumentChange{
+			Kind: c.Kind, From: DocumentVersion{c.From}, To: DocumentVersion{c.To}, Unit: c.Unit,
+			Edits: c.Edits, FullRefresh: c.FullRefresh, Invalidated: c.Invalidated,
+			Reevaluation: c.Reevaluation, Output: c.Output,
+		}
+	}
+	return out
+}
 
 // ResetHistory discards incremental reuse history while preserving text,
 // construction options, version and the statistics of the last parse. Earlier

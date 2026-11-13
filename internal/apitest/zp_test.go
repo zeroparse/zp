@@ -171,7 +171,7 @@ rule pair = k:[a-z]+ #atomic "=" v:[0-9]+ #atomic => list($k, $v)`, "main")
 	}
 	modes := []zp.CompiledMode{zp.CompiledParse, zp.CompiledRecognize, zp.CompiledDocument}
 	for _, mode := range modes {
-		if got, err := engine.ParseCompiledMode(mode.String()); err != nil || got != mode {
+		if got, err := engine.ParseCompiledMode(mode.String()); err != nil || zp.CompiledMode(got) != mode {
 			t.Errorf("ParseCompiledMode(%q) = %v, %v", mode.String(), got, err)
 		}
 	}

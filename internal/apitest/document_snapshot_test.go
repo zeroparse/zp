@@ -52,3 +52,39 @@ func TestDocumentSnapshotPublicContract(t *testing.T) {
 		}
 	}
 }
+
+// TestDocumentSnapshotFieldHandles checks that node values read from snapshot fields are
+// zp.SnapshotNode handles, through Field and Fields alike, and that scalars stay scalars.
+func TestDocumentSnapshotFieldHandles(t *testing.T) {
+	p, err := compileTestSource(`type Pair = { K node[string]; N int }
+rule main = k:"a" => Pair{K: $k, N: 1}`, "main")
+	if err != nil {
+		t.Fatal(err)
+	}
+	d, err := p.NewDocument("a")
+	if err != nil {
+		t.Fatal(err)
+	}
+	s, err := d.Snapshot()
+	if err != nil {
+		t.Fatal(err)
+	}
+	root := s.Root()
+	k, ok := root.Field("K")
+	if h, isNode := k.(zp.SnapshotNode); !ok || !isNode || h.Text() != "a" {
+		t.Fatalf("Field(K) = %#v, %v", k, ok)
+	}
+	if n, ok := root.Field("N"); !ok || n != 1 {
+		t.Fatalf("Field(N) = %#v, %v", n, ok)
+	}
+	fields := root.Fields()
+	if len(fields) != 2 {
+		t.Fatalf("Fields() = %#v", fields)
+	}
+	for _, f := range fields {
+		v, _ := root.Field(f.Name)
+		if f.Value != v {
+			t.Errorf("Fields() %s = %#v, Field %#v", f.Name, f.Value, v)
+		}
+	}
+}
