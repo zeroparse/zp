@@ -48,7 +48,7 @@ go mod init example.com/ship
 go get -tool zeroparse.dev/zp/cmd/zp
 ```
 
-Then the program, with the `go:generate` line that makes the parser (`-types` adds Go types and `ParseAST`):
+Then the program, with the `go:generate` line that makes the parser (`-types` adds Go types and `ParseValue`):
 
 ```go
 // main.go
@@ -64,7 +64,7 @@ import (
 //go:generate go tool zp gen -g version.zp -module example.com/ship/versionparser -types -o versionparser
 
 func main() {
-	v, err := versionparser.ParseAST(os.Args[1])
+	v, err := versionparser.ParseValue(os.Args[1])
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)

@@ -55,7 +55,7 @@ complete, runnable examples, and points to the [specification](../../spec/README
 | [Compiled Grammars](compiled-grammars.md) | Saving a grammar as a `.zpc` file and loading it: the modes and what each serves, sizes and load times, `go:embed`, versions, untrusted data, and when to use it instead of generated code |
 | [Generating Parsers](code-generation.md) | Standalone parsers with `zp gen`: why generate, the command and its options, what is supported, keeping generated code up to date, trade-offs |
 | [The Generated Go API](generated-go-api.md) | The Go package `zp gen` writes: `Parse`, `ParseRule`, nodes and errors, recognition, call options, cancellation and compute limits |
-| [Typed Values in Generated Go](generated-typed-values.md) | `-types`: a Go type for each grammar type, `ParseAST`, the type mapping, speed and named rules |
+| [Typed Values in Generated Go](generated-typed-values.md) | `-types`: a Go type for each grammar type, `ParseValue`, the type mapping, speed and named rules |
 | [Incremental Documents in Generated Parsers](generated-documents.md) | `-document`: the generated `Document`, `Edit` and reparse, what is kept, diagnostics and limits |
 | [Streams in Generated Go](generated-streams.md) | `-stream`: `ParseStream`, `Iterate`, diagnostic controls and typed elements |
 | [Generated TypeScript Parsers](typescript.md) | Standalone TypeScript modules with `zp gen -lang ts`: the generated API, positions, strings and ints in JavaScript, errors, deep nesting and the JavaScript stack |

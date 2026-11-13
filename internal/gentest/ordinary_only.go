@@ -131,7 +131,7 @@ func errText(err error) string {
 	return e
 }
 
-func showAST(v any, err error) string {
+func showValue(v any, err error) string {
 	j, jerr := json.Marshal(v)
 	if jerr != nil {
 		return "marshal: " + jerr.Error()
@@ -143,16 +143,16 @@ func TestTranscript(t *testing.T) {
 	var b strings.Builder
 	for _, in := range INPUTS {
 		for _, unit := range []PositionUnit{CodePoints, Bytes} {
-			v, err := ParseAST(in, WithUnit(unit))
-			fmt.Fprintf(&b, "ast %q %v: %s\n", in, unit, showAST(v, err))
-			w, err := ParseRuleAST("sum", in, WithUnit(unit))
-			fmt.Fprintf(&b, "rule sum %q %v: %s\n", in, unit, showAST(w, err))
-			w, err = ParseRuleAST("a", in, WithUnit(unit))
-			fmt.Fprintf(&b, "rule a %q %v: %s\n", in, unit, showAST(w, err))
+			v, err := ParseValue(in, WithUnit(unit))
+			fmt.Fprintf(&b, "ast %q %v: %s\n", in, unit, showValue(v, err))
+			w, err := ParseRuleValue("sum", in, WithUnit(unit))
+			fmt.Fprintf(&b, "rule sum %q %v: %s\n", in, unit, showValue(w, err))
+			w, err = ParseRuleValue("a", in, WithUnit(unit))
+			fmt.Fprintf(&b, "rule a %q %v: %s\n", in, unit, showValue(w, err))
 		}
-		v, err := ParseAST(in, WithLimits(Limits{Depth: 5}))
-		fmt.Fprintf(&b, "depth %q: %s\n", in, showAST(v, err))
-		_, err = ParseRuleAST("nope", in)
+		v, err := ParseValue(in, WithLimits(Limits{Depth: 5}))
+		fmt.Fprintf(&b, "depth %q: %s\n", in, showValue(v, err))
+		_, err = ParseRuleValue("nope", in)
 		fmt.Fprintf(&b, "unknown rule: %s\n", errText(err))
 	}
 	if err := os.WriteFile(filepath.Join(os.Getenv("TRANSCRIPT_DIR"), "PKG.txt"), []byte(b.String()), 0o644); err != nil {

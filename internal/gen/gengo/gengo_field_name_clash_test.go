@@ -69,7 +69,7 @@ rule main Pair = a:"a" => Pair{TName: "n", TText: "t", TKids: "k", TStruct: "s",
 const fieldClashTest = `package PACKAGE
 import "testing"
 func TestFieldNames(t *testing.T){
- v,err:=ParseAST("a")
+ v,err:=ParseValue("a")
  if err!=nil{t.Fatal(err)}
  p:=v
  if p.TName_!="n"||p.TText_!="t"||p.TKids_!="k"||p.TStruct_!="s"||p.TFresh_!="f"||p.TSetFresh_!="sf"||p.TField_!="fd"||p.TFieldSpend_!="fw"||p.TSpan_!="sp"||p.TSetSpan_!="ss"||p.TStrField_!="sr"{t.Fatalf("fields %+v",p)}
@@ -84,11 +84,11 @@ const fieldClashDocumentTest = `
 func TestFieldNamesDocument(t *testing.T){
  d,err:=NewDocument("a")
  if err!=nil{t.Fatal(err)}
- v,err:=d.ParseAST()
+ v,err:=d.ParseValue()
  if err!=nil{t.Fatal(err)}
  if p:=v;p.TName_!="n"||p.TSetSpan_!="ss"{t.Fatalf("fields %+v",p)}
  if err:=d.Edit(0,1,"a");err!=nil{t.Fatal(err)}
- v,err=d.ParseAST()
+ v,err=d.ParseValue()
  if err!=nil||v.TKids_!="k"{t.Fatalf("after edit: %v %v",v,err)}
 }
 `

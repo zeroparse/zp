@@ -41,8 +41,8 @@ Parse time of the generated Go parsers, 12 interleaved runs, benchstat:
 
 | Benchmark | Before | After | Change |
 |:--|--:|--:|:--|
-| JSON `ParseAST` | 4.687 ms | 4.582 ms | -2.24% (p=0.039) |
-| JSON `SmallParseAST` (two sizes) | 2.366 and 2.536 us | 2.335 and 2.549 us | within noise |
-| Go `ParseAST` | 28.96 ms | 28.26 ms | -2.43% (p=0.002) |
+| JSON `ParseValue` | 4.687 ms | 4.582 ms | -2.24% (p=0.039) |
+| JSON `SmallParseValue` (two sizes) | 2.366 and 2.536 us | 2.335 and 2.549 us | within noise |
+| Go `ParseValue` | 28.96 ms | 28.26 ms | -2.43% (p=0.002) |
 
 Allocations are unchanged.

@@ -11,9 +11,9 @@ func TestGenerateLanguage(t *testing.T) {
 		if len(r.Diagnostics) != 0 {
 			t.Fatalf("%q: %+v", language, r.Diagnostics)
 		}
-		markers := []string{"package pairs", "func ParseAST(", "func Recognize("}
+		markers := []string{"package pairs", "func ParseValue(", "func Recognize("}
 		if language == "typescript" {
-			markers = []string{"export function parse(", "export function parseAST(", "export function recognize("}
+			markers = []string{"export function parse(", "export function parseValue(", "export function recognize("}
 		}
 		for _, marker := range markers {
 			if !strings.Contains(r.Code, marker) {

@@ -109,7 +109,7 @@ func TestPositionPlacementsAreSeen(t *testing.T) {
 		if invalid || merr == nil {
 			continue
 		}
-		_, perr := genparser.ParseAST(text)
+		_, perr := genparser.ParseValue(text)
 		if perr == nil {
 			continue
 		}

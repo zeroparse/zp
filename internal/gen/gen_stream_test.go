@@ -48,10 +48,10 @@ rule other = "b"`)
 		t.Error("TypeScript accepted stream generation")
 	}
 	typed, err := gentest.GenerateCode(t, g, gen.GenOptions{Package: "fixture", Start: "main", Stream: true, Types: true})
-	if err != nil || !strings.Contains(string(typed), "func ParseStreamAST(") || !strings.Contains(string(typed), "type StreamValue = ") {
+	if err != nil || !strings.Contains(string(typed), "func ParseStreamValue(") || !strings.Contains(string(typed), "type StreamValue = ") {
 		t.Fatalf("typed stream output: %v", err)
 	}
-	if typed, err := gentest.GenerateCode(t, g, gen.GenOptions{Package: "fixture", Start: "main", Types: true}); err != nil || strings.Contains(string(typed), "ParseStreamAST") {
+	if typed, err := gentest.GenerateCode(t, g, gen.GenOptions{Package: "fixture", Start: "main", Types: true}); err != nil || strings.Contains(string(typed), "ParseStreamValue") {
 		t.Fatalf("typed output without streams: %v", err)
 	}
 }

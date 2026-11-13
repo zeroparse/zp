@@ -99,7 +99,7 @@ func TestGeneratedTypedTermChargeMutants(t *testing.T) {
 	} {
 		t.Run(m.name, func(t *testing.T) {
 			t.Parallel()
-			got := termChargeDeltasWith(t, patchTermCharge(t, m), gen.GenOptions{Types: true}, "ParseAST")
+			got := termChargeDeltasWith(t, patchTermCharge(t, m), gen.GenOptions{Types: true}, "ParseValue")
 			requireChargesChange(t, m.name, got, termChargeWantTyped())
 		})
 	}

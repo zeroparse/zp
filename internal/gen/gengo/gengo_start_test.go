@@ -64,7 +64,7 @@ func testGeneratedGoStartRules(t *testing.T) {
 `},
 		{"typed", gen.GenOptions{Package: "p", Types: true}, `func main() {
 	for _, name := range ` + names + ` {
-		_, err := p.ParseRuleAST(name, "a")
+		_, err := p.ParseRuleValue(name, "a")
 		report(name, err)
 	}
 	for _, name := range ` + names + ` {
@@ -75,20 +75,20 @@ func testGeneratedGoStartRules(t *testing.T) {
 	_, two := p.Parse("aa")
 	fmt.Println("default:", one == nil, two == nil)
 	_, empty := p.ParseRule("", "aa")
-	_, emptyAST := p.ParseRuleAST("", "aa")
-	fmt.Println("empty:", empty == nil, emptyAST == nil)
+	_, emptyValue := p.ParseRuleValue("", "aa")
+	fmt.Println("empty:", empty == nil, emptyValue == nil)
 }
 `},
 		{"typed only", gen.GenOptions{Package: "p", Types: true, TypedOnly: true}, `func main() {
 	for _, name := range ` + names + ` {
-		_, err := p.ParseRuleAST(name, "a")
+		_, err := p.ParseRuleValue(name, "a")
 		report(name, err)
 	}
-	_, one := p.ParseAST("a")
-	_, two := p.ParseAST("aa")
+	_, one := p.ParseValue("a")
+	_, two := p.ParseValue("aa")
 	fmt.Println("default:", one == nil, two == nil)
-	_, emptyAST := p.ParseRuleAST("", "aa")
-	fmt.Println("empty:", emptyAST == nil)
+	_, emptyValue := p.ParseRuleValue("", "aa")
+	fmt.Println("empty:", emptyValue == nil)
 }
 `},
 		{"named start", gen.GenOptions{Package: "p", Start: "item"}, `func main() {
@@ -111,7 +111,7 @@ func testGeneratedGoStartRules(t *testing.T) {
 			}
 			// Only start rules have typed entries.
 			if tc.opts.Types && (!strings.Contains(string(code), "\tcase \"item\":") || strings.Contains(string(code), "\tcase \"other\":")) {
-				t.Error("ParseRuleAST does not have cases for exactly the start rules")
+				t.Error("ParseRuleValue does not have cases for exactly the start rules")
 			}
 			dir := t.TempDir()
 			for name, content := range map[string]string{

@@ -39,7 +39,7 @@
 
   Allocation counts remain 5 per operation for two rows and 15 for 512 rows.
   Cumulative bytes are about 12.1 KB and 86.4 KB per operation, with small
-  variation between the routes. The timed operation is `ParseAST`; generation
+  variation between the routes. The timed operation is `ParseValue`; generation
   and compilation are excluded. No cold-compiler claim is made.
   These synthetic workloads isolate the cut extension. All 17 tracked
   generated parsers are byte-identical after regeneration; the existing

@@ -15,7 +15,7 @@ import (
 
 // TestGeneratedDocumentsMatchBatchOnCorpus checks generated Documents against
 // batch parses of the same generated package, which other tests compare with
-// the engine: Node Parse and typed ParseAST of each corpus input in a new
+// the engine: Node Parse and typed ParseValue of each corpus input in a new
 // Document, and along a chain of edits through all inputs of the grammar,
 // including insertions at the start and end and their removal, in both
 // position units.
@@ -59,9 +59,9 @@ func testGeneratedDocumentsMatchBatchOnCorpus(t *testing.T) {
 			n, err := d.Parse()
 			bn, berr := g%[1]d.Parse(d.Text(), g%[1]d.WithUnit(u))
 			out = append(out, differ("Parse", d.Text(), n, err, bn, berr)...)
-			v, err := d.ParseAST()
-			bv, berr := g%[1]d.ParseAST(d.Text(), g%[1]d.WithUnit(u))
-			out = append(out, differ("ParseAST", d.Text(), v, err, bv, berr)...)
+			v, err := d.ParseValue()
+			bv, berr := g%[1]d.ParseValue(d.Text(), g%[1]d.WithUnit(u))
+			out = append(out, differ("ParseValue", d.Text(), v, err, bv, berr)...)
 		}
 		for _, s := range texts {
 			d, err := g%[1]d.NewDocument(s, g%[1]d.WithUnit(u))

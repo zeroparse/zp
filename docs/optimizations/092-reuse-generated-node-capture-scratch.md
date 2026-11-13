@@ -117,7 +117,7 @@ A field-layout control against `5609246` moved `captureScratch` after the
 existing evaluation fields without changing frame allocation or reset. Five
 alternating 300 ms samples on Go 1.27.1, Apple M3 Max, darwin/arm64 and
 `GOMAXPROCS=16` covered generated JSON/XML Node parsing in both position units,
-typed `ParseAST` and `Recognize` (eight cases). All observed time ranges
+typed `ParseValue` and `Recognize` (eight cases). All observed time ranges
 included parity, and allocation counts and bytes stayed near their controls.
 
 XML Node CodePoints measured 1.000× (0.964–1.033×), Bytes 0.961×

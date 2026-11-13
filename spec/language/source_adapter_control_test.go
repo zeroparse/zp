@@ -370,7 +370,7 @@ func TestGrammarComparisonSeesBrokenAdapters(t *testing.T) {
 			changed := 0
 			broken := func(src string) (*grammar.Grammar, error) {
 				text, invalid := syntax.WithoutInvalidCharacters(src)
-				f, err := genparser.ParseAST(text)
+				f, err := genparser.ParseValue(text)
 				if err != nil || invalid {
 					return adaptCanonical(src)
 				}

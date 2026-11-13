@@ -45,7 +45,7 @@ for (const unit of [p.CodePoints,p.Bytes]) {
  const routes = [
   {name:"Node",run:(s:string|Uint8Array,o:p.ParseOptions)=>{const r=p.parseWithOptions(s,o);return {value:r.node,error:r.error}}},
   {name:"named Node",run:(s:string|Uint8Array,o:p.ParseOptions)=>{const r=p.parseRuleWithOptions("main",s,o);return {value:r.node,error:r.error}}},
-  {name:"typed",run:(s:string|Uint8Array,o:p.ParseOptions)=>p.parseASTWithOptions(s,o)},
+  {name:"typed",run:(s:string|Uint8Array,o:p.ParseOptions)=>p.parseValueWithOptions(s,o)},
   {name:"recognize",run:(s:string|Uint8Array,o:p.ParseOptions)=>({value:null,error:p.recognizeWithOptions(s,o)})},
  ];
  for (const route of routes) {
@@ -89,7 +89,7 @@ for (const unit of [p.CodePoints,p.Bytes]) {
  for(const input of ["\uDC80","\uDCFF","a\uDCFFé","😀\uDCFF",new Uint8Array([255]),new Uint8Array([195]),new Uint8Array([240,159]),new Uint8Array([237,160,128])]){
   const normal=p.parse(input,unit),active=p.parseWithOptions(input,{unit,signal:paritySignal,limits:{compute:Number.MAX_SAFE_INTEGER-1}});
   check(stable(active.node)===stable(normal.node)&&active.error?.message===normal.error?.message,"active malformed/surrogate Node parity");
-  const typed=p.parseAST(input,unit),controlled=p.parseASTWithOptions(input,{unit,signal:paritySignal,limits:{compute:Number.MAX_SAFE_INTEGER-1}});
+  const typed=p.parseValue(input,unit),controlled=p.parseValueWithOptions(input,{unit,signal:paritySignal,limits:{compute:Number.MAX_SAFE_INTEGER-1}});
   check(stable(controlled.value)===stable(typed.value)&&controlled.error?.message===typed.error?.message,"active malformed/surrogate typed parity");
  }
  let checks=0;
@@ -97,14 +97,14 @@ for (const unit of [p.CodePoints,p.Bytes]) {
  for(const input of ["a".repeat(300)+"é😀",new Uint8Array([...Array<number>(300).fill(97),195,169,240,159,152,128])]){
   const a=p.parseWithOptions(input,{unit,signal}),b=p.parse(input,unit);
   check(stable(a.node)===stable(b.node)&&a.error?.message===b.error?.message&&checks>2,"reentrant decoder preserves outer text/spans");
-  const c=p.parseASTWithOptions(input,{unit,signal}),d=p.parseAST(input,unit);
+  const c=p.parseValueWithOptions(input,{unit,signal}),d=p.parseValue(input,unit);
   check(stable(c.value)===stable(d.value)&&c.error?.message===d.error?.message,"reentrant typed input");
  }
  const named=p.parseRuleWithOptions("missing","aaé",{unit,signal:{get aborted():boolean{throw reason}}});
  check(named.error!==null&&named.error.message==="rule missing is not defined","rule validation before signal admission");
  let parseSteps=0;for(let n=1;n<2048;n++){if(p.parseWithOptions("aaé",{unit,limits:{compute:n}}).error===null){parseSteps=n;break}}
  check(parseSteps>0,"Node budget boundary found");
- const converted=p.parseASTWithOptions("aaé",{unit,limits:{compute:parseSteps}});
+ const converted=p.parseValueWithOptions("aaé",{unit,limits:{compute:parseSteps}});
  check(converted.value===null,"conversion does not reset the parse budget");limits(converted,"compute-limit",parseSteps);
 }
 `
@@ -125,11 +125,11 @@ rule main Word = t:("a") #atomic => Word{Text: text($t)}`
 	}
 }
 
-const tsBudgetControlErrorLibraryConsumer = `import { parseASTWithOptions, ParseInterruptionError } from "./parser.ts";
+const tsBudgetControlErrorLibraryConsumer = `import { parseValueWithOptions, ParseInterruptionError } from "./parser.ts";
 import type { CancellationSignal } from "./parser.ts";
 ` + tsTypedAssert + `
 const reason={marker:"cause"};const signal:CancellationSignal={aborted:true,reason};
-const result=parseASTWithOptions("a",{signal});
+const result=parseValueWithOptions("a",{signal});
 check(result.value===null&&result.error instanceof ParseInterruptionError&&result.error.cause===reason&&stable(result.error.cause)===stable(reason),"native Error cause declaration compatibility");
 const inherited:Error=result.error;check(inherited.cause===reason,"assignable native Error cause");
 `
@@ -137,7 +137,7 @@ const inherited:Error=result.error;check(inherited.cause===reason,"assignable na
 const tsBudgetControlDOMSignalConsumer = `
 const controller=new AbortController();controller.abort(reason);
 const native:CancellationSignal=controller.signal;
-const canceled=parseASTWithOptions("a",{signal:native});
+const canceled=parseValueWithOptions("a",{signal:native});
 check(canceled.value===null&&canceled.error instanceof ParseInterruptionError&&canceled.error.cause===controller.signal.reason,"native DOM signal compatibility");
 `
 
@@ -155,7 +155,7 @@ for(const unit of [p.CodePoints,p.Bytes]) {
   check(normal.error===null&&normal.node!==null&&active.error===null&&active.node!==null,"permissive malformed parse succeeds");
   check(String(normal.node.field("Text")).length>0&&normal.node.end>normal.node.start,"malformed text struct produces text and span");
   check(stable(active.node)===stable(normal.node)&&active.node.field("Text")===normal.node.field("Text")&&active.node.start===normal.node.start&&active.node.end===normal.node.end,"controlled malformed text struct text/span parity");
-  const typed=p.parseAST(input,unit),controlled=p.parseASTWithOptions(input,options);
+  const typed=p.parseValue(input,unit),controlled=p.parseValueWithOptions(input,options);
   check(typed.error===null&&typed.value!==null&&controlled.error===null&&controlled.value!==null,"permissive malformed typed parse succeeds");
   check(stable(controlled.value)===stable(typed.value),"controlled malformed typed value parity");
  }
@@ -183,12 +183,12 @@ function threshold(input:string|Uint8Array,unit:p.Unit,key:"compute"):number {
 }
 for(const unit of [p.CodePoints,p.Bytes]) {
  for(const input of ["a".repeat(800)+"é😀",new Uint8Array([...Array<number>(800).fill(97),195,169,240,159,152,128])]) {
-  const plain=p.parse(input,unit),ast=p.parseAST(input,unit);
+  const plain=p.parse(input,unit),ast=p.parseValue(input,unit);
   check(plain.error===null&&plain.node!==null&&ast.error===null&&ast.value!==null&&p.recognize(input,unit)===null,"ordinary matcher paths succeed");
   for(const key of ["compute"] as const) {
    const n=threshold(input,unit,key);
    const kind="compute-limit";
-   const routes=[(o:p.ParseOptions)=>p.parseWithOptions(input,o).error,(o:p.ParseOptions)=>p.parseRuleWithOptions("reread",input,o).error,(o:p.ParseOptions)=>p.parseASTWithOptions(input,o).error,(o:p.ParseOptions)=>p.recognizeWithOptions(input,o)];
+   const routes=[(o:p.ParseOptions)=>p.parseWithOptions(input,o).error,(o:p.ParseOptions)=>p.parseRuleWithOptions("reread",input,o).error,(o:p.ParseOptions)=>p.parseValueWithOptions(input,o).error,(o:p.ParseOptions)=>p.recognizeWithOptions(input,o)];
    for(const [route,run] of routes.entries()) {
     // Each route stops one unit short of the budget it needs. The lookahead rereads and the scans
     // consume cumulative spend, so a route needs more than the single scan of the rule "fast" that
@@ -281,7 +281,7 @@ rule letters = [a-z]+ #atomic`
 for(const unit of [p.CodePoints,p.Bytes])for(const input of ["a","b","aa","bb",new Uint8Array([98])]) {
  const normal=p.parse(input,unit),active=p.parseWithOptions(input,{unit,signal:{aborted:false}});
  check(stable(active.node)===stable(normal.node)&&active.error?.message===normal.error?.message,"memo keys and variable rollback preserve values/errors");
- const typed=p.parseAST(input,unit),controlled=p.parseASTWithOptions(input,{unit,signal:{aborted:false}});
+ const typed=p.parseValue(input,unit),controlled=p.parseValueWithOptions(input,{unit,signal:{aborted:false}});
  check(stable(controlled.value)===stable(typed.value)&&controlled.error?.message===typed.error?.message,"typed memo rollback parity");
  check(p.recognizeWithOptions(input,{unit,signal:{aborted:false}})?.message===p.recognize(input,unit)?.message,"recognizer memo rollback parity");
 }
@@ -303,7 +303,7 @@ for(const unit of [p.CodePoints,p.Bytes])for(const input of ["z",new Uint8Array(
  check(fast.error===null&&fast.node!==null,"one call fits before memo string comparison");
  const normal=p.parse(input,unit);
  check(normal.error===null&&normal.node!==null,"ordinary repeated memo call succeeds");
- const errors=[p.parseWithOptions(input,{unit,limits:{compute:128}}).error,p.parseRuleWithOptions("main",input,{unit,limits:{compute:128}}).error,p.parseASTWithOptions(input,{unit,limits:{compute:128}}).error,p.recognizeWithOptions(input,{unit,limits:{compute:128}})];
+ const errors=[p.parseWithOptions(input,{unit,limits:{compute:128}}).error,p.parseRuleWithOptions("main",input,{unit,limits:{compute:128}}).error,p.parseValueWithOptions(input,{unit,limits:{compute:128}}).error,p.recognizeWithOptions(input,{unit,limits:{compute:128}})];
  for(const [index,error] of errors.entries())check(error instanceof p.ParseInterruptionError&&error.kind==="compute-limit"&&error.requested===128,"bounded memo-key string comparison consumes steps "+index+" "+stable(error));
  const unlimited=p.parseWithOptions(input,{unit,limits:{compute:0},signal:{aborted:false}});
  check(unlimited.error===null&&stable(unlimited.node)===stable(normal.node),"unlimited memo results preserved");

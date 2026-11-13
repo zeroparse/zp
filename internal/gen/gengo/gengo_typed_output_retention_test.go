@@ -146,7 +146,7 @@ func ruleForKind(kind string) string {
 // large input still live afterwards must be reachable through an owned slab.
 func parseAndClone(kind string, unit PositionUnit, runes int) any {
 	input := sampleInput(kind, runes)
-	value, err := ParseRuleAST(ruleForKind(kind), input, WithUnit(unit))
+	value, err := ParseRuleValue(ruleForKind(kind), input, WithUnit(unit))
 	if err != nil {
 		panic(fmt.Errorf("parse %s: %w", kind, err))
 	}
@@ -270,10 +270,10 @@ func TestTypedOutputOwnership(t *testing.T) {
 						t.Fatal("append changed saved slice result")
 					}
 				}
-				if _, err := ParseRuleAST(ruleForKind(kind), "?", WithUnit(unit)); err == nil {
+				if _, err := ParseRuleValue(ruleForKind(kind), "?", WithUnit(unit)); err == nil {
 					t.Fatal("invalid follow-up input accepted")
 				}
-				if _, err := ParseRuleAST(ruleForKind(kind), sampleInput(kind, 8), WithUnit(unit)); err != nil {
+				if _, err := ParseRuleValue(ruleForKind(kind), sampleInput(kind, 8), WithUnit(unit)); err != nil {
 					t.Fatalf("small follow-up parse: %v", err)
 				}
 				if !reflect.DeepEqual(value, want) {
@@ -286,7 +286,7 @@ func TestTypedOutputOwnership(t *testing.T) {
 
 // BenchmarkTypedOutputParse is a normal hot-path measurement with a small
 // capture control and the large-retention input. Keep the returned value live
-// through each iteration so it has the same escape contract as ParseAST users.
+// through each iteration so it has the same escape contract as ParseValue users.
 func BenchmarkTypedOutputParse(b *testing.B) {
 	for _, unit := range []PositionUnit{CodePoints, Bytes} {
 		for _, runes := range []int{8, largeRunes} {
@@ -299,7 +299,7 @@ func BenchmarkTypedOutputParse(b *testing.B) {
 					var value any
 					for b.Loop() {
 						var err error
-						value, err = ParseRuleAST(rule, input, WithUnit(unit))
+						value, err = ParseRuleValue(rule, input, WithUnit(unit))
 						if err != nil {
 							b.Fatal(err)
 						}

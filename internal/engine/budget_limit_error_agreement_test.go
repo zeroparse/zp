@@ -95,7 +95,7 @@ func engineLimitReports(t *testing.T, c limitAgreementCase, b Backend) []string 
 	return out
 }
 
-// limitAgreementConsumer prints, for each limit, what the generated Parse and ParseAST report.
+// limitAgreementConsumer prints, for each limit, what the generated Parse and ParseValue report.
 const limitAgreementConsumer = `package fixture
 
 import (
@@ -118,13 +118,13 @@ func report(err error) string {
 func TestReports(t *testing.T) {
 	for l := uint64(1); l <= MAX; l++ {
 		_, err := Parse(INPUT, WithLimits(Limits{Compute: l}))
-		_, terr := ParseAST(INPUT, WithLimits(Limits{Compute: l}))
+		_, terr := ParseValue(INPUT, WithLimits(Limits{Compute: l}))
 		fmt.Printf("REPORT %d %s %s\n", l, report(err), report(terr))
 	}
 }
 `
 
-// generatedGoLimitReports returns what the Parse and the ParseAST of the parser generated from c report
+// generatedGoLimitReports returns what the Parse and the ParseValue of the parser generated from c report
 // at each limit from 1 to c.max, with the runtime in the module directory runtime.
 func generatedGoLimitReports(t *testing.T, c limitAgreementCase, runtime string) (node, typed []string) {
 	g, err := parseTest(c.grammar)

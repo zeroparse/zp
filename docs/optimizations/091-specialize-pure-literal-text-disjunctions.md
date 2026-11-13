@@ -48,7 +48,7 @@ go test ./internal/gen/... -run '^TestLiteralTextPredicateDispatch' -count=1
 Focused generated-Go and strict TypeScript checks pass. Measurements used Go
 1.27.1 on darwin/arm64 (Apple M3 Max, `GOMAXPROCS=4`) and Node 22.18.0 with
 TypeScript 5.9.3. Five alternating candidate/reference rounds measured Go
-`Parse`, `Recognize` and typed `ParseAST` in both units, plus TypeScript parsing
+`Parse`, `Recognize` and typed `ParseValue` in both units, plus TypeScript parsing
 of strings and byte arrays after 5,000 warmup and 20,000 timed calls. Each Go
 sample used 150 ms. The small and large literal workloads covered first,
 middle, last and Unicode matches plus misses.

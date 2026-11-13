@@ -285,7 +285,7 @@ func generateOnce(g *grammar.Grammar, c gen.Compiler, opts gen.GenOptions, h *Ho
 
 	var out strings.Builder
 	if opts.Observability && opts.Document {
-		out.WriteString("// ErrDocumentBusy is returned by a Parse, ParseAST or Edit of a Document that\n// is already parsing, such as one made by a trace callback of that parse.\n// Schedule the work after the parse returns, or use another Document.\nvar ErrDocumentBusy = DocumentBusy\n\n")
+		out.WriteString("// ErrDocumentBusy is returned by a Parse, ParseValue or Edit of a Document that\n// is already parsing, such as one made by a trace callback of that parse.\n// Schedule the work after the parse returns, or use another Document.\nvar ErrDocumentBusy = DocumentBusy\n\n")
 	}
 	out.WriteString("// --- Generated code ---\n\n")
 	if !opts.TypedOnly && !opts.RecognizeOnly {

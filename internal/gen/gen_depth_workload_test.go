@@ -64,12 +64,12 @@ rule n Word = t:("(" n ")" / "é") #atomic => Word{Text: text($t)}`)
  if limit != nil { panic("baseline has no invocation override") }
  if unit == Bytes { return depthRoutes{
   node:func(s string)(*Node,error){return Parse(s,Bytes)},
-  ast:func(s string)(*Word,error){return ParseAST(s,Bytes)},
+  ast:func(s string)(*Word,error){return ParseValue(s,Bytes)},
   rec:func(s string)error{return Recognize(s,Bytes)},
  } }
  return depthRoutes{
   node:func(s string)(*Node,error){return Parse(s)},
-  ast:func(s string)(*Word,error){return ParseAST(s)},
+  ast:func(s string)(*Word,error){return ParseValue(s)},
   rec:func(s string)error{return Recognize(s)},
  }
 }`
@@ -80,12 +80,12 @@ rule n Word = t:("(" n ")" / "é") #atomic => Word{Text: text($t)}`)
  if limit==nil {
   if unit==Bytes {return depthRoutes{
    node:func(s string)(*Node,error){return Parse(s,WithUnit(Bytes))},
-   ast:func(s string)(*Word,error){return ParseAST(s,WithUnit(Bytes))},
+   ast:func(s string)(*Word,error){return ParseValue(s,WithUnit(Bytes))},
    rec:func(s string)error{return Recognize(s,WithUnit(Bytes))},
   }}
   return depthRoutes{
    node:func(s string)(*Node,error){return Parse(s)},
-   ast:func(s string)(*Word,error){return ParseAST(s)},
+   ast:func(s string)(*Word,error){return ParseValue(s)},
    rec:func(s string)error{return Recognize(s)},
   }
  }
@@ -93,7 +93,7 @@ rule n Word = t:("(" n ")" / "é") #atomic => Word{Text: text($t)}`)
  if unit==Bytes {opts=append(opts,WithUnit(Bytes))}
  return depthRoutes{
   node:func(s string)(*Node,error){return Parse(s,opts...)},
-  ast:func(s string)(*Word,error){return ParseAST(s,opts...)},
+  ast:func(s string)(*Word,error){return ParseValue(s,opts...)},
   rec:func(s string)error{return Recognize(s,opts...)},
  }
 }`
@@ -146,7 +146,7 @@ func BenchmarkDepthOptions(b *testing.B){
 		directBench := `func BenchmarkDepthDirect(b *testing.B){
 for _,unit:=range []PositionUnit{CodePoints,Bytes}{unitName:="CodePoints";if unit==Bytes{unitName="Bytes"}
 for _,route:=range []string{"Node","Recognize","AST"}{for _,c:=range depthCases(){if c.limit!=nil{continue};b.Run(unitName+"/"+route+"/"+c.name,func(b *testing.B){b.ReportAllocs();b.SetBytes(int64(len(c.input)))
-if unit==CodePoints{for b.Loop(){switch route{case "Node":depthNode,depthError=Parse(c.input);case "Recognize":depthError=Recognize(c.input);case "AST":depthValue,depthError=ParseAST(c.input)};if depthError!=nil{b.Fatal(depthError)}}}else{for b.Loop(){switch route{case "Node":depthNode,depthError=Parse(c.input,WithUnit(Bytes));case "Recognize":depthError=Recognize(c.input,WithUnit(Bytes));case "AST":depthValue,depthError=ParseAST(c.input,WithUnit(Bytes))};if depthError!=nil{b.Fatal(depthError)}}}
+if unit==CodePoints{for b.Loop(){switch route{case "Node":depthNode,depthError=Parse(c.input);case "Recognize":depthError=Recognize(c.input);case "AST":depthValue,depthError=ParseValue(c.input)};if depthError!=nil{b.Fatal(depthError)}}}else{for b.Loop(){switch route{case "Node":depthNode,depthError=Parse(c.input,WithUnit(Bytes));case "Recognize":depthError=Recognize(c.input,WithUnit(Bytes));case "AST":depthValue,depthError=ParseValue(c.input,WithUnit(Bytes))};if depthError!=nil{b.Fatal(depthError)}}}
 })}}}
 }
 `

@@ -73,7 +73,7 @@ func TestTranscript(t *testing.T) {
 		b.WriteString("\t\t{\n\t\t\t_, err := ParseRule(\"main\", in)\n\t\t\tfmt.Fprintf(&b, \"parse-rule %q: %s\\n\", in, errText(err))\n\t\t}\n")
 	}
 	if c.typed {
-		b.WriteString("\t\t{\n\t\t\tv, err := ParseAST(in)\n\t\t\tj, _ := json.Marshal(v)\n\t\t\tfmt.Fprintf(&b, \"ast %q: %s | %s\\n\", in, j, errText(err))\n\t\t}\n")
+		b.WriteString("\t\t{\n\t\t\tv, err := ParseValue(in)\n\t\t\tj, _ := json.Marshal(v)\n\t\t\tfmt.Fprintf(&b, \"ast %q: %s | %s\\n\", in, j, errText(err))\n\t\t}\n")
 	}
 	if c.recognize {
 		b.WriteString("\t\t{\n\t\t\terr := Recognize(in)\n\t\t\tfmt.Fprintf(&b, \"recognize %q: %s\\n\", in, errText(err))\n\t\t}\n")
@@ -125,7 +125,7 @@ func testEntryCombinations(t *testing.T, cases []gentest.Case) {
 				for _, e := range []struct {
 					fn  string
 					has bool
-				}{{"func Parse(", c.parse}, {"func ParseRule(", c.parse}, {"func ParseAST(", c.typed}, {"func Recognize(", c.recognize}, {"func NewDocument(", c.document}} {
+				}{{"func Parse(", c.parse}, {"func ParseRule(", c.parse}, {"func ParseValue(", c.typed}, {"func Recognize(", c.recognize}, {"func NewDocument(", c.document}} {
 					if got := strings.Contains(string(src), e.fn); got != e.has {
 						t.Errorf("%s: %q generated = %v, want %v", c.name, e.fn, got, e.has)
 					}

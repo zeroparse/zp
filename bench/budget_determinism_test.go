@@ -29,8 +29,8 @@ func TestGeneratedBudgetErrorsAreDeterministic(t *testing.T) {
 				n, err := gjson.Parse(in, gjson.WithLimits(gjson.Limits{Compute: b}))
 				return describe(n != nil, err)
 			},
-			"ParseAST": func(in string, b uint64) string {
-				v, err := gjson.ParseAST(in, gjson.WithLimits(gjson.Limits{Compute: b}))
+			"ParseValue": func(in string, b uint64) string {
+				v, err := gjson.ParseValue(in, gjson.WithLimits(gjson.Limits{Compute: b}))
 				return describe(v != nil, err)
 			},
 			"Recognize": func(in string, b uint64) string {
@@ -42,8 +42,8 @@ func TestGeneratedBudgetErrorsAreDeterministic(t *testing.T) {
 				n, err := gcsv.Parse(in, gcsv.WithLimits(gcsv.Limits{Compute: b}))
 				return describe(n != nil, err)
 			},
-			"ParseAST": func(in string, b uint64) string {
-				v, err := gcsv.ParseAST(in, gcsv.WithLimits(gcsv.Limits{Compute: b}))
+			"ParseValue": func(in string, b uint64) string {
+				v, err := gcsv.ParseValue(in, gcsv.WithLimits(gcsv.Limits{Compute: b}))
 				return describe(v != nil, err)
 			},
 		}},
@@ -52,8 +52,8 @@ func TestGeneratedBudgetErrorsAreDeterministic(t *testing.T) {
 				n, err := gxml.Parse(in, gxml.WithLimits(gxml.Limits{Compute: b}))
 				return describe(n != nil, err)
 			},
-			"ParseAST": func(in string, b uint64) string {
-				v, err := gxml.ParseAST(in, gxml.WithLimits(gxml.Limits{Compute: b}))
+			"ParseValue": func(in string, b uint64) string {
+				v, err := gxml.ParseValue(in, gxml.WithLimits(gxml.Limits{Compute: b}))
 				return describe(v != nil, err)
 			},
 		}},

@@ -123,7 +123,7 @@ func writeGeneratedDocumentBenchmarkFixture(t testing.TB, dir string) {
 		t.Fatal(err)
 	}
 	// typeddocumentconv is the disabled control of direct typed Document matching: the same
-	// source with Document generation, but Document.ParseAST converts the Node result. It
+	// source with Document generation, but Document.ParseValue converts the Node result. It
 	// is a separate package, so the fixture compares both paths in one run.
 	for _, variant := range []struct {
 		name         string
@@ -148,7 +148,7 @@ func writeGeneratedDocumentBenchmarkFixture(t testing.TB, dir string) {
 
 	for _, driver := range []struct{ name, parser, value, input, method, alternate, original, valid string }{
 		{"Node", "generateddocument", "*p.Node", `strings.Repeat("é:0;", records)`, "Parse", "1", "0", "value != nil"},
-		{"Typed", "typeddocument", "[]*p.Item", "typedBenchmarkInput(records)", "ParseAST", "4", "3", "len(value) == records"},
+		{"Typed", "typeddocument", "[]*p.Item", "typedBenchmarkInput(records)", "ParseValue", "4", "3", "len(value) == records"},
 	} {
 		modes := `"none"`
 		setup := ""

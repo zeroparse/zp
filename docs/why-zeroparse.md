@@ -123,7 +123,7 @@ errors, not by the input length ([Streaming](guide/streaming.md)).
 
 **Typed values from the grammar.** Rule types are inferred and checked when the grammar compiles. The node type is
 `node[T]`. `zp gen -types` emits Go structs, `TNode[T]` values and sealed interfaces for join types, and builds them
-directly during the parse when every value has a Go type. For TypeScript it emits interfaces and a `parseAST`
+directly during the parse when every value has a Go type. For TypeScript it emits interfaces and a `parseValue`
 conversion ([Generated Typed Values](guide/generated-typed-values.md)). The engine API returns dynamic `*zp.Node`
 values.
 
@@ -197,7 +197,7 @@ record the `GOEXPERIMENT` setting, and a baseline that decodes with `encoding/js
 The parsers are generated without `-limits`, so the figures are measured without compute limits; with limits on,
 generated Go `Parse` takes 1.30–1.47× as long on JSON and XML.
 
-| Workload | Generated Go `Parse` | Generated Go typed `ParseAST` | Go standard library | `ParseAST` ÷ standard library |
+| Workload | Generated Go `Parse` | Generated Go typed `ParseValue` | Go standard library | `ParseValue` ÷ standard library |
 |:--|--:|--:|--:|--:|
 | JSON, 262 KB | 5.67 ms | 3.89 ms | 3.50 ms (`encoding/json` into `any`) | 1.1× |
 | XML, 262 KB | 6.84 ms | 5.15 ms | 3.88 ms (`encoding/xml` tokens) | 1.3× |
@@ -208,11 +208,11 @@ generated Go `Parse` takes 1.30–1.47× as long on JSON and XML.
 | Measure | Result |
 |:--|:--|
 | Trees: generated Go `Parse` ÷ standard library, the five workloads above ([analysis](performance.md#where-zeroparse-stands)) | 1.62–6.76× |
-| Typed values: generated Go `ParseAST` ÷ standard library, the five workloads above | 1.11–5.41× |
+| Typed values: generated Go `ParseValue` ÷ standard library, the five workloads above | 1.11–5.41× |
 | Recognition: generated Go `Recognize` on JSON (2.53 ms, zero allocations) ÷ `json.Valid` (0.314 ms) | 8.05× |
 | Streaming: 50,000 CSV records on the closure backend (78.5 ms) ÷ an `encoding/csv` read loop (6.82 ms) | 11.5× |
-| Allocated bytes, typed `ParseAST` ÷ standard library (JSON, XML) | 1.18×, 1.25× |
-| Allocations, JSON: typed `ParseAST` against `encoding/json` | 260 against 53,000 |
+| Allocated bytes, typed `ParseValue` ÷ standard library (JSON, XML) | 1.18×, 1.25× |
+| Allocations, JSON: typed `ParseValue` against `encoding/json` | 260 against 53,000 |
 | Compute limits on ÷ off, generated Go `Parse` (JSON and XML, generated with `-limits`) | 1.30–1.47× |
 | Generated TypeScript `parse` under Node 24.13.0 ÷ generated Go `Parse` (seven workloads) | 2.43–4.00× |
 

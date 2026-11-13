@@ -49,7 +49,7 @@ func TestGeneratedTypedOnly(t *testing.T) {
 			t.Errorf("the control parser lacks %q: the check is void", absent)
 		}
 	}
-	for _, present := range []string{"func ParseAST(", "func ParseRuleAST("} {
+	for _, present := range []string{"func ParseValue(", "func ParseRuleValue("} {
 		if !strings.Contains(only, present) {
 			t.Errorf("a typed-only parser lacks %q", present)
 		}

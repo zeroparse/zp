@@ -15,18 +15,18 @@ import (
 )
 
 // memberDocumentProgram parses each input with the Documents of generated parsers (Parse and the
-// typed ParseAST): twice without an edit, and, for each position, after deleting the character
+// typed ParseValue): twice without an edit, and, for each position, after deleting the character
 // there and inserting it again. It prints a line (with quoted outcomes) for each outcome that differs from a parse of the
 // text from scratch, then the number of outcomes it compared.
 const memberDocumentProgram = `
 type parser struct {
 	parse    func(string) (any, error)
-	parseAST func(string) (any, error)
+	parseValue func(string) (any, error)
 	newDoc   func(string) (doc, error)
 }
 
 type doc struct {
-	parse, parseAST func() (any, error)
+	parse, parseValue func() (any, error)
 	edit            func(start, end int, text string) error
 }
 
@@ -46,7 +46,7 @@ func main() {
 			for _, typed := range []bool{false, true} {
 				fresh, parse := p.parse, func(d doc) (any, error) { return d.parse() }
 				if typed {
-					fresh, parse = p.parseAST, func(d doc) (any, error) { return d.parseAST() }
+					fresh, parse = p.parseValue, func(d doc) (any, error) { return d.parseValue() }
 				}
 				want := outcome(fresh(in))
 				d, err := p.newDoc(in)
@@ -100,7 +100,7 @@ func runMemberDocuments(t *testing.T, cases []gentest.Case, rt string) (map[int]
 		fmt.Fprintf(&imports, "\tg%d \"gentest/g%d\"\n", i, i)
 		fmt.Fprintf(&parsers, `	{
 		func(s string) (any, error) { return g%[1]d.Parse(s) },
-		func(s string) (any, error) { return g%[1]d.ParseAST(s) },
+		func(s string) (any, error) { return g%[1]d.ParseValue(s) },
 		func(s string) (doc, error) {
 			d, err := g%[1]d.NewDocument(s)
 			if err != nil {
@@ -108,7 +108,7 @@ func runMemberDocuments(t *testing.T, cases []gentest.Case, rt string) (map[int]
 			}
 			return doc{
 				func() (any, error) { return d.Parse() },
-				func() (any, error) { return d.ParseAST() },
+				func() (any, error) { return d.ParseValue() },
 				d.Edit,
 			}, nil
 		},

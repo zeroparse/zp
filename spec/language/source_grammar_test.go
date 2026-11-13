@@ -451,7 +451,7 @@ func TestSource(t *testing.T){
   if gotErr!=f.Error{t.Fatalf("fixture %d: error %q, want %q",i,gotErr,f.Error)}
   b,err:=json.Marshal(n);if err!=nil{t.Fatal(err)}
   if string(b)!=string(f.Tree){t.Fatalf("fixture %d: generated tree differs",i)}
-  ast,e:=ParseAST(f.Source);gotErr="";if e!=nil{gotErr=e.Error()}
+  ast,e:=ParseValue(f.Source);gotErr="";if e!=nil{gotErr=e.Error()}
   if ast==nil||gotErr!=f.Error{t.Fatalf("fixture %d: typed parse: %v",i,e)}
   if ast.Text!=f.Source||len(ast.Decls)!=f.Decls{t.Fatalf("fixture %d: typed fields lost",i)}
   for _,c:=range ast.Comments{if c==nil{t.Fatalf("fixture %d: nil comment",i)}}

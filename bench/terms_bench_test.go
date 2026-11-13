@@ -20,11 +20,11 @@ var termWorkloads = []struct {
 }{
 	{"TermsPredicates", "grammars/terms/pred.zp",
 		func(s string) error { return genErr(gtermspred.Parse(s)) },
-		func(s string) error { return genErr(gtermspred.ParseAST(s)) },
+		func(s string) error { return genErr(gtermspred.ParseValue(s)) },
 		func(s string) error { return gtermspred.Recognize(s) }},
 	{"TermsHeavy", "grammars/terms/heavy.zp",
 		func(s string) error { return genErr(gtermsheavy.Parse(s)) },
-		func(s string) error { return genErr(gtermsheavy.ParseAST(s)) },
+		func(s string) error { return genErr(gtermsheavy.ParseValue(s)) },
 		func(s string) error { return gtermsheavy.Recognize(s) }},
 }
 
@@ -48,7 +48,7 @@ func TestTermWorkloads(t *testing.T) {
 	}
 }
 
-// BenchmarkTerms parses the term workloads with every backend, the generated parsers and ParseAST.
+// BenchmarkTerms parses the term workloads with every backend, the generated parsers and ParseValue.
 func BenchmarkTerms(b *testing.B) {
 	for _, w := range termWorkloads {
 		b.Run(w.name, func(b *testing.B) {

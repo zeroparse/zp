@@ -17,7 +17,7 @@ import (
 // TestGeneratedTwinMemo checks the memo of value-free twins in a generated Go parser, as
 // TestTwinMemo does for the engine (Evaluations of Rules in spec/runtime/parsing.md): a rule and its
 // twin have memo entries of their own, and a twin is memoized exactly when its rule is, even where
-// the twin is called from one place only. Parse and ParseAST, without and with limit controls,
+// the twin is called from one place only. Parse and ParseValue, without and with limit controls,
 // evaluate the body of r, the twin and the rule together, as often as each grammar of gentest says.
 // Recognize builds values only for the rules that a call inside a capture that a predicate can read
 // reaches, which r is not, so r has no twin there: the calls of r and -r evaluate one rule with one
@@ -63,7 +63,7 @@ func testGeneratedTwinMemo(t *testing.T) {
 		for _, pkg := range []string{fmt.Sprintf("g%d", i), fmt.Sprintf("l%d", i)} {
 			gentest.GeneratePackage(t, dir, pkg, mustParse(c.src), gen.GenOptions{Start: "main", Types: true, Recognize: true, Observability: true, LimitControls: pkg[0] == 'l'})
 			fmt.Fprintf(&imports, "\t%q\n", "gentest/"+pkg)
-			for _, op := range []string{"_, _ = %s.Parse(%s, zprt.WithProfile(&p))", "_, _ = %s.ParseAST(%s, zprt.WithProfile(&p))", "_ = %s.Recognize(%s, zprt.WithProfile(&p))"} {
+			for _, op := range []string{"_, _ = %s.Parse(%s, zprt.WithProfile(&p))", "_, _ = %s.ParseValue(%s, zprt.WithProfile(&p))", "_ = %s.Recognize(%s, zprt.WithProfile(&p))"} {
 				fmt.Fprintf(&calls, "\t{ var p zprt.Profile; "+op+"; fmt.Print(evals(p), \" \") }\n", pkg, in)
 			}
 		}
@@ -109,7 +109,7 @@ func main() {
 		got := strings.Fields(lines[i])
 		want := strings.Fields(strings.Repeat(fmt.Sprintf("%d %d %d ", c.evals, c.evals, c.recognize), 2))
 		if strings.Join(got, " ") != strings.Join(want, " ") {
-			t.Errorf("%s: r evaluated %v times (Parse, ParseAST, Recognize; then with limit controls), want %v", c.name, got, want)
+			t.Errorf("%s: r evaluated %v times (Parse, ParseValue, Recognize; then with limit controls), want %v", c.name, got, want)
 		}
 	}
 }

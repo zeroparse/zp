@@ -20,7 +20,7 @@ Generated Go uses `Parse(input, opts ...ParseOption)`, `WithMaxDepth(n)` and `Wi
 At `645a8c2`, the generated Go parser's 100,000-call guard accepts Go source with 16,000 nested parentheses but
 returns `nesting too deep: more than 100000 rule calls` at 17,000 and 30,000. Go 1.27.1's `go/parser` accepts all
 three inputs. The exact input is `"package p; var x = " + strings.Repeat("(", n) + "1" + strings.Repeat(")", n)`.
-Both generated `Recognize` and `ParseAST`, with byte positions, show this difference. An isolated
+Both generated `Recognize` and `ParseValue`, with byte positions, show this difference. An isolated
 source overlay changing only the guard to 600,000 accepts all three inputs in both entry points. The existing
 `alpha-parsers/golang/TestNesting` passes on the unmodified baseline, including its normal error at 30,000; that expected
 rejection would no longer hold on the overlay. No stack crash was reproduced.
@@ -35,7 +35,7 @@ override permits that distinction without regenerating or changing concurrent ca
 - Preserve default parsing behavior, position units, no-option calls and rule-call accounting; document the Go
   migration from optional unit arguments and old function-value signatures.
 - Allow explicit generation-time defaults and lower or higher per-invocation ceilings.
-- Use one effective ceiling across generated Go `Parse`, `ParseRule`, `Recognize` and `ParseAST`, including typed
+- Use one effective ceiling across generated Go `Parse`, `ParseRule`, `Recognize` and `ParseValue`, including typed
   direct and conversion modes, ordinary calls, Operators Rule operands, dispatch and left-recursive paths.
 - Support the corresponding TypeScript entry points with the same zero/default and positive-override contracts.
 - Validate configuration before parsing or writing generated output; reset pooled state without limit leakage.
@@ -77,10 +77,10 @@ func WithMaxDepth(n int) ParseOption
 func Parse(input string, opts ...ParseOption) (*Node, error)
 func ParseRule(name, input string, opts ...ParseOption) (*Node, error)
 func Recognize(input string, opts ...ParseOption) error
-func ParseAST(input string, opts ...ParseOption) (Result, error)
+func ParseValue(input string, opts ...ParseOption) (Result, error)
 ```
 
-`Recognize` is emitted when recognition is requested, and `ParseAST` when typed Go output is requested.
+`Recognize` is emitted when recognition is requested, and `ParseValue` when typed Go output is requested.
 The options data type `parseOptions` is internal to the generated package. Its unit defaults to CodePoints;
 its depth defaults to the generated value. There are no Go `WithOptions` entry points or exported options data
 struct. Options apply in order and the last setting for each field wins; validate the effective depth after
@@ -98,7 +98,7 @@ predictable. Unit selection retains the current matching/position behavior; this
 separate unit-validation change. Recognition, typed values, recovery results and error contracts remain intact.
 
 Calls without options keep the same syntax and defaults. Existing optional-unit calls migrate from
-`Parse(input, Bytes)` to `Parse(input, WithUnit(Bytes))`, and similarly for ParseRule, Recognize and ParseAST.
+`Parse(input, Bytes)` to `Parse(input, WithUnit(Bytes))`, and similarly for ParseRule, Recognize and ParseValue.
 The old `[]Unit` variadic expansion is replaced with options: choose its first unit to retain the old behavior,
 or build `[]ParseOption` explicitly. Function-value types change from `func(string, ...Unit)` to
 `func(string, ...ParseOption)` (with the corresponding signatures for other entry points). This is an explicit
@@ -149,7 +149,7 @@ function names remain unchanged; Go optional-unit arguments and function-value s
 settings. New exported names follow the existing typed generator's runtime-name collision policy: append underscores
 to colliding grammar type names in stable sorted order. Thus an existing grammar type `ParseOption` can become
 `ParseOption_`, and another `ParseOption_` can become `ParseOption__`. Reserve `WithUnit` and `WithMaxDepth` too. Aliases and typed return signatures can change
-on regeneration; callers using those types or `ParseAST` function values must migrate to the new names. In addition to
+on regeneration; callers using those types or `ParseValue` function values must migrate to the new names. In addition to
 these typed-return changes, all Go function-value consumers must use the new functional-option signature. Include this migration in
 the generation guide/release documentation, along with the new functions' potential collisions with handwritten
 same-package declarations. Such handwritten declarations are outside the generator's input and must be renamed

@@ -14,7 +14,7 @@ because the grammar uses the rule only through its value form or only inside oth
 rules' inlined bodies.
 
 The generator registers an `Entry` only for the rules that a typed entry point
-runs (the start rules, which `ParseAST` and `ParseRuleAST` name). A first pass records
+runs (the start rules, which `ParseValue` and `ParseRuleValue` name). A first pass records
 which typed rules the entry points and the printed typed bodies call, and the second
 pass prints only those rules ([record 120](120-unreachable-rule-bodies.md)): a rule
 that no call names has no method, scope, class table or term, and the fixed

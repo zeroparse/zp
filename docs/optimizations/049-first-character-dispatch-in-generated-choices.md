@@ -8,5 +8,5 @@
   nesting limit. `value = object / array / string / number / bool / null` in JSON, for instance, no longer calls
   four rules to parse a number.
 - Effect (min of 12 interleaved runs, Apple M3 Max): `Parse` JSON 9.1 → 7.9 ms (−13%), XML −10%, Minilang and
-  Recovery −9%, Arith_OperatorsRule −6%, CSV −4%; `ParseAST` JSON 7.3 → 6.4 ms (−12%), XML −10%, Arith_OperatorsRule −11%; fewer
+  Recovery −9%, Arith_OperatorsRule −6%, CSV −4%; `ParseValue` JSON 7.3 → 6.4 ms (−12%), XML −10%, Arith_OperatorsRule −11%; fewer
   bytes and allocations (fewer memo entries). `Recognize` uses the same code.

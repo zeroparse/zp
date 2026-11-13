@@ -14,7 +14,7 @@ var typedControlResult []*typedbatch.Item
 var typedConversionControlResult []*typeddocumentconv.Item
 
 // BenchmarkTypedNearEOFControl is the batch control for the typed near-EOF edit path: the batch
-// ParseAST of the edited input, generated without Document support. It is not the O37 control,
+// ParseValue of the edited input, generated without Document support. It is not the O37 control,
 // which is BenchmarkTypedNearEOFConversionControl.
 func BenchmarkTypedNearEOFControl(b *testing.B) {
 	for _, records := range []int{256, 4096} {
@@ -29,7 +29,7 @@ func BenchmarkTypedNearEOFControl(b *testing.B) {
 		} {
 			b.Run(strconv.Itoa(records)+"/"+unit.name, func(b *testing.B) {
 				option := typedbatch.WithUnit(unit.unit)
-				if _, err := typedbatch.ParseAST(alternate, option); err != nil {
+				if _, err := typedbatch.ParseValue(alternate, option); err != nil {
 					b.Fatal(err)
 				}
 				b.ReportAllocs()
@@ -39,7 +39,7 @@ func BenchmarkTypedNearEOFControl(b *testing.B) {
 					if i&1 != 0 {
 						input = base
 					}
-					items, err := typedbatch.ParseAST(input, option)
+					items, err := typedbatch.ParseValue(input, option)
 					if err != nil {
 						b.Fatal(err)
 					}
@@ -65,14 +65,14 @@ func TestGeneratedTypedConversionControlPreflight(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			if _, err := d.ParseAST(); err != nil {
+			if _, err := d.ParseValue(); err != nil {
 				t.Fatal(err)
 			}
 			if err := d.Edit(pos, pos+1, "4"); err != nil {
 				t.Fatal(err)
 			}
-			got, gotErr := d.ParseAST()
-			want, wantErr := typeddocumentconv.ParseAST(alternate, typeddocumentconv.WithUnit(unit))
+			got, gotErr := d.ParseValue()
+			want, wantErr := typeddocumentconv.ParseValue(alternate, typeddocumentconv.WithUnit(unit))
 			if gotErr != nil || wantErr != nil || !reflect.DeepEqual(got, want) || d.Stats().Reused == 0 {
 				t.Fatalf("%d/%v: conversion control differs from fresh parse: %v / %v, stats %+v", records, unit, gotErr, wantErr, d.Stats())
 			}
@@ -82,7 +82,7 @@ func TestGeneratedTypedConversionControlPreflight(t *testing.T) {
 
 // BenchmarkTypedNearEOFConversionControl is the same-source disabled control of direct typed Document
 // matching (docs/design/044): the same edit and parse as BenchmarkTypedDocumentNearEOF, with the
-// generated Document.ParseAST converting the Node result.
+// generated Document.ParseValue converting the Node result.
 func BenchmarkTypedNearEOFConversionControl(b *testing.B) {
 	for _, records := range []int{256, 4096} {
 		base := typedBenchmarkInput(records)
@@ -102,7 +102,7 @@ func BenchmarkTypedNearEOFConversionControl(b *testing.B) {
 				if err != nil {
 					b.Fatal(err)
 				}
-				if got, err := d.ParseAST(); err != nil || len(got) != records {
+				if got, err := d.ParseValue(); err != nil || len(got) != records {
 					b.Fatalf("preflight: %d items, %v", len(got), err)
 				}
 				b.ReportAllocs()
@@ -115,7 +115,7 @@ func BenchmarkTypedNearEOFConversionControl(b *testing.B) {
 					if err := d.Edit(pos, pos+1, replacement); err != nil {
 						b.Fatal(err)
 					}
-					got, err := d.ParseAST()
+					got, err := d.ParseValue()
 					if err != nil {
 						b.Fatal(err)
 					}

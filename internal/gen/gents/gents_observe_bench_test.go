@@ -88,15 +88,15 @@ const duration=Number(process.env.ZP_TRACE_BENCH_MS??200);
 const warm=Number(process.env.ZP_TRACE_WARM_MS??100);
 let sink,eventSink,ruleSink;
 const trace=e=>{eventSink=e.pos^e.end^e.evals;ruleSink=e.rule};
-const operations=["Parse","ParseRule","ParseAST","Recognize","ParseLegacy","ParseASTLegacy","RecognizeLegacy"];
+const operations=["Parse","ParseRule","ParseValue","Recognize","ParseLegacy","ParseValueLegacy","RecognizeLegacy"];
 for(const mode of OBSERVED?["none","full","root","unknown"]:["none"]){
- for(const op of mode==="none"?operations:["Parse","ParseAST"]){
+ for(const op of mode==="none"?operations:["Parse","ParseValue"]){
   for(const unit of [p.CodePoints,p.Bytes]){
    const options={unit};
    if(mode!=="none")options.trace=trace;
    if(mode==="root")options.traceMaxDepth=1;
    if(mode==="unknown")options.traceRules=["missing"];
-   const run=op==="Parse"?()=>p.parseWithOptions(input,options):op==="ParseRule"?()=>p.parseRuleWithOptions("main",input,options):op==="ParseAST"?()=>p.parseASTWithOptions(input,options):op==="Recognize"?()=>({error:p.recognizeWithOptions(input,options)}):op==="ParseLegacy"?()=>p.parse(input,unit):op==="ParseASTLegacy"?()=>p.parseAST(input,unit):()=>({error:p.recognize(input,unit)});
+   const run=op==="Parse"?()=>p.parseWithOptions(input,options):op==="ParseRule"?()=>p.parseRuleWithOptions("main",input,options):op==="ParseValue"?()=>p.parseValueWithOptions(input,options):op==="Recognize"?()=>({error:p.recognizeWithOptions(input,options)}):op==="ParseLegacy"?()=>p.parse(input,unit):op==="ParseValueLegacy"?()=>p.parseValue(input,unit):()=>({error:p.recognize(input,unit)});
    const once=()=>{sink=run();if(sink.error!==null)throw sink.error};
    for(let until=performance.now()+warm;performance.now()<until;){for(let n=0;n<16;n++)once()}
    globalThis.gc?.();

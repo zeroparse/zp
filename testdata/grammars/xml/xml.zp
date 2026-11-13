@@ -220,7 +220,7 @@ rule att_sq AttValue = (([=-\u{d7ff}(-; -%\n\t\r\u{e000}-�𐀀-\u{10ffff}]+ / 
 rule content = content_item*
 rule content_item Content = char_data / markup
 // Content ends at an end tag: the lookahead saves trying (and memoizing) every alternative there, which
-// makes ParseAST about 10% faster and Recognize about 30%.
+// makes ParseValue about 10% faster and Recognize about 30%.
 rule markup Content = !"</" c:(element / reference / comment / cdsect / pi) => $c
 // [14] CharData ::= [^<&]* - ([^<&]* ']]>' [^<&]*)
 rule char_data CharData = (([\^-\u{d7ff}=-\\'-; -%\n\t\r\u{e000}-�𐀀-\u{10ffff}]+ / "]" !"]>")+) #atomic
@@ -239,7 +239,7 @@ rule entity_ref EntityRef = ("&" name ";") #atomic
 //     | [#x37F-#x1FFF] | [#x200C-#x200D] | [#x2070-#x218F] | [#x2C00-#x2FEF] | [#x3001-#xD7FF] | [#xF900-#xFDCF]
 //     | [#xFDF0-#xFFFD] | [#x10000-#xEFFFF]
 // [4a] NameChar ::= NameStartChar | "-" | "." | [0-9] | #xB7 | [#x0300-#x036F] | [#x203F-#x2040]
-// The name characters are an inline class rather than a call of name_char, which makes ParseAST about
+// The name characters are an inline class rather than a call of name_char, which makes ParseValue about
 // 7% faster.
 rule name Name = (
     [a-zA-Z_:À-ÖØ-öø-˿Ͱ-ͽͿ-\u{1fff}\u{200c}-\u{200d}⁰-\u{218f}Ⰰ-\u{2fef}、-\u{d7ff}豈-﷏ﷰ-�𐀀-\u{effff}]

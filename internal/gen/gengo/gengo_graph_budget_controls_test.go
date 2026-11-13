@@ -166,18 +166,18 @@ func TestGraphFoldOrderAndBudget(t *testing.T){
 }
 func TestGraphPublicLimitsAndRetainedResults(t *testing.T){
  input:=strings.Repeat("a",150)
- baseline,err:=ParseAST(input);if err!=nil || baseline==nil || len(baseline.Items)!=150 || len(baseline.Nested)!=2{t.Fatal("typed baseline",err)}
+ baseline,err:=ParseValue(input);if err!=nil || baseline==nil || len(baseline.Items)!=150 || len(baseline.Nested)!=2{t.Fatal("typed baseline",err)}
  before:=fmt.Sprintf("%#v",baseline.Items[0]);tree,err:=Parse(input);if err!=nil{t.Fatal(err)};treeBefore:=tree.String()
  for _,unit:=range []PositionUnit{Bytes,CodePoints}{
   for _,ast:=range []bool{false,true}{
-   call:=func(n uint64)(any,error){opts:=[]ParseOption{WithUnit(unit),WithLimits(Limits{Compute:n})};if ast{return ParseAST(input,opts...)};return Parse(input,opts...)}
+   call:=func(n uint64)(any,error){opts:=[]ParseOption{WithUnit(unit),WithLimits(Limits{Compute:n})};if ast{return ParseValue(input,opts...)};return Parse(input,opts...)}
    lo,hi:=uint64(1),uint64(1000000)
    for lo<hi{mid:=lo+(hi-lo)/2;v,e:=call(mid);if errors.Is(e,ErrLimit){if !reflect.ValueOf(v).IsZero(){t.Fatal("partial public result")};lo=mid+1}else if e==nil{hi=mid}else{t.Fatal("unexpected public error",e)}}
    if _,e:=call(lo);e!=nil{t.Fatal("exact limit",e)}
    if v,e:=call(lo-1);!errors.Is(e,ErrLimit) || !reflect.ValueOf(v).IsZero(){t.Fatal("one-short result",v,e)}
    ctx,cancel:=context.WithCancel(context.Background());cancel()
-   if n,e:=ParseAST(input,WithContext(ctx));n!=nil || !errors.Is(e,context.Canceled){t.Fatal("cancelled typed result",n,e)}
-   if n,e:=ParseAST(input);n==nil || e!=nil{t.Fatal("typed retry",e)}
+   if n,e:=ParseValue(input,WithContext(ctx));n!=nil || !errors.Is(e,context.Canceled){t.Fatal("cancelled typed result",n,e)}
+   if n,e:=ParseValue(input);n==nil || e!=nil{t.Fatal("typed retry",e)}
   }
  }
  if tree.String()!=treeBefore || fmt.Sprintf("%#v",baseline.Items[0])!=before{t.Fatal("retained result changed")}
@@ -217,7 +217,7 @@ func TestGraphOperatorsRuleSnapshots(t *testing.T){
 
 func TestDirectCaptureRollback(t *testing.T){
  input:="a"+strings.Repeat("ab",150)+"a"
-TYPED_RULE_CHECK call:=func(limit uint64)(*Bag,error){var opts []ParseOption;opts=append(opts,WithLimits(Limits{Compute:limit}));v,e:=ParseRuleAST("rollback",input,opts...);if e!=nil{return nil,e};n,ok:=v.(*Bag);if !ok{t.Fatalf("rollback output %T",v)};return n,nil}
+TYPED_RULE_CHECK call:=func(limit uint64)(*Bag,error){var opts []ParseOption;opts=append(opts,WithLimits(Limits{Compute:limit}));v,e:=ParseRuleValue("rollback",input,opts...);if e!=nil{return nil,e};n,ok:=v.(*Bag);if !ok{t.Fatalf("rollback output %T",v)};return n,nil}
  got,err:=call(1000000);if err!=nil || got==nil || len(got.Items)!=2 || len(got.Nested)!=1 || len(got.Nested[0])!=150 || got.Items[0].Start!=0 || got.Items[1].Start!=301{t.Fatal("partial repeat rollback changed output",got,err)}
  lo,hi:=uint64(1),uint64(1000000)
  for lo<hi{mid:=lo+(hi-lo)/2;n,e:=call(mid);if errors.Is(e,ErrLimit){if n!=nil{t.Fatal("partial rollback output")};lo=mid+1}else if e==nil{hi=mid}else{t.Fatal(e)}}

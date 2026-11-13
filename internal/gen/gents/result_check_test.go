@@ -18,9 +18,9 @@ rule ft FieldType = "f" => FieldType{Text: "f"}
 rule val _ = "v" => Int{Text: "v"}
 `
 	consumer := `import * as p from "./parser.ts";
-` + tsTypedAssert + `const ok = p.parseAST("vf");
+` + tsTypedAssert + `const ok = p.parseValue("vf");
 check(ok.error === null && ok.value !== null && stable(ok.value.F).length > 0, "constructed S");
-const no = p.parseAST("v");
+const no = p.parseValue("v");
 check(no.error !== null, "missing f");
 `
 	runTypedTSFixture(t, src, consumer, gen.GenOptions{Start: "main"}, "")

@@ -63,8 +63,8 @@ func TestTypedExpectationPoolReuse(t *testing.T) {
  if p.expBits != 0 || len(p.exp) != 0 { t.Fatal("typed recycle retained record") }
  for _,unit := range []PositionUnit{CodePoints,Bytes} {
   for i:=0;i<3;i++ {
-   if _,err:=ParseAST("!",WithUnit(unit));err==nil { t.Fatal("invalid input accepted") }
-   if n,err:=ParseAST("é",WithUnit(unit));err!=nil || n.Value!="é" { t.Fatalf("typed reuse: %v",err) }
+   if _,err:=ParseValue("!",WithUnit(unit));err==nil { t.Fatal("invalid input accepted") }
+   if n,err:=ParseValue("é",WithUnit(unit));err!=nil || n.Value!="é" { t.Fatalf("typed reuse: %v",err) }
   }
  }
 }

@@ -142,7 +142,7 @@ func TestSourceCommentBoundaryGeneratedGo(t *testing.T) {
 import("os";"testing")
 func TestOwners(t *testing.T){
  src,err:=os.ReadFile("input.zp");if err!=nil{t.Fatal(err)}
- ast,err:=ParseAST(string(src));if err!=nil{t.Fatal(err)}
+ ast,err:=ParseValue(string(src));if err!=nil{t.Fatal(err)}
  if ast.Package.Comments.Leading!=" foo\n"||ast.Package.Comments.Trailing!=" trailing\n"{t.Fatal("package ownership")}
  if ast.Rule.Comments.Leading!=" B1\n B1\n"||ast.Rule.Comments.Trailing!=" trailing\n"{t.Fatal("rule ownership")}
  ds:=ast.Rule.Comments.Detached

@@ -60,7 +60,7 @@ this branch, Apple M3 Max, Go 1.27.1, `-trimpath`. Sizes are `wc -lc` of
 `go test -trimpath -c` of `alpha-parsers/duckdb`. Benchmarks are test binaries built per
 tree and run alternately, six rounds at `-benchtime=200ms` with `-benchmem`, then
 `benchstat`: `^Benchmark(Parse|Recognize|Incremental|IncrementalLong|Stream|ControlledParse)$/./generated`
-of `./bench` and the parser module benchmarks (`Parse`, `ParseAST`,
+of `./bench` and the parser module benchmarks (`Parse`, `ParseValue`,
 `Recognize`, `Statements`, `Policies*`, `ParseModule`, `ParseFile`). Runs were
 serialized with the shared lock.
 
@@ -91,7 +91,7 @@ serialized with the shared lock.
 | `./bench` generated, geomean, limit controls on request only | −0.35% | six rounds, no row above +2.7% |
 | `./bench` generated, geomean, with helpers | −1.6% | Recognize XML −9.9%, Parse XML ast −6.7% |
 | duckdb Statements and Parse (all rows) | −2% to −8% | p ≤ 0.04, six rounds |
-| cue ParseAST | −3.4% to −3.9% | p = 0.04 |
+| cue ParseValue | −3.4% to −3.9% | p = 0.04 |
 | cel PoliciesRecognize | −4.6% | p = 0.03 |
 | json and csv module benchmarks | no change | ten rounds, p ≥ 0.2 |
 
@@ -102,7 +102,7 @@ the generation checks and the limit-control tests), the tests of each parser mod
 and the up-to-date check of the generated files pass. A new test generates a
 parser without limit controls, checks that no charge, control read or budget type is
 left (with and without `-document`), that it is smaller than the controlled
-parser, that it compiles and that each entry point (`Parse`, `Recognize`, `ParseAST`,
+parser, that it compiles and that each entry point (`Parse`, `Recognize`, `ParseValue`,
 `ParseRule`) rejects both control options. A second test builds a parser with every
 entry point, a Document, a stream, left recursion and recovery both ways and
 compares what the entry points return for inputs that include invalid UTF-8, byte

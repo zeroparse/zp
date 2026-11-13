@@ -97,7 +97,7 @@ func TestSparseGeneratedResults(t *testing.T) {
         for i, input := range inputs {
             for pass := 0; pass < 3; pass++ {
                 node, err := Parse(input, WithUnit(unit))
-                ast, aerr := ParseAST(input, WithUnit(unit))
+                ast, aerr := ParseValue(input, WithUnit(unit))
                 rerr := Recognize(input, WithUnit(unit))
                 data, jerr := json.Marshal([]any{node, fmt.Sprint(err), ast, fmt.Sprint(aerr), fmt.Sprint(rerr)})
                 if jerr != nil { t.Fatal(jerr) }
@@ -165,7 +165,7 @@ func BenchmarkSparseMemoGenerated(b *testing.B) {
                     run := func() error {
                         switch api {
                         case "Node": _, err := Parse(input.text, WithUnit(unit)); return err
-                        case "AST": _, err := ParseAST(input.text, WithUnit(unit)); return err
+                        case "AST": _, err := ParseValue(input.text, WithUnit(unit)); return err
                         default: return Recognize(input.text, WithUnit(unit))
                         }
                     }

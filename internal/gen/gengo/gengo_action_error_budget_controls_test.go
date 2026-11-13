@@ -76,7 +76,7 @@ import("context";"errors";"reflect";"strings";"testing")
 const wantError=WANT_ERROR
 const recognize=CHECK_RECOGNIZE
 const nameFree=NAME_FREE
-func actionCall(mode int,opts...ParseOption)(any,error){switch mode{case 0:n,e:=Parse("a",opts...);return n,e;case 1:n,e:=ParseAST("a",opts...);return n,e;default:return nil,Recognize("a",opts...)}}
+func actionCall(mode int,opts...ParseOption)(any,error){switch mode{case 0:n,e:=Parse("a",opts...);return n,e;case 1:n,e:=ParseValue("a",opts...);return n,e;default:return nil,Recognize("a",opts...)}}
 func actionZero(v any)bool{return v==nil || reflect.ValueOf(v).IsZero()}
 func TestPublicActionErrorAccounting(t *testing.T){
  modes:=[]int{0,1};if recognize{modes=append(modes,2)}

@@ -24,7 +24,7 @@ var metrics = []metric{
 	{"rss", "peak resident set size of the measuring process, in bytes"},
 	{"gc_share", "share of the CPU time that went to garbage collection"},
 	{"src_bytes", "size of the generated parser.go"},
-	{"bin_bytes", "size of a stripped program that calls ParseAST"},
+	{"bin_bytes", "size of a stripped program that calls ParseValue"},
 	{"compile_ms", "wall time of compiling and linking that program with the parser package not cached"},
 	{"ts_raw", "size of the generated parser.ts (with -ts)"},
 	{"ts_gzip", "size of parser.ts compressed with gzip -9 (with -ts)"},

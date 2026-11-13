@@ -56,7 +56,7 @@ rule token Token = t:("a;" @error(message="want token")) #atomic => Token{Text: 
 		}
 		methods := `func(d *Document)(error){_,err:=d.Parse();return err},`
 		if variant.types {
-			methods += `func(d *Document)(error){_,err:=d.ParseAST();return err},`
+			methods += `func(d *Document)(error){_,err:=d.ParseValue();return err},`
 		}
 		source := strings.ReplaceAll(documentErrorOwnershipTest, "PACKAGE", variant.name)
 		source = strings.ReplaceAll(source, "METHODS", methods)
@@ -67,7 +67,7 @@ rule token Token = t:("a;" @error(message="want token")) #atomic => Token{Text: 
 			benchmark := strings.ReplaceAll(documentDiagnosticBenchmark, "PACKAGE", variant.name)
 			method := "Parse"
 			if variant.types {
-				method = "ParseAST"
+				method = "ParseValue"
 			}
 			benchmark = strings.ReplaceAll(benchmark, "METHOD", method)
 			if err := os.WriteFile(filepath.Join(path, "diagnostics_bench_test.go"), []byte(benchmark), 0644); err != nil {

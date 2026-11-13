@@ -162,7 +162,7 @@ func checkTermCharges(t *testing.T, golden, what, unset, prefix string, all []ge
 			}
 		}
 	}
-	// Generated Go: the node parser's Parse and Recognize, and the typed parser's ParseAST.
+	// Generated Go: the node parser's Parse and Recognize, and the typed parser's ParseValue.
 	maps.Copy(got, goTermCharges(t, prefix, terms, nil))
 	// Generated TypeScript.
 	for i, c := range terms {
@@ -190,7 +190,7 @@ func termChargeKey(prefix string, terms []gentest.TermCase, i int, input, target
 }
 
 // goTermCharges returns the golden entries of the generated Go targets for terms: the charges of the node
-// parser's Parse and Recognize and of the typed parser's ParseAST. mutate, if not nil, edits each generated
+// parser's Parse and Recognize and of the typed parser's ParseValue. mutate, if not nil, edits each generated
 // parser before it is built.
 func goTermCharges(t *testing.T, prefix string, terms []gentest.TermCase, mutate func([]byte) []byte) map[string]string {
 	t.Helper()
@@ -205,7 +205,7 @@ func goTermCharges(t *testing.T, prefix string, terms []gentest.TermCase, mutate
 		name  string
 		opts  gen.GenOptions
 		parse string
-	}{{"go-node", gen.GenOptions{}, "Parse"}, {"go-typed", gen.GenOptions{Types: true}, "ParseAST"}} {
+	}{{"go-node", gen.GenOptions{}, "Parse"}, {"go-typed", gen.GenOptions{Types: true}, "ParseValue"}} {
 		totals, problems := budgetTotalsWith(t, rt, prefix, cases, "main", mutate, run.opts, run.parse)
 		for _, p := range problems {
 			t.Error(p)

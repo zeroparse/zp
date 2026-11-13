@@ -75,7 +75,7 @@ its current contract. Closure, recursive bytecode, and iterative bytecode must
 agree on observable snapshot equality. Evidence ranges may be
 implementation-specific only when labeled as such. Generated Go parsers expose
 a separate mutable Node `Document` and, with typed generation,
-`Document.ParseAST` ([design 044](044-generated-incremental-and-stream-parsers.md));
+`Document.ParseValue` ([design 044](044-generated-incremental-and-stream-parsers.md));
 neither generated API exposes these change notifications. TypeScript generation
 has no `Document` API. Existing `Edit`, `Parse`, `Text`, and `Stats` remain
 source-compatible. Position values use the existing Document unit.
