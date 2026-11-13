@@ -95,7 +95,7 @@ func ScanSiteRepeats(e grammar.Expr, control *cancel.Control, f func(rep *gramma
 }
 
 // ScanSite returns the number of the scan site e, or 0 if e is not one; the walks that build a
-// value use the next number (Walker.scanSiteOf).
+// value use the next number.
 func (prog *Program) ScanSite(e *grammar.Repeat) int { return prog.scanRepeats[e] }
 
 // pureScan reports whether e is made only of the forms of the body of a scan site.

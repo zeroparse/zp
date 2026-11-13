@@ -39,8 +39,7 @@ Evidence records:
 [008](../008-fast-path-for-unmemoized-calls-scan-nesting-limit-d2db87d.md),
 [136](../136-measured-effect-of-the-generation-flags.md).
 
-Source owners: [`Walker.scanRepeat`](../../../internal/compile/compile_walk.go),
-[`closure.Builder.ScanRepeat`](../../../internal/engine/closure/builder.go),
+Source owners: [`closure.Builder.ScanRepeat`](../../../internal/engine/closure/builder.go),
 the SCAN emission of the bytecode compiler,
 [`Scans pass`](../../../internal/ir/core/passes.go),
 [`Flow scan lowering`](../../../internal/ir/flow/lower/lower.go), which lowers the

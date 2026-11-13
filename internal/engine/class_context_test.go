@@ -40,9 +40,6 @@ func TestClassConstructionContextCancellation(t *testing.T) {
 		run  func(*cancel.Control)
 	}{
 		{"descriptor", func(c *cancel.Control) { compile.CharClassStringControlled(cl, c) }},
-		{"guard-extraction", func(c *cancel.Control) {
-			compile.FirstTerminalControlled(&compile.Program{}, deep, 0, map[string]bool{}, c)
-		}},
 	} {
 		t.Run(phase.name, func(t *testing.T) {
 			c := &cancel.Control{Ctx: compileTestContext(t, 1)}

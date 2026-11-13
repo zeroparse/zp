@@ -3,10 +3,9 @@
 // the one place that answers what a grammar means; the backends and the tools that analyze a
 // grammar (lint, the language server) read its Result.
 //
-// Run reports the errors the compiler finds. The compiler's Check makes the program, and its
-// CompileProgram lowers the program of a Result to a backend's form; the program and the type
-// model still live in the compiler, so the front end imports it until they move to packages of
-// their own.
+// Run reports the errors the compiler finds. The compiler's Check makes the program; the program
+// and the type model still live in the compiler, so the front end imports it until they move to
+// packages of their own.
 package frontend
 
 import (

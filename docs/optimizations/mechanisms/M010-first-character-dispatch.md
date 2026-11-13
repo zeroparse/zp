@@ -6,8 +6,9 @@ constructing their call and memo state.
 
 ## Mechanism and Invariants
 
-`firstTerminal` recognizes a required starting literal or class through safe
-expression wrappers and calls. Unknown, left-recursive and Operators Rule starts
+The Core IR analysis finds a required starting literal or class through safe
+expression wrappers and calls, and the Guards pass sets it as the guard of the
+alternative. Unknown, left-recursive and Operators Rule starts
 retain ordinary matching. A rejected alternative records the expectation its
 first terminal would have produced. The next character is examined, so a
 Document edit can invalidate the result. Depth-limit behavior also constrains
@@ -55,8 +56,7 @@ Evidence records:
 [112](../112-guarded-first-classes.md),
 [136](../136-measured-effect-of-the-generation-flags.md).
 
-Source owners: [`firstTerminal`](../../../internal/compile/compile.go),
-[`Guards pass`](../../../internal/ir/core/passes.go), [`Walker.ExprForm and Compiler.first`](../../../internal/compile/compile_walk.go),
+Source owners: [`Guards pass`](../../../internal/ir/core/passes.go),
 [`closure.Builder.Choice and Guard`](../../../internal/engine/closure/builder.go), the GUARD
 emission of the bytecode compiler, [`generated choice
 guards`](../../../internal/gen/gengo/generator.go), [`TypeScript choice

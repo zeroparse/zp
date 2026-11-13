@@ -5,12 +5,9 @@ import (
 	"zeroparse.dev/zp/internal/cancel"
 )
 
-// resumable reports whether a repetition with the element e can be resumed. An element whose
-// captures are written to the enclosing scope (those inside &, when the element has no captures of
-// its own) cannot be: reusing it would not write them.
-func (c *Compiler) resumable(e grammar.Expr) bool { return c.Prog.resumable(e, c.Control) }
-
-// Resumable is resumable without a compile control (build.Program).
+// Resumable reports whether a repetition with the element e can be resumed (build.Program). An
+// element whose captures are written to the enclosing scope (those inside &, when the element has
+// no captures of its own) cannot be: reusing it would not write them.
 func (prog *Program) Resumable(e grammar.Expr) bool { return prog.resumable(e, nil) }
 
 func (prog *Program) resumable(e grammar.Expr, control *cancel.Control) bool {
@@ -40,10 +37,7 @@ func anyCapture(e grammar.Expr, control *cancel.Control) bool {
 	return found
 }
 
-// positional reports whether the value of e may contain position values.
-func (c *Compiler) positional(e grammar.Expr) bool { return c.Prog.positional(e, c.Control) }
-
-// Positional is positional without a compile control (build.Program).
+// Positional reports whether the value of e may contain position values (build.Program).
 func (prog *Program) Positional(e grammar.Expr) bool { return prog.positional(e, nil) }
 
 func (prog *Program) positional(e grammar.Expr, control *cancel.Control) bool {

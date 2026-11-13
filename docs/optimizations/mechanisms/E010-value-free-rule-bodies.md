@@ -47,7 +47,7 @@ Evidence records:
 [001](../001-value-free-rule-bodies-value-free-twins-transient-rules-0b2c903.md).
 
 Source owners: [`leanBody`](../../../internal/compile/compile.go),
-[`Walker.compileRule`](../../../internal/compile/compile_walk.go), [`body value
+[`walker.compileRule`](../../../internal/compile/compile_walk.go), [`body value
 lowering`](../../../internal/gen/gengo/generator.go), [`direct body build
 mode`](../../../internal/gen/gengo/flowrule.go), [`TypeScript body build
 mode`](../../../internal/gen/gents/generator.go).

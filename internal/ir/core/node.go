@@ -196,7 +196,7 @@ type Look struct {
 	Neg  bool
 	// Site numbers the lookahead from 1 among the lookaheads of the module: an observation of its
 	// outcome in a left-recursion context is recorded by it (Parser.LookBegin). It is 0 for a
-	// lookahead that records no observation (compile.LookKeepsState).
+	// lookahead that records no observation (check.LookKeepsState).
 	Site int
 }
 

@@ -2,14 +2,6 @@ package compile
 
 import "zeroparse.dev/zp/grammar"
 
-// TextArg returns the argument of t if t is a call text(x).
-func TextArg(t grammar.Term) (grammar.Term, bool) {
-	if call, ok := t.(*grammar.Call); ok && call.Func == "text" && len(call.Args) == 1 {
-		return call.Args[0], true
-	}
-	return nil, false
-}
-
 // Fusable reports whether every argument of the concat call t is itself a call of list, map or a
 // fusable concat. Their elements can then be pushed directly, without building the intermediate
 // lists (concat(list($first), map($rest, ...)) is the common way to build a list), and errors

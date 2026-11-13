@@ -3,7 +3,6 @@ package compile
 import (
 	"errors"
 	"fmt"
-	"strconv"
 	"sync"
 	"zeroparse.dev/zp/internal/cancel"
 	"zeroparse.dev/zp/internal/check"
@@ -37,9 +36,7 @@ type Program struct {
 	Twins           []*Rule   // value-free twins (Rule.Twin); ids start at len(RuleList)
 	NSeen           int       // number of rules with Rule.Seen set
 	Typed           *TypeInfo // types found by the type checker (nil if it did not run)
-	// Projected holds the map calls of actions that read a projected repetition (project.go).
-	Projected     map[*grammar.Call]bool
-	NoProjections bool
+	NoProjections   bool
 	// RecordsSourceInfo reports that nodes record source information (Options.SourceInfo).
 	RecordsSourceInfo bool
 	// MakesDefaultValue reports that value actions and declared rule types were dropped
@@ -94,8 +91,6 @@ type Program struct {
 	// they differ from the flags of the rules; nil otherwise. Such parses run a program built with
 	// them.
 	InsertionFlags []RuleFlags
-	// checked reports that Check made the program, so CompileProgram may lower it.
-	checked bool
 }
 
 // Options configures compilation.
@@ -233,7 +228,7 @@ var builtinTypes = map[string]bool{
 }
 
 // Compiler holds the state of compiling one program: the program being built, its analysis,
-// options, expectation table and errors. Walker embeds it to walk rule bodies for a backend.
+// options, expectation table and errors. The walker embeds it to check the rule bodies.
 // A nil Control never cancels.
 type Compiler struct {
 	Control *cancel.Control
@@ -242,18 +237,11 @@ type Compiler struct {
 	an      *Analysis
 	// ins is the analysis with missing-token insertion enabled (AnalyzeInsertion) when the grammar
 	// has an insertion, and nil otherwise or for a loaded compiled grammar.
-	ins            *Analysis
-	opts           Options
-	errs           diag.ErrorList
-	rule           *Rule
-	descIDs        map[string]ExpID
-	missingSites   int
-	missingSiteIDs map[*grammar.Attribute]int
-	// runSites numbers the repetitions that a Document can resume (resumable.go).
-	runSites int
-	// lowering reports a walk of CompileProgram: the program is checked, and the walk reads it
-	// without writing the rule flags and projections that Check recorded.
-	lowering bool
+	ins     *Analysis
+	opts    Options
+	errs    diag.ErrorList
+	rule    *Rule
+	descIDs map[string]ExpID
 }
 
 // desc returns the index of an expectation string (adding it to Program.DescTable).
@@ -451,12 +439,6 @@ func Canonicalize(g *grammar.Grammar, opts Options, names desugar.InlineNames, c
 // receives the hidden rules that the lowering of inline actions generates. If flags is not nil,
 // it skips static analysis and type checking and uses flags instead.
 func Check(g *grammar.Grammar, opts Options, flags []RuleFlags, names desugar.InlineNames, control *cancel.Control) (*Program, error) {
-	return checkWith(g, opts, flags, names, control, func(*Compiler) ExprBuilder[struct{}] { return noExprs{} })
-}
-
-// checkWith is Check with the builder that builder returns for the compiler called by the walk of the
-// rule bodies, for the test that the walk of CompileProgram calls a builder as this walk does.
-func checkWith[M any](g *grammar.Grammar, opts Options, flags []RuleFlags, names desugar.InlineNames, control *cancel.Control, builder func(*Compiler) ExprBuilder[M]) (*Program, error) {
 	canon, err := Canonicalize(g, opts, names, control)
 	if err != nil {
 		return nil, err
@@ -581,7 +563,7 @@ func checkWith[M any](g *grammar.Grammar, opts Options, flags []RuleFlags, names
 			}
 		}
 	}
-	w := &Walker[M]{Compiler: c, Builder: builder(c)}
+	w := &walker{Compiler: c}
 	for _, r := range prog.RuleList {
 		control.Poll()
 		w.compileRule(r)
@@ -648,49 +630,7 @@ func checkWith[M any](g *grammar.Grammar, opts Options, flags []RuleFlags, names
 	}
 
 	control.Check()
-	prog.checked = true
 	return prog, nil
-}
-
-// CompileProgram lowers the program that Check made to a backend's form: it walks the rule bodies
-// again, in the order Check walked them, and calls the builder that builder returns for the
-// compiler, which builds the bodies. The walk decides nothing new and writes nothing of the
-// program: the scopes, twins, rule flags, projections, sites and expectations are those of the
-// checked program, so one program may be lowered several times at once. It reports no errors,
-// because Check reported them; it returns an error only for a program that Check did not make.
-func CompileProgram[M any](prog *Program, control *cancel.Control, builder func(*Compiler) ExprBuilder[M]) error {
-	if prog == nil || !prog.checked {
-		return errors.New("compile: the program was not made by Check")
-	}
-	control.Check()
-	// Without an analysis (an, ins) the walk skips the checks that read one, as it does for the
-	// rule flags of a loaded program; the expectation IDs are found again in the table.
-	c := &Compiler{Control: control, Prog: prog, opts: prog.Opts, descIDs: make(map[string]ExpID, len(prog.DescTable)), lowering: true}
-	for i, d := range prog.DescTable {
-		if _, ok := c.descIDs[d]; !ok {
-			c.descIDs[d] = ExpID(i)
-		}
-	}
-	// The checker's shape control is Check's: lowering writes nothing of the checked program, so
-	// that programs may be lowered while others read them, and it polls control as it walks.
-	if control != nil {
-		defer func() { c.Control = nil }()
-	}
-	descs, twins := len(prog.DescTable), len(prog.Twins)
-	w := &Walker[M]{Compiler: c, Builder: builder(c)}
-	for _, r := range prog.RuleList {
-		control.Poll()
-		w.compileRule(r)
-	}
-	for _, r := range prog.Twins {
-		control.Poll()
-		w.compileRule(r)
-	}
-	control.Check()
-	if len(c.errs) > 0 || len(prog.DescTable) != descs || len(prog.Twins) != twins {
-		return fmt.Errorf("compile: lowering the checked program changed it: %v", c.errs)
-	}
-	return nil
 }
 
 // validateGrammar returns the validation error of g as a compile error.
@@ -928,21 +868,6 @@ func (c *Compiler) noRecoveringCaptures(e grammar.Expr) {
 	}, control)
 }
 
-// visible reports whether the expression has a value (a CST child).
-func visible(e grammar.Expr) bool {
-	switch e := e.(type) {
-	case *grammar.And, *grammar.Not, *grammar.Discard, *grammar.Cut, *grammar.Bottom,
-		*grammar.BeginInput, *grammar.EndInput, *grammar.BeginLine, *grammar.EndLine,
-		*grammar.Predicate:
-		return false
-	case *grammar.Capture:
-		return visible(e.Expr)
-	case *grammar.Attributed:
-		return visible(e.Expr)
-	}
-	return true
-}
-
 // elementScopedControlled is check.ElementScopedControlled.
 func elementScopedControlled(e grammar.Expr, control *cancel.Control) bool {
 	return check.ElementScopedControlled(e, control)
@@ -952,8 +877,6 @@ func elementScopedControlled(e grammar.Expr, control *cancel.Control) bool {
 func hasCapturesControlled(e grammar.Expr, control *cancel.Control) bool {
 	return check.HasCapturesControlled(e, control)
 }
-
-func quote(s string) string { return strconv.Quote(s) }
 
 // LiteralDesc is core.LiteralDesc.
 func LiteralDesc(e *grammar.Literal) string { return core.LiteralDesc(e) }
@@ -974,46 +897,6 @@ func FoldedRunes(rs []rune) []rune {
 		out[i] = FoldASCIIRune(r)
 	}
 	return out
-}
-
-// firstTerminal returns the terminal (a *grammar.Literal or *grammar.CharClass) that the expression
-// e must begin with, if any, and the number of rule calls on the way: e is the terminal, possibly
-// behind sequences, captures, @, - and calls of rules that are neither left-recursive nor OperatorsRule.
-// When the next character cannot start the terminal, e fails at once, recording only the
-// terminal's expectation and examining only that character (a call memoizes the same failure, and
-// memoization only affects speed), so a choice can skip e: first-character dispatch, done by the
-// closure backend, the VMs (GUARD) and generated parsers, unless the calls on the way would exceed
-// the nesting limit.
-func firstTerminal(prog *Program, e grammar.Expr, depth int, seen map[string]bool) (grammar.Expr, int) {
-	switch e := e.(type) {
-	case *grammar.Literal:
-		if e.Value != "" {
-			return e, depth
-		}
-	case *grammar.CharClass:
-		return e, depth
-	case *grammar.Seq:
-		if len(e.Items) > 0 {
-			return firstTerminal(prog, e.Items[0], depth, seen)
-		}
-	case *grammar.Capture:
-		return firstTerminal(prog, e.Expr, depth, seen)
-	case *grammar.Atomic:
-		return firstTerminal(prog, e.Expr, depth, seen)
-	case *grammar.Discard:
-		return firstTerminal(prog, e.Expr, depth, seen)
-	case *grammar.Ref:
-		r := prog.ByName[e.Name]
-		if r == nil || r.Leader || seen[e.Name] || r.Def == nil {
-			break
-		}
-		if _, operatorsRule := r.Def.Expr.(*grammar.OperatorsRule); operatorsRule {
-			break
-		}
-		seen[e.Name] = true
-		return firstTerminal(prog, r.Def.Expr, depth+r.EntryDepth(), seen)
-	}
-	return nil, 0
 }
 
 // CharClassString is core.CharClassString.
@@ -1074,13 +957,6 @@ func StreamTops(body grammar.Expr) map[grammar.Expr]bool { return check.StreamTo
 
 // SeeThrough is check.SeeThrough.
 func SeeThrough(e grammar.Expr) grammar.Expr { return check.SeeThrough(e) }
-
-// ElementScoped reports whether the repetition element e gets a capture scope of its own per
-// iteration (elementScopedControlled).
-func ElementScoped(e grammar.Expr) bool { return check.ElementScoped(e) }
-
-// HasCaptures reports whether e contains a capture.
-func HasCaptures(e grammar.Expr) bool { return check.HasCaptures(e) }
 
 // WhereName returns the text that names the rule in the message of a failed action.
 func (r *Rule) WhereName() string {

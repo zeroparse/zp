@@ -283,7 +283,8 @@ func (b *Builder) choice(alts []*ir.Alt, ms []core.Matcher, build bool) core.Mat
 	}
 }
 
-// firstGuard tells when an alternative of a choice can be skipped (see firstTerminal).
+// firstGuard tells when an alternative of a choice can be skipped (the guard of the alternative in
+// Core IR).
 type firstGuard struct {
 	accept func(*core.Parser, rune) bool // nil if it cannot be
 	desc   core.ExpID

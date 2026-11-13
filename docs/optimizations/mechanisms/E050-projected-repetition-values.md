@@ -39,7 +39,6 @@ Evidence records: [052](../052-projected-repetitions-in-generated-parse.md),
 [053](../053-projected-repetitions-in-the-engine-and-the-vms.md).
 
 Source owners: [`RuleProjections`](../../../internal/compile/project.go),
-[`Walker.ProjectRepeat`](../../../internal/compile/compile_walk.go),
 [`closure.Builder.ProjectRepeat`](../../../internal/engine/closure/builder.go), the projected
 repetitions of the bytecode compiler,
 [`Flow projectRepeat`](../../../internal/ir/flow/lower/lower.go), which lowers the

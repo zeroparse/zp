@@ -24,7 +24,6 @@ func TestCompileMetadataCollectionCancellation(t *testing.T) {
 	}{
 		{"rules", func(c *cancel.Control) { c.Rules(g) }},
 		{"types", func(c *cancel.Control) { c.Types(g) }},
-		{"arguments", func(c *cancel.Control) { expressionArgs(c, a) }},
 		{"call-walk", func(c *cancel.Control) { AllCallsControlled(expr, nil, c) }},
 		{"type-check-arguments", func(c *cancel.Control) {
 			check.PollPredicates(c, expr)
@@ -59,7 +58,6 @@ func TestProjectionMetadataCancellation(t *testing.T) {
 		{"candidate-walk", func(c *cancel.Control) {
 			ruleProjectionsControlled(&Program{}, &Rule{Def: &grammar.RuleDef{Expr: expr}, Action: &grammar.StringLit{}}, c)
 		}},
-		{"action-use", func(c *cancel.Control) { markProjectedMaps(term, nil, map[*grammar.Call]bool{}, c) }},
 	} {
 		t.Run(phase.name, func(t *testing.T) {
 			control := &cancel.Control{Ctx: compileTestContext(t, 1)}

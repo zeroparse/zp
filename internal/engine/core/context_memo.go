@@ -831,7 +831,7 @@ func (p *Parser) reusable(silent bool) bool {
 // LookBegin starts a lookahead of the given site. In a context at the current position, the
 // lookahead records what it reads, so that a result that depends on it records its outcome
 // instead of the seeds it read (LookEnd). A site of -1 is a lookahead that can leave captures or
-// bindings in effect after it (compile.LookKeepsState): what it reads stays a dependency of the
+// bindings in effect after it (check.LookKeepsState): what it reads stays a dependency of the
 // result around it.
 func (p *Parser) LookBegin(site int) {
 	if n := len(p.frames); n > 0 && site >= 0 {
