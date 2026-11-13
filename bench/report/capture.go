@@ -101,7 +101,7 @@ func genOptions(root, name string) ([]string, error) { return probe.GenOptions(r
 
 // parserGenArgs returns the options with which testdata/grammars/generate.txt generates parser name,
 // adapted to TypeScript.
-func parserGenArgs(root, name string) ([]string, error) { return probe.TSGenArgs(root, name) }
+func parserGenArgs(root, name string) ([]string, error) { return probe.GenTSArgs(root, name) }
 
 // captureSizes records, for each parser of sizeParsers, the size of the generated Go parser.go,
 // of a binary that calls its ParseAST (built with -trimpath and stripped of symbols and DWARF), of

@@ -180,34 +180,34 @@ func generateOnce(g *grammar.Grammar, c gen.Compiler, opts gen.GenOptions, h *Ho
 			return nil, fmt.Errorf("stream generation needs a #stream repetition at the top level of the start rule %s", start.Name)
 		}
 	}
-	goGen := &Generator{typedOnly: (opts.TypedOnly || opts.RecognizeOnly) && !opts.KeepNodes, Observability: opts.Observability, Document: opts.Document, NoBudget: !opts.LimitControls, Ordinary: !opts.LimitControls && !opts.Document, Prog: prog, Table: "rules", Opt: settings, CoreRun: h.CoreRun, PrintAfter: printAfter, PrintTo: opts.PrintTo, VerifyEach: opts.VerifyEachPass, hooks: *h, live: live, collect: collect, keepTableRules: (opts.TypedOnly || opts.RecognizeOnly) && !opts.KeepNodes}
+	genGo := &Generator{typedOnly: (opts.TypedOnly || opts.RecognizeOnly) && !opts.KeepNodes, Observability: opts.Observability, Document: opts.Document, NoBudget: !opts.LimitControls, Ordinary: !opts.LimitControls && !opts.Document, Prog: prog, Table: "rules", Opt: settings, CoreRun: h.CoreRun, PrintAfter: printAfter, PrintTo: opts.PrintTo, VerifyEach: opts.VerifyEachPass, hooks: *h, live: live, collect: collect, keepTableRules: (opts.TypedOnly || opts.RecognizeOnly) && !opts.KeepNodes}
 	if live != nil {
-		goGen.SeedDescs()
-		for _, d := range live.descs[len(goGen.Descs):] {
-			goGen.DescIDs[d] = compile.ExpID(len(goGen.Descs))
-			goGen.Descs = append(goGen.Descs, d)
+		genGo.SeedDescs()
+		for _, d := range live.descs[len(genGo.Descs):] {
+			genGo.DescIDs[d] = compile.ExpID(len(genGo.Descs))
+			genGo.Descs = append(genGo.Descs, d)
 		}
 	}
 	if opts.Stream {
-		goGen.streamStart = start
+		genGo.streamStart = start
 	}
-	goGen.Desc(compile.FixedDescs[0]) // the fixed expectations come first
+	genGo.Desc(compile.FixedDescs[0]) // the fixed expectations come first
 	if h.Generator != nil && collect == nil {
-		h.Generator(goGen)
+		h.Generator(genGo)
 	}
-	if err := goGen.StartRecFlow(prog); err != nil {
+	if err := genGo.StartRecFlow(prog); err != nil {
 		return nil, err
 	}
-	goGen.rules()
-	goGen.Flow = nil
-	if goGen.streamErr != nil {
-		return nil, goGen.streamErr
+	genGo.rules()
+	genGo.Flow = nil
+	if genGo.streamErr != nil {
+		return nil, genGo.streamErr
 	}
-	if goGen.tableErr != nil {
-		return nil, goGen.tableErr
+	if genGo.tableErr != nil {
+		return nil, genGo.tableErr
 	}
-	if goGen.FlowErr != nil {
-		return nil, goGen.FlowErr
+	if genGo.FlowErr != nil {
+		return nil, genGo.FlowErr
 	}
 	var rec *compile.Program
 	if opts.Recognize {
@@ -215,51 +215,51 @@ func generateOnce(g *grammar.Grammar, c gen.Compiler, opts gen.GenOptions, h *Ho
 		if rec, err = recognizer(); err != nil {
 			return nil, err
 		}
-		goGen.Prog, goGen.Table = rec, "recRules"
-		if err := goGen.StartRecFlow(rec); err != nil {
+		genGo.Prog, genGo.Table = rec, "recRules"
+		if err := genGo.StartRecFlow(rec); err != nil {
 			return nil, err
 		}
-		goGen.rules()
-		goGen.Flow = nil
-		goGen.Prog, goGen.Table = prog, "rules"
-		if goGen.tableErr != nil {
-			return nil, goGen.tableErr
+		genGo.rules()
+		genGo.Flow = nil
+		genGo.Prog, genGo.Table = prog, "rules"
+		if genGo.tableErr != nil {
+			return nil, genGo.tableErr
 		}
-		if goGen.FlowErr != nil {
-			return nil, goGen.FlowErr
+		if genGo.FlowErr != nil {
+			return nil, genGo.FlowErr
 		}
 	}
 	if collect != nil {
 		// The expectations of the Node and recognizer tables are those the second pass keeps; the typed
 		// code adds its own after them, and only for the rules it reaches.
-		collect.descs = append([]string(nil), goGen.Descs...)
+		collect.descs = append([]string(nil), genGo.Descs...)
 		if !opts.Types {
-			return nil, goGen.finishReach(prog, rec)
+			return nil, genGo.finishReach(prog, rec)
 		}
-		typed, err := goGen.typedGo(start, opts.ConvertTypes)
+		typed, err := genGo.typedGo(start, opts.ConvertTypes)
 		if err != nil {
 			return nil, err
 		}
-		goGen.convertsNodes = typed.needNodes
+		genGo.convertsNodes = typed.needNodes
 		if opts.TypedOnly && typed.needNodes && !opts.KeepNodes && !opts.DisableKeepNodes {
 			opts.KeepNodes = true
 			return generateOnce(g, c, opts, h, live, collect)
 		}
-		return nil, goGen.finishReach(prog, rec)
+		return nil, genGo.finishReach(prog, rec)
 	}
-	fmt.Fprintf(&goGen.Init, "\tzpGrammar.Starts = %s\n", goStrings(prog.StartRules))
-	fmt.Fprintf(&goGen.Init, "\tzpGrammar.DefaultStart = %q\n", prog.DefaultStartRule)
+	fmt.Fprintf(&genGo.Init, "\tzpGrammar.Starts = %s\n", goStrings(prog.StartRules))
+	fmt.Fprintf(&genGo.Init, "\tzpGrammar.DefaultStart = %q\n", prog.DefaultStartRule)
 	if !opts.TypedOnly {
-		goGen.writeDescs(opts)
+		genGo.writeDescs(opts)
 	}
 	if opts.Observability {
-		goGen.Init.WriteString("\tzpGrammar.Observable = true\n")
+		genGo.Init.WriteString("\tzpGrammar.Observable = true\n")
 	}
 	if !opts.LimitControls {
-		goGen.Init.WriteString("\tzpGrammar.NoBudgetControls = true\n")
+		genGo.Init.WriteString("\tzpGrammar.NoBudgetControls = true\n")
 	}
 	if prog.RecordsSourceInfo {
-		goGen.Init.WriteString("\tzpGrammar.SourceInfo = true\n")
+		genGo.Init.WriteString("\tzpGrammar.SourceInfo = true\n")
 	}
 	if t := prog.Vars; t != nil {
 		var names, vals []string
@@ -267,11 +267,11 @@ func generateOnce(g *grammar.Grammar, c gen.Compiler, opts gen.GenOptions, h *Ho
 			names = append(names, d.Name)
 			vals = append(vals, fmt.Sprintf("%#v", d.Init))
 		}
-		fmt.Fprintf(&goGen.Init, "\tzpGrammar.SetVars(%s, []any{%s})\n", goStrings(names), strings.Join(vals, ", "))
+		fmt.Fprintf(&genGo.Init, "\tzpGrammar.SetVars(%s, []any{%s})\n", goStrings(names), strings.Join(vals, ", "))
 	}
 
 	if rec != nil && !opts.TypedOnly {
-		goGen.Init.WriteString("\tzpRecGrammar.Share(zpGrammar)\n")
+		genGo.Init.WriteString("\tzpRecGrammar.Share(zpGrammar)\n")
 	}
 
 	var out strings.Builder
@@ -335,11 +335,11 @@ func ParseRule(name, input string, opts ...ParseOption) (*Node, error) {
 	}
 	var typesBody string
 	if opts.Types {
-		typed, err := goGen.typedGo(start, opts.ConvertTypes)
+		typed, err := genGo.typedGo(start, opts.ConvertTypes)
 		if err != nil {
 			return nil, err
 		}
-		goGen.convertsNodes = typed.needNodes
+		genGo.convertsNodes = typed.needNodes
 		if opts.TypedOnly && typed.needNodes && !opts.KeepNodes && !opts.DisableKeepNodes {
 			// A typed entry point converts the Node result of its rule, so the Node rule functions
 			// are needed; generate again with them.
@@ -348,7 +348,7 @@ func ParseRule(name, input string, opts ...ParseOption) (*Node, error) {
 		}
 		if opts.TypedOnly {
 			// The expectations of the typed bodies are known only now.
-			goGen.writeDescs(opts)
+			genGo.writeDescs(opts)
 		}
 		out.WriteString("\n// --- Typed values ---\n\n")
 		if opts.Document {
@@ -361,16 +361,16 @@ func ParseRule(name, input string, opts ...ParseOption) (*Node, error) {
 	if rec != nil && opts.TypedOnly {
 		// The recognizer grammar shares zpGrammar by copying, so Share follows the expectation table,
 		// which a typed-only parser writes only after its typed code.
-		goGen.Init.WriteString("\tzpRecGrammar.Share(zpGrammar)\n")
+		genGo.Init.WriteString("\tzpRecGrammar.Share(zpGrammar)\n")
 	}
-	if err := goGen.finishReach(prog, rec); err != nil {
+	if err := genGo.finishReach(prog, rec); err != nil {
 		return nil, err
 	}
-	out.WriteString(goGen.Vars.String())
+	out.WriteString(genGo.Vars.String())
 	out.WriteString("\nfunc init() {\n")
-	out.WriteString(goGen.Init.String())
+	out.WriteString(genGo.Init.String())
 	out.WriteString("}\n\n")
-	out.WriteString(goGen.Methods.String())
+	out.WriteString(genGo.Methods.String())
 	whole, err := format.Source([]byte("package " + opts.Package + "\n" + out.String()))
 	if err != nil {
 		return nil, fmt.Errorf("generated code does not compile: %w\n%s", err, out.String())
@@ -390,7 +390,7 @@ func ParseRule(name, input string, opts ...ParseOption) (*Node, error) {
 		// for: another runtime does not declare the constant.
 		body += "\nconst _ = " + info.protocol + "\n"
 	}
-	if goGen.chunksInRuntime {
+	if genGo.chunksInRuntime {
 		body = chunkNames.Replace(body)
 	}
 	body, err = qualifyRuntime(runtimeImport(opts), body, info, tp)
