@@ -3,7 +3,7 @@
 # go: go1.27.1
 # cores: 16
 # load: 2.51 3.09 3.65
-# go binary: a main that calls ParseValue; go build -trimpath -ldflags="-s -w"
+# go binary: a main that calls ParseAST; go build -trimpath -ldflags="-s -w"
 size json go-source 58324
 size json go-binary 2184562
 size json ts-raw 70888
