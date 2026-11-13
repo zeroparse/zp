@@ -39,6 +39,24 @@ rule main = x:"a"? y:"b"? ("c" / "d")* {$x == nil && $y != nil && len(text($x)) 
 	{"a type alias", `
 type S ~ node[string]
 rule main = x:("a" / "b") {text($x.(S)) == "a"} ("c" / "d")* $$`, false},
+	{"a rule declared with node[string]", `
+rule main = x:a {text($x.(node[string])) == "a"} ("c" / "d")* $$
+rule a node[string] = "a" / "b"`, false},
+	{"a rule declared with _", `
+rule main = x:a {text($x.(node[string])) == "a"} ("c" / "d")* $$
+rule a _ = "a" / "b"`, false},
+	{"a rule declared with a join", `
+rule main = x:a {text($x.(node[string])) == "a"} ("c" / "d")* $$
+rule a (node[string] | int) = "a" / "b"`, false},
+	{"a rule declared with a named node type", `
+type Num = node[string]
+rule main = x:a {text($x.(Num)) == "a"} ("c" / "d")* $$
+rule a Num = "a" / "b"`, true},
+	{"a rule declared with an alias of a named node type", `
+type Num = node[string]
+type A ~ Num
+rule main = x:a {text($x.(Num)) == "a"} ("c" / "d")* $$
+rule a A = "a" / "b"`, true},
 	{"the value of an action", `
 rule main = x:num {$x == 3} $$
 rule num int = [0-9] => 3`, true},

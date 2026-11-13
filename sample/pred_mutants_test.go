@@ -20,6 +20,8 @@ var predicateMutants = []struct{ name, file, old, new string }{
 	{"the oldest variable wins", "pred.go", "if _, ok := m[v.name]; !ok {\n\t\t\tm[v.name] = v.v", "if true {\n\t\t\tm[v.name] = v.v"},
 	{"an undecided predicate fails", "pred.go", "return holds || !known, nil", "return holds || !known && false, nil"},
 	{"aliases are unknown", "pred.go", "Zeros: t.zeros, Aliases: t.aliases}\n}", "Zeros: t.zeros}\n}"},
+	{"every declared type makes a node", "gen.go", "case ri.makesNode || caps != nil", "case ri.def.Type != nil || caps != nil"},
+	{"aliases of a node type are not followed", "pred.go", "if a, ok := t.aliases[x.Name]; ok {\n\t\t\t\tty = a", "if a, ok := t.aliases[x.Name]; ok && false {\n\t\t\t\tty = a"},
 	{"a capture that did not match is unknown", "pred.go", "if capture {\n\t\t\treturn ref.Nil", "if false {\n\t\t\treturn ref.Nil"},
 }
 
