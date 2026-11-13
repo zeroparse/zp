@@ -19,7 +19,8 @@ func TestMemoLookaheadStateEvaluations(t *testing.T) {
 		for _, b := range []Backend{Closure, Bytecode, BytecodeIterative} {
 			for _, lim := range []parse.Limits{{}, {Compute: 1 << 40}} {
 				if lim.Compute != 0 && !core.BudgetControlsEnabled {
-					// The reference build has no budget controls, so a limit builds no controlled graph.
+					// The reference build has no budget controls: it rejects a parse with a limit
+					// (ErrNoControls) before the parse starts.
 					continue
 				}
 				for _, recognize := range []bool{false, true} {
