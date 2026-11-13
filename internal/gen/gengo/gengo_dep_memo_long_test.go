@@ -159,11 +159,13 @@ func depMemoPackages(t *testing.T, cases []gentest.Case) ([]depMemoPackage, []ge
 		p := depMemoPackage{name: pkg}
 		var thisRT []gen.GeneratedFile
 		for _, f := range files {
+			// The copy of the runtime and the parser name it by this package's path, with its
+			// noderep and parse subpackages: all share one copy at depmemo/internal/runtime.
+			f.Content = bytes.ReplaceAll(f.Content, []byte(`"depmemo/`+pkg+`/internal/runtime`), []byte(`"depmemo/internal/runtime`))
 			if strings.HasPrefix(f.Path, "internal/runtime/") {
 				thisRT = append(thisRT, f)
 				continue
 			}
-			f.Content = bytes.ReplaceAll(f.Content, []byte(`"depmemo/`+pkg+`/internal/runtime"`), []byte(`"depmemo/internal/runtime"`))
 			p.files = append(p.files, f)
 		}
 		if rt == nil {
