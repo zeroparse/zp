@@ -406,12 +406,12 @@ A parse selects its family from its options when it starts, so no rule call chec
 built or loaded and is not stored in modules: no call site takes it in the call-preserving family, and
 the call sites of plain rules (computed from the rule table as today) take it in the inlined family.
 The `plain` fact of a rule itself is the same in both families, because a full call still uses it to
-leave the call protocol of a plain rule out of the count against a Document's default limit. `Compile` checks the grammar and builds Core IR; each family's program is
-built on first use under its own `sync.Once`, as the recognizer is, because a `Program` is shared across
+leave the call protocol of a plain rule out of the count against a Document's default limit. `Compile` checks the grammar; the Core IR and each family's program are
+built on first use, the family under its own `sync.Once`, as the recognizer is, because a `Program` is shared across
 goroutines. A user that only parses Documents, such as the language server, never builds the inlined
 family. Every compile error, such as `undefined rule`, which the closure lowering reports today
-(`compiler.errorf` in `compile.go`), is reported by the checker or the Core IR builder inside `Compile`, so
-building a family cannot fail on a grammar that compiled; an inconsistency found while building one is an
+(`compiler.errorf` in `compile.go`), is reported by the checker inside `Compile`, and the Core IR builder reports only internal errors, so
+building the Core IR or a family cannot fail on a grammar that compiled; an inconsistency found while building one is an
 internal error, not a user error. A first-use build runs inside the parse that needs it, which checks its
 context and budget control before and after the build, outside the `sync.Once`, as
 `prepareControlledProgram` does today. The build itself is not interrupted, so a cancelled parse never
@@ -692,23 +692,21 @@ stage of its first consumer, so its differential tests and negative controls run
 5. **Closures**, in both families. The closure backend is built from Core IR: one closure per node after
    the closure pipeline, with actions, predicates and bindings run as term programs compiled from Core IR
    terms. The grammar-driven construction of closures is removed; `closure/builder.go` stays as the
-   Core-driven builder. `Compile` builds Core IR and runs the closure pipeline under the compile
-   control and keeps the module until both families are built; the closures of each family are built
+   Core-driven builder. The first build of a family builds Core IR and runs the closure pipeline, and
+   the program keeps the module until both families are built; the closures of each family are built
    from that module, which the builds only read, on first use and without interruption. Nothing else
    reads the module, so the program drops it after the second build; it stays as long as a family
-   is unbuilt. The terms moved to Core IR before the rest of the closure backend, in the same change
+   is unbuilt. The metered program that runs the parses under budget controls runs the same checked
+   program and builds its families from the same module, which then stays until its families are built
+   too. The terms moved to Core IR before the rest of the closure backend, in the same change
    as the closures (see decision 6). A call site of a plain rule takes the plain
    path only in the inlined family, so the closures no longer check `noPlain`; the families are checked
    by their budget charges, which are those of the former run-time choice, and by event-free equality on
    the corpus. What remains of the stage is the removal of what the compile walker still computes only
-   for the old closure construction. The cost gate is still open: `Compile` now builds Core IR and runs
-   the closure pipeline and verification for every grammar, which it did not before. `Compile` plus the first-use build of the
-   inlined family is to be within noise of the former `Compile` in time and allocations, and the
-   first-use build of the call-preserving family is to be measured; both measurements are made with the
-   benchmark work that follows the structural changes. If `Compile` time regresses, the remedies to
-   measure are building Core IR per rule on first use and skipping the optimizing passes for
-   compilations that only report diagnostics, such as the language server's
-   `CompileContext`.
+   for the old closure construction. The cost gate: `Compile` no longer builds the closures, nor Core IR,
+   which the first parse builds with its family, so `Compile` checks the grammar only. `Compile` plus the
+   first-use build of the inlined family is to be within noise of the former `Compile` in time and
+   allocations, and the first-use build of the call-preserving family is to be measured.
 
 New optimizations (wider inlining, case-pair folding, slot sharing across alternatives) come after the
 stage that gives them a consumer and follow the same gates.

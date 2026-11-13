@@ -3,7 +3,6 @@
 package engine
 
 import (
-	"context"
 	"fmt"
 	"io"
 	"runtime"
@@ -12,7 +11,6 @@ import (
 	"testing"
 	"weak"
 
-	"zeroparse.dev/zp/internal/cancel"
 	"zeroparse.dev/zp/internal/compile"
 	"zeroparse.dev/zp/internal/engine/closure"
 	"zeroparse.dev/zp/internal/engine/core"
@@ -222,20 +220,16 @@ func TestClosureFamiliesBuiltOnFirstUse(t *testing.T) {
 }
 
 // TestClosureFamiliesLeaveModuleUnchanged checks that building the closures of both families only
-// reads the Core IR module that Compile stores and shares between them: the module prints the same,
-// with its attributes, before and after the builds of every grammar of the corpus, and keeps no
-// compile control.
+// reads the Core IR module that they share: the module prints the same, with its attributes, before
+// and after the builds of every grammar of the corpus.
 func TestClosureFamiliesLeaveModuleUnchanged(t *testing.T) {
 	t.Parallel()
 	for _, c := range gentest.GenCorpus(t) {
 		t.Run(c.Name, func(t *testing.T) {
 			sp := mustCompile(t, c.Src).Static()
-			m, err := closure.Core(sp, &cancel.Control{Ctx: context.Background()})
+			m, err := closure.Core(sp)
 			if err != nil {
 				t.Fatal(err)
-			}
-			if m.Control != nil {
-				t.Fatal("the module keeps the compile control")
 			}
 			before := ir.Print(m, true)
 			for _, f := range []closure.Family{closure.Inlined, closure.CallPreserving} {
@@ -260,7 +254,7 @@ func TestClosureFamiliesBuildConcurrently(t *testing.T) {
 	for _, c := range gentest.GenCorpus(t) {
 		t.Run(c.Name, func(t *testing.T) {
 			sp := mustCompile(t, c.Src).Static()
-			m, err := closure.Core(sp, nil)
+			m, err := closure.Core(sp)
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -303,18 +297,22 @@ func TestClosureFamilyBuildPanicIsAnError(t *testing.T) {
 	}
 }
 
-// TestClosureFamiliesReleaseTheCoreIR checks that a program keeps its Core IR until both closure
-// families are built, and that nothing retains the module after that.
+// TestClosureFamiliesReleaseTheCoreIR checks that a program builds its Core IR with the first
+// closure family, keeps it until both families are built, and that nothing retains the module
+// after that.
 func TestClosureFamiliesReleaseTheCoreIR(t *testing.T) {
 	prog := mustCompile(t, `rule main = item+ $$
 rule item = "a" / "b"`)
-	if prog.coreIR.m == nil {
-		t.Fatal("the compiled program holds no Core IR")
+	if prog.coreIR.m != nil {
+		t.Fatal("Compile built the Core IR before a family needed it")
 	}
-	module := weak.Make(prog.coreIR.m)
 	if _, err := prog.familyRules(closure.Inlined); err != nil {
 		t.Fatal(err)
 	}
+	if prog.coreIR.m == nil {
+		t.Fatal("the first family did not build the Core IR")
+	}
+	module := weak.Make(prog.coreIR.m)
 	if prog.coreIR.m == nil {
 		t.Fatal("the Core IR was dropped while the call-preserving family was not built")
 	}
@@ -346,13 +344,20 @@ func TestMeteredProgramSharesTheCoreIR(t *testing.T) {
 	}
 	const src = "rule main = item+ $$\nrule item = \"a\" / \"b\""
 	prog := mustCompile(t, src)
-	m := prog.coreIR.m
 	metered := prog.meteredProgram()
 	if metered.Static() != prog.Static() || metered.coreIR != prog.coreIR {
 		t.Fatal("the metered program does not share the static program and the Core IR")
 	}
+	var m *ir.Module
 	for _, q := range []*Program{prog, metered} {
 		for _, f := range []closure.Family{closure.Inlined, closure.CallPreserving} {
+			if m == nil {
+				if _, err := q.familyRules(f); err != nil {
+					t.Fatal(err)
+				}
+				m = prog.coreIR.m
+				continue
+			}
 			if q == metered && f == closure.CallPreserving {
 				if prog.coreIR.m != m {
 					t.Fatal("the Core IR was dropped or built again while a family was not built")

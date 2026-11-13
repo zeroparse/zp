@@ -87,9 +87,9 @@ func closureProgram(sp *compile.Program, c *closureCore, plainDispatch bool) *Pr
 
 // closureCore is the Core IR of the static program sp that the closure families of a program, and
 // of the metered program that runs its parses under budget controls (prepareControlledProgram), are
-// built from. Nothing else reads it, so it is dropped once no family that reads it is left to build:
-// pending counts the families of those programs whose build has not returned. A family that needs it
-// after that builds it again.
+// built from. The first build of a family builds it. Nothing else reads it, so it is dropped once no
+// family that reads it is left to build: pending counts the families of those programs whose build
+// has not returned. A family that needs it after that builds it again.
 type closureCore struct {
 	sp      *compile.Program
 	mu      sync.Mutex
@@ -97,9 +97,9 @@ type closureCore struct {
 	pending int
 }
 
-// newClosureCore returns the Core IR m of sp for the closure families of one program.
-func newClosureCore(sp *compile.Program, m *ir.Module) *closureCore {
-	c := &closureCore{sp: sp, m: m}
+// newClosureCore returns the Core IR of sp, not built yet, for the closure families of one program.
+func newClosureCore(sp *compile.Program) *closureCore {
+	c := &closureCore{sp: sp}
 	c.share()
 	return c
 }
@@ -111,14 +111,13 @@ func (c *closureCore) share() {
 	c.pending += len(Program{}.families)
 }
 
-// module returns the Core IR for the build of a family, building it if it was dropped; the build
-// calls done when it returns. The closures are built outside the compilation, so no control
-// interrupts this build.
+// module returns the Core IR for the build of a family, building it if it is not held; the build
+// calls done when it returns.
 func (c *closureCore) module() (*ir.Module, error) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 	if c.m == nil {
-		m, err := closure.Core(c.sp, nil)
+		m, err := closure.Core(c.sp)
 		if err != nil {
 			return nil, err
 		}
@@ -237,7 +236,7 @@ func buildControlled(g *grammar.Grammar, opts compile.Options, flags []compile.R
 	if err != nil {
 		return nil, names.Rewrite(err)
 	}
-	return lower(prog, control)
+	return lower(prog), nil
 }
 
 // compileChecked builds the program of g and checks its declarations of linear cost. The programs
@@ -258,10 +257,9 @@ func compileChecked(g *grammar.Grammar, opts compile.Options, control *cancel.Co
 // discards the entire program and accumulated diagnostics. Existing Compile and
 // saved-program loading keep their ordinary path with no active control.
 // Polls cover grammar AST validation, source normalization, rule/dependency
-// loops, shared success proofs, expression checking, type checking, the Core IR
-// build, its analysis, passes and verification. The closures are built from the
-// Core IR when a parse first needs them, outside the compilation, and are not
-// interrupted. Shared metadata and individual operations still have
+// loops, shared success proofs, expression checking and type checking. The Core
+// IR and the closures built from it are made when a parse first needs them,
+// outside the compilation, and are not interrupted. Shared metadata and individual operations still have
 // uncancellable stretches.
 // This is not a wall-clock latency guarantee.
 func CompileContext(ctx context.Context, g *grammar.Grammar, opts Options) (prog *Program, err error) {
@@ -283,13 +281,9 @@ func CompileContext(ctx context.Context, g *grammar.Grammar, opts Options) (prog
 	return compileChecked(g, opts, &cancel.Control{Ctx: ctx})
 }
 
-// lower builds the closure backend's form of the checked program prog from its Core IR.
-func lower(prog *compile.Program, control *cancel.Control) (*Program, error) {
-	m, err := closure.Core(prog, control)
-	if err != nil {
-		return nil, err
-	}
-	// The closures of each family are built from m on first use, inside the parse that needs them
-	// and outside the compilation and its control (Build only reads m).
-	return closureProgram(prog, newClosureCore(prog, m), true), nil
+// lower returns the program that runs the checked program prog. Its Core IR and the closures of
+// each family built from it are made on first use, inside the parse that needs them and outside the
+// compilation and its control (closureCore).
+func lower(prog *compile.Program) *Program {
+	return closureProgram(prog, newClosureCore(prog), true)
 }

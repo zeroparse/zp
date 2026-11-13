@@ -11,7 +11,6 @@ import (
 
 	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/compile"
-	"zeroparse.dev/zp/internal/engine/closure"
 	"zeroparse.dev/zp/internal/gentest"
 	ir "zeroparse.dev/zp/internal/ir/core"
 	corebuild "zeroparse.dev/zp/internal/ir/core/build"
@@ -78,7 +77,7 @@ func TestCompileContextPhaseCancellation(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	for _, phase := range []string{"static-analysis", "success-proof", "failure-proof", "cut-proof", "dependency-graph", "type-checking", "type-inference", "list-constructor-type", "core-build", "core-analysis", "core-passes", "core-pass-terminals", "core-pass-guards", "core-pass-scans", "core-pass-class-runs", "core-verify", "closure-core"} {
+	for _, phase := range []string{"static-analysis", "success-proof", "failure-proof", "cut-proof", "dependency-graph", "type-checking", "type-inference", "list-constructor-type", "core-build", "core-analysis", "core-passes", "core-pass-terminals", "core-pass-guards", "core-pass-scans", "core-pass-class-runs", "core-verify"} {
 		t.Run(phase, func(t *testing.T) {
 			ctx := compileTestContext(t, 1)
 			control := &cancel.Control{Ctx: ctx}
@@ -159,8 +158,6 @@ func TestCompileContextPhaseCancellation(t *testing.T) {
 				case "core-verify":
 					_ = ir.Verify(m)
 				}
-			case "closure-core":
-				_, _ = closure.Core(p.Static(), control)
 			}
 			t.Fatal("phase completed without cancellation")
 		})
