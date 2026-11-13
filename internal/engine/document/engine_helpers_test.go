@@ -18,6 +18,7 @@ import (
 	"zeroparse.dev/zp/internal/starttest"
 	"zeroparse.dev/zp/internal/syntax"
 	"zeroparse.dev/zp/internal/value"
+	"zeroparse.dev/zp/runtime/parse"
 )
 
 // The tests in this file's package parse with the engine's programs. These helpers are the
@@ -257,7 +258,7 @@ func newPollingContext(at int) *pollingContext {
 func budgetDocumentVariants(t *testing.T, run func(*testing.T, ParseOptions)) {
 	t.Helper()
 	for _, b := range []Backend{Closure, Bytecode, BytecodeIterative} {
-		for _, u := range []PositionUnit{CodePoints, Bytes} {
+		for _, u := range []parse.PositionUnit{parse.CodePoints, parse.Bytes} {
 			t.Run(fmt.Sprintf("%s/%s", b, u), func(t *testing.T) { run(t, ParseOptions{Backend: b, Unit: u}) })
 		}
 	}
@@ -266,7 +267,7 @@ func budgetDocumentVariants(t *testing.T, run func(*testing.T, ParseOptions)) {
 func snapshotVariants(t *testing.T, run func(*testing.T, core.ParseOptions)) {
 	t.Helper()
 	for _, backend := range []core.Backend{core.Closure, core.Bytecode, core.BytecodeIterative} {
-		for _, unit := range []core.PositionUnit{core.CodePoints, core.Bytes} {
+		for _, unit := range []parse.PositionUnit{parse.CodePoints, parse.Bytes} {
 			t.Run(fmt.Sprintf("%s/%s", backend, unit), func(t *testing.T) { run(t, core.ParseOptions{Backend: backend, Unit: unit}) })
 		}
 	}

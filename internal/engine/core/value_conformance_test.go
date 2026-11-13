@@ -8,8 +8,8 @@ import (
 	"zeroparse.dev/zp/internal/ir/exec/conform"
 	"zeroparse.dev/zp/internal/ir/exec/ops"
 	"zeroparse.dev/zp/internal/ir/exec/ref"
-	"zeroparse.dev/zp/internal/limits"
 	"zeroparse.dev/zp/internal/value"
+	"zeroparse.dev/zp/runtime/parse"
 )
 
 // engineValues binds the compositions of the operators to the engine's printed term_exec.go
@@ -85,7 +85,7 @@ func (e engineValues) Call(o *exec.Op, args []any) []any {
 }
 
 func TestEngineValueConformance(t *testing.T) {
-	controlled := &Parser{Input: Input{Control: NewBudgetControl(context.Background(), limits.Limits{Compute: 1 << 62})}}
+	controlled := &Parser{Input: Input{Control: NewBudgetControl(context.Background(), parse.Limits{Compute: 1 << 62})}}
 	for name, impl := range map[string]engineValues{"engine": {}, "engine controlled": {controlled}} {
 		s := conform.ValueSuite{Name: name, Impl: impl, Ops: []string{"binary", "unary", "logic"}}
 		if err := conform.RunValues(s); err != nil {

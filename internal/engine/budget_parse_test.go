@@ -10,7 +10,7 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/internal/engine/core"
-	"zeroparse.dev/zp/internal/limits"
+	"zeroparse.dev/zp/runtime/parse"
 )
 
 func TestBudgetParsePreCancelledAndValidation(t *testing.T) {
@@ -36,10 +36,10 @@ func TestBudgetParseBudgetAndPoolRetry(t *testing.T) {
 	t.Parallel()
 	prog := mustCompile(t, `rule main = [a-z]+ #atomic $$`)
 	for _, b := range []Backend{Closure, Bytecode, BytecodeIterative} {
-		for _, u := range []PositionUnit{Bytes, CodePoints} {
-			for _, lim := range []limits.Limits{{Compute: 1}, {Compute: 1}} {
+		for _, u := range []parse.PositionUnit{parse.Bytes, parse.CodePoints} {
+			for _, lim := range []parse.Limits{{Compute: 1}, {Compute: 1}} {
 				n, err := prog.ParseWith("main", strings.Repeat("a", 10000), ParseOptions{Backend: b, Unit: u, Limits: lim})
-				if n != nil || !errors.Is(err, limits.ErrLimit) {
+				if n != nil || !errors.Is(err, parse.ErrLimit) {
 					t.Fatalf("%v/%v/%v: node=%v err=%v", b, u, lim, n, err)
 				}
 				n, err = prog.ParseWith("main", "abc", ParseOptions{Backend: b, Unit: u})
@@ -81,7 +81,7 @@ func TestBudgetParseLongLiteralAndScanner(t *testing.T) {
 		for _, b := range []Backend{Closure, Bytecode, BytecodeIterative} {
 			ctx, cancel := context.WithCancel(context.Background())
 			calls := 0
-			n, err := prog.ParseWith("main", literal, ParseOptions{Backend: b, Unit: Bytes, Context: ctx, Trace: func(e TraceEvent) {
+			n, err := prog.ParseWith("main", literal, ParseOptions{Backend: b, Unit: parse.Bytes, Context: ctx, Trace: func(e TraceEvent) {
 				if e.Kind == TraceEnter {
 					calls++
 					core.TraceParser(e).Control.Ctx = newPollingContext(2)
@@ -132,8 +132,8 @@ func TestBudgetParseFinalPublicationAndRecovery(t *testing.T) {
 	recovery := mustCompile(t, `rule main = item+ $$
 
 rule item = "a" ";" #recover(skip=[^;]* ";")`)
-	n, err := recovery.ParseWith("main", strings.Repeat("x;", 1000), ParseOptions{Limits: limits.Limits{Compute: 5}})
-	if n != nil || !errors.Is(err, limits.ErrLimit) {
+	n, err := recovery.ParseWith("main", strings.Repeat("x;", 1000), ParseOptions{Limits: parse.Limits{Compute: 5}})
+	if n != nil || !errors.Is(err, parse.ErrLimit) {
 		t.Fatalf("recovery swallowed interruption: node=%v err=%v", n, err)
 	}
 }
@@ -143,12 +143,12 @@ func TestBudgetParseTraceAccessorInterruption(t *testing.T) {
 	prog := mustCompile(t, `rule main = "abc" $$`)
 	for _, b := range []Backend{Closure, Bytecode, BytecodeIterative} {
 		var observed *core.Parser
-		n, err := prog.ParseWith("main", "abc", ParseOptions{Backend: b, Limits: limits.Limits{Compute: 100}, Trace: func(e TraceEvent) {
+		n, err := prog.ParseWith("main", "abc", ParseOptions{Backend: b, Limits: parse.Limits{Compute: 100}, Trace: func(e TraceEvent) {
 			observed = core.TraceParser(e)
 			core.TraceParser(e).Control.Limits.Compute = core.TraceParser(e).Control.Used
 			e.LineCol(1) // Building the first line table is engine execution inside caller code.
 		}})
-		if n != nil || !errors.Is(err, limits.ErrLimit) || observed == nil || observed.Scratch != nil {
+		if n != nil || !errors.Is(err, parse.ErrLimit) || observed == nil || observed.Scratch != nil {
 			t.Fatalf("%v accessor interruption: node=%v err=%v parser=%v", b, n, err, observed)
 		}
 	}
@@ -173,12 +173,12 @@ rule expr = expr "+" "a" / "a"`)
 		if n != nil || !errors.Is(err, context.Canceled) {
 			t.Fatalf("%v LR: node=%v err=%v", b, n, err)
 		}
-		n, err = prog.ParseWith("main", "a+a+a+a", ParseOptions{Backend: b, Limits: limits.Limits{Compute: 10000}})
+		n, err = prog.ParseWith("main", "a+a+a+a", ParseOptions{Backend: b, Limits: parse.Limits{Compute: 10000}})
 		if n == nil || err != nil {
 			t.Fatalf("%v LR retry: node=%v err=%v", b, n, err)
 		}
 		nested := false
-		n, err = prog.ParseWith("main", "a", ParseOptions{Backend: b, Limits: limits.Limits{Compute: 10000}, Trace: func(e TraceEvent) {
+		n, err = prog.ParseWith("main", "a", ParseOptions{Backend: b, Limits: parse.Limits{Compute: 10000}, Trace: func(e TraceEvent) {
 			if nested {
 				return
 			}
@@ -202,12 +202,12 @@ func TestBudgetParseControlledUnicodeParity(t *testing.T) {
 	for _, src := range []string{`rule main = .* $$`, `rule main = "é💡" "x" $$`} {
 		prog := mustCompile(t, src)
 		for _, b := range []Backend{Closure, Bytecode, BytecodeIterative} {
-			for _, u := range []PositionUnit{Bytes, CodePoints} {
+			for _, u := range []parse.PositionUnit{parse.Bytes, parse.CodePoints} {
 				for _, recognize := range []bool{false, true} {
 					for _, input := range inputs {
 						opts := ParseOptions{Backend: b, Unit: u, Recognize: recognize}
 						baseline, baseErr := prog.ParseWith("main", input, opts)
-						opts.Limits = limits.Limits{Compute: 100000}
+						opts.Limits = parse.Limits{Compute: 100000}
 						got, err := prog.ParseWith("main", input, opts)
 						if !reflect.DeepEqual(got, baseline) || !reflect.DeepEqual(err, baseErr) {
 							t.Fatalf("%v/%v/recognize=%v input=%q: controlled=%#v/%#v baseline=%#v/%#v", b, u, recognize, input, got, err, baseline, baseErr)

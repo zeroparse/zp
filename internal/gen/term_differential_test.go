@@ -20,7 +20,7 @@ import (
 	"zeroparse.dev/zp/internal/gen"
 	"zeroparse.dev/zp/internal/gentest"
 	"zeroparse.dev/zp/internal/ir/exec/ref"
-	"zeroparse.dev/zp/internal/limits"
+	"zeroparse.dev/zp/runtime/parse"
 )
 
 // termDifferentialCases is the number of terms of each seed. The tests that run in the process
@@ -97,7 +97,7 @@ func termCaseList(cs []gentest.TermCase) []gentest.Case {
 
 // TestTermEngineBackends checks that the engine's closure backend, its bytecode VM and its iterative
 // VM give one value or one error for every generated term, in both position units. Their charges differ
-// by design today (zp.Limits: counts depend on backend); the test only requires that every backend
+// by design today (parse.Limits: counts depend on backend); the test only requires that every backend
 // reports one and logs how far apart the backends are.
 func TestTermEngineBackends(t *testing.T) {
 	t.Parallel()
@@ -110,11 +110,11 @@ func TestTermEngineBackends(t *testing.T) {
 				t.Fatal(err)
 			}
 			for _, in := range c.Inputs {
-				for _, unit := range []engine.PositionUnit{engine.CodePoints, engine.Bytes} {
+				for _, unit := range []parse.PositionUnit{parse.CodePoints, parse.Bytes} {
 					var want string
 					for _, b := range []engine.Backend{engine.Closure, engine.Bytecode, engine.BytecodeIterative} {
 						var used uint64
-						n, err := prog.ParseWith("main", in, engine.ParseOptions{Backend: b, Unit: unit, Limits: limits.Limits{Compute: 1 << 50},
+						n, err := prog.ParseWith("main", in, engine.ParseOptions{Backend: b, Unit: unit, Limits: parse.Limits{Compute: 1 << 50},
 							Trace: func(e engine.TraceEvent) { used = core.TraceParser(e).Control.Used }})
 						got := gentest.ResultJSON(n, err)
 						if used == 0 {
@@ -686,12 +686,12 @@ func TestTermReferenceEvaluator(t *testing.T) {
 				t.Fatal(err)
 			}
 			term := referenceTerm(t, c)
-			for _, unit := range []engine.PositionUnit{engine.CodePoints, engine.Bytes} {
+			for _, unit := range []parse.PositionUnit{parse.CodePoints, parse.Bytes} {
 				w := utf8.RuneCountInString(c.Lit)
-				if unit == engine.Bytes {
+				if unit == parse.Bytes {
 					w = len(c.Lit)
 				}
-				env := &ref.TermEnv{Captures: map[string]ref.V{"x": ref.Node(ref.StringNode, c.Lit, 0, w, nil, nil)}, Bytes: unit == engine.Bytes,
+				env := &ref.TermEnv{Captures: map[string]ref.V{"x": ref.Node(ref.StringNode, c.Lit, 0, w, nil, nil)}, Bytes: unit == parse.Bytes,
 					Start: 0, End: w, Line: 1, Col: 1, Zeros: referenceZeros(t, prog.Static(), "R", "Inner", "Leaf")}
 				in := c.Lit
 				if c.Kind == gentest.TermPredicate {
@@ -710,7 +710,7 @@ func TestTermReferenceEvaluator(t *testing.T) {
 // checkReference compares the engine's closure backend on the input in with the reference evaluator
 // in env: the value or the error of an action, and for a predicate, which precedes an optional "b",
 // whether the predicate held, by whether an input that ends in "b" parses.
-func checkReference(t *testing.T, c gentest.TermCase, prog *engine.Program, term grammar.Term, env *ref.TermEnv, unit engine.PositionUnit, in string) {
+func checkReference(t *testing.T, c gentest.TermCase, prog *engine.Program, term grammar.Term, env *ref.TermEnv, unit parse.PositionUnit, in string) {
 	t.Helper()
 	v, msg := env.Eval(term)
 	n, err := prog.ParseWith("main", in, engine.ParseOptions{Backend: engine.Closure, Unit: unit})
@@ -776,8 +776,8 @@ func TestTermFixedReference(t *testing.T) {
 		zeros := referenceZeros(t, prog.Static(), structs...)
 		term := referenceTerm(t, c)
 		for _, in := range c.Inputs {
-			for _, unit := range []engine.PositionUnit{engine.CodePoints, engine.Bytes} {
-				bytes := unit == engine.Bytes
+			for _, unit := range []parse.PositionUnit{parse.CodePoints, parse.Bytes} {
+				bytes := unit == parse.Bytes
 				end := utf8.RuneCountInString(in)
 				if bytes {
 					end = len(in)

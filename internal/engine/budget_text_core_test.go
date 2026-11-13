@@ -11,18 +11,18 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/internal/engine/core"
-	"zeroparse.dev/zp/internal/limits"
+	"zeroparse.dev/zp/runtime/parse"
 )
 
 func TestBudgetTextFallbackBudgetCore(t *testing.T) {
 	t.Parallel()
-	for _, u := range []PositionUnit{Bytes, CodePoints} {
-		in := core.Input{Unit: u, Bs: make([]byte, 8192), In: make([]rune, 256), Control: core.NewBudgetControl(nil, limits.Limits{Compute: 1})}
+	for _, u := range []parse.PositionUnit{parse.Bytes, parse.CodePoints} {
+		in := core.Input{Unit: u, Bs: make([]byte, 8192), In: make([]rune, 256), Control: core.NewBudgetControl(nil, parse.Limits{Compute: 1})}
 		end := len(in.Bs)
-		if u == CodePoints {
+		if u == parse.CodePoints {
 			end = len(in.In)
 		}
-		if err := catchFatal(t, func() { _ = in.Text(0, end) }); !errors.Is(err, limits.ErrLimit) {
+		if err := catchFatal(t, func() { _ = in.Text(0, end) }); !errors.Is(err, parse.ErrLimit) {
 			t.Fatalf("%v materialization error=%v, want compute limit", u, err)
 		}
 	}
@@ -55,20 +55,20 @@ rule piece = .*`
 		}
 		prog := mustCompile(t, grammar)
 		for _, b := range []Backend{Closure, Bytecode, BytecodeIterative} {
-			for _, u := range []PositionUnit{Bytes, CodePoints} {
-				retained, err := prog.ParseWith("main", strings.Repeat("oldλ\xff", 90), ParseOptions{Backend: b, Unit: u, Limits: limits.Limits{Compute: 1 << 50}})
+			for _, u := range []parse.PositionUnit{parse.Bytes, parse.CodePoints} {
+				retained, err := prog.ParseWith("main", strings.Repeat("oldλ\xff", 90), ParseOptions{Backend: b, Unit: u, Limits: parse.Limits{Compute: 1 << 50}})
 				if err != nil || retained == nil {
 					t.Fatalf("retained parse %v/%v: %v", b, u, err)
 				}
 				before, _ := json.Marshal(retained)
 				for _, recognize := range []bool{false, true} {
 					for _, cancel := range []bool{false, true} {
-						if cancel && u == Bytes {
+						if cancel && u == parse.Bytes {
 							continue
 						}
 						var observed *core.Parser
 						armed := false
-						n, err := prog.ParseWith("main", source, ParseOptions{Backend: b, Unit: u, Recognize: recognize, Limits: limits.Limits{Compute: 1 << 50}, Trace: func(e TraceEvent) {
+						n, err := prog.ParseWith("main", source, ParseOptions{Backend: b, Unit: u, Recognize: recognize, Limits: parse.Limits{Compute: 1 << 50}, Trace: func(e TraceEvent) {
 							observed = core.TraceParser(e)
 							if e.Kind != TraceExit || e.Rule != "piece" || !e.Matched {
 								return
@@ -81,7 +81,7 @@ rule piece = .*`
 									polls = 1
 								}
 								core.TraceParser(e).Control.Ctx = newPollingContext(polls)
-							} else if u == CodePoints {
+							} else if u == parse.CodePoints {
 								// A source substring of Bytes charges no input, so only
 								// code points see the tightened budget.
 								core.TraceParser(e).Control.Limits.Compute = core.TraceParser(e).Control.Used + 16
@@ -101,8 +101,8 @@ rule piece = .*`
 						// still polls, interrupts such a parse; the text of the trace hook in a
 						// recognition is the first text and is interrupted while decoding.
 						decodedEarly := !cancel && (!recognize || !traceText)
-						if u == CodePoints && !decodedEarly {
-							target := limits.ErrLimit
+						if u == parse.CodePoints && !decodedEarly {
+							target := parse.ErrLimit
 							if cancel {
 								target = context.Canceled
 							}
@@ -129,25 +129,25 @@ rule piece = .*`
 
 func TestBudgetTextStepBudgetAndLazyOffsets(t *testing.T) {
 	t.Parallel()
-	for _, u := range []PositionUnit{Bytes, CodePoints} {
-		in := core.Input{Unit: u, Bs: make([]byte, 4097), In: make([]rune, 129), Control: core.NewBudgetControl(nil, limits.Limits{Compute: 128})}
+	for _, u := range []parse.PositionUnit{parse.Bytes, parse.CodePoints} {
+		in := core.Input{Unit: u, Bs: make([]byte, 4097), In: make([]rune, 129), Control: core.NewBudgetControl(nil, parse.Limits{Compute: 128})}
 		end := len(in.In)
-		if u == Bytes {
+		if u == parse.Bytes {
 			end = len(in.Bs)
 			in.Control.Limits.Compute = 1
 		}
 		err := catchFatal(t, func() { _ = in.Text(0, end) })
-		var limit *limits.LimitError
-		if !errors.As(err, &limit) || limit.Kind != limits.LimitCompute {
+		var limit *parse.LimitError
+		if !errors.As(err, &limit) || limit.Kind != parse.LimitCompute {
 			t.Fatalf("%v step error=%v", u, err)
 		}
 	}
 	source := "aé😀z"
-	in := core.Input{Unit: CodePoints, Src: source, SrcOK: true, In: []rune(source), Control: core.NewBudgetControl(nil, limits.Limits{Compute: 1})}
-	if err := catchFatal(t, func() { _ = in.Text(1, 3) }); !errors.Is(err, limits.ErrLimit) || in.Offs != nil {
+	in := core.Input{Unit: parse.CodePoints, Src: source, SrcOK: true, In: []rune(source), Control: core.NewBudgetControl(nil, parse.Limits{Compute: 1})}
+	if err := catchFatal(t, func() { _ = in.Text(1, 3) }); !errors.Is(err, parse.ErrLimit) || in.Offs != nil {
 		t.Fatalf("lazy offsets error=%v offsets=%v", err, in.Offs)
 	}
-	in.Control = core.NewBudgetControl(nil, limits.Limits{Compute: 100})
+	in.Control = core.NewBudgetControl(nil, parse.Limits{Compute: 100})
 	if got := in.Text(1, 3); got != "é😀" {
 		t.Fatalf("offset retry=%q", got)
 	}
@@ -163,11 +163,11 @@ rule main Token = t:(.* $$) #atomic => Token{Text: text($t)}`, `rule main = item
 rule item = "!" #recover(skip=.*)`} {
 		prog := mustCompile(t, src)
 		for _, b := range []Backend{Closure, Bytecode, BytecodeIterative} {
-			for _, u := range []PositionUnit{Bytes, CodePoints} {
+			for _, u := range []parse.PositionUnit{parse.Bytes, parse.CodePoints} {
 				for _, recognize := range []bool{false, true} {
 					opts := ParseOptions{Backend: b, Unit: u, Recognize: recognize}
 					want, wantErr := prog.ParseWith("main", input, opts)
-					opts.Limits = limits.Limits{Compute: 1 << 50}
+					opts.Limits = parse.Limits{Compute: 1 << 50}
 					got, gotErr := prog.ParseWith("main", input, opts)
 					if !reflect.DeepEqual(got, want) || !reflect.DeepEqual(gotErr, wantErr) {
 						t.Fatalf("%v/%v recognition=%t node/error differs for %s", b, u, recognize, src)

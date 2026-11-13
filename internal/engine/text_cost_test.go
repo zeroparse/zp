@@ -9,7 +9,7 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/internal/engine/core"
-	"zeroparse.dev/zp/internal/limits"
+	"zeroparse.dev/zp/runtime/parse"
 )
 
 // nestedTextGrammar takes the text of every level of a nesting: the texts sum to the square of
@@ -22,11 +22,11 @@ func nestedTextInput(depth int, center string) string {
 }
 
 // leastParseBudget returns the smallest budget with which parse finishes, by bisection.
-func leastParseBudget(t *testing.T, parse func(budget uint64) error) uint64 {
+func leastParseBudget(t *testing.T, parseFn func(budget uint64) error) uint64 {
 	t.Helper()
 	finishes := func(budget uint64) bool {
-		err := parse(budget)
-		if errors.Is(err, limits.ErrLimit) {
+		err := parseFn(budget)
+		if errors.Is(err, parse.ErrLimit) {
 			return false
 		}
 		if err != nil {
@@ -51,11 +51,11 @@ func leastParseBudget(t *testing.T, parse func(budget uint64) error) uint64 {
 // assertLinearText checks that the least budget of a parse of each depth grows in proportion to
 // the depth: doubling it at most a little more than doubles the cost, where the cost of texts
 // that copy would quadruple it.
-func assertLinearText(t *testing.T, depths []int, parse func(depth int, budget uint64) error) {
+func assertLinearText(t *testing.T, depths []int, parseFn func(depth int, budget uint64) error) {
 	t.Helper()
 	var costs []uint64
 	for _, depth := range depths {
-		costs = append(costs, leastParseBudget(t, func(budget uint64) error { return parse(depth, budget) }))
+		costs = append(costs, leastParseBudget(t, func(budget uint64) error { return parseFn(depth, budget) }))
 	}
 	for i := 1; i < len(costs); i++ {
 		if ratio := float64(costs[i]) / float64(costs[i-1]); ratio > 2.3 {
@@ -69,12 +69,12 @@ func TestTextCostIsConstantInWholeInputs(t *testing.T) {
 	prog := mustCompile(t, nestedTextGrammar)
 	inputs := []struct {
 		name   string
-		unit   PositionUnit
+		unit   parse.PositionUnit
 		center string
 	}{
-		{"bytes", Bytes, "x"},
-		{"code points", CodePoints, "é"},
-		{"invalid UTF-8", CodePoints, "\xff"},
+		{"bytes", parse.Bytes, "x"},
+		{"code points", parse.CodePoints, "é"},
+		{"invalid UTF-8", parse.CodePoints, "\xff"},
 	}
 	for _, b := range []Backend{Closure, Bytecode, BytecodeIterative} {
 		for _, in := range inputs {
@@ -85,7 +85,7 @@ func TestTextCostIsConstantInWholeInputs(t *testing.T) {
 					t.Fatalf("value %v, %v; want %q", n, err, want)
 				}
 				assertLinearText(t, []int{1024, 2048, 4096}, func(depth int, budget uint64) error {
-					_, err := prog.ParseWith("main", nestedTextInput(depth, in.center), ParseOptions{Backend: b, Unit: in.unit, Limits: limits.Limits{Compute: budget}})
+					_, err := prog.ParseWith("main", nestedTextInput(depth, in.center), ParseOptions{Backend: b, Unit: in.unit, Limits: parse.Limits{Compute: budget}})
 					return err
 				})
 			})
@@ -97,12 +97,12 @@ func TestTextDecodesInvalidInputOnce(t *testing.T) {
 	t.Parallel()
 	source := strings.Repeat("é\xff", 1000)
 	want := strings.ToValidUTF8(source, "�")
-	c := core.NewBudgetControl(nil, limits.Limits{Compute: 1 << 30})
-	in := core.NewControlledTextInput(source, CodePoints, false, nil, c)
+	c := core.NewBudgetControl(nil, parse.Limits{Compute: 1 << 30})
+	in := core.NewControlledTextInput(source, parse.CodePoints, false, nil, c)
 
 	// The decoding is interruptible and leaves nothing behind.
 	c.Limits.Compute = c.Used + 100
-	if err := catchFatal(t, func() { _ = in.Text(0, 2000) }); !errors.Is(err, limits.ErrLimit) {
+	if err := catchFatal(t, func() { _ = in.Text(0, 2000) }); !errors.Is(err, parse.ErrLimit) {
 		t.Fatalf("decoding interruption: %v", err)
 	}
 	c.Limits.Compute = 1 << 30
@@ -118,7 +118,7 @@ func TestTextDecodesInvalidInputOnce(t *testing.T) {
 	}
 
 	// An edit of a flat Document decodes its source again.
-	doc := core.NewTextInput("a\xffb", CodePoints, false)
+	doc := core.NewTextInput("a\xffb", parse.CodePoints, false)
 	if got := doc.Text(0, 3); got != "a�b" {
 		t.Fatalf("text %q", got)
 	}
@@ -133,19 +133,19 @@ func TestDocumentPieceTextFlattensOnce(t *testing.T) {
 	if !core.DocumentPieceInput {
 		t.Skip("piece input is disabled")
 	}
-	for _, unit := range []PositionUnit{Bytes, CodePoints} {
+	for _, unit := range []parse.PositionUnit{parse.Bytes, parse.CodePoints} {
 		pieces := core.NewDocumentPieces(strings.Repeat("é", 8192), unit)
 		pieces.Replace(10, 11, "x\xff")
-		c := core.NewBudgetControl(nil, limits.Limits{Compute: 1 << 30})
+		c := core.NewBudgetControl(nil, parse.Limits{Compute: 1 << 30})
 		in := core.Input{Unit: unit, Eof: true, BaseLine: 1, BaseCol: 1, Pieces: pieces, Control: c}
 		flat := strings.Repeat("é", 8192)
-		if unit == Bytes {
+		if unit == parse.Bytes {
 			flat = flat[:10] + "x\xff" + flat[11:]
 		} else {
 			flat = string([]rune(flat)[:10]) + "x�" + string([]rune(flat)[11:])
 		}
 		at := func(i int) int { // the byte offset of position i of flat
-			if unit == Bytes {
+			if unit == parse.Bytes {
 				return i
 			}
 			return len(string([]rune(flat)[:i]))

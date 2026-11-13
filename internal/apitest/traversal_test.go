@@ -7,6 +7,7 @@ import (
 
 	"zeroparse.dev/zp"
 	"zeroparse.dev/zp/internal/value"
+	"zeroparse.dev/zp/runtime/parse"
 )
 
 func TestTraversalPublicFacade(t *testing.T) {
@@ -14,7 +15,7 @@ func TestTraversalPublicFacade(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	for _, unit := range []zp.PositionUnit{zp.CodePoints, zp.Bytes} {
+	for _, unit := range []parse.PositionUnit{parse.CodePoints, parse.Bytes} {
 		node, err := parser.Parse("é", zp.WithUnit(unit))
 		if err != nil {
 			t.Fatal(err)

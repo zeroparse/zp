@@ -48,6 +48,7 @@ import (
 	"strings"
 
 	"zeroparse.dev/zp"
+	"zeroparse.dev/zp/runtime/parse"
 )
 
 //go:embed config.zp
@@ -104,7 +105,7 @@ func asStrings(v *zp.Node) ([]string, error) {
 func Load(p *zp.Parser, src string) (Config, error) {
 	var c Config
 	// Bytes, so that Start() is an offset into src.
-	tree, err := p.Parse(src, zp.WithUnit(zp.Bytes))
+	tree, err := p.Parse(src, zp.WithUnit(parse.Bytes))
 	if err != nil {
 		return c, err
 	}
@@ -169,10 +170,10 @@ error: 2:9: syntax error: expected "#", "-", "[", "\"", "false", "true", [ \t\r\
 - **The tree is what the grammar declares.** `main` returns a `Config` struct whose `Entries` field is a list of `Entry`
   structs. `Field("Entries")` and `Elems` walk it, as described in
   [Shaping Trees](../guide/shaping-trees.md).
-- **`zp.WithUnit(zp.Bytes)`** makes `Start()` and `End()` offsets into the Go string, so `src[:e.Start()]` is the text
+- **`zp.WithUnit(parse.Bytes)`** makes `Start()` and `End()` offsets into the Go string, so `src[:e.Start()]` is the text
   before an entry, and counting its line feeds gives the line. By default positions count code points, which are not
   string indexes when the text has non-ASCII characters.
-- **Two kinds of error.** A file that is not in the format fails in `Parse` with a `*zp.SyntaxError` (the last line of
+- **Two kinds of error.** A file that is not in the format fails in `Parse` with a `*parse.SyntaxError` (the last line of
   the output). A file that has the format but not the meaning your program needs, such as a wrong type or an unknown
   key, fails in your code, which knows the position of the entry.
 

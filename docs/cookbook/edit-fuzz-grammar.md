@@ -74,6 +74,7 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp"
+	"zeroparse.dev/zp/runtime/parse"
 	"zeroparse.dev/zp/editfuzz"
 )
 
@@ -107,8 +108,8 @@ func TestEditsMatchFreshParses(t *testing.T) {
 	}{{"closure", zp.Closure}, {"bytecode", zp.Bytecode}, {"bytecode-iterative", zp.BytecodeIterative}}
 	units := []struct {
 		name string
-		unit zp.PositionUnit
-	}{{"codepoints", zp.CodePoints}, {"bytes", zp.Bytes}}
+		unit parse.PositionUnit
+	}{{"codepoints", parse.CodePoints}, {"bytes", parse.Bytes}}
 	for _, b := range backends {
 		for _, u := range units {
 			t.Run(b.name+"/"+u.name, func(t *testing.T) {

@@ -579,7 +579,7 @@ src, err := os.ReadFile("grammar.zp")
 if err != nil {
 	t.Fatal(err)
 }
-err = editfuzz.Fuzz(src, editfuzz.Options{Start: "main", Backend: zp.BytecodeIterative, Unit: zp.Bytes,
+err = editfuzz.Fuzz(src, editfuzz.Options{Start: "main", Backend: zp.BytecodeIterative, Unit: parse.Bytes,
 	Seed: 1, SaveFailures: t.TempDir()})
 if err != nil {
 	t.Fatal(err) // a *editfuzz.Failure, with the saved path

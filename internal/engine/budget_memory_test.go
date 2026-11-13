@@ -9,8 +9,8 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/internal/gentest"
-	"zeroparse.dev/zp/internal/limits"
 	"zeroparse.dev/zp/internal/value"
+	"zeroparse.dev/zp/runtime/parse"
 )
 
 // memoryGrammar builds nodes, child and field lists, memo entries and strings concatenated by
@@ -32,15 +32,15 @@ func memoryInput(n int) string {
 // minMemory returns the smallest Memory under which parse succeeds, by bisection: the count of a
 // parse without returns only grows, so a parse succeeds exactly when the limit is at least its
 // final count.
-func minMemory(t *testing.T, parse func(mem uint64) error) uint64 {
+func minMemory(t *testing.T, parseFn func(mem uint64) error) uint64 {
 	t.Helper()
-	if err := parse(limits.Unlimited - 1); err != nil {
+	if err := parseFn(parse.Unlimited - 1); err != nil {
 		t.Fatalf("parse with the largest finite limit: %v", err)
 	}
 	lo, hi := uint64(0), uint64(1<<40)
 	for hi-lo > 1 {
 		mid := lo + (hi-lo)/2
-		if parse(mid) == nil {
+		if parseFn(mid) == nil {
 			hi = mid
 		} else {
 			lo = mid
@@ -51,17 +51,17 @@ func minMemory(t *testing.T, parse func(mem uint64) error) uint64 {
 
 // checkMemoryThreshold checks both directions of the limit at the final count m: m succeeds, and
 // m-1 fails with a LimitError that reports the count.
-func checkMemoryThreshold(t *testing.T, m uint64, parse func(mem uint64) error) {
+func checkMemoryThreshold(t *testing.T, m uint64, parseFn func(mem uint64) error) {
 	t.Helper()
-	if err := parse(m); err != nil {
+	if err := parseFn(m); err != nil {
 		t.Fatalf("limit %d (the final count): %v", m, err)
 	}
-	err := parse(m - 1)
-	var le *limits.LimitError
-	if !errors.As(err, &le) || le.Kind != limits.LimitMemory || le.Limit != m-1 || le.Used != m || le.Requested != 0 {
+	err := parseFn(m - 1)
+	var le *parse.LimitError
+	if !errors.As(err, &le) || le.Kind != parse.LimitMemory || le.Limit != m-1 || le.Used != m || le.Requested != 0 {
 		t.Fatalf("limit %d: error %v (%+v), want LimitMemory used %d", m-1, err, le, m)
 	}
-	if !errors.Is(err, limits.ErrLimit) {
+	if !errors.Is(err, parse.ErrLimit) {
 		t.Fatalf("limit %d: %v is not ErrLimit", m-1, err)
 	}
 }
@@ -70,28 +70,28 @@ func TestMemoryLimitThreshold(t *testing.T) {
 	t.Parallel()
 	input := memoryInput(300)
 	for _, b := range []Backend{Closure, Bytecode, BytecodeIterative} {
-		for _, u := range []PositionUnit{CodePoints, Bytes} {
+		for _, u := range []parse.PositionUnit{parse.CodePoints, parse.Bytes} {
 			t.Run(fmt.Sprintf("%s/%s", b, u), func(t *testing.T) {
 				t.Parallel()
 				prog := mustCompile(t, memoryGrammar)
-				parse := func(mem uint64) error {
-					_, err := prog.ParseWith("main", input, ParseOptions{Backend: b, Unit: u, Limits: limits.Limits{Compute: limits.Unlimited, Memory: mem}})
+				parseFn := func(mem uint64) error {
+					_, err := prog.ParseWith("main", input, ParseOptions{Backend: b, Unit: u, Limits: parse.Limits{Compute: parse.Unlimited, Memory: mem}})
 					return err
 				}
-				m := minMemory(t, parse)
+				m := minMemory(t, parseFn)
 				// The decoded input and the nodes alone take more than the input's length.
 				if m < uint64(len(input)) {
 					t.Fatalf("final count %d is below the input length %d", m, len(input))
 				}
-				checkMemoryThreshold(t, m, parse)
+				checkMemoryThreshold(t, m, parseFn)
 				// A pooled parser that ran a larger parse, and a fresh program, count the same.
 				if _, err := prog.ParseWith("main", memoryInput(3000), ParseOptions{Backend: b, Unit: u}); err != nil {
 					t.Fatal(err)
 				}
-				checkMemoryThreshold(t, m, parse)
+				checkMemoryThreshold(t, m, parseFn)
 				fresh := mustCompile(t, memoryGrammar)
 				if got := minMemory(t, func(mem uint64) error {
-					_, err := fresh.ParseWith("main", input, ParseOptions{Backend: b, Unit: u, Limits: limits.Limits{Compute: limits.Unlimited, Memory: mem}})
+					_, err := fresh.ParseWith("main", input, ParseOptions{Backend: b, Unit: u, Limits: parse.Limits{Compute: parse.Unlimited, Memory: mem}})
 					return err
 				}); got != m {
 					t.Fatalf("fresh program: final count %d, pooled %d", got, m)
@@ -107,13 +107,13 @@ func TestMemoryLimitAlone(t *testing.T) {
 	prog := mustCompile(t, memoryGrammar)
 	input := memoryInput(50)
 	for _, b := range []Backend{Closure, Bytecode, BytecodeIterative} {
-		_, err := prog.ParseWith("main", input, ParseOptions{Backend: b, Limits: limits.Limits{Compute: limits.Unlimited, Memory: 1}})
-		var le *limits.LimitError
-		if !errors.As(err, &le) || le.Kind != limits.LimitMemory || le.Error() != fmt.Sprintf("parse memory limit exceeded: limit 1, used %d", le.Used) {
+		_, err := prog.ParseWith("main", input, ParseOptions{Backend: b, Limits: parse.Limits{Compute: parse.Unlimited, Memory: 1}})
+		var le *parse.LimitError
+		if !errors.As(err, &le) || le.Kind != parse.LimitMemory || le.Error() != fmt.Sprintf("parse memory limit exceeded: limit 1, used %d", le.Used) {
 			t.Fatalf("%s: %v", b, err)
 		}
-		for _, mem := range []uint64{0, limits.Unlimited} {
-			if _, err := prog.ParseWith("main", input, ParseOptions{Backend: b, Limits: limits.Limits{Compute: limits.Unlimited, Memory: mem}}); err != nil {
+		for _, mem := range []uint64{0, parse.Unlimited} {
+			if _, err := prog.ParseWith("main", input, ParseOptions{Backend: b, Limits: parse.Limits{Compute: parse.Unlimited, Memory: mem}}); err != nil {
 				t.Fatalf("%s: memory %d: %v", b, mem, err)
 			}
 		}
@@ -167,7 +167,7 @@ func TestMemoryLimitStream(t *testing.T) {
 			t.Run(c.name+"/"+b.String(), func(t *testing.T) {
 				t.Parallel()
 				opts := func(mem uint64) ParseOptions {
-					return ParseOptions{Backend: b, Limits: limits.Limits{Compute: limits.Unlimited, Memory: mem},
+					return ParseOptions{Backend: b, Limits: parse.Limits{Compute: parse.Unlimited, Memory: mem},
 						DiagnosticLimit: c.diagLimit, DiagnosticLimitSet: c.diagLimit > 0}
 				}
 				stream := func(text string) func(uint64) error {
@@ -203,19 +203,19 @@ func TestMemoryLimitStream(t *testing.T) {
 
 // streamMemory is minMemory for a stream whose result may report recovered errors: only a memory
 // limit error counts as failure.
-func streamMemory(t *testing.T, parse func(mem uint64) error) uint64 {
+func streamMemory(t *testing.T, parseFn func(mem uint64) error) uint64 {
 	t.Helper()
 	isMem := func(err error) bool {
-		var le *limits.LimitError
-		return errors.As(err, &le) && le.Kind == limits.LimitMemory
+		var le *parse.LimitError
+		return errors.As(err, &le) && le.Kind == parse.LimitMemory
 	}
-	if err := parse(limits.Unlimited - 1); isMem(err) {
+	if err := parseFn(parse.Unlimited - 1); isMem(err) {
 		t.Fatalf("parse with the largest finite limit: %v", err)
 	}
 	lo, hi := uint64(0), uint64(1<<40)
 	for hi-lo > 1 {
 		mid := lo + (hi-lo)/2
-		if isMem(parse(mid)) {
+		if isMem(parseFn(mid)) {
 			lo = mid
 		} else {
 			hi = mid

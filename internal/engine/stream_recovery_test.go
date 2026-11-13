@@ -11,6 +11,7 @@ import (
 	"zeroparse.dev/zp/internal/bytecode"
 	"zeroparse.dev/zp/internal/compile"
 	"zeroparse.dev/zp/internal/value"
+	"zeroparse.dev/zp/runtime/parse"
 )
 
 // legacyStreamRecovery builds the bytecode emitted before recovery around a
@@ -82,10 +83,10 @@ rule item = "ab" @error(message="record") #recover(skip=[^a]+)`)
 					wantClosureRefused(t, err)
 					continue
 				}
-				for _, unit := range []PositionUnit{CodePoints, Bytes} {
+				for _, unit := range []parse.PositionUnit{parse.CodePoints, parse.Bytes} {
 					count := 0
 					err := loaded.ParseStreamWith("main", strings.NewReader("abX!ab"), func(*value.Node) error { count++; return nil }, servedBy(mode, ParseOptions{Backend: backend, Unit: unit}))
-					var recovered SyntaxErrors
+					var recovered parse.SyntaxErrors
 					if !errors.As(err, &recovered) || len(recovered) != 1 || count != 3 {
 						t.Errorf("%s %s mode %s/%s: count=%d error=%v", body, mode, backend, unit, count, err)
 					}

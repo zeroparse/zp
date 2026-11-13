@@ -9,6 +9,7 @@ import (
 	"zeroparse.dev/zp/internal/compile"
 	"zeroparse.dev/zp/internal/gentest"
 	"zeroparse.dev/zp/internal/value"
+	"zeroparse.dev/zp/runtime/parse"
 )
 
 func TestFiniteStreamRepetitions(t *testing.T) {
@@ -46,7 +47,7 @@ func TestFiniteStreamRepetitions(t *testing.T) {
 			for _, mode := range allModes {
 				programs = append(programs, saveLoad(t, prog, "main", mode))
 			}
-			for _, unit := range []PositionUnit{CodePoints, Bytes} {
+			for _, unit := range []parse.PositionUnit{parse.CodePoints, parse.Bytes} {
 				var expected []string
 				refErr := prog.ParseStreamWith("main", strings.NewReader(tc.input), func(n *value.Node) error {
 					expected = append(expected, gentest.ResultJSON(n, nil))
@@ -99,7 +100,7 @@ func TestZeroRepetitionDoesNotRunElement(t *testing.T) {
 		t.Run(src, func(t *testing.T) {
 			prog := mustCompile(t, src)
 			checkBackends(t, prog, "main", "ab")
-			for _, unit := range []PositionUnit{CodePoints, Bytes} {
+			for _, unit := range []parse.PositionUnit{parse.CodePoints, parse.Bytes} {
 				want, err := prog.ParseWith("main", "ab", ParseOptions{Unit: unit})
 				if err != nil {
 					t.Fatal(err)
@@ -126,7 +127,7 @@ func TestFiniteStreamConsumerError(t *testing.T) {
 	prog := mustCompile(t, `rule main = "a" #repeat(1, 2) #stream $$`)
 	stop := errors.New("consumer stopped")
 	for _, backend := range []Backend{Closure, Bytecode, BytecodeIterative} {
-		for _, unit := range []PositionUnit{CodePoints, Bytes} {
+		for _, unit := range []parse.PositionUnit{parse.CodePoints, parse.Bytes} {
 			count := 0
 			err := prog.ParseStreamWith("main", strings.NewReader("aaa"), func(*value.Node) error {
 				count++

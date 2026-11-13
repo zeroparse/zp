@@ -11,6 +11,7 @@ import (
 
 	"zeroparse.dev/zp/internal/gentest"
 	"zeroparse.dev/zp/internal/value"
+	"zeroparse.dev/zp/runtime/parse"
 )
 
 type traceLifecycleSentinel struct{ value [128]byte }
@@ -34,7 +35,7 @@ func (r *traceLifecycleReader) Read(b []byte) (int, error) {
 }
 
 //go:noinline
-func traceLifecycleDocument(t *testing.T, p *Program, b Backend, u PositionUnit) (TraceEvent, weak.Pointer[byte], weak.Pointer[traceLifecycleSentinel]) {
+func traceLifecycleDocument(t *testing.T, p *Program, b Backend, u parse.PositionUnit) (TraceEvent, weak.Pointer[byte], weak.Pointer[traceLifecycleSentinel]) {
 	s := &traceLifecycleSentinel{}
 	s.value[0] = 42
 	text := strings.Repeat("a", 4096)
@@ -66,7 +67,7 @@ func traceLifecycleDocument(t *testing.T, p *Program, b Backend, u PositionUnit)
 }
 
 //go:noinline
-func traceLifecycleStream(t *testing.T, p *Program, b Backend, u PositionUnit) (TraceEvent, weak.Pointer[traceLifecycleReader], weak.Pointer[traceLifecycleSentinel], *value.Node) {
+func traceLifecycleStream(t *testing.T, p *Program, b Backend, u parse.PositionUnit) (TraceEvent, weak.Pointer[traceLifecycleReader], weak.Pointer[traceLifecycleSentinel], *value.Node) {
 	s := &traceLifecycleSentinel{}
 	s.value[0] = 42
 	r := &traceLifecycleReader{text: "#records\na=1\nbc=22\n"}
@@ -103,7 +104,7 @@ func TestTraceLifecycleReleasesOwnersAfterGC(t *testing.T) {
 	doc := mustCompile(t, `rule main = "a"* $$`)
 	stream := mustCompile(t, gentest.Records)
 	for _, b := range []Backend{Closure, Bytecode, BytecodeIterative} {
-		for _, u := range []PositionUnit{CodePoints, Bytes} {
+		for _, u := range []parse.PositionUnit{parse.CodePoints, parse.Bytes} {
 			t.Run(fmt.Sprintf("document/%s/%s", b, u), func(t *testing.T) {
 				e, ir, sr := traceLifecycleDocument(t, doc, b, u)
 				for range 4 {

@@ -10,8 +10,8 @@ import (
 	"zeroparse.dev/zp/internal/desugar"
 	"zeroparse.dev/zp/internal/engine/core"
 	"zeroparse.dev/zp/internal/engine/vm"
-	"zeroparse.dev/zp/internal/limits"
 	"zeroparse.dev/zp/internal/value"
+	"zeroparse.dev/zp/runtime/parse"
 )
 
 // Parse parses the whole input with the rule start.
@@ -229,7 +229,7 @@ func (prog *Program) Run(p *core.Parser, b Backend, start string) (n *value.Node
 	v, ok := p.Call(r, 0)
 	if ok && p.AtEOF() {
 		if len(p.Recovered) > 0 {
-			return v, SyntaxErrors(p.RecoveredErrors())
+			return v, parse.SyntaxErrors(p.RecoveredErrors())
 		}
 		return v, nil
 	}
@@ -305,7 +305,7 @@ func (prog *Program) ParseStreamWith(start string, r io.Reader, emit func(*value
 	p := core.NewControlledStreamParser(&prog.sharedProgram, r, o.Unit, control)
 	control.AttachMemory(p)
 	// A limit beyond math.MaxInt bounds no stream.
-	if lim := o.Limits.Input; lim != 0 && lim != limits.Unlimited && lim <= math.MaxInt {
+	if lim := o.Limits.Input; lim != 0 && lim != parse.Unlimited && lim <= math.MaxInt {
 		p.Input.MaxInput = int(lim)
 	}
 	defer p.ReleaseTraceReferences() // after error recovery, including rethrown panics
@@ -350,7 +350,7 @@ func (prog *Program) ParseStreamWith(start string, r io.Reader, emit func(*value
 			return p.DiagnosticTail.Result(p)
 		}
 		if len(p.Recovered) > 0 {
-			return SyntaxErrors(p.RecoveredErrors())
+			return parse.SyntaxErrors(p.RecoveredErrors())
 		}
 		return nil
 	}

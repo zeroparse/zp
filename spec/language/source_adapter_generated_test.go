@@ -15,6 +15,7 @@ import (
 	"zeroparse.dev/zp/internal/gen"
 	"zeroparse.dev/zp/internal/gentest"
 	"zeroparse.dev/zp/internal/value"
+	"zeroparse.dev/zp/runtime/parse"
 )
 
 // TestGeneratedSourceParserMatchesEngine runs the canonical grammar as a generated Go parser on the
@@ -54,9 +55,9 @@ func TestGeneratedSourceParserMatchesEngine(t *testing.T) {
 			t.Fatal(err)
 		}
 		return func(input string, bytes, recognize bool) (*value.Node, error) {
-			unit := engine.CodePoints
+			unit := parse.CodePoints
 			if bytes {
-				unit = engine.Bytes
+				unit = parse.Bytes
 			}
 			return prog.ParseWith("main", input, engine.ParseOptions{Unit: unit, Recognize: recognize, Expectations: true})
 		}

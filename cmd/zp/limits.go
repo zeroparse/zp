@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	"zeroparse.dev/zp"
+	"zeroparse.dev/zp/runtime/parse"
 )
 
 // limitValue is the value of a limit flag: a decimal number, where 0 selects the default of the
@@ -19,7 +20,7 @@ func (v *limitValue) String() string {
 	if v == nil {
 		return "0"
 	}
-	if uint64(*v) == zp.Unlimited {
+	if uint64(*v) == parse.Unlimited {
 		return "unlimited"
 	}
 	return strconv.FormatUint(uint64(*v), 10)
@@ -27,7 +28,7 @@ func (v *limitValue) String() string {
 
 func (v *limitValue) Set(s string) error {
 	if strings.EqualFold(s, "unlimited") {
-		*v = limitValue(zp.Unlimited)
+		*v = limitValue(parse.Unlimited)
 		return nil
 	}
 	n, err := strconv.ParseUint(s, 10, 64)
@@ -52,8 +53,8 @@ func (l *limitFlags) register(fs *flag.FlagSet) {
 }
 
 // limits returns the limits the flags select.
-func (l *limitFlags) limits() zp.Limits {
-	return zp.Limits{Compute: uint64(l.compute), Memory: uint64(l.memory), Input: uint64(l.maxInput), Depth: uint64(l.depth)}
+func (l *limitFlags) limits() parse.Limits {
+	return parse.Limits{Compute: uint64(l.compute), Memory: uint64(l.memory), Input: uint64(l.maxInput), Depth: uint64(l.depth)}
 }
 
 // option returns the parse option that applies the limits.

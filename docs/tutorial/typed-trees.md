@@ -119,6 +119,7 @@ import (
 	"os"
 
 	"zeroparse.dev/zp"
+	"zeroparse.dev/zp/runtime/parse"
 )
 
 //go:embed config.zp
@@ -137,7 +138,7 @@ func main() {
 
 	cfg, err := p.Parse(string(input))
 	if err != nil {
-		var se *zp.SyntaxError
+		var se *parse.SyntaxError
 		if errors.As(err, &se) {
 			fmt.Printf("line %d, column %d: %s\n", se.Line, se.Col, se.Message())
 			fmt.Println("expected:", se.Expected)

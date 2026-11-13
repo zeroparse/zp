@@ -12,7 +12,7 @@ import (
 
 	"zeroparse.dev/zp/internal/engine/core"
 	"zeroparse.dev/zp/internal/gentest"
-	"zeroparse.dev/zp/internal/limits"
+	"zeroparse.dev/zp/runtime/parse"
 )
 
 // docLines is a grammar of the class Linear whose rules are all transient, so that a fresh parse does
@@ -26,7 +26,7 @@ rule word = [a-z]+ #atomic`
 func usedBy(t *testing.T, o ParseOptions, run func(ParseOptions) error) uint64 {
 	t.Helper()
 	var used uint64
-	o.Limits = limits.Limits{Compute: 1 << 50}
+	o.Limits = parse.Limits{Compute: 1 << 50}
 	o.Trace = func(e TraceEvent) { used = core.TraceParser(e).Control.Used }
 	if err := run(o); err != nil {
 		t.Fatal(err)
@@ -67,7 +67,7 @@ func TestBudgetDocumentDefaultSucceedsWhereFreshDoes(t *testing.T) {
 		}},
 	}
 	for _, back := range []Backend{Closure, Bytecode, BytecodeIterative} {
-		for _, unit := range []PositionUnit{Bytes, CodePoints} {
+		for _, unit := range []parse.PositionUnit{parse.Bytes, parse.CodePoints} {
 			for _, sc := range scenarios {
 				t.Run(fmt.Sprintf("%s/%s/%s", back, unit, sc.name), func(t *testing.T) {
 					o := ParseOptions{Backend: back, Unit: unit}
@@ -98,7 +98,7 @@ func TestBudgetDocumentDefaultSucceedsWhereFreshDoes(t *testing.T) {
 func countedBy(t *testing.T, o ParseOptions, run func(ParseOptions) error) uint64 {
 	t.Helper()
 	var counted uint64
-	o.Limits = limits.Limits{}
+	o.Limits = parse.Limits{}
 	o.Trace = func(e TraceEvent) {
 		c := core.TraceParser(e).Control
 		counted = c.Used - c.Doc
@@ -128,7 +128,7 @@ func TestBudgetDocumentCountedWorkWithinFresh(t *testing.T) {
 	for _, gc := range grammars {
 		prog := mustCompile(t, gc.src)
 		for _, back := range []Backend{Closure, Bytecode, BytecodeIterative} {
-			for _, unit := range []PositionUnit{Bytes, CodePoints} {
+			for _, unit := range []parse.PositionUnit{parse.Bytes, parse.CodePoints} {
 				for _, n := range []int{3, 200, 1500} {
 					t.Run(fmt.Sprintf("%s/%s/%s/%d", gc.name, back, unit, n), func(t *testing.T) {
 						o := ParseOptions{Backend: back, Unit: unit}
@@ -152,7 +152,7 @@ func TestBudgetDocumentCountedWorkWithinFresh(t *testing.T) {
 							var perr error
 							doc := countedBy(t, o, func(o ParseOptions) error { _, perr = d.ParseWith(o); return nil })
 							fresh := countedBy(t, o, func(o ParseOptions) error { _, err := prog.ParseWith("main", text, o); _ = err; return nil })
-							if errors.Is(perr, limits.ErrLimit) {
+							if errors.Is(perr, parse.ErrLimit) {
 								t.Fatalf("round %d: document parse: %v", round, perr)
 							}
 							if doc > fresh {
@@ -190,7 +190,7 @@ func largestFreshLength(t *testing.T, prog *Program, o ParseOptions) int {
 	t.Helper()
 	fits := func(n int) bool {
 		_, err := prog.ParseWith("main", strings.Repeat("a", n), o)
-		if err != nil && !errors.Is(err, limits.ErrLimit) {
+		if err != nil && !errors.Is(err, parse.ErrLimit) {
 			t.Fatal(err)
 		}
 		return err == nil
@@ -215,7 +215,7 @@ func TestBudgetDocumentDefaultAtBoundary(t *testing.T) {
 	t.Parallel()
 	prog := mustCompile(t, scanQuad)
 	for _, back := range []Backend{Closure, Bytecode, BytecodeIterative} {
-		for _, unit := range []PositionUnit{Bytes, CodePoints} {
+		for _, unit := range []parse.PositionUnit{parse.Bytes, parse.CodePoints} {
 			o := ParseOptions{Backend: back, Unit: unit}
 			t.Run(fmt.Sprintf("%s/%s", back, unit), func(t *testing.T) {
 				n := largestFreshLength(t, prog, o)
@@ -268,10 +268,10 @@ func TestBudgetDocumentExplicitLimitCountsDocumentWork(t *testing.T) {
 	text := strings.Repeat("ab cd\n", 2000)
 	for _, back := range []Backend{Closure, Bytecode, BytecodeIterative} {
 		t.Run(back.String(), func(t *testing.T) {
-			o := ParseOptions{Backend: back, Unit: Bytes}
-			parse := func(limit uint64) error {
+			o := ParseOptions{Backend: back, Unit: parse.Bytes}
+			parseFn := func(limit uint64) error {
 				oo := o
-				oo.Limits = limits.Limits{Compute: limit}
+				oo.Limits = parse.Limits{Compute: limit}
 				_, err := prog.ParseWith("main", text, oo)
 				return err
 			}
@@ -281,11 +281,11 @@ func TestBudgetDocumentExplicitLimitCountsDocumentWork(t *testing.T) {
 					t.Fatal(err)
 				}
 				oo := o
-				oo.Limits = limits.Limits{Compute: limit}
+				oo.Limits = parse.Limits{Compute: limit}
 				_, err = d.ParseWith(oo)
 				return err
 			}
-			fresh, doc := minimalLimit(t, parse), minimalLimit(t, docParse)
+			fresh, doc := minimalLimit(t, parseFn), minimalLimit(t, docParse)
 			if doc <= fresh {
 				t.Fatalf("a document needs a limit of %d units for its first parse, a parse from scratch %d: an explicit limit leaves Document work out", doc, fresh)
 			}
@@ -348,7 +348,7 @@ func TestBudgetDocumentRunawayStoppedByDefaultWithPendingEdits(t *testing.T) {
 				if got := limitOf(t, err); got != limit {
 					t.Fatalf("default limit %d, want %d", got, limit)
 				}
-				var le *limits.LimitError
+				var le *parse.LimitError
 				if errors.As(err, &le) && le.Used > le.Limit {
 					t.Fatalf("stopped at %d units used under a limit of %d", le.Used, le.Limit)
 				}
@@ -393,7 +393,7 @@ func TestBudgetDocumentWorkWithinFactorOfFresh(t *testing.T) {
 	for _, back := range []Backend{Closure, Bytecode, BytecodeIterative} {
 		for _, edits := range []int{0, 128, 129, 6000, 65536} {
 			t.Run(fmt.Sprintf("%s/%d", back, edits), func(t *testing.T) {
-				o := ParseOptions{Backend: back, Unit: Bytes}
+				o := ParseOptions{Backend: back, Unit: parse.Bytes}
 				d, err := prog.NewDocumentWith("main", strings.Repeat("ab cd\n", 20000), o)
 				if err != nil {
 					t.Fatal(err)
@@ -407,7 +407,7 @@ func TestBudgetDocumentWorkWithinFactorOfFresh(t *testing.T) {
 				// at it instead of running to the end.
 				limit := documentWorkFactor * fresh
 				oo := o
-				oo.Limits = limits.Limits{Compute: limit}
+				oo.Limits = parse.Limits{Compute: limit}
 				var used uint64
 				oo.Trace = func(e TraceEvent) { used = core.TraceParser(e).Control.Used }
 				if _, err := d.ParseWith(oo); err != nil {

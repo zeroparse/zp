@@ -15,6 +15,7 @@ import (
 	"zeroparse.dev/zp"
 	"zeroparse.dev/zp/internal/limits"
 	"zeroparse.dev/zp/internal/value"
+	"zeroparse.dev/zp/runtime/parse"
 	"zeroparse.dev/zp/schema"
 )
 
@@ -67,7 +68,7 @@ type Match struct{ Captures []Capture }
 
 type options struct {
 	ctx    context.Context
-	limits limits.Limits
+	limits parse.Limits
 }
 
 // Option configures one query evaluation.
@@ -80,7 +81,7 @@ func WithContext(ctx context.Context) Option {
 
 // WithLimits bounds the budget a query may spend. Budget is charged for traversal, matching, paths and
 // results. A zero or Unlimited limit means an unlimited budget.
-func WithLimits(limits zp.Limits) Option {
+func WithLimits(limits parse.Limits) Option {
 	return func(o *options) { o.limits = limits }
 }
 
@@ -238,7 +239,7 @@ func (p *Pattern) usesRule() bool {
 // context for cancellation.
 type budget struct {
 	ctx    context.Context
-	limits limits.Limits
+	limits parse.Limits
 	used   uint64
 }
 
@@ -249,7 +250,7 @@ func (b *budget) charge(n uint64) error {
 		}
 	}
 	if limits.ExceedsLimit(b.used, n, b.limits.Compute) {
-		return &limits.LimitError{Kind: limits.LimitCompute, Limit: b.limits.Compute, Used: b.used, Requested: n}
+		return &parse.LimitError{Kind: parse.LimitCompute, Limit: b.limits.Compute, Used: b.used, Requested: n}
 	}
 	b.used = limits.SaturatingAdd(b.used, n)
 	return nil

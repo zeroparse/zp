@@ -1,6 +1,9 @@
 package document
 
-import "zeroparse.dev/zp/internal/engine/core"
+import (
+	"zeroparse.dev/zp/internal/engine/core"
+	"zeroparse.dev/zp/runtime/parse"
+)
 
 // equalChangeDiagnostics compares complete supported diagnostic values. Unknown
 // diagnostic types conservatively differ rather than running uncontrolled code.
@@ -9,8 +12,8 @@ func equalChangeDiagnostics(p *core.Parser, a, b error) bool {
 		return a == nil && b == nil
 	}
 	switch x := a.(type) {
-	case *core.SyntaxError:
-		y, ok := b.(*core.SyntaxError)
+	case *parse.SyntaxError:
+		y, ok := b.(*parse.SyntaxError)
 		if !ok {
 			return false
 		}
@@ -33,8 +36,8 @@ func equalChangeDiagnostics(p *core.Parser, a, b error) bool {
 			}
 		}
 		return true
-	case core.SyntaxErrors:
-		y, ok := b.(core.SyntaxErrors)
+	case parse.SyntaxErrors:
+		y, ok := b.(parse.SyntaxErrors)
 		if !ok || (x == nil) != (y == nil) || len(x) != len(y) {
 			return false
 		}

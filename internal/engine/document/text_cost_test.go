@@ -10,7 +10,7 @@ import (
 
 	. "zeroparse.dev/zp/internal/engine"
 	"zeroparse.dev/zp/internal/engine/core"
-	"zeroparse.dev/zp/internal/limits"
+	"zeroparse.dev/zp/runtime/parse"
 )
 
 // The grammar takes the text of every level of a nesting. An edit of the center splits the
@@ -24,10 +24,10 @@ func TestTextCostIsConstantInDocumentPieces(t *testing.T) {
 	prog := mustCompile(t, `rule main = v:a $$ => $v
 rule a = s:("(" a ")" / [^()]) => text($s)`)
 	for _, b := range []Backend{Closure, Bytecode, BytecodeIterative} {
-		for _, u := range []PositionUnit{Bytes, CodePoints} {
+		for _, u := range []parse.PositionUnit{parse.Bytes, parse.CodePoints} {
 			t.Run(fmt.Sprintf("%v/%v", b, u), func(t *testing.T) {
 				t.Parallel()
-				parse := func(depth int, budget uint64) error {
+				parseFn := func(depth int, budget uint64) error {
 					o := ParseOptions{Backend: b, Unit: u}
 					text := strings.Repeat("(", depth) + "x" + strings.Repeat(")", depth)
 					d, err := prog.NewDocumentWith("main", text, o)
@@ -50,7 +50,7 @@ rule a = s:("(" a ")" / [^()]) => text($s)`)
 				var costs []uint64
 				depths := []int{4096, 8192, 16384}
 				for _, depth := range depths {
-					costs = append(costs, leastDocumentBudget(t, func(budget uint64) error { return parse(depth, budget) }))
+					costs = append(costs, leastDocumentBudget(t, func(budget uint64) error { return parseFn(depth, budget) }))
 				}
 				// Doubling the depth at most a little more than doubles the cost, where texts that
 				// copy would quadruple it.
@@ -65,11 +65,11 @@ rule a = s:("(" a ")" / [^()]) => text($s)`)
 }
 
 // leastDocumentBudget returns the smallest budget with which parse finishes, by bisection.
-func leastDocumentBudget(t *testing.T, parse func(budget uint64) error) uint64 {
+func leastDocumentBudget(t *testing.T, parseFn func(budget uint64) error) uint64 {
 	t.Helper()
 	finishes := func(budget uint64) bool {
-		err := parse(budget)
-		if errors.Is(err, limits.ErrLimit) {
+		err := parseFn(budget)
+		if errors.Is(err, parse.ErrLimit) {
 			return false
 		}
 		if err != nil {

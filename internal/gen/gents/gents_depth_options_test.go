@@ -12,7 +12,7 @@ import (
 	"zeroparse.dev/zp/internal/gen"
 	"zeroparse.dev/zp/internal/gen/gents"
 	"zeroparse.dev/zp/internal/gentest"
-	"zeroparse.dev/zp/internal/limits"
+	"zeroparse.dev/zp/runtime/parse"
 )
 
 func TestGeneratedTSDepthOptions(t *testing.T) {
@@ -73,9 +73,9 @@ let depthErrors=0;
 		fmt.Fprintf(&script, "{ const m = await import('./g%d.ts'); const rows = [\n", i)
 		for _, name := range []string{"main", prog.RuleList[len(prog.RuleList)-1].Name} {
 			for _, input := range c.Inputs {
-				for _, unit := range []engine.PositionUnit{engine.CodePoints, engine.Bytes} {
+				for _, unit := range []parse.PositionUnit{parse.CodePoints, parse.Bytes} {
 					for _, limit := range []int{1, 2, 3, 4, 5, 6, 8, 20} {
-						_, err := prog.ParseWith(name, input, engine.ParseOptions{Expectations: true, Unit: unit, Limits: limits.Limits{Depth: uint64(limit)}})
+						_, err := prog.ParseWith(name, input, engine.ParseOptions{Expectations: true, Unit: unit, Limits: parse.Limits{Depth: uint64(limit)}})
 						want := ""
 						if err != nil {
 							want = err.Error()

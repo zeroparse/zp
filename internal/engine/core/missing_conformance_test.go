@@ -10,6 +10,7 @@ import (
 	"zeroparse.dev/zp/internal/ir/exec"
 	"zeroparse.dev/zp/internal/ir/exec/conform"
 	"zeroparse.dev/zp/internal/ir/exec/ref"
+	"zeroparse.dev/zp/runtime/parse"
 )
 
 // The engine's missing-token mode under conformance: every operation of the mode runs through its
@@ -84,7 +85,7 @@ func (m *missingMachine) Call(o *exec.Op, args []any) (res []any) {
 	}
 	switch o.Name {
 	case conform.MissingInsertOp:
-		e := args[2].(*SyntaxError)
+		e := args[2].(*parse.SyntaxError)
 		if !p.InsertMissing(MissingTokenEvent{MissingTokenSite{int(args[0].(int64)), int(args[1].(int64))}, e}) {
 			return []any{false}
 		}

@@ -203,8 +203,10 @@ func TestBuild(t *testing.T) {
 		},
 		"reference/zp/index.html": {
 			`id="CompileSource"`, `id="Parser.Parse"`, "type Node struct", `id="Node.Clone"`, "pkg.go.dev",
-			"type Limits struct", `id="LimitError.Error"`,
-			"type SyntaxError struct", `id="TraceEvent.LineCol"`,
+			`id="TraceEvent.LineCol"`,
+		},
+		"reference/parse/index.html": {
+			"type Limits struct", `id="LimitError.Error"`, "type SyntaxError struct", `id="SyntaxError.ExpectedInMessage"`,
 		},
 		"reference/gen/index.html":       {`id="Go.Generate"`, `id="Generator"`, `id="RuntimeMode.String"`, "Content []byte"},
 		"reference/lint/index.html":      {`id="Config.Run"`, `id="Checks"`, `id="Severity.String"`},

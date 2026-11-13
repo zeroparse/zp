@@ -13,10 +13,10 @@ import (
 	"zeroparse.dev/zp/internal/engine/closure"
 	"zeroparse.dev/zp/internal/engine/core"
 	"zeroparse.dev/zp/internal/gentest"
-	"zeroparse.dev/zp/internal/limits"
 	"zeroparse.dev/zp/internal/starttest"
 	"zeroparse.dev/zp/internal/syntax"
 	"zeroparse.dev/zp/internal/value"
+	"zeroparse.dev/zp/runtime/parse"
 )
 
 // parseTest parses ZeroParse source for a test whose subject is not start rules: unless the source
@@ -152,8 +152,8 @@ func mustParse(src string) *grammar.Grammar {
 // points, matches the result of parsing in code points.
 func checkUnits(t *testing.T, prog *Program, start, input string, b Backend) {
 	t.Helper()
-	n1, err1 := prog.ParseWith(start, input, ParseOptions{Expectations: true, Unit: CodePoints, Backend: b})
-	n2, err2 := prog.ParseWith(start, input, ParseOptions{Expectations: true, Unit: Bytes, Backend: b})
+	n1, err1 := prog.ParseWith(start, input, ParseOptions{Expectations: true, Unit: parse.CodePoints, Backend: b})
+	n2, err2 := prog.ParseWith(start, input, ParseOptions{Expectations: true, Unit: parse.Bytes, Backend: b})
 	n2, err2 = toCodePoints(input, n2, err2)
 	if a, b := gentest.ResultJSON(n1, err1), gentest.ResultJSON(n2, err2); a != b {
 		t.Errorf("input %q: results differ between units\n codepoints %s\n bytes      %s", input, a, b)
@@ -163,13 +163,13 @@ func checkUnits(t *testing.T, prog *Program, start, input string, b Backend) {
 // checkBackends checks that every backend produces the same result (value, positions, errors).
 func checkBackends(t *testing.T, prog *Program, start, input string) {
 	t.Helper()
-	for _, u := range []PositionUnit{CodePoints, Bytes} {
+	for _, u := range []parse.PositionUnit{parse.CodePoints, parse.Bytes} {
 		n1, err1 := prog.ParseWith(start, input, ParseOptions{Expectations: true, Unit: u})
 		want := gentest.ResultJSON(n1, err1)
 		checkRecognize(t, prog, start, input, u, err1)
 		// The default budget runs the controlled form; Unlimited runs the uncontrolled one, which must
 		// give the same result on inputs within the default.
-		if n0, err0 := prog.ParseWith(start, input, ParseOptions{Expectations: true, Unit: u, Limits: limits.Limits{Compute: limits.Unlimited}}); !errors.Is(err1, limits.ErrLimit) {
+		if n0, err0 := prog.ParseWith(start, input, ParseOptions{Expectations: true, Unit: u, Limits: parse.Limits{Compute: parse.Unlimited}}); !errors.Is(err1, parse.ErrLimit) {
 			if got := gentest.ResultJSON(n0, err0); got != want {
 				t.Errorf("input %q (unit %v): Unlimited differs from the default budget\n default   %s\n unlimited %s", input, u, want, got)
 			}
@@ -187,10 +187,10 @@ func checkBackends(t *testing.T, prog *Program, start, input string) {
 // error as an ordinary parse (or succeeds if it does). Results are not compared when the
 // ordinary parse fails with a runtime error in an action (recognition does not evaluate
 // actions).
-func checkRecognize(t *testing.T, prog *Program, start, input string, u PositionUnit, want error) {
+func checkRecognize(t *testing.T, prog *Program, start, input string, u parse.PositionUnit, want error) {
 	t.Helper()
 	switch want.(type) {
-	case nil, *SyntaxError, SyntaxErrors:
+	case nil, *parse.SyntaxError, parse.SyntaxErrors:
 	default:
 		return
 	}
@@ -278,17 +278,17 @@ func toCodePoints(input string, n *value.Node, err error) (*value.Node, error) {
 		}
 		return &c
 	}
-	convErr := func(e *SyntaxError) *SyntaxError {
+	convErr := func(e *parse.SyntaxError) *parse.SyntaxError {
 		c := *e
 		c.Pos = cp[e.Pos]
 		c.Line, c.Col = lineCol(c.Pos)
 		return &c
 	}
 	switch e := err.(type) {
-	case *SyntaxError:
+	case *parse.SyntaxError:
 		err = convErr(e)
-	case SyntaxErrors:
-		l := make(SyntaxErrors, len(e))
+	case parse.SyntaxErrors:
+		l := make(parse.SyntaxErrors, len(e))
 		for i, x := range e {
 			l[i] = convErr(x)
 		}

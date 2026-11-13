@@ -7,10 +7,11 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp"
+	"zeroparse.dev/zp/runtime/parse"
 )
 
 var backends = []zp.Backend{zp.Closure, zp.Bytecode, zp.BytecodeIterative}
-var units = []zp.PositionUnit{zp.CodePoints, zp.Bytes}
+var units = []parse.PositionUnit{parse.CodePoints, parse.Bytes}
 
 // Grammars exercising success and failure, recovered errors, left recursion, lookahead and long
 // repetitions.
@@ -37,12 +38,12 @@ var (
 	checkpoint = Operation{Kind: Checkpoint}
 )
 
-func sequence(src string, b zp.Backend, u zp.PositionUnit, initial string, ops ...Operation) *Sequence {
+func sequence(src string, b zp.Backend, u parse.PositionUnit, initial string, ops ...Operation) *Sequence {
 	return &Sequence{GrammarSHA256: GrammarHash([]byte(src)), Start: "main", Backend: b, Unit: u, Initial: []byte(initial), Operations: ops}
 }
 
 func TestSequenceJSON(t *testing.T) {
-	seq := sequence("g", zp.BytecodeIterative, zp.Bytes, "a\xc3\xa9\xff",
+	seq := sequence("g", zp.BytecodeIterative, parse.Bytes, "a\xc3\xa9\xff",
 		edit(1, 3, "x\x80"), edit(0, 0, ""), undo, redo, checkpoint)
 	seq.Seed = 41
 	data, err := json.Marshal(seq)
@@ -109,26 +110,26 @@ func TestSequenceJSONErrors(t *testing.T) {
 			t.Errorf("%s: got %v, want an error containing %q", tc.new, err, tc.want)
 		}
 	}
-	if _, err := json.Marshal(sequence("g", zp.DefaultBackend, zp.Bytes, "")); err == nil {
+	if _, err := json.Marshal(sequence("g", zp.DefaultBackend, parse.Bytes, "")); err == nil {
 		t.Error("a sequence with the default backend was written")
 	}
 	for _, bad := range []*Sequence{
 		{GrammarSHA256: "nothex", Start: "main", Backend: zp.Closure},
 		{GrammarSHA256: GrammarHash(nil), Backend: zp.Closure},
-		sequence("g", zp.Closure, zp.Bytes, "", edit(2, 1, "")),
+		sequence("g", zp.Closure, parse.Bytes, "", edit(2, 1, "")),
 	} {
 		if data, err := json.Marshal(bad); err == nil {
 			t.Errorf("wrote %s", data)
 		}
 	}
-	if _, err := json.Marshal(sequence("g", zp.Closure, zp.PositionUnit(7), "")); err == nil {
+	if _, err := json.Marshal(sequence("g", zp.Closure, parse.PositionUnit(7), "")); err == nil {
 		t.Error("a sequence with an unknown unit was written")
 	}
-	if _, err := json.Marshal(sequence("g", zp.Closure, zp.Bytes, "", Operation{Kind: "bogus"})); err == nil {
+	if _, err := json.Marshal(sequence("g", zp.Closure, parse.Bytes, "", Operation{Kind: "bogus"})); err == nil {
 		t.Error("an unknown operation was written")
 	}
 	// A Sequence value is written in the same format as a pointer.
-	ptr := sequence("g", zp.Closure, zp.Bytes, "x", checkpoint)
+	ptr := sequence("g", zp.Closure, parse.Bytes, "x", checkpoint)
 	a, err := json.Marshal(ptr)
 	b, err2 := json.Marshal(*ptr)
 	if err != nil || err2 != nil || string(a) != string(b) {
@@ -177,13 +178,13 @@ func TestUndoRestoresText(t *testing.T) {
 	}
 	const r = "\uFFFD"
 	for _, tc := range []struct {
-		unit  zp.PositionUnit
+		unit  parse.PositionUnit
 		steps []Operation
 		want  []string
 	}{
-		{zp.Bytes, []Operation{edit(2, 3, "\xa9"), edit(0, 0, "\xff"), undo, undo, redo, redo, undo, edit(1, 3, "b"), undo, undo},
+		{parse.Bytes, []Operation{edit(2, 3, "\xa9"), edit(0, 0, "\xff"), undo, undo, redo, redo, undo, edit(1, 3, "b"), undo, undo},
 			[]string{"aé", "\xffaé", "aé", "a\xc3x", "aé", "\xffaé", "aé", "ab", "aé", "a\xc3x"}},
-		{zp.CodePoints, []Operation{edit(2, 3, "\xa9"), edit(0, 0, "\xff"), undo, undo, redo, redo, undo, edit(1, 2, "b"), undo, undo},
+		{parse.CodePoints, []Operation{edit(2, 3, "\xa9"), edit(0, 0, "\xff"), undo, undo, redo, redo, undo, edit(1, 2, "b"), undo, undo},
 			[]string{"a" + r + r, r + "a" + r + r, "a" + r + r, "a" + r + "x", "a" + r + r, r + "a" + r + r, "a" + r + r, "ab" + r, "a" + r + r, "a" + r + "x"}},
 	} {
 		seq := sequence(src, zp.Closure, tc.unit, "a\xc3x")
@@ -218,17 +219,17 @@ func TestUndoRestoresText(t *testing.T) {
 func TestDiff(t *testing.T) {
 	for _, tc := range []struct {
 		cur, target string
-		unit        zp.PositionUnit
+		unit        parse.PositionUnit
 		start, end  int
 		text        string
 	}{
-		{"abc", "abc", zp.CodePoints, 3, 3, ""},
-		{"aé", "a\xc3x", zp.CodePoints, 1, 2, "\xc3x"},
-		{"aé", "a\xc3x", zp.Bytes, 1, 3, "\xc3x"},
-		{"日本語", "日語", zp.CodePoints, 1, 2, ""},
-		{"日本語", "日語", zp.Bytes, 3, 6, ""},
-		{"aaa", "aa", zp.CodePoints, 2, 3, ""},
-		{"", "\x80", zp.Bytes, 0, 0, "\x80"},
+		{"abc", "abc", parse.CodePoints, 3, 3, ""},
+		{"aé", "a\xc3x", parse.CodePoints, 1, 2, "\xc3x"},
+		{"aé", "a\xc3x", parse.Bytes, 1, 3, "\xc3x"},
+		{"日本語", "日語", parse.CodePoints, 1, 2, ""},
+		{"日本語", "日語", parse.Bytes, 3, 6, ""},
+		{"aaa", "aa", parse.CodePoints, 2, 3, ""},
+		{"", "\x80", parse.Bytes, 0, 0, "\x80"},
 	} {
 		start, end, text := diff(tc.cur, tc.target, tc.unit)
 		if start != tc.start || end != tc.end || text != tc.text {
@@ -245,14 +246,14 @@ func TestReplayInvalid(t *testing.T) {
 		event int
 		want  string
 	}{
-		{sequence(src, zp.Closure, zp.CodePoints, "a"), "rule main = .", -1, "hash"},
-		{sequence("rule main = ", zp.Closure, zp.CodePoints, "a"), "rule main = ", -1, ""},
+		{sequence(src, zp.Closure, parse.CodePoints, "a"), "rule main = .", -1, "hash"},
+		{sequence("rule main = ", zp.Closure, parse.CodePoints, "a"), "rule main = ", -1, ""},
 		{&Sequence{GrammarSHA256: GrammarHash([]byte(src)), Start: "other", Backend: zp.Closure}, src, -1, "rule other is not defined"},
 		{&Sequence{GrammarSHA256: GrammarHash([]byte(src)), Start: "item", Backend: zp.Closure}, src, -1, "rule item is not a start rule"},
-		{sequence(src, zp.Closure, zp.CodePoints, "a", checkpoint, undo), src, 1, "nothing to undo"},
-		{sequence(src, zp.Closure, zp.CodePoints, "a", edit(0, 1, "b"), redo), src, 1, "nothing to redo"},
-		{sequence(src, zp.Closure, zp.CodePoints, "a", edit(0, 2, "b")), src, 0, "invalid range"},
-		{sequence(src, zp.Bytecode, zp.Bytes, "é", edit(1, 1, "b")), src, 0, "boundary"},
+		{sequence(src, zp.Closure, parse.CodePoints, "a", checkpoint, undo), src, 1, "nothing to undo"},
+		{sequence(src, zp.Closure, parse.CodePoints, "a", edit(0, 1, "b"), redo), src, 1, "nothing to redo"},
+		{sequence(src, zp.Closure, parse.CodePoints, "a", edit(0, 2, "b")), src, 0, "invalid range"},
+		{sequence(src, zp.Bytecode, parse.Bytes, "é", edit(1, 1, "b")), src, 0, "boundary"},
 	} {
 		err := Replay([]byte(tc.src), tc.seq)
 		var invalid *InvalidError
@@ -283,7 +284,7 @@ func TestMismatch(t *testing.T) {
 				tc.corrupt(tree)
 			}
 		}
-		seq := sequence(src, zp.Bytecode, zp.Bytes, "ab", checkpoint, edit(2, 2, "c"), checkpoint, checkpoint)
+		seq := sequence(src, zp.Bytecode, parse.Bytes, "ab", checkpoint, edit(2, 2, "c"), checkpoint, checkpoint)
 		err := Replay([]byte(src), seq)
 		var m *Mismatch
 		if !errors.As(err, &m) || m.Event != 2 || m.Text != "abc" || m.Path != tc.path || m.Fingerprint() != tc.print {
@@ -311,7 +312,7 @@ func TestPanicIsAResult(t *testing.T) {
 			panic("edit boom")
 		}
 	}
-	err := Replay([]byte(src), sequence(src, zp.Closure, zp.Bytes, "ab", edit(0, 0, "x"), checkpoint, edit(1, 1, "!"), checkpoint))
+	err := Replay([]byte(src), sequence(src, zp.Closure, parse.Bytes, "ab", edit(0, 0, "x"), checkpoint, edit(1, 1, "!"), checkpoint))
 	var m *Mismatch
 	if !errors.As(err, &m) || m.Event != 2 || m.Path != "panic.edit" || m.Category() != "panic" || m.Text != "xab" ||
 		m.Document != "edit boom" || !strings.Contains(err.Error(), "panicked at operation 2") {
@@ -327,7 +328,7 @@ func TestInvalidUTF8Compares(t *testing.T) {
 		t.Fatal(err)
 	}
 	parse := func(s string) map[string]any {
-		tree, _ := result(func() (*zp.Node, error) { return p.Parse(s, zp.WithUnit(zp.Bytes)) })
+		tree, _ := result(func() (*zp.Node, error) { return p.Parse(s, zp.WithUnit(parse.Bytes)) })
 		expand(tree)
 		return tree
 	}
@@ -376,8 +377,8 @@ func TestExhaustedBudgetComparesNothing(t *testing.T) {
 	initial := strings.Repeat("let a=1+2;", 20)
 	for _, b := range backends {
 		for budget := uint64(1); budget <= 4096; budget += 7 {
-			seq := sequence(src, b, zp.CodePoints, initial, edit(0, 0, "let b=3;"), checkpoint)
-			seq.Limits = zp.Limits{Compute: budget}
+			seq := sequence(src, b, parse.CodePoints, initial, edit(0, 0, "let b=3;"), checkpoint)
+			seq.Limits = parse.Limits{Compute: budget}
 			var m *Mismatch
 			if err := Replay([]byte(src), seq); errors.As(err, &m) {
 				t.Fatalf("%v budget %d: %v", b, budget, err)

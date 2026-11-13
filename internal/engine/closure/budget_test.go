@@ -8,8 +8,8 @@ import (
 
 	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/engine/core"
-	"zeroparse.dev/zp/internal/limits"
 	"zeroparse.dev/zp/internal/value"
+	"zeroparse.dev/zp/runtime/parse"
 )
 
 func TestBudgetActionArenaResetInterruption(t *testing.T) {
@@ -19,8 +19,8 @@ func TestBudgetActionArenaResetInterruption(t *testing.T) {
 	for range 300 {
 		*cm.closures.Alloc() = closure{ctx: &core.EvalCtx{Items: []*value.Node{retained}}}
 	}
-	p.Control = core.NewBudgetControl(nil, limits.Limits{Compute: 64})
-	if err := catchFatal(t, func() { evalTerm(p.UseCtx(core.EvalCtx{P: p}), &grammar.NilLit{}) }); !errors.Is(err, limits.ErrLimit) {
+	p.Control = core.NewBudgetControl(nil, parse.Limits{Compute: 64})
+	if err := catchFatal(t, func() { evalTerm(p.UseCtx(core.EvalCtx{P: p}), &grammar.NilLit{}) }); !errors.Is(err, parse.ErrLimit) {
 		t.Fatalf("arena reset interruption = %v", err)
 	}
 	p.ReleaseScratch()

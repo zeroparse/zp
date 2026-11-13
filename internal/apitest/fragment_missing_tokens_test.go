@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp"
+	"zeroparse.dev/zp/runtime/parse"
 )
 
 func TestParsePrefixRejectsMissingTokenOptions(t *testing.T) {
@@ -62,7 +63,7 @@ rule token = "x" ";" #missing`, "main")
 		}
 		// Whole-input parsing continues to synthesize the missing semicolon.
 		node, err := parser.Parse("x", opts...)
-		var recovered zp.SyntaxErrors
+		var recovered parse.SyntaxErrors
 		if !errors.As(err, &recovered) || len(recovered) != 1 || recognize && node != nil || !recognize && node == nil {
 			t.Fatalf("whole-input insertion recognize=%v: node=%v error=%v", recognize, node, err)
 		}

@@ -3,6 +3,8 @@ package core
 import (
 	"fmt"
 	"strings"
+
+	"zeroparse.dev/zp/runtime/parse"
 )
 
 // sortExpected sorts a newly constructed, parser-owned diagnostic in the order of
@@ -58,7 +60,7 @@ func (p *Parser) sortExpected(values []string) {
 // RecoveryErrorText is only for engine-owned Error-node materialization.
 // Public post-return Error/Message calls remain caller spend. The local builder
 // owns its immutable output and is never pooled or written after return.
-func (p *Parser) RecoveryErrorText(e *SyntaxError) string {
+func (p *Parser) RecoveryErrorText(e *parse.SyntaxError) string {
 	if !BudgetControlsEnabled || p.Control == nil {
 		return e.Error()
 	}
@@ -67,7 +69,7 @@ func (p *Parser) RecoveryErrorText(e *SyntaxError) string {
 	parts := e.Messages
 	if len(parts) == 0 {
 		var rest int
-		parts, rest = expectedShown(e.Expected)
+		parts, rest = e.ExpectedInMessage()
 		sep = ", "
 		intro = "syntax error"
 		if len(parts) > 0 {

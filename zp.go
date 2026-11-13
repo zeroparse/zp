@@ -14,6 +14,7 @@ import (
 	ischema "zeroparse.dev/zp/internal/schema"
 	"zeroparse.dev/zp/internal/syntax"
 	"zeroparse.dev/zp/internal/value"
+	"zeroparse.dev/zp/runtime/parse"
 	"zeroparse.dev/zp/schema"
 )
 
@@ -36,19 +37,6 @@ const (
 	KindListValue  = value.KindListValue  // a list built by an action, without a range
 	KindValue      = value.KindValue      // another value built by an action: Value
 )
-
-// SyntaxError reports that the input does not match the grammar.
-type SyntaxError = engine.SyntaxError
-
-// MissingTokenLimitError reports exhaustion of a #missing insertion budget.
-type MissingTokenLimitError = engine.MissingTokenLimitError
-
-// SyntaxErrors lists the syntax errors recovered with #recover or #missing.
-type SyntaxErrors = engine.SyntaxErrors
-
-// TruncatedSyntaxErrors reports a bounded tail of recovered stream errors.
-// Total and Dropped are lower bounds when CountsSaturated is true.
-type TruncatedSyntaxErrors = engine.TruncatedSyntaxErrors
 
 // ParseGrammar parses ZeroParse source code into a grammar AST.
 func ParseGrammar(src string) (*grammar.Grammar, error) {
@@ -117,82 +105,8 @@ func CompileSource(src, start string, opts ...CompileOption) (*Parser, error) {
 	return Compile(g, start, opts...)
 }
 
-// PositionUnit is the unit of input positions: node Start and End (also in actions), syntax error
-// positions and columns, and the len builtin.
-type PositionUnit = engine.PositionUnit
-
-const (
-	// CodePoints counts Unicode code points. It is the default.
-	CodePoints = engine.CodePoints
-	// Bytes counts UTF-8 bytes.
-	Bytes = engine.Bytes
-)
-
 // ParseOption configures a single parse.
 type ParseOption func(*engine.ParseOptions)
-
-// Limits bounds one parse invocation. A zero limit selects the default of that limit, and
-// Unlimited disables it.
-//
-// Compute bounds the cumulative cost of the parse: every input unit
-// inspected, every rule call and loop iteration, and every unit of value
-// construction adds to one counter. The default is the larger of 2^20 and 1024
-// units for each unit of input in the position unit of the parse. Counts depend
-// on backend, input unit and version.
-//
-// Memory bounds the bytes of storage the parser holds for the parse: the chunks of nodes, child
-// and field lists, memo entries and capture frames, the decoded input, the read buffer of a stream,
-// the working stacks, and the strings that actions build. Storage is counted, by its logical
-// capacity, when the parser takes it into use; a stream returns what its commits let go of, and
-// storage dropped by backtracking is not returned. The input string and anything a callback keeps
-// are not counted. The default is Unlimited, and a finite Memory makes the parse controlled, as a
-// finite Compute does. The count is checked at the compute polls, every 256 units, and at the end
-// of the parse, so a parse can pass the limit by what it allocates between two polls before it
-// fails with a LimitError of kind LimitMemory. A Document's count starts at the bytes it retains
-// from earlier parses; when those alone exceed the limit, the Document drops its history first,
-// as ResetHistory does. Counts depend on backend, input unit and version.
-//
-// Input bounds the length of the input in the position unit of the parse. Its default is
-// Unlimited. A longer input fails before any work with a LimitError of kind LimitInput; a stream
-// fails when the parser reaches a unit beyond the limit.
-//
-// Depth bounds the nesting of recursive rule calls. Only the entries of rules that are on a cycle
-// of calls (or call themselves) count; a rule outside every cycle adds a bounded, grammar-constant
-// depth to the stack and does not count. The operand of a prefix operator and the right operand of
-// an infix operator of an Operators Rule expression nest like recursive rule calls, and so does the
-// entry of an Operators Rule. The default is 100,000 (10,000,000 for BytecodeIterative). A deeper
-// parse fails with a LimitError of kind LimitDepth. The limit keeps runaway recursion from
-// exhausting the stack or memory. The Closure and Bytecode backends nest recursive rule calls on
-// the goroutine stack, so raising the limit far above the default can exceed Go's maximum stack
-// size, which aborts the program; use BytecodeIterative for deeper nesting. Unlimited is accepted
-// only by BytecodeIterative, whose call stack is on the heap; with another backend it is an option
-// error. A finite Depth above the largest int counts as the largest int. A call answered from the
-// memo does not nest, so whether a parse that comes close to the limit succeeds can depend on
-// memoization.
-type Limits = limits.Limits
-
-// Unlimited is the value of a limit that disables it: Limits{Compute: zp.Unlimited}.
-const Unlimited = limits.Unlimited
-
-// LimitError describes a reservation that would exceed a limit.
-type LimitError = limits.LimitError
-
-// LimitKind identifies the exhausted limit.
-type LimitKind = limits.LimitKind
-
-const (
-	// LimitCompute is the kind of an exhausted Compute limit.
-	LimitCompute = limits.LimitCompute
-	// LimitInput is the kind of an input longer than the Input limit.
-	LimitInput = limits.LimitInput
-	// LimitDepth is the kind of a parse that nests recursive rule calls deeper than the Depth limit.
-	LimitDepth = limits.LimitDepth
-	// LimitMemory is the kind of a parse whose storage exceeded the Memory limit.
-	LimitMemory = limits.LimitMemory
-)
-
-// ErrLimit identifies limit failures through errors.Is.
-var ErrLimit = limits.ErrLimit
 
 // WithContext selects invocation-local cooperative cancellation. Nil disables it.
 func WithContext(ctx context.Context) ParseOption {
@@ -202,7 +116,7 @@ func WithContext(ctx context.Context) ParseOption {
 // WithLimits sets the invocation-local limits field by field: a nonzero field overrides the value
 // of an earlier WithLimits, including the construction defaults of a Document, and a zero field
 // leaves it unchanged. A field that no option sets takes its default; Unlimited disables a limit.
-func WithLimits(l Limits) ParseOption {
+func WithLimits(l parse.Limits) ParseOption {
 	return func(o *engine.ParseOptions) { o.Limits = limits.Merge(o.Limits, l) }
 }
 
@@ -224,7 +138,7 @@ func WithExpectations() ParseOption {
 }
 
 // WithUnit selects the position unit. Matching always proceeds by code point, whatever the unit.
-func WithUnit(u PositionUnit) ParseOption {
+func WithUnit(u parse.PositionUnit) ParseOption {
 	return func(o *engine.ParseOptions) { o.Unit = u }
 }
 
@@ -300,7 +214,7 @@ func WithTrace(f func(TraceEvent)) ParseOption {
 // that element. A nil callback disables delivery. Non-nil callbacks are invalid with Parse,
 // ParsePrefix and Document. Recoveries in a successful suffix are reported before the terminal result. With or
 // without this option, recovered errors remain available at stream completion.
-func WithDiagnosticCallback(f func(*SyntaxError) error) ParseOption {
+func WithDiagnosticCallback(f func(*parse.SyntaxError) error) ParseOption {
 	return func(o *engine.ParseOptions) { o.DiagnosticCallback = f }
 }
 
@@ -384,21 +298,17 @@ type Document struct {
 // is invalid; tokens are comparable and do not retain document contents.
 type DocumentVersion = engine.DocumentVersion
 
-// TextEdit replaces [Start, End) in the document's position unit. EditBatch
-// interprets every range in the supplied base version's coordinates.
-type TextEdit = engine.TextEdit
-
 // Version returns the current text revision, initially sequence one.
 func (d *Document) Version() DocumentVersion { return d.doc.Version() }
 
 // Unit returns the position unit selected when the document was constructed.
-func (d *Document) Unit() PositionUnit { return d.doc.Unit() }
+func (d *Document) Unit() parse.PositionUnit { return d.doc.Unit() }
 
 // EditBatch atomically applies ordered, nonoverlapping edits in base coordinates.
 // It rejects stale or foreign tokens, repeated starts, invalid ranges and byte
 // boundaries. An empty batch validates base but changes nothing. A nonempty
 // batch advances one revision and clears parse caches without parsing.
-func (d *Document) EditBatch(base DocumentVersion, edits ...TextEdit) error {
+func (d *Document) EditBatch(base DocumentVersion, edits ...parse.TextEdit) error {
 	return d.doc.EditBatch(base, edits...)
 }
 
@@ -411,9 +321,6 @@ type SnapshotNode = engine.SnapshotNode
 // SnapshotField stores a read-only node handle or immutable scalar.
 type SnapshotField = engine.SnapshotField
 
-// SnapshotCaptureError reports unsupported mutable or custom field values.
-type SnapshotCaptureError = engine.SnapshotCaptureError
-
 // Snapshot parses and freezes this revision using construction defaults plus
 // opts. Cancellation and compute limits cover parsing, text, tree and diagnostics;
 // interruption returns nil. Ordinary syntax errors retain the failed version.
@@ -424,9 +331,6 @@ func (d *Document) Snapshot(opts ...ParseOption) (*Snapshot, error) {
 	}
 	return d.doc.SnapshotWith(o)
 }
-
-// ParseStats counts rule evaluations and reused results in a Document.Parse.
-type ParseStats = engine.Stats
 
 // NewDocument creates a Document for text. opts select its fixed unit and backend
 // and the defaults for later Parse calls. Construction and each Parse use fresh
@@ -466,7 +370,7 @@ func (d *Document) Parse(opts ...ParseOption) (*Node, error) {
 }
 
 // Stats returns the evaluation and reuse counts of the last Parse.
-func (d *Document) Stats() ParseStats { return d.doc.Stats() }
+func (d *Document) Stats() parse.ParseStats { return d.doc.Stats() }
 
 // CompiledMode is the mode of a compiled grammar file, chosen when it is saved. A file holds the
 // module of one mode and serves only the parses of that mode; the closure backend, Grammar and
@@ -583,26 +487,6 @@ func (p *Parser) Iterate(r io.Reader, opts ...ParseOption) (*StreamIterator, err
 	return p.prog.Iterate(p.start, r, parseOptions(opts))
 }
 
-// DocumentChangeKind distinguishes source operations, captured outcomes and
-// lost history requiring a full refresh.
-type DocumentChangeKind = engine.DocumentChangeKind
-
-const (
-	ChangeEdit        = engine.ChangeEdit
-	ChangeOutcome     = engine.ChangeOutcome
-	ChangeFullRefresh = engine.ChangeFullRefresh
-)
-
-// OutputChange is conservative whole-output comparison, never a minimal diff.
-type OutputChange = engine.OutputChange
-
-const (
-	OutputUnchanged      = engine.OutputUnchanged
-	OutputChanged        = engine.OutputChanged
-	OutputMayHaveChanged = engine.OutputMayHaveChanged
-	OutputUnavailable    = engine.OutputUnavailable
-)
-
 // DocumentChange owns an edit operation or an outcome comparison. Edit From/To
 // advance source revisions; outcome From/To identify compared snapshots. Consumers
 // track those streams separately. FullRefresh requires rebuilding current state.
@@ -621,11 +505,6 @@ func (d *Document) EnableChanges(queueLimit int) error { return d.doc.EnableChan
 // marker; draining resets the queue but retains the last comparison snapshot.
 func (d *Document) DrainChanges() []DocumentChange { return d.doc.DrainChanges() }
 
-// CacheStats describes the incremental reuse history retained by a Document.
-// EstimatedBytes is an approximation of cache-owned backing storage, excluding
-// text, caller-held trees, shared strings and allocator overhead.
-type CacheStats = engine.CacheStats
-
 // ResetHistory discards incremental reuse history while preserving text,
 // construction options, version and the statistics of the last parse. Earlier
 // result trees are detached from later node movement.
@@ -633,7 +512,7 @@ func (d *Document) ResetHistory() { d.doc.ResetHistory() }
 
 // CacheStats inspects retained incremental history without changing it.
 // Document methods, including this one, require exclusive ownership.
-func (d *Document) CacheStats() CacheStats { return d.doc.CacheStats() }
+func (d *Document) CacheStats() parse.CacheStats { return d.doc.CacheStats() }
 
 // WalkAction controls whether a walk descends, skips descendants, or stops.
 type WalkAction = value.WalkAction

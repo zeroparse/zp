@@ -8,19 +8,19 @@ import (
 	"strings"
 	"testing"
 
-	"zeroparse.dev/zp/internal/limits"
+	"zeroparse.dev/zp/runtime/parse"
 )
 
 func TestFragmentCursorFallbackInterruption(t *testing.T) {
 	source := strings.Repeat("😀\xff", 1000) + "tail"
-	in := NewTextInput(source, CodePoints, false)
+	in := NewTextInput(source, parse.CodePoints, false)
 	// Endpoint conversion itself must cooperate even after matching succeeded.
-	in.Control = NewBudgetControl(nil, limits.Limits{Compute: 8})
-	if err := catchFatal(t, func() { in.PrefixByteOffset(source, 2000) }); !errors.Is(err, limits.ErrLimit) {
+	in.Control = NewBudgetControl(nil, parse.Limits{Compute: 8})
+	if err := catchFatal(t, func() { in.PrefixByteOffset(source, 2000) }); !errors.Is(err, parse.ErrLimit) {
 		t.Fatalf("fallback compute limit: %v", err)
 	}
 	ctx, cancel := context.WithCancel(context.Background())
-	in.Control = NewBudgetControl(ctx, limits.Limits{})
+	in.Control = NewBudgetControl(ctx, parse.Limits{})
 	cancel()
 	if err := catchFatal(t, func() { in.PrefixByteOffset(source, 2000) }); !errors.Is(err, context.Canceled) {
 		t.Fatalf("fallback cancellation: %v", err)

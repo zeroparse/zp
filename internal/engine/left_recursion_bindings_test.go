@@ -5,7 +5,7 @@ import (
 
 	"zeroparse.dev/zp/internal/compile"
 	"zeroparse.dev/zp/internal/gentest"
-	"zeroparse.dev/zp/internal/limits"
+	"zeroparse.dev/zp/runtime/parse"
 )
 
 // TestLeftRecursionGuardIgnoresVariables checks that a left-recursive re-entry at the same
@@ -20,10 +20,10 @@ func TestLeftRecursionGuardIgnoresVariables(t *testing.T) {
 		prog := mustCompile(t, gentest.LRBindingSource, options)
 		plain := mustCompile(t, gentest.PlainLRSource, options)
 		for _, backend := range []Backend{Closure, Bytecode, BytecodeIterative} {
-			for _, unit := range []PositionUnit{CodePoints, Bytes} {
+			for _, unit := range []parse.PositionUnit{parse.CodePoints, parse.Bytes} {
 				for _, recognize := range []bool{false, true} {
 					// A compute limit makes the parse take the controlled memo lookups.
-					for _, lim := range []limits.Limits{{Depth: 400}, {Compute: 1 << 40, Depth: 400}} {
+					for _, lim := range []parse.Limits{{Depth: 400}, {Compute: 1 << 40, Depth: 400}} {
 						opts := ParseOptions{Backend: backend, Unit: unit, Recognize: recognize, Limits: lim}
 						for _, input := range inputs {
 							got := gentest.ResultJSON(prog.ParseWith("main", input, opts))
@@ -34,7 +34,7 @@ func TestLeftRecursionGuardIgnoresVariables(t *testing.T) {
 						}
 					}
 				}
-				d, err := prog.NewDocumentWith("main", "xx", ParseOptions{Backend: backend, Unit: unit, Limits: limits.Limits{Depth: 400}})
+				d, err := prog.NewDocumentWith("main", "xx", ParseOptions{Backend: backend, Unit: unit, Limits: parse.Limits{Depth: 400}})
 				if err != nil {
 					t.Fatal(err)
 				}

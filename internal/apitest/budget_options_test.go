@@ -10,6 +10,7 @@ import (
 
 	"zeroparse.dev/zp"
 	"zeroparse.dev/zp/internal/engine"
+	"zeroparse.dev/zp/runtime/parse"
 )
 
 func TestBudgetOptionsOrderAndTraceComposition(t *testing.T) {
@@ -20,7 +21,7 @@ rule main = "abc" $$`, "main")
 	}
 	ctx, cancel := context.WithCancel(context.Background())
 	cancel()
-	n, err := p.Parse("abc", zp.WithContext(ctx), zp.WithContext(nil), zp.WithLimits(zp.Limits{Compute: 1}), zp.WithLimits(zp.Limits{Compute: zp.Unlimited}))
+	n, err := p.Parse("abc", zp.WithContext(ctx), zp.WithContext(nil), zp.WithLimits(parse.Limits{Compute: 1}), zp.WithLimits(parse.Limits{Compute: parse.Unlimited}))
 	if n == nil || err != nil {
 		t.Fatalf("last option did not win: node=%v err=%v", n, err)
 	}
@@ -42,7 +43,7 @@ rule main = "a"* #stream $$`, "main")
 	cancel()
 	options, emits := 0, 0
 	err = p.ParseStream(strings.NewReader("aaa"), func(*zp.Node) error { emits++; return nil },
-		zp.WithContext(ctx), zp.WithContext(nil), zp.WithLimits(zp.Limits{Compute: 1}), zp.WithLimits(zp.Limits{Compute: zp.Unlimited}),
+		zp.WithContext(ctx), zp.WithContext(nil), zp.WithLimits(parse.Limits{Compute: 1}), zp.WithLimits(parse.Limits{Compute: parse.Unlimited}),
 		func(o *engine.ParseOptions) { options++ })
 	if err != nil || emits != 3 || options != 1 {
 		t.Fatalf("error=%v emits=%d options=%d", err, emits, options)

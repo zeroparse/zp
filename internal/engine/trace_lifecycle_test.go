@@ -11,6 +11,7 @@ import (
 	"zeroparse.dev/zp/internal/engine/core"
 	"zeroparse.dev/zp/internal/gentest"
 	"zeroparse.dev/zp/internal/value"
+	"zeroparse.dev/zp/runtime/parse"
 )
 
 func assertTraceParserDetached(t *testing.T, p *core.Parser, aborted bool) {
@@ -58,7 +59,7 @@ func TestTraceLifecycleStreamDetachment(t *testing.T) {
 	t.Parallel()
 	prog := mustCompile(t, gentest.Records)
 	for _, b := range []Backend{Closure, Bytecode, BytecodeIterative} {
-		for _, u := range []PositionUnit{CodePoints, Bytes} {
+		for _, u := range []parse.PositionUnit{parse.CodePoints, parse.Bytes} {
 			for _, outcome := range []string{"success", "syntax", "reader-error", "emit-error", "trace-panic", "emit-panic"} {
 				t.Run(fmt.Sprintf("%s/%s/%s", b, u, outcome), func(t *testing.T) {
 					stop := errors.New("stream stopped")
@@ -105,7 +106,7 @@ func TestTraceLifecycleStreamDetachment(t *testing.T) {
 							t.Fatalf("err=%v panic=%v nodes=%d", err, got, len(nodes))
 						}
 					case "syntax":
-						var se *SyntaxError
+						var se *parse.SyntaxError
 						if got != nil || !errors.As(err, &se) || len(nodes) != 1 {
 							t.Fatalf("err=%v panic=%v nodes=%d", err, got, len(nodes))
 						}

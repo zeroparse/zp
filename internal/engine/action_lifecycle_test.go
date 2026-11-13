@@ -10,6 +10,7 @@ import (
 	"zeroparse.dev/zp/internal/engine/core"
 	"zeroparse.dev/zp/internal/gentest"
 	"zeroparse.dev/zp/internal/value"
+	"zeroparse.dev/zp/runtime/parse"
 )
 
 func TestActionResultReleasesTracking(t *testing.T) {
@@ -63,7 +64,7 @@ func TestActionResultReleasesTracking(t *testing.T) {
 func TestNilActionStreamMemoryIsBounded(t *testing.T) {
 	prog := mustCompile(t, gentest.NilActionStream)
 	for _, backend := range []Backend{Closure, Bytecode, BytecodeIterative} {
-		for _, unit := range []PositionUnit{CodePoints, Bytes} {
+		for _, unit := range []parse.PositionUnit{parse.CodePoints, parse.Bytes} {
 			t.Run(fmt.Sprintf("%s/%s", backend, unit), func(t *testing.T) {
 				p := core.NewStreamParser(&prog.sharedProgram, &lineReader{line: "a", n: 60000}, unit)
 				var at [2]uint64

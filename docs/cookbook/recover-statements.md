@@ -51,6 +51,7 @@ import (
 	"strings"
 
 	"zeroparse.dev/zp"
+	"zeroparse.dev/zp/runtime/parse"
 )
 
 //go:embed script.zp
@@ -75,7 +76,7 @@ func main() {
 		os.Exit(1)
 	}
 	root, err := p.Parse(source)
-	var errs zp.SyntaxErrors
+	var errs parse.SyntaxErrors
 	if err != nil && !errors.As(err, &errs) {
 		fmt.Fprintln(os.Stderr, err) // not a recovered parse: no tree
 		os.Exit(1)
@@ -132,7 +133,7 @@ the block that holds them, and `if nested` is still a block with its own list.
   its own line only, and the `}` that closes the block stays for the `block` rule.
 - Each `@error` replaces the mechanical list of expected characters with one message at the position where the statement
   went wrong.
-- `Parse` returns the tree and a `zp.SyntaxErrors` together, so the program checks for that type before treating the
+- `Parse` returns the tree and a `parse.SyntaxErrors` together, so the program checks for that type before treating the
   error as a failure.
 
 ## Variations and Limits

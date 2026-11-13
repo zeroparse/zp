@@ -105,7 +105,7 @@ zp: 1:1: syntax error: expected "(", [0-9]
 Lines and columns are 1-based. A tab counts as one column, and only a line feed starts a new line (in CRLF text, the
 carriage return is the last column of its line). Columns are counted in the
 [position unit](../../spec/runtime/parsing.md#positions): code points by default, bytes with `-unit bytes`
-(`zp.WithUnit(zp.Bytes)` in Go). The two differ only after non-ASCII text:
+(`zp.WithUnit(parse.Bytes)` in Go). The two differ only after non-ASCII text:
 
 ```zp
 // unit.zp
@@ -172,8 +172,8 @@ input is read.
 | Outcome | `node` | `err` |
 |:--|:--|:--|
 | The input matches | the tree | `nil` |
-| The input does not match | `nil` | a `*zp.SyntaxError` |
-| The parse recovered with `#recover` or an enabled `#missing` | the tree, with `error` values | `zp.SyntaxErrors`, a list of `*zp.SyntaxError` |
+| The input does not match | `nil` | a `*parse.SyntaxError` |
+| The parse recovered with `#recover` or an enabled `#missing` | the tree, with `error` values | `parse.SyntaxErrors`, a list of `*parse.SyntaxError` |
 | An action failed at run time (for example, reading a field the node does not have) | `nil` | an ordinary error, not a syntax error |
 
 The last row is not subject to backtracking or recovery: it aborts the parse. A `*SyntaxError` has these fields:

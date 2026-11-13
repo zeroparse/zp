@@ -1,5 +1,7 @@
 package core
 
+import "zeroparse.dev/zp/runtime/parse"
+
 const StreamTextChunk = 1024
 
 // StreamTextSnapshot owns a small immutable copy of already loaded input.
@@ -16,7 +18,7 @@ func (in *Input) snapshotText(start, end int) string {
 	}
 	c := &in.StreamText
 	if start >= c.Base && end <= c.End && c.Source != "" {
-		if in.Unit == Bytes {
+		if in.Unit == parse.Bytes {
 			return c.Source[start-c.Base : end-c.Base]
 		}
 		return c.Source[c.Offsets[start-c.Base]:c.Offsets[end-c.Base]]
@@ -27,13 +29,13 @@ func (in *Input) snapshotText(start, end int) string {
 	// Do not read ahead for text or repeatedly copy tiny reader fragments.
 	// Oversized ranges use the ordinary detached-string path.
 	if end-start > StreamTextChunk || in.Loaded()-start < 64 {
-		if in.Unit == Bytes {
+		if in.Unit == parse.Bytes {
 			return string(in.Bs[start-in.Base : end-in.Base])
 		}
 		return string(in.In[start-in.Base : end-in.Base])
 	}
 	c.Base, c.End = start, start+min(StreamTextChunk, in.Loaded()-start)
-	if in.Unit == Bytes {
+	if in.Unit == parse.Bytes {
 		c.Source = string(in.Bs[c.Base-in.Base : c.End-in.Base])
 		return c.Source[:end-start]
 	}

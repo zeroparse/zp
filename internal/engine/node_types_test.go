@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/internal/gentest"
+	"zeroparse.dev/zp/runtime/parse"
 )
 
 func TestNodeTypesAcrossBackends(t *testing.T) {
@@ -12,7 +13,7 @@ func TestNodeTypesAcrossBackends(t *testing.T) {
 	for _, fixture := range gentest.NodeTypeCases() {
 		t.Run(fixture.Name, func(t *testing.T) {
 			program := mustCompile(t, fixture.Src)
-			for _, unit := range []PositionUnit{CodePoints, Bytes} {
+			for _, unit := range []parse.PositionUnit{parse.CodePoints, parse.Bytes} {
 				for _, recognize := range []bool{false, true} {
 					for _, input := range fixture.Inputs {
 						baseline := gentest.ResultJSON(program.ParseWith("main", input, ParseOptions{Backend: Closure, Unit: unit, Recognize: recognize}))

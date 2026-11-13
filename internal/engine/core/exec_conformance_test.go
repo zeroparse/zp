@@ -11,7 +11,7 @@ import (
 	"zeroparse.dev/zp/internal/ir/exec"
 	"zeroparse.dev/zp/internal/ir/exec/conform"
 	"zeroparse.dev/zp/internal/ir/exec/ref"
-	"zeroparse.dev/zp/internal/limits"
+	"zeroparse.dev/zp/runtime/parse"
 )
 
 // The engine implements the memo table and deferred memoization of the parser VM (design 065)
@@ -61,9 +61,9 @@ func newEngineMachine(cfg ref.Config, controlled, sparse bool) conform.Impl {
 	}
 	limit := cfg.Limit
 	if limit == 0 {
-		limit = limits.Unlimited
+		limit = parse.Unlimited
 	}
-	p.Control = NewBudgetControl(nil, limits.Limits{Compute: limit})
+	p.Control = NewBudgetControl(nil, parse.Limits{Compute: limit})
 	return meteredEngine{m}
 }
 
@@ -82,7 +82,7 @@ func (m *engineMachine) Datum(id int64) any { return ref.Value(id) }
 
 func (m *engineMachine) Rule(index int64) any { return m.envRules[index] }
 
-func (m *engineMachine) Err(id int64) any { return &SyntaxError{Pos: int(id)} }
+func (m *engineMachine) Err(id int64) any { return &parse.SyntaxError{Pos: int(id)} }
 
 // unrolled returns the number of lists that listing the errors of e visits, counted as the model
 // counts them: one for an error, and one for a list with those of its entries.
@@ -150,8 +150,8 @@ func interrupt() {
 		if !ok {
 			panic(x)
 		}
-		var le *limits.LimitError
-		if errors.As(f.Err, &le) && le.Kind == limits.LimitDepth {
+		var le *parse.LimitError
+		if errors.As(f.Err, &le) && le.Kind == parse.LimitDepth {
 			panic(exec.Interrupt{Reason: "nesting"})
 		}
 		panic(exec.Interrupt{Reason: "limit"})
@@ -165,7 +165,7 @@ func (m *engineMachine) Call(o *exec.Op, args []any) (res []any) {
 	case "rec.mark":
 		return []any{int64(len(p.Recovered))}
 	case "rec.push":
-		p.PushRecovered(args[0].(*SyntaxError))
+		p.PushRecovered(args[0].(*parse.SyntaxError))
 		return nil
 	case "rec.truncate":
 		p.Recovered = p.Recovered[:args[0].(int64)]
@@ -255,7 +255,7 @@ func engineErrors(arg any) RecEntry {
 	case *errorList:
 		return a.e
 	}
-	return ErrEntry(&SyntaxError{})
+	return ErrEntry(&parse.SyntaxError{})
 }
 
 var (

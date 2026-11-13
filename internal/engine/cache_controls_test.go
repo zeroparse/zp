@@ -6,14 +6,14 @@ import (
 	"strings"
 	"testing"
 
-	"zeroparse.dev/zp/internal/limits"
+	"zeroparse.dev/zp/runtime/parse"
 )
 
 func TestCacheControlsResetAfterFailureAndAbort(t *testing.T) {
 	t.Parallel()
 	for _, b := range []Backend{Closure, Bytecode, BytecodeIterative} {
 		p := mustCompile(t, `rule main = "a"* $$`)
-		for _, limits := range []limits.Limits{{}, {Compute: 1}} {
+		for _, limits := range []parse.Limits{{}, {Compute: 1}} {
 			d, err := p.NewDocumentWith("main", "aaa!", ParseOptions{Backend: b})
 			if err != nil {
 				t.Fatal(err)
@@ -24,7 +24,7 @@ func TestCacheControlsResetAfterFailureAndAbort(t *testing.T) {
 			}
 			last := d.Stats()
 			d.ResetHistory()
-			if got := d.CacheStats(); got != (CacheStats{}) {
+			if got := d.CacheStats(); got != (parse.CacheStats{}) {
 				t.Fatalf("reset after failure: %+v", got)
 			}
 			if d.Stats() != last || d.Text() != "aaa!" {
@@ -46,7 +46,7 @@ func TestCacheControlsResetAfterFailureAndAbort(t *testing.T) {
 func TestCacheControlsReuseCounters(t *testing.T) {
 	t.Parallel()
 	for _, backend := range []Backend{Closure, Bytecode, BytecodeIterative} {
-		for _, unit := range []PositionUnit{CodePoints, Bytes} {
+		for _, unit := range []parse.PositionUnit{parse.CodePoints, parse.Bytes} {
 			prog := mustCompile(t, `rule main = line* $$
 rule line = [a-z]+ #atomic "\n"`)
 			d, err := prog.NewDocumentWith("main", strings.Repeat("ab\n", 20), ParseOptions{Backend: backend, Unit: unit})
@@ -80,7 +80,7 @@ func TestCacheControlsResetAfterLargeEditAndResumption(t *testing.T) {
 	prog := mustCompile(t, `rule main = line* $$
 rule line = [a-z]+ #atomic "\n"`)
 	for _, backend := range []Backend{Closure, Bytecode, BytecodeIterative} {
-		for _, unit := range []PositionUnit{CodePoints, Bytes} {
+		for _, unit := range []parse.PositionUnit{parse.CodePoints, parse.Bytes} {
 			t.Run(backend.String()+"/"+unit.String(), func(t *testing.T) {
 				options := ParseOptions{Backend: backend, Unit: unit}
 				d, err := prog.NewDocumentWith("main", strings.Repeat("ab\n", 2000), options)
@@ -132,7 +132,7 @@ rule item = "ab" #recover(skip=[^a]+)`, "abXab", true},
 		t.Run(tc.name, func(t *testing.T) {
 			prog := mustCompile(t, tc.grammar)
 			for _, backend := range []Backend{Closure, Bytecode, BytecodeIterative} {
-				for _, unit := range []PositionUnit{CodePoints, Bytes} {
+				for _, unit := range []parse.PositionUnit{parse.CodePoints, parse.Bytes} {
 					options := ParseOptions{Backend: backend, Unit: unit}
 					d, err := prog.NewDocumentWith("main", tc.input, options)
 					if err != nil {
@@ -140,12 +140,12 @@ rule item = "ab" #recover(skip=[^a]+)`, "abXab", true},
 					}
 					_, err = d.Parse()
 					if tc.recovered {
-						var recovered SyntaxErrors
+						var recovered parse.SyntaxErrors
 						if !errors.As(err, &recovered) || len(recovered) == 0 {
 							t.Fatalf("%s/%s fixture did not recover: %v", backend, unit, err)
 						}
 					} else {
-						var ordinary *SyntaxError
+						var ordinary *parse.SyntaxError
 						if !errors.As(err, &ordinary) {
 							t.Fatalf("%s/%s fixture did not fail ordinarily: %v", backend, unit, err)
 						}
@@ -154,12 +154,12 @@ rule item = "ab" #recover(skip=[^a]+)`, "abXab", true},
 					got, gotErr := d.Parse()
 					fresh, freshErr := prog.ParseWith("main", d.Text(), options)
 					if tc.recovered {
-						var gotRecovered, freshRecovered SyntaxErrors
+						var gotRecovered, freshRecovered parse.SyntaxErrors
 						if !errors.As(gotErr, &gotRecovered) || !errors.As(freshErr, &freshRecovered) || !reflect.DeepEqual(gotRecovered, freshRecovered) {
 							t.Fatalf("%s/%s recovered diagnostics differ: got %v; want %v", backend, unit, gotErr, freshErr)
 						}
 					} else {
-						var gotOrdinary, freshOrdinary *SyntaxError
+						var gotOrdinary, freshOrdinary *parse.SyntaxError
 						if !errors.As(gotErr, &gotOrdinary) || !errors.As(freshErr, &freshOrdinary) || !reflect.DeepEqual(gotOrdinary, freshOrdinary) {
 							t.Fatalf("%s/%s ordinary diagnostics differ: got %v; want %v", backend, unit, gotErr, freshErr)
 						}

@@ -6,7 +6,7 @@ import (
 	"zeroparse.dev/zp/internal/compile"
 	"zeroparse.dev/zp/internal/engine/core"
 	"zeroparse.dev/zp/internal/gentest"
-	"zeroparse.dev/zp/internal/limits"
+	"zeroparse.dev/zp/runtime/parse"
 )
 
 // TestTextFieldComparisons checks that the backends agree on comparisons of string fields, with
@@ -14,9 +14,9 @@ import (
 func TestTextFieldComparisons(t *testing.T) {
 	t.Parallel()
 	prog := compileBare(t, gentest.TextCompareGrammar, compile.Options{})
-	limits := limits.Limits{Compute: 1 << 40}
+	limits := parse.Limits{Compute: 1 << 40}
 	for _, controlled := range []bool{false, true} {
-		for _, unit := range []PositionUnit{CodePoints, Bytes} {
+		for _, unit := range []parse.PositionUnit{parse.CodePoints, parse.Bytes} {
 			for _, input := range gentest.TextCompareInputs {
 				opts := ParseOptions{Backend: Closure, Unit: unit}
 				if controlled {
@@ -36,9 +36,9 @@ func TestTextFieldComparisons(t *testing.T) {
 
 // parseSteps parses input as ParseWith does, under budget controls, and returns the steps used and
 // the result.
-func parseSteps(t *testing.T, prog *Program, backend Backend, unit PositionUnit, input string) (uint64, string) {
+func parseSteps(t *testing.T, prog *Program, backend Backend, unit parse.PositionUnit, input string) (uint64, string) {
 	t.Helper()
-	o := ParseOptions{Backend: backend, Unit: unit, Limits: limits.Limits{Compute: 1 << 40}}
+	o := ParseOptions{Backend: backend, Unit: unit, Limits: parse.Limits{Compute: 1 << 40}}
 	active, _, control, err := prog.admitParse("main", o, false, input)
 	if err != nil {
 		t.Fatal(err)
@@ -72,7 +72,7 @@ func TestTextFieldComparisonEdges(t *testing.T) {
 	t.Parallel()
 	inputs := []string{"?!", "?a!", "#a", "^ab", "^m", "~ab", "=a", "&x,y", "&a,b", "&b,a", "&ab,ab"}
 	prog := compileBare(t, textCompareEdgeGrammar, compile.Options{})
-	for _, unit := range []PositionUnit{CodePoints, Bytes} {
+	for _, unit := range []parse.PositionUnit{parse.CodePoints, parse.Bytes} {
 		for _, input := range inputs {
 			// The reference build has no budget controls to compare against.
 			var wantResult string

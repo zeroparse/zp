@@ -11,6 +11,7 @@ import (
 	"zeroparse.dev/zp/internal/bytecode"
 	"zeroparse.dev/zp/internal/compile"
 	"zeroparse.dev/zp/internal/gentest"
+	"zeroparse.dev/zp/runtime/parse"
 )
 
 // fieldCheckValueName names a value of fieldCheckValues as messages do, in the terms of the value
@@ -47,11 +48,11 @@ func TestConstructedFieldChecks(t *testing.T) {
 	}
 }
 
-func checkConstructedFieldType(t *testing.T, typ, src string, parse func(string) (*grammar.Grammar, error), fields map[string]string) {
+func checkConstructedFieldType(t *testing.T, typ, src string, parseFn func(string) (*grammar.Grammar, error), fields map[string]string) {
 	yes, no := `"Text":"yes"`, `"Text":"no"`
 	{
 		{
-			g, err := parse(src)
+			g, err := parseFn(src)
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -67,7 +68,7 @@ func checkConstructedFieldType(t *testing.T, typ, src string, parse func(string)
 				value := gentest.FieldCheckValues[in[:1]]
 				accepted := strings.Contains(fields[typ], in[:1])
 				var want string
-				for _, unit := range []PositionUnit{CodePoints, Bytes} {
+				for _, unit := range []parse.PositionUnit{parse.CodePoints, parse.Bytes} {
 					for _, run := range []struct {
 						name string
 						prog *Program

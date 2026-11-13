@@ -12,8 +12,8 @@ import (
 	"strings"
 	"testing"
 
-	"zeroparse.dev/zp"
 	"zeroparse.dev/zp/internal/engine/core"
+	"zeroparse.dev/zp/runtime/parse"
 )
 
 func writeFixtureFile(t *testing.T, dir, name, body string) string {
@@ -95,7 +95,7 @@ func TestRunRecordsRuntimeErrorAndContinues(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	report, err := Run(suite, RunOptions{Limits: zp.Limits{Compute: 256}})
+	report, err := Run(suite, RunOptions{Limits: parse.Limits{Compute: 256}})
 	if err != nil {
 		t.Fatal(err)
 	}

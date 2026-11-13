@@ -11,6 +11,7 @@ import (
 	"zeroparse.dev/zp/internal/bytecode"
 	"zeroparse.dev/zp/internal/compile"
 	"zeroparse.dev/zp/internal/gentest"
+	"zeroparse.dev/zp/runtime/parse"
 )
 
 func negativeMaxima() []int {
@@ -95,7 +96,7 @@ func TestNegativeRepetitionMaxima(t *testing.T) {
 									wantClosureRefused(t, err)
 									continue
 								}
-								for _, unit := range []PositionUnit{CodePoints, Bytes} {
+								for _, unit := range []parse.PositionUnit{parse.CodePoints, parse.Bytes} {
 									for _, recognize := range []bool{false, true} {
 										if prog == loaded && recognize != (mode == CompiledRecognize) {
 											continue // A compiled grammar serves the parses of its mode only.
@@ -225,7 +226,7 @@ func TestNegativeMaximumWithWideMinimum(t *testing.T) {
 			for _, mode := range valueModes {
 				loaded := saveLoad(t, p, "main", mode)
 				for _, b := range []Backend{Bytecode, BytecodeIterative} {
-					for _, unit := range []PositionUnit{CodePoints, Bytes} {
+					for _, unit := range []parse.PositionUnit{parse.CodePoints, parse.Bytes} {
 						ref := ParseOptions{Unit: unit}
 						want, we := p.ParseWith("main", "éé", ref)
 						ref.Backend = b

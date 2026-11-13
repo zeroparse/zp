@@ -65,8 +65,10 @@ The text of the string node is the matched input: byte mode keeps the invalid by
 while code-point mode substitutes U+FFFD. The literal's spelling need not have
 the same byte length as the matched input.
 
-The unit is selected with `zp.WithUnit(zp.Bytes)` in the Go API and with
-`zp parse -unit bytes` on the command line.
+The unit is selected with `zp.WithUnit(parse.Bytes)` in the Go API and with
+`zp parse -unit bytes` on the command line. In the Go API, `parse` names the package
+`zeroparse.dev/zp/runtime/parse`, which holds the types that the engine and generated
+parsers share: limits, position units, syntax errors, edits and statistics.
 
 ### Lines and Columns
 
@@ -252,13 +254,13 @@ Recording is requested as follows.
 
 ### Errors in Go and on the Command Line
 
-In the Go API, a failed parse returns a `*zp.SyntaxError` with the fields `Pos`
+In the Go API, a failed parse returns a `*parse.SyntaxError` with the fields `Pos`
 (the position in the position unit), `Line`, `Col`, `Expected` (every expected
 item, in the order above) and `Messages` (the messages of `@error` attributes), both empty unless
 expectations are recorded, and the methods
 `Error()`, which returns the text above with its position, and `Message()`, which
 returns it without the position. A parse that recovered errors returns the node and
-an error of type `zp.SyntaxErrors`, a list of `*SyntaxError`; `errors.As` tells it
+an error of type `parse.SyntaxErrors`, a list of `*SyntaxError`; `errors.As` tells it
 apart from a fatal `*SyntaxError`, and the node is valid. The list holds only the
 recoveries that the result keeps: one that backtracking undoes, or that is
 inside a [lookahead](../language/parser-expressions.md#lookahead) or the
@@ -2380,7 +2382,7 @@ loop that only scans input, such as a repeated character class, is bounded by
 `Compute`. A cancelled
 context returns the error of the context (`errors.Is(err, context.Canceled)` or
 `context.DeadlineExceeded`); an exhausted limit returns an error that matches
-`zp.ErrLimit`, and `errors.As` with `*zp.LimitError` gives the
+`parse.ErrLimit`, and `errors.As` with `*parse.LimitError` gives the
 details. Stream parses and documents are specified in [Streaming](streaming.md)
 and [Incremental Documents](documents.md).
 

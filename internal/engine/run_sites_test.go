@@ -10,7 +10,7 @@ import (
 	"zeroparse.dev/zp/internal/compile"
 	"zeroparse.dev/zp/internal/engine/core"
 	"zeroparse.dev/zp/internal/gentest"
-	"zeroparse.dev/zp/internal/limits"
+	"zeroparse.dev/zp/runtime/parse"
 )
 
 // runSiteGrammars are grammars with run sites (compile/run_sites.go): repetitions outside skip
@@ -301,13 +301,13 @@ func TestRunSitesReuseRecords(t *testing.T) {
 	for _, g := range runSiteGrammars[:2] {
 		prog := mustCompile(t, g.Src)
 		for _, b := range []Backend{Closure, Bytecode, BytecodeIterative} {
-			o := ParseOptions{Backend: b, Limits: limits.Limits{Compute: 200_000}}
+			o := ParseOptions{Backend: b, Limits: parse.Limits{Compute: 200_000}}
 			core.SkipRecordsOff = false
-			if _, err := prog.ParseWith("main", in, o); errors.Is(err, limits.ErrLimit) {
+			if _, err := prog.ParseWith("main", in, o); errors.Is(err, parse.ErrLimit) {
 				t.Errorf("%s, %s: the parse with records exceeds the budget", g.Name, b)
 			}
 			core.SkipRecordsOff = true
-			if _, err := prog.ParseWith("main", in, o); !errors.Is(err, limits.ErrLimit) {
+			if _, err := prog.ParseWith("main", in, o); !errors.Is(err, parse.ErrLimit) {
 				t.Errorf("%s, %s: the parse without records fits the budget", g.Name, b)
 			}
 		}
@@ -341,17 +341,17 @@ func TestRunSitesBoundValueControls(t *testing.T) {
 			t.Fatal(err)
 		}
 		for _, b := range []Backend{Closure, Bytecode, BytecodeIterative} {
-			o := ParseOptions{Backend: b, Limits: limits.Limits{Compute: 150 * uint64(len(c.Input))}}
-			if _, err := prog.ParseWith("main", c.Input, o); errors.Is(err, limits.ErrLimit) {
+			o := ParseOptions{Backend: b, Limits: parse.Limits{Compute: 150 * uint64(len(c.Input))}}
+			if _, err := prog.ParseWith("main", c.Input, o); errors.Is(err, parse.ErrLimit) {
 				t.Errorf("%s, %s: the parse with records exceeds the budget", c.Name, b)
 			}
-			if _, err := loaded.ParseWith("main", c.Input, o); b != Closure && errors.Is(err, limits.ErrLimit) {
+			if _, err := loaded.ParseWith("main", c.Input, o); b != Closure && errors.Is(err, parse.ErrLimit) {
 				t.Errorf("%s, %s: the parse of the loaded program exceeds the budget", c.Name, b)
 			}
 			// (The closure backend does not charge the iterations of plain loops over literals, so
 			// only the bytecode backends show that the control is quadratic without records; the
 			// controls of internal/complexitytest measure it on all three.)
-			if _, err := plain.ParseWith("main", c.Input, o); b != Closure && !errors.Is(err, limits.ErrLimit) {
+			if _, err := plain.ParseWith("main", c.Input, o); b != Closure && !errors.Is(err, parse.ErrLimit) {
 				t.Errorf("%s, %s: the parse with plain repetitions fits the budget", c.Name, b)
 			}
 		}
@@ -489,13 +489,13 @@ func TestRunSitesDepthLimit(t *testing.T) {
 	turns := core.RunHotTurns.Load()
 	for _, depth := range []int{2, 5, 50, 299, 300, 301, 1000} {
 		for _, b := range []Backend{Closure, Bytecode, BytecodeIterative} {
-			o := ParseOptions{Backend: b, Limits: limits.Limits{Depth: uint64(depth)}}
+			o := ParseOptions{Backend: b, Limits: parse.Limits{Depth: uint64(depth)}}
 			n, err := prog.ParseWith("main", in, o)
 			wn, werr := plain.ParseWith("main", in, o)
 			if got, want := skipDump(t, n, err), skipDump(t, wn, werr); got != want {
 				t.Errorf("depth %d, %s:\n got  %s\n want %s", depth, b, got, want)
 			}
-			if limited := errors.Is(err, limits.ErrLimit); limited != (depth <= 50) {
+			if limited := errors.Is(err, parse.ErrLimit); limited != (depth <= 50) {
 				t.Errorf("depth %d, %s: limit error %v, err %v", depth, b, limited, err)
 			}
 		}

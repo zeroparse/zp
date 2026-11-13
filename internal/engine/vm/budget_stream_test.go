@@ -7,15 +7,15 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/internal/engine/core"
-	"zeroparse.dev/zp/internal/limits"
 	"zeroparse.dev/zp/internal/value"
+	"zeroparse.dev/zp/runtime/parse"
 )
 
 func TestBudgetStreamDiscardAndStackClear(t *testing.T) {
-	for _, u := range []core.PositionUnit{core.Bytes, core.CodePoints} {
+	for _, u := range []parse.PositionUnit{parse.Bytes, parse.CodePoints} {
 		t.Run(u.String(), func(t *testing.T) {
-			in := core.Input{Unit: u, Eof: true, BaseLine: 1, BaseCol: 1, Lines: []int{0}, Control: core.NewBudgetControl(nil, limits.Limits{Compute: 128})}
-			if u == core.Bytes {
+			in := core.Input{Unit: u, Eof: true, BaseLine: 1, BaseCol: 1, Lines: []int{0}, Control: core.NewBudgetControl(nil, parse.Limits{Compute: 128})}
+			if u == parse.Bytes {
 				in.Bs = []byte(strings.Repeat("a", 258))
 			} else {
 				in.In = []rune(strings.Repeat("a", 258))
@@ -29,7 +29,7 @@ func TestBudgetStreamDiscardAndStackClear(t *testing.T) {
 	for _, phase := range []string{"trail", "values"} {
 		t.Run(phase, func(t *testing.T) {
 			node := value.Ptr(value.Data{Text: "owned"})
-			p := &core.Parser{Input: core.Input{Unit: core.Bytes, Eof: true, Bs: []byte(strings.Repeat("a", 3000)), BaseLine: 1, BaseCol: 1, Lines: []int{0}, Control: core.NewBudgetControl(nil, limits.Limits{Compute: 953 + 128})}, Memo: core.NewMemoTable()}
+			p := &core.Parser{Input: core.Input{Unit: parse.Bytes, Eof: true, Bs: []byte(strings.Repeat("a", 3000)), BaseLine: 1, BaseCol: 1, Lines: []int{0}, Control: core.NewBudgetControl(nil, parse.Limits{Compute: 953 + 128})}, Memo: core.NewMemoTable()}
 			if phase == "trail" {
 				p.Trail = make([]core.Undo, 0, 129)
 			} else {

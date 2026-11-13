@@ -10,8 +10,8 @@ import (
 
 	. "zeroparse.dev/zp/internal/engine"
 	"zeroparse.dev/zp/internal/engine/core"
-	"zeroparse.dev/zp/internal/limits"
 	"zeroparse.dev/zp/internal/value"
+	"zeroparse.dev/zp/runtime/parse"
 )
 
 // TestDocumentLeftRecursionAbortedGrowth interrupts a Document parse while a
@@ -88,7 +88,7 @@ rule t = t "*" "a" / "a"`, "a*a+a+a*a*a"},
 							t.Fatalf("node=%v err=%v", n, err)
 						}
 					case "steps":
-						if n != nil || !errors.Is(err, limits.ErrLimit) {
+						if n != nil || !errors.Is(err, parse.ErrLimit) {
 							t.Fatalf("node=%v err=%v", n, err)
 						}
 					}

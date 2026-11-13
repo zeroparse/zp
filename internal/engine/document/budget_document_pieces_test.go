@@ -8,7 +8,7 @@ import (
 	"testing"
 
 	. "zeroparse.dev/zp/internal/engine"
-	"zeroparse.dev/zp/internal/limits"
+	"zeroparse.dev/zp/runtime/parse"
 )
 
 func TestBudgetDocumentPieceLineTableRetry(t *testing.T) {
@@ -19,7 +19,7 @@ func TestBudgetDocumentPieceLineTableRetry(t *testing.T) {
 			t.Fatal(err)
 		}
 		o.Limits.Compute = 100
-		if _, err = d.ParseWith(o); !errors.Is(err, limits.ErrLimit) {
+		if _, err = d.ParseWith(o); !errors.Is(err, parse.ErrLimit) {
 			t.Fatalf("line table interruption: %v", err)
 		}
 		if d.Input().Lines != nil {
@@ -38,7 +38,7 @@ func TestBudgetDocumentPieceLiteralRetry(t *testing.T) {
 			t.Fatal(err)
 		}
 		o.Limits.Compute = 100
-		if _, err = d.ParseWith(o); !errors.Is(err, limits.ErrLimit) {
+		if _, err = d.ParseWith(o); !errors.Is(err, parse.ErrLimit) {
 			t.Fatalf("piece literal bypassed the limit: %v", err)
 		}
 		budgetDocumentAssertRetry(t, d)

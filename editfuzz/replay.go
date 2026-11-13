@@ -12,6 +12,7 @@ import (
 	"unicode/utf8"
 
 	"zeroparse.dev/zp"
+	"zeroparse.dev/zp/runtime/parse"
 )
 
 // A Mismatch is an operation after which the Document does not behave like a fresh parse: at a checkpoint
@@ -19,7 +20,7 @@ import (
 // its text is not the edited text; or an operation or a parse panicked.
 type Mismatch struct {
 	Backend zp.Backend
-	Unit    zp.PositionUnit
+	Unit    parse.PositionUnit
 	// Event is the index of the operation, or -1 for the initial text.
 	Event int
 	// Text is the Document's text at a checkpoint, or its text before the operation that changed it
@@ -193,7 +194,7 @@ func (r *replayer) mismatch(event int, text, path, document, fresh string) *Mism
 // textOf returns the text that a Document holds for s: s itself in Bytes, and s with each invalid byte
 // replaced by U+FFFD in CodePoints, where a Document holds decoded code points.
 func (r *replayer) textOf(s string) string {
-	if r.seq.Unit == zp.Bytes {
+	if r.seq.Unit == parse.Bytes {
 		return s
 	}
 	var b strings.Builder
@@ -290,7 +291,7 @@ func (r *replayer) restore(target string) error {
 // spliced returns the text that the edit op should make of before.
 func (r *replayer) spliced(before string, op Operation) string {
 	start, end := op.Start, op.End
-	if r.seq.Unit != zp.Bytes {
+	if r.seq.Unit != parse.Bytes {
 		b := boundaries(before)
 		start, end = b[start], b[end]
 	}
@@ -314,7 +315,7 @@ func boundaries(s string) []int {
 
 // diff returns the edit, in unit, that changes cur to target: the range of cur between their common
 // prefix and suffix of whole characters, and the replacement from target.
-func diff(cur, target string, unit zp.PositionUnit) (start, end int, text string) {
+func diff(cur, target string, unit parse.PositionUnit) (start, end int, text string) {
 	bc, bt := boundaries(cur), boundaries(target)
 	nc, nt := len(bc)-1, len(bt)-1
 	char := func(s string, b []int, i int) string { return s[b[i]:b[i+1]] }
@@ -327,7 +328,7 @@ func diff(cur, target string, unit zp.PositionUnit) (start, end int, text string
 		suf++
 	}
 	text = target[bt[pre]:bt[nt-suf]]
-	if unit == zp.Bytes {
+	if unit == parse.Bytes {
 		return bc[pre], bc[nc-suf], text
 	}
 	return pre, nc - suf, text
@@ -459,10 +460,10 @@ func errorTree(err error) any {
 	if err == nil {
 		return nil
 	}
-	syntax := func(e *zp.SyntaxError) any {
+	syntax := func(e *parse.SyntaxError) any {
 		return map[string]any{"pos": e.Pos, "line": e.Line, "col": e.Col, "expected": anyList(e.Expected), "messages": anyList(e.Messages)}
 	}
-	var all zp.SyntaxErrors
+	var all parse.SyntaxErrors
 	if errors.As(err, &all) {
 		errs := make([]any, len(all))
 		for i, e := range all {
@@ -470,7 +471,7 @@ func errorTree(err error) any {
 		}
 		return map[string]any{"kind": "syntax errors", "errors": errs}
 	}
-	var one *zp.SyntaxError
+	var one *parse.SyntaxError
 	if errors.As(err, &one) {
 		return map[string]any{"kind": "syntax error", "error": syntax(one)}
 	}
@@ -570,6 +571,6 @@ func orRoot(path string) string {
 
 // budgetExhausted reports whether err is an exhausted budget.
 func budgetExhausted(err error) bool {
-	var l *zp.LimitError
-	return errors.As(err, &l) && l.Kind == zp.LimitCompute
+	var l *parse.LimitError
+	return errors.As(err, &l) && l.Kind == parse.LimitCompute
 }

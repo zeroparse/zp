@@ -12,6 +12,7 @@ import (
 	"zeroparse.dev/zp/internal/engine/core"
 	"zeroparse.dev/zp/internal/gentest"
 	"zeroparse.dev/zp/internal/value"
+	"zeroparse.dev/zp/runtime/parse"
 )
 
 type streamRuntimePanicToken struct{ phase string }
@@ -54,7 +55,7 @@ func TestStreamCallerPanicIdentity(t *testing.T) {
 	t.Parallel()
 	prog := mustCompile(t, gentest.Records)
 	for _, b := range []Backend{Closure, Bytecode, BytecodeIterative} {
-		for _, u := range []PositionUnit{CodePoints, Bytes} {
+		for _, u := range []parse.PositionUnit{parse.CodePoints, parse.Bytes} {
 			for _, traced := range []bool{false, true} {
 				for _, buffered := range []bool{false, true} {
 					for _, phase := range []string{"reader", "emit"} {
@@ -131,7 +132,7 @@ func TestStreamCallerReturnedErrorIdentity(t *testing.T) {
 	t.Parallel()
 	prog := mustCompile(t, gentest.Records)
 	for _, b := range []Backend{Closure, Bytecode, BytecodeIterative} {
-		for _, u := range []PositionUnit{CodePoints, Bytes} {
+		for _, u := range []parse.PositionUnit{parse.CodePoints, parse.Bytes} {
 			for _, traced := range []bool{false, true} {
 				for _, phase := range []string{"reader", "emit"} {
 					t.Run(fmt.Sprintf("%s/%s/trace=%t/%s", b, u, traced, phase), func(t *testing.T) {
@@ -169,7 +170,7 @@ func TestStreamReaderPanicInsideTraceKeepsOriginalValue(t *testing.T) {
 	t.Parallel()
 	prog := mustCompile(t, gentest.Records)
 	for _, b := range []Backend{Closure, Bytecode, BytecodeIterative} {
-		for _, u := range []PositionUnit{CodePoints, Bytes} {
+		for _, u := range []parse.PositionUnit{parse.CodePoints, parse.Bytes} {
 			t.Run(b.String()+"/"+u.String(), func(t *testing.T) {
 				token := &streamRuntimePanicToken{"nested reader"}
 				r := &streamCallbackReader{panicValue: token}
@@ -192,7 +193,7 @@ func TestStreamReaderPanicInsideTraceKeepsOriginalValue(t *testing.T) {
 func TestStreamNormalCallerReturnKeepsVMFaultAttribution(t *testing.T) {
 	t.Parallel()
 	for _, b := range []Backend{Bytecode, BytecodeIterative} {
-		for _, u := range []PositionUnit{CodePoints, Bytes} {
+		for _, u := range []parse.PositionUnit{parse.CodePoints, parse.Bytes} {
 			for _, phase := range []string{"reader", "emit"} {
 				t.Run(fmt.Sprintf("%s/%s/%s", b, u, phase), func(t *testing.T) {
 					prog := mustCompile(t, "rule main = item* #stream $$\nrule item = \"a\"")
@@ -232,7 +233,7 @@ func TestStreamNormalCallerReturnKeepsVMFaultAttribution(t *testing.T) {
 func TestStreamKeepsCallerBufferedReader(t *testing.T) {
 	t.Parallel()
 	prog := mustCompile(t, gentest.Records)
-	for _, u := range []PositionUnit{CodePoints, Bytes} {
+	for _, u := range []parse.PositionUnit{parse.CodePoints, parse.Bytes} {
 		reader := bufio.NewReader(strings.NewReader("#records\na=1\n"))
 		if p := core.NewStreamParser(&prog.sharedProgram, reader, u); p.Reader != reader {
 			t.Fatal("stream parser replaced caller's buffered reader")

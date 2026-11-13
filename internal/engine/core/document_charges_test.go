@@ -11,8 +11,8 @@ import (
 
 	"zeroparse.dev/zp/internal/ir/exec/ops"
 	"zeroparse.dev/zp/internal/ir/exec/ref"
-	"zeroparse.dev/zp/internal/limits"
 	"zeroparse.dev/zp/internal/value"
+	"zeroparse.dev/zp/runtime/parse"
 )
 
 // The tests of this file measure the operations of Document reuse at the bounds that they declare in
@@ -22,7 +22,7 @@ import (
 // REPEAT instruction) charges its own steps between them.
 
 func docParser() *Parser {
-	return &Parser{Input: Input{Control: NewBudgetControl(nil, limits.Limits{Compute: 1 << 30})}, Memo: NewMemoTable(),
+	return &Parser{Input: Input{Control: NewBudgetControl(nil, parse.Limits{Compute: 1 << 30})}, Memo: NewMemoTable(),
 		Runs: map[RunKey]*RunRecord{}}
 }
 
@@ -52,7 +52,7 @@ func TestAdvanceEntryMatchesItsContract(t *testing.T) {
 			Growing: rng.IntN(16) == 0, Positional: rng.IntN(8) == 0, shift: int32(rng.IntN(3)), shifted: rng.IntN(4) == 0,
 			Vgen: uint32(rng.IntN(len(log) + 1))}
 		if rng.IntN(8) == 0 {
-			before.Errs = ErrEntry(&SyntaxError{})
+			before.Errs = ErrEntry(&parse.SyntaxError{})
 		}
 		want, charged, ok := before, uint64(0), !before.Growing
 		if ok {

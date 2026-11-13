@@ -14,6 +14,7 @@ import (
 	"os"
 
 	"zeroparse.dev/zp"
+	"zeroparse.dev/zp/runtime/parse"
 )
 
 func main() {
@@ -23,7 +24,7 @@ rule start = "a" "b"`, "start")
 		log.Fatal(err)
 	}
 
-	root, err := parser.Parse("ab", zp.WithUnit(zp.CodePoints))
+	root, err := parser.Parse("ab", zp.WithUnit(parse.CodePoints))
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -38,7 +39,7 @@ rule start = "a" "b"`, "start")
 		log.Fatal(err)
 	}
 
-	cursor := zp.Cursor{Root: root, Unit: zp.CodePoints}
+	cursor := zp.Cursor{Root: root, Unit: parse.CodePoints}
 	err = cursor.Range(0, 1, func(v zp.WalkVisit) (zp.WalkAction, error) {
 		fmt.Printf("overlap: %s [%d,%d)\n", v.Node.Kind(), v.Node.Start(), v.Node.End())
 		return zp.WalkContinue, nil

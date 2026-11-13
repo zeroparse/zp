@@ -92,7 +92,7 @@ Go 1.27.1 or later. No dependencies outside the standard library.
 p, err := zp.CompileSource(grammarSource, "main") // grammar errors come with positions
 
 node, err := p.Parse(input)                       // positions in code points by default
-p.Parse(input, zp.WithUnit(zp.Bytes))         // ... or in UTF-8 bytes
+p.Parse(input, zp.WithUnit(parse.Bytes))         // ... or in UTF-8 bytes
 p.Parse(input, zp.WithBackend(zp.Bytecode))   // pick a backend
 p.Parse(input, zp.RecognizeOnly())              // validate without building a tree
 json.Marshal(node)                                // nodes encode with types and positions

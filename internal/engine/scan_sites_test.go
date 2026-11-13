@@ -14,8 +14,8 @@ import (
 	"zeroparse.dev/zp/internal/compile"
 	"zeroparse.dev/zp/internal/engine/core"
 	"zeroparse.dev/zp/internal/gentest"
-	"zeroparse.dev/zp/internal/limits"
 	"zeroparse.dev/zp/internal/value"
+	"zeroparse.dev/zp/runtime/parse"
 )
 
 // scanSiteGrammars are the grammars with scan sites of the tests of all targets.
@@ -104,7 +104,7 @@ func TestScanSitesReuseRecords(t *testing.T) {
 	defer func() { core.SkipRecordsOff = false }()
 	prog := mustCompile(t, scanSiteGrammars[2].Src)
 	in := strings.Repeat("(", 400) + strings.Repeat(" ", 400)
-	o := ParseOptions{Backend: Closure, Limits: limits.Limits{Compute: 200_000}}
+	o := ParseOptions{Backend: Closure, Limits: parse.Limits{Compute: 200_000}}
 	core.SkipRecordsOff = false
 	if _, err := prog.ParseWith("main", in, o); err != nil {
 		t.Errorf("the parse with records: %v", err)
@@ -190,7 +190,7 @@ func TestScanSitesNegativeControls(t *testing.T) {
 	defer func() { core.SkipRecordMutation = 0 }()
 	prog := mustCompile(t, scanSiteGrammars[2].Src)
 	in := strings.Repeat("(", 400) + strings.Repeat(" ", 400)
-	o := ParseOptions{Backend: Closure, Limits: limits.Limits{Compute: 200_000}}
+	o := ParseOptions{Backend: Closure, Limits: parse.Limits{Compute: 200_000}}
 	for _, m := range []struct {
 		name string
 		mut  int
@@ -256,7 +256,7 @@ func scanSitesInStreams(t *testing.T, prog *Program, b Backend) {
 func scanSteps(t *testing.T, prog *Program, in string, b Backend) uint64 {
 	t.Helper()
 	var steps uint64
-	o := ParseOptions{Backend: b, Limits: limits.Limits{Compute: 1 << 40}, Trace: func(e TraceEvent) {
+	o := ParseOptions{Backend: b, Limits: parse.Limits{Compute: 1 << 40}, Trace: func(e TraceEvent) {
 		if e.Kind == TraceExit && e.Rule == "main" {
 			steps = core.TraceParser(e).Control.Used
 		}
@@ -386,7 +386,7 @@ func compileWithout(t *testing.T, src string, flag *bool) *Program {
 	}
 	for _, p := range []*Program{prog, rec} {
 		for _, b := range []Backend{Closure, Bytecode, BytecodeIterative} {
-			p.ParseWith("main", "", ParseOptions{Backend: b, Limits: limits.Limits{Compute: 1 << 40}})
+			p.ParseWith("main", "", ParseOptions{Backend: b, Limits: parse.Limits{Compute: 1 << 40}})
 		}
 	}
 	return prog
@@ -438,7 +438,7 @@ func TestScanSitesInConcurrentParses(t *testing.T) {
 			for i := 0; i < 20; i++ {
 				for _, b := range []Backend{Closure, Bytecode, BytecodeIterative} {
 					in := strings.Repeat(" ", 20+(g+i)%50) + "e"
-					if _, err := prog.ParseWith("main", in, ParseOptions{Backend: b, Limits: limits.Limits{Compute: 1 << 40}}); err != nil {
+					if _, err := prog.ParseWith("main", in, ParseOptions{Backend: b, Limits: parse.Limits{Compute: 1 << 40}}); err != nil {
 						t.Errorf("%s: %v", b, err)
 						return
 					}
@@ -522,7 +522,7 @@ func TestScanSitesKeepTheExaminedRange(t *testing.T) {
 		for _, g := range grammars {
 			prog, plain := mustCompile(t, g.Src), compileWithoutScanSites(t, g.Src)
 			inputs := append([]string{strings.Repeat(" ", 30) + "z", strings.Repeat(" ", 20) + "z ", strings.Repeat("x", 20) + "yzzzzzA!", strings.Repeat("x", 20) + "yzzzzzA?", strings.Repeat("\xff", 20) + "!zzz", strings.Repeat("\xff", 20) + "!z", strings.Repeat("é", 20) + "!zzz", strings.Repeat("é", 20) + "?"}, scanSiteInputs(g.Alphabet, rng)...)
-			for _, unit := range []PositionUnit{CodePoints, Bytes} {
+			for _, unit := range []parse.PositionUnit{parse.CodePoints, parse.Bytes} {
 				for _, b := range []Backend{Closure, Bytecode, BytecodeIterative} {
 					o := ParseOptions{Backend: b, Unit: unit}
 					for _, in := range inputs {
@@ -584,7 +584,7 @@ func TestScanSitesShareRecordsWithLookaheads(t *testing.T) {
 func documentSteps(t *testing.T, prog *Program, b Backend, text string, a, e int, ins string) (first, edit uint64) {
 	t.Helper()
 	var steps uint64
-	o := ParseOptions{Backend: b, Limits: limits.Limits{Compute: 1 << 40}, Trace: func(ev TraceEvent) {
+	o := ParseOptions{Backend: b, Limits: parse.Limits{Compute: 1 << 40}, Trace: func(ev TraceEvent) {
 		if ev.Kind == TraceExit && ev.Rule == "main" {
 			steps = core.TraceParser(ev).Control.Used
 		}

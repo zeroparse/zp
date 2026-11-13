@@ -284,7 +284,7 @@ Misplaced `#stream` pragmas are compile errors; the specification lists them und
 
 `Node.Start()` and `Node.End()`, `.Start` and `.End` in actions, `SyntaxError.Pos`, `Line` and `Col` all count from the
 start of the whole input, whichever part has been dropped (the parser keeps a running line and column for the dropped
-part). `WithUnit(zp.Bytes)` switches all of them to bytes: the `!` in `éé!` is at column 3 counted in code points and at
+part). `WithUnit(parse.Bytes)` switches all of them to bytes: the `!` in `éé!` is at column 3 counted in code points and at
 column 5 counted in bytes.
 
 The parser does not keep text for you. String nodes (literals, character classes, `(...) #atomic`) carry their text, which
@@ -304,6 +304,7 @@ import (
 	"strings"
 
 	"zeroparse.dev/zp"
+	"zeroparse.dev/zp/runtime/parse"
 )
 
 func compile(src string) *zp.Parser {
@@ -341,7 +342,7 @@ rule line =  [a-z0-9]+ #atomic "\n" `)
 	// 1. The input stops matching the grammar after some elements were handed over.
 	fmt.Println("syntax error:")
 	err := lines.ParseStream(strings.NewReader("ab\ncd\n!\n"), print, zp.WithExpectations())
-	var se *zp.SyntaxError
+	var se *parse.SyntaxError
 	if errors.As(err, &se) {
 		fmt.Printf("  %v (line %d, column %d, position %d)\n", err, se.Line, se.Col, se.Pos)
 	}
@@ -375,7 +376,7 @@ rule num =  [0-9]+ #atomic `)
 		fmt.Printf("  element %v\n", n)
 		return nil
 	}, zp.WithExpectations())
-	var recovered zp.SyntaxErrors
+	var recovered parse.SyntaxErrors
 	if errors.As(err, &recovered) {
 		for _, e := range recovered {
 			fmt.Printf("  recovered: %v\n", e)
@@ -405,7 +406,7 @@ recovered errors:
 ```
 
 1. **The input does not match.** Elements that matched before the failure have already been delivered. The error is a
-   `*zp.SyntaxError` with the absolute position, line and column. Here the first two lines were delivered, and the
+   `*parse.SyntaxError` with the absolute position, line and column. Here the first two lines were delivered, and the
    error is reported at line 3: the repetition ended at the `!`, so the parser expected either another element or the
    end of input. A trailing `$$` is the usual way to make "unparsable input" an error rather than a silent stop.
 2. **Your callback returns an error.** Parsing stops at once and `ParseStream` returns your error unchanged, so
@@ -415,12 +416,12 @@ recovered errors:
    delivered; an element cut in two by the failure is not.
 4. **Recovered errors.** With [`#recover`](../../spec/language/pragmas.md#recover) inside the element, a bad element becomes
    an error value (delivered like any other element) and parsing continues. At the end, `ParseStream` returns the
-   recorded errors as `zp.SyntaxErrors`, even though every element was delivered. Treat that as "success with
+   recorded errors as `parse.SyntaxErrors`, even though every element was delivered. Treat that as "success with
    diagnostics" and use `errors.As(err, &recovered)` to tell it from a fatal `*SyntaxError`. By default all recovered
    errors are kept until the end, so a very large input with an error on every line holds one `SyntaxError` per line.
    See [Recovering from Errors](recovery.md).
 
-Use `zp.WithDiagnosticCallback(func(e *zp.SyntaxError) error { ... })` with
+Use `zp.WithDiagnosticCallback(func(e *parse.SyntaxError) error { ... })` with
 `ParseStream` or `Iterate` to receive each committed recovery immediately before
 its element. `Next` invokes the diagnostic callback while advancing to that
 element. Backtracked recoveries are not reported. The callback receives a copy
@@ -429,9 +430,9 @@ an error, parsing stops with that error and the corresponding element is not
 delivered. Recoveries in a successful suffix are reported before the terminal
 result.
 
-By default, the terminal error retains every recovered diagnostic as `zp.SyntaxErrors`, so an input with an error on
+By default, the terminal error retains every recovered diagnostic as `parse.SyntaxErrors`, so an input with an error on
 every line holds them all. Add `zp.WithDiagnosticLimit(n)` to retain only the latest `n`. If any were dropped, the
-terminal error is a `*zp.TruncatedSyntaxErrors`, which you inspect with `errors.As` (`Errors`, `Total`, `Dropped`).
+terminal error is a `*parse.TruncatedSyntaxErrors`, which you inspect with `errors.As` (`Errors`, `Total`, `Dropped`).
 The callback still receives every committed recovery, and errors that the callback stores itself are not bounded. The
 diagnostic options are for streams only; `Parse`, `ParsePrefix` and `Document` reject them. `WithContext` and
 `WithLimits` cover the callbacks too, but a callback or reader that is blocked in your code cannot be preempted. The
@@ -575,11 +576,11 @@ number that does not grow with the input.
 ## Cancelling a Stream
 
 Pass `zp.WithContext(ctx)` to interrupt engine execution cooperatively, or
-`zp.WithLimits(zp.Limits{Compute: ...})` to bound
+`zp.WithLimits(parse.Limits{Compute: ...})` to bound
 one invocation. A zero budget selects the default, which is `max(2^20, 1024 * d)` for the furthest position `d` that the parser has
-asked the stream for, however the reader chunks the input; `zp.Unlimited` disables the limit. `Limits.Input` bounds the length of the stream: with a finite value the stream fails with `zp.LimitInput` when the parser asks for a unit beyond it and the stream has one, whichever way the reader chunks the input. `Limits.Memory` bounds the bytes the stream holds at once, not its length: delivering an element returns what was built for it ([Bounding Memory](cancellation-and-limits.md#bounding-memory)). Budget counts depend on the backend,
+asked the stream for, however the reader chunks the input; `parse.Unlimited` disables the limit. `Limits.Input` bounds the length of the stream: with a finite value the stream fails with `parse.LimitInput` when the parser asks for a unit beyond it and the stream has one, whichever way the reader chunks the input. `Limits.Memory` bounds the bytes the stream holds at once, not its length: delivering an element returns what was built for it ([Bounding Memory](cancellation-and-limits.md#bounding-memory)). Budget counts depend on the backend,
 position unit and implementation; reused or copied storage also consumes budget.
-Exhaustion matches `zp.ErrLimit` through `errors.Is`.
+Exhaustion matches `parse.ErrLimit` through `errors.Is`.
 Text materialization also consumes budget, including building a cached stream
 snapshot and its CodePoints position table. Reading an already cached substring
 requires no additional materialization work; snapshot creation never reads ahead.

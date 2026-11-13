@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp"
+	"zeroparse.dev/zp/runtime/parse"
 )
 
 type publicIteratorReader struct {
@@ -29,7 +30,7 @@ func TestPublicStreamIteratorLifecycle(t *testing.T) {
 		t.Fatal(err)
 	}
 	for _, backend := range []zp.Backend{zp.Closure, zp.Bytecode, zp.BytecodeIterative} {
-		for _, unit := range []zp.PositionUnit{zp.CodePoints, zp.Bytes} {
+		for _, unit := range []parse.PositionUnit{parse.CodePoints, parse.Bytes} {
 			r := &publicIteratorReader{Reader: strings.NewReader("éa")}
 			it, err := p.Iterate(r, zp.WithBackend(backend), zp.WithUnit(unit))
 			if err != nil || r.reads != 0 {
@@ -37,7 +38,7 @@ func TestPublicStreamIteratorLifecycle(t *testing.T) {
 			}
 			first, ok, err := it.Next()
 			wantEnd := 1
-			if unit == zp.Bytes {
+			if unit == parse.Bytes {
 				wantEnd = 2
 			}
 			if err != nil || !ok || first == nil || first.Start() != 0 || first.End() != wantEnd || r.reads == 0 {

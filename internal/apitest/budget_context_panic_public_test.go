@@ -10,6 +10,7 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp"
+	"zeroparse.dev/zp/runtime/parse"
 )
 
 type publicContextPanicToken struct{ label string }
@@ -48,7 +49,7 @@ func TestContextErrRuntimePanicIdentityThroughPublicOptions(t *testing.T) {
 	}
 
 	for _, backend := range []zp.Backend{zp.Closure, zp.Bytecode, zp.BytecodeIterative} {
-		for _, unit := range []zp.PositionUnit{zp.Bytes, zp.CodePoints} {
+		for _, unit := range []parse.PositionUnit{parse.Bytes, parse.CodePoints} {
 			for _, recognize := range []bool{false, true} {
 				t.Run(backend.String()+"/"+unit.String()+"/recognize="+strconv.FormatBool(recognize), func(t *testing.T) {
 					retained, err := p.Parse(literal, zp.WithBackend(backend), zp.WithUnit(unit))

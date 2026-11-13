@@ -19,6 +19,7 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp"
+	"zeroparse.dev/zp/runtime/parse"
 	"zeroparse.dev/zp/sample"
 )
 
@@ -155,7 +156,7 @@ type outcome struct {
 
 func measure(p *zp.Parser, c testCase) outcome {
 	node, err := p.Parse(c.Input)
-	var recovered zp.SyntaxErrors
+	var recovered parse.SyntaxErrors
 	switch {
 	case err == nil:
 		// The mutation is accepted by the recovering grammar too (it is invalid only for the ready-made one):

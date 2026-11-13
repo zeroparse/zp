@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/internal/compile"
+	"zeroparse.dev/zp/runtime/parse"
 )
 
 // BenchmarkDocumentOwnerCreation excludes compilation and parsing. It tracks
@@ -17,7 +18,7 @@ func BenchmarkDocumentOwnerCreation(b *testing.B) {
 		b.Fatal(err)
 	}
 	for _, size := range []int{1 << 10, 4 << 10} {
-		for _, unit := range []PositionUnit{CodePoints, Bytes} {
+		for _, unit := range []parse.PositionUnit{parse.CodePoints, parse.Bytes} {
 			b.Run(fmt.Sprintf("%d/%s", size, unit), func(b *testing.B) {
 				text := strings.Repeat("x", size)
 				b.ReportAllocs()
@@ -44,7 +45,7 @@ rule line = [a-z]+ #atomic -"\n"`), compile.Options{})
 	}
 	for _, size := range []int{4 << 10, 64 << 10} {
 		for _, back := range []Backend{Closure, BytecodeIterative} {
-			for _, unit := range []PositionUnit{CodePoints, Bytes} {
+			for _, unit := range []parse.PositionUnit{parse.CodePoints, parse.Bytes} {
 				for _, mode := range []string{"batch", "sequential"} {
 					b.Run(fmt.Sprintf("%d/%s/%s/%s", size, back, unit, mode), func(b *testing.B) {
 						d, err := p.NewDocumentWith("main", strings.Repeat("abc\n", size/4), ParseOptions{Backend: back, Unit: unit})
@@ -54,7 +55,7 @@ rule line = [a-z]+ #atomic -"\n"`), compile.Options{})
 						if _, err := d.Parse(); err != nil {
 							b.Fatal(err)
 						}
-						edits := []TextEdit{{Start: 0, End: 1, Text: "z"}, {Start: size / 2, End: size/2 + 1, Text: "z"}, {Start: size - 4, End: size - 3, Text: "z"}}
+						edits := []parse.TextEdit{{Start: 0, End: 1, Text: "z"}, {Start: size / 2, End: size/2 + 1, Text: "z"}, {Start: size - 4, End: size - 3, Text: "z"}}
 						b.ReportAllocs()
 						i := 0
 						for b.Loop() {

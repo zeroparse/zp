@@ -9,6 +9,7 @@ import (
 
 	"zeroparse.dev/zp/internal/engine/core"
 	"zeroparse.dev/zp/internal/gentest"
+	"zeroparse.dev/zp/runtime/parse"
 )
 
 // decodedBoundaries is an independent oracle for edit validation: invalid
@@ -39,7 +40,7 @@ func TestInvalidUTF8EditBoundaries(t *testing.T) {
 			want[pos] = true
 		}
 		for pos := 0; pos <= len(s); pos++ {
-			if got := core.ValidBoundary(s, Bytes, pos) == nil; got != want[pos] {
+			if got := core.ValidBoundary(s, parse.Bytes, pos) == nil; got != want[pos] {
 				t.Fatalf("input %x position %d: valid=%v, want %v", s, pos, got, want[pos])
 			}
 		}
@@ -52,7 +53,7 @@ func TestDocumentCompletesUTF8Prefix(t *testing.T) {
 	for _, backend := range []Backend{Closure, Bytecode, BytecodeIterative} {
 		for _, s := range []string{"\xc3", "\xe6\xbc", "\xf0\x9f\x98"} {
 			t.Run(backend.String()+fmt.Sprintf("/%x", s), func(t *testing.T) {
-				d, err := p.NewDocumentWith("main", s, ParseOptions{Backend: backend, Unit: Bytes})
+				d, err := p.NewDocumentWith("main", s, ParseOptions{Backend: backend, Unit: parse.Bytes})
 				if err != nil {
 					t.Fatal(err)
 				}
@@ -62,7 +63,7 @@ func TestDocumentCompletesUTF8Prefix(t *testing.T) {
 					t.Fatal(err)
 				}
 				got, err := d.Parse()
-				want, werr := p.ParseWith("main", s+suffix, ParseOptions{Backend: backend, Unit: Bytes})
+				want, werr := p.ParseWith("main", s+suffix, ParseOptions{Backend: backend, Unit: parse.Bytes})
 				if err != nil || werr != nil || gentest.ResultJSON(got, err) != gentest.ResultJSON(want, werr) {
 					t.Fatalf("completed prefix: got %s, want %s", gentest.ResultJSON(got, err), gentest.ResultJSON(want, werr))
 				}
@@ -78,7 +79,7 @@ func TestDocumentInvalidUTF8EditEquivalence(t *testing.T) {
 	for gi, grammar := range grammars {
 		p := mustCompile(t, grammar)
 		for _, backend := range []Backend{Closure, Bytecode, BytecodeIterative} {
-			for _, unit := range []PositionUnit{Bytes, CodePoints} {
+			for _, unit := range []parse.PositionUnit{parse.Bytes, parse.CodePoints} {
 				t.Run(fmt.Sprintf("%d/%s/%s", gi, backend, unit), func(t *testing.T) {
 					d, err := p.NewDocumentWith("main", "\x80\xc3", ParseOptions{Backend: backend, Unit: unit})
 					if err != nil {
@@ -92,7 +93,7 @@ func TestDocumentInvalidUTF8EditEquivalence(t *testing.T) {
 							t.Fatalf("edit %d text %x: got %s, want %s", i, d.Text(), gentest.ResultJSON(got, err), gentest.ResultJSON(want, werr))
 						}
 						bounds := decodedBoundaries(d.Text())
-						if unit == CodePoints {
+						if unit == parse.CodePoints {
 							for j := range bounds {
 								bounds[j] = j
 							}
@@ -115,7 +116,7 @@ func BenchmarkDecodedEditBoundary(b *testing.B) {
 			pos := len(s) - len(string([]rune(s)[0]))
 			b.ReportAllocs()
 			for b.Loop() {
-				if err := core.ValidBoundary(s, Bytes, pos); err != nil {
+				if err := core.ValidBoundary(s, parse.Bytes, pos); err != nil {
 					b.Fatal(err)
 				}
 			}
@@ -124,7 +125,7 @@ func BenchmarkDecodedEditBoundary(b *testing.B) {
 			b.Run(fmt.Sprintf("%x/interior", s[:min(len(s), 4)]), func(b *testing.B) {
 				b.ReportAllocs()
 				for b.Loop() {
-					if err := core.ValidBoundary(s, Bytes, len(s)-1); err == nil {
+					if err := core.ValidBoundary(s, parse.Bytes, len(s)-1); err == nil {
 						b.Fatal("accepted interior position")
 					}
 				}
@@ -136,7 +137,7 @@ func BenchmarkDecodedEditBoundary(b *testing.B) {
 func BenchmarkByteDecodeDependency(b *testing.B) {
 	for _, s := range []string{"a", "é", "日", "😀", "\x80", "\xc3", "\xe6\xbc", "\xf0\x9f\x98"} {
 		b.Run(fmt.Sprintf("%x", s), func(b *testing.B) {
-			in := core.NewInput(s, Bytes)
+			in := core.NewInput(s, parse.Bytes)
 			b.ReportAllocs()
 			for b.Loop() {
 				if _, size, _, ok := in.Decode(0); !ok || size < 1 {

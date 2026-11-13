@@ -2,6 +2,8 @@ package engine
 
 import (
 	"testing"
+
+	"zeroparse.dev/zp/runtime/parse"
 )
 
 func newChangeTestDocument(t *testing.T, prog *Program, text string, o ParseOptions, limit int) *ChangeDocument {
@@ -27,7 +29,7 @@ func TestDocumentChangesOverflowRequiresFullRefresh(t *testing.T) {
 		t.Fatal(err)
 	}
 	changes := d.DrainChanges()
-	if len(changes) != 1 || !changes[0].FullRefresh || changes[0].From != base || changes[0].To != d.Version() || changes[0].Unit != d.Unit() || changes[0].Edits != nil || changes[0].Output != OutputMayHaveChanged {
+	if len(changes) != 1 || !changes[0].FullRefresh || changes[0].From != base || changes[0].To != d.Version() || changes[0].Unit != d.Unit() || changes[0].Edits != nil || changes[0].Output != parse.OutputMayHaveChanged {
 		t.Fatal("overflow marker", changes)
 	}
 	if err := d.Edit(0, 1, "e"); err != nil {
@@ -44,7 +46,7 @@ func TestDocumentChangesOverflowRequiresFullRefresh(t *testing.T) {
 func TestDocumentChangesByteBoundaryRejectionAndNormalizedText(t *testing.T) {
 	t.Parallel()
 	prog := mustCompile(t, `rule main = .* $$`)
-	d := newChangeTestDocument(t, prog, "é", ParseOptions{Unit: Bytes}, 8)
+	d := newChangeTestDocument(t, prog, "é", ParseOptions{Unit: parse.Bytes}, 8)
 	v := d.Version()
 	if err := d.Edit(1, 2, "x"); err == nil {
 		t.Fatal("split character accepted")
@@ -52,7 +54,7 @@ func TestDocumentChangesByteBoundaryRejectionAndNormalizedText(t *testing.T) {
 	if d.Version() != v || len(d.DrainChanges()) != 0 {
 		t.Fatal("failed boundary changed notifications")
 	}
-	cp := newChangeTestDocument(t, prog, "a", ParseOptions{Unit: CodePoints}, 8)
+	cp := newChangeTestDocument(t, prog, "a", ParseOptions{Unit: parse.CodePoints}, 8)
 	invalid := string([]byte{0xff})
 	if err := cp.Edit(0, 1, invalid); err != nil {
 		t.Fatal(err)

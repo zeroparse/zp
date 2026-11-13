@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp"
+	"zeroparse.dev/zp/runtime/parse"
 )
 
 // series builds a series of three doubling sizes from f.
@@ -152,8 +153,8 @@ func TestStepsLenient(t *testing.T) {
 		if err != nil || c.ParseErr == nil || c.Capped || c.Steps == 0 {
 			t.Errorf("%s: lenient cost %+v, %v", BackendName(b), c, err)
 		}
-		var se *zp.SyntaxError
-		var ses zp.SyntaxErrors
+		var se *parse.SyntaxError
+		var ses parse.SyntaxErrors
 		if !errors.As(c.ParseErr, &se) && !errors.As(c.ParseErr, &ses) {
 			t.Errorf("%s: ParseErr %T is no syntax error", BackendName(b), c.ParseErr)
 		}
@@ -196,8 +197,8 @@ func TestStepsLenientRejectsRuntimeError(t *testing.T) {
 			t.Errorf("%s: run-time error accepted as %T in %+v", BackendName(b), c.ParseErr, c)
 			continue
 		}
-		var se *zp.SyntaxError
-		var ses zp.SyntaxErrors
+		var se *parse.SyntaxError
+		var ses parse.SyntaxErrors
 		if errors.As(err, &se) || errors.As(err, &ses) {
 			t.Errorf("%s: error %v is a syntax error, want a run-time error", BackendName(b), err)
 		}

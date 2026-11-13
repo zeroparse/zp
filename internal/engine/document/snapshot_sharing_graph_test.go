@@ -8,8 +8,8 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/internal/engine/core"
-	"zeroparse.dev/zp/internal/limits"
 	"zeroparse.dev/zp/internal/value"
+	"zeroparse.dev/zp/runtime/parse"
 )
 
 func TestSnapshotSharedStringComparisonRespectsBudgetLimit(t *testing.T) {
@@ -27,10 +27,10 @@ func TestSnapshotSharedStringComparisonRespectsBudgetLimit(t *testing.T) {
 		{"field value", snapshotRecord{fields: value.Fields{{Name: "x", Value: long}}}, snapshotRecord{fields: value.Fields{{Name: "x", Value: strings.Clone(long)}}}},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
-			p := &core.Parser{Control: core.NewBudgetControl(nil, limits.Limits{Compute: 1024})}
+			p := &core.Parser{Control: core.NewBudgetControl(nil, parse.Limits{Compute: 1024})}
 			err := catchFatal(t, func() { sameSnapshotRecord(p, &snapshotGraph{}, &tc.a, &snapshotGraph{}, &tc.b) })
-			var limit *limits.LimitError
-			if !errors.As(err, &limit) || limit.Kind != limits.LimitCompute {
+			var limit *parse.LimitError
+			if !errors.As(err, &limit) || limit.Kind != parse.LimitCompute {
 				t.Fatal("string comparison escaped compute limit", err)
 			}
 		})
@@ -52,16 +52,16 @@ func TestSnapshotChildRunCopyRespectsBudgetLimit(t *testing.T) {
 	changed[512] = 9999
 	next := snapshotRecord{children: changed}
 	graph := snapshotGraph{nodes: []snapshotRecord{old}}
-	p := &core.Parser{Control: core.NewBudgetControl(nil, limits.Limits{Compute: 1170})}
+	p := &core.Parser{Control: core.NewBudgetControl(nil, parse.Limits{Compute: 1170})}
 	err := catchFatal(t, func() { shareSnapshotChildren(p, &graph, &graph.nodes[0], &next) })
-	var limit *limits.LimitError
-	if !errors.As(err, &limit) || limit.Kind != limits.LimitCompute {
+	var limit *parse.LimitError
+	if !errors.As(err, &limit) || limit.Kind != parse.LimitCompute {
 		t.Fatal("copy escaped compute limit", err)
 	}
 	if next.childChunked || len(next.children) != 1025 || next.children[512] != 9999 {
 		t.Fatal("interrupted copy changed the source record")
 	}
-	p = &core.Parser{Control: core.NewBudgetControl(nil, limits.Limits{})}
+	p = &core.Parser{Control: core.NewBudgetControl(nil, parse.Limits{})}
 	chunks := shareSnapshotChildren(p, &graph, &graph.nodes[0], &next)
 	if chunks == nil || !next.childChunked || next.children != nil || chunks.length != 1025 || len(chunks.parts[4]) != 1 {
 		t.Fatal("successful copy did not retain the exact child shape")
@@ -81,7 +81,7 @@ func TestSnapshotChunkedHandleIdentity(t *testing.T) {
 	children[0] = 1 // The wide child points back to the root.
 	wide := snapshotRecord{children: children}
 	previous := snapshotGraph{nodes: []snapshotRecord{wide}}
-	p := &core.Parser{Control: core.NewBudgetControl(nil, limits.Limits{})}
+	p := &core.Parser{Control: core.NewBudgetControl(nil, parse.Limits{})}
 	chunks := shareSnapshotChildren(p, &previous, &previous.nodes[0], &wide)
 	if chunks == nil {
 		t.Fatal("wide child sequence did not share")

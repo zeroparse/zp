@@ -9,6 +9,7 @@ import (
 	"zeroparse.dev/zp/internal/compile"
 	"zeroparse.dev/zp/internal/engine/core"
 	"zeroparse.dev/zp/internal/value"
+	"zeroparse.dev/zp/runtime/parse"
 )
 
 const memoizedStream = `rule main = item* #stream $$
@@ -25,7 +26,7 @@ func TestMemoizedStreamMemoryIsBounded(t *testing.T) {
 	for _, src := range []string{memoizedStream, leftRecursiveStream} {
 		prog := mustCompile(t, src)
 		for _, backend := range []Backend{Closure, Bytecode, BytecodeIterative} {
-			for _, unit := range []PositionUnit{CodePoints, Bytes} {
+			for _, unit := range []parse.PositionUnit{parse.CodePoints, parse.Bytes} {
 				var at [2]uint64
 				count := 0
 				err := prog.ParseStreamWith("main", &lineReader{line: "abc,abc\n", n: 60000}, func(*value.Node) error {
@@ -53,7 +54,7 @@ func TestMemoizedStreamMemoryIsBounded(t *testing.T) {
 func TestDocumentReplacedMemoMemoryIsBounded(t *testing.T) {
 	prog := mustCompile(t, `rule main = .* #atomic $$`)
 	for _, backend := range []Backend{Closure, Bytecode, BytecodeIterative} {
-		for _, unit := range []PositionUnit{CodePoints, Bytes} {
+		for _, unit := range []parse.PositionUnit{parse.CodePoints, parse.Bytes} {
 			doc, err := prog.NewDocumentWith("main", strings.Repeat("a", 10000), ParseOptions{Backend: backend, Unit: unit})
 			if err != nil {
 				t.Fatal(err)

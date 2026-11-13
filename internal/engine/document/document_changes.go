@@ -3,40 +3,20 @@ package document
 import (
 	"fmt"
 
-	"zeroparse.dev/zp/internal/engine/core"
-)
-
-// OutputChange describes whole-result equality, not a minimal tree difference.
-type OutputChange string
-
-const (
-	OutputUnchanged      OutputChange = "unchanged"
-	OutputChanged        OutputChange = "changed"
-	OutputMayHaveChanged OutputChange = "may-have-changed"
-	OutputUnavailable    OutputChange = "unavailable"
-)
-
-// DocumentChange keeps one operation's original coordinate basis. FullRefresh
-// means consumers must rebuild from the latest snapshot instead of replaying edits.
-type DocumentChangeKind string
-
-const (
-	ChangeEdit        DocumentChangeKind = "edit"
-	ChangeOutcome     DocumentChangeKind = "outcome"
-	ChangeFullRefresh DocumentChangeKind = "full-refresh"
+	"zeroparse.dev/zp/runtime/parse"
 )
 
 type DocumentChange struct {
-	Kind        DocumentChangeKind
+	Kind        parse.DocumentChangeKind
 	From, To    DocumentVersion
-	Unit        core.PositionUnit
-	Edits       []TextEdit
+	Unit        parse.PositionUnit
+	Edits       []parse.TextEdit
 	FullRefresh bool
 	// Invalidated is conservative: an accepted edit may affect the whole output.
 	// Reevaluation remains unknown; invalidation is not evidence of execution.
 	Invalidated  bool
 	Reevaluation string
-	Output       OutputChange
+	Output       parse.OutputChange
 }
 
 // documentChanges retains bounded events and one immutable comparison baseline.
@@ -59,14 +39,14 @@ func (d *Document) EnableChanges(queueLimit int) error {
 	return nil
 }
 
-func (d *Document) recordEdit(from DocumentVersion, edits []TextEdit) {
+func (d *Document) recordEdit(from DocumentVersion, edits []parse.TextEdit) {
 	if d.changes == nil {
 		return
 	}
-	d.changes.record(DocumentChange{Kind: ChangeEdit, From: from, To: d.Version(), Unit: d.Unit(), Edits: append([]TextEdit(nil), edits...), Invalidated: true, Reevaluation: "unknown", Output: OutputMayHaveChanged})
+	d.changes.record(DocumentChange{Kind: parse.ChangeEdit, From: from, To: d.Version(), Unit: d.Unit(), Edits: append([]parse.TextEdit(nil), edits...), Invalidated: true, Reevaluation: "unknown", Output: parse.OutputMayHaveChanged})
 }
 
-func (d *Document) recordOutcome(s *Snapshot, output OutputChange) {
+func (d *Document) recordOutcome(s *Snapshot, output parse.OutputChange) {
 	if d.changes == nil {
 		return
 	}
@@ -74,18 +54,18 @@ func (d *Document) recordOutcome(s *Snapshot, output OutputChange) {
 	if d.changes.previous != nil {
 		from = d.changes.previous.Version()
 	}
-	d.changes.record(DocumentChange{Kind: ChangeOutcome, From: from, To: d.Version(), Unit: d.Unit(), Reevaluation: "unknown", Output: output})
+	d.changes.record(DocumentChange{Kind: parse.ChangeOutcome, From: from, To: d.Version(), Unit: d.Unit(), Reevaluation: "unknown", Output: output})
 	d.changes.previous = s
 }
 
 func (d *documentChanges) record(change DocumentChange) {
 	if len(d.queue) != 0 && d.queue[0].FullRefresh {
 		d.queue[0].To = change.To
-		d.queue[0].Output = OutputMayHaveChanged
+		d.queue[0].Output = parse.OutputMayHaveChanged
 		return
 	}
 	if len(d.queue) >= d.limit {
-		d.queue = []DocumentChange{{Kind: ChangeFullRefresh, From: d.queue[0].From, To: change.To, Unit: change.Unit, FullRefresh: true, Invalidated: true, Reevaluation: "unknown", Output: OutputMayHaveChanged}}
+		d.queue = []DocumentChange{{Kind: parse.ChangeFullRefresh, From: d.queue[0].From, To: change.To, Unit: change.Unit, FullRefresh: true, Invalidated: true, Reevaluation: "unknown", Output: parse.OutputMayHaveChanged}}
 		return
 	}
 	d.queue = append(d.queue, change)

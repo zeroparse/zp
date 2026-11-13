@@ -5,6 +5,7 @@ import (
 	"zeroparse.dev/zp/internal/value"
 
 	"zeroparse.dev/zp/internal/compile"
+	"zeroparse.dev/zp/runtime/parse"
 )
 
 // PrefixResult records the successful cursor independently of the rule's value.
@@ -94,7 +95,7 @@ func (prog *Program) runPrefix(p *core.Parser, b Backend, start string) (result 
 	}
 	result = PrefixResult{Node: v, Consumed: p.Pos}
 	if len(p.Recovered) > 0 {
-		err = SyntaxErrors(p.RecoveredErrors())
+		err = parse.SyntaxErrors(p.RecoveredErrors())
 	}
 	return result, err
 }

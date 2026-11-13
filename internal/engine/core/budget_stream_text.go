@@ -1,6 +1,10 @@
 package core
 
-import "unicode/utf8"
+import (
+	"unicode/utf8"
+
+	"zeroparse.dev/zp/runtime/parse"
+)
 
 // Snapshot materialization follows the bounded detached-text path. Build a new
 // source and offsets privately: interruption must not corrupt the previous
@@ -11,7 +15,7 @@ func (in *Input) controlledSnapshotText(start, end int) string {
 	}
 	candidate := StreamTextSnapshot{Base: start, End: start + min(StreamTextChunk, in.Loaded()-start)}
 	candidate.Source = in.detachedText(candidate.Base-in.Base, candidate.End-in.Base)
-	if in.Unit == Bytes {
+	if in.Unit == parse.Bytes {
 		in.StreamText = candidate
 		return candidate.Source[:end-start]
 	}

@@ -10,6 +10,7 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/internal/bytecode"
+	"zeroparse.dev/zp/runtime/parse"
 )
 
 func TestDiagnosticAttribute(t *testing.T) {
@@ -48,7 +49,7 @@ func TestDiagnosticAttributeStructuredErrors(t *testing.T) {
 		t.Run(backend.String(), func(t *testing.T) {
 			mixed := mustCompile(t, `rule main = ("a" @error(message="explicit") @diagnostic(name="ordinary") / "b" @diagnostic(name="bee"))`)
 			_, err := mixed.ParseWith("main", "c", ParseOptions{Expectations: true, Backend: backend})
-			var syntax *SyntaxError
+			var syntax *parse.SyntaxError
 			if !errors.As(err, &syntax) || !slices.Equal(syntax.Expected, []string{"bee"}) || !slices.Equal(syntax.Messages, []string{"explicit"}) {
 				t.Fatalf("mixed diagnostic = %#v, err %v", syntax, err)
 			}
@@ -61,7 +62,7 @@ func TestDiagnosticAttributeStructuredErrors(t *testing.T) {
 
 			recovered := mustCompile(t, `rule main = ("a" @diagnostic(name="letter") #recover(skip=[^!]* "!") "b")`)
 			_, err = recovered.ParseWith("main", "x!b", ParseOptions{Expectations: true, Backend: backend})
-			var recoveries SyntaxErrors
+			var recoveries parse.SyntaxErrors
 			if !errors.As(err, &recoveries) || len(recoveries) != 1 || !slices.Equal(recoveries[0].Expected, []string{"letter"}) || len(recoveries[0].Messages) != 0 {
 				t.Fatalf("recovered diagnostic = %#v, err %v", recoveries, err)
 			}

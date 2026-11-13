@@ -183,7 +183,7 @@ z * 2            0 undefined variable "z"
 - **Parse once.** The cost of parsing is paid once for `tree`; each evaluation only walks it. If you compile the
   formula into closures instead, as [Compile a filter language into a Go predicate](filter-language.md) does, each
   evaluation does not even dispatch on the node type.
-- **Errors.** A formula that does not parse is a `*zp.SyntaxError` with its position. Errors that depend on the
+- **Errors.** A formula that does not parse is a `*parse.SyntaxError` with its position. Errors that depend on the
   values (undefined variable, division by zero) are found while evaluating; wrong arity and undefined functions could
   also be found in a pass over the tree before any evaluation.
 

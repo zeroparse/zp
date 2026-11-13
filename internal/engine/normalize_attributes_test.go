@@ -9,6 +9,7 @@ import (
 	"zeroparse.dev/zp/internal/desugar"
 	"zeroparse.dev/zp/internal/engine/core"
 	"zeroparse.dev/zp/internal/gentest"
+	"zeroparse.dev/zp/runtime/parse"
 )
 
 func TestNormalizationCopyOnChangeParity(t *testing.T) {
@@ -64,7 +65,7 @@ rule main (Alias) = {count := (1)} {(count == 1)} n:([0-9]+) => (Number{Text: (t
 				return
 			}
 			for _, backend := range []Backend{Closure, Bytecode, BytecodeIterative} {
-				for _, unit := range []PositionUnit{CodePoints, Bytes} {
+				for _, unit := range []parse.PositionUnit{parse.CodePoints, parse.Bytes} {
 					for _, input := range []string{"", "b", "ab", "aaab", "a;", "x;", "123", "1 + 2 * 3", "é"} {
 						opts := ParseOptions{Backend: backend, Unit: unit}
 						if actual, expected := gentest.ResultJSON(optimized.ParseWith("main", input, opts)), gentest.ResultJSON(eager.ParseWith("main", input, opts)); actual != expected {

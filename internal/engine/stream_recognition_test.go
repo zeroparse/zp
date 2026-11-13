@@ -11,6 +11,7 @@ import (
 	"zeroparse.dev/zp/internal/gentest"
 	"zeroparse.dev/zp/internal/syntax"
 	"zeroparse.dev/zp/internal/value"
+	"zeroparse.dev/zp/runtime/parse"
 )
 
 func TestStreamCaptureRecognition(t *testing.T) {
@@ -49,7 +50,7 @@ func TestStreamCaptureRecognition(t *testing.T) {
 							wantClosureRefused(t, err)
 							continue
 						}
-						for _, unit := range []PositionUnit{CodePoints, Bytes} {
+						for _, unit := range []parse.PositionUnit{parse.CodePoints, parse.Bytes} {
 							opts := ParseOptions{Backend: backend, Unit: unit}
 							for _, recognize := range []bool{false, true} {
 								opts.Recognize = recognize

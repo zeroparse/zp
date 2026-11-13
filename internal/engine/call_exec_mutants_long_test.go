@@ -537,12 +537,12 @@ func TestStreamCommitMutantsFail(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	const before = "func (p *Parser) reportRecovered(original *SyntaxError) error {\n\tif BudgetControlsEnabled {\n\t\tp.Control.Check()\n\t}\n"
+	const before = "func (p *Parser) reportRecovered(original *parse.SyntaxError) error {\n\tif BudgetControlsEnabled {\n\t\tp.Control.Check()\n\t}\n"
 	if strings.Count(string(reportSrc), before) != 1 {
 		t.Fatalf("core/stream_ops.go has no single checkpoint before a diagnostic")
 	}
 	reportMutant := filepath.Join(t.TempDir(), "stream_ops.go")
-	unchecked := strings.Replace(string(reportSrc), before, "func (p *Parser) reportRecovered(original *SyntaxError) error {\n", 1)
+	unchecked := strings.Replace(string(reportSrc), before, "func (p *Parser) reportRecovered(original *parse.SyntaxError) error {\n", 1)
 	if err := os.WriteFile(reportMutant, []byte(unchecked), 0o644); err != nil {
 		t.Fatal(err)
 	}

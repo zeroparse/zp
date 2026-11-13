@@ -147,7 +147,7 @@ memory figures vary by a few MiB from run to run.)
 - **`ParseStream` returns an error, not a tree.** The records are only seen by your function. What comes before and
   after the repetition is parsed and checked, but not returned; if there is a header, make it an element of the
   repetition and tell the kinds apart by `Type()`.
-- **Errors stop the stream.** At the first line that does not match, `ParseStream` returns a `*zp.SyntaxError` with the
+- **Errors stop the stream.** At the first line that does not match, `ParseStream` returns a `*parse.SyntaxError` with the
   line and column in the whole input, after the records before it were delivered. Return an error from your function to
   stop early; `ParseStream` returns it unchanged.
 - **The trailing `$$`** turns input that is not a sequence of entries into an error. Without it, the stream would end

@@ -24,7 +24,7 @@ the `Pos` and `Col` of syntax errors, `.Start` and `.End` in actions, the `len` 
 ```go
 n, _ := p.Parse("あい=3")
 fmt.Println(n.Elem(0).Field("Key").(*zp.Node).End()) // 2
-n, _ = p.Parse("あい=3", zp.WithUnit(zp.Bytes))
+n, _ = p.Parse("あい=3", zp.WithUnit(parse.Bytes))
 fmt.Println(n.Elem(0).Field("Key").(*zp.Node).End()) // 6
 ```
 

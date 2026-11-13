@@ -1,6 +1,9 @@
 package core
 
-import "zeroparse.dev/zp/internal/value"
+import (
+	"zeroparse.dev/zp/internal/value"
+	"zeroparse.dev/zp/runtime/parse"
+)
 
 // Tracing reports every rule call of a parse to a function (ParseOptions.Trace). It is built
 // around the one function all backends call for a rule (Parser.Call), so that an ordinary parse
@@ -74,7 +77,7 @@ type TraceEvent struct {
 	exp []ExpID
 	// rec is the errors of a bounded stream's tail, and recs, otherwise, the entries of the record of
 	// recovered errors that the call left, which Recovered lists.
-	rec  []*SyntaxError
+	rec  []*parse.SyntaxError
 	recs []RecEntry
 }
 
@@ -106,7 +109,7 @@ func (e TraceEvent) Text() string {
 // and what was expected there, as a parse that failed there would report it. It is nil when the
 // call recorded no expectation (inside a lookahead, or when nothing failed). A call that matched
 // can have one too: the input after its match was tried and rejected.
-func (e TraceEvent) Failure() *SyntaxError {
+func (e TraceEvent) Failure() *parse.SyntaxError {
 	if e.p == nil || len(e.exp) == 0 {
 		return nil
 	}
@@ -117,7 +120,7 @@ func (e TraceEvent) Failure() *SyntaxError {
 // recovered from during the call, in nested calls too, or taken from the memo with the call's
 // result. The expectations of a recovered error are not part of Failure: recovering removes them
 // from the record of the call that contains the #recover.
-func (e TraceEvent) Recovered() []*SyntaxError {
+func (e TraceEvent) Recovered() []*parse.SyntaxError {
 	if e.recs != nil {
 		return appendRecErrors(nil, e.recs)
 	}

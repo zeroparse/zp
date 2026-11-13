@@ -5,6 +5,7 @@ import (
 
 	"zeroparse.dev/zp/internal/compile"
 	"zeroparse.dev/zp/internal/gentest"
+	"zeroparse.dev/zp/runtime/parse"
 )
 
 // TestTextStructsAcrossBackends checks that the backends agree on the structs actions make from
@@ -14,7 +15,7 @@ func TestTextStructsAcrossBackends(t *testing.T) {
 	inputs := []string{"", "ab", "ab 12 3.5", "<x> ! #a # @b @", "ab ?", "12.", "<x", "! ab <yz> 7", "[ab]ab", "[ab]cd 1"}
 	for _, sourceInfo := range []bool{false, true} {
 		prog := compileBare(t, gentest.TextStructGrammar, compile.Options{SourceInfo: sourceInfo})
-		for _, unit := range []PositionUnit{CodePoints, Bytes} {
+		for _, unit := range []parse.PositionUnit{parse.CodePoints, parse.Bytes} {
 			for _, input := range inputs {
 				want := gentest.ResultJSON(prog.ParseWith("main", input, ParseOptions{Backend: Closure, Unit: unit}))
 				wantRecognized := gentest.ResultJSON(prog.ParseWith("main", input, ParseOptions{Backend: Closure, Unit: unit, Recognize: true}))

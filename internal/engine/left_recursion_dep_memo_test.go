@@ -11,7 +11,7 @@ import (
 	"zeroparse.dev/zp/internal/compile"
 	"zeroparse.dev/zp/internal/engine/core"
 	"zeroparse.dev/zp/internal/gentest"
-	"zeroparse.dev/zp/internal/limits"
+	"zeroparse.dev/zp/runtime/parse"
 )
 
 // depMemoGrammars returns the grammars that the dependency memo tests compare
@@ -288,7 +288,7 @@ func TestEndedByResourceLimit(t *testing.T) {
 		t.Errorf("the insertion limit error %s must not count as a resource limit", ins)
 	}
 	loop := mustCompile(t, "@start\nrule main = \"a\"+")
-	got, err = loop.ParseWith("", strings.Repeat("a", 100), ParseOptions{Backend: Closure, Limits: limits.Limits{Compute: 5}})
+	got, err = loop.ParseWith("", strings.Repeat("a", 100), ParseOptions{Backend: Closure, Limits: parse.Limits{Compute: 5}})
 	res := gentest.ResultJSON(got, err)
 	if !strings.Contains(res, "compute limit") || !endedByResourceLimit(res, "x") || !endedByResourceLimit("x", res) {
 		t.Errorf("the compute limit error %s must count as a resource limit", res)

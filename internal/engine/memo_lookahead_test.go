@@ -5,7 +5,7 @@ import (
 
 	"zeroparse.dev/zp/internal/engine/core"
 	"zeroparse.dev/zp/internal/gentest"
-	"zeroparse.dev/zp/internal/limits"
+	"zeroparse.dev/zp/runtime/parse"
 )
 
 // TestMemoLookaheadStateEvaluations checks that calls that alternate between lookahead states
@@ -17,7 +17,7 @@ func TestMemoLookaheadStateEvaluations(t *testing.T) {
 	for _, c := range gentest.MemoLookaheadCases() {
 		prog := mustCompile(t, c.Src)
 		for _, b := range []Backend{Closure, Bytecode, BytecodeIterative} {
-			for _, lim := range []limits.Limits{{}, {Compute: 1 << 40}} {
+			for _, lim := range []parse.Limits{{}, {Compute: 1 << 40}} {
 				if lim.Compute != 0 && !core.BudgetControlsEnabled {
 					// The reference build has no budget controls, so a limit builds no controlled graph.
 					continue

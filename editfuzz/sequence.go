@@ -29,6 +29,7 @@ import (
 
 	"zeroparse.dev/zp"
 	"zeroparse.dev/zp/internal/cliflag"
+	"zeroparse.dev/zp/runtime/parse"
 )
 
 // Version is the version of the Sequence format that this package reads and writes.
@@ -128,11 +129,11 @@ type Sequence struct {
 	GrammarSHA256 string
 	Start         string
 	Backend       zp.Backend
-	Unit          zp.PositionUnit
+	Unit          parse.PositionUnit
 	// Limits bound the Documents and the fresh parses of a replay. A Document that reuses earlier work
 	// spends less than a fresh parse, so a check in which either parse exhausts its budget compares
 	// nothing. The saved format does not record the limits, so a replay supplies them again.
-	Limits zp.Limits
+	Limits parse.Limits
 	// Seed is the seed that generated the sequence, kept only as provenance: replay does not use it.
 	Seed       uint64
 	Initial    []byte
@@ -267,8 +268,8 @@ func checkHash(h string) error {
 	return nil
 }
 
-func unitName(u zp.PositionUnit) (string, error) {
-	if u != zp.CodePoints && u != zp.Bytes {
+func unitName(u parse.PositionUnit) (string, error) {
+	if u != parse.CodePoints && u != parse.Bytes {
 		return "", fmt.Errorf("unknown unit %d", u)
 	}
 	return u.String(), nil

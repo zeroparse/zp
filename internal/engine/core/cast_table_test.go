@@ -6,8 +6,8 @@ import (
 	"zeroparse.dev/zp/internal/compile"
 	"zeroparse.dev/zp/internal/compiletest"
 	"zeroparse.dev/zp/internal/ir/exec/conform"
-	"zeroparse.dev/zp/internal/limits"
 	"zeroparse.dev/zp/internal/value"
+	"zeroparse.dev/zp/runtime/parse"
 )
 
 // engineFieldType returns the type of a cast of the table as the engine declares it.
@@ -30,9 +30,9 @@ func TestEngineValueCastTable(t *testing.T) {
 		src := "type S = { F int }\ntype T = { F int }\n@start\nrule main = \"a\"\n"
 		prog := &SharedProgram{}
 		InitSharedProgram(prog, compiletest.Program(t, src, compile.Options{}))
-		p := &Parser{Prog: prog, Input: NewInput(conform.BuiltinInput, Bytes)}
+		p := &Parser{Prog: prog, Input: NewInput(conform.BuiltinInput, parse.Bytes)}
 		if controlled {
-			p.Control = NewBudgetControl(nil, limits.Limits{Compute: 1 << 62})
+			p.Control = NewBudgetControl(nil, parse.Limits{Compute: 1 << 62})
 		}
 		c := &EvalCtx{P: p}
 		var build func(v conform.CastValue) any

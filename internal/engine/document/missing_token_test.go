@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	. "zeroparse.dev/zp/internal/engine"
+	"zeroparse.dev/zp/runtime/parse"
 )
 
 func TestMissingTokensDocumentChangesRejectionPreservesBaseline(t *testing.T) {
@@ -35,7 +36,7 @@ func TestMissingTokensDocumentChangesRejectionPreservesBaseline(t *testing.T) {
 	if _, err := d.SnapshotWith(ParseOptions{}); err != nil {
 		t.Fatal(err)
 	}
-	if events := d.DrainChanges(); len(events) != 1 || events[0].Output != OutputUnchanged {
+	if events := d.DrainChanges(); len(events) != 1 || events[0].Output != parse.OutputUnchanged {
 		t.Fatal("valid parse did not compare against original baseline", events)
 	}
 }

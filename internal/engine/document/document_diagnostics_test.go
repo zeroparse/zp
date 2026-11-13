@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/internal/engine/core"
+	"zeroparse.dev/zp/runtime/parse"
 )
 
 func TestDocumentDiagnosticContainers(t *testing.T) {
@@ -11,10 +12,10 @@ func TestDocumentDiagnosticContainers(t *testing.T) {
 	if copyDocumentDiagnostics(p, nil) != nil {
 		t.Fatal("nil diagnostics became nonnil")
 	}
-	if got := copyDocumentDiagnostics(p, core.SyntaxErrors{}); got == nil || len(got) != 0 {
+	if got := copyDocumentDiagnostics(p, parse.SyntaxErrors{}); got == nil || len(got) != 0 {
 		t.Fatal("empty diagnostics lost their shape")
 	}
-	src := core.SyntaxErrors{
+	src := parse.SyntaxErrors{
 		nil,
 		{Expected: []string{}, Messages: nil},
 		{Expected: []string{"token"}, Messages: []string{"original"}},

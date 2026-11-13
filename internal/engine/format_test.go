@@ -12,6 +12,7 @@ import (
 	"zeroparse.dev/zp/internal/compile"
 	"zeroparse.dev/zp/internal/gentest"
 	"zeroparse.dev/zp/internal/syntax"
+	"zeroparse.dev/zp/runtime/parse"
 )
 
 func TestFormatPreservesMinusSemantics(t *testing.T) {
@@ -30,7 +31,7 @@ func TestFormatPreservesMinusSemantics(t *testing.T) {
 				for _, input := range []string{"", "a", "b", "aa", "ab", "ac"} {
 					checkBackends(t, before, "main", input)
 					checkBackends(t, after, "main", input)
-					for _, unit := range []PositionUnit{CodePoints, Bytes} {
+					for _, unit := range []parse.PositionUnit{parse.CodePoints, parse.Bytes} {
 						for _, backend := range []Backend{Closure, Bytecode, BytecodeIterative} {
 							opts := ParseOptions{Backend: backend, Unit: unit}
 							n1, err1 := before.ParseWith("main", input, opts)
@@ -96,7 +97,7 @@ func TestFormatPreservesCorpus(t *testing.T) {
 			}
 			p1, p2 := mustCompile(t, s.src, compile.Options{NoProjections: true}), mustCompile(t, formatted, compile.Options{NoProjections: true})
 			for _, input := range s.inputs {
-				for _, unit := range []PositionUnit{CodePoints, Bytes} {
+				for _, unit := range []parse.PositionUnit{parse.CodePoints, parse.Bytes} {
 					opts := ParseOptions{Unit: unit}
 					n1, err1 := p1.ParseWith("main", input, opts)
 					n2, err2 := p2.ParseWith("main", input, opts)

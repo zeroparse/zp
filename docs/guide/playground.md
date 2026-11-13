@@ -76,7 +76,7 @@ In the browser, the Go code runs on the JavaScript engine's stack, which is far 
 program. The playground therefore limits nesting more than the engine does:
 
 - With the closure and bytecode backends (and the default), recursive rule calls may nest at most **600** deep, instead of
-  100,000 (`zp.Limits.Depth`). Deeper input ends with the engine's error `nesting too deep: more than 600 nested recursive rule calls`.
+  100,000 (`parse.Limits.Depth`). Deeper input ends with the engine's error `nesting too deep: more than 600 nested recursive rule calls`.
   A JSON array nests three recursive rule calls per level, so this allows about 200 nested arrays, where `zp parse` handles
   thousands. The bytecode-iterative backend keeps rule calls on its own stack and has no such limit.
 - Trees nested more than **400** levels deep are not shown: the input matches, and the status says how deep the tree

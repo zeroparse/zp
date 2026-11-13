@@ -9,8 +9,8 @@ import (
 
 	. "zeroparse.dev/zp/internal/engine"
 	"zeroparse.dev/zp/internal/engine/core"
-	"zeroparse.dev/zp/internal/limits"
 	"zeroparse.dev/zp/internal/value"
+	"zeroparse.dev/zp/runtime/parse"
 )
 
 func TestBudgetDocumentDiagnosticPublication(t *testing.T) {
@@ -43,8 +43,8 @@ func TestBudgetDocumentDiagnosticPublication(t *testing.T) {
 				var exitSteps uint64
 				publicationPolled := false
 				token := new(int)
-				syntaxError := &SyntaxError{Messages: []string{"context error"}}
-				syntaxErrors := SyntaxErrors{syntaxError}
+				syntaxError := &parse.SyntaxError{Messages: []string{"context error"}}
+				syntaxErrors := parse.SyntaxErrors{syntaxError}
 				ctx := &budgetContextAccessorContext{Context: context.Background(), done: make(chan struct{})}
 				ctx.fn = func() error {
 					if observed == nil || observed.Control.Used < exitSteps+2048 {
@@ -86,7 +86,7 @@ func TestBudgetDocumentDiagnosticPublication(t *testing.T) {
 				}
 				switch mode {
 				case "budget":
-					if caught != nil || !errors.Is(err, limits.ErrLimit) {
+					if caught != nil || !errors.Is(err, parse.ErrLimit) {
 						t.Fatalf("budget: error=%v panic=%v", err, caught)
 					}
 				case "syntax-error":
@@ -94,7 +94,7 @@ func TestBudgetDocumentDiagnosticPublication(t *testing.T) {
 						t.Fatal("context SyntaxError identity changed")
 					}
 				case "syntax-errors":
-					got, ok := err.(SyntaxErrors)
+					got, ok := err.(parse.SyntaxErrors)
 					if caught != nil || !ok || len(got) != 1 || &got[0] != &syntaxErrors[0] {
 						t.Fatal("context SyntaxErrors identity changed")
 					}
@@ -127,7 +127,7 @@ func TestBudgetDocumentFatalSyntaxErrorsRemainUnchanged(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		original := SyntaxErrors{&SyntaxError{Messages: []string{"context failure"}}}
+		original := parse.SyntaxErrors{&parse.SyntaxError{Messages: []string{"context failure"}}}
 		ctx := &budgetContextAccessorContext{Context: context.Background(), done: make(chan struct{})}
 		o := base
 		o.Context = ctx
@@ -138,7 +138,7 @@ func TestBudgetDocumentFatalSyntaxErrorsRemainUnchanged(t *testing.T) {
 			}
 		}
 		n, err := d.ParseWith(o)
-		got, ok := err.(SyntaxErrors)
+		got, ok := err.(parse.SyntaxErrors)
 		if n != nil || !ok || len(got) != 1 || &got[0] != &original[0] {
 			t.Fatal("fatal context error was mistaken for parser diagnostics")
 		}

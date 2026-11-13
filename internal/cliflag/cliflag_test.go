@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp"
+	"zeroparse.dev/zp/runtime/parse"
 )
 
 func TestParseBackend(t *testing.T) {
@@ -20,7 +21,7 @@ func TestParseBackend(t *testing.T) {
 }
 
 func TestParseUnit(t *testing.T) {
-	for _, u := range []zp.PositionUnit{zp.CodePoints, zp.Bytes} {
+	for _, u := range []parse.PositionUnit{parse.CodePoints, parse.Bytes} {
 		if got, err := ParseUnit(u.String()); err != nil || got != u {
 			t.Errorf("ParseUnit(%q) = %v, %v", u.String(), got, err)
 		}

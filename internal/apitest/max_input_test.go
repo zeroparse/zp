@@ -8,15 +8,16 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp"
+	"zeroparse.dev/zp/runtime/parse"
 )
 
 func wantInputLimit(t *testing.T, what string, err error, limit, length uint64) {
 	t.Helper()
-	var le *zp.LimitError
-	if !errors.As(err, &le) || !errors.Is(err, zp.ErrLimit) {
+	var le *parse.LimitError
+	if !errors.As(err, &le) || !errors.Is(err, parse.ErrLimit) {
 		t.Fatalf("%s: error %v, want a LimitError", what, err)
 	}
-	if le.Kind != zp.LimitInput || le.Limit != limit || le.Requested != length {
+	if le.Kind != parse.LimitInput || le.Limit != limit || le.Requested != length {
 		t.Errorf("%s: %+v, want kind LimitInput, limit %d, length %d", what, *le, limit, length)
 	}
 }
@@ -37,13 +38,13 @@ rule line = [a-z]+ "\n"`, "main")
 	}
 	text := "ééé" // 3 code points, 6 bytes
 	for _, c := range []struct {
-		unit zp.PositionUnit
+		unit parse.PositionUnit
 		n    uint64
-	}{{zp.CodePoints, 3}, {zp.Bytes, 6}} {
+	}{{parse.CodePoints, 3}, {parse.Bytes, 6}} {
 		with := func(max uint64) []zp.ParseOption {
-			return []zp.ParseOption{zp.WithUnit(c.unit), zp.WithLimits(zp.Limits{Input: max})}
+			return []zp.ParseOption{zp.WithUnit(c.unit), zp.WithLimits(parse.Limits{Input: max})}
 		}
-		for _, max := range []uint64{0, zp.Unlimited, c.n} {
+		for _, max := range []uint64{0, parse.Unlimited, c.n} {
 			if _, err := p.Parse(text, with(max)...); err != nil {
 				t.Errorf("unit %d, MaxInput %d: %v", c.unit, max, err)
 			}

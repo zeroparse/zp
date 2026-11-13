@@ -5,7 +5,7 @@ import (
 	"testing"
 	"unsafe"
 
-	"zeroparse.dev/zp/internal/limits"
+	"zeroparse.dev/zp/runtime/parse"
 )
 
 // A code-point source too large for int32 offsets still gives text without copying: the first
@@ -22,18 +22,18 @@ func TestTextOfSourceBeyondInt32Offsets(t *testing.T) {
 		make func(s string) *Input
 	}
 	makers := []maker{
-		{"NewTextInput", func(s string) *Input { in := NewTextInput(s, CodePoints, true); return &in }},
-		{"NewTextInput/lazy", func(s string) *Input { in := NewTextInput(s, CodePoints, false); return &in }},
+		{"NewTextInput", func(s string) *Input { in := NewTextInput(s, parse.CodePoints, true); return &in }},
+		{"NewTextInput/lazy", func(s string) *Input { in := NewTextInput(s, parse.CodePoints, false); return &in }},
 		{"setSource", func(s string) *Input {
-			in := NewTextInput("x", CodePoints, false)
+			in := NewTextInput("x", parse.CodePoints, false)
 			in.setSource(s)
 			return &in
 		}},
 	}
 	if BudgetControlsEnabled {
 		makers = append(makers, maker{"controlled", func(s string) *Input {
-			c := NewBudgetControl(nil, limits.Limits{Compute: 1 << 30})
-			in := NewControlledTextInput(s, CodePoints, true, nil, c)
+			c := NewBudgetControl(nil, parse.Limits{Compute: 1 << 30})
+			in := NewControlledTextInput(s, parse.CodePoints, true, nil, c)
 			return &in
 		}})
 	}

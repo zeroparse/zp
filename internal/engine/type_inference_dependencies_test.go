@@ -7,6 +7,7 @@ import (
 
 	"zeroparse.dev/zp/internal/compile"
 	"zeroparse.dev/zp/internal/gentest"
+	"zeroparse.dev/zp/runtime/parse"
 )
 
 func TestInferenceDependencyChains(t *testing.T) {
@@ -85,7 +86,7 @@ func TestInferenceChainSavedValues(t *testing.T) {
 				wantClosureRefused(t, err)
 				continue
 			}
-			for _, unit := range []PositionUnit{CodePoints, Bytes} {
+			for _, unit := range []parse.PositionUnit{parse.CodePoints, parse.Bytes} {
 				n, err := q.ParseWith("main", "a", servedBy(mode, ParseOptions{Backend: backend, Unit: unit}))
 				if err != nil || n.String() != "P{}" {
 					t.Errorf("saved %s/%s result: %v, %v", backend, unit, n, err)

@@ -5,8 +5,8 @@ import (
 
 	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/compile"
-	"zeroparse.dev/zp/internal/limits"
 	"zeroparse.dev/zp/internal/value"
+	"zeroparse.dev/zp/runtime/parse"
 )
 
 // An oprForm runs the Operators Rule loop in one of its two printed forms. The recursive form calls
@@ -108,7 +108,7 @@ func splitExpr(p *Parser, r *Rule, min int) (*value.Node, bool) {
 // turn a loop that never ends into a failure.
 func oprParser() *Parser {
 	p := &Parser{MaxDepth: 64}
-	p.Control = NewBudgetControl(nil, limits.Limits{Compute: 10000})
+	p.Control = NewBudgetControl(nil, parse.Limits{Compute: 10000})
 	return p
 }
 
@@ -310,7 +310,7 @@ func oprMissing(p *Parser) {
 // holds what the line recorded, and that applying the attempt brings that back.
 func TestOperatorsAttemptKeepsItsState(t *testing.T) {
 	env := &Env{}
-	errs := []*SyntaxError{{}}
+	errs := []*parse.SyntaxError{{}}
 	for _, form := range oprForms {
 		t.Run(form.name, func(t *testing.T) {
 			p := oprParser()
@@ -381,7 +381,7 @@ func TestOperatorsTrivia(t *testing.T) {
 				r := oprRule(&OperatorsRule{Skip: func(p *Parser) (*value.Node, bool) {
 					silent = p.Silent
 					oprMissing(p)
-					p.PushRecovered(&SyntaxError{})
+					p.PushRecovered(&parse.SyntaxError{})
 					p.Pos = 2
 					return nil, ok
 				}})

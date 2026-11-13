@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp"
+	"zeroparse.dev/zp/runtime/parse"
 )
 
 func TestPublicStreamDiagnosticTail(t *testing.T) {
@@ -17,26 +18,26 @@ rule item = "ab" @error(message="record") #recover(skip=[^a]+)`, "main")
 	}
 	const input = "abX!abY?abZ#abW!ab"
 	for _, backend := range []zp.Backend{zp.Closure, zp.Bytecode, zp.BytecodeIterative} {
-		for _, unit := range []zp.PositionUnit{zp.CodePoints, zp.Bytes} {
+		for _, unit := range []parse.PositionUnit{parse.CodePoints, parse.Bytes} {
 			t.Run(backend.String()+"/"+unit.String(), func(t *testing.T) {
 				base := []zp.ParseOption{zp.WithBackend(backend), zp.WithUnit(unit)}
 				allErr := p.ParseStream(strings.NewReader(input), nil, base...)
-				var all zp.SyntaxErrors
+				var all parse.SyntaxErrors
 				if !errors.As(allErr, &all) || len(all) != 4 {
 					t.Fatalf("legacy recoveries: %v", allErr)
 				}
 				zeroErr := p.ParseStream(strings.NewReader(input), nil, append(base, zp.WithDiagnosticLimit(0))...)
-				if _, truncated := zeroErr.(*zp.TruncatedSyntaxErrors); truncated {
+				if _, truncated := zeroErr.(*parse.TruncatedSyntaxErrors); truncated {
 					t.Fatalf("zero limit truncated: %v", zeroErr)
 				}
-				var zero zp.SyntaxErrors
+				var zero parse.SyntaxErrors
 				if !errors.As(zeroErr, &zero) || !reflect.DeepEqual(zero, all) {
 					t.Fatalf("zero limit changed result: %v", zeroErr)
 				}
 
 				var events []string
-				var seen []*zp.SyntaxError
-				opts := append(base, zp.WithDiagnosticLimit(2), zp.WithDiagnosticCallback(func(e *zp.SyntaxError) error {
+				var seen []*parse.SyntaxError
+				opts := append(base, zp.WithDiagnosticLimit(2), zp.WithDiagnosticCallback(func(e *parse.SyntaxError) error {
 					events = append(events, "diagnostic")
 					seen = append(seen, e)
 					return nil
@@ -45,8 +46,8 @@ rule item = "ab" @error(message="record") #recover(skip=[^a]+)`, "main")
 					events = append(events, "element")
 					return nil
 				}, opts...)
-				var truncated *zp.TruncatedSyntaxErrors
-				var retained zp.SyntaxErrors
+				var truncated *parse.TruncatedSyntaxErrors
+				var retained parse.SyntaxErrors
 				if !errors.As(err, &truncated) || !errors.As(err, &retained) {
 					t.Fatalf("truncated error does not unwrap: %T %v", err, err)
 				}
@@ -55,7 +56,7 @@ rule item = "ab" @error(message="record") #recover(skip=[^a]+)`, "main")
 					!strings.Contains(err.Error(), "truncated") {
 					t.Fatalf("bounded tail: %+v, retained=%v", truncated, retained)
 				}
-				if len(seen) != len(all) || !reflect.DeepEqual(seen, []*zp.SyntaxError(all)) {
+				if len(seen) != len(all) || !reflect.DeepEqual(seen, []*parse.SyntaxError(all)) {
 					t.Fatalf("callback lost committed recoveries: got=%v want=%v", seen, all)
 				}
 				if !reflect.DeepEqual(events, []string{
@@ -66,11 +67,11 @@ rule item = "ab" @error(message="record") #recover(skip=[^a]+)`, "main")
 				}
 				for _, limit := range []int{1, 4, 8} {
 					err := p.ParseStream(strings.NewReader(input), nil, append(base, zp.WithDiagnosticLimit(limit))...)
-					var got zp.SyntaxErrors
+					var got parse.SyntaxErrors
 					if !errors.As(err, &got) || !reflect.DeepEqual(got, all[max(0, len(all)-limit):]) {
 						t.Fatalf("limit %d: %v", limit, err)
 					}
-					_, isTruncated := err.(*zp.TruncatedSyntaxErrors)
+					_, isTruncated := err.(*parse.TruncatedSyntaxErrors)
 					if isTruncated != (limit < len(all)) {
 						t.Fatalf("limit %d wrapper: %T", limit, err)
 					}
@@ -89,7 +90,7 @@ rule item = "a" #recover(skip="!")`, "main")
 	for _, backend := range []zp.Backend{zp.Closure, zp.Bytecode, zp.BytecodeIterative} {
 		t.Run(backend.String(), func(t *testing.T) {
 			var events []string
-			it, err := p.Iterate(strings.NewReader("!!x"), zp.WithBackend(backend), zp.WithDiagnosticLimit(1), zp.WithDiagnosticCallback(func(*zp.SyntaxError) error {
+			it, err := p.Iterate(strings.NewReader("!!x"), zp.WithBackend(backend), zp.WithDiagnosticLimit(1), zp.WithDiagnosticCallback(func(*parse.SyntaxError) error {
 				events = append(events, "diagnostic")
 				return nil
 			}))
@@ -103,7 +104,7 @@ rule item = "a" #recover(skip="!")`, "main")
 				events = append(events, "element")
 			}
 			_, ok, terminal := it.Next()
-			var truncated *zp.TruncatedSyntaxErrors
+			var truncated *parse.TruncatedSyntaxErrors
 			if ok || !errors.As(terminal, &truncated) || truncated.Total != 3 || truncated.Dropped != 2 || len(truncated.Errors) != 1 {
 				t.Fatalf("terminal: ok=%v err=%v", ok, terminal)
 			}
@@ -129,7 +130,7 @@ rule item = "ab" #recover(skip="!")`, "main")
 		err := p.ParseStream(strings.NewReader("!ab"), func(*zp.Node) error {
 			elements++
 			return nil
-		}, zp.WithBackend(backend), zp.WithDiagnosticLimit(1), zp.WithDiagnosticCallback(func(*zp.SyntaxError) error {
+		}, zp.WithBackend(backend), zp.WithDiagnosticLimit(1), zp.WithDiagnosticCallback(func(*parse.SyntaxError) error {
 			return stop
 		}))
 		if err != stop || elements != 0 {

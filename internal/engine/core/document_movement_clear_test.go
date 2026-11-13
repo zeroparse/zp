@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"testing"
 
-	"zeroparse.dev/zp/internal/limits"
 	"zeroparse.dev/zp/internal/value"
+	"zeroparse.dev/zp/runtime/parse"
 )
 
 // movedKept is the number of copies of empty nodes that moveResult keeps in Parser.Moved for the next
@@ -53,7 +53,7 @@ func TestClearMovementSpend(t *testing.T) {
 				wantMovementState(t, p, moved)
 			})
 			t.Run(fmt.Sprintf("%d copies and %d shifts with a control", moved, shifts), func(t *testing.T) {
-				p := &Parser{Input: Input{Control: NewBudgetControl(nil, limits.Limits{Compute: 1 << 30})}}
+				p := &Parser{Input: Input{Control: NewBudgetControl(nil, parse.Limits{Compute: 1 << 30})}}
 				fill(p, moved, shifts)
 				used := p.Control.Used
 				p.ClearMovementSpend()

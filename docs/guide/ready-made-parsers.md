@@ -415,7 +415,7 @@ Do not mix units: if you parse with `Bytes` and report to an editor that counts 
 
 ## Errors
 
-A parse that fails returns a `*SyntaxError` of the parser's own package (not `zp.SyntaxError`: the parsers do not
+A parse that fails returns a `*SyntaxError` of the parser's own package (not `parse.SyntaxError`: the parsers do not
 import ZeroParse). Use `errors.As`:
 
 ```go

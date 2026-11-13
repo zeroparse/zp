@@ -11,6 +11,7 @@ import (
 	"zeroparse.dev/zp/internal/engine"
 	"zeroparse.dev/zp/internal/gen"
 	"zeroparse.dev/zp/internal/gentest"
+	"zeroparse.dev/zp/runtime/parse"
 )
 
 func TestOperatorsRuleExplicitDefaultAction(t *testing.T) {
@@ -45,7 +46,7 @@ func testOperatorsRuleExplicitDefaultAction(t *testing.T) {
 			t.Fatal(err)
 		}
 		for _, backend := range []engine.Backend{engine.Closure, engine.Bytecode, engine.BytecodeIterative} {
-			for _, unit := range []engine.PositionUnit{engine.CodePoints, engine.Bytes} {
+			for _, unit := range []parse.PositionUnit{parse.CodePoints, parse.Bytes} {
 				for _, input := range []string{"α", "α+α", ""} {
 					parseOpts := engine.ParseOptions{Expectations: true, Backend: backend, Unit: unit}
 					n, err := explicit.ParseWith("main", input, parseOpts)

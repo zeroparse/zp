@@ -6,6 +6,7 @@ import (
 
 	"zeroparse.dev/zp/internal/compile"
 	"zeroparse.dev/zp/internal/value"
+	"zeroparse.dev/zp/runtime/parse"
 )
 
 var missingBenchmarkNode *value.Node
@@ -32,7 +33,7 @@ func BenchmarkMissingLiteral(b *testing.B) {
 		if err != nil {
 			b.Fatal(err)
 		}
-		for _, unit := range []PositionUnit{CodePoints, Bytes} {
+		for _, unit := range []parse.PositionUnit{parse.CodePoints, parse.Bytes} {
 			b.Run(tc.name+"/"+unit.String(), func(b *testing.B) {
 				o := ParseOptions{Unit: unit, MissingTokens: tc.limit}
 				b.ReportAllocs()
@@ -44,7 +45,7 @@ func BenchmarkMissingLiteral(b *testing.B) {
 				if missingBenchmarkNode == nil {
 					b.Fatal("parse returned no tree")
 				}
-				var recovered SyntaxErrors
+				var recovered parse.SyntaxErrors
 				if tc.inserted {
 					if !errors.As(missingBenchmarkError, &recovered) || len(recovered) != 1 {
 						b.Fatalf("missing diagnostic: %v", missingBenchmarkError)

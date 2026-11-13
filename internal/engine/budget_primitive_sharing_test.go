@@ -10,8 +10,8 @@ import (
 	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/compile"
 	"zeroparse.dev/zp/internal/gentest"
-	"zeroparse.dev/zp/internal/limits"
 	"zeroparse.dev/zp/internal/value"
+	"zeroparse.dev/zp/runtime/parse"
 )
 
 // A shared AST leaf is first compiled value-free for a text struct rule, then
@@ -38,14 +38,14 @@ func TestBudgetPrimitiveASTAliases(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			for _, unit := range []PositionUnit{CodePoints, Bytes} {
+			for _, unit := range []parse.PositionUnit{parse.CodePoints, parse.Bytes} {
 				input := strings.Repeat(tc.text, 3)
 				n, err := shared.ParseWith("main", input, ParseOptions{Unit: unit})
 				if err != nil {
 					t.Fatal(err)
 				}
 				width := int32(1)
-				if unit == Bytes {
+				if unit == parse.Bytes {
 					width = int32(len(tc.text))
 				}
 				for i, name := range []string{"a", "b", "c"} {
@@ -71,7 +71,7 @@ func TestBudgetPrimitiveASTAliases(t *testing.T) {
 				for _, recognize := range []bool{false, true} {
 					for _, text := range []string{input, "", tc.text, "x"} {
 						for limit := uint64(0); limit <= 80; limit++ {
-							for _, limits := range []limits.Limits{{Compute: limit}, {Compute: limit}} {
+							for _, limits := range []parse.Limits{{Compute: limit}, {Compute: limit}} {
 								opts := ParseOptions{Unit: unit, Recognize: recognize, Limits: limits}
 								a, ae := shared.ParseWith("main", text, opts)
 								b, be := reference.ParseWith("main", text, opts)

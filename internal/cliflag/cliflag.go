@@ -7,6 +7,7 @@ import (
 	"fmt"
 
 	"zeroparse.dev/zp"
+	"zeroparse.dev/zp/runtime/parse"
 )
 
 // ParseBackend returns the backend named closure, bytecode or bytecode-iterative.
@@ -20,8 +21,8 @@ func ParseBackend(name string) (zp.Backend, error) {
 }
 
 // ParseUnit returns the unit named codepoints or bytes.
-func ParseUnit(name string) (zp.PositionUnit, error) {
-	for _, u := range []zp.PositionUnit{zp.CodePoints, zp.Bytes} {
+func ParseUnit(name string) (parse.PositionUnit, error) {
+	for _, u := range []parse.PositionUnit{parse.CodePoints, parse.Bytes} {
 		if u.String() == name {
 			return u, nil
 		}

@@ -14,7 +14,7 @@ import (
 	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/gen"
 	"zeroparse.dev/zp/internal/gentest"
-	"zeroparse.dev/zp/internal/limits"
+	"zeroparse.dev/zp/runtime/parse"
 )
 
 // A LimitError of kind LimitCompute reports the reservation that failed and the units reserved before
@@ -83,8 +83,8 @@ func engineLimitReports(t *testing.T, c limitAgreementCase, b Backend) []string 
 	prog := compileBare(t, c.grammar)
 	out := make([]string, c.max+1)
 	for l := uint64(1); l <= c.max; l++ {
-		_, err := prog.ParseWith("main", c.input, ParseOptions{Backend: b, Limits: limits.Limits{Compute: l}})
-		var le *limits.LimitError
+		_, err := prog.ParseWith("main", c.input, ParseOptions{Backend: b, Limits: parse.Limits{Compute: l}})
+		var le *parse.LimitError
 		ok := errors.As(err, &le)
 		if ok {
 			out[l] = limitReport(err, le.Used, le.Requested, ok)

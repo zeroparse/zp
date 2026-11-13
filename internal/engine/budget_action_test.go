@@ -11,11 +11,11 @@ import (
 	"unicode/utf8"
 
 	"zeroparse.dev/zp/internal/engine/core"
-	"zeroparse.dev/zp/internal/limits"
 	"zeroparse.dev/zp/internal/value"
+	"zeroparse.dev/zp/runtime/parse"
 )
 
-func actionBudgetParser(ctx context.Context, limits limits.Limits, unit PositionUnit) *core.Parser {
+func actionBudgetParser(ctx context.Context, limits parse.Limits, unit parse.PositionUnit) *core.Parser {
 	return &core.Parser{Input: core.Input{Unit: unit, Control: core.NewBudgetControl(ctx, limits)}}
 }
 
@@ -33,10 +33,10 @@ func TestBudgetActionStringHelperParity(t *testing.T) {
 	left := strings.Repeat("prefix-", 2048) + "a" + string([]byte{0xff})
 	right := strings.Repeat("prefix-", 2048) + "b" + string([]byte{0x00})
 
-	for _, unit := range []PositionUnit{Bytes, CodePoints} {
-		p := actionBudgetParser(nil, limits.Limits{Compute: 1 << 40}, unit)
+	for _, unit := range []parse.PositionUnit{parse.Bytes, parse.CodePoints} {
+		p := actionBudgetParser(nil, parse.Limits{Compute: 1 << 40}, unit)
 		wantLen := len(malformed)
-		if unit == CodePoints {
+		if unit == parse.CodePoints {
 			wantLen = utf8.RuneCountInString(malformed)
 		}
 		if got := p.ValueTextLen(malformed); got != wantLen {
@@ -70,20 +70,20 @@ func TestBudgetActionStringHelperParity(t *testing.T) {
 func TestBudgetActionStringHelpersChargeLongBudget(t *testing.T) {
 	t.Parallel()
 	long := strings.Repeat("a", 8192)
-	p := actionBudgetParser(nil, limits.Limits{Compute: 256}, CodePoints)
-	if err := catchFatal(t, func() { p.CompareText(long+"x", long+"y") }); !errors.Is(err, limits.ErrLimit) {
+	p := actionBudgetParser(nil, parse.Limits{Compute: 256}, parse.CodePoints)
+	if err := catchFatal(t, func() { p.CompareText(long+"x", long+"y") }); !errors.Is(err, parse.ErrLimit) {
 		t.Fatalf("long equal-prefix comparison error = %v, want ErrLimit", err)
 	}
 
-	p = actionBudgetParser(nil, limits.Limits{Compute: 128}, Bytes)
+	p = actionBudgetParser(nil, parse.Limits{Compute: 128}, parse.Bytes)
 	if err := catchFatal(t, func() {
 		_, _ = p.ValueBinary("+", long, long)
-	}); !errors.Is(err, limits.ErrLimit) {
+	}); !errors.Is(err, parse.ErrLimit) {
 		t.Fatalf("long string concatenation error = %v, want ErrLimit", err)
 	}
 
-	p = actionBudgetParser(nil, limits.Limits{Compute: 128}, CodePoints)
-	if err := catchFatal(t, func() { p.ValueTextLen(long) }); !errors.Is(err, limits.ErrLimit) {
+	p = actionBudgetParser(nil, parse.Limits{Compute: 128}, parse.CodePoints)
+	if err := catchFatal(t, func() { p.ValueTextLen(long) }); !errors.Is(err, parse.ErrLimit) {
 		t.Fatalf("long rune length error = %v, want ErrLimit", err)
 	}
 }
@@ -120,7 +120,7 @@ func TestBudgetActionCollectionLoopsChargeElements(t *testing.T) {
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
 			ctx := newPollingContext(1)
-			p := actionBudgetParser(ctx, limits.Limits{}, CodePoints)
+			p := actionBudgetParser(ctx, parse.Limits{}, parse.CodePoints)
 			var locals *core.Local
 			if tc.name == "local copy" {
 				for i := 0; i < size; i++ {
@@ -157,16 +157,16 @@ func TestBudgetActionBatchRoutesAndPoolRetry(t *testing.T) {
 rule items = [a-z] #atomic*`)
 			input := strings.Repeat("a", 1024)
 			for _, backend := range []Backend{Closure, Bytecode, BytecodeIterative} {
-				for _, unit := range []PositionUnit{Bytes, CodePoints} {
+				for _, unit := range []parse.PositionUnit{parse.Bytes, parse.CodePoints} {
 					t.Run(fmt.Sprintf("%v/%v", backend, unit), func(t *testing.T) {
 						armed := false
 						n, err := prog.ParseWith("main", input, ParseOptions{Backend: backend, Unit: unit, Trace: func(e TraceEvent) {
 							if !armed && e.Kind == TraceExit && e.Rule == "items" {
 								armed = true
-								core.TraceParser(e).Control = core.NewBudgetControl(nil, limits.Limits{Compute: 128})
+								core.TraceParser(e).Control = core.NewBudgetControl(nil, parse.Limits{Compute: 128})
 							}
 						}})
-						if !armed || n != nil || !errors.Is(err, limits.ErrLimit) {
+						if !armed || n != nil || !errors.Is(err, parse.ErrLimit) {
 							t.Fatalf("controlled parse: armed=%t node=%v err=%v", armed, n, err)
 						}
 						n, err = prog.ParseWith("main", input, ParseOptions{Backend: backend, Unit: unit})
@@ -187,14 +187,14 @@ func TestBudgetActionBatchCancellationStopsPublication(t *testing.T) {
 rule items = [a-z] #atomic*`)
 	input := strings.Repeat("a", 1024)
 	for _, backend := range []Backend{Closure, Bytecode, BytecodeIterative} {
-		for _, unit := range []PositionUnit{Bytes, CodePoints} {
+		for _, unit := range []parse.PositionUnit{parse.Bytes, parse.CodePoints} {
 			t.Run(fmt.Sprintf("%v/%v", backend, unit), func(t *testing.T) {
 				armed := false
 				var attempt *core.BudgetControl
 				n, err := prog.ParseWith("main", input, ParseOptions{Backend: backend, Unit: unit, Trace: func(e TraceEvent) {
 					if !armed && e.Kind == TraceExit && e.Rule == "items" {
 						armed = true
-						attempt = core.NewBudgetControl(newPollingContext(2), limits.Limits{})
+						attempt = core.NewBudgetControl(newPollingContext(2), parse.Limits{})
 						core.TraceParser(e).Control = attempt
 					}
 				}})
@@ -221,12 +221,12 @@ rule items = [a-z]* #atomic`)
 	input := strings.Repeat("a", 1024) + "!"
 
 	for _, backend := range []Backend{Closure, Bytecode, BytecodeIterative} {
-		for _, unit := range []PositionUnit{Bytes, CodePoints} {
+		for _, unit := range []parse.PositionUnit{parse.Bytes, parse.CodePoints} {
 			t.Run(fmt.Sprintf("%v/%v", backend, unit), func(t *testing.T) {
 				armContext := func(e TraceEvent, armed *bool) {
 					if !*armed && e.Kind == TraceExit && e.Rule == "items" {
 						*armed = true
-						core.TraceParser(e).Control = core.NewBudgetControl(nil, limits.Limits{Compute: 128})
+						core.TraceParser(e).Control = core.NewBudgetControl(nil, parse.Limits{Compute: 128})
 					}
 				}
 				armed := false
@@ -239,10 +239,10 @@ rule items = [a-z]* #atomic`)
 				n, err = recovery.ParseWith("main", input, ParseOptions{Backend: backend, Unit: unit, Trace: func(e TraceEvent) {
 					if !armed && e.Kind == TraceExit && e.Rule == "items" {
 						armed = true
-						core.TraceParser(e).Control = core.NewBudgetControl(nil, limits.Limits{Compute: 256})
+						core.TraceParser(e).Control = core.NewBudgetControl(nil, parse.Limits{Compute: 256})
 					}
 				}})
-				if !armed || n != nil || !errors.Is(err, limits.ErrLimit) {
+				if !armed || n != nil || !errors.Is(err, parse.ErrLimit) {
 					t.Fatalf("recovery swallowed action interruption: armed=%t node=%v err=%v", armed, n, err)
 				}
 				n, err = recovery.ParseWith("main", input, ParseOptions{Backend: backend, Unit: unit})

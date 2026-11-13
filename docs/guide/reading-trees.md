@@ -67,7 +67,7 @@ Because a field is an `any`, assert its type: `.(*zp.Node)` for nodes and captur
 
 `Start()` and `End()` return `int`. They delimit the input a node covers as a half-open range in the position unit of
 the parse. A rule that includes trailing white space covers it: the first `Pair` above ends at 8, after `"; "`. To get
-the matched text of any node, slice the input (a plain Go slice when you parse with `zp.WithUnit(zp.Bytes)`) or use
+the matched text of any node, slice the input (a plain Go slice when you parse with `zp.WithUnit(parse.Bytes)`) or use
 `text(...)` in an action. [Running Parsers](position-units.md) explains how to choose a unit.
 
 ## Printing and JSON

@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/internal/compile"
+	"zeroparse.dev/zp/runtime/parse"
 )
 
 // compileDefault compiles src with default values and source information.
@@ -149,7 +150,7 @@ func TestDefaultValueKeepsRecovery(t *testing.T) {
 	checkDefaultValue(t, src, stripped, "a;b;", "a;1;b;", "1")
 	prog := compileDefault(t, src)
 	n, err := prog.Parse("main", "a;1;b;")
-	var errs SyntaxErrors
+	var errs parse.SyntaxErrors
 	if n == nil || err == nil || !errors.As(err, &errs) || len(errs) != 1 {
 		t.Errorf("got %v, %v; want a tree and one recovered error", n, err)
 	}
@@ -189,7 +190,7 @@ func TestDefaultValuePredicateFieldsAcceptSameInputs(t *testing.T) {
 	plain, dv := mustCompile(t, src), compileDefault(t, src)
 	for _, input := range []string{"a=a!", "ab=ab!", "a=b!", "a=a", "z=z?!", "z=z!", "a=a?!", "=a!", ""} {
 		for _, backend := range []Backend{Closure, Bytecode, BytecodeIterative} {
-			for _, unit := range []PositionUnit{CodePoints, Bytes} {
+			for _, unit := range []parse.PositionUnit{parse.CodePoints, parse.Bytes} {
 				o := ParseOptions{Backend: backend, Unit: unit}
 				_, plainErr := plain.ParseWith("main", input, o)
 				_, dvErr := dv.ParseWith("main", input, o)

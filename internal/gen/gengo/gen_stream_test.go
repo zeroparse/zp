@@ -21,6 +21,7 @@ import (
 	"zeroparse.dev/zp/internal/gen"
 	"zeroparse.dev/zp/internal/gentest"
 	"zeroparse.dev/zp/internal/value"
+	"zeroparse.dev/zp/runtime/parse"
 )
 
 // streamRun is one stream parse of a differential test. The reader returns
@@ -556,12 +557,12 @@ func engineStream(prog *engine.Program, v streamRun) string {
 			return nil
 		}
 	}
-	o := engine.ParseOptions{Expectations: true, Unit: engine.CodePoints, DiagnosticLimit: v.Limit, DiagnosticLimitSet: v.LimitSet}
+	o := engine.ParseOptions{Expectations: true, Unit: parse.CodePoints, DiagnosticLimit: v.Limit, DiagnosticLimitSet: v.LimitSet}
 	if v.Bytes {
-		o.Unit = engine.Bytes
+		o.Unit = parse.Bytes
 	}
 	if v.Diag {
-		o.DiagnosticCallback = func(e *engine.SyntaxError) error {
+		o.DiagnosticCallback = func(e *parse.SyntaxError) error {
 			res.Diags = append(res.Diags, fmt.Sprint(len(res.Emits), " ", e.Error()))
 			e.Expected, e.Messages, e.Pos = append(e.Expected, "mutated"), nil, -1
 			if len(res.Diags) == v.DiagStopAt {

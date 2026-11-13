@@ -10,7 +10,7 @@ import (
 	"zeroparse.dev/zp/internal/compile"
 	"zeroparse.dev/zp/internal/engine/core"
 	"zeroparse.dev/zp/internal/gentest"
-	"zeroparse.dev/zp/internal/limits"
+	"zeroparse.dev/zp/runtime/parse"
 )
 
 // contextStoreGrowth parses the shape at the two gentest.ContextStoreSizes on the backend and
@@ -21,7 +21,7 @@ func contextStoreGrowth(t *testing.T, prog *Program, s gentest.DependencyMemoSha
 	for i, m := range gentest.ContextStoreSizes {
 		var pr Profile
 		o.Trace = pr.Trace
-		o.Limits = limits.Limits{Compute: limits.Unlimited}
+		o.Limits = parse.Limits{Compute: parse.Unlimited}
 		// With missing-token insertion, the parse reports the insertion as an error.
 		if r, err := prog.ParseWith("", s.Input(m), o); err != nil && (r == nil || o.MissingTokens == 0) {
 			t.Fatalf("%s %s m=%d: %v", s.Name, o.Backend, m, err)

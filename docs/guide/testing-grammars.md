@@ -82,6 +82,7 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp"
+	"zeroparse.dev/zp/runtime/parse"
 )
 
 //go:embed pairs.zp
@@ -125,7 +126,7 @@ func TestRejects(t *testing.T) {
 		{"a=1\nb=x", 2, 3, []string{"[0-9]"}},
 	} {
 		_, err := parser.Parse(tc.in)
-		var se *zp.SyntaxError
+		var se *parse.SyntaxError
 		if !errors.As(err, &se) {
 			t.Errorf("%q: got %v, want a syntax error", tc.in, err)
 			continue
@@ -245,7 +246,7 @@ Notes:
   looking proves nothing.
 - Print what you care about. `node.String()` has no positions; `json.MarshalIndent(node, "", "  ")` has them (and, when the parser is compiled with `zp.WithSourceInfo()`, the
   rule of each node), at the price of larger files. A grammar with `#recover` should also print the recovered errors
-  (`var recovered zp.SyntaxErrors; errors.As(err, &recovered)`): a parse can return a tree and an error together.
+  (`var recovered parse.SyntaxErrors; errors.As(err, &recovered)`): a parse can return a tree and an error together.
 - Keep a few inputs that **fail**, with the error in the golden file. Error messages are part of a parser's interface.
 - The same layout is used by [examples/](../../examples/) and by every module of [parsers/](https://github.com/zeroparse/alpha-parsers); the zp
   command makes a golden file too: `zp parse -g pairs.zp -f sexpr < testdata/basic.txt`.
@@ -334,6 +335,7 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp"
+	"zeroparse.dev/zp/runtime/parse"
 )
 
 // checkInput checks what must hold for every input, valid or not.
@@ -341,24 +343,24 @@ func checkInput(t testing.TB, in string) {
 	t.Helper()
 
 	// Byte positions, so that a node's text is input[Start:End].
-	node, err := parser.Parse(in, zp.WithUnit(zp.Bytes))
+	node, err := parser.Parse(in, zp.WithUnit(parse.Bytes))
 
 	// Every backend returns the same tree and the same error.
 	for _, b := range []zp.Backend{zp.Bytecode, zp.BytecodeIterative} {
-		other, oerr := parser.Parse(in, zp.WithUnit(zp.Bytes), zp.WithBackend(b))
+		other, oerr := parser.Parse(in, zp.WithUnit(parse.Bytes), zp.WithBackend(b))
 		if fmt.Sprint(node, err) != fmt.Sprint(other, oerr) {
 			t.Fatalf("%q: backend %v returned %v, %v; the closure backend %v, %v", in, b, other, oerr, node, err)
 		}
 	}
 
 	// Recognition agrees with parsing.
-	if _, rerr := parser.Parse(in, zp.RecognizeOnly(), zp.WithUnit(zp.Bytes)); fmt.Sprint(rerr) != fmt.Sprint(err) {
+	if _, rerr := parser.Parse(in, zp.RecognizeOnly(), zp.WithUnit(parse.Bytes)); fmt.Sprint(rerr) != fmt.Sprint(err) {
 		t.Fatalf("%q: Parse returned %v, RecognizeOnly %v", in, err, rerr)
 	}
 
 	if err != nil {
 		// A syntax error points into the input.
-		if se, ok := err.(*zp.SyntaxError); ok && (se.Pos < 0 || se.Pos > len(in)) {
+		if se, ok := err.(*parse.SyntaxError); ok && (se.Pos < 0 || se.Pos > len(in)) {
 			t.Fatalf("%q: error position %d is outside the input", in, se.Pos)
 		}
 		return
@@ -416,7 +418,7 @@ same tree; the elements of a tree come in order of position; every identifier of
 
 `RecognizeOnly` does not run actions. If an action can fail at run time (`division by zero`), `Parse` fails and
 recognition succeeds, and the check above fails for the right reason. For such a grammar, compare only the syntax
-errors, or skip inputs that fail with an error that is not a `*zp.SyntaxError`.
+errors, or skip inputs that fail with an error that is not a `*parse.SyntaxError`.
 
 ## Generated Inputs
 

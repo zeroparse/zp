@@ -38,6 +38,7 @@ import (
 	"os"
 
 	"zeroparse.dev/zp"
+	"zeroparse.dev/zp/runtime/parse"
 )
 
 //go:embed calls.zp
@@ -72,7 +73,7 @@ func main() {
 
 	// The nodes at a position, outermost first.
 	pos := int32(17) // the 2 in mul(2, x)
-	cursor := zp.Cursor{Root: root, Unit: zp.CodePoints}
+	cursor := zp.Cursor{Root: root, Unit: parse.CodePoints}
 	var innermostCall, innermost *zp.Node
 	err = cursor.At(pos, func(v zp.WalkVisit) (zp.WalkAction, error) {
 		if v.Node != nil {

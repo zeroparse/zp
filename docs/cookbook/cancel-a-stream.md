@@ -73,6 +73,6 @@ err: context deadline exceeded true
 
 ## Variations and Limits
 
-- To bound the budget instead of the time, use `zp.WithLimits`; exhaustion matches `zp.ErrLimit`. See
+- To bound the budget instead of the time, use `zp.WithLimits`; exhaustion matches `parse.ErrLimit`. See
   [Cancellation and Compute Limits](../guide/cancellation-and-limits.md) and [Streaming](../guide/streaming.md#cancelling-a-stream).
 - Restarting requires replaying the input yourself: the reader offset is not a continuation token.

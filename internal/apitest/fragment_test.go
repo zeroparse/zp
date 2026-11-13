@@ -6,6 +6,7 @@ import (
 
 	"zeroparse.dev/zp"
 	"zeroparse.dev/zp/internal/engine"
+	"zeroparse.dev/zp/runtime/parse"
 )
 
 func TestParsePrefixCursor(t *testing.T) {
@@ -23,14 +24,14 @@ rule fatal = v1:"a" => A{N: 1 / (len($v1) - 1)}`, "main")
 		t.Fatal(err)
 	}
 	for _, b := range []zp.Backend{zp.Closure, zp.Bytecode, zp.BytecodeIterative} {
-		for _, unit := range []zp.PositionUnit{zp.CodePoints, zp.Bytes} {
+		for _, unit := range []parse.PositionUnit{parse.CodePoints, parse.Bytes} {
 			for _, recognize := range []bool{false, true} {
 				opts := []zp.ParseOption{zp.WithBackend(b), zp.WithUnit(unit)}
 				if recognize {
 					opts = append(opts, zp.RecognizeOnly())
 				}
 				want := 3
-				if unit == zp.Bytes {
+				if unit == parse.Bytes {
 					want = 7
 				}
 				r, err := p.ParsePrefix("inner", "é😀!tail", opts...)
@@ -71,7 +72,7 @@ rule fatal = v1:"a" => A{N: 1 / (len($v1) - 1)}`, "main")
 					t.Fatalf("failure before protected suffix: %+v %v", r, err)
 				}
 				r, err = p.ParsePrefix("recovered", "x;tail", opts...)
-				var recovered zp.SyntaxErrors
+				var recovered parse.SyntaxErrors
 				if !errors.As(err, &recovered) || r.Consumed != 2 || r.ConsumedBytes != 2 {
 					t.Fatalf("recovered: %+v %v", r, err)
 				}
@@ -82,7 +83,7 @@ rule fatal = v1:"a" => A{N: 1 / (len($v1) - 1)}`, "main")
 					t.Fatal(refErr)
 				}
 				node, refErr := reference.Parse("x;", opts...)
-				var referenceErrors zp.SyntaxErrors
+				var referenceErrors parse.SyntaxErrors
 				if !errors.As(refErr, &referenceErrors) || len(referenceErrors) != len(recovered) {
 					t.Fatalf("whole-input recovery reference: %v", refErr)
 				}

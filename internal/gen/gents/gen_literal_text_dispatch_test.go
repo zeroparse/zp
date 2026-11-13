@@ -12,6 +12,7 @@ import (
 	"zeroparse.dev/zp/internal/engine"
 	"zeroparse.dev/zp/internal/gen"
 	"zeroparse.dev/zp/internal/gentest"
+	"zeroparse.dev/zp/runtime/parse"
 )
 
 func TestLiteralTextPredicateDispatchTSDisabledParity(t *testing.T) {
@@ -112,9 +113,9 @@ process.stdout.write(JSON.stringify(out));
 		t.Fatalf("Node disabled-route comparison: %v\n%s", err, out)
 	}
 	var got []struct {
-		Key  string              `json:"key"`
-		Unit engine.PositionUnit `json:"unit"`
-		OK   bool                `json:"ok"`
+		Key  string             `json:"key"`
+		Unit parse.PositionUnit `json:"unit"`
+		OK   bool               `json:"ok"`
 	}
 	if err := json.Unmarshal(out, &got); err != nil {
 		t.Fatalf("decode Node results: %v\n%s", err, out)

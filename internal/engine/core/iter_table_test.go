@@ -6,8 +6,8 @@ import (
 	"zeroparse.dev/zp/internal/compile"
 	"zeroparse.dev/zp/internal/compiletest"
 	"zeroparse.dev/zp/internal/ir/exec/conform"
-	"zeroparse.dev/zp/internal/limits"
 	"zeroparse.dev/zp/internal/value"
+	"zeroparse.dev/zp/runtime/parse"
 )
 
 // iterFunc is a function of the iteration table: it returns the element it is passed (the last argument of a
@@ -34,9 +34,9 @@ func TestEngineValueIterTable(t *testing.T) {
 	for _, controlled := range []bool{false, true} {
 		prog := &SharedProgram{}
 		InitSharedProgram(prog, compiletest.Program(t, "@start\nrule main = \"a\"\n", compile.Options{}))
-		p := &Parser{Prog: prog, Input: NewInput(conform.BuiltinInput, Bytes)}
+		p := &Parser{Prog: prog, Input: NewInput(conform.BuiltinInput, parse.Bytes)}
 		if controlled {
-			p.Control = NewBudgetControl(nil, limits.Limits{Compute: 1 << 62})
+			p.Control = NewBudgetControl(nil, parse.Limits{Compute: 1 << 62})
 		}
 		c := &EvalCtx{P: p}
 		one, _ := element(c, "list", 1)

@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/internal/value"
+	"zeroparse.dev/zp/runtime/parse"
 )
 
 type demandReader struct {
@@ -20,7 +21,7 @@ func (r *demandReader) Read(p []byte) (int, error) { r.calls++; return r.reader.
 func TestStreamIteratorParityDemandAndTermination(t *testing.T) {
 	t.Parallel()
 	for _, b := range []Backend{Closure, Bytecode, BytecodeIterative} {
-		for _, u := range []PositionUnit{CodePoints, Bytes} {
+		for _, u := range []parse.PositionUnit{parse.CodePoints, parse.Bytes} {
 			t.Run(b.String()+"/"+u.String(), func(t *testing.T) {
 				p := mustCompile(t, `rule main = item* #stream $$
 rule item = "あ" / "b"`)
@@ -106,7 +107,7 @@ func TestStreamIteratorCloseBeforeFirstNext(t *testing.T) {
 	t.Parallel()
 	p := mustCompile(t, `rule main = "a"* #stream $$`)
 	for _, backend := range []Backend{Closure, Bytecode, BytecodeIterative} {
-		for _, unit := range []PositionUnit{CodePoints, Bytes} {
+		for _, unit := range []parse.PositionUnit{parse.CodePoints, parse.Bytes} {
 			t.Run(backend.String()+"/"+unit.String(), func(t *testing.T) {
 				reader := &demandReader{reader: strings.NewReader("aaa")}
 				traces := 0
@@ -135,7 +136,7 @@ func TestStreamIteratorRecoveredErrorsMatchCallback(t *testing.T) {
 rule item = "ab" @error(message="record") #recover(skip=[^a]+)`)
 	const input = "abX!abY?ab"
 	for _, backend := range []Backend{Closure, Bytecode, BytecodeIterative} {
-		for _, unit := range []PositionUnit{CodePoints, Bytes} {
+		for _, unit := range []parse.PositionUnit{parse.CodePoints, parse.Bytes} {
 			t.Run(backend.String()+"/"+unit.String(), func(t *testing.T) {
 				options := ParseOptions{Backend: backend, Unit: unit}
 				var wantNodes []string
@@ -143,7 +144,7 @@ rule item = "ab" @error(message="record") #recover(skip=[^a]+)`)
 					wantNodes = append(wantNodes, dump(t, n, nil))
 					return nil
 				}, options)
-				var wantRecovered SyntaxErrors
+				var wantRecovered parse.SyntaxErrors
 				if !errors.As(wantErr, &wantRecovered) || len(wantRecovered) != 2 || len(wantNodes) != 5 {
 					t.Fatalf("callback fixture: nodes=%d err=%v", len(wantNodes), wantErr)
 				}
@@ -167,7 +168,7 @@ rule item = "ab" @error(message="record") #recover(skip=[^a]+)`)
 					}
 					gotNodes = append(gotNodes, dump(t, n, nil))
 				}
-				var gotRecovered SyntaxErrors
+				var gotRecovered parse.SyntaxErrors
 				if !reflect.DeepEqual(gotNodes, wantNodes) || !errors.As(terminal, &gotRecovered) || !reflect.DeepEqual(gotRecovered, wantRecovered) {
 					t.Fatalf("iterator differs: nodes=%v want=%v, error=%v want=%v", gotNodes, wantNodes, terminal, wantErr)
 				}
@@ -175,14 +176,14 @@ rule item = "ab" @error(message="record") #recover(skip=[^a]+)`)
 					if n, ok, again := it.Next(); n != nil || ok {
 						t.Fatalf("repeated terminal: node=%v ok=%v err=%v", n, ok, again)
 					} else {
-						var repeated SyntaxErrors
+						var repeated parse.SyntaxErrors
 						if !errors.As(again, &repeated) || len(repeated) != len(gotRecovered) || &repeated[0] != &gotRecovered[0] {
 							t.Fatalf("terminal error changed: %v", again)
 						}
 					}
 				}
 				it.Close()
-				var afterClose SyntaxErrors
+				var afterClose parse.SyntaxErrors
 				if _, ok, err := it.Next(); ok || !errors.As(err, &afterClose) || &afterClose[0] != &gotRecovered[0] {
 					t.Fatalf("Close changed recovered terminal: %v", err)
 				}

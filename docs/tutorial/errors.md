@@ -114,8 +114,8 @@ zp: 2:7: expected a number, a string or true/false
 3:9: expected a number, a string or true/false
 ```
 
-From Go, a recovered parse returns the tree together with an error of type `zp.SyntaxErrors`, and a parse that could
-not recover returns a `*zp.SyntaxError`. Tell them apart with `errors.As`, as this program, which reads `robust.zp`
+From Go, a recovered parse returns the tree together with an error of type `parse.SyntaxErrors`, and a parse that could
+not recover returns a `*parse.SyntaxError`. Tell them apart with `errors.As`, as this program, which reads `robust.zp`
 from the same directory, does:
 
 ```go
@@ -128,6 +128,7 @@ import (
 	"log"
 
 	"zeroparse.dev/zp"
+	"zeroparse.dev/zp/runtime/parse"
 )
 
 //go:embed robust.zp
@@ -142,8 +143,8 @@ func main() {
 	input := "host = \"localhost\"\nport == 8080\ndebug = tru\n"
 	cfg, err := p.Parse(input)
 
-	var recovered zp.SyntaxErrors
-	var fatal *zp.SyntaxError
+	var recovered parse.SyntaxErrors
+	var fatal *parse.SyntaxError
 	switch {
 	case err == nil:
 		fmt.Println("no errors")

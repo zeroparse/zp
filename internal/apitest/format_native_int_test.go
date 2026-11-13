@@ -6,6 +6,7 @@ import (
 
 	"zeroparse.dev/zp"
 	"zeroparse.dev/zp/grammar"
+	"zeroparse.dev/zp/runtime/parse"
 )
 
 func TestFormatNativeMinimumRoundTrip(t *testing.T) {
@@ -60,7 +61,7 @@ func TestFormatNativeMinimumRoundTrip(t *testing.T) {
 				}
 				for _, parser := range []*zp.Parser{p, loaded} {
 					for _, backend := range []zp.Backend{zp.Closure, zp.Bytecode, zp.BytecodeIterative} {
-						for _, unit := range []zp.PositionUnit{zp.CodePoints, zp.Bytes} {
+						for _, unit := range []parse.PositionUnit{parse.CodePoints, parse.Bytes} {
 							n, err := parser.Parse("é", zp.WithBackend(backend), zp.WithUnit(unit))
 							if parser == loaded && backend == zp.Closure {
 								// A compiled grammar runs on the bytecode backends only.

@@ -11,6 +11,7 @@ import (
 	"zeroparse.dev/zp/internal/engine/core"
 	"zeroparse.dev/zp/internal/gentest"
 	"zeroparse.dev/zp/internal/value"
+	"zeroparse.dev/zp/runtime/parse"
 )
 
 const frameScratchGrammar = `rule main = h:"#head\n" #atomic items:record* #stream $$ {text($h) == "#head\n"}
@@ -34,7 +35,7 @@ func BenchmarkStreamFrameScratch(b *testing.B) {
 			if _, err := prog.rule(backend, "main"); err != nil {
 				b.Fatal(err)
 			}
-			for _, unit := range []PositionUnit{CodePoints, Bytes} {
+			for _, unit := range []parse.PositionUnit{parse.CodePoints, parse.Bytes} {
 				b.Run(fmt.Sprintf("%d/%s/%s", size, backend, unit), func(b *testing.B) {
 					b.SetBytes(int64(len(input)))
 					b.ReportAllocs()
@@ -71,7 +72,7 @@ rule item = x:"x" #atomic / e:"" #atomic`, strings.Repeat("x", 300), 301, false,
 	} {
 		prog := mustCompile(t, tc.src)
 		for _, backend := range []Backend{Closure, Bytecode, BytecodeIterative} {
-			for _, unit := range []PositionUnit{CodePoints, Bytes} {
+			for _, unit := range []parse.PositionUnit{parse.CodePoints, parse.Bytes} {
 				t.Run(fmt.Sprintf("%s/%s/%s", tc.name, backend, unit), func(t *testing.T) {
 					var retained []*value.Node
 					var snapshots [][]byte
@@ -136,7 +137,7 @@ func checkStreamFrameScratchRetainedResults(t *testing.T, src string) {
 		input.WriteByte('\n')
 	}
 	for _, backend := range []Backend{Closure, Bytecode, BytecodeIterative} {
-		for _, unit := range []PositionUnit{CodePoints, Bytes} {
+		for _, unit := range []parse.PositionUnit{parse.CodePoints, parse.Bytes} {
 			t.Run(fmt.Sprintf("%s/%s", backend, unit), func(t *testing.T) {
 				opts := ParseOptions{Backend: backend, Unit: unit}
 				whole, err := prog.ParseWith("main", input.String(), opts)
@@ -181,7 +182,7 @@ func TestStreamFrameScratchClearsDeadFrames(t *testing.T) {
 	if !core.StreamFrameScratch {
 		t.Skip("reference build does not reuse capture frames")
 	}
-	p := core.NewParser(&mustCompile(t, `rule main = "a"`).sharedProgram, "a", CodePoints, false)
+	p := core.NewParser(&mustCompile(t, `rule main = "a"`).sharedProgram, "a", parse.CodePoints, false)
 	root := p.NewFrame(1)
 	root.Vals[0] = value.Ptr(value.Data{Text: "live root"})
 	p.Frame = root

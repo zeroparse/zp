@@ -10,6 +10,7 @@ import (
 	"zeroparse.dev/zp/internal/compile"
 	"zeroparse.dev/zp/internal/gentest"
 	"zeroparse.dev/zp/internal/value"
+	"zeroparse.dev/zp/runtime/parse"
 )
 
 func TestRawInvalidASTLiterals(t *testing.T) {
@@ -70,7 +71,7 @@ func TestRawInvalidASTLiterals(t *testing.T) {
 							wantClosureRefused(t, err)
 							continue
 						}
-						for _, unit := range []PositionUnit{CodePoints, Bytes} {
+						for _, unit := range []parse.PositionUnit{parse.CodePoints, parse.Bytes} {
 							for _, input := range []string{raw, string([]rune(raw)), raw + "x", string([]rune(raw)) + "x", raw + raw, string([]rune(raw)) + string([]rune(raw)), "é", "éx", "other", "", "\xffx", "\x80x"} {
 								opts := ParseOptions{Backend: backend, Unit: unit}
 								n, err := prog.ParseWith("main", input, servedBy(modes[name], opts))

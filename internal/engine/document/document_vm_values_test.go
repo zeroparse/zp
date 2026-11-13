@@ -16,6 +16,7 @@ import (
 	"zeroparse.dev/zp/internal/engine/core"
 	"zeroparse.dev/zp/internal/engine/vm"
 	"zeroparse.dev/zp/internal/value"
+	"zeroparse.dev/zp/runtime/parse"
 )
 
 func BenchmarkDocumentVMValuesUnchanged(b *testing.B) {
@@ -89,7 +90,7 @@ func TestDocumentVMValueStorage(t *testing.T) {
 	prog := mustCompile(t, `rule main = line* $$
 rule line = [a-z / "é" / "😀"]+ #atomic "\n"`)
 	for _, backend := range []Backend{Closure, Bytecode, BytecodeIterative} {
-		for _, unit := range []PositionUnit{CodePoints, Bytes} {
+		for _, unit := range []parse.PositionUnit{parse.CodePoints, parse.Bytes} {
 			t.Run(fmt.Sprintf("%s/%s", backend, unit), func(t *testing.T) {
 				opts := ParseOptions{Backend: backend, Unit: unit}
 				doc, err := prog.NewDocumentWith("main", strings.Repeat("abé😀\n", 5000), opts)
@@ -293,7 +294,7 @@ func TestDocumentVMValueStorageForEmptyInput(t *testing.T) {
 	// dropping an old large document's storage before a smaller parse.
 	prog := mustCompile(t, "rule main = "+strings.Repeat("item ", 2048)+"$$\nrule item = \"\" #atomic")
 	for _, backend := range []Backend{Bytecode, BytecodeIterative} {
-		for _, unit := range []PositionUnit{CodePoints, Bytes} {
+		for _, unit := range []parse.PositionUnit{parse.CodePoints, parse.Bytes} {
 			t.Run(fmt.Sprintf("%s/%s", backend, unit), func(t *testing.T) {
 				opts := ParseOptions{Backend: backend, Unit: unit}
 				doc, err := prog.NewDocumentWith("main", "", opts)

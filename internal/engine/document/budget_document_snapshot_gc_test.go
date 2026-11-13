@@ -8,7 +8,7 @@ import (
 	"testing"
 
 	. "zeroparse.dev/zp/internal/engine"
-	"zeroparse.dev/zp/internal/limits"
+	"zeroparse.dev/zp/runtime/parse"
 )
 
 // minSecondSnapshotCompute returns the least Compute limit under which the snapshot after an edit
@@ -38,7 +38,7 @@ func minSecondSnapshotCompute(t *testing.T, prog *Program, text string, keep boo
 				t.Fatal("the first snapshot was not collected")
 			}
 		}
-		_, err = d.SnapshotWith(ParseOptions{Limits: limits.Limits{Compute: limit}})
+		_, err = d.SnapshotWith(ParseOptions{Limits: parse.Limits{Compute: limit}})
 		return err == nil
 	}
 	lo, hi := uint64(1), uint64(1<<24)

@@ -11,8 +11,8 @@ import (
 	"zeroparse.dev/zp/internal/compile"
 	"zeroparse.dev/zp/internal/engine/core"
 	"zeroparse.dev/zp/internal/gentest"
-	"zeroparse.dev/zp/internal/limits"
 	"zeroparse.dev/zp/internal/value"
+	"zeroparse.dev/zp/runtime/parse"
 )
 
 // skipRunGrammars are the grammars with skip-run sites that the tests parse.
@@ -23,14 +23,14 @@ var skipRunGrammars = gentest.SkipRunGrammars
 func skipDump(t *testing.T, n *value.Node, err error) string {
 	t.Helper()
 	s := dump(t, n, err)
-	var errs []*core.SyntaxError
-	var list core.SyntaxErrors
-	var one *core.SyntaxError
+	var errs []*parse.SyntaxError
+	var list parse.SyntaxErrors
+	var one *parse.SyntaxError
 	switch {
 	case errors.As(err, &list):
 		errs = list
 	case errors.As(err, &one):
-		errs = []*core.SyntaxError{one}
+		errs = []*parse.SyntaxError{one}
 	}
 	for _, e := range errs {
 		s += fmt.Sprintf(" [%d %q %q]", e.Pos, e.Expected, e.Messages)
@@ -153,9 +153,9 @@ func TestSkipRunsBudgetAbort(t *testing.T) {
 		want := skipDump(t, n, err)
 		stopped := 0
 		for budget := uint64(1); ; budget++ {
-			o := ParseOptions{Backend: b, Expectations: true, Limits: limits.Limits{Compute: budget}}
+			o := ParseOptions{Backend: b, Expectations: true, Limits: parse.Limits{Compute: budget}}
 			n, err := prog.ParseWith("main", in, o)
-			if errors.Is(err, limits.ErrLimit) {
+			if errors.Is(err, parse.ErrLimit) {
 				stopped++
 				n, err := prog.ParseWith("main", in, ParseOptions{Backend: b, Expectations: true})
 				if got := skipDump(t, n, err); got != want {

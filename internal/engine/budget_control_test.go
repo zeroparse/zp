@@ -8,7 +8,7 @@ import (
 	"time"
 
 	"zeroparse.dev/zp/internal/engine/core"
-	"zeroparse.dev/zp/internal/limits"
+	"zeroparse.dev/zp/runtime/parse"
 )
 
 func catchFatal(t *testing.T, f func()) error {
@@ -41,33 +41,33 @@ func TestNewBudgetControlDisabled(t *testing.T) {
 		"no done":    context.WithoutCancel(context.WithValue(context.Background(), struct{}{}, "v")),
 	} {
 		t.Run(name, func(t *testing.T) {
-			if got := core.NewBudgetControl(ctx, limits.Limits{}); got != nil {
+			if got := core.NewBudgetControl(ctx, parse.Limits{}); got != nil {
 				t.Fatalf("newBudgetControl = %#v, want nil", got)
 			}
 		})
 	}
-	if got := core.NewBudgetControl(nil, limits.Limits{Compute: 1}); got == nil {
+	if got := core.NewBudgetControl(nil, parse.Limits{Compute: 1}); got == nil {
 		t.Fatal("finite compute limit returned nil control")
 	}
 }
 
 func TestBudgetControlExactLimitsAndOverflow(t *testing.T) {
 	t.Parallel()
-	c := core.NewBudgetControl(nil, limits.Limits{Compute: 8})
+	c := core.NewBudgetControl(nil, parse.Limits{Compute: 8})
 	c.Charge(8)
 	if c.Used != 8 {
 		t.Fatalf("counter = %d, want 8", c.Used)
 	}
-	var limitErr *limits.LimitError
+	var limitErr *parse.LimitError
 	err := catchFatal(t, func() { c.Charge(1) })
-	if !errors.Is(err, limits.ErrLimit) || !errors.As(err, &limitErr) {
+	if !errors.Is(err, parse.ErrLimit) || !errors.As(err, &limitErr) {
 		t.Fatalf("limit+1 error = %v, want a LimitError matching ErrLimit", err)
 	}
-	if limitErr.Kind != limits.LimitCompute || limitErr.Limit != 8 || limitErr.Used != 8 || limitErr.Requested != 1 {
+	if limitErr.Kind != parse.LimitCompute || limitErr.Limit != 8 || limitErr.Used != 8 || limitErr.Requested != 1 {
 		t.Fatalf("error = %#v", limitErr)
 	}
 
-	c = core.NewBudgetControl(nil, limits.Limits{Compute: math.MaxUint64})
+	c = core.NewBudgetControl(nil, parse.Limits{Compute: math.MaxUint64})
 	c.Charge(math.MaxUint64 - 1)
 	if err := catchFatal(t, func() { c.Charge(2) }); err == nil {
 		t.Fatal("overflowing reservation unexpectedly succeeded")
@@ -79,13 +79,13 @@ func TestBudgetControlExactLimitsAndOverflow(t *testing.T) {
 
 func TestBudgetControlFailedReservationLeavesCounter(t *testing.T) {
 	t.Parallel()
-	c := core.NewBudgetControl(nil, limits.Limits{Compute: 6})
+	c := core.NewBudgetControl(nil, parse.Limits{Compute: 6})
 	c.Charge(2)
-	var got *limits.LimitError
+	var got *parse.LimitError
 	if !errors.As(catchFatal(t, func() { c.Charge(5) }), &got) {
 		t.Fatal("reservation over the limit did not fail with LimitError")
 	}
-	if got.Kind != limits.LimitCompute || got.Used != 2 || got.Requested != 5 {
+	if got.Kind != parse.LimitCompute || got.Used != 2 || got.Requested != 5 {
 		t.Fatalf("error = %#v", got)
 	}
 	if c.Used != 2 {
@@ -95,7 +95,7 @@ func TestBudgetControlFailedReservationLeavesCounter(t *testing.T) {
 
 func TestBudgetControlUnlimitedCounterSaturates(t *testing.T) {
 	t.Parallel()
-	c := core.NewBudgetControl(newPollingContext(0), limits.Limits{})
+	c := core.NewBudgetControl(newPollingContext(0), parse.Limits{})
 	c.Charge(math.MaxUint64 - 2)
 	c.Charge(10)
 	if c.Used != math.MaxUint64 {
@@ -111,7 +111,7 @@ func TestBudgetControlCancellationAndCause(t *testing.T) {
 	cause := errors.New("caller cause")
 	ctx, cancel := context.WithCancelCause(context.Background())
 	cancel(cause)
-	c := core.NewBudgetControl(ctx, limits.Limits{Compute: 1})
+	c := core.NewBudgetControl(ctx, parse.Limits{Compute: 1})
 	got := catchFatal(t, func() { c.Charge(2) })
 	if !errors.Is(got, context.Canceled) {
 		t.Fatalf("error = %v, want context.Canceled", got)
@@ -125,7 +125,7 @@ func TestBudgetControlCancellationAndCause(t *testing.T) {
 
 	deadlineCtx, deadlineCancel := context.WithDeadline(context.Background(), time.Now().Add(-time.Second))
 	defer deadlineCancel()
-	deadline := core.NewBudgetControl(deadlineCtx, limits.Limits{Compute: 1})
+	deadline := core.NewBudgetControl(deadlineCtx, parse.Limits{Compute: 1})
 	if err := catchFatal(t, deadline.Check); !errors.Is(err, context.DeadlineExceeded) {
 		t.Fatalf("deadline error = %v, want context.DeadlineExceeded", err)
 	}
@@ -154,7 +154,7 @@ func (c *pollingContext) Err() error {
 func TestBudgetControlPollInterval(t *testing.T) {
 	t.Parallel()
 	ctx := newPollingContext(1)
-	c := core.NewBudgetControl(ctx, limits.Limits{})
+	c := core.NewBudgetControl(ctx, parse.Limits{})
 	c.Charge(core.BudgetCheckInterval - 1)
 	if ctx.checks != 0 {
 		t.Fatalf("checks before interval = %d, want 0", ctx.checks)
@@ -170,7 +170,7 @@ func TestBudgetControlPollInterval(t *testing.T) {
 func TestBudgetControlExplicitCheck(t *testing.T) {
 	t.Parallel()
 	ctx, cancel := context.WithCancel(context.Background())
-	c := core.NewBudgetControl(ctx, limits.Limits{})
+	c := core.NewBudgetControl(ctx, parse.Limits{})
 	c.Charge(1)
 	cancel()
 	if err := catchFatal(t, c.Check); !errors.Is(err, context.Canceled) {

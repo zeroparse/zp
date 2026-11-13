@@ -8,7 +8,7 @@ import (
 
 	. "zeroparse.dev/zp/internal/engine"
 	"zeroparse.dev/zp/internal/engine/core"
-	"zeroparse.dev/zp/internal/limits"
+	"zeroparse.dev/zp/runtime/parse"
 )
 
 // A Document charges by its logical state only: the capacity that its earlier parses left in the
@@ -44,7 +44,7 @@ rule item = [a-z] " "`)
 			}
 			var n uint64
 			o := base
-			o.Limits = limits.Limits{Compute: 1 << 50}
+			o.Limits = parse.Limits{Compute: 1 << 50}
 			o.Trace = func(e TraceEvent) { n = core.TraceParser(e).Control.Used }
 			if _, err := d.ParseWith(o); err != nil {
 				t.Fatal(err)

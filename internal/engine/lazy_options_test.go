@@ -7,7 +7,7 @@ import (
 	"zeroparse.dev/zp/internal/compile"
 	"zeroparse.dev/zp/internal/engine/core"
 	"zeroparse.dev/zp/internal/gentest"
-	"zeroparse.dev/zp/internal/limits"
+	"zeroparse.dev/zp/runtime/parse"
 )
 
 // lazyOverrides are the options that a lazily built program sets itself, by the field of
@@ -40,7 +40,7 @@ func TestLazyProgramsCarryEveryOption(t *testing.T) {
 			reflect.ValueOf(&o).Elem().FieldByName(name).SetBool(true)
 			o.LeftRecursionBindings = true // the grammar below needs it
 			prog := mustCompile(t, gentest.LRBindingSource, o)
-			if _, err := prog.ParseWith("main", "x", ParseOptions{Backend: Closure, Limits: limits.Limits{Compute: 1 << 30}}); err != nil {
+			if _, err := prog.ParseWith("main", "x", ParseOptions{Backend: Closure, Limits: parse.Limits{Compute: 1 << 30}}); err != nil {
 				t.Fatal(err)
 			}
 			rec, err := prog.Recognizer()

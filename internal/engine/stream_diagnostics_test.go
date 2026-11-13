@@ -8,6 +8,7 @@ import (
 
 	"zeroparse.dev/zp/internal/engine/core"
 	"zeroparse.dev/zp/internal/value"
+	"zeroparse.dev/zp/runtime/parse"
 )
 
 type diagnosticBoundaryReader struct {
@@ -28,13 +29,13 @@ func TestStreamDiagnosticCallbackSkipsSpeculativeRecovery(t *testing.T) {
 	p := mustCompile(t, `rule main = item+ #stream $$
 rule item = (("ab" #recover(skip="X!") "z") / "X!a")`)
 	for _, backend := range []Backend{Closure, Bytecode, BytecodeIterative} {
-		for _, unit := range []PositionUnit{CodePoints, Bytes} {
+		for _, unit := range []parse.PositionUnit{parse.CodePoints, parse.Bytes} {
 			t.Run(backend.String()+"/"+unit.String(), func(t *testing.T) {
 				calls, elements := 0, 0
 				err := p.ParseStreamWith("main", strings.NewReader("X!a"), func(*value.Node) error {
 					elements++
 					return nil
-				}, ParseOptions{Backend: backend, Unit: unit, DiagnosticCallback: func(*SyntaxError) error {
+				}, ParseOptions{Backend: backend, Unit: unit, DiagnosticCallback: func(*parse.SyntaxError) error {
 					calls++
 					return nil
 				}})
@@ -56,11 +57,11 @@ rule item = ("a" #recover(skip="x")) ("b" #recover(skip="y"))`)
 			err := p.ParseStreamWith("main", strings.NewReader("xy"), func(*value.Node) error {
 				events = append(events, "element")
 				return nil
-			}, ParseOptions{Backend: backend, DiagnosticCallback: func(*SyntaxError) error {
+			}, ParseOptions{Backend: backend, DiagnosticCallback: func(*parse.SyntaxError) error {
 				events = append(events, "diagnostic")
 				return nil
 			}})
-			var recovered SyntaxErrors
+			var recovered parse.SyntaxErrors
 			if !errors.As(err, &recovered) || len(recovered) != 2 || strings.Join(events, ",") != "diagnostic,diagnostic,element" {
 				t.Fatalf("multiple recoveries: events=%v err=%v", events, err)
 			}
@@ -70,8 +71,8 @@ rule item = ("a" #recover(skip="x")) ("b" #recover(skip="y"))`)
 
 func TestStreamDiagnosticCallbackCopiesErrorSlices(t *testing.T) {
 	t.Parallel()
-	original := &SyntaxError{Pos: 3, Expected: []string{"before"}, Messages: []string{"message"}}
-	p := &core.Parser{Recovered: []core.RecEntry{core.ErrEntry(original)}, Diagnostic: func(e *SyntaxError) error {
+	original := &parse.SyntaxError{Pos: 3, Expected: []string{"before"}, Messages: []string{"message"}}
+	p := &core.Parser{Recovered: []core.RecEntry{core.ErrEntry(original)}, Diagnostic: func(e *parse.SyntaxError) error {
 		e.Pos = 10
 		e.Expected[0] = "after"
 		e.Messages[0] = "after"
@@ -94,11 +95,11 @@ func TestStreamDiagnosticCallbackAfterFinalElement(t *testing.T) {
 			err := p.ParseStreamWith("main", strings.NewReader("ax"), func(*value.Node) error {
 				events = append(events, "element")
 				return nil
-			}, ParseOptions{Backend: backend, DiagnosticCallback: func(*SyntaxError) error {
+			}, ParseOptions{Backend: backend, DiagnosticCallback: func(*parse.SyntaxError) error {
 				events = append(events, "diagnostic")
 				return nil
 			}})
-			var recovered SyntaxErrors
+			var recovered parse.SyntaxErrors
 			if !errors.As(err, &recovered) || len(recovered) != 1 || strings.Join(events, ",") != "element,diagnostic" {
 				t.Fatalf("suffix recovery: events=%v err=%v", events, err)
 			}
@@ -114,7 +115,7 @@ rule item = "ab" #recover(skip=[^a]+)`)
 	for _, backend := range []Backend{Closure, Bytecode, BytecodeIterative} {
 		t.Run(backend.String(), func(t *testing.T) {
 			r := &diagnosticBoundaryReader{late: errors.New("reader continued")}
-			err := p.ParseStreamWith("main", r, nil, ParseOptions{Backend: backend, DiagnosticCallback: func(*SyntaxError) error { return stop }})
+			err := p.ParseStreamWith("main", r, nil, ParseOptions{Backend: backend, DiagnosticCallback: func(*parse.SyntaxError) error { return stop }})
 			if err != stop {
 				t.Fatalf("diagnostic was delayed until after another read: %v", err)
 			}
@@ -136,7 +137,7 @@ rule item = "ab" #recover(skip=[^a]+)`)
 			}()
 			_ = p.ParseStreamWith("main", strings.NewReader("abX!ab"), func(*value.Node) error { return nil }, ParseOptions{
 				Backend:            backend,
-				DiagnosticCallback: func(*SyntaxError) error { panic(sentinel) },
+				DiagnosticCallback: func(*parse.SyntaxError) error { panic(sentinel) },
 			})
 		})
 	}
@@ -149,7 +150,7 @@ rule item = (("ab" #recover(skip="X!") "z") / "X!a")`)
 	for _, backend := range []Backend{Closure, Bytecode, BytecodeIterative} {
 		calls := 0
 		err := p.ParseStreamWith("main", strings.NewReader("X!a"), nil, ParseOptions{
-			Backend: backend, DiagnosticLimit: 1, DiagnosticCallback: func(*SyntaxError) error {
+			Backend: backend, DiagnosticLimit: 1, DiagnosticCallback: func(*parse.SyntaxError) error {
 				calls++
 				return nil
 			},
@@ -167,13 +168,13 @@ rule item = "ab" #recover(skip=[^a]+)`)
 	const count = 1000
 	input := strings.Repeat("abX!", count)
 	for _, backend := range []Backend{Closure, Bytecode, BytecodeIterative} {
-		for _, unit := range []PositionUnit{CodePoints, Bytes} {
+		for _, unit := range []parse.PositionUnit{parse.CodePoints, parse.Bytes} {
 			o := ParseOptions{Backend: backend, Unit: unit, DiagnosticLimit: 3}
 			callbacks, elements := 0, 0
 			maxWorking := 0
-			var rootRecovered []*SyntaxError
-			var firstItemRecovered []*SyntaxError
-			o.DiagnosticCallback = func(*SyntaxError) error { callbacks++; return nil }
+			var rootRecovered []*parse.SyntaxError
+			var firstItemRecovered []*parse.SyntaxError
+			o.DiagnosticCallback = func(*parse.SyntaxError) error { callbacks++; return nil }
 			o.Trace = func(e TraceEvent) {
 				if e.Kind == TraceExit && e.Rule == "item" && len(core.TraceParser(e).Recovered) > maxWorking {
 					maxWorking = len(core.TraceParser(e).Recovered)
@@ -186,7 +187,7 @@ rule item = "ab" #recover(skip=[^a]+)`)
 				}
 			}
 			err := p.ParseStreamWith("main", strings.NewReader(input), func(*value.Node) error { elements++; return nil }, o)
-			var truncated *TruncatedSyntaxErrors
+			var truncated *parse.TruncatedSyntaxErrors
 			if !errors.As(err, &truncated) || truncated.Total != count || truncated.Dropped != count-3 ||
 				len(truncated.Errors) != 3 || callbacks != count || elements != 2*count || maxWorking > 1 {
 				t.Fatalf("%v/%v tail: callbacks=%d elements=%d working=%d err=%v", backend, unit, callbacks, elements, maxWorking, err)
@@ -196,7 +197,7 @@ rule item = "ab" #recover(skip=[^a]+)`)
 					t.Fatalf("%v/%v tail[%d] position=%d", backend, unit, i, e.Pos)
 				}
 			}
-			if !reflect.DeepEqual(rootRecovered, []*SyntaxError(truncated.Errors)) {
+			if !reflect.DeepEqual(rootRecovered, []*parse.SyntaxError(truncated.Errors)) {
 				t.Fatalf("%v/%v root trace tail=%v, terminal tail=%v", backend, unit, rootRecovered, truncated.Errors)
 			}
 			if len(firstItemRecovered) != 1 || firstItemRecovered[0].Pos != 2 {
@@ -209,11 +210,11 @@ rule item = "ab" #recover(skip=[^a]+)`)
 func TestStreamDiagnosticTailSaturatesCounts(t *testing.T) {
 	t.Parallel()
 	tail := core.StreamDiagnosticTail{Limit: 1, Total: ^uint64(0) - 1, Dropped: ^uint64(0) - 1}
-	tail.Add(&SyntaxError{Pos: 1})
-	tail.Add(&SyntaxError{Pos: 2})
-	tail.Add(&SyntaxError{Pos: 3})
-	tail.Add(&SyntaxError{Pos: 4})
-	result, ok := tail.Result(&core.Parser{}).(*TruncatedSyntaxErrors)
+	tail.Add(&parse.SyntaxError{Pos: 1})
+	tail.Add(&parse.SyntaxError{Pos: 2})
+	tail.Add(&parse.SyntaxError{Pos: 3})
+	tail.Add(&parse.SyntaxError{Pos: 4})
+	result, ok := tail.Result(&core.Parser{}).(*parse.TruncatedSyntaxErrors)
 	if !ok || result.Total != ^uint64(0) || result.Dropped != ^uint64(0) ||
 		!result.CountsSaturated || len(result.Errors) != 1 || result.Errors[0].Pos != 4 {
 		t.Fatalf("saturated counts: %+v", result)
@@ -224,14 +225,14 @@ func TestStreamDiagnosticTailPreviewSuffix(t *testing.T) {
 	t.Parallel()
 	tail := core.StreamDiagnosticTail{Limit: 2}
 	for pos := range 3 {
-		tail.Add(&SyntaxError{Pos: pos})
+		tail.Add(&parse.SyntaxError{Pos: pos})
 	}
-	suffix := []*SyntaxError{{Pos: 3}, {Pos: 4}}
+	suffix := []*parse.SyntaxError{{Pos: 3}, {Pos: 4}}
 	preview := tail.Preview(&core.Parser{}, suffix)
 	if len(preview) != 2 || preview[0].Pos != 3 || preview[1].Pos != 4 {
 		t.Fatalf("suffix preview: %v", preview)
 	}
-	if got := tail.Result(&core.Parser{}).(*TruncatedSyntaxErrors); got.Errors[0].Pos != 1 || got.Errors[1].Pos != 2 {
+	if got := tail.Result(&core.Parser{}).(*parse.TruncatedSyntaxErrors); got.Errors[0].Pos != 1 || got.Errors[1].Pos != 2 {
 		t.Fatalf("preview changed collector: %v", got.Errors)
 	}
 }
@@ -245,11 +246,11 @@ rule item = "a" #recover(skip="!")`)
 		err := p.ParseStreamWith("main", strings.NewReader("!!"), func(*value.Node) error {
 			elements++
 			return nil
-		}, ParseOptions{Backend: backend, DiagnosticLimit: 1, DiagnosticCallback: func(*SyntaxError) error {
+		}, ParseOptions{Backend: backend, DiagnosticLimit: 1, DiagnosticCallback: func(*parse.SyntaxError) error {
 			calls++
 			return nil
 		}})
-		var truncated *TruncatedSyntaxErrors
+		var truncated *parse.TruncatedSyntaxErrors
 		if !errors.As(err, &truncated) || truncated.Total != 2 || truncated.Dropped != 1 ||
 			calls != 2 || elements != 1 {
 			t.Fatalf("%v prefix recovery: calls=%d elements=%d err=%v", backend, calls, elements, err)
@@ -261,13 +262,13 @@ func TestStreamDiagnosticTailCommitScratchOwnership(t *testing.T) {
 	t.Parallel()
 	prog := mustCompile(t, `rule main = "a"`)
 	for _, traced := range []bool{false, true} {
-		p := core.NewParser(&prog.sharedProgram, "a", CodePoints, false)
+		p := core.NewParser(&prog.sharedProgram, "a", parse.CodePoints, false)
 		p.DiagnosticTail.Limit = 1
 		if traced {
 			p.Tr = &core.Tracer{}
 		}
-		current := &SyntaxError{Pos: 7}
-		stale := &SyntaxError{Pos: 8}
+		current := &parse.SyntaxError{Pos: 7}
+		stale := &parse.SyntaxError{Pos: 8}
 		p.Recovered = make([]core.RecEntry, 8)
 		p.Recovered[0] = core.ErrEntry(current)
 		for i := 1; i < 8; i++ {
@@ -295,7 +296,7 @@ func TestStreamDiagnosticTailCommitScratchOwnership(t *testing.T) {
 				t.Fatalf("scratch retained stale diagnostic at %d", i)
 			}
 		}
-		p.Recovered = append(p.Recovered, core.ErrEntry(&SyntaxError{Pos: 9}))
+		p.Recovered = append(p.Recovered, core.ErrEntry(&parse.SyntaxError{Pos: 9}))
 		if &p.Recovered[0] != backing || p.DiagnosticTail.Errors[0] != current {
 			t.Fatal("scratch reuse changed collector ownership")
 		}
@@ -314,14 +315,14 @@ rule part = "ab" #recover(skip=[^a;,!]+)`)
 	const count = 50
 	input := strings.Repeat("ab,X;Y,Z!", count)
 	want, err := p.ParseWith("main", input, ParseOptions{})
-	var all SyntaxErrors
+	var all parse.SyntaxErrors
 	if want == nil || !errors.As(err, &all) || len(all) != 3*count {
 		t.Fatalf("parse: %v", err)
 	}
 	for _, backend := range []Backend{Closure, Bytecode, BytecodeIterative} {
 		for _, limit := range []int{0, 3} {
 			var got []int
-			o := ParseOptions{Backend: backend, DiagnosticLimit: limit, DiagnosticCallback: func(e *SyntaxError) error {
+			o := ParseOptions{Backend: backend, DiagnosticLimit: limit, DiagnosticCallback: func(e *parse.SyntaxError) error {
 				got = append(got, e.Pos)
 				return nil
 			}}
@@ -334,8 +335,8 @@ rule part = "ab" #recover(skip=[^a;,!]+)`)
 					t.Fatalf("%v/limit %d: diagnostic %d at %d, want %d", backend, limit, i, got[i], e.Pos)
 				}
 			}
-			var errs SyntaxErrors
-			var truncated *TruncatedSyntaxErrors
+			var errs parse.SyntaxErrors
+			var truncated *parse.TruncatedSyntaxErrors
 			switch {
 			case limit == 0 && (!errors.As(err, &errs) || len(errs) != len(all)):
 				t.Fatalf("%v: terminal errors %v", backend, err)

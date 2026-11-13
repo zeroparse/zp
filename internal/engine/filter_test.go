@@ -10,13 +10,14 @@ import (
 	"zeroparse.dev/zp/internal/compile"
 	"zeroparse.dev/zp/internal/gentest"
 	"zeroparse.dev/zp/internal/value"
+	"zeroparse.dev/zp/runtime/parse"
 )
 
 func TestFilterNodeIdentityAndEmptyInput(t *testing.T) {
 	t.Parallel()
 	program := mustCompile(t, gentest.FilterIdentitySource)
 	for _, backend := range []Backend{Closure, Bytecode, BytecodeIterative} {
-		for _, unit := range []PositionUnit{CodePoints, Bytes} {
+		for _, unit := range []parse.PositionUnit{parse.CodePoints, parse.Bytes} {
 			node, err := program.ParseWith("main", "ab", ParseOptions{Backend: backend, Unit: unit})
 			if err != nil {
 				t.Fatalf("%s/%s: %v", backend, unit, err)
@@ -39,7 +40,7 @@ func TestFilterAcrossBackends(t *testing.T) {
 	for _, fixture := range gentest.FilterCases() {
 		t.Run(fixture.Name, func(t *testing.T) {
 			program := mustCompile(t, fixture.Src)
-			for _, unit := range []PositionUnit{CodePoints, Bytes} {
+			for _, unit := range []parse.PositionUnit{parse.CodePoints, parse.Bytes} {
 				for _, recognize := range []bool{false, true} {
 					for _, input := range fixture.Inputs {
 						baseline := gentest.ResultJSON(program.ParseWith("main", input, ParseOptions{Backend: Closure, Unit: unit, Recognize: recognize}))
@@ -69,7 +70,7 @@ func TestFilterCompiledInstructionSet(t *testing.T) {
 			t.Fatal(err)
 		}
 		for _, backend := range []Backend{Bytecode, BytecodeIterative} {
-			for _, unit := range []PositionUnit{CodePoints, Bytes} {
+			for _, unit := range []parse.PositionUnit{parse.CodePoints, parse.Bytes} {
 				options := ParseOptions{Backend: backend, Unit: unit}
 				if got, want := gentest.ResultJSON(loaded.ParseWith("main", "ab", servedBy(mode, options))), gentest.ResultJSON(program.ParseWith("main", "ab", options)); got != want {
 					t.Fatalf("loaded filter: %s / %s", got, want)

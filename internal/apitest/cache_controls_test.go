@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp"
+	"zeroparse.dev/zp/runtime/parse"
 )
 
 func TestPublicDocumentCacheControls(t *testing.T) {
@@ -36,7 +37,7 @@ rule line = [a-z]+ "\n"`, "main")
 		}
 		version := d.Version()
 		d.ResetHistory()
-		if got := d.CacheStats(); got != (zp.CacheStats{}) {
+		if got := d.CacheStats(); got != (parse.CacheStats{}) {
 			t.Fatalf("%s reset history: %+v", backend, got)
 		}
 		if d.Stats() != last || d.Text() != "ab\nxd\n" || d.Version() != version || version == beforeVersion {

@@ -22,6 +22,7 @@ import (
 	"strings"
 
 	"zeroparse.dev/zp"
+	"zeroparse.dev/zp/runtime/parse"
 )
 
 const grammar = `package settings
@@ -73,7 +74,7 @@ func (e *Editor) Apply(start, end int, text string) error {
 	case err == nil:
 		status = fmt.Sprintf("ok, %d entries", node.Elem(0).Len())
 	default:
-		var se *zp.SyntaxError
+		var se *parse.SyntaxError
 		if errors.As(err, &se) {
 			status = fmt.Sprintf("error at %d:%d, keeping the last good tree", se.Line, se.Col)
 		} else {
@@ -172,7 +173,7 @@ same as a fresh parse: true
 - Keep one `Document` per open file and one goroutine per `Document`, with the `Parser` shared.
 - Convert your editor's positions to the document's unit before `Edit`. In `Bytes` mode, a position inside a character
   is an error rather than a silent corruption.
-- If the grammar uses `#recover`, `Parse` returns a tree and a `zp.SyntaxErrors` together: keep the tree, show the
+- If the grammar uses `#recover`, `Parse` returns a tree and a `parse.SyntaxErrors` together: keep the tree, show the
   errors.
 - Debounce: reparse after the user pauses, not after every key, and merge the edits that arrived meanwhile.
 - The kept tree shares its nodes with the document, and later parses move the nodes they reuse to their new

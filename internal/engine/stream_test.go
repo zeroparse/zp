@@ -11,6 +11,7 @@ import (
 	"zeroparse.dev/zp/internal/engine/core"
 	"zeroparse.dev/zp/internal/gentest"
 	"zeroparse.dev/zp/internal/value"
+	"zeroparse.dev/zp/runtime/parse"
 )
 
 func TestParseStream(t *testing.T) {
@@ -90,7 +91,7 @@ func TestParseStreamErrorPosition(t *testing.T) {
 		count++
 		return nil
 	})
-	var se *SyntaxError
+	var se *parse.SyntaxError
 	if !errors.As(err, &se) || se.Line != 5002 || se.Col != 5 {
 		t.Fatalf("got %v", err)
 	}
@@ -120,7 +121,7 @@ func TestParseStreamDiscardsInput(t *testing.T) {
 	prog := mustCompile(t, gentest.Records)
 	r := &lineReader{header: "#records\n", line: "key=42\n", n: 100000}
 	maxBuf := 0
-	p := core.NewStreamParser(&prog.sharedProgram, r, CodePoints)
+	p := core.NewStreamParser(&prog.sharedProgram, r, parse.CodePoints)
 	p.Emit = func(*value.Node) error {
 		maxBuf = max(maxBuf, len(p.In))
 		return nil

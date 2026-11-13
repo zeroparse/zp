@@ -11,6 +11,7 @@ import (
 	"zeroparse.dev/zp"
 	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/engine"
+	"zeroparse.dev/zp/runtime/parse"
 )
 
 func TestCompileSource(t *testing.T) {
@@ -35,7 +36,7 @@ rule main = k:[a-z]+ #atomic "=" v:[0-9]+ #atomic => Pair{Key: $k, Value: $v}`, 
 	}
 
 	_, err = p.Parse("abc=")
-	var se *zp.SyntaxError
+	var se *parse.SyntaxError
 	if !errors.As(err, &se) || se.Line != 1 || se.Col != 5 {
 		t.Errorf("got %v", err)
 	}
@@ -290,13 +291,13 @@ func TestUnits(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	for unit, want := range map[zp.PositionUnit]int{zp.CodePoints: 1, zp.Bytes: 2} {
+	for unit, want := range map[parse.PositionUnit]int{parse.CodePoints: 1, parse.Bytes: 2} {
 		n, err := p.Parse("éa", zp.WithUnit(unit))
 		if err != nil || n.Field("x").(*zp.Node).Start() != want {
 			t.Errorf("%v: %v %v", unit, n, err)
 		}
 	}
-	doc, err := p.NewDocument("éa", zp.WithUnit(zp.Bytes))
+	doc, err := p.NewDocument("éa", zp.WithUnit(parse.Bytes))
 	if err != nil {
 		t.Fatal(err)
 	}

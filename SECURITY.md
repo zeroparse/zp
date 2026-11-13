@@ -89,7 +89,7 @@ These behaviors are documented, so they are limits of ZeroParse today, not vulne
   ([TypeScript](docs/guide/typescript.md#deep-nesting-and-the-javascript-stack)).
 - **Compute, on by default.** A parse stops once its spent budget exceeds its compute limit, whatever the grammar's
   class of growth. A zero `Compute` selects `max(2^20, 1024 * n)` for an input of `n` units,
-  `zp.WithLimits(zp.Limits{Compute: ...})` sets another limit and `zp.Unlimited` disables it; `zp.WithContext` adds
+  `zp.WithLimits(parse.Limits{Compute: ...})` sets another limit and `parse.Unlimited` disables it; `zp.WithContext` adds
   cancellation and deadlines. Generated parsers have the compute limit and these options only when generated with
   `-limits` (TypeScript: `signal` and `limits.compute`); this is planned to become the default at the first release
   ([Default Limits](#default-limits)). For a given artifact, input and options, the counts are the same on every run.

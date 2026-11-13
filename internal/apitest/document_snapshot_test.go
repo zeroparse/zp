@@ -7,6 +7,7 @@ import (
 
 	"zeroparse.dev/zp"
 	"zeroparse.dev/zp/internal/value"
+	"zeroparse.dev/zp/runtime/parse"
 )
 
 func TestDocumentSnapshotPublicContract(t *testing.T) {
@@ -14,7 +15,7 @@ func TestDocumentSnapshotPublicContract(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	for _, unit := range []zp.PositionUnit{zp.CodePoints, zp.Bytes} {
+	for _, unit := range []parse.PositionUnit{parse.CodePoints, parse.Bytes} {
 		d, err := p.NewDocument("aa", zp.WithUnit(unit))
 		if err != nil {
 			t.Fatal(err)
@@ -35,7 +36,7 @@ func TestDocumentSnapshotPublicContract(t *testing.T) {
 			t.Fatal(err)
 		}
 		failed, err := d.Snapshot()
-		var syntax *zp.SyntaxError
+		var syntax *parse.SyntaxError
 		if failed == nil || !errors.As(err, &syntax) || failed.Text() != "ba" || failed.Version() == s.Version() || failed.Root().Valid() || s.Text() != "aa" {
 			t.Fatal("failed version", err)
 		}

@@ -12,8 +12,8 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/internal/engine/core"
-	"zeroparse.dev/zp/internal/limits"
 	"zeroparse.dev/zp/internal/value"
+	"zeroparse.dev/zp/runtime/parse"
 )
 
 // memoTestParser returns a parser whose variables are memoTestVars(n).
@@ -27,7 +27,7 @@ func TestBudgetMemoEnvValuesDeepLookup(t *testing.T) {
 	t.Parallel()
 	const count = 320 // three levels: two inner nodes and a leaf on every path
 	p := memoTestParser(count)
-	p.Control = core.NewBudgetControl(nil, limits.Limits{Compute: 1_000_000})
+	p.Control = core.NewBudgetControl(nil, parse.Limits{Compute: 1_000_000})
 	vals := p.EnvValues([]int{count - 1, -1})
 	if len(vals) != 2 || vals[0] != count-1 || vals[1] != nil {
 		t.Fatalf("envValues = %#v, want [%d nil]", vals, count-1)
@@ -38,13 +38,13 @@ func TestBudgetMemoEnvValuesDeepLookup(t *testing.T) {
 	}
 
 	limited := memoTestParser(count)
-	limited.Control = core.NewBudgetControl(nil, limits.Limits{Compute: 3})
-	if err := catchFatal(t, func() { limited.EnvValues([]int{0}) }); !errors.Is(err, limits.ErrLimit) {
+	limited.Control = core.NewBudgetControl(nil, parse.Limits{Compute: 3})
+	if err := catchFatal(t, func() { limited.EnvValues([]int{0}) }); !errors.Is(err, parse.ErrLimit) {
 		t.Fatalf("deep envValues error = %v, want ErrLimit", err)
 	}
 
 	// The nil-environment key remains a shared all-nil slice and resolves missing variables.
-	nilParser := &core.Parser{Input: core.Input{Control: core.NewBudgetControl(nil, limits.Limits{Compute: 8})}}
+	nilParser := &core.Parser{Input: core.Input{Control: core.NewBudgetControl(nil, parse.Limits{Compute: 8})}}
 	got := nilParser.EnvValues([]int{-1, -1})
 	if len(got) != 2 || got[0] != nil || got[1] != nil {
 		t.Fatalf("nil envValues = %#v, want two nil values", got)
@@ -56,9 +56,9 @@ func TestBudgetMemoBindPreservesSnapshotsOnInterruption(t *testing.T) {
 	const count = 48 // two levels: an inner node and a leaf on every path
 	// A rebind costs a unit for the old value and one for each node it copies.
 	p := memoTestParser(count)
-	p.Control = core.NewBudgetControl(nil, limits.Limits{Compute: 2})
+	p.Control = core.NewBudgetControl(nil, parse.Limits{Compute: 2})
 	before := p.Env
-	if err := catchFatal(t, func() { p.Bind(0, "replacement") }); !errors.Is(err, limits.ErrLimit) {
+	if err := catchFatal(t, func() { p.Bind(0, "replacement") }); !errors.Is(err, parse.ErrLimit) {
 		t.Fatalf("replacement error = %v, want ErrLimit", err)
 	}
 	if p.Env != before {
@@ -72,7 +72,7 @@ func TestBudgetMemoBindPreservesSnapshotsOnInterruption(t *testing.T) {
 
 	// Equal bindings keep the persistent snapshot identity.
 	stable := memoTestParser(count)
-	stable.Control = core.NewBudgetControl(nil, limits.Limits{Compute: 1_000_000})
+	stable.Control = core.NewBudgetControl(nil, parse.Limits{Compute: 1_000_000})
 	head := stable.Env
 	stable.Bind(count-1, count-1)
 	stable.Bind(0, 0)
@@ -100,7 +100,7 @@ func TestBudgetMemoKeyEqualityAndLongChains(t *testing.T) {
 	t.Parallel()
 	table := &core.MemoTable{Slots: make([]*core.MemoEntry, 1)}
 	p := &core.Parser{Memo: table}
-	p.Control = core.NewBudgetControl(nil, limits.Limits{Compute: 1 << 30})
+	p.Control = core.NewBudgetControl(nil, parse.Limits{Compute: 1 << 30})
 	long := strings.Repeat("common-prefix-", 96)
 	var head *core.MemoEntry
 	for i := 0; i < 320; i++ {
@@ -154,12 +154,12 @@ func TestBudgetMemoParseBudgetPoolRetryAndRetainedResult(t *testing.T) {
 	prog := mustCompile(t, budgetMemoVariableGrammar())
 	input := "a"
 	for _, backend := range []Backend{Closure, Bytecode, BytecodeIterative} {
-		for _, unit := range []PositionUnit{Bytes, CodePoints} {
+		for _, unit := range []parse.PositionUnit{parse.Bytes, parse.CodePoints} {
 			// The memo keys of 280 variables cost more than the default budget of a one-character
 			// input: the fixture's cost comes from the grammar, so the setup parse disables the
 			// budget. The limit below falls inside the key of the first call of r, which reads
 			// every variable (four units each).
-			opts := ParseOptions{Backend: backend, Unit: unit, Limits: limits.Limits{Compute: limits.Unlimited}}
+			opts := ParseOptions{Backend: backend, Unit: unit, Limits: parse.Limits{Compute: parse.Unlimited}}
 			retained, err := prog.ParseWith("main", input, opts)
 			if err != nil || retained == nil {
 				t.Fatalf("%v/%v setup parse: node=%v err=%v", backend, unit, retained, err)
@@ -172,7 +172,7 @@ func TestBudgetMemoParseBudgetPoolRetryAndRetainedResult(t *testing.T) {
 			armed := false
 			markerCalls := 0
 			limited := opts
-			limited.Limits = limits.Limits{Compute: 1 << 50}
+			limited.Limits = parse.Limits{Compute: 1 << 50}
 			limited.Trace = func(e TraceEvent) {
 				if e.Kind == TraceEnter && e.Rule == "marker" {
 					markerCalls++
@@ -183,7 +183,7 @@ func TestBudgetMemoParseBudgetPoolRetryAndRetainedResult(t *testing.T) {
 					core.TraceParser(e).Control.Limits.Compute = core.TraceParser(e).Control.Used + 16
 				}
 			}
-			if node, parseErr := prog.ParseWith("main", input, limited); node != nil || !errors.Is(parseErr, limits.ErrLimit) {
+			if node, parseErr := prog.ParseWith("main", input, limited); node != nil || !errors.Is(parseErr, parse.ErrLimit) {
 				t.Fatalf("%v/%v limited parse: node=%v err=%v", backend, unit, node, parseErr)
 			}
 			if markerCalls != 0 {
@@ -208,13 +208,13 @@ func TestBudgetMemoBindCopyAndCancellation(t *testing.T) {
 	// An equal binding performs the lookup but does not copy a path.
 	probe := memoTestParser(320)
 	root := probe.Env
-	probe.Control = core.NewBudgetControl(nil, limits.Limits{Compute: 1 << 30})
+	probe.Control = core.NewBudgetControl(nil, parse.Limits{Compute: 1 << 30})
 	probe.Bind(0, 0)
 	searchSteps := probe.Control.Used
 	p := memoTestParser(320)
 	root = p.Env
-	p.Control = core.NewBudgetControl(nil, limits.Limits{Compute: searchSteps + 2})
-	if err := catchFatal(t, func() { p.Bind(0, 999) }); !errors.Is(err, limits.ErrLimit) {
+	p.Control = core.NewBudgetControl(nil, parse.Limits{Compute: searchSteps + 2})
+	if err := catchFatal(t, func() { p.Bind(0, 999) }); !errors.Is(err, parse.ErrLimit) {
 		t.Fatalf("path-copy error=%v", err)
 	}
 	if p.Env != root || p.Control.Used != searchSteps+2 {
@@ -231,7 +231,7 @@ func TestBudgetMemoBindCopyAndCancellation(t *testing.T) {
 	for _, run := range []func(*core.Parser){func(p *core.Parser) { p.EnvValues([]int{0}) }, func(p *core.Parser) { p.Bind(0, 999) }} {
 		p := memoTestParser(320)
 		root := p.Env
-		p.Control = core.NewBudgetControl(newPollingContext(1), limits.Limits{})
+		p.Control = core.NewBudgetControl(newPollingContext(1), parse.Limits{})
 		p.Control.Charge(core.BudgetCheckInterval - 2) // the next units reach the poll
 		if err := catchFatal(t, func() { run(p) }); !errors.Is(err, context.Canceled) {
 			t.Fatalf("environment cancellation=%v", err)
@@ -251,22 +251,22 @@ func TestBudgetMemoChainAndStringLimits(t *testing.T) {
 	oldHead := table.Slots[0]
 	replacement := &core.MemoEntry{Node: value.Ptr(value.Data{Text: "replacement"})}
 	p := &core.Parser{Memo: table}
-	p.Control = core.NewBudgetControl(nil, limits.Limits{Compute: 80})
-	if err := catchFatal(t, func() { p.MemoGet(core.MemoKey{Rule: 0}) }); !errors.Is(err, limits.ErrLimit) {
+	p.Control = core.NewBudgetControl(nil, parse.Limits{Compute: 80})
+	if err := catchFatal(t, func() { p.MemoGet(core.MemoKey{Rule: 0}) }); !errors.Is(err, parse.ErrLimit) {
 		t.Fatalf("chain get=%v", err)
 	}
-	p.Control = core.NewBudgetControl(nil, limits.Limits{Compute: 80})
-	if err := catchFatal(t, func() { p.MemoPut(core.MemoKey{Rule: 0}, replacement) }); !errors.Is(err, limits.ErrLimit) {
+	p.Control = core.NewBudgetControl(nil, parse.Limits{Compute: 80})
+	if err := catchFatal(t, func() { p.MemoPut(core.MemoKey{Rule: 0}, replacement) }); !errors.Is(err, parse.ErrLimit) {
 		t.Fatalf("chain put=%v", err)
 	}
 	if table.Slots[0] != oldHead || replacement.Rule != 0 || replacement.Env != nil || replacement.Next != nil {
 		t.Fatal("interrupted put published an entry")
 	}
-	p.Control = core.NewBudgetControl(newPollingContext(1), limits.Limits{})
+	p.Control = core.NewBudgetControl(newPollingContext(1), parse.Limits{})
 	if err := catchFatal(t, func() { p.MemoGet(core.MemoKey{Rule: 0}) }); !errors.Is(err, context.Canceled) {
 		t.Fatalf("chain cancellation=%v", err)
 	}
-	p.Control = core.NewBudgetControl(nil, limits.Limits{Compute: 1 << 30})
+	p.Control = core.NewBudgetControl(nil, parse.Limits{Compute: 1 << 30})
 	p.MemoPut(core.MemoKey{Rule: 0}, replacement)
 	if got, ok := p.MemoGet(core.MemoKey{Rule: 0}); !ok || got != replacement {
 		t.Fatal("replacement failed")
@@ -276,22 +276,22 @@ func TestBudgetMemoChainAndStringLimits(t *testing.T) {
 	table.Slots[0] = &core.MemoEntry{Rule: 1, Node: retained, Env: []any{strings.Repeat("x", 1024)}}
 	before, _ := json.Marshal(retained)
 	key := core.MemoKey{Rule: 1, Env: []any{strings.Repeat("x", 1024)}}
-	p.Control = core.NewBudgetControl(nil, limits.Limits{Compute: 80})
-	if err := catchFatal(t, func() { p.MemoGet(key) }); !errors.Is(err, limits.ErrLimit) {
+	p.Control = core.NewBudgetControl(nil, parse.Limits{Compute: 80})
+	if err := catchFatal(t, func() { p.MemoGet(key) }); !errors.Is(err, parse.ErrLimit) {
 		t.Fatalf("string key comparison=%v", err)
 	}
-	p.Control = core.NewBudgetControl(nil, limits.Limits{Compute: 1 << 30})
+	p.Control = core.NewBudgetControl(nil, parse.Limits{Compute: 1 << 30})
 	p.MemoPut(key, &core.MemoEntry{})
 	after, _ := json.Marshal(retained)
 	if string(before) != string(after) {
 		t.Fatal("entry retirement changed public graph")
 	}
 	// Unequal string lengths and key lengths remain constant-time rejections.
-	p.Control = core.NewBudgetControl(nil, limits.Limits{Compute: 2})
+	p.Control = core.NewBudgetControl(nil, parse.Limits{Compute: 2})
 	if got, ok := p.MemoGet(core.MemoKey{Rule: 1, Env: nil}); ok || got != nil {
 		t.Fatal("key length mismatch matched")
 	}
-	p.Control = core.NewBudgetControl(nil, limits.Limits{Compute: 3})
+	p.Control = core.NewBudgetControl(nil, parse.Limits{Compute: 3})
 	if got, ok := p.MemoGet(core.MemoKey{Rule: 1, Env: []any{"short"}}); ok || got != nil {
 		t.Fatal("string length mismatch matched")
 	}
@@ -333,9 +333,9 @@ rule expr = expr "a" / "a"`)
 	budgetMemoPrefix(p.Memo, retained)
 	oldHead := p.Memo.Slots[0]
 	p.Pos, p.Hw = 1, 1
-	p.Control = core.NewBudgetControl(nil, limits.Limits{Compute: 64})
+	p.Control = core.NewBudgetControl(nil, parse.Limits{Compute: 64})
 	p.Control.Used = 64
-	if err := catchFatal(t, func() { p.GrowStep(&g, retained, true) }); !errors.Is(err, limits.ErrLimit) {
+	if err := catchFatal(t, func() { p.GrowStep(&g, retained, true) }); !errors.Is(err, parse.ErrLimit) {
 		t.Fatalf("LR replacement interruption=%v", err)
 	}
 	if p.Memo.Slots[0] != oldHead {
@@ -364,7 +364,7 @@ rule expr = expr atom / atom
 
 rule atom = "a"`)
 	for _, backend := range []Backend{Closure, Bytecode, BytecodeIterative} {
-		for _, unit := range []PositionUnit{Bytes, CodePoints} {
+		for _, unit := range []parse.PositionUnit{parse.Bytes, parse.CodePoints} {
 			for _, recognize := range []bool{false, true} {
 				for _, cancel := range []bool{false, true} {
 					retained := value.Ptr(value.Data{Text: "retained", Children: []*value.Node{value.Ptr(value.Data{Text: "child"})}})
@@ -373,7 +373,7 @@ rule atom = "a"`)
 					var chunks [][]core.MemoEntry
 					armed := false
 					exprExits := 0
-					opts := ParseOptions{Backend: backend, Unit: unit, Recognize: recognize, Limits: limits.Limits{Compute: 1 << 40}, Trace: func(e TraceEvent) {
+					opts := ParseOptions{Backend: backend, Unit: unit, Recognize: recognize, Limits: parse.Limits{Compute: 1 << 40}, Trace: func(e TraceEvent) {
 						if e.Kind == TraceExit && e.Rule == "expr" {
 							exprExits++
 						}
@@ -391,7 +391,7 @@ rule atom = "a"`)
 						}
 					}}
 					n, err := prog.ParseWith("main", "a", opts)
-					want := limits.ErrLimit
+					want := parse.ErrLimit
 					if cancel {
 						want = context.Canceled
 					}
@@ -433,7 +433,7 @@ rule expr = expr "a" / "a"`)
 	// parser returns a parser whose budget has room for n more units.
 	parser := func(n uint64) *core.Parser {
 		p := core.AcquirePooledParser(&prog.sharedProgram)
-		p.Control = core.NewBudgetControl(nil, limits.Limits{Compute: 1 << 20})
+		p.Control = core.NewBudgetControl(nil, parse.Limits{Compute: 1 << 20})
 		p.Control.Used = 1<<20 - n
 		return p
 	}
@@ -460,7 +460,7 @@ rule expr = expr "a" / "a"`)
 
 	// Short of one unit, neither publishes.
 	p = parser(begin - 1)
-	if err := catchFatal(t, func() { p.GrowBegin(key, prog.closureRules[expr.ID]) }); !errors.Is(err, limits.ErrLimit) {
+	if err := catchFatal(t, func() { p.GrowBegin(key, prog.closureRules[expr.ID]) }); !errors.Is(err, parse.ErrLimit) {
 		t.Fatalf("growth begun short of a unit: %v", err)
 	}
 	if _, ok := p.GrowingSeed(key); ok {
@@ -472,7 +472,7 @@ rule expr = expr "a" / "a"`)
 	g = p.GrowBegin(key, prog.closureRules[expr.ID])
 	seed := g.Best
 	p.Pos = 1
-	if err := catchFatal(t, func() { p.GrowStep(&g, retained, true) }); !errors.Is(err, limits.ErrLimit) {
+	if err := catchFatal(t, func() { p.GrowStep(&g, retained, true) }); !errors.Is(err, parse.ErrLimit) {
 		t.Fatalf("growth step short of a unit: %v", err)
 	}
 	if stored, ok := p.GrowingSeed(key); !ok || stored != seed || p.Pos != 1 {

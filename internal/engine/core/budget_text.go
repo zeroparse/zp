@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"strings"
 	"unicode/utf8"
+
+	"zeroparse.dev/zp/runtime/parse"
 )
 
 // detachedText materializes input that cannot supply an original-source
@@ -11,7 +13,7 @@ import (
 // mutate a returned string. Allocation and Grow remain nonpreemptible.
 func (in *Input) detachedText(start, end int) string {
 	var out strings.Builder
-	if in.Unit == Bytes {
+	if in.Unit == parse.Bytes {
 		src := in.Bs[start:end]
 		for off := 0; off < len(src); {
 			n := min(4096, len(src)-off)

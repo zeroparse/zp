@@ -3,8 +3,8 @@ package document
 import (
 	"fmt"
 
-	"zeroparse.dev/zp/internal/engine/core"
 	"zeroparse.dev/zp/internal/value"
+	"zeroparse.dev/zp/runtime/parse"
 )
 
 // Cursor filters edge-oriented node visits using spans in Unit. Unit must match
@@ -12,11 +12,11 @@ import (
 // Parent spans do not prune traversal. Scalar and list values have no spans.
 type Cursor struct {
 	Root *value.Node
-	Unit core.PositionUnit
+	Unit parse.PositionUnit
 }
 
 func (c Cursor) validate(start, end int32) error {
-	if c.Unit != core.CodePoints && c.Unit != core.Bytes {
+	if c.Unit != parse.CodePoints && c.Unit != parse.Bytes {
 		return fmt.Errorf("zp: invalid cursor unit %d", c.Unit)
 	}
 	if start < 0 || end < start {

@@ -48,6 +48,7 @@ import (
 	"strings"
 
 	"zeroparse.dev/zp"
+	"zeroparse.dev/zp/runtime/parse"
 )
 
 //go:embed expr.zp
@@ -111,7 +112,7 @@ func render(p *zp.Parser, template string, vars map[string]float64) (string, err
 		base := pos + i + len("{{")
 		res, err := p.ParsePrefix("fragment", template[base:])
 		if err != nil {
-			var se *zp.SyntaxError
+			var se *parse.SyntaxError
 			if errors.As(err, &se) {
 				line, col := lineCol(template, base+se.Pos)
 				return "", fmt.Errorf("%d:%d: %s", line, col, se.Message())
@@ -175,7 +176,7 @@ error: 1:10: unknown name "cost"
 
 ## Variations and Limits
 
-- Use `WithUnit(zp.Bytes)` when the surrounding text is processed in bytes, so that spans, errors and
+- Use `WithUnit(parse.Bytes)` when the surrounding text is processed in bytes, so that spans, errors and
   `ConsumedBytes` all agree.
 - A delimiter that can appear inside the fragment, such as `}}` in a string literal, belongs in the grammar: the rule
   reads the string, so the scan never mistakes it for the end.

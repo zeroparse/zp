@@ -7,6 +7,7 @@ import (
 
 	"zeroparse.dev/zp"
 	"zeroparse.dev/zp/internal/engine/core"
+	"zeroparse.dev/zp/runtime/parse"
 )
 
 // skipRunControls returns the E8 controls whose walks a parse without skip-run records repeats.
@@ -72,7 +73,7 @@ func TestSkipRunsLinearMemory(t *testing.T) {
 				var before, after runtime.MemStats
 				runtime.GC()
 				runtime.ReadMemStats(&before)
-				if _, err := p.Parse(in, zp.WithBackend(b), zp.WithLimits(zp.Limits{Compute: zp.Unlimited})); err != nil {
+				if _, err := p.Parse(in, zp.WithBackend(b), zp.WithLimits(parse.Limits{Compute: parse.Unlimited})); err != nil {
 					t.Fatalf("%s, %s: %v", c.Name, BackendName(b), err)
 				}
 				runtime.ReadMemStats(&after)

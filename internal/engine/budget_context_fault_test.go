@@ -9,7 +9,7 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/internal/engine/core"
-	"zeroparse.dev/zp/internal/limits"
+	"zeroparse.dev/zp/runtime/parse"
 )
 
 func TestBudgetContextAttributionPreservesVMFaults(t *testing.T) {
@@ -25,7 +25,7 @@ func TestBudgetContextAttributionPreservesVMFaults(t *testing.T) {
 			restore := corruptVMLiteral(t, prog)
 			var observed *core.Parser
 			n, err := prog.ParseWith("main", "z", ParseOptions{
-				Backend: backend, Limits: limits.Limits{Compute: 1 << 20},
+				Backend: backend, Limits: parse.Limits{Compute: 1 << 20},
 				Trace: func(e TraceEvent) { observed = core.TraceParser(e) },
 			})
 			if n != nil || err == nil || !strings.HasPrefix(err.Error(), "invalid bytecode: ") {
@@ -61,7 +61,7 @@ func TestBudgetContextAccessorInterruptionRemainsFatal(t *testing.T) {
 	text := strings.Repeat("a", 1024)
 	prog := mustCompile(t, `rule main = "`+text+`" $$`)
 	for _, backend := range []Backend{Closure, Bytecode, BytecodeIterative} {
-		for _, unit := range []PositionUnit{Bytes, CodePoints} {
+		for _, unit := range []parse.PositionUnit{parse.Bytes, parse.CodePoints} {
 			t.Run(backend.String()+"/"+unit.String(), func(t *testing.T) {
 				ctx := &budgetContextAccessorContext{Context: context.Background(), done: make(chan struct{})}
 				var observed *core.Parser
@@ -85,8 +85,8 @@ func TestBudgetContextAccessorInterruptionRemainsFatal(t *testing.T) {
 						core.TraceParser(e).Control.Check()
 					},
 				})
-				var limit *limits.LimitError
-				if n != nil || !accessorEntered || !errors.As(err, &limit) || limit.Kind != limits.LimitCompute {
+				var limit *parse.LimitError
+				if n != nil || !accessorEntered || !errors.As(err, &limit) || limit.Kind != parse.LimitCompute {
 					t.Fatalf("context accessor node=%v entered=%v error=%v", n, accessorEntered, err)
 				}
 				if observed == nil || observed.Scratch != nil || observed.Control != nil {
@@ -105,7 +105,7 @@ func TestBudgetContextNestedAccessorPanicIdentity(t *testing.T) {
 	text := strings.Repeat("a", 1024)
 	prog := mustCompile(t, `rule main = "`+text+`" $$`)
 	for _, backend := range []Backend{Closure, Bytecode, BytecodeIterative} {
-		for _, unit := range []PositionUnit{Bytes, CodePoints} {
+		for _, unit := range []parse.PositionUnit{parse.Bytes, parse.CodePoints} {
 			t.Run(backend.String()+"/"+unit.String(), func(t *testing.T) {
 				token := &struct{ label string }{"nested context panic"}
 				ctx := &budgetContextAccessorContext{Context: context.Background(), done: make(chan struct{})}

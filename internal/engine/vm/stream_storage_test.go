@@ -9,6 +9,7 @@ import (
 	"zeroparse.dev/zp/internal/compiletest"
 	"zeroparse.dev/zp/internal/engine/core"
 	"zeroparse.dev/zp/internal/value"
+	"zeroparse.dev/zp/runtime/parse"
 )
 
 // Completed calls can leave references beyond slice length. Stream commits
@@ -16,7 +17,7 @@ import (
 func TestStreamStorageCommitReferences(t *testing.T) {
 	prog := &core.SharedProgram{}
 	core.InitSharedProgram(prog, compiletest.Program(t, `rule main = "a"`, compile.Options{SourceInfo: true}))
-	p := core.NewParser(prog, strings.Repeat("a", 4096), core.CodePoints, false)
+	p := core.NewParser(prog, strings.Repeat("a", 4096), parse.CodePoints, false)
 	live := value.Ptr(value.Data{Text: "live"})
 	dead := value.Ptr(value.Data{Text: "dead"})
 	root := p.NewFrame(1)

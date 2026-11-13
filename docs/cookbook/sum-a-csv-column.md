@@ -131,7 +131,7 @@ says the quoted field never ended.
 - The first record is the header: `sum` skips it by counting. `ParseStream` does not return it separately.
 - The callback validates each record. Its error stops the stream and `ParseStream` returns it unchanged, so the program
   wraps it with the record's `Start()` offset.
-- A record that the grammar cannot read (here, a quoted field that never ends) is a `*zp.SyntaxError` with the line and
+- A record that the grammar cannot read (here, a quoted field that never ends) is a `*parse.SyntaxError` with the line and
   column in the whole input, after the records before it were delivered.
 
 ## Variations and Limits

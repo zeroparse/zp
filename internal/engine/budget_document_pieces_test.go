@@ -9,7 +9,7 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/internal/engine/core"
-	"zeroparse.dev/zp/internal/limits"
+	"zeroparse.dev/zp/runtime/parse"
 )
 
 func TestBudgetDocumentPieceConstruction(t *testing.T) {
@@ -17,15 +17,15 @@ func TestBudgetDocumentPieceConstruction(t *testing.T) {
 	if !core.DocumentPieceInput {
 		t.Skip("piece input is disabled")
 	}
-	for _, unit := range []PositionUnit{CodePoints, Bytes} {
+	for _, unit := range []parse.PositionUnit{parse.CodePoints, parse.Bytes} {
 		for _, text := range []string{strings.Repeat("é😀x", 2048), strings.Repeat("x\xff", 4096)} {
-			c := core.NewBudgetControl(nil, limits.Limits{Compute: 1 << 30})
+			c := core.NewBudgetControl(nil, parse.Limits{Compute: 1 << 30})
 			in := core.NewControlledDocumentInput(text, unit, c)
 			want := core.NewDocumentPieces(text, unit)
 			if in.Pieces == nil || !reflect.DeepEqual(in.Pieces, want) {
 				t.Fatalf("%s: controlled preparation changed piece contents", unit)
 			}
-			if unit == Bytes {
+			if unit == parse.Bytes {
 				if c.Used != 0 {
 					t.Fatal("immutable byte string retention was charged as a copy")
 				}
@@ -34,8 +34,8 @@ func TestBudgetDocumentPieceConstruction(t *testing.T) {
 			}
 		}
 	}
-	c := core.NewBudgetControl(nil, limits.Limits{Compute: 1})
-	if err := catchFatal(t, func() { core.NewControlledDocumentInput(strings.Repeat("a", 8192), CodePoints, c) }); !errors.Is(err, limits.ErrLimit) {
+	c := core.NewBudgetControl(nil, parse.Limits{Compute: 1})
+	if err := catchFatal(t, func() { core.NewControlledDocumentInput(strings.Repeat("a", 8192), parse.CodePoints, c) }); !errors.Is(err, parse.ErrLimit) {
 		t.Fatalf("piece preparation interruption: %v", err)
 	}
 }
@@ -47,17 +47,17 @@ func TestBudgetDocumentPieceTextPublication(t *testing.T) {
 	if !core.DocumentPieceInput {
 		t.Skip("piece input is disabled")
 	}
-	for _, unit := range []PositionUnit{CodePoints, Bytes} {
+	for _, unit := range []parse.PositionUnit{parse.CodePoints, parse.Bytes} {
 		pieces := core.NewDocumentPieces(strings.Repeat("x", 8192), unit)
 		pieces.Replace(4096, 4097, "é")
-		in := core.Input{Unit: unit, Eof: true, Pieces: pieces, Control: core.NewBudgetControl(nil, limits.Limits{Compute: 4096})}
-		if err := catchFatal(t, func() { in.Text(0, pieces.N) }); !errors.Is(err, limits.ErrLimit) {
+		in := core.Input{Unit: unit, Eof: true, Pieces: pieces, Control: core.NewBudgetControl(nil, parse.Limits{Compute: 4096})}
+		if err := catchFatal(t, func() { in.Text(0, pieces.N) }); !errors.Is(err, parse.ErrLimit) {
 			t.Fatalf("%s: piece materialization bypassed the limit: %v", unit, err)
 		}
 		if pieces.FullOK || pieces.Full != "" {
 			t.Fatal("interrupted materialization published a cache")
 		}
-		in.Control = core.NewBudgetControl(nil, limits.Limits{Compute: 1 << 30})
+		in.Control = core.NewBudgetControl(nil, parse.Limits{Compute: 1 << 30})
 		got := in.Text(0, pieces.N)
 		if want := strings.Repeat("x", 4096) + "é" + strings.Repeat("x", 4095); got != want || !pieces.FullOK {
 			t.Fatalf("%s: retry materialization differs", unit)

@@ -10,18 +10,19 @@ import (
 
 	"zeroparse.dev/zp/internal/engine/core"
 	"zeroparse.dev/zp/internal/value"
+	"zeroparse.dev/zp/runtime/parse"
 )
 
 func TestStreamTextSnapshots(t *testing.T) {
 	t.Parallel()
 	text := strings.Repeat("aé😀\xff\xc0z\n", 700)
-	for _, unit := range []PositionUnit{CodePoints, Bytes} {
+	for _, unit := range []parse.PositionUnit{parse.CodePoints, parse.Bytes} {
 		t.Run(unit.String(), func(t *testing.T) {
 			in := core.Input{Unit: unit, Reader: bufio.NewReader(strings.NewReader(text)), BaseLine: 1, BaseCol: 1}
 			in.Fill(1 << 20)
 			n := in.Loaded()
 			want := func(start, end int) string {
-				if unit == Bytes {
+				if unit == parse.Bytes {
 					return text[start:end]
 				}
 				return string([]rune(text)[start:end])
@@ -60,7 +61,7 @@ func TestStreamTextSnapshots(t *testing.T) {
 
 func TestStreamTextSnapshotNearMaximumPosition(t *testing.T) {
 	t.Parallel()
-	for _, unit := range []PositionUnit{CodePoints, Bytes} {
+	for _, unit := range []parse.PositionUnit{parse.CodePoints, parse.Bytes} {
 		in := core.Input{Unit: unit, Base: int(^uint(0)>>1) - 128, Reader: bufio.NewReader(strings.NewReader(strings.Repeat("x", 100)))}
 		in.Fill(in.Base + 100)
 		if got := in.Text(in.Base, in.Base+10); got != "xxxxxxxxxx" {
@@ -74,7 +75,7 @@ func TestStreamTextSnapshotNearMaximumPosition(t *testing.T) {
 
 func TestStreamTextSnapshotBoundaries(t *testing.T) {
 	t.Parallel()
-	for _, unit := range []PositionUnit{CodePoints, Bytes} {
+	for _, unit := range []parse.PositionUnit{parse.CodePoints, parse.Bytes} {
 		for _, size := range []int{63, 64, 1024, 1025, 3000} {
 			t.Run(fmt.Sprintf("%s/%d", unit, size), func(t *testing.T) {
 				var data strings.Builder
@@ -101,7 +102,7 @@ func TestStreamTextSnapshotBoundaries(t *testing.T) {
 // Text extraction must never trigger a reader call just to fill a snapshot.
 func TestStreamTextSnapshotDoesNotReadAhead(t *testing.T) {
 	t.Parallel()
-	for _, unit := range []PositionUnit{CodePoints, Bytes} {
+	for _, unit := range []parse.PositionUnit{parse.CodePoints, parse.Bytes} {
 		reader := &snapshotOneByteReader{source: strings.Repeat("x", 200)}
 		in := core.Input{Unit: unit, Reader: bufio.NewReader(reader)}
 		in.Fill(1)
@@ -136,7 +137,7 @@ func TestStreamTextSnapshotRetainedMalformedResults(t *testing.T) {
 rule row = x:(!"\n" .)+ #atomic "\n"`)
 	text := strings.Repeat("é😀a\xff\xc0z\n", 700)
 	for _, backend := range []Backend{Closure, Bytecode, BytecodeIterative} {
-		for _, unit := range []PositionUnit{CodePoints, Bytes} {
+		for _, unit := range []parse.PositionUnit{parse.CodePoints, parse.Bytes} {
 			t.Run(fmt.Sprintf("%s/%s", backend, unit), func(t *testing.T) {
 				opts := ParseOptions{Backend: backend, Unit: unit}
 				whole, err := prog.ParseWith("main", text, opts)
@@ -167,7 +168,7 @@ func TestStreamTextSnapshotSplitUTF8(t *testing.T) {
 rule row = x:(!"\n" .)+ #atomic "\n"`)
 	text := strings.Repeat(strings.Repeat("é😀\xff\xc0a", 40)+"\n", 30)
 	for _, backend := range []Backend{Closure, Bytecode, BytecodeIterative} {
-		for _, unit := range []PositionUnit{CodePoints, Bytes} {
+		for _, unit := range []parse.PositionUnit{parse.CodePoints, parse.Bytes} {
 			t.Run(fmt.Sprintf("%s/%s", backend, unit), func(t *testing.T) {
 				opts := ParseOptions{Backend: backend, Unit: unit}
 				whole, err := prog.ParseWith("main", text, opts)

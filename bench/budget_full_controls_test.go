@@ -17,6 +17,7 @@ import (
 	goutline "zeroparse.dev/zp/internal/bench/gen/outline"
 	gxml "zeroparse.dev/zp/internal/bench/gen/xml"
 	"zeroparse.dev/zp/internal/value"
+	"zeroparse.dev/zp/runtime/parse"
 )
 
 type fullGeneratedProbe struct {
@@ -195,13 +196,13 @@ func TestControlledFullWorkloads(t *testing.T) {
 					t.Run(be.name+"/"+u.name, func(t *testing.T) {
 						t.Parallel()
 						// Unlimited keeps the plain parse uncontrolled: a zero budget selects the default counter.
-						opts := []zp.ParseOption{zp.WithBackend(be.b), zp.WithUnit(u.u), zp.WithLimits(zp.Limits{Compute: zp.Unlimited})}
+						opts := []zp.ParseOption{zp.WithBackend(be.b), zp.WithUnit(u.u), zp.WithLimits(parse.Limits{Compute: parse.Unlimited})}
 						plain, plainErr := p.Parse(input, opts...)
 						want := check(plain, plainErr)
 						for _, mode := range []string{"budget", "context", "combined"} {
 							active := append([]zp.ParseOption{}, opts...)
 							if mode != "context" {
-								active = append(active, zp.WithLimits(zp.Limits{Compute: ^uint64(0) - 1}))
+								active = append(active, zp.WithLimits(parse.Limits{Compute: ^uint64(0) - 1}))
 							}
 							if mode != "budget" {
 								ctx, cancel := context.WithCancel(context.Background())
@@ -223,8 +224,8 @@ func TestControlledFullWorkloads(t *testing.T) {
 								t.Fatalf("%s recognition diagnostics differ", mode)
 							}
 						}
-						n, err := p.Parse(input, append(opts, zp.WithLimits(zp.Limits{Compute: 1}))...)
-						if n != nil || !errors.Is(err, zp.ErrLimit) {
+						n, err := p.Parse(input, append(opts, zp.WithLimits(parse.Limits{Compute: 1}))...)
+						if n != nil || !errors.Is(err, parse.ErrLimit) {
 							t.Fatalf("full-input interruption: %v", err)
 						}
 						retry, retryErr := p.Parse(input, opts...)

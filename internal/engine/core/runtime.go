@@ -3,12 +3,11 @@ package core
 import (
 	"fmt"
 	"slices"
-	"strings"
 	"sync"
 
 	"zeroparse.dev/zp/internal/compile"
-	"zeroparse.dev/zp/internal/limits"
 	"zeroparse.dev/zp/internal/value"
+	"zeroparse.dev/zp/runtime/parse"
 )
 
 // SharedProgram is the part of a program that the parses of every backend read: the static
@@ -51,12 +50,12 @@ type Parser struct {
 	Hw int
 	lw int
 	// Stats counts evaluations and memo uses.
-	Stats Stats
+	Stats parse.ParseStats
 	// Aborted reports an interrupted execution, whose partial caches cannot be
 	// reused by a Document. Normal syntax errors are completed executions.
 	Aborted        bool
 	EmitCall       bool // a caller-owned stream callback is currently executing
-	Diagnostic     func(*SyntaxError) error
+	Diagnostic     func(*parse.SyntaxError) error
 	DiagnosticTail StreamDiagnosticTail
 
 	Env       *Env   // predicate variables
@@ -303,17 +302,9 @@ type MemoEntry struct {
 	Seen uint32
 }
 
-// Stats counts rule evaluations and memo uses during a parse.
-type Stats struct {
-	Evaluated       int // number of rule body evaluations
-	Reused          int // combined memo hits and resumed repetition elements
-	MemoHits        int // memo-result reuse
-	ResumedElements int // repetition elements reused
-}
-
 // ReportedStats derives the public reuse breakdown from counters already
 // maintained by the parser, avoiding another increment for every reused item.
-func (p *Parser) ReportedStats() Stats {
+func (p *Parser) ReportedStats() parse.ParseStats {
 	s := p.Stats
 	s.ResumedElements = p.Resumed
 	s.MemoHits = s.Reused - p.Resumed
@@ -1080,39 +1071,7 @@ func (p *Parser) Enter() {
 
 //go:noinline
 func (p *Parser) tooDeep() {
-	panic(Fatal{Err: &limits.LimitError{Kind: limits.LimitDepth, Limit: uint64(p.MaxDepth), Used: uint64(p.MaxDepth), Requested: 1}})
-}
-
-// SyntaxError reports that the input did not match the grammar.
-type SyntaxError struct {
-	Pos      int      // position, in the parse's position unit
-	Line     int      // 1-based line
-	Col      int      // 1-based column, in the position unit of the parse
-	Expected []string // what was expected at that position: names, then literals, then classes, each in byte order
-	Messages []string // messages given by @error
-}
-
-func (e *SyntaxError) Error() string {
-	return fmt.Sprintf("%d:%d: %s", e.Line, e.Col, e.Message())
-}
-
-// Message returns the error description without the position.
-func (e *SyntaxError) Message() string {
-	if len(e.Messages) > 0 {
-		return strings.Join(e.Messages, "; ")
-	}
-	return expectedMessage(e.Expected)
-}
-
-// SyntaxErrors is a list of syntax errors, including those recovered by error recovery.
-type SyntaxErrors []*SyntaxError
-
-func (l SyntaxErrors) Error() string {
-	msgs := make([]string, len(l))
-	for i, e := range l {
-		msgs[i] = e.Error()
-	}
-	return strings.Join(msgs, "\n")
+	panic(Fatal{Err: &parse.LimitError{Kind: parse.LimitDepth, Limit: uint64(p.MaxDepth), Used: uint64(p.MaxDepth), Requested: 1}})
 }
 
 func Min2(a, b int) int {
@@ -1122,12 +1081,12 @@ func Min2(a, b int) int {
 	return b
 }
 
-func (p *Parser) SyntaxError() *SyntaxError {
+func (p *Parser) SyntaxError() *parse.SyntaxError {
 	return p.MakeError(p.Farthest, p.Exp[p.ExpBase:])
 }
 
-func (p *Parser) MakeError(pos int, expected []ExpID) *SyntaxError {
-	e := &SyntaxError{Pos: pos}
+func (p *Parser) MakeError(pos int, expected []ExpID) *parse.SyntaxError {
+	e := &parse.SyntaxError{Pos: pos}
 	for _, x := range expected {
 		p.Spend()
 		if x == ExpFar {

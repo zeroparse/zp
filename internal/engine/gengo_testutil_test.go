@@ -6,6 +6,7 @@ import (
 	"zeroparse.dev/zp/internal/compile"
 	"zeroparse.dev/zp/internal/gentest"
 	"zeroparse.dev/zp/internal/value"
+	"zeroparse.dev/zp/runtime/parse"
 )
 
 // The tests of this package compile the grammars that they generate parsers for with the engine.
@@ -19,9 +20,9 @@ func referenceProgram(t *testing.T, src string, opts compile.Options) gentest.Re
 	t.Helper()
 	prog := compileBare(t, src, opts)
 	return func(input string, bytes, recognize bool) (*value.Node, error) {
-		unit := CodePoints
+		unit := parse.CodePoints
 		if bytes {
-			unit = Bytes
+			unit = parse.Bytes
 		}
 		return prog.ParseWith("main", input, ParseOptions{Unit: unit, Recognize: recognize})
 	}

@@ -9,6 +9,7 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp"
+	"zeroparse.dev/zp/runtime/parse"
 	"zeroparse.dev/zp/sample"
 )
 
@@ -98,7 +99,7 @@ func TestSampleOperatorsRuleIncompleteRHS(t *testing.T) {
 	} {
 		t.Run(c.name, func(t *testing.T) {
 			p := compile(t, "rule main = &("+strconv.Quote(c.input)+" $$) "+c.body+" $$\n"+c.rules)
-			for _, unit := range []zp.PositionUnit{zp.CodePoints, zp.Bytes} {
+			for _, unit := range []parse.PositionUnit{parse.CodePoints, parse.Bytes} {
 				for _, backend := range []zp.Backend{zp.Closure, zp.Bytecode, zp.BytecodeIterative} {
 					_, err := p.Parse(c.input, zp.WithUnit(unit), zp.WithBackend(backend))
 					if (err == nil) != c.valid {

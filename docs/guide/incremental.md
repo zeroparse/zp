@@ -99,8 +99,8 @@ Use `EditBatch` when one editor transaction contains several replacements. All r
 ```go
 base := doc.Version()
 err := doc.EditBatch(base,
-    zp.TextEdit{Start: 0, End: 2, Text: "xy"},
-    zp.TextEdit{Start: 3, End: 3, Text: "z"},
+    parse.TextEdit{Start: 0, End: 2, Text: "xy"},
+    parse.TextEdit{Start: 3, End: 3, Text: "z"},
 )
 if err != nil {
     return err
@@ -179,7 +179,7 @@ read concurrently while the single-owner Document is edited or parsed.
 
 The snapshot graph preserves shared nodes and cycles. It freezes only field
 values of dynamic type nil, `int`, `string`, `bool`, or `*zp.Node`; an
-unsupported custom value returns `*zp.SnapshotCaptureError` and no Snapshot.
+unsupported custom value returns `*parse.SnapshotCaptureError` and no Snapshot.
 `Materialize` makes an independently mutable graph, preserving identities,
 cycles, nil slots, and nil versus allocated-empty collections. Use it when an
 existing API requires `*Node`; each call creates a separate graph.

@@ -13,6 +13,7 @@ import (
 	"zeroparse.dev/zp/internal/ir/exec/ops"
 	"zeroparse.dev/zp/internal/ir/exec/ref"
 	"zeroparse.dev/zp/internal/value"
+	"zeroparse.dev/zp/runtime/parse"
 )
 
 // The engine's operations of the rules under conformance: every operation runs through its binding in
@@ -113,7 +114,7 @@ func (m *ruleMachine) evaluate(index int64, p *Parser, level int) (*value.Node, 
 		c := p.Control
 		p.Control = nil
 		for _, t := range e.Missing {
-			err := m.Err(t.Err).(*SyntaxError)
+			err := m.Err(t.Err).(*parse.SyntaxError)
 			if p.InsertMissing(MissingTokenEvent{MissingTokenSite{int(t.Site), int(t.Pos)}, err}) {
 				p.PushRecovered(err)
 			}

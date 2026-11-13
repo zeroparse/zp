@@ -199,7 +199,8 @@ tuple 0 11
 - `p.Parse(input)` returns a `*zp.Node`. `Kind()` tells what the value is (here a tuple), `Start()` and `End()` give the
   range, `Text()` is the text of a string node, and `Elems()` iterates over the elements of a tuple or list. Nodes encode
   to JSON as shown.
-- When the input does not match, `Parse` returns a `*zp.SyntaxError` (see [Reporting Errors](errors.md)).
+- When the input does not match, `Parse` returns a `*parse.SyntaxError` from the package
+  `zeroparse.dev/zp/runtime/parse` (see [Reporting Errors](errors.md)).
 
 ## Next Steps
 

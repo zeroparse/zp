@@ -18,6 +18,7 @@ import (
 	ischema "zeroparse.dev/zp/internal/schema"
 	"zeroparse.dev/zp/internal/syntax"
 	"zeroparse.dev/zp/internal/value"
+	"zeroparse.dev/zp/runtime/parse"
 	"zeroparse.dev/zp/schema"
 )
 
@@ -127,9 +128,9 @@ func Reference(t *testing.T, src string, opts compile.Options) gentest.Reference
 	t.Helper()
 	prog := CompileBare(t, src, opts)
 	return func(input string, bytes, recognize bool) (*value.Node, error) {
-		unit := engine.CodePoints
+		unit := parse.CodePoints
 		if bytes {
-			unit = engine.Bytes
+			unit = parse.Bytes
 		}
 		return prog.ParseWith("main", input, engine.ParseOptions{Unit: unit, Recognize: recognize, Expectations: true})
 	}

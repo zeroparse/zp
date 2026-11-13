@@ -11,6 +11,7 @@ import (
 	"unicode/utf8"
 
 	"zeroparse.dev/zp"
+	"zeroparse.dev/zp/runtime/parse"
 )
 
 // debugFlags are the flags that select the grammar, the input and how to parse it.
@@ -53,9 +54,9 @@ func (f *debugFlags) load(args []string, stdin io.Reader) (*zp.Parser, string, [
 	opts := []zp.ParseOption{zp.WithExpectations()}
 	switch *f.unit {
 	case "codepoints":
-		opts = append(opts, zp.WithUnit(zp.CodePoints))
+		opts = append(opts, zp.WithUnit(parse.CodePoints))
 	case "bytes":
-		opts = append(opts, zp.WithUnit(zp.Bytes))
+		opts = append(opts, zp.WithUnit(parse.Bytes))
 	default:
 		return nil, "", nil, fmt.Errorf("unknown unit %q", *f.unit)
 	}

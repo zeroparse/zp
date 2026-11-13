@@ -16,6 +16,7 @@ import (
 	"zeroparse.dev/zp/internal/complexity"
 	"zeroparse.dev/zp/internal/engine/core"
 	"zeroparse.dev/zp/internal/starttest"
+	"zeroparse.dev/zp/runtime/parse"
 )
 
 // The slope gate holds the classifier to what it says against measured cost. It writes random
@@ -192,13 +193,13 @@ func (g *slopeGrammar) source() string {
 // spent returns the cost of a parse, its Compute. It reports a parse that used up slopeCap as
 // capped.
 func spent(p *zp.Parser, input string, b zp.Backend) (cost uint64, capped bool) {
-	_, err := p.Parse(input, zp.WithBackend(b), zp.WithLimits(zp.Limits{Compute: slopeCap}),
+	_, err := p.Parse(input, zp.WithBackend(b), zp.WithLimits(parse.Limits{Compute: slopeCap}),
 		zp.WithTrace(func(e zp.TraceEvent) {
 			if c := core.TraceParser(e).Control; c != nil {
 				cost = c.Used
 			}
 		}))
-	var le *zp.LimitError
+	var le *parse.LimitError
 	return cost, errors.As(err, &le)
 }
 

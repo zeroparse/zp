@@ -7,7 +7,7 @@ import (
 
 	"zeroparse.dev/zp/internal/ir/exec/conform"
 	"zeroparse.dev/zp/internal/ir/exec/ref"
-	"zeroparse.dev/zp/internal/limits"
+	"zeroparse.dev/zp/runtime/parse"
 )
 
 // TestEngineValueEqualCharges holds ValueEqual, whose fast path for two strings is written by hand,
@@ -35,7 +35,7 @@ func TestEngineValueEqualCharges(t *testing.T) {
 				} {
 					p := &Parser{}
 					if controlled {
-						p.Input.Control = NewBudgetControl(context.Background(), limits.Limits{Compute: 1 << 62})
+						p.Input.Control = NewBudgetControl(context.Background(), parse.Limits{Compute: 1 << 62})
 					}
 					eval(p)
 					used := uint64(0)

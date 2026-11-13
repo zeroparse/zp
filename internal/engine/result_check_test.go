@@ -9,7 +9,7 @@ import (
 	"zeroparse.dev/zp/internal/compile"
 	"zeroparse.dev/zp/internal/engine/core"
 	"zeroparse.dev/zp/internal/gentest"
-	"zeroparse.dev/zp/internal/limits"
+	"zeroparse.dev/zp/runtime/parse"
 )
 
 // resultCheckRoutes maps an input's route character to the rule it reaches.
@@ -36,10 +36,10 @@ func TestRuleResultChecks(t *testing.T) {
 	}
 }
 
-func checkRuleResultType(t *testing.T, typ string, resultGrammar func(typ, rt string) string, parse func(string) (*grammar.Grammar, error), fields map[string]string) {
+func checkRuleResultType(t *testing.T, typ string, resultGrammar func(typ, rt string) string, parseFn func(string) (*grammar.Grammar, error), fields map[string]string) {
 	{
 		{
-			g, err := parse(resultGrammar(typ, typ))
+			g, err := parseFn(resultGrammar(typ, typ))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -54,7 +54,7 @@ func checkRuleResultType(t *testing.T, typ string, resultGrammar func(typ, rt st
 				_, err := p.ParseWith("main", "", servedBy(mode, ParseOptions{Backend: Closure}))
 				wantClosureRefused(t, err)
 			}
-			ug, err := parse(resultGrammar(typ, "_"))
+			ug, err := parseFn(resultGrammar(typ, "_"))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -62,7 +62,7 @@ func checkRuleResultType(t *testing.T, typ string, resultGrammar func(typ, rt st
 			if err != nil {
 				t.Fatal(err)
 			}
-			limits := limits.Limits{Compute: 1 << 30}
+			limits := parse.Limits{Compute: 1 << 30}
 			declared := checked.Typed.Fields["S"][0].T.String() // as the value checker resolves it
 			for _, in := range gentest.ResultCheckInputs() {
 				value := gentest.FieldCheckValues[in[:1]]
@@ -85,7 +85,7 @@ func checkRuleResultType(t *testing.T, typ string, resultGrammar func(typ, rt st
 					{"limited parse bytecode", loadedBare, ParseOptions{Backend: Bytecode, Limits: limits}},
 				}
 				var want string
-				for _, unit := range []PositionUnit{CodePoints, Bytes} {
+				for _, unit := range []parse.PositionUnit{parse.CodePoints, parse.Bytes} {
 					for _, run := range runs {
 						if run.o.Limits.Compute != 0 && !core.BudgetControlsEnabled {
 							continue // the reference build has no limits
@@ -195,7 +195,7 @@ func TestOperatorResultChecks(t *testing.T) {
 		if got := strings.Contains(want, "cannot cast "); got != rejected {
 			t.Errorf("%q: %s", in, want)
 		}
-		limits := limits.Limits{Compute: 1 << 30}
+		limits := parse.Limits{Compute: 1 << 30}
 		for _, run := range []struct {
 			name string
 			prog *Program

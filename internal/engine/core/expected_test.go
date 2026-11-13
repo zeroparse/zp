@@ -4,6 +4,8 @@ import (
 	"slices"
 	"strings"
 	"testing"
+
+	"zeroparse.dev/zp/runtime/parse"
 )
 
 // Expected entries are ordered names, then literals, then classes, each by their bytes, and the
@@ -33,7 +35,7 @@ func TestExpectedOrderAndMessage(t *testing.T) {
 		{11, `syntax error: expected end of input, "a", "b", "c", "d", "e", "f", "g", "h", "i", ... and 1 more`},
 		{41, `syntax error: expected end of input, "a", "b", "c", "d", "e", "f", "g", "h", "i", ... and 31 more`},
 	} {
-		e := &SyntaxError{Line: 1, Col: 2, Expected: entries(c.n)}
+		e := &parse.SyntaxError{Line: 1, Col: 2, Expected: entries(c.n)}
 		if c.n == 0 {
 			e.Expected = nil
 		}
@@ -48,7 +50,7 @@ func TestExpectedOrderAndMessage(t *testing.T) {
 		}
 	}
 	// Messages of @error are never cut.
-	e := &SyntaxError{Messages: make([]string, 12), Expected: entries(12)}
+	e := &parse.SyntaxError{Messages: make([]string, 12), Expected: entries(12)}
 	if got := e.Message(); got != strings.Repeat("; ", 11) {
 		t.Errorf("messages: %q", got)
 	}

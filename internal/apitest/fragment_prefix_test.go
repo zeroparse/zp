@@ -9,6 +9,7 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp"
+	"zeroparse.dev/zp/runtime/parse"
 )
 
 func TestParsePrefixRuleSemantics(t *testing.T) {
@@ -21,7 +22,7 @@ rule recoveryThenFailure = ("a" #recover(skip="x")) "!"`, "main")
 		t.Fatal(err)
 	}
 	for _, backend := range []zp.Backend{zp.Closure, zp.Bytecode, zp.BytecodeIterative} {
-		for _, unit := range []zp.PositionUnit{zp.CodePoints, zp.Bytes} {
+		for _, unit := range []parse.PositionUnit{parse.CodePoints, parse.Bytes} {
 			for _, recognize := range []bool{false, true} {
 				opts := []zp.ParseOption{zp.WithBackend(backend), zp.WithUnit(unit)}
 				if recognize {
@@ -51,8 +52,8 @@ rule recoveryThenFailure = ("a" #recover(skip="x")) "!"`, "main")
 					t.Fatalf("nil action: %+v %v", r, err)
 				}
 				r, err = p.ParsePrefix("recoveryThenFailure", "x?tail", opts...)
-				var syntax *zp.SyntaxError
-				var recovered zp.SyntaxErrors
+				var syntax *parse.SyntaxError
+				var recovered parse.SyntaxErrors
 				if !errors.As(err, &syntax) || errors.As(err, &recovered) || r != (zp.PrefixResult{}) {
 					t.Fatalf("unrecovered failure after recovery: %+v %v", r, err)
 				}
@@ -118,7 +119,7 @@ rule item = "é😀"`, "main")
 				for range 8 {
 					r, err := p.ParsePrefix("item", "é😀tail", zp.WithBackend(b), zp.WithTrace(func(e zp.TraceEvent) {
 						if e.Kind == zp.TraceEnter && e.Rule == "item" {
-							inner, innerErr := p.ParsePrefix("item", "é😀other", zp.WithBackend(b), zp.WithUnit(zp.Bytes))
+							inner, innerErr := p.ParsePrefix("item", "é😀other", zp.WithBackend(b), zp.WithUnit(parse.Bytes))
 							if innerErr != nil || inner.Consumed != 6 || inner.ConsumedBytes != 6 {
 								failures <- fmt.Errorf("nested: %+v %v", inner, innerErr)
 							}
@@ -157,7 +158,7 @@ func TestParsePrefixRejectsDiagnosticCallback(t *testing.T) {
 					zp.WithBackend(backend),
 					zp.WithContext(ctx),
 					zp.WithTrace(func(zp.TraceEvent) { traceCalls++ }),
-					zp.WithDiagnosticCallback(func(*zp.SyntaxError) error { diagnosticCalls++; return nil }),
+					zp.WithDiagnosticCallback(func(*parse.SyntaxError) error { diagnosticCalls++; return nil }),
 				}
 				if recognize {
 					opts = append(opts, zp.RecognizeOnly())
@@ -177,7 +178,7 @@ func TestParsePrefixRejectsDiagnosticCallback(t *testing.T) {
 				opts = append(opts, zp.RecognizeOnly())
 			}
 			result, prefixErr := parser.ParsePrefix("main", "x;tail", opts...)
-			var recovered zp.SyntaxErrors
+			var recovered parse.SyntaxErrors
 			if !errors.As(prefixErr, &recovered) || len(recovered) != 1 || result.Consumed != 2 || result.ConsumedBytes != 2 {
 				t.Fatalf("nil callback: result=%+v error=%v", result, prefixErr)
 			}

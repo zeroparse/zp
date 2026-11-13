@@ -15,6 +15,7 @@ import (
 	"zeroparse.dev/zp/gen"
 	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/syntax"
+	"zeroparse.dev/zp/runtime/parse"
 )
 
 func sourceGrammar(t *testing.T) (*zp.Parser, string) {
@@ -252,7 +253,7 @@ func TestSourceGrammarTree(t *testing.T) {
 	p, _ := sourceGrammar(t)
 	src := sourceTreeFixture
 	var want string
-	for _, unit := range []zp.PositionUnit{zp.CodePoints, zp.Bytes} {
+	for _, unit := range []parse.PositionUnit{parse.CodePoints, parse.Bytes} {
 		for _, backend := range []zp.Backend{zp.Closure, zp.Bytecode, zp.BytecodeIterative} {
 			n, err := p.Parse(src, zp.WithUnit(unit), zp.WithBackend(backend))
 			if err != nil {
@@ -344,7 +345,7 @@ func TestSourceGrammarRecovery(t *testing.T) {
 			var want string
 			for _, backend := range []zp.Backend{zp.Closure, zp.Bytecode, zp.BytecodeIterative} {
 				n, err := p.Parse(tc.src, zp.WithBackend(backend), zp.WithExpectations())
-				var syntaxErrors zp.SyntaxErrors
+				var syntaxErrors parse.SyntaxErrors
 				wantErrors := 1
 				if tc.name == "broken multiline group" {
 					wantErrors = 2
@@ -538,7 +539,7 @@ func TestSourceGrammarPackageRecovery(t *testing.T) {
 	for _, src := range []string{"package\nrule after = \"ok\"", "// leading\npackage ; rule after = \"ok\""} {
 		for _, backend := range []zp.Backend{zp.Closure, zp.Bytecode, zp.BytecodeIterative} {
 			n, err := p.Parse(src, zp.WithBackend(backend), zp.WithExpectations())
-			var syntaxErrors zp.SyntaxErrors
+			var syntaxErrors parse.SyntaxErrors
 			if !errors.As(err, &syntaxErrors) || len(syntaxErrors) != 1 || !strings.Contains(err.Error(), "expected package name") {
 				t.Fatalf("%v: %v", backend, err)
 			}

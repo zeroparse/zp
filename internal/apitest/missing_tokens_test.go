@@ -12,6 +12,7 @@ import (
 	"zeroparse.dev/zp"
 	"zeroparse.dev/zp/gen"
 	"zeroparse.dev/zp/internal/engine"
+	"zeroparse.dev/zp/runtime/parse"
 )
 
 func TestMissingTokensPublicOptions(t *testing.T) {
@@ -31,7 +32,7 @@ func TestMissingTokensPublicOptions(t *testing.T) {
 		t.Fatal("options did not resolve exactly once", calls, err)
 	}
 	n, err := p.Parse("", zp.WithMissingTokens(-1), zp.WithMissingTokens(2))
-	var recovered zp.SyntaxErrors
+	var recovered parse.SyntaxErrors
 	if n == nil || !errors.As(err, &recovered) || len(recovered) != 1 {
 		t.Fatal(n, err)
 	}
@@ -61,7 +62,7 @@ func TestMissingTokensConcurrentReentrantAndRetry(t *testing.T) {
 			defer wg.Done()
 			for j := 0; j < 4; j++ {
 				n, err := p.Parse("", zp.WithMissingTokens(1))
-				var recovered zp.SyntaxErrors
+				var recovered parse.SyntaxErrors
 				if n == nil || !errors.As(err, &recovered) || len(recovered) != 1 {
 					t.Error(n, err)
 					return
@@ -77,12 +78,12 @@ func TestMissingTokensConcurrentReentrantAndRetry(t *testing.T) {
 		}
 		entered = true
 		n, err := p.Parse("", zp.WithMissingTokens(1))
-		var recovered zp.SyntaxErrors
+		var recovered parse.SyntaxErrors
 		if n == nil || !errors.As(err, &recovered) {
 			t.Error("reentrant invocation shared a ledger", err)
 		}
 	}))
-	var recovered zp.SyntaxErrors
+	var recovered parse.SyntaxErrors
 	if !entered || !errors.As(err, &recovered) {
 		t.Fatal(err)
 	}

@@ -7,8 +7,8 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/internal/engine/core"
-	"zeroparse.dev/zp/internal/limits"
 	"zeroparse.dev/zp/internal/value"
+	"zeroparse.dev/zp/runtime/parse"
 )
 
 func changeGraphSnapshot(t *testing.T, root *value.Node) *Snapshot {
@@ -61,8 +61,8 @@ func TestDocumentChangesConservativeGraphEquality(t *testing.T) {
 		}
 	}
 	x, y := changeGraphSnapshot(t, a), changeGraphSnapshot(t, a.Clone())
-	x.parseError = &core.SyntaxError{Pos: 1, Line: 1, Col: 2, Expected: []string{"x"}}
-	y.parseError = &core.SyntaxError{Pos: 2, Line: 1, Col: 2, Expected: []string{"x"}}
+	x.parseError = &parse.SyntaxError{Pos: 1, Line: 1, Col: 2, Expected: []string{"x"}}
+	y.parseError = &parse.SyntaxError{Pos: 2, Line: 1, Col: 2, Expected: []string{"x"}}
 	if equalChangeSnapshots(x, y) {
 		t.Fatal("diagnostic position hidden by formatting")
 	}
@@ -71,16 +71,16 @@ func TestDocumentChangesConservativeGraphEquality(t *testing.T) {
 func TestDocumentChangesComparisonUsesCumulativeBudget(t *testing.T) {
 	leaf := value.Ptr(value.Data{Kind: value.KindOf("Leaf", "leaf"), Terminal: true, Text: strings.Repeat("x", 8192)})
 	a, b := changeGraphSnapshot(t, leaf), changeGraphSnapshot(t, leaf.Clone())
-	control := core.NewBudgetControl(nil, limits.Limits{Compute: 8192})
+	control := core.NewBudgetControl(nil, parse.Limits{Compute: 8192})
 	control.Charge(4096) // Budget already spent by parsing/capture in this invocation.
 	p := &core.Parser{Control: control}
-	if err := catchFatal(t, func() { equalChangeSnapshotsControlled(p, a, b) }); !errors.Is(err, limits.ErrLimit) {
+	if err := catchFatal(t, func() { equalChangeSnapshotsControlled(p, a, b) }); !errors.Is(err, parse.ErrLimit) {
 		t.Fatal("comparison escaped cumulative spend", err)
 	}
 	ctx, cancel := context.WithCancel(context.Background())
 	cancel()
 	if err := catchFatal(t, func() {
-		equalChangeSnapshotsControlled(&core.Parser{Control: core.NewBudgetControl(ctx, limits.Limits{})}, a, b)
+		equalChangeSnapshotsControlled(&core.Parser{Control: core.NewBudgetControl(ctx, parse.Limits{})}, a, b)
 	}); !errors.Is(err, context.Canceled) {
 		t.Fatal("comparison ignored cancellation", err)
 	}

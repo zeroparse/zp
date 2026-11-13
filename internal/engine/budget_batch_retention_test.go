@@ -14,8 +14,8 @@ import (
 	"weak"
 
 	"zeroparse.dev/zp/internal/engine/core"
-	"zeroparse.dev/zp/internal/limits"
 	"zeroparse.dev/zp/internal/value"
+	"zeroparse.dev/zp/runtime/parse"
 )
 
 func batchRetentionParser(t *testing.T, e TraceEvent) *core.Parser {
@@ -48,7 +48,7 @@ rule main = "!" entry "?" $$
 rule entry = key:[a-z]+ #atomic ":" value:[0-9]+ #atomic => Entry{Key: text($key), Value: $value, Count: len(text($value))}`)
 
 	for _, backend := range []Backend{Closure, Bytecode, BytecodeIterative} {
-		for _, unit := range []PositionUnit{Bytes, CodePoints} {
+		for _, unit := range []parse.PositionUnit{parse.Bytes, parse.CodePoints} {
 			for _, recognize := range []bool{false, true} {
 				for _, active := range []bool{false, true} {
 					name := backend.String() + "/" + unit.String() + "/recognize=" + map[bool]string{false: "false", true: "true"}[recognize] + "/controls=" + map[bool]string{false: "inactive", true: "active"}[active]
@@ -56,7 +56,7 @@ rule entry = key:[a-z]+ #atomic ":" value:[0-9]+ #atomic => Entry{Key: text($key
 						if active && !core.BudgetControlsEnabled {
 							t.Skip("active budget controls are unavailable in the reference build")
 						}
-						parse := func(input string, wantFailure bool) (*value.Node, error, TraceEvent) {
+						parseFn := func(input string, wantFailure bool) (*value.Node, error, TraceEvent) {
 							var retained TraceEvent
 							opts := ParseOptions{Backend: backend, Unit: unit, Recognize: recognize, Trace: func(e TraceEvent) {
 								if e.Kind == TraceEnter && e.Rule == "main" {
@@ -77,14 +77,14 @@ rule entry = key:[a-z]+ #atomic ":" value:[0-9]+ #atomic => Entry{Key: text($key
 								}
 							}}
 							if active {
-								opts.Limits = limits.Limits{Compute: 1 << 30}
+								opts.Limits = parse.Limits{Compute: 1 << 30}
 							}
 							n, err := prog.ParseWith("main", input, opts)
 							return n, err, retained
 						}
 
 						good := "!alpha:123?"
-						node, err, event := parse(good, false)
+						node, err, event := parseFn(good, false)
 						if err != nil || recognize && node != nil || !recognize && node == nil {
 							t.Fatalf("successful parse node=%v err=%v", node, err)
 						}
@@ -109,7 +109,7 @@ rule entry = key:[a-z]+ #atomic ":" value:[0-9]+ #atomic => Entry{Key: text($key
 						assertTraceParserDetached(t, batchRetentionParser(t, event), false)
 
 						// A later parse reuses scratch; the caller-owned prior Node stays intact.
-						retry, retryErr, retryEvent := parse("!beta:45?", false)
+						retry, retryErr, retryEvent := parseFn("!beta:45?", false)
 						if retryErr != nil || recognize && retry != nil || !recognize && (retry == nil || value.D(retry).Children[1].Field("Key") != "beta" || value.D(retry).Children[1].Field("Count") != 2) {
 							t.Fatalf("retry node=%v err=%v", retry, retryErr)
 						}
@@ -118,8 +118,8 @@ rule entry = key:[a-z]+ #atomic ":" value:[0-9]+ #atomic => Entry{Key: text($key
 							t.Fatal("retry changed the earlier successful Node")
 						}
 
-						failed, failedErr, failedEvent := parse("!alpha:?", true)
-						var syntaxErr *SyntaxError
+						failed, failedErr, failedEvent := parseFn("!alpha:?", true)
+						var syntaxErr *parse.SyntaxError
 						if failed != nil || !errors.As(failedErr, &syntaxErr) {
 							t.Fatalf("syntax failure node=%v err=%v", failed, failedErr)
 						}
@@ -139,7 +139,7 @@ func TestBudgetBatchTraceCallbackPanicDetachesParserAndPreservesRetry(t *testing
 	text := strings.Repeat("a", 512)
 	prog := mustCompile(t, `rule main = "a"* $$`)
 	for _, backend := range []Backend{Closure, Bytecode, BytecodeIterative} {
-		for _, unit := range []PositionUnit{Bytes, CodePoints} {
+		for _, unit := range []parse.PositionUnit{parse.Bytes, parse.CodePoints} {
 			t.Run(backend.String()+"/"+unit.String(), func(t *testing.T) {
 				token := &struct{ marker string }{"trace panic"}
 				var observed *core.Parser
@@ -169,7 +169,7 @@ func TestBudgetBatchTraceInterruptionDetachesParser(t *testing.T) {
 	t.Parallel()
 	prog := mustCompile(t, `rule main = "a"* $$`)
 	for _, backend := range []Backend{Closure, Bytecode, BytecodeIterative} {
-		for _, unit := range []PositionUnit{Bytes, CodePoints} {
+		for _, unit := range []parse.PositionUnit{parse.Bytes, parse.CodePoints} {
 			for _, recognize := range []bool{false, true} {
 				for _, cause := range []string{"cancel", "steps", "context-panic", "publication-panic"} {
 					t.Run(fmt.Sprintf("%s/%s/recognize=%t/%s", backend, unit, recognize, cause), func(t *testing.T) {
@@ -188,7 +188,7 @@ func TestBudgetBatchTraceInterruptionDetachesParser(t *testing.T) {
 							opts.Context, cancel = context.WithCancel(context.Background())
 							defer cancel()
 						case "steps":
-							opts.Limits = limits.Limits{Compute: 1 << 30}
+							opts.Limits = parse.Limits{Compute: 1 << 30}
 						default:
 							at := 1
 							if cause == "publication-panic" {
@@ -227,8 +227,8 @@ func TestBudgetBatchTraceInterruptionDetachesParser(t *testing.T) {
 								t.Fatalf("panic=%v err=%v", got, returnedErr)
 							}
 						case "steps":
-							var limit *limits.LimitError
-							if got != nil || !errors.As(returnedErr, &limit) || limit.Kind != limits.LimitCompute {
+							var limit *parse.LimitError
+							if got != nil || !errors.As(returnedErr, &limit) || limit.Kind != parse.LimitCompute {
 								t.Fatalf("panic=%v err=%v", got, returnedErr)
 							}
 						default:
@@ -265,7 +265,7 @@ func (c *batchRetentionContext) Done() <-chan struct{} { return c.done }
 func (c *batchRetentionContext) Err() error            { return nil }
 
 //go:noinline
-func batchRetentionCaptureEvent(prog *Program, text string, backend Backend, unit PositionUnit, active bool) (TraceEvent, weak.Pointer[batchRetentionContext], error) {
+func batchRetentionCaptureEvent(prog *Program, text string, backend Backend, unit parse.PositionUnit, active bool) (TraceEvent, weak.Pointer[batchRetentionContext], error) {
 	ctx := &batchRetentionContext{Context: context.Background(), done: make(chan struct{})}
 	for i := range ctx.payload {
 		ctx.payload[i] = byte(i)
@@ -308,7 +308,7 @@ func TestBudgetBatchTraceEventReleasesCapturedContextAfterReturn(t *testing.T) {
 	text := strings.Repeat("a", 32*1024)
 	prog := mustCompile(t, `rule main = "a"* $$`)
 	for _, backend := range []Backend{Closure, Bytecode, BytecodeIterative} {
-		for _, unit := range []PositionUnit{Bytes, CodePoints} {
+		for _, unit := range []parse.PositionUnit{parse.Bytes, parse.CodePoints} {
 			for _, active := range []bool{false, true} {
 				t.Run(fmt.Sprintf("%s/%s/active=%t", backend, unit, active), func(t *testing.T) {
 					event, ref, err := batchRetentionCaptureEvent(prog, text, backend, unit, active)

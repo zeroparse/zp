@@ -8,12 +8,13 @@ import (
 	"zeroparse.dev/zp/internal/bench/inputs"
 
 	"zeroparse.dev/zp"
+	"zeroparse.dev/zp/runtime/parse"
 )
 
 const streamAdoptionElements = 50001 // inputs.CSVInput(50000) includes the header.
 
 var (
-	cacheAdoptionStats zp.CacheStats
+	cacheAdoptionStats parse.CacheStats
 	cacheAdoptionNode  *zp.Node
 )
 
@@ -185,7 +186,7 @@ func BenchmarkDocumentCacheAdoption(b *testing.B) {
 					}
 					if mode == "ResetAndParse" {
 						d.ResetHistory()
-						if after := d.CacheStats(); after != (zp.CacheStats{}) {
+						if after := d.CacheStats(); after != (parse.CacheStats{}) {
 							b.Fatalf("reset retained cache state: %+v", after)
 						}
 					}

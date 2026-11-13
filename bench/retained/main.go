@@ -15,6 +15,7 @@ import (
 
 	"zeroparse.dev/zp"
 	"zeroparse.dev/zp/internal/bench/inputs"
+	"zeroparse.dev/zp/runtime/parse"
 )
 
 const forcedGCs = 3
@@ -152,7 +153,7 @@ func warm(source, input string, count int) (string, error) {
 			return "", fmt.Errorf("warmup compilation %d: %w", i, err)
 		}
 		if i == 0 {
-			n, err := p.Parse(input, zp.WithBackend(zp.Closure), zp.WithUnit(zp.CodePoints))
+			n, err := p.Parse(input, zp.WithBackend(zp.Closure), zp.WithUnit(parse.CodePoints))
 			if err != nil {
 				return "", fmt.Errorf("full-input validation: %w", err)
 			}

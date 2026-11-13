@@ -8,8 +8,8 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/internal/gentest"
-	"zeroparse.dev/zp/internal/limits"
 	"zeroparse.dev/zp/internal/value"
+	"zeroparse.dev/zp/runtime/parse"
 )
 
 func TestBudgetStreamReferenceAdmission(t *testing.T) {
@@ -17,7 +17,7 @@ func TestBudgetStreamReferenceAdmission(t *testing.T) {
 	prog := mustCompile(t, gentest.Records)
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
-	for _, o := range []ParseOptions{{Context: ctx}, {Limits: limits.Limits{Compute: 1}}, {Limits: limits.Limits{Memory: 1}}} {
+	for _, o := range []ParseOptions{{Context: ctx}, {Limits: parse.Limits{Compute: 1}}, {Limits: parse.Limits{Memory: 1}}} {
 		r := &streamCallbackReader{text: "#records\na=1\n"}
 		callbacks := 0
 		r.onRead = func() { callbacks++ }
@@ -39,14 +39,14 @@ func TestMemoryLimitReferenceAdmission(t *testing.T) {
 	t.Parallel()
 	prog := mustCompile(t, gentest.Records)
 	const text = "#records\na=1\n"
-	o := ParseOptions{Limits: limits.Limits{Memory: 1 << 30}}
+	o := ParseOptions{Limits: parse.Limits{Memory: 1 << 30}}
 	if n, err := prog.ParseWith("main", text, o); n != nil || err == nil || !strings.Contains(err.Error(), "reference build") {
 		t.Fatalf("batch: node=%v error=%v", n, err)
 	}
 	if d, err := prog.NewDocumentWith("main", text, o); d != nil || err == nil || !strings.Contains(err.Error(), "reference build") {
 		t.Fatalf("document: error=%v", err)
 	}
-	if _, err := prog.ParseWith("main", text, ParseOptions{Limits: limits.Limits{Memory: limits.Unlimited}}); err != nil {
+	if _, err := prog.ParseWith("main", text, ParseOptions{Limits: parse.Limits{Memory: parse.Unlimited}}); err != nil {
 		t.Fatal(err)
 	}
 }

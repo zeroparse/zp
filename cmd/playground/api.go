@@ -31,6 +31,7 @@ import (
 	"zeroparse.dev/zp"
 	"zeroparse.dev/zp/gen"
 	"zeroparse.dev/zp/grammar"
+	"zeroparse.dev/zp/runtime/parse"
 )
 
 // diagnostic is an error in a grammar. Line and Col are 1-based (Col counts code points) and are 0
@@ -84,7 +85,7 @@ type parseRequest struct {
 	// DefaultValue drops value actions and declared rule types, so the tree is the default node
 	// tree, as zp parse -default-value does. Predicates still run.
 	DefaultValue bool `json:"defaultValue,omitempty"`
-	// MaxDepth limits the nesting of recursive rule calls (zp.Limits.Depth); 0 selects the
+	// MaxDepth limits the nesting of recursive rule calls (parse.Limits.Depth); 0 selects the
 	// playground's limit, maxDepth, for the backends that nest rule calls on the stack.
 	MaxDepth int `json:"maxDepth,omitempty"`
 	// Runs is the number of times the parse is timed (Micros is then the median); 0 or 1 parses once.
@@ -92,7 +93,7 @@ type parseRequest struct {
 	Runs int `json:"runs,omitempty"`
 }
 
-// syntaxError mirrors zp.SyntaxError. Pos is in the unit of the parse; Message is the description
+// syntaxError mirrors parse.SyntaxError. Pos is in the unit of the parse; Message is the description
 // without the position, as printed by the zp command.
 type syntaxError struct {
 	Pos      int      `json:"pos"`
@@ -182,7 +183,7 @@ func handle(method string, req []byte) (resp []byte) {
 	case "parse":
 		var r parseRequest
 		if err = decode(req, &r); err == nil {
-			v = parse(r)
+			v = runParse(r)
 		}
 	case "format":
 		var r grammarRequest
@@ -228,7 +229,7 @@ func errorResponse(err error) []byte {
 // of the engine apply, and trees are limited by encoding/json, which refuses to nest more than 10,000
 // levels (two per node level). main_js.go lowers both for WebAssembly.
 var (
-	maxDepth     uint64 = 0    // nesting of recursive rule calls (zp.Limits.Depth); 0 is the engine's default
+	maxDepth     uint64 = 0    // nesting of recursive rule calls (parse.Limits.Depth); 0 is the engine's default
 	maxTreeDepth        = 4000 // nesting of nodes in a tree that is encoded and displayed
 )
 
@@ -364,7 +365,7 @@ func diagnostics(err error) []diagnostic {
 	return ds
 }
 
-func parse(req parseRequest) parseResult {
+func runParse(req parseRequest) parseResult {
 	c := compileSource(req.Grammar)
 	res := parseResult{Compile: c.info}
 	if c.parser == nil {
@@ -375,7 +376,7 @@ func parse(req parseRequest) parseResult {
 	switch req.Unit {
 	case "", "codepoints":
 	case "bytes":
-		opts = append(opts, zp.WithUnit(zp.Bytes))
+		opts = append(opts, zp.WithUnit(parse.Bytes))
 	default:
 		res.Error = fmt.Sprintf("unknown unit %q", req.Unit)
 		return res
@@ -397,9 +398,9 @@ func parse(req parseRequest) parseResult {
 	}
 	// The iterative backend keeps rule calls on its own stack, so only the others need maxDepth.
 	if d := req.MaxDepth; d > 0 {
-		opts = append(opts, zp.WithLimits(zp.Limits{Depth: uint64(d)}))
+		opts = append(opts, zp.WithLimits(parse.Limits{Depth: uint64(d)}))
 	} else if maxDepth > 0 && req.Backend != "bytecode-iterative" {
-		opts = append(opts, zp.WithLimits(zp.Limits{Depth: maxDepth}))
+		opts = append(opts, zp.WithLimits(parse.Limits{Depth: maxDepth}))
 	}
 	p := c.parser
 	if req.SourceInfo || req.DefaultValue {
@@ -455,8 +456,8 @@ func parse(req parseRequest) parseResult {
 		res.SExpr = node.String()
 	}
 	if err != nil {
-		var list zp.SyntaxErrors
-		var one *zp.SyntaxError
+		var list parse.SyntaxErrors
+		var one *parse.SyntaxError
 		switch {
 		case errors.As(err, &list):
 			for _, e := range list {
@@ -486,11 +487,11 @@ func isFailure(err error) bool {
 	if err == nil {
 		return false
 	}
-	var list zp.SyntaxErrors
+	var list parse.SyntaxErrors
 	return !errors.As(err, &list)
 }
 
-func convertError(e *zp.SyntaxError) syntaxError {
+func convertError(e *parse.SyntaxError) syntaxError {
 	return syntaxError{
 		Pos: e.Pos, Line: e.Line, Col: e.Col,
 		Expected: e.Expected, Messages: e.Messages, Message: e.Message(),

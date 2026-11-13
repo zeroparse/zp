@@ -27,6 +27,7 @@ import (
 	goutline "zeroparse.dev/zp/internal/bench/gen/outline"
 	gxml "zeroparse.dev/zp/internal/bench/gen/xml"
 	rt "zeroparse.dev/zp/runtime"
+	"zeroparse.dev/zp/runtime/parse"
 )
 
 // workload is the grammar and input of one benchmark.
@@ -183,10 +184,10 @@ var backends = []struct {
 
 var units = []struct {
 	name string
-	u    zp.PositionUnit
+	u    parse.PositionUnit
 }{
-	{"codepoints", zp.CodePoints},
-	{"bytes", zp.Bytes},
+	{"codepoints", parse.CodePoints},
+	{"bytes", parse.Bytes},
 }
 
 func load(tb testing.TB, path string) *zp.Parser {
@@ -224,7 +225,7 @@ func TestWorkloads(t *testing.T) {
 					if err != nil && !(w.partial && n != nil) {
 						t.Fatalf("%s/%s: %v", be.name, u.name, err)
 					}
-					if u.u == zp.Bytes {
+					if u.u == parse.Bytes {
 						continue
 					}
 					got, _ := json.Marshal(n)
@@ -360,7 +361,7 @@ func BenchmarkParse(b *testing.B) {
 					b.SetBytes(int64(len(input)))
 					b.ReportAllocs()
 					for b.Loop() {
-						if err := w.gen(input, u.u == zp.Bytes); err != nil {
+						if err := w.gen(input, u.u == parse.Bytes); err != nil {
 							b.Fatal(err)
 						}
 					}

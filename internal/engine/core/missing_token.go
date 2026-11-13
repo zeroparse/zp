@@ -1,27 +1,16 @@
 package core
 
 import (
-	"fmt"
 	"unsafe"
 
 	"zeroparse.dev/zp/internal/value"
+	"zeroparse.dev/zp/runtime/parse"
 )
-
-// MissingTokenLimitError reports exhaustion of the invocation's insertion budget.
-// Position uses the selected position unit. Exhaustion aborts parsing, including
-// when an alternative that used the budget would otherwise be abandoned.
-type MissingTokenLimitError struct {
-	Limit, Position int
-}
-
-func (e *MissingTokenLimitError) Error() string {
-	return fmt.Sprintf("missing token insertion limit %d exceeded at position %d", e.Limit, e.Position)
-}
 
 type MissingTokenSite struct{ ID, Pos int }
 type MissingTokenEvent struct {
 	Site MissingTokenSite
-	Err  *SyntaxError
+	Err  *parse.SyntaxError
 }
 
 // MissingTokenState belongs to one invocation. The path rolls back; attempts do
@@ -71,7 +60,7 @@ func (p *Parser) installMissing(event MissingTokenEvent, charge bool) bool {
 		return false
 	}
 	if charge && s.Attempts >= s.Limit {
-		panic(Fatal{&MissingTokenLimitError{Limit: s.Limit, Position: event.Site.Pos}})
+		panic(Fatal{&parse.MissingTokenLimitError{Limit: s.Limit, Position: event.Site.Pos}})
 	}
 	if charge {
 		s.Attempts++
@@ -121,12 +110,12 @@ func (p *Parser) ReplayMissing(events []MissingTokenEvent, errs RecEntry) {
 // Selecting an operator candidate restores an already charged synthesis; it is
 // not a memo replay and does not charge that synthesis a second time.
 func (p *Parser) restoreMissing(events []MissingTokenEvent, errs RecEntry, charge bool) {
-	var duplicate map[*SyntaxError]bool
+	var duplicate map[*parse.SyntaxError]bool
 	for _, event := range events {
 		p.Spend()
 		if p.Missing.installed[event.Site] {
 			if duplicate == nil {
-				duplicate = make(map[*SyntaxError]bool)
+				duplicate = make(map[*parse.SyntaxError]bool)
 			}
 			duplicate[event.Err] = true
 		} else {

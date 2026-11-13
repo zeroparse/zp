@@ -9,6 +9,7 @@ import (
 	. "zeroparse.dev/zp/internal/engine"
 	"zeroparse.dev/zp/internal/engine/core"
 	"zeroparse.dev/zp/internal/value"
+	"zeroparse.dev/zp/runtime/parse"
 )
 
 func TestNegativeMaximumDocumentsAndStreams(t *testing.T) {
@@ -34,7 +35,7 @@ func TestNegativeMaximumDocumentsAndStreams(t *testing.T) {
 						}
 						continue
 					}
-					for _, unit := range []PositionUnit{CodePoints, Bytes} {
+					for _, unit := range []parse.PositionUnit{parse.CodePoints, parse.Bytes} {
 						opts := ParseOptions{Backend: b, Unit: unit}
 						streamOpts := opts
 						if prog == loaded {
@@ -73,7 +74,7 @@ func TestNegativeMaximumDocumentsAndStreams(t *testing.T) {
 								t.Fatal("edited Document did not resume repetition elements")
 							}
 							at := 50
-							if unit == Bytes {
+							if unit == parse.Bytes {
 								at *= len("é")
 							}
 							if err := d.Edit(at, at, "é"); err != nil {

@@ -9,6 +9,7 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/internal/value"
+	"zeroparse.dev/zp/runtime/parse"
 )
 
 // snapshotPhaseContext changes state only while the freezer is on the stack.
@@ -56,7 +57,7 @@ func TestSnapshotUnsupportedLegacyFieldPreservesParseError(t *testing.T) {
 	}
 	value.D(legacy).Fields = value.Fields{{Name: "bad", Value: []int{1}}}
 	s, err := d.SnapshotWith(ParseOptions{})
-	var capture *SnapshotCaptureError
+	var capture *parse.SnapshotCaptureError
 	if s != nil || !errors.As(err, &capture) || capture.ValueType != reflect.TypeOf([]int{}) || !strings.Contains(capture.Path, "bad") || capture.ParseError != nil {
 		t.Fatal("unsupported legacy field", s, err)
 	}
@@ -87,7 +88,7 @@ func TestSnapshotUnsupportedBoxIsRejected(t *testing.T) {
 	}
 	value.SetNodeElems(legacy, []*value.Node{value.NewNode(value.KindValue, 0, 0, "", nil, "", nil, []int{1})})
 	s, err = d.SnapshotWith(ParseOptions{})
-	var capture *SnapshotCaptureError
+	var capture *parse.SnapshotCaptureError
 	if s != nil || !errors.As(err, &capture) || capture.ValueType != reflect.TypeOf([]int{}) || !strings.Contains(capture.Path, "Children[0]") {
 		t.Fatal("unsupported boxed element", s, err)
 	}

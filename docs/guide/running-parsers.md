@@ -217,18 +217,19 @@ On the command line, `-s` selects the start rule for `parse`, `compile` and `gen
 func (p *Parser) Parse(input string, opts ...ParseOption) (*Node, error)
 ```
 
-`Parse` returns the value of the start rule, or an error:
+`Parse` returns the value of the start rule, or an error. The error types, like the limits, position units and
+other types that both the engine and generated parsers use, are in the package `zeroparse.dev/zp/runtime/parse`:
 
 | Result | Meaning |
 |:--|:--|
 | `node, nil` | The input matched. |
-| `nil, *zp.SyntaxError` | The input does not match. The error holds the farthest position reached and what was expected there. |
-| `node, zp.SyntaxErrors` | The input matched after recovering from errors with `#recover`. The tree contains `error` values. See [Recovering from Errors](recovery.md). |
-| `nil, error` | Anything else that stops the parse: a run-time error in an action (such as `action in main: division by zero`), or a [limit](cancellation-and-limits.md) such as the [nesting limit](backends.md#deep-nesting-and-the-depth-limit) (a `*zp.LimitError`). These are not syntax errors, and they are not subject to backtracking. |
+| `nil, *parse.SyntaxError` | The input does not match. The error holds the farthest position reached and what was expected there. |
+| `node, parse.SyntaxErrors` | The input matched after recovering from errors with `#recover`. The tree contains `error` values. See [Recovering from Errors](recovery.md). |
+| `nil, error` | Anything else that stops the parse: a run-time error in an action (such as `action in main: division by zero`), or a [limit](cancellation-and-limits.md) such as the [nesting limit](backends.md#deep-nesting-and-the-depth-limit) (a `*parse.LimitError`). These are not syntax errors, and they are not subject to backtracking. |
 
 ```go
 _, err = p.Parse("abc=x")
-var se *zp.SyntaxError
+var se *parse.SyntaxError
 if errors.As(err, &se) {
 	fmt.Println(se.Pos, se.Line, se.Col, se.Expected, se.Messages)
 	fmt.Println(err)

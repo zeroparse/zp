@@ -6,6 +6,8 @@ import (
 	"strings"
 	"sync"
 	"testing"
+
+	"zeroparse.dev/zp/runtime/parse"
 )
 
 // TestScratchReuse checks that parses that reuse the buffers of earlier ones (core.AcquirePooledParser)
@@ -34,7 +36,7 @@ rule blank = "\n"`
 	}
 	inputs = append(inputs, "ka = \xff\xfe\n", "ka = é\n")
 	var opts []ParseOptions
-	for _, u := range []PositionUnit{CodePoints, Bytes} {
+	for _, u := range []parse.PositionUnit{parse.CodePoints, parse.Bytes} {
 		for _, be := range []Backend{Closure, Bytecode, BytecodeIterative} {
 			opts = append(opts, ParseOptions{Unit: u, Backend: be}, ParseOptions{Unit: u, Backend: be, Recognize: true})
 		}

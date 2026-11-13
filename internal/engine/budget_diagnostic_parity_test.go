@@ -10,8 +10,8 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/internal/engine/core"
-	"zeroparse.dev/zp/internal/limits"
 	"zeroparse.dev/zp/internal/value"
+	"zeroparse.dev/zp/runtime/parse"
 )
 
 // Compare the public parse result and exported diagnostic records with and
@@ -147,7 +147,7 @@ rule atom Atom = t:("a") #atomic => Atom{Text: text($t)}`,
 		t.Run(tc.name, func(t *testing.T) {
 			prog := mustCompile(t, tc.grammar)
 			for _, backend := range []Backend{Closure, Bytecode, BytecodeIterative} {
-				for _, unit := range []PositionUnit{Bytes, CodePoints} {
+				for _, unit := range []parse.PositionUnit{parse.Bytes, parse.CodePoints} {
 					for _, recognize := range []bool{false, true} {
 						t.Run(fmt.Sprintf("%v/%v/recognize=%t", backend, unit, recognize), func(t *testing.T) {
 							memoObserved, recoveredObserved := false, false
@@ -166,13 +166,13 @@ rule atom Atom = t:("a") #atomic => Atom{Text: text($t)}`,
 									base.Trace = trace
 								}
 								wantNode, wantErr := prog.ParseWith("main", input, base)
-								var recovered SyntaxErrors
+								var recovered parse.SyntaxErrors
 								if errors.As(wantErr, &recovered) && len(recovered) > 0 {
 									recoveredObserved = true
 								}
 								want := marshal(t, wantNode, wantErr)
 								limited := base
-								limited.Limits = limits.Limits{Compute: 1 << 50}
+								limited.Limits = parse.Limits{Compute: 1 << 50}
 								gotNode, gotErr := prog.ParseWith("main", input, limited)
 								got := marshal(t, gotNode, gotErr)
 								if !bytes.Equal(got, want) {

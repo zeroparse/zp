@@ -18,6 +18,7 @@ import (
 
 	"zeroparse.dev/zp"
 	"zeroparse.dev/zp/grammar"
+	"zeroparse.dev/zp/runtime/parse"
 )
 
 // FormatVersion is the only fixture format version understood by this package.
@@ -190,7 +191,7 @@ type RunOptions struct {
 	Backends    []string
 	Equivalence *bool
 	Context     context.Context
-	Limits      zp.Limits
+	Limits      parse.Limits
 }
 
 // Outcome describes whether parsing matched cleanly, recovered, or rejected input.
@@ -387,9 +388,9 @@ func Run(suite *Suite, opts RunOptions) (Report, error) {
 			return report, err
 		}
 	}
-	unit := zp.CodePoints
+	unit := parse.CodePoints
 	if suite.Unit == "bytes" {
-		unit = zp.Bytes
+		unit = parse.Bytes
 	}
 	parsers := make(map[string]*zp.Parser, len(backends))
 	for _, backend := range backends {
@@ -600,7 +601,7 @@ func setGoldens(exp *Expectation, actual Actual) {
 	copy(exp.Errors, actual.Errors)
 }
 
-func runCase(p *zp.Parser, backend string, unit zp.PositionUnit, input string, ctx context.Context, limits zp.Limits) (Actual, error) {
+func runCase(p *zp.Parser, backend string, unit parse.PositionUnit, input string, ctx context.Context, limits parse.Limits) (Actual, error) {
 	var b zp.Backend
 	switch backend {
 	case "default":
@@ -626,8 +627,8 @@ func runCase(p *zp.Parser, backend string, unit zp.PositionUnit, input string, c
 		actual.Node = data
 		actual.Start, actual.End = intPointer(int(node.Start())), intPointer(int(node.End()))
 	}
-	var many zp.SyntaxErrors
-	var one *zp.SyntaxError
+	var many parse.SyntaxErrors
+	var one *parse.SyntaxError
 	switch {
 	case parseErr == nil:
 		actual.Outcome = Accepted
@@ -654,7 +655,7 @@ func runCase(p *zp.Parser, backend string, unit zp.PositionUnit, input string, c
 	return actual, nil
 }
 
-func errorLocation(e *zp.SyntaxError) ErrorLocation {
+func errorLocation(e *parse.SyntaxError) ErrorLocation {
 	return ErrorLocation{Pos: e.Pos, Line: e.Line, Column: e.Col}
 }
 

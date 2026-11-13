@@ -9,8 +9,8 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/internal/engine/core"
-	"zeroparse.dev/zp/internal/limits"
 	"zeroparse.dev/zp/internal/value"
+	"zeroparse.dev/zp/runtime/parse"
 )
 
 type budgetCancelledRefillReader struct {
@@ -62,7 +62,7 @@ func TestBudgetStreamRawReaderAdmission(t *testing.T) {
 	cancel()
 	caller := &budgetCancelledRefillReader{cancel: func() {}}
 	var returned error
-	observer := &core.StreamReaderObserver{Reader: caller, Result: &returned, Control: core.NewBudgetControl(ctx, limits.Limits{})}
+	observer := &core.StreamReaderObserver{Reader: caller, Result: &returned, Control: core.NewBudgetControl(ctx, parse.Limits{})}
 	err := catchFatal(t, func() { _, _ = observer.Read(make([]byte, 4)) })
 	if !errors.Is(err, context.Canceled) || caller.calls != 0 || returned != nil {
 		t.Fatalf("error=%v calls=%d returned=%v", err, caller.calls, returned)

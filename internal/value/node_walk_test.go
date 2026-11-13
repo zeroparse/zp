@@ -7,6 +7,7 @@ import (
 
 	"zeroparse.dev/zp/internal/engine"
 	"zeroparse.dev/zp/internal/value"
+	"zeroparse.dev/zp/runtime/parse"
 )
 
 func TestWalkEdgeOrderAndSharedParents(t *testing.T) {
@@ -106,7 +107,7 @@ func TestWalkDeep(t *testing.T) {
 
 func TestCursorBoundariesAndUncontainedChildren(t *testing.T) {
 	t.Parallel()
-	for _, unit := range []engine.PositionUnit{engine.CodePoints, engine.Bytes} {
+	for _, unit := range []parse.PositionUnit{parse.CodePoints, parse.Bytes} {
 		a, b, z := value.Ptr(value.Data{Start: 1, End: 3}), value.Ptr(value.Data{Start: 3, End: 4}), value.Ptr(value.Data{Start: 3, End: 3})
 		root := value.Ptr(value.Data{Start: 20, End: 21, Children: []*value.Node{a, b, z, a}})
 		c := engine.Cursor{Root: root, Unit: unit}
@@ -139,7 +140,7 @@ func TestCursorBoundariesAndUncontainedChildren(t *testing.T) {
 			t.Fatal("negative position accepted")
 		}
 	}
-	if err := (engine.Cursor{Unit: engine.PositionUnit(99)}).At(0, func(value.WalkVisit) (value.WalkAction, error) { return value.WalkContinue, nil }); err == nil {
+	if err := (engine.Cursor{Unit: parse.PositionUnit(99)}).At(0, func(value.WalkVisit) (value.WalkAction, error) { return value.WalkContinue, nil }); err == nil {
 		t.Fatal("invalid unit accepted")
 	}
 }

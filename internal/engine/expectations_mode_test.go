@@ -9,8 +9,8 @@ import (
 
 	"zeroparse.dev/zp/internal/engine/core"
 	"zeroparse.dev/zp/internal/gentest"
-	"zeroparse.dev/zp/internal/limits"
 	"zeroparse.dev/zp/internal/value"
+	"zeroparse.dev/zp/runtime/parse"
 )
 
 // expectationCases are grammars with inputs that fail, recover or succeed.
@@ -51,7 +51,7 @@ func TestExpectationsOffKeepsResultsAndPositions(t *testing.T) {
 					}
 					continue
 				}
-				var onList, offList SyntaxErrors
+				var onList, offList parse.SyntaxErrors
 				if errors.As(onErr, &onList) && errors.As(offErr, &offList) {
 					// Recovered errors: the tree, and the position of each error, are the same.
 					if a, w := dumpNode(off), dumpNode(on); a != w || len(onList) != len(offList) {
@@ -64,7 +64,7 @@ func TestExpectationsOffKeepsResultsAndPositions(t *testing.T) {
 					}
 					continue
 				}
-				var onSE, offSE *SyntaxError
+				var onSE, offSE *parse.SyntaxError
 				if !errors.As(onErr, &onSE) || !errors.As(offErr, &offSE) {
 					t.Fatalf("%s %q %v: not syntax errors: %v, %v", c.name, in, b, onErr, offErr)
 				}
@@ -120,7 +120,7 @@ func TestExpectationsDocumentFixesMode(t *testing.T) {
 			t.Errorf("expectations %v: changing the mode gives %v", on, err)
 		}
 		_, err = d.Parse()
-		var se *SyntaxError
+		var se *parse.SyntaxError
 		if !errors.As(err, &se) || (len(se.Expected) > 0) != on {
 			t.Errorf("expectations %v: Document error %v", on, err)
 		}
@@ -177,14 +177,14 @@ func TestLongExpectedLists(t *testing.T) {
 	} {
 		for _, b := range expectationBackends {
 			// A compute limit sorts and formats under budget controls, with the same result.
-			ls := []limits.Limits{{}}
+			ls := []parse.Limits{{}}
 			if core.BudgetControlsEnabled {
-				ls = append(ls, limits.Limits{Compute: 1 << 50})
+				ls = append(ls, parse.Limits{Compute: 1 << 50})
 			}
 			for _, l := range ls {
 				n, err := prog.ParseWith("main", c.input, ParseOptions{Backend: b, Expectations: true, Limits: l})
-				var se *SyntaxError
-				var list SyntaxErrors
+				var se *parse.SyntaxError
+				var list parse.SyntaxErrors
 				if errors.As(err, &list) && len(list) == 1 {
 					se = list[0]
 					if text := gentest.ResultJSON(n, nil); !strings.Contains(text, strconv.Quote(c.message)) {

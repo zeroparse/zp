@@ -6,7 +6,7 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/internal/gentest"
-	"zeroparse.dev/zp/internal/limits"
+	"zeroparse.dev/zp/runtime/parse"
 )
 
 // TestUnsetFieldsReadZero pins the value of each field type that a constructor left unset, on every
@@ -61,7 +61,7 @@ func TestZeroValueOfDeepStructTypes(t *testing.T) {
 	src.WriteString("rule main Top = k:\"x\" => Top{K: $k}\nrule read = t:main $$ => $t.In" + strings.Repeat(".X", depth) + ".V\n")
 	prog := mustCompile(t, src.String())
 	for _, backend := range []Backend{Closure, Bytecode, BytecodeIterative} {
-		got := gentest.ResultJSON(prog.ParseWith("read", "x", ParseOptions{Backend: backend, Limits: limits.Limits{Compute: 1 << 12}}))
+		got := gentest.ResultJSON(prog.ParseWith("read", "x", ParseOptions{Backend: backend, Limits: parse.Limits{Compute: 1 << 12}}))
 		if !strings.Contains(got, "0") || strings.Contains(got, "limit") {
 			t.Errorf("%s: %s", backend, got)
 		}

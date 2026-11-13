@@ -5,7 +5,7 @@ import (
 	"errors"
 	"testing"
 
-	"zeroparse.dev/zp/internal/limits"
+	"zeroparse.dev/zp/runtime/parse"
 )
 
 // reserve runs c.Charge(n) and returns the error of the interruption it raises, or nil.
@@ -33,7 +33,7 @@ func TestReservationRules(t *testing.T) {
 		t.Fatalf("polling interval %d, the specification states 256", BudgetCheckInterval)
 	}
 	ctx, cancel := context.WithCancel(context.Background())
-	c := NewBudgetControl(ctx, limits.Limits{Compute: 1000})
+	c := NewBudgetControl(ctx, parse.Limits{Compute: 1000})
 	if err := reserve(c, 200); err != nil || c.Used != 200 || c.SinceCheck != 200 {
 		t.Fatalf("reservation below the interval: %v, used %d, since %d", err, c.Used, c.SinceCheck)
 	}
@@ -51,16 +51,16 @@ func TestReservationRules(t *testing.T) {
 		t.Fatalf("exceeding reservation with a cancelled context: %v, used %d", err, c.Used)
 	}
 	// Without a context, exceeding interrupts with a limit error and leaves the counters.
-	d := NewBudgetControl(nil, limits.Limits{Compute: 10})
+	d := NewBudgetControl(nil, parse.Limits{Compute: 10})
 	if err := reserve(d, 4); err != nil {
 		t.Fatal(err)
 	}
-	var le *limits.LimitError
+	var le *parse.LimitError
 	if err := reserve(d, 7); !errors.As(err, &le) || le.Used != 4 || le.Requested != 7 || d.Used != 4 || d.SinceCheck != 4 {
 		t.Fatalf("exceeding reservation: %v, used %d, since %d", err, d.Used, d.SinceCheck)
 	}
 	// An observation that finds no error starts the interval again.
-	e := NewBudgetControl(context.Background(), limits.Limits{Compute: 1 << 20})
+	e := NewBudgetControl(context.Background(), parse.Limits{Compute: 1 << 20})
 	if err := reserve(e, 300); err != nil || e.Used != 300 || e.SinceCheck != 0 {
 		t.Fatalf("polling reservation without an error: %v, used %d, since %d", err, e.Used, e.SinceCheck)
 	}

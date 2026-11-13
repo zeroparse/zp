@@ -6,19 +6,8 @@ import (
 
 	"zeroparse.dev/zp/internal/engine/core"
 	"zeroparse.dev/zp/internal/value"
+	"zeroparse.dev/zp/runtime/parse"
 )
-
-// CacheStats describes retained incremental history. EstimatedBytes includes
-// backing buffers and run records, but excludes map buckets, allocator metadata,
-// document text, result trees, shared expectation/error/environment payloads
-// and strings shared with caller-held results.
-// Inspection is read-only and requires exclusive Document ownership.
-type CacheStats struct {
-	LiveMemoEntries    int
-	RetiredMemoEntries int
-	RepetitionElements int
-	EstimatedBytes     uint64
-}
 
 // ResetHistory releases incremental reuse history without changing the text,
 // construction options or last parse statistics. Previously returned trees are
@@ -57,8 +46,8 @@ func (d *Document) retainedBytes() uint64 {
 
 // CacheStats returns a point-in-time estimate of cache-owned retained buffers.
 // It does not measure process heap usage or bytes returned to the OS.
-func (d *Document) CacheStats() CacheStats {
-	var s CacheStats
+func (d *Document) CacheStats() parse.CacheStats {
+	var s parse.CacheStats
 	t := d.memo
 	if t != nil {
 		for _, head := range t.Slots {

@@ -5,6 +5,7 @@ import (
 
 	"zeroparse.dev/zp/internal/limits"
 	"zeroparse.dev/zp/internal/value"
+	"zeroparse.dev/zp/runtime/parse"
 )
 
 // Memory is counted in bytes of logical capacity: the element count of a buffer times the size of
@@ -42,7 +43,7 @@ const (
 	intBytes      = uint64(unsafe.Sizeof(0))
 	stringBytes   = uint64(unsafe.Sizeof(""))
 	// syntaxErrorBytes is a syntax error; the lists that hold its pointer count the pointer.
-	syntaxErrorBytes = uint64(unsafe.Sizeof(SyntaxError{}))
+	syntaxErrorBytes = uint64(unsafe.Sizeof(parse.SyntaxError{}))
 	expIDBytes       = uint64(unsafe.Sizeof(ExpID(0)))
 	sdepBytes        = uint64(unsafe.Sizeof(sdep{}))
 	growKeyBytes     = uint64(unsafe.Sizeof(growKey{}))
@@ -93,7 +94,7 @@ func (c *BudgetControl) AttachMemory(p *Parser) {
 // checkMemory fails the parse when the memory count exceeds the limit.
 func (c *BudgetControl) checkMemory() {
 	if used := c.MemoryUsed(); used > c.Limits.Memory {
-		panic(Fatal{Err: &limits.LimitError{Kind: limits.LimitMemory, Limit: c.Limits.Memory, Used: used}})
+		panic(Fatal{Err: &parse.LimitError{Kind: parse.LimitMemory, Limit: c.Limits.Memory, Used: used}})
 	}
 }
 
@@ -174,13 +175,13 @@ func (c *BudgetControl) chargeValueBytes(n int) {
 }
 
 // chargeError charges the syntax error e (BudgetControl.errs).
-func (p *Parser) chargeError(e *SyntaxError) {
+func (p *Parser) chargeError(e *parse.SyntaxError) {
 	if BudgetControlsEnabled && p.Control != nil {
 		p.Control.errs = limits.SaturatingAdd(p.Control.errs, syntaxErrorSize(e))
 	}
 }
 
 // syntaxErrorSize returns the bytes of the syntax error e and its lists.
-func syntaxErrorSize(e *SyntaxError) uint64 {
+func syntaxErrorSize(e *parse.SyntaxError) uint64 {
 	return syntaxErrorBytes + uint64(cap(e.Expected)+cap(e.Messages))*stringBytes
 }

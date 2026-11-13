@@ -9,6 +9,7 @@ import (
 	"zeroparse.dev/zp"
 	gjson "zeroparse.dev/zp/internal/bench/gen/json"
 	gxml "zeroparse.dev/zp/internal/bench/gen/xml"
+	"zeroparse.dev/zp/runtime/parse"
 )
 
 // BenchmarkControlledParse uses finite but effectively inexhaustible counters
@@ -24,7 +25,7 @@ func BenchmarkControlledParse(b *testing.B) {
 			p := load(b, w.grammar)
 			input := w.input(1)
 			// The largest finite budget: ^uint64(0) is Unlimited, which runs without a control.
-			limits := zp.Limits{Compute: ^uint64(0) - 1}
+			limits := parse.Limits{Compute: ^uint64(0) - 1}
 			for _, backend := range backends {
 				for _, unit := range units {
 					b.Run(backend.name+"/"+unit.name, func(b *testing.B) {
@@ -50,13 +51,13 @@ func BenchmarkControlledParse(b *testing.B) {
 						var err error
 						if w.name == "JSON" {
 							selected := gjson.CodePoints
-							if unit.u == zp.Bytes {
+							if unit.u == parse.Bytes {
 								selected = gjson.Bytes
 							}
 							_, err = gjson.Parse(input, gjson.WithUnit(selected), gjson.WithLimits(gjson.Limits(limits)))
 						} else {
 							selected := gxml.CodePoints
-							if unit.u == zp.Bytes {
+							if unit.u == parse.Bytes {
 								selected = gxml.Bytes
 							}
 							_, err = gxml.Parse(input, gxml.WithUnit(selected), gxml.WithLimits(gxml.Limits(limits)))
@@ -73,13 +74,13 @@ func BenchmarkControlledParse(b *testing.B) {
 						var err error
 						if w.name == "JSON" {
 							selected := gjson.CodePoints
-							if unit.u == zp.Bytes {
+							if unit.u == parse.Bytes {
 								selected = gjson.Bytes
 							}
 							_, err = gjson.ParseValue(input, gjson.WithUnit(selected), gjson.WithLimits(gjson.Limits(limits)))
 						} else {
 							selected := gxml.CodePoints
-							if unit.u == zp.Bytes {
+							if unit.u == parse.Bytes {
 								selected = gxml.Bytes
 							}
 							_, err = gxml.ParseValue(input, gxml.WithUnit(selected), gxml.WithLimits(gxml.Limits(limits)))
@@ -105,7 +106,7 @@ func TestControlledWorkloads(t *testing.T) {
 		t.Run(w.name, func(t *testing.T) {
 			input := w.input(10)
 			p := load(t, w.grammar)
-			limits := zp.Limits{Compute: ^uint64(0) - 1}
+			limits := parse.Limits{Compute: ^uint64(0) - 1}
 			equal := func(plain, controlled any) {
 				t.Helper()
 				a, err := json.Marshal(plain)
@@ -123,7 +124,7 @@ func TestControlledWorkloads(t *testing.T) {
 			for _, backend := range backends {
 				for _, unit := range units {
 					// Unlimited keeps the plain parse uncontrolled: a zero budget selects the default counter.
-					opts := []zp.ParseOption{zp.WithBackend(backend.b), zp.WithUnit(unit.u), zp.WithLimits(zp.Limits{Compute: zp.Unlimited})}
+					opts := []zp.ParseOption{zp.WithBackend(backend.b), zp.WithUnit(unit.u), zp.WithLimits(parse.Limits{Compute: parse.Unlimited})}
 					plain, err := p.Parse(input, opts...)
 					if err != nil {
 						t.Fatal(err)
@@ -138,7 +139,7 @@ func TestControlledWorkloads(t *testing.T) {
 			for _, unit := range units {
 				if w.name == "JSON" {
 					selected := gjson.CodePoints
-					if unit.u == zp.Bytes {
+					if unit.u == parse.Bytes {
 						selected = gjson.Bytes
 					}
 					plain, err := gjson.Parse(input, gjson.WithUnit(selected), gjson.WithLimits(gjson.Limits{Compute: gjson.Unlimited}))
@@ -161,7 +162,7 @@ func TestControlledWorkloads(t *testing.T) {
 					equal(plainValue, controlledValue)
 				} else {
 					selected := gxml.CodePoints
-					if unit.u == zp.Bytes {
+					if unit.u == parse.Bytes {
 						selected = gxml.Bytes
 					}
 					plain, err := gxml.Parse(input, gxml.WithUnit(selected), gxml.WithLimits(gxml.Limits{Compute: gxml.Unlimited}))

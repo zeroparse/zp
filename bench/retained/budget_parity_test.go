@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp"
+	"zeroparse.dev/zp/runtime/parse"
 )
 
 func TestCompiledCorpusBudgetParity(t *testing.T) {
@@ -19,16 +20,16 @@ func TestCompiledCorpusBudgetParity(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			for _, unit := range []zp.PositionUnit{zp.CodePoints, zp.Bytes} {
+			for _, unit := range []parse.PositionUnit{parse.CodePoints, parse.Bytes} {
 				var want string
 				for _, backend := range []zp.Backend{zp.Closure, zp.Bytecode, zp.BytecodeIterative} {
 					for _, active := range []bool{false, true} {
 						opts := []zp.ParseOption{zp.WithBackend(backend), zp.WithUnit(unit)}
 						if active {
 							// The largest finite budget: ^uint64(0) is Unlimited, which runs without a control.
-							opts = append(opts, zp.WithLimits(zp.Limits{Compute: ^uint64(0) - 1}))
+							opts = append(opts, zp.WithLimits(parse.Limits{Compute: ^uint64(0) - 1}))
 						} else {
-							opts = append(opts, zp.WithLimits(zp.Limits{Compute: zp.Unlimited}))
+							opts = append(opts, zp.WithLimits(parse.Limits{Compute: parse.Unlimited}))
 						}
 						n, err := p.Parse(input, opts...)
 						if err != nil {

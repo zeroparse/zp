@@ -10,8 +10,8 @@ import (
 
 	"zeroparse.dev/zp/internal/engine/core"
 	"zeroparse.dev/zp/internal/gentest"
-	"zeroparse.dev/zp/internal/limits"
 	"zeroparse.dev/zp/internal/value"
+	"zeroparse.dev/zp/runtime/parse"
 )
 
 func dump(t *testing.T, n *value.Node, err error) string {
@@ -491,7 +491,7 @@ rule mid = [a-z] #atomic / "\n"`, "ab!cd", 0, ParseOptions{}, []step{{1, 3, "", 
 		// An entry found invalid by an edit, then an aborted parse: the next lookup must not apply
 		// the edits again.
 		{"aborted parse", `rule main = (item / .)* $$
-rule item = "(" item* ")" / "x"`, "xxxx(x)", 0, ParseOptions{Limits: limits.Limits{Depth: 30}},
+rule item = "(" item* ")" / "x"`, "xxxx(x)", 0, ParseOptions{Limits: parse.Limits{Depth: 30}},
 			[]step{{0, 0, "zz", "", true}, {7, 8, strings.Repeat("(", 50), "nesting too deep", false}, {7, 57, "x", "", false}}},
 	}
 	for _, c := range cases {

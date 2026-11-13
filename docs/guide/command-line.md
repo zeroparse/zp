@@ -69,7 +69,7 @@ zp parse -g <grammar> [-s <rule>] [-i <input>] [-f json|sexpr] [-stream] [-check
 
 `zp parse`, like `explain`, `trace`, `profile`, `test` and `edit-fuzz`, records [expectations](error-messages.md#recording-expectations), so a syntax error lists what was expected.
 
-A parse that reaches a limit prints the message of the `*zp.LimitError` (for example `parse compute limit exceeded: limit 1048576, used 1048576, requested 1`) to standard error and exits with status 1, like any other failed parse. See [cancellation-and-limits.md](cancellation-and-limits.md).
+A parse that reaches a limit prints the message of the `*parse.LimitError` (for example `parse compute limit exceeded: limit 1048576, used 1048576, requested 1`) to standard error and exits with status 1, like any other failed parse. See [cancellation-and-limits.md](cancellation-and-limits.md).
 
 ```bash
 zp parse -g pairs.zp -f sexpr -i 'abc=12; あい=3'

@@ -12,6 +12,7 @@ import (
 	"zeroparse.dev/zp/internal/compile"
 	"zeroparse.dev/zp/internal/gentest"
 	"zeroparse.dev/zp/internal/value"
+	"zeroparse.dev/zp/runtime/parse"
 )
 
 func TestWideRepetitionModuleValidation(t *testing.T) {
@@ -130,7 +131,7 @@ func TestWideRepetitionBounds(t *testing.T) {
 							wantClosureRefused(t, err)
 							continue
 						}
-						for _, unit := range []PositionUnit{CodePoints, Bytes} {
+						for _, unit := range []parse.PositionUnit{parse.CodePoints, parse.Bytes} {
 							for _, input := range c.Inputs {
 								want, wantErr := prog.ParseWith("main", input, ParseOptions{Unit: unit})
 								got, gotErr := loaded.ParseWith("main", input, servedBy(mode, ParseOptions{Backend: backend, Unit: unit}))
@@ -168,7 +169,7 @@ func TestWideRepetitionDocumentsAndStreams(t *testing.T) {
 					wantClosureRefused(t, err)
 					continue
 				}
-				for _, unit := range []PositionUnit{CodePoints, Bytes} {
+				for _, unit := range []parse.PositionUnit{parse.CodePoints, parse.Bytes} {
 					opts := ParseOptions{Backend: backend, Unit: unit}
 					count := 0
 					err := p.ParseStreamWith("main", strings.NewReader("éé"), func(n *value.Node) error {

@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp"
+	"zeroparse.dev/zp/runtime/parse"
 )
 
 // leastSteps returns the least Compute limit under which the parse succeeds, and the error text of
@@ -15,7 +16,7 @@ import (
 func leastSteps(t *testing.T, p *zp.Parser, in string) (uint64, string) {
 	t.Helper()
 	fails := func(n uint64) (bool, string) {
-		_, err := p.Parse(in, zp.WithLimits(zp.Limits{Compute: n}))
+		_, err := p.Parse(in, zp.WithLimits(parse.Limits{Compute: n}))
 		if err == nil {
 			return false, ""
 		}
@@ -81,11 +82,11 @@ rule num = [0-9]+`, "main")
 	want, wantMsg := leastSteps(t, p, input)
 	for _, s := range states {
 		s.prep()
-		if _, err := p.Parse(input, zp.WithLimits(zp.Limits{Compute: want})); err != nil {
+		if _, err := p.Parse(input, zp.WithLimits(parse.Limits{Compute: want})); err != nil {
 			t.Errorf("%s: limit %d fails: %v", s.name, want, err)
 		}
 		s.prep()
-		_, err := p.Parse(input, zp.WithLimits(zp.Limits{Compute: want - 1}))
+		_, err := p.Parse(input, zp.WithLimits(parse.Limits{Compute: want - 1}))
 		if err == nil || err.Error() != wantMsg {
 			t.Errorf("%s: limit %d: error %v, want %q", s.name, want-1, err, wantMsg)
 		}

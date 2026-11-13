@@ -54,6 +54,7 @@ import (
 	"os"
 
 	"zeroparse.dev/zp"
+	"zeroparse.dev/zp/runtime/parse"
 )
 
 //go:embed settings.zp
@@ -70,13 +71,13 @@ func main() {
 	}
 
 	// Bytes positions index src directly.
-	tree, err := p.Parse(string(src), zp.WithUnit(zp.Bytes))
+	tree, err := p.Parse(string(src), zp.WithUnit(parse.Bytes))
 
 	// With recovery, err is not nil even though there is a tree: SyntaxErrors holds every error that was recovered
 	// from. Any other error means that there is no tree.
-	var errs zp.SyntaxErrors
+	var errs parse.SyntaxErrors
 	if err != nil && !errors.As(err, &errs) {
-		log.Fatal(err) // a *zp.SyntaxError: nothing could be recovered
+		log.Fatal(err) // a *parse.SyntaxError: nothing could be recovered
 	}
 	for _, e := range errs {
 		fmt.Printf("app.conf:%d:%d: %s\n", e.Line, e.Col, e.Message())
@@ -125,8 +126,8 @@ The program exits with status 1, because there were errors.
   That is why `setting` is declared `Item`, the join `Setting | error`, and the `Settings` field is a list of `Item`.
   Go sees `s.Kind() == zp.KindError`, with the skipped range in `s.Start()` and `s.End()` and the message, with its
   position (`2:8: expected ...`), in `s.Text()`.
-- **`zp.SyntaxErrors` is the second kind of result.** `Parse` returns the tree and an error that is a
-  `zp.SyntaxErrors` (a slice of `*zp.SyntaxError`, each with `Line`, `Col` and `Message()`). Do not write
+- **`parse.SyntaxErrors` is the second kind of result.** `Parse` returns the tree and an error that is a
+  `parse.SyntaxErrors` (a slice of `*parse.SyntaxError`, each with `Line`, `Col` and `Message()`). Do not write
   `if err != nil { return err }` first: that throws the tree away. `errors.As` needs a variable of the slice type, not a
   pointer.
 - **The order of the attributes matters**: `@error(...) #recover(...)`, in that order, so that the recorded error carries

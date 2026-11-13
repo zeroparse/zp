@@ -28,6 +28,7 @@ type refPackage struct {
 var refPackages = []refPackage{
 	{dir: ".", importPath: modulePath, url: "reference/zp/", title: "Package zp", label: "zp"},
 	{dir: "grammar", importPath: modulePath + "/grammar", url: "reference/grammar/", title: "Package zp/grammar", label: "zp/grammar"},
+	{dir: "runtime/parse", importPath: modulePath + "/runtime/parse", url: "reference/parse/", title: "Package zp/runtime/parse", label: "zp/runtime/parse"},
 	{dir: "runtime", importPath: modulePath + "/runtime", url: "reference/runtime/", title: "Package zp/runtime", label: "zp/runtime"},
 	{dir: "gen", importPath: modulePath + "/gen", url: "reference/gen/", title: "Package zp/gen", label: "zp/gen"},
 	{dir: "lint", importPath: modulePath + "/lint", url: "reference/lint/", title: "Package zp/lint", label: "zp/lint"},

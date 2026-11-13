@@ -2,18 +2,20 @@ package core
 
 import (
 	"unicode/utf8"
+
+	"zeroparse.dev/zp/runtime/parse"
 )
 
 // Controlled construction selects pieces after the charged decoding pass,
 // avoiding an uninterruptible rune-count scan merely to choose storage.
-func NewControlledDocumentInput(text string, unit PositionUnit, c *BudgetControl) Input {
+func NewControlledDocumentInput(text string, unit parse.PositionUnit, c *BudgetControl) Input {
 	if !BudgetControlsEnabled || c == nil {
 		if UseDocumentPieces(text, unit) {
 			return Input{Unit: unit, Eof: true, BaseLine: 1, BaseCol: 1, Pieces: NewDocumentPieces(text, unit)}
 		}
 		return newTextInputIn(text, unit, true, nil)
 	}
-	if DocumentPieceInput && unit == Bytes && len(text) >= DocumentPieceMinSize {
+	if DocumentPieceInput && unit == parse.Bytes && len(text) >= DocumentPieceMinSize {
 		// Immutable byte pieces retain the supplied string without copying it.
 		return Input{Unit: unit, Eof: true, BaseLine: 1, BaseCol: 1, Pieces: NewDocumentPieces(text, unit)}
 	}

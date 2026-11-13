@@ -6,14 +6,14 @@ import (
 	"strings"
 	"testing"
 
-	"zeroparse.dev/zp/internal/limits"
+	"zeroparse.dev/zp/runtime/parse"
 )
 
 // leastBudget returns the smallest budget under which the parse succeeds.
 func leastBudget(t *testing.T, prog *Program, input string, o ParseOptions) uint64 {
 	t.Helper()
 	fits := func(b uint64) bool {
-		o.Limits = limits.Limits{Compute: b}
+		o.Limits = parse.Limits{Compute: b}
 		_, err := prog.ParseWith("main", input, o)
 		return err == nil
 	}

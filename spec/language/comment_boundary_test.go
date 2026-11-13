@@ -10,6 +10,7 @@ import (
 
 	"zeroparse.dev/zp"
 	"zeroparse.dev/zp/gen"
+	"zeroparse.dev/zp/runtime/parse"
 )
 
 const commentOwnerExample = "// orphan\n\n// foo\npackage foo // trailing\n// trailing\n\n// B2\n// B2\n\n// B1\n// B1\nrule B = \"b\" // trailing\n// trailing\n"
@@ -70,7 +71,7 @@ func TestSourceCommentBoundaryGrammar(t *testing.T) {
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
-			for _, unit := range []zp.PositionUnit{zp.CodePoints, zp.Bytes} {
+			for _, unit := range []parse.PositionUnit{parse.CodePoints, parse.Bytes} {
 				for _, backend := range []zp.Backend{zp.Closure, zp.Bytecode, zp.BytecodeIterative} {
 					n, err := parsers[tc.rule].Parse(tc.input, zp.WithUnit(unit), zp.WithBackend(backend))
 					if err != nil {

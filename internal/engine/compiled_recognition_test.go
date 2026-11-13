@@ -14,7 +14,7 @@ import (
 	"zeroparse.dev/zp/internal/bytecode"
 	"zeroparse.dev/zp/internal/engine/core"
 	"zeroparse.dev/zp/internal/gentest"
-	"zeroparse.dev/zp/internal/limits"
+	"zeroparse.dev/zp/runtime/parse"
 )
 
 // moduleRuleNames returns the names of the rules of m in order, each once: value-free twins follow
@@ -82,7 +82,7 @@ func TestCompiledRecognitionRoundTrip(t *testing.T) {
 				}
 				for _, name := range moduleRuleNames(p.Module()) {
 					for _, input := range append(append([]string{}, c.Inputs...), "\xff", "", "trailing") {
-						for _, unit := range []PositionUnit{CodePoints, Bytes} {
+						for _, unit := range []parse.PositionUnit{parse.CodePoints, parse.Bytes} {
 							want, werr := p.ParseWith(name, input, ParseOptions{Recognize: true, Unit: unit})
 							for _, backend := range []Backend{Default, Bytecode, BytecodeIterative} {
 								got, gerr := loaded.ParseWith(name, input, ParseOptions{Recognize: true, Unit: unit, Backend: backend})
@@ -164,7 +164,7 @@ rule second = "é"`)
 		input string
 		match bool
 	}{{"a", true}, {"é", true}, {"", false}, {"a?", false}} {
-		for _, unit := range []PositionUnit{CodePoints, Bytes} {
+		for _, unit := range []parse.PositionUnit{parse.CodePoints, parse.Bytes} {
 			for _, backend := range []Backend{Bytecode, BytecodeIterative} {
 				got, gotErr := recognizing.ParseWith("main", tc.input, ParseOptions{Backend: backend, Unit: unit, Recognize: true})
 				if got != nil || (gotErr == nil) != tc.match {
@@ -217,7 +217,7 @@ rule other = "é" $$`)
 			if n != nil || !errors.Is(err, context.Canceled) {
 				t.Fatalf("cancel node=%v error=%v", n, err)
 			}
-			n, err = p.ParseWith("main", "abc", ParseOptions{Backend: backend, Recognize: true, Limits: limits.Limits{Compute: 1}})
+			n, err = p.ParseWith("main", "abc", ParseOptions{Backend: backend, Recognize: true, Limits: parse.Limits{Compute: 1}})
 			if n != nil || err == nil {
 				t.Fatalf("budget node=%v error=%v", n, err)
 			}

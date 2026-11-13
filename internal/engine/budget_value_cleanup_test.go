@@ -9,8 +9,8 @@ import (
 
 	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/engine/core"
-	"zeroparse.dev/zp/internal/limits"
 	"zeroparse.dev/zp/internal/value"
+	"zeroparse.dev/zp/runtime/parse"
 )
 
 func TestBudgetValueCopyInterruptionPreservesChildren(t *testing.T) {
@@ -20,8 +20,8 @@ func TestBudgetValueCopyInterruptionPreservesChildren(t *testing.T) {
 	for i := range p.KidStack {
 		p.KidStack[i] = retained
 	}
-	p.Control = core.NewBudgetControl(nil, limits.Limits{Compute: 128})
-	if err := catchFatal(t, func() { p.Kids(0) }); !errors.Is(err, limits.ErrLimit) {
+	p.Control = core.NewBudgetControl(nil, parse.Limits{Compute: 128})
+	if err := catchFatal(t, func() { p.Kids(0) }); !errors.Is(err, parse.ErrLimit) {
 		t.Fatalf("copy interruption = %v", err)
 	}
 	// A failed copy does not publish a partial child list or clear its source.
@@ -75,8 +75,8 @@ func TestBudgetValueFieldAndEnvironmentWalks(t *testing.T) {
 		t.Run(run.name, func(t *testing.T) {
 			p := &core.Parser{}
 			p.SetVars(values)
-			p.Control = core.NewBudgetControl(nil, limits.Limits{Compute: 128})
-			if err := catchFatal(t, func() { run.fn(p) }); !errors.Is(err, limits.ErrLimit) {
+			p.Control = core.NewBudgetControl(nil, parse.Limits{Compute: 128})
+			if err := catchFatal(t, func() { run.fn(p) }); !errors.Is(err, parse.ErrLimit) {
 				t.Fatalf("walk interruption = %v", err)
 			}
 			if len(fields) != 300 || fields[299].Value != 299 {
@@ -93,8 +93,8 @@ func TestBudgetValueTrackingCleanupAfterInterruption(t *testing.T) {
 	for i := range p.Created {
 		p.Created[i] = retained
 	}
-	p.Control = core.NewBudgetControl(nil, limits.Limits{Compute: 128})
-	if err := catchFatal(t, func() { p.DropCreated(1) }); !errors.Is(err, limits.ErrLimit) {
+	p.Control = core.NewBudgetControl(nil, parse.Limits{Compute: 128})
+	if err := catchFatal(t, func() { p.DropCreated(1) }); !errors.Is(err, parse.ErrLimit) {
 		t.Fatalf("tracking cleanup interruption = %v", err)
 	}
 	// The interruption boundary must disable controls before mandatory cleanup.

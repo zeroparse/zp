@@ -17,6 +17,7 @@ import (
 	"zeroparse.dev/zp"
 	"zeroparse.dev/zp/internal/engine/core"
 	"zeroparse.dev/zp/internal/starttest"
+	"zeroparse.dev/zp/runtime/parse"
 )
 
 // Backends are the backends whose cost is measured.
@@ -59,9 +60,9 @@ type Cost struct {
 // parses reports whether the parse of input finishes within budget, with or without a syntax
 // error. It returns the error of a parse that finished; an exhausted budget is not one.
 func parses(p *zp.Parser, input string, b zp.Backend, budget uint64) (bool, error) {
-	_, err := p.Parse(input, zp.WithBackend(b), zp.WithLimits(zp.Limits{Compute: budget}))
-	var le *zp.LimitError
-	if errors.As(err, &le) && le.Kind == zp.LimitCompute {
+	_, err := p.Parse(input, zp.WithBackend(b), zp.WithLimits(parse.Limits{Compute: budget}))
+	var le *parse.LimitError
+	if errors.As(err, &le) && le.Kind == parse.LimitCompute {
 		return false, nil
 	}
 	return true, err
@@ -84,7 +85,7 @@ func ExactSteps(p *zp.Parser, input string, b zp.Backend, cap uint64) (Cost, err
 
 // StepsLenient is Steps for an input that the grammar reports syntax errors for, such as one
 // that exercises error recovery: the cost of a parse that finishes with a syntax error carries
-// the error in Cost.ParseErr instead of failing. Only a *zp.SyntaxError or zp.SyntaxErrors
+// the error in Cost.ParseErr instead of failing. Only a *parse.SyntaxError or parse.SyntaxErrors
 // is accepted; any other error is returned.
 func StepsLenient(p *zp.Parser, input string, b zp.Backend, cap uint64) (Cost, error) {
 	return steps(p, input, b, cap, 256)
@@ -93,8 +94,8 @@ func StepsLenient(p *zp.Parser, input string, b zp.Backend, cap uint64) (Cost, e
 // isSyntaxError reports whether err is a syntax error of the input or the list of errors that a
 // parse recovered from. Any other error is a failure of the measurement.
 func isSyntaxError(err error) bool {
-	var one *zp.SyntaxError
-	var many zp.SyntaxErrors
+	var one *parse.SyntaxError
+	var many parse.SyntaxErrors
 	return errors.As(err, &one) || errors.As(err, &many)
 }
 
@@ -137,14 +138,14 @@ func steps(p *zp.Parser, input string, b zp.Backend, cap, tolDiv uint64) (Cost, 
 func StepsTraced(p *zp.Parser, input string, b zp.Backend, cap uint64) (Cost, error) {
 	var used uint64
 	seen := false
-	_, err := p.Parse(input, zp.WithBackend(b), zp.WithLimits(zp.Limits{Compute: cap}),
+	_, err := p.Parse(input, zp.WithBackend(b), zp.WithLimits(parse.Limits{Compute: cap}),
 		zp.WithTrace(func(e zp.TraceEvent) {
 			if c := core.TraceParser(e).Control; c != nil {
 				used, seen = c.Used, true
 			}
 		}))
-	var le *zp.LimitError
-	if errors.As(err, &le) && le.Kind == zp.LimitCompute {
+	var le *parse.LimitError
+	if errors.As(err, &le) && le.Kind == parse.LimitCompute {
 		return Cost{Steps: cap, Capped: true}, nil
 	}
 	if err != nil {

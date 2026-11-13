@@ -9,6 +9,7 @@ import (
 
 	"zeroparse.dev/zp/internal/compile"
 	. "zeroparse.dev/zp/internal/engine"
+	"zeroparse.dev/zp/runtime/parse"
 )
 
 const reparseGrammar = `rule main = line* $$
@@ -16,7 +17,7 @@ rule line = [a-z]+ #atomic "\n"`
 
 func TestDocumentNoEditPreservesRuns(t *testing.T) {
 	for _, backend := range []Backend{Closure, Bytecode, BytecodeIterative} {
-		for _, unit := range []PositionUnit{CodePoints, Bytes} {
+		for _, unit := range []parse.PositionUnit{parse.CodePoints, parse.Bytes} {
 			for _, noEdits := range []int{0, 1, 3} {
 				t.Run(fmt.Sprintf("%s/%s/no-edits=%d", backend, unit, noEdits), func(t *testing.T) {
 					prog := mustCompile(t, reparseGrammar)
@@ -56,7 +57,7 @@ func TestDocumentNoEditPreservesRuns(t *testing.T) {
 func TestDocumentNoEditRunInvalidation(t *testing.T) {
 	defer document.SetMaxEdits(3)()
 	for _, backend := range []Backend{Closure, Bytecode, BytecodeIterative} {
-		for _, unit := range []PositionUnit{CodePoints, Bytes} {
+		for _, unit := range []parse.PositionUnit{parse.CodePoints, parse.Bytes} {
 			for _, src := range []string{
 				reparseGrammar,
 				`rule main = line* "!" $$
@@ -136,7 +137,7 @@ func BenchmarkDocumentReparse(b *testing.B) {
 		b.Fatal(err)
 	}
 	for _, backend := range []Backend{Closure, Bytecode, BytecodeIterative} {
-		for _, unit := range []PositionUnit{CodePoints, Bytes} {
+		for _, unit := range []parse.PositionUnit{parse.CodePoints, parse.Bytes} {
 			for _, redundant := range []bool{false, true} {
 				b.Run(fmt.Sprintf("%s/%s/redundant=%t", backend, unit, redundant), func(b *testing.B) {
 					doc, err := prog.NewDocumentWith("main", strings.Repeat("ab\n", 100000), ParseOptions{Backend: backend, Unit: unit})
@@ -177,7 +178,7 @@ rule block = "{\n" line* "}\n"
 rule line = [a-z]+ #atomic "\n"`)
 	text := strings.Repeat("{\n"+strings.Repeat("ab\n", 100)+"}\n", 100)
 	for _, backend := range []Backend{Closure, Bytecode, BytecodeIterative} {
-		for _, unit := range []PositionUnit{CodePoints, Bytes} {
+		for _, unit := range []parse.PositionUnit{parse.CodePoints, parse.Bytes} {
 			t.Run(fmt.Sprintf("%s/%s", backend, unit), func(t *testing.T) {
 				opts := ParseOptions{Backend: backend, Unit: unit}
 				doc, err := prog.NewDocumentWith("main", text, opts)
@@ -212,7 +213,7 @@ rule line = [a-z]+ #atomic "\n"`)
 func TestDocumentNoEditTracePanicClearsRuns(t *testing.T) {
 	prog := mustCompile(t, reparseGrammar)
 	for _, backend := range []Backend{Closure, Bytecode, BytecodeIterative} {
-		for _, unit := range []PositionUnit{CodePoints, Bytes} {
+		for _, unit := range []parse.PositionUnit{parse.CodePoints, parse.Bytes} {
 			t.Run(fmt.Sprintf("%s/%s", backend, unit), func(t *testing.T) {
 				interrupt := false
 				opts := ParseOptions{Backend: backend, Unit: unit, Trace: func(e TraceEvent) {

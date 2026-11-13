@@ -8,6 +8,7 @@ import (
 
 	"zeroparse.dev/zp/internal/compile"
 	. "zeroparse.dev/zp/internal/engine"
+	"zeroparse.dev/zp/runtime/parse"
 )
 
 func TestDocumentIndirectLeftRecursionEdits(t *testing.T) {
@@ -18,7 +19,7 @@ rule r2 = r1 / r2 "a" "b"`
 	for _, options := range []compile.Options{{}, {DisableMemo: true}} {
 		prog := mustCompile(t, src, options)
 		for _, backend := range []Backend{Closure, Bytecode, BytecodeIterative} {
-			for _, unit := range []PositionUnit{CodePoints, Bytes} {
+			for _, unit := range []parse.PositionUnit{parse.CodePoints, parse.Bytes} {
 				opts := ParseOptions{Backend: backend, Unit: unit}
 				d, err := prog.NewDocumentWith("main", "b", opts)
 				if err != nil {

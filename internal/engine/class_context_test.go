@@ -15,8 +15,8 @@ import (
 	"zeroparse.dev/zp/internal/compile"
 	"zeroparse.dev/zp/internal/engine/closure"
 	"zeroparse.dev/zp/internal/engine/core"
-	"zeroparse.dev/zp/internal/limits"
 	"zeroparse.dev/zp/internal/starttest"
+	"zeroparse.dev/zp/runtime/parse"
 )
 
 func contextClassRanges() []grammar.CharRange {
@@ -96,8 +96,8 @@ func TestClassConstructionContextFacts(t *testing.T) {
 					for _, active := range []bool{false, true} {
 						p, q := &core.Parser{}, &core.Parser{}
 						if active {
-							p.Control = core.NewBudgetControl(nil, limits.Limits{Compute: 1 << 30})
-							q.Control = core.NewBudgetControl(nil, limits.Limits{Compute: 1 << 30})
+							p.Control = core.NewBudgetControl(nil, parse.Limits{Compute: 1 << 30})
+							q.Control = core.NewBudgetControl(nil, parse.Limits{Compute: 1 << 30})
 						}
 						expected := false
 						for _, rg := range rs {
@@ -152,7 +152,7 @@ func TestClassConstructionCompileContextParity(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			for _, unit := range []PositionUnit{Bytes, CodePoints} {
+			for _, unit := range []parse.PositionUnit{parse.Bytes, parse.CodePoints} {
 				for _, recognize := range []bool{false, true} {
 					for _, active := range []bool{false, true} {
 						for _, s := range []string{"a", "β", "z", "?", "", "aβ1"} {
@@ -161,7 +161,7 @@ func TestClassConstructionCompileContextParity(t *testing.T) {
 							// including its directly compiled recognition-only graph.
 							opts := ParseOptions{Unit: unit, Recognize: recognize}
 							if active {
-								opts.Limits = limits.Limits{Compute: 1 << 30}
+								opts.Limits = parse.Limits{Compute: 1 << 30}
 							}
 							x, xe := a.ParseWith("main", s, opts)
 							y, ye := b.ParseWith("main", s, opts)

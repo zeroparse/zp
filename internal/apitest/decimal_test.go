@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp"
+	"zeroparse.dev/zp/runtime/parse"
 )
 
 func TestInvalidSourceDecimalReferences(t *testing.T) {
@@ -32,7 +33,7 @@ func TestDecimalReferenceValues(t *testing.T) {
 			t.Fatal(err)
 		}
 		for _, backend := range []zp.Backend{zp.Closure, zp.Bytecode, zp.BytecodeIterative} {
-			for _, unit := range []zp.PositionUnit{zp.CodePoints, zp.Bytes} {
+			for _, unit := range []parse.PositionUnit{parse.CodePoints, parse.Bytes} {
 				n, err := p.Parse("ab", zp.WithBackend(backend), zp.WithUnit(unit))
 				if err != nil || n.String() != tc.want {
 					t.Fatalf("%s backend=%v unit=%v: %v, %v", tc.source, backend, unit, n, err)

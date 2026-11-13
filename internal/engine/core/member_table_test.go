@@ -7,8 +7,8 @@ import (
 	"zeroparse.dev/zp/internal/compile"
 	"zeroparse.dev/zp/internal/compiletest"
 	"zeroparse.dev/zp/internal/ir/exec/conform"
-	"zeroparse.dev/zp/internal/limits"
 	"zeroparse.dev/zp/internal/value"
+	"zeroparse.dev/zp/runtime/parse"
 )
 
 // engineMemberCanon returns the canonical form of a value of the engine (conform.MemberCanon).
@@ -63,7 +63,7 @@ func engineMemberFixture(t *testing.T, controlled bool) (*EvalCtx, map[string]an
 	}
 	p := &Parser{Prog: prog}
 	if controlled {
-		p.Control = NewBudgetControl(nil, limits.Limits{Compute: 1 << 62})
+		p.Control = NewBudgetControl(nil, parse.Limits{Compute: 1 << 62})
 	}
 	c := &EvalCtx{P: p}
 	node := p.NewNode(value.Data{Kind: value.SeqKind, Start: 2, End: 5})

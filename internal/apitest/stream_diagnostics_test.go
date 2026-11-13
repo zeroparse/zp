@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp"
+	"zeroparse.dev/zp/runtime/parse"
 )
 
 func TestPublicStreamDiagnosticCallbackOrderAndAbort(t *testing.T) {
@@ -17,11 +18,11 @@ rule item = "ab" @error(message="record") #recover(skip=[^a]+)`, "main")
 	}
 	const input = "abX!abY?ab"
 	for _, backend := range []zp.Backend{zp.Closure, zp.Bytecode, zp.BytecodeIterative} {
-		for _, unit := range []zp.PositionUnit{zp.CodePoints, zp.Bytes} {
+		for _, unit := range []parse.PositionUnit{parse.CodePoints, parse.Bytes} {
 			t.Run(backend.String()+"/"+unit.String(), func(t *testing.T) {
 				var events []string
-				var copies []*zp.SyntaxError
-				options := []zp.ParseOption{zp.WithExpectations(), zp.WithBackend(backend), zp.WithUnit(unit), zp.WithDiagnosticCallback(func(e *zp.SyntaxError) error {
+				var copies []*parse.SyntaxError
+				options := []zp.ParseOption{zp.WithExpectations(), zp.WithBackend(backend), zp.WithUnit(unit), zp.WithDiagnosticCallback(func(e *parse.SyntaxError) error {
 					events = append(events, "diagnostic")
 					copies = append(copies, e)
 					if len(e.Messages) != 1 || e.Messages[0] != "record" {
@@ -38,7 +39,7 @@ rule item = "ab" @error(message="record") #recover(skip=[^a]+)`, "main")
 				if !reflect.DeepEqual(events, want) {
 					t.Fatalf("delivery order: got %v want %v", events, want)
 				}
-				var recovered zp.SyntaxErrors
+				var recovered parse.SyntaxErrors
 				if !errors.As(err, &recovered) || len(recovered) != 2 || len(copies) != 2 {
 					t.Fatalf("recovered: %v, copies=%d", err, len(copies))
 				}
@@ -50,7 +51,7 @@ rule item = "ab" @error(message="record") #recover(skip=[^a]+)`, "main")
 
 				stop := errors.New("diagnostic stop")
 				var stopped []string
-				abort := []zp.ParseOption{zp.WithExpectations(), zp.WithBackend(backend), zp.WithUnit(unit), zp.WithDiagnosticCallback(func(*zp.SyntaxError) error {
+				abort := []zp.ParseOption{zp.WithExpectations(), zp.WithBackend(backend), zp.WithUnit(unit), zp.WithDiagnosticCallback(func(*parse.SyntaxError) error {
 					stopped = append(stopped, "diagnostic")
 					return stop
 				})}
@@ -84,7 +85,7 @@ func TestPublicStreamDiagnosticCallbackIsStreamOnly(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	callback := zp.WithDiagnosticCallback(func(*zp.SyntaxError) error { return nil })
+	callback := zp.WithDiagnosticCallback(func(*parse.SyntaxError) error { return nil })
 	if _, err := p.Parse("a", callback); err == nil {
 		t.Fatal("batch Parse accepted a stream diagnostic callback")
 	}

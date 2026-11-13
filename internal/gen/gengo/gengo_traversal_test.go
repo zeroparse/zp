@@ -16,6 +16,7 @@ import (
 	"zeroparse.dev/zp/internal/gentest"
 	"zeroparse.dev/zp/internal/value"
 	zprt "zeroparse.dev/zp/runtime"
+	"zeroparse.dev/zp/runtime/parse"
 )
 
 // Exercise the exported APIs against the same hand-built DAG, including nil,
@@ -71,7 +72,7 @@ func TestTreeRuntimeParity(t *testing.T) {
 	if !reflect.DeepEqual(a, b) {
 		t.Fatalf("walk parity: %v != %v", a, b)
 	}
-	for _, unit := range []engine.PositionUnit{engine.CodePoints, engine.Bytes} {
+	for _, unit := range []parse.PositionUnit{parse.CodePoints, parse.Bytes} {
 		for _, span := range [][2]int32{{0, 0}, {1, 2}, {3, 4}} {
 			a, b = nil, nil
 			if err := (engine.Cursor{Root: root, Unit: unit}).Range(span[0], span[1], ca); err != nil {

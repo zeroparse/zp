@@ -13,8 +13,8 @@ import (
 	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/compile"
 	"zeroparse.dev/zp/internal/engine/core"
-	"zeroparse.dev/zp/internal/limits"
 	"zeroparse.dev/zp/internal/value"
+	"zeroparse.dev/zp/runtime/parse"
 )
 
 // TestBudgetDiagnosticRecoveredLists checks the lists of recovered errors under the controls: a
@@ -29,16 +29,16 @@ func TestBudgetDiagnosticRecoveredLists(t *testing.T) {
 				continue
 			}
 			t.Run(name+"/"+mode, func(t *testing.T) {
-				a := &core.SyntaxError{Messages: []string{"retained-a"}}
-				b := &core.SyntaxError{Expected: []string{"retained-b"}}
-				prefix := &core.SyntaxError{Messages: []string{"prefix"}}
-				records := make([]*core.SyntaxError, 320)
+				a := &parse.SyntaxError{Messages: []string{"retained-a"}}
+				b := &parse.SyntaxError{Expected: []string{"retained-b"}}
+				prefix := &parse.SyntaxError{Messages: []string{"prefix"}}
+				records := make([]*parse.SyntaxError, 320)
 				for i := range records {
-					records[i] = []*core.SyntaxError{a, b, a}[i%3]
+					records[i] = []*parse.SyntaxError{a, b, a}[i%3]
 				}
 				before, _ := json.Marshal(records)
 				retained := value.Ptr(value.Data{Text: "retained", Fields: value.Fields{{Name: "keep", Value: "stable"}}})
-				p := diagnosticParser(limits.Limits{})
+				p := diagnosticParser(parse.Limits{})
 				list := core.NewErrList(records)
 				p.Memo, p.Recovered = core.NewMemoTable(), []core.RecEntry{core.ErrEntry(prefix)}
 				p.Memo.Slots = make([]*core.MemoEntry, 1)
@@ -53,7 +53,7 @@ func TestBudgetDiagnosticRecoveredLists(t *testing.T) {
 					if len(p.Recovered) != 2 || p.Recovered[0] != core.ErrEntry(prefix) || p.Recovered[1].List() != list.List() {
 						t.Fatal("recovered replay changed the prefix or did not share the list")
 					}
-					if !slices.Equal(p.RecoveredErrors(), append([]*core.SyntaxError{prefix}, records...)) {
+					if !slices.Equal(p.RecoveredErrors(), append([]*parse.SyntaxError{prefix}, records...)) {
 						t.Fatal("recovered replay changed pointer order")
 					}
 				}
@@ -160,12 +160,12 @@ func TestBudgetDiagnosticRecoveredLists(t *testing.T) {
 				}
 				if mode == "complete" {
 					// A limit of 0 is no limit; a free replay runs under a limit of one unit.
-					p.Control = core.NewBudgetControl(nil, limits.Limits{Compute: max(steps, 1)})
+					p.Control = core.NewBudgetControl(nil, parse.Limits{Compute: max(steps, 1)})
 				} else if mode == "budget" {
 					// Less than the copy itself, so failure cannot be at a later put.
-					p.Control = core.NewBudgetControl(nil, limits.Limits{Compute: 319})
+					p.Control = core.NewBudgetControl(nil, parse.Limits{Compute: 319})
 				} else {
-					p.Control = core.NewBudgetControl(newPollingContext(1), limits.Limits{})
+					p.Control = core.NewBudgetControl(newPollingContext(1), parse.Limits{})
 				}
 				err := catchFatal(t, run)
 				if mode == "complete" {
@@ -174,7 +174,7 @@ func TestBudgetDiagnosticRecoveredLists(t *testing.T) {
 					}
 					completed()
 				} else {
-					want := limits.ErrLimit
+					want := parse.ErrLimit
 					if mode == "cancel" {
 						want = context.Canceled
 					}

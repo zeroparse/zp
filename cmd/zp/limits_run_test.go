@@ -11,15 +11,16 @@ import (
 
 	"zeroparse.dev/zp"
 	"zeroparse.dev/zp/editfuzz"
+	"zeroparse.dev/zp/runtime/parse"
 )
 
 const limitsGrammar = "@start\nrule main = [a-z]* $$"
 
 // wantLimit checks that err is the limit error of kind with the given message in the output of
 // the command.
-func wantLimit(t *testing.T, what string, err error, kind zp.LimitKind, message string) {
+func wantLimit(t *testing.T, what string, err error, kind parse.LimitKind, message string) {
 	t.Helper()
-	var le *zp.LimitError
+	var le *parse.LimitError
 	if !errors.As(err, &le) || le.Kind != kind {
 		t.Fatalf("%s: error %v, want a limit error of kind %d", what, err, kind)
 	}
@@ -65,25 +66,25 @@ func TestDebugAndParseCommandsApplyLimits(t *testing.T) {
 				return
 			}
 			_, err := runCLI(t, "", args("-max-compute", "5")...)
-			wantLimit(t, "-max-compute 5", err, zp.LimitCompute, "parse compute limit exceeded: limit 5")
+			wantLimit(t, "-max-compute 5", err, parse.LimitCompute, "parse compute limit exceeded: limit 5")
 			_, err = runCLI(t, "", args("-max-memory", "5")...)
-			wantLimit(t, "-max-memory 5", err, zp.LimitMemory, "parse memory limit exceeded: limit 5")
+			wantLimit(t, "-max-memory 5", err, parse.LimitMemory, "parse memory limit exceeded: limit 5")
 			_, err = runCLI(t, "", args("-max-input", "25")...)
-			wantLimit(t, "-max-input 25", err, zp.LimitInput, "parse input limit exceeded: limit 25, length 26")
+			wantLimit(t, "-max-input 25", err, parse.LimitInput, "parse input limit exceeded: limit 25, length 26")
 			// The input comes from standard input without -i, and the limit applies to it too.
 			_, err = runCLI(t, input, cmd, "-g", g, "-max-input", "3")
-			wantLimit(t, "stdin", err, zp.LimitInput, "limit 3, length 26")
+			wantLimit(t, "stdin", err, parse.LimitInput, "limit 3, length 26")
 		})
 	}
 	// -unit bytes counts bytes.
 	_, err := runCLI(t, "", "parse", "-g", g, "-i", "abc", "-unit", "bytes", "-max-input", "2")
-	wantLimit(t, "bytes", err, zp.LimitInput, "limit 2, length 3")
+	wantLimit(t, "bytes", err, parse.LimitInput, "limit 2, length 3")
 	// -check and -stream apply the limits as well.
 	_, err = runCLI(t, "", "parse", "-g", g, "-i", input, "-check", "-max-input", "3")
-	wantLimit(t, "-check", err, zp.LimitInput, "length 26")
+	wantLimit(t, "-check", err, parse.LimitInput, "length 26")
 	st := writeFile(t, "stream.zp", "@start\nrule main = line* #stream $$\nrule line = [a-z]+ \"\\n\"")
 	_, err = runCLI(t, "", "parse", "-g", st, "-i", "ab\ncd\nef\n", "-stream", "-max-input", "4")
-	wantLimit(t, "-stream", err, zp.LimitInput, "parse input limit exceeded: limit 4")
+	wantLimit(t, "-stream", err, parse.LimitInput, "parse input limit exceeded: limit 4")
 	if _, err = runCLI(t, "", "parse", "-g", st, "-i", "ab\ncd\n", "-stream", "-max-input", "6"); err != nil {
 		t.Errorf("a stream at the limit: %v", err)
 	}
@@ -106,7 +107,7 @@ func TestCommandsApplyDepthLimit(t *testing.T) {
 	g := writeFile(t, "nested.zp", "@start\nrule main = x $$\nrule x = \"(\" x \")\" / \"a\"")
 	for _, cmd := range []string{"parse", "trace", "explain"} {
 		_, err := runCLI(t, "", cmd, "-g", g, "-i", "(((a)))", "-max-depth", "2")
-		wantLimit(t, cmd+" -max-depth 2", err, zp.LimitDepth, "nesting too deep: more than 2 nested recursive rule calls")
+		wantLimit(t, cmd+" -max-depth 2", err, parse.LimitDepth, "nesting too deep: more than 2 nested recursive rule calls")
 		if _, err := runCLI(t, "", cmd, "-g", g, "-i", "(((a)))", "-max-depth", "4"); err != nil {
 			t.Errorf("%s -max-depth 4: %v", cmd, err)
 		}
@@ -173,7 +174,7 @@ func TestEditFuzzReplayAppliesLimits(t *testing.T) {
 		t.Fatal(err)
 	}
 	seq := &editfuzz.Sequence{GrammarSHA256: editfuzz.GrammarHash([]byte(limitsGrammar)), Start: "main",
-		Backend: zp.Closure, Unit: zp.CodePoints, Initial: []byte("abc"), Operations: []editfuzz.Operation{{Kind: editfuzz.Checkpoint}}}
+		Backend: zp.Closure, Unit: parse.CodePoints, Initial: []byte("abc"), Operations: []editfuzz.Operation{{Kind: editfuzz.Checkpoint}}}
 	path, err := editfuzz.Save(dir, seq)
 	if err != nil {
 		t.Fatal(err)

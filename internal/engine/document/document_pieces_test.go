@@ -8,6 +8,7 @@ import (
 	. "zeroparse.dev/zp/internal/engine"
 	"zeroparse.dev/zp/internal/engine/core"
 	"zeroparse.dev/zp/internal/value"
+	"zeroparse.dev/zp/runtime/parse"
 )
 
 func TestDocumentPiecesCodePointNormalizationAndNodeText(t *testing.T) {
@@ -67,7 +68,7 @@ func TestDocumentPiecesCompactionPreservesEarlierNodeText(t *testing.T) {
 	program := mustCompile(t, `rule main Word = ([a-z]+ $$) #atomic
 type Word = node[string]`)
 	initial := strings.Repeat("a", core.DocumentPieceMinSize)
-	for _, unit := range []PositionUnit{CodePoints, Bytes} {
+	for _, unit := range []parse.PositionUnit{parse.CodePoints, parse.Bytes} {
 		t.Run(unit.String(), func(t *testing.T) {
 			doc, err := program.NewDocumentWith("main", initial, ParseOptions{Unit: unit})
 			if err != nil {
@@ -102,7 +103,7 @@ func TestDocumentPiecesCrossBoundaryParsing(t *testing.T) {
 	for _, backend := range []Backend{Closure, Bytecode, BytecodeIterative} {
 		t.Run(backend.String(), func(t *testing.T) {
 			program := mustCompile(t, `rule main = "x"* "aé" "b" $$`)
-			doc, err := program.NewDocumentWith("main", prefix+"a\xc3b", ParseOptions{Backend: backend, Unit: Bytes})
+			doc, err := program.NewDocumentWith("main", prefix+"a\xc3b", ParseOptions{Backend: backend, Unit: parse.Bytes})
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -119,7 +120,7 @@ func TestDocumentPiecesCrossBoundaryParsing(t *testing.T) {
 				t.Fatal("accepted an edit inside a rune spanning pieces")
 			}
 			got, err := doc.Parse()
-			want, werr := program.ParseWith("main", prefix+"aéb", ParseOptions{Backend: backend, Unit: Bytes})
+			want, werr := program.ParseWith("main", prefix+"aéb", ParseOptions{Backend: backend, Unit: parse.Bytes})
 			if resultJSON(got, err) != resultJSON(want, werr) {
 				t.Fatalf("cross-piece literal: got %s, want %s", resultJSON(got, err), resultJSON(want, werr))
 			}
@@ -129,7 +130,7 @@ func TestDocumentPiecesCrossBoundaryParsing(t *testing.T) {
 
 func TestDocumentPiecesSmallDocumentPromotion(t *testing.T) {
 	program := mustCompile(t, `rule main = [a-z]+ $$`)
-	for _, unit := range []PositionUnit{CodePoints, Bytes} {
+	for _, unit := range []parse.PositionUnit{parse.CodePoints, parse.Bytes} {
 		for _, backend := range []Backend{Closure, Bytecode, BytecodeIterative} {
 			t.Run(unit.String()+"/"+backend.String(), func(t *testing.T) {
 				initial := strings.Repeat("a", core.DocumentPieceMinSize-1)
@@ -179,7 +180,7 @@ func TestDocumentPiecesSmallDocumentPromotion(t *testing.T) {
 
 	// The decision uses logical code points, not UTF-8 byte length.
 	wide := strings.Repeat("é", core.DocumentPieceMinSize/2)
-	doc, err = program.NewDocumentWith("main", wide, ParseOptions{Unit: CodePoints})
+	doc, err = program.NewDocumentWith("main", wide, ParseOptions{Unit: parse.CodePoints})
 	if err != nil {
 		t.Fatal(err)
 	}

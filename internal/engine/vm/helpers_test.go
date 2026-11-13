@@ -6,8 +6,8 @@ import (
 
 	"zeroparse.dev/zp/internal/compile"
 	"zeroparse.dev/zp/internal/engine/core"
-	"zeroparse.dev/zp/internal/limits"
 	"zeroparse.dev/zp/internal/value"
+	"zeroparse.dev/zp/runtime/parse"
 )
 
 // catchFatal runs f and returns the error of the Fatal panic it raises, or nil.
@@ -31,7 +31,7 @@ func catchFatal(t *testing.T, f func()) error {
 
 func catchStreamPanic(f func()) (val any) { defer func() { val = recover() }(); f(); return }
 
-func stateBudgetParser(lim limits.Limits) *core.Parser {
+func stateBudgetParser(lim parse.Limits) *core.Parser {
 	prog := &core.SharedProgram{}
 	core.InitSharedProgram(prog, &compile.Program{})
 	return &core.Parser{Prog: prog, Input: core.Input{Control: core.NewBudgetControl(nil, lim)}}
@@ -48,7 +48,7 @@ func undoFixture(p *core.Parser) (*core.Frame, []*value.Node) {
 	return f, []*value.Node{old0, first0, old1, last1, latest0}
 }
 
-func diagnosticParser(lim limits.Limits) *core.Parser {
+func diagnosticParser(lim parse.Limits) *core.Parser {
 	return &core.Parser{Input: core.Input{Control: core.NewBudgetControl(nil, lim)}}
 }
 

@@ -3,6 +3,8 @@ package core
 import (
 	"math/rand"
 	"testing"
+
+	"zeroparse.dev/zp/runtime/parse"
 )
 
 // naiveLineCol is the line and column of pos in text, counted from the start, clamped to the end.
@@ -23,7 +25,7 @@ func naiveLineCol(text []rune, pos int) (int, int) {
 // and that every unit is scanned once however many queries there are.
 func TestStreamLineColMatchesScan(t *testing.T) {
 	t.Parallel()
-	for _, unit := range []PositionUnit{CodePoints, Bytes} {
+	for _, unit := range []parse.PositionUnit{parse.CodePoints, parse.Bytes} {
 		rng := rand.New(rand.NewSource(1))
 		for round := 0; round < 200; round++ {
 			text := make([]rune, 1+rng.Intn(300))
@@ -31,7 +33,7 @@ func TestStreamLineColMatchesScan(t *testing.T) {
 				text[i] = rune("ab\n"[rng.Intn(3)])
 			}
 			in := Input{Unit: unit, BaseLine: 1, BaseCol: 1}
-			if unit == Bytes {
+			if unit == parse.Bytes {
 				for _, r := range text {
 					in.Bs = append(in.Bs, byte(r))
 				}
@@ -66,7 +68,7 @@ func TestStreamLineColMatchesScan(t *testing.T) {
 func TestStreamLineColScansOnce(t *testing.T) {
 	t.Parallel()
 	const n = 2000
-	in := Input{Unit: CodePoints, BaseLine: 1, BaseCol: 1, In: make([]rune, n), Control: &BudgetControl{}}
+	in := Input{Unit: parse.CodePoints, BaseLine: 1, BaseCol: 1, In: make([]rune, n), Control: &BudgetControl{}}
 	for i := range in.In {
 		in.In[i] = 'a'
 	}

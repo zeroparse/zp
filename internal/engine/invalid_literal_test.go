@@ -11,6 +11,7 @@ import (
 
 	"zeroparse.dev/zp/internal/compile"
 	"zeroparse.dev/zp/internal/value"
+	"zeroparse.dev/zp/runtime/parse"
 )
 
 func TestInvalidUTF8LiteralMatching(t *testing.T) {
@@ -29,7 +30,7 @@ func TestInvalidUTF8LiteralMatching(t *testing.T) {
 	}
 	for _, tc := range cases {
 		for _, backend := range []Backend{Closure, Bytecode, BytecodeIterative} {
-			for _, unit := range []PositionUnit{CodePoints, Bytes} {
+			for _, unit := range []parse.PositionUnit{parse.CodePoints, parse.Bytes} {
 				t.Run(fmt.Sprintf("%q/%x/%s/%s", tc.literal, tc.input, backend, unit), func(t *testing.T) {
 					p := mustCompile(t, "rule main = "+fmt.Sprintf("%q", tc.literal)+" $$")
 					opts := ParseOptions{Backend: backend, Unit: unit}
@@ -44,11 +45,11 @@ func TestInvalidUTF8LiteralMatching(t *testing.T) {
 					}
 					if tc.ok {
 						wantEnd := utf8.RuneCountInString(tc.input)
-						if unit == Bytes {
+						if unit == parse.Bytes {
 							wantEnd = len(tc.input)
 						}
 						wantText := tc.input
-						if unit == CodePoints {
+						if unit == parse.CodePoints {
 							wantText = string([]rune(tc.input))
 						}
 						if value.D(value.D(n).Children[0]).Text != wantText {
@@ -69,10 +70,10 @@ func TestReplacementLiteralTextPredicate(t *testing.T) {
 	prog := mustCompile(t, `rule main = c:"�" {text($c) == "�"} $$`)
 	for _, input := range []string{"\xff", "\x80", "\xc3", "�"} {
 		for _, backend := range []Backend{Closure, Bytecode, BytecodeIterative} {
-			for _, unit := range []PositionUnit{Bytes, CodePoints} {
+			for _, unit := range []parse.PositionUnit{parse.Bytes, parse.CodePoints} {
 				for _, recognize := range []bool{false, true} {
 					_, err := prog.ParseWith("main", input, ParseOptions{Backend: backend, Unit: unit, Recognize: recognize})
-					want := unit == CodePoints || utf8.ValidString(input)
+					want := unit == parse.CodePoints || utf8.ValidString(input)
 					if (err == nil) != want {
 						t.Errorf("%s/%s recognize=%v input=%x: %v", backend, unit, recognize, input, err)
 					}
@@ -85,7 +86,7 @@ func TestReplacementLiteralTextPredicate(t *testing.T) {
 func TestInvalidUTF8LiteralStream(t *testing.T) {
 	t.Parallel()
 	for _, backend := range []Backend{Closure, Bytecode, BytecodeIterative} {
-		for _, unit := range []PositionUnit{CodePoints, Bytes} {
+		for _, unit := range []parse.PositionUnit{parse.CodePoints, parse.Bytes} {
 			for _, expr := range []string{`"�"`, `[�]`, `"x" / "�"`, `"a�"`} {
 				t.Run(fmt.Sprintf("%s/%s/%s", backend, unit, expr), func(t *testing.T) {
 					p := mustCompile(t, "rule main = item* #stream $$\nrule item = "+expr+` "\n"`)
@@ -98,7 +99,7 @@ func TestInvalidUTF8LiteralStream(t *testing.T) {
 					err := p.ParseStreamWith("main", strings.NewReader(input), func(n *value.Node) error {
 						count++
 						width := utf8.RuneCountInString(item)
-						if unit == Bytes {
+						if unit == parse.Bytes {
 							width = len(item)
 						}
 						if value.D(n).Start != int32((count-1)*width) || value.D(n).End != int32(count*width) {
@@ -118,7 +119,7 @@ func TestInvalidUTF8LiteralStream(t *testing.T) {
 func TestOpenPipeInvalidUTF8Literal(t *testing.T) {
 	t.Parallel()
 	for _, backend := range []Backend{Closure, Bytecode, BytecodeIterative} {
-		for _, unit := range []PositionUnit{CodePoints, Bytes} {
+		for _, unit := range []parse.PositionUnit{parse.CodePoints, parse.Bytes} {
 			for _, input := range []string{"\xff\n", "\x80\n", "\xc3\n", "�\n"} {
 				t.Run(fmt.Sprintf("%s/%s/%x", backend, unit, input), func(t *testing.T) {
 					prog := mustCompile(t, `rule main = item* #stream $$
@@ -152,7 +153,7 @@ rule item = "�" "\n"`)
 					select {
 					case n := <-emitted:
 						width := len(input)
-						if unit == CodePoints {
+						if unit == parse.CodePoints {
 							width = utf8.RuneCountInString(input)
 						}
 						if value.D(n).End != int32(width) {
@@ -191,7 +192,7 @@ func BenchmarkByteLiteralMatching(b *testing.B) {
 				if _, err := prog.rule(backend, "main"); err != nil {
 					b.Fatal(err)
 				}
-				for _, unit := range []PositionUnit{Bytes, CodePoints} {
+				for _, unit := range []parse.PositionUnit{parse.Bytes, parse.CodePoints} {
 					for _, recognize := range []bool{true, false} {
 						b.Run(fmt.Sprintf("%x/%t/%s/%s/Recognize%t", literal, match, backend, unit, recognize), func(b *testing.B) {
 							opts := ParseOptions{Backend: backend, Unit: unit, Recognize: recognize}

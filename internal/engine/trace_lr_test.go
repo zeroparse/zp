@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/internal/engine/core"
+	"zeroparse.dev/zp/runtime/parse"
 )
 
 // A wrapper can return a growing seed without examining another character.
@@ -22,7 +23,7 @@ rule seed = ""`,
 	} {
 		prog := mustCompile(t, src)
 		for _, input := range []string{"", "é", "éé", "é?"} {
-			for _, unit := range []PositionUnit{CodePoints, Bytes} {
+			for _, unit := range []parse.PositionUnit{parse.CodePoints, parse.Bytes} {
 				for _, backend := range []Backend{Closure, Bytecode, BytecodeIterative} {
 					for _, recognize := range []bool{false, true} {
 						o := ParseOptions{Unit: unit, Backend: backend, Recognize: recognize}
@@ -57,7 +58,7 @@ rule step = expr
 rule seed = ^ "é"`, "\né", true},
 	} {
 		prog := mustCompile(t, c.src)
-		for _, unit := range []PositionUnit{CodePoints, Bytes} {
+		for _, unit := range []parse.PositionUnit{parse.CodePoints, parse.Bytes} {
 			for _, backend := range []Backend{Closure, Bytecode, BytecodeIterative} {
 				for _, recognize := range []bool{false, true} {
 					seen := false

@@ -11,14 +11,14 @@ The examples use a parser `p` compiled as in [Running Parsers](running-parsers.m
 ## Cancelling a Parse
 
 `Parse` accepts per-invocation `WithContext` and `WithLimits` options. A zero
-limit selects the default described [below](#the-default-compute-limit); `zp.Unlimited` disables the limit. The counter
+limit selects the default described [below](#the-default-compute-limit); `parse.Unlimited` disables the limit. The counter
 resets for the next call. Generated Go parsers offer the context and a finite `Compute` or `Memory` only when
 generated with `-limits`; see [the generated Go API](generated-go-api.md#cancellation-and-compute-limits). Generated TypeScript parsers
 offer the `signal` option and the `compute` limit only with `-limits` too; see
 [TypeScript](typescript.md#cancellation-and-compute-limits). `Input` and `Depth` work in every form.
 
 `WithLimits` merges field by field: a nonzero field overrides the value of an earlier `WithLimits`, and a zero field
-leaves it unchanged, so `WithLimits(zp.Limits{Input: n})` followed by `WithLimits(zp.Limits{Depth: d})` sets both. The
+leaves it unchanged, so `WithLimits(parse.Limits{Input: n})` followed by `WithLimits(parse.Limits{Depth: d})` sets both. The
 same holds between the defaults a `Document` is constructed with and the options of one of its `Parse` calls. A field
 that no option sets takes its default; there is no way to reset a field to its default once an earlier option set it.
 
@@ -27,13 +27,13 @@ ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 defer cancel()
 node, err := p.Parse(input,
     zp.WithContext(ctx),
-    zp.WithLimits(zp.Limits{Compute: 5_000_000}),
+    zp.WithLimits(parse.Limits{Compute: 5_000_000}),
 )
 switch {
 case errors.Is(err, context.Canceled), errors.Is(err, context.DeadlineExceeded):
     // The invocation was cancelled.
-case errors.Is(err, zp.ErrLimit):
-    // A compute limit was reached; use errors.As for *zp.LimitError details.
+case errors.Is(err, parse.ErrLimit):
+    // A compute limit was reached; use errors.As for *parse.LimitError details.
 case err != nil:
     // Syntax or another parse error.
 case node != nil:
@@ -57,11 +57,11 @@ a callback of yours. The exact rules are in
 A parse with a zero `Compute` is not unbounded. It gets a budget of `max(2^20, 1024 * n)`, where `n` is the length of
 the input in the position unit, so a parse of untrusted input stops without your choosing a limit. Input whose
 cost per element is higher than 1024 on average, such as a grammar that backtracks heavily, fails with a
-`*zp.LimitError`, whose `Limit` is the resolved budget. Pass a larger `Compute` when you expect that cost, or
-`zp.Unlimited` when the input is trusted:
+`*parse.LimitError`, whose `Limit` is the resolved budget. Pass a larger `Compute` when you expect that cost, or
+`parse.Unlimited` when the input is trusted:
 
 ```go
-node, err := p.Parse(input, zp.WithLimits(zp.Limits{Compute: zp.Unlimited}))
+node, err := p.Parse(input, zp.WithLimits(parse.Limits{Compute: parse.Unlimited}))
 ```
 
 A parse with `Unlimited` and no context runs without any control, which is the fastest form. A stream does not know
@@ -72,14 +72,14 @@ with `-limits`; a parser generated without it spends no budget and accepts only 
 
 ## Bounding the Input Length
 
-`Limits.Input` bounds the length of the input in the position unit. Its default is `zp.Unlimited`: the default
+`Limits.Input` bounds the length of the input in the position unit. Its default is `parse.Unlimited`: the default
 budget already grows with the input, so a long input costs in proportion to its length. Set it when you want to
 refuse input above a size before spending any work on it:
 
 ```go
-node, err := p.Parse(input, zp.WithLimits(zp.Limits{Input: 1 << 20}))
-var le *zp.LimitError
-if errors.As(err, &le) && le.Kind == zp.LimitInput {
+node, err := p.Parse(input, zp.WithLimits(parse.Limits{Input: 1 << 20}))
+var le *parse.LimitError
+if errors.As(err, &le) && le.Kind == parse.LimitInput {
     // le.Limit is the Input limit and le.Requested is the length of the input.
 }
 ```
@@ -89,20 +89,20 @@ runs and even before a canceled context is noticed. A `Document` checks the text
 that makes the text too long fails the next `Parse` and a later edit that shortens it makes the `Parse` succeed. A
 stream fails when the parser asks for a unit beyond the limit and the stream has one, however your reader chunks the
 input, and the error reports the number of units the parser asked for. A finite `Input` needs no budget: with
-`Compute: zp.Unlimited` and no context the parse still runs without a control.
+`Compute: parse.Unlimited` and no context the parse still runs without a control.
 
 ## Bounding Memory
 
 `Limits.Memory` bounds, in bytes, the storage a parse takes into use: nodes and their lists, memo entries and
 their indexes, typed values, the decoded input, the working stacks, the parser's bookkeeping tables, and the strings
 that actions concatenate. Its default is
-`zp.Unlimited`, because the default compute limit already bounds memory in proportion to the work. Set it when you
+`parse.Unlimited`, because the default compute limit already bounds memory in proportion to the work. Set it when you
 want a bound in bytes that does not also cut the time a parse may take:
 
 ```go
-node, err := p.Parse(input, zp.WithLimits(zp.Limits{Memory: 64 << 20}))
-var le *zp.LimitError
-if errors.As(err, &le) && le.Kind == zp.LimitMemory {
+node, err := p.Parse(input, zp.WithLimits(parse.Limits{Memory: 64 << 20}))
+var le *parse.LimitError
+if errors.As(err, &le) && le.Kind == parse.LimitMemory {
     // le.Limit is the Memory limit and le.Used is the count when the parse stopped.
 }
 ```
@@ -121,18 +121,18 @@ but they are the same on every run of the same parse.
 ## Bounding the Nesting Depth
 
 `Limits.Depth` bounds the nesting of recursive rule calls. Unlike the other limits it is always on: zero selects
-100,000, or 10,000,000 for `BytecodeIterative`, and a deeper parse fails with a `*zp.LimitError` of kind
-`zp.LimitDepth`. It needs no control, so setting it alone keeps the fastest form of the parse:
+100,000, or 10,000,000 for `BytecodeIterative`, and a deeper parse fails with a `*parse.LimitError` of kind
+`parse.LimitDepth`. It needs no control, so setting it alone keeps the fastest form of the parse:
 
 ```go
-node, err := p.Parse(input, zp.WithLimits(zp.Limits{Depth: 1000}))
-var le *zp.LimitError
-if errors.As(err, &le) && le.Kind == zp.LimitDepth {
+node, err := p.Parse(input, zp.WithLimits(parse.Limits{Depth: 1000}))
+var le *parse.LimitError
+if errors.As(err, &le) && le.Kind == parse.LimitDepth {
     // le.Limit is the depth limit.
 }
 ```
 
-`zp.Unlimited` disables the limit only on `BytecodeIterative`, which keeps rule calls on the heap; the Closure and
+`parse.Unlimited` disables the limit only on `BytecodeIterative`, which keeps rule calls on the heap; the Closure and
 Bytecode backends and generated parsers nest rule calls on the goroutine stack and reject it as an option error. See
 [Deep Nesting](backends.md#deep-nesting-and-the-depth-limit) for how far each backend can go.
 
@@ -147,7 +147,7 @@ for the default, or `unlimited`:
 zp parse -g grammar.zp -max-compute unlimited -max-input 1048576 -i "$input"
 ```
 
-A parse that reaches a limit prints the `*zp.LimitError` message and exits with status 1. `zp test` reports it as
+A parse that reaches a limit prints the `*parse.LimitError` message and exits with status 1. `zp test` reports it as
 the runtime error of the case. A saved `edit-fuzz` sequence does not record the limits, so `edit-fuzz -replay` takes
 `-max-compute`, `-max-memory`, `-max-input` and `-max-depth` again. A `Document` reuses earlier work and spends less than a fresh parse, so `edit-fuzz`
 compares nothing at a check where either parse exhausts its budget.

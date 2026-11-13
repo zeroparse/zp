@@ -8,6 +8,7 @@ import (
 	"zeroparse.dev/zp/internal/compile"
 	"zeroparse.dev/zp/internal/gentest"
 	"zeroparse.dev/zp/internal/value"
+	"zeroparse.dev/zp/runtime/parse"
 )
 
 // compileMessage compiles src and returns the error message, or "" if it compiles.
@@ -44,7 +45,7 @@ rule other R = {n := n + 1} "b" => R{N: n, S: s, B: b, M: m, Z: z}
 	prog := mustCompile(t, src)
 	const want = `R{B: false, M: -3, N: 7, S: "init", Z: 0}`
 	for _, backend := range []Backend{Closure, Bytecode, BytecodeIterative} {
-		for _, unit := range []PositionUnit{CodePoints, Bytes} {
+		for _, unit := range []parse.PositionUnit{parse.CodePoints, parse.Bytes} {
 			opts := ParseOptions{Backend: backend, Unit: unit}
 			n, err := prog.ParseWith("main", "a", opts)
 			if err != nil || n.String() != want {

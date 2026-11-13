@@ -42,6 +42,7 @@ import (
 	"zeroparse.dev/zp/internal/engine"
 	igen "zeroparse.dev/zp/internal/gen"
 	iropt "zeroparse.dev/zp/internal/ir/opt"
+	"zeroparse.dev/zp/runtime/parse"
 )
 
 const usage = `usage: zp <command> [flags] [arguments]
@@ -268,7 +269,7 @@ func run(args []string, stdin io.Reader, stdout io.Writer) error {
 	}
 	switch args[0] {
 	case "parse":
-		return parse(args[1:], stdin, stdout)
+		return runParse(args[1:], stdin, stdout)
 	case "test":
 		return testCmd(args[1:], stdout)
 	case "gen":
@@ -596,7 +597,7 @@ func loadSourceParser(path, start, command string) (*zp.Parser, error) {
 	return p, nil
 }
 
-func parse(args []string, stdin io.Reader, stdout io.Writer) error {
+func runParse(args []string, stdin io.Reader, stdout io.Writer) error {
 	fs := flag.NewFlagSet("parse", flag.ContinueOnError)
 	grammarPath := fs.String("g", "", "grammar file (.zp, .json, or .zpc)")
 	start := fs.String("s", "", "start rule name (default: the one saved in a .zpc, otherwise the grammar's default start rule)")
@@ -629,9 +630,9 @@ func parse(args []string, stdin io.Reader, stdout io.Writer) error {
 	var unit zp.ParseOption
 	switch *unitName {
 	case "codepoints":
-		unit = zp.WithUnit(zp.CodePoints)
+		unit = zp.WithUnit(parse.CodePoints)
 	case "bytes":
-		unit = zp.WithUnit(zp.Bytes)
+		unit = zp.WithUnit(parse.Bytes)
 	default:
 		return fmt.Errorf("unknown unit %q", *unitName)
 	}

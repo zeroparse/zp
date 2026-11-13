@@ -14,7 +14,7 @@ import (
 	"zeroparse.dev/zp/internal/gen"
 	"zeroparse.dev/zp/internal/gen/gengo"
 	"zeroparse.dev/zp/internal/gentest"
-	"zeroparse.dev/zp/internal/limits"
+	"zeroparse.dev/zp/runtime/parse"
 )
 
 // External rule-table entry and nested direct calls must count the same rule
@@ -79,9 +79,9 @@ rule left = left "+" "é" / "é"
 	// replace them before generated parsers receive the input.
 	for _, name := range []string{"main", "one", "two", "three", "four", "five", "cap", "bind", "cut", "recovering", "expression", "left"} {
 		for _, input := range []string{"é", "?", "é!", "-é", "é+é", "", "\xff", "\xffé", "\xe2\x82", "�é", "😀"} {
-			for _, unit := range []engine.PositionUnit{engine.CodePoints, engine.Bytes} {
-				_, err := prog.ParseWith(name, input, engine.ParseOptions{Expectations: true, Unit: unit, Limits: limits.Limits{Depth: 5}, Recognize: true})
-				fmt.Fprintf(&rows, "{%q,%q,%s,%s},\n", name, input, map[engine.PositionUnit]string{engine.CodePoints: "CodePoints", engine.Bytes: "Bytes"}[unit], strconv.Quote(fmt.Sprint(err)))
+			for _, unit := range []parse.PositionUnit{parse.CodePoints, parse.Bytes} {
+				_, err := prog.ParseWith(name, input, engine.ParseOptions{Expectations: true, Unit: unit, Limits: parse.Limits{Depth: 5}, Recognize: true})
+				fmt.Fprintf(&rows, "{%q,%q,%s,%s},\n", name, input, map[parse.PositionUnit]string{parse.CodePoints: "CodePoints", parse.Bytes: "Bytes"}[unit], strconv.Quote(fmt.Sprint(err)))
 			}
 		}
 	}

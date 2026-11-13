@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	. "zeroparse.dev/zp/internal/engine"
+	"zeroparse.dev/zp/runtime/parse"
 )
 
 const traceResumeGrammar = `rule main = lines $$
@@ -16,7 +17,7 @@ rule line = [a-zé]+ #atomic "\n"`
 // skipped by repetition resumption into synthetic calls or memo hits.
 func TestTraceDocumentReusedElements(t *testing.T) {
 	for _, backend := range []Backend{Closure, Bytecode, BytecodeIterative} {
-		for _, unit := range []PositionUnit{CodePoints, Bytes} {
+		for _, unit := range []parse.PositionUnit{parse.CodePoints, parse.Bytes} {
 			for _, failedRoot := range []bool{false, true} {
 				t.Run(fmt.Sprintf("%s/%s/failed-root=%t", backend, unit, failedRoot), func(t *testing.T) {
 					src := traceResumeGrammar
@@ -132,7 +133,7 @@ func TestTraceDocumentReusedElements(t *testing.T) {
 
 func TestTraceDocumentReusedElementsPanicRetry(t *testing.T) {
 	for _, backend := range []Backend{Closure, Bytecode, BytecodeIterative} {
-		for _, unit := range []PositionUnit{CodePoints, Bytes} {
+		for _, unit := range []parse.PositionUnit{parse.CodePoints, parse.Bytes} {
 			t.Run(fmt.Sprintf("%s/%s", backend, unit), func(t *testing.T) {
 				prog := mustCompile(t, traceResumeGrammar)
 				opts := ParseOptions{Backend: backend, Unit: unit}

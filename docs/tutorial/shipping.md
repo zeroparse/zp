@@ -67,7 +67,7 @@ zp parse -g config.zp -check -backend bytecode-iterative < example.conf   # vali
 ```
 
 ```go
-n, err := p.Parse("abc=12", zp.WithBackend(zp.Bytecode)) // also zp.WithUnit(zp.Bytes), zp.RecognizeOnly()
+n, err := p.Parse("abc=12", zp.WithBackend(zp.Bytecode)) // also zp.WithUnit(parse.Bytes), zp.RecognizeOnly()
 ```
 
 `zp compile -g config.zp -o config.zpc` saves a compiled grammar that `zp parse` accepts in place of the

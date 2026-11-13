@@ -11,6 +11,7 @@ import (
 	"path/filepath"
 
 	"zeroparse.dev/zp"
+	"zeroparse.dev/zp/runtime/parse"
 	"zeroparse.dev/zp/sample"
 )
 
@@ -28,10 +29,10 @@ type Options struct {
 	Backend zp.Backend
 	// Unit is the position unit of the Documents, the fresh parses and the edits. The zero value is
 	// CodePoints.
-	Unit zp.PositionUnit
+	Unit parse.PositionUnit
 	// Limits bound the Documents and the fresh parses; see Sequence.Limits. The zero value selects
 	// the defaults.
-	Limits zp.Limits
+	Limits parse.Limits
 	// Seed selects the generated sequences. The same seed, options and package version generate the same
 	// sequences with the same Go release, but a saved Sequence, not a seed, is the reproducer.
 	Seed uint64
@@ -232,7 +233,7 @@ func (g *generator) next(r *replayer, last bool) Operation {
 		end += g.rng.IntN(min(n-start, 8) + 1)
 	}
 	op := Operation{Kind: Edit, Start: start, End: end, Text: g.replacement()}
-	if r.seq.Unit == zp.Bytes {
+	if r.seq.Unit == parse.Bytes {
 		op.Start, op.End = b[start], b[end]
 	}
 	return op

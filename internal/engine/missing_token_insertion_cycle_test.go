@@ -9,6 +9,7 @@ import (
 
 	"zeroparse.dev/zp/internal/engine/core"
 	"zeroparse.dev/zp/internal/value"
+	"zeroparse.dev/zp/runtime/parse"
 )
 
 // insertionCycle is left-recursive only through an insertion: without insertion, a calls itself
@@ -74,7 +75,7 @@ func TestMissingTokensInsertionOnlyLeftRecursionLimits(t *testing.T) {
 		if jerr != nil {
 			t.Fatal(jerr)
 		}
-		var recovered SyntaxErrors
+		var recovered parse.SyntaxErrors
 		if errors.As(err, &recovered) {
 			err = nil
 		}
@@ -90,7 +91,7 @@ func TestMissingTokensInsertionOnlyLeftRecursionLimits(t *testing.T) {
 		capped := false
 		for limit := 1; limit <= 50; limit++ {
 			n, err := prog.ParseWith("main", input, ParseOptions{Expectations: true, MissingTokens: limit})
-			var exceeded *MissingTokenLimitError
+			var exceeded *parse.MissingTokenLimitError
 			if errors.As(err, &exceeded) {
 				if capped {
 					t.Fatalf("%q: limit %d exceeded after a smaller limit sufficed", input, limit)

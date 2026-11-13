@@ -14,6 +14,7 @@ import (
 	"zeroparse.dev/zp/internal/engine"
 	"zeroparse.dev/zp/internal/gen"
 	"zeroparse.dev/zp/internal/gentest"
+	"zeroparse.dev/zp/runtime/parse"
 )
 
 func TestLiteralTextPredicateDispatchGeneration(t *testing.T) {
@@ -92,9 +93,9 @@ func TestGeneratedLiteralDispatchWorkload(t *testing.T) {
 		for i := range workload.inputs {
 			input := &workload.inputs[i]
 			for _, unit := range []struct {
-				unit engine.PositionUnit
+				unit parse.PositionUnit
 				key  string
-			}{{engine.CodePoints, "codePoints"}, {engine.Bytes, "bytes"}} {
+			}{{parse.CodePoints, "codePoints"}, {parse.Bytes, "bytes"}} {
 				_, parseErr := prog.ParseWith("main", input.Value, engine.ParseOptions{Expectations: true, Unit: unit.unit})
 				input.Expected = append(input.Expected, literalDispatchExpected{Unit: unit.key, Accepted: parseErr == nil})
 			}

@@ -8,12 +8,13 @@ import (
 	. "zeroparse.dev/zp/internal/engine"
 	"zeroparse.dev/zp/internal/engine/core"
 	"zeroparse.dev/zp/internal/value"
+	"zeroparse.dev/zp/runtime/parse"
 )
 
 func TestTraceLifecycleDocumentDetachment(t *testing.T) {
 	prog := mustCompile(t, records)
 	for _, b := range []Backend{Closure, Bytecode, BytecodeIterative} {
-		for _, u := range []PositionUnit{CodePoints, Bytes} {
+		for _, u := range []parse.PositionUnit{parse.CodePoints, parse.Bytes} {
 			for _, outcome := range []string{"success", "syntax", "trace-panic"} {
 				t.Run(fmt.Sprintf("%s/%s/%s", b, u, outcome), func(t *testing.T) {
 					text := "#records\na=1\nbc=22\n"
@@ -46,7 +47,7 @@ func TestTraceLifecycleDocumentDetachment(t *testing.T) {
 							t.Fatalf("node=%v err=%v panic=%v", n, err, got)
 						}
 					case "syntax":
-						var se *SyntaxError
+						var se *parse.SyntaxError
 						if got != nil || n != nil || !errors.As(err, &se) {
 							t.Fatalf("node=%v err=%v panic=%v", n, err, got)
 						}
