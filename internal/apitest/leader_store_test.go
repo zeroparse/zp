@@ -1,4 +1,4 @@
-package zp_test
+package apitest_test
 
 import (
 	"fmt"

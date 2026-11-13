@@ -1,4 +1,4 @@
-package zp_test
+package apitest_test
 
 import (
 	"fmt"
@@ -21,6 +21,7 @@ import (
 // those of rules on no left-recursion cycle that read no variable, whose evaluations no growth
 // can tell apart.
 func TestBodyEvaluationsReplay(t *testing.T) {
+	chdirModuleRoot(t)
 	dirs, err := filepath.Glob("testdata/grammars/*/*.zp")
 	if err != nil || len(dirs) == 0 {
 		t.Fatalf("no grammars: %v", err)
