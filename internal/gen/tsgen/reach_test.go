@@ -29,3 +29,25 @@ func TestGeneratedTSLeavesOutUnreachableRules(t *testing.T) {
 		t.Errorf("rule names are not all listed")
 	}
 }
+
+// A Document parser whose only start rule is main must keep the bodies of the plain rules that main
+// calls, with and without Recognize: the reach of the printed calls and the generated rules must
+// agree, which a test that marks every rule as a start rule cannot show.
+func TestGeneratedTSDocumentKeepsPlainRules(t *testing.T) {
+	t.Parallel()
+	g := mustParse("@start\nrule main = item* $$\nrule item = word / num\nrule word = [a-z]+\nrule num = [0-9]+")
+	for _, opts := range []gen.GenOptions{
+		{Start: "main", Document: true},
+		{Start: "main", Document: true, Recognize: true},
+		{Start: "main", Document: true, Types: true},
+	} {
+		code, err := gentest.GenerateTSBundle(g, opts)
+		if err != nil {
+			t.Fatalf("%+v: %v", opts, err)
+		}
+		src := string(code)
+		if got := len(regexp.MustCompile(`R\d+\.body = e\d+;`).FindAllString(src, -1)); got != 4 {
+			t.Errorf("%+v: %d rules have a body, want 4", opts, got)
+		}
+	}
+}

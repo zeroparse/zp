@@ -313,7 +313,8 @@ and, with `-types`, `parseAST(options?)`.
 - A parse reuses the results of earlier parses that the edits since left valid, by
   the rules of the Go `Document`. `stats()` returns `{ evaluated, reused }`, the
   rule evaluations and the reused results of the last parse, which equal the Go
-  `Stats` of the same grammar, text and edits.
+  `Stats` after `Parse` of the same grammar, text and edits. The Go `ParseAST`
+  keeps its own typed memo, so the Go `Stats` after it can differ.
 - A returned tree can share nodes with the results of later parses, so mutating it
   can change what they contain. A reused result whose position an edit moved is
   returned in copies, which leave earlier trees unchanged.
