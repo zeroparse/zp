@@ -1,6 +1,6 @@
 //go:build zp_snapshot_position_overlays
 
-package engine
+package document_test
 
 import (
 	"context"
@@ -8,6 +8,12 @@ import (
 	"runtime"
 	"strings"
 	"testing"
+
+	. "zeroparse.dev/zp/internal/engine"
+	"zeroparse.dev/zp/internal/engine/core"
+	"zeroparse.dev/zp/internal/engine/document"
+	"zeroparse.dev/zp/internal/value"
+	"zeroparse.dev/zp/runtime/parse"
 )
 
 func TestSnapshotPositionOverlaysAcrossEdits(t *testing.T) {
@@ -26,7 +32,7 @@ rule item = x:[a-z] => Item{At: $x.Start, Text: text($x)}`,
 				t.Fatal(err)
 			}
 			var versions []*Snapshot
-			var expected []*Node
+			var expected []*parse.Node
 			for _, edit := range []struct {
 				start, end int
 				text       string
@@ -47,7 +53,7 @@ rule item = x:[a-z] => Item{At: $x.Start, Text: text($x)}`,
 				}
 				if len(versions) == 1 {
 					wantOverlay := !strings.Contains(src, "$x.Start")
-					if (s.graph.positions != nil) != wantOverlay {
+					if s.Graph().PositionOverlay() != wantOverlay {
 						t.Fatal("prefix-shift overlay eligibility ignored action position values")
 					}
 				}
@@ -65,22 +71,22 @@ rule item = x:[a-z] => Item{At: $x.Start, Text: text($x)}`,
 	}
 }
 
-func equalSnapshotNodePositions(got SnapshotNode, want *Node) bool {
+func equalSnapshotNodePositions(got document.SnapshotNode, want *parse.Node) bool {
 	if !got.Valid() || want == nil {
 		return got.Valid() == (want != nil)
 	}
-	if got.Start() != want.Start || got.End() != want.End || got.Type() != want.Type() || got.Rule() != want.Rule() || got.ChildCount() != len(want.Children) {
+	if got.Start() != int32(want.Start()) || got.End() != int32(want.End()) || got.Type() != want.Type() || got.Rule() != want.Rule() || got.ChildCount() != len(value.D(want).Children) {
 		return false
 	}
-	for i, child := range want.Children {
+	for i, child := range value.D(want).Children {
 		if !equalSnapshotNodePositions(got.Child(i), child) {
 			return false
 		}
 	}
-	for _, field := range want.Fields {
-		if child, ok := field.Value.(*Node); ok {
+	for _, field := range value.D(want).Fields {
+		if child, ok := field.Value.(*parse.Node); ok {
 			v, exists := got.Field(field.Name)
-			handle, valid := v.(SnapshotNode)
+			handle, valid := v.(document.SnapshotNode)
 			if !exists || !valid || !equalSnapshotNodePositions(handle, child) {
 				return false
 			}
@@ -115,7 +121,7 @@ rule item = .`)
 			if err != nil {
 				t.Fatal(err)
 			}
-			if shifted.graph.positions == nil || !equalSnapshotNodePositions(shifted.Root(), fresh) || shifted.Materialize().String() != fresh.String() {
+			if !shifted.Graph().PositionOverlay() || !equalSnapshotNodePositions(shifted.Root(), fresh) || shifted.Materialize().String() != fresh.String() {
 				t.Fatal("shifted byte/code-point positions differ from fresh parse")
 			}
 			if first.Text() != oldText || first.Root().Start() != 0 {
@@ -128,7 +134,7 @@ rule item = .`)
 
 func TestSnapshotPositionOverlayCancellationDuringMetadataCopy(t *testing.T) {
 	t.Parallel()
-	if !budgetControlsEnabled {
+	if !core.BudgetControlsEnabled {
 		t.Skip("budget control reference")
 	}
 	prog := mustCompile(t, `rule main = -[ ]* item* $$
