@@ -40,6 +40,9 @@ func (v *View) expr(n core.Node) (grammar.Expr, error) {
 	if e, ok := v.Origin[n]; ok {
 		return e, nil
 	}
+	if l, ok := v.chainOf(n); ok {
+		return v.chainExpr(n, l)
+	}
 	if s, ok := v.replaces[n]; ok {
 		if e, ok := v.Origin[s]; ok {
 			if r, err := v.withParts(n, e); r != nil || err != nil {
@@ -189,7 +192,19 @@ func (v *View) withParts(n core.Node, e grammar.Expr) (grammar.Expr, error) {
 func (v *View) BuiltTexts() []string {
 	var out []string
 	for _, r := range v.Module.Rules {
+		// The nodes of the attributes of an expression of several attributes below the outermost
+		// one are written with it, as one expression.
+		inner := map[core.Node]bool{}
 		core.Walk(r.Body, func(n core.Node) {
+			if inner[n] {
+				return
+			}
+			if l, ok := v.chainOf(n); ok {
+				_, parts, _ := v.chainParts(n, l)
+				for _, p := range parts[1:] {
+					inner[p] = true
+				}
+			}
 			if _, ok := v.Origin[n]; ok {
 				return
 			}
@@ -204,4 +219,165 @@ func (v *View) BuiltTexts() []string {
 	}
 	slices.Sort(out)
 	return out
+}
+
+// An expression of several attributes, as `(X @error(message="m")) #recover(skip=s)`, is one
+// grammar expression that the module builds into one node per attribute, the last attribute
+// outermost: a Label for @error and @diagnostic, a Recover for #recover, a Missing for #missing,
+// and for #stream the Stream of the repetition, innermost. Only the outermost node has the
+// expression as its origin. An attrChain records the others, so that the view writes the nodes
+// that it keeps back as one expression.
+type attrChain struct {
+	e *grammar.Attributed
+	// nodes[i] is the node of the module that attribute i is built into, nil for #stream, whose
+	// node is stream.
+	nodes  []core.Node
+	stream core.Node
+}
+
+// A chainLink is the place of a node in an attrChain: the attribute at it is built from.
+type chainLink struct {
+	chain *attrChain
+	at    int
+}
+
+// attrChains returns the place of each node of the module of src that an attribute of an
+// expression of several attributes is built into.
+func attrChains(src *Source) map[core.Node]chainLink {
+	links := map[core.Node]chainLink{}
+	for _, r := range src.Module.Rules {
+		core.Walk(r.Body, func(n core.Node) {
+			e, ok := src.Origin[n].(*grammar.Attributed)
+			if !ok || len(e.Attrs) < 2 {
+				return
+			}
+			c := &attrChain{e: e, nodes: make([]core.Node, len(e.Attrs))}
+			streamAt := -1
+			node := n
+			for i := len(e.Attrs) - 1; i >= 0; i-- {
+				if e.Attrs[i].Name == "stream" {
+					streamAt = i
+					continue
+				}
+				if !attrNode(e.Attrs[i].Name, node) {
+					return
+				}
+				c.nodes[i], node = node, attrBody(node)
+			}
+			if streamAt >= 0 {
+				if _, ok := node.(*core.Stream); !ok {
+					return
+				}
+				c.stream = node
+				links[node] = chainLink{c, streamAt}
+			}
+			for i, x := range c.nodes {
+				if x != nil {
+					links[x] = chainLink{c, i}
+				}
+			}
+		})
+	}
+	return links
+}
+
+// attrNode reports whether n is of the kind that the attribute name is built into.
+func attrNode(name string, n core.Node) bool {
+	switch n.(type) {
+	case *core.Label:
+		return name == "error" || name == "diagnostic"
+	case *core.Recover:
+		return name == "recover"
+	case *core.Missing:
+		return name == "missing"
+	}
+	return false
+}
+
+// attrBody returns the operand of the attribute node n.
+func attrBody(n core.Node) core.Node {
+	switch n := n.(type) {
+	case *core.Label:
+		return n.Body
+	case *core.Recover:
+		return n.Body
+	case *core.Missing:
+		return n.Lit
+	case *core.Stream:
+		return n.Repeat
+	}
+	return nil
+}
+
+// chainOf returns the place in an attrChain of the node n of the view: that of n, or of the node
+// of the module that n replaces.
+func (v *View) chainOf(n core.Node) (chainLink, bool) {
+	if l, ok := v.chains[n]; ok {
+		return l, true
+	}
+	if s, ok := v.replaces[n]; ok {
+		l, ok := v.chains[s]
+		return l, ok
+	}
+	return chainLink{}, false
+}
+
+// chainParts follows the chain of l from its node n of the view down to the operand of the
+// attributes: keep reports the attributes whose nodes the view keeps (a rule may drop one, as N7
+// drops a label), parts are n and the kept nodes below it, and body is the operand.
+func (v *View) chainParts(n core.Node, l chainLink) (keep []bool, parts []core.Node, body core.Node) {
+	c := l.chain
+	keep = make([]bool, len(c.e.Attrs))
+	parts = []core.Node{n}
+	node := n
+	is := func(x, src core.Node) bool { return x == src || v.replaces[x] == src }
+	for i := l.at; i >= 0; i-- {
+		if src := c.nodes[i]; src != nil && is(node, src) {
+			keep[i] = true
+			if node != n {
+				parts = append(parts, node)
+			}
+			node = attrBody(node)
+		}
+	}
+	if c.stream != nil && is(node, c.stream) {
+		// #stream has no node of its own: it stays with the Stream.
+		for i, a := range c.e.Attrs {
+			keep[i] = keep[i] || a.Name == "stream"
+		}
+		if node != n {
+			parts = append(parts, node)
+		}
+		node = attrBody(node)
+	}
+	return keep, parts, node
+}
+
+// chainExpr returns the expression of the node n of the view at l: the expression of the
+// attributes whose nodes the view keeps from n down, around the expression of their operand.
+func (v *View) chainExpr(n core.Node, l chainLink) (grammar.Expr, error) {
+	keep, _, body := v.chainParts(n, l)
+	if body == nil {
+		return nil, fmt.Errorf("a built %T without an operand", n)
+	}
+	x, err := v.expr(body)
+	if err != nil {
+		return nil, err
+	}
+	e := l.chain.e
+	var attrs []*grammar.Attribute
+	for i, a := range e.Attrs {
+		if keep[i] {
+			attrs = append(attrs, a)
+		}
+	}
+	if len(attrs) == 0 {
+		return x, nil
+	}
+	if x == e.Expr && len(attrs) == len(e.Attrs) {
+		return e, nil
+	}
+	c := *e
+	c.Expr, c.Attrs, c.Breaks = x, attrs, nil
+	return &c, nil
 }

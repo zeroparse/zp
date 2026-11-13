@@ -89,6 +89,16 @@ func (b *builder) standsForText(x core.Node, t string) {
 	}
 }
 
+// dropped returns body, the operand of the attribute node n that a rule drops. An operand that is
+// the node of another attribute of the same expression (View.chainOf) is then written as that
+// expression without the attribute of n, which stands for the text of n.
+func (b *builder) dropped(body, n core.Node) core.Node {
+	if _, ok := b.view.chainOf(body); ok {
+		b.view.Text[body] = b.view.textOf(n)
+	}
+	return body
+}
+
 // textOfAll returns the source texts that ns stand for, joined by sep.
 func (b *builder) textOfAll(ns []core.Node, sep string) string {
 	ts := make([]string, len(ns))
@@ -167,7 +177,7 @@ func (b *builder) rewrite(n core.Node) core.Node {
 		if b.opts.Labels && b.on(N7) {
 			// A label changes the messages of syntax errors only.
 			b.count(N7)
-			return body
+			return b.dropped(body, x)
 		}
 		if body != x.Body {
 			c := *x
@@ -854,7 +864,7 @@ func (b *builder) recover(r *core.Recover) core.Node {
 	shaped := b.depth > 0 || b.values.observed(b.cur, body)
 	if b.on(N6) && !shaped && b.src.Facts.Succeeds(body) {
 		b.count(N6)
-		return body
+		return b.dropped(body, r)
 	}
 	if body == r.Body {
 		return r
