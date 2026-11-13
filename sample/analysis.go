@@ -35,6 +35,7 @@ type target struct {
 // ruleInfo is what the generator knows about a rule.
 type ruleInfo struct {
 	def           *grammar.RuleDef
+	makesNode     bool // the declared type is a named node type
 	index         int
 	operatorsRule *grammar.OperatorsRule
 	levels        map[string]int // level name -> index in operatorsRule.Levels
@@ -102,6 +103,9 @@ func analyze(g *grammar.Grammar, start string) *info {
 	}
 	in.start = in.rules[start]
 	in.terms = newTerms(g)
+	for _, ri := range in.order {
+		ri.makesNode = in.terms.makesNode(ri.def)
+	}
 	// Targets inside rule bodies.
 	for _, ri := range in.order {
 		walk(ri.def.Expr, func(e grammar.Expr) {
