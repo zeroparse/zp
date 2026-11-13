@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"strings"
 	"testing"
-	igen "zeroparse.dev/zp/internal/gen"
+	igen "zeroparse.dev/zp/internal/codegen"
 )
 
 func call[T any](t *testing.T, method string, req any) T {
@@ -227,7 +227,7 @@ func TestFormatAndGenerate(t *testing.T) {
 		}
 	}
 	ts := call[generateResult](t, "generate", generateRequest{Grammar: pairs, Language: "typescript"})
-	if len(ts.Files) != 2 || ts.Files[0].Path != "runtime.ts" || ts.Files[1].Path != "parser.ts" {
+	if len(ts.Files) != 2 || ts.Files[0].Path != "lib.ts" || ts.Files[1].Path != "parser.ts" {
 		t.Fatalf("TypeScript files = %+v", ts.Files)
 	}
 	for _, f := range ts.Files {
@@ -235,8 +235,8 @@ func TestFormatAndGenerate(t *testing.T) {
 			t.Errorf("%s is not a source file of the parser: %.200s", f.Path, f.Content)
 		}
 	}
-	if i, j := strings.Index(ts.Code, "// ===== parser.ts ====="), strings.Index(ts.Code, "// ===== runtime.ts ====="); i < 0 || j < i {
-		t.Errorf("the combined view must show parser.ts before runtime.ts (%d, %d)", i, j)
+	if i, j := strings.Index(ts.Code, "// ===== parser.ts ====="), strings.Index(ts.Code, "// ===== lib.ts ====="); i < 0 || j < i {
+		t.Errorf("the combined view must show parser.ts before lib.ts (%d, %d)", i, j)
 	}
 	typed := call[generateResult](t, "generate", generateRequest{Grammar: pairs, Language: "typescript", Types: true})
 	if len(typed.Files) != 3 || typed.Files[2].Path != "types.ts" {

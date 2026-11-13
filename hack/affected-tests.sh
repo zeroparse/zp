@@ -8,11 +8,11 @@
 #   - the packages that contain a changed file, or embed it;
 #   - the packages whose Go files name the path of a changed non-Go file or one of its parent directories
 #     (testdata/grammars, spec/language, docs, ...): tests read such files by path;
-#   - the packages that build generated programs (HEAVY below), when a file of the runtime, of the generated
-#     runtime or of the generator test helpers changed, because those programs reach it through a copy or a
-#     replace directive that the import graph does not show.
+#   - the packages that build generated programs (HEAVY below), when a file of the Go or TypeScript library
+#     of generated parsers, of core or of the generator test helpers changed, because those programs reach
+#     it through a copy or a replace directive that the import graph does not show.
 # A change of go.mod, go.work, go.sum or this script selects every package. The output ends with the lines
-# "# generate" and "# alpha" when `go generate ./gen ./bench` or hack/test-alpha-parsers.sh is affected.
+# "# generate" and "# alpha" when `go generate ./internal/codegen/... ./bench` or hack/test-alpha-parsers.sh is affected.
 set -eu
 why=0
 [ "${1:-}" = -why ] && { why=1; shift; }
@@ -33,9 +33,9 @@ while i < len(s):
     o, i = dec.raw_decode(s, i); pk[o["ImportPath"]] = o
 rel = {p: os.path.relpath(o["Dir"], root) for p, o in pk.items()}
 bydir = {r: p for p, r in rel.items()}
-HEAVY = ["internal/gen", "internal/gen/gengo", "internal/gen/gents", "internal/engine", "runtime",
-         "internal/complexitytest", "spec/language", "gen", "bench", "internal/compile"]
-HEAVY_TRIG = ("runtime/", "gen/_runtime/", "internal/gentest/", "internal/gen/gents/tsrt/")
+HEAVY = ["internal/codegen", "internal/codegen/go", "internal/codegen/ts", "internal/engine", "codegen/go/lib",
+         "internal/complexitytest", "spec/language", "codegen", "bench", "internal/compile"]
+HEAVY_TRIG = ("codegen/go/lib/", "codegen/ts/lib/", "core/", "internal/gentest/")
 rev = {p: set() for p in pk}
 for p, o in pk.items():
     for q in (o.get("Imports") or []) + (o.get("TestImports") or []) + (o.get("XTestImports") or []):
@@ -59,7 +59,7 @@ def add(p, f, up=False):
     if up: prop.add(p)
 allp = False; gen = False; alpha = False
 for f in files:
-    if f in ("go.mod", "go.work", "go.sum", "hack/affected-tests.sh") or f.startswith("runtime/go."):
+    if f in ("go.mod", "go.work", "go.sum", "hack/affected-tests.sh"):
         allp = True; sel.update({p: f for p in pk}); continue
     d = os.path.dirname(f); own = None
     while d:
@@ -77,9 +77,9 @@ for f in files:
                 if a in t: add(p, f)
     if f.startswith(HEAVY_TRIG):
         for h in HEAVY: add(mod + ("/" + h if h else ""), f, True)
-    if f.startswith(("gen/", "bench/", "internal/gen/", "internal/compile/", "internal/engine/", "internal/syntax/", "internal/ir/", "runtime/", "testdata/grammars/", "internal/bench/")):
+    if f.startswith(("codegen/", "core/", "bench/", "internal/codegen/", "internal/compile/", "internal/engine/", "internal/syntax/", "internal/ir/", "testdata/grammars/", "internal/bench/")):
         gen = True
-    if f.startswith(("testdata/grammars/", "internal/gen/", "internal/compile/", "internal/engine/", "internal/syntax/", "runtime/", "gen/", "internal/ir/")):
+    if f.startswith(("testdata/grammars/", "internal/codegen/", "internal/compile/", "internal/engine/", "internal/syntax/", "codegen/", "core/", "internal/ir/")):
         alpha = True
 work = list(prop); seen = {}
 while work:

@@ -883,7 +883,7 @@ const hullPrelude = "type S = { L []node[string]; T (int, string) }\n@start\n"
 
 // HullTermCases returns fixed terms that make a list value or a tuple value: of no element, of nodes in
 // either order, of nodes with one that did not match (nil), of ints, strings and bools (which the node
-// runtimes box in nodes), and of lists and tuples of them, alone, as a field of a struct and under len,
+// libraries box in nodes), and of lists and tuples of them, alone, as a field of a struct and under len,
 // an index, map and concat. The range of such a value covers the elements that are nodes, which the value
 // model does not show, so the cases pin what making the value charges for each element, whatever its kind,
 // each on a literal of one byte and one beyond the Basic Multilingual Plane. The rule captures two nodes,

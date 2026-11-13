@@ -37,8 +37,8 @@ Evidence records:
 [041](../041-building-the-offset-table-while-decoding-for-full-parses.md).
 
 Source owners: [`newTextInputIn`](../../../internal/engine/core/input.go),
-[`generated setSource`](../../../runtime/runtime.go), [`input
-decode/offset preparation`](../../../internal/gen/gents/tsrt/runtime.ts).
+[`generated setSource`](../../../codegen/go/lib/lib.go), [`input
+decode/offset preparation`](../../../codegen/ts/lib/lib.ts).
 
 The [comparison policy](../../design/records/024-optimization-mechanism-controls.md)
 distinguishes same-source controls, historical changes and full checkpoints.

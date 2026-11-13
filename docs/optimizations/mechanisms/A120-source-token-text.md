@@ -33,8 +33,8 @@ Evidence records:
 [010](../010-zero-copy-token-text-reusable-evaluation-context.md).
 
 Source owners: [`input.text and buildOffs`](../../../internal/engine/core/input.go),
-[`generated text extraction`](../../../runtime/runtime.go),
-[`TypeScript text extraction`](../../../internal/gen/gents/tsrt/runtime.ts).
+[`generated text extraction`](../../../codegen/go/lib/lib.go),
+[`TypeScript text extraction`](../../../codegen/ts/lib/lib.ts).
 
 The [comparison policy](../../design/records/024-optimization-mechanism-controls.md)
 distinguishes same-source controls, historical changes and full checkpoints.

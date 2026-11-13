@@ -15,15 +15,15 @@ import (
 	"strings"
 	"testing"
 
+	"zeroparse.dev/zp/codegen"
 	"zeroparse.dev/zp/engine"
-	"zeroparse.dev/zp/gen"
 )
 
 // generation is a zp gen command of generate.go.
 type generation struct {
 	grammar, module, out string
 	hasTypes             bool
-	config               gen.Go
+	config               codegen.Go
 }
 
 // generationsIn reads the go:generate lines of the generate.go in dir. The grammar and output paths
@@ -55,12 +55,12 @@ func generationsIn(t *testing.T, dir string) []generation {
 			case "-o":
 				i++
 				g.out = fs[i]
-			case "-runtime":
+			case "-lib":
 				i++
 				if fs[i] != "import" {
-					t.Fatalf("generate.go: unknown runtime mode %s", fs[i])
+					t.Fatalf("generate.go: unknown library mode %s", fs[i])
 				}
-				g.config.Runtime = gen.RuntimeImport
+				g.config.Lib = codegen.LibImport
 			case "-types":
 				g.hasTypes = true
 				g.config.Types = true
@@ -620,7 +620,7 @@ func checkTypedGeneration(t *testing.T, sc confSchema, g typedGeneration, src st
 	if err != nil {
 		t.Fatal(err)
 	}
-	ts, err := gen.TypeScript{Types: true}.Generate(gr, "")
+	ts, err := codegen.TypeScript{Types: true}.Generate(gr, "")
 	if err != nil {
 		t.Fatal(err)
 	}

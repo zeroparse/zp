@@ -19,7 +19,7 @@ Arena growth during a parse remains proportional to captures; this is not a
 total per-parse heap bound.
 
 The constant `nodeFrameScratch` in the shared generated runtime
-(`runtime/runtime.go`) selects the scratch allocator; the per-parse frame slab
+(`codegen/go/lib/lib.go`) selects the scratch allocator; the per-parse frame slab
 remains in the runtime only as the disabled alternative. No parse option,
 generation option or runtime selector chooses between them. The mechanism changes the generated
 Go Node frame allocator; typed value capture storage, the core engine, VM paths
@@ -152,10 +152,10 @@ workload. Run the focused checks and export fixtures with:
 
 ```sh
 go test ./runtime -run '^TestNodeFrameScratch' -count=1
-go test ./internal/gen/gengo -run '^TestGeneratedNodeFrameScratch' -count=1
+go test ./internal/codegen/go -run '^TestGeneratedNodeFrameScratch' -count=1
 ZP_NODE_FRAME_DIR=/tmp/zp-node-frame \
   ZP_NODE_FRAME_TYPESCRIPT=1 \
-  go test ./internal/gen/gengo -run '^TestGeneratedNodeFrameScratchWorkloads$' -count=1
+  go test ./internal/codegen/go -run '^TestGeneratedNodeFrameScratchWorkloads$' -count=1
 ```
 
 `TestGeneratedNodeFrameScratchWorkloads` exports fixtures, and

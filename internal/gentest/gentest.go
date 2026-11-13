@@ -7,36 +7,25 @@ import (
 	"io/fs"
 	"os"
 	"path/filepath"
-	"strings"
 	"sync"
 	"testing"
 
-	"zeroparse.dev/zp/internal/gen"
+	"zeroparse.dev/zp/internal/codegen"
 )
 
-// RuntimeSource is the runtime source that tests give to the generator: the live runtime
-// directory of this module at its root and the live core directory in core, so that a test
-// exercises the packages as they are being edited. Package gen generates from its embedded copy
-// instead.
-func RuntimeSource() fs.FS { return runtimeDirs(moduleRoot()) }
+// GoLibSource is the Go library source that tests give to the generator: the live directory
+// codegen/go/lib of this module, so that a test exercises the library as it is being edited. Package
+// codegen generates from its embedded files instead.
+func GoLibSource() fs.FS { return os.DirFS(filepath.Join(moduleRoot(), "codegen", "go", "lib")) }
 
-// runtimeDirs is the file system of RuntimeSource over the module root it holds. It is a string, so
-// that the generator caches what it parses from it.
-type runtimeDirs string
+// TSLibSource is the TypeScript library source that tests give to the generator: the live
+// directory codegen/ts/lib of this module.
+func TSLibSource() fs.FS { return os.DirFS(filepath.Join(moduleRoot(), "codegen", "ts", "lib")) }
 
-func (r runtimeDirs) Open(name string) (fs.File, error) {
-	if !fs.ValidPath(name) {
-		return nil, &fs.PathError{Op: "open", Path: name, Err: fs.ErrInvalid}
-	}
-	if name == "core" || strings.HasPrefix(name, "core/") {
-		return os.DirFS(string(r)).Open(name)
-	}
-	return os.DirFS(filepath.Join(string(r), "runtime")).Open(name)
-}
-
-// WithRuntime returns opts with RuntimeSource set to the live runtime directory.
-func WithRuntime(opts gen.GenOptions) gen.GenOptions {
-	opts.RuntimeSource = RuntimeSource()
+// WithLib returns opts with the library sources set to the live library directories.
+func WithLib(opts codegen.GenOptions) codegen.GenOptions {
+	opts.GoLib = GoLibSource()
+	opts.TSLib = TSLibSource()
 	return opts
 }
 

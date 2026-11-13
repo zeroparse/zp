@@ -6,7 +6,7 @@ package gentest
 // the Operators Rule operand lines rC (":") and rD ("+"); rE, which forwards a scalar value (input
 // "<i|s|b>="); and, through a predicate that reads the value, rA and rB ("!" and "~"). S gives the
 // type typ a field, for the expected messages; W wraps the result in a field of type rt, so that
-// generated parsers use the typed runtime when rt is representable.
+// generated parsers use the typed library when rt is representable.
 func ResultCheckGrammar(typ, rt string) string {
 	return `type Int = { Text string }
 type Alias ~ Int

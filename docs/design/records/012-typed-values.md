@@ -6,7 +6,7 @@
 
 ## Summary
 
-With `zp gen -types` (`gen.Go{Types: true}`), a generated parser also defines a Go type for each type of the grammar
+With `zp gen -types` (`codegen.Go{Types: true}`), a generated parser also defines a Go type for each type of the grammar
 and a function `ParseValue`, which parses like `Parse` and returns the result of the start rule as values of those
 types instead of `*Node`.
 
@@ -47,7 +47,7 @@ list. Where a struct or terminal type is expected, an `Error` node becomes `nil`
 
 ### The Typed Runtime
 
-When every value `ParseValue` can return has a Go type of its own (`runtimeOK`: no `Seq`, `List`, `Operator`, record,
+When every value `ParseValue` can return has a Go type of its own (`libOK`: no `Seq`, `List`, `Operator`, record,
 `node`, `terminal` or `_` in the result type or in any struct field) and no action or predicate reads a field of a
 struct whose type has no plain form (a typed value keeps its fields converted, so reading back a `node`, a named node
 type, a join, an `any` or a record would differ from the node's field) other than to copy it, the generated parser
@@ -61,7 +61,7 @@ conversion of the node's field gives. A value of a named node type reads back th
 package completes in an `init` function, since the conversions of those values refer to the hooks themselves. A field of a plain type (an `int`, `string` or `bool`, an optional one, a struct, and a tuple or list of
 these, declared with one type by every struct that has a field of the name) reads as it does from a node: a list or
 struct field that a constructor leaves out is a nil slice or pointer, which a read turns into the zero value of the
-type, an empty list or the struct with no field set. `runtime/typed.go` is a second runtime that mirrors `runtime/runtime.go` step by step, with values of type
+type, an empty list or the struct with no field set. `codegen/go/lib/typed.go` is a second runtime that mirrors `codegen/go/lib/lib.go` step by step, with values of type
 `any` instead of `*Node`: a value is a pointer to a struct or terminal type, `*Match`, `*Error`, an int, string or
 bool, nil, or a `*tnode` for the CST values that actions consume (Seq, List and Operator nodes, which never reach the
 result). `tparser` embeds the parser and redefines only the methods that handle values, so matching, expectations,
@@ -84,7 +84,7 @@ errors and memoization decisions are literally shared. The generator writes the 
   generated call methods. Live caller undo entries remain available. Recycling clears the full trail and Operators Rule
   saved-capture backing slices, since their lengths may have shrunk after retaining overwritten values. This releases
   discarded captures from pooled scratch while preserving returned terminals/structs; it does not rely on a later pool GC.
-- **Flat rules** (`internal/gen/gengo/flowrule.go`). Eligible rule bodies are inlined into the
+- **Flat rules** (`internal/codegen/go/flowrule.go`). Eligible rule bodies are inlined into the
   method that calls the rule (`s<id>`, `v<id>` or `i<id>`), each expression
   jumping to a label when it fails, with captures in Go variables instead of a
   frame. Where the general code resets to a mark, which undoes the trail, a

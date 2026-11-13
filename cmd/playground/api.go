@@ -28,9 +28,9 @@ import (
 	"strings"
 	"time"
 
+	"zeroparse.dev/zp/codegen"
 	"zeroparse.dev/zp/core"
 	"zeroparse.dev/zp/engine"
-	"zeroparse.dev/zp/gen"
 	"zeroparse.dev/zp/grammar"
 )
 
@@ -548,14 +548,14 @@ func generate(req generateRequest) generateResult {
 		pkg = "parser"
 	}
 	start := req.Start // empty selects the default start rule
-	var files []gen.File
+	var files []codegen.File
 	var err error
 	switch req.Language {
 	case "", "go":
 		// The runtime is imported, so the files shown are the generated package without a copy of it.
-		files, err = gen.Go{Module: "example.com/" + pkg, PackageName: pkg, Runtime: gen.RuntimeImport, Types: req.Types, Recognize: req.Recognize}.Generate(c.g, start)
+		files, err = codegen.Go{Module: "example.com/" + pkg, PackageName: pkg, Lib: codegen.LibImport, Types: req.Types, Recognize: req.Recognize}.Generate(c.g, start)
 	case "typescript":
-		files, err = gen.TypeScript{Types: req.Types, Recognize: req.Recognize}.Generate(c.g, start)
+		files, err = codegen.TypeScript{Types: req.Types, Recognize: req.Recognize}.Generate(c.g, start)
 	default:
 		res.Diagnostics = []diagnostic{{Message: fmt.Sprintf("unknown generation language %q", req.Language)}}
 		return res
@@ -570,8 +570,8 @@ func generate(req generateRequest) generateResult {
 	}
 	// The runtime is long and the same for every grammar: display it after the files of the grammar.
 	shown := slices.Clone(files)
-	slices.SortStableFunc(shown, func(a, b gen.File) int {
-		return cmp.Compare(btoi(a.Path == "runtime.ts"), btoi(b.Path == "runtime.ts"))
+	slices.SortStableFunc(shown, func(a, b codegen.File) int {
+		return cmp.Compare(btoi(a.Path == "lib.ts"), btoi(b.Path == "lib.ts"))
 	})
 	for i, f := range shown {
 		if len(shown) > 1 {

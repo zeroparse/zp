@@ -134,7 +134,7 @@ Run `zp` without arguments for every command and flag.
 
 [alpha-parsers](https://github.com/zeroparse/alpha-parsers) (a separate repository) has parsers for common languages, written in ZeroParse, generated into Go and tested against the
 languages' conformance suites and reference implementations. They are packages of one module that depends only on the
-standard library and ZeroParse's runtime package. Use them from a checkout of that repository; `go get` does not fetch
+standard library and ZeroParse's `core` and library packages. Use them from a checkout of that repository; `go get` does not fetch
 them yet (see [Ready-Made Parsers](docs/guide/ready-made-parsers.md)):
 
 ```go

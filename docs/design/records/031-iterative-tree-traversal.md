@@ -10,9 +10,9 @@ ZeroParse exposes mutable parse-result `Node` values. The Go API now provides it
 
 ## Motivation
 
-`internal/value/node.go` and the generated Go runtime in `runtime/runtime.go` expose nodes with `Children` and `Fields`; fields may refer to nodes and are mutable through the Go representation. `Node.Clone` preserves shared subtrees. Go `Node.MarshalJSON` and `Fields.MarshalJSON` now use an iterative writer for nested node graphs; `Node.WriteJSON` also streams that representation to an `io.Writer`. `Node.String` still descends through `writeNode`/`writeValue` recursively.
+`internal/value/node.go` and the generated Go runtime in `codegen/go/lib/lib.go` expose nodes with `Children` and `Fields`; fields may refer to nodes and are mutable through the Go representation. `Node.Clone` preserves shared subtrees. Go `Node.MarshalJSON` and `Fields.MarshalJSON` now use an iterative writer for nested node graphs; `Node.WriteJSON` also streams that representation to an `io.Writer`. `Node.String` still descends through `writeNode`/`writeValue` recursively.
 
-The TypeScript runtime in `internal/gen/gents/tsrt/runtime.ts` already formats `toString()` and exports `marshal(Node | null)` iteratively with a `Pending` stack. `marshal` preserves Go-compatible JSON field order, BigInt number formatting, null children, and escaping. Separately, `toJSON()` constructs nested objects and converts BigInt to `Number`; native `JSON.stringify` controls recursion on that object representation. The core and generated Go runtimes now provide a common node walker and cursor; the parser-specific `alpha-parsers/duckdb/walk.go` helper remains separate.
+The TypeScript runtime in `codegen/ts/lib/lib.ts` already formats `toString()` and exports `marshal(Node | null)` iteratively with a `Pending` stack. `marshal` preserves Go-compatible JSON field order, BigInt number formatting, null children, and escaping. Separately, `toJSON()` constructs nested objects and converts BigInt to `Number`; native `JSON.stringify` controls recursion on that object representation. The core and generated Go runtimes now provide a common node walker and cursor; the parser-specific `alpha-parsers/duckdb/walk.go` helper remains separate.
 
 The mutable, exported Go node graph can be hand-built with shared children or cycles, so traversal and serialization define behavior for those cases rather than assuming parser-produced trees. Design record 019 identified traversal order, identity, cycles, scalar values, range units, and empty-node boundaries as contracts to settle.
 
@@ -74,7 +74,7 @@ Traversal is iterative and edge-oriented: a shared node is visited once per inco
 
 For deterministic order, visit a node before its outgoing edges; traverse `Children` in slice order, then fields in lexicographic field-name order, then nested `[]any` values in index order. Field ordering matches Go JSON output; child and list order matches serialized array order. A field value that is a `*Node` creates a node edge. A `[]any` value creates list-index edges recursively; scalar, nil, and other values are leaves. Map-valued fields are not traversed: the current grammar value model does not promise deterministic map ordering. Cycle tracking identifies active nonempty `[]any` containers by the address of their first element plus length; capacity is irrelevant because only the visible length is traversed. Empty slices have no active identity. Distinct shorter or overlapping views are not cycles merely because they share a start address. It detects a repeated active view that refers back to itself; the same container reached on separate non-active paths is visited again.
 
-The engine's declared field values are nodes, integers, strings, booleans, or nil; the generated Go runtime uses `any`. The generated TypeScript runtime models values as nodes, numeric/bigint, strings, booleans, or null. The common walker should visit those declared values consistently; Go-only list support is a convenience for hand-built graphs and must be documented as such.
+The engine's declared field values are nodes, integers, strings, booleans, or nil; the generated Go runtime uses `any`. The generated TypeScript library models values as nodes, numeric/bigint, strings, booleans, or null. The common walker should visit those declared values consistently; Go-only list support is a convenience for hand-built graphs and must be documented as such.
 
 #### Cursor and Ranges
 
@@ -110,7 +110,7 @@ Use explicit frames containing the current node/value, next child/field/list ind
 
 The JSON writer uses the same ordered edge model, emitting object delimiters and commas from frame state. Node and field formatting share the iterative value encoder so `MarshalJSON` and `WriteJSON` stay consistent. Nil behavior is tested. A cycle is a newly handled graph condition; ordinary encoding errors preserve their underlying error identity and `errors.As` behavior, while exact wrapping layers are not a compatibility guarantee.
 
-Generated Go parsers embed `runtime/runtime.go`, so the core and generated runtime must implement identical behavior and be covered by generator parity tests. TypeScript is a separate compatibility surface and should not claim safe native `JSON.stringify` at arbitrary depth.
+Generated Go parsers embed `codegen/go/lib/lib.go`, so the core and generated runtime must implement identical behavior and be covered by generator parity tests. TypeScript is a separate compatibility surface and should not claim safe native `JSON.stringify` at arbitrary depth.
 
 ### Compatibility and Backend Support
 

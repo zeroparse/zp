@@ -359,7 +359,7 @@ the first release.
 | TypeScript `budget`, `maxInput`, `maxDepth` | `limits: { compute, input, depth }`, plus `memory` |
 | TypeScript `"budget-limit"` | `"compute-limit"`, plus `"memory-limit"` and `"depth-limit"` |
 
-The rename touches `engine/`, `internal/limits`, `runtime/budget.go`, the generated `api.go` template, the TypeScript
+The rename touches `engine/`, `internal/limits`, `codegen/go/lib/budget.go`, the generated `api.go` template, the TypeScript
 runtime, `cmd/zp`, `cmd/playground`, and the specification pages for parsing, generated parsers, streaming and
 Documents. `Limits`, `WithLimits`, `LimitError`, `LimitKind`, `ErrLimit` and `Unlimited` keep their names
 ([decision 1](#decisions)).
@@ -383,7 +383,7 @@ growth of `MemoTable.Put` and the generated `memoTable.put`, and in the diagnost
 **Refill counters.** An addition to a parser field (`Parser.memUsed` in generated Go, `Parser.MemUsed` in the engine),
 inside the branch that takes a new chunk or allocates a list too large for one:
 
-- generated Go (`runtime/runtime.go`, `runtime/typed.go`): the node slab refills of `NewNode`, `NewTerminalOrdinary`
+- generated Go (`codegen/go/lib/lib.go`, `codegen/go/lib/typed.go`): the node slab refills of `NewNode`, `NewTerminalOrdinary`
   and `NewBranchOrdinary` (256 × 104 bytes); `Nodes(n)`, its pointer slab refill (1,024 × 8 bytes) and its large-list
   path (n × 8); `fields(n)`, its slab refill (256 × 32 bytes) and its large-list path (n × 32); the capture frame slab;
   and the typed match slab of `NewMatch`;
@@ -470,7 +470,7 @@ closure backend peaks at 84,090 bytes for 2,000 records and 84,107 for 40,000; t
 records. The tests bound the growth from 2,000 to 40,000 records at 1.2.
 
 Inlining costs, from `go build -gcflags=-m=2`, of the allocators that must stay inlined. The inlining test of
-`runtime/` and the engine's inline guard check them:
+`codegen/go/lib/` and the engine's inline guard check them:
 
 | Function | Base | With the counts |
 |:--|--:|--:|

@@ -58,7 +58,7 @@ negative-control test. This record gives that rule a mechanism.
   `DeadStores`) are part of lowering the emitted code and are not optional; for example, Go rejects a variable that is
   declared and not used, so dead stores must go. They stay lowering flags and required analyses. The manager is generic over the unit it runs
   on and can host Flow or Exec passes when one becomes optional.
-- The textual pass that rewrites generated Go (`QualifyRuntime`). It stays a text pass: record 062 moves the
+- The textual pass that rewrites generated Go (`QualifyLib`). It stays a text pass: record 062 moves the
   other rewrites into the printers and leaves the cost of this one to an independent fix.
 - The closure backend and bytecode, which do not use Core IR. TypeScript uses the Core passes through the route of the
   Node and recognizer tables and has the flags of its own runtime options.
@@ -240,8 +240,8 @@ internal.
 **Option C: Profiles and per-optimization flags.** Option B plus `zp gen -no-opt name[,name]` for reproducing a
 miscompilation or measuring one optimization, and `-print-after name|all` for the IR dump.
 
-Decision: **C, with the profile flag named `-optimize`.** The Go API mirrors the flags in the fields of `gen.Go` and
-`gen.TypeScript`, as `Types` mirrors `-types`: `Optimize string`, `Opt map[string]int`, `NoOpt []string`, `PrintAfter string` and
+Decision: **C, with the profile flag named `-optimize`.** The Go API mirrors the flags in the fields of `codegen.Go` and
+`codegen.TypeScript`, as `Types` mirrors `-types`: `Optimize string`, `Opt map[string]int`, `NoOpt []string`, `PrintAfter string` and
 `PrintTo io.Writer`. A profile is applied first, then `-opt` sets flags, and `-no-opt` removes optimizations, so `-optimize size -no-opt
 guards` is `size` without `guards`, and the same flag in `-opt` and `-no-opt` is off. `PrintAfter` without `PrintTo` is an error. The name `-optimize` avoids the rule
 profiler's `zp profile` and `WithProfile`. The flags and the names are described in the
@@ -271,10 +271,10 @@ rule-local. Rejected for now.
 **Profiles chosen by the generator from the grammar.** The generator could pick `size` or `speed` by grammar size.
 It makes the output depend on a heuristic that users cannot predict or override. Rejected.
 
-**Flags only on the command line, with no Go option.** The Go API (`gen.Go`) is what the build tooling of other
+**Flags only on the command line, with no Go option.** The Go API (`codegen.Go`) is what the build tooling of other
 projects calls, and the options mirror each other (`-types` and `Types`). The new ones mirror each other too.
 
-**A functional-options form (`WithOptimize`, `WithoutOptimizations`).** `gen.Go` and `gen.TypeScript` are structs of
+**A functional-options form (`WithOptimize`, `WithoutOptimizations`).** `codegen.Go` and `codegen.TypeScript` are structs of
 plain fields, and their options are fields. Rejected for consistency.
 
 ## Testing
@@ -306,14 +306,14 @@ plain fields, and their options are fields. Rejected for consistency.
   (plain, with observability, with limit controls), the recognizer, the Document runner, `ParseStream`, and TypeScript in four
   modes (`TestProfilesParity`, `TestProfilesRouteParity`, `TestProfilesStreamParity`, `TestProfilesTSParity`), and each profile
   must change the generated code of some case. The Document route has a negative control.
-- Options: the fields of `gen.Go` and `gen.TypeScript` and the flags of `zp gen` reject an unknown profile, optimization
+- Options: the fields of `codegen.Go` and `codegen.TypeScript` and the flags of `zp gen` reject an unknown profile, optimization
   and pass, accept `speed`, apply `Opt` and then `NoOpt` in that order (`NoOpt` wins), and change the output only through them.
 
 ## Performance and Results
 
 The manager adds a constant number of checks to a sequence of passes that is linear in the grammar.
-`gen.Go{Types: true}.Generate` and `gen.TypeScript{Types: true}.Generate` on the DuckDB grammar and
-`gen.Go{Types: true}.Generate` on the Go grammar, run five times alternately with the commit before the pipeline on the
+`codegen.Go{Types: true}.Generate` and `codegen.TypeScript{Types: true}.Generate` on the DuckDB grammar and
+`codegen.Go{Types: true}.Generate` on the Go grammar, run five times alternately with the commit before the pipeline on the
 same machine (2 iterations each), did not change beyond noise. The medians of the five runs before and after were 2.47 s
 and 2.46 s for DuckDB Go, 0.467 s and 0.468 s for DuckDB TypeScript, and 0.596 s and 0.598 s for the Go grammar;
 allocations per operation differ by less than 0.002 percent.

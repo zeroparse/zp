@@ -37,7 +37,7 @@ Evidence records: [003](../003-node-fields-as-a-slice-54a5774.md),
 [064](../064-a-smaller-node-in-generated-parsers.md).
 
 Source owners: the `core` package (nodes), the `core/noderep` package (their representation and kinds),
-[`generated Node and Fields`](../../../runtime/runtime.go).
+[`generated Node and Fields`](../../../codegen/go/lib/lib.go).
 
 The [comparison policy](../../design/records/024-optimization-mechanism-controls.md)
 distinguishes same-source controls, historical changes and full checkpoints.

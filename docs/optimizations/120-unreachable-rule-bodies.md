@@ -35,7 +35,7 @@ calls. The second pass prints only the entered (rule, slot or wrapper) pairs:
   without them. A typed rule has an `Entry` only if a typed entry point runs it;
 - the fixed conversion helpers (`astInt`, `astKid`, `astNew`, ...) and the package variables of a rule body (capture
   layouts, literals, shapers, class tables and steps) are kept only if the printed code names them, directly or through
-  another kept variable (`internal/gen/gengo/shake.go`; a lexical scan of the identifiers, which can keep an unused one and never drops a
+  another kept variable (`internal/codegen/go/shake.go`; a lexical scan of the identifiers, which can keep an unused one and never drops a
   used one). The scan runs after the passes that edit the text of the functions, which can leave a variable unused.
 
 The second pass fails generation if a printed call reaches a rule that was left out, and if an

@@ -3,7 +3,7 @@ package engine
 import (
 	"testing"
 
-	"zeroparse.dev/zp/internal/gen/gengo"
+	"zeroparse.dev/zp/internal/codegen/go"
 	"zeroparse.dev/zp/internal/gentest"
 	"zeroparse.dev/zp/internal/ir/core"
 	irbuild "zeroparse.dev/zp/internal/ir/core/build"
@@ -211,7 +211,7 @@ func TestCoreTerminalsFrozen(t *testing.T) {
 		}},
 		{"spurious terminal", "terminals", []string{"terminal"}, func(c *coreGenCase, m *core.Module) bool {
 			for _, r := range m.Rules {
-				if !gengo.CoreLocalRule(r) {
+				if !gogen.CoreLocalRule(r) {
 					continue
 				}
 				if seq := valueFreeSeq(r.Body, func(n core.Node) bool {
@@ -341,7 +341,7 @@ func TestCoreScans(t *testing.T) {
 	if !ok {
 		t.Fatal("does not compile")
 	}
-	g := &gengo.Generator{Prog: prog.Static(), Table: "trules"}
+	g := &gogen.Generator{Prog: prog.Static(), Table: "trules"}
 	m, err := g.TypedCore(nil)
 	if err != nil {
 		t.Fatal(err)

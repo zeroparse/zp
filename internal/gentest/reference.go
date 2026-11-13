@@ -12,9 +12,9 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/core"
+	"zeroparse.dev/zp/internal/codegen"
 	"zeroparse.dev/zp/internal/compile"
 	"zeroparse.dev/zp/internal/compiletest"
-	"zeroparse.dev/zp/internal/gen"
 )
 
 // ReferenceParse parses input with a program compiled for Reference: with positions in bytes if
@@ -143,7 +143,7 @@ const NodeViewsSource = `func() string {
 	return b.String() + n.String()
 }()`
 
-func GeneratedParsersCorpus(t *testing.T, goBin string, cases []Case, opts gen.GenOptions) {
+func GeneratedParsersCorpus(t *testing.T, goBin string, cases []Case, opts codegen.GenOptions) {
 	t.Helper()
 	for _, m := range GeneratedParsersMismatches(t, goBin, cases, opts, nil) {
 		t.Error(m)
@@ -155,7 +155,7 @@ func GeneratedParsersCorpus(t *testing.T, goBin string, cases []Case, opts gen.G
 // each with mutate (when not nil), runs them and returns a description of every result that differs
 // from the engine's. GeneratedParsersCorpus fails on them; a negative control passes a mutation and
 // requires some.
-func GeneratedParsersMismatches(t *testing.T, goBin string, cases []Case, opts gen.GenOptions, mutate func([]byte) []byte) []string {
+func GeneratedParsersMismatches(t *testing.T, goBin string, cases []Case, opts codegen.GenOptions, mutate func([]byte) []byte) []string {
 	t.Helper()
 	got, want := GeneratedParsersOutputs(t, goBin, cases, opts, mutate)
 	var mismatches []string
@@ -177,7 +177,7 @@ func GeneratedParsersMismatches(t *testing.T, goBin string, cases []Case, opts g
 // returns their results and the engine's, one line for each input of each case in code points and
 // then in bytes. A line starts with the JSON object of the node, "null" for a failed parse, and the
 // error.
-func GeneratedParsersOutputs(t *testing.T, goBin string, cases []Case, opts gen.GenOptions, mutate func([]byte) []byte) (got, want []string) {
+func GeneratedParsersOutputs(t *testing.T, goBin string, cases []Case, opts codegen.GenOptions, mutate func([]byte) []byte) (got, want []string) {
 	t.Helper()
 	dir := t.TempDir()
 	write := func(name, content string) {
@@ -283,7 +283,7 @@ func main() {
 // GeneratedTypesCorpus generates the typed Go parser of each case and the same parser through the
 // reference route of reference, and fails the test where their values or errors differ, or differ from
 // the engine's (GeneratedTypesMismatches).
-func GeneratedTypesCorpus(t *testing.T, goBin string, cases []Case, reference gen.GenOptions, requiredTyped ...int) {
+func GeneratedTypesCorpus(t *testing.T, goBin string, cases []Case, reference codegen.GenOptions, requiredTyped ...int) {
 	t.Helper()
 	for _, m := range GeneratedTypesMismatches(t, goBin, cases, reference, nil, requiredTyped...) {
 		t.Error(m)
@@ -293,7 +293,7 @@ func GeneratedTypesCorpus(t *testing.T, goBin string, cases []Case, reference ge
 // GeneratedTypesMismatches runs the comparisons of GeneratedTypesCorpus and returns a description of each
 // difference instead of failing on it. The Go files of each typed parser (not those of the reference
 // route) are changed with mutate when it is not nil, so that a negative control can require some.
-func GeneratedTypesMismatches(t *testing.T, goBin string, cases []Case, reference gen.GenOptions, mutate func([]byte) []byte, requiredTyped ...int) []string {
+func GeneratedTypesMismatches(t *testing.T, goBin string, cases []Case, reference codegen.GenOptions, mutate func([]byte) []byte, requiredTyped ...int) []string {
 	t.Helper()
 	var mismatches []string
 	fail := func(format string, args ...any) { mismatches = append(mismatches, fmt.Sprintf(format, args...)) }
@@ -314,21 +314,21 @@ func GeneratedTypesMismatches(t *testing.T, goBin string, cases []Case, referenc
 	// those inputs must equal it.
 	var wantValue []any
 	var accepted []bool
-	typedRuntime := 0
+	typedLib := 0
 	for i, c := range cases {
 		g, err := compiletest.Parse(c.Src)
 		if err != nil {
 			t.Fatalf("%s: %v", c.Name, err)
 		}
-		code := GeneratePackage(t, dir, fmt.Sprintf("g%d", i), g, gen.GenOptions{Start: "main", Types: true, SourceInfo: true})
+		code := GeneratePackage(t, dir, fmt.Sprintf("g%d", i), g, codegen.GenOptions{Start: "main", Types: true, SourceInfo: true})
 		if mutate != nil {
 			mutatePackage(t, filepath.Join(dir, fmt.Sprintf("g%d", i)), mutate)
 		}
 		if strings.Contains(code, "TParse(trules") {
-			typedRuntime++
+			typedLib++
 		}
 		if c.Name == "OperatorsRule prefix-part cuts" && !strings.Contains(code, "TParse(trules") {
-			fail("OperatorsRule prefix-part cuts: typed runtime is not exercised")
+			fail("OperatorsRule prefix-part cuts: typed library is not exercised")
 		}
 		// The same through the reference route: Node conversion for the full
 		// corpus, or a disabled optimization for focused differential tests.
@@ -420,7 +420,7 @@ func main() {
 			}
 		}
 	}
-	// Parsers of the typed runtime are pooled: parsing concurrently gives the same results.
+	// Parsers of the typed library are pooled: parsing concurrently gives the same results.
 	var wg sync.WaitGroup
 	for g := 0; g < 8; g++ {
 		wg.Add(1)
@@ -456,17 +456,17 @@ func main() {
 	}
 	for _, m := range strings.SplitAfter(stderr.String(), "\n") {
 		if m != "" {
-			fail("the typed runtime differs from the reference route: %s", m)
+			fail("the typed library differs from the reference route: %s", m)
 		}
 	}
 	minimum := 5
 	if len(requiredTyped) != 0 {
 		minimum = requiredTyped[0]
 	}
-	if typedRuntime < minimum {
-		fail("only %d of %d grammars use the typed runtime", typedRuntime, len(cases))
+	if typedLib < minimum {
+		fail("only %d of %d grammars use the typed library", typedLib, len(cases))
 	}
-	t.Logf("%d of %d grammars use the typed runtime", typedRuntime, len(cases))
+	t.Logf("%d of %d grammars use the typed library", typedLib, len(cases))
 	lines := strings.Split(strings.TrimSuffix(string(out), "\n"), "\n")
 	if len(lines) != len(wantErr) {
 		t.Fatalf("got %d results, want %d\n%s", len(lines), len(wantErr), out)

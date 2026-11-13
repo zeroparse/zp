@@ -33,7 +33,7 @@ Evidence records:
 Source owners: [`TransientRules`](../../../internal/compile/compile.go),
 [`Rule.Transient`](../../../internal/compile/compile.go), [`ordinary versus
 Document memo decision`](../../../internal/engine/core/runtime.go), [`transient rule
-metadata emission`](../../../internal/gen/gents/generator.go).
+metadata emission`](../../../internal/codegen/ts/generator.go).
 
 The [comparison policy](../../design/records/024-optimization-mechanism-controls.md)
 distinguishes same-source controls, historical changes and full checkpoints.

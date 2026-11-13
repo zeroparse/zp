@@ -1,0 +1,27 @@
+package tsgen_test
+
+import (
+	"testing"
+
+	"zeroparse.dev/zp/internal/codegen"
+)
+
+// TestGeneratedCheckTypeName checks that a grammar type named like the generated check type
+// is renamed in typed TypeScript.
+func TestGeneratedCheckTypeName(t *testing.T) {
+	t.Parallel()
+	src := `type Int = { Text string }
+type FieldType = { Text string }
+type S = { F Int }
+rule main = v:val f:ft => S{F: $v.(Int)}
+rule ft FieldType = "f" => FieldType{Text: "f"}
+rule val _ = "v" => Int{Text: "v"}
+`
+	consumer := `import * as p from "./parser.ts";
+` + tsTypedAssert + `const ok = p.parseValue("vf");
+check(ok.error === null && ok.value !== null && stable(ok.value.F).length > 0, "constructed S");
+const no = p.parseValue("v");
+check(no.error !== null, "missing f");
+`
+	runTypedTSFixture(t, src, consumer, codegen.GenOptions{Start: "main"}, "")
+}

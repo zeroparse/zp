@@ -37,8 +37,8 @@ Evidence records:
 Source owners: [`acquirePooledParser and
 releaseScratch`](../../../internal/engine/core/input.go),
 [`sharedProgram.scratch`](../../../internal/engine/core/runtime.go), [`generated parser
-pool`](../../../runtime/runtime.go), [`typed pool and
-release`](../../../runtime/typed.go).
+pool`](../../../codegen/go/lib/lib.go), [`typed pool and
+release`](../../../codegen/go/lib/typed.go).
 
 The [comparison policy](../../design/records/024-optimization-mechanism-controls.md)
 distinguishes same-source controls, historical changes and full checkpoints.

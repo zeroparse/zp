@@ -7,7 +7,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	"zeroparse.dev/zp/gen"
+	"zeroparse.dev/zp/codegen"
 	"zeroparse.dev/zp/internal/syntax"
 )
 
@@ -38,7 +38,7 @@ func TestGeneratedTSFullWorkloadParity(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			generated, err := gen.TypeScript{Types: true, Recognize: true, LimitControls: true}.Generate(grammar, "main")
+			generated, err := codegen.TypeScript{Types: true, Recognize: true, LimitControls: true}.Generate(grammar, "main")
 			if err != nil {
 				t.Fatal(err)
 			}

@@ -6,7 +6,7 @@ import (
 	"slices"
 	"strings"
 	"testing"
-	igen "zeroparse.dev/zp/internal/gen"
+	igen "zeroparse.dev/zp/internal/codegen"
 )
 
 // listGenerated returns the files below dir, relative to it and with slashes.
@@ -28,18 +28,18 @@ func listGenerated(t *testing.T, dir string) []string {
 	return out
 }
 
-func hasRuntimeFiles(files []string) bool {
+func hasLibFiles(files []string) bool {
 	for _, f := range files {
-		if strings.HasPrefix(f, "internal/runtime/") {
+		if strings.HasPrefix(f, "internal/libgo/") {
 			return true
 		}
 	}
 	return false
 }
 
-// TestGenModesReplaceEachOther checks which files a generation in each runtime mode writes and
-// removes: embed and import own parser.go, api.go and internal/runtime, while only owns
-// internal/runtime alone and never touches the parser.
+// TestGenModesReplaceEachOther checks which files a generation in each library mode writes and
+// removes: embed and import own parser.go, api.go and internal/libgo, while only owns
+// internal/libgo alone and never touches the parser.
 func TestGenModesReplaceEachOther(t *testing.T) {
 	g := writeFile(t, "kv.zp", kv)
 	gen := func(t *testing.T, dir string, args ...string) {
@@ -48,14 +48,14 @@ func TestGenModesReplaceEachOther(t *testing.T) {
 			t.Fatalf("gen %v: %q, %v", args, out, err)
 		}
 	}
-	embed := []string{"-g", g, "-module", "example.com/kv", "-runtime", "embed"}
-	imp := []string{"-g", g, "-module", "example.com/kv", "-runtime", "import"}
-	only := []string{"-runtime", "only"}
+	embed := []string{"-g", g, "-module", "example.com/kv", "-lib", "embed"}
+	imp := []string{"-g", g, "-module", "example.com/kv", "-lib", "import"}
+	only := []string{"-lib", "only"}
 
 	t.Run("embed then import", func(t *testing.T) {
 		dir := t.TempDir()
 		gen(t, dir, embed...)
-		if files := listGenerated(t, dir); !hasRuntimeFiles(files) || !slices.Contains(files, "parser.go") || !slices.Contains(files, "api.go") {
+		if files := listGenerated(t, dir); !hasLibFiles(files) || !slices.Contains(files, "parser.go") || !slices.Contains(files, "api.go") {
 			t.Fatalf("embed wrote %v", files)
 		}
 		gen(t, dir, imp...)
@@ -69,11 +69,11 @@ func TestGenModesReplaceEachOther(t *testing.T) {
 	t.Run("import then embed", func(t *testing.T) {
 		dir := t.TempDir()
 		gen(t, dir, imp...)
-		if files := listGenerated(t, dir); hasRuntimeFiles(files) {
+		if files := listGenerated(t, dir); hasLibFiles(files) {
 			t.Fatalf("import wrote %v", files)
 		}
 		gen(t, dir, embed...)
-		if files := listGenerated(t, dir); !hasRuntimeFiles(files) || !slices.Contains(files, "parser.go") {
+		if files := listGenerated(t, dir); !hasLibFiles(files) || !slices.Contains(files, "parser.go") {
 			t.Errorf("embed wrote %v", files)
 		}
 	})
@@ -125,9 +125,9 @@ func TestGenModesReplaceEachOther(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		// A stale runtime file is removed; the parser stays.
-		stale := filepath.Join(dir, "internal", "runtime", "stale.go")
-		if err := os.WriteFile(stale, []byte(igen.Header()+"\n\npackage runtime\n"), 0o644); err != nil {
+		// A stale library file is removed; the parser stays.
+		stale := filepath.Join(dir, "internal", "libgo", "stale.go")
+		if err := os.WriteFile(stale, []byte(igen.Header()+"\n\npackage libgo\n"), 0o644); err != nil {
 			t.Fatal(err)
 		}
 		gen(t, dir, only...)
@@ -138,11 +138,11 @@ func TestGenModesReplaceEachOther(t *testing.T) {
 			t.Errorf("only changed parser.go: %v", err)
 		}
 	})
-	t.Run("only alone writes the runtime", func(t *testing.T) {
+	t.Run("only alone writes the library", func(t *testing.T) {
 		dir := t.TempDir()
 		gen(t, dir, only...)
 		files := listGenerated(t, dir)
-		if !hasRuntimeFiles(files) || slices.Contains(files, "parser.go") || slices.Contains(files, "api.go") {
+		if !hasLibFiles(files) || slices.Contains(files, "parser.go") || slices.Contains(files, "api.go") {
 			t.Errorf("only wrote %v", files)
 		}
 	})
@@ -165,18 +165,18 @@ func TestGenModesReplaceEachOther(t *testing.T) {
 // TestOwnedFiles checks the files each mode may remove as stale.
 func TestOwnedFiles(t *testing.T) {
 	dir := t.TempDir()
-	if err := os.MkdirAll(filepath.Join(dir, "internal", "runtime"), 0o755); err != nil {
+	if err := os.MkdirAll(filepath.Join(dir, "internal", "libgo"), 0o755); err != nil {
 		t.Fatal(err)
 	}
-	rt := filepath.Join(dir, "internal", "runtime", "x.go")
-	if err := os.WriteFile(rt, []byte("package runtime\n"), 0o644); err != nil {
+	rt := filepath.Join(dir, "internal", "libgo", "x.go")
+	if err := os.WriteFile(rt, []byte("package libgo\n"), 0o644); err != nil {
 		t.Fatal(err)
 	}
 	parser, api, types := filepath.Join(dir, "parser.go"), filepath.Join(dir, "api.go"), filepath.Join(dir, "types", "types.go")
-	for mode, want := range map[genRuntime][]string{
-		runtimeEmbed:  {parser, api, types, rt},
-		runtimeImport: {parser, api, types, rt},
-		runtimeOnly:   {rt},
+	for mode, want := range map[genLib][]string{
+		libEmbed:  {parser, api, types, rt},
+		libImport: {parser, api, types, rt},
+		libOnly:   {rt},
 	} {
 		if got := ownedFiles(dir, mode, false); !slices.Equal(got, want) {
 			t.Errorf("%v owns %v, want %v", mode, got, want)
@@ -207,7 +207,7 @@ func TestGenRefusesOlderHeader(t *testing.T) {
 // TestGenKeepsHandWrittenFiles checks that gen refuses to replace a file it did not generate.
 func TestGenKeepsHandWrittenFiles(t *testing.T) {
 	g := writeFile(t, "kv.zp", kv)
-	for _, name := range []string{"parser.go", "api.go", "types/types.go", "internal/runtime/runtime.go"} {
+	for _, name := range []string{"parser.go", "api.go", "types/types.go", "internal/libgo/lib.go"} {
 		t.Run(name, func(t *testing.T) {
 			dir := t.TempDir()
 			file := filepath.Join(dir, filepath.FromSlash(name))
@@ -242,20 +242,20 @@ func TestGenFlagMisuse(t *testing.T) {
 		args []string
 		want string
 	}{
-		{"grammar with only", []string{"-g", g, "-runtime", "only", "-o", out}, "-g cannot be combined with -runtime only"},
-		{"types with only", []string{"-runtime", "only", "-types", "-o", out}, "-types cannot be combined with -runtime only"},
-		{"recognize with only", []string{"-runtime", "only", "-recognize", "-o", out}, "-recognize cannot be combined"},
-		{"pkg with only", []string{"-runtime", "only", "-pkg", "x", "-o", out}, "-pkg cannot be combined"},
-		{"module with only", []string{"-runtime", "only", "-module", "example.com/x", "-o", out}, "-module cannot be combined"},
-		{"import without runtime module", []string{"-lang", "ts", "-g", g, "-runtime", "import", "-o", out}, "-runtime-module"},
-		{"runtime module with embed", []string{"-lang", "ts", "-g", g, "-runtime-module", "../rt.js", "-o", out}, "-runtime-module can only be combined with -runtime import"},
-		{"runtime module with go", []string{"-g", g, "-module", "example.com/x", "-runtime-module", "../rt.js", "-o", out}, "-runtime-module is only supported with -lang ts"},
-		{"grammar with ts only", []string{"-lang", "ts", "-g", g, "-runtime", "only", "-o", out}, "-g cannot be combined with -runtime only"},
-		{"types with ts only", []string{"-lang", "ts", "-runtime", "only", "-types", "-o", out}, "-types cannot be combined with -runtime only"},
-		{"module with ts only", []string{"-lang", "ts", "-runtime", "only", "-runtime-module", "../rt.js", "-o", out}, "-runtime-module cannot be combined"},
+		{"grammar with only", []string{"-g", g, "-lib", "only", "-o", out}, "-g cannot be combined with -lib only"},
+		{"types with only", []string{"-lib", "only", "-types", "-o", out}, "-types cannot be combined with -lib only"},
+		{"recognize with only", []string{"-lib", "only", "-recognize", "-o", out}, "-recognize cannot be combined"},
+		{"pkg with only", []string{"-lib", "only", "-pkg", "x", "-o", out}, "-pkg cannot be combined"},
+		{"module with only", []string{"-lib", "only", "-module", "example.com/x", "-o", out}, "-module cannot be combined"},
+		{"import without library module", []string{"-lang", "ts", "-g", g, "-lib", "import", "-o", out}, "-lib-module"},
+		{"library module with embed", []string{"-lang", "ts", "-g", g, "-lib-module", "../rt.js", "-o", out}, "-lib-module can only be combined with -lib import"},
+		{"library module with go", []string{"-g", g, "-module", "example.com/x", "-lib-module", "../rt.js", "-o", out}, "-lib-module is only supported with -lang ts"},
+		{"grammar with ts only", []string{"-lang", "ts", "-g", g, "-lib", "only", "-o", out}, "-g cannot be combined with -lib only"},
+		{"types with ts only", []string{"-lang", "ts", "-lib", "only", "-types", "-o", out}, "-types cannot be combined with -lib only"},
+		{"module with ts only", []string{"-lang", "ts", "-lib", "only", "-lib-module", "../rt.js", "-o", out}, "-lib-module cannot be combined"},
 		{"ts without output", []string{"-lang", "ts", "-g", g}, "-o"},
 		{"embed without module", []string{"-g", g, "-pkg", "kv", "-o", out}, "-module"},
-		{"import without module or pkg", []string{"-g", g, "-runtime", "import", "-o", out}, "-pkg or -module"},
+		{"import without module or pkg", []string{"-g", g, "-lib", "import", "-o", out}, "-pkg or -module"},
 		{"hyphenated module", []string{"-g", g, "-module", "example.com/my-parser", "-o", out}, "-pkg"},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
@@ -275,7 +275,7 @@ func TestGenFlagMisuse(t *testing.T) {
 func TestGenImportNeedsOnlyPackageName(t *testing.T) {
 	g := writeFile(t, "kv.zp", kv)
 	dir := t.TempDir()
-	if _, err := runCLI(t, "", "gen", "-g", g, "-runtime", "import", "-pkg", "kv", "-o", dir); err != nil {
+	if _, err := runCLI(t, "", "gen", "-g", g, "-lib", "import", "-pkg", "kv", "-o", dir); err != nil {
 		t.Fatal(err)
 	}
 	if data, err := os.ReadFile(filepath.Join(dir, "parser.go")); err != nil || !strings.Contains(string(data), "package kv\n") {
@@ -293,11 +293,11 @@ func TestGenImportNeedsOnlyPackageName(t *testing.T) {
 // TestOwnedFilesTS checks the files each mode may remove as stale for TypeScript.
 func TestOwnedFilesTS(t *testing.T) {
 	dir := t.TempDir()
-	parser, types, rt := filepath.Join(dir, "parser.ts"), filepath.Join(dir, "types.ts"), filepath.Join(dir, "runtime.ts")
-	for mode, want := range map[genRuntime][]string{
-		runtimeEmbed:  {parser, types, rt},
-		runtimeImport: {parser, types},
-		runtimeOnly:   {rt},
+	parser, types, rt := filepath.Join(dir, "parser.ts"), filepath.Join(dir, "types.ts"), filepath.Join(dir, "lib.ts")
+	for mode, want := range map[genLib][]string{
+		libEmbed:  {parser, types, rt},
+		libImport: {parser, types},
+		libOnly:   {rt},
 	} {
 		if got := ownedFiles(dir, mode, true); !slices.Equal(got, want) {
 			t.Errorf("%v owns %v, want %v", mode, got, want)
@@ -305,7 +305,7 @@ func TestOwnedFilesTS(t *testing.T) {
 	}
 }
 
-// TestGenTypeScriptModes checks the files of each TypeScript runtime mode, and that a later
+// TestGenTypeScriptModes checks the files of each TypeScript library mode, and that a later
 // generation removes the generated files that the new mode no longer writes.
 func TestGenTypeScriptModes(t *testing.T) {
 	g := writeFile(t, "kv.zp", kv)
@@ -328,22 +328,22 @@ func TestGenTypeScriptModes(t *testing.T) {
 		}
 	}
 	gen("-g", g, "-types")
-	if got := list(); got != "parser.ts runtime.ts types.ts" {
+	if got := list(); got != "lib.ts parser.ts types.ts" {
 		t.Fatalf("embed -types wrote %q", got)
 	}
-	gen("-g", g, "-runtime", "import", "-runtime-module", "../shared/runtime.ts")
-	if got := list(); got != "parser.ts runtime.ts" {
-		t.Fatalf("import wrote %q; the stale types.ts must be gone and runtime.ts, which it does not own, must stay", got)
+	gen("-g", g, "-lib", "import", "-lib-module", "../shared/lib.ts")
+	if got := list(); got != "lib.ts parser.ts" {
+		t.Fatalf("import wrote %q; the stale types.ts must be gone and lib.ts, which it does not own, must stay", got)
 	}
-	if data := readTS(t, dir, "parser.ts"); !strings.Contains(data, `from "../shared/runtime.ts"`) || strings.Contains(data, "./runtime.ts") {
-		t.Errorf("parser.ts does not import the runtime module:\n%.400s", data)
+	if data := readTS(t, dir, "parser.ts"); !strings.Contains(data, `from "../shared/lib.ts"`) || strings.Contains(data, "./lib.ts") {
+		t.Errorf("parser.ts does not import the library module:\n%.400s", data)
 	}
-	gen("-runtime", "only")
-	if got := list(); got != "parser.ts runtime.ts" {
+	gen("-lib", "only")
+	if got := list(); got != "lib.ts parser.ts" {
 		t.Fatalf("only wrote %q; it must leave parser.ts alone", got)
 	}
 	gen("-g", g)
-	if got := list(); got != "parser.ts runtime.ts" {
+	if got := list(); got != "lib.ts parser.ts" {
 		t.Fatalf("embed wrote %q", got)
 	}
 	hand := filepath.Join(dir, "types.ts")
@@ -359,9 +359,9 @@ func TestGenTypeScriptModes(t *testing.T) {
 	}
 }
 
-// TestGenImportKeepsSharedRuntime checks that a parser generated with -runtime import neither
-// writes nor removes the runtime.ts it imports, which -runtime only wrote into the same directory.
-func TestGenImportKeepsSharedRuntime(t *testing.T) {
+// TestGenImportKeepsSharedLib checks that a parser generated with -lib import neither
+// writes nor removes the lib.ts it imports, which -lib only wrote into the same directory.
+func TestGenImportKeepsSharedLib(t *testing.T) {
 	g := writeFile(t, "kv.zp", kv)
 	dir := t.TempDir()
 	gen := func(args ...string) {
@@ -370,21 +370,21 @@ func TestGenImportKeepsSharedRuntime(t *testing.T) {
 			t.Fatal(err)
 		}
 	}
-	gen("-runtime", "only")
-	shared := readTS(t, dir, "runtime.ts")
-	gen("-g", g, "-runtime", "import", "-runtime-module", "./runtime.ts")
-	if got := readTS(t, dir, "runtime.ts"); got != shared {
-		t.Errorf("-runtime import changed the shared runtime.ts")
+	gen("-lib", "only")
+	shared := readTS(t, dir, "lib.ts")
+	gen("-g", g, "-lib", "import", "-lib-module", "./lib.ts")
+	if got := readTS(t, dir, "lib.ts"); got != shared {
+		t.Errorf("-lib import changed the shared lib.ts")
 	}
-	if data := readTS(t, dir, "parser.ts"); !strings.Contains(data, `from "./runtime.ts"`) {
-		t.Errorf("parser.ts does not import the shared runtime:\n%.400s", data)
+	if data := readTS(t, dir, "parser.ts"); !strings.Contains(data, `from "./lib.ts"`) {
+		t.Errorf("parser.ts does not import the shared library:\n%.400s", data)
 	}
-	// A hand-written runtime.ts is not touched either, and not refused: the import mode does not own it.
-	if err := os.WriteFile(filepath.Join(dir, "runtime.ts"), []byte("export const x = 1;\n"), 0o644); err != nil {
+	// A hand-written lib.ts is not touched either, and not refused: the import mode does not own it.
+	if err := os.WriteFile(filepath.Join(dir, "lib.ts"), []byte("export const x = 1;\n"), 0o644); err != nil {
 		t.Fatal(err)
 	}
-	gen("-g", g, "-runtime", "import", "-runtime-module", "./runtime.ts")
-	if got := readTS(t, dir, "runtime.ts"); got != "export const x = 1;\n" {
-		t.Errorf("a hand-written runtime.ts was changed: %q", got)
+	gen("-g", g, "-lib", "import", "-lib-module", "./lib.ts")
+	if got := readTS(t, dir, "lib.ts"); got != "export const x = 1;\n" {
+		t.Errorf("a hand-written lib.ts was changed: %q", got)
 	}
 }

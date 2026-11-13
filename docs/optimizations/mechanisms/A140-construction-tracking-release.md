@@ -37,9 +37,9 @@ Evidence records:
 Source owners: [`constructor tracking
 cleanup`](../../../internal/engine/core/eval.go), [`VM evaluator
 cleanup`](../../../internal/engine/vm/vm.go), [`generated construction
-tracking`](../../../runtime/runtime.go), [`typed
-tracking`](../../../runtime/typed.go), [`TypeScript
-cleanup`](../../../internal/gen/gents/tsrt/runtime.ts).
+tracking`](../../../codegen/go/lib/lib.go), [`typed
+tracking`](../../../codegen/go/lib/typed.go), [`TypeScript
+cleanup`](../../../codegen/ts/lib/lib.ts).
 
 The [comparison policy](../../design/records/024-optimization-mechanism-controls.md)
 distinguishes same-source controls, historical changes and full checkpoints.

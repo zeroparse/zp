@@ -4,8 +4,8 @@ import (
 	"strings"
 	"testing"
 
+	"zeroparse.dev/zp/internal/codegen"
 	"zeroparse.dev/zp/internal/compiletest"
-	"zeroparse.dev/zp/internal/gen"
 )
 
 // AnonJoinGrammar is the grammar whose anonymous joins the generated types name.
@@ -25,7 +25,7 @@ func GoTypesOf(t *testing.T, src string) (string, error) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	files, err := Generate(t, g, gen.GenOptions{Start: "main", Types: true, Module: "example.com/m", Package: "p"})
+	files, err := Generate(t, g, codegen.GenOptions{Start: "main", Types: true, Module: "example.com/m", Package: "p"})
 	if err != nil {
 		return "", err
 	}

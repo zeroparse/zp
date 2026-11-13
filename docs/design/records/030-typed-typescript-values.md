@@ -6,7 +6,7 @@
 
 ## Summary
 
-Allow `zp gen -lang ts -types` and `gen.TypeScript{Types: true}`
+Allow `zp gen -lang ts -types` and `codegen.TypeScript{Types: true}`
 to generate interfaces, aliases and unions corresponding to grammar types (a grammar join type becomes a TypeScript union),
 plus typed parse-result entry points. The first implementation runs
 the existing Node parser once and converts its completed result into typed
@@ -16,10 +16,10 @@ its own correctness and measurement gates.
 
 ## Motivation
 
-`internal/gen/gents/generator.go` previously rejected `GenOptions.Types`. Generated TS
+`internal/codegen/ts/generator.go` previously rejected `GenOptions.Types`. Generated TS
 returns `Node` values whose fields require runtime name lookup and consumer
 casts. Generated Go already maps grammar types to public values through
-`internal/gen/gengo/types.go`; its metadata and converter semantics provide the reference
+`internal/codegen/go/types.go`; its metadata and converter semantics provide the reference
 for the new TS mapping. The feature acceptance criterion requires actual
 consumer use, value equivalence and declaration exports, not merely compiling
 a generated module.
@@ -254,7 +254,7 @@ separately scoped API rather than an implicit lossy `toJSON` hook.
 3. Complete differential/ownership/depth gates and measure source/build and
    conversion costs before claiming readiness.
 4. Only later consider direct typed matching. Require a TS analogue of Go's
-   full `runtimeOK` guard, including every struct field and field-reading
+   full `libOK` guard, including every struct field and field-reading
    action/predicate. Unsupported layouts must retain the converter path.
    Preserve action semantics, cuts, memoization, LR growth, Operators Rule attempts,
    recovery and public ownership. Compare direct output with the converter
@@ -290,7 +290,7 @@ validation passed; the results below quantify the opt-in converter costs:
   union narrowing and nullable results. Include grammar types named like the
   runtime and generated declarations (Parser, Actx, Rule, OperatorsRuleLine, Node,
   R0), and assert that the reserved names fail generation. Assert imports and
-  declaration exports of the real `runtime.ts`, `types.ts` and `parser.ts`, not just
+  declaration exports of the real `lib.ts`, `types.ts` and `parser.ts`, not just
   generated-file compilation.
 - Differential conversion versus existing Node results and Go typed mappings
   on common representable values. Normalize backend shape/64-bit integer

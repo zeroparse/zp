@@ -135,8 +135,8 @@ func Reference(t *testing.T, src string, opts compile.Options) gentest.Reference
 	}
 }
 
-// CompileForGenerator compiles g for the generators, as the root package's compileForGenerator
-// does.
+// CompileForGenerator compiles g for the generators, as the compileForGenerator of package
+// codegen does.
 func CompileForGenerator(g *grammar.Grammar, opts compile.Options) (*compile.Program, func() (*compile.Program, error), error) {
 	prog, err := engine.Compile(g, opts)
 	if err != nil {

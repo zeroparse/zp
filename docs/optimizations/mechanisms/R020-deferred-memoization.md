@@ -40,8 +40,8 @@ Evidence records: [018](../018-memoizing-from-the-second-call-at-a-position.md),
 
 Source owners: [`parser.firstCall`](../../../internal/engine/core/runtime.go),
 [`memoTable.firstCall`](../../../internal/engine/core/memo.go), [`generated
-FirstCall`](../../../runtime/runtime.go), [`TypeScript
-firstCall`](../../../internal/gen/gents/tsrt/runtime.ts).
+FirstCall`](../../../codegen/go/lib/lib.go), [`TypeScript
+firstCall`](../../../codegen/ts/lib/lib.ts).
 
 The [comparison policy](../../design/records/024-optimization-mechanism-controls.md)
 distinguishes same-source controls, historical changes and full checkpoints.

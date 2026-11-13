@@ -7,7 +7,7 @@ This document describes the repository layout and architecture, how to run tests
 | Path | Contents |
 |:--|:--|
 | `engine/` | Public API that compiles and runs parsers at run time (`ParseGrammar`, `Compile`, `CompileSource`, `Parser.Parse`, `Document`, and others), which joins the engine to the output schema (`Parser.OutputSchema`), with its behavior tests (package `engine_test`) |
-| `gen/` | Public package of code generation (`gen.Go`, `gen.TypeScript`, `gen.Generator`), which joins the engine to the generators of `internal/gen/`. It embeds the copy of the runtime that generated Go packages carry (`gen/_runtime`, refreshed by `go generate ./gen` and checked against `runtime/` by a test) |
+| `codegen/` | Public package of code generation (`codegen.Go`, `codegen.TypeScript`, `codegen.Generator`), which joins the engine to the generators of `internal/codegen/`. It embeds the sources of the Go and TypeScript libraries of generated parsers (`codegen/go/lib/`, `codegen/ts/lib/`), which the generators copy into generated parsers |
 | `grammar/` | Grammar AST, structural validation (`Validate`), JSON conversion (`MarshalJSON`, `UnmarshalJSON`, strict `DecodeJSON`) and formatting as ZeroParse source (`Format`, which preserves comments). Public package. |
 | `internal/grammaranalysis/` | Conservative success and cut proofs shared by the compiler and linter |
 | `lint/` | Public entry of the grammar linter (`lint.Config`) behind `zp lint`: it re-exports the types of `internal/lint/`. |
@@ -19,7 +19,7 @@ This document describes the repository layout and architecture, how to run tests
 | `zp.zp` | Typed source grammar and recoverable syntax tree; the generated source-parser integration is [proposed](design/records/054-generated-grammar-source-parser.md). |
 | `internal/syntax/` | Frontend of ZeroParse source code (source → `grammar.Grammar`): `genparser/` holds the typed Go parser generated from `zp.zp`, checked in and regenerated with `go generate ./internal/syntax`, and the adapter builds the grammar AST from its typed values; the hand-written parser is the oracle of the differential tests and the reader of the removed syntax that `zp fix` rewrites |
 | `internal/compile/` | Compiler and static analysis: type checking, call and dependency analysis, the walk of rule bodies that decides their static facts, and the bytecode compiler |
-| `internal/engine/` | Parser runtime: `Compile`, compiled grammars, streams and limit controls, built on `internal/engine/core/`, the closure backend of `internal/engine/closure/`, the bytecode VMs of `internal/engine/vm/` and the Document of `internal/engine/document/`. It does not import the generators or the output schema: package `gen` joins the generators to it, and package `engine` the schema export |
+| `internal/engine/` | Parser runtime: `Compile`, compiled grammars, streams and limit controls, built on `internal/engine/core/`, the closure backend of `internal/engine/closure/`, the bytecode VMs of `internal/engine/vm/` and the Document of `internal/engine/document/`. It does not import the generators or the output schema: package `codegen` joins the generators to it, and package `engine` the schema export |
 | `internal/engine/core/` | The part of the parser runtime that every backend shares: the parser state, input, memo table, expectations, values, built-ins of actions, limit controls, tracing and stream state, and the parse options, results and errors that `internal/engine` re-exports. Its package documentation states what a backend provides and what it may use |
 | `internal/engine/closure/` | The closure backend: builds a closure graph for each rule body and evaluates actions on the grammar AST |
 | `internal/engine/vm/` | The bytecode backend: the recursive and iterative VMs, which run a compiled module over the same instruction loop |
@@ -30,22 +30,22 @@ This document describes the repository layout and architecture, how to run tests
 | `internal/value/` | The engine's access to the representation of `core.Node` (`D`) and the node helpers that only the engine needs |
 | `internal/limits/` | Defaults of the limits of a parse invocation and overflow-safe budget arithmetic, shared by the parser, the Document and package `query` |
 | `internal/bytecode/` | The bytecode instruction set and module, its disassembly, the encoding of modules in compiled grammars and the validation of loaded modules |
-| `internal/gen/` | What the Go and TypeScript generators share: generation options, the runtime mode of generated Go parsers, generated files, and the generator state both print with (the program and rule being printed, the expectation table, shared names, the Flow IR state of recognizer rules and the action value resolver) |
-| `runtime/` | Runtime package of generated Go parsers, imported by them or copied into them (`zeroparse.dev/zp/runtime`) |
+| `internal/codegen/` | What the Go and TypeScript generators share: generation options, the library mode of generated Go parsers, generated files, and the generator state both print with (the program and rule being printed, the expectation table, shared names, the Flow IR state of recognizer rules and the action value resolver) |
+| `codegen/go/lib/` | Library of generated Go parsers, imported by them or copied into them (`zeroparse.dev/zp/codegen/go/lib`); it depends only on `core` |
 | `core/` | The types that the engine and generated Go parsers share: nodes with their JSON form, traversal and cursors, the stream iterator, limits and their errors, position units, syntax errors, edits and statistics (`zeroparse.dev/zp/core`) |
 | `core/noderep/` | The representation of `core.Node` that the parsers build and read; not a stable API |
-| `internal/gen/gengo/` | Go generator: prints the parser, its types package and the runtime copy from the compiled program and Exec IR, and leaves out what the entry points cannot reach |
-| `internal/gen/gents/` | TypeScript generator: prints the parser, its types and its runtime files from the compiled program and Exec IR |
-| `internal/ir/` | The internal representations between a compiled program and generated code: `core/` (Core IR, its builder in `core/build/` and its passes), `flow/` (Flow IR, and in `flow/lower/` its lowering and which compiled rules it lowers), `exec/` (Exec IR: the operations of the parser VM in `exec/ops/`, the compositions in `exec/core/` and their Go library printing in `exec/libgo/`, the lowering from Flow IR in `exec/lower/`, the passes in `exec/pass/`, the Go and TypeScript printers in `exec/execgo/` and `exec/exects/`, the specification-table reader of their tests in `exec/spectest/`, and the reference models and conformance suite in `exec/ref/` and `exec/conform/`) and `pipeline/` (the runner of declared passes). See [Core, Flow and Exec IR](design/intermediate-representations.md) |
+| `internal/codegen/go/` | Go generator: prints the parser, its types package and the library copy from the compiled program and Exec IR, and leaves out what the entry points cannot reach |
+| `internal/codegen/ts/` | TypeScript generator: prints the parser, its types and its library file from the compiled program and Exec IR |
+| `internal/ir/` | The internal representations between a compiled program and generated code: `core/` (Core IR, its builder in `core/build/` and its passes), `flow/` (Flow IR, and in `flow/lower/` its lowering and which compiled rules it lowers), `exec/` (Exec IR: the operations of the parser VM in `exec/ops/`, the compositions in `exec/core/` and their Go library printing in `exec/libgo/`, the lowering from Flow IR in `exec/lower/`, the passes in `exec/pass/`, the Go and TypeScript printers in `exec/gogen/` and `exec/tsgen/`, the specification-table reader of their tests in `exec/spectest/`, and the reference models and conformance suite in `exec/ref/` and `exec/conform/`) and `pipeline/` (the runner of declared passes). See [Core, Flow and Exec IR](design/intermediate-representations.md) |
 | `internal/ir/opt/` | The registry of the optimizations (flags with a kind and a `speed` value) and of the `speed`, `memory` and `size` profiles, and the driver that runs the IR pass pipelines under them with their dumps and verification |
-| `internal/gen/gents/tsrt/` | Source of `runtime.ts`, the runtime that generated TypeScript parsers import (joined from `runtime.ts`, `budget.ts`, `trace.ts` and `profile.ts`) |
+| `codegen/ts/lib/` | Source of `lib.ts`, the library that generated TypeScript parsers import (joined from `lib.ts`, `budget.ts`, `trace.ts` and `profile.ts`) |
 | `cmd/zp/` | Command-line tool |
 | `examples/` | Small example grammars that show the features, with golden tests |
 | `testdata/grammars/` | The grammars of ten languages (`<language>/<language>.zp`, with sample inputs) that the tests and benchmarks of this module read, and `generate.txt` with the `zp gen` options of each; the ready-made parsers generated from them live in the separate [alpha-parsers](https://github.com/zeroparse/alpha-parsers) repository |
 | `cmd/playground/` | WebAssembly API used by the web playground (package `main`; `GOOS=js GOARCH=wasm`) |
 | `site/` | Web site generator (a separate Go module): landing page, docs, reference and playground; see [website maintenance](site.md) |
 | `wrangler.jsonc` | Cloudflare Worker with static assets that serves the site from `site/dist`; see [website maintenance](site.md) |
-| `bench/` | Benchmarks comparing the backends with each other and with standard-library parsers (`gen/` holds generated parsers). Results are in [benchmarks.md](benchmarks.md), generated with `go run ./bench/report` (`report/`) from the raw results in `results.txt`, `results-ts.txt` (generated TypeScript under Node) and `results-size.txt` (generated parser sizes). `go run ./bench/profilematrix` compares generation options (`internal/bench/probe` holds the generation and size helpers it shares with `report/`). `node bench/ts-literal.mjs [runtime.ts]` measures the embedded TS literal matcher, excluding input/rule setup, trees and error construction; its optional path compares checkouts. |
+| `bench/` | Benchmarks comparing the backends with each other and with standard-library parsers (`gen/` holds generated parsers). Results are in [benchmarks.md](benchmarks.md), generated with `go run ./bench/report` (`report/`) from the raw results in `results.txt`, `results-ts.txt` (generated TypeScript under Node) and `results-size.txt` (generated parser sizes). `go run ./bench/profilematrix` compares generation options (`internal/bench/probe` holds the generation and size helpers it shares with `report/`). `node bench/ts-literal.mjs [lib.ts]` measures the embedded TS literal matcher, excluding input/rule setup, trees and error construction; its optional path compares checkouts. |
 | `spec/` | The specifications: grammar language, parser and runtime, Core IR, and bytecode and VM ([bytecode](../spec/bytecode/README.md)) |
 | `docs/tutorial/` | The ordered tutorial series ([index](tutorial/README.md)) |
 | `docs/guide/` | Task-oriented guides to each feature ([index](guide/README.md)) |
@@ -56,7 +56,7 @@ This document describes the repository layout and architecture, how to run tests
 | `docs/design/records/` | Design records; [template](design/records/000-template.md) for new proposals |
 | `docs/optimizations/` | Numbered optimization history, measured evidence and backend applicability ([catalog](optimizations/README.md)); measurement method and latest analysis remain in [performance.md](performance.md) |
 
-A generator program that renders one set of files lives beside them and is run by a `//go:generate` directive in that package: `spec/language/internal/gensyntax` renders the simplified grammar reference of `spec/language`, and `gen/` refreshes its copy of the runtime. There is no shared tools directory. Files generated by `zp gen` itself (the benchmark parsers) are declared by the `//go:generate` directives of `bench/`.
+A generator program that renders one set of files lives beside them and is run by a `//go:generate` directive in that package: `spec/language/internal/gensyntax` renders the simplified grammar reference of `spec/language`, `internal/codegen/go/lib` prints the compositions of the Go library into `codegen/go/lib/`, and `internal/codegen/go` writes the index of the declarations of `core` that the Go generator reads. There is no shared tools directory. Files generated by `zp gen` itself (the benchmark parsers) are declared by the `//go:generate` directives of `bench/`.
 
 ## Architecture
 
@@ -75,11 +75,11 @@ A generator program that renders one set of files lives beside them and is run b
 | Bytecode | `internal/bytecode/bytecode.go`, `vm/compile.go`, `vm/vm.go`, `vm/ivm.go` | Runs the same grammar semantics with recursive and iterative VMs; see the [bytecode specification](../spec/bytecode/README.md). |
 | Input and documents | `core/input.go`, `core/stream_text.go`, `document/document.go`, `core/resume.go`, `core/document_exec.go`, `core/document_ops.go` | Tracks position units, streaming input, versioned atomic edit batches, edits and resumable repetitions; VM-backed Documents reuse cleared stacks ([record 086](optimizations/086-reuse-document-vm-values.md)), and streaming shares bounded immutable text snapshots ([record 088](optimizations/088-share-bounded-stream-text-snapshots.md)). |
 | Compiled grammars | `program_compiled.go`, `internal/bytecode/modulefile.go`, `internal/bytecode/codec.go` | Saves and loads the bytecode module of one mode (parse, recognize or document) and serves only that mode's operations. |
-| Code generation | `internal/gen/gengo/`, `runtime/`, `internal/gen/gents/` | Emits standalone Go and TypeScript parsers; exact generated helpers are shared where enabled ([090](optimizations/090-share-identical-generated-helpers.md)), eligible literal-text predicates use switch dispatch ([091](optimizations/091-specialize-pure-literal-text-disjunctions.md)), and generated Node capture scratch is bounded at recycle ([092](optimizations/092-reuse-generated-node-capture-scratch.md)). |
+| Code generation | `internal/codegen/go/`, `codegen/go/lib/`, `internal/codegen/ts/` | Emits standalone Go and TypeScript parsers; exact generated helpers are shared where enabled ([090](optimizations/090-share-identical-generated-helpers.md)), eligible literal-text predicates use switch dispatch ([091](optimizations/091-specialize-pure-literal-text-disjunctions.md)), and generated Node capture scratch is bounded at recycle ([092](optimizations/092-reuse-generated-node-capture-scratch.md)). |
 | Language tools | `lint/`, `internal/lint/`, `internal/lsp/`, `editors/vscode/` | Provides static checks, editor requests and the VS Code client. |
 | Input generation | `sample/` | Generates accepted inputs and coverage; generated inputs are checked by the parser. |
 
-Files without a directory are in `internal/engine/`. There, a file's prefix names the part it belongs to: `program` for the entry points of a program (compilation, compiled grammars, the parse drivers and the runner that a Document parses through). `compile_api.go` and `core_api.go` hold the names that the engine exposes from the compiler and from `internal/engine/core`, and `profile.go` reads parse results. What every backend shares is in `internal/engine/core/`: the parser state, the input, memo and stream state (`input_`, `stream_` and `spend_` files and `runtime.go`), the built-ins of actions (`eval.go`, `filter.go`) and the tracer (`trace.go`). The closure backend is in `internal/engine/closure/`, the recursive and iterative bytecode VMs are in `internal/engine/vm/`, and the Document with its snapshots, change reports and node cursor is in `internal/engine/document/`, which `document_api.go` re-exports. Tests of the Go generator that compare its parsers with the engine are in `internal/gen/gengo/`, with `internal/gentest` holding the shared corpus and helpers; those that also run TypeScript parsers, and those that need engine internals, stay here, named after the generator they check: `gengo_` for Go, `gents_` for TypeScript and `gen_` for both. Optimization evidence is in the [catalog](optimizations/README.md); contracts and proposals are in `spec/` and `docs/design/records/`.
+Files without a directory are in `internal/engine/`. There, a file's prefix names the part it belongs to: `program` for the entry points of a program (compilation, compiled grammars, the parse drivers and the runner that a Document parses through). `compile_api.go` and `core_api.go` hold the names that the engine exposes from the compiler and from `internal/engine/core`, and `profile.go` reads parse results. What every backend shares is in `internal/engine/core/`: the parser state, the input, memo and stream state (`input_`, `stream_` and `spend_` files and `runtime.go`), the built-ins of actions (`eval.go`, `filter.go`) and the tracer (`trace.go`). The closure backend is in `internal/engine/closure/`, the recursive and iterative bytecode VMs are in `internal/engine/vm/`, and the Document with its snapshots, change reports and node cursor is in `internal/engine/document/`, which `document_api.go` re-exports. Tests of the Go generator that compare its parsers with the engine are in `internal/codegen/go/`, with `internal/gentest` holding the shared corpus and helpers; those that also run TypeScript parsers, and those that need engine internals, stay here, named after the generator they check: `gengo_` for Go, `gents_` for TypeScript and `gen_` for both. Optimization evidence is in the [catalog](optimizations/README.md); contracts and proposals are in `spec/` and `docs/design/records/`.
 
 ### Runtime
 
@@ -99,10 +99,11 @@ for backend scope, cleanup and measured costs.
 
 ### Code Generation
 
-Generated Go and TypeScript parsers embed their runtime and depend only on their standard libraries. Generated Go
+Generated Go and TypeScript parsers embed their library. Generated TypeScript depends on nothing else, and generated
+Go only on the package `core` and the standard library. Generated Go
 and TypeScript rules are built as Core IR, lowered to Flow IR and then to Exec IR, which the printers print ([design 062](design/records/062-backend-independent-optimization-ir.md), [design 065](design/records/065-exec-ir-parser-vm.md)): in Go, lean value-free rules are direct rules and the others framed bodies the runtime calls; typed Go also emits inferred Go types
 and `ParseValue`/`ParseRuleValue` for configured-start and named rules
-([design 029](design/records/029-typed-named-rule-parsing.md)). Generation defaults (`MaxDepth` of `gen.Go` and `gen.TypeScript`, `gen -max-depth`) and invocation-local depth
+([design 029](design/records/029-typed-named-rule-parsing.md)). Generation defaults (`MaxDepth` of `codegen.Go` and `codegen.TypeScript`, `gen -max-depth`) and invocation-local depth
 options are implemented ([design 022](design/records/022-generated-parser-depth-limits.md)); Go entry points accept
 functional `ParseOption`s, and TypeScript adds options-aware entry points. With `Types` or `-types`, TypeScript
 exports grammar declarations and configured-start `parseValue` conversion ([guide](guide/typescript.md#typed-values),
@@ -129,7 +130,7 @@ the driver in `internal/ir/opt`
 
 1. Declare a pass with its `Requires`, `Invalidates`, `After`, `Applies` and `Obligation`, or add a lowering or
    runtime flag; register its name, kind, description and `speed` value in the registry.
-2. Add its entry to `optimizationTests` in `internal/gen/gengo/optimization_flags_test.go`. The entry names the test of
+2. Add its entry to `optimizationTests` in `internal/codegen/go/optimization_flags_test.go`. The entry names the test of
    the parser generated without it, or leaves it to `TestOptimizationDisabledParity`, which compares such parsers with the
    engine and fails for a flag that changes neither the code nor the Core IR.
 3. Add a row to the optimizations table of the [code-generation guide](guide/code-generation.md#optimizations).
@@ -146,11 +147,11 @@ The repository holds two modules:
 
 | Module | Directory | Holds |
 |:--|:--|:--|
-| `zeroparse.dev/zp` | the root | The engine, the generators, the runtime of generated Go parsers, the `zp` command and the public packages |
+| `zeroparse.dev/zp` | the root | The engine, the generators, the library of generated Go parsers, the `zp` command and the public packages |
 | `zeroparse.dev/zp/site` | `site/` | The documentation site |
 
-The committed `go.work` joins them. The root module requires no other module, so a generated parser that imports the
-runtime (`-runtime import`) adds only `zeroparse.dev/zp` to its module's requirements.
+The committed `go.work` joins them. The root module requires no other module, so a generated Go parser, which imports `core` and with `-lib import` the
+library, adds only `zeroparse.dev/zp` to its module's requirements.
 
 - A pattern such as `./...` matches the packages of the module of the current directory only, so the root suite is
   `go test ./...`, and the site's is `cd site && go test ./...`.
@@ -159,18 +160,24 @@ runtime (`-runtime import`) adds only `zeroparse.dev/zp` to its module's require
   `go.work`.
 - Tests that build generated programs write temporary modules outside the checkout, which the workspace does not
   reach. Those modules `replace` `zeroparse.dev/zp` with a directory: a partial copy of the module that holds only the
-  packages generated code imports (`gentest.GoModAt`), or the checkout when they import other packages. The runtime's
-  conformance tests (`runtime/conformance_test.go`) add the tests of `runtime/testdata/conformance/` and the bindings
-  that the printer prints to the runtime package with a `go build` overlay, so that they reach its unexported code.
+  packages generated code imports (`gentest.GoModAt`), or the checkout when they import other packages. The library's
+  conformance tests (`codegen/go/lib/conformance_test.go`) add the tests of `codegen/go/lib/testdata/conformance/` and the
+  bindings that the printer prints to the library package with a `go build` overlay, so that they reach its unexported code.
 
-The protocol version of the runtime (`runtime/protocol.go`) names the interface between generated code and the runtime,
-which [the runtime protocol](releasing.md#the-runtime-protocol) describes. `TestProtocol` in `runtime/` compares the exported
-declarations of the runtime, with the exported fields and methods of the types they reach and the types that aliases
-stand for, with `runtime/testdata/protocol.golden` and fails when they changed under the same protocol version: replace
-`ProtocolN` with `ProtocolN+1`, then run `go test ./runtime -run TestProtocol -update-protocol`. A change of what the
-declarations mean or of how generated parsers encode their data needs the same bump, which no test detects.
-`gen/protocol_test.go` checks that a parser generated with `-runtime import` fails to build against a runtime of
-another protocol.
+The protocol version of the library (`codegen/go/lib/protocol.go`) names the interface between generated code and the
+library, which [the library protocol](releasing.md#the-library-protocol) describes. `TestProtocol` in `codegen/go/lib/`
+compares the exported declarations of the library, with the exported fields and methods of the types they reach and the
+types that aliases stand for, with `codegen/go/lib/testdata/protocol.golden` and fails when they changed under the same
+protocol version: replace `ProtocolN` with `ProtocolN+1` in the library, then run
+`go test ./codegen/go/lib -run TestProtocol -update-protocol`. A change of what the declarations mean or of how
+generated parsers encode their data needs the same bump, which no test detects. `TestRepresentation` in `core/noderep`
+compares the node representation (every declaration of the package, exported or not: type layouts, constant values and
+signatures) with `core/noderep/testdata/representation.golden` and fails when it changed under the same constant: replace
+the constant of `core/noderep` with `ProtocolN` of the protocol version that makes the change, refer to it in the
+library, then run `go test ./core/noderep -run TestRepresentation -update-representation`. `TestNoderepProtocol` checks
+that `core/noderep` declares exactly one protocol constant, of a version up to the library's, and that the library
+refers to it, and `codegen/protocol_test.go` checks that a parser generated with `-lib import` fails to build against a
+library of another protocol and that an embedded copy fails to build against a `core` of another protocol.
 
 ## Testing
 
@@ -178,9 +185,9 @@ another protocol.
 go test ./...
 ```
 
-`go test` stops a package's tests after 10 minutes by default, which a loaded machine can exceed in the packages that build generated parsers (`internal/engine`, `internal/gen/gengo`, `internal/gen/gents`, `internal/complexitytest`). Run the root suite with `-timeout 45m` and the long tier with `-timeout 90m`; CI uses the 45-minute value (below). The tests that compare wall-clock times (the Document memo-drop check and the linear-scaling tests of recovery) compare ratios of times measured in one attempt and pass if any of a few attempts does, so a loaded machine slows them but does not fail them; a ratio that fails every attempt is a real growth.
+`go test` stops a package's tests after 10 minutes by default, which a loaded machine can exceed in the packages that build generated parsers (`internal/engine`, `internal/codegen/go`, `internal/codegen/ts`, `internal/complexitytest`). Run the root suite with `-timeout 45m` and the long tier with `-timeout 90m`; CI uses the 45-minute value (below). The tests that compare wall-clock times (the Document memo-drop check and the linear-scaling tests of recovery) compare ratios of times measured in one attempt and pass if any of a few attempts does, so a loaded machine slows them but does not fail them; a ratio that fails every attempt is a real growth.
 
-The negative controls and mutants that rebuild or rerun the generated corpora many times are in the long tier: files named `*_long_test.go` with `//go:build zp_long`, run once per batch of changes with `go test -tags zp_long ./...`. The long tier includes every test of the default tier at the same or a larger size, so a batch that needs it runs it instead of the default run, not after it. `hack/affected-tests.sh [base [head]]` prints the packages whose tests a change between two commits can affect, to choose what to run while developing; it is not yet a gate, so a landing still runs the whole suite. Each keeps its parity or invariant test, which checks the unmutated behavior, in the default tier. In `internal/gen/gengo` and `internal/gen/gents` the long tier holds the dependency-memo controls (`TestGeneratedLeftRecursionDependencyMemoControls`, `TestGeneratedTSLeftRecursionDependencyMemoControls`), the mutants of the Node budget, observation, stream observation and Document tests, the negative control of the Flow recognizer and the rule table limit test.
+The negative controls and mutants that rebuild or rerun the generated corpora many times are in the long tier: files named `*_long_test.go` with `//go:build zp_long`, run once per batch of changes with `go test -tags zp_long ./...`. The long tier includes every test of the default tier at the same or a larger size, so a batch that needs it runs it instead of the default run, not after it. `hack/affected-tests.sh [base [head]]` prints the packages whose tests a change between two commits can affect, to choose what to run while developing; it is not yet a gate, so a landing still runs the whole suite. Each keeps its parity or invariant test, which checks the unmutated behavior, in the default tier. In `internal/codegen/go` and `internal/codegen/ts` the long tier holds the dependency-memo controls (`TestGeneratedLeftRecursionDependencyMemoControls`, `TestGeneratedTSLeftRecursionDependencyMemoControls`), the mutants of the Node budget, observation, stream observation and Document tests, the negative control of the Flow recognizer and the rule table limit test.
 
 In `internal/complexitytest` the default tier measures every control, corpus entry and family of random grammars at the reduced sizes and counts that `-short` selects, and the long tier measures them at full size. `TestSlopeGate` holds the classes that the classifier assigns to random grammars to their measured slopes on every backend, and leaves out of the cost the copies of recovered errors that Compute counts: it runs a few seeds, and the seeds in `slopeCaught` that found a false class under a negative control, in the default tier, and many more in the long tier. A seed that catches a new false class belongs in `slopeCaught`, and its grammar in `TestSlopeGateGrowth`. The gate holds the class Linear and the degree of a polynomial class, and fails on a polynomial class that has reasons for the class unknown. Its grammars reach some checks of the classifier too rarely to hold them: breaking the cut check of a choice in what an expression surely consumes, the condition that a counted rule is off every cycle, or the repetition depth of the nesting check passes the gate, and only the class tests of `internal/complexity` and the controls of `TestControlClasses` catch it.
 
@@ -192,7 +199,7 @@ The tests that run a generator over the whole corpus run a fixed subset of it in
 go test -run '^$' -bench . -benchtime=1x ./...
 ```
 
-The tests that build generated parsers (in `internal/gen/gengo`, `internal/gen/gents`, `internal/gen` and `internal/engine`) build them in two forms. A parser generated with limit controls spends budget and accepts the options `WithContext` and `WithLimits`. A parser generated without them is the form that most parsers have, and a different part of the generator prints it. Every test runs the form that it exists to check:
+The tests that build generated parsers (in `internal/codegen/go`, `internal/codegen/ts`, `internal/codegen` and `internal/engine`) build them in two forms. A parser generated with limit controls spends budget and accepts the options `WithContext` and `WithLimits`. A parser generated without them is the form that most parsers have, and a different part of the generator prints it. Every test runs the form that it exists to check:
 
 | Kind of test | Runs | How |
 |:--|:--|:--|
@@ -205,19 +212,19 @@ Each test records its form by name and its subtests inherit it, so tests of eith
 
 `ZP_TEST_ORDINARY` restricts a run to one form: `0` runs everything that builds fixtures with limit controls, and `1` runs it without, skipping the tests that pass a control. Use it to reproduce a failure of one form; it does not widen coverage.
 
-The top-level tests of `internal/engine` call `t.Parallel()`. A test stays sequential when it measures heap or time in the test process, changes a process-wide setting such as `debug.SetMaxStack` or `core.MinRecorded`, or shares mutable fixtures with other tests (the generators cached by `coreGenerations`); Go runs every sequential test before it releases the parallel ones, so these run alone. A test that observes or changes the Go generator passes `gengo.Hooks` to the generation, directly or for itself and its subtests with `gentest.SetGenHooks`, instead of setting package state.
+The top-level tests of `internal/engine` call `t.Parallel()`. A test stays sequential when it measures heap or time in the test process, changes a process-wide setting such as `debug.SetMaxStack` or `core.MinRecorded`, or shares mutable fixtures with other tests (the generators cached by `coreGenerations`); Go runs every sequential test before it releases the parallel ones, so these run alone. A test that observes or changes the Go generator passes `gogen.Hooks` to the generation, directly or for itself and its subtests with `gentest.SetGenHooks`, instead of setting package state.
 
 Engine tests write grammars in ZeroParse source and compare results using the S-expression form of nodes (`Node.String`).
 The `check` helper also verifies that the result is the same with memoization disabled, with every backend (closure, recursive bytecode, iterative bytecode), with both position units, in recognition-only mode, and with tracing on.
 
 The behavior of package `engine` is tested from outside it, by the tests of package `engine_test` in `engine/`: they call its public API, with internal packages only to build values, to mark start rules and to count how often options apply. Tests of an engine mechanism that package `engine` exposes through traces and profiles (the memo, evaluation counts, twins) are there too. The module root holds no Go package; `TestModuleRootHoldsNoPackage` fails when a Go file appears there.
 
-`internal/gen/gengo/gengo_pool_lifecycle_test.go` checks generated Node and typed parser cleanup after oversized
+`internal/codegen/go/gengo_pool_lifecycle_test.go` checks generated Node and typed parser cleanup after oversized
 inputs, retained results, and error/retry reuse in both position units.
 
 The TypeScript generator's test needs Node.js 22.18 or later (`node`) and, for its type check, `tsc`; it is skipped when they are missing.
 The generated TypeScript has the same two forms, chosen by `-limits`. The TypeScript tests generate the form without limit controls unless the test passes a control option (`signal`, `limits.compute`), which generates with `LimitControls`. `TestGeneratedTSParsersMatchEngine` compares both forms with the engine, and `gents_budget_forms_test.go` checks that the plain form has no charge, no control option and no cancellation export, and that the controlled form accepts the options.
-TypeScript is printed from the same Flow IR as Go (`internal/gen/gents/flow.go`, `internal/gen/gents/outline.go`); `TestGeneratedTSPrintsLeanRulesFromFlow` and the frozen decision goldens cover what is chosen, and a rule that Flow IR does not print fails generation.
+TypeScript is printed from the same Flow IR as Go (`internal/codegen/ts/flow.go`, `internal/codegen/ts/outline.go`); `TestGeneratedTSPrintsLeanRulesFromFlow` and the frozen decision goldens cover what is chosen, and a rule that Flow IR does not print fails generation.
 
 `lint` tests every check with positive and negative cases, lints every example grammar against a hand-checked list of findings, and `TestSoundness` checks the certain findings against the engine on random grammars, exhaustively over short inputs (`-soundness=N` for a longer run).
 
@@ -282,7 +289,7 @@ The guides show how to test a grammar in an application. The repository uses the
 | Reference-implementation and conformance tests with fuzz targets | Each parser module's tests, for example [`alpha-parsers/json/json_test.go`](https://github.com/zeroparse/alpha-parsers/blob/main/json/json_test.go) |
 | Generated inputs and backend comparisons | [`sample/example_test.go`](../sample/example_test.go) |
 | Compiled grammars, Documents and backend equivalence | `internal/engine/` tests such as `compiled_test.go` and `document_test.go`, and the tests of `internal/engine/document/` |
-| Generated Go against the engine and regression freezes of what the engine cannot say (observation, Documents, budget, streams, lowering decisions) | `internal/gen/gengo/` tests such as `gengo_flow_*_test.go` with `internal/gen/gengo/testdata/*.golden`, and `internal/engine/` tests `core_*_test.go` with `internal/engine/testdata/*.golden`; a change of what a golden freezes is rewritten with `go test <package> -run <test> -update` and its diff reviewed |
+| Generated Go against the engine and regression freezes of what the engine cannot say (observation, Documents, budget, streams, lowering decisions) | `internal/codegen/go/` tests such as `gengo_flow_*_test.go` with `internal/codegen/go/testdata/*.golden`, and `internal/engine/` tests `core_*_test.go` with `internal/engine/testdata/*.golden`; a change of what a golden freezes is rewritten with `go test <package> -run <test> -update` and its diff reviewed |
 
 Root `go test ./...` covers the main module. Run `hack/test-alpha-parsers.sh` to vet and test the parsers of the alpha-parsers checkout against this tree (see [Ready-Made Parsers and Their Corpora](#ready-made-parsers-and-their-corpora)); `cd site && go test ./...` covers the site module.
 
@@ -306,7 +313,7 @@ checkout they use. `hack/test-alpha-parsers.sh` fails when there is no checkout,
 `duckdb/inspect.go` differs from `testdata/grammars/`, and when the options of the checkout's `generate.go` differ from
 `testdata/grammars/generate.txt`; `ZP_ALPHA_PARSERS=skip` skips it on purpose. `hack/sync-alpha-parsers.sh` leaves the
 regenerated files uncommitted in the checkout and does not rewrite `generate.go`, whose options are edited by hand.
-Commit the result in the alpha-parsers repository whenever a change of the generator, the runtime or the grammars
+Commit the result in the alpha-parsers repository whenever a change of the generator, the library or the grammars
 changes the generated files.
 
 ## Language Feature Status

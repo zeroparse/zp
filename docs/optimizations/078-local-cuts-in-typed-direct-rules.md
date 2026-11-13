@@ -50,7 +50,7 @@ same values and errors:
 
 ```sh
 export ZP_TYPED_CUT_DIR=/tmp/zp-typed-cuts
-go test ./internal/gen/gengo -run '^TestGeneratedTypedCutWorkload$' -count=1
+go test ./internal/codegen/go -run '^TestGeneratedTypedCutWorkload$' -count=1
 ```
 
 Build each fixture into its own benchmark binary:

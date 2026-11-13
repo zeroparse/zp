@@ -6,8 +6,8 @@ import (
 	"sync"
 	"testing"
 
+	"zeroparse.dev/zp/internal/codegen"
 	"zeroparse.dev/zp/internal/compile"
-	"zeroparse.dev/zp/internal/gen"
 	"zeroparse.dev/zp/internal/gentest"
 	"zeroparse.dev/zp/internal/ir/core"
 	irbuild "zeroparse.dev/zp/internal/ir/core/build"
@@ -79,7 +79,7 @@ func checkCoreBuild(t *testing.T, c gentest.Case) bool {
 		t.Errorf("%s: %v", c.Name, err)
 		return false
 	}
-	g, ok := coreGenerate(c.Src, gen.GenOptions{})
+	g, ok := coreGenerate(c.Src, codegen.GenOptions{})
 	if !ok {
 		return false
 	}

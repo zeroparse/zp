@@ -1,12 +1,12 @@
 // Run the embedded TypeScript literal matcher without rule/input setup or trees.
 // Requires a Node.js version that runs TypeScript directly. An optional path
-// selects another checkout's runtime.ts for before/after comparisons.
+// selects another checkout's lib.ts for before/after comparisons.
 import { readFileSync, writeFileSync, mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { spawnSync } from "node:child_process";
 
-const runtimePath = process.argv[2] ?? new URL("../internal/gen/gents/tsrt/runtime.ts", import.meta.url);
+const runtimePath = process.argv[2] ?? new URL("../codegen/ts/lib/lib.ts", import.meta.url);
 const source = readFileSync(runtimePath, "utf8");
 const helper = String.raw`
 export function benchmarkLiteralMatchers() {

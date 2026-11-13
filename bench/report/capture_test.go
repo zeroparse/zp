@@ -176,7 +176,7 @@ func TestParserGenArgsAdaptsGoOptionsToTypeScript(t *testing.T) {
 	if !strings.HasSuffix(got, "cel/cel.zp -types") || !strings.Contains(got, "-g "+filepath.Join(root, "testdata", "grammars", "cel", "cel.zp")) {
 		t.Errorf("cel args: %s", got)
 	}
-	for _, bad := range []string{"-module", "-runtime", "-nodoc", "-typed-only", "-o "} {
+	for _, bad := range []string{"-module", "-lib", "-nodoc", "-typed-only", "-o "} {
 		if strings.Contains(got, bad) {
 			t.Errorf("cel args keep %s: %s", bad, got)
 		}

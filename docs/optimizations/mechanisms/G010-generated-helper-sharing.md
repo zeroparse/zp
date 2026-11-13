@@ -33,9 +33,9 @@ universal speedup.
 
 Evidence records: [090](../090-share-identical-generated-helpers.md).
 
-Source owners: [`Generator.Method`](../../../internal/gen/gengo/generator.go),
-[`gen.Generator.LiteralName interning`](../../../internal/gen/generator.go),
-[`TypeScript sharing policy`](../../../internal/gen/gents/generator.go).
+Source owners: [`Generator.Method`](../../../internal/codegen/go/generator.go),
+[`codegen.Generator.LiteralName interning`](../../../internal/codegen/generator.go),
+[`TypeScript sharing policy`](../../../internal/codegen/ts/generator.go).
 
 The [comparison policy](../../design/records/024-optimization-mechanism-controls.md)
 distinguishes same-source controls, historical changes and full checkpoints.

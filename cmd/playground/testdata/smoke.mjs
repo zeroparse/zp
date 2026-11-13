@@ -120,7 +120,7 @@ for (const ex of manifest) {
   const gen = call("generate", { grammar, package: "parser", types: true });
   // The playground shows the generated files one after another, each under a banner, and offers each on its own.
   const outDir = mkdtempSync(path.join(os.tmpdir(), "zp-smoke-"));
-  const wantGen = cli("gen", "-g", ex.grammar, "-module", "example.com/parser", "-runtime", "import", "-types", "-o", outDir);
+  const wantGen = cli("gen", "-g", ex.grammar, "-module", "example.com/parser", "-lib", "import", "-types", "-o", outDir);
   const goFiles = ["parser.go", "api.go", "types/types.go"];
   const wantCode = goFiles
     .map((f) => `// ===== ${f} =====\n\n` + readFileSync(path.join(outDir, f), "utf8"))

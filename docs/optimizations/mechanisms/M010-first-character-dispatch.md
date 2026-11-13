@@ -59,8 +59,8 @@ Evidence records:
 Source owners: [`Guards pass`](../../../internal/ir/core/passes.go),
 [`closure.Builder.Choice and Guard`](../../../internal/engine/closure/builder.go), the GUARD
 emission of the bytecode compiler, [`generated choice
-guards`](../../../internal/gen/gengo/generator.go), [`TypeScript choice
-guards`](../../../internal/gen/gents/generator.go).
+guards`](../../../internal/codegen/go/generator.go), [`TypeScript choice
+guards`](../../../internal/codegen/ts/generator.go).
 
 The [comparison policy](../../design/records/024-optimization-mechanism-controls.md)
 distinguishes same-source controls, historical changes and full checkpoints.

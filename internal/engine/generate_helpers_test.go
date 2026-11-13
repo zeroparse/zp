@@ -8,11 +8,11 @@ import (
 )
 
 // The engine does not import the generators or the output schema; packages gen and zp join them
-// (gen.Go, gen.TypeScript and Parser.OutputSchema). These helpers join them the
+// (codegen.Go, codegen.TypeScript and Parser.OutputSchema). These helpers join them the
 // same way for the tests of this package.
 
-// compileForGenerator compiles g for the generators, as the root package's compileForGenerator
-// does.
+// compileForGenerator compiles g for the generators, as the compileForGenerator of package
+// codegen does.
 func compileForGenerator(g *grammar.Grammar, opts compile.Options) (*compile.Program, func() (*compile.Program, error), error) {
 	prog, err := Compile(g, opts)
 	if err != nil {

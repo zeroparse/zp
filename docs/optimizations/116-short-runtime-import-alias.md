@@ -11,7 +11,7 @@ alias is a choice of the generator, not part of any API: it does not change the 
 names the generated packages declare or the signatures of their functions.
 
 The generator imports the runtime as `rt`. The alias is one constant
-(`runtimeAlias`) used by the generator, the types package it writes and the checks that
+(`libAlias`) used by the generator, the types package it writes and the checks that
 qualify runtime names; the user-facing signatures of `Parse` and the other entry points
 mention the runtime types with the alias. A package-level name `rt` cannot clash:
 the generator does not declare one and the names it derives from a grammar are types in

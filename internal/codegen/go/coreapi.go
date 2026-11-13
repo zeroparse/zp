@@ -1,0 +1,176 @@
+package gogen
+
+import (
+	"bytes"
+	"fmt"
+	goast "go/ast"
+	"go/format"
+	goparser "go/parser"
+	"go/printer"
+	"go/token"
+	"io/fs"
+	"sort"
+	"strconv"
+	"strings"
+)
+
+// The declarations of the package core that generated code uses come from coreAPI, an index of
+// core's exported top-level declarations in coreapi_gen.go, which go generate writes from the core
+// directory of this module (CoreAPISource) and TestCoreAPICurrent keeps current. The index holds what
+// the generator reads of a declaration: its name, kind and doc comment, the signature of a function,
+// and the type of a type with struct and interface types reduced to their kind, which is all that
+// qualifying the keys of a composite literal needs. The Go library, by contrast, is read in full from
+// GenOptions.GoLib, since embed mode copies it.
+
+//go:generate go run coreapi_generate.go
+
+// coreDecl is an exported top-level declaration of core in the index. sig is the type of a function
+// and typ the type of a type, as Go source.
+type coreDecl struct {
+	name     string
+	kind     token.Token
+	doc      string
+	sig, typ string
+}
+
+// addCoreDecls adds the declarations of the index to info, as declared by the package that
+// generated code names coreAlias.
+func addCoreDecls(info *libInfo, decls []coreDecl) error {
+	f := &goast.File{Name: goast.NewIdent("core")}
+	for _, d := range decls {
+		switch d.kind {
+		case token.FUNC:
+			x, err := goparser.ParseExpr(d.sig)
+			if err != nil {
+				return fmt.Errorf("core index: %s: %v", d.name, err)
+			}
+			fn := &goast.FuncDecl{Name: goast.NewIdent(d.name), Type: x.(*goast.FuncType), Doc: comment(d.doc)}
+			f.Decls = append(f.Decls, fn)
+		case token.TYPE:
+			x, err := goparser.ParseExpr(d.typ)
+			if err != nil {
+				return fmt.Errorf("core index: %s: %v", d.name, err)
+			}
+			f.Decls = append(f.Decls, &goast.GenDecl{Tok: token.TYPE, Doc: comment(d.doc),
+				Specs: []goast.Spec{&goast.TypeSpec{Name: goast.NewIdent(d.name), Type: x}}})
+		case token.CONST, token.VAR:
+			f.Decls = append(f.Decls, &goast.GenDecl{Tok: d.kind, Doc: comment(d.doc),
+				Specs: []goast.Spec{&goast.ValueSpec{Names: []*goast.Ident{goast.NewIdent(d.name)}}}})
+		default:
+			return fmt.Errorf("core index: %s has kind %v", d.name, d.kind)
+		}
+	}
+	return addLibDecls(info, f, coreAlias)
+}
+
+// comment returns a comment group whose Text is doc.
+func comment(doc string) *goast.CommentGroup {
+	if doc == "" {
+		return nil
+	}
+	g := &goast.CommentGroup{}
+	for _, line := range strings.Split(strings.TrimSuffix(doc, "\n"), "\n") {
+		g.List = append(g.List, &goast.Comment{Text: strings.TrimRight("// "+line, " ")})
+	}
+	return g
+}
+
+// CoreAPISource returns the source of coreapi_gen.go for the package core in fsys: the index of its
+// exported top-level declarations (other than methods), sorted by name.
+func CoreAPISource(fsys fs.FS) ([]byte, error) {
+	entries, err := fs.ReadDir(fsys, ".")
+	if err != nil {
+		return nil, err
+	}
+	fset := token.NewFileSet()
+	print := func(n goast.Node) (string, error) {
+		var b bytes.Buffer
+		err := printer.Fprint(&b, fset, n)
+		return b.String(), err
+	}
+	var decls []coreDecl
+	for _, e := range entries {
+		name := e.Name()
+		if e.IsDir() || !strings.HasSuffix(name, ".go") || strings.HasSuffix(name, "_test.go") {
+			continue
+		}
+		data, err := fs.ReadFile(fsys, name)
+		if err != nil {
+			return nil, err
+		}
+		f, err := goparser.ParseFile(fset, name, data, goparser.ParseComments|goparser.SkipObjectResolution)
+		if err != nil {
+			return nil, err
+		}
+		for _, d := range f.Decls {
+			switch d := d.(type) {
+			case *goast.FuncDecl:
+				if d.Recv != nil || !d.Name.IsExported() {
+					continue
+				}
+				sig, err := print(d.Type)
+				if err != nil {
+					return nil, err
+				}
+				decls = append(decls, coreDecl{name: d.Name.Name, kind: token.FUNC, doc: d.Doc.Text(), sig: sig})
+			case *goast.GenDecl:
+				for _, s := range d.Specs {
+					doc := d.Doc
+					switch s := s.(type) {
+					case *goast.TypeSpec:
+						if !s.Name.IsExported() {
+							continue
+						}
+						if s.Doc != nil {
+							doc = s.Doc
+						}
+						if s.TypeParams != nil {
+							return nil, fmt.Errorf("core index: the generic type %s is not supported", s.Name.Name)
+						}
+						typ := ""
+						switch s.Type.(type) {
+						case *goast.StructType:
+							typ = "struct{}"
+						case *goast.InterfaceType:
+							typ = "interface{}"
+						default:
+							if typ, err = print(s.Type); err != nil {
+								return nil, err
+							}
+						}
+						decls = append(decls, coreDecl{name: s.Name.Name, kind: token.TYPE, doc: doc.Text(), typ: typ})
+					case *goast.ValueSpec:
+						if s.Doc != nil {
+							doc = s.Doc
+						}
+						for _, n := range s.Names {
+							if n.IsExported() {
+								decls = append(decls, coreDecl{name: n.Name, kind: d.Tok, doc: doc.Text()})
+							}
+						}
+					}
+				}
+			}
+		}
+	}
+	sort.Slice(decls, func(i, j int) bool { return decls[i].name < decls[j].name })
+	var b strings.Builder
+	b.WriteString("// Code generated by go generate from the package core; DO NOT EDIT.\n\npackage gogen\n\nimport \"go/token\"\n\n")
+	b.WriteString("// coreAPI is the index of the exported declarations of the package core (see coreapi.go).\n")
+	b.WriteString("var coreAPI = []coreDecl{\n")
+	for _, d := range decls {
+		fmt.Fprintf(&b, "\t{name: %q, kind: token.%s", d.name, strings.ToUpper(d.kind.String()))
+		if d.doc != "" {
+			fmt.Fprintf(&b, ", doc: %s", strconv.Quote(d.doc))
+		}
+		if d.sig != "" {
+			fmt.Fprintf(&b, ", sig: %s", strconv.Quote(d.sig))
+		}
+		if d.typ != "" {
+			fmt.Fprintf(&b, ", typ: %s", strconv.Quote(d.typ))
+		}
+		b.WriteString("},\n")
+	}
+	b.WriteString("}\n")
+	return format.Source([]byte(b.String()))
+}

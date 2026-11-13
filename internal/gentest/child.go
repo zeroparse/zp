@@ -28,7 +28,7 @@ func ChildStoppedAtBound(ctx context.Context) bool {
 
 // ChildContext returns the context of a child process of t, for exec.CommandContext: it ends limit
 // from now (never if limit <= 0) or childMargin before the deadline of the test binary, whichever
-// comes first. Tests that run programs which may not end, such as those with a mutated runtime,
+// comes first. Tests that run programs which may not end, such as those with a mutated library,
 // bound them by limit, and a child is killed before the binary's timeout leaves it running. The
 // child must be the process that does the work, not a launcher such as go run whose program
 // would survive it.

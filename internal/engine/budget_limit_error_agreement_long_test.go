@@ -23,7 +23,7 @@ func TestLimitErrorAgreementMutants(t *testing.T) {
 		t.Parallel()
 		gentest.NeedsBudgetControls(t)
 		const unit = "func (c *BudgetControl) takeSlow(n uint64) {\n\tfor ; n > 0; n-- {\n\t\tc.chargeStep()\n\t}\n}"
-		runtime := gentest.RuntimeCopyWith(t, func(name, src string) string {
+		runtime := gentest.LibCopyWith(t, func(name, src string) string {
 			if name != "budget.go" {
 				return src
 			}

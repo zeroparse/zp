@@ -20,8 +20,8 @@ it differs from the reference implementation; this guide covers what they have i
 ## Install
 
 The parsers are packages of the one Go module `zeroparse.dev/alpha-parsers`. They depend only on the standard library
-and the ZeroParse runtime package (`zeroparse.dev/zp/runtime`, which itself needs nothing else), not on the ZeroParse
-engine and not on the language's own implementation (DuckDB's parser does not need DuckDB).
+and the ZeroParse library of generated parsers (`zeroparse.dev/zp/codegen/go/lib`, which itself needs only
+`zeroparse.dev/zp/core`), not on the ZeroParse engine and not on the language's own implementation (DuckDB's parser does not need DuckDB).
 
 The alpha-parsers module is not published yet, so `go get zeroparse.dev/alpha-parsers/json` does not work from another
 module. It requires published versions of the ZeroParse modules, so a checkout of the alpha-parsers repository is all

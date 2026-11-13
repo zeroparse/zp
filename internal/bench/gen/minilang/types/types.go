@@ -4,7 +4,7 @@
 package types
 
 import (
-	rt "zeroparse.dev/zp/runtime"
+	rt "zeroparse.dev/zp/codegen/go/lib"
 )
 
 // TNode is a node whose Value has type T: a string node (TNode[string]) holds the text a
@@ -16,7 +16,7 @@ type TNode[T any] rt.TNode[T]
 // Error is input skipped by error recovery (#recover).
 type Error rt.Error
 
-// ZPHooks makes the values of the types of this package from those the typed runtime builds, and
+// ZPHooks makes the values of the types of this package from those the typed library builds, and
 // back. It is for generated parsers.
 var ZPHooks = &rt.TPubHooks{
 	Match: func(m *rt.TNode[string]) any { return (*TNode[string])(m) },

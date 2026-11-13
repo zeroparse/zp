@@ -1,0 +1,2139 @@
+package libgo
+
+import (
+	"fmt"
+	"sync"
+	"sync/atomic"
+	"unsafe"
+
+	"zeroparse.dev/zp/core"
+	"zeroparse.dev/zp/core/noderep"
+)
+
+// The typed library, appended to generated parsers made with zp gen -types. It parses like the
+// library in lib.go, but builds the values of the grammar's types directly, as Go values,
+// instead of Node trees: the value of an expression is an any holding a pointer to a struct
+// type, *TMatch (a string node), *TError (an error value), an int, string or bool, nil,
+// or a *TSeq: a tuple node, a list node, or a tuple or list value. Values other than
+// nodes need no carrier, as they do in Node trees. Every step mirrors lib.go, so the result is
+// that of converting the Node tree that Parse returns.
+//
+// TParser embeds the parser and redefines the methods that handle values; the generated
+// methods of the typed rules (trules) run on it.
+
+// Span is the range of input a typed value covers, in the parse's position unit (End is exclusive).
+//
+// Of its fields and methods, TSetSpan, TSpan are for generated parsers; not a stable API.
+type Span struct{ Start, End int }
+
+// Range returns the start and the end (exclusive) of the span.
+func (s Span) Range() (start, end int) { return s.Start, s.End }
+
+func (s *Span) TSpan() (int, int)       { return s.Start, s.End }
+func (s *Span) TSetSpan(start, end int) { s.Start, s.End = start, end }
+
+// TNode is a node whose Value has type T: a string node (TNode[string]) holds the text a
+// literal, a character class, ., a #atomic or _ matched, and a tuple or list node holds its
+// elements. A node of a statically unknown value is a TNode[any] whose Value is a string, or a
+// []any of the elements of a tuple or list.
+type TNode[T any] struct {
+	Span
+	Value T
+}
+
+// Error is input skipped by error recovery (#recover).
+type Error struct {
+	Span
+	Message string
+}
+
+// TMatch and TError are a string node and an Error while the typed library handles them: whether
+// the value is fresh (see Data.Fresh) is part of the state of the parse, not of the result. The
+// result holds pointers to the embedded TNode[string] and Error (TPub). A string node of a named
+// node type has nt, the type's registered index (TRegisterNodeType; 0 for a plain string node).
+//
+// TMatch is for generated parsers; not a stable API.
+type TMatch struct {
+	TNode[string]
+	fresh bool
+	Nt    uint16
+}
+
+// tnodeType is a registered named node type: its name, and pub, which returns the public form of
+// a value x of the type with the generated code's chunks a (a *tslabs, or nil).
+type tnodeType struct {
+	name string
+	pub  func(a any, x TVal) any
+}
+
+// tnodeTypes holds the registered named node types of all grammars by their index (nt) in TMatch
+// and TSeq; index 0 is no named node type. Registration copies the table, so readers never
+// lock.
+var (
+	tnodeTypes   atomic.Pointer[[]tnodeType]
+	tnodeTypesMu sync.Mutex
+)
+
+// TRegisterNodeType registers a named node type of a grammar and returns its index. Types of
+// different grammars have different indexes even when their names are the same.
+//
+// TRegisterNodeType is for generated parsers; not a stable API.
+func TRegisterNodeType(name string, pub func(a any, x TVal) any) uint16 {
+	tnodeTypesMu.Lock()
+	defer tnodeTypesMu.Unlock()
+	old := []tnodeType{{}}
+	if p := tnodeTypes.Load(); p != nil {
+		old = *p
+	}
+	if len(old) > 1<<16-1 {
+		panic("too many named node types")
+	}
+	types := append(old[:len(old):len(old)], tnodeType{name, pub})
+	tnodeTypes.Store(&types)
+	return uint16(len(types) - 1)
+}
+
+// tnodeTypeOf returns the registered named node type nt (not 0).
+func tnodeTypeOf(nt uint16) *tnodeType {
+	return &(*tnodeTypes.Load())[nt]
+}
+
+// TError is for generated parsers; not a stable API.
+type TError struct {
+	Error
+	fresh bool
+}
+
+// NewTError returns a fresh error value for the input range [start, end) that recovery skipped.
+//
+// NewTError is for generated parsers; not a stable API.
+func NewTError(start, end int, message string) *TError {
+	return &TError{Error{Span: Span{Start: start, End: end}, Message: message}, true}
+}
+
+// TPub returns the public form of a value: *TNode[string] and *Error for TMatch and TError, a
+// *TNode[any] for a tuple or list node and a []any for a tuple or list value, with the public
+// forms of their elements.
+//
+// TPub is for generated parsers; not a stable API.
+func TPub(h *TPubHooks, v any) any { return TPubIn(h, nil, v) }
+
+// TPubIn is TPub with the generated code's chunks a (a *tslabs, or nil), which the public forms of
+// values of named node types (tnodeType.pub) are made from and remembered in.
+//
+// TPubIn is for generated parsers; not a stable API.
+func TPubIn(h *TPubHooks, a any, v any) any {
+	switch x := v.(type) {
+	case *TMatch:
+		if x.Nt != 0 {
+			return tnodeTypeOf(x.Nt).pub(a, x)
+		}
+		return h.Match(&x.TNode)
+	case *TError:
+		return h.Error(&x.Error)
+	case *TSeq:
+		if x.nt != 0 {
+			return tnodeTypeOf(x.nt).pub(a, x)
+		}
+		return tpubElems(h, a, x)
+	}
+	return v
+}
+
+// TPubHooks makes the public forms of the values the typed library builds that the generated
+// package defines types for: a string node, an error value and a node of a statically unknown
+// value are public values of the package's own types, which implement the package's unions.
+// Back is the inverse: it returns the library's form of such a public value, and any other value
+// unchanged.
+//
+// TPubHooks is for generated parsers; not a stable API.
+type TPubHooks struct {
+	Match func(*TNode[string]) any
+	Error func(*Error) any
+	Node  func(*TNode[any]) any
+	Back  func(any) any
+}
+
+// tpubElems returns the public form of a tuple or list node, or a tuple or list value, x as a
+// plain node or value (also for a node of a named node type).
+func tpubElems(h *TPubHooks, a any, x *TSeq) any {
+	elems := tpubKids(h, a, x)
+	if x.Typ == TypeTupleValue || x.Typ == TypeListValue {
+		return elems
+	}
+	return h.Node(&TNode[any]{x.Span, elems})
+}
+
+// tpubKids returns the public forms of the elements of x.
+func tpubKids(h *TPubHooks, a any, x *TSeq) []any {
+	elems := make([]any, len(x.Kids))
+	for i, k := range x.Kids {
+		elems[i] = TPubIn(h, a, k)
+	}
+	return elems
+}
+
+// TPubNode returns the public form of a node of a statically unknown value: a TNode[any], also for
+// a node of a named node type, as the node it was converted from.
+//
+// TPubNode is for generated parsers; not a stable API.
+func TPubNode(h *TPubHooks, v any) *TNode[any] { return TPubNodeIn(h, nil, v) }
+
+// TPubNodeIn is TPubNode with the chunks a (see TPubIn).
+//
+// TPubNodeIn is for generated parsers; not a stable API.
+func TPubNodeIn(h *TPubHooks, a any, v any) *TNode[any] {
+	switch x := v.(type) {
+	case *TMatch:
+		return &TNode[any]{x.Span, x.Value}
+	case *TSeq:
+		if x.Typ != TypeTupleValue && x.Typ != TypeListValue {
+			return &TNode[any]{x.Span, tpubKids(h, a, x)}
+		}
+	}
+	return nil
+}
+
+// TMatchAs returns the public form of x, a string node of a named node type whose Go type N is
+// struct{ TNode[string] }: N has the layout of TNode[string] (the types package declares it so, and the
+// parser package refers to the schema constant of the types package it was generated with, so a parser
+// and a types package of different schemas do not compile together), so the public value is x's own
+// TNode seen as an N. A node so publishes as one
+// value wherever it appears, as a plain string node does, without allocating or remembering it.
+//
+// TMatchAs is for generated parsers; not a stable API.
+func TMatchAs[N any](x *TMatch) *N {
+	return (*N)(unsafe.Pointer(&x.TNode))
+}
+
+// TPubMatch is for generated parsers; not a stable API.
+func TPubMatch(v any) *TNode[string] {
+	if x, ok := v.(*TMatch); ok {
+		return &x.TNode
+	}
+	return nil
+}
+
+// TPubError is for generated parsers; not a stable API.
+func TPubError(v any) *Error {
+	if x, ok := v.(*TError); ok {
+		return &x.Error
+	}
+	return nil
+}
+
+// budgetControlSetter is implemented by the output values a typed parse hands its budget control to
+// (the generated converters).
+//
+// SetBudgetControl is for generated parsers; not a stable API.
+type budgetControlSetter interface{ SetBudgetControl(*BudgetControl) }
+
+// tfieldSpender is implemented by struct values that read a field while spending budget.
+//
+// TFieldSpend is for generated parsers; not a stable API.
+type tfieldSpender interface {
+	TFieldSpend(*TParser, string) (any, bool)
+}
+
+// stepCharger charges steps to a budget control.
+//
+// Step is for generated parsers; not a stable API.
+type stepCharger interface{ Step(uint64) }
+
+// TVal is a node value of the typed library: a value of a struct type, *TMatch,
+// *TError or *TSeq.
+//
+// TVal is for generated parsers; not a stable API.
+type TVal interface {
+	TSpan() (int, int)
+	TSetSpan(start, end int)
+	TName() string                  // type name
+	TText() (string, bool)          // text of a string node or an error value
+	TKids() []any                   // children of a CST node
+	TField(name string) (any, bool) // field value, and whether the type has the field (structs)
+	TStruct() bool                  // a struct type
+	TFresh() bool
+	TSetFresh(bool)
+}
+
+func (m *TMatch) TName() string {
+	if m.Nt != 0 {
+		return tnodeTypeOf(m.Nt).name
+	}
+	return "string"
+}
+func (m *TMatch) TText() (string, bool)     { return m.Value, true }
+func (m *TMatch) TKids() []any              { return nil }
+func (m *TMatch) TField(string) (any, bool) { return nil, true }
+func (m *TMatch) TStruct() bool             { return false }
+func (m *TMatch) TFresh() bool              { return m.fresh }
+func (m *TMatch) TSetFresh(f bool)          { m.fresh = f }
+func (e *TError) TName() string             { return "error" }
+func (e *TError) TText() (string, bool)     { return e.Message, true }
+func (e *TError) TKids() []any              { return nil }
+func (e *TError) TStruct() bool             { return false }
+func (e *TError) TFresh() bool              { return e.fresh }
+func (e *TError) TSetFresh(f bool)          { e.fresh = f }
+func (e *TError) TField(name string) (any, bool) {
+	if name == "message" {
+		return e.Message, true
+	}
+	return nil, true
+}
+
+// TSeq is a tuple node, a list node, a tuple value (TypeTupleValue) or a list value
+// (TypeListValue) of the typed library. A tuple node's fields are its captures. A tuple or list
+// node of a named node type has nt, as TMatch does; typ stays "tuple" or "list".
+//
+// TSeq is for generated parsers; not a stable API.
+type TSeq struct {
+	Span
+	Typ    string
+	Kids   []any
+	fields []tfield
+	fresh  bool
+	nt     uint16
+}
+
+type tfield struct {
+	name string
+	val  any
+}
+
+func (n *TSeq) TName() string {
+	if n.nt != 0 {
+		return tnodeTypeOf(n.nt).name
+	}
+	return n.Typ
+}
+func (n *TSeq) TText() (string, bool) { return "", false }
+func (n *TSeq) TKids() []any          { return n.Kids }
+func (n *TSeq) TStruct() bool         { return false }
+func (n *TSeq) TFresh() bool          { return n.fresh }
+func (n *TSeq) TSetFresh(f bool)      { n.fresh = f }
+func (n *TSeq) TField(name string) (any, bool) {
+	for _, f := range n.fields {
+		if f.name == name {
+			return f.val, true
+		}
+	}
+	return nil, true
+}
+
+func (n *TSeq) set(name string, v any) {
+	for i := range n.fields {
+		if n.fields[i].name == name {
+			n.fields[i].val = v
+			return
+		}
+	}
+	n.fields = append(n.fields, tfield{name, v})
+}
+
+// tshape is Node.shape for the values of the typed library that are TVal.
+func tshape(n TVal) noderep.Shape {
+	switch x := n.(type) {
+	case *TError:
+		return noderep.ShapeError
+	case *TSeq:
+		switch x.Typ {
+		case "list":
+			return noderep.ShapeList
+		case TypeTupleValue:
+			return noderep.ShapeTupleValue
+		case TypeListValue:
+			return noderep.ShapeListValue
+		}
+		return noderep.ShapeTuple
+	}
+	if n.TStruct() {
+		return noderep.ShapeStruct
+	}
+	return noderep.ShapeString
+}
+
+// AsTval returns v as a node value, or nil. Values never hold nil pointers: nil is always the
+// untyped nil.
+//
+// AsTval is for generated parsers; not a stable API.
+func AsTval(v any) TVal {
+	n, _ := v.(TVal)
+	return n
+}
+
+// tisNode reports whether n is a node of the value model (a string node, a tuple or list node,
+// or an error value) rather than a struct or a list or tuple value; see Node.isNode.
+func tisNode(n TVal) bool {
+	if t, ok := n.(*TSeq); ok {
+		return t.Typ == "tuple" || t.Typ == "list"
+	}
+	return !n.TStruct()
+}
+
+// nodeValue returns the Value of the node n: its text for a string node or an error value, and a
+// tuple or list value sharing its elements otherwise (see parser.nodeValue).
+func (p *TParser) nodeValue(n TVal) any {
+	if text, ok := n.TText(); ok {
+		return text
+	}
+	s, e := n.TSpan()
+	typ := TypeTupleValue
+	if t, ok := n.(*TSeq); ok && t.Typ == "list" {
+		typ = TypeListValue
+	}
+	v := p.NewNode(typ, s, e, n.TKids())
+	v.fresh = false
+	return v
+}
+
+// --- Rules ---
+
+// RuleSpec is the compact form of the analysis results of a rule, which generated parsers keep as
+// static data. Its Id is its position in the table. Scope and Vars index the string lists given to
+// NewRules, 0 for none; a nil Value is the zero Shaper. Seen is the Seen field of the Rule plus one, so
+// that the zero value is the -1 of a rule whose memoization is not deferred.
+//
+// For generated parsers; not a stable API.
+type RuleSpec struct {
+	Name  string
+	Value *Shaper
+	Flags uint8
+	Seen  int32
+	Scope uint16
+	Vars  uint16
+}
+
+// The flags of a RuleSpec set the fields of a Rule of the same names.
+const (
+	RuleMemo uint8 = 1 << iota
+	RuleLeader
+	RuleNovalue
+	RuleDocMemo
+	RuleSplice
+	RuleRec
+	RulePositional
+)
+
+// RuleExtra holds the fields of the Rule with the Id that are rarely set.
+//
+// For generated parsers; not a stable API.
+type RuleExtra struct {
+	Id         int
+	Where      string
+	NodeType   string
+	OpNodeType string
+	Cycle      int32
+}
+
+// NewRules builds the rule table of the specs, with the string lists their Scope and Vars index and
+// the rare fields in extras. The entries have the fields of RuleSpec and RuleExtra in their order,
+// in types of the caller, so that generated code can write them without field names (go vet
+// accepts unkeyed fields only for a type of the same package).
+//
+// For generated parsers; not a stable API.
+func NewRules[S ~struct {
+	Name  string
+	Value *Shaper
+	Flags uint8
+	Seen  int32
+	Scope uint16
+	Vars  uint16
+}, E ~struct {
+	Id         int
+	Where      string
+	NodeType   string
+	OpNodeType string
+	Cycle      int32
+}](specs []S, strs [][]string, extras []E) []*Rule {
+	table := make([]Rule, len(specs))
+	rules := make([]*Rule, len(specs))
+	for i, spec := range specs {
+		s := RuleSpec(spec)
+		r := &table[i]
+		rules[i] = r
+		r.Id, r.Name, r.Seen = i, s.Name, int(s.Seen)-1
+		if s.Value != nil {
+			r.Value = *s.Value
+		}
+		r.Memo, r.Leader, r.Novalue = s.Flags&RuleMemo != 0, s.Flags&RuleLeader != 0, s.Flags&RuleNovalue != 0
+		r.DocMemo, r.Splice, r.Rec = s.Flags&RuleDocMemo != 0, s.Flags&RuleSplice != 0, s.Flags&RuleRec != 0
+		r.Positional = s.Flags&RulePositional != 0
+		r.Scope, r.Vars = strs[s.Scope], strs[s.Vars]
+	}
+	for _, extra := range extras {
+		e := RuleExtra(extra)
+		r := rules[e.Id]
+		r.Where, r.NodeType, r.OpNodeType, r.Cycle = e.Where, e.NodeType, e.OpNodeType, e.Cycle
+	}
+	return rules
+}
+
+// NewTRules returns the typed rules that share the analysis results of rules, one for one.
+//
+// For generated parsers; not a stable API.
+func NewTRules(rules []*Rule) []*TRule {
+	table := make([]TRule, len(rules))
+	trules := make([]*TRule, len(rules))
+	for i, r := range rules {
+		table[i].Rule = r
+		trules[i] = &table[i]
+	}
+	return trules
+}
+
+// TRule is a rule of the typed library: the rule's analysis results and its typed body.
+//
+// TRule is for generated parsers; not a stable API.
+type TRule struct {
+	*Rule
+	Body          func(p *TParser, min int) (any, bool)
+	Action        func(c *TActCtx) (any, any) // as Rule.Action
+	OperatorsRule *TOperatorsRule
+	// Entry is the generated method that calls the rule as call(r, 0) does (u<id> or s<id>). The
+	// generated parser sets it only for the start rules, which TParse runs through it; every other
+	// rule is called through the generated methods that name it. A flat rule (one the generator prints
+	// as one function) has no body or action and is called only through it.
+	Entry func(p *TParser) (any, bool)
+	// Nt is the registered index of the named node type the rule's value is converted to
+	// (rule.NodeType), or 0.
+	Nt uint16
+	// OpNt is the registered index of the named node type every operator node of an Operators
+	// Rule is converted to (rule.OpNodeType), or 0.
+	OpNt uint16
+}
+
+// TAs returns v as a T, or the zero T (nil) if it is not one.
+//
+// TAs is for generated parsers; not a stable API.
+func TAs[T any](v any) T {
+	t, _ := v.(T)
+	return t
+}
+
+// TPtr and TDeref return the value of a field of a pointer type as a value of the typed library.
+//
+// TPtr is for generated parsers; not a stable API.
+func TPtr[T any](p *T) any {
+	if p == nil {
+		return nil
+	}
+	return p
+}
+
+// TBack returns the value of a field of an open type (a string node, a tuple or list node, an
+// error value, a union, node or any) as a value of the typed library: the inverse of
+// TPub, except that a tuple or list node becomes a tuple node and a []any a tuple value.
+//
+// TBack is for generated parsers; not a stable API.
+func TBack(h *TPubHooks, v any) any {
+	v = h.Back(v)
+	switch x := v.(type) {
+	case *TNode[string]:
+		if x == nil {
+			return nil
+		}
+		return &TMatch{TNode: *x}
+	case *Error:
+		if x == nil {
+			return nil
+		}
+		return &TError{Error: *x}
+	case *TNode[any]:
+		if x == nil {
+			return nil
+		}
+		switch y := x.Value.(type) {
+		case string:
+			return &TMatch{TNode: TNode[string]{x.Span, y}}
+		case []any:
+			return &TSeq{Span: x.Span, Typ: "tuple", Kids: tbackAll(h, y)}
+		}
+		return nil
+	case []any:
+		return &TSeq{Typ: TypeTupleValue, Kids: tbackAll(h, x)}
+	}
+	return v
+}
+
+// TKid returns element i of a tuple's elements (nil if there is none).
+//
+// TKid is for generated parsers; not a stable API.
+func TKid(kids []any, i int) any {
+	if i < len(kids) {
+		return kids[i]
+	}
+	return nil
+}
+
+// tnodeValue returns the Value of a tuple or list node as a tuple or list value.
+func tnodeValue(n *TSeq) any {
+	typ := TypeTupleValue
+	if n.Typ == "list" {
+		typ = TypeListValue
+	}
+	return &TSeq{Span: n.Span, Typ: typ, Kids: n.Kids}
+}
+
+func tbackAll(h *TPubHooks, vs []any) []any {
+	out := make([]any, len(vs))
+	for i, v := range vs {
+		out[i] = TBack(h, v)
+	}
+	return out
+}
+
+func TDeref[T any](p *T) any {
+	if p == nil {
+		return nil
+	}
+	return *p
+}
+
+// TListOf returns a list value of kids, for reading a list field of a struct in an action.
+//
+// TListOf is for generated parsers; not a stable API.
+func TListOf(kids []any) any {
+	n := &TSeq{Typ: TypeListValue, Kids: kids}
+	first := true
+	for _, it := range kids {
+		t := AsTval(it)
+		if t == nil {
+			continue
+		}
+		s, e := t.TSpan()
+		if first || s < n.Start {
+			n.Start = s
+		}
+		if first || e > n.End {
+			n.End = e
+		}
+		first = false
+	}
+	return n
+}
+
+// TParse parses the whole input with the typed rule r, and returns the result converted by conv
+// (before the parser's scratch memory, which the result may be in, is cleared). ext holds the
+// generated code's chunks.
+//
+// TParse is for generated parsers; not a stable API.
+func TParse[T any](r *TRule, input string, opts []ParseOption, ext any, conv func(any) T) (T, error) {
+	o, err := ResolveOptions(r.g, opts)
+	if err != nil {
+		var zero T
+		return zero, err
+	}
+	return TParseResolved(r, input, o, ext, conv)
+}
+
+// TParseResolved consumes options already applied by the public entry point.
+//
+// TParseResolved is for generated parsers; not a stable API.
+func TParseResolved[T any](r *TRule, input string, o parseOptions, ext any, conv func(any) T) (res T, err error) {
+	defer recoverParse(&res, &err)
+	o = prepareText(o, input)
+	p, _ := tpool.Get().(*TParser)
+	if p == nil {
+		p = &TParser{Parser: &Parser{}}
+	}
+	defer func() { p.recycle(); tpool.Put(p) }()
+	p.Control = o.control
+	o.control.attachTypedMemory(p, ext)
+	p.Observation = newObservation(&o.observe)
+	if o.control != nil {
+		if target, ok := ext.(budgetControlSetter); ok {
+			target.SetBudgetControl(o.control)
+			defer target.SetBudgetControl(nil)
+		}
+	}
+	v, err := p.run(r, input, o, ext)
+	if v == nil {
+		return res, err
+	}
+	o.control.Check()
+	res = conv(v)
+	o.control.Check()
+	return res, err
+}
+
+// run parses the whole input with the typed rule r.
+func (p *TParser) run(r *TRule, input string, o parseOptions, ext any) (v any, err error) {
+	p.MaxDepth = o.maxDepth
+	p.Ext = ext
+	p.setGrammar(r.g)
+	p.Expectations = o.expectations
+	if o.unit == core.Bytes {
+		// p.In stays empty: direct rules read code points from it while p.Pos < len(p.In).
+		p.unit, p.bs, p.n, p.In = core.Bytes, input, len(input), p.In[:0]
+	} else {
+		p.setSource(input)
+	}
+	if p.TypedDocument != nil {
+		p.Document = p.TypedDocument.owner
+	}
+	p.memo.sparse = p.memo.stride > 64 && p.n > 1024
+	defer func() {
+		if x := recover(); x != nil {
+			switch x := x.(type) {
+			case fatal:
+				v, err = nil, x.err
+			default:
+				panic(x)
+			}
+		}
+	}()
+	var ok bool
+	if r.Entry != nil {
+		v, ok = r.Entry(p)
+	} else {
+		v, ok = p.Call(r, 0)
+	}
+	// Normal completion polls even for a nil typed value. Fatal unwinding
+	// returns through the recovery above without replacing its established error.
+	p.Control.Check()
+	if ok && p.Pos == p.n {
+		if len(p.Recovered) > 0 {
+			errors := p.recoveredErrors()
+			p.chargeValues(len(errors))
+			p.Control.Check()
+			return v, core.SyntaxErrors(errors)
+		}
+		return v, nil
+	}
+	if ok {
+		p.Expect(p.Pos, IdEndInput)
+	}
+	e := p.MakeError(p.farthest, p.exp[p.expBase:])
+	p.Control.Check()
+	return nil, e
+}
+
+// tpool keeps parsers of the typed library, with their scratch memory, for later parses. What a
+// parse returns never refers to that memory: CST nodes, value lists, frames and memo entries are
+// consumed by the parse itself (typed values come from the generated code's chunks, ext).
+var tpool sync.Pool
+
+// recycle clears the parser for the next parse, keeping its scratch memory.
+func (p *TParser) recycle() {
+	q := p.Parser
+	memo := memoTable{seen: q.memo.seen, calls: q.memo.calls, pages: q.memo.pages, bitPages: q.memo.bitPages}
+	// Retain useful sparse pages for large inputs, capped at 32 MiB of backing
+	// storage. The next small parse trims this cache when it finishes.
+	memo.resetSeen(max(1<<20, min(q.n, 4<<20)))
+	// The words of the first-call bits are charged when a parse extends them, so a parse starts
+	// from none, as after Parser.release; only the capacity is kept.
+	memo.seen = memo.seen[:0]
+	in, offs := q.In[:0], q.offs[:0]
+	if cap(in) > 1<<20 { // do not keep the buffers of a large input for every later parse
+		in, offs = nil, nil
+	}
+	*q = Parser{In: in, offs: offs, exp: q.exp[:0], arena: q.arena[:0]}
+	q.memo = memo
+	p.nodes.reset()
+	p.vals.reset()
+	p.frames.reset()
+	p.fields.reset()
+	p.memoSlab.reset()
+	clear(p.Trail[:cap(p.Trail)])
+	clear(p.KidStack)
+	clear(p.saved[:cap(p.saved)])
+	clear(p.memoSlots)
+	free := p.free
+	for i := range free {
+		free[i] = free[i][:0]
+	}
+	*p = TParser{Parser: q, Trail: p.Trail[:0], KidStack: p.KidStack[:0], saved: p.saved[:0], memoSlots: p.memoSlots[:0],
+		nodes: p.nodes, vals: p.vals, frames: p.frames, fields: p.fields, memoSlab: p.memoSlab, free: free}
+}
+
+// tarena allocates values of type T in chunks that are kept from one parse to the next (tpool):
+// reset clears what was used and starts again at the first chunk.
+type tarena[T any] struct {
+	chunks [][]T
+	ci     int // the chunk in use
+	off    int // the next free element in it
+	// large counts the elements of the slices allocated on their own (bytes).
+	large int
+}
+
+const tchunk = 512
+
+// slice returns n zero elements (capacity n).
+func (a *tarena[T]) slice(n int) []T {
+	if n > tchunk/4 {
+		a.large += n
+		return make([]T, n)
+	}
+	if a.ci < len(a.chunks) && a.off+n > len(a.chunks[a.ci]) {
+		a.ci++
+		a.off = 0
+	}
+	if a.ci == len(a.chunks) {
+		a.chunks = append(a.chunks, make([]T, tchunk))
+	}
+	s := a.chunks[a.ci][a.off : a.off+n : a.off+n]
+	a.off += n
+	return s
+}
+
+func (a *tarena[T]) one() *T { return &a.slice(1)[0] }
+
+func (a *tarena[T]) reset() {
+	for i := 0; i <= a.ci && i < len(a.chunks); i++ {
+		clear(a.chunks[i])
+	}
+	a.ci, a.off, a.large = 0, 0, 0
+}
+
+// TParser is the parser state of the typed library.
+//
+// TParser is for generated parsers; not a stable API.
+type TParser struct {
+	*Parser
+	Ext      any    // the generated code's allocation chunks
+	Where    string // the rule whose action is being evaluated
+	Frame    *TCaptureFrame
+	Trail    []tundo
+	Created  []TVal // struct values made by the action being evaluated
+	KidStack []any
+	ac       TActCtx
+	saved    []any
+	matches  []TMatch // returned in values, so not kept for the next parse
+	// Scratch memory, kept for the next parse (recycle).
+	nodes     tarena[TSeq]
+	vals      tarena[any]
+	frames    tarena[TCaptureFrame]
+	fields    tarena[tfield]
+	memoSlab  tarena[tmemoEntry]
+	memoSlots []*tmemoEntry // memo entries by position (chains)
+	// memoIndexes are the hash indexes of the positions whose chain is longer than a lookup walks
+	// (memoScan). They belong to one parse: a typed Document keeps its chains, not its indexes.
+	memoIndexes map[int]memoIndex[tmemoEntry]
+	// memoIndexBytes counts the bytes of memoIndexes, for the memory limit.
+	memoIndexBytes uint64
+	// TypedDocument is set only by typed Document parses (TypedDocumentParse).
+	TypedDocument *typedDocumentState
+	free          [8][]*TCaptureFrame // frames freed by FreeFrame, by size
+	// cutFailed reports that a candidate of the last longest failed after a cut. It is last, so
+	// that it moves no other field.
+	cutFailed bool
+	// afterEmpty reports that the next expression is the right operand of an infix operator applied
+	// without consuming input. It sits in the padding after cutFailed.
+	afterEmpty bool
+	// nudBound is the binding level above which no operator can follow the start of the expression
+	// that the last start parsed.
+	nudBound int
+}
+
+// TCaptureFrame is for generated parsers; not a stable API.
+type TCaptureFrame struct{ Vals []any }
+
+// FreeFrame makes the frame f, which nothing refers to any more, available to NewFrame. A rule's
+// frame is dead when the rule returns: the values have been copied into its result, and the
+// trail entries that refer to it are gone.
+func (p *TParser) FreeFrame(f *TCaptureFrame) {
+	n := len(f.Vals)
+	if n == 0 || n >= len(p.free) {
+		return
+	}
+	clear(f.Vals)
+	p.free[n] = append(p.free[n], f)
+}
+
+// EmptyTFrame is for generated parsers; not a stable API.
+var EmptyTFrame = &TCaptureFrame{}
+
+type tundo struct {
+	f    *TCaptureFrame
+	slot int
+	old  any
+}
+
+func (p *TParser) Mark() Mark {
+	return Mark{Pos: p.Pos, env: p.Env, Trail: len(p.Trail), recovered: len(p.Recovered)}
+}
+
+// DropTrail discards undo history whose effects are already restored or whose
+// frame is returning. Clear its references before truncating the backing slice.
+func (p *TParser) DropTrail(base int) {
+	clear(p.Trail[base:])
+	p.Trail = p.Trail[:base]
+}
+
+func (p *TParser) SetCapture(slot int, v any) {
+	p.Trail = append(p.Trail, tundo{f: p.Frame, slot: slot, old: p.Frame.Vals[slot]})
+	p.Frame.Vals[slot] = v
+}
+
+// --- Allocation ---
+
+func (p *TParser) NewNode(typ string, start, end int, kids []any) *TSeq {
+	p.Spend()
+	n := p.nodes.one()
+	*n = TSeq{Span: Span{start, end}, Typ: typ, Kids: kids, fresh: true}
+	return n
+}
+
+func (p *TParser) NewMatch(start, end int, text string, fresh bool) *TMatch {
+	p.Spend()
+	if len(p.matches) == 0 {
+		p.matches = make([]TMatch, nodeChunk)
+		p.memUsed += nodeChunk * matchBytes
+	}
+	m := &p.matches[0]
+	p.matches = p.matches[1:]
+	*m = TMatch{TNode: TNode[string]{Span{start, end}, text}, fresh: fresh}
+	return m
+}
+
+func (p *TParser) NewNodeOrdinary(typ string, start, end int, kids []any) *TSeq {
+	n := p.nodes.one()
+	*n = TSeq{Span: Span{start, end}, Typ: typ, Kids: kids, fresh: true}
+	return n
+}
+
+func (p *TParser) NewMatchOrdinary(start, end int, text string, fresh bool) *TMatch {
+	if len(p.matches) == 0 {
+		p.matches = make([]TMatch, nodeChunk)
+	}
+	m := &p.matches[0]
+	p.matches = p.matches[1:]
+	*m = TMatch{TNode: TNode[string]{Span{start, end}, text}, fresh: fresh}
+	return m
+}
+
+// NewVals returns a value list of length and capacity n.
+func (p *TParser) NewVals(n int) []any {
+	if n == 0 {
+		return []any{}
+	}
+	return p.vals.slice(n)
+}
+
+func (p *TParser) tfields(n int) []tfield {
+	return p.fields.slice(n)[:0]
+}
+
+// Kids returns p.KidStack[base:] as a value list and pops it.
+func (p *TParser) Kids(base int) []any {
+	ks := p.NewVals(len(p.KidStack) - base)
+	copySpend(p.Parser, ks, p.KidStack[base:])
+	p.DropKids(base)
+	return ks
+}
+
+func (p *TParser) DropKids(base int) {
+	clear(p.KidStack[base:])
+	p.KidStack = p.KidStack[:base]
+}
+
+func (p *TParser) NewFrame(n int) *TCaptureFrame {
+	if n == 0 {
+		return EmptyTFrame
+	}
+	if n < len(p.free) {
+		if fs := p.free[n]; len(fs) > 0 {
+			f := fs[len(fs)-1]
+			p.free[n] = fs[:len(fs)-1]
+			return f
+		}
+	}
+	f := p.frames.one()
+	f.Vals = p.NewVals(n)
+	return f
+}
+
+// --- Memo ---
+
+// The memo of typed results (TParser.memoSlots, chains of entries by position) is keyed like
+// memoTable, whose FirstCall bookkeeping the typed library shares.
+type tmemoEntry struct {
+	val      any
+	errs     recEntry
+	expected []ExpID
+	next     *tmemoEntry
+	env      []any
+	end      int
+	far      int
+	rule     int32
+	min      int32
+	ok       bool
+	silent   bool
+	present  uint32 // as in memoEntry
+	seen     uint32 // as in memoEntry
+}
+
+func (p *TParser) memoGet(rule, pos, min int, env []any, docOnly bool) *tmemoEntry {
+	if p.Control != nil {
+		return p.memoGetControlled(rule, pos, min, env, docOnly)
+	}
+	if pos >= len(p.memoSlots) {
+		return nil
+	}
+	e, n := p.memoSlots[pos], 0
+	for ; e != nil && n < memoScan; e, n = e.next, n+1 {
+		if e.rule == int32(rule) && e.min == int32(min) && sameValues(e.env, env) {
+			e.seen = p.stamp()
+			return e
+		}
+	}
+	if e == nil {
+		return nil
+	}
+	h, _ := memoKeyHash(int32(rule), int32(min), env)
+	_, x := p.memoIndexAt(pos, nil).probe(h, func(x *tmemoEntry) bool {
+		return x.rule == int32(rule) && x.min == int32(min) && sameValues(x.env, env)
+	})
+	if x != nil {
+		x.seen = p.stamp()
+	}
+	return x
+}
+
+// memoIndexAt returns the hash index of the chain at pos, building it on first use; hash, if not
+// nil, computes the hash of an entry (and may charge for it).
+func (p *TParser) memoIndexAt(pos int, hash func(*tmemoEntry) uint64) memoIndex[tmemoEntry] {
+	if hash == nil {
+		hash = func(e *tmemoEntry) uint64 { h, _ := memoKeyHash(e.rule, e.min, e.env); return h }
+	}
+	return indexAt(&p.memoIndexes, &p.memoIndexBytes, pos, p.memoSlots[pos], func(e *tmemoEntry) *tmemoEntry { return e.next }, hash)
+}
+
+func (p *TParser) memoGetControlled(rule, pos, min int, key []any, ident bool) *tmemoEntry {
+	p.Spend()
+	// ident is set for a rule that only a Document parse memoizes: the lookup compares keys by identity and
+	// walks docOnlyScan entries (see there).
+	if p.Control.defaultCompute {
+		// As in Parser.memoGetControlled: the steps of the walk are work of the Document, and so is
+		// the comparison with an entry of an earlier text, which is charged once if that entry answers.
+		defer p.Control.FreeEnd(p.Control.FreeBegin(true))
+	}
+	if pos >= len(p.memoSlots) {
+		return nil
+	}
+	scan := memoScan
+	if ident {
+		scan = docOnlyScan
+	}
+	e, n := p.memoSlots[pos], 0
+	for ; e != nil && n < scan; e, n = e.next, n+1 {
+		p.Spend()
+		if e.rule == int32(rule) && e.min == int32(min) && p.keyMatches(e.env, key, ident, p.current(e.seen)) {
+			if ident {
+				p.countKeyMatch(e.env, key)
+			} else if !p.current(e.seen) {
+				p.countKeyEqual(e.env, key)
+			}
+			e.seen = p.stamp()
+			return e
+		}
+	}
+	if e == nil || ident {
+		return nil
+	}
+	ix := p.memoIndexAt(pos, func(e *tmemoEntry) uint64 { return p.hashMemoKey(e.rule, e.min, e.env) })
+	_, x := ix.probe(p.countedHash(int32(rule), int32(min), key), func(x *tmemoEntry) bool {
+		return x.rule == int32(rule) && x.min == int32(min) && p.keyMatches(x.env, key, false, p.current(x.seen))
+	})
+	if x != nil {
+		if !p.current(x.seen) {
+			p.countKeyEqual(x.env, key)
+		}
+		x.seen = p.stamp()
+	}
+	return x
+}
+
+func (p *TParser) memoPut(rule, pos, min int, env []any, docOnly bool, e *tmemoEntry) {
+	if p.Control != nil {
+		p.memoPutControlled(rule, pos, min, env, docOnly, e)
+		return
+	}
+	e.seen = p.stamp()
+	if pos >= len(p.memoSlots) {
+		if pos < cap(p.memoSlots) {
+			p.memoSlots = p.memoSlots[:pos+1]
+		} else {
+			grown := make([]*tmemoEntry, pos+1, max(2*cap(p.memoSlots), pos+1, 64))
+			copy(grown, p.memoSlots)
+			p.memoSlots = grown
+		}
+	}
+	e.rule, e.min, e.env = int32(rule), int32(min), env
+	same := func(x *tmemoEntry) bool { return x.rule == e.rule && x.min == e.min && sameValues(x.env, env) }
+	link := &p.memoSlots[pos]
+	for n := 0; *link != nil && n < memoScan; link, n = &(*link).next, n+1 {
+		if x := *link; same(x) {
+			if ix := p.memoIndexes[pos]; ix != nil {
+				h, _ := memoKeyHash(x.rule, x.min, x.env)
+				slot, _ := ix.probe(h, func(y *tmemoEntry) bool { return y == x })
+				ix[slot] = e
+			}
+			e.next = x.next
+			*link = e
+			return
+		}
+	}
+	if *link != nil {
+		// A long chain: the index finds the entry to replace, and a walk finds its link.
+		ix := p.memoIndexAt(pos, nil)
+		h, _ := memoKeyHash(e.rule, e.min, env)
+		slot, x := ix.probe(h, same)
+		ix[slot] = e
+		if x == nil {
+			p.memoIndexBytes += memoIndexEntryBytes
+		}
+		if x != nil {
+			link = &p.memoSlots[pos]
+			for *link != x {
+				link = &(*link).next
+			}
+			e.next = x.next
+			*link = e
+			return
+		}
+	}
+	e.next = p.memoSlots[pos]
+	p.memoSlots[pos] = e
+}
+
+func (p *TParser) memoPutControlled(rule, pos, min int, key []any, ident bool, e *tmemoEntry) {
+	p.Spend()
+	if p.Control.defaultCompute {
+		// The steps of the walk of the chain and the growth of the table are work of the Document.
+		defer p.Control.FreeEnd(p.Control.FreeBegin(true))
+	}
+	slots := p.memoSlots
+	if pos >= len(slots) {
+		p.growthSpend(len(slots), pos+1)
+		// The slot array is charged by its length, not its capacity, which a pooled parser keeps.
+		p.memUsed += uint64(pos+1-len(slots)) * ptrBytes
+		if pos < cap(slots) {
+			slots = slots[:pos+1]
+		} else {
+			grown := make([]*tmemoEntry, pos+1, max(2*cap(slots), pos+1, 64))
+			copy(grown, slots)
+			slots = grown
+		}
+	}
+	link := &slots[pos]
+	var replaced *tmemoEntry
+	same := func(x *tmemoEntry) bool {
+		return x == e || x.rule == int32(rule) && x.min == int32(min) && p.keyMatches(x.env, key, ident, p.current(x.seen))
+	}
+	scan := memoScan
+	if ident {
+		scan = docOnlyScan
+	}
+	for n := 0; *link != nil && n < scan; link, n = &(*link).next, n+1 {
+		p.Spend()
+		if x := *link; same(x) {
+			replaced = x
+			break
+		}
+	}
+	var ix memoIndex[tmemoEntry]
+	var ixSlot uint64
+	if replaced == nil && *link != nil && !ident {
+		// A long chain: the index finds the entry to replace.
+		ix = indexAt(&p.memoIndexes, &p.memoIndexBytes, pos, slots[pos], func(e *tmemoEntry) *tmemoEntry { return e.next },
+			func(e *tmemoEntry) uint64 { return p.hashMemoKey(e.rule, e.min, e.env) })
+		ixSlot, replaced = ix.probe(p.countedHash(int32(rule), int32(min), key), same)
+		if replaced != nil {
+			link = &slots[pos]
+			for *link != replaced {
+				p.Spend()
+				link = &(*link).next
+			}
+		}
+	} else if replaced != nil {
+		// The entry replaced among the first of a long chain is indexed too.
+		if ix = p.memoIndexes[pos]; ix != nil {
+			ixSlot, _ = ix.probe(p.hashMemoKey(replaced.rule, replaced.min, replaced.env), func(y *tmemoEntry) bool { return y == replaced })
+		}
+	}
+	if ident && replaced != nil && replaced != e {
+		p.countKeyMatch(replaced.env, key)
+	}
+	p.Spend()
+	p.memoSlots = slots
+	e.rule, e.min, e.env, e.seen = int32(rule), int32(min), key, p.stamp()
+	if ix != nil {
+		n := len(ix)
+		ix[ixSlot] = e
+		p.memoIndexBytes += uint64(len(ix)-n) * memoIndexEntryBytes
+	}
+	if replaced != nil {
+		e.next = replaced.next
+		*link = e
+		return
+	}
+	e.next = slots[pos]
+	slots[pos] = e
+}
+
+// --- Typed Document memo ---
+
+// typedDocumentState owns private typed memo values of a typed Document (TypedDocumentParse). The
+// fresh invocation arenas that contain those values must never be reset or returned to the batch
+// pool.
+type typedDocumentState struct {
+	owner *documentState
+	slots []*tmemoEntry
+	meta  map[*tmemoEntry]typedDocumentMeta
+}
+
+type typedDocumentMeta struct {
+	// recorded reports a record of memo.examine, and examined and before are the input that it
+	// recorded; pinned is memo.pin; shift is how far the positions in the value must move (move).
+	examined                 int
+	shift                    int
+	recorded, before, pinned bool
+}
+
+// splice applies an edit to the memo (memo.splice), relinking the chains into a new table. No parse
+// runs during an edit (Document.parsing rejects it), and results hold values, not memo entries or
+// chains, so no TParser or result refers to the chains while they change. Entries that examined
+// only input before the edit stay; those that examined only input after it, with no recovered
+// errors and not pinned, move by its delta, and their values move when reused (move); the others
+// are dropped. The table ends after the last position that keeps an entry, as a table built anew
+// does. Those that more than pendingEditLimit edits have passed since a parse stored them or found them
+// to answer a lookup (tmemoEntry.seen, documentState.epoch) are dropped too.
+func (d *typedDocumentState) splice(ed documentEdit) {
+	var epoch uint32 // a memo without a Document has no edits behind
+	if d.owner != nil {
+		epoch = d.owner.epoch
+	}
+	old := d.slots
+	slots := make([]*tmemoEntry, len(old)+max(ed.delta, 0))
+	tails := make([]*tmemoEntry, len(slots))
+	n := 0
+	for pos, head := range old {
+		for e, next := head, (*tmemoEntry)(nil); e != nil; e = next {
+			next = e.next
+			m := d.meta[e]
+			to, from := pos, pos
+			if m.before {
+				from--
+			}
+			switch {
+			case !m.recorded:
+				delete(d.meta, e)
+				continue
+			case epoch-e.seen > pendingEditLimit:
+				// More edits behind than a lookup applies to an entry (memoTable.splice).
+				delete(d.meta, e)
+				continue
+			case m.examined <= ed.start:
+			case from >= ed.end && !m.pinned && e.errs.none():
+				to = pos + ed.delta
+				e.end += ed.delta
+				e.far += ed.delta
+				m.examined += ed.delta
+				m.shift += ed.delta
+				d.meta[e] = m
+			default:
+				delete(d.meta, e)
+				continue
+			}
+			e.next = nil
+			if tails[to] == nil {
+				slots[to] = e
+			} else {
+				tails[to].next = e
+			}
+			tails[to] = e
+			n = max(n, to+1)
+		}
+	}
+	d.slots = slots[:n]
+}
+
+// move makes the value of e valid at its position after edits moved e (memo.splice) and reports
+// whether it could: a value holds positions unless it is a basic value, which needs no move.
+func (d *typedDocumentState) move(e *tmemoEntry) bool {
+	m := d.meta[e]
+	if m.shift == 0 {
+		return true
+	}
+	if !basicValue(e.val) {
+		return false
+	}
+	m.shift = 0
+	d.meta[e] = m
+	return true
+}
+
+// pin keeps e from moving with an edit (memo.pin).
+func (d *typedDocumentState) pin(e *tmemoEntry) {
+	m := d.meta[e]
+	m.pinned = true
+	d.meta[e] = m
+}
+
+// --- Rule calls ---
+
+func (p *TParser) Call(r *TRule, min int) (any, bool) {
+	if p.Observation != nil {
+		return p.callObserved(r, min)
+	}
+	return p.callBody(r, min)
+}
+
+func (p *TParser) invoke(r *TRule, min int) (any, bool) {
+	if p.TypedDocument != nil {
+		p.Document.stats.Evaluated++
+	}
+	f := p.NewFrame(len(r.Scope))
+	prevFrame, prevEnv, prevCut, trail := p.Frame, p.Env, p.Cut, len(p.Trail)
+	p.Frame, p.Cut = f, false
+	if r.Rec {
+		p.Enter()
+	}
+	start := p.Pos
+	p.Observation.Evaluated()
+	v, ok := r.Body(p, min)
+	if r.Rec {
+		p.Depth--
+	}
+	p.Frame, p.Cut = prevFrame, prevCut
+	p.DropTrail(trail)
+	if ok {
+		v = p.Finish(r, f, v, start)
+	}
+	p.Env = prevEnv
+	p.FreeFrame(f)
+	return v, ok
+}
+
+func (p *TParser) InvokePlain(r *TRule, min int) (any, bool) {
+	if p.Observation != nil {
+		return p.invokePlainObserved(r, min)
+	}
+	return p.invokePlainBody(r, min)
+}
+
+// invokePlainBody is InvokePlain without observation.
+func (p *TParser) invokePlainBody(r *TRule, min int) (any, bool) {
+	start, rec, trail := p.Pos, len(p.Recovered), len(p.Trail)
+	prevEnv, prevCut := p.Env, p.Cut
+	p.Cut = false
+	if r.Rec {
+		p.Enter()
+	}
+	p.Observation.Evaluated()
+	v, ok := r.Body(p, min)
+	if r.Rec {
+		p.Depth--
+	}
+	p.Cut = prevCut
+	p.DropTrail(trail)
+	if ok {
+		v = p.Finish(r, EmptyTFrame, v, start)
+	} else {
+		p.Pos = start
+		p.Recovered = p.Recovered[:rec]
+	}
+	p.Env = prevEnv
+	return v, ok
+}
+
+// Finish makes the rule's value from the value of its body, and checks it against the rule's
+// declared type if needed.
+func (p *TParser) Finish(r *TRule, f *TCaptureFrame, v any, start int) any {
+	var body any
+	if r.Nt != 0 && r.Action == nil {
+		body = TFreshNode(v)
+	}
+	v = p.finishValue(r, f, v, start)
+	if r.Nt != 0 {
+		v = p.TConvertResultOwned(r, v, body)
+	}
+	return v
+}
+
+// TFreshNode returns v if it is a fresh string, tuple or list node, and otherwise nil. Taken from
+// the value of a rule's body before the rule finishes it, it is the node the body made and nothing
+// else holds yet (see TConvertResultOwned).
+//
+// TFreshNode is for generated parsers; not a stable API.
+func TFreshNode(v any) any {
+	switch x := v.(type) {
+	case *TMatch:
+		if x.fresh {
+			return x
+		}
+	case *TSeq:
+		if x.fresh && (x.Typ == "tuple" || x.Typ == "list") {
+			return x
+		}
+	}
+	return nil
+}
+
+// TConvertResultOwned converts v, the value of rule r, to the rule's named node type, like
+// TConvertResult. If v is body, the fresh node of the rule's body (TFreshNode), the rule returns
+// the node it made itself, which nothing else holds, so it gets the type in place instead of
+// being copied: the copy tconvert makes keeps a node that others hold as it is.
+func (p *TParser) TConvertResultOwned(r *TRule, v, body any) any {
+	if body != nil && v == body {
+		switch x := v.(type) {
+		case *TMatch:
+			x.Nt = r.Nt
+			return x
+		case *TSeq:
+			x.nt = r.Nt
+			return x
+		}
+	}
+	return p.TConvertResult(r, v)
+}
+
+// tnamed reports whether n is a node of a named node type.
+func tnamed(n TVal) bool {
+	switch x := n.(type) {
+	case *TMatch:
+		return x.Nt != 0
+	case *TSeq:
+		return x.nt != 0
+	}
+	return false
+}
+
+// tconvert is nodeTypeKinds.Convert for the values of the typed library: it returns the node of
+// the named node type nt that v converts to (a copy of v with the same range and content, or v
+// itself if it already has the type), and reports false if v is not a string, tuple or list node.
+func (p *TParser) tconvert(nt uint16, v any) (any, bool) {
+	n, ok := tnodeOf(v)
+	if !ok || !tnodeHasBase(n) {
+		return nil, false
+	}
+	return p.tretype(n, nt), true
+}
+
+// tnodeHasBase is the operation node.hasBase in the typed library: it reports whether n is a string,
+// tuple or list node, of a named node type or not.
+func tnodeHasBase(n TVal) bool {
+	switch x := n.(type) {
+	case *TMatch:
+		return true
+	case *TSeq:
+		return x.Typ == "tuple" || x.Typ == "list"
+	}
+	return false
+}
+
+// tretype is the operation node.convert in the typed library: it returns n, a string, tuple or list
+// node, as a node of the named node type nt: a copy of n with the same range and content, or n
+// itself if it already has the type.
+func (p *TParser) tretype(n TVal, nt uint16) any {
+	if x, ok := n.(*TMatch); ok {
+		if x.Nt == nt {
+			return x
+		}
+		return &TMatch{TNode: x.TNode, Nt: nt}
+	}
+	x := n.(*TSeq)
+	if x.nt == nt {
+		return x
+	}
+	c := p.nodes.one()
+	*c = *x
+	c.nt, c.fresh = nt, false
+	if x.fresh {
+		// The rule that made x may still change it; the copy keeps what it holds now.
+		c.Kids = append([]any(nil), x.Kids...)
+	}
+	c.fields = append([]tfield(nil), x.fields...)
+	return c
+}
+
+// TConvertResult converts v, the value of rule r, to the rule's named node type.
+func (p *TParser) TConvertResult(r *TRule, v any) any {
+	n, ok := p.tconvert(r.Nt, v)
+	if !ok {
+		panic(fatal{fmt.Errorf("cannot convert %s to %s in result of rule %s", ttypeName(v), r.NodeType, r.where())})
+	}
+	return n
+}
+
+// TSetNodeType gives v, a string, tuple or list node that back made, the named node type nt.
+//
+// TSetNodeType is for generated parsers; not a stable API.
+func TSetNodeType(v any, nt uint16) any {
+	switch x := v.(type) {
+	case *TMatch:
+		x.Nt = nt
+	case *TSeq:
+		x.nt = nt
+	}
+	return v
+}
+
+func (p *TParser) finishValue(r *TRule, f *TCaptureFrame, v any, start int) any {
+	if r.Novalue {
+		return nil
+	}
+	if r.Action != nil {
+		c := p.UseCtx(TActCtx{P: p, F: f, Start: start, End: p.Pos, Cbase: len(p.Created)})
+		if r.OperatorsRule != nil {
+			c.Value = v
+		}
+		return c.Result(r.Action, r.where())
+	}
+	if r.Splice {
+		if n := AsTval(v); n != nil {
+			n.TSetFresh(false)
+		}
+		return v
+	}
+	v = p.ScopeValue(r.Value, v, start)
+	if len(r.Scope) > 0 {
+		v = p.AttachCaptures(v, r.Scope, f.Vals, start, p.Pos)
+	}
+	n := AsTval(v)
+	if n == nil {
+		// A value other than a node passes through as it is: the result of an action, of an
+		// Operators Rule's lines or of a rule the body calls, such as an alternative of a
+		// left-recursion leader. The engine passes it on in a box.
+		return v
+	}
+	n.TSetFresh(false)
+	return n
+}
+
+// AttachCaptures attaches the non-nil captures vals (named names) as fields of the value (a CST
+// node), first wrapping it in a tuple node unless it is a fresh one that is not itself captured.
+func (p *TParser) AttachCaptures(v any, names []string, vals []any, start, end int) any {
+	n := AsTval(v)
+	found := false
+	wrap := n == nil || !n.TFresh()
+	for _, c := range vals {
+		p.Spend()
+		if c != nil {
+			found = true
+		}
+		if c != nil && n != nil && c == any(n) {
+			wrap = true
+		}
+	}
+	if !found {
+		return v
+	}
+	t, isNode := n.(*TSeq)
+	if wrap || !isNode {
+		kids := p.NewVals(1)
+		kids[0] = v
+		t = p.NewNode("tuple", start, end, kids)
+	}
+	if t.fields == nil {
+		t.fields = p.tfields(len(names))
+	}
+	for i, name := range names {
+		p.Spend()
+		if vals[i] != nil {
+			p.setValueField(t, name, vals[i])
+		}
+	}
+	return t
+}
+
+// --- Shapes of values (see lib.go) ---
+
+// shapeTuple returns the tuple node of the result v of a match of [start, p.Pos).
+func (p *TParser) shapeTuple(s Shaper, v any, start int) any {
+	if s.Elems {
+		if n, _ := v.(*TSeq); s.Shared && n != nil {
+			return p.NewNode("tuple", n.Start, n.End, n.Kids)
+		}
+		return v
+	}
+	var kids []any
+	if s.K == 1 {
+		kids = p.NewVals(1)
+		kids[0] = v
+	}
+	return p.NewNode("tuple", start, p.Pos, kids)
+}
+
+// tone returns the one element of the result v.
+func tone(s Shaper, v any) any {
+	if s.Elems {
+		n, _ := v.(*TSeq)
+		if n == nil || len(n.Kids) == 0 {
+			return nil
+		}
+		return n.Kids[0]
+	}
+	return v
+}
+
+// ShapeSingle returns the value of the result v where the expression takes one element; ok is
+// false when it has no value.
+func (p *TParser) ShapeSingle(s Shaper, v any, start int) (any, bool) {
+	switch s.Mode {
+	case singlePass:
+		return tone(s, v), true
+	case singleTuple:
+		return p.shapeTuple(s, v, start), true
+	}
+	return nil, false
+}
+
+// ShapeCapture is ShapeSingle for a capture or a recovered expression, whose value is the unit
+// node of the range matched when the expression has no value.
+func (p *TParser) ShapeCapture(s Shaper, v any, start int) any {
+	v, ok := p.ShapeSingle(s, v, start)
+	if !ok {
+		v = p.NewNode("tuple", start, p.Pos, nil)
+	}
+	return v
+}
+
+// ScopeValue returns the value of a scope whose body matched [start, p.Pos) with the result v.
+func (p *TParser) ScopeValue(s Shaper, v any, start int) any {
+	if s.Tuple {
+		return p.shapeTuple(s, v, start)
+	}
+	return tone(s, v)
+}
+
+// --- Terminals ---
+
+func (p *TParser) MatchLiteral(rs []rune, text string, desc ExpID, build bool) (any, bool) {
+	start := p.Pos
+	if _, ok := p.Parser.MatchLiteral(rs, text, desc, false); !ok {
+		return nil, false
+	}
+	if !build {
+		return nil, true
+	}
+	return p.NewMatch(start, p.Pos, p.LiteralText(start, text), true), true
+}
+
+// MatchLiteralFold is MatchLiteral for a case-insensitive literal (see Parser.MatchLiteralFold).
+func (p *TParser) MatchLiteralFold(rs []rune, desc ExpID, build bool) (any, bool) {
+	start := p.Pos
+	if _, ok := p.Parser.MatchLiteralFold(rs, desc, false); !ok {
+		return nil, false
+	}
+	if !build {
+		return nil, true
+	}
+	return p.NewMatch(start, p.Pos, p.Text(start, p.Pos), true), true
+}
+
+// MatchLiteralOrdinary is MatchLiteral in an ordinary parse (parser.ExpectOrdinary).
+func (p *TParser) MatchLiteralOrdinary(rs []rune, text string, desc ExpID, build bool) (any, bool) {
+	start := p.Pos
+	if _, ok := p.Parser.MatchLiteralOrdinary(rs, text, desc, false); !ok {
+		return nil, false
+	}
+	if !build {
+		return nil, true
+	}
+	return p.NewMatchOrdinary(start, p.Pos, p.LiteralText(start, text), true), true
+}
+
+// MatchAnyOrdinary is MatchAny in an ordinary parse (parser.ExpectOrdinary).
+func (p *TParser) MatchAnyOrdinary(build bool) (any, bool) {
+	_, size, ok := p.PeekOrdinary()
+	if !ok {
+		p.ExpectOrdinary(p.Pos, IdAny)
+		return nil, false
+	}
+	return p.Single(size, build)
+}
+
+func (p *TParser) MatchAny(build bool) (any, bool) {
+	_, size, ok := p.Peek()
+	if !ok {
+		p.Expect(p.Pos, IdAny)
+		return nil, false
+	}
+	return p.Single(size, build)
+}
+
+func (p *TParser) Single(size int, build bool) (any, bool) {
+	start := p.Pos
+	p.Pos += size
+	if !build {
+		return nil, true
+	}
+	return p.NewMatch(start, p.Pos, p.Text(start, p.Pos), true), true
+}
+
+func (p *TParser) Anchor(ok bool, desc ExpID) (any, bool) {
+	if ok {
+		return nil, true
+	}
+	p.Expect(p.Pos, desc)
+	return nil, false
+}
+
+// --- Attributes ---
+
+type tmatcher = func(p *TParser) (any, bool)
+
+func (p *TParser) tracked(m tmatcher) (v any, ok bool, far int, expected []ExpID) {
+	mark := p.Isolate(p.Pos)
+	v, ok = m(p)
+	far, expected = p.Unisolate(mark)
+	return v, ok, far, expected
+}
+
+func (p *TParser) ErrorAttr(m tmatcher, msg ExpID) (any, bool) {
+	v, ok, far, expected := p.tracked(m)
+	if ok {
+		p.MergeExpected(far, expected)
+		return v, true
+	}
+	p.Expect(far, msg)
+	return nil, false
+}
+
+func (p *TParser) DiagnosticAttr(m tmatcher, name ExpID) (any, bool) {
+	v, ok, far, expected := p.tracked(m)
+	if ok {
+		p.MergeExpected(far, expected)
+		return v, true
+	}
+	p.MergeExpected(far, RenamedExpected(p.Parser, expected, name))
+	return nil, false
+}
+
+func (p *TParser) RecoverAttr(m, skip tmatcher, build bool) (any, bool) {
+	m0 := p.Mark()
+	v, ok, far, expected := p.tracked(m)
+	if ok {
+		p.MergeExpected(far, expected)
+		return v, true
+	}
+	expected = p.Keep(expected)
+	p.Reset(m0)
+	if _, ok := skip(p); !ok || p.Pos == m0.Pos {
+		p.Reset(m0)
+		p.MergeExpected(far, expected)
+		return nil, false
+	}
+	e := p.MakeError(far, expected)
+	p.PushRecovered(e)
+	if !build {
+		return nil, true
+	}
+	return &TError{Error{Span: Span{m0.Pos, p.Pos}, Message: p.RecoveryErrorText(e)}, true}, true
+}
+
+// --- Actions and predicates ---
+
+// TActCtx is the context of evaluating an action or a predicate (ActCtx in the typed library).
+//
+// TActCtx is for generated parsers; not a stable API.
+type TActCtx struct {
+	P            *TParser
+	F            *TCaptureFrame
+	Start, End   int
+	Cbase        int
+	Lhs, Rhs, Op any
+	Value        any // the folded value of an Operators Rule, in its whole-rule action
+}
+
+func (p *TParser) UseCtx(c TActCtx) *TActCtx {
+	p.ac = c
+	return &p.ac
+}
+
+// Result evaluates an action. Its errors fail the parse: tparse reports them with the rule
+// name, which result records in p.Where instead of deferring a recovery for each action.
+func (c *TActCtx) Result(action func(*TActCtx) (any, any), where string) (n any) {
+	prev := c.P.Where
+	c.P.Where = where
+	v, f := action(c)
+	if f != nil {
+		c.P.actionFailed(where, f)
+	}
+	n = c.Finish(v)
+	c.P.Where = prev
+	return n
+}
+
+// Finish checks and finishes the value v of an action (see result): a struct the action made
+// takes the rule's range, and the value is no longer fresh. A value other than a node needs no
+// carrier here.
+func (c *TActCtx) Finish(v any) any {
+	t := AsTval(v)
+	if t != nil {
+		for _, x := range c.P.Created[c.Cbase:] {
+			c.P.Spend()
+			if x == t {
+				t.TSetSpan(c.Start, c.End)
+				break
+			}
+		}
+	}
+	c.P.DropCreated(c.Cbase)
+	if v == nil {
+		return nil
+	}
+	if t == nil {
+		if _, isFn := v.(func(...any) any); isFn {
+			c.P.actionFailed(c.P.Where, c.P.evalErrorValue("result must be a value, got a function"))
+		}
+		return v
+	}
+	t.TSetFresh(false)
+	return t
+}
+
+func (p *TParser) DropCreated(base int) {
+	clear(p.Created[base:])
+	p.Created = p.Created[:base]
+}
+
+// evalTerm is Parser.evalTerm for the typed library.
+func (p *TParser) evalTerm(t func(*TActCtx) (any, any)) (v any, ok bool) {
+	v, f := t(p.UseCtx(TActCtx{P: p, F: p.Frame, Start: p.Pos, End: p.Pos, Cbase: len(p.Created)}))
+	return v, f == nil
+}
+
+// TermRaise ends the parse with the failure f of the action that the generated rule evaluates in
+// place, as Result does for an action that fails.
+//
+// TermRaise is for generated parsers; not a stable API.
+func (c *TActCtx) TermRaise(f any) {
+	c.P.actionFailed(c.P.Where, f)
+}
+
+// tvalOrNil is the typed library's nodeOrNil: values are already any, with the untyped nil.
+func tvalOrNil(v any) any { return v }
+
+func (c *TActCtx) Cap(slot int) any { return tvalOrNil(c.F.Vals[slot]) }
+
+// Var returns the value of the variable in slot i.
+func (c *TActCtx) Var(slot int) any { return c.P.variable(slot) }
+
+// ttypeName is typeName for values of the typed library.
+func ttypeName(v any) string {
+	switch v.(type) {
+	case nil:
+		return "nil"
+	case int:
+		return "int"
+	case string:
+		return "string"
+	case bool:
+		return "bool"
+	}
+	if t, ok := v.(TVal); ok {
+		if tnamed(t) {
+			return t.TName()
+		}
+		return valueTypeName(tshape(t), t.TName(), len(t.TKids()))
+	}
+	return fmt.Sprintf("%T", v)
+}
+
+// MadeOf finishes a struct value n made by an action from the field values it was made of: n takes
+// the range that covers the field values that are nodes, or the range of the rule if there is none
+// (see NewStruct). The variadic list stays on the stack of the generated constructor.
+//
+// MadeOf is for generated parsers; not a stable API.
+func (c *TActCtx) MadeOf(n TVal, fields ...any) any {
+	first := true
+	for _, f := range fields {
+		first = c.P.TermCover(n, f, first)
+	}
+	c.P.TermMade(c, n, first)
+	return n
+}
+
+func (c *TActCtx) NewList(items []any) any {
+	kids := c.P.NewVals(len(items))
+	copySpend(c.P.Parser, kids, items)
+	return c.listNode(kids)
+}
+
+// listNode returns a list value with the child list kids (which it takes over). Its range, which
+// the value model does not show, covers the elements that are nodes.
+func (c *TActCtx) listNode(kids []any) TVal { return c.P.TermHull(c, false, kids) }
+
+// newSeq is the operation val.seq.
+func (c *TActCtx) newSeq(tuple bool, kids []any) TVal {
+	typ := TypeListValue
+	if tuple {
+		typ = TypeTupleValue
+	}
+	n := c.P.NewNode(typ, 0, 0, kids)
+	n.fresh = false
+	return n
+}
+
+// tstrFields is implemented by the generated struct types: TStrField returns the value of a
+// string field without boxing it.
+//
+// TStrField is for generated parsers; not a stable API.
+type tstrFields interface {
+	TStrField(name string) (string, bool)
+}
+
+// TermFieldOperand reads x.name as TermMember does, keeping a string field of a struct unboxed, and
+// returns the failure of the read.
+//
+// TermFieldOperand is for generated parsers; not a stable API.
+func (c *TActCtx) TermFieldOperand(x any, name string) (TOperand, any) {
+	// A string field of a struct costs no steps to read under budget controls either: see TFieldSpend.
+	if n, ok := x.(tstrFields); ok {
+		if s, ok := n.TStrField(name); ok {
+			return TOperand{Str: s, IsStr: true}, nil
+		}
+	}
+	kind, field := memberKind(name)
+	v, e := c.P.TermMember(c, kind, x, name, field)
+	return TOperand{V: v}, e
+}
+
+// TermCompare applies a comparison operator as TermBinary does, comparing two strings directly, and
+// returns the failure of the comparison.
+//
+// TermCompare is for generated parsers; not a stable API.
+func (c *TActCtx) TermCompare(op int, l, r TOperand) (any, any) {
+	if !l.IsStr {
+		l.Str, l.IsStr = l.V.(string)
+	}
+	if !r.IsStr {
+		r.Str, r.IsStr = r.V.(string)
+	}
+	if l.IsStr && r.IsStr {
+		if v, ok := c.P.compareStrings(op, l.Str, r.Str); ok {
+			return v, nil
+		}
+	}
+	return c.P.TermBinary(op, l.value(), r.value())
+}
+
+// memberZero is the operation node.zero: a typed struct holds every field of its type, and makes the zero
+// value of a list or struct field that it holds as nil (unset) when it is read.
+func (p *TParser) memberZero(c *TActCtx, n TVal, name string) (any, bool) {
+	if z, ok := n.(tzeroFields); ok {
+		return z.TZeroField(c, name)
+	}
+	return nil, false
+}
+
+// tzeroFields is implemented by the generated struct types: TZeroField returns the zero value of a list
+// or struct field that the value leaves unset (a nil slice or pointer), which a read makes then.
+//
+// TZeroField is for generated parsers; not a stable API.
+type tzeroFields interface {
+	TZeroField(c *TActCtx, name string) (any, bool)
+}
+
+// --- Operators Rule expressions ---
+
+// TOperatorsRule is for generated parsers; not a stable API.
+type TOperatorsRule struct {
+	Skip     tmatcher
+	Operands []*TOperatorsRuleLine
+	Prefix   []*TOperatorsRuleOp
+	Led      []*TOperatorsRuleOp
+}
+
+// TOperatorsRuleLine is for generated parsers; not a stable API.
+type TOperatorsRuleLine struct {
+	Scope  []string
+	M      tmatcher
+	Action func(*TActCtx) (any, any)
+	// Value makes the value of an operand line without an action, and of an operator line's
+	// operator, from the value of the line's expression.
+	Value Shaper
+}
+
+// TOperatorsRuleOp is for generated parsers; not a stable API.
+type TOperatorsRuleOp struct {
+	Id    int
+	Kind  string
+	Assoc string
+	Level int
+	Line  *TOperatorsRuleLine
+}
+
+type toperatorsRuleAttempt struct {
+	op         *TOperatorsRuleOp
+	frame      *TCaptureFrame
+	v          any
+	start, end int
+	env        *Env
+	cut        bool
+	errs       recEntry
+}
+
+func (p *TParser) lineResult(r *TRule, l *TOperatorsRuleLine, f *TCaptureFrame, v any, start int) any {
+	if r.Novalue {
+		return nil
+	}
+	return p.lineValue(r, l, f, v, start)
+}
+
+func (p *TParser) lineValue(r *TRule, l *TOperatorsRuleLine, f *TCaptureFrame, v any, start int) any {
+	if l.Action != nil {
+		c := p.UseCtx(TActCtx{P: p, F: f, Start: start, End: p.Pos, Cbase: len(p.Created)})
+		return c.Result(l.Action, r.where())
+	}
+	v = p.ScopeValue(l.Value, v, start)
+	if len(l.Scope) > 0 {
+		v = p.AttachCaptures(v, l.Scope, f.Vals, start, p.Pos)
+	}
+	if n := AsTval(v); n != nil {
+		n.TSetFresh(false)
+		return n
+	}
+	// A value other than a node, such as the result of a rule's action, stays as it is.
+	return v
+}
+
+// operatorsRuleBuild applies the operator of a to lhs, which starts at lstart if it is not a node,
+// and rhs. Besides the value it returns where the value starts, as operatorsRuleNud does.
+func (p *TParser) operatorsRuleBuild(r *TRule, a *toperatorsRuleAttempt, lhs any, lstart int, rhs any) (any, int) {
+	if r.Novalue {
+		return nil, a.start
+	}
+	start, end := a.start, p.Pos
+	if l := AsTval(lhs); l != nil {
+		start, _ = l.TSpan()
+	} else if lhs != nil {
+		start = lstart
+	}
+	if a.op.Kind == "postfix" {
+		end = a.end
+	}
+	l := a.op.Line
+	// The operator's value is its one element, or the node of its tuple, which has the line's
+	// captures.
+	opv, ok := p.ShapeSingle(l.Value, a.v, a.start)
+	if !ok {
+		opv = p.NewNode("tuple", a.start, a.end, nil)
+	}
+	if l.Value.Mode == singleTuple && len(l.Scope) > 0 {
+		opv = p.AttachCaptures(opv, l.Scope, a.frame.Vals, a.start, a.end)
+	}
+	if n := AsTval(opv); n != nil {
+		n.TSetFresh(false)
+	}
+	if l.Action != nil {
+		c := p.UseCtx(TActCtx{P: p, F: a.frame, Start: start, End: end, Cbase: len(p.Created),
+			Op: opv, Lhs: lhs, Rhs: rhs})
+		v := c.Result(l.Action, r.where())
+		if r.OpNt != 0 {
+			v = p.convertOperator(r, v)
+		}
+		return v, start
+	}
+	// Without an action, the application is the node of the tuple (lhs, op, rhs) of the line's
+	// kind, with those captures.
+	var kids []any
+	var fields []tfield
+	switch a.op.Kind {
+	case "prefix":
+		kids = p.NewVals(2)
+		kids[0], kids[1] = opv, rhs
+		fields = []tfield{{"op", opv}, {"rhs", rhs}}
+	case "postfix":
+		kids = p.NewVals(2)
+		kids[0], kids[1] = lhs, opv
+		fields = []tfield{{"lhs", lhs}, {"op", opv}}
+	default:
+		kids = p.NewVals(3)
+		kids[0], kids[1], kids[2] = lhs, opv, rhs
+		fields = []tfield{{"lhs", lhs}, {"op", opv}, {"rhs", rhs}}
+	}
+	n := p.NewNode("tuple", start, end, kids)
+	n.fresh = false
+	n.fields = fields
+	n.nt = r.OpNt // made with the named node type of the operators, if any
+	return n, start
+}
+
+// convertOperator converts v, the value of an operator of rule r, to the named node type of the
+// rule's operators.
+func (p *TParser) convertOperator(r *TRule, v any) any {
+	n, ok := p.tconvert(r.OpNt, v)
+	if !ok {
+		panic(fatal{fmt.Errorf("cannot convert %s to %s in result of rule %s", ttypeName(v), r.OpNodeType, r.where())})
+	}
+	return n
+}
+
+func (p *TParser) PushKid(v any) { p.Spend(); p.KidStack = append(p.KidStack, v) }
+func (p *TParser) setValueField(n *TSeq, name string, v any) {
+	if p.Control != nil {
+		p.setValueFieldControlled(n, name, v)
+		return
+	}
+	n.set(name, v)
+}
+
+func (p *TParser) setValueFieldControlled(n *TSeq, name string, v any) {
+	for i := range n.fields {
+		p.Spend()
+		if p.rawValueEqual(n.fields[i].name, name) {
+			n.fields[i].val = v
+			return
+		}
+	}
+	// Adding the field is constant work, which the step that sets it has paid.
+	n.fields = append(n.fields, tfield{name, v})
+}
+func (p *TParser) undoCaptures(from int) {
+	for i := len(p.Trail) - 1; i >= from; i-- {
+		p.Spend()
+		u := p.Trail[i]
+		u.f.Vals[u.slot] = u.old
+	}
+}
+
+func (p *TParser) valueField(n TVal, name string) (any, bool) {
+	if p.Control != nil {
+		return p.valueFieldControlled(n, name)
+	}
+	return n.TField(name)
+}
+
+func (p *TParser) valueFieldControlled(n TVal, name string) (any, bool) {
+	t, transient := n.(*TSeq)
+	if !transient {
+		if controlled, ok := n.(tfieldSpender); ok {
+			return controlled.TFieldSpend(p, name)
+		}
+		return n.TField(name)
+	}
+	for _, field := range t.fields {
+		p.Spend()
+		if p.rawValueEqual(field.name, name) {
+			return field.val, true
+		}
+	}
+	return nil, true
+}
+
+// ListField materializes a typed struct's list field during an action read.
+// The ordinary TField path remains independent of a parser or budget controller.
+func (p *TParser) ListField(kids []any) any {
+	n := &TSeq{Typ: TypeListValue, Kids: kids}
+	first := true
+	for _, it := range kids {
+		p.Spend()
+		t := AsTval(it)
+		if t == nil {
+			continue
+		}
+		start, end := t.TSpan()
+		if first || start < n.Start {
+			n.Start = start
+		}
+		if first || end > n.End {
+			n.End = end
+		}
+		first = false
+	}
+	return n
+}

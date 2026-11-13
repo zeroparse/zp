@@ -5,8 +5,8 @@ package termspred
 import (
 	"context"
 
+	rt "zeroparse.dev/zp/codegen/go/lib"
 	"zeroparse.dev/zp/core"
-	rt "zeroparse.dev/zp/runtime"
 )
 
 var _ context.Context

@@ -6,7 +6,7 @@ generated Go uses, so a rewrite of the Core or Flow IR reaches both.
 ## Mechanism and Invariants
 
 Every rule of the Node and recognizer tables is lowered by `lower.Lower`, `lower.LowerFrame` or
-`lower.LowerOutline` and printed by `internal/gen/gents/flow.go`: a block becomes a labeled block, a loop `for (;;)`,
+`lower.LowerOutline` and printed by `internal/codegen/ts/flow.go`: a block becomes a labeled block, a loop `for (;;)`,
 a condition a Flow IR expression. A rule that Flow IR does not print fails generation; there is no second
 printer.
 
@@ -16,13 +16,13 @@ The printer keeps the text small and the functions few:
   recovered count) is declared only as far as it is read, and an unread assignment is not printed.
 - Consecutive step charges merge into one `p.spend(n)`, and an expectation unisolate followed by a
   merge of the same variables is one `p.unisolateMerge(mark)` that merges in place.
-- Functions whose printed bodies are equal share one method (`gen.Generator.MethodName`). The key of a function
+- Functions whose printed bodies are equal share one method (`codegen.Generator.MethodName`). The key of a function
   replaces each constant it names (a literal table, the capture names, a bind function) by the declaration
   of the constant, so functions that read equal tables under different names share one method although the
   literal tables themselves are not shared (`tsSharedKey`).
 - Framed nodes that are large, or whose structure occurs more than once, run as functions of their own
   (`flow.CallOutline`), so no function grows with the grammar and equal nodes share a body
-  (`internal/gen/gents/outline.go`).
+  (`internal/codegen/ts/outline.go`).
 - A recovered error carries the header line only in `stack`; `recoveredError` suspends
   `Error.stackTraceLimit` while it builds the error, because capturing a stack per recovered error
   dominated recovery time. The error of a failed parse keeps its stack.
@@ -62,7 +62,7 @@ below sets it against the new default form, without limit controls, and the like
 
 Evidence records: [122](../122-typescript-from-flow-ir.md).
 
-Source owners: [`Flow IR printer`](../../../internal/gen/gents/flow.go), [`outlining`](../../../internal/gen/gents/outline.go), [`Flow IR lowering`](../../../internal/ir/flow/lower/lower.go).
+Source owners: [`Flow IR printer`](../../../internal/codegen/ts/flow.go), [`outlining`](../../../internal/codegen/ts/outline.go), [`Flow IR lowering`](../../../internal/ir/flow/lower/lower.go).
 
 The [comparison policy](../../design/records/024-optimization-mechanism-controls.md)
 distinguishes same-source controls, historical changes and full checkpoints.

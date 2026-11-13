@@ -3,7 +3,7 @@
 This page explains how ZeroParse turns a grammar into a parser, at the level of ideas: which stages exist, why they are
 separate, and which rules hold across packages. It does not list files, fields or functions; the code is the source of
 truth for those, and the package comments say what each package owns. Read this page to learn how the parts fit before
-you work in `internal/compile/`, `internal/engine/`, `runtime/` or a generator. The contracts every stage must keep are
+you work in `internal/compile/`, `internal/engine/`, `codegen/go/lib/` or a generator. The contracts every stage must keep are
 in the [specification](../../spec/README.md); the middle of the pipeline is in
 [Core, Flow and Exec IR](intermediate-representations.md).
 
@@ -135,15 +135,19 @@ contract is [Observability](../../spec/runtime/observability.md).
 | The incremental Document, its snapshots and change reports | `internal/engine/document/` |
 | Output schemas and structural queries | `schema/` (the types, their validation and `Compare`), `internal/schema/` (the export), `query/` (the queries) |
 | Core, Flow and Exec IR and their passes | `internal/ir/core/`, `internal/ir/flow/`, `internal/ir/exec/`; the pass runner in `internal/ir/pipeline/`, the Core builder in `internal/ir/core/build/`, the Flow lowering in `internal/ir/flow/lower/` and the Exec lowering in `internal/ir/exec/lower/` |
-| Generated Go and TypeScript | The public entry points in `gen/`, the Go generator in `internal/gen/gengo/`, the TypeScript generator in `internal/gen/gents/`, the optimization settings in `internal/ir/opt/` and the runtimes in `runtime/` and `internal/gen/gents/tsrt/` |
+| Generated Go and TypeScript | The public entry points in `codegen/`, the Go generator in `internal/codegen/go/`, the TypeScript generator in `internal/codegen/ts/`, the optimization settings in `internal/ir/opt/` and the libraries of generated parsers in `codegen/go/lib/` and `codegen/ts/lib/` |
 | The public API | `engine/`, `grammar/` |
 | Commands, linter, language server | `cmd/zp/`, `lint/` (the public entry) with the linter in `internal/lint/`, `internal/lsp/` |
 | Playground and site | `cmd/playground/`, `site/` |
 
-Packages that produce code for one target language are named role first, then the language: the parser
-generators `internal/gen/gengo/` and `internal/gen/gents/`, and the Exec IR printers `internal/ir/exec/execgo/`
-and `internal/ir/exec/exects/`. `internal/ir/exec/libgo/` prints the Exec IR compositions into the Go
-runtime and the engine.
+Code generation is grouped by target language under `internal/codegen/`: `internal/codegen/go/` (package
+`gogen`) holds the Go parser generator and the Go printer of Exec IR, and `internal/codegen/ts/` (package `tsgen`)
+the TypeScript ones. `internal/codegen/go/lib/` prints the Exec IR compositions into the Go library and the
+engine. The public package `codegen/` embeds the sources of both libraries, which the generators copy into
+generated parsers or read to qualify the names generated code uses. The Go library depends only on `core/`. The
+Go generator reads the source declarations of `core/`, which it does not copy, from an index that `go generate` writes
+into `internal/codegen/go/` (declarations and documentation without bodies), and a test fails when the index and
+`core/` differ.
 
 ## Related Topics
 

@@ -121,8 +121,8 @@ For example, generate fixtures and run one measurement mode with:
 
 ```sh
 ZP_GENERATED_SHARING_DIR=/tmp/zp-generated-sharing \
-  go test ./internal/gen -run '^TestGeneratedSharingWorkloads$' -count=1
-ZP_GENERATED_SHARING=literals go test ./internal/gen -run '^$' \
+  go test ./internal/codegen -run '^TestGeneratedSharingWorkloads$' -count=1
+ZP_GENERATED_SHARING=literals go test ./internal/codegen -run '^$' \
   -bench '^BenchmarkGeneratedSharing$' -benchmem
 ```
 

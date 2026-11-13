@@ -40,11 +40,11 @@ Evidence records:
 [098](../098-bootstrap-generated-typed-output-allocations.md).
 
 Source owners: [`typed allocation helper
-emission`](../../../internal/gen/gengo/types.go), [`typed allocator
-state`](../../../runtime/typed.go),
-[`disableTypedOutputBootstrap`](../../../internal/gen/gengo/generator.go),
+emission`](../../../internal/codegen/go/types.go), [`typed allocator
+state`](../../../codegen/go/lib/typed.go),
+[`disableTypedOutputBootstrap`](../../../internal/codegen/go/generator.go),
 [`retained-output
-fixture`](../../../internal/gen/gengo/gengo_typed_output_retention_test.go).
+fixture`](../../../internal/codegen/go/gengo_typed_output_retention_test.go).
 
 The [comparison policy](../../design/records/024-optimization-mechanism-controls.md)
 distinguishes same-source controls, historical changes and full checkpoints.

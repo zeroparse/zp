@@ -71,7 +71,7 @@ measured; the cause of the speed difference was not isolated.
 The grammar is `testdata/grammars/duckdb/duckdb.zp` with its 350 keyword rules, such as
 `rule SELECT = [sS][eE][lL][eE][cC][tT] ![...]`, rewritten as `rule SELECT = "select"i ![...]`
 by a script (a regular expression over the rule lines). Both builds generate the typed Go
-parser (`-types -typed-only -runtime import`) and the untyped recognizer (`-recognize`), and
+parser (`-types -typed-only -lib import`) and the untyped recognizer (`-recognize`), and
 the same grammar file is compiled by the closure and bytecode backends at run time. The input
 is the duckdb benchmark script of about 256 KB, as written and lower-cased. Timing: six rounds
 interleaved over the build before the change, the build after it and a second copy of the build

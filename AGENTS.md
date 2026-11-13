@@ -30,16 +30,16 @@ with implementation changes; regenerate generated files.
 ## Development and checks
 
 - Public APIs: `core/` (shared result types), `engine/` (which joins the runtime to the output schema),
-  `gen/` (code generation), `lint/`, `grammar/`, `sample/`, `editfuzz/`; parser/compiler: `internal/syntax/`,
+  `codegen/` (code generation), `lint/`, `grammar/`, `sample/`, `editfuzz/`; parser/compiler: `internal/syntax/`,
   `internal/compile/`; runtime: `internal/engine/`; generators:
-  `internal/gen/`; grammars: `testdata/grammars/`; ready-made parsers: the separate
+  `internal/codegen/`; grammars: `testdata/grammars/`; ready-made parsers: the separate
   `alpha-parsers` repository.
 - Use Go 1.27.1. Choose checks by what a change touches. Light gate (changes
   only to docs, spec, site, skills or test files, no non-test Go code):
   `go vet ./...`, `cd site && go test -count=1 ./...` and the tests of the
   packages whose files changed. Code: `go vet` and the tests of the changed
   packages and their dependents; budget-control code: also the reference build
-  in `docs/development.md`. A work branch does not run `go generate ./gen ./bench`
+  in `docs/development.md`. A work branch does not run `go generate ./internal/codegen/... ./bench`
   or `hack/test-alpha-parsers.sh`: the landing gate does (the latter fails
   without an alpha-parsers checkout; `hack/sync-alpha-parsers.sh` updates one).
   When the generator changed, diff the `zp gen` output of the affected grammars

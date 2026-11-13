@@ -8,9 +8,10 @@ import (
 	"strings"
 	"testing"
 
+	"zeroparse.dev/zp/codegen"
 	"zeroparse.dev/zp/core"
 	"zeroparse.dev/zp/engine"
-	"zeroparse.dev/zp/gen"
+	"zeroparse.dev/zp/internal/gentest"
 )
 
 const commentOwnerExample = "// orphan\n\n// foo\npackage foo // trailing\n// trailing\n\n// B2\n// B2\n\n// B1\n// B1\nrule B = \"b\" // trailing\n// trailing\n"
@@ -131,13 +132,13 @@ func TestSourceCommentBoundaryGeneratedGo(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	code, err := gen.Go{Module: "comments", Types: true}.Generate(g, "owner_example")
+	code, err := codegen.Go{Module: "comments", Types: true}.Generate(g, "owner_example")
 	if err != nil {
 		t.Fatal(err)
 	}
 	dir := t.TempDir()
 	for name, data := range map[string][]byte{
-		"go.mod":   []byte("module comments\n\ngo 1.27.1\n"),
+		"go.mod":   []byte(gentest.GoMod("comments")),
 		"input.zp": []byte(commentOwnerExample),
 		"parser_test.go": []byte(`package comments
 import("os";"testing")

@@ -137,7 +137,7 @@ Some things need the grammar itself, so they work only from source, whatever the
 | `RecognizeOnly()` with `WithTrace` or `WithProfile` | error: traced or profiled recognition needs the grammar source |
 | `Parser.Grammar()` | `nil` |
 | `OutputSchema` | an error that matches `ErrSchemaUnavailable` |
-| `lint.Config.Run`, `gen.Go.Generate`, `gen.TypeScript.Generate`, `sample.New` | need the grammar, which a loaded parser does not have |
+| `lint.Config.Run`, `codegen.Go.Generate`, `codegen.TypeScript.Generate`, `sample.New` | need the grammar, which a loaded parser does not have |
 | `zp convert`, `zp gen`, `zp lint`, `zp sample`, `zp schema` | error: the command needs the grammar source (`.zp` or `.json`) |
 
 A loaded parser is saved again only in its own mode: `zp compile -g pairs-check.zpc -mode recognize -o copy.zpc`
@@ -409,11 +409,11 @@ Three ways to get a grammar into a Go program:
 | What the program holds | The `.zp` text | A binary file, embedded or read | Go source, compiled in |
 | Start-up | Compiles: tens of microseconds to tens of milliseconds, by size | Loads: a fraction of that (see above) | None |
 | Parsing speed | Closure backend | Bytecode backends | Generated Go takes 0.44–0.61× closure time in CodePoints and 0.50–0.66× in Bytes across current workloads ([benchmarks](../benchmarks.md)) |
-| Depends on ZeroParse at run time | Yes | Yes (the engine and `LoadParser`) | No: standard library only |
+| Depends on ZeroParse at run time | Yes | Yes (the engine and `LoadParser`) | Only the package `core` (result and error types), not the engine |
 | Change the grammar without rebuilding the program | Yes (read the file) | Yes (read the file) | No |
 | Streaming, incremental parsing, backend choice, recognition mode | Yes | Yes, on the bytecode backends, each in the mode that serves it | No |
 | Errors in the grammar are found | At start-up | When you build the file | When you generate |
-| Typical use | Development, tools, tests, grammars that users supply | A fixed grammar in a program with short runs or many processes; grammars that ship as data | A fixed grammar on a hot path, a small binary, no dependency on ZeroParse |
+| Typical use | Development, tools, tests, grammars that users supply | A fixed grammar in a program with short runs or many processes; grammars that ship as data | A fixed grammar on a hot path, a small binary, no engine at run time |
 
 Rules of thumb:
 
@@ -422,7 +422,7 @@ Rules of thumb:
 - **Use a `.zpc`** when start-up is noticeable (a command-line tool, a plugin, a serverless function, a test binary),
   when the grammar has to be a data file, or when you want to keep ZeroParse's features that generated code lacks
   ([streaming and incremental parsing](streaming.md), [backends](backends.md)) and still skip the compile.
-- **Use `zp gen`** when the parser is on a hot path or you want no dependency on ZeroParse at run time: it has no
+- **Use `zp gen`** when the parser is on a hot path or you want no engine at run time: it has no
   start-up and the fastest parsing. The cost is that the grammar is frozen into the binary, and that the generated
   source is large: the `parser.go` of `alpha-parsers/python` and of `alpha-parsers/duckdb` is dozens to hundreds of times the size of
   the `.zp` file it comes from.

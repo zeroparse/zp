@@ -136,7 +136,7 @@ with the interpreter's messages.
 
 A per-rule entry of a generated Go parser, its `ParseRuleValue` case and typed
 converters, costs bytes in `parser.go`, and only start rules have one. For the
-bundled grammars, generated with `zp gen -types -recognize -runtime import`
+bundled grammars, generated with `zp gen -types -recognize -lib import`
 (DuckDB SQL, TypeScript and JSON also with `-nodoc`), the entries of the rules
 that are not start rules would cost:
 

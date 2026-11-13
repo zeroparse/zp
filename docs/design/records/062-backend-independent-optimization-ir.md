@@ -68,16 +68,16 @@ more times: the closure evaluator in `closure/eval.go`, bytecode expression code
   [050](../../optimizations/050-first-character-dispatch-in-the-closure-backend.md) and
   [051](../../optimizations/051-first-character-dispatch-in-the-vms-instruction-set-3.md).
 - The first terminal of an expression is defined by three recursive functions (`firstTerminal` in
-  `compile.go` with a cancellable copy in `class_context.go`, `gengo.Generator.first` in `internal/gen/gengo/generator.go`,
-  `terminalProgram.first` in `internal/gen/gengo/terminal.go`), which a change to guard eligibility must keep in step.
+  `compile.go` with a cancellable copy in `class_context.go`, `gogen.Generator.first` in `internal/codegen/go/generator.go`,
+  `terminalProgram.first` in `internal/codegen/go/terminal.go`), which a change to guard eligibility must keep in step.
   Guards are emitted in six places.
 - Generated Go is printed from Flow IR: the typed rules and Operators Rule lines, and the rules and lines of the
   Node and recognizer tables. Generation fails if Flow IR prints none of the forms below for a rule, a line or the
   start rule of a stream parse, so no table has another route.
 - The lean value-free rules that Flow lowering accepts as flat rules print as direct rules, in the Node table and the
-  recognizer (`gen.Generator.StartRecFlow`). A direct rule whose printed function would read its start
+  recognizer (`codegen.Generator.StartRecFlow`). A direct rule whose printed function would read its start
   or context, or whose variables have a type the printer cannot name, prints its framed body instead, as every
-  other rule does: the rules that `gen.Generator.FlowNodeFrameOK` accepts print as the matcher of their framed body, which the
+  other rule does: the rules that `codegen.Generator.FlowNodeFrameOK` accepts print as the matcher of their framed body, which the
   runtime calls under the frame, memo, depth, action and finish it owns (`lower.FramedBody` accepts no Nest,
   Operators Rule or Terminal node). A typed-only build has Node rules only when a typed entry point converts the
   Node result of a rule (`keepNodes`); they print like those of any Node build. Both tables print through the same
@@ -85,7 +85,7 @@ more times: the closure evaluator in `closure/eval.go`, bytecode expression code
   function is lowered with `Options.Node`, which makes it build `NewTerminalNode` and `NewBranchNode` values and
   keeps frames out of the frame trail; `Verify` rejects the typed value ops in it and the Node ops in a typed
   function. The Flow form has no `_ = x` line for a variable it reads nowhere. The recognizer's table writes its
-  actions for the values of an unprojected repetition (`gen.Generator.Projections` is empty there), so the Core IR of
+  actions for the values of an unprojected repetition (`codegen.Generator.Projections` is empty there), so the Core IR of
   the recognizer is built without projections (`build.CoreProjecting`): a captured repetition of a recognizer rule
   builds its elements with their captures, and the rules with captures print like any other rule.
 - A body with a cut prints as a framed body, with the lowering of the typed table: a flag per backtracking point (a
@@ -166,7 +166,7 @@ more times: the closure evaluator in `closure/eval.go`, bytecode expression code
 - Budget-control specialization exists twice in the compilers that duplicate code: the closure backend compiles a
   second, metered closure graph (`controlledDispatch`), and TypeScript rewrote printed conditions with regular
   expressions (`tsBudgetCond`). Generated Go and TypeScript print one form of each function, chosen by the options.
-- Code is shared as strings. TypeScript reused the Go conditions of `gengo.Generator.first` and
+- Code is shared as strings. TypeScript reused the Go conditions of `gogen.Generator.first` and
   `controlledClassReject` after rewriting `==` to `===` and rebalancing `&&`/`||` by parenthesis counting
   (`tsCond`, `tsBalancedCondition`). Helper sharing
   ([record 090](../../optimizations/090-share-identical-generated-helpers.md)) compares printed function
@@ -182,7 +182,7 @@ tracks reads to avoid unused-variable errors, tracks reachability to satisfy `go
 where a declared variable ends up unread. Actions become immediately invoked function literals
 (`func() any { c.P.Spend(); return … }()`). The resulting text then passes through `go/format` and four
 `go/ast` passes: ordinary-method specialization, charge stripping, typed-entry pruning (`gen_prune.go`) and
-runtime-name qualification (`QualifyRuntime`). Removing the charges leaves `func() any { ; return … }()`
+runtime-name qualification (`QualifyLib`). Removing the charges leaves `func() any { ; return … }()`
 behind, and blank lines, which the specialization deletes by replacing `"\n\n"` in the printed text.
 
 Counts in the checked-in parsers (`alpha-parsers/*/parser.go`):
@@ -214,10 +214,10 @@ func i0(p *zprt.TParser) (any, bool) {
 	v = func() any { return k1 }()
 ```
 
-The post-passes also dominate generation time. `gen.Go{Types: true}.Generate` on the DuckDB grammar took
-16.6 s per run (three runs); of the CPU samples under `generate`, `qualifyRuntime` had 51.6 %,
+The post-passes also dominate generation time. `codegen.Go{Types: true}.Generate` on the DuckDB grammar took
+16.6 s per run (three runs); of the CPU samples under `generate`, `qualifyLib` had 51.6 %,
 the ordinary-method specialization 24.5 %, the removal of unreached typed entries 8.6 %, the charge stripping 7.5 % and the final
-`go/format.Source` 5.4 %; compilation and emission had less than 2 %. `qualifyRuntime` inserts each
+`go/format.Source` 5.4 %; compilation and emission had less than 2 %. `qualifyLib` inserts each
 qualifier by copying the rest of the source, which is quadratic and can be fixed independently of this
 design. `zp gen -types -typed-only` on the same grammar took 4.0 s; with Node output as well it took 14.9
 s and 412 MB of resident memory for a 6.9 MB `parser.go`.
@@ -614,7 +614,7 @@ separate interpreter is maintained.
 | First terminals (three implementations) | One Core attribute; `Guard` |
 | Character classes, class tables, VM ASCII masks | Interned Core classes; each emitter chooses its representation |
 | Value-needed rules, twins, lean bodies, projections (`project.go`) | Want and value elision; twin and recognition variants |
-| Terminal programs (`internal/gen/gengo/terminal.go`) | `Terminal` nodes; the emitter keeps the runtime table format |
+| Terminal programs (`internal/codegen/go/terminal.go`) | `Terminal` nodes; the emitter keeps the runtime table format |
 | Recognizer program and recognize-mode modules | Recognition specialization of Core IR in each family; bytecode emitted from it |
 | Helper sharing by printed body ([record 090](../../optimizations/090-share-identical-generated-helpers.md)) | Structural sharing of identical Flow IR functions before printing |
 | Compile-cancellation copies (`…Controlled`) | The pass driver polls the compile control between and within passes |
@@ -670,8 +670,8 @@ stage of its first consumer, so its differential tests and negative controls run
    table writes its actions without projections, so the decision goldens freeze no terms for its rules. Gate as
    stage 1 plus the Document and stream tests and the Node, recognition, Document and stream benchmarks. The
    direct Go printers are removed; the rest of the Go term lowering and the remaining `go/ast`
-   passes follow. Terminal programs (`internal/gen/gengo/terminal.go`) are owned by no stage: `terminalTable` is called by the
-   Flow IR emitter (`internal/gen/gengo/flow.go`), so Node output keeps the program and does not fall back to straight-line
+   passes follow. Terminal programs (`internal/codegen/go/terminal.go`) are owned by no stage: `terminalTable` is called by the
+   Flow IR emitter (`internal/codegen/go/flow.go`), so Node output keeps the program and does not fall back to straight-line
    code, and the emitter stays where it is. Moving the emitter is not part of any stage here, because it is a Go
    emission helper shared by Flow IR, not a lowering of the AST.
 3. **TypeScript.** Gate: the TypeScript parity tests in `bench` and `internal/engine`, TypeScript event
@@ -801,7 +801,7 @@ The baseline for each stage is the commit before it, measured on the same machin
 comparison sets the old printer, which always spends budget, against the new form without budget controls. The measured quantities of every stage are:
 
 - **Generation:** wall time, CPU and allocations of `zp gen` for each repository parser with its
-  `alpha-parsers/generate.go` options, plus DuckDB and Python with Node and typed output. The `QualifyRuntime`
+  `alpha-parsers/generate.go` options, plus DuckDB and Python with Node and typed output. The `QualifyLib`
   fix is measured on its own, so that its gain is not attributed to this design.
 - **Generated code:** `parser.go` bytes, lines and functions; `go build` time and binary size of each
   generated package.

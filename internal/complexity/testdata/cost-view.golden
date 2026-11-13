@@ -43,47 +43,47 @@ applied:
 == examples/outline/outline.zp matching=true
 applied: N13=5
 sha256 45586980bb7e9887548224bdc570cd129bd9f837e72bf1f81b15c91618919ce5
-== internal/gen/gengo/testdata/routes/lr_calls_ops.zp matching=false
+== internal/codegen/go/testdata/routes/lr_calls_ops.zp matching=false
 applied:
-== internal/gen/gengo/testdata/routes/lr_calls_ops.zp matching=true
+== internal/codegen/go/testdata/routes/lr_calls_ops.zp matching=true
 applied:
 sha256 37ac7c37d0466d2dfdc3a010d654036e0e66b3171a34fe28bdf41b809a4c57ae
-== internal/gen/gengo/testdata/routes/lr_inline.zp matching=false
+== internal/codegen/go/testdata/routes/lr_inline.zp matching=false
 applied: N4=1
 rule a = a "," x:[a-z] &(y:[a-z0-9] {text($y) != "q"}) !("z" {text($x) != "z"}) / "(" _|_ / [0-9]
   4:10 a "," x:[a-z] &(y:[a-z0-9] {text($y) != "q"}) !("z" {text($x) != "z"}) / "(" _|_ / [0-9] = "a \",\" x:[a-z] &(y:[a-z0-9] {text($y) != \"q\"}) !(\"z\" {text($x) != \"z\"}) / \"(\" _|_ [0-9] \")\" / [0-9]"
   4:83 "(" _|_ = "\"(\" _|_ [0-9] \")\""
-== internal/gen/gengo/testdata/routes/lr_inline.zp matching=true
+== internal/codegen/go/testdata/routes/lr_inline.zp matching=true
 applied: N4=1
 sha256 679aeb1e10d20c6ab78d39cd05d17cbf33d831e6be7b88a0e0106fc99d6347a8
-== internal/gen/gengo/testdata/routes/lr_looks.zp matching=false
+== internal/codegen/go/testdata/routes/lr_looks.zp matching=false
 applied: N4=1
 rule _e_2 = "(" _|_
   3:99 "(" _|_ = "\"(\" _|_ m:[0-9] \")\""
-== internal/gen/gengo/testdata/routes/lr_looks.zp matching=true
+== internal/codegen/go/testdata/routes/lr_looks.zp matching=true
 applied: N4=1
 sha256 3230700b6736d516fb00bce20062fbf88b821e7c88225148f52d2f18387081ac
-== internal/gen/gengo/testdata/routes/lr_recover.zp matching=false
+== internal/codegen/go/testdata/routes/lr_recover.zp matching=false
 applied:
-== internal/gen/gengo/testdata/routes/lr_recover.zp matching=true
-applied:
-sha256 37ac7c37d0466d2dfdc3a010d654036e0e66b3171a34fe28bdf41b809a4c57ae
-== internal/gen/gengo/testdata/routes/lr_recover_rep.zp matching=false
-applied:
-== internal/gen/gengo/testdata/routes/lr_recover_rep.zp matching=true
+== internal/codegen/go/testdata/routes/lr_recover.zp matching=true
 applied:
 sha256 37ac7c37d0466d2dfdc3a010d654036e0e66b3171a34fe28bdf41b809a4c57ae
-== internal/gen/gengo/testdata/routes/ops_lines.zp matching=false
+== internal/codegen/go/testdata/routes/lr_recover_rep.zp matching=false
 applied:
-== internal/gen/gengo/testdata/routes/ops_lines.zp matching=true
-applied:
-sha256 37ac7c37d0466d2dfdc3a010d654036e0e66b3171a34fe28bdf41b809a4c57ae
-== internal/gen/gengo/testdata/routes/ops_recover.zp matching=false
-applied:
-== internal/gen/gengo/testdata/routes/ops_recover.zp matching=true
+== internal/codegen/go/testdata/routes/lr_recover_rep.zp matching=true
 applied:
 sha256 37ac7c37d0466d2dfdc3a010d654036e0e66b3171a34fe28bdf41b809a4c57ae
-== internal/gen/gengo/testdata/routes/recover_nested.zp matching=false
+== internal/codegen/go/testdata/routes/ops_lines.zp matching=false
+applied:
+== internal/codegen/go/testdata/routes/ops_lines.zp matching=true
+applied:
+sha256 37ac7c37d0466d2dfdc3a010d654036e0e66b3171a34fe28bdf41b809a4c57ae
+== internal/codegen/go/testdata/routes/ops_recover.zp matching=false
+applied:
+== internal/codegen/go/testdata/routes/ops_recover.zp matching=true
+applied:
+sha256 37ac7c37d0466d2dfdc3a010d654036e0e66b3171a34fe28bdf41b809a4c57ae
+== internal/codegen/go/testdata/routes/recover_nested.zp matching=false
 applied: N4=1 N6=1
 rule items = xs:(x:[a-z] &(y:[a-z0-9] {len($y) == 1})? ("!" _|_ / [0-9]?))* #recover(skip=[^>]*)
   0:0 (x:[a-z] &(y:[a-z0-9] {len($y) == 1})? ("!" _|_ / [0-9]?))* #recover(skip=[^>]*) = "(x:[a-z] &(y:[a-z0-9] {len($y) == 1})? (\"!\" _|_ [0-9] / [0-9]?) #recover(skip=[^a-z>]*))* #recover(skip=[^>]*)"
@@ -92,12 +92,12 @@ rule items = xs:(x:[a-z] &(y:[a-z0-9] {len($y) == 1})? ("!" _|_ / [0-9]?))* #rec
   3:25 x:[a-z] &(y:[a-z0-9] {len($y) == 1})? ("!" _|_ / [0-9]?) = "x:[a-z] &(y:[a-z0-9] {len($y) == 1})? (\"!\" _|_ [0-9] / [0-9]?) #recover(skip=[^a-z>]*)"
   3:64 "!" _|_ / [0-9]? = "\"!\" _|_ [0-9] / [0-9]?"
   3:64 "!" _|_ = "\"!\" _|_ [0-9]"
-== internal/gen/gengo/testdata/routes/recover_nested.zp matching=true
+== internal/codegen/go/testdata/routes/recover_nested.zp matching=true
 applied: N4=1 N6=1
 sha256 6b91499d2f983c01ba9f2a37efc97c04fb499b61209774bc1408319535fbc53f
-== internal/gen/gengo/testdata/routes/scopes.zp matching=false
+== internal/codegen/go/testdata/routes/scopes.zp matching=false
 applied:
-== internal/gen/gengo/testdata/routes/scopes.zp matching=true
+== internal/codegen/go/testdata/routes/scopes.zp matching=true
 applied:
 sha256 37ac7c37d0466d2dfdc3a010d654036e0e66b3171a34fe28bdf41b809a4c57ae
 == internal/gentest/testdata/typed/calclr.zp matching=false

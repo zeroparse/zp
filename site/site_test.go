@@ -209,7 +209,7 @@ func TestBuild(t *testing.T) {
 			"type Limits struct", `id="LimitError.Error"`, "type SyntaxError struct", `id="SyntaxError.ExpectedInMessage"`,
 			"type Node struct", `id="Node.Clone"`, `id="NodeKind.String"`, `id="Cursor.At"`,
 		},
-		"reference/gen/index.html":       {`id="Go.Generate"`, `id="Generator"`, `id="RuntimeMode.String"`, "Content []byte"},
+		"reference/codegen/index.html":   {`id="Go.Generate"`, `id="Generator"`, `id="LibMode.String"`, "Content []byte"},
 		"reference/lint/index.html":      {`id="Config.Run"`, `id="Checks"`, `id="Severity.String"`},
 		"reference/grammar/index.html":   {`id="Format"`, `id="Grammar.Rules"`, "type RuleDef struct"},
 		"reference/cli/index.html":       {`id="cmd-parse"`, "<code>-g string</code>", "-backend string", `id="commands"`},

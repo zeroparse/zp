@@ -33,8 +33,8 @@ remain separate.
 Evidence records: [048](../048-a-typed-runtime-for-parsevalue.md).
 
 Source owners: [`typed constructors and conversion
-generation`](../../../internal/gen/gengo/types.go),
-[`tparser`](../../../runtime/typed.go), [`typed runtime
+generation`](../../../internal/codegen/go/types.go),
+[`tparser`](../../../codegen/go/lib/typed.go), [`typed runtime
 design`](../../design/records/012-typed-values.md).
 
 The [comparison policy](../../design/records/024-optimization-mechanism-controls.md)

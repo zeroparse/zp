@@ -48,9 +48,9 @@ Evidence records:
 
 Source owners: [`leanBody`](../../../internal/compile/compile.go),
 [`walker.compileRule`](../../../internal/compile/compile_walk.go), [`body value
-lowering`](../../../internal/gen/gengo/generator.go), [`direct body build
-mode`](../../../internal/gen/gengo/flowrule.go), [`TypeScript body build
-mode`](../../../internal/gen/gents/generator.go).
+lowering`](../../../internal/codegen/go/generator.go), [`direct body build
+mode`](../../../internal/codegen/go/flowrule.go), [`TypeScript body build
+mode`](../../../internal/codegen/ts/generator.go).
 
 The [comparison policy](../../design/records/024-optimization-mechanism-controls.md)
 distinguishes same-source controls, historical changes and full checkpoints.

@@ -1,0 +1,60 @@
+protocol 15
+const BaseError untyped int = 3
+const BaseList untyped int = 2
+const BaseMissing untyped int = 4
+const BaseString untyped int = 0
+const BaseTuple untyped int = 1
+const ShapeBox Shape = 4
+const ShapeError Shape = 3
+const ShapeList Shape = 2
+const ShapeListValue Shape = 6
+const ShapeString Shape = 0
+const ShapeStruct Shape = 7
+const ShapeTuple Shape = 1
+const ShapeTupleValue Shape = 5
+const TypeError untyped string = "error"
+const TypeList untyped string = "list"
+const TypeListValue untyped string = "(list)"
+const TypeMissing untyped string = "missing"
+const TypeString untyped string = "string"
+const TypeTuple untyped string = "tuple"
+const TypeTupleValue untyped string = "(tuple)"
+const typeBox untyped string = "(box)"
+func CaptureLocations[N any](d *Data[N], rep func(*N) *Data[N]) []CaptureLocation
+func ElementPath[N any](d *Data[N], x *N, rep func(*N) *Data[N]) ([]int, bool)
+func KindOf(typ string, rule string) *Kind
+func NewRuleKinds(rule string) RuleKinds
+func NodeTypeKind(typ string, base int) *Kind
+func SetField(fs *Fields, name string, v any)
+func ShapeOfKind(k *Kind, terminal bool) Shape
+func writeAll(w io.Writer, data []byte) error
+method (*JSONOutput) Bytes(data []byte) error
+method (*JSONOutput) Encoded(value any) error
+method (*JSONOutput) Flush() error
+method (*JSONOutput) Number(n int32) error
+method (*JSONOutput) Raw(s string) error
+method (*Kind) IsNodeType() bool
+method (*Kind) RuleName() string
+method (*Kind) TypeName() string
+method (*RuleKinds) Named(k *Kind, rule string) *Kind
+method (Fields) Get(name string) (any, bool)
+method (Fields) Sorted() Fields
+type CaptureLocation struct{Name string; Path []int; Side bool; Value any}
+type Data[N any] struct{Kind *Kind; Start int32; End int32; Text string; Children []*N; Fields Fields; Fresh bool; Terminal bool; Labeled bool; Mark uint32; Box any}
+type Fields []NodeField
+type JSONOutput struct{W io.Writer; Buf []byte}
+type Kind struct{Type string; Rule string; Reserved int; Base int}
+type NodeField struct{Name string; Value any}
+type RuleKinds struct{reserved [8]*Kind}
+type Shape uint8
+var BoxKind *Kind
+var ErrorKind *Kind
+var ListKind *Kind
+var ListValueKind *Kind
+var MatchKind *Kind
+var MissingKind *Kind
+var SeqKind *Kind
+var TupleValueKind *Kind
+var baseShapes [8]Shape
+var kinds sync.Map
+var reservedTypes [8]string

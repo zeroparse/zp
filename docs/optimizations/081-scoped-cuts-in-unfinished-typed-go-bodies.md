@@ -51,7 +51,7 @@ Generate same-revision direct and reference fixtures and check parity:
 
 ```sh
 export ZP_TYPED_FRAMED_CUT_DIR=/tmp/zp-typed-framed-cuts
-go test ./internal/gen/gengo -run '^TestGeneratedTypedFramedCutWorkloads$' -count=1
+go test ./internal/codegen/go -run '^TestGeneratedTypedFramedCutWorkloads$' -count=1
 ```
 
 Build each fixture as a separate benchmark binary:

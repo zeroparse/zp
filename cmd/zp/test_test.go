@@ -84,6 +84,6 @@ func TestWriteFixtureTextShowsRuntimeError(t *testing.T) {
 		t.Fatal(err)
 	}
 	if !strings.Contains(out.String(), "runtime error: compute limit exceeded") {
-		t.Fatalf("text report omitted runtime diagnostic: %s", out.String())
+		t.Fatalf("text report omitted library diagnostic: %s", out.String())
 	}
 }

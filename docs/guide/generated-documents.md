@@ -1,7 +1,7 @@
 # Incremental Documents in Generated Parsers
 
 Generate with `zp gen -g grammar.zp -module example.com/parser -document -o parser`, or pass
-`Document: true` to `gen.Go`. This adds a mutable Node `Document` alongside the ordinary batch `Parse` and
+`Document: true` to `codegen.Go`. This adds a mutable Node `Document` alongside the ordinary batch `Parse` and
 `ParseRule` functions. The engine's version of the same feature is described in
 [Incremental Parsing](incremental.md).
 
@@ -64,7 +64,7 @@ and the [conversion fallback measurements](../design/records/044-generated-incre
 
 ## TypeScript Documents
 
-With `-lang ts`, `-document` (or `Document: true` in `gen.TypeScript`) adds `createDocument` to `parser.ts`:
+With `-lang ts`, `-document` (or `Document: true` in `codegen.TypeScript`) adds `createDocument` to `parser.ts`:
 
 ```ts
 const { document: doc, error } = createDocument("first draft", { unit: CodePoints });

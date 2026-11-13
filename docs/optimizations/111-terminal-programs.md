@@ -36,7 +36,7 @@ largest of them, a 1,300-leaf trie, took 142 KB on its own.
 
 Such an expression needs no state but the position. In the typed body of a lean typed Go
 parser (no budget controls, no Document, no observability), the generator lowers it to a
-`TerminalProgram` (`runtime/terminal.go`), which `SkipTerminal` interprets. Frame bodies,
+`TerminalProgram` (`codegen/go/lib/terminal.go`), which `SkipTerminal` interprets. Frame bodies,
 which left-recursive rules and Operators Rules use, keep straight-line code.
 
 The program is static data: a `[]uint16` of operations, each holding its own length, plus the
@@ -103,7 +103,7 @@ Measurement notes on file sizes:
 - Mach-O segments on arm64 are padded to 16 KB pages, so file sizes move in steps of a page.
   The cel and cue test binaries are one page larger although their programs shrink or grow
   by less than 3 KB.
-- Test binaries also import the root package, which embeds the runtime's source files for
+- Test binaries also import the generator package, which embeds the library's source files for
   embed-mode generation. They therefore carry the new source file as text, about 7.7 KB.
 
 **Parse speed.** Minimum of eight rounds, 1 s each, with the binaries in a rotating order

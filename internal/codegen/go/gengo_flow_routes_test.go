@@ -1,0 +1,157 @@
+package gogen_test
+
+import (
+	"os"
+	"path/filepath"
+	"runtime"
+	"strings"
+	"testing"
+
+	"zeroparse.dev/zp/grammar"
+	"zeroparse.dev/zp/internal/codegen"
+	"zeroparse.dev/zp/internal/codegen/go"
+	"zeroparse.dev/zp/internal/gentest"
+)
+
+// routeInputs are the inputs of each route grammar, by file name without the extension.
+var routeInputs = map[string][]string{
+	"lr_recover":     {"1+2+3", "1+x+3", "1++2", "1", "", "+"},
+	"lr_recover_rep": {"1,ab,c", "1,a?b,c", "1,", "1,,a", "1", "a"},
+	"lr_looks":       {"1ab", "1az", "1aq", "1q", "(5)ab", "(5", "(x)", "", "1qa"},
+	"lr_calls_ops":   {"a;b.c", "a+[b;c]+d.e", "a+", "[a", "a;;b", "a . b", ""},
+	"ops_recover":    {"1+2", "1x+2", "1+!2", "(1-~2)", "1 #c# + 2", "1 #c", "~", ""},
+	"ops_lines":      {"a1b+c", "(a)*b^c", "(a", "12*3", "02", "a**b", "a^", "a^b^c", ""},
+	"recover_nested": {"<abc>", "<a!1b>", "<a!x>", "<a1b2>", "<a##>", "<", "<>"},
+	"scopes":         {"a,b,c", "a12,b", "a,z", "#x,b", "#", "a,", ""},
+	"lr_inline":      {"1,a,b;2,c+d1e;3,ab", "(1),aq;2;3", "1,az;2,x?y;3", "(1;2;3", "1,a;2,!;3", "1;2+;3", ""},
+}
+
+// routeCases returns the route grammars with their inputs.
+func routeCases(t *testing.T) []gentest.Case {
+	paths, err := filepath.Glob(filepath.Join("testdata", "routes", "*.zp"))
+	if err != nil || len(paths) != len(routeInputs) {
+		t.Fatalf("route grammars: %d files, want %d: %v", len(paths), len(routeInputs), err)
+	}
+	var cases []gentest.Case
+	for _, p := range paths {
+		src, err := os.ReadFile(p)
+		if err != nil {
+			t.Fatal(err)
+		}
+		name := strings.TrimSuffix(filepath.Base(p), ".zp")
+		inputs, ok := routeInputs[name]
+		if !ok {
+			t.Fatalf("no inputs for route grammar %s", name)
+		}
+		cases = append(cases, gentest.Case{Name: name, Src: string(src), Inputs: inputs})
+	}
+	return cases
+}
+
+// TestFlowRoutesPrinted checks that every route grammar has rules printed from Flow IR in every
+// flowModes mode, and that the modes with inlined bodies print framed bodies from Flow IR. The
+// engine comparison of the route grammars is TestFlowRoutesBuild.
+func TestFlowRoutesPrinted(t *testing.T) {
+	t.Parallel()
+	frames := 0
+	for _, mode := range flowModes {
+		for _, gc := range routeCases(t) {
+			_, n, f, ok := flowGenerate(gc.Src, mode.opts)
+			if !ok {
+				t.Fatalf("%s %s: rejected", mode.name, gc.Name)
+			}
+			if n == 0 {
+				t.Errorf("%s %s: no rule printed from Flow IR", mode.name, gc.Name)
+			}
+			if mode.frames {
+				frames += f
+			}
+		}
+	}
+	t.Logf("%d framed bodies and lines printed from Flow IR in the route grammars", frames)
+	if frames == 0 {
+		t.Error("no framed body printed from Flow IR in the route grammars")
+	}
+}
+
+// TestFlowRoutesBuild builds the route grammars with the default typed output and with the
+// reference options that convert types, with and without the ordinary budget accounting of the typed library.
+// It checks that the generated parsers parse every input the way the engine does: the same
+// values, and the same errors as the engine's. The route grammars depend on finishValue in
+// codegen/go/lib/typed.go: reverting it fails this test.
+func TestFlowRoutesBuild(t *testing.T) {
+	t.Parallel()
+	if testing.Short() {
+		t.Skip("builds generated code")
+	}
+	goBin := filepath.Join(runtime.GOROOT(), "bin", "go")
+	if _, err := os.Stat(goBin); err != nil {
+		t.Skip("go command not found")
+	}
+	gentest.EachMode(t, func(t *testing.T) {
+		gentest.GeneratedTypesCorpus(t, goBin, routeCases(t), codegen.GenOptions{ConvertTypes: true}, 1)
+	})
+}
+
+// TestFlowRoutesRejected checks that an Operators Rule is accepted only as a whole rule body:
+// the source forms that place it elsewhere fail to parse, and bodies spliced in through the
+// grammar API, such as a repetition or a predicate around it, make the generator fail.
+func TestFlowRoutesRejected(t *testing.T) {
+	t.Parallel()
+	base := `rule main = a $$
+rule a = a "+" "x" / "x"
+rule o = #operators {
+    operand "x"
+    level { infix left "+" }
+}
+`
+	wrap := map[string]func(op grammar.Expr) grammar.Expr{
+		"leader body": func(op grammar.Expr) grammar.Expr { return op },
+		"recover body": func(op grammar.Expr) grammar.Expr {
+			return &grammar.Attributed{Expr: op, Attrs: []*grammar.Attribute{{Name: "recover", Pragma: true, KwArgs: map[string]any{"skip": &grammar.Literal{Value: "y"}}}}}
+		},
+		"repetition": func(op grammar.Expr) grammar.Expr {
+			return &grammar.Repeat{Expr: &grammar.Capture{Name: "c", Expr: op}, Min: 0, Max: -1}
+		},
+		"positive look": func(op grammar.Expr) grammar.Expr {
+			return &grammar.Seq{Items: []grammar.Expr{&grammar.And{Expr: op}, &grammar.Literal{Value: "x"}}}
+		},
+		"negative look": func(op grammar.Expr) grammar.Expr {
+			return &grammar.Seq{Items: []grammar.Expr{&grammar.Not{Expr: op}, &grammar.Literal{Value: "x"}}}
+		},
+		"capture in negative look": func(op grammar.Expr) grammar.Expr {
+			return &grammar.Seq{Items: []grammar.Expr{&grammar.Not{Expr: &grammar.Capture{Name: "c", Expr: op}}, &grammar.Literal{Value: "x"}}}
+		},
+	}
+	for _, src := range []string{
+		"rule main = a $$\nrule a = a \"+\" (#operators { operand \"x\" }) / \"x\"\n",
+		"rule main = a $$\nrule a = #operators { operand \"x\" } #recover(skip=\"y\")\n",
+		"rule main = (#operators { operand \"x\" })* $$\n",
+		"rule main = &#operators { operand \"x\" } \"x\" $$\n",
+	} {
+		if _, err := parseTest(src); err == nil {
+			t.Errorf("parse %q: accepted", src)
+		}
+	}
+	for name, w := range wrap {
+		g, err := parseTest(base)
+		if err != nil {
+			t.Fatal(err)
+		}
+		var op grammar.Expr
+		for _, d := range g.File.Decls {
+			if rd, ok := d.(*grammar.RuleDef); ok && rd.Name == "o" {
+				op = rd.Expr
+			}
+		}
+		for _, d := range g.File.Decls {
+			if rd, ok := d.(*grammar.RuleDef); ok && rd.Name == "a" {
+				seq := rd.Expr.(*grammar.Choice).Alts[0].(*grammar.Seq)
+				seq.Items[len(seq.Items)-1] = w(op)
+			}
+		}
+		if _, err = gogen.GenerateParser(g, compileForGenerator, gentest.WithLib(codegen.GenOptions{Types: true, TypedOnly: true, Module: "example.com/p"}), nil); err == nil {
+			t.Errorf("generate with an Operators Rule spliced into a %s inside a leader: accepted", name)
+		}
+	}
+}

@@ -34,14 +34,14 @@ TS VM, immutable snapshots, a new text-storage algorithm, or recognition on Docu
 
 ## Current and Proposed APIs
 
-The current Go Document is opt-in through `gen.Go{Document: true}` or the `-document` CLI option. It selects the
+The current Go Document is opt-in through `codegen.Go{Document: true}` or the `-document` CLI option. It selects the
 configured start rule and can be combined with typed Go generation (`-types`). With TypeScript generation it adds
 `createDocument`, described below.
 For grammars eligible for direct batch typed parsing, `Document.ParseValue` uses direct typed incremental matching;
 other grammars keep the Node-result conversion path. Existing generation without `Document`/`-document`
 retains the batch source path. A generated `Document` is a mutable parse view, not an immutable snapshot.
 
-The current Go Node stream is opt-in through `gen.Go{Stream: true}` or the `-stream` CLI option. Generation fails
+The current Go Node stream is opt-in through `codegen.Go{Stream: true}` or the `-stream` CLI option. Generation fails
 unless the configured start rule has a `#stream` repetition at its top level; batch `Parse` still treats `#stream`
 as an ordinary repetition. Combined with typed values it also adds `ParseStreamValue`; stream generation cannot yet be
 combined with TypeScript, which fails explicitly. Observability is supported. Documents select the configured start rule initially; generic
@@ -354,7 +354,7 @@ Node fixture found median candidate/main ratios of 0.984–1.003 across fresh ba
 cases in both units; paired ranges were 0.975–1.025. Allocations per operation were unchanged and bytes per
 operation differed by at most two bytes. This supports no measurable Node-path regression on that fixture.
 
-The new [typed benchmark fixture](../../../internal/gen/gengo/testdata/generated_document_bench/typed_bench_test.go)
+The new [typed benchmark fixture](../../../internal/codegen/go/testdata/generated_document_bench/typed_bench_test.go)
 uses 256 or 4,096 records of `é😀=123;`. Five 200 ms samples of the same generated revision measured direct
 typed `ParseValue`, a warm `Document.ParseValue` without an edit, and near-EOF `Edit+Document.ParseValue`. The edit
 benchmark includes the edit and conversion; direct inputs are prebuilt. Values were compared against a fresh

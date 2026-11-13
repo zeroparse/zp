@@ -269,7 +269,7 @@ rule e = #operators {
     operand "x"
     level { infix left "+" }
 }`, []string{"ex", "ex+x", "ex+", "eq", "e", "e+", ""}},
-		// Left-recursion leaders, whose growth the runtime drives around the printed body: a leader called at one
+		// Left-recursion leaders, whose growth the library drives around the printed body: a leader called at one
 		// position by several alternatives and lookaheads (its memo entry is read as a seed and as a result), nested
 		// leaders, a leader with a cut, captures in the growing alternative, and inputs that fail after a seed.
 		{"leader with memoized callers", `rule main = (&e "!" / e "?" / e) $$
@@ -427,7 +427,7 @@ rule e = #operators {
 	cases = append(cases, TypedRecoveryCases...)
 	cases = append(cases, TypedLocalLayoutCases...)
 	cases = append(cases, AttributeShapeCases...)
-	// Grammars of typed values with their inputs, from reviews of the typed runtime: each was a
+	// Grammars of typed values with their inputs, from reviews of the typed library: each was a
 	// case where it differed from converting the result of Parse.
 	typed, _ := filepath.Glob(path(t, "testdata/typed/*.zp"))
 	for _, gp := range typed {
@@ -466,7 +466,7 @@ rule e = #operators {
 }
 
 // TypedGrammar exercises typed values: unions with CST members, lists of lists, optional
-// matches (s always matches, maybe empty; o may be nil), int and bool fields, a user type named like a runtime type (Node) and Error nodes
+// matches (s always matches, maybe empty; o may be nil), int and bool fields, a user type named like a library type (Node) and Error nodes
 // left by #recover.
 const TypedGrammar = `type Name = { Text string }
 type Num = { Text string }

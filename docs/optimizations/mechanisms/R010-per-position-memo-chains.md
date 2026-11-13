@@ -42,8 +42,8 @@ Evidence records: [005](../005-memo-table-with-per-position-chains-cf77e4f.md),
 Source owners: [`memoTable.get and put`](../../../internal/engine/core/memo.go),
 [`envValues and callBegin`](../../../internal/engine/core/runtime.go),
 [`RuleVariables`](../../../internal/compile/analysis.go), [`generated memo
-table`](../../../runtime/runtime.go), [`TypeScript memo
-entries`](../../../internal/gen/gents/tsrt/runtime.ts).
+table`](../../../codegen/go/lib/lib.go), [`TypeScript memo
+entries`](../../../codegen/ts/lib/lib.ts).
 
 The [comparison policy](../../design/records/024-optimization-mechanism-controls.md)
 distinguishes same-source controls, historical changes and full checkpoints.

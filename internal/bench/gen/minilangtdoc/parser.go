@@ -4,9 +4,9 @@
 package minilangtdoc
 
 import (
+	rt "zeroparse.dev/zp/codegen/go/lib"
 	"zeroparse.dev/zp/core"
 	types "zeroparse.dev/zp/internal/bench/gen/minilangtdoc/types"
-	rt "zeroparse.dev/zp/runtime"
 )
 
 // Parse parses the whole input with the rule main. Options select position units, depth, cancellation and compute limits.
@@ -6914,4 +6914,4 @@ fail:
 
 const _ = types.ZPSchema_7a469fc635b6a20e
 
-const _ = rt.Protocol14
+const _ = rt.Protocol15

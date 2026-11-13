@@ -43,9 +43,9 @@ Evidence records: [014](../014-one-operand-stack-for-vm-expression-code.md),
 Source owners: [`evalCtx`](../../../internal/engine/core/eval.go), [`engine term programs`](../../../internal/engine/core/),
 [`term registers and operator
 locals`](../../../internal/engine/core/runtime.go), [`generated
-ActCtx`](../../../runtime/runtime.go), [`typed evaluation
-scratch`](../../../runtime/typed.go), [`Parser action
-context`](../../../internal/gen/gents/tsrt/runtime.ts).
+ActCtx`](../../../codegen/go/lib/lib.go), [`typed evaluation
+scratch`](../../../codegen/go/lib/typed.go), [`Parser action
+context`](../../../codegen/ts/lib/lib.ts).
 
 The [comparison policy](../../design/records/024-optimization-mechanism-controls.md)
 distinguishes same-source controls, historical changes and full checkpoints.

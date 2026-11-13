@@ -105,7 +105,7 @@ classification.
 Emit a name switch from the grammar's rule table. Each case must use the
 selected rule's own entry and inferred result type; it must not route through
 the configured start rule. Select direct typed execution only when the existing
-full `TypedGen.runtimeOK` guard succeeds for the grammar and selected result.
+full `TypedGen.libOK` guard succeeds for the grammar and selected result.
 That guard also rejects field-reading actions or predicates and any
 unrepresentable field type anywhere in the generated structs; do not replace
 it with a selected-result-only check. On the direct path, call the corresponding
@@ -178,7 +178,7 @@ pair and `SyntaxErrors` behavior, including `Error` results in struct, terminal,
 join and list positions. Run both direct typed execution and forced Node-conversion
 fallback. Include a named struct and a named terminal reached through an action that reads a
 field; add an unrelated struct with an unrepresentable field to force the full
-`runtimeOK` fallback even when the selected terminal or struct would otherwise
+`libOK` fallback even when the selected terminal or struct would otherwise
 be representable. Compile consumer fixtures for both execution modes and
 assert the documented zero and typed-nil results on ordinary failure. Also
 cover successful nil-valued `_`, `node` and join rules and verify legacy

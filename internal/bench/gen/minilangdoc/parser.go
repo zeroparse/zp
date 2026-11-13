@@ -4,8 +4,8 @@
 package minilangdoc
 
 import (
+	rt "zeroparse.dev/zp/codegen/go/lib"
 	"zeroparse.dev/zp/core"
-	rt "zeroparse.dev/zp/runtime"
 )
 
 // Parse parses the whole input with the rule main. Options select position units, depth, cancellation and compute limits.
@@ -2761,4 +2761,4 @@ fail:
 	return nil, false
 }
 
-const _ = rt.Protocol14
+const _ = rt.Protocol15

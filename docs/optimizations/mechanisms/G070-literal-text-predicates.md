@@ -42,7 +42,7 @@ Evidence records: [091](../091-specialize-pure-literal-text-disjunctions.md).
 
 Source owners: the term lowering of the Exec IR, which the Go and TypeScript
 generators print; [`route and unsafe-shape
-checks`](../../../internal/gen/gen_literal_text_dispatch_test.go).
+checks`](../../../internal/codegen/gen_literal_text_dispatch_test.go).
 
 The [comparison policy](../../design/records/024-optimization-mechanism-controls.md)
 distinguishes same-source controls, historical changes and full checkpoints.

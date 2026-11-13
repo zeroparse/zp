@@ -11,7 +11,7 @@ rule part Z = "p" => Z{I: 7, S: "s"}
 
 // UnsetZeroCases returns the grammars and inputs of the tests of unset fields, which every backend
 // runs: each field type that has a zero value is read from a struct that left it unset, and the value
-// read is returned as it is and as the field of a struct, which the typed runtime reads back.
+// read is returned as it is and as the field of a struct, which the typed library reads back.
 func UnsetZeroCases() []Case {
 	var cases []Case
 	for _, r := range []struct{ name, typ, action string }{

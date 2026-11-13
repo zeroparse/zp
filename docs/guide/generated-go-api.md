@@ -1,6 +1,6 @@
 # The Generated Go API
 
-A Go parser written by [`zp gen`](code-generation.md) has a small API: `parser.go` defines the functions that parse, `api.go` re-exports the result types of the `core` package and the options of the runtime package (the copy in `internal/runtime`, or `zeroparse.dev/zp/runtime` and `zeroparse.dev/zp/core` with `-runtime import`) under their own names, and, with `-types`, `types/types.go` defines the Go types of the grammar. This guide describes
+A Go parser written by [`zp gen`](code-generation.md) has a small API: `parser.go` defines the functions that parse, `api.go` re-exports the result types of the `core` package (`zeroparse.dev/zp/core`) and the options of the library package under their own names (generated code imports the library as `rt "<module>/internal/libgo"`, its copy, or as `rt "zeroparse.dev/zp/codegen/go/lib"` with `-lib import`), and, with `-types`, `types/types.go` defines the Go types of the grammar. This guide describes
 it, the call options that all entry points share, and recognition. Options that add typed values, incremental documents
 and streams have their own guides:
 
@@ -25,7 +25,7 @@ func Parse(input string, opts ...ParseOption) (*Node, error)
 // name selects the grammar's default start rule.
 func ParseRule(name, input string, opts ...ParseOption) (*Node, error)
 
-type ParseOption = runtime.ParseOption // an alias; the options are internal to the runtime
+type ParseOption = rt.ParseOption // an alias; the options are internal to the library
 func WithUnit(unit PositionUnit) ParseOption
 func WithLimits(limits Limits) ParseOption // Limits.Depth in every package; Compute and Input need -limits
 
@@ -55,16 +55,12 @@ Compared with the engine's API:
   `rule pair is not a start rule; parsing can begin only at a rule marked @start`, and so is an unknown name,
   `rule nope is not defined`. An empty name selects the grammar's default start rule, as for
   `Parser.WithStart`. Like the engine, both require the rule to consume the whole input.
-- **The types are those of the `core` package.** With `-runtime import`, `pairsparser.Node` is
-  `core.Node` of `zeroparse.dev/zp/core`, the type the engine returns, and likewise for the errors, limits and
-  traversal: a tree from either can be passed where the other is expected, and `errors.As` and `errors.Is` work with the
-  types and values of either. With the default embedded runtime, the copy in `internal/runtime/core` declares them again:
-  `pairsparser.Node` has the same methods and JSON encoding as `core.Node`, but it is a different Go type, and error
-  checks use `errors.As` with the generated `*pairsparser.SyntaxError` (and `pairsparser.SyntaxErrors` for errors
-  recovered with `#recover`). If other code needs `core.Node`, convert through JSON, which is identical for both, or
-  write code against the methods you need.
+- **The types are those of the `core` package.** `pairsparser.Node` is `core.Node` of `zeroparse.dev/zp/core`, the
+  type the engine returns, and likewise for the errors, limits and traversal, with the embedded library and with
+  `-lib import`: a tree from either can be passed where the other is expected, and `errors.As` and `errors.Is` work
+  with the types and values of either.
 - **Fields.** As with the engine, a field value is a `*Node`, `int`, `string`, `bool` or `nil`: assert it to
-  `*pairsparser.Node` (as the example does with `Field("Key")`), which is `*core.Node` only with `-runtime import`.
+  `*pairsparser.Node` (as the example does with `Field("Key")`), which is `*core.Node` only with `-lib import`.
 - **Errors** carry the same positions and messages. Recovered errors work too, and the error value that a
   `#recover` produces in a typed result has the range of the skipped input (`Span`) and the `Message`.
   With this grammar, `rec.zp`:
@@ -103,20 +99,20 @@ Compared with the engine's API:
 
 | Part | Contents |
 |:--|:--|
-| Runtime | The parser state, memoization, left recursion, Operators Rule loop, attribute handling and the built-in functions of actions. It is **the same for every grammar**: the package `zeroparse.dev/zp/runtime`, which the generated package imports (`-runtime import`) or carries a copy of in `internal/runtime` (`-runtime embed`, the default). |
-| `api.go` | The names of the runtime that the users of the parser need (`Node`, `SyntaxError`, the options and so on), as aliases and wrappers. It is the same for grammars generated with the same options. |
+| Library | The parser state, memoization, left recursion, Operators Rule loop, attribute handling and the built-in functions of actions. It is **the same for every grammar**: the package `zeroparse.dev/zp/codegen/go/lib`, which the generated package imports (`-lib import`) or carries a copy of in `internal/libgo` (`-lib embed`, the default). Either way it depends only on `zeroparse.dev/zp/core`. |
+| `api.go` | The names of `core` and the library that the users of the parser need (`Node`, `SyntaxError`, the options and so on), as aliases and wrappers. It is the same for grammars generated with the same options. |
 | `types/types.go` | With `-types`, the package `<module>/types`: a Go type for each type of the grammar, `TNode`, `Error` and the tuple types. |
 | Rule table | For each rule, the results of the engine's static analysis (memoized? left-recursion leader? capture names?). |
 | Parser expressions | One method per expression, with literals, character classes and rule indices embedded as constants, and one per rule that is never memoized and has no captures, which calls the rule's body directly. |
 | Value Actions and Predicate Actions | Go expressions; lambdas become Go function literals. |
 
-The runtime is not part of `parser.go`, so the size of `parser.go` is that of the per-grammar parts: it grows with the
+The library is not part of `parser.go`, so the size of `parser.go` is that of the per-grammar parts: it grows with the
 grammar, and a tiny grammar produces a file of a few kilobytes. Options such as `-types` and `-document` add code to
 `parser.go`.
 
 ## Recognition (`-recognize`)
 
-With `-recognize` (`Recognize` of `gen.Go`), the generated package also has
+With `-recognize` (`Recognize` of `codegen.Go`), the generated package also has
 
 ```go
 // Recognize checks that the whole input matches the start rule without building a tree, and returns the
@@ -138,7 +134,7 @@ node, err := pairsparser.Parse(input,
 ```
 
 `Parse`, `ParseRule`, `Recognize` (when generated) and `ParseValue`/`ParseRuleValue` (with `-types`) accept the same functional options.
-With `-typed-only` (`TypedOnly` of `gen.Go`, which needs `-types`) the package has only `ParseValue` and `ParseRuleValue`, and `Recognize` with `-recognize`: `Parse`, `ParseRule` and the code that builds `*Node` values are not generated, and `-document` and `-stream` are rejected. With `-recognize-only` (`RecognizeOnly`) the package has only `Recognize`; it cannot be combined with `-types`, `-document` or `-stream`. When a typed entry point converts the Node of its rule (an action reads a field of a struct that has no plain Go form, such as a node, other than to copy it into a field of the same type, or a result type has no Go type of its own), the generated package keeps the unexported Node rule functions that conversion runs, so the saving is smaller for such a grammar.
+With `-typed-only` (`TypedOnly` of `codegen.Go`, which needs `-types`) the package has only `ParseValue` and `ParseRuleValue`, and `Recognize` with `-recognize`: `Parse`, `ParseRule` and the code that builds `*Node` values are not generated, and `-document` and `-stream` are rejected. With `-recognize-only` (`RecognizeOnly`) the package has only `Recognize`; it cannot be combined with `-types`, `-document` or `-stream`. When a typed entry point converts the Node of its rule (an action reads a field of a struct that has no plain Go form, such as a node, other than to copy it into a field of the same type, or a result type has no Go type of its own), the generated package keeps the unexported Node rule functions that conversion runs, so the saving is smaller for such a grammar.
 No options preserves CodePoints and the generated depth default, normally 100,000. A positive `Limits.Depth`
 overrides that default for one invocation, including typed direct parsing and node conversion. Zero selects the
 generated default. Options apply in order; `Depth: Unlimited` returns a configuration error before matching, actions

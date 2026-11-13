@@ -66,7 +66,7 @@ parity:
 
 ```sh
 export ZP_TYPED_FRAME_LAYOUT_DIR=/tmp/zp-typed-frame-layouts
-go test ./internal/gen/gengo -run '^TestGeneratedTypedFrameLayoutWorkloads$' -count=1
+go test ./internal/codegen/go -run '^TestGeneratedTypedFrameLayoutWorkloads$' -count=1
 ```
 
 Build the direct/general fixtures into separate binaries:
@@ -92,9 +92,9 @@ To compare generation separately, keep `ZP_REFERENCE_FRAME_LAYOUTS` fixed
 before each timed run:
 
 ```sh
-ZP_REFERENCE_FRAME_LAYOUTS=0 go test ./internal/gen/gengo -run '^$' \
+ZP_REFERENCE_FRAME_LAYOUTS=0 go test ./internal/codegen/go -run '^$' \
   -bench '^BenchmarkTypedFrameLayoutGeneration$' -benchtime=300ms -benchmem
-ZP_REFERENCE_FRAME_LAYOUTS=1 go test ./internal/gen/gengo -run '^$' \
+ZP_REFERENCE_FRAME_LAYOUTS=1 go test ./internal/codegen/go -run '^$' \
   -bench '^BenchmarkTypedFrameLayoutGeneration$' -benchtime=300ms -benchmem
 ```
 

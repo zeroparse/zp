@@ -87,7 +87,7 @@ when the position lies in input that a stream parse has discarded.
 ## Generated Go Batch Tracing
 
 Standalone generated Go Node parsers may be generated with tracing enabled by
-`Observability` of `gen.Go` or `zp gen -observability`. This mode
+`Observability` of `codegen.Go` or `zp gen -observability`. This mode
 supports batch `Parse` and `ParseRule`; it also supports `Recognize` when that
 entry point is generated. With generated types, it additionally supports
 `ParseValue` and `ParseRuleValue`, for both direct typed execution and Node-conversion
@@ -218,7 +218,7 @@ Documents and batch `Parse` calls remain allowed from callbacks.
 ## Generated TypeScript Batch Tracing
 
 TypeScript batch tracing MUST be enabled at generation with
-`Observability` of `gen.TypeScript` or `zp gen -lang ts -observability`.
+`Observability` of `codegen.TypeScript` or `zp gen -lang ts -observability`.
 It applies to generated `parseWithOptions`, `parseRuleWithOptions` and, when
 generated, `recognizeWithOptions`. With `-types`, the configured-start
 `parseValueWithOptions` also accepts trace options; the positional-unit
@@ -256,7 +256,7 @@ TypeScript batch API does not provide Document event tracing.
 ### Generated TypeScript Batch Profiling
 
 TypeScript batch profiling MUST be emitted only when observability is enabled
-with `Observability` of `gen.TypeScript` or `zp gen -lang ts
+with `Observability` of `codegen.TypeScript` or `zp gen -lang ts
 -observability`. The generated module MUST export `Profile` and
 `ProfileSnapshot`, and add `profile?: Profile | null` to `ParseOptions`.
 `parseWithOptions`, `parseRuleWithOptions`, and `recognizeWithOptions` MUST

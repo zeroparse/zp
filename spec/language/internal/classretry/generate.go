@@ -4,4 +4,4 @@
 
 package classretry
 
-//go:generate go run ../../../../cmd/zp gen -g classretry.zp -module zeroparse.dev/zp/spec/language/internal/classretry -runtime import -o .
+//go:generate go run ../../../../cmd/zp gen -g classretry.zp -module zeroparse.dev/zp/spec/language/internal/classretry -lib import -o .

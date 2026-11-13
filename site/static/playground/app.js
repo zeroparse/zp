@@ -550,7 +550,7 @@ async function generate() {
   const pkg = $("gen-package").value.trim() || "parser";
   generatedCode = "";
   setDownloads([]);
-  const names = language === "go" ? { parser: "parser.go", second: "api.go", types: "types/types.go" } : { parser: "parser.ts", second: "runtime.ts", types: "types.ts" };
+  const names = language === "go" ? { parser: "parser.go", second: "api.go", types: "types/types.go" } : { parser: "parser.ts", second: "lib.ts", types: "types.ts" };
   generatedNames = names;
   $("gen-download").textContent = `Download ${names.parser}`;
   $("gen-download-api").textContent = `Download ${names.second}`;
@@ -565,7 +565,7 @@ async function generate() {
     types: $("gen-types").checked,
     recognize: $("gen-recognize").checked,
   };
-  const flags = language === "go" ? [`-module example.com/${pkg}`, "-runtime import"] : ["-lang ts", "-o out"];
+  const flags = language === "go" ? [`-module example.com/${pkg}`, "-lib import"] : ["-lang ts", "-o out"];
   if (req.start && req.start !== defaultStart) flags.push(`-s ${req.start}`);
   if (req.types) flags.push("-types");
   if (req.recognize) flags.push("-recognize");
@@ -582,7 +582,7 @@ async function generate() {
       generatedKey = key;
       pagedText("pg-go", generatedCode, language === "go" ? "go" : "");
       // A Go parser is the files parser.go, api.go and, with types, types/types.go; a TypeScript parser is parser.ts,
-      // runtime.ts and, with types, types.ts. Each is offered on its own, since the displayed text joins them under
+      // lib.ts and, with types, types.ts. Each is offered on its own, since the displayed text joins them under
       // banners and is not a compilable file.
       setDownloads(res.files?.length ? res.files : generatedCode ? [{ path: generatedNames.parser, content: generatedCode }] : []);
     }

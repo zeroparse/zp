@@ -4,9 +4,9 @@
 package genparser
 
 import (
+	rt "zeroparse.dev/zp/codegen/go/lib"
 	"zeroparse.dev/zp/core"
 	types "zeroparse.dev/zp/internal/syntax/genparser/types"
-	rt "zeroparse.dev/zp/runtime"
 )
 
 var rules []*rt.Rule
@@ -27693,4 +27693,4 @@ fail:
 
 const _ = types.ZPSchema_2f3baa996eddc35c
 
-const _ = rt.Protocol14
+const _ = rt.Protocol15

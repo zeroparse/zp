@@ -409,8 +409,8 @@ func TestSpecValues(t *testing.T) {
 }
 
 // TestSpecSpecializationRuntimes checks that the table of specializations has one column for each
-// runtime that prints the compositions; the Go library (internal/ir/exec/libgo) and the TypeScript
-// generator (internal/gen/gents) each check their own columns.
+// runtime that prints the compositions; the Go library (internal/codegen/go/lib) and the TypeScript
+// generator (internal/codegen/ts) each check their own columns.
 func TestSpecSpecializationRuntimes(t *testing.T) {
 	want := []string{"Generated Go, nodes", "Generated Go, typed values", "The engine", "TypeScript"}
 	if got := spectest.Runtimes(spectest.Read(t, specDir)); !slices.Equal(got, want) {

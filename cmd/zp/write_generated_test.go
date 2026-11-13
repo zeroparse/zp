@@ -6,13 +6,13 @@ import (
 	"runtime"
 	"strings"
 	"testing"
-	igen "zeroparse.dev/zp/internal/gen"
+	igen "zeroparse.dev/zp/internal/codegen"
 
-	"zeroparse.dev/zp/gen"
+	"zeroparse.dev/zp/codegen"
 )
 
-func generatedFile(path string) gen.File {
-	return gen.File{Path: path, Content: []byte(igen.Header() + "\n\npackage p\n")}
+func generatedFile(path string) codegen.File {
+	return codegen.File{Path: path, Content: []byte(igen.Header() + "\n\npackage p\n")}
 }
 
 // TestWriteGeneratedSymlink checks that nothing is written through a symbolic link at an owned
@@ -21,7 +21,7 @@ func TestWriteGeneratedSymlink(t *testing.T) {
 	if runtime.GOOS == "windows" {
 		t.Skip("symbolic links need privileges")
 	}
-	files := []gen.File{generatedFile("parser.go"), generatedFile("types/types.go")}
+	files := []codegen.File{generatedFile("parser.go"), generatedFile("types/types.go")}
 	t.Run("file", func(t *testing.T) {
 		dir, outside := t.TempDir(), t.TempDir()
 		target := filepath.Join(outside, "target.go")
@@ -32,7 +32,7 @@ func TestWriteGeneratedSymlink(t *testing.T) {
 		if err := os.Symlink(target, link); err != nil {
 			t.Fatal(err)
 		}
-		err := writeGenerated(dir, files, runtimeEmbed, false)
+		err := writeGenerated(dir, files, libEmbed, false)
 		if err == nil || !strings.Contains(err.Error(), link) || !strings.Contains(err.Error(), "symbolic link") {
 			t.Fatalf("error %v, want one naming the symbolic link %s", err, link)
 		}
@@ -49,7 +49,7 @@ func TestWriteGeneratedSymlink(t *testing.T) {
 		if err := os.Symlink(outside, link); err != nil {
 			t.Fatal(err)
 		}
-		err := writeGenerated(dir, files, runtimeEmbed, false)
+		err := writeGenerated(dir, files, libEmbed, false)
 		if err == nil || !strings.Contains(err.Error(), link) {
 			t.Fatalf("error %v, want one naming the symbolic link %s", err, link)
 		}
@@ -69,7 +69,7 @@ func TestWriteGeneratedChecksBeforeWriting(t *testing.T) {
 		t.Skip("file permissions are not enforced")
 	}
 	dir := t.TempDir()
-	rt := filepath.Join(dir, "internal", "runtime")
+	rt := filepath.Join(dir, "internal", "libgo")
 	if err := os.MkdirAll(rt, 0o755); err != nil {
 		t.Fatal(err)
 	}
@@ -82,7 +82,7 @@ func TestWriteGeneratedChecksBeforeWriting(t *testing.T) {
 	if err := os.WriteFile(parser, old, 0o644); err != nil {
 		t.Fatal(err)
 	}
-	err := writeGenerated(dir, []gen.File{generatedFile("parser.go"), generatedFile("types/types.go")}, runtimeEmbed, false)
+	err := writeGenerated(dir, []codegen.File{generatedFile("parser.go"), generatedFile("types/types.go")}, libEmbed, false)
 	if err == nil {
 		t.Fatal("no error for an unreadable owned file")
 	}

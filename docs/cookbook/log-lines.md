@@ -135,7 +135,7 @@ printf '2026-10-09T11:12:41Z INFO api GET /x 200 12ms\n2026-10-09T11:12:41Z INFO
 
 ## How It Works
 
-- **A generated parser is the fast one.** `zp gen` writes a Go package with no dependency on ZeroParse. With `-types`, every
+- **A generated parser is the fast one.** `zp gen` writes a Go package that needs only ZeroParse's package `core`, not the engine. With `-types`, every
   rule here has a Go type of its own, so `ParseValue` builds `*Line` values directly, without the generic nodes `Parse`
   would build first. The values are plain structs: `l.Level.Value`, `l.Millis.Value`.
 - **Strings stay strings.** `Millis` is a string node, so its `Value` is the matched digits, and you convert

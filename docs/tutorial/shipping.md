@@ -2,7 +2,7 @@
 
 A grammar becomes useful when other code can call it. There are three ways to ship one: compile the grammar in your
 program at start-up, which is what the previous lessons did; generate Go source, so that the program needs neither the
-library nor the grammar; or save a compiled grammar and load it. This lesson shows the last two and the choice of a
+engine nor the grammar; or save a compiled grammar and load it. This lesson shows the last two and the choice of a
 backend.
 
 ## What You Will Build
@@ -16,10 +16,10 @@ Complete [Building Typed Trees](typed-trees.md): you need `config.zp` and a Go m
 
 ## Generating a Standalone Go Parser
 
-`zp gen` turns a grammar into Go source, so your program does not need the ZeroParse library or the grammar at run time.
-The generated package (`parser.go`, `api.go` and a copy of the runtime in `internal/runtime`) uses only the standard
-library. `-module` is the import path the package will have, so it starts with your module path. Generate it into a
-`config` package:
+`zp gen` turns a grammar into Go source, so your program does not need the ZeroParse engine or the grammar at run time.
+The generated package (`parser.go`, `api.go` and a copy of the parser library in `internal/libgo`) uses only the standard
+library and ZeroParse's small package `core`, so your module still requires `zeroparse.dev/zp`. `-module` is the import
+path the package will have, so it starts with your module path. Generate it into a `config` package:
 
 ```bash
 zp gen -g config.zp -module example.com/hello/config -o config
@@ -51,7 +51,7 @@ Config{Entries: [Entry{Key: Key("port"), Value: Number("8080")}]}
 ```
 
 The generated `Node` type mirrors `core.Node`, and the generated parser gives the same trees and errors as the
-library. `config.ParseRule(name, input)` starts at another rule. The generated entry points accept functional
+engine. `config.ParseRule(name, input)` starts at another rule. The generated entry points accept functional
 options: `config.Parse(input, config.WithUnit(config.Bytes), config.WithLimits(config.Limits{Depth: 600_000}))`.
 `zp gen -max-depth 600000` sets the generated default; omitted or zero keeps 100,000.
 

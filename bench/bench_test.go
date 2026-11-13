@@ -14,6 +14,7 @@ import (
 	"unicode/utf8"
 	"zeroparse.dev/zp/internal/bench/inputs"
 
+	rt "zeroparse.dev/zp/codegen/go/lib"
 	"zeroparse.dev/zp/core"
 	"zeroparse.dev/zp/engine"
 	gcalc "zeroparse.dev/zp/internal/bench/gen/calc"
@@ -27,7 +28,6 @@ import (
 	gminilangtdoc "zeroparse.dev/zp/internal/bench/gen/minilangtdoc"
 	goutline "zeroparse.dev/zp/internal/bench/gen/outline"
 	gxml "zeroparse.dev/zp/internal/bench/gen/xml"
-	rt "zeroparse.dev/zp/runtime"
 )
 
 // workload is the grammar and input of one benchmark.

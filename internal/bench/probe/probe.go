@@ -56,7 +56,7 @@ func GenOptions(root, name string) ([]string, error) {
 }
 
 // GenTSArgs returns the options with which testdata/grammars/generate.txt generates parser name,
-// adapted to TypeScript: the Go-only options (-module, -runtime import, -nodoc, -typed-only) are dropped.
+// adapted to TypeScript: the Go-only options (-module, -lib import, -nodoc, -typed-only) are dropped.
 func GenTSArgs(root, name string) ([]string, error) {
 	f, err := GenOptions(root, name)
 	if err != nil {
@@ -65,7 +65,7 @@ func GenTSArgs(root, name string) ([]string, error) {
 	out := []string{"-g", filepath.Join(root, "testdata", "grammars", name, name+".zp")}
 	for i := 0; i < len(f); i++ {
 		switch f[i] {
-		case "-module", "-runtime", "-o":
+		case "-module", "-lib", "-o":
 			i++
 		case "-nodoc", "-typed-only":
 		default:

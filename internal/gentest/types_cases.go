@@ -71,7 +71,7 @@ rule n = "(" n ")" / "x"`, Inputs: []string{strings.Repeat("(", limits.DefaultMa
 
 // TypedLeaderValueCases are left-recursion leaders without an action of their own, whose values
 // are not nodes: the results of their alternatives' actions or of the rules they call. The typed
-// runtime finishes a leader's value itself, so the value must survive that, wherever the leader
+// library finishes a leader's value itself, so the value must survive that, wherever the leader
 // is captured, and a node built over it must keep the positions the engine gives it. The typed
 // parsers' values are compared with the engine's like those of every other corpus case.
 var TypedLeaderValueCases = []Case{

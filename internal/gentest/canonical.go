@@ -9,7 +9,7 @@ import (
 	"strconv"
 	"strings"
 
-	"zeroparse.dev/zp/internal/gen/gengo"
+	"zeroparse.dev/zp/internal/codegen/go"
 )
 
 // CanonicalValueSource is the Go code of the generated program that turns a typed value into the
@@ -108,7 +108,7 @@ func CanonicalEngine(v any) (any, error) {
 		return out, nil
 	case map[string]any:
 		if msg, ok := v["error"]; ok {
-			// Input skipped by error recovery: the typed value is the runtime's Error, a struct with a
+			// Input skipped by error recovery: the typed value is the library's Error, a struct with a
 			// span and a Message. Its "expected" has no typed counterpart.
 			if err := onlyKeys(v, "start", "end", "error", "expected"); err != nil {
 				return nil, err
@@ -247,10 +247,10 @@ func canonicalTyped(v any) (any, error) {
 }
 
 // goFieldName returns the grammar name of the field goName of a generated struct. The generator adds
-// a "_" to a field whose name is a runtime method name or the name of the embedded span, so a single
+// a "_" to a field whose name is a library method name or the name of the embedded span, so a single
 // trailing "_" over such a name is removed. Other names are returned as they are.
 func goFieldName(goName string) string {
-	if base, ok := strings.CutSuffix(goName, "_"); ok && gengo.RuntimeMethodNames[base] {
+	if base, ok := strings.CutSuffix(goName, "_"); ok && gogen.LibMethodNames[base] {
 		return base
 	}
 	return goName
@@ -312,7 +312,7 @@ func CanonicalTypedMatches(raw json.RawMessage, want any) error {
 // and b differ, by path. fieldsObject tells whether a is the "fields" object of a struct, whose keys
 // are the struct's declared fields. A key of such an object that only the typed side has is not a
 // difference when the typed value is nil or a zero scalar: the spec says an unset field reads as
-// nil, the engine writes no key for it, and the typed runtime writes the zero value of the field's
+// nil, the engine writes no key for it, and the typed library writes the zero value of the field's
 // Go type (see canonicalUnsetZero). The engine writes the key of every field set to a zero value,
 // which TestEngineStructKeepsExplicitZeroFields pins, so a missing key there is an unset field. A
 // key outside a fields object is a difference whatever its value.

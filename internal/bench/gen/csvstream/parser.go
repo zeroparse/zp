@@ -6,8 +6,8 @@ package csvstream
 import (
 	"io"
 
+	rt "zeroparse.dev/zp/codegen/go/lib"
 	"zeroparse.dev/zp/core"
-	rt "zeroparse.dev/zp/runtime"
 )
 
 // Parse parses the whole input with the rule main. Options select position units, depth, cancellation and compute limits.
@@ -588,4 +588,4 @@ fail:
 
 var streamRule *rt.Rule
 
-const _ = rt.Protocol14
+const _ = rt.Protocol15

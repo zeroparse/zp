@@ -8,13 +8,13 @@ import (
 	"strings"
 	"testing"
 
+	"zeroparse.dev/zp/internal/codegen"
 	"zeroparse.dev/zp/internal/compiletest"
-	"zeroparse.dev/zp/internal/gen"
 )
 
 // DirectTypedDocument builds typed Document parsers generated with the options extra, which
 // may set private generator options, and checks them against parsers that convert Node values.
-func DirectTypedDocument(t *testing.T, extra gen.GenOptions) {
+func DirectTypedDocument(t *testing.T, extra codegen.GenOptions) {
 	NeedsBudgetControls(t)
 	if testing.Short() {
 		t.Skip("builds standalone generated parsers")
@@ -90,7 +90,7 @@ rule main Text = v1:[aé😀]* #atomic => Text{S: text($v1)}`, []string{"", "aé
 			t.Fatalf("%s uses conversion instead of direct matching", pkg)
 		}
 		write(pkg+"/parser.go", string(code))
-		reference, err := GenerateCode(t, g, gen.GenOptions{Package: "reference", Start: "main", Types: true, Document: true, ConvertTypes: true})
+		reference, err := GenerateCode(t, g, codegen.GenOptions{Package: "reference", Start: "main", Types: true, Document: true, ConvertTypes: true})
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -112,7 +112,7 @@ rule main Text = v1:[aé😀]* #atomic => Text{S: text($v1)}`, []string{"", "aé
 
 const DirectTypedDocumentTests = `package PACKAGE
 import (
-	zprt "zeroparse.dev/zp/runtime"
+	zprt "zeroparse.dev/zp/codegen/go/lib"
  "context"
  "encoding/json"
  "errors"

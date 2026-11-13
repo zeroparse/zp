@@ -4,9 +4,9 @@
 package calc
 
 import (
+	rt "zeroparse.dev/zp/codegen/go/lib"
 	"zeroparse.dev/zp/core"
 	types "zeroparse.dev/zp/internal/bench/gen/calc/types"
-	rt "zeroparse.dev/zp/runtime"
 )
 
 // Parse parses the whole input with the rule main. Options select position units, depth, cancellation and compute limits.
@@ -1457,4 +1457,4 @@ func s4(p *rt.TParser) (any, bool) {
 
 const _ = types.ZPSchema_1758b48940b2027f
 
-const _ = rt.Protocol14
+const _ = rt.Protocol15

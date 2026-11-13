@@ -36,7 +36,7 @@ Evidence records: [111](../111-terminal-programs.md),
 [136](../136-measured-effect-of-the-generation-flags.md).
 
 Source owners: [`Terminals pass`](../../../internal/ir/core/passes.go),
-[`TerminalProgram`](../../../runtime/terminal.go).
+[`TerminalProgram`](../../../codegen/go/lib/terminal.go).
 
 The [comparison policy](../../design/records/024-optimization-mechanism-controls.md)
 distinguishes same-source controls, historical changes and full checkpoints.

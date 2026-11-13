@@ -48,8 +48,8 @@ Source owners: [`Rule.Plain
 classification`](../../../internal/compile/compile.go),
 [`parser.invokePlain`](../../../internal/engine/core/runtime.go),
 [`plainCallFrame`](../../../internal/engine/vm/ivm.go), [`plain call
-emission`](../../../internal/gen/gengo/generator.go),
-[`gents.Generator.plainCall`](../../../internal/gen/gents/generator.go).
+emission`](../../../internal/codegen/go/generator.go),
+[`tsgen.Generator.plainCall`](../../../internal/codegen/ts/generator.go).
 
 The [comparison policy](../../design/records/024-optimization-mechanism-controls.md)
 distinguishes same-source controls, historical changes and full checkpoints.

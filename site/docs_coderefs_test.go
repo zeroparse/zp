@@ -70,6 +70,7 @@ var (
 	// package's type as package.Method.
 	exportRe     = regexp.MustCompile(`^(?:func (?:\([^)]*\) )?|type |var |const )([A-Z]\w*)\b`)
 	exportSpecRe = regexp.MustCompile(`^\t([A-Z]\w*)\b`)
+	packageRe    = regexp.MustCompile(`^package (\w+)`)
 	// publicNames are public names that coincide with identifiers of the code: a field of the
 	// Playground messages and a table of generated parsers.
 	publicNames = map[string]bool{"maxDepth": true, "recRules": true}
@@ -111,22 +112,14 @@ func loadRepoCode(t *testing.T, root string) *repoCode {
 			}
 		}
 		c.goDirs[path.Dir(rel)] = true
-		if under(rel, "internal/bench") {
-			// generated parsers and inputs, which stand for the files of a reader's project
-		} else if under(rel, "internal") {
-			c.internalPkg[path.Base(path.Dir(rel))] = true
-		}
 		if strings.Contains(rel, "testdata/") {
 			return nil
 		}
+		// Packages are known by the name of their package clause, which documents qualify names
+		// with; it need not be the name of the directory (codegen/go/lib is package libgo).
+		internal := under(rel, "internal") && !under(rel, "internal/bench") // generated parsers and inputs under internal/bench stand for the files of a reader's project
+		public := !under(rel, "internal") && !strings.HasSuffix(rel, "_test.go")
 		var exports map[string]bool
-		if !under(rel, "internal") && !strings.HasSuffix(rel, "_test.go") {
-			name := path.Base(path.Dir(rel))
-			if c.publicExports[name] == nil {
-				c.publicExports[name] = map[string]bool{}
-			}
-			exports = c.publicExports[name]
-		}
 		f, err := os.Open(p)
 		if err != nil {
 			return err
@@ -136,6 +129,20 @@ func loadRepoCode(t *testing.T, root string) *repoCode {
 		sc.Buffer(make([]byte, 1<<20), 1<<24)
 		inBlock := false
 		for sc.Scan() {
+			if m := packageRe.FindStringSubmatch(sc.Text()); m != nil && (internal || public) && exports == nil {
+				name := strings.TrimSuffix(m[1], "_test")
+				if internal {
+					c.internalPkg[name] = true
+				}
+				if public {
+					if c.publicExports[name] == nil {
+						c.publicExports[name] = map[string]bool{}
+					}
+					exports = c.publicExports[name]
+				}
+				internal = false
+				continue
+			}
 			if line := sc.Text(); exports != nil {
 				switch {
 				case line == "const (" || line == "var (" || line == "type (":
@@ -162,7 +169,6 @@ func loadRepoCode(t *testing.T, root string) *repoCode {
 	if err != nil {
 		t.Fatal(err)
 	}
-	delete(c.internalPkg, "_runtime")
 	// "value" and "types" are the usual names of variables and generated packages.
 	delete(c.internalPkg, "value")
 	delete(c.internalPkg, "types")

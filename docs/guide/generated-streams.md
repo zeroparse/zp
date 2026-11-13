@@ -1,7 +1,7 @@
 # Streams in Generated Go
 
 Generate with `zp gen -g grammar.zp -module example.com/parser -stream -o parser`, or set `Stream: true` in
-`gen.Go`. The start rule must have a [`#stream`](../../spec/language/pragmas.md#stream) repetition; otherwise generation
+`codegen.Go`. The start rule must have a [`#stream`](../../spec/language/pragmas.md#stream) repetition; otherwise generation
 fails. This adds a Go `ParseStream` beside the ordinary `Parse`, which still treats `#stream` as a plain repetition.
 
 ## Parsing a Stream

@@ -197,7 +197,7 @@ recorded.
 | Parse | How to record |
 |:--|:--|
 | `Parser.Parse`, `ParseStream`, `ParsePrefix`, `Document` | Pass `engine.WithExpectations()`. A `Document` fixes it when it is created |
-| Generated Go or TypeScript parser | Generate with `-expectations` (`Expectations` in `gen.Go` and `gen.TypeScript`), then pass `WithExpectations()` (Go) or `{ expectations: true }` (TypeScript) to the parse. Generating with the flag alone does not record |
+| Generated Go or TypeScript parser | Generate with `-expectations` (`Expectations` in `codegen.Go` and `codegen.TypeScript`), then pass `WithExpectations()` (Go) or `{ expectations: true }` (TypeScript) to the parse. Generating with the flag alone does not record |
 
 ```go
 node, err := p.Parse(input, engine.WithExpectations())

@@ -13,8 +13,8 @@ import (
 	"sync"
 	"testing"
 
+	"zeroparse.dev/zp/codegen"
 	"zeroparse.dev/zp/engine"
-	"zeroparse.dev/zp/gen"
 	"zeroparse.dev/zp/internal/complexity"
 )
 
@@ -350,7 +350,7 @@ func generatedSteps(t, top *testing.T, name, path string, inputs []string, lenie
 		if err != nil {
 			t.Fatal(err)
 		}
-		files, err := gen.Go{Module: "triage/p", Runtime: gen.RuntimeImport, LimitControls: true}.Generate(g, "")
+		files, err := codegen.Go{Module: "triage/p", Lib: codegen.LibImport, LimitControls: true}.Generate(g, "")
 		if err != nil {
 			t.Fatal(err)
 		}

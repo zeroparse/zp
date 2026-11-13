@@ -9,8 +9,8 @@ import (
 	"unicode/utf8"
 
 	"zeroparse.dev/zp/grammar"
+	"zeroparse.dev/zp/internal/codegen"
 	"zeroparse.dev/zp/internal/compile"
-	"zeroparse.dev/zp/internal/gen"
 	"zeroparse.dev/zp/internal/gentest"
 	"zeroparse.dev/zp/internal/ir/core"
 )
@@ -219,12 +219,12 @@ func TestCoreGuardsAreSound(t *testing.T) {
 		go func() {
 			defer func() { <-slots; wg.Done() }()
 			var cases []*coreGenCase
-			if gen, ok := coreGenerate(gc.Src, gen.GenOptions{Types: true, TypedOnly: true}); ok {
+			if gen, ok := coreGenerate(gc.Src, codegen.GenOptions{Types: true, TypedOnly: true}); ok {
 				if c, err := coreTypedCase(gc.Name, "lean", gen, nil); err == nil {
 					cases = append(cases, c)
 				}
 			}
-			if gen, ok := coreGenerate(gc.Src, gen.GenOptions{Recognize: true}); ok {
+			if gen, ok := coreGenerate(gc.Src, codegen.GenOptions{Recognize: true}); ok {
 				if c, err := coreRecognizeCase(gc.Name, "lean", gen); err == nil {
 					cases = append(cases, c)
 				}

@@ -7,8 +7,8 @@ import (
 	"slices"
 	"testing"
 
+	"zeroparse.dev/zp/codegen"
 	"zeroparse.dev/zp/engine"
-	"zeroparse.dev/zp/gen"
 )
 
 // TestGeneratedSourceParserCurrent requires that the checked-in generated parser of the grammar
@@ -21,7 +21,7 @@ func TestGeneratedSourceParserCurrent(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	files, err := gen.Go{Module: "zeroparse.dev/zp/internal/syntax/genparser", Runtime: gen.RuntimeImport, Types: true, TypedOnly: true, LimitControls: true, Expectations: true}.Generate(g, "main")
+	files, err := codegen.Go{Module: "zeroparse.dev/zp/internal/syntax/genparser", Lib: codegen.LibImport, Types: true, TypedOnly: true, LimitControls: true, Expectations: true}.Generate(g, "main")
 	if err != nil {
 		t.Fatal(err)
 	}

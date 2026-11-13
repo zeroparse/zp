@@ -100,7 +100,7 @@ Two things to know:
   need depth beyond the default, use `BytecodeIterative` rather than raising the limit. Only `BytecodeIterative`
   accepts `Depth: core.Unlimited`; the other backends reject it as an option error.
 
-Generated parsers have the same default of 100,000. The `MaxDepth` field of `gen.Go` or `zp gen -max-depth` sets a
+Generated parsers have the same default of 100,000. The `MaxDepth` field of `codegen.Go` or `zp gen -max-depth` sets a
 generated default; generated Go `Limits.Depth` and TypeScript options-aware entry points override it per invocation
 (see [code generation](generated-go-api.md#invocation-options) and
 [TypeScript depth options](typescript.md#deep-nesting-and-the-javascript-stack)). Their recursive host stacks still

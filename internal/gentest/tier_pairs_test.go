@@ -13,7 +13,7 @@ import (
 // test: the long tier must run at least the default tier's size, so that `go test -tags zp_long` runs
 // every test of the default run and the landing gate needs only the long run.
 var tierPairs = []struct{ def, long string }{
-	{"internal/gen/term_seeds_test.go", "internal/gen/term_seeds_long_test.go"},
+	{"internal/codegen/term_seeds_test.go", "internal/codegen/term_seeds_long_test.go"},
 	{"internal/compile/facts_tier_default_test.go", "internal/compile/facts_tier_long_test.go"},
 	{"spec/language/source_adapter_enumerate_default_test.go", "spec/language/source_adapter_enumerate_long_test.go"},
 	{"spec/language/source_adapter_generated_default_test.go", "spec/language/source_adapter_generated_long_test.go"},

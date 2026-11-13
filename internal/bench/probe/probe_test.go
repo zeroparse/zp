@@ -13,7 +13,7 @@ func TestGenOptionsAndGenTSArgs(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !slicesContain(got, "-recognize") || !slicesContain(got, "-module") && !slicesContain(got, "-runtime") {
+	if !slicesContain(got, "-recognize") || !slicesContain(got, "-module") && !slicesContain(got, "-lib") {
 		t.Errorf("options of json = %v", got)
 	}
 	ts, err := GenTSArgs(root, "json")
@@ -21,7 +21,7 @@ func TestGenOptionsAndGenTSArgs(t *testing.T) {
 		t.Fatal(err)
 	}
 	for _, a := range ts {
-		if a == "-runtime" || a == "import" || a == "-nodoc" || a == "-typed-only" {
+		if a == "-lib" || a == "import" || a == "-nodoc" || a == "-typed-only" {
 			t.Errorf("TypeScript arguments keep the Go-only %q: %v", a, ts)
 		}
 	}

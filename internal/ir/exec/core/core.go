@@ -5,8 +5,8 @@
 // The compositions are the call protocol of a rule (deferred memoization, memo lookup with its
 // reuse conditions, the dependency memo of left-recursion contexts, store and restore on failure),
 // left-recursion growth, the observation of a call and the bookkeeping of a call in a Document
-// parse. The compositions know no target: internal/ir/exec/libgo prints them into the generated Go
-// runtime and the engine, and the TypeScript generator (internal/gen/gents) into the TypeScript
+// parse. The compositions know no target: internal/codegen/go/lib prints them into the generated Go
+// runtime and the engine, and the TypeScript generator (internal/codegen/ts) into the TypeScript
 // runtime, each choosing the specializations it needs.
 package core
 

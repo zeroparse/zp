@@ -15,8 +15,8 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/grammar"
-	"zeroparse.dev/zp/internal/gen"
-	"zeroparse.dev/zp/internal/gen/gengo"
+	"zeroparse.dev/zp/internal/codegen"
+	"zeroparse.dev/zp/internal/codegen/go"
 )
 
 // The generated fixtures are built in two forms: with budget controls, so that the tests of
@@ -72,16 +72,16 @@ var genHooks sync.Map
 
 // SetGenHooks makes the Go parsers that t and its subtests generate use h, so that tests that
 // observe the generator run in parallel.
-func SetGenHooks(t testing.TB, h *gengo.Hooks) {
+func SetGenHooks(t testing.TB, h *gogen.Hooks) {
 	name := t.Name()
 	genHooks.Store(name, h)
 	t.Cleanup(func() { genHooks.Delete(name) })
 }
 
 // testGenHooks returns the hooks of the generator for t, or nil.
-func testGenHooks(t testing.TB) *gengo.Hooks {
+func testGenHooks(t testing.TB) *gogen.Hooks {
 	if h, ok := byTest(&genHooks, t); ok {
-		return h.(*gengo.Hooks)
+		return h.(*gogen.Hooks)
 	}
 	return nil
 }
@@ -166,42 +166,42 @@ func PinOrdinary(t testing.TB) {
 }
 
 var (
-	runtimeCopyOnce sync.Once
-	runtimeCopyDir  string
+	libCopyOnce sync.Once
+	libCopyDir  string
 )
 
-// RuntimeCopy returns the directory of a module zeroparse.dev/zp that holds a copy of the packages
+// LibCopy returns the directory of a module zeroparse.dev/zp that holds a copy of the packages
 // generated code imports (copiedPackages), with the identifiers that testdata/export_names.txt
-// lists renamed in the runtime package (see ExportNames).
-func RuntimeCopy() string {
-	runtimeCopyOnce.Do(func() {
-		dir, err := os.MkdirTemp("", "zprt-copy")
+// lists renamed in the library package (see ExportNames).
+func LibCopy() string {
+	libCopyOnce.Do(func() {
+		dir, err := os.MkdirTemp("", "zplib-copy")
 		if err != nil {
 			panic(err)
 		}
-		writeRuntimeCopy(dir, nil, nil)
-		runtimeCopyDir = dir
+		writeLibCopy(dir, nil, nil)
+		libCopyDir = dir
 	})
-	return runtimeCopyDir
+	return libCopyDir
 }
 
-// RuntimeCopyWith returns a copy of the runtime like RuntimeCopy that has patch applied to the
-// source of each file (by name) of the runtime package and the extra files of that package, which
+// LibCopyWith returns a copy of the library like LibCopy that has patch applied to the
+// source of each file (by name) of the library package and the extra files of that package, which
 // are given as name and source.
-func RuntimeCopyWith(t testing.TB, patch func(name, src string) string, extra map[string]string) string {
+func LibCopyWith(t testing.TB, patch func(name, src string) string, extra map[string]string) string {
 	t.Helper()
 	dir := t.TempDir()
-	writeRuntimeCopy(dir, patch, extra)
+	writeLibCopy(dir, patch, extra)
 	return dir
 }
 
 // copiedPackages are the directories of the packages that generated code imports, relative to the
-// module root: the runtime package first, then the packages it imports, which are copied
+// module root: the library first, then the packages it imports, which are copied
 // unchanged. A copy holds only them, so a test module that requires it builds generated code
 // against them and nothing else of this module.
-var copiedPackages = []string{"runtime", "core", "core/noderep"}
+var copiedPackages = []string{"codegen/go/lib", "core", "core/noderep"}
 
-func writeRuntimeCopy(dir string, patch func(name, src string) string, extra map[string]string) {
+func writeLibCopy(dir string, patch func(name, src string) string, extra map[string]string) {
 	must := func(err error) {
 		if err != nil {
 			panic(err)
@@ -229,27 +229,27 @@ func writeRuntimeCopy(dir string, patch func(name, src string) string, extra map
 		}
 	}
 	rt := filepath.Join(dir, filepath.FromSlash(copiedPackages[0]))
-	must(os.WriteFile(filepath.Join(rt, "zz_testing.go"), ExportNames([]byte(runtimeTestingShim)), 0o644))
+	must(os.WriteFile(filepath.Join(rt, "zz_testing.go"), ExportNames([]byte(libTestingShim)), 0o644))
 	for name, data := range extra {
 		must(os.WriteFile(filepath.Join(rt, name), ExportNames([]byte(data)), 0o644))
 	}
 }
 
-// GoMod returns the go.mod of a test module that imports the runtime from a copy of this
-// checkout's runtime package.
+// GoMod returns the go.mod of a test module that imports the library from a copy of this
+// checkout's library package.
 func GoMod(module string) string {
-	return GoModAt(module, RuntimeCopy())
+	return GoModAt(module, LibCopy())
 }
 
-// GoModAt returns the go.mod of a test module that imports the runtime from the copy of this
-// module in dir (RuntimeCopy, RuntimeCopyWith).
+// GoModAt returns the go.mod of a test module that imports the library from the copy of this
+// module in dir (LibCopy, LibCopyWith).
 func GoModAt(module, dir string) string {
 	return "module " + module + "\n\ngo 1.27.1\n\nrequire zeroparse.dev/zp v0.0.0\n\nreplace zeroparse.dev/zp => " + dir + "\n"
 }
 
 // WriteGenerated writes the files of a generated package into dir. A go.mod for the module is
 // written when dir has none.
-func WriteGenerated(t testing.TB, dir, module string, files []gen.GeneratedFile) {
+func WriteGenerated(t testing.TB, dir, module string, files []codegen.GeneratedFile) {
 	t.Helper()
 	for _, f := range files {
 		path := filepath.Join(dir, filepath.FromSlash(f.Path))
@@ -268,31 +268,31 @@ func WriteGenerated(t testing.TB, dir, module string, files []gen.GeneratedFile)
 	}
 }
 
-// GeneratePackage generates a parser that imports the runtime from this module as the package
+// GeneratePackage generates a parser that imports the library from this module as the package
 // gentest/<pkg>, writes its files (parser.go, api.go and types/types.go) below dir/<pkg> in the
 // module of dir, and returns its parser.go. Unlike GenerateCode, it keeps the types package
 // apart, so that grammar types named like the names of the parser package compile.
-func GeneratePackage(t testing.TB, dir, pkg string, g *grammar.Grammar, opts gen.GenOptions) string {
+func GeneratePackage(t testing.TB, dir, pkg string, g *grammar.Grammar, opts codegen.GenOptions) string {
 	t.Helper()
 	return GeneratePackageIn(t, dir, "gentest", pkg, g, opts)
 }
 
 // GeneratePackageIn is GeneratePackage for a test module whose path is root.
-func GeneratePackageIn(t testing.TB, dir, root, pkg string, g *grammar.Grammar, opts gen.GenOptions) string {
+func GeneratePackageIn(t testing.TB, dir, root, pkg string, g *grammar.Grammar, opts codegen.GenOptions) string {
 	t.Helper()
 	return generatePackage(t, dir, root, pkg, g, opts, Generate)
 }
 
 // GeneratePackageRaw is GeneratePackage with the options as given: the parser records
 // expectations only with opts.Expectations.
-func GeneratePackageRaw(t testing.TB, dir, pkg string, g *grammar.Grammar, opts gen.GenOptions) string {
+func GeneratePackageRaw(t testing.TB, dir, pkg string, g *grammar.Grammar, opts codegen.GenOptions) string {
 	t.Helper()
 	return generatePackage(t, dir, "gentest", pkg, g, opts, GenerateRaw)
 }
 
-func generatePackage(t testing.TB, dir, root, pkg string, g *grammar.Grammar, opts gen.GenOptions, generate func(testing.TB, *grammar.Grammar, gen.GenOptions) ([]gen.GeneratedFile, error)) string {
+func generatePackage(t testing.TB, dir, root, pkg string, g *grammar.Grammar, opts codegen.GenOptions, generate func(testing.TB, *grammar.Grammar, codegen.GenOptions) ([]codegen.GeneratedFile, error)) string {
 	t.Helper()
-	opts.Runtime = gen.RuntimeImport
+	opts.Lib = codegen.LibImport
 	opts.LimitControls = FixtureBudgetControls(t)
 	opts.Package, opts.Module = pkg, root+"/"+pkg
 	opts.KeepComments = true
@@ -316,10 +316,10 @@ func generatePackage(t testing.TB, dir, root, pkg string, g *grammar.Grammar, op
 	return parser
 }
 
-// GenerateCode generates a parser that imports the runtime from this module and returns its
+// GenerateCode generates a parser that imports the library from this module and returns its
 // parser.go and api.go as one source file, which tests write as parser.go.
-func GenerateCode(t testing.TB, g *grammar.Grammar, opts gen.GenOptions) ([]byte, error) {
-	opts.Runtime = gen.RuntimeImport
+func GenerateCode(t testing.TB, g *grammar.Grammar, opts codegen.GenOptions) ([]byte, error) {
+	opts.Lib = codegen.LibImport
 	opts.KeepComments = true
 	opts.LimitControls = FixtureBudgetControls(t)
 	if opts.Module == "" && opts.Types {
@@ -339,8 +339,8 @@ func GenerateCode(t testing.TB, g *grammar.Grammar, opts gen.GenOptions) ([]byte
 // MergeGenerated joins the Go files of a generated package into one file. The types package of
 // a typed parser (types/types.go) joins the file too, with the references to it unqualified, so
 // that the fixtures of the tests name the types without importing the package.
-func MergeGenerated(files []gen.GeneratedFile) []byte {
-	var parts []gen.GeneratedFile
+func MergeGenerated(files []codegen.GeneratedFile) []byte {
+	var parts []codegen.GeneratedFile
 	for _, f := range files {
 		switch {
 		case f.Path == "types/types.go":
@@ -367,7 +367,7 @@ func MergeGenerated(files []gen.GeneratedFile) []byte {
 		type span struct{ lo, hi int }
 		var cut []span
 		for _, imp := range file.Imports {
-			if imp.Name != nil && imp.Name.Name == gengo.TypesAlias {
+			if imp.Name != nil && imp.Name.Name == gogen.TypesAlias {
 				continue
 			}
 			text := string(src[fset.Position(imp.Pos()).Offset:fset.Position(imp.End()).Offset])
@@ -415,7 +415,7 @@ func unqualifyTypes(src []byte) []byte {
 	var cuts [][2]int
 	goast.Inspect(file, func(n goast.Node) bool {
 		if sel, ok := n.(*goast.SelectorExpr); ok {
-			if id, ok := sel.X.(*goast.Ident); ok && id.Name == gengo.TypesAlias && id.Obj == nil {
+			if id, ok := sel.X.(*goast.Ident); ok && id.Name == gogen.TypesAlias && id.Obj == nil {
 				cuts = append(cuts, [2]int{fset.Position(id.Pos()).Offset, fset.Position(sel.Sel.Pos()).Offset})
 			}
 		}
@@ -457,7 +457,7 @@ func importRegion(rest []byte) (lo, hi int) {
 }
 
 // exportedNames returns the identifiers that testdata/export_names.txt lists. Fixtures that check
-// the internals of the runtime refer to them with the prefix X_.
+// the internals of the library refer to them with the prefix X_.
 func exportedNames() map[string]bool {
 	data, err := os.ReadFile(filepath.Join(moduleRoot(), "internal", "gentest", "testdata", "export_names.txt"))
 	if err != nil {
@@ -471,7 +471,7 @@ func exportedNames() map[string]bool {
 }
 
 // ExportNames renames the identifiers of src that exportedNames lists to X_name, which makes the
-// package-level declarations, fields and methods of the runtime copy reachable from the
+// package-level declarations, fields and methods of the library copy reachable from the
 // fixtures. The renaming is consistent within the package, so it does not change what the code does.
 func ExportNames(src []byte) []byte {
 	names := exportedNames()
@@ -497,9 +497,9 @@ func ExportNames(src []byte) []byte {
 	return out.Bytes()
 }
 
-// runtimeTestingShim is added to every runtime copy for the tests that set the options of a parse
+// libTestingShim is added to every library copy for the tests that set the options of a parse
 // directly.
-const runtimeTestingShim = `package runtime
+const libTestingShim = `package libgo
 
 import "context"
 

@@ -31,8 +31,8 @@ sharing alone.
 
 Evidence records: [090](../090-share-identical-generated-helpers.md).
 
-Source owners: [`gen.Generator literal registry`](../../../internal/gen/generator.go),
-[`TypeScript literal sharing selection`](../../../internal/gen/gents/generator.go).
+Source owners: [`codegen.Generator literal registry`](../../../internal/codegen/generator.go),
+[`TypeScript literal sharing selection`](../../../internal/codegen/ts/generator.go).
 
 The [comparison policy](../../design/records/024-optimization-mechanism-controls.md)
 distinguishes same-source controls, historical changes and full checkpoints.

@@ -73,7 +73,7 @@ error parity:
 
 ```sh
 export ZP_TYPED_LOCAL_LAYOUT_DIR=/tmp/zp-typed-local-layouts
-go test ./internal/gen/gengo -run '^TestGeneratedTypedLocalLayoutWorkloads$' -count=1
+go test ./internal/codegen/go -run '^TestGeneratedTypedLocalLayoutWorkloads$' -count=1
 ```
 
 Build each workload and route as a separate benchmark binary:

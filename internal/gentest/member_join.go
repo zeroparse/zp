@@ -36,7 +36,7 @@ func JoinMemberCases() []Case {
 }
 
 // TypedJoinMemberCases read a scalar field every member of the join declares with the same type
-// and every constructor sets, which the typed runtime can read back.
+// and every constructor sets, which the typed library can read back.
 func TypedJoinMemberCases() []Case {
 	rules := "type A = { F string; X int }\ntype C = { F string }\ntype S ~ A | C\n" +
 		"rule a = \"a\" => A{F: \"a\", X: 1}\nrule c = \"c\" => C{F: \"c\"}\nrule s S = a / c\n"

@@ -44,9 +44,9 @@ Evidence records: [087](../087-sparse-deferred-memo-seen-pages.md).
 Source owners: [`sparse memo
 selection`](../../../internal/engine/core/sparse_memo.go),
 [`memoTable.markSparseSeen`](../../../internal/engine/core/memo.go),
-[`UseSparseMemo`](../../../internal/gen/generator.go), [`generated
-sparse pages`](../../../runtime/runtime.go), [`TypeScript sparse
-seen pages`](../../../internal/gen/gents/tsrt/runtime.ts).
+[`UseSparseMemo`](../../../internal/codegen/generator.go), [`generated
+sparse pages`](../../../codegen/go/lib/lib.go), [`TypeScript sparse
+seen pages`](../../../codegen/ts/lib/lib.ts).
 
 The [comparison policy](../../design/records/024-optimization-mechanism-controls.md)
 distinguishes same-source controls, historical changes and full checkpoints.

@@ -29,8 +29,8 @@ more work and cannot isolate frame release.
 Evidence records: [048](../048-a-typed-runtime-for-parsevalue.md).
 
 Source owners: [`typed frame allocation and
-TParser.FreeFrame`](../../../runtime/typed.go), [`direct local
-captures`](../../../internal/gen/gengo/flowrule.go).
+TParser.FreeFrame`](../../../codegen/go/lib/typed.go), [`direct local
+captures`](../../../internal/codegen/go/flowrule.go).
 
 The [comparison policy](../../design/records/024-optimization-mechanism-controls.md)
 distinguishes same-source controls, historical changes and full checkpoints.

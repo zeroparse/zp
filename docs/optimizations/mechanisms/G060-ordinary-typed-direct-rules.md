@@ -33,10 +33,10 @@ unsupported rules.
 
 Evidence records: [060](../060-direct-rules-in-the-typed-runtime.md).
 
-Source owners: [`Generator.flowTypedRule`](../../../internal/gen/gengo/flow.go), [`typed framed body
-lowering`](../../../internal/gen/gengo/flowframe.go), [`GenOptions private
-typed controls`](../../../internal/gen/gengo/generator.go), [`runtime invocation
-ownership`](../../../runtime/typed.go).
+Source owners: [`Generator.flowTypedRule`](../../../internal/codegen/go/flow.go), [`typed framed body
+lowering`](../../../internal/codegen/go/flowframe.go), [`GenOptions private
+typed controls`](../../../internal/codegen/go/generator.go), [`runtime invocation
+ownership`](../../../codegen/go/lib/typed.go).
 
 The [comparison policy](../../design/records/024-optimization-mechanism-controls.md)
 distinguishes same-source controls, historical changes and full checkpoints.

@@ -7,7 +7,7 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
-	igen "zeroparse.dev/zp/internal/gen"
+	igen "zeroparse.dev/zp/internal/codegen"
 
 	"zeroparse.dev/zp/engine"
 )
@@ -340,9 +340,9 @@ func TestGen(t *testing.T) {
 	if _, err := runCLI(t, "", "gen", "-g", g, "-module", "example.com/kv", "-o", dir); err != nil {
 		t.Fatal(err)
 	}
-	for _, name := range []string{"parser.go", "api.go", filepath.Join("internal", "runtime", "runtime.go")} {
+	for _, name := range []string{"parser.go", "api.go", filepath.Join("internal", "libgo", "lib.go")} {
 		if _, err := os.Stat(filepath.Join(dir, name)); err != nil {
-			t.Errorf("embedded runtime mode did not write %s: %v", name, err)
+			t.Errorf("embedded library mode did not write %s: %v", name, err)
 		}
 	}
 	if data, err := os.ReadFile(filepath.Join(dir, "parser.go")); err != nil || !strings.HasPrefix(string(data), igen.Header()) {
@@ -446,8 +446,8 @@ func TestGenTypeScriptLimitControls(t *testing.T) {
 	if !strings.Contains(controlled, "CancellationSignal") || strings.Contains(controlled, "PlainParseOptions") {
 		t.Error("a parser generated with -limits has no limit controls")
 	}
-	if _, err := runGenTS(t, "-runtime", "only", "-limits"); err == nil || !strings.Contains(err.Error(), "-limits cannot be combined with -runtime only") {
-		t.Errorf("-runtime only -limits: %v", err)
+	if _, err := runGenTS(t, "-lib", "only", "-limits"); err == nil || !strings.Contains(err.Error(), "-limits cannot be combined with -lib only") {
+		t.Errorf("-lib only -limits: %v", err)
 	}
 }
 
@@ -458,7 +458,7 @@ func TestGenTypeScript(t *testing.T) {
 		t.Fatal(err)
 	}
 	out := readTS(t, dir, "parser.ts")
-	for _, want := range []string{igen.Header(), "export function parse(input: string | Uint8Array, unit?: Unit): ParseResult", `from "./runtime.ts"`} {
+	for _, want := range []string{igen.Header(), "export function parse(input: string | Uint8Array, unit?: Unit): ParseResult", `from "./lib.ts"`} {
 		if !strings.Contains(out, want) {
 			t.Errorf("missing %q", want)
 		}
@@ -466,8 +466,8 @@ func TestGenTypeScript(t *testing.T) {
 	if strings.Contains(out, "export function recognize(") {
 		t.Error("recognize generated without -recognize")
 	}
-	if rt := readTS(t, dir, "runtime.ts"); !strings.HasPrefix(rt, igen.HeaderPrefix) || !strings.Contains(rt, "export function mkGrammar(") {
-		t.Error("runtime.ts is not the runtime")
+	if rt := readTS(t, dir, "lib.ts"); !strings.HasPrefix(rt, igen.HeaderPrefix) || !strings.Contains(rt, "export function mkGrammar(") {
+		t.Error("lib.ts is not the library")
 	}
 	if _, err := os.Stat(filepath.Join(dir, "types.ts")); err == nil {
 		t.Error("types.ts generated without -types")
@@ -728,7 +728,7 @@ rule main = "a"`)
 	if err != nil {
 		t.Fatalf("TypeScript trace generation: %v", err)
 	}
-	if out := readTS(t, dir, "runtime.ts", "parser.ts"); !strings.Contains(out, "export interface TraceEvent") || !strings.Contains(out, "export function parseValueWithOptions(") || !strings.Contains(out, "mkGrammar(100000, false, true, false)") {
+	if out := readTS(t, dir, "lib.ts", "parser.ts"); !strings.Contains(out, "export interface TraceEvent") || !strings.Contains(out, "export function parseValueWithOptions(") || !strings.Contains(out, "mkGrammar(100000, false, true, false)") {
 		t.Fatalf("TypeScript trace generation: missing trace declarations\n%s", out)
 	}
 	for _, flags := range [][]string{{"-document"}, {"-types", "-document"}} {

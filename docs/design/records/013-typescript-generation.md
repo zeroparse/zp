@@ -7,21 +7,21 @@
 ## Summary
 
 Generate TypeScript modules for a parser, without dependencies, from a grammar (`zp gen -lang ts`,
-`gen.TypeScript.Generate`). They return the same trees and errors as the engine and the generated Go parsers
-([008](008-code-generation.md)). The runtime is a module of its own, `runtime.ts`, the same for every grammar; the
+`codegen.TypeScript.Generate`). They return the same trees and errors as the engine and the generated Go parsers
+([008](008-code-generation.md)). The runtime is a module of its own, `lib.ts`, the same for every grammar; the
 parser of the grammar is `parser.ts`, and its types (`-types`) are `types.ts`.
 
 ## Design
 
 ### The Same Generator, Another Runtime
 
-The TypeScript generator (`internal/gen/gents/generator.go`) is the Go generator with a different output: it compiles the
+The TypeScript generator (`internal/codegen/ts/generator.go`) is the Go generator with a different output: it compiles the
 grammar with the engine, walks the same analysis results (memoized rules, left-recursion leaders, value-free twins,
 plain rules, projected repetitions, first-character dispatch, the recognizer) and emits a function per parsing
 expression and a function per action and predicate. It shares the expectation table, the naming and `first` with the
-Go generator (both embed `gen.Generator`).
+Go generator (both embed `codegen.Generator`).
 
-The runtime, `internal/gen/gents/tsrt/runtime.ts`, is a port of `runtime/runtime.go`, function for function: rule calls with
+The runtime, `codegen/ts/lib/lib.ts`, is a port of `codegen/go/lib/lib.go`, function for function: rule calls with
 deferred memoization (`firstCall`, with the per-rule eager switch), left recursion by growing the seed, memo entries
 keyed by variable values, expectation records isolated in memoized calls and kept for reuse, captures with frames and
 the trail, `attachCaptures` and `finish`, `@error` and `#recover`, the Operators Rule loop, and every built-in function including
@@ -30,9 +30,9 @@ catches what is not.
 
 | Part | Contents |
 |:--|:--|
-| `runtime.ts` | `tsrt/runtime.ts` after its `--- Runtime ---` line, with the invocation budget controls, tracing and profiling (`budget.ts`, `trace.ts`, `profile.ts`). The same for every grammar and every option, so that one copy can be shared (`-runtime import`). It type-checks on its own. Every top-level declaration is exported. |
+| `lib.ts` | `codegen/ts/lib/lib.ts` after its `--- Runtime ---` line, with the invocation budget controls, tracing and profiling (`budget.ts`, `trace.ts`, `profile.ts`). The same for every grammar and every option, so that one copy can be shared (`-lib import`). It type-checks on its own. Every top-level declaration is exported. |
 | `types.ts` | With `-types`: the declarations of the grammar's types. |
-| `parser.ts` | The parts below, importing `./runtime.ts` (or the module of `-runtime-module`) and `./types.ts`, and re-exporting the names a user needs (`Node`, `SyntaxError`, `marshal`, ...). |
+| `parser.ts` | The parts below, importing `./lib.ts` (or the module of `-lib-module`) and `./types.ts`, and re-exporting the names a user needs (`Node`, `SyntaxError`, `marshal`, ...). |
 | Rule table | A constant per rule (`R0`, `R1`, ...; `Q0`, ... for the recognizer) with the engine's analysis results, and the table `rules` for `parseRule` |
 | Parser expressions | One function per expression; literals, `.`, anchors and rule calls are called inline |
 | Actions and predicates | A function each, of TypeScript expressions; lambdas become arrow functions |
@@ -40,10 +40,10 @@ catches what is not.
 
 ### Files, Modules and Observation
 
-`parser.ts` imports `runtime.ts` with the specifier `./runtime.ts`, the file's own name, which Node.js (type stripping),
+`parser.ts` imports `lib.ts` with the specifier `./lib.ts`, the file's own name, which Node.js (type stripping),
 Deno, Bun and bundlers resolve as it is. `tsc` needs `allowImportingTsExtensions` to check it and
-`rewriteRelativeImportExtensions` (TypeScript 5.7 and later) to emit `.js` specifiers. A parser generated with `-runtime import` imports the
-module of `-runtime-module` instead, so that several parsers share one runtime (and one `Node` class). ES import
+`rewriteRelativeImportExtensions` (TypeScript 5.7 and later) to emit `.js` specifiers. A parser generated with `-lib import` imports the
+module of `-lib-module` instead, so that several parsers share one runtime (and one `Node` class). ES import
 bindings are read-only, so the data of a grammar (rule descriptors, source information, initial variables, the
 depth default, the sparse-memo choice and whether the parser is observable) lives in a `Grammar` object that
 `parser.ts` creates with `mkGrammar` and passes to `run`, the runtime's entry point; the runtime itself holds no
@@ -101,9 +101,9 @@ The runtime hides each difference, so that results are the engine's, not merely 
 has both a tree and errors, as Go's `(node, err)` does. Errors are `SyntaxError` and `SyntaxErrors` (subclasses of
 `Error`, whose `message` is Go's `Error()`), or a plain `Error` for runtime errors in actions and too deep nesting.
 
-`gen.TypeScript` is a configuration of its own rather than a setting of `gen.Go`: TypeScript needs no Go module or
-package name and has its own `RuntimeModule`. Settings both languages have, such as `Recognize`, are fields of both,
-and both implement `gen.Generator`. The initial TypeScript implementation rejected `Types`; typed conversion was added later
+`codegen.TypeScript` is a configuration of its own rather than a setting of `codegen.Go`: TypeScript needs no Go module or
+package name and has its own `LibModule`. Settings both languages have, such as `Recognize`, are fields of both,
+and both implement `codegen.Generator`. The initial TypeScript implementation rejected `Types`; typed conversion was added later
 (see [design 030](030-typed-typescript-values.md)). The command keeps one `gen` command with `-lang go|ts`.
 
 The module uses only erasable TypeScript (no enums, namespaces or parameter properties), so Node.js, Deno and Bun run it
@@ -111,7 +111,7 @@ without a build step, and only the ES2020 library (for `BigInt`), so it needs no
 
 ### Verifying Identical Behavior
 
-`TestGeneratedTSParsersMatchEngine` (`internal/gen/gents/gents_test.go`) generates a module for every grammar of the
+`TestGeneratedTSParsersMatchEngine` (`internal/codegen/ts/gents_test.go`) generates a module for every grammar of the
 corpus of the Go generator's test (the grammars of `internal/gentest`, its `testdata/typed` and `examples/`), plus a grammar of ints
 and strings that exercises wrapping, big ints, negative division and code-point comparison, and the nested-parentheses
 grammar exactly at and beyond the nesting limit. Node.js runs every input in both units, as bytes and (when valid UTF-8)

@@ -9,9 +9,9 @@ import (
 	"sync"
 	"testing"
 
+	"zeroparse.dev/zp/codegen"
 	"zeroparse.dev/zp/core"
 	"zeroparse.dev/zp/engine"
-	"zeroparse.dev/zp/gen"
 	iengine "zeroparse.dev/zp/internal/engine"
 )
 
@@ -132,10 +132,10 @@ func TestMissingTokensUnsupportedPublicPaths(t *testing.T) {
 	if _, err := p.MarshalBinary(); err == nil {
 		t.Fatal("binary serialization silently discarded #missing")
 	}
-	if _, err := (gen.Go{Module: "example"}).Generate(p.Grammar(), "main"); err == nil {
+	if _, err := (codegen.Go{Module: "example"}).Generate(p.Grammar(), "main"); err == nil {
 		t.Fatal("Go generator silently discarded #missing")
 	}
-	if _, err := (gen.TypeScript{}).Generate(p.Grammar(), "main"); err == nil {
+	if _, err := (codegen.TypeScript{}).Generate(p.Grammar(), "main"); err == nil {
 		t.Fatal("TS generator silently discarded #missing")
 	}
 	strict, err := compileTestSource(`rule main = ";" $$`, "main")

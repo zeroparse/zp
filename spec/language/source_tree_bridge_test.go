@@ -8,12 +8,12 @@ import (
 	"strings"
 	"testing"
 
+	rt "zeroparse.dev/zp/codegen/go/lib"
 	"zeroparse.dev/zp/core"
 	"zeroparse.dev/zp/engine"
 	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/syntax"
 	"zeroparse.dev/zp/internal/syntax/genparser/types"
-	rt "zeroparse.dev/zp/runtime"
 )
 
 // The adapter reads the typed values of the generated parser of zp.zp. A

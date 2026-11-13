@@ -14,23 +14,23 @@ const optimizeGrammar = "@start\nrule main = (word / num / -\" \")* $$\nrule wor
 // is turned off changes the parser, and every unknown name is a usage error that names the valid ones.
 func TestGenOptimize(t *testing.T) {
 	g := writeFile(t, "opt.zp", optimizeGrammar)
-	def, err := runGenGo(t, "-g", g, "-types", "-typed-only", "-runtime", "import")
+	def, err := runGenGo(t, "-g", g, "-types", "-typed-only", "-lib", "import")
 	if err != nil {
 		t.Fatal(err)
 	}
-	speed, err := runGenGo(t, "-g", g, "-types", "-typed-only", "-runtime", "import", "-optimize", "speed")
+	speed, err := runGenGo(t, "-g", g, "-types", "-typed-only", "-lib", "import", "-optimize", "speed")
 	if err != nil || speed != def {
 		t.Fatalf("-optimize speed differs from the default: %v", err)
 	}
-	spaced, err := runGenGo(t, "-g", g, "-types", "-typed-only", "-runtime", "import", "-no-opt", "guards, scans")
+	spaced, err := runGenGo(t, "-g", g, "-types", "-typed-only", "-lib", "import", "-no-opt", "guards, scans")
 	if err != nil {
 		t.Fatalf("-no-opt with spaces after the comma: %v", err)
 	}
-	if plain, err := runGenGo(t, "-g", g, "-types", "-typed-only", "-runtime", "import", "-no-opt", "guards,scans"); err != nil || plain != spaced {
+	if plain, err := runGenGo(t, "-g", g, "-types", "-typed-only", "-lib", "import", "-no-opt", "guards,scans"); err != nil || plain != spaced {
 		t.Errorf("-no-opt \"guards, scans\" differs from \"guards,scans\": %v", err)
 	}
 	for _, name := range []string{"guards", "scans", "class-runs", "guards,scans"} {
-		without, err := runGenGo(t, "-g", g, "-types", "-typed-only", "-runtime", "import", "-no-opt", name)
+		without, err := runGenGo(t, "-g", g, "-types", "-typed-only", "-lib", "import", "-no-opt", name)
 		if err != nil {
 			t.Fatalf("-no-opt %s: %v", name, err)
 		}
@@ -52,11 +52,11 @@ func TestGenOptimize(t *testing.T) {
 			t.Errorf("%v: %v, want an error with %q", c.args, err, c.want)
 		}
 	}
-	// The generation options do not apply to the runtime alone.
+	// The generation options do not apply to the library alone.
 	for _, name := range []string{"-optimize", "-no-opt", "-print-after"} {
-		_, err := runCLI(t, "", "gen", "-runtime", "only", "-o", t.TempDir(), name, "speed")
-		if err == nil || !strings.Contains(err.Error(), "cannot be combined with -runtime only") {
-			t.Errorf("%s with -runtime only: %v", name, err)
+		_, err := runCLI(t, "", "gen", "-lib", "only", "-o", t.TempDir(), name, "speed")
+		if err == nil || !strings.Contains(err.Error(), "cannot be combined with -lib only") {
+			t.Errorf("%s with -lib only: %v", name, err)
 		}
 	}
 }
@@ -72,7 +72,7 @@ func TestGenPrintAfter(t *testing.T) {
 		old := genDiagnostics
 		genDiagnostics = &out
 		defer func() { genDiagnostics = old }()
-		if _, err := runGenGo(t, append([]string{"-g", g, "-types", "-typed-only", "-runtime", "import", "-print-after", list}, extra...)...); err != nil {
+		if _, err := runGenGo(t, append([]string{"-g", g, "-types", "-typed-only", "-lib", "import", "-print-after", list}, extra...)...); err != nil {
 			t.Fatal(err)
 		}
 		return out.String()
@@ -122,7 +122,7 @@ func TestGenPrintAfter(t *testing.T) {
 // not take are usage errors.
 func TestGenOpt(t *testing.T) {
 	g := writeFile(t, "opt.zp", optimizeGrammar)
-	base := []string{"-g", g, "-types", "-typed-only", "-runtime", "import"}
+	base := []string{"-g", g, "-types", "-typed-only", "-lib", "import"}
 	gen := func(extra ...string) string {
 		t.Helper()
 		out, err := runGenGo(t, append(append([]string{}, base...), extra...)...)
@@ -169,9 +169,9 @@ func TestGenOpt(t *testing.T) {
 			t.Errorf("%v: %v, want an error with %q", c.args, err, c.want)
 		}
 	}
-	_, err := runCLI(t, "", "gen", "-runtime", "only", "-o", t.TempDir(), "-opt", "guards")
-	if err == nil || !strings.Contains(err.Error(), "cannot be combined with -runtime only") {
-		t.Errorf("-opt with -runtime only: %v", err)
+	_, err := runCLI(t, "", "gen", "-lib", "only", "-o", t.TempDir(), "-opt", "guards")
+	if err == nil || !strings.Contains(err.Error(), "cannot be combined with -lib only") {
+		t.Errorf("-opt with -lib only: %v", err)
 	}
 }
 

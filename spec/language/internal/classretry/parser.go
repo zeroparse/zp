@@ -4,8 +4,8 @@
 package classretry
 
 import (
+	rt "zeroparse.dev/zp/codegen/go/lib"
 	"zeroparse.dev/zp/core"
-	rt "zeroparse.dev/zp/runtime"
 )
 
 // Parse parses the whole input with the rule main. Options select position units, depth, cancellation and compute limits.
@@ -232,4 +232,4 @@ func r1(p *rt.Parser) (*core.Node, bool) {
 	return v, ok
 }
 
-const _ = rt.Protocol14
+const _ = rt.Protocol15

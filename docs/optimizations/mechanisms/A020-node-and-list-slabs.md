@@ -36,7 +36,7 @@ Evidence records:
 
 Source owners: [`parser.newNode, nodes, fields and
 kids`](../../../internal/engine/core/runtime.go), [`generated ptrSlab and node/list
-allocation`](../../../runtime/runtime.go).
+allocation`](../../../codegen/go/lib/lib.go).
 
 The [comparison policy](../../design/records/024-optimization-mechanism-controls.md)
 distinguishes same-source controls, historical changes and full checkpoints.

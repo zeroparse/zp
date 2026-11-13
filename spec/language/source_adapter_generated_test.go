@@ -10,10 +10,10 @@ import (
 
 	"zeroparse.dev/zp/core"
 	"zeroparse.dev/zp/grammar"
+	"zeroparse.dev/zp/internal/codegen"
 	"zeroparse.dev/zp/internal/compile"
 	"zeroparse.dev/zp/internal/compiletest"
 	"zeroparse.dev/zp/internal/engine"
-	"zeroparse.dev/zp/internal/gen"
 	"zeroparse.dev/zp/internal/gentest"
 )
 
@@ -75,7 +75,7 @@ func TestGeneratedSourceParserMatchesEngine(t *testing.T) {
 	// comparison must notice.
 	t.Run("control", func(t *testing.T) {
 		hits := 0
-		got := gentest.GeneratedParsersMismatches(t, goBin, cases, gen.GenOptions{}, func(code []byte) []byte {
+		got := gentest.GeneratedParsersMismatches(t, goBin, cases, codegen.GenOptions{}, func(code []byte) []byte {
 			changed, n := ruleNameFromExpr(string(code))
 			hits += n
 			return []byte(changed)
@@ -87,8 +87,10 @@ func TestGeneratedSourceParserMatchesEngine(t *testing.T) {
 			t.Errorf("the comparison does not notice a changed rule name (%d changes)", hits)
 		}
 	})
-	t.Run("values", func(t *testing.T) { gentest.GeneratedParsersCorpus(t, goBin, cases, gen.GenOptions{}) })
-	t.Run("source info", func(t *testing.T) { gentest.GeneratedParsersCorpus(t, goBin, cases, gen.GenOptions{SourceInfo: true}) })
+	t.Run("values", func(t *testing.T) { gentest.GeneratedParsersCorpus(t, goBin, cases, codegen.GenOptions{}) })
+	t.Run("source info", func(t *testing.T) {
+		gentest.GeneratedParsersCorpus(t, goBin, cases, codegen.GenOptions{SourceInfo: true})
+	})
 }
 
 // ruleNameFromExpr changes the action of the generated parser that makes a RuleDef so that it reads

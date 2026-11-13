@@ -36,7 +36,7 @@ Evidence records:
 
 Source owners: [`Flow literal comparison
 lowering`](../../../internal/ir/flow/lower/lower.go),
-[`parser.matchLiteral`](../../../runtime/runtime.go).
+[`parser.matchLiteral`](../../../codegen/go/lib/lib.go).
 
 The [comparison policy](../../design/records/024-optimization-mechanism-controls.md)
 distinguishes same-source controls, historical changes and full checkpoints.

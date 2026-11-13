@@ -74,7 +74,7 @@ source:
 | `RecognizeOnly()` with `WithTrace` or `WithProfile` | Error in every mode: traced or profiled recognition needs the grammar source |
 | `Parser.Grammar()` | `nil` |
 | `OutputSchema` | An error matching `ErrSchemaUnavailable`: the schema is exported from the grammar source |
-| `lint.Config.Run`, `gen.Go.Generate`, `gen.TypeScript.Generate`, `sample.New` | Need `Parser.Grammar()`, so they do not take a loaded parser |
+| `lint.Config.Run`, `codegen.Go.Generate`, `codegen.TypeScript.Generate`, `sample.New` | Need `Parser.Grammar()`, so they do not take a loaded parser |
 | `zp convert`, `zp gen`, `zp lint`, `zp sample`, `zp schema` | Error: the command needs the grammar source (`.zp` or `.json`) |
 
 ### Re-Saving

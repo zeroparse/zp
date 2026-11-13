@@ -45,7 +45,7 @@ func TestProcessTermTestsKillArithmeticMutants(t *testing.T) {
 			if err := os.WriteFile(overlayFile, overlay, 0o644); err != nil {
 				t.Fatal(err)
 			}
-			cmd := exec.Command("go", "test", "-count=1", "-overlay", overlayFile, "-run", "^TestTermReferenceEvaluator$", "./internal/gen")
+			cmd := exec.Command("go", "test", "-count=1", "-overlay", overlayFile, "-run", "^TestTermReferenceEvaluator$", "./internal/codegen")
 			cmd.Dir = root
 			cmd.Env = append(os.Environ(), "GOFLAGS=")
 			out, err := cmd.CombinedOutput()

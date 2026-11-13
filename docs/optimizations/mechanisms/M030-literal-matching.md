@@ -35,8 +35,8 @@ Evidence records:
 [032](../032-matching-literals-against-loaded-input-in-one-loop.md).
 
 Source owners: [`parser.matchLiteral`](../../../internal/engine/core/input.go),
-[`generated literal matcher`](../../../runtime/runtime.go),
-[`TypeScript literal matcher`](../../../internal/gen/gents/tsrt/runtime.ts).
+[`generated literal matcher`](../../../codegen/go/lib/lib.go),
+[`TypeScript literal matcher`](../../../codegen/ts/lib/lib.ts).
 
 The [comparison policy](../../design/records/024-optimization-mechanism-controls.md)
 distinguishes same-source controls, historical changes and full checkpoints.

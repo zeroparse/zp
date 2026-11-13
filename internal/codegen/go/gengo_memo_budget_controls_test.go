@@ -1,0 +1,210 @@
+package gogen_test
+
+import (
+	"fmt"
+	"os"
+	"os/exec"
+	"path/filepath"
+	"strings"
+	"testing"
+
+	"zeroparse.dev/zp/internal/codegen"
+	"zeroparse.dev/zp/internal/gentest"
+)
+
+func TestGeneratedGoMemoEnvironmentBudget(t *testing.T) {
+	t.Parallel()
+	gentest.NeedsBudgetControls(t)
+	if testing.Short() {
+		t.Skip("builds generated memo/environment consumers")
+	}
+	source := `type Word = { Text string }
+
+var v string
+rule main Word = t:({v := "a"} &word {v := "b"} word / {v := "b"} word) #atomic => Word{Text: text($t)}
+
+rule word Word = t:(x:[a-z]+ #atomic {text($x) == v}) => Word{Text: text($t)}`
+	// Each helper has a callee and two references, making more than 64
+	// rules eligible for deferred memoization in the emitted runtime.
+	var alternatives []string
+	for i := 0; i < 70; i++ {
+		name := fmt.Sprintf("spare%d", i)
+		source += "\nrule " + name + " Word = word"
+		alternatives = append(alternatives, name, name)
+	}
+	source += "\nrule spare_root Word = " + strings.Join(alternatives, " / ")
+	g, err := parseTest(source)
+	if err != nil {
+		t.Fatal(err)
+	}
+	dir := t.TempDir()
+	if err := os.WriteFile(filepath.Join(dir, "go.mod"), []byte(gentest.GoMod("memofixture")), 0644); err != nil {
+		t.Fatal(err)
+	}
+	pkg := "memo"
+	code, err := gentest.GenerateCode(t, g, codegen.GenOptions{Package: pkg, Start: "main", Types: true, Recognize: true})
+	if err != nil {
+		t.Fatal(err)
+	}
+	path := filepath.Join(dir, pkg)
+	if err := os.Mkdir(path, 0755); err != nil {
+		t.Fatal(err)
+	}
+	fixture := strings.NewReplacer("PACKAGE", pkg).Replace(generatedGoMemoConsumer)
+	for name, data := range map[string][]byte{"parser.go": code, "memo_test.go": []byte(fixture)} {
+		if err := os.WriteFile(filepath.Join(path, name), data, 0644); err != nil {
+			t.Fatal(err)
+		}
+	}
+	cmd := exec.Command("go", "test", "-count=1", "./...")
+	cmd.Dir = dir
+	if out, err := cmd.CombinedOutput(); err != nil {
+		t.Fatalf("generated memo/env accounting: %v\n%s", err, out)
+	}
+}
+
+const generatedGoMemoConsumer = `package PACKAGE
+
+import zprt "zeroparse.dev/zp/codegen/go/lib"
+import("context";"errors";"fmt";"reflect";"strings";"testing")
+func catchMemoFatal(f func())(err error){defer func(){if x:=recover();x!=nil{v,ok:=x.(zprt.X_fatal);if !ok{panic(x)};err=v.X_err}}();f();return nil}
+func makeEnvParser(limit uint64)*zprt.Parser{
+ p:=&zprt.Parser{Control:zprt.X_newBudgetControl(nil,Limits{Compute:limit})}
+ vals:=make([]any,300);for i:=range vals{vals[i]=i}
+ p.X_envDepth=zprt.X_envDepthOf(300);p.Env=zprt.X_newEnv(vals,p.X_envDepth)
+ return p
+}
+func TestEnvironmentWalksAndAtomicBind(t *testing.T){
+ for _,run:=range []struct{name string;f func(*zprt.Parser)}{
+  {"key",func(p *zprt.Parser){p.X_envValues([]int{0})}},
+  {"lookup",func(p *zprt.Parser){(&zprt.ActCtx{P:p}).Var(0)}},
+  {"typed lookup",func(p *zprt.Parser){(&zprt.TActCtx{P:&zprt.TParser{Parser:p}}).Var(0)}},
+  {"bind",func(p *zprt.Parser){p.X_bind(0,777)}},
+ }{
+  // A key, a read and a bind each need more than two units: the levels of a 300-variable
+  // environment are charged.
+  p:=makeEnvParser(2);head:=p.Env;before:=append([]any(nil),head.X_vals...)
+  if err:=catchMemoFatal(func(){run.f(p)});!errors.Is(err,ErrLimit){t.Errorf("%s unbounded: %T",run.name,err)}
+  if p.Env!=head{t.Fatal("partial environment published")}
+  for i,v:=range before{if head.X_vals[i]!=v{t.Fatal("partial environment published")}}
+  p.Control=zprt.X_newBudgetControl(nil,Limits{Compute:100000});run.f(p)
+  saved:=&zprt.Parser{Env:head,X_envDepth:p.X_envDepth}
+  if run.name=="bind" {if (&zprt.ActCtx{P:p}).Var(0)!=777 || saved.X_variable(0)!=0{t.Fatal("binding changed saved environment")}} else {if (&zprt.ActCtx{P:p}).Var(0)!=0{t.Fatal("lookup retry")}}
+ }
+}
+func TestNodeMemoLookupWalk(t *testing.T){
+ tail:=&zprt.X_memoEntry{X_rule:7,X_node:func()*Node{n:=new(Node);zprt.D(n).Text="kept";return n}(),X_ok:true}
+ head:=tail;for i:=0;i<300;i++{head=&zprt.X_memoEntry{X_rule:8,X_next:head}}
+ p:=&zprt.Parser{Control:zprt.X_newBudgetControl(nil,Limits{Compute:32})};p.X_memo.X_slots=[]*zprt.X_memoEntry{head}
+ r:=&zprt.Rule{Id:7,Seen:-1,Memo:true}
+ var got *Node
+ err:=catchMemoFatal(func(){got,_=p.Call(r,0)})
+ if !errors.Is(err,ErrLimit)||got!=nil{t.Errorf("Node memo chain unbounded: value=%T error=%T",got,err)}
+ if p.X_memo.X_slots[0]!=head || tail.X_next!=nil{t.Fatal("lookup changed table")}
+ p.Control=zprt.X_newBudgetControl(nil,Limits{Compute:100000})
+ got,ok:=p.Call(r,0);if !ok||got!=tail.X_node{t.Fatal("memo retry")}
+}
+func TestTypedMemoWalksAndAtomicReplacement(t *testing.T){
+ tail:=&zprt.X_tmemoEntry{X_rule:7,X_val:"kept",X_ok:true}
+ head:=tail;for i:=0;i<300;i++{head=&zprt.X_tmemoEntry{X_rule:8,X_next:head}}
+ for _,put:=range []bool{false,true}{
+  p:=&zprt.TParser{Parser:&zprt.Parser{Control:zprt.X_newBudgetControl(nil,Limits{Compute:32})},X_memoSlots:[]*zprt.X_tmemoEntry{head}}
+  replacement:=&zprt.X_tmemoEntry{X_rule:-1,X_val:"replacement",X_ok:true}
+  err:=catchMemoFatal(func(){if put{p.X_memoPut(7,0,0,nil,false,replacement)}else{p.X_memoGet(7,0,0,nil,false)}})
+  if !errors.Is(err,ErrLimit){t.Errorf("typed memo put=%v unbounded: %T",put,err)}
+  if p.X_memoSlots[0]!=head || tail.X_next!=nil || replacement.X_rule!=-1{t.Fatal("partial replacement published")}
+  p.Control=zprt.X_newBudgetControl(nil,Limits{Compute:100000})
+  if put{p.X_memoPut(7,0,0,nil,false,replacement);if p.X_memoGet(7,0,0,nil,false)!=replacement{t.Fatal("typed put retry")}}else{if p.X_memoGet(7,0,0,nil,false)!=tail{t.Fatal("typed read retry")}}
+ }
+}
+func TestMemoKeysAndStorage(t *testing.T){
+ for _,typed:=range []bool{false,true}{
+  p:=&zprt.Parser{Control:zprt.X_newBudgetControl(nil,Limits{Compute:100000})};tp:=&zprt.TParser{Parser:p}
+  get:=func(key []any)any{if typed{return tp.X_memoGet(7,0,0,key,false)};return p.X_memoGet(7,0,0,key,false)}
+  put:=func(key []any)any{if typed{e:=&zprt.X_tmemoEntry{};tp.X_memoPut(7,0,0,key,false,e);return e};e:=&zprt.X_memoEntry{};p.X_memoPut(7,0,0,key,false,e);return e}
+  var typedNil *Node
+  entry:=put([]any{typedNil})
+  if !reflect.ValueOf(get([]any{nil})).IsNil() || get([]any{typedNil})!=entry{t.Fatal("typed nil key equality changed")}
+  empty:=put([]any{})
+  if get(nil)!=empty{t.Fatal("nil/empty key equality changed")}
+  key:=make([]any,400);for i:=range key{key[i]=i}
+  entry=put(key);p.Control=zprt.X_newBudgetControl(nil,Limits{Compute:32})
+  err:=catchMemoFatal(func(){get(key)})
+  if !errors.Is(err,ErrLimit){t.Fatal("long key not bounded",err)}
+  p.Control=zprt.X_newBudgetControl(nil,Limits{Compute:100000});if get(key)!=entry{t.Fatal("long key retry")}
+  long:=strings.Repeat("prefix",600);entry=put([]any{long+"x"})
+  p.Control=zprt.X_newBudgetControl(nil,Limits{Compute:32})
+  if err:=catchMemoFatal(func(){get([]any{long+"y"})});!errors.Is(err,ErrLimit){t.Fatal("string key comparison unbounded",err)}
+ }
+ for _,typed:=range []bool{false,true}{
+  p:=&zprt.Parser{Control:zprt.X_newBudgetControl(nil,Limits{Compute:129})}
+  nodeOriginal:=&zprt.X_memoEntry{X_rule:3};nodeReplacement:=&zprt.X_memoEntry{X_rule:-1}
+  p.X_memo.X_slots=make([]*zprt.X_memoEntry,300);p.X_memo.X_slots[0]=nodeOriginal
+  typedOriginal:=&zprt.X_tmemoEntry{X_rule:3};typedReplacement:=&zprt.X_tmemoEntry{X_rule:-1}
+  tp:=&zprt.TParser{Parser:p,X_memoSlots:make([]*zprt.X_tmemoEntry,300)};tp.X_memoSlots[0]=typedOriginal
+  put:=func(){if typed{tp.X_memoPut(7,600,0,nil,false,typedReplacement)}else{p.X_memoPut(7,600,0,nil,false,nodeReplacement)}}
+  err:=catchMemoFatal(put)
+  if !errors.Is(err,ErrLimit){t.Fatal("slot copy unbounded",err)}
+  if len(p.X_memo.X_slots)!=300 || p.X_memo.X_slots[0]!=nodeOriginal || nodeReplacement.X_rule!=-1 || len(tp.X_memoSlots)!=300 || tp.X_memoSlots[0]!=typedOriginal || typedReplacement.X_rule!=-1{t.Fatal("partial slot growth published")}
+  p.Control=zprt.X_newBudgetControl(nil,Limits{Compute:100000});put()
+  if typed{tp.X_memoPut(7,600,0,nil,false,typedReplacement);if tp.X_memoGet(7,600,0,nil,false)!=typedReplacement || typedReplacement.X_next!=nil{t.Fatal("typed self replacement changed")}}else{p.X_memoPut(7,600,0,nil,false,nodeReplacement);if p.X_memoGet(7,600,0,nil,false)!=nodeReplacement || nodeReplacement.X_next!=nil{t.Fatal("Node self replacement changed")}}
+ }
+}
+func TestFirstCallStoragePublication(t *testing.T){
+ for _,reuse:=range []bool{false,true}{
+  p:=&zprt.Parser{Pos:64000,Control:zprt.X_newBudgetControl(nil,Limits{Compute:129})}
+  p.X_memo.X_stride=1;p.X_memo.X_calls=[]zprt.X_seenCalls{{X_calls:17,X_repeats:1}}
+  if reuse{p.X_memo.X_seen=make([]uint64,0,2048);for i:=range p.X_memo.X_seen[:cap(p.X_memo.X_seen)]{p.X_memo.X_seen[:cap(p.X_memo.X_seen)][i]=^uint64(0)}}else{p.X_memo.X_seen=make([]uint64,512)}
+  oldLen:=len(p.X_memo.X_seen);before:=p.X_memo.X_calls[0]
+  r:=&zprt.Rule{Seen:0}
+  err:=catchMemoFatal(func(){p.FirstCall(r)})
+  if !errors.Is(err,ErrLimit){t.Fatal("seen growth not bounded",err)}
+  if len(p.X_memo.X_seen)!=oldLen || p.X_memo.X_calls[0]!=before{t.Fatal("partial estimator published")}
+  p.Control=zprt.X_newBudgetControl(nil,Limits{Compute:100000})
+  if !p.FirstCall(r) || p.X_memo.X_calls[0].X_calls!=18{t.Fatal("first call retry changed")}
+  if p.X_memo.X_seen[0]!=0 || p.X_memo.X_seen[1000]!=1{t.Fatal("reused unseen words were not zeroed before stamping")}
+  if p.FirstCall(r){t.Fatal("repeated call deferred again")}
+ }
+}
+func TestMemoCancellation(t *testing.T){
+ p:=makeEnvParser(100000);ctx,cancel:=context.WithCancel(context.Background());cancel();p.Control=zprt.X_newBudgetControl(ctx,Limits{})
+ before:=p.Env
+ p.Control.Charge(254) // the next units reach the poll
+ if err:=catchMemoFatal(func(){p.X_bind(0,999)});!errors.Is(err,context.Canceled){t.Fatal("environment cancellation",err)}
+ if p.Env!=before{t.Fatal("cancelled bind published")}
+ tail:=&zprt.X_memoEntry{X_rule:7};head:=tail;for i:=0;i<600;i++{head=&zprt.X_memoEntry{X_rule:8,X_next:head}}
+ p=&zprt.Parser{Control:zprt.X_newBudgetControl(ctx,Limits{})};p.X_memo.X_slots=[]*zprt.X_memoEntry{head}
+ if err:=catchMemoFatal(func(){p.X_memoGet(7,0,0,nil,false)});!errors.Is(err,context.Canceled){t.Fatal("memo cancellation",err)}
+ if p.X_memo.X_slots[0]!=head{t.Fatal("cancelled lookup mutated table")}
+}
+
+func TestSparseFirstCallInterruptionAndRetry(t *testing.T){
+ if zpGrammar.X_nseen<=64{t.Fatal("sparse interruption fixture has too few seen rules for sparse tracking")}
+ for _,at:=range []int{600,1200}{
+  p:=&zprt.Parser{Pos:at*1024,Control:zprt.X_newBudgetControl(nil,Limits{Compute:129})}
+  p.X_memo.X_stride=65;p.X_memo.X_sparse=true;p.X_memo.X_calls=make([]zprt.X_seenCalls,65)
+  p.X_memo.X_calls[0]=zprt.X_seenCalls{X_calls:17,X_repeats:1}
+  p.X_memo.X_pages=make([]zprt.X_seenRulePages,65)
+  pages:=make([]*[16]uint64,300)
+  retained:=&[16]uint64{7};pages[0]=retained
+  p.X_memo.X_pages[0]=zprt.X_seenRulePages{X_pages:pages,X_last:retained,X_at:0}
+  before:=p.X_memo.X_calls[0];r:=&zprt.Rule{Seen:0}
+  if err:=catchMemoFatal(func(){p.FirstCall(r)});!errors.Is(err,ErrLimit){t.Fatal("sparse directory copy was not interrupted",err)}
+  if p.X_memo.X_calls[0]!=before || len(p.X_memo.X_pages[0].X_pages)!=300 || p.X_memo.X_pages[0].X_pages[0]!=retained || retained[0]!=7{t.Fatal("partial sparse directory or estimator published")}
+  if len(p.X_memo.X_seen)!=0{t.Fatal("sparse invocation allocated a dense table")}
+  p.Control=zprt.X_newBudgetControl(nil,Limits{Compute:100000})
+  if !p.FirstCall(r) || p.X_memo.X_calls[0].X_calls!=18 || p.FirstCall(r){t.Fatal("sparse retry or repeat detection changed")}
+  if p.X_memo.X_pages[0].X_pages[0]!=retained || retained[0]!=7 || len(p.X_memo.X_seen)!=0{t.Fatal("sparse retry corrupted earlier pages or allocated dense storage")}
+ }
+}
+
+func TestPublicEnvironmentParity(t *testing.T){
+ for _,unit:=range []PositionUnit{Bytes,CodePoints}{for _,input:=range []string{"a","b","aa","bb","?",""}{
+  base,baseErr:=Parse(input,WithUnit(unit));before:="";if base!=nil{before=base.String()}
+  got,err:=Parse(input,WithUnit(unit),WithLimits(Limits{Compute:100000}))
+  if fmt.Sprint(err)!=fmt.Sprint(baseErr) || (got!=nil && got.String()!=before){t.Fatal("public memo/env changed",input,err,baseErr)}
+  typed,typedErr:=ParseValue(input,WithUnit(unit));controlled,controlledErr:=ParseValue(input,WithUnit(unit),WithLimits(Limits{Compute:100000}))
+  if !reflect.DeepEqual(typed,controlled)||fmt.Sprint(typedErr)!=fmt.Sprint(controlledErr){t.Fatal("typed environment changed")}
+ }}
+}
+`

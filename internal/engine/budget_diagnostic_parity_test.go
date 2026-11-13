@@ -15,7 +15,7 @@ import (
 
 // Compare the public parse result and exported diagnostic records with and
 // without a generous compute limit. Fixtures are drawn from attrs_test.go,
-// internal/gen/gengo/gengo_flowrule_recovery_test.go, and trace_lr_test.go.
+// internal/codegen/go/gengo_flowrule_recovery_test.go, and trace_lr_test.go.
 func TestBudgetDiagnosticPublicParity(t *testing.T) {
 	t.Parallel()
 	tests := []struct {

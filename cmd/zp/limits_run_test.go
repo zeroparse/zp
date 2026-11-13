@@ -137,7 +137,7 @@ func TestTestCommandAppliesLimits(t *testing.T) {
 	if out, err := run("-max-compute", "unlimited", "-max-input", "26"); err != nil || !strings.Contains(out, "all fixtures passed") {
 		t.Fatalf("within the limits: %v\n%s", err, out)
 	}
-	// A limit error is the runtime error of the case, and the suite fails.
+	// A limit error is the library error of the case, and the suite fails.
 	out, err := run("-max-input", "25")
 	if err == nil || !strings.Contains(out, "runtime error: parse input limit exceeded: limit 25, length 26") {
 		t.Errorf("-max-input: error %v\n%s", err, out)

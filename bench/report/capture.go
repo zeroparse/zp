@@ -144,7 +144,7 @@ func captureSizes(root, commit, work string) ([]byte, error) {
 		}
 		fmt.Fprintf(&b, "size %s ts-raw %d\nsize %s ts-gzip %d\n", name, raw, name, gz)
 		if name == sizeParsers[0] {
-			raw, gz, err := sizeOfFile(filepath.Join(out, "runtime.ts"))
+			raw, gz, err := sizeOfFile(filepath.Join(out, "lib.ts"))
 			if err != nil {
 				return nil, err
 			}

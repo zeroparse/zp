@@ -12,8 +12,8 @@ compositions as they stand; this record keeps the decision, the measurements and
 The algorithmic core of a ZeroParse parse — memoization, left-recursion growth, expected-set merging, recovery bookkeeping,
 the variable environment, budget charges, stream commitment, Document reuse and the Operators Rule loop — is written
 once per runtime: in the engine (`internal/engine/core`, shared by the closure backend and both bytecode VMs), twice in
-the generated Go runtime (the node `Parser` in `runtime/runtime.go` and the typed `TParser` in `runtime/typed.go`), and
-in the TypeScript runtime (`internal/gen/gents/tsrt/runtime.ts`). A fix to one of these mechanisms is a fix to up to four
+the generated Go runtime (the node `Parser` in `codegen/go/lib/lib.go` and the typed `TParser` in `codegen/go/lib/typed.go`), and
+in the TypeScript runtime (`codegen/ts/lib/lib.ts`). A fix to one of these mechanisms is a fix to up to four
 copies, and the copies already differ in algorithm where they should only differ in host.
 
 This design specifies the **parser VM** once. **Exec IR** (`internal/ir/exec`) is that specification: it declares the
@@ -81,7 +81,7 @@ that repeat a body with or without budget charges.
 ### Changes Paid Several Times
 
 Of the 1,263 commits, 79 touched the non-test sources of two or more of the four copies (the engine runtime files
-under their former and current paths, `runtime/` or its former `internal/engine/genrt/`, and the TypeScript runtime
+under their former and current paths, `codegen/go/lib/` or its former `internal/engine/genrt/`, and the TypeScript runtime
 under its former and current paths; the copy in `gen/_runtime` is mechanical and not counted). Classified by hand:
 
 | Kind | Commits | Examples |
@@ -548,9 +548,9 @@ backends' choice.
   arrays and reference arrays are allocated at their final length, so that they never become holey.
 - Loops print as `for (;;)` with labeled `break`; no iterator protocol or closure appears in a hot path.
 
-Printed code is checked in: the Go runtime in `runtime/` (and its copy in `gen/_runtime`), the TypeScript runtime in
-`internal/gen/gents/tsrt/`, and the engine's in `internal/engine/core`. A test regenerates them and fails on any
-difference, as the runtime copy test does today. Names come from the compositions and operations, with a suffix only
+Printed code is checked in: the Go library in `codegen/go/lib/`, the TypeScript library in
+`codegen/ts/lib/`, and the engine's in `internal/engine/core`. A test regenerates them and fails on any
+difference. Names come from the compositions and operations, with a suffix only
 for a specialization; each printed function starts with a comment naming its source and specialization, so that a
 stack trace or a profile leads back to it; comments carry through; output is formatted by `go/format` and by the
 TypeScript printer's formatter.
@@ -1030,7 +1030,7 @@ These are settled.
    both, with the change of `Stats` stated in the stage's record. For the results after a Document edit, which the
    generated runtime moves as the engine does, the specification makes reuse visible only through the
    statistics ([Reuse](../../../spec/runtime/documents.md#reuse)), so results do not change.
-7. **Printed code is checked in**, with a drift test, as `gen/_runtime` is today.
+7. **Printed code is checked in**, with a drift test.
 8. **Term evaluation and the value model are a second wave.** The value operations and their tables are specified
    first; term evaluation moves onto them afterwards. They account for 35 of the 79 multi-copy commits.
 
@@ -1100,8 +1100,8 @@ instantiations share a GC shape, and does not help TypeScript or the engine.
 
 ## Appendix A: Inventory
 
-Measured at `2d59b30d`. Line counts are approximate, from function boundaries in non-test sources, and include
-comments.
+Measured at `2d59b30d`; files are named by their current paths. Line counts are approximate, from function boundaries
+in non-test sources, and include comments.
 
 ### Implementations
 
@@ -1110,12 +1110,12 @@ comments.
 | Engine core, shared by closures and both VMs | `internal/engine/core/*.go` | 7,142 |
 | Engine backends (dispatch only) | `internal/engine/closure/*.go`, `internal/engine/vm/vm.go`, `ivm.go` | 1,218 + 2,015 |
 | Engine Document API | `internal/engine/document/*.go` | 1,784 |
-| Generated Go runtime | `runtime/*.go` (copied to `gen/_runtime`) | 11,475 |
-| TypeScript runtime | `internal/gen/gents/tsrt/*.ts` | 4,444 |
+| Generated Go library | `codegen/go/lib/*.go` | 11,475 |
+| TypeScript library | `codegen/ts/lib/*.ts` | 4,444 |
 
 ### Mechanisms
 
-| Mechanism | Kind | Engine | Go node (`runtime.go`, `document.go`, `stream.go`) | Go typed (`typed.go`, `typed_document.go`) | TypeScript (`runtime.ts`, `budget.ts`) |
+| Mechanism | Kind | Engine | Go node (`lib.go`, `document.go`, `stream.go`) | Go typed (`typed.go`, `typed_document.go`) | TypeScript (`lib.ts`, `budget.ts`) |
 |:--|:--|:--|:--|:--|:--|
 | Memo table | Core | `MemoTable` `Get`, `Put`, `Alloc`, `Retire`, `Reset`, `Prune`, `Splice` (`memo.go`, ~410) | `memoTable` `get`, `put`, `alloc` (~120) | `memoGet`, `memoPut`, `…Controlled` (~110) | `memoGet`, `memoPut`, `newEntry` (~90) |
 | Deferred memoization | Core | `firstCall`, `MarkSeen`, `MarkSparseSeen`, seen pages (`memo.go`, `runtime.go` `FirstCall`, ~130) | `FirstCall`, `markSeen`, `markSparseSeen`, `seenPageArena` (~160) | shares the node code | `firstCall`, `markSeen`, `markSparseSeen` (~95) |

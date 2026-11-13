@@ -1,10 +1,11 @@
 # Ship a Parser and Keep It Up to Date
 
-**Problem.** You wrote a grammar and want your program, or your library, to use it without making users depend on ZeroParse,
-and without a stale parser after somebody changes the grammar.
+**Problem.** You wrote a grammar and want your program, or your library, to use it without compiling or interpreting the
+grammar at run time, and without a stale parser after somebody changes the grammar.
 
 Generate Go code from the grammar with `zp gen`, commit it, regenerate it with `go generate`, and let a test fail
-when the committed file does not match the grammar. The generated package imports only the standard library.
+when the committed file does not match the grammar. The generated package imports only the standard library and
+ZeroParse's small package `core` (with `core/noderep`), not the engine or the generator.
 
 The grammar reads versions such as `1.2.3` and `1.2.3-rc.1`:
 
@@ -38,7 +39,7 @@ example.com/ship
 └── versionparser/       created by go generate
     ├── parser.go
     ├── api.go
-    └── internal/runtime/
+    └── internal/libgo/
 ```
 
 Record `zp` as a tool of the module, so that `go generate` runs the version you pinned and nobody installs anything:
@@ -105,7 +106,7 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/engine"
-	"zeroparse.dev/zp/gen"
+	"zeroparse.dev/zp/codegen"
 )
 
 //go:embed version.zp
@@ -118,11 +119,11 @@ func TestGeneratedIsUpToDate(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	want, err := gen.Go{Module: "example.com/ship/versionparser", Types: true}.Generate(g, "main")
+	want, err := codegen.Go{Module: "example.com/ship/versionparser", Types: true}.Generate(g, "main")
 	if err != nil {
 		t.Fatal(err)
 	}
-	for _, f := range want { // parser.go, api.go and the runtime, with paths relative to the package
+	for _, f := range want { // parser.go, api.go and the library, with paths relative to the package
 		got, err := os.ReadFile(filepath.Join("versionparser", filepath.FromSlash(f.Path)))
 		if err != nil {
 			t.Fatal(err)
@@ -146,12 +147,13 @@ FAIL
 
 ## How It Works
 
-- **No dependency at run time.** `go list -deps .` for the program lists no package of ZeroParse: none is linked into it.
-  `go.mod` still requires ZeroParse, for the tool and for the test.
+- **A small dependency at run time.** `go list -deps .` for the program lists only `zeroparse.dev/zp/core` and
+  `zeroparse.dev/zp/core/noderep` of ZeroParse: the result and error types of the generated API. The engine and the
+  generator are not linked into it. `go.mod` requires ZeroParse for these, for the tool and for the test.
 - **The generator is deterministic.** The same grammar and options give the same file, which is what makes the
   comparison in the test, and a review of a diff of `parser.go`, meaningful.
-- **Regenerate after upgrading ZeroParse.** The copy of the runtime in `versionparser/internal/runtime` comes from the version of `zp` that wrote it.
-  Without the test, a new version of the tool leaves the old runtime in place until somebody runs `go generate`; with it,
+- **Regenerate after upgrading ZeroParse.** The copy of the library in `versionparser/internal/libgo` comes from the version of `zp` that wrote it.
+  Without the test, a new version of the tool leaves the old library in place until somebody runs `go generate`; with it,
   the test fails. Pinning the tool with `go get -tool` keeps every developer and CI on the same version.
 - **Without the test**, `go generate ./... && git diff --exit-code` in CI says the same.
 - **The same tree.** The generated `Parse` returns the same tree and errors as the engine for the same grammar, so you
