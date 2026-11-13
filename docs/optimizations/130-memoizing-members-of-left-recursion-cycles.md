@@ -109,17 +109,17 @@ Speed (medians of 10 interleaved samples against the base; differences within no
 
 | Workload | Change |
 |:--|:--|
-| Parse, left-recursive calculator | +6.0% (p < 0.001) on generated typed `ParseAST`, +2.5% in code points and +2.8% in bytes (p = 0.003) |
+| Parse, left-recursive calculator | +6.0% (p < 0.001) on generated typed `ParseValue`, +2.5% in code points and +2.8% in bytes (p = 0.003) |
 | Recognize, left-recursive calculator | +5.6% (p < 0.001) |
-| Parse and Recognize JSON and Minilang | +2.2% to +3.5% (p ≤ 0.001) on Minilang; JSON `ParseAST` 1.2% faster; the other JSON cells within noise |
+| Parse and Recognize JSON and Minilang | +2.2% to +3.5% (p ≤ 0.001) on Minilang; JSON `ParseValue` 1.2% faster; the other JSON cells within noise |
 | Incremental (Minilang), IncrementalLong (CSV), Stream (CSV) | within noise, except a fresh generated Minilang parse +2.3% (p < 0.001), iterative +0.5% and closure IncrementalLong +0.6%, a generated Minilang Document parse 2.7% faster and closure Stream 1.0% faster |
 
 The cost on the calculator comes from the bookkeeping of each growth: a record of the growth in progress, the search
 of the context of every call of a rule of a cycle at the position of a growth, and the present set stored with each
 result. The calculator has no growth inside another at one position, so it records no dependency and keeps no
-context table. Bytes per operation fall on the calculator (−2.0% in code points, −5.0% for `ParseAST`, −20% for
+context table. Bytes per operation fall on the calculator (−2.0% in code points, −5.0% for `ParseValue`, −20% for
 Recognize), since a growth step writes its result in place of allocating a memo entry. Allocations are unchanged
-except 3 more per `ParseAST` on the calculator (1%), and one more per operation for the closure Document of
+except 3 more per `ParseValue` on the calculator (1%), and one more per operation for the closure Document of
 Incremental and for IncrementalLong on the engine backends; generated
 `Recognize` on the calculator allocates 21 to 23 times per operation depending on how many iterations
 `-benchtime=200ms` runs, as the setup of the run is divided by that count. The memo entry of the generated runtimes

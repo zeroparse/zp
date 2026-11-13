@@ -28,7 +28,7 @@ Records 074/098 document first-chunk/bootstrap changes and retained-output
 fixtures. The list control helps attribute sibling retention but does not
 establish lower retained memory for every result or universal throughput gains.
 
-Evidence records: [048](../048-a-typed-runtime-for-parseast.md),
+Evidence records: [048](../048-a-typed-runtime-for-parsevalue.md),
 [074](../074-smaller-first-chunks-for-generated-typed-values.md),
 [098](../098-bootstrap-generated-typed-output-allocations.md).
 

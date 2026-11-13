@@ -28,7 +28,7 @@ func testGeneratedNamedNodeTypes(t *testing.T) {
 )
 
 func main() {
-	out, err := p.ParseAST("ab 12<1,x>[3]!bc")
+	out, err := p.ParseValue("ab 12<1,x>[3]!bc")
 	if err != nil {
 		panic(err)
 	}
@@ -67,7 +67,7 @@ rule num Num = [0-9] #atomic
 rule pair P = "<" t:(num num) ">" => P{$t}
 `
 	runGeneratedNamedNodeProgram(t, src, `func main() {
-	out, err := p.ParseAST("[12]<34>")
+	out, err := p.ParseValue("[12]<34>")
 	if err != nil {
 		panic(err)
 	}
@@ -149,7 +149,7 @@ rule n N = "n"
 rule m M = "m"
 `
 	runGeneratedNamedNodeProgram(t, src, `func main() {
-	out, err := p.ParseAST("mnn,nm")
+	out, err := p.ParseValue("mnn,nm")
 	if err != nil {
 		panic(err)
 	}
@@ -452,7 +452,7 @@ func testGeneratedDeclaredNodeAny(t *testing.T) {
 		t.Fatal(err)
 	}
 	for _, want := range []string{
-		"func ParseAST(input string, opts ...rt.ParseOption) (*TNode[any], error)",
+		"func ParseValue(input string, opts ...rt.ParseOption) (*TNode[any], error)",
 		"//\tmain: *TNode[any]\n",
 		"return rt.TParse(trules[",
 	} {

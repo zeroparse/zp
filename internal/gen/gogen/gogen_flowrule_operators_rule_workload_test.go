@@ -77,7 +77,7 @@ func operatorsRuleInput(n int) string { return "a" + strings.Repeat(" [b,c,d,]",
 
 func TestOperatorsRuleWorkload(t *testing.T) {
 	for _, unit := range []PositionUnit{CodePoints, Bytes} {
-		saved, err := ParseAST(operatorsRuleInput(2), WithUnit(unit))
+		saved, err := ParseValue(operatorsRuleInput(2), WithUnit(unit))
 		post, ok := saved.(*Post)
 		if err != nil || !ok || post.N != 3 || len(post.Items) != 3 || post.Items[0].Value != "b" {
 			t.Fatalf("typed capture result: %v %v", saved, err)
@@ -87,7 +87,7 @@ func TestOperatorsRuleWorkload(t *testing.T) {
 		for _, input := range []string{operatorsRuleInput(1), operatorsRuleInput(128), "a", "a[b,c,]", "a[b,c,d,", "a[b,c,d,e,]", "a[b,é,d,]", "", "a[b,c,d,]?"} {
 			v, err := p.X_run(trules[0], input, zprt.X_parseOptions{X_expectations: true, X_unit: unit, X_maxDepth: zpGrammar.X_maxDepth}, &tslabs{})
 			data, _ := json.Marshal(struct { Value any; Error string }{v, fmt.Sprint(err)})
-			pooled, pooledErr := ParseAST(input, WithUnit(unit))
+			pooled, pooledErr := ParseValue(input, WithUnit(unit))
 			pooledData, _ := json.Marshal(struct { Value any; Error string }{pooled, fmt.Sprint(pooledErr)})
 			if string(data) != string(pooledData) { t.Fatal("pooled and reused OperatorsRule parsers differ") }
 			fmt.Printf("OBS %v %q %s\n", unit, input, data)
@@ -117,10 +117,10 @@ func BenchmarkTypedOperatorsRule(b *testing.B) {
 		input := operatorsRuleInput(n)
 		for _, unit := range []PositionUnit{CodePoints, Bytes} {
 			b.Run(fmt.Sprintf("%d/%v", n, unit), func(b *testing.B) {
-				if _, err := ParseAST(input, WithUnit(unit)); err != nil { b.Fatal(err) }
+				if _, err := ParseValue(input, WithUnit(unit)); err != nil { b.Fatal(err) }
 				b.ReportAllocs()
 				for b.Loop() {
-					v, err := ParseAST(input, WithUnit(unit))
+					v, err := ParseValue(input, WithUnit(unit))
 					if err != nil { b.Fatal(err) }
 					operatorsRuleResult = v
 				}

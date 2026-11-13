@@ -2,7 +2,7 @@
 
 - Previously, `astNew` allocated 256 values for the first struct or terminal
   of each type, and `astSlice` allocated 1,024 elements for the first small
-  list. These allocations dominate tiny `ParseAST` inputs. In the revision
+  list. These allocations dominate tiny `ParseValue` inputs. In the revision
   measured here, each type started with 8 values and doubled to 256; list
   chunks started at 64 and doubled to 1,024, satisfying each requested
   length. Lists over 256 elements remained exact-size allocations. A later
@@ -56,15 +56,15 @@
   heap problem. These figures measure cumulative allocation traffic,
   not retained heap.
 - Reproduce JSON with
-  `cd alpha-parsers/json && go test -run '^$' -bench 'Benchmark(SmallParseAST|ParseAST)$' -benchtime=300ms -count=1`
+  `cd alpha-parsers/json && go test -run '^$' -bench 'Benchmark(SmallParseValue|ParseValue)$' -benchtime=300ms -count=1`
   and CEL with
-  `cd alpha-parsers/cel && go test -run '^$' -bench 'Benchmark(PoliciesParseAST|LargeParseAST)$' -benchtime=300ms -count=1`.
+  `cd alpha-parsers/cel && go test -run '^$' -bench 'Benchmark(PoliciesParseValue|LargeParseValue)$' -benchtime=300ms -count=1`.
   Use the final benchmark sources on both production versions. For the
   ownership workloads, generate both paths with
   `ZP_TYPED_CHUNK_DIR=/tmp/zp-chunks go test ./internal/gen/gogen -run '^TestGeneratedTypedChunkOwnership$' -count=1`,
   using a Go overlay of baseline `internal/engine/gen_types.go` when building
   the parent. In each generated `false`/`true` directory, benchmark
-  `BenchmarkChunkParseAST` with the same 300 ms flags. Alternate five pairs
+  `BenchmarkChunkParseValue` with the same 300 ms flags. Alternate five pairs
   of the prebuilt binaries. Focused raw output remains local; a full-suite
   checkpoint follows this optimization.
 - The subsequent full-suite checkpoint measures clean commit `98544ff`:

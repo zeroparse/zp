@@ -87,7 +87,7 @@ func TestFrontier(t *testing.T) {
 		write(route+"/parser.go", string(code))
 		parse := "Parse"
 		if route == "typed" {
-			parse = "ParseAST"
+			parse = "ParseValue"
 		}
 		write(route+"/frontier_test.go", strings.NewReplacer("PACKAGE", route, "PARSE", parse).Replace(consumer))
 		cmd := exec.Command("go", "test", "-trimpath", "-count=1", "-v", "./"+route)

@@ -15,7 +15,7 @@ import (
 // TestGeneratedLookaheadHasNoFirstTerminal checks that a generated Go parser does not skip, by the
 // next character, an alternative that begins with a positive lookahead (Evaluations of Rules in
 // spec/runtime/parsing.md), as TestLookaheadHasNoFirstTerminal does for the engine: on "bc",
-// Parse, ParseAST and Recognize, without and with limit controls, evaluate the body of x of
+// Parse, ParseValue and Recognize, without and with limit controls, evaluate the body of x of
 // gentest.LookaheadFirstSrc once.
 func TestGeneratedLookaheadHasNoFirstTerminal(t *testing.T) {
 	t.Parallel()
@@ -39,7 +39,7 @@ func testGeneratedLookaheadHasNoFirstTerminal(t *testing.T) {
 	for _, pkg := range []string{"g", "l"} {
 		gentest.GeneratePackage(t, dir, pkg, mustParse(gentest.LookaheadFirstSrc), gen.GenOptions{Start: "main", Types: true, Recognize: true, Observability: true, LimitControls: pkg == "l"})
 		imports.WriteString("\t\"gentest/" + pkg + "\"\n")
-		for _, op := range []string{"_, err := %s.Parse(\"bc\", zprt.WithProfile(&p))", "_, err := %s.ParseAST(\"bc\", zprt.WithProfile(&p))", "err := %s.Recognize(\"bc\", zprt.WithProfile(&p))"} {
+		for _, op := range []string{"_, err := %s.Parse(\"bc\", zprt.WithProfile(&p))", "_, err := %s.ParseValue(\"bc\", zprt.WithProfile(&p))", "err := %s.Recognize(\"bc\", zprt.WithProfile(&p))"} {
 			calls.WriteString("\t{ var p zprt.Profile; " + strings.ReplaceAll(op, "%s", pkg) + "; fmt.Print(evals(p, err), \" \") }\n")
 		}
 	}
@@ -79,6 +79,6 @@ func main() {
 		t.Fatalf("go run: %v\n%s", err, out)
 	}
 	if got, want := strings.Join(strings.Fields(string(out)), " "), "1 1 1 1 1 1"; got != want {
-		t.Errorf("x evaluated %s times (Parse, ParseAST, Recognize; then with limit controls), want %s", got, want)
+		t.Errorf("x evaluated %s times (Parse, ParseValue, Recognize; then with limit controls), want %s", got, want)
 	}
 }

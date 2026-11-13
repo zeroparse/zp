@@ -30,7 +30,7 @@ func fullProbe[N, A, O any](parse func(string, ...O) (N, error), ast func(string
 
 func fullGeneratedProbes() map[string]fullGeneratedProbe {
 	return map[string]fullGeneratedProbe{
-		"JSON": fullProbe(gjson.Parse, gjson.ParseAST, gjson.Recognize, func(b, c bool) []gjson.ParseOption {
+		"JSON": fullProbe(gjson.Parse, gjson.ParseValue, gjson.Recognize, func(b, c bool) []gjson.ParseOption {
 			u := gjson.CodePoints
 			if b {
 				u = gjson.Bytes
@@ -45,7 +45,7 @@ func fullGeneratedProbes() map[string]fullGeneratedProbe {
 			}
 			return o
 		}),
-		"CSV": fullProbe(gcsv.Parse, gcsv.ParseAST, gcsv.Recognize, func(b, c bool) []gcsv.ParseOption {
+		"CSV": fullProbe(gcsv.Parse, gcsv.ParseValue, gcsv.Recognize, func(b, c bool) []gcsv.ParseOption {
 			u := gcsv.CodePoints
 			if b {
 				u = gcsv.Bytes
@@ -59,7 +59,7 @@ func fullGeneratedProbes() map[string]fullGeneratedProbe {
 			}
 			return o
 		}),
-		"XML": fullProbe(gxml.Parse, gxml.ParseAST, gxml.Recognize, func(b, c bool) []gxml.ParseOption {
+		"XML": fullProbe(gxml.Parse, gxml.ParseValue, gxml.Recognize, func(b, c bool) []gxml.ParseOption {
 			u := gxml.CodePoints
 			if b {
 				u = gxml.Bytes
@@ -73,7 +73,7 @@ func fullGeneratedProbes() map[string]fullGeneratedProbe {
 			}
 			return o
 		}),
-		"Arith_OperatorsRule": fullProbe(gcalc.Parse, gcalc.ParseAST, gcalc.Recognize, func(b, c bool) []gcalc.ParseOption {
+		"Arith_OperatorsRule": fullProbe(gcalc.Parse, gcalc.ParseValue, gcalc.Recognize, func(b, c bool) []gcalc.ParseOption {
 			u := gcalc.CodePoints
 			if b {
 				u = gcalc.Bytes
@@ -87,7 +87,7 @@ func fullGeneratedProbes() map[string]fullGeneratedProbe {
 			}
 			return o
 		}),
-		"Arith_LeftRec": fullProbe(gcalclr.Parse, gcalclr.ParseAST, gcalclr.Recognize, func(b, c bool) []gcalclr.ParseOption {
+		"Arith_LeftRec": fullProbe(gcalclr.Parse, gcalclr.ParseValue, gcalclr.Recognize, func(b, c bool) []gcalclr.ParseOption {
 			u := gcalclr.CodePoints
 			if b {
 				u = gcalclr.Bytes
@@ -101,7 +101,7 @@ func fullGeneratedProbes() map[string]fullGeneratedProbe {
 			}
 			return o
 		}),
-		"Minilang": fullProbe(gminilang.Parse, gminilang.ParseAST, gminilang.Recognize, func(b, c bool) []gminilang.ParseOption {
+		"Minilang": fullProbe(gminilang.Parse, gminilang.ParseValue, gminilang.Recognize, func(b, c bool) []gminilang.ParseOption {
 			u := gminilang.CodePoints
 			if b {
 				u = gminilang.Bytes
@@ -115,7 +115,7 @@ func fullGeneratedProbes() map[string]fullGeneratedProbe {
 			}
 			return o
 		}),
-		"Recovery": fullProbe(gminilang.Parse, gminilang.ParseAST, gminilang.Recognize, func(b, c bool) []gminilang.ParseOption {
+		"Recovery": fullProbe(gminilang.Parse, gminilang.ParseValue, gminilang.Recognize, func(b, c bool) []gminilang.ParseOption {
 			u := gminilang.CodePoints
 			if b {
 				u = gminilang.Bytes
@@ -129,7 +129,7 @@ func fullGeneratedProbes() map[string]fullGeneratedProbe {
 			}
 			return o
 		}),
-		"Outline": fullProbe(goutline.Parse, goutline.ParseAST, goutline.Recognize, func(b, c bool) []goutline.ParseOption {
+		"Outline": fullProbe(goutline.Parse, goutline.ParseValue, goutline.Recognize, func(b, c bool) []goutline.ParseOption {
 			u := goutline.CodePoints
 			if b {
 				u = goutline.Bytes

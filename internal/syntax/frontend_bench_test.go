@@ -61,7 +61,7 @@ func frontendSamples(tb testing.TB) []frontendSample {
 
 // frontends are the grammar-source frontends that BenchmarkFrontend compares. manual is the
 // hand-written lexer and parser and manual-aa the same function under another name, whose spread
-// against manual is the noise of a run. generated is ParseAST of the generated parser followed by
+// against manual is the noise of a run. generated is ParseValue of the generated parser followed by
 // FromSourceTree, which builds the same grammar as manual.
 var frontends = []struct {
 	name  string
@@ -89,7 +89,7 @@ func parsePartialManual(src string) (any, error) {
 // errors of the parse, then the declarations that are complete and the errors of the checks.
 func parsePartialGenerated(src string, opts ...genparser.ParseOption) (any, error) {
 	text, _ := WithoutInvalidCharacters(src)
-	f, err := genparser.ParseAST(text, opts...)
+	f, err := genparser.ParseValue(text, opts...)
 	var errs ErrorList
 	if err != nil {
 		var list genparser.SyntaxErrors
@@ -120,7 +120,7 @@ func parseGenerated(src string) (any, error) { return parseGeneratedWith(src) }
 
 func parseGeneratedWith(src string, opts ...genparser.ParseOption) (any, error) {
 	text, invalid := WithoutInvalidCharacters(src)
-	f, err := genparser.ParseAST(text, opts...)
+	f, err := genparser.ParseValue(text, opts...)
 	if err != nil {
 		return nil, err
 	}

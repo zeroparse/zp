@@ -176,7 +176,7 @@ func tsFiles(opts gen.GenOptions, body, types string) []gen.GeneratedFile {
 	if types != "" {
 		var t strings.Builder
 		t.WriteString(TsGeneratedHeader())
-		t.WriteString("// The types of a ZeroParse grammar, as the typed parseAST of parser.ts returns them.\n\n")
+		t.WriteString("// The types of a ZeroParse grammar, as the typed parseValue of parser.ts returns them.\n\n")
 		t.WriteString("/* eslint-disable */\n\n")
 		t.WriteString("import type {Node as RuntimeNode} from " + TsString(spec) + ";\n\n")
 		t.WriteString(types)

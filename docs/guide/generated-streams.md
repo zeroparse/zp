@@ -51,7 +51,7 @@ abandons the parse without closing `r`, and `Next` then returns `ErrStreamClosed
 receives a copy of each committed recovered error before its element, and its error ends the parse without that
 element. `WithDiagnosticLimit(n)` keeps only the latest `n` recovered errors and returns `*TruncatedSyntaxErrors`
 when it dropped some, so a long faulty stream holds a bounded number of them. Both options are accepted only by
-the stream entry points; `Parse`, `ParseRule`, `ParseAST`, `Recognize`, `NewDocument` and the `Document` methods
+the stream entry points; `Parse`, `ParseRule`, `ParseValue`, `Recognize`, `NewDocument` and the `Document` methods
 reject them.
 
 ## Typed Elements
@@ -60,11 +60,11 @@ With `-types`, the package also has
 
 ```go
 type StreamValue = ... // the typed value of one element of the #stream repetition
-func ParseStreamAST(r io.Reader, emit func(StreamValue) error, opts ...ParseOption) error
-func IterateAST(r io.Reader, opts ...ParseOption) (*StreamASTIterator, error) // Next returns StreamValue
+func ParseStreamValue(r io.Reader, emit func(StreamValue) error, opts ...ParseOption) error
+func IterateValue(r io.Reader, opts ...ParseOption) (*StreamValueIterator, error) // Next returns StreamValue
 ```
 
-`ParseStreamAST` behaves like `ParseStream` but passes each element as the value its expression has in the
+`ParseStreamValue` behaves like `ParseStream` but passes each element as the value its expression has in the
 [Go type mapping](generated-typed-values.md#mapping-grammar-types-to-go) — a rule's declared type, a join, a list, a `*TNode[T]` or a tuple — and the zero value for an element without a value. `StreamValue` is the type of the repeated element,
 not of the start rule:
 
@@ -72,7 +72,7 @@ not of the start rule:
 // rule main = item* #stream
 // type Pair = { Key string; Value string }
 // rule item Pair = k:[a-z]+ "=" v:[0-9]+ "\n" => Pair{Key: text($k), Value: text($v)}
-err := parser.ParseStreamAST(r, func(p *parser.Pair) error {
+err := parser.ParseStreamValue(r, func(p *parser.Pair) error {
 	fmt.Println(p.Key, p.Value)
 	return nil
 })
@@ -85,4 +85,4 @@ nothing with later elements. The conversion counts toward `WithLimits` and obser
 
 - [Streaming](streaming.md): the stream contract, shared by the engine and the generated parsers.
 - [The Generated Go API](generated-go-api.md): the entry points that `-stream` sits beside.
-- [Typed Values in Generated Go](generated-typed-values.md): `-types`, which `ParseStreamAST` needs.
+- [Typed Values in Generated Go](generated-typed-values.md): `-types`, which `ParseStreamValue` needs.

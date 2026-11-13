@@ -49,7 +49,7 @@ for(const unit of [p.CodePoints,p.Bytes]) {
  const ordinary=p.parse("x",unit),active=p.parseWithOptions("x",{unit,signal:{aborted:false}});
  check(ordinary.error instanceof p.SyntaxError&&active.error instanceof p.SyntaxError&&active.error.message===ordinary.error.message&&stable(active.error)===stable(ordinary.error),"long custom diagnostic parity");
  const baseline=minimum(n=>p.parseRuleWithOptions("fast","x",{unit,limits:{compute:n}}).error instanceof p.SyntaxError),limit=baseline+128;
- for(const error of [p.parseWithOptions("x",{unit,limits:{compute:limit}}).error,p.parseASTWithOptions("x",{unit,limits:{compute:limit}}).error,p.recognizeWithOptions("x",{unit,limits:{compute:limit}})])check(error instanceof p.ParseInterruptionError&&error.kind==="compute-limit","custom diagnostic text consumes cumulative spend");
+ for(const error of [p.parseWithOptions("x",{unit,limits:{compute:limit}}).error,p.parseValueWithOptions("x",{unit,limits:{compute:limit}}).error,p.recognizeWithOptions("x",{unit,limits:{compute:limit}})])check(error instanceof p.ParseInterruptionError&&error.kind==="compute-limit","custom diagnostic text consumes cumulative spend");
  const retry=p.parseWithOptions("x",{unit,limits:{compute:0}});check(retry.error instanceof p.SyntaxError&&retry.error.message===ordinary.error.message,"fresh custom diagnostic retry");
 }
 `
@@ -75,7 +75,7 @@ for(const unit of [p.CodePoints,p.Bytes]) {
  // Matching and expected-ID deduplication are shared. Allow the complete
  // expected text and list movement, but not all common-prefix comparisons.
  const limit=baseline+64*2100+128;
- for(const error of [p.parseWithOptions("",{unit,limits:{compute:limit}}).error,p.parseASTWithOptions("",{unit,limits:{compute:limit}}).error,p.recognizeWithOptions("",{unit,limits:{compute:limit}})])check(error instanceof p.ParseInterruptionError&&error.kind==="compute-limit","expected-label comparisons consume spend beyond rendering");
+ for(const error of [p.parseWithOptions("",{unit,limits:{compute:limit}}).error,p.parseValueWithOptions("",{unit,limits:{compute:limit}}).error,p.recognizeWithOptions("",{unit,limits:{compute:limit}})])check(error instanceof p.ParseInterruptionError&&error.kind==="compute-limit","expected-label comparisons consume spend beyond rendering");
  check(p.parseWithOptions("",{unit,limits:{compute:0}}).error instanceof p.SyntaxError,"fresh sorted diagnostic retry");
 }
 `
@@ -97,7 +97,7 @@ for(const unit of [p.CodePoints,p.Bytes]) {
  // message, while retaining the aggregate Error's second copy as spend.
  const baseline=minimum(n=>p.parseRuleWithOptions("fast","!",{unit,limits:{compute:n}}).error instanceof p.SyntaxErrors),limit=baseline+retained.message.length+128;
  const stopped=p.parseWithOptions("!",{unit,limits:{compute:limit}});check(stopped.node===null&&stopped.error instanceof p.ParseInterruptionError&&stopped.error.kind==="compute-limit","aggregate recovered text consumes spend after individual errors");
- const typed=p.parseASTWithOptions("!",{unit,limits:{compute:limit}});check(typed.value===null&&typed.error instanceof p.ParseInterruptionError,"interrupted recovery exposes no typed result");
+ const typed=p.parseValueWithOptions("!",{unit,limits:{compute:limit}});check(typed.value===null&&typed.error instanceof p.ParseInterruptionError,"interrupted recovery exposes no typed result");
  const retry=p.parseWithOptions("!",{unit,limits:{compute:0}});check(retry.node!==null&&retry.error instanceof p.SyntaxErrors&&retry.error.message===ordinary.error.message&&retained.message===ordinary.error.errors[0]!.message,"retained recovery and fresh retry");
 }
 `
@@ -148,7 +148,7 @@ proto.makeError = function (this: Hooked, ...a: unknown[]) {
 };
 const routes: [string, (text: string, n: number) => Error | null][] = [
   ["parse", (text, n) => p.parseWithOptions(text, { limits: { compute: n } }).error],
-  ["parseAST", (text, n) => p.parseASTWithOptions(text, { limits: { compute: n } }).error],
+  ["parseValue", (text, n) => p.parseValueWithOptions(text, { limits: { compute: n } }).error],
   ["recognize", (text, n) => p.recognizeWithOptions(text, { limits: { compute: n } })],
 ];
 function fail(why: string): never { throw new Error(why); }

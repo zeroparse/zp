@@ -15,7 +15,7 @@
   route selection.
 - Focused measurements: Go 1.27.1, darwin/arm64, Apple M3 Max, 16 CPUs;
   baseline `bae4d79`; five alternating 300 ms pairs for 32 Node/recognition
-  conditions and eight `ParseAST` controls. Ratios are candidate/baseline
+  conditions and eight `ParseValue` controls. Ratios are candidate/baseline
   ratios within each pair, summarized by their median. JSON/CSV/XML/Outline
   Node median ratios range 0.817–0.937×. Operators Rule Node median ratios are
   1.010×/1.032×, but paired ranges include 1 and raw time ranges overlap.
@@ -23,7 +23,7 @@
   Minilang CodePoints/Bytes (0.981×/0.966×), Recovery (0.958×/0.967×), XML
   CodePoints (0.860×) and Outline (0.824×/0.902×); many remaining conditions
   include parity.
-  ParseAST direct controls show no systematic change. Node-conversion
+  ParseValue direct controls show no systematic change. Node-conversion
   controls save about 188 KB/six allocations for Minilang and 273 KB/six
   allocations for Recovery in this schedule; this is Node-construction
   propagation, not typed-emitter adoption or retained-heap evidence.

@@ -122,7 +122,7 @@ zp gen -g grammar.zp -module example.com/calc -o calc  # generate a standalone G
 zp gen -g grammar.zp -module example.com/calc -types -o calc # ... with Go types for the grammar's types
 zp gen -g grammar.zp -module example.com/calc -recognize -o calc # ... with Recognize, which validates without a tree
 zp gen -lang ts -g grammar.zp -o ts-parser    # generate a TypeScript parser into a directory
-zp gen -lang ts -g grammar.zp -types -o ts-parser # also emit types.ts and parseAST
+zp gen -lang ts -g grammar.zp -types -o ts-parser # also emit types.ts and parseValue
 zp gen -g grammar.zp -module example.com/calc -max-depth 600000 -o calc # set its nested rule-call default
 zp sample -g grammar.zp -n 20 -coverage      # generate inputs the grammar accepts (tests, fuzz seeds)
 zp edit-fuzz -g grammar.zp -minimize -save-failures out  # check Document edits against fresh parses

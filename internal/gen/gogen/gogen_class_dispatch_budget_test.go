@@ -87,7 +87,7 @@ func TestClassDispatch(t *testing.T){
  for _,u:=range []PositionUnit{CodePoints,Bytes}{for _,tc:=range cases{
   routes:=[]struct{name string;call func(...ParseOption)(any,error)}{
    {"Node",func(o ...ParseOption)(any,error){return ParseRule(tc.name,tc.input,o...)}},
-   {"typed",func(o ...ParseOption)(any,error){return ParseRuleAST(tc.name,tc.input,o...)}},
+   {"typed",func(o ...ParseOption)(any,error){return ParseRuleValue(tc.name,tc.input,o...)}},
   }
   for _,r:=range routes {t.Run(tc.name+"/"+r.name+"/"+string(rune('0'+u))+"/"+tc.input,func(t *testing.T){
    v,e:=r.call(WithUnit(u));if (e==nil)!=tc.valid{t.Fatalf("baseline err=%v",e)}

@@ -21,7 +21,7 @@ rule main = a $$
 rule a = c "+" / "n"
 rule c = "(" c ")" "y" / "(" c ")" "z" / a`
 
-// typedMemberMemoSource is memberMemoSource with typed values, so that ParseAST runs the typed
+// typedMemberMemoSource is memberMemoSource with typed values, so that ParseValue runs the typed
 // runtime.
 const typedMemberMemoSource = `type D = { N int }
 @start
@@ -36,7 +36,7 @@ rule uz D = "(" x:c ")" "z" => D{N: $x.N + 1}
 
 // TestGeneratedLeftRecursionMemberMemoLinear checks that generated Go parsers memoize the
 // members of a left-recursion cycle that are not its leader: the Parse, Recognize and typed
-// ParseAST of a member reached from two call sites at one position take a number of steps in
+// ParseValue of a member reached from two call sites at one position take a number of steps in
 // proportion to the input, and give the engine's results.
 func TestGeneratedLeftRecursionMemberMemoLinear(t *testing.T) {
 	t.Parallel()
@@ -101,7 +101,7 @@ func main() {
 		if err := g.Recognize(in` + comma(limit) + `); err != nil {
 			panic(err)
 		}
-		v, typedErr := tg.ParseAST(in` + comma(typedLimit) + `)
+		v, typedErr := tg.ParseValue(in` + comma(typedLimit) + `)
 		fmt.Printf("%s %v | ", b, typedErr)
 		if v == nil {
 			fmt.Println("<nil>")

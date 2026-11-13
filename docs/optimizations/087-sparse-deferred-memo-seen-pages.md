@@ -88,8 +88,8 @@ This checkpoint compares the candidate at `c73bda3` with its pre-optimization-se
 
 | Measure | Result | Limit |
 |:--|:--|:--|
-| Paired median time ratios | 0.980–1.030× across the 52 cases; most observed five-pair ranges overlap 1.0. Generated Operators arithmetic `ParseAST` was 1.002×; generated Minilang `Recognize` was 0.989×. | These small deviations are descriptive and do not establish a speedup or regression. |
-| Allocations | Often unchanged, but not uniformly so. Minilang generated `ParseAST` medians were 6.58→6.84 MB/op and 599→616 allocations; per-sample byte ranges overlapped (parent 6.12–6.99 MB, candidate 6.29–7.01 MB). JSON iterative `Recognize` samples varied from 7.55–46.8 KB/op on the parent and 7.55–47.97 KB/op on the candidate, with 46 allocations in both. | Sample jitter prevents a universal unchanged-allocation claim; bytes/op and allocation counts are reported separately. |
+| Paired median time ratios | 0.980–1.030× across the 52 cases; most observed five-pair ranges overlap 1.0. Generated Operators arithmetic `ParseValue` was 1.002×; generated Minilang `Recognize` was 0.989×. | These small deviations are descriptive and do not establish a speedup or regression. |
+| Allocations | Often unchanged, but not uniformly so. Minilang generated `ParseValue` medians were 6.58→6.84 MB/op and 599→616 allocations; per-sample byte ranges overlapped (parent 6.12–6.99 MB, candidate 6.29–7.01 MB). JSON iterative `Recognize` samples varied from 7.55–46.8 KB/op on the parent and 7.55–47.97 KB/op on the candidate, with 46 allocations in both. | Sample jitter prevents a universal unchanged-allocation claim; bytes/op and allocation counts are reported separately. |
 
 The candidate's focused core and generated Go/TypeScript sparse tests passed. Core backend result/budget controls passed, and generated sparse/dense controls matched results. All 17 generated files matched after regeneration. The full root suite, all ten parser-module vet/test runs and site Go tests passed; independent static review passed the production-file scope. The pinned-WASM site build and link check also passed.
 

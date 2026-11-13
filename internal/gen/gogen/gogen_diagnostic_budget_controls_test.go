@@ -126,7 +126,7 @@ func TestRecoveredPublicDiagnostics(t *testing.T){
   if !slices.Equal(recovered[0].Expected,expected){t.Fatalf("recovery sorting changed: %v",recovered[0].Expected)}
   before:=retained.String();message:=err.Error();diagnostic:=*recovered[0]
   for _,ast:=range []bool{false,true}{
-   call:=func(steps uint64)(any,error){o:=[]ParseOption{WithUnit(unit),WithLimits(Limits{Compute:steps})};if ast{v,e:=ParseAST("!",o...);return v,e};v,e:=Parse("!",o...);return v,e}
+   call:=func(steps uint64)(any,error){o:=[]ParseOption{WithUnit(unit),WithLimits(Limits{Compute:steps})};if ast{v,e:=ParseValue("!",o...);return v,e};v,e:=Parse("!",o...);return v,e}
    lo,hi:=uint64(1),uint64(100000)
    for lo<hi{mid:=lo+(hi-lo)/2;_,e:=call(mid);if errors.Is(e,ErrLimit){lo=mid+1}else if errors.As(e,&recovered){hi=mid}else{t.Fatal("unexpected diagnostic outcome",e)}}
    _,err:=call(lo);if !errors.As(err,&recovered){t.Fatal("exact recovery limit",err)}
@@ -191,14 +191,14 @@ func TestLongRecoveredMessage(t *testing.T){
   for _,ast:=range []bool{false,true}{
    var v any
    opts:=[]ParseOption{WithUnit(unit),WithLimits(Limits{Compute:256})}
-   if ast{v,err=ParseAST("!",opts...)}else{v,err=Parse("!",opts...)}
+   if ast{v,err=ParseValue("!",opts...)}else{v,err=Parse("!",opts...)}
    if (v!=nil && !reflect.ValueOf(v).IsZero()) || !errors.Is(err,ErrLimit){t.Fatalf("AST=%v long diagnostic copy unbounded: value=%T error=%T",ast,v,err)}
   }
   // Recognition records the error but does not construct a node message.
   err=Recognize("!",WithUnit(unit),WithLimits(Limits{Compute:256}))
   if !errors.As(err,&recovered){t.Fatal("recognizer charged unconstructed node message",err)}
   if captured.Text()!=want{t.Fatal("retained message overwritten")}
-  if _,err:=ParseAST("!",WithUnit(unit),WithLimits(Limits{Compute:100000}));!errors.As(err,&recovered){t.Fatal("generous recovery retry",err)}
+  if _,err:=ParseValue("!",WithUnit(unit),WithLimits(Limits{Compute:100000}));!errors.As(err,&recovered){t.Fatal("generous recovery retry",err)}
  }
 }
 `

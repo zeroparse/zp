@@ -54,7 +54,7 @@ func TestGeneratedGoProfile(t *testing.T) {
 			gentest.GeneratePackageIn(t, dir, "profilefixture", pkg, g, opts)
 			typed := ""
 			if opts.Types {
-				typed = `operations=append(operations,func(opts ...ParseOption)(any,error){return ParseAST(INPUT,opts...)},func(opts ...ParseOption)(any,error){return ParseRuleAST("main",INPUT,opts...)})`
+				typed = `operations=append(operations,func(opts ...ParseOption)(any,error){return ParseValue(INPUT,opts...)},func(opts ...ParseOption)(any,error){return ParseRuleValue("main",INPUT,opts...)})`
 			}
 			typed = strings.ReplaceAll(typed, "INPUT", fmt.Sprintf("%q", f.input))
 			consumer := strings.NewReplacer("PACKAGE", pkg, "INPUT", fmt.Sprintf("%q", f.input), "CHECKS", f.checks, "TYPED", typed, "PLAIN", fmt.Sprint(f.name == "plain")).Replace(generatedProfileConsumer)

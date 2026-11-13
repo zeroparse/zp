@@ -179,7 +179,7 @@ func depMemoPackages(t *testing.T, cases []gentest.Case) ([]depMemoPackage, []ge
 		}
 		var calls strings.Builder
 		for _, in := range c.Inputs {
-			fmt.Fprintf(&calls, "\tshow(%s.Parse(%q))\n\tshow(%[1]s.ParseAST(%[2]q))\n", pkg, in)
+			fmt.Fprintf(&calls, "\tshow(%s.Parse(%q))\n\tshow(%[1]s.ParseValue(%[2]q))\n", pkg, in)
 		}
 		p.calls = calls.String()
 		pkgs = append(pkgs, p)

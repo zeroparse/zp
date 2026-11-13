@@ -9,10 +9,10 @@ import (
 
 func TestGeneratedTSTypedNamedNodeTypes(t *testing.T) {
 	t.Parallel()
-	consumer := `import { parseAST } from "./parser.ts";
+	consumer := `import { parseValue } from "./parser.ts";
 import type { Num, Ident, Pair, Nums, Any, Expr } from "./types.ts";
 ` + tsTypedAssert + `
-const r = parseAST("ab 12<1,x>[1]!bc");
+const r = parseValue("ab 12<1,x>[1]!bc");
 check(r.error === null && r.value !== null, "parse success");
 const v = r.value;
 const items: readonly Expr[] = v.Items ?? [];
@@ -48,9 +48,9 @@ rule nums Nums = "[" ns:num* "]" => Nums{$ns}
 rule num Num = [0-9] #atomic
 rule pair P = "<" t:(num num) ">" => P{$t}
 `
-	consumer := `import { parseAST } from "./parser.ts";
+	consumer := `import { parseValue } from "./parser.ts";
 ` + tsTypedAssert + `
-const v = parseAST("[12]<34>").value;
+const v = parseValue("[12]<34>").value;
 check(v !== null, "parse");
 const got = [v.C?.value, v.D?.map(d => d?.value).join(","), v.E?.value?.[0]?.value, v.E?.value?.[0] === v.G?.[0],
   v.F?.value?.[0]?.value, v.F?.value?.[1]?.value, v.G?.[1]?.end, v.H?.value?.[0]?.value, v.H?.type].join(" ");

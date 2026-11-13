@@ -543,7 +543,7 @@ rounds of 500 ms per source and frontend, rotating the order of the frontends
 from round to round. `manual` is the hand-written lexer and parser returning the
 public grammar AST, `manual-aa` the same function again, whose difference from
 `manual` is the noise of the run. The generated columns of the table below are
-`ParseAST` of the checked-in parser generated from the source grammar, without
+`ParseValue` of the checked-in parser generated from the source grammar, without
 the adapter to the grammar AST, so they do less than the full frontend does and
 are a lower bound of its cost. The `generated` and `generated-exp` frontends of
 the benchmark add the adapter, and `generated-exp` also collects what each

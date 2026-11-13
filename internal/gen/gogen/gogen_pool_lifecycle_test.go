@@ -320,12 +320,12 @@ func BenchmarkTypedCapturePool(b *testing.B) {
 		input := strings.Repeat("a", n) + "b"
 		for _, unit := range []PositionUnit{CodePoints, Bytes} {
 			b.Run(fmt.Sprintf("%d/%v", n, unit), func(b *testing.B) {
-				if _, err := ParseAST(input, WithUnit(unit)); err != nil {
+				if _, err := ParseValue(input, WithUnit(unit)); err != nil {
 					b.Fatal(err)
 				}
 				b.ReportAllocs()
 				for b.Loop() {
-					if v, err := ParseAST(input, WithUnit(unit)); err != nil || v.Text != "b" {
+					if v, err := ParseValue(input, WithUnit(unit)); err != nil || v.Text != "b" {
 						b.Fatalf("parse: %v", err)
 					}
 				}

@@ -28,7 +28,7 @@ rule elements = (
 
 rule string = "\"" s:chars "\"" => $s
 // Runs of unescaped characters are matched by an inline class: calling a rule for each character
-// makes the generated Recognize about a quarter slower and ParseAST about a tenth.
+// makes the generated Recognize about a quarter slower and ParseValue about a tenth.
 rule chars String = (([^"\\\u{0}-\u{1f}]+ / escape)*) #atomic
 rule escape = "\\" (["\\/bfnrt] / "u" hex hex hex hex)
 rule hex = [0-9a-fA-F]

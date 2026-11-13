@@ -77,7 +77,7 @@ func TestGeneratedTSProfile(t *testing.T) {
 			write(name+"_reference.ts", string(reference))
 			typedRoute := ""
 			if typed {
-				typedRoute = `routes.push((input,o)=>{const a=p.parseASTWithOptions(input,o),b=reference.parseASTWithOptions(input,plain(o));check(stable(a.value)===stable(b.value),"typed value parity");return {value:a.value,error:a.error,referenceError:b.error}});`
+				typedRoute = `routes.push((input,o)=>{const a=p.parseValueWithOptions(input,o),b=reference.parseValueWithOptions(input,plain(o));check(stable(a.value)===stable(b.value),"typed value parity");return {value:a.value,error:a.error,referenceError:b.error}});`
 			}
 			consumer := strings.NewReplacer("PARSER", name, "INPUT", fmt.Sprintf("%q", f.input), "CHECKS", f.checks, "TYPEDROUTE", typedRoute, "PLAIN", fmt.Sprint(f.name == "plain")).Replace(tsProfileConsumer)
 			write(name+"_consumer.ts", consumer)

@@ -26,7 +26,7 @@
 //	retained                 live heap held by the results of a pass, after three collections
 //	rss                      peak resident set size of the measuring process
 //	gc_share                 share of the CPU time that went to garbage collection
-//	src_bytes, bin_bytes     size of parser.go and of a stripped program calling ParseAST
+//	src_bytes, bin_bytes     size of parser.go and of a stripped program calling ParseValue
 //	compile_ms               wall time of building that program with the parser not cached
 //	ts_raw, ts_gzip          size of parser.ts (with -ts), generated with the same ARGS
 //

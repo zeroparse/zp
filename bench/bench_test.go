@@ -38,7 +38,7 @@ type workload struct {
 	// with it.
 	gen func(input string, bytes bool) error
 	rec func(input string) error
-	// ast parses into typed values with the generated parser's ParseAST (nil if not generated).
+	// ast parses into typed values with the generated parser's ParseValue (nil if not generated).
 	ast func(input string) error
 	// std is the standard library parser to compare with (nil if there is none).
 	std     func(input string) error
@@ -59,7 +59,7 @@ var workloads = []workload{
 			return genErr(gjson.Parse(s))
 		},
 		rec:     func(s string) error { return gjson.Recognize(s) },
-		ast:     func(s string) error { return genErr(gjson.ParseAST(s)) },
+		ast:     func(s string) error { return genErr(gjson.ParseValue(s)) },
 		stdName: "encoding_json", std: func(s string) error {
 			var v any
 			return json.Unmarshal([]byte(s), &v)
@@ -74,7 +74,7 @@ var workloads = []workload{
 			return genErr(gcsv.Parse(s))
 		},
 		rec:     func(s string) error { return gcsv.Recognize(s) },
-		ast:     func(s string) error { return genErr(gcsv.ParseAST(s)) },
+		ast:     func(s string) error { return genErr(gcsv.ParseValue(s)) },
 		stdName: "encoding_csv", std: func(s string) error {
 			r := csv.NewReader(strings.NewReader(s))
 			r.FieldsPerRecord = -1
@@ -91,7 +91,7 @@ var workloads = []workload{
 			return genErr(gxml.Parse(s))
 		},
 		rec:     func(s string) error { return gxml.Recognize(s) },
-		ast:     func(s string) error { return genErr(gxml.ParseAST(s)) },
+		ast:     func(s string) error { return genErr(gxml.ParseValue(s)) },
 		stdName: "encoding_xml", std: func(s string) error {
 			d := xml.NewDecoder(strings.NewReader(s))
 			for {
@@ -112,7 +112,7 @@ var workloads = []workload{
 			return genErr(gcalc.Parse(s))
 		},
 		rec:     func(s string) error { return gcalc.Recognize(s) },
-		ast:     func(s string) error { return genErr(gcalc.ParseAST(s)) },
+		ast:     func(s string) error { return genErr(gcalc.ParseValue(s)) },
 		stdName: "go_parser", std: func(s string) error { return genErr(parser.ParseExpr(s)) },
 	},
 	{
@@ -124,7 +124,7 @@ var workloads = []workload{
 			return genErr(gcalclr.Parse(s))
 		},
 		rec:     func(s string) error { return gcalclr.Recognize(s) },
-		ast:     func(s string) error { return genErr(gcalclr.ParseAST(s)) },
+		ast:     func(s string) error { return genErr(gcalclr.ParseValue(s)) },
 		stdName: "go_parser", std: func(s string) error { return genErr(parser.ParseExpr(s)) },
 	},
 	{
@@ -136,7 +136,7 @@ var workloads = []workload{
 			return genErr(gminilang.Parse(s))
 		},
 		rec: func(s string) error { return gminilang.Recognize(s) },
-		ast: func(s string) error { return genErr(gminilang.ParseAST(s)) },
+		ast: func(s string) error { return genErr(gminilang.ParseValue(s)) },
 	},
 	{
 		name: "Recovery", grammar: "../examples/minilang/minilang.zp", input: func(k int) string { return inputs.MinilangInput(300/k, 7) },
@@ -153,7 +153,7 @@ var workloads = []workload{
 		},
 		rec: func(s string) error { return gminilang.Recognize(s) },
 		ast: func(s string) error {
-			if v, _ := gminilang.ParseAST(s); v == nil {
+			if v, _ := gminilang.ParseValue(s); v == nil {
 				return io.ErrUnexpectedEOF
 			}
 			return nil
@@ -168,7 +168,7 @@ var workloads = []workload{
 			return genErr(goutline.Parse(s))
 		},
 		rec: func(s string) error { return goutline.Recognize(s) },
-		ast: func(s string) error { return genErr(goutline.ParseAST(s)) },
+		ast: func(s string) error { return genErr(goutline.ParseValue(s)) },
 	},
 }
 
@@ -242,7 +242,7 @@ func TestWorkloads(t *testing.T) {
 			}
 			if w.ast != nil {
 				if err := w.ast(input); err != nil {
-					t.Errorf("generated ParseAST: %v", err)
+					t.Errorf("generated ParseValue: %v", err)
 				}
 			}
 			if w.std != nil {
@@ -515,7 +515,7 @@ func BenchmarkIncremental(b *testing.B) {
 		if err != nil {
 			b.Fatal(err)
 		}
-		documentEdits(b, at, doc.Edit, func() error { return genErr(doc.ParseAST()) })
+		documentEdits(b, at, doc.Edit, func() error { return genErr(doc.ParseValue()) })
 	})
 	b.Run("generated/fresh", func(b *testing.B) {
 		b.ReportAllocs()

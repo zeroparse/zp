@@ -106,7 +106,7 @@ func TestLimitsAndReuse(t *testing.T) {
   if got:=fmt.Sprint(err);got!=c.want {t.Fatalf("rule %s %q unit %d limit %d got %s want %s",c.name,c.input,c.unit,c.limit,got,c.want)}
   if c.name=="main" {
    _,err=Parse(c.input,opts...);if got:=fmt.Sprint(err);got!=c.want {t.Fatalf("Parse limit %d got %s want %s",c.limit,got,c.want)}
-   _,err=ParseAST(c.input,opts...);if got:=fmt.Sprint(err);got!=c.want {t.Fatalf("AST %q limit %d got %s want %s",c.input,c.limit,got,c.want)}
+   _,err=ParseValue(c.input,opts...);if got:=fmt.Sprint(err);got!=c.want {t.Fatalf("AST %q limit %d got %s want %s",c.input,c.limit,got,c.want)}
    err=Recognize(c.input,opts...);if got:=fmt.Sprint(err);got!=c.recWant {t.Fatalf("Recognize limit %d got %s want %s",c.limit,got,c.want)}
   }
  }}
@@ -115,20 +115,20 @@ func TestLimitsAndReuse(t *testing.T) {
    opts:=[]ParseOption{WithUnit(Bytes),WithUnit(unit),WithLimits(Limits{Depth: 20})}
    n,err:=Parse(c.input,opts...);wantEnd:=len([]rune(c.input));if unit==Bytes {wantEnd=len(c.input)}
    if err!=nil || int(n.RawEnd)!=wantEnd {t.Fatalf("last unit option: %v",err)}
-   v,err:=ParseAST(c.input,opts...);if err!=nil || v.End!=wantEnd {t.Fatalf("typed last unit option: %v",err)}
+   v,err:=ParseValue(c.input,opts...);if err!=nil || v.End!=wantEnd {t.Fatalf("typed last unit option: %v",err)}
   }
  }}
  for _,c:=range rows {if c.name=="main" && c.limit==4 {
   if c.unit==CodePoints { _,err:=Parse(c.input);if fmt.Sprint(err)!=c.want {t.Fatalf("no options: %v",err)} }
   for _,opts:=range [][]ParseOption{{WithUnit(c.unit)},{WithUnit(c.unit),WithLimits(Limits{Depth: 0})},{WithUnit(c.unit),WithLimits(Limits{Depth: 4})},{WithUnit(c.unit),WithLimits(Limits{Depth: 20}),WithLimits(Limits{Depth: 4})},{WithUnit(c.unit),WithLimits(Limits{Depth: 4}),WithLimits(Limits{Depth: 0})},{WithUnit(c.unit),WithLimits(Limits{Depth: Unlimited}),WithLimits(Limits{Depth: 4})}} {
    _,err:=Parse(c.input,opts...);if fmt.Sprint(err)!=c.want {t.Fatalf("generated default: %v",err)}
-   _,err=ParseAST(c.input,opts...);if fmt.Sprint(err)!=c.want {t.Fatalf("typed generated default: %v",err)}
+   _,err=ParseValue(c.input,opts...);if fmt.Sprint(err)!=c.want {t.Fatalf("typed generated default: %v",err)}
    if err=Recognize(c.input,opts...);fmt.Sprint(err)!=c.recWant {t.Fatalf("recognize generated default: %v",err)}
   }
  }}
  var wg sync.WaitGroup
  for worker:=0;worker<8;worker++ {wg.Go(func(){for _,c:=range rows {if c.name=="main" {
-  _,err:=ParseAST(c.input,WithUnit(c.unit),WithLimits(Limits{Depth: uint64(c.limit)}));if fmt.Sprint(err)!=c.want {t.Errorf("concurrent AST limit=%d: %v",c.limit,err)}
+  _,err:=ParseValue(c.input,WithUnit(c.unit),WithLimits(Limits{Depth: uint64(c.limit)}));if fmt.Sprint(err)!=c.want {t.Errorf("concurrent AST limit=%d: %v",c.limit,err)}
   _,err=Parse(c.input,WithUnit(c.unit),WithLimits(Limits{Depth: uint64(c.limit)}));if fmt.Sprint(err)!=c.want {t.Errorf("concurrent Parse limit=%d: %v",c.limit,err)}
  }}})};wg.Wait()
 }
@@ -137,23 +137,23 @@ func TestConfiguration(t *testing.T) {
  for _,parse:=range []func(string,...ParseOption)(*Node,error){Parse,func(s string,o ...ParseOption)(*Node,error){return ParseRule("missing",s,o...)}} {
   n,err:=parse("?",bad);if n!=nil || err==nil || !strings.Contains(err.Error(),"unlimited depth") {t.Fatalf("config precedence: %v",err)}
  }
- if _,err:=ParseAST("?",bad);err==nil || !strings.Contains(err.Error(),"unlimited depth") {t.Fatal(err)}
+ if _,err:=ParseValue("?",bad);err==nil || !strings.Contains(err.Error(),"unlimited depth") {t.Fatal(err)}
  if err:=Recognize("?",bad);err==nil || !strings.Contains(err.Error(),"unlimited depth") {t.Fatal(err)}
  if _,err:=Parse("?",bad,WithLimits(Limits{Depth: 20}));err!=nil && strings.Contains(err.Error(),"unlimited depth") {t.Fatal("validate last effective setting")}
  if _,err:=Parse("?",WithLimits(Limits{Depth: 20}),bad);err==nil || !strings.Contains(err.Error(),"unlimited depth") {t.Fatal("last setting not applied")}
  if _,err:=Parse("?",WithLimits(Limits{Depth: uint64(int(^uint(0)>>1))}));err!=nil && strings.Contains(err.Error(),"unlimited depth") {t.Fatal("largest native int rejected")}
  called:=0
  option:=func(o *zprt.X_parseOptions){called++;o.X_limits.Depth=20;_,err:=Parse("?",WithLimits(Limits{Depth: 1}));_ = err}
- Parse("?",option);ParseAST("?",option);Recognize("?",option)
+ Parse("?",option);ParseValue("?",option);Recognize("?",option)
  if called!=3 {t.Fatal("options retained or evaluated more than once")}
- for _,invoke:=range []func(){func(){Parse("?",nil)},func(){ParseRule("missing","?",nil)},func(){ParseAST("?",nil)},func(){Recognize("?",nil)}} {
+ for _,invoke:=range []func(){func(){Parse("?",nil)},func(){ParseRule("missing","?",nil)},func(){ParseValue("?",nil)},func(){Recognize("?",nil)}} {
   func(){defer func(){if recover()==nil {t.Error("nil option did not panic")}}();invoke()}()
  }
  // Typed direct and conversion consumers must use the functional signature.
  var node func(string,...ParseOption)(*Node,error)=Parse
  var rule func(string,string,...ParseOption)(*Node,error)=ParseRule
  var rec func(string,...ParseOption)error=Recognize
- var ast func(string,...ParseOption)(*Word,error)=ParseAST
+ var ast func(string,...ParseOption)(*Word,error)=ParseValue
  _,_,_,_=node,rule,rec,ast
 }
 `
@@ -212,7 +212,7 @@ rule main WithUnit = t:("é") #atomic => ParseOption{Text: text($t)}`
 		consumer := `package ` + name + `_test
 import("testing";p "collisions/` + name + `";g "collisions/` + name + `/types")
 func TestExports(t *testing.T){
- var fn func(string,...p.ParseOption)(g.WithUnit,error)=p.ParseAST
+ var fn func(string,...p.ParseOption)(g.WithUnit,error)=p.ParseValue
  opts:=[]p.ParseOption{p.WithUnit(p.Bytes),p.WithLimits(p.Limits{Depth: 20})}
  value,err:=fn("é",opts...);if err!=nil || value.Text!="é" || value.End!=2{t.Fatal(value,err)}
  var word *g.ParseOption=value

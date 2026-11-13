@@ -57,7 +57,7 @@ func testGeneratedTypedFilterIdentity(t *testing.T) {
 			body := `
 func TestPACKAGEIdentity(t *testing.T) {
  for _, unit := range []PACKAGE.PositionUnit{PACKAGE.CodePoints, PACKAGE.Bytes} {
-  result, err := PACKAGE.ParseAST("é", PACKAGE.WithUnit(unit))
+  result, err := PACKAGE.ParseValue("é", PACKAGE.WithUnit(unit))
   if err != nil || result == nil { t.Fatalf("parse: %v", err) }
   first := result.First
   var alias PACKAGE.Alias = first
@@ -70,7 +70,7 @@ func TestPACKAGEIdentity(t *testing.T) {
   if result.Empty == nil || len(result.Empty) != 0 || result.NilInput == nil || len(result.NilInput) != 0 {
    t.Fatal("empty or nil input did not produce a nonnil empty typed list")
   }
-  if _, err := PACKAGE.ParseAST("b", PACKAGE.WithUnit(unit)); err != nil { t.Fatal(err) }
+  if _, err := PACKAGE.ParseValue("b", PACKAGE.WithUnit(unit)); err != nil { t.Fatal(err) }
   if first.Text != "é" || result.Items[0] != first || result.Items[1] != first {
    t.Fatal("later parsing changed a retained filtered value")
   }
@@ -81,7 +81,7 @@ func TestPACKAGEIdentity(t *testing.T) {
 				body = `
 func TestPACKAGEEmpty(t *testing.T) {
  for _, unit := range []PACKAGE.PositionUnit{PACKAGE.CodePoints, PACKAGE.Bytes} {
-  result, err := PACKAGE.ParseAST("", PACKAGE.WithUnit(unit))
+  result, err := PACKAGE.ParseValue("", PACKAGE.WithUnit(unit))
   if err != nil || result == nil { t.Fatalf("empty parse: %v", err) }
   if result.First != nil || result.Items == nil || len(result.Items) != 0 || result.Empty == nil || len(result.Empty) != 0 || result.NilInput == nil || len(result.NilInput) != 0 {
    t.Fatal("nil-input or empty-list representation changed")

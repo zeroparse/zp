@@ -9,7 +9,7 @@
 This design covers incremental Documents and committed stream parsing in standalone Go and TypeScript parsers.
 The opt-in generated Go `Document` supports Node parsing and direct typed incremental matching for the same
 eligible grammars as batch typed parsing; other typed results use Node conversion. The opt-in generated Go
-`ParseStream` reads Node streams from an `io.Reader`, and with typed values `ParseStreamAST` passes the elements
+`ParseStream` reads Node streams from an `io.Reader`, and with typed values `ParseStreamValue` passes the elements
 as typed values. Ordinary batch parsing remains available and unchanged by default. The generated TypeScript
 `createDocument` has the Document API but parses its whole text on each parse. Repetition resumption, memo reuse
 in TypeScript Documents and TypeScript streams are not implemented.
@@ -18,7 +18,7 @@ in TypeScript Documents and TypeScript streams are not implemented.
 
 [Design 007](007-streaming-and-incremental-parsing.md), [Document](../../../internal/engine/document/document.go),
 [resume.go](../../../internal/engine/core/resume.go), and [stream pragma](../../../spec/language/pragmas.md#stream) define the
-engine reference. The current generated Go path supports a Node `Document` with an optional typed `ParseAST`, and a
+engine reference. The current generated Go path supports a Node `Document` with an optional typed `ParseValue`, and a
 Node Reader stream. Generated TS still uses synchronous recursive expression functions
 ([design 013](013-typescript-generation.md)) and has no Document or stream API. Retaining a runtime's input and
 memo across calls alone does not implement edit invalidation or suspension.
@@ -37,13 +37,13 @@ TS VM, immutable snapshots, a new text-storage algorithm, or recognition on Docu
 The current Go Document is opt-in through `gen.Go{Document: true}` or the `-document` CLI option. It selects the
 configured start rule and can be combined with typed Go generation (`-types`). With TypeScript generation it adds
 `createDocument`, described below.
-For grammars eligible for direct batch typed parsing, `Document.ParseAST` uses direct typed incremental matching;
+For grammars eligible for direct batch typed parsing, `Document.ParseValue` uses direct typed incremental matching;
 other grammars keep the Node-result conversion path. Existing generation without `Document`/`-document`
 retains the batch source path. A generated `Document` is a mutable parse view, not an immutable snapshot.
 
 The current Go Node stream is opt-in through `gen.Go{Stream: true}` or the `-stream` CLI option. Generation fails
 unless the configured start rule has a `#stream` repetition at its top level; batch `Parse` still treats `#stream`
-as an ordinary repetition. Combined with typed values it also adds `ParseStreamAST`; stream generation cannot yet be
+as an ordinary repetition. Combined with typed values it also adds `ParseStreamValue`; stream generation cannot yet be
 combined with TypeScript, which fails explicitly. Observability is supported. Documents select the configured start rule initially; generic
 named batch parsing remains separate. The remaining APIs in this section are proposals.
 
@@ -55,7 +55,7 @@ func (d *Document) Text() string
 func (d *Document) Edit(start, end int, text string) error
 func (d *Document) Parse(opts ...ParseOption) (*Node, error)
 // Generated only with Types / -types.
-func (d *Document) ParseAST(opts ...ParseOption) (StartValue, error)
+func (d *Document) ParseValue(opts ...ParseOption) (StartValue, error)
 func (d *Document) Stats() ParseStats
 ```
 
@@ -65,13 +65,13 @@ for a standalone generated runtime. New APIs use functional options. Constructor
 each parse; invocation overrides follow [design 033](033-cancellable-parses-and-budgets.md),
 including ordered once-only resolution, context/limits/depth overrides and rejection of incompatible unit changes.
 A fresh per-call context supports retries; memo state never retains an invocation controller.
-For direct typed `ParseAST`, cancellation or a caller-context panic detected
+For direct typed `ParseValue`, cancellation or a caller-context panic detected
 before execution admission preserves the valid memo and the last published
 `Stats`. Once execution starts, an interruption clears the execution memo for
 a safe retry.
 
 With `-observability`, constructor `WithTrace` and `WithProfile` options are
-retained as defaults for later `Parse` and `ParseAST` calls; construction itself
+retained as defaults for later `Parse` and `ParseValue` calls; construction itself
 emits no parser events or profile counts. Per-call options override those
 defaults for that invocation only. `Edit` does not parse and emits no rule
 events. Events describe calls made during the current invocation. A memoized
@@ -86,7 +86,7 @@ report `Examined` as the conservative examined frontier the Document keeps for
 edit reuse, and profiles sum it into per-rule `Examined` and `Wasted`; see
 design 043. Temporary per-invocation observer and profile
 state is released after return or panic, while constructor defaults remain for
-later calls. Callbacks MUST NOT invoke `Parse`, `ParseAST`, or `Edit` on the same
+later calls. Callbacks MUST NOT invoke `Parse`, `ParseValue`, or `Edit` on the same
 Document. Callers can schedule later work or use another Document. A Document
 generated with observability rejects such a call with `ErrDocumentBusy`.
 
@@ -101,23 +101,23 @@ preserves internal shared identities; it is not an immutable snapshot API and do
 values immutable.
 Text and diagnostic strings already handed out remain owned data, independent of discarded parser scratch.
 
-Each `Document.Parse` and `Document.ParseAST` call publishes owned syntax diagnostics: recovered `SyntaxError`
+Each `Document.Parse` and `Document.ParseValue` call publishes owned syntax diagnostics: recovered `SyntaxError`
 values and their `Expected` and `Messages` slices are copied; ordinary failures are freshly constructed. Mutating a
 returned diagnostic cannot change memoized errors or diagnostics from a later parse. This ownership guarantee does
 not detach the Node graph, which may still share nodes with the mutable Document; use `Node.Clone` when needed.
 
-For eligible grammars, `ParseAST` matches typed values directly and reuses a private typed memo separate from the
+For eligible grammars, `ParseValue` matches typed values directly and reuses a private typed memo separate from the
 Node memo. Each call uses fresh invocation arenas. An edit keeps the completed entries that examined only input before
 it and relinks those that examined only input after it, which a parse reuses when their value is a basic value;
 provisional and left-recursive entries are not kept. A published typed value is frozen: the
 parse publishes the value it built, and later parses reuse the same values, so results share values with the
 Document and with earlier results, as Node values do. Results are therefore read-only. Modifying a result, including
-a value reached through a `node[_]` field, can change what later parses return. `CloneAST(value)` returns a copy that
+a value reached through a `node[_]` field, can change what later parses return. `CloneValue(value)` returns a copy that
 shares nothing with the Document or with other results, so the caller may modify it; aliases within the value are
 preserved. Every slice in a published value has capacity equal to its length, so appending to one result cannot write
 into another. Diagnostics returned as error results are copied on publication, because they are parser state that a
 later parse could otherwise share. An `*Error` inside a typed result points at the memo's error and shares its
-`Expected` and `Messages` slices with it. Under the read-only contract this is intended, and `CloneAST` copies them. CST `Node` values in fields that require concrete ZeroParse nodes, `_` values, and grammars whose actions
+`Expected` and `Messages` slices with it. Under the read-only contract this is intended, and `CloneValue` copies them. CST `Node` values in fields that require concrete ZeroParse nodes, `_` values, and grammars whose actions
 read fields without a plain form other than to copy them remain on the existing Node conversion path. That path converts the completed Node result for each call.
 Parsing, diagnostic copying and publication use the same invocation controller; interruption returns the result's
 zero value and clears reusable state as needed for a retry. The `Document` remains mutable and is not an immutable
@@ -136,7 +136,7 @@ after it, and drops the rest; entries dependent on left-recursion growth and pro
 wrappers memoize calls that batch generation otherwise optimizes away, while generation without a Document keeps
 the existing batch source path. Publication freezes the typed value without a per-call copy. The generated code writes a value only while it
 builds it, before publication: slices are carved with three-index bounds from chunks, and no later code writes into a
-published value. Later parses reuse published values, and `CloneAST` is the only way to obtain a detached copy.
+published value. Later parses reuse published values, and `CloneValue` is the only way to obtain a detached copy.
 Parsing and publication use the same invocation controls. If either is interrupted, the typed result's zero value is
 returned and the cache state required for a clean retry is cleared.
 
@@ -149,7 +149,7 @@ memory and allocations; do not infer typed incremental gains from Node memo reus
 ```go
 func ParseStream(r io.Reader, emit func(*Node) error, opts ...ParseOption) error
 // Types only; StreamValue denotes the inferred type of one repeated element.
-func ParseStreamAST(r io.Reader, emit func(StreamValue) error, opts ...ParseOption) error
+func ParseStreamValue(r io.Reader, emit func(StreamValue) error, opts ...ParseOption) error
 ```
 
 Both are implemented. The generated Node stream keeps the batch fast
@@ -167,7 +167,7 @@ memo lookups before them, and drops a profile's evaluation counts there. Node te
 snapshots of loaded input, so a returned string retains at most one snapshot.
 
 Stream packages also have the engine's `Iterate`, `WithDiagnosticCallback` and `WithDiagnosticLimit`
-([design 036](036-stream-iteration-and-diagnostics.md)) with the same contracts, and typed packages an `IterateAST`.
+([design 036](036-stream-iteration-and-diagnostics.md)) with the same contracts, and typed packages an `IterateValue`.
 The options set fields of the generated options that exist only in stream packages; the stream entry points mark
 their options as streaming, and every other entry point rejects diagnostic options, so non-stream output is
 unchanged. Before each element the stream reports the recovered errors committed since the last boundary to the
@@ -182,22 +182,22 @@ in one reservation, rather than in the engine's chunks, so step counts at an exh
 These APIs do not return a start-rule tree. The callback receives each committed element, including nil where
 the repeated expression produces no value. StreamValue follows the existing Go typed mapping of that expression,
 including joins, aliases, lists, CST/`_` and recovery's nil/Error representations; it need not equal StartValue.
-The generator must infer/export the element contract explicitly rather than reuse ParseAST's start signature.
+The generator must infer/export the element contract explicitly rather than reuse ParseValue's start signature.
 Conversion occurs after the element is finalized and before callback publication. Convert per element with owned
 storage; Node/CST fields and text survive buffer compaction and later elements. Cross-element aliases, if allowed
 by grammar values, retain their identity and cannot refer to reusable scratch. A conservative detached copy is a
 valid first implementation; retain ownership costs in measurements.
 
-`ParseStreamAST` is implemented as Node conversion of the elements `ParseStream` commits. The checker records the
+`ParseStreamValue` is implemented as Node conversion of the elements `ParseStream` commits. The checker records the
 final element type of each rule's `#stream` repetition, which is the type of the repeated expression, or the record
 of its captures when the element has a scope of its own; `StreamValue` is an alias of that type's Go mapping. Each
 element is converted with a converter of its own, so aliases within an element keep their identity and nothing is
 shared with later elements; Node, CST and text values are the committed element's, which `ParseStream` already
 detaches from the parser. The conversion runs inside the parse and is charged to its budget control like batch
 conversion, so `WithLimits` and `WithContext` cover it, and a nil element is passed as the zero value.
-`StreamValue`, `ParseStream` and `ParseStreamAST` are reserved generated names. The direct typed matching of batch
-`ParseAST` is not used for streams: its values are built during matching, before an element is committed.
-`TestGeneratedTypedStreamMatchesBatch` compares the elements with the repetition of the batch `ParseAST` value, and
+`StreamValue`, `ParseStream` and `ParseStreamValue` are reserved generated names. The direct typed matching of batch
+`ParseValue` is not used for streams: its values are built during matching, before an element is committed.
+`TestGeneratedTypedStreamMatchesBatch` compares the elements with the repetition of the batch `ParseValue` value, and
 the errors and element counts with `ParseStream`, across chunkings, reader and callback errors and both units.
 
 Reader streams may block in Read; the parser does not make a generic Reader cancellable and does not close it.
@@ -211,7 +211,7 @@ behavior internally without public element callbacks, rather than panicking. Thi
 
 `createDocument(input: string | Uint8Array, options?: ParseOptions)` is implemented, returning a discriminated
 `{document,error}` result, with `document` null on configuration failure. Copy byte input; resolve option getters
-once. Methods `text()`, `edit(start,end,replacement)`, `parse(options?)`, `stats()` (once parses reuse results) and, with types, `parseAST(options?)` follow the
+once. Methods `text()`, `edit(start,end,replacement)`, `parse(options?)`, `stats()` (once parses reuse results) and, with types, `parseValue(options?)` follow the
 Go contracts and existing TS result/error conventions. Edit returns an Error or null, without partial mutation.
 In Bytes, propose `bytes(): Uint8Array` returning a copy for lossless invalid input; text() uses the existing
 surrogateescape representation. Replacements accept the same string/byte types. Preserve both units, number|bigint
@@ -282,7 +282,7 @@ values; no pooled parser or conversion arena is shared between concurrent invoca
 | --- | --- |
 | Closure and both engine VMs | Existing Document/Reader stream oracle; both position units |
 | Generated Go Node | Current opt-in prefix-memo Document and Reader stream with pull iteration and diagnostic controls |
-| Generated typed Go | Direct typed `Document.ParseAST` for batch-eligible grammars; Node conversion fallback otherwise; streams convert committed elements |
+| Generated typed Go | Direct typed `Document.ParseValue` for batch-eligible grammars; Node conversion fallback otherwise; streams convert committed elements |
 | Generated TS Node/typed conversion | Documents without memo reuse (each parse parses the whole text); memo reuse and streams remain proposed; streams require continuation lowering |
 | Recognition | Continue rejecting Document/stream mode; batch recognition is unaffected |
 
@@ -355,11 +355,11 @@ operation differed by at most two bytes. This supports no measurable Node-path r
 
 The new [typed benchmark fixture](../../../internal/gen/gogen/testdata/generated_document_bench/typed_bench_test.go)
 uses 256 or 4,096 records of `é😀=123;`. Five 200 ms samples of the same generated revision measured direct
-typed `ParseAST`, a warm `Document.ParseAST` without an edit, and near-EOF `Edit+Document.ParseAST`. The edit
+typed `ParseValue`, a warm `Document.ParseValue` without an edit, and near-EOF `Edit+Document.ParseValue`. The edit
 benchmark includes the edit and conversion; direct inputs are prebuilt. Values were compared against a fresh
 typed parse before timing.
 
-| Records | Unit | Direct `ParseAST` | Warm Document | Edit + Document | Direct / warm / edit B/op |
+| Records | Unit | Direct `ParseValue` | Warm Document | Edit + Document | Direct / warm / edit B/op |
 | ---: | --- | ---: | ---: | ---: | ---: |
 | 256 | CodePoints | 39,127 ns/op | 70,693 ns/op | 154,353 ns/op | 70,115 / 139,248 / 312,864 |
 | 256 | Bytes | 41,075 ns/op | 64,917 ns/op | 152,218 ns/op | 70,115 / 122,864 / 329,248 |
@@ -400,7 +400,7 @@ ratios are unchanged within that spread.
 The warm no-edit CodePoints time is about 12 times the Bytes time because each CodePoints parse decodes the whole
 input again. `setSource` builds a rune slice and an offset table on every call, about 272 KB per operation, while Bytes
 reads the source string directly and allocates about 35 KB. In a CPU profile of the warm CodePoints benchmark,
-`setSource` accounts for about 90% of the time under `ParseAST`. This record does not change that cost.
+`setSource` accounts for about 90% of the time under `ParseValue`. This record does not change that cost.
 
 Per near-EOF edit at 4,096 records in CodePoints, cumulative allocation falls from 4,824,124 to 756,809 B/op, and the
 allocation count falls from 8,430 to 33. The control allocation is unchanged: 831,871 to 829,213 B/op for the batch typed control and
@@ -448,7 +448,7 @@ batch `Parse` from packages generated with and without `-stream` measured 28.3 v
 With diagnostic controls and iterators added, six one-second samples of a 60,000-element key/value stream (0.9 MB)
 measured generated `ParseStream` at 23.2 ms (±2%) against 23.0 ms (±1%) before, with one more allocation per call,
 so the per-element report check costs nothing measurable. Pulling the same elements through `Iterate` took 27.7 ms
-(one coroutine switch per element), and typed `ParseStreamAST` 31.6 ms with 47.4 MiB and 303,000 allocations against
+(one coroutine switch per element), and typed `ParseStreamValue` 31.6 ms with 47.4 MiB and 303,000 allocations against
 27.3 MiB and 3,090: each element gets its own converter and value chunks. A consumer with a diagnostic limit of 3 over
 100,000 recoveries keeps reachable heap growth under 4 MiB; without emptying the recovered list at commits it grew
 about 6.9 MiB.

@@ -13,7 +13,7 @@
 // it measurably pays, the rules differ from the productions; a comment says why at each place. The
 // changes made for speed try an alternative only where its first characters can match, define the
 // context only where it changes, and read the common plain scalars without it: together they made
-// ParseAST about four times as fast on the benchmark of Kubernetes-like manifests (39 ms to 9.2 ms for
+// ParseValue about four times as fast on the benchmark of Kubernetes-like manifests (39 ms to 9.2 ms for
 // 256 KB), and a differential test against the version without them found no difference.
 package yaml
 

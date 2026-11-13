@@ -14,7 +14,7 @@ Each stable ID uses a category letter and a three-digit number: `E` (value elisi
 
 Backend cells describe default applicability: `✓` applies; `Partial` applies only to the stated eligible subset; `Private off` marks a private/default-off implementation; `No` means the backend could use the mechanism but does not implement it; and `—` means the mechanism has no corresponding path. The separate state and control columns distinguish default selection from same-source comparison support. Shared compilation, setup and editor mechanisms identify their scope in the Path scope column; they are not runtime matching claims.
 
-Backend headers use C for Closure, RVM for recursive VM, IVM for iterative VM, Go Node / Recognize for generated Go Node parsing and recognition, Typed Go for generated `ParseAST`, and TS for generated TypeScript. Path scope abbreviations GN and TG refer to those generated Go paths.
+Backend headers use C for Closure, RVM for recursive VM, IVM for iterative VM, Go Node / Recognize for generated Go Node parsing and recognition, Typed Go for generated `ParseValue`, and TS for generated TypeScript. Path scope abbreviations GN and TG refer to those generated Go paths.
 
 The same-source controls of generated parsers are the generation flags of `zp gen` (`-no-opt name`, `-opt name=count`; the [code-generation guide](../guide/code-generation.md#optimizations) lists them and [record 136](136-measured-effect-of-the-generation-flags.md) measures each one). The closure backend and the VMs have no generation flags; their controls are build tags and compile options.
 
@@ -188,7 +188,7 @@ Records [025](025-discarding-separators-in-the-example-grammars.md) and [055](05
 - [045. Moving reused trees in place after document edits](045-moving-reused-trees-in-place-after-document-edits.md)
 - [046. Direct calls of plain rules in generated parsers](046-direct-calls-of-plain-rules-in-generated-parsers.md)
 - [047. Recognition in generated parsers](047-recognition-in-generated-parsers.md)
-- [048. A typed runtime for ParseAST](048-a-typed-runtime-for-parseast.md)
+- [048. A typed runtime for ParseValue](048-a-typed-runtime-for-parsevalue.md)
 - [049. First-character dispatch in generated choices](049-first-character-dispatch-in-generated-choices.md)
 - [050. First-character dispatch in the closure backend](050-first-character-dispatch-in-the-closure-backend.md)
 ## Records 51–98
@@ -295,8 +295,8 @@ Records [025](025-discarding-separators-in-the-example-grammars.md) and [055](05
 | Iterative VM: holding body frames by value in the VM stack (a tagged entry instead of a pooled frame behind an interface) | 5–19% slower: each entry is about 150 bytes, and copying and clearing it on every push and pop costs more than the interface call and the pool it saves | Not adopted |
 | Iterative VM: calling body frames directly (a type assertion before the interface call) and returning them to the pool without the type switch | Within ±4% (noise) | Not adopted |
 | Estimating a smaller `Node` (120 → about 88 bytes with `int32` positions and interned type and rule names) by the opposite change: 32 bytes of padding | Closure: JSON +1%, XML +4%, Arith_OperatorsRule +1%, Minilang and the long `Document` within noise, about +12% bytes; so shrinking would gain a few percent at most | Adopted later as change 63, accepting the API change for the memory it saves |
-| Inlining small plain rules into direct typed rules (after change 62; a body without calls of up to 16 expressions, also tried transitively) | `ParseAST` JSON −1% to −7% depending on the run, the other benchmarks within ±3% | Not adopted: no consistent gain for more generated code |
-| Setting the fields of the reused action context in place in direct typed rules, instead of copying a whole `tctx` | `ParseAST` JSON −5%, Outline +5%, the others within ±2% | Not adopted (noise) |
+| Inlining small plain rules into direct typed rules (after change 62; a body without calls of up to 16 expressions, also tried transitively) | `ParseValue` JSON −1% to −7% depending on the run, the other benchmarks within ±3% | Not adopted: no consistent gain for more generated code |
+| Setting the fields of the reused action context in place in direct typed rules, instead of copying a whole `tctx` | `ParseValue` JSON −5%, Outline +5%, the others within ±2% | Not adopted (noise) |
 | Memoizing every rule (classic packrat) | 2–3× slower than the transient policy on all workloads; memo entries were never reused for leaf and single-reference rules | Replaced by the transient policy (change 1) |
 
 ## Grammar Authoring Guidelines for Performance

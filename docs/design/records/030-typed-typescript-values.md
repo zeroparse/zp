@@ -66,10 +66,10 @@ export interface TypedParseResult<T> {
   readonly error: Error | null;
 }
 
-export function parseAST(
+export function parseValue(
   input: string | Uint8Array, unit?: Unit,
 ): TypedParseResult<StartValue>;
-export function parseASTWithOptions(
+export function parseValueWithOptions(
   input: string | Uint8Array, options?: ParseOptions,
 ): TypedParseResult<StartValue>;
 ```
@@ -179,7 +179,7 @@ null; an Error in a join remains `RecoveredError`; list conversion follows
 Go's existing Error/empty-list and element-null rules. Do not infer success
 from `value !== null`: nil-valued rules can succeed.
 
-No existing entry point changes its return shape. `parseAST` performs one Node
+No existing entry point changes its return shape. `parseValue` performs one Node
 parse followed by conversion.
 
 ### Ownership and Conversion
@@ -444,8 +444,8 @@ paired medians, ranges and uncertainty.
 
 ## Limitations and Follow-Up Scope
 
-The implemented API is configured-start parsing through parseAST and
-parseASTWithOptions, following existing TS call conventions. Interfaces are
+The implemented API is configured-start parsing through parseValue and
+parseValueWithOptions, following existing TS call conventions. Interfaces are
 plain discriminated values with readonly grammar fields and lowercase metadata.
 
 Mixed/open aliases are conservative because existing any-conversion semantics

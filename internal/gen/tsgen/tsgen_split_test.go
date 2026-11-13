@@ -66,15 +66,15 @@ rule num int = t:([0-9]+ ","?) #atomic => 1`
 	if err != nil {
 		t.Fatal(err)
 	}
-	const consumer = `import {parse, parseAST, parseWithOptions, SyntaxError, CodePoints, Node} from "./parser.ts";
+	const consumer = `import {parse, parseValue, parseWithOptions, SyntaxError, CodePoints, Node} from "./parser.ts";
 import type {Pair} from "./parser.ts";
 declare const process: {stdout: {write(s: string): void}};
 const n = parse("ab=1,2,3");
 if (n.error !== null || !(n.node instanceof Node)) throw new Error("parse failed");
-const r = parseAST("ab=1,2,3");
+const r = parseValue("ab=1,2,3");
 const v: Pair | null = r.value;
-if (r.error !== null || v === null || v.Values?.length !== 3) throw new Error("parseAST failed " + JSON.stringify(r.error));
-const bad = parseAST("1=");
+if (r.error !== null || v === null || v.Values?.length !== 3) throw new Error("parseValue failed " + JSON.stringify(r.error));
+const bad = parseValue("1=");
 if (!(bad.error instanceof SyntaxError) || bad.value !== null) throw new Error("expected a syntax error");
 const o = parseWithOptions("ab=1", {unit: CodePoints, trace() {}});
 if (o.error === null || !String(o.error.message).includes("observability")) throw new Error("trace must be rejected: " + o.error?.message);
@@ -250,14 +250,14 @@ type Observation = { Text string }
 type ObservationCall = { Text string }
 type TraceFailure = { Text string }
 rule main TraceEvent = p:part => TraceEvent{Value:$p}
-rule part Observation = t:("a") #atomic => Observation{Text: text($t)}`, gen.GenOptions{Start: "main", Types: true, Recognize: true, Observability: true}, `import {parseWithOptions, parseASTWithOptions} from "./parser.ts";
+rule part Observation = t:("a") #atomic => Observation{Text: text($t)}`, gen.GenOptions{Start: "main", Types: true, Recognize: true, Observability: true}, `import {parseWithOptions, parseValueWithOptions} from "./parser.ts";
 import type {TraceEvent} from "./parser.ts";
 import type {TraceKind, TraceEvent as GrammarTraceEvent, Observation, ObservationCall, TraceFailure} from "./types.ts";
 declare const process: {stdout: {write(s: string): void}};
 const names: [TraceKind|null, Observation|null, ObservationCall|null, TraceFailure|null] = [null, null, null, null];
 const events: TraceEvent[] = [];
 const r = parseWithOptions("a", {trace: (e) => { events.push(e); }});
-const typed = parseASTWithOptions("a", {trace: () => {}});
+const typed = parseValueWithOptions("a", {trace: () => {}});
 const value: GrammarTraceEvent | null = typed.value;
 if (names.length !== 4 || r.error !== null || typed.error !== null || value === null) throw new Error("parse failed");
 if (events.filter((e) => e.rule === "part" && e.kind === "enter").length !== 1) throw new Error("collision calls");
@@ -270,13 +270,13 @@ process.stdout.write("ok\n");
 func TestGeneratedTSProfileNameCollisions(t *testing.T) {
 	t.Parallel()
 	runTSSplit(t, "type Profile = { Text string }\ntype ProfileSnapshot = { Text string }\ntype RuleProfile = { Text string }\ntype ProfileLocation = { Text string }\ntype SkipReasonCount = { Text string }\ntype ProfileObservation = { Text string }\ntype ProfileFrame = { Text string }\ntype ProfileData = { Text string }\ntype WeakMap = { Text string }\nrule main Profile = t:(part) #atomic => Profile{Text: text($t)}\nrule part Profile = t:(\"a\") #atomic => Profile{Text: text($t)}",
-		gen.GenOptions{Start: "main", Types: true, Recognize: true, Observability: true}, `import {Profile, parseWithOptions, parseASTWithOptions} from "./parser.ts";
+		gen.GenOptions{Start: "main", Types: true, Recognize: true, Observability: true}, `import {Profile, parseWithOptions, parseValueWithOptions} from "./parser.ts";
 import type {Profile as GrammarProfile, ProfileSnapshot, RuleProfile, ProfileLocation, SkipReasonCount, ProfileObservation, ProfileFrame, ProfileData, WeakMap} from "./types.ts";
 declare const process: {stdout: {write(s: string): void}};
 const names: [ProfileSnapshot|null, RuleProfile|null, ProfileLocation|null, SkipReasonCount|null, ProfileObservation|null, ProfileFrame|null, ProfileData|null, WeakMap|null] = [null, null, null, null, null, null, null, null];
 const profile = new Profile();
 const r = parseWithOptions("a", {profile});
-const typed: GrammarProfile | null = parseASTWithOptions("a", {profile}).value;
+const typed: GrammarProfile | null = parseValueWithOptions("a", {profile}).value;
 const snapshot = profile.snapshot();
 if (names.length !== 8 || r.error !== null || typed === null || snapshot.parses !== 2 || snapshot.entered < 2) throw new Error("profile " + JSON.stringify(snapshot));
 process.stdout.write("ok\n");

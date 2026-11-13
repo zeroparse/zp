@@ -24,12 +24,12 @@ rule fast = "z"`
 			consumer := `import * as p from "./parser.ts";
 ` + tsTypedAssert + `
 for(const unit of [p.CodePoints,p.Bytes])for(const input of ["z",new Uint8Array([122])]) {
- const ordinary=p.parse(input,unit),typed=p.parseAST(input,unit);
+ const ordinary=p.parse(input,unit),typed=p.parseValue(input,unit);
  check(ordinary.error===null&&typed.error===null&&typed.value?.Ok===true,"ordinary scalar value");
- const active=p.parseWithOptions(input,{unit,signal:{aborted:false}}),converted=p.parseASTWithOptions(input,{unit,signal:{aborted:false}});
+ const active=p.parseWithOptions(input,{unit,signal:{aborted:false}}),converted=p.parseValueWithOptions(input,{unit,signal:{aborted:false}});
  check(active.error===null&&converted.error===null&&stable(active.node)===stable(ordinary.node)&&stable(converted.value)===stable(typed.value),"controlled scalar value parity");
  check(p.parseRuleWithOptions("fast",input,{unit,limits:{compute:128}}).error===null,"matching-only spend fits");
- for(const error of [p.parseWithOptions(input,{unit,limits:{compute:128}}).error,p.parseASTWithOptions(input,{unit,limits:{compute:128}}).error,p.recognizeWithOptions(input,{unit,limits:{compute:128}})])check(error instanceof p.ParseInterruptionError&&error.kind==="compute-limit","scalar visits consume cumulative step budget");
+ for(const error of [p.parseWithOptions(input,{unit,limits:{compute:128}}).error,p.parseValueWithOptions(input,{unit,limits:{compute:128}}).error,p.recognizeWithOptions(input,{unit,limits:{compute:128}})])check(error instanceof p.ParseInterruptionError&&error.kind==="compute-limit","scalar visits consume cumulative step budget");
  let polls=0;const cause={marker:"scalar"};
  const canceled=p.parseWithOptions(input,{unit,signal:{get aborted(){return ++polls>=4},reason:cause}});
  check(canceled.node===null&&canceled.error instanceof p.ParseInterruptionError&&canceled.error.kind==="canceled"&&canceled.error.cause===cause,"scalar cancellation retains cause and no partial result");
@@ -61,8 +61,8 @@ rule source = "a"*`
 		consumer := `import * as p from "./parser.ts";
 ` + tsTypedAssert + `
 for(const unit of [p.CodePoints,p.Bytes]) {
- const input="a".repeat(1200),normal=p.parse(input,unit),typed=p.parseAST(input,unit);
- const active=p.parseWithOptions(input,{unit,signal:{aborted:false}}),converted=p.parseASTWithOptions(input,{unit,signal:{aborted:false}});
+ const input="a".repeat(1200),normal=p.parse(input,unit),typed=p.parseValue(input,unit);
+ const active=p.parseWithOptions(input,{unit,signal:{aborted:false}}),converted=p.parseValueWithOptions(input,{unit,signal:{aborted:false}});
  check(normal.error===null&&typed.error===null&&active.error===null&&converted.error===null&&stable(active.node)===stable(normal.node)&&stable(converted.value)===stable(typed.value)&&converted.value?.S===input,"source text value parity");
  function fits(n:number):boolean{return p.parseRuleWithOptions("fast",input,{unit,limits:{compute:n}}).error===null}
  let lo=0,hi=1;while(!fits(hi)){hi*=2;check(hi<1000000,"finite matching budget")}
@@ -90,7 +90,7 @@ rule item Box = x:.+ => Box{Ok: "𐀀" > "\u{ffff}" && "é" <= "é" && "é" >= "
 ` + tsTypedAssert + `
 for(const unit of [p.CodePoints,p.Bytes]) {
  const input=new Uint8Array([0xc3,0xa9,0xf0,0x90,0x80,0x80,0xff]);
- const ordinary=p.parseAST(input,unit),active=p.parseASTWithOptions(input,{unit,signal:{aborted:false}});
+ const ordinary=p.parseValue(input,unit),active=p.parseValueWithOptions(input,{unit,signal:{aborted:false}});
  check(ordinary.error===null&&active.error===null&&stable(active.value)===stable(ordinary.value),"scalar Unicode and escaped-byte parity");
  check(active.value?.Ok===true&&active.value.N===(unit===p.Bytes?7:3),"UTF-8 order and byte-escape length");
  check(active.value?.Order===(unit===p.Bytes),"raw invalid byte versus replacement scalar ordering");
@@ -107,10 +107,10 @@ func TestGeneratedTSScalarIteratorNamespace(t *testing.T) {
 	src := `type Generator = { Text string }
 
 rule main Generator = t:("z") #atomic => Generator{Text: text($t)}`
-	consumer := `import {parseAST} from "./parser.ts";
+	consumer := `import {parseValue} from "./parser.ts";
  import type {Generator} from "./types.ts";
 ` + tsTypedAssert + `
- const value: Generator|null=parseAST("z").value;
+ const value: Generator|null=parseValue("z").value;
  check(value?.type==="Generator"&&stable(value).includes("Generator"),"existing Generator export remains usable");`
 	runTypedTSFixture(t, src, consumer, gen.GenOptions{Start: "main", LimitControls: true, Types: true}, "")
 }

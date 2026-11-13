@@ -125,7 +125,7 @@ func TestGeneratedLiteralDispatchWorkload(t *testing.T) {
 					api = "functional-options"
 				}
 				if mode.types {
-					if !strings.Contains(string(code), "func ParseAST(") || !strings.Contains(string(code), "func Recognize(") {
+					if !strings.Contains(string(code), "func ParseValue(") || !strings.Contains(string(code), "func Recognize(") {
 						t.Fatalf("%s/%s/%s omitted typed parse or recognition", workload.name, mode.name, variant.name)
 					}
 				} else if !strings.Contains(string(code), "func Recognize(") {
@@ -226,7 +226,7 @@ func literalDispatchGoAdapter(typed bool, unitAPI string) string {
 	b.WriteString("func FixtureParse(input string, unit int) bool { u := fixtureUnit(unit); _, err := " + parseCall + "; return err == nil }\n")
 	b.WriteString("func FixtureRecognize(input string, unit int) bool { u := fixtureUnit(unit); return " + recognizeCall + " == nil }\n")
 	if typed {
-		typedCall := "ParseAST(input, " + unitExpr + ")"
+		typedCall := "ParseValue(input, " + unitExpr + ")"
 		b.WriteString("func FixtureTyped(input string, unit int) bool { u := fixtureUnit(unit); _, err := " + typedCall + "; return err == nil }\n")
 	}
 	return b.String()
@@ -374,7 +374,7 @@ func TestGeneratedFixtureParity(t *testing.T) {
 				t.Run(fmt.Sprintf("%s/%s/%s/%s", workload, input.Key, backend.name, unitName), func(t *testing.T) {
 					if got := backend.parse(input.Value, unitIndex); got != want { t.Errorf("Parse accepted=%v, want %v", got, want) }
 					if got := backend.recognize(input.Value, unitIndex); got != want { t.Errorf("Recognize accepted=%v, want %v", got, want) }
-					if backend.typed != nil { if got := backend.typed(input.Value, unitIndex); got != want { t.Errorf("ParseAST accepted=%v, want %v", got, want) } }
+					if backend.typed != nil { if got := backend.typed(input.Value, unitIndex); got != want { t.Errorf("ParseValue accepted=%v, want %v", got, want) } }
 				})
 			}
 		}
@@ -386,7 +386,7 @@ func BenchmarkGeneratedFixture(b *testing.B) {
 	for _, input := range loadInputs(b, "inputs.json") {
 		for unitIndex, unitName := range []string{"codePoints", "bytes"} {
 			for _, backend := range backends {
-				for _, operation := range []struct { name string; fn func(string,int) bool }{{"Parse", backend.parse}, {"Recognize", backend.recognize}, {"ParseAST", backend.typed}} {
+				for _, operation := range []struct { name string; fn func(string,int) bool }{{"Parse", backend.parse}, {"Recognize", backend.recognize}, {"ParseValue", backend.typed}} {
 					if operation.fn == nil { continue }
 					name := fmt.Sprintf("%s/%s/%s/%s/%s", operation.name, backend.name, workload, input.Key, unitName)
 					b.Run(name, func(b *testing.B) { b.ReportAllocs(); for b.Loop() { operation.fn(input.Value, unitIndex) } })

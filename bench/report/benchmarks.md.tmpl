@@ -1,5 +1,5 @@
 {{- $all := list "JSON" "CSV" "XML" "Arith_OperatorsRule" "Arith_LeftRec" "Minilang" "Recovery" "Outline" -}}
-{{- /* Workloads whose ParseAST builds the values directly; the others convert the tree of Parse. */ -}}
+{{- /* Workloads whose ParseValue builds the values directly; the others convert the tree of Parse. */ -}}
 {{- $typedDirect := list "JSON" "CSV" "XML" "Arith_OperatorsRule" "Arith_LeftRec" "Outline" -}}
 {{- $std := list "JSON:encoding_json" "CSV:encoding_csv" "XML:encoding_xml" "Arith_OperatorsRule:go_parser" "Arith_LeftRec:go_parser" -}}
 {{- $backends := list "closure" "bytecode" "iterative" -}}
@@ -26,7 +26,7 @@ The generated TypeScript parsers were measured with Node {{meta "ts.node"}}.{{en
 
 ### Parsing Time (Position Unit: Code Points)
 
-| Workload | Closure | Bytecode (recursive) | Bytecode (iterative) | Generated Go | Generated Go, typed (`ParseAST`) | Standard library |
+| Workload | Closure | Bytecode (recursive) | Bytecode (iterative) | Generated Go | Generated Go, typed (`ParseValue`) | Standard library |
 |:--|--:|--:|--:|--:|--:|--:|
 {{- range $all}}
 {{- $c := printf "Parse/%s/closure/codepoints" .}}{{$a := printf "Parse/%s/generated_ast" .}}
@@ -46,7 +46,7 @@ The generated TypeScript parsers were measured with Node {{meta "ts.node"}}.{{en
 
 Bytes allocated / number of allocations.
 
-| Workload | Closure | Bytecode (recursive) | Bytecode (iterative) | Generated Go | Generated Go, typed (`ParseAST`) | Standard library |
+| Workload | Closure | Bytecode (recursive) | Bytecode (iterative) | Generated Go | Generated Go, typed (`ParseValue`) | Standard library |
 |:--|--:|--:|--:|--:|--:|--:|
 {{- range $all}}
 {{- $a := printf "Parse/%s/generated_ast" .}}
@@ -61,15 +61,15 @@ Bytes allocated / number of allocations.
 | {{.}} | {{mem (printf "Parse/%s/closure/bytes" .)}} | {{mem (printf "Parse/%s/bytecode/bytes" .)}} | {{mem (printf "Parse/%s/iterative/bytes" .)}} | {{mem (printf "Parse/%s/generated/bytes" .)}} |
 {{- end}}
 
-### Typed Values (`ParseAST` of `zp gen -types`)
+### Typed Values (`ParseValue` of `zp gen -types`)
 
-`ParseAST` builds the grammar's Go types directly when every value it can return has a Go type of its own ("direct");
+`ParseValue` builds the grammar's Go types directly when every value it can return has a Go type of its own ("direct");
 otherwise (the values include CST nodes, as in minilang and recovery) it runs `Parse` and converts the tree ("converted").
 CSV builds typed `File`, `Record`, and `Field` values directly.
 See [code generation](guide/generated-typed-values.md). The factor is relative to the generated parser's
 `Parse` (code points).
 
-| Workload | `ParseAST` | `Parse` | `ParseAST` | Memory (`Parse` → `ParseAST`) |
+| Workload | `ParseValue` | `Parse` | `ParseValue` | Memory (`Parse` → `ParseValue`) |
 |:--|:--|--:|--:|--:|
 {{- range $all}}
 {{- $p := printf "Parse/%s/generated/codepoints" .}}{{$a := printf "Parse/%s/generated_ast" .}}
@@ -153,12 +153,12 @@ Memory (bytes allocated / number of allocations) and file sizes:
 
 `zp gen -lang ts -types -recognize` parsers, run under `node --experimental-strip-types` ({{meta "ts.cores"}} cores, V8 {{meta "ts.v8"}}, commit {{meta "ts.commit"}}, measured on {{meta "ts.date"}}{{if hasMeta "ts.load"}}, load average {{meta "ts.load"}} when the run started{{end}}).
 Each figure is the median of {{runs "TS/Parse/JSON"}} runs of `bench/ts-parse.mjs`, one fresh process per run, after a warm-up of one second: the mean time of a parse of the same input as the Go tables, in code points, with the throughput in parentheses.
-`parse` builds the Node tree, `parseAST` the typed values and `recognize` builds nothing. The last column is the time of `parse` relative to the generated Go `Parse` of the table above (lower is faster).
+`parse` builds the Node tree, `parseValue` the typed values and `recognize` builds nothing. The last column is the time of `parse` relative to the generated Go `Parse` of the table above (lower is faster).
 
-| Workload | `parse` | `parseAST` | `recognize` | `parse` relative to generated Go |
+| Workload | `parse` | `parseValue` | `recognize` | `parse` relative to generated Go |
 |:--|--:|--:|--:|--:|
 {{- range list "JSON" "CSV" "XML" "Arith_OperatorsRule" "Arith_LeftRec" "Minilang" "Outline"}}
-| {{.}} | {{tsCell (printf "TS/Parse/%s" .)}} | {{tsCell (printf "TS/ParseAST/%s" .)}} | {{tsCell (printf "TS/Recognize/%s" .)}} | {{tsRel (printf "TS/Parse/%s" .) (printf "Parse/%s/generated/codepoints" .)}}× |
+| {{.}} | {{tsCell (printf "TS/Parse/%s" .)}} | {{tsCell (printf "TS/ParseValue/%s" .)}} | {{tsCell (printf "TS/Recognize/%s" .)}} | {{tsRel (printf "TS/Parse/%s" .) (printf "Parse/%s/generated/codepoints" .)}}× |
 {{- end}}
 
 {{end -}}
@@ -167,7 +167,7 @@ Each figure is the median of {{runs "TS/Parse/JSON"}} runs of `bench/ts-parse.mj
 
 Sizes of the parsers generated from `testdata/grammars/` with the options of `testdata/grammars/generate.txt`
 (commit {{meta "size.commit"}}, {{meta "size.go"}}). "Go source" is the generated `parser.go`; "Go binary" is a program that
-calls the parser's `ParseAST`, built with `-trimpath -ldflags="-s -w"`, so it includes the ZeroParse runtime and the
+calls the parser's `ParseValue`, built with `-trimpath -ldflags="-s -w"`, so it includes the ZeroParse runtime and the
 parser's types. "TypeScript" is the generated `parser.ts`, raw and compressed with `gzip -9`; it imports the embedded
 runtime, which is the same for every parser and weighs {{sizeOf "runtime" "ts-raw"}} ({{sizeOf "runtime" "ts-gzip"}} gzipped).
 

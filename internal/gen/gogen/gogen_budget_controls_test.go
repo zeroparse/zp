@@ -66,8 +66,8 @@ type invocation struct{name string; call func(string,...ParseOption)(any,error)}
 func routes() []invocation {return []invocation{
  {"Node",func(s string,o ...ParseOption)(any,error){v,e:=Parse(s,o...);return v,e}},
  {"named Node",func(s string,o ...ParseOption)(any,error){v,e:=ParseRule("main",s,o...);return v,e}},
- {"AST",func(s string,o ...ParseOption)(any,error){v,e:=ParseAST(s,o...);return v,e}},
- {"named AST",func(s string,o ...ParseOption)(any,error){return ParseRuleAST("main",s,o...)}},
+ {"AST",func(s string,o ...ParseOption)(any,error){v,e:=ParseValue(s,o...);return v,e}},
+ {"named AST",func(s string,o ...ParseOption)(any,error){return ParseRuleValue("main",s,o...)}},
  {"recognize",func(s string,o ...ParseOption)(any,error){return nil,Recognize(s,o...)}},
 }}
 func isZero(v any) bool{return v==nil || reflect.ValueOf(v).IsZero()}
@@ -124,7 +124,7 @@ func TestValidationAndOptions(t *testing.T){
   sentinel:=new(int)
   func(){defer func(){if got:=recover();got!=sentinel{t.Fatalf("option panic %v",got)}}();r.call("?",func(*zprt.X_parseOptions){panic(sentinel)})}()
  }
- for _,call:=range []func()error{func()error{_,e:=ParseRule("missing","?",WithContext(ctx));return e},func()error{_,e:=ParseRuleAST("missing","?",WithContext(ctx));return e}} {
+ for _,call:=range []func()error{func()error{_,e:=ParseRule("missing","?",WithContext(ctx));return e},func()error{_,e:=ParseRuleValue("missing","?",WithContext(ctx));return e}} {
   err:=call();if err==nil || errors.Is(err,context.Canceled) {t.Fatalf("name validation: %v",err)}
  }
  for _,r:=range routes(){
@@ -150,7 +150,7 @@ func TestFatalNotRecovered(t *testing.T){
  input:=strings.Repeat("a",10000)+"b"
  for _,name:=range []string{"recovering","predicate"}{for _,ast:=range []bool{false,true}{
   var v any;var err error
-  if ast{v,err=ParseRuleAST(name,input,WithUnit(Bytes),WithLimits(Limits{Compute:40}))}else{v,err=ParseRule(name,input,WithUnit(Bytes),WithLimits(Limits{Compute:40}))}
+  if ast{v,err=ParseRuleValue(name,input,WithUnit(Bytes),WithLimits(Limits{Compute:40}))}else{v,err=ParseRule(name,input,WithUnit(Bytes),WithLimits(Limits{Compute:40}))}
   if !isZero(v)||!errors.Is(err,ErrLimit){t.Fatalf("%s ast=%v swallowed interruption value=%v err=%v",name,ast,v,err)}
  }}
 }
@@ -290,7 +290,7 @@ func TestParseConversionSharesCounter(t *testing.T){
  ctx,cancel:=context.WithCancel(context.Background());o.SetContext(ctx);o.X_limits=Limits{}
  v,err:=zprt.RunParseConverted(rules[0],input,o,func(n *Node,c *zprt.BudgetControl,parseErr error)*types.Branch{cancel();c.Check();return (&astConv{control:c}).toTypeBranch(n)})
  if v!=nil || !errors.Is(err,context.Canceled){t.Fatalf("conversion cancellation: %v %v",v,err)}
- if _,err:=ParseAST(input);err!=nil{t.Fatal("retry",err)}
+ if _,err:=ParseValue(input);err!=nil{t.Fatal("retry",err)}
 }
 `
 
@@ -360,7 +360,7 @@ rule main Limits = t:("é") #atomic => Limits{Text: text($t)}`)
 const generatedGoBudgetCollisionConsumer = `package PACKAGE_test
 import("context";"errors";"testing";p "budgetcollision/PACKAGE";g "budgetcollision/PACKAGE/types")
 func TestPublicNames(t *testing.T){
- var parse func(string,...p.ParseOption)(*g.Limits,error)=p.ParseAST
+ var parse func(string,...p.ParseOption)(*g.Limits,error)=p.ParseValue
  v,err:=parse("é",p.WithContext(context.Background()),p.WithLimits(p.Limits{Compute:1000}),p.WithUnit(p.Bytes))
  if err!=nil || v.Text!="é" || v.End!=2{t.Fatal(v,err)}
  var second *g.Limits_=&g.Limits_{}
@@ -424,7 +424,7 @@ func TestNilPublication(t *testing.T){
   // Cancel exactly at the last execution operation, with no guessed poll count.
   trules[0].Entry=func(p *zprt.TParser)(any,bool){cancel();return nil,ok}
   var v any;var err error
-  if named{v,err=ParseRuleAST("main","",WithContext(ctx))}else{v,err=ParseAST("",WithContext(ctx))}
+  if named{v,err=ParseRuleValue("main","",WithContext(ctx))}else{v,err=ParseValue("",WithContext(ctx))}
   if (v!=nil && !reflect.ValueOf(v).IsZero()) || !errors.Is(err,context.Canceled){t.Errorf("named=%v successful=%v value=%v err=%v",named,ok,v,err)}
  }}
  for _,named:=range []bool{false,true}{
@@ -432,12 +432,12 @@ func TestNilPublication(t *testing.T){
   established:=&LimitError{Kind:LimitCompute,Limit:1,Used:1,Requested:1}
   trules[0].Entry=func(p *zprt.TParser)(any,bool){cancel();panic(zprt.X_fatal{X_err:established})}
   var err error
-  if named{_,err=ParseRuleAST("main","",WithContext(ctx))}else{_,err=ParseAST("",WithContext(ctx))}
+  if named{_,err=ParseRuleValue("main","",WithContext(ctx))}else{_,err=ParseValue("",WithContext(ctx))}
   if err!=established{t.Fatalf("established fatal was masked: %v",err)}
  }
  trules[0].Entry=original
- if v,err:=ParseAST("");v!=nil || err!=nil{t.Fatalf("nil success retry: %v %v",v,err)}
- if v,err:=ParseAST("é");v==nil || v.Text!="é" || err!=nil{t.Fatalf("value retry: %v %v",v,err)}
+ if v,err:=ParseValue("");v!=nil || err!=nil{t.Fatalf("nil success retry: %v %v",v,err)}
+ if v,err:=ParseValue("é");v==nil || v.Text!="é" || err!=nil{t.Fatalf("value retry: %v %v",v,err)}
 }
 
 type clonePhaseContext struct{context.Context;control *zprt.BudgetControl;marker any;calls int}
@@ -454,14 +454,14 @@ func TestRecoveredNilClonePublication(t *testing.T){
  for _,named:=range []bool{false,true}{for _,panicMode:=range []bool{false,true}{
   ctx:=&clonePhaseContext{Context:context.Background()};if panicMode{ctx.marker=new(int)}
   trules[0].Entry=func(p *zprt.TParser)(any,bool){ctx.control=p.Control;for _,e:=range recovered{p.PushRecovered(e)};return nil,true}
-  call:=func()(any,error){if named{return ParseRuleAST("main","",WithContext(ctx))};return ParseAST("",WithContext(ctx))}
+  call:=func()(any,error){if named{return ParseRuleValue("main","",WithContext(ctx))};return ParseValue("",WithContext(ctx))}
   if panicMode{func(){defer func(){if got:=recover();got!=ctx.marker{t.Errorf("clone panic missed or changed: %T",got)}}();call()}()}else{
    v,err:=call()
    if (v!=nil && !reflect.ValueOf(v).IsZero()) || !errors.Is(err,context.Canceled){t.Errorf("nil clone cancellation missed named=%v: value=%T error=%T",named,v,err)}
   }
   before:=ctx.calls;trules[0].Entry=original
-  if v,err:=ParseAST("");v!=nil || err!=nil{t.Fatal("nil retry after clone interruption",err)}
-  if v,err:=ParseAST("é");v==nil || err!=nil{t.Fatal("value retry after clone interruption",err)}
+  if v,err:=ParseValue("");v!=nil || err!=nil{t.Fatal("nil retry after clone interruption",err)}
+  if v,err:=ParseValue("é");v==nil || err!=nil{t.Fatal("value retry after clone interruption",err)}
   if ctx.calls!=before{t.Fatal("clone context retained by parser")}
  }}
 }
@@ -506,17 +506,17 @@ func(c *ownedErrorContext)Done()<-chan struct{}{return make(chan struct{})}
 func(c *ownedErrorContext)Err()error{return c.err}
 func TestLegacyAndInterruptedNil(t *testing.T){
  for _,input:=range []string{"","?"}{
-  got,err:=ParseAST(input)
+  got,err:=ParseValue(input)
   if got!=nil{t.Fatalf("absent value is not nil: %T %v",got,got)}
   if (err==nil)!=(input==""){t.Fatal("legacy syntax failure",err)}
-  got,err=ParseRuleAST("main",input)
+  got,err=ParseRuleValue("main",input)
   if got!=nil || (err==nil)!=(input==""){t.Fatalf("named zero result changed: %T %v %v",got,got,err)}
  }
- got,err:=ParseAST("",WithLimits(Limits{Depth: Unlimited}))
+ got,err:=ParseValue("",WithLimits(Limits{Depth: Unlimited}))
  if err==nil || got!=nil{t.Fatalf("ordinary option error mapping: %T %v %v",got,got,err)}
  ctx,cancel:=context.WithCancel(context.Background());cancel()
  owned:=errors.New("caller-owned context interruption")
- for _,r:=range []func(string,...ParseOption)(any,error){ParseAST,func(s string,o ...ParseOption)(any,error){return ParseRuleAST("main",s,o...)}}{
+ for _,r:=range []func(string,...ParseOption)(any,error){ParseValue,func(s string,o ...ParseOption)(any,error){return ParseRuleValue("main",s,o...)}}{
   for _,row:=range []struct{option ParseOption;want error}{
    {WithContext(ctx),context.Canceled},
    {WithContext(&ownedErrorContext{Context:context.Background(),err:owned}),owned},
@@ -526,7 +526,7 @@ func TestLegacyAndInterruptedNil(t *testing.T){
    if got!=nil || !errors.Is(err,row.want){t.Fatalf("interruption converted nil: %T %v %v",got,got,err)}
   }
  }
- if got,err:=ParseAST("é");err!=nil || got==nil{t.Fatal("retry",got,err)}
+ if got,err:=ParseValue("é");err!=nil || got==nil{t.Fatal("retry",got,err)}
 }
 `
 
@@ -573,7 +573,7 @@ func TestOrdinaryNilMapping(t *testing.T){
  for _,unit:=range []PositionUnit{CodePoints,Bytes}{
   for _,extra:=range [][]ParseOption{nil,{WithContext(context.Background())},{WithLimits(Limits{Compute: 1000000, OPTION})}}{
    opts:=append([]ParseOption{WithUnit(unit),WithLimits(Limits{OPTION})},extra...)
-   got,err:=ParseAST(INPUT,opts...)
+   got,err:=ParseValue(INPUT,opts...)
    if err==nil || got!=nil{t.Fatalf("ordinary error returned a value: %T %v %v",got,got,err)}
   }
  }

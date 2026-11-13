@@ -74,7 +74,7 @@ func runTypedTSFixtureWithLib(t *testing.T, src, consumer string, opts gen.GenOp
 		t.Fatalf("strict declaration consumer: %v\n%s", err, out)
 	}
 	decl, err := os.ReadFile(filepath.Join(dir, "declarations/parser.d.ts"))
-	if err != nil || !strings.Contains(string(decl), "export declare function parseAST(") || !strings.Contains(string(decl), "export declare function parseASTWithOptions(") {
+	if err != nil || !strings.Contains(string(decl), "export declare function parseValue(") || !strings.Contains(string(decl), "export declare function parseValueWithOptions(") {
 		t.Fatalf("typed declaration exports missing: %v", err)
 	}
 	cmd = exec.Command(node, gentest.NodeTSArgs("consumer.ts")...)
@@ -106,10 +106,10 @@ type Raw ~ node[_]
 type R = { W W; Items Words; Missing Words; Empty Words; Optional Optional; I Integer; Big Integer; S Text; B Flag; OpenItems []_; O MaybeInteger; M Mixed; U Choice; Any Open; Raw Raw }
 rule main R = w:word xs:word* raw:("!"? "?"?) => R{W: $w, Items: $xs.Value, OpenItems: $xs.Value, Empty: list(), I: -7 / 2, Big: 9223372036854775807, S: $w.Text, B: true, M: 9007199254740992, U: $w, Any: $raw, Raw: $raw}
 rule word Word = t:([a-zあ-ん😀]+) #atomic => Word{Text: text($t)}`
-	consumer := `import { parse, parseAST, parseASTWithOptions, CodePoints, Bytes, Node } from "./parser.ts";
+	consumer := `import { parse, parseValue, parseValueWithOptions, CodePoints, Bytes, Node } from "./parser.ts";
 import type { R, W, Words, Optional, Integer, Text, Flag, MaybeInteger, Choice, ChoiceAgain, Mixed, Open, Raw, TypedParseResult } from "./types.ts";
 ` + tsTypedAssert + `
-const r: TypedParseResult<R | null> = parseAST("😀あ!?");
+const r: TypedParseResult<R | null> = parseValue("😀あ!?");
 check(r.error === null && r.value !== null, "parse success");
 const v = r.value;
 const types: [W, Words, Optional, Integer, Text, Flag, MaybeInteger, Choice, ChoiceAgain, Mixed, Open, Raw] = [v.W, v.Items, v.Optional, v.I, v.S, v.B, v.O, v.U, v.U, v.M, v.Any, v.Raw];
@@ -119,22 +119,22 @@ check(v.I === -3 && v.Big === 9223372036854775807n && v.M === 9007199254740992n 
 check(v.Raw !== null && !(v.Raw instanceof Node) && (v.Raw as {type?: string}).type === "tuple" && v.Any === v.Raw, "CST types convert to shared TNode values");
 check(v.Items !== v.OpenItems, "list representations stay distinct");
 check(v.start === 0 && v.end === 4 && v.W.end === 2, "code point spans");
-const b = parseASTWithOptions("😀あ!?", {unit: Bytes, limits: {depth: 0}});
+const b = parseValueWithOptions("😀あ!?", {unit: Bytes, limits: {depth: 0}});
 check(b.value?.end === 9 && b.value.W?.end === 7 && b.error === null, "byte spans/options");
 const before = stable(v);
-for (let i = 0; i < 10; i++) parseAST("z", CodePoints);
+for (let i = 0; i < 10; i++) parseValue("z", CodePoints);
 check(stable(v) === before, "retained result ownership");
 check(parse("😀あ!?").node?.field("W") instanceof Node, "legacy Node fields unchanged");
 let units = 0, depths = 0;
-let nested: ReturnType<typeof parseAST> | null = null;
-const o = { get unit() { units++; nested = parseAST("z"); return Bytes; }, limits: { get depth() { depths++; return 0; } } };
-check(parseASTWithOptions("a", o).error === null && units === 1 && depths === 1, "options read once");
-check((nested as ReturnType<typeof parseAST> | null)?.value?.W?.Text === "z", "reentrant getter invocation");
+let nested: ReturnType<typeof parseValue> | null = null;
+const o = { get unit() { units++; nested = parseValue("z"); return Bytes; }, limits: { get depth() { depths++; return 0; } } };
+check(parseValueWithOptions("a", o).error === null && units === 1 && depths === 1, "options read once");
+check((nested as ReturnType<typeof parseValue> | null)?.value?.W?.Text === "z", "reentrant getter invocation");
 for (const d of [-1, 1.5, Number.NaN, Number.MAX_SAFE_INTEGER + 1]) {
-  const bad = parseASTWithOptions("a", {limits:{depth:d}});
+  const bad = parseValueWithOptions("a", {limits:{depth:d}});
   check(bad.value === null && bad.error?.message.includes("non-negative safe integer"), "invalid depth");
 }
-check(parseAST("1").value === null && parseAST("1").error !== null, "ordinary failure");
+check(parseValue("1").value === null && parseValue("1").error !== null, "ordinary failure");
 // @ts-expect-error Converted grammar fields are readonly.
 v.I = 1;
 `
@@ -145,7 +145,7 @@ func TestGeneratedTSTypedNameCollisions(t *testing.T) {
 	t.Parallel()
 	// Names of the runtime and of the generated parser are free: types.ts is a module of its own.
 	// The names types.ts declares are reserved (TestGeneratedTSReservedTypes).
-	names := []string{"Actx", "ASTRecipe", "Bytes", "Error", "Map", "Match", "Node", "Parser", "OperatorsRuleLine", "R0", "R0_", "Rule", "ReadonlyMap", "R", "Value", "Grammar", "ParseResult", "TraceKind", "Profile"}
+	names := []string{"Actx", "ValueRecipe", "Bytes", "Error", "Map", "Match", "Node", "Parser", "OperatorsRuleLine", "R0", "R0_", "Rule", "ReadonlyMap", "R", "Value", "Grammar", "ParseResult", "TraceKind", "Profile"}
 	var src, imports, vals strings.Builder
 	for i, name := range names {
 		// Match and Error are retired node type names, which grammars cannot declare, so aliases
@@ -158,7 +158,7 @@ func TestGeneratedTSTypedNameCollisions(t *testing.T) {
 		fmt.Fprintf(&vals, "const v%d: %s | null = null; check(v%d === null, %q);\n", i, name, i, name)
 	}
 	src.WriteString("rule main = n0\n")
-	consumer := "import {parseAST} from \"./parser.ts\";\n" + imports.String() + tsTypedAssert + vals.String() + `check(parseAST("x").value?.type === "Actx", "discriminator preserves grammar name"); check(stable(parseAST("x").value).includes("Actx"), "result");`
+	consumer := "import {parseValue} from \"./parser.ts\";\n" + imports.String() + tsTypedAssert + vals.String() + `check(parseValue("x").value?.type === "Actx", "discriminator preserves grammar name"); check(stable(parseValue("x").value).includes("Actx"), "result");`
 	runTypedTSFixture(t, src.String(), consumer, gen.GenOptions{}, "")
 }
 
@@ -171,10 +171,10 @@ type WE ~ Word | error
 type R = { Specific WE; U U; M Mixed; A _; Items []WE; OpenItems []_ }
 rule main R = w:word #recover(skip=[^;]+ ";") xs:word #recover(skip=[^;]+ ";")* => R{Specific: $w, U: $w, M: $w, A: $w, Items: $xs.Value, OpenItems: $xs.Value}
 rule word Word = t:([a-z]+ ";") #atomic => Word{Text: text($t)}`
-	consumer := `import {parse, parseAST, SyntaxErrors, Bytes, CodePoints} from "./parser.ts";
+	consumer := `import {parse, parseValue, SyntaxErrors, Bytes, CodePoints} from "./parser.ts";
 ` + tsTypedAssert + `
 for (const unit of [CodePoints, Bytes]) {
-  const r = parseAST("1;abc;2;", unit), n = parse("1;abc;2;", unit);
+  const r = parseValue("1;abc;2;", unit), n = parse("1;abc;2;", unit);
   check(r.error instanceof SyntaxErrors && n.error instanceof SyntaxErrors && r.error.message === n.error.message, "same recovery diagnostics");
   const v = r.value; check(v !== null, "recovered result");
   check(v.Specific?.type === "error" && v.U?.type === "error", "recovered Error " + stable(v));
@@ -185,7 +185,7 @@ for (const unit of [CodePoints, Bytes]) {
   check(v.Items?.length === 2 && first != null && "Text" in first && first.Text === "abc;" && v.Items[1]?.type === "error", "list recovery Error element");
   check(v.OpenItems !== v.Items && v.OpenItems?.[0] === v.Items?.[0], "list recipes/cache sharing");
   const openError = v.OpenItems?.[1]; check(typeof openError === "object" && openError !== null && !Array.isArray(openError) && openError?.type === "error", "open list retains Error");
-  const before = stable(v); parseAST("abc;"); check(stable(v) === before, "recovery ownership");
+  const before = stable(v); parseValue("abc;"); check(stable(v) === before, "recovery ownership");
 }
 `
 	runTypedTSFixture(t, src, consumer, gen.GenOptions{}, "")
@@ -195,17 +195,17 @@ func TestGeneratedTSTypedUnicodeIntegers(t *testing.T) {
 	t.Parallel()
 	src := `type R = { Text string; Token node[string]; A int; B int; C int; D int; E int; F int; G int; O *int }
 rule main R = x:.* #atomic => R{Text: text($x), Token: $x, A: 9007199254740991, B: 9007199254740992, C: -9007199254740992, D: 9223372036854775807 + 1, E: -7 % 2, F: -7 / 2, G: 9223372036854775807}`
-	consumer := `import {parse, parseAST, Bytes, CodePoints, Node} from "./parser.ts";
+	consumer := `import {parse, parseValue, Bytes, CodePoints, Node} from "./parser.ts";
 ` + tsTypedAssert + `
 for (const unit of [Bytes, CodePoints]) for (const input of ["😀é\ud800�", new Uint8Array([0x61,0xff,0xe2,0x82]), new Uint8Array([0xef,0xbf,0xbd])]) {
-  const r = parseAST(input, unit), n = parse(input, unit); check(r.error === null && n.error === null && r.value !== null && n.node !== null, "unicode parse");
+  const r = parseValue(input, unit), n = parse(input, unit); check(r.error === null && n.error === null && r.value !== null && n.node !== null, "unicode parse");
   const v = r.value, token = n.node.field("Token"); check(token instanceof Node, "Node token");
   check(v.Text === n.node.field("Text") && v.Token?.value === token.text && v.Token.start === token.start && v.Token.end === token.end, "raw text/positions copied exactly");
   check(v.A === 9007199254740991 && v.B === 9007199254740992n && v.C === -9007199254740992n && v.D === -9223372036854775808n && v.E === -1 && v.F === -3 && v.G === 9223372036854775807n && v.O === null, "canonical int64/optional");
   check(stable(v).includes("int:9223372036854775807"), "explicit exact transport");
 }
-check(parseAST(new Uint8Array([0xff]), Bytes).value?.Text === "\udcff", "byte surrogate escape");
-check(parseAST(new Uint8Array([0xff]), CodePoints).value?.Text === "�", "decoded replacement");
+check(parseValue(new Uint8Array([0xff]), Bytes).value?.Text === "\udcff", "byte surrogate escape");
+check(parseValue(new Uint8Array([0xff]), CodePoints).value?.Text === "�", "decoded replacement");
 `
 	runTypedTSFixture(t, src, consumer, gen.GenOptions{}, "")
 }
@@ -218,16 +218,16 @@ func TestGeneratedTSTypedSharedDAG(t *testing.T) {
 rule branch Branch = prev:main "x" => Branch{Left: $prev, Right: $prev}`,
 	} {
 		t.Run(name, func(t *testing.T) {
-			consumer := `import {parseAST, parseASTWithOptions, Bytes, CodePoints} from "./parser.ts";
+			consumer := `import {parseValue, parseValueWithOptions, Bytes, CodePoints} from "./parser.ts";
 ` + tsTypedAssert + `
 for (const unit of [CodePoints, Bytes]) for (const size of [1, 8, 6000]) {
-  const r = parseAST("x".repeat(size), unit); check(r.error === null && r.value !== null, "DAG parse");
+  const r = parseValue("x".repeat(size), unit); check(r.error === null && r.value !== null, "DAG parse");
   let v = r.value, count = 1;
   while (v.type === "Branch") { check(v.Left !== null && v.Left === v.Right, "shared capture stays shared"); v = v.Left; count++; }
   check(v.type === "Leaf" && count === size, "linear graph/deep iterative conversion");
-  check(parseASTWithOptions("x", {limits:{depth:0}}).error === null, "second invocation");
+  check(parseValueWithOptions("x", {limits:{depth:0}}).error === null, "second invocation");
 }
-check(stable(parseAST("xx").value).includes("Branch"), "small DAG value");
+check(stable(parseValue("xx").value).includes("Branch"), "small DAG value");
 `
 			keep := ""
 			if out := os.Getenv("ZP_TS_TYPED_DIR"); out != "" {
@@ -255,14 +255,14 @@ rule main *U = "" => nil`,
 		"list": `rule main *[]node[string] = "" => nil`,
 	} {
 		t.Run(name, func(t *testing.T) {
-			runTypedTSFixture(t, src, `import {parse, parseAST} from "./parser.ts";
-`+tsTypedAssert+`const r = parseAST(""); check(r.error === null && r.value === null && parse("").error === null, "nil success"); check(stable(r.value) === "null", "nil transport");`, gen.GenOptions{}, "")
+			runTypedTSFixture(t, src, `import {parse, parseValue} from "./parser.ts";
+`+tsTypedAssert+`const r = parseValue(""); check(r.error === null && r.value === null && parse("").error === null, "nil success"); check(stable(r.value) === "null", "nil transport");`, gen.GenOptions{}, "")
 		})
 	}
 	runTypedTSFixture(t, `type T = { X node[string] }
 rule main T = x:n #atomic => T{X: $x}
-rule n = "(" n ")" / "x"`, `import {parseAST, parseASTWithOptions} from "./parser.ts";
-`+tsTypedAssert+`check(parseAST("(((x)))").error?.message.includes("nesting too deep"), "generated limit"); check(parseASTWithOptions("(((x)))", {limits:{depth:20}}).value?.X?.value === "(((x)))", "override"); check(stable(parseASTWithOptions("x", {limits:{depth:0}}).value).includes("T"), "zero default");`, gen.GenOptions{MaxDepth: 3}, "")
+rule n = "(" n ")" / "x"`, `import {parseValue, parseValueWithOptions} from "./parser.ts";
+`+tsTypedAssert+`check(parseValue("(((x)))").error?.message.includes("nesting too deep"), "generated limit"); check(parseValueWithOptions("(((x)))", {limits:{depth:20}}).value?.X?.value === "(((x)))", "override"); check(stable(parseValueWithOptions("x", {limits:{depth:0}}).value).includes("T"), "zero default");`, gen.GenOptions{MaxDepth: 3}, "")
 	for _, scalar := range []string{"int", "string", "bool"} {
 		g, err := parseTest("rule main " + scalar + ` = "" => nil`)
 		if err != nil {
@@ -293,11 +293,11 @@ rule item Good = x:[a-zé😀]+ #atomic ";" => Good{Token: $x}`, "a;1;", strings
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
 			inputs := tsgen.TsStrings([]string{c.small, c.large})
-			consumer := `import {parse, parseAST, parseASTWithOptions, CodePoints, Bytes} from "./parser.ts";
+			consumer := `import {parse, parseValue, parseValueWithOptions, CodePoints, Bytes} from "./parser.ts";
 ` + tsTypedAssert + `for (const unit of [CodePoints, Bytes]) for (const input of ` + inputs + `) {
-  const r = parseAST(input, unit), n = parse(input, unit);
+  const r = parseValue(input, unit), n = parse(input, unit);
   check(r.error?.message === n.error?.message && r.value !== null && n.node !== null, "workload parity");
-  check(parseASTWithOptions(input, {unit,limits:{depth:0}}).error?.message === r.error?.message, "options control");
+  check(parseValueWithOptions(input, {unit,limits:{depth:0}}).error?.message === r.error?.message, "options control");
   if (Array.isArray(r.value)) check(r.value.length === n.node.children.length, "list count");
   else check(stable(r.value).includes('"type":"string"'), "string node value");
 }`
@@ -339,30 +339,30 @@ rule main = leaf #recover(skip=.+)`, "error", true, "error"},
 			if got, ok := inferredType(prog, "main"); !ok || got != c.inferred {
 				t.Fatalf("inferred start = %s, want %s", got, c.inferred)
 			}
-			consumer := `import {parseAST, parse, Bytes, CodePoints, Node} from "./parser.ts";
+			consumer := `import {parseValue, parse, Bytes, CodePoints, Node} from "./parser.ts";
 import type {TypedValue, TypedParseResult} from "./types.ts";
 ` + tsTypedAssert + `for(const unit of [CodePoints,Bytes]) {
- const r: TypedParseResult<TypedValue> = parseAST("!",unit), n = parse("!",unit);
+ const r: TypedParseResult<TypedValue> = parseValue("!",unit), n = parse("!",unit);
  check(r.error !== null && r.error.message === n.error?.message, "inferred diagnostics");
  // Narrow the actual entry point's type, not just the widened annotation.
- const v = parseAST("!",unit).value;
+ const v = parseValue("!",unit).value;
  if (typeof v === "object" && v !== null && !(v instanceof Node) && !Array.isArray(v)) {
    check(v.type === "` + c.kind + `" && v.start === 0 && v.end === 1, "inferred recovered value");
  }
- const bad = parseAST("",unit); check(bad.value === null && bad.error !== null, "unrecoverable empty input");
- check(stable(r.value) === stable(parseAST("!",unit).value), "repeat value");
+ const bad = parseValue("",unit); check(bad.value === null && bad.error !== null, "unrecoverable empty input");
+ check(stable(r.value) === stable(parseValue("!",unit).value), "repeat value");
 }`
 			if c.recovered {
-				consumer += `check(parseAST("!").value !== null, "recovery produces a value");`
+				consumer += `check(parseValue("!").value !== null, "recovery produces a value");`
 			} else {
-				consumer += `check(parseAST("!").value === null, "selected Node zero remains null");`
+				consumer += `check(parseValue("!").value === null, "selected Node zero remains null");`
 			}
 			switch name {
 			case "nil":
 				// The group of a dropped expression is a node whose value is the empty tuple.
-				consumer += `const success = parseAST("a"); check(stable(success.value) === '{"type":"tuple","start":0,"end":1,"value":[]}' && success.error === null, "normal empty tuple success " + stable(success.value));`
+				consumer += `const success = parseValue("a"); check(stable(success.value) === '{"type":"tuple","start":0,"end":1,"value":[]}' && success.error === null, "normal empty tuple success " + stable(success.value));`
 			case "nil-rule-recovery":
-				consumer += `const success = parseAST("a"); check(success.value === null && success.error === null, "normal inferred nil success");`
+				consumer += `const success = parseValue("a"); check(success.value === null && success.error === null, "normal inferred nil success");`
 			}
 			runTypedTSFixture(t, c.src, consumer, gen.GenOptions{}, "")
 		})
@@ -397,8 +397,8 @@ for (const unit of [p.CodePoints,p.Bytes]) {
   {name:"Node options",run:s=>p.parseWithOptions(s,{unit})},
   {name:"named Node",run:s=>p.parseRule(startIsWrapped?"wrapped":"main",s,unit)},
   {name:"named Node options",run:s=>p.parseRuleWithOptions(startIsWrapped?"wrapped":"main",s,{unit})},
-  {name:"typed",run:s=>{const r=p.parseAST(s,unit);return {node:r.value,error:r.error}}},
-  {name:"typed options",run:s=>{const r=p.parseASTWithOptions(s,{unit});return {node:r.value,error:r.error}}},
+  {name:"typed",run:s=>{const r=p.parseValue(s,unit);return {node:r.value,error:r.error}}},
+  {name:"typed options",run:s=>{const r=p.parseValueWithOptions(s,{unit});return {node:r.value,error:r.error}}},
  ];
  for (const s of samples) {
   const normalized=Array.from(s,ch=>{const c=ch.codePointAt(0)!;return c>=0xD800&&c<=0xDFFF?"�":ch}).join("");
@@ -420,7 +420,7 @@ for (const unit of [p.CodePoints,p.Bytes]) {
  }
 }
 if (!startIsWrapped) {
- const typed: ParsedText|null=p.parseAST("\uDCFF",p.Bytes).value;
+ const typed: ParsedText|null=p.parseValue("\uDCFF",p.Bytes).value;
  check(typed!==null&&typed.Text==="�"&&typed.end===3,"typed public string uses full replacement bytes");
 }
 `
@@ -432,13 +432,13 @@ func TestGeneratedTSDeclaredNodeAny(t *testing.T) {
 	src := `rule main node[_] = a b
 rule a = "a"
 rule b = "b"`
-	consumer := `import { parseAST } from "./parser.ts";
+	consumer := `import { parseValue } from "./parser.ts";
 import type { TNode, TypedParseResult } from "./types.ts";
 ` + tsTypedAssert + `
 type Eq<A, B> = (<T>() => T extends A ? 1 : 2) extends (<T>() => T extends B ? 1 : 2) ? true : false;
-const same: Eq<ReturnType<typeof parseAST>, TypedParseResult<TNode<unknown> | null>> = true;
+const same: Eq<ReturnType<typeof parseValue>, TypedParseResult<TNode<unknown> | null>> = true;
 check(same, "declared type");
-const r: TypedParseResult<TNode<unknown> | null> = parseAST("ab");
+const r: TypedParseResult<TNode<unknown> | null> = parseValue("ab");
 check(r.error === null && r.value !== null && Array.isArray(r.value.value), "tuple node value");
 check(r.value!.start === 0 && r.value!.end === 2 && stable(r.value).length > 0, "span");
 `

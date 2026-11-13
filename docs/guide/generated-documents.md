@@ -45,7 +45,7 @@ string; every other value, such as a struct or a list, is evaluated again. The g
 grammars use direct typed matching with a private memo and fresh invocation arenas. A typed result is
 read-only and shared, as Node values are: later parses reuse the values of earlier results, so a result can share
 values with the Document and with other results. Modifying a result can change what later parses return, including
-through a `node[_]` field. Call `CloneAST(value)` to get a copy that shares nothing with the Document or with other
+through a `node[_]` field. Call `CloneValue(value)` to get a copy that shares nothing with the Document or with other
 results; the copy can be modified freely, and aliases within it are preserved. Every returned slice has capacity equal
 to its length, so appending to one result cannot write into another. Other grammars use the existing Node Document and
 convert its final result on each call; generic `Node` members may share the mutable Document graph, so call
@@ -54,7 +54,7 @@ requiring ZeroParse nodes, or actions and predicates that read struct fields.
 
 ## Diagnostics, Limits and Combinations
 
-Both `Document.Parse` and `Document.ParseAST` return owned syntax diagnostics: recovered `SyntaxError` values and
+Both `Document.Parse` and `Document.ParseValue` return owned syntax diagnostics: recovered `SyntaxError` values and
 their `Expected` and `Messages` slices are copied; ordinary failures are freshly constructed. Mutating a returned
 error cannot affect memoized errors or a later parse. Parsing, diagnostic copying and typed publication share one
 budget; interruption returns the result type's zero value and clears reusable state as needed for a retry.
@@ -79,7 +79,7 @@ contract and returns an `Error` or null; a string replacement is encoded as UTF-
 U+FFFD, and a `Uint8Array` replacement is taken as it is, so edits can join invalid bytes into characters.
 `text()` returns the text as the nodes hold it, and `bytes()` returns a copy of the exact input, invalid bytes
 included. `parse(options?)` returns the `ParseResult` of `parse`, and with `-types` the Document also has
-`parseAST(options?)`. An invocation cannot change the unit or the expectations, and a `parse` or `edit` made
+`parseValue(options?)`. An invocation cannot change the unit or the expectations, and a `parse` or `edit` made
 from a trace callback of a parse returns an error. The TypeScript Document parses its whole text on each
 `parse`: it keeps no results between parses and has no `stats`.
 
@@ -87,4 +87,4 @@ from a trace callback of a parse returns an error. The TypeScript Document parse
 
 - [Incremental Parsing](incremental.md): the engine's `Document` and what reuse means.
 - [The Generated Go API](generated-go-api.md): the entry points that `-document` sits beside.
-- [Typed Values in Generated Go](generated-typed-values.md): `-types`, which `Document.ParseAST` needs.
+- [Typed Values in Generated Go](generated-typed-values.md): `-types`, which `Document.ParseValue` needs.

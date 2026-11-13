@@ -95,7 +95,7 @@ type Route=(input:Uint8Array,options:p.ParseOptions)=>Result;
 const routes:readonly Route[]=[
  (input,options)=>{const r=p.parseWithOptions(input,options);return {value:r.node,error:r.error}},
  (input,options)=>{const r=p.parseRuleWithOptions("main",input,options);return {value:r.node,error:r.error}},
- (input,options)=>p.parseASTWithOptions(input,options),
+ (input,options)=>p.parseValueWithOptions(input,options),
  (input,options)=>({value:null,error:p.recognizeWithOptions(input,options)}),
 ];
 function makeCase(route:Route,unit:p.Unit,mode:Mode,index:number){

@@ -90,7 +90,7 @@ Standalone generated Go Node parsers may be generated with tracing enabled by
 `Observability` of `gen.Go` or `zp gen -observability`. This mode
 supports batch `Parse` and `ParseRule`; it also supports `Recognize` when that
 entry point is generated. With generated types, it additionally supports
-`ParseAST` and `ParseRuleAST`, for both direct typed execution and Node-conversion
+`ParseValue` and `ParseRuleValue`, for both direct typed execution and Node-conversion
 fallback. Typed events describe rule calls made by the selected route;
 conversion itself is not a rule event, so Node and typed event streams may
 differ. Typed methods use the same event fields, filter, depth, interruption
@@ -170,7 +170,7 @@ completed call; a panic in an enter callback does not synthesize an exit.
 When generated Go observability and Document support are both enabled,
 `NewDocument` MUST accept `WithTrace` and `WithProfile` as retained defaults.
 Construction MUST NOT emit parser events or profile counts. `Document.Parse`
-and, with generated types, `Document.ParseAST` MUST accept invocation-local
+and, with generated types, `Document.ParseValue` MUST accept invocation-local
 overrides; an override applies only to that call and MUST NOT replace the
 constructor default for later calls. `Edit` does not parse and MUST NOT emit
 rule events.
@@ -209,7 +209,7 @@ interrupted parse MAY leave statistics for calls that began but did not
 complete. Temporary observer and profile state MUST be released after return
 or panic; retained constructor defaults remain available for later calls.
 While a Document generated with observability parses, its `Parse`,
-`ParseAST` and `Edit` MUST return the generated `ErrDocumentBusy`, before
+`ParseValue` and `Edit` MUST return the generated `ErrDocumentBusy`, before
 validating options and without changing the Document; this rejects calls a
 callback makes on the same Document. The outer parse continues unaffected.
 Callers SHOULD schedule later work or use another Document; parses of other
@@ -221,7 +221,7 @@ TypeScript batch tracing MUST be enabled at generation with
 `Observability` of `gen.TypeScript` or `zp gen -lang ts -observability`.
 It applies to generated `parseWithOptions`, `parseRuleWithOptions` and, when
 generated, `recognizeWithOptions`. With `-types`, the configured-start
-`parseASTWithOptions` also accepts trace options; the positional-unit
+`parseValueWithOptions` also accepts trace options; the positional-unit
 APIs do not. TypeScript does not expose a named typed-rule entry point.
 
 The tracing fields added to `ParseOptions` are:
@@ -260,7 +260,7 @@ with `Observability` of `gen.TypeScript` or `zp gen -lang ts
 -observability`. The generated module MUST export `Profile` and
 `ProfileSnapshot`, and add `profile?: Profile | null` to `ParseOptions`.
 `parseWithOptions`, `parseRuleWithOptions`, and `recognizeWithOptions` MUST
-accept this option; with `-types`, `parseASTWithOptions` MUST accept it too.
+accept this option; with `-types`, `parseValueWithOptions` MUST accept it too.
 Positional-unit APIs MUST NOT accept profiling options, and TypeScript
 MUST NOT add a named typed-rule API for this feature.
 Omitting the option or passing `null` MUST disable collection.

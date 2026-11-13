@@ -203,7 +203,7 @@ func TestPublicEnvironmentParity(t *testing.T){
   base,baseErr:=Parse(input,WithUnit(unit));before:="";if base!=nil{before=base.String()}
   got,err:=Parse(input,WithUnit(unit),WithLimits(Limits{Compute:100000}))
   if fmt.Sprint(err)!=fmt.Sprint(baseErr) || (got!=nil && got.String()!=before){t.Fatal("public memo/env changed",input,err,baseErr)}
-  typed,typedErr:=ParseAST(input,WithUnit(unit));controlled,controlledErr:=ParseAST(input,WithUnit(unit),WithLimits(Limits{Compute:100000}))
+  typed,typedErr:=ParseValue(input,WithUnit(unit));controlled,controlledErr:=ParseValue(input,WithUnit(unit),WithLimits(Limits{Compute:100000}))
   if !reflect.DeepEqual(typed,controlled)||fmt.Sprint(typedErr)!=fmt.Sprint(controlledErr){t.Fatal("typed environment changed")}
  }}
 }

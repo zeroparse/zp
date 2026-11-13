@@ -81,7 +81,7 @@ func TestGeneratedDocumentObservation(t *testing.T) {
 			write(name+"/parser.go", string(code))
 			typed := ""
 			if route != "node" {
-				typed = `routes=append(routes,func(d *Document,opts ...ParseOption)(any,error){return d.ParseAST(opts...) });referenceRoutes=append(referenceRoutes,func(d *reference.Document)(any,error){return d.ParseAST()})`
+				typed = `routes=append(routes,func(d *Document,opts ...ParseOption)(any,error){return d.ParseValue(opts...) });referenceRoutes=append(referenceRoutes,func(d *reference.Document)(any,error){return d.ParseValue()})`
 			}
 			consumer := strings.NewReplacer("PACKAGE", name, "INPUT", fmt.Sprintf("%q", f.input), "TYPED", typed, "PLAIN", fmt.Sprint(f.name == "plain"), "LOOKAHEAD", fmt.Sprint(f.name == "lookahead")).Replace(generatedDocumentObservationConsumer)
 			write(name+"/observation_test.go", consumer+generatedProfileCheck)

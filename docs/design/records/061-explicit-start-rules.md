@@ -95,7 +95,7 @@ record of them in the file.
 
 Generated parsers record the start rule names. The Go `ParseRule` and the
 TypeScript `parseRule` look a name up among them and report the same errors as
-the interpreter; the typed Go `ParseRuleAST` has a case, and converters, only
+the interpreter; the typed Go `ParseRuleValue` has a case, and converters, only
 for start rules.
 
 ### Compatibility and Backend Support
@@ -134,7 +134,7 @@ with the interpreter's messages.
 
 ## Performance and Results
 
-A per-rule entry of a generated Go parser, its `ParseRuleAST` case and typed
+A per-rule entry of a generated Go parser, its `ParseRuleValue` case and typed
 converters, costs bytes in `parser.go`, and only start rules have one. For the
 bundled grammars, generated with `zp gen -types -recognize -runtime import`
 (DuckDB SQL, TypeScript and JSON also with `-nodoc`), the entries of the rules

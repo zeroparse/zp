@@ -144,7 +144,7 @@ The tests do the following:
 - Check that every increment of the depth, in the runtime and in generated code, is followed
   by the check that panics past the limit, which the guards of a program rely on.
 - Check that programs appear only in typed bodies. Streaming parses run the Node bodies, so a
-  parser with `#stream` reaches its programs only through `ParseAST`.
+  parser with `#stream` reaches its programs only through `ParseValue`.
 
 Mutants that break any of these conditions, or the interpreter's use of the tables, make a
 test fail.

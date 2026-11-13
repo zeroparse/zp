@@ -15,7 +15,7 @@ import (
 )
 
 // TestGeneratedMemoLookaheadState checks that generated Go parsers bound the evaluations of calls
-// that alternate between lookahead states, as the engine does: Parse, ParseAST and Recognize,
+// that alternate between lookahead states, as the engine does: Parse, ParseValue and Recognize,
 // without and with limit controls, evaluate the rule a of gentest.MemoLookaheadCases as often as
 // the engine does, whether or not its result has recovered errors.
 func TestGeneratedMemoLookaheadState(t *testing.T) {
@@ -43,7 +43,7 @@ func testGeneratedMemoLookaheadState(t *testing.T) {
 		for _, pkg := range []string{fmt.Sprintf("g%d", i), fmt.Sprintf("l%d", i)} {
 			gentest.GeneratePackage(t, dir, pkg, mustParse(c.Src), gen.GenOptions{Start: "s", Types: true, Recognize: true, Observability: true, LimitControls: pkg[0] == 'l'})
 			fmt.Fprintf(&imports, "\t%q\n", "gentest/"+pkg)
-			for _, op := range []string{"_, _ = %s.Parse(%s, zprt.WithProfile(&p))", "_, _ = %s.ParseAST(%s, zprt.WithProfile(&p))", "_ = %s.Recognize(%s, zprt.WithProfile(&p))"} {
+			for _, op := range []string{"_, _ = %s.Parse(%s, zprt.WithProfile(&p))", "_, _ = %s.ParseValue(%s, zprt.WithProfile(&p))", "_ = %s.Recognize(%s, zprt.WithProfile(&p))"} {
 				fmt.Fprintf(&calls, "\t{ var p zprt.Profile; "+op+"; fmt.Print(evals(p), \" \") }\n", pkg, in)
 			}
 		}
@@ -87,7 +87,7 @@ func main() {
 		got := strings.Fields(lines[i])
 		want := strings.Fields(strings.Repeat(fmt.Sprintf("%d %d %d ", c.Evals, c.Evals, c.Recognized), 2))
 		if strings.Join(got, " ") != strings.Join(want, " ") {
-			t.Errorf("%s: a evaluated %v times (Parse, ParseAST, Recognize; then with limit controls), want %v", c.Name, got, want)
+			t.Errorf("%s: a evaluated %v times (Parse, ParseValue, Recognize; then with limit controls), want %v", c.Name, got, want)
 		}
 	}
 }

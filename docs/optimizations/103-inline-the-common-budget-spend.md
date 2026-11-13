@@ -115,16 +115,16 @@ under the benchmark lock). (b) passes no option; (c) passes
 | Parse | XML | 1.128 | 1.315 |
 | Parse | YAML | 1.080 | 1.331 |
 | Parse | CSV | 1.092 | 1.247 |
-| ParseAST | JSON | 1.131 | 1.321 |
-| ParseAST | XML | 1.174 | 1.381 |
-| ParseAST | YAML | 1.118 | 1.453 |
-| ParseAST | CSV | 1.081 | 1.264 |
+| ParseValue | JSON | 1.131 | 1.321 |
+| ParseValue | XML | 1.174 | 1.381 |
+| ParseValue | YAML | 1.118 | 1.453 |
+| ParseValue | CSV | 1.081 | 1.264 |
 
 The aim of 1.15 times the uncontrolled parser for a parse with a limit is not
 met: the ratios of (c) are 1.25 to 1.45. The remaining gap is not the charges.
 With every charge made free (`Take`, `Charge` and `chargeStep` do nothing) the
 JSON parse with a limit still costs 1.15 times the uncontrolled parse in `Parse`
-and 1.17 times in `ParseAST`. The controlled bodies call the general runtime
+and 1.17 times in `ParseValue`. The controlled bodies call the general runtime
 helpers (`NewMatch`, `Peek`, `Text`) and the source pass of a control, where the
 ordinary body calls the `Ordinary` forms. Closing the gap needs a controlled body of
 the ordinary shape, not cheaper charges.

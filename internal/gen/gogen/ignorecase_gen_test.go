@@ -115,7 +115,7 @@ func testIgnoreCaseGeneratedTypedGo(t *testing.T) {
 		fmt.Fprintf(&list, "\t\t%s,\n", strconv.Quote(in))
 	}
 	body := "func main() {\n\tfor _, s := range []string{\n" + list.String() + "\t} {\n" +
-		"\t\t_, err := p.ParseAST(s)\n\t\tif err != nil {\n\t\t\tfmt.Println(\"error\")\n\t\t\tcontinue\n\t\t}\n" +
+		"\t\t_, err := p.ParseValue(s)\n\t\tif err != nil {\n\t\t\tfmt.Println(\"error\")\n\t\t\tcontinue\n\t\t}\n" +
 		"\t\tfmt.Println(\"ok\")\n\t}\n}\n"
 	runGeneratedNamedNodeProgram(t, gentest.IgnoreCaseGenGrammar, body, want.String())
 }
@@ -227,7 +227,7 @@ func TestIgnoreCaseGeneratedTypedTerminal(t *testing.T) {
 		fmt.Fprintf(&list, "\t\t%s,\n", strconv.Quote(in))
 	}
 	body := "func main() {\n\tfor _, s := range []string{\n" + list.String() + "\t} {\n" +
-		"\t\t_, err := p.ParseAST(s)\n\t\tif err != nil {\n\t\t\tfmt.Println(\"error\")\n\t\t\tcontinue\n\t\t}\n" +
+		"\t\t_, err := p.ParseValue(s)\n\t\tif err != nil {\n\t\t\tfmt.Println(\"error\")\n\t\t\tcontinue\n\t\t}\n" +
 		"\t\tfmt.Println(\"ok\")\n\t}\n}\n"
 	runGeneratedNamedNodeProgram(t, ignoreCaseTerminalGrammar, body, want.String())
 }

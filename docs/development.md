@@ -97,23 +97,23 @@ for backend scope, cleanup and measured costs.
 
 Generated Go and TypeScript parsers embed their runtime and depend only on their standard libraries. Generated Go
 and TypeScript rules are built as Core IR, lowered to Flow IR and then to Exec IR, which the printers print ([design 062](design/records/062-backend-independent-optimization-ir.md), [design 065](design/records/065-exec-ir-parser-vm.md)): in Go, lean value-free rules are direct rules and the others framed bodies the runtime calls; typed Go also emits inferred Go types
-and `ParseAST`/`ParseRuleAST` for configured-start and named rules
+and `ParseValue`/`ParseRuleValue` for configured-start and named rules
 ([design 029](design/records/029-typed-named-rule-parsing.md)). Generation defaults (`MaxDepth` of `gen.Go` and `gen.TypeScript`, `gen -max-depth`) and invocation-local depth
 options are implemented ([design 022](design/records/022-generated-parser-depth-limits.md)); Go entry points accept
 functional `ParseOption`s, and TypeScript adds options-aware entry points. With `Types` or `-types`, TypeScript
-exports grammar declarations and configured-start `parseAST` conversion ([guide](guide/typescript.md#typed-values),
+exports grammar declarations and configured-start `parseValue` conversion ([guide](guide/typescript.md#typed-values),
 [design 030](design/records/030-typed-typescript-values.md)). Generated paths preserve the engine's tree, error, depth,
 action and memo semantics.
 
-Generated Go `-document` can be combined with `-types`; `Document.ParseAST` directly matches and reuses typed
+Generated Go `-document` can be combined with `-types`; `Document.ParseValue` directly matches and reuses typed
 memo entries when the grammar meets the batch typed runtime's eligibility rules. Other result types use Node
 conversion. Returned typed graphs are cloned per invocation, while CST Node members may share the mutable
 Document graph. See the [incremental parsing guide](guide/incremental.md) and
 [design 044](design/records/044-generated-incremental-and-stream-parsers.md).
 
 Generated Go `-stream` adds a Node `ParseStream` that follows the engine's Reader stream contract, and with
-`-types` a `ParseStreamAST` that converts each element; it cannot yet be combined with TypeScript.
-`TestGeneratedTypedStreamMatchesBatch` compares the typed elements with batch `ParseAST`. Stream packages also have
+`-types` a `ParseStreamValue` that converts each element; it cannot yet be combined with TypeScript.
+`TestGeneratedTypedStreamMatchesBatch` compares the typed elements with batch `ParseValue`. Stream packages also have
 `Iterate` and the diagnostic options, which the engine differential test runs as well. `TestGeneratedStreamMatchesEngine` compares emitted elements, errors and reader
 call counts with the engine across chunkings, units, controls, observability and Document generation; changes to
 the stream runtime should keep it and the bounded-memory consumer in `TestGeneratedStreamAPI` passing.

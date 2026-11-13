@@ -20,7 +20,7 @@ for.
 |:--|:--|
 | Go API | The `start` argument of `zp.Compile` and `zp.CompileSource`, where an empty name selects the default start rule; `Parser.WithStart` makes a parser with another start rule for whole-input parsing; `Parser.ParsePrefix` selects a start rule for one prefix parse without changing the configured start rule. Both take an empty name for the default start rule |
 | Command line | `zp parse -s <rule>`. It defaults to the start rule saved in a compiled grammar (`.zpc`), and otherwise to the default start rule |
-| Generated parsers | `Parse` uses the start rule selected when the parser was generated, the default start rule unless another was named; `ParseRule` and `ParseRuleAST` (`parseRule` and `parseRuleWithOptions` in TypeScript) take the name of a start rule, or an empty name for the default start rule |
+| Generated parsers | `Parse` uses the start rule selected when the parser was generated, the default start rule unless another was named; `ParseRule` and `ParseRuleValue` (`parseRule` and `parseRuleWithOptions` in TypeScript) take the name of a start rule, or an empty name for the default start rule |
 
 Naming a rule that is not a start rule is an error that names the rule and says
 it is not a start rule; naming an undefined rule is an error that says it is not

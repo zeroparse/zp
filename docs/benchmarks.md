@@ -21,7 +21,7 @@ The generated TypeScript parsers were measured with Node v24.13.0.
 
 ### Parsing Time (Position Unit: Code Points)
 
-| Workload | Closure | Bytecode (recursive) | Bytecode (iterative) | Generated Go | Generated Go, typed (`ParseAST`) | Standard library |
+| Workload | Closure | Bytecode (recursive) | Bytecode (iterative) | Generated Go | Generated Go, typed (`ParseValue`) | Standard library |
 |:--|--:|--:|--:|--:|--:|--:|
 | JSON | 12.8 ms | 15.6 ms (1.21×) | 17.7 ms (1.38×) | 5.67 ms (0.44×) | 3.89 ms (0.30×) | 3.50 ms (`encoding/json`) |
 | CSV | 5.09 ms | 6.73 ms (1.32×) | 7.31 ms (1.44×) | 2.77 ms (0.54×) | 2.27 ms (0.45×) | 733 µs (`encoding/csv`) |
@@ -49,7 +49,7 @@ The generated TypeScript parsers were measured with Node v24.13.0.
 
 Bytes allocated / number of allocations.
 
-| Workload | Closure | Bytecode (recursive) | Bytecode (iterative) | Generated Go | Generated Go, typed (`ParseAST`) | Standard library |
+| Workload | Closure | Bytecode (recursive) | Bytecode (iterative) | Generated Go | Generated Go, typed (`ParseValue`) | Standard library |
 |:--|--:|--:|--:|--:|--:|--:|
 | JSON | 11.3 MB / 767 | 12.6 MB / 982 | 12.6 MB / 1.0 k | 9.14 MB / 469 | 2.58 MB / 260 | 2.19 MB / 53 k |
 | CSV | 5.96 MB / 318 | 7.67 MB / 577 | 7.67 MB / 587 | 5.55 MB / 253 | 1.92 MB / 184 | 1.20 MB / 10 k |
@@ -73,15 +73,15 @@ Bytes allocated / number of allocations.
 | Recovery | 10.6 MB / 1.9 k | 9.94 MB / 1.9 k | 9.98 MB / 2.0 k | 7.47 MB / 1.5 k |
 | Outline | 4.56 MB / 1.9 k | 5.03 MB / 2.0 k | 5.05 MB / 2.1 k | 3.82 MB / 1.8 k |
 
-### Typed Values (`ParseAST` of `zp gen -types`)
+### Typed Values (`ParseValue` of `zp gen -types`)
 
-`ParseAST` builds the grammar's Go types directly when every value it can return has a Go type of its own ("direct");
+`ParseValue` builds the grammar's Go types directly when every value it can return has a Go type of its own ("direct");
 otherwise (the values include CST nodes, as in minilang and recovery) it runs `Parse` and converts the tree ("converted").
 CSV builds typed `File`, `Record`, and `Field` values directly.
 See [code generation](guide/generated-typed-values.md). The factor is relative to the generated parser's
 `Parse` (code points).
 
-| Workload | `ParseAST` | `Parse` | `ParseAST` | Memory (`Parse` → `ParseAST`) |
+| Workload | `ParseValue` | `Parse` | `ParseValue` | Memory (`Parse` → `ParseValue`) |
 |:--|:--|--:|--:|--:|
 | JSON | direct | 5.67 ms | 3.89 ms (0.69×) | 9.14 MB / 469 → 2.58 MB / 260 |
 | CSV | direct | 2.77 ms | 2.27 ms (0.82×) | 5.55 MB / 253 → 1.92 MB / 184 |
@@ -165,9 +165,9 @@ Memory (bytes allocated / number of allocations) and file sizes:
 
 `zp gen -lang ts -types -recognize` parsers, run under `node --experimental-strip-types` (16 cores, V8 13.6.233.17-node.37, commit 13b3d186, measured on 2026-10-29, load average 2.69 3.50 3.90 when the run started).
 Each figure is the median of 3 runs of `bench/ts-parse.mjs`, one fresh process per run, after a warm-up of one second: the mean time of a parse of the same input as the Go tables, in code points, with the throughput in parentheses.
-`parse` builds the Node tree, `parseAST` the typed values and `recognize` builds nothing. The last column is the time of `parse` relative to the generated Go `Parse` of the table above (lower is faster).
+`parse` builds the Node tree, `parseValue` the typed values and `recognize` builds nothing. The last column is the time of `parse` relative to the generated Go `Parse` of the table above (lower is faster).
 
-| Workload | `parse` | `parseAST` | `recognize` | `parse` relative to generated Go |
+| Workload | `parse` | `parseValue` | `recognize` | `parse` relative to generated Go |
 |:--|--:|--:|--:|--:|
 | JSON | 21.7 ms (12 MB/s) | 29.9 ms (8.8 MB/s) | 9.14 ms (29 MB/s) | 3.82× |
 | CSV | 9.23 ms (23 MB/s) | 13.2 ms (16 MB/s) | 2.83 ms (75 MB/s) | 3.33× |
@@ -181,7 +181,7 @@ Each figure is the median of 3 runs of `bench/ts-parse.mjs`, one fresh process p
 
 Sizes of the parsers generated from `testdata/grammars/` with the options of `testdata/grammars/generate.txt`
 (commit 13b3d186, go1.27.1). "Go source" is the generated `parser.go`; "Go binary" is a program that
-calls the parser's `ParseAST`, built with `-trimpath -ldflags="-s -w"`, so it includes the ZeroParse runtime and the
+calls the parser's `ParseValue`, built with `-trimpath -ldflags="-s -w"`, so it includes the ZeroParse runtime and the
 parser's types. "TypeScript" is the generated `parser.ts`, raw and compressed with `gzip -9`; it imports the embedded
 runtime, which is the same for every parser and weighs 146 KB (36.9 KB gzipped).
 

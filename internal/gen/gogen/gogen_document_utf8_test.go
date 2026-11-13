@@ -73,17 +73,17 @@ func TestCompletedPrefix(t *testing.T) {
  }
 }
 `, gen.GenOptions{Package: "fixture", Start: "main", Document: true}},
-		{"typed", typedGrammar, "ParseAST", `
+		{"typed", typedGrammar, "ParseValue", `
 func TestCompletedPrefix(t *testing.T) {
  for _, unit := range []PositionUnit{CodePoints, Bytes} {
   for _, c := range utf8Cases {
    d, err := NewDocument(c.text, WithUnit(unit))
    if err != nil { t.Fatal(err) }
-   if _, err := d.ParseAST(); err != nil { t.Fatal(err) }
+   if _, err := d.ParseValue(); err != nil { t.Fatal(err) }
    for _, e := range c.edits {
     if err := d.Edit(e.start, e.end, e.text); err != nil { t.Fatal(err) }
-    got, err := d.ParseAST()
-    want, wantErr := ParseAST(d.Text(), WithUnit(unit))
+    got, err := d.ParseValue()
+    want, wantErr := ParseValue(d.Text(), WithUnit(unit))
     if !reflect.DeepEqual(got, want) || fmt.Sprint(err) != fmt.Sprint(wantErr) {
      t.Fatalf("unit %d, text %q: document %+v / %v; batch %+v / %v", unit, d.Text(), got, err, want, wantErr)
     }

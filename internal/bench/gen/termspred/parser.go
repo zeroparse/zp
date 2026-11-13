@@ -104,22 +104,22 @@ func (a *tslabs) MemoryBytes() uint64 {
 	return a.tDoc.MemoryBytes() + a.tLine.MemoryBytes() + a.tl0Chunk.MemoryBytes()
 }
 
-// ParseAST parses the input like Parse and returns the result as typed values. If the parse recovered
+// ParseValue parses the input like Parse and returns the result as typed values. If the parse recovered
 // from errors, the result is returned together with SyntaxErrors; an Error node where a struct
 // type is expected becomes nil.
 // It builds the values directly, without the nodes Parse returns.
-func ParseAST(input string, opts ...rt.ParseOption) (*types.Doc, error) {
+func ParseValue(input string, opts ...rt.ParseOption) (*types.Doc, error) {
 	a := &tslabs{}
 	return rt.TParse(trules[0], input, opts, a, func(v any) *types.Doc { return rt.TAs[*types.Doc](v) })
 }
 
-// ParseRuleAST parses the whole input with the named start rule and returns its typed value; an empty
+// ParseRuleValue parses the whole input with the named start rule and returns its typed value; an empty
 // name selects the grammar's default start rule.
 // Recovered values accompany SyntaxErrors. Nil results and failed parses return the selected type's zero value.
 // Invalid options and names of rules that are not start rules return nil with an error. Start rule result types:
 //
 //	main: *types.Doc
-func ParseRuleAST(name, input string, opts ...rt.ParseOption) (any, error) {
+func ParseRuleValue(name, input string, opts ...rt.ParseOption) (any, error) {
 	o, err := rt.ResolveOptions(zpGrammar, opts)
 	if err != nil {
 		return nil, err

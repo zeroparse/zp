@@ -77,7 +77,7 @@ func testGeneratedRecursiveSpliceTypesKeepTheTree(t *testing.T) {
 		}
 		gentest.GeneratePackageIn(t, dir, "splicefix", fmt.Sprintf("g%d", i), g, gen.GenOptions{Start: "main", Types: true})
 		fmt.Fprintf(&imports, "\tg%d \"splicefix/g%[1]d\"\n", i)
-		fmt.Fprintf(&table, "\tfunc(s string) [4]string { n, e1 := g%d.Parse(s); v, e2 := g%[1]d.ParseAST(s); b, _ := json.Marshal(v); return [4]string{fmt.Sprint(n), string(b), fmt.Sprint(e1 != nil), fmt.Sprint(e2 != nil)} },\n", i)
+		fmt.Fprintf(&table, "\tfunc(s string) [4]string { n, e1 := g%d.Parse(s); v, e2 := g%[1]d.ParseValue(s); b, _ := json.Marshal(v); return [4]string{fmt.Sprint(n), string(b), fmt.Sprint(e1 != nil), fmt.Sprint(e2 != nil)} },\n", i)
 	}
 	driver := "package main\n\nimport (\n\t\"encoding/json\"\n\t\"fmt\"\n\t\"os\"\n" + imports.String() + ")\n\n" +
 		"var parsers = []func(string) [4]string{\n" + table.String() + "}\n\n" +
@@ -122,7 +122,7 @@ func testGeneratedRecursiveSpliceTypesKeepTheTree(t *testing.T) {
 		for j, s := range c.Inputs {
 			row := out[i][j]
 			if row[2] != row[3] {
-				t.Errorf("%s %q: Parse failed %s, ParseAST failed %s", c.Name, s, row[2], row[3])
+				t.Errorf("%s %q: Parse failed %s, ParseValue failed %s", c.Name, s, row[2], row[3])
 			}
 			if row[2] == "true" {
 				continue // no tree

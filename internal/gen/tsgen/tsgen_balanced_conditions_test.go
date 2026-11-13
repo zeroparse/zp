@@ -26,7 +26,7 @@ rule ranges = [` + ranges.String() + `]`
 ` + tsTypedAssert + `
 for(const unit of [p.CodePoints,p.Bytes]) {
  for(const input of ["z",String.fromCodePoint(0x1000),String.fromCodePoint(0x1000+798),String.fromCodePoint(0x1000+1598)]) {
-  const result=p.parse(input,unit),typed=p.parseAST(input,unit);
+  const result=p.parse(input,unit),typed=p.parseValue(input,unit);
   check(result.error===null&&result.node!==null&&result.node.text===input&&typed.error===null&&typed.value!==null&&stable(typed.value).length>0&&p.recognize(input,unit)===null,"wide class accepts first, middle, last and fallback");
   check(result.node.start===0&&result.node.end===(unit===p.Bytes?(input==="z"?1:3):1),"position unit preserved");
  }

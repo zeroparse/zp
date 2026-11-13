@@ -153,16 +153,16 @@ func TestTypedTraceParity(t *testing.T){
   opts:=[]ParseOption{WithUnit(unit)};refUnit:=reference.CodePoints;if unit==Bytes{refUnit=reference.Bytes};refOpts:=[]reference.ParseOption{reference.WithUnit(refUnit)}
   if controlled{opts=append(opts,WithLimits(Limits{Compute:100000}));refOpts=append(refOpts,reference.WithLimits(reference.Limits{Compute:100000}))}
   for _,input:=range []string{INPUT,"",INPUT+"?"}{
-   want,werr:=reference.ParseAST(input,refOpts...);var events []TraceEvent
-   got,gerr:=ParseAST(input,append(append([]ParseOption{},opts...),WithTrace(func(e TraceEvent){events=append(events,e)}))...)
+   want,werr:=reference.ParseValue(input,refOpts...);var events []TraceEvent
+   got,gerr:=ParseValue(input,append(append([]ParseOption{},opts...),WithTrace(func(e TraceEvent){events=append(events,e)}))...)
    a,ae:=json.Marshal(want);b,be:=json.Marshal(got);if ae!=nil||be!=nil||string(a)!=string(b)||fmt.Sprint(werr)!=fmt.Sprint(gerr){t.Fatal("typed parity",string(a),string(b),werr,gerr,ae,be)}
    checkTypedTrace(t,events)
    if input==INPUT{count:=func(rule string,kind TraceKind)int{n:=0;for _,e:=range events{if e.Rule==rule&&e.Kind==kind{n++}};return n};_=count;CHECKS}
    seenRules:=map[string]bool{}
    for _,r:=range rules {
     if seenRules[r.Name]{continue};seenRules[r.Name]=true
-    want,werr:=reference.ParseRuleAST(r.Name,input,refOpts...);events=nil
-    got,gerr:=ParseRuleAST(r.Name,input,append(append([]ParseOption{},opts...),WithTrace(func(e TraceEvent){events=append(events,e)}))...)
+    want,werr:=reference.ParseRuleValue(r.Name,input,refOpts...);events=nil
+    got,gerr:=ParseRuleValue(r.Name,input,append(append([]ParseOption{},opts...),WithTrace(func(e TraceEvent){events=append(events,e)}))...)
     a,_:=json.Marshal(want);b,_:=json.Marshal(got);if string(a)!=string(b)||fmt.Sprint(werr)!=fmt.Sprint(gerr){t.Fatal("named typed parity",r.Name,string(a),string(b),werr,gerr)}
     checkTypedTrace(t,events)
    }
@@ -170,7 +170,7 @@ func TestTypedTraceParity(t *testing.T){
  }}
 }
 func TestTypedTraceLifecycle(t *testing.T){
- routes:=[]func(...ParseOption)(any,error){func(opts ...ParseOption)(any,error){return ParseAST(INPUT,opts...)},func(opts ...ParseOption)(any,error){return ParseRuleAST("main",INPUT,opts...)}}
+ routes:=[]func(...ParseOption)(any,error){func(opts ...ParseOption)(any,error){return ParseValue(INPUT,opts...)},func(opts ...ParseOption)(any,error){return ParseRuleValue("main",INPUT,opts...)}}
  for _,parse:=range routes{
   marker:=&struct{n int}{11}
   for _,value:=range []any{marker,zprt.X_fatal{errors.New("private marker")},zprt.X_evalError{X_msg:"private marker"},zprt.X_contextPanic{marker},zprt.X_tracePanic{marker}}{func(){defer func(){if got:=recover();got!=value{t.Fatalf("typed panic %T %v want %T %v",got,got,value,value)}}();parse(WithTrace(func(TraceEvent){panic(value)}));t.Fatal("panic absent")}()}
@@ -185,7 +185,7 @@ func TestTypedTraceLifecycle(t *testing.T){
   _,err:=parse(WithContext(ctx),WithTrace(func(TraceEvent){t.Fatal("pre-cancel callback")}));if !errors.Is(err,context.Canceled){t.Fatal(err)}
   events=nil;_,err=parse(WithLimits(Limits{Compute:1}),WithTrace(func(e TraceEvent){events=append(events,e)}));if !errors.Is(err,ErrLimit){t.Fatal("typed budget",err)};for _,e:=range events{if e.Kind==TraceExit&&e.Rule=="main"{t.Fatal("fabricated typed exit",events)}}
  }
- var wg sync.WaitGroup;for i:=0;i<4;i++{wg.Go(func(){for j:=0;j<4;j++{ParseAST(INPUT,WithTrace(func(TraceEvent){}))}})};wg.Wait()
+ var wg sync.WaitGroup;for i:=0;i<4;i++{wg.Go(func(){for j:=0;j<4;j++{ParseValue(INPUT,WithTrace(func(TraceEvent){}))}})};wg.Wait()
  p:=&zprt.TParser{Parser:&zprt.Parser{Observation:&zprt.X_observation{X_trace:func(zprt.TraceEvent){}}}};p.X_recycle();if p.Observation!=nil{t.Fatal("typed pool retained observer")}
 }
 `

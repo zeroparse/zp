@@ -34,24 +34,24 @@ The snapshot measures active controls on JSON and XML (`BudgetControlModes`, `Co
 benchmarks run with the controls inactive. Relative to the inactive mode on the three interpreters in both position
 units, a cancelable context takes 1.45–1.68× the time, finite compute limits 1.54–1.79× and both together 1.54–1.79×, with
 the same allocation counts. Generated Go with finite compute limits takes 1.30–1.47× its ordinary `Parse` time and
-1.47–1.61× its ordinary (CodePoints) `ParseAST` time. Neither this snapshot nor these records imply deployed behavior.
+1.47–1.61× its ordinary (CodePoints) `ParseValue` time. Neither this snapshot nor these records imply deployed behavior.
 
 **Backends.** Across all eight parsing workloads, generated Go Node parsing takes 0.44–0.61× closure time in CodePoints and 0.50–0.66× in Bytes. Recursive VM parsing takes 1.14–1.32× closure time in CodePoints and 1.13–1.35× in Bytes. Iterative VM parsing takes 1.33–1.76× closure time in CodePoints and 1.35–1.76× in Bytes. The slowest relative case is iterative Operators Rule arithmetic at 1.76× closure in both units. Closure remains the default (see the [Choosing a Backend](guide/backends.md)); the VMs serve loaded compiled grammars (a `.zpc` file holds one bytecode module of one mode and loads on the bytecode backends only) and, iteratively, deep nesting.
 
-**Typed values.** `ParseAST` directly constructs values for JSON, CSV, XML, both calculator grammars and Outline. For those six direct workloads, it takes 0.69–0.98× generated CodePoints `Parse` time and allocates 0.27–0.41× its bytes. Minilang and Recovery use converted output: `ParseAST` takes 0.95× generated `Parse` time on both and allocates 0.28× and 0.30× its bytes, respectively. On JSON and XML, direct `ParseAST` takes 1.11× and 1.33× standard-library time, with 1.18× and 1.25× its allocated bytes. These operations return different structures and should not be treated as equivalent outputs. CSV constructs typed `File`, `Record` and `Field` values directly.
+**Typed values.** `ParseValue` directly constructs values for JSON, CSV, XML, both calculator grammars and Outline. For those six direct workloads, it takes 0.69–0.98× generated CodePoints `Parse` time and allocates 0.27–0.41× its bytes. Minilang and Recovery use converted output: `ParseValue` takes 0.95× generated `Parse` time on both and allocates 0.28× and 0.30× its bytes, respectively. On JSON and XML, direct `ParseValue` takes 1.11× and 1.33× standard-library time, with 1.18× and 1.25× its allocated bytes. These operations return different structures and should not be treated as equivalent outputs. CSV constructs typed `File`, `Record` and `Field` values directly.
 
 Generated typed-output liveness cleanup is not implemented. Its scope and measurement gates are in [design 034](design/records/034-typed-output-liveness.md); [record 094](optimizations/094-generated-typed-output-liveness.md) holds the measured candidate.
 A separate generated-Go typed-allocation bootstrap and its focused measurements are recorded in [optimization record 098](optimizations/098-bootstrap-generated-typed-output-allocations.md); they are not part of this full-suite snapshot.
 
-**Recognition.** Across all eight workloads in CodePoints, closure recognition takes 0.62–0.80× closure Node-parse time, while generated recognition takes 0.43–0.70× generated Node-parse time. Simple grammars can recognize with zero allocations; predicates that read values (XML tag names, Outline indentation), left-recursion growth and recovery still require values or state. Typed `ParseAST` takes 1.54× generated `Recognize` time on JSON and 1.56× on XML because it returns typed values.
+**Recognition.** Across all eight workloads in CodePoints, closure recognition takes 0.62–0.80× closure Node-parse time, while generated recognition takes 0.43–0.70× generated Node-parse time. Simple grammars can recognize with zero allocations; predicates that read values (XML tag names, Outline indentation), left-recursion growth and recovery still require values or state. Typed `ParseValue` takes 1.54× generated `Recognize` time on JSON and 1.56× on XML because it returns typed values.
 
 **The standard library.** Where a comparable parser exists, standard-library parsing takes 1.62–6.76× less time than generated `Parse`: JSON, CSV, XML, and the two calculator workloads. The gap is widest for left-recursive arithmetic; the parsers produce different outputs. `json.Valid`, a hand-written state machine, takes 8.05× less time than generated `Recognize` in this snapshot.
 
-**Generated TypeScript.** Under Node 24.13.0, generated `parse` takes 2.43–4.00× the time of generated Go `Parse` on the seven workloads that the TypeScript benchmark covers (Recovery is not measured). `parseAST` takes 1.12–1.43× `parse` time and `recognize` 0.31–0.72×. These are single-process means on the same inputs, not a comparison of equivalent outputs.
+**Generated TypeScript.** Under Node 24.13.0, generated `parse` takes 2.43–4.00× the time of generated Go `Parse` on the seven workloads that the TypeScript benchmark covers (Recovery is not measured). `parseValue` takes 1.12–1.43× `parse` time and `recognize` 0.31–0.72×. These are single-process means on the same inputs, not a comparison of equivalent outputs.
 
-**Generated size.** A generated Go `parser.go` ranges from 25.3 KB (CSV) to 1.59 MB (DuckDB), and a binary that calls the parser's `ParseAST` from 2.15 to 6.45 MB, most of which is the ZeroParse runtime and the standard library. The TypeScript `parser.ts` ranges from 32.0 KB to 3.32 MB, which is 6.57–257 KB gzipped with `gzip -9`, plus a runtime of 146 KB (36.9 KB gzipped) that every parser shares.
+**Generated size.** A generated Go `parser.go` ranges from 25.3 KB (CSV) to 1.59 MB (DuckDB), and a binary that calls the parser's `ParseValue` from 2.15 to 6.45 MB, most of which is the ZeroParse runtime and the standard library. The TypeScript `parser.ts` ranges from 32.0 KB to 3.32 MB, which is 6.57–257 KB gzipped with `gzip -9`, plus a runtime of 146 KB (36.9 KB gzipped) that every parser shares.
 
-**Position unit.** On the ready-made DuckDB and Python grammars (generated Go, typed `ParseAST`), the Bytes unit takes 1.03–1.08× the CodePoints time and allocates the same bytes per warm parse, so it does not pay for the saved decoding. Decoding the input to code points happens once per parse into reused buffers, whereas Bytes decodes each character while matching. In a fresh process, a CodePoints parse allocates about 8 bytes per input character more than Bytes (a `[]rune` and a 4-byte offset table: 2.1 MB for the 263 KB DuckDB script, 1.8 MB for the 227 KB `_pydecimal.py`), which is 1.5–2.5 MB or 1.5–4% of the process's peak resident set size; allocation of the tree dominates (about 500 bytes per input byte). The generated source is identical for both units, so the sizes of `parser.go` and of binaries do not depend on the unit. On the closure engine (CSV, 50,000 records, 2.9 MB), Bytes parses 4% faster and streams 15% faster with 9% fewer bytes, and a one-character `Document` edit with its re-parse takes 6% longer (1.06×). Error positions and spans become byte offsets under Bytes. These figures support no change of the default: it stays CodePoints, which reports character positions and costs a few percent of memory. The measurement is below.
+**Position unit.** On the ready-made DuckDB and Python grammars (generated Go, typed `ParseValue`), the Bytes unit takes 1.03–1.08× the CodePoints time and allocates the same bytes per warm parse, so it does not pay for the saved decoding. Decoding the input to code points happens once per parse into reused buffers, whereas Bytes decodes each character while matching. In a fresh process, a CodePoints parse allocates about 8 bytes per input character more than Bytes (a `[]rune` and a 4-byte offset table: 2.1 MB for the 263 KB DuckDB script, 1.8 MB for the 227 KB `_pydecimal.py`), which is 1.5–2.5 MB or 1.5–4% of the process's peak resident set size; allocation of the tree dominates (about 500 bytes per input byte). The generated source is identical for both units, so the sizes of `parser.go` and of binaries do not depend on the unit. On the closure engine (CSV, 50,000 records, 2.9 MB), Bytes parses 4% faster and streams 15% faster with 9% fewer bytes, and a one-character `Document` edit with its re-parse takes 6% longer (1.06×). Error positions and spans become byte offsets under Bytes. These figures support no change of the default: it stays CodePoints, which reports character positions and costs a few percent of memory. The measurement is below.
 
 **Grammar style.** The calculator workload takes 2.30× as long with left recursion as with Operators Rule parsing on closure (1.98× generated, 1.62× typed). The generated Recovery workload takes about the same time as Minilang, but skips broken statements and therefore performs different matching work.
 
@@ -114,7 +114,7 @@ go run ./bench/profilematrix -variant speed= -variant noguards='-no-opt guards' 
 
 For each grammar and variant it prints the time of a pass over the inputs (the minimum over the rounds), bytes and allocations per pass, the live
 heap that the results hold, the peak resident set size, the share of CPU time spent in garbage collection, the size of `parser.go`, of a stripped
-program that calls `ParseAST` and (with `-ts`) of `parser.ts`, and the compile time; then the ratios to the first variant. `-control` adds an
+program that calls `ParseValue` and (with `-ts`) of `parser.ts`, and the compile time; then the ratios to the first variant. `-control` adds an
 identical copy of the first variant, which shows the noise of the machine. Two more rows, `csv-incremental` (an edit in the middle of a
 50000-record file followed by a reparse of a generated `Document`) and `csv-stream` (the whole file parsed as a stream of records), measure
 the incremental and the stream use; the other rows parse the inputs of the grammar once. A variant whose generated Go parser is
@@ -219,7 +219,7 @@ Its peak resident set size is 154.6–158.5 MB against 152.4–152.8 MB (DuckDB 
 the ranges overlap (154.6–155.6 MB against 152.6–155.8 MB).
 
 The harness is not committed. To repeat: generate the two parsers into a scratch package inside the module with
-`zp gen -g testdata/grammars/<name>/<name>.zp -module <path> <options> -o <dir>`, benchmark `ParseAST` with
+`zp gen -g testdata/grammars/<name>/<name>.zp -module <path> <options> -o <dir>`, benchmark `ParseValue` with
 `WithUnit(CodePoints)` and `WithUnit(Bytes)`, and measure memory with one parse per process.
 
 ### Benchmark Workloads
@@ -268,7 +268,7 @@ allocations.
 ### Generated TypeScript
 
 Generated TypeScript parsers are measured with Node (24 or later) by running a generated `parser.ts` under
-`node --experimental-strip-types`: `bench/ts-parse.mjs` for parsing a file with `parse`, `parseAST` or `recognize` (the
+`node --experimental-strip-types`: `bench/ts-parse.mjs` for parsing a file with `parse`, `parseValue` or `recognize` (the
 entry points that [benchmarks.md](benchmarks.md) reports, captured by `go run ./bench/report`), `bench/ts-typed.mjs` for the typed
 workloads that `TestGeneratedTSTypedWorkloads` and `TestGeneratedTSTypedSharedDAG` write when
 `ZP_TS_TYPED_DIR` is set, and `bench/ts-literal.mjs` for literal matching. Compare two generators by

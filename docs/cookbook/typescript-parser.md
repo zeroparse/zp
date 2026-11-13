@@ -40,7 +40,7 @@ The tool reads the text, reports the syntax errors, and checks the limits of the
 
 ```ts
 // check.ts
-import { parseAST, SyntaxErrors } from "./settings/parser.ts";
+import { parseValue, SyntaxErrors } from "./settings/parser.ts";
 import type { Setting } from "./settings/types.ts";
 
 const limits: Record<string, number> = { port: 65535, workers: 64 };
@@ -61,7 +61,7 @@ function lineCol(text: string, pos: number): string {
   return `${line}:${col}`;
 }
 
-const { value, error } = parseAST(source);
+const { value, error } = parseValue(source);
 let problems = 0;
 
 if (error instanceof SyntaxErrors) {
@@ -111,7 +111,7 @@ found in a setting that parsed. Four settings were read, and the two that could 
 
 ## How It Works
 
-- `parseAST` returns `{ value, error }` instead of throwing. When `#recover` skipped something, `error` is a
+- `parseValue` returns `{ value, error }` instead of throwing. When `#recover` skipped something, `error` is a
   `SyntaxErrors` and `value` is still the tree of what was read, so the tool can report both the syntax errors and its
   own findings in one run. Any other `error` is a failure with no tree.
 - `-types` gives every grammar type an interface (`Setting`, `File`), so `setting.Key.value` is checked by the compiler.

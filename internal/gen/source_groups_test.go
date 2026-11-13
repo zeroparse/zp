@@ -65,7 +65,7 @@ rule number Alias = v1:[0-9]+ => Number{Text: text($v1)}
 		// untyped targets; source grouping must not change generated code.
 		for _, typed := range []bool{false, true} {
 			opts := gen.GenOptions{Package: "sample", Start: "main", Types: typed}
-			plainAST, err := parseTest(plain)
+			plainValue, err := parseTest(plain)
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -74,7 +74,7 @@ rule number Alias = v1:[0-9]+ => Number{Text: text($v1)}
 				if err != nil {
 					t.Fatal(err)
 				}
-				want, err := generate(plainAST, opts)
+				want, err := generate(plainValue, opts)
 				if err != nil {
 					t.Fatal(err)
 				}

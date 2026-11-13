@@ -16,7 +16,7 @@ import (
 
 // TestGeneratedLeaderStore checks that a growth of a leader in a generated Go parser stores its
 // result inside a lookahead and outside one, as the engine does (Evaluations of Rules in
-// spec/runtime/parsing.md): Parse, ParseAST and Recognize, without and with limit controls,
+// spec/runtime/parsing.md): Parse, ParseValue and Recognize, without and with limit controls,
 // evaluate the leader e of gentest.LeaderStoreCases as often as the growths that the memo allows
 // take steps.
 func TestGeneratedLeaderStore(t *testing.T) {
@@ -44,7 +44,7 @@ func testGeneratedLeaderStore(t *testing.T) {
 		for _, pkg := range []string{fmt.Sprintf("g%d", i), fmt.Sprintf("l%d", i)} {
 			gentest.GeneratePackage(t, dir, pkg, mustParse(c.Src), gen.GenOptions{Start: "main", Types: true, Recognize: true, Observability: true, LimitControls: pkg[0] == 'l'})
 			fmt.Fprintf(&imports, "\t%q\n", "gentest/"+pkg)
-			for _, op := range []string{"_, _ = %s.Parse(%s, zprt.WithProfile(&p))", "_, _ = %s.ParseAST(%s, zprt.WithProfile(&p))", "_ = %s.Recognize(%s, zprt.WithProfile(&p))"} {
+			for _, op := range []string{"_, _ = %s.Parse(%s, zprt.WithProfile(&p))", "_, _ = %s.ParseValue(%s, zprt.WithProfile(&p))", "_ = %s.Recognize(%s, zprt.WithProfile(&p))"} {
 				fmt.Fprintf(&calls, "\t{ var p zprt.Profile; "+op+"; fmt.Print(evals(p), \" \") }\n", pkg, in)
 			}
 		}
@@ -88,7 +88,7 @@ func main() {
 		got := strings.Fields(lines[i])
 		want := strings.Fields(strings.Repeat(fmt.Sprintf("%d ", c.Evals), 6))
 		if strings.Join(got, " ") != strings.Join(want, " ") {
-			t.Errorf("%s: e evaluated %v times (Parse, ParseAST, Recognize; then with limit controls), want %v", c.Name, got, want)
+			t.Errorf("%s: e evaluated %v times (Parse, ParseValue, Recognize; then with limit controls), want %v", c.Name, got, want)
 		}
 	}
 }

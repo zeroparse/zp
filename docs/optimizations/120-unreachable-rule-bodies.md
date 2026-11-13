@@ -115,8 +115,8 @@ them (a control), eleven alternating rounds, `-benchtime=2s`, medians, as the ch
 |:--|--:|--:|
 | yaml Parse | 18.43 ms | +0.3% |
 | yaml Recognize | 10.35 ms | -0.8% |
-| yaml ParseAST | 11.92 ms | -0.7% |
-| duckdb ParseAST | 61.03 ms | -0.5% |
+| yaml ParseValue | 11.92 ms | -0.7% |
+| duckdb ParseValue | 61.03 ms | -0.5% |
 | Incremental document, closure | 146.8 us | +1.9% |
 | Stream, closure | 85.9 ms | +2.1% |
 

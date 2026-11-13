@@ -167,7 +167,7 @@ func isRoot(l *gogen.LiveRules, k gogen.RuleKey) bool {
 }
 
 // TestTypedUnreachedRulesRunLikeTheFullOutput builds the typed parser with the unreached rules left
-// out (p) and the one that keeps them (k) and compares what ParseAST returns for the same inputs.
+// out (p) and the one that keeps them (k) and compares what ParseValue returns for the same inputs.
 func TestTypedUnreachedRulesRunLikeTheFullOutput(t *testing.T) {
 	t.Parallel()
 	gentest.EachMode(t, testTypedUnreachedRulesRunLikeTheFullOutput)
@@ -227,16 +227,16 @@ import (
 
 func main() {
 	for _, in := range []string{INPUTS} {
-		v, err := p.ParseAST(in)
+		v, err := p.ParseValue(in)
 		pb, _ := json.Marshal(v)
 		fmt.Println("p", string(pb), err)
-		w, err := k.ParseAST(in)
+		w, err := k.ParseValue(in)
 		kb, _ := json.Marshal(w)
 		fmt.Println("k", string(kb), err)
-		u, err := p.ParseRuleAST("", in)
+		u, err := p.ParseRuleValue("", in)
 		ub, _ := json.Marshal(u)
 		fmt.Println("p rule", string(ub), err)
-		x, err := k.ParseRuleAST("", in)
+		x, err := k.ParseRuleValue("", in)
 		xb, _ := json.Marshal(x)
 		fmt.Println("k rule", string(xb), err)
 	}

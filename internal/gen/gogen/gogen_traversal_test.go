@@ -200,7 +200,7 @@ func TestBothWalkAPIs(t *testing.T) {
  if err := Walk(node,func(v WalkVisit)(WalkAction,error){generic++;return WalkContinue,nil});err!=nil||generic!=2 {t.Fatal(generic,err)}
  generic=0
  if err := (Cursor{Root:node,Unit:CodePoints}).At(0,func(v WalkVisit)(WalkAction,error){generic++;return WalkContinue,nil});err!=nil||generic!=1 {t.Fatal(generic,err)}
- typed, err := ParseAST("é")
+ typed, err := ParseValue("é")
  if err != nil { t.Fatal(err) }
  count:=0
  Inspect(typed,func(any)bool{count++;return true})

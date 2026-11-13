@@ -593,7 +593,7 @@ func engineStream(prog *engine.Program, v streamRun) string {
 
 // typedStreamCorpus has #stream grammars whose element types cover the typed
 // mappings. batch extracts the repetition from the value bv of the batch
-// ParseAST; empty skips the batch comparison.
+// ParseValue; empty skips the batch comparison.
 var typedStreamCorpus = []struct {
 	name, src, batch string
 	inputs           []string
@@ -630,7 +630,7 @@ rule item I = c:[a-z] ";" => I{C: $c}`, "", []string{"<a;b;>", "<>", "<a;b"}},
 }
 
 // TestGeneratedTypedStreamMatchesBatch compares the elements that generated
-// ParseStreamAST passes to emit with the repetition of the batch ParseAST
+// ParseStreamValue passes to emit with the repetition of the batch ParseValue
 // value, and its errors and number of elements with ParseStream, for reader
 // chunkings, reader errors, emit errors and a nil callback, in both units.
 func TestGeneratedTypedStreamMatchesBatch(t *testing.T) {
@@ -672,7 +672,7 @@ func testGeneratedTypedStreamMatchesBatch(t *testing.T) {
 		batch := "nil"
 		if c.batch != "" {
 			// The start rule's value is a node of the repetition: bv.Value is its list.
-			batch = "func(input string, b bool) (any, error) {\n\t\tbv, err := g%[1]d.ParseAST(input, g%[1]d.WithUnit(unit%[1]d(b)))\n\t\tif bv == nil {\n\t\t\treturn nil, err\n\t\t}\n\t\treturn " + c.batch + ", err\n\t}"
+			batch = "func(input string, b bool) (any, error) {\n\t\tbv, err := g%[1]d.ParseValue(input, g%[1]d.WithUnit(unit%[1]d(b)))\n\t\tif bv == nil {\n\t\t\treturn nil, err\n\t\t}\n\t\treturn " + c.batch + ", err\n\t}"
 		}
 		fmt.Fprintf(&parsers, `	%[1]d: {
 		typed: func(r io.Reader, emit func(any) error, b bool) error {
@@ -680,7 +680,7 @@ func testGeneratedTypedStreamMatchesBatch(t *testing.T) {
 			if emit != nil {
 				e = func(v g%[1]d.StreamValue) error { return emit(v) }
 			}
-			return g%[1]d.ParseStreamAST(r, e, g%[1]d.WithUnit(unit%[1]d(b)))
+			return g%[1]d.ParseStreamValue(r, e, g%[1]d.WithUnit(unit%[1]d(b)))
 		},
 		nodes: func(r io.Reader, emit func(any) error, b bool) error {
 			var e func(*g%[1]d.Node) error
@@ -1129,8 +1129,8 @@ func TestDiagnosticOptionsAreStreamOnly(t *testing.T) {
 		check("Parse", err)
 		_, err = ParseRule("stmt", "ab;", opt)
 		check("ParseRule", err)
-		_, err = ParseAST("ab;", opt)
-		check("ParseAST", err)
+		_, err = ParseValue("ab;", opt)
+		check("ParseValue", err)
 		check("Recognize", Recognize("ab;", opt))
 		d, err := NewDocument("ab;", opt)
 		check("NewDocument", err)
@@ -1139,8 +1139,8 @@ func TestDiagnosticOptionsAreStreamOnly(t *testing.T) {
 		}
 		_, err = d.Parse(opt)
 		check("Document.Parse", err)
-		_, err = d.ParseAST(opt)
-		check("Document.ParseAST", err)
+		_, err = d.ParseValue(opt)
+		check("Document.ParseValue", err)
 	}
 	// A nil callback is not an option to reject.
 	if _, err := Parse("ab;", zprt.WithDiagnosticCallback(nil)); err != nil {
@@ -1154,8 +1154,8 @@ func TestDiagnosticOptionsAreStreamOnly(t *testing.T) {
 	if _, err := Iterate(r, zprt.WithDiagnosticLimit(-1)); err == nil {
 		t.Error("Iterate accepted a negative limit")
 	}
-	if _, err := IterateAST(r, WithLimits(Limits{Depth: Unlimited})); err == nil {
-		t.Error("IterateAST accepted an unlimited depth")
+	if _, err := IterateValue(r, WithLimits(Limits{Depth: Unlimited})); err == nil {
+		t.Error("IterateValue accepted an unlimited depth")
 	}
 	if read {
 		t.Error("invalid options read the input")
@@ -1166,15 +1166,15 @@ type readFunc func([]byte) (int, error)
 
 func (f readFunc) Read(b []byte) (int, error) { return f(b) }
 
-func TestIterateAST(t *testing.T) {
+func TestIterateValue(t *testing.T) {
 	var want []StreamValue
-	err := ParseStreamAST(strings.NewReader("ab;1x;cd;"), func(v StreamValue) error { want = append(want, v); return nil })
+	err := ParseStreamValue(strings.NewReader("ab;1x;cd;"), func(v StreamValue) error { want = append(want, v); return nil })
 	var errs SyntaxErrors
 	if !errors.As(err, &errs) || len(errs) != 1 || len(want) != 3 {
 		t.Fatal(err, want)
 	}
 	var diags []*SyntaxError
-	it, err := IterateAST(strings.NewReader("ab;1x;cd;"), zprt.WithDiagnosticCallback(func(e *SyntaxError) error { diags = append(diags, e); return nil }))
+	it, err := IterateValue(strings.NewReader("ab;1x;cd;"), zprt.WithDiagnosticCallback(func(e *SyntaxError) error { diags = append(diags, e); return nil }))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -1196,7 +1196,7 @@ func TestIterateAST(t *testing.T) {
 		}
 	}
 	// Closing early abandons the parse.
-	it, _ = IterateAST(strings.NewReader("ab;cd;"))
+	it, _ = IterateValue(strings.NewReader("ab;cd;"))
 	if _, ok, err := it.Next(); !ok || err != nil {
 		t.Fatal(ok, err)
 	}
@@ -1231,9 +1231,9 @@ import (
 	"testing"
 )
 
-func TestParseStreamAST(t *testing.T) {
+func TestParseStreamValue(t *testing.T) {
 	var got []*P
-	err := ParseStreamAST(strings.NewReader("a12;b;"), func(v StreamValue) error { got = append(got, v); return nil })
+	err := ParseStreamValue(strings.NewReader("a12;b;"), func(v StreamValue) error { got = append(got, v); return nil })
 	if err != nil || len(got) != 2 {
 		t.Fatal(err, got)
 	}
@@ -1244,13 +1244,13 @@ func TestParseStreamAST(t *testing.T) {
 	if got[1].Start != 4 || got[1].A.Start != 4 {
 		t.Fatal(got[1])
 	}
-	if err := ParseStreamAST(strings.NewReader("a;1"), nil); err == nil {
+	if err := ParseStreamValue(strings.NewReader("a;1"), nil); err == nil {
 		t.Fatal("nil emit accepted a syntax error")
 	}
 }
 
 // Converting elements is charged to the compute limits like parsing them.
-func TestParseStreamASTBudgetControls(t *testing.T) {
+func TestParseStreamValueBudgetControls(t *testing.T) {
 	input := strings.Repeat("a"+strings.Repeat("1", 50)+";", 200)
 	steps := func(f func(limits Limits) error) int {
 		lo, hi := 1, 1<<20
@@ -1271,19 +1271,19 @@ func TestParseStreamASTBudgetControls(t *testing.T) {
 		return ParseStream(strings.NewReader(input), func(*Node) error { return nil }, WithLimits(l))
 	})
 	values := steps(func(l Limits) error {
-		return ParseStreamAST(strings.NewReader(input), func(StreamValue) error { return nil }, WithLimits(l))
+		return ParseStreamValue(strings.NewReader(input), func(StreamValue) error { return nil }, WithLimits(l))
 	})
 	if values <= nodes {
 		t.Fatalf("typed stream needs %d steps, node stream %d", values, nodes)
 	}
 	ctx, cancel := context.WithCancel(context.Background())
 	n := 0
-	err := ParseStreamAST(strings.NewReader(input), func(StreamValue) error { n++; cancel(); return nil }, WithContext(ctx))
+	err := ParseStreamValue(strings.NewReader(input), func(StreamValue) error { n++; cancel(); return nil }, WithContext(ctx))
 	if !errors.Is(err, context.Canceled) || n != 1 {
 		t.Fatal(err, n)
 	}
 	stop := errors.New("stop")
-	if err := ParseStreamAST(strings.NewReader(input), func(StreamValue) error { return stop }); err != stop {
+	if err := ParseStreamValue(strings.NewReader(input), func(StreamValue) error { return stop }); err != stop {
 		t.Fatal(err)
 	}
 }

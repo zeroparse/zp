@@ -35,7 +35,7 @@ func depMemoGenCases(t *testing.T, seeds int) []gentest.Case {
 	return cases
 }
 
-// TestGeneratedLeftRecursionDependencyMemo checks that the Parse, Recognize and ParseAST of
+// TestGeneratedLeftRecursionDependencyMemo checks that the Parse, Recognize and ParseValue of
 // generated Go parsers give the engine's results for grammars whose leaders grow inside the growth
 // of other leaders of their cycle at one position, where the dependency memo reuses results by the
 // seeds they read and the lookaheads they observed.
@@ -57,7 +57,7 @@ func testGeneratedLeftRecursionDependencyMemo(t *testing.T) {
 	gentest.GeneratedTypesCorpus(t, goBin, cases, gen.GenOptions{ConvertTypes: true}, len(cases))
 }
 
-// TestGeneratedLeftRecursionDependencyMemoLinear checks that the Parse and ParseAST of generated Go
+// TestGeneratedLeftRecursionDependencyMemoLinear checks that the Parse and ParseValue of generated Go
 // parsers of gentest.DependencyMemoShapes evaluate a number of calls linear in the length of the
 // input: doubling the input at most a little more than doubles the evaluations. They also parse an
 // input of length 10,000; with limit controls, within the default budget, which grows linearly with
@@ -105,13 +105,13 @@ func testGeneratedLeftRecursionDependencyMemoLinear(t *testing.T) {
 				limit = fmt.Sprintf(", zprt.WithLimits(zprt.Limits{Compute: %d})", gentest.ContextStoreBudgetPerUnit*uint64(len(input)))
 			}
 			fmt.Fprintf(&calls, "\t{ var p zprt.Profile; if _, err := %s.Parse(%s, zprt.WithProfile(&p)%s); err != nil { panic(err) }; fmt.Print(p.Snapshot().Evals, \" \") }\n", pkg, in, limit)
-			fmt.Fprintf(&calls, "\t{ var p zprt.Profile; if _, err := %s.ParseAST(%s, zprt.WithProfile(&p)%s); err != nil { panic(err) }; fmt.Print(p.Snapshot().Evals, \" \") }\n", pkg, in, limit)
+			fmt.Fprintf(&calls, "\t{ var p zprt.Profile; if _, err := %s.ParseValue(%s, zprt.WithProfile(&p)%s); err != nil { panic(err) }; fmt.Print(p.Snapshot().Evals, \" \") }\n", pkg, in, limit)
 		}
 		if long == 0 {
 			calls.WriteString("\tfmt.Print(true, \" \", true)\n")
 		} else {
 			in := strconv.Quote(s.Input(long))
-			fmt.Fprintf(&calls, "\t{ _, err := %s.Parse(%s); _, errAST := %s.ParseAST(%s); fmt.Print(err == nil, \" \", errAST == nil) }\n", pkg, in, pkg, in)
+			fmt.Fprintf(&calls, "\t{ _, err := %s.Parse(%s); _, errValue := %s.ParseValue(%s); fmt.Print(err == nil, \" \", errValue == nil) }\n", pkg, in, pkg, in)
 		}
 		calls.WriteString("\tfmt.Println()\n")
 	}
@@ -147,12 +147,12 @@ func main() {
 			t.Fatalf("%s: %q: %v", s.Name, lines[i], err)
 		}
 		if !parseLong || !astLong {
-			t.Errorf("%s at 10000 within the default budget: Parse succeeded %v, ParseAST succeeded %v", s.Name, parseLong, astLong)
+			t.Errorf("%s at 10000 within the default budget: Parse succeeded %v, ParseValue succeeded %v", s.Name, parseLong, astLong)
 		}
 		for _, r := range []struct {
 			name         string
 			small, large int
-		}{{"Parse", parse80, parse160}, {"ParseAST", ast80, ast160}} {
+		}{{"Parse", parse80, parse160}, {"ParseValue", ast80, ast160}} {
 			if i >= costly {
 				if r.small == 0 || r.large > r.small*gentest.ContextStoreGrowth {
 					t.Errorf("%s %s: %d evaluations at m=%d, %d at m=%d", s.Name, r.name, r.small, gentest.ContextStoreSizes[0], r.large, gentest.ContextStoreSizes[1])

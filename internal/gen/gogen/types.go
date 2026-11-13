@@ -15,7 +15,7 @@ import (
 // Typed values in generated parsers (GenOptions.Types).
 //
 // With Types, the generated package also defines a Go type for each type of the grammar and a
-// function ParseAST that parses like Parse and converts the resulting tree into those types:
+// function ParseValue that parses like Parse and converts the resulting tree into those types:
 //
 //   - a struct type T becomes a struct T with the same fields and an embedded Span (its range);
 //   - a string node becomes a TNode[string] and an error value Error;
@@ -40,7 +40,7 @@ type typedOutput struct {
 }
 
 // typedGo returns the Go source of the typed values for a parser starting at rule start. Unless conv
-// is set, ParseAST runs the typed runtime (runtime/typed.go) when every value it can produce has a Go
+// is set, ParseValue runs the typed runtime (runtime/typed.go) when every value it can produce has a Go
 // type of its own; otherwise it converts the result of Parse.
 //
 // The source of the types package refers to the runtime by its package name and to the types by
@@ -72,7 +72,7 @@ func (g *Generator) typedGo(start *compile.Rule, conv bool) (typedOutput, error)
 	for helpers := 0; t.backHelpers(&tb, &helpers); {
 	}
 	t.inTypes = false
-	doc := `// ParseAST parses the input like Parse and returns the result as typed values. If the parse recovered
+	doc := `// ParseValue parses the input like Parse and returns the result as typed values. If the parse recovered
 // from errors, the result is returned together with SyntaxErrors; an Error node where a struct
 // type is expected becomes nil.
 `
@@ -92,7 +92,7 @@ func (g *Generator) typedGo(start *compile.Rule, conv bool) (typedOutput, error)
 		enter(start)
 		result := t.dconv(st, "v", "a")
 		fmt.Fprintf(&entries, `%s// It builds the values directly, without the nodes Parse returns.
-func ParseAST(input string, opts ...ParseOption) (%s, error) {
+func ParseValue(input string, opts ...ParseOption) (%s, error) {
 	a := &tslabs{}
 		return TParse(trules[%d], input, opts, a, func(v any) %s { return %s })
 }
@@ -106,7 +106,7 @@ func ParseAST(input string, opts ...ParseOption) (%s, error) {
 			newConv = "\t\ta := &astConv{control: c}\n"
 		}
 		returnResult := "\t\treturn " + result + "\n"
-		fmt.Fprintf(&entries, `%sfunc ParseAST(input string, opts ...ParseOption) (%s, error) {
+		fmt.Fprintf(&entries, `%sfunc ParseValue(input string, opts ...ParseOption) (%s, error) {
  convert := func(n *Node, c *BudgetControl, err error) %s {
 %s%s }
  o, err := ResolveOptions(zpGrammar, opts)
@@ -126,9 +126,9 @@ func ParseAST(input string, opts ...ParseOption) (%s, error) {
 			newConv = "\t\ta := &astConv{control: c}\n"
 		}
 		returnResult := "\t\treturn " + result + "\n"
-		fmt.Fprintf(&entries, `// ParseAST converts the current Document result to typed values. Typed values
+		fmt.Fprintf(&entries, `// ParseValue converts the current Document result to typed values. Typed values
 // belong to this call; CST Node members may still share the Document's Node graph.
-func (d *Document) ParseAST(opts ...ParseOption) (%s, error) {
+func (d *Document) ParseValue(opts ...ParseOption) (%s, error) {
 %s o, err := d.ResolveParseOptions(opts)
  if err != nil { var zero %s; return zero, err }
  return DocumentParseConverted(d.State, o, func(n *Node, c *BudgetControl, parseErr error) %s {
@@ -155,12 +155,12 @@ func (d *Document) ParseAST(opts ...ParseOption) (%s, error) {
 		fmt.Fprintf(&entries, `// StreamValue is the typed value of an element of the #stream repetition of the rule %[1]s.
 type StreamValue = %[2]s
 
-// ParseStreamAST parses the input read from r like ParseStream and passes each committed element of the
+// ParseStreamValue parses the input read from r like ParseStream and passes each committed element of the
 // #stream repetition of the rule %[1]s to emit as a typed value (the zero value if the element has no
 // value). The values are independent of the parser and of later elements. Committed elements are final
 // even if the parse fails later. A non-EOF error from r or an error returned by emit ends the parse and
 // is returned unchanged. A nil emit collects the repetition instead.
-func ParseStreamAST(r io.Reader, emit func(StreamValue) error, opts ...ParseOption) error {
+func ParseStreamValue(r io.Reader, emit func(StreamValue) error, opts ...ParseOption) error {
 	var e func(*Node, *BudgetControl) error
 	if emit != nil {
 		e = func(n *Node, c *BudgetControl) error {
@@ -174,26 +174,26 @@ func ParseStreamAST(r io.Reader, emit func(StreamValue) error, opts ...ParseOpti
 	return RunParseStreamWithBudget(streamRule, r, e, opts)
 }
 
-// StreamASTIterator returns the typed elements of a stream one at a time, like StreamIterator.
-type StreamASTIterator struct{ pull *StreamPull[StreamValue] }
+// StreamValueIterator returns the typed elements of a stream one at a time, like StreamIterator.
+type StreamValueIterator struct{ pull *StreamPull[StreamValue] }
 
-// IterateAST returns an iterator over the typed elements that ParseStreamAST would pass to emit, parsing
+// IterateValue returns an iterator over the typed elements that ParseStreamValue would pass to emit, parsing
 // only as far as each call to Next needs. Options are validated before it returns; r is first read by Next.
-func IterateAST(r io.Reader, opts ...ParseOption) (*StreamASTIterator, error) {
-	pull, err := IterateStream(zpGrammar, opts, func(emit func(StreamValue) error) error { return ParseStreamAST(r, emit, opts...) })
+func IterateValue(r io.Reader, opts ...ParseOption) (*StreamValueIterator, error) {
+	pull, err := IterateStream(zpGrammar, opts, func(emit func(StreamValue) error) error { return ParseStreamValue(r, emit, opts...) })
 	if err != nil {
 		return nil, err
 	}
-	return &StreamASTIterator{pull}, nil
+	return &StreamValueIterator{pull}, nil
 }
 
 // Next returns (value, true, nil) for each committed element, with the zero value for an element without
 // a value. At the end of a clean stream it returns ok false and a nil error, and after a failure the error;
 // later calls return the same result.
-func (it *StreamASTIterator) Next() (StreamValue, bool, error) { return it.pull.Next() }
+func (it *StreamValueIterator) Next() (StreamValue, bool, error) { return it.pull.Next() }
 
 // Close abandons unfinished parsing, like StreamIterator.Close.
-func (it *StreamASTIterator) Close() { it.pull.Close() }
+func (it *StreamValueIterator) Close() { it.pull.Close() }
 
 `, r.Name, t.goType(et), newConv, result)
 	}
@@ -202,12 +202,12 @@ func (it *StreamASTIterator) Close() { it.pull.Close() }
 	for i, name := range g.Prog.StartRules {
 		starts[i] = g.Prog.ByName[name]
 	}
-	named.WriteString("// ParseRuleAST parses the whole input with the named start rule and returns its typed value; an empty\n// name selects the grammar's default start rule.\n")
+	named.WriteString("// ParseRuleValue parses the whole input with the named start rule and returns its typed value; an empty\n// name selects the grammar's default start rule.\n")
 	named.WriteString("// Recovered values accompany SyntaxErrors. Nil results and failed parses return the selected type's zero value.\n// Invalid options and names of rules that are not start rules return nil with an error. Start rule result types:\n")
 	for _, r := range starts {
 		fmt.Fprintf(&named, "//\t%s: %s\n", r.Name, t.goType(ruleType(r)))
 	}
-	named.WriteString(`func ParseRuleAST(name, input string, opts ...ParseOption) (any, error) {
+	named.WriteString(`func ParseRuleValue(name, input string, opts ...ParseOption) (any, error) {
 	o, err := ResolveOptions(zpGrammar, opts)
 	if err != nil {
 		return nil, err
@@ -293,10 +293,10 @@ func (it *StreamASTIterator) Close() { it.pull.Close() }
 	if g.directTypedDocument {
 		publication := t.documentClone(&b, st)
 		result := t.dconv(st, "v", "a")
-		fmt.Fprintf(&entries, `// ParseAST directly parses the Document and returns typed values. The values are shared with the
+		fmt.Fprintf(&entries, `// ParseValue directly parses the Document and returns typed values. The values are shared with the
 // Document and with earlier results, so a caller that modifies one may change later results, as with
-// Node values. CloneAST returns an independent copy.
-func (d *Document) ParseAST(opts ...ParseOption) (%s, error) {
+// Node values. CloneValue returns an independent copy.
+func (d *Document) ParseValue(opts ...ParseOption) (%s, error) {
 %s o, err := d.ResolveParseOptions(opts)
  if err != nil { var zero %s; return zero, err }
  a := &tslabs{}
@@ -305,9 +305,9 @@ func (d *Document) ParseAST(opts ...ParseOption) (%s, error) {
  })
 }
 
-// CloneAST returns a copy of a value that ParseAST returned. The copy shares nothing with the
+// CloneValue returns a copy of a value that ParseValue returned. The copy shares nothing with the
 // Document or with other results, so the caller may modify it; aliases within value are preserved.
-func CloneAST(value %s) %s {
+func CloneValue(value %s) %s {
  c := &typedDocumentClone{}
  out := %s
  c.Finish()
@@ -373,7 +373,7 @@ type TypedGen struct {
 	// from values of the typed runtime, and cloning them for Documents; bhelpers convert them back
 	// into values of the typed runtime (back).
 	nhelpers, dhelpers, chelpers, bhelpers vhelpers
-	// direct is set when the typed runtime builds the values (ParseAST does not convert nodes); reads holds the
+	// direct is set when the typed runtime builds the values (ParseValue does not convert nodes); reads holds the
 	// names of the fields that an action or a predicate reads. A struct of a direct parser keeps the ranges of
 	// the lists and tuples that it holds in a field that is read (rangeKind), and rfuncs names the functions
 	// that collect them from the values of the typed runtime.

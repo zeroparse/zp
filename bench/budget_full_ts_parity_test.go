@@ -159,10 +159,10 @@ for(const w of workloads)for(const unit of [p.CodePoints,p.Bytes]){
     expectOutcome(w,"Node/"+mode.name,active.node,active.error);
     check(stable(active.node)===plainTree&&diagnostic(active.error)===plainDiag,w.name+"/Node/"+mode.name+" changed text, span/tree, or diagnostics");
   }
-  const typed=p.parseAST(w.input,unit);
+  const typed=p.parseValue(w.input,unit);
   expectOutcome(w,"typed",typed.value,typed.error);
   const typedTree=stable(typed.value),typedDiag=diagnostic(typed.error);
-  const typedActive=p.parseASTWithOptions(w.input,{unit,signal:{aborted:false},limits:{compute:Number.MAX_SAFE_INTEGER-1}});
+  const typedActive=p.parseValueWithOptions(w.input,{unit,signal:{aborted:false},limits:{compute:Number.MAX_SAFE_INTEGER-1}});
   expectOutcome(w,"typed/combined",typedActive.value,typedActive.error);
   check(stable(typedActive.value)===typedTree&&diagnostic(typedActive.error)===typedDiag,w.name+"/typed changed serialized output or diagnostics");
   const recognized=p.recognize(w.input,unit);

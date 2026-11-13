@@ -8,7 +8,7 @@ import (
 	"zeroparse.dev/zp/internal/gen"
 )
 
-// documentClone emits the CloneAST path, which copies the private values retained
+// documentClone emits the CloneValue path, which copies the private values retained
 // by a typed Document into independent values. Cloning uses an explicit task stack for recursive structs.
 func (t *TypedGen) documentClone(b *strings.Builder, result compile.Ty) string {
 	var methods, tasks strings.Builder

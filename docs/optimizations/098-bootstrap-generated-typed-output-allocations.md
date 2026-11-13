@@ -13,15 +13,15 @@ The bootstrap applies during generated Go typed output construction, both for di
 
 | Execution profile | Status | Scope |
 |:--|:--|:--|
-| Generated Go typed `ParseAST`, direct construction | Applied | First three objects and first nonempty small list bootstrap independently before existing slabs |
-| Generated Go typed `ParseAST`, Node conversion | Applied | Same allocation policy during conversion |
+| Generated Go typed `ParseValue`, direct construction | Applied | First three objects and first nonempty small list bootstrap independently before existing slabs |
+| Generated Go typed `ParseValue`, Node conversion | Applied | Same allocation policy during conversion |
 | Generated Go Node `Parse` and `Recognize` | Not applicable | No typed output allocation |
 | Generated TypeScript | Not applicable | No change |
 | Closure, bytecode VMs and iterative VM | Not applicable | No change |
 
 ## Reproduction
 
-The adopted policy was compared with the legacy slab policy on Go 1.27.1 and an Apple M3 Max (`GOMAXPROCS=16`, `GOGC=100`, `GOMEMLIMIT` unset). Focused JSON `ParseAST` controls used five ABBA pairs with 500 ms per sample; the generated workload controls used four ABBA pairs with 300 ms per sample across five grammars and both input units. Retained-heap controls used three alternating fresh-process probes across four shapes and both units. Raw logs remain outside the repository. The same-generator legacy comparison retains the new bootstrap field in its allocator state, so it is not layout-identical to historical main; focused comparisons against main provide additional context.
+The adopted policy was compared with the legacy slab policy on Go 1.27.1 and an Apple M3 Max (`GOMAXPROCS=16`, `GOGC=100`, `GOMEMLIMIT` unset). Focused JSON `ParseValue` controls used five ABBA pairs with 500 ms per sample; the generated workload controls used four ABBA pairs with 300 ms per sample across five grammars and both input units. Retained-heap controls used three alternating fresh-process probes across four shapes and both units. Raw logs remain outside the repository. The same-generator legacy comparison retains the new bootstrap field in its allocator state, so it is not layout-identical to historical main; focused comparisons against main provide additional context.
 
 The retained-output fixture exports direct and conversion variants, including the `slabs` default and `legacy` reference. Its heap probe clones every returned `Text` before collection and excludes the input owner from the measured retained result; this isolates discarded-sibling retention and does not show that an ordinary parse releases its source string:
 
@@ -55,7 +55,7 @@ Build both benchmark binaries before timing, apply the generated `legacy` and `r
 
 In final exact-source measurements, the discard-heavy direct typed fixture retained about 2.105–2.111 MB per parser version with legacy slabs versus 0.096–5.608 KB with the bootstrap policy across terminal, structure, list and slice results in both position units. The conversion fixture retained mostly 0.3–1.2 KB with legacy slabs and mostly at most 0.7 KB with bootstrap; occasional 5–10 KB fluctuations are consistent with GC noise. This provides no meaningful conversion-path retention reduction. The direct heap result applies only to the cloned-Text fixture described above.
 
-Five JSON `ParseAST` ABBA pairs showed `SmallParseAST` at 0.867× main time in CodePoints and 0.893× in Bytes, with about 1,226 fewer B/op and five additional allocations per operation. The larger JSON `ParseAST` workload was about 0.995× main time, with roughly 1,010 more B/op and 23 additional allocations. In four same-generator ABBA pairs across ordinary `generated_ast` cases, time ratios were JSON Bytes 1.003 (range 0.988–1.024), JSON CodePoints 1.006 (0.985–1.031), XML Bytes 1.023 (1.010–1.039), XML CodePoints 1.013 (1.002–1.029), Outline 1.002–1.012, Minilang about 1.000, and Recovery 0.985–0.997. The separate old-main XML Bytes overlay measured 1.036 (1.025–1.042). Allocation counts increased by 4–80 per operation in measured cases; B/op was noisy and multimodal. Standalone generated parser source grew by 268 bytes each for JSON, XML and Minilang (JSON 381,377→381,645 B; XML 1,095,835→1,096,103 B; Minilang 456,135→456,403 B). These measurements are workload-specific and do not establish a general speedup.
+Five JSON `ParseValue` ABBA pairs showed `SmallParseValue` at 0.867× main time in CodePoints and 0.893× in Bytes, with about 1,226 fewer B/op and five additional allocations per operation. The larger JSON `ParseValue` workload was about 0.995× main time, with roughly 1,010 more B/op and 23 additional allocations. In four same-generator ABBA pairs across ordinary `generated_ast` cases, time ratios were JSON Bytes 1.003 (range 0.988–1.024), JSON CodePoints 1.006 (0.985–1.031), XML Bytes 1.023 (1.010–1.039), XML CodePoints 1.013 (1.002–1.029), Outline 1.002–1.012, Minilang about 1.000, and Recovery 0.985–0.997. The separate old-main XML Bytes overlay measured 1.036 (1.025–1.042). Allocation counts increased by 4–80 per operation in measured cases; B/op was noisy and multimodal. Standalone generated parser source grew by 268 bytes each for JSON, XML and Minilang (JSON 381,377→381,645 B; XML 1,095,835→1,096,103 B; Minilang 456,135→456,403 B). These measurements are workload-specific and do not establish a general speedup.
 
 ## Correctness and Tradeoffs
 

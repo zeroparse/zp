@@ -34,12 +34,12 @@ function minimum(fits:(n:number)=>boolean):number {
 for(const unit of [p.CodePoints,p.Bytes]) {
  const input="z".repeat(512),ordinary=p.parse(input,unit),active=p.parseWithOptions(input,{unit,signal:{aborted:false}});
  check(ordinary.error===null&&active.error===null&&stable(active.node)===stable(ordinary.node)&&active.node?.fields.length===0,"failed captures are absent from successful fallback");
- const typed=p.parseAST(input,unit),converted=p.parseASTWithOptions(input,{unit,signal:{aborted:false}});
+ const typed=p.parseValue(input,unit),converted=p.parseValueWithOptions(input,{unit,signal:{aborted:false}});
  check(typed.error===null&&converted.error===null&&stable(converted.value)===stable(typed.value),"typed rollback output parity");
  const baseline=minimum(n=>p.parseRuleWithOptions("fast",input,{unit,limits:{compute:n}}).error===null),limit=baseline+128;
  const stopped=p.parseWithOptions(input,{unit,limits:{compute:limit}});
  check(stopped.node===null&&stopped.error instanceof p.ParseInterruptionError&&stopped.error.kind==="compute-limit","capture restoration consumes spend beyond equivalent fresh frames");
- check(p.parseASTWithOptions(input,{unit,limits:{compute:limit}}).value===null,"typed rollback interruption exposes no partial value");
+ check(p.parseValueWithOptions(input,{unit,limits:{compute:limit}}).value===null,"typed rollback interruption exposes no partial value");
  check(p.parseWithOptions(input,{unit,limits:{compute:0}}).error===null,"fresh retry after interrupted capture restoration");
 }
 `
@@ -73,8 +73,8 @@ function minimum(fits:(n:number)=>boolean):number {
  return hi;
 }
 for(const unit of [p.CodePoints,p.Bytes]) {
- const input="-".repeat(512)+"z",ordinary=p.parse(input,unit),typed=p.parseAST(input,unit);
- const active=p.parseWithOptions(input,{unit,signal:{aborted:false}}),converted=p.parseASTWithOptions(input,{unit,signal:{aborted:false}});
+ const input="-".repeat(512)+"z",ordinary=p.parse(input,unit),typed=p.parseValue(input,unit);
+ const active=p.parseWithOptions(input,{unit,signal:{aborted:false}}),converted=p.parseValueWithOptions(input,{unit,signal:{aborted:false}});
  check(ordinary.error===null&&typed.error===null&&active.error===null&&converted.error===null&&stable(active.node)===stable(ordinary.node)&&stable(converted.value)===stable(typed.value),"Operators Rule capture preservation parity");
  check(converted.value?.type==="Box"&&converted.value.Token?.value==="-"&&converted.value.Rhs?.type==="Word","successful operator retains its captured token across candidate reset");
  const baseline=minimum(n=>p.parseRuleWithOptions("fast",input,{unit,limits:{compute:n}}).error===null);
@@ -84,8 +84,8 @@ for(const unit of [p.CodePoints,p.Bytes]) {
  const limit=baseline+4*512+128;
  const stopped=p.parseWithOptions(input,{unit,limits:{compute:limit}});
  check(stopped.node===null&&stopped.error instanceof p.ParseInterruptionError&&stopped.error.kind==="compute-limit","Operators Rule preservation visits consume cumulative spend");
- check(p.parseASTWithOptions(input,{unit,limits:{compute:limit}}).value===null,"typed Operators Rule interruption exposes no partial value");
- check(p.parseASTWithOptions(input,{unit,limits:{compute:0}}).error===null,"fresh Operators Rule retry");
+ check(p.parseValueWithOptions(input,{unit,limits:{compute:limit}}).value===null,"typed Operators Rule interruption exposes no partial value");
+ check(p.parseValueWithOptions(input,{unit,limits:{compute:0}}).error===null,"fresh Operators Rule retry");
 }
 `
 	runTypedTSFixture(t, src, consumer, gen.GenOptions{Start: "main", LimitControls: true, Types: true, Recognize: true}, "")
@@ -197,7 +197,7 @@ func TestGeneratedTSBudgetControlRecoveryParity(t *testing.T) {
 for(const unit of [p.CodePoints,p.Bytes])for(const input of ` + string(inputs) + `) {
  const ordinary=p.parse(input,unit),active=p.parseWithOptions(input,{unit,signal:{aborted:false}});
  check(stable(active.node)===stable(ordinary.node)&&active.error?.message===ordinary.error?.message,"Operators Rule/LR recovered snapshot and replay parity");
- const typed=p.parseAST(input,unit),converted=p.parseASTWithOptions(input,{unit,signal:{aborted:false}});
+ const typed=p.parseValue(input,unit),converted=p.parseValueWithOptions(input,{unit,signal:{aborted:false}});
  check(stable(converted.value)===stable(typed.value)&&converted.error?.message===typed.error?.message,"typed Operators Rule/LR recovered parity");
  check(p.recognizeWithOptions(input,{unit,signal:{aborted:false}})?.message===p.recognize(input,unit)?.message,"recognizer recovered parity");
 }
@@ -242,7 +242,7 @@ function minimum(fits:(n:number)=>boolean):number {
 for(const unit of [p.CodePoints,p.Bytes]) {
  const input="a?".repeat(512)+"z",ordinary=p.parse(input,unit),active=p.parseWithOptions(input,{unit,signal:{aborted:false}});
  check(ordinary.node!==null&&active.node!==null&&ordinary.error instanceof p.SyntaxErrors&&active.error instanceof p.SyntaxErrors&&active.error.errors.length===512&&stable(active.node)===stable(ordinary.node)&&active.error.message===ordinary.error.message,"Operators Rule recovered snapshot and apply parity");
- const typed=p.parseAST(input,unit),converted=p.parseASTWithOptions(input,{unit,signal:{aborted:false}});
+ const typed=p.parseValue(input,unit),converted=p.parseValueWithOptions(input,{unit,signal:{aborted:false}});
  check(converted.error instanceof p.SyntaxErrors&&stable(converted.value)===stable(typed.value)&&converted.value?.type==="Box"&&converted.value.Token?.value==="a?".repeat(512),"typed Operators Rule recovered output");
  const baseline=minimum(n=>{const r=p.parseRuleWithOptions("fast",input,{unit,limits:{compute:n}});return r.node!==null&&r.error instanceof p.SyntaxErrors&&r.error.errors.length===512});
  const snapshot=p.parseWithOptions(input,{unit,limits:{compute:baseline+128}});

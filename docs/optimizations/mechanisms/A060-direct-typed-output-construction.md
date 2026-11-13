@@ -30,7 +30,7 @@ JSON typed parsing 9.9 to 7.7 ms returns a different representation, so that is
 not a single-mechanism ablation. Direct/conversion retention and allocation must
 remain separate.
 
-Evidence records: [048](../048-a-typed-runtime-for-parseast.md).
+Evidence records: [048](../048-a-typed-runtime-for-parsevalue.md).
 
 Source owners: [`typed constructors and conversion
 generation`](../../../internal/gen/gogen/types.go),

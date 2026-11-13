@@ -65,7 +65,7 @@ const leaves = (v: any, out: string[]): string[] => {
   return out;
 };
 const rows = inputs.map((ins, i) => ins.map(s => {
-  const n = parsers[i].parse(s), a = parsers[i].parseAST(s);
+  const n = parsers[i].parse(s), a = parsers[i].parseValue(s);
   return [n.node === null ? "" : String(n.node), leaves(a.value, []), n.error !== null, a.error !== null];
 }));
 console.log(JSON.stringify(rows));
@@ -90,7 +90,7 @@ console.log(JSON.stringify(rows));
 		for j, s := range c.Inputs {
 			row := rows[i][j]
 			if row[2] != row[3] {
-				t.Errorf("%s %q: parse failed %v, parseAST failed %v", c.Name, s, row[2], row[3])
+				t.Errorf("%s %q: parse failed %v, parseValue failed %v", c.Name, s, row[2], row[3])
 			}
 			if row[2] == true {
 				continue

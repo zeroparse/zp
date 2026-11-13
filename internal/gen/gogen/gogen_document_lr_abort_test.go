@@ -102,12 +102,12 @@ import (
 	"testing"
 )
 
-func interruptible(d *Document, opts ...ParseOption) error { _, err := d.ParseAST(opts...); return err }
+func interruptible(d *Document, opts ...ParseOption) error { _, err := d.ParseValue(opts...); return err }
 
 func matchesTyped(t *testing.T, d *Document, unit PositionUnit) {
 	t.Helper()
-	v, err := d.ParseAST()
-	want, wantErr := ParseAST(d.Text(), WithUnit(unit))
+	v, err := d.ParseValue()
+	want, wantErr := ParseValue(d.Text(), WithUnit(unit))
 	if !reflect.DeepEqual(v, want) || fmt.Sprint(err) != fmt.Sprint(wantErr) {
 		t.Fatalf("text %q: typed document %#v / %v; batch %#v / %v", d.Text(), v, err, want, wantErr)
 	}
