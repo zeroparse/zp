@@ -568,7 +568,16 @@ func (c *termCompiler) exprInto(e exec.Expr, dst termReg) error {
 	return fmt.Errorf("expression %T", e)
 }
 
+// constant returns the index of v in the constant pool, adding it once.
 func (c *termCompiler) constant(v any) int32 {
+	switch v.(type) {
+	case nil, int, string, bool:
+		for i, x := range c.prog.consts {
+			if x == v {
+				return int32(i)
+			}
+		}
+	}
 	c.prog.consts = append(c.prog.consts, v)
 	return int32(len(c.prog.consts) - 1)
 }
@@ -872,7 +881,15 @@ func (c *termCompiler) call(e *exec.Call, dst termReg) error {
 	return nil
 }
 
+// cast returns the index of the cast x in the cast pool, adding it once: the check and the failure
+// of one cast share an entry.
 func (c *termCompiler) cast(x *ir.Cast) int32 {
-	c.prog.casts = append(c.prog.casts, termCast{t: c.env.Prog.CastType(x.Key.(*grammar.Cast)), line: x.Line, col: x.Col})
+	tc := termCast{t: c.env.Prog.CastType(x.Key.(*grammar.Cast)), line: x.Line, col: x.Col}
+	for i, y := range c.prog.casts {
+		if y == tc {
+			return int32(i)
+		}
+	}
+	c.prog.casts = append(c.prog.casts, tc)
 	return int32(len(c.prog.casts) - 1)
 }
