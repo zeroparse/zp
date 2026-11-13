@@ -106,7 +106,7 @@ func TestLimitsAndReuse(t *testing.T) {
   if got:=fmt.Sprint(err);got!=c.want {t.Fatalf("rule %s %q unit %d limit %d got %s want %s",c.name,c.input,c.unit,c.limit,got,c.want)}
   if c.name=="main" {
    _,err=Parse(c.input,opts...);if got:=fmt.Sprint(err);got!=c.want {t.Fatalf("Parse limit %d got %s want %s",c.limit,got,c.want)}
-   _,err=ParseValue(c.input,opts...);if got:=fmt.Sprint(err);got!=c.want {t.Fatalf("AST %q limit %d got %s want %s",c.input,c.limit,got,c.want)}
+   _,err=ParseValue(c.input,opts...);if got:=fmt.Sprint(err);got!=c.want {t.Fatalf("value %q limit %d got %s want %s",c.input,c.limit,got,c.want)}
    err=Recognize(c.input,opts...);if got:=fmt.Sprint(err);got!=c.recWant {t.Fatalf("Recognize limit %d got %s want %s",c.limit,got,c.want)}
   }
  }}
@@ -128,7 +128,7 @@ func TestLimitsAndReuse(t *testing.T) {
  }}
  var wg sync.WaitGroup
  for worker:=0;worker<8;worker++ {wg.Go(func(){for _,c:=range rows {if c.name=="main" {
-  _,err:=ParseValue(c.input,WithUnit(c.unit),WithLimits(Limits{Depth: uint64(c.limit)}));if fmt.Sprint(err)!=c.want {t.Errorf("concurrent AST limit=%d: %v",c.limit,err)}
+  _,err:=ParseValue(c.input,WithUnit(c.unit),WithLimits(Limits{Depth: uint64(c.limit)}));if fmt.Sprint(err)!=c.want {t.Errorf("concurrent value limit=%d: %v",c.limit,err)}
   _,err=Parse(c.input,WithUnit(c.unit),WithLimits(Limits{Depth: uint64(c.limit)}));if fmt.Sprint(err)!=c.want {t.Errorf("concurrent Parse limit=%d: %v",c.limit,err)}
  }}})};wg.Wait()
 }

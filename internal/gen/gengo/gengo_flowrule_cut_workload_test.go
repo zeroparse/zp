@@ -105,7 +105,7 @@ func TestCutWorkload(t *testing.T) {
 		}
 		after, _ := json.Marshal(saved)
 		if string(before) != string(after) {
-			t.Fatal("parser reuse changed returned AST")
+			t.Fatal("parser reuse changed returned value")
 		}
 	}
 }

@@ -19,7 +19,7 @@ func BenchmarkSparseMemoDenseGenerated(b *testing.B) {
 			name string
 			byte bool
 		}{{"CodePoints", false}, {"Bytes", true}} {
-			for _, api := range []string{"Node", "AST", "Recognize"} {
+			for _, api := range []string{"Node", "Value", "Recognize"} {
 				b.Run(w.name+"/"+api+"/"+unit.name, func(b *testing.B) {
 					run := func() error {
 						if w.name == "JSON" {
@@ -31,7 +31,7 @@ func BenchmarkSparseMemoDenseGenerated(b *testing.B) {
 							case "Node":
 								_, err := gjson.Parse(w.input, gjson.WithUnit(u))
 								return err
-							case "AST":
+							case "Value":
 								_, err := gjson.ParseValue(w.input, gjson.WithUnit(u))
 								return err
 							default:
@@ -46,7 +46,7 @@ func BenchmarkSparseMemoDenseGenerated(b *testing.B) {
 						case "Node":
 							_, err := gxml.Parse(w.input, gxml.WithUnit(u))
 							return err
-						case "AST":
+						case "Value":
 							_, err := gxml.ParseValue(w.input, gxml.WithUnit(u))
 							return err
 						default:

@@ -156,7 +156,7 @@ Report time, B/op, allocations, examined/reused work and live heap with multiple
 old versions. Benchmark default batch parsing to catch abstraction overhead.
 
 A Tree-sitter comparison must pin both revisions and toolchains, match accepted language subsets, output/trivia,
-recovery behavior and units, and distinguish C/Go/runtime overhead. Recognition-only and direct typed AST output are
+recovery behavior and units, and distinguish C/Go/runtime overhead. Recognition-only and direct typed value output are
 not equivalent to building a CST. Record raw results and measured effects in the optimization catalog with the change, and
 refresh generated benchmark results at optimization milestones. No numeric comparative speedup is asserted here.
 

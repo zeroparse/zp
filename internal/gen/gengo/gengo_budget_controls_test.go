@@ -66,8 +66,8 @@ type invocation struct{name string; call func(string,...ParseOption)(any,error)}
 func routes() []invocation {return []invocation{
  {"Node",func(s string,o ...ParseOption)(any,error){v,e:=Parse(s,o...);return v,e}},
  {"named Node",func(s string,o ...ParseOption)(any,error){v,e:=ParseRule("main",s,o...);return v,e}},
- {"AST",func(s string,o ...ParseOption)(any,error){v,e:=ParseValue(s,o...);return v,e}},
- {"named AST",func(s string,o ...ParseOption)(any,error){return ParseRuleValue("main",s,o...)}},
+ {"Value",func(s string,o ...ParseOption)(any,error){v,e:=ParseValue(s,o...);return v,e}},
+ {"named value",func(s string,o ...ParseOption)(any,error){return ParseRuleValue("main",s,o...)}},
  {"recognize",func(s string,o ...ParseOption)(any,error){return nil,Recognize(s,o...)}},
 }}
 func isZero(v any) bool{return v==nil || reflect.ValueOf(v).IsZero()}

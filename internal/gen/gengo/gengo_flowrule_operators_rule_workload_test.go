@@ -106,7 +106,7 @@ func TestOperatorsRuleWorkload(t *testing.T) {
 			}
 		}
 		after, _ := json.Marshal(saved)
-		if string(before) != string(after) { t.Fatal("returned OperatorsRule AST changed") }
+		if string(before) != string(after) { t.Fatal("returned OperatorsRule value changed") }
 	}
 }
 

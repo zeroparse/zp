@@ -128,14 +128,14 @@ func TestWorkloads(t *testing.T){
 func BenchmarkDepthOptions(b *testing.B){
  for _,unit:=range []PositionUnit{CodePoints,Bytes}{
   unitName:="CodePoints";if unit==Bytes{unitName="Bytes"}
-  for _,route:=range []string{"Node","Recognize","AST"}{for _,c:=range depthCases(){
+  for _,route:=range []string{"Node","Recognize","Value"}{for _,c:=range depthCases(){
    routes:=depthParsers(unit,c.limit)
    b.Run(unitName+"/"+route+"/"+c.name,func(b *testing.B){
     b.ReportAllocs();b.SetBytes(int64(len(c.input)))
     for b.Loop(){switch route{
      case "Node":depthNode,depthError=routes.node(c.input)
      case "Recognize":depthError=routes.rec(c.input)
-     case "AST":depthValue,depthError=routes.ast(c.input)
+     case "Value":depthValue,depthError=routes.ast(c.input)
     };if depthError!=nil{b.Fatal(depthError)}}
    })
   }}
@@ -145,8 +145,8 @@ func BenchmarkDepthOptions(b *testing.B){
 		// Direct entry-point controls avoid indirect-call adapter specialization.
 		directBench := `func BenchmarkDepthDirect(b *testing.B){
 for _,unit:=range []PositionUnit{CodePoints,Bytes}{unitName:="CodePoints";if unit==Bytes{unitName="Bytes"}
-for _,route:=range []string{"Node","Recognize","AST"}{for _,c:=range depthCases(){if c.limit!=nil{continue};b.Run(unitName+"/"+route+"/"+c.name,func(b *testing.B){b.ReportAllocs();b.SetBytes(int64(len(c.input)))
-if unit==CodePoints{for b.Loop(){switch route{case "Node":depthNode,depthError=Parse(c.input);case "Recognize":depthError=Recognize(c.input);case "AST":depthValue,depthError=ParseValue(c.input)};if depthError!=nil{b.Fatal(depthError)}}}else{for b.Loop(){switch route{case "Node":depthNode,depthError=Parse(c.input,WithUnit(Bytes));case "Recognize":depthError=Recognize(c.input,WithUnit(Bytes));case "AST":depthValue,depthError=ParseValue(c.input,WithUnit(Bytes))};if depthError!=nil{b.Fatal(depthError)}}}
+for _,route:=range []string{"Node","Recognize","Value"}{for _,c:=range depthCases(){if c.limit!=nil{continue};b.Run(unitName+"/"+route+"/"+c.name,func(b *testing.B){b.ReportAllocs();b.SetBytes(int64(len(c.input)))
+if unit==CodePoints{for b.Loop(){switch route{case "Node":depthNode,depthError=Parse(c.input);case "Recognize":depthError=Recognize(c.input);case "Value":depthValue,depthError=ParseValue(c.input)};if depthError!=nil{b.Fatal(depthError)}}}else{for b.Loop(){switch route{case "Node":depthNode,depthError=Parse(c.input,WithUnit(Bytes));case "Recognize":depthError=Recognize(c.input,WithUnit(Bytes));case "Value":depthValue,depthError=ParseValue(c.input,WithUnit(Bytes))};if depthError!=nil{b.Fatal(depthError)}}}
 })}}}
 }
 `
@@ -209,6 +209,6 @@ if(isMainThread){
 		}
 	}
 	// Preserve a small manifest for measurements and source-size comparisons.
-	manifest := fmt.Sprintf("Generated depth workload controls\nRoutes: direct and conversion Go Node/Recognize/AST; TypeScript legacy/options Node/Recognize\nInputs: small 8 parentheses, large 1024 repeated small inputs, deep 8192 parentheses\nOptions: default, zero, equivalent 100000, override 600000\nGenerated defaults remain 100000.\nGo direct source bytes: %d\nGo conversion source bytes: %d\nTypeScript source bytes: %d\n", goSizes["direct"], goSizes["convert"], len(code))
+	manifest := fmt.Sprintf("Generated depth workload controls\nRoutes: direct and conversion Go Node/Recognize/Value; TypeScript legacy/options Node/Recognize\nInputs: small 8 parentheses, large 1024 repeated small inputs, deep 8192 parentheses\nOptions: default, zero, equivalent 100000, override 600000\nGenerated defaults remain 100000.\nGo direct source bytes: %d\nGo conversion source bytes: %d\nTypeScript source bytes: %d\n", goSizes["direct"], goSizes["convert"], len(code))
 	write("README.txt", []byte(strings.TrimSpace(manifest)+"\n"))
 }

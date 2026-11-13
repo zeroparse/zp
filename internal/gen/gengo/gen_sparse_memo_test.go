@@ -160,12 +160,12 @@ func BenchmarkSparseMemoGenerated(b *testing.B) {
     }
     for _, input := range inputs {
         for _, unit := range []PositionUnit{CodePoints, Bytes} {
-            for _, api := range []string{"Node", "AST", "Recognize"} {
+            for _, api := range []string{"Node", "Value", "Recognize"} {
                 b.Run(fmt.Sprintf("%s/%s/%d", input.name, api, unit), func(b *testing.B) {
                     run := func() error {
                         switch api {
                         case "Node": _, err := Parse(input.text, WithUnit(unit)); return err
-                        case "AST": _, err := ParseValue(input.text, WithUnit(unit)); return err
+                        case "Value": _, err := ParseValue(input.text, WithUnit(unit)); return err
                         default: return Recognize(input.text, WithUnit(unit))
                         }
                     }

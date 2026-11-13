@@ -228,7 +228,7 @@ interface StreamResult {
 }
 ```
 
-With `Types`, `createASTStream` has the same protocol with the inferred typed element join. `waiting` means suspended
+With `Types`, `createStream` has the same protocol with the inferred typed element join. `waiting` means suspended
 for required bytes; it is not a failed literal or EOF. `final:true` supplies actual EOF and produces done/failed.
 Error is null while waiting; final recovered SyntaxErrors accompany done, and fatal/syntax errors accompany failed.
 Previously delivered elements are never repeated or retracted. A failed feed may still return newly committed

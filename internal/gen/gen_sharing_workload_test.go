@@ -152,9 +152,9 @@ func BenchmarkSharingParse(b *testing.B) {
  small,large,_:=sharingInputs()
  for _,item:=range []struct{name,input string}{{"small",small},{"large",large}} {
   for _,unit:=range []PositionUnit{CodePoints,Bytes} {
-   for _,api:=range []string{"Node","AST","Recognize"} {
+   for _,api:=range []string{"Node","Value","Recognize"} {
     b.Run(fmt.Sprintf("%s/%s/%d",item.name,api,unit),func(b *testing.B) {
-     run:=func()error {switch api {case "Node":_,err:=Parse(item.input,WithUnit(unit));return err;case "AST":_,err:=ParseValue(item.input,WithUnit(unit));return err;default:return Recognize(item.input,WithUnit(unit))}}
+     run:=func()error {switch api {case "Node":_,err:=Parse(item.input,WithUnit(unit));return err;case "Value":_,err:=ParseValue(item.input,WithUnit(unit));return err;default:return Recognize(item.input,WithUnit(unit))}}
      if err:=run();err!=nil {b.Fatal(err)}
      b.ReportAllocs();b.SetBytes(int64(len(item.input)));b.ResetTimer()
      for b.Loop() {if err:=run();err!=nil {b.Fatal(err)}}

@@ -83,7 +83,7 @@ allocation comparison of Minilang `ParseValue`, the time ratio was 0.922× [0.90
 allocation increase was identified in that control.
 
 The selected binaries for JSON, XML and Minilang each exercised Node parsing,
-typed AST parsing and recognition. Their generated parser sources match the
+typed value parsing and recognition. Their generated parser sources match the
 corresponding files in the 131-profile candidate manifest. Executable sizes
 were:
 

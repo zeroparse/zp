@@ -60,7 +60,7 @@ The Go benchmark results summarize 36 cases from five rotating parent/candidate/
 | Core synthetic iterative VM, Parse/Recognize, both units | Median ratios 0.996–1.012×; observed pair ranges 0.978–1.044×. Bytes Recognize was 1.011× (1.009–1.012×). | Near 1.000× | 2.58 MB vs 9.10 MB dense (0.284×) |
 | Generated synthetic Node | Median ratios 0.916–0.949× | B/op 0.591–0.611×; allocations 0.990× | Not separately measured |
 | Generated synthetic Recognize | Median ratios 0.917–0.933× | B/op 0.582–0.602×; allocations 0.990× | Not separately measured |
-| Generated synthetic typed AST | Median ratios 1.003–1.013× | B/op and allocations approximately 1.000× vs actual parent | Not separately measured |
+| Generated synthetic typed value | Median ratios 1.003–1.013× | B/op and allocations approximately 1.000× vs actual parent | Not separately measured |
 | Small core controls | Medians near parity; ranges are noisy and include parity | Approximately unchanged | 1,024 B in both builds |
 | Small generated Go controls | Medians near parity; most ranges include parity; Node CodePoints 0.972× (0.724–0.993×) | B/op and allocations approximately unchanged | Below sparse cutoff |
 | Generated TypeScript, large inputs, both units | All parent-relative ranges include parity; CodePoints Parse 1.040× (0.924–1.075×) | Timing-only run | 573,440 B CodePoints; 753,664 B Bytes vs 8,388,608 B dense |
@@ -84,7 +84,7 @@ At the f01 savepoint, adoption remained pending. Its synthetic storage savings a
 
 ## Historical Focused Series-Baseline Checkpoint (67f23e0 vs c73bda3)
 
-This checkpoint compares the candidate at `c73bda3` with its pre-optimization-series baseline, `67f23e0`. It used Go 1.27.1 on Apple M3 Max (darwin/arm64, `GOMAXPROCS=16`) with five alternating 300 ms samples per case. The comparison includes both sparse-storage and small-table selector-elision commits. The 52-case matrix covers JSON, XML, Operators arithmetic and Minilang: Parse for closure, recursive VM, iterative VM and generated Go in CodePoints and Bytes (32 cases); generated typed AST Parse (4 cases); and Recognize for the same four backends (16 cases).
+This checkpoint compares the candidate at `c73bda3` with its pre-optimization-series baseline, `67f23e0`. It used Go 1.27.1 on Apple M3 Max (darwin/arm64, `GOMAXPROCS=16`) with five alternating 300 ms samples per case. The comparison includes both sparse-storage and small-table selector-elision commits. The 52-case matrix covers JSON, XML, Operators arithmetic and Minilang: Parse for closure, recursive VM, iterative VM and generated Go in CodePoints and Bytes (32 cases); generated typed value Parse (4 cases); and Recognize for the same four backends (16 cases).
 
 | Measure | Result | Limit |
 |:--|:--|:--|
