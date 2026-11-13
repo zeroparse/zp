@@ -1,6 +1,7 @@
 package gengo_test
 
 import (
+	"fmt"
 	"strings"
 	"testing"
 
@@ -55,8 +56,8 @@ rule ops Int | O = #operators {
 	if n := strings.Count(d, "check="); n != 0 {
 		t.Fatalf("a result is checked when it runs:\n%s", d)
 	}
-	if n := strings.Count(d, "ECAST"); n != 3 {
-		t.Fatalf("disassembly has %d casts, want 3:\n%s", n, d)
+	if casts := fmt.Sprint(termCasts(d)); casts != `["Int" at=7:32 "node[_]" at=8:33 "Int | O" at=10:25]` {
+		t.Fatalf("disassembly has casts %s, want the three casts:\n%s", casts, d)
 	}
 	data, err := prog.MarshalBinary("main")
 	if err != nil {

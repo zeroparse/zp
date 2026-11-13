@@ -13,7 +13,7 @@ import (
 
 // TestConstructedFieldChecksAreSelective checks that a constructed field is never checked when it
 // runs: a value statically known to fit needs nothing, a value of an unknown type is rejected
-// when the grammar is compiled, and a cast is the only check, one ECAST for each cast.
+// when the grammar is compiled, and a cast is the only check, one cast in the term code for each cast in the grammar.
 func TestConstructedFieldChecksAreSelective(t *testing.T) {
 	t.Parallel()
 	gentest.EachMode(t, testConstructedFieldChecksAreSelective)
@@ -36,8 +36,8 @@ rule val _ = "v" => list()
 	if v := m.InstructionSetVersion(); v != bytecode.ISAVersion {
 		t.Fatalf("instruction set %d", v)
 	}
-	if d := m.Disassemble(); strings.Count(d, "ECAST") != 1 || !strings.Contains(d, `ECAST      "Int"`) {
-		t.Fatalf("disassembly:\n%s", d)
+	if d := m.Disassemble(); fmt.Sprint(termCasts(d)) != `["Int" at=6:88]` {
+		t.Fatalf("casts %q, want the one cast to Int:\n%s", termCasts(d), d)
 	}
 	plain := mustCompile(t, `type Int = { Text string }
 type S = { Static Int }
@@ -47,7 +47,7 @@ rule item Int = "i" => Int{Text: "i"}
 	if v := plain.Module().InstructionSetVersion(); v != bytecode.ISAVersion {
 		t.Fatalf("module instruction set %d", v)
 	}
-	if d := plain.Module().Disassemble(); strings.Contains(d, "ECAST") {
+	if d := plain.Module().Disassemble(); len(termCasts(d)) != 0 || !strings.Contains(d, "terms:") {
 		t.Fatalf("a statically typed field is checked:\n%s", d)
 	}
 	if got := resultWith(prog, "iv", engine.ParseOptions{Expectations: true, Backend: engine.Bytecode}); !strings.Contains(got, "cannot cast []_ to Int") {
@@ -64,7 +64,7 @@ rule val _ = "v"
 	if err != nil {
 		t.Fatal(err)
 	}
-	if d := rec.Module().Disassemble(); strings.Count(d, "ECAST") != 1 {
+	if d := rec.Module().Disassemble(); fmt.Sprint(termCasts(d)) != `["Int" at=3:53]` {
 		t.Fatalf("recognizer disassembly:\n%s", d)
 	}
 	g, err := parseTest(src)
@@ -78,4 +78,23 @@ rule val _ = "v"
 	if n := strings.Count(string(code), "var fieldType"); n != 1 {
 		t.Fatalf("generated %d field type variables", n)
 	}
+}
+
+// termCasts returns the casts of the term code in the disassembly d, each once, in order of first
+// appearance: the check and the failure of a cast name the same cast.
+func termCasts(d string) []string {
+	var casts []string
+	seen := map[string]bool{}
+	for _, line := range strings.Split(d, "\n") {
+		f := strings.Fields(line)
+		if len(f) < 3 || f[0] != "cast" {
+			continue
+		}
+		c := strings.Join(f[2:], " ")
+		if !seen[c] {
+			seen[c] = true
+			casts = append(casts, c)
+		}
+	}
+	return casts
 }
