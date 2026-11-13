@@ -72,6 +72,7 @@ const generatedGoGraphTypedRuleCheck = `for _,name:=range []string{"main","rollb
 const generatedGoGraphConsumer = `package PACKAGE
 
 import zprt "zeroparse.dev/zp/runtime"
+import "zeroparse.dev/zp/runtime/noderep"
 import("context";"errors";"fmt";"reflect";"strings";"testing")
 const conversion = CONVERT
 func graphParser(limit uint64)*zprt.Parser{p:=&zprt.Parser{Control:zprt.X_newBudgetControl(nil,Limits{Compute:limit})};p.X_setGrammar(zpGrammar);return p}
@@ -86,16 +87,17 @@ func requireGraphLimit(t *testing.T,p *zprt.Parser,f func()){
  t.Helper();err:=graphFatal(f)
  if !errors.Is(err,ErrLimit){t.Fatal("operation escaped budget",err)}
 }
+func dataNode(d zprt.Data)*Node{n:=new(Node);*zprt.D(n)=d;return n}
 func graphKids()([]*Node,[]any){
  nodes:=make([]*Node,300);values:=make([]any,300)
- for i:=range nodes{nodes[i]=&Node{RawStart:int32(i+3),RawEnd:int32(i+4),RawText:"a"};values[i]=&zprt.TMatch{TNode:zprt.TNode[string]{Span:Span{Start:i+3,End:i+4},Value:"a"}}}
+ for i:=range nodes{nodes[i]=dataNode(zprt.Data{Start:int32(i+3),End:int32(i+4),Text:"a"});values[i]=&zprt.TMatch{TNode:zprt.TNode[string]{Span:Span{Start:i+3,End:i+4},Value:"a"}}}
  return nodes,values
 }
 func TestGraphFields(t *testing.T){
- nodes,_:=graphKids();fs:=make(Fields,300);tn:=&zprt.TSeq{Typ:"tuple",X_fields:make([]zprt.X_tfield,300)}
- for i:=range fs{name:=fmt.Sprintf("field%d",i);fs[i]=NodeField{name,i};tn.X_fields[i]=zprt.X_tfield{name,i}}
+ nodes,_:=graphKids();fs:=make(noderep.Fields,300);tn:=&zprt.TSeq{Typ:"tuple",X_fields:make([]zprt.X_tfield,300)}
+ for i:=range fs{name:=fmt.Sprintf("field%d",i);fs[i]=noderep.NodeField{Name:name,Value:i};tn.X_fields[i]=zprt.X_tfield{name,i}}
  for _,typed:=range []bool{false,true}{
-  p:=graphParser(32);tp:=&zprt.TParser{Parser:p};node:=&Node{RawFields:fs}
+  p:=graphParser(32);tp:=&zprt.TParser{Parser:p};node:=dataNode(zprt.Data{Fields:fs})
   requireGraphLimit(t,p,func(){if typed{typedMember(tp,tn,"absent-field-with-distinct-length")}else{nodeMember(p,node,"absent-field-with-distinct-length")}})
   p.Control=zprt.X_newBudgetControl(nil,Limits{Compute:100000})
   var got any;if typed{got=typedMember(tp,tn,"field299")}else{got=nodeMember(p,node,"field299")}
@@ -115,7 +117,7 @@ func TestGraphListsAndOwnership(t *testing.T){
    requireGraphLimit(t,p,func(){if typed{c:=&zprt.TActCtx{P:tp};if spanOnly{result=c.X_listNode(values)}else{result=c.NewList(values)}}else{c:=&zprt.ActCtx{P:p};if spanOnly{result=c.X_listNode(nodes)}else{result=c.NewList(nodes)}}})
    if result!=nil{t.Fatal("partial list returned")}
    p.Control=zprt.X_newBudgetControl(nil,Limits{Compute:100000})
-   if typed{n:=(&zprt.TActCtx{P:tp}).NewList(values).(*zprt.TSeq);if n.Start!=3 || n.End!=303 || len(n.Kids)!=300{t.Fatal("typed list spans")};n.Kids[0]=nil;if values[0]==nil{t.Fatal("typed list aliases source")}}else{n:=(&zprt.ActCtx{P:p}).NewList(nodes);if n.RawStart!=3 || n.RawEnd!=303 || len(n.RawChildren)!=300{t.Fatal("Node list spans")};n.RawChildren[0]=nil;if nodes[0]==nil{t.Fatal("Node list aliases source")}}
+   if typed{n:=(&zprt.TActCtx{P:tp}).NewList(values).(*zprt.TSeq);if n.Start!=3 || n.End!=303 || len(n.Kids)!=300{t.Fatal("typed list spans")};n.Kids[0]=nil;if values[0]==nil{t.Fatal("typed list aliases source")}}else{n:=(&zprt.ActCtx{P:p}).NewList(nodes);if zprt.D(n).Start!=3 || zprt.D(n).End!=303 || len(zprt.D(n).Children)!=300{t.Fatal("Node list spans")};zprt.D(n).Children[0]=nil;if nodes[0]==nil{t.Fatal("Node list aliases source")}}
   }
   p:=graphParser(129);tp:=&zprt.TParser{Parser:p}
   requireGraphLimit(t,p,func(){if typed{tp.KidStack=append([]any(nil),values...);tp.Kids(0)}else{p.KidStack=append([]*Node(nil),nodes...);p.Kids(0)}})
@@ -126,7 +128,7 @@ func TestGraphListsAndOwnership(t *testing.T){
 func TestGraphCaptureUndoAndCleanup(t *testing.T){
  for _,typed:=range []bool{false,true}{
   p:=graphParser(32);tp:=&zprt.TParser{Parser:p}
-  n:=&Node{RawText:"old"};changed:=&Node{RawText:"new"};f:=&zprt.CaptureFrame{Vals:make([]*Node,300)};tf:=&zprt.TCaptureFrame{Vals:make([]any,300)}
+  n:=dataNode(zprt.Data{Text:"old"});changed:=dataNode(zprt.Data{Text:"new"});f:=&zprt.CaptureFrame{Vals:make([]*Node,300)};tf:=&zprt.TCaptureFrame{Vals:make([]any,300)}
   for i:=0;i<300;i++{f.Vals[i]=changed;tf.Vals[i]=changed;p.Trail=append(p.Trail,zprt.X_undo{X_f:f,X_slot:i,X_old:n});tp.Trail=append(tp.Trail,zprt.X_tundo{X_f:tf,X_slot:i,X_old:n})}
   requireGraphLimit(t,p,func(){if typed{tp.Reset(zprt.Mark{})}else{p.Reset(zprt.Mark{})}})
   if typed && len(tp.Trail)!=300 || !typed && len(p.Trail)!=300{t.Fatal("fatal lost undo records")}
@@ -157,10 +159,10 @@ func TestGraphFoldOrderAndBudget(t *testing.T){
  for _,typed:=range []bool{false,true}{for _,right:=range []bool{false,true}{
   p:=graphParser(32);tp:=&zprt.TParser{Parser:p};visits:=0
   f:=func(acc,item any)any{visits++;return item}
-  requireGraphLimit(t,p,func(){if typed{typedFold(tp,"foldl",right,nil,&zprt.TSeq{Typ:"list",Kids:values},f)}else{nodeFold(p,"foldl",right,nil,&Node{RawKind:zprt.RawKindList,RawChildren:nodes},f)}})
+  requireGraphLimit(t,p,func(){if typed{typedFold(tp,"foldl",right,nil,&zprt.TSeq{Typ:"list",Kids:values},f)}else{nodeFold(p,"foldl",right,nil,dataNode(zprt.Data{Kind:zprt.ListKind,Children:nodes}),f)}})
   if visits!=32{t.Fatal("fold advanced past budget",visits)}
   p.Control=zprt.X_newBudgetControl(nil,Limits{Compute:100000});visits=0
-  var got any;if typed{got=typedFold(tp,"foldl",right,nil,&zprt.TSeq{Typ:"list",Kids:values},f)}else{got=nodeFold(p,"foldl",right,nil,&Node{RawKind:zprt.RawKindList,RawChildren:nodes},f)}
+  var got any;if typed{got=typedFold(tp,"foldl",right,nil,&zprt.TSeq{Typ:"list",Kids:values},f)}else{got=nodeFold(p,"foldl",right,nil,dataNode(zprt.Data{Kind:zprt.ListKind,Children:nodes}),f)}
   index:=299;if right{index=0};want:=any(nodes[index]);if typed{want=values[index]};if visits!=300 || got!=want{t.Fatal("fold order changed",visits)}
  }}
 }
@@ -191,7 +193,7 @@ func TestGraphCaptureAttachment(t *testing.T){
   requireGraphLimit(t,p,func(){if typed{result=tp.AttachCaptures(nil,names,values,3,303)}else{result=p.AttachCaptures(nil,names,&zprt.CaptureFrame{Vals:nodes},3,303)}})
   if result!=nil{t.Fatal("partial capture node published")}
   p.Control=zprt.X_newBudgetControl(nil,Limits{Compute:10000000})
-  if typed{n:=tp.AttachCaptures(nil,names,values,3,303).(*zprt.TSeq);if len(n.X_fields)!=299 || n.X_fields[0].X_val!=values[299] || n.X_fields[1].X_name!=names[1]{t.Fatal("typed capture order/replacement")}}else{n:=p.AttachCaptures(nil,names,&zprt.CaptureFrame{Vals:nodes},3,303);if len(n.RawFields)!=299 || n.RawFields[0].Value!=nodes[299] || n.RawFields[1].Name!=names[1]{t.Fatal("Node capture order/replacement")}}
+  if typed{n:=tp.AttachCaptures(nil,names,values,3,303).(*zprt.TSeq);if len(n.X_fields)!=299 || n.X_fields[0].X_val!=values[299] || n.X_fields[1].X_name!=names[1]{t.Fatal("typed capture order/replacement")}}else{n:=p.AttachCaptures(nil,names,&zprt.CaptureFrame{Vals:nodes},3,303);if len(zprt.D(n).Fields)!=299 || zprt.D(n).Fields[0].Value!=nodes[299] || zprt.D(n).Fields[1].Name!=names[1]{t.Fatal("Node capture order/replacement")}}
  }
 }
 func TestGraphOperatorsRuleSnapshots(t *testing.T){

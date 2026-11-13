@@ -1,6 +1,11 @@
 package runtime
 
-import "unsafe"
+import (
+	"unsafe"
+
+	"zeroparse.dev/zp/runtime/noderep"
+	"zeroparse.dev/zp/runtime/parse"
+)
 
 // Memory is counted in bytes of logical capacity: the element count of a buffer times the size of
 // its element type, for the storage the parser takes into use for a parse. It costs nothing until
@@ -23,9 +28,9 @@ import "unsafe"
 
 // Sizes of the elements that the counters charge.
 const (
-	nodeBytes      = uint64(unsafe.Sizeof(Node{}))
-	ptrBytes       = uint64(unsafe.Sizeof((*Node)(nil)))
-	fieldBytes     = uint64(unsafe.Sizeof(NodeField{}))
+	nodeBytes      = uint64(unsafe.Sizeof(Data{}))
+	ptrBytes       = uint64(unsafe.Sizeof((*parse.Node)(nil)))
+	fieldBytes     = uint64(unsafe.Sizeof(noderep.NodeField{}))
 	frameBytes     = uint64(unsafe.Sizeof(CaptureFrame{}))
 	memoEntryBytes = uint64(unsafe.Sizeof(memoEntry{}))
 	anyBytes       = uint64(unsafe.Sizeof(any(nil)))
@@ -33,7 +38,7 @@ const (
 	intBytes       = uint64(unsafe.Sizeof(0))
 	stringBytes    = uint64(unsafe.Sizeof(""))
 	// syntaxErrorBytes is a syntax error; the lists that hold its pointer count the pointer.
-	syntaxErrorBytes = uint64(unsafe.Sizeof(SyntaxError{}))
+	syntaxErrorBytes = uint64(unsafe.Sizeof(parse.SyntaxError{}))
 	expIDBytes       = uint64(unsafe.Sizeof(ExpID(0)))
 	sdepBytes        = uint64(unsafe.Sizeof(sdep{}))
 	growKeyBytes     = uint64(unsafe.Sizeof(growKey{}))
@@ -99,7 +104,7 @@ func (c *BudgetControl) attachTypedMemory(p *TParser, ext any) {
 func (c *BudgetControl) checkMemory() {
 	if used := c.memoryUsed(); used > c.limits.Memory {
 		c.interrupted = true
-		panic(fatal{err: &LimitError{Kind: LimitMemory, Limit: c.limits.Memory, Used: used}})
+		panic(fatal{err: &parse.LimitError{Kind: parse.LimitMemory, Limit: c.limits.Memory, Used: used}})
 	}
 }
 
@@ -206,14 +211,14 @@ func (p *Parser) chargeValueBytes(n int) {
 }
 
 // chargeError charges the syntax error e (BudgetControl.errs).
-func (p *Parser) chargeError(e *SyntaxError) {
+func (p *Parser) chargeError(e *parse.SyntaxError) {
 	if c := p.Control; c != nil {
 		c.errs = saturatingAdd(c.errs, syntaxErrorSize(e))
 	}
 }
 
 // syntaxErrorSize returns the bytes of the syntax error e and its lists.
-func syntaxErrorSize(e *SyntaxError) uint64 {
+func syntaxErrorSize(e *parse.SyntaxError) uint64 {
 	return syntaxErrorBytes + uint64(cap(e.Expected)+cap(e.Messages))*stringBytes
 }
 

@@ -4,6 +4,8 @@ import (
 	"errors"
 	"strings"
 	"testing"
+
+	"zeroparse.dev/zp/runtime/parse"
 )
 
 // The first text of a code-point input containing invalid UTF-8 decodes it once; later texts are
@@ -12,9 +14,9 @@ func TestTextDecodesInvalidInputOnce(t *testing.T) {
 	source := strings.Repeat("é\xff", 1000)
 	want := strings.ToValidUTF8(source, "�")
 	for _, controlled := range []bool{false, true} {
-		p := &Parser{unit: CodePoints}
+		p := &Parser{unit: parse.CodePoints}
 		if controlled {
-			p.Control = newBudgetControl(nil, Limits{Compute: 1 << 30})
+			p.Control = newBudgetControl(nil, parse.Limits{Compute: 1 << 30})
 		}
 		p.setSource(source)
 		if p.offs != nil {
@@ -22,7 +24,7 @@ func TestTextDecodesInvalidInputOnce(t *testing.T) {
 		}
 		if controlled {
 			// The decoding is interruptible and leaves nothing behind.
-			p.Control = newBudgetControl(nil, Limits{Compute: 100})
+			p.Control = newBudgetControl(nil, parse.Limits{Compute: 100})
 			var err error
 			func() {
 				defer func() {
@@ -32,11 +34,11 @@ func TestTextDecodesInvalidInputOnce(t *testing.T) {
 				}()
 				_ = p.Text(0, 2000)
 			}()
-			var le *LimitError
+			var le *parse.LimitError
 			if !errors.As(err, &le) || p.offs != nil || p.decoded {
 				t.Fatalf("decoding interruption: %v", err)
 			}
-			p.Control = newBudgetControl(nil, Limits{Compute: 1 << 30})
+			p.Control = newBudgetControl(nil, parse.Limits{Compute: 1 << 30})
 		}
 		if got := p.Text(0, 2000); got != want {
 			t.Fatalf("controlled=%t: text differs", controlled)

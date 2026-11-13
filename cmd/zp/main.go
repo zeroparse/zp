@@ -945,7 +945,7 @@ func (m genRuntime) generated() gen.RuntimeMode {
 // ownedFiles returns the files below dir that a generation in mode owns: it writes them, and
 // removes those of an earlier generation that it did not write again. Only mode never touches
 // parser.go, api.go or types/types.go, which belong to the parser; the other modes own them and
-// internal/runtime. Other files of the directories are never touched.
+// internal/runtime with its noderep and parse packages. Other files of the directories are never touched.
 func ownedFiles(dir string, mode genRuntime, ts bool) []string {
 	var owned []string
 	if ts {
@@ -963,8 +963,12 @@ func ownedFiles(dir string, mode genRuntime, ts bool) []string {
 	if mode != runtimeOnly {
 		owned = append(owned, filepath.Join(dir, "parser.go"), filepath.Join(dir, "api.go"), filepath.Join(dir, "types", "types.go"))
 	}
-	rt, _ := filepath.Glob(filepath.Join(dir, "internal", "runtime", "*.go"))
-	return append(owned, rt...)
+	// The copy of the runtime is the runtime package and its own packages in subdirectories.
+	for _, pattern := range []string{"*.go", filepath.Join("noderep", "*.go"), filepath.Join("parse", "*.go")} {
+		rt, _ := filepath.Glob(filepath.Join(dir, "internal", "runtime", pattern))
+		owned = append(owned, rt...)
+	}
+	return owned
 }
 
 // writeGenerated writes files below dir and removes the files of an earlier generation that the
@@ -1060,7 +1064,7 @@ func writeGenerated(dir string, files []gen.File, mode genRuntime, ts bool) erro
 		}
 	}
 	// Directories that the removal emptied.
-	for _, sub := range []string{filepath.Join("internal", "runtime"), "internal", "types"} {
+	for _, sub := range []string{filepath.Join("internal", "runtime", "noderep"), filepath.Join("internal", "runtime", "parse"), filepath.Join("internal", "runtime"), "internal", "types"} {
 		os.Remove(filepath.Join(dir, sub)) // fails, harmlessly, unless empty
 	}
 	return nil

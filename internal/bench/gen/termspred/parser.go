@@ -6,11 +6,12 @@ package termspred
 import (
 	types "zeroparse.dev/zp/internal/bench/gen/termspred/types"
 	rt "zeroparse.dev/zp/runtime"
+	"zeroparse.dev/zp/runtime/parse"
 )
 
 // Parse parses the whole input with the rule main. Options select position units, depth, cancellation and compute limits.
 // If the parse recovered from errors with #recover, it returns the node together with SyntaxErrors.
-func Parse(input string, opts ...rt.ParseOption) (*rt.Node, error) {
+func Parse(input string, opts ...rt.ParseOption) (*parse.Node, error) {
 	return rt.RunParse(rules[0], input, opts)
 }
 
@@ -30,7 +31,7 @@ var zpGrammar = rt.NewGrammar(100000)
 
 // ParseRule parses the whole input with the start rule name, a rule marked @start; an empty
 // name selects the grammar's default start rule.
-func ParseRule(name, input string, opts ...rt.ParseOption) (*rt.Node, error) {
+func ParseRule(name, input string, opts ...rt.ParseOption) (*parse.Node, error) {
 	o, err := rt.ResolveOptions(zpGrammar, opts)
 	if err != nil {
 		return nil, err
@@ -232,12 +233,12 @@ func init() {
 	trules[0].Entry = u0
 }
 
-func e2(p *rt.Parser, _ int) (*rt.Node, bool) {
+func e2(p *rt.Parser, _ int) (*parse.Node, bool) {
 	p.Spend()
 	var x2, x3 int
 	var x5 rt.Mark
 	var ok bool
-	var v7, v8, v9 *rt.Node
+	var v7, v8, v9 *parse.Node
 	x2, x3 = p.Pos, len(p.KidStack)
 	for {
 		p.Spend()
@@ -255,7 +256,7 @@ func e2(p *rt.Parser, _ int) (*rt.Node, bool) {
 		p.Reset(x5)
 		break
 	}
-	v9 = p.NewBranch(rt.RawKindList, x2, p.Kids(x3))
+	v9 = p.NewBranch(rt.ListKind, x2, p.Kids(x3))
 	p.SetCapture(0, v9)
 	if !p.AtEndBatch() {
 		p.ExpectBudget(p.Pos, rt.IdEndInput)
@@ -266,12 +267,12 @@ fail:
 	return nil, false
 }
 
-func e5(p *rt.Parser, _ int) (*rt.Node, bool) {
+func e5(p *rt.Parser, _ int) (*parse.Node, bool) {
 	p.Spend()
 	var x2, x3, x4 int
 	var x5 rt.Mark
 	var ok bool
-	var v7, v8, v9 *rt.Node
+	var v7, v8, v9 *parse.Node
 	x2, x3 = p.Pos, len(p.KidStack)
 	x4 = 0
 	for {
@@ -295,7 +296,7 @@ func e5(p *rt.Parser, _ int) (*rt.Node, bool) {
 		p.DropKids(x3)
 		goto fail
 	}
-	v9 = p.NewBranch(rt.RawKindList, x2, p.Kids(x3))
+	v9 = p.NewBranch(rt.ListKind, x2, p.Kids(x3))
 	p.SetCapture(0, v9)
 	if !p.Predicate(func(c *rt.ActCtx) (any, any) {
 		tv1, tf1 := c.P.TermLength(c.Cap(0))
@@ -372,14 +373,14 @@ fail:
 	return nil, false
 }
 
-func e7(p *rt.Parser, _ int) (*rt.Node, bool) {
+func e7(p *rt.Parser, _ int) (*parse.Node, bool) {
 	p.Spend()
 	var x1, x3, x4, x5, size, x8, x12 int
-	var x2 []*rt.Node
+	var x2 []*parse.Node
 	var x6 rt.Mark
 	var ch rune
 	var ok bool
-	var v9, v10, v11, v13, v14 *rt.Node
+	var v9, v10, v11, v13, v14 *parse.Node
 	x1 = p.Pos
 	x2 = p.Nodes(2)[:0]
 	x3, x5, x4 = p.Pos, len(p.KidStack), 0
@@ -414,7 +415,7 @@ func e7(p *rt.Parser, _ int) (*rt.Node, bool) {
 		p.DropKids(x5)
 		goto fail
 	}
-	v11 = p.NewBranch(rt.RawKindList, x3, p.ScanKids(3, x3, x5, x4))
+	v11 = p.NewBranch(rt.ListKind, x3, p.ScanKids(3, x3, x5, x4))
 	x2 = append(x2, v11)
 	x12 = p.Pos
 	if (p.Pos < len(p.In) && p.In[p.Pos] == 32) && p.Control.Take(1) {
@@ -424,13 +425,13 @@ func e7(p *rt.Parser, _ int) (*rt.Node, bool) {
 	}
 	v13 = p.NewTerminal(x12, " ")
 	x2 = append(x2, v13)
-	v14 = p.NewBranch(rt.RawKindSeq, x1, x2)
+	v14 = p.NewBranch(rt.SeqKind, x1, x2)
 	return v14, true
 fail:
 	return nil, false
 }
 
-func r2(p *rt.Parser) (*rt.Node, bool) {
+func r2(p *rt.Parser) (*parse.Node, bool) {
 	p.Spend()
 	start, trail := p.Pos, len(p.Trail)
 	prevEnv, prevCut := p.Env, p.Cut
@@ -447,9 +448,9 @@ func r2(p *rt.Parser) (*rt.Node, bool) {
 	return v, ok
 }
 
-func e11(p *rt.Parser, _ int) (*rt.Node, bool) {
+func e11(p *rt.Parser, _ int) (*parse.Node, bool) {
 	p.Spend()
-	var v *rt.Node
+	var v *parse.Node
 	var x2 int
 	var ok bool
 	for {
@@ -476,12 +477,12 @@ fail:
 	return nil, false
 }
 
-func e12(p *rt.Parser, _ int) (*rt.Node, bool) {
+func e12(p *rt.Parser, _ int) (*parse.Node, bool) {
 	p.Spend()
 	var x2, x3, x4 int
 	var x5 rt.Mark
 	var ok bool
-	var v7, v8, v9 *rt.Node
+	var v7, v8, v9 *parse.Node
 	x2, x3 = p.Pos, len(p.KidStack)
 	x4 = 0
 	for {
@@ -505,7 +506,7 @@ func e12(p *rt.Parser, _ int) (*rt.Node, bool) {
 		p.DropKids(x3)
 		goto fail
 	}
-	v9 = p.NewBranch(rt.RawKindList, x2, p.Kids(x3))
+	v9 = p.NewBranch(rt.ListKind, x2, p.Kids(x3))
 	p.SetCapture(0, v9)
 	if !p.Predicate(func(c *rt.ActCtx) (any, any) {
 		tv1, tf1 := c.P.TermLength(c.Cap(0))
@@ -582,7 +583,7 @@ fail:
 	return nil, false
 }
 
-func q2(p *rt.Parser) (*rt.Node, bool) {
+func q2(p *rt.Parser) (*parse.Node, bool) {
 	p.Spend()
 	start, trail := p.Pos, len(p.Trail)
 	prevEnv, prevCut := p.Env, p.Cut
@@ -856,4 +857,4 @@ fail:
 
 const _ = types.ZPSchema_2e326dad401977ae
 
-const _ = rt.Protocol12
+const _ = rt.Protocol13

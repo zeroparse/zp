@@ -1,6 +1,6 @@
 # The Generated Go API
 
-A Go parser written by [`zp gen`](code-generation.md) has a small API: `parser.go` defines the functions that parse, `api.go` re-exports the types and options of the runtime package (the copy in `internal/runtime`, or `zeroparse.dev/zp/runtime` with `-runtime import`) under their own names, and, with `-types`, `types/types.go` defines the Go types of the grammar. This guide describes
+A Go parser written by [`zp gen`](code-generation.md) has a small API: `parser.go` defines the functions that parse, `api.go` re-exports the result types of the runtime's `parse` package and the options of the runtime package (the copy in `internal/runtime`, or `zeroparse.dev/zp/runtime` and `zeroparse.dev/zp/runtime/parse` with `-runtime import`) under their own names, and, with `-types`, `types/types.go` defines the Go types of the grammar. This guide describes
 it, the call options that all entry points share, and recognition. Options that add typed values, incremental documents
 and streams have their own guides:
 
@@ -35,12 +35,7 @@ const (
 	Bytes
 )
 
-type Node struct { Start, End int32; Text string; Children []*Node; Fields Fields } // and Type() and Rule()
-func (n *Node) Field(name string) any
-func (n *Node) IsTerminal() bool
-func (n *Node) String() string
-type Fields []NodeField         // with Get(name) (any, bool); encodes to JSON with sorted keys
-type NodeField struct { Name string; Value any }
+type Node = parse.Node // Start, End, Text, Kind, Type, Rule, Len, Elem, Elems, Field, Fields, Value, IsTerminal, String, Clone; JSON as the engine's
 
 type SyntaxError struct { Pos, Line, Col int; Expected, Messages []string }
 func (e *SyntaxError) Error() string
@@ -60,13 +55,16 @@ Compared with the engine's API:
   `rule pair is not a start rule; parsing can begin only at a rule marked @start`, and so is an unknown name,
   `rule nope is not defined`. An empty name selects the grammar's default start rule, as for
   `Parser.WithStart`. Like the engine, both require the rule to consume the whole input.
-- **The types belong to the generated package.** `pairsparser.Node` has the same fields, methods and JSON encoding as
-  `parse.Node`, but it is a different Go type: you cannot pass one where the other is expected, and error checks use
-  `errors.As` with the generated `*pairsparser.SyntaxError` (and `pairsparser.SyntaxErrors` for errors recovered with
-  `#recover`). If other code needs `parse.Node`, convert through JSON, which is identical for both, or write code against
-  the fields you need.
+- **The types are those of the runtime's `parse` package.** With `-runtime import`, `pairsparser.Node` is
+  `parse.Node` of `zeroparse.dev/zp/runtime/parse`, the type the engine returns, and likewise for the errors, limits and
+  traversal: a tree from either can be passed where the other is expected, and `errors.As` and `errors.Is` work with the
+  types and values of either. With the default embedded runtime, the copy in `internal/runtime/parse` declares them again:
+  `pairsparser.Node` has the same methods and JSON encoding as `parse.Node`, but it is a different Go type, and error
+  checks use `errors.As` with the generated `*pairsparser.SyntaxError` (and `pairsparser.SyntaxErrors` for errors
+  recovered with `#recover`). If other code needs `parse.Node`, convert through JSON, which is identical for both, or
+  write code against the methods you need.
 - **Fields.** As with the engine, a field value is a `*Node`, `int`, `string`, `bool` or `nil`: assert it to
-  `*pairsparser.Node` (as the example does with `Field("Key")`), not to `*parse.Node`.
+  `*pairsparser.Node` (as the example does with `Field("Key")`), which is `*parse.Node` only with `-runtime import`.
 - **Errors** carry the same positions and messages. Recovered errors work too, and the error value that a
   `#recover` produces in a typed result has the range of the skipped input (`Span`) and the `Message`.
   With this grammar, `rec.zp`:

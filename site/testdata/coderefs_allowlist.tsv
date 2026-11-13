@@ -382,7 +382,6 @@ docs/optimizations/059-resuming-long-repetitions-in-the-vms.md	gofile	resume.go	
 docs/optimizations/060-direct-rules-in-the-typed-runtime.md	gofile	internal/gen/gengo/flowrule.go	1
 docs/optimizations/060-direct-rules-in-the-typed-runtime.md	unexport	setCapture	1
 docs/optimizations/060-direct-rules-in-the-typed-runtime.md	unexport	useCtx	1
-docs/optimizations/063-a-smaller-node.md	unexport	nodeKind	1
 docs/optimizations/064-a-smaller-node-in-generated-parsers.md	unexport	structFields	1
 docs/optimizations/066-no-memo-key-allocated-for-variables-where-none-is-defined.md	unexport	envValues	1
 docs/optimizations/068-release-construction-tracking-when-an-action-returns-nil.md	gofile	eval.go	1

@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/internal/ir/exec/conform"
+	"zeroparse.dev/zp/runtime/parse"
 )
 
 // The struct table (conform.StructCases) on the compositions cover and made of the node and the typed
@@ -14,7 +15,7 @@ import (
 func TestValueStructTable(t *testing.T) {
 	for _, controlled := range []bool{false, true} {
 		c, vals := nodeBuiltinFixture(controlled)
-		vals[conform.StructLate] = &Node{RawKind: RawKindMatch, RawTerminal: true, RawText: "q", RawStart: 7, RawEnd: 9}
+		vals[conform.StructLate] = nodeOfData(&Data{Kind: MatchKind, Terminal: true, Text: "q", Start: 7, End: 9})
 		c.start, c.end = conform.StructRuleStart, conform.StructRuleEnd
 		if err := conform.RunStructs("node", func(fields []string) string {
 			var kv []any
@@ -22,8 +23,8 @@ func TestValueStructTable(t *testing.T) {
 				kv = append(kv, fmt.Sprintf("F%d", i), vals[f])
 			}
 			before := len(c.P.created)
-			n := c.fxStruct("S", kv...).(*Node)
-			return structResult(n.RawStart, n.RawEnd, len(c.P.created) == before+1 && c.P.created[before] == n)
+			n := c.fxStruct("S", kv...).(*parse.Node)
+			return structResult(D(n).Start, D(n).End, len(c.P.created) == before+1 && c.P.created[before] == n)
 		}); err != nil {
 			t.Errorf("controlled=%v: %v", controlled, err)
 		}

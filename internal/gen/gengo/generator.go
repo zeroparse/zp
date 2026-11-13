@@ -301,11 +301,7 @@ func generateOnce(g *grammar.Grammar, c gen.Compiler, opts gen.GenOptions, h *Ho
 // far as each call to Next needs. Options are validated before it returns; r is first read by Next.
 // The parser's lookahead and buffering may read ahead of the returned elements.
 func Iterate(r io.Reader, opts ...ParseOption) (*StreamIterator, error) {
-	pull, err := IterateStream(zpGrammar, opts, func(emit func(*Node) error) error { return RunParseStream(streamRule, r, emit, opts) })
-	if err != nil {
-		return nil, err
-	}
-	return NewStreamIterator(pull), nil
+	return IterateNodes(zpGrammar, opts, func(emit func(*Node) error) error { return RunParseStream(streamRule, r, emit, opts) })
 }
 
 `)

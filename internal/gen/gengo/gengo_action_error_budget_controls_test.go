@@ -104,7 +104,7 @@ func TestActionTextFragmentsAndFlatPrefix(t *testing.T){
  p.Control=zprt.X_newBudgetControl(nil,Limits{Compute:uint64(len(want)+7)});_,e=catchActionText(func(){p.X_wrapEvalError(where,message)});if !errors.Is(e,ErrLimit){t.Fatal("one-short wrapper",e)}
 }
 func TestTermCompositionErrorText(t *testing.T){
- long:=strings.Repeat("Kind",2048);n:=&Node{RawKind:zprt.KindOf(long,"")};tn:=&zprt.TSeq{Typ:"tuple",Kids:make([]any,2048)}
+ long:=strings.Repeat("Kind",2048);n:=new(Node);zprt.D(n).Kind=zprt.KindOf(long,"");tn:=&zprt.TSeq{Typ:"tuple",Kids:make([]any,2048)}
  raise:=func(f any){if f!=nil{panic(f)}}
  for _,typed:=range []bool{false,true}{
   p:=&zprt.Parser{};tp:=&zprt.TParser{Parser:p}

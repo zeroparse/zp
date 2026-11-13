@@ -49,7 +49,7 @@ func TestExpectationPoolReuse(t *testing.T) {
  for _,unit := range []PositionUnit{CodePoints,Bytes} {
   for i:=0;i<3;i++ {
    if _,err:=Parse("!",WithUnit(unit));err==nil { t.Fatal("invalid input accepted") }
-   if n,err:=Parse("é",WithUnit(unit));err!=nil || n.RawText!="é" { t.Fatalf("plain reuse: %v",err) }
+   if n,err:=Parse("é",WithUnit(unit));err!=nil || zprt.D(n).Text!="é" { t.Fatalf("plain reuse: %v",err) }
   }
  }
 }

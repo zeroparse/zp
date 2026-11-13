@@ -6,11 +6,12 @@ package outline
 import (
 	types "zeroparse.dev/zp/internal/bench/gen/outline/types"
 	rt "zeroparse.dev/zp/runtime"
+	"zeroparse.dev/zp/runtime/parse"
 )
 
 // Parse parses the whole input with the rule main. Options select position units, depth, cancellation and compute limits.
 // If the parse recovered from errors with #recover, it returns the node together with SyntaxErrors.
-func Parse(input string, opts ...rt.ParseOption) (*rt.Node, error) {
+func Parse(input string, opts ...rt.ParseOption) (*parse.Node, error) {
 	return rt.RunParse(rules[0], input, opts)
 }
 
@@ -30,7 +31,7 @@ var zpGrammar = rt.NewGrammar(100000)
 
 // ParseRule parses the whole input with the start rule name, a rule marked @start; an empty
 // name selects the grammar's default start rule.
-func ParseRule(name, input string, opts ...rt.ParseOption) (*rt.Node, error) {
+func ParseRule(name, input string, opts ...rt.ParseOption) (*parse.Node, error) {
 	o, err := rt.ResolveOptions(zpGrammar, opts)
 	if err != nil {
 		return nil, err
@@ -259,10 +260,10 @@ func init() {
 	trules[0].Entry = u0
 }
 
-func e1(p *rt.Parser, _ int) (*rt.Node, bool) {
+func e1(p *rt.Parser, _ int) (*parse.Node, bool) {
 	p.Spend()
 	var ok bool
-	var v2 *rt.Node
+	var v2 *parse.Node
 	var x4 rt.Mark
 	if !p.Bind(0, func(c *rt.ActCtx) (any, any) {
 		return any(0), nil
@@ -296,13 +297,13 @@ fail:
 	return nil, false
 }
 
-func e3(p *rt.Parser, _ int) (*rt.Node, bool) {
+func e3(p *rt.Parser, _ int) (*parse.Node, bool) {
 	p.Spend()
 	var x1, x2, x5 int
 	var x3, x4 *rt.CaptureFrame
 	var x6, x9 rt.Mark
 	var ok bool
-	var v12, v13 *rt.Node
+	var v12, v13 *parse.Node
 	x1, x2 = p.Pos, len(p.KidStack)
 	x3 = p.NewFrame(len(scope2))
 	x5 = 0
@@ -346,17 +347,17 @@ func e3(p *rt.Parser, _ int) (*rt.Node, bool) {
 		p.DropKids(x2)
 		goto fail
 	}
-	v13 = p.NewBranch(rt.RawKindList, x1, p.Kids(x2))
+	v13 = p.NewBranch(rt.ListKind, x1, p.Kids(x2))
 	p.SetCapture(0, v13)
 	return nil, true
 fail:
 	return nil, false
 }
 
-func e4(p *rt.Parser, _ int) (*rt.Node, bool) {
+func e4(p *rt.Parser, _ int) (*parse.Node, bool) {
 	p.Spend()
 	var ok bool
-	var v2, v4, v7, v10 *rt.Node
+	var v2, v4, v7, v10 *parse.Node
 	var x6 rt.Mark
 	if v2, ok = r4(p); !ok {
 		goto fail
@@ -399,12 +400,12 @@ fail:
 	return nil, false
 }
 
-func e5(p *rt.Parser, _ int) (*rt.Node, bool) {
+func e5(p *rt.Parser, _ int) (*parse.Node, bool) {
 	p.Spend()
 	var x1 int
 	var x5 rt.Mark
 	var ok bool
-	var v8, v10 *rt.Node
+	var v8, v10 *parse.Node
 	x1 = p.Pos
 	p.Silent++
 	for {
@@ -465,12 +466,12 @@ fail:
 	return nil, false
 }
 
-func e7(p *rt.Parser, _ int) (*rt.Node, bool) {
+func e7(p *rt.Parser, _ int) (*parse.Node, bool) {
 	p.Spend()
 	var x1 int
 	var x3 rt.Mark
 	var ok bool
-	var v5 *rt.Node
+	var v5 *parse.Node
 	x1 = p.Pos
 	for {
 		p.Spend()
@@ -492,12 +493,12 @@ func e7(p *rt.Parser, _ int) (*rt.Node, bool) {
 	return v5, true
 }
 
-func e8(p *rt.Parser, _ int) (*rt.Node, bool) {
+func e8(p *rt.Parser, _ int) (*parse.Node, bool) {
 	p.Spend()
 	var x1, size, x2, x3 int
 	var ch rune
 	var ok bool
-	var v4 *rt.Node
+	var v4 *parse.Node
 	x1 = p.Pos
 	x2 = p.Pos
 	x3 = 0
@@ -530,7 +531,7 @@ fail:
 	return nil, false
 }
 
-func r4(p *rt.Parser) (*rt.Node, bool) {
+func r4(p *rt.Parser) (*parse.Node, bool) {
 	p.Spend()
 	start, trail := p.Pos, len(p.Trail)
 	prevEnv, prevCut := p.Env, p.Cut
@@ -547,7 +548,7 @@ func r4(p *rt.Parser) (*rt.Node, bool) {
 	return v, ok
 }
 
-func r5(p *rt.Parser) (*rt.Node, bool) {
+func r5(p *rt.Parser) (*parse.Node, bool) {
 	p.Spend()
 	start, trail := p.Pos, len(p.Trail)
 	prevEnv, prevCut := p.Env, p.Cut
@@ -564,10 +565,10 @@ func r5(p *rt.Parser) (*rt.Node, bool) {
 	return v, ok
 }
 
-func r8(p *rt.Parser) (*rt.Node, bool) {
+func r8(p *rt.Parser) (*parse.Node, bool) {
 	p.Spend()
 	var start, size, x1, x2 int
-	var v *rt.Node
+	var v *parse.Node
 	var ch rune
 	var ok bool
 	start = p.Pos
@@ -605,10 +606,10 @@ fail:
 	return nil, false
 }
 
-func r9(p *rt.Parser) (*rt.Node, bool) {
+func r9(p *rt.Parser) (*parse.Node, bool) {
 	p.Spend()
 	var start, x1 int
-	var v *rt.Node
+	var v *parse.Node
 	var x3 rune
 	var x4, ok bool
 	start = p.Pos
@@ -648,7 +649,7 @@ fail:
 	return nil, false
 }
 
-func e15(p *rt.Parser, _ int) (*rt.Node, bool) {
+func e15(p *rt.Parser, _ int) (*parse.Node, bool) {
 	p.Spend()
 	var ok bool
 	var x2 rt.Mark
@@ -683,7 +684,7 @@ fail:
 	return nil, false
 }
 
-func e17(p *rt.Parser, _ int) (*rt.Node, bool) {
+func e17(p *rt.Parser, _ int) (*parse.Node, bool) {
 	p.Spend()
 	var x1, x2 *rt.CaptureFrame
 	var x3 int
@@ -732,10 +733,10 @@ fail:
 	return nil, false
 }
 
-func e18(p *rt.Parser, _ int) (*rt.Node, bool) {
+func e18(p *rt.Parser, _ int) (*parse.Node, bool) {
 	p.Spend()
 	var ok bool
-	var v2 *rt.Node
+	var v2 *parse.Node
 	var x3 rt.Mark
 	if v2, ok = q4(p); !ok {
 		goto fail
@@ -774,12 +775,12 @@ fail:
 	return nil, false
 }
 
-func e19(p *rt.Parser, _ int) (*rt.Node, bool) {
+func e19(p *rt.Parser, _ int) (*parse.Node, bool) {
 	p.Spend()
 	var x1 int
 	var x5 rt.Mark
 	var ok bool
-	var v8 *rt.Node
+	var v8 *parse.Node
 	x1 = p.Pos
 	p.Silent++
 	for {
@@ -839,7 +840,7 @@ fail:
 	return nil, false
 }
 
-func q4(p *rt.Parser) (*rt.Node, bool) {
+func q4(p *rt.Parser) (*parse.Node, bool) {
 	p.Spend()
 	start, trail := p.Pos, len(p.Trail)
 	prevEnv, prevCut := p.Env, p.Cut
@@ -856,10 +857,10 @@ func q4(p *rt.Parser) (*rt.Node, bool) {
 	return v, ok
 }
 
-func q5(p *rt.Parser) (*rt.Node, bool) {
+func q5(p *rt.Parser) (*parse.Node, bool) {
 	p.Spend()
 	var start, size, x1, x2 int
-	var v *rt.Node
+	var v *parse.Node
 	var ch rune
 	var ok bool
 	start = p.Pos
@@ -895,10 +896,10 @@ fail:
 	return nil, false
 }
 
-func q6(p *rt.Parser) (*rt.Node, bool) {
+func q6(p *rt.Parser) (*parse.Node, bool) {
 	p.Spend()
 	var start, x1 int
-	var v *rt.Node
+	var v *parse.Node
 	var x3 rune
 	var x4, ok bool
 	start = p.Pos
@@ -938,10 +939,10 @@ fail:
 	return nil, false
 }
 
-func q7(p *rt.Parser) (*rt.Node, bool) {
+func q7(p *rt.Parser) (*parse.Node, bool) {
 	p.Spend()
 	var start, size, x1, x2 int
-	var v *rt.Node
+	var v *parse.Node
 	var ch rune
 	var ok bool
 	start = p.Pos
@@ -1460,4 +1461,4 @@ fail:
 
 const _ = types.ZPSchema_3851c59bf7b450ca
 
-const _ = rt.Protocol12
+const _ = rt.Protocol13

@@ -114,7 +114,7 @@ func (n *Node) WriteJSON(w io.Writer) error
 | `n.Type()` | The name of the struct type of the node. For other nodes it is the [name of its kind](../language/types.md#node-type-names): `string`, `tuple`, `list`, `error` or `missing` |
 | `n.Rule()` | The rule name with source information, or the empty string |
 | `n.IsTerminal()` | True for a string node and for an error value from `#recover`; false for nil |
-| `n.Clone()` | A deep copy; subtrees shared within the tree stay shared in the copy. A `Document` moves the nodes that it reuses after an edit, which changes trees that its earlier parses returned; a clone keeps a tree as it was |
+| `n.Clone()` | A deep copy; subtrees shared within the tree stay shared in the copy, and so do the lists of nodes and values in fields that several places hold, cycles included. A `Document` moves the nodes that it reuses after an edit, which changes trees that its earlier parses returned; a clone keeps a tree as it was |
 
 `Start` and `End` delimit the input that the node covers as a half-open range in the
 position unit of the parse. The text of a node that is not a string node is obtained by

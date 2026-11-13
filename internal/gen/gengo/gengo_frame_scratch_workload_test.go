@@ -156,7 +156,7 @@ func TestFrameResults(t *testing.T) {
 func TestFrameAbortCleanup(t *testing.T) {
  var observed *zprt.Parser
  r:=&zprt.Rule{Name:"abort-test",Seen:-1,Scope:[]string{"x"},Body:func(p *zprt.Parser,_ int)(*Node,bool){
-  observed=p;p.SetCapture(0,p.NewNode(Node{RawText:"abandoned"}));p.X_saved=append(p.X_saved,p.Frame.Vals[0]);panic(zprt.X_fatal{fmt.Errorf("fixture abort")})
+  observed=p;p.SetCapture(0,p.NewNode(zprt.Data{Text:"abandoned"}));p.X_saved=append(p.X_saved,p.Frame.Vals[0]);panic(zprt.X_fatal{fmt.Errorf("fixture abort")})
  }}
  g:=zprt.NewGrammar(0);g.SetRules([]*zprt.Rule{r},0);g.Share(zpGrammar)
  if _,err:=zprt.RunParse(r,"",nil);err==nil || err.Error()!="fixture abort" {t.Fatal("abort did not propagate")}
@@ -165,7 +165,7 @@ func TestFrameAbortCleanup(t *testing.T) {
 func TestFrameDepthAbortCleanup(t *testing.T) {
  var observed *zprt.Parser
  r:=&zprt.Rule{Name:"depth-abort",Rec:true,Seen:-1,Scope:[]string{"x"}}
- r.Body=func(p *zprt.Parser,_ int)(*Node,bool){observed=p;p.SetCapture(0,p.NewNode(Node{RawText:"abandoned"}));p.Depth=FRAME_DEPTH_LIMIT;return p.Call(r,0)}
+ r.Body=func(p *zprt.Parser,_ int)(*Node,bool){observed=p;p.SetCapture(0,p.NewNode(zprt.Data{Text:"abandoned"}));p.Depth=FRAME_DEPTH_LIMIT;return p.Call(r,0)}
  g:=zprt.NewGrammar(0);g.SetRules([]*zprt.Rule{r},0);g.Share(zpGrammar)
  if _,err:=zprt.RunParse(r,"",nil);err==nil || !strings.Contains(err.Error(),"nesting too deep") {t.Fatal("depth abort did not propagate")}
  frameCleared(t,observed)

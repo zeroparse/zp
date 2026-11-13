@@ -93,7 +93,7 @@ func TestEnvironmentWalksAndAtomicBind(t *testing.T){
  }
 }
 func TestNodeMemoLookupWalk(t *testing.T){
- tail:=&zprt.X_memoEntry{X_rule:7,X_node:&Node{RawText:"kept"},X_ok:true}
+ tail:=&zprt.X_memoEntry{X_rule:7,X_node:func()*Node{n:=new(Node);zprt.D(n).Text="kept";return n}(),X_ok:true}
  head:=tail;for i:=0;i<300;i++{head=&zprt.X_memoEntry{X_rule:8,X_next:head}}
  p:=&zprt.Parser{Control:zprt.X_newBudgetControl(nil,Limits{Compute:32})};p.X_memo.X_slots=[]*zprt.X_memoEntry{head}
  r:=&zprt.Rule{Id:7,Seen:-1,Memo:true}

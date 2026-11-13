@@ -53,6 +53,21 @@ func runtimeCopy(t *testing.T, mutate func(name, src string) string) string {
 			copyFile(filepath.Join(src, n), filepath.Join(dir, n), m)
 		}
 	}
+	// The runtime's own packages (parse, noderep) belong to the copied module too.
+	for _, sub := range []string{"noderep", "parse"} {
+		files, err := os.ReadDir(filepath.Join(src, sub))
+		if err != nil {
+			t.Fatal(err)
+		}
+		if err := os.Mkdir(filepath.Join(dir, sub), 0o755); err != nil {
+			t.Fatal(err)
+		}
+		for _, e := range files {
+			if n := e.Name(); !e.IsDir() && strings.HasSuffix(n, ".go") && !strings.HasSuffix(n, "_test.go") {
+				copyFile(filepath.Join(src, sub, n), filepath.Join(dir, sub, n), nil)
+			}
+		}
+	}
 	tests, err := os.ReadDir("testdata")
 	if err != nil {
 		t.Fatal(err)

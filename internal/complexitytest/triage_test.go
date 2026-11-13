@@ -264,7 +264,6 @@ import (
 	"errors"
 	"os"
 
-	rt "zeroparse.dev/zp/runtime"
 	p "triage/p"
 )
 
@@ -276,16 +275,16 @@ type cost struct {
 
 func parses(s string, budget uint64) (bool, error) {
 	_, err := p.Parse(s, p.WithLimits(p.Limits{Compute: budget}))
-	var le *rt.LimitError
-	if errors.As(err, &le) && le.Kind == rt.LimitCompute {
+	var le *p.LimitError
+	if errors.As(err, &le) && le.Kind == p.LimitCompute {
 		return false, nil
 	}
 	return true, err
 }
 
 func syntax(err error) bool {
-	var one *rt.SyntaxError
-	var many rt.SyntaxErrors
+	var one *p.SyntaxError
+	var many p.SyntaxErrors
 	return errors.As(err, &one) || errors.As(err, &many)
 }
 

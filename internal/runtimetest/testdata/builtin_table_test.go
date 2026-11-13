@@ -5,6 +5,8 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/internal/ir/exec/conform"
+	"zeroparse.dev/zp/runtime/noderep"
+	"zeroparse.dev/zp/runtime/parse"
 )
 
 // The built-in table (conform.BuiltinCases) on the compositions length, text, items and convert
@@ -18,22 +20,22 @@ func nodeBuiltinFixture(controlled bool) (*ActCtx, map[string]any) {
 	for _, typ := range []string{conform.BuiltinType, conform.BuiltinOther} {
 		g.NodeTypes[typ] = NewNodeTypeKinds(typ)
 	}
-	p := &Parser{g: g, unit: Bytes, bs: conform.BuiltinInput}
+	p := &Parser{g: g, unit: parse.Bytes, bs: conform.BuiltinInput}
 	if controlled {
-		p.Control = newBudgetControl(context.Background(), Limits{Compute: 1 << 62})
+		p.Control = newBudgetControl(context.Background(), parse.Limits{Compute: 1 << 62})
 	}
 	c := &ActCtx{P: p}
-	text := &Node{RawKind: RawKindMatch, RawTerminal: true, RawText: "xyz", RawStart: 2, RawEnd: 4}
+	text := nodeOfData(&Data{Kind: MatchKind, Terminal: true, Text: "xyz", Start: 2, End: 4})
 	typed, _ := g.NodeTypes[conform.BuiltinOther].convert(text)
 	return c, map[string]any{
 		conform.BuiltinTyped:  typed,
-		conform.BuiltinBox:    &Node{RawKind: kindBox, box: 1},
+		conform.BuiltinBox:    nodeOfData(&Data{Kind: noderep.BoxKind, Box: 1}),
 		conform.MemberNil:     nil,
 		conform.MemberInt:     1,
 		conform.BuiltinString: "ab",
 		conform.BuiltinBool:   true,
 		conform.BuiltinText:   text,
-		conform.BuiltinNode:   &Node{RawKind: RawKindSeq, RawStart: 2, RawEnd: 5, RawChildren: []*Node{text, text}},
+		conform.BuiltinNode:   nodeOfData(&Data{Kind: SeqKind, Start: 2, End: 5, Children: []*parse.Node{text, text}}),
 		conform.BuiltinPair:   c.fxList(1, 2),
 		conform.MemberList:    c.fxList(),
 		conform.BuiltinFunc:   func(x any) any { return x },
@@ -43,9 +45,9 @@ func nodeBuiltinFixture(controlled bool) (*ActCtx, map[string]any) {
 // typedBuiltinFixture returns the context of a typed parser over conform.BuiltinInput and the values of
 // the fixture.
 func typedBuiltinFixture(controlled bool) (*TActCtx, map[string]any) {
-	p := &Parser{unit: Bytes, bs: conform.BuiltinInput}
+	p := &Parser{unit: parse.Bytes, bs: conform.BuiltinInput}
 	if controlled {
-		p.Control = newBudgetControl(context.Background(), Limits{Compute: 1 << 62})
+		p.Control = newBudgetControl(context.Background(), parse.Limits{Compute: 1 << 62})
 	}
 	c := &TActCtx{P: &TParser{Parser: p}}
 	text := &TMatch{TNode: TNode[string]{Span: Span{2, 4}, Value: "xyz"}}

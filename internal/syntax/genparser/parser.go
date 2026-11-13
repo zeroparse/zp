@@ -6,6 +6,7 @@ package genparser
 import (
 	types "zeroparse.dev/zp/internal/syntax/genparser/types"
 	rt "zeroparse.dev/zp/runtime"
+	"zeroparse.dev/zp/runtime/parse"
 )
 
 var rules []*rt.Rule
@@ -2848,7 +2849,7 @@ func e427(p *rt.TParser, _ int) (any, bool) {
 	var x16 rt.ExpMark
 	var x18 []rt.ExpID
 	var v21, v22 any
-	var x24 *rt.SyntaxError
+	var x24 *parse.SyntaxError
 	x1 = p.Pos
 	p.Silent++
 	p.LookBegin(2)
@@ -2952,7 +2953,7 @@ func e429(p *rt.TParser, _ int) (any, bool) {
 	var x5, x23 rt.ExpMark
 	var x7 []rt.ExpID
 	var v10, v12, v15, v17, v19, v21 any
-	var x30 *rt.SyntaxError
+	var x30 *parse.SyntaxError
 	x1 = p.Mark()
 	p.Silent++
 	p.LookBegin(7)
@@ -3049,7 +3050,7 @@ func e430(p *rt.TParser, _ int) (any, bool) {
 	var x4 rt.Mark
 	var x5, x10 rt.ExpMark
 	var x7, x12 []rt.ExpID
-	var x16 *rt.SyntaxError
+	var x16 *parse.SyntaxError
 	x1 = p.Pos
 	p.Silent++
 	p.LookBegin(8)
@@ -3122,7 +3123,7 @@ func e431(p *rt.TParser, _ int) (any, bool) {
 	var x9, ch rune
 	var x18, x23 rt.ExpMark
 	var x20, x25 []rt.ExpID
-	var x29 *rt.SyntaxError
+	var x29 *parse.SyntaxError
 	if !p.Predicate(func(c *rt.TActCtx) (any, any) {
 		tv1 := c.Var(1)
 		return tv1, nil
@@ -3267,7 +3268,7 @@ func e432(p *rt.TParser, _ int) (any, bool) {
 	var x7 rt.ExpMark
 	var x9 []rt.ExpID
 	var v12, v13 any
-	var x15 *rt.SyntaxError
+	var x15 *parse.SyntaxError
 	x1 = p.Mark()
 	p.Silent++
 	p.LookBegin(85)
@@ -3407,7 +3408,7 @@ func e437(p *rt.TParser, _ int) (any, bool) {
 	var x7, x23 rt.ExpMark
 	var x9 []rt.ExpID
 	var v12, v14, v17, v19, v21 any
-	var x30 *rt.SyntaxError
+	var x30 *parse.SyntaxError
 	x1 = p.Mark()
 	p.Silent++
 	p.LookBegin(132)
@@ -3512,7 +3513,7 @@ func e439(p *rt.TParser, _ int) (any, bool) {
 	var x7, x23 rt.ExpMark
 	var x9 []rt.ExpID
 	var v12, v14, v17, v19, v21 any
-	var x30 *rt.SyntaxError
+	var x30 *parse.SyntaxError
 	x1 = p.Mark()
 	p.Silent++
 	p.LookBegin(134)
@@ -3617,7 +3618,7 @@ func e440(p *rt.TParser, _ int) (any, bool) {
 	var x7 rt.ExpMark
 	var x9 []rt.ExpID
 	var v12, v13 any
-	var x15 *rt.SyntaxError
+	var x15 *parse.SyntaxError
 	x1 = p.Mark()
 	p.Silent++
 	p.LookBegin(136)
@@ -3693,7 +3694,7 @@ func e441(p *rt.TParser, _ int) (any, bool) {
 	var x4 []rt.ExpID
 	var v7 any
 	var ok bool
-	var x21 *rt.SyntaxError
+	var x21 *parse.SyntaxError
 	x1 = p.Mark()
 	x2 = p.Isolate(p.Pos)
 	_ = p.NewVals(0)[:0]
@@ -27692,4 +27693,4 @@ fail:
 
 const _ = types.ZPSchema_2f3baa996eddc35c
 
-const _ = rt.Protocol12
+const _ = rt.Protocol13

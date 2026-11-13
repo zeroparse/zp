@@ -11,8 +11,9 @@ import (
 )
 
 // Node is a value produced by parsing. It is a CST node, a terminal, a list, or a struct built by
-// an action. In JSON it is an object with the members type, rule (if any), start, end, text (if
-// any), children (if any) and fields (if any).
+// an action. In JSON a string, tuple or list node is an object with the members start, end and
+// value, and, with source information, rule and captures; an error value is one with start, end
+// and error, and a struct one with type, start, end and fields.
 type Node struct {
 	d noderep.Data[Node]
 }
@@ -35,38 +36,89 @@ func (n *Node) MarshalJSON() ([]byte, error) {
 }
 
 // Clone returns a deep copy of the tree n. Subtrees shared within the tree stay shared in the
-// copy. A Document moves the nodes it reuses after an edit, which changes trees returned by its
-// earlier parses; a clone keeps a tree as it was.
+// copy, and so do the slices of nodes and of values in fields that several places hold, which the
+// copy holds once with their cycles. A Document moves the nodes it reuses after an edit, which
+// changes trees returned by its earlier parses; a clone keeps a tree as it was.
 func (n *Node) Clone() *Node {
-	return cloneNode(n, map[*Node]*Node{})
+	c := cloner{nodes: map[*Node]*Node{}, slices: map[sliceView]any{}}
+	return c.node(n)
 }
 
-func cloneNode(n *Node, seen map[*Node]*Node) *Node {
+// cloner copies a tree once per node and once per slice view.
+type cloner struct {
+	nodes  map[*Node]*Node
+	slices map[sliceView]any
+}
+
+// A slice view is identified by its first element, length and capacity. The element pointer keeps
+// the backing array alive while cloning. Empty slices without capacity have nothing to share.
+type sliceView struct {
+	first            any
+	length, capacity int
+}
+
+func (c *cloner) node(n *Node) *Node {
 	if n == nil {
 		return nil
 	}
-	if c, ok := seen[n]; ok {
-		return c
+	if out, ok := c.nodes[n]; ok {
+		return out
 	}
-	c := new(Node)
-	*c = *n
-	seen[n] = c
+	out := new(Node)
+	*out = *n
+	c.nodes[n] = out
 	if n.d.Children != nil {
-		c.d.Children = make([]*Node, len(n.d.Children))
-		for i, ch := range n.d.Children {
-			c.d.Children[i] = cloneNode(ch, seen)
-		}
+		out.d.Children = c.value(n.d.Children).([]*Node)
 	}
 	if n.d.Fields != nil {
-		c.d.Fields = make(noderep.Fields, len(n.d.Fields))
+		out.d.Fields = make(noderep.Fields, len(n.d.Fields))
 		for i, f := range n.d.Fields {
-			if vn, ok := f.Value.(*Node); ok {
-				f.Value = cloneNode(vn, seen)
-			}
-			c.d.Fields[i] = f
+			f.Value = c.value(f.Value)
+			out.d.Fields[i] = f
 		}
 	}
-	return c
+	return out
+}
+
+func (c *cloner) value(v any) any {
+	switch v := v.(type) {
+	case *Node:
+		return c.node(v)
+	case []*Node:
+		if v == nil {
+			return v
+		}
+		out := make([]*Node, len(v))
+		if cap(v) > 0 {
+			key := sliceView{&v[:1][0], len(v), cap(v)}
+			if prev, ok := c.slices[key]; ok {
+				return prev
+			}
+			c.slices[key] = out // before the elements, which can lead back to it
+		}
+		for i, n := range v {
+			out[i] = c.node(n)
+		}
+		return out
+	case []any:
+		if v == nil {
+			return v
+		}
+		out := make([]any, len(v))
+		if cap(v) > 0 {
+			key := sliceView{&v[:1][0], len(v), cap(v)}
+			if prev, ok := c.slices[key]; ok {
+				return prev
+			}
+			c.slices[key] = out
+		}
+		for i, item := range v {
+			out[i] = c.value(item)
+		}
+		return out
+	default:
+		return v
+	}
 }
 
 // IsTerminal reports whether the node holds text: a string node or an error value.

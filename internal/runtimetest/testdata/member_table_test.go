@@ -5,6 +5,8 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/internal/ir/exec/conform"
+	"zeroparse.dev/zp/runtime/noderep"
+	"zeroparse.dev/zp/runtime/parse"
 )
 
 // The member table (conform.MemberCases) on the composition member of the node and the typed runtime
@@ -21,23 +23,23 @@ func memberCanon(x any) string {
 		return conform.MemberCanon("string", x, nil)
 	case bool:
 		return conform.MemberCanon("bool", x, nil)
-	case *Node:
+	case *parse.Node:
 		if x == nil {
 			return conform.MemberCanon("nil", nil, nil)
 		}
 		elems := func() []string {
 			var out []string
-			for _, k := range x.RawChildren {
+			for _, k := range D(x).Children {
 				out = append(out, memberCanon(UnboxNode(k)))
 			}
 			return out
 		}
-		switch x.RawKind {
-		case kindBox:
-			return "box " + memberCanon(x.box)
-		case kindListValue:
+		switch D(x).Kind {
+		case noderep.BoxKind:
+			return "box " + memberCanon(D(x).Box)
+		case noderep.ListValueKind:
 			return conform.MemberCanon("list", nil, elems())
-		case kindTupleValue:
+		case noderep.TupleValueKind:
 			return conform.MemberCanon("tuple", nil, elems())
 		}
 		return x.Type()
@@ -72,11 +74,11 @@ func nodeMemberFixture(controlled bool) (*ActCtx, map[string]any) {
 	}
 	p := &Parser{g: g}
 	if controlled {
-		p.Control = newBudgetControl(context.Background(), Limits{Compute: 1 << 62})
+		p.Control = newBudgetControl(context.Background(), parse.Limits{Compute: 1 << 62})
 	}
 	c := &ActCtx{P: p}
-	node := &Node{RawKind: RawKindSeq, RawStart: 2, RawEnd: 5}
-	node.RawFields.set("y", &Node{RawKind: kindBox, box: 7})
+	node := nodeOfData(&Data{Kind: SeqKind, Start: 2, End: 5})
+	noderep.SetField(&D(node).Fields, "y", nodeOfData(&Data{Kind: noderep.BoxKind, Box: 7}))
 	return c, map[string]any{
 		conform.MemberNil:   nil,
 		conform.MemberInt:   1,
@@ -136,7 +138,7 @@ func tmemberCanon(x any) string {
 func typedMemberFixture(controlled bool) (*TActCtx, map[string]any) {
 	p := &Parser{}
 	if controlled {
-		p.Control = newBudgetControl(context.Background(), Limits{Compute: 1 << 62})
+		p.Control = newBudgetControl(context.Background(), parse.Limits{Compute: 1 << 62})
 	}
 	c := &TActCtx{P: &TParser{Parser: p}}
 	s := func(a int, b string) *memberStruct {

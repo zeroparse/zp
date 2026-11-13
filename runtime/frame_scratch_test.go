@@ -3,6 +3,9 @@ package runtime
 import (
 	"encoding/json"
 	"testing"
+
+	"zeroparse.dev/zp/runtime/noderep"
+	"zeroparse.dev/zp/runtime/parse"
 )
 
 func TestNodeFrameScratchBoundaries(t *testing.T) {
@@ -21,11 +24,11 @@ func TestNodeFrameScratchBoundaries(t *testing.T) {
 				t.Fatal("live capture frames or slots reused")
 			}
 		}
-		f.Vals[size-1] = &Node{RawText: "live"}
+		f.Vals[size-1] = nodeOfData(&Data{Text: "live"})
 		frames = append(frames, f)
 	}
 	for _, f := range frames {
-		if f.Vals[len(f.Vals)-1].RawText != "live" {
+		if D(f.Vals[len(f.Vals)-1]).Text != "live" {
 			t.Fatal("later allocation changed an earlier capture")
 		}
 	}
@@ -46,10 +49,10 @@ func TestNodeFrameScratchChunkStability(t *testing.T) {
 		f := p.NewFrame(7)
 		if i == 0 {
 			first = f
-			f.Vals[0] = &Node{RawText: "first"}
+			f.Vals[0] = nodeOfData(&Data{Text: "first"})
 		}
 	}
-	if first.Vals[0].RawText != "first" || len(p.captureScratch.frames) != 4 || len(p.captureScratch.slots) < 2 {
+	if D(first.Vals[0]).Text != "first" || len(p.captureScratch.frames) != 4 || len(p.captureScratch.slots) < 2 {
 		t.Fatal("growing directories invalidated live frames")
 	}
 	p.captureScratch.reset()
@@ -61,7 +64,7 @@ func TestNodeFrameScratchChunkStability(t *testing.T) {
 func TestNodeFrameScratchReleaseOwnership(t *testing.T) {
 	p := &Parser{}
 	f := p.NewFrame(2)
-	captured := p.NewNode(Node{RawKind: RawKindMatch, RawText: "é", RawStart: 1, RawEnd: 2, RawTerminal: true})
+	captured := p.NewNode(Data{Kind: noderep.MatchKind, Text: "é", Start: 1, End: 2, Terminal: true})
 	f.Vals[0] = captured
 	result := p.AttachCaptures(nil, []string{"x", "missing"}, f, 0, 2)
 	before, err := json.Marshal(result)
@@ -70,7 +73,7 @@ func TestNodeFrameScratchReleaseOwnership(t *testing.T) {
 	}
 	chunks, slots := p.captureScratch.frames, p.captureScratch.slots
 	// Even unused backing must not keep overwritten or abandoned values alive.
-	chunks[0][nodeChunk-1].Vals = []*Node{captured}
+	chunks[0][nodeChunk-1].Vals = []*parse.Node{captured}
 	slots[0][ptrChunk-1] = captured
 	p.Trail = append(p.Trail, undo{f: f, old: captured})
 	p.saved = append(p.saved, captured)
@@ -91,25 +94,25 @@ func TestNodeFrameScratchReleaseOwnership(t *testing.T) {
 	}
 	// Use the arena directly: release returned p to its pool.
 	a := p.captureScratch
-	a.alloc(2).Vals[0] = &Node{RawText: "replacement"}
+	a.alloc(2).Vals[0] = nodeOfData(&Data{Text: "replacement"})
 	defer a.reset()
 	after, err := json.Marshal(result)
-	if err != nil || string(before) != string(after) || captured.RawText != "é" {
+	if err != nil || string(before) != string(after) || D(captured).Text != "é" {
 		t.Fatal("scratch reuse changed a retained Node")
 	}
 }
 
 func TestNodeFrameScratchCompleteBackingBound(t *testing.T) {
 	for _, extra := range []int{0, 1} {
-		frameChunk, slotChunk := new([nodeChunk]CaptureFrame), new([ptrChunk]*Node)
+		frameChunk, slotChunk := new([nodeChunk]CaptureFrame), new([ptrChunk]*parse.Node)
 		f := make([]*[nodeChunk]CaptureFrame, 1)
 		f[0] = frameChunk
 		// The combined complete backing is exactly at or one word above the cap.
-		s := make([]*[ptrChunk]*Node, 1, frameScratchLimit-9-3*nodeChunk-ptrChunk-cap(f)+extra)
+		s := make([]*[ptrChunk]*parse.Node, 1, frameScratchLimit-9-3*nodeChunk-ptrChunk-cap(f)+extra)
 		s[0] = slotChunk
 		a := frameScratch{frames: f, slots: s, frameN: 1, slotOff: 1}
 		frameChunk[0].Vals = slotChunk[:1]
-		slotChunk[0] = &Node{RawText: "old"}
+		slotChunk[0] = nodeOfData(&Data{Text: "old"})
 		a.reset()
 		if frameChunk[0].Vals != nil || slotChunk[0] != nil {
 			t.Fatal("discard or reuse retained old values")
@@ -123,7 +126,7 @@ func TestNodeFrameScratchCompleteBackingBound(t *testing.T) {
 	}
 	for _, a := range []frameScratch{
 		{frames: make([]*[nodeChunk]CaptureFrame, 0, frameScratchLimit+1)},
-		{slots: make([]*[ptrChunk]*Node, 0, frameScratchLimit+1)},
+		{slots: make([]*[ptrChunk]*parse.Node, 0, frameScratchLimit+1)},
 	} {
 		a.reset()
 		if a.frames != nil || a.slots != nil {

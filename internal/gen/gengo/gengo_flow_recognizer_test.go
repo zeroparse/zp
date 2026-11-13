@@ -131,7 +131,7 @@ func skipWithoutRewind(code []byte) []byte { return skipRewind.ReplaceAll(code, 
 var (
 	ruleBodyRef = regexp.MustCompile(`(?m)^\t(rules|recRules)\[(\d+)\]\.Body = (e\d+)$`)
 	funcBody    = func(name string) *regexp.Regexp {
-		return regexp.MustCompile(`(?ms)^func ` + name + `\(p \*rt\.Parser(?:, _ int)?\) \(\*rt\.Node, bool\) \{\n.*?^\}\n`)
+		return regexp.MustCompile(`(?ms)^func ` + name + `\(p \*rt\.Parser(?:, _ int)?\) \(\*parse\.Node, bool\) \{\n.*?^\}\n`)
 	}
 )
 
@@ -156,14 +156,14 @@ func mutateSelfCalls(code []byte, repl func(call string) string) []byte {
 // alternatives were taken for that of the left-recursive one: on other inputs the alternative is skipped.
 func guardSeedReads(code []byte) []byte {
 	return mutateSelfCalls(code, func(call string) string {
-		return "func() (*rt.Node, bool) { if p.Pos >= len(p.In) || p.In[p.Pos] != '1' { return nil, false }; return " + call + " }()"
+		return "func() (*Node, bool) { if p.Pos >= len(p.In) || p.In[p.Pos] != '1' { return nil, false }; return " + call + " }()"
 	})
 }
 
 // dropSeedValues makes the call of the rule itself succeed or fail as before but give no value.
 func dropSeedValues(code []byte) []byte {
 	return mutateSelfCalls(code, func(call string) string {
-		return "func() (*rt.Node, bool) { _, ok := " + call + "; return nil, ok }()"
+		return "func() (*Node, bool) { _, ok := " + call + "; return nil, ok }()"
 	})
 }
 

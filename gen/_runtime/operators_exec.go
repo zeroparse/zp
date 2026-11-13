@@ -2,12 +2,14 @@
 
 package runtime
 
+import "zeroparse.dev/zp/runtime/parse"
+
 // OperatorsRuleParse parses an expression of the Operators Rule r with operators that bind tighter than
 // min. Each level of its recursion (the operand of a prefix operator, the right operand of an infix
 // operator) counts against the nesting limit, like the entry of a recursive rule.
 //
 // Printed from Exec IR function operatorsParse of internal/ir/exec/core, specialized for budget.
-func (p *Parser) OperatorsRuleParse(r *Rule, min int) (*Node, bool) {
+func (p *Parser) OperatorsRuleParse(r *Rule, min int) (*parse.Node, bool) {
 	p.Depth++
 	if p.Depth > p.MaxDepth {
 		p.TooDeep()
@@ -25,7 +27,7 @@ func (p *Parser) OperatorsRuleParse(r *Rule, min int) (*Node, bool) {
 // ends the loop: its right operand refused it, so it cannot apply to the operator as a whole.
 //
 // Printed from Exec IR function operatorsExpr of internal/ir/exec/core, specialized for budget.
-func (p *Parser) operatorsRuleExpr(r *Rule, min int) (*Node, bool) {
+func (p *Parser) operatorsRuleExpr(r *Rule, min int) (*parse.Node, bool) {
 	guard := -1
 	if p.afterEmpty {
 		guard = p.Pos
@@ -113,7 +115,7 @@ func (p *Parser) operatorsRuleExpr(r *Rule, min int) (*Node, bool) {
 // a cut fails the expression.
 //
 // Printed from Exec IR function operatorsNud of internal/ir/exec/core, specialized for budget.
-func (p *Parser) operatorsRuleNud(r *Rule) (*Node, bool) {
+func (p *Parser) operatorsRuleNud(r *Rule) (*parse.Node, bool) {
 	var i int
 	p.skipTrivia(r)
 	m0 := p.Mark()

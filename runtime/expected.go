@@ -47,16 +47,3 @@ func expectedShown(expected []string) ([]string, int) {
 
 // expectedTail is the end of a message whose list is cut before rest entries.
 func expectedTail(rest int) string { return fmt.Sprintf(", ... and %d more", rest) }
-
-// expectedMessage describes the expected entries of a syntax error without messages.
-func expectedMessage(expected []string) string {
-	if len(expected) == 0 {
-		return "syntax error"
-	}
-	shown, rest := expectedShown(expected)
-	msg := "syntax error: expected " + strings.Join(shown, ", ")
-	if rest > 0 {
-		msg += expectedTail(rest)
-	}
-	return msg
-}

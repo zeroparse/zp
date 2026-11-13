@@ -11,11 +11,10 @@ import (
 	"strings"
 	"unicode/utf8"
 	"unsafe"
-)
 
-// Unlimited is the value of a limit that disables it. Every field of Limits is a uint64 and
-// takes it, so one constant serves them all.
-const Unlimited = math.MaxUint64
+	"zeroparse.dev/zp/runtime/noderep"
+	"zeroparse.dev/zp/runtime/parse"
+)
 
 // The default budget of a parse is defaultBudgetPerUnit for each unit of input, and at least
 // defaultBudgetFloor.
@@ -37,60 +36,23 @@ func defaultBudget(n uint64) uint64 {
 // inputUnits returns the length of s in units of the position unit. Below the size at which the
 // default budget leaves its floor the byte length stands in for the count of code points, which it
 // bounds from above.
-func inputUnits(s string, unit PositionUnit) uint64 {
-	if unit == Bytes || len(s) <= defaultBudgetFloor/defaultBudgetPerUnit {
+func inputUnits(s string, unit parse.PositionUnit) uint64 {
+	if unit == parse.Bytes || len(s) <= defaultBudgetFloor/defaultBudgetPerUnit {
 		return uint64(len(s))
 	}
 	return uint64(utf8.RuneCountInString(s))
 }
 
-// Limits bounds one parse invocation. A zero limit selects the default of that limit, and
-// Unlimited disables it.
-//
-// Compute bounds the cumulative cost of the parse: every input unit
-// inspected, every rule call and loop iteration, and every unit of value
-// construction adds to one counter, so a bound on it bounds scanning,
-// recursion and value building alike.
-//
-// Memory bounds the bytes of storage the parser holds for the parse: the chunks of nodes, child and
-// field lists, memo entries, capture frames and typed values, the decoded input, the read buffer
-// of a stream, the working stacks, and the strings that actions build. Storage is counted, by its
-// logical capacity, when the parser takes it into use; a stream returns what its commits let go
-// of, and storage dropped by backtracking is not returned. The input string and anything a
-// callback keeps are not counted. The default is Unlimited, and a finite Memory needs limit
-// controls, as a finite Compute does. The count is checked at the compute polls, every 256 units,
-// and at the end of the parse, so a parse can pass the limit by what it allocates between two
-// polls before it fails with a LimitError of kind LimitMemory. A Document's count starts at the
-// bytes of the memo it retains from earlier parses; when those alone exceed the limit, the
-// Document drops them first. Counts depend on the input unit and the version.
-//
-// Input bounds the length of the input in the position unit of the parse. The default is
-// Unlimited: the default budget already grows with the input. A longer input fails before any
-// work, with a LimitError of kind LimitInput; a stream fails when the parser reaches a unit beyond
-// the limit.
-//
-// Depth bounds the nesting of recursive rule calls: the entries of rules on a cycle of calls and
-// the operands of Operators Rules that nest like them. Zero selects the default the parser was
-// generated with. A generated parser nests calls on the goroutine stack, so Unlimited is an option
-// error; a finite Depth above the largest int counts as the largest int. A deeper parse fails with a
-// LimitError of kind LimitDepth.
-type Limits struct {
-	Compute uint64
-	Memory  uint64
-	Input   uint64
-	Depth   uint64
-}
-
-// disabled reports whether l needs no control: Compute and Memory are zero or Unlimited. Input is
+// limitsDisabled reports whether l needs no control: Compute and Memory are zero or Unlimited. Input is
 // checked against the length of the input and Depth by the parser, so neither needs one.
-func (l Limits) disabled() bool {
-	return (l.Compute == 0 || l.Compute == Unlimited) && (l.Memory == 0 || l.Memory == Unlimited)
+func limitsDisabled(l parse.Limits) bool {
+	return (l.Compute == 0 || l.Compute == parse.Unlimited) && (l.Memory == 0 || l.Memory == parse.Unlimited)
 }
 
 // mergeLimits returns l with every nonzero field of o in place of the field of l: the limits of a
 // later WithLimits over those of an earlier one. A zero field of o keeps the field of l.
-func mergeLimits(l, o Limits) Limits {
-	return Limits{Compute: nonzero(o.Compute, l.Compute), Memory: nonzero(o.Memory, l.Memory), Input: nonzero(o.Input, l.Input), Depth: nonzero(o.Depth, l.Depth)}
+func mergeLimits(l, o parse.Limits) parse.Limits {
+	return parse.Limits{Compute: nonzero(o.Compute, l.Compute), Memory: nonzero(o.Memory, l.Memory), Input: nonzero(o.Input, l.Input), Depth: nonzero(o.Depth, l.Depth)}
 }
 
 // nonzero returns v, or def if v is zero.
@@ -100,57 +62,6 @@ func nonzero(v, def uint64) uint64 {
 	}
 	return def
 }
-
-// ErrLimit is matched by errors.Is for any LimitError.
-var ErrLimit = errors.New("parse limit exceeded")
-
-// LimitKind identifies the limit that was exhausted.
-type LimitKind uint8
-
-const (
-	// LimitCompute is the kind of an exhausted Compute limit.
-	LimitCompute LimitKind = iota
-	// LimitInput is the kind of an input longer than the Input limit.
-	LimitInput
-	// LimitDepth is the kind of a parse that nests recursive rule calls deeper than the Depth
-	// limit.
-	LimitDepth
-	// LimitMemory is the kind of a parse whose storage exceeded the Memory limit.
-	LimitMemory
-)
-
-// LimitError reports a reservation that would exceed a limit. Used is the
-// counter value before the rejected reservation; Requested is the complete
-// atomic reservation that could not be made. For LimitInput, Limit is the Input limit, Used is zero and
-// Requested is the length of the input in the position unit; for a stream it is the number of
-// units the parser had asked for, or the length of the stream if that is shorter. For LimitDepth,
-// Limit is the resolved Depth limit, Used is the depth reached (the limit) and Requested is one,
-// the nested call that would exceed it. For LimitMemory, Used is the count of bytes at the check
-// that failed and Requested is zero, since memory is checked at polls rather than reserved.
-type LimitError struct {
-	Kind      LimitKind
-	Limit     uint64
-	Used      uint64
-	Requested uint64
-}
-
-func (e *LimitError) Error() string {
-	if e == nil {
-		return ErrLimit.Error()
-	}
-	switch e.Kind {
-	case LimitInput:
-		return fmt.Sprintf("parse input limit exceeded: limit %d, length %d", e.Limit, e.Requested)
-	case LimitDepth:
-		return fmt.Sprintf("nesting too deep: more than %d nested recursive rule calls", e.Limit)
-	case LimitMemory:
-		return fmt.Sprintf("parse memory limit exceeded: limit %d, used %d", e.Limit, e.Used)
-	}
-	return fmt.Sprintf("parse compute limit exceeded: limit %d, used %d, requested %d", e.Limit, e.Used, e.Requested)
-}
-
-// Is reports whether target is the limit sentinel.
-func (e *LimitError) Is(target error) bool { return e != nil && target == ErrLimit }
 
 // budgetCheckInterval is the spend between two observations of cancellation.
 const budgetCheckInterval = uint64(256)
@@ -162,7 +73,7 @@ const budgetCheckInterval = uint64(256)
 // BudgetControl is for generated parsers; not a stable API.
 type BudgetControl struct {
 	ctx    context.Context
-	limits Limits
+	limits parse.Limits
 
 	// The units reserved are base, which the slow path of charge keeps, plus
 	// what the fast path reserved since (used). room is the units the fast path
@@ -231,7 +142,7 @@ func (c *BudgetControl) demand(n int) {
 // active. Without a cancelable context or a memory limit the control never polls, so a parse with
 // only a budget reaches the slow path of a charge only at its limit. A nil context is equivalent
 // to context.Background.
-func newBudgetControl(ctx context.Context, limits Limits) *BudgetControl {
+func newBudgetControl(ctx context.Context, limits parse.Limits) *BudgetControl {
 	if ctx != nil && ctx.Done() == nil {
 		ctx = nil // it can never be canceled
 	}
@@ -464,8 +375,8 @@ func (c *BudgetControl) chargeSlow(n uint64) {
 	}
 	if exceeded {
 		c.interrupted = true
-		panic(fatal{err: &LimitError{
-			Kind: LimitCompute, Limit: c.limits.Compute - c.doc,
+		panic(fatal{err: &parse.LimitError{
+			Kind: parse.LimitCompute, Limit: c.limits.Compute - c.doc,
 			Used: c.base - c.doc, Requested: n,
 		}})
 	}
@@ -667,7 +578,7 @@ func (p *Parser) hasLiteralPrefix(text string) bool {
 // RunParseConverted shares admission and counters with a Node-to-typed converter.
 //
 // RunParseConverted is for generated parsers; not a stable API.
-func RunParseConverted[T any](r *Rule, input string, o parseOptions, conv func(*Node, *BudgetControl, error) T) (res T, err error) {
+func RunParseConverted[T any](r *Rule, input string, o parseOptions, conv func(*parse.Node, *BudgetControl, error) T) (res T, err error) {
 	defer recoverParse(&res, &err)
 	o = prepareText(o, input)
 	n, err := parseConversionInput(r, input, o)
@@ -680,7 +591,7 @@ func RunParseConverted[T any](r *Rule, input string, o parseOptions, conv func(*
 // Ordinary runtime/depth errors retain the configured ParseValue converter's
 // historical nil mapping. Budget interruptions bypass conversion without calling
 // methods on a caller-owned error to classify it.
-func parseConversionInput(r *Rule, input string, o parseOptions) (n *Node, err error) {
+func parseConversionInput(r *Rule, input string, o parseOptions) (n *parse.Node, err error) {
 	defer func() {
 		if x := recover(); x != nil {
 			if f, ok := x.(fatal); ok && (o.control == nil || !o.control.interrupted) {
@@ -965,14 +876,14 @@ func (p *Parser) sortExpectedControlled(values []string) {
 // RecoveryErrorText is only for engine-owned Error-node materialization.
 // Public post-return Error/Message calls remain caller spend. The local builder
 // owns its immutable output and is never pooled or written after return.
-func (p *Parser) RecoveryErrorText(e *SyntaxError) string {
+func (p *Parser) RecoveryErrorText(e *parse.SyntaxError) string {
 	if p.Control != nil {
 		return p.recoveryErrorTextControlled(e)
 	}
 	return e.Error()
 }
 
-func (p *Parser) recoveryErrorTextControlled(e *SyntaxError) string {
+func (p *Parser) recoveryErrorTextControlled(e *parse.SyntaxError) string {
 	prefix := fmt.Sprintf("%d:%d: ", e.Line, e.Col) // bounded integer formatting
 	intro, sep, tail := "", "; ", ""
 	parts := e.Messages
@@ -1030,8 +941,8 @@ func checkedDiagnosticSize(size, width int) int {
 
 // makeControlledError owns any partially assembled diagnostic until completion.
 // Interrupted invocations release their partial line table with parser scratch.
-func (p *Parser) makeControlledError(pos int, expected []ExpID) *SyntaxError {
-	e := &SyntaxError{Pos: pos}
+func (p *Parser) makeControlledError(pos int, expected []ExpID) *parse.SyntaxError {
+	e := &parse.SyntaxError{Pos: pos}
 	for _, x := range expected {
 		p.Spend()
 		if x == ExpFar {
@@ -1053,7 +964,7 @@ func (p *Parser) makeControlledError(pos int, expected []ExpID) *SyntaxError {
 		p.lines = append(p.lines, 0)
 		for i := 0; i < p.n; i++ {
 			p.SpendRead(1)
-			if p.unit == Bytes && p.bs[i] == '\n' || p.unit == CodePoints && p.In[i] == '\n' {
+			if p.unit == parse.Bytes && p.bs[i] == '\n' || p.unit == parse.CodePoints && p.In[i] == '\n' {
 				p.lines = append(p.lines, i+1)
 			}
 		}
@@ -1466,14 +1377,14 @@ func (p *Parser) controlledFirstCallPrepare(r *Rule) {
 
 // Graph helpers account for normal construction and capture restoration.
 // Release/recycle, DropKids/DropTrail and arena reset remain unconditional.
-func (p *Parser) valueField(fs Fields, name string) (any, bool) {
+func (p *Parser) valueField(fs noderep.Fields, name string) (any, bool) {
 	if p.Control != nil {
 		return p.valueFieldControlled(fs, name)
 	}
 	return fs.Get(name)
 }
 
-func (p *Parser) valueFieldControlled(fs Fields, name string) (any, bool) {
+func (p *Parser) valueFieldControlled(fs noderep.Fields, name string) (any, bool) {
 	for _, f := range fs {
 		p.Spend()
 		if p.rawValueEqual(f.Name, name) {
@@ -1482,15 +1393,15 @@ func (p *Parser) valueFieldControlled(fs Fields, name string) (any, bool) {
 	}
 	return nil, false
 }
-func (p *Parser) setValueField(fs *Fields, name string, v any) {
+func (p *Parser) setValueField(fs *noderep.Fields, name string, v any) {
 	if p.Control != nil {
 		p.setValueFieldControlled(fs, name, v)
 		return
 	}
-	fs.set(name, v)
+	noderep.SetField(fs, name, v)
 }
 
-func (p *Parser) setValueFieldControlled(fs *Fields, name string, v any) {
+func (p *Parser) setValueFieldControlled(fs *noderep.Fields, name string, v any) {
 	for i := range *fs {
 		p.Spend()
 		if p.rawValueEqual((*fs)[i].Name, name) {
@@ -1499,9 +1410,9 @@ func (p *Parser) setValueFieldControlled(fs *Fields, name string, v any) {
 		}
 	}
 	// Adding the field is constant work, which the step that sets it has paid.
-	*fs = append(*fs, NodeField{name, v})
+	*fs = append(*fs, noderep.NodeField{Name: name, Value: v})
 }
-func (p *Parser) pushKid(v *Node) { p.Spend(); p.KidStack = append(p.KidStack, v) }
+func (p *Parser) pushKid(v *parse.Node) { p.Spend(); p.KidStack = append(p.KidStack, v) }
 func (p *Parser) undoCaptures(from int) {
 	for i := len(p.Trail) - 1; i >= from; i-- {
 		p.Spend()

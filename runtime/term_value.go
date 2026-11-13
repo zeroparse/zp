@@ -1,6 +1,11 @@
 package runtime
 
-import "strings"
+import (
+	"strings"
+
+	"zeroparse.dev/zp/runtime/noderep"
+	"zeroparse.dev/zp/runtime/parse"
+)
 
 // The value primitives of terms (ops.AddValue) of the node and the typed runtime. The compositions
 // of the operators in term_exec.go decide which of them applies; each acts on one kind of value.
@@ -43,15 +48,15 @@ func intIndex(x any, n int) (int, bool) {
 }
 
 // valItems is the operation seq.items in the node runtime.
-func valItems(x any) ([]*Node, bool) {
+func valItems(x any) ([]*parse.Node, bool) {
 	switch x := x.(type) {
 	case nil:
 		return nil, true
-	case *Node:
+	case *parse.Node:
 		if x == nil {
 			return nil, true
 		}
-		return x.RawChildren, true
+		return D(x).Children, true
 	}
 	return nil, false
 }
@@ -68,26 +73,26 @@ func tvalItems(x any) ([]any, bool) {
 }
 
 // nodeOf is the operation node.of in the node runtime: x as a node, list, tuple or struct.
-func nodeOf(x any) (*Node, bool) {
-	n, ok := x.(*Node)
+func nodeOf(x any) (*parse.Node, bool) {
+	n, ok := x.(*parse.Node)
 	return n, ok && n != nil
 }
 
 // seqKind is the kind of a tuple value or a list value.
-func seqKind(tuple bool) *nodeKind {
+func seqKind(tuple bool) *noderep.Kind {
 	if tuple {
-		return kindTupleValue
+		return noderep.TupleValueKind
 	}
-	return kindListValue
+	return noderep.ListValueKind
 }
 
 // elemSpan is the operation seq.span: an element of a list or a tuple is a node, boxed if it was a scalar,
 // and nil adds no range.
-func elemSpan(it *Node) (int, int, bool) {
+func elemSpan(it *parse.Node) (int, int, bool) {
 	if it == nil {
 		return 0, 0, false
 	}
-	return int(it.RawStart), int(it.RawEnd), true
+	return int(D(it).Start), int(D(it).End), true
 }
 
 // elemSpan is the operation seq.span: a node adds its range, and an int, a string or a bool adds the range
@@ -104,10 +109,10 @@ func (c *TActCtx) elemSpan(it any) (int, int, bool) {
 }
 
 // setSpan is the operation node.setSpan.
-func (n *Node) setSpan(start, end int) { n.RawStart, n.RawEnd = int32(start), int32(end) }
+func setSpan(n *parse.Node, start, end int) { D(n).Start, D(n).End = int32(start), int32(end) }
 
 // made is the operation act.made.
-func (c *ActCtx) made(n *Node) { c.P.created = append(c.P.created, n) }
+func (c *ActCtx) made(n *parse.Node) { c.P.created = append(c.P.created, n) }
 
 // made is the operation act.made in the typed runtime.
 func (c *TActCtx) made(n TVal) { c.P.Created = append(c.P.Created, n) }

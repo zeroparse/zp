@@ -6,184 +6,178 @@ import (
 	"context"
 
 	rt "zeroparse.dev/zp/runtime"
+	"zeroparse.dev/zp/runtime/parse"
 )
 
 var _ context.Context
 
-// Node is a value of a parse result: a node, whose value is a string, a tuple or a list, an error
-// value of recovery, a struct built by an action, or a carrier of another value. In JSON a node is
-// an object with the members start, end and value, and, with source information, rule and
-// captures.
-//
-// Of its fields and methods, BaseNode, RawChildren, RawEnd, RawField, RawFields, RawFresh, RawKind, RawStart, RawTerminal, RawText are for generated parsers; not a stable API.
-type Node = rt.Node
-
-// NodeField is a field of a node.
-type NodeField = rt.NodeField
-
-// Fields lists the fields of a node. It encodes to JSON as an object with keys in sorted order.
-type Fields = rt.Fields
+// Node is a value produced by parsing. It is a CST node, a terminal, a list, or a struct built by
+// an action. In JSON a string, tuple or list node is an object with the members start, end and
+// value, and, with source information, rule and captures; an error value is one with start, end
+// and error, and a struct one with type, start, end and fields.
+type Node = parse.Node
 
 // NodeKind is what a Node stands for in the value model.
-type NodeKind = rt.NodeKind
+type NodeKind = parse.NodeKind
 
 // KindString is a node whose value is a string, the text it matched: Text.
-const KindString = rt.KindString
+const KindString = parse.KindString
 
 // KindTuple is a node whose value is a tuple: Len and Elem.
-const KindTuple = rt.KindTuple
+const KindTuple = parse.KindTuple
 
 // KindList is a node whose value is a list: Len and Elem.
-const KindList = rt.KindList
+const KindList = parse.KindList
 
-// KindError is an error value of recovery: Text is its message.
-const KindError = rt.KindError
+// KindError is an error value of recovery: its range is the skipped input and its Text() is its
+// message. It stores no text of the range.
+const KindError = parse.KindError
 
 // KindStruct is a struct built by an action: Type and Field.
-const KindStruct = rt.KindStruct
+const KindStruct = parse.KindStruct
 
 // KindTupleValue is a tuple built by an action, without a range: Len and Elem.
-const KindTupleValue = rt.KindTupleValue
+const KindTupleValue = parse.KindTupleValue
 
 // KindListValue is a list built by an action, without a range: Len and Elem.
-const KindListValue = rt.KindListValue
+const KindListValue = parse.KindListValue
 
 // KindValue is any other value built by an action, such as an int or a bool: Value.
-const KindValue = rt.KindValue
+const KindValue = parse.KindValue
 
-// SyntaxError reports that the input does not match the grammar.
-type SyntaxError = rt.SyntaxError
+// SyntaxError reports that the input did not match the grammar.
+type SyntaxError = parse.SyntaxError
 
-// SyntaxErrors lists the syntax errors recovered from with #recover.
-type SyntaxErrors = rt.SyntaxErrors
+// SyntaxErrors is a list of syntax errors, including those recovered by error recovery.
+type SyntaxErrors = parse.SyntaxErrors
 
-// PositionUnit is the unit of input positions.
-type PositionUnit = rt.PositionUnit
+// PositionUnit is the unit of positions in the input.
+type PositionUnit = parse.PositionUnit
 
-// CodePoints counts Unicode code points. It is the default.
-const CodePoints = rt.CodePoints
+// CodePoints counts positions in Unicode code points. It is the default.
+const CodePoints = parse.CodePoints
 
-// Bytes counts UTF-8 bytes.
-const Bytes = rt.Bytes
+// Bytes counts positions in UTF-8 bytes.
+const Bytes = parse.Bytes
 
 // ParseOption configures an individual parsing invocation. Options apply in order.
 type ParseOption = rt.ParseOption
 
 // WithUnit selects the unit of input positions (CodePoints by default).
-func WithUnit(unit PositionUnit) ParseOption { return rt.WithUnit(unit) }
+func WithUnit(unit parse.PositionUnit) ParseOption { return rt.WithUnit(unit) }
 
 // WithLimits sets the limits of the invocation field by field: a nonzero field overrides the value
 // of an earlier WithLimits, including the construction defaults of a Document, and a zero field
 // leaves it unchanged. A field that no option sets takes its default; Unlimited disables a limit.
 // Counters are never rolled back.
-func WithLimits(limits Limits) ParseOption { return rt.WithLimits(limits) }
+func WithLimits(limits parse.Limits) ParseOption { return rt.WithLimits(limits) }
 
 // Limits bounds one parse invocation. A zero limit selects the default of that limit, and
 // Unlimited disables it.
 //
-// Compute bounds the cumulative cost of the parse: every input unit
-// inspected, every rule call and loop iteration, and every unit of value
-// construction adds to one counter, so a bound on it bounds scanning,
-// recursion and value building alike.
+// Compute bounds the cumulative cost of the parse: every input unit inspected, every rule call
+// and loop iteration, and every unit of value construction adds to one counter, so a bound on it
+// bounds scanning, recursion and value building alike. The default grows with the length of the
+// input.
 //
-// Memory bounds the bytes of storage the parser holds for the parse: the chunks of nodes, child and
-// field lists, memo entries, capture frames and typed values, the decoded input, the read buffer
-// of a stream, the working stacks, and the strings that actions build. Storage is counted, by its
-// logical capacity, when the parser takes it into use; a stream returns what its commits let go
-// of, and storage dropped by backtracking is not returned. The input string and anything a
-// callback keeps are not counted. The default is Unlimited, and a finite Memory needs limit
-// controls, as a finite Compute does. The count is checked at the compute polls, every 256 units,
-// and at the end of the parse, so a parse can pass the limit by what it allocates between two
-// polls before it fails with a LimitError of kind LimitMemory. A Document's count starts at the
-// bytes of the memo it retains from earlier parses; when those alone exceed the limit, the
-// Document drops them first. Counts depend on the input unit and the version.
+// Memory bounds the bytes of storage the parser holds for the parse, counted when the parser
+// takes it into use and returned when it lets it go at a point it controls (a stream's commit, a
+// Document's history reset). Storage dropped by backtracking is not returned. The default is
+// Unlimited. The count is checked with the compute polls, so a parse can pass the limit by what it
+// allocates between two polls before it fails with a LimitError of kind LimitMemory. A
+// Document's count starts at the bytes it retains from earlier parses. What is counted depends on
+// the parser and its version.
 //
 // Input bounds the length of the input in the position unit of the parse. The default is
-// Unlimited: the default budget already grows with the input. A longer input fails before any
-// work, with a LimitError of kind LimitInput; a stream fails when the parser reaches a unit beyond
-// the limit.
+// Unlimited: the default compute budget already grows with the input. A parse of an input that
+// is longer fails before any work, with a LimitError of kind LimitInput; a stream fails when the
+// parser reaches a unit beyond the limit.
 //
 // Depth bounds the nesting of recursive rule calls: the entries of rules on a cycle of calls and
-// the operands of Operators Rules that nest like them. Zero selects the default the parser was
-// generated with. A generated parser nests calls on the goroutine stack, so Unlimited is an option
-// error; a finite Depth above the largest int counts as the largest int. A deeper parse fails with a
-// LimitError of kind LimitDepth.
-type Limits = rt.Limits
+// the operands of Operators Rules that nest like them. Zero selects the default of the parser
+// (of the backend that runs the parse, or the default a generated parser was generated with).
+// Unlimited disables it only where the call stack is on the heap, the engine's iterative bytecode
+// VM; elsewhere it is an option error, because the goroutine stack would overflow first. A finite
+// Depth above the largest int counts as the largest int. A deeper parse fails with a LimitError
+// of kind LimitDepth.
+type Limits = parse.Limits
 
 // LimitKind identifies the limit that was exhausted.
-type LimitKind = rt.LimitKind
+type LimitKind = parse.LimitKind
 
-// LimitError reports a reservation that would exceed a limit. Used is the
-// counter value before the rejected reservation; Requested is the complete
-// atomic reservation that could not be made. For LimitInput, Limit is the Input limit, Used is zero and
-// Requested is the length of the input in the position unit; for a stream it is the number of
-// units the parser had asked for, or the length of the stream if that is shorter. For LimitDepth,
-// Limit is the resolved Depth limit, Used is the depth reached (the limit) and Requested is one,
-// the nested call that would exceed it. For LimitMemory, Used is the count of bytes at the check
-// that failed and Requested is zero, since memory is checked at polls rather than reserved.
-type LimitError = rt.LimitError
+// LimitError reports a reservation that would exceed a limit. Used is the counter value before
+// the rejected reservation; Requested is the complete atomic reservation that could not be made.
+// For LimitInput, Limit is the Input limit, Used is zero and Requested is the length of the input
+// in the position unit; for a stream it is the number of units the parser had asked for, or the
+// length of the stream if that is shorter. For LimitDepth, Limit is the resolved Depth limit,
+// Used is the depth reached (the limit) and Requested is one, the nested call that would exceed
+// it. For LimitMemory, Used is the count of bytes at the check that failed and Requested is zero,
+// since memory is checked at polls rather than reserved.
+type LimitError = parse.LimitError
 
 // ErrLimit is matched by errors.Is for any LimitError.
-var ErrLimit = rt.ErrLimit
+var ErrLimit = parse.ErrLimit
 
 // LimitCompute is the kind of an exhausted Compute limit.
-const LimitCompute = rt.LimitCompute
+const LimitCompute = parse.LimitCompute
 
 // LimitInput is the kind of an input longer than the Input limit.
-const LimitInput = rt.LimitInput
+const LimitInput = parse.LimitInput
 
 // LimitDepth is the kind of a parse that nests recursive rule calls deeper than the Depth
 // limit.
-const LimitDepth = rt.LimitDepth
+const LimitDepth = parse.LimitDepth
 
-// LimitMemory is the kind of a parse whose storage exceeded the Memory limit.
-const LimitMemory = rt.LimitMemory
+// LimitMemory is the kind of a parse whose storage passed the Memory limit.
+const LimitMemory = parse.LimitMemory
 
 // Unlimited is the value of a limit that disables it. Every field of Limits is a uint64 and
 // takes it, so one constant serves them all.
-const Unlimited = rt.Unlimited
+const Unlimited = parse.Unlimited
 
 // Cursor filters edge-oriented node visits using spans in Unit. Unit must match
 // the parse that populated Root's positions; it is never inferred or converted.
 // Parent spans do not prune traversal. Scalar and list values have no spans.
-type Cursor = rt.Cursor
+type Cursor = parse.Cursor
 
 // CycleError describes an active-path back-edge, including the root and failing edge.
-type CycleError = rt.CycleError
+type CycleError = parse.CycleError
 
 // WalkAction controls descent after a visit.
-type WalkAction = rt.WalkAction
+type WalkAction = parse.WalkAction
 
-const WalkContinue = rt.WalkContinue
+const WalkContinue = parse.WalkContinue
 
-const WalkSkip = rt.WalkSkip
+const WalkSkip = parse.WalkSkip
 
-const WalkStop = rt.WalkStop
+const WalkStop = parse.WalkStop
 
 // WalkVisit describes a live value and its nearest owning node. Depth counts edges.
 // Node is populated only for non-nil *Node values; Value retains typed nil leaves.
-type WalkVisit = rt.WalkVisit
+type WalkVisit = parse.WalkVisit
 
 // WalkEdge identifies an incoming edge. Only its Kind's index or name is meaningful.
-type WalkEdge = rt.WalkEdge
+type WalkEdge = parse.WalkEdge
 
 // WalkEdgeKind identifies the incoming edge of a value.
-type WalkEdgeKind = rt.WalkEdgeKind
+type WalkEdgeKind = parse.WalkEdgeKind
 
-const WalkRoot = rt.WalkRoot
+const WalkRoot = parse.WalkRoot
 
-const WalkChild = rt.WalkChild
+const WalkChild = parse.WalkChild
 
-const WalkField = rt.WalkField
+const WalkField = parse.WalkField
 
-const WalkListElement = rt.WalkListElement
+const WalkListElement = parse.WalkListElement
 
 // Walk visits the root, then children in slice order, then fields in sorted name order.
 // Nested []any values are visited in index order. Other containers are leaves. Shared
 // nodes and lists are visited per edge; only cycles on the active path are rejected.
 // Callback errors return unchanged; Stop succeeds; Skip omits the value's descendants.
 // The graph must not be mutated concurrently. Walk does not mutate or retain it.
-func Walk(root *Node, visit func(WalkVisit) (WalkAction, error)) error { return rt.Walk(root, visit) }
+func Walk(root *Node, visit func(WalkVisit) (WalkAction, error)) error {
+	return parse.Walk(root, visit)
+}
 
 // WithExpectations makes the parse record what a syntax error expects and the messages of @error,
 // which the SyntaxError then lists. Without it the error carries the farthest failure position only.

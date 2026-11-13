@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"testing"
 	"unicode/utf8"
+
+	"zeroparse.dev/zp/runtime/parse"
 )
 
 // BenchmarkLiteralMatcher excludes generated rule calls, input setup and tree
@@ -18,10 +20,10 @@ func BenchmarkLiteralMatcher(b *testing.B) {
 				chars[len(chars)-1] = '!'
 				input = string(chars)
 			}
-			for _, unit := range []PositionUnit{Bytes, CodePoints} {
+			for _, unit := range []parse.PositionUnit{parse.Bytes, parse.CodePoints} {
 				b.Run(fmt.Sprintf("%x/%t/%d", text, match, unit), func(b *testing.B) {
 					p := Parser{unit: unit, bs: input, n: len(input), In: []rune(input), Silent: 1}
-					if unit == CodePoints {
+					if unit == parse.CodePoints {
 						p.n = utf8.RuneCountInString(input)
 					}
 					b.ReportAllocs()

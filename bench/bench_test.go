@@ -266,9 +266,9 @@ func TestWorkloads(t *testing.T) {
 func TestGeneratedDocumentAndStream(t *testing.T) {
 	type document interface {
 		Edit(start, end int, text string) error
-		Parse(...rt.ParseOption) (*rt.Node, error)
+		Parse(...rt.ParseOption) (*parse.Node, error)
 	}
-	check := func(t *testing.T, input, marker string, newDoc func(string) (document, error), parse func(string, ...rt.ParseOption) (*rt.Node, error)) {
+	check := func(t *testing.T, input, marker string, newDoc func(string) (document, error), parse func(string, ...rt.ParseOption) (*parse.Node, error)) {
 		at := utf8.RuneCountInString(input[:strings.Index(input, marker)+len(marker)])
 		doc, err := newDoc(input)
 		if err != nil {

@@ -30,7 +30,8 @@ later call can retry. `Document` is single-goroutine, and results can share node
 `tree.Clone()` if an earlier tree must remain detached from the Document. It copies Node graphs, including Node
 values in `[]any` and `[]*Node` fields, while preserving cycles and repeated references to the same slice view.
 Overlapping slice views with different lengths or capacities are copied independently; arbitrary mutable action
-values such as maps remain shared. `ParseStats` has `Evaluated` and `Reused` fields.
+values such as maps remain shared. `ParseStats` counts the rule evaluations (`Evaluated`) and reuses (`Reused`) of the last parse; a generated
+`Document` reuses only memo results, so `MemoHits` equals `Reused` and `ResumedElements` is zero.
 
 ## What Is Kept Between Parses
 

@@ -114,7 +114,7 @@ func TestLimitsAndReuse(t *testing.T) {
   for _,unit:=range []PositionUnit{CodePoints,Bytes,PositionUnit(99)} {
    opts:=[]ParseOption{WithUnit(Bytes),WithUnit(unit),WithLimits(Limits{Depth: 20})}
    n,err:=Parse(c.input,opts...);wantEnd:=len([]rune(c.input));if unit==Bytes {wantEnd=len(c.input)}
-   if err!=nil || int(n.RawEnd)!=wantEnd {t.Fatalf("last unit option: %v",err)}
+   if err!=nil || int(zprt.D(n).End)!=wantEnd {t.Fatalf("last unit option: %v",err)}
    v,err:=ParseValue(c.input,opts...);if err!=nil || v.End!=wantEnd {t.Fatalf("typed last unit option: %v",err)}
   }
  }}

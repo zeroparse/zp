@@ -173,15 +173,20 @@ type surface struct {
 
 func (s *surface) add(line string) { s.lines[line] = true }
 
-// typeName records a type or alias declaration of the package and walks what it reaches.
+// noderepPath is the import path of the node representation, which generated code reaches through
+// the runtime (Data) and which belongs to the protocol like the runtime's own declarations.
+const noderepPath = "zeroparse.dev/zp/runtime/noderep"
+
+// typeName records a type or alias declaration of the package or of noderep and walks what it
+// reaches.
 func (s *surface) typeName(obj *types.TypeName) {
-	if obj.Pkg() != s.pkg || s.seen[obj] {
+	if obj.Pkg() == nil || (obj.Pkg() != s.pkg && obj.Pkg().Path() != noderepPath) || s.seen[obj] {
 		return
 	}
 	s.seen[obj] = true
 	if obj.IsAlias() {
 		alias := obj.Type().(*types.Alias)
-		s.add(fmt.Sprintf("type %s = %s", obj.Name(), s.typ(alias.Rhs())))
+		s.add(fmt.Sprintf("type %s = %s", s.qualified(obj), s.typ(alias.Rhs())))
 		s.walk(alias.Rhs())
 		return
 	}
@@ -201,9 +206,9 @@ func (s *surface) typeName(obj *types.TypeName) {
 			}
 			s.walk(f.Type())
 		}
-		s.add(fmt.Sprintf("type %s%s struct{%s}", obj.Name(), tparams, strings.Join(fs, "; ")))
+		s.add(fmt.Sprintf("type %s%s struct{%s}", s.qualified(obj), tparams, strings.Join(fs, "; ")))
 	} else {
-		s.add(fmt.Sprintf("type %s%s %s", obj.Name(), tparams, s.typ(named.Underlying())))
+		s.add(fmt.Sprintf("type %s%s %s", s.qualified(obj), tparams, s.typ(named.Underlying())))
 		s.walk(named.Underlying())
 	}
 	for i := range named.NumMethods() {
@@ -211,7 +216,7 @@ func (s *surface) typeName(obj *types.TypeName) {
 		if !m.Exported() {
 			continue
 		}
-		recv := obj.Name()
+		recv := s.qualified(obj)
 		if _, ok := m.Signature().Recv().Type().(*types.Pointer); ok {
 			recv = "*" + recv
 		}
@@ -395,21 +400,29 @@ func (s *surface) signature(sig *types.Signature) string {
 }
 
 // TestProtocolSurfaceSeesReachedTypes is the negative control of TestProtocol: renaming an exported
-// method of an unexported type that generated code reaches through an exported field
-// ((*nodeKind).NodeType, through Node.RawKind) changes the interface.
+// method of an unexported type that generated code reaches through an exported function
+// ((*grammar).DeclareStruct, through NewGrammar) changes the interface. The interface also holds
+// the node representation that generated code reaches through Data.
 func TestProtocolSurfaceSeesReachedTypes(t *testing.T) {
 	_, want := packageSurface(t, ".", nil)
-	for _, line := range []string{"type nodeKind struct{Base int}", "method (*nodeKind) NodeType() bool"} {
+	for _, line := range []string{
+		"method (*grammar) DeclareStruct(string, ...string)",
+		"type zeroparse.dev/zp/runtime/noderep.Kind struct{Type string; Rule string; Reserved int; Base int}",
+		"method (*zeroparse.dev/zp/runtime/noderep.Kind) IsNodeType() bool",
+	} {
 		if !strings.Contains(want, line+"\n") {
 			t.Errorf("the interface lacks %q", line)
 		}
+	}
+	if !strings.Contains(want, "type zeroparse.dev/zp/runtime/noderep.Data[N any] struct{Kind *zeroparse.dev/zp/runtime/noderep.Kind; ") {
+		t.Errorf("the interface lacks the fields of noderep.Data")
 	}
 	dir := t.TempDir()
 	entries, err := os.ReadDir(".")
 	if err != nil {
 		t.Fatal(err)
 	}
-	rename := regexp.MustCompile(`\bNodeType\(\)`)
+	rename := regexp.MustCompile(`\bDeclareStruct\(`)
 	for _, e := range entries {
 		n := e.Name()
 		if e.IsDir() || !strings.HasSuffix(n, ".go") || strings.HasSuffix(n, "_test.go") {
@@ -419,12 +432,12 @@ func TestProtocolSurfaceSeesReachedTypes(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		if err := os.WriteFile(filepath.Join(dir, n), rename.ReplaceAll(data, []byte("IsNodeType()")), 0o644); err != nil {
+		if err := os.WriteFile(filepath.Join(dir, n), rename.ReplaceAll(data, []byte("DeclareStructType(")), 0o644); err != nil {
 			t.Fatal(err)
 		}
 	}
 	_, got := packageSurface(t, dir, nil)
-	if !strings.Contains(surfaceDiff(want, got), "nodeKind) IsNodeType") {
-		t.Errorf("renaming (*nodeKind).NodeType does not change the interface:\n%s", surfaceDiff(want, got))
+	if !strings.Contains(surfaceDiff(want, got), "(*grammar) DeclareStructType") {
+		t.Errorf("renaming (*grammar).DeclareStruct does not change the interface:\n%s", surfaceDiff(want, got))
 	}
 }

@@ -4,6 +4,8 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/internal/ir/exec/conform"
+	"zeroparse.dev/zp/runtime/noderep"
+	"zeroparse.dev/zp/runtime/parse"
 )
 
 // The cast table (conform.CastCases) on the compositions conforms, valueConforms, elemsConform and
@@ -24,8 +26,8 @@ func castFieldType(t *conform.CastType) *FieldType {
 
 // nodeCastValue builds a value of the table in the node runtime.
 func nodeCastValue(c *ActCtx, v conform.CastValue) any {
-	text := func() *Node {
-		return &Node{RawKind: RawKindMatch, RawTerminal: true, RawText: "xyz", RawStart: 2, RawEnd: 4}
+	text := func() *parse.Node {
+		return nodeOfData(&Data{Kind: MatchKind, Terminal: true, Text: "xyz", Start: 2, End: 4})
 	}
 	elems := func() []any {
 		var out []any
@@ -42,7 +44,7 @@ func nodeCastValue(c *ActCtx, v conform.CastValue) any {
 	case "nil":
 		return nil
 	case "nilnode":
-		return (*Node)(nil)
+		return (*parse.Node)(nil)
 	case "int":
 		return 1
 	case "string":
@@ -52,15 +54,15 @@ func nodeCastValue(c *ActCtx, v conform.CastValue) any {
 	case "text":
 		return text()
 	case "tuple":
-		return &Node{RawKind: RawKindSeq, RawStart: 2, RawEnd: 5, RawChildren: []*Node{text(), text()}}
+		return nodeOfData(&Data{Kind: SeqKind, Start: 2, End: 5, Children: []*parse.Node{text(), text()}})
 	case "rep":
-		return &Node{RawKind: RawKindList, RawStart: 2, RawEnd: 5, RawChildren: []*Node{text(), text()}}
+		return nodeOfData(&Data{Kind: ListKind, Start: 2, End: 5, Children: []*parse.Node{text(), text()}})
 	case "err":
-		return &Node{RawKind: kindError, RawTerminal: true, RawStart: 2, RawEnd: 4, RawText: "x"}
+		return nodeOfData(&Data{Kind: noderep.ErrorKind, Terminal: true, Start: 2, End: 4, Text: "x"})
 	case "struct":
 		return c.fxStruct(v.Name)
 	case "box":
-		return &Node{RawKind: kindBox, box: 1}
+		return nodeOfData(&Data{Kind: noderep.BoxKind, Box: 1})
 	case "list":
 		return c.fxList(elems()...)
 	case "tupleValue":
@@ -115,8 +117,8 @@ func TestValueCastTable(t *testing.T) {
 		p := &Parser{g: g}
 		tp := &Parser{}
 		if controlled {
-			p.Control = newBudgetControl(t.Context(), Limits{Compute: 1 << 62})
-			tp.Control = newBudgetControl(t.Context(), Limits{Compute: 1 << 62})
+			p.Control = newBudgetControl(t.Context(), parse.Limits{Compute: 1 << 62})
+			tp.Control = newBudgetControl(t.Context(), parse.Limits{Compute: 1 << 62})
 		}
 		c := &ActCtx{P: p}
 		if err := conform.RunCasts("node", controlled, func(typ *conform.CastType, v conform.CastValue) (bool, int) {

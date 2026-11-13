@@ -32,19 +32,19 @@ import (
 	"strings"
 	"unicode/utf8"
 
-	zprt "zeroparse.dev/zp/runtime"
+	"zeroparse.dev/zp/runtime/parse"
 IMPORTS)
 
 type doc struct {
-	parse func() (*zprt.Node, error)
+	parse func() (*parse.Node, error)
 	edit  func(int, int, string) error
 	text  func() string
-	stats func() zprt.ParseStats
+	stats func() parse.ParseStats
 }
 
 type entry struct {
 	newDoc func(string) (*doc, error)
-	parse  func(string) (*zprt.Node, error)
+	parse  func(string) (*parse.Node, error)
 }
 
 var entries = []entry{
@@ -225,8 +225,8 @@ func runDocumentProbes(t *testing.T, cases []documentCase, start string, mutate 
 		if err != nil {
 			return nil, err
 		}
-		return &doc{func() (*zprt.Node, error) { return d.Parse() }, d.Edit, d.Text, d.Stats}, nil
-	}, parse: func(s string) (*zprt.Node, error) { return f%[1]d.Parse(s) }},
+		return &doc{func() (*parse.Node, error) { return d.Parse() }, d.Edit, d.Text, d.Stats}, nil
+	}, parse: func(s string) (*parse.Node, error) { return f%[1]d.Parse(s) }},
 `, i)
 	}
 	write("main.go", strings.NewReplacer("IMPORTS", imports.String(), "ENTRIES", entries.String()).Replace(documentProbeMain))

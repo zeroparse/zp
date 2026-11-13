@@ -4,6 +4,8 @@ import (
 	"strings"
 	"testing"
 	"unsafe"
+
+	"zeroparse.dev/zp/runtime/parse"
 )
 
 // A code-point source too large for int32 offsets still gives text without copying: the first
@@ -20,9 +22,9 @@ func TestTextOfSourceBeyondInt32Offsets(t *testing.T) {
 			name, source string
 			shares       bool
 		}{{"valid", valid, true}, {"invalid", invalid, false}} {
-			p := &Parser{unit: CodePoints}
+			p := &Parser{unit: parse.CodePoints}
 			if controlled {
-				p.Control = newBudgetControl(nil, Limits{Compute: 1 << 30})
+				p.Control = newBudgetControl(nil, parse.Limits{Compute: 1 << 30})
 			}
 			p.setSource(tc.source)
 			if p.offs != nil {

@@ -1,6 +1,10 @@
 package runtime
 
-import "unsafe"
+import (
+	"unsafe"
+
+	"zeroparse.dev/zp/runtime/parse"
+)
 
 // The record of recovered errors (Parser.Recovered) is a sequence of entries: errors that recoveries
 // made, and immutable lists that the results of calls, growths and Operators Rule attempts share. A
@@ -11,7 +15,7 @@ import "unsafe"
 // recEntry is an entry of the record of recovered errors, or the errors that a result holds: an
 // error, a shared list, or, as the zero value, no errors.
 type recEntry struct {
-	err  *SyntaxError
+	err  *parse.SyntaxError
 	list *errList
 }
 
@@ -45,7 +49,7 @@ func (e recEntry) len() int {
 // appendRecErrors appends the errors of the entries to dst, in order. It unrolls the lists without
 // recursion, since they nest as deep as the steps of a growth go; listing k errors visits at most 2k
 // entries (Lemma 14).
-func appendRecErrors(dst []*SyntaxError, entries []recEntry) []*SyntaxError {
+func appendRecErrors(dst []*parse.SyntaxError, entries []recEntry) []*parse.SyntaxError {
 	type frame struct {
 		entries []recEntry
 		i       int
@@ -73,11 +77,11 @@ func appendRecErrors(dst []*SyntaxError, entries []recEntry) []*SyntaxError {
 }
 
 // recoveredErrors returns the recovered errors of the record, in order.
-func (p *Parser) recoveredErrors() []*SyntaxError {
+func (p *Parser) recoveredErrors() []*parse.SyntaxError {
 	if len(p.Recovered) == 0 {
 		return nil
 	}
-	return appendRecErrors(make([]*SyntaxError, 0, len(p.Recovered)), p.Recovered)
+	return appendRecErrors(make([]*parse.SyntaxError, 0, len(p.Recovered)), p.Recovered)
 }
 
 // recSince returns the errors recovered after the mark m (rec.since), charging one unit for each
@@ -116,7 +120,7 @@ func (p *Parser) recAdd(e recEntry) {
 }
 
 // PushRecovered records the error e that a recovery made (rec.push). Generated parsers call it.
-func (p *Parser) PushRecovered(e *SyntaxError) {
+func (p *Parser) PushRecovered(e *parse.SyntaxError) {
 	p.Recovered = append(p.Recovered, recEntry{err: e})
 }
 

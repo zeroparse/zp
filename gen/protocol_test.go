@@ -48,6 +48,7 @@ rule main = [a-z]+ "=" [0-9]+`)
 	if err != nil {
 		t.Fatal(err)
 	}
+	const copyPath = "example.com/proto/internal/runtime/"
 	var protocol string
 	for _, f := range runtimeFiles {
 		if m := protocolName.FindSubmatch(f.Content); m != nil {
@@ -83,7 +84,9 @@ rule main = [a-z]+ "=" [0-9]+`)
 		}
 		write("rt/go.mod", []byte("module zeroparse.dev/zp/runtime\n\ngo 1.27.1\n"))
 		for _, f := range runtimeFiles {
-			data := f.Content
+			// The copy names the copies of the runtime's packages; as the runtime module it names them by
+			// the module's path.
+			data := bytes.ReplaceAll(f.Content, []byte(`"`+copyPath), []byte(`"zeroparse.dev/zp/runtime/`))
 			if bump {
 				data = protocolName.ReplaceAllFunc(data, func(m []byte) []byte {
 					n, _ := strconv.Atoi(string(protocolName.FindSubmatch(m)[1]))

@@ -1,7 +1,8 @@
 package runtime
 
 // The protocol is the interface between generated code and the runtime: the exported declarations
-// of this package, the exported fields and methods of the types they reach, and what those
+// of this package, the exported fields and methods of the types they reach in this package and in
+// the node representation (package noderep), and what those
 // declarations mean, including the encoding of the data generated parsers pass to the runtime
 // (grammar tables, node kinds and expectation IDs). A protocol version names one state of that
 // interface, independent of the release version, and increases whenever the interface changes.
@@ -15,5 +16,5 @@ package runtime
 // undefined name; regenerate the parser, or require a version of zeroparse.dev/zp/runtime that
 // implements its protocol.
 
-// Protocol12 is declared because the runtime implements protocol version 12.
-const Protocol12 = 12
+// Protocol13 is declared because the runtime implements protocol version 13.
+const Protocol13 = 13

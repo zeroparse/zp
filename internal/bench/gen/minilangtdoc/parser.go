@@ -6,11 +6,12 @@ package minilangtdoc
 import (
 	types "zeroparse.dev/zp/internal/bench/gen/minilangtdoc/types"
 	rt "zeroparse.dev/zp/runtime"
+	"zeroparse.dev/zp/runtime/parse"
 )
 
 // Parse parses the whole input with the rule main. Options select position units, depth, cancellation and compute limits.
 // If the parse recovered from errors with #recover, it returns the node together with SyntaxErrors.
-func Parse(input string, opts ...rt.ParseOption) (*rt.Node, error) {
+func Parse(input string, opts ...rt.ParseOption) (*parse.Node, error) {
 	return rt.RunParse(rules[0], input, opts)
 }
 
@@ -28,7 +29,7 @@ var zpGrammar = rt.NewGrammar(100000)
 
 // ParseRule parses the whole input with the start rule name, a rule marked @start; an empty
 // name selects the grammar's default start rule.
-func ParseRule(name, input string, opts ...rt.ParseOption) (*rt.Node, error) {
+func ParseRule(name, input string, opts ...rt.ParseOption) (*parse.Node, error) {
 	o, err := rt.ResolveOptions(zpGrammar, opts)
 	if err != nil {
 		return nil, err
@@ -1779,7 +1780,7 @@ func init() {
 				return any(tn3), nil
 			}, Value: sh62}}},
 	}
-	rules[14].Body = func(p *rt.Parser, min int) (*rt.Node, bool) { return p.OperatorsRuleParse(rules[14], min) }
+	rules[14].Body = func(p *rt.Parser, min int) (*parse.Node, bool) { return p.OperatorsRuleParse(rules[14], min) }
 	rules[15].Body = e25
 	rules[15].Action = func(c *rt.ActCtx) (any, any) {
 		tm1 := len(c.P.KidStack)
@@ -1936,10 +1937,10 @@ func init() {
 	trules[14].Body = func(p *rt.TParser, min int) (any, bool) { return p.OperatorsRuleParse(trules[14], min) }
 }
 
-func e1(p *rt.Parser, _ int) (*rt.Node, bool) {
+func e1(p *rt.Parser, _ int) (*parse.Node, bool) {
 	p.Spend()
 	var ok bool
-	var v2 *rt.Node
+	var v2 *parse.Node
 	if v2, ok = p.Call(rules[1], 0); !ok {
 		goto fail
 	}
@@ -1956,13 +1957,13 @@ fail:
 	return nil, false
 }
 
-func e3(p *rt.Parser, _ int) (*rt.Node, bool) {
+func e3(p *rt.Parser, _ int) (*parse.Node, bool) {
 	p.Spend()
 	var x1, x2 int
 	var x3, x4 *rt.CaptureFrame
 	var x6 rt.Mark
 	var ok bool
-	var v9, v10 *rt.Node
+	var v9, v10 *parse.Node
 	x1, x2 = p.Pos, len(p.KidStack)
 	x3 = p.NewFrame(len(scope2))
 	for {
@@ -1989,15 +1990,15 @@ func e3(p *rt.Parser, _ int) (*rt.Node, bool) {
 		p.Reset(x6)
 		break
 	}
-	v10 = p.NewBranch(rt.RawKindList, x1, p.Kids(x2))
+	v10 = p.NewBranch(rt.ListKind, x1, p.Kids(x2))
 	p.SetCapture(0, v10)
 	return nil, true
 }
 
-func e6(p *rt.Parser, _ int) (*rt.Node, bool) {
+func e6(p *rt.Parser, _ int) (*parse.Node, bool) {
 	p.Spend()
 	var ok bool
-	var v2 *rt.Node
+	var v2 *parse.Node
 	if p.Document == nil && (p.Pos < len(p.In) && p.In[p.Pos] == 123) && p.Control.Take(1) {
 		p.Pos++
 	} else if _, ok = p.MatchLiteral(lit4, "{", 5, false); !ok {
@@ -2020,16 +2021,16 @@ fail:
 	return nil, false
 }
 
-func e8(p *rt.Parser, _ int) (*rt.Node, bool) {
+func e8(p *rt.Parser, _ int) (*parse.Node, bool) {
 	p.Spend()
 	var x4, x37, size int
 	var x2, x9, x38, x40 rt.Mark
 	var x3 rt.ExpMark
 	var x5 []rt.ExpID
-	var v8, v10, v16, v19, v22, v25, v28, v31, v33, v35 *rt.Node
+	var v8, v10, v16, v19, v22, v25, v28, v31, v33, v35 *parse.Node
 	var x12, ch rune
 	var x13, ok bool
-	var x43 *rt.SyntaxError
+	var x43 *parse.SyntaxError
 	x2 = p.Mark()
 	x3 = p.Isolate(p.Pos)
 	x9 = p.Mark()
@@ -2198,10 +2199,10 @@ fail:
 	return nil, false
 }
 
-func e10(p *rt.Parser, _ int) (*rt.Node, bool) {
+func e10(p *rt.Parser, _ int) (*parse.Node, bool) {
 	p.Spend()
 	var ok bool
-	var v2, v4 *rt.Node
+	var v2, v4 *parse.Node
 	if _, ok = p.Call(rules[32], 0); !ok {
 		goto fail
 	}
@@ -2237,10 +2238,10 @@ fail:
 	return nil, false
 }
 
-func e11(p *rt.Parser, _ int) (*rt.Node, bool) {
+func e11(p *rt.Parser, _ int) (*parse.Node, bool) {
 	p.Spend()
 	var ok bool
-	var v2, v6 *rt.Node
+	var v2, v6 *parse.Node
 	var x3 rt.Mark
 	if v2, ok = p.Call(rules[13], 0); !ok {
 		goto fail
@@ -2287,10 +2288,10 @@ fail:
 	return nil, false
 }
 
-func e12(p *rt.Parser, _ int) (*rt.Node, bool) {
+func e12(p *rt.Parser, _ int) (*parse.Node, bool) {
 	p.Spend()
 	var ok bool
-	var v2, v4, v7, v10 *rt.Node
+	var v2, v4, v7, v10 *parse.Node
 	var x6 rt.Mark
 	if _, ok = p.Call(rules[33], 0); !ok {
 		goto fail
@@ -2322,11 +2323,11 @@ fail:
 	return nil, false
 }
 
-func e13(p *rt.Parser, _ int) (*rt.Node, bool) {
+func e13(p *rt.Parser, _ int) (*parse.Node, bool) {
 	p.Spend()
 	var ok, x6 bool
 	var x2 rt.Mark
-	var v3, v9, v12 *rt.Node
+	var v3, v9, v12 *parse.Node
 	var x5 rune
 	if _, ok = p.Call(rules[31], 0); !ok {
 		goto fail
@@ -2376,10 +2377,10 @@ fail:
 	return nil, false
 }
 
-func e14(p *rt.Parser, _ int) (*rt.Node, bool) {
+func e14(p *rt.Parser, _ int) (*parse.Node, bool) {
 	p.Spend()
 	var ok bool
-	var v2, v4 *rt.Node
+	var v2, v4 *parse.Node
 	if _, ok = p.Call(rules[35], 0); !ok {
 		goto fail
 	}
@@ -2399,11 +2400,11 @@ fail:
 	return nil, false
 }
 
-func e15(p *rt.Parser, _ int) (*rt.Node, bool) {
+func e15(p *rt.Parser, _ int) (*parse.Node, bool) {
 	p.Spend()
 	var ok bool
 	var x2 rt.Mark
-	var v3, v6 *rt.Node
+	var v3, v6 *parse.Node
 	if _, ok = p.Call(rules[36], 0); !ok {
 		goto fail
 	}
@@ -2431,10 +2432,10 @@ fail:
 	return nil, false
 }
 
-func e18(p *rt.Parser, _ int) (*rt.Node, bool) {
+func e18(p *rt.Parser, _ int) (*parse.Node, bool) {
 	p.Spend()
 	var ok bool
-	var v2, v5, v8, v10 *rt.Node
+	var v2, v5, v8, v10 *parse.Node
 	var x4 rt.Mark
 	if _, ok = p.Call(rules[37], 0); !ok {
 		goto fail
@@ -2485,11 +2486,11 @@ fail:
 	return nil, false
 }
 
-func e21(p *rt.Parser, _ int) (*rt.Node, bool) {
+func e21(p *rt.Parser, _ int) (*parse.Node, bool) {
 	p.Spend()
 	var x3, x4 int
 	var ok bool
-	var v2, v11, v12 *rt.Node
+	var v2, v11, v12 *parse.Node
 	var x5, x6 *rt.CaptureFrame
 	var x8 rt.Mark
 	if v2, ok = p.Call(rules[17], 0); !ok {
@@ -2530,17 +2531,17 @@ func e21(p *rt.Parser, _ int) (*rt.Node, bool) {
 		p.Reset(x8)
 		break
 	}
-	v12 = p.NewBranch(rt.RawKindList, x3, p.Kids(x4))
+	v12 = p.NewBranch(rt.ListKind, x3, p.Kids(x4))
 	p.SetCapture(1, v12)
 	return nil, true
 fail:
 	return nil, false
 }
 
-func e22(p *rt.Parser, _ int) (*rt.Node, bool) {
+func e22(p *rt.Parser, _ int) (*parse.Node, bool) {
 	p.Spend()
 	var ok bool
-	var v2 *rt.Node
+	var v2 *parse.Node
 	if v2, ok = p.Call(rules[13], 0); !ok {
 		goto fail
 	}
@@ -2558,13 +2559,13 @@ fail:
 	return nil, false
 }
 
-func e23(p *rt.Parser, _ int) (*rt.Node, bool) {
+func e23(p *rt.Parser, _ int) (*parse.Node, bool) {
 	p.Spend()
 	var x3 int
 	var x2 rt.ExpMark
 	var x4 []rt.ExpID
 	var ok bool
-	var v7 *rt.Node
+	var v7 *parse.Node
 	x2 = p.Isolate(p.Pos)
 	if v7, ok = p.Call(rules[14], 0); !ok {
 		goto L5
@@ -2583,11 +2584,11 @@ fail:
 	return nil, false
 }
 
-func e25(p *rt.Parser, _ int) (*rt.Node, bool) {
+func e25(p *rt.Parser, _ int) (*parse.Node, bool) {
 	p.Spend()
 	var x3, x4 int
 	var ok bool
-	var v2, v11, v12 *rt.Node
+	var v2, v11, v12 *parse.Node
 	var x5, x6 *rt.CaptureFrame
 	var x8 rt.Mark
 	if v2, ok = p.Call(rules[13], 0); !ok {
@@ -2625,20 +2626,20 @@ func e25(p *rt.Parser, _ int) (*rt.Node, bool) {
 		p.Reset(x8)
 		break
 	}
-	v12 = p.NewBranch(rt.RawKindList, x3, p.Kids(x4))
+	v12 = p.NewBranch(rt.ListKind, x3, p.Kids(x4))
 	p.SetCapture(1, v12)
 	return nil, true
 fail:
 	return nil, false
 }
 
-func e26(p *rt.Parser, _ int) (*rt.Node, bool) {
+func e26(p *rt.Parser, _ int) (*parse.Node, bool) {
 	p.Spend()
 	var x1, size int
 	var x2, x5 rt.Mark
 	var ok bool
 	var ch rune
-	var v7 *rt.Node
+	var v7 *parse.Node
 	x1 = p.Pos
 	x2 = p.Mark()
 	p.Silent++
@@ -2685,13 +2686,13 @@ fail:
 	return nil, false
 }
 
-func e27(p *rt.Parser, _ int) (*rt.Node, bool) {
+func e27(p *rt.Parser, _ int) (*parse.Node, bool) {
 	p.Spend()
 	var x3 int
 	var x2 rt.ExpMark
 	var x4 []rt.ExpID
 	var ok bool
-	var v7 *rt.Node
+	var v7 *parse.Node
 	x2 = p.Isolate(p.Pos)
 	if v7, ok = p.Call(rules[16], 0); !ok {
 		goto L5
@@ -2710,13 +2711,13 @@ fail:
 	return nil, false
 }
 
-func e29(p *rt.Parser, _ int) (*rt.Node, bool) {
+func e29(p *rt.Parser, _ int) (*parse.Node, bool) {
 	p.Spend()
 	var x1, size, x2, x3, x7, x8 int
 	var ch rune
 	var ok bool
 	var x4 rt.Mark
-	var v9 *rt.Node
+	var v9 *parse.Node
 	x1 = p.Pos
 	x2 = p.Pos
 	x3 = 0
@@ -2784,10 +2785,10 @@ fail:
 	return nil, false
 }
 
-func e31(p *rt.Parser, _ int) (*rt.Node, bool) {
+func e31(p *rt.Parser, _ int) (*parse.Node, bool) {
 	p.Spend()
 	var ok bool
-	var v2 *rt.Node
+	var v2 *parse.Node
 	if p.Document == nil && (p.Pos < len(p.In) && p.In[p.Pos] == 34) && p.Control.Take(1) {
 		p.Pos++
 	} else if _, ok = p.MatchLiteral(lit30, "\"", 27, false); !ok {
@@ -2807,13 +2808,13 @@ fail:
 	return nil, false
 }
 
-func e33(p *rt.Parser, _ int) (*rt.Node, bool) {
+func e33(p *rt.Parser, _ int) (*parse.Node, bool) {
 	p.Spend()
 	var x1, size int
 	var x3, x5 rt.Mark
 	var x7, ch rune
 	var x8, ok bool
-	var v13 *rt.Node
+	var v13 *parse.Node
 	x1 = p.Pos
 	for {
 		p.Spend()
@@ -2882,13 +2883,13 @@ func e33(p *rt.Parser, _ int) (*rt.Node, bool) {
 	return v13, true
 }
 
-func e36(p *rt.Parser, _ int) (*rt.Node, bool) {
+func e36(p *rt.Parser, _ int) (*parse.Node, bool) {
 	p.Spend()
 	var x1 int
 	var x2, x10 rt.Mark
 	var x4 rune
 	var x5, ok bool
-	var v12 *rt.Node
+	var v12 *parse.Node
 	x1 = p.Pos
 	x2 = p.Mark()
 	if p.Document == nil && p.Pos < len(p.In) {
@@ -2943,14 +2944,14 @@ fail:
 	return nil, false
 }
 
-func e40(p *rt.Parser, _ int) (*rt.Node, bool) {
+func e40(p *rt.Parser, _ int) (*parse.Node, bool) {
 	p.Spend()
 	var x1, x2, size, x13, x17, x19, x21, x22, x23, x26 int
 	var x4, x6, x24 rt.Mark
-	var v7, v14, v20, v27, v28, v29, v30, v31, v32, v33 *rt.Node
+	var v7, v14, v20, v27, v28, v29, v30, v31, v32, v33 *parse.Node
 	var x9, ch rune
 	var x10, ok bool
-	var x18 []*rt.Node
+	var x18 []*parse.Node
 	x1, x2 = p.Pos, len(p.KidStack)
 	for {
 		p.Spend()
@@ -3026,9 +3027,9 @@ func e40(p *rt.Parser, _ int) (*rt.Node, bool) {
 			p.Reset(x24)
 			break
 		}
-		v29 = p.NewBranch(rt.RawKindList, x21, p.ScanKids(10, x21, x23, x22))
+		v29 = p.NewBranch(rt.ListKind, x21, p.ScanKids(10, x21, x23, x22))
 		x18 = append(x18, v29)
-		v30 = p.NewBranch(rt.RawKindSeq, x17, x18)
+		v30 = p.NewBranch(rt.SeqKind, x17, x18)
 		v31, _ = p.ShapeSingle(sh39, v30, x6.Pos)
 		v7 = v31
 		goto L8
@@ -3047,13 +3048,13 @@ func e40(p *rt.Parser, _ int) (*rt.Node, bool) {
 		p.Reset(x4)
 		break
 	}
-	v33 = p.NewBranch(rt.RawKindList, x1, p.Kids(x2))
+	v33 = p.NewBranch(rt.ListKind, x1, p.Kids(x2))
 	return v33, true
 }
 
-func e41(p *rt.Parser, _ int) (*rt.Node, bool) {
+func e41(p *rt.Parser, _ int) (*parse.Node, bool) {
 	p.Spend()
-	var v *rt.Node
+	var v *parse.Node
 	var x2, x3, x5, x6, size, x14, x15 int
 	var x8, ch rune
 	var x9, ok bool
@@ -3135,9 +3136,9 @@ func e41(p *rt.Parser, _ int) (*rt.Node, bool) {
 	return v, true
 }
 
-func e43(p *rt.Parser, _ int) (*rt.Node, bool) {
+func e43(p *rt.Parser, _ int) (*parse.Node, bool) {
 	p.Spend()
-	var v *rt.Node
+	var v *parse.Node
 	var ok bool
 	var x1, x2 int
 	if p.Document == nil && (p.Pos+3 <= len(p.In) && p.In[p.Pos] == 108 && p.In[p.Pos+1] == 101 && p.In[p.Pos+2] == 116) && p.Control.Take(3) {
@@ -3165,9 +3166,9 @@ fail:
 	return nil, false
 }
 
-func e45(p *rt.Parser, _ int) (*rt.Node, bool) {
+func e45(p *rt.Parser, _ int) (*parse.Node, bool) {
 	p.Spend()
-	var v *rt.Node
+	var v *parse.Node
 	var ok bool
 	var x1, x2 int
 	if p.Document == nil && (p.Pos+2 <= len(p.In) && p.In[p.Pos] == 105 && p.In[p.Pos+1] == 102) && p.Control.Take(2) {
@@ -3195,9 +3196,9 @@ fail:
 	return nil, false
 }
 
-func e47(p *rt.Parser, _ int) (*rt.Node, bool) {
+func e47(p *rt.Parser, _ int) (*parse.Node, bool) {
 	p.Spend()
-	var v *rt.Node
+	var v *parse.Node
 	var ok bool
 	var x1, x2 int
 	if p.Document == nil && (p.Pos+4 <= len(p.In) && p.In[p.Pos] == 101 && p.In[p.Pos+1] == 108 && p.In[p.Pos+2] == 115 && p.In[p.Pos+3] == 101) && p.Control.Take(4) {
@@ -3225,9 +3226,9 @@ fail:
 	return nil, false
 }
 
-func e49(p *rt.Parser, _ int) (*rt.Node, bool) {
+func e49(p *rt.Parser, _ int) (*parse.Node, bool) {
 	p.Spend()
-	var v *rt.Node
+	var v *parse.Node
 	var ok bool
 	var x1, x2 int
 	if _, ok = p.MatchLiteral(lit48, "while", 10, false); !ok {
@@ -3253,9 +3254,9 @@ fail:
 	return nil, false
 }
 
-func e51(p *rt.Parser, _ int) (*rt.Node, bool) {
+func e51(p *rt.Parser, _ int) (*parse.Node, bool) {
 	p.Spend()
-	var v *rt.Node
+	var v *parse.Node
 	var ok bool
 	var x1, x2 int
 	if _, ok = p.MatchLiteral(lit50, "return", 11, false); !ok {
@@ -3281,9 +3282,9 @@ fail:
 	return nil, false
 }
 
-func e53(p *rt.Parser, _ int) (*rt.Node, bool) {
+func e53(p *rt.Parser, _ int) (*parse.Node, bool) {
 	p.Spend()
-	var v *rt.Node
+	var v *parse.Node
 	var ok bool
 	var x1, x2 int
 	if p.Document == nil && (p.Pos+2 <= len(p.In) && p.In[p.Pos] == 102 && p.In[p.Pos+1] == 110) && p.Control.Take(2) {
@@ -3311,9 +3312,9 @@ fail:
 	return nil, false
 }
 
-func e54(p *rt.Parser, _ int) (*rt.Node, bool) {
+func e54(p *rt.Parser, _ int) (*parse.Node, bool) {
 	p.Spend()
-	var v *rt.Node
+	var v *parse.Node
 	var x1, x2, x22, x23 int
 	var x4 rune
 	var x5, ok bool
@@ -3444,9 +3445,9 @@ fail:
 	return nil, false
 }
 
-func e55(p *rt.Parser, _ int) (*rt.Node, bool) {
+func e55(p *rt.Parser, _ int) (*parse.Node, bool) {
 	p.Spend()
-	var v *rt.Node
+	var v *parse.Node
 	var ch rune
 	var size int
 	var ok bool
@@ -3467,7 +3468,7 @@ fail:
 	return nil, false
 }
 
-func e64(p *rt.Parser) (*rt.Node, bool) {
+func e64(p *rt.Parser) (*parse.Node, bool) {
 	p.Spend()
 	var ok bool
 	if _, ok = p.Call(rules[31], 0); !ok {
@@ -3478,10 +3479,10 @@ fail:
 	return nil, false
 }
 
-func e65(p *rt.Parser) (*rt.Node, bool) {
+func e65(p *rt.Parser) (*parse.Node, bool) {
 	p.Spend()
 	var ok bool
-	var v1 *rt.Node
+	var v1 *parse.Node
 	if v1, ok = p.Call(rules[20], 0); !ok {
 		goto fail
 	}
@@ -3490,10 +3491,10 @@ fail:
 	return nil, false
 }
 
-func e66(p *rt.Parser) (*rt.Node, bool) {
+func e66(p *rt.Parser) (*parse.Node, bool) {
 	p.Spend()
 	var ok bool
-	var v1 *rt.Node
+	var v1 *parse.Node
 	if v1, ok = p.Call(rules[21], 0); !ok {
 		goto fail
 	}
@@ -3502,10 +3503,10 @@ fail:
 	return nil, false
 }
 
-func e67(p *rt.Parser) (*rt.Node, bool) {
+func e67(p *rt.Parser) (*parse.Node, bool) {
 	p.Spend()
 	var ok bool
-	var v1 *rt.Node
+	var v1 *parse.Node
 	if v1, ok = p.Call(rules[23], 0); !ok {
 		goto fail
 	}
@@ -3514,10 +3515,10 @@ fail:
 	return nil, false
 }
 
-func e68(p *rt.Parser) (*rt.Node, bool) {
+func e68(p *rt.Parser) (*parse.Node, bool) {
 	p.Spend()
 	var ok bool
-	var v1 *rt.Node
+	var v1 *parse.Node
 	if v1, ok = p.Call(rules[16], 0); !ok {
 		goto fail
 	}
@@ -3526,10 +3527,10 @@ fail:
 	return nil, false
 }
 
-func e69(p *rt.Parser) (*rt.Node, bool) {
+func e69(p *rt.Parser) (*parse.Node, bool) {
 	p.Spend()
 	var ok bool
-	var v2 *rt.Node
+	var v2 *parse.Node
 	if p.Document == nil && (p.Pos < len(p.In) && p.In[p.Pos] == 40) && p.Control.Take(1) {
 		p.Pos++
 	} else if _, ok = p.MatchLiteral(lit16, "(", 15, false); !ok {
@@ -3552,11 +3553,11 @@ fail:
 	return nil, false
 }
 
-func e72(p *rt.Parser) (*rt.Node, bool) {
+func e72(p *rt.Parser) (*parse.Node, bool) {
 	p.Spend()
 	var ok bool
 	var x2 rt.Mark
-	var v3, v6 *rt.Node
+	var v3, v6 *parse.Node
 	if p.Document == nil && (p.Pos < len(p.In) && p.In[p.Pos] == 91) && p.Control.Take(1) {
 		p.Pos++
 	} else if _, ok = p.MatchLiteral(lit70, "[", 33, false); !ok {
@@ -3586,12 +3587,12 @@ fail:
 	return nil, false
 }
 
-func e75(p *rt.Parser) (*rt.Node, bool) {
+func e75(p *rt.Parser) (*parse.Node, bool) {
 	p.Spend()
 	var x1, x3, x8 int
-	var x2 []*rt.Node
+	var x2 []*parse.Node
 	var ok bool
-	var v4, v6, v7, v9, v10 *rt.Node
+	var v4, v6, v7, v9, v10 *parse.Node
 	x1 = p.Pos
 	x2 = p.Nodes(4)[:0]
 	x3 = p.Pos
@@ -3619,17 +3620,17 @@ func e75(p *rt.Parser) (*rt.Node, bool) {
 	}
 	v9 = p.NewTerminal(x8, ":")
 	x2 = append(x2, v9)
-	v10 = p.NewBranch(rt.RawKindSeq, x1, x2)
+	v10 = p.NewBranch(rt.SeqKind, x1, x2)
 	return v10, true
 fail:
 	return nil, false
 }
 
-func e77(p *rt.Parser) (*rt.Node, bool) {
+func e77(p *rt.Parser) (*parse.Node, bool) {
 	p.Spend()
 	var x1 int
 	var ok bool
-	var v2 *rt.Node
+	var v2 *parse.Node
 	x1 = p.Pos
 	if p.Document == nil && (p.Pos+2 <= len(p.In) && p.In[p.Pos] == 124 && p.In[p.Pos+1] == 124) && p.Control.Take(2) {
 		p.Pos += 2
@@ -3642,11 +3643,11 @@ fail:
 	return nil, false
 }
 
-func e79(p *rt.Parser) (*rt.Node, bool) {
+func e79(p *rt.Parser) (*parse.Node, bool) {
 	p.Spend()
 	var x1 int
 	var ok bool
-	var v2 *rt.Node
+	var v2 *parse.Node
 	x1 = p.Pos
 	if p.Document == nil && (p.Pos+2 <= len(p.In) && p.In[p.Pos] == 38 && p.In[p.Pos+1] == 38) && p.Control.Take(2) {
 		p.Pos += 2
@@ -3659,10 +3660,10 @@ fail:
 	return nil, false
 }
 
-func e86(p *rt.Parser) (*rt.Node, bool) {
+func e86(p *rt.Parser) (*parse.Node, bool) {
 	p.Spend()
 	var x1 rt.Mark
-	var v2, v9, v13, v17, v21, v25, v29 *rt.Node
+	var v2, v9, v13, v17, v21, v25, v29 *parse.Node
 	var x4 rune
 	var x5, ok bool
 	var x8, x12, x16, x20, x24, x28 int
@@ -3776,10 +3777,10 @@ fail:
 	return nil, false
 }
 
-func e89(p *rt.Parser) (*rt.Node, bool) {
+func e89(p *rt.Parser) (*parse.Node, bool) {
 	p.Spend()
 	var x1 rt.Mark
-	var v2, v9, v13 *rt.Node
+	var v2, v9, v13 *parse.Node
 	var x4 rune
 	var x5, ok bool
 	var x8, x12 int
@@ -3829,10 +3830,10 @@ fail:
 	return nil, false
 }
 
-func e93(p *rt.Parser) (*rt.Node, bool) {
+func e93(p *rt.Parser) (*parse.Node, bool) {
 	p.Spend()
 	var x1 rt.Mark
-	var v2, v9, v13, v17 *rt.Node
+	var v2, v9, v13, v17 *parse.Node
 	var x4 rune
 	var x5, ok bool
 	var x8, x12, x16 int
@@ -3898,10 +3899,10 @@ fail:
 	return nil, false
 }
 
-func e95(p *rt.Parser) (*rt.Node, bool) {
+func e95(p *rt.Parser) (*parse.Node, bool) {
 	p.Spend()
 	var x1 rt.Mark
-	var v2, v9, v13 *rt.Node
+	var v2, v9, v13 *parse.Node
 	var x4 rune
 	var x5, ok bool
 	var x8, x12 int
@@ -3951,12 +3952,12 @@ fail:
 	return nil, false
 }
 
-func e96(p *rt.Parser) (*rt.Node, bool) {
+func e96(p *rt.Parser) (*parse.Node, bool) {
 	p.Spend()
 	var x1, x3, x12 int
-	var x2 []*rt.Node
+	var x2 []*parse.Node
 	var ok bool
-	var v4, v7, v10, v11, v13, v14 *rt.Node
+	var v4, v7, v10, v11, v13, v14 *parse.Node
 	var x6 rt.Mark
 	x1 = p.Pos
 	x2 = p.Nodes(4)[:0]
@@ -3992,18 +3993,18 @@ L9:
 	}
 	v13 = p.NewTerminal(x12, ")")
 	x2 = append(x2, v13)
-	v14 = p.NewBranch(rt.RawKindSeq, x1, x2)
+	v14 = p.NewBranch(rt.SeqKind, x1, x2)
 	return v14, true
 fail:
 	return nil, false
 }
 
-func e97(p *rt.Parser) (*rt.Node, bool) {
+func e97(p *rt.Parser) (*parse.Node, bool) {
 	p.Spend()
 	var x1, x3, x8 int
-	var x2 []*rt.Node
+	var x2 []*parse.Node
 	var ok bool
-	var v4, v6, v7, v9, v10 *rt.Node
+	var v4, v6, v7, v9, v10 *parse.Node
 	x1 = p.Pos
 	x2 = p.Nodes(4)[:0]
 	x3 = p.Pos
@@ -4031,18 +4032,18 @@ func e97(p *rt.Parser) (*rt.Node, bool) {
 	}
 	v9 = p.NewTerminal(x8, "]")
 	x2 = append(x2, v9)
-	v10 = p.NewBranch(rt.RawKindSeq, x1, x2)
+	v10 = p.NewBranch(rt.SeqKind, x1, x2)
 	return v10, true
 fail:
 	return nil, false
 }
 
-func e98(p *rt.Parser) (*rt.Node, bool) {
+func e98(p *rt.Parser) (*parse.Node, bool) {
 	p.Spend()
 	var x1, x3 int
-	var x2 []*rt.Node
+	var x2 []*parse.Node
 	var ok bool
-	var v4, v5, v7, v8 *rt.Node
+	var v4, v5, v7, v8 *parse.Node
 	x1 = p.Pos
 	x2 = p.Nodes(3)[:0]
 	x3 = p.Pos
@@ -4062,7 +4063,7 @@ func e98(p *rt.Parser) (*rt.Node, bool) {
 	}
 	p.SetCapture(0, v7)
 	x2 = append(x2, v7)
-	v8 = p.NewBranch(rt.RawKindSeq, x1, x2)
+	v8 = p.NewBranch(rt.SeqKind, x1, x2)
 	return v8, true
 fail:
 	return nil, false
@@ -4077,7 +4078,7 @@ func e99(p *rt.TParser, _ int) (any, bool) {
 	var v8, v10, v16, v19, v22, v25, v28, v31, v33, v35 any
 	var x12, ch rune
 	var x13, ok bool
-	var x43 *rt.SyntaxError
+	var x43 *parse.SyntaxError
 	x2 = p.Mark()
 	x3 = p.Isolate(p.Pos)
 	x9 = p.Mark()
@@ -6913,4 +6914,4 @@ fail:
 
 const _ = types.ZPSchema_7a469fc635b6a20e
 
-const _ = rt.Protocol12
+const _ = rt.Protocol13

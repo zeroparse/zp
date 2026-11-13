@@ -4,6 +4,8 @@ import (
 	"context"
 	"errors"
 	"testing"
+
+	"zeroparse.dev/zp/runtime/parse"
 )
 
 // pollCounter is a context that can be canceled and counts its observations.
@@ -24,14 +26,14 @@ func (c *pollCounter) Err() error {
 }
 
 func TestBudgetControlExistsForContextWithoutLimits(t *testing.T) {
-	if c := newBudgetControl(context.Background(), Limits{}); c != nil {
+	if c := newBudgetControl(context.Background(), parse.Limits{}); c != nil {
 		t.Fatal("a context that cannot be canceled and no limit made a control")
 	}
-	if c := newBudgetControl(nil, Limits{}); c != nil {
+	if c := newBudgetControl(nil, parse.Limits{}); c != nil {
 		t.Fatal("no context and no limit made a control")
 	}
 	ctx := &pollCounter{Context: context.Background(), done: make(chan struct{}), cancelAt: 3}
-	c := newBudgetControl(ctx, Limits{})
+	c := newBudgetControl(ctx, parse.Limits{})
 	if c == nil {
 		t.Fatal("a cancelable context without limits made no control")
 	}
@@ -60,7 +62,7 @@ func TestBudgetControlExistsForContextWithoutLimits(t *testing.T) {
 }
 
 func TestBudgetControlWithoutContextDoesNotPoll(t *testing.T) {
-	c := newBudgetControl(nil, Limits{Compute: 1 << 20})
+	c := newBudgetControl(nil, parse.Limits{Compute: 1 << 20})
 	if c == nil {
 		t.Fatal("a limit made no control")
 	}
@@ -77,7 +79,7 @@ func TestBudgetControlWithoutContextDoesNotPoll(t *testing.T) {
 			c.chargeStep()
 		}
 	}()
-	var le *LimitError
+	var le *parse.LimitError
 	if !errors.As(err, &le) || le.Used != 1<<20 {
 		t.Fatalf("limit: %v", err)
 	}
@@ -88,8 +90,8 @@ func TestBudgetControlWithoutContextDoesNotPoll(t *testing.T) {
 func TestBudgetTakeAndClassChargeUnitByUnit(t *testing.T) {
 	// Take charges n units; where the grant ends inside n it charges the way n steps do.
 	for _, limit := range []uint64{1, 5, 9, 10, 11} {
-		a := newBudgetControl(nil, Limits{Compute: limit})
-		b := newBudgetControl(nil, Limits{Compute: limit})
+		a := newBudgetControl(nil, parse.Limits{Compute: limit})
+		b := newBudgetControl(nil, parse.Limits{Compute: limit})
 		var ea, eb error
 		run := func(f func()) (err error) {
 			defer func() {
@@ -106,7 +108,7 @@ func TestBudgetTakeAndClassChargeUnitByUnit(t *testing.T) {
 				b.chargeStep()
 			}
 		})
-		var la, lb *LimitError
+		var la, lb *parse.LimitError
 		if errors.As(ea, &la) != errors.As(eb, &lb) || (la != nil && *la != *lb) {
 			t.Fatalf("limit %d: Take %v, steps %v", limit, ea, eb)
 		}
@@ -125,7 +127,7 @@ func TestBudgetClassCharge(t *testing.T) {
 					break
 				}
 			}
-			p := &Parser{Control: newBudgetControl(nil, Limits{Compute: 100})}
+			p := &Parser{Control: newBudgetControl(nil, parse.Limits{Compute: 100})}
 			if got := p.RejectBudgetClass(ch, cls); got != wantReject {
 				t.Fatalf("negated %v %U: reject %v, want %v", negated, ch, got, wantReject)
 			}
@@ -189,13 +191,13 @@ func TestSetControlledSourceChargesOneUnitPerByte(t *testing.T) {
 					wantCtx = &pollCounter{Context: context.Background(), done: make(chan struct{})}
 					gotCtx = &pollCounter{Context: context.Background(), done: make(chan struct{})}
 				}
-				want := newBudgetControl(wantCtx, Limits{Compute: limit})
+				want := newBudgetControl(wantCtx, parse.Limits{Compute: limit})
 				if want == nil {
 					want = &BudgetControl{}
 					want.refill()
 				}
 				wantErr := referenceSourceCharge(want, s)
-				got := newBudgetControl(gotCtx, Limits{Compute: limit})
+				got := newBudgetControl(gotCtx, parse.Limits{Compute: limit})
 				if got == nil {
 					got = &BudgetControl{}
 					got.refill()
@@ -210,7 +212,7 @@ func TestSetControlledSourceChargesOneUnitPerByte(t *testing.T) {
 					}()
 					p.setControlledSource(s)
 				}()
-				var lw, lg *LimitError
+				var lw, lg *parse.LimitError
 				if errors.As(wantErr, &lw) != errors.As(gotErr, &lg) || (lw != nil && *lw != *lg) {
 					t.Fatalf("len %d limit %d ctx %v: error %v, reference %v", len(s), limit, ctx, gotErr, wantErr)
 				}
@@ -232,7 +234,7 @@ func TestSetControlledSourceChargesOneUnitPerByte(t *testing.T) {
 // units used, with the error of a fatal interruption.
 func pollsOf(limit uint64, f func(*BudgetControl)) (polls int, used uint64, err error) {
 	ctx := &pollCounter{Context: context.Background(), done: make(chan struct{})}
-	c := newBudgetControl(ctx, Limits{Compute: limit})
+	c := newBudgetControl(ctx, parse.Limits{Compute: limit})
 	defer func() {
 		if x := recover(); x != nil {
 			err = x.(fatal).err

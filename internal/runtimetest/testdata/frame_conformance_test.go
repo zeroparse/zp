@@ -11,6 +11,7 @@ import (
 	"zeroparse.dev/zp/internal/ir/exec/conform"
 	"zeroparse.dev/zp/internal/ir/exec/ops"
 	"zeroparse.dev/zp/internal/ir/exec/ref"
+	"zeroparse.dev/zp/runtime/parse"
 )
 
 // The capture frames of the node and the typed runtime under conformance: every frame operation runs
@@ -82,7 +83,7 @@ func (m *frameMachine) UseRegisters(regs map[string]any) { m.regs = regs }
 
 func (m *frameMachine) Handle(name string) any {
 	if name == conform.OprNodeOp {
-		return new(Node)
+		return new(parse.Node)
 	}
 	panic("runtime binding: no handle " + name)
 }

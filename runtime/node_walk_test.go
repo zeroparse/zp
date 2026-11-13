@@ -4,30 +4,33 @@ import (
 	"errors"
 	"reflect"
 	"testing"
+
+	"zeroparse.dev/zp/runtime/noderep"
+	"zeroparse.dev/zp/runtime/parse"
 )
 
 func TestWalkEdgeOrderAndSharedParents(t *testing.T) {
-	shared := &Node{RawText: "shared"}
-	left := &Node{RawChildren: []*Node{shared}}
-	right := &Node{RawFields: Fields{{"nested", []any{shared, nil, 7}}}}
-	root := &Node{RawChildren: []*Node{left, right, nil}, RawFields: Fields{{"z", false}, {"a", shared}}}
+	shared := nodeOfData(&Data{Text: "shared"})
+	left := nodeOfData(&Data{Children: []*parse.Node{shared}})
+	right := nodeOfData(&Data{Fields: noderep.Fields{{Name: "nested", Value: []any{shared, nil, 7}}}})
+	root := nodeOfData(&Data{Children: []*parse.Node{left, right, nil}, Fields: noderep.Fields{{Name: "z", Value: false}, {Name: "a", Value: shared}}})
 	var got []string
-	var parents []*Node
-	err := Walk(root, func(v WalkVisit) (WalkAction, error) {
+	var parents []*parse.Node
+	err := parse.Walk(root, func(v parse.WalkVisit) (parse.WalkAction, error) {
 		switch v.Edge.Kind {
-		case WalkRoot:
+		case parse.WalkRoot:
 			got = append(got, "root")
-		case WalkChild:
+		case parse.WalkChild:
 			got = append(got, "child")
-		case WalkField:
+		case parse.WalkField:
 			got = append(got, v.Edge.FieldName)
-		case WalkListElement:
+		case parse.WalkListElement:
 			got = append(got, "list")
 		}
 		if v.Node == shared {
 			parents = append(parents, v.Parent)
 		}
-		return WalkContinue, nil
+		return parse.WalkContinue, nil
 	})
 	if err != nil {
 		t.Fatal(err)
@@ -36,86 +39,89 @@ func TestWalkEdgeOrderAndSharedParents(t *testing.T) {
 	if !reflect.DeepEqual(got, want) {
 		t.Fatalf("visits = %v, want %v", got, want)
 	}
-	if !reflect.DeepEqual(parents, []*Node{left, right, root}) {
+	if !reflect.DeepEqual(parents, []*parse.Node{left, right, root}) {
 		t.Fatal("shared edge parents lost")
 	}
-	if root.RawFields[0].Name != "z" {
+	if D(root).Fields[0].Name != "z" {
 		t.Fatal("walk sorted fields in place")
 	}
 }
 
 func TestWalkCyclesAndControls(t *testing.T) {
-	n := &Node{}
-	n.RawChildren = []*Node{n}
-	var cycle *CycleError
-	err := Walk(n, func(WalkVisit) (WalkAction, error) { return WalkContinue, nil })
-	if !errors.As(err, &cycle) || len(cycle.Path) != 2 || cycle.Path[1].Kind != WalkChild {
+	n := nodeOfData(&Data{})
+	D(n).Children = []*parse.Node{n}
+	var cycle *parse.CycleError
+	err := parse.Walk(n, func(parse.WalkVisit) (parse.WalkAction, error) { return parse.WalkContinue, nil })
+	if !errors.As(err, &cycle) || len(cycle.Path) != 2 || cycle.Path[1].Kind != parse.WalkChild {
 		t.Fatalf("cycle = %#v, %v", cycle, err)
 	}
 	list := make([]any, 1)
 	list[0] = list
-	n = &Node{RawFields: Fields{{"x", list}}}
-	err = Walk(n, func(WalkVisit) (WalkAction, error) { return WalkContinue, nil })
+	n = nodeOfData(&Data{Fields: noderep.Fields{{Name: "x", Value: list}}})
+	err = parse.Walk(n, func(parse.WalkVisit) (parse.WalkAction, error) { return parse.WalkContinue, nil })
 	if !errors.As(err, &cycle) || len(cycle.Path) != 3 {
 		t.Fatalf("list cycle = %v", err)
 	}
 	sentinel := errors.New("callback")
-	if err := Walk(n, func(WalkVisit) (WalkAction, error) { return WalkContinue, sentinel }); err != sentinel {
+	if err := parse.Walk(n, func(parse.WalkVisit) (parse.WalkAction, error) { return parse.WalkContinue, sentinel }); err != sentinel {
 		t.Fatal(err)
 	}
-	for _, action := range []WalkAction{WalkSkip, WalkStop} {
+	for _, action := range []parse.WalkAction{parse.WalkSkip, parse.WalkStop} {
 		count := 0
-		if err := Walk(n, func(WalkVisit) (WalkAction, error) { count++; return action, nil }); err != nil || count != 1 {
+		if err := parse.Walk(n, func(parse.WalkVisit) (parse.WalkAction, error) { count++; return action, nil }); err != nil || count != 1 {
 			t.Fatalf("control %d = %d, %v", action, count, err)
 		}
 	}
 	count := 0
-	if err := Walk(nil, func(v WalkVisit) (WalkAction, error) {
+	if err := parse.Walk(nil, func(v parse.WalkVisit) (parse.WalkAction, error) {
 		count++
 		if v.Value != nil || v.Node != nil || v.Depth != 0 {
 			t.Fatal(v)
 		}
-		return WalkContinue, nil
+		return parse.WalkContinue, nil
 	}); err != nil || count != 1 {
 		t.Fatal(err, count)
 	}
 }
 
 func TestWalkDeep(t *testing.T) {
-	n := &Node{}
+	n := nodeOfData(&Data{})
 	const depth = 20000
 	for i := 0; i < depth; i++ {
-		n = &Node{RawFields: Fields{{"next", []any{n}}}}
+		n = nodeOfData(&Data{Fields: noderep.Fields{{Name: "next", Value: []any{n}}}})
 	}
 	count := 0
-	if err := Walk(n, func(v WalkVisit) (WalkAction, error) {
+	if err := parse.Walk(n, func(v parse.WalkVisit) (parse.WalkAction, error) {
 		if v.Node != nil {
 			count++
 		}
-		return WalkContinue, nil
+		return parse.WalkContinue, nil
 	}); err != nil || count != depth+1 {
 		t.Fatal(count, err)
 	}
 }
 
 func TestCursorBoundariesAndUncontainedChildren(t *testing.T) {
-	for _, unit := range []PositionUnit{CodePoints, Bytes} {
-		a, b, z := &Node{RawStart: 1, RawEnd: 3}, &Node{RawStart: 3, RawEnd: 4}, &Node{RawStart: 3, RawEnd: 3}
-		root := &Node{RawStart: 20, RawEnd: 21, RawChildren: []*Node{a, b, z, a}}
-		c := Cursor{Root: root, Unit: unit}
-		var got []*Node
-		callback := func(v WalkVisit) (WalkAction, error) { got = append(got, v.Node); return WalkContinue, nil }
+	for _, unit := range []parse.PositionUnit{parse.CodePoints, parse.Bytes} {
+		a, b, z := nodeOfData(&Data{Start: 1, End: 3}), nodeOfData(&Data{Start: 3, End: 4}), nodeOfData(&Data{Start: 3, End: 3})
+		root := nodeOfData(&Data{Start: 20, End: 21, Children: []*parse.Node{a, b, z, a}})
+		c := parse.Cursor{Root: root, Unit: unit}
+		var got []*parse.Node
+		callback := func(v parse.WalkVisit) (parse.WalkAction, error) {
+			got = append(got, v.Node)
+			return parse.WalkContinue, nil
+		}
 		if err := c.At(3, callback); err != nil {
 			t.Fatal(err)
 		}
-		if !reflect.DeepEqual(got, []*Node{b, z}) {
+		if !reflect.DeepEqual(got, []*parse.Node{b, z}) {
 			t.Fatalf("point = %v", got)
 		}
 		got = nil
 		if err := c.Range(1, 3, callback); err != nil {
 			t.Fatal(err)
 		}
-		if !reflect.DeepEqual(got, []*Node{a, a}) {
+		if !reflect.DeepEqual(got, []*parse.Node{a, a}) {
 			t.Fatal("range must preserve shared edges and exclude upper bound")
 		}
 		got = nil
@@ -129,7 +135,7 @@ func TestCursorBoundariesAndUncontainedChildren(t *testing.T) {
 			t.Fatal("negative position accepted")
 		}
 	}
-	if err := (Cursor{Unit: PositionUnit(99)}).At(0, func(WalkVisit) (WalkAction, error) { return WalkContinue, nil }); err == nil {
+	if err := (parse.Cursor{Unit: parse.PositionUnit(99)}).At(0, func(parse.WalkVisit) (parse.WalkAction, error) { return parse.WalkContinue, nil }); err == nil {
 		t.Fatal("invalid unit accepted")
 	}
 }
@@ -137,17 +143,17 @@ func TestCursorBoundariesAndUncontainedChildren(t *testing.T) {
 func TestWalkSliceIdentityIgnoresCapacity(t *testing.T) {
 	x := make([]any, 1, 2)
 	x[0] = x[:1:1]
-	root := &Node{RawFields: Fields{{Name: "x", Value: x}}}
+	root := nodeOfData(&Data{Fields: noderep.Fields{{Name: "x", Value: x}}})
 	visits := 0
-	err := Walk(root, func(WalkVisit) (WalkAction, error) {
+	err := parse.Walk(root, func(parse.WalkVisit) (parse.WalkAction, error) {
 		visits++
-		return WalkContinue, nil
+		return parse.WalkContinue, nil
 	})
-	var cycle *CycleError
+	var cycle *parse.CycleError
 	if !errors.As(err, &cycle) {
 		t.Fatalf("capacity-limited slice cycle = %v, want CycleError", err)
 	}
-	want := []WalkEdge{{Kind: WalkRoot}, {Kind: WalkField, FieldName: "x"}, {Kind: WalkListElement, ListIndex: 0}}
+	want := []parse.WalkEdge{{Kind: parse.WalkRoot}, {Kind: parse.WalkField, FieldName: "x"}, {Kind: parse.WalkListElement, ListIndex: 0}}
 	if visits != 2 || !reflect.DeepEqual(cycle.Path, want) {
 		t.Fatalf("cycle detected after %d visits at %v, want 2 visits at %v", visits, cycle.Path, want)
 	}
@@ -156,13 +162,13 @@ func TestWalkSliceIdentityIgnoresCapacity(t *testing.T) {
 // A capture that labels an element of a node with source information is visited as that element
 // only; a capture that is not an element is visited as a field.
 func TestWalkVisitsCapturedElementsOnce(t *testing.T) {
-	elem := &Node{RawText: "e"}
-	beside := &Node{RawText: "b"}
-	root := &Node{labeled: true, RawChildren: []*Node{elem}, RawFields: Fields{{"x", elem}, {"s", beside}}}
-	visits := map[*Node]int{}
-	err := Walk(root, func(v WalkVisit) (WalkAction, error) {
+	elem := nodeOfData(&Data{Text: "e"})
+	beside := nodeOfData(&Data{Text: "b"})
+	root := nodeOfData(&Data{Labeled: true, Children: []*parse.Node{elem}, Fields: noderep.Fields{{Name: "x", Value: elem}, {Name: "s", Value: beside}}})
+	visits := map[*parse.Node]int{}
+	err := parse.Walk(root, func(v parse.WalkVisit) (parse.WalkAction, error) {
 		visits[v.Node]++
-		return WalkContinue, nil
+		return parse.WalkContinue, nil
 	})
 	if err != nil {
 		t.Fatal(err)

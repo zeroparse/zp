@@ -51,7 +51,7 @@ func TestHotPathHooksInline(t *testing.T) {
 	if testing.Short() {
 		t.Skip("runs the compiler")
 	}
-	cmd := exec.Command("go", "build", "-gcflags=-m=2", ".")
+	cmd := exec.Command("go", "build", "-gcflags=-m=2", ".", "./parse")
 	cmd.Dir = filepath.Join(gentest.ModuleRoot(), "runtime")
 	cmd.Env = append(os.Environ(), "GOFLAGS="+os.Getenv("GOFLAGS"))
 	out, err := cmd.CombinedOutput()

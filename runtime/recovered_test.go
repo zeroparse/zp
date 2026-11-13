@@ -3,6 +3,8 @@ package runtime
 import (
 	"slices"
 	"testing"
+
+	"zeroparse.dev/zp/runtime/parse"
 )
 
 // TestReportRecoveredOfLists delivers each recovered error to a stream's callback once, in order:
@@ -10,13 +12,13 @@ import (
 // delivered (compactDiagnosed), of which only the rest are new.
 func TestReportRecoveredOfLists(t *testing.T) {
 	var got []int
-	p := &Parser{Stream: &streamInput{diagnostic: func(e *SyntaxError) error {
+	p := &Parser{Stream: &streamInput{diagnostic: func(e *parse.SyntaxError) error {
 		got = append(got, e.Pos)
 		return nil
 	}}}
 	push := func(pos ...int) {
 		for _, n := range pos {
-			p.PushRecovered(&SyntaxError{Pos: n})
+			p.PushRecovered(&parse.SyntaxError{Pos: n})
 		}
 	}
 	report := func(want ...int) {

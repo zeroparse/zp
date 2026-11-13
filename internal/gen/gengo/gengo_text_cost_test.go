@@ -57,14 +57,14 @@ import (
 	"strings"
 	"testing"
 
-	zprt "zeroparse.dev/zp/runtime"
+	zpparse "zeroparse.dev/zp/runtime/parse"
 )
 
 func leastBudget(t *testing.T, parse func(budget uint64) error) uint64 {
 	finishes := func(budget uint64) bool {
 		err := parse(budget)
-		var le *zprt.LimitError
-		if errors.As(err, &le) && le.Kind == zprt.LimitCompute {
+		var le *zpparse.LimitError
+		if errors.As(err, &le) && le.Kind == zpparse.LimitCompute {
 			return false
 		}
 		if err != nil {

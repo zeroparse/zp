@@ -2,6 +2,7 @@ package gengo_test
 
 import (
 	"io/fs"
+	"slices"
 	"strings"
 	"testing"
 	"testing/fstest"
@@ -12,7 +13,11 @@ import (
 
 // miniRuntime is a runtime source with one file whose text carries marker.
 func miniRuntime(marker string) fstest.MapFS {
-	return fstest.MapFS{"rt.go": {Data: []byte("package runtime\n\n// " + marker + "\nconst Protocol1 = 1\n")}}
+	return fstest.MapFS{
+		"rt.go":              {Data: []byte("package runtime\n\n// " + marker + "\nconst Protocol1 = 1\n")},
+		"noderep/noderep.go": {Data: []byte("package noderep\n")},
+		"parse/parse.go":     {Data: []byte("package parse\n")},
+	}
 }
 
 // TestRuntimeSourceIsPerCall shows that the runtime a generation copies is the one in its options:
@@ -61,7 +66,7 @@ func TestRuntimeSourceNotHashable(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(files) == 0 || !strings.Contains(string(files[0].Content), "source-u") {
+	if !slices.ContainsFunc(files, func(f gen.GeneratedFile) bool { return strings.Contains(string(f.Content), "source-u") }) {
 		t.Errorf("source not used: %v", files)
 	}
 }

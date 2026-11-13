@@ -9,133 +9,37 @@
 package runtime
 
 import (
-	"bytes"
 	"context"
-	"encoding/json"
 	"fmt"
-	"io"
-	"iter"
 	"math"
-	"reflect"
 	"sort"
-	"strconv"
 	"strings"
 	"sync"
 	"unicode/utf8"
-)
 
-// Node is a value of a parse result: a node, whose value is a string, a tuple or a list, an error
-// value of recovery, a struct built by an action, or a carrier of another value. In JSON a node is
-// an object with the members start, end and value, and, with source information, rule and
-// captures.
-//
-// Of its fields and methods, BaseNode, RawChildren, RawEnd, RawField, RawFields, RawFresh, RawKind, RawStart, RawTerminal, RawText are for generated parsers; not a stable API.
-type Node struct {
-	RawKind     *nodeKind // the type and rule names (Type, Rule)
-	RawStart    int32     // the range in the input, in the parse's position unit (End is exclusive)
-	RawEnd      int32
-	RawText     string  // the text of a string node
-	RawChildren []*Node // the elements of a tuple or list
-	RawFields   Fields  // struct fields and captures
-
-	RawFresh    bool
-	RawTerminal bool
-	labeled     bool // the captures in Fields are output (source information)
-	// moveMark is the number of the last move after a Document edit that visited the node
-	// (documentMove), counted by the Document that holds the node; it fits in the padding before box.
-	moveMark uint32
-	box      any // the value carried by a box
-}
-
-// Type returns the node's type name: string, tuple, list or error for the kinds of nodes,
-// or the name of a type of the grammar.
-func (n *Node) Type() string { return n.RawKind.typeName() }
-
-// Rule returns the name of the rule that produced the node, with source information, or "".
-func (n *Node) Rule() string { return n.RawKind.ruleName() }
-
-// MarshalJSON encodes the node as an object (see Node).
-func (n *Node) MarshalJSON() ([]byte, error) {
-	var b bytes.Buffer
-	if err := n.WriteJSON(&b); err != nil {
-		return nil, err
-	}
-	return b.Bytes(), nil
-}
-
-// nodeKind is a pair of type and rule names, interned (KindOf) so that a node holds one pointer
-// for both.
-//
-// Of its fields and methods, Base, NodeType are for generated parsers; not a stable API.
-type nodeKind struct {
-	typ, rule string
-	reserved  int // the index of a reserved type in reservedTypes with no rule, or -1
-	// Base is the index in reservedTypes of what the nodes are: the reserved type itself, with or
-	// without a rule, or for a named node type the string, tuple or list node it converts. It is
-	// -1 for a struct.
-	Base int
-}
-
-// NodeType reports whether k is the kind of a named node type.
-func (k *nodeKind) NodeType() bool {
-	return k != nil && k.Base >= 0 && k.typ != reservedTypes[k.Base]
-}
-
-func (k *nodeKind) typeName() string {
-	if k == nil {
-		return ""
-	}
-	return k.typ
-}
-
-func (k *nodeKind) ruleName() string {
-	if k == nil {
-		return ""
-	}
-	return k.rule
-}
-
-// Kinds of the value model that are not nodes. Their names cannot be type names.
-// TypeTupleValue and TypeListValue are for generated parsers; not a stable API.
-const (
-	typeBox        = "(box)"   // a value other than a node, carried where a node pointer is expected
-	TypeTupleValue = "(tuple)" // a tuple value: the Value of a tuple node
-	TypeListValue  = "(list)"  // a list value: the Value of a list node, or a list made by an action
-)
-
-var reservedTypes = [...]string{"string", "tuple", "list", "error", typeBox, TypeTupleValue, TypeListValue}
-
-var (
-	// RawKindMatch, RawKindSeq and RawKindList are for generated parsers; not a stable API.
-	RawKindMatch = KindOf("string", "")
-	RawKindSeq   = KindOf("tuple", "")
-	RawKindList  = KindOf("list", "")
-	kindError    = KindOf("error", "")
-
-	kindBox        = KindOf(typeBox, "")
-	kindTupleValue = KindOf(TypeTupleValue, "")
-	kindListValue  = KindOf(TypeListValue, "")
+	"zeroparse.dev/zp/runtime/noderep"
+	"zeroparse.dev/zp/runtime/parse"
 )
 
 // isNode reports whether n is a node of the value model (a string node, a tuple or list node, or
 // an error value) rather than a struct, a box or a list or tuple value.
-func (n *Node) isNode() bool {
-	if k := n.RawKind; k != nil && k.Base >= 0 && k.Base <= baseError {
+func isNode(n *parse.Node) bool {
+	if k := D(n).Kind; k != nil && k.Base >= 0 && k.Base <= noderep.BaseError {
 		return true
 	}
-	return n.RawTerminal
+	return D(n).Terminal
 }
 
 // UnboxNode returns the value that the carrier n stands for: the box's value for a box, nil for
 // nil, and n otherwise.
 //
 // UnboxNode is for generated parsers; not a stable API.
-func UnboxNode(n *Node) any {
+func UnboxNode(n *parse.Node) any {
 	if n == nil {
 		return nil
 	}
-	if n.RawKind == kindBox {
-		return n.box
+	if D(n).Kind == noderep.BoxKind {
+		return D(n).Box
 	}
 	return n
 }
@@ -144,7 +48,7 @@ func UnboxNode(n *Node) any {
 //
 // UnboxValue is for generated parsers; not a stable API.
 func UnboxValue(v any) any {
-	if n, ok := v.(*Node); ok {
+	if n, ok := v.(*parse.Node); ok {
 		return UnboxNode(n)
 	}
 	return v
@@ -152,51 +56,24 @@ func UnboxValue(v any) any {
 
 // nodeValue returns the Value of the node n: its text for a string node, and a tuple or list
 // value sharing its elements otherwise.
-func (p *Parser) nodeValue(n *Node) any {
+func (p *Parser) nodeValue(n *parse.Node) any {
 	switch {
-	case n.RawTerminal:
-		return n.RawText
-	case n.RawKind != nil && n.RawKind.Base == baseList:
-		return p.NewNode(Node{RawKind: kindListValue, RawStart: n.RawStart, RawEnd: n.RawEnd, RawChildren: n.RawChildren})
+	case D(n).Terminal:
+		return D(n).Text
+	case D(n).Kind != nil && D(n).Kind.Base == noderep.BaseList:
+		return p.NewNode(Data{Kind: noderep.ListValueKind, Start: D(n).Start, End: D(n).End, Children: D(n).Children})
 	}
-	return p.NewNode(Node{RawKind: kindTupleValue, RawStart: n.RawStart, RawEnd: n.RawEnd, RawChildren: n.RawChildren})
+	return p.NewNode(Data{Kind: noderep.TupleValueKind, Start: D(n).Start, End: D(n).End, Children: D(n).Children})
 }
-
-var kinds sync.Map // [2]string → *nodeKind
 
 // KindOf returns the interned kind of the type and rule names (rules and actions prepare theirs).
 //
 // KindOf is for generated parsers; not a stable API.
-func KindOf(typ, rule string) *nodeKind {
-	key := [2]string{typ, rule}
-	if k, ok := kinds.Load(key); ok {
-		return k.(*nodeKind)
-	}
-	k := &nodeKind{typ: typ, rule: rule, reserved: -1, Base: -1}
-	for i, t := range reservedTypes {
-		if t == typ {
-			k.Base = i
-			if rule == "" {
-				k.reserved = i
-			}
-		}
-	}
-	actual, _ := kinds.LoadOrStore(key, k)
-	return actual.(*nodeKind)
-}
-
-// The indexes in reservedTypes of the bases of node kinds. BaseString is for generated
-// parsers; not a stable API.
-const (
-	BaseString = iota
-	baseTuple
-	baseList
-	baseError
-)
+func KindOf(typ, rule string) *noderep.Kind { return noderep.KindOf(typ, rule) }
 
 // nodeTypeKinds are the kinds of the nodes of a named node type, by the base (BaseString,
-// baseTuple, baseList) of the node converted to it. They have no rule.
-type nodeTypeKinds [baseList + 1]*nodeKind
+// noderep.BaseTuple, noderep.BaseList) of the node converted to it. They have no rule.
+type nodeTypeKinds [noderep.BaseList + 1]*noderep.Kind
 
 // NewNodeTypeKinds returns the interned kinds of the named node type typ.
 //
@@ -204,13 +81,7 @@ type nodeTypeKinds [baseList + 1]*nodeKind
 func NewNodeTypeKinds(typ string) *nodeTypeKinds {
 	var ks nodeTypeKinds
 	for base := range ks {
-		// The key cannot be that of a rule, whose name has no NUL.
-		key := [2]string{typ, "\x00" + reservedTypes[base]}
-		k, ok := kinds.Load(key)
-		if !ok {
-			k, _ = kinds.LoadOrStore(key, &nodeKind{typ: typ, reserved: -1, Base: base})
-		}
-		ks[base] = k.(*nodeKind)
+		ks[base] = noderep.NodeTypeKind(typ, base)
 	}
 	return &ks
 }
@@ -218,9 +89,9 @@ func NewNodeTypeKinds(typ string) *nodeTypeKinds {
 // convert returns the node of the named node type of ks that the value v converts to: a copy of
 // v with the same range and content, or v itself if it already has the type. It reports false if
 // v is not a string, tuple or list node.
-func (ks *nodeTypeKinds) convert(v any) (*Node, bool) {
+func (ks *nodeTypeKinds) convert(v any) (*parse.Node, bool) {
 	n, ok := nodeOf(v)
-	if !ok || !n.hasBase() {
+	if !ok || !hasBase(n) {
 		return nil, false
 	}
 	return ks.retype(n), true
@@ -228,47 +99,47 @@ func (ks *nodeTypeKinds) convert(v any) (*Node, bool) {
 
 // hasBase reports whether n is a string, tuple or list node, of a named node type or not: a node
 // that a conversion converts. It is the operation node.hasBase.
-func (n *Node) hasBase() bool {
-	return n.RawKind != nil && n.RawKind.Base >= 0 && n.RawKind.Base <= baseList
+func hasBase(n *parse.Node) bool {
+	return D(n).Kind != nil && D(n).Kind.Base >= 0 && D(n).Kind.Base <= noderep.BaseList
 }
 
 // retype returns n, a string, tuple or list node, as a node of the named node type of ks: a copy of
 // n with the same range and content, or n itself if it already has the type. It is the operation
 // node.convert.
-func (ks *nodeTypeKinds) retype(n *Node) *Node {
-	k := ks[n.RawKind.Base]
-	if n.RawKind == k {
+func (ks *nodeTypeKinds) retype(n *parse.Node) *parse.Node {
+	k := ks[D(n).Kind.Base]
+	if D(n).Kind == k {
 		return n
 	}
-	c := *n
-	c.RawKind, c.RawFresh = k, false
-	if n.RawFresh {
+	c := *D(n)
+	c.Kind, c.Fresh = k, false
+	if D(n).Fresh {
 		// The rule that made n may still change it; the copy keeps what it holds now.
-		c.RawChildren = append([]*Node(nil), n.RawChildren...)
+		c.Children = append([]*parse.Node(nil), D(n).Children...)
 	}
-	c.RawFields = append(Fields(nil), n.RawFields...)
-	return &c
+	c.Fields = append(noderep.Fields(nil), D(n).Fields...)
+	return nodeOfData(&c)
 }
 
 // convertOwned gives n, a node that nothing else holds, the named node type of ks in place. It
 // reports false if n is not a string, tuple or list node.
-func (ks *nodeTypeKinds) convertOwned(n *Node) bool {
-	if n == nil || !n.hasBase() {
+func (ks *nodeTypeKinds) convertOwned(n *parse.Node) bool {
+	if n == nil || !hasBase(n) {
 		return false
 	}
-	n.RawKind = ks[n.RawKind.Base]
+	D(n).Kind = ks[D(n).Kind.Base]
 	return true
 }
 
 // BaseNode returns the node n of a named node type as the string, tuple or list node it was
 // converted from: a copy with the kind of that node (n itself for other nodes).
-func (n *Node) BaseNode() *Node {
-	if !n.RawKind.NodeType() {
+func BaseNode(n *parse.Node) *parse.Node {
+	if !D(n).Kind.IsNodeType() {
 		return n
 	}
-	c := *n
-	c.RawKind = KindOf(reservedTypes[n.RawKind.Base], "")
-	return &c
+	c := *D(n)
+	c.Kind = baseKinds[D(n).Kind.Base]
+	return nodeOfData(&c)
 }
 
 // TermNodeType returns the named node type typ, the operand of TermConvert.
@@ -276,295 +147,32 @@ func (n *Node) BaseNode() *Node {
 // TermNodeType is for generated parsers; not a stable API.
 func (p *Parser) TermNodeType(typ string) *nodeTypeKinds { return p.g.NodeTypes[typ] }
 
-// ruleKinds are the kinds of a rule's nodes: the reserved types with the rule's name.
-type ruleKinds struct {
-	reserved [len(reservedTypes)]*nodeKind
-}
-
-func newRuleKinds(rule string) ruleKinds {
-	var rk ruleKinds
-	for i, t := range reservedTypes {
-		rk.reserved[i] = KindOf(t, rule)
-	}
-	return rk
-}
-
-// named returns the kind k with the rule's name. A node of a named node type keeps no rule.
-func (rk *ruleKinds) named(k *nodeKind, rule string) *nodeKind {
-	if k.reserved >= 0 {
-		return rk.reserved[k.reserved]
-	}
-	if k.Base >= 0 {
-		return k
-	}
-	return KindOf(k.typ, rule)
-}
-
-// NodeField is a field of a node.
-type NodeField struct {
-	Name  string
-	Value any
-}
-
-// Fields lists the fields of a node. It encodes to JSON as an object with keys in sorted order.
-type Fields []NodeField
-
-// Get returns the value of the field name.
-func (fs Fields) Get(name string) (any, bool) {
-	for i := range fs {
-		if fs[i].Name == name {
-			return fs[i].Value, true
-		}
-	}
-	return nil, false
-}
-
-func (fs *Fields) set(name string, v any) {
-	for i := range *fs {
-		if (*fs)[i].Name == name {
-			(*fs)[i].Value = v
-			return
-		}
-	}
-	*fs = append(*fs, NodeField{name, v})
-}
-
-func (fs Fields) sorted() Fields {
-	c := append(Fields(nil), fs...)
-	sort.Slice(c, func(i, j int) bool { return c[i].Name < c[j].Name })
-	return c
-}
-
-// MarshalJSON encodes the fields as an object with keys in sorted order.
-func (fs Fields) MarshalJSON() ([]byte, error) {
-	var b bytes.Buffer
-	b.WriteByte('{')
-	for i, f := range fs.sorted() {
-		if i > 0 {
-			b.WriteByte(',')
-		}
-		k, _ := json.Marshal(f.Name)
-		b.Write(k)
-		b.WriteByte(':')
-		if err := writeJSONValue(&b, f.Value); err != nil {
-			return nil, err
-		}
-	}
-	b.WriteByte('}')
-	return b.Bytes(), nil
-}
-
-// IsTerminal reports whether the node is a terminal.
-func (n *Node) IsTerminal() bool { return n != nil && n.RawTerminal }
-
-// NodeKind is what a Node stands for in the value model.
-type NodeKind uint8
-
-const (
-	// KindString is a node whose value is a string, the text it matched: Text.
-	KindString NodeKind = iota
-	// KindTuple is a node whose value is a tuple: Len and Elem.
-	KindTuple
-	// KindList is a node whose value is a list: Len and Elem.
-	KindList
-	// KindError is an error value of recovery: Text is its message.
-	KindError
-	// KindStruct is a struct built by an action: Type and Field.
-	KindStruct
-	// KindTupleValue is a tuple built by an action, without a range: Len and Elem.
-	KindTupleValue
-	// KindListValue is a list built by an action, without a range: Len and Elem.
-	KindListValue
-	// KindValue is any other value built by an action, such as an int or a bool: Value.
-	KindValue
-)
-
-var nodeKindNames = [...]string{"string", "tuple", "list", "error", "struct", "tuple value", "list value", "value"}
-
-func (k NodeKind) String() string {
-	if int(k) < len(nodeKindNames) {
-		return nodeKindNames[k]
-	}
-	return fmt.Sprintf("NodeKind(%d)", k)
-}
-
-// Kind returns what the node stands for.
-func (n *Node) Kind() NodeKind {
-	switch n.shape() {
-	case shapeString:
-		return KindString
-	case shapeTuple:
-		return KindTuple
-	case shapeList:
-		return KindList
-	case shapeError:
-		return KindError
-	case shapeBox:
-		return KindValue
-	case shapeTupleValue:
-		return KindTupleValue
-	case shapeListValue:
-		return KindListValue
-	}
-	return KindStruct
-}
-
-// Start returns the start of the range of the input that the node spans, in the position unit of
-// the parse.
-func (n *Node) Start() int { return int(n.RawStart) }
-
-// End returns the end of the range of the input that the node spans (exclusive), in the position
-// unit of the parse.
-func (n *Node) End() int { return int(n.RawEnd) }
-
-// Text returns the string value of a KindString node, and the message of a KindError value; it
-// returns "" for other nodes and nil.
-func (n *Node) Text() string {
-	if n == nil {
-		return ""
-	}
-	switch n.shape() {
-	case shapeString:
-		return n.RawText
-	case shapeError:
-		msg, _ := n.RawFields.Get("message")
-		s, _ := msg.(string)
-		return s
-	}
-	return ""
-}
-
-// Len returns the number of elements of a tuple or a list (KindTuple, KindList, KindTupleValue,
-// KindListValue), and 0 for other nodes and nil.
-func (n *Node) Len() int {
-	if n == nil {
-		return 0
-	}
-	switch n.shape() {
-	case shapeTuple, shapeList, shapeTupleValue, shapeListValue:
-		return len(n.RawChildren)
-	}
-	return 0
-}
-
-// Elem returns the element i of a tuple or a list: a node, or nil for an optional that did not
-// match. It panics if i is out of the range [0, Len()).
-func (n *Node) Elem(i int) *Node {
-	if i < 0 || i >= n.Len() {
-		panic(fmt.Sprintf("element %d of a node with %d elements", i, n.Len()))
-	}
-	return n.RawChildren[i]
-}
-
-// Elems returns the elements of a tuple or a list in order, as Elem does.
-func (n *Node) Elems() iter.Seq2[int, *Node] {
-	return func(yield func(int, *Node) bool) {
-		for i := range n.Len() {
-			if !yield(i, n.RawChildren[i]) {
-				return
-			}
-		}
-	}
-}
-
-// Value returns the value of a KindValue node (such as an int, a string or a bool) and the string
-// of a KindString node; it returns nil for other nodes and nil.
-func (n *Node) Value() any {
-	if n == nil {
-		return nil
-	}
-	switch n.shape() {
-	case shapeBox:
-		return n.box
-	case shapeString:
-		return n.RawText
-	}
-	return nil
-}
-
-// Field returns the value of the field name of a struct, and, with source information, the value
-// of the capture name of a node: a *Node, an int, a string, a bool, or nil.
-func (n *Node) Field(name string) any {
-	if !n.fieldsVisible() {
-		return nil
-	}
-	return n.RawField(name)
-}
-
 // RawField returns the value of the field or capture name, whether or not it is public.
-func (n *Node) RawField(name string) any {
+func RawField(n *parse.Node, name string) any {
 	if n == nil {
 		return nil
 	}
-	v, _ := n.RawFields.Get(name)
+	v, _ := D(n).Fields.Get(name)
 	return v
-}
-
-// fieldsVisible reports whether the fields of n are public: those of a struct, and the captures
-// of a node with source information.
-func (n *Node) fieldsVisible() bool {
-	return n != nil && (n.labeled || n.shape() == shapeStruct)
-}
-
-// Fields returns the fields of a struct, and, with source information, the captures of a node,
-// in the order the action wrote them.
-func (n *Node) Fields() iter.Seq2[string, any] {
-	return func(yield func(string, any) bool) {
-		if !n.fieldsVisible() {
-			return
-		}
-		for _, f := range n.RawFields {
-			if !yield(f.Name, f.Value) {
-				return
-			}
-		}
-	}
-}
-
-// nodeShape is what a Node stands for in the value model.
-type nodeShape uint8
-
-const (
-	shapeString     nodeShape = iota // a node whose value is a string (Text)
-	shapeTuple                       // a node whose value is a tuple (Children)
-	shapeList                        // a node whose value is a list (Children)
-	shapeError                       // an error value of recovery
-	shapeBox                         // a box carrying a value other than a node
-	shapeTupleValue                  // a tuple value (Children)
-	shapeListValue                   // a list value (Children)
-	shapeStruct                      // a struct value (Fields)
-)
-
-// baseShapes are the shapes of the nodes of the kinds of each base (nodeKind.Base).
-var baseShapes = [len(reservedTypes)]nodeShape{shapeString, shapeTuple, shapeList, shapeError, shapeBox, shapeTupleValue, shapeListValue}
-
-func (n *Node) shape() nodeShape {
-	if k := n.RawKind; k != nil && k.Base >= 0 {
-		return baseShapes[k.Base]
-	}
-	if n.RawTerminal {
-		return shapeString
-	}
-	return shapeStruct
 }
 
 // valueTypeName names the type of a value of the given shape in messages, in the terms of the
 // value model: node[string] for a string node, node[(_, _)] and node[[]_] for tuple and list
 // nodes (a tuple has elems elements), error for an error value, (_, _) and []_ for tuple and list
 // values, and name for a struct.
-func valueTypeName(shape nodeShape, name string, elems int) string {
+func valueTypeName(shape noderep.Shape, name string, elems int) string {
 	switch shape {
-	case shapeString:
+	case noderep.ShapeString:
 		return "node[string]"
-	case shapeTuple:
+	case noderep.ShapeTuple:
 		return "node[" + tupleTerm(elems) + "]"
-	case shapeList:
+	case noderep.ShapeList:
 		return "node[[]_]"
-	case shapeError:
+	case noderep.ShapeError:
 		return "error"
-	case shapeTupleValue:
+	case noderep.ShapeTupleValue:
 		return tupleTerm(elems)
-	case shapeListValue:
+	case noderep.ShapeListValue:
 		return "[]_"
 	}
 	return name
@@ -578,299 +186,15 @@ func tupleTerm(n int) string {
 	return "(" + strings.TrimSuffix(strings.Repeat("_, ", n), ", ") + ")"
 }
 
-// captureLocation is where a capture of a node is: a path of tuple indexes into the node's
-// value, or, for a capture whose value is not an element (one in a positive lookahead), its value.
-type captureLocation struct {
-	name  string
-	path  []int
-	side  bool
-	value any
-}
-
-// captureLocations returns the locations of the captures of the tuple node n, in name order.
-func captureLocations(n *Node) []captureLocation {
-	var out []captureLocation
-	for _, f := range n.RawFields.sorted() {
-		v, ok := f.Value.(*Node)
-		if !ok || v == nil {
-			if f.Value != nil {
-				out = append(out, captureLocation{name: f.Name, side: true, value: f.Value})
-			}
-			continue
-		}
-		if path, found := findElement(n, v); found {
-			out = append(out, captureLocation{name: f.Name, path: path})
-		} else {
-			out = append(out, captureLocation{name: f.Name, side: true, value: v})
-		}
-	}
-	return out
-}
-
-// findElement returns the path of x among the elements of the tuple node n and of the tuple nodes
-// nested in it, breadth first.
-// WalkFields returns the fields that Walk visits, in name order: the fields of a struct, and the
-// captures of a node with source information except those whose values are its elements, which
-// Walk visits as elements. Visiting those again would make Walk exponential in the nesting of
-// operator nodes, whose captures are their operands. The captures of a node without source
-// information are not part of the tree.
-//
-// WalkFields is for generated parsers; not a stable API.
-func WalkFields(n *Node) Fields {
-	if !n.fieldsVisible() {
-		return nil
-	}
-	fields := n.RawFields.sorted()
-	if !n.labeled {
-		return fields
-	}
-	out := fields[:0]
-	for _, f := range fields {
-		if v, ok := f.Value.(*Node); ok && v != nil {
-			if _, found := findElement(n, v); found {
-				continue
-			}
-		}
-		out = append(out, f)
-	}
-	return out
-}
-
-func findElement(n, x *Node) ([]int, bool) {
-	type item struct {
-		n    *Node
-		path []int
-	}
-	queue := []item{{n, nil}}
-	for len(queue) > 0 {
-		it := queue[0]
-		queue = queue[1:]
-		for i, c := range it.n.RawChildren {
-			if c == nil {
-				continue
-			}
-			path := append(append([]int{}, it.path...), i)
-			if c == x {
-				return path, true
-			}
-			if c.shape() == shapeTuple && c.Rule() == "" {
-				queue = append(queue, item{c, path})
-			}
-		}
-	}
-	return nil, false
-}
-
-// String renders the value as an S-expression of its shape, without positions: a string is
-// quoted, a tuple is ( ), a list [ ], nil is nil, a struct is Name{Field: value}, and an error is
-// error("message"). A node of a named node type N is written with N before its brackets:
-// N("text"), N( ) and N[ ]. With source information, a node is followed by @rule, a captured element is
-// preceded by name:, and a capture whose value is not an element is written after the elements
-// as &name:value.
-func (n *Node) String() string {
-	var b strings.Builder
-	writeValue(&b, n)
-	return b.String()
-}
-
-// sexprFrame is a step of writeValue, which keeps its own stack for deep trees.
-type sexprFrame struct {
-	v      any
-	i      int
-	enter  bool
-	labels map[*Node][]string
-	side   []captureLocation
-	close  string
-}
-
-func writeValue(b *strings.Builder, v any) {
-	stack := []sexprFrame{{v: v, enter: true}}
-	for len(stack) > 0 {
-		f := &stack[len(stack)-1]
-		n, isNode := f.v.(*Node)
-		if !isNode || n == nil {
-			writeScalar(b, f.v)
-			stack = stack[:len(stack)-1]
-			continue
-		}
-		sh := n.shape()
-		if f.enter {
-			f.enter = false
-			switch sh {
-			case shapeBox:
-				f.v, f.enter = n.box, true
-				continue
-			case shapeString:
-				if n.RawKind.NodeType() {
-					b.WriteString(n.Type() + "(" + strconv.Quote(n.RawText))
-					f.close = ")" + ruleSuffix(n)
-				} else {
-					b.WriteString(strconv.Quote(n.RawText))
-					f.close = ruleSuffix(n)
-				}
-				f.i = -1
-			case shapeError:
-				msg, _ := n.RawFields.Get("message")
-				b.WriteString("error(" + strconv.Quote(fmt.Sprint(msg)))
-				if expected, ok := n.RawFields.Get("expected"); ok {
-					b.WriteString(" expected " + strconv.Quote(fmt.Sprint(expected)))
-				}
-				b.WriteString(")")
-				f.i = -1
-			case shapeTuple, shapeTupleValue:
-				b.WriteString(nodeTypePrefix(n) + "(")
-				f.close = ")" + ruleSuffix(n)
-				if sh == shapeTuple && n.labeled {
-					f.labels = map[*Node][]string{}
-					for _, c := range captureLocations(n) {
-						if c.side {
-							f.side = append(f.side, c)
-							continue
-						}
-						x := n
-						for _, i := range c.path {
-							x = x.RawChildren[i]
-						}
-						f.labels[x] = append(f.labels[x], c.name)
-					}
-				}
-			case shapeList, shapeListValue:
-				b.WriteString(nodeTypePrefix(n) + "[")
-				f.close = "]" + ruleSuffix(n)
-			case shapeStruct:
-				b.WriteString(n.Type() + "{")
-				f.close = "}"
-			}
-		}
-		if f.i < 0 {
-			b.WriteString(f.close)
-			stack = stack[:len(stack)-1]
-			continue
-		}
-		if sh == shapeStruct {
-			fields := n.RawFields.sorted()
-			if f.i == len(fields) {
-				b.WriteString(f.close)
-				stack = stack[:len(stack)-1]
-				continue
-			}
-			if f.i > 0 {
-				b.WriteString(", ")
-			}
-			b.WriteString(fields[f.i].Name + ": ")
-			f.i++
-			stack = append(stack, sexprFrame{v: fields[f.i-1].Value, enter: true})
-			continue
-		}
-		if f.i == len(n.RawChildren) {
-			for j, c := range f.side {
-				if f.i > 0 || j > 0 {
-					b.WriteString(" ")
-				}
-				b.WriteString("&" + c.name + ":")
-				var side strings.Builder
-				writeValue(&side, c.value)
-				b.WriteString(side.String())
-			}
-			b.WriteString(f.close)
-			stack = stack[:len(stack)-1]
-			continue
-		}
-		if f.i > 0 {
-			b.WriteString(" ")
-		}
-		c := n.RawChildren[f.i]
-		f.i++
-		labels := f.labels
-		for _, name := range labels[c] {
-			b.WriteString(name + ":")
-		}
-		next := sexprFrame{v: c, enter: true}
-		if c != nil && c.shape() == shapeTuple && c.Rule() == "" {
-			// A tuple nested in the node's own tuple holds the node's captures too.
-			next.labels = labels
-		}
-		stack = append(stack, next)
-	}
-}
-
-// nodeTypePrefix returns the name that a node of a named node type puts before its opening
-// bracket, or "".
-func nodeTypePrefix(n *Node) string {
-	if n.RawKind.NodeType() {
-		return n.Type()
-	}
-	return ""
-}
-
-func ruleSuffix(n *Node) string {
-	if r := n.Rule(); r != "" {
-		return "@" + r
-	}
-	return ""
-}
-
-func writeScalar(b *strings.Builder, v any) {
-	switch v := v.(type) {
-	case nil:
-		b.WriteString("nil")
-	case *Node:
-		b.WriteString("nil")
-	case string:
-		b.WriteString(strconv.Quote(v))
-	case int:
-		b.WriteString(strconv.Itoa(v))
-	case bool:
-		b.WriteString(strconv.FormatBool(v))
-	default:
-		fmt.Fprintf(b, "%v", v)
-	}
-}
-
-// SyntaxError reports that the input does not match the grammar.
-type SyntaxError struct {
-	Pos  int
-	Line int
-	Col  int
-	// Expected lists every entry that was expected at Pos: names, then
-	// literals, then classes, each in byte order. Message shows at most the
-	// first ten of them.
-	Expected []string
-	Messages []string
-}
-
-func (e *SyntaxError) Error() string {
-	return fmt.Sprintf("%d:%d: %s", e.Line, e.Col, e.Message())
-}
-
-// Message describes the error without its position.
-func (e *SyntaxError) Message() string {
-	if len(e.Messages) > 0 {
-		return strings.Join(e.Messages, "; ")
-	}
-	return expectedMessage(e.Expected)
-}
-
-// SyntaxErrors lists the syntax errors recovered from with #recover.
-type SyntaxErrors []*SyntaxError
-
-func (l SyntaxErrors) Error() string {
-	msgs := make([]string, len(l))
-	for i, e := range l {
-		msgs[i] = e.Error()
-	}
-	return strings.Join(msgs, "\n")
-}
-
 // --- Rules ---
 
 // Rule is for generated parsers; not a stable API.
 type Rule struct {
-	kinds ruleKinds // the node kinds the rule makes (set by setKinds)
+	kinds noderep.RuleKinds // the node kinds the rule makes (set by setKinds)
 	Id    int
 	Name  string
 	Scope []string // capture names of the rule body, in slot order
-	Body  func(p *Parser, min int) (*Node, bool)
+	Body  func(p *Parser, min int) (*parse.Node, bool)
 	// Action returns the value of the rule's action and the failure that ends its evaluation, nil if
 	// it does not fail.
 	Action func(c *ActCtx) (any, any)
@@ -948,7 +272,7 @@ type grammar struct {
 	// StructFields holds the fields of each struct type (DeclareStruct).
 	StructFields map[string]*structFields
 	// TypeKinds holds the node kinds of the struct types.
-	TypeKinds map[string]*nodeKind
+	TypeKinds map[string]*noderep.Kind
 	// NodeTypes holds the kinds of the grammar's named node types, also under the names of the
 	// aliases of them.
 	NodeTypes map[string]*nodeTypeKinds
@@ -1027,7 +351,7 @@ func (g *grammar) indexInitVals() {
 // NewGrammar is for generated parsers; not a stable API.
 func NewGrammar(maxDepth int) *grammar {
 	return &grammar{maxDepth: maxDepth, StructFields: map[string]*structFields{},
-		TypeKinds: map[string]*nodeKind{}, NodeTypes: map[string]*nodeTypeKinds{}}
+		TypeKinds: map[string]*noderep.Kind{}, NodeTypes: map[string]*nodeTypeKinds{}}
 }
 
 // structFields holds the zero descriptor of each field of a struct type (spec/language/types.md#zero-values): i, s and b for 0, "" and false; n for nil; l for the
@@ -1056,7 +380,7 @@ func (g *grammar) SetRules(rules []*Rule, nseen int) {
 	numberLeaders(rules)
 	for _, r := range rules {
 		r.g = g
-		r.kinds = newRuleKinds(r.Name)
+		r.kinds = noderep.NewRuleKinds(r.Name)
 		if r.NodeType != "" {
 			r.nodeKinds = NewNodeTypeKinds(r.NodeType)
 		}
@@ -1110,24 +434,14 @@ func (g *grammar) StartError(name string) error {
 	return fmt.Errorf("rule %s is not a start rule; parsing can begin only at a rule marked @start", name)
 }
 
-// PositionUnit is the unit of input positions.
-type PositionUnit int
-
-const (
-	// CodePoints counts Unicode code points. It is the default.
-	CodePoints PositionUnit = iota
-	// Bytes counts UTF-8 bytes.
-	Bytes
-)
-
 // ParseOption configures an individual parsing invocation. Options apply in order.
 type ParseOption func(*parseOptions)
 
 type parseOptions struct {
-	unit     PositionUnit
+	unit     parse.PositionUnit
 	maxDepth int
 	context  context.Context
-	limits   Limits
+	limits   parse.Limits
 	control  *BudgetControl
 	prepared bool
 	// expectations selects the recording of expectations; ResolveOptions rejects it for a parser
@@ -1143,13 +457,13 @@ type parseOptions struct {
 	// streaming is set by the stream entry points, which alone accept the
 	// diagnostic options.
 	streaming          bool
-	diagnostic         func(*SyntaxError) error
+	diagnostic         func(*parse.SyntaxError) error
 	diagnosticLimit    int
 	diagnosticLimitSet bool
 }
 
 // WithUnit selects the unit of input positions (CodePoints by default).
-func WithUnit(unit PositionUnit) ParseOption { return func(o *parseOptions) { o.unit = unit } }
+func WithUnit(unit parse.PositionUnit) ParseOption { return func(o *parseOptions) { o.unit = unit } }
 
 // WithExpectations makes the parse record what a syntax error expects and the messages of @error,
 // which the SyntaxError then lists. Without it the error carries the farthest failure position only.
@@ -1165,7 +479,7 @@ func WithContext(ctx context.Context) ParseOption { return func(o *parseOptions)
 // of an earlier WithLimits, including the construction defaults of a Document, and a zero field
 // leaves it unchanged. A field that no option sets takes its default; Unlimited disables a limit.
 // Counters are never rolled back.
-func WithLimits(limits Limits) ParseOption {
+func WithLimits(limits parse.Limits) ParseOption {
 	return func(o *parseOptions) { o.limits = mergeLimits(o.limits, limits) }
 }
 
@@ -1185,7 +499,7 @@ func ResolveOptions(g *grammar, opts []ParseOption) (parseOptions, error) {
 		return o, err
 	}
 	o.maxDepth = depth
-	if g.NoBudgetControls && (o.context != nil || !o.limits.disabled()) {
+	if g.NoBudgetControls && (o.context != nil || !limitsDisabled(o.limits)) {
 		return o, fmt.Errorf("this parser was generated without limit controls (generate with -limits to use WithContext and a finite Compute or Memory limit)")
 	}
 	if o.expectations && !g.Expectations {
@@ -1206,7 +520,7 @@ func resolveDepth(depth uint64, def int) (int, error) {
 	switch {
 	case depth == 0:
 		return def, nil
-	case depth == Unlimited:
+	case depth == parse.Unlimited:
 		return 0, fmt.Errorf("a generated parser does not accept an unlimited depth: it nests rule calls on the goroutine stack")
 	case depth > math.MaxInt:
 		return math.MaxInt, nil
@@ -1245,22 +559,22 @@ func prepareOptions(o parseOptions, n uint64, stream bool) parseOptions {
 		o.prepared = true
 		l, adaptive := o.limits, false
 		// A limit beyond math.MaxInt bounds no stream.
-		if l.Input != 0 && l.Input != Unlimited && l.Input <= math.MaxInt {
+		if l.Input != 0 && l.Input != parse.Unlimited && l.Input <= math.MaxInt {
 			o.maxInput = int(l.Input)
 		}
 		l.Input = 0 // checked on entry, or by the stream; it needs no control
-		if l.Memory == Unlimited {
+		if l.Memory == parse.Unlimited {
 			l.Memory = 0 // the default of Memory is Unlimited
 		}
 		switch {
-		case l.Compute == Unlimited:
+		case l.Compute == parse.Unlimited:
 			l.Compute = 0
 		case l.Compute == 0 && o.controls && stream:
 			l.Compute, adaptive = defaultBudgetFloor, true
 		case l.Compute == 0 && o.controls:
 			l.Compute = defaultBudget(n)
 		}
-		if o.context != nil || l != (Limits{}) {
+		if o.context != nil || l != (parse.Limits{}) {
 			o.control = newBudgetControl(o.context, l)
 			if o.control != nil {
 				o.control.adaptive = adaptive
@@ -1286,13 +600,13 @@ func (o parseOptions) forDocument() parseOptions {
 // where the count of code points decides.
 func prepareText(o parseOptions, text string) parseOptions {
 	if !o.prepared {
-		if max := o.limits.Input; max != 0 && max != Unlimited {
+		if max := o.limits.Input; max != 0 && max != parse.Unlimited {
 			n := uint64(len(text))
-			if n > max && o.unit == CodePoints {
+			if n > max && o.unit == parse.CodePoints {
 				n = uint64(utf8.RuneCountInString(text))
 			}
 			if n > max {
-				panic(fatal{err: &LimitError{Kind: LimitInput, Limit: max, Requested: n}})
+				panic(fatal{err: &parse.LimitError{Kind: parse.LimitInput, Limit: max, Requested: n}})
 			}
 		}
 	}
@@ -1319,7 +633,7 @@ func recoverParse[T any](v *T, err *error) {
 // RunParse parses the whole input with rule r.
 //
 // RunParse is for generated parsers; not a stable API.
-func RunParse(r *Rule, input string, opts []ParseOption) (n *Node, err error) {
+func RunParse(r *Rule, input string, opts []ParseOption) (n *parse.Node, err error) {
 	o, err := ResolveOptions(r.g, opts)
 	if err != nil {
 		return nil, err
@@ -1328,14 +642,14 @@ func RunParse(r *Rule, input string, opts []ParseOption) (n *Node, err error) {
 }
 
 // RunParseResolved is for generated parsers; not a stable API.
-func RunParseResolved(r *Rule, input string, o parseOptions) (n *Node, err error) {
+func RunParseResolved(r *Rule, input string, o parseOptions) (n *parse.Node, err error) {
 	defer recoverParse(&n, &err)
 	return parseResolvedSpend(r, input, o)
 }
 
 // parseResolvedSpend lets a conversion boundary distinguish engine interruption
 // from an ordinary nil result without inspecting caller-owned error values.
-func parseResolvedSpend(r *Rule, input string, o parseOptions) (n *Node, err error) {
+func parseResolvedSpend(r *Rule, input string, o parseOptions) (n *parse.Node, err error) {
 	o = prepareText(o, input)
 	p, _ := ppool.Get().(*Parser)
 	if p == nil {
@@ -1348,8 +662,8 @@ func parseResolvedSpend(r *Rule, input string, o parseOptions) (n *Node, err err
 	o.control.attachMemory(p)
 	p.Observation = newObservation(&o.observe)
 	p.MaxDepth = o.maxDepth
-	if o.unit == Bytes {
-		p.unit, p.bs, p.n = Bytes, input, len(input)
+	if o.unit == parse.Bytes {
+		p.unit, p.bs, p.n = parse.Bytes, input, len(input)
 	} else {
 		p.setSource(input)
 	}
@@ -1359,7 +673,7 @@ func parseResolvedSpend(r *Rule, input string, o parseOptions) (n *Node, err err
 	p.Control.Check()
 	if ok && p.Pos == p.n {
 		if len(p.Recovered) > 0 {
-			return v, SyntaxErrors(p.recoveredErrors())
+			return v, parse.SyntaxErrors(p.recoveredErrors())
 		}
 		return v, nil
 	}
@@ -1451,7 +765,7 @@ type Parser struct {
 	looks    []lookRec
 	obsGuard []int32
 	seedSeq  uint64
-	unit     PositionUnit
+	unit     parse.PositionUnit
 	In       []rune // code points (CodePoints)
 	bs       string // the input (Bytes)
 	n        int    // input length in units
@@ -1467,9 +781,10 @@ type Parser struct {
 	decoded bool
 	Pos     int
 
-	MaxDepth int     // invocation-local maximum nesting
-	Depth    int     // nesting of recursive rule calls
-	created  []*Node // struct nodes made by the action being evaluated (from ActCtx.Cbase)
+	MaxDepth int       // invocation-local maximum nesting
+	Depth    int       // nesting of recursive rule calls
+	created  []*parse. // struct nodes made by the action being evaluated (from ActCtx.Cbase)
+			Node
 	Env      *Env
 	envDepth int // the depth of Env (grammar.envDepth)
 	Frame    *CaptureFrame
@@ -1508,16 +823,17 @@ type Parser struct {
 
 	// Result slabs, the stack that gathers repetition children, and the reused
 	// evaluation context.
-	nodeSlab  []Node
-	ptrSlab   []*Node
-	KidStack  []*Node
+	nodeSlab  []parse.Node
+	ptrSlab   []*parse.Node
+	KidStack  []*parse.Node
 	frameSlab []CaptureFrame // per-parse reference allocation only
 	// Capture slots are private scratch, separate from returned child lists.
 	captureScratch frameScratch
-	fieldSlab      []NodeField
+	fieldSlab      []noderep.NodeField
 	lines          []int // positions where lines start (MakeError)
 	ac             ActCtx
-	saved          []*Node // captures saved across a reset in longest
+	saved          []*parse. // captures saved across a reset in longest
+			Node
 	// skipTables are the records of the walks of skip-run sites, indexed by 2*site, plus 1 in a
 	// lookahead; skip is the walk in progress (skip_runs.go).
 	skipTables []*skipSlots
@@ -1537,7 +853,7 @@ type Parser struct {
 	docLow int
 	// moved maps the nodes of a value that holds a node more than once to their copies
 	// (documentMove).
-	moved map[*Node]*Node
+	moved map[*parse.Node]*parse.Node
 	// interned and internSeq number keys too large for a word while a growth is in progress (intern).
 	// They come last, away from the fields of every parse.
 	interned  map[string]uint64
@@ -1549,7 +865,7 @@ type Parser struct {
 type documentState struct {
 	root *Rule
 	text string
-	unit PositionUnit
+	unit parse.PositionUnit
 	// expectations is the recording mode of the Document, fixed at its construction.
 	expectations bool
 	memo         memoTable
@@ -1838,7 +1154,7 @@ func (t *memoTable) sparsePage(pos, r int) *[16]uint64 {
 }
 
 type memoEntry struct {
-	node     *Node
+	node     *parse.Node
 	errs     recEntry   // errors recovered in this call, recorded again on reuse
 	expected []ExpID    // expectations at far, recorded again on reuse
 	next     *memoEntry // next entry at the same position
@@ -2023,7 +1339,7 @@ func (t *memoTable) alloc() *memoEntry {
 }
 
 // CaptureFrame is for generated parsers; not a stable API.
-type CaptureFrame struct{ Vals []*Node }
+type CaptureFrame struct{ Vals []*parse.Node }
 
 // EmptyFrame is for generated parsers; not a stable API.
 var EmptyFrame = &CaptureFrame{}
@@ -2035,10 +1351,10 @@ const (
 
 // NewNode returns a copy of v allocated from the node slab. A slab stays alive while any of its
 // nodes is referenced.
-func (p *Parser) NewNode(v Node) *Node {
+func (p *Parser) NewNode(v Data) *parse.Node {
 	p.Spend()
 	if len(p.nodeSlab) == 0 {
-		p.nodeSlab = make([]Node, nodeChunk)
+		p.nodeSlab = make([]parse.Node, nodeChunk)
 		p.memUsed += nodeChunk * nodeBytes
 		if p.Stream != nil {
 			p.Stream.nodeChunks++
@@ -2046,35 +1362,35 @@ func (p *Parser) NewNode(v Node) *Node {
 	}
 	n := &p.nodeSlab[0]
 	p.nodeSlab = p.nodeSlab[1:]
-	*n = v
+	*D(n) = v
 	return n
 }
 
 // NewNodeOrdinary is NewNode in an ordinary parse (ExpectOrdinary).
-func (p *Parser) NewNodeOrdinary(v Node) *Node {
+func (p *Parser) NewNodeOrdinary(v Data) *parse.Node {
 	if len(p.nodeSlab) == 0 {
-		p.nodeSlab = make([]Node, nodeChunk)
+		p.nodeSlab = make([]parse.Node, nodeChunk)
 		if p.Stream != nil {
 			p.Stream.nodeChunks++
 		}
 	}
 	n := &p.nodeSlab[0]
 	p.nodeSlab = p.nodeSlab[1:]
-	*n = v
+	*D(n) = v
 	return n
 }
 
 // NewTerminal returns the node of text matched from start to the current position, allocated like
-// NewNode(Node{RawKind: RawKindMatch, ...}).
-func (p *Parser) NewTerminal(start int, text string) *Node {
+// NewNode(Data{Kind: noderep.MatchKind, ...}).
+func (p *Parser) NewTerminal(start int, text string) *parse.Node {
 	p.Spend()
 	return p.NewTerminalOrdinary(start, text)
 }
 
 // NewTerminalOrdinary is NewTerminal in an ordinary parse (ExpectOrdinary).
-func (p *Parser) NewTerminalOrdinary(start int, text string) *Node {
+func (p *Parser) NewTerminalOrdinary(start int, text string) *parse.Node {
 	if len(p.nodeSlab) == 0 {
-		p.nodeSlab = make([]Node, nodeChunk)
+		p.nodeSlab = make([]parse.Node, nodeChunk)
 		p.memUsed += nodeChunk * nodeBytes
 		if p.Stream != nil {
 			p.Stream.nodeChunks++
@@ -2082,21 +1398,21 @@ func (p *Parser) NewTerminalOrdinary(start int, text string) *Node {
 	}
 	n := &p.nodeSlab[0]
 	p.nodeSlab = p.nodeSlab[1:]
-	*n = Node{RawKind: RawKindMatch, RawStart: int32(start), RawEnd: int32(p.Pos), RawText: text, RawTerminal: true, RawFresh: true}
+	*D(n) = Data{Kind: noderep.MatchKind, Start: int32(start), End: int32(p.Pos), Text: text, Terminal: true, Fresh: true}
 	return n
 }
 
-// NewBranch returns the node of kind (RawKindSeq or RawKindList) with children from start to the
-// current position, allocated like NewNode(Node{RawKind: kind, ...}).
-func (p *Parser) NewBranch(kind *nodeKind, start int, children []*Node) *Node {
+// NewBranch returns the node of kind (noderep.SeqKind or noderep.ListKind) with children from start to the
+// current position, allocated like NewNode(Data{Kind: kind, ...}).
+func (p *Parser) NewBranch(kind *noderep.Kind, start int, children []*parse.Node) *parse.Node {
 	p.Spend()
 	return p.NewBranchOrdinary(kind, start, children)
 }
 
 // NewBranchOrdinary is NewBranch in an ordinary parse (ExpectOrdinary).
-func (p *Parser) NewBranchOrdinary(kind *nodeKind, start int, children []*Node) *Node {
+func (p *Parser) NewBranchOrdinary(kind *noderep.Kind, start int, children []*parse.Node) *parse.Node {
 	if len(p.nodeSlab) == 0 {
-		p.nodeSlab = make([]Node, nodeChunk)
+		p.nodeSlab = make([]parse.Node, nodeChunk)
 		p.memUsed += nodeChunk * nodeBytes
 		if p.Stream != nil {
 			p.Stream.nodeChunks++
@@ -2104,21 +1420,21 @@ func (p *Parser) NewBranchOrdinary(kind *nodeKind, start int, children []*Node) 
 	}
 	n := &p.nodeSlab[0]
 	p.nodeSlab = p.nodeSlab[1:]
-	*n = Node{RawKind: kind, RawStart: int32(start), RawEnd: int32(p.Pos), RawChildren: children, RawFresh: true}
+	*D(n) = Data{Kind: kind, Start: int32(start), End: int32(p.Pos), Children: children, Fresh: true}
 	return n
 }
 
 // Nodes returns a child list of length and capacity n from the pointer slab.
-func (p *Parser) Nodes(n int) []*Node {
+func (p *Parser) Nodes(n int) []*parse.Node {
 	if n == 0 {
-		return []*Node{}
+		return []*parse.Node{}
 	}
 	if n > ptrChunk/4 {
 		p.memUsed += uint64(n) * ptrBytes
-		return make([]*Node, n)
+		return make([]*parse.Node, n)
 	}
 	if len(p.ptrSlab) < n {
-		p.ptrSlab = make([]*Node, ptrChunk)
+		p.ptrSlab = make([]*parse.Node, ptrChunk)
 		p.memUsed += ptrChunk * ptrBytes
 	}
 	s := p.ptrSlab[:n:n]
@@ -2128,13 +1444,13 @@ func (p *Parser) Nodes(n int) []*Node {
 
 // fields returns an empty field list with capacity n from a chunk. Appending beyond n
 // reallocates, so neighbouring lists in the chunk are never overwritten.
-func (p *Parser) fields(n int) Fields {
+func (p *Parser) fields(n int) noderep.Fields {
 	if n > nodeChunk/4 {
 		p.memUsed += uint64(n) * fieldBytes
-		return make(Fields, 0, n)
+		return make(noderep.Fields, 0, n)
 	}
 	if len(p.fieldSlab) < n {
-		p.fieldSlab = make([]NodeField, nodeChunk)
+		p.fieldSlab = make([]noderep.NodeField, nodeChunk)
 		p.memUsed += nodeChunk * fieldBytes
 	}
 	fs := p.fieldSlab[:0:n]
@@ -2143,7 +1459,7 @@ func (p *Parser) fields(n int) Fields {
 }
 
 // Kids returns p.KidStack[base:] as a child list and pops it.
-func (p *Parser) Kids(base int) []*Node {
+func (p *Parser) Kids(base int) []*parse.Node {
 	ks := p.Nodes(len(p.KidStack) - base)
 	copySpend(p, ks, p.KidStack[base:])
 	p.DropKids(base)
@@ -2183,7 +1499,7 @@ const nodeFrameScratch = true
 // Append-only allocation also preserves retained OperatorsRule attempts and undo marks.
 type frameScratch struct {
 	frames  []*[nodeChunk]CaptureFrame
-	slots   []*[ptrChunk]*Node
+	slots   []*[ptrChunk]*parse.Node
 	frameN  int
 	slotCI  int
 	slotOff int
@@ -2197,7 +1513,7 @@ func (a *frameScratch) alloc(n int) *CaptureFrame {
 	if n > ptrChunk/4 {
 		// Large individual scopes are exact allocations, never pooled.
 		a.large += frameBytes + uint64(n)*ptrBytes
-		return &CaptureFrame{Vals: make([]*Node, n)}
+		return &CaptureFrame{Vals: make([]*parse.Node, n)}
 	}
 	ci := a.frameN / nodeChunk
 	if ci == len(a.frames) {
@@ -2210,7 +1526,7 @@ func (a *frameScratch) alloc(n int) *CaptureFrame {
 		a.slotOff = 0
 	}
 	if a.slotCI == len(a.slots) {
-		a.slots = append(a.slots, new([ptrChunk]*Node))
+		a.slots = append(a.slots, new([ptrChunk]*parse.Node))
 	}
 	f.Vals = a.slots[a.slotCI][a.slotOff : a.slotOff+n : a.slotOff+n]
 	a.slotOff += n
@@ -2245,7 +1561,7 @@ func (a *frameScratch) reset() {
 type undo struct {
 	f    *CaptureFrame
 	slot int
-	old  *Node
+	old  *parse.Node
 }
 
 // Env is for generated parsers; not a stable API. It is a persistent vector with one current
@@ -2388,7 +1704,7 @@ func (p *Parser) Mark() Mark {
 	return Mark{Pos: p.Pos, env: p.Env, Trail: len(p.Trail), recovered: len(p.Recovered)}
 }
 
-func (p *Parser) SetCapture(slot int, v *Node) {
+func (p *Parser) SetCapture(slot int, v *parse.Node) {
 	p.Trail = append(p.Trail, undo{f: p.Frame, slot: slot, old: p.Frame.Vals[slot]})
 	p.Frame.Vals[slot] = v
 }
@@ -2507,7 +1823,7 @@ func (p *Parser) Peek() (rune, int, bool) {
 		p.documentTouch(p.Pos + 1)
 		return 0, 0, false
 	}
-	if p.unit == Bytes {
+	if p.unit == parse.Bytes {
 		if c := p.bs[p.Pos]; c < utf8.RuneSelf {
 			p.documentTouch(p.Pos + 1)
 			return rune(c), 1, true
@@ -2539,7 +1855,7 @@ func (p *Parser) PeekOrdinary() (rune, int, bool) {
 	if p.Pos >= p.n {
 		return 0, 0, false
 	}
-	if p.unit == Bytes {
+	if p.unit == parse.Bytes {
 		if c := p.bs[p.Pos]; c < utf8.RuneSelf {
 			return rune(c), 1, true
 		}
@@ -2550,7 +1866,7 @@ func (p *Parser) PeekOrdinary() (rune, int, bool) {
 }
 
 func (p *Parser) unitLen(s string) int {
-	if p.Control != nil && p.unit != Bytes {
+	if p.Control != nil && p.unit != parse.Bytes {
 		count := 0
 		for off := 0; off < len(s); {
 			p.spendValue(min(utf8.UTFMax, len(s)-off))
@@ -2561,7 +1877,7 @@ func (p *Parser) unitLen(s string) int {
 		return count
 	}
 
-	if p.unit == Bytes {
+	if p.unit == parse.Bytes {
 		return len(s)
 	}
 	return utf8.RuneCountInString(s)
@@ -2608,7 +1924,7 @@ func (p *Parser) Text(start, end int) string {
 	if p.Stream != nil {
 		return p.streamText(start, end)
 	}
-	if p.unit == Bytes {
+	if p.unit == parse.Bytes {
 		return p.bs[start:end]
 	}
 	if p.offs == nil && !p.decoded {
@@ -2628,11 +1944,11 @@ func (p *Parser) Text(start, end int) string {
 
 type fatal struct{ err error }
 
-func (p *Parser) MakeError(pos int, expected []ExpID) *SyntaxError {
+func (p *Parser) MakeError(pos int, expected []ExpID) *parse.SyntaxError {
 	if p.Control != nil {
 		return p.makeControlledError(pos, expected)
 	}
-	e := &SyntaxError{Pos: pos}
+	e := &parse.SyntaxError{Pos: pos}
 	for _, x := range expected {
 		if x == ExpFar {
 			continue
@@ -2653,7 +1969,7 @@ func (p *Parser) MakeError(pos int, expected []ExpID) *SyntaxError {
 	if p.lines == nil {
 		p.lines = append(p.lines, 0)
 		for i := 0; i < p.n; i++ {
-			if p.unit == Bytes && p.bs[i] == '\n' || p.unit == CodePoints && p.In[i] == '\n' {
+			if p.unit == parse.Bytes && p.bs[i] == '\n' || p.unit == parse.CodePoints && p.In[i] == '\n' {
 				p.lines = append(p.lines, i+1)
 			}
 		}
@@ -2696,7 +2012,7 @@ func (p *Parser) releaseObservation() {
 }
 
 // invoke evaluates the body of r and makes the rule's value.
-func (p *Parser) invoke(r *Rule, min int) (*Node, bool) {
+func (p *Parser) invoke(r *Rule, min int) (*parse.Node, bool) {
 	if p.Document != nil || p.Observation != nil {
 		p.evaluating()
 	}
@@ -2723,7 +2039,7 @@ func (p *Parser) invoke(r *Rule, min int) (*Node, bool) {
 // InvokePlain is an unmemoized call of a rule without captures: invoke without the capture
 // frame (the body never writes one, so the caller's stays current), with the failure handling of
 // call.
-func (p *Parser) InvokePlain(r *Rule, min int) (*Node, bool) {
+func (p *Parser) InvokePlain(r *Rule, min int) (*parse.Node, bool) {
 	if p.Observation != nil {
 		return p.invokePlainObserved(r, min)
 	}
@@ -2731,7 +2047,7 @@ func (p *Parser) InvokePlain(r *Rule, min int) (*Node, bool) {
 }
 
 // invokePlainBody is InvokePlain without observation.
-func (p *Parser) invokePlainBody(r *Rule, min int) (*Node, bool) {
+func (p *Parser) invokePlainBody(r *Rule, min int) (*parse.Node, bool) {
 	if p.Document != nil || p.Observation != nil {
 		p.evaluating()
 	}
@@ -2768,7 +2084,7 @@ func (p *Parser) evaluating() {
 
 // TooDeep fails the parse for exceeding the nesting limit.
 func (p *Parser) TooDeep() {
-	panic(fatal{err: &LimitError{Kind: LimitDepth, Limit: uint64(p.MaxDepth), Used: uint64(p.MaxDepth), Requested: 1}})
+	panic(fatal{err: &parse.LimitError{Kind: parse.LimitDepth, Limit: uint64(p.MaxDepth), Used: uint64(p.MaxDepth), Requested: 1}})
 }
 
 // Enter counts one more nested entry of a recursive rule and fails the parse beyond the nesting
@@ -2788,7 +2104,7 @@ func (p *Parser) Restore(pos, rec int) {
 }
 
 // Finish makes the rule's value from the value of its body.
-func (p *Parser) Finish(r *Rule, f *CaptureFrame, v *Node, start int) *Node {
+func (p *Parser) Finish(r *Rule, f *CaptureFrame, v *parse.Node, start int) *parse.Node {
 	v, owned := p.finishValue(r, f, v, start)
 	if r.nodeKinds != nil {
 		if owned && r.nodeKinds.convertOwned(v) {
@@ -2800,7 +2116,7 @@ func (p *Parser) Finish(r *Rule, f *CaptureFrame, v *Node, start int) *Node {
 }
 
 // convertResult converts v, the value of rule r, to the rule's named node type.
-func (p *Parser) convertResult(r *Rule, v *Node) *Node {
+func (p *Parser) convertResult(r *Rule, v *parse.Node) *parse.Node {
 	n, ok := r.nodeKinds.convert(UnboxNode(v))
 	if !ok {
 		panic(fatal{fmt.Errorf("cannot convert %s to %s in result of rule %s", typeName(UnboxNode(v)), r.NodeType, r.where())})
@@ -2808,7 +2124,7 @@ func (p *Parser) convertResult(r *Rule, v *Node) *Node {
 	return n
 }
 
-func (p *Parser) finishValue(r *Rule, f *CaptureFrame, v *Node, start int) (*Node, bool) {
+func (p *Parser) finishValue(r *Rule, f *CaptureFrame, v *parse.Node, start int) (*parse.Node, bool) {
 	if r.Novalue {
 		return nil, false
 	}
@@ -2821,7 +2137,7 @@ func (p *Parser) finishValue(r *Rule, f *CaptureFrame, v *Node, start int) (*Nod
 	}
 	if r.Splice {
 		if v != nil {
-			v.RawFresh = false
+			D(v).Fresh = false
 		}
 		return v, false
 	}
@@ -2832,21 +2148,21 @@ func (p *Parser) finishValue(r *Rule, f *CaptureFrame, v *Node, start int) (*Nod
 	if v == nil {
 		return nil, false
 	}
-	owned := v.RawFresh
+	owned := D(v).Fresh
 	if owned {
-		if p.sourceInfo && v.RawKind.rule == "" {
-			v.RawKind = r.kinds.named(v.RawKind, r.Name)
+		if p.sourceInfo && D(v).Kind.Rule == "" {
+			D(v).Kind = r.kinds.Named(D(v).Kind, r.Name)
 		}
-		v.RawFresh = false
+		D(v).Fresh = false
 	}
 	return v, owned
 }
 
 // AttachCaptures attaches the non-nil captures as fields of the node. A node of another rule, or
 // one that is itself captured, is first wrapped in a tuple node.
-func (p *Parser) AttachCaptures(v *Node, names []string, f *CaptureFrame, start, end int) *Node {
+func (p *Parser) AttachCaptures(v *parse.Node, names []string, f *CaptureFrame, start, end int) *parse.Node {
 	found := false
-	wrap := v == nil || !v.RawFresh
+	wrap := v == nil || !D(v).Fresh
 	for _, c := range f.Vals {
 		p.Spend()
 		if c != nil {
@@ -2860,22 +2176,22 @@ func (p *Parser) AttachCaptures(v *Node, names []string, f *CaptureFrame, start,
 		return v
 	}
 	if wrap {
-		v = p.NewNode(Node{RawKind: RawKindSeq, RawStart: int32(start), RawEnd: int32(end), RawChildren: append(p.Nodes(1)[:0], v), RawFresh: true})
+		v = p.NewNode(Data{Kind: noderep.SeqKind, Start: int32(start), End: int32(end), Children: append(p.Nodes(1)[:0], v), Fresh: true})
 	}
-	if v.RawFields == nil {
-		v.RawFields = p.fields(len(names))
+	if D(v).Fields == nil {
+		D(v).Fields = p.fields(len(names))
 	}
-	v.labeled = p.sourceInfo
+	D(v).Labeled = p.sourceInfo
 	for i, name := range names {
 		p.Spend()
 		if f.Vals[i] != nil {
-			p.setValueField(&v.RawFields, name, f.Vals[i])
+			p.setValueField(&D(v).Fields, name, f.Vals[i])
 		}
 	}
 	return v
 }
 
-func nodeOrNil(n *Node) any {
+func nodeOrNil(n *parse.Node) any {
 	if n == nil {
 		return nil
 	}
@@ -2918,35 +2234,35 @@ type Shaper struct {
 }
 
 // shapeTuple returns the tuple node of the result v of a match of [start, p.Pos).
-func (p *Parser) shapeTuple(s Shaper, v *Node, start int) *Node {
+func (p *Parser) shapeTuple(s Shaper, v *parse.Node, start int) *parse.Node {
 	if s.Elems {
 		if s.Shared && v != nil {
-			return p.NewNode(Node{RawKind: RawKindSeq, RawStart: v.RawStart, RawEnd: v.RawEnd, RawChildren: v.RawChildren, RawFresh: true})
+			return p.NewNode(Data{Kind: noderep.SeqKind, Start: D(v).Start, End: D(v).End, Children: D(v).Children, Fresh: true})
 		}
 		return v
 	}
-	var kids []*Node
+	var kids []*parse.Node
 	if s.K == 1 {
 		kids = p.Nodes(1)
 		kids[0] = v
 	}
-	return p.NewNode(Node{RawKind: RawKindSeq, RawStart: int32(start), RawEnd: int32(p.Pos), RawChildren: kids, RawFresh: true})
+	return p.NewNode(Data{Kind: noderep.SeqKind, Start: int32(start), End: int32(p.Pos), Children: kids, Fresh: true})
 }
 
 // one returns the one element of the result v.
-func (s Shaper) one(v *Node) *Node {
+func (s Shaper) one(v *parse.Node) *parse.Node {
 	if s.Elems {
-		if v == nil || len(v.RawChildren) == 0 {
+		if v == nil || len(D(v).Children) == 0 {
 			return nil
 		}
-		return v.RawChildren[0]
+		return D(v).Children[0]
 	}
 	return v
 }
 
 // ShapeSingle returns the value of the result v where the expression takes one element; ok is
 // false when it has no value.
-func (p *Parser) ShapeSingle(s Shaper, v *Node, start int) (*Node, bool) {
+func (p *Parser) ShapeSingle(s Shaper, v *parse.Node, start int) (*parse.Node, bool) {
 	switch s.Mode {
 	case singlePass:
 		return s.one(v), true
@@ -2958,16 +2274,16 @@ func (p *Parser) ShapeSingle(s Shaper, v *Node, start int) (*Node, bool) {
 
 // ShapeCapture is ShapeSingle for a capture or a recovered expression, whose value is the unit
 // node of the range matched when the expression has no value.
-func (p *Parser) ShapeCapture(s Shaper, v *Node, start int) *Node {
+func (p *Parser) ShapeCapture(s Shaper, v *parse.Node, start int) *parse.Node {
 	v, ok := p.ShapeSingle(s, v, start)
 	if !ok {
-		v = p.NewNode(Node{RawKind: RawKindSeq, RawStart: int32(start), RawEnd: int32(p.Pos), RawFresh: true})
+		v = p.NewNode(Data{Kind: noderep.SeqKind, Start: int32(start), End: int32(p.Pos), Fresh: true})
 	}
 	return v
 }
 
 // ScopeValue returns the value of a scope whose body matched [start, p.Pos) with the result v.
-func (p *Parser) ScopeValue(s Shaper, v *Node, start int) *Node {
+func (p *Parser) ScopeValue(s Shaper, v *parse.Node, start int) *parse.Node {
 	if s.Tuple {
 		return p.shapeTuple(s, v, start)
 	}
@@ -2979,18 +2295,18 @@ func (p *Parser) ScopeValue(s Shaper, v *Node, start int) *Node {
 // LiteralText returns source bytes if replacement decoding accepted a shorter
 // spelling than the literal, retaining the usual constant-text success path.
 func (p *Parser) LiteralText(start int, text string) string {
-	if p.unit == Bytes && p.Pos-start != len(text) {
+	if p.unit == parse.Bytes && p.Pos-start != len(text) {
 		return p.Text(start, p.Pos)
 	}
 	return text
 }
 
-func (p *Parser) MatchLiteral(rs []rune, text string, desc ExpID, build bool) (*Node, bool) {
+func (p *Parser) MatchLiteral(rs []rune, text string, desc ExpID, build bool) (*parse.Node, bool) {
 	if p.Stream != nil {
 		return p.streamMatchLiteral(rs, text, desc, build)
 	}
 	start := p.Pos
-	if p.unit == Bytes {
+	if p.unit == parse.Bytes {
 		p.documentTouch(start + len(text))
 		if !p.hasLiteralPrefix(text) {
 			return p.matchReplacementLiteral(rs, text, desc, build)
@@ -3010,14 +2326,14 @@ func (p *Parser) MatchLiteral(rs []rune, text string, desc ExpID, build bool) (*
 	if !build {
 		return nil, true
 	}
-	return p.NewNode(Node{RawKind: RawKindMatch, RawStart: int32(start), RawEnd: int32(p.Pos), RawText: p.LiteralText(start, text), RawTerminal: true, RawFresh: true}), true
+	return p.NewNode(Data{Kind: noderep.MatchKind, Start: int32(start), End: int32(p.Pos), Text: p.LiteralText(start, text), Terminal: true, Fresh: true}), true
 }
 
 // MatchLiteralFold is MatchLiteral for a case-insensitive literal. rs is the literal with each ASCII
 // letter lowercased, and each input character is folded the same way before it is compared, so
 // only ASCII letters ignore case. The node text is the consumed input. Peek records the examined
 // characters and the work of each one, so the loop needs no bookkeeping of its own.
-func (p *Parser) MatchLiteralFold(rs []rune, desc ExpID, build bool) (*Node, bool) {
+func (p *Parser) MatchLiteralFold(rs []rune, desc ExpID, build bool) (*parse.Node, bool) {
 	start := p.Pos
 	for _, want := range rs {
 		got, size, ok := p.Peek()
@@ -3030,11 +2346,11 @@ func (p *Parser) MatchLiteralFold(rs []rune, desc ExpID, build bool) (*Node, boo
 	if !build {
 		return nil, true
 	}
-	return p.NewNode(Node{RawKind: RawKindMatch, RawStart: int32(start), RawEnd: int32(p.Pos), RawText: p.Text(start, p.Pos), RawTerminal: true, RawFresh: true}), true
+	return p.NewNode(Data{Kind: noderep.MatchKind, Start: int32(start), End: int32(p.Pos), Text: p.Text(start, p.Pos), Terminal: true, Fresh: true}), true
 }
 
 // MatchLiteralFoldOrdinary is MatchLiteralFold in an ordinary parse (ExpectOrdinary).
-func (p *Parser) MatchLiteralFoldOrdinary(rs []rune, desc ExpID, build bool) (*Node, bool) {
+func (p *Parser) MatchLiteralFoldOrdinary(rs []rune, desc ExpID, build bool) (*parse.Node, bool) {
 	start := p.Pos
 	for _, want := range rs {
 		got, size, ok := p.PeekOrdinary()
@@ -3047,7 +2363,7 @@ func (p *Parser) MatchLiteralFoldOrdinary(rs []rune, desc ExpID, build bool) (*N
 	if !build {
 		return nil, true
 	}
-	return p.NewNodeOrdinary(Node{RawKind: RawKindMatch, RawStart: int32(start), RawEnd: int32(p.Pos), RawText: p.Text(start, p.Pos), RawTerminal: true, RawFresh: true}), true
+	return p.NewNodeOrdinary(Data{Kind: noderep.MatchKind, Start: int32(start), End: int32(p.Pos), Text: p.Text(start, p.Pos), Terminal: true, Fresh: true}), true
 }
 
 // foldASCIIRune maps A-Z to a-z and leaves every other rune as it is.
@@ -3060,7 +2376,7 @@ func foldASCIIRune(r rune) rune {
 
 // matchReplacementLiteral is the cold path for raw-byte mismatches. An
 // invalid input byte and valid U+FFFD decode alike, but occupy different sizes.
-func (p *Parser) matchReplacementLiteral(rs []rune, text string, desc ExpID, build bool) (*Node, bool) {
+func (p *Parser) matchReplacementLiteral(rs []rune, text string, desc ExpID, build bool) (*parse.Node, bool) {
 	start := p.Pos
 	if !p.literalHasReplacement(rs) {
 		p.Expect(start, desc)
@@ -3077,16 +2393,16 @@ func (p *Parser) matchReplacementLiteral(rs []rune, text string, desc ExpID, bui
 	if !build {
 		return nil, true
 	}
-	return p.NewNode(Node{RawKind: RawKindMatch, RawStart: int32(start), RawEnd: int32(p.Pos), RawText: p.LiteralText(start, text), RawTerminal: true, RawFresh: true}), true
+	return p.NewNode(Data{Kind: noderep.MatchKind, Start: int32(start), End: int32(p.Pos), Text: p.LiteralText(start, text), Terminal: true, Fresh: true}), true
 }
 
 // MatchLiteralOrdinary is MatchLiteral in an ordinary parse (ExpectOrdinary).
-func (p *Parser) MatchLiteralOrdinary(rs []rune, text string, desc ExpID, build bool) (*Node, bool) {
+func (p *Parser) MatchLiteralOrdinary(rs []rune, text string, desc ExpID, build bool) (*parse.Node, bool) {
 	if p.Stream != nil {
 		return p.streamMatchLiteral(rs, text, desc, build)
 	}
 	start := p.Pos
-	if p.unit == Bytes {
+	if p.unit == parse.Bytes {
 		if !strings.HasPrefix(p.bs[p.Pos:], text) {
 			return p.matchReplacementLiteral(rs, text, desc, build)
 		}
@@ -3103,11 +2419,11 @@ func (p *Parser) MatchLiteralOrdinary(rs []rune, text string, desc ExpID, build 
 	if !build {
 		return nil, true
 	}
-	return p.NewNodeOrdinary(Node{RawKind: RawKindMatch, RawStart: int32(start), RawEnd: int32(p.Pos), RawText: p.LiteralText(start, text), RawTerminal: true, RawFresh: true}), true
+	return p.NewNodeOrdinary(Data{Kind: noderep.MatchKind, Start: int32(start), End: int32(p.Pos), Text: p.LiteralText(start, text), Terminal: true, Fresh: true}), true
 }
 
 // MatchAnyOrdinary is MatchAny in an ordinary parse (ExpectOrdinary).
-func (p *Parser) MatchAnyOrdinary(build bool) (*Node, bool) {
+func (p *Parser) MatchAnyOrdinary(build bool) (*parse.Node, bool) {
 	_, size, ok := p.PeekOrdinary()
 	if !ok {
 		p.ExpectOrdinary(p.Pos, IdAny)
@@ -3116,7 +2432,7 @@ func (p *Parser) MatchAnyOrdinary(build bool) (*Node, bool) {
 	return p.Single(size, build)
 }
 
-func (p *Parser) MatchAny(build bool) (*Node, bool) {
+func (p *Parser) MatchAny(build bool) (*parse.Node, bool) {
 	_, size, ok := p.Peek()
 	if !ok {
 		p.Expect(p.Pos, IdAny)
@@ -3126,16 +2442,16 @@ func (p *Parser) MatchAny(build bool) (*Node, bool) {
 }
 
 // Single consumes one character of size units.
-func (p *Parser) Single(size int, build bool) (*Node, bool) {
+func (p *Parser) Single(size int, build bool) (*parse.Node, bool) {
 	start := p.Pos
 	p.Pos += size
 	if !build {
 		return nil, true
 	}
-	return p.NewNode(Node{RawKind: RawKindMatch, RawStart: int32(start), RawEnd: int32(p.Pos), RawText: p.Text(start, p.Pos), RawTerminal: true, RawFresh: true}), true
+	return p.NewNode(Data{Kind: noderep.MatchKind, Start: int32(start), End: int32(p.Pos), Text: p.Text(start, p.Pos), Terminal: true, Fresh: true}), true
 }
 
-func (p *Parser) Anchor(ok bool, desc ExpID) (*Node, bool) {
+func (p *Parser) Anchor(ok bool, desc ExpID) (*parse.Node, bool) {
 	if ok {
 		return nil, true
 	}
@@ -3151,7 +2467,7 @@ func (p *Parser) AtLineStart() bool {
 	if p.Pos == 0 {
 		return true
 	}
-	if p.unit == Bytes {
+	if p.unit == parse.Bytes {
 		return p.bs[p.Pos-1] == '\n'
 	}
 	return p.In[p.Pos-1] == '\n'
@@ -3165,7 +2481,7 @@ func (p *Parser) AtLineStartOrdinary() bool {
 	if p.Pos == 0 {
 		return true
 	}
-	if p.unit == Bytes {
+	if p.unit == parse.Bytes {
 		return p.bs[p.Pos-1] == '\n'
 	}
 	return p.In[p.Pos-1] == '\n'
@@ -3215,7 +2531,7 @@ func (p *Parser) AtLineStartBatch() bool {
 	if p.Pos == 0 {
 		return true
 	}
-	if p.unit == Bytes {
+	if p.unit == parse.Bytes {
 		return p.bs[p.Pos-1] == '\n'
 	}
 	return p.In[p.Pos-1] == '\n'
@@ -3226,7 +2542,7 @@ func (p *Parser) AtLineStartBatchOrdinary() bool {
 	if p.Pos == 0 {
 		return true
 	}
-	if p.unit == Bytes {
+	if p.unit == parse.Bytes {
 		return p.bs[p.Pos-1] == '\n'
 	}
 	return p.In[p.Pos-1] == '\n'
@@ -3234,11 +2550,11 @@ func (p *Parser) AtLineStartBatchOrdinary() bool {
 
 // --- Attributes ---
 
-type matcher = func(p *Parser) (*Node, bool)
+type matcher = func(p *Parser) (*parse.Node, bool)
 
 // tracked runs m with a separate expectation record and returns its farthest position and
 // expectations (valid only until the next record; see unisolate).
-func (p *Parser) tracked(m matcher) (v *Node, ok bool, far int, expected []ExpID) {
+func (p *Parser) tracked(m matcher) (v *parse.Node, ok bool, far int, expected []ExpID) {
 	mark := p.Isolate(p.Pos)
 	v, ok = m(p)
 	far, expected = p.Unisolate(mark)
@@ -3247,7 +2563,7 @@ func (p *Parser) tracked(m matcher) (v *Node, ok bool, far int, expected []ExpID
 
 // ErrorAttr replaces the expectations of a failing m with the message msg (an ID with MsgBit),
 // reported at the farthest position m reached.
-func (p *Parser) ErrorAttr(m matcher, msg ExpID) (*Node, bool) {
+func (p *Parser) ErrorAttr(m matcher, msg ExpID) (*parse.Node, bool) {
 	v, ok, far, expected := p.tracked(m)
 	if ok {
 		p.MergeExpected(far, expected)
@@ -3257,7 +2573,7 @@ func (p *Parser) ErrorAttr(m matcher, msg ExpID) (*Node, bool) {
 	return nil, false
 }
 
-func (p *Parser) DiagnosticAttr(m matcher, name ExpID) (*Node, bool) {
+func (p *Parser) DiagnosticAttr(m matcher, name ExpID) (*parse.Node, bool) {
 	v, ok, far, expected := p.tracked(m)
 	if ok {
 		p.MergeExpected(far, expected)
@@ -3282,7 +2598,7 @@ func RenamedExpected(p *Parser, expected []ExpID, name ExpID) []ExpID {
 
 // RecoverAttr records the error of a failing m, skips what skip matches and returns an Error
 // node. It fails without recovering when skip fails or skips nothing.
-func (p *Parser) RecoverAttr(m, skip matcher, build bool) (*Node, bool) {
+func (p *Parser) RecoverAttr(m, skip matcher, build bool) (*parse.Node, bool) {
 	m0 := p.Mark()
 	v, ok, far, expected := p.tracked(m)
 	if ok {
@@ -3309,8 +2625,8 @@ func (p *Parser) RecoverAttr(m, skip matcher, build bool) (*Node, bool) {
 // NewNode.
 //
 // NewErrorNode is for generated parsers; not a stable API.
-func (p *Parser) NewErrorNode(start int, e *SyntaxError) *Node {
-	return p.NewNode(Node{RawKind: kindError, RawStart: int32(start), RawEnd: int32(p.Pos), RawFields: Fields{{"message", p.RecoveryErrorText(e)}}, RawFresh: true, RawTerminal: true})
+func (p *Parser) NewErrorNode(start int, e *parse.SyntaxError) *parse.Node {
+	return p.NewNode(Data{Kind: noderep.ErrorKind, Start: int32(start), End: int32(p.Pos), Fields: noderep.Fields{{Name: "message", Value: p.RecoveryErrorText(e)}}, Fresh: true, Terminal: true})
 }
 
 // --- Actions and predicates ---
@@ -3339,7 +2655,7 @@ func (p *Parser) useCtx(c ActCtx) *ActCtx {
 	return &p.ac
 }
 
-func (c *ActCtx) result(action func(*ActCtx) (any, any), where string) (n *Node) {
+func (c *ActCtx) result(action func(*ActCtx) (any, any), where string) (n *parse.Node) {
 	defer c.P.dropCreated(c.cbase)
 	v, f := action(c)
 	if f != nil {
@@ -3348,23 +2664,23 @@ func (c *ActCtx) result(action func(*ActCtx) (any, any), where string) (n *Node)
 	if v == nil {
 		return nil
 	}
-	n, ok := v.(*Node)
+	n, ok := v.(*parse.Node)
 	if !ok {
 		if _, isFn := v.(func(...any) any); isFn {
 			c.P.actionFailed(where, c.P.evalErrorValue("result must be a value, got a function"))
 		}
 		// A value other than a node travels boxed, with the range of the action's input.
-		return c.P.NewNode(Node{RawKind: kindBox, box: v, RawStart: int32(c.start), RawEnd: int32(c.end)})
+		return c.P.NewNode(Data{Kind: noderep.BoxKind, Box: v, Start: int32(c.start), End: int32(c.end)})
 	}
 	for _, x := range c.P.created[c.cbase:] {
 		c.P.Spend()
 		if x == n {
-			n.RawStart, n.RawEnd = int32(c.start), int32(c.end)
+			D(n).Start, D(n).End = int32(c.start), int32(c.end)
 			break
 		}
 	}
 	if n != nil {
-		n.RawFresh = false // the value of an action is final (see the engine's actionResult)
+		D(n).Fresh = false // the value of an action is final (see the engine's actionResult)
 	}
 	return n
 }
@@ -3408,17 +2724,17 @@ func typeName(v any) string {
 	switch v := v.(type) {
 	case nil:
 		return "nil"
-	case *Node:
+	case *parse.Node:
 		if v == nil {
 			return "nil"
 		}
-		if v.RawKind == kindBox {
-			return typeName(v.box)
+		if D(v).Kind == noderep.BoxKind {
+			return typeName(D(v).Box)
 		}
-		if v.RawKind.NodeType() {
+		if D(v).Kind.IsNodeType() {
 			return v.Type()
 		}
-		return valueTypeName(v.shape(), v.Type(), len(v.RawChildren))
+		return valueTypeName(shape(v), v.Type(), len(D(v).Children))
 	case int:
 		return "int"
 	case string:
@@ -3433,21 +2749,23 @@ func typeName(v any) string {
 // n fields: the operation term.struct of a term that makes a struct.
 //
 // TermStruct is for generated parsers; not a stable API.
-func (c *ActCtx) TermStruct(typ string, n int) *Node {
+func (c *ActCtx) TermStruct(typ string, n int) *parse.Node {
 	k := c.P.g.TypeKinds[typ]
 	if k == nil {
 		k = KindOf(typ, "")
 	}
-	return c.P.NewNode(Node{RawKind: k, RawFields: c.P.fields(n)})
+	return c.P.NewNode(Data{Kind: k, Fields: c.P.fields(n)})
 }
 
 // TermSetField sets the field name of the struct n, which a term is making, to v: the operation
 // term.setField.
 //
 // TermSetField is for generated parsers; not a stable API.
-func (c *ActCtx) TermSetField(n *Node, name string, v any) { c.P.setValueField(&n.RawFields, name, v) }
+func (c *ActCtx) TermSetField(n *parse.Node, name string, v any) {
+	c.P.setValueField(&D(n).Fields, name, v)
+}
 
-func (c *ActCtx) NewList(items []*Node) *Node {
+func (c *ActCtx) NewList(items []*parse.Node) *parse.Node {
 	kids := c.P.Nodes(len(items))
 	copySpend(c.P, kids, items)
 	return c.listNode(kids)
@@ -3455,7 +2773,7 @@ func (c *ActCtx) NewList(items []*Node) *Node {
 
 // listNode returns a list value with the child list kids (which it takes over). Its range, which
 // the value model does not show, covers the elements that are nodes.
-func (c *ActCtx) listNode(kids []*Node) *Node { return c.P.TermHull(c, false, kids) }
+func (c *ActCtx) listNode(kids []*parse.Node) *parse.Node { return c.P.TermHull(c, false, kids) }
 
 // TOperand is an operand of a comparison: a string field read without boxing it (Str, with
 // IsStr), or any other value (V).
@@ -3476,7 +2794,7 @@ func (o TOperand) value() any {
 
 // memberZero is the operation node.zero: the zero value of the declared type of the field name of the
 // struct n, and false if its type declares no such field.
-func (p *Parser) memberZero(c *ActCtx, n *Node, name string) (any, bool) {
+func (p *Parser) memberZero(c *ActCtx, n *parse.Node, name string) (any, bool) {
 	zero, ok := p.g.StructFields[n.Type()].zeros[name]
 	if !ok {
 		return nil, false
@@ -3554,21 +2872,21 @@ type OperatorsRuleOp struct {
 type operatorsRuleAttempt struct {
 	op         *OperatorsRuleOp
 	frame      *CaptureFrame
-	v          *Node
+	v          *parse.Node
 	start, end int
 	env        *Env
 	cut        bool
 	errs       recEntry
 }
 
-func (p *Parser) lineResult(r *Rule, l *OperatorsRuleLine, f *CaptureFrame, v *Node, start int) *Node {
+func (p *Parser) lineResult(r *Rule, l *OperatorsRuleLine, f *CaptureFrame, v *parse.Node, start int) *parse.Node {
 	if r.Novalue {
 		return nil
 	}
 	return p.lineValue(r, l, f, v, start)
 }
 
-func (p *Parser) lineValue(r *Rule, l *OperatorsRuleLine, f *CaptureFrame, v *Node, start int) *Node {
+func (p *Parser) lineValue(r *Rule, l *OperatorsRuleLine, f *CaptureFrame, v *parse.Node, start int) *parse.Node {
 	if l.Action != nil {
 		c := p.useCtx(ActCtx{P: p, f: f, start: start, end: p.Pos, cbase: len(p.created)})
 		return c.result(l.Action, r.where())
@@ -3577,18 +2895,18 @@ func (p *Parser) lineValue(r *Rule, l *OperatorsRuleLine, f *CaptureFrame, v *No
 	if len(l.Scope) > 0 {
 		v = p.AttachCaptures(v, l.Scope, f, start, p.Pos)
 	}
-	if v != nil && v.RawFresh {
-		if p.sourceInfo && v.RawKind.rule == "" {
-			v.RawKind = r.kinds.named(v.RawKind, r.Name)
+	if v != nil && D(v).Fresh {
+		if p.sourceInfo && D(v).Kind.Rule == "" {
+			D(v).Kind = r.kinds.Named(D(v).Kind, r.Name)
 		}
-		v.RawFresh = false
+		D(v).Fresh = false
 	}
 	return v
 }
 
 // convertOperator converts v, the value of an operator of rule r, to the named node type of the
 // rule's operators.
-func (p *Parser) convertOperator(r *Rule, v *Node) *Node {
+func (p *Parser) convertOperator(r *Rule, v *parse.Node) *parse.Node {
 	n, ok := r.opKinds.convert(UnboxNode(v))
 	if !ok {
 		panic(fatal{fmt.Errorf("cannot convert %s to %s in result of rule %s", typeName(UnboxNode(v)), r.OpNodeType, r.where())})
@@ -3596,13 +2914,13 @@ func (p *Parser) convertOperator(r *Rule, v *Node) *Node {
 	return n
 }
 
-func (p *Parser) operatorsRuleBuild(r *Rule, a *operatorsRuleAttempt, lhs, rhs *Node) *Node {
+func (p *Parser) operatorsRuleBuild(r *Rule, a *operatorsRuleAttempt, lhs, rhs *parse.Node) *parse.Node {
 	if r.Novalue {
 		return nil
 	}
 	start, end := a.start, p.Pos
 	if lhs != nil {
-		start = int(lhs.RawStart)
+		start = int(D(lhs).Start)
 	}
 	if a.op.Kind == "postfix" {
 		end = a.end
@@ -3612,13 +2930,13 @@ func (p *Parser) operatorsRuleBuild(r *Rule, a *operatorsRuleAttempt, lhs, rhs *
 	// captures.
 	opv, ok := p.ShapeSingle(l.Value, a.v, a.start)
 	if !ok {
-		opv = p.NewNode(Node{RawKind: RawKindSeq, RawStart: int32(a.start), RawEnd: int32(a.end)})
+		opv = p.NewNode(Data{Kind: noderep.SeqKind, Start: int32(a.start), End: int32(a.end)})
 	}
 	if l.Value.Mode == singleTuple && len(l.Scope) > 0 {
 		opv = p.AttachCaptures(opv, l.Scope, a.frame, a.start, a.end)
 	}
 	if opv != nil {
-		opv.RawFresh = false
+		D(opv).Fresh = false
 	}
 	if l.Action != nil {
 		c := p.useCtx(ActCtx{P: p, f: a.frame, start: start, end: end, cbase: len(p.created),
@@ -3631,585 +2949,34 @@ func (p *Parser) operatorsRuleBuild(r *Rule, a *operatorsRuleAttempt, lhs, rhs *
 	}
 	// Without an action, the application is the node of the tuple (lhs, op, rhs) of the line's
 	// kind, with those captures.
-	var kids []*Node
-	var fields Fields
+	var kids []*parse.Node
+	var fields noderep.Fields
 	switch a.op.Kind {
 	case "prefix":
 		kids = p.Nodes(2)
 		kids[0], kids[1] = opv, rhs
-		fields = Fields{{"op", nodeOrNil(opv)}, {"rhs", nodeOrNil(rhs)}}
+		fields = noderep.Fields{{Name: "op", Value: nodeOrNil(opv)}, {Name: "rhs", Value: nodeOrNil(rhs)}}
 	case "postfix":
 		kids = p.Nodes(2)
 		kids[0], kids[1] = lhs, opv
-		fields = Fields{{"lhs", nodeOrNil(lhs)}, {"op", nodeOrNil(opv)}}
+		fields = noderep.Fields{{Name: "lhs", Value: nodeOrNil(lhs)}, {Name: "op", Value: nodeOrNil(opv)}}
 	default:
 		kids = p.Nodes(3)
 		kids[0], kids[1], kids[2] = lhs, opv, rhs
-		fields = Fields{{"lhs", nodeOrNil(lhs)}, {"op", nodeOrNil(opv)}, {"rhs", nodeOrNil(rhs)}}
+		fields = noderep.Fields{{Name: "lhs", Value: nodeOrNil(lhs)}, {Name: "op", Value: nodeOrNil(opv)}, {Name: "rhs", Value: nodeOrNil(rhs)}}
 	}
-	kind := RawKindSeq
+	kind := noderep.SeqKind
 	if r.opKinds != nil {
-		kind = r.opKinds[baseTuple] // made with the named node type of the operators
+		kind = r.opKinds[noderep.BaseTuple] // made with the named node type of the operators
 	} else if p.sourceInfo {
-		kind = r.kinds.named(RawKindSeq, r.Name)
+		kind = r.kinds.Named(noderep.SeqKind, r.Name)
 	}
-	n := p.NewNode(Node{RawKind: kind, RawStart: int32(start), RawEnd: int32(end), RawChildren: kids, RawFields: fields, labeled: p.sourceInfo})
+	n := p.NewNode(Data{Kind: kind, Start: int32(start), End: int32(end), Children: kids, Fields: fields, Labeled: p.sourceInfo})
 	return n
 }
 
 // --- Iterative tree API: node_json (mirrors internal/value/node_json.go) ---
 
-type nodeJSONFrame struct {
-	value  any
-	fields Fields
-	caps   []captureLocation
-	index  int
-	phase  uint8
-	slice  nodeJSONSliceID
-	// closeSide reports that the value of a capture beside the tuple was written and its object
-	// needs closing.
-	closeSide bool
-}
-
-const (
-	nodeJSONEnter uint8 = iota
-	nodeJSONChildren
-	nodeJSONFieldsStart
-	nodeJSONFields
-	nodeJSONExit
-	nodeJSONSliceItems
-	nodeJSONCaptures
-)
-
-// writeJSONRange writes prefix and the members start and end of n.
-func writeJSONRange(out *jsonOutput, n *Node, prefix string) error {
-	if err := out.raw(prefix); err != nil {
-		return err
-	}
-	if err := out.number(n.RawStart); err != nil {
-		return err
-	}
-	if err := out.raw(`,"end":`); err != nil {
-		return err
-	}
-	return out.number(n.RawEnd)
-}
-
-type nodeJSONSliceID struct {
-	ptr uintptr
-	len int
-}
-
-// jsonOutput coalesces the small fragments of a node while preserving writer errors
-// and the already-written prefix when an unsupported value is encountered.
-type jsonOutput struct {
-	w   io.Writer
-	buf []byte
-}
-
-func (out *jsonOutput) flush() error {
-	if len(out.buf) == 0 {
-		return nil
-	}
-	if err := writeJSONBytes(out.w, out.buf); err != nil {
-		return err
-	}
-	out.buf = out.buf[:0]
-	return nil
-}
-
-func (out *jsonOutput) bytes(data []byte) error {
-	if len(out.buf)+len(data) > cap(out.buf) {
-		if err := out.flush(); err != nil {
-			return err
-		}
-	}
-	if len(data) > cap(out.buf) {
-		return writeJSONBytes(out.w, data)
-	}
-	out.buf = append(out.buf, data...)
-	return nil
-}
-
-func (out *jsonOutput) raw(s string) error {
-	if len(out.buf)+len(s) > cap(out.buf) {
-		if err := out.flush(); err != nil {
-			return err
-		}
-	}
-	out.buf = append(out.buf, s...)
-	return nil
-}
-
-func (out *jsonOutput) number(n int32) error {
-	if len(out.buf)+11 > cap(out.buf) {
-		if err := out.flush(); err != nil {
-			return err
-		}
-	}
-	out.buf = strconv.AppendInt(out.buf, int64(n), 10)
-	return nil
-}
-
-func (out *jsonOutput) encoded(value any) error {
-	data, err := json.Marshal(value)
-	if err != nil {
-		return err
-	}
-	return out.bytes(data)
-}
-
-// writeJSONValue encodes ZeroParse nodes and []any values without recursive calls through their nested
-// edges. Other values are delegated to encoding/json, preserving its scalar and custom-marshaler
-// behavior. []byte intentionally stays in that fallback so it keeps encoding as base64.
-func writeJSONValue(w io.Writer, value any) error {
-	out := jsonOutput{w: w, buf: make([]byte, 0, 512)}
-	stack := []nodeJSONFrame{{value: value}}
-	activeNodes := make(map[*Node]struct{})
-	activeSlices := make(map[nodeJSONSliceID]struct{})
-	for len(stack) != 0 {
-		frame := &stack[len(stack)-1]
-		var err error
-		switch value := frame.value.(type) {
-		case *Node:
-			if value == nil {
-				err = out.raw("null")
-				stack = stack[:len(stack)-1]
-				break
-			}
-			switch frame.phase {
-			case nodeJSONEnter:
-				if _, ok := activeNodes[value]; ok {
-					err = jsonCycleError(value)
-					break
-				}
-				activeNodes[value] = struct{}{}
-				switch shape := value.shape(); shape {
-				case shapeBox:
-					// The box stands for its value.
-					delete(activeNodes, value)
-					stack[len(stack)-1] = nodeJSONFrame{value: value.box}
-				case shapeString, shapeTuple, shapeList:
-					prefix := `{"start":`
-					if value.RawKind.NodeType() {
-						// A node of a named node type names its type.
-						if err = out.raw(`{"type":`); err == nil {
-							err = out.encoded(value.Type())
-						}
-						prefix = `,"start":`
-					}
-					if err != nil {
-						break
-					}
-					if err = writeJSONRange(&out, value, prefix); err != nil {
-						break
-					}
-					if err = out.raw(`,"value":`); err != nil {
-						break
-					}
-					if shape == shapeString {
-						err = out.encoded(value.RawText)
-						frame.phase = nodeJSONFieldsStart
-						break
-					}
-					err = out.raw("[")
-					frame.phase = nodeJSONChildren
-				case shapeError:
-					if err = writeJSONRange(&out, value, `{"start":`); err != nil {
-						break
-					}
-					msg, _ := value.RawFields.Get("message")
-					if err = out.raw(`,"error":`); err == nil {
-						err = out.encoded(msg)
-					}
-					if expected, ok := value.RawFields.Get("expected"); ok && err == nil {
-						if err = out.raw(`,"expected":`); err == nil {
-							err = out.encoded(expected)
-						}
-					}
-					frame.phase = nodeJSONExit
-				case shapeTupleValue, shapeListValue:
-					err = out.raw("[")
-					frame.phase = nodeJSONSliceItems
-				default: // a struct
-					if err = out.raw(`{"type":`); err == nil {
-						err = out.encoded(value.Type())
-					}
-					if err == nil {
-						err = writeJSONRange(&out, value, `,"start":`)
-					}
-					if err == nil {
-						err = out.raw(`,"fields":{`)
-					}
-					frame.fields = value.RawFields.sorted()
-					frame.index = 0
-					frame.phase = nodeJSONFields
-				}
-			case nodeJSONChildren, nodeJSONSliceItems:
-				if frame.index < len(value.RawChildren) {
-					if frame.index != 0 {
-						if err = out.raw(","); err != nil {
-							break
-						}
-					}
-					child := value.RawChildren[frame.index]
-					frame.index++
-					stack = append(stack, nodeJSONFrame{value: child})
-					break
-				}
-				if err = out.raw("]"); err != nil {
-					break
-				}
-				if frame.phase == nodeJSONSliceItems {
-					delete(activeNodes, value)
-					stack = stack[:len(stack)-1]
-					break
-				}
-				frame.phase = nodeJSONFieldsStart
-			case nodeJSONFieldsStart:
-				// Source information: the rule, and where the captures are.
-				if r := value.Rule(); r != "" {
-					if err = out.raw(`,"rule":`); err != nil {
-						break
-					}
-					if err = out.encoded(r); err != nil {
-						break
-					}
-				}
-				frame.phase = nodeJSONExit
-				if !value.labeled || len(value.RawFields) == 0 {
-					break
-				}
-				frame.caps = captureLocations(value)
-				frame.index = 0
-				frame.phase = nodeJSONCaptures
-				err = out.raw(`,"captures":{`)
-			case nodeJSONCaptures:
-				if frame.closeSide {
-					frame.closeSide = false
-					if err = out.raw("}"); err != nil {
-						break
-					}
-				}
-				if frame.index == len(frame.caps) {
-					err = out.raw("}")
-					frame.phase = nodeJSONExit
-					break
-				}
-				c := frame.caps[frame.index]
-				if frame.index != 0 {
-					if err = out.raw(","); err != nil {
-						break
-					}
-				}
-				frame.index++
-				if err = out.encoded(c.name); err != nil {
-					break
-				}
-				if c.side {
-					if err = out.raw(`:{"value":`); err != nil {
-						break
-					}
-					frame.closeSide = true
-					stack = append(stack, nodeJSONFrame{value: c.value})
-					break
-				}
-				if err = out.raw(`:{"path":`); err == nil {
-					err = out.encoded(c.path)
-				}
-				if err == nil {
-					err = out.raw("}")
-				}
-			case nodeJSONFields:
-				if frame.index < len(frame.fields) {
-					if frame.index != 0 {
-						if err = out.raw(","); err != nil {
-							break
-						}
-					}
-					field := frame.fields[frame.index]
-					if err = out.encoded(field.Name); err != nil {
-						break
-					}
-					if err = out.raw(":"); err != nil {
-						break
-					}
-					frame.index++
-					stack = append(stack, nodeJSONFrame{value: field.Value})
-				} else {
-					if err = out.raw("}"); err != nil {
-						break
-					}
-					frame.phase = nodeJSONExit
-				}
-			case nodeJSONExit:
-				delete(activeNodes, value)
-				err = out.raw("}")
-				stack = stack[:len(stack)-1]
-			}
-		case []any:
-			if value == nil {
-				err = out.raw("null")
-				stack = stack[:len(stack)-1]
-				break
-			}
-			if frame.phase == nodeJSONEnter {
-				id := SliceIdentity(value)
-				if _, ok := activeSlices[id]; ok {
-					err = jsonCycleError(value)
-					break
-				}
-				activeSlices[id] = struct{}{}
-				frame.slice = id
-				frame.phase = nodeJSONSliceItems
-				err = out.raw("[")
-			} else if frame.index < len(value) {
-				if frame.index != 0 {
-					if err = out.raw(","); err != nil {
-						break
-					}
-				}
-				item := value[frame.index]
-				frame.index++
-				stack = append(stack, nodeJSONFrame{value: item})
-			} else {
-				delete(activeSlices, frame.slice)
-				err = out.raw("]")
-				stack = stack[:len(stack)-1]
-			}
-		default:
-			err = out.encoded(value)
-			stack = stack[:len(stack)-1]
-		}
-		if err != nil {
-			if flushErr := out.flush(); flushErr != nil {
-				return flushErr
-			}
-			return err
-		}
-	}
-	return out.flush()
-}
-
-func jsonCycleError(value any) error {
-	t := reflect.TypeOf(value)
-	return &json.UnsupportedValueError{Value: reflect.ValueOf(value), Str: fmt.Sprintf("encountered a cycle via %s", t)}
-}
-
-func writeJSONBytes(w io.Writer, data []byte) error {
-	n, err := w.Write(data)
-	if err != nil {
-		return err
-	}
-	if n != len(data) {
-		return io.ErrShortWrite
-	}
-	return nil
-}
-
-// WriteJSON writes the live node graph as JSON without recursive Node or []any traversal.
-// A nil receiver writes null. Shared edges are encoded separately; active-path cycles fail.
-// It does not close or flush w, and an error may leave a prefix written. Maps and other
-// containers delegate to encoding/json and are outside the iterative depth guarantee.
-// Callers must not mutate reachable values concurrently with this method.
-func (n *Node) WriteJSON(w io.Writer) error {
-	return writeJSONValue(w, n)
-}
-
-// SliceIdentity is for generated parsers; not a stable API.
-func SliceIdentity(value []any) nodeJSONSliceID {
-	return nodeJSONSliceID{ptr: reflect.ValueOf(value).Pointer(), len: len(value)}
-}
-
 // --- Iterative tree API: node_walk (mirrors internal/value/node_walk.go) ---
 
-// WalkAction controls descent after a visit.
-type WalkAction uint8
-
-const (
-	WalkContinue WalkAction = iota
-	WalkSkip
-	WalkStop
-)
-
-// WalkEdgeKind identifies the incoming edge of a value.
-type WalkEdgeKind uint8
-
-const (
-	WalkRoot WalkEdgeKind = iota
-	WalkChild
-	WalkField
-	WalkListElement
-)
-
-// WalkEdge identifies an incoming edge. Only its Kind's index or name is meaningful.
-type WalkEdge struct {
-	Kind       WalkEdgeKind
-	ChildIndex int
-	FieldName  string
-	ListIndex  int
-}
-
-// WalkVisit describes a live value and its nearest owning node. Depth counts edges.
-// Node is populated only for non-nil *Node values; Value retains typed nil leaves.
-type WalkVisit struct {
-	Value  any
-	Node   *Node
-	Parent *Node
-	Depth  int
-	Edge   WalkEdge
-}
-
-// CycleError describes an active-path back-edge, including the root and failing edge.
-type CycleError struct{ Path []WalkEdge }
-
-func (e *CycleError) Error() string {
-	return fmt.Sprintf("zp: tree cycle at depth %d", len(e.Path)-1)
-}
-
-// WalkTask is for generated parsers; not a stable API.
-type WalkTask struct {
-	Visit    WalkVisit
-	Exit     bool
-	Identity any
-}
-
-// Walk visits the root, then children in slice order, then fields in sorted name order.
-// Nested []any values are visited in index order. Other containers are leaves. Shared
-// nodes and lists are visited per edge; only cycles on the active path are rejected.
-// Callback errors return unchanged; Stop succeeds; Skip omits the value's descendants.
-// The graph must not be mutated concurrently. Walk does not mutate or retain it.
-func Walk(root *Node, visit func(WalkVisit) (WalkAction, error)) error {
-	if visit == nil {
-		return fmt.Errorf("zp: nil walk callback")
-	}
-	var value any = root
-	if root == nil {
-		value = nil
-	}
-	stack := []WalkTask{{Visit: WalkVisit{Value: value, Node: root, Edge: WalkEdge{Kind: WalkRoot}}}}
-	active := make(map[any]bool)
-	var path []WalkEdge
-	for len(stack) > 0 {
-		t := stack[len(stack)-1]
-		stack = stack[:len(stack)-1]
-		if t.Exit {
-			delete(active, t.Identity)
-			path = path[:len(path)-1]
-			continue
-		}
-		v := t.Visit
-		var identity any
-		switch x := v.Value.(type) {
-		case *Node:
-			if x != nil {
-				identity = x
-				v.Node = x
-			}
-		case []any:
-			if len(x) > 0 {
-				identity = SliceIdentity(x)
-			}
-		}
-		if identity != nil && active[identity] {
-			p := append([]WalkEdge(nil), path...)
-			return &CycleError{Path: append(p, v.Edge)}
-		}
-		action, err := visit(v)
-		if err != nil {
-			return err
-		}
-		switch action {
-		case WalkStop:
-			return nil
-		case WalkSkip:
-			continue
-		case WalkContinue:
-		default:
-			return fmt.Errorf("zp: invalid walk action %d", action)
-		}
-		if identity == nil {
-			continue
-		}
-		active[identity] = true
-		path = append(path, v.Edge)
-		stack = append(stack, WalkTask{Exit: true, Identity: identity})
-		push := func(value any, parent *Node, edge WalkEdge) {
-			stack = append(stack, WalkTask{Visit: WalkVisit{Value: value, Parent: parent, Depth: v.Depth + 1, Edge: edge}})
-		}
-		switch x := v.Value.(type) {
-		case *Node:
-			fields := WalkFields(x)
-			for i := len(fields) - 1; i >= 0; i-- {
-				push(fields[i].Value, x, WalkEdge{Kind: WalkField, FieldName: fields[i].Name})
-			}
-			for i := len(x.RawChildren) - 1; i >= 0; i-- {
-				push(x.RawChildren[i], x, WalkEdge{Kind: WalkChild, ChildIndex: i})
-			}
-		case []any:
-			for i := len(x) - 1; i >= 0; i-- {
-				push(x[i], v.Parent, WalkEdge{Kind: WalkListElement, ListIndex: i})
-			}
-		}
-	}
-	return nil
-}
-
 // --- Iterative tree API: node_cursor (mirrors internal/engine/document/node_cursor.go) ---
-
-// Cursor filters edge-oriented node visits using spans in Unit. Unit must match
-// the parse that populated Root's positions; it is never inferred or converted.
-// Parent spans do not prune traversal. Scalar and list values have no spans.
-type Cursor struct {
-	Root *Node
-	Unit PositionUnit
-}
-
-func (c Cursor) validate(start, end int32) error {
-	if c.Unit != CodePoints && c.Unit != Bytes {
-		return fmt.Errorf("zp: invalid cursor unit %d", c.Unit)
-	}
-	if start < 0 || end < start {
-		return fmt.Errorf("zp: invalid cursor range [%d,%d)", start, end)
-	}
-	return nil
-}
-
-// At visits nodes containing position, including zero-width nodes at position.
-func (c Cursor) At(position int32, visit func(WalkVisit) (WalkAction, error)) error {
-	if err := c.validate(position, position); err != nil {
-		return err
-	}
-	return c.filter(visit, func(n *Node) bool {
-		return n.RawStart == n.RawEnd && n.RawStart == position || n.RawStart <= position && position < n.RawEnd
-	})
-}
-
-// Range visits nodes overlapping [start,end). An empty range matches no nodes.
-// Zero-width nodes match when start <= node.Start < end.
-func (c Cursor) Range(start, end int32, visit func(WalkVisit) (WalkAction, error)) error {
-	if err := c.validate(start, end); err != nil {
-		return err
-	}
-	return c.filter(visit, func(n *Node) bool {
-		if start == end {
-			return false
-		}
-		if n.RawStart == n.RawEnd {
-			return start <= n.RawStart && n.RawStart < end
-		}
-		return n.RawStart < end && start < n.RawEnd
-	})
-}
-
-func (c Cursor) filter(visit func(WalkVisit) (WalkAction, error), matches func(*Node) bool) error {
-	if visit == nil {
-		return fmt.Errorf("zp: nil cursor callback")
-	}
-	return Walk(c.Root, func(v WalkVisit) (WalkAction, error) {
-		if v.Node != nil && matches(v.Node) {
-			return visit(v)
-		}
-		return WalkContinue, nil
-	})
-}

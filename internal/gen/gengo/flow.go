@@ -338,7 +338,7 @@ func (p *flowPrinter) stmt(s flow.Stmt) {
 	case *flow.Append:
 		x := p.expr(s.X)
 		if s.Spread && p.untyped() {
-			x = x + ".RawChildren..."
+			x = "D(" + x + ").Children..."
 		} else if s.Spread {
 			x = fmt.Sprintf("AsTval(%s).TKids()...", x)
 		}
@@ -572,9 +572,9 @@ func (p *flowPrinter) expr(x flow.Expr) string {
 	case *flow.NewTerminalNode:
 		return fmt.Sprintf("p.%s(%s, %s)", p.g.helper("NewTerminal"), p.expr(x.Start), p.expr(x.Text))
 	case *flow.NewBranchNode:
-		kind := "RawKindSeq"
+		kind := "SeqKind"
 		if x.List {
-			kind = "RawKindList"
+			kind = "ListKind"
 		}
 		return fmt.Sprintf("p.%s(%s, %s, %s)", p.g.helper("NewBranch"), kind, p.expr(x.Start), p.expr(x.Kids))
 	case *flow.NewNode:

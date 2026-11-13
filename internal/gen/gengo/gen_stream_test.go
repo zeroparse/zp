@@ -1062,6 +1062,7 @@ const generatedRecoveringStreamConsumer = `package recovering
 
 import (
 	zprt "zeroparse.dev/zp/runtime"
+	"zeroparse.dev/zp/runtime/parse"
 	"errors"
 	"io"
 	"runtime"
@@ -1104,7 +1105,7 @@ func TestDiagnosticLimitBoundsMemory(t *testing.T) {
 			}
 			return nil
 		}, WithUnit(unit), zprt.WithDiagnosticLimit(3), zprt.WithDiagnosticCallback(func(*SyntaxError) error { diags++; return nil }))
-		var truncated *zprt.TruncatedSyntaxErrors
+		var truncated *parse.TruncatedSyntaxErrors
 		if !errors.As(err, &truncated) || truncated.Total != n || truncated.Dropped != n-3 || truncated.CountsSaturated || count != 2*n || diags != n {
 			t.Fatal(err, count, diags)
 		}
@@ -1201,7 +1202,7 @@ func TestIterateValue(t *testing.T) {
 		t.Fatal(ok, err)
 	}
 	it.Close()
-	if _, ok, err := it.Next(); ok || err != zprt.ErrStreamClosed {
+	if _, ok, err := it.Next(); ok || err != parse.ErrStreamClosed {
 		t.Fatal(ok, err)
 	}
 	// A callback panic reaches the caller of Next unchanged.

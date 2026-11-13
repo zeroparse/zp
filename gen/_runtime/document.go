@@ -3,6 +3,8 @@ package runtime
 import (
 	"fmt"
 	"unicode/utf8"
+
+	"zeroparse.dev/zp/runtime/parse"
 )
 
 // Document incrementally parses the configured start rule. It belongs to one
@@ -35,12 +37,6 @@ func (d *Document) BeginParse() error {
 
 func (d *Document) EndParse() { d.parsing = false }
 
-// ParseStats counts rule evaluations and reused memo results in the last Parse.
-type ParseStats struct {
-	Evaluated int
-	Reused    int
-}
-
 // MakeDocument is for generated parsers; not a stable API.
 func MakeDocument(root *Rule, text string, opts []ParseOption) (d *Document, err error) {
 	o, err := ResolveOptions(root.g, opts)
@@ -55,7 +51,7 @@ func MakeDocument(root *Rule, text string, opts []ParseOption) (d *Document, err
 	p.setGrammar(root.g)
 	p.Expectations = o.expectations
 	o.control.attachMemory(p)
-	if o.unit == CodePoints {
+	if o.unit == parse.CodePoints {
 		p.setSource(text)
 	} else if o.control != nil {
 		p.SpendRead(uint64(len(text)))
@@ -91,7 +87,7 @@ func (d *Document) Edit(start, end int, text string) error {
 
 // Parse parses the current text, applying invocation options after the
 // Document's construction defaults. An invocation cannot change its unit.
-func (d *Document) Parse(opts ...ParseOption) (*Node, error) {
+func (d *Document) Parse(opts ...ParseOption) (*parse.Node, error) {
 	if err := d.BeginParse(); err != nil {
 		return nil, err
 	}
@@ -113,7 +109,7 @@ func (d *Document) ResolveParseOptions(opts []ParseOption) (parseOptions, error)
 		return o, err
 	}
 	o.maxDepth = depth
-	if d.State.root.g.NoBudgetControls && (o.context != nil || !o.limits.disabled()) {
+	if d.State.root.g.NoBudgetControls && (o.context != nil || !limitsDisabled(o.limits)) {
 		return o, fmt.Errorf("this parser was generated without limit controls (generate with -limits to use WithContext and a finite Compute or Memory limit)")
 	}
 	if err := o.validateDiagnostics(); err != nil {
@@ -125,25 +121,11 @@ func (d *Document) ResolveParseOptions(opts []ParseOption) (parseOptions, error)
 	return o, nil
 }
 
-// Stats returns the evaluation and reuse counts of the last Parse.
-func (d *Document) Stats() ParseStats {
+// Stats returns the evaluation and reuse counts of the last Parse. A generated Document reuses
+// memo results only, never repetition elements, so every reuse is a memo hit.
+func (d *Document) Stats() parse.ParseStats {
 	s := d.State.stats
-	return ParseStats{Evaluated: s.Evaluated, Reused: s.Reused}
-}
-
-// Clone copies a Node graph while preserving shared Node identities and repeated
-// []any or []*Node slice views. It does not clone arbitrary mutable action values.
-func (n *Node) Clone() *Node {
-	state := documentCloneState{
-		nodes:  make(map[*Node]*Node),
-		slices: make(map[DocumentSliceKey]any),
-	}
-	return cloneDocumentNode(n, &state)
-}
-
-type documentCloneState struct {
-	nodes  map[*Node]*Node
-	slices map[DocumentSliceKey]any
+	return parse.ParseStats{Evaluated: s.Evaluated, Reused: s.Reused, MemoHits: s.Reused}
 }
 
 // A slice's first element, length and capacity identify an exact slice view.
@@ -158,84 +140,8 @@ type DocumentSliceKey struct {
 	Capacity int
 }
 
-func cloneDocumentNode(n *Node, state *documentCloneState) *Node {
-	if n == nil {
-		return nil
-	}
-	if c := state.nodes[n]; c != nil {
-		return c
-	}
-	c := new(Node)
-	*c = *n
-	state.nodes[n] = c
-	if n.RawChildren != nil {
-		c.RawChildren = cloneDocumentValue(n.RawChildren, state).([]*Node)
-	}
-	if n.RawFields != nil {
-		c.RawFields = make(Fields, len(n.RawFields))
-		for i, field := range n.RawFields {
-			field.Value = cloneDocumentValue(field.Value, state)
-			c.RawFields[i] = field
-		}
-	}
-	return c
-}
-
-func cloneDocumentValue(v any, state *documentCloneState) any {
-	switch v := v.(type) {
-	case *Node:
-		return cloneDocumentNode(v, state)
-	case []*Node:
-		if v == nil {
-			return v
-		}
-		if cap(v) > 0 {
-			key := DocumentSliceKey{First: &v[:1][0], Length: len(v), Capacity: cap(v)}
-			if out, ok := state.slices[key]; ok {
-				return out
-			}
-			// Source capacity identifies this view, but is not live output.
-			out := make([]*Node, len(v))
-			state.slices[key] = out
-			for i, n := range v {
-				out[i] = cloneDocumentNode(n, state)
-			}
-			return out
-		}
-		out := make([]*Node, len(v))
-		for i, n := range v {
-			out[i] = cloneDocumentNode(n, state)
-		}
-		return out
-	case []any:
-		if v == nil {
-			return v
-		}
-		if cap(v) > 0 {
-			key := DocumentSliceKey{First: &v[:1][0], Length: len(v), Capacity: cap(v)}
-			if out, ok := state.slices[key]; ok {
-				return out
-			}
-			// Source capacity identifies this view, but is not live output.
-			out := make([]any, len(v))
-			state.slices[key] = out // publish before walking elements to break cycles
-			for i, item := range v {
-				out[i] = cloneDocumentValue(item, state)
-			}
-			return out
-		}
-		out := make([]any, len(v))
-		for i, item := range v {
-			out[i] = cloneDocumentValue(item, state)
-		}
-		return out
-	default:
-		return v
-	}
-}
-
 // newDocumentState parses only the configured start rule.
-func newDocumentState(root *Rule, text string, unit PositionUnit) *documentState {
+func newDocumentState(root *Rule, text string, unit parse.PositionUnit) *documentState {
 	return &documentState{root: root, text: text, unit: unit}
 }
 
@@ -253,14 +159,14 @@ type documentEdit struct{ start, end, delta int }
 // when it can change how the input after end decodes.
 func (d *documentState) editReuse(start, end int, replacement string) (ed documentEdit, err error) {
 	length := len(d.text)
-	if d.unit != Bytes {
+	if d.unit != parse.Bytes {
 		length = utf8.RuneCountInString(d.text)
 	}
 	if start < 0 || end < start || end > length {
 		return documentEdit{}, fmt.Errorf("invalid range [%d,%d) for text of length %d", start, end, length)
 	}
 	startByte, endByte := start, end
-	if d.unit == Bytes {
+	if d.unit == parse.Bytes {
 		if err := documentByteBoundary(d.text, start); err != nil {
 			return documentEdit{}, err
 		}
@@ -283,7 +189,7 @@ func (d *documentState) editReuse(start, end int, replacement string) (ed docume
 		reuse--
 	}
 	ed = documentEdit{start: reuse, end: end, delta: len(replacement) - (endByte - startByte)}
-	if d.unit != Bytes {
+	if d.unit != parse.Bytes {
 		// The replacement can also end with the start of a sequence that the continuation bytes after
 		// end, each a separate character, complete. Past those, the characters are the same.
 		endX := endByte
@@ -416,7 +322,7 @@ func (p *Parser) documentMove(e *memoEntry) bool {
 	}
 	if shared {
 		if p.moved == nil {
-			p.moved = map[*Node]*Node{}
+			p.moved = map[*parse.Node]*parse.Node{}
 		}
 		e.node = p.moveShared(e.node, int32(shift))
 		clear(p.moved)
@@ -429,27 +335,27 @@ func (p *Parser) documentMove(e *memoEntry) bool {
 
 // movable reports whether moveNode can move n: its fields and box hold only nodes and basic values;
 // and whether a node occurs in n more than once. It marks the nodes it visits with mark.
-func (p *Parser) movable(n *Node, mark uint32) (movable, shared bool) {
+func (p *Parser) movable(n *parse.Node, mark uint32) (movable, shared bool) {
 	if n == nil {
 		return true, false
 	}
-	if n.moveMark == mark {
+	if D(n).Mark == mark {
 		return true, true
 	}
-	n.moveMark = mark
-	p.spendValue(1 + len(n.RawChildren) + len(n.RawFields))
-	if !basicValue(n.box) {
+	D(n).Mark = mark
+	p.spendValue(1 + len(D(n).Children) + len(D(n).Fields))
+	if !basicValue(D(n).Box) {
 		return false, false
 	}
-	for _, c := range n.RawChildren {
+	for _, c := range D(n).Children {
 		ok, sh := p.movable(c, mark)
 		if !ok {
 			return false, false
 		}
 		shared = shared || sh
 	}
-	for _, f := range n.RawFields {
-		if c, ok := f.Value.(*Node); ok {
+	for _, f := range D(n).Fields {
+		if c, ok := f.Value.(*parse.Node); ok {
 			ok, sh := p.movable(c, mark)
 			if !ok {
 				return false, false
@@ -474,27 +380,27 @@ func basicValue(v any) bool {
 
 // moveNode returns a copy of the movable node n, in which no node occurs twice, with its positions
 // and those of its descendants moved by shift.
-func (p *Parser) moveNode(n *Node, shift int32) *Node {
+func (p *Parser) moveNode(n *parse.Node, shift int32) *parse.Node {
 	if n == nil {
 		return nil
 	}
-	c := p.NewNode(*n)
-	p.spendValue(len(n.RawChildren) + len(n.RawFields))
-	c.RawStart += shift
-	c.RawEnd += shift
-	if n.RawChildren != nil {
-		c.RawChildren = p.Nodes(len(n.RawChildren))
-		for i, k := range n.RawChildren {
-			c.RawChildren[i] = p.moveNode(k, shift)
+	c := p.NewNode(*D(n))
+	p.spendValue(len(D(n).Children) + len(D(n).Fields))
+	D(c).Start += shift
+	D(c).End += shift
+	if D(n).Children != nil {
+		D(c).Children = p.Nodes(len(D(n).Children))
+		for i, k := range D(n).Children {
+			D(c).Children[i] = p.moveNode(k, shift)
 		}
 	}
-	if n.RawFields != nil {
-		c.RawFields = p.fields(len(n.RawFields))
-		for _, f := range n.RawFields {
-			if k, ok := f.Value.(*Node); ok {
+	if D(n).Fields != nil {
+		D(c).Fields = p.fields(len(D(n).Fields))
+		for _, f := range D(n).Fields {
+			if k, ok := f.Value.(*parse.Node); ok {
 				f.Value = p.moveNode(k, shift)
 			}
-			c.RawFields = append(c.RawFields, f)
+			D(c).Fields = append(D(c).Fields, f)
 		}
 	}
 	return c
@@ -502,31 +408,31 @@ func (p *Parser) moveNode(n *Node, shift int32) *Node {
 
 // moveShared is moveNode for a value that holds a node more than once: moved holds the copies made
 // so far, which it shares.
-func (p *Parser) moveShared(n *Node, shift int32) *Node {
+func (p *Parser) moveShared(n *parse.Node, shift int32) *parse.Node {
 	if n == nil {
 		return nil
 	}
 	if c := p.moved[n]; c != nil {
 		return c
 	}
-	c := p.NewNode(*n)
+	c := p.NewNode(*D(n))
 	p.moved[n] = c
-	p.spendValue(len(n.RawChildren) + len(n.RawFields))
-	c.RawStart += shift
-	c.RawEnd += shift
-	if n.RawChildren != nil {
-		c.RawChildren = p.Nodes(len(n.RawChildren))
-		for i, k := range n.RawChildren {
-			c.RawChildren[i] = p.moveShared(k, shift)
+	p.spendValue(len(D(n).Children) + len(D(n).Fields))
+	D(c).Start += shift
+	D(c).End += shift
+	if D(n).Children != nil {
+		D(c).Children = p.Nodes(len(D(n).Children))
+		for i, k := range D(n).Children {
+			D(c).Children[i] = p.moveShared(k, shift)
 		}
 	}
-	if n.RawFields != nil {
-		c.RawFields = p.fields(len(n.RawFields))
-		for _, f := range n.RawFields {
-			if k, ok := f.Value.(*Node); ok {
+	if D(n).Fields != nil {
+		D(c).Fields = p.fields(len(D(n).Fields))
+		for _, f := range D(n).Fields {
+			if k, ok := f.Value.(*parse.Node); ok {
 				f.Value = p.moveShared(k, shift)
 			}
-			c.RawFields = append(c.RawFields, f)
+			D(c).Fields = append(D(c).Fields, f)
 		}
 	}
 	return c
@@ -564,15 +470,15 @@ func documentByteBoundary(text string, pos int) error {
 // parse retains completed memo entries after ordinary syntax failures. A
 // panic or budget interruption discards all entries because they may depend on
 // unfinished left-recursion growth or partially evaluated actions.
-func (d *documentState) parse(o parseOptions) (*Node, error) {
-	return DocumentParseConverted(d, o, func(n *Node, _ *BudgetControl, _ error) *Node { return n })
+func (d *documentState) parse(o parseOptions) (*parse.Node, error) {
+	return DocumentParseConverted(d, o, func(n *parse.Node, _ *BudgetControl, _ error) *parse.Node { return n })
 }
 
 // DocumentParseConverted keeps Node parsing and final typed conversion inside
 // the same limit-controlled invocation and memo cleanup boundary.
 //
 // DocumentParseConverted is for generated parsers; not a stable API.
-func DocumentParseConverted[T any](d *documentState, o parseOptions, convert func(*Node, *BudgetControl, error) T) (res T, err error) {
+func DocumentParseConverted[T any](d *documentState, o parseOptions, convert func(*parse.Node, *BudgetControl, error) T) (res T, err error) {
 	defer recoverParse(&res, &err)
 	if o.unit != d.unit {
 		return res, fmt.Errorf("document parse cannot change unit")
@@ -593,7 +499,7 @@ func DocumentParseConverted[T any](d *documentState, o parseOptions, convert fun
 	p.Expectations = o.expectations
 	p.Observation = newObservation(&o.observe)
 	defer p.releaseObservation()
-	if d.unit == Bytes {
+	if d.unit == parse.Bytes {
 		p.bs, p.n = d.text, len(d.text)
 	} else {
 		p.setSource(d.text)
@@ -616,11 +522,11 @@ func DocumentParseConverted[T any](d *documentState, o parseOptions, convert fun
 	p.Control.Check()
 	v, ok := p.Call(d.root, 0)
 	p.Control.Check()
-	var n *Node
+	var n *parse.Node
 	if ok && p.Pos == p.n {
 		n = v
 		if len(p.Recovered) > 0 {
-			err = SyntaxErrors(p.recoveredErrors())
+			err = parse.SyntaxErrors(p.recoveredErrors())
 		}
 	} else {
 		if ok {
@@ -641,12 +547,12 @@ func publishDocumentError(p *Parser, err error) error {
 	// The copy is work that only a Document parse does.
 	defer p.Control.FreeEnd(p.Control.FreeBegin(true))
 	switch e := err.(type) {
-	case SyntaxErrors:
+	case parse.SyntaxErrors:
 		if e == nil {
 			return e
 		}
 		p.spendValue(len(e))
-		out := make(SyntaxErrors, len(e))
+		out := make(parse.SyntaxErrors, len(e))
 		for i, item := range e {
 			out[i] = cloneDocumentError(p, item)
 		}
@@ -656,12 +562,12 @@ func publishDocumentError(p *Parser, err error) error {
 	return err
 }
 
-func cloneDocumentError(p *Parser, e *SyntaxError) *SyntaxError {
+func cloneDocumentError(p *Parser, e *parse.SyntaxError) *parse.SyntaxError {
 	p.Spend()
 	if e == nil {
 		return nil
 	}
-	out := new(SyntaxError)
+	out := new(parse.SyntaxError)
 	*out = *e
 	if e.Expected != nil {
 		p.spendValue(len(e.Expected))

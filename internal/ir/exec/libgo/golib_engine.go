@@ -670,15 +670,34 @@ var engineImportPaths = []struct{ name, path string }{
 	{"parse", "zeroparse.dev/zp/runtime/parse"},
 }
 
+// runtimeImportPaths are the packages that the printed code of the Go runtime may name, by package
+// name.
+var runtimeImportPaths = []struct{ name, path string }{
+	{"noderep", "zeroparse.dev/zp/runtime/noderep"},
+	{"parse", "zeroparse.dev/zp/runtime/parse"},
+}
+
 // engineImports returns the import declaration of printed engine code: the standard packages std
 // and the packages of engineImportPaths that body names.
 func engineImports(body string, std []string) string {
+	return printedImports(body, std, engineImportPaths)
+}
+
+// runtimeImports returns the import declaration of printed code of the Go runtime: the standard
+// packages std and the packages of runtimeImportPaths that body names.
+func runtimeImports(body string, std []string) string {
+	return printedImports(body, std, runtimeImportPaths)
+}
+
+// printedImports returns the import declaration of printed code: the standard packages std and the
+// packages of own that body names.
+func printedImports(body string, std []string, ownPaths []struct{ name, path string }) string {
 	var paths []string
 	for _, p := range std {
 		paths = append(paths, strconv.Quote(p))
 	}
 	var own []string
-	for _, p := range engineImportPaths {
+	for _, p := range ownPaths {
 		if regexp.MustCompile(`\b` + p.name + `\.[A-Z]`).MatchString(body) {
 			own = append(own, strconv.Quote(p.path))
 		}

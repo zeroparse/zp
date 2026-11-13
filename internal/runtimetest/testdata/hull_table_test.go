@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/internal/ir/exec/conform"
+	"zeroparse.dev/zp/runtime/parse"
 )
 
 // The hull table (conform.HullCases) on the composition hull of the node and the typed runtime (termHull,
@@ -14,16 +15,16 @@ import (
 func TestValueHullTable(t *testing.T) {
 	for _, controlled := range []bool{false, true} {
 		c, vals := nodeBuiltinFixture(controlled)
-		vals[conform.StructLate] = &Node{RawKind: RawKindMatch, RawTerminal: true, RawText: "q", RawStart: 7, RawEnd: 9}
+		vals[conform.StructLate] = nodeOfData(&Data{Kind: MatchKind, Terminal: true, Text: "q", Start: 7, End: 9})
 		c.start, c.end = conform.StructRuleStart, conform.StructRuleEnd
 		if err := conform.RunHulls("node", controlled, func(kind string, elems []string) (string, int) {
-			var n *Node
+			var n *parse.Node
 			if kind == "tuple" {
 				var args []any
 				for _, e := range elems {
 					args = append(args, vals[e])
 				}
-				n = c.fxTuple(args...).(*Node)
+				n = c.fxTuple(args...).(*parse.Node)
 			} else {
 				base := len(c.P.KidStack)
 				for _, e := range elems {
@@ -33,12 +34,12 @@ func TestValueHullTable(t *testing.T) {
 				c.P.DropKids(base)
 				n = c.NewList(items)
 			}
-			rng := fmt.Sprintf("%d-%d", n.RawStart, n.RawEnd)
+			rng := fmt.Sprintf("%d-%d", D(n).Start, D(n).End)
 			var before uint64
 			if controlled {
 				before = c.P.Control.budgetUsed()
 			}
-			c.P.TermHull(c, kind == "tuple", n.RawChildren)
+			c.P.TermHull(c, kind == "tuple", D(n).Children)
 			if controlled {
 				return rng, int(c.P.Control.budgetUsed() - before)
 			}

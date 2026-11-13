@@ -3,6 +3,8 @@ package runtime
 import (
 	"encoding/binary"
 	"reflect"
+
+	"zeroparse.dev/zp/runtime/parse"
 )
 
 // The dependency memo of left recursion, the same as the engine's (see "Evaluations of Rules" in
@@ -64,7 +66,7 @@ const (
 // ctxResult is a result that a context keeps: a seed, the result of a growth step, or the result of
 // a call that read a seed. It holds a node (Parser) or a typed value (TParser).
 type ctxResult struct {
-	node     *Node
+	node     *parse.Node
 	val      any
 	errs     recEntry
 	expected []ExpID
@@ -1064,7 +1066,7 @@ func (p *Parser) growNext(g *growState) bool {
 
 // growStep receives the result of a step, a node or a typed value, and adopts it as the seed if the
 // match grew.
-func (p *Parser) growStep(g *growState, node *Node, val any, ok bool) {
+func (p *Parser) growStep(g *growState, node *parse.Node, val any, ok bool) {
 	if !g.ctx {
 		best := &p.gamma[g.gi].inl
 		if !ok || (best.ok && p.Pos <= best.end) {
@@ -1338,7 +1340,7 @@ func (p *Parser) canonicalSeed(g *growState, e *ctxResult) (*ctxResult, uint64) 
 // nodesEqual reports whether two trees are equal, comparing at most *budget pairs of distinct nodes
 // (false beyond: two results that are not shown equal get different identities, which costs only
 // reuse).
-func (p *Parser) nodesEqual(a, b *Node, budget *int) bool {
+func (p *Parser) nodesEqual(a, b *parse.Node, budget *int) bool {
 	if a == b {
 		return true
 	}
@@ -1349,23 +1351,22 @@ func (p *Parser) nodesEqual(a, b *Node, budget *int) bool {
 		return false
 	}
 	p.Spend()
-	if a.RawKind != b.RawKind || a.RawStart != b.RawStart || a.RawEnd != b.RawEnd || a.RawText != b.RawText ||
-		a.RawFresh != b.RawFresh || a.RawTerminal != b.RawTerminal || a.labeled != b.labeled || a.box != nil || b.box != nil ||
-		len(a.RawChildren) != len(b.RawChildren) || len(a.RawFields) != len(b.RawFields) {
+	if D(a).Kind != D(b).Kind || D(a).Start != D(b).Start || D(a).End != D(b).End || D(a).Text != D(b).Text || D(a).Fresh != D(b).Fresh || D(a).Terminal != D(b).Terminal || D(a).Labeled != D(b).Labeled || D(a).Box != nil || D(b).Box != nil ||
+		len(D(a).Children) != len(D(b).Children) || len(D(a).Fields) != len(D(b).Fields) {
 		return false
 	}
-	for i := range a.RawChildren {
-		if !p.nodesEqual(a.RawChildren[i], b.RawChildren[i], budget) {
+	for i := range D(a).Children {
+		if !p.nodesEqual(D(a).Children[i], D(b).Children[i], budget) {
 			return false
 		}
 	}
-	for i := range a.RawFields {
-		fa, fb := &a.RawFields[i], &b.RawFields[i]
+	for i := range D(a).Fields {
+		fa, fb := &D(a).Fields[i], &D(b).Fields[i]
 		if fa.Name != fb.Name {
 			return false
 		}
-		na, aok := fa.Value.(*Node)
-		nb, bok := fb.Value.(*Node)
+		na, aok := fa.Value.(*parse.Node)
+		nb, bok := fb.Value.(*parse.Node)
 		switch {
 		case aok && bok:
 			if !p.nodesEqual(na, nb, budget) {

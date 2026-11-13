@@ -755,15 +755,15 @@ func (t *TypedGen) converters(b *strings.Builder) {
 // converter, so the typed value as a plain node is not remembered.
 func (a *astConv) toMatch(n *Node) *TNode[string] {
 	a.spend()
-	if n == nil || n.RawKind == nil || n.RawKind.Base != BaseString {
+	if n == nil || D(n).Kind == nil || D(n).Kind.Base != BaseString {
 		return nil
 	}
-	named := n.RawKind.NodeType()
+	named := D(n).Kind.IsNodeType()
 	if !named {
 		if v, ok := a.values[n]; ok { return v.(*TNode[string]) }
 	}
 	v := astNew(&a.match)
-	*v = TNode[string]{Span: %[1]s{Start: int(n.RawStart), End: int(n.RawEnd)}, Value: n.RawText}
+	*v = TNode[string]{Span: %[1]s{Start: int(D(n).Start), End: int(D(n).End)}, Value: D(n).Text}
 	if !named {
 		a.remember(n, v)
 	}
@@ -780,12 +780,12 @@ func (a *astConv) toNode(n *Node) *TNode[any] {
 	if v, ok := a.values[n]; ok {
 		if v, ok := v.(*TNode[any]); ok { return v }
 	}
-	v := &TNode[any]{Span: %[1]s{Start: int(n.RawStart), End: int(n.RawEnd)}}
-	if !n.RawKind.NodeType() {
+	v := &TNode[any]{Span: %[1]s{Start: int(D(n).Start), End: int(D(n).End)}}
+	if !D(n).Kind.IsNodeType() {
 		a.remember(n, v) // as toMatch
 	}
 	if n.IsTerminal() {
-		v.Value = n.RawText
+		v.Value = D(n).Text
 	} else {
 		v.Value = a.elems(n)
 	}
@@ -794,8 +794,8 @@ func (a *astConv) toNode(n *Node) *TNode[any] {
 
 // elems converts the elements of a tuple or list.
 func (a *astConv) elems(n *Node) []any {
-	out := make([]any, len(n.RawChildren))
-	for i, c := range n.RawChildren {
+	out := make([]any, len(D(n).Children))
+	for i, c := range D(n).Children {
 		a.spend()
 		out[i] = a.anyValue(c)
 	}
@@ -810,7 +810,7 @@ func (a *astConv) toError(n *Node) *Error {
 	if v, ok := a.values[n]; ok { return v.(*Error) }
 	msg, _ := a.field(n, "message").(string)
 	v := astNew(&a.error)
-	*v = Error{Span: %[1]s{Start: int(n.RawStart), End: int(n.RawEnd)}, Message: msg}
+	*v = Error{Span: %[1]s{Start: int(D(n).Start), End: int(D(n).End)}, Message: msg}
 	a.remember(n, v)
 	return v
 }
@@ -825,10 +825,10 @@ func (a *astConv) toError(n *Node) *Error {
 	for _, name := range t.NodeTypes {
 		// A node of a named node type converts as the node it was converted from (baseNode).
 		n, _ := t.G.Prog.NodeTypeOf(name)
-		fmt.Fprintf(b, "func (a *astConv) %[4]s(n *Node) *%[1]s {\n\ta.spend()\n\tif n == nil || n.Type() != %[2]q {\n\t\treturn nil\n\t}\n\tif v, ok := a.values[n]; ok { return v.(*%[1]s) }\n\tu := %[3]s\n\tif u == nil {\n\t\treturn nil\n\t}\n\tv := &%[1]s{%[5]s: *u}\n\ta.remember(n, v)\n\treturn v\n}\n\n", t.ref(name), name, t.conv(n.Underlying(), "n.BaseNode()"), convName(name), embeddedName(t.goType(n.Underlying())))
+		fmt.Fprintf(b, "func (a *astConv) %[4]s(n *Node) *%[1]s {\n\ta.spend()\n\tif n == nil || n.Type() != %[2]q {\n\t\treturn nil\n\t}\n\tif v, ok := a.values[n]; ok { return v.(*%[1]s) }\n\tu := %[3]s\n\tif u == nil {\n\t\treturn nil\n\t}\n\tv := &%[1]s{%[5]s: *u}\n\ta.remember(n, v)\n\treturn v\n}\n\n", t.ref(name), name, t.conv(n.Underlying(), "BaseNode(n)"), convName(name), embeddedName(t.goType(n.Underlying())))
 	}
 	for _, name := range t.structs {
-		fmt.Fprintf(b, "func (a *astConv) %[4]s(n *Node) *%[1]s {\n\ta.spend()\n\tif n == nil || n.Type() != %[2]q {\n\t\treturn nil\n\t}\n\tif v, ok := a.values[n]; ok { return v.(*%[1]s) }\n\tv := astNew(&a.t%[5]s)\n\ta.remember(n, v)\n\tv.%[3]s = %[3]s{Start: int(n.RawStart), End: int(n.RawEnd)}\n", t.ref(name), name, span, convName(name), name)
+		fmt.Fprintf(b, "func (a *astConv) %[4]s(n *Node) *%[1]s {\n\ta.spend()\n\tif n == nil || n.Type() != %[2]q {\n\t\treturn nil\n\t}\n\tif v, ok := a.values[n]; ok { return v.(*%[1]s) }\n\tv := astNew(&a.t%[5]s)\n\ta.remember(n, v)\n\tv.%[3]s = %[3]s{Start: int(D(n).Start), End: int(D(n).End)}\n", t.ref(name), name, span, convName(name), name)
 		if len(t.Info.Fields[name]) > 0 {
 			// Fields are set in the order the action set them; look each one up.
 			for _, f := range t.Info.Fields[name] {
@@ -861,14 +861,14 @@ func (a *astConv) toError(n *Node) *Error {
 	}
 	// List converters and the helpers of value-model types (more may be added while writing them,
 	// for lists of lists).
-	b.WriteString("// nodeValue returns the Value of node n: its text, or its converted elements.\nfunc (a *astConv) nodeValue(n *Node) any {\n\tif n.IsTerminal() {\n\t\treturn n.RawText\n\t}\n\treturn a.elems(n)\n}\n\n")
+	b.WriteString("// nodeValue returns the Value of node n: its text, or its converted elements.\nfunc (a *astConv) nodeValue(n *Node) any {\n\tif n.IsTerminal() {\n\t\treturn D(n).Text\n\t}\n\treturn a.elems(n)\n}\n\n")
 	helpers := 0
 	for i := 0; ; {
 		for ; i < len(t.listOrder); i++ {
 			l := t.listOrder[i]
 			elem := t.goType(l.elem)
 			conv := t.conv(l.elem, "UnboxNode(c)")
-			fmt.Fprintf(b, "func (a *astConv) %[1]s(n *Node) []%[2]s {\n\ta.spend()\n\tif n == nil {\n\t\treturn nil\n\t}\n\tout := astSlice(&a.%[1]sChunk, len(n.RawChildren))\n\tfor i, c := range n.RawChildren {\n\t\ta.spend()\n\t\tout[i] = %[3]s\n\t}\n\treturn out\n}\n\n", l.name, elem, conv)
+			fmt.Fprintf(b, "func (a *astConv) %[1]s(n *Node) []%[2]s {\n\ta.spend()\n\tif n == nil {\n\t\treturn nil\n\t}\n\tout := astSlice(&a.%[1]sChunk, len(D(n).Children))\n\tfor i, c := range D(n).Children {\n\t\ta.spend()\n\t\tout[i] = %[3]s\n\t}\n\treturn out\n}\n\n", l.name, elem, conv)
 		}
 		if !t.nodeHelpers(b, &helpers) && i == len(t.listOrder) {
 			break
@@ -892,9 +892,9 @@ func (a *astConv) spend() {
  if a.control != nil { a.control.Charge(1) }
 }
 func (a *astConv) field(n *Node, name string) any {
- if a.control == nil { return n.RawField(name) }
+ if a.control == nil { return RawField(n, name) }
  if n == nil { return nil }
- for _, f := range n.RawFields {
+ for _, f := range D(n).Fields {
   a.spend()
   if f.Name == name { return f.Value }
  }

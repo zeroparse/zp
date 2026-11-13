@@ -342,13 +342,14 @@ func check(g *grammar.Grammar, opts compile.Options, flags []compile.RuleFlags) 
 	return prog, nil
 }
 
-// runtimeFiles holds a copy of the files of the runtime package, which Go.Generate copies into
-// packages generated with RuntimeEmbed and reads to qualify the names generated code uses from it.
-// The copy lives in this package rather than in package zp so that only programs that generate
-// code carry it; TestRuntimeCopy keeps it equal to the runtime, and go generate refreshes it.
+// runtimeFiles holds a copy of the files of the runtime module's packages (the runtime package and
+// its subdirectories noderep and parse), which Go.Generate copies into packages generated with
+// RuntimeEmbed and reads to qualify the names generated code uses from them. The copy lives in this
+// package rather than in package zp so that only programs that generate code carry it;
+// TestRuntimeCopy keeps it equal to the runtime, and go generate refreshes it.
 //
 //go:generate go run copy_runtime.go
-//go:embed _runtime/*.go
+//go:embed _runtime/*.go _runtime/noderep/*.go _runtime/parse/*.go
 var runtimeFiles embed.FS
 
 // runtimeSource is the embedded copy of the runtime, which Go generation gives to the generator.

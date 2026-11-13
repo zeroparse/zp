@@ -331,7 +331,7 @@ func TestGen(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	for _, want := range []string{igen.Header(), "package kv", "func Parse(input string, opts ...rt.ParseOption) (*rt.Node, error)"} {
+	for _, want := range []string{igen.Header(), "package kv", "func Parse(input string, opts ...rt.ParseOption) (*parse.Node, error)"} {
 		if !strings.Contains(out, want) {
 			t.Errorf("missing %q", want)
 		}

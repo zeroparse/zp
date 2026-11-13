@@ -5,6 +5,9 @@ package runtime
 import (
 	"fmt"
 	"strings"
+
+	"zeroparse.dev/zp/runtime/noderep"
+	"zeroparse.dev/zp/runtime/parse"
 )
 
 // The codes of the binary operators, as the compositions of terms take them, for generated parsers;
@@ -330,12 +333,12 @@ func (p *Parser) TermMember(c *ActCtx, kind int, x any, name string, field strin
 		return nil, p.termError(8, x, any(name), 0, 0)
 	}
 	if kind >= 1 && kind <= 3 {
-		if n.isNode() {
+		if isNode(n) {
 			if kind == 1 {
-				return any(int(n.RawStart)), nil
+				return any(int(D(n).Start)), nil
 			}
 			if kind == 2 {
-				return any(int(n.RawEnd)), nil
+				return any(int(D(n).End)), nil
 			}
 			return p.nodeValue(n), nil
 		}
@@ -345,10 +348,10 @@ func (p *Parser) TermMember(c *ActCtx, kind int, x any, name string, field strin
 		if st {
 			return nil, p.termError(9, x, any(field), 0, 0)
 		}
-		v, _ := p.valueField(n.RawFields, field)
+		v, _ := p.valueField(D(n).Fields, field)
 		return UnboxValue(v), nil
 	}
-	f, set := p.valueField(n.RawFields, field)
+	f, set := p.valueField(D(n).Fields, field)
 	if set {
 		return f, nil
 	}
@@ -375,7 +378,7 @@ func (p *Parser) TermPush(c *ActCtx, fn string, v any) any {
 		return nil
 	}
 	if k == 1 || k == 2 || k == 3 {
-		p.KidStack = append(p.KidStack, p.NewNode(Node{RawKind: kindBox, box: v, RawStart: int32(c.start), RawEnd: int32(c.end)}))
+		p.KidStack = append(p.KidStack, p.NewNode(Data{Kind: noderep.BoxKind, Box: v, Start: int32(c.start), End: int32(c.end)}))
 		return nil
 	}
 	n, ok := nodeOf(v)
@@ -406,7 +409,7 @@ func (p *Parser) TermPushItems(c *ActCtx, fn string, v any) any {
 // TermItems is for generated parsers; not a stable API.
 //
 // Printed from Exec IR function items of internal/ir/exec/core.
-func (p *Parser) TermItems(fn string, v any) ([]*Node, any) {
+func (p *Parser) TermItems(fn string, v any) ([]*parse.Node, any) {
 	items, ok := valItems(v)
 	if ok {
 		return items, nil
@@ -420,7 +423,7 @@ func (p *Parser) TermItems(fn string, v any) ([]*Node, any) {
 // TermItemAt is for generated parsers; not a stable API.
 //
 // Printed from Exec IR function itemAt of internal/ir/exec/core.
-func (p *Parser) TermItemAt(items []*Node, i int, right bool) any {
+func (p *Parser) TermItemAt(items []*parse.Node, i int, right bool) any {
 	if right {
 		return UnboxNode(items[len(items)-1-i])
 	}
@@ -453,10 +456,10 @@ func (p *Parser) TermLength(x any) (any, any) {
 	}
 	n, ok := nodeOf(x)
 	if ok {
-		if n.RawTerminal {
-			return any(int(n.RawEnd - n.RawStart)), nil
+		if D(n).Terminal {
+			return any(int(D(n).End - D(n).Start)), nil
 		}
-		return any(len(n.RawChildren)), nil
+		return any(len(D(n).Children)), nil
 	}
 	return nil, p.termError(13, x, nil, 0, 0)
 }
@@ -476,11 +479,11 @@ func (p *Parser) TermText(x any) (string, any) {
 	}
 	n, ok := nodeOf(x)
 	if ok {
-		t, held := n.RawText, n.RawTerminal
+		t, held := D(n).Text, D(n).Terminal
 		if held {
 			return t, nil
 		}
-		return p.Text(int(n.RawStart), int(n.RawEnd)), nil
+		return p.Text(int(D(n).Start), int(D(n).End)), nil
 	}
 	return "", p.termError(14, x, nil, 0, 0)
 }
@@ -493,11 +496,11 @@ func (p *Parser) TermText(x any) (string, any) {
 func (p *Parser) TermConvert(t *nodeTypeKinds, x any) (any, any) {
 	n, ok := nodeOf(x)
 	if ok {
-		if n.hasBase() {
+		if hasBase(n) {
 			return t.retype(n), nil
 		}
 	}
-	return nil, p.termError(15, x, any(t[0].typ), 0, 0)
+	return nil, p.termError(15, x, any(t[0].Type), 0, 0)
 }
 
 // TermCover widens the range of the struct n, which a term is making, to cover the range of the field value v if
@@ -506,13 +509,13 @@ func (p *Parser) TermConvert(t *nodeTypeKinds, x any) (any, any) {
 // TermCover is for generated parsers; not a stable API.
 //
 // Printed from Exec IR function cover of internal/ir/exec/core.
-func (p *Parser) TermCover(n *Node, v any, first bool) bool {
+func (p *Parser) TermCover(n *parse.Node, v any, first bool) bool {
 	k, ok := nodeOf(v)
 	if !ok {
 		return first
 	}
-	cs, ce := int(k.RawStart), int(k.RawEnd)
-	ns, ne := int(n.RawStart), int(n.RawEnd)
+	cs, ce := int(D(k).Start), int(D(k).End)
+	ns, ne := int(D(n).Start), int(D(n).End)
 	lo := ns
 	hi := ne
 	if first || cs < ns {
@@ -521,7 +524,7 @@ func (p *Parser) TermCover(n *Node, v any, first bool) bool {
 	if first || ce > ne {
 		hi = ce
 	}
-	n.setSpan(lo, hi)
+	setSpan(n, lo, hi)
 	return false
 }
 
@@ -530,10 +533,10 @@ func (p *Parser) TermCover(n *Node, v any, first bool) bool {
 // TermMade is for generated parsers; not a stable API.
 //
 // Printed from Exec IR function made of internal/ir/exec/core.
-func (p *Parser) TermMade(c *ActCtx, n *Node, first bool) {
+func (p *Parser) TermMade(c *ActCtx, n *parse.Node, first bool) {
 	if first {
 		rs, re := c.start, c.end
-		n.setSpan(rs, re)
+		setSpan(n, rs, re)
 	}
 	c.made(n)
 }
@@ -545,9 +548,9 @@ func (p *Parser) TermMade(c *ActCtx, n *Node, first bool) {
 // TermHull is for generated parsers; not a stable API.
 //
 // Printed from Exec IR function hull of internal/ir/exec/core.
-func (p *Parser) TermHull(c *ActCtx, tuple bool, kids []*Node) *Node {
+func (p *Parser) TermHull(c *ActCtx, tuple bool, kids []*parse.Node) *parse.Node {
 	var j int
-	n := p.NewNode(Node{RawKind: seqKind(tuple), RawChildren: kids})
+	n := p.NewNode(Data{Kind: seqKind(tuple), Children: kids})
 	rs, _ := c.start, c.end
 	lo := rs
 	hi := rs
@@ -566,7 +569,7 @@ func (p *Parser) TermHull(c *ActCtx, tuple bool, kids []*Node) *Node {
 			first = false
 		}
 	}
-	n.setSpan(lo, hi)
+	setSpan(n, lo, hi)
 	return n
 }
 
@@ -617,7 +620,7 @@ func (p *Parser) TermConforms(t *FieldType, v any) bool {
 	if !ok {
 		return false
 	}
-	shape := int(n.shape())
+	shape := int(shape(n))
 	// node[_] takes a node whose value is a string, a tuple or a list; node[string] one whose value is a string.
 	if kt == 110 {
 		return shape == 0 || shape == 1 || shape == 2
@@ -641,13 +644,13 @@ func (p *Parser) TermConforms(t *FieldType, v any) bool {
 		if !(shape == 6) {
 			return false
 		}
-		return p.termElemsConform(t.Elem, n.RawChildren)
+		return p.termElemsConform(t.Elem, D(n).Children)
 	}
 	if kt == 116 {
 		if !(shape == 5) {
 			return false
 		}
-		return p.termTupleConform(t, n.RawChildren)
+		return p.termTupleConform(t, D(n).Children)
 	}
 	// node[T] takes a node whose value is of type T.
 	if kt == 118 {
@@ -660,7 +663,7 @@ func (p *Parser) TermConforms(t *FieldType, v any) bool {
 // node has a string, and a tuple node or a list node its elements as value.
 //
 // Printed from Exec IR function valueConforms of internal/ir/exec/core.
-func (p *Parser) termValueConforms(t *FieldType, n *Node, shape int) bool {
+func (p *Parser) termValueConforms(t *FieldType, n *parse.Node, shape int) bool {
 	var i int
 	kt := int(t.Kind)
 	// A node of a type whose value is a string, a tuple or a list.
@@ -674,13 +677,13 @@ func (p *Parser) termValueConforms(t *FieldType, n *Node, shape int) bool {
 		if !(shape == 2) {
 			return false
 		}
-		return p.termElemsConform(t.Elem, n.RawChildren)
+		return p.termElemsConform(t.Elem, D(n).Children)
 	}
 	if kt == 116 {
 		if !(shape == 1) {
 			return false
 		}
-		return p.termTupleConform(t, n.RawChildren)
+		return p.termTupleConform(t, D(n).Children)
 	}
 	if kt == 111 {
 		return p.termValueConforms(t.Elem, n, shape)
@@ -701,7 +704,7 @@ func (p *Parser) termValueConforms(t *FieldType, n *Node, shape int) bool {
 // of the list, charging a step for each element it examines; the type _ takes every element, and charges nothing.
 //
 // Printed from Exec IR function elemsConform of internal/ir/exec/core.
-func (p *Parser) termElemsConform(t *FieldType, items []*Node) bool {
+func (p *Parser) termElemsConform(t *FieldType, items []*parse.Node) bool {
 	var j int
 	if int(t.Kind) == 95 {
 		return true
@@ -720,7 +723,7 @@ func (p *Parser) termElemsConform(t *FieldType, items []*Node) bool {
 // as many, and each of its own type, charging a step for each element it examines.
 //
 // Printed from Exec IR function tupleConform of internal/ir/exec/core.
-func (p *Parser) termTupleConform(t *FieldType, items []*Node) bool {
+func (p *Parser) termTupleConform(t *FieldType, items []*parse.Node) bool {
 	var j int
 	count := len(items)
 	if count != len(t.Alts) {

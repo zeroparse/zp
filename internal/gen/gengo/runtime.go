@@ -19,21 +19,29 @@ import (
 	"zeroparse.dev/zp/internal/gen"
 )
 
-// The Go runtime of generated parsers is the package runtime of this module
-// (zeroparse.dev/zp/runtime). Generated code reaches it through the exported names that are
-// documented there as for generated parsers. A generated package either imports the runtime from
-// this module or carries a copy of its files (embed mode), which the generator reads from the
-// source in GenOptions.RuntimeSource.
+// The Go runtime of generated parsers is the module zeroparse.dev/zp/runtime: the package runtime,
+// whose exported names that are documented as for generated parsers the generated code reaches, the
+// package parse, which declares the result types (Node, Limits, SyntaxError, ...) that generated
+// parsers share with the engine, and the node representation noderep, which both use. A generated
+// package either imports the runtime module or carries a copy of the files of its packages (embed
+// mode), which the generator reads from the source in GenOptions.RuntimeSource: the runtime package
+// at its root, and the others in the subdirectories runtimeSubpackages names.
 
 // runtimeImportPath is the import path of the runtime package in this module.
 const runtimeImportPath = "zeroparse.dev/zp/runtime"
 
-// runtimeAlias is the name generated code gives to the runtime package, and typesAlias the name
-// it gives to the types package of a typed parser.
+// runtimeAlias is the name generated code gives to the runtime package, parseAlias the name it gives
+// to the package parse, and typesAlias the name it gives to the types package of a typed parser.
 const (
 	runtimeAlias = "rt"
+	parseAlias   = "parse"
 	TypesAlias   = "types"
 )
+
+// runtimeSubpackages are the packages of the runtime module besides the runtime package, by their
+// directory under the runtime's, which is also their package name. Generated code names the
+// declarations of parse (parseAlias); the runtime and parse import noderep.
+var runtimeSubpackages = []string{"noderep", parseAlias}
 
 // runtimeCache memoizes the parsed runtime of each source, so that the many generations of one
 // process parse it once. The key is the source value of GenOptions.RuntimeSource, used only for a
@@ -44,16 +52,21 @@ var runtimeCache struct {
 	info map[fs.FS]*runtimeInfo
 }
 
+// runtimeFile is a file of the runtime module: name is its path relative to the runtime's
+// directory.
 type runtimeFile struct {
 	name string
 	data []byte
 }
 
-// runtimeDecl is an exported top-level declaration of the runtime.
+// runtimeDecl is an exported top-level declaration of the runtime or of parse.
 type runtimeDecl struct {
 	kind token.Token // token.TYPE, CONST, VAR or FUNC
 	doc  string
 	spec goast.Node
+	// pkg is the name generated code gives to the package that declares it: runtimeAlias or
+	// parseAlias.
+	pkg string
 }
 
 type runtimeInfo struct {
@@ -93,56 +106,41 @@ func loadRuntime(opts gen.GenOptions) (*runtimeInfo, error) {
 	return info, nil
 }
 
-// parseRuntime reads the files of the runtime package in fsys and their exported declarations.
+// parseRuntime reads the files of the runtime package in fsys, and of the packages of
+// runtimeSubpackages in its subdirectories, and the exported declarations of the runtime and
+// parse.
 func parseRuntime(fsys fs.FS) (*runtimeInfo, error) {
-	entries, err := fs.ReadDir(fsys, ".")
-	if err != nil {
-		return nil, err
-	}
 	info := &runtimeInfo{Decls: map[string]*runtimeDecl{}}
 	fset := token.NewFileSet()
-	for _, e := range entries {
-		name := e.Name()
-		if e.IsDir() || !strings.HasSuffix(name, ".go") || strings.HasSuffix(name, "_test.go") {
-			continue
-		}
-		data, err := fs.ReadFile(fsys, name)
+	for _, dir := range append([]string{"."}, runtimeSubpackages...) {
+		entries, err := fs.ReadDir(fsys, dir)
 		if err != nil {
 			return nil, err
 		}
-		info.files = append(info.files, runtimeFile{name, data})
-		f, err := goparser.ParseFile(fset, name, data, goparser.ParseComments|goparser.SkipObjectResolution)
-		if err != nil {
-			return nil, err
+		pkg := runtimeAlias
+		if dir != "." {
+			pkg = dir
 		}
-		for _, d := range f.Decls {
-			switch d := d.(type) {
-			case *goast.FuncDecl:
-				if d.Recv == nil && d.Name.IsExported() {
-					info.Decls[d.Name.Name] = &runtimeDecl{token.FUNC, d.Doc.Text(), d}
-				}
-			case *goast.GenDecl:
-				for _, s := range d.Specs {
-					doc := d.Doc
-					switch s := s.(type) {
-					case *goast.TypeSpec:
-						if s.Doc != nil {
-							doc = s.Doc
-						}
-						if s.Name.IsExported() {
-							info.Decls[s.Name.Name] = &runtimeDecl{token.TYPE, doc.Text(), s}
-						}
-					case *goast.ValueSpec:
-						if s.Doc != nil {
-							doc = s.Doc
-						}
-						for _, n := range s.Names {
-							if n.IsExported() {
-								info.Decls[n.Name] = &runtimeDecl{d.Tok, doc.Text(), s}
-							}
-						}
-					}
-				}
+		for _, e := range entries {
+			name := e.Name()
+			if e.IsDir() || !strings.HasSuffix(name, ".go") || strings.HasSuffix(name, "_test.go") {
+				continue
+			}
+			name = path.Join(dir, name)
+			data, err := fs.ReadFile(fsys, name)
+			if err != nil {
+				return nil, err
+			}
+			info.files = append(info.files, runtimeFile{name, data})
+			if pkg != runtimeAlias && pkg != parseAlias {
+				continue
+			}
+			f, err := goparser.ParseFile(fset, name, data, goparser.ParseComments|goparser.SkipObjectResolution)
+			if err != nil {
+				return nil, err
+			}
+			if err := addRuntimeDecls(info, f, pkg); err != nil {
+				return nil, err
 			}
 		}
 	}
@@ -151,7 +149,7 @@ func parseRuntime(fsys fs.FS) (*runtimeInfo, error) {
 	}
 	best := 0
 	for name, d := range info.Decls {
-		if n, ok := strings.CutPrefix(name, "Protocol"); ok && d.kind == token.CONST {
+		if n, ok := strings.CutPrefix(name, "Protocol"); ok && d.kind == token.CONST && d.pkg == runtimeAlias {
 			if v, err := strconv.Atoi(n); err == nil && v > best {
 				best, info.protocol = v, name
 			}
@@ -164,26 +162,90 @@ func parseRuntime(fsys fs.FS) (*runtimeInfo, error) {
 	return info, nil
 }
 
-// runtimeFiles returns the copy of the runtime that RuntimeEmbed writes.
+// addRuntimeDecls adds the exported top-level declarations of f, a file of the package that
+// generated code names pkg, to info. A name that both the runtime and parse declare is an error:
+// generated code could not tell which it names.
+func addRuntimeDecls(info *runtimeInfo, f *goast.File, pkg string) error {
+	add := func(name string, d *runtimeDecl) error {
+		if prev, ok := info.Decls[name]; ok && prev.pkg != pkg {
+			return fmt.Errorf("the runtime source declares %s in both %s and %s", name, prev.pkg, pkg)
+		}
+		d.pkg = pkg
+		info.Decls[name] = d
+		return nil
+	}
+	for _, d := range f.Decls {
+		switch d := d.(type) {
+		case *goast.FuncDecl:
+			if d.Recv == nil && d.Name.IsExported() {
+				if err := add(d.Name.Name, &runtimeDecl{kind: token.FUNC, doc: d.Doc.Text(), spec: d}); err != nil {
+					return err
+				}
+			}
+		case *goast.GenDecl:
+			for _, s := range d.Specs {
+				doc := d.Doc
+				switch s := s.(type) {
+				case *goast.TypeSpec:
+					if s.Doc != nil {
+						doc = s.Doc
+					}
+					if s.Name.IsExported() {
+						if err := add(s.Name.Name, &runtimeDecl{kind: token.TYPE, doc: doc.Text(), spec: s}); err != nil {
+							return err
+						}
+					}
+				case *goast.ValueSpec:
+					if s.Doc != nil {
+						doc = s.Doc
+					}
+					for _, n := range s.Names {
+						if n.IsExported() {
+							if err := add(n.Name, &runtimeDecl{kind: d.Tok, doc: doc.Text(), spec: s}); err != nil {
+								return err
+							}
+						}
+					}
+				}
+			}
+		}
+	}
+	return nil
+}
+
+// runtimeFiles returns the copy of the runtime module that RuntimeEmbed writes: the runtime package
+// in internal/runtime, and the other packages in its subdirectories, whose imports of each other
+// name their copies.
 func runtimeFiles(opts gen.GenOptions) ([]gen.GeneratedFile, error) {
 	info, err := loadRuntime(opts)
 	if err != nil {
 		return nil, err
 	}
+	base := runtimeImport(opts)
+	var paths []string
+	for _, sub := range runtimeSubpackages {
+		paths = append(paths, strconv.Quote(runtimeImportPath+"/"+sub), strconv.Quote(base+"/"+sub))
+	}
+	imports := strings.NewReplacer(paths...)
 	var out []gen.GeneratedFile
 	for _, f := range info.files {
-		out = append(out, gen.GeneratedFile{Path: path.Join("internal", "runtime", f.name), Content: append([]byte(gen.Header()+"\n"), f.data...)})
+		data := imports.Replace(string(f.data))
+		out = append(out, gen.GeneratedFile{Path: path.Join("internal", "runtime", f.name), Content: []byte(gen.Header() + "\n" + data)})
 	}
 	return out, nil
 }
 
-// runtimeImport returns the import path of the runtime for a generated package.
+// runtimeImport returns the import path of the runtime for a generated package and for the copy of
+// the runtime that embed and only write.
 func runtimeImport(opts gen.GenOptions) string {
-	if opts.Runtime == gen.RuntimeEmbed {
+	if opts.Runtime == gen.RuntimeEmbed || opts.Runtime == gen.RuntimeOnly {
 		return path.Join(opts.Module, "internal", "runtime")
 	}
 	return runtimeImportPath
 }
+
+// parseImport returns the import path of the package parse for a generated package.
+func parseImport(opts gen.GenOptions) string { return runtimeImport(opts) + "/" + parseAlias }
 
 // stdImports are the standard-library packages generated code may use, by the name it uses them
 // with.
@@ -209,10 +271,11 @@ type typesPackage struct {
 }
 
 // qualifyRuntime finishes the generated source body of a package. Every identifier that the body
-// leaves unresolved and that is an exported name of the runtime is the runtime's, and is qualified
-// with the runtime package; one that the types package tp (if any) declares is qualified with the
-// types package. The standard-library packages the body uses are imported, and the runtime and
-// types packages.
+// leaves unresolved and that is an exported name of the runtime or of parse is that package's, and
+// is qualified with it; one that the types package tp (if any) declares is qualified with the types
+// package. The standard-library packages the body uses are imported, the runtime, whose import path
+// is rtImport, parse (the subdirectory parse of the runtime's) if the body names it, and the types
+// package.
 func qualifyRuntime(rtImport, body string, info *runtimeInfo, tp *typesPackage) (string, error) {
 	const prefix = "package p\n"
 	fset := token.NewFileSet()
@@ -220,7 +283,15 @@ func qualifyRuntime(rtImport, body string, info *runtimeInfo, tp *typesPackage) 
 	if err != nil {
 		return "", err
 	}
-	var offsets []int
+	// The offsets of the names to qualify, with the qualifier of each.
+	type insertion struct {
+		off       int
+		qualifier string
+	}
+	var inserts []insertion
+	qualify := func(id *goast.Ident, d *runtimeDecl) {
+		inserts = append(inserts, insertion{fset.Position(id.Pos()).Offset - len(prefix), d.pkg + "."})
+	}
 	std := map[string]bool{}
 	selectorBase := map[*goast.Ident]bool{}
 	goast.Inspect(f, func(n goast.Node) bool {
@@ -238,8 +309,8 @@ func qualifyRuntime(rtImport, body string, info *runtimeInfo, tp *typesPackage) 
 			typeOffsets = append(typeOffsets, fset.Position(id.Pos()).Offset-len(prefix))
 			continue
 		}
-		if _, ok := info.Decls[id.Name]; ok {
-			offsets = append(offsets, fset.Position(id.Pos()).Offset-len(prefix))
+		if d, ok := info.Decls[id.Name]; ok {
+			qualify(id, d)
 			continue
 		}
 		if selectorBase[id] {
@@ -280,7 +351,7 @@ func qualifyRuntime(rtImport, body string, info *runtimeInfo, tp *typesPackage) 
 			}
 			if id, ok := kv.Key.(*goast.Ident); ok && kind != 's' && id.Obj == nil {
 				if d, ok := info.Decls[id.Name]; ok && (d.kind == token.CONST || d.kind == token.VAR) {
-					offsets = append(offsets, fset.Position(id.Pos()).Offset-len(prefix))
+					qualify(id, d)
 				}
 			}
 			if sub, ok := kv.Key.(*goast.CompositeLit); ok && sub.Type == nil {
@@ -297,14 +368,9 @@ func qualifyRuntime(rtImport, body string, info *runtimeInfo, tp *typesPackage) 
 		}
 		return true
 	})
-	// The offsets of the names to qualify, with the qualifier of each.
-	type insertion struct {
-		off       int
-		qualifier string
-	}
-	var inserts []insertion
-	for _, off := range offsets {
-		inserts = append(inserts, insertion{off, runtimeAlias + "."})
+	parseUsed := false
+	for _, in := range inserts {
+		parseUsed = parseUsed || in.qualifier == parseAlias+"."
 	}
 	typesUsed := false
 	for _, off := range typeOffsets {
@@ -339,6 +405,9 @@ func qualifyRuntime(rtImport, body string, info *runtimeInfo, tp *typesPackage) 
 		fmt.Fprintf(&imports, "\t%q\n", p)
 	}
 	fmt.Fprintf(&imports, "\n\t%s %q\n", runtimeAlias, rtImport)
+	if parseUsed {
+		fmt.Fprintf(&imports, "\t%q\n", rtImport+"/"+parseAlias)
+	}
 	if typesUsed {
 		fmt.Fprintf(&imports, "\t%s %q\n", TypesAlias, tp.ImportPath)
 	}
@@ -424,7 +493,7 @@ func declaredNames(src string) ([]string, error) {
 // declaration order by group.
 func apiNames(opts gen.GenOptions) []string {
 	names := []string{
-		"Node", "NodeField", "Fields", "NodeKind", "KindString", "KindTuple", "KindList", "KindError", "KindStruct",
+		"Node", "NodeKind", "KindString", "KindTuple", "KindList", "KindError", "KindStruct",
 		"KindTupleValue", "KindListValue", "KindValue", "SyntaxError", "SyntaxErrors", "PositionUnit", "CodePoints", "Bytes",
 		"ParseOption", "WithUnit", "WithLimits", "Limits", "LimitKind", "LimitError", "ErrLimit", "LimitCompute", "LimitInput",
 		"LimitDepth", "LimitMemory", "Unlimited",
@@ -456,13 +525,14 @@ func apiNames(opts gen.GenOptions) []string {
 	return names
 }
 
-// apiSource returns the source of the file of the generated package that re-exports the runtime
-// names apiNames lists. Types, constants and variables are aliases; functions are wrappers that
-// the compiler inlines.
+// apiSource returns the source of the file of the generated package that re-exports the names of
+// the runtime and of parse that apiNames lists. Types, constants and variables are aliases;
+// functions are wrappers that the compiler inlines.
 func apiSource(opts gen.GenOptions, info *runtimeInfo) (string, error) {
 	var b strings.Builder
 	fmt.Fprintf(&b, "%s\n\npackage %s\n\n", gen.Header(), opts.Package)
 	b.WriteString("import (\n\t\"context\"\n\n")
+	fmt.Fprintf(&b, "\t%q\n", parseImport(opts))
 	fmt.Fprintf(&b, "\t%s %q\n)\n\n", runtimeAlias, runtimeImport(opts))
 	b.WriteString("var _ context.Context\n\n")
 	for _, name := range apiNames(opts) {
@@ -470,6 +540,7 @@ func apiSource(opts gen.GenOptions, info *runtimeInfo) (string, error) {
 		if d == nil {
 			return "", fmt.Errorf("internal error: the runtime has no %s", name)
 		}
+		pkg := d.pkg
 		doc := d.doc
 		for _, line := range strings.Split(strings.TrimRight(doc, "\n"), "\n") {
 			if line == "" && doc == "" {
@@ -483,11 +554,11 @@ func apiSource(opts gen.GenOptions, info *runtimeInfo) (string, error) {
 		}
 		switch d.kind {
 		case token.TYPE:
-			fmt.Fprintf(&b, "type %s = %s.%s\n\n", name, runtimeAlias, name)
+			fmt.Fprintf(&b, "type %s = %s.%s\n\n", name, pkg, name)
 		case token.CONST:
-			fmt.Fprintf(&b, "const %s = %s.%s\n\n", name, runtimeAlias, name)
+			fmt.Fprintf(&b, "const %s = %s.%s\n\n", name, pkg, name)
 		case token.VAR:
-			fmt.Fprintf(&b, "var %s = %s.%s\n\n", name, runtimeAlias, name)
+			fmt.Fprintf(&b, "var %s = %s.%s\n\n", name, pkg, name)
 		case token.FUNC:
 			fn := d.spec.(*goast.FuncDecl)
 			if fn.Type.TypeParams != nil {
@@ -522,7 +593,7 @@ func apiSource(opts gen.GenOptions, info *runtimeInfo) (string, error) {
 			if err := printer.Fprint(&sigb, token.NewFileSet(), &ft); err != nil {
 				return "", err
 			}
-			call := fmt.Sprintf("%s.%s(%s)", runtimeAlias, name, strings.Join(args, ", "))
+			call := fmt.Sprintf("%s.%s(%s)", pkg, name, strings.Join(args, ", "))
 			ret := ""
 			if fn.Type.Results != nil && len(fn.Type.Results.List) > 0 {
 				ret = "return "

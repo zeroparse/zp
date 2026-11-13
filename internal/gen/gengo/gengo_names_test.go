@@ -491,8 +491,8 @@ var o = [2]NodeKind{1: KindTuple}
 		t.Fatal(err)
 	}
 	for _, want := range []string{
-		"rt.KindString: \"s\"", "rt.KindTuple: \"t\"", "rt.KindList: \"l\"", "rt.KindError: \"e\"", "rt.KindStruct: \"x\"",
-		"{rt.KindString: {rt.KindTuple: 1}", "{\"a\": {rt.KindString: 1}", "{{rt.KindList: 1}}", "{rt.KindList: {{KindString: 1}}}",
+		"parse.KindString: \"s\"", "parse.KindTuple: \"t\"", "parse.KindList: \"l\"", "parse.KindError: \"e\"", "parse.KindStruct: \"x\"",
+		"{parse.KindString: {parse.KindTuple: 1}", "{\"a\": {parse.KindString: 1}", "{{parse.KindList: 1}}", "{parse.KindList: {{KindString: 1}}}",
 		"pair{KindString: 1, KindTuple: 2}", "&pair{KindString: 1}", "[]*pair{{KindString: 1}}",
 	} {
 		if !strings.Contains(strings.ReplaceAll(out, "\n", ""), want) {
@@ -503,7 +503,7 @@ var o = [2]NodeKind{1: KindTuple}
 	// there: the keys of a map are runtime constants, the field names of a struct are not.
 	decls := map[string]goast.Expr{}
 	f, err := goparser.ParseFile(token.NewFileSet(), "types.go", `package p
-type Table map[rt.NodeKind]string
+type Table map[parse.NodeKind]string
 type Pair struct{ KindString, KindTuple int }`, goparser.SkipObjectResolution)
 	if err != nil {
 		t.Fatal(err)
@@ -522,7 +522,7 @@ var c = []types.Table{{KindList: "l"}}
 	if err != nil {
 		t.Fatal(err)
 	}
-	for _, want := range []string{`types.Table{rt.KindString: "s"}`, "&types.Pair{KindString: 1}", `[]types.Table{{rt.KindList: "l"}}`} {
+	for _, want := range []string{`types.Table{parse.KindString: "s"}`, "&types.Pair{KindString: 1}", `[]types.Table{{parse.KindList: "l"}}`} {
 		if !strings.Contains(out, want) {
 			t.Errorf("missing %q in\n%s", want, out)
 		}

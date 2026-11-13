@@ -135,8 +135,8 @@ func TestUntypedPoolRetention(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			if n.Type() != "A" || n.RawText != "b" || n.RawStart != tc.start || n.RawEnd != tc.start+1 {
-				t.Fatalf("large result: type=%s span=[%d,%d) text=%q", n.Type(), n.RawStart, n.RawEnd, n.RawText)
+			if n.Type() != "A" || zprt.D(n).Text != "b" || zprt.D(n).Start != tc.start || zprt.D(n).End != tc.start+1 {
+				t.Fatalf("large result: type=%s span=[%d,%d) text=%q", n.Type(), zprt.D(n).Start, zprt.D(n).End, zprt.D(n).Text)
 			}
 
 			p.X_release()
@@ -167,7 +167,7 @@ func TestUntypedPoolRetention(t *testing.T) {
 				t.Fatal("invalid small input accepted")
 			}
 			got, err := Parse(tc.retry, WithUnit(tc.unit))
-			if err != nil || got == nil || got.Type() != "A" || got.RawText != "b" || got.RawStart != tc.retryStart || got.RawEnd != tc.retryStart+1 {
+			if err != nil || got == nil || got.Type() != "A" || zprt.D(got).Text != "b" || zprt.D(got).Start != tc.retryStart || zprt.D(got).End != tc.retryStart+1 {
 				t.Fatalf("small retry: node=%v error=%v", got, err)
 			}
 			after, err = json.Marshal(n)

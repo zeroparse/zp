@@ -214,6 +214,20 @@ func writeRuntimeCopy(dir string, patch func(name, src string) string, extra map
 		}
 		must(os.WriteFile(filepath.Join(dir, e.Name()), ExportNames(data), 0o644))
 	}
+	// The runtime's own packages, parse and noderep, are copied unchanged.
+	for _, sub := range []string{"noderep", "parse"} {
+		files, err := os.ReadDir(filepath.Join(src, sub))
+		must(err)
+		must(os.MkdirAll(filepath.Join(dir, sub), 0o755))
+		for _, e := range files {
+			if e.IsDir() || !strings.HasSuffix(e.Name(), ".go") || strings.HasSuffix(e.Name(), "_test.go") {
+				continue
+			}
+			data, err := os.ReadFile(filepath.Join(src, sub, e.Name()))
+			must(err)
+			must(os.WriteFile(filepath.Join(dir, sub, e.Name()), data, 0o644))
+		}
+	}
 	must(os.WriteFile(filepath.Join(dir, "zz_testing.go"), ExportNames([]byte(runtimeTestingShim)), 0o644))
 	for name, data := range extra {
 		must(os.WriteFile(filepath.Join(dir, name), ExportNames([]byte(data)), 0o644))

@@ -2,6 +2,8 @@
 
 package runtime
 
+import "zeroparse.dev/zp/runtime/parse"
+
 // pendingEditLimit is the number of edits after which a Document drops its memo until the next parse
 // (ops.PendingEditLimit): the engine treats a memo entry that lags behind by more edits as absent, and
 // a generated parser applies each edit to the memo when it is made, which a memo that many edits old
@@ -13,8 +15,8 @@ const pendingEditLimit = 128
 // a left-recursion leader.
 //
 // Printed from Exec IR function call of internal/ir/exec/core, specialized for document, budget.
-func (p *Parser) Call(r *Rule, min int) (*Node, bool) {
-	var v *Node
+func (p *Parser) Call(r *Rule, min int) (*parse.Node, bool) {
+	var v *parse.Node
 	var ok bool
 	if p.Observation != nil || p.Document != nil {
 		v, ok = p.callTracked(r, min)
@@ -104,7 +106,7 @@ func (p *Parser) Call(r *Rule, min int) (*Node, bool) {
 // the match gets longer, and returns the last longer result.
 //
 // Printed from Exec IR function grow of internal/ir/exec/core.
-func (p *Parser) grow(r *Rule, min int) (*Node, bool) {
+func (p *Parser) grow(r *Rule, min int) (*parse.Node, bool) {
 	g := p.growBegin(r, min)
 	for {
 		if !p.growNext(&g) {
@@ -488,7 +490,7 @@ func (p *TParser) grow(r *TRule, min int) (any, bool) {
 // far it examined the input in a Document parse, around the call without observation.
 //
 // Printed from Exec IR function observed of internal/ir/exec/core, specialized for document, observe.
-func (p *Parser) callObserved(r *Rule, min int) (*Node, bool) {
+func (p *Parser) callObserved(r *Rule, min int) (*parse.Node, bool) {
 	p.Observation.Enter(r.Name, p.Pos, min)
 	h := p.ExaminedBegin()
 	v, ok := p.callBody(r, min)
@@ -501,7 +503,7 @@ func (p *Parser) callObserved(r *Rule, min int) (*Node, bool) {
 // far it examined the input in a Document parse, around the call without observation.
 //
 // Printed from Exec IR function observed of internal/ir/exec/core, specialized for document, observe.
-func (p *Parser) invokePlainObserved(r *Rule, min int) (*Node, bool) {
+func (p *Parser) invokePlainObserved(r *Rule, min int) (*parse.Node, bool) {
 	p.Observation.Enter(r.Name, p.Pos, min)
 	h := p.ExaminedBegin()
 	v, ok := p.invokePlainBody(r, min)
@@ -542,7 +544,7 @@ func (p *TParser) invokePlainObserved(r *TRule, min int) (any, bool) {
 // start from otherwise.
 //
 // Printed from Exec IR function document of internal/ir/exec/core, specialized for document, budget.
-func (p *Parser) callDocument(r *Rule, min int) (*Node, bool) {
+func (p *Parser) callDocument(r *Rule, min int) (*parse.Node, bool) {
 	oldHigh, oldLow := p.docHigh, p.docLow
 	p.docHigh, p.docLow = p.Pos+1, p.Pos
 	defer func() {
@@ -564,8 +566,8 @@ func (p *Parser) callDocument(r *Rule, min int) (*Node, bool) {
 // position and the recovered errors.
 //
 // Printed from Exec IR function unmemoized of internal/ir/exec/core.
-func (p *Parser) callUnmemoized(r *Rule, min int) (*Node, bool) {
-	var v *Node
+func (p *Parser) callUnmemoized(r *Rule, min int) (*parse.Node, bool) {
+	var v *parse.Node
 	var ok bool
 	start := p.Pos
 	if len(r.Scope) == 0 {
@@ -586,8 +588,8 @@ func (p *Parser) callUnmemoized(r *Rule, min int) (*Node, bool) {
 // bookkeeping of how far each call examined the input.
 //
 // Printed from Exec IR function memoized of internal/ir/exec/core, specialized for document, observe, budget.
-func (p *Parser) callMemo(r *Rule, min int) (*Node, bool) {
-	var v *Node
+func (p *Parser) callMemo(r *Rule, min int) (*parse.Node, bool) {
+	var v *parse.Node
 	var ok bool
 	var fm uint64
 	start := p.Pos
@@ -710,7 +712,7 @@ func (p *Parser) callMemo(r *Rule, min int) (*Node, bool) {
 // call after.
 //
 // Printed from Exec IR function body of internal/ir/exec/core, specialized for document, budget.
-func (p *Parser) callBody(r *Rule, min int) (*Node, bool) {
+func (p *Parser) callBody(r *Rule, min int) (*parse.Node, bool) {
 	p.Spend()
 	if p.Document != nil {
 		v, ok := p.callDocument(r, min)
@@ -728,7 +730,7 @@ func (p *Parser) callBody(r *Rule, min int) (*Node, bool) {
 // and otherwise the call without observation.
 //
 // Printed from Exec IR function tracked of internal/ir/exec/core, specialized for document, observe.
-func (p *Parser) callTracked(r *Rule, min int) (*Node, bool) {
+func (p *Parser) callTracked(r *Rule, min int) (*parse.Node, bool) {
 	if p.Observation != nil {
 		v, ok := p.callObserved(r, min)
 		return v, ok

@@ -12,6 +12,7 @@ import (
 	"zeroparse.dev/zp/internal/ir/exec/conform"
 	"zeroparse.dev/zp/internal/ir/exec/ops"
 	"zeroparse.dev/zp/internal/ir/exec/ref"
+	"zeroparse.dev/zp/runtime/parse"
 )
 
 // The dependency memo of left recursion of the node runtime under conformance: every ctx operation runs
@@ -66,7 +67,7 @@ func (m *ctxMachine) UseRegisters(regs map[string]any) { m.regs = regs }
 
 func (m *ctxMachine) Handle(name string) any {
 	if name == conform.OprNodeOp {
-		return new(Node)
+		return new(parse.Node)
 	}
 	panic("runtime binding: no handle " + name)
 }

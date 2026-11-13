@@ -265,8 +265,8 @@ Details:
 - Without `-s`, the grammar's default start rule is used.
 - With `-runtime import`, the module of the generated package requires `zeroparse.dev/zp/runtime`
   (`go get zeroparse.dev/zp/runtime@vX.Y.Z`, the version of `zp`). `parser.go` refers to the runtime protocol it was
-  generated for (`const _ = rt.Protocol12`), so a runtime that does not implement that protocol fails the build with
-  `undefined: rt.Protocol12` on that line. Regenerate the parser with the `zp` of the runtime version, or require a
+  generated for (`const _ = rt.Protocol13`), so a runtime that does not implement that protocol fails the build with
+  `undefined: rt.Protocol13` on that line. Regenerate the parser with the `zp` of the runtime version, or require a
   runtime version that implements the protocol.
 
 ### Choosing Entry Points
@@ -360,7 +360,7 @@ files, err := gen.Go{Module: "example.com/pairs/pairsparser"}.Generate(g, "main"
 if err != nil {
 	log.Fatal(err)
 }
-for _, f := range files { // parser.go, api.go, types/types.go with Types, and internal/runtime/*.go
+for _, f := range files { // parser.go, api.go, types/types.go with Types, and the files of internal/runtime with its subpackages
 	path := filepath.Join("pairsparser", filepath.FromSlash(f.Path))
 	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
 		log.Fatal(err)

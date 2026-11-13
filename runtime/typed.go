@@ -5,6 +5,9 @@ import (
 	"sync"
 	"sync/atomic"
 	"unsafe"
+
+	"zeroparse.dev/zp/runtime/noderep"
+	"zeroparse.dev/zp/runtime/parse"
 )
 
 // The typed runtime, appended to generated parsers made with zp gen -types. It parses like the
@@ -45,7 +48,7 @@ type Error struct {
 }
 
 // TMatch and TError are a string node and an Error while the typed runtime handles them: whether
-// the value is fresh (see Node.RawFresh) is part of the state of the parse, not of the result. The
+// the value is fresh (see Data.Fresh) is part of the state of the parse, not of the result. The
 // result holds pointers to the embedded TNode[string] and Error (TPub). A string node of a named
 // node type has nt, the type's registered index (TRegisterNodeType; 0 for a plain string node).
 //
@@ -328,25 +331,25 @@ func (n *TSeq) set(name string, v any) {
 }
 
 // tshape is Node.shape for the values of the typed runtime that are TVal.
-func tshape(n TVal) nodeShape {
+func tshape(n TVal) noderep.Shape {
 	switch x := n.(type) {
 	case *TError:
-		return shapeError
+		return noderep.ShapeError
 	case *TSeq:
 		switch x.Typ {
 		case "list":
-			return shapeList
+			return noderep.ShapeList
 		case TypeTupleValue:
-			return shapeTupleValue
+			return noderep.ShapeTupleValue
 		case TypeListValue:
-			return shapeListValue
+			return noderep.ShapeListValue
 		}
-		return shapeTuple
+		return noderep.ShapeTuple
 	}
 	if n.TStruct() {
-		return shapeStruct
+		return noderep.ShapeStruct
 	}
-	return shapeString
+	return noderep.ShapeString
 }
 
 // AsTval returns v as a node value, or nil. Values never hold nil pointers: nil is always the
@@ -659,9 +662,9 @@ func (p *TParser) run(r *TRule, input string, o parseOptions, ext any) (v any, e
 	p.Ext = ext
 	p.setGrammar(r.g)
 	p.Expectations = o.expectations
-	if o.unit == Bytes {
+	if o.unit == parse.Bytes {
 		// p.In stays empty: direct rules read code points from it while p.Pos < len(p.In).
-		p.unit, p.bs, p.n, p.In = Bytes, input, len(input), p.In[:0]
+		p.unit, p.bs, p.n, p.In = parse.Bytes, input, len(input), p.In[:0]
 	} else {
 		p.setSource(input)
 	}
@@ -693,7 +696,7 @@ func (p *TParser) run(r *TRule, input string, o parseOptions, ext any) (v any, e
 			errors := p.recoveredErrors()
 			p.chargeValues(len(errors))
 			p.Control.Check()
-			return v, SyntaxErrors(errors)
+			return v, parse.SyntaxErrors(errors)
 		}
 		return v, nil
 	}

@@ -1,17 +1,21 @@
 package runtime
 
-import "testing"
+import (
+	"testing"
+
+	"zeroparse.dev/zp/runtime/parse"
+)
 
 func TestActionTrackingReleasesReferences(t *testing.T) {
 	// Any value but a function is a result: a value other than a node is boxed. An action fails by
 	// returning its failure ("failure"); a function as its value ends the parse too ("invalid").
 	for _, name := range []string{"nil", "node", "value", "invalid", "failure"} {
 		t.Run(name, func(t *testing.T) {
-			prefix := &Node{RawText: "keep"}
-			made := &Node{RawFresh: true}
-			p := &Parser{created: []*Node{prefix}}
+			prefix := nodeOfData(&Data{Text: "keep"})
+			made := nodeOfData(&Data{Fresh: true})
+			p := &Parser{created: []*parse.Node{prefix}}
 			c := &ActCtx{P: p, cbase: 1, start: 3, end: 4}
-			var got *Node
+			var got *parse.Node
 			var panicValue any
 			func() {
 				defer func() { panicValue = recover() }()
@@ -42,7 +46,7 @@ func TestActionTrackingReleasesReferences(t *testing.T) {
 			if len(p.created) != 1 || p.created[0] != prefix || p.created[:cap(p.created)][1] != nil {
 				t.Fatal("tracking retains a discarded reference or changed its prefix")
 			}
-			if name == "node" && (got != made || got.RawStart != 3 || got.RawEnd != 4 || got.RawFresh) {
+			if name == "node" && (got != made || D(got).Start != 3 || D(got).End != 4 || D(got).Fresh) {
 				t.Fatal("returned node changed identity or has wrong span/freshness")
 			}
 		})

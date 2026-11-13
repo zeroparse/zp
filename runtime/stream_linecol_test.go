@@ -3,6 +3,8 @@ package runtime
 import (
 	"math/rand"
 	"testing"
+
+	"zeroparse.dev/zp/runtime/parse"
 )
 
 func naiveLineCol(text []rune, pos int) (int, int) {
@@ -22,7 +24,7 @@ func naiveLineCol(text []rune, pos int) (int, int) {
 // between them.
 func TestStreamLineColMatchesScan(t *testing.T) {
 	t.Parallel()
-	for _, unit := range []PositionUnit{CodePoints, Bytes} {
+	for _, unit := range []parse.PositionUnit{parse.CodePoints, parse.Bytes} {
 		rng := rand.New(rand.NewSource(1))
 		for round := 0; round < 200; round++ {
 			text := make([]rune, 1+rng.Intn(300))
@@ -32,7 +34,7 @@ func TestStreamLineColMatchesScan(t *testing.T) {
 			p := &Parser{unit: unit, Stream: &streamInput{baseLine: 1, baseCol: 1}}
 			s := p.Stream
 			for _, r := range text {
-				if unit == Bytes {
+				if unit == parse.Bytes {
 					s.bs = append(s.bs, byte(r))
 				} else {
 					s.in = append(s.in, r)

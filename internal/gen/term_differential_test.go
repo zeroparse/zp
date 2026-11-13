@@ -352,12 +352,12 @@ func testTermConstructorsDetectBrokenTargets(t *testing.T) {
 				hits++
 				s = strings.ReplaceAll(s, m.from, m.to)
 				if strings.Contains(m.to, "TermSetFieldNil") {
-					s += "\nfunc tsfNil(c *rt.ActCtx, n *rt.Node, name string, _ any) { c.TermSetField(n, name, nil) }\n"
+					s += "\nfunc tsfNil(c *rt.ActCtx, n *Node, name string, _ any) { c.TermSetField(n, name, nil) }\n"
 					s = strings.ReplaceAll(s, "c.TermSetFieldNil(", "tsfNil(c, ")
 				}
 				if strings.HasPrefix(m.to, "termCoverFirst(") {
 					// Each field is covered as if it were the first, so the range is that of the last node.
-					s += "\nfunc termCoverFirst(p *rt.Parser, n *rt.Node, v any, _ bool) bool { return p.TermCover(n, v, true) }\n"
+					s += "\nfunc termCoverFirst(p *rt.Parser, n *Node, v any, _ bool) bool { return p.TermCover(n, v, true) }\n"
 				}
 			}
 			return []byte(s)
@@ -491,7 +491,7 @@ func testTermIterationsDetectBrokenTargets(t *testing.T) {
 				*hits++
 				s = strings.ReplaceAll(s, "any("+m.from, "any("+m.to)
 				s = strings.ReplaceAll(s, m.from, "newListNoneT(c, ti")
-				s += "\nfunc newListNone(c *rt.ActCtx, _ []*rt.Node) *rt.Node { return c.NewList(nil) }\n" +
+				s += "\nfunc newListNone(c *rt.ActCtx, _ []*Node) *Node { return c.NewList(nil) }\n" +
 					"func newListNoneT(c *rt.TActCtx, _ []any) any { return c.NewList(nil) }\n"
 			}
 			return []byte(s)
