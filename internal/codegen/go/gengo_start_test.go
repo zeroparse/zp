@@ -10,14 +10,14 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/internal/codegen"
-	"zeroparse.dev/zp/internal/gentest"
+	"zeroparse.dev/zp/internal/codegentest"
 	"zeroparse.dev/zp/internal/syntax"
 )
 
 // Generated Go parsers enter only start rules, by name or by default, with the interpreter's errors.
 func TestGeneratedGoStartRules(t *testing.T) {
 	t.Parallel()
-	gentest.EachMode(t, testGeneratedGoStartRules)
+	codegentest.EachMode(t, testGeneratedGoStartRules)
 }
 
 func testGeneratedGoStartRules(t *testing.T) {
@@ -32,7 +32,7 @@ func testGeneratedGoStartRules(t *testing.T) {
 	if !strings.Contains(want, "other: rule other is not a start rule") || !strings.Contains(want, "_h: rule _h is hidden") || !strings.Contains(want, "item: ok") {
 		t.Fatalf("unexpected interpreter results:\n%s", want)
 	}
-	g, err := syntax.Parse(gentest.StartRestrictionSource)
+	g, err := syntax.Parse(codegentest.StartRestrictionSource)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -44,7 +44,7 @@ func testGeneratedGoStartRules(t *testing.T) {
 	}
 }
 `
-	names := fmt.Sprintf("%#v", gentest.StartEntryNames)
+	names := fmt.Sprintf("%#v", codegentest.StartEntryNames)
 	for _, tc := range []struct {
 		name string
 		opts codegen.GenOptions
@@ -105,7 +105,7 @@ func testGeneratedGoStartRules(t *testing.T) {
 `},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
-			code, err := gentest.GenerateCode(t, g, tc.opts)
+			code, err := codegentest.GenerateCode(t, g, tc.opts)
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -115,9 +115,9 @@ func testGeneratedGoStartRules(t *testing.T) {
 			}
 			dir := t.TempDir()
 			for name, content := range map[string]string{
-				"go.mod":      gentest.GoMod("gentest"),
+				"go.mod":      codegentest.GoMod("codegentest"),
 				"p/parser.go": string(code),
-				"main.go":     "package main\n\nimport (\n\t\"fmt\"\n\n\t\"gentest/p\"\n)\n\n" + report + tc.body,
+				"main.go":     "package main\n\nimport (\n\t\"fmt\"\n\n\t\"codegentest/p\"\n)\n\n" + report + tc.body,
 			} {
 				path := filepath.Join(dir, name)
 				if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {

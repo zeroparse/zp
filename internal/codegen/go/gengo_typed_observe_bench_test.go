@@ -9,7 +9,7 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/internal/codegen"
-	"zeroparse.dev/zp/internal/gentest"
+	"zeroparse.dev/zp/internal/codegentest"
 )
 
 // Export isolated typed tracing controls, keeping generation, compilation and
@@ -30,7 +30,7 @@ func TestExportGeneratedTypedTraceBenchmarks(t *testing.T) {
 			t.Fatal(err)
 		}
 	}
-	write("go.mod", []byte(gentest.GoMod("typedtracebench")))
+	write("go.mod", []byte(codegentest.GoMod("typedtracebench")))
 	manifest := map[string]struct {
 		Bytes       int
 		DirectStart bool
@@ -58,7 +58,7 @@ func TestExportGeneratedTypedTraceBenchmarks(t *testing.T) {
 				if enabled {
 					pkg = "observed"
 				}
-				code, err := gentest.GenerateCode(t, g, codegen.GenOptions{Package: pkg, Start: "main", Types: true, Recognize: true, Observability: enabled, ConvertTypes: convert})
+				code, err := codegentest.GenerateCode(t, g, codegen.GenOptions{Package: pkg, Start: "main", Types: true, Recognize: true, Observability: enabled, ConvertTypes: convert})
 				if err != nil {
 					t.Fatal(err)
 				}

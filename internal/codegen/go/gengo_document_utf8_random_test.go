@@ -10,7 +10,7 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/internal/codegen"
-	"zeroparse.dev/zp/internal/gentest"
+	"zeroparse.dev/zp/internal/codegentest"
 )
 
 // TestGeneratedDocumentInvalidUTF8EditEquivalence is the generated Document
@@ -20,7 +20,7 @@ import (
 // of the current text, in both position units.
 func TestGeneratedDocumentInvalidUTF8EditEquivalence(t *testing.T) {
 	t.Parallel()
-	gentest.EachMode(t, testGeneratedDocumentInvalidUTF8EditEquivalence)
+	codegentest.EachMode(t, testGeneratedDocumentInvalidUTF8EditEquivalence)
 }
 
 func testGeneratedDocumentInvalidUTF8EditEquivalence(t *testing.T) {
@@ -43,14 +43,14 @@ rule main Result = w:wide* o:other* $$ => Result{Wide: $w.Value, Other: $o.Value
 rule wide Char = t:([€😀é]) #atomic => Char{Text: text($t)}
 rule other Char = t:(.) #atomic => Char{Text: text($t)}`,
 	}
-	files := map[string]string{"go.mod": gentest.GoMod("fixture")}
+	files := map[string]string{"go.mod": codegentest.GoMod("fixture")}
 	for i, src := range grammars {
 		g, err := parseTest(src)
 		if err != nil {
 			t.Fatal(err)
 		}
 		pkg := fmt.Sprintf("g%d", i)
-		code, err := gentest.GenerateCode(t, g, codegen.GenOptions{Package: pkg, Start: "main", Types: true, Document: true})
+		code, err := codegentest.GenerateCode(t, g, codegen.GenOptions{Package: pkg, Start: "main", Types: true, Document: true})
 		if err != nil {
 			t.Fatal(err)
 		}

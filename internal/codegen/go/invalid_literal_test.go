@@ -11,16 +11,16 @@ import (
 
 	"zeroparse.dev/zp/core"
 	"zeroparse.dev/zp/internal/codegen"
+	"zeroparse.dev/zp/internal/codegentest"
 	"zeroparse.dev/zp/internal/compile"
 	"zeroparse.dev/zp/internal/engine"
-	"zeroparse.dev/zp/internal/gentest"
 )
 
 // Go string literals preserve invalid bytes; JSON input fixtures would replace
 // them before the generated parser sees them.
 func TestGeneratedInvalidUTF8Literals(t *testing.T) {
 	t.Parallel()
-	gentest.EachMode(t, testGeneratedInvalidUTF8Literals)
+	codegentest.EachMode(t, testGeneratedInvalidUTF8Literals)
 }
 
 func testGeneratedInvalidUTF8Literals(t *testing.T) {
@@ -38,12 +38,12 @@ func testGeneratedInvalidUTF8Literals(t *testing.T) {
 			t.Fatal(err)
 		}
 	}
-	write("go.mod", []byte(gentest.GoMod("literaltest")))
+	write("go.mod", []byte(codegentest.GoMod("literaltest")))
 	var imports, want strings.Builder
 	var blocks []string
 	i := 0
-	for _, tc := range gentest.InvalidLiteralCorpus() {
-		g := gentest.LiteralCorpusGrammar(t, tc)
+	for _, tc := range codegentest.InvalidLiteralCorpus() {
+		g := codegentest.LiteralCorpusGrammar(t, tc)
 		prog, err := engine.Compile(g, compile.Options{})
 		if err != nil {
 			t.Fatal(err)
@@ -52,7 +52,7 @@ func testGeneratedInvalidUTF8Literals(t *testing.T) {
 			pkg := fmt.Sprintf("g%d", i)
 			i++
 			opts := codegen.GenOptions{Package: pkg, Start: "main", Recognize: true, Types: mode != "untyped", ConvertTypes: mode == "convert"}
-			code, err := gentest.GenerateCode(t, g, opts)
+			code, err := codegentest.GenerateCode(t, g, opts)
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -62,7 +62,7 @@ func testGeneratedInvalidUTF8Literals(t *testing.T) {
 				for _, unit := range []core.PositionUnit{core.CodePoints, core.Bytes} {
 					var harness strings.Builder
 					n, err := prog.ParseWith("main", input, engine.ParseOptions{Expectations: true, Unit: unit})
-					want.WriteString(gentest.ResultJSON(n, err) + "\n")
+					want.WriteString(codegentest.ResultJSON(n, err) + "\n")
 					fmt.Fprintf(&harness, "{ input:=%q; unit:=%s.%s; n,err:=%s.Parse(input,%[4]s.WithUnit(unit)); rec:=%s.Recognize(input,%[4]s.WithUnit(unit)); if fmt.Sprint(rec)!=fmt.Sprint(err){panic(\"recognition differs\")}\n", input, pkg, map[core.PositionUnit]string{core.CodePoints: "CodePoints", core.Bytes: "Bytes"}[unit], pkg, pkg)
 					if mode != "untyped" {
 						fmt.Fprintf(&harness, `ast,ae:=%s.ParseValue(input,%[1]s.WithUnit(unit)); if fmt.Sprint(ae)!=fmt.Sprint(err){panic("typed error differs")}; if err==nil {child:=n.Field("T").(*%s.Node); wantText:=input; if unit==%s.CodePoints{wantText=string([]rune(input))};if child.Text()!=wantText{panic("matched text differs from input")}; if ast==nil || ast.T==nil || ast.T.Start!=child.Start() || ast.T.End!=child.End() || ast.T.Value!=child.Text() {panic("typed literal value differs")}}`+"\n", pkg, pkg, pkg)

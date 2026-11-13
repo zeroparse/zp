@@ -7,7 +7,7 @@ import (
 	"strings"
 	"testing"
 
-	"zeroparse.dev/zp/internal/gentest"
+	"zeroparse.dev/zp/internal/codegentest"
 )
 
 // TestFlowStreamObservationMutants checks that the reports of stream parses notice a stream body that
@@ -18,7 +18,7 @@ func TestFlowStreamObservationMutants(t *testing.T) {
 	if testing.Short() {
 		t.Skip("builds generated consumers")
 	}
-	gentest.PinOrdinary(t)
+	codegentest.PinOrdinary(t)
 	cases := streamCases(t)
 	form := streamForms[2]
 	d, _ := runStreamProbes(t, cases, form, nil)

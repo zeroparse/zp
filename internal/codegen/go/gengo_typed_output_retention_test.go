@@ -10,7 +10,7 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/internal/codegen"
-	"zeroparse.dev/zp/internal/gentest"
+	"zeroparse.dev/zp/internal/codegentest"
 )
 
 var typedAllocatorControls = []struct {
@@ -28,7 +28,7 @@ var typedAllocatorControls = []struct {
 // retained-heap and parse-throughput benchmarks below. Normal tests clean it up.
 func TestGeneratedTypedOutputRetentionFixture(t *testing.T) {
 	t.Parallel()
-	gentest.EachMode(t, testGeneratedTypedOutputRetentionFixture)
+	codegentest.EachMode(t, testGeneratedTypedOutputRetentionFixture)
 }
 
 func testGeneratedTypedOutputRetentionFixture(t *testing.T) {
@@ -66,8 +66,8 @@ rule small Token = t:("b") #atomic => Token{Text: text($t)}
 				name += "-conversion"
 			}
 			t.Run(name, func(t *testing.T) {
-				code, err := gentest.GenerateCode(t, g, codegen.GenOptions{Package: "typedoutput", Start: "main", Types: true,
-					ConvertTypes: conversion, NoOpt: slices.Concat(gentest.NoOptIf(variant.objects, "typed-object-slabs"), gentest.NoOptIf(variant.lists, "typed-list-slabs"), gentest.NoOptIf(variant.legacy, "typed-output-bootstrap"))})
+				code, err := codegentest.GenerateCode(t, g, codegen.GenOptions{Package: "typedoutput", Start: "main", Types: true,
+					ConvertTypes: conversion, NoOpt: slices.Concat(codegentest.NoOptIf(variant.objects, "typed-object-slabs"), codegentest.NoOptIf(variant.lists, "typed-list-slabs"), codegentest.NoOptIf(variant.legacy, "typed-output-bootstrap"))})
 				if err != nil {
 					t.Fatal(err)
 				}
@@ -89,7 +89,7 @@ rule small Token = t:("b") #atomic => Token{Text: text($t)}
 				for name, contents := range map[string][]byte{
 					"parser.go":                code,
 					"output_retention_test.go": []byte(typedOutputRetentionFixture + "\nconst forceOutputConversion = " + strconv.FormatBool(conversion) + "\n"),
-					"go.mod":                   []byte(gentest.GoMod("typedoutput")),
+					"go.mod":                   []byte(codegentest.GoMod("typedoutput")),
 				} {
 					if err := os.WriteFile(filepath.Join(dir, name), contents, 0o644); err != nil {
 						t.Fatal(err)

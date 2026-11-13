@@ -9,8 +9,8 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/internal/bytecode"
+	"zeroparse.dev/zp/internal/codegentest"
 	"zeroparse.dev/zp/internal/engine/vm"
-	"zeroparse.dev/zp/internal/gentest"
 )
 
 // cloneTerms returns a copy of the term code ts that shares no slice with it.
@@ -37,7 +37,7 @@ func cloneTerms(ts []bytecode.Term) []bytecode.Term {
 // corpus with no term code would make the test vacuous, so it requires terms of every pool.
 func TestTermCodeRoundTrip(t *testing.T) {
 	t.Parallel()
-	cases := gentest.CorpusWithParsers(t)
+	cases := codegentest.CorpusWithParsers(t)
 	type result struct {
 		terms int
 		pools [6]bool

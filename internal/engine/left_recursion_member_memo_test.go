@@ -6,8 +6,8 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/core"
+	"zeroparse.dev/zp/internal/codegentest"
 	"zeroparse.dev/zp/internal/compile"
-	"zeroparse.dev/zp/internal/gentest"
 )
 
 // nestedLeftRecursionEvals parses the input on every backend and returns the number of rule
@@ -123,7 +123,7 @@ rule f = [0-9] / "(" e ")"`,
 							o := ParseOptions{Backend: backend, Unit: unit, MissingTokens: missing, Recognize: recognize}
 							got, err := memo.ParseWith("", in, o)
 							want, wantErr := plain.ParseWith("", in, o)
-							if gentest.ResultJSON(got, err) != gentest.ResultJSON(want, wantErr) {
+							if codegentest.ResultJSON(got, err) != codegentest.ResultJSON(want, wantErr) {
 								t.Errorf("grammar %d %q %s/%s missing=%d recognize=%v: %v, %v vs %v, %v", gi, in, backend, unit, missing, recognize, got, err, want, wantErr)
 							}
 						}
@@ -138,7 +138,7 @@ rule f = [0-9] / "(" e ")"`,
 // without a memo on the inputs, with the options that each backend runs (missing tokens inserted
 // or not, recognition or a tree), and returns the differences, ignoring an input that exhausts a
 // limit in either. full adds positions in bytes.
-func memberMemoDiffers(t *testing.T, c gentest.Case, full bool) []string {
+func memberMemoDiffers(t *testing.T, c codegentest.Case, full bool) []string {
 	t.Helper()
 	memo, plain := mustCompile(t, c.Src), mustCompile(t, c.Src, compile.Options{DisableMemo: true})
 	units := []core.PositionUnit{core.CodePoints}
@@ -154,7 +154,7 @@ func memberMemoDiffers(t *testing.T, c gentest.Case, full bool) []string {
 						o := ParseOptions{Backend: backend, Unit: unit, MissingTokens: missing, Recognize: recognize}
 						got, err := memo.ParseWith("", in, o)
 						want, wantErr := plain.ParseWith("", in, o)
-						a, b := gentest.ResultJSON(got, err), gentest.ResultJSON(want, wantErr)
+						a, b := codegentest.ResultJSON(got, err), codegentest.ResultJSON(want, wantErr)
 						if a != b && !strings.Contains(a+b, "budget") && !strings.Contains(a+b, "limit") {
 							diffs = append(diffs, fmt.Sprintf("%s %q %s/%s missing=%d recognize=%v:\n got %s\nwant %s", c.Name, in, backend, unit, missing, recognize, a, b))
 						}
@@ -174,7 +174,7 @@ func memberMemoDiffers(t *testing.T, c gentest.Case, full bool) []string {
 // cases arise.
 func TestLeftRecursionMemberMemoStale(t *testing.T) {
 	t.Parallel()
-	for _, c := range append(gentest.LeftRecursionMemberCases(), gentest.LeftRecursionMemberSeedCases()...) {
+	for _, c := range append(codegentest.LeftRecursionMemberCases(), codegentest.LeftRecursionMemberSeedCases()...) {
 		for _, d := range memberMemoDiffers(t, c, true) {
 			t.Error(d)
 		}
@@ -192,7 +192,7 @@ func TestLeftRecursionMemberMemoRandom(t *testing.T) {
 	compiled, n := 0, 0
 	for s := int64(0); s < int64(seeds); s++ {
 		for _, cut := range []bool{false, true} {
-			c := gentest.RandomCycleGrammar(s, cut)
+			c := codegentest.RandomCycleGrammar(s, cut)
 			g, err := parseTest(c.Src)
 			if err != nil {
 				continue
@@ -224,7 +224,7 @@ func checkRecoveringMemberMemo(t *testing.T, from, to int64) {
 	t.Helper()
 	compiled, n := 0, 0
 	for s := from; s < to; s++ {
-		c := gentest.RandomRecoveringCycleGrammar(s)
+		c := codegentest.RandomRecoveringCycleGrammar(s)
 		g, err := parseTest(c.Src)
 		if err != nil {
 			continue

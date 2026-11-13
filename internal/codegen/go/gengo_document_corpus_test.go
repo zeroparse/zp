@@ -10,7 +10,7 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/internal/codegen"
-	"zeroparse.dev/zp/internal/gentest"
+	"zeroparse.dev/zp/internal/codegentest"
 )
 
 // TestGeneratedDocumentsMatchBatchOnCorpus checks generated Documents against
@@ -21,7 +21,7 @@ import (
 // position units.
 func TestGeneratedDocumentsMatchBatchOnCorpus(t *testing.T) {
 	t.Parallel()
-	gentest.EachMode(t, testGeneratedDocumentsMatchBatchOnCorpus)
+	codegentest.EachMode(t, testGeneratedDocumentsMatchBatchOnCorpus)
 }
 
 func testGeneratedDocumentsMatchBatchOnCorpus(t *testing.T) {
@@ -40,15 +40,15 @@ func testGeneratedDocumentsMatchBatchOnCorpus(t *testing.T) {
 			t.Fatal(err)
 		}
 	}
-	write("go.mod", gentest.GoMod("doctest"))
+	write("go.mod", codegentest.GoMod("doctest"))
 	var imports, checks strings.Builder
-	cases := gentest.Representative(gentest.GenCorpus(t))
+	cases := codegentest.Representative(codegentest.GenCorpus(t))
 	for i, c := range cases {
 		g, err := parseTest(c.Src)
 		if err != nil {
 			t.Fatalf("%s: %v", c.Name, err)
 		}
-		gentest.GeneratePackageIn(t, dir, "doctest", fmt.Sprintf("g%d", i), g, codegen.GenOptions{Start: "main", Types: true, Document: true})
+		codegentest.GeneratePackageIn(t, dir, "doctest", fmt.Sprintf("g%d", i), g, codegen.GenOptions{Start: "main", Types: true, Document: true})
 		fmt.Fprintf(&imports, "\tg%d \"doctest/g%d\"\n", i, i)
 		fmt.Fprintf(&checks, `	func(texts []string, b bool) (out []string) {
 		u := g%[1]d.CodePoints

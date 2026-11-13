@@ -10,8 +10,8 @@ import (
 
 	"zeroparse.dev/zp/core"
 	"zeroparse.dev/zp/internal/bytecode"
+	"zeroparse.dev/zp/internal/codegentest"
 	ecore "zeroparse.dev/zp/internal/engine/core"
-	"zeroparse.dev/zp/internal/gentest"
 	"zeroparse.dev/zp/internal/value"
 )
 
@@ -53,7 +53,7 @@ func catchStreamPanic(f func()) (val any)    { defer func() { val = recover() }(
 
 func TestStreamCallerPanicIdentity(t *testing.T) {
 	t.Parallel()
-	prog := mustCompile(t, gentest.Records)
+	prog := mustCompile(t, codegentest.Records)
 	for _, b := range []Backend{Closure, Bytecode, BytecodeIterative} {
 		for _, u := range []core.PositionUnit{core.CodePoints, core.Bytes} {
 			for _, traced := range []bool{false, true} {
@@ -91,7 +91,7 @@ func TestStreamCallerPanicIdentity(t *testing.T) {
 								got := catchStreamPanic(func() {
 									err = prog.ParseStreamWith("main", reader, func(n *core.Node) error {
 										nodes = append(nodes, n)
-										before = append(before, gentest.ResultJSON(n, nil))
+										before = append(before, codegentest.ResultJSON(n, nil))
 										if phase == "emit" && len(nodes) == 2 {
 											panic(token)
 										}
@@ -115,7 +115,7 @@ func TestStreamCallerPanicIdentity(t *testing.T) {
 									t.Fatalf("retry error=%v emitted=%d", err, retryCount)
 								}
 								for i, n := range nodes {
-									if gentest.ResultJSON(n, nil) != before[i] {
+									if codegentest.ResultJSON(n, nil) != before[i] {
 										t.Fatal("panic or retry changed a delivered prefix")
 									}
 								}
@@ -130,7 +130,7 @@ func TestStreamCallerPanicIdentity(t *testing.T) {
 
 func TestStreamCallerReturnedErrorIdentity(t *testing.T) {
 	t.Parallel()
-	prog := mustCompile(t, gentest.Records)
+	prog := mustCompile(t, codegentest.Records)
 	for _, b := range []Backend{Closure, Bytecode, BytecodeIterative} {
 		for _, u := range []core.PositionUnit{core.CodePoints, core.Bytes} {
 			for _, traced := range []bool{false, true} {
@@ -168,7 +168,7 @@ func TestStreamCallerReturnedErrorIdentity(t *testing.T) {
 
 func TestStreamReaderPanicInsideTraceKeepsOriginalValue(t *testing.T) {
 	t.Parallel()
-	prog := mustCompile(t, gentest.Records)
+	prog := mustCompile(t, codegentest.Records)
 	for _, b := range []Backend{Closure, Bytecode, BytecodeIterative} {
 		for _, u := range []core.PositionUnit{core.CodePoints, core.Bytes} {
 			t.Run(b.String()+"/"+u.String(), func(t *testing.T) {
@@ -232,7 +232,7 @@ func TestStreamNormalCallerReturnKeepsVMFaultAttribution(t *testing.T) {
 
 func TestStreamKeepsCallerBufferedReader(t *testing.T) {
 	t.Parallel()
-	prog := mustCompile(t, gentest.Records)
+	prog := mustCompile(t, codegentest.Records)
 	for _, u := range []core.PositionUnit{core.CodePoints, core.Bytes} {
 		reader := bufio.NewReader(strings.NewReader("#records\na=1\n"))
 		if p := ecore.NewStreamParser(&prog.sharedProgram, reader, u); p.Reader != reader {

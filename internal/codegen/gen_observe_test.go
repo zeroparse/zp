@@ -5,12 +5,12 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/internal/codegen"
-	"zeroparse.dev/zp/internal/gentest"
+	"zeroparse.dev/zp/internal/codegentest"
 )
 
 func TestGeneratedTraceOptions(t *testing.T) {
 	t.Parallel()
-	gentest.EachMode(t, testGeneratedTraceOptions)
+	codegentest.EachMode(t, testGeneratedTraceOptions)
 }
 
 func testGeneratedTraceOptions(t *testing.T) {
@@ -18,7 +18,7 @@ func testGeneratedTraceOptions(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	plain, err := gentest.GenerateCode(t, g, codegen.GenOptions{Package: "fixture", Start: "main"})
+	plain, err := codegentest.GenerateCode(t, g, codegen.GenOptions{Package: "fixture", Start: "main"})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -27,19 +27,19 @@ func testGeneratedTraceOptions(t *testing.T) {
 			t.Fatalf("ordinary output contains %s", marker)
 		}
 	}
-	if _, err := gentest.GenerateCode(t, g, codegen.GenOptions{Package: "fixture", Start: "main", Types: true, Observability: true}); err != nil {
+	if _, err := codegentest.GenerateCode(t, g, codegen.GenOptions{Package: "fixture", Start: "main", Types: true, Observability: true}); err != nil {
 		t.Fatal("typed observability:", err)
 	}
 	for _, opts := range []codegen.GenOptions{{Document: true}, {Document: true, Types: true}} {
 		opts.Package, opts.Start, opts.Observability = "fixture", "main", true
-		if _, err := gentest.GenerateCode(t, g, opts); err != nil {
+		if _, err := codegentest.GenerateCode(t, g, opts); err != nil {
 			t.Fatal("Document observability:", err)
 		}
 	}
-	if code, err := gentest.GenerateTSBundle(g, codegen.GenOptions{Start: "main", Observability: true}); err != nil || !strings.Contains(string(code), "export interface TraceEvent") {
+	if code, err := codegentest.GenerateTSBundle(g, codegen.GenOptions{Start: "main", Observability: true}); err != nil || !strings.Contains(string(code), "export interface TraceEvent") {
 		t.Fatal("TypeScript observability:", err)
 	}
-	if code, err := gentest.GenerateTSBundle(g, codegen.GenOptions{Start: "main", Observability: true, Document: true}); err != nil || !strings.Contains(string(code), "export function createDocument(") {
+	if code, err := codegentest.GenerateTSBundle(g, codegen.GenOptions{Start: "main", Observability: true, Document: true}); err != nil || !strings.Contains(string(code), "export function createDocument(") {
 		t.Fatal("TypeScript Document observability:", err)
 	}
 }

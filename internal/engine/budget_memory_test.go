@@ -9,7 +9,7 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/core"
-	"zeroparse.dev/zp/internal/gentest"
+	"zeroparse.dev/zp/internal/codegentest"
 )
 
 // memoryGrammar builds nodes, child and field lists, memo entries and strings concatenated by
@@ -154,11 +154,11 @@ func TestMemoryLimitStream(t *testing.T) {
 		// lines also fills the read buffer and reaches the window of the longer one.
 		scale int
 	}{
-		{"plain", gentest.Records, recordLine, 0, false, 1},
-		{"concat", gentest.RecordsConcat, recordLine, 0, false, 1},
-		{"recover", gentest.RecordsRecover, malformed, 8, false, 1},
-		{"recover-newlines", gentest.RecordsRecover, blank, 8, false, 5},
-		{"recover-kept", gentest.RecordsRecover, malformed, 0, true, 1},
+		{"plain", codegentest.Records, recordLine, 0, false, 1},
+		{"concat", codegentest.RecordsConcat, recordLine, 0, false, 1},
+		{"recover", codegentest.RecordsRecover, malformed, 8, false, 1},
+		{"recover-newlines", codegentest.RecordsRecover, blank, 8, false, 5},
+		{"recover-kept", codegentest.RecordsRecover, malformed, 0, true, 1},
 	}
 	for _, c := range cases {
 		prog := mustCompile(t, c.grammar)

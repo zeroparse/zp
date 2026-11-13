@@ -8,7 +8,7 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/internal/codegen"
-	"zeroparse.dev/zp/internal/gentest"
+	"zeroparse.dev/zp/internal/codegentest"
 )
 
 // A parser generated without limit controls holds no code that spends budget or reads a control, does not
@@ -28,11 +28,11 @@ rule num = [0-9]+ ("." [0-9]+)?
 		t.Fatal(err)
 	}
 	gen := func(budgetControls bool, document ...bool) string {
-		files, err := gentest.Generate(t, g, codegen.GenOptions{Package: "wc", Module: "wc", Start: "main", Lib: codegen.LibImport, Types: true, Recognize: true, LimitControls: budgetControls, Document: len(document) > 0})
+		files, err := codegentest.Generate(t, g, codegen.GenOptions{Package: "wc", Module: "wc", Start: "main", Lib: codegen.LibImport, Types: true, Recognize: true, LimitControls: budgetControls, Document: len(document) > 0})
 		if err != nil {
 			t.Fatal(err)
 		}
-		return string(gentest.MergeGenerated(files))
+		return string(codegentest.MergeGenerated(files))
 	}
 	with, without := gen(true), gen(false)
 	for _, want := range []string{"p.Spend()", "p.Control.Take(", "func WithContext"} {
@@ -116,7 +116,7 @@ func TestOptions(t *testing.T) {
 }
 `
 	dir := t.TempDir()
-	for name, data := range map[string][]byte{"parser.go": []byte(without), "wc_test.go": []byte(tests), "go.mod": []byte(gentest.GoMod("wc"))} {
+	for name, data := range map[string][]byte{"parser.go": []byte(without), "wc_test.go": []byte(tests), "go.mod": []byte(codegentest.GoMod("wc"))} {
 		if err := os.WriteFile(filepath.Join(dir, name), data, 0o644); err != nil {
 			t.Fatal(err)
 		}

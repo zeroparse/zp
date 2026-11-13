@@ -7,7 +7,7 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/internal/codegen"
-	"zeroparse.dev/zp/internal/gentest"
+	"zeroparse.dev/zp/internal/codegentest"
 )
 
 // termChargeMutants are the edits of call_exec.go that make a charged clear of Predicate or Bind a plain clear:
@@ -23,7 +23,7 @@ type termChargeMutant struct {
 func patchTermCharge(t *testing.T, m termChargeMutant) string {
 	t.Helper()
 	patched := false
-	rt := gentest.LibCopyWith(t, func(name, src string) string {
+	rt := codegentest.LibCopyWith(t, func(name, src string) string {
 		if name != "call_exec.go" {
 			return src
 		}
@@ -51,7 +51,7 @@ func patchTermCharge(t *testing.T, m termChargeMutant) string {
 // Bind of the node Parser made a plain clear, some pair spends other than its delta.
 func TestGeneratedTermChargeMutants(t *testing.T) {
 	t.Parallel()
-	gentest.NeedsBudgetControls(t)
+	codegentest.NeedsBudgetControls(t)
 	if testing.Short() {
 		t.Skip("builds generated consumers")
 	}
@@ -81,7 +81,7 @@ func TestGeneratedTermChargeMutants(t *testing.T) {
 // which clears its own Created list and charges for it through the node Parser.
 func TestGeneratedTypedTermChargeMutants(t *testing.T) {
 	t.Parallel()
-	gentest.NeedsBudgetControls(t)
+	codegentest.NeedsBudgetControls(t)
 	if testing.Short() {
 		t.Skip("builds generated consumers")
 	}

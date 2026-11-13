@@ -10,8 +10,8 @@ import (
 
 	"zeroparse.dev/zp/core"
 	"zeroparse.dev/zp/internal/codegen"
+	"zeroparse.dev/zp/internal/codegentest"
 	"zeroparse.dev/zp/internal/engine"
-	"zeroparse.dev/zp/internal/gentest"
 )
 
 const nodeFrameScratchGrammar = `type Tok = { Text string }
@@ -30,7 +30,7 @@ rule recovering = x:("é" "!") #recover(skip="?") $$ => $x
 // This test validates fixtures without running their benchmarks.
 func TestGeneratedNodeFrameScratchWorkloads(t *testing.T) {
 	t.Parallel()
-	gentest.EachMode(t, testGeneratedNodeFrameScratchWorkloads)
+	codegentest.EachMode(t, testGeneratedNodeFrameScratchWorkloads)
 }
 
 func testGeneratedNodeFrameScratchWorkloads(t *testing.T) {
@@ -67,13 +67,13 @@ rule main Tok = t:(("é" / "�")* $$) #atomic => Tok{Text: text($t)}`, `func fr
 					for _, unit := range []core.PositionUnit{core.CodePoints, core.Bytes} {
 						n, err := prog.ParseWith("main", input, engine.ParseOptions{Expectations: true, Unit: unit})
 						_, rerr := prog.ParseWith("main", input, engine.ParseOptions{Expectations: true, Unit: unit, Recognize: true})
-						fmt.Fprintf(&rows, "{%q,%s,%q,%q},\n", input, map[core.PositionUnit]string{core.CodePoints: "CodePoints", core.Bytes: "Bytes"}[unit], gentest.ResultJSON(n, err), fmt.Sprint(rerr))
+						fmt.Fprintf(&rows, "{%q,%s,%q,%q},\n", input, map[core.PositionUnit]string{core.CodePoints: "CodePoints", core.Bytes: "Bytes"}[unit], codegentest.ResultJSON(n, err), fmt.Sprint(rerr))
 					}
 				}
 			}
 			{
 				variant := "scratch"
-				code, err := gentest.GenerateCode(t, g, codegen.GenOptions{Package: "framefixture", Start: "main", Types: true, Recognize: true})
+				code, err := codegentest.GenerateCode(t, g, codegen.GenOptions{Package: "framefixture", Start: "main", Types: true, Recognize: true})
 				if err != nil {
 					t.Fatal(err)
 				}
@@ -91,7 +91,7 @@ rule main Tok = t:(("é" / "�")* $$) #atomic => Tok{Text: text($t)}`, `func fr
 				if err := os.MkdirAll(path, 0o755); err != nil {
 					t.Fatal(err)
 				}
-				for name, data := range map[string][]byte{"parser.go": code, "frames_test.go": []byte(fixture), "bench_test.go": []byte(workload), "go.mod": []byte(gentest.GoMod("framefixture"))} {
+				for name, data := range map[string][]byte{"parser.go": code, "frames_test.go": []byte(fixture), "bench_test.go": []byte(workload), "go.mod": []byte(codegentest.GoMod("framefixture"))} {
 					if err := os.WriteFile(filepath.Join(path, name), data, 0o644); err != nil {
 						t.Fatal(err)
 					}

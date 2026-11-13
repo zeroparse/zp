@@ -4,7 +4,7 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/internal/codegen"
-	"zeroparse.dev/zp/internal/gentest"
+	"zeroparse.dev/zp/internal/codegentest"
 )
 
 // A rule call costs one step at its entry. A rule that reads no captures and takes callBody's unmemoized
@@ -19,7 +19,7 @@ rule expr = expr "+" "a" / "a"`
 	if err != nil {
 		t.Fatal(err)
 	}
-	out := gentest.RunTSGrammarScriptWith(t, g, `import * as p from "./parser.ts";
+	out := codegentest.RunTSGrammarScriptWith(t, g, `import * as p from "./parser.ts";
 const proto = (p as unknown as { Parser: { prototype: { spend(n?: number): void } } }).Parser.prototype;
 const original = proto.spend;
 const by = new Map<string, number>();

@@ -8,7 +8,7 @@ import (
 	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/codegen"
 	"zeroparse.dev/zp/internal/codegen/go"
-	"zeroparse.dev/zp/internal/gentest"
+	"zeroparse.dev/zp/internal/codegentest"
 	"zeroparse.dev/zp/internal/ir/core"
 	irbuild "zeroparse.dev/zp/internal/ir/core/build"
 )
@@ -48,7 +48,7 @@ func TestCorePipelineVerifiesEveryPass(t *testing.T) {
 		{"lean without terminals", codegen.GenOptions{Types: true, TypedOnly: true, NoOpt: []string{"terminals"}}},
 		{"document", codegen.GenOptions{Types: true, Document: true}},
 	}
-	cases := append(gentest.CorpusWithParsers(t), gentest.CoreExtraGrammars...)
+	cases := append(codegentest.CorpusWithParsers(t), codegentest.CoreExtraGrammars...)
 	compared := 0
 	var mu sync.Mutex
 	var wg sync.WaitGroup
@@ -65,7 +65,7 @@ func TestCorePipelineVerifiesEveryPass(t *testing.T) {
 				var g *gogen.Generator
 				opts := mode.opts
 				opts.Module = "example.com/p"
-				if _, err := gogen.GenerateParser(pg, gentest.Compile, gentest.WithLib(opts), &gogen.Hooks{Generator: func(x *gogen.Generator) { g = x }}); err != nil || g == nil {
+				if _, err := gogen.GenerateParser(pg, codegentest.Compile, codegentest.WithLib(opts), &gogen.Hooks{Generator: func(x *gogen.Generator) { g = x }}); err != nil || g == nil {
 					return
 				}
 				want, err := pipelinedTypedCore(g, false)

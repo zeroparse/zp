@@ -11,7 +11,7 @@ import (
 	"zeroparse.dev/zp/codegen"
 	"zeroparse.dev/zp/core"
 	"zeroparse.dev/zp/engine"
-	"zeroparse.dev/zp/internal/gentest"
+	"zeroparse.dev/zp/internal/codegentest"
 )
 
 const commentOwnerExample = "// orphan\n\n// foo\npackage foo // trailing\n// trailing\n\n// B2\n// B2\n\n// B1\n// B1\nrule B = \"b\" // trailing\n// trailing\n"
@@ -138,7 +138,7 @@ func TestSourceCommentBoundaryGeneratedGo(t *testing.T) {
 	}
 	dir := t.TempDir()
 	for name, data := range map[string][]byte{
-		"go.mod":   []byte(gentest.GoMod("comments")),
+		"go.mod":   []byte(codegentest.GoMod("comments")),
 		"input.zp": []byte(commentOwnerExample),
 		"parser_test.go": []byte(`package comments
 import("os";"testing")

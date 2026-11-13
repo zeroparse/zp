@@ -8,14 +8,14 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/core"
+	"zeroparse.dev/zp/internal/codegentest"
 	"zeroparse.dev/zp/internal/compile"
 	ecore "zeroparse.dev/zp/internal/engine/core"
-	"zeroparse.dev/zp/internal/gentest"
 )
 
 func TestEnvironmentRollback(t *testing.T) {
 	t.Parallel()
-	for i, c := range gentest.EnvBindingCases {
+	for i, c := range codegentest.EnvBindingCases {
 		want := `V{X: 1, Y: 2}`
 		if i == 2 {
 			want = `V{X: 3, Y: 4}`
@@ -28,7 +28,7 @@ func TestEnvironmentRollback(t *testing.T) {
 }
 
 func TestBoundStreamMemoryIsBounded(t *testing.T) {
-	prog := mustCompile(t, gentest.BoundStream)
+	prog := mustCompile(t, codegentest.BoundStream)
 	for _, backend := range []Backend{Closure, Bytecode, BytecodeIterative} {
 		for _, unit := range []core.PositionUnit{core.CodePoints, core.Bytes} {
 			t.Run(fmt.Sprintf("%s/%s", backend, unit), func(t *testing.T) {

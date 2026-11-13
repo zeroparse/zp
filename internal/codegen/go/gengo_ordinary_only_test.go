@@ -7,7 +7,7 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/internal/codegen"
-	"zeroparse.dev/zp/internal/gentest"
+	"zeroparse.dev/zp/internal/codegentest"
 )
 
 // The parsers generated without budget controls (the form most parsers have) and with typed-only entry
@@ -180,24 +180,24 @@ func TestGeneratedOrdinaryOnlyMatchesControlled(t *testing.T) {
 		{"untyped", ordinaryOnlyUntyped, strings.Replace(ordinaryOnlyUntyped, `"+"`, `"-"`, 1), ordinaryOnlyUntypedProgram,
 			codegen.GenOptions{Recognize: true, Document: true, Stream: true}, ordinaryOnlyUntypedInputs,
 			[]string{"parse \"1+2;3;\" ", "syntax error", "stream \"1+2;3;\":", "iterate \"1;\":", "document edited", "depth"}},
-		{"typed", gentest.OrdinaryOnlyTyped, strings.Replace(gentest.OrdinaryOnlyTyped, `"+"`, `"-"`, 1), strings.Replace(ordinaryOnlyTypedProgram, "NODE", ordinaryOnlyTypedNode, 1),
-			codegen.GenOptions{Types: true, Recognize: true, Document: true}, gentest.OrdinaryOnlyTypedInputs,
+		{"typed", codegentest.OrdinaryOnlyTyped, strings.Replace(codegentest.OrdinaryOnlyTyped, `"+"`, `"-"`, 1), strings.Replace(ordinaryOnlyTypedProgram, "NODE", ordinaryOnlyTypedNode, 1),
+			codegen.GenOptions{Types: true, Recognize: true, Document: true}, codegentest.OrdinaryOnlyTypedInputs,
 			[]string{"ast \"a+a\"", "syntax error", "document edited", "rule sum", "unknown rule"}},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
 			dir := t.TempDir()
-			if err := os.WriteFile(filepath.Join(dir, "go.mod"), []byte(gentest.GoMod("ordtest")), 0o644); err != nil {
+			if err := os.WriteFile(filepath.Join(dir, "go.mod"), []byte(codegentest.GoMod("ordtest")), 0o644); err != nil {
 				t.Fatal(err)
 			}
 			controlled, ordinary := tc.opts, tc.opts
 			controlled.LimitControls = true
-			gentest.OrdinaryOnlyPackage(t, dir, "controlled", tc.src, controlled, tc.program, tc.inputs)
-			gentest.OrdinaryOnlyPackage(t, dir, "ordinary", tc.src, ordinary, tc.program, tc.inputs)
-			gentest.OrdinaryOnlyPackage(t, dir, "mutated", tc.mutated, ordinary, tc.program, tc.inputs)
-			out := gentest.RunTranscripts(t, dir, "controlled", "ordinary", "mutated")
+			codegentest.OrdinaryOnlyPackage(t, dir, "controlled", tc.src, controlled, tc.program, tc.inputs)
+			codegentest.OrdinaryOnlyPackage(t, dir, "ordinary", tc.src, ordinary, tc.program, tc.inputs)
+			codegentest.OrdinaryOnlyPackage(t, dir, "mutated", tc.mutated, ordinary, tc.program, tc.inputs)
+			out := codegentest.RunTranscripts(t, dir, "controlled", "ordinary", "mutated")
 			if out["controlled"] != out["ordinary"] {
-				t.Errorf("the ordinary-only parser differs from the controlled one:\n%s", gentest.FirstTranscriptDifference(out["controlled"], out["ordinary"]))
+				t.Errorf("the ordinary-only parser differs from the controlled one:\n%s", codegentest.FirstTranscriptDifference(out["controlled"], out["ordinary"]))
 			}
 			for _, want := range tc.want {
 				if !strings.Contains(out["ordinary"], want) {

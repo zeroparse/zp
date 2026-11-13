@@ -9,7 +9,7 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/internal/codegen"
-	"zeroparse.dev/zp/internal/gentest"
+	"zeroparse.dev/zp/internal/codegentest"
 )
 
 // The exporter keeps timing and generated artifacts outside the repository.
@@ -30,7 +30,7 @@ func TestExportGeneratedTraceBenchmarks(t *testing.T) {
 			t.Fatal(err)
 		}
 	}
-	write("go.mod", []byte(gentest.GoMod("tracebench")))
+	write("go.mod", []byte(codegentest.GoMod("tracebench")))
 	cases := []struct{ name, path, input string }{
 		{"json", "testdata/grammars/json/json.zp", "[" + strings.TrimSuffix(strings.Repeat(`{"name":"éclair","n":123,"ok":true},`, 64), ",") + "]"},
 		{"xml", "testdata/grammars/xml/xml.zp", "<root>" + strings.Repeat(`<item name="éclair">123</item>`, 64) + "</root>"},
@@ -51,7 +51,7 @@ func TestExportGeneratedTraceBenchmarks(t *testing.T) {
 			if enabled {
 				variant = "observed"
 			}
-			code, err := gentest.GenerateCode(t, g, codegen.GenOptions{Package: variant, Start: "main", Recognize: true, Observability: enabled})
+			code, err := codegentest.GenerateCode(t, g, codegen.GenOptions{Package: variant, Start: "main", Recognize: true, Observability: enabled})
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -106,7 +106,7 @@ func BenchmarkGeneratedObservabilityGeneration(b *testing.B) {
 					b.ReportAllocs()
 					for b.Loop() {
 						var err error
-						generatedTraceBenchmarkSource, err = gentest.GenerateCode(b, g, codegen.GenOptions{Package: "fixture", Start: "main", Recognize: true, Observability: enabled})
+						generatedTraceBenchmarkSource, err = codegentest.GenerateCode(b, g, codegen.GenOptions{Package: "fixture", Start: "main", Recognize: true, Observability: enabled})
 						if err != nil {
 							b.Fatal(err)
 						}

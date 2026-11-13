@@ -4,7 +4,7 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/internal/codegen/go"
-	"zeroparse.dev/zp/internal/gentest"
+	"zeroparse.dev/zp/internal/codegentest"
 	"zeroparse.dev/zp/internal/ir/core"
 	irbuild "zeroparse.dev/zp/internal/ir/core/build"
 )
@@ -337,7 +337,7 @@ func TestCoreScans(t *testing.T) {
 	t.Parallel()
 	src := `rule main = [a-z]* "-"#repeat(2) .#repeat(1, 3) x:[0-9]* $$ => $x
 `
-	prog, ok := coreCorpusProgram(t, gentest.Case{Src: src})
+	prog, ok := coreCorpusProgram(t, codegentest.Case{Src: src})
 	if !ok {
 		t.Fatal("does not compile")
 	}

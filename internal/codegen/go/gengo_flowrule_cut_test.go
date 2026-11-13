@@ -7,24 +7,24 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/internal/codegen"
-	"zeroparse.dev/zp/internal/gentest"
+	"zeroparse.dev/zp/internal/codegentest"
 )
 
 func TestGeneratedTypedDirectCuts(t *testing.T) {
 	t.Parallel()
-	gentest.EachMode(t, testGeneratedTypedDirectCuts)
+	codegentest.EachMode(t, testGeneratedTypedDirectCuts)
 }
 
 func testGeneratedTypedDirectCuts(t *testing.T) {
 	if testing.Short() {
 		t.Skip("builds generated code")
 	}
-	for _, c := range gentest.TypedDirectCutCases {
+	for _, c := range codegentest.TypedDirectCutCases {
 		g, err := parseTest(c.Src)
 		if err != nil {
 			t.Fatalf("%s: %v", c.Name, err)
 		}
-		code, err := gentest.GenerateCode(t, g, codegen.GenOptions{Package: "cuts", Start: "main", Types: true})
+		code, err := codegentest.GenerateCode(t, g, codegen.GenOptions{Package: "cuts", Start: "main", Types: true})
 		if err != nil {
 			t.Fatalf("%s: %v", c.Name, err)
 		}
@@ -39,7 +39,7 @@ func testGeneratedTypedDirectCuts(t *testing.T) {
 			t.Fatal("callee containing cuts must use the direct typed route")
 		}
 		for _, r := range mustCompile(t, c.Src).RuleList {
-			if !gentest.DirectCuts(r.Def.Expr) {
+			if !codegentest.DirectCuts(r.Def.Expr) {
 				continue
 			}
 			inlined := false
@@ -52,5 +52,5 @@ func testGeneratedTypedDirectCuts(t *testing.T) {
 			}
 		}
 	}
-	gentest.GeneratedTypesCorpus(t, filepath.Join(runtime.GOROOT(), "bin", "go"), gentest.TypedDirectCutCases, codegen.GenOptions{ConvertTypes: true})
+	codegentest.GeneratedTypesCorpus(t, filepath.Join(runtime.GOROOT(), "bin", "go"), codegentest.TypedDirectCutCases, codegen.GenOptions{ConvertTypes: true})
 }

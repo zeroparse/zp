@@ -15,8 +15,8 @@ import (
 
 	"zeroparse.dev/zp/internal/codegen"
 	"zeroparse.dev/zp/internal/codegen/go"
+	"zeroparse.dev/zp/internal/codegentest"
 	"zeroparse.dev/zp/internal/compile"
-	"zeroparse.dev/zp/internal/gentest"
 	flowlower "zeroparse.dev/zp/internal/ir/flow/lower"
 )
 
@@ -26,17 +26,17 @@ import (
 // controls.
 func TestGeneratedFlowRecognizerParity(t *testing.T) {
 	t.Parallel()
-	gentest.EachMode(t, testGeneratedFlowRecognizerParity)
+	codegentest.EachMode(t, testGeneratedFlowRecognizerParity)
 }
 
 func testGeneratedFlowRecognizerParity(t *testing.T) {
 	if testing.Short() {
 		t.Skip("builds generated consumers")
 	}
-	cases := gentest.Representative(gentest.GenCorpus(t))
+	cases := codegentest.Representative(codegentest.GenCorpus(t))
 	taken, framed := 0, 0
 	gh := &gogen.Hooks{}
-	gentest.SetGenHooks(t, gh)
+	codegentest.SetGenHooks(t, gh)
 	gh.LeanRoute = func(table string, r *compile.Rule) {
 		if table == "recRules" {
 			taken++
@@ -52,7 +52,7 @@ func testGeneratedFlowRecognizerParity(t *testing.T) {
 		if err != nil {
 			t.Fatalf("%s: %v", c.Name, err)
 		}
-		if _, err := gentest.GenerateCode(t, g, codegen.GenOptions{Start: "main", Package: "gen", Recognize: true}); err != nil {
+		if _, err := codegentest.GenerateCode(t, g, codegen.GenOptions{Start: "main", Package: "gen", Recognize: true}); err != nil {
 			t.Fatalf("%s: %v", c.Name, err)
 		}
 	}
@@ -61,7 +61,7 @@ func testGeneratedFlowRecognizerParity(t *testing.T) {
 		t.Fatalf("%d direct and %d framed rules of the recognizer take the Flow route: the parity test exercises nothing", taken, framed)
 	}
 	goBin := filepath.Join(runtime.GOROOT(), "bin", "go")
-	gentest.GeneratedParsersCorpus(t, goBin, cases, codegen.GenOptions{})
+	codegentest.GeneratedParsersCorpus(t, goBin, cases, codegen.GenOptions{})
 }
 
 // invertClassTests inverts every range test of a character class in the code, as a printer would
@@ -195,16 +195,16 @@ func TestGeneratedFlowRecognizerMutantChild(t *testing.T) {
 		t.Fatalf("unknown mutant %q", name)
 	}
 	mutated := 0
-	gentest.MutateCode = func(code []byte) []byte {
+	codegentest.MutateCode = func(code []byte) []byte {
 		mutant := mutate(code)
 		if !bytes.Equal(mutant, code) {
 			mutated++
 		}
 		return mutant
 	}
-	gentest.PinOrdinary(t)
-	cases := gentest.GenCorpus(t)
-	gentest.GeneratedParsersCorpus(t, filepath.Join(runtime.GOROOT(), "bin", "go"), cases, codegen.GenOptions{})
+	codegentest.PinOrdinary(t)
+	cases := codegentest.GenCorpus(t)
+	codegentest.GeneratedParsersCorpus(t, filepath.Join(runtime.GOROOT(), "bin", "go"), cases, codegen.GenOptions{})
 	if mutated == 0 {
 		t.Fatalf("the %s mutant changes no generated recognizer", name)
 	}
@@ -218,7 +218,7 @@ func TestGeneratedFlowRecognizerMutantChild(t *testing.T) {
 // prints no guards for these choices and the comparison fails.
 func TestFlowRecognizerGuardsChoiceAlternatives(t *testing.T) {
 	t.Parallel()
-	gentest.PinOrdinary(t)
+	codegentest.PinOrdinary(t)
 	g, err := parseTest(`rule main = item* !.
 rule item = uq / ident / sq
 rule uq = [uU] "&" "\"" [^"]+ "\""
@@ -228,7 +228,7 @@ rule sq = "'" [^']* "'" / [uU] "&'" [^']* "'"
 	if err != nil {
 		t.Fatal(err)
 	}
-	code, err := gentest.GenerateCode(t, g, codegen.GenOptions{Start: "main", Package: "gen", Recognize: true})
+	code, err := codegentest.GenerateCode(t, g, codegen.GenOptions{Start: "main", Package: "gen", Recognize: true})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -267,13 +267,13 @@ func TestFlowRecognizerFallbackMatchesEngine(t *testing.T) {
 	if testing.Short() {
 		t.Skip("builds generated consumers")
 	}
-	gentest.PinOrdinary(t)
-	c := gentest.Case{Name: "fallback of the Flow recognizer",
+	codegentest.PinOrdinary(t)
+	c := codegentest.Case{Name: "fallback of the Flow recognizer",
 		Src:    "rule main = ws item* !.\nrule ws = ([ ] / comment)*\nrule comment = \"--\" [^\\n]* / block_comment\nrule block_comment = \"/*\" (block_comment / !\"*/\" .)* \"*/\"\nrule item = [a-z]+ / [0-9]+\n",
 		Inputs: []string{"", "a", "a 1 b2", "-- c\n a", "/* x */ a", "/* /* y */ */ 1", "/* open", "a -- tail", "@", "a /* x */ /* y */ 2", "--"}}
 	refused, framed := map[string]bool{}, map[string]bool{}
 	gh := &gogen.Hooks{}
-	gentest.SetGenHooks(t, gh)
+	codegentest.SetGenHooks(t, gh)
 	gh.RefuseFlowRecRule = func(r *compile.Rule) bool {
 		if flowlower.RecEligible(r) {
 			refused[r.Name] = true
@@ -286,7 +286,7 @@ func TestFlowRecognizerFallbackMatchesEngine(t *testing.T) {
 			framed[r.Name] = true
 		}
 	}
-	gentest.GeneratedParsersCorpus(t, filepath.Join(runtime.GOROOT(), "bin", "go"), []gentest.Case{c}, codegen.GenOptions{})
+	codegentest.GeneratedParsersCorpus(t, filepath.Join(runtime.GOROOT(), "bin", "go"), []codegentest.Case{c}, codegen.GenOptions{})
 	if len(refused) == 0 {
 		t.Fatal("no rule was refused: the fallback is not exercised")
 	}

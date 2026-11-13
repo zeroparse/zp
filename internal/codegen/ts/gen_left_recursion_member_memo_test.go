@@ -9,7 +9,7 @@ import (
 	"time"
 
 	"zeroparse.dev/zp/internal/codegen"
-	"zeroparse.dev/zp/internal/gentest"
+	"zeroparse.dev/zp/internal/codegentest"
 )
 
 // TestGeneratedTSLeftRecursionMemberMemoLinear checks that generated TypeScript parsers memoize
@@ -33,7 +33,7 @@ rule c = "(" c ")" "y" / "(" c ")" "z" / a`)
 	if err != nil {
 		t.Fatal(err)
 	}
-	code, err := gentest.GenerateTSBundle(g, codegen.GenOptions{Start: "main"})
+	code, err := codegentest.GenerateTSBundle(g, codegen.GenOptions{Start: "main"})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -78,5 +78,5 @@ func TestGeneratedTSLeftRecursionMemberMemoStale(t *testing.T) {
 	if err != nil {
 		t.Skip("node not found")
 	}
-	gentest.TSParsersCorpus(t, node, append(gentest.LeftRecursionMemberCases(), gentest.LeftRecursionMemberSeedCases()...), codegen.GenOptions{})
+	codegentest.TSParsersCorpus(t, node, append(codegentest.LeftRecursionMemberCases(), codegentest.LeftRecursionMemberSeedCases()...), codegen.GenOptions{})
 }

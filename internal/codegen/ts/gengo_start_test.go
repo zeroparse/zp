@@ -7,18 +7,18 @@ import (
 	"zeroparse.dev/zp/internal/syntax"
 
 	"zeroparse.dev/zp/internal/codegen"
-	"zeroparse.dev/zp/internal/gentest"
+	"zeroparse.dev/zp/internal/codegentest"
 )
 
 // startEntryWant is what the interpreter reports for each of startEntryNames, one line each.
 func startEntryWant(t *testing.T) string {
 	t.Helper()
-	prog, err := compileStarts(t, gentest.StartRestrictionSource)
+	prog, err := compileStarts(t, codegentest.StartRestrictionSource)
 	if err != nil {
 		t.Fatal(err)
 	}
 	var b strings.Builder
-	for _, name := range gentest.StartEntryNames {
+	for _, name := range codegentest.StartEntryNames {
 		if err := prog.CheckStart(name); err != nil {
 			fmt.Fprintf(&b, "%s: %v\n", name, err)
 		} else {
@@ -32,7 +32,7 @@ func startEntryWant(t *testing.T) string {
 func TestGeneratedTSStartRules(t *testing.T) {
 	t.Parallel()
 	want := startEntryWant(t)
-	g, err := syntax.Parse(gentest.StartRestrictionSource)
+	g, err := syntax.Parse(codegentest.StartRestrictionSource)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -50,7 +50,7 @@ console.log("empty: " + (parseRule("", "aa").error === null) + " " + (parseRuleW
 	for _, start := range []string{"", "item"} {
 		// An empty name selects the declared default start rule main, which matches "aa",
 		// even in a parser generated for item.
-		out := gentest.RunTSGrammarScriptWith(t, g, script, codegen.GenOptions{Start: start})
+		out := codegentest.RunTSGrammarScriptWith(t, g, script, codegen.GenOptions{Start: start})
 		parse := "default: true true\n"
 		if start == "item" {
 			parse = "default: true false\n"

@@ -9,7 +9,7 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/internal/codegen"
-	"zeroparse.dev/zp/internal/gentest"
+	"zeroparse.dev/zp/internal/codegentest"
 )
 
 func TestGeneratedTSTrace(t *testing.T) {
@@ -95,16 +95,16 @@ rule part W = t:("input, o.unit, o.maxDepth, control)") #atomic => W{Text: text(
 				name += "_typed"
 			}
 			opts := codegen.GenOptions{Start: "main", LimitControls: true, Types: typed, Recognize: true}
-			reference, err := gentest.GenerateTSBundle(g, opts)
+			reference, err := codegentest.GenerateTSBundle(g, opts)
 			if err != nil {
 				t.Fatal(name, err)
 			}
 			opts.Observability = true
-			code, err := gentest.GenerateTSBundle(g, opts)
+			code, err := codegentest.GenerateTSBundle(g, opts)
 			if err != nil {
 				t.Fatal(name, err)
 			}
-			again, err := gentest.GenerateTSBundle(g, opts)
+			again, err := codegentest.GenerateTSBundle(g, opts)
 			if err != nil || string(again) != string(code) {
 				t.Fatal(name, "nondeterministic trace source", err)
 			}

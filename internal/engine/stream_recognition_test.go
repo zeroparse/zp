@@ -8,8 +8,8 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/core"
+	"zeroparse.dev/zp/internal/codegentest"
 	"zeroparse.dev/zp/internal/compile"
-	"zeroparse.dev/zp/internal/gentest"
 	"zeroparse.dev/zp/internal/syntax"
 )
 
@@ -59,8 +59,8 @@ func TestStreamCaptureRecognition(t *testing.T) {
 								}
 								n, err := program.ParseWith("main", tc.input, opts)
 								want, werr := plain.ParseWith("main", tc.input, opts)
-								if (err == nil) != tc.ok || gentest.ResultJSON(n, err) != gentest.ResultJSON(want, werr) {
-									t.Errorf("%s/%s recognition=%v: %s; want %s", backend, unit, recognize, gentest.ResultJSON(n, err), gentest.ResultJSON(want, werr))
+								if (err == nil) != tc.ok || codegentest.ResultJSON(n, err) != codegentest.ResultJSON(want, werr) {
+									t.Errorf("%s/%s recognition=%v: %s; want %s", backend, unit, recognize, codegentest.ResultJSON(n, err), codegentest.ResultJSON(want, werr))
 								}
 							}
 							opts.Recognize = false
@@ -126,7 +126,7 @@ func BenchmarkStreamCaptureRecognition(b *testing.B) {
 // builds none.
 func TestStreamRecognitionCompiled(t *testing.T) {
 	t.Parallel()
-	g, err := syntax.Parse(gentest.StartRestrictionSource)
+	g, err := syntax.Parse(codegentest.StartRestrictionSource)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -158,7 +158,7 @@ func TestStreamRecognitionCompiled(t *testing.T) {
 		}
 	}
 	// The recognizer of an ordinary program only recognizes.
-	g, err = syntax.Parse(gentest.StartRestrictionSource)
+	g, err = syntax.Parse(codegentest.StartRestrictionSource)
 	if err != nil {
 		t.Fatal(err)
 	}

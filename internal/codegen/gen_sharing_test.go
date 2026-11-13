@@ -10,7 +10,7 @@ import (
 	"zeroparse.dev/zp/internal/codegen"
 	"zeroparse.dev/zp/internal/codegen/go"
 	"zeroparse.dev/zp/internal/codegen/ts"
-	"zeroparse.dev/zp/internal/gentest"
+	"zeroparse.dev/zp/internal/codegentest"
 )
 
 func TestGeneratedSharingIdentity(t *testing.T) {
@@ -51,7 +51,7 @@ func TestGeneratedSharingIdentity(t *testing.T) {
 
 func TestGeneratedSharingDeterministic(t *testing.T) {
 	t.Parallel()
-	gentest.EachMode(t, testGeneratedSharingDeterministic)
+	codegentest.EachMode(t, testGeneratedSharingDeterministic)
 }
 
 func testGeneratedSharingDeterministic(t *testing.T) {
@@ -64,8 +64,8 @@ rule a = ("é" / "ab")+ #atomic`)
 		name string
 		fn   func(codegen.GenOptions) ([]byte, error)
 	}{
-		{"Go", func(opts codegen.GenOptions) ([]byte, error) { return gentest.GenerateCode(t, g, opts) }},
-		{"TypeScript", func(opts codegen.GenOptions) ([]byte, error) { return gentest.GenerateTSBundle(g, opts) }},
+		{"Go", func(opts codegen.GenOptions) ([]byte, error) { return codegentest.GenerateCode(t, g, opts) }},
+		{"TypeScript", func(opts codegen.GenOptions) ([]byte, error) { return codegentest.GenerateTSBundle(g, opts) }},
 	} {
 		t.Run(generate.name, func(t *testing.T) {
 			opts := codegen.GenOptions{Package: "shared", Start: "main", Recognize: true}
@@ -128,11 +128,11 @@ func BenchmarkGeneratedSharing(b *testing.B) {
 		}
 		for _, lang := range []string{"Go", "TypeScript"} {
 			b.Run(name+"/"+lang, func(b *testing.B) {
-				generate := func() ([]byte, error) { return gentest.GenerateCode(b, g, opts) }
+				generate := func() ([]byte, error) { return codegentest.GenerateCode(b, g, opts) }
 				if lang == "TypeScript" {
 					tsOpts := opts
 					tsOpts.Types = false
-					generate = func() ([]byte, error) { return gentest.GenerateTSBundle(g, tsOpts) }
+					generate = func() ([]byte, error) { return codegentest.GenerateTSBundle(g, tsOpts) }
 				}
 				code, err := generate()
 				if err != nil {

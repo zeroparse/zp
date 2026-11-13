@@ -5,7 +5,7 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/internal/codegen"
-	"zeroparse.dev/zp/internal/gentest"
+	"zeroparse.dev/zp/internal/codegentest"
 )
 
 // Without budget controls no function of the parser package or the types package charges steps, including the
@@ -13,7 +13,7 @@ import (
 // the rule functions does not reach.
 func TestGeneratedNoStepChargesInTypedCode(t *testing.T) {
 	t.Parallel()
-	for _, src := range []string{gentest.OrdinaryOnlyTyped, gentest.OrdinaryOnlyConverted} {
+	for _, src := range []string{codegentest.OrdinaryOnlyTyped, codegentest.OrdinaryOnlyConverted} {
 		g, err := parseTest(src)
 		if err != nil {
 			t.Fatal(err)
@@ -22,7 +22,7 @@ func TestGeneratedNoStepChargesInTypedCode(t *testing.T) {
 		generated := func(opts codegen.GenOptions) string {
 			t.Helper()
 			opts.Package, opts.Module, opts.Start, opts.Lib = "p", "example.com/p", "main", codegen.LibImport
-			files, err := gentest.Generate(t, g, opts)
+			files, err := codegentest.Generate(t, g, opts)
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -47,11 +47,11 @@ func TestGeneratedNoStepChargesInTypedCode(t *testing.T) {
 		}
 	}
 	// The conversions of the types package charge steps only in a controlled parser, for a list.
-	g, err := parseTest(gentest.OrdinaryOnlyConverted)
+	g, err := parseTest(codegentest.OrdinaryOnlyConverted)
 	if err != nil {
 		t.Fatal(err)
 	}
-	files, err := gentest.Generate(t, g, codegen.GenOptions{Package: "p", Module: "example.com/p", Start: "main", Lib: codegen.LibImport, Types: true, LimitControls: true})
+	files, err := codegentest.Generate(t, g, codegen.GenOptions{Package: "p", Module: "example.com/p", Start: "main", Lib: codegen.LibImport, Types: true, LimitControls: true})
 	if err != nil {
 		t.Fatal(err)
 	}

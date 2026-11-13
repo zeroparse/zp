@@ -8,8 +8,8 @@ import (
 
 	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/codegen"
+	"zeroparse.dev/zp/internal/codegentest"
 	"zeroparse.dev/zp/internal/compile"
-	"zeroparse.dev/zp/internal/gentest"
 	"zeroparse.dev/zp/internal/value"
 )
 
@@ -17,7 +17,7 @@ import (
 // JSON AST, and reports an invalid one; none changes the input AST.
 func TestOperatorsRuleWholeActionCompiles(t *testing.T) {
 	t.Parallel()
-	gentest.EachMode(t, testOperatorsRuleWholeActionCompiles)
+	codegentest.EachMode(t, testOperatorsRuleWholeActionCompiles)
 }
 
 func testOperatorsRuleWholeActionCompiles(t *testing.T) {
@@ -58,19 +58,19 @@ func testOperatorsRuleWholeActionCompiles(t *testing.T) {
 						"recognizer compile": func() error { _, err := Compile(input.g, compile.Options{Recognize: true}); return err },
 						"saved AST rebuild":  func() error { _, err := build(input.g, compile.Options{}, []compile.RuleFlags{{}}); return err },
 						"Go generator": func() error {
-							_, err := gentest.GenerateCode(t, input.g, codegen.GenOptions{Start: "main", Package: "p"})
+							_, err := codegentest.GenerateCode(t, input.g, codegen.GenOptions{Start: "main", Package: "p"})
 							return err
 						},
 						"typed Go generator": func() error {
-							_, err := gentest.GenerateCode(t, input.g, codegen.GenOptions{Start: "main", Package: "p", Types: true})
+							_, err := codegentest.GenerateCode(t, input.g, codegen.GenOptions{Start: "main", Package: "p", Types: true})
 							return err
 						},
 						"TS generator": func() error {
-							_, err := gentest.GenerateTSBundle(input.g, codegen.GenOptions{Start: "main"})
+							_, err := codegentest.GenerateTSBundle(input.g, codegen.GenOptions{Start: "main"})
 							return err
 						},
 						"typed TS generator": func() error {
-							_, err := gentest.GenerateTSBundle(input.g, codegen.GenOptions{Start: "main", Types: true})
+							_, err := codegentest.GenerateTSBundle(input.g, codegen.GenOptions{Start: "main", Types: true})
 							return err
 						},
 					} {

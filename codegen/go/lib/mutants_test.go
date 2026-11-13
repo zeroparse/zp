@@ -4,7 +4,7 @@ import (
 	"strings"
 	"testing"
 
-	"zeroparse.dev/zp/internal/gentest"
+	"zeroparse.dev/zp/internal/codegentest"
 )
 
 // A mutant changes the printed code of the operators of terms in one way: in the compositions of
@@ -125,7 +125,7 @@ func TestPrintedOperatorMutants(t *testing.T) {
 					if j := strings.Index(src[i+1:], "\nfunc "); j >= 0 {
 						end = i + 1 + j
 					}
-					out, ok := gentest.MutateFunc(src[i:end], m.fn, m.old, m.new)
+					out, ok := codegentest.MutateFunc(src[i:end], m.fn, m.old, m.new)
 					if !ok {
 						return src
 					}

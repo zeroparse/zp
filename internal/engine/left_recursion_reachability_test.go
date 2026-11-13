@@ -6,8 +6,8 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/core"
+	"zeroparse.dev/zp/internal/codegentest"
 	"zeroparse.dev/zp/internal/compile"
-	"zeroparse.dev/zp/internal/gentest"
 )
 
 // TestLeftRecursionRetainsReachableSuffixes pins the rule of "Growths of Left Recursion" in
@@ -55,7 +55,7 @@ func TestLeftRecursionIgnoresUnreachableRecoveryChain(t *testing.T) {
 						o := ParseOptions{Backend: backend, Unit: unit}
 						got, err := p.ParseWith("r2", "", o)
 						want, wantErr := q.ParseWith("r2", "", o)
-						if gentest.ResultJSON(got, err) != gentest.ResultJSON(want, wantErr) {
+						if codegentest.ResultJSON(got, err) != codegentest.ResultJSON(want, wantErr) {
 							t.Errorf("%s/%s memo disabled=%v: dead recovery chain changes result: %v, %v vs %v, %v", backend, unit, options.DisableMemo, got, err, want, wantErr)
 						}
 					}
@@ -67,7 +67,7 @@ func TestLeftRecursionIgnoresUnreachableRecoveryChain(t *testing.T) {
 
 func TestLeftRecursionReachabilitySavedAndDocuments(t *testing.T) {
 	t.Parallel()
-	for _, c := range gentest.ReachabilityGeneratedCases {
+	for _, c := range codegentest.ReachabilityGeneratedCases {
 		t.Run(c.Name, func(t *testing.T) {
 			for _, options := range []compile.Options{{}, {DisableMemo: true}} {
 				p := mustCompile(t, c.Src, options)
@@ -84,7 +84,7 @@ func TestLeftRecursionReachabilitySavedAndDocuments(t *testing.T) {
 							for _, text := range c.Inputs {
 								want, wantErr := p.ParseWith("main", text, o)
 								got, gotErr := q.ParseWith("main", text, servedBy(mode, o))
-								if gentest.ResultJSON(got, gotErr) != gentest.ResultJSON(want, wantErr) {
+								if codegentest.ResultJSON(got, gotErr) != codegentest.ResultJSON(want, wantErr) {
 									t.Fatalf("saved %s mode %s/%s input %q differs", mode, backend, unit, text)
 								}
 								doc, err := q.NewDocumentWith("main", text, o)
@@ -104,7 +104,7 @@ func TestLeftRecursionReachabilitySavedAndDocuments(t *testing.T) {
 									}
 									want, wantErr := q.ParseWith("main", doc.Text(), servedBy(mode, o))
 									got, gotErr := doc.Parse()
-									if gentest.ResultJSON(got, gotErr) != gentest.ResultJSON(want, wantErr) {
+									if codegentest.ResultJSON(got, gotErr) != codegentest.ResultJSON(want, wantErr) {
 										t.Fatalf("Document %s/%s input %q differs from fresh", backend, unit, doc.Text())
 									}
 								}
@@ -153,7 +153,7 @@ rule a = "x" #recover(skip=a) / "y"`)
 
 func TestLeftRecursionIgnoresUnreachableAlternatives(t *testing.T) {
 	t.Parallel()
-	const original = gentest.LeftRecursionDeadTail
+	const original = codegentest.LeftRecursionDeadTail
 	const removed = `rule r1 = r2?
 rule r2 = (("a" / r1 / "\n") / ("" / "\n")) #repeat(0, 1)`
 	for _, options := range []compile.Options{{}, {DisableMemo: true}} {

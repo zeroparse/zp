@@ -5,7 +5,7 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/internal/codegen"
-	"zeroparse.dev/zp/internal/gentest"
+	"zeroparse.dev/zp/internal/codegentest"
 )
 
 // TestGeneratedTSLookaheadRecoveryMatchesEngine compares the results and errors of TypeScript
@@ -19,5 +19,5 @@ func TestGeneratedTSLookaheadRecoveryMatchesEngine(t *testing.T) {
 	if err != nil {
 		t.Skip("node not found")
 	}
-	gentest.TSParsersCorpus(t, node, gentest.LookaheadRecoveryCases(), codegen.GenOptions{})
+	codegentest.TSParsersCorpus(t, node, codegentest.LookaheadRecoveryCases(), codegen.GenOptions{})
 }

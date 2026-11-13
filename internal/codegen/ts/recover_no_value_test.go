@@ -4,7 +4,7 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/internal/codegen"
-	"zeroparse.dev/zp/internal/gentest"
+	"zeroparse.dev/zp/internal/codegentest"
 )
 
 // TestGeneratedTSRecoverNoValue checks that a generated TypeScript parser gives an expression
@@ -15,5 +15,5 @@ func TestGeneratedTSRecoverNoValue(t *testing.T) {
 	if testing.Short() {
 		t.Skip("runs generated code")
 	}
-	gentest.TSParsersCorpus(t, gentest.RequireNode(t), gentest.RecoverNoValueCases, codegen.GenOptions{})
+	codegentest.TSParsersCorpus(t, codegentest.RequireNode(t), codegentest.RecoverNoValueCases, codegen.GenOptions{})
 }

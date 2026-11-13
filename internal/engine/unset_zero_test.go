@@ -6,8 +6,8 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/core"
+	"zeroparse.dev/zp/internal/codegentest"
 	ecore "zeroparse.dev/zp/internal/engine/core"
-	"zeroparse.dev/zp/internal/gentest"
 )
 
 // TestUnsetFieldsReadZero pins the value of each field type that a constructor left unset, on every
@@ -33,13 +33,13 @@ func TestUnsetFieldsReadZero(t *testing.T) {
 		{"comparison", `true`},
 		{"set and unset", `8`},
 	} {
-		for _, c := range gentest.UnsetZeroCases() {
+		for _, c := range codegentest.UnsetZeroCases() {
 			if c.Name != tc.name {
 				continue
 			}
 			program := mustCompile(t, c.Src)
 			for _, backend := range []Backend{Closure, Bytecode, BytecodeIterative} {
-				got := gentest.ResultJSON(program.ParseWith("main", c.Inputs[0], ParseOptions{Backend: backend}))
+				got := codegentest.ResultJSON(program.ParseWith("main", c.Inputs[0], ParseOptions{Backend: backend}))
 				if !strings.Contains(got, tc.want) {
 					t.Errorf("%s %s: %s, want %s", tc.name, backend, got, tc.want)
 				}
@@ -68,7 +68,7 @@ func TestZeroValueOfDeepStructTypes(t *testing.T) {
 	src.WriteString("rule main Top = k:\"x\" => Top{K: $k}\nrule read = t:main $$ => $t.In" + strings.Repeat(".X", depth) + ".V\n")
 	prog := mustCompile(t, src.String())
 	for _, backend := range []Backend{Closure, Bytecode, BytecodeIterative} {
-		got := gentest.ResultJSON(prog.ParseWith("read", "x", ParseOptions{Backend: backend, Limits: lim}))
+		got := codegentest.ResultJSON(prog.ParseWith("read", "x", ParseOptions{Backend: backend, Limits: lim}))
 		if !strings.Contains(got, "0") || strings.Contains(got, "limit") {
 			t.Errorf("%s: %s", backend, got)
 		}

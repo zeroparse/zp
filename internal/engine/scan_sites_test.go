@@ -12,17 +12,17 @@ import (
 
 	"zeroparse.dev/zp/core"
 	"zeroparse.dev/zp/internal/bytecode"
+	"zeroparse.dev/zp/internal/codegentest"
 	"zeroparse.dev/zp/internal/compile"
 	ecore "zeroparse.dev/zp/internal/engine/core"
-	"zeroparse.dev/zp/internal/gentest"
 )
 
 // scanSiteGrammars are the grammars with scan sites of the tests of all targets.
-var scanSiteGrammars = gentest.ScanSiteGrammars
+var scanSiteGrammars = codegentest.ScanSiteGrammars
 
 // scanSiteInputs are random inputs over alphabet and inputs with long runs that the walks restart at.
 func scanSiteInputs(alphabet string, rng *rand.Rand) []string {
-	return gentest.ScanSiteInputs(alphabet, 300, rng)
+	return codegentest.ScanSiteInputs(alphabet, 300, rng)
 }
 
 // TestScanSitesMatchParsesWithoutRecords checks that the records of scan sites change no result:

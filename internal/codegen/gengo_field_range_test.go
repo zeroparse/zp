@@ -8,7 +8,7 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/internal/codegen"
-	"zeroparse.dev/zp/internal/gentest"
+	"zeroparse.dev/zp/internal/codegentest"
 )
 
 // fieldRangeSource makes lists and tuples in one rule (two, at offset 4) and reads them from the fields of the
@@ -35,8 +35,8 @@ rule read Out = "ab" t:two "!" => Out{A: Wrap{L: $t.Nest[0]}, B: WrapS{L: []stri
 rule main Out = "xx" m:read => $m`
 
 // fieldRangeCases read the lists and tuples of struct fields in actions.
-func fieldRangeCases() []gentest.Case {
-	return []gentest.Case{
+func fieldRangeCases() []codegentest.Case {
+	return []codegentest.Case{
 		{Name: "range of a value read from a field", Src: fieldRangeSource,
 			Inputs: []string{"xxab <>|<>!", "xxab [ab]|<>!", "xxab <>|[ab]!", "xxab [ab]|[ab]!", "xxab <>|<>", ""}},
 	}
@@ -44,7 +44,7 @@ func fieldRangeCases() []gentest.Case {
 
 func TestGeneratedFieldRanges(t *testing.T) {
 	t.Parallel()
-	gentest.EachMode(t, testGeneratedFieldRanges)
+	codegentest.EachMode(t, testGeneratedFieldRanges)
 }
 
 func testGeneratedFieldRanges(t *testing.T) {
@@ -57,7 +57,7 @@ func testGeneratedFieldRanges(t *testing.T) {
 		if err != nil {
 			t.Fatalf("%s: %v", c.Name, err)
 		}
-		code, err := gentest.GenerateCode(t, g, codegen.GenOptions{Package: "p", Start: "main", Types: true})
+		code, err := codegentest.GenerateCode(t, g, codegen.GenOptions{Package: "p", Start: "main", Types: true})
 		if err != nil {
 			t.Fatalf("%s: %v", c.Name, err)
 		}
@@ -73,7 +73,7 @@ func testGeneratedFieldRanges(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	code, err := gentest.GenerateCode(t, g, codegen.GenOptions{Package: "p", Start: "main", Types: true})
+	code, err := codegentest.GenerateCode(t, g, codegen.GenOptions{Package: "p", Start: "main", Types: true})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -81,9 +81,9 @@ func testGeneratedFieldRanges(t *testing.T) {
 		t.Errorf("a parser whose actions read no field keeps ranges, or does not run the typed library")
 	}
 	goBin := filepath.Join(runtime.GOROOT(), "bin", "go")
-	gentest.GeneratedParsersCorpus(t, goBin, cases, codegen.GenOptions{})
-	gentest.GeneratedTypesCorpus(t, goBin, cases, codegen.GenOptions{ConvertTypes: true}, len(cases))
+	codegentest.GeneratedParsersCorpus(t, goBin, cases, codegen.GenOptions{})
+	codegentest.GeneratedTypesCorpus(t, goBin, cases, codegen.GenOptions{ConvertTypes: true}, len(cases))
 	if node, err := exec.LookPath("node"); err == nil {
-		gentest.TSParsersCorpus(t, node, cases, codegen.GenOptions{})
+		codegentest.TSParsersCorpus(t, node, cases, codegen.GenOptions{})
 	}
 }

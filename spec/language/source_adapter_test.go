@@ -12,7 +12,7 @@ import (
 	"zeroparse.dev/zp/core"
 	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/syntax"
-	"zeroparse.dev/zp/internal/syntax/genparser"
+	"zeroparse.dev/zp/internal/syntax/grammarparser"
 )
 
 // The generated source parser, with its adapter, must build the grammar that
@@ -42,8 +42,8 @@ func canonicalErrors(src string, err error) error {
 // or by the engine, and whether err holds them.
 func sourceErrorsOf(err error) ([]syntax.SourceError, bool) {
 	var out []syntax.SourceError
-	var glist genparser.SyntaxErrors
-	var gone *genparser.SyntaxError
+	var glist grammarparser.SyntaxErrors
+	var gone *grammarparser.SyntaxError
 	var list core.SyntaxErrors
 	var one *core.SyntaxError
 	switch {

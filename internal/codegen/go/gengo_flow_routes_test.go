@@ -10,7 +10,7 @@ import (
 	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/codegen"
 	"zeroparse.dev/zp/internal/codegen/go"
-	"zeroparse.dev/zp/internal/gentest"
+	"zeroparse.dev/zp/internal/codegentest"
 )
 
 // routeInputs are the inputs of each route grammar, by file name without the extension.
@@ -27,12 +27,12 @@ var routeInputs = map[string][]string{
 }
 
 // routeCases returns the route grammars with their inputs.
-func routeCases(t *testing.T) []gentest.Case {
+func routeCases(t *testing.T) []codegentest.Case {
 	paths, err := filepath.Glob(filepath.Join("testdata", "routes", "*.zp"))
 	if err != nil || len(paths) != len(routeInputs) {
 		t.Fatalf("route grammars: %d files, want %d: %v", len(paths), len(routeInputs), err)
 	}
-	var cases []gentest.Case
+	var cases []codegentest.Case
 	for _, p := range paths {
 		src, err := os.ReadFile(p)
 		if err != nil {
@@ -43,7 +43,7 @@ func routeCases(t *testing.T) []gentest.Case {
 		if !ok {
 			t.Fatalf("no inputs for route grammar %s", name)
 		}
-		cases = append(cases, gentest.Case{Name: name, Src: string(src), Inputs: inputs})
+		cases = append(cases, codegentest.Case{Name: name, Src: string(src), Inputs: inputs})
 	}
 	return cases
 }
@@ -88,8 +88,8 @@ func TestFlowRoutesBuild(t *testing.T) {
 	if _, err := os.Stat(goBin); err != nil {
 		t.Skip("go command not found")
 	}
-	gentest.EachMode(t, func(t *testing.T) {
-		gentest.GeneratedTypesCorpus(t, goBin, routeCases(t), codegen.GenOptions{ConvertTypes: true}, 1)
+	codegentest.EachMode(t, func(t *testing.T) {
+		codegentest.GeneratedTypesCorpus(t, goBin, routeCases(t), codegen.GenOptions{ConvertTypes: true}, 1)
 	})
 }
 
@@ -150,7 +150,7 @@ rule o = #operators {
 				seq.Items[len(seq.Items)-1] = w(op)
 			}
 		}
-		if _, err = gogen.GenerateParser(g, compileForGenerator, gentest.WithLib(codegen.GenOptions{Types: true, TypedOnly: true, Module: "example.com/p"}), nil); err == nil {
+		if _, err = gogen.GenerateParser(g, compileForGenerator, codegentest.WithLib(codegen.GenOptions{Types: true, TypedOnly: true, Module: "example.com/p"}), nil); err == nil {
 			t.Errorf("generate with an Operators Rule spliced into a %s inside a leader: accepted", name)
 		}
 	}

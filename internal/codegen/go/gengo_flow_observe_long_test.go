@@ -6,7 +6,7 @@ import (
 	"strings"
 	"testing"
 
-	"zeroparse.dev/zp/internal/gentest"
+	"zeroparse.dev/zp/internal/codegentest"
 )
 
 // TestFlowNodeObservationMutants checks that the golden notices a Flow build that drops, moves or reorders
@@ -17,9 +17,9 @@ func TestFlowNodeObservationMutants(t *testing.T) {
 	if testing.Short() {
 		t.Skip("builds generated consumers")
 	}
-	gentest.PinOrdinary(t)
-	cases := append(gentest.GenCorpus(t), observeShapes...)
-	golden := gentest.ReadGolden(t, observationGolden)
+	codegentest.PinOrdinary(t)
+	cases := append(codegentest.GenCorpus(t), observeShapes...)
+	golden := codegentest.ReadGolden(t, observationGolden)
 	changed := func(t *testing.T, lines []string) int {
 		t.Helper()
 		n := 0

@@ -12,16 +12,16 @@ import (
 
 	"zeroparse.dev/zp/core"
 	"zeroparse.dev/zp/internal/codegen"
+	"zeroparse.dev/zp/internal/codegentest"
 	"zeroparse.dev/zp/internal/compile"
 	"zeroparse.dev/zp/internal/engine"
-	"zeroparse.dev/zp/internal/gentest"
 )
 
 // Generated parsers retain negative maxima directly in their implementation-int
 // loops. Check their accepted hand-built AST contract beside bytecode lowering.
 func TestGeneratedNegativeMaximum(t *testing.T) {
 	t.Parallel()
-	gentest.EachMode(t, testGeneratedNegativeMaximum)
+	codegentest.EachMode(t, testGeneratedNegativeMaximum)
 }
 
 func testGeneratedNegativeMaximum(t *testing.T) {
@@ -33,7 +33,7 @@ func testGeneratedNegativeMaximum(t *testing.T) {
 	if strconv.IntSize < 64 {
 		maximum = -2
 	}
-	g := gentest.GrammarWithNegativeMaximum(t, `rule main []node[string] = v1:"é"* $$ => $v1.Value`, maximum)
+	g := codegentest.GrammarWithNegativeMaximum(t, `rule main []node[string] = v1:"é"* $$ => $v1.Value`, maximum)
 	p, err := engine.Compile(g, compile.Options{})
 	if err != nil {
 		t.Fatal(err)
@@ -42,13 +42,13 @@ func testGeneratedNegativeMaximum(t *testing.T) {
 	for _, input := range []string{"", "é", "ééé", "x", "éx"} {
 		for _, unit := range []core.PositionUnit{core.CodePoints, core.Bytes} {
 			n, err := p.ParseWith("main", input, engine.ParseOptions{Unit: unit, Expectations: true})
-			expected = append(expected, gentest.ResultJSON(n, err))
+			expected = append(expected, codegentest.ResultJSON(n, err))
 		}
 	}
 	want := strings.Join(expected, "\n") + "\n"
 	for _, typed := range []bool{false, true} {
 		t.Run(fmt.Sprintf("Go typed=%v", typed), func(t *testing.T) {
-			code, err := gentest.GenerateCode(t, g, codegen.GenOptions{Package: "main", Start: "main", Types: typed})
+			code, err := codegentest.GenerateCode(t, g, codegen.GenOptions{Package: "main", Start: "main", Types: typed})
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -70,7 +70,7 @@ func main() {
  }
 }`
 			dir := t.TempDir()
-			for name, content := range map[string]string{"go.mod": gentest.GoMod("negative"), "parser.go": string(code), "main.go": harness} {
+			for name, content := range map[string]string{"go.mod": codegentest.GoMod("negative"), "parser.go": string(code), "main.go": harness} {
 				if err := os.WriteFile(filepath.Join(dir, name), []byte(content), 0o644); err != nil {
 					t.Fatal(err)
 				}
@@ -85,7 +85,7 @@ func main() {
 		})
 	}
 	t.Run("TypeScript", func(t *testing.T) {
-		got := gentest.RunTSGrammarScript(t, g, `import { parse, CodePoints, Bytes } from "./parser.ts";
+		got := codegentest.RunTSGrammarScript(t, g, `import { parse, CodePoints, Bytes } from "./parser.ts";
 for (const input of ["","é","ééé","x","éx"]) {
  for (const unit of [CodePoints, Bytes]) {
   const result=parse(input,unit);

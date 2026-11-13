@@ -10,7 +10,7 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/internal/codegen"
-	"zeroparse.dev/zp/internal/gentest"
+	"zeroparse.dev/zp/internal/codegentest"
 )
 
 // A separate typed consumer observes pointer identity rather than comparing
@@ -18,14 +18,14 @@ import (
 // must retain the same element objects through filtering and aliases.
 func TestGeneratedTypedFilterIdentity(t *testing.T) {
 	t.Parallel()
-	gentest.EachMode(t, testGeneratedTypedFilterIdentity)
+	codegentest.EachMode(t, testGeneratedTypedFilterIdentity)
 }
 
 func testGeneratedTypedFilterIdentity(t *testing.T) {
 	if testing.Short() {
 		t.Skip("builds generated typed consumers")
 	}
-	grammar, err := parseTest(gentest.TypedFilterIdentityGrammar)
+	grammar, err := parseTest(codegentest.TypedFilterIdentityGrammar)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -40,12 +40,12 @@ func testGeneratedTypedFilterIdentity(t *testing.T) {
 			t.Fatal(err)
 		}
 	}
-	write("go.mod", []byte(gentest.GoMod("filteridentity")))
+	write("go.mod", []byte(codegentest.GoMod("filteridentity")))
 	var imports, consumers strings.Builder
 	for i, conversion := range []bool{false, true} {
 		for _, start := range []string{"main", "empty"} {
 			pkg := fmt.Sprintf("p%d%s", i, start)
-			code, err := gentest.GenerateCode(t, grammar, codegen.GenOptions{Package: pkg, Start: start, Types: true, ConvertTypes: conversion})
+			code, err := codegentest.GenerateCode(t, grammar, codegen.GenOptions{Package: pkg, Start: start, Types: true, ConvertTypes: conversion})
 			if err != nil {
 				t.Fatalf("conversion=%t start=%s: %v", conversion, start, err)
 			}

@@ -9,12 +9,12 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/internal/codegen"
-	"zeroparse.dev/zp/internal/gentest"
+	"zeroparse.dev/zp/internal/codegentest"
 )
 
 func TestGeneratedGoMemoEnvironmentBudget(t *testing.T) {
 	t.Parallel()
-	gentest.NeedsBudgetControls(t)
+	codegentest.NeedsBudgetControls(t)
 	if testing.Short() {
 		t.Skip("builds generated memo/environment consumers")
 	}
@@ -38,11 +38,11 @@ rule word Word = t:(x:[a-z]+ #atomic {text($x) == v}) => Word{Text: text($t)}`
 		t.Fatal(err)
 	}
 	dir := t.TempDir()
-	if err := os.WriteFile(filepath.Join(dir, "go.mod"), []byte(gentest.GoMod("memofixture")), 0644); err != nil {
+	if err := os.WriteFile(filepath.Join(dir, "go.mod"), []byte(codegentest.GoMod("memofixture")), 0644); err != nil {
 		t.Fatal(err)
 	}
 	pkg := "memo"
-	code, err := gentest.GenerateCode(t, g, codegen.GenOptions{Package: pkg, Start: "main", Types: true, Recognize: true})
+	code, err := codegentest.GenerateCode(t, g, codegen.GenOptions{Package: pkg, Start: "main", Types: true, Recognize: true})
 	if err != nil {
 		t.Fatal(err)
 	}

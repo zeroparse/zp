@@ -9,12 +9,12 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/internal/codegen"
-	"zeroparse.dev/zp/internal/gentest"
+	"zeroparse.dev/zp/internal/codegentest"
 )
 
 func TestGeneratedGoProfile(t *testing.T) {
 	t.Parallel()
-	gentest.NeedsBudgetControls(t)
+	codegentest.NeedsBudgetControls(t)
 	if testing.Short() {
 		t.Skip("builds standalone generated profiling consumers")
 	}
@@ -29,7 +29,7 @@ func TestGeneratedGoProfile(t *testing.T) {
 			t.Fatal(err)
 		}
 	}
-	write("go.mod", []byte(gentest.GoMod("profilefixture")))
+	write("go.mod", []byte(codegentest.GoMod("profilefixture")))
 	for _, f := range []struct{ name, grammar, input, checks string }{
 		{"plain", "type N = { Text string }\nrule main N = t:(part part) #atomic => N{Text: text($t)}\nrule part = \"a\"", "aa", `if s.Entered!=3||s.Calls!=3||s.Evals!=3||s.Skipped!=0{t.Fatal(s)};for _,r:=range s.Rules{if r.Rule=="part"&&(r.Calls!=2||r.Consumed!=2){t.Fatal(r)}}`},
 		{"dispatch", "rule main = first / second\nrule first = \"a\"\nrule second = \"b\"", "b", `if s.Skipped!=1||s.Entered!=2{t.Fatal(s)};for _,r:=range s.Rules{if r.Rule=="first"&&(r.Calls!=0||r.Skipped!=1||len(r.SkipReasons)!=1||r.SkipReasons[0].Reason!="first-character"){t.Fatal(r)}}`},
@@ -41,7 +41,7 @@ func TestGeneratedGoProfile(t *testing.T) {
 		{"unicode", "type N = { Text string }\nrule main N = t:(part part) #atomic => N{Text: text($t)}\nrule part = \"é\"", "éé", `for _,r:=range s.Rules{if r.Rule=="main"{n:=2;if unit==Bytes{n=4};if r.Consumed!=n{t.Fatal(r)}}}`},
 		{"collision", "type Profile = { Text string }\ntype ProfileSnapshot = { Text string }\ntype RuleProfile = { Text string }\ntype ProfileLocation = { Text string }\ntype SkipReasonCount = { Text string }\ntype WithProfile = { Text string }\nrule main Profile = t:(part) #atomic => Profile{Text: text($t)}\nrule part WithProfile = t:(\"a\") #atomic => WithProfile{Text: text($t)}", "a", ``},
 	} {
-		if !gentest.Sampled(f.name) {
+		if !codegentest.Sampled(f.name) {
 			continue
 		}
 		g, err := parseTest(f.grammar)
@@ -51,7 +51,7 @@ func TestGeneratedGoProfile(t *testing.T) {
 		for _, route := range []string{"node", "direct", "convert"} {
 			pkg := f.name + "_" + route
 			opts := codegen.GenOptions{Package: pkg, Start: "main", Recognize: true, Observability: true, Types: route != "node", ConvertTypes: route == "convert"}
-			gentest.GeneratePackageIn(t, dir, "profilefixture", pkg, g, opts)
+			codegentest.GeneratePackageIn(t, dir, "profilefixture", pkg, g, opts)
 			typed := ""
 			if opts.Types {
 				typed = `operations=append(operations,func(opts ...ParseOption)(any,error){return ParseValue(INPUT,opts...)},func(opts ...ParseOption)(any,error){return ParseRuleValue("main",INPUT,opts...)})`

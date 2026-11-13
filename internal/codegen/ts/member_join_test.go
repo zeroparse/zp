@@ -5,7 +5,7 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/internal/codegen"
-	"zeroparse.dev/zp/internal/gentest"
+	"zeroparse.dev/zp/internal/codegentest"
 )
 
 func TestMemberAccessOnJoinGeneratedTypeScriptParity(t *testing.T) {
@@ -14,5 +14,5 @@ func TestMemberAccessOnJoinGeneratedTypeScriptParity(t *testing.T) {
 	if err != nil {
 		t.Skip("node not found")
 	}
-	gentest.TSParsersCorpus(t, node, append(gentest.JoinMemberCases(), gentest.TypedJoinMemberCases()...), codegen.GenOptions{})
+	codegentest.TSParsersCorpus(t, node, append(codegentest.JoinMemberCases(), codegentest.TypedJoinMemberCases()...), codegen.GenOptions{})
 }

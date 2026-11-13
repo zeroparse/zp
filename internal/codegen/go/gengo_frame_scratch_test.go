@@ -5,12 +5,12 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/internal/codegen"
-	"zeroparse.dev/zp/internal/gentest"
+	"zeroparse.dev/zp/internal/codegentest"
 )
 
 func TestGeneratedNodeFrameScratchCorpus(t *testing.T) {
 	t.Parallel()
-	gentest.EachMode(t, testGeneratedNodeFrameScratchCorpus)
+	codegentest.EachMode(t, testGeneratedNodeFrameScratchCorpus)
 }
 
 func testGeneratedNodeFrameScratchCorpus(t *testing.T) {
@@ -30,8 +30,8 @@ func testGeneratedNodeFrameScratchCorpus(t *testing.T) {
 		"typed/OperatorsRule_environment_rollback": true, "typed/OperatorsRule_lookahead_memo": true,
 		"typed/recovery_capture_environment": true, "typed/recovery_cut_scope": true,
 	}
-	cases := append([]gentest.Case(nil), gentest.NodeDirectCases...)
-	for _, c := range gentest.GenCorpus(t) {
+	cases := append([]codegentest.Case(nil), codegentest.NodeDirectCases...)
+	for _, c := range codegentest.GenCorpus(t) {
 		if wanted[c.Name] {
 			cases = append(cases, c)
 			delete(wanted, c.Name)
@@ -40,5 +40,5 @@ func testGeneratedNodeFrameScratchCorpus(t *testing.T) {
 	if len(wanted) != 0 {
 		t.Fatalf("missing selected capture cases: %v", wanted)
 	}
-	gentest.GeneratedParsersCorpus(t, goBin, cases, codegen.GenOptions{})
+	codegentest.GeneratedParsersCorpus(t, goBin, cases, codegen.GenOptions{})
 }

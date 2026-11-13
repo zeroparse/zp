@@ -9,14 +9,14 @@ import (
 	"zeroparse.dev/zp/core"
 	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/codegen"
+	"zeroparse.dev/zp/internal/codegentest"
 	"zeroparse.dev/zp/internal/compile"
 	"zeroparse.dev/zp/internal/engine"
-	"zeroparse.dev/zp/internal/gentest"
 )
 
 func TestOperatorsRuleExplicitDefaultAction(t *testing.T) {
 	t.Parallel()
-	gentest.EachMode(t, testOperatorsRuleExplicitDefaultAction)
+	codegentest.EachMode(t, testOperatorsRuleExplicitDefaultAction)
 }
 
 func testOperatorsRuleExplicitDefaultAction(t *testing.T) {
@@ -53,7 +53,7 @@ func testOperatorsRuleExplicitDefaultAction(t *testing.T) {
 					if input != "" && (n == nil || err != nil) || input == "" && err == nil {
 						t.Fatalf("%s/%s input %q: node=%v error=%v", backend, unit, input, n, err)
 					}
-					if got, want := gentest.ResultJSON(n, err), gentest.ResultJSON(plain.ParseWith("main", input, parseOpts)); got != want {
+					if got, want := codegentest.ResultJSON(n, err), codegentest.ResultJSON(plain.ParseWith("main", input, parseOpts)); got != want {
 						t.Fatalf("%s/%s input %q: explicit %s; omitted %s", backend, unit, input, got, want)
 					}
 				}
@@ -61,16 +61,16 @@ func testOperatorsRuleExplicitDefaultAction(t *testing.T) {
 		}
 		for name, run := range map[string]func() error{
 			"Go generator": func() error {
-				_, err := gentest.GenerateCode(t, g, codegen.GenOptions{Start: "main", Package: "p"})
+				_, err := codegentest.GenerateCode(t, g, codegen.GenOptions{Start: "main", Package: "p"})
 				return err
 			},
 			"typed Go generator": func() error {
-				_, err := gentest.GenerateCode(t, g, codegen.GenOptions{Start: "main", Package: "p", Types: true})
+				_, err := codegentest.GenerateCode(t, g, codegen.GenOptions{Start: "main", Package: "p", Types: true})
 				return err
 			},
-			"TS generator": func() error { _, err := gentest.GenerateTSBundle(g, codegen.GenOptions{Start: "main"}); return err },
+			"TS generator": func() error { _, err := codegentest.GenerateTSBundle(g, codegen.GenOptions{Start: "main"}); return err },
 			"typed TS generator": func() error {
-				_, err := gentest.GenerateTSBundle(g, codegen.GenOptions{Start: "main", Types: true})
+				_, err := codegentest.GenerateTSBundle(g, codegen.GenOptions{Start: "main", Types: true})
 				return err
 			},
 		} {
@@ -85,7 +85,7 @@ func testOperatorsRuleExplicitDefaultAction(t *testing.T) {
 // build the same results as the engine for Operators Rules with whole-rule actions.
 func TestOperatorsRuleWholeActionGenerated(t *testing.T) {
 	t.Parallel()
-	gentest.EachMode(t, testOperatorsRuleWholeActionGenerated)
+	codegentest.EachMode(t, testOperatorsRuleWholeActionGenerated)
 }
 
 func testOperatorsRuleWholeActionGenerated(t *testing.T) {
@@ -93,22 +93,22 @@ func testOperatorsRuleWholeActionGenerated(t *testing.T) {
 		t.Skip("builds generated consumers")
 	}
 	goBin := filepath.Join(runtime.GOROOT(), "bin", "go")
-	cases := gentest.OperatorsRuleWholeActionCases
-	t.Run("go", func(t *testing.T) { gentest.GeneratedParsersCorpus(t, goBin, cases, codegen.GenOptions{}) })
+	cases := codegentest.OperatorsRuleWholeActionCases
+	t.Run("go", func(t *testing.T) { codegentest.GeneratedParsersCorpus(t, goBin, cases, codegen.GenOptions{}) })
 	t.Run("go source info", func(t *testing.T) {
-		gentest.SkipUnlessSampled(t)
-		gentest.GeneratedParsersCorpus(t, goBin, cases, codegen.GenOptions{SourceInfo: true})
+		codegentest.SkipUnlessSampled(t)
+		codegentest.GeneratedParsersCorpus(t, goBin, cases, codegen.GenOptions{SourceInfo: true})
 	})
 	t.Run("typed go", func(t *testing.T) {
-		gentest.SkipUnlessSampled(t)
-		gentest.GeneratedTypesCorpus(t, goBin, cases, codegen.GenOptions{ConvertTypes: true})
+		codegentest.SkipUnlessSampled(t)
+		codegentest.GeneratedTypesCorpus(t, goBin, cases, codegen.GenOptions{ConvertTypes: true})
 	})
 	t.Run("typescript", func(t *testing.T) {
 		node, err := exec.LookPath("node")
 		if err != nil {
 			t.Skip("node not found")
 		}
-		gentest.TSParsersCorpus(t, node, cases, codegen.GenOptions{})
-		gentest.TSParsersCorpus(t, node, cases, codegen.GenOptions{SourceInfo: true})
+		codegentest.TSParsersCorpus(t, node, cases, codegen.GenOptions{})
+		codegentest.TSParsersCorpus(t, node, cases, codegen.GenOptions{SourceInfo: true})
 	})
 }

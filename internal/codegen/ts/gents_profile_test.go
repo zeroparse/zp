@@ -9,7 +9,7 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/internal/codegen"
-	"zeroparse.dev/zp/internal/gentest"
+	"zeroparse.dev/zp/internal/codegentest"
 )
 
 func TestGeneratedTSProfile(t *testing.T) {
@@ -57,16 +57,16 @@ func TestGeneratedTSProfile(t *testing.T) {
 				name += "_typed"
 			}
 			options := codegen.GenOptions{Start: "main", LimitControls: true, Types: typed, Recognize: true}
-			reference, err := gentest.GenerateTSBundle(g, options)
+			reference, err := codegentest.GenerateTSBundle(g, options)
 			if err != nil {
 				t.Fatal(name, err)
 			}
 			options.Observability = true
-			code, err := gentest.GenerateTSBundle(g, options)
+			code, err := codegentest.GenerateTSBundle(g, options)
 			if err != nil {
 				t.Fatal(name, err)
 			}
-			again, err := gentest.GenerateTSBundle(g, options)
+			again, err := codegentest.GenerateTSBundle(g, options)
 			if err != nil || string(again) != string(code) {
 				t.Fatal(name, "unstable source", err)
 			}

@@ -11,8 +11,8 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/internal/codegen"
+	"zeroparse.dev/zp/internal/codegentest"
 	"zeroparse.dev/zp/internal/complexitytest"
-	"zeroparse.dev/zp/internal/gentest"
 )
 
 // TestSkipRunsTSMatchEngine checks that generated TypeScript parsers, whose recovery skips record
@@ -26,7 +26,7 @@ func TestSkipRunsTSMatchEngine(t *testing.T) {
 	if err != nil {
 		t.Skip("node not found")
 	}
-	gentest.TSParsersCorpus(t, node, gentest.SkipRunCases(60), codegen.GenOptions{})
+	codegentest.TSParsersCorpus(t, node, codegentest.SkipRunCases(60), codegen.GenOptions{})
 }
 
 // tsSkipRunMutations are the changes of the library of a generated parser for the negative
@@ -59,7 +59,7 @@ func tsSkipRunSpends(t *testing.T, node string, sources []string, inputs [][]str
 		if err != nil {
 			t.Fatal(err)
 		}
-		files, err := gentest.GenerateTS(g, codegen.GenOptions{Start: "main", LimitControls: true, Recognize: true})
+		files, err := codegentest.GenerateTS(g, codegen.GenOptions{Start: "main", LimitControls: true, Recognize: true})
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -110,7 +110,7 @@ console.log(lines.join("\n"));
 	if err := os.WriteFile(filepath.Join(dir, "package.json"), []byte(`{"type":"module"}`), 0o644); err != nil {
 		t.Fatal(err)
 	}
-	cmd := exec.Command(node, gentest.NodeTSArgs("consumer.ts")...)
+	cmd := exec.Command(node, codegentest.NodeTSArgs("consumer.ts")...)
 	cmd.Dir = dir
 	b, err := cmd.CombinedOutput()
 	if err != nil {
@@ -167,7 +167,7 @@ func TestSkipRunsTSLinear(t *testing.T) {
 	if len(sources) != 4 {
 		t.Fatalf("%d E8 controls, want 4", len(sources))
 	}
-	for _, g := range gentest.SkipRunGrammars {
+	for _, g := range codegentest.SkipRunGrammars {
 		if g.Name == "nested recovery" {
 			sources, inputs = append(sources, g.Src), append(inputs, []string{})
 		}

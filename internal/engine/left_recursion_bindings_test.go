@@ -4,8 +4,8 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/core"
+	"zeroparse.dev/zp/internal/codegentest"
 	"zeroparse.dev/zp/internal/compile"
-	"zeroparse.dev/zp/internal/gentest"
 )
 
 // TestLeftRecursionGuardIgnoresVariables checks that a left-recursive re-entry at the same
@@ -17,8 +17,8 @@ func TestLeftRecursionGuardIgnoresVariables(t *testing.T) {
 	inputs := []string{"x", "xxx", "xxxxxxxxxx", "", "y"}
 	for _, options := range []compile.Options{{}, {DisableMemo: true}} {
 		options.LeftRecursionBindings = true
-		prog := mustCompile(t, gentest.LRBindingSource, options)
-		plain := mustCompile(t, gentest.PlainLRSource, options)
+		prog := mustCompile(t, codegentest.LRBindingSource, options)
+		plain := mustCompile(t, codegentest.PlainLRSource, options)
 		for _, backend := range []Backend{Closure, Bytecode, BytecodeIterative} {
 			for _, unit := range []core.PositionUnit{core.CodePoints, core.Bytes} {
 				for _, recognize := range []bool{false, true} {
@@ -26,8 +26,8 @@ func TestLeftRecursionGuardIgnoresVariables(t *testing.T) {
 					for _, lim := range []core.Limits{{Depth: 400}, {Compute: 1 << 40, Depth: 400}} {
 						opts := ParseOptions{Backend: backend, Unit: unit, Recognize: recognize, Limits: lim}
 						for _, input := range inputs {
-							got := gentest.ResultJSON(prog.ParseWith("main", input, opts))
-							want := gentest.ResultJSON(plain.ParseWith("main", input, opts))
+							got := codegentest.ResultJSON(prog.ParseWith("main", input, opts))
+							want := codegentest.ResultJSON(plain.ParseWith("main", input, opts))
 							if got != want {
 								t.Fatalf("%s/%s recognize=%t DisableMemo=%t limits=%v %q:\n got  %s\n want %s", backend, unit, recognize, options.DisableMemo, lim, input, got, want)
 							}
@@ -45,8 +45,8 @@ func TestLeftRecursionGuardIgnoresVariables(t *testing.T) {
 					if err := d.Edit(edit.start, edit.end, edit.text); err != nil {
 						t.Fatal(err)
 					}
-					got := gentest.ResultJSON(d.Parse())
-					want := gentest.ResultJSON(plain.ParseWith("main", d.Text(), ParseOptions{Backend: backend, Unit: unit}))
+					got := codegentest.ResultJSON(d.Parse())
+					want := codegentest.ResultJSON(plain.ParseWith("main", d.Text(), ParseOptions{Backend: backend, Unit: unit}))
 					if got != want {
 						t.Fatalf("%s/%s Document %q:\n got  %s\n want %s", backend, unit, d.Text(), got, want)
 					}

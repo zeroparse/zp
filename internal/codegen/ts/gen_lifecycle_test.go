@@ -7,7 +7,7 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/internal/codegen"
-	"zeroparse.dev/zp/internal/gentest"
+	"zeroparse.dev/zp/internal/codegentest"
 )
 
 func TestGeneratedTSActionTracking(t *testing.T) {
@@ -19,11 +19,11 @@ func TestGeneratedTSActionTracking(t *testing.T) {
 	if err != nil {
 		t.Skip("node not found")
 	}
-	g, err := parseTest(gentest.NilActionStream)
+	g, err := parseTest(codegentest.NilActionStream)
 	if err != nil {
 		t.Fatal(err)
 	}
-	code, err := gentest.GenerateTSBundle(g, codegen.GenOptions{Start: "main"})
+	code, err := codegentest.GenerateTSBundle(g, codegen.GenOptions{Start: "main"})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -87,11 +87,11 @@ func TestGeneratedTSEnvironmentBindings(t *testing.T) {
 	if err != nil {
 		t.Skip("node not found")
 	}
-	g, err := parseTest(gentest.BoundStream)
+	g, err := parseTest(codegentest.BoundStream)
 	if err != nil {
 		t.Fatal(err)
 	}
-	code, err := gentest.GenerateTSBundle(g, codegen.GenOptions{Start: "main"})
+	code, err := codegentest.GenerateTSBundle(g, codegen.GenOptions{Start: "main"})
 	if err != nil {
 		t.Fatal(err)
 	}

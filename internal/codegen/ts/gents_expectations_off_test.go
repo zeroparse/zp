@@ -6,7 +6,7 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/internal/codegen"
-	"zeroparse.dev/zp/internal/gentest"
+	"zeroparse.dev/zp/internal/codegentest"
 )
 
 var tsExpectedText = regexp.MustCompile(`syntax error: expected [^"]*`)
@@ -45,7 +45,7 @@ for (const s of ["xy", "xz", "z", "(ab)", "(a", "ab;1x;cd;", "ab;cd;", ""]) {
 				if ask {
 					options = "{ expectations: true }"
 				}
-				out := gentest.RunTSGrammarScriptRaw(t, g, strings.Replace(script, "OPTIONS", options, 1), codegen.GenOptions{Start: "main", Expectations: available, LimitControls: controls})
+				out := codegentest.RunTSGrammarScriptRaw(t, g, strings.Replace(script, "OPTIONS", options, 1), codegen.GenOptions{Start: "main", Expectations: available, LimitControls: controls})
 				return strings.Split(strings.TrimSuffix(out, "\n"), "\n")
 			}
 			off, avail, on := run(false, false), run(true, false), run(true, true)

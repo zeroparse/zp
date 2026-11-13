@@ -8,7 +8,7 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/internal/codegen"
-	"zeroparse.dev/zp/internal/gentest"
+	"zeroparse.dev/zp/internal/codegentest"
 )
 
 // TestGeneratedDocumentBenchmarkFixture exports source for a focused benchmark.
@@ -21,8 +21,8 @@ func TestGeneratedDocumentBenchmarkFixture(t *testing.T) {
 		t.Skip("set ZP_GENERATED_DOCUMENT_BENCH_DIR to export the benchmark fixture")
 	}
 	// The exported fixture has budget controls unless the run is restricted to the ordinary form.
-	if gentest.EnvForm == "" {
-		gentest.SetFixtureForm(t, "0")
+	if codegentest.EnvForm == "" {
+		codegentest.SetFixtureForm(t, "0")
 	}
 	writeGeneratedDocumentBenchmarkFixture(t, dir)
 }
@@ -31,7 +31,7 @@ func TestGeneratedDocumentBenchmarkFixture(t *testing.T) {
 // every mode, so that a grammar or generator error in the fixture fails the normal suite.
 func TestGeneratedDocumentBenchmarkFixtureGenerates(t *testing.T) {
 	t.Parallel()
-	gentest.EachMode(t, testGeneratedDocumentBenchmarkFixtureGenerates)
+	codegentest.EachMode(t, testGeneratedDocumentBenchmarkFixtureGenerates)
 }
 
 func testGeneratedDocumentBenchmarkFixtureGenerates(t *testing.T) {
@@ -42,7 +42,7 @@ func testGeneratedDocumentBenchmarkFixtureGenerates(t *testing.T) {
 // benchmark files cannot drift from the generated API. It needs the go tool, so it is skipped in -short.
 func TestGeneratedDocumentBenchmarkFixtureCompiles(t *testing.T) {
 	t.Parallel()
-	gentest.EachMode(t, testGeneratedDocumentBenchmarkFixtureCompiles)
+	codegentest.EachMode(t, testGeneratedDocumentBenchmarkFixtureCompiles)
 }
 
 func testGeneratedDocumentBenchmarkFixtureCompiles(t *testing.T) {
@@ -73,7 +73,7 @@ rule item Item = k:[a-zé😀]+ #atomic "=" v:[0-9]+ #atomic ";" => Item{Key: $k
 // fails the normal suite rather than a benchmark run.
 func TestGeneratedDocumentBenchmarkFixtureGrammarsTypeCheck(t *testing.T) {
 	t.Parallel()
-	gentest.EachMode(t, testGeneratedDocumentBenchmarkFixtureGrammarsTypeCheck)
+	codegentest.EachMode(t, testGeneratedDocumentBenchmarkFixtureGrammarsTypeCheck)
 }
 
 func testGeneratedDocumentBenchmarkFixtureGrammarsTypeCheck(t *testing.T) {
@@ -81,7 +81,7 @@ func testGeneratedDocumentBenchmarkFixtureGrammarsTypeCheck(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if _, err := gentest.GenerateCode(t, node, codegen.GenOptions{Package: "generateddocument", Start: "main", Document: true}); err != nil {
+	if _, err := codegentest.GenerateCode(t, node, codegen.GenOptions{Package: "generateddocument", Start: "main", Document: true}); err != nil {
 		t.Fatal(err)
 	}
 	typed, err := parseTest(documentBenchTypedGrammar)
@@ -89,7 +89,7 @@ func testGeneratedDocumentBenchmarkFixtureGrammarsTypeCheck(t *testing.T) {
 		t.Fatal(err)
 	}
 	for _, convert := range []bool{false, true} {
-		if _, err := gentest.GenerateCode(t, typed, codegen.GenOptions{Package: "typeddocument", Start: "main", Types: true, Document: true, ConvertTypes: convert}); err != nil {
+		if _, err := codegentest.GenerateCode(t, typed, codegen.GenOptions{Package: "typeddocument", Start: "main", Types: true, Document: true, ConvertTypes: convert}); err != nil {
 			t.Fatalf("convertTypes=%v: %v", convert, err)
 		}
 	}
@@ -110,7 +110,7 @@ func writeGeneratedDocumentBenchmarkFixture(t testing.TB, dir string) {
 		{"generatedbatch", false},
 		{"generateddocument", true},
 	} {
-		code, err := gentest.GenerateCode(t, g, codegen.GenOptions{Package: variant.name, Start: "main", Document: variant.document, Observability: observability})
+		code, err := codegentest.GenerateCode(t, g, codegen.GenOptions{Package: variant.name, Start: "main", Document: variant.document, Observability: observability})
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -134,7 +134,7 @@ func writeGeneratedDocumentBenchmarkFixture(t testing.TB, dir string) {
 		{"typeddocument", true, false},
 		{"typeddocumentconv", true, true},
 	} {
-		code, err := gentest.GenerateCode(t, typedGrammar, codegen.GenOptions{Package: variant.name, Start: "main", Types: true, Document: variant.document, Observability: observability, ConvertTypes: variant.convertNodes})
+		code, err := codegentest.GenerateCode(t, typedGrammar, codegen.GenOptions{Package: variant.name, Start: "main", Types: true, Document: variant.document, Observability: observability, ConvertTypes: variant.convertNodes})
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -180,7 +180,7 @@ func writeGeneratedDocumentBenchmarkFixture(t testing.TB, dir string) {
 			t.Fatal(err)
 		}
 	}
-	if err := writeGeneratedDocumentBenchmarkFile(dir, "go.mod", []byte(gentest.GoMod("generateddocumentbench"))); err != nil {
+	if err := writeGeneratedDocumentBenchmarkFile(dir, "go.mod", []byte(codegentest.GoMod("generateddocumentbench"))); err != nil {
 		t.Fatal(err)
 	}
 }

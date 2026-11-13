@@ -8,7 +8,7 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/internal/codegen"
-	"zeroparse.dev/zp/internal/gentest"
+	"zeroparse.dev/zp/internal/codegentest"
 )
 
 // A generated Document parse under the default limits succeeds whenever a parse of the same text from
@@ -128,7 +128,7 @@ func runDocumentBudgetFixture(t *testing.T, grammar, testSource string) {
 
 func runDocumentBudgetFixtureWith(t *testing.T, opts codegen.GenOptions, grammar, testSource string) {
 	t.Helper()
-	gentest.NeedsBudgetControls(t)
+	codegentest.NeedsBudgetControls(t)
 	if testing.Short() {
 		t.Skip("builds and runs a generated parser")
 	}
@@ -136,13 +136,13 @@ func runDocumentBudgetFixtureWith(t *testing.T, opts codegen.GenOptions, grammar
 	if err != nil {
 		t.Fatal(err)
 	}
-	code, err := gentest.GenerateCode(t, g, opts)
+	code, err := codegentest.GenerateCode(t, g, opts)
 	if err != nil {
 		t.Fatal(err)
 	}
 	dir := t.TempDir()
 	for name, source := range map[string]string{
-		"go.mod":         gentest.GoMod("fixture"),
+		"go.mod":         codegentest.GoMod("fixture"),
 		"parser.go":      string(code),
 		"parser_test.go": testSource,
 	} {

@@ -11,16 +11,16 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/internal/codegen"
-	"zeroparse.dev/zp/internal/gentest"
+	"zeroparse.dev/zp/internal/codegentest"
 )
 
 // TestGeneratedMemoLookaheadState checks that generated Go parsers bound the evaluations of calls
 // that alternate between lookahead states, as the engine does: Parse, ParseValue and Recognize,
-// without and with limit controls, evaluate the rule a of gentest.MemoLookaheadCases as often as
+// without and with limit controls, evaluate the rule a of codegentest.MemoLookaheadCases as often as
 // the engine does, whether or not its result has recovered errors.
 func TestGeneratedMemoLookaheadState(t *testing.T) {
 	t.Parallel()
-	gentest.EachMode(t, testGeneratedMemoLookaheadState)
+	codegentest.EachMode(t, testGeneratedMemoLookaheadState)
 }
 
 func testGeneratedMemoLookaheadState(t *testing.T) {
@@ -32,17 +32,17 @@ func testGeneratedMemoLookaheadState(t *testing.T) {
 		t.Skip("go command not found")
 	}
 	dir := t.TempDir()
-	if err := os.WriteFile(filepath.Join(dir, "go.mod"), []byte(gentest.GoMod("gentest")), 0o644); err != nil {
+	if err := os.WriteFile(filepath.Join(dir, "go.mod"), []byte(codegentest.GoMod("codegentest")), 0o644); err != nil {
 		t.Fatal(err)
 	}
-	cases := gentest.MemoLookaheadCases()
+	cases := codegentest.MemoLookaheadCases()
 	var imports, calls strings.Builder
 	for i, c := range cases {
 		in := strconv.Quote(c.Input)
 		// g has no limit controls; l has them, under the default limits.
 		for _, pkg := range []string{fmt.Sprintf("g%d", i), fmt.Sprintf("l%d", i)} {
-			gentest.GeneratePackage(t, dir, pkg, mustParse(c.Src), codegen.GenOptions{Start: "s", Types: true, Recognize: true, Observability: true, LimitControls: pkg[0] == 'l'})
-			fmt.Fprintf(&imports, "\t%q\n", "gentest/"+pkg)
+			codegentest.GeneratePackage(t, dir, pkg, mustParse(c.Src), codegen.GenOptions{Start: "s", Types: true, Recognize: true, Observability: true, LimitControls: pkg[0] == 'l'})
+			fmt.Fprintf(&imports, "\t%q\n", "codegentest/"+pkg)
 			for _, op := range []string{"_, _ = %s.Parse(%s, zprt.WithProfile(&p))", "_, _ = %s.ParseValue(%s, zprt.WithProfile(&p))", "_ = %s.Recognize(%s, zprt.WithProfile(&p))"} {
 				fmt.Fprintf(&calls, "\t{ var p zprt.Profile; "+op+"; fmt.Print(evals(p), \" \") }\n", pkg, in)
 			}

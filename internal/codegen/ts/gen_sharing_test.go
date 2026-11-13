@@ -5,7 +5,7 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/internal/codegen"
-	"zeroparse.dev/zp/internal/gentest"
+	"zeroparse.dev/zp/internal/codegentest"
 )
 
 func TestGeneratedUnsharedTSParsersMatchEngine(t *testing.T) {
@@ -17,5 +17,5 @@ func TestGeneratedUnsharedTSParsersMatchEngine(t *testing.T) {
 	if err != nil {
 		t.Skip("node not found")
 	}
-	gentest.TSParsersCorpus(t, node, gentest.Representative(gentest.GenCorpus(t)), codegen.GenOptions{NoOpt: []string{"method-sharing", "literal-sharing"}})
+	codegentest.TSParsersCorpus(t, node, codegentest.Representative(codegentest.GenCorpus(t)), codegen.GenOptions{NoOpt: []string{"method-sharing", "literal-sharing"}})
 }

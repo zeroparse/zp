@@ -4,8 +4,8 @@ import (
 	"math"
 	"testing"
 
+	"zeroparse.dev/zp/internal/codegentest"
 	"zeroparse.dev/zp/internal/complexitytest"
-	"zeroparse.dev/zp/internal/gentest"
 )
 
 // TestRegionBoundsGenerated measures the controls of the region bound in generated parsers, which
@@ -14,7 +14,7 @@ import (
 func TestRegionBoundsGenerated(t *testing.T) {
 	t.Parallel()
 	goBin := skipRunsGoBin(t)
-	gentest.NeedsBudgetControls(t)
+	codegentest.NeedsBudgetControls(t)
 	var controls []complexitytest.Control
 	for _, c := range complexitytest.Controls() {
 		if c.Family == "region bounds" {

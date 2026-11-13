@@ -8,14 +8,14 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/internal/codegen"
-	"zeroparse.dev/zp/internal/gentest"
+	"zeroparse.dev/zp/internal/codegentest"
 )
 
 // ZP_TYPED_CUT_DIR preserves both latest-generator variants so their test
 // binaries can be built once and measured in alternating benchmark runs.
 func TestGeneratedTypedCutWorkload(t *testing.T) {
 	t.Parallel()
-	gentest.EachMode(t, testGeneratedTypedCutWorkload)
+	codegentest.EachMode(t, testGeneratedTypedCutWorkload)
 }
 
 func testGeneratedTypedCutWorkload(t *testing.T) {
@@ -36,7 +36,7 @@ rule row Row = "let" " " #cut key:[a-z]+ #atomic ":" value:[0-9]+ #atomic ";" / 
 	}
 	var want []byte
 	for _, variant := range []string{"direct"} {
-		code, err := gentest.GenerateCode(t, g, codegen.GenOptions{Package: "cutfixture", Start: "main", Types: true})
+		code, err := codegentest.GenerateCode(t, g, codegen.GenOptions{Package: "cutfixture", Start: "main", Types: true})
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -45,7 +45,7 @@ rule row Row = "let" " " #cut key:[a-z]+ #atomic ":" value:[0-9]+ #atomic ";" / 
 			t.Fatal(err)
 		}
 		for name, contents := range map[string][]byte{
-			"parser.go": code, "cut_test.go": []byte(typedCutWorkloadFixture), "go.mod": []byte(gentest.GoMod("cutfixture")),
+			"parser.go": code, "cut_test.go": []byte(typedCutWorkloadFixture), "go.mod": []byte(codegentest.GoMod("cutfixture")),
 		} {
 			if err := os.WriteFile(filepath.Join(path, name), contents, 0o644); err != nil {
 				t.Fatal(err)

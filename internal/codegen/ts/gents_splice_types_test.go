@@ -10,7 +10,7 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/internal/codegen"
-	"zeroparse.dev/zp/internal/gentest"
+	"zeroparse.dev/zp/internal/codegentest"
 )
 
 // The typed values of a TypeScript parser keep the tokens of its own node tree for a hidden rule that
@@ -25,7 +25,7 @@ func TestGeneratedTSRecursiveSpliceTypesKeepTheTree(t *testing.T) {
 	if err != nil {
 		t.Skip("node not found")
 	}
-	cases := gentest.SpliceTypeCases(t)
+	cases := codegentest.SpliceTypeCases(t)
 	dir := t.TempDir()
 	var imports, list strings.Builder
 	var inputs [][]string
@@ -34,7 +34,7 @@ func TestGeneratedTSRecursiveSpliceTypesKeepTheTree(t *testing.T) {
 		if err != nil {
 			t.Fatalf("%s: %v", c.Name, err)
 		}
-		files, err := gentest.GenerateTS(g, codegen.GenOptions{Start: "main", Types: true})
+		files, err := codegentest.GenerateTS(g, codegen.GenOptions{Start: "main", Types: true})
 		if err != nil {
 			t.Fatalf("%s: %v", c.Name, err)
 		}
@@ -73,7 +73,7 @@ console.log(JSON.stringify(rows));
 	if err := os.WriteFile(filepath.Join(dir, "consumer.ts"), []byte(consumer), 0o644); err != nil {
 		t.Fatal(err)
 	}
-	cmd := exec.Command(node, gentest.NodeTSArgs("consumer.ts")...)
+	cmd := exec.Command(node, codegentest.NodeTSArgs("consumer.ts")...)
 	cmd.Dir = dir
 	var stderr strings.Builder
 	cmd.Stderr = &stderr
@@ -96,13 +96,13 @@ console.log(JSON.stringify(rows));
 				continue
 			}
 			var tokens, got []string
-			for _, m := range gentest.SpliceQuoted.FindAllStringSubmatch(row[0].(string), -1) {
+			for _, m := range codegentest.SpliceQuoted.FindAllStringSubmatch(row[0].(string), -1) {
 				tokens = append(tokens, m[1])
 			}
 			for _, l := range row[1].([]any) {
 				got = append(got, l.(string))
 			}
-			if want := gentest.SpliceWantLeaves(c.Name, s, tokens); strings.Join(got, "|") != strings.Join(want, "|") {
+			if want := codegentest.SpliceWantLeaves(c.Name, s, tokens); strings.Join(got, "|") != strings.Join(want, "|") {
 				t.Errorf("%s %q: the typed value has the strings %q, want %q (tree %s)", c.Name, s, got, want, row[0])
 			}
 			checked++

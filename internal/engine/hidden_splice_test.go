@@ -3,13 +3,13 @@ package engine
 import (
 	"testing"
 
+	"zeroparse.dev/zp/internal/codegentest"
 	"zeroparse.dev/zp/internal/compile"
-	"zeroparse.dev/zp/internal/gentest"
 )
 
 func TestHiddenRulesSpliceTheirExpression(t *testing.T) {
 	t.Parallel()
-	for _, tc := range gentest.SpliceCases() {
+	for _, tc := range codegentest.SpliceCases() {
 		t.Run(tc.Name, func(t *testing.T) {
 			for _, opts := range []compile.Options{{}, {DefaultValue: true}, {SourceInfo: true}, {DisableMemo: true}} {
 				hidden, inlined := compileBare(t, tc.Hidden, opts), compileBare(t, tc.Inlined, opts)
@@ -19,8 +19,8 @@ func TestHiddenRulesSpliceTheirExpression(t *testing.T) {
 						matched = true
 					}
 					for _, backend := range []Backend{Closure, Bytecode, BytecodeIterative} {
-						want := gentest.ResultJSON(inlined.ParseWith("main", input, ParseOptions{Expectations: true, Backend: backend}))
-						got := gentest.ResultJSON(hidden.ParseWith("main", input, ParseOptions{Expectations: true, Backend: backend}))
+						want := codegentest.ResultJSON(inlined.ParseWith("main", input, ParseOptions{Expectations: true, Backend: backend}))
+						got := codegentest.ResultJSON(hidden.ParseWith("main", input, ParseOptions{Expectations: true, Backend: backend}))
 						if got != want {
 							t.Errorf("%+v %q on %s:\nhidden:  %s\ninlined: %s", opts, input, backend, got, want)
 						}

@@ -12,8 +12,8 @@ import (
 
 	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/codegen"
+	"zeroparse.dev/zp/internal/codegentest"
 	"zeroparse.dev/zp/internal/engine"
-	"zeroparse.dev/zp/internal/gentest"
 	"zeroparse.dev/zp/internal/syntax"
 )
 
@@ -31,8 +31,8 @@ type documentStatsScript struct {
 // Documents reuse by the same rules.
 func TestDocumentStatsAcrossTargets(t *testing.T) {
 	t.Parallel()
-	gentest.PinOrdinary(t)
-	gentest.RequireNode(t)
+	codegentest.PinOrdinary(t)
+	codegentest.RequireNode(t)
 	if testing.Short() {
 		t.Skip("builds a generated Go program")
 	}
@@ -40,7 +40,7 @@ func TestDocumentStatsAcrossTargets(t *testing.T) {
 		name, src, text string
 		frags           []string
 	}{
-		{"incremental", strings.Replace(gentest.IncrementalGrammar, "rule main", "@start\nrule main", 1),
+		{"incremental", strings.Replace(codegentest.IncrementalGrammar, "rule main", "@start\nrule main", 1),
 			"a = 1+2\n@pos\nx,y\n\nb = (3)*-4\nc = 5\n",
 			[]string{"a = 1+2*3\n", "@x\n", "a,b,c\n", "\n", "x", "1", "(", ")", "+", " = ", ",", "@", "-", "é", "zz = (4-5)*6\n"}},
 		{"left recursion", `@start
@@ -93,7 +93,7 @@ rule id = [a-z]+ #atomic`,
 				t.Fatal(err)
 			}
 			goOut := documentStatsGo(t, g, string(data))
-			tsOut := gentest.RunTSGrammarScriptWith(t, g, `import { createDocument } from "./parser.ts";
+			tsOut := codegentest.RunTSGrammarScriptWith(t, g, `import { createDocument } from "./parser.ts";
 const c = `+string(data)+`;
 const d = createDocument(c.Text).document;
 const show = () => { const r = d.parse(); const s = d.stats(); console.log(s.evaluated, s.reused, r.node === null ? -1 : r.node.end, r.error !== null); };
@@ -122,13 +122,13 @@ for (const e of c.Edits) {
 // what it prints for each parse.
 func documentStatsGo(t *testing.T, g *grammar.Grammar, data string) string {
 	t.Helper()
-	code, err := gentest.GenerateCode(t, g, codegen.GenOptions{Package: "fixture", Start: "main", Document: true})
+	code, err := codegentest.GenerateCode(t, g, codegen.GenOptions{Package: "fixture", Start: "main", Document: true})
 	if err != nil {
 		t.Fatal(err)
 	}
 	dir := t.TempDir()
 	for name, src := range map[string]string{
-		"go.mod":       gentest.GoMod("fixture"),
+		"go.mod":       codegentest.GoMod("fixture"),
 		"parser.go":    string(code),
 		"main/main.go": strings.Replace(documentStatsMain, "SCRIPT", strconv.Quote(data), 1),
 	} {

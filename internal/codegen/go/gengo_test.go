@@ -9,8 +9,8 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/internal/codegen"
+	"zeroparse.dev/zp/internal/codegentest"
 	"zeroparse.dev/zp/internal/engine"
-	"zeroparse.dev/zp/internal/gentest"
 	"zeroparse.dev/zp/internal/syntax"
 )
 
@@ -19,7 +19,7 @@ import (
 // the engine's recognition.
 func TestGeneratedParsersMatchEngine(t *testing.T) {
 	t.Parallel()
-	gentest.EachMode(t, testGeneratedParsersMatchEngine)
+	codegentest.EachMode(t, testGeneratedParsersMatchEngine)
 }
 
 func testGeneratedParsersMatchEngine(t *testing.T) {
@@ -30,55 +30,55 @@ func testGeneratedParsersMatchEngine(t *testing.T) {
 	if _, err := os.Stat(goBin); err != nil {
 		t.Skip("go command not found")
 	}
-	cases := gentest.Representative(gentest.GenCorpus(t))
+	cases := codegentest.Representative(codegentest.GenCorpus(t))
 	// Exactly at and just beyond the default nesting limit (DefaultMaxDepth rule calls). Only
 	// here: the iterative VM, which other tests run on the corpus, has a higher default.
-	cases = append(cases, gentest.Case{Name: "nesting limit", Src: `rule main = n
+	cases = append(cases, codegentest.Case{Name: "nesting limit", Src: `rule main = n
 rule n = "(" n ")" / "x"`, Inputs: []string{strings.Repeat("(", engine.DefaultMaxDepth-2) + "x" + strings.Repeat(")", engine.DefaultMaxDepth-2),
 		strings.Repeat("(", engine.DefaultMaxDepth-1) + "x" + strings.Repeat(")", engine.DefaultMaxDepth-1)}})
 	// A direct leaf still counts as a rule call, including when a generic
 	// recursive rule invokes it or a rule-table entry reaches its body.
-	cases = append(cases, gentest.Case{Name: "direct leaf nesting limit", Src: `rule main = n
+	cases = append(cases, codegentest.Case{Name: "direct leaf nesting limit", Src: `rule main = n
 rule n = "(" n ")" / leaf
 rule leaf = "x"`, Inputs: []string{strings.Repeat("(", engine.DefaultMaxDepth-3) + "x" + strings.Repeat(")", engine.DefaultMaxDepth-3),
 		strings.Repeat("(", engine.DefaultMaxDepth-2) + "x" + strings.Repeat(")", engine.DefaultMaxDepth-2)}})
 	// Chains of prefix and right-associative operators count against the limit too (a OperatorsRule
 	// expression parses them by recursion).
-	cases = append(cases, gentest.Case{Name: "operatorsRule nesting limit", Src: `rule main = x
+	cases = append(cases, codegentest.Case{Name: "operatorsRule nesting limit", Src: `rule main = x
 rule x = #operators {
     operand "x"
     level { infix right "^" }
     level { prefix "-" }
 }`, Inputs: []string{strings.Repeat("-", 3*engine.DefaultMaxDepth) + "x", strings.Repeat("x^", 3*engine.DefaultMaxDepth) + "x", strings.Repeat("-", engine.DefaultMaxDepth/4) + "x"}})
-	t.Run("values", func(t *testing.T) { gentest.GeneratedParsersCorpus(t, goBin, cases, codegen.GenOptions{}) })
+	t.Run("values", func(t *testing.T) { codegentest.GeneratedParsersCorpus(t, goBin, cases, codegen.GenOptions{}) })
 	t.Run("source info", func(t *testing.T) {
-		gentest.GeneratedParsersCorpus(t, goBin, cases, codegen.GenOptions{SourceInfo: true})
+		codegentest.GeneratedParsersCorpus(t, goBin, cases, codegen.GenOptions{SourceInfo: true})
 	})
 }
 
 func TestGenerateErrors(t *testing.T) {
 	t.Parallel()
-	gentest.EachMode(t, testGenerateErrors)
+	codegentest.EachMode(t, testGenerateErrors)
 }
 
 func testGenerateErrors(t *testing.T) {
 	g, _ := syntax.Parse("@start\nrule main = \"a\" b\nrule b = \"b\"")
-	if _, err := gentest.GenerateCode(t, g, codegen.GenOptions{Package: "p", Start: "nope"}); err == nil || err.Error() != "rule nope is not defined" {
+	if _, err := codegentest.GenerateCode(t, g, codegen.GenOptions{Package: "p", Start: "nope"}); err == nil || err.Error() != "rule nope is not defined" {
 		t.Errorf("got %v", err)
 	}
-	if _, err := gentest.GenerateCode(t, g, codegen.GenOptions{Package: "p", Start: "b"}); err == nil || err.Error() != "rule b is not a start rule; parsing can begin only at a rule marked @start" {
+	if _, err := codegentest.GenerateCode(t, g, codegen.GenOptions{Package: "p", Start: "b"}); err == nil || err.Error() != "rule b is not a start rule; parsing can begin only at a rule marked @start" {
 		t.Errorf("not a start rule: got %v", err)
 	}
-	if _, err := gentest.GenerateCode(t, g, codegen.GenOptions{Start: "main"}); err == nil {
+	if _, err := codegentest.GenerateCode(t, g, codegen.GenOptions{Start: "main"}); err == nil {
 		t.Error("expected an error for a missing package name")
 	}
 	for _, pkg := range []string{"foo-bar", "type", "1p", "_"} {
-		if _, err := gentest.GenerateCode(t, g, codegen.GenOptions{Package: pkg, Start: "main"}); err == nil || err.Error() != fmt.Sprintf("invalid package name %q", pkg) {
+		if _, err := codegentest.GenerateCode(t, g, codegen.GenOptions{Package: pkg, Start: "main"}); err == nil || err.Error() != fmt.Sprintf("invalid package name %q", pkg) {
 			t.Errorf("package %q: got %v", pkg, err)
 		}
 	}
 	bad, _ := parseTest(`rule main = x`)
-	if _, err := gentest.GenerateCode(t, bad, codegen.GenOptions{Package: "p", Start: "main"}); err == nil || !strings.Contains(err.Error(), "undefined rule x") {
+	if _, err := codegentest.GenerateCode(t, bad, codegen.GenOptions{Package: "p", Start: "main"}); err == nil || !strings.Contains(err.Error(), "undefined rule x") {
 		t.Errorf("got %v", err)
 	}
 }
@@ -88,7 +88,7 @@ func testGenerateErrors(t *testing.T) {
 // typedGrammar into the expected values.
 func TestGeneratedTypes(t *testing.T) {
 	t.Parallel()
-	gentest.EachMode(t, testGeneratedTypes)
+	codegentest.EachMode(t, testGeneratedTypes)
 }
 
 func testGeneratedTypes(t *testing.T) {
@@ -99,5 +99,5 @@ func testGeneratedTypes(t *testing.T) {
 	if _, err := os.Stat(goBin); err != nil {
 		t.Skip("go command not found")
 	}
-	gentest.GeneratedTypesCorpus(t, goBin, gentest.GeneratedTypesCases(t), codegen.GenOptions{ConvertTypes: true})
+	codegentest.GeneratedTypesCorpus(t, goBin, codegentest.GeneratedTypesCases(t), codegen.GenOptions{ConvertTypes: true})
 }

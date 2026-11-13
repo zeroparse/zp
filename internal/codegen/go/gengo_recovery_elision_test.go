@@ -5,7 +5,7 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/internal/codegen"
-	"zeroparse.dev/zp/internal/gentest"
+	"zeroparse.dev/zp/internal/codegentest"
 )
 
 // A grammar without #recover never appends to p.Recovered, so its generated parser neither saves
@@ -15,7 +15,7 @@ import (
 // TestGeneratedConstructedFieldChecks, which fail when the rollback is dropped under recovery.
 func TestGeneratedRecoveredRollbackOnlyWithRecovery(t *testing.T) {
 	t.Parallel()
-	gentest.EachMode(t, testGeneratedRecoveredRollbackOnlyWithRecovery)
+	codegentest.EachMode(t, testGeneratedRecoveredRollbackOnlyWithRecovery)
 }
 
 func testGeneratedRecoveredRollbackOnlyWithRecovery(t *testing.T) {
@@ -39,7 +39,7 @@ rule item = ([a-z]+ #atomic) #recover(skip=[^;]+ ";") / [0-9]+ #atomic
 				{Package: "p", Start: "main", Types: true, TypedOnly: true},
 				{Package: "p", Start: "main", Recognize: true},
 			} {
-				code, err := gentest.GenerateCode(t, g, opts)
+				code, err := codegentest.GenerateCode(t, g, opts)
 				if err != nil {
 					t.Fatalf("%+v: %v", opts, err)
 				}

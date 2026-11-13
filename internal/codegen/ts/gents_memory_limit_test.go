@@ -6,7 +6,7 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/internal/codegen"
-	"zeroparse.dev/zp/internal/gentest"
+	"zeroparse.dev/zp/internal/codegentest"
 )
 
 // memoryLimitScript finds the count of a parse as the smallest memory limit it succeeds under, and
@@ -73,7 +73,7 @@ rule item = ("a" "!") #recover(skip=(!";" .)*) ";"`, `"a!;ab;".repeat(n / 6)`},
 				t.Fatal(err)
 			}
 			script := strings.Replace(memoryLimitScript, "INPUT", c.input, 1)
-			out := gentest.RunTSGrammarScriptWith(t, g, script, codegen.GenOptions{Start: "main", LimitControls: true})
+			out := codegentest.RunTSGrammarScriptWith(t, g, script, codegen.GenOptions{Start: "main", LimitControls: true})
 			if out != "ok\n" {
 				t.Fatalf("got %q", out)
 			}
@@ -108,7 +108,7 @@ func TestGeneratedTSMemoryLimitValues(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		out := gentest.RunTSGrammarScriptWith(t, g, memoryGrowthScript, codegen.GenOptions{Start: "main", LimitControls: true})
+		out := codegentest.RunTSGrammarScriptWith(t, g, memoryGrowthScript, codegen.GenOptions{Start: "main", LimitControls: true})
 		v, err := strconv.Atoi(strings.TrimSpace(out))
 		if err != nil {
 			t.Fatalf("output %q", out)

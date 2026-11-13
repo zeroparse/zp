@@ -4,17 +4,17 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/engine"
-	"zeroparse.dev/zp/internal/gentest"
+	"zeroparse.dev/zp/internal/codegentest"
 )
 
 // TestLookaheadHasNoFirstTerminal checks, on both engine backends, in a parse and a recognition,
 // that an alternative that begins with a positive lookahead is not skipped by the next character
 // (Evaluations of Rules in spec/runtime/parsing.md): on "bc" the alternative x of
-// gentest.LookaheadFirstSrc is called once, at 0, although the "q" after its lookahead cannot match
+// codegentest.LookaheadFirstSrc is called once, at 0, although the "q" after its lookahead cannot match
 // there. The linear cost proof takes the activations inside a skipped alternative to be none, which
 // fails for x: its lookahead consumes input.
 func TestLookaheadHasNoFirstTerminal(t *testing.T) {
-	p, err := engine.CompileSource(gentest.LookaheadFirstSrc, "")
+	p, err := engine.CompileSource(codegentest.LookaheadFirstSrc, "")
 	if err != nil {
 		t.Fatal(err)
 	}

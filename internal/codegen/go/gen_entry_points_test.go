@@ -8,7 +8,7 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/internal/codegen"
-	"zeroparse.dev/zp/internal/gentest"
+	"zeroparse.dev/zp/internal/codegentest"
 )
 
 // singleCharLiteral matches a literal of one character, which the negative control changes.
@@ -104,19 +104,19 @@ func entryLines(transcript, entry string) string {
 // testEntryCombinations generates each combination for each grammar, builds it, and checks that
 // the entry points it has give what the same entry points of the full parser give, and that it has
 // no other entry point.
-func testEntryCombinations(t *testing.T, cases []gentest.Case) {
+func testEntryCombinations(t *testing.T, cases []codegentest.Case) {
 	if testing.Short() {
 		t.Skip("builds generated code")
 	}
 	for _, tc := range cases {
 		t.Run(tc.Name, func(t *testing.T) {
 			dir := t.TempDir()
-			if err := os.WriteFile(filepath.Join(dir, "go.mod"), []byte(gentest.GoMod("ordtest")), 0o644); err != nil {
+			if err := os.WriteFile(filepath.Join(dir, "go.mod"), []byte(codegentest.GoMod("ordtest")), 0o644); err != nil {
 				t.Fatal(err)
 			}
 			var pkgs []string
 			for _, c := range entryCombinations {
-				gentest.OrdinaryOnlyPackage(t, dir, c.name, tc.Src, c.opts, entryTranscript(c), tc.Inputs)
+				codegentest.OrdinaryOnlyPackage(t, dir, c.name, tc.Src, c.opts, entryTranscript(c), tc.Inputs)
 				pkgs = append(pkgs, c.name)
 				src, err := os.ReadFile(filepath.Join(dir, c.name, "parser.go"))
 				if err != nil {
@@ -132,8 +132,8 @@ func testEntryCombinations(t *testing.T, cases []gentest.Case) {
 				}
 			}
 			// A mutated grammar is a negative control: the comparison must be able to fail.
-			gentest.OrdinaryOnlyPackage(t, dir, "mutated", singleCharLiteral.ReplaceAllString(tc.Src, `"?"`), codegen.GenOptions{Types: true, Recognize: true}, entryTranscript(entryCombinations[4]), tc.Inputs)
-			out := gentest.RunTranscripts(t, dir, append(pkgs, "mutated")...)
+			codegentest.OrdinaryOnlyPackage(t, dir, "mutated", singleCharLiteral.ReplaceAllString(tc.Src, `"?"`), codegen.GenOptions{Types: true, Recognize: true}, entryTranscript(entryCombinations[4]), tc.Inputs)
+			out := codegentest.RunTranscripts(t, dir, append(pkgs, "mutated")...)
 			ref := out["types_recognize_document"]
 			for _, c := range entryCombinations {
 				for _, e := range []struct {
@@ -145,7 +145,7 @@ func testEntryCombinations(t *testing.T, cases []gentest.Case) {
 					}
 					want, got := entryLines(ref, e.name), entryLines(out[c.name], e.name)
 					if got != want {
-						t.Errorf("%s: %s differs from the full parser:\n%s", c.name, e.name, gentest.FirstTranscriptDifference(want, got))
+						t.Errorf("%s: %s differs from the full parser:\n%s", c.name, e.name, codegentest.FirstTranscriptDifference(want, got))
 					}
 				}
 			}
@@ -161,8 +161,8 @@ func testEntryCombinations(t *testing.T, cases []gentest.Case) {
 
 func TestGeneratedEntryPointCombinations(t *testing.T) {
 	t.Parallel()
-	testEntryCombinations(t, []gentest.Case{
-		{Name: "converted", Src: gentest.OrdinaryOnlyConverted, Inputs: gentest.OrdinaryOnlyConvertedInputs},
+	testEntryCombinations(t, []codegentest.Case{
+		{Name: "converted", Src: codegentest.OrdinaryOnlyConverted, Inputs: codegentest.OrdinaryOnlyConvertedInputs},
 		{Name: "hidden", Src: ordinaryOnlyHidden, Inputs: ordinaryOnlyHiddenInputs},
 	})
 }
@@ -170,7 +170,7 @@ func TestGeneratedEntryPointCombinations(t *testing.T) {
 // The combinations that no generated parser can have fail generation with an error that names why.
 func TestGeneratedEntryPointRejections(t *testing.T) {
 	t.Parallel()
-	g, err := parseTest(gentest.OrdinaryOnlyConverted)
+	g, err := parseTest(codegentest.OrdinaryOnlyConverted)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -187,7 +187,7 @@ func TestGeneratedEntryPointRejections(t *testing.T) {
 		{codegen.GenOptions{RecognizeOnly: true, Stream: true}, "recognize-only output generates only Recognize"},
 	} {
 		tc.opts.Package, tc.opts.Module, tc.opts.Start, tc.opts.Lib = "p", "example.com/p", "main", codegen.LibImport
-		_, err := gentest.Generate(t, g, tc.opts)
+		_, err := codegentest.Generate(t, g, tc.opts)
 		if err == nil || !strings.Contains(err.Error(), tc.want) {
 			t.Errorf("%+v: error %v, want one containing %q", tc.opts, err, tc.want)
 		}

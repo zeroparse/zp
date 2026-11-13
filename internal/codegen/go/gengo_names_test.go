@@ -15,9 +15,9 @@ import (
 
 	"zeroparse.dev/zp/internal/codegen"
 	"zeroparse.dev/zp/internal/codegen/go"
+	"zeroparse.dev/zp/internal/codegentest"
 	"zeroparse.dev/zp/internal/compile"
 	"zeroparse.dev/zp/internal/engine"
-	"zeroparse.dev/zp/internal/gentest"
 )
 
 // libNameTypes are names that the library and the generated parser package declare. A type of a
@@ -67,7 +67,7 @@ func TestGeneratedTypesNamedLikeLibExports(t *testing.T) {
 			t.Run(c.name+" "+mode.String(), func(t *testing.T) {
 				opts := c.opts
 				opts.Module, opts.Package, opts.Start, opts.Lib = "example.com/names", "names", "main", mode
-				files, err := gentest.Generate(t, g, opts)
+				files, err := codegentest.Generate(t, g, opts)
 				if err != nil {
 					t.Fatal(err)
 				}
@@ -81,7 +81,7 @@ func TestGeneratedTypesNamedLikeLibExports(t *testing.T) {
 					return
 				}
 				dir := t.TempDir()
-				gentest.WriteGenerated(t, dir, "example.com/names", files)
+				codegentest.WriteGenerated(t, dir, "example.com/names", files)
 				if err := os.WriteFile(filepath.Join(dir, "names_test.go"), []byte(`package names
 
 import (
@@ -117,7 +117,7 @@ func TestNames(t *testing.T) {
 `), 0o644); err != nil {
 					t.Fatal(err)
 				}
-				gentest.GoVetAndTest(t, dir, true)
+				codegentest.GoVetAndTest(t, dir, true)
 			})
 		}
 	}
@@ -166,7 +166,7 @@ func TestGeneratedTypeNamesIgnoreTheOutput(t *testing.T) {
 			}
 			o := opts
 			o.Module, o.Package, o.Start, o.Lib = "example.com/same", "same", "main", codegen.LibImport
-			files, err := gentest.Generate(t, g, o)
+			files, err := codegentest.Generate(t, g, o)
 			if err != nil {
 				t.Fatalf("%s %+v: %v", name, opts, err)
 			}
@@ -207,7 +207,7 @@ func TestGeneratedTypeNamedLikeTypesPackageName(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			files, err := gentest.Generate(t, g, codegen.GenOptions{Module: "example.com/clash", Package: "clash", Start: "main", Lib: codegen.LibImport, Types: true})
+			files, err := codegentest.Generate(t, g, codegen.GenOptions{Module: "example.com/clash", Package: "clash", Start: "main", Lib: codegen.LibImport, Types: true})
 			if c.rejected {
 				if err == nil || !strings.Contains(err.Error(), "rename the type") {
 					t.Fatalf("got %v, want an error that asks to rename the type", err)
@@ -221,8 +221,8 @@ func TestGeneratedTypeNamedLikeTypesPackageName(t *testing.T) {
 				return
 			}
 			dir := t.TempDir()
-			gentest.WriteGenerated(t, dir, "example.com/clash", files)
-			gentest.GoVetAndTest(t, dir, false)
+			codegentest.WriteGenerated(t, dir, "example.com/clash", files)
+			codegentest.GoVetAndTest(t, dir, false)
 		})
 	}
 }
@@ -232,7 +232,7 @@ func TestGeneratedTypeNamedLikeTypesPackageName(t *testing.T) {
 // type of the grammar named like an export cannot capture the reference.
 func TestGeneratedTypesPackageNamesTheLibExplicitly(t *testing.T) {
 	t.Parallel()
-	info, err := gogen.LoadLib(gentest.WithLib(codegen.GenOptions{}))
+	info, err := gogen.LoadLib(codegentest.WithLib(codegen.GenOptions{}))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -246,7 +246,7 @@ func TestGeneratedTypesPackageNamesTheLibExplicitly(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			files, err := gentest.Generate(t, g, codegen.GenOptions{Module: "example.com/explicit/" + name, Package: name, Start: "main", Lib: codegen.LibImport, Types: true, Recognize: true, Document: true, Observability: true})
+			files, err := codegentest.Generate(t, g, codegen.GenOptions{Module: "example.com/explicit/" + name, Package: name, Start: "main", Lib: codegen.LibImport, Types: true, Recognize: true, Document: true, Observability: true})
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -269,7 +269,7 @@ func TestGeneratedTypesPackageNamesTheLibExplicitly(t *testing.T) {
 // may make the generator fail.
 func TestGeneratedTypesNamedLikeEveryLibExport(t *testing.T) {
 	t.Parallel()
-	info, err := gogen.LoadLib(gentest.WithLib(codegen.GenOptions{}))
+	info, err := gogen.LoadLib(codegentest.WithLib(codegen.GenOptions{}))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -309,7 +309,7 @@ func TestGeneratedTypesNamedLikeEveryLibExport(t *testing.T) {
 		t.Run(c.name, func(t *testing.T) {
 			opts := c.opts
 			opts.Module, opts.Package, opts.Start, opts.Lib = "example.com/every", "every", "main", codegen.LibImport
-			files, err := gentest.Generate(t, g, opts)
+			files, err := codegentest.Generate(t, g, opts)
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -323,8 +323,8 @@ func TestGeneratedTypesNamedLikeEveryLibExport(t *testing.T) {
 				return
 			}
 			dir := t.TempDir()
-			gentest.WriteGenerated(t, dir, "example.com/every", files)
-			gentest.GoVetAndTest(t, dir, false)
+			codegentest.WriteGenerated(t, dir, "example.com/every", files)
+			codegentest.GoVetAndTest(t, dir, false)
 		})
 	}
 }
@@ -338,7 +338,7 @@ func TestParserAndAPIDeclareDistinctNames(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	files, err := gentest.Generate(t, g, codegen.GenOptions{Module: "example.com/distinct", Start: "main", Lib: codegen.LibImport, Types: true, Document: true, Observability: true, Stream: true, Recognize: true})
+	files, err := codegentest.Generate(t, g, codegen.GenOptions{Module: "example.com/distinct", Start: "main", Lib: codegen.LibImport, Types: true, Document: true, Observability: true, Stream: true, Recognize: true})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -386,12 +386,12 @@ func TestGeneratedTypedFieldNamedRange(t *testing.T) {
 	}
 	for _, mode := range []codegen.LibMode{codegen.LibEmbed, codegen.LibImport} {
 		t.Run(mode.String(), func(t *testing.T) {
-			files, err := gentest.Generate(t, g, codegen.GenOptions{Module: "example.com/rng", Package: "rng", Start: "main", Lib: mode, Types: true})
+			files, err := codegentest.Generate(t, g, codegen.GenOptions{Module: "example.com/rng", Package: "rng", Start: "main", Lib: mode, Types: true})
 			if err != nil {
 				t.Fatal(err)
 			}
 			dir := t.TempDir()
-			gentest.WriteGenerated(t, dir, "example.com/rng", files)
+			codegentest.WriteGenerated(t, dir, "example.com/rng", files)
 			if err := os.WriteFile(filepath.Join(dir, "rng_test.go"), []byte(`package rng
 
 import "testing"
@@ -414,7 +414,7 @@ func TestRange(t *testing.T) {
 `), 0o644); err != nil {
 				t.Fatal(err)
 			}
-			gentest.GoVetAndTest(t, dir, true)
+			codegentest.GoVetAndTest(t, dir, true)
 		})
 	}
 }
@@ -443,16 +443,16 @@ func TestDefaultPackageName(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if _, err := gentest.Generate(t, g, codegen.GenOptions{Module: "example.com/my-parser", Start: "main"}); err == nil || !strings.Contains(err.Error(), "-pkg") {
+	if _, err := codegentest.Generate(t, g, codegen.GenOptions{Module: "example.com/my-parser", Start: "main"}); err == nil || !strings.Contains(err.Error(), "-pkg") {
 		t.Errorf("a module with a hyphen: got %v, want an error that suggests -pkg", err)
 	}
-	if _, err := gentest.Generate(t, g, codegen.GenOptions{Module: "example.com/my-parser", Package: "myparser", Start: "main"}); err != nil {
+	if _, err := codegentest.Generate(t, g, codegen.GenOptions{Module: "example.com/my-parser", Package: "myparser", Start: "main"}); err != nil {
 		t.Errorf("with a package name: %v", err)
 	}
-	if _, err := gentest.Generate(t, g, codegen.GenOptions{Package: "myparser", Start: "main", Lib: codegen.LibImport}); err != nil {
+	if _, err := codegentest.Generate(t, g, codegen.GenOptions{Package: "myparser", Start: "main", Lib: codegen.LibImport}); err != nil {
 		t.Errorf("import mode needs no module: %v", err)
 	}
-	if _, err := gentest.Generate(t, g, codegen.GenOptions{Package: "myparser", Start: "main"}); err == nil {
+	if _, err := codegentest.Generate(t, g, codegen.GenOptions{Package: "myparser", Start: "main"}); err == nil {
 		t.Error("embed mode without a module was accepted")
 	}
 }
@@ -462,7 +462,7 @@ func TestDefaultPackageName(t *testing.T) {
 // are not.
 func TestQualifyLibConstantKeys(t *testing.T) {
 	t.Parallel()
-	info, err := gogen.LoadLib(gentest.WithLib(codegen.GenOptions{}))
+	info, err := gogen.LoadLib(codegentest.WithLib(codegen.GenOptions{}))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -548,7 +548,7 @@ func TestEmbeddedModeCompilesRichGrammars(t *testing.T) {
 				t.Fatal(err)
 			}
 			module := "example.com/rich/" + name
-			files, err := gentest.Generate(t, g, codegen.GenOptions{Module: module, Package: name, Start: "main", Lib: codegen.LibEmbed, Types: true, Recognize: true, Document: true, Observability: true})
+			files, err := codegentest.Generate(t, g, codegen.GenOptions{Module: module, Package: name, Start: "main", Lib: codegen.LibEmbed, Types: true, Recognize: true, Document: true, Observability: true})
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -563,10 +563,10 @@ func TestEmbeddedModeCompilesRichGrammars(t *testing.T) {
 				}
 			}
 			// Embedded mode depends on the standard library only: no replace directive.
-			if err := os.WriteFile(filepath.Join(dir, "go.mod"), []byte(gentest.GoMod(module)), 0o644); err != nil {
+			if err := os.WriteFile(filepath.Join(dir, "go.mod"), []byte(codegentest.GoMod(module)), 0o644); err != nil {
 				t.Fatal(err)
 			}
-			gentest.GoVetAndTest(t, dir, false)
+			codegentest.GoVetAndTest(t, dir, false)
 		})
 	}
 }
@@ -580,7 +580,7 @@ func TestGeneratedRichGrammarsWithTypesNamedLikeLibExports(t *testing.T) {
 	if testing.Short() {
 		t.Skip("builds standalone generated parsers")
 	}
-	info, err := gogen.LoadLib(gentest.WithLib(codegen.GenOptions{}))
+	info, err := gogen.LoadLib(codegentest.WithLib(codegen.GenOptions{}))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -620,13 +620,13 @@ func TestGeneratedRichGrammarsWithTypesNamedLikeLibExports(t *testing.T) {
 				t.Fatal(err)
 			}
 			module := "example.com/richnames/" + name
-			files, err := gentest.Generate(t, g, codegen.GenOptions{Module: module, Package: name, Start: "main", Lib: codegen.LibImport, Types: true, Recognize: true, Document: true, Observability: true})
+			files, err := codegentest.Generate(t, g, codegen.GenOptions{Module: module, Package: name, Start: "main", Lib: codegen.LibImport, Types: true, Recognize: true, Document: true, Observability: true})
 			if err != nil {
 				t.Fatal(err)
 			}
 			dir := t.TempDir()
-			gentest.WriteGenerated(t, dir, module, files)
-			gentest.GoVetAndTest(t, dir, false)
+			codegentest.WriteGenerated(t, dir, module, files)
+			codegentest.GoVetAndTest(t, dir, false)
 		})
 	}
 }

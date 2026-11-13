@@ -6,8 +6,8 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/core"
+	"zeroparse.dev/zp/internal/codegentest"
 	"zeroparse.dev/zp/internal/compile"
-	"zeroparse.dev/zp/internal/gentest"
 )
 
 func TestInferenceDependencyChains(t *testing.T) {
@@ -15,7 +15,7 @@ func TestInferenceDependencyChains(t *testing.T) {
 	for _, depth := range []int{45, 50, 128, 512} {
 		for _, reverse := range []bool{false, true} {
 			t.Run(fmt.Sprintf("%d/reversed=%v", depth, reverse), func(t *testing.T) {
-				g, err := parseTest(gentest.InferredChain(depth, reverse, ":node[string]"))
+				g, err := parseTest(codegentest.InferredChain(depth, reverse, ":node[string]"))
 				if err != nil {
 					t.Fatal(err)
 				}
@@ -23,7 +23,7 @@ func TestInferenceDependencyChains(t *testing.T) {
 				if err == nil || !strings.Contains(err.Error(), "produces P, which is not assignable to node[string]") {
 					t.Errorf("long-chain type mismatch: %v", err)
 				}
-				p := mustCompile(t, gentest.InferredChain(depth, reverse, ""))
+				p := mustCompile(t, codegentest.InferredChain(depth, reverse, ""))
 				for i := range depth {
 					if got, ok := inferredType(p, fmt.Sprint("r", i)); !ok || got != "P" {
 						t.Fatalf("r%d type = %q, %v; want P", i, got, ok)
@@ -39,7 +39,7 @@ func TestInferenceDependencyChains(t *testing.T) {
 
 func TestInferenceKeepsIndependentTypes(t *testing.T) {
 	t.Parallel()
-	src := gentest.InferredChain(128, false, "") + `rule growing = xs:growing? => list($xs)
+	src := codegentest.InferredChain(128, false, "") + `rule growing = xs:growing? => list($xs)
 rule constant = "(" growing ")" => P{}`
 	p := mustCompile(t, src)
 	for _, name := range []string{"main", "r0", "r127", "constant"} {
@@ -55,9 +55,9 @@ rule constant = "(" growing ")" => P{}`
 
 func BenchmarkInferenceDependencies(b *testing.B) {
 	for _, c := range []struct{ name, source string }{
-		{"caller-first-64", gentest.InferredChain(64, false, "")},
-		{"callee-first-64", gentest.InferredChain(64, true, "")},
-		{"caller-first-512", gentest.InferredChain(512, false, "")},
+		{"caller-first-64", codegentest.InferredChain(64, false, "")},
+		{"callee-first-64", codegentest.InferredChain(64, true, "")},
+		{"caller-first-512", codegentest.InferredChain(512, false, "")},
 		{"growing-list", `rule main = xs:main? => list($xs)`},
 	} {
 		b.Run(c.name, func(b *testing.B) {
@@ -77,7 +77,7 @@ func BenchmarkInferenceDependencies(b *testing.B) {
 
 func TestInferenceChainSavedValues(t *testing.T) {
 	t.Parallel()
-	p := mustCompile(t, gentest.InferredChain(64, false, ""))
+	p := mustCompile(t, codegentest.InferredChain(64, false, ""))
 	for _, mode := range valueModes {
 		q := saveLoad(t, p, "main", mode)
 		for _, backend := range []Backend{Closure, Bytecode, BytecodeIterative} {
@@ -98,7 +98,7 @@ func TestInferenceChainSavedValues(t *testing.T) {
 
 func TestInferenceChainFieldMismatch(t *testing.T) {
 	t.Parallel()
-	src := "type Holder = { Value node[string] }\n" + strings.Replace(gentest.InferredChain(128, false, ""), "rule main = r0", "rule main = r0:r0 => Holder{Value: $r0}", 1)
+	src := "type Holder = { Value node[string] }\n" + strings.Replace(codegentest.InferredChain(128, false, ""), "rule main = r0", "rule main = r0:r0 => Holder{Value: $r0}", 1)
 	g, err := parseTest(src)
 	if err != nil {
 		t.Fatal(err)

@@ -7,12 +7,12 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/internal/codegen"
-	"zeroparse.dev/zp/internal/gentest"
+	"zeroparse.dev/zp/internal/codegentest"
 )
 
 func TestGeneratedGoActionContextAndExpressions(t *testing.T) {
 	t.Parallel()
-	gentest.EachMode(t, testGeneratedGoActionContextAndExpressions)
+	codegentest.EachMode(t, testGeneratedGoActionContextAndExpressions)
 }
 
 func testGeneratedGoActionContextAndExpressions(t *testing.T) {
@@ -23,7 +23,7 @@ rule leaf = "a"
 	if err != nil {
 		t.Fatal(err)
 	}
-	code, err := gentest.GenerateCode(t, grammar, codegen.GenOptions{Package: "hygiene", Start: "main", Types: true})
+	code, err := codegentest.GenerateCode(t, grammar, codegen.GenOptions{Package: "hygiene", Start: "main", Types: true})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -56,11 +56,11 @@ func TestGeneratedLibWritesStringPartsWithoutConcatenation(t *testing.T) {
 
 func TestGeneratedDirectActionErrorContextAndParserReuse(t *testing.T) {
 	t.Parallel()
-	gentest.EachMode(t, testGeneratedDirectActionErrorContextAndParserReuse)
+	codegentest.EachMode(t, testGeneratedDirectActionErrorContextAndParserReuse)
 }
 
 func testGeneratedDirectActionErrorContextAndParserReuse(t *testing.T) {
-	cases := []gentest.Case{{
+	cases := []codegentest.Case{{
 		Name: "typed/direct_action_error_context_and_reuse",
 		Src: `type Result = { N int }
 rule main Result = child
@@ -77,5 +77,5 @@ rule second Result = y:"b"? => Result{N: 1 / len($y)}
 `,
 		Inputs: []string{"a", "ab", "b"},
 	}}
-	gentest.GeneratedTypesCorpus(t, filepath.Join(runtime.GOROOT(), "bin", "go"), cases, codegen.GenOptions{ConvertTypes: true}, 1)
+	codegentest.GeneratedTypesCorpus(t, filepath.Join(runtime.GOROOT(), "bin", "go"), cases, codegen.GenOptions{ConvertTypes: true}, 1)
 }

@@ -1,4 +1,4 @@
-# The charges of the generated term differential cases (gentest.StructTermCases) on every target: the units the
+# The charges of the generated term differential cases (codegentest.StructTermCases) on every target: the units the
 # engine's closure backend, bytecode VM and iterative VM, the node and the typed generated Go parsers and the
 # generated TypeScript parser charge for each input, and the outcome (ok, or the error) each reports. The targets
 # charge terms in their own ways today, so the columns differ; the golden freezes each, so that a change of a

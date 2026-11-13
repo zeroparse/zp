@@ -6,14 +6,14 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/internal/bytecode"
-	"zeroparse.dev/zp/internal/gentest"
+	"zeroparse.dev/zp/internal/codegentest"
 )
 
 // TestModuleCompilesCorpus checks that every test grammar compiles to bytecode and that all
 // branch targets are within the instruction range.
 func TestModuleCompilesCorpus(t *testing.T) {
 	t.Parallel()
-	for _, c := range gentest.GenCorpus(t) {
+	for _, c := range codegentest.GenCorpus(t) {
 		m := mustCompile(t, c.Src).Module()
 		for i, in := range m.Code {
 			switch in.Op {

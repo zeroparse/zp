@@ -11,7 +11,7 @@ import (
 
 	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/codegen"
-	"zeroparse.dev/zp/internal/gentest"
+	"zeroparse.dev/zp/internal/codegentest"
 	"zeroparse.dev/zp/internal/syntax"
 )
 
@@ -50,7 +50,7 @@ func parseNaturalStart(src string) (*grammar.Grammar, error) {
 // first, because sharing depends on what was printed, and must still call only rules it prints.
 func TestUnreachableCorpusGeneration(t *testing.T) {
 	t.Parallel()
-	gentest.EachMode(t, testUnreachableCorpusGeneration)
+	codegentest.EachMode(t, testUnreachableCorpusGeneration)
 }
 
 func testUnreachableCorpusGeneration(t *testing.T) {
@@ -68,7 +68,7 @@ func testUnreachableCorpusGeneration(t *testing.T) {
 		{"types recognize", codegen.GenOptions{Types: true, Recognize: true}},
 	}
 	checked, pruned := 0, 0
-	for _, c := range gentest.Representative(gentest.GenCorpus(t)) {
+	for _, c := range codegentest.Representative(codegentest.GenCorpus(t)) {
 		for _, set := range optionSets {
 			g, err := parseNaturalStart(c.Src)
 			if err != nil {
@@ -78,11 +78,11 @@ func testUnreachableCorpusGeneration(t *testing.T) {
 			opts.Package, opts.Start = "p", "main"
 			kept := opts
 			kept.KeepUnreachable = true
-			full, keptErr := gentest.GenerateCode(t, g, kept)
+			full, keptErr := codegentest.GenerateCode(t, g, kept)
 			if keptErr != nil {
 				continue // the grammar does not generate in this option set
 			}
-			code, err := gentest.GenerateCode(t, g, opts)
+			code, err := codegentest.GenerateCode(t, g, opts)
 			if err != nil {
 				t.Errorf("%s with %s: generation fails with the pruning (%v), not without it", c.Name, set.name, err)
 				continue
@@ -103,7 +103,7 @@ func testUnreachableCorpusGeneration(t *testing.T) {
 // its natural start rule and requires the same Parse and Recognize result on every corpus input.
 func TestUnreachableCorpusRuns(t *testing.T) {
 	t.Parallel()
-	gentest.EachMode(t, testUnreachableCorpusRuns)
+	codegentest.EachMode(t, testUnreachableCorpusRuns)
 }
 
 func testUnreachableCorpusRuns(t *testing.T) {
@@ -119,10 +119,10 @@ func testUnreachableCorpusRuns(t *testing.T) {
 			t.Fatal(err)
 		}
 	}
-	write("go.mod", gentest.GoMod("reachcorpus"))
+	write("go.mod", codegentest.GoMod("reachcorpus"))
 	var imports, calls strings.Builder
 	n := 0
-	for _, c := range gentest.Representative(gentest.GenCorpus(t)) {
+	for _, c := range codegentest.Representative(codegentest.GenCorpus(t)) {
 		g, err := parseNaturalStart(c.Src)
 		if err != nil {
 			t.Fatalf("%s: %v", c.Name, err)
@@ -131,12 +131,12 @@ func testUnreachableCorpusRuns(t *testing.T) {
 		kept := opts
 		kept.KeepUnreachable = true
 		kept.Package = fmt.Sprintf("k%d", n)
-		keptCode, err := gentest.GenerateCode(t, g, kept)
+		keptCode, err := codegentest.GenerateCode(t, g, kept)
 		if err != nil {
 			continue
 		}
 		opts.Package = fmt.Sprintf("p%d", n)
-		code, err := gentest.GenerateCode(t, g, opts)
+		code, err := codegentest.GenerateCode(t, g, opts)
 		if err != nil {
 			t.Fatalf("%s: generation fails with the pruning: %v", c.Name, err)
 		}

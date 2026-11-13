@@ -7,7 +7,7 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/internal/codegen"
-	"zeroparse.dev/zp/internal/gentest"
+	"zeroparse.dev/zp/internal/codegentest"
 )
 
 func TestGeneratedTSBudgetControlCaptureRollback(t *testing.T) {
@@ -182,7 +182,7 @@ check(large<5*small,"Compute grows linearly: "+small+" for "+n+" items, "+large+
 
 func TestGeneratedTSBudgetControlRecoveryParity(t *testing.T) {
 	t.Parallel()
-	cases := append(append([]gentest.Case(nil), gentest.TypedOperatorsRuleBodyCases...), gentest.TypedLRBodyCases...)
+	cases := append(append([]codegentest.Case(nil), codegentest.TypedOperatorsRuleBodyCases...), codegentest.TypedLRBodyCases...)
 	for _, tt := range cases {
 		if tt.Name != "typed/OperatorsRule_recovery" && tt.Name != "typed/LR_recovery" {
 			continue

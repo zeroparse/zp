@@ -12,7 +12,7 @@ import (
 
 	"zeroparse.dev/zp/internal/codegen"
 	"zeroparse.dev/zp/internal/codegen/go"
-	"zeroparse.dev/zp/internal/gentest"
+	"zeroparse.dev/zp/internal/codegentest"
 )
 
 // flowModes are the generator options under which the default prints rules from Flow IR, lean and
@@ -97,7 +97,7 @@ func TestFlowDiffDetectsMutations(t *testing.T) {
 	for _, m := range mutations {
 		t.Run(m.name, func(t *testing.T) {
 			applied := 0
-			for _, gc := range append(gentest.CorpusWithParsers(t), gentest.CoreExtraGrammars...)[:60] {
+			for _, gc := range append(codegentest.CorpusWithParsers(t), codegentest.CoreExtraGrammars...)[:60] {
 				want, _, _, ok := flowGenerate(gc.Src, opts)
 				if !ok {
 					continue
@@ -133,7 +133,7 @@ func flowGenerate(src string, opts codegen.GenOptions) (string, int, int, bool) 
 	var gen *gogen.Generator
 	h := &gogen.Hooks{Generator: func(x *gogen.Generator) { gen = x }}
 	opts.Module, opts.KeepComments = "example.com/p", true
-	files, err := gogen.GenerateParser(g, compileForGenerator, gentest.WithLib(opts), h)
+	files, err := gogen.GenerateParser(g, compileForGenerator, codegentest.WithLib(opts), h)
 	if err != nil {
 		return "", 0, 0, false
 	}
@@ -154,7 +154,7 @@ func flowGenerate(src string, opts codegen.GenOptions) (string, int, int, bool) 
 // frames where the mode inlines them.
 func TestFlowPrintsTypedRules(t *testing.T) {
 	t.Parallel()
-	cases := gentest.Representative(append(gentest.CorpusWithParsers(t), gentest.CoreExtraGrammars...))
+	cases := codegentest.Representative(append(codegentest.CorpusWithParsers(t), codegentest.CoreExtraGrammars...))
 	for _, mode := range flowModes {
 		t.Run(mode.name, func(t *testing.T) {
 			t.Parallel()
@@ -173,10 +173,10 @@ func TestFlowPrintsTypedRules(t *testing.T) {
 				framed += frames
 			}
 			t.Logf("generated %d grammars, %d with %d rules printed from Flow IR; %d framed bodies and lines", compared, grammars, printed, framed)
-			if compared < gentest.ScaleFloor(100) || grammars < gentest.ScaleFloor(100) {
+			if compared < codegentest.ScaleFloor(100) || grammars < codegentest.ScaleFloor(100) {
 				t.Errorf("generated %d grammars, %d with rules printed from Flow IR", compared, grammars)
 			}
-			if mode.frames && framed < gentest.ScaleFloor(50) || !mode.frames && framed != 0 {
+			if mode.frames && framed < codegentest.ScaleFloor(50) || !mode.frames && framed != 0 {
 				t.Errorf("%d framed bodies and lines printed from Flow IR", framed)
 			}
 		})
@@ -220,8 +220,8 @@ func TestFlowTypedCorpus(t *testing.T) {
 	if _, err := os.Stat(goBin); err != nil {
 		t.Skip("go command not found")
 	}
-	gentest.EachMode(t, func(t *testing.T) {
-		gentest.GeneratedTypesCorpus(t, goBin, gentest.Representative(gentest.GeneratedTypesCases(t)), codegen.GenOptions{ConvertTypes: true})
+	codegentest.EachMode(t, func(t *testing.T) {
+		codegentest.GeneratedTypesCorpus(t, goBin, codegentest.Representative(codegentest.GeneratedTypesCases(t)), codegen.GenOptions{ConvertTypes: true})
 	})
 }
 
@@ -230,7 +230,7 @@ func TestFlowTypedCorpus(t *testing.T) {
 // the parsers without observability and against the engine's errors.
 func TestFlowTypedObservable(t *testing.T) {
 	t.Parallel()
-	gentest.EachMode(t, testFlowTypedObservable)
+	codegentest.EachMode(t, testFlowTypedObservable)
 }
 
 func testFlowTypedObservable(t *testing.T) {
@@ -241,8 +241,8 @@ func testFlowTypedObservable(t *testing.T) {
 	if _, err := os.Stat(goBin); err != nil {
 		t.Skip("go command not found")
 	}
-	var cases []gentest.Case
-	for _, c := range gentest.GeneratedTypesCases(t) {
+	var cases []codegentest.Case
+	for _, c := range codegentest.GeneratedTypesCases(t) {
 		if strings.HasPrefix(c.Name, "typed/") {
 			cases = append(cases, c)
 		}
@@ -269,7 +269,7 @@ func testFlowTypedObservable(t *testing.T) {
 			if printed < 80 || framed < 10 {
 				t.Fatalf("%d rules and %d framed bodies printed from Flow IR", printed, framed)
 			}
-			gentest.GeneratedTypesCorpus(t, goBin, cases, mode.opts)
+			codegentest.GeneratedTypesCorpus(t, goBin, cases, mode.opts)
 		})
 	}
 }
@@ -278,5 +278,5 @@ func testFlowTypedObservable(t *testing.T) {
 // and checks them as TestGenerateDirectTypedDocument does.
 func TestFlowTypedDocument(t *testing.T) {
 	t.Parallel()
-	gentest.DirectTypedDocument(t, codegen.GenOptions{})
+	codegentest.DirectTypedDocument(t, codegen.GenOptions{})
 }

@@ -7,9 +7,9 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/core"
+	"zeroparse.dev/zp/internal/codegentest"
 	"zeroparse.dev/zp/internal/compile"
 	ecore "zeroparse.dev/zp/internal/engine/core"
-	"zeroparse.dev/zp/internal/gentest"
 )
 
 func TestFiniteStreamRepetitions(t *testing.T) {
@@ -50,7 +50,7 @@ func TestFiniteStreamRepetitions(t *testing.T) {
 			for _, unit := range []core.PositionUnit{core.CodePoints, core.Bytes} {
 				var expected []string
 				refErr := prog.ParseStreamWith("main", strings.NewReader(tc.input), func(n *core.Node) error {
-					expected = append(expected, gentest.ResultJSON(n, nil))
+					expected = append(expected, codegentest.ResultJSON(n, nil))
 					return nil
 				}, ParseOptions{Backend: Closure, Unit: unit})
 				if len(expected) != tc.count || (refErr == nil) != tc.ok {
@@ -74,10 +74,10 @@ func TestFiniteStreamRepetitions(t *testing.T) {
 						}
 						var got []string
 						err := p.ParseStreamWith("main", strings.NewReader(tc.input), func(n *core.Node) error {
-							got = append(got, gentest.ResultJSON(n, nil))
+							got = append(got, codegentest.ResultJSON(n, nil))
 							return nil
 						}, opts)
-						if strings.Join(got, "\n") != strings.Join(expected, "\n") || gentest.ResultJSON(nil, err) != gentest.ResultJSON(nil, refErr) {
+						if strings.Join(got, "\n") != strings.Join(expected, "\n") || codegentest.ResultJSON(nil, err) != codegentest.ResultJSON(nil, refErr) {
 							t.Errorf("stream %s/%s: emitted %d, error %v; want %d, error %v", backend, unit, len(got), err, len(expected), refErr)
 						}
 					}
@@ -112,8 +112,8 @@ func TestZeroRepetitionDoesNotRunElement(t *testing.T) {
 					}
 					for range 2 {
 						n, err := d.Parse()
-						if gentest.ResultJSON(n, err) != gentest.ResultJSON(want, nil) {
-							t.Errorf("Document %s/%s: got %s, want %s", backend, unit, gentest.ResultJSON(n, err), gentest.ResultJSON(want, nil))
+						if codegentest.ResultJSON(n, err) != codegentest.ResultJSON(want, nil) {
+							t.Errorf("Document %s/%s: got %s, want %s", backend, unit, codegentest.ResultJSON(n, err), codegentest.ResultJSON(want, nil))
 						}
 					}
 				}

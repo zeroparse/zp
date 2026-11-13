@@ -9,9 +9,9 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/core"
+	"zeroparse.dev/zp/internal/codegentest"
 	"zeroparse.dev/zp/internal/compile"
 	ecore "zeroparse.dev/zp/internal/engine/core"
-	"zeroparse.dev/zp/internal/gentest"
 )
 
 var vmBackends = []Backend{Bytecode, BytecodeIterative}
@@ -53,7 +53,7 @@ func TestVMFamilyCharges(t *testing.T) {
 			Bytecode:          {"document": 67, "document+trace": 74, "parse": 43, "parse+trace": 50, "prefix": 42, "prefix+trace": 49, "recognize": 30, "recognize+trace": 37},
 			BytecodeIterative: {"document": 67, "document+trace": 70, "parse": 43, "parse+trace": 46, "prefix": 42, "prefix+trace": 45, "recognize": 30, "recognize+trace": 33},
 		}},
-		{"stream", gentest.Records, compile.Options{}, "#records\na=1\nbc=22\n", true, stream},
+		{"stream", codegentest.Records, compile.Options{}, "#records\na=1\nbc=22\n", true, stream},
 	}
 	for _, c := range cases {
 		for _, b := range vmBackends {
@@ -71,7 +71,7 @@ func TestVMFamilyCharges(t *testing.T) {
 // the corpus, when no tracer observes the calls.
 func TestVMFamiliesMatchOnCorpus(t *testing.T) {
 	t.Parallel()
-	for _, c := range gentest.GenCorpus(t) {
+	for _, c := range codegentest.GenCorpus(t) {
 		t.Run(c.Name, func(t *testing.T) {
 			for _, o := range []compile.Options{{}, {DisableMemo: true}} {
 				prog := mustCompile(t, c.Src, o)
@@ -146,7 +146,7 @@ func TestVMFamiliesPreparedOnFirstUse(t *testing.T) {
 			t.Fatalf("%s: after a Document parse: prepared %v, want the call-preserving family", b, got)
 		}
 
-		stream := mustCompile(t, gentest.Records)
+		stream := mustCompile(t, codegentest.Records)
 		if err := stream.ParseStreamWith("main", strings.NewReader("#records\na=1\n"), func(*core.Node) error { return nil }, traced); err != nil && err != io.EOF {
 			t.Fatal(err)
 		}

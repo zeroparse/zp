@@ -7,7 +7,7 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/core"
-	"zeroparse.dev/zp/internal/gentest"
+	"zeroparse.dev/zp/internal/codegentest"
 	"zeroparse.dev/zp/internal/value"
 )
 
@@ -262,7 +262,7 @@ rule main = "a" => T{A: 3000000000, B: 0 - 3000000000, C: 9223372036854775807, D
 // divided by -1, and that dividing by zero is a runtime error.
 func TestIntegerWrapAround(t *testing.T) {
 	t.Parallel()
-	prog := mustCompile(t, gentest.IntegerBoundaryGrammar)
+	prog := mustCompile(t, codegentest.IntegerBoundaryGrammar)
 	for _, b := range []Backend{Closure, Bytecode, BytecodeIterative} {
 		for _, n := range []int64{1, 2} {
 			maxInt, minInt := int64(math.MaxInt64), int64(math.MinInt64)
@@ -283,7 +283,7 @@ func TestIntegerWrapAround(t *testing.T) {
 // these results.
 func TestActionEnvironments(t *testing.T) {
 	t.Parallel()
-	prog := mustCompile(t, gentest.ActionEnvironmentGrammar)
+	prog := mustCompile(t, codegentest.ActionEnvironmentGrammar)
 	// peek calls plain at the start twice with another depth, so batch parsers
 	// memoize it there before main calls it.
 	if r := prog.ByName["plain"]; !r.Memo || r.Transient || len(r.Vars) != 2 {

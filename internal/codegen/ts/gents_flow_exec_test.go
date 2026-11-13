@@ -7,7 +7,7 @@ import (
 
 	"zeroparse.dev/zp/internal/codegen"
 	"zeroparse.dev/zp/internal/codegen/ts"
-	"zeroparse.dev/zp/internal/gentest"
+	"zeroparse.dev/zp/internal/codegentest"
 )
 
 // execGenerate generates the TypeScript parser of the grammar source with the options, joined into
@@ -20,7 +20,7 @@ func execGenerate(src string, opts codegen.GenOptions) (string, int, bool) {
 	}
 	n := 0
 	h := &tsgen.Hooks{Generator: func(x *tsgen.Generator) { n = x.ExecFuncs }}
-	files, err := tsgen.GenerateParser(g, compileForGenerator, gentest.WithLib(opts), h)
+	files, err := tsgen.GenerateParser(g, compileForGenerator, codegentest.WithLib(opts), h)
 	if err != nil {
 		return "", 0, false
 	}
@@ -37,7 +37,7 @@ func execGenerate(src string, opts codegen.GenOptions) (string, int, bool) {
 // pinned by the goldens of the generator tests.
 func TestEveryFunctionPrintsFromExecIR(t *testing.T) {
 	t.Parallel()
-	cases := gentest.Representative(append(gentest.CorpusWithParsers(t), gentest.CoreExtraGrammars...))
+	cases := codegentest.Representative(append(codegentest.CorpusWithParsers(t), codegentest.CoreExtraGrammars...))
 	modes := []struct {
 		name string
 		opts codegen.GenOptions
@@ -62,10 +62,10 @@ func TestEveryFunctionPrintsFromExecIR(t *testing.T) {
 				routed += n
 			}
 			t.Logf("generated %d grammars; %d functions printed from Exec IR", compared, routed)
-			if compared < gentest.ScaleFloor(100) {
+			if compared < codegentest.ScaleFloor(100) {
 				t.Errorf("compared %d grammars", compared)
 			}
-			if routed < gentest.ScaleFloor(1000) {
+			if routed < codegentest.ScaleFloor(1000) {
 				t.Errorf("%d functions printed from Exec IR", routed)
 			}
 		})

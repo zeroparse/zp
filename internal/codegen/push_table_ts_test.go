@@ -10,7 +10,7 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/internal/codegen"
-	"zeroparse.dev/zp/internal/gentest"
+	"zeroparse.dev/zp/internal/codegentest"
 	"zeroparse.dev/zp/internal/ir/exec/conform"
 )
 
@@ -65,12 +65,12 @@ console.log(JSON.stringify(calls.map(([fn, v]) => {
 // control if controlled, and returns the result of each call by its call and value.
 func runTSPushes(t *testing.T, controlled bool, mutate func(string) string) map[[2]string]string {
 	t.Helper()
-	node := gentest.RequireNode(t)
+	node := codegentest.RequireNode(t)
 	g, err := parseTest("@start\nrule main = \"a\"\n")
 	if err != nil {
 		t.Fatal(err)
 	}
-	code, err := gentest.GenerateTSBundle(g, codegen.GenOptions{Start: "main"})
+	code, err := codegentest.GenerateTSBundle(g, codegen.GenOptions{Start: "main"})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -97,7 +97,7 @@ func runTSPushes(t *testing.T, controlled bool, mutate func(string) string) map[
 	cmd.Stderr = &stderr
 	out, err := cmd.Output()
 	if err != nil {
-		t.Fatalf("node: %v\n%s", err, gentest.Clip(stderr.String(), 0))
+		t.Fatalf("node: %v\n%s", err, codegentest.Clip(stderr.String(), 0))
 	}
 	var results []string
 	if err := json.Unmarshal(out, &results); err != nil {

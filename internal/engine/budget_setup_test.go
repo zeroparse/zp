@@ -10,8 +10,8 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/core"
+	"zeroparse.dev/zp/internal/codegentest"
 	ecore "zeroparse.dev/zp/internal/engine/core"
-	"zeroparse.dev/zp/internal/gentest"
 )
 
 type setupPhaseContext struct {
@@ -223,7 +223,7 @@ func TestBudgetSetupPreCancelledLeavesColdProgramsUnprepared(t *testing.T) {
 						t.Fatal("pre-cancelled Document construction compiled its lazy Module")
 					}
 
-					streamProg := setupProgram(t, gentest.Records, moduleOnly)
+					streamProg := setupProgram(t, codegentest.Records, moduleOnly)
 					ctx, cancel = context.WithCancel(context.Background())
 					cancel()
 					reader := &setupCountingReader{r: strings.NewReader(text)}
@@ -270,7 +270,7 @@ func TestBudgetSetupPostBackendChecksStopBeforePublication(t *testing.T) {
 					t.Fatalf("NewDocumentWith retry document=%v err=%v", d, err)
 				}
 
-				streamProg := setupProgram(t, gentest.Records, moduleOnly)
+				streamProg := setupProgram(t, codegentest.Records, moduleOnly)
 				streamGate := newSetupPhaseContext(func() bool { return setupBackendReady(streamProg, backend) })
 				reader := &setupCountingReader{r: strings.NewReader("#records\na=1\n")}
 				emits, traces := 0, 0
@@ -389,7 +389,7 @@ func TestBudgetSetupPostBackendPanicIdentity(t *testing.T) {
 		for _, backend := range []Backend{Bytecode, BytecodeIterative} {
 			for _, api := range []string{"batch", "document", "stream"} {
 				t.Run(setupProgramLabel(moduleOnly)+"/"+backend.String()+"/"+api, func(t *testing.T) {
-					prog := setupProgram(t, gentest.Records, moduleOnly)
+					prog := setupProgram(t, codegentest.Records, moduleOnly)
 					ctx, cancel := context.WithCancel(context.Background())
 					defer cancel()
 					token := &budgetContextPanicToken{phase: "post-backend setup"}

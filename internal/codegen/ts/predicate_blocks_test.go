@@ -5,7 +5,7 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/internal/codegen"
-	"zeroparse.dev/zp/internal/gentest"
+	"zeroparse.dev/zp/internal/codegentest"
 )
 
 func TestPredicateBlocksGeneratedTypeScriptParity(t *testing.T) {
@@ -14,5 +14,5 @@ func TestPredicateBlocksGeneratedTypeScriptParity(t *testing.T) {
 	if err != nil {
 		t.Skip("node not found")
 	}
-	gentest.TSParsersCorpus(t, node, gentest.PredicateBlockGeneratedCases(), codegen.GenOptions{})
+	codegentest.TSParsersCorpus(t, node, codegentest.PredicateBlockGeneratedCases(), codegen.GenOptions{})
 }

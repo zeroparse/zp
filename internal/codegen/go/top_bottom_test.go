@@ -6,17 +6,17 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/internal/codegen"
-	"zeroparse.dev/zp/internal/gentest"
+	"zeroparse.dev/zp/internal/codegentest"
 )
 
 func TestTopBottomGeneratedGoParity(t *testing.T) {
 	t.Parallel()
-	gentest.EachMode(t, testTopBottomGeneratedGoParity)
+	codegentest.EachMode(t, testTopBottomGeneratedGoParity)
 }
 
 func testTopBottomGeneratedGoParity(t *testing.T) {
 	goBin := filepath.Join(runtime.GOROOT(), "bin", "go")
-	gentest.GeneratedParsersCorpus(t, goBin, gentest.TopBottomCases(), codegen.GenOptions{})
+	codegentest.GeneratedParsersCorpus(t, goBin, codegentest.TopBottomCases(), codegen.GenOptions{})
 	// A field of type _, like one of type any, keeps the reference runtime.
-	gentest.GeneratedTypesCorpus(t, goBin, gentest.TopBottomCases(), codegen.GenOptions{ConvertTypes: true}, 2)
+	codegentest.GeneratedTypesCorpus(t, goBin, codegentest.TopBottomCases(), codegen.GenOptions{ConvertTypes: true}, 2)
 }

@@ -4,7 +4,7 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/internal/codegen"
-	"zeroparse.dev/zp/internal/gentest"
+	"zeroparse.dev/zp/internal/codegentest"
 )
 
 // A budget of zero selects the default of max(2^20, 1024 times the input length) in the position unit,
@@ -19,7 +19,7 @@ rule q = ""`)
 	if err != nil {
 		t.Fatal(err)
 	}
-	out := gentest.RunTSGrammarScriptWith(t, g, `import * as p from "./parser.ts";
+	out := codegentest.RunTSGrammarScriptWith(t, g, `import * as p from "./parser.ts";
 declare const process: { exit(code: number): never };
 function fail(why: string): never { console.log(why); return process.exit(0); }
 const limitOf = (e: unknown): number => e instanceof p.ParseInterruptionError && e.kind === "compute-limit" ? e.limit : -1;
@@ -55,7 +55,7 @@ func TestGeneratedTSUnlimitedBudget(t *testing.T) {
 		t.Fatal(err)
 	}
 	for _, controls := range []bool{true, false} {
-		out := gentest.RunTSGrammarScriptWith(t, g, `import * as p from "./parser.ts";
+		out := codegentest.RunTSGrammarScriptWith(t, g, `import * as p from "./parser.ts";
 const options = { limits: { compute: Number.MAX_SAFE_INTEGER } } as p.ParseOptions;
 const r = p.parseWithOptions("a".repeat(100), options);
 if (r.error !== null || r.node === null) throw new Error("unlimited parse failed: " + r.error);
@@ -77,7 +77,7 @@ func TestGeneratedTSMaxInput(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	out := gentest.RunTSGrammarScriptWith(t, g, `import * as p from "./parser.ts";
+	out := codegentest.RunTSGrammarScriptWith(t, g, `import * as p from "./parser.ts";
 declare const process: { exit(code: number): never };
 function fail(why: string): never { console.log(why); return process.exit(0); }
 const text = "a".repeat(300) + "é";
@@ -113,7 +113,7 @@ console.log("ok");
 	}
 	// Without limit controls a finite input limit is checked by length; a finite compute limit is
 	// an error.
-	out = gentest.RunTSGrammarScriptWith(t, g, `import * as p from "./parser.ts";
+	out = codegentest.RunTSGrammarScriptWith(t, g, `import * as p from "./parser.ts";
 console.log(p.parseWithOptions("abc", { limits: { input: 3 } }).error === null ? "accepted" : "rejected");
 const over = p.parseWithOptions("abc", { limits: { input: 2 } }).error;
 console.log(over instanceof p.ParseInterruptionError && over.kind === "input-limit" ? over.message : String(over));

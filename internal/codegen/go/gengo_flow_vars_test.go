@@ -6,7 +6,7 @@ import (
 
 	"zeroparse.dev/zp/internal/codegen"
 	"zeroparse.dev/zp/internal/codegen/go"
-	"zeroparse.dev/zp/internal/gentest"
+	"zeroparse.dev/zp/internal/codegentest"
 )
 
 // The tests of generated code catch a wrong decision of which variables are unread: one that treats
@@ -15,7 +15,7 @@ func TestFlowVarsMutantFailsToCompile(t *testing.T) {
 	t.Parallel()
 	for name, h := range map[string]*gogen.Hooks{"every variable unread": {FlowVarsMutant: true}, "assignment reads ignored": {FlowVarsMutantUses: true}} {
 		t.Run(name, func(t *testing.T) {
-			gentest.SetGenHooks(t, h)
+			codegentest.SetGenHooks(t, h)
 			testFlowVarsMutantFailsToCompile(t)
 		})
 	}
@@ -26,7 +26,7 @@ func testFlowVarsMutantFailsToCompile(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	files, err := gentest.Generate(t, g, codegen.GenOptions{Package: "p", Start: "main", Lib: codegen.LibImport, Module: "example.com/p", Types: true})
+	files, err := codegentest.Generate(t, g, codegen.GenOptions{Package: "p", Start: "main", Lib: codegen.LibImport, Module: "example.com/p", Types: true})
 	if err != nil {
 		t.Fatal(err)
 	}

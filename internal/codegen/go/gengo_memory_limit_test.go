@@ -7,7 +7,7 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/internal/codegen"
-	"zeroparse.dev/zp/internal/gentest"
+	"zeroparse.dev/zp/internal/codegentest"
 )
 
 // memoryLimitGrammar builds nodes, child and field lists, memo entries, typed values and strings
@@ -22,7 +22,7 @@ rule val = [0-9]+ #atomic / key`
 // every entry point; the count does not depend on what a pooled parser parsed before.
 func TestGeneratedMemoryLimit(t *testing.T) {
 	t.Parallel()
-	gentest.NeedsBudgetControls(t)
+	codegentest.NeedsBudgetControls(t)
 	if testing.Short() {
 		t.Skip("builds generated parsers")
 	}
@@ -30,39 +30,39 @@ func TestGeneratedMemoryLimit(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	typed, err := gentest.Generate(t, g, codegen.GenOptions{Package: "mem", Module: "mem", Start: "main", Lib: codegen.LibImport, Types: true, Document: true, LimitControls: true})
+	typed, err := codegentest.Generate(t, g, codegen.GenOptions{Package: "mem", Module: "mem", Start: "main", Lib: codegen.LibImport, Types: true, Document: true, LimitControls: true})
 	if err != nil {
 		t.Fatal(err)
 	}
-	gs, err := parseTest(gentest.Records)
+	gs, err := parseTest(codegentest.Records)
 	if err != nil {
 		t.Fatal(err)
 	}
-	stream, err := gentest.Generate(t, gs, codegen.GenOptions{Package: "memstream", Module: "mem/memstream", Start: "main", Lib: codegen.LibImport, Stream: true, Types: true, LimitControls: true})
+	stream, err := codegentest.Generate(t, gs, codegen.GenOptions{Package: "memstream", Module: "mem/memstream", Start: "main", Lib: codegen.LibImport, Stream: true, Types: true, LimitControls: true})
 	if err != nil {
 		t.Fatal(err)
 	}
 	files := map[string][]byte{
-		"go.mod":                      []byte(gentest.GoMod("mem")),
-		"parser.go":                   gentest.MergeGenerated(typed),
+		"go.mod":                      []byte(codegentest.GoMod("mem")),
+		"parser.go":                   codegentest.MergeGenerated(typed),
 		"mem_test.go":                 []byte(memoryLimitConsumer),
-		"memstream/parser.go":         gentest.MergeGenerated(stream),
+		"memstream/parser.go":         codegentest.MergeGenerated(stream),
 		"memstream/memstream_test.go": []byte(memoryLimitStreamConsumer),
 	}
 	// Streams whose elements carry concatenated strings in struct values, and that recover.
 	for _, c := range []struct{ pkg, grammar, consumer string }{
-		{"memconcat", gentest.RecordsConcat, memoryLimitConcatConsumer},
-		{"memrecover", gentest.RecordsRecover, memoryLimitRecoverConsumer},
+		{"memconcat", codegentest.RecordsConcat, memoryLimitConcatConsumer},
+		{"memrecover", codegentest.RecordsRecover, memoryLimitRecoverConsumer},
 	} {
 		g, err := parseTest(c.grammar)
 		if err != nil {
 			t.Fatal(err)
 		}
-		out, err := gentest.Generate(t, g, codegen.GenOptions{Package: c.pkg, Module: "mem/" + c.pkg, Start: "main", Lib: codegen.LibImport, Stream: true, Types: true, LimitControls: true})
+		out, err := codegentest.Generate(t, g, codegen.GenOptions{Package: c.pkg, Module: "mem/" + c.pkg, Start: "main", Lib: codegen.LibImport, Stream: true, Types: true, LimitControls: true})
 		if err != nil {
 			t.Fatal(err)
 		}
-		files[c.pkg+"/parser.go"] = gentest.MergeGenerated(out)
+		files[c.pkg+"/parser.go"] = codegentest.MergeGenerated(out)
 		files[c.pkg+"/"+c.pkg+"_test.go"] = []byte(c.consumer)
 	}
 	dir := t.TempDir()

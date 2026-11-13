@@ -15,7 +15,7 @@ import (
 	"time"
 
 	"zeroparse.dev/zp/internal/codegen"
-	"zeroparse.dev/zp/internal/gentest"
+	"zeroparse.dev/zp/internal/codegentest"
 )
 
 // depMemoMutations are the changes of the embedded library for the negative controls of
@@ -74,7 +74,7 @@ func TestGeneratedLeftRecursionDependencyMemoControls(t *testing.T) {
 		t.Skip("go command not found")
 	}
 	// The mutated libraries have no limit controls.
-	gentest.PinOrdinary(t)
+	codegentest.PinOrdinary(t)
 	pkgs, rt := depMemoPackages(t, depMemoGenCases(t, 120))
 	// Every program is built by its own go command. They share one build cache, so the packages
 	// that a mutation leaves alone are built once, and the mutations run concurrently up to a
@@ -142,7 +142,7 @@ type depMemoPackage struct {
 // depmemo/internal/libgo, which depMemoOutcomes writes (changed by a mutation) once: the go
 // command then builds the library once per program rather than once per grammar. The library files
 // are the second result.
-func depMemoPackages(t *testing.T, cases []gentest.Case) ([]depMemoPackage, []codegen.GeneratedFile) {
+func depMemoPackages(t *testing.T, cases []codegentest.Case) ([]depMemoPackage, []codegen.GeneratedFile) {
 	t.Helper()
 	var pkgs []depMemoPackage
 	var rt []codegen.GeneratedFile
@@ -152,7 +152,7 @@ func depMemoPackages(t *testing.T, cases []gentest.Case) ([]depMemoPackage, []co
 			t.Fatalf("%s: %v", c.Name, err)
 		}
 		pkg := fmt.Sprintf("g%d", i)
-		files, err := gentest.Generate(t, g, codegen.GenOptions{Module: "depmemo/" + pkg, Package: pkg, Start: "main", Types: true, SourceInfo: true, Lib: codegen.LibEmbed})
+		files, err := codegentest.Generate(t, g, codegen.GenOptions{Module: "depmemo/" + pkg, Package: pkg, Start: "main", Types: true, SourceInfo: true, Lib: codegen.LibEmbed})
 		if err != nil {
 			t.Fatalf("%s: %v", c.Name, err)
 		}
@@ -209,7 +209,7 @@ func depMemoOutcomes(t *testing.T, goBin string, pkgs []depMemoPackage, rt []cod
 		}
 		return os.WriteFile(path, content, 0o644)
 	}
-	if err := write("go.mod", []byte(gentest.GoMod("depmemo"))); err != nil {
+	if err := write("go.mod", []byte(codegentest.GoMod("depmemo"))); err != nil {
 		return "", 0, false, err
 	}
 	reps := depMemoMutations[mutation]
@@ -264,24 +264,24 @@ func main() {
 	}
 	// The program is built and then run, not run by go run, so that the process that a stop kills
 	// is the program itself.
-	buildCtx, cancelBuild := gentest.ChildContext(t, 0)
+	buildCtx, cancelBuild := codegentest.ChildContext(t, 0)
 	defer cancelBuild()
 	build := exec.CommandContext(buildCtx, goBin, "build", "-o", "depmemo.bin", ".")
 	build.Dir = dir
 	build.Env = append(os.Environ(), "GOFLAGS="+flags, "GOTOOLCHAIN=local")
-	build.WaitDelay = gentest.ChildWaitDelay
+	build.WaitDelay = codegentest.ChildWaitDelay
 	if out, err := build.CombinedOutput(); err != nil {
 		return "", 0, false, fmt.Errorf("go build: %v\n%s", err, out)
 	}
-	ctx, cancel := gentest.ChildContext(t, limit)
+	ctx, cancel := codegentest.ChildContext(t, limit)
 	defer cancel()
 	cmd := exec.CommandContext(ctx, filepath.Join(dir, "depmemo.bin"))
 	cmd.Dir = dir
-	cmd.WaitDelay = gentest.ChildWaitDelay
+	cmd.WaitDelay = codegentest.ChildWaitDelay
 	start := time.Now()
 	out, err := cmd.CombinedOutput()
 	took := time.Since(start)
-	if err != nil && gentest.ChildStoppedAtBound(ctx) {
+	if err != nil && codegentest.ChildStoppedAtBound(ctx) {
 		return string(out), took, true, nil
 	}
 	if err != nil && ctx.Err() != nil {

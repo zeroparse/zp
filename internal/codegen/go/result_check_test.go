@@ -6,8 +6,8 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/internal/codegen"
+	"zeroparse.dev/zp/internal/codegentest"
 	"zeroparse.dev/zp/internal/engine"
-	"zeroparse.dev/zp/internal/gentest"
 )
 
 // TestRuleResultChecksAreSelective checks that a result is never checked when it runs: a result
@@ -16,7 +16,7 @@ import (
 // generated parsers keep.
 func TestRuleResultChecksAreSelective(t *testing.T) {
 	t.Parallel()
-	gentest.EachMode(t, testRuleResultChecksAreSelective)
+	codegentest.EachMode(t, testRuleResultChecksAreSelective)
 }
 
 func testRuleResultChecksAreSelective(t *testing.T) {
@@ -89,7 +89,7 @@ rule ops Int | O = #operators {
 	if err != nil {
 		t.Fatal(err)
 	}
-	code, err := gentest.GenerateCode(t, g, codegen.GenOptions{Package: "p", Start: "main"})
+	code, err := codegentest.GenerateCode(t, g, codegen.GenOptions{Package: "p", Start: "main"})
 	if err != nil {
 		t.Fatal(err)
 	}

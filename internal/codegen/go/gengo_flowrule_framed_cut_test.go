@@ -7,26 +7,26 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/internal/codegen"
-	"zeroparse.dev/zp/internal/gentest"
+	"zeroparse.dev/zp/internal/codegentest"
 )
 
 func TestGeneratedTypedFramedCuts(t *testing.T) {
 	t.Parallel()
-	gentest.EachMode(t, testGeneratedTypedFramedCuts)
+	codegentest.EachMode(t, testGeneratedTypedFramedCuts)
 }
 
 func testGeneratedTypedFramedCuts(t *testing.T) {
 	if testing.Short() {
 		t.Skip("builds generated code")
 	}
-	cases := gentest.TypedFramedCutCases(t)
+	cases := codegentest.TypedFramedCutCases(t)
 	for _, c := range cases {
 		g, err := parseTest(c.Src)
 		if err != nil {
 			t.Fatalf("%s: %v", c.Name, err)
 		}
 		opts := codegen.GenOptions{Package: "framedcuts", Start: "main", Types: true, Recognize: true}
-		code, err := gentest.GenerateCode(t, g, opts)
+		code, err := codegentest.GenerateCode(t, g, opts)
 		if err != nil {
 			t.Fatalf("%s: %v", c.Name, err)
 		}
@@ -38,8 +38,8 @@ func testGeneratedTypedFramedCuts(t *testing.T) {
 			t.Fatalf("%s: cut-bearing typed body must be exercised", c.Name)
 		}
 	}
-	cases = append(cases, gentest.PrefixPartCutCorpus())
+	cases = append(cases, codegentest.PrefixPartCutCorpus())
 	goBin := filepath.Join(runtime.GOROOT(), "bin", "go")
-	gentest.GeneratedTypesCorpus(t, goBin, cases, codegen.GenOptions{})
-	gentest.GeneratedTypesCorpus(t, goBin, cases, codegen.GenOptions{ConvertTypes: true})
+	codegentest.GeneratedTypesCorpus(t, goBin, cases, codegen.GenOptions{})
+	codegentest.GeneratedTypesCorpus(t, goBin, cases, codegen.GenOptions{ConvertTypes: true})
 }

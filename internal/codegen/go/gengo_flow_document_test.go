@@ -15,7 +15,7 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/internal/codegen"
-	"zeroparse.dev/zp/internal/gentest"
+	"zeroparse.dev/zp/internal/codegentest"
 )
 
 // documentProbeMain is the consumer of the generated packages with the prefix PREFIX. For each input it creates a
@@ -159,7 +159,7 @@ type documentInput struct {
 
 // documentCase is a grammar with the inputs of its Documents and the number of edits applied to each.
 type documentCase struct {
-	gentest.Case
+	codegentest.Case
 	edits int
 }
 
@@ -202,7 +202,7 @@ func runDocumentProbes(t *testing.T, cases []documentCase, start string, mutate 
 			t.Fatal(err)
 		}
 	}
-	write("go.mod", gentest.GoMod("docprobe"))
+	write("go.mod", codegentest.GoMod("docprobe"))
 	var inputs [][]documentInput
 	var imports, entries strings.Builder
 	for i, c := range cases {
@@ -210,7 +210,7 @@ func runDocumentProbes(t *testing.T, cases []documentCase, start string, mutate 
 		if err != nil {
 			t.Fatalf("%s: %v", c.Name, err)
 		}
-		code, err := gentest.GenerateCode(t, g, codegen.GenOptions{Package: fmt.Sprintf("f%d", i), Start: start, Recognize: true, Document: true})
+		code, err := codegentest.GenerateCode(t, g, codegen.GenOptions{Package: fmt.Sprintf("f%d", i), Start: start, Recognize: true, Document: true})
 		if err != nil {
 			t.Fatalf("%s: %v", c.Name, err)
 		}
@@ -258,9 +258,9 @@ const documentGolden = "testdata/document.golden"
 
 const documentGoldenHeader = "# Digests of the Document parses of the generated Node parsers (results, errors, evaluation and reuse counts after\n" +
 	"# every edit of a seeded sequence), by group, mode and case (see gengo_flow_document_test.go).\n" +
-	"# Rewrite with: go test ./internal/codegen/go -run Document -update\n" + gentest.GoldenRules
+	"# Rewrite with: go test ./internal/codegen/go -run Document -update\n" + codegentest.GoldenRules
 
-var documentGoldenFile = gentest.GoldenFile{Path: documentGolden, Header: documentGoldenHeader}
+var documentGoldenFile = codegentest.GoldenFile{Path: documentGolden, Header: documentGoldenHeader}
 
 // documentDigests returns, for each case, the hash of its report lines, keyed by group/mode/name.
 func documentDigests(t testing.TB, group string, cases []documentCase, lines []string) map[string]string {
@@ -276,7 +276,7 @@ func documentDigests(t testing.TB, group string, cases []documentCase, lines []s
 	}
 	out := map[string]string{}
 	for i, c := range cases {
-		out[fmt.Sprintf("%s/%s/%s", group, gentest.FixtureForm(t), c.Name)] = fmt.Sprintf("%x", hashes[i].Sum(nil)[:12])
+		out[fmt.Sprintf("%s/%s/%s", group, codegentest.FixtureForm(t), c.Name)] = fmt.Sprintf("%x", hashes[i].Sum(nil)[:12])
 	}
 	return out
 }
@@ -307,13 +307,13 @@ func checkDocumentReports(t *testing.T, group string, cases []documentCase, line
 	if reused == 0 {
 		t.Fatal("no parse after an edit reuses a result")
 	}
-	documentGoldenFile.CheckSampled(t, group+"/"+gentest.FixtureForm(t)+"/", documentDigests(t, group, cases, lines))
+	documentGoldenFile.CheckSampled(t, group+"/"+codegentest.FixtureForm(t)+"/", documentDigests(t, group, cases, lines))
 }
 
 // documentShapes examine the input beyond the end of the result of their rule, which a Document must record to
 // know when an edit invalidates the result: a lookahead over several characters, a negative lookahead and a
 // lookahead over a class. The corpus grammars rarely look further than one character past a result.
-var documentShapes = []gentest.Case{
+var documentShapes = []codegentest.Case{
 	{Name: "positive lookahead", Src: "rule main = item* $$\nrule item = \"a\" &\"bcd\" x / \"a\" y / \"b\" / \"c\" / \"d\"\nrule x = \"\"\nrule y = \"\"\n",
 		Inputs: []string{"abcd", "abcdabce", "abcabcd"}},
 	{Name: "negative lookahead", Src: "rule main = item* $$\nrule item = \"a\" !\"bc\" x / \"a\" y / [b-e]\nrule x = \"\"\nrule y = \"\"\n",
@@ -346,7 +346,7 @@ var documentShapes = []gentest.Case{
 // documentCorpus returns the generated-corpus grammars and the shape grammars with the edits of each input.
 func documentCorpus(t *testing.T) []documentCase {
 	var cases []documentCase
-	for _, c := range append(append(gentest.Representative(gentest.GenCorpus(t)), observeShapes...), documentShapes...) {
+	for _, c := range append(append(codegentest.Representative(codegentest.GenCorpus(t)), observeShapes...), documentShapes...) {
 		cases = append(cases, documentCase{c, 300})
 	}
 	return cases
@@ -358,7 +358,7 @@ func TestFlowNodeDocumentsReuseAndMatchScratch(t *testing.T) {
 	if testing.Short() {
 		t.Skip("builds generated consumers")
 	}
-	gentest.EachMode(t, func(t *testing.T) {
+	codegentest.EachMode(t, func(t *testing.T) {
 		cases := documentCorpus(t)
 		checkDocumentReports(t, "corpus", cases, runDocumentProbes(t, cases, "main", nil))
 	})
@@ -371,9 +371,9 @@ func TestFlowNodeDocumentsOnGrammars(t *testing.T) {
 	if testing.Short() {
 		t.Skip("builds the large parsers")
 	}
-	gentest.EachMode(t, func(t *testing.T) {
+	codegentest.EachMode(t, func(t *testing.T) {
 		var cases []documentCase
-		for _, c := range gentest.RepresentativeGrammars(gentest.GrammarCases(t)) {
+		for _, c := range codegentest.RepresentativeGrammars(codegentest.GrammarCases(t)) {
 			cases = append(cases, documentCase{c, 60})
 		}
 		checkDocumentReports(t, "grammars", cases, runDocumentProbes(t, cases, "", nil))

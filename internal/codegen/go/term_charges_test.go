@@ -9,27 +9,27 @@ import (
 
 	"zeroparse.dev/zp/core"
 	"zeroparse.dev/zp/internal/codegen"
+	"zeroparse.dev/zp/internal/codegentest"
 	"zeroparse.dev/zp/internal/compile"
 	"zeroparse.dev/zp/internal/engine"
 	ecore "zeroparse.dev/zp/internal/engine/core"
-	"zeroparse.dev/zp/internal/gentest"
 )
 
 // termChargesGoldenFile returns the golden of the charges of the terms of the generator; what names it in
 // the header.
-func termChargesGoldenFile(path, what, unset string) gentest.GoldenFile {
-	return gentest.GoldenFile{Path: path, CaseOf: gentest.GoldenCaseBefore,
+func termChargesGoldenFile(path, what, unset string) codegentest.GoldenFile {
+	return codegentest.GoldenFile{Path: path, CaseOf: codegentest.GoldenCaseBefore,
 		Header: "# The charges of the generated term differential cases (" + what + ") on every target: the units the\n" +
 			"# engine's closure backend, bytecode VM and iterative VM, the node and the typed generated Go parsers and the\n" +
 			"# generated TypeScript parser charge for each input, and the outcome (ok, or the error) each reports. The targets\n" +
 			"# charge terms in their own ways today, so the columns differ; the golden freezes each, so that a change of a\n" +
-			"# term's charges on one target is a stated change. " + unset + "\n" + gentest.GoldenRules}
+			"# term's charges on one target is a stated change. " + unset + "\n" + codegentest.GoldenRules}
 }
 
 // termChargeCases returns the term cases of the golden, which the compiler accepts.
-func termChargeCases(t *testing.T, all []gentest.TermCase) []gentest.TermCase {
+func termChargeCases(t *testing.T, all []codegentest.TermCase) []codegentest.TermCase {
 	t.Helper()
-	var out []gentest.TermCase
+	var out []codegentest.TermCase
 	for _, c := range all {
 		g, err := parseTest(c.Src)
 		if err == nil {
@@ -61,82 +61,82 @@ func termOutcome(res string) string {
 // changes they make to them.
 func TestTermChargesAcrossTargets(t *testing.T) {
 	t.Parallel()
-	checkTermCharges(t, "testdata/term_charges.golden", "gentest.TermCases", "The terms leave no struct field unset.", "termcharges", gentest.TermCases(1, 40, false))
+	checkTermCharges(t, "testdata/term_charges.golden", "codegentest.TermCases", "The terms leave no struct field unset.", "termcharges", codegentest.TermCases(1, 40, false))
 }
 
-// TestTermChargesAcrossTargetsWide pins the charges of the terms of gentest.TermCasesWide, which have
+// TestTermChargesAcrossTargetsWide pins the charges of the terms of codegentest.TermCasesWide, which have
 // strings beyond the Basic Multilingual Plane, other literals, tuples, lists of structured values and
 // the errors of run time. The terms of seeds 5 to 12 leave struct fields unset, which read as their zero values, so
 // that the golden sees the operators applied to the zero values. The targets charge them in their own
 // ways, like the terms above.
 func TestTermChargesAcrossTargetsWide(t *testing.T) {
 	t.Parallel()
-	var all []gentest.TermCase
+	var all []codegentest.TermCase
 	for seed := uint64(1); seed <= 12; seed++ {
-		all = append(all, gentest.TermCasesWide(seed, 20, seed > 4)...)
+		all = append(all, codegentest.TermCasesWide(seed, 20, seed > 4)...)
 	}
-	checkTermCharges(t, "testdata/term_charges_wide.golden", "gentest.TermCasesWide, seeds 1 to 12", "Some terms leave struct fields unset.", "termchargeswide", all)
+	checkTermCharges(t, "testdata/term_charges_wide.golden", "codegentest.TermCasesWide, seeds 1 to 12", "Some terms leave struct fields unset.", "termchargeswide", all)
 }
 
-// TestTermChargesMember pins the charges of gentest.MemberTermCases, whose terms read every kind of
+// TestTermChargesMember pins the charges of codegentest.MemberTermCases, whose terms read every kind of
 // member, set fields and the zero values of unset lists, tuples, optionals and structs among them, so
 // that a change in how a target reads a member shows as a stated change of the units it charges.
 func TestTermChargesMember(t *testing.T) {
 	t.Parallel()
-	checkTermCharges(t, "testdata/term_charges_member.golden", "gentest.MemberTermCases", "Some terms leave struct fields unset.", "termchargesmember", gentest.MemberTermCases())
+	checkTermCharges(t, "testdata/term_charges_member.golden", "codegentest.MemberTermCases", "Some terms leave struct fields unset.", "termchargesmember", codegentest.MemberTermCases())
 }
 
-// TestTermChargesConvert pins the charges of gentest.ConvertTermCases, whose terms convert string, tuple
+// TestTermChargesConvert pins the charges of codegentest.ConvertTermCases, whose terms convert string, tuple
 // and list nodes and nodes of named node types to a named node type, so that a change in how a target
 // converts a value shows as a stated change of the units it charges.
 func TestTermChargesConvert(t *testing.T) {
 	t.Parallel()
-	checkTermCharges(t, "testdata/term_charges_convert.golden", "gentest.ConvertTermCases", "The terms make no struct value.", "termchargesconvert", gentest.ConvertTermCases())
+	checkTermCharges(t, "testdata/term_charges_convert.golden", "codegentest.ConvertTermCases", "The terms make no struct value.", "termchargesconvert", codegentest.ConvertTermCases())
 }
 
-// TestTermChargesStruct pins the charges of gentest.StructTermCases, whose terms make struct values of
+// TestTermChargesStruct pins the charges of codegentest.StructTermCases, whose terms make struct values of
 // fields that are nodes, so that a change in how a target makes a struct and sets its range shows as a stated
 // change of the units it charges.
 func TestTermChargesStruct(t *testing.T) {
 	t.Parallel()
-	checkTermCharges(t, "testdata/term_charges_struct.golden", "gentest.StructTermCases", "Some terms leave struct fields unset.", "termchargesstruct", gentest.StructTermCases())
+	checkTermCharges(t, "testdata/term_charges_struct.golden", "codegentest.StructTermCases", "Some terms leave struct fields unset.", "termchargesstruct", codegentest.StructTermCases())
 }
 
-// TestTermChargesCast pins the charges of gentest.CastTermCases, whose terms cast values to types of every
+// TestTermChargesCast pins the charges of codegentest.CastTermCases, whose terms cast values to types of every
 // kind, the lists and tuples of them among them, so that a change in how a target checks a value against a
 // type shows as a stated change of the units it charges.
 func TestTermChargesCast(t *testing.T) {
 	t.Parallel()
-	checkTermCharges(t, "testdata/term_charges_cast.golden", "gentest.CastTermCases", "The terms make no struct value.", "termchargescast", gentest.CastTermCases())
+	checkTermCharges(t, "testdata/term_charges_cast.golden", "codegentest.CastTermCases", "The terms make no struct value.", "termchargescast", codegentest.CastTermCases())
 }
 
-// TestTermChargesHull pins the charges of gentest.HullTermCases, whose terms make list and tuple values and read
+// TestTermChargesHull pins the charges of codegentest.HullTermCases, whose terms make list and tuple values and read
 // the range that covers their elements, so that a change in how a target makes them and sets the range shows as a
 // stated change of the units it charges.
 func TestTermChargesHull(t *testing.T) {
 	t.Parallel()
-	checkTermCharges(t, "testdata/term_charges_hull.golden", "gentest.HullTermCases", "The terms make no struct value that leaves a field unset.", "termchargeshull", gentest.HullTermCases())
+	checkTermCharges(t, "testdata/term_charges_hull.golden", "codegentest.HullTermCases", "The terms make no struct value that leaves a field unset.", "termchargeshull", codegentest.HullTermCases())
 }
 
-// TestTermChargesIter pins the charges of gentest.IterTermCases, whose terms iterate over lists with map, filter,
+// TestTermChargesIter pins the charges of codegentest.IterTermCases, whose terms iterate over lists with map, filter,
 // foldl and foldr, so that a change in how a target walks a list, calls the function and keeps or drops the
 // elements it makes shows as a stated change of the units it charges.
 func TestTermChargesIter(t *testing.T) {
 	t.Parallel()
-	checkTermCharges(t, "testdata/term_charges_iter.golden", "gentest.IterTermCases", "Some terms read a list field left unset.", "termchargesiter", gentest.IterTermCases())
+	checkTermCharges(t, "testdata/term_charges_iter.golden", "codegentest.IterTermCases", "Some terms read a list field left unset.", "termchargesiter", codegentest.IterTermCases())
 }
 
-// TestTermChargesPush pins the charges of gentest.PushTermCases, whose terms push the elements of the lists and
+// TestTermChargesPush pins the charges of codegentest.PushTermCases, whose terms push the elements of the lists and
 // tuples they make, from literals, zero values, concat over lists it takes as they are and fused concat, so that a
 // change in how a target makes and pushes an element shows as a stated change of the units it charges.
 func TestTermChargesPush(t *testing.T) {
 	t.Parallel()
-	checkTermCharges(t, "testdata/term_charges_push.golden", "gentest.PushTermCases", "Some terms read list and tuple fields left unset.", "termchargespush", gentest.PushTermCases())
+	checkTermCharges(t, "testdata/term_charges_push.golden", "codegentest.PushTermCases", "Some terms read list and tuple fields left unset.", "termchargespush", codegentest.PushTermCases())
 }
 
-func checkTermCharges(t *testing.T, golden, what, unset, prefix string, all []gentest.TermCase) {
+func checkTermCharges(t *testing.T, golden, what, unset, prefix string, all []codegentest.TermCase) {
 	t.Helper()
-	gentest.NeedsBudgetControls(t)
+	codegentest.NeedsBudgetControls(t)
 	if testing.Short() {
 		t.Skip("builds generated consumers")
 	}
@@ -171,7 +171,7 @@ func checkTermCharges(t *testing.T, golden, what, unset, prefix string, all []ge
 		for _, in := range c.Inputs {
 			ins = append(ins, fmt.Sprintf("%q", in))
 		}
-		out := gentest.RunTSGrammarScriptWith(t, g, tsChargeScript(ins), codegen.GenOptions{Start: "main", LimitControls: true})
+		out := codegentest.RunTSGrammarScriptWith(t, g, tsChargeScript(ins), codegen.GenOptions{Start: "main", LimitControls: true})
 		lines := strings.Split(strings.TrimSpace(out), "\n")
 		if len(lines) != len(c.Inputs) {
 			t.Fatalf("term %d: %d lines for %d inputs:\n%s", i, len(lines), len(c.Inputs), out)
@@ -185,22 +185,22 @@ func checkTermCharges(t *testing.T, golden, what, unset, prefix string, all []ge
 }
 
 // termChargeKey is the key of the golden entry of term i of terms for the input on the target.
-func termChargeKey(prefix string, terms []gentest.TermCase, i int, input, target string) string {
+func termChargeKey(prefix string, terms []codegentest.TermCase, i int, input, target string) string {
 	return fmt.Sprintf("%s/term %d: %s | %s %s", prefix, i, terms[i].Term, input, target)
 }
 
 // goTermCharges returns the golden entries of the generated Go targets for terms: the charges of the node
 // parser's Parse and Recognize and of the typed parser's ParseValue. mutate, if not nil, edits each generated
 // parser before it is built.
-func goTermCharges(t *testing.T, prefix string, terms []gentest.TermCase, mutate func([]byte) []byte) map[string]string {
+func goTermCharges(t *testing.T, prefix string, terms []codegentest.TermCase, mutate func([]byte) []byte) map[string]string {
 	t.Helper()
-	cases := make([]gentest.Case, len(terms))
+	cases := make([]codegentest.Case, len(terms))
 	for i, c := range terms {
 		cases[i] = c.Case
 		cases[i].Name = fmt.Sprintf("term %d", i)
 	}
 	got := map[string]string{}
-	rt := gentest.LibCopy()
+	rt := codegentest.LibCopy()
 	for _, run := range []struct {
 		name  string
 		opts  codegen.GenOptions

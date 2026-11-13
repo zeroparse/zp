@@ -6,7 +6,7 @@ import (
 	"bytes"
 	"testing"
 
-	"zeroparse.dev/zp/internal/gentest"
+	"zeroparse.dev/zp/internal/codegentest"
 )
 
 // TestFlowNodeBudgetMutants checks that the invariants and the golden of TestFlowNodeBudgetInvariants notice a
@@ -14,12 +14,12 @@ import (
 // removed, some report violates an invariant or differs from the golden.
 func TestFlowNodeBudgetMutants(t *testing.T) {
 	t.Parallel()
-	gentest.NeedsBudgetControls(t)
+	codegentest.NeedsBudgetControls(t)
 	if testing.Short() {
 		t.Skip("builds generated consumers")
 	}
-	cases := gentest.GenCorpus(t)
-	golden := gentest.ReadGolden(t, budgetGolden)
+	cases := codegentest.GenCorpus(t)
+	golden := codegentest.ReadGolden(t, budgetGolden)
 	for _, m := range []struct {
 		name   string
 		mutate func([]byte) []byte

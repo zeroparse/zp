@@ -8,14 +8,14 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/internal/codegen"
-	"zeroparse.dev/zp/internal/gentest"
+	"zeroparse.dev/zp/internal/codegentest"
 )
 
 // TestGeneratedActionTracking inspects state after real generated rules have
 // run, including direct typed constructors that bypass tctx.finish.
 func TestGeneratedActionTracking(t *testing.T) {
 	t.Parallel()
-	gentest.EachMode(t, testGeneratedActionTracking)
+	codegentest.EachMode(t, testGeneratedActionTracking)
 }
 
 func testGeneratedActionTracking(t *testing.T) {
@@ -36,7 +36,7 @@ rule main = "a" => Outer{Inner: Inner{N: 1}}`, "a"},
 			if err != nil {
 				t.Fatal(err)
 			}
-			code, err := gentest.GenerateCode(t, g, codegen.GenOptions{Package: "main", Start: "main", Types: true})
+			code, err := codegentest.GenerateCode(t, g, codegen.GenOptions{Package: "main", Start: "main", Types: true})
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -65,7 +65,7 @@ func main() {
     }
 }`, c.input)
 			for name, contents := range map[string][]byte{
-				"parser.go": code, "main.go": []byte(main), "go.mod": []byte(gentest.GoMod("lifecycle")),
+				"parser.go": code, "main.go": []byte(main), "go.mod": []byte(codegentest.GoMod("lifecycle")),
 			} {
 				if err := os.WriteFile(filepath.Join(dir, name), contents, 0o644); err != nil {
 					t.Fatal(err)
@@ -84,18 +84,18 @@ func main() {
 // return restores the caller's environment and would conceal retained history.
 func TestGeneratedEnvironmentBindings(t *testing.T) {
 	t.Parallel()
-	gentest.EachMode(t, testGeneratedEnvironmentBindings)
+	codegentest.EachMode(t, testGeneratedEnvironmentBindings)
 }
 
 func testGeneratedEnvironmentBindings(t *testing.T) {
 	if testing.Short() {
 		t.Skip("builds generated code")
 	}
-	g, err := parseTest(gentest.BoundStream)
+	g, err := parseTest(codegentest.BoundStream)
 	if err != nil {
 		t.Fatal(err)
 	}
-	code, err := gentest.GenerateCode(t, g, codegen.GenOptions{Package: "main", Start: "main"})
+	code, err := codegentest.GenerateCode(t, g, codegen.GenOptions{Package: "main", Start: "main"})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -118,7 +118,7 @@ func main() {
   if p.Env == nil || len(p.Env.X_vals) != 3 || p.X_envDepth != 0 { panic("lost binding") }
  }
 }`
-	for name, contents := range map[string][]byte{"parser.go": code, "main.go": []byte(main), "go.mod": []byte(gentest.GoMod("lifecycle"))} {
+	for name, contents := range map[string][]byte{"parser.go": code, "main.go": []byte(main), "go.mod": []byte(codegentest.GoMod("lifecycle"))} {
 		if err := os.WriteFile(filepath.Join(dir, name), contents, 0o644); err != nil {
 			t.Fatal(err)
 		}

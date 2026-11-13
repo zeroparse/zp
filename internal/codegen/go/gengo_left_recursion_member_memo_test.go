@@ -12,8 +12,8 @@ import (
 	"time"
 
 	"zeroparse.dev/zp/internal/codegen"
+	"zeroparse.dev/zp/internal/codegentest"
 	"zeroparse.dev/zp/internal/engine"
-	"zeroparse.dev/zp/internal/gentest"
 )
 
 const memberMemoSource = `@start
@@ -40,7 +40,7 @@ rule uz D = "(" x:c ")" "z" => D{N: $x.N + 1}
 // proportion to the input, and give the engine's results.
 func TestGeneratedLeftRecursionMemberMemoLinear(t *testing.T) {
 	t.Parallel()
-	gentest.EachMode(t, testGeneratedLeftRecursionMemberMemoLinear)
+	codegentest.EachMode(t, testGeneratedLeftRecursionMemberMemoLinear)
 }
 
 func testGeneratedLeftRecursionMemberMemoLinear(t *testing.T) {
@@ -52,13 +52,13 @@ func testGeneratedLeftRecursionMemberMemoLinear(t *testing.T) {
 		t.Skip("go command not found")
 	}
 	dir := t.TempDir()
-	if err := os.WriteFile(filepath.Join(dir, "go.mod"), []byte(gentest.GoMod("gentest")), 0o644); err != nil {
+	if err := os.WriteFile(filepath.Join(dir, "go.mod"), []byte(codegentest.GoMod("codegentest")), 0o644); err != nil {
 		t.Fatal(err)
 	}
 	opts := codegen.GenOptions{Start: "main", Recognize: true}
-	gentest.GeneratePackage(t, dir, "g", mustParse(memberMemoSource), opts)
+	codegentest.GeneratePackage(t, dir, "g", mustParse(memberMemoSource), opts)
 	opts.Types = true
-	if code := gentest.GeneratePackage(t, dir, "tg", mustParse(typedMemberMemoSource), opts); !strings.Contains(code, "TParse(trules") {
+	if code := codegentest.GeneratePackage(t, dir, "tg", mustParse(typedMemberMemoSource), opts); !strings.Contains(code, "TParse(trules") {
 		t.Fatal("typed library is not exercised")
 	}
 	prog := compileBare(t, memberMemoSource)
@@ -71,10 +71,10 @@ func testGeneratedLeftRecursionMemberMemoLinear(t *testing.T) {
 		in := input(n)
 		node, err := prog.ParseWith("main", in, engine.ParseOptions{})
 		v, typedErr := typed.ParseWith("main", in, engine.ParseOptions{})
-		fmt.Fprintf(&want, "%s %v | %s\n", gentest.ResultJSON(node, err), typedErr, typedN(v))
+		fmt.Fprintf(&want, "%s %v | %s\n", codegentest.ResultJSON(node, err), typedErr, typedN(v))
 	}
 	var limit, typedLimit string
-	if gentest.FixtureBudgetControls(t) {
+	if codegentest.FixtureBudgetControls(t) {
 		limit = "g.WithLimits(g.Limits{Compute: 1 << 20})"
 		typedLimit = "tg.WithLimits(tg.Limits{Compute: 1 << 20})"
 	}
@@ -85,8 +85,8 @@ import (
 	"fmt"
 	"strings"
 
-	"gentest/g"
-	"gentest/tg"
+	"codegentest/g"
+	"codegentest/tg"
 )
 
 func main() {
@@ -143,7 +143,7 @@ func comma(option string) string {
 // results of the grammars compiled without a memo.
 func TestGeneratedLeftRecursionMemberMemoStale(t *testing.T) {
 	t.Parallel()
-	gentest.EachMode(t, testGeneratedLeftRecursionMemberMemoStale)
+	codegentest.EachMode(t, testGeneratedLeftRecursionMemberMemoStale)
 }
 
 func testGeneratedLeftRecursionMemberMemoStale(t *testing.T) {
@@ -154,13 +154,13 @@ func testGeneratedLeftRecursionMemberMemoStale(t *testing.T) {
 	if _, err := os.Stat(goBin); err != nil {
 		t.Skip("go command not found")
 	}
-	cases := append(gentest.LeftRecursionMemberCases(), gentest.LeftRecursionMemberSeedCases()...)
+	cases := append(codegentest.LeftRecursionMemberCases(), codegentest.LeftRecursionMemberSeedCases()...)
 	t.Run("untyped", func(t *testing.T) {
 		t.Parallel()
-		gentest.GeneratedParsersCorpus(t, goBin, cases, codegen.GenOptions{})
+		codegentest.GeneratedParsersCorpus(t, goBin, cases, codegen.GenOptions{})
 	})
 	t.Run("typed", func(t *testing.T) {
 		t.Parallel()
-		gentest.GeneratedTypesCorpus(t, goBin, cases, codegen.GenOptions{}, len(cases))
+		codegentest.GeneratedTypesCorpus(t, goBin, cases, codegen.GenOptions{}, len(cases))
 	})
 }

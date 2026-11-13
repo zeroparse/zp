@@ -9,9 +9,9 @@ import (
 	"unicode/utf8"
 
 	"zeroparse.dev/zp/core"
+	"zeroparse.dev/zp/internal/codegentest"
 	"zeroparse.dev/zp/internal/engine"
 	"zeroparse.dev/zp/internal/enginetest"
-	"zeroparse.dev/zp/internal/gentest"
 )
 
 // The tests of this package compile the grammars that they generate parsers for with the engine,
@@ -52,15 +52,15 @@ var libSource = func() string {
 	return b.String()
 }()
 
-// startEntryWant is what the interpreter reports for each of gentest.StartEntryNames, one line each.
+// startEntryWant is what the interpreter reports for each of codegentest.StartEntryNames, one line each.
 func startEntryWant(t *testing.T) string {
 	t.Helper()
-	prog, err := compileStarts(t, gentest.StartRestrictionSource)
+	prog, err := compileStarts(t, codegentest.StartRestrictionSource)
 	if err != nil {
 		t.Fatal(err)
 	}
 	var b strings.Builder
-	for _, name := range gentest.StartEntryNames {
+	for _, name := range codegentest.StartEntryNames {
 		if err := prog.CheckStart(name); err != nil {
 			fmt.Fprintf(&b, "%s: %v\n", name, err)
 		} else {

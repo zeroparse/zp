@@ -7,14 +7,14 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/internal/codegen"
-	"zeroparse.dev/zp/internal/gentest"
+	"zeroparse.dev/zp/internal/codegentest"
 )
 
 // ZP_TYPED_POOL_DIR preserves this generated fixture for standalone heap and
 // throughput measurements. Normal tests use an automatically removed directory.
 func TestGeneratedTypedPoolRetention(t *testing.T) {
 	t.Parallel()
-	gentest.EachMode(t, testGeneratedTypedPoolRetention)
+	codegentest.EachMode(t, testGeneratedTypedPoolRetention)
 }
 
 func testGeneratedTypedPoolRetention(t *testing.T) {
@@ -31,7 +31,7 @@ rule repeated A = t:((x:"b") #repeat(2) #cut) => A{Text: text($t)}`)
 	}
 	name := "direct"
 	t.Run(name, func(t *testing.T) {
-		code, err := gentest.GenerateCode(t, g, codegen.GenOptions{Package: "poolfixture", Start: "main", Types: true})
+		code, err := codegentest.GenerateCode(t, g, codegen.GenOptions{Package: "poolfixture", Start: "main", Types: true})
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -45,7 +45,7 @@ rule repeated A = t:((x:"b") #repeat(2) #cut) => A{Text: text($t)}`)
 		}
 		fixture := typedPoolFixture
 		for name, contents := range map[string][]byte{
-			"parser.go": code, "pool_test.go": []byte(fixture), "go.mod": []byte(gentest.GoMod("poolfixture")),
+			"parser.go": code, "pool_test.go": []byte(fixture), "go.mod": []byte(codegentest.GoMod("poolfixture")),
 		} {
 			if err := os.WriteFile(filepath.Join(dir, name), contents, 0o644); err != nil {
 				t.Fatal(err)
@@ -64,7 +64,7 @@ rule repeated A = t:((x:"b") #repeat(2) #cut) => A{Text: text($t)}`)
 // terminal remains valid while the parser is reset.
 func TestGeneratedUntypedPoolRetention(t *testing.T) {
 	t.Parallel()
-	gentest.EachMode(t, testGeneratedUntypedPoolRetention)
+	codegentest.EachMode(t, testGeneratedUntypedPoolRetention)
 }
 
 func testGeneratedUntypedPoolRetention(t *testing.T) {
@@ -78,13 +78,13 @@ rule small A = ("b") #atomic`)
 	if err != nil {
 		t.Fatal(err)
 	}
-	code, err := gentest.GenerateCode(t, g, codegen.GenOptions{Package: "main", Start: "main"})
+	code, err := codegentest.GenerateCode(t, g, codegen.GenOptions{Package: "main", Start: "main"})
 	if err != nil {
 		t.Fatal(err)
 	}
 	dir := t.TempDir()
 	for name, contents := range map[string][]byte{
-		"parser.go": code, "pool_test.go": []byte(untypedPoolFixture), "go.mod": []byte(gentest.GoMod("untypedpool")),
+		"parser.go": code, "pool_test.go": []byte(untypedPoolFixture), "go.mod": []byte(codegentest.GoMod("untypedpool")),
 	} {
 		if err := os.WriteFile(filepath.Join(dir, name), contents, 0o644); err != nil {
 			t.Fatal(err)

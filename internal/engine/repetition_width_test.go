@@ -10,8 +10,8 @@ import (
 
 	"zeroparse.dev/zp/core"
 	"zeroparse.dev/zp/internal/bytecode"
+	"zeroparse.dev/zp/internal/codegentest"
 	"zeroparse.dev/zp/internal/compile"
-	"zeroparse.dev/zp/internal/gentest"
 	"zeroparse.dev/zp/internal/value"
 )
 
@@ -108,7 +108,7 @@ func TestWideRepetitionBounds(t *testing.T) {
 	if strconv.IntSize < 64 {
 		t.Skip("bounds exceed a 32-bit implementation's source integer range")
 	}
-	for _, c := range gentest.WideRepetitionCases() {
+	for _, c := range codegentest.WideRepetitionCases() {
 		t.Run(c.Name, func(t *testing.T) {
 			for _, options := range []compile.Options{{}, {DisableMemo: true}} {
 				prog := mustCompile(t, c.Src, options)
@@ -135,8 +135,8 @@ func TestWideRepetitionBounds(t *testing.T) {
 							for _, input := range c.Inputs {
 								want, wantErr := prog.ParseWith("main", input, ParseOptions{Unit: unit})
 								got, gotErr := loaded.ParseWith("main", input, servedBy(mode, ParseOptions{Backend: backend, Unit: unit}))
-								if gentest.ResultJSON(got, gotErr) != gentest.ResultJSON(want, wantErr) {
-									t.Errorf("loaded %s/%s on %q: got %s, want %s", backend, unit, input, gentest.ResultJSON(got, gotErr), gentest.ResultJSON(want, wantErr))
+								if codegentest.ResultJSON(got, gotErr) != codegentest.ResultJSON(want, wantErr) {
+									t.Errorf("loaded %s/%s on %q: got %s, want %s", backend, unit, input, codegentest.ResultJSON(got, gotErr), codegentest.ResultJSON(want, wantErr))
 								}
 							}
 						}
@@ -174,7 +174,7 @@ func TestWideRepetitionDocumentsAndStreams(t *testing.T) {
 					count := 0
 					err := p.ParseStreamWith("main", strings.NewReader("éé"), func(n *core.Node) error {
 						if value.D(n).Text != "é" {
-							t.Errorf("unexpected stream element: %s", gentest.ResultJSON(n, nil))
+							t.Errorf("unexpected stream element: %s", codegentest.ResultJSON(n, nil))
 						}
 						count++
 						return nil
@@ -196,8 +196,8 @@ func TestWideRepetitionDocumentsAndStreams(t *testing.T) {
 					for range 2 {
 						n, err := d.Parse()
 						want, wantErr := prog.ParseWith("main", d.Text(), ParseOptions{Unit: unit})
-						if gentest.ResultJSON(n, err) != gentest.ResultJSON(want, wantErr) {
-							t.Errorf("Document %s/%s: got %s, want %s", backend, unit, gentest.ResultJSON(n, err), gentest.ResultJSON(want, wantErr))
+						if codegentest.ResultJSON(n, err) != codegentest.ResultJSON(want, wantErr) {
+							t.Errorf("Document %s/%s: got %s, want %s", backend, unit, codegentest.ResultJSON(n, err), codegentest.ResultJSON(want, wantErr))
 						}
 						if err := d.Edit(0, 0, "é"); err != nil {
 							t.Fatal(err)

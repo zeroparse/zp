@@ -10,16 +10,16 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/core"
+	"zeroparse.dev/zp/internal/codegentest"
 	"zeroparse.dev/zp/internal/compile"
 	ecore "zeroparse.dev/zp/internal/engine/core"
-	"zeroparse.dev/zp/internal/gentest"
 )
 
 // depMemoGrammars returns the grammars that the dependency memo tests compare
-// (gentest.DependencyMemoCases), without the inputs of limitBoundReferences in a build without
+// (codegentest.DependencyMemoCases), without the inputs of limitBoundReferences in a build without
 // budget controls.
-func depMemoGrammars(seeds int) []gentest.Case {
-	return withoutLimitBoundReferences(gentest.DependencyMemoCases(seeds))
+func depMemoGrammars(seeds int) []codegentest.Case {
+	return withoutLimitBoundReferences(codegentest.DependencyMemoCases(seeds))
 }
 
 // limitBoundReferences names the inputs of grammars on which the evaluation without a memo, which
@@ -35,11 +35,11 @@ var limitBoundReferences = map[string][]string{
 
 // withoutLimitBoundReferences returns cases without the inputs of limitBoundReferences in a build
 // without budget controls, and cases otherwise.
-func withoutLimitBoundReferences(cases []gentest.Case) []gentest.Case {
+func withoutLimitBoundReferences(cases []codegentest.Case) []codegentest.Case {
 	if ecore.BudgetControlsEnabled {
 		return cases
 	}
-	kept := make([]gentest.Case, 0, len(cases))
+	kept := make([]codegentest.Case, 0, len(cases))
 	for _, c := range cases {
 		if bound := limitBoundReferences[c.Name]; len(bound) > 0 {
 			c.Inputs = slices.DeleteFunc(slices.Clone(c.Inputs), func(in string) bool { return slices.Contains(bound, in) })
@@ -52,7 +52,7 @@ func withoutLimitBoundReferences(cases []gentest.Case) []gentest.Case {
 // checkReferenceLimit reports an error if the result of the evaluation without a memo of the
 // grammar of c on in, want, was ended by a limit and limitBoundReferences does not name the input: a
 // build without budget controls would not finish that evaluation.
-func checkReferenceLimit(t *testing.T, c gentest.Case, in, want string) {
+func checkReferenceLimit(t *testing.T, c codegentest.Case, in, want string) {
 	t.Helper()
 	if endedByResourceLimit(want, "") && !slices.Contains(limitBoundReferences[c.Name], in) {
 		t.Errorf("%s %q: the evaluation without a memo ended by a limit; name the input in limitBoundReferences", c.Name, in)
@@ -68,7 +68,7 @@ func checkReferenceLimit(t *testing.T, c gentest.Case, in, want string) {
 // concurrently, because the evaluation without a memo of one input can take minutes (without limit
 // controls, no limit ends it) and the comparisons are independent, and returns the differences in
 // the order of the sequential run.
-func depMemoDiffers(t *testing.T, c gentest.Case, limit int, unexamined, parallel bool) ([]string, bool) {
+func depMemoDiffers(t *testing.T, c codegentest.Case, limit int, unexamined, parallel bool) ([]string, bool) {
 	t.Helper()
 	g, err := parseTest(c.Src)
 	if err != nil {
@@ -96,7 +96,7 @@ func depMemoDiffers(t *testing.T, c gentest.Case, limit int, unexamined, paralle
 		got, err := memo.ParseWith("", j.in, o)
 		o.ContextMemoUnexamined, o.ContextMemoOff = false, true
 		want, wantErr := ref.ParseWith("", j.in, o)
-		a, b := gentest.ResultJSON(got, err), gentest.ResultJSON(want, wantErr)
+		a, b := codegentest.ResultJSON(got, err), codegentest.ResultJSON(want, wantErr)
 		checkReferenceLimit(t, c, j.in, b)
 		if a != b && !endedByResourceLimit(a, b) {
 			return fmt.Sprintf("%s %q %s recognize=%v:\n got %s\nwant %s", c.Name, j.in, j.backend, j.rec, a, b)
@@ -165,7 +165,7 @@ func TestLeftRecursionDependencyMemoRandom(t *testing.T) {
 		seeds = 80
 	}
 	var compiled, n atomic.Int64
-	gentest.EachParallel(t, depMemoGrammars(seeds), func(t *testing.T, c gentest.Case) {
+	codegentest.EachParallel(t, depMemoGrammars(seeds), func(t *testing.T, c codegentest.Case) {
 		diffs, ok := depMemoDiffers(t, c, 3, false, true)
 		if !ok {
 			return
@@ -190,12 +190,12 @@ func TestLeftRecursionDependencyMemoControls(t *testing.T) {
 	seeds := 400
 	if testing.Short() {
 		// A smaller search, with the grammars known to detect the check that the search does not
-		// reach in so few seeds (gentest.DependencyMemoControlSeeds).
+		// reach in so few seeds (codegentest.DependencyMemoControlSeeds).
 		seeds = 120
 	}
 	cases := depMemoGrammars(seeds)
 	if testing.Short() {
-		cases = append(cases, withoutLimitBoundReferences(gentest.DependencyMemoControlCases())...)
+		cases = append(cases, withoutLimitBoundReferences(codegentest.DependencyMemoControlCases())...)
 	}
 	for _, m := range []struct {
 		name       string
@@ -224,12 +224,12 @@ func TestLeftRecursionDependencyMemoControls(t *testing.T) {
 	}
 }
 
-// TestLeftRecursionDependencyMemoLinear checks that the shapes of gentest.DependencyMemoShapes
+// TestLeftRecursionDependencyMemoLinear checks that the shapes of codegentest.DependencyMemoShapes
 // evaluate a number of calls linear in the length of the input on every backend: doubling the input
 // at most a little more than doubles the evaluations.
 func TestLeftRecursionDependencyMemoLinear(t *testing.T) {
 	t.Parallel()
-	for _, s := range gentest.DependencyMemoShapes {
+	for _, s := range codegentest.DependencyMemoShapes {
 		prog := mustCompile(t, "@start\nrule main = "+s.Rules, compile.Options{SourceInfo: true})
 		for _, b := range []Backend{Closure, Bytecode, BytecodeIterative} {
 			evals := func(n int) int {
@@ -248,12 +248,12 @@ func TestLeftRecursionDependencyMemoLinear(t *testing.T) {
 }
 
 // TestLeftRecursionDependencyMemoDefaultBudget checks that the shapes of
-// gentest.DependencyMemoShapes parse a long input within the default budget, which grows linearly
+// codegentest.DependencyMemoShapes parse a long input within the default budget, which grows linearly
 // with the input, on every backend. The budget also counts the work that evaluations do not show,
 // such as the scan of the jumps recorded for a seed.
 func TestLeftRecursionDependencyMemoDefaultBudget(t *testing.T) {
 	t.Parallel()
-	for _, s := range gentest.DependencyMemoShapes {
+	for _, s := range codegentest.DependencyMemoShapes {
 		prog := mustCompile(t, "@start\nrule main = "+s.Rules)
 		in := s.Input(10000)
 		for _, b := range []Backend{Closure, Bytecode, BytecodeIterative} {
@@ -289,7 +289,7 @@ func TestLeftRecursionDependencyMemoUnexamined(t *testing.T) {
 			for _, backend := range []Backend{Closure, Bytecode, BytecodeIterative} {
 				got, err := memo.ParseWith("", in, ParseOptions{Backend: backend, ContextMemoUnexamined: true})
 				want, wantErr := ref.ParseWith("", in, ParseOptions{Backend: backend, ContextMemoOff: true})
-				a, b := gentest.ResultJSON(got, err), gentest.ResultJSON(want, wantErr)
+				a, b := codegentest.ResultJSON(got, err), codegentest.ResultJSON(want, wantErr)
 				checkReferenceLimit(t, c, in, b)
 				if a != b && !endedByResourceLimit(a, b) {
 					if n++; n <= 5 {
@@ -324,16 +324,16 @@ func TestLeftRecursionDependencyMemoUnexamined(t *testing.T) {
 func TestEndedByResourceLimit(t *testing.T) {
 	prog := mustCompile(t, "@start\nrule main = \"a\" #missing \"b\" #missing \"c\" #missing")
 	got, err := prog.ParseWith("", "", ParseOptions{Backend: Closure, MissingTokens: 1})
-	ins := gentest.ResultJSON(got, err)
+	ins := codegentest.ResultJSON(got, err)
 	if !strings.Contains(ins, "insertion limit") || endedByResourceLimit(ins, "") || endedByResourceLimit("", ins) {
 		t.Errorf("the insertion limit error %s must not count as a resource limit", ins)
 	}
 	// The reference build without budget controls rejects a limit, so there the classifier reads
 	// the error that a parse ended by the compute limit returns.
-	res := gentest.ResultJSON(nil, &core.LimitError{Kind: core.LimitCompute, Limit: 5, Used: 4, Requested: 2})
+	res := codegentest.ResultJSON(nil, &core.LimitError{Kind: core.LimitCompute, Limit: 5, Used: 4, Requested: 2})
 	if ecore.BudgetControlsEnabled {
 		loop := mustCompile(t, "@start\nrule main = \"a\"+")
-		res = gentest.ResultJSON(loop.ParseWith("", strings.Repeat("a", 100), ParseOptions{Backend: Closure, Limits: core.Limits{Compute: 5}}))
+		res = codegentest.ResultJSON(loop.ParseWith("", strings.Repeat("a", 100), ParseOptions{Backend: Closure, Limits: core.Limits{Compute: 5}}))
 	}
 	if !strings.Contains(res, "compute limit") || !endedByResourceLimit(res, "x") || !endedByResourceLimit("x", res) {
 		t.Errorf("the compute limit error %s must count as a resource limit", res)

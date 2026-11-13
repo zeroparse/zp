@@ -10,7 +10,7 @@ import (
 
 	"zeroparse.dev/zp/engine"
 	"zeroparse.dev/zp/internal/codegen"
-	"zeroparse.dev/zp/internal/gentest"
+	"zeroparse.dev/zp/internal/codegentest"
 	"zeroparse.dev/zp/internal/starttest"
 )
 
@@ -19,7 +19,7 @@ import (
 // alone. An empty match at the start of an insertion is kept by the engine, whose range is empty, and
 // dropped by generated Go, whose range is one unit; the parse results are the same.
 func TestDocumentEmptyEnterReuse(t *testing.T) {
-	gentest.NeedsBudgetControls(t)
+	codegentest.NeedsBudgetControls(t)
 	const src = "rule main = pad \"a\"+\nrule pad = \"\""
 	g, err := engine.ParseGrammar(src)
 	if err != nil {
@@ -49,13 +49,13 @@ func TestDocumentEmptyEnterReuse(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	code, err := gentest.GenerateCode(t, pg, codegen.GenOptions{Package: "fixture", Start: "main", Document: true})
+	code, err := codegentest.GenerateCode(t, pg, codegen.GenOptions{Package: "fixture", Start: "main", Document: true})
 	if err != nil {
 		t.Fatal(err)
 	}
 	dir := t.TempDir()
 	for name, source := range map[string]string{
-		"go.mod":    gentest.GoMod("fixture"),
+		"go.mod":    codegentest.GoMod("fixture"),
 		"parser.go": string(code),
 		"parser_test.go": `package fixture
 import ("fmt"; "testing")

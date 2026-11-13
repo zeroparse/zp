@@ -8,15 +8,15 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/internal/codegen"
-	"zeroparse.dev/zp/internal/gentest"
+	"zeroparse.dev/zp/internal/codegentest"
 )
 
 // guardedClassCases are grammars whose choices have alternatives that begin with character
 // classes, including classes of characters that take several bytes, whose values are built,
 // captured or discarded.
-func guardedClassCases() []gentest.Case {
+func guardedClassCases() []codegentest.Case {
 	invalidUTF8 := []string{"", " ", "\xffa", "\xff", "\xffb", "\xffc", "\xe6\x97", "\xe6\x97a", "\xe6\x97c", "日\xe6\x97", "日\xe6", "日本", "a\xff", "a\xe6\x97", "a", "\xc3", "\xc3b", "\xef\xbf\xbda", "\xef\xbf\xbd", "\xed\xa0\x80c", "\xf4\x90\x80\x80b", "\x80\x80c", "~c", "~"}
-	cases := []gentest.Case{
+	cases := []codegentest.Case{
 		{Name: "guarded classes with values", Src: `rule main = (item / -" ")* $$
 rule item = [a-zé] [0-9]* / [α-ω] "!" / x:[日本] y:"語"? / [^a-z0-9 !] / "q"
 `, Inputs: []string{"a1 é22 α! 日語 本 ~", "é", "α", "α?", "日本語", "", "1", "!", "\xff", "a\xff", "ω!日", "  "}},
@@ -54,14 +54,14 @@ rule item = [\uFFFD] "a" / [\uFFFD-\u{10FFFF}] [é]? "b" / [^a-z ] "c" / [日] [
 
 func TestGuardedClassGeneration(t *testing.T) {
 	t.Parallel()
-	gentest.PinOrdinary(t)
+	codegentest.PinOrdinary(t)
 	for _, c := range guardedClassCases() {
 		g, err := parseTest(c.Src)
 		if err != nil {
 			t.Fatal(err)
 		}
 		for _, disabled := range []bool{false, true} {
-			code, err := gentest.GenerateCode(t, g, codegen.GenOptions{Package: "guarded", Start: "main", Types: true, TypedOnly: true, NoOpt: gentest.NoOptIf(disabled, "guarded-classes")})
+			code, err := codegentest.GenerateCode(t, g, codegen.GenOptions{Package: "guarded", Start: "main", Types: true, TypedOnly: true, NoOpt: codegentest.NoOptIf(disabled, "guarded-classes")})
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -78,8 +78,8 @@ func TestGuardedClassGeneration(t *testing.T) {
 // in both position units, and their errors with the engine's.
 func TestGuardedClassDisabledParity(t *testing.T) {
 	t.Parallel()
-	gentest.PinOrdinary(t)
-	gentest.GeneratedTypesCorpus(t, filepath.Join(runtime.GOROOT(), "bin", "go"), guardedClassCases(), codegen.GenOptions{NoOpt: []string{"guarded-classes"}}, 0)
+	codegentest.PinOrdinary(t)
+	codegentest.GeneratedTypesCorpus(t, filepath.Join(runtime.GOROOT(), "bin", "go"), guardedClassCases(), codegen.GenOptions{NoOpt: []string{"guarded-classes"}}, 0)
 }
 
 // TestGuardedClassEligibility checks that parsers that spend budget for reading (budget controls or
@@ -94,11 +94,11 @@ func TestGuardedClassEligibility(t *testing.T) {
 		for _, opts := range []codegen.GenOptions{{TypedOnly: true}, {TypedOnly: true, LimitControls: true}, {Types: true, LimitControls: true}, {Types: true, Document: true}} {
 			want := !opts.LimitControls && !opts.Document
 			opts.Package, opts.Module, opts.Start, opts.Types, opts.Lib = "guarded", "example.com/generated", "main", true, codegen.LibImport
-			files, err := gentest.Generate(t, g, opts)
+			files, err := codegentest.Generate(t, g, opts)
 			if err != nil {
 				t.Fatal(err)
 			}
-			if got := strings.Contains(string(gentest.MergeGenerated(files)), "p.Pos += x"); got != want {
+			if got := strings.Contains(string(codegentest.MergeGenerated(files)), "p.Pos += x"); got != want {
 				t.Errorf("%s (budget controls %v, document %v): a class consumes the guard's character: %v, want %v", c.Name, opts.LimitControls, opts.Document, got, want)
 			}
 		}

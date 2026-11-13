@@ -16,10 +16,10 @@ import (
 	"zeroparse.dev/zp/core"
 	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/codegen"
+	"zeroparse.dev/zp/internal/codegentest"
 	"zeroparse.dev/zp/internal/compile"
 	"zeroparse.dev/zp/internal/engine"
 	ecore "zeroparse.dev/zp/internal/engine/core"
-	"zeroparse.dev/zp/internal/gentest"
 	"zeroparse.dev/zp/internal/ir/exec/ref"
 )
 
@@ -47,18 +47,18 @@ var (
 
 // wellTypedTermCases returns the generated term cases of the seed that the compiler accepts, and the
 // number it rejected, which fails the test: the generator makes terms that are well typed by construction.
-func wellTypedTermCases(t *testing.T, seed uint64, n int, unset bool) (cases []gentest.TermCase, rejected int) {
+func wellTypedTermCases(t *testing.T, seed uint64, n int, unset bool) (cases []codegentest.TermCase, rejected int) {
 	t.Helper()
-	return wellTypedCases(t, gentest.TermCases(seed, n, unset))
+	return wellTypedCases(t, codegentest.TermCases(seed, n, unset))
 }
 
-// wellTypedWideTermCases is wellTypedTermCases for the terms of gentest.TermCasesWide.
-func wellTypedWideTermCases(t *testing.T, seed uint64, n int, unset bool) (cases []gentest.TermCase, rejected int) {
+// wellTypedWideTermCases is wellTypedTermCases for the terms of codegentest.TermCasesWide.
+func wellTypedWideTermCases(t *testing.T, seed uint64, n int, unset bool) (cases []codegentest.TermCase, rejected int) {
 	t.Helper()
-	return wellTypedCases(t, gentest.TermCasesWide(seed, n, unset))
+	return wellTypedCases(t, codegentest.TermCasesWide(seed, n, unset))
 }
 
-func wellTypedCases(t *testing.T, all []gentest.TermCase) (cases []gentest.TermCase, rejected int) {
+func wellTypedCases(t *testing.T, all []codegentest.TermCase) (cases []codegentest.TermCase, rejected int) {
 	t.Helper()
 	for _, c := range all {
 		g, err := parseTest(c.Src)
@@ -78,8 +78,8 @@ func wellTypedCases(t *testing.T, all []gentest.TermCase) (cases []gentest.TermC
 }
 
 // termSeedCases returns the well-typed terms of seed: the narrow terms for the seeds up to half, the
-// wide terms of gentest.TermCasesWide for the others, so that a test with 2*half seeds reads both.
-func termSeedCases(t *testing.T, seed, half uint64, unset bool) (cases []gentest.TermCase, rejected int) {
+// wide terms of codegentest.TermCasesWide for the others, so that a test with 2*half seeds reads both.
+func termSeedCases(t *testing.T, seed, half uint64, unset bool) (cases []codegentest.TermCase, rejected int) {
 	t.Helper()
 	if seed > half {
 		return wellTypedWideTermCases(t, seed-half, termDifferentialCases, unset)
@@ -87,8 +87,8 @@ func termSeedCases(t *testing.T, seed, half uint64, unset bool) (cases []gentest
 	return wellTypedTermCases(t, seed, termDifferentialCases, unset)
 }
 
-func termCaseList(cs []gentest.TermCase) []gentest.Case {
-	out := make([]gentest.Case, len(cs))
+func termCaseList(cs []codegentest.TermCase) []codegentest.Case {
+	out := make([]codegentest.Case, len(cs))
 	for i, c := range cs {
 		out[i] = c.Case
 	}
@@ -125,7 +125,7 @@ func TestTermEngineBackends(t *testing.T) {
 						var used uint64
 						n, err := prog.ParseWith("main", in, engine.ParseOptions{Backend: b, Unit: unit, Limits: core.Limits{Compute: 1 << 50},
 							Trace: func(e engine.TraceEvent) { used = ecore.TraceParser(e).Control.Used }})
-						got := gentest.ResultJSON(n, err)
+						got := codegentest.ResultJSON(n, err)
 						if used == 0 {
 							t.Errorf("%s: backend %d reports no charges", c.Name, b)
 						}
@@ -137,7 +137,7 @@ func TestTermEngineBackends(t *testing.T) {
 					}
 					for _, b := range []engine.Backend{engine.Bytecode, engine.BytecodeIterative} {
 						n, err := loaded.ParseWith("main", in, engine.ParseOptions{Backend: b, Unit: unit, Limits: core.Limits{Compute: 1 << 50}})
-						if got := gentest.ResultJSON(n, err); got != want {
+						if got := codegentest.ResultJSON(n, err); got != want {
 							t.Errorf("%s: input %q unit %d: loaded backend %d gives\n %s\nclosure gives\n %s", c.Name, in, unit, b, got, want)
 						}
 					}
@@ -151,21 +151,21 @@ func TestTermEngineBackends(t *testing.T) {
 // engine's value or error for every generated term, in both position units.
 func TestTermGeneratedTargets(t *testing.T) {
 	t.Parallel()
-	gentest.EachMode(t, testTermGeneratedTargets)
+	codegentest.EachMode(t, testTermGeneratedTargets)
 }
 
 func testTermGeneratedTargets(t *testing.T) {
 	if testing.Short() {
 		t.Skip("builds generated consumers")
 	}
-	list := func(unset bool) []gentest.Case {
-		var all []gentest.TermCase
+	list := func(unset bool) []codegentest.Case {
+		var all []codegentest.TermCase
 		for seed := uint64(1); seed <= 2*termGeneratedSeeds; seed++ {
 			cases, _ := termSeedCases(t, seed, termGeneratedSeeds, unset)
 			all = append(all, cases...)
 		}
 		// The fixed terms read every kind of member, whether or not the constructor set it.
-		cases := append(termCaseList(all), termCaseList(gentest.MemberTermCases())...)
+		cases := append(termCaseList(all), termCaseList(codegentest.MemberTermCases())...)
 		for i := range cases {
 			cases[i].Name = fmt.Sprintf("%d %s", i, cases[i].Name)
 		}
@@ -173,23 +173,23 @@ func testTermGeneratedTargets(t *testing.T) {
 	}
 	goBin := filepath.Join(runtime.GOROOT(), "bin", "go")
 	cases := list(true)
-	gentest.GeneratedParsersCorpus(t, goBin, cases, codegen.GenOptions{})
+	codegentest.GeneratedParsersCorpus(t, goBin, cases, codegen.GenOptions{})
 	if node, err := exec.LookPath("node"); err == nil {
-		gentest.TSParsersCorpus(t, node, cases, codegen.GenOptions{})
+		codegentest.TSParsersCorpus(t, node, cases, codegen.GenOptions{})
 	}
 	// A typed parser reads a field that a constructor leaves out as the zero value of its Type, like the
 	// others, so the typed comparison reads unset fields too.
-	gentest.GeneratedTypesCorpus(t, goBin, list(true), codegen.GenOptions{ConvertTypes: true}, 0)
+	codegentest.GeneratedTypesCorpus(t, goBin, list(true), codegen.GenOptions{ConvertTypes: true}, 0)
 }
 
-// TestTermFixedGeneratedTargets checks the fixed term sets of gentest (conversions, structs, casts,
+// TestTermFixedGeneratedTargets checks the fixed term sets of codegentest (conversions, structs, casts,
 // list and tuple values, iteration, pushes and scalar operators) on generated Go (node and typed) and generated
 // TypeScript: each gives the engine's value or error for every input, in both position units. The
 // generated terms of TestTermGeneratedTargets do not reach every form these sets pin, and the charge
 // goldens of the sets compare only the outcome, not the value.
 func TestTermFixedGeneratedTargets(t *testing.T) {
 	t.Parallel()
-	gentest.EachMode(t, testTermFixedGeneratedTargets)
+	codegentest.EachMode(t, testTermFixedGeneratedTargets)
 }
 
 func testTermFixedGeneratedTargets(t *testing.T) {
@@ -202,11 +202,11 @@ func testTermFixedGeneratedTargets(t *testing.T) {
 		cases[i].Name = fmt.Sprintf("%d %s", i, cases[i].Name)
 	}
 	goBin := filepath.Join(runtime.GOROOT(), "bin", "go")
-	gentest.GeneratedParsersCorpus(t, goBin, cases, codegen.GenOptions{})
+	codegentest.GeneratedParsersCorpus(t, goBin, cases, codegen.GenOptions{})
 	if node, err := exec.LookPath("node"); err == nil {
-		gentest.TSParsersCorpus(t, node, cases, codegen.GenOptions{})
+		codegentest.TSParsersCorpus(t, node, cases, codegen.GenOptions{})
 	}
-	gentest.GeneratedTypesCorpus(t, goBin, cases, codegen.GenOptions{ConvertTypes: true}, 0)
+	codegentest.GeneratedTypesCorpus(t, goBin, cases, codegen.GenOptions{ConvertTypes: true}, 0)
 }
 
 // TestTermDifferentialDetectsBrokenTargets is the negative control of TestTermGeneratedTargets: with an
@@ -215,7 +215,7 @@ func testTermFixedGeneratedTargets(t *testing.T) {
 // the comparison with the engine fails on some generated or fixed scalar term.
 func TestTermDifferentialDetectsBrokenTargets(t *testing.T) {
 	t.Parallel()
-	gentest.EachMode(t, testTermDifferentialDetectsBrokenTargets)
+	codegentest.EachMode(t, testTermDifferentialDetectsBrokenTargets)
 }
 
 func testTermDifferentialDetectsBrokenTargets(t *testing.T) {
@@ -224,7 +224,7 @@ func testTermDifferentialDetectsBrokenTargets(t *testing.T) {
 	}
 	cases, _ := wellTypedTermCases(t, 1, termDifferentialCases, true)
 	// The fixed scalar terms fail, short-circuit and compare texts, which the generated terms rarely do.
-	scalar, _ := wellTypedCases(t, gentest.ScalarTermCases())
+	scalar, _ := wellTypedCases(t, codegentest.ScalarTermCases())
 	list := termCaseList(append(cases, scalar...))
 	for i := range list {
 		list[i].Name = fmt.Sprintf("%d %s", i, list[i].Name)
@@ -248,7 +248,7 @@ func testTermDifferentialDetectsBrokenTargets(t *testing.T) {
 		{"lowered: a text equality is negated", `any(c.P.TextEqual(`, `any(!c.P.TextEqual(`},
 	} {
 		hits := 0
-		got := gentest.GeneratedParsersMismatches(t, goBin, list, codegen.GenOptions{}, func(code []byte) []byte {
+		got := codegentest.GeneratedParsersMismatches(t, goBin, list, codegen.GenOptions{}, func(code []byte) []byte {
 			s := string(code)
 			if n := strings.Count(s, m.from); n > 0 {
 				hits++
@@ -282,7 +282,7 @@ func testTermDifferentialDetectsBrokenTargets(t *testing.T) {
 		{"lowered: a logical operator always evaluates its right operand (||)", `if (tb`, `if (true || tb`},
 	} {
 		hits := 0
-		got := gentest.TSParsersMismatches(t, node, list, codegen.GenOptions{}, func(code string) string {
+		got := codegentest.TSParsersMismatches(t, node, list, codegen.GenOptions{}, func(code string) string {
 			if strings.Contains(code, m.from) {
 				hits++
 				code = strings.ReplaceAll(code, m.from, m.to)
@@ -306,16 +306,16 @@ func testTermDifferentialDetectsBrokenTargets(t *testing.T) {
 // fail. The control changes nothing and must find no mismatch.
 func TestTermConstructorsDetectBrokenTargets(t *testing.T) {
 	t.Parallel()
-	gentest.EachMode(t, testTermConstructorsDetectBrokenTargets)
+	codegentest.EachMode(t, testTermConstructorsDetectBrokenTargets)
 }
 
 func testTermConstructorsDetectBrokenTargets(t *testing.T) {
 	if testing.Short() {
 		t.Skip("builds generated consumers")
 	}
-	var all []gentest.TermCase
-	for _, set := range [][]gentest.TermCase{gentest.StructTermCases(), gentest.HullTermCases(), gentest.PushTermCases(),
-		gentest.CastTermCases()} {
+	var all []codegentest.TermCase
+	for _, set := range [][]codegentest.TermCase{codegentest.StructTermCases(), codegentest.HullTermCases(), codegentest.PushTermCases(),
+		codegentest.CastTermCases()} {
 		all = append(all, set...)
 	}
 	cases, _ := wellTypedCases(t, all)
@@ -346,7 +346,7 @@ func testTermConstructorsDetectBrokenTargets(t *testing.T) {
 		{"a struct ignores the ranges of its fields", `c.P.TermCover(`, `termCoverFirst(c.P, `},
 	} {
 		hits := 0
-		got := gentest.GeneratedParsersMismatches(t, goBin, list, codegen.GenOptions{}, func(code []byte) []byte {
+		got := codegentest.GeneratedParsersMismatches(t, goBin, list, codegen.GenOptions{}, func(code []byte) []byte {
 			s := string(code)
 			if strings.Contains(s, m.from) {
 				hits++
@@ -377,7 +377,7 @@ func testTermConstructorsDetectBrokenTargets(t *testing.T) {
 		{"a struct ignores the ranges of its fields", `return c.MadeOf(v, `, `return c.MadeOf(v) // `},
 	} {
 		hits := 0
-		got := gentest.GeneratedTypesMismatches(t, goBin, list, codegen.GenOptions{ConvertTypes: true}, func(code []byte) []byte {
+		got := codegentest.GeneratedTypesMismatches(t, goBin, list, codegen.GenOptions{ConvertTypes: true}, func(code []byte) []byte {
 			s := string(code)
 			if strings.Contains(s, m.from) {
 				hits++
@@ -401,7 +401,7 @@ func testTermConstructorsDetectBrokenTargets(t *testing.T) {
 		{"a struct ignores the ranges of its fields", `c.p.termCover(`, `((n: Node, v: Value, _f: boolean) => c.p.termCover(n, v, true))(`},
 	} {
 		hits := 0
-		got := gentest.TSParsersMismatches(t, node, list, codegen.GenOptions{}, func(code string) string {
+		got := codegentest.TSParsersMismatches(t, node, list, codegen.GenOptions{}, func(code string) string {
 			if strings.Contains(code, m.from) {
 				hits++
 				code = strings.ReplaceAll(code, m.from, m.to)
@@ -419,7 +419,7 @@ func testTermConstructorsDetectBrokenTargets(t *testing.T) {
 // mismatch.
 func TestTermIterationsDetectBrokenTargets(t *testing.T) {
 	t.Parallel()
-	gentest.EachMode(t, testTermIterationsDetectBrokenTargets)
+	codegentest.EachMode(t, testTermIterationsDetectBrokenTargets)
 }
 
 // iterMutantHelpers are the functions that the mutants of TestTermIterationsDetectBrokenTargets call in
@@ -441,7 +441,7 @@ func testTermIterationsDetectBrokenTargets(t *testing.T) {
 	if testing.Short() {
 		t.Skip("builds generated consumers")
 	}
-	cases, _ := wellTypedCases(t, gentest.IterTermCases())
+	cases, _ := wellTypedCases(t, codegentest.IterTermCases())
 	list := termCaseList(cases)
 	for i := range list {
 		list[i].Name = fmt.Sprintf("%d %s", i, list[i].Name)
@@ -500,12 +500,12 @@ func testTermIterationsDetectBrokenTargets(t *testing.T) {
 	goBin := filepath.Join(runtime.GOROOT(), "bin", "go")
 	for _, m := range append(goMutants, noList) {
 		hits := 0
-		got := gentest.GeneratedParsersMismatches(t, goBin, list, codegen.GenOptions{}, mutateGo(m, &hits))
+		got := codegentest.GeneratedParsersMismatches(t, goBin, list, codegen.GenOptions{}, mutateGo(m, &hits))
 		check("Go", m, hits, got)
 	}
 	for _, m := range append(goMutants, noList) {
 		hits := 0
-		got := gentest.GeneratedTypesMismatches(t, goBin, list, codegen.GenOptions{ConvertTypes: true}, mutateGo(m, &hits), 0)
+		got := codegentest.GeneratedTypesMismatches(t, goBin, list, codegen.GenOptions{ConvertTypes: true}, mutateGo(m, &hits), 0)
 		check("typed Go", m, hits, got)
 	}
 	node, err := exec.LookPath("node")
@@ -523,7 +523,7 @@ func testTermIterationsDetectBrokenTargets(t *testing.T) {
 		{"the map of a projected repetition makes no elements", `c.newList(`, `c.newList([]); void (`},
 	} {
 		hits := 0
-		got := gentest.TSParsersMismatches(t, node, list, codegen.GenOptions{}, func(code string) string {
+		got := codegentest.TSParsersMismatches(t, node, list, codegen.GenOptions{}, func(code string) string {
 			if strings.Contains(code, m.from) {
 				hits++
 				code = strings.ReplaceAll(code, m.from, m.to)
@@ -545,27 +545,27 @@ func testTermIterationsDetectBrokenTargets(t *testing.T) {
 // nothing, must find no mismatch.
 func TestTermLoweringOptionsDetectBrokenTargets(t *testing.T) {
 	t.Parallel()
-	gentest.EachMode(t, testTermLoweringOptionsDetectBrokenTargets)
+	codegentest.EachMode(t, testTermLoweringOptionsDetectBrokenTargets)
 }
 
 func testTermLoweringOptionsDetectBrokenTargets(t *testing.T) {
 	if testing.Short() {
 		t.Skip("builds generated consumers")
 	}
-	var literal []gentest.Case
-	for _, c := range gentest.GenCorpus(t) {
+	var literal []codegentest.Case
+	for _, c := range codegentest.GenCorpus(t) {
 		if strings.HasPrefix(c.Name, "literal text ") {
 			literal = append(literal, c)
 		}
 	}
-	fieldCompared := []gentest.Case{
-		{Name: "text fields", Src: gentest.TextCompareGrammar, Inputs: gentest.TextCompareInputs},
+	fieldCompared := []codegentest.Case{
+		{Name: "text fields", Src: codegentest.TextCompareGrammar, Inputs: codegentest.TextCompareInputs},
 		{Name: "arithmetic", Src: "type T = { S string; N int }\nrule main = t:item $$ => $t.N == $t.N * 2 - 3 && $t.S != \"y\"\n" +
 			"rule item T = s:[a-z] #atomic => T{S: text($s), N: 3}", Inputs: []string{"x", "y", ""}},
 	}
 	// A mutant replaces force, if any, by forced, and from by to.
 	type mutant struct{ name, force, forced, from, to string }
-	run := func(target string, cases []gentest.Case, m mutant, mismatches func(mutate func(string) string) []string) {
+	run := func(target string, cases []codegentest.Case, m mutant, mismatches func(mutate func(string) string) []string) {
 		hits := 0
 		got := mismatches(func(s string) string {
 			if !strings.Contains(s, m.from) || m.force != "" && !strings.Contains(s, m.force) {
@@ -602,7 +602,7 @@ func testTermLoweringOptionsDetectBrokenTargets(t *testing.T) {
 		{"a tested literal is not matched", goForce, goForced, ` == "a" ||`, ` == "\x00" ||`},
 	} {
 		run("Go", literal, m, func(mutate func(string) string) []string {
-			return gentest.GeneratedParsersMismatches(t, goBin, literal, codegen.GenOptions{}, goBytes(mutate))
+			return codegentest.GeneratedParsersMismatches(t, goBin, literal, codegen.GenOptions{}, goBytes(mutate))
 		})
 	}
 	for _, m := range []mutant{
@@ -613,7 +613,7 @@ func testTermLoweringOptionsDetectBrokenTargets(t *testing.T) {
 		{"minus becomes plus", "", "", `c.P.TermBinary(rt.OpSub,`, `c.P.TermBinary(rt.OpAdd,`},
 	} {
 		run("typed Go", fieldCompared, m, func(mutate func(string) string) []string {
-			return gentest.GeneratedTypesMismatches(t, goBin, fieldCompared, codegen.GenOptions{ConvertTypes: true}, goBytes(mutate), len(fieldCompared))
+			return codegentest.GeneratedTypesMismatches(t, goBin, fieldCompared, codegen.GenOptions{ConvertTypes: true}, goBytes(mutate), len(fieldCompared))
 		})
 	}
 	node, err := exec.LookPath("node")
@@ -630,24 +630,24 @@ func testTermLoweringOptionsDetectBrokenTargets(t *testing.T) {
 		{"a tested literal is not matched", "", "", ` === "a" ||`, ` === "\x00" ||`},
 	} {
 		run("TypeScript", literal, m, func(mutate func(string) string) []string {
-			return gentest.TSParsersMismatches(t, node, literal, codegen.GenOptions{}, mutate)
+			return codegentest.TSParsersMismatches(t, node, literal, codegen.GenOptions{}, mutate)
 		})
 	}
-	casts := gentest.CompareCases()
+	casts := codegentest.CompareCases()
 	for _, m := range []mutant{
 		{"control: unchanged", "", "", `c.p.termBinary(5,`, `c.p.termBinary(5,`},
 		{"a cast term's equality becomes not equal", "", "", `c.p.termBinary(5,`, `c.p.termBinary(6,`},
 		{"a cast term's and does not decide", "", "", `if (tb`, `if (!tb`},
 	} {
 		run("TypeScript", casts, m, func(mutate func(string) string) []string {
-			return gentest.TSParsersMismatches(t, node, casts, codegen.GenOptions{}, mutate)
+			return codegentest.TSParsersMismatches(t, node, casts, codegen.GenOptions{}, mutate)
 		})
 	}
 }
 
 // referenceTerm returns the term of the generated case: the action of the rule main, or the predicate
 // that precedes the optional "b".
-func referenceTerm(t *testing.T, c gentest.TermCase) grammar.Term {
+func referenceTerm(t *testing.T, c codegentest.TermCase) grammar.Term {
 	t.Helper()
 	g, err := parseTest(c.Src)
 	if err != nil {
@@ -673,7 +673,7 @@ func referenceTerm(t *testing.T, c gentest.TermCase) grammar.Term {
 	}
 	for _, d := range g.File.Decls {
 		if r, ok := d.(*grammar.RuleDef); ok && r.Name == "main" {
-			if c.Kind == gentest.TermAction {
+			if c.Kind == codegentest.TermAction {
 				return r.Action
 			}
 			walk(r.Expr)
@@ -709,7 +709,7 @@ func TestTermReferenceEvaluator(t *testing.T) {
 				env := &ref.TermEnv{Captures: map[string]ref.V{"x": ref.Node(ref.StringNode, c.Lit, 0, w, nil, nil)}, Bytes: unit == core.Bytes,
 					Start: 0, End: w, Line: 1, Col: 1, Zeros: referenceZeros(t, prog.Static(), "R", "Inner", "Leaf")}
 				in := c.Lit
-				if c.Kind == gentest.TermPredicate {
+				if c.Kind == codegentest.TermPredicate {
 					in += "b"
 				}
 				checkReference(t, c, prog, term, env, unit, in)
@@ -725,11 +725,11 @@ func TestTermReferenceEvaluator(t *testing.T) {
 // checkReference compares the engine's closure backend on the input in with the reference evaluator
 // in env: the value or the error of an action, and for a predicate, which precedes an optional "b",
 // whether the predicate held, by whether an input that ends in "b" parses.
-func checkReference(t *testing.T, c gentest.TermCase, prog *engine.Program, term grammar.Term, env *ref.TermEnv, unit core.PositionUnit, in string) {
+func checkReference(t *testing.T, c codegentest.TermCase, prog *engine.Program, term grammar.Term, env *ref.TermEnv, unit core.PositionUnit, in string) {
 	t.Helper()
 	v, msg := env.Eval(term)
 	n, err := prog.ParseWith("main", in, engine.ParseOptions{Backend: engine.Closure, Unit: unit})
-	if c.Kind == gentest.TermPredicate {
+	if c.Kind == codegentest.TermPredicate {
 		held := err == nil && n != nil
 		if want := !strings.HasSuffix(in, "b") || ref.Holds(v, msg); held != want {
 			t.Errorf("%s: input %q unit %d: the engine parses: %v, the reference evaluator: %v (%s)", c.Name, in, unit, held, want, msg)
@@ -743,20 +743,20 @@ func checkReference(t *testing.T, c gentest.TermCase, prog *engine.Program, term
 		want["node"] = env.Plain(v)
 	}
 	wantJSON, _ := json.Marshal(want)
-	got := gentest.ResultJSON(n, err)
+	got := codegentest.ResultJSON(n, err)
 	var gotAny, wantAny any
 	if json.Unmarshal([]byte(got), &gotAny) != nil || json.Unmarshal(wantJSON, &wantAny) != nil || !reflect.DeepEqual(gotAny, wantAny) {
 		t.Errorf("%s: input %q unit %d: the engine gives\n %s\nthe reference evaluator\n %s", c.Name, in, unit, got, wantJSON)
 	}
 }
 
-// fixedTermCases returns the fixed term sets of gentest other than the members, which
+// fixedTermCases returns the fixed term sets of codegentest other than the members, which
 // TestTermGeneratedTargets reads: conversions, structs, casts, list and tuple values, iteration, pushes
 // and scalar operators.
-func fixedTermCases() []gentest.TermCase {
-	var all []gentest.TermCase
-	for _, set := range [][]gentest.TermCase{gentest.ConvertTermCases(), gentest.StructTermCases(), gentest.CastTermCases(),
-		gentest.HullTermCases(), gentest.IterTermCases(), gentest.PushTermCases(), gentest.ScalarTermCases()} {
+func fixedTermCases() []codegentest.TermCase {
+	var all []codegentest.TermCase
+	for _, set := range [][]codegentest.TermCase{codegentest.ConvertTermCases(), codegentest.StructTermCases(), codegentest.CastTermCases(),
+		codegentest.HullTermCases(), codegentest.IterTermCases(), codegentest.PushTermCases(), codegentest.ScalarTermCases()} {
 		all = append(all, set...)
 	}
 	return all
@@ -771,7 +771,7 @@ func fixedTermCases() []gentest.TermCase {
 func TestTermFixedReference(t *testing.T) {
 	t.Parallel()
 	checked := 0
-	for _, c := range append(gentest.MemberTermCases(), fixedTermCases()...) {
+	for _, c := range append(codegentest.MemberTermCases(), fixedTermCases()...) {
 		g, err := parseTest(c.Src)
 		if err != nil {
 			t.Fatalf("%s: %v", c.Name, err)
@@ -810,7 +810,7 @@ func TestTermFixedReference(t *testing.T) {
 
 // referenceCaptures turns the captures of a fixed case, in characters of the input in, into nodes of the
 // reference evaluator in the position unit; a capture that did not match is left out.
-func referenceCaptures(caps map[string]gentest.Capture, in string, bytes bool) map[string]ref.V {
+func referenceCaptures(caps map[string]codegentest.Capture, in string, bytes bool) map[string]ref.V {
 	runes := []rune(in)
 	offset := func(i int) int {
 		if bytes {
@@ -818,11 +818,11 @@ func referenceCaptures(caps map[string]gentest.Capture, in string, bytes bool) m
 		}
 		return i
 	}
-	var node func(c gentest.Capture) ref.V
-	node = func(c gentest.Capture) ref.V {
-		shape := map[gentest.CaptureShape]ref.Shape{gentest.StringCapture: ref.StringNode, gentest.TupleCapture: ref.TupleNode,
-			gentest.ListCapture: ref.ListNode}
-		if c.Shape == gentest.Unmatched {
+	var node func(c codegentest.Capture) ref.V
+	node = func(c codegentest.Capture) ref.V {
+		shape := map[codegentest.CaptureShape]ref.Shape{codegentest.StringCapture: ref.StringNode, codegentest.TupleCapture: ref.TupleNode,
+			codegentest.ListCapture: ref.ListNode}
+		if c.Shape == codegentest.Unmatched {
 			return ref.Nil
 		}
 		var items []ref.V
@@ -833,7 +833,7 @@ func referenceCaptures(caps map[string]gentest.Capture, in string, bytes bool) m
 	}
 	out := map[string]ref.V{}
 	for name, c := range caps {
-		if c.Shape != gentest.Unmatched {
+		if c.Shape != codegentest.Unmatched {
 			out[name] = node(c)
 		}
 	}

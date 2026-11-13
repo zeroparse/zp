@@ -10,8 +10,8 @@ import (
 
 	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/codegen"
+	"zeroparse.dev/zp/internal/codegentest"
 	"zeroparse.dev/zp/internal/compile"
-	"zeroparse.dev/zp/internal/gentest"
 	"zeroparse.dev/zp/internal/ir/core"
 )
 
@@ -209,7 +209,7 @@ func TestCoreGuardsAreSound(t *testing.T) {
 	var guarded, skipped, checked, mutantBad, mutantGrammars int
 	var wg sync.WaitGroup
 	slots := make(chan struct{}, runtime.GOMAXPROCS(0))
-	for _, gc := range append(gentest.GenCorpus(t), gentest.GrammarCases(t)...) {
+	for _, gc := range append(codegentest.GenCorpus(t), codegentest.GrammarCases(t)...) {
 		if len(gc.Inputs) == 0 {
 			continue
 		}

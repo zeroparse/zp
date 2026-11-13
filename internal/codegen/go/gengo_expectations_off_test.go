@@ -10,7 +10,7 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/internal/codegen"
-	"zeroparse.dev/zp/internal/gentest"
+	"zeroparse.dev/zp/internal/codegentest"
 )
 
 // A parser generated without expectations, and one generated with them that a parse does not ask
@@ -19,7 +19,7 @@ import (
 // budget controls.
 func TestGeneratedWithoutExpectations(t *testing.T) {
 	t.Parallel()
-	gentest.EachMode(t, testGeneratedWithoutExpectations)
+	codegentest.EachMode(t, testGeneratedWithoutExpectations)
 }
 
 func testGeneratedWithoutExpectations(t *testing.T) {
@@ -45,7 +45,7 @@ rule main N = ("a" "b" "c") #atomic`
 	}
 	inputs := []string{"xy", "xz", "z", "(ab)", "(a", "ab;1x;cd;", "abc", "ab", "abd", "ab;cd;", ""}
 	dir := t.TempDir()
-	if err := os.WriteFile(filepath.Join(dir, "go.mod"), []byte(gentest.GoMod("gentest")), 0o644); err != nil {
+	if err := os.WriteFile(filepath.Join(dir, "go.mod"), []byte(codegentest.GoMod("codegentest")), 0o644); err != nil {
 		t.Fatal(err)
 	}
 	var imports, table strings.Builder
@@ -62,8 +62,8 @@ rule main N = ("a" "b" "c") #atomic`
 			if mode == "on" {
 				ask = pkg + ".WithExpectations()"
 			}
-			gentest.GeneratePackageRaw(t, dir, pkg, g, opts)
-			fmt.Fprintf(&imports, "\t%s \"gentest/%s\"\n", pkg, pkg)
+			codegentest.GeneratePackageRaw(t, dir, pkg, g, opts)
+			fmt.Fprintf(&imports, "\t%s \"codegentest/%s\"\n", pkg, pkg)
 			call := strings.ReplaceAll(f.call, "docParse(", "func(s string) (any, error) { d, err := "+pkg+".NewDocument(s"+opt(ask)+"); if err != nil { return nil, err }; return d.Parse() }(")
 			call = strings.ReplaceAll(call, "ParseValue(in)", pkg+".ParseValue(in"+opt(ask)+")")
 			if strings.HasPrefix(call, "Parse(in)") {
@@ -166,7 +166,7 @@ func quoteAll(ss []string) string {
 // descriptions of the expectations.
 func TestGeneratedRejectsExpectationsOption(t *testing.T) {
 	t.Parallel()
-	gentest.EachMode(t, testGeneratedRejectsExpectationsOption)
+	codegentest.EachMode(t, testGeneratedRejectsExpectationsOption)
 }
 
 func testGeneratedRejectsExpectationsOption(t *testing.T) {
@@ -180,25 +180,25 @@ rule main N = ("a" "b") #atomic`
 		t.Fatal(err)
 	}
 	dir := t.TempDir()
-	if err := os.WriteFile(filepath.Join(dir, "go.mod"), []byte(gentest.GoMod("gentest")), 0o644); err != nil {
+	if err := os.WriteFile(filepath.Join(dir, "go.mod"), []byte(codegentest.GoMod("codegentest")), 0o644); err != nil {
 		t.Fatal(err)
 	}
-	gentest.GeneratePackageRaw(t, dir, "off", g, codegen.GenOptions{Start: "main", Types: true, Document: true})
+	codegentest.GeneratePackageRaw(t, dir, "off", g, codegen.GenOptions{Start: "main", Types: true, Document: true})
 	gs, err := parseTest("rule main = ^^ items:item* #stream $$\nrule item = \"a\\n\"")
 	if err != nil {
 		t.Fatal(err)
 	}
-	gentest.GeneratePackageRaw(t, dir, "offs", gs, codegen.GenOptions{Start: "main", Stream: true})
-	gentest.GeneratePackageRaw(t, dir, "avail", g, codegen.GenOptions{Start: "main", Types: true, Document: true, Expectations: true})
+	codegentest.GeneratePackageRaw(t, dir, "offs", gs, codegen.GenOptions{Start: "main", Stream: true})
+	codegentest.GeneratePackageRaw(t, dir, "avail", g, codegen.GenOptions{Start: "main", Types: true, Document: true, Expectations: true})
 	main := `package main
 
 import (
 	"fmt"
 	"strings"
 
-	avail "gentest/avail"
-	off "gentest/off"
-	offs "gentest/offs"
+	avail "codegentest/avail"
+	off "codegentest/off"
+	offs "codegentest/offs"
 	rt "zeroparse.dev/zp/codegen/go/lib"
 )
 

@@ -8,8 +8,8 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/core"
+	"zeroparse.dev/zp/internal/codegentest"
 	"zeroparse.dev/zp/internal/compile"
-	"zeroparse.dev/zp/internal/gentest"
 	"zeroparse.dev/zp/internal/value"
 )
 
@@ -17,7 +17,7 @@ import (
 // engine on all the test grammars and examples.
 func TestBackendsMatchOnCorpus(t *testing.T) {
 	t.Parallel()
-	for _, c := range gentest.GenCorpus(t) {
+	for _, c := range codegentest.GenCorpus(t) {
 		t.Run(c.Name, func(t *testing.T) {
 			for _, o := range []compile.Options{{}, {DisableMemo: true}} {
 				prog := mustCompile(t, c.Src, o)
@@ -31,7 +31,7 @@ func TestBackendsMatchOnCorpus(t *testing.T) {
 				for _, u := range []core.PositionUnit{core.CodePoints, core.Bytes} {
 					n1, err1 := prog.ParseWith("main", in, ParseOptions{Expectations: true, Unit: u})
 					n2, err2 := plain.ParseWith("main", in, ParseOptions{Expectations: true, Unit: u})
-					if a, b := gentest.ResultJSON(n1, err1), gentest.ResultJSON(n2, err2); a != b {
+					if a, b := codegentest.ResultJSON(n1, err1), codegentest.ResultJSON(n2, err2); a != b {
 						t.Errorf("input %q (%v): projected repetitions differ\n projected %s\n plain     %s", in, u, a, b)
 					}
 				}
@@ -43,7 +43,7 @@ func TestBackendsMatchOnCorpus(t *testing.T) {
 // TestBackendsMatchOnStream checks that stream parsing also yields the same elements and errors.
 func TestBackendsMatchOnStream(t *testing.T) {
 	t.Parallel()
-	prog := mustCompile(t, gentest.Records)
+	prog := mustCompile(t, codegentest.Records)
 	inputs := []string{"#records\na=1\nbc=22\n", "#records\na=1\nb\n", "#rec"}
 	for _, in := range inputs {
 		for _, u := range []core.PositionUnit{core.CodePoints, core.Bytes} {

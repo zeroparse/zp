@@ -4,8 +4,8 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/engine"
-	gtermsheavy "zeroparse.dev/zp/internal/bench/gen/termsheavy"
-	gtermspred "zeroparse.dev/zp/internal/bench/gen/termspred"
+	gtermsheavy "zeroparse.dev/zp/internal/bench/parsers/termsheavy"
+	gtermspred "zeroparse.dev/zp/internal/bench/parsers/termspred"
 	"zeroparse.dev/zp/internal/bench/inputs"
 )
 

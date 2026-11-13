@@ -8,8 +8,8 @@ import (
 
 	"zeroparse.dev/zp/core"
 	"zeroparse.dev/zp/engine"
-	gjson "zeroparse.dev/zp/internal/bench/gen/json"
-	gxml "zeroparse.dev/zp/internal/bench/gen/xml"
+	gjson "zeroparse.dev/zp/internal/bench/parsers/json"
+	gxml "zeroparse.dev/zp/internal/bench/parsers/xml"
 )
 
 // BenchmarkControlledParse uses finite but effectively inexhaustible counters

@@ -10,8 +10,8 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/core"
+	"zeroparse.dev/zp/internal/codegentest"
 	"zeroparse.dev/zp/internal/compile"
-	"zeroparse.dev/zp/internal/gentest"
 )
 
 func TestBudgetLazyClosureAdmission(t *testing.T) {
@@ -99,7 +99,7 @@ rule expr = #operators {
 					t.Fatal(err)
 				}
 				fresh, err := prog.ParseWith("main", d.Text(), o)
-				if gentest.ResultJSON(got, nil) != gentest.ResultJSON(fresh, err) {
+				if codegentest.ResultJSON(got, nil) != codegentest.ResultJSON(fresh, err) {
 					t.Fatal("Document graph switch changed output")
 				}
 				if err := d.Edit(0, 1, "a"); err != nil {
@@ -114,7 +114,7 @@ rule expr = #operators {
 				o := ParseOptions{Unit: unit, Limits: limits}
 				got, gotErr := d.ParseWith(o)
 				fresh, freshErr := prog.ParseWith("main", d.Text(), o)
-				if gotErr == nil || gentest.ResultJSON(got, gotErr) != gentest.ResultJSON(fresh, freshErr) {
+				if gotErr == nil || codegentest.ResultJSON(got, gotErr) != codegentest.ResultJSON(fresh, freshErr) {
 					t.Fatalf("resumed diagnostics differ: %v / %v", gotErr, freshErr)
 				}
 			}

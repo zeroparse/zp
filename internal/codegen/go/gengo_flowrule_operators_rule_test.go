@@ -8,12 +8,12 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/internal/codegen"
-	"zeroparse.dev/zp/internal/gentest"
+	"zeroparse.dev/zp/internal/codegentest"
 )
 
 func TestGeneratedTypedOperatorsRuleBodies(t *testing.T) {
 	t.Parallel()
-	gentest.EachMode(t, testGeneratedTypedOperatorsRuleBodies)
+	codegentest.EachMode(t, testGeneratedTypedOperatorsRuleBodies)
 }
 
 func testGeneratedTypedOperatorsRuleBodies(t *testing.T) {
@@ -24,16 +24,16 @@ func testGeneratedTypedOperatorsRuleBodies(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	cases := append([]gentest.Case(nil), gentest.TypedOperatorsRuleBodyCases...)
-	cases = append(cases, gentest.Case{Name: "typed/OperatorsRule_calculator", Src: string(calculator), Inputs: []string{"1", "1+2*3", "2^3^4", "-(1+2)", "1+", "(1+2", "é", ""}})
-	cases = append(cases, gentest.PrefixPartCutCorpus())
+	cases := append([]codegentest.Case(nil), codegentest.TypedOperatorsRuleBodyCases...)
+	cases = append(cases, codegentest.Case{Name: "typed/OperatorsRule_calculator", Src: string(calculator), Inputs: []string{"1", "1+2*3", "2^3^4", "-(1+2)", "1+", "(1+2", "é", ""}})
+	cases = append(cases, codegentest.PrefixPartCutCorpus())
 	for _, c := range cases {
 		g, err := parseTest(c.Src)
 		if err != nil {
 			t.Fatalf("%s: %v", c.Name, err)
 		}
 		opts := codegen.GenOptions{Package: "operatorsRulebody", Start: "main", Types: true, Recognize: true}
-		code, err := gentest.GenerateCode(t, g, opts)
+		code, err := codegentest.GenerateCode(t, g, opts)
 		if err != nil {
 			t.Fatalf("%s: %v", c.Name, err)
 		}
@@ -50,6 +50,6 @@ func testGeneratedTypedOperatorsRuleBodies(t *testing.T) {
 		}
 	}
 	goBin := filepath.Join(runtime.GOROOT(), "bin", "go")
-	gentest.GeneratedTypesCorpus(t, goBin, cases, codegen.GenOptions{})
-	gentest.GeneratedTypesCorpus(t, goBin, cases, codegen.GenOptions{ConvertTypes: true})
+	codegentest.GeneratedTypesCorpus(t, goBin, cases, codegen.GenOptions{})
+	codegentest.GeneratedTypesCorpus(t, goBin, cases, codegen.GenOptions{ConvertTypes: true})
 }

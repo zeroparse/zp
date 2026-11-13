@@ -5,20 +5,20 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/core"
+	"zeroparse.dev/zp/internal/codegentest"
 	"zeroparse.dev/zp/internal/compile"
-	"zeroparse.dev/zp/internal/gentest"
 )
 
 func TestCompareAcrossBackends(t *testing.T) {
 	t.Parallel()
-	for _, fixture := range gentest.CompareCases() {
+	for _, fixture := range codegentest.CompareCases() {
 		t.Run(fixture.Name, func(t *testing.T) {
 			program := mustCompile(t, fixture.Src)
 			for _, unit := range []core.PositionUnit{core.CodePoints, core.Bytes} {
 				for _, input := range fixture.Inputs {
-					baseline := gentest.ResultJSON(program.ParseWith("main", input, ParseOptions{Backend: Closure, Unit: unit}))
+					baseline := codegentest.ResultJSON(program.ParseWith("main", input, ParseOptions{Backend: Closure, Unit: unit}))
 					for _, backend := range []Backend{Bytecode, BytecodeIterative} {
-						actual := gentest.ResultJSON(program.ParseWith("main", input, ParseOptions{Backend: backend, Unit: unit}))
+						actual := codegentest.ResultJSON(program.ParseWith("main", input, ParseOptions{Backend: backend, Unit: unit}))
 						if actual != baseline {
 							t.Fatalf("%s/%s input=%q: %s / %s", backend, unit, input, actual, baseline)
 						}
@@ -35,7 +35,7 @@ func TestCompareValues(t *testing.T) {
 	t.Parallel()
 	const hint = "nodes and other structured values cannot be compared; use text(x), or .Start and .End"
 	byName := map[string]string{}
-	for _, fixture := range gentest.CompareCases() {
+	for _, fixture := range codegentest.CompareCases() {
 		byName[fixture.Name] = fixture.Src
 	}
 	for _, tc := range []struct{ name, input, want string }{
@@ -65,7 +65,7 @@ func TestCompareValues(t *testing.T) {
 	} {
 		program := mustCompile(t, byName[tc.name])
 		for _, backend := range []Backend{Closure, Bytecode, BytecodeIterative} {
-			got := gentest.ResultJSON(program.ParseWith("main", tc.input, ParseOptions{Backend: backend}))
+			got := codegentest.ResultJSON(program.ParseWith("main", tc.input, ParseOptions{Backend: backend}))
 			if !strings.Contains(got, tc.want) {
 				t.Errorf("%s %q on %s: %s, want %s", tc.name, tc.input, backend, got, tc.want)
 			}

@@ -5,7 +5,7 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/internal/codegen"
-	"zeroparse.dev/zp/internal/gentest"
+	"zeroparse.dev/zp/internal/codegentest"
 )
 
 // TestGeneratedTSCallProtocolMatchesEngine compares the results and errors of TypeScript parsers
@@ -19,5 +19,5 @@ func TestGeneratedTSCallProtocolMatchesEngine(t *testing.T) {
 	if err != nil {
 		t.Skip("node not found")
 	}
-	gentest.TSParsersCorpus(t, node, gentest.CallProtocolCases(), codegen.GenOptions{})
+	codegentest.TSParsersCorpus(t, node, codegentest.CallProtocolCases(), codegen.GenOptions{})
 }

@@ -13,8 +13,8 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/core"
+	"zeroparse.dev/zp/internal/codegentest"
 	ecore "zeroparse.dev/zp/internal/engine/core"
-	"zeroparse.dev/zp/internal/gentest"
 	"zeroparse.dev/zp/internal/value"
 )
 
@@ -64,7 +64,7 @@ func (r *budgetStreamReader) Close() error { r.closed = true; return nil }
 
 func TestBudgetStreamAdmission(t *testing.T) {
 	t.Parallel()
-	prog := mustCompile(t, gentest.Records)
+	prog := mustCompile(t, codegentest.Records)
 	budgetStreamVariants(t, func(t *testing.T, o ParseOptions) {
 		ctx, cancel := context.WithCancel(context.Background())
 		cancel()
@@ -101,7 +101,7 @@ func TestBudgetStreamAdmission(t *testing.T) {
 
 func TestBudgetStreamUnlimitedParity(t *testing.T) {
 	t.Parallel()
-	prog := mustCompile(t, gentest.Records)
+	prog := mustCompile(t, codegentest.Records)
 	budgetStreamVariants(t, func(t *testing.T, base ParseOptions) {
 		for _, text := range []string{"#records\na=1\nbc=22\n", "#records\na=1\nbad=x\n"} {
 			for _, withError := range []bool{false, true} {
@@ -119,7 +119,7 @@ func TestBudgetStreamUnlimitedParity(t *testing.T) {
 					if withError {
 						r.err = stop
 					}
-					errs[i] = prog.ParseStreamWith("main", r, func(n *core.Node) error { results[i] = append(results[i], gentest.ResultJSON(n, nil)); return nil }, o)
+					errs[i] = prog.ParseStreamWith("main", r, func(n *core.Node) error { results[i] = append(results[i], codegentest.ResultJSON(n, nil)); return nil }, o)
 				}
 				if !reflect.DeepEqual(results[0], results[1]) || fmt.Sprint(errs[0]) != fmt.Sprint(errs[1]) {
 					t.Fatalf("controlled results/errors differ: %v %v; %v %v", results[0], errs[0], results[1], errs[1])
@@ -137,7 +137,7 @@ func TestBudgetStreamUnlimitedParity(t *testing.T) {
 
 func TestBudgetStreamReaderErrorPrecedence(t *testing.T) {
 	t.Parallel()
-	prog := mustCompile(t, gentest.Records)
+	prog := mustCompile(t, codegentest.Records)
 	budgetStreamVariants(t, func(t *testing.T, base ParseOptions) {
 		for _, dataError := range []bool{false, true} {
 			t.Run(fmt.Sprintf("data=%t", dataError), func(t *testing.T) {
@@ -170,7 +170,7 @@ func TestBudgetStreamReaderErrorPrecedence(t *testing.T) {
 
 func TestBudgetStreamEmitPrecedenceAndOwnership(t *testing.T) {
 	t.Parallel()
-	prog := mustCompile(t, gentest.Records)
+	prog := mustCompile(t, codegentest.Records)
 	budgetStreamVariants(t, func(t *testing.T, base ParseOptions) {
 		for _, fail := range []bool{false, true} {
 			ctx, cancel := context.WithCancel(context.Background())
@@ -183,7 +183,7 @@ func TestBudgetStreamEmitPrecedenceAndOwnership(t *testing.T) {
 			err := prog.ParseStreamWith("main", strings.NewReader("#records\na=1\nbc=22\n"), func(n *core.Node) error {
 				count++
 				node = n
-				snapshot = gentest.ResultJSON(n, nil)
+				snapshot = codegentest.ResultJSON(n, nil)
 				cancel()
 				if fail {
 					return stop
@@ -195,10 +195,10 @@ func TestBudgetStreamEmitPrecedenceAndOwnership(t *testing.T) {
 			if fail {
 				want = stop
 			}
-			if err != want || count != 1 || node == nil || gentest.ResultJSON(node, nil) != snapshot {
-				t.Fatalf("error=%v emits=%d snapshot changed=%t", err, count, gentest.ResultJSON(node, nil) != snapshot)
+			if err != want || count != 1 || node == nil || codegentest.ResultJSON(node, nil) != snapshot {
+				t.Fatalf("error=%v emits=%d snapshot changed=%t", err, count, codegentest.ResultJSON(node, nil) != snapshot)
 			}
-			if err := prog.ParseStreamWith("main", strings.NewReader("#records\nxy=3\n"), func(*core.Node) error { return nil }, base); err != nil || gentest.ResultJSON(node, nil) != snapshot {
+			if err := prog.ParseStreamWith("main", strings.NewReader("#records\nxy=3\n"), func(*core.Node) error { return nil }, base); err != nil || codegentest.ResultJSON(node, nil) != snapshot {
 				t.Fatalf("fresh replay error=%v", err)
 			}
 		}
@@ -225,7 +225,7 @@ func (r *budgetStreamGatedReader) Close() error { r.closed = true; return nil }
 
 func TestBudgetStreamBlockedReaderCooperation(t *testing.T) {
 	t.Parallel()
-	prog := mustCompile(t, gentest.Records)
+	prog := mustCompile(t, codegentest.Records)
 	budgetStreamVariants(t, func(t *testing.T, o ParseOptions) {
 		ctx, cancel := context.WithCancel(context.Background())
 		defer cancel()
@@ -251,7 +251,7 @@ func TestBudgetStreamBlockedReaderCooperation(t *testing.T) {
 
 func TestBudgetStreamLimitsAndCallerPanics(t *testing.T) {
 	t.Parallel()
-	prog := mustCompile(t, gentest.Records)
+	prog := mustCompile(t, codegentest.Records)
 	budgetStreamVariants(t, func(t *testing.T, base ParseOptions) {
 		for _, kind := range []core.LimitKind{core.LimitCompute, core.LimitCompute} {
 			o := base
@@ -415,7 +415,7 @@ func TestBudgetStreamCommitReservations(t *testing.T) {
 
 func TestBudgetStreamCommitAfterDelivery(t *testing.T) {
 	t.Parallel()
-	prog := mustCompile(t, gentest.Records)
+	prog := mustCompile(t, codegentest.Records)
 	budgetStreamVariants(t, func(t *testing.T, o ParseOptions) {
 		o.Limits.Compute = 1 << 20
 		var saved TraceEvent
@@ -432,7 +432,7 @@ func TestBudgetStreamCommitAfterDelivery(t *testing.T) {
 		err := prog.ParseStreamWith("main", strings.NewReader("#records\na=1\nbc=22\n"), func(n *core.Node) error {
 			count++
 			node = n
-			before = gentest.ResultJSON(n, nil)
+			before = codegentest.ResultJSON(n, nil)
 			p := ecore.TraceParser(saved)
 			controller = p.Control
 			// Force the normal inactive-capacity clear at the next commit.
@@ -497,13 +497,13 @@ func TestBudgetStreamCommitAfterDelivery(t *testing.T) {
 			t.Fatalf("normal commit interruption error=%v emits=%d", err, count)
 		}
 		assertTraceParserDetached(t, ecore.TraceParser(saved), false)
-		if node == nil || gentest.ResultJSON(node, nil) != before {
+		if node == nil || codegentest.ResultJSON(node, nil) != before {
 			t.Fatal("commit changed emitted Node")
 		}
 		o.Limits = core.Limits{}
 		o.Trace = nil
 		replay := 0
-		if err := prog.ParseStreamWith("main", strings.NewReader("#records\na=1\nbc=22\n"), func(*core.Node) error { replay++; return nil }, o); err != nil || replay != 2 || gentest.ResultJSON(node, nil) != before {
+		if err := prog.ParseStreamWith("main", strings.NewReader("#records\na=1\nbc=22\n"), func(*core.Node) error { replay++; return nil }, o); err != nil || replay != 2 || codegentest.ResultJSON(node, nil) != before {
 			t.Fatalf("fresh replay error=%v emits=%d", err, replay)
 		}
 	})
@@ -602,7 +602,7 @@ func TestBudgetStreamVMFaultAttribution(t *testing.T) {
 
 func TestBudgetStreamConcurrentCounters(t *testing.T) {
 	t.Parallel()
-	prog := mustCompile(t, gentest.Records)
+	prog := mustCompile(t, codegentest.Records)
 	budgetStreamVariants(t, func(t *testing.T, base ParseOptions) {
 		ctx, cancel := context.WithCancel(context.Background())
 		defer cancel()

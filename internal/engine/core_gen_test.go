@@ -14,8 +14,8 @@ import (
 	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/codegen"
 	"zeroparse.dev/zp/internal/codegen/go"
+	"zeroparse.dev/zp/internal/codegentest"
 	"zeroparse.dev/zp/internal/compile"
-	"zeroparse.dev/zp/internal/gentest"
 	"zeroparse.dev/zp/internal/ir/core"
 	irbuild "zeroparse.dev/zp/internal/ir/core/build"
 )
@@ -87,7 +87,7 @@ func coreGenerate(src string, opts codegen.GenOptions) (*gogen.Generator, bool) 
 	var gen *gogen.Generator
 	h := &gogen.Hooks{Generator: func(x *gogen.Generator) { gen = x }}
 	opts.Module = "example.com/p"
-	if _, err := gogen.GenerateParser(g, compileForGenerator, gentest.WithLib(opts), h); err != nil || gen == nil {
+	if _, err := gogen.GenerateParser(g, compileForGenerator, codegentest.WithLib(opts), h); err != nil || gen == nil {
 		return nil, false
 	}
 	return gen, true
@@ -154,7 +154,7 @@ func coreGenerations(t *testing.T, mode coreGenMode) []coreGenerated1 {
 	if out, ok := coreGenerated[mode.name]; ok {
 		return out
 	}
-	cases := append(gentest.CorpusWithParsers(t), gentest.CoreExtraGrammars...)
+	cases := append(codegentest.CorpusWithParsers(t), codegentest.CoreExtraGrammars...)
 	gens := make([]*gogen.Generator, len(cases))
 	var wg sync.WaitGroup
 	sem := make(chan struct{}, runtime.GOMAXPROCS(0))
@@ -385,7 +385,7 @@ func compareCoreDecisions(c *coreGenCase, n *coreDecisionCounts) []string {
 	for _, e := range c.passErrs {
 		errs = append(errs, "verify: "+e)
 	}
-	if !*gentest.UpdateGoldens {
+	if !*codegentest.UpdateGoldens {
 		c.golden.read()
 		want, ok := c.golden.lines[decisionsKey{c.mode, c.name}]
 		if !ok {

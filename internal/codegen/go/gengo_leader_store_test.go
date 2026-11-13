@@ -11,17 +11,17 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/internal/codegen"
-	"zeroparse.dev/zp/internal/gentest"
+	"zeroparse.dev/zp/internal/codegentest"
 )
 
 // TestGeneratedLeaderStore checks that a growth of a leader in a generated Go parser stores its
 // result inside a lookahead and outside one, as the engine does (Evaluations of Rules in
 // spec/runtime/parsing.md): Parse, ParseValue and Recognize, without and with limit controls,
-// evaluate the leader e of gentest.LeaderStoreCases as often as the growths that the memo allows
+// evaluate the leader e of codegentest.LeaderStoreCases as often as the growths that the memo allows
 // take steps.
 func TestGeneratedLeaderStore(t *testing.T) {
 	t.Parallel()
-	gentest.EachMode(t, testGeneratedLeaderStore)
+	codegentest.EachMode(t, testGeneratedLeaderStore)
 }
 
 func testGeneratedLeaderStore(t *testing.T) {
@@ -33,17 +33,17 @@ func testGeneratedLeaderStore(t *testing.T) {
 		t.Skip("go command not found")
 	}
 	dir := t.TempDir()
-	if err := os.WriteFile(filepath.Join(dir, "go.mod"), []byte(gentest.GoMod("gentest")), 0o644); err != nil {
+	if err := os.WriteFile(filepath.Join(dir, "go.mod"), []byte(codegentest.GoMod("codegentest")), 0o644); err != nil {
 		t.Fatal(err)
 	}
-	cases := gentest.LeaderStoreCases()
+	cases := codegentest.LeaderStoreCases()
 	var imports, calls strings.Builder
 	for i, c := range cases {
 		in := strconv.Quote(c.Input)
 		// g has no limit controls; l has them, under the default limits.
 		for _, pkg := range []string{fmt.Sprintf("g%d", i), fmt.Sprintf("l%d", i)} {
-			gentest.GeneratePackage(t, dir, pkg, mustParse(c.Src), codegen.GenOptions{Start: "main", Types: true, Recognize: true, Observability: true, LimitControls: pkg[0] == 'l'})
-			fmt.Fprintf(&imports, "\t%q\n", "gentest/"+pkg)
+			codegentest.GeneratePackage(t, dir, pkg, mustParse(c.Src), codegen.GenOptions{Start: "main", Types: true, Recognize: true, Observability: true, LimitControls: pkg[0] == 'l'})
+			fmt.Fprintf(&imports, "\t%q\n", "codegentest/"+pkg)
 			for _, op := range []string{"_, _ = %s.Parse(%s, zprt.WithProfile(&p))", "_, _ = %s.ParseValue(%s, zprt.WithProfile(&p))", "_ = %s.Recognize(%s, zprt.WithProfile(&p))"} {
 				fmt.Fprintf(&calls, "\t{ var p zprt.Profile; "+op+"; fmt.Print(evals(p), \" \") }\n", pkg, in)
 			}

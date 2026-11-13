@@ -7,7 +7,7 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/internal/codegen"
-	"zeroparse.dev/zp/internal/gentest"
+	"zeroparse.dev/zp/internal/codegentest"
 )
 
 // The default budget of a generated stream follows the furthest position the parser demands, so that
@@ -16,7 +16,7 @@ import (
 // again and keep the spend below the default budget.
 func TestGeneratedStreamDefaultBudgetIgnoresChunking(t *testing.T) {
 	t.Parallel()
-	gentest.NeedsBudgetControls(t)
+	codegentest.NeedsBudgetControls(t)
 	if testing.Short() {
 		t.Skip("builds a generated standalone stream consumer")
 	}
@@ -28,13 +28,13 @@ rule q = ""`)
 	if err != nil {
 		t.Fatal(err)
 	}
-	code, err := gentest.GenerateCode(t, g, codegen.GenOptions{Package: "fixture", Start: "main", Stream: true})
+	code, err := codegentest.GenerateCode(t, g, codegen.GenOptions{Package: "fixture", Start: "main", Stream: true})
 	if err != nil {
 		t.Fatal(err)
 	}
 	dir := t.TempDir()
 	for name, source := range map[string]string{
-		"go.mod":         gentest.GoMod("fixture"),
+		"go.mod":         codegentest.GoMod("fixture"),
 		"parser.go":      string(code),
 		"parser_test.go": generatedStreamDefaultBudgetConsumer,
 	} {

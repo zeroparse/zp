@@ -10,7 +10,7 @@ import (
 	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/codegen"
 	"zeroparse.dev/zp/internal/codegen/ts"
-	"zeroparse.dev/zp/internal/gentest"
+	"zeroparse.dev/zp/internal/codegentest"
 )
 
 // tsStrictFlags are the strictest checks there are, so that generated code compiles in any project;
@@ -91,7 +91,7 @@ process.stdout.write("ok\n");
 			t.Fatalf("tsc: %v\n%s", err, out)
 		}
 		// Node.js runs the files as generated, by type stripping, with no resolve hook.
-		cmd = exec.Command(node, gentest.NodeTSArgs("consumer.ts")...)
+		cmd = exec.Command(node, codegentest.NodeTSArgs("consumer.ts")...)
 		cmd.Dir = dir
 		if out, err := cmd.CombinedOutput(); err != nil || strings.TrimSpace(string(out)) != "ok" {
 			t.Fatalf("node: %v\n%s", err, out)
@@ -112,7 +112,7 @@ process.stdout.write("ok\n");
 		}
 	}
 	t.Run("embed", func(t *testing.T) {
-		files, err := gentest.GenerateTS(g, codegen.GenOptions{Start: "main", Types: true, Recognize: true})
+		files, err := codegentest.GenerateTS(g, codegen.GenOptions{Start: "main", Types: true, Recognize: true})
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -129,7 +129,7 @@ process.stdout.write("ok\n");
 	})
 	t.Run("import", func(t *testing.T) {
 		// The library lives in a directory of its own, as a project that shares one library keeps it.
-		files, err := gentest.GenerateTS(g, codegen.GenOptions{Start: "main", Types: true, Lib: codegen.LibImport, LibModule: "./shared/rt.ts"})
+		files, err := codegentest.GenerateTS(g, codegen.GenOptions{Start: "main", Types: true, Lib: codegen.LibImport, LibModule: "./shared/rt.ts"})
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -155,7 +155,7 @@ process.stdout.write("ok\n");
 			g    *grammar.Grammar
 			opts codegen.GenOptions
 		}{{g, codegen.GenOptions{Start: "main", Types: true}}, {g2, codegen.GenOptions{Start: "main", Observability: true}}} {
-			files, err := gentest.GenerateTSRaw(gr.g, gr.opts)
+			files, err := codegentest.GenerateTSRaw(gr.g, gr.opts)
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -183,7 +183,7 @@ func TestGeneratedTSReservedTypes(t *testing.T) {
 			t.Errorf("type %s: %v", name, err)
 			continue
 		}
-		_, err = gentest.GenerateTS(g, codegen.GenOptions{Start: "main", Types: true})
+		_, err = codegentest.GenerateTS(g, codegen.GenOptions{Start: "main", Types: true})
 		if err == nil || !strings.Contains(err.Error(), name) || !strings.Contains(err.Error(), "reserved") {
 			t.Errorf("type %s: error %v", name, err)
 		}
@@ -219,7 +219,7 @@ func runTSSplit(t *testing.T, src string, opts codegen.GenOptions, consumer stri
 	if err != nil {
 		t.Fatal(err)
 	}
-	files, err := gentest.GenerateTS(g, opts)
+	files, err := codegentest.GenerateTS(g, opts)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -233,7 +233,7 @@ func runTSSplit(t *testing.T, src string, opts codegen.GenOptions, consumer stri
 	if out, err := cmd.CombinedOutput(); err != nil {
 		t.Fatalf("tsc: %v\n%s", err, out)
 	}
-	cmd = exec.Command(node, gentest.NodeTSArgs("consumer.ts")...)
+	cmd = exec.Command(node, codegentest.NodeTSArgs("consumer.ts")...)
 	cmd.Dir = dir
 	if out, err := cmd.CombinedOutput(); err != nil || strings.TrimSpace(string(out)) != "ok" {
 		t.Fatalf("node: %v\n%s", err, out)
@@ -286,7 +286,7 @@ process.stdout.write("ok\n");
 // libFiles returns the file of the TypeScript library alone, as LibOnly generates it.
 func libFiles(t testing.TB) []codegen.GeneratedFile {
 	t.Helper()
-	files, err := tsgen.LibFiles(gentest.TSLibSource())
+	files, err := tsgen.LibFiles(codegentest.TSLibSource())
 	if err != nil {
 		t.Fatal(err)
 	}

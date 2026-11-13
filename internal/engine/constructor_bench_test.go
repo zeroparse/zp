@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"testing"
 
+	"zeroparse.dev/zp/internal/codegentest"
 	"zeroparse.dev/zp/internal/compile"
-	"zeroparse.dev/zp/internal/gentest"
 )
 
 // BenchmarkNodeListConstruction compares explicit element types with the
@@ -32,7 +32,7 @@ func BenchmarkNodeListConstruction(b *testing.B) {
 					if err != nil {
 						b.Fatal(err)
 					}
-					got := gentest.ResultJSON(n, nil)
+					got := codegentest.ResultJSON(n, nil)
 					if want == "" {
 						want = got
 					} else if got != want {

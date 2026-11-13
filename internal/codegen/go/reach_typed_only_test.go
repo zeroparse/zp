@@ -6,7 +6,7 @@ import (
 
 	"zeroparse.dev/zp/internal/codegen"
 	"zeroparse.dev/zp/internal/codegen/go"
-	"zeroparse.dev/zp/internal/gentest"
+	"zeroparse.dev/zp/internal/codegentest"
 	"zeroparse.dev/zp/internal/syntax"
 )
 
@@ -14,7 +14,7 @@ import (
 // that nothing reaches.
 func typedOnlyLonelyGrammar(t *testing.T) string {
 	t.Helper()
-	for _, c := range gentest.TypedOnlyConverted {
+	for _, c := range codegentest.TypedOnlyConverted {
 		if c.Name == "left recursion" {
 			return strings.Replace(c.Src, "rule main", "@start\nrule main", 1) + "\nrule lonely = \"zz\" item \"q\"+\n"
 		}
@@ -27,7 +27,7 @@ func typedOnlyLonelyGrammar(t *testing.T) string {
 // the Node rules that its entry points reach, and neither a function nor a slot Body of the others.
 func TestTypedOnlyUnreachedNodeRulesAreLeftOut(t *testing.T) {
 	t.Parallel()
-	gentest.EachMode(t, testTypedOnlyUnreached)
+	codegentest.EachMode(t, testTypedOnlyUnreached)
 }
 
 func testTypedOnlyUnreached(t *testing.T) {
@@ -44,8 +44,8 @@ func testTypedOnlyUnreached(t *testing.T) {
 		if got := undefinedGenerated(t, pruned); len(got) > 0 {
 			t.Errorf("controls=%v: the output calls undefined functions %v", controls, got)
 		}
-		if gentest.CountBodies(pruned) >= gentest.CountBodies(full) {
-			t.Errorf("controls=%v: pruned output has %d Node rule bodies, the full output %d", controls, gentest.CountBodies(pruned), gentest.CountBodies(full))
+		if codegentest.CountBodies(pruned) >= codegentest.CountBodies(full) {
+			t.Errorf("controls=%v: pruned output has %d Node rule bodies, the full output %d", controls, codegentest.CountBodies(pruned), codegentest.CountBodies(full))
 		}
 	}
 }
@@ -54,7 +54,7 @@ func testTypedOnlyUnreached(t *testing.T) {
 // removed from the first pass, generation of the typed-only parser reports the calls and slots left out.
 func TestTypedOnlyUnreachedCalleeFailsGeneration(t *testing.T) {
 	t.Parallel()
-	gentest.EachMode(t, testTypedOnlyUnreachedCalleeFails)
+	codegentest.EachMode(t, testTypedOnlyUnreachedCalleeFails)
 }
 
 func testTypedOnlyUnreachedCalleeFails(t *testing.T) {
@@ -63,7 +63,7 @@ func testTypedOnlyUnreachedCalleeFails(t *testing.T) {
 		t.Fatal(err)
 	}
 	gh := &gogen.Hooks{}
-	gentest.SetGenHooks(t, gh)
+	codegentest.SetGenHooks(t, gh)
 	gh.Reach = func(l *gogen.LiveRules) {
 		for k := range l.Reach {
 			if k.Table == "rules" && k.ID != 0 {
@@ -71,7 +71,7 @@ func testTypedOnlyUnreachedCalleeFails(t *testing.T) {
 			}
 		}
 	}
-	_, err = gentest.GenerateCode(t, g, codegen.GenOptions{Start: "main", Package: "p", Types: true, TypedOnly: true})
+	_, err = codegentest.GenerateCode(t, g, codegen.GenOptions{Start: "main", Package: "p", Types: true, TypedOnly: true})
 	if err == nil || !strings.Contains(err.Error(), "left out") {
 		t.Errorf("typed-only generation with the Node rules left out: err = %v, want an internal error", err)
 	}
@@ -81,7 +81,7 @@ func testTypedOnlyUnreachedCalleeFails(t *testing.T) {
 // without Node rules: a typed rule that a printed call reaches and the first pass left out fails generation.
 func TestTypedOnlyTypedCalleeFailsGeneration(t *testing.T) {
 	t.Parallel()
-	gentest.EachMode(t, testTypedOnlyTypedCalleeFails)
+	codegentest.EachMode(t, testTypedOnlyTypedCalleeFails)
 }
 
 func testTypedOnlyTypedCalleeFails(t *testing.T) {
@@ -90,11 +90,11 @@ func testTypedOnlyTypedCalleeFails(t *testing.T) {
 		t.Fatal(err)
 	}
 	opts := codegen.GenOptions{Start: "main", Package: "p", Types: true, TypedOnly: true}
-	if _, err := gentest.GenerateCode(t, g, opts); err != nil {
+	if _, err := codegentest.GenerateCode(t, g, opts); err != nil {
 		t.Fatalf("typed-only generation without the hook: %v", err)
 	}
 	gh := &gogen.Hooks{}
-	gentest.SetGenHooks(t, gh)
+	codegentest.SetGenHooks(t, gh)
 	gh.Reach = func(l *gogen.LiveRules) {
 		for k := range l.Reach {
 			if k.Table == "trules" && !isRoot(l, k) {
@@ -102,7 +102,7 @@ func testTypedOnlyTypedCalleeFails(t *testing.T) {
 			}
 		}
 	}
-	_, err = gentest.GenerateCode(t, g, opts)
+	_, err = codegentest.GenerateCode(t, g, opts)
 	if err == nil || !strings.Contains(err.Error(), "left out") {
 		t.Errorf("typed-only generation with a typed callee left out: err = %v, want an internal error", err)
 	}

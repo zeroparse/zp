@@ -10,9 +10,9 @@ import (
 
 	"zeroparse.dev/zp/core"
 	"zeroparse.dev/zp/internal/codegen"
+	"zeroparse.dev/zp/internal/codegentest"
 	"zeroparse.dev/zp/internal/compile"
 	"zeroparse.dev/zp/internal/engine"
-	"zeroparse.dev/zp/internal/gentest"
 )
 
 func TestLiteralTextPredicateDispatchTSDisabledParity(t *testing.T) {
@@ -26,11 +26,11 @@ func TestLiteralTextPredicateDispatchTSDisabledParity(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	optimized, err := gentest.GenerateTSBundle(g, codegen.GenOptions{Start: "main"})
+	optimized, err := codegentest.GenerateTSBundle(g, codegen.GenOptions{Start: "main"})
 	if err != nil {
 		t.Fatal(err)
 	}
-	reference, err := gentest.GenerateTSBundle(g, codegen.GenOptions{Start: "main", NoOpt: []string{"text-dispatch"}})
+	reference, err := codegentest.GenerateTSBundle(g, codegen.GenOptions{Start: "main", NoOpt: []string{"text-dispatch"}})
 	if err != nil {
 		t.Fatal(err)
 	}

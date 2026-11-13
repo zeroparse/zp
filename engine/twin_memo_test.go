@@ -6,7 +6,7 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/engine"
-	"zeroparse.dev/zp/internal/gentest"
+	"zeroparse.dev/zp/internal/codegentest"
 )
 
 // TestTwinMemo checks, on both engine backends, the two facts about value-free twins that the
@@ -34,17 +34,17 @@ func TestTwinMemo(t *testing.T) {
 		{"@start\nrule main = (-r \"x\" / r \"y\")* $$\nrule r = [a-c]* t?\nrule t = \"d\"\n", "abcy", "main", 0, "eval eval", "eval eval"},
 		// The twin is evaluated twice, its first evaluation leaving no result, and then answered;
 		// the rule is then evaluated twice as if the twin had not been, and then answered.
-		{gentest.TwinOwnEntriesSrc, "abcy", "main", 0, "eval eval memo eval eval memo memo", "eval eval memo memo memo memo memo"},
+		{codegentest.TwinOwnEntriesSrc, "abcy", "main", 0, "eval eval memo eval eval memo memo", "eval eval memo memo memo memo memo"},
 		// The twin of r is called from one place only; the first two calls evaluate it, and the
 		// second stores its result, which answers the call of w at 1.
-		{gentest.TwinOnePlaceSrc, "abcy", "w", 1, "eval eval memo", "eval eval memo"},
+		{codegentest.TwinOnePlaceSrc, "abcy", "w", 1, "eval eval memo", "eval eval memo"},
 		// The predicate reads only the x of its own alternative, which calls c; the captures named x
 		// that call r are in other alternatives, where no predicate can read them, so a
 		// recognition gives r no twin: two evaluations, then the memo answers the calls of -r.
-		{gentest.TwinScopedCaptureSrc, "aa5", "main", 0, "eval eval eval eval", "eval eval memo memo"},
+		{codegentest.TwinScopedCaptureSrc, "aa5", "main", 0, "eval eval eval eval", "eval eval memo memo"},
 		// The x that the predicate names is a lambda parameter, which reads no capture, so a
 		// recognition gives r no twin although a capture named x calls r before the predicate.
-		{gentest.TwinLambdaParamSrc, "aa5", "main", 0, "eval eval eval eval memo", "eval eval memo memo memo"},
+		{codegentest.TwinLambdaParamSrc, "aa5", "main", 0, "eval eval eval eval memo", "eval eval memo memo memo"},
 		// r is reached through d, which a capture that a predicate reads calls, so a recognition
 		// builds its value and keeps its twin although no predicate reads the value of r: d calls
 		// the rule twice and the twin twice at 1, each evaluated twice and then answered.
@@ -100,7 +100,7 @@ func TestTwinMemo(t *testing.T) {
 // capture named x records nothing, since the only x that a predicate names is a lambda parameter,
 // has the outcome of a parse, the lambda reading its parameter and not the capture.
 func TestRecognizeLambdaParameter(t *testing.T) {
-	p, err := engine.CompileSource(gentest.TwinLambdaParamSrc, "")
+	p, err := engine.CompileSource(codegentest.TwinLambdaParamSrc, "")
 	if err != nil {
 		t.Fatal(err)
 	}

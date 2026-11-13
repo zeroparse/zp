@@ -5,7 +5,7 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/internal/codegen"
-	"zeroparse.dev/zp/internal/gentest"
+	"zeroparse.dev/zp/internal/codegentest"
 )
 
 const tsBudgetFormsGrammar = `type Item = { Name string }
@@ -23,7 +23,7 @@ func TestGeneratedTSBudgetControlForms(t *testing.T) {
 		t.Fatal(err)
 	}
 	generate := func(controls bool) string {
-		files, err := gentest.GenerateTS(g, codegen.GenOptions{Start: "main", Types: true, Recognize: true, LimitControls: controls})
+		files, err := codegentest.GenerateTS(g, codegen.GenOptions{Start: "main", Types: true, Recognize: true, LimitControls: controls})
 		if err != nil {
 			t.Fatal(err)
 		}

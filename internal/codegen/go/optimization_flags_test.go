@@ -14,16 +14,16 @@ import (
 
 	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/codegen"
-	"zeroparse.dev/zp/internal/gentest"
+	"zeroparse.dev/zp/internal/codegentest"
 	genopt "zeroparse.dev/zp/internal/ir/opt"
 )
 
 // optimizationCases are grammars on which the optimizations of lean typed Go act, with inputs at their
 // edges: guards that skip alternatives, value-free repetitions of classes, runs of classes, classes of
 // many ranges, and literals around the length that is compared in place.
-func optimizationCases() []gentest.Case {
+func optimizationCases() []codegentest.Case {
 	alphabet := append(strings.Split("abcdefghijklmnopqrstuvwxyz0123456789 _é日", ""), "\xff", "\xe6\x97")
-	cases := []gentest.Case{
+	cases := []codegentest.Case{
 		{Name: "guards of words", Src: `rule main = (word / num / ident / -" ")* $$
 rule word = "if" / "else" / "while" / "fn"
 rule num = [0-9]+
@@ -197,7 +197,7 @@ func generateShowingIR(t *testing.T, g *grammar.Grammar, o codegen.GenOptions) (
 	t.Helper()
 	var ir strings.Builder
 	o.PrintAfter, o.PrintTo = "guards", &ir
-	code, err := gentest.GenerateCode(t, g, o)
+	code, err := codegentest.GenerateCode(t, g, o)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -215,7 +215,7 @@ var optInValues = map[string]int{"class-tables": 5}
 // and checks that turning it on changes them.
 func TestOptimizationDisabledParity(t *testing.T) {
 	t.Parallel()
-	gentest.PinOrdinary(t)
+	codegentest.PinOrdinary(t)
 	cases := optimizationCases()
 	for _, f := range genopt.Flags {
 		if optimizationTests[f.Name] != "" || f.ChangesOutput {
@@ -244,7 +244,7 @@ func TestOptimizationDisabledParity(t *testing.T) {
 			if !changed {
 				t.Errorf("generating with the %s setting changes no parser of the cases: the flag does nothing there", f.Name)
 			}
-			gentest.GeneratedTypesCorpus(t, filepath.Join(runtime.GOROOT(), "bin", "go"), cases, variant, 0)
+			codegentest.GeneratedTypesCorpus(t, filepath.Join(runtime.GOROOT(), "bin", "go"), cases, variant, 0)
 		})
 	}
 }
@@ -253,7 +253,7 @@ func TestOptimizationDisabledParity(t *testing.T) {
 // that take a count with the engine: any value is correct, and a profile may pick it.
 func TestIntegerOptimizationValuesParity(t *testing.T) {
 	t.Parallel()
-	gentest.PinOrdinary(t)
+	codegentest.PinOrdinary(t)
 	cases := optimizationCases()
 	goBin := filepath.Join(runtime.GOROOT(), "bin", "go")
 	for _, f := range genopt.Flags {
@@ -267,7 +267,7 @@ func TestIntegerOptimizationValuesParity(t *testing.T) {
 			t.Run(fmt.Sprintf("%s=%d", f.Name, v), func(t *testing.T) {
 				opts := off()
 				opts.Opt = map[string]int{f.Name: v}
-				gentest.GeneratedTypesCorpus(t, goBin, cases, opts, 0)
+				codegentest.GeneratedTypesCorpus(t, goBin, cases, opts, 0)
 			})
 		}
 	}
@@ -277,7 +277,7 @@ func TestIntegerOptimizationValuesParity(t *testing.T) {
 // passes and of lowering off, and with a seeded sample of pairs off, with the engine.
 func TestOptimizationCombinationsParity(t *testing.T) {
 	t.Parallel()
-	gentest.PinOrdinary(t)
+	codegentest.PinOrdinary(t)
 	var names []string
 	for _, f := range genopt.Flags {
 		if f.Kind != genopt.Runtime && !f.ChangesOutput {
@@ -286,15 +286,15 @@ func TestOptimizationCombinationsParity(t *testing.T) {
 	}
 	cases := optimizationCases()
 	goBin := filepath.Join(runtime.GOROOT(), "bin", "go")
-	t.Run("all", func(t *testing.T) { gentest.GeneratedTypesCorpus(t, goBin, cases, off(names...), 0) })
+	t.Run("all", func(t *testing.T) { codegentest.GeneratedTypesCorpus(t, goBin, cases, off(names...), 0) })
 	rng := rand.New(rand.NewSource(11))
 	pairs := 3
-	if gentest.Long() {
+	if codegentest.Long() {
 		pairs = 12
 	}
 	for range pairs {
 		a, b := names[rng.Intn(len(names))], names[rng.Intn(len(names))]
-		t.Run(a+"+"+b, func(t *testing.T) { gentest.GeneratedTypesCorpus(t, goBin, cases, off(a, b), 0) })
+		t.Run(a+"+"+b, func(t *testing.T) { codegentest.GeneratedTypesCorpus(t, goBin, cases, off(a, b), 0) })
 	}
 }
 
@@ -316,7 +316,7 @@ var nodeRouteModes = []struct {
 // lean typed Go; these are the other routes, where a pass applies in some modes and not in others.
 func TestOptimizationDisabledNodeRouteParity(t *testing.T) {
 	t.Parallel()
-	gentest.PinOrdinary(t)
+	codegentest.PinOrdinary(t)
 	goBin := filepath.Join(runtime.GOROOT(), "bin", "go")
 	var all []string
 	for _, f := range genopt.Flags {
@@ -335,7 +335,7 @@ func TestOptimizationDisabledNodeRouteParity(t *testing.T) {
 				t.Parallel()
 				o := mode.opts
 				o.NoOpt = set
-				gentest.GeneratedParsersCorpus(t, goBin, gentest.FlagParityCases(), o)
+				codegentest.GeneratedParsersCorpus(t, goBin, codegentest.FlagParityCases(), o)
 			})
 		}
 	}
@@ -346,7 +346,7 @@ func TestOptimizationDisabledNodeRouteParity(t *testing.T) {
 // generated code, the parser differs from the engine on the inputs that contain the literal.
 func TestOptimizationDisabledNodeRouteNegativeControl(t *testing.T) {
 	t.Parallel()
-	gentest.PinOrdinary(t)
+	codegentest.PinOrdinary(t)
 	goBin := filepath.Join(runtime.GOROOT(), "bin", "go")
 	for _, mode := range nodeRouteModes {
 		t.Run(mode.name, func(t *testing.T) {
@@ -361,7 +361,7 @@ func TestOptimizationDisabledNodeRouteNegativeControl(t *testing.T) {
 				}
 				return []byte(out)
 			}
-			if got := gentest.GeneratedParsersMismatches(t, goBin, gentest.FlagParityCases(), o, mutate); len(got) == 0 {
+			if got := codegentest.GeneratedParsersMismatches(t, goBin, codegentest.FlagParityCases(), o, mutate); len(got) == 0 {
 				t.Errorf("a parser with a changed literal matches the engine")
 			}
 			if !changed.Load() {
@@ -375,14 +375,14 @@ func TestOptimizationDisabledNodeRouteNegativeControl(t *testing.T) {
 // position units: a profile only fixes flag values, so it changes the code and never the results.
 func TestProfilesParity(t *testing.T) {
 	t.Parallel()
-	gentest.PinOrdinary(t)
+	codegentest.PinOrdinary(t)
 	cases := optimizationCases()
 	goBin := filepath.Join(runtime.GOROOT(), "bin", "go")
 	for _, name := range genopt.Profiles() {
 		t.Run(name, func(t *testing.T) {
 			opts := off()
 			opts.Optimize = name
-			gentest.GeneratedTypesCorpus(t, goBin, cases, opts, 0)
+			codegentest.GeneratedTypesCorpus(t, goBin, cases, opts, 0)
 		})
 	}
 }
@@ -402,7 +402,7 @@ var profileRouteModes = append(slices.Clone(nodeRouteModes), struct {
 // the tsgen package for TypeScript.
 func TestProfilesRouteParity(t *testing.T) {
 	t.Parallel()
-	gentest.PinOrdinary(t)
+	codegentest.PinOrdinary(t)
 	goBin := filepath.Join(runtime.GOROOT(), "bin", "go")
 	for _, name := range genopt.Profiles()[1:] {
 		for _, mode := range profileRouteModes {
@@ -410,7 +410,7 @@ func TestProfilesRouteParity(t *testing.T) {
 				t.Parallel()
 				o := mode.opts
 				o.Optimize = name
-				gentest.GeneratedParsersCorpus(t, goBin, gentest.FlagParityCases(), o)
+				codegentest.GeneratedParsersCorpus(t, goBin, codegentest.FlagParityCases(), o)
 			})
 		}
 	}
@@ -421,10 +421,10 @@ func TestProfilesRouteParity(t *testing.T) {
 // engine, and the unchanged parsers do not.
 func TestProfilesRouteNegativeControl(t *testing.T) {
 	t.Parallel()
-	gentest.PinOrdinary(t)
+	codegentest.PinOrdinary(t)
 	goBin := filepath.Join(runtime.GOROOT(), "bin", "go")
 	o := codegen.GenOptions{Document: true, Optimize: "size"}
-	if got := gentest.GeneratedParsersMismatches(t, goBin, gentest.FlagParityCases(), o, nil); len(got) != 0 {
+	if got := codegentest.GeneratedParsersMismatches(t, goBin, codegentest.FlagParityCases(), o, nil); len(got) != 0 {
 		t.Fatalf("the unchanged Document parsers differ from the engine:\n%s", got[0])
 	}
 	var changed atomic.Bool
@@ -435,7 +435,7 @@ func TestProfilesRouteNegativeControl(t *testing.T) {
 		}
 		return []byte(out)
 	}
-	got := gentest.GeneratedParsersMismatches(t, goBin, gentest.FlagParityCases(), o, mutate)
+	got := codegentest.GeneratedParsersMismatches(t, goBin, codegentest.FlagParityCases(), o, mutate)
 	if !changed.Load() {
 		t.Fatal(`the generated code has no literal "while" to change: the control proves nothing`)
 	}
@@ -448,13 +448,13 @@ func TestProfilesRouteNegativeControl(t *testing.T) {
 // engine's: the elements, the reads before each and the final error, as TestGeneratedStreamMatchesEngine does.
 func TestProfilesStreamParity(t *testing.T) {
 	t.Parallel()
-	gentest.EachMode(t, func(t *testing.T) {
+	codegentest.EachMode(t, func(t *testing.T) {
 		if testing.Short() {
 			t.Skip("builds generated code")
 		}
 		goBin := filepath.Join(runtime.GOROOT(), "bin", "go")
-		cases := append([]gentest.Case(nil), streamCorpus...)
-		for _, c := range gentest.GenCorpus(t) {
+		cases := append([]codegentest.Case(nil), streamCorpus...)
+		for _, c := range codegentest.GenCorpus(t) {
 			if strings.Contains(c.Src, "#stream") {
 				cases = append(cases, c)
 			}
@@ -468,7 +468,7 @@ func TestProfilesStreamParity(t *testing.T) {
 // Each profile other than speed changes the generated code, so that a profile that sets nothing is caught.
 func TestProfilesChangeTheCode(t *testing.T) {
 	t.Parallel()
-	gentest.PinOrdinary(t)
+	codegentest.PinOrdinary(t)
 	for _, name := range genopt.Profiles()[1:] {
 		changed := false
 		for _, c := range optimizationCases() {

@@ -11,8 +11,8 @@ import (
 	"weak"
 
 	"zeroparse.dev/zp/core"
+	"zeroparse.dev/zp/internal/codegentest"
 	ecore "zeroparse.dev/zp/internal/engine/core"
-	"zeroparse.dev/zp/internal/gentest"
 )
 
 type streamControlRetentionSentinel struct{ data [128]byte }
@@ -99,7 +99,7 @@ func runStreamControlRetentionCase(t *testing.T, prog *Program, outcome string, 
 				panic("emit sentinel missing")
 			}
 			nodes = append(nodes, n)
-			snapshots = append(snapshots, gentest.ResultJSON(n, nil))
+			snapshots = append(snapshots, codegentest.ResultJSON(n, nil))
 			switch outcome {
 			case "emit-error":
 				return stop
@@ -154,7 +154,7 @@ func streamControlRetentionOptions(o ParseOptions, ctx context.Context, trace fu
 
 func TestBudgetStreamTraceRetentionWithActiveControls(t *testing.T) {
 	t.Parallel()
-	prog := mustCompile(t, gentest.Records)
+	prog := mustCompile(t, codegentest.Records)
 	budgetStreamVariants(t, func(t *testing.T, options ParseOptions) {
 		for _, outcome := range []string{
 			"success", "syntax", "input-limit", "canceled", "reader-error", "emit-error",
@@ -197,7 +197,7 @@ func TestBudgetStreamTraceRetentionWithActiveControls(t *testing.T) {
 					t.Fatalf("emitted nodes/snapshots = %d/%d", len(run.nodes), len(run.snapshots))
 				}
 				for i, n := range run.nodes {
-					if got := gentest.ResultJSON(n, nil); got != run.snapshots[i] {
+					if got := codegentest.ResultJSON(n, nil); got != run.snapshots[i] {
 						t.Fatalf("emitted node %d changed before GC", i)
 					}
 				}
@@ -225,7 +225,7 @@ func TestBudgetStreamTraceRetentionWithActiveControls(t *testing.T) {
 					t.Fatal("GC changed saved trace metadata")
 				}
 				for i, n := range run.nodes {
-					if got := gentest.ResultJSON(n, nil); got != run.snapshots[i] {
+					if got := codegentest.ResultJSON(n, nil); got != run.snapshots[i] {
 						t.Fatalf("GC changed emitted node %d", i)
 					}
 				}
@@ -237,7 +237,7 @@ func TestBudgetStreamTraceRetentionWithActiveControls(t *testing.T) {
 					t.Fatalf("program retry err=%v emitted=%d", err, retryCount)
 				}
 				for i, n := range run.nodes {
-					if got := gentest.ResultJSON(n, nil); got != run.snapshots[i] {
+					if got := codegentest.ResultJSON(n, nil); got != run.snapshots[i] {
 						t.Fatalf("later parse changed emitted node %d", i)
 					}
 				}

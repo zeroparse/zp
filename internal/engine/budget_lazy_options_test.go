@@ -3,7 +3,7 @@
 package engine
 
 import (
-	"zeroparse.dev/zp/internal/gentest"
+	"zeroparse.dev/zp/internal/codegentest"
 
 	"testing"
 
@@ -30,7 +30,7 @@ rule item = [a-z]+`)
 				plain, plainErr := p.ParseWith("main", "abc,def", o)
 				o.Limits = core.Limits{Compute: 1000000}
 				active, activeErr := p.ParseWith("main", "abc,def", o)
-				if gentest.ResultJSON(plain, plainErr) != gentest.ResultJSON(active, activeErr) || activeErr != nil {
+				if codegentest.ResultJSON(plain, plainErr) != codegentest.ResultJSON(active, activeErr) || activeErr != nil {
 					t.Fatalf("options changed output: %v", activeErr)
 				}
 				o.Recognize = true

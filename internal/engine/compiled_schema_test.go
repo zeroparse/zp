@@ -12,8 +12,8 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/internal/bytecode"
+	"zeroparse.dev/zp/internal/codegentest"
 	"zeroparse.dev/zp/internal/compile"
-	"zeroparse.dev/zp/internal/gentest"
 	ischema "zeroparse.dev/zp/internal/schema"
 )
 
@@ -45,7 +45,7 @@ func wantSchemaNeedsSource(t *testing.T, err error) {
 // the loaded file again reproduces it.
 func TestCompiledSchemaMatchesSource(t *testing.T) {
 	t.Parallel()
-	for _, c := range gentest.CorpusWithParsers(t) {
+	for _, c := range codegentest.CorpusWithParsers(t) {
 		for _, options := range []compile.Options{{SourceInfo: true}, {DefaultValue: true}} {
 			t.Run(c.Name, func(t *testing.T) {
 				src := compileBare(t, c.Src, options)
@@ -92,7 +92,7 @@ func TestCompiledSchemaMatchesSource(t *testing.T) {
 // parsing.
 func TestCompiledSchemaBackendAgreement(t *testing.T) {
 	t.Parallel()
-	for _, c := range gentest.GenCorpus(t) {
+	for _, c := range codegentest.GenCorpus(t) {
 		t.Run(c.Name, func(t *testing.T) {
 			src := mustCompile(t, c.Src)
 			def := src.DefaultStart()

@@ -5,7 +5,7 @@ import (
 	"strings"
 	"testing"
 
-	"zeroparse.dev/zp/internal/gentest"
+	"zeroparse.dev/zp/internal/codegentest"
 )
 
 // TestCanonicalValues checks the canonical forms on hand-written values: a pair of values that
@@ -29,12 +29,12 @@ func TestCanonicalValues(t *testing.T) {
 	if err := json.Unmarshal([]byte(engine), &want); err != nil {
 		t.Fatal(err)
 	}
-	canon, err := gentest.CanonicalEngine(want)
+	canon, err := codegentest.CanonicalEngine(want)
 	if err != nil {
 		t.Fatal(err)
 	}
 	for _, c := range cases {
-		err := gentest.CanonicalTypedMatches(json.RawMessage(c.typed), canon)
+		err := codegentest.CanonicalTypedMatches(json.RawMessage(c.typed), canon)
 		if (err == nil) != c.equal {
 			t.Errorf("%s: equal = %v, want %v (%v)", c.name, err == nil, c.equal, err)
 		}
@@ -45,7 +45,7 @@ func TestCanonicalValues(t *testing.T) {
 	if err := json.Unmarshal([]byte(unset), &want); err != nil {
 		t.Fatal(err)
 	}
-	canon, err = gentest.CanonicalEngine(want)
+	canon, err = codegentest.CanonicalEngine(want)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -58,7 +58,7 @@ func TestCanonicalValues(t *testing.T) {
 		{"unset field with an empty list", `{"struct":"R","span":true,"start":0,"end":3,"fields":{"Start_":0,"L":[]}}`, false},
 	}
 	for _, c := range unsetCases {
-		err := gentest.CanonicalTypedMatches(json.RawMessage(c.typed), canon)
+		err := codegentest.CanonicalTypedMatches(json.RawMessage(c.typed), canon)
 		if (err == nil) != c.equal {
 			t.Errorf("%s: equal = %v, want %v (%v)", c.name, err == nil, c.equal, err)
 		}
@@ -66,7 +66,7 @@ func TestCanonicalValues(t *testing.T) {
 }
 
 // TestEngineStructKeepsExplicitZeroFields pins that the engine writes the key of a struct field set
-// to a zero value: nil, "", 0, false and an empty list. gentest.CanonicalDifferences treats an absent key of
+// to a zero value: nil, "", 0, false and an empty list. codegentest.CanonicalDifferences treats an absent key of
 // a struct as an unset field, which is sound only while this holds.
 func TestEngineStructKeepsExplicitZeroFields(t *testing.T) {
 	t.Parallel()
@@ -117,7 +117,7 @@ func TestCanonicalUnsetFieldsAreDeclaredOnly(t *testing.T) {
 	}
 	for _, c := range cases {
 		var diffs []string
-		gentest.CanonicalDifferences(c.typed, c.eng, "$", false, &diffs)
+		codegentest.CanonicalDifferences(c.typed, c.eng, "$", false, &diffs)
 		if len(diffs) != c.diffs {
 			t.Errorf("%s: %d differences %v, want %d", c.name, len(diffs), diffs, c.diffs)
 		}
@@ -140,15 +140,15 @@ func TestCanonicalGenericNodeType(t *testing.T) {
 		typed, eng map[string]any
 		diffs      int
 	}{
-		{"generic and named", node(gentest.TypedGenericNode), node("Num"), 0},
-		{"generic and plain", node(gentest.TypedGenericNode), node(nil), 0},
+		{"generic and named", node(codegentest.TypedGenericNode), node("Num"), 0},
+		{"generic and plain", node(codegentest.TypedGenericNode), node(nil), 0},
 		{"named and other named", node("Num"), node("Word"), 1},
 		{"named and plain", node("Num"), node(nil), 1},
-		{"generic with another value", map[string]any{"start": 0.0, "end": 1.0, "value": "b", "type": gentest.TypedGenericNode}, node("Num"), 1},
+		{"generic with another value", map[string]any{"start": 0.0, "end": 1.0, "value": "b", "type": codegentest.TypedGenericNode}, node("Num"), 1},
 	}
 	for _, c := range cases {
 		var diffs []string
-		gentest.CanonicalDifferences(c.typed, c.eng, "$", false, &diffs)
+		codegentest.CanonicalDifferences(c.typed, c.eng, "$", false, &diffs)
 		if len(diffs) != c.diffs {
 			t.Errorf("%s: %d differences %v, want %d", c.name, len(diffs), diffs, c.diffs)
 		}

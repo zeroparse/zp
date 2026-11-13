@@ -9,17 +9,17 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/internal/codegen"
-	"zeroparse.dev/zp/internal/gentest"
+	"zeroparse.dev/zp/internal/codegentest"
 )
 
 // TestGeneratedLookaheadHasNoFirstTerminal checks that a generated Go parser does not skip, by the
 // next character, an alternative that begins with a positive lookahead (Evaluations of Rules in
 // spec/runtime/parsing.md), as TestLookaheadHasNoFirstTerminal does for the engine: on "bc",
 // Parse, ParseValue and Recognize, without and with limit controls, evaluate the body of x of
-// gentest.LookaheadFirstSrc once.
+// codegentest.LookaheadFirstSrc once.
 func TestGeneratedLookaheadHasNoFirstTerminal(t *testing.T) {
 	t.Parallel()
-	gentest.EachMode(t, testGeneratedLookaheadHasNoFirstTerminal)
+	codegentest.EachMode(t, testGeneratedLookaheadHasNoFirstTerminal)
 }
 
 func testGeneratedLookaheadHasNoFirstTerminal(t *testing.T) {
@@ -31,14 +31,14 @@ func testGeneratedLookaheadHasNoFirstTerminal(t *testing.T) {
 		t.Skip("go command not found")
 	}
 	dir := t.TempDir()
-	if err := os.WriteFile(filepath.Join(dir, "go.mod"), []byte(gentest.GoMod("gentest")), 0o644); err != nil {
+	if err := os.WriteFile(filepath.Join(dir, "go.mod"), []byte(codegentest.GoMod("codegentest")), 0o644); err != nil {
 		t.Fatal(err)
 	}
 	var imports, calls strings.Builder
 	// g has no limit controls; l has them, under the default limits.
 	for _, pkg := range []string{"g", "l"} {
-		gentest.GeneratePackage(t, dir, pkg, mustParse(gentest.LookaheadFirstSrc), codegen.GenOptions{Start: "main", Types: true, Recognize: true, Observability: true, LimitControls: pkg == "l"})
-		imports.WriteString("\t\"gentest/" + pkg + "\"\n")
+		codegentest.GeneratePackage(t, dir, pkg, mustParse(codegentest.LookaheadFirstSrc), codegen.GenOptions{Start: "main", Types: true, Recognize: true, Observability: true, LimitControls: pkg == "l"})
+		imports.WriteString("\t\"codegentest/" + pkg + "\"\n")
 		for _, op := range []string{"_, err := %s.Parse(\"bc\", zprt.WithProfile(&p))", "_, err := %s.ParseValue(\"bc\", zprt.WithProfile(&p))", "err := %s.Recognize(\"bc\", zprt.WithProfile(&p))"} {
 			calls.WriteString("\t{ var p zprt.Profile; " + strings.ReplaceAll(op, "%s", pkg) + "; fmt.Print(evals(p, err), \" \") }\n")
 		}

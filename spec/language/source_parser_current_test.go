@@ -21,11 +21,11 @@ func TestGeneratedSourceParserCurrent(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	files, err := codegen.Go{Module: "zeroparse.dev/zp/internal/syntax/genparser", Lib: codegen.LibImport, Types: true, TypedOnly: true, LimitControls: true, Expectations: true}.Generate(g, "main")
+	files, err := codegen.Go{Module: "zeroparse.dev/zp/internal/syntax/grammarparser", Lib: codegen.LibImport, Types: true, TypedOnly: true, LimitControls: true, Expectations: true}.Generate(g, "main")
 	if err != nil {
 		t.Fatal(err)
 	}
-	dir := filepath.Join("..", "..", "internal", "syntax", "genparser")
+	dir := filepath.Join("..", "..", "internal", "syntax", "grammarparser")
 	var want []string
 	for _, f := range files {
 		want = append(want, filepath.ToSlash(f.Path))

@@ -8,14 +8,14 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/internal/codegen"
-	"zeroparse.dev/zp/internal/gentest"
+	"zeroparse.dev/zp/internal/codegentest"
 )
 
 // An anonymous join of declared node types is an interface named after its members; the same
 // members in another order, in a field, a list element or the value of a rule, are one interface.
 func TestGeneratedTypedAnonymousJoinInterface(t *testing.T) {
 	t.Parallel()
-	types, err := gentest.GoTypesOf(t, gentest.AnonJoinGrammar)
+	types, err := codegentest.GoTypesOf(t, codegentest.AnonJoinGrammar)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -44,7 +44,7 @@ func TestGeneratedTypedAnonymousJoinInterface(t *testing.T) {
 // member that is no declared node type keeps its Go type.
 func TestGeneratedTypedAnonymousJoinReusesAlias(t *testing.T) {
 	t.Parallel()
-	types, err := gentest.GoTypesOf(t, `type A = { X string }
+	types, err := codegentest.GoTypesOf(t, `type A = { X string }
 type B = { Y string }
 type AB ~ A | B
 type R = { F *(B | A); G *(A | node[string]) }
@@ -67,7 +67,7 @@ rule a A = t:[a-z] => A{X: text($t)}`)
 // The interface name is a generation error if a type of the grammar has it.
 func TestGeneratedTypedAnonymousJoinNameCollision(t *testing.T) {
 	t.Parallel()
-	_, err := gentest.GoTypesOf(t, `type A = { X string }
+	_, err := codegentest.GoTypesOf(t, `type A = { X string }
 type B = { Y string }
 type AOrB = { Z string }
 type R = { F *(A | B) }
@@ -77,7 +77,7 @@ rule a A = t:[a-z] => A{X: text($t)}`)
 		t.Fatalf("got %v, want an error naming AOrB", err)
 	}
 	// The error names a join of one declared node type as written, with error.
-	_, err = gentest.GoTypesOf(t, `type A = { X string }
+	_, err = codegentest.GoTypesOf(t, `type A = { X string }
 type AOrError = { Z string }
 type R = { F *(A | error) }
 rule main R = a:a $$ => R{F: $a}
@@ -90,7 +90,7 @@ rule a A = t:[a-z] => A{X: text($t)}`)
 // The typed parsers of anonymous joins compile and convert like the Node route.
 func TestGeneratedTypedAnonymousJoinValues(t *testing.T) {
 	t.Parallel()
-	gentest.EachMode(t, testGeneratedTypedAnonymousJoinValues)
+	codegentest.EachMode(t, testGeneratedTypedAnonymousJoinValues)
 }
 
 func testGeneratedTypedAnonymousJoinValues(t *testing.T) {
@@ -101,8 +101,8 @@ func testGeneratedTypedAnonymousJoinValues(t *testing.T) {
 	if _, err := os.Stat(goBin); err != nil {
 		t.Skip("go command not found")
 	}
-	cases := []gentest.Case{{Name: "anonymous joins", Src: gentest.AnonJoinGrammar, Inputs: []string{"", "a;", "(a;b;)", "a;(a;b;)c;", "(a;"}}}
-	gentest.GeneratedTypesCorpus(t, goBin, cases, codegen.GenOptions{ConvertTypes: true}, len(cases))
+	cases := []codegentest.Case{{Name: "anonymous joins", Src: codegentest.AnonJoinGrammar, Inputs: []string{"", "a;", "(a;b;)", "a;(a;b;)c;", "(a;"}}}
+	codegentest.GeneratedTypesCorpus(t, goBin, cases, codegen.GenOptions{ConvertTypes: true}, len(cases))
 }
 
 // The name of an interface follows the order of the members where the set first appears in the
@@ -119,7 +119,7 @@ rule a A = t:[a-z] => A{X: text($t)}`
 	}
 	// Zed is declared before Alpha, and sorts after it.
 	for _, names := range [][2]string{{"Zed", "Alpha"}, {"Alpha", "Zed"}, {"Mid", "Beta"}} {
-		types, err := gentest.GoTypesOf(t, grammar(names[0], names[1]))
+		types, err := codegentest.GoTypesOf(t, grammar(names[0], names[1]))
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -132,7 +132,7 @@ rule a A = t:[a-z] => A{X: text($t)}`
 // Two different sets of members that get the same interface name are a generation error.
 func TestGeneratedTypedAnonymousJoinSameNameDifferentSets(t *testing.T) {
 	t.Parallel()
-	_, err := gentest.GoTypesOf(t, `type A = { X string }
+	_, err := codegentest.GoTypesOf(t, `type A = { X string }
 type B = { Y string }
 type C = { Z string }
 type AOrB = { W string }
@@ -147,7 +147,7 @@ rule a A = t:[a-z] => A{X: text($t)}`)
 // The compiled parsers of joins of one node and error convert like the Node route.
 func TestGeneratedTypedAnonymousJoinOneNodeAndErrorValues(t *testing.T) {
 	t.Parallel()
-	gentest.EachMode(t, testGeneratedTypedAnonymousJoinOneNodeAndErrorValues)
+	codegentest.EachMode(t, testGeneratedTypedAnonymousJoinOneNodeAndErrorValues)
 }
 
 func testGeneratedTypedAnonymousJoinOneNodeAndErrorValues(t *testing.T) {
@@ -158,6 +158,6 @@ func testGeneratedTypedAnonymousJoinOneNodeAndErrorValues(t *testing.T) {
 	if _, err := os.Stat(goBin); err != nil {
 		t.Skip("go command not found")
 	}
-	cases := []gentest.Case{{Name: "one node and error", Src: gentest.AnonErrorJoinGrammar, Inputs: []string{"", "a;", "a;b;", "1;a;", "a;2;b;"}}}
-	gentest.GeneratedTypesCorpus(t, goBin, cases, codegen.GenOptions{ConvertTypes: true}, len(cases))
+	cases := []codegentest.Case{{Name: "one node and error", Src: codegentest.AnonErrorJoinGrammar, Inputs: []string{"", "a;", "a;b;", "1;a;", "a;2;b;"}}}
+	codegentest.GeneratedTypesCorpus(t, goBin, cases, codegen.GenOptions{ConvertTypes: true}, len(cases))
 }

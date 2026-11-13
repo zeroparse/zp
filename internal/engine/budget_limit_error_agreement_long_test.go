@@ -6,7 +6,7 @@ import (
 	"strings"
 	"testing"
 
-	"zeroparse.dev/zp/internal/gentest"
+	"zeroparse.dev/zp/internal/codegentest"
 )
 
 // TestLimitErrorAgreementMutants checks that TestLimitErrorAgreement notices a backend that reports a
@@ -14,16 +14,16 @@ import (
 // TypeScript whose run of units is charged as one reservation.
 func TestLimitErrorAgreementMutants(t *testing.T) {
 	t.Parallel()
-	gentest.NeedsBudgetControls(t)
+	codegentest.NeedsBudgetControls(t)
 	cases := map[string]limitAgreementCase{}
 	for _, c := range limitAgreementCases {
 		cases[c.name] = c
 	}
 	t.Run("atomic Take", func(t *testing.T) {
 		t.Parallel()
-		gentest.NeedsBudgetControls(t)
+		codegentest.NeedsBudgetControls(t)
 		const unit = "func (c *BudgetControl) takeSlow(n uint64) {\n\tfor ; n > 0; n-- {\n\t\tc.chargeStep()\n\t}\n}"
-		runtime := gentest.LibCopyWith(t, func(name, src string) string {
+		runtime := codegentest.LibCopyWith(t, func(name, src string) string {
 			if name != "budget.go" {
 				return src
 			}
@@ -41,7 +41,7 @@ func TestLimitErrorAgreementMutants(t *testing.T) {
 	})
 	t.Run("TypeScript run as one reservation", func(t *testing.T) {
 		t.Parallel()
-		gentest.NeedsBudgetControls(t)
+		codegentest.NeedsBudgetControls(t)
 		const units = "spendUnits(n: number): void { this.control?.chargeUnits(n); }"
 		c := cases["operators"]
 		want := engineLimitReports(t, c, Closure)

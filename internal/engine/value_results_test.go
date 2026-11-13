@@ -4,22 +4,22 @@ import (
 	"strings"
 	"testing"
 
+	"zeroparse.dev/zp/internal/codegentest"
 	"zeroparse.dev/zp/internal/compile"
-	"zeroparse.dev/zp/internal/gentest"
 )
 
 func TestValueResultsAcrossBackends(t *testing.T) {
 	t.Parallel()
-	for _, fixture := range gentest.ValueResultCases() {
+	for _, fixture := range codegentest.ValueResultCases() {
 		t.Run(fixture.Name, func(t *testing.T) {
 			program := mustCompile(t, fixture.Src)
 			for _, input := range fixture.Inputs {
-				baseline := gentest.ResultJSON(program.ParseWith("main", input, ParseOptions{Backend: Closure}))
+				baseline := codegentest.ResultJSON(program.ParseWith("main", input, ParseOptions{Backend: Closure}))
 				if strings.Contains(baseline, "error") {
 					t.Fatalf("input=%q: %s", input, baseline)
 				}
 				for _, backend := range []Backend{Bytecode, BytecodeIterative} {
-					if actual := gentest.ResultJSON(program.ParseWith("main", input, ParseOptions{Backend: backend})); actual != baseline {
+					if actual := codegentest.ResultJSON(program.ParseWith("main", input, ParseOptions{Backend: backend})); actual != baseline {
 						t.Fatalf("%s input=%q: %s / %s", backend, input, actual, baseline)
 					}
 				}

@@ -9,7 +9,7 @@ import (
 
 	"zeroparse.dev/zp/internal/codegen"
 	"zeroparse.dev/zp/internal/codegen/ts"
-	"zeroparse.dev/zp/internal/gentest"
+	"zeroparse.dev/zp/internal/codegentest"
 )
 
 // TestEveryFlowFunctionRunsTheIRPipelines generates TypeScript parsers whose functions take every route
@@ -39,10 +39,10 @@ func TestEveryFlowFunctionRunsTheIRPipelines(t *testing.T) {
 			var dump bytes.Buffer
 			o := c.opts
 			o.PrintAfter, o.PrintTo, o.VerifyEachPass = "flow,exec", &dump, true
-			if _, err := tsgen.GenerateParser(g, compileForGenerator, gentest.WithLib(o), nil); err != nil {
+			if _, err := tsgen.GenerateParser(g, compileForGenerator, codegentest.WithLib(o), nil); err != nil {
 				t.Fatal(err)
 			}
-			gentest.CheckIRPipelines(t, dump.String(), "rules", "recRules")
+			codegentest.CheckIRPipelines(t, dump.String(), "rules", "recRules")
 		})
 	}
 }
@@ -64,12 +64,12 @@ rule num = [0-9]+
 				seen := 0
 				h := &tsgen.Hooks{}
 				if ir == "flow" {
-					h.FlowRun = gentest.BrokenFlowRun(table, &seen)
+					h.FlowRun = codegentest.BrokenFlowRun(table, &seen)
 				} else {
-					h.ExecRun = gentest.BrokenExecRun(table, &seen)
+					h.ExecRun = codegentest.BrokenExecRun(table, &seen)
 				}
 				opts := codegen.GenOptions{Recognize: true}
-				_, err := tsgen.GenerateParser(pg, compileForGenerator, gentest.WithLib(opts), h)
+				_, err := tsgen.GenerateParser(pg, compileForGenerator, codegentest.WithLib(opts), h)
 				if err == nil || !strings.Contains(err.Error(), "of table "+table+": ") || !strings.Contains(err.Error(), "verification:") || strings.Contains(err.Error(), "break-"+ir) {
 					t.Fatalf("without VerifyEachPass: %v", err)
 				}
@@ -77,7 +77,7 @@ rule num = [0-9]+
 					t.Fatalf("no function of the %s table ran through the %s pipeline", table, ir)
 				}
 				opts.VerifyEachPass = true
-				_, err = tsgen.GenerateParser(pg, compileForGenerator, gentest.WithLib(opts), h)
+				_, err = tsgen.GenerateParser(pg, compileForGenerator, codegentest.WithLib(opts), h)
 				if err == nil || !strings.Contains(err.Error(), "of table "+table+": ") || !strings.Contains(err.Error(), "after pass break-"+ir+":") {
 					t.Fatalf("with VerifyEachPass: %v", err)
 				}

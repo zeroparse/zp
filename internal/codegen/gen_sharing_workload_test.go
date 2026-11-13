@@ -8,7 +8,7 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/internal/codegen"
-	"zeroparse.dev/zp/internal/gentest"
+	"zeroparse.dev/zp/internal/codegentest"
 )
 
 // ZP_GENERATED_SHARING_DIR preserves standalone controls for prebuilt
@@ -17,11 +17,11 @@ func TestGeneratedSharingWorkloads(t *testing.T) {
 	t.Parallel()
 	if os.Getenv("ZP_GENERATED_SHARING_DIR") != "" {
 		// The preserved controls have one layout, so they are written in one form.
-		gentest.PinOrdinary(t)
+		codegentest.PinOrdinary(t)
 		testGeneratedSharingWorkloads(t)
 		return
 	}
-	gentest.EachMode(t, testGeneratedSharingWorkloads)
+	codegentest.EachMode(t, testGeneratedSharingWorkloads)
 }
 
 func testGeneratedSharingWorkloads(t *testing.T) {
@@ -36,7 +36,7 @@ func testGeneratedSharingWorkloads(t *testing.T) {
 	for _, lang := range []string{"json", "typescript"} {
 		t.Run(lang, func(t *testing.T) {
 			if lang == "typescript" {
-				gentest.LongOnly(t, "the TypeScript grammar builds five large standalone controls next to the JSON ones")
+				codegentest.LongOnly(t, "the TypeScript grammar builds five large standalone controls next to the JSON ones")
 			}
 			src, err := os.ReadFile(filepath.Join("../../testdata/grammars", lang, lang+".zp"))
 			if err != nil {
@@ -53,7 +53,7 @@ func testGeneratedSharingWorkloads(t *testing.T) {
 				if mode != "default" {
 					opts.Opt = map[string]int{"ts-literal-sharing": 1}
 				}
-				code, err := gentest.GenerateCode(t, g, opts)
+				code, err := codegentest.GenerateCode(t, g, opts)
 				if err != nil {
 					t.Fatal(err)
 				}
@@ -64,7 +64,7 @@ func testGeneratedSharingWorkloads(t *testing.T) {
 				fixture := strings.ReplaceAll(generatedSharingFixture, "LANG", lang)
 				for name, data := range map[string][]byte{
 					"parser.go": code, "sharing_test.go": []byte(fixture),
-					"go.mod": []byte(gentest.GoMod("sharingfixture")),
+					"go.mod": []byte(codegentest.GoMod("sharingfixture")),
 				} {
 					if err := os.WriteFile(filepath.Join(path, name), data, 0o644); err != nil {
 						t.Fatal(err)
@@ -89,7 +89,7 @@ func testGeneratedSharingWorkloads(t *testing.T) {
 					t.Fatalf("%s: Node, typed or recognition output differs", mode)
 				}
 				opts.Types = false
-				ts, err := gentest.GenerateTSBundle(g, opts)
+				ts, err := codegentest.GenerateTSBundle(g, opts)
 				if err != nil {
 					t.Fatal(err)
 				}

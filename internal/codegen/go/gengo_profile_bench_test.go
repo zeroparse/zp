@@ -9,7 +9,7 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/internal/codegen"
-	"zeroparse.dev/zp/internal/gentest"
+	"zeroparse.dev/zp/internal/codegentest"
 )
 
 // Export standalone controls; keep generated fixtures and results outside Git.
@@ -29,7 +29,7 @@ func TestExportGeneratedGoProfileBenchmarks(t *testing.T) {
 			t.Fatal(err)
 		}
 	}
-	write("go.mod", []byte(gentest.GoMod("profilebench")))
+	write("go.mod", []byte(codegentest.GoMod("profilebench")))
 	sizes := map[string]int{}
 	for _, f := range []struct{ name, path, input string }{
 		{"json", "testdata/grammars/json/json.zp", "[" + strings.TrimSuffix(strings.Repeat(`{"name":"éclair","n":123,"ok":true},`, 64), ",") + "]"},
@@ -54,7 +54,7 @@ func TestExportGeneratedGoProfileBenchmarks(t *testing.T) {
 				if observed {
 					variant = "observed"
 				}
-				code, err := gentest.GenerateCode(t, g, codegen.GenOptions{Package: variant, Start: "main", Types: typed, Recognize: true, Observability: observed})
+				code, err := codegentest.GenerateCode(t, g, codegen.GenOptions{Package: variant, Start: "main", Types: typed, Recognize: true, Observability: observed})
 				if err != nil {
 					t.Fatal(err)
 				}

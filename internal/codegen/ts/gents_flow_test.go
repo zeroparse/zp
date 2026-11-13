@@ -7,7 +7,7 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/internal/codegen"
-	"zeroparse.dev/zp/internal/gentest"
+	"zeroparse.dev/zp/internal/codegentest"
 )
 
 // The lean value-free rules of the TypeScript parser are printed from Flow IR, as labeled blocks.
@@ -19,7 +19,7 @@ rule word = [a-z]+ ("-" [a-z]+)*`
 	if err != nil {
 		t.Fatal(err)
 	}
-	files, err := gentest.GenerateTS(g, codegen.GenOptions{Start: "main", Recognize: true})
+	files, err := codegentest.GenerateTS(g, codegen.GenOptions{Start: "main", Recognize: true})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -38,12 +38,12 @@ rule word = [a-z]+ ("-" [a-z]+)*`
 // engine does.
 func TestGeneratedTSOutlinesLargeAndRepeatedNodes(t *testing.T) {
 	t.Parallel()
-	src, _ := gentest.OutlineKeywords()
+	src, _ := codegentest.OutlineKeywords()
 	g, err := parseTest(src)
 	if err != nil {
 		t.Fatal(err)
 	}
-	files, err := gentest.GenerateTS(g, codegen.GenOptions{Start: "main", Recognize: true})
+	files, err := codegentest.GenerateTS(g, codegen.GenOptions{Start: "main", Recognize: true})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -80,7 +80,7 @@ func TestGeneratedTSOutlinedFunctionsAreShared(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	files, err := gentest.GenerateTS(g, codegen.GenOptions{Start: "main", Recognize: true})
+	files, err := codegentest.GenerateTS(g, codegen.GenOptions{Start: "main", Recognize: true})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -118,7 +118,7 @@ rule item = [a-z]+ ";"`
 	if err != nil {
 		t.Fatal(err)
 	}
-	out := gentest.RunTSGrammarScriptWith(t, g, `import * as p from "./parser.ts";
+	out := codegentest.RunTSGrammarScriptWith(t, g, `import * as p from "./parser.ts";
 const check = (x: boolean, why: string): void => { if (!x) throw new Error(why); };
 const limit = (Error as { stackTraceLimit?: number }).stackTraceLimit;
 const r = p.parse("a;1;b;", p.CodePoints);
@@ -177,7 +177,7 @@ func TestGeneratedTSLeavesOutUnreadCounts(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	files, err := gentest.GenerateTS(g, codegen.GenOptions{Start: "main"})
+	files, err := codegentest.GenerateTS(g, codegen.GenOptions{Start: "main"})
 	if err != nil {
 		t.Fatal(err)
 	}

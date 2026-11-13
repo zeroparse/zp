@@ -15,7 +15,7 @@ import (
 	zpcore "zeroparse.dev/zp/core"
 	"zeroparse.dev/zp/core/noderep"
 	"zeroparse.dev/zp/internal/codegen"
-	"zeroparse.dev/zp/internal/gentest"
+	"zeroparse.dev/zp/internal/codegentest"
 	"zeroparse.dev/zp/internal/value"
 )
 
@@ -103,7 +103,7 @@ func TestTreeLibParity(t *testing.T) {
 // typed-name collisions that direct library package tests cannot establish.
 func TestGeneratedTreeTraversal(t *testing.T) {
 	t.Parallel()
-	gentest.EachMode(t, testGeneratedTreeTraversal)
+	codegentest.EachMode(t, testGeneratedTreeTraversal)
 }
 
 func testGeneratedTreeTraversal(t *testing.T) {
@@ -121,7 +121,7 @@ func testGeneratedTreeTraversal(t *testing.T) {
 		t.Fatal(err)
 	}
 	dir := t.TempDir()
-	gentest.GeneratePackage(t, dir, "tree", grammar, codegen.GenOptions{Start: "main", Types: true})
+	codegentest.GeneratePackage(t, dir, "tree", grammar, codegen.GenOptions{Start: "main", Types: true})
 	typesSource, err := os.ReadFile(filepath.Join(dir, "tree", "types", "types.go"))
 	if err != nil {
 		t.Fatal(err)
@@ -137,11 +137,11 @@ func testGeneratedTreeTraversal(t *testing.T) {
 			t.Fatal(err)
 		}
 	}
-	write("go.mod", []byte(gentest.GoMod("gentest")))
+	write("go.mod", []byte(codegentest.GoMod("codegentest")))
 	// The traversal itself is the library's and is tested there; this checks that the generated
 	// package declares the colliding grammar types beside the library's names and walks a tree.
 	var consumer strings.Builder
-	consumer.WriteString("package tree\n\nimport (\n\t\"testing\"\n\n\t\"gentest/tree/types\"\n\tzprt \"zeroparse.dev/zp/codegen/go/lib\"\n\t\"zeroparse.dev/zp/core\"\n)\n\nfunc TestWalk(t *testing.T) {\n")
+	consumer.WriteString("package tree\n\nimport (\n\t\"testing\"\n\n\t\"codegentest/tree/types\"\n\tzprt \"zeroparse.dev/zp/codegen/go/lib\"\n\t\"zeroparse.dev/zp/core\"\n)\n\nfunc TestWalk(t *testing.T) {\n")
 	for _, name := range names {
 		fmt.Fprintf(&consumer, "\t_ = types.%s{Value: 1}\n", name)
 	}
@@ -168,7 +168,7 @@ func testGeneratedTreeTraversal(t *testing.T) {
 // helper beside a fresh generated parser and exercise both traversal surfaces.
 func TestGeneratedDuckDBInspectCompatibility(t *testing.T) {
 	t.Parallel()
-	gentest.EachMode(t, testGeneratedDuckDBInspectCompatibility)
+	codegentest.EachMode(t, testGeneratedDuckDBInspectCompatibility)
 }
 
 func testGeneratedDuckDBInspectCompatibility(t *testing.T) {
@@ -187,8 +187,8 @@ func testGeneratedDuckDBInspectCompatibility(t *testing.T) {
 			t.Fatal(err)
 		}
 	}
-	write("go.mod", []byte(gentest.GoMod("gentest")))
-	gentest.GeneratePackage(t, dir, "duckdb", grammar, codegen.GenOptions{Start: "main", Types: true})
+	write("go.mod", []byte(codegentest.GoMod("codegentest")))
+	codegentest.GeneratePackage(t, dir, "duckdb", grammar, codegen.GenOptions{Start: "main", Types: true})
 	write("duckdb/inspect.go", helper)
 	write("duckdb/walk_test.go", []byte(`package duckdb
 import (

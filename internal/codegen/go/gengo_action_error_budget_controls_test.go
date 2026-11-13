@@ -9,12 +9,12 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/internal/codegen"
-	"zeroparse.dev/zp/internal/gentest"
+	"zeroparse.dev/zp/internal/codegentest"
 )
 
 func TestGeneratedGoActionErrorBudget(t *testing.T) {
 	t.Parallel()
-	gentest.NeedsBudgetControls(t)
+	codegentest.NeedsBudgetControls(t)
 	if testing.Short() {
 		t.Skip("builds generated action-error consumers")
 	}
@@ -36,7 +36,7 @@ func TestGeneratedGoActionErrorBudget(t *testing.T) {
  rule ` + rule + ` A = a:"a" #cut => A{N:1 / (len($a)-1)}`, "action in " + rule + ": division by zero", true, false},
 	}
 	dir := t.TempDir()
-	if err := os.WriteFile(filepath.Join(dir, "go.mod"), []byte(gentest.GoMod("actionerrorfixture")), 0644); err != nil {
+	if err := os.WriteFile(filepath.Join(dir, "go.mod"), []byte(codegentest.GoMod("actionerrorfixture")), 0644); err != nil {
 		t.Fatal(err)
 	}
 	for _, c := range cases {
@@ -46,7 +46,7 @@ func TestGeneratedGoActionErrorBudget(t *testing.T) {
 		}
 		for _, convert := range []bool{false, true} {
 			pkg := fmt.Sprintf("action_%s_%v", c.name, convert)
-			code, err := gentest.GenerateCode(t, g, codegen.GenOptions{Package: pkg, Start: c.start, Types: true, Recognize: true, ConvertTypes: convert})
+			code, err := codegentest.GenerateCode(t, g, codegen.GenOptions{Package: pkg, Start: c.start, Types: true, Recognize: true, ConvertTypes: convert})
 			if err != nil {
 				t.Fatal(err)
 			}

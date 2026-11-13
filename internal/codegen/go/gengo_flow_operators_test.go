@@ -5,8 +5,8 @@ import (
 
 	"zeroparse.dev/zp/internal/codegen"
 	"zeroparse.dev/zp/internal/codegen/go"
+	"zeroparse.dev/zp/internal/codegentest"
 	"zeroparse.dev/zp/internal/compile"
-	"zeroparse.dev/zp/internal/gentest"
 )
 
 // The lines of an Operators Rule in the Node and recognizer tables are printed from Flow IR. The tests
@@ -17,8 +17,8 @@ import (
 // Node and recognizer tables (a line Flow IR does not print fails the generation).
 func TestOperatorsLinesWithRecoveryPrintFromFlow(t *testing.T) {
 	t.Parallel()
-	gentest.PinOrdinary(t)
-	for _, c := range gentest.OperatorsLineRecoveryCases {
+	codegentest.PinOrdinary(t)
+	for _, c := range codegentest.OperatorsLineRecoveryCases {
 		t.Run(c.Name, func(t *testing.T) {
 			g, err := parseTest(c.Src)
 			if err != nil {
@@ -26,9 +26,9 @@ func TestOperatorsLinesWithRecoveryPrintFromFlow(t *testing.T) {
 			}
 			flowed := map[string]int{}
 			gh := &gogen.Hooks{}
-			gentest.SetGenHooks(t, gh)
+			codegentest.SetGenHooks(t, gh)
 			gh.OperatorsRoute = func(table string, r *compile.Rule) { flowed[table+"/"+r.Name]++ }
-			if _, err := gentest.GenerateCode(t, g, codegen.GenOptions{Start: "main", Package: "gen", Recognize: true}); err != nil {
+			if _, err := codegentest.GenerateCode(t, g, codegen.GenOptions{Start: "main", Package: "gen", Recognize: true}); err != nil {
 				t.Fatal(err)
 			}
 			for _, table := range []string{"rules", "recRules"} {

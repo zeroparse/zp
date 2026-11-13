@@ -9,7 +9,7 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/internal/codegen"
-	"zeroparse.dev/zp/internal/gentest"
+	"zeroparse.dev/zp/internal/codegentest"
 )
 
 // Export standalone controls and raw measurements outside the repository.
@@ -53,7 +53,7 @@ func TestExportGeneratedTSTraceBenchmarks(t *testing.T) {
 				if enabled {
 					variant = "observed"
 				}
-				files, err := gentest.GenerateTS(g, codegen.GenOptions{Start: "main", Types: typed, Recognize: true, Observability: enabled})
+				files, err := codegentest.GenerateTS(g, codegen.GenOptions{Start: "main", Types: typed, Recognize: true, Observability: enabled})
 				if err != nil {
 					t.Fatal(err)
 				}

@@ -10,8 +10,8 @@ import (
 
 	"zeroparse.dev/zp/internal/codegen"
 	"zeroparse.dev/zp/internal/codegen/go"
+	"zeroparse.dev/zp/internal/codegentest"
 	"zeroparse.dev/zp/internal/compile"
-	"zeroparse.dev/zp/internal/gentest"
 )
 
 // The rules of the Node table are printed from Flow IR (the lean value-free rules by the same route
@@ -25,17 +25,17 @@ import (
 // the test cannot pass without exercising it.
 func TestGeneratedFlowNodeParity(t *testing.T) {
 	t.Parallel()
-	gentest.EachMode(t, testGeneratedFlowNodeParity)
+	codegentest.EachMode(t, testGeneratedFlowNodeParity)
 }
 
 func testGeneratedFlowNodeParity(t *testing.T) {
 	if testing.Short() {
 		t.Skip("builds generated consumers")
 	}
-	cases := gentest.Representative(gentest.GenCorpus(t))
+	cases := codegentest.Representative(codegentest.GenCorpus(t))
 	taken := map[string]int{}
 	gh := &gogen.Hooks{}
-	gentest.SetGenHooks(t, gh)
+	codegentest.SetGenHooks(t, gh)
 	gh.LeanRoute = func(table string, r *compile.Rule) { taken[table]++ }
 	framed, operators := map[string]int{}, map[string]int{}
 	gh.FramedRoute = func(table string, r *compile.Rule) { framed[table]++ }
@@ -45,7 +45,7 @@ func testGeneratedFlowNodeParity(t *testing.T) {
 		if err != nil {
 			t.Fatalf("%s: %v", c.Name, err)
 		}
-		if _, err := gentest.GenerateCode(t, g, codegen.GenOptions{Start: "main", Package: "gen", Recognize: true}); err != nil {
+		if _, err := codegentest.GenerateCode(t, g, codegen.GenOptions{Start: "main", Package: "gen", Recognize: true}); err != nil {
 			t.Fatalf("%s: %v", c.Name, err)
 		}
 	}
@@ -62,7 +62,7 @@ func testGeneratedFlowNodeParity(t *testing.T) {
 		t.Fatal("no rule of the Node table takes a direct route: the parity test exercises nothing")
 	}
 	goBin := filepath.Join(runtime.GOROOT(), "bin", "go")
-	t.Run("flow node rules", func(t *testing.T) { gentest.GeneratedParsersCorpus(t, goBin, cases, codegen.GenOptions{}) })
+	t.Run("flow node rules", func(t *testing.T) { codegentest.GeneratedParsersCorpus(t, goBin, cases, codegen.GenOptions{}) })
 }
 
 // operatorGrammars are the checked-in grammars with an Operators Rule.
@@ -77,7 +77,7 @@ func TestFlowNodeRulesPrintFromFlow(t *testing.T) {
 	if testing.Short() {
 		t.Skip("generates the large parsers")
 	}
-	names := gentest.RepresentativeNames([]string{"json", "cel", "cue", "duckdb", "golang", "python", "xml", "yaml", "csv", "typescript"})
+	names := codegentest.RepresentativeNames([]string{"json", "cel", "cue", "duckdb", "golang", "python", "xml", "yaml", "csv", "typescript"})
 	sort.Strings(names)
 	for _, form := range []struct {
 		name              string
@@ -99,7 +99,7 @@ func TestFlowNodeRulesPrintFromFlow(t *testing.T) {
 				o := codegen.GenOptions{Package: "x", Module: "example.com/x", Lib: codegen.LibImport, Recognize: true, LimitControls: form.controls, Observability: form.observe, Document: form.document}
 				taken, framed, operators := 0, 0, 0
 				gh := &gogen.Hooks{}
-				gentest.SetGenHooks(t, gh)
+				codegentest.SetGenHooks(t, gh)
 				gh.LeanRoute = func(table string, r *compile.Rule) {
 					if table == "rules" {
 						taken++
@@ -107,11 +107,11 @@ func TestFlowNodeRulesPrintFromFlow(t *testing.T) {
 				}
 				gh.FramedRoute = func(table string, r *compile.Rule) { framed++ }
 				gh.OperatorsRoute = func(table string, r *compile.Rule) { operators++ }
-				files, err := gentest.Generate(t, g, o)
+				files, err := codegentest.Generate(t, g, o)
 				if err != nil {
 					t.Fatal(err)
 				}
-				flow := gentest.MergeGenerated(files)
+				flow := codegentest.MergeGenerated(files)
 				if taken == 0 {
 					t.Errorf("no rule of the Node table of %s takes the Flow route", name)
 				}
@@ -137,7 +137,7 @@ func TestFlowNodeRulesPrintFromFlow(t *testing.T) {
 // for the whole Node program, so Verify must accept the stream there, as the grammar and the engine do.
 func TestFlowNodeRulesAcceptStreamInWrappedSequence(t *testing.T) {
 	t.Parallel()
-	gentest.PinOrdinary(t)
+	codegentest.PinOrdinary(t)
 	for name, src := range map[string]string{
 		"attributed sequence": `rule main = (([a-z] #atomic)* #stream "!") @diagnostic(name="x") $$`,
 		"attributed group": `rule main = (item* #stream) @diagnostic(name="items") "." $$
@@ -151,7 +151,7 @@ rule item = [a-z] #atomic`,
 		}
 		for _, stream := range []bool{false, true} {
 			opts := codegen.GenOptions{Start: "main", Package: "gen", Stream: stream}
-			if _, err := gentest.GenerateCode(t, g, opts); err != nil {
+			if _, err := codegentest.GenerateCode(t, g, opts); err != nil {
 				t.Errorf("%s (stream %v): %v", name, stream, err)
 			}
 		}
@@ -165,21 +165,21 @@ rule item = [a-z] #atomic`,
 // actions read.
 func TestFlowNodeRecognizersOnGrammars(t *testing.T) {
 	t.Parallel()
-	gentest.EachMode(t, testFlowNodeRecognizersOnGrammars)
+	codegentest.EachMode(t, testFlowNodeRecognizersOnGrammars)
 }
 
 func testFlowNodeRecognizersOnGrammars(t *testing.T) {
 	if testing.Short() {
 		t.Skip("builds generated consumers")
 	}
-	var cases []gentest.Case
-	for _, name := range gentest.RepresentativeNames([]string{"json", "cel", "cue", "duckdb", "golang", "python", "xml", "yaml", "csv", "typescript"}) {
+	var cases []codegentest.Case
+	for _, name := range codegentest.RepresentativeNames([]string{"json", "cel", "cue", "duckdb", "golang", "python", "xml", "yaml", "csv", "typescript"}) {
 		dir := filepath.Join("..", "..", "..", "testdata", "grammars", name)
 		src, err := os.ReadFile(filepath.Join(dir, name+".zp"))
 		if err != nil {
 			t.Fatal(err)
 		}
-		gc := gentest.Case{Name: name, Src: string(src)}
+		gc := codegentest.Case{Name: name, Src: string(src)}
 		files, err := filepath.Glob(filepath.Join(dir, "*.txt"))
 		if err != nil || len(files) == 0 {
 			t.Fatalf("%s: no test data inputs (%v)", name, err)
@@ -194,5 +194,5 @@ func testFlowNodeRecognizersOnGrammars(t *testing.T) {
 		cases = append(cases, gc)
 	}
 	goBin := filepath.Join(runtime.GOROOT(), "bin", "go")
-	gentest.GeneratedParsersCorpus(t, goBin, cases, codegen.GenOptions{})
+	codegentest.GeneratedParsersCorpus(t, goBin, cases, codegen.GenOptions{})
 }

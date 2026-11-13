@@ -14,7 +14,7 @@ import (
 	"zeroparse.dev/zp/core"
 	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/codegen"
-	"zeroparse.dev/zp/internal/gentest"
+	"zeroparse.dev/zp/internal/codegentest"
 )
 
 // A LimitError of kind LimitCompute reports the reservation that failed and the units reserved before
@@ -131,14 +131,14 @@ func generatedGoLimitReports(t *testing.T, c limitAgreementCase, runtime string)
 	if err != nil {
 		t.Fatal(err)
 	}
-	code, err := gentest.GenerateCode(t, g, codegen.GenOptions{Package: "fixture", Start: "main", Types: true})
+	code, err := codegentest.GenerateCode(t, g, codegen.GenOptions{Package: "fixture", Start: "main", Types: true})
 	if err != nil {
 		t.Fatal(err)
 	}
 	dir := t.TempDir()
 	consumer := strings.NewReplacer("MAX", fmt.Sprint(c.max), "INPUT", fmt.Sprintf("%q", c.input)).Replace(limitAgreementConsumer)
 	for name, source := range map[string]string{
-		"go.mod":         gentest.GoModAt("fixture", runtime),
+		"go.mod":         codegentest.GoModAt("fixture", runtime),
 		"parser.go":      string(code),
 		"parser_test.go": consumer,
 	} {
@@ -180,14 +180,14 @@ func generatedTSLimitReports(t *testing.T, c limitAgreementCase, patch func(stri
 		t.Fatal(err)
 	}
 	script := strings.NewReplacer("MAX", fmt.Sprint(c.max), "INPUT", fmt.Sprintf("%q", c.input)).Replace(limitAgreementTSScript)
-	bundle := gentest.GenerateTSBundle
+	bundle := codegentest.GenerateTSBundle
 	if patch != nil {
 		bundle = func(g *grammar.Grammar, opts codegen.GenOptions) ([]byte, error) {
-			b, err := gentest.GenerateTSBundle(g, opts)
+			b, err := codegentest.GenerateTSBundle(g, opts)
 			return []byte(patch(string(b))), err
 		}
 	}
-	out := gentest.RunTSGrammarScriptBundle(t, g, script, codegen.GenOptions{Start: "main", LimitControls: true}, bundle)
+	out := codegentest.RunTSGrammarScriptBundle(t, g, script, codegen.GenOptions{Start: "main", LimitControls: true}, bundle)
 	reports := make([]string, c.max+1)
 	for _, line := range strings.Split(out, "\n") {
 		var l uint64
@@ -212,15 +212,15 @@ func limitDisagreements(want, got []string, w [2]uint64) []string {
 
 func TestLimitErrorAgreement(t *testing.T) {
 	t.Parallel()
-	gentest.NeedsBudgetControls(t)
+	codegentest.NeedsBudgetControls(t)
 	if testing.Short() {
 		t.Skip("builds generated parsers")
 	}
-	runtime := gentest.LibCopy()
+	runtime := codegentest.LibCopy()
 	for _, c := range limitAgreementCases {
 		t.Run(c.name, func(t *testing.T) {
 			t.Parallel()
-			gentest.NeedsBudgetControls(t)
+			codegentest.NeedsBudgetControls(t)
 			want := engineLimitReports(t, c, Closure)
 			if c.units != 0 && want[c.units] != fmt.Sprintf("%d/1", c.units) {
 				t.Fatalf("closure at limit %d reports %s, want a unit of a run", c.units, want[c.units])

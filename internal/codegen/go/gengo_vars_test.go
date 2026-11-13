@@ -7,7 +7,7 @@ import (
 
 	"zeroparse.dev/zp/internal/codegen"
 	"zeroparse.dev/zp/internal/codegen/go"
-	"zeroparse.dev/zp/internal/gentest"
+	"zeroparse.dev/zp/internal/codegentest"
 )
 
 func TestVarLinesExcept(t *testing.T) {
@@ -40,7 +40,7 @@ func TestVarLinesExcept(t *testing.T) {
 // A generated rule method declares the variables of one type together.
 func TestGeneratedMethodsGroupVariables(t *testing.T) {
 	t.Parallel()
-	gentest.EachMode(t, testGeneratedMethodsGroupVariables)
+	codegentest.EachMode(t, testGeneratedMethodsGroupVariables)
 }
 
 func testGeneratedMethodsGroupVariables(t *testing.T) {
@@ -48,7 +48,7 @@ func testGeneratedMethodsGroupVariables(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	code, err := gentest.GenerateCode(t, g, codegen.GenOptions{Package: "p", Start: "main", Types: true})
+	code, err := codegentest.GenerateCode(t, g, codegen.GenOptions{Package: "p", Start: "main", Types: true})
 	if err != nil {
 		t.Fatal(err)
 	}

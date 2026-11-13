@@ -7,7 +7,7 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/internal/codegen"
-	"zeroparse.dev/zp/internal/gentest"
+	"zeroparse.dev/zp/internal/codegentest"
 )
 
 // TestScanSitesTSMatchEngine checks that generated TypeScript parsers, whose repetitions of one
@@ -22,7 +22,7 @@ func TestScanSitesTSMatchEngine(t *testing.T) {
 	if err != nil {
 		t.Skip("node not found")
 	}
-	gentest.TSParsersCorpus(t, node, gentest.ScanSiteCases(40), codegen.GenOptions{})
+	codegentest.TSParsersCorpus(t, node, codegentest.ScanSiteCases(40), codegen.GenOptions{})
 }
 
 // TestScanSitesTSLinear checks that grammars which restart a walk of a scan site at one position

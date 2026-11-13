@@ -8,12 +8,12 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/internal/codegen"
-	"zeroparse.dev/zp/internal/gentest"
+	"zeroparse.dev/zp/internal/codegentest"
 )
 
 func TestGeneratedTypedDocumentPublicationClone(t *testing.T) {
 	t.Parallel()
-	gentest.NeedsBudgetControls(t)
+	codegentest.NeedsBudgetControls(t)
 	if testing.Short() {
 		t.Skip("builds a standalone generated parser")
 	}
@@ -32,17 +32,17 @@ rule token Token = t:("x") #atomic => Token{Text: text($t)}`)
 	// The types are named like the names of the parser package (Document, ParseStats, Span) and live
 	// in their own package, so that they compile next to them.
 	dir := t.TempDir()
-	gentest.GeneratePackage(t, dir, "doc", g, codegen.GenOptions{Start: "main", Types: true, Document: true})
-	ordinary := gentest.GeneratePackage(t, dir, "ordinary", g, codegen.GenOptions{Start: "main", Types: true})
+	codegentest.GeneratePackage(t, dir, "doc", g, codegen.GenOptions{Start: "main", Types: true, Document: true})
+	ordinary := codegentest.GeneratePackage(t, dir, "ordinary", g, codegen.GenOptions{Start: "main", Types: true})
 	if strings.Contains(ordinary, "type typedDocumentClone") {
 		t.Fatalf("default generation includes Document cloning")
 	}
 	for name, text := range map[string]string{
-		"go.mod": gentest.GoMod("gentest"),
+		"go.mod": codegentest.GoMod("codegentest"),
 		"doc/parser_test.go": `package doc
 import (
 	zprt "zeroparse.dev/zp/codegen/go/lib"
- "gentest/doc/types"
+ "codegentest/doc/types"
  "context"
  "errors"
  "testing"

@@ -10,7 +10,7 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/internal/codegen"
-	"zeroparse.dev/zp/internal/gentest"
+	"zeroparse.dev/zp/internal/codegentest"
 )
 
 // tsFunctionDecl matches the declaration of a top-level function of generated code.
@@ -33,7 +33,7 @@ func unreferencedFunctions(code string) []string {
 // r3 after !("c"?), which never matches, so the printed code of r4 does not call r3.
 func TestGeneratedTSCallsOnlyPrintedRules(t *testing.T) {
 	t.Parallel()
-	c := gentest.RandomCycleGrammar(120, true)
+	c := codegentest.RandomCycleGrammar(120, true)
 	if !strings.Contains(c.Src, `rule r4 = !"c"? r3 / "b"`) {
 		t.Fatalf("the grammar changed:\n%s", c.Src)
 	}
@@ -41,7 +41,7 @@ func TestGeneratedTSCallsOnlyPrintedRules(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	code, err := gentest.GenerateTSBundle(g, codegen.GenOptions{Start: "main", Recognize: true})
+	code, err := codegentest.GenerateTSBundle(g, codegen.GenOptions{Start: "main", Recognize: true})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -86,7 +86,7 @@ func TestGeneratedTSNoUnusedLocals(t *testing.T) {
 		t.Fatalf("no grammars: %v", err)
 	}
 	for _, path := range paths {
-		if !gentest.Long() && len(gentest.RepresentativeNames([]string{strings.TrimSuffix(filepath.Base(path), ".zp")})) == 0 {
+		if !codegentest.Long() && len(codegentest.RepresentativeNames([]string{strings.TrimSuffix(filepath.Base(path), ".zp")})) == 0 {
 			continue
 		}
 		src, err := os.ReadFile(path)
@@ -100,7 +100,7 @@ func TestGeneratedTSNoUnusedLocals(t *testing.T) {
 		// The files as generate writes them: a typed parser's types can have the names of runtime
 		// declarations, which the joined module of GenerateTSBundle would declare twice.
 		for i, opts := range []codegen.GenOptions{{Recognize: true}, {Types: true}} {
-			gfs, err := gentest.GenerateTS(g, opts)
+			gfs, err := codegentest.GenerateTS(g, opts)
 			if err != nil {
 				t.Fatalf("%s: %v", path, err)
 			}
@@ -111,12 +111,12 @@ func TestGeneratedTSNoUnusedLocals(t *testing.T) {
 	}
 	seeds := 200
 	for s := int64(0); s < int64(seeds); s++ {
-		for i, c := range []gentest.Case{gentest.RandomCycleGrammar(s, false), gentest.RandomCycleGrammar(s, true), gentest.RandomRecoveringCycleGrammar(s)} {
+		for i, c := range []codegentest.Case{codegentest.RandomCycleGrammar(s, false), codegentest.RandomCycleGrammar(s, true), codegentest.RandomRecoveringCycleGrammar(s)} {
 			g, err := parseTest(c.Src)
 			if err != nil {
 				continue
 			}
-			code, err := gentest.GenerateTSBundle(g, codegen.GenOptions{Start: "main", Recognize: true})
+			code, err := codegentest.GenerateTSBundle(g, codegen.GenOptions{Start: "main", Recognize: true})
 			if err != nil {
 				continue
 			}

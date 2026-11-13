@@ -12,12 +12,12 @@ import (
 	"time"
 
 	"zeroparse.dev/zp/internal/codegen"
-	"zeroparse.dev/zp/internal/gentest"
+	"zeroparse.dev/zp/internal/codegentest"
 )
 
 // TestGeneratedTSMemoLookaheadState checks that generated TypeScript parsers bound the evaluations
 // of calls that alternate between lookahead states, as the engine does: a parse and a recognition,
-// without and with limit controls, evaluate the rule a of gentest.MemoLookaheadCases as often as
+// without and with limit controls, evaluate the rule a of codegentest.MemoLookaheadCases as often as
 // the engine does, whether or not its result has recovered errors.
 func TestGeneratedTSMemoLookaheadState(t *testing.T) {
 	t.Parallel()
@@ -42,13 +42,13 @@ func TestGeneratedTSMemoLookaheadState(t *testing.T) {
 		"  const r = profile.snapshot().rules.find((r) => r.rule === \"a\");\n" +
 		"  return r === undefined ? -1 : r.evals;\n" +
 		"};\n")
-	cases := gentest.MemoLookaheadCases()
+	cases := codegentest.MemoLookaheadCases()
 	for i, c := range cases {
 		in := strconv.Quote(c.Input)
 		// g has no limit controls; l has them, under the default limits.
 		var line []string
 		for _, pkg := range []string{fmt.Sprintf("g%d", i), fmt.Sprintf("l%d", i)} {
-			code, err := gentest.GenerateTSBundle(mustParse(c.Src), codegen.GenOptions{Start: "s", Recognize: true, Observability: true, LimitControls: pkg[0] == 'l'})
+			code, err := codegentest.GenerateTSBundle(mustParse(c.Src), codegen.GenOptions{Start: "s", Recognize: true, Observability: true, LimitControls: pkg[0] == 'l'})
 			if err != nil {
 				t.Fatalf("%s: %v", c.Name, err)
 			}

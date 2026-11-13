@@ -6,7 +6,7 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/internal/codegen"
-	"zeroparse.dev/zp/internal/gentest"
+	"zeroparse.dev/zp/internal/codegentest"
 )
 
 // TestGeneratedLookaheadRecoveryMatchesEngine compares the results and errors of node and typed
@@ -16,8 +16,8 @@ func TestGeneratedLookaheadRecoveryMatchesEngine(t *testing.T) {
 	if testing.Short() {
 		t.Skip("builds generated code")
 	}
-	gentest.PinOrdinary(t)
+	codegentest.PinOrdinary(t)
 	goBin := filepath.Join(runtime.GOROOT(), "bin", "go")
-	gentest.GeneratedParsersCorpus(t, goBin, gentest.LookaheadRecoveryCases(), codegen.GenOptions{})
-	gentest.GeneratedTypesCorpus(t, goBin, gentest.LookaheadRecoveryCases(), codegen.GenOptions{})
+	codegentest.GeneratedParsersCorpus(t, goBin, codegentest.LookaheadRecoveryCases(), codegen.GenOptions{})
+	codegentest.GeneratedTypesCorpus(t, goBin, codegentest.LookaheadRecoveryCases(), codegen.GenOptions{})
 }

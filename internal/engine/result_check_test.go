@@ -7,9 +7,9 @@ import (
 
 	"zeroparse.dev/zp/core"
 	"zeroparse.dev/zp/grammar"
+	"zeroparse.dev/zp/internal/codegentest"
 	"zeroparse.dev/zp/internal/compile"
 	ecore "zeroparse.dev/zp/internal/engine/core"
-	"zeroparse.dev/zp/internal/gentest"
 )
 
 // resultCheckRoutes maps an input's route character to the rule it reaches.
@@ -26,10 +26,10 @@ func TestRuleResultChecks(t *testing.T) {
 		parse   func(string) (*grammar.Grammar, error)
 		fields  map[string]string
 	}{
-		{"text struct", gentest.ResultCheckGrammar, parseTest, gentest.FieldCheckFields},
+		{"text struct", codegentest.ResultCheckGrammar, parseTest, codegentest.FieldCheckFields},
 	} {
 		t.Run(model.name, func(t *testing.T) {
-			for _, typ := range gentest.ResultCheckTypesOf(model.fields) {
+			for _, typ := range codegentest.ResultCheckTypesOf(model.fields) {
 				t.Run(typ, func(t *testing.T) { checkRuleResultType(t, typ, model.grammar, model.parse, model.fields) })
 			}
 		})
@@ -64,8 +64,8 @@ func checkRuleResultType(t *testing.T, typ string, resultGrammar func(typ, rt st
 			}
 			limits := core.Limits{Compute: 1 << 30}
 			declared := checked.Typed.Fields["S"][0].T.String() // as the value checker resolves it
-			for _, in := range gentest.ResultCheckInputs() {
-				value := gentest.FieldCheckValues[in[:1]]
+			for _, in := range codegentest.ResultCheckInputs() {
+				value := codegentest.FieldCheckValues[in[:1]]
 				rule := resultCheckRoutes[in[1]]
 				accepted := strings.Contains(fields[typ], in[:1])
 				runs := []struct {
@@ -171,7 +171,7 @@ func checkRuleResultType(t *testing.T, typ string, resultGrammar func(typ, rt st
 // copies, in every program form.
 func TestOperatorResultChecks(t *testing.T) {
 	t.Parallel()
-	g, err := parseTest(gentest.OperatorResultCheckGrammar)
+	g, err := parseTest(codegentest.OperatorResultCheckGrammar)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -189,7 +189,7 @@ func TestOperatorResultChecks(t *testing.T) {
 	}
 	_, err = loaded.ParseWith("main", "", ParseOptions{Backend: Closure})
 	wantClosureRefused(t, err)
-	for _, in := range gentest.OperatorResultCheckInputs {
+	for _, in := range codegentest.OperatorResultCheckInputs {
 		want := resultWith(prog, in, ParseOptions{})
 		rejected := !strings.Contains(in, "l")
 		if got := strings.Contains(want, "cannot cast "); got != rejected {
@@ -223,10 +223,10 @@ func TestOperatorResultChecks(t *testing.T) {
 // on every backend.
 func TestTextStructOperatorsRule(t *testing.T) {
 	t.Parallel()
-	prog := mustCompile(t, gentest.TextStructOperatorsRuleGrammar)
+	prog := mustCompile(t, codegentest.TextStructOperatorsRuleGrammar)
 	for _, b := range []Backend{Closure, Bytecode, BytecodeIterative} {
 		o := ParseOptions{Backend: b}
-		for _, in := range gentest.TerminalOperatorsRuleInputs {
+		for _, in := range codegentest.TerminalOperatorsRuleInputs {
 			want := resultWith(prog, in, ParseOptions{})
 			if strings.Contains(want, "cannot use") {
 				t.Fatalf("%q: %s", in, want)

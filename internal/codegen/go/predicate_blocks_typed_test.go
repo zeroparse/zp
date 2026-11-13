@@ -6,18 +6,18 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/internal/codegen"
-	"zeroparse.dev/zp/internal/gentest"
+	"zeroparse.dev/zp/internal/codegentest"
 )
 
 // These declared typed-result fixtures force typed library execution; ordinary
 // Node parser parity alone does not cover generated typed Predicate Actions.
 func TestPredicateBlocksGeneratedTypedParity(t *testing.T) {
 	t.Parallel()
-	gentest.EachMode(t, testPredicateBlocksGeneratedTypedParity)
+	codegentest.EachMode(t, testPredicateBlocksGeneratedTypedParity)
 }
 
 func testPredicateBlocksGeneratedTypedParity(t *testing.T) {
-	cases := []gentest.Case{
+	cases := []codegentest.Case{
 		{Name: "typed bindings", Src: `type Word = { Text string }
 type Row = { Word Word; Code int }
 var n int
@@ -29,5 +29,5 @@ var n int
 rule main Row = {n := 0} w:word ({n := 1; false} / {n := 2; n == 2}) $$ => Row{Word: $w, Code: n}
 rule word Word = t:("é") #atomic => Word{Text: text($t)}`, Inputs: []string{"é", "", "a", "éé"}},
 	}
-	gentest.GeneratedTypesCorpus(t, filepath.Join(runtime.GOROOT(), "bin", "go"), cases, codegen.GenOptions{ConvertTypes: true}, len(cases))
+	codegentest.GeneratedTypesCorpus(t, filepath.Join(runtime.GOROOT(), "bin", "go"), cases, codegen.GenOptions{ConvertTypes: true}, len(cases))
 }

@@ -10,7 +10,7 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/internal/codegen"
-	"zeroparse.dev/zp/internal/gentest"
+	"zeroparse.dev/zp/internal/codegentest"
 )
 
 // The parser package of a typed parser reinterprets a string node of a named node type as the type of
@@ -46,7 +46,7 @@ func schemaTiePair(t *testing.T, root, name, src string) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	gentest.GeneratePackageIn(t, root, "gentest", name, g, codegen.GenOptions{Start: "main", Types: true})
+	codegentest.GeneratePackageIn(t, root, "codegentest", name, g, codegen.GenOptions{Start: "main", Types: true})
 }
 
 func schemaTieBuild(t *testing.T, root string) (string, error) {
@@ -61,7 +61,7 @@ func schemaTieBuild(t *testing.T, root string) (string, error) {
 
 func TestGeneratedSchemaTie(t *testing.T) {
 	t.Parallel()
-	gentest.EachMode(t, testGeneratedSchemaTie)
+	codegentest.EachMode(t, testGeneratedSchemaTie)
 }
 
 func testGeneratedSchemaTie(t *testing.T) {
@@ -69,7 +69,7 @@ func testGeneratedSchemaTie(t *testing.T) {
 		t.Skip("builds generated packages")
 	}
 	root := t.TempDir()
-	if err := os.WriteFile(filepath.Join(root, "go.mod"), []byte(gentest.GoMod("gentest")), 0o644); err != nil {
+	if err := os.WriteFile(filepath.Join(root, "go.mod"), []byte(codegentest.GoMod("codegentest")), 0o644); err != nil {
 		t.Fatal(err)
 	}
 	schemaTiePair(t, root, "one", schemaTieGrammar)
@@ -98,7 +98,7 @@ func testGeneratedSchemaTie(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if err := os.WriteFile(filepath.Join(root, "one", "types", "types.go"), []byte(strings.ReplaceAll(string(other), "gentest/two", "gentest/one")), 0o644); err != nil {
+	if err := os.WriteFile(filepath.Join(root, "one", "types", "types.go"), []byte(strings.ReplaceAll(string(other), "codegentest/two", "codegentest/one")), 0o644); err != nil {
 		t.Fatal(err)
 	}
 	out, err := schemaTieBuild(t, root)
@@ -119,7 +119,7 @@ func TestGeneratedSchemaIgnoresComments(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		files, err := gentest.Generate(t, g, codegen.GenOptions{Start: "main", Package: "p", Module: "gentest/p", Types: true, Lib: codegen.LibImport})
+		files, err := codegentest.Generate(t, g, codegen.GenOptions{Start: "main", Package: "p", Module: "codegentest/p", Types: true, Lib: codegen.LibImport})
 		if err != nil {
 			t.Fatal(err)
 		}

@@ -8,16 +8,16 @@ import (
 
 	"zeroparse.dev/zp/core"
 	"zeroparse.dev/zp/core/noderep"
+	"zeroparse.dev/zp/internal/codegentest"
 	"zeroparse.dev/zp/internal/compile"
-	"zeroparse.dev/zp/internal/gentest"
 	"zeroparse.dev/zp/internal/value"
 )
 
 func TestOperatorsRulePrefixPartCuts(t *testing.T) {
 	t.Parallel()
 	for _, disableMemo := range []bool{false, true} {
-		prog := mustCompile(t, gentest.PrefixPartCuts, compile.Options{DisableMemo: disableMemo})
-		for _, c := range gentest.PrefixPartCutInputs {
+		prog := mustCompile(t, codegentest.PrefixPartCuts, compile.Options{DisableMemo: disableMemo})
+		for _, c := range codegentest.PrefixPartCutInputs {
 			t.Run(fmt.Sprintf("%s/memo=%t", c.Input, !disableMemo), func(t *testing.T) {
 				for _, backend := range []Backend{Closure, Bytecode, BytecodeIterative} {
 					for _, unit := range []core.PositionUnit{core.CodePoints, core.Bytes} {
@@ -73,7 +73,7 @@ func TestOperatorsRulePrefixPartCuts(t *testing.T) {
 // Compilation is outside the timer. These accepted inputs perform equivalent work on the old and
 // new cut contracts; committed failures have deliberately different outcomes and are tested above.
 func BenchmarkOperatorsRulePrefixPartCut(b *testing.B) {
-	prog, err := Compile(mustParse(gentest.PrefixPartCuts), compile.Options{})
+	prog, err := Compile(mustParse(codegentest.PrefixPartCuts), compile.Options{})
 	if err != nil {
 		b.Fatal(err)
 	}

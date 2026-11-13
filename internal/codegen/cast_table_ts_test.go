@@ -10,7 +10,7 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/internal/codegen"
-	"zeroparse.dev/zp/internal/gentest"
+	"zeroparse.dev/zp/internal/codegentest"
 	"zeroparse.dev/zp/internal/ir/exec/conform"
 )
 
@@ -67,12 +67,12 @@ console.log(JSON.stringify(cases.map(([t, v]) => {
 // control if controlled, and returns the result of each case that the TypeScript library runs, in order.
 func runTSCasts(t *testing.T, controlled bool, mutate func(string) string) [][2]any {
 	t.Helper()
-	node := gentest.RequireNode(t)
+	node := codegentest.RequireNode(t)
 	g, err := parseTest("@start\nrule main = \"a\"\n")
 	if err != nil {
 		t.Fatal(err)
 	}
-	code, err := gentest.GenerateTSBundle(g, codegen.GenOptions{Start: "main"})
+	code, err := codegentest.GenerateTSBundle(g, codegen.GenOptions{Start: "main"})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -102,7 +102,7 @@ func runTSCasts(t *testing.T, controlled bool, mutate func(string) string) [][2]
 	cmd.Stderr = &stderr
 	out, err := cmd.Output()
 	if err != nil {
-		t.Fatalf("node: %v\n%s", err, gentest.Clip(stderr.String(), 0))
+		t.Fatalf("node: %v\n%s", err, codegentest.Clip(stderr.String(), 0))
 	}
 	var results [][2]any
 	if err := json.Unmarshal(out, &results); err != nil {

@@ -7,7 +7,7 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/internal/codegen"
-	"zeroparse.dev/zp/internal/gentest"
+	"zeroparse.dev/zp/internal/codegentest"
 )
 
 // An edit can complete an incomplete UTF-8 sequence that ends before it. The
@@ -15,7 +15,7 @@ import (
 // not be reused.
 func TestGeneratedDocumentCompletesUTF8Prefix(t *testing.T) {
 	t.Parallel()
-	gentest.EachMode(t, testGeneratedDocumentCompletesUTF8Prefix)
+	codegentest.EachMode(t, testGeneratedDocumentCompletesUTF8Prefix)
 }
 
 func testGeneratedDocumentCompletesUTF8Prefix(t *testing.T) {
@@ -98,7 +98,7 @@ func TestCompletedPrefix(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			code, err := gentest.GenerateCode(t, g, tc.opts)
+			code, err := codegentest.GenerateCode(t, g, tc.opts)
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -119,7 +119,7 @@ var _ = json.Marshal
 			}
 			dir := t.TempDir()
 			for name, source := range map[string]string{
-				"go.mod":         gentest.GoMod("fixture"),
+				"go.mod":         codegentest.GoMod("fixture"),
 				"parser.go":      string(code),
 				"parser_test.go": "package fixture\n" + imports + cases + tc.test,
 			} {

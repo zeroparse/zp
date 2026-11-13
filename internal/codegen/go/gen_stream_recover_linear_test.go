@@ -7,7 +7,7 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/internal/codegen"
-	"zeroparse.dev/zp/internal/gentest"
+	"zeroparse.dev/zp/internal/codegentest"
 )
 
 // A generated stream parse recovers in time proportional to the work: the compute that it needs
@@ -15,7 +15,7 @@ import (
 // does, and the same holds when the skip is a run that walks share. Counting the line of every recovered error from the start of the buffer made it grow
 // with the size of the buffer.
 func TestGeneratedStreamRecoverIsLinear(t *testing.T) {
-	gentest.NeedsBudgetControls(t)
+	codegentest.NeedsBudgetControls(t)
 	if testing.Short() {
 		t.Skip("builds a generated standalone stream consumer")
 	}
@@ -37,13 +37,13 @@ func testGeneratedStreamRecoverIsLinear(t *testing.T, src string) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	code, err := gentest.GenerateCode(t, g, codegen.GenOptions{Package: "fixture", Start: "main", Stream: true})
+	code, err := codegentest.GenerateCode(t, g, codegen.GenOptions{Package: "fixture", Start: "main", Stream: true})
 	if err != nil {
 		t.Fatal(err)
 	}
 	dir := t.TempDir()
 	for name, source := range map[string]string{
-		"go.mod":         gentest.GoMod("fixture"),
+		"go.mod":         codegentest.GoMod("fixture"),
 		"parser.go":      string(code),
 		"parser_test.go": generatedStreamRecoverLinearConsumer,
 	} {

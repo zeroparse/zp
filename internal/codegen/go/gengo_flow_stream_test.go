@@ -17,16 +17,16 @@ import (
 
 	"zeroparse.dev/zp/internal/codegen"
 	"zeroparse.dev/zp/internal/codegen/go"
+	"zeroparse.dev/zp/internal/codegentest"
 	"zeroparse.dev/zp/internal/compile"
-	"zeroparse.dev/zp/internal/gentest"
 )
 
 // streamCases are the grammars with a #stream repetition of the generated-code tests, and the checked-in
 // grammars that have one.
-func streamCases(t *testing.T) []gentest.Case {
+func streamCases(t *testing.T) []codegentest.Case {
 	t.Helper()
-	cases := append([]gentest.Case(nil), streamCorpus...)
-	for _, c := range gentest.GenCorpus(t) {
+	cases := append([]codegentest.Case(nil), streamCorpus...)
+	for _, c := range codegentest.GenCorpus(t) {
 		if strings.Contains(c.Src, "#stream") {
 			cases = append(cases, c)
 		}
@@ -36,7 +36,7 @@ func streamCases(t *testing.T) []gentest.Case {
 		if err != nil {
 			t.Fatal(err)
 		}
-		c := gentest.Case{Name: name, Src: string(src), Inputs: []string{"", "\ufeffa,b\r\n", "a,\"x\"\"y\"\n\n", "a,\"unterminated", "a\rb\r\n"}}
+		c := codegentest.Case{Name: name, Src: string(src), Inputs: []string{"", "\ufeffa,b\r\n", "a,\"x\"\"y\"\n\n", "a,\"unterminated", "a\rb\r\n"}}
 		files, _ := filepath.Glob(filepath.Join("..", "..", "..", "testdata", "grammars", name, "*.txt"))
 		for _, f := range files {
 			in, err := os.ReadFile(f)
@@ -65,7 +65,7 @@ var streamForms = []struct {
 // the Node-table tests check, and the tests that run the parsers compare the behavior with the engine.
 func TestFlowStreamBodyIsBatchBody(t *testing.T) {
 	t.Parallel()
-	gentest.EachMode(t, testFlowStreamBodyIsBatchBody)
+	codegentest.EachMode(t, testFlowStreamBodyIsBatchBody)
 }
 
 func testFlowStreamBodyIsBatchBody(t *testing.T) {
@@ -73,7 +73,7 @@ func testFlowStreamBodyIsBatchBody(t *testing.T) {
 	var flowed []string
 	var cur string
 	gh := &gogen.Hooks{}
-	gentest.SetGenHooks(t, gh)
+	codegentest.SetGenHooks(t, gh)
 	gh.StreamRoute = func(table string, r *compile.Rule) { flowN++; flowed = append(flowed, cur) }
 	for _, form := range streamForms {
 		for _, c := range streamCases(t) {
@@ -84,7 +84,7 @@ func testFlowStreamBodyIsBatchBody(t *testing.T) {
 				}
 				cur = c.Name + "/" + form.name
 				before := flowN
-				code, err := gentest.GenerateCode(t, g, codegen.GenOptions{Package: "x", Start: "main", Stream: true, SourceInfo: true, LimitControls: form.controls, Observability: form.observe})
+				code, err := codegentest.GenerateCode(t, g, codegen.GenOptions{Package: "x", Start: "main", Stream: true, SourceInfo: true, LimitControls: form.controls, Observability: form.observe})
 				if err != nil {
 					if strings.Contains(err.Error(), "needs a #stream repetition") {
 						t.Skip("the #stream of the grammar is not at the top of the start rule")
@@ -178,7 +178,7 @@ func bodyClosure(t *testing.T, src string, ref *regexp.Regexp) string {
 // that the test cannot pass without exercising it.
 func TestGeneratedFlowStreamMatchesEngine(t *testing.T) {
 	t.Parallel()
-	gentest.EachMode(t, testGeneratedFlowStreamMatchesEngine)
+	codegentest.EachMode(t, testGeneratedFlowStreamMatchesEngine)
 }
 
 func testGeneratedFlowStreamMatchesEngine(t *testing.T) {
@@ -192,7 +192,7 @@ func testGeneratedFlowStreamMatchesEngine(t *testing.T) {
 	cases := streamCases(t)
 	taken := 0
 	gh := &gogen.Hooks{}
-	gentest.SetGenHooks(t, gh)
+	codegentest.SetGenHooks(t, gh)
 	gh.StreamRoute = func(table string, r *compile.Rule) { taken++ }
 	for _, form := range streamForms {
 		t.Run(form.name, func(t *testing.T) {
@@ -287,10 +287,10 @@ var streamProbeLine = regexp.MustCompile(`^(\S+) stream events=(\d+) trace=(\w+)
 // runStreamProbes builds the cases with a stream as the packages f0..fN (the stream body printed from Flow IR,
 // mutated by mutate if not nil), and returns the report lines and the cases built (those with a #stream at the
 // top of the start rule); the lines of a mutant are nil if its consumer fails.
-func runStreamProbes(t *testing.T, cases []gentest.Case, form struct {
+func runStreamProbes(t *testing.T, cases []codegentest.Case, form struct {
 	name              string
 	controls, observe bool
-}, mutate func([]byte) []byte) (lines []string, kept []gentest.Case) {
+}, mutate func([]byte) []byte) (lines []string, kept []codegentest.Case) {
 	t.Helper()
 	dir := t.TempDir()
 	write := func(name, content string) {
@@ -300,7 +300,7 @@ func runStreamProbes(t *testing.T, cases []gentest.Case, form struct {
 			t.Fatal(err)
 		}
 	}
-	write("go.mod", gentest.GoMod("streamprobe"))
+	write("go.mod", codegentest.GoMod("streamprobe"))
 	var inputs [][]string
 	for _, c := range cases {
 		g, err := parseTest(c.Src)
@@ -309,7 +309,7 @@ func runStreamProbes(t *testing.T, cases []gentest.Case, form struct {
 		}
 		i := len(kept)
 		o := codegen.GenOptions{Package: fmt.Sprintf("f%d", i), Start: "main", Stream: true, SourceInfo: true, LimitControls: form.controls, Observability: form.observe}
-		code, err := gentest.GenerateCode(t, g, o)
+		code, err := codegentest.GenerateCode(t, g, o)
 		if err != nil {
 			if strings.Contains(err.Error(), "needs a #stream repetition") {
 				continue
@@ -388,13 +388,13 @@ const (
 	streamGolden       = "testdata/stream.golden"
 	streamGoldenHeader = "# Reports of the stream parses with observability, per form and case: the number of inputs, trace events and\n" +
 		"# elements and a digest of the reports of all inputs and reader chunkings (trace and profile hashes, elements with the\n" +
-		"# reader calls before each, errors); the report of an input that ended with an error is listed under its case.\n" + gentest.GoldenRules
+		"# reader calls before each, errors); the report of an input that ended with an error is listed under its case.\n" + codegentest.GoldenRules
 )
 
-var streamGoldenFile = gentest.GoldenFile{Path: streamGolden, Header: streamGoldenHeader, CaseOf: gentest.GoldenCaseBefore}
+var streamGoldenFile = codegentest.GoldenFile{Path: streamGolden, Header: streamGoldenHeader, CaseOf: codegentest.GoldenCaseBefore}
 
 // streamEntries returns the entries of the golden for the reports of the cases built.
-func streamEntries(t *testing.T, form string, lines []string, kept []gentest.Case) map[string]string {
+func streamEntries(t *testing.T, form string, lines []string, kept []codegentest.Case) map[string]string {
 	t.Helper()
 	hashes := make([]hash.Hash, len(kept))
 	reports, events, elems := make([]int, len(kept)), make([]int, len(kept)), make([]int, len(kept))
@@ -445,7 +445,7 @@ func streamEntries(t *testing.T, form string, lines []string, kept []gentest.Cas
 // observability. Every report also has events and elements (streamReportDiffs).
 func TestFlowStreamObservationsMatchGolden(t *testing.T) {
 	t.Parallel()
-	gentest.EachMode(t, testFlowStreamObservationsMatchGolden)
+	codegentest.EachMode(t, testFlowStreamObservationsMatchGolden)
 }
 
 func testFlowStreamObservationsMatchGolden(t *testing.T) {
@@ -532,12 +532,12 @@ func streamPlacement(src string) error {
 // original.
 func TestFlowStreamPlacementMutants(t *testing.T) {
 	t.Parallel()
-	gentest.EachMode(t, func(t *testing.T) {
+	codegentest.EachMode(t, func(t *testing.T) {
 		g, err := parseTest(streamCorpus[0].Src)
 		if err != nil {
 			t.Fatal(err)
 		}
-		code, err := gentest.GenerateCode(t, g, codegen.GenOptions{Package: "x", Start: "main", Stream: true, SourceInfo: true})
+		code, err := codegentest.GenerateCode(t, g, codegen.GenOptions{Package: "x", Start: "main", Stream: true, SourceInfo: true})
 		if err != nil {
 			t.Fatal(err)
 		}

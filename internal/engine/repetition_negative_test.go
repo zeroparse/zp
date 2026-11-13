@@ -10,8 +10,8 @@ import (
 	"zeroparse.dev/zp/core"
 	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/bytecode"
+	"zeroparse.dev/zp/internal/codegentest"
 	"zeroparse.dev/zp/internal/compile"
-	"zeroparse.dev/zp/internal/gentest"
 )
 
 func negativeMaxima() []int {
@@ -37,7 +37,7 @@ func TestNegativeRepetitionMaxima(t *testing.T) {
 	} {
 		for _, maximum := range negativeMaxima() {
 			t.Run(fmt.Sprintf("%s/%d", c.name, maximum), func(t *testing.T) {
-				g := gentest.GrammarWithNegativeMaximum(t, c.src, maximum)
+				g := codegentest.GrammarWithNegativeMaximum(t, c.src, maximum)
 				before, err := grammar.MarshalJSON(g)
 				if err != nil {
 					t.Fatal(err)
@@ -109,8 +109,8 @@ func TestNegativeRepetitionMaxima(t *testing.T) {
 												ref = servedBy(mode, ref)
 											}
 											got, ge := prog.ParseWith("main", input, ref)
-											if gentest.ResultJSON(got, ge) != gentest.ResultJSON(want, we) {
-												t.Errorf("%s/%s recognize=%v input=%q: got %s, want %s", b, unit, recognize, input, gentest.ResultJSON(got, ge), gentest.ResultJSON(want, we))
+											if codegentest.ResultJSON(got, ge) != codegentest.ResultJSON(want, we) {
+												t.Errorf("%s/%s recognize=%v input=%q: got %s, want %s", b, unit, recognize, input, codegentest.ResultJSON(got, ge), codegentest.ResultJSON(want, we))
 											}
 										}
 									}
@@ -202,7 +202,7 @@ func TestNegativeMaximumWithWideMinimum(t *testing.T) {
 	}
 	for _, body := range []string{`"é" #repeat(2147483648, ) $$`, `[é] #repeat(2147483648, ) #atomic $$`} {
 		for _, maximum := range negativeMaxima() {
-			g := gentest.GrammarWithNegativeMaximum(t, "rule main = "+body, maximum)
+			g := codegentest.GrammarWithNegativeMaximum(t, "rule main = "+body, maximum)
 			p, err := Compile(g, compile.Options{})
 			if err != nil {
 				t.Fatal(err)
@@ -231,8 +231,8 @@ func TestNegativeMaximumWithWideMinimum(t *testing.T) {
 						want, we := p.ParseWith("main", "éé", ref)
 						ref.Backend = b
 						got, ge := loaded.ParseWith("main", "éé", servedBy(mode, ref))
-						if gentest.ResultJSON(got, ge) != gentest.ResultJSON(want, we) {
-							t.Fatalf("wide %s/%s got %s, want %s", b, unit, gentest.ResultJSON(got, ge), gentest.ResultJSON(want, we))
+						if codegentest.ResultJSON(got, ge) != codegentest.ResultJSON(want, we) {
+							t.Fatalf("wide %s/%s got %s, want %s", b, unit, codegentest.ResultJSON(got, ge), codegentest.ResultJSON(want, we))
 						}
 					}
 				}

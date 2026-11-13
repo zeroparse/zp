@@ -6,14 +6,14 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/internal/codegen"
-	"zeroparse.dev/zp/internal/gentest"
+	"zeroparse.dev/zp/internal/codegentest"
 )
 
 // ZP_TYPED_FRAMED_CUT_DIR preserves current direct/reference modules for
 // separate-binary paired benchmarks without any generated library selector.
 func TestGeneratedTypedFramedCutWorkloads(t *testing.T) {
 	t.Parallel()
-	gentest.EachMode(t, testGeneratedTypedFramedCutWorkloads)
+	codegentest.EachMode(t, testGeneratedTypedFramedCutWorkloads)
 }
 
 func testGeneratedTypedFramedCutWorkloads(t *testing.T) {

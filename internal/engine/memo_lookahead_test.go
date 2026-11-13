@@ -4,8 +4,8 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/core"
+	"zeroparse.dev/zp/internal/codegentest"
 	ecore "zeroparse.dev/zp/internal/engine/core"
-	"zeroparse.dev/zp/internal/gentest"
 )
 
 // TestMemoLookaheadStateEvaluations checks that calls that alternate between lookahead states
@@ -14,7 +14,7 @@ import (
 // spec/runtime/parsing.md).
 func TestMemoLookaheadStateEvaluations(t *testing.T) {
 	t.Parallel()
-	for _, c := range gentest.MemoLookaheadCases() {
+	for _, c := range codegentest.MemoLookaheadCases() {
 		prog := mustCompile(t, c.Src)
 		for _, b := range []Backend{Closure, Bytecode, BytecodeIterative} {
 			for _, lim := range []core.Limits{{}, {Compute: 1 << 40}} {

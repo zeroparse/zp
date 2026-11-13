@@ -8,7 +8,7 @@ import (
 	"unicode/utf8"
 
 	"zeroparse.dev/zp/core"
-	"zeroparse.dev/zp/internal/gentest"
+	"zeroparse.dev/zp/internal/codegentest"
 	"zeroparse.dev/zp/internal/value"
 )
 
@@ -69,8 +69,8 @@ rule main = s:.* #atomic => N{N: len($s) + len(text($s))}`)
 // edits as a fresh parse.
 func TestLenOfNodes(t *testing.T) {
 	t.Parallel()
-	var c gentest.Case
-	for _, x := range gentest.GenCorpus(t) {
+	var c codegentest.Case
+	for _, x := range codegentest.GenCorpus(t) {
 		if x.Name == "len of nodes and strings" {
 			c = x
 		}
@@ -115,7 +115,7 @@ func TestLenOfNodes(t *testing.T) {
 			}
 			n, err := doc.Parse()
 			fn, ferr := prog.ParseWith("main", doc.Text(), ParseOptions{Unit: unit})
-			if a, b := gentest.ResultJSON(n, err), gentest.ResultJSON(fn, ferr); a != b {
+			if a, b := codegentest.ResultJSON(n, err), codegentest.ResultJSON(fn, ferr); a != b {
 				t.Fatalf("%v: text %q\n got  %s\n want %s", unit, doc.Text(), a, b)
 			}
 		}
@@ -124,7 +124,7 @@ func TestLenOfNodes(t *testing.T) {
 
 func TestDocumentInBytes(t *testing.T) {
 	t.Parallel()
-	prog := mustCompile(t, gentest.IncrementalGrammar)
+	prog := mustCompile(t, codegentest.IncrementalGrammar)
 	rng := rand.New(rand.NewSource(2))
 	pieces := []string{"a", "x = ", "1", "+", "é", "日", "\n", "@", "(", ")"}
 	doc, err := prog.NewDocumentWith("main", "x = 1+2\nab,cd\n@pos\n", ParseOptions{Unit: core.Bytes})
@@ -151,7 +151,7 @@ func TestDocumentInBytes(t *testing.T) {
 		}
 		n, err := doc.Parse()
 		fn, ferr := prog.ParseWith("main", doc.Text(), ParseOptions{Unit: core.Bytes})
-		if a, b := gentest.ResultJSON(n, err), gentest.ResultJSON(fn, ferr); a != b {
+		if a, b := codegentest.ResultJSON(n, err), codegentest.ResultJSON(fn, ferr); a != b {
 			t.Fatalf("edit %d: text %q\n got  %s\n want %s", i, doc.Text(), a, b)
 		}
 	}
@@ -167,7 +167,7 @@ func utf8RuneStart(b byte) bool { return b&0xC0 != 0x80 }
 
 func TestStreamInBytes(t *testing.T) {
 	t.Parallel()
-	prog := mustCompile(t, gentest.Records)
+	prog := mustCompile(t, codegentest.Records)
 	var got []string
 	err := prog.ParseStreamWith("main", strings.NewReader("#records\nä=1\nb=2\n"), func(n *core.Node) error {
 		got = append(got, n.String())

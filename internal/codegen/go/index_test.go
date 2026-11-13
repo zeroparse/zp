@@ -10,25 +10,25 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/internal/codegen"
-	"zeroparse.dev/zp/internal/gentest"
+	"zeroparse.dev/zp/internal/codegentest"
 )
 
 func TestIndexGeneratedGoParity(t *testing.T) {
 	t.Parallel()
-	gentest.EachMode(t, testIndexGeneratedGoParity)
+	codegentest.EachMode(t, testIndexGeneratedGoParity)
 }
 
 func testIndexGeneratedGoParity(t *testing.T) {
 	goBin := filepath.Join(runtime.GOROOT(), "bin", "go")
-	gentest.GeneratedParsersCorpus(t, goBin, gentest.IndexCases(), codegen.GenOptions{})
-	gentest.GeneratedTypesCorpus(t, goBin, gentest.IndexCases(), codegen.GenOptions{})
+	codegentest.GeneratedParsersCorpus(t, goBin, codegentest.IndexCases(), codegen.GenOptions{})
+	codegentest.GeneratedTypesCorpus(t, goBin, codegentest.IndexCases(), codegen.GenOptions{})
 }
 
 // Generated parsers index the same with and without compute limits, which select the
 // budget-accounting runtime.
 func TestIndexGeneratedGoWork(t *testing.T) {
 	t.Parallel()
-	gentest.NeedsBudgetControls(t)
+	codegentest.NeedsBudgetControls(t)
 	if testing.Short() {
 		t.Skip("builds generated consumers")
 	}
@@ -39,12 +39,12 @@ rule item = [a-z]`)
 		t.Fatal(err)
 	}
 	dir := t.TempDir()
-	if err := os.WriteFile(filepath.Join(dir, "go.mod"), []byte(gentest.GoMod("indexwork")), 0644); err != nil {
+	if err := os.WriteFile(filepath.Join(dir, "go.mod"), []byte(codegentest.GoMod("indexwork")), 0644); err != nil {
 		t.Fatal(err)
 	}
 	for _, types := range []bool{false, true} {
 		pkg := fmt.Sprintf("index_%v", types)
-		code, err := gentest.GenerateCode(t, g, codegen.GenOptions{Package: pkg, Start: "main", Types: types})
+		code, err := codegentest.GenerateCode(t, g, codegen.GenOptions{Package: pkg, Start: "main", Types: types})
 		if err != nil {
 			t.Fatal(err)
 		}

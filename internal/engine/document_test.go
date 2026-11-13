@@ -9,8 +9,8 @@ import (
 	"time"
 
 	"zeroparse.dev/zp/core"
+	"zeroparse.dev/zp/internal/codegentest"
 	ecore "zeroparse.dev/zp/internal/engine/core"
-	"zeroparse.dev/zp/internal/gentest"
 	"zeroparse.dev/zp/internal/value"
 )
 
@@ -41,7 +41,7 @@ func TestDocumentMatchesFreshParse(t *testing.T) {
 }
 
 func testDocumentMatchesFreshParse(t *testing.T, b Backend) {
-	prog := mustCompile(t, gentest.IncrementalGrammar)
+	prog := mustCompile(t, codegentest.IncrementalGrammar)
 	o := ParseOptions{Backend: b}
 	rng := rand.New(rand.NewSource(1))
 	pieces := []string{"a", "b", "x = ", "1", "+", "2*3", "(", ")", "-", ",", "\n", "@", "q", " "}
@@ -73,7 +73,7 @@ func testDocumentMatchesFreshParse(t *testing.T, b Backend) {
 
 func TestDocumentReusesResults(t *testing.T) {
 	t.Parallel()
-	prog := mustCompile(t, gentest.IncrementalGrammar)
+	prog := mustCompile(t, codegentest.IncrementalGrammar)
 	var b strings.Builder
 	for i := 0; i < 200; i++ {
 		b.WriteString("x = 1+2*(3-4)\nab,cd,ef\n")
@@ -108,7 +108,7 @@ func TestDocumentReusesResults(t *testing.T) {
 // Model" in spec/runtime/documents.md).
 func TestDocumentPositionalActions(t *testing.T) {
 	t.Parallel()
-	prog := mustCompile(t, gentest.IncrementalGrammar)
+	prog := mustCompile(t, codegentest.IncrementalGrammar)
 	doc, _ := prog.NewDocument("main", "@abc\n")
 	doc.Parse()
 	doc.Edit(0, 0, "\n\n")
@@ -206,7 +206,7 @@ func TestDocumentMovesReusedTrees(t *testing.T) {
 		grammar, text string
 		pieces        []string
 	}{
-		{strings.Replace(gentest.IncrementalGrammar, "(line / blank)*", "(line / blank / junk)*", 1) + "\nrule junk = [^\\n]* #atomic \"\\n\"",
+		{strings.Replace(codegentest.IncrementalGrammar, "(line / blank)*", "(line / blank / junk)*", 1) + "\nrule junk = [^\\n]* #atomic \"\\n\"",
 			"x = 1+2\nab,cd\n@pos\n\ny = (3)*-4\n",
 			[]string{"a", "b", "x = ", "1", "+", "2*3", "(", ")", "-", ",", "\n", "@", "q", " ", ""}},
 		{`type W = { Pre node[string]; Word node[string]; Post node[string]; Gap node[string] }

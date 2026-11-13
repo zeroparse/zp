@@ -9,12 +9,12 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/internal/codegen"
-	"zeroparse.dev/zp/internal/gentest"
+	"zeroparse.dev/zp/internal/codegentest"
 )
 
 func TestGeneratedNodeTrace(t *testing.T) {
 	t.Parallel()
-	gentest.NeedsBudgetControls(t)
+	codegentest.NeedsBudgetControls(t)
 	if testing.Short() {
 		t.Skip("builds generated standalone tracing consumers")
 	}
@@ -45,7 +45,7 @@ rule token = [a-z]+`, "abc", `if count("token",TraceEnter)!=1 {t.Fatal(events)}`
 rule part = "é"`, "éé", `last:=events[len(events)-1];expectedEnd:=2;if unit==Bytes {expectedEnd=4};if last.End!=expectedEnd {t.Fatal(last)}`},
 	}
 	dir := t.TempDir()
-	if err := os.WriteFile(filepath.Join(dir, "go.mod"), []byte(gentest.GoMod("tracefixture")), 0644); err != nil {
+	if err := os.WriteFile(filepath.Join(dir, "go.mod"), []byte(codegentest.GoMod("tracefixture")), 0644); err != nil {
 		t.Fatal(err)
 	}
 	for _, fixture := range fixtures {
@@ -53,7 +53,7 @@ rule part = "é"`, "éé", `last:=events[len(events)-1];expectedEnd:=2;if unit==
 		if err != nil {
 			t.Fatal(fixture.name, err)
 		}
-		referenceCode, err := gentest.GenerateCode(t, g, codegen.GenOptions{Package: "reference_" + fixture.name, Start: "main", Recognize: true})
+		referenceCode, err := codegentest.GenerateCode(t, g, codegen.GenOptions{Package: "reference_" + fixture.name, Start: "main", Recognize: true})
 		if err != nil {
 			t.Fatal(fixture.name, err)
 		}
@@ -64,7 +64,7 @@ rule part = "é"`, "éé", `last:=events[len(events)-1];expectedEnd:=2;if unit==
 		if err := os.WriteFile(filepath.Join(referenceDir, "parser.go"), referenceCode, 0644); err != nil {
 			t.Fatal(err)
 		}
-		code, err := gentest.GenerateCode(t, g, codegen.GenOptions{Package: fixture.name, Start: "main", Recognize: true, Observability: true})
+		code, err := codegentest.GenerateCode(t, g, codegen.GenOptions{Package: fixture.name, Start: "main", Recognize: true, Observability: true})
 		if err != nil {
 			t.Fatal(fixture.name, err)
 		}

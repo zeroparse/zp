@@ -12,7 +12,7 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/internal/codegen"
-	"zeroparse.dev/zp/internal/gentest"
+	"zeroparse.dev/zp/internal/codegentest"
 )
 
 // TestGeneratedLoopCharge checks that every repetition of a list built-in is charged. The terms of an
@@ -29,7 +29,7 @@ import (
 // loops: every case has to violate them.
 func TestGeneratedLoopCharge(t *testing.T) {
 	t.Parallel()
-	gentest.NeedsBudgetControls(t)
+	codegentest.NeedsBudgetControls(t)
 	if testing.Short() {
 		t.Skip("builds generated consumers")
 	}
@@ -103,7 +103,7 @@ func loopChargeProblems(t *testing.T, cases []loopCase, typed bool, mutate func(
 			t.Fatal(err)
 		}
 	}
-	write("go.mod", gentest.GoModAt("loopcharge", gentest.LibCopy()))
+	write("go.mod", codegentest.GoModAt("loopcharge", codegentest.LibCopy()))
 	var imports, table strings.Builder
 	gen := func(pkg, action string, list bool) {
 		if typed && list {
@@ -117,7 +117,7 @@ func loopChargeProblems(t *testing.T, cases []loopCase, typed bool, mutate func(
 		if err != nil {
 			t.Fatalf("%s: %v", action, err)
 		}
-		code, err := gentest.GenerateCode(t, g, codegen.GenOptions{Package: pkg, Start: "main", Types: typed})
+		code, err := codegentest.GenerateCode(t, g, codegen.GenOptions{Package: pkg, Start: "main", Types: typed})
 		if err != nil {
 			t.Fatalf("%s: %v", action, err)
 		}

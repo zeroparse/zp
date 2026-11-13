@@ -9,7 +9,7 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/internal/codegen"
-	"zeroparse.dev/zp/internal/gentest"
+	"zeroparse.dev/zp/internal/codegentest"
 )
 
 // TestGeneratedTextFieldComparisons checks that generated parsers give the same results for
@@ -18,23 +18,23 @@ import (
 // strings: the least step limit that each parse succeeds with is the same.
 func TestGeneratedTextFieldComparisons(t *testing.T) {
 	t.Parallel()
-	gentest.NeedsBudgetControls(t)
+	codegentest.NeedsBudgetControls(t)
 	if testing.Short() {
 		t.Skip("builds generated consumers")
 	}
-	g, err := parseTest(gentest.TextCompareGrammar)
+	g, err := parseTest(codegentest.TextCompareGrammar)
 	if err != nil {
 		t.Fatal(err)
 	}
 	dir := t.TempDir()
-	if err := os.WriteFile(filepath.Join(dir, "go.mod"), []byte(gentest.GoMod("comparefixture")), 0644); err != nil {
+	if err := os.WriteFile(filepath.Join(dir, "go.mod"), []byte(codegentest.GoMod("comparefixture")), 0644); err != nil {
 		t.Fatal(err)
 	}
-	inputs := fmt.Sprintf("%#v", gentest.TextCompareInputs)
+	inputs := fmt.Sprintf("%#v", codegentest.TextCompareInputs)
 	pkg := func(convert, boxed bool) string { return fmt.Sprintf("compare_%v_%v", convert, boxed) }
 	for _, convert := range []bool{false, true} {
 		for _, boxed := range []bool{false, true} {
-			code, err := gentest.GenerateCode(t, g, codegen.GenOptions{Package: pkg(convert, boxed), Start: "main", Types: true, ConvertTypes: convert, NoOpt: gentest.NoOptIf(boxed, "field-compare")})
+			code, err := codegentest.GenerateCode(t, g, codegen.GenOptions{Package: pkg(convert, boxed), Start: "main", Types: true, ConvertTypes: convert, NoOpt: codegentest.NoOptIf(boxed, "field-compare")})
 			if err != nil {
 				t.Fatal(err)
 			}

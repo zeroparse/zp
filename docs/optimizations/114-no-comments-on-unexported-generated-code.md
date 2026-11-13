@@ -18,7 +18,7 @@ call method of each rule so that a reader can find the code of a rule. Only Go o
 is affected; the exported API and its documentation are unchanged.
 
 The tests that read the route comments of the generated source as markers generate
-with an unexported option that keeps them (`gentest.GenerateCode`, `gentest.GeneratePackageIn`);
+with an unexported option that keeps them (`codegentest.GenerateCode`, `codegentest.GeneratePackageIn`);
 `TestGenerateTrimsComments` pins that `Generate` trims by default, and
 `TestTrimComments` pins what is kept.
 

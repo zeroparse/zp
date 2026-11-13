@@ -7,7 +7,7 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/internal/codegen"
-	"zeroparse.dev/zp/internal/gentest"
+	"zeroparse.dev/zp/internal/codegentest"
 )
 
 // TestGeneratedTypedLeaderValues compares the values of typed parsers with the engine's for
@@ -15,7 +15,7 @@ import (
 // Node conversion. TestGeneratedTypes covers the cases again within its corpus.
 func TestGeneratedTypedLeaderValues(t *testing.T) {
 	t.Parallel()
-	gentest.EachMode(t, testGeneratedTypedLeaderValues)
+	codegentest.EachMode(t, testGeneratedTypedLeaderValues)
 }
 
 func testGeneratedTypedLeaderValues(t *testing.T) {
@@ -26,5 +26,5 @@ func testGeneratedTypedLeaderValues(t *testing.T) {
 	if _, err := os.Stat(goBin); err != nil {
 		t.Skip("go command not found")
 	}
-	gentest.GeneratedTypesCorpus(t, goBin, gentest.TypedLeaderValueCases, codegen.GenOptions{ConvertTypes: true}, len(gentest.TypedLeaderValueCases))
+	codegentest.GeneratedTypesCorpus(t, goBin, codegentest.TypedLeaderValueCases, codegen.GenOptions{ConvertTypes: true}, len(codegentest.TypedLeaderValueCases))
 }

@@ -8,9 +8,9 @@ import (
 
 	"zeroparse.dev/zp/core"
 	"zeroparse.dev/zp/internal/codegen"
+	"zeroparse.dev/zp/internal/codegentest"
 	"zeroparse.dev/zp/internal/compile"
 	"zeroparse.dev/zp/internal/engine"
-	"zeroparse.dev/zp/internal/gentest"
 )
 
 // attributeRE matches the @diagnostic and @error attributes of attributeShapeCases.
@@ -21,7 +21,7 @@ var attributeRE = regexp.MustCompile(` ?@(diagnostic\(name="[^"]*"\)|error\("[^"
 // attributes removed.
 func TestAttributeKeepsValueShape(t *testing.T) {
 	t.Parallel()
-	for _, c := range gentest.AttributeShapeCases {
+	for _, c := range codegentest.AttributeShapeCases {
 		plainSrc := attributeRE.ReplaceAllString(c.Src, "")
 		if plainSrc == c.Src {
 			continue
@@ -40,7 +40,7 @@ func TestAttributeKeepsValueShape(t *testing.T) {
 						}
 						continue
 					}
-					if g, w := gentest.ResultJSON(got, nil), gentest.ResultJSON(want, nil); g != w {
+					if g, w := codegentest.ResultJSON(got, nil), codegentest.ResultJSON(want, nil); g != w {
 						t.Errorf("backend=%v input=%q: with attribute %s, without %s", backend, input, g, w)
 					}
 				}
@@ -62,7 +62,7 @@ func TestAttributeAroundStreamRepetition(t *testing.T) {
 		if err != nil {
 			t.Fatalf("%s: %v", src, err)
 		}
-		if _, err := gentest.Generate(t, g, codegen.GenOptions{Start: "main", Module: "x/y", Types: true, Stream: true}); err != nil {
+		if _, err := codegentest.Generate(t, g, codegen.GenOptions{Start: "main", Module: "x/y", Types: true, Stream: true}); err != nil {
 			t.Errorf("%s: %v", src, err)
 		}
 	}

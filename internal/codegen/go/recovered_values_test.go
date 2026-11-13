@@ -8,7 +8,7 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/internal/codegen"
-	"zeroparse.dev/zp/internal/gentest"
+	"zeroparse.dev/zp/internal/codegentest"
 )
 
 // TestGeneratedRecoveredValues checks that generated Go, as nodes and as typed values, gives the
@@ -19,9 +19,9 @@ func TestGeneratedRecoveredValues(t *testing.T) {
 		t.Skip("builds generated code")
 	}
 	goBin := filepath.Join(runtime.GOROOT(), "bin", "go")
-	gentest.EachMode(t, func(t *testing.T) {
-		gentest.GeneratedParsersCorpus(t, goBin, gentest.RecoveredValueCases, codegen.GenOptions{})
-		gentest.GeneratedTypesCorpus(t, goBin, gentest.RecoveredValueCases, codegen.GenOptions{}, 2)
+	codegentest.EachMode(t, func(t *testing.T) {
+		codegentest.GeneratedParsersCorpus(t, goBin, codegentest.RecoveredValueCases, codegen.GenOptions{})
+		codegentest.GeneratedTypesCorpus(t, goBin, codegentest.RecoveredValueCases, codegen.GenOptions{}, 2)
 	})
 }
 
@@ -33,9 +33,9 @@ func TestGeneratedRecoveredValuesDetectsMutation(t *testing.T) {
 	if testing.Short() {
 		t.Skip("builds generated code")
 	}
-	gentest.EachMode(t, func(t *testing.T) {
+	codegentest.EachMode(t, func(t *testing.T) {
 		goBin := filepath.Join(runtime.GOROOT(), "bin", "go")
-		cases := gentest.RecoveredValueCases[1:2] // struct in a list
+		cases := codegentest.RecoveredValueCases[1:2] // struct in a list
 		mutated := 0
 		mutate := func(code []byte) []byte {
 			out := bytes.ReplaceAll(code, []byte("v.A = astInt(f0)"), []byte("v.A = astInt(f0) + 1"))
@@ -44,7 +44,7 @@ func TestGeneratedRecoveredValuesDetectsMutation(t *testing.T) {
 			}
 			return out
 		}
-		problems := gentest.GeneratedTypesMismatches(t, goBin, cases, codegen.GenOptions{}, mutate, 1)
+		problems := codegentest.GeneratedTypesMismatches(t, goBin, cases, codegen.GenOptions{}, mutate, 1)
 		if mutated == 0 {
 			t.Fatal("the mutation did not change the typed parser")
 		}

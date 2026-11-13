@@ -10,8 +10,8 @@ import (
 	"zeroparse.dev/zp/core"
 	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/bytecode"
+	"zeroparse.dev/zp/internal/codegentest"
 	"zeroparse.dev/zp/internal/compile"
-	"zeroparse.dev/zp/internal/gentest"
 )
 
 // fieldCheckValueName names a value of fieldCheckValues as messages do, in the terms of the value
@@ -38,10 +38,10 @@ func TestConstructedFieldChecks(t *testing.T) {
 		parse   func(string) (*grammar.Grammar, error)
 		fields  map[string]string
 	}{
-		{"text struct", gentest.FieldCheckGrammar, parseTest, gentest.FieldCheckFields},
+		{"text struct", codegentest.FieldCheckGrammar, parseTest, codegentest.FieldCheckFields},
 	} {
 		t.Run(model.name, func(t *testing.T) {
-			for _, typ := range gentest.FieldCheckTypesOf(model.fields) {
+			for _, typ := range codegentest.FieldCheckTypesOf(model.fields) {
 				t.Run(typ, func(t *testing.T) { checkConstructedFieldType(t, typ, model.grammar(typ), model.parse, model.fields) })
 			}
 		})
@@ -64,8 +64,8 @@ func checkConstructedFieldType(t *testing.T, typ, src string, parseFn func(strin
 			loadedBare := saveLoad(t, checked, "main", CompiledParse)
 			_, err = loaded.ParseWith("main", "", servedBy(CompiledDocument, ParseOptions{Backend: Closure}))
 			wantClosureRefused(t, err)
-			for _, in := range gentest.FieldCheckInputs() {
-				value := gentest.FieldCheckValues[in[:1]]
+			for _, in := range codegentest.FieldCheckInputs() {
+				value := codegentest.FieldCheckValues[in[:1]]
 				accepted := strings.Contains(fields[typ], in[:1])
 				var want string
 				for _, unit := range []core.PositionUnit{core.CodePoints, core.Bytes} {
@@ -80,7 +80,7 @@ func checkConstructedFieldType(t *testing.T, typ, src string, parseFn func(strin
 						{"parse bytecode", loadedBare, CompiledParse, Bytecode},
 					} {
 						n, err := run.prog.ParseWith("main", in, servedBy(run.mode, ParseOptions{Backend: run.b, Unit: unit}))
-						got := gentest.ResultJSON(n, err)
+						got := codegentest.ResultJSON(n, err)
 						if want == "" {
 							want = got
 						} else if got != want {
@@ -115,7 +115,7 @@ func checkConstructedFieldType(t *testing.T, typ, src string, parseFn func(strin
 // instruction set and cast type texts that do not name a known type.
 func TestCompiledFieldChecksValidation(t *testing.T) {
 	t.Parallel()
-	prog := mustCompile(t, gentest.FieldCheckGrammar("[]*(Int | node[string])"))
+	prog := mustCompile(t, codegentest.FieldCheckGrammar("[]*(Int | node[string])"))
 	data, err := prog.MarshalBinary("main")
 	if err != nil {
 		t.Fatal(err)

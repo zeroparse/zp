@@ -8,30 +8,30 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/internal/codegen"
-	"zeroparse.dev/zp/internal/gentest"
+	"zeroparse.dev/zp/internal/codegentest"
 )
 
 func TestGeneratedTypedLocalLayouts(t *testing.T) {
 	t.Parallel()
-	gentest.EachMode(t, testGeneratedTypedLocalLayouts)
+	codegentest.EachMode(t, testGeneratedTypedLocalLayouts)
 }
 
 func testGeneratedTypedLocalLayouts(t *testing.T) {
-	for _, c := range gentest.TypedLocalLayoutCases {
+	for _, c := range codegentest.TypedLocalLayoutCases {
 		ast, err := parseTest(c.Src)
 		if err != nil {
 			t.Fatal(err)
 		}
 		opts := codegen.GenOptions{Package: "localfixture", Start: "main", Types: true, Recognize: true}
-		code, err := gentest.GenerateCode(t, ast, opts)
+		code, err := codegentest.GenerateCode(t, ast, opts)
 		if err != nil || !strings.Contains(string(code), "rt.TParse(trules") || !localBodyInlined(code) {
 			t.Fatalf("%s: typed local body unavailable: %v", c.Name, err)
 		}
 	}
 	if !testing.Short() {
 		goBin := filepath.Join(runtime.GOROOT(), "bin", "go")
-		gentest.GeneratedTypesCorpus(t, goBin, gentest.TypedLocalLayoutCases, codegen.GenOptions{})
-		gentest.GeneratedTypesCorpus(t, goBin, gentest.TypedLocalLayoutCases, codegen.GenOptions{ConvertTypes: true})
+		codegentest.GeneratedTypesCorpus(t, goBin, codegentest.TypedLocalLayoutCases, codegen.GenOptions{})
+		codegentest.GeneratedTypesCorpus(t, goBin, codegentest.TypedLocalLayoutCases, codegen.GenOptions{ConvertTypes: true})
 	}
 }
 
@@ -48,7 +48,7 @@ func localBodyInlined(code []byte) bool {
 
 func TestGeneratedTypedLocalLayoutControls(t *testing.T) {
 	t.Parallel()
-	gentest.EachMode(t, testGeneratedTypedLocalLayoutControls)
+	codegentest.EachMode(t, testGeneratedTypedLocalLayoutControls)
 }
 
 func testGeneratedTypedLocalLayoutControls(t *testing.T) {
@@ -62,7 +62,7 @@ func testGeneratedTypedLocalLayoutControls(t *testing.T) {
 			t.Fatal(err)
 		}
 		opts := codegen.GenOptions{Package: "localfixture", Start: "main", Types: true, Recognize: true}
-		if _, err := gentest.GenerateCode(t, ast, opts); err != nil {
+		if _, err := codegentest.GenerateCode(t, ast, opts); err != nil {
 			t.Fatal(err)
 		}
 	}

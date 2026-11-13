@@ -18,9 +18,9 @@ import (
 
 	"zeroparse.dev/zp/core"
 	"zeroparse.dev/zp/internal/codegen"
+	"zeroparse.dev/zp/internal/codegentest"
 	"zeroparse.dev/zp/internal/compile"
 	"zeroparse.dev/zp/internal/engine"
-	"zeroparse.dev/zp/internal/gentest"
 )
 
 // streamRun is one stream parse of a differential test. The reader returns
@@ -193,8 +193,8 @@ rule key = {n >= 0} word
 rule word = [a-z]+ #atomic
 rule val = [0-9]+ #atomic`
 
-var streamCorpus = []gentest.Case{
-	{Name: "records", Src: gentest.Records, Inputs: []string{"#records\na=1\nbc=22\n", "#records\nx\n", "#records\n", "", "#records\na=1\nb"}},
+var streamCorpus = []codegentest.Case{
+	{Name: "records", Src: codegentest.Records, Inputs: []string{"#records\na=1\nbc=22\n", "#records\nx\n", "#records\n", "", "#records\na=1\nb"}},
 	{Name: "actions", Src: `type Pair = { Key node[string]; Value node[string] }
 rule main = item* #stream $$
 rule item Pair = k:[a-z]+ #atomic "=" v:[0-9]+ #atomic "\n" => Pair{Key: $k, Value: $v}`, Inputs: []string{"a=1\nb=2\n", "a=1\nb=x\n", ""}},
@@ -274,7 +274,7 @@ rule word = [a-z]+ #atomic`, Inputs: []string{"(ab)cd;", "(1)ab;", "(ab", "(1", 
 
 // streamLeftRecursiveStarts are stream start rules on a left-recursion cycle. Growing the cycle would
 // evaluate the start rule again after elements were delivered, so the compiler rejects them.
-var streamLeftRecursiveStarts = []gentest.Case{
+var streamLeftRecursiveStarts = []codegentest.Case{
 	// A leader that grows through an optional prefix of itself before the streamed elements, with a mandatory end.
 	{Name: "left recursive start choice", Src: `rule main = (main "+")? item* #stream "."
 rule item = q:[a-z] #atomic`},
@@ -296,7 +296,7 @@ rule item = q:[a-z] #atomic`},
 // entry points, report the compile error of a stream start rule on a left-recursion cycle.
 func TestStreamLeftRecursiveStartRejected(t *testing.T) {
 	t.Parallel()
-	gentest.PinOrdinary(t)
+	codegentest.PinOrdinary(t)
 	const want = "#stream cannot be used in rule main, which is on a left-recursion cycle"
 	for _, c := range streamLeftRecursiveStarts {
 		g, err := parseTest(c.Src)
@@ -305,14 +305,14 @@ func TestStreamLeftRecursiveStartRejected(t *testing.T) {
 		}
 		for name, generate := range map[string]func() error{
 			"Go": func() error {
-				_, err := gentest.GenerateCode(t, g, codegen.GenOptions{Package: "p", Start: "main"})
+				_, err := codegentest.GenerateCode(t, g, codegen.GenOptions{Package: "p", Start: "main"})
 				return err
 			},
 			"Go stream": func() error {
-				_, err := gentest.GenerateCode(t, g, codegen.GenOptions{Package: "p", Start: "main", Stream: true})
+				_, err := codegentest.GenerateCode(t, g, codegen.GenOptions{Package: "p", Start: "main", Stream: true})
 				return err
 			},
-			"TS": func() error { _, err := gentest.GenerateTSBundle(g, codegen.GenOptions{Start: "main"}); return err },
+			"TS": func() error { _, err := codegentest.GenerateTSBundle(g, codegen.GenOptions{Start: "main"}); return err },
 		} {
 			if err := generate(); err == nil || !strings.Contains(err.Error(), want) {
 				t.Errorf("%s: %s generation: %v, want %q", c.Name, name, err, want)
@@ -327,7 +327,7 @@ func TestStreamLeftRecursiveStartRejected(t *testing.T) {
 // nil callback, in both position units.
 func TestGeneratedStreamMatchesEngine(t *testing.T) {
 	t.Parallel()
-	gentest.EachMode(t, testGeneratedStreamMatchesEngine)
+	codegentest.EachMode(t, testGeneratedStreamMatchesEngine)
 }
 
 func testGeneratedStreamMatchesEngine(t *testing.T) {
@@ -338,8 +338,8 @@ func testGeneratedStreamMatchesEngine(t *testing.T) {
 	if _, err := os.Stat(goBin); err != nil {
 		t.Skip("go command not found")
 	}
-	cases := append([]gentest.Case(nil), streamCorpus...)
-	for _, c := range gentest.GenCorpus(t) {
+	cases := append([]codegentest.Case(nil), streamCorpus...)
+	for _, c := range codegentest.GenCorpus(t) {
 		if strings.Contains(c.Src, "#stream") {
 			cases = append(cases, c)
 		}
@@ -352,7 +352,7 @@ func testGeneratedStreamMatchesEngine(t *testing.T) {
 	}
 }
 
-func testGeneratedStreams(t *testing.T, goBin string, cases []gentest.Case, opts codegen.GenOptions) {
+func testGeneratedStreams(t *testing.T, goBin string, cases []codegentest.Case, opts codegen.GenOptions) {
 	dir := t.TempDir()
 	write := func(name, content string) {
 		path := filepath.Join(dir, name)
@@ -361,7 +361,7 @@ func testGeneratedStreams(t *testing.T, goBin string, cases []gentest.Case, opts
 			t.Fatal(err)
 		}
 	}
-	write("go.mod", gentest.GoMod("streamtest"))
+	write("go.mod", codegentest.GoMod("streamtest"))
 	var imports, parsers strings.Builder
 	var runs []streamRun
 	var want []string
@@ -372,7 +372,7 @@ func testGeneratedStreams(t *testing.T, goBin string, cases []gentest.Case, opts
 			t.Fatalf("%s: %v", c.Name, err)
 		}
 		opts.Package, opts.Start, opts.Stream, opts.SourceInfo = fmt.Sprintf("g%d", i), "main", true, true // compile gives the engine source information
-		code, err := gentest.GenerateCode(t, g, opts)
+		code, err := codegentest.GenerateCode(t, g, opts)
 		if err != nil {
 			if strings.Contains(err.Error(), "needs a #stream repetition") {
 				continue // the corpus grammar has #stream elsewhere
@@ -635,7 +635,7 @@ rule item I = c:[a-z] ";" => I{C: $c}`, "", []string{"<a;b;>", "<>", "<a;b"}},
 // chunkings, reader errors, emit errors and a nil callback, in both units.
 func TestGeneratedTypedStreamMatchesBatch(t *testing.T) {
 	t.Parallel()
-	gentest.EachMode(t, testGeneratedTypedStreamMatchesBatch)
+	codegentest.EachMode(t, testGeneratedTypedStreamMatchesBatch)
 }
 
 func testGeneratedTypedStreamMatchesBatch(t *testing.T) {
@@ -654,7 +654,7 @@ func testGeneratedTypedStreamMatchesBatch(t *testing.T) {
 			t.Fatal(err)
 		}
 	}
-	write("go.mod", gentest.GoMod("typedstream"))
+	write("go.mod", codegentest.GoMod("typedstream"))
 	var imports, parsers strings.Builder
 	var runs []streamRun
 	var names []string
@@ -663,7 +663,7 @@ func testGeneratedTypedStreamMatchesBatch(t *testing.T) {
 		if err != nil {
 			t.Fatalf("%s: %v", c.name, err)
 		}
-		code, err := gentest.GenerateCode(t, g, codegen.GenOptions{Package: fmt.Sprintf("g%d", i), Start: "main", Stream: true, Types: true})
+		code, err := codegentest.GenerateCode(t, g, codegen.GenOptions{Package: fmt.Sprintf("g%d", i), Start: "main", Stream: true, Types: true})
 		if err != nil {
 			t.Fatalf("%s: %v", c.name, err)
 		}
@@ -890,12 +890,12 @@ func main() {
 // whose stream body comes in addition.
 func TestGenerateStreamKeepsBatchBodies(t *testing.T) {
 	t.Parallel()
-	gentest.EachMode(t, testGenerateStreamKeepsBatchBodies)
+	codegentest.EachMode(t, testGenerateStreamKeepsBatchBodies)
 }
 
 func testGenerateStreamKeepsBatchBodies(t *testing.T) {
-	cases := append([]gentest.Case(nil), streamCorpus...)
-	for _, c := range gentest.GenCorpus(t) {
+	cases := append([]codegentest.Case(nil), streamCorpus...)
+	for _, c := range codegentest.GenCorpus(t) {
 		if strings.Contains(c.Src, "#stream") {
 			cases = append(cases, c)
 		}
@@ -932,12 +932,12 @@ func testGenerateStreamKeepsBatchBodies(t *testing.T) {
 		}
 		for _, opts := range []codegen.GenOptions{{}, {Observability: true}} {
 			opts.Package, opts.Start = "p", "main"
-			plain, err := gentest.GenerateCode(t, g, opts)
+			plain, err := codegentest.GenerateCode(t, g, opts)
 			if err != nil {
 				t.Fatal(err)
 			}
 			opts.Stream = true
-			stream, err := gentest.GenerateCode(t, g, opts)
+			stream, err := codegentest.GenerateCode(t, g, opts)
 			if err != nil {
 				if strings.Contains(err.Error(), "needs a #stream repetition") {
 					continue
@@ -973,7 +973,7 @@ func testGenerateStreamKeepsBatchBodies(t *testing.T) {
 // panics and bounded memory.
 func TestGeneratedStreamAPI(t *testing.T) {
 	t.Parallel()
-	gentest.NeedsBudgetControls(t)
+	codegentest.NeedsBudgetControls(t)
 	if testing.Short() {
 		t.Skip("builds a generated standalone stream consumer")
 	}
@@ -983,12 +983,12 @@ rule item Pair = k:[a-z]+ #atomic "=" v:[0-9]+ #atomic "\n" => Pair{Key: $k, Val
 	if err != nil {
 		t.Fatal(err)
 	}
-	code, err := gentest.GenerateCode(t, g, codegen.GenOptions{Package: "fixture", Start: "main", Stream: true, Observability: true})
+	code, err := codegentest.GenerateCode(t, g, codegen.GenOptions{Package: "fixture", Start: "main", Stream: true, Observability: true})
 	if err != nil {
 		t.Fatal(err)
 	}
 	files := map[string]string{
-		"go.mod":         gentest.GoMod("fixture"),
+		"go.mod":         codegentest.GoMod("fixture"),
 		"parser.go":      string(code),
 		"parser_test.go": generatedStreamConsumer,
 	}
@@ -1005,7 +1005,7 @@ rule atom = [a-z] #atomic " "?`)
 	if err != nil {
 		t.Fatal(err)
 	}
-	code, err = gentest.GenerateCode(t, memo, codegen.GenOptions{Package: "memo", Start: "main", Stream: true, Observability: true})
+	code, err = codegentest.GenerateCode(t, memo, codegen.GenOptions{Package: "memo", Start: "main", Stream: true, Observability: true})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -1016,7 +1016,7 @@ rule item P = x:[a-z] ys:[0-9]* ";" => P{A: $x, B: $x, Xs: $ys.Value}`)
 	if err != nil {
 		t.Fatal(err)
 	}
-	code, err = gentest.GenerateCode(t, typed, codegen.GenOptions{Package: "typed", Start: "main", Stream: true, Types: true})
+	code, err = codegentest.GenerateCode(t, typed, codegen.GenOptions{Package: "typed", Start: "main", Stream: true, Types: true})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -1027,7 +1027,7 @@ rule stmt S = n:[a-z]+ #atomic ";" => S{N: $n}`)
 	if err != nil {
 		t.Fatal(err)
 	}
-	code, err = gentest.GenerateCode(t, recovering, codegen.GenOptions{Package: "recovering", Start: "main", Stream: true, Types: true, Document: true, Recognize: true})
+	code, err = codegentest.GenerateCode(t, recovering, codegen.GenOptions{Package: "recovering", Start: "main", Stream: true, Types: true, Document: true, Recognize: true})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -1036,7 +1036,7 @@ rule stmt S = n:[a-z]+ #atomic ";" => S{N: $n}`)
 	files["typed/parser_test.go"] = generatedTypedStreamConsumer
 	files["memo/parser_test.go"] = generatedStreamMemoConsumer
 	for _, pkg := range []string{"lists"} {
-		code, err := gentest.GenerateCode(t, lists, codegen.GenOptions{Package: pkg, Start: "main", Stream: true, Observability: true})
+		code, err := codegentest.GenerateCode(t, lists, codegen.GenOptions{Package: pkg, Start: "main", Stream: true, Observability: true})
 		if err != nil {
 			t.Fatal(err)
 		}

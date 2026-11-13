@@ -15,10 +15,10 @@ import (
 	"weak"
 
 	"zeroparse.dev/zp/core"
+	"zeroparse.dev/zp/internal/codegentest"
 	"zeroparse.dev/zp/internal/compile"
 	"zeroparse.dev/zp/internal/engine/closure"
 	ecore "zeroparse.dev/zp/internal/engine/core"
-	"zeroparse.dev/zp/internal/gentest"
 	ir "zeroparse.dev/zp/internal/ir/core"
 )
 
@@ -107,7 +107,7 @@ func TestClosureFamilyCharges(t *testing.T) {
 		{"plain calls, no memo", "rule main = item* $$\nrule item = \"a\"", compile.Options{DisableMemo: true}, "aaaa", false, map[string]uint64{"document": 38, "document+trace": 46, "parse": 35, "parse+trace": 48, "prefix": 34, "prefix+trace": 47, "recognize": 27, "recognize+trace": 40}},
 		{"recursion", "rule main = e $$\nrule e = \"(\" e \")\" / x\nrule x = \"x\"", compile.Options{DisableMemo: true}, "((x))", false, map[string]uint64{"document": 20, "document+trace": 29, "parse": 26, "parse+trace": 39, "prefix": 25, "prefix+trace": 38, "recognize": 26, "recognize+trace": 39}},
 		{"captures", "rule main = item* $$\nrule item = x:\"a\" {len(text($x)) == 1}", compile.Options{}, "aaa", false, map[string]uint64{"document": 62, "document+trace": 69, "parse": 41, "parse+trace": 48, "prefix": 40, "prefix+trace": 47, "recognize": 29, "recognize+trace": 36}},
-		{"stream", gentest.Records, compile.Options{}, "#records\na=1\nbc=22\n", true, stream},
+		{"stream", codegentest.Records, compile.Options{}, "#records\na=1\nbc=22\n", true, stream},
 	}
 	for _, c := range cases {
 		prog := mustCompile(t, c.src, c.opts)
@@ -129,7 +129,7 @@ func parseInFamily(prog *Program, b Backend, input string, unit core.PositionUni
 	p.DeferMemo = true
 	p.NoPlain = f == ecore.CallPreserving
 	n, err := prog.Run(p, b, "main")
-	return gentest.ResultJSON(n, err), p.ReportedStats()
+	return codegentest.ResultJSON(n, err), p.ReportedStats()
 }
 
 // TestClosureFamiliesMatchOnCorpus checks that the two closure families give the same results,
@@ -137,7 +137,7 @@ func parseInFamily(prog *Program, b Backend, input string, unit core.PositionUni
 // the corpus, when no tracer observes the calls.
 func TestClosureFamiliesMatchOnCorpus(t *testing.T) {
 	t.Parallel()
-	for _, c := range gentest.GenCorpus(t) {
+	for _, c := range codegentest.GenCorpus(t) {
 		t.Run(c.Name, func(t *testing.T) {
 			for _, o := range []compile.Options{{}, {DisableMemo: true}} {
 				prog := mustCompile(t, c.Src, o)
@@ -213,7 +213,7 @@ func TestClosureFamiliesBuiltOnFirstUse(t *testing.T) {
 		t.Fatalf("after a Document parse: built %v, want the call-preserving family", got)
 	}
 
-	stream := mustCompile(t, gentest.Records)
+	stream := mustCompile(t, codegentest.Records)
 	if err := stream.ParseStreamWith("main", strings.NewReader("#records\na=1\n"), func(*core.Node) error { return nil }, ParseOptions{Trace: func(TraceEvent) {}}); err != nil && err != io.EOF {
 		t.Fatal(err)
 	}
@@ -227,7 +227,7 @@ func TestClosureFamiliesBuiltOnFirstUse(t *testing.T) {
 // and after the builds of every grammar of the corpus.
 func TestClosureFamiliesLeaveModuleUnchanged(t *testing.T) {
 	t.Parallel()
-	for _, c := range gentest.GenCorpus(t) {
+	for _, c := range codegentest.GenCorpus(t) {
 		t.Run(c.Name, func(t *testing.T) {
 			sp := mustCompile(t, c.Src).Static()
 			m, err := closure.Core(sp, nil)
@@ -254,7 +254,7 @@ func TestClosureFamiliesLeaveModuleUnchanged(t *testing.T) {
 // detector a write to it, also to a part that Print does not show, fails this test.
 func TestClosureFamiliesBuildConcurrently(t *testing.T) {
 	t.Parallel()
-	for _, c := range gentest.GenCorpus(t) {
+	for _, c := range codegentest.GenCorpus(t) {
 		t.Run(c.Name, func(t *testing.T) {
 			sp := mustCompile(t, c.Src).Static()
 			m, err := closure.Core(sp, nil)

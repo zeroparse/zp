@@ -4,7 +4,7 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/internal/codegen"
-	"zeroparse.dev/zp/internal/gentest"
+	"zeroparse.dev/zp/internal/codegentest"
 )
 
 // The grammar takes the text of every level of a nesting: the texts sum to the square of the
@@ -17,7 +17,7 @@ rule a = s:("(" a ")" / [^()]) => text($s)`)
 	if err != nil {
 		t.Fatal(err)
 	}
-	out := gentest.RunTSGrammarScriptWith(t, g, `import * as p from "./parser.ts";
+	out := codegentest.RunTSGrammarScriptWith(t, g, `import * as p from "./parser.ts";
 declare const process: { exit(code: number): never };
 function fail(why: string): never { console.log(why); return process.exit(0); }
 const finishes = (input: string | Uint8Array, unit: p.PositionUnit, budget: number): boolean => {

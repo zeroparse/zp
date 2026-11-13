@@ -8,12 +8,12 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/core"
-	"zeroparse.dev/zp/internal/gentest"
+	"zeroparse.dev/zp/internal/codegentest"
 )
 
 func TestBudgetStreamReferenceAdmission(t *testing.T) {
 	t.Parallel()
-	prog := mustCompile(t, gentest.Records)
+	prog := mustCompile(t, codegentest.Records)
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 	for _, o := range []ParseOptions{{Context: ctx}, {Limits: core.Limits{Compute: 1}}, {Limits: core.Limits{Memory: 1}}} {
@@ -36,7 +36,7 @@ func TestBudgetStreamReferenceAdmission(t *testing.T) {
 // The reference build has no controls, so it refuses a finite Memory, and accepts Unlimited.
 func TestMemoryLimitReferenceAdmission(t *testing.T) {
 	t.Parallel()
-	prog := mustCompile(t, gentest.Records)
+	prog := mustCompile(t, codegentest.Records)
 	const text = "#records\na=1\n"
 	o := ParseOptions{Limits: core.Limits{Memory: 1 << 30}}
 	if n, err := prog.ParseWith("main", text, o); n != nil || err == nil || !strings.Contains(err.Error(), "reference build") {

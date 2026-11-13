@@ -5,8 +5,8 @@ import (
 	"strings"
 	"testing"
 
+	"zeroparse.dev/zp/internal/codegentest"
 	"zeroparse.dev/zp/internal/compile"
-	"zeroparse.dev/zp/internal/gentest"
 )
 
 // A fold whose accumulator keeps growing in nesting depth does not converge; the callback result
@@ -30,7 +30,7 @@ func TestFoldAccumulatorMustConverge(t *testing.T) {
 // Compiled bytes depend on the grammar, not on its layout, unless source information is recorded.
 func TestCompiledBytesIgnoreLayoutWithoutSourceInfo(t *testing.T) {
 	t.Parallel()
-	const a = "rule main = x:(n / w) $$ => $x.(Num)\n" + gentest.CastRules
+	const a = "rule main = x:(n / w) $$ => $x.(Num)\n" + codegentest.CastRules
 	b := "\n\n  " + strings.ReplaceAll(a, " => ", "   =>   ")
 	bytesOf := func(src string, opts ...compile.Options) []byte {
 		t.Helper()
@@ -71,7 +71,7 @@ func TestNodeTopIsCastToSupplyElements(t *testing.T) {
 	}
 	program := mustCompile(t, "rule main = n:xs $$ => len(map($n.([]_), (x) => x))\n"+rules)
 	checkBackends(t, program, "main", "aaa")
-	if got := gentest.ResultJSON(program.ParseWith("main", "aaa", ParseOptions{})); !strings.Contains(got, "3") {
+	if got := codegentest.ResultJSON(program.ParseWith("main", "aaa", ParseOptions{})); !strings.Contains(got, "3") {
 		t.Errorf("got %s, want 3", got)
 	}
 }

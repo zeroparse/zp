@@ -13,19 +13,19 @@ import (
 	"time"
 
 	"zeroparse.dev/zp/internal/codegen"
-	"zeroparse.dev/zp/internal/gentest"
+	"zeroparse.dev/zp/internal/codegentest"
 )
 
 // TestGeneratedTSLeaderStore checks that a growth of a leader in a generated TypeScript parser
 // stores its result inside a lookahead and outside one, as the engine and the generated Go parsers
 // do (Evaluations of Rules in spec/runtime/parsing.md): in a parse and a recognition, without and
-// with limit controls, the calls of the leader e of gentest.LeaderStoreCases at 0 from main grow
+// with limit controls, the calls of the leader e of codegentest.LeaderStoreCases at 0 from main grow
 // e or are answered by the memo as a memo that stores every growth answers them, which the memo
 // flag of each call in the trace shows. The store of the TypeScript library is printed from the
 // Core IR of the call protocol, so a change to the store there must fail this test.
 func TestGeneratedTSLeaderStore(t *testing.T) {
 	t.Parallel()
-	cases := gentest.LeaderStoreCases()
+	cases := codegentest.LeaderStoreCases()
 	var tc []tsRunCase
 	for _, c := range cases {
 		tc = append(tc, tsRunCase{c.Name, c.Src, c.Input})
@@ -63,10 +63,10 @@ func TestGeneratedTSTwinMemo(t *testing.T) {
 		tsRunCase
 		evals, recognized int
 	}{
-		{tsRunCase{"own entries", gentest.TwinOwnEntriesSrc, "abcy"}, 4, 2},
-		{tsRunCase{"one place", gentest.TwinOnePlaceSrc, "abcy"}, 3, 3},
-		{tsRunCase{"scoped capture", gentest.TwinScopedCaptureSrc, "aa5"}, 4, 2},
-		{tsRunCase{"lambda parameter", gentest.TwinLambdaParamSrc, "aa5"}, 4, 2},
+		{tsRunCase{"own entries", codegentest.TwinOwnEntriesSrc, "abcy"}, 4, 2},
+		{tsRunCase{"one place", codegentest.TwinOnePlaceSrc, "abcy"}, 3, 3},
+		{tsRunCase{"scoped capture", codegentest.TwinScopedCaptureSrc, "aa5"}, 4, 2},
+		{tsRunCase{"lambda parameter", codegentest.TwinLambdaParamSrc, "aa5"}, 4, 2},
 	}
 	var tc []tsRunCase
 	for _, c := range cases {
@@ -125,7 +125,7 @@ func runTS(t *testing.T, cases []tsRunCase, probe string) [][]string {
 		// g has no limit controls; l has them, under the default limits.
 		var runs []string
 		for _, pkg := range []string{fmt.Sprintf("g%d", i), fmt.Sprintf("l%d", i)} {
-			code, err := gentest.GenerateTSBundle(mustParse(c.src), codegen.GenOptions{Start: "main", Recognize: true, Observability: true, LimitControls: pkg[0] == 'l'})
+			code, err := codegentest.GenerateTSBundle(mustParse(c.src), codegen.GenOptions{Start: "main", Recognize: true, Observability: true, LimitControls: pkg[0] == 'l'})
 			if err != nil {
 				t.Fatalf("%s: %v", c.name, err)
 			}
@@ -166,7 +166,7 @@ func TestGeneratedTSLambdaParameter(t *testing.T) {
 	t.Parallel()
 	var cases []tsRunCase
 	for _, in := range []string{"aaz6", "aazz6", "aa6", "aa5"} {
-		cases = append(cases, tsRunCase{in, gentest.TwinLambdaParamSrc, in})
+		cases = append(cases, tsRunCase{in, codegentest.TwinLambdaParamSrc, in})
 	}
 	// A parse returns a result with an error field; a recognition returns the error or null.
 	const outcome = `(m, run) => {

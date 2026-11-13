@@ -6,8 +6,8 @@ import (
 
 	"zeroparse.dev/zp/core"
 	"zeroparse.dev/zp/internal/bytecode"
+	"zeroparse.dev/zp/internal/codegentest"
 	"zeroparse.dev/zp/internal/compile"
-	"zeroparse.dev/zp/internal/gentest"
 )
 
 // compileMessage compiles src and returns the error message, or "" if it compiles.
@@ -146,8 +146,8 @@ func TestGrammarWithoutVariables(t *testing.T) {
 	for _, in := range []string{"abc", "a", "ab?"} {
 		a, errA := prog.ParseWith("main", in, ParseOptions{Backend: Closure})
 		b, errB := prog.ParseWith("main", in, ParseOptions{Backend: Bytecode})
-		if gentest.ResultJSON(a, errA) != gentest.ResultJSON(b, errB) {
-			t.Errorf("%q: %s / %s", in, gentest.ResultJSON(a, errA), gentest.ResultJSON(b, errB))
+		if codegentest.ResultJSON(a, errA) != codegentest.ResultJSON(b, errB) {
+			t.Errorf("%q: %s / %s", in, codegentest.ResultJSON(a, errA), codegentest.ResultJSON(b, errB))
 		}
 	}
 }

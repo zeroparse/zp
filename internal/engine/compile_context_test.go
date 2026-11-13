@@ -10,8 +10,8 @@ import (
 	"zeroparse.dev/zp/internal/diag"
 
 	"zeroparse.dev/zp/grammar"
+	"zeroparse.dev/zp/internal/codegentest"
 	"zeroparse.dev/zp/internal/compile"
-	"zeroparse.dev/zp/internal/gentest"
 	ir "zeroparse.dev/zp/internal/ir/core"
 	corebuild "zeroparse.dev/zp/internal/ir/core/build"
 )
@@ -40,7 +40,7 @@ func compileTestContext(t *testing.T, polls int) *compilePollContext {
 
 func compileTestGrammar(t *testing.T) *grammar.Grammar {
 	t.Helper()
-	g, err := parseTest(gentest.InferredChain(1024, false, ""))
+	g, err := parseTest(codegentest.InferredChain(1024, false, ""))
 	if err != nil {
 		t.Fatal(err)
 	}

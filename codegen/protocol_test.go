@@ -14,13 +14,13 @@ import (
 	"zeroparse.dev/zp/codegen"
 	"zeroparse.dev/zp/engine"
 	igen "zeroparse.dev/zp/internal/codegen"
-	"zeroparse.dev/zp/internal/gentest"
+	"zeroparse.dev/zp/internal/codegentest"
 )
 
 func TestMain(m *testing.M) {
 	// The tests build generated programs; a build cache private to the test process keeps their
 	// entries out of the shared cache.
-	removeGoCache := gentest.SetGoCache()
+	removeGoCache := codegentest.SetGoCache()
 	code := m.Run()
 	removeGoCache()
 	os.Exit(code)
@@ -60,7 +60,7 @@ func protocolBuild(t *testing.T, files, libFiles []codegen.File, lib string, nod
 	}
 	write("zp/go.mod", []byte("module zeroparse.dev/zp\n\ngo 1.27.1\n"))
 	for _, pkg := range []string{"core", "core/noderep"} {
-		src := filepath.Join(gentest.ModuleRoot(), filepath.FromSlash(pkg))
+		src := filepath.Join(codegentest.ModuleRoot(), filepath.FromSlash(pkg))
 		entries, err := os.ReadDir(src)
 		if err != nil {
 			t.Fatal(err)
@@ -183,7 +183,7 @@ rule main = [a-z]+ "=" [0-9]+`)
 	if out, err := protocolBuild(t, files, nil, "", nil); err != nil {
 		t.Fatalf("the parser does not build against the core of its generator: %v\n%s", err, out)
 	}
-	src, err := os.ReadFile(filepath.Join(gentest.ModuleRoot(), "core", "noderep", "noderep.go"))
+	src, err := os.ReadFile(filepath.Join(codegentest.ModuleRoot(), "core", "noderep", "noderep.go"))
 	if err != nil {
 		t.Fatal(err)
 	}

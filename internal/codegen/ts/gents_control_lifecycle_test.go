@@ -7,7 +7,7 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/internal/codegen"
-	"zeroparse.dev/zp/internal/gentest"
+	"zeroparse.dev/zp/internal/codegentest"
 )
 
 func runGeneratedTSControlGCTest(t *testing.T, consumer string, hooks string) {
@@ -30,11 +30,11 @@ rule main Text = t:([a]* #atomic) => Text{Text: text($t)}`)
 		t.Fatal(err)
 	}
 	opts := codegen.GenOptions{Start: "main", LimitControls: true, Types: true, Recognize: true}
-	code, err := gentest.GenerateTSBundle(g, opts)
+	code, err := codegentest.GenerateTSBundle(g, opts)
 	if err != nil {
 		t.Fatal(err)
 	}
-	again, err := gentest.GenerateTSBundle(g, opts)
+	again, err := codegentest.GenerateTSBundle(g, opts)
 	if err != nil || string(code) != string(again) {
 		t.Fatal("generation is not deterministic", err)
 	}

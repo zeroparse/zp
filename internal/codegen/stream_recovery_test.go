@@ -7,9 +7,9 @@ import (
 
 	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/codegen"
+	"zeroparse.dev/zp/internal/codegentest"
 	"zeroparse.dev/zp/internal/compile"
 	"zeroparse.dev/zp/internal/engine"
-	"zeroparse.dev/zp/internal/gentest"
 	"zeroparse.dev/zp/internal/starttest"
 )
 
@@ -17,7 +17,7 @@ const streamRecoveryError = "#recover cannot wrap a #stream repetition; recover 
 
 func TestStreamRecoveryRejected(t *testing.T) {
 	t.Parallel()
-	gentest.EachMode(t, testStreamRecoveryRejected)
+	codegentest.EachMode(t, testStreamRecoveryRejected)
 }
 
 func testStreamRecoveryRejected(t *testing.T) {
@@ -34,14 +34,14 @@ func testStreamRecoveryRejected(t *testing.T) {
 		}
 		for name, generate := range map[string]func() error{
 			"Go": func() error {
-				_, err := gentest.GenerateCode(t, g, codegen.GenOptions{Start: "main", Package: "test"})
+				_, err := codegentest.GenerateCode(t, g, codegen.GenOptions{Start: "main", Package: "test"})
 				return err
 			},
 			"typed Go": func() error {
-				_, err := gentest.GenerateCode(t, g, codegen.GenOptions{Start: "main", Package: "test", Types: true})
+				_, err := codegentest.GenerateCode(t, g, codegen.GenOptions{Start: "main", Package: "test", Types: true})
 				return err
 			},
-			"TS": func() error { _, err := gentest.GenerateTSBundle(g, codegen.GenOptions{Start: "main"}); return err },
+			"TS": func() error { _, err := codegentest.GenerateTSBundle(g, codegen.GenOptions{Start: "main"}); return err },
 		} {
 			if err := generate(); err == nil || !strings.Contains(err.Error(), streamRecoveryError) {
 				t.Errorf("%s generation: %v", name, err)

@@ -11,14 +11,14 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/internal/codegen"
-	"zeroparse.dev/zp/internal/gentest"
+	"zeroparse.dev/zp/internal/codegentest"
 )
 
 // terminalCases are grammars with value-free terminal expressions that lean typed parsers match
 // through a TerminalProgram, with inputs that reach their alternatives, guards, options and
 // lookaheads, and fail inside them so that syntax errors report their expectations.
-func terminalCases() []gentest.Case {
-	cases := []gentest.Case{
+func terminalCases() []codegentest.Case {
+	cases := []codegentest.Case{
 		// A keyword list spelled as a trie of case-insensitive classes, as in the SQL grammar,
 		// in a negative lookahead and in a discard, whose failures are reported, and again
 		// behind the farthest position; guards that overlap, one of a Unicode literal, and an
@@ -51,7 +51,7 @@ rule w = [a-z ]+ #atomic
 		fmt.Fprintf(&huge, "[^X] \"k%04d\"", i)
 	}
 	huge.WriteString("\n")
-	cases = append(cases, gentest.Case{Name: "terminal choice without a table", Src: huge.String(), Inputs: []string{"ab;", "ak0001;", "zk1199;", "ak1200;", "Xk0001;", "k0000;", "1k0500x;", "ak;", "", "ab", "\xffk0001;", "ék0002;"}})
+	cases = append(cases, codegentest.Case{Name: "terminal choice without a table", Src: huge.String(), Inputs: []string{"ab;", "ak0001;", "zk1199;", "ak1200;", "Xk0001;", "k0000;", "1k0500x;", "ak;", "", "ab", "\xffk0001;", "ék0002;"}})
 	// Random inputs over the characters the grammars mention.
 	alphabet := []rune("abcdeklorstuhnfACBOLEX_ ;([é日本<=>!α~+-#?xy")
 	rng := rand.New(rand.NewSource(1))
@@ -70,13 +70,13 @@ rule w = [a-z ]+ #atomic
 func TestTerminalProgramGeneration(t *testing.T) {
 	t.Parallel()
 	// Terminal programs are for parsers without budget controls.
-	gentest.PinOrdinary(t)
+	codegentest.PinOrdinary(t)
 	for _, c := range terminalCases() {
 		g, err := parseTest(c.Src)
 		if err != nil {
 			t.Fatal(err)
 		}
-		code, err := gentest.GenerateCode(t, g, codegen.GenOptions{Package: "terminal", Start: "main", Types: true, TypedOnly: true})
+		code, err := codegentest.GenerateCode(t, g, codegen.GenOptions{Package: "terminal", Start: "main", Types: true, TypedOnly: true})
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -84,7 +84,7 @@ func TestTerminalProgramGeneration(t *testing.T) {
 		if got, want := strings.Contains(string(code), "p.SkipTerminal(term"), !strings.Contains(c.Name, "left recursion"); got != want {
 			t.Errorf("%s: terminal program %v, want %v", c.Name, got, want)
 		}
-		reference, err := gentest.GenerateCode(t, g, codegen.GenOptions{Package: "terminal", Start: "main", Types: true, TypedOnly: true, NoOpt: []string{"terminals"}})
+		reference, err := codegentest.GenerateCode(t, g, codegen.GenOptions{Package: "terminal", Start: "main", Types: true, TypedOnly: true, NoOpt: []string{"terminals"}})
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -95,11 +95,11 @@ func TestTerminalProgramGeneration(t *testing.T) {
 		// budget for each expression.
 		for _, opts := range []codegen.GenOptions{{LimitControls: true}, {Document: true}} {
 			opts.Package, opts.Module, opts.Start, opts.Types, opts.Lib = "terminal", "example.com/generated", "main", true, codegen.LibImport
-			files, err := gentest.Generate(t, g, opts)
+			files, err := codegentest.Generate(t, g, opts)
 			if err != nil {
 				t.Fatal(err)
 			}
-			if strings.Contains(string(gentest.MergeGenerated(files)), "SkipTerminal") {
+			if strings.Contains(string(codegentest.MergeGenerated(files)), "SkipTerminal") {
 				t.Errorf("%s: terminal program with %+v", c.Name, opts)
 			}
 		}
@@ -111,17 +111,17 @@ func TestTerminalProgramGeneration(t *testing.T) {
 // engine's, in both position units.
 func TestTerminalProgramDisabledParity(t *testing.T) {
 	t.Parallel()
-	gentest.PinOrdinary(t)
-	var cases []gentest.Case
+	codegentest.PinOrdinary(t)
+	var cases []codegentest.Case
 	for _, c := range terminalCases() {
 		// The 1200-guard choice without a table costs most of the build and is covered by
 		// TestTerminalProgramGeneration with the programs on; the long tier compares it too.
-		if c.Name == "terminal choice without a table" && !gentest.Long() {
+		if c.Name == "terminal choice without a table" && !codegentest.Long() {
 			continue
 		}
 		cases = append(cases, c)
 	}
-	gentest.GeneratedTypesCorpus(t, filepath.Join(runtime.GOROOT(), "bin", "go"), cases, codegen.GenOptions{NoOpt: []string{"terminals"}}, 0)
+	codegentest.GeneratedTypesCorpus(t, filepath.Join(runtime.GOROOT(), "bin", "go"), cases, codegen.GenOptions{NoOpt: []string{"terminals"}}, 0)
 }
 
 // TestTerminalProgramEligibility pins where the generator lowers a terminal expression: only
@@ -130,7 +130,7 @@ func TestTerminalProgramDisabledParity(t *testing.T) {
 // prepared once at initialization.
 func TestTerminalProgramEligibility(t *testing.T) {
 	t.Parallel()
-	gentest.PinOrdinary(t)
+	codegentest.PinOrdinary(t)
 	// 16 leaves: eight two-class alternatives.
 	choice16 := `([aA] [bB] / [cC] [dD] / [eE] [fF] / [gG] [hH] / [iI] [jJ] / [kK] [lL] / [mM] [nN] / [oO] [pP])`
 	choice15 := `([aA] [bB] / [cC] [dD] / [eE] [fF] / [gG] [hH] / [iI] [jJ] / [kK] [lL] / [mM] [nN] / [oO])`
@@ -164,11 +164,11 @@ func TestTerminalProgramEligibility(t *testing.T) {
 		if opts.Document || opts.Stream {
 			opts.TypedOnly = false
 		}
-		files, err := gentest.Generate(t, g, opts)
+		files, err := codegentest.Generate(t, g, opts)
 		if err != nil {
 			t.Fatalf("%s: %v", c.name, err)
 		}
-		code := string(gentest.MergeGenerated(files))
+		code := string(codegentest.MergeGenerated(files))
 		if got := strings.Contains(code, "SkipTerminal("); got != c.want {
 			t.Errorf("%s: lowered %v, want %v", c.name, got, c.want)
 		}
@@ -193,7 +193,7 @@ func TestTerminalProgramEligibility(t *testing.T) {
 // and nothing else raises p.Depth or changes p.MaxDepth during a parse.
 func TestDepthChecks(t *testing.T) {
 	t.Parallel()
-	gentest.PinOrdinary(t)
+	codegentest.PinOrdinary(t)
 	sources := map[string]string{}
 	files, err := filepath.Glob("../../../codegen/go/lib/*.go")
 	if err != nil || len(files) == 0 {
@@ -216,11 +216,11 @@ func TestDepthChecks(t *testing.T) {
 		}
 		for _, opts := range []codegen.GenOptions{{TypedOnly: true}, {LimitControls: true}} {
 			opts.Package, opts.Module, opts.Start, opts.Types, opts.Lib = "terminal", "example.com/generated", "main", true, codegen.LibImport
-			files, err := gentest.Generate(t, g, opts)
+			files, err := codegentest.Generate(t, g, opts)
 			if err != nil {
 				t.Fatal(err)
 			}
-			sources[fmt.Sprintf("%s %+v", c.Name, opts.LimitControls)] = string(gentest.MergeGenerated(files))
+			sources[fmt.Sprintf("%s %+v", c.Name, opts.LimitControls)] = string(codegentest.MergeGenerated(files))
 		}
 	}
 	other := regexp.MustCompile(`\.Depth\s*(\+=|=[^=])|\.MaxDepth\s*(\+\+|--|\+=|-=|=[^=])`)

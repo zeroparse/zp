@@ -6,7 +6,7 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/internal/codegen"
-	"zeroparse.dev/zp/internal/gentest"
+	"zeroparse.dev/zp/internal/codegentest"
 )
 
 // TestGeneratedRecoverNoValue checks that a generated Go parser gives an expression without a
@@ -18,8 +18,8 @@ func TestGeneratedRecoverNoValue(t *testing.T) {
 		t.Skip("builds generated code")
 	}
 	goBin := filepath.Join(runtime.GOROOT(), "bin", "go")
-	gentest.EachMode(t, func(t *testing.T) {
-		gentest.GeneratedParsersCorpus(t, goBin, gentest.RecoverNoValueCases, codegen.GenOptions{})
-		gentest.GeneratedTypesCorpus(t, goBin, gentest.RecoverNoValueCases, codegen.GenOptions{})
+	codegentest.EachMode(t, func(t *testing.T) {
+		codegentest.GeneratedParsersCorpus(t, goBin, codegentest.RecoverNoValueCases, codegen.GenOptions{})
+		codegentest.GeneratedTypesCorpus(t, goBin, codegentest.RecoverNoValueCases, codegen.GenOptions{})
 	})
 }

@@ -11,20 +11,20 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/internal/codegen"
-	"zeroparse.dev/zp/internal/gentest"
+	"zeroparse.dev/zp/internal/codegentest"
 )
 
-// depMemoGenCases returns the grammars of gentest.DependencyMemoCases for seeds below seeds that
+// depMemoGenCases returns the grammars of codegentest.DependencyMemoCases for seeds below seeds that
 // generate Go parsers.
-func depMemoGenCases(t *testing.T, seeds int) []gentest.Case {
+func depMemoGenCases(t *testing.T, seeds int) []codegentest.Case {
 	t.Helper()
-	var cases []gentest.Case
-	for _, c := range gentest.DependencyMemoCases(seeds) {
+	var cases []codegentest.Case
+	for _, c := range codegentest.DependencyMemoCases(seeds) {
 		g, err := parseTest(c.Src)
 		if err != nil {
 			continue
 		}
-		if _, err := gentest.GenerateCode(t, g, codegen.GenOptions{Package: "g", Start: "main", Recognize: true}); err != nil {
+		if _, err := codegentest.GenerateCode(t, g, codegen.GenOptions{Package: "g", Start: "main", Recognize: true}); err != nil {
 			continue
 		}
 		cases = append(cases, c)
@@ -41,7 +41,7 @@ func depMemoGenCases(t *testing.T, seeds int) []gentest.Case {
 // seeds they read and the lookaheads they observed.
 func TestGeneratedLeftRecursionDependencyMemo(t *testing.T) {
 	t.Parallel()
-	gentest.EachMode(t, testGeneratedLeftRecursionDependencyMemo)
+	codegentest.EachMode(t, testGeneratedLeftRecursionDependencyMemo)
 }
 
 func testGeneratedLeftRecursionDependencyMemo(t *testing.T) {
@@ -53,21 +53,21 @@ func testGeneratedLeftRecursionDependencyMemo(t *testing.T) {
 		t.Skip("go command not found")
 	}
 	cases := depMemoGenCases(t, 60)
-	gentest.GeneratedParsersCorpus(t, goBin, cases, codegen.GenOptions{})
-	gentest.GeneratedTypesCorpus(t, goBin, cases, codegen.GenOptions{ConvertTypes: true}, len(cases))
+	codegentest.GeneratedParsersCorpus(t, goBin, cases, codegen.GenOptions{})
+	codegentest.GeneratedTypesCorpus(t, goBin, cases, codegen.GenOptions{ConvertTypes: true}, len(cases))
 }
 
 // TestGeneratedLeftRecursionDependencyMemoLinear checks that the Parse and ParseValue of generated Go
-// parsers of gentest.DependencyMemoShapes evaluate a number of calls linear in the length of the
+// parsers of codegentest.DependencyMemoShapes evaluate a number of calls linear in the length of the
 // input: doubling the input at most a little more than doubles the evaluations. They also parse an
 // input of length 10,000; with limit controls, within the default budget, which grows linearly with
 // the input and counts work that evaluations do not show, such as the scan of the jumps recorded
-// for a seed. The shapes of gentest.ContextStoreShapes, whose constant is large, are compared at
-// gentest.ContextStoreSizes instead, without the long input; with limit controls, within
-// gentest.ContextStoreBudgetPerUnit for each unit of the input.
+// for a seed. The shapes of codegentest.ContextStoreShapes, whose constant is large, are compared at
+// codegentest.ContextStoreSizes instead, without the long input; with limit controls, within
+// codegentest.ContextStoreBudgetPerUnit for each unit of the input.
 func TestGeneratedLeftRecursionDependencyMemoLinear(t *testing.T) {
 	t.Parallel()
-	gentest.EachMode(t, testGeneratedLeftRecursionDependencyMemoLinear)
+	codegentest.EachMode(t, testGeneratedLeftRecursionDependencyMemoLinear)
 }
 
 func testGeneratedLeftRecursionDependencyMemoLinear(t *testing.T) {
@@ -79,30 +79,30 @@ func testGeneratedLeftRecursionDependencyMemoLinear(t *testing.T) {
 		t.Skip("go command not found")
 	}
 	dir := t.TempDir()
-	if err := os.WriteFile(filepath.Join(dir, "go.mod"), []byte(gentest.GoMod("gentest")), 0o644); err != nil {
+	if err := os.WriteFile(filepath.Join(dir, "go.mod"), []byte(codegentest.GoMod("codegentest")), 0o644); err != nil {
 		t.Fatal(err)
 	}
-	shapes := gentest.SampledShapes()
+	shapes := codegentest.SampledShapes()
 	costly := len(shapes)
-	controls := gentest.FixtureBudgetControls(t)
-	shapes = append(shapes, gentest.ContextStoreShapes...)
+	controls := codegentest.FixtureBudgetControls(t)
+	shapes = append(shapes, codegentest.ContextStoreShapes...)
 	var imports, calls strings.Builder
 	for i, s := range shapes {
 		pkg := fmt.Sprintf("g%d", i)
-		gentest.GeneratePackage(t, dir, pkg, mustParse("@start\nrule main = "+s.Rules), codegen.GenOptions{Start: "main", Types: true, Observability: true})
-		fmt.Fprintf(&imports, "\t%q\n", "gentest/"+pkg)
+		codegentest.GeneratePackage(t, dir, pkg, mustParse("@start\nrule main = "+s.Rules), codegen.GenOptions{Start: "main", Types: true, Observability: true})
+		fmt.Fprintf(&imports, "\t%q\n", "codegentest/"+pkg)
 		sizes, long := []int{80, 160}, 10000
 		if i >= costly {
-			sizes, long = gentest.ContextStoreSizes[:], 0
+			sizes, long = codegentest.ContextStoreSizes[:], 0
 		}
 		for _, n := range sizes {
 			input := s.Input(n)
 			in := strconv.Quote(input)
-			// The shapes of gentest.ContextStoreShapes cost more per unit of input than the default
+			// The shapes of codegentest.ContextStoreShapes cost more per unit of input than the default
 			// budget grants, so with controls they get a budget linear in the input with their constant.
 			limit := ""
 			if i >= costly && controls {
-				limit = fmt.Sprintf(", zprt.WithLimits(core.Limits{Compute: %d})", gentest.ContextStoreBudgetPerUnit*uint64(len(input)))
+				limit = fmt.Sprintf(", zprt.WithLimits(core.Limits{Compute: %d})", codegentest.ContextStoreBudgetPerUnit*uint64(len(input)))
 			}
 			fmt.Fprintf(&calls, "\t{ var p zprt.Profile; if _, err := %s.Parse(%s, zprt.WithProfile(&p)%s); err != nil { panic(err) }; fmt.Print(p.Snapshot().Evals, \" \") }\n", pkg, in, limit)
 			fmt.Fprintf(&calls, "\t{ var p zprt.Profile; if _, err := %s.ParseValue(%s, zprt.WithProfile(&p)%s); err != nil { panic(err) }; fmt.Print(p.Snapshot().Evals, \" \") }\n", pkg, in, limit)
@@ -157,8 +157,8 @@ func main() {
 			small, large int
 		}{{"Parse", parse80, parse160}, {"ParseValue", ast80, ast160}} {
 			if i >= costly {
-				if r.small == 0 || r.large > r.small*gentest.ContextStoreGrowth {
-					t.Errorf("%s %s: %d evaluations at m=%d, %d at m=%d", s.Name, r.name, r.small, gentest.ContextStoreSizes[0], r.large, gentest.ContextStoreSizes[1])
+				if r.small == 0 || r.large > r.small*codegentest.ContextStoreGrowth {
+					t.Errorf("%s %s: %d evaluations at m=%d, %d at m=%d", s.Name, r.name, r.small, codegentest.ContextStoreSizes[0], r.large, codegentest.ContextStoreSizes[1])
 				}
 			} else if r.small == 0 || r.large > r.small*5/2 {
 				t.Errorf("%s %s: %d evaluations at 80, %d at 160", s.Name, r.name, r.small, r.large)

@@ -15,7 +15,7 @@ import (
 // accepts to local functions, and the bodies of the other rules and the lines of Operators Rules
 // to framed ones.
 func TestFlowVerifiesCorpus(t *testing.T) {
-	// The short tier leaves out the grammars over 20000 bytes (gentest.CorpusWithParsers), which
+	// The short tier leaves out the grammars over 20000 bytes (codegentest.CorpusWithParsers), which
 	// hold most of the rules (952 of 4209 lowered rules remain), so it has its own floor.
 	minLowered, minFramed := 1000, 100
 	if testing.Short() {

@@ -4,14 +4,14 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/core"
+	"zeroparse.dev/zp/internal/codegentest"
 	"zeroparse.dev/zp/internal/compile"
-	"zeroparse.dev/zp/internal/gentest"
 	"zeroparse.dev/zp/internal/value"
 )
 
 func TestAliasNodeIdentity(t *testing.T) {
 	t.Parallel()
-	for _, c := range gentest.AliasCases {
+	for _, c := range codegentest.AliasCases {
 		t.Run(c.Name, func(t *testing.T) {
 			for _, options := range []compile.Options{{}, {DisableMemo: true}} {
 				prog := mustCompile(t, c.Src, options)
@@ -35,7 +35,7 @@ func TestAliasNodeIdentity(t *testing.T) {
 						terminal, _ = v.(*core.Node)
 					}
 					if terminal == nil || terminal.Type() != "Num" || value.D(terminal).Text != "éé" {
-						t.Errorf("%s: expected a Num terminal, got %s", unit, gentest.ResultJSON(terminal, nil))
+						t.Errorf("%s: expected a Num terminal, got %s", unit, codegentest.ResultJSON(terminal, nil))
 					}
 				}
 				for _, input := range c.Inputs {
@@ -53,8 +53,8 @@ func TestAliasNodeIdentity(t *testing.T) {
 							for _, input := range c.Inputs {
 								want, wantErr := prog.ParseWith("main", input, ParseOptions{Unit: unit})
 								got, gotErr := loaded.ParseWith("main", input, servedBy(mode, ParseOptions{Backend: backend, Unit: unit}))
-								if gentest.ResultJSON(got, gotErr) != gentest.ResultJSON(want, wantErr) {
-									t.Errorf("loaded %s/%s on %q: got %s, want %s", backend, unit, input, gentest.ResultJSON(got, gotErr), gentest.ResultJSON(want, wantErr))
+								if codegentest.ResultJSON(got, gotErr) != codegentest.ResultJSON(want, wantErr) {
+									t.Errorf("loaded %s/%s on %q: got %s, want %s", backend, unit, input, codegentest.ResultJSON(got, gotErr), codegentest.ResultJSON(want, wantErr))
 								}
 							}
 						}

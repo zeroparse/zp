@@ -7,14 +7,14 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/internal/codegen"
-	"zeroparse.dev/zp/internal/gentest"
+	"zeroparse.dev/zp/internal/codegentest"
 )
 
 // ZP_TYPED_FRAME_LAYOUT_DIR preserves same-generator layout controls for
 // timing prebuilt fixture binaries independently of generation and compilation.
 func TestGeneratedTypedFrameLayoutWorkloads(t *testing.T) {
 	t.Parallel()
-	gentest.EachMode(t, testGeneratedTypedFrameLayoutWorkloads)
+	codegentest.EachMode(t, testGeneratedTypedFrameLayoutWorkloads)
 }
 
 func testGeneratedTypedFrameLayoutWorkloads(t *testing.T) {
@@ -75,14 +75,14 @@ func BenchmarkTypedFrameLayoutGeneration(b *testing.B) {
 			if err != nil {
 				b.Fatal(err)
 			}
-			code, err := gentest.GenerateCode(b, g, opts)
+			code, err := codegentest.GenerateCode(b, g, opts)
 			if err != nil {
 				b.Fatal(err)
 			}
 			b.ReportAllocs()
 			b.ResetTimer()
 			for b.Loop() {
-				if _, err := gentest.GenerateCode(b, g, opts); err != nil {
+				if _, err := codegentest.GenerateCode(b, g, opts); err != nil {
 					b.Fatal(err)
 				}
 			}

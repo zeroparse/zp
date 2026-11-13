@@ -3,14 +3,14 @@ package engine
 import (
 	"testing"
 
-	"zeroparse.dev/zp/internal/gentest"
+	"zeroparse.dev/zp/internal/codegentest"
 )
 
 // The locals of an Operators Rule's actions read a scalar as its value, as an ordinary capture
 // does: the closure, bytecode and iterative backends agree on every input of the corpus.
 func TestOperatorsRuleLocalsBackends(t *testing.T) {
 	t.Parallel()
-	for _, c := range gentest.OperatorsRuleLocalCases {
+	for _, c := range codegentest.OperatorsRuleLocalCases {
 		prog := mustCompile(t, c.Src)
 		for _, input := range c.Inputs {
 			checkBackends(t, prog, "main", input)

@@ -5,12 +5,12 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/internal/codegen"
-	"zeroparse.dev/zp/internal/gentest"
+	"zeroparse.dev/zp/internal/codegentest"
 )
 
 func TestGenerateStreamOptions(t *testing.T) {
 	t.Parallel()
-	gentest.EachMode(t, testGenerateStreamOptions)
+	codegentest.EachMode(t, testGenerateStreamOptions)
 }
 
 func testGenerateStreamOptions(t *testing.T) {
@@ -20,7 +20,7 @@ rule other = "b"`)
 	if err != nil {
 		t.Fatal(err)
 	}
-	plain, err := gentest.GenerateCode(t, g, codegen.GenOptions{Package: "fixture", Start: "main"})
+	plain, err := codegentest.GenerateCode(t, g, codegen.GenOptions{Package: "fixture", Start: "main"})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -29,7 +29,7 @@ rule other = "b"`)
 			t.Errorf("ordinary output contains %s", marker)
 		}
 	}
-	code, err := gentest.GenerateCode(t, g, codegen.GenOptions{Package: "fixture", Start: "main", Stream: true})
+	code, err := codegentest.GenerateCode(t, g, codegen.GenOptions{Package: "fixture", Start: "main", Stream: true})
 	if err != nil || !strings.Contains(string(code), "func ParseStream(") || strings.Contains(string(code), "stream:") {
 		t.Fatalf("stream output: %v", err)
 	}
@@ -40,18 +40,18 @@ rule other = "b"`)
 		{codegen.GenOptions{Start: "other", Stream: true}, "needs a #stream repetition"},
 	} {
 		tc.opts.Package = "fixture"
-		if _, err := gentest.GenerateCode(t, g, tc.opts); err == nil || !strings.Contains(err.Error(), tc.want) {
+		if _, err := codegentest.GenerateCode(t, g, tc.opts); err == nil || !strings.Contains(err.Error(), tc.want) {
 			t.Errorf("%+v: %v, want %q", tc.opts, err, tc.want)
 		}
 	}
-	if _, err := gentest.GenerateTSBundle(g, codegen.GenOptions{Start: "main", Stream: true}); err == nil {
+	if _, err := codegentest.GenerateTSBundle(g, codegen.GenOptions{Start: "main", Stream: true}); err == nil {
 		t.Error("TypeScript accepted stream generation")
 	}
-	typed, err := gentest.GenerateCode(t, g, codegen.GenOptions{Package: "fixture", Start: "main", Stream: true, Types: true})
+	typed, err := codegentest.GenerateCode(t, g, codegen.GenOptions{Package: "fixture", Start: "main", Stream: true, Types: true})
 	if err != nil || !strings.Contains(string(typed), "func ParseStreamValue(") || !strings.Contains(string(typed), "type StreamValue = ") {
 		t.Fatalf("typed stream output: %v", err)
 	}
-	if typed, err := gentest.GenerateCode(t, g, codegen.GenOptions{Package: "fixture", Start: "main", Types: true}); err != nil || strings.Contains(string(typed), "ParseStreamValue") {
+	if typed, err := codegentest.GenerateCode(t, g, codegen.GenOptions{Package: "fixture", Start: "main", Types: true}); err != nil || strings.Contains(string(typed), "ParseStreamValue") {
 		t.Fatalf("typed output without streams: %v", err)
 	}
 }
@@ -60,7 +60,7 @@ rule other = "b"`)
 // #stream rule on a left-recursion cycle for every target, with or without stream entry points.
 func TestGenerateStreamLeftRecursionRejected(t *testing.T) {
 	t.Parallel()
-	gentest.EachMode(t, testGenerateStreamLeftRecursionRejected)
+	codegentest.EachMode(t, testGenerateStreamLeftRecursionRejected)
 }
 
 func testGenerateStreamLeftRecursionRejected(t *testing.T) {
@@ -71,14 +71,14 @@ func testGenerateStreamLeftRecursionRejected(t *testing.T) {
 	}
 	for name, generate := range map[string]func() error{
 		"Go": func() error {
-			_, err := gentest.GenerateCode(t, g, codegen.GenOptions{Start: "main", Package: "test"})
+			_, err := codegentest.GenerateCode(t, g, codegen.GenOptions{Start: "main", Package: "test"})
 			return err
 		},
 		"Go stream": func() error {
-			_, err := gentest.GenerateCode(t, g, codegen.GenOptions{Start: "main", Package: "test", Stream: true})
+			_, err := codegentest.GenerateCode(t, g, codegen.GenOptions{Start: "main", Package: "test", Stream: true})
 			return err
 		},
-		"TS": func() error { _, err := gentest.GenerateTSBundle(g, codegen.GenOptions{Start: "main"}); return err },
+		"TS": func() error { _, err := codegentest.GenerateTSBundle(g, codegen.GenOptions{Start: "main"}); return err },
 	} {
 		if err := generate(); err == nil || !strings.Contains(err.Error(), want) {
 			t.Errorf("%s generation: %v", name, err)

@@ -7,7 +7,7 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/internal/codegen"
-	"zeroparse.dev/zp/internal/gentest"
+	"zeroparse.dev/zp/internal/codegentest"
 )
 
 // The published typed values of a Document are shared with later results, so every test here
@@ -56,7 +56,7 @@ rule atom Atom = t:([a-z]) #atomic => Atom{Text: text($t)}`
 // the given test files. The tests run in the generated module.
 func sharingPackages(t *testing.T, tests map[string]string) {
 	t.Helper()
-	gentest.NeedsBudgetControls(t)
+	codegentest.NeedsBudgetControls(t)
 	if testing.Short() {
 		t.Skip("builds standalone generated parsers")
 	}
@@ -71,7 +71,7 @@ func sharingPackages(t *testing.T, tests map[string]string) {
 			t.Fatal(err)
 		}
 	}
-	write("go.mod", gentest.GoMod("sharedtypeddocument"))
+	write("go.mod", codegentest.GoMod("sharedtypeddocument"))
 	for _, pkg := range []struct {
 		name, grammar string
 		legacy        bool
@@ -87,7 +87,7 @@ func sharingPackages(t *testing.T, tests map[string]string) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		gentest.GeneratePackageIn(t, dir, "sharedtypeddocument", pkg.name, g, codegen.GenOptions{Start: "main", Types: true, Document: true, NoOpt: gentest.NoOptIf(pkg.legacy, "typed-output-bootstrap")})
+		codegentest.GeneratePackageIn(t, dir, "sharedtypeddocument", pkg.name, g, codegen.GenOptions{Start: "main", Types: true, Document: true, NoOpt: codegentest.NoOptIf(pkg.legacy, "typed-output-bootstrap")})
 	}
 	for name, text := range tests {
 		write(name, text)

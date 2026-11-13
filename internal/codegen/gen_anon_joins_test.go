@@ -5,14 +5,14 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/internal/codegen"
-	"zeroparse.dev/zp/internal/gentest"
+	"zeroparse.dev/zp/internal/codegentest"
 )
 
 // One declared node type and error, the value of a rule that recovers, is a join with an interface
 // named after the type and Error, implemented by *Block and *Error, and a union in TypeScript.
 func TestGeneratedTypedAnonymousJoinOneNodeAndError(t *testing.T) {
 	t.Parallel()
-	types, err := gentest.GoTypesOf(t, gentest.AnonErrorJoinGrammar)
+	types, err := codegentest.GoTypesOf(t, codegentest.AnonErrorJoinGrammar)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -33,7 +33,7 @@ func TestGeneratedTypedAnonymousJoinOneNodeAndError(t *testing.T) {
 		t.Errorf("%d interfaces, want 1", n)
 	}
 	// An alias of the same members is the type of the field.
-	types, err = gentest.GoTypesOf(t, `type Block = { Text string }
+	types, err = codegentest.GoTypesOf(t, `type Block = { Text string }
 type S ~ Block | error
 type R = { Else *(Block | error) }
 rule main R = e:alt $$ => R{Else: $e}
@@ -44,11 +44,11 @@ rule alt Block = t:[a-z]+ ";" => Block{Text: text($t)}`)
 	if !strings.Contains(types, "Else S") || strings.Contains(types, "BlockOrError") {
 		t.Errorf("the field is not the alias S:\n%s", types)
 	}
-	g, err := parseTest(gentest.AnonErrorJoinGrammar)
+	g, err := parseTest(codegentest.AnonErrorJoinGrammar)
 	if err != nil {
 		t.Fatal(err)
 	}
-	files, err := gentest.GenerateTS(g, codegen.GenOptions{Types: true, Start: "main"})
+	files, err := codegentest.GenerateTS(g, codegen.GenOptions{Types: true, Start: "main"})
 	if err != nil {
 		t.Fatal(err)
 	}

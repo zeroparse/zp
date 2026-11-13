@@ -5,8 +5,8 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/internal/codegen"
+	"zeroparse.dev/zp/internal/codegentest"
 	"zeroparse.dev/zp/internal/compile"
-	"zeroparse.dev/zp/internal/gentest"
 )
 
 // A join with the error member must not gain an open-node member, whether it is named by an alias
@@ -38,7 +38,7 @@ rule let Let = n:([a-z]+) ";" => Let{N: text($n)}`
 	if err != nil {
 		t.Fatal(err)
 	}
-	files, err := gentest.GenerateTS(g, codegen.GenOptions{Types: true, Start: "main"})
+	files, err := codegentest.GenerateTS(g, codegen.GenOptions{Types: true, Start: "main"})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -50,7 +50,7 @@ rule let Let = n:([a-z]+) ";" => Let{N: text($n)}`
 			t.Errorf("parser.ts has an open-node fallback for the join with error")
 		}
 	}
-	goFiles, err := gentest.Generate(t, g, codegen.GenOptions{Types: true, Start: "main", Module: "example.com/m", Package: "p"})
+	goFiles, err := codegentest.Generate(t, g, codegen.GenOptions{Types: true, Start: "main", Module: "example.com/m", Package: "p"})
 	if err != nil {
 		t.Fatal(err)
 	}

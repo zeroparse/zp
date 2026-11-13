@@ -5,18 +5,18 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/internal/codegen"
-	"zeroparse.dev/zp/internal/gentest"
+	"zeroparse.dev/zp/internal/codegentest"
 )
 
 // Typed Go yields *Expr for every operator node of an Operators Rule declared with Expr, at every
 // nesting level.
 func TestGeneratedTypedOperatorsRuleNamedNodeType(t *testing.T) {
 	t.Parallel()
-	gentest.EachMode(t, testGeneratedTypedOperatorsRuleNamedNodeType)
+	codegentest.EachMode(t, testGeneratedTypedOperatorsRuleNamedNodeType)
 }
 
 func testGeneratedTypedOperatorsRuleNamedNodeType(t *testing.T) {
-	runGeneratedNamedNodeProgram(t, gentest.OperatorsNamedNodeCases()[0].Src, `func walk(v any) string {
+	runGeneratedNamedNodeProgram(t, codegentest.OperatorsNamedNodeCases()[0].Src, `func walk(v any) string {
 	x, ok := v.(*p.Expr)
 	if !ok {
 		return fmt.Sprintf("%T", v)
@@ -72,7 +72,7 @@ func TestOperatorsRuleNamedNodeTypeRuntimeError(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		if _, err := gentest.Generate(t, g, codegen.GenOptions{Package: "p", Start: "expr"}); err == nil {
+		if _, err := codegentest.Generate(t, g, codegen.GenOptions{Package: "p", Start: "expr"}); err == nil {
 			t.Errorf("%q: the generator accepted a grammar that cannot be type checked", tc.src)
 		}
 	}

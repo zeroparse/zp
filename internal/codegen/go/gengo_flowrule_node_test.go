@@ -12,13 +12,13 @@ import (
 
 	"zeroparse.dev/zp/core"
 	"zeroparse.dev/zp/internal/codegen"
+	"zeroparse.dev/zp/internal/codegentest"
 	"zeroparse.dev/zp/internal/engine"
-	"zeroparse.dev/zp/internal/gentest"
 )
 
 func TestGeneratedNodeDirectFrameRoutes(t *testing.T) {
 	t.Parallel()
-	gentest.EachMode(t, testGeneratedNodeDirectFrameRoutes)
+	codegentest.EachMode(t, testGeneratedNodeDirectFrameRoutes)
 }
 
 func testGeneratedNodeDirectFrameRoutes(t *testing.T) {
@@ -32,7 +32,7 @@ rule main = n:[0-9] #atomic {size := len($n)} {size == 1} "é" $$ => $n`,
 		if err != nil {
 			t.Fatal(err)
 		}
-		code, err := gentest.GenerateCode(t, g, codegen.GenOptions{Package: "node", Start: "main"})
+		code, err := codegentest.GenerateCode(t, g, codegen.GenOptions{Package: "node", Start: "main"})
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -46,19 +46,19 @@ rule main = n:[0-9] #atomic {size := len($n)} {size == 1} "é" $$ => $n`,
 // stacks, including when a later parse fails or uses external rule entry.
 func TestGeneratedNodeDirectRetention(t *testing.T) {
 	t.Parallel()
-	gentest.EachMode(t, testGeneratedNodeDirectRetention)
+	codegentest.EachMode(t, testGeneratedNodeDirectRetention)
 }
 
 func testGeneratedNodeDirectRetention(t *testing.T) {
 	if testing.Short() {
 		t.Skip("builds generated code")
 	}
-	c := gentest.NodeDirectCases[0]
+	c := codegentest.NodeDirectCases[0]
 	g, err := parseTest(c.Src)
 	if err != nil {
 		t.Fatal(err)
 	}
-	code, err := gentest.GenerateCode(t, g, codegen.GenOptions{Package: "node", Start: "main"})
+	code, err := codegentest.GenerateCode(t, g, codegen.GenOptions{Package: "node", Start: "main"})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -69,7 +69,7 @@ func testGeneratedNodeDirectRetention(t *testing.T) {
 			for _, input := range []string{"a-123456?", "b-7!", "c-1", "d-x?", ""} {
 				n, err := p.ParseWith(rule, input, engine.ParseOptions{Expectations: true, Unit: unit})
 				fmt.Fprintf(&rows, "{%q,%q,%s,%q},\n", rule, input,
-					map[core.PositionUnit]string{core.CodePoints: "CodePoints", core.Bytes: "Bytes"}[unit], gentest.ResultJSON(n, err))
+					map[core.PositionUnit]string{core.CodePoints: "CodePoints", core.Bytes: "Bytes"}[unit], codegentest.ResultJSON(n, err))
 			}
 		}
 	}
@@ -91,7 +91,7 @@ func TestRetainedTrees(t *testing.T) {
 }
 `
 	dir := t.TempDir()
-	for name, data := range map[string][]byte{"parser.go": code, "node_test.go": []byte(test), "go.mod": []byte(gentest.GoMod("node"))} {
+	for name, data := range map[string][]byte{"parser.go": code, "node_test.go": []byte(test), "go.mod": []byte(codegentest.GoMod("node"))} {
 		if err := os.WriteFile(filepath.Join(dir, name), data, 0o644); err != nil {
 			t.Fatal(err)
 		}
@@ -108,17 +108,17 @@ func TestRetainedTrees(t *testing.T) {
 // through call and leave finalization to the ordinary library wrapper.
 func TestGeneratedNodeDirectRoutes(t *testing.T) {
 	t.Parallel()
-	gentest.EachMode(t, testGeneratedNodeDirectRoutes)
+	codegentest.EachMode(t, testGeneratedNodeDirectRoutes)
 }
 
 func testGeneratedNodeDirectRoutes(t *testing.T) {
-	for _, c := range gentest.NodeDirectCases {
+	for _, c := range codegentest.NodeDirectCases {
 		t.Run(c.Name, func(t *testing.T) {
 			g, err := parseTest(c.Src)
 			if err != nil {
 				t.Fatal(err)
 			}
-			code, err := gentest.GenerateCode(t, g, codegen.GenOptions{Package: "node", Start: "main", Recognize: true})
+			code, err := codegentest.GenerateCode(t, g, codegen.GenOptions{Package: "node", Start: "main", Recognize: true})
 			if err != nil {
 				t.Fatal(err)
 			}

@@ -6,7 +6,7 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/engine"
-	"zeroparse.dev/zp/internal/gentest"
+	"zeroparse.dev/zp/internal/codegentest"
 )
 
 // TestLeaderGrowthStoresResult checks, on both engine backends, that a growth of a leader stores
@@ -72,10 +72,10 @@ func TestLeaderGrowthStoresResult(t *testing.T) {
 }
 
 // TestLeaderGrowthEvals checks, on both engine backends, that the leader e of
-// gentest.LeaderStoreCases evaluates its body as often as the growths that the memo allows take
+// codegentest.LeaderStoreCases evaluates its body as often as the growths that the memo allows take
 // steps; the generated parsers are held to the same counts by TestGeneratedLeaderStore.
 func TestLeaderGrowthEvals(t *testing.T) {
-	for _, c := range gentest.LeaderStoreCases() {
+	for _, c := range codegentest.LeaderStoreCases() {
 		p, err := engine.CompileSource(c.Src, "")
 		if err != nil {
 			t.Fatalf("%s: %v", c.Name, err)

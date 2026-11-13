@@ -11,8 +11,8 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/internal/codegen"
+	"zeroparse.dev/zp/internal/codegentest"
 	"zeroparse.dev/zp/internal/engine"
-	"zeroparse.dev/zp/internal/gentest"
 )
 
 // runGeneratedUntypedProgram generates untyped Go for src as package p, runs the program body with
@@ -37,15 +37,15 @@ func runGeneratedProgramWith(t *testing.T, src string, opts codegen.GenOptions, 
 	if err != nil {
 		t.Fatal(err)
 	}
-	code, err := gentest.GenerateCode(t, g, opts)
+	code, err := codegentest.GenerateCode(t, g, opts)
 	if err != nil {
 		t.Fatal(err)
 	}
 	dir := t.TempDir()
 	for name, content := range map[string]string{
-		"go.mod":      gentest.GoMod("gentest"),
+		"go.mod":      codegentest.GoMod("codegentest"),
 		"p/parser.go": string(code),
-		"main.go":     "package main\n\nimport (\n\t\"fmt\"\n\n\t\"gentest/p\"\n)\n\n" + body,
+		"main.go":     "package main\n\nimport (\n\t\"fmt\"\n\n\t\"codegentest/p\"\n)\n\n" + body,
 	} {
 		path := filepath.Join(dir, name)
 		if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
@@ -85,25 +85,25 @@ func ignoreCaseGoBody(inputs []string) string {
 // case-insensitive literals.
 func TestIgnoreCaseGeneratedGo(t *testing.T) {
 	t.Parallel()
-	gentest.EachMode(t, testIgnoreCaseGeneratedGo)
+	codegentest.EachMode(t, testIgnoreCaseGeneratedGo)
 }
 
 func testIgnoreCaseGeneratedGo(t *testing.T) {
-	want := ignoreCaseLines(t, gentest.IgnoreCaseGenGrammar, gentest.IgnoreCaseGenInputs)
-	runGeneratedUntypedProgram(t, gentest.IgnoreCaseGenGrammar, ignoreCaseGoBody(gentest.IgnoreCaseGenInputs), want)
+	want := ignoreCaseLines(t, codegentest.IgnoreCaseGenGrammar, codegentest.IgnoreCaseGenInputs)
+	runGeneratedUntypedProgram(t, codegentest.IgnoreCaseGenGrammar, ignoreCaseGoBody(codegentest.IgnoreCaseGenInputs), want)
 }
 
 // TestIgnoreCaseGeneratedTypedGo checks that the typed Go parser accepts exactly the inputs that the
 // closure backend accepts, for case-insensitive literals in a choice and in a sequence.
 func TestIgnoreCaseGeneratedTypedGo(t *testing.T) {
 	t.Parallel()
-	gentest.EachMode(t, testIgnoreCaseGeneratedTypedGo)
+	codegentest.EachMode(t, testIgnoreCaseGeneratedTypedGo)
 }
 
 func testIgnoreCaseGeneratedTypedGo(t *testing.T) {
-	prog := mustCompile(t, gentest.IgnoreCaseGenGrammar)
+	prog := mustCompile(t, codegentest.IgnoreCaseGenGrammar)
 	var want strings.Builder
-	for _, in := range gentest.IgnoreCaseGenInputs {
+	for _, in := range codegentest.IgnoreCaseGenInputs {
 		if _, err := prog.ParseWith("main", in, engine.ParseOptions{Expectations: true, Backend: engine.Closure}); err != nil {
 			want.WriteString("error\n")
 		} else {
@@ -111,29 +111,29 @@ func testIgnoreCaseGeneratedTypedGo(t *testing.T) {
 		}
 	}
 	var list strings.Builder
-	for _, in := range gentest.IgnoreCaseGenInputs {
+	for _, in := range codegentest.IgnoreCaseGenInputs {
 		fmt.Fprintf(&list, "\t\t%s,\n", strconv.Quote(in))
 	}
 	body := "func main() {\n\tfor _, s := range []string{\n" + list.String() + "\t} {\n" +
 		"\t\t_, err := p.ParseValue(s)\n\t\tif err != nil {\n\t\t\tfmt.Println(\"error\")\n\t\t\tcontinue\n\t\t}\n" +
 		"\t\tfmt.Println(\"ok\")\n\t}\n}\n"
-	runGeneratedNamedNodeProgram(t, gentest.IgnoreCaseGenGrammar, body, want.String())
+	runGeneratedNamedNodeProgram(t, codegentest.IgnoreCaseGenGrammar, body, want.String())
 }
 
 // TestIgnoreCaseGeneratedExpectation checks that the generated Go parser reports the same error as
 // the closure backend, whose expectation of a case-insensitive literal keeps its suffix.
 func TestIgnoreCaseGeneratedExpectation(t *testing.T) {
 	t.Parallel()
-	gentest.EachMode(t, testIgnoreCaseGeneratedExpectation)
+	codegentest.EachMode(t, testIgnoreCaseGeneratedExpectation)
 }
 
 func testIgnoreCaseGeneratedExpectation(t *testing.T) {
-	_, err := mustCompile(t, gentest.IgnoreCaseGenGrammar).ParseWith("main", "x", engine.ParseOptions{Expectations: true, Backend: engine.Closure})
+	_, err := mustCompile(t, codegentest.IgnoreCaseGenGrammar).ParseWith("main", "x", engine.ParseOptions{Expectations: true, Backend: engine.Closure})
 	if err == nil {
 		t.Fatal("the closure backend parsed x")
 	}
 	body := "func main() {\n\t_, err := p.Parse(\"x\")\n\tfmt.Println(err)\n}\n"
-	runGeneratedUntypedProgram(t, gentest.IgnoreCaseGenGrammar, body, err.Error()+"\n")
+	runGeneratedUntypedProgram(t, codegentest.IgnoreCaseGenGrammar, body, err.Error()+"\n")
 }
 
 // ignoreCaseDocEdit is one edit replacing runes [start, end) of the document text with text.
@@ -154,7 +154,7 @@ var ignoreCaseDocEdits = []ignoreCaseDocEdit{
 // initial parse and after each edit.
 func ignoreCaseDocWant(t *testing.T) string {
 	t.Helper()
-	prog := mustCompile(t, gentest.IgnoreCaseGenGrammar)
+	prog := mustCompile(t, codegentest.IgnoreCaseGenGrammar)
 	var b strings.Builder
 	show := func(text []rune) {
 		n, err := prog.ParseWith("main", string(text), engine.ParseOptions{Expectations: true, Backend: engine.Closure})
@@ -194,9 +194,9 @@ func ignoreCaseDocBody() string {
 // of folded literals, agrees with the closure backend after every edit.
 func TestIgnoreCaseGeneratedDocument(t *testing.T) {
 	t.Parallel()
-	gentest.NeedsBudgetControls(t)
+	codegentest.NeedsBudgetControls(t)
 	want := ignoreCaseDocWant(t)
-	runGeneratedProgramWith(t, gentest.IgnoreCaseGenGrammar, codegen.GenOptions{Package: "p", Start: "main", Document: true}, ignoreCaseDocBody(), want)
+	runGeneratedProgramWith(t, codegentest.IgnoreCaseGenGrammar, codegen.GenOptions{Package: "p", Start: "main", Document: true}, ignoreCaseDocBody(), want)
 }
 
 // ignoreCaseTerminalGrammar holds a value-free choice with more literals than a terminal program
@@ -214,7 +214,7 @@ rule ws = " "*
 func TestIgnoreCaseGeneratedTypedTerminal(t *testing.T) {
 	t.Parallel()
 	// Terminal programs are for parsers without budget controls.
-	gentest.PinOrdinary(t)
+	codegentest.PinOrdinary(t)
 	inputs := []string{"", "alpha", "ALPHA", "Beta", "BETA", "beta", "upsilon", "UPSILON", "xi", "Xi", "XI", "alpha BETA", "alphax", "ALPHAX", "tau Tau sigma", "SIGMA"}
 	prog := mustCompile(t, ignoreCaseTerminalGrammar)
 	var want, list strings.Builder

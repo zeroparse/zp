@@ -9,7 +9,7 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/internal/codegen"
-	"zeroparse.dev/zp/internal/gentest"
+	"zeroparse.dev/zp/internal/codegentest"
 )
 
 // TestGeneratedDepthBenchmarkWorkloads validates benchmarks without timing them.
@@ -17,7 +17,7 @@ import (
 // paired measurements; generation and compilation remain outside parse timing.
 func TestGeneratedDepthBenchmarkWorkloads(t *testing.T) {
 	t.Parallel()
-	gentest.EachMode(t, testGeneratedDepthBenchmarkWorkloads)
+	codegentest.EachMode(t, testGeneratedDepthBenchmarkWorkloads)
 }
 
 func testGeneratedDepthBenchmarkWorkloads(t *testing.T) {
@@ -41,7 +41,7 @@ func testGeneratedDepthBenchmarkWorkloads(t *testing.T) {
 			t.Fatal(err)
 		}
 	}
-	write("go.mod", []byte(gentest.GoMod("depthbench")))
+	write("go.mod", []byte(codegentest.GoMod("depthbench")))
 	g, err := parseTest(`type Word = { Text string }
 rule main Word = t:(n+) #atomic => Word{Text: text($t)}
 rule n Word = t:("(" n ")" / "é") #atomic => Word{Text: text($t)}`)
@@ -54,7 +54,7 @@ rule n Word = t:("(" n ")" / "é") #atomic => Word{Text: text($t)}`)
 		if convert {
 			pkg = "convert"
 		}
-		code, err := gentest.GenerateCode(t, g, codegen.GenOptions{Package: pkg, Start: "main", Types: true, Recognize: true, ConvertTypes: convert})
+		code, err := codegentest.GenerateCode(t, g, codegen.GenOptions{Package: pkg, Start: "main", Types: true, Recognize: true, ConvertTypes: convert})
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -156,7 +156,7 @@ if unit==CodePoints{for b.Loop(){switch route{case "Node":depthNode,depthError=P
 		bench += directBench
 		write(pkg+"/depth_bench_test.go", []byte(bench))
 	}
-	code, err := gentest.GenerateTSBundle(g, codegen.GenOptions{Start: "main", Recognize: true})
+	code, err := codegentest.GenerateTSBundle(g, codegen.GenOptions{Start: "main", Recognize: true})
 	if err != nil {
 		t.Fatal(err)
 	}

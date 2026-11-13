@@ -7,8 +7,8 @@ import (
 	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/codegen"
 	"zeroparse.dev/zp/internal/codegen/go"
+	"zeroparse.dev/zp/internal/codegentest"
 	"zeroparse.dev/zp/internal/compile"
-	"zeroparse.dev/zp/internal/gentest"
 	"zeroparse.dev/zp/internal/ir/core"
 	irbuild "zeroparse.dev/zp/internal/ir/core/build"
 )
@@ -73,8 +73,8 @@ var recognizerGenModes = []coreGenMode{
 }
 
 // recognizerCorpus is the corpus grammars of the recognizer freeze.
-func recognizerCorpus(t *testing.T) []gentest.Case {
-	return append(append(gentest.CorpusWithParsers(t), gentest.CoreExtraGrammars...), recognizerKnownDifferences...)
+func recognizerCorpus(t *testing.T) []codegentest.Case {
+	return append(append(codegentest.CorpusWithParsers(t), codegentest.CoreExtraGrammars...), recognizerKnownDifferences...)
 }
 
 // recognizerKnownDifferences are grammars where the Core IR guards differently from what the
@@ -82,7 +82,7 @@ func recognizerCorpus(t *testing.T) []gentest.Case {
 // nothing in Core IR, so the class it captures can be a guarded class, and a rule that recovers has a
 // class guard in Core IR that the printer did not write. Flow IR prints Core's guards, so the
 // freeze holds them and TestCoreRecognizerDecisionsFrozen requires the guarded class.
-var recognizerKnownDifferences = []gentest.Case{
+var recognizerKnownDifferences = []codegentest.Case{
 	{Name: "uncaptured class", Src: "rule main = (x:[a-z] \"1\" / \"b\") $$\n"},
 	{Name: "recovering rule", Src: "rule main = x* $$\nrule x = (\"a\" \"b\") #recover(skip=[^;]*) / [0-9]\n"},
 }

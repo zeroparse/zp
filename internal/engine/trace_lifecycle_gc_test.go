@@ -10,7 +10,7 @@ import (
 	"weak"
 
 	"zeroparse.dev/zp/core"
-	"zeroparse.dev/zp/internal/gentest"
+	"zeroparse.dev/zp/internal/codegentest"
 	"zeroparse.dev/zp/internal/value"
 )
 
@@ -102,7 +102,7 @@ func traceLifecycleStream(t *testing.T, p *Program, b Backend, u core.PositionUn
 func TestTraceLifecycleReleasesOwnersAfterGC(t *testing.T) {
 	t.Parallel()
 	doc := mustCompile(t, `rule main = "a"* $$`)
-	stream := mustCompile(t, gentest.Records)
+	stream := mustCompile(t, codegentest.Records)
 	for _, b := range []Backend{Closure, Bytecode, BytecodeIterative} {
 		for _, u := range []core.PositionUnit{core.CodePoints, core.Bytes} {
 			t.Run(fmt.Sprintf("document/%s/%s", b, u), func(t *testing.T) {

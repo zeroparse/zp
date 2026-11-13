@@ -5,12 +5,12 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/internal/codegen"
-	"zeroparse.dev/zp/internal/gentest"
+	"zeroparse.dev/zp/internal/codegentest"
 )
 
 func TestGenerateDocumentCombinations(t *testing.T) {
 	t.Parallel()
-	gentest.EachMode(t, testGenerateDocumentCombinations)
+	codegentest.EachMode(t, testGenerateDocumentCombinations)
 }
 
 func testGenerateDocumentCombinations(t *testing.T) {
@@ -18,11 +18,11 @@ func testGenerateDocumentCombinations(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	typed, err := gentest.GenerateCode(t, g, codegen.GenOptions{Package: "fixture", Start: "main", Document: true, Types: true})
+	typed, err := codegentest.GenerateCode(t, g, codegen.GenOptions{Package: "fixture", Start: "main", Document: true, Types: true})
 	if err != nil || !strings.Contains(string(typed), "func (d *Document) ParseValue(") {
 		t.Fatalf("typed Document generation: %v", err)
 	}
-	ts, err := gentest.GenerateTSBundle(g, codegen.GenOptions{Start: "main", Document: true, Types: true})
+	ts, err := codegentest.GenerateTSBundle(g, codegen.GenOptions{Start: "main", Document: true, Types: true})
 	if err != nil || !strings.Contains(string(ts), "export function createDocument(") || !strings.Contains(string(ts), "  parseValue(options?: ") {
 		t.Fatalf("typed TypeScript Document generation: %v", err)
 	}

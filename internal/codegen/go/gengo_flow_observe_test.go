@@ -17,8 +17,8 @@ import (
 
 	"zeroparse.dev/zp/core"
 	"zeroparse.dev/zp/internal/codegen"
+	"zeroparse.dev/zp/internal/codegentest"
 	"zeroparse.dev/zp/internal/engine"
-	"zeroparse.dev/zp/internal/gentest"
 )
 
 // observeProbeMain is the consumer of the generated packages with the prefix PREFIX: for each input and entry
@@ -99,7 +99,7 @@ func observeSources(pkg string, n int) string {
 // runObserveProbes builds the cases as the packages f0..fN with observability, runs the consumer and
 // returns its lines. The first detail[i] inputs of case i are reported with their events and profile; a nil
 // detail reports none. mutate, if not nil, changes the code of every package.
-func runObserveProbes(t *testing.T, cases []gentest.Case, start string, detail []int, mutate func([]byte) []byte) []string {
+func runObserveProbes(t *testing.T, cases []codegentest.Case, start string, detail []int, mutate func([]byte) []byte) []string {
 	t.Helper()
 	dir := t.TempDir()
 	write := func(name, content string) {
@@ -109,14 +109,14 @@ func runObserveProbes(t *testing.T, cases []gentest.Case, start string, detail [
 			t.Fatal(err)
 		}
 	}
-	write("go.mod", gentest.GoMod("obsprobe"))
+	write("go.mod", codegentest.GoMod("obsprobe"))
 	var inputs [][]string
 	for i, c := range cases {
 		g, err := parseTest(c.Src)
 		if err != nil {
 			t.Fatalf("%s: %v", c.Name, err)
 		}
-		code, err := gentest.GenerateCode(t, g, codegen.GenOptions{Package: fmt.Sprintf("f%d", i), Start: start, Recognize: true, Observability: true})
+		code, err := codegentest.GenerateCode(t, g, codegen.GenOptions{Package: fmt.Sprintf("f%d", i), Start: start, Recognize: true, Observability: true})
 		if err != nil {
 			t.Fatalf("%s: %v", c.Name, err)
 		}
@@ -160,7 +160,7 @@ const observationGolden = "testdata/observation.golden"
 
 // observationDigests returns, for each case, the number of events of its reports and the hash of its report
 // lines, keyed by group/mode/name. The reports are those of the lines in the order the consumer printed them.
-func observationDigests(t *testing.T, group string, cases []gentest.Case, lines []string) map[string]string {
+func observationDigests(t *testing.T, group string, cases []codegentest.Case, lines []string) map[string]string {
 	t.Helper()
 	hashes := make([]hash.Hash, len(cases))
 	events := make([]int, len(cases))
@@ -182,7 +182,7 @@ func observationDigests(t *testing.T, group string, cases []gentest.Case, lines 
 	}
 	out := map[string]string{}
 	for i, c := range cases {
-		out[fmt.Sprintf("%s/%s/%s", group, gentest.FixtureForm(t), c.Name)] = fmt.Sprintf("events=%d %x", events[i], hashes[i].Sum(nil)[:12])
+		out[fmt.Sprintf("%s/%s/%s", group, codegentest.FixtureForm(t), c.Name)] = fmt.Sprintf("events=%d %x", events[i], hashes[i].Sum(nil)[:12])
 	}
 	return out
 }
@@ -378,7 +378,7 @@ func engineTraceMismatch(eng []engine.TraceEvent, got []observedEvent, in string
 // checkObservations builds the cases with the start rule start, checks the first detail[i] inputs of case i
 // (all of them if detail is nil) against the engine and the profile against the events, and compares the
 // digests of all reports with the golden.
-func checkObservations(t *testing.T, group string, cases []gentest.Case, start string, detail []int) {
+func checkObservations(t *testing.T, group string, cases []codegentest.Case, start string, detail []int) {
 	t.Helper()
 	if detail == nil {
 		detail = make([]int, len(cases))
@@ -419,13 +419,13 @@ func checkObservations(t *testing.T, group string, cases []gentest.Case, start s
 	if checked == 0 || events == 0 {
 		t.Fatalf("%d reports checked with %d events", checked, events)
 	}
-	observationGoldenFile.CheckSampled(t, group+"/"+gentest.FixtureForm(t)+"/", observationDigests(t, group, cases, lines))
+	observationGoldenFile.CheckSampled(t, group+"/"+codegentest.FixtureForm(t)+"/", observationDigests(t, group, cases, lines))
 }
 
 const observationGoldenHeader = "# Digests of the observations (trace and profile) of the generated Node parsers, by group, mode and case\n" +
-	"# (see gengo_flow_observe_test.go). Rewrite with: go test ./internal/codegen/go -run Observation -update\n" + gentest.GoldenRules
+	"# (see gengo_flow_observe_test.go). Rewrite with: go test ./internal/codegen/go -run Observation -update\n" + codegentest.GoldenRules
 
-var observationGoldenFile = gentest.GoldenFile{Path: observationGolden, Header: observationGoldenHeader}
+var observationGoldenFile = codegentest.GoldenFile{Path: observationGolden, Header: observationGoldenHeader}
 
 // TestFlowNodeObservationsMatchEngine checks the observations of the generated corpus with observability.
 func TestFlowNodeObservationsMatchEngine(t *testing.T) {
@@ -433,8 +433,8 @@ func TestFlowNodeObservationsMatchEngine(t *testing.T) {
 	if testing.Short() {
 		t.Skip("builds generated consumers")
 	}
-	gentest.EachMode(t, func(t *testing.T) {
-		checkObservations(t, "corpus", append(gentest.Representative(gentest.GenCorpus(t)), observeShapes...), "main", nil)
+	codegentest.EachMode(t, func(t *testing.T) {
+		checkObservations(t, "corpus", append(codegentest.Representative(codegentest.GenCorpus(t)), observeShapes...), "main", nil)
 	})
 }
 
@@ -446,8 +446,8 @@ func TestFlowNodeObservationsOnGrammars(t *testing.T) {
 	if testing.Short() {
 		t.Skip("builds the large parsers")
 	}
-	gentest.EachMode(t, func(t *testing.T) {
-		cases := gentest.RepresentativeGrammars(gentest.GrammarCases(t))
+	codegentest.EachMode(t, func(t *testing.T) {
+		cases := codegentest.RepresentativeGrammars(codegentest.GrammarCases(t))
 		detail := make([]int, len(cases))
 		for i := range cases {
 			detail[i] = len(cases[i].Inputs)
@@ -460,7 +460,7 @@ func TestFlowNodeObservationsOnGrammars(t *testing.T) {
 // observeShapes are grammars whose rules call other rules in shapes where a first-character guard skips the call
 // of an alternative or not: choices of rule references in framed bodies and in the lines of Operators Rules,
 // with captures, repetitions and nested groups.
-var observeShapes = []gentest.Case{
+var observeShapes = []codegentest.Case{
 	{Name: "line choice of rules", Src: `rule main = e $$
 rule e = #operators {
     operand num

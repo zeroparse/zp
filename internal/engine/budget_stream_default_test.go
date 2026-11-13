@@ -9,7 +9,7 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/core"
-	"zeroparse.dev/zp/internal/gentest"
+	"zeroparse.dev/zp/internal/codegentest"
 )
 
 // streamScanGrammar has a record whose cost grows with the cube of its length. The bound of the repetition in mid
@@ -31,10 +31,10 @@ func TestBudgetStreamDefaultIgnoresChunking(t *testing.T) {
 		exceeds            bool
 		limit              uint64
 	}{
-		{"completes", gentest.Records, "#records\na=1\nbc=22\n" + strings.Repeat("k=7\n", 2000), core.Limits{}, false, 0},
+		{"completes", codegentest.Records, "#records\na=1\nbc=22\n" + strings.Repeat("k=7\n", 2000), core.Limits{}, false, 0},
 		{"exceeds the floor", streamScanGrammar, "#records\n" + strings.Repeat("a", 300) + "\n", core.Limits{}, true, 1 << 20},
 		{"exceeds a grown default", streamScanGrammar, "#records\n" + strings.Repeat("a", 3000) + "\n", core.Limits{}, true, 3010 * 1024},
-		{"exceeds an explicit limit", gentest.Records, "#records\na=1\nbc=22\n", core.Limits{Compute: 20}, true, 20},
+		{"exceeds an explicit limit", codegentest.Records, "#records\na=1\nbc=22\n", core.Limits{Compute: 20}, true, 20},
 	}
 	for _, c := range cases {
 		prog := mustCompile(t, c.source)
@@ -44,7 +44,7 @@ func TestBudgetStreamDefaultIgnoresChunking(t *testing.T) {
 			for _, size := range []int{1, 7, len(c.text)} {
 				var out []string
 				r := &budgetStreamReader{chunks: chunks(c.text, size)}
-				err := prog.ParseStreamWith("main", r, func(n *core.Node) error { out = append(out, gentest.ResultJSON(n, nil)); return nil }, o)
+				err := prog.ParseStreamWith("main", r, func(n *core.Node) error { out = append(out, codegentest.ResultJSON(n, nil)); return nil }, o)
 				var le *core.LimitError
 				if c.exceeds != errors.As(err, &le) {
 					t.Fatalf("%s chunk size %d: error %v", c.name, size, err)

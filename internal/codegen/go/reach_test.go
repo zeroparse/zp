@@ -14,7 +14,7 @@ import (
 
 	"zeroparse.dev/zp/internal/codegen"
 	"zeroparse.dev/zp/internal/codegen/go"
-	"zeroparse.dev/zp/internal/gentest"
+	"zeroparse.dev/zp/internal/codegentest"
 	"zeroparse.dev/zp/internal/syntax"
 )
 
@@ -93,7 +93,7 @@ func generateReach(t *testing.T, src string, opts codegen.GenOptions) []byte {
 		t.Fatal(err)
 	}
 	opts.Package, opts.Start = "p", "main"
-	code, err := gentest.GenerateCode(t, g, opts)
+	code, err := codegentest.GenerateCode(t, g, opts)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -105,7 +105,7 @@ func generateReach(t *testing.T, src string, opts codegen.GenOptions) []byte {
 // the pruning has more bodies.
 func TestUnreachableBodiesAreLeftOut(t *testing.T) {
 	t.Parallel()
-	gentest.EachMode(t, testUnreachableBodiesAreLeftOut)
+	codegentest.EachMode(t, testUnreachableBodiesAreLeftOut)
 }
 
 func testUnreachableBodiesAreLeftOut(t *testing.T) {
@@ -131,8 +131,8 @@ func testUnreachableBodiesAreLeftOut(t *testing.T) {
 			if got := undefinedGenerated(t, pruned); len(got) > 0 {
 				t.Errorf("the pruned output calls undefined functions %v", got)
 			}
-			if tc.src != reachStreamGrammar && gentest.CountBodies(pruned) >= gentest.CountBodies(full) {
-				t.Errorf("pruned output has %d rule bodies, the full output %d", gentest.CountBodies(pruned), gentest.CountBodies(full))
+			if tc.src != reachStreamGrammar && codegentest.CountBodies(pruned) >= codegentest.CountBodies(full) {
+				t.Errorf("pruned output has %d rule bodies, the full output %d", codegentest.CountBodies(pruned), codegentest.CountBodies(full))
 			}
 			if len(pruned) > len(full) {
 				t.Errorf("pruned output is larger: %d > %d bytes", len(pruned), len(full))
@@ -198,20 +198,20 @@ func runReach(t *testing.T, src string, opts codegen.GenOptions, hook func(*goge
 			t.Fatal(err)
 		}
 	}
-	write("go.mod", gentest.GoMod("reachtest"))
+	write("go.mod", codegentest.GoMod("reachtest"))
 	opts.Start = "main"
 	opts.Package = "p"
 	gh := &gogen.Hooks{}
-	gentest.SetGenHooks(t, gh)
+	codegentest.SetGenHooks(t, gh)
 	gh.Reach = hook
-	code, err := gentest.GenerateCode(t, g, opts)
+	code, err := codegentest.GenerateCode(t, g, opts)
 	gh.Reach = nil
 	if err != nil {
 		t.Fatal(err)
 	}
 	write("p/parser.go", string(code))
 	opts.Package, opts.KeepUnreachable = "k", true
-	if code, err = gentest.GenerateCode(t, g, opts); err != nil {
+	if code, err = codegentest.GenerateCode(t, g, opts); err != nil {
 		t.Fatal(err)
 	}
 	write("k/parser.go", string(code))
@@ -267,7 +267,7 @@ func runReach(t *testing.T, src string, opts codegen.GenOptions, hook func(*goge
 
 func TestUnreachableBodiesRunLikeTheFullOutput(t *testing.T) {
 	t.Parallel()
-	gentest.EachMode(t, testUnreachableBodiesRunLikeTheFullOutput)
+	codegentest.EachMode(t, testUnreachableBodiesRunLikeTheFullOutput)
 }
 
 func testUnreachableBodiesRunLikeTheFullOutput(t *testing.T) {
@@ -315,7 +315,7 @@ func testUnreachableBodiesRunLikeTheFullOutput(t *testing.T) {
 // output compiles; the rule's slot is nil).
 func TestUnreachableRootControls(t *testing.T) {
 	t.Parallel()
-	gentest.EachMode(t, testUnreachableRootControls)
+	codegentest.EachMode(t, testUnreachableRootControls)
 }
 
 func testUnreachableRootControls(t *testing.T) {
@@ -380,7 +380,7 @@ func testUnreachableRootControls(t *testing.T) {
 // found unreachable fails generation, and that a reachable rule without a Body does as well.
 func TestUnreachableCalleeFailsGeneration(t *testing.T) {
 	t.Parallel()
-	gentest.EachMode(t, testUnreachableCalleeFailsGeneration)
+	codegentest.EachMode(t, testUnreachableCalleeFailsGeneration)
 }
 
 func testUnreachableCalleeFailsGeneration(t *testing.T) {
@@ -390,7 +390,7 @@ func testUnreachableCalleeFailsGeneration(t *testing.T) {
 	}
 	// word is called from main: leaving it out of the reachable rules is a contradiction.
 	gh := &gogen.Hooks{}
-	gentest.SetGenHooks(t, gh)
+	codegentest.SetGenHooks(t, gh)
 	gh.Reach = func(l *gogen.LiveRules) {
 		for k := range l.Reach {
 			if k.Table == "rules" && k.ID != 0 {
@@ -398,7 +398,7 @@ func testUnreachableCalleeFailsGeneration(t *testing.T) {
 			}
 		}
 	}
-	_, err = gentest.GenerateCode(t, g, codegen.GenOptions{Start: "main", Package: "p"})
+	_, err = codegentest.GenerateCode(t, g, codegen.GenOptions{Start: "main", Package: "p"})
 	if err == nil || !strings.Contains(err.Error(), "left out") {
 		t.Errorf("generation with a callee left out: err = %v, want an internal error", err)
 	}
@@ -416,7 +416,7 @@ func testUnreachableCalleeFailsGeneration(t *testing.T) {
 			}
 		}
 	}
-	_, err = gentest.GenerateCode(t, gs, codegen.GenOptions{Start: "main", Package: "p", Stream: true})
+	_, err = codegentest.GenerateCode(t, gs, codegen.GenOptions{Start: "main", Package: "p", Stream: true})
 	if err == nil || !strings.Contains(err.Error(), "left out") {
 		t.Errorf("generation with the stream body's callee left out: err = %v, want an internal error", err)
 	}

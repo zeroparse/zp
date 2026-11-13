@@ -11,7 +11,7 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/internal/codegen"
-	"zeroparse.dev/zp/internal/gentest"
+	"zeroparse.dev/zp/internal/codegentest"
 )
 
 // TestScanSitesGeneratedMatchEngine checks that generated parsers, whose repetitions of one
@@ -19,27 +19,27 @@ import (
 // grammars: values and syntax errors with their expectations, from the Node and typed entry points.
 func TestScanSitesGeneratedMatchEngine(t *testing.T) {
 	t.Parallel()
-	gentest.EachMode(t, testScanSitesGeneratedMatchEngine)
+	codegentest.EachMode(t, testScanSitesGeneratedMatchEngine)
 }
 
 func testScanSitesGeneratedMatchEngine(t *testing.T) {
 	goBin := skipRunsGoBin(t)
-	cases := gentest.ScanSiteCases(40)
-	gentest.GeneratedParsersCorpus(t, goBin, cases, codegen.GenOptions{})
-	gentest.GeneratedTypesCorpus(t, goBin, cases, codegen.GenOptions{})
+	cases := codegentest.ScanSiteCases(40)
+	codegentest.GeneratedParsersCorpus(t, goBin, cases, codegen.GenOptions{})
+	codegentest.GeneratedTypesCorpus(t, goBin, cases, codegen.GenOptions{})
 }
 
 // TestScanSitesGeneratedStream checks a generated stream whose elements restart walks of scan
 // sites over input long enough for the stream to drop records at its commits.
 func TestScanSitesGeneratedStream(t *testing.T) {
 	t.Parallel()
-	gentest.EachMode(t, testScanSitesGeneratedStream)
+	codegentest.EachMode(t, testScanSitesGeneratedStream)
 }
 
 func testScanSitesGeneratedStream(t *testing.T) {
 	goBin := skipRunsGoBin(t)
 	unit := strings.Repeat("a", 40) + "?" + strings.Repeat("b", 20) + "!" + strings.Repeat(" ", 30) + "w"
-	cases := []gentest.Case{{Name: "scan sites", Src: `rule main = (r "!" / r "?" / s "w" / [ab ])* #stream $$
+	cases := []codegentest.Case{{Name: "scan sites", Src: `rule main = (r "!" / r "?" / s "w" / [ab ])* #stream $$
 rule r = [ab]*
 rule s = xs:[ ]+ => text($xs)`, Inputs: []string{strings.Repeat(unit, 50), strings.Repeat(unit, 50) + "c"}}}
 	testGeneratedStreams(t, goBin, cases, codegen.GenOptions{})
@@ -71,7 +71,7 @@ func scanSiteSpends(t *testing.T, goBin string, sources []string, inputs [][]str
 			t.Fatal(err)
 		}
 	}
-	write("go.mod", []byte(gentest.GoMod("scanlin")))
+	write("go.mod", []byte(codegentest.GoMod("scanlin")))
 	var imports, entries strings.Builder
 	for i, src := range sources {
 		g, err := parseTest(src)
@@ -79,7 +79,7 @@ func scanSiteSpends(t *testing.T, goBin string, sources []string, inputs [][]str
 			t.Fatalf("%s: %v", src, err)
 		}
 		pkg := fmt.Sprintf("g%d", i)
-		files, err := gentest.Generate(t, g, codegen.GenOptions{Module: "scanlin/" + pkg, Package: pkg, Start: "main", Lib: codegen.LibEmbed, LimitControls: true})
+		files, err := codegentest.Generate(t, g, codegen.GenOptions{Module: "scanlin/" + pkg, Package: pkg, Start: "main", Lib: codegen.LibEmbed, LimitControls: true})
 		if err != nil {
 			t.Fatalf("%s: %v", src, err)
 		}
@@ -177,12 +177,12 @@ func main() {
 // start change the results.
 func TestScanSitesGeneratedLinear(t *testing.T) {
 	t.Parallel()
-	gentest.EachMode(t, testScanSitesGeneratedLinear)
+	codegentest.EachMode(t, testScanSitesGeneratedLinear)
 }
 
 func testScanSitesGeneratedLinear(t *testing.T) {
 	goBin := skipRunsGoBin(t)
-	gentest.NeedsBudgetControls(t)
+	codegentest.NeedsBudgetControls(t)
 	sources := []string{
 		"rule main = e \" \" ws $$\nrule e = \"(\" e? (ws \")\")?\nrule ws = [ ]*",
 		"rule main = e \" \" ws $$\nrule e = \"(\" e? (ws \")\")?\nrule ws = [ ]* #atomic",

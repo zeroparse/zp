@@ -9,14 +9,14 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/internal/codegen"
-	"zeroparse.dev/zp/internal/gentest"
+	"zeroparse.dev/zp/internal/codegentest"
 )
 
 // ZP_TYPED_CHUNK_DIR retains both generated paths for paired allocation
 // measurements. Normal test runs remove the fixtures automatically.
 func TestGeneratedTypedChunkOwnership(t *testing.T) {
 	t.Parallel()
-	gentest.EachMode(t, testGeneratedTypedChunkOwnership)
+	codegentest.EachMode(t, testGeneratedTypedChunkOwnership)
 }
 
 func testGeneratedTypedChunkOwnership(t *testing.T) {
@@ -37,7 +37,7 @@ rule token Token = t:("é") #atomic => Token{Text: text($t)}`)
 	for _, conv := range []bool{false, true} {
 		for _, variant := range typedAllocatorControls {
 			t.Run(strconv.FormatBool(conv)+"/"+variant.name, func(t *testing.T) {
-				code, err := gentest.GenerateCode(t, g, codegen.GenOptions{Package: "chunks", Start: "main", Types: true, ConvertTypes: conv, NoOpt: slices.Concat(gentest.NoOptIf(variant.objects, "typed-object-slabs"), gentest.NoOptIf(variant.lists, "typed-list-slabs"), gentest.NoOptIf(variant.legacy, "typed-output-bootstrap"))})
+				code, err := codegentest.GenerateCode(t, g, codegen.GenOptions{Package: "chunks", Start: "main", Types: true, ConvertTypes: conv, NoOpt: slices.Concat(codegentest.NoOptIf(variant.objects, "typed-object-slabs"), codegentest.NoOptIf(variant.lists, "typed-list-slabs"), codegentest.NoOptIf(variant.legacy, "typed-output-bootstrap"))})
 				if err != nil {
 					t.Fatal(err)
 				}
@@ -54,7 +54,7 @@ rule token Token = t:("é") #atomic => Token{Text: text($t)}`)
 					}
 				}
 				for name, data := range map[string][]byte{
-					"parser.go": code, "chunks_test.go": []byte(typedChunksFixture), "go.mod": []byte(gentest.GoMod("chunks")),
+					"parser.go": code, "chunks_test.go": []byte(typedChunksFixture), "go.mod": []byte(codegentest.GoMod("chunks")),
 				} {
 					if err := os.WriteFile(filepath.Join(dir, name), data, 0o644); err != nil {
 						t.Fatal(err)

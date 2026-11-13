@@ -10,8 +10,8 @@ import (
 
 	"zeroparse.dev/zp/core"
 	"zeroparse.dev/zp/core/noderep"
+	"zeroparse.dev/zp/internal/codegentest"
 	ecore "zeroparse.dev/zp/internal/engine/core"
-	"zeroparse.dev/zp/internal/gentest"
 	"zeroparse.dev/zp/internal/value"
 )
 
@@ -192,7 +192,7 @@ func TestBudgetDocumentShiftReplayAndSharedEmptyGraph(t *testing.T) {
 	leaf := value.Ptr(value.Data{Start: 3, End: 4})
 	root := value.Ptr(value.Data{Start: 0, End: 0, Children: []*core.Node{empty, leaf}, Fields: noderep.Fields{{Name: "empty", Value: empty}, {Name: "leaf", Value: leaf}}})
 	clone := root.Clone()
-	history := gentest.ResultJSON(clone, nil)
+	history := codegentest.ResultJSON(clone, nil)
 	p = stateBudgetParser(core.Limits{Compute: 32})
 	p.Gen = 1
 	p.Moved = map[*core.Node]*core.Node{}
@@ -203,7 +203,7 @@ func TestBudgetDocumentShiftReplayAndSharedEmptyGraph(t *testing.T) {
 	if value.D(leaf).Start != 5 || value.D(got).Children[1] != value.D(got).Fields[1].Value.(*core.Node) {
 		t.Fatal("shared non-empty descendant was moved more than once")
 	}
-	if gentest.ResultJSON(clone, nil) != history {
+	if codegentest.ResultJSON(clone, nil) != history {
 		t.Fatal("movement changed historical Clone")
 	}
 }

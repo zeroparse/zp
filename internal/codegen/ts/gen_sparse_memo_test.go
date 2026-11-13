@@ -11,7 +11,7 @@ import (
 
 	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/codegen"
-	"zeroparse.dev/zp/internal/gentest"
+	"zeroparse.dev/zp/internal/codegentest"
 )
 
 // Small tables cannot select sparse storage, so their default TypeScript
@@ -24,7 +24,7 @@ func TestGeneratedSparseMemoSmallTable(t *testing.T) {
 		t.Fatal(err)
 	}
 	for _, recognize := range []bool{false, true} {
-		for _, generate := range []func(*grammar.Grammar, codegen.GenOptions) ([]byte, error){gentest.GenerateTSBundle} {
+		for _, generate := range []func(*grammar.Grammar, codegen.GenOptions) ([]byte, error){codegentest.GenerateTSBundle} {
 			opts := codegen.GenOptions{Package: "smallmemo", Start: "main", Recognize: recognize}
 			code, err := generate(g, opts)
 			if err != nil {
@@ -65,7 +65,7 @@ func TestGeneratedTSSparseMemoControls(t *testing.T) {
 	}
 	var results [2]string
 	for i, name := range []string{"optimized", "reference"} {
-		code, err := gentest.GenerateTSBundle(g, codegen.GenOptions{Start: "main", Recognize: true, NoOpt: gentest.NoOptIf(i == 1, "sparse-memo")})
+		code, err := codegentest.GenerateTSBundle(g, codegen.GenOptions{Start: "main", Recognize: true, NoOpt: codegentest.NoOptIf(i == 1, "sparse-memo")})
 		if err != nil {
 			t.Fatal(err)
 		}

@@ -3,8 +3,8 @@ package engine
 import (
 	"testing"
 
-	gjson "zeroparse.dev/zp/internal/bench/gen/json"
-	gxml "zeroparse.dev/zp/internal/bench/gen/xml"
+	gjson "zeroparse.dev/zp/internal/bench/parsers/json"
+	gxml "zeroparse.dev/zp/internal/bench/parsers/xml"
 	"zeroparse.dev/zp/internal/bench/inputs"
 )
 

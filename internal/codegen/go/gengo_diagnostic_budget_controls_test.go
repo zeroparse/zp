@@ -9,12 +9,12 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/internal/codegen"
-	"zeroparse.dev/zp/internal/gentest"
+	"zeroparse.dev/zp/internal/codegentest"
 )
 
 func TestGeneratedGoDiagnosticBudget(t *testing.T) {
 	t.Parallel()
-	gentest.NeedsBudgetControls(t)
+	codegentest.NeedsBudgetControls(t)
 	if testing.Short() {
 		t.Skip("builds generated diagnostic-control consumers")
 	}
@@ -27,12 +27,12 @@ rule letter Word = t:("z" / "a" / "é") #atomic => Word{Text: text($t)}`)
 		t.Fatal(err)
 	}
 	dir := t.TempDir()
-	if err := os.WriteFile(filepath.Join(dir, "go.mod"), []byte(gentest.GoMod("diagnosticfixture")), 0644); err != nil {
+	if err := os.WriteFile(filepath.Join(dir, "go.mod"), []byte(codegentest.GoMod("diagnosticfixture")), 0644); err != nil {
 		t.Fatal(err)
 	}
 	for _, convert := range []bool{false, true} {
 		pkg := fmt.Sprintf("diagnostic_%v", convert)
-		code, err := gentest.GenerateCode(t, g, codegen.GenOptions{Package: pkg, Start: "main", Types: true, ConvertTypes: convert})
+		code, err := codegentest.GenerateCode(t, g, codegen.GenOptions{Package: pkg, Start: "main", Types: true, ConvertTypes: convert})
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -141,7 +141,7 @@ func TestRecoveredPublicDiagnostics(t *testing.T){
 
 func TestGeneratedGoRecoveryMessageBudget(t *testing.T) {
 	t.Parallel()
-	gentest.NeedsBudgetControls(t)
+	codegentest.NeedsBudgetControls(t)
 	if testing.Short() {
 		t.Skip("builds generated long recovery-message consumers")
 	}
@@ -153,12 +153,12 @@ type Doc = { Text Text }
 		t.Fatal(err)
 	}
 	dir := t.TempDir()
-	if err := os.WriteFile(filepath.Join(dir, "go.mod"), []byte(gentest.GoMod("recoverytext")), 0644); err != nil {
+	if err := os.WriteFile(filepath.Join(dir, "go.mod"), []byte(codegentest.GoMod("recoverytext")), 0644); err != nil {
 		t.Fatal(err)
 	}
 	for _, convert := range []bool{false, true} {
 		pkg := fmt.Sprintf("text_%v", convert)
-		code, err := gentest.GenerateCode(t, g, codegen.GenOptions{Package: pkg, Start: "main", Types: true, Recognize: true, ConvertTypes: convert})
+		code, err := codegentest.GenerateCode(t, g, codegen.GenOptions{Package: pkg, Start: "main", Types: true, Recognize: true, ConvertTypes: convert})
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -210,12 +210,12 @@ func TestLongRecoveredMessage(t *testing.T){
 // four times the items must cost less than five times the Compute.
 func TestGeneratedGoRecoveredErrorsLinear(t *testing.T) {
 	t.Parallel()
-	gentest.NeedsBudgetControls(t)
+	codegentest.NeedsBudgetControls(t)
 	if testing.Short() {
 		t.Skip("builds generated consumers")
 	}
 	dir := t.TempDir()
-	if err := os.WriteFile(filepath.Join(dir, "go.mod"), []byte(gentest.GoMod("recoveredlinear")), 0644); err != nil {
+	if err := os.WriteFile(filepath.Join(dir, "go.mod"), []byte(codegentest.GoMod("recoveredlinear")), 0644); err != nil {
 		t.Fatal(err)
 	}
 	for _, tt := range []struct {
@@ -237,7 +237,7 @@ rule item = ("a" ";") #recover(skip=[^;]* ";")`, `strings.TrimSuffix(strings.Rep
 		if err != nil {
 			t.Fatal(err)
 		}
-		code, err := gentest.GenerateCode(t, g, codegen.GenOptions{Package: tt.pkg, Start: "main"})
+		code, err := codegentest.GenerateCode(t, g, codegen.GenOptions{Package: tt.pkg, Start: "main"})
 		if err != nil {
 			t.Fatal(err)
 		}

@@ -13,8 +13,8 @@ import (
 	"zeroparse.dev/zp/core"
 	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/bytecode"
+	"zeroparse.dev/zp/internal/codegentest"
 	ecore "zeroparse.dev/zp/internal/engine/core"
-	"zeroparse.dev/zp/internal/gentest"
 )
 
 // moduleRuleNames returns the names of the rules of m in order, each once: value-free twins follow
@@ -61,7 +61,7 @@ func TestCompiledRecognitionASTFileRejectsBundle(t *testing.T) {
 
 func TestCompiledRecognitionRoundTrip(t *testing.T) {
 	t.Parallel()
-	for _, c := range gentest.GenCorpus(t) {
+	for _, c := range codegentest.GenCorpus(t) {
 		t.Run(c.Name, func(t *testing.T) {
 			p := mustCompile(t, c.Src)
 			for _, mode := range allModes {
@@ -90,8 +90,8 @@ func TestCompiledRecognitionRoundTrip(t *testing.T) {
 									wantModeRefused(t, gerr, mode, CompiledRecognize)
 									continue
 								}
-								if got != nil || want != nil || gentest.ResultJSON(got, gerr) != gentest.ResultJSON(want, werr) {
-									t.Fatalf("%s mode start=%s unit=%v backend=%v input=%q: got %s want %s", mode, name, unit, backend, input, gentest.ResultJSON(got, gerr), gentest.ResultJSON(want, werr))
+								if got != nil || want != nil || codegentest.ResultJSON(got, gerr) != codegentest.ResultJSON(want, werr) {
+									t.Fatalf("%s mode start=%s unit=%v backend=%v input=%q: got %s want %s", mode, name, unit, backend, input, codegentest.ResultJSON(got, gerr), codegentest.ResultJSON(want, werr))
 								}
 							}
 						}
@@ -177,8 +177,8 @@ rule second = "é"`)
 				wantModeRefused(t, noRecognitionErr, CompiledParse, CompiledRecognize)
 				want, wantErr := p.ParseWith("main", tc.input, ParseOptions{Backend: backend, Unit: unit})
 				got, gotErr = parsing.ParseWith("main", tc.input, ParseOptions{Backend: backend, Unit: unit})
-				if gentest.ResultJSON(got, gotErr) != gentest.ResultJSON(want, wantErr) {
-					t.Fatalf("normal parse %v/%v %q: got %s want %s", backend, unit, tc.input, gentest.ResultJSON(got, gotErr), gentest.ResultJSON(want, wantErr))
+				if codegentest.ResultJSON(got, gotErr) != codegentest.ResultJSON(want, wantErr) {
+					t.Fatalf("normal parse %v/%v %q: got %s want %s", backend, unit, tc.input, codegentest.ResultJSON(got, gotErr), codegentest.ResultJSON(want, wantErr))
 				}
 				_, gotErr = recognizing.ParseWith("main", tc.input, ParseOptions{Backend: backend, Unit: unit})
 				wantModeRefused(t, gotErr, CompiledRecognize, CompiledParse)

@@ -12,9 +12,9 @@ import (
 
 	"zeroparse.dev/zp/core"
 	"zeroparse.dev/zp/internal/codegen"
+	"zeroparse.dev/zp/internal/codegentest"
 	"zeroparse.dev/zp/internal/compile"
 	"zeroparse.dev/zp/internal/engine"
-	"zeroparse.dev/zp/internal/gentest"
 )
 
 // typedLRBindingSource is lrBindingSource with typed values, so that ParseValue runs the typed
@@ -33,7 +33,7 @@ rule seed Doc = {k < 1000} "x" => Doc{N: 1}
 // re-entered with other variable values match the engine instead of nesting until the limit.
 func TestGeneratedLeftRecursionGuardIgnoresVariables(t *testing.T) {
 	t.Parallel()
-	gentest.EachMode(t, testGeneratedLeftRecursionGuardIgnoresVariables)
+	codegentest.EachMode(t, testGeneratedLeftRecursionGuardIgnoresVariables)
 }
 
 func testGeneratedLeftRecursionGuardIgnoresVariables(t *testing.T) {
@@ -45,32 +45,32 @@ func testGeneratedLeftRecursionGuardIgnoresVariables(t *testing.T) {
 		t.Skip("go command not found")
 	}
 	dir := t.TempDir()
-	if err := os.WriteFile(filepath.Join(dir, "go.mod"), []byte(gentest.GoMod("gentest")), 0o644); err != nil {
+	if err := os.WriteFile(filepath.Join(dir, "go.mod"), []byte(codegentest.GoMod("codegentest")), 0o644); err != nil {
 		t.Fatal(err)
 	}
 	opts := codegen.GenOptions{Start: "main", Recognize: true, MaxDepth: 400, LeftRecursionBindings: true}
-	gentest.GeneratePackage(t, dir, "g", mustParse(gentest.LRBindingSource), opts)
+	codegentest.GeneratePackage(t, dir, "g", mustParse(codegentest.LRBindingSource), opts)
 	opts.Types = true
-	if code := gentest.GeneratePackage(t, dir, "tg", mustParse(typedLRBindingSource), opts); !strings.Contains(code, "TParse(trules") {
+	if code := codegentest.GeneratePackage(t, dir, "tg", mustParse(typedLRBindingSource), opts); !strings.Contains(code, "TParse(trules") {
 		t.Fatal("typed library is not exercised")
 	}
-	prog := compileBare(t, gentest.LRBindingSource, compile.Options{LeftRecursionBindings: true})
+	prog := compileBare(t, codegentest.LRBindingSource, compile.Options{LeftRecursionBindings: true})
 	typed := compileBare(t, typedLRBindingSource, compile.Options{LeftRecursionBindings: true})
-	controls := gentest.FixtureBudgetControls(t)
+	controls := codegentest.FixtureBudgetControls(t)
 	var limited, typedLimited string
 	if controls {
 		limited, typedLimited = "g.WithLimits(g.Limits{Compute: 1 << 40})", "tg.WithLimits(tg.Limits{Compute: 1 << 40})"
 	}
 	var want strings.Builder
 	var quoted []string
-	for _, in := range gentest.LRBindingInputs {
+	for _, in := range codegentest.LRBindingInputs {
 		quoted = append(quoted, strconv.Quote(in))
 		for _, unit := range []core.PositionUnit{core.CodePoints, core.Bytes} {
 			o := engine.ParseOptions{Expectations: true, Unit: unit, Limits: core.Limits{Depth: 400}}
 			n, err := prog.ParseWith("main", in, o)
 			_, recErr := prog.ParseWith("main", in, engine.ParseOptions{Expectations: true, Unit: unit, Limits: core.Limits{Depth: 400}, Recognize: true})
 			v, typedErr := typed.ParseWith("main", in, o)
-			line := fmt.Sprintf("%s %v %v | %v\n", gentest.ResultJSON(n, err), recErr, typedErr, typedN(v))
+			line := fmt.Sprintf("%s %v %v | %v\n", codegentest.ResultJSON(n, err), recErr, typedErr, typedN(v))
 			want.WriteString(line)
 			if controls {
 				// The same under a step limit, which takes the controlled memo lookups.
@@ -88,8 +88,8 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"gentest/g"
-	"gentest/tg"
+	"codegentest/g"
+	"codegentest/tg"
 )
 
 func run(in string, o []g.ParseOption, to []tg.ParseOption) {

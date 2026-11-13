@@ -11,7 +11,7 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/internal/codegen/go"
-	"zeroparse.dev/zp/internal/gentest"
+	"zeroparse.dev/zp/internal/codegentest"
 )
 
 // TestTermExportsGolden pins the identifiers of the library that exist only for the terms that
@@ -30,7 +30,7 @@ func TestTermExportsGolden(t *testing.T) {
 			want = append(want, l)
 		}
 	}
-	dir := filepath.Join(gentest.ModuleRoot(), "codegen", "go", "lib")
+	dir := filepath.Join(codegentest.ModuleRoot(), "codegen", "go", "lib")
 	fset := token.NewFileSet()
 	pkgs, err := parser.ParseDir(fset, dir, func(fi os.FileInfo) bool { return !strings.HasSuffix(fi.Name(), "_test.go") }, 0)
 	if err != nil {

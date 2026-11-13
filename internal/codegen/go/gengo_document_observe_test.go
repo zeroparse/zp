@@ -9,12 +9,12 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/internal/codegen"
-	"zeroparse.dev/zp/internal/gentest"
+	"zeroparse.dev/zp/internal/codegentest"
 )
 
 func TestGeneratedDocumentObservation(t *testing.T) {
 	t.Parallel()
-	gentest.NeedsBudgetControls(t)
+	codegentest.NeedsBudgetControls(t)
 	if testing.Short() {
 		t.Skip("builds standalone generated Document observation consumers")
 	}
@@ -31,7 +31,7 @@ func TestGeneratedDocumentObservation(t *testing.T) {
 	}
 	// The library reports the teardown of each invocation and the frontier of each memo entry it
 	// keeps or reuses to hooks that the consumers set.
-	write("go.mod", gentest.GoModAt("documentobserve", observedLib(t)))
+	write("go.mod", codegentest.GoModAt("documentobserve", observedLib(t)))
 	for _, f := range []struct{ name, grammar, input string }{
 		{"plain", "type W = { Text string }\nrule main W = t:(part part part) #atomic => W{Text: text($t)}\nrule part W = t:([a-b]) #atomic => W{Text: text($t)}", "aaa"},
 		{"list", "type W = { Text string }\nrule main []W = p:part+ => $p.Value\nrule part W = t:([a-b]) #atomic => W{Text: text($t)}", "aaa"},
@@ -53,7 +53,7 @@ func TestGeneratedDocumentObservation(t *testing.T) {
 		// inner's memo result depends on its lookahead, which nothing after part reads again.
 		{"innerlookahead", "type W = { Text string }\nrule main W = p:inner \"bcd\" => $p\nrule inner W = &\"abcd\" p:part => $p\nrule part W = t:(\"a\") #atomic => W{Text: text($t)}", "abcd"},
 	} {
-		if !gentest.Sampled(f.name) {
+		if !codegentest.Sampled(f.name) {
 			continue
 		}
 		g, err := parseTest(f.grammar)
@@ -63,18 +63,18 @@ func TestGeneratedDocumentObservation(t *testing.T) {
 		for _, route := range []string{"node", "direct", "convert"} {
 			name := f.name + "_" + route
 			options := codegen.GenOptions{Package: "reference", Start: "main", Document: true, Types: route != "node", Recognize: true, ConvertTypes: route == "convert"}
-			ref, err := gentest.GenerateCode(t, g, options)
+			ref, err := codegentest.GenerateCode(t, g, options)
 			if err != nil {
 				t.Fatal(name, err)
 			}
 			write(name+"/reference/parser.go", string(ref))
 			options.Package = name
 			options.Observability = true
-			code, err := gentest.GenerateCode(t, g, options)
+			code, err := codegentest.GenerateCode(t, g, options)
 			if err != nil {
 				t.Fatal(name, err)
 			}
-			again, err := gentest.GenerateCode(t, g, options)
+			again, err := codegentest.GenerateCode(t, g, options)
 			if err != nil || string(code) != string(again) {
 				t.Fatal(name, "nondeterministic source", err)
 			}
@@ -219,7 +219,7 @@ func observedLib(t *testing.T) string {
 		}
 		return strings.ReplaceAll(src, old, new)
 	}
-	return gentest.LibCopyWith(t, func(name, src string) string {
+	return codegentest.LibCopyWith(t, func(name, src string) string {
 		switch name {
 		case "document.go", "typed_document.go":
 			return replace(src, "p.Observation = newObservation(&o.observe)\n\tdefer p.releaseObservation()",

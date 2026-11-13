@@ -8,24 +8,24 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/internal/codegen"
-	"zeroparse.dev/zp/internal/gentest"
+	"zeroparse.dev/zp/internal/codegentest"
 )
 
 func TestGenerateDocumentNode(t *testing.T) {
 	t.Parallel()
-	gentest.NeedsBudgetControls(t)
+	codegentest.NeedsBudgetControls(t)
 	g, err := parseTest("rule main = item+ $$\nrule item = \"a\"")
 	if err != nil {
 		t.Fatal(err)
 	}
-	code, err := gentest.GenerateCode(t, g, codegen.GenOptions{Package: "fixture", Start: "main", Document: true})
+	code, err := codegentest.GenerateCode(t, g, codegen.GenOptions{Package: "fixture", Start: "main", Document: true})
 	if err != nil {
 		t.Fatal(err)
 	}
 	if !strings.Contains(string(code), "func NewDocument(") || !strings.Contains(string(code), "type Document = rt.Document") {
 		t.Fatal("Document public API missing from requested source")
 	}
-	ordinary, err := gentest.GenerateCode(t, g, codegen.GenOptions{Package: "fixture", Start: "main"})
+	ordinary, err := codegentest.GenerateCode(t, g, codegen.GenOptions{Package: "fixture", Start: "main"})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -34,7 +34,7 @@ func TestGenerateDocumentNode(t *testing.T) {
 	}
 	dir := t.TempDir()
 	for name, source := range map[string]string{
-		"go.mod":          gentest.GoMod("fixture"),
+		"go.mod":          codegentest.GoMod("fixture"),
 		"parser.go":       string(code),
 		"batch/parser.go": string(ordinary),
 		"parser_test.go": `package fixture

@@ -9,7 +9,7 @@ import (
 	"strings"
 
 	"zeroparse.dev/zp/grammar"
-	"zeroparse.dev/zp/internal/syntax/genparser/types"
+	"zeroparse.dev/zp/internal/syntax/grammarparser/types"
 	"zeroparse.dev/zp/internal/syntax/sourceast"
 )
 

@@ -8,14 +8,14 @@ import (
 
 	"zeroparse.dev/zp/core"
 	"zeroparse.dev/zp/internal/bytecode"
+	"zeroparse.dev/zp/internal/codegentest"
 	"zeroparse.dev/zp/internal/engine/vm"
-	"zeroparse.dev/zp/internal/gentest"
 	"zeroparse.dev/zp/internal/value"
 )
 
 func TestFilterNodeIdentityAndEmptyInput(t *testing.T) {
 	t.Parallel()
-	program := mustCompile(t, gentest.FilterIdentitySource)
+	program := mustCompile(t, codegentest.FilterIdentitySource)
 	for _, backend := range []Backend{Closure, Bytecode, BytecodeIterative} {
 		for _, unit := range []core.PositionUnit{core.CodePoints, core.Bytes} {
 			node, err := program.ParseWith("main", "ab", ParseOptions{Backend: backend, Unit: unit})
@@ -37,15 +37,15 @@ func TestFilterNodeIdentityAndEmptyInput(t *testing.T) {
 
 func TestFilterAcrossBackends(t *testing.T) {
 	t.Parallel()
-	for _, fixture := range gentest.FilterCases() {
+	for _, fixture := range codegentest.FilterCases() {
 		t.Run(fixture.Name, func(t *testing.T) {
 			program := mustCompile(t, fixture.Src)
 			for _, unit := range []core.PositionUnit{core.CodePoints, core.Bytes} {
 				for _, recognize := range []bool{false, true} {
 					for _, input := range fixture.Inputs {
-						baseline := gentest.ResultJSON(program.ParseWith("main", input, ParseOptions{Backend: Closure, Unit: unit, Recognize: recognize}))
+						baseline := codegentest.ResultJSON(program.ParseWith("main", input, ParseOptions{Backend: Closure, Unit: unit, Recognize: recognize}))
 						for _, backend := range []Backend{Bytecode, BytecodeIterative} {
-							actual := gentest.ResultJSON(program.ParseWith("main", input, ParseOptions{Backend: backend, Unit: unit, Recognize: recognize}))
+							actual := codegentest.ResultJSON(program.ParseWith("main", input, ParseOptions{Backend: backend, Unit: unit, Recognize: recognize}))
 							if actual != baseline {
 								t.Fatalf("%s/%s recognize=%t input=%q: %s / %s", backend, unit, recognize, input, actual, baseline)
 							}
@@ -59,7 +59,7 @@ func TestFilterAcrossBackends(t *testing.T) {
 
 func TestFilterCompiledInstructionSet(t *testing.T) {
 	t.Parallel()
-	program := mustCompile(t, gentest.FilterIdentitySource)
+	program := mustCompile(t, codegentest.FilterIdentitySource)
 	for _, mode := range valueModes {
 		data, err := program.Marshal("main", mode)
 		if err != nil || data[isaOffset] != bytecode.ISAVersion {
@@ -72,7 +72,7 @@ func TestFilterCompiledInstructionSet(t *testing.T) {
 		for _, backend := range []Backend{Bytecode, BytecodeIterative} {
 			for _, unit := range []core.PositionUnit{core.CodePoints, core.Bytes} {
 				options := ParseOptions{Backend: backend, Unit: unit}
-				if got, want := gentest.ResultJSON(loaded.ParseWith("main", "ab", servedBy(mode, options))), gentest.ResultJSON(program.ParseWith("main", "ab", options)); got != want {
+				if got, want := codegentest.ResultJSON(loaded.ParseWith("main", "ab", servedBy(mode, options))), codegentest.ResultJSON(program.ParseWith("main", "ab", options)); got != want {
 					t.Fatalf("loaded filter: %s / %s", got, want)
 				}
 			}
@@ -89,7 +89,7 @@ func TestFilterCompiledInstructionSet(t *testing.T) {
 	}
 	// The term code of the filter is checked when a file is loaded: an operand out of range for its
 	// kind is rejected.
-	m := *mustCompile(t, gentest.FilterIdentitySource).Module()
+	m := *mustCompile(t, codegentest.FilterIdentitySource).Module()
 	m.Terms = cloneTerms(m.Terms)
 	if _, err := vm.LoadTerms(&m); err != nil {
 		t.Fatal(err)

@@ -6,17 +6,17 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/internal/codegen"
-	"zeroparse.dev/zp/internal/gentest"
+	"zeroparse.dev/zp/internal/codegentest"
 )
 
 func TestCastGeneratedGoParity(t *testing.T) {
 	t.Parallel()
-	gentest.EachMode(t, testCastGeneratedGoParity)
+	codegentest.EachMode(t, testCastGeneratedGoParity)
 }
 
 func testCastGeneratedGoParity(t *testing.T) {
 	goBin := filepath.Join(runtime.GOROOT(), "bin", "go")
-	gentest.GeneratedParsersCorpus(t, goBin, gentest.CastCases(), codegen.GenOptions{})
-	gentest.GeneratedParsersCorpus(t, goBin, gentest.CastCases(), codegen.GenOptions{SourceInfo: true})
-	gentest.GeneratedTypesCorpus(t, goBin, gentest.CastCases(), codegen.GenOptions{ConvertTypes: true})
+	codegentest.GeneratedParsersCorpus(t, goBin, codegentest.CastCases(), codegen.GenOptions{})
+	codegentest.GeneratedParsersCorpus(t, goBin, codegentest.CastCases(), codegen.GenOptions{SourceInfo: true})
+	codegentest.GeneratedTypesCorpus(t, goBin, codegentest.CastCases(), codegen.GenOptions{ConvertTypes: true})
 }

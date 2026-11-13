@@ -12,7 +12,7 @@ import (
 
 	"zeroparse.dev/zp/internal/codegen"
 	"zeroparse.dev/zp/internal/codegen/go"
-	"zeroparse.dev/zp/internal/gentest"
+	"zeroparse.dev/zp/internal/codegentest"
 )
 
 // localErrors type-checks the Go files of a generated package against empty stand-ins for its
@@ -98,8 +98,8 @@ func TestGeneratedLocalVariables(t *testing.T) {
 		{"observability", codegen.GenOptions{Types: true, Observability: true}, true},
 	}
 	var checked atomic.Int64
-	cases := gentest.Representative(gentest.GenCorpus(t))
-	gentest.EachParallel(t, cases, func(t *testing.T, c gentest.Case) {
+	cases := codegentest.Representative(codegentest.GenCorpus(t))
+	codegentest.EachParallel(t, cases, func(t *testing.T, c codegentest.Case) {
 		g, err := parseTest(c.Src)
 		if err != nil {
 			t.Fatalf("%s: %v", c.Name, err)
@@ -107,7 +107,7 @@ func TestGeneratedLocalVariables(t *testing.T) {
 		for _, f := range forms {
 			opts := f.opts
 			opts.Package, opts.Start, opts.Lib, opts.Module = "p", "main", codegen.LibImport, "example.com/p"
-			files, err := gentest.Generate(t, g, opts)
+			files, err := codegentest.Generate(t, g, opts)
 			if err != nil {
 				// Every test grammar generates in every form.
 				t.Errorf("%s (%s): %v", c.Name, f.name, err)
@@ -147,12 +147,12 @@ func TestLocalErrorsDetectsUnusedVariable(t *testing.T) {
 func TestShakeVarsMutantFailsToCompile(t *testing.T) {
 	t.Parallel()
 	var declared, failed atomic.Int64
-	gentest.EachParallel(t, gentest.Representative(gentest.GenCorpus(t)), func(t *testing.T, c gentest.Case) {
+	codegentest.EachParallel(t, codegentest.Representative(codegentest.GenCorpus(t)), func(t *testing.T, c codegentest.Case) {
 		g, err := parseTest(c.Src)
 		if err != nil {
 			t.Fatalf("%s: %v", c.Name, err)
 		}
-		files, err := gentest.Generate(t, g, codegen.GenOptions{Types: true, Package: "p", Start: "main", Lib: codegen.LibImport, Module: "example.com/p"})
+		files, err := codegentest.Generate(t, g, codegen.GenOptions{Types: true, Package: "p", Start: "main", Lib: codegen.LibImport, Module: "example.com/p"})
 		if err != nil {
 			t.Errorf("%s: %v", c.Name, err)
 			return

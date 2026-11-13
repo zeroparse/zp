@@ -6,7 +6,7 @@ import (
 	"strings"
 	"testing"
 
-	"zeroparse.dev/zp/internal/gentest"
+	"zeroparse.dev/zp/internal/codegentest"
 )
 
 // TestFlowNodeDocumentMutants checks that the checks notice a Flow build that reads input in place in a
@@ -19,12 +19,12 @@ func TestFlowNodeDocumentMutants(t *testing.T) {
 	if testing.Short() {
 		t.Skip("builds generated consumers")
 	}
-	gentest.PinOrdinary(t)
+	codegentest.PinOrdinary(t)
 	var cases []documentCase
 	for _, c := range documentShapes {
 		cases = append(cases, documentCase{c, 300})
 	}
-	golden := gentest.ReadGolden(t, documentGolden)
+	golden := codegentest.ReadGolden(t, documentGolden)
 	digestsDiffer := func(lines []string) bool {
 		for k, v := range documentDigests(t, "corpus", cases, lines) {
 			if w, ok := golden[k]; !ok || w != v {

@@ -9,7 +9,7 @@ import (
 	"time"
 
 	"zeroparse.dev/zp/internal/codegen"
-	"zeroparse.dev/zp/internal/gentest"
+	"zeroparse.dev/zp/internal/codegentest"
 )
 
 // depMemoTSMutations are the changes of the TypeScript library for the negative controls of
@@ -70,8 +70,8 @@ func TestGeneratedTSLeftRecursionDependencyMemoControls(t *testing.T) {
 	cases := depMemoTSCases(t, 120)
 	opts := codegen.GenOptions{SourceInfo: true}
 	// The parsers are generated once; each mutation of their library runs as a parallel subtest.
-	bundles := gentest.TSBundles(t, cases, opts)
-	want, took, stopped := gentest.TSOutputsWithin(t, node, cases, bundles, nil, 0)
+	bundles := codegentest.TSBundles(t, cases, opts)
+	want, took, stopped := codegentest.TSOutputsWithin(t, node, cases, bundles, nil, 0)
 	if stopped {
 		t.Fatal("the library as it is did not end before the test's deadline")
 	}
@@ -82,7 +82,7 @@ func TestGeneratedTSLeftRecursionDependencyMemoControls(t *testing.T) {
 	for name, reps := range depMemoTSMutations {
 		t.Run(name, func(t *testing.T) {
 			t.Parallel()
-			got, _, stopped := gentest.TSOutputsWithin(t, node, cases, bundles, func(src string) string {
+			got, _, stopped := codegentest.TSOutputsWithin(t, node, cases, bundles, func(src string) string {
 				for _, r := range reps {
 					if strings.Count(src, r[0]) != 1 {
 						t.Fatalf("mutation %s: %q is not in the library once", name, r[0])

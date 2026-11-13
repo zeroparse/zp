@@ -7,14 +7,14 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/internal/codegen"
-	"zeroparse.dev/zp/internal/gentest"
+	"zeroparse.dev/zp/internal/codegentest"
 )
 
 // ZP_TYPED_RECOVERY_DIR retains generated modules for separately built,
 // alternating benchmark binaries; ordinary tests use a temporary directory.
 func TestGeneratedTypedRecoveryWorkloads(t *testing.T) {
 	t.Parallel()
-	gentest.NeedsBudgetControls(t)
+	codegentest.NeedsBudgetControls(t)
 	if testing.Short() {
 		t.Skip("builds generated code")
 	}
@@ -77,14 +77,14 @@ func BenchmarkTypedRecoveryGeneration(b *testing.B) {
 			if err != nil {
 				b.Fatal(err)
 			}
-			code, err := gentest.GenerateCode(b, g, opts)
+			code, err := codegentest.GenerateCode(b, g, opts)
 			if err != nil {
 				b.Fatal(err)
 			}
 			b.ReportAllocs()
 			b.ResetTimer()
 			for b.Loop() {
-				if _, err := gentest.GenerateCode(b, g, opts); err != nil {
+				if _, err := codegentest.GenerateCode(b, g, opts); err != nil {
 					b.Fatal(err)
 				}
 			}

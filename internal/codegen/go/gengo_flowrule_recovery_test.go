@@ -7,23 +7,23 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/internal/codegen"
-	"zeroparse.dev/zp/internal/gentest"
+	"zeroparse.dev/zp/internal/codegentest"
 )
 
 func TestGeneratedTypedRecoveryBodies(t *testing.T) {
 	t.Parallel()
-	gentest.NeedsBudgetControls(t)
+	codegentest.NeedsBudgetControls(t)
 	if testing.Short() {
 		t.Skip("builds generated code")
 	}
 	marker := "// Recovery inlined under the runtime-owned frame."
-	for _, c := range gentest.TypedRecoveryCases {
+	for _, c := range codegentest.TypedRecoveryCases {
 		g, err := parseTest(c.Src)
 		if err != nil {
 			t.Fatalf("%s: %v", c.Name, err)
 		}
 		opts := codegen.GenOptions{Package: "recoverybody", Start: "main", Types: true, Recognize: true}
-		candidate, err := gentest.GenerateCode(t, g, opts)
+		candidate, err := codegentest.GenerateCode(t, g, opts)
 		if err != nil {
 			t.Fatalf("%s: %v", c.Name, err)
 		}
@@ -32,6 +32,6 @@ func TestGeneratedTypedRecoveryBodies(t *testing.T) {
 		}
 	}
 	goBin := filepath.Join(runtime.GOROOT(), "bin", "go")
-	gentest.GeneratedTypesCorpus(t, goBin, gentest.TypedRecoveryCases, codegen.GenOptions{})
-	gentest.GeneratedTypesCorpus(t, goBin, gentest.TypedRecoveryCases, codegen.GenOptions{ConvertTypes: true})
+	codegentest.GeneratedTypesCorpus(t, goBin, codegentest.TypedRecoveryCases, codegen.GenOptions{})
+	codegentest.GeneratedTypesCorpus(t, goBin, codegentest.TypedRecoveryCases, codegen.GenOptions{ConvertTypes: true})
 }

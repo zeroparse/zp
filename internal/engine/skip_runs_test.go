@@ -9,13 +9,13 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/core"
+	"zeroparse.dev/zp/internal/codegentest"
 	"zeroparse.dev/zp/internal/compile"
 	ecore "zeroparse.dev/zp/internal/engine/core"
-	"zeroparse.dev/zp/internal/gentest"
 )
 
 // skipRunGrammars are the grammars with skip-run sites that the tests parse.
-var skipRunGrammars = gentest.SkipRunGrammars
+var skipRunGrammars = codegentest.SkipRunGrammars
 
 // skipDump is dump with the expectations and messages of every syntax error, which the message
 // of an error leaves out when it has messages.
@@ -75,14 +75,14 @@ func TestSkipRunsMatchParsesWithoutRecords(t *testing.T) {
 	rng := rand.New(rand.NewSource(75))
 	for _, g := range skipRunGrammars {
 		prog := mustCompile(t, g.Src)
-		inputs := gentest.SkipRunInputs(g.Alphabet, 300, rng)
+		inputs := codegentest.SkipRunInputs(g.Alphabet, 300, rng)
 		for _, b := range []Backend{Closure, Bytecode, BytecodeIterative} {
 			if diffs := skipRunMismatches(t, prog, inputs, b); len(diffs) > 0 {
 				t.Errorf("%s, %s: %d parses differ, first:\n%s", g.Name, b, len(diffs), diffs[0])
 			}
 		}
 	}
-	for _, c := range gentest.GenCorpus(t) {
+	for _, c := range codegentest.GenCorpus(t) {
 		if !strings.Contains(c.Src, "#recover") {
 			continue
 		}

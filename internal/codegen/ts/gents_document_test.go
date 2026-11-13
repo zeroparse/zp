@@ -11,8 +11,8 @@ import (
 
 	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/codegen"
+	"zeroparse.dev/zp/internal/codegentest"
 	"zeroparse.dev/zp/internal/compile"
-	"zeroparse.dev/zp/internal/gentest"
 	"zeroparse.dev/zp/internal/syntax"
 )
 
@@ -109,7 +109,7 @@ func documentInside(text string, k int) bool {
 // entered only through the calls of the printed code. As a negative control, libraries with a broken
 // edit or a broken retention of results must fail the comparison or the reuse.
 func TestTSDocumentMatchesFreshParse(t *testing.T) {
-	src := strings.Replace(gentest.IncrementalGrammar, "rule main", "@start\nrule main", 1)
+	src := strings.Replace(codegentest.IncrementalGrammar, "rule main", "@start\nrule main", 1)
 	g, err := syntax.Parse(src)
 	if err != nil {
 		t.Fatal(err)
@@ -192,7 +192,7 @@ func TestTSDocumentMatchesFreshParse(t *testing.T) {
 				dc.Edits = append(dc.Edits, ed)
 				n, err := ref(text, bytes, false)
 				failed = err != nil
-				wants = append(wants, fmt.Sprintf("%s %s", base64.StdEncoding.EncodeToString([]byte(text)), gentest.DeepResultJSON(t, n, err)))
+				wants = append(wants, fmt.Sprintf("%s %s", base64.StdEncoding.EncodeToString([]byte(text)), codegentest.DeepResultJSON(t, n, err)))
 			}
 			cases = append(cases, dc)
 		}
@@ -246,8 +246,8 @@ console.log("stats " + JSON.stringify({ evaluated, reused, full, again }));
 	// run runs the script on the library that mutate changes, and returns the first difference from
 	// the engine.
 	run := func(mutate func(string) string) error {
-		out := gentest.RunTSGrammarScriptBundle(t, g, script, opts, func(g *grammar.Grammar, opts codegen.GenOptions) ([]byte, error) {
-			code, err := gentest.GenerateTSBundle(g, opts)
+		out := codegentest.RunTSGrammarScriptBundle(t, g, script, opts, func(g *grammar.Grammar, opts codegen.GenOptions) ([]byte, error) {
+			code, err := codegentest.GenerateTSBundle(g, opts)
 			if err != nil || mutate == nil {
 				return code, err
 			}
@@ -256,7 +256,7 @@ console.log("stats " + JSON.stringify({ evaluated, reused, full, again }));
 		got := strings.Split(strings.TrimSuffix(out, "\n"), "\n")
 		last := got[len(got)-1]
 		if !strings.HasPrefix(last, "stats ") {
-			return fmt.Errorf("no statistics:\n%s", gentest.Clip(out, 0))
+			return fmt.Errorf("no statistics:\n%s", codegentest.Clip(out, 0))
 		}
 		got = got[:len(got)-1]
 		var stats struct{ Evaluated, Reused, Full, Again int }
@@ -268,15 +268,15 @@ console.log("stats " + JSON.stringify({ evaluated, reused, full, again }));
 		}
 		for i := range wants {
 			if i >= len(got) {
-				return fmt.Errorf("got %d results, want %d:\n%s", len(got), len(wants), gentest.Clip(out, 0))
+				return fmt.Errorf("got %d results, want %d:\n%s", len(got), len(wants), codegentest.Clip(out, 0))
 			}
 			if got[i] != wants[i] {
-				at := gentest.DiffAt(got[i], wants[i])
-				return fmt.Errorf("parse %d:\n got %s\nwant %s", i, gentest.Clip(got[i], at), gentest.Clip(wants[i], at))
+				at := codegentest.DiffAt(got[i], wants[i])
+				return fmt.Errorf("parse %d:\n got %s\nwant %s", i, codegentest.Clip(got[i], at), codegentest.Clip(wants[i], at))
 			}
 		}
 		if len(got) != len(wants) {
-			return fmt.Errorf("got %d results, want %d:\n%s", len(got), len(wants), gentest.Clip(out, 0))
+			return fmt.Errorf("got %d results, want %d:\n%s", len(got), len(wants), codegentest.Clip(out, 0))
 		}
 		if stats.Reused == 0 || stats.Evaluated >= stats.Full || stats.Again != 0 {
 			return fmt.Errorf("the Documents reuse too little: %+v", stats)
@@ -337,8 +337,8 @@ for (const [s, e, r] of [[0, 1, "s"], [4, 5, "x"]]) {
 `
 	want := "s12;? true {\"evaluated\":2,\"reused\":1}\ns12;x true {\"evaluated\":3,\"reused\":0}\n"
 	run := func(mutate func(string) string) string {
-		return gentest.RunTSGrammarScriptBundle(t, g, script, codegen.GenOptions{Start: "main", Document: true}, func(g *grammar.Grammar, opts codegen.GenOptions) ([]byte, error) {
-			code, err := gentest.GenerateTSBundle(g, opts)
+		return codegentest.RunTSGrammarScriptBundle(t, g, script, codegen.GenOptions{Start: "main", Document: true}, func(g *grammar.Grammar, opts codegen.GenOptions) ([]byte, error) {
+			code, err := codegentest.GenerateTSBundle(g, opts)
 			if err != nil || mutate == nil {
 				return code, err
 			}
@@ -385,7 +385,7 @@ const traced = d.parse({ trace: () => { if (inner === null) inner = [String(d.pa
 console.log(traced.error === null, inner.join(" | "), d.text());
 console.log(String(d.edit(0, 9, "x")), d.text());
 `
-	out := gentest.RunTSGrammarScriptWith(t, g, script, codegen.GenOptions{Start: "main", Document: true, LimitControls: true, Observability: true})
+	out := codegentest.RunTSGrammarScriptWith(t, g, script, codegen.GenOptions{Start: "main", Document: true, LimitControls: true, Observability: true})
 	want := `ab! true
 Error: document parse cannot change unit
 Error: document parse cannot change expectations
@@ -459,8 +459,8 @@ for (const [text, s, e, r] of [` + strings.Join(js, ", ") + `]) {
 }
 `
 			run := func(mutate func(string) string) string {
-				return gentest.RunTSGrammarScriptBundle(t, g, script, codegen.GenOptions{Start: "main", Document: true}, func(g *grammar.Grammar, opts codegen.GenOptions) ([]byte, error) {
-					code, err := gentest.GenerateTSBundle(g, opts)
+				return codegentest.RunTSGrammarScriptBundle(t, g, script, codegen.GenOptions{Start: "main", Document: true}, func(g *grammar.Grammar, opts codegen.GenOptions) ([]byte, error) {
+					code, err := codegentest.GenerateTSBundle(g, opts)
 					if err != nil || mutate == nil {
 						return code, err
 					}
@@ -497,9 +497,9 @@ func TestTSDocumentSkipRuns(t *testing.T) {
 		src, script string
 	}
 	var cases []grammarCase
-	for _, sg := range gentest.SkipRunGrammars {
+	for _, sg := range codegentest.SkipRunGrammars {
 		var items [][3]any
-		for _, in := range gentest.SkipRunInputs(sg.Alphabet, 40, rng) {
+		for _, in := range codegentest.SkipRunInputs(sg.Alphabet, 40, rng) {
 			rs := []rune(in)
 			if len(rs) == 0 {
 				continue
@@ -533,7 +533,7 @@ console.log("mismatches", bad, "of", n);
 			if err != nil {
 				t.Fatal(err)
 			}
-			got := gentest.RunTSGrammarScriptBundle(t, g, c.script, codegen.GenOptions{Start: "main", Document: true}, gentest.GenerateTSBundle)
+			got := codegentest.RunTSGrammarScriptBundle(t, g, c.script, codegen.GenOptions{Start: "main", Document: true}, codegentest.GenerateTSBundle)
 			var bad, n int
 			if _, err := fmt.Sscanf(strings.TrimSpace(got), "mismatches %d of %d", &bad, &n); err != nil || n == 0 {
 				t.Fatalf("unexpected output %q: %v", got, err)

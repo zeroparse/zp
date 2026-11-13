@@ -8,19 +8,19 @@ import (
 
 	"zeroparse.dev/zp/core"
 	"zeroparse.dev/zp/grammar"
+	"zeroparse.dev/zp/internal/codegentest"
 	"zeroparse.dev/zp/internal/compile"
-	"zeroparse.dev/zp/internal/gentest"
 	"zeroparse.dev/zp/internal/value"
 )
 
 func TestRawInvalidASTLiterals(t *testing.T) {
 	t.Parallel()
-	for _, raw := range gentest.RawLiteralValues() {
+	for _, raw := range codegentest.RawLiteralValues() {
 		for _, shape := range []string{`t:"�"`, `t:"�" .`, `t:("�" / "other")`, `t:("�" #repeat(2)) #atomic`} {
 			t.Run(fmt.Sprintf("%x/%s", raw, shape), func(t *testing.T) {
 				src := "type N = { T node[string]; S string }\nrule main N = " + shape + ` $$ => N{T:$t, S:"constant"}`
 				g := mustParse(src)
-				lit := gentest.ReplaceFirstLiteral(g.Rules()[0].Expr, raw)
+				lit := codegentest.ReplaceFirstLiteral(g.Rules()[0].Expr, raw)
 				if lit == nil {
 					t.Fatal("missing placeholder")
 				}
@@ -35,7 +35,7 @@ func TestRawInvalidASTLiterals(t *testing.T) {
 					t.Fatal("Compile mutated the AST")
 				}
 				canonical := mustParse(src)
-				gentest.ReplaceFirstLiteral(canonical.Rules()[0].Expr, string([]rune(raw)))
+				codegentest.ReplaceFirstLiteral(canonical.Rules()[0].Expr, string([]rune(raw)))
 				canonical.Rules()[0].Action.(*grammar.New).Fields[1].Value.(*grammar.StringLit).Value = raw
 				want, err := Compile(canonical, compile.Options{})
 				if err != nil {
@@ -97,7 +97,7 @@ func TestRawInvalidASTLiterals(t *testing.T) {
 									if value.D(gotMatch).Text != value.D(wantMatch).Text || value.D(gotMatch).Start != value.D(wantMatch).Start || value.D(gotMatch).End != value.D(wantMatch).End {
 										t.Errorf("%s %s/%s input=%x: match %x [%d,%d), want %x [%d,%d)", name, backend, unit, input, value.D(gotMatch).Text, value.D(gotMatch).Start, value.D(gotMatch).End, value.D(wantMatch).Text, value.D(wantMatch).Start, value.D(wantMatch).End)
 									}
-									if got, w := gentest.ResultJSON(n, nil), gentest.ResultJSON(wn, nil); got != w {
+									if got, w := codegentest.ResultJSON(n, nil), codegentest.ResultJSON(wn, nil); got != w {
 										t.Errorf("%s %s/%s input=%x\ngot %s\nwant %s", name, backend, unit, input, got, w)
 									}
 									if n.Field("S") != raw {
@@ -108,7 +108,7 @@ func TestRawInvalidASTLiterals(t *testing.T) {
 						}
 					}
 					if prog.Grammar != nil {
-						if first := gentest.FirstLiteral(prog.Grammar.Rules()[0].Expr); first == nil || first.Value != raw {
+						if first := codegentest.FirstLiteral(prog.Grammar.Rules()[0].Expr); first == nil || first.Value != raw {
 							t.Fatal("loaded AST changed literal bytes")
 						}
 					}

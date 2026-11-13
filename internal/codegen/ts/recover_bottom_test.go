@@ -6,22 +6,22 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/internal/codegen"
-	"zeroparse.dev/zp/internal/gentest"
+	"zeroparse.dev/zp/internal/codegentest"
 )
 
 // TestGeneratedTSRecoverBottom checks that a generated TypeScript parser gives the recovery of an
 // expression of type _|_ an error value, and an expression without a value none: each parse
-// succeeds or fails as gentest.RecoverBottomCases states, and agrees with the engine.
+// succeeds or fails as codegentest.RecoverBottomCases states, and agrees with the engine.
 func TestGeneratedTSRecoverBottom(t *testing.T) {
 	t.Parallel()
 	if testing.Short() {
 		t.Skip("runs generated code")
 	}
-	node := gentest.RequireNode(t)
-	cases := gentest.RecoverBottomGenCases()
-	lines := strings.Split(strings.TrimSuffix(gentest.TSParsersOutputs(t, node, cases, codegen.GenOptions{}, nil), "\n"), "\n")
+	node := codegentest.RequireNode(t)
+	cases := codegentest.RecoverBottomGenCases()
+	lines := strings.Split(strings.TrimSuffix(codegentest.TSParsersOutputs(t, node, cases, codegen.GenOptions{}, nil), "\n"), "\n")
 	k := 0
-	for _, c := range gentest.RecoverBottomCases {
+	for _, c := range codegentest.RecoverBottomCases {
 		for i, in := range c.Inputs {
 			// Each ASCII input runs in code points and bytes, as bytes and as a string.
 			for range 4 {
@@ -42,5 +42,5 @@ func TestGeneratedTSRecoverBottom(t *testing.T) {
 	if k != len(lines) {
 		t.Errorf("%d result lines, want %d", len(lines), k)
 	}
-	gentest.TSParsersCorpus(t, node, cases, codegen.GenOptions{})
+	codegentest.TSParsersCorpus(t, node, cases, codegen.GenOptions{})
 }

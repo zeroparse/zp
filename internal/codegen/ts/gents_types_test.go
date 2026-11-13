@@ -11,7 +11,7 @@ import (
 
 	"zeroparse.dev/zp/internal/codegen"
 	"zeroparse.dev/zp/internal/codegen/ts"
-	"zeroparse.dev/zp/internal/gentest"
+	"zeroparse.dev/zp/internal/codegentest"
 )
 
 func runTypedTSFixture(t *testing.T, src, consumer string, opts codegen.GenOptions, keep string) {
@@ -39,11 +39,11 @@ func runTypedTSFixtureWithLib(t *testing.T, src, consumer string, opts codegen.G
 	if opts.Start == "" {
 		opts.Start = "main"
 	}
-	files, err := gentest.GenerateTS(g, opts)
+	files, err := codegentest.GenerateTS(g, opts)
 	if err != nil {
 		t.Fatal(err)
 	}
-	again, err := gentest.GenerateTS(g, opts)
+	again, err := codegentest.GenerateTS(g, opts)
 	if err != nil || !slices.EqualFunc(files, again, func(a, b codegen.GeneratedFile) bool {
 		return a.Path == b.Path && string(a.Content) == string(b.Content)
 	}) {
@@ -60,7 +60,7 @@ func runTypedTSFixtureWithLib(t *testing.T, src, consumer string, opts codegen.G
 	if keep != "" {
 		reference := opts
 		reference.Types = false
-		plain, err := gentest.GenerateTS(g, reference)
+		plain, err := codegentest.GenerateTS(g, reference)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -79,7 +79,7 @@ func runTypedTSFixtureWithLib(t *testing.T, src, consumer string, opts codegen.G
 	if err != nil || !strings.Contains(string(decl), "export declare function parseValue(") || !strings.Contains(string(decl), "export declare function parseValueWithOptions(") {
 		t.Fatalf("typed declaration exports missing: %v", err)
 	}
-	cmd = exec.Command(node, gentest.NodeTSArgs("consumer.ts")...)
+	cmd = exec.Command(node, codegentest.NodeTSArgs("consumer.ts")...)
 	cmd.Dir = dir
 	if out, err := cmd.CombinedOutput(); err != nil {
 		t.Fatalf("typed Node consumer: %v\n%s", err, out)
@@ -235,7 +235,7 @@ check(stable(parseValue("xx").value).includes("Branch"), "small DAG value");
 			if out := os.Getenv("ZP_TS_TYPED_DIR"); out != "" {
 				keep = filepath.Join(out, name)
 			}
-			runTypedTSFixture(t, gentest.TSTypedDAGTypes+body, consumer, codegen.GenOptions{Recognize: true}, keep)
+			runTypedTSFixture(t, codegentest.TSTypedDAGTypes+body, consumer, codegen.GenOptions{Recognize: true}, keep)
 			if keep != "" {
 				inputs := tsgen.TsStrings([]string{"x", strings.Repeat("x", 8), strings.Repeat("x", 6000)})
 				if err := os.WriteFile(filepath.Join(keep, "inputs.json"), []byte(inputs), 0o644); err != nil {
@@ -270,7 +270,7 @@ rule n = "(" n ")" / "x"`, `import {parseValue, parseValueWithOptions} from "./p
 		if err != nil {
 			t.Fatal(err)
 		}
-		if _, err := gentest.GenerateTSBundle(g, codegen.GenOptions{Start: "main", Types: true}); err == nil {
+		if _, err := codegentest.GenerateTSBundle(g, codegen.GenOptions{Start: "main", Types: true}); err == nil {
 			t.Errorf("top-level scalar %s unexpectedly accepted", scalar)
 		}
 	}
@@ -462,7 +462,7 @@ rule any node[_] = x:[0-9]+ ";"`
 	if err != nil {
 		t.Fatal(err)
 	}
-	files, err := gentest.GenerateTS(g, codegen.GenOptions{Types: true, Start: "main"})
+	files, err := codegentest.GenerateTS(g, codegen.GenOptions{Types: true, Start: "main"})
 	if err != nil {
 		t.Fatal(err)
 	}

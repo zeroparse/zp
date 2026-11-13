@@ -8,7 +8,7 @@ import (
 	"strings"
 	"testing"
 
-	"zeroparse.dev/zp/internal/gentest"
+	"zeroparse.dev/zp/internal/codegentest"
 )
 
 // engineMutant changes the printed code of the operators of terms in the engine in one way: in the
@@ -94,7 +94,7 @@ func TestPrintedOperatorMutants(t *testing.T) {
 	if testing.Short() {
 		t.Skip("runs the tests on mutated sources")
 	}
-	root := gentest.ModuleRoot()
+	root := codegentest.ModuleRoot()
 	for _, m := range engineMutants {
 		t.Run(m.name, func(t *testing.T) {
 			t.Parallel()
@@ -103,7 +103,7 @@ func TestPrintedOperatorMutants(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			mutated, ok := gentest.MutateFunc(string(src), m.fn, m.old, m.new)
+			mutated, ok := codegentest.MutateFunc(string(src), m.fn, m.old, m.new)
 			if !ok {
 				t.Fatalf("%s has no %s with %q", m.file, m.fn, m.old)
 			}

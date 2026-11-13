@@ -13,7 +13,7 @@ import (
 	"zeroparse.dev/zp/engine"
 	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/syntax"
-	"zeroparse.dev/zp/internal/syntax/genparser/types"
+	"zeroparse.dev/zp/internal/syntax/grammarparser/types"
 )
 
 // The adapter reads the typed values of the generated parser of zp.zp. A
@@ -138,7 +138,7 @@ var treeTypes = func() map[string]reflect.Type {
 // TestTreeTypesComplete requires treeTypes to name every exported struct type
 // of the typed values, so that a type that zp.zp adds is not missed.
 func TestTreeTypesComplete(t *testing.T) {
-	f, err := parser.ParseFile(token.NewFileSet(), "../../internal/syntax/genparser/types/types.go", nil, 0)
+	f, err := parser.ParseFile(token.NewFileSet(), "../../internal/syntax/grammarparser/types/types.go", nil, 0)
 	if err != nil {
 		t.Fatal(err)
 	}

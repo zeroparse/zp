@@ -4,7 +4,7 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/internal/codegen"
-	"zeroparse.dev/zp/internal/gentest"
+	"zeroparse.dev/zp/internal/codegentest"
 )
 
 func TestGeneratedTSTypedNamedNodeTypes(t *testing.T) {
@@ -32,7 +32,7 @@ check(ns !== null && ns.type === "Nums" && ns.value?.length === 1 && ns.value[0]
 const a: Any | null = v.Any;
 check(a !== null && a.type === "Any", "any " + stable(a));
 `
-	runTypedTSFixture(t, gentest.NodeTypeGrammar, consumer, codegen.GenOptions{}, "")
+	runTypedTSFixture(t, codegentest.NodeTypeGrammar, consumer, codegen.GenOptions{}, "")
 }
 
 // TestGeneratedTSTypedNamedNodesAsPlainNodes is TestGeneratedNamedNodesAsPlainNodes for typed

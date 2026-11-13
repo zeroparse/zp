@@ -8,9 +8,9 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/core"
+	"zeroparse.dev/zp/internal/codegentest"
 	"zeroparse.dev/zp/internal/compile"
 	ecore "zeroparse.dev/zp/internal/engine/core"
-	"zeroparse.dev/zp/internal/gentest"
 	"zeroparse.dev/zp/internal/value"
 )
 
@@ -63,8 +63,8 @@ func TestStreamFrameScratchCompletionPaths(t *testing.T) {
 		count            int
 		fail, stop       bool
 	}{
-		{"failed final element", gentest.Records, "#records\n" + strings.Repeat("key=42\n", 300) + "key=x\n", 300, true, false},
-		{"callback error", gentest.Records, "#records\n" + strings.Repeat("key=42\n", 320), 300, true, true},
+		{"failed final element", codegentest.Records, "#records\n" + strings.Repeat("key=42\n", 300) + "key=x\n", 300, true, false},
+		{"callback error", codegentest.Records, "#records\n" + strings.Repeat("key=42\n", 320), 300, true, true},
 		{"zero progress", `rule main = item* #stream $$
 rule item = x:"x" #atomic / e:"" #atomic`, strings.Repeat("x", 300), 301, false, false},
 		{"no capture scopes", `rule main = "x"* #stream $$`, strings.Repeat("x", 300), 300, false, false},

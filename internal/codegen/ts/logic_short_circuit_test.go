@@ -5,15 +5,15 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/internal/codegen"
-	"zeroparse.dev/zp/internal/gentest"
+	"zeroparse.dev/zp/internal/codegentest"
 )
 
 // shortCircuitCases are actions whose right operand of && or || fails (a division by zero) when it
 // is evaluated. The engine does not evaluate it after a left operand that decides the result, and
 // reports the failure when it must.
-func shortCircuitCases() []gentest.Case {
+func shortCircuitCases() []codegentest.Case {
 	const rules = "rule c = [a-z]\n"
-	return []gentest.Case{
+	return []codegentest.Case{
 		{Name: "and skips a failing right operand", Src: "rule main = x:c $$ => text($x) == \"b\" && 1 / 0 == 1\n" + rules, Inputs: []string{"a"}},
 		{Name: "and evaluates a failing right operand", Src: "rule main = x:c $$ => text($x) == \"a\" && 1 / 0 == 1\n" + rules, Inputs: []string{"a"}},
 		{Name: "or skips a failing right operand", Src: "rule main = x:c $$ => text($x) == \"a\" || 1 / 0 == 1\n" + rules, Inputs: []string{"a"}},
@@ -26,15 +26,15 @@ func shortCircuitCases() []gentest.Case {
 // operand of && and || only when the left operand does not decide the result, as the engine does.
 func TestShortCircuitGeneratedTypeScript(t *testing.T) {
 	t.Parallel()
-	node := gentest.RequireNode(t)
-	gentest.TSParsersCorpus(t, node, shortCircuitCases(), codegen.GenOptions{})
+	node := codegentest.RequireNode(t)
+	codegentest.TSParsersCorpus(t, node, shortCircuitCases(), codegen.GenOptions{})
 }
 
 // TestShortCircuitGeneratedTypeScriptDetectsEagerOperands is the negative control of the test above:
 // a parser that evaluates the right operand whatever the left one is differs from the engine.
 func TestShortCircuitGeneratedTypeScriptDetectsEagerOperands(t *testing.T) {
 	t.Parallel()
-	node := gentest.RequireNode(t)
+	node := codegentest.RequireNode(t)
 	for _, m := range []struct{ name, from, to string }{
 		{"and", "if (tb", "if (true || tb"},
 		{"or", "if (!tb", "if (true || !tb"},
@@ -42,7 +42,7 @@ func TestShortCircuitGeneratedTypeScriptDetectsEagerOperands(t *testing.T) {
 		t.Run(m.name, func(t *testing.T) {
 			t.Parallel()
 			var replaced bool
-			mismatches := gentest.TSParsersMismatches(t, node, shortCircuitCases(), codegen.GenOptions{}, func(src string) string {
+			mismatches := codegentest.TSParsersMismatches(t, node, shortCircuitCases(), codegen.GenOptions{}, func(src string) string {
 				if strings.Contains(src, m.from) {
 					replaced = true
 				}

@@ -15,7 +15,7 @@ import (
 
 	"zeroparse.dev/zp/codegen"
 	"zeroparse.dev/zp/engine"
-	"zeroparse.dev/zp/internal/gentest"
+	"zeroparse.dev/zp/internal/codegentest"
 )
 
 // manifestFile is the checked-in manifest of the generated output of manifestGrammars in every
@@ -104,7 +104,7 @@ func manifestOutputs(t *testing.T) ([]string, map[string]string) {
 					return
 				}
 				c := m.config
-				c.Module, c.Lib = "gentest/"+g.name, codegen.LibImport
+				c.Module, c.Lib = "codegentest/"+g.name, codegen.LibImport
 				files, err := c.Generate(gr, "")
 				if err != nil {
 					// A combination the generator rejects, such as -stream without a #stream repetition,
@@ -161,7 +161,7 @@ func TestGeneratedOutputManifest(t *testing.T) {
 		}
 	}
 	got := strings.Join(lines, "\n") + "\n"
-	if *gentest.UpdateGoldens {
+	if *codegentest.UpdateGoldens {
 		if err := os.MkdirAll(filepath.Dir(manifestFile), 0o755); err != nil {
 			t.Fatal(err)
 		}

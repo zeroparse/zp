@@ -12,22 +12,22 @@ import (
 
 	"zeroparse.dev/zp/core"
 	"zeroparse.dev/zp/internal/codegen"
+	"zeroparse.dev/zp/internal/codegentest"
 	"zeroparse.dev/zp/internal/engine"
-	"zeroparse.dev/zp/internal/gentest"
 )
 
 // Differentially exercise every rule-call owner, including first-character
 // dispatch and typed direct/conversion routes, with small predictable ceilings.
 func TestGeneratedDepthOptions(t *testing.T) {
 	t.Parallel()
-	gentest.EachMode(t, testGeneratedDepthOptions)
+	codegentest.EachMode(t, testGeneratedDepthOptions)
 }
 
 func testGeneratedDepthOptions(t *testing.T) {
 	if testing.Short() {
 		t.Skip("runs generated code")
 	}
-	fixtures := []gentest.Case{
+	fixtures := []codegentest.Case{
 		{Name: "ordinary", Src: `type Word = { Text string }
 rule main Word = t:(n) #atomic => Word{Text: text($t)}
 rule n Word = t:("(" n ")" / "é") #atomic => Word{Text: text($t)}`, Inputs: []string{"é", "(é)", "((é))", "((((é))))", "?", "(é"}},
@@ -71,7 +71,7 @@ rule n Word = t:(("(" n ")" / "é") #recover(skip="?")) #atomic => Word{Text: te
 			t.Fatal(err)
 		}
 	}
-	write("go.mod", []byte(gentest.GoMod("depthoptions")))
+	write("go.mod", []byte(codegentest.GoMod("depthoptions")))
 	for i, c := range fixtures {
 		g, err := parseTest(c.Src)
 		if err != nil {
@@ -80,7 +80,7 @@ rule n Word = t:(("(" n ")" / "é") #recover(skip="?")) #atomic => Word{Text: te
 		prog := mustCompile(t, c.Src)
 		for _, conv := range []bool{false, true} {
 			pkg := fmt.Sprintf("g%d_%v", i, conv)
-			code, err := gentest.GenerateCode(t, g, codegen.GenOptions{Package: pkg, Start: "main", Types: true, Recognize: true, MaxDepth: 4, ConvertTypes: conv})
+			code, err := codegentest.GenerateCode(t, g, codegen.GenOptions{Package: pkg, Start: "main", Types: true, Recognize: true, MaxDepth: 4, ConvertTypes: conv})
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -183,18 +183,18 @@ rule main WithUnit = t:("é") #atomic => ParseOption{Text: text($t)}`
 		t.Fatal(err)
 	}
 	dir := t.TempDir()
-	os.WriteFile(filepath.Join(dir, "go.mod"), []byte(gentest.GoMod("collisions")), 0644)
+	os.WriteFile(filepath.Join(dir, "go.mod"), []byte(codegentest.GoMod("collisions")), 0644)
 	for _, conv := range []bool{false, true} {
 		name := "direct"
 		if conv {
 			name = "convert"
 		}
 		opts := codegen.GenOptions{Package: name, Module: "collisions/" + name, Lib: codegen.LibImport, Start: "main", Types: true, ConvertTypes: conv}
-		files, err := gentest.Generate(t, g, opts)
+		files, err := codegentest.Generate(t, g, opts)
 		if err != nil {
 			t.Fatal(err)
 		}
-		again, err := gentest.Generate(t, g, opts)
+		again, err := codegentest.Generate(t, g, opts)
 		if err != nil || !slices.EqualFunc(files, again, func(a, b codegen.GeneratedFile) bool { return a.Path == b.Path && bytes.Equal(a.Content, b.Content) }) {
 			t.Fatal("unstable generation")
 		}

@@ -8,9 +8,9 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/core"
+	"zeroparse.dev/zp/internal/codegentest"
 	"zeroparse.dev/zp/internal/compile"
 	ecore "zeroparse.dev/zp/internal/engine/core"
-	"zeroparse.dev/zp/internal/gentest"
 )
 
 // runSiteGrammars are grammars with run sites (compile/run_sites.go): repetitions outside skip
@@ -152,7 +152,7 @@ func runSitesMatchPlainRepetitions(t *testing.T) {
 			t.Errorf("%s: no run sites", g.Name)
 		}
 		plain := compileWithout(t, g.Src, &compile.NoRunSites)
-		inputs := append(gentest.SkipRunInputs(g.Alphabet, 300, rng), runValueInputs[g.Name]...)
+		inputs := append(codegentest.SkipRunInputs(g.Alphabet, 300, rng), runValueInputs[g.Name]...)
 		turns := ecore.RunHotTurns.Load()
 		for _, b := range []Backend{Closure, Bytecode, BytecodeIterative} {
 			if diffs := skipRunMismatches(t, prog, inputs, b); len(diffs) > 0 {
@@ -183,7 +183,7 @@ func runSitesOfLoadedPrograms(t *testing.T) {
 	rng := rand.New(rand.NewSource(115))
 	for _, g := range runValueGrammars {
 		plain := compileWithout(t, g.Src, &compile.NoRunSites)
-		inputs := append(gentest.SkipRunInputs(g.Alphabet, 300, rng), runValueInputs[g.Name]...)
+		inputs := append(codegentest.SkipRunInputs(g.Alphabet, 300, rng), runValueInputs[g.Name]...)
 		turns := ecore.RunHotTurns.Load()
 		for _, mode := range []CompiledMode{CompiledParse, CompiledDocument} {
 			data, err := mustCompile(t, g.Src).Marshal("", mode)
@@ -230,7 +230,7 @@ func runSitesMatchWithoutRecords(t *testing.T) {
 	rng := rand.New(rand.NewSource(112))
 	for _, g := range runSiteGrammars {
 		prog := mustCompile(t, g.Src)
-		inputs := gentest.SkipRunInputs(g.Alphabet, 300, rng)
+		inputs := codegentest.SkipRunInputs(g.Alphabet, 300, rng)
 		turns := ecore.RunHotTurns.Load()
 		for _, b := range []Backend{Closure, Bytecode, BytecodeIterative} {
 			if diffs := skipRunMismatches(t, prog, inputs, b); len(diffs) > 0 {
@@ -239,7 +239,7 @@ func runSitesMatchWithoutRecords(t *testing.T) {
 		}
 		assertTurnedHot(t, g.Name, turns)
 	}
-	for _, c := range gentest.GenCorpus(t) {
+	for _, c := range codegentest.GenCorpus(t) {
 		g, err := parseTest(c.Src)
 		if err != nil {
 			t.Fatalf("corpus %s: %v", c.Name, err)
@@ -403,7 +403,7 @@ func TestRunSitesNegativeControls(t *testing.T) {
 			// (The mutation stays on while the backends build their programs.)
 			compile.EnvFreeMutation = tc.mutation
 			prog := mustCompile(t, g.Src)
-			inputs := append(gentest.SkipRunInputs(g.Alphabet, 300, rand.New(rand.NewSource(114))), runValueInputs[g.Name]...)
+			inputs := append(codegentest.SkipRunInputs(g.Alphabet, 300, rand.New(rand.NewSource(114))), runValueInputs[g.Name]...)
 			for _, b := range []Backend{Closure, Bytecode, BytecodeIterative} {
 				if diffs := skipRunMismatches(t, prog, inputs, b); len(diffs) == 0 {
 					t.Errorf("compile mutation %d, %s: no difference on the inputs of %s", tc.mutation, b, g.Name)

@@ -4,12 +4,12 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/internal/codegen"
-	"zeroparse.dev/zp/internal/gentest"
+	"zeroparse.dev/zp/internal/codegentest"
 )
 
 func TestMissingTokensTypeOnlyGrammarCannotBeLowered(t *testing.T) {
 	t.Parallel()
-	gentest.EachMode(t, testMissingTokensTypeOnlyGrammarCannotBeLowered)
+	codegentest.EachMode(t, testMissingTokensTypeOnlyGrammarCannotBeLowered)
 }
 
 func testMissingTokensTypeOnlyGrammarCannotBeLowered(t *testing.T) {
@@ -24,7 +24,7 @@ rule main = "a"`)
 	if _, err := prog.MarshalBinary("main"); err == nil {
 		t.Fatal("saved a reserved type without a supported binary representation")
 	}
-	if _, err := gentest.GenerateCode(t, prog.Grammar, codegen.GenOptions{Package: "example", Start: "main"}); err == nil {
+	if _, err := codegentest.GenerateCode(t, prog.Grammar, codegen.GenOptions{Package: "example", Start: "main"}); err == nil {
 		t.Fatal("generated unsupported Missing type")
 	}
 }
@@ -33,13 +33,13 @@ rule main = "a"`)
 // exists only through an insertion is rejected like any grammar with #missing.
 func TestMissingTokensInsertionOnlyLeftRecursionRejected(t *testing.T) {
 	t.Parallel()
-	gentest.EachMode(t, testMissingTokensInsertionOnlyLeftRecursionRejected)
+	codegentest.EachMode(t, testMissingTokensInsertionOnlyLeftRecursionRejected)
 }
 
 func testMissingTokensInsertionOnlyLeftRecursionRejected(t *testing.T) {
 	prog := mustCompile(t, `rule main = a $$
 rule a = "(" #missing a "x" / "y"`)
-	if _, err := gentest.GenerateCode(t, prog.Grammar, codegen.GenOptions{Package: "example", Start: "main"}); err == nil {
+	if _, err := codegentest.GenerateCode(t, prog.Grammar, codegen.GenOptions{Package: "example", Start: "main"}); err == nil {
 		t.Fatal("generated a parser for the grammar")
 	}
 }

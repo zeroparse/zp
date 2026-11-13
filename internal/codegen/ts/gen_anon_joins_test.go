@@ -5,18 +5,18 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/internal/codegen"
-	"zeroparse.dev/zp/internal/gentest"
+	"zeroparse.dev/zp/internal/codegentest"
 )
 
 // The TypeScript type of an anonymous join is the union of its members, in a field, a list
 // element and the start value.
 func TestGeneratedTypedAnonymousJoinTypeScript(t *testing.T) {
 	t.Parallel()
-	g, err := parseTest(gentest.AnonJoinGrammar)
+	g, err := parseTest(codegentest.AnonJoinGrammar)
 	if err != nil {
 		t.Fatal(err)
 	}
-	files, err := gentest.GenerateTS(g, codegen.GenOptions{Types: true, Start: "main"})
+	files, err := codegentest.GenerateTS(g, codegen.GenOptions{Types: true, Start: "main"})
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -6,12 +6,12 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/internal/codegen"
-	"zeroparse.dev/zp/internal/gentest"
+	"zeroparse.dev/zp/internal/codegentest"
 )
 
 func TestGeneratedUnsharedParsersMatchEngine(t *testing.T) {
 	t.Parallel()
-	gentest.EachMode(t, testGeneratedUnsharedParsersMatchEngine)
+	codegentest.EachMode(t, testGeneratedUnsharedParsersMatchEngine)
 }
 
 func testGeneratedUnsharedParsersMatchEngine(t *testing.T) {
@@ -19,6 +19,6 @@ func testGeneratedUnsharedParsersMatchEngine(t *testing.T) {
 		t.Skip("builds generated code")
 	}
 	opts := codegen.GenOptions{NoOpt: []string{"method-sharing", "literal-sharing"}}
-	gentest.GeneratedParsersCorpus(t, filepath.Join(runtime.GOROOT(), "bin", "go"), gentest.Representative(gentest.GenCorpus(t)), opts)
-	gentest.GeneratedTypesCorpus(t, filepath.Join(runtime.GOROOT(), "bin", "go"), gentest.Representative(gentest.GenCorpus(t)), opts)
+	codegentest.GeneratedParsersCorpus(t, filepath.Join(runtime.GOROOT(), "bin", "go"), codegentest.Representative(codegentest.GenCorpus(t)), opts)
+	codegentest.GeneratedTypesCorpus(t, filepath.Join(runtime.GOROOT(), "bin", "go"), codegentest.Representative(codegentest.GenCorpus(t)), opts)
 }

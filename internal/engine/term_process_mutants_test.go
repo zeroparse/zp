@@ -8,7 +8,7 @@ import (
 	"strings"
 	"testing"
 
-	"zeroparse.dev/zp/internal/gentest"
+	"zeroparse.dev/zp/internal/codegentest"
 )
 
 // TestProcessTermTestsKillArithmeticMutants holds the tests that run in the process, with no generated
@@ -19,7 +19,7 @@ func TestProcessTermTestsKillArithmeticMutants(t *testing.T) {
 	if testing.Short() {
 		t.Skip("runs the tests on mutated sources")
 	}
-	root := gentest.ModuleRoot()
+	root := codegentest.ModuleRoot()
 	for _, m := range []struct{ name, old, new string }{
 		{"the remainder floors", "any(l.(int) % r.(int))", "any(func() int { m := l.(int) % r.(int); if m != 0 && (m < 0) != (r.(int) < 0) { m += r.(int) }; return m }())"},
 		{"the quotient floors", "any(l.(int) / r.(int))", "any(func() int { q := l.(int) / r.(int); if (l.(int)%r.(int) != 0) && ((l.(int) < 0) != (r.(int) < 0)) { q-- }; return q }())"},
@@ -31,7 +31,7 @@ func TestProcessTermTestsKillArithmeticMutants(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			mutated, ok := gentest.MutateFunc(string(src), "termBinary", m.old, m.new)
+			mutated, ok := codegentest.MutateFunc(string(src), "termBinary", m.old, m.new)
 			if !ok {
 				t.Fatalf("no %q in termBinary", m.old)
 			}

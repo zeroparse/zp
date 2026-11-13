@@ -6,7 +6,7 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/internal/codegen"
-	"zeroparse.dev/zp/internal/gentest"
+	"zeroparse.dev/zp/internal/codegentest"
 )
 
 // A rule that only value-free contexts reference has no original and, entered only through its plain
@@ -15,7 +15,7 @@ import (
 func TestGeneratedTSLeavesOutUnreachableRules(t *testing.T) {
 	t.Parallel()
 	g := mustParse("@start\nrule main = !bad \"a\" kept\nrule bad = \"b\" kept\nrule kept = \"k\"\nrule dead = \"d\"")
-	code, err := gentest.GenerateTSBundle(g, codegen.GenOptions{Start: "main"})
+	code, err := codegentest.GenerateTSBundle(g, codegen.GenOptions{Start: "main"})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -41,7 +41,7 @@ func TestGeneratedTSDocumentKeepsPlainRules(t *testing.T) {
 		{Start: "main", Document: true, Recognize: true},
 		{Start: "main", Document: true, Types: true},
 	} {
-		code, err := gentest.GenerateTSBundle(g, opts)
+		code, err := codegentest.GenerateTSBundle(g, opts)
 		if err != nil {
 			t.Fatalf("%+v: %v", opts, err)
 		}

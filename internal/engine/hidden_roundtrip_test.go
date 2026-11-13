@@ -3,8 +3,8 @@ package engine
 import (
 	"testing"
 
+	"zeroparse.dev/zp/internal/codegentest"
 	"zeroparse.dev/zp/internal/compile"
-	"zeroparse.dev/zp/internal/gentest"
 )
 
 // A compiled grammar keeps hidden rules and inline actions, with and without default values, and
@@ -16,10 +16,10 @@ func TestHiddenRulesCompiledRoundTrip(t *testing.T) {
 		inputs    []string
 	}
 	var sources []source
-	for _, tc := range gentest.SpliceCases() {
+	for _, tc := range codegentest.SpliceCases() {
 		sources = append(sources, source{"hidden " + tc.Name, tc.Hidden, tc.Inputs})
 	}
-	for _, tc := range gentest.InlineActionCases() {
+	for _, tc := range codegentest.InlineActionCases() {
 		sources = append(sources, source{"inline " + tc.Name, tc.Inline, tc.Inputs})
 	}
 	for _, s := range sources {
@@ -35,8 +35,8 @@ func TestHiddenRulesCompiledRoundTrip(t *testing.T) {
 								wantClosureRefused(t, err) // the closure backend needs the grammar
 								continue
 							}
-							want := gentest.ResultJSON(prog.ParseWith("main", input, ParseOptions{Backend: backend}))
-							got := gentest.ResultJSON(loaded.ParseWith("main", input, servedBy(mode, ParseOptions{Backend: backend})))
+							want := codegentest.ResultJSON(prog.ParseWith("main", input, ParseOptions{Backend: backend}))
+							got := codegentest.ResultJSON(loaded.ParseWith("main", input, servedBy(mode, ParseOptions{Backend: backend})))
 							if got != want {
 								t.Errorf("%+v %s mode %q on %s:\nloaded:   %s\ncompiled: %s", opts, mode, input, backend, got, want)
 							}

@@ -7,8 +7,8 @@ import (
 
 	"zeroparse.dev/zp/core"
 	"zeroparse.dev/zp/grammar"
+	"zeroparse.dev/zp/internal/codegentest"
 	"zeroparse.dev/zp/internal/compile"
-	"zeroparse.dev/zp/internal/gentest"
 )
 
 var compiledRecognitionLoadSink *Program
@@ -122,8 +122,8 @@ func BenchmarkCompiledRecognitionASTBearing(b *testing.B) {
 				for _, tc := range inputs {
 					want, wantErr := source.ParseWith("main", tc.input, ParseOptions{Backend: backend})
 					got, gotErr := loaded.ParseWith("main", tc.input, ParseOptions{Backend: backend})
-					if gentest.ResultJSON(got, gotErr) != gentest.ResultJSON(want, wantErr) {
-						b.Fatalf("loaded fixture differs for %v/%s: got %s want %s", backend, tc.name, gentest.ResultJSON(got, gotErr), gentest.ResultJSON(want, wantErr))
+					if codegentest.ResultJSON(got, gotErr) != codegentest.ResultJSON(want, wantErr) {
+						b.Fatalf("loaded fixture differs for %v/%s: got %s want %s", backend, tc.name, codegentest.ResultJSON(got, gotErr), codegentest.ResultJSON(want, wantErr))
 					}
 				}
 			}

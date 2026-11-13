@@ -11,8 +11,8 @@ import (
 
 	"zeroparse.dev/zp/internal/codegen"
 	"zeroparse.dev/zp/internal/codegen/go"
+	"zeroparse.dev/zp/internal/codegentest"
 	"zeroparse.dev/zp/internal/compile"
-	"zeroparse.dev/zp/internal/gentest"
 )
 
 // A typed-only parser has no Node family unless a typed entry point converts the Node result of a rule; then
@@ -29,7 +29,7 @@ func TestFlowTypedOnlyNodeRulesPrintFromFlow(t *testing.T) {
 	if testing.Short() {
 		t.Skip("generates the corpus")
 	}
-	cases := gentest.RepresentativeGrammars(gentest.GrammarCases(t))
+	cases := codegentest.RepresentativeGrammars(codegentest.GrammarCases(t))
 	for _, form := range []struct {
 		name     string
 		controls bool
@@ -40,7 +40,7 @@ func TestFlowTypedOnlyNodeRulesPrintFromFlow(t *testing.T) {
 			taken, framed, operators := 0, 0, 0
 			var generated atomic.Int64
 			gh := &gogen.Hooks{}
-			gentest.SetGenHooks(t, gh)
+			codegentest.SetGenHooks(t, gh)
 			gh.LeanRoute = func(table string, r *compile.Rule) {
 				mu.Lock()
 				defer mu.Unlock()
@@ -58,19 +58,19 @@ func TestFlowTypedOnlyNodeRulesPrintFromFlow(t *testing.T) {
 				defer mu.Unlock()
 				operators++
 			}
-			gentest.EachParallel(t, cases, func(t *testing.T, c gentest.Case) {
+			codegentest.EachParallel(t, cases, func(t *testing.T, c codegentest.Case) {
 				g, err := parseTest(c.Src)
 				if err != nil {
 					return
 				}
-				_, err = gentest.Generate(t, g, codegen.GenOptions{Package: "x", Module: "example.com/x", Start: "main", Lib: codegen.LibImport,
+				_, err = codegentest.Generate(t, g, codegen.GenOptions{Package: "x", Module: "example.com/x", Start: "main", Lib: codegen.LibImport,
 					Types: true, TypedOnly: true, KeepNodes: true, LimitControls: form.controls})
 				if err != nil {
 					t.Fatalf("%s: %v", c.Name, err)
 				}
 				generated.Add(1)
 			})
-			if int(generated.Load()) < gentest.ScaleFloor(10) || taken == 0 || framed == 0 || operators == 0 {
+			if int(generated.Load()) < codegentest.ScaleFloor(10) || taken == 0 || framed == 0 || operators == 0 {
 				t.Errorf("generated %d grammars; %d direct, %d framed and %d Operators Rule lines took the Flow route", generated.Load(), taken, framed, operators)
 			}
 		})
@@ -142,7 +142,7 @@ func TestFlowTypedOnlyEntriesMatchFull(t *testing.T) {
 		name     string
 		controls bool
 	}{{"ordinary", false}, {"controls", true}} {
-		if !gentest.OneForm(t, form.controls) {
+		if !codegentest.OneForm(t, form.controls) {
 			continue
 		}
 		t.Run(form.name, func(t *testing.T) {
@@ -150,7 +150,7 @@ func TestFlowTypedOnlyEntriesMatchFull(t *testing.T) {
 			writeGoMod(t, dir)
 			taken := 0
 			gh := &gogen.Hooks{}
-			gentest.SetGenHooks(t, gh)
+			codegentest.SetGenHooks(t, gh)
 			gh.LeanRoute = func(table string, r *compile.Rule) {
 				if table == "rules" {
 					taken++
@@ -159,13 +159,13 @@ func TestFlowTypedOnlyEntriesMatchFull(t *testing.T) {
 			gh.FramedRoute = func(table string, r *compile.Rule) { taken++ }
 			gh.OperatorsRoute = func(table string, r *compile.Rule) { taken++ }
 			var pkgs []string
-			for i, c := range gentest.TypedOnlyConverted {
+			for i, c := range codegentest.TypedOnlyConverted {
 				base := codegen.GenOptions{Types: true, LimitControls: form.controls}
 				full, flowOnly, mutated := fmt.Sprintf("full%d", i), fmt.Sprintf("flow%d", i), fmt.Sprintf("mut%d", i)
 				before := taken
 				only := base
 				only.TypedOnly = true
-				gentest.OrdinaryOnlyPackage(t, dir, flowOnly, c.Src, only, typedOnlyTranscript, c.Inputs)
+				codegentest.OrdinaryOnlyPackage(t, dir, flowOnly, c.Src, only, typedOnlyTranscript, c.Inputs)
 				if taken == before {
 					t.Errorf("%s: no Node rule of the typed-only parser takes the Flow route", c.Name)
 				}
@@ -174,7 +174,7 @@ func TestFlowTypedOnlyEntriesMatchFull(t *testing.T) {
 				}
 				full1 := base
 				full1.Recognize = true
-				gentest.OrdinaryOnlyPackage(t, dir, full, c.Src, full1, typedOnlyTranscript, c.Inputs)
+				codegentest.OrdinaryOnlyPackage(t, dir, full, c.Src, full1, typedOnlyTranscript, c.Inputs)
 				mut := strings.Replace(c.Src, `"!"`, `"?"`, 1)
 				if mut == c.Src {
 					mut = strings.Replace(c.Src, `"x"`, `"w"`, 1)
@@ -187,15 +187,15 @@ func TestFlowTypedOnlyEntriesMatchFull(t *testing.T) {
 				}
 				mo := base
 				mo.TypedOnly = true
-				gentest.OrdinaryOnlyPackage(t, dir, mutated, mut, mo, typedOnlyTranscript, c.Inputs)
+				codegentest.OrdinaryOnlyPackage(t, dir, mutated, mut, mo, typedOnlyTranscript, c.Inputs)
 				pkgs = append(pkgs, full, flowOnly, mutated)
 			}
 			gh.LeanRoute, gh.FramedRoute, gh.OperatorsRoute = nil, nil, nil
-			out := gentest.RunTranscripts(t, dir, pkgs...)
-			for i, c := range gentest.TypedOnlyConverted {
+			out := codegentest.RunTranscripts(t, dir, pkgs...)
+			for i, c := range codegentest.TypedOnlyConverted {
 				full, flowOnly, mutated := out[fmt.Sprintf("full%d", i)], out[fmt.Sprintf("flow%d", i)], out[fmt.Sprintf("mut%d", i)]
 				if flowOnly != full {
-					t.Errorf("%s: the typed-only parser differs from the full one:\n%s", c.Name, gentest.FirstTranscriptDifference(full, flowOnly))
+					t.Errorf("%s: the typed-only parser differs from the full one:\n%s", c.Name, codegentest.FirstTranscriptDifference(full, flowOnly))
 				}
 				if mutated == flowOnly {
 					t.Errorf("%s: the transcripts of a mutated grammar are the same: the comparison cannot fail", c.Name)
@@ -210,7 +210,7 @@ func TestFlowTypedOnlyEntriesMatchFull(t *testing.T) {
 
 func writeGoMod(t *testing.T, dir string) {
 	t.Helper()
-	if err := writeFile(filepath.Join(dir, "go.mod"), gentest.GoMod("ordtest")); err != nil {
+	if err := writeFile(filepath.Join(dir, "go.mod"), codegentest.GoMod("ordtest")); err != nil {
 		t.Fatal(err)
 	}
 }

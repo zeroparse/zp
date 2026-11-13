@@ -14,8 +14,8 @@ import (
 	"zeroparse.dev/zp/core"
 	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/bytecode"
+	"zeroparse.dev/zp/internal/codegentest"
 	"zeroparse.dev/zp/internal/compile"
-	"zeroparse.dev/zp/internal/gentest"
 	"zeroparse.dev/zp/internal/value"
 )
 
@@ -23,7 +23,7 @@ import (
 // results as the original program.
 func TestCompiledRoundTrip(t *testing.T) {
 	t.Parallel()
-	for _, c := range gentest.GenCorpus(t) {
+	for _, c := range codegentest.GenCorpus(t) {
 		t.Run(c.Name, func(t *testing.T) {
 			checkCompiledRoundTrip(t, mustCompile(t, c.Src), c.Inputs)
 		})
@@ -74,8 +74,8 @@ func checkCompiledRoundTrip(t *testing.T, prog *Program, inputs []string) {
 		wantClosureRefused(t, err)
 		for _, in := range inputs {
 			for _, b := range []Backend{Default, Bytecode, BytecodeIterative} {
-				want := gentest.ResultJSON(prog.ParseWith("main", in, servedBy(mode, ParseOptions{Backend: b})))
-				if got := gentest.ResultJSON(loaded.ParseWith(start, in, servedBy(mode, ParseOptions{Backend: b}))); got != want {
+				want := codegentest.ResultJSON(prog.ParseWith("main", in, servedBy(mode, ParseOptions{Backend: b})))
+				if got := codegentest.ResultJSON(loaded.ParseWith(start, in, servedBy(mode, ParseOptions{Backend: b}))); got != want {
 					t.Errorf("%s mode %v: input %q\n original %s\n loaded   %s", mode, b, in, want, got)
 				}
 			}
@@ -87,7 +87,7 @@ func checkCompiledRoundTrip(t *testing.T, prog *Program, inputs []string) {
 // mode and incremental parsing with one loaded in document mode.
 func TestCompiledStreamAndDocument(t *testing.T) {
 	t.Parallel()
-	data, _ := mustCompile(t, gentest.Records).MarshalBinary("")
+	data, _ := mustCompile(t, codegentest.Records).MarshalBinary("")
 	prog, start, err := LoadProgram(data)
 	if err != nil || start != "" {
 		t.Fatalf("%v %q", err, start)
@@ -101,16 +101,16 @@ func TestCompiledStreamAndDocument(t *testing.T) {
 		t.Errorf("got %v, %v", got, err)
 	}
 
-	data, _ = mustCompile(t, gentest.IncrementalGrammar).MarshalBinary("main")
+	data, _ = mustCompile(t, codegentest.IncrementalGrammar).MarshalBinary("main")
 	prog, _, _ = LoadProgram(data)
 	if doc, err := prog.NewDocument("main", "x = 1+2\n"); doc != nil {
 		t.Errorf("document on a parse-mode program: %v", err)
 	} else {
 		wantModeRefused(t, err, CompiledParse, CompiledDocument)
 	}
-	data, _ = mustCompile(t, gentest.IncrementalGrammar).Marshal("main", CompiledDocument)
+	data, _ = mustCompile(t, codegentest.IncrementalGrammar).Marshal("main", CompiledDocument)
 	prog, _, _ = LoadProgram(data)
-	fresh := mustCompile(t, gentest.IncrementalGrammar)
+	fresh := mustCompile(t, codegentest.IncrementalGrammar)
 	doc, err := prog.NewDocument("main", "x = 1+2\nab,cd\n")
 	if err != nil {
 		t.Fatal(err)
@@ -119,14 +119,14 @@ func TestCompiledStreamAndDocument(t *testing.T) {
 	doc.Edit(4, 5, "(7)")
 	n, err := doc.Parse()
 	fn, ferr := fresh.Parse("main", doc.Text())
-	if gentest.ResultJSON(n, err) != gentest.ResultJSON(fn, ferr) || doc.Stats().Reused == 0 {
+	if codegentest.ResultJSON(n, err) != codegentest.ResultJSON(fn, ferr) || doc.Stats().Reused == 0 {
 		t.Errorf("document on loaded program: %v %v %+v", n, err, doc.Stats())
 	}
 }
 
 func TestCompiledErrors(t *testing.T) {
 	t.Parallel()
-	data, err := mustCompile(t, gentest.Arith).MarshalBinary("main")
+	data, err := mustCompile(t, codegentest.Arith).MarshalBinary("main")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -160,7 +160,7 @@ func TestCompiledErrors(t *testing.T) {
 			}
 		})
 	}
-	if _, err := mustCompile(t, gentest.Arith).MarshalBinary("nope"); err == nil {
+	if _, err := mustCompile(t, codegentest.Arith).MarshalBinary("nope"); err == nil {
 		t.Error("expected an error for an undefined start rule")
 	}
 }
@@ -209,7 +209,7 @@ func TestCompiledEarlierInstructionSet(t *testing.T) {
 func TestCompiledCorruptionDoesNotPanic(t *testing.T) {
 	t.Parallel()
 	var seeds [][]byte
-	for _, c := range gentest.GenCorpus(t) {
+	for _, c := range codegentest.GenCorpus(t) {
 		prog := mustCompile(t, c.Src)
 		for _, mode := range allModes {
 			data, err := prog.Marshal("main", mode)
@@ -252,7 +252,7 @@ func TestCompiledCorruptionDoesNotPanic(t *testing.T) {
 }
 
 func FuzzLoadProgram(f *testing.F) {
-	for _, src := range []string{gentest.Arith, gentest.AST, gentest.IncrementalGrammar, gentest.Records} {
+	for _, src := range []string{codegentest.Arith, codegentest.AST, codegentest.IncrementalGrammar, codegentest.Records} {
 		g := mustParse(src)
 		prog, err := Compile(g, compile.Options{})
 		if err != nil {
@@ -325,7 +325,7 @@ rule pair node[(string)] = [a-z]`
 		for _, in := range []string{"a", "ab", ""} {
 			n1, err1 := prog.Parse(rule, in)
 			n2, err2 := loaded.Parse(rule, in)
-			if a, b := gentest.ResultJSON(n1, err1), gentest.ResultJSON(n2, err2); a != b {
+			if a, b := codegentest.ResultJSON(n1, err1), codegentest.ResultJSON(n2, err2); a != b {
 				t.Errorf("%s %q\n original %s\n loaded   %s", rule, in, a, b)
 			}
 		}

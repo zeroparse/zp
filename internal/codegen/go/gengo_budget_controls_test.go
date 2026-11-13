@@ -10,12 +10,12 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/internal/codegen"
-	"zeroparse.dev/zp/internal/gentest"
+	"zeroparse.dev/zp/internal/codegentest"
 )
 
 func TestGeneratedGoBudgetControls(t *testing.T) {
 	t.Parallel()
-	gentest.NeedsBudgetControls(t)
+	codegentest.NeedsBudgetControls(t)
 	if testing.Short() {
 		t.Skip("builds generated budget-control consumers")
 	}
@@ -30,12 +30,12 @@ rule predicate Word = t:(!("a"* "é") "a"* "b") #atomic => Word{Text: text($t)}`
 		t.Fatal(err)
 	}
 	dir := t.TempDir()
-	if err := os.WriteFile(filepath.Join(dir, "go.mod"), []byte(gentest.GoMod("workfixture")), 0644); err != nil {
+	if err := os.WriteFile(filepath.Join(dir, "go.mod"), []byte(codegentest.GoMod("workfixture")), 0644); err != nil {
 		t.Fatal(err)
 	}
 	for _, convert := range []bool{false, true} {
 		pkg := fmt.Sprintf("budget_%v", convert)
-		code, err := gentest.GenerateCode(t, g, codegen.GenOptions{Package: pkg, Start: "main", Types: true, Recognize: true, ConvertTypes: convert})
+		code, err := codegentest.GenerateCode(t, g, codegen.GenOptions{Package: pkg, Start: "main", Types: true, Recognize: true, ConvertTypes: convert})
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -221,7 +221,7 @@ func TestConcurrentLimits(t *testing.T){
 
 func TestGeneratedGoConversionBudget(t *testing.T) {
 	t.Parallel()
-	gentest.NeedsBudgetControls(t)
+	codegentest.NeedsBudgetControls(t)
 	if testing.Short() {
 		t.Skip("builds generated conversion consumers")
 	}
@@ -238,11 +238,11 @@ rule leaf Leaf = t:("é") #atomic => Leaf{Text: text($t)}`)
 		t.Fatal(err)
 	}
 	dir := t.TempDir()
-	if err := os.WriteFile(filepath.Join(dir, "go.mod"), []byte(gentest.GoMod("gentest")), 0644); err != nil {
+	if err := os.WriteFile(filepath.Join(dir, "go.mod"), []byte(codegentest.GoMod("codegentest")), 0644); err != nil {
 		t.Fatal(err)
 	}
 	pkg := "conversion"
-	gentest.GeneratePackage(t, dir, pkg, g, codegen.GenOptions{Start: "main", Types: true, ConvertTypes: true})
+	codegentest.GeneratePackage(t, dir, pkg, g, codegen.GenOptions{Start: "main", Types: true, ConvertTypes: true})
 	fixture := strings.ReplaceAll(generatedGoConversionConsumer, "PACKAGE", pkg)
 	if err := os.WriteFile(filepath.Join(dir, pkg, "conversion_test.go"), []byte(fixture), 0644); err != nil {
 		t.Fatal(err)
@@ -257,7 +257,7 @@ rule leaf Leaf = t:("é") #atomic => Leaf{Text: text($t)}`)
 const generatedGoConversionConsumer = `package PACKAGE
 
 import zprt "zeroparse.dev/zp/codegen/go/lib"
-import("context";"errors";"reflect";"strings";"testing";"gentest/PACKAGE/types")
+import("context";"errors";"reflect";"strings";"testing";"codegentest/PACKAGE/types")
 func TestConversionVisits(t *testing.T){
  n,err:=Parse(strings.Repeat("é",100));if err!=nil{t.Fatal(err)}
  c:=zprt.X_newBudgetControl(context.Background(),Limits{Compute:100000})
@@ -324,17 +324,17 @@ rule main Limits = t:("é") #atomic => Limits{Text: text($t)}`)
 		t.Fatal(err)
 	}
 	dir := t.TempDir()
-	if err := os.WriteFile(filepath.Join(dir, "go.mod"), []byte(gentest.GoMod("budgetcollision")), 0644); err != nil {
+	if err := os.WriteFile(filepath.Join(dir, "go.mod"), []byte(codegentest.GoMod("budgetcollision")), 0644); err != nil {
 		t.Fatal(err)
 	}
 	for _, convert := range []bool{false, true} {
 		pkg := fmt.Sprintf("collision_%v", convert)
 		opts := codegen.GenOptions{Package: pkg, Module: "budgetcollision/" + pkg, Lib: codegen.LibImport, Start: "main", Types: true, ConvertTypes: convert, LimitControls: true}
-		files, err := gentest.Generate(t, g, opts)
+		files, err := codegentest.Generate(t, g, opts)
 		if err != nil {
 			t.Fatal(err)
 		}
-		again, err := gentest.Generate(t, g, opts)
+		again, err := codegentest.Generate(t, g, opts)
 		if err != nil || !slices.EqualFunc(files, again, func(a, b codegen.GeneratedFile) bool {
 			return a.Path == b.Path && string(a.Content) == string(b.Content)
 		}) {
@@ -384,7 +384,7 @@ func TestPublicNames(t *testing.T){
 
 func TestGeneratedGoNilBudgetPublication(t *testing.T) {
 	t.Parallel()
-	gentest.NeedsBudgetControls(t)
+	codegentest.NeedsBudgetControls(t)
 	if testing.Short() {
 		t.Skip("builds typed nil publication consumer")
 	}
@@ -398,12 +398,12 @@ rule letter Word = t:("é") #atomic => Word{Text: text($t)}`)
 	if err != nil {
 		t.Fatal(err)
 	}
-	code, err := gentest.GenerateCode(t, g, codegen.GenOptions{Package: "nilpublication", Start: "main", Types: true})
+	code, err := codegentest.GenerateCode(t, g, codegen.GenOptions{Package: "nilpublication", Start: "main", Types: true})
 	if err != nil {
 		t.Fatal(err)
 	}
 	dir := t.TempDir()
-	for name, data := range map[string][]byte{"go.mod": []byte(gentest.GoMod("nilpublication")), "parser.go": code, "nil_test.go": []byte(generatedGoNilPublicationConsumer)} {
+	for name, data := range map[string][]byte{"go.mod": []byte(codegentest.GoMod("nilpublication")), "parser.go": code, "nil_test.go": []byte(generatedGoNilPublicationConsumer)} {
 		if err := os.WriteFile(filepath.Join(dir, name), data, 0644); err != nil {
 			t.Fatal(err)
 		}
@@ -472,7 +472,7 @@ func TestRecoveredNilClonePublication(t *testing.T){
 
 func TestGeneratedGoLegacyNilControls(t *testing.T) {
 	t.Parallel()
-	gentest.NeedsBudgetControls(t)
+	codegentest.NeedsBudgetControls(t)
 	if testing.Short() {
 		t.Skip("builds configured legacy nil consumers")
 	}
@@ -484,12 +484,12 @@ rule leaf Word = t:("é") #atomic => Word{Text: text($t)}`)
 	if err != nil {
 		t.Fatal(err)
 	}
-	code, err := gentest.GenerateCode(t, g, codegen.GenOptions{Package: "legacynil", Start: "main", Types: true})
+	code, err := codegentest.GenerateCode(t, g, codegen.GenOptions{Package: "legacynil", Start: "main", Types: true})
 	if err != nil {
 		t.Fatal(err)
 	}
 	dir := t.TempDir()
-	for name, data := range map[string][]byte{"go.mod": []byte(gentest.GoMod("legacynil")), "parser.go": code, "nil_test.go": []byte(generatedGoLegacyNilConsumer)} {
+	for name, data := range map[string][]byte{"go.mod": []byte(codegentest.GoMod("legacynil")), "parser.go": code, "nil_test.go": []byte(generatedGoLegacyNilConsumer)} {
 		if err := os.WriteFile(filepath.Join(dir, name), data, 0644); err != nil {
 			t.Fatal(err)
 		}
@@ -534,7 +534,7 @@ func TestLegacyAndInterruptedNil(t *testing.T){
 
 func TestGeneratedGoConfiguredNilOrdinaryErrors(t *testing.T) {
 	t.Parallel()
-	gentest.NeedsBudgetControls(t)
+	codegentest.NeedsBudgetControls(t)
 	if testing.Short() {
 		t.Skip("builds configured nil error consumers")
 	}
@@ -549,13 +549,13 @@ rule recurse = "a" recurse?`, "aa", "Depth: 1"},
 			if err != nil {
 				t.Fatal(err)
 			}
-			code, err := gentest.GenerateCode(t, g, codegen.GenOptions{Package: "ordinarynil", Start: "main", Types: true})
+			code, err := codegentest.GenerateCode(t, g, codegen.GenOptions{Package: "ordinarynil", Start: "main", Types: true})
 			if err != nil {
 				t.Fatal(err)
 			}
 			consumer := strings.NewReplacer("INPUT", fmt.Sprintf("%q", tc.input), "OPTION", tc.option).Replace(generatedGoOrdinaryNilErrorConsumer)
 			dir := t.TempDir()
-			for name, data := range map[string][]byte{"go.mod": []byte(gentest.GoMod("ordinarynil")), "parser.go": code, "nil_test.go": []byte(consumer)} {
+			for name, data := range map[string][]byte{"go.mod": []byte(codegentest.GoMod("ordinarynil")), "parser.go": code, "nil_test.go": []byte(consumer)} {
 				if err := os.WriteFile(filepath.Join(dir, name), data, 0644); err != nil {
 					t.Fatal(err)
 				}

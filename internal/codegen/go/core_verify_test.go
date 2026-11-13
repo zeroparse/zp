@@ -7,7 +7,7 @@ import (
 
 	"zeroparse.dev/zp/internal/codegen"
 	"zeroparse.dev/zp/internal/codegen/go"
-	"zeroparse.dev/zp/internal/gentest"
+	"zeroparse.dev/zp/internal/codegentest"
 	"zeroparse.dev/zp/internal/ir/core"
 	"zeroparse.dev/zp/internal/ir/exec"
 	"zeroparse.dev/zp/internal/ir/pipeline"
@@ -80,12 +80,12 @@ rule num = [0-9]+
 	opts := codegen.GenOptions{Types: true, TypedOnly: true, Module: "example.com/p", Lib: codegen.LibImport}
 	hooks := &gogen.Hooks{CoreRun: withBrokenGuards()}
 
-	_, err = gogen.GenerateParser(pg, gentest.Compile, gentest.WithLib(opts), hooks)
+	_, err = gogen.GenerateParser(pg, codegentest.Compile, codegentest.WithLib(opts), hooks)
 	if err == nil || !strings.Contains(err.Error(), "verification:") || strings.Contains(err.Error(), "break-guard") {
 		t.Fatalf("without VerifyEachPass: %v", err)
 	}
 	opts.VerifyEachPass = true
-	_, err = gogen.GenerateParser(pg, gentest.Compile, gentest.WithLib(opts), hooks)
+	_, err = gogen.GenerateParser(pg, codegentest.Compile, codegentest.WithLib(opts), hooks)
 	if err == nil || !strings.Contains(err.Error(), "after pass break-guard:") {
 		t.Fatalf("with VerifyEachPass: %v", err)
 	}
@@ -120,9 +120,9 @@ rule num = [0-9]+
 	for _, c := range pipelineTables {
 		t.Run(c.table, func(t *testing.T) {
 			seen := 0
-			hooks := &gogen.Hooks{FlowRun: gentest.BrokenFlowRun(c.table, &seen)}
+			hooks := &gogen.Hooks{FlowRun: codegentest.BrokenFlowRun(c.table, &seen)}
 			opts := c.opts
-			_, err := gogen.GenerateParser(pg, gentest.Compile, gentest.WithLib(opts), hooks)
+			_, err := gogen.GenerateParser(pg, codegentest.Compile, codegentest.WithLib(opts), hooks)
 			if err == nil || !strings.Contains(err.Error(), "of table "+c.table+": ") || !strings.Contains(err.Error(), "verification:") || strings.Contains(err.Error(), "break-flow") {
 				t.Fatalf("without VerifyEachPass: %v", err)
 			}
@@ -130,7 +130,7 @@ rule num = [0-9]+
 				t.Fatal("no function ran through the Flow pipeline")
 			}
 			opts.VerifyEachPass = true
-			_, err = gogen.GenerateParser(pg, gentest.Compile, gentest.WithLib(opts), hooks)
+			_, err = gogen.GenerateParser(pg, codegentest.Compile, codegentest.WithLib(opts), hooks)
 			if err == nil || !strings.Contains(err.Error(), "of table "+c.table+": ") || !strings.Contains(err.Error(), "after pass break-flow:") {
 				t.Fatalf("with VerifyEachPass: %v", err)
 			}
@@ -152,9 +152,9 @@ rule num = [0-9]+
 	for _, c := range pipelineTables {
 		t.Run(c.table, func(t *testing.T) {
 			seen := 0
-			hooks := &gogen.Hooks{ExecRun: gentest.BrokenExecRun(c.table, &seen)}
+			hooks := &gogen.Hooks{ExecRun: codegentest.BrokenExecRun(c.table, &seen)}
 			opts := c.opts
-			_, err := gogen.GenerateParser(pg, gentest.Compile, gentest.WithLib(opts), hooks)
+			_, err := gogen.GenerateParser(pg, codegentest.Compile, codegentest.WithLib(opts), hooks)
 			if err == nil || !strings.Contains(err.Error(), "of table "+c.table+": ") || !strings.Contains(err.Error(), "verification:") || strings.Contains(err.Error(), "break-exec") {
 				t.Fatalf("without VerifyEachPass: %v", err)
 			}
@@ -162,7 +162,7 @@ rule num = [0-9]+
 				t.Fatal("no module ran through the Exec pipeline")
 			}
 			opts.VerifyEachPass = true
-			_, err = gogen.GenerateParser(pg, gentest.Compile, gentest.WithLib(opts), hooks)
+			_, err = gogen.GenerateParser(pg, codegentest.Compile, codegentest.WithLib(opts), hooks)
 			if err == nil || !strings.Contains(err.Error(), "of table "+c.table+": ") || !strings.Contains(err.Error(), "after pass break-exec:") {
 				t.Fatalf("with VerifyEachPass: %v", err)
 			}
@@ -177,7 +177,7 @@ func TestPrintAfterNeedsAWriter(t *testing.T) {
 		t.Fatal(err)
 	}
 	opts := codegen.GenOptions{Types: true, TypedOnly: true, Module: "example.com/p", Lib: codegen.LibImport, PrintAfter: "guards"}
-	if _, err := gogen.GenerateParser(pg, gentest.Compile, gentest.WithLib(opts), nil); err == nil || !strings.Contains(err.Error(), "PrintTo") {
+	if _, err := gogen.GenerateParser(pg, codegentest.Compile, codegentest.WithLib(opts), nil); err == nil || !strings.Contains(err.Error(), "PrintTo") {
 		t.Fatalf("err %v", err)
 	}
 }
@@ -214,7 +214,7 @@ rule num = [0-9]+
 				return ran, err
 			}}
 			opts := codegen.GenOptions{Module: "example.com/p", Lib: codegen.LibImport}
-			if _, err := gogen.GenerateParser(pg, gentest.Compile, gentest.WithLib(opts), hooks); err == nil || !strings.Contains(err.Error(), c.want) {
+			if _, err := gogen.GenerateParser(pg, codegentest.Compile, codegentest.WithLib(opts), hooks); err == nil || !strings.Contains(err.Error(), c.want) {
 				t.Fatalf("err %v, want %q", err, c.want)
 			}
 		})

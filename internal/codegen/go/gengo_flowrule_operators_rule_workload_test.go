@@ -7,13 +7,13 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/internal/codegen"
-	"zeroparse.dev/zp/internal/gentest"
+	"zeroparse.dev/zp/internal/codegentest"
 )
 
 // ZP_TYPED_OPERATORS_RULE_DIR preserves latest-generator controls for paired timing.
 func TestGeneratedTypedOperatorsRuleWorkload(t *testing.T) {
 	t.Parallel()
-	gentest.EachMode(t, testGeneratedTypedOperatorsRuleWorkload)
+	codegentest.EachMode(t, testGeneratedTypedOperatorsRuleWorkload)
 }
 
 func testGeneratedTypedOperatorsRuleWorkload(t *testing.T) {
@@ -35,7 +35,7 @@ func testGeneratedTypedOperatorsRuleWorkload(t *testing.T) {
 
 func TestGeneratedTypedOperatorsRuleActionWorkload(t *testing.T) {
 	t.Parallel()
-	gentest.EachMode(t, testGeneratedTypedOperatorsRuleActionWorkload)
+	codegentest.EachMode(t, testGeneratedTypedOperatorsRuleActionWorkload)
 }
 
 func testGeneratedTypedOperatorsRuleActionWorkload(t *testing.T) {

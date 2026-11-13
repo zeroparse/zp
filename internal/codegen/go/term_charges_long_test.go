@@ -9,7 +9,7 @@ import (
 	"sync/atomic"
 	"testing"
 
-	"zeroparse.dev/zp/internal/gentest"
+	"zeroparse.dev/zp/internal/codegentest"
 )
 
 // TestTermChargeGoldensDetectBrokenCharges checks that the term charge goldens notice generated Go that
@@ -21,22 +21,22 @@ import (
 //   - the elements that a tuple, a list, a concat or a struct literal makes charge no step.
 func TestTermChargeGoldensDetectBrokenCharges(t *testing.T) {
 	t.Parallel()
-	gentest.NeedsBudgetControls(t)
+	codegentest.NeedsBudgetControls(t)
 	if testing.Short() {
 		t.Skip("builds generated consumers")
 	}
 	cutName := regexp.MustCompile(`"\$(\w+)"\[1:\]`)
 	for _, m := range []struct {
 		name, golden, prefix string
-		cases                func() []gentest.TermCase
+		cases                func() []codegentest.TermCase
 		mutate               func([]byte) ([]byte, int)
 	}{
-		{"a capture member passes the bare name", "testdata/term_charges_member.golden", "termchargesmember", gentest.MemberTermCases,
+		{"a capture member passes the bare name", "testdata/term_charges_member.golden", "termchargesmember", codegentest.MemberTermCases,
 			func(src []byte) ([]byte, int) {
 				return cutName.ReplaceAll(src, []byte(`"$1"`)), len(cutName.FindAllIndex(src, -1))
 			}},
-		{"struct fields charge no step", "testdata/term_charges_struct.golden", "termchargesstruct", gentest.StructTermCases, dropElementSteps},
-		{"pushed elements charge no step", "testdata/term_charges_push.golden", "termchargespush", gentest.PushTermCases, dropElementSteps},
+		{"struct fields charge no step", "testdata/term_charges_struct.golden", "termchargesstruct", codegentest.StructTermCases, dropElementSteps},
+		{"pushed elements charge no step", "testdata/term_charges_push.golden", "termchargespush", codegentest.PushTermCases, dropElementSteps},
 	} {
 		t.Run(m.name, func(t *testing.T) {
 			t.Parallel()
@@ -49,7 +49,7 @@ func TestTermChargeGoldensDetectBrokenCharges(t *testing.T) {
 			if hits.Load() == 0 {
 				t.Fatalf("the mutant %q matches no generated parser", m.name)
 			}
-			want := gentest.ReadGolden(t, m.golden)
+			want := codegentest.ReadGolden(t, m.golden)
 			differ := 0
 			for k, v := range got {
 				w, ok := want[k]

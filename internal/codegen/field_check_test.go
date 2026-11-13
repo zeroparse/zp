@@ -7,12 +7,12 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/internal/codegen"
-	"zeroparse.dev/zp/internal/gentest"
+	"zeroparse.dev/zp/internal/codegentest"
 )
 
 func TestGeneratedConstructedFieldChecks(t *testing.T) {
 	t.Parallel()
-	gentest.EachMode(t, testGeneratedConstructedFieldChecks)
+	codegentest.EachMode(t, testGeneratedConstructedFieldChecks)
 }
 
 func testGeneratedConstructedFieldChecks(t *testing.T) {
@@ -20,11 +20,11 @@ func testGeneratedConstructedFieldChecks(t *testing.T) {
 		t.Skip("builds generated consumers")
 	}
 	goBin := filepath.Join(runtime.GOROOT(), "bin", "go")
-	cases := gentest.FieldCheckCases()
-	gentest.GeneratedParsersCorpus(t, goBin, cases, codegen.GenOptions{})
-	gentest.GeneratedTypesCorpus(t, goBin, cases, codegen.GenOptions{ConvertTypes: true})
+	cases := codegentest.FieldCheckCases()
+	codegentest.GeneratedParsersCorpus(t, goBin, cases, codegen.GenOptions{})
+	codegentest.GeneratedTypesCorpus(t, goBin, cases, codegen.GenOptions{ConvertTypes: true})
 	if node, err := exec.LookPath("node"); err == nil {
-		gentest.TSParsersCorpus(t, node, cases, codegen.GenOptions{})
+		codegentest.TSParsersCorpus(t, node, cases, codegen.GenOptions{})
 	} else {
 		t.Error("Node is required for field-check parity")
 	}

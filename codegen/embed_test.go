@@ -9,7 +9,7 @@ import (
 
 	"zeroparse.dev/zp/codegen"
 	"zeroparse.dev/zp/engine"
-	"zeroparse.dev/zp/internal/gentest"
+	"zeroparse.dev/zp/internal/codegentest"
 )
 
 // TestGenerateGoEmbeddedPackageBuilds generates a parser with the library embedded, as zp gen does
@@ -54,7 +54,7 @@ rule main Pair = k:[a-z]+ #atomic "=" v:[0-9]+ #atomic => Pair{Key: $k, Value: $
 	}
 	// The package and its copy of the library import only core and core/noderep of zeroparse.dev/zp,
 	// which a partial copy of this module holds.
-	write("go.mod", gentest.GoModAt("example.com/embedded/v2", gentest.LibCopy()))
+	write("go.mod", codegentest.GoModAt("example.com/embedded/v2", codegentest.LibCopy()))
 	write("embedded_test.go", `package embedded
 
 import "testing"

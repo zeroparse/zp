@@ -5,8 +5,8 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/core"
+	"zeroparse.dev/zp/internal/codegentest"
 	"zeroparse.dev/zp/internal/compile"
-	"zeroparse.dev/zp/internal/gentest"
 )
 
 // operatorsNodeTypeNames returns the type names of the nodes of n, pre-order, with their children
@@ -35,7 +35,7 @@ func operatorsNodeTypeNames(n *core.Node) string {
 // value of $op) are not operator nodes and keep their types.
 func TestOperatorsRuleNamedNodeTypeShape(t *testing.T) {
 	t.Parallel()
-	cases := gentest.OperatorsNamedNodeCases()
+	cases := codegentest.OperatorsNamedNodeCases()
 	for _, sourceInfo := range []bool{false, true} {
 		{
 			prog := compileBare(t, cases[0].Src, compile.Options{SourceInfo: sourceInfo})
@@ -67,14 +67,14 @@ func TestOperatorsRuleNamedNodeTypeShape(t *testing.T) {
 // backends build the same trees for an Operators Rule with and without a named node type.
 func TestOperatorsRuleNamedNodeTypeAcrossBackends(t *testing.T) {
 	t.Parallel()
-	for _, c := range gentest.OperatorsNamedNodeCases() {
+	for _, c := range codegentest.OperatorsNamedNodeCases() {
 		for _, sourceInfo := range []bool{false, true} {
 			{
 				prog := compileBare(t, c.Src, compile.Options{SourceInfo: sourceInfo})
 				for _, input := range c.Inputs {
-					want := gentest.ResultJSON(prog.ParseWith("main", input, ParseOptions{Backend: Closure}))
+					want := codegentest.ResultJSON(prog.ParseWith("main", input, ParseOptions{Backend: Closure}))
 					for _, backend := range []Backend{Bytecode, BytecodeIterative} {
-						if got := gentest.ResultJSON(prog.ParseWith("main", input, ParseOptions{Backend: backend})); got != want {
+						if got := codegentest.ResultJSON(prog.ParseWith("main", input, ParseOptions{Backend: backend})); got != want {
 							t.Errorf("%s sourceInfo=%t %s %q:\n got %s\nwant %s", c.Name, sourceInfo, backend, input, got, want)
 						}
 					}
@@ -88,7 +88,7 @@ func TestOperatorsRuleNamedNodeTypeAcrossBackends(t *testing.T) {
 // whose operator nodes are all converted, across edits.
 func TestOperatorsRuleNamedNodeTypeDocument(t *testing.T) {
 	t.Parallel()
-	prog := mustCompile(t, gentest.OperatorsNamedNodeCases()[0].Src)
+	prog := mustCompile(t, codegentest.OperatorsNamedNodeCases()[0].Src)
 	for _, backend := range []Backend{Closure, Bytecode, BytecodeIterative} {
 		opts := ParseOptions{Backend: backend}
 		doc, err := prog.NewDocumentWith("main", "1+2*3+(4-5)!", opts)
@@ -104,7 +104,7 @@ func TestOperatorsRuleNamedNodeTypeDocument(t *testing.T) {
 			}
 			n, err := doc.Parse()
 			fresh, ferr := prog.ParseWith("main", doc.Text(), opts)
-			if got, want := gentest.ResultJSON(n, err), gentest.ResultJSON(fresh, ferr); got != want {
+			if got, want := codegentest.ResultJSON(n, err), codegentest.ResultJSON(fresh, ferr); got != want {
 				t.Fatalf("%s edit %d %q: got %s; fresh %s", backend, i, doc.Text(), got, want)
 			}
 			if err == nil && strings.Contains(operatorsNodeTypeNames(n), "tuple(") && !strings.Contains(doc.Text(), "[") {
@@ -117,7 +117,7 @@ func TestOperatorsRuleNamedNodeTypeDocument(t *testing.T) {
 // An Operators Rule without a named node type keeps the tuple nodes of its operators.
 func TestOperatorsRuleWithoutNamedNodeTypeKeepsTuples(t *testing.T) {
 	t.Parallel()
-	prog := compileBare(t, gentest.OperatorsNamedNodeCases()[1].Src)
+	prog := compileBare(t, codegentest.OperatorsNamedNodeCases()[1].Src)
 	n, err := prog.Parse("main", "-1+2!")
 	if err != nil {
 		t.Fatal(err)

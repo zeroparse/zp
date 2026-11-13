@@ -8,7 +8,7 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/internal/codegen"
-	"zeroparse.dev/zp/internal/gentest"
+	"zeroparse.dev/zp/internal/codegentest"
 )
 
 // A hidden rule, and the rule of an inline action, is not an entry point of a TypeScript parser
@@ -29,7 +29,7 @@ rule _c = "c"`)
 	if err != nil {
 		t.Fatal(err)
 	}
-	files, err := gentest.GenerateTS(g, codegen.GenOptions{Start: "main"})
+	files, err := codegentest.GenerateTS(g, codegen.GenOptions{Start: "main"})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -56,7 +56,7 @@ process.stdout.write("ok\n");
 	if err := os.WriteFile(filepath.Join(dir, "consumer.ts"), []byte(consumer), 0o644); err != nil {
 		t.Fatal(err)
 	}
-	cmd := exec.Command(node, gentest.NodeTSArgs("consumer.ts")...)
+	cmd := exec.Command(node, codegentest.NodeTSArgs("consumer.ts")...)
 	cmd.Dir = dir
 	if out, err := cmd.CombinedOutput(); err != nil || !strings.Contains(string(out), "ok") {
 		t.Fatalf("node: %v\n%s", err, out)

@@ -12,7 +12,7 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/internal/codegen"
-	"zeroparse.dev/zp/internal/gentest"
+	"zeroparse.dev/zp/internal/codegentest"
 )
 
 // leaves returns the strings of a value in order: the quoted tokens of a node tree, or the string
@@ -57,16 +57,16 @@ var tupleKey = regexp.MustCompile(`^E\d+$`)
 // element. The typed values of every generated route keep the tokens of the node tree, in order.
 func TestGeneratedRecursiveSpliceTypesKeepTheTree(t *testing.T) {
 	t.Parallel()
-	gentest.EachMode(t, testGeneratedRecursiveSpliceTypesKeepTheTree)
+	codegentest.EachMode(t, testGeneratedRecursiveSpliceTypesKeepTheTree)
 }
 
 func testGeneratedRecursiveSpliceTypesKeepTheTree(t *testing.T) {
 	if testing.Short() {
 		t.Skip("builds generated code")
 	}
-	cases := gentest.SpliceTypeCases(t)
+	cases := codegentest.SpliceTypeCases(t)
 	dir := t.TempDir()
-	if err := os.WriteFile(filepath.Join(dir, "go.mod"), []byte(gentest.GoMod("splicefix")), 0o644); err != nil {
+	if err := os.WriteFile(filepath.Join(dir, "go.mod"), []byte(codegentest.GoMod("splicefix")), 0o644); err != nil {
 		t.Fatal(err)
 	}
 	var imports, table strings.Builder
@@ -75,7 +75,7 @@ func testGeneratedRecursiveSpliceTypesKeepTheTree(t *testing.T) {
 		if err != nil {
 			t.Fatalf("%s: %v", c.Name, err)
 		}
-		gentest.GeneratePackageIn(t, dir, "splicefix", fmt.Sprintf("g%d", i), g, codegen.GenOptions{Start: "main", Types: true})
+		codegentest.GeneratePackageIn(t, dir, "splicefix", fmt.Sprintf("g%d", i), g, codegen.GenOptions{Start: "main", Types: true})
 		fmt.Fprintf(&imports, "\tg%d \"splicefix/g%[1]d\"\n", i)
 		fmt.Fprintf(&table, "\tfunc(s string) [4]string { n, e1 := g%d.Parse(s); v, e2 := g%[1]d.ParseValue(s); b, _ := json.Marshal(v); return [4]string{fmt.Sprint(n), string(b), fmt.Sprint(e1 != nil), fmt.Sprint(e2 != nil)} },\n", i)
 	}
@@ -128,10 +128,10 @@ func testGeneratedRecursiveSpliceTypesKeepTheTree(t *testing.T) {
 				continue // no tree
 			}
 			var tokens []string
-			for _, m := range gentest.SpliceQuoted.FindAllStringSubmatch(row[0], -1) {
+			for _, m := range codegentest.SpliceQuoted.FindAllStringSubmatch(row[0], -1) {
 				tokens = append(tokens, m[1])
 			}
-			want := gentest.SpliceWantLeaves(c.Name, s, tokens)
+			want := codegentest.SpliceWantLeaves(c.Name, s, tokens)
 			var v any
 			if err := json.Unmarshal([]byte(row[1]), &v); err != nil {
 				t.Fatalf("%s %q: %v", c.Name, s, err)

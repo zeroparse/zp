@@ -11,8 +11,8 @@ import (
 	"time"
 
 	"zeroparse.dev/zp/core"
+	"zeroparse.dev/zp/internal/codegentest"
 	ecore "zeroparse.dev/zp/internal/engine/core"
-	"zeroparse.dev/zp/internal/gentest"
 )
 
 // docLines is a grammar of the class Linear whose rules are all transient, so that a fresh parse does
@@ -120,7 +120,7 @@ func TestBudgetDocumentCountedWorkWithinFresh(t *testing.T) {
 		edits     []string
 	}{
 		{"lines", docLines, func(n int) string { return strings.Repeat("ab cd\n", n) }, []string{"x", "\n", "ab cd\n", ""}},
-		{"incremental", gentest.IncrementalGrammar, func(n int) string {
+		{"incremental", codegentest.IncrementalGrammar, func(n int) string {
 			return strings.Repeat("x = 1+2*(3-4)\nab,cd,ef\n@pos\n\n", n)
 		}, []string{"a", "1", "\n", " = ", "(", ")", ""}},
 		{"recover", `rule main = ("a" @error("need a") #recover(skip=.))* $$`, func(n int) string { return strings.Repeat("aab", n) }, []string{"a", "b", ""}},

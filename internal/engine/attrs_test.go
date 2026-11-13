@@ -6,8 +6,8 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/core"
+	"zeroparse.dev/zp/internal/codegentest"
 	"zeroparse.dev/zp/internal/compile"
-	"zeroparse.dev/zp/internal/gentest"
 )
 
 func TestErrorAttribute(t *testing.T) {
@@ -182,7 +182,7 @@ func TestRecoverWithoutValueAddsNoElement(t *testing.T) {
 			checkBackends(t, prog, "main", in)
 		}
 	}
-	for _, c := range gentest.RecoverNoValueCases {
+	for _, c := range codegentest.RecoverNoValueCases {
 		prog := mustCompile(t, c.Src)
 		for _, in := range c.Inputs {
 			checkBackends(t, prog, "main", in)
@@ -223,7 +223,7 @@ func TestRecoverWithValueIsOneElement(t *testing.T) {
 // stays without one: each grammar's predicate sees the elements in the length of a capture.
 func TestRecoverBottomGivesError(t *testing.T) {
 	t.Parallel()
-	for _, c := range gentest.RecoverBottomCases {
+	for _, c := range codegentest.RecoverBottomCases {
 		prog := mustCompile(t, c.Src)
 		for i, in := range c.Inputs {
 			for _, b := range []Backend{Closure, Bytecode, BytecodeIterative} {

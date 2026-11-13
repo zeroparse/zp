@@ -7,15 +7,15 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/internal/codegen"
+	"zeroparse.dev/zp/internal/codegentest"
 	"zeroparse.dev/zp/internal/compile"
-	"zeroparse.dev/zp/internal/gentest"
 	"zeroparse.dev/zp/internal/ir/core"
 	irbuild "zeroparse.dev/zp/internal/ir/core/build"
 )
 
 // coreCorpusProgram compiles a corpus grammar for the Core IR tests, or reports false for a
 // grammar that does not compile or that generated parsers refuse (#missing).
-func coreCorpusProgram(t *testing.T, c gentest.Case) (*Program, bool) {
+func coreCorpusProgram(t *testing.T, c codegentest.Case) (*Program, bool) {
 	t.Helper()
 	g, err := parseTest(c.Src)
 	if err != nil {
@@ -33,7 +33,7 @@ func coreCorpusProgram(t *testing.T, c gentest.Case) (*Program, bool) {
 // generated Node rules use, which the typed rules share.
 func TestCoreBuildCorpus(t *testing.T) {
 	t.Parallel()
-	cases := gentest.CorpusWithParsers(t)
+	cases := codegentest.CorpusWithParsers(t)
 	built := 0
 	for _, ok := range mapParallel(len(cases), func(i int) bool { return checkCoreBuild(t, cases[i]) }) {
 		if ok {
@@ -64,7 +64,7 @@ func mapParallel[T any](n int, f func(i int) T) []T {
 
 // checkCoreBuild builds, analyzes and verifies the Core IR of the grammar c and compares its scopes
 // with the generated Node rules. It reports whether it built the grammar.
-func checkCoreBuild(t *testing.T, c gentest.Case) bool {
+func checkCoreBuild(t *testing.T, c codegentest.Case) bool {
 	prog, ok := coreCorpusProgram(t, c)
 	if !ok {
 		return false

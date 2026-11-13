@@ -7,9 +7,9 @@ import (
 	"runtime"
 	"testing"
 
-	gcsv "zeroparse.dev/zp/internal/bench/gen/csv"
-	gjson "zeroparse.dev/zp/internal/bench/gen/json"
-	gxml "zeroparse.dev/zp/internal/bench/gen/xml"
+	gcsv "zeroparse.dev/zp/internal/bench/parsers/csv"
+	gjson "zeroparse.dev/zp/internal/bench/parsers/json"
+	gxml "zeroparse.dev/zp/internal/bench/parsers/xml"
 	"zeroparse.dev/zp/internal/bench/inputs"
 )
 

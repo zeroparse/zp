@@ -4,12 +4,12 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/internal/codegen"
-	"zeroparse.dev/zp/internal/gentest"
+	"zeroparse.dev/zp/internal/codegentest"
 )
 
 func TestGeneratedTypedTSNodeConstructors(t *testing.T) {
 	t.Parallel()
-	runTypedTSFixture(t, gentest.ConstructorGrammar, `import {parseValue, parse, CodePoints, Bytes} from "./parser.ts";
+	runTypedTSFixture(t, codegentest.ConstructorGrammar, `import {parseValue, parse, CodePoints, Bytes} from "./parser.ts";
 `+tsTypedAssert+`
 for (const unit of [CodePoints, Bytes]) {
   const r = parseValue("😀", unit);

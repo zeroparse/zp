@@ -11,10 +11,10 @@ import (
 	"zeroparse.dev/zp/core"
 	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/codegen"
+	"zeroparse.dev/zp/internal/codegentest"
 	"zeroparse.dev/zp/internal/compile"
 	"zeroparse.dev/zp/internal/compiletest"
 	"zeroparse.dev/zp/internal/engine"
-	"zeroparse.dev/zp/internal/gentest"
 )
 
 // TestGeneratedSourceParserMatchesEngine runs the canonical grammar as a generated Go parser on the
@@ -31,7 +31,7 @@ func TestGeneratedSourceParserMatchesEngine(t *testing.T) {
 		t.Skip("go command not found")
 	}
 	// The generator and the comparison compile with the engine, as the tests of the generator do.
-	gentest.Compile = func(g *grammar.Grammar, opts compile.Options) (*compile.Program, func() (*compile.Program, error), error) {
+	codegentest.Compile = func(g *grammar.Grammar, opts compile.Options) (*compile.Program, func() (*compile.Program, error), error) {
 		prog, err := engine.Compile(g, opts)
 		if err != nil {
 			return nil, nil, err
@@ -44,7 +44,7 @@ func TestGeneratedSourceParserMatchesEngine(t *testing.T) {
 			return rec.Static(), nil
 		}, nil
 	}
-	gentest.Reference = func(t *testing.T, src string, opts compile.Options) gentest.ReferenceParse {
+	codegentest.Reference = func(t *testing.T, src string, opts compile.Options) codegentest.ReferenceParse {
 		g, err := compiletest.Parse(src)
 		if err != nil {
 			t.Fatal(err)
@@ -70,12 +70,12 @@ func TestGeneratedSourceParserMatchesEngine(t *testing.T) {
 	for i := 0; i < generatedMutations; i++ {
 		inputs = append(inputs, mutatedSource(rng, corpus))
 	}
-	cases := []gentest.Case{{Name: "zp.zp", Src: self, Inputs: inputs}}
+	cases := []codegentest.Case{{Name: "zp.zp", Src: self, Inputs: inputs}}
 	// Control: the generated parser builds the name of a rule from the expression of its body. The
 	// comparison must notice.
 	t.Run("control", func(t *testing.T) {
 		hits := 0
-		got := gentest.GeneratedParsersMismatches(t, goBin, cases, codegen.GenOptions{}, func(code []byte) []byte {
+		got := codegentest.GeneratedParsersMismatches(t, goBin, cases, codegen.GenOptions{}, func(code []byte) []byte {
 			changed, n := ruleNameFromExpr(string(code))
 			hits += n
 			return []byte(changed)
@@ -87,9 +87,9 @@ func TestGeneratedSourceParserMatchesEngine(t *testing.T) {
 			t.Errorf("the comparison does not notice a changed rule name (%d changes)", hits)
 		}
 	})
-	t.Run("values", func(t *testing.T) { gentest.GeneratedParsersCorpus(t, goBin, cases, codegen.GenOptions{}) })
+	t.Run("values", func(t *testing.T) { codegentest.GeneratedParsersCorpus(t, goBin, cases, codegen.GenOptions{}) })
 	t.Run("source info", func(t *testing.T) {
-		gentest.GeneratedParsersCorpus(t, goBin, cases, codegen.GenOptions{SourceInfo: true})
+		codegentest.GeneratedParsersCorpus(t, goBin, cases, codegen.GenOptions{SourceInfo: true})
 	})
 }
 

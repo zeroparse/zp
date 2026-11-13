@@ -6,7 +6,7 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/internal/codegen"
-	"zeroparse.dev/zp/internal/gentest"
+	"zeroparse.dev/zp/internal/codegentest"
 )
 
 // TestGeneratedCallProtocolMatchesEngine compares the results and errors of node and typed parsers
@@ -16,10 +16,10 @@ func TestGeneratedCallProtocolMatchesEngine(t *testing.T) {
 	if testing.Short() {
 		t.Skip("builds generated code")
 	}
-	gentest.PinOrdinary(t)
+	codegentest.PinOrdinary(t)
 	goBin := filepath.Join(runtime.GOROOT(), "bin", "go")
-	gentest.GeneratedParsersCorpus(t, goBin, gentest.CallProtocolCases(), codegen.GenOptions{})
-	gentest.GeneratedTypesCorpus(t, goBin, gentest.CallProtocolCases(), codegen.GenOptions{})
+	codegentest.GeneratedParsersCorpus(t, goBin, codegentest.CallProtocolCases(), codegen.GenOptions{})
+	codegentest.GeneratedTypesCorpus(t, goBin, codegentest.CallProtocolCases(), codegen.GenOptions{})
 }
 
 // TestCallProtocolBudget checks the budget totals, polls and results of the call protocol cases with
@@ -27,11 +27,11 @@ func TestGeneratedCallProtocolMatchesEngine(t *testing.T) {
 // restore of the parser state changes a total or a result.
 func TestCallProtocolBudget(t *testing.T) {
 	t.Parallel()
-	gentest.NeedsBudgetControls(t)
+	codegentest.NeedsBudgetControls(t)
 	if testing.Short() {
 		t.Skip("builds generated consumers")
 	}
-	cases := gentest.CallProtocolCases()
+	cases := codegentest.CallProtocolCases()
 	got, problems := budgetTotals(t, "call protocol", cases, "main", nil)
 	for _, p := range problems {
 		t.Error(p)

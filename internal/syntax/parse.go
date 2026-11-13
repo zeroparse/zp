@@ -8,7 +8,7 @@ import (
 	"strings"
 
 	"zeroparse.dev/zp/grammar"
-	"zeroparse.dev/zp/internal/syntax/genparser"
+	"zeroparse.dev/zp/internal/syntax/grammarparser"
 	"zeroparse.dev/zp/internal/syntax/sourceast"
 )
 
@@ -17,7 +17,7 @@ import (
 // above what maxLevels allows, so that its recursion stays bounded on a source that the lexer
 // rejects. Compute is unlimited: the recovery of the grammar is linear, and a caller stops a long
 // parse with its context.
-var sourceLimits = genparser.WithLimits(genparser.Limits{Compute: genparser.Unlimited})
+var sourceLimits = grammarparser.WithLimits(grammarparser.Limits{Compute: grammarparser.Unlimited})
 
 // Parse parses the ZeroParse source code src.
 //
@@ -29,7 +29,7 @@ var sourceLimits = genparser.WithLimits(genparser.Limits{Compute: genparser.Unli
 func Parse(src string) (*grammar.Grammar, error) {
 	lx := lexSource(src)
 	text, invalid := lx.withoutInvalidCharacters()
-	f, err := genparser.ParseValue(text, genparser.WithExpectations(), sourceLimits)
+	f, err := grammarparser.ParseValue(text, grammarparser.WithExpectations(), sourceLimits)
 	if err != nil {
 		errs, ok := lx.sourceErrorsOf(err)
 		if !ok {
@@ -63,7 +63,7 @@ func ParsePartialContext(ctx context.Context, src string) (*grammar.Grammar, Err
 	}
 	lx := lexSource(src)
 	text, _ := lx.withoutInvalidCharacters()
-	f, err := genparser.ParseValue(text, genparser.WithExpectations(), sourceLimits, genparser.WithContext(ctx))
+	f, err := grammarparser.ParseValue(text, grammarparser.WithExpectations(), sourceLimits, grammarparser.WithContext(ctx))
 	var errs []SourceError
 	if err != nil {
 		if ctxErr := ctx.Err(); ctxErr != nil {
@@ -113,11 +113,11 @@ func lexSource(src string) *lexed {
 // deep, and SourceErrors adds the lexical errors. Should the lexer not, the
 // source is reported as nesting too deep at its deepest opening delimiter.
 func (lx *lexed) sourceErrorsOf(err error) ([]SourceError, bool) {
-	var list genparser.SyntaxErrors
-	var one *genparser.SyntaxError
-	var limit *genparser.LimitError
+	var list grammarparser.SyntaxErrors
+	var one *grammarparser.SyntaxError
+	var limit *grammarparser.LimitError
 	switch {
-	case errors.As(err, &limit) && limit.Kind == genparser.LimitDepth:
+	case errors.As(err, &limit) && limit.Kind == grammarparser.LimitDepth:
 		for _, e := range lx.errs {
 			if e.Msg == msgNestingTooDeep {
 				return nil, true
@@ -177,7 +177,7 @@ func newMessages(lx *lexed) *messages {
 // after an operator where a line break ends a statement, is the mistake of a value that does not start on the line of
 // its operator. The errors of a spelling that is not the syntax of the language name what to
 // write.
-func (m *messages) message(e *genparser.SyntaxError) string {
+func (m *messages) message(e *grammarparser.SyntaxError) string {
 	var msg string
 	if len(e.Messages) > 0 {
 		msg = e.Message()
@@ -188,7 +188,7 @@ func (m *messages) message(e *genparser.SyntaxError) string {
 				covered[x] = true
 			}
 		}
-		kept := &genparser.SyntaxError{}
+		kept := &grammarparser.SyntaxError{}
 		for _, x := range e.Expected {
 			if !trivia[x] && !covered[x] {
 				kept.Expected = append(kept.Expected, x)

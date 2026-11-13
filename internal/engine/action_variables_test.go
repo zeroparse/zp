@@ -4,14 +4,14 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/core"
+	"zeroparse.dev/zp/internal/codegentest"
 	"zeroparse.dev/zp/internal/compile"
-	"zeroparse.dev/zp/internal/gentest"
 	"zeroparse.dev/zp/internal/value"
 )
 
 func TestMemoActionVariables(t *testing.T) {
 	t.Parallel()
-	for _, c := range gentest.ActionVariableCases {
+	for _, c := range codegentest.ActionVariableCases {
 		t.Run(c.Name, func(t *testing.T) {
 			for _, disable := range []bool{false, true} {
 				prog := mustCompile(t, c.Src, compile.Options{DisableMemo: disable})

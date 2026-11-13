@@ -6,14 +6,14 @@ import (
 	"zeroparse.dev/zp/core"
 	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/codegen"
+	"zeroparse.dev/zp/internal/codegentest"
 	"zeroparse.dev/zp/internal/compile"
 	"zeroparse.dev/zp/internal/engine"
-	"zeroparse.dev/zp/internal/gentest"
 )
 
 func TestSourceGroupsExecutableParity(t *testing.T) {
 	t.Parallel()
-	gentest.EachMode(t, testSourceGroupsExecutableParity)
+	codegentest.EachMode(t, testSourceGroupsExecutableParity)
 }
 
 func testSourceGroupsExecutableParity(t *testing.T) {
@@ -56,7 +56,7 @@ rule number Alias = v1:[0-9]+ => Number{Text: text($v1)}
 			for _, unit := range []core.PositionUnit{core.CodePoints, core.Bytes} {
 				for _, source := range []string{"123", "0", "", "x"} {
 					opts := engine.ParseOptions{Expectations: true, Backend: backend, Unit: unit}
-					if got, want := gentest.ResultJSON(p.ParseWith("main", source, opts)), gentest.ResultJSON(ref.ParseWith("main", source, opts)); got != want {
+					if got, want := codegentest.ResultJSON(p.ParseWith("main", source, opts)), codegentest.ResultJSON(ref.ParseWith("main", source, opts)); got != want {
 						t.Fatalf("JSON=%v %s/%s %q: got %s want %s", fromJSON, backend, unit, source, got, want)
 					}
 				}
@@ -70,7 +70,9 @@ rule number Alias = v1:[0-9]+ => Number{Text: text($v1)}
 			if err != nil {
 				t.Fatal(err)
 			}
-			for _, generate := range []func(*grammar.Grammar, codegen.GenOptions) ([]byte, error){func(g *grammar.Grammar, o codegen.GenOptions) ([]byte, error) { return gentest.GenerateCode(t, g, o) }, gentest.GenerateTSBundle} {
+			for _, generate := range []func(*grammar.Grammar, codegen.GenOptions) ([]byte, error){func(g *grammar.Grammar, o codegen.GenOptions) ([]byte, error) {
+				return codegentest.GenerateCode(t, g, o)
+			}, codegentest.GenerateTSBundle} {
 				got, err := generate(input, opts)
 				if err != nil {
 					t.Fatal(err)

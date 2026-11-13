@@ -7,7 +7,7 @@ import (
 
 	"zeroparse.dev/zp/internal/codegen"
 	"zeroparse.dev/zp/internal/codegen/go"
-	"zeroparse.dev/zp/internal/gentest"
+	"zeroparse.dev/zp/internal/codegentest"
 )
 
 // execGenerate generates the parser of the grammar source with the options, joined into one text,
@@ -25,7 +25,7 @@ func execGenerate(src string, opts codegen.GenOptions) (string, map[string]int, 
 	var all []*gogen.Generator
 	h := &gogen.Hooks{Generator: func(x *gogen.Generator) { last = x; all = append(all, x) }}
 	opts.Module, opts.KeepComments = "example.com/p", true
-	files, err := gogen.GenerateParser(g, compileForGenerator, gentest.WithLib(opts), h)
+	files, err := gogen.GenerateParser(g, compileForGenerator, codegentest.WithLib(opts), h)
 	if err != nil {
 		return "", nil, 0, false
 	}
@@ -96,17 +96,17 @@ type execMode struct {
 // mode prints print from it. The code is pinned by the goldens of the generator tests.
 func TestEveryFunctionPrintsFromExecIR(t *testing.T) {
 	t.Parallel()
-	corpus := gentest.Representative(append(gentest.CorpusWithParsers(t), gentest.CoreExtraGrammars...))
+	corpus := codegentest.Representative(append(codegentest.CorpusWithParsers(t), codegentest.CoreExtraGrammars...))
 	streams := streamCases(t)
 	for _, mode := range execModes {
 		// The modes after the flowModes each add one option to the ordinary route; the default
 		// tier runs a third of those by name.
-		if !gentest.Sampled(mode.name) && !flowModeNames[mode.name] {
+		if !codegentest.Sampled(mode.name) && !flowModeNames[mode.name] {
 			continue
 		}
 		t.Run(mode.name, func(t *testing.T) {
 			t.Parallel()
-			cases, least := corpus, gentest.ScaleFloor(100)
+			cases, least := corpus, codegentest.ScaleFloor(100)
 			if mode.opts.Stream {
 				cases, least = streams, len(streams)*3/4
 			}
@@ -129,7 +129,7 @@ func TestEveryFunctionPrintsFromExecIR(t *testing.T) {
 				t.Errorf("generated %d grammars", compared)
 			}
 			for _, table := range mode.want {
-				if routed[table] < gentest.ScaleFloor(1000) {
+				if routed[table] < codegentest.ScaleFloor(1000) {
 					t.Errorf("%d functions of table %s printed from Exec IR", routed[table], table)
 				}
 			}

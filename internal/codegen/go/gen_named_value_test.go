@@ -9,12 +9,12 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/internal/codegen"
-	"zeroparse.dev/zp/internal/gentest"
+	"zeroparse.dev/zp/internal/codegentest"
 )
 
 func TestGeneratedNamedValue(t *testing.T) {
 	t.Parallel()
-	gentest.EachMode(t, testGeneratedNamedValue)
+	codegentest.EachMode(t, testGeneratedNamedValue)
 }
 
 func testGeneratedNamedValue(t *testing.T) {
@@ -31,15 +31,15 @@ func testGeneratedNamedValue(t *testing.T) {
 		{"mixed-start", "", "cst", false},
 	} {
 		t.Run(variant.name, func(t *testing.T) {
-			g, err := parseTest(gentest.NamedValueGrammar + variant.extra)
+			g, err := parseTest(codegentest.NamedValueGrammar + variant.extra)
 			if err != nil {
 				t.Fatal(err)
 			}
 			dir := t.TempDir()
-			if err := os.WriteFile(filepath.Join(dir, "go.mod"), []byte(gentest.GoMod("namedfixture")), 0644); err != nil {
+			if err := os.WriteFile(filepath.Join(dir, "go.mod"), []byte(codegentest.GoMod("namedfixture")), 0644); err != nil {
 				t.Fatal(err)
 			}
-			code := gentest.GeneratePackageIn(t, dir, "namedfixture", "named", g, codegen.GenOptions{Start: variant.start, Types: true, ConvertTypes: variant.force, MaxDepth: 32})
+			code := codegentest.GeneratePackageIn(t, dir, "namedfixture", "named", g, codegen.GenOptions{Start: variant.start, Types: true, ConvertTypes: variant.force, MaxDepth: 32})
 			typesSource, err := os.ReadFile(filepath.Join(dir, "named", "types", "types.go"))
 			if err != nil {
 				t.Fatal(err)
@@ -76,7 +76,7 @@ func testGeneratedNamedValue(t *testing.T) {
 // type as its typed result, and that a node rule declared as an int is still rejected.
 func TestGeneratedNamedValueScalarResults(t *testing.T) {
 	t.Parallel()
-	gentest.EachMode(t, testGeneratedNamedValueScalarResults)
+	codegentest.EachMode(t, testGeneratedNamedValueScalarResults)
 }
 
 func testGeneratedNamedValueScalarResults(t *testing.T) {
@@ -89,7 +89,7 @@ func testGeneratedNamedValueScalarResults(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		out, err := gentest.GenerateCode(t, g, codegen.GenOptions{Package: "named", Start: "main", Types: true})
+		out, err := codegentest.GenerateCode(t, g, codegen.GenOptions{Package: "named", Start: "main", Types: true})
 		if err != nil {
 			t.Fatalf("%q: %v", tc.source, err)
 		}
@@ -101,7 +101,7 @@ func testGeneratedNamedValueScalarResults(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if _, err = gentest.GenerateCode(t, g, codegen.GenOptions{Package: "named", Start: "main", Types: true}); err == nil || !strings.Contains(err.Error(), "not assignable to int") {
+	if _, err = codegentest.GenerateCode(t, g, codegen.GenOptions{Package: "named", Start: "main", Types: true}); err == nil || !strings.Contains(err.Error(), "not assignable to int") {
 		t.Fatalf("got %v", err)
 	}
 }
@@ -180,7 +180,7 @@ func TestNamedOwnership(t *testing.T) {
 // with spans relative to the fragment rather than the synthetic document.
 func TestGeneratedNamedValueXMLFragments(t *testing.T) {
 	t.Parallel()
-	gentest.EachMode(t, testGeneratedNamedValueXMLFragments)
+	codegentest.EachMode(t, testGeneratedNamedValueXMLFragments)
 }
 
 func testGeneratedNamedValueXMLFragments(t *testing.T) {
@@ -204,7 +204,7 @@ func testGeneratedNamedValueXMLFragments(t *testing.T) {
 	}
 	for _, convert := range []bool{false, true} {
 		t.Run(fmt.Sprint(convert), func(t *testing.T) {
-			code, err := gentest.GenerateCode(t, g, codegen.GenOptions{Package: "xml", Start: "main", Types: true, ConvertTypes: convert})
+			code, err := codegentest.GenerateCode(t, g, codegen.GenOptions{Package: "xml", Start: "main", Types: true, ConvertTypes: convert})
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -212,7 +212,7 @@ func testGeneratedNamedValueXMLFragments(t *testing.T) {
 			if err := os.Mkdir(filepath.Join(dir, "xml"), 0755); err != nil {
 				t.Fatal(err)
 			}
-			for name, data := range map[string]string{"go.mod": gentest.GoMod("xmlfixture"), "xml/parser.go": string(code), "xml_test.go": namedXMLConsumer} {
+			for name, data := range map[string]string{"go.mod": codegentest.GoMod("xmlfixture"), "xml/parser.go": string(code), "xml_test.go": namedXMLConsumer} {
 				if err := os.WriteFile(filepath.Join(dir, name), []byte(data), 0644); err != nil {
 					t.Fatal(err)
 				}
@@ -263,7 +263,7 @@ func TestXMLFragments(t *testing.T) {
 
 func TestGeneratedNamedValueSuccessfulNil(t *testing.T) {
 	t.Parallel()
-	gentest.EachMode(t, testGeneratedNamedValueSuccessfulNil)
+	codegentest.EachMode(t, testGeneratedNamedValueSuccessfulNil)
 }
 
 func testGeneratedNamedValueSuccessfulNil(t *testing.T) {
@@ -286,7 +286,7 @@ rule nilUnion MaybeU = t:term? => $t
 	for _, start := range []string{"nilAny", "nilNode", "nilUnion"} {
 		for _, conversion := range []bool{false, true} {
 			t.Run(fmt.Sprintf("%s/%v", start, conversion), func(t *testing.T) {
-				code, err := gentest.GenerateCode(t, g, codegen.GenOptions{Package: "named", Start: start, Types: true, ConvertTypes: conversion})
+				code, err := codegentest.GenerateCode(t, g, codegen.GenOptions{Package: "named", Start: start, Types: true, ConvertTypes: conversion})
 				if err != nil {
 					t.Fatal(err)
 				}
@@ -295,7 +295,7 @@ rule nilUnion MaybeU = t:term? => $t
 					t.Fatal(err)
 				}
 				consumer := strings.ReplaceAll(namedNilConsumer, "START_UNION", fmt.Sprint(start == "nilUnion"))
-				for name, data := range map[string]string{"go.mod": gentest.GoMod("namedfixture"), "named/parser.go": string(code), "nil_test.go": consumer} {
+				for name, data := range map[string]string{"go.mod": codegentest.GoMod("namedfixture"), "named/parser.go": string(code), "nil_test.go": consumer} {
 					if err := os.WriteFile(filepath.Join(dir, name), []byte(data), 0644); err != nil {
 						t.Fatal(err)
 					}

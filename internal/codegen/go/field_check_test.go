@@ -7,8 +7,8 @@ import (
 
 	"zeroparse.dev/zp/internal/bytecode"
 	"zeroparse.dev/zp/internal/codegen"
+	"zeroparse.dev/zp/internal/codegentest"
 	"zeroparse.dev/zp/internal/engine"
-	"zeroparse.dev/zp/internal/gentest"
 )
 
 // TestConstructedFieldChecksAreSelective checks that a constructed field is never checked when it
@@ -16,7 +16,7 @@ import (
 // when the grammar is compiled, and a cast is the only check, one cast in the term code for each cast in the grammar.
 func TestConstructedFieldChecksAreSelective(t *testing.T) {
 	t.Parallel()
-	gentest.EachMode(t, testConstructedFieldChecksAreSelective)
+	codegentest.EachMode(t, testConstructedFieldChecksAreSelective)
 }
 
 func testConstructedFieldChecksAreSelective(t *testing.T) {
@@ -71,7 +71,7 @@ rule val _ = "v"
 	if err != nil {
 		t.Fatal(err)
 	}
-	code, err := gentest.GenerateCode(t, g, codegen.GenOptions{Package: "p", Start: "main", Types: true, Recognize: true})
+	code, err := codegentest.GenerateCode(t, g, codegen.GenOptions{Package: "p", Start: "main", Types: true, Recognize: true})
 	if err != nil {
 		t.Fatal(err)
 	}

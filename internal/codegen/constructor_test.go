@@ -7,12 +7,12 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/internal/codegen"
-	"zeroparse.dev/zp/internal/gentest"
+	"zeroparse.dev/zp/internal/codegentest"
 )
 
 func TestGeneratedNodeConstructors(t *testing.T) {
 	t.Parallel()
-	gentest.EachMode(t, testGeneratedNodeConstructors)
+	codegentest.EachMode(t, testGeneratedNodeConstructors)
 }
 
 func testGeneratedNodeConstructors(t *testing.T) {
@@ -20,11 +20,11 @@ func testGeneratedNodeConstructors(t *testing.T) {
 		t.Skip("builds generated consumers")
 	}
 	goBin := filepath.Join(runtime.GOROOT(), "bin", "go")
-	cases := gentest.ConstructorCases()
-	gentest.GeneratedParsersCorpus(t, goBin, cases, codegen.GenOptions{})
-	gentest.GeneratedTypesCorpus(t, goBin, cases, codegen.GenOptions{ConvertTypes: true}, 4)
+	cases := codegentest.ConstructorCases()
+	codegentest.GeneratedParsersCorpus(t, goBin, cases, codegen.GenOptions{})
+	codegentest.GeneratedTypesCorpus(t, goBin, cases, codegen.GenOptions{ConvertTypes: true}, 4)
 	if node, err := exec.LookPath("node"); err == nil {
-		gentest.TSParsersCorpus(t, node, cases, codegen.GenOptions{})
+		codegentest.TSParsersCorpus(t, node, cases, codegen.GenOptions{})
 	} else {
 		t.Error("Node is required for constructor parity")
 	}

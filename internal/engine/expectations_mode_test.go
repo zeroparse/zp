@@ -8,8 +8,8 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/core"
+	"zeroparse.dev/zp/internal/codegentest"
 	ecore "zeroparse.dev/zp/internal/engine/core"
-	"zeroparse.dev/zp/internal/gentest"
 )
 
 // expectationCases are grammars with inputs that fail, recover or succeed.
@@ -86,7 +86,7 @@ var expectedText = regexp.MustCompile(`syntax error: expected [^"\\]*(\\"[^"\\]*
 // dumpNode renders a result without the expectations in the text of recovered errors, whose
 // positions and spans stay.
 func dumpNode(n *core.Node) string {
-	return expectedText.ReplaceAllString(gentest.ResultJSON(n, nil), "syntax error")
+	return expectedText.ReplaceAllString(codegentest.ResultJSON(n, nil), "syntax error")
 }
 
 // The text of recovered errors differs between modes, the tree shape and spans do not.
@@ -96,10 +96,10 @@ func TestExpectationsOffRecoveredErrorText(t *testing.T) {
 	for _, b := range expectationBackends {
 		on, _ := prog.ParseWith("main", "ab;1x;cd;", ParseOptions{Backend: b, Expectations: true})
 		off, _ := prog.ParseWith("main", "ab;1x;cd;", ParseOptions{Backend: b})
-		if got := gentest.ResultJSON(on, nil); !strings.Contains(got, "expected") {
+		if got := codegentest.ResultJSON(on, nil); !strings.Contains(got, "expected") {
 			t.Errorf("%v: on: %s", b, got)
 		}
-		if got := gentest.ResultJSON(off, nil); strings.Contains(got, "expected") || !strings.Contains(got, "syntax error") {
+		if got := codegentest.ResultJSON(off, nil); strings.Contains(got, "expected") || !strings.Contains(got, "syntax error") {
 			t.Errorf("%v: off: %s", b, got)
 		}
 	}
@@ -186,7 +186,7 @@ func TestLongExpectedLists(t *testing.T) {
 				var list core.SyntaxErrors
 				if errors.As(err, &list) && len(list) == 1 {
 					se = list[0]
-					if text := gentest.ResultJSON(n, nil); !strings.Contains(text, strconv.Quote(c.message)) {
+					if text := codegentest.ResultJSON(n, nil); !strings.Contains(text, strconv.Quote(c.message)) {
 						t.Errorf("%q %v %v: recovered tree lacks the message: %s", c.input, b, l, text)
 					}
 				} else if !errors.As(err, &se) {

@@ -9,7 +9,7 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/internal/codegen"
-	"zeroparse.dev/zp/internal/gentest"
+	"zeroparse.dev/zp/internal/codegentest"
 )
 
 // Generate itself reports a grammar whose rule table does not fit the compact form.
@@ -32,7 +32,7 @@ func TestGenerateRejectsRuleTableOverLimit(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	_, err = gentest.Generate(t, g, codegen.GenOptions{Package: "p", Start: "main", Lib: codegen.LibImport})
+	_, err = codegentest.Generate(t, g, codegen.GenOptions{Package: "p", Start: "main", Lib: codegen.LibImport})
 	if err == nil || !strings.Contains(err.Error(), "distinct capture or variable lists") {
 		t.Fatalf("Generate = %v, want the rule table limit error", err)
 	}

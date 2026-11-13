@@ -8,12 +8,12 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/internal/codegen"
-	"zeroparse.dev/zp/internal/gentest"
+	"zeroparse.dev/zp/internal/codegentest"
 )
 
 func TestGeneratedExpectationRecords(t *testing.T) {
 	t.Parallel()
-	gentest.EachMode(t, testGeneratedExpectationRecords)
+	codegentest.EachMode(t, testGeneratedExpectationRecords)
 }
 
 func testGeneratedExpectationRecords(t *testing.T) {
@@ -36,7 +36,7 @@ rule main N = ("é") #atomic`)
 	fixture = []byte(strings.Replace(string(fixture), "import (", "import (\n\tzprt \"zeroparse.dev/zp/codegen/go/lib\"", 1))
 	for _, mode := range []string{"plain", "direct", "conversion"} {
 		t.Run(mode, func(t *testing.T) {
-			code, err := gentest.GenerateCode(t, g, codegen.GenOptions{Package: "engine", Start: "main", Types: mode != "plain", ConvertTypes: mode == "conversion"})
+			code, err := codegentest.GenerateCode(t, g, codegen.GenOptions{Package: "engine", Start: "main", Types: mode != "plain", ConvertTypes: mode == "conversion"})
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -71,7 +71,7 @@ func TestTypedExpectationPoolReuse(t *testing.T) {
 `
 			}
 			dir := t.TempDir()
-			for name, data := range map[string][]byte{"parser.go": code, "records_test.go": gentest.ExportNames(append(append([]byte(nil), fixture...), []byte(qualifyFixtureNames.Replace(extra))...)), "go.mod": []byte(gentest.GoMod("records"))} {
+			for name, data := range map[string][]byte{"parser.go": code, "records_test.go": codegentest.ExportNames(append(append([]byte(nil), fixture...), []byte(qualifyFixtureNames.Replace(extra))...)), "go.mod": []byte(codegentest.GoMod("records"))} {
 				if err := os.WriteFile(filepath.Join(dir, name), data, 0o644); err != nil {
 					t.Fatal(err)
 				}

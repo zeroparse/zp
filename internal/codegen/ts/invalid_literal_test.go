@@ -14,9 +14,9 @@ import (
 	"zeroparse.dev/zp/core"
 	"zeroparse.dev/zp/internal/codegen"
 	"zeroparse.dev/zp/internal/codegen/ts"
+	"zeroparse.dev/zp/internal/codegentest"
 	"zeroparse.dev/zp/internal/compile"
 	"zeroparse.dev/zp/internal/engine"
-	"zeroparse.dev/zp/internal/gentest"
 )
 
 // literalTextUnits computes JS text units from the documented byte-preserving
@@ -40,17 +40,17 @@ func literalTextUnits(input string, unit core.PositionUnit) []rune {
 
 func TestGeneratedTSInvalidUTF8Literals(t *testing.T) {
 	t.Parallel()
-	for _, tc := range gentest.InvalidLiteralCorpus() {
-		if !gentest.Sampled(tc.Name) {
+	for _, tc := range codegentest.InvalidLiteralCorpus() {
+		if !codegentest.Sampled(tc.Name) {
 			continue
 		}
 		t.Run(tc.Name, func(t *testing.T) {
-			g := gentest.LiteralCorpusGrammar(t, tc)
+			g := codegentest.LiteralCorpusGrammar(t, tc)
 			prog, err := engine.Compile(g, compile.Options{})
 			if err != nil {
 				t.Fatal(err)
 			}
-			code, err := gentest.GenerateTSBundle(g, codegen.GenOptions{Start: "main", Recognize: true})
+			code, err := codegentest.GenerateTSBundle(g, codegen.GenOptions{Start: "main", Recognize: true})
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -60,7 +60,7 @@ func TestGeneratedTSInvalidUTF8Literals(t *testing.T) {
 				fmt.Fprintf(&script, `for (const unit of [CodePoints,Bytes]){const input=new Uint8Array(Buffer.from(%q,"base64"));const r=parse(input,unit);const rec=recognize(input,unit);if((rec?.message??null)!==(r.error?.message??null))throw new Error("recognition differs");const child=r.node?.field("T");const expected=unit===Bytes?String.fromCharCode(...%s):String.fromCharCode(...%s);if(!r.error && (!(child instanceof Node)||child.text!==expected))throw new Error("matched bytes differ");const out:Record<string,unknown>={};if(r.error)out["err"]=r.error.message;out["node"]=JSON.parse(marshal(r.node));console.log(JSON.stringify(out));}`+"\n", base64.StdEncoding.EncodeToString([]byte(input)), tsgen.TsInts(literalTextUnits(input, core.Bytes)), tsgen.TsInts(literalTextUnits(input, core.CodePoints)))
 				for _, unit := range []core.PositionUnit{core.CodePoints, core.Bytes} {
 					n, err := prog.ParseWith("main", input, engine.ParseOptions{Expectations: true, Unit: unit})
-					want.WriteString(gentest.ResultJSON(n, err) + "\n")
+					want.WriteString(codegentest.ResultJSON(n, err) + "\n")
 				}
 			}
 			dir := t.TempDir()

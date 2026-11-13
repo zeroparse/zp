@@ -4,10 +4,10 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/internal/codegen"
-	"zeroparse.dev/zp/internal/gentest"
+	"zeroparse.dev/zp/internal/codegentest"
 )
 
 func TestGenerateDirectTypedDocument(t *testing.T) {
 	t.Parallel()
-	gentest.DirectTypedDocument(t, codegen.GenOptions{})
+	codegentest.DirectTypedDocument(t, codegen.GenOptions{})
 }

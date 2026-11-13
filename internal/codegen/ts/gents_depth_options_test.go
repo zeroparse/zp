@@ -11,8 +11,8 @@ import (
 	"zeroparse.dev/zp/core"
 	"zeroparse.dev/zp/internal/codegen"
 	"zeroparse.dev/zp/internal/codegen/ts"
+	"zeroparse.dev/zp/internal/codegentest"
 	"zeroparse.dev/zp/internal/engine"
-	"zeroparse.dev/zp/internal/gentest"
 )
 
 func TestGeneratedTSDepthOptions(t *testing.T) {
@@ -24,7 +24,7 @@ func TestGeneratedTSDepthOptions(t *testing.T) {
 	if err != nil {
 		t.Skip("node not found")
 	}
-	fixtures := []gentest.Case{
+	fixtures := []codegentest.Case{
 		{Name: "ordinary", Src: `rule main = trigger n
 rule trigger = v1:_ => list($v1)
 rule n = "(" n ")" / "é"`, Inputs: []string{"é", "(é)", "((é))", "((((é))))", "?"}},
@@ -58,7 +58,7 @@ let depthErrors=0;
 		if err != nil {
 			t.Fatal(err)
 		}
-		code, err := gentest.GenerateTSBundle(g, codegen.GenOptions{Start: "main", Recognize: true, MaxDepth: 4})
+		code, err := codegentest.GenerateTSBundle(g, codegen.GenOptions{Start: "main", Recognize: true, MaxDepth: 4})
 		if err != nil {
 			t.Fatal(err)
 		}

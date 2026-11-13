@@ -8,7 +8,7 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/core"
-	"zeroparse.dev/zp/internal/gentest"
+	"zeroparse.dev/zp/internal/codegentest"
 )
 
 func TestBudgetSetupReferenceAdmission(t *testing.T) {
@@ -16,7 +16,7 @@ func TestBudgetSetupReferenceAdmission(t *testing.T) {
 	for _, omitted := range []bool{false, true} {
 		for _, backend := range []Backend{Bytecode, BytecodeIterative} {
 			for _, api := range []string{"batch", "document", "stream"} {
-				prog := mustCompile(t, gentest.Records)
+				prog := mustCompile(t, codegentest.Records)
 				if omitted {
 					prog = moduleProgram(prog.Module())
 				}

@@ -5,7 +5,7 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/internal/codegen"
-	"zeroparse.dev/zp/internal/gentest"
+	"zeroparse.dev/zp/internal/codegentest"
 )
 
 // TestGeneratedTSRecoveredValues checks that generated TypeScript gives the engine's value for a
@@ -15,7 +15,7 @@ func TestGeneratedTSRecoveredValues(t *testing.T) {
 	if testing.Short() {
 		t.Skip("runs generated code")
 	}
-	gentest.TSParsersCorpus(t, gentest.RequireNode(t), gentest.RecoveredValueCases, codegen.GenOptions{})
+	codegentest.TSParsersCorpus(t, codegentest.RequireNode(t), codegentest.RecoveredValueCases, codegen.GenOptions{})
 }
 
 // TestGeneratedTSRecoveredValuesDetectsMutation is the negative control of
@@ -28,7 +28,7 @@ func TestGeneratedTSRecoveredValuesDetectsMutation(t *testing.T) {
 	}
 	const from = `c.termSetField(tn3, "A", tv1);`
 	var replaced bool
-	mismatches := gentest.TSParsersMismatches(t, gentest.RequireNode(t), gentest.RecoveredValueCases[1:2], codegen.GenOptions{}, func(src string) string {
+	mismatches := codegentest.TSParsersMismatches(t, codegentest.RequireNode(t), codegentest.RecoveredValueCases[1:2], codegen.GenOptions{}, func(src string) string {
 		replaced = replaced || strings.Contains(src, from)
 		return strings.ReplaceAll(src, from, `c.termSetField(tn3, "A", (tv1 as number) + 1);`)
 	})

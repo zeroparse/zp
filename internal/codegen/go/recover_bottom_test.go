@@ -8,23 +8,23 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/internal/codegen"
-	"zeroparse.dev/zp/internal/gentest"
+	"zeroparse.dev/zp/internal/codegentest"
 )
 
 // TestGeneratedRecoverBottom checks that a generated Go parser gives the recovery of an expression
 // of type _|_ an error value, and an expression without a value none: each parse succeeds or fails
-// as gentest.RecoverBottomCases states, and agrees with the engine.
+// as codegentest.RecoverBottomCases states, and agrees with the engine.
 func TestGeneratedRecoverBottom(t *testing.T) {
 	t.Parallel()
 	if testing.Short() {
 		t.Skip("builds generated code")
 	}
 	goBin := filepath.Join(runtime.GOROOT(), "bin", "go")
-	cases := gentest.RecoverBottomGenCases()
-	gentest.EachMode(t, func(t *testing.T) {
-		got, want := gentest.GeneratedParsersOutputs(t, goBin, cases, codegen.GenOptions{}, nil)
+	cases := codegentest.RecoverBottomGenCases()
+	codegentest.EachMode(t, func(t *testing.T) {
+		got, want := codegentest.GeneratedParsersOutputs(t, goBin, cases, codegen.GenOptions{}, nil)
 		k := 0
-		for _, c := range gentest.RecoverBottomCases {
+		for _, c := range codegentest.RecoverBottomCases {
 			for i, in := range c.Inputs {
 				for _, unit := range []string{"codepoints", "bytes"} {
 					head, _, _ := strings.Cut(got[k], " views: ")
@@ -42,6 +42,6 @@ func TestGeneratedRecoverBottom(t *testing.T) {
 				}
 			}
 		}
-		gentest.GeneratedTypesCorpus(t, goBin, cases, codegen.GenOptions{})
+		codegentest.GeneratedTypesCorpus(t, goBin, cases, codegen.GenOptions{})
 	})
 }

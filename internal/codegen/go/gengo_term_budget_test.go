@@ -7,9 +7,9 @@ import (
 
 	"zeroparse.dev/zp/core"
 	"zeroparse.dev/zp/internal/codegen"
+	"zeroparse.dev/zp/internal/codegentest"
 	"zeroparse.dev/zp/internal/engine"
 	ecore "zeroparse.dev/zp/internal/engine/core"
-	"zeroparse.dev/zp/internal/gentest"
 )
 
 // termChargePairs are pairs of grammars whose second term handles one value more than the first at a
@@ -72,10 +72,10 @@ func termChargeDeltas(t *testing.T, rt string) map[string]int64 {
 // termChargeDeltasWith is termChargeDeltas for the generator options and entry point of runBudgetProbesWith.
 func termChargeDeltasWith(t *testing.T, rt string, opts codegen.GenOptions, parse string) map[string]int64 {
 	t.Helper()
-	var cases []gentest.Case
+	var cases []codegentest.Case
 	for _, p := range termChargePairs {
-		cases = append(cases, gentest.Case{Name: p.name + " (one)", Src: p.one, Inputs: []string{"a"}},
-			gentest.Case{Name: p.name + " (two)", Src: p.two, Inputs: []string{"a"}})
+		cases = append(cases, codegentest.Case{Name: p.name + " (one)", Src: p.one, Inputs: []string{"a"}},
+			codegentest.Case{Name: p.name + " (two)", Src: p.two, Inputs: []string{"a"}})
 	}
 	got, problems := budgetTotalsWith(t, rt, "terms", cases, "main", nil, opts, parse)
 	for _, p := range problems {
@@ -130,11 +130,11 @@ func termChargeWantTyped() map[string]int64 {
 // or a binding forgets, which the totals of the budget goldens mix with everything else a parse spends.
 func TestGeneratedTermChargesPerValue(t *testing.T) {
 	t.Parallel()
-	gentest.NeedsBudgetControls(t)
+	codegentest.NeedsBudgetControls(t)
 	if testing.Short() {
 		t.Skip("builds generated consumers")
 	}
-	got := termChargeDeltas(t, gentest.LibCopy())
+	got := termChargeDeltas(t, codegentest.LibCopy())
 	for k, want := range termChargeWant() {
 		if got[k] != want {
 			t.Errorf("%s: one more value costs %d units, want %d", k, got[k], want)
@@ -146,11 +146,11 @@ func TestGeneratedTermChargesPerValue(t *testing.T) {
 // predicate and the binding of a typed parser (TParser) forget the values of a term in their own code.
 func TestGeneratedTypedTermChargesPerValue(t *testing.T) {
 	t.Parallel()
-	gentest.NeedsBudgetControls(t)
+	codegentest.NeedsBudgetControls(t)
 	if testing.Short() {
 		t.Skip("builds generated consumers")
 	}
-	got := termChargeDeltasWith(t, gentest.LibCopy(), codegen.GenOptions{Types: true}, "ParseValue")
+	got := termChargeDeltasWith(t, codegentest.LibCopy(), codegen.GenOptions{Types: true}, "ParseValue")
 	for k, want := range termChargeWantTyped() {
 		if got[k] != want {
 			t.Errorf("%s: one more value costs %d units, want %d", k, got[k], want)

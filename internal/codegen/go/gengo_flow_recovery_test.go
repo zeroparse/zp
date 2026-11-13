@@ -9,8 +9,8 @@ import (
 	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/codegen"
 	"zeroparse.dev/zp/internal/codegen/go"
+	"zeroparse.dev/zp/internal/codegentest"
 	"zeroparse.dev/zp/internal/compile"
-	"zeroparse.dev/zp/internal/gentest"
 )
 
 // hasRecovery reports a recovery in e, read from the expression itself.
@@ -37,14 +37,14 @@ func TestFlowRecoveryPrintsFromFlow(t *testing.T) {
 	if testing.Short() {
 		t.Skip("generates the corpus")
 	}
-	cases := append(append(append(gentest.Representative(gentest.GenCorpus(t)), gentest.RepresentativeGrammars(gentest.GrammarCases(t))...), observeShapes...), streamCorpus...)
+	cases := append(append(append(codegentest.Representative(codegentest.GenCorpus(t)), codegentest.RepresentativeGrammars(codegentest.GrammarCases(t))...), observeShapes...), streamCorpus...)
 	for _, controls := range []bool{false, true} {
 		t.Run(fmt.Sprint("controls=", controls), func(t *testing.T) {
 			t.Parallel()
 			taken := map[string]int{}
 			var mu sync.Mutex
 			gh := &gogen.Hooks{}
-			gentest.SetGenHooks(t, gh)
+			codegentest.SetGenHooks(t, gh)
 			gh.FramedRoute = func(table string, r *compile.Rule) {
 				mu.Lock()
 				defer mu.Unlock()
@@ -64,13 +64,13 @@ func TestFlowRecoveryPrintsFromFlow(t *testing.T) {
 				defer mu.Unlock()
 				taken[table+" operators line"]++
 			}
-			gentest.EachParallel(t, cases, func(t *testing.T, c gentest.Case) {
+			codegentest.EachParallel(t, cases, func(t *testing.T, c codegentest.Case) {
 				g, err := parseTest(c.Src)
 				if err != nil {
 					return
 				}
 				for _, stream := range []bool{false, true} {
-					if _, err := gentest.Generate(t, g, codegen.GenOptions{Package: "x", Module: "example.com/x", Start: "main", Lib: codegen.LibImport, Recognize: true, Stream: stream, LimitControls: controls}); err != nil && (!stream || strings.Contains(err.Error(), "Flow IR does not print")) {
+					if _, err := codegentest.Generate(t, g, codegen.GenOptions{Package: "x", Module: "example.com/x", Start: "main", Lib: codegen.LibImport, Recognize: true, Stream: stream, LimitControls: controls}); err != nil && (!stream || strings.Contains(err.Error(), "Flow IR does not print")) {
 						t.Fatalf("%s: %v", c.Name, err)
 					}
 				}

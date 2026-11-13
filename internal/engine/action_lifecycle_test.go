@@ -7,9 +7,9 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/core"
+	"zeroparse.dev/zp/internal/codegentest"
 	"zeroparse.dev/zp/internal/compile"
 	ecore "zeroparse.dev/zp/internal/engine/core"
-	"zeroparse.dev/zp/internal/gentest"
 	"zeroparse.dev/zp/internal/value"
 )
 
@@ -62,7 +62,7 @@ func TestActionResultReleasesTracking(t *testing.T) {
 }
 
 func TestNilActionStreamMemoryIsBounded(t *testing.T) {
-	prog := mustCompile(t, gentest.NilActionStream)
+	prog := mustCompile(t, codegentest.NilActionStream)
 	for _, backend := range []Backend{Closure, Bytecode, BytecodeIterative} {
 		for _, unit := range []core.PositionUnit{core.CodePoints, core.Bytes} {
 			t.Run(fmt.Sprintf("%s/%s", backend, unit), func(t *testing.T) {
@@ -101,7 +101,7 @@ func TestNilActionStreamMemoryIsBounded(t *testing.T) {
 }
 
 func BenchmarkNilActionStream(b *testing.B) {
-	g, err := parseTest(gentest.NilActionStream)
+	g, err := parseTest(codegentest.NilActionStream)
 	if err != nil {
 		b.Fatal(err)
 	}

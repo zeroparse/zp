@@ -10,8 +10,8 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/core"
+	"zeroparse.dev/zp/internal/codegentest"
 	"zeroparse.dev/zp/internal/engine/document"
-	"zeroparse.dev/zp/internal/gentest"
 )
 
 const maxInputGrammar = `rule main = [a-zé]* $$`
@@ -89,7 +89,7 @@ func TestMaxInputBeforeParsing(t *testing.T) {
 // chunk size of the reader. A stream of exactly Input units completes.
 func TestMaxInputStream(t *testing.T) {
 	t.Parallel()
-	prog := mustCompile(t, gentest.Records)
+	prog := mustCompile(t, codegentest.Records)
 	text := "#records\na=1\nbc=22\n" + strings.Repeat("k=7\n", 50)
 	maxInputVariants(t, func(t *testing.T, o ParseOptions) {
 		n := uint64(len(text)) // ASCII: units equal bytes
@@ -97,7 +97,7 @@ func TestMaxInputStream(t *testing.T) {
 			o.Limits = core.Limits{Input: max}
 			var out []string
 			r := &budgetStreamReader{chunks: chunks(text, size)}
-			err := prog.ParseStreamWith("main", r, func(v *core.Node) error { out = append(out, gentest.ResultJSON(v, nil)); return nil }, o)
+			err := prog.ParseStreamWith("main", r, func(v *core.Node) error { out = append(out, codegentest.ResultJSON(v, nil)); return nil }, o)
 			return fmt.Sprint(out), err
 		}
 		for _, max := range []uint64{0, core.Unlimited, n, n + 1} {

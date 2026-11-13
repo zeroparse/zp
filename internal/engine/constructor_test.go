@@ -9,8 +9,8 @@ import (
 	"zeroparse.dev/zp/core"
 	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/bytecode"
+	"zeroparse.dev/zp/internal/codegentest"
 	"zeroparse.dev/zp/internal/compile"
-	"zeroparse.dev/zp/internal/gentest"
 	"zeroparse.dev/zp/internal/value"
 )
 
@@ -48,7 +48,7 @@ func TestTypedNodeConstructors(t *testing.T) {
 				if err != nil {
 					t.Fatal(err)
 				}
-				got := gentest.ResultJSON(n, nil)
+				got := codegentest.ResultJSON(n, nil)
 				if want == "" {
 					want = got
 				} else if got != want {
@@ -97,7 +97,7 @@ func TestNodeConstructorCompiledVersions(t *testing.T) {
 		for _, backend := range []Backend{Bytecode, BytecodeIterative} {
 			for _, unit := range []core.PositionUnit{core.CodePoints, core.Bytes} {
 				opts := ParseOptions{Backend: backend, Unit: unit}
-				if got, want := gentest.ResultJSON(loaded.ParseWith("main", "😀", servedBy(mode, opts))), gentest.ResultJSON(p.ParseWith("main", "😀", opts)); got != want {
+				if got, want := codegentest.ResultJSON(loaded.ParseWith("main", "😀", servedBy(mode, opts))), codegentest.ResultJSON(p.ParseWith("main", "😀", opts)); got != want {
 					t.Fatalf("loaded constructors: %s / %s", got, want)
 				}
 			}

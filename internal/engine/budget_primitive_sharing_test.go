@@ -10,8 +10,8 @@ import (
 	"zeroparse.dev/zp/core"
 	"zeroparse.dev/zp/core/noderep"
 	"zeroparse.dev/zp/grammar"
+	"zeroparse.dev/zp/internal/codegentest"
 	"zeroparse.dev/zp/internal/compile"
-	"zeroparse.dev/zp/internal/gentest"
 	"zeroparse.dev/zp/internal/value"
 )
 
@@ -76,8 +76,8 @@ func TestBudgetPrimitiveASTAliases(t *testing.T) {
 								opts := ParseOptions{Unit: unit, Recognize: recognize, Limits: limits}
 								a, ae := shared.ParseWith("main", text, opts)
 								b, be := reference.ParseWith("main", text, opts)
-								if gentest.ResultJSON(a, ae) != gentest.ResultJSON(b, be) {
-									t.Fatalf("unit=%v recognize=%v text=%q limits=%+v: shared=%s distinct=%s", unit, recognize, text, limits, gentest.ResultJSON(a, ae), gentest.ResultJSON(b, be))
+								if codegentest.ResultJSON(a, ae) != codegentest.ResultJSON(b, be) {
+									t.Fatalf("unit=%v recognize=%v text=%q limits=%+v: shared=%s distinct=%s", unit, recognize, text, limits, codegentest.ResultJSON(a, ae), codegentest.ResultJSON(b, be))
 								}
 							}
 						}

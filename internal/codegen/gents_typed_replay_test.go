@@ -14,9 +14,9 @@ import (
 
 	"zeroparse.dev/zp/internal/codegen"
 	"zeroparse.dev/zp/internal/codegen/go"
+	"zeroparse.dev/zp/internal/codegentest"
 	"zeroparse.dev/zp/internal/compile"
 	"zeroparse.dev/zp/internal/engine"
-	"zeroparse.dev/zp/internal/gentest"
 )
 
 // Compare public typed values with the existing generated Go Node-conversion
@@ -24,7 +24,7 @@ import (
 // neither backend's JSON shape is being used as the other's value contract.
 func TestGeneratedTSTypedReplay(t *testing.T) {
 	t.Parallel()
-	gentest.EachMode(t, testGeneratedTSTypedReplay)
+	codegentest.EachMode(t, testGeneratedTSTypedReplay)
 }
 
 func testGeneratedTSTypedReplay(t *testing.T) {
@@ -39,9 +39,9 @@ func testGeneratedTSTypedReplay(t *testing.T) {
 	if err != nil {
 		t.Skip("tsc not found")
 	}
-	cases := append([]gentest.Case(nil), gentest.AliasCases...)
-	cases = append(cases, gentest.Case{Name: "typed", Src: gentest.TypedGrammar, Inputs: []string{"f(1,x)!?;[3];zz", "f(1,(;g();", "f(a);", ""}})
-	for _, c := range gentest.GenCorpus(t) {
+	cases := append([]codegentest.Case(nil), codegentest.AliasCases...)
+	cases = append(cases, codegentest.Case{Name: "typed", Src: codegentest.TypedGrammar, Inputs: []string{"f(1,x)!?;[3];zz", "f(1,(;g();", "f(a);", ""}})
+	for _, c := range codegentest.GenCorpus(t) {
 		if strings.HasPrefix(c.Name, "testdata/typed/splice_recursive_") {
 			cases = append(cases, c)
 			continue
@@ -51,56 +51,56 @@ func testGeneratedTSTypedReplay(t *testing.T) {
 			cases = append(cases, c)
 		}
 	}
-	cases = append(cases, gentest.Case{Name: "mixed union recovery", Src: `type Word = { Text string }
+	cases = append(cases, codegentest.Case{Name: "mixed union recovery", Src: `type Word = { Text string }
 type Mixed ~ Word | int | error
 type U ~ Word | node[string] | error
 type WE ~ Word | error
 type R = { A Mixed; B U; C WE; D _; E []WE; O *int; I int }
 rule main R = x:word #recover(skip=[^;]+ ";") xs:word #recover(skip=[^;]+ ";")* => R{A: $x, B: $x, C: $x, D: $x, E: $xs.Value, I: 7}
 rule word Word = t:([a-z😀]+ ";") #atomic => Word{Text: text($t)}`, Inputs: []string{"😀;abc;", "1;abc;2;", "", "x;"}})
-	cases = append(cases, gentest.Case{Name: "shared fold", Src: gentest.TSTypedDAGTypes + `rule main Tree = first:leaf rest:leaf* => foldl($first, $rest, (acc, i) => Branch{Left: acc, Right: acc})`, Inputs: []string{"x", "xxxxxxxx"}}, gentest.Case{Name: "shared LR", Src: gentest.TSTypedDAGTypes + `rule main Tree = branch / leaf
-rule branch Branch = prev:main "x" => Branch{Left: $prev, Right: $prev}`, Inputs: []string{"x", "xxxxxxxx"}}, gentest.Case{Name: "raw Unicode text", Src: `type R = { Text string; Token node[string] }
+	cases = append(cases, codegentest.Case{Name: "shared fold", Src: codegentest.TSTypedDAGTypes + `rule main Tree = first:leaf rest:leaf* => foldl($first, $rest, (acc, i) => Branch{Left: acc, Right: acc})`, Inputs: []string{"x", "xxxxxxxx"}}, codegentest.Case{Name: "shared LR", Src: codegentest.TSTypedDAGTypes + `rule main Tree = branch / leaf
+rule branch Branch = prev:main "x" => Branch{Left: $prev, Right: $prev}`, Inputs: []string{"x", "xxxxxxxx"}}, codegentest.Case{Name: "raw Unicode text", Src: `type R = { Text string; Token node[string] }
 rule main R = x:.* #atomic => R{Text: text($x), Token: $x}`, Inputs: []string{"😀é", string([]byte{0x61, 0xff, 0xe2, 0x82})}})
-	cases = append(cases, gentest.Case{Name: "inferred nil recovery", Src: `rule leaf = "a" => nil
-rule main = leaf #recover(skip=.+)`, Inputs: []string{"a", "!", ""}}, gentest.Case{Name: "inferred never recovery", Src: `rule leaf = leaf
+	cases = append(cases, codegentest.Case{Name: "inferred nil recovery", Src: `rule leaf = "a" => nil
+rule main = leaf #recover(skip=.+)`, Inputs: []string{"a", "!", ""}}, codegentest.Case{Name: "inferred never recovery", Src: `rule leaf = leaf
 rule main = leaf #recover(skip=.+)`, Inputs: []string{"!", ""}})
-	cases = append(cases, gentest.Case{Name: "nil-valued expression recovery", Src: `rule main = (-"a") #recover(skip=.+)`, Inputs: []string{"a", "!", ""}}, gentest.Case{Name: "inferred never start", Src: `rule main = main`, Inputs: []string{"!", ""}})
-	cases = append(cases, gentest.Case{Name: "indexed values", Src: `type R = { A int; B int; C int; D int; E int; F int }
+	cases = append(cases, codegentest.Case{Name: "nil-valued expression recovery", Src: `rule main = (-"a") #recover(skip=.+)`, Inputs: []string{"a", "!", ""}}, codegentest.Case{Name: "inferred never start", Src: `rule main = main`, Inputs: []string{"!", ""}})
+	cases = append(cases, codegentest.Case{Name: "indexed values", Src: `type R = { A int; B int; C int; D int; E int; F int }
 rule main R = x:"a"* j:"b"* => R{A: list(1, 2)[len($j)], B: (1, 2)[1], C: list(list(1, 2), list(3, 4))[1][len($j)], D: list(len($x), 5)[0], E: (list(7, 8), 9)[0][1], F: (1, (2, 3))[1][1]}`, Inputs: []string{"", "b", "ab", "aabb", "bbb"}},
-		gentest.Case{Name: "indexed out of range", Src: `rule main = j:"b"* => list(1, 2)[len($j)]`, Inputs: []string{"", "b", "bb", "bbb"}},
-		gentest.Case{Name: "indexed in node fields", Src: `type N = { V int; W string }
+		codegentest.Case{Name: "indexed out of range", Src: `rule main = j:"b"* => list(1, 2)[len($j)]`, Inputs: []string{"", "b", "bb", "bbb"}},
+		codegentest.Case{Name: "indexed in node fields", Src: `type N = { V int; W string }
 rule main N = j:"b"* => N{V: list(10, 20, 30)[len($j)], W: list("p", "q")[len($j)]}`, Inputs: []string{"", "b", "bb", "bbb"}})
-	cases = append(cases, gentest.Case{Name: "indexed root values", Src: `rule main = j:"b"* => (1, 2)[1]`, Inputs: []string{"", "b"}},
-		gentest.Case{Name: "indexed root string", Src: `rule main = j:"b"* => list("p", "q")[len($j)]`, Inputs: []string{"", "b", "bb"}},
-		gentest.Case{Name: "indexed root bool", Src: `rule main = j:"b"* => list(true, false)[len($j)]`, Inputs: []string{"", "b"}},
-		gentest.Case{Name: "indexed root union", Src: `type W = { T string }
+	cases = append(cases, codegentest.Case{Name: "indexed root values", Src: `rule main = j:"b"* => (1, 2)[1]`, Inputs: []string{"", "b"}},
+		codegentest.Case{Name: "indexed root string", Src: `rule main = j:"b"* => list("p", "q")[len($j)]`, Inputs: []string{"", "b", "bb"}},
+		codegentest.Case{Name: "indexed root bool", Src: `rule main = j:"b"* => list(true, false)[len($j)]`, Inputs: []string{"", "b"}},
+		codegentest.Case{Name: "indexed root union", Src: `type W = { T string }
 type U ~ W | int
 rule main U = j:"b"* => list(3, 4)[len($j)]`, Inputs: []string{"", "b"}},
-		gentest.Case{Name: "indexed root optional", Src: `rule main *int = j:"b"* => list(3, 4)[len($j)]`, Inputs: []string{"", "b", "bb"}},
-		gentest.Case{Name: "indexed nested lists", Src: `rule main = j:"b"* => list(list(1, 2), list(3))[len($j)][0]`, Inputs: []string{"", "b"}},
-		gentest.Case{Name: "indexed list result", Src: `rule main = j:"b"* => list(list(1, 2), list(3))[len($j)]`, Inputs: []string{"", "b"}},
-		gentest.Case{Name: "indexed tuple result", Src: `rule main = j:"b"* => list((1, "x"), (2, "y"))[len($j)]`, Inputs: []string{"", "b"}},
-		gentest.Case{Name: "indexed capture list", Src: `rule main = j:"b"* k:"c"* => $j[len($k)]`, Inputs: []string{"b", "bc", "bbc", "c", "bbcc"}},
-		gentest.Case{Name: "indexed any", Src: `type R = { V _ }
+		codegentest.Case{Name: "indexed root optional", Src: `rule main *int = j:"b"* => list(3, 4)[len($j)]`, Inputs: []string{"", "b", "bb"}},
+		codegentest.Case{Name: "indexed nested lists", Src: `rule main = j:"b"* => list(list(1, 2), list(3))[len($j)][0]`, Inputs: []string{"", "b"}},
+		codegentest.Case{Name: "indexed list result", Src: `rule main = j:"b"* => list(list(1, 2), list(3))[len($j)]`, Inputs: []string{"", "b"}},
+		codegentest.Case{Name: "indexed tuple result", Src: `rule main = j:"b"* => list((1, "x"), (2, "y"))[len($j)]`, Inputs: []string{"", "b"}},
+		codegentest.Case{Name: "indexed capture list", Src: `rule main = j:"b"* k:"c"* => $j[len($k)]`, Inputs: []string{"b", "bc", "bbc", "c", "bbcc"}},
+		codegentest.Case{Name: "indexed any", Src: `type R = { V _ }
 rule main R = j:"b"* => R{V: list(1, "s", true)[len($j)]}`, Inputs: []string{"", "b", "bb", "bbb"}})
-	cases = append(cases, gentest.Case{Name: "named node types in sequences and lists", Src: `type Id = node[string]
+	cases = append(cases, codegentest.Case{Name: "named node types in sequences and lists", Src: `type Id = node[string]
 type P = { A Id; B []Id; C (Id, int) }
 rule main P = a:id b:id* => P{A: $a, B: $b.Value, C: ($a, 1)}
 rule id Id = t:([a-z]+) #atomic => Id{$t}`, Inputs: []string{"a", "abc", ""}})
-	cases = append(cases, gentest.Case{Name: "named node types everywhere", Src: `type Id = node[string]
+	cases = append(cases, codegentest.Case{Name: "named node types everywhere", Src: `type Id = node[string]
 type Pair = node[(Id, int)]
 type P = { A Id; B []Id; C (Id, int); D *Id }
 rule main P = a:id b:id* => P{A: $a, B: $b.Value, C: ($a, 1), D: nil}
 rule id Id = t:([a-z]+) #atomic => Id{$t}`, Inputs: []string{"a", "abc", ""}},
-		gentest.Case{Name: "named node type root", Src: `type Id = node[string]
+		codegentest.Case{Name: "named node type root", Src: `type Id = node[string]
 rule main Id = t:([a-z]+) #atomic => Id{$t}`, Inputs: []string{"a", "", "1"}},
-		gentest.Case{Name: "named node type list root", Src: `type Id = node[string]
+		codegentest.Case{Name: "named node type list root", Src: `type Id = node[string]
 rule main []Id = xs:id* => $xs.Value
 rule id Id = t:([a-z]) #atomic => Id{$t}`, Inputs: []string{"", "a", "abc"}},
-		gentest.Case{Name: "named node type tuple root", Src: `type Id = node[string]
+		codegentest.Case{Name: "named node type tuple root", Src: `type Id = node[string]
 rule main (Id, Id) = a:id b:id => ($a, $b)
 rule id Id = t:([a-z]) #atomic => Id{$t}`, Inputs: []string{"ab", "a", ""}},
-		gentest.Case{Name: "named node type sequence", Src: `type Id = node[string]
+		codegentest.Case{Name: "named node type sequence", Src: `type Id = node[string]
 type Num = node[string]
 type S = { Items [](Id, Num) }
 rule main S = xs:(a:id n:num)* => S{Items: map($xs.Value, (x) => (x.$a, x.$n))}
@@ -117,7 +117,7 @@ rule num Num = t:([0-9]) #atomic => Num{$t}`, Inputs: []string{"", "a1", "a1b2"}
 			t.Fatal(err)
 		}
 	}
-	write("go.mod", gentest.GoMod("replay"))
+	write("go.mod", codegentest.GoMod("replay"))
 	write("package.json", `{"type":"module"}`)
 	var imports, parsers, recognizers, terminalNames, valueNames strings.Builder
 	var inputs [][]string
@@ -128,7 +128,7 @@ rule num Num = t:([0-9]) #atomic => Num{$t}`, Inputs: []string{"", "a1", "a1b2"}
 		if err != nil {
 			t.Fatalf("%s: %v", c.Name, err)
 		}
-		gentest.GeneratePackageIn(t, dir, "replay", fmt.Sprintf("g%d", i), g, codegen.GenOptions{Start: "main", Types: true, ConvertTypes: true, Recognize: true})
+		codegentest.GeneratePackageIn(t, dir, "replay", fmt.Sprintf("g%d", i), g, codegen.GenOptions{Start: "main", Types: true, ConvertTypes: true, Recognize: true})
 		prog, err := engine.Compile(g, compile.Options{})
 		if err != nil {
 			t.Fatal(err)
@@ -143,7 +143,7 @@ rule num Num = t:([0-9]) #atomic => Num{$t}`, Inputs: []string{"", "a1", "a1b2"}
 			fmt.Fprintf(&valueNames, "%q:%q,\n", fmt.Sprintf("replay/g%d/types.%s", i, name), name)
 		}
 		fmt.Fprintf(&terminalNames, "%q:true,\n", fmt.Sprintf("replay/g%d/types.Error", i))
-		tsFiles, err := gentest.GenerateTS(g, codegen.GenOptions{Start: "main", Types: true, Recognize: true})
+		tsFiles, err := codegentest.GenerateTS(g, codegen.GenOptions{Start: "main", Types: true, Recognize: true})
 		if err != nil {
 			t.Fatalf("%s: %v", c.Name, err)
 		}
@@ -177,7 +177,7 @@ rule num Num = t:([0-9]) #atomic => Num{$t}`, Inputs: []string{"", "a1", "a1b2"}
 	if err != nil {
 		t.Fatalf("Go oracle: %v\n%s", err, want)
 	}
-	cmd = exec.Command(node, gentest.NodeTSArgs("replay.mjs")...)
+	cmd = exec.Command(node, codegentest.NodeTSArgs("replay.mjs")...)
 	cmd.Dir = dir
 	got, err := cmd.CombinedOutput()
 	if err != nil {

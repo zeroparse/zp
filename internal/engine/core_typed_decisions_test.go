@@ -11,8 +11,8 @@ import (
 
 	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/codegen/go"
+	"zeroparse.dev/zp/internal/codegentest"
 	"zeroparse.dev/zp/internal/compile"
-	"zeroparse.dev/zp/internal/gentest"
 )
 
 // The lowering decisions of the Core IR passes over the corpus are frozen in two golden files:
@@ -304,16 +304,16 @@ func (gd *decisionsGolden) freeze(t *testing.T, modes []coreGenMode, cases func(
 				}
 				fresh[mode.name][c.name] = c.lines
 			}
-			if !*gentest.UpdateGoldens {
+			if !*codegentest.UpdateGoldens {
 				gd.read()
-				for _, g := range gd.staleEntries(mode.name, fresh[mode.name], gentest.CorpusWithParsersSkipped(t)) {
+				for _, g := range gd.staleEntries(mode.name, fresh[mode.name], codegentest.CorpusWithParsersSkipped(t)) {
 					t.Errorf("%s: %s: stale entry in %s", mode.name, g, gd.path)
 				}
 			}
 			check(t, mode, &n)
 		})
 	}
-	if *gentest.UpdateGoldens {
+	if *codegentest.UpdateGoldens {
 		if len(fresh) != len(modes) || t.Failed() {
 			t.Fatalf("not rewriting %s: the run did not complete in every mode", gd.path)
 		}

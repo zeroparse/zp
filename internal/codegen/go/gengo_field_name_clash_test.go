@@ -8,7 +8,7 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/internal/codegen"
-	"zeroparse.dev/zp/internal/gentest"
+	"zeroparse.dev/zp/internal/codegentest"
 )
 
 // TestGeneratedTypedFieldsNamedLikeLibMethods checks that a struct field may be named like a
@@ -16,7 +16,7 @@ import (
 // the value reads back under the grammar name.
 func TestGeneratedTypedFieldsNamedLikeLibMethods(t *testing.T) {
 	t.Parallel()
-	gentest.EachMode(t, testGeneratedTypedFieldsNamedLikeLibMethods)
+	codegentest.EachMode(t, testGeneratedTypedFieldsNamedLikeLibMethods)
 }
 
 func testGeneratedTypedFieldsNamedLikeLibMethods(t *testing.T) {
@@ -40,12 +40,12 @@ rule main Pair = a:"a" => Pair{TName: "n", TText: "t", TKids: "k", TStruct: "s",
 			t.Fatal(err)
 		}
 	}
-	write("go.mod", gentest.GoMod("fieldclash"))
+	write("go.mod", codegentest.GoMod("fieldclash"))
 	for _, c := range []struct {
 		pkg      string
 		document bool
 	}{{"plain", false}, {"document", true}} {
-		code, err := gentest.GenerateCode(t, g, codegen.GenOptions{Package: c.pkg, Start: "main", Types: true, Document: c.document})
+		code, err := codegentest.GenerateCode(t, g, codegen.GenOptions{Package: c.pkg, Start: "main", Types: true, Document: c.document})
 		if err != nil {
 			t.Fatalf("%s: %v", c.pkg, err)
 		}

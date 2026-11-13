@@ -5,9 +5,9 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/core"
+	"zeroparse.dev/zp/internal/codegentest"
 	"zeroparse.dev/zp/internal/compile"
 	ecore "zeroparse.dev/zp/internal/engine/core"
-	"zeroparse.dev/zp/internal/gentest"
 )
 
 // lazyOverrides are the options that a lazily built program sets itself, by the field of
@@ -38,7 +38,7 @@ func TestLazyProgramsCarryEveryOption(t *testing.T) {
 			var o compile.Options
 			reflect.ValueOf(&o).Elem().FieldByName(name).SetBool(true)
 			o.LeftRecursionBindings = true // the grammar below needs it
-			prog := mustCompile(t, gentest.LRBindingSource, o)
+			prog := mustCompile(t, codegentest.LRBindingSource, o)
 			if _, err := prog.ParseWith("main", "x", ParseOptions{Backend: Closure, Limits: core.Limits{Compute: 1 << 30}}); err != nil {
 				t.Fatal(err)
 			}
@@ -83,15 +83,15 @@ func TestLazyProgramsCarryEveryOption(t *testing.T) {
 // backend, with the default budget (the controlled closure graph) and through the recognizer. The
 // results agree with the bytecode backends and with the program's own closure graph.
 func TestLeftRecursionBindingsOnTheLazyClosureGraph(t *testing.T) {
-	prog := mustCompile(t, gentest.LRBindingSource, compile.Options{LeftRecursionBindings: true})
+	prog := mustCompile(t, codegentest.LRBindingSource, compile.Options{LeftRecursionBindings: true})
 	rec, err := prog.Recognizer()
 	if err != nil {
 		t.Fatal(err)
 	}
-	for _, in := range gentest.LRBindingInputs {
-		want := gentest.ResultJSON(prog.ParseWith("main", in, ParseOptions{Backend: Bytecode}))
+	for _, in := range codegentest.LRBindingInputs {
+		want := codegentest.ResultJSON(prog.ParseWith("main", in, ParseOptions{Backend: Bytecode}))
 		for _, b := range []Backend{Closure, BytecodeIterative} {
-			if got := gentest.ResultJSON(prog.ParseWith("main", in, ParseOptions{Backend: b})); got != want {
+			if got := codegentest.ResultJSON(prog.ParseWith("main", in, ParseOptions{Backend: b})); got != want {
 				t.Errorf("%s: input %q: %s, want %s", b, in, got, want)
 			}
 		}

@@ -5,8 +5,8 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/internal/codegen"
+	"zeroparse.dev/zp/internal/codegentest"
 	"zeroparse.dev/zp/internal/engine"
-	"zeroparse.dev/zp/internal/gentest"
 )
 
 // A hidden rule is not an entry point: not the start rule, not a rule parsed by name.
@@ -49,10 +49,10 @@ rule _a = "a"`, "_a"},
 		if err != nil {
 			t.Fatal(err)
 		}
-		if _, err := gentest.Generate(t, parsed, codegen.GenOptions{Module: "m", Start: g.start}); err == nil || !strings.Contains(err.Error(), "hidden") {
+		if _, err := codegentest.Generate(t, parsed, codegen.GenOptions{Module: "m", Start: g.start}); err == nil || !strings.Contains(err.Error(), "hidden") {
 			t.Errorf("Go generation with the start rule %s: %v", g.start, err)
 		}
-		if _, err := gentest.GenerateTS(parsed, codegen.GenOptions{Start: g.start}); err == nil || !strings.Contains(err.Error(), "hidden") {
+		if _, err := codegentest.GenerateTS(parsed, codegen.GenOptions{Start: g.start}); err == nil || !strings.Contains(err.Error(), "hidden") {
 			t.Errorf("TypeScript generation with the start rule %s: %v", g.start, err)
 		}
 	}

@@ -8,12 +8,12 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/internal/codegen"
-	"zeroparse.dev/zp/internal/gentest"
+	"zeroparse.dev/zp/internal/codegentest"
 )
 
 func TestLiteralTextPredicateDispatchRejectsUnsafeShapes(t *testing.T) {
 	t.Parallel()
-	gentest.EachMode(t, testLiteralTextPredicateDispatchRejectsUnsafeShapes)
+	codegentest.EachMode(t, testLiteralTextPredicateDispatchRejectsUnsafeShapes)
 }
 
 func testLiteralTextPredicateDispatchRejectsUnsafeShapes(t *testing.T) {
@@ -31,7 +31,7 @@ rule main = w:[a-z]+ #atomic {result := text($w) == "a" || text($w) == "b"} $$`,
 		if err != nil {
 			t.Fatalf("case %d: %v", i, err)
 		}
-		code, err := gentest.GenerateCode(t, g, codegen.GenOptions{Package: "dispatch", Start: "main"})
+		code, err := codegentest.GenerateCode(t, g, codegen.GenOptions{Package: "dispatch", Start: "main"})
 		if err != nil {
 			t.Fatalf("case %d: %v", i, err)
 		}
@@ -43,12 +43,12 @@ rule main = w:[a-z]+ #atomic {result := text($w) == "a" || text($w) == "b"} $$`,
 
 func TestLiteralTextPredicateDispatchDisabledParity(t *testing.T) {
 	t.Parallel()
-	gentest.EachMode(t, testLiteralTextPredicateDispatchDisabledParity)
+	codegentest.EachMode(t, testLiteralTextPredicateDispatchDisabledParity)
 }
 
 func testLiteralTextPredicateDispatchDisabledParity(t *testing.T) {
-	var cases []gentest.Case
-	for _, c := range gentest.GenCorpus(t) {
+	var cases []codegentest.Case
+	for _, c := range codegentest.GenCorpus(t) {
 		if strings.HasPrefix(c.Name, "literal text ") {
 			cases = append(cases, c)
 		}
@@ -56,5 +56,5 @@ func testLiteralTextPredicateDispatchDisabledParity(t *testing.T) {
 	if len(cases) < 5 {
 		t.Fatalf("only %d literal text predicate cases", len(cases))
 	}
-	gentest.GeneratedTypesCorpus(t, filepath.Join(runtime.GOROOT(), "bin", "go"), cases, codegen.GenOptions{NoOpt: []string{"text-dispatch"}})
+	codegentest.GeneratedTypesCorpus(t, filepath.Join(runtime.GOROOT(), "bin", "go"), cases, codegen.GenOptions{NoOpt: []string{"text-dispatch"}})
 }

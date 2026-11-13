@@ -23,7 +23,7 @@ func TestGeneratedRuleEntryCharge(t *testing.T) {
 	name := regexp.MustCompile(`^(ds|[eiqrsuv])[0-9]+$`)
 	wrapper := regexp.MustCompile(`^[isu][0-9]+$`) // typed wrappers: state or dispatch around a call of the charging function
 	var paths []string
-	for _, pattern := range []string{"../../bench/gen/*/parser.go"} {
+	for _, pattern := range []string{"../../bench/parsers/*/parser.go"} {
 		m, err := filepath.Glob(pattern)
 		if err != nil {
 			t.Fatal(err)

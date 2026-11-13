@@ -7,8 +7,8 @@ import (
 
 	"zeroparse.dev/zp/core"
 	"zeroparse.dev/zp/internal/bytecode"
+	"zeroparse.dev/zp/internal/codegentest"
 	"zeroparse.dev/zp/internal/compile"
-	"zeroparse.dev/zp/internal/gentest"
 	"zeroparse.dev/zp/internal/syntax"
 )
 
@@ -134,7 +134,7 @@ func checkStartRestriction(t *testing.T, prog *Program, o ParseOptions) {
 func TestStartRestriction(t *testing.T) {
 	t.Parallel()
 	for _, recognition := range []bool{false, true} {
-		g, err := syntax.Parse(gentest.StartRestrictionSource)
+		g, err := syntax.Parse(codegentest.StartRestrictionSource)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -156,7 +156,7 @@ func TestStartRoundTrip(t *testing.T) {
 	t.Parallel()
 	for _, recognition := range []bool{false, true} {
 		for _, mode := range allModes {
-			g, err := syntax.Parse(gentest.StartRestrictionSource)
+			g, err := syntax.Parse(codegentest.StartRestrictionSource)
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -208,7 +208,7 @@ func TestStartRoundTrip(t *testing.T) {
 func TestStartModuleValidation(t *testing.T) {
 	t.Parallel()
 	fresh := func() *bytecode.Module {
-		prog, err := compileStarts(t, gentest.StartRestrictionSource)
+		prog, err := compileStarts(t, codegentest.StartRestrictionSource)
 		if err != nil {
 			t.Fatal(err)
 		}

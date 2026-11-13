@@ -8,13 +8,13 @@ import (
 
 	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/codegen"
+	"zeroparse.dev/zp/internal/codegentest"
 	"zeroparse.dev/zp/internal/engine"
-	"zeroparse.dev/zp/internal/gentest"
 )
 
 func TestGeneratedMaxDepthValidation(t *testing.T) {
 	t.Parallel()
-	gentest.EachMode(t, testGeneratedMaxDepthValidation)
+	codegentest.EachMode(t, testGeneratedMaxDepthValidation)
 }
 
 func testGeneratedMaxDepthValidation(t *testing.T) {
@@ -24,19 +24,19 @@ func testGeneratedMaxDepthValidation(t *testing.T) {
 	}
 	safe := uint64(9007199254740991)
 	if uint64(^uint(0)>>1) >= safe+1 {
-		if got, err := gentest.GenerateTSBundle(g, codegen.GenOptions{Start: "main", MaxDepth: int(safe)}); err != nil || len(got) == 0 {
+		if got, err := codegentest.GenerateTSBundle(g, codegen.GenOptions{Start: "main", MaxDepth: int(safe)}); err != nil || len(got) == 0 {
 			t.Fatalf("safe JavaScript boundary rejected: %v", err)
 		}
-		if got, err := gentest.GenerateTSBundle(g, codegen.GenOptions{Start: "main", MaxDepth: int(safe + 1)}); err == nil || len(got) != 0 {
+		if got, err := codegentest.GenerateTSBundle(g, codegen.GenOptions{Start: "main", MaxDepth: int(safe + 1)}); err == nil || len(got) != 0 {
 			t.Fatal("unsafe JavaScript boundary accepted")
 		}
 	}
 	for _, ts := range []bool{false, true} {
 		generate := func(g *grammar.Grammar, opts codegen.GenOptions) ([]byte, error) {
-			return gentest.GenerateCode(t, g, opts)
+			return codegentest.GenerateCode(t, g, opts)
 		}
 		if ts {
-			generate = gentest.GenerateTSBundle
+			generate = codegentest.GenerateTSBundle
 		}
 		base, err := generate(g, codegen.GenOptions{Package: "depth", Start: "main"})
 		if err != nil {

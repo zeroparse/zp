@@ -6,7 +6,7 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/internal/codegen"
-	"zeroparse.dev/zp/internal/gentest"
+	"zeroparse.dev/zp/internal/codegentest"
 )
 
 const tsDiagnosticMinimum = `function minimum(fits:(n:number)=>boolean):number {
@@ -137,7 +137,7 @@ func TestGeneratedTSBudgetControlDiagnosticLineScanPerRoute(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	out := gentest.RunTSGrammarScriptWith(t, g, `import * as p from "./parser.ts";
+	out := codegentest.RunTSGrammarScriptWith(t, g, `import * as p from "./parser.ts";
 type Hooked = { makeError(...a: unknown[]): unknown; control: { budgetUsed: number } | null };
 const proto = (p as unknown as { Parser: { prototype: Hooked } }).Parser.prototype;
 const original = proto.makeError;

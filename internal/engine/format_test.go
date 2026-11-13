@@ -10,8 +10,8 @@ import (
 
 	"zeroparse.dev/zp/core"
 	"zeroparse.dev/zp/grammar"
+	"zeroparse.dev/zp/internal/codegentest"
 	"zeroparse.dev/zp/internal/compile"
-	"zeroparse.dev/zp/internal/gentest"
 	"zeroparse.dev/zp/internal/syntax"
 )
 
@@ -36,8 +36,8 @@ func TestFormatPreservesMinusSemantics(t *testing.T) {
 							opts := ParseOptions{Backend: backend, Unit: unit}
 							n1, err1 := before.ParseWith("main", input, opts)
 							n2, err2 := after.ParseWith("main", input, opts)
-							if gentest.ResultJSON(n1, err1) != gentest.ResultJSON(n2, err2) {
-								t.Errorf("%s/%s on %q: formatting changes %s to %s", backend, unit, input, gentest.ResultJSON(n1, err1), gentest.ResultJSON(n2, err2))
+							if codegentest.ResultJSON(n1, err1) != codegentest.ResultJSON(n2, err2) {
+								t.Errorf("%s/%s on %q: formatting changes %s to %s", backend, unit, input, codegentest.ResultJSON(n1, err1), codegentest.ResultJSON(n2, err2))
 							}
 						}
 					}
@@ -58,7 +58,7 @@ func TestFormatPreservesCorpus(t *testing.T) {
 		inputs    []string
 	}
 	var sources []source
-	for _, c := range gentest.GenCorpus(t) {
+	for _, c := range codegentest.GenCorpus(t) {
 		sources = append(sources, source{c.Name, c.Src, c.Inputs})
 	}
 	out, err := exec.Command("git", "-C", "../..", "ls-files", "*.zp").Output()
@@ -101,7 +101,7 @@ func TestFormatPreservesCorpus(t *testing.T) {
 					opts := ParseOptions{Unit: unit}
 					n1, err1 := p1.ParseWith("main", input, opts)
 					n2, err2 := p2.ParseWith("main", input, opts)
-					if r1, r2 := gentest.ResultJSON(n1, err1), gentest.ResultJSON(n2, err2); r1 != r2 {
+					if r1, r2 := codegentest.ResultJSON(n1, err1), codegentest.ResultJSON(n2, err2); r1 != r2 {
 						t.Errorf("%v on %q: formatting changes %s to %s", unit, input, r1, r2)
 					}
 				}

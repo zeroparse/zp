@@ -12,14 +12,14 @@ import (
 
 	"zeroparse.dev/zp/core"
 	"zeroparse.dev/zp/internal/codegen"
+	"zeroparse.dev/zp/internal/codegentest"
 	"zeroparse.dev/zp/internal/compile"
 	"zeroparse.dev/zp/internal/engine"
-	"zeroparse.dev/zp/internal/gentest"
 )
 
 func TestLiteralTextPredicateDispatchGeneration(t *testing.T) {
 	t.Parallel()
-	gentest.EachMode(t, testLiteralTextPredicateDispatchGeneration)
+	codegentest.EachMode(t, testLiteralTextPredicateDispatchGeneration)
 }
 
 // The lowered literal text dispatch tests the text of the capture against every literal at once:
@@ -37,28 +37,28 @@ func testLiteralTextPredicateDispatchGeneration(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	code, err := gentest.GenerateCode(t, g, codegen.GenOptions{Package: "dispatch", Start: "main", Types: true})
+	code, err := codegentest.GenerateCode(t, g, codegen.GenOptions{Package: "dispatch", Start: "main", Types: true})
 	if err != nil {
 		t.Fatal(err)
 	}
 	if !goTextDispatchAB.Match(code) {
 		t.Fatal("typed Go generator did not emit literal text dispatch")
 	}
-	baseline, err := gentest.GenerateCode(t, g, codegen.GenOptions{Package: "dispatch", Start: "main", Types: true, NoOpt: []string{"text-dispatch"}})
+	baseline, err := codegentest.GenerateCode(t, g, codegen.GenOptions{Package: "dispatch", Start: "main", Types: true, NoOpt: []string{"text-dispatch"}})
 	if err != nil {
 		t.Fatal(err)
 	}
 	if goTextDispatch.Match(baseline) || strings.Contains(string(code), "disableLiteralTextDispatch") {
 		t.Fatal("generation-only control did not preserve the general baseline")
 	}
-	ts, err := gentest.GenerateTSBundle(g, codegen.GenOptions{Start: "main"})
+	ts, err := codegentest.GenerateTSBundle(g, codegen.GenOptions{Start: "main"})
 	if err != nil {
 		t.Fatal(err)
 	}
 	if !tsTextDispatchAB.Match(ts) {
 		t.Fatal("TypeScript generator did not emit literal text dispatch")
 	}
-	tsBaseline, err := gentest.GenerateTSBundle(g, codegen.GenOptions{Start: "main", NoOpt: []string{"text-dispatch"}})
+	tsBaseline, err := codegentest.GenerateTSBundle(g, codegen.GenOptions{Start: "main", NoOpt: []string{"text-dispatch"}})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -109,7 +109,7 @@ func TestGeneratedLiteralDispatchWorkload(t *testing.T) {
 				disabled bool
 			}{{"candidate", false}, {"reference", true}} {
 				packageName := "dispatch"
-				code, err := gentest.GenerateCode(t, g, codegen.GenOptions{Package: packageName, Start: "main", Types: mode.types, Recognize: true, NoOpt: gentest.NoOptIf(variant.disabled, "text-dispatch")})
+				code, err := codegentest.GenerateCode(t, g, codegen.GenOptions{Package: packageName, Start: "main", Types: mode.types, Recognize: true, NoOpt: codegentest.NoOptIf(variant.disabled, "text-dispatch")})
 				if err != nil {
 					t.Fatalf("%s/%s/%s: %v", workload.name, mode.name, variant.name, err)
 				}
@@ -159,7 +159,7 @@ func TestGeneratedLiteralDispatchWorkload(t *testing.T) {
 			t.Fatal(err)
 		}
 	}
-	if err := os.WriteFile(filepath.Join(dir, "go.mod"), []byte(gentest.GoMod("literaldispatch")), 0o644); err != nil {
+	if err := os.WriteFile(filepath.Join(dir, "go.mod"), []byte(codegentest.GoMod("literaldispatch")), 0o644); err != nil {
 		t.Fatal(err)
 	}
 	if err := os.WriteFile(filepath.Join(dir, "manifest.json"), mustJSONIndent(t, manifest), 0o644); err != nil {
@@ -239,11 +239,11 @@ func writeLiteralDispatchTypeScript(t *testing.T, dir string, workload literalDi
 	if err != nil {
 		return err
 	}
-	candidate, err := gentest.GenerateTSBundle(g, codegen.GenOptions{Start: "main"})
+	candidate, err := codegentest.GenerateTSBundle(g, codegen.GenOptions{Start: "main"})
 	if err != nil {
 		return err
 	}
-	reference, err := gentest.GenerateTSBundle(g, codegen.GenOptions{Start: "main", NoOpt: []string{"text-dispatch"}})
+	reference, err := codegentest.GenerateTSBundle(g, codegen.GenOptions{Start: "main", NoOpt: []string{"text-dispatch"}})
 	if err != nil {
 		return err
 	}

@@ -8,7 +8,7 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/internal/codegen"
-	"zeroparse.dev/zp/internal/gentest"
+	"zeroparse.dev/zp/internal/codegentest"
 )
 
 // The examined frontier, the evaluations and the reuse that a Document reports for a rule that
@@ -18,7 +18,7 @@ import (
 // position the invocation leaves at its failure.
 func TestGeneratedDocumentFrontierAfterFailure(t *testing.T) {
 	t.Parallel()
-	gentest.EachMode(t, testGeneratedDocumentFrontierAfterFailure)
+	codegentest.EachMode(t, testGeneratedDocumentFrontierAfterFailure)
 }
 
 func testGeneratedDocumentFrontierAfterFailure(t *testing.T) {
@@ -45,7 +45,7 @@ rule leaf = &"a"
 			t.Fatal(err)
 		}
 	}
-	write("go.mod", gentest.GoMod("frontier"))
+	write("go.mod", codegentest.GoMod("frontier"))
 	const consumer = `package PACKAGE
 
 import (
@@ -80,7 +80,7 @@ func TestFrontier(t *testing.T) {
 `
 	results := map[string]string{}
 	for _, route := range []string{"node", "typed"} {
-		code, err := gentest.GenerateCode(t, g, codegen.GenOptions{Package: route, Start: "main", Document: true, Types: route == "typed", Recognize: true, Observability: true})
+		code, err := codegentest.GenerateCode(t, g, codegen.GenOptions{Package: route, Start: "main", Document: true, Types: route == "typed", Recognize: true, Observability: true})
 		if err != nil {
 			t.Fatal(route, err)
 		}

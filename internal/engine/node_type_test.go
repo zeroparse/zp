@@ -8,31 +8,31 @@ import (
 
 	"zeroparse.dev/zp/core"
 	"zeroparse.dev/zp/internal/bytecode"
+	"zeroparse.dev/zp/internal/codegentest"
 	"zeroparse.dev/zp/internal/compile"
-	"zeroparse.dev/zp/internal/gentest"
 )
 
 func TestNamedNodeTypesAcrossBackends(t *testing.T) {
 	t.Parallel()
 	inputs := []string{"", "ab", "ab 12 c3", "<1,x>", "ab <12,y>[1]!bc", "12 ?", "[]!a"}
 	for _, sourceInfo := range []bool{false, true} {
-		prog := compileBare(t, gentest.NodeTypeGrammar, compile.Options{SourceInfo: sourceInfo})
+		prog := compileBare(t, codegentest.NodeTypeGrammar, compile.Options{SourceInfo: sourceInfo})
 		for _, input := range inputs {
-			want := gentest.ResultJSON(prog.ParseWith("main", input, ParseOptions{Backend: Closure}))
+			want := codegentest.ResultJSON(prog.ParseWith("main", input, ParseOptions{Backend: Closure}))
 			for _, backend := range []Backend{Bytecode, BytecodeIterative} {
-				got := gentest.ResultJSON(prog.ParseWith("main", input, ParseOptions{Backend: backend}))
+				got := codegentest.ResultJSON(prog.ParseWith("main", input, ParseOptions{Backend: backend}))
 				if got != want {
 					t.Errorf("sourceInfo=%t %s %q:\n got %s\nwant %s", sourceInfo, backend, input, got, want)
 				}
 			}
 		}
 	}
-	prog := compileBare(t, gentest.NodeTypeGrammar)
+	prog := compileBare(t, codegentest.NodeTypeGrammar)
 	n, err := prog.Parse("main", "ab 12<1,x>[3]")
 	if err != nil {
 		t.Fatal(err)
 	}
-	got := gentest.ResultJSON(n, err)
+	got := codegentest.ResultJSON(n, err)
 	for _, want := range []string{`{"type":"Ident","start":0,"end":2,"value":"ab"}`, `{"type":"Num","start":3,"end":5,"value":"12"}`, `"Pair":{"type":"Pair","start":6`, `"Nums":{"type":"Nums"`, `"Len":4`, `"Text":"ab12"`} {
 		if !strings.Contains(got, want) {
 			t.Errorf("missing %s in %s", want, got)
@@ -49,7 +49,7 @@ func TestNamedNodeTypesAcrossBackends(t *testing.T) {
 // that is not a named node type.
 func TestNamedNodeTypeModuleValidation(t *testing.T) {
 	t.Parallel()
-	prog := compileBare(t, gentest.NodeTypeGrammar)
+	prog := compileBare(t, codegentest.NodeTypeGrammar)
 	base := prog.Module()
 	if err := compile.ValidateModule(base); err != nil {
 		t.Fatal(err)
@@ -179,7 +179,7 @@ func TestNamedNodeTypeText(t *testing.T) {
 	t.Parallel()
 	const want = `Out{Any: Any("bc"), Items: [Ident("ab") Num("12")], Len: 4, Nums: Nums[Num("3")], Pair: Pair(Num("1") Ident("x")), Start: 3, Text: "ab12"}`
 	for _, sourceInfo := range []bool{false, true} {
-		prog := compileBare(t, gentest.NodeTypeGrammar, compile.Options{SourceInfo: sourceInfo})
+		prog := compileBare(t, codegentest.NodeTypeGrammar, compile.Options{SourceInfo: sourceInfo})
 		for _, backend := range []Backend{Closure, Bytecode, BytecodeIterative} {
 			n, err := prog.ParseWith("main", "ab 12<1,x>[3]!bc", ParseOptions{Backend: backend})
 			if err != nil {

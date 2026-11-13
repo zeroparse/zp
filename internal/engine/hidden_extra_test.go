@@ -4,8 +4,8 @@ import (
 	"strings"
 	"testing"
 
+	"zeroparse.dev/zp/internal/codegentest"
 	"zeroparse.dev/zp/internal/compile"
-	"zeroparse.dev/zp/internal/gentest"
 )
 
 // The differential check of the splice cases detects a rule that makes its own node: the same
@@ -14,7 +14,7 @@ import (
 func TestHiddenRulesNegativeControl(t *testing.T) {
 	t.Parallel()
 	differs := 0
-	for _, tc := range gentest.SpliceCases() {
+	for _, tc := range codegentest.SpliceCases() {
 		if !strings.Contains(tc.Hidden, "rule _m") || strings.Contains(tc.Hidden, "_n") {
 			continue
 		}
@@ -24,11 +24,11 @@ func TestHiddenRulesNegativeControl(t *testing.T) {
 			if _, err := inlined.Parse("main", input); err != nil {
 				continue
 			}
-			want := gentest.ResultJSON(inlined.Parse("main", input))
-			if got := gentest.ResultJSON(hidden.Parse("main", input)); got != want {
+			want := codegentest.ResultJSON(inlined.Parse("main", input))
+			if got := codegentest.ResultJSON(hidden.Parse("main", input)); got != want {
 				t.Errorf("%s %q: hidden %s, inlined %s", tc.Name, input, got, want)
 			}
-			if gentest.ResultJSON(shown.Parse("main", input)) != want {
+			if codegentest.ResultJSON(shown.Parse("main", input)) != want {
 				differs++
 			}
 		}
@@ -56,11 +56,11 @@ func TestDefaultValueKeepsTheNodeOfHiddenRulesWithActions(t *testing.T) {
 			for _, input := range []string{"abcd", "abd", "a", ""} {
 				for _, backend := range []Backend{Closure, Bytecode, BytecodeIterative} {
 					o := ParseOptions{Backend: backend}
-					want, got := gentest.ResultJSON(plain.ParseWith("main", input, o)), gentest.ResultJSON(def.ParseWith("main", input, o))
+					want, got := codegentest.ResultJSON(plain.ParseWith("main", input, o)), codegentest.ResultJSON(def.ParseWith("main", input, o))
 					if got != want {
 						t.Errorf("%q on %s:\ndefault value: %s\nas written:    %s", input, backend, got, want)
 					}
-					if gentest.ResultJSON(spliced.ParseWith("main", input, o)) != want {
+					if codegentest.ResultJSON(spliced.ParseWith("main", input, o)) != want {
 						differs = true
 					}
 				}

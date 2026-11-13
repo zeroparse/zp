@@ -11,9 +11,9 @@ import (
 	"unicode/utf8"
 
 	"zeroparse.dev/zp/core"
+	"zeroparse.dev/zp/internal/codegentest"
 	"zeroparse.dev/zp/internal/compile"
 	ecore "zeroparse.dev/zp/internal/engine/core"
-	"zeroparse.dev/zp/internal/gentest"
 )
 
 // failOnRead lets decode read buffered bytes but reports every attempt to
@@ -68,7 +68,7 @@ func TestOpenPipeStreamEmitsCompleteItem(t *testing.T) {
 						done := make(chan error, 1)
 						go func() {
 							defer pr.Close() // Unblock a writer if parsing fails before all chunks arrive.
-							done <- p.ParseStreamWith("main", pr, func(n *core.Node) error { emitted <- gentest.ResultJSON(n, nil); return nil }, ParseOptions{Backend: b, Unit: unit})
+							done <- p.ParseStreamWith("main", pr, func(n *core.Node) error { emitted <- codegentest.ResultJSON(n, nil); return nil }, ParseOptions{Backend: b, Unit: unit})
 						}()
 						t.Cleanup(func() {
 							pw.Close()
@@ -97,7 +97,7 @@ func TestOpenPipeStreamEmitsCompleteItem(t *testing.T) {
 							t.Fatal(err)
 						}
 						want := ""
-						refErr := p.ParseStreamWith("main", strings.NewReader(s+"\n"), func(n *core.Node) error { want = gentest.ResultJSON(n, nil); return nil }, ParseOptions{Unit: unit})
+						refErr := p.ParseStreamWith("main", strings.NewReader(s+"\n"), func(n *core.Node) error { want = codegentest.ResultJSON(n, nil); return nil }, ParseOptions{Unit: unit})
 						if refErr != nil {
 							t.Fatal(refErr)
 						}

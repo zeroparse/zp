@@ -5,7 +5,7 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/internal/codegen"
-	"zeroparse.dev/zp/internal/gentest"
+	"zeroparse.dev/zp/internal/codegentest"
 )
 
 func TestTopBottomGeneratedTypeScriptParity(t *testing.T) {
@@ -14,5 +14,5 @@ func TestTopBottomGeneratedTypeScriptParity(t *testing.T) {
 	if err != nil {
 		t.Skip("node not found")
 	}
-	gentest.TSParsersCorpus(t, node, gentest.TopBottomCases(), codegen.GenOptions{})
+	codegentest.TSParsersCorpus(t, node, codegentest.TopBottomCases(), codegen.GenOptions{})
 }

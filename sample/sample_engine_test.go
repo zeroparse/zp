@@ -5,7 +5,7 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/engine"
-	"zeroparse.dev/zp/internal/gentest"
+	"zeroparse.dev/zp/internal/codegentest"
 	"zeroparse.dev/zp/internal/starttest"
 	"zeroparse.dev/zp/sample"
 )
@@ -15,7 +15,7 @@ import (
 // lookahead, #recover, Operators Rule expressions, left recursion, anchors and character classes.
 func TestSampleCorpus(t *testing.T) {
 	t.Parallel()
-	for _, c := range gentest.GenCorpus(t) {
+	for _, c := range codegentest.GenCorpus(t) {
 		t.Run(c.Name, func(t *testing.T) {
 			ast, err := engine.ParseGrammar(c.Src)
 			if err != nil {

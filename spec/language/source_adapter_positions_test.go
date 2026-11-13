@@ -6,7 +6,7 @@ import (
 	"unicode"
 
 	"zeroparse.dev/zp/internal/syntax"
-	"zeroparse.dev/zp/internal/syntax/genparser"
+	"zeroparse.dev/zp/internal/syntax/grammarparser"
 )
 
 // The positions of the errors of the canonical frontend come from SourceErrors, which moves the
@@ -109,7 +109,7 @@ func TestPositionPlacementsAreSeen(t *testing.T) {
 		if invalid || merr == nil {
 			continue
 		}
-		_, perr := genparser.ParseValue(text)
+		_, perr := grammarparser.ParseValue(text)
 		if perr == nil {
 			continue
 		}

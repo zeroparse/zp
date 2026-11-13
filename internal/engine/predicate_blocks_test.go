@@ -6,8 +6,8 @@ import (
 
 	"zeroparse.dev/zp/core"
 	"zeroparse.dev/zp/grammar"
+	"zeroparse.dev/zp/internal/codegentest"
 	"zeroparse.dev/zp/internal/compile"
-	"zeroparse.dev/zp/internal/gentest"
 )
 
 func TestPredicateBlockBindingComparison(t *testing.T) {
@@ -25,7 +25,7 @@ rule a = {x:=1; x<10}`)
 
 func TestPredicateBlocksAdjacentParity(t *testing.T) {
 	t.Parallel()
-	for _, fixture := range gentest.PredicateBlockCases() {
+	for _, fixture := range codegentest.PredicateBlockCases() {
 		t.Run(fixture.Name, func(t *testing.T) {
 			block := mustCompile(t, fixture.Block)
 			adjacent := mustCompile(t, fixture.Adjacent)
@@ -34,8 +34,8 @@ func TestPredicateBlocksAdjacentParity(t *testing.T) {
 					for _, recognize := range []bool{false, true} {
 						options := ParseOptions{Backend: backend, Unit: unit, Recognize: recognize}
 						for _, input := range fixture.Inputs {
-							got := gentest.ResultJSON(block.ParseWith("main", input, options))
-							want := gentest.ResultJSON(adjacent.ParseWith("main", input, options))
+							got := codegentest.ResultJSON(block.ParseWith("main", input, options))
+							want := codegentest.ResultJSON(adjacent.ParseWith("main", input, options))
 							if got != want {
 								t.Fatalf("%s/%s recognize=%t input=%q: block %s; adjacent %s", backend, unit, recognize, input, got, want)
 							}
@@ -79,8 +79,8 @@ func TestPredicateBlocksSourceAndSavedGrammar(t *testing.T) {
 				for _, unit := range []core.PositionUnit{core.CodePoints, core.Bytes} {
 					for _, input := range []string{"é", "", "a", "éé"} {
 						parseOptions := ParseOptions{Backend: backend, Unit: unit}
-						got := gentest.ResultJSON(loaded.ParseWith("main", input, servedBy(mode, parseOptions)))
-						want := gentest.ResultJSON(program.ParseWith("main", input, parseOptions))
+						got := codegentest.ResultJSON(loaded.ParseWith("main", input, servedBy(mode, parseOptions)))
+						want := codegentest.ResultJSON(program.ParseWith("main", input, parseOptions))
 						if got != want {
 							t.Fatalf("saved %s/%s input=%q: %s / %s", backend, unit, input, got, want)
 						}

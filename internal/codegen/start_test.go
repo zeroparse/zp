@@ -6,9 +6,9 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/internal/codegen"
+	"zeroparse.dev/zp/internal/codegentest"
 	"zeroparse.dev/zp/internal/desugar"
 	"zeroparse.dev/zp/internal/engine"
-	"zeroparse.dev/zp/internal/gentest"
 	"zeroparse.dev/zp/internal/syntax"
 )
 
@@ -17,7 +17,7 @@ import (
 // behind inline actions never become start rules.
 func TestStartHiddenRule(t *testing.T) {
 	t.Parallel()
-	gentest.EachMode(t, testStartHiddenRule)
+	codegentest.EachMode(t, testStartHiddenRule)
 }
 
 func testStartHiddenRule(t *testing.T) {
@@ -35,10 +35,10 @@ func testStartHiddenRule(t *testing.T) {
 		if perr != nil {
 			t.Fatal(perr)
 		}
-		if _, err := gentest.GenerateCode(t, g, codegen.GenOptions{Package: "p"}); err == nil || !strings.Contains(err.Error(), tc.want) {
+		if _, err := codegentest.GenerateCode(t, g, codegen.GenOptions{Package: "p"}); err == nil || !strings.Contains(err.Error(), tc.want) {
 			t.Errorf("Generate %q\n got %v\nwant %s", tc.src, err, tc.want)
 		}
-		if _, err := gentest.GenerateTS(g, codegen.GenOptions{}); err == nil || !strings.Contains(err.Error(), tc.want) {
+		if _, err := codegentest.GenerateTS(g, codegen.GenOptions{}); err == nil || !strings.Contains(err.Error(), tc.want) {
 			t.Errorf("GenerateTS %q\n got %v\nwant %s", tc.src, err, tc.want)
 		}
 	}

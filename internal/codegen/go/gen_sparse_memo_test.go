@@ -8,14 +8,14 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/internal/codegen"
-	"zeroparse.dev/zp/internal/gentest"
+	"zeroparse.dev/zp/internal/codegentest"
 )
 
 // ZP_SPARSE_MEMO_GENERATED_DIR preserves the generated fixture for
 // separately built timing and allocation measurements.
 func TestGeneratedSparseMemo(t *testing.T) {
 	t.Parallel()
-	gentest.EachMode(t, testGeneratedSparseMemo)
+	codegentest.EachMode(t, testGeneratedSparseMemo)
 }
 
 func testGeneratedSparseMemo(t *testing.T) {
@@ -36,7 +36,7 @@ func testGeneratedSparseMemo(t *testing.T) {
 	}
 	var fingerprint string
 	for _, name := range []string{"optimized"} {
-		code, err := gentest.GenerateCode(t, g, codegen.GenOptions{Package: "memofixture", Start: "main", Types: true,
+		code, err := codegentest.GenerateCode(t, g, codegen.GenOptions{Package: "memofixture", Start: "main", Types: true,
 			Recognize: true})
 		if err != nil {
 			t.Fatal(err)
@@ -50,7 +50,7 @@ func testGeneratedSparseMemo(t *testing.T) {
 		}
 		fixture := sparseMemoGeneratedFixture
 		for file, data := range map[string][]byte{
-			"go.mod":    []byte(gentest.GoMod("memofixture")),
+			"go.mod":    []byte(codegentest.GoMod("memofixture")),
 			"parser.go": code, "memo_test.go": []byte(fixture),
 		} {
 			if err := os.WriteFile(filepath.Join(path, file), data, 0o644); err != nil {

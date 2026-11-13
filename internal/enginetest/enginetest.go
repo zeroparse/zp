@@ -12,25 +12,25 @@ import (
 
 	"zeroparse.dev/zp/core"
 	"zeroparse.dev/zp/grammar"
+	"zeroparse.dev/zp/internal/codegentest"
 	"zeroparse.dev/zp/internal/compile"
 	"zeroparse.dev/zp/internal/compiletest"
 	"zeroparse.dev/zp/internal/engine"
-	"zeroparse.dev/zp/internal/gentest"
 	ischema "zeroparse.dev/zp/internal/schema"
 	"zeroparse.dev/zp/internal/syntax"
 	"zeroparse.dev/zp/schema"
 )
 
-// UseEngine makes gentest compile the grammars that tests generate parsers for with the engine,
+// UseEngine makes codegentest compile the grammars that tests generate parsers for with the engine,
 // and compare the generated parsers with it, as package engine does. Call it from an init function of
 // the test package.
 func UseEngine() {
-	gentest.Compile = CompileForGenerator
-	gentest.Reference = Reference
+	codegentest.Compile = CompileForGenerator
+	codegentest.Reference = Reference
 }
 
 // Main runs the tests of a package that builds generated programs: with the Go flags and the
-// private build cache of gentest, and failing when a test builds generated fixtures without
+// private build cache of codegentest, and failing when a test builds generated fixtures without
 // choosing their form. Call it from TestMain.
 func Main(m *testing.M) {
 	// Tests build generated programs in fresh temporary directories, with a build cache private
@@ -39,12 +39,12 @@ func Main(m *testing.M) {
 	// so the tests of the package share the builds of the standard library and of this module;
 	// commands that set GOFLAGS add it themselves. -mod=mod lets the temporary modules that
 	// replace this module resolve it without a go.sum.
-	gentest.SetGoFlags()
-	removeGoCache := gentest.SetGoCache()
+	codegentest.SetGoFlags()
+	removeGoCache := codegentest.SetGoCache()
 	code := m.Run()
 	removeGoCache()
-	if names := gentest.UnwrappedFixtureTests(); len(names) > 0 {
-		fmt.Fprintf(os.Stderr, "FAIL: tests build generated fixtures without choosing their form: %s\nWrap the test body in gentest.EachMode, or call gentest.NeedsBudgetControls, or pin the form with gentest.PinOrdinary\n", strings.Join(names, ", "))
+	if names := codegentest.UnwrappedFixtureTests(); len(names) > 0 {
+		fmt.Fprintf(os.Stderr, "FAIL: tests build generated fixtures without choosing their form: %s\nWrap the test body in codegentest.EachMode, or call codegentest.NeedsBudgetControls, or pin the form with codegentest.PinOrdinary\n", strings.Join(names, ", "))
 		code = 1
 	}
 	os.Exit(code)
@@ -123,7 +123,7 @@ func CompileMessage(t testing.TB, src string, opts ...compile.Options) string {
 
 // Reference compiles src with the engine for the comparisons of generated parsers with it. Its
 // parses record expectations, as the generated parsers' do.
-func Reference(t *testing.T, src string, opts compile.Options) gentest.ReferenceParse {
+func Reference(t *testing.T, src string, opts compile.Options) codegentest.ReferenceParse {
 	t.Helper()
 	prog := CompileBare(t, src, opts)
 	return func(input string, bytes, recognize bool) (*core.Node, error) {

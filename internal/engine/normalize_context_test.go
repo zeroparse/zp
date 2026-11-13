@@ -7,9 +7,9 @@ import (
 	"zeroparse.dev/zp/internal/cancel"
 
 	"zeroparse.dev/zp/grammar"
+	"zeroparse.dev/zp/internal/codegentest"
 	"zeroparse.dev/zp/internal/compile"
 	"zeroparse.dev/zp/internal/desugar"
-	"zeroparse.dev/zp/internal/gentest"
 )
 
 func TestNormalizationContextParity(t *testing.T) {
@@ -57,7 +57,7 @@ rule main (Alias) = n:([0-9]+) => (T{Text: (text($n))})`,
 			if !reflect.DeepEqual(gotErr, wantErr) {
 				t.Fatalf("compile diagnostics differ: %v / %v", gotErr, wantErr)
 			}
-			if gotErr == nil && gentest.ResultJSON(got.Parse("main", "a")) != gentest.ResultJSON(want.Parse("main", "a")) {
+			if gotErr == nil && codegentest.ResultJSON(got.Parse("main", "a")) != codegentest.ResultJSON(want.Parse("main", "a")) {
 				t.Fatal("context changed compiled behavior")
 			}
 		})

@@ -7,25 +7,25 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/internal/codegen"
-	"zeroparse.dev/zp/internal/gentest"
+	"zeroparse.dev/zp/internal/codegentest"
 )
 
 func TestGeneratedTypedLRBodies(t *testing.T) {
 	t.Parallel()
-	gentest.EachMode(t, testGeneratedTypedLRBodies)
+	codegentest.EachMode(t, testGeneratedTypedLRBodies)
 }
 
 func testGeneratedTypedLRBodies(t *testing.T) {
 	if testing.Short() {
 		t.Skip("builds generated code")
 	}
-	for _, c := range gentest.TypedLRBodyCases {
+	for _, c := range codegentest.TypedLRBodyCases {
 		g, err := parseTest(c.Src)
 		if err != nil {
 			t.Fatalf("%s: %v", c.Name, err)
 		}
 		opts := codegen.GenOptions{Package: "lrbody", Start: "main", Types: true, Recognize: true}
-		code, err := gentest.GenerateCode(t, g, opts)
+		code, err := codegentest.GenerateCode(t, g, opts)
 		if err != nil {
 			t.Fatalf("%s: %v", c.Name, err)
 		}
@@ -47,6 +47,6 @@ func testGeneratedTypedLRBodies(t *testing.T) {
 		}
 	}
 	goBin := filepath.Join(runtime.GOROOT(), "bin", "go")
-	gentest.GeneratedTypesCorpus(t, goBin, gentest.TypedLRBodyCases, codegen.GenOptions{})
-	gentest.GeneratedTypesCorpus(t, goBin, gentest.TypedLRBodyCases, codegen.GenOptions{ConvertTypes: true})
+	codegentest.GeneratedTypesCorpus(t, goBin, codegentest.TypedLRBodyCases, codegen.GenOptions{})
+	codegentest.GeneratedTypesCorpus(t, goBin, codegentest.TypedLRBodyCases, codegen.GenOptions{ConvertTypes: true})
 }

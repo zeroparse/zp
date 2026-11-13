@@ -7,12 +7,12 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/internal/codegen"
-	"zeroparse.dev/zp/internal/gentest"
+	"zeroparse.dev/zp/internal/codegentest"
 )
 
 func TestGeneratedTypedOnly(t *testing.T) {
 	t.Parallel()
-	g, err := parseTest(gentest.OrdinaryOnlyTyped)
+	g, err := parseTest(codegentest.OrdinaryOnlyTyped)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -22,7 +22,7 @@ func TestGeneratedTypedOnly(t *testing.T) {
 	// that typed-only removes, and the ratio would move whenever that surface does.
 	generate := func(opts codegen.GenOptions) (text string, size int, err error) {
 		opts.Package, opts.Module, opts.Start, opts.Lib = "p", "example.com/p", "main", codegen.LibImport
-		files, err := gentest.Generate(t, g, opts)
+		files, err := codegentest.Generate(t, g, opts)
 		if err != nil {
 			return "", 0, err
 		}
@@ -31,7 +31,7 @@ func TestGeneratedTypedOnly(t *testing.T) {
 				size += len(f.Content)
 			}
 		}
-		return string(gentest.MergeGenerated(files)), size, nil
+		return string(codegentest.MergeGenerated(files)), size, nil
 	}
 	only, onlySize, err := generate(codegen.GenOptions{Types: true, TypedOnly: true})
 	if err != nil {
@@ -76,7 +76,7 @@ func TestGeneratedTypedOnly(t *testing.T) {
 	if _, _, err := generate(codegen.GenOptions{Types: true, TypedOnly: true, Recognize: true}); err != nil {
 		t.Errorf("typed-only with Recognize: %v", err)
 	}
-	if _, err := gentest.GenerateTS(g, codegen.GenOptions{Start: "main", TypedOnly: true}); err == nil || err.Error() != "typed-only generation is only supported for Go" {
+	if _, err := codegentest.GenerateTS(g, codegen.GenOptions{Start: "main", TypedOnly: true}); err == nil || err.Error() != "typed-only generation is only supported for Go" {
 		t.Errorf("TypeScript: error %v", err)
 	}
 
@@ -84,15 +84,15 @@ func TestGeneratedTypedOnly(t *testing.T) {
 		t.Skip("builds generated code")
 	}
 	dir := t.TempDir()
-	if err := os.WriteFile(filepath.Join(dir, "go.mod"), []byte(gentest.GoMod("ordtest")), 0o644); err != nil {
+	if err := os.WriteFile(filepath.Join(dir, "go.mod"), []byte(codegentest.GoMod("ordtest")), 0o644); err != nil {
 		t.Fatal(err)
 	}
-	gentest.OrdinaryOnlyPackage(t, dir, "full", gentest.OrdinaryOnlyTyped, codegen.GenOptions{Types: true, Recognize: true, Document: true, LimitControls: true}, gentest.OrdinaryOnlyTypedEntries, gentest.OrdinaryOnlyTypedInputs)
-	gentest.OrdinaryOnlyPackage(t, dir, "only", gentest.OrdinaryOnlyTyped, codegen.GenOptions{Types: true, TypedOnly: true}, gentest.OrdinaryOnlyTypedEntries, gentest.OrdinaryOnlyTypedInputs)
-	gentest.OrdinaryOnlyPackage(t, dir, "mutated", strings.Replace(gentest.OrdinaryOnlyTyped, `"+"`, `"-"`, 1), codegen.GenOptions{Types: true, TypedOnly: true}, gentest.OrdinaryOnlyTypedEntries, gentest.OrdinaryOnlyTypedInputs)
-	out := gentest.RunTranscripts(t, dir, "full", "only", "mutated")
+	codegentest.OrdinaryOnlyPackage(t, dir, "full", codegentest.OrdinaryOnlyTyped, codegen.GenOptions{Types: true, Recognize: true, Document: true, LimitControls: true}, codegentest.OrdinaryOnlyTypedEntries, codegentest.OrdinaryOnlyTypedInputs)
+	codegentest.OrdinaryOnlyPackage(t, dir, "only", codegentest.OrdinaryOnlyTyped, codegen.GenOptions{Types: true, TypedOnly: true}, codegentest.OrdinaryOnlyTypedEntries, codegentest.OrdinaryOnlyTypedInputs)
+	codegentest.OrdinaryOnlyPackage(t, dir, "mutated", strings.Replace(codegentest.OrdinaryOnlyTyped, `"+"`, `"-"`, 1), codegen.GenOptions{Types: true, TypedOnly: true}, codegentest.OrdinaryOnlyTypedEntries, codegentest.OrdinaryOnlyTypedInputs)
+	out := codegentest.RunTranscripts(t, dir, "full", "only", "mutated")
 	if out["full"] != out["only"] {
-		t.Errorf("the typed-only parser differs from the full one:\n%s", gentest.FirstTranscriptDifference(out["full"], out["only"]))
+		t.Errorf("the typed-only parser differs from the full one:\n%s", codegentest.FirstTranscriptDifference(out["full"], out["only"]))
 	}
 	if !strings.Contains(out["only"], "syntax error") || !strings.Contains(out["only"], `"Text":"a"`) {
 		t.Error("the transcript has neither a syntax error nor a value")

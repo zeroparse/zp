@@ -8,7 +8,7 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/internal/codegen"
-	"zeroparse.dev/zp/internal/gentest"
+	"zeroparse.dev/zp/internal/codegentest"
 )
 
 // TestEveryFlowFunctionRunsTheIRPipelines generates parsers whose functions take every route from
@@ -25,7 +25,7 @@ func TestEveryFlowFunctionRunsTheIRPipelines(t *testing.T) {
 		return string(src)
 	}
 	lr := ""
-	for _, c := range gentest.TypedLRBodyCases {
+	for _, c := range codegentest.TypedLRBodyCases {
 		if !strings.HasSuffix(c.Name, "_fallback") {
 			lr = c.Src
 			break
@@ -58,10 +58,10 @@ func TestEveryFlowFunctionRunsTheIRPipelines(t *testing.T) {
 			o := base
 			o.PrintTo = &dump
 			c.set(&o)
-			if _, err := gentest.Generate(t, g, o); err != nil {
+			if _, err := codegentest.Generate(t, g, o); err != nil {
 				t.Fatal(err)
 			}
-			gentest.CheckIRPipelines(t, dump.String(), c.tables...)
+			codegentest.CheckIRPipelines(t, dump.String(), c.tables...)
 		})
 	}
 }

@@ -9,8 +9,8 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/core"
+	"zeroparse.dev/zp/internal/codegentest"
 	ecore "zeroparse.dev/zp/internal/engine/core"
-	"zeroparse.dev/zp/internal/gentest"
 	"zeroparse.dev/zp/internal/value"
 )
 
@@ -57,7 +57,7 @@ func (r *traceLifecycleClosingReader) Close() error { r.closed = true; return ni
 
 func TestTraceLifecycleStreamDetachment(t *testing.T) {
 	t.Parallel()
-	prog := mustCompile(t, gentest.Records)
+	prog := mustCompile(t, codegentest.Records)
 	for _, b := range []Backend{Closure, Bytecode, BytecodeIterative} {
 		for _, u := range []core.PositionUnit{core.CodePoints, core.Bytes} {
 			for _, outcome := range []string{"success", "syntax", "reader-error", "emit-error", "trace-panic", "emit-panic"} {
@@ -80,7 +80,7 @@ func TestTraceLifecycleStreamDetachment(t *testing.T) {
 					got := traceLifecycleRecover(func() {
 						err = prog.ParseStreamWith("main", r, func(n *core.Node) error {
 							nodes = append(nodes, n)
-							snapshots = append(snapshots, gentest.ResultJSON(n, nil))
+							snapshots = append(snapshots, codegentest.ResultJSON(n, nil))
 							if outcome == "emit-error" {
 								return stop
 							}
@@ -133,7 +133,7 @@ func TestTraceLifecycleStreamDetachment(t *testing.T) {
 						t.Fatal(err)
 					}
 					for i, n := range nodes {
-						if gentest.ResultJSON(n, nil) != snapshots[i] {
+						if codegentest.ResultJSON(n, nil) != snapshots[i] {
 							t.Fatal("teardown/retry changed an emitted prefix")
 						}
 					}

@@ -7,25 +7,25 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/internal/codegen"
-	"zeroparse.dev/zp/internal/gentest"
+	"zeroparse.dev/zp/internal/codegentest"
 )
 
 func TestGeneratedTypedFrameLayouts(t *testing.T) {
 	t.Parallel()
-	gentest.EachMode(t, testGeneratedTypedFrameLayouts)
+	codegentest.EachMode(t, testGeneratedTypedFrameLayouts)
 }
 
 func testGeneratedTypedFrameLayouts(t *testing.T) {
 	if testing.Short() {
 		t.Skip("builds generated code")
 	}
-	cases := append([]gentest.Case(nil), gentest.TypedFrameLayoutCases...)
-	for _, c := range gentest.TypedLRBodyCases {
+	cases := append([]codegentest.Case(nil), codegentest.TypedFrameLayoutCases...)
+	for _, c := range codegentest.TypedLRBodyCases {
 		if c.Name == "typed/LR_unreachable_capture" {
 			cases = append(cases, c)
 		}
 	}
-	for _, c := range gentest.TypedOperatorsRuleBodyCases {
+	for _, c := range codegentest.TypedOperatorsRuleBodyCases {
 		if c.Name == "typed/OperatorsRule_unreachable_capture" {
 			cases = append(cases, c)
 		}
@@ -36,7 +36,7 @@ func testGeneratedTypedFrameLayouts(t *testing.T) {
 			t.Fatalf("%s: %v", c.Name, err)
 		}
 		opts := codegen.GenOptions{Package: "layouts", Start: "main", Types: true, Recognize: true}
-		candidate, err := gentest.GenerateCode(t, g, opts)
+		candidate, err := codegentest.GenerateCode(t, g, opts)
 		if err != nil {
 			t.Fatalf("%s: %v", c.Name, err)
 		}
@@ -49,6 +49,6 @@ func testGeneratedTypedFrameLayouts(t *testing.T) {
 		}
 	}
 	goBin := filepath.Join(runtime.GOROOT(), "bin", "go")
-	gentest.GeneratedTypesCorpus(t, goBin, cases, codegen.GenOptions{})
-	gentest.GeneratedTypesCorpus(t, goBin, cases, codegen.GenOptions{ConvertTypes: true})
+	codegentest.GeneratedTypesCorpus(t, goBin, cases, codegen.GenOptions{})
+	codegentest.GeneratedTypesCorpus(t, goBin, cases, codegen.GenOptions{ConvertTypes: true})
 }

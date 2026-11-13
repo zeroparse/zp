@@ -9,7 +9,7 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/internal/codegen"
-	"zeroparse.dev/zp/internal/gentest"
+	"zeroparse.dev/zp/internal/codegentest"
 )
 
 // A generated parser has one form of its rule bodies. With budget controls its bodies charge steps
@@ -18,7 +18,7 @@ import (
 // an Ordinary form (NewNodeOrdinary, NextOrdinary, ...), which belongs to the form without both.
 func TestGeneratedRuleBodiesHaveOneForm(t *testing.T) {
 	t.Parallel()
-	gentest.EachMode(t, testGeneratedRuleBodiesHaveOneForm)
+	codegentest.EachMode(t, testGeneratedRuleBodiesHaveOneForm)
 }
 
 const oneFormGrammar = `type Text = { Text string }
@@ -94,11 +94,11 @@ func testGeneratedRuleBodiesHaveOneForm(t *testing.T) {
 	for _, types := range []bool{false, true} {
 		for _, document := range []bool{false, true} {
 			opts := codegen.GenOptions{Package: "ordinaryfixture", Types: types, Document: document, Recognize: true, Start: "main"}
-			src, err := gentest.GenerateCode(t, g, opts)
+			src, err := codegentest.GenerateCode(t, g, opts)
 			if err != nil {
 				t.Fatal(err)
 			}
-			problems, bodies, charging := oneFormProblems(t, src, gentest.FixtureBudgetControls(t), document)
+			problems, bodies, charging := oneFormProblems(t, src, codegentest.FixtureBudgetControls(t), document)
 			for _, p := range problems {
 				t.Errorf("types=%v document=%v: %s", types, document, p)
 			}
@@ -120,11 +120,11 @@ func TestGeneratedRuleBodiesHaveOneFormNegativeControls(t *testing.T) {
 		t.Fatal(err)
 	}
 	gen := func(controls, document bool) []byte {
-		files, err := gentest.Generate(t, g, codegen.GenOptions{Package: "ordinaryfixture", Module: "example.com/generated", Lib: codegen.LibImport, Types: true, Document: document, Recognize: true, Start: "main", LimitControls: controls})
+		files, err := codegentest.Generate(t, g, codegen.GenOptions{Package: "ordinaryfixture", Module: "example.com/generated", Lib: codegen.LibImport, Types: true, Document: document, Recognize: true, Start: "main", LimitControls: controls})
 		if err != nil {
 			t.Fatal(err)
 		}
-		return gentest.MergeGenerated(files)
+		return codegentest.MergeGenerated(files)
 	}
 	plain, controlled, doc := gen(false, false), gen(true, false), gen(false, true)
 	for _, c := range []struct {

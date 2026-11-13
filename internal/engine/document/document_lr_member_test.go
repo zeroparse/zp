@@ -5,17 +5,17 @@ import (
 	"strings"
 	"testing"
 
+	"zeroparse.dev/zp/internal/codegentest"
 	"zeroparse.dev/zp/internal/compile"
 	. "zeroparse.dev/zp/internal/engine"
 	"zeroparse.dev/zp/internal/engine/document"
-	"zeroparse.dev/zp/internal/gentest"
 )
 
 // memberDocumentDiffers parses each input of the case with a Document on every backend: twice
 // without an edit, and, for each position, after deleting the character there and inserting it
 // again, and compares each outcome with a parse of the text from scratch. It returns the
 // differences, ignoring an input that exhausts a limit.
-func memberDocumentDiffers(t *testing.T, c gentest.Case) []string {
+func memberDocumentDiffers(t *testing.T, c codegentest.Case) []string {
 	t.Helper()
 	prog := mustCompile(t, c.Src)
 	var diffs []string
@@ -60,8 +60,8 @@ func memberDocumentDiffers(t *testing.T, c gentest.Case) []string {
 // parse from scratch, when parsed again without an edit and after edits.
 func TestDocumentLeftRecursionMemberReparse(t *testing.T) {
 	t.Parallel()
-	cases := append(gentest.LeftRecursionMemberCases(), gentest.LeftRecursionMemberSeedCases()...)
-	cases = append(cases, gentest.LeftRecursionMemberDocumentCases()...)
+	cases := append(codegentest.LeftRecursionMemberCases(), codegentest.LeftRecursionMemberSeedCases()...)
+	cases = append(cases, codegentest.LeftRecursionMemberDocumentCases()...)
 	for _, c := range cases {
 		for _, d := range memberDocumentDiffers(t, c) {
 			t.Error(d)
@@ -77,12 +77,12 @@ func TestDocumentLeftRecursionMemberReparseRandom(t *testing.T) {
 	if testing.Short() {
 		seeds, recovering = 20, 60
 	}
-	var cases []gentest.Case
+	var cases []codegentest.Case
 	for s := int64(0); s < int64(seeds); s++ {
-		cases = append(cases, gentest.RandomCycleGrammar(s, false), gentest.RandomCycleGrammar(s, true))
+		cases = append(cases, codegentest.RandomCycleGrammar(s, false), codegentest.RandomCycleGrammar(s, true))
 	}
 	for s := int64(0); s < int64(recovering); s++ {
-		cases = append(cases, gentest.RandomRecoveringCycleGrammar(s))
+		cases = append(cases, codegentest.RandomRecoveringCycleGrammar(s))
 	}
 	compiled, n := 0, 0
 	for _, c := range cases {
@@ -111,7 +111,7 @@ func TestDocumentLeftRecursionMemberReparseRandom(t *testing.T) {
 // from scratch.
 func TestDocumentLeftRecursionMemberReparseControl(t *testing.T) {
 	defer document.KeepSeedResults()()
-	for _, c := range gentest.LeftRecursionMemberDocumentCases() {
+	for _, c := range codegentest.LeftRecursionMemberDocumentCases() {
 		if len(memberDocumentDiffers(t, c)) == 0 {
 			t.Errorf("%s: no difference with the results that read a seed kept", c.Name)
 		}

@@ -13,11 +13,11 @@ import (
 	"zeroparse.dev/zp/core"
 	"zeroparse.dev/zp/core/noderep"
 	"zeroparse.dev/zp/grammar"
+	"zeroparse.dev/zp/internal/codegentest"
 	"zeroparse.dev/zp/internal/compile"
 	"zeroparse.dev/zp/internal/engine/closure"
 	ecore "zeroparse.dev/zp/internal/engine/core"
 	"zeroparse.dev/zp/internal/engine/vm"
-	"zeroparse.dev/zp/internal/gentest"
 	"zeroparse.dev/zp/internal/starttest"
 	"zeroparse.dev/zp/internal/syntax"
 	"zeroparse.dev/zp/internal/value"
@@ -131,12 +131,12 @@ func TestMain(m *testing.M) {
 	// so the tests of the package share the builds of the standard library and of this module;
 	// commands that set GOFLAGS add it themselves. -mod=mod lets the temporary modules that
 	// replace this module resolve it without a go.sum.
-	gentest.SetGoFlags()
-	removeGoCache := gentest.SetGoCache()
+	codegentest.SetGoFlags()
+	removeGoCache := codegentest.SetGoCache()
 	code := m.Run()
 	removeGoCache()
-	if names := gentest.UnwrappedFixtureTests(); len(names) > 0 {
-		fmt.Fprintf(os.Stderr, "FAIL: tests build generated fixtures without choosing their form: %s\nWrap the test body in gentest.EachMode, or call gentest.NeedsBudgetControls, or pin the form with gentest.PinOrdinary\n", strings.Join(names, ", "))
+	if names := codegentest.UnwrappedFixtureTests(); len(names) > 0 {
+		fmt.Fprintf(os.Stderr, "FAIL: tests build generated fixtures without choosing their form: %s\nWrap the test body in codegentest.EachMode, or call codegentest.NeedsBudgetControls, or pin the form with codegentest.PinOrdinary\n", strings.Join(names, ", "))
 		code = 1
 	}
 	os.Exit(code)
@@ -159,7 +159,7 @@ func checkUnits(t *testing.T, prog *Program, start, input string, b Backend) {
 	n1, err1 := prog.ParseWith(start, input, ParseOptions{Expectations: true, Unit: core.CodePoints, Backend: b})
 	n2, err2 := prog.ParseWith(start, input, ParseOptions{Expectations: true, Unit: core.Bytes, Backend: b})
 	n2, err2 = toCodePoints(input, n2, err2)
-	if a, b := gentest.ResultJSON(n1, err1), gentest.ResultJSON(n2, err2); a != b {
+	if a, b := codegentest.ResultJSON(n1, err1), codegentest.ResultJSON(n2, err2); a != b {
 		t.Errorf("input %q: results differ between units\n codepoints %s\n bytes      %s", input, a, b)
 	}
 }
@@ -169,18 +169,18 @@ func checkBackends(t *testing.T, prog *Program, start, input string) {
 	t.Helper()
 	for _, u := range []core.PositionUnit{core.CodePoints, core.Bytes} {
 		n1, err1 := prog.ParseWith(start, input, ParseOptions{Expectations: true, Unit: u})
-		want := gentest.ResultJSON(n1, err1)
+		want := codegentest.ResultJSON(n1, err1)
 		checkRecognize(t, prog, start, input, u, err1)
 		// The default budget runs the controlled form; Unlimited runs the uncontrolled one, which must
 		// give the same result on inputs within the default.
 		if n0, err0 := prog.ParseWith(start, input, ParseOptions{Expectations: true, Unit: u, Limits: core.Limits{Compute: core.Unlimited}}); !errors.Is(err1, core.ErrLimit) {
-			if got := gentest.ResultJSON(n0, err0); got != want {
+			if got := codegentest.ResultJSON(n0, err0); got != want {
 				t.Errorf("input %q (unit %v): Unlimited differs from the default budget\n default   %s\n unlimited %s", input, u, want, got)
 			}
 		}
 		for _, b := range []Backend{Bytecode, BytecodeIterative} {
 			n2, err2 := prog.ParseWith(start, input, ParseOptions{Expectations: true, Unit: u, Backend: b})
-			if got := gentest.ResultJSON(n2, err2); got != want {
+			if got := codegentest.ResultJSON(n2, err2); got != want {
 				t.Errorf("input %q (unit %v): %v differs from closure\n closure %s\n %v %s", input, u, b, want, b, got)
 			}
 		}

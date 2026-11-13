@@ -4,9 +4,9 @@ import (
 	"strings"
 	"testing"
 
+	"zeroparse.dev/zp/internal/codegentest"
 	"zeroparse.dev/zp/internal/compile"
 	"zeroparse.dev/zp/internal/engine/core"
-	"zeroparse.dev/zp/internal/gentest"
 )
 
 // TestDocumentSeedDependentResultsNotInMemo checks the invariant that lets a Document keep its
@@ -159,7 +159,7 @@ rule num = [0-9]+ #atomic`
 				}
 				got, gotErr := doc.Parse()
 				want, wantErr := prog.ParseWith("main", doc.Text(), ParseOptions{Backend: backend})
-				if gentest.ResultJSON(got, gotErr) != gentest.ResultJSON(want, wantErr) {
+				if codegentest.ResultJSON(got, gotErr) != codegentest.ResultJSON(want, wantErr) {
 					b.Fatal("edited Document differs from a fresh parse")
 				}
 			})

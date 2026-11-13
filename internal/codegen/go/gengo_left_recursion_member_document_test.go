@@ -11,7 +11,7 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/internal/codegen"
-	"zeroparse.dev/zp/internal/gentest"
+	"zeroparse.dev/zp/internal/codegentest"
 )
 
 // memberDocumentProgram parses each input with the Documents of generated parsers (Parse and the
@@ -80,24 +80,24 @@ func main() {
 `
 
 // runMemberDocuments generates a parser with Documents and typed values for each case into a
-// module that imports the library from rt (gentest.LibCopy for the library as it is), runs
+// module that imports the library from rt (codegentest.LibCopy for the library as it is), runs
 // memberDocumentProgram, and returns the differences it printed per case index and the number of
 // outcomes it compared.
-func runMemberDocuments(t *testing.T, cases []gentest.Case, rt string) (map[int][]string, int) {
+func runMemberDocuments(t *testing.T, cases []codegentest.Case, rt string) (map[int][]string, int) {
 	t.Helper()
 	goBin := filepath.Join(runtime.GOROOT(), "bin", "go")
 	if _, err := os.Stat(goBin); err != nil {
 		t.Skip("go command not found")
 	}
 	dir := t.TempDir()
-	if err := os.WriteFile(filepath.Join(dir, "go.mod"), []byte(gentest.GoModAt("gentest", rt)), 0o644); err != nil {
+	if err := os.WriteFile(filepath.Join(dir, "go.mod"), []byte(codegentest.GoModAt("codegentest", rt)), 0o644); err != nil {
 		t.Fatal(err)
 	}
 	var imports, parsers strings.Builder
 	var inputs [][]string
 	for i, c := range cases {
-		gentest.GeneratePackage(t, dir, fmt.Sprintf("g%d", i), mustParse(c.Src), codegen.GenOptions{Start: "main", Types: true, Document: true})
-		fmt.Fprintf(&imports, "\tg%d \"gentest/g%d\"\n", i, i)
+		codegentest.GeneratePackage(t, dir, fmt.Sprintf("g%d", i), mustParse(c.Src), codegen.GenOptions{Start: "main", Types: true, Document: true})
+		fmt.Fprintf(&imports, "\tg%d \"codegentest/g%d\"\n", i, i)
 		fmt.Fprintf(&parsers, `	{
 		func(s string) (any, error) { return g%[1]d.Parse(s) },
 		func(s string) (any, error) { return g%[1]d.ParseValue(s) },
@@ -151,16 +151,16 @@ func runMemberDocuments(t *testing.T, cases []gentest.Case, rt string) (map[int]
 // edits. TestDocumentLeftRecursionMemberReparse checks the engine's Documents.
 func TestGeneratedDocumentLeftRecursionMemberReparse(t *testing.T) {
 	t.Parallel()
-	gentest.EachMode(t, testGeneratedDocumentLeftRecursionMemberReparse)
+	codegentest.EachMode(t, testGeneratedDocumentLeftRecursionMemberReparse)
 }
 
 func testGeneratedDocumentLeftRecursionMemberReparse(t *testing.T) {
 	if testing.Short() {
 		t.Skip("builds generated code")
 	}
-	cases := append(gentest.LeftRecursionMemberCases(), gentest.LeftRecursionMemberSeedCases()...)
-	cases = append(cases, gentest.LeftRecursionMemberDocumentCases()...)
-	diffs, compared := runMemberDocuments(t, cases, gentest.LibCopy())
+	cases := append(codegentest.LeftRecursionMemberCases(), codegentest.LeftRecursionMemberSeedCases()...)
+	cases = append(cases, codegentest.LeftRecursionMemberDocumentCases()...)
+	diffs, compared := runMemberDocuments(t, cases, codegentest.LibCopy())
 	for i, c := range cases {
 		for _, d := range diffs[i] {
 			t.Errorf("%s: %s", c.Name, d)
@@ -181,7 +181,7 @@ func TestGeneratedDocumentLeftRecursionMemberReparseControl(t *testing.T) {
 	if testing.Short() {
 		t.Skip("builds generated code")
 	}
-	gentest.PinOrdinary(t)
+	codegentest.PinOrdinary(t)
 	flush := "for _, f := range keptSeedResults {\n\t\tf()\n\t}\n\tkeptSeedResults = nil\n"
 	reps := map[string][2]string{
 		"document.go":       {"\t\td.memo = p.memo\n", "\t" + flush + "\t\td.memo = p.memo\n"},
@@ -214,7 +214,7 @@ func TestGeneratedDocumentLeftRecursionMemberReparseControl(t *testing.T) {
 			{"p.ctxKeep(&c, r.Id, start, 0, env, &ctxResult{val: v,", typedKeep("0"), -1},
 		},
 	}
-	rt := gentest.LibCopyWith(t, func(name, src string) string {
+	rt := codegentest.LibCopyWith(t, func(name, src string) string {
 		if r, ok := reps[name]; ok {
 			if strings.Count(src, r[0]) != 1 {
 				t.Fatalf("runtime anchor changed: %q", r[0])
@@ -230,7 +230,7 @@ func TestGeneratedDocumentLeftRecursionMemberReparseControl(t *testing.T) {
 		}
 		return src
 	}, map[string]string{"zz_keep.go": "package libgo\n\nvar keptSeedResults []func()\n"})
-	cases := gentest.LeftRecursionMemberDocumentCases()
+	cases := codegentest.LeftRecursionMemberDocumentCases()
 	diffs, _ := runMemberDocuments(t, cases, rt)
 	for i, c := range cases {
 		for _, typed := range []string{"typed=false", "typed=true"} {

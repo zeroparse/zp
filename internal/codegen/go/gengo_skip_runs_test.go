@@ -12,8 +12,8 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/internal/codegen"
+	"zeroparse.dev/zp/internal/codegentest"
 	"zeroparse.dev/zp/internal/complexitytest"
-	"zeroparse.dev/zp/internal/gentest"
 )
 
 // skipRunsGoBin returns the go command for the tests that build generated parsers, or skips.
@@ -35,28 +35,28 @@ func skipRunsGoBin(t *testing.T) string {
 // entry points.
 func TestSkipRunsGeneratedMatchEngine(t *testing.T) {
 	t.Parallel()
-	gentest.EachMode(t, testSkipRunsGeneratedMatchEngine)
+	codegentest.EachMode(t, testSkipRunsGeneratedMatchEngine)
 }
 
 func testSkipRunsGeneratedMatchEngine(t *testing.T) {
 	goBin := skipRunsGoBin(t)
-	cases := gentest.SkipRunCases(60)
-	gentest.GeneratedParsersCorpus(t, goBin, cases, codegen.GenOptions{})
-	gentest.GeneratedTypesCorpus(t, goBin, cases, codegen.GenOptions{})
+	cases := codegentest.SkipRunCases(60)
+	codegentest.GeneratedParsersCorpus(t, goBin, cases, codegen.GenOptions{})
+	codegentest.GeneratedTypesCorpus(t, goBin, cases, codegen.GenOptions{})
 }
 
 // TestSkipRunsGeneratedStream checks a generated stream whose elements recover with skip-run sites
 // over input long enough for the stream to drop records at its commits.
 func TestSkipRunsGeneratedStream(t *testing.T) {
 	t.Parallel()
-	gentest.EachMode(t, testSkipRunsGeneratedStream)
+	codegentest.EachMode(t, testSkipRunsGeneratedStream)
 }
 
 func testSkipRunsGeneratedStream(t *testing.T) {
 	goBin := skipRunsGoBin(t)
 	// The walks before an "e" fail and those before a "d" recover.
 	unit := strings.Repeat("a", 40) + "c" + strings.Repeat("a", 9) + "e" + strings.Repeat("a", 20) + "d"
-	cases := []gentest.Case{{Name: "skip runs", Src: `rule main = (x / [ace])* #stream $$
+	cases := []codegentest.Case{{Name: "skip runs", Src: `rule main = (x / [ace])* #stream $$
 rule x = ("b" #recover(skip=[ac]+)) "d"`, Inputs: []string{strings.Repeat(unit, 50), strings.Repeat(unit, 50) + "b"}}}
 	testGeneratedStreams(t, goBin, cases, codegen.GenOptions{})
 }
@@ -66,7 +66,7 @@ rule x = ("b" #recover(skip=[ac]+)) "d"`, Inputs: []string{strings.Repeat(unit, 
 // whose elements look ahead or at the preceding character.
 func TestSkipRunsGeneratedDocuments(t *testing.T) {
 	t.Parallel()
-	gentest.EachMode(t, testSkipRunsGeneratedDocuments)
+	codegentest.EachMode(t, testSkipRunsGeneratedDocuments)
 }
 
 func testSkipRunsGeneratedDocuments(t *testing.T) {
@@ -79,10 +79,10 @@ func testSkipRunsGeneratedDocuments(t *testing.T) {
 			t.Fatal(err)
 		}
 	}
-	write("go.mod", gentest.GoMod("skipdoc"))
+	write("go.mod", codegentest.GoMod("skipdoc"))
 	var imports, checks strings.Builder
 	n := 0
-	for _, c := range gentest.SkipRunGrammars {
+	for _, c := range codegentest.SkipRunGrammars {
 		switch c.Name {
 		case "repeated recovery", "line starts in the element", "look-ahead past the end", "silent walks":
 		default:
@@ -92,7 +92,7 @@ func testSkipRunsGeneratedDocuments(t *testing.T) {
 		if err != nil {
 			t.Fatalf("%s: %v", c.Name, err)
 		}
-		gentest.GeneratePackageIn(t, dir, "skipdoc", fmt.Sprintf("g%d", n), g, codegen.GenOptions{Start: "main", Types: true, Document: true})
+		codegentest.GeneratePackageIn(t, dir, "skipdoc", fmt.Sprintf("g%d", n), g, codegen.GenOptions{Start: "main", Types: true, Document: true})
 		fmt.Fprintf(&imports, "\tg%d \"skipdoc/g%d\"\n", n, n)
 		fmt.Fprintf(&checks, `	{%q, %q, func(text string, edits func(string) (int, int, string, bool)) string {
 		d, err := g%[3]d.NewDocument(text)
@@ -218,10 +218,10 @@ func skipRunSpends(t *testing.T, goBin string, controls []complexitytest.Control
 			t.Fatal(err)
 		}
 	}
-	write("go.mod", []byte(gentest.GoMod("skiplin")))
+	write("go.mod", []byte(codegentest.GoMod("skiplin")))
 	var imports, entries strings.Builder
 	sources := controls
-	for _, g := range gentest.SkipRunGrammars {
+	for _, g := range codegentest.SkipRunGrammars {
 		if g.Name == "nested recovery" {
 			sources = append(sources[:len(controls):len(controls)], complexitytest.Control{Name: g.Name, Source: g.Src, Input: func(int) string { return "" }})
 		}
@@ -232,7 +232,7 @@ func skipRunSpends(t *testing.T, goBin string, controls []complexitytest.Control
 			t.Fatalf("%s: %v", c.Name, err)
 		}
 		pkg := fmt.Sprintf("g%d", i)
-		files, err := gentest.Generate(t, g, codegen.GenOptions{Module: "skiplin/" + pkg, Package: pkg, Start: "main", Lib: codegen.LibEmbed, LimitControls: true})
+		files, err := codegentest.Generate(t, g, codegen.GenOptions{Module: "skiplin/" + pkg, Package: pkg, Start: "main", Lib: codegen.LibEmbed, LimitControls: true})
 		if err != nil {
 			t.Fatalf("%s: %v", c.Name, err)
 		}
@@ -336,12 +336,12 @@ func main() {
 // quadratic, and that records stored before the walk ends change the results of nested inputs.
 func TestSkipRunsGeneratedLinear(t *testing.T) {
 	t.Parallel()
-	gentest.EachMode(t, testSkipRunsGeneratedLinear)
+	codegentest.EachMode(t, testSkipRunsGeneratedLinear)
 }
 
 func testSkipRunsGeneratedLinear(t *testing.T) {
 	goBin := skipRunsGoBin(t)
-	gentest.NeedsBudgetControls(t)
+	codegentest.NeedsBudgetControls(t)
 	var controls []complexitytest.Control
 	for _, c := range complexitytest.Controls() {
 		if c.Family == "E8" {

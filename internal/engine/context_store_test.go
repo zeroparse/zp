@@ -8,17 +8,17 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/core"
+	"zeroparse.dev/zp/internal/codegentest"
 	"zeroparse.dev/zp/internal/compile"
 	ecore "zeroparse.dev/zp/internal/engine/core"
-	"zeroparse.dev/zp/internal/gentest"
 )
 
-// contextStoreGrowth parses the shape at the two gentest.ContextStoreSizes on the backend and
+// contextStoreGrowth parses the shape at the two codegentest.ContextStoreSizes on the backend and
 // returns the evaluations of B at its busiest position and of all rules, at each size. The parses
 // have no compute limit: a context that the store cannot index exceeds the default one.
-func contextStoreGrowth(t *testing.T, prog *Program, s gentest.DependencyMemoShape, o ParseOptions) (b, all [2]int) {
+func contextStoreGrowth(t *testing.T, prog *Program, s codegentest.DependencyMemoShape, o ParseOptions) (b, all [2]int) {
 	t.Helper()
-	for i, m := range gentest.ContextStoreSizes {
+	for i, m := range codegentest.ContextStoreSizes {
 		var pr Profile
 		o.Trace = pr.Trace
 		o.Limits = core.Limits{Compute: core.Unlimited}
@@ -38,12 +38,12 @@ func contextStoreGrowth(t *testing.T, prog *Program, s gentest.DependencyMemoSha
 
 // contextStoreBounded reports, for the shape on the backend, whether B is evaluated at its busiest
 // position as often for the larger input as for the smaller, and the parse evaluates at most
-// gentest.ContextStoreGrowth times the calls.
-func contextStoreBounded(t *testing.T, prog *Program, s gentest.DependencyMemoShape, o ParseOptions) (string, bool) {
+// codegentest.ContextStoreGrowth times the calls.
+func contextStoreBounded(t *testing.T, prog *Program, s codegentest.DependencyMemoShape, o ParseOptions) (string, bool) {
 	b, all := contextStoreGrowth(t, prog, s, o)
 	msg := fmt.Sprintf("%s %s: B evaluated at most %v times at a position, %v evaluations in all, at m=%v",
-		s.Name, o.Backend, b, all, gentest.ContextStoreSizes)
-	return msg, b[0] > 0 && b[0] == b[1] && all[1] <= all[0]*gentest.ContextStoreGrowth
+		s.Name, o.Backend, b, all, codegentest.ContextStoreSizes)
+	return msg, b[0] > 0 && b[0] == b[1] && all[1] <= all[0]*codegentest.ContextStoreGrowth
 }
 
 // TestContextStoreBounds checks on every backend that a context with more dependencies or more
@@ -51,7 +51,7 @@ func contextStoreBounded(t *testing.T, prog *Program, s gentest.DependencyMemoSh
 // evaluations of a rule at one position do not grow with the input.
 func TestContextStoreBounds(t *testing.T) {
 	t.Parallel()
-	for _, s := range gentest.ContextStoreShapes {
+	for _, s := range codegentest.ContextStoreShapes {
 		prog := mustCompile(t, "@start\nrule main = "+s.Rules, compile.Options{SourceInfo: true})
 		for _, b := range []Backend{Closure, Bytecode, BytecodeIterative} {
 			if msg, ok := contextStoreBounded(t, prog, s, ParseOptions{Backend: b}); !ok {
@@ -71,8 +71,8 @@ func TestContextStoreBoundsControls(t *testing.T) {
 		{ecore.CtxCapDeps, "seven dependencies"},
 		{ecore.CtxNarrowPresent, "70 leaders"},
 	} {
-		var s gentest.DependencyMemoShape
-		for _, x := range gentest.ContextStoreShapes {
+		var s codegentest.DependencyMemoShape
+		for _, x := range codegentest.ContextStoreShapes {
 			if x.Name == c.shape {
 				s = x
 			}
@@ -92,7 +92,7 @@ func TestContextStoreBoundsControls(t *testing.T) {
 
 // missingChain is the shape of TestContextStoreMissingInsertion: a chain whose rules insert nothing,
 // in a grammar where main inserts a missing ";" after it.
-var missingChain = gentest.DependencyMemoShape{Name: "missing-token insertion", Rules: gentest.ContextChain(2, 1, true), Input: gentest.ContextChainInput}
+var missingChain = codegentest.DependencyMemoShape{Name: "missing-token insertion", Rules: codegentest.ContextChain(2, 1, true), Input: codegentest.ContextChainInput}
 
 // TestContextStoreMissingInsertion checks that a parse with missing-token insertion keeps the
 // results of rules that insert nothing in contexts: their evaluations at one position do not grow
@@ -123,7 +123,7 @@ func TestContextStoreMissingInsertionControl(t *testing.T) {
 func TestContextStoreMissingRandom(t *testing.T) {
 	t.Parallel()
 	seeds := 40
-	if gentest.Long() {
+	if codegentest.Long() {
 		seeds = 400
 	}
 	for _, msg := range missingRandomMismatches(t, seeds) {
@@ -149,7 +149,7 @@ func missingRandomMismatches(t *testing.T, seeds int) []string {
 	lit := regexp.MustCompile(`"[a-z]"`)
 	checked := 0
 	for s := int64(0); s < int64(seeds); s++ {
-		c := gentest.RandomCycleGrammar(s, false)
+		c := codegentest.RandomCycleGrammar(s, false)
 		rng := rand.New(rand.NewSource(s))
 		src := lit.ReplaceAllStringFunc(c.Src, func(l string) string {
 			if rng.Intn(3) == 0 {
@@ -175,7 +175,7 @@ func missingRandomMismatches(t *testing.T, seeds int) []string {
 				got, err := memo.ParseWith("", in, o)
 				o.ContextMemoOff = true
 				want, wantErr := ref.ParseWith("", in, o)
-				a, b := gentest.ResultJSON(got, err), gentest.ResultJSON(want, wantErr)
+				a, b := codegentest.ResultJSON(got, err), codegentest.ResultJSON(want, wantErr)
 				// Only the compute and memory limits may end the two parses at different points: rules
 				// that insert tokens keep no result, so both make the same insertion attempts.
 				if a != b && !strings.Contains(a+b, "compute limit") && !strings.Contains(a+b, "memory limit") {

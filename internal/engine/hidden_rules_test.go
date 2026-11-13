@@ -5,8 +5,8 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/grammar"
+	"zeroparse.dev/zp/internal/codegentest"
 	"zeroparse.dev/zp/internal/compile"
-	"zeroparse.dev/zp/internal/gentest"
 )
 
 // The generated name of an inline action's rule never satisfies a reference: a reference resolves
@@ -75,7 +75,7 @@ rule _b = "b"`
 		if err != nil {
 			t.Fatalf("%+v: %v", opts, err)
 		}
-		if got, want := gentest.ResultJSON(loaded.Parse("main", "ab")), gentest.ResultJSON(p.Parse("main", "ab")); got != want {
+		if got, want := codegentest.ResultJSON(loaded.Parse("main", "ab")), codegentest.ResultJSON(p.Parse("main", "ab")); got != want {
 			t.Errorf("%+v: loaded %s, compiled %s", opts, got, want)
 		}
 	}

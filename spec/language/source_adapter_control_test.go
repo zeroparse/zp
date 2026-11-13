@@ -12,8 +12,8 @@ import (
 	"zeroparse.dev/zp/engine"
 	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/syntax"
-	"zeroparse.dev/zp/internal/syntax/genparser"
-	"zeroparse.dev/zp/internal/syntax/genparser/types"
+	"zeroparse.dev/zp/internal/syntax/grammarparser"
+	"zeroparse.dev/zp/internal/syntax/grammarparser/types"
 )
 
 // The comparison of the frontends is only worth something if it sees a change
@@ -370,7 +370,7 @@ func TestGrammarComparisonSeesBrokenAdapters(t *testing.T) {
 			changed := 0
 			broken := func(src string) (*grammar.Grammar, error) {
 				text, invalid := syntax.WithoutInvalidCharacters(src)
-				f, err := genparser.ParseValue(text)
+				f, err := grammarparser.ParseValue(text)
 				if err != nil || invalid {
 					return adaptCanonical(src)
 				}

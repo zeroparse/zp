@@ -645,7 +645,7 @@ func checkTypedGeneration(t *testing.T, sc confSchema, g typedGeneration, src st
 // divergence is a generator change to make, not a case of the mapping.
 var typedDivergence = map[string][]string{}
 
-// TestTypedConformance checks that every generated typed package of internal/bench/gen conforms to
+// TestTypedConformance checks that every generated typed package of internal/bench/parsers conforms to
 // the output schema of its grammar, in Go and in TypeScript.
 func TestTypedConformance(t *testing.T) {
 	for _, g := range typedGenerations(t) {
@@ -684,7 +684,7 @@ func TestTypedConformance(t *testing.T) {
 func TestTypedConformanceDetectsCardinality(t *testing.T) {
 	var g typedGeneration
 	for _, gen := range typedGenerations(t) {
-		if strings.HasSuffix(gen.name, "/gen/json") {
+		if strings.HasSuffix(gen.name, "/parsers/json") {
 			g = gen
 		}
 	}

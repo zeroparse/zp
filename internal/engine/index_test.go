@@ -8,21 +8,21 @@ import (
 
 	"zeroparse.dev/zp/core"
 	"zeroparse.dev/zp/internal/bytecode"
-	"zeroparse.dev/zp/internal/gentest"
+	"zeroparse.dev/zp/internal/codegentest"
 	"zeroparse.dev/zp/internal/value"
 )
 
 func TestIndexAcrossBackends(t *testing.T) {
 	t.Parallel()
-	for _, fixture := range gentest.IndexCases() {
+	for _, fixture := range codegentest.IndexCases() {
 		t.Run(fixture.Name, func(t *testing.T) {
 			program := mustCompile(t, fixture.Src)
 			for _, unit := range []core.PositionUnit{core.CodePoints, core.Bytes} {
 				for _, recognize := range []bool{false, true} {
 					for _, input := range fixture.Inputs {
-						baseline := gentest.ResultJSON(program.ParseWith("main", input, ParseOptions{Backend: Closure, Unit: unit, Recognize: recognize}))
+						baseline := codegentest.ResultJSON(program.ParseWith("main", input, ParseOptions{Backend: Closure, Unit: unit, Recognize: recognize}))
 						for _, backend := range []Backend{Bytecode, BytecodeIterative} {
-							actual := gentest.ResultJSON(program.ParseWith("main", input, ParseOptions{Backend: backend, Unit: unit, Recognize: recognize}))
+							actual := codegentest.ResultJSON(program.ParseWith("main", input, ParseOptions{Backend: backend, Unit: unit, Recognize: recognize}))
 							if actual != baseline {
 								t.Fatalf("%s/%s recognize=%t input=%q: %s / %s", backend, unit, recognize, input, actual, baseline)
 							}
@@ -101,7 +101,7 @@ rule item = [a-z]`
 		}
 		for _, backend := range []Backend{Bytecode, BytecodeIterative} {
 			options := ParseOptions{Backend: backend}
-			if got, want := gentest.ResultJSON(loaded.ParseWith("main", "ab", servedBy(mode, options))), gentest.ResultJSON(program.ParseWith("main", "ab", options)); got != want {
+			if got, want := codegentest.ResultJSON(loaded.ParseWith("main", "ab", servedBy(mode, options))), codegentest.ResultJSON(program.ParseWith("main", "ab", options)); got != want {
 				t.Fatalf("loaded index: %s / %s", got, want)
 			}
 		}

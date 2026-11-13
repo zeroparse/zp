@@ -4,28 +4,28 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/core"
+	"zeroparse.dev/zp/internal/codegentest"
 	"zeroparse.dev/zp/internal/compile"
 	ecore "zeroparse.dev/zp/internal/engine/core"
-	"zeroparse.dev/zp/internal/gentest"
 )
 
 // TestTextFieldComparisons checks that the backends agree on comparisons of string fields, with
 // and without budget controls.
 func TestTextFieldComparisons(t *testing.T) {
 	t.Parallel()
-	prog := compileBare(t, gentest.TextCompareGrammar, compile.Options{})
+	prog := compileBare(t, codegentest.TextCompareGrammar, compile.Options{})
 	limits := core.Limits{Compute: 1 << 40}
 	for _, controlled := range []bool{false, true} {
 		for _, unit := range []core.PositionUnit{core.CodePoints, core.Bytes} {
-			for _, input := range gentest.TextCompareInputs {
+			for _, input := range codegentest.TextCompareInputs {
 				opts := ParseOptions{Backend: Closure, Unit: unit}
 				if controlled {
 					opts.Limits = limits
 				}
-				want := gentest.ResultJSON(prog.ParseWith("main", input, opts))
+				want := codegentest.ResultJSON(prog.ParseWith("main", input, opts))
 				for _, backend := range []Backend{Bytecode, BytecodeIterative} {
 					opts.Backend = backend
-					if got := gentest.ResultJSON(prog.ParseWith("main", input, opts)); got != want {
+					if got := codegentest.ResultJSON(prog.ParseWith("main", input, opts)); got != want {
 						t.Errorf("controlled=%t %s/%s %q:\n got %s\nwant %s", controlled, backend, unit, input, got, want)
 					}
 				}
@@ -49,7 +49,7 @@ func parseSteps(t *testing.T, prog *Program, backend Backend, unit core.Position
 	p.MaxDepth, _ = ecore.DepthLimit(o, o.Backend) // the options of these tests are valid
 	p.DeferMemo = true
 	n, err := active.Run(p, o.Backend, "main")
-	return control.Used, gentest.ResultJSON(n, err)
+	return control.Used, codegentest.ResultJSON(n, err)
 }
 
 // textCompareEdgeGrammar compares fields in actions that fail, read the built-in members of a
@@ -79,14 +79,14 @@ func TestTextFieldComparisonEdges(t *testing.T) {
 			if ecore.BudgetControlsEnabled {
 				_, wantResult = parseSteps(t, prog, Closure, unit, input)
 			}
-			wantUncontrolled := gentest.ResultJSON(prog.ParseWith("main", input, ParseOptions{Backend: Closure, Unit: unit}))
+			wantUncontrolled := codegentest.ResultJSON(prog.ParseWith("main", input, ParseOptions{Backend: Closure, Unit: unit}))
 			for _, backend := range []Backend{Bytecode, BytecodeIterative} {
 				if ecore.BudgetControlsEnabled {
 					if _, gotResult := parseSteps(t, prog, backend, unit, input); gotResult != wantResult {
 						t.Errorf("%s/%s %q: %s\nwant %s", backend, unit, input, gotResult, wantResult)
 					}
 				}
-				if got := gentest.ResultJSON(prog.ParseWith("main", input, ParseOptions{Backend: backend, Unit: unit})); got != wantUncontrolled {
+				if got := codegentest.ResultJSON(prog.ParseWith("main", input, ParseOptions{Backend: backend, Unit: unit})); got != wantUncontrolled {
 					t.Errorf("%s/%s %q uncontrolled:\n got %s\nwant %s", backend, unit, input, got, wantUncontrolled)
 				}
 			}

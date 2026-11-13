@@ -7,7 +7,7 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/internal/codegen"
-	"zeroparse.dev/zp/internal/gentest"
+	"zeroparse.dev/zp/internal/codegentest"
 )
 
 // The grammar takes the text of every level of a nesting: the texts sum to the square of the
@@ -15,7 +15,7 @@ import (
 // whole-input parses and Documents in bytes, in code points and on invalid UTF-8.
 func TestGeneratedGoTextCostIsConstant(t *testing.T) {
 	t.Parallel()
-	gentest.NeedsBudgetControls(t)
+	codegentest.NeedsBudgetControls(t)
 	if testing.Short() {
 		t.Skip("builds a generated consumer")
 	}
@@ -24,13 +24,13 @@ rule a = s:("(" a ")" / [^()]) => text($s)`)
 	if err != nil {
 		t.Fatal(err)
 	}
-	code, err := gentest.GenerateCode(t, g, codegen.GenOptions{Package: "fixture", Start: "main", Document: true})
+	code, err := codegentest.GenerateCode(t, g, codegen.GenOptions{Package: "fixture", Start: "main", Document: true})
 	if err != nil {
 		t.Fatal(err)
 	}
 	dir := t.TempDir()
 	for name, source := range map[string]string{
-		"go.mod":         gentest.GoMod("fixture"),
+		"go.mod":         codegentest.GoMod("fixture"),
 		"parser.go":      string(code),
 		"parser_test.go": generatedGoTextCostConsumer,
 	} {

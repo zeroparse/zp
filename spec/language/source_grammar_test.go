@@ -15,7 +15,7 @@ import (
 	"zeroparse.dev/zp/core"
 	"zeroparse.dev/zp/engine"
 	"zeroparse.dev/zp/grammar"
-	"zeroparse.dev/zp/internal/gentest"
+	"zeroparse.dev/zp/internal/codegentest"
 	"zeroparse.dev/zp/internal/syntax"
 )
 
@@ -436,7 +436,7 @@ func TestSourceGrammarGeneratedGo(t *testing.T) {
 	for _, f := range code {
 		write(filepath.FromSlash(f.Path), f.Content)
 	}
-	write("go.mod", []byte(gentest.GoMod("sourceparser")))
+	write("go.mod", []byte(codegentest.GoMod("sourceparser")))
 	data, err := json.Marshal(fixtures)
 	if err != nil {
 		t.Fatal(err)

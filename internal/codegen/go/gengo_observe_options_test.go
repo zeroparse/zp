@@ -6,7 +6,7 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/internal/codegen"
-	"zeroparse.dev/zp/internal/gentest"
+	"zeroparse.dev/zp/internal/codegentest"
 )
 
 // TestGeneratedTraceOptionsNeedObservability checks that a parser generated without observability
@@ -32,10 +32,10 @@ func TestGeneratedTraceOptionsNeedObservability(t *testing.T) {
 			t.Fatal(err)
 		}
 	}
-	write("go.mod", []byte(gentest.GoMod("traceopts")))
+	write("go.mod", []byte(codegentest.GoMod("traceopts")))
 	for _, observe := range []bool{false, true} {
 		pkg := map[bool]string{false: "plain", true: "observed"}[observe]
-		files, err := gentest.Generate(t, g, codegen.GenOptions{Module: "traceopts/" + pkg, Package: pkg, Start: "main", Lib: codegen.LibImport, Types: true, Document: true, Recognize: true, Observability: observe})
+		files, err := codegentest.Generate(t, g, codegen.GenOptions{Module: "traceopts/" + pkg, Package: pkg, Start: "main", Lib: codegen.LibImport, Types: true, Document: true, Recognize: true, Observability: observe})
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -105,5 +105,5 @@ func TestTraceOptions(t *testing.T) {
 }
 `))
 	}
-	gentest.GoVetAndTest(t, dir, true)
+	codegentest.GoVetAndTest(t, dir, true)
 }

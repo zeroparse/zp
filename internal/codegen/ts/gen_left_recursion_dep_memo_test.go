@@ -12,20 +12,20 @@ import (
 	"time"
 
 	"zeroparse.dev/zp/internal/codegen"
-	"zeroparse.dev/zp/internal/gentest"
+	"zeroparse.dev/zp/internal/codegentest"
 )
 
-// depMemoTSCases returns the grammars of gentest.DependencyMemoCases for seeds below seeds that
+// depMemoTSCases returns the grammars of codegentest.DependencyMemoCases for seeds below seeds that
 // generate TypeScript parsers.
-func depMemoTSCases(t *testing.T, seeds int) []gentest.Case {
+func depMemoTSCases(t *testing.T, seeds int) []codegentest.Case {
 	t.Helper()
-	var cases []gentest.Case
-	for _, c := range gentest.DependencyMemoCases(seeds) {
+	var cases []codegentest.Case
+	for _, c := range codegentest.DependencyMemoCases(seeds) {
 		g, err := parseTest(c.Src)
 		if err != nil {
 			continue
 		}
-		if _, err := gentest.GenerateTSBundle(g, codegen.GenOptions{Start: "main", Recognize: true}); err != nil {
+		if _, err := codegentest.GenerateTSBundle(g, codegen.GenOptions{Start: "main", Recognize: true}); err != nil {
 			continue
 		}
 		cases = append(cases, c)
@@ -50,17 +50,17 @@ func TestGeneratedTSLeftRecursionDependencyMemo(t *testing.T) {
 	if err != nil {
 		t.Skip("node not found")
 	}
-	gentest.TSParsersCorpus(t, node, depMemoTSCases(t, 60), codegen.GenOptions{})
-	gentest.TSParsersCorpus(t, node, depMemoTSCases(t, 20), codegen.GenOptions{SourceInfo: true})
+	codegentest.TSParsersCorpus(t, node, depMemoTSCases(t, 60), codegen.GenOptions{})
+	codegentest.TSParsersCorpus(t, node, depMemoTSCases(t, 20), codegen.GenOptions{SourceInfo: true})
 }
 
 // TestGeneratedTSLeftRecursionDependencyMemoLinear checks that generated TypeScript parsers of
-// gentest.DependencyMemoShapes evaluate a number of calls linear in the length of the input:
+// codegentest.DependencyMemoShapes evaluate a number of calls linear in the length of the input:
 // doubling the input at most a little more than doubles the evaluations. Generated with budget
 // controls, they parse an input of length 10,000 within the default budget, which grows linearly
 // with the input and counts work that evaluations do not show, such as the scan of the jumps
-// recorded for a seed. The shapes of gentest.ContextStoreShapes, whose constant is large, are
-// compared at gentest.ContextStoreSizes instead, without the long input.
+// recorded for a seed. The shapes of codegentest.ContextStoreShapes, whose constant is large, are
+// compared at codegentest.ContextStoreSizes instead, without the long input.
 func TestGeneratedTSLeftRecursionDependencyMemoLinear(t *testing.T) {
 	t.Parallel()
 	if testing.Short() {
@@ -78,17 +78,17 @@ func TestGeneratedTSLeftRecursionDependencyMemoLinear(t *testing.T) {
 	}
 	write("package.json", []byte(`{"type":"module"}`))
 	var main strings.Builder
-	shapes := gentest.SampledShapes()
+	shapes := codegentest.SampledShapes()
 	costly := len(shapes)
-	shapes = append(shapes, gentest.ContextStoreShapes...)
+	shapes = append(shapes, codegentest.ContextStoreShapes...)
 	for i, s := range shapes {
-		code, err := gentest.GenerateTSBundle(mustParse("@start\nrule main = "+s.Rules), codegen.GenOptions{Start: "main", Observability: true})
+		code, err := codegentest.GenerateTSBundle(mustParse("@start\nrule main = "+s.Rules), codegen.GenOptions{Start: "main", Observability: true})
 		if err != nil {
 			t.Fatalf("%s: %v", s.Name, err)
 		}
 		write(fmt.Sprintf("g%d.ts", i), code)
 		fmt.Fprintf(&main, "import * as g%d from \"./g%[1]d.ts\";\n", i)
-		code, err = gentest.GenerateTSBundle(mustParse("@start\nrule main = "+s.Rules), codegen.GenOptions{Start: "main", LimitControls: true})
+		code, err = codegentest.GenerateTSBundle(mustParse("@start\nrule main = "+s.Rules), codegen.GenOptions{Start: "main", LimitControls: true})
 		if err != nil {
 			t.Fatalf("%s: %v", s.Name, err)
 		}
@@ -104,7 +104,7 @@ func TestGeneratedTSLeftRecursionDependencyMemoLinear(t *testing.T) {
 		"const withinBudget = (m, input) => m.parseWithOptions(input, {}).error === null;\n")
 	for i, s := range shapes {
 		if i >= costly {
-			fmt.Fprintf(&main, "console.log(evals(g%[1]d, %[2]s), evals(g%[1]d, %[3]s), true);\n", i, strconv.Quote(s.Input(gentest.ContextStoreSizes[0])), strconv.Quote(s.Input(gentest.ContextStoreSizes[1])))
+			fmt.Fprintf(&main, "console.log(evals(g%[1]d, %[2]s), evals(g%[1]d, %[3]s), true);\n", i, strconv.Quote(s.Input(codegentest.ContextStoreSizes[0])), strconv.Quote(s.Input(codegentest.ContextStoreSizes[1])))
 			continue
 		}
 		fmt.Fprintf(&main, "console.log(evals(g%[1]d, %[2]s), evals(g%[1]d, %[3]s), withinBudget(c%[1]d, %[4]s));\n", i, strconv.Quote(s.Input(80)), strconv.Quote(s.Input(160)), strconv.Quote(s.Input(10000)))
@@ -132,8 +132,8 @@ func TestGeneratedTSLeftRecursionDependencyMemoLinear(t *testing.T) {
 			t.Errorf("%s: no parse at 10000 within the default budget", s.Name)
 		}
 		if i >= costly {
-			if small == 0 || large > small*gentest.ContextStoreGrowth {
-				t.Errorf("%s: %d evaluations at m=%d, %d at m=%d", s.Name, small, gentest.ContextStoreSizes[0], large, gentest.ContextStoreSizes[1])
+			if small == 0 || large > small*codegentest.ContextStoreGrowth {
+				t.Errorf("%s: %d evaluations at m=%d, %d at m=%d", s.Name, small, codegentest.ContextStoreSizes[0], large, codegentest.ContextStoreSizes[1])
 			}
 		} else if small == 0 || large > small*5/2 {
 			t.Errorf("%s: %d evaluations at 80, %d at 160", s.Name, small, large)

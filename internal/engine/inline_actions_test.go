@@ -5,7 +5,7 @@ import (
 	"strings"
 	"testing"
 
-	"zeroparse.dev/zp/internal/gentest"
+	"zeroparse.dev/zp/internal/codegentest"
 	"zeroparse.dev/zp/internal/syntax"
 )
 
@@ -31,8 +31,8 @@ func TestInlineActionsMatchRules(t *testing.T) {
 			}
 			for _, input := range tc.Inputs {
 				for _, backend := range []Backend{Closure, Bytecode, BytecodeIterative} {
-					want := gentest.ResultJSON(explicit.ParseWith("main", input, ParseOptions{Backend: backend}))
-					got := hiddenWhere(gentest.ResultJSON(inline.ParseWith("main", input, ParseOptions{Backend: backend})))
+					want := codegentest.ResultJSON(explicit.ParseWith("main", input, ParseOptions{Backend: backend}))
+					got := hiddenWhere(codegentest.ResultJSON(inline.ParseWith("main", input, ParseOptions{Backend: backend})))
 					if got != want {
 						t.Errorf("%q on %s:\ninline:   %s\nexplicit: %s", input, backend, got, want)
 					}
@@ -42,9 +42,9 @@ func TestInlineActionsMatchRules(t *testing.T) {
 	}
 }
 
-func inlineCases(t *testing.T) []gentest.InlineCase {
+func inlineCases(t *testing.T) []codegentest.InlineCase {
 	t.Helper()
-	return gentest.InlineActionCases()
+	return codegentest.InlineActionCases()
 }
 
 // The type of an inline action is that of a rule: it is checked at compile time and appears in the
@@ -86,7 +86,7 @@ rule main = (x:"a" => A{X: text($x)}) "b"`)
 // gives the same results, with the inline actions still in the AST.
 func TestInlineActionsCompiledRoundTrip(t *testing.T) {
 	t.Parallel()
-	for _, tc := range gentest.InlineActionCases() {
+	for _, tc := range codegentest.InlineActionCases() {
 		t.Run(tc.Name, func(t *testing.T) {
 			prog := mustCompile(t, tc.Inline)
 			written, err := syntax.Parse(tc.Inline)
@@ -99,7 +99,7 @@ func TestInlineActionsCompiledRoundTrip(t *testing.T) {
 			for _, mode := range valueModes {
 				loaded := saveLoad(t, prog, "main", mode)
 				for _, input := range tc.Inputs {
-					want, got := gentest.ResultJSON(prog.Parse("main", input)), gentest.ResultJSON(loaded.ParseWith("main", input, servedBy(mode, ParseOptions{})))
+					want, got := codegentest.ResultJSON(prog.Parse("main", input)), codegentest.ResultJSON(loaded.ParseWith("main", input, servedBy(mode, ParseOptions{})))
 					if got != want {
 						t.Errorf("%q (%s mode): %s / %s", input, mode, got, want)
 					}

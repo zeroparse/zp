@@ -8,7 +8,7 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/core"
-	"zeroparse.dev/zp/internal/gentest"
+	"zeroparse.dev/zp/internal/codegentest"
 )
 
 // Alternate inactive and active invocations after a resumable run has been
@@ -49,7 +49,7 @@ rule expr = #operators {
 					t.Fatal(err)
 				}
 				fresh, err := prog.ParseWith("main", d.Text(), opts)
-				if err != nil || gentest.ResultJSON(got, nil) != gentest.ResultJSON(fresh, err) {
+				if err != nil || codegentest.ResultJSON(got, nil) != codegentest.ResultJSON(fresh, err) {
 					t.Fatalf("iteration %d: cached/fresh mismatch: %v", i, err)
 				}
 				// A cached tree must not bypass admission on the other dispatch graph.

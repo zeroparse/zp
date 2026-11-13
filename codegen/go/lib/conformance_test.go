@@ -9,11 +9,11 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/internal/codegen/go/lib"
-	"zeroparse.dev/zp/internal/gentest"
+	"zeroparse.dev/zp/internal/codegentest"
 )
 
 func TestMain(m *testing.M) {
-	removeGoCache := gentest.SetGoCache()
+	removeGoCache := codegentest.SetGoCache()
 	code := m.Run()
 	removeGoCache()
 	os.Exit(code)
@@ -28,7 +28,7 @@ func TestMain(m *testing.M) {
 // of the library from its name.
 func libOverlay(t *testing.T, mutate func(name, src string) string) string {
 	t.Helper()
-	src := filepath.Join(gentest.ModuleRoot(), "codegen", "go", "lib")
+	src := filepath.Join(codegentest.ModuleRoot(), "codegen", "go", "lib")
 	dir := t.TempDir()
 	replace := map[string]string{}
 	add := func(name string, data []byte) {
@@ -98,7 +98,7 @@ func libOverlay(t *testing.T, mutate func(name, src string) string) string {
 // overlay of libOverlay.
 func goTestLib(overlay string, args ...string) *exec.Cmd {
 	cmd := exec.Command("go", append(append([]string{"test", "-overlay=" + overlay}, args...), "./codegen/go/lib")...)
-	cmd.Dir = gentest.ModuleRoot()
+	cmd.Dir = codegentest.ModuleRoot()
 	cmd.Env = append(os.Environ(), "GOTOOLCHAIN=local", "GOWORK=off", "GOFLAGS=-trimpath")
 	return cmd
 }

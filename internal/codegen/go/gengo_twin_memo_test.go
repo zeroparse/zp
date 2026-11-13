@@ -11,20 +11,20 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/internal/codegen"
-	"zeroparse.dev/zp/internal/gentest"
+	"zeroparse.dev/zp/internal/codegentest"
 )
 
 // TestGeneratedTwinMemo checks the memo of value-free twins in a generated Go parser, as
 // TestTwinMemo does for the engine (Evaluations of Rules in spec/runtime/parsing.md): a rule and its
 // twin have memo entries of their own, and a twin is memoized exactly when its rule is, even where
 // the twin is called from one place only. Parse and ParseValue, without and with limit controls,
-// evaluate the body of r, the twin and the rule together, as often as each grammar of gentest says.
+// evaluate the body of r, the twin and the rule together, as often as each grammar of codegentest says.
 // Recognize builds values only for the rules that a call inside a capture that a predicate can read
 // reaches, which r is not, so r has no twin there: the calls of r and -r evaluate one rule with one
 // memo entry.
 func TestGeneratedTwinMemo(t *testing.T) {
 	t.Parallel()
-	gentest.EachMode(t, testGeneratedTwinMemo)
+	codegentest.EachMode(t, testGeneratedTwinMemo)
 }
 
 func testGeneratedTwinMemo(t *testing.T) {
@@ -41,19 +41,19 @@ func testGeneratedTwinMemo(t *testing.T) {
 	}{
 		// Twice the twin and twice the rule: an entry of the twin answers no call of the rule. A
 		// recognition evaluates r twice in all.
-		{"own entries", gentest.TwinOwnEntriesSrc, "abcy", 4, 2},
+		{"own entries", codegentest.TwinOwnEntriesSrc, "abcy", 4, 2},
 		// Twice the twin at 1, whose second evaluation stores the result that answers its third
 		// call, and once the rule at 0.
-		{"one place", gentest.TwinOnePlaceSrc, "abcy", 3, 3},
+		{"one place", codegentest.TwinOnePlaceSrc, "abcy", 3, 3},
 		// Captures named x call r only where no predicate can read them: twice the twin and twice
 		// the rule in a parse, and in a recognition, where r has no twin, two evaluations whose
 		// second stores the result that answers the calls of -r.
-		{"scoped capture", gentest.TwinScopedCaptureSrc, "aa5", 4, 2},
+		{"scoped capture", codegentest.TwinScopedCaptureSrc, "aa5", 4, 2},
 		// The x that the predicate names is a lambda parameter, which reads no capture: as above.
-		{"lambda parameter", gentest.TwinLambdaParamSrc, "aa5", 4, 2},
+		{"lambda parameter", codegentest.TwinLambdaParamSrc, "aa5", 4, 2},
 	}
 	dir := t.TempDir()
-	if err := os.WriteFile(filepath.Join(dir, "go.mod"), []byte(gentest.GoMod("gentest")), 0o644); err != nil {
+	if err := os.WriteFile(filepath.Join(dir, "go.mod"), []byte(codegentest.GoMod("codegentest")), 0o644); err != nil {
 		t.Fatal(err)
 	}
 	var imports, calls strings.Builder
@@ -61,8 +61,8 @@ func testGeneratedTwinMemo(t *testing.T) {
 		in := strconv.Quote(c.input)
 		// g has no limit controls; l has them, under the default limits.
 		for _, pkg := range []string{fmt.Sprintf("g%d", i), fmt.Sprintf("l%d", i)} {
-			gentest.GeneratePackage(t, dir, pkg, mustParse(c.src), codegen.GenOptions{Start: "main", Types: true, Recognize: true, Observability: true, LimitControls: pkg[0] == 'l'})
-			fmt.Fprintf(&imports, "\t%q\n", "gentest/"+pkg)
+			codegentest.GeneratePackage(t, dir, pkg, mustParse(c.src), codegen.GenOptions{Start: "main", Types: true, Recognize: true, Observability: true, LimitControls: pkg[0] == 'l'})
+			fmt.Fprintf(&imports, "\t%q\n", "codegentest/"+pkg)
 			for _, op := range []string{"_, _ = %s.Parse(%s, zprt.WithProfile(&p))", "_, _ = %s.ParseValue(%s, zprt.WithProfile(&p))", "_ = %s.Recognize(%s, zprt.WithProfile(&p))"} {
 				fmt.Fprintf(&calls, "\t{ var p zprt.Profile; "+op+"; fmt.Print(evals(p), \" \") }\n", pkg, in)
 			}
@@ -120,7 +120,7 @@ func main() {
 // TestRecognizeLambdaParameter does for the engine.
 func TestGeneratedLambdaParameter(t *testing.T) {
 	t.Parallel()
-	gentest.EachMode(t, testGeneratedLambdaParameter)
+	codegentest.EachMode(t, testGeneratedLambdaParameter)
 }
 
 func testGeneratedLambdaParameter(t *testing.T) {
@@ -133,13 +133,13 @@ func testGeneratedLambdaParameter(t *testing.T) {
 	}
 	inputs := []string{"aaz6", "aazz6", "aa6", "aa5"}
 	dir := t.TempDir()
-	if err := os.WriteFile(filepath.Join(dir, "go.mod"), []byte(gentest.GoMod("gentest")), 0o644); err != nil {
+	if err := os.WriteFile(filepath.Join(dir, "go.mod"), []byte(codegentest.GoMod("codegentest")), 0o644); err != nil {
 		t.Fatal(err)
 	}
 	var imports, calls strings.Builder
 	for _, pkg := range []string{"g", "l"} {
-		gentest.GeneratePackage(t, dir, pkg, mustParse(gentest.TwinLambdaParamSrc), codegen.GenOptions{Start: "main", Types: true, Recognize: true, LimitControls: pkg == "l"})
-		fmt.Fprintf(&imports, "\t%q\n", "gentest/"+pkg)
+		codegentest.GeneratePackage(t, dir, pkg, mustParse(codegentest.TwinLambdaParamSrc), codegen.GenOptions{Start: "main", Types: true, Recognize: true, LimitControls: pkg == "l"})
+		fmt.Fprintf(&imports, "\t%q\n", "codegentest/"+pkg)
 		for _, in := range inputs {
 			fmt.Fprintf(&calls, "\t{ _, perr := %s.Parse(%q); rerr := %[1]s.Recognize(%[2]q); fmt.Println(perr == nil, fmt.Sprint(perr) == fmt.Sprint(rerr)) }\n", pkg, in)
 		}

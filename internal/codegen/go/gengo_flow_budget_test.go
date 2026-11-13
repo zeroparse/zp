@@ -15,7 +15,7 @@ import (
 	"unicode/utf8"
 
 	"zeroparse.dev/zp/internal/codegen"
-	"zeroparse.dev/zp/internal/gentest"
+	"zeroparse.dev/zp/internal/codegentest"
 )
 
 // The Node and recognizer tables of a parser with budget controls are printed from Flow IR, which makes
@@ -199,20 +199,20 @@ func budgetProbeSources(pkg string, n int) string {
 
 // runBudgetProbes builds the cases as the packages f0..fN with the rules printed from Flow IR and returns the
 // reports of the consumer; mutate, if not nil, changes the code of each parser.
-func runBudgetProbes(t *testing.T, cases []gentest.Case, start string, mutate func([]byte) []byte) []string {
+func runBudgetProbes(t *testing.T, cases []codegentest.Case, start string, mutate func([]byte) []byte) []string {
 	t.Helper()
-	return runBudgetProbesAt(t, gentest.LibCopy(), cases, start, mutate)
+	return runBudgetProbesAt(t, codegentest.LibCopy(), cases, start, mutate)
 }
 
 // runBudgetProbesAt is runBudgetProbes with the library copy in rt.
-func runBudgetProbesAt(t *testing.T, rt string, cases []gentest.Case, start string, mutate func([]byte) []byte) []string {
+func runBudgetProbesAt(t *testing.T, rt string, cases []codegentest.Case, start string, mutate func([]byte) []byte) []string {
 	t.Helper()
 	return runBudgetProbesWith(t, rt, cases, start, mutate, codegen.GenOptions{}, "Parse")
 }
 
 // runBudgetProbesWith is runBudgetProbesAt with generator options, and with the entry point that the
 // "parse" entry of a report runs: Parse, or ParseValue for a typed parser (opts.Types).
-func runBudgetProbesWith(t *testing.T, rt string, cases []gentest.Case, start string, mutate func([]byte) []byte, opts codegen.GenOptions, parse string) []string {
+func runBudgetProbesWith(t *testing.T, rt string, cases []codegentest.Case, start string, mutate func([]byte) []byte, opts codegen.GenOptions, parse string) []string {
 	t.Helper()
 	dir := t.TempDir()
 	write := func(name, content string) {
@@ -222,7 +222,7 @@ func runBudgetProbesWith(t *testing.T, rt string, cases []gentest.Case, start st
 			t.Fatal(err)
 		}
 	}
-	write("go.mod", gentest.GoModAt("wprobe", rt))
+	write("go.mod", codegentest.GoModAt("wprobe", rt))
 	var inputs [][]string
 	for i, c := range cases {
 		g, err := parseTest(c.Src)
@@ -231,7 +231,7 @@ func runBudgetProbesWith(t *testing.T, rt string, cases []gentest.Case, start st
 		}
 		o := opts
 		o.Package, o.Start, o.Recognize = fmt.Sprintf("f%d", i), start, true
-		code, err := gentest.GenerateCode(t, g, o)
+		code, err := codegentest.GenerateCode(t, g, o)
 		if err != nil {
 			t.Fatalf("%s: %v", c.Name, err)
 		}
@@ -298,11 +298,11 @@ func parseBudgetReports(t *testing.T, lines []string) []budgetReport {
 const (
 	budgetGolden       = "testdata/budget.golden"
 	budgetGoldenHeader = "# Budget totals of the generated parsers with budget controls: budget, context polls and result\n" +
-		"# of each input and entry, by group, case and input. Not a limit: stage 3 optimizations move the totals.\n" + gentest.GoldenRules
+		"# of each input and entry, by group, case and input. Not a limit: stage 3 optimizations move the totals.\n" + codegentest.GoldenRules
 )
 
-var budgetGoldenFile = gentest.GoldenFile{
-	Path: budgetGolden, Header: budgetGoldenHeader, CaseOf: gentest.GoldenCaseBefore, TotalNames: [2]string{"budget", "polls"},
+var budgetGoldenFile = codegentest.GoldenFile{
+	Path: budgetGolden, Header: budgetGoldenHeader, CaseOf: codegentest.GoldenCaseBefore, TotalNames: [2]string{"budget", "polls"},
 	Totals: func(v string) (a, b uint64) {
 		f := strings.Fields(v)
 		a, _ = strconv.ParseUint(f[0], 10, 64)
@@ -331,22 +331,22 @@ var budgetGoldenFile = gentest.GoldenFile{
 // and every function of this corpus is verified when generated.
 func TestFlowNodeBudgetInvariants(t *testing.T) {
 	t.Parallel()
-	gentest.NeedsBudgetControls(t)
+	codegentest.NeedsBudgetControls(t)
 	if testing.Short() {
 		t.Skip("builds generated consumers")
 	}
-	checkBudgetInvariants(t, "corpus", gentest.Representative(gentest.GenCorpus(t)), "main")
+	checkBudgetInvariants(t, "corpus", codegentest.Representative(codegentest.GenCorpus(t)), "main")
 }
 
 // checkBudgetInvariants builds the cases with the start rule start, runs the consumer and checks the
 // invariants of TestFlowNodeBudgetInvariants and the golden.
-func checkBudgetInvariants(t *testing.T, group string, cases []gentest.Case, start string) {
+func checkBudgetInvariants(t *testing.T, group string, cases []codegentest.Case, start string) {
 	t.Helper()
 	checkBudgetInvariantsIn(t, budgetGoldenFile, group, cases, start)
 }
 
 // checkBudgetInvariantsIn is checkBudgetInvariants against the golden file golden.
-func checkBudgetInvariantsIn(t *testing.T, golden gentest.GoldenFile, group string, cases []gentest.Case, start string) {
+func checkBudgetInvariantsIn(t *testing.T, golden codegentest.GoldenFile, group string, cases []codegentest.Case, start string) {
 	t.Helper()
 	got, problems := budgetTotals(t, group, cases, start, nil)
 	for _, p := range problems {
@@ -359,11 +359,11 @@ func checkBudgetInvariantsIn(t *testing.T, golden gentest.GoldenFile, group stri
 // than the recording ones because they do not record expectations.
 const budgetOffGolden = "testdata/budget_off.golden"
 
-var budgetOffGoldenFile = gentest.GoldenFile{
+var budgetOffGoldenFile = codegentest.GoldenFile{
 	Path: budgetOffGolden, CaseOf: budgetGoldenFile.CaseOf, TotalNames: budgetGoldenFile.TotalNames, Totals: budgetGoldenFile.Totals,
 	Header: "# Budget totals of the generated parsers with budget controls and without expectations: budget, context polls\n" +
 		"# and result of each input and entry. The charges of parses that do not record expectations are part of the\n" +
-		"# contract of the default mode.\n" + gentest.GoldenRules,
+		"# contract of the default mode.\n" + codegentest.GoldenRules,
 }
 
 // TestFlowNodeBudgetInvariantsWithoutExpectations checks the invariants and a golden for the parsers of the
@@ -371,12 +371,12 @@ var budgetOffGoldenFile = gentest.GoldenFile{
 // of two builds and runs are equal.
 func TestFlowNodeBudgetInvariantsWithoutExpectations(t *testing.T) {
 	t.Parallel()
-	gentest.NeedsBudgetControls(t)
+	codegentest.NeedsBudgetControls(t)
 	if testing.Short() {
 		t.Skip("builds generated consumers")
 	}
-	gentest.OmitExpectations(t)
-	cases := gentest.Representative(gentest.GenCorpus(t))
+	codegentest.OmitExpectations(t)
+	cases := codegentest.Representative(codegentest.GenCorpus(t))
 	first, problems := budgetTotals(t, "corpus-off", cases, "main", nil)
 	for _, p := range problems {
 		t.Error(p)
@@ -400,19 +400,19 @@ func TestFlowNodeBudgetInvariantsWithoutExpectations(t *testing.T) {
 
 // budgetTotals builds the cases (the code of each parser changed by mutate if not nil), runs the consumer and
 // returns the entries of the golden and the violations of the invariants of the reports.
-func budgetTotals(t *testing.T, group string, cases []gentest.Case, start string, mutate func([]byte) []byte) (got map[string]string, problems []string) {
+func budgetTotals(t *testing.T, group string, cases []codegentest.Case, start string, mutate func([]byte) []byte) (got map[string]string, problems []string) {
 	t.Helper()
-	return budgetTotalsAt(t, gentest.LibCopy(), group, cases, start, mutate)
+	return budgetTotalsAt(t, codegentest.LibCopy(), group, cases, start, mutate)
 }
 
 // budgetTotalsAt is budgetTotals with the library copy in rt.
-func budgetTotalsAt(t *testing.T, rt, group string, cases []gentest.Case, start string, mutate func([]byte) []byte) (got map[string]string, problems []string) {
+func budgetTotalsAt(t *testing.T, rt, group string, cases []codegentest.Case, start string, mutate func([]byte) []byte) (got map[string]string, problems []string) {
 	t.Helper()
 	return budgetTotalsWith(t, rt, group, cases, start, mutate, codegen.GenOptions{}, "Parse")
 }
 
 // budgetTotalsWith is budgetTotalsAt with the generator options and entry point of runBudgetProbesWith.
-func budgetTotalsWith(t *testing.T, rt, group string, cases []gentest.Case, start string, mutate func([]byte) []byte, opts codegen.GenOptions, parse string) (got map[string]string, problems []string) {
+func budgetTotalsWith(t *testing.T, rt, group string, cases []codegentest.Case, start string, mutate func([]byte) []byte, opts codegen.GenOptions, parse string) (got map[string]string, problems []string) {
 	t.Helper()
 	lines := runBudgetProbesWith(t, rt, cases, start, mutate, opts, parse)
 	if len(lines) == 0 {
@@ -481,10 +481,10 @@ const (
 // six each), with the default start rule.
 func TestFlowNodeBudgetInvariantsOnGrammars(t *testing.T) {
 	t.Parallel()
-	gentest.NeedsBudgetControls(t)
+	codegentest.NeedsBudgetControls(t)
 	if testing.Short() {
 		t.Skip("builds the large parsers twice")
 	}
-	cases := gentest.RepresentativeGrammars(gentest.GrammarCases(t))
+	cases := codegentest.RepresentativeGrammars(codegentest.GrammarCases(t))
 	checkBudgetInvariants(t, "grammars", cases, "")
 }

@@ -5,13 +5,13 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/core"
-	"zeroparse.dev/zp/internal/gentest"
+	"zeroparse.dev/zp/internal/codegentest"
 	"zeroparse.dev/zp/internal/value"
 )
 
 func TestOperatorsRuleCST(t *testing.T) {
 	t.Parallel()
-	check(t, gentest.Arith,
+	check(t, codegentest.Arith,
 		ok("1", `(("1")@e)@main`),
 		ok("1+2*3", `((lhs:("1")@e op:"+" rhs:(lhs:("2")@e op:"*" rhs:("3")@e)@e)@e)@main`),
 		ok("1 - 2 - 3", `((lhs:(lhs:("1")@e op:"-" rhs:("2")@e)@e op:"-" rhs:("3")@e)@e)@main`),
@@ -32,7 +32,7 @@ func TestOperatorsRuleCST(t *testing.T) {
 
 func TestOperatorsRulePositions(t *testing.T) {
 	t.Parallel()
-	prog := mustCompile(t, gentest.Arith)
+	prog := mustCompile(t, codegentest.Arith)
 	n, err := prog.Parse("e", " 1 + 2 * 3")
 	if err != nil {
 		t.Fatal(err)
@@ -51,7 +51,7 @@ func TestOperatorsRulePositions(t *testing.T) {
 
 func TestOperatorsRuleActions(t *testing.T) {
 	t.Parallel()
-	check(t, gentest.AST,
+	check(t, codegentest.AST,
 		ok("1+2-3", `Bin{L: Bin{L: Num{Text: "1"}, Op: "+", R: Num{Text: "2"}}, Op: "-", R: Num{Text: "3"}}`),
 		ok("a ? b : c ? d : e", `Cond{C: "a"@ident, F: Cond{C: "c"@ident, F: "e"@ident, T: "d"@ident}, T: "b"@ident}`),
 		ok("a ? b = c : d", `Cond{C: "a"@ident, F: "d"@ident, T: Bin{L: "b"@ident, Op: "=", R: "c"@ident}}`),
@@ -68,7 +68,7 @@ func TestOperatorsRuleActions(t *testing.T) {
 
 func TestOperatorsRulePositionsWithActions(t *testing.T) {
 	t.Parallel()
-	prog := mustCompile(t, gentest.AST)
+	prog := mustCompile(t, codegentest.AST)
 	n, err := prog.Parse("e", "a + b + c")
 	if err != nil {
 		t.Fatal(err)
@@ -147,7 +147,7 @@ rule e = #operators {
 
 func TestOperatorsRuleRestrictedPrefix(t *testing.T) {
 	t.Parallel()
-	check(t, gentest.RestrictedPrefix,
+	check(t, codegentest.RestrictedPrefix,
 		ok("~é", `Prefix{Op: "~", X: Atom{Text: "é"}}`),
 		ok("~~x", `Prefix{Op: "~", X: Prefix{Op: "~", X: Atom{Text: "x"}}}`),
 		ok("x*y", `Binary{L: Atom{Text: "x"}, Op: "*", R: Atom{Text: "y"}}`),
@@ -168,7 +168,7 @@ func TestOperatorsRuleRestrictedPrefix(t *testing.T) {
 
 	// A restricted lookahead and an unrestricted call at the same position must
 	// not share a result with a different minimum level, even after a prefix.
-	check(t, strings.Replace(gentest.RestrictedPrefix, `rule main = x:level(e, mul) $$ => $x`,
+	check(t, strings.Replace(codegentest.RestrictedPrefix, `rule main = x:level(e, mul) $$ => $x`,
 		`rule main = &(level(e, mul) "|") x:e $$ => $x`, 1),
 		ok("~é+y|z", `Binary{L: Prefix{Op: "~", X: Binary{L: Atom{Text: "é"}, Op: "+", R: Atom{Text: "y"}}}, Op: "|", R: Atom{Text: "z"}}`),
 		fails("~é+y", `1:1: syntax error`),

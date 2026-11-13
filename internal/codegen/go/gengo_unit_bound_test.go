@@ -8,7 +8,7 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/internal/codegen"
-	"zeroparse.dev/zp/internal/gentest"
+	"zeroparse.dev/zp/internal/codegentest"
 )
 
 // A generated Go parser with limit controls charges at least one unit, and at most a constant, for
@@ -19,7 +19,7 @@ import (
 // for a call, a character, an iteration, an operator or a value changes it.
 func TestGeneratedGoChargesEachElement(t *testing.T) {
 	t.Parallel()
-	gentest.NeedsBudgetControls(t)
+	codegentest.NeedsBudgetControls(t)
 	if testing.Short() {
 		t.Skip("builds generated consumers")
 	}
@@ -36,7 +36,7 @@ func TestGeneratedGoChargesEachElement(t *testing.T) {
 		{"infix", "rule main = expr $$\nrule expr = #operators {\n    operand \"a\"\n    level {\n        infix left \"+\"\n    }\n}", "a", "+a", "", 17},
 	}
 	dir := t.TempDir()
-	if err := os.WriteFile(filepath.Join(dir, "go.mod"), []byte(gentest.GoMod("fixture")), 0o644); err != nil {
+	if err := os.WriteFile(filepath.Join(dir, "go.mod"), []byte(codegentest.GoMod("fixture")), 0o644); err != nil {
 		t.Fatal(err)
 	}
 	for _, c := range cases {
@@ -44,7 +44,7 @@ func TestGeneratedGoChargesEachElement(t *testing.T) {
 		if err != nil {
 			t.Fatalf("%s: %v", c.pkg, err)
 		}
-		code, err := gentest.GenerateCode(t, g, codegen.GenOptions{Package: c.pkg, Start: "main"})
+		code, err := codegentest.GenerateCode(t, g, codegen.GenOptions{Package: c.pkg, Start: "main"})
 		if err != nil {
 			t.Fatalf("%s: %v", c.pkg, err)
 		}

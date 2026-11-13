@@ -6,7 +6,7 @@ import (
 
 	"zeroparse.dev/zp/internal/codegen"
 	"zeroparse.dev/zp/internal/codegen/ts"
-	"zeroparse.dev/zp/internal/gentest"
+	"zeroparse.dev/zp/internal/codegentest"
 )
 
 // TestMissingTokensInsertionOnlyLeftRecursionRejected checks that a grammar whose left recursion
@@ -18,7 +18,7 @@ rule a = "(" #missing a "x" / "y"`)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if _, err := tsgen.GenerateParser(g, compileForGenerator, gentest.WithLib(codegen.GenOptions{Start: "main"}), nil); err == nil || !strings.Contains(err.Error(), "missing") {
+	if _, err := tsgen.GenerateParser(g, compileForGenerator, codegentest.WithLib(codegen.GenOptions{Start: "main"}), nil); err == nil || !strings.Contains(err.Error(), "missing") {
 		t.Fatal("generated a parser for the grammar:", err)
 	}
 }

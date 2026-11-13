@@ -8,7 +8,7 @@ import (
 	"strings"
 	"testing"
 
-	"zeroparse.dev/zp/internal/syntax/genparser"
+	"zeroparse.dev/zp/internal/syntax/grammarparser"
 )
 
 // frontendSample is a grammar source of the frontend benchmark. A malformed sample has syntax errors,
@@ -70,10 +70,10 @@ var frontends = []struct {
 	{"manual", func(src string) (any, error) { return ParseReference(src) }},
 	{"manual-aa", func(src string) (any, error) { return ParseReference(src) }},
 	{"generated", parseGenerated},
-	{"generated-exp", func(src string) (any, error) { return parseGeneratedWith(src, genparser.WithExpectations()) }},
+	{"generated-exp", func(src string) (any, error) { return parseGeneratedWith(src, grammarparser.WithExpectations()) }},
 	{"manual-partial", parsePartialManual},
 	{"generated-partial", func(src string) (any, error) { return parsePartialGenerated(src) }},
-	{"generated-partial-exp", func(src string) (any, error) { return parsePartialGenerated(src, genparser.WithExpectations()) }},
+	{"generated-partial-exp", func(src string) (any, error) { return parsePartialGenerated(src, grammarparser.WithExpectations()) }},
 }
 
 // parsePartialManual is ParsePartialReference, with its errors as the error.
@@ -87,13 +87,13 @@ func parsePartialManual(src string) (any, error) {
 
 // parsePartialGenerated parses src as ParsePartial does with the generated parser: the syntax
 // errors of the parse, then the declarations that are complete and the errors of the checks.
-func parsePartialGenerated(src string, opts ...genparser.ParseOption) (any, error) {
+func parsePartialGenerated(src string, opts ...grammarparser.ParseOption) (any, error) {
 	text, _ := WithoutInvalidCharacters(src)
-	f, err := genparser.ParseValue(text, opts...)
+	f, err := grammarparser.ParseValue(text, opts...)
 	var errs ErrorList
 	if err != nil {
-		var list genparser.SyntaxErrors
-		var one *genparser.SyntaxError
+		var list grammarparser.SyntaxErrors
+		var one *grammarparser.SyntaxError
 		var out []SourceError
 		switch {
 		case errors.As(err, &list):
@@ -118,9 +118,9 @@ func parsePartialGenerated(src string, opts ...genparser.ParseOption) (any, erro
 // parseGenerated parses src by the generated parser and its adapter.
 func parseGenerated(src string) (any, error) { return parseGeneratedWith(src) }
 
-func parseGeneratedWith(src string, opts ...genparser.ParseOption) (any, error) {
+func parseGeneratedWith(src string, opts ...grammarparser.ParseOption) (any, error) {
 	text, invalid := WithoutInvalidCharacters(src)
-	f, err := genparser.ParseValue(text, opts...)
+	f, err := grammarparser.ParseValue(text, opts...)
 	if err != nil {
 		return nil, err
 	}

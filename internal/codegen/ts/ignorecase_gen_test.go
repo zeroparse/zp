@@ -6,8 +6,8 @@ import (
 	"strings"
 	"testing"
 
+	"zeroparse.dev/zp/internal/codegentest"
 	"zeroparse.dev/zp/internal/engine"
-	"zeroparse.dev/zp/internal/gentest"
 )
 
 // ignoreCaseLines is the expected output of a program that parses each input and prints "ok" with
@@ -32,15 +32,15 @@ func ignoreCaseLines(t *testing.T, src string, inputs []string) string {
 // backend on case-insensitive literals.
 func TestIgnoreCaseGeneratedTS(t *testing.T) {
 	t.Parallel()
-	want := ignoreCaseLines(t, gentest.IgnoreCaseGenGrammar, gentest.IgnoreCaseGenInputs)
+	want := ignoreCaseLines(t, codegentest.IgnoreCaseGenGrammar, codegentest.IgnoreCaseGenInputs)
 	var list strings.Builder
-	for _, in := range gentest.IgnoreCaseGenInputs {
+	for _, in := range codegentest.IgnoreCaseGenInputs {
 		fmt.Fprintf(&list, "  %s,\n", strconv.Quote(in))
 	}
 	script := "import { parse } from \"./parser.ts\";\nfor (const s of [\n" + list.String() + "]) {\n" +
 		"  const r = parse(s);\n  if (r.error !== null) {\n    console.log(\"error\");\n    continue;\n  }\n" +
 		"  console.log(\"ok \" + Array.from(s).slice(r.node.start, r.node.end).join(\"\"));\n}\n"
-	if got := runTSScript(t, gentest.IgnoreCaseGenGrammar, script); got != want {
+	if got := runTSScript(t, codegentest.IgnoreCaseGenGrammar, script); got != want {
 		t.Errorf("got\n%s\nwant\n%s", got, want)
 	}
 }

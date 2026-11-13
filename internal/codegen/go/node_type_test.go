@@ -10,7 +10,7 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/internal/codegen"
-	"zeroparse.dev/zp/internal/gentest"
+	"zeroparse.dev/zp/internal/codegentest"
 )
 
 // TestGeneratedNamedNodeTypes checks the Go types that zp gen -types gives named node types: a
@@ -18,11 +18,11 @@ import (
 // member of.
 func TestGeneratedNamedNodeTypes(t *testing.T) {
 	t.Parallel()
-	gentest.EachMode(t, testGeneratedNamedNodeTypes)
+	codegentest.EachMode(t, testGeneratedNamedNodeTypes)
 }
 
 func testGeneratedNamedNodeTypes(t *testing.T) {
-	runGeneratedNamedNodeProgram(t, gentest.NodeTypeGrammar, `var (
+	runGeneratedNamedNodeProgram(t, codegentest.NodeTypeGrammar, `var (
 	_ p.Expr = (*p.Num)(nil)
 	_ p.Expr = (*p.Ident)(nil)
 )
@@ -53,7 +53,7 @@ func main() {
 // node types where a plain node type is expected, also when the same node is converted as both.
 func TestGeneratedNamedNodesAsPlainNodes(t *testing.T) {
 	t.Parallel()
-	gentest.EachMode(t, testGeneratedNamedNodesAsPlainNodes)
+	codegentest.EachMode(t, testGeneratedNamedNodesAsPlainNodes)
 }
 
 func testGeneratedNamedNodesAsPlainNodes(t *testing.T) {
@@ -97,15 +97,15 @@ func runGeneratedNamedNodeProgram(t *testing.T, src, body, want string) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	code, err := gentest.GenerateCode(t, g, codegen.GenOptions{Package: "p", Start: "main", Types: true})
+	code, err := codegentest.GenerateCode(t, g, codegen.GenOptions{Package: "p", Start: "main", Types: true})
 	if err != nil {
 		t.Fatal(err)
 	}
 	dir := t.TempDir()
 	for name, content := range map[string]string{
-		"go.mod":      gentest.GoMod("gentest"),
+		"go.mod":      codegentest.GoMod("codegentest"),
 		"p/parser.go": string(code),
-		"main.go":     "package main\n\nimport (\n\t\"fmt\"\n\n\t\"gentest/p\"\n)\n\n" + body,
+		"main.go":     "package main\n\nimport (\n\t\"fmt\"\n\n\t\"codegentest/p\"\n)\n\n" + body,
 	} {
 		path := filepath.Join(dir, name)
 		if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
@@ -133,7 +133,7 @@ func runGeneratedNamedNodeProgram(t *testing.T, src, body, want string) {
 // open fields, unions and lists of typed Go values, and that a node converts to one value.
 func TestGeneratedNamedNodeDynamicTypes(t *testing.T) {
 	t.Parallel()
-	gentest.EachMode(t, testGeneratedNamedNodeDynamicTypes)
+	codegentest.EachMode(t, testGeneratedNamedNodeDynamicTypes)
 }
 
 func testGeneratedNamedNodeDynamicTypes(t *testing.T) {
@@ -169,9 +169,9 @@ rule m M = "m"
 
 // namedNodeTypeCases are grammars with named node types over string, tuple, list and open nodes,
 // converted by rules and constructors, in unions, cast, and read by actions.
-func namedNodeTypeCases() []gentest.Case {
-	return []gentest.Case{
-		{Name: "named node types", Src: gentest.NodeTypeGrammar, Inputs: []string{"", "ab", "ab 12 c3", "<1,x>", "ab <12,y>[1]!bc", "12 ?", "[]!a", "ab 12<1,x>[3]!bc"}},
+func namedNodeTypeCases() []codegentest.Case {
+	return []codegentest.Case{
+		{Name: "named node types", Src: codegentest.NodeTypeGrammar, Inputs: []string{"", "ab", "ab 12 c3", "<1,x>", "ab <12,y>[1]!bc", "12 ?", "[]!a", "ab 12<1,x>[3]!bc"}},
 		{Name: "named nodes as plain nodes", Src: `type Num = node[string]
 type Nums = node[[]Num]
 type P = node[(Num, Num)]
@@ -302,7 +302,7 @@ rule n N = [a-z]+ #atomic`, Inputs: []string{"abc", "", "1"}},
 // Parse gives, and that the generated Node parsers give what the engine does.
 func TestGeneratedNamedNodeTypesTypedLib(t *testing.T) {
 	t.Parallel()
-	gentest.EachMode(t, testGeneratedNamedNodeTypesTypedLib)
+	codegentest.EachMode(t, testGeneratedNamedNodeTypesTypedLib)
 }
 
 func testGeneratedNamedNodeTypesTypedLib(t *testing.T) {
@@ -322,7 +322,7 @@ func testGeneratedNamedNodeTypesTypedLib(t *testing.T) {
 		if err != nil {
 			t.Fatalf("%s: %v", c.Name, err)
 		}
-		code, err := gentest.GenerateCode(t, g, codegen.GenOptions{Package: "p", Start: "main", Types: true})
+		code, err := codegentest.GenerateCode(t, g, codegen.GenOptions{Package: "p", Start: "main", Types: true})
 		if err != nil {
 			t.Fatalf("%s: %v", c.Name, err)
 		}
@@ -332,15 +332,15 @@ func testGeneratedNamedNodeTypesTypedLib(t *testing.T) {
 		}
 	}
 	typed := len(cases) - len(converted)
-	gentest.GeneratedParsersCorpus(t, goBin, cases, codegen.GenOptions{})
-	gentest.GeneratedTypesCorpus(t, goBin, cases, codegen.GenOptions{ConvertTypes: true}, typed)
+	codegentest.GeneratedParsersCorpus(t, goBin, cases, codegen.GenOptions{})
+	codegentest.GeneratedTypesCorpus(t, goBin, cases, codegen.GenOptions{ConvertTypes: true}, typed)
 }
 
 // TestGeneratedNamedNodeTypesDocument checks direct typed Documents of grammars with named node
 // types against the conversion of the Document's nodes, across edits.
 func TestGeneratedNamedNodeTypesDocument(t *testing.T) {
 	t.Parallel()
-	gentest.NeedsBudgetControls(t)
+	codegentest.NeedsBudgetControls(t)
 	if testing.Short() {
 		t.Skip("builds standalone generated parsers")
 	}
@@ -355,7 +355,7 @@ func TestGeneratedNamedNodeTypesDocument(t *testing.T) {
 			t.Fatal(err)
 		}
 	}
-	write("go.mod", gentest.GoMod("directtypeddocument"))
+	write("go.mod", codegentest.GoMod("directtypeddocument"))
 	for i, c := range []struct {
 		grammar string
 		inputs  []string
@@ -388,7 +388,7 @@ rule a A = [a-zé] #atomic`, []string{"()abcd", "(()(()))abcd", "((é))éaéa", 
 		if err != nil {
 			t.Fatalf("%s: %v", pkg, err)
 		}
-		code, err := gentest.GenerateCode(t, g, codegen.GenOptions{Package: pkg, Start: "main", Types: true, Document: true})
+		code, err := codegentest.GenerateCode(t, g, codegen.GenOptions{Package: pkg, Start: "main", Types: true, Document: true})
 		if err != nil {
 			t.Fatalf("%s: %v", pkg, err)
 		}
@@ -396,12 +396,12 @@ rule a A = [a-zé] #atomic`, []string{"()abcd", "(()(()))abcd", "((é))éaéa", 
 			t.Fatalf("%s uses conversion instead of direct matching", pkg)
 		}
 		write(pkg+"/parser.go", string(code))
-		reference, err := gentest.GenerateCode(t, g, codegen.GenOptions{Package: "reference", Start: "main", Types: true, Document: true, ConvertTypes: true})
+		reference, err := codegentest.GenerateCode(t, g, codegen.GenOptions{Package: "reference", Start: "main", Types: true, Document: true, ConvertTypes: true})
 		if err != nil {
 			t.Fatal(err)
 		}
 		write(pkg+"/reference/parser.go", string(reference))
-		test := strings.ReplaceAll(gentest.DirectTypedDocumentTests, "PACKAGE", pkg)
+		test := strings.ReplaceAll(codegentest.DirectTypedDocumentTests, "PACKAGE", pkg)
 		test = strings.ReplaceAll(test, "INPUTS", fmt.Sprintf("%#v", c.inputs))
 		write(pkg+"/parser_test.go", test)
 	}
@@ -415,8 +415,8 @@ rule a A = [a-zé] #atomic`, []string{"()abcd", "(()(()))abcd", "((é))éaéa", 
 
 // declaredNodeAnyCases are grammars whose rules declare node[_] without an action: the declared
 // type, and not the inferred value type, is the rule's type.
-func declaredNodeAnyCases() []gentest.Case {
-	return []gentest.Case{
+func declaredNodeAnyCases() []codegentest.Case {
+	return []codegentest.Case{
 		{Name: "declared node[_] tuple", Src: `rule main node[_] = a b
 rule a = "a"
 rule b = "b"`, Inputs: []string{"ab", "a", "", "abb"}},
@@ -438,7 +438,7 @@ rule tail node[_] = item item?`, Inputs: []string{"abab", "ababab", "abx", ""}},
 // that they match the conversion of the nodes of Parse.
 func TestGeneratedDeclaredNodeAny(t *testing.T) {
 	t.Parallel()
-	gentest.EachMode(t, testGeneratedDeclaredNodeAny)
+	codegentest.EachMode(t, testGeneratedDeclaredNodeAny)
 }
 
 func testGeneratedDeclaredNodeAny(t *testing.T) {
@@ -447,7 +447,7 @@ func testGeneratedDeclaredNodeAny(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	code, err := gentest.GenerateCode(t, g, codegen.GenOptions{Package: "p", Start: "main", Types: true})
+	code, err := codegentest.GenerateCode(t, g, codegen.GenOptions{Package: "p", Start: "main", Types: true})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -476,7 +476,7 @@ func testGeneratedDeclaredNodeAny(t *testing.T) {
 		if err != nil {
 			t.Fatalf("%s: %v", c.Name, err)
 		}
-		code, err := gentest.GenerateCode(t, g, codegen.GenOptions{Package: "p", Start: "main", Types: true})
+		code, err := codegentest.GenerateCode(t, g, codegen.GenOptions{Package: "p", Start: "main", Types: true})
 		if err != nil {
 			t.Fatalf("%s: %v", c.Name, err)
 		}
@@ -484,6 +484,6 @@ func testGeneratedDeclaredNodeAny(t *testing.T) {
 			t.Errorf("%s: generated typed Go converts nodes instead of using the typed library", c.Name)
 		}
 	}
-	gentest.GeneratedParsersCorpus(t, goBin, cases, codegen.GenOptions{})
-	gentest.GeneratedTypesCorpus(t, goBin, cases, codegen.GenOptions{ConvertTypes: true}, len(cases))
+	codegentest.GeneratedParsersCorpus(t, goBin, cases, codegen.GenOptions{})
+	codegentest.GeneratedTypesCorpus(t, goBin, cases, codegen.GenOptions{ConvertTypes: true}, len(cases))
 }

@@ -6,7 +6,7 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/internal/codegen"
-	"zeroparse.dev/zp/internal/gentest"
+	"zeroparse.dev/zp/internal/codegentest"
 	genopt "zeroparse.dev/zp/internal/ir/opt"
 )
 
@@ -25,7 +25,7 @@ var tsModes = []struct {
 // or with the opt-in literal sharing on, with the engine, in every mode of tsModes.
 func TestOptimizationDisabledTSParity(t *testing.T) {
 	t.Parallel()
-	node := gentest.RequireNode(t)
+	node := codegentest.RequireNode(t)
 	var all []string
 	for _, f := range genopt.Flags {
 		if f.Kind != genopt.Runtime && !f.ChangesOutput {
@@ -51,7 +51,7 @@ func TestOptimizationDisabledTSParity(t *testing.T) {
 				t.Parallel()
 				o := mode.opts
 				o.NoOpt, o.Opt = s.noOpt, s.set
-				gentest.TSParsersCorpus(t, node, gentest.FlagParityCases(), o)
+				codegentest.TSParsersCorpus(t, node, codegentest.FlagParityCases(), o)
 			})
 		}
 	}
@@ -63,14 +63,14 @@ func TestOptimizationDisabledTSParity(t *testing.T) {
 // engine whatever the values are.
 func TestProfilesTSParity(t *testing.T) {
 	t.Parallel()
-	node := gentest.RequireNode(t)
+	node := codegentest.RequireNode(t)
 	for _, name := range genopt.Profiles()[1:] {
 		for _, mode := range tsModes {
 			t.Run(name+"/"+mode.name, func(t *testing.T) {
 				t.Parallel()
 				o := mode.opts
 				o.Optimize = name
-				gentest.TSParsersCorpus(t, node, gentest.FlagParityCases(), o)
+				codegentest.TSParsersCorpus(t, node, codegentest.FlagParityCases(), o)
 			})
 		}
 	}
@@ -82,14 +82,14 @@ func TestProfilesTSParity(t *testing.T) {
 // without the change they do not.
 func TestOptimizationDisabledTSNegativeControl(t *testing.T) {
 	t.Parallel()
-	node := gentest.RequireNode(t)
+	node := codegentest.RequireNode(t)
 	for _, mode := range tsModes {
 		t.Run(mode.name, func(t *testing.T) {
 			t.Parallel()
 			o := mode.opts
 			o.NoOpt = []string{"guards"}
-			cases := gentest.FlagParityCases()
-			if got := gentest.TSParsersMismatches(t, node, cases, o, nil); len(got) != 0 {
+			cases := codegentest.FlagParityCases()
+			if got := codegentest.TSParsersMismatches(t, node, cases, o, nil); len(got) != 0 {
 				t.Fatalf("the unchanged parsers differ from the engine's results:\n%s", got[0])
 			}
 			var changed atomic.Bool
@@ -100,7 +100,7 @@ func TestOptimizationDisabledTSNegativeControl(t *testing.T) {
 				}
 				return out
 			}
-			got := gentest.TSParsersMismatches(t, node, cases, o, mutate)
+			got := codegentest.TSParsersMismatches(t, node, cases, o, mutate)
 			if !changed.Load() {
 				t.Fatal(`the generated code has no literal "while" to change: the control proves nothing`)
 			}

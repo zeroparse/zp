@@ -8,7 +8,7 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/internal/codegen"
-	"zeroparse.dev/zp/internal/gentest"
+	"zeroparse.dev/zp/internal/codegentest"
 )
 
 // transferBody is a struct whose fields of node, named node, join and list types actions read back; its
@@ -33,8 +33,8 @@ var transferInputs = []string{"a=na<nbnc>wx[]", "a=na<nbnc>wx[nd<nenf>wy]?nzwawb
 // transferCases are the grammars of TestGeneratedTypedTransfers: those whose actions only carry
 // field values into fields of the same type (direct), and those with another read of such a field
 // (converted).
-func transferCases() (direct, converted []gentest.Case) {
-	direct = []gentest.Case{
+func transferCases() (direct, converted []codegentest.Case) {
+	direct = []codegentest.Case{
 		{Name: "copies", Src: transferBody + `type Out = { Name node[string]; K N; Pair P; Item Item; Items []Item; Opt *Item; Ws []Word; Span Body }
 rule main Out = b:body $$ => Out{Name: $b.Name, K: $b.K, Pair: $b.Pair, Item: $b.Item, Items: $b.Items, Opt: $b.Opt, Ws: $b.Ws, Span: $b}`},
 		{Name: "list builders", Src: transferBody + `type Out = { All []Item; Opts []*Item; Names []node[string]; Ks []N }
@@ -43,7 +43,7 @@ rule main Out = b:body $$ => Out{All: concat($b.Items, list($b.Item), map(list($
 type Out = { In Inner; More []Inner }
 rule main Out = b:body $$ => Out{In: Inner{Item: $b.Item, Ws: $b.Ws}, More: list(Inner{Item: $b.Item, Ws: list()})}`},
 	}
-	converted = []gentest.Case{
+	converted = []codegentest.Case{
 		{Name: "text of a node field", Src: transferBody + `type Out = { Name node[string]; T string }
 rule main Out = b:body $$ => Out{Name: $b.Name, T: text($b.Name)}`},
 		{Name: "length of a list field", Src: transferBody + `type Out = { Items []Item; Count int }
@@ -55,7 +55,7 @@ rule main Out = b:body $$ => Out{Item: $b.Opt.(Item)}`},
 		{Name: "join in a predicate", Src: transferBody + `type Out = { Item Item }
 rule main Out = b:body {$b.Item != nil} $$ => Out{Item: $b.Item}`},
 	}
-	for _, cs := range [][]gentest.Case{direct, converted} {
+	for _, cs := range [][]codegentest.Case{direct, converted} {
 		for i := range cs {
 			cs[i].Inputs = transferInputs
 		}
@@ -66,7 +66,7 @@ rule main Out = b:body {$b.Item != nil} $$ => Out{Item: $b.Item}`},
 // sourceGrammarCase is the grammar of the language, whose actions copy the fields of the struct values
 // of declaration bodies, on grammars of the repository, on a copy of one in which every fifth line ends
 // with a stray parenthesis, so that the parse recovers, and on attribute arguments.
-func sourceGrammarCase(t *testing.T) gentest.Case {
+func sourceGrammarCase(t *testing.T) codegentest.Case {
 	t.Helper()
 	read := func(name string) string {
 		b, err := os.ReadFile(filepath.Join("..", "..", "..", name))
@@ -75,7 +75,7 @@ func sourceGrammarCase(t *testing.T) gentest.Case {
 		}
 		return string(b)
 	}
-	c := gentest.Case{Name: "source grammar", Src: read("zp.zp")}
+	c := codegentest.Case{Name: "source grammar", Src: read("zp.zp")}
 	for _, name := range []string{"testdata/grammars/json/json.zp", "testdata/grammars/csv/csv.zp", "testdata/grammars/xml/xml.zp"} {
 		c.Inputs = append(c.Inputs, read(name))
 	}
@@ -95,7 +95,7 @@ func sourceGrammarCase(t *testing.T) gentest.Case {
 // gives.
 func TestGeneratedTypedTransfers(t *testing.T) {
 	t.Parallel()
-	gentest.EachMode(t, testGeneratedTypedTransfers)
+	codegentest.EachMode(t, testGeneratedTypedTransfers)
 }
 
 func testGeneratedTypedTransfers(t *testing.T) {
@@ -112,12 +112,12 @@ func testGeneratedTypedTransfers(t *testing.T) {
 	for _, c := range direct {
 		isDirect[c.Name] = true
 	}
-	for _, c := range append(append([]gentest.Case(nil), direct...), converted...) {
+	for _, c := range append(append([]codegentest.Case(nil), direct...), converted...) {
 		g, err := parseTest(c.Src)
 		if err != nil {
 			t.Fatalf("%s: %v", c.Name, err)
 		}
-		code, err := gentest.GenerateCode(t, g, codegen.GenOptions{Package: "p", Start: "main", Types: true})
+		code, err := codegentest.GenerateCode(t, g, codegen.GenOptions{Package: "p", Start: "main", Types: true})
 		if err != nil {
 			t.Fatalf("%s: %v", c.Name, err)
 		}
@@ -126,5 +126,5 @@ func testGeneratedTypedTransfers(t *testing.T) {
 			t.Errorf("%s: generated typed Go uses the typed library: %v, want %v", c.Name, typed, isDirect[c.Name])
 		}
 	}
-	gentest.GeneratedTypesCorpus(t, goBin, append(direct, converted...), codegen.GenOptions{ConvertTypes: true}, len(direct))
+	codegentest.GeneratedTypesCorpus(t, goBin, append(direct, converted...), codegen.GenOptions{ConvertTypes: true}, len(direct))
 }
