@@ -20,7 +20,7 @@ type Builder struct {
 	// builds the metered closure graph.
 	plainDispatch bool
 	// family is the rule set being built, which decides how the call sites call plain rules.
-	family Family
+	family core.Family
 	// static holds the static rules of the program, by ID: the rules and then their twins.
 	static []*compile.Rule
 	// rules holds the rules the parser runs, by ID (staticRule.ID). They are made when a body or a
@@ -185,7 +185,7 @@ func (b *Builder) literal(val string, fold bool, desc core.ExpID, build bool) co
 // static rule decides (a Matcher of a test may call a rule its program lacks: not plain).
 func (b *Builder) call(id, min int) core.Matcher {
 	r := b.rule(id)
-	if b.family == Inlined && id < len(b.static) && b.static[id].Plain {
+	if b.family == core.Inlined && id < len(b.static) && b.static[id].Plain {
 		return func(p *core.Parser) (*parse.Node, bool) { return p.InvokePlain(r, min) }
 	}
 	return func(p *core.Parser) (*parse.Node, bool) { return p.Call(r, min) }

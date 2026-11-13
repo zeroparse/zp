@@ -3,16 +3,14 @@ package engine
 import (
 	"fmt"
 
-	"zeroparse.dev/zp/internal/engine/closure"
 	"zeroparse.dev/zp/internal/engine/core"
-	"zeroparse.dev/zp/internal/engine/vm"
 )
 
 // admitParse validates fixed metadata and resolves the limits (core.ResolveLimits) for the input text (empty for a stream) before caller Context methods. Callers
 // resolve an empty start to the default start rule first. Lazy setup
 // is not charged, but active calls check immediately around each component. It resolves the rule
 // in the closure family f that the parse runs, building that family on first use.
-func (prog *Program) admitParse(start string, o ParseOptions, f closure.Family, stream bool, text string) (*Program, *core.Rule, *core.BudgetControl, error) {
+func (prog *Program) admitParse(start string, o ParseOptions, f core.Family, stream bool, text string) (*Program, *core.Rule, *core.BudgetControl, error) {
 	if err := prog.CheckStart(start); err != nil {
 		return nil, nil, nil, err
 	}
@@ -119,7 +117,7 @@ func (prog *Program) preflightRule(b Backend, name string, stream bool) (bool, e
 	return false, fmt.Errorf("rule %s is not defined", name)
 }
 
-func (prog *Program) prepareControlledRule(b Backend, name string, f closure.Family, c *core.BudgetControl) (*core.Rule, error) {
+func (prog *Program) prepareControlledRule(b Backend, name string, f core.Family, c *core.BudgetControl) (*core.Rule, error) {
 	if !core.BudgetControlsEnabled || c == nil {
 		return prog.rule(b, name, f, nil)
 	}
@@ -132,16 +130,12 @@ func (prog *Program) prepareControlledRule(b Backend, name string, f closure.Fam
 		return r, err
 	}
 	c.Check()
-	m, terms, err := prog.moduleTerms()
-	if err != nil {
+	if _, _, err := prog.moduleTerms(); err != nil {
 		return nil, err
 	}
 	c.Check() // Also the checkpoint immediately before VM preparation.
-	switch prog.backend(b) {
-	case Bytecode:
-		prog.vmOnce.Do(func() { prog.vm = vm.New(m, terms) })
-	case BytecodeIterative:
-		prog.ivmOnce.Do(func() { prog.ivm = vm.NewIterative(m, terms) })
+	if _, err := prog.prepareVM(prog.backend(b), f); err != nil {
+		return nil, err
 	}
 	c.Check()
 	return prog.rule(b, name, f, c)

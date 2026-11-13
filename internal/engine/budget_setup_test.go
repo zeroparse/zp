@@ -58,9 +58,9 @@ func setupProgram(t *testing.T, src string, moduleOnly bool) *Program {
 func setupBackendReady(p *Program, backend Backend) bool {
 	switch backend {
 	case Bytecode:
-		return p.vm != nil
+		return p.preparedVM(Bytecode) != nil
 	case BytecodeIterative:
-		return p.ivm != nil
+		return p.preparedVM(BytecodeIterative) != nil
 	default:
 		return true
 	}
@@ -71,8 +71,8 @@ func assertSetupBackendState(t *testing.T, p *Program, backend Backend, ready bo
 	if got := setupBackendReady(p, backend); got != ready {
 		t.Fatalf("backend %v ready=%t, want %t", backend, got, ready)
 	}
-	if backend == Bytecode && p.ivm != nil || backend == BytecodeIterative && p.vm != nil {
-		t.Fatalf("unused VM was prepared: vm=%p ivm=%p", p.vm, p.ivm)
+	if backend == Bytecode && p.preparedVM(BytecodeIterative) != nil || backend == BytecodeIterative && p.preparedVM(Bytecode) != nil {
+		t.Fatalf("unused VM was prepared: vm=%p ivm=%p", p.preparedVM(Bytecode), p.preparedVM(BytecodeIterative))
 	}
 }
 
@@ -156,7 +156,7 @@ func TestBudgetSetupValidationPrecedesContextMethods(t *testing.T) {
 				if got != nil || returnedErr == nil {
 					t.Fatalf("ParseStreamWith non-stream rejection panic=%v err=%v", got, returnedErr)
 				}
-				if p.vm != nil || p.ivm != nil || streamProgram.vm != nil || streamProgram.ivm != nil || plain.vm != nil || plain.ivm != nil {
+				if p.preparedVM(Bytecode) != nil || p.preparedVM(BytecodeIterative) != nil || streamProgram.preparedVM(Bytecode) != nil || streamProgram.preparedVM(BytecodeIterative) != nil || plain.preparedVM(Bytecode) != nil || plain.preparedVM(BytecodeIterative) != nil {
 					t.Fatal("fixed rejection prepared an unused VM")
 				}
 			})
@@ -172,8 +172,8 @@ func TestBudgetSetupValidationPrecedesContextMethods(t *testing.T) {
 	got := budgetContextRecover(func() {
 		_, err = p.ParseWith("main", "x", ParseOptions{Backend: Bytecode, Recognize: true, Context: ctx})
 	})
-	if got != nil || err == nil || p.rec != nil || p.vm != nil || p.ivm != nil {
-		t.Fatalf("module-only recognition panic=%v err=%v rec=%p vm=%p ivm=%p", got, err, p.rec, p.vm, p.ivm)
+	if got != nil || err == nil || p.rec != nil || p.preparedVM(Bytecode) != nil || p.preparedVM(BytecodeIterative) != nil {
+		t.Fatalf("module-only recognition panic=%v err=%v rec=%p vm=%p ivm=%p", got, err, p.rec, p.preparedVM(Bytecode), p.preparedVM(BytecodeIterative))
 	}
 }
 
@@ -292,17 +292,17 @@ func TestBudgetSetupPostBackendChecksStopBeforePublication(t *testing.T) {
 func TestBudgetSetupChecksAfterModuleBeforeVM(t *testing.T) {
 	t.Parallel()
 	prog := setupProgram(t, `rule main = "a" $$`, false)
-	if prog.Bytecode != nil || prog.vm != nil {
-		t.Fatalf("program was not cold: module=%p vm=%p", prog.Bytecode, prog.vm)
+	if prog.Bytecode != nil || prog.preparedVM(Bytecode) != nil {
+		t.Fatalf("program was not cold: module=%p vm=%p", prog.Bytecode, prog.preparedVM(Bytecode))
 	}
-	gate := newSetupPhaseContext(func() bool { return prog.Bytecode != nil && prog.vm == nil })
+	gate := newSetupPhaseContext(func() bool { return prog.Bytecode != nil && prog.preparedVM(Bytecode) == nil })
 	traceCalls := 0
 	n, err := prog.ParseWith("main", "a", ParseOptions{Backend: Bytecode, Context: gate, Trace: func(TraceEvent) { traceCalls++ }})
 	if n != nil || !errors.Is(err, context.Canceled) || !gate.triggered || traceCalls != 0 {
 		t.Fatalf("ParseWith node=%v err=%v gate=%t traces=%d", n, err, gate.triggered, traceCalls)
 	}
-	if prog.Bytecode == nil || prog.vm != nil || prog.ivm != nil {
-		t.Fatalf("post-module boundary state module=%p vm=%p ivm=%p", prog.Bytecode, prog.vm, prog.ivm)
+	if prog.Bytecode == nil || prog.preparedVM(Bytecode) != nil || prog.preparedVM(BytecodeIterative) != nil {
+		t.Fatalf("post-module boundary state module=%p vm=%p ivm=%p", prog.Bytecode, prog.preparedVM(Bytecode), prog.preparedVM(BytecodeIterative))
 	}
 	if n, err := prog.ParseWith("main", "a", ParseOptions{Backend: Bytecode}); n == nil || err != nil {
 		t.Fatalf("post-module retry node=%v err=%v", n, err)
@@ -317,8 +317,8 @@ func TestBudgetSetupRecognizerPhaseChecks(t *testing.T) {
 		ready   func(*Program) bool
 	}{
 		{"recognizer", Closure, func(p *Program) bool { return p.rec != nil }},
-		{"recognizer-bytecode", Bytecode, func(p *Program) bool { return p.rec != nil && p.rec.vm != nil }},
-		{"recognizer-iterative", BytecodeIterative, func(p *Program) bool { return p.rec != nil && p.rec.ivm != nil }},
+		{"recognizer-bytecode", Bytecode, func(p *Program) bool { return p.rec != nil && p.rec.preparedVM(Bytecode) != nil }},
+		{"recognizer-iterative", BytecodeIterative, func(p *Program) bool { return p.rec != nil && p.rec.preparedVM(BytecodeIterative) != nil }},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			prog := setupProgram(t, `rule main = "a" $$`, false)
@@ -328,14 +328,14 @@ func TestBudgetSetupRecognizerPhaseChecks(t *testing.T) {
 			if n != nil || !errors.Is(err, context.Canceled) || !gate.triggered || traceCalls != 0 {
 				t.Fatalf("recognition node=%v err=%v gate=%t traces=%d", n, err, gate.triggered, traceCalls)
 			}
-			if prog.rec == nil || traceCalls != 0 || prog.vm != nil || prog.ivm != nil {
-				t.Fatalf("recognizer state rec=%p original vm=%p ivm=%p", prog.rec, prog.vm, prog.ivm)
+			if prog.rec == nil || traceCalls != 0 || prog.preparedVM(Bytecode) != nil || prog.preparedVM(BytecodeIterative) != nil {
+				t.Fatalf("recognizer state rec=%p original vm=%p ivm=%p", prog.rec, prog.preparedVM(Bytecode), prog.preparedVM(BytecodeIterative))
 			}
-			if tc.backend == Closure && (prog.rec.vm != nil || prog.rec.ivm != nil) {
-				t.Fatalf("Closure recognition prepared a VM: vm=%p ivm=%p", prog.rec.vm, prog.rec.ivm)
+			if tc.backend == Closure && (prog.rec.preparedVM(Bytecode) != nil || prog.rec.preparedVM(BytecodeIterative) != nil) {
+				t.Fatalf("Closure recognition prepared a VM: vm=%p ivm=%p", prog.rec.preparedVM(Bytecode), prog.rec.preparedVM(BytecodeIterative))
 			}
-			if tc.backend == Bytecode && (prog.rec.vm == nil || prog.rec.ivm != nil) || tc.backend == BytecodeIterative && (prog.rec.ivm == nil || prog.rec.vm != nil) {
-				t.Fatalf("recognizer backend state vm=%p ivm=%p", prog.rec.vm, prog.rec.ivm)
+			if tc.backend == Bytecode && (prog.rec.preparedVM(Bytecode) == nil || prog.rec.preparedVM(BytecodeIterative) != nil) || tc.backend == BytecodeIterative && (prog.rec.preparedVM(BytecodeIterative) == nil || prog.rec.preparedVM(Bytecode) != nil) {
+				t.Fatalf("recognizer backend state vm=%p ivm=%p", prog.rec.preparedVM(Bytecode), prog.rec.preparedVM(BytecodeIterative))
 			}
 			if n, err := prog.ParseWith("main", "a", ParseOptions{Backend: tc.backend, Recognize: true}); err != nil || n != nil {
 				t.Fatalf("recognition retry node=%v err=%v", n, err)

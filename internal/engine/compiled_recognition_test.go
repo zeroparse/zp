@@ -12,7 +12,6 @@ import (
 
 	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/bytecode"
-	"zeroparse.dev/zp/internal/engine/closure"
 	"zeroparse.dev/zp/internal/engine/core"
 	"zeroparse.dev/zp/internal/gentest"
 	"zeroparse.dev/zp/runtime/parse"
@@ -368,7 +367,7 @@ rule other = "b"`)
 	m := loaded.Module()
 	for _, backend := range []Backend{Bytecode, BytecodeIterative} {
 		for _, name := range moduleRuleNames(m) {
-			r, err := loaded.rule(backend, name, closure.Inlined, nil)
+			r, err := loaded.rule(backend, name, core.Inlined, nil)
 			if err != nil {
 				t.Fatal(err)
 			}

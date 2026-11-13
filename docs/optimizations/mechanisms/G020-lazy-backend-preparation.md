@@ -31,7 +31,7 @@ measurement. Warm parse results do not quantify avoided setup, and first-use
 timing must separate preparation from steady-state matching.
 
 Source owners: [`Program.BytecodeOnce`](../../../internal/compile/compile.go),
-[`Program.recOnce, vmOnce, ivmOnce and Module`](../../../internal/engine/program.go),
+[`Program.recOnce, vms, prepareVM and Module`](../../../internal/engine/program.go),
 the engine program's bytecode module, [`Program.Recognizer
 and rule`](../../../internal/engine/program_parse.go).
 

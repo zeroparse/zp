@@ -8,7 +8,6 @@ import (
 	"strings"
 	"testing"
 
-	"zeroparse.dev/zp/internal/engine/closure"
 	"zeroparse.dev/zp/internal/engine/core"
 	"zeroparse.dev/zp/runtime/parse"
 )
@@ -18,7 +17,7 @@ func TestBudgetContextAttributionPreservesVMFaults(t *testing.T) {
 	for _, backend := range []Backend{Bytecode, BytecodeIterative} {
 		t.Run(backend.String(), func(t *testing.T) {
 			prog := mustCompile(t, `rule main = "z" $$`)
-			if _, err := prog.rule(backend, "main", closure.Inlined, nil); err != nil {
+			if _, err := prog.rule(backend, "main", core.Inlined, nil); err != nil {
 				t.Fatal(err)
 			}
 			// Corrupt the prepared VM, bypassing the saved-module validator, to

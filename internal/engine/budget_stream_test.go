@@ -12,7 +12,6 @@ import (
 	"sync"
 	"testing"
 
-	"zeroparse.dev/zp/internal/engine/closure"
 	"zeroparse.dev/zp/internal/engine/core"
 	"zeroparse.dev/zp/internal/gentest"
 	"zeroparse.dev/zp/internal/value"
@@ -578,7 +577,7 @@ func TestBudgetStreamVMFaultAttribution(t *testing.T) {
 	for _, b := range []Backend{Bytecode, BytecodeIterative} {
 		t.Run(b.String(), func(t *testing.T) {
 			prog := mustCompile(t, `rule main = "z"* #stream $$`)
-			if _, err := prog.rule(b, "main", closure.Inlined, nil); err != nil {
+			if _, err := prog.rule(b, "main", core.Inlined, nil); err != nil {
 				t.Fatal(err)
 			}
 			restore := corruptVMLiteral(t, prog)

@@ -70,14 +70,14 @@ func (prog *Program) ParsePrefixWith(start, input string, o ParseOptions) (resul
 
 func (prog *Program) runPrefix(p *core.Parser, b Backend, start string) (result PrefixResult, err error) {
 	p.Aborted = false
-	r, err := prog.rule(b, start, family(p), p.Control)
+	r, err := prog.rule(b, start, core.FamilyOf(p), p.Control)
 	if err != nil {
 		return PrefixResult{}, err
 	}
-	p.Descs = prog.descs(b)
+	p.Descs = prog.descs(b, core.FamilyOf(p))
 	p.Memo.Stride = prog.NSeen
 	if be := prog.backend(b); be == Bytecode || be == BytecodeIterative {
-		p.Memo.Stride = prog.vmFor(be).NumSeen()
+		p.Memo.Stride = prog.vmFor(be, core.FamilyOf(p)).NumSeen()
 	}
 	p.Memo.Sparse = core.SparseMemo && p.Memo.Stride > 64 && p.Loaded() > 1024
 	defer func() {

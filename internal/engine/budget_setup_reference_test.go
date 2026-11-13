@@ -36,8 +36,8 @@ func TestBudgetSetupReferenceAdmission(t *testing.T) {
 				case "stream":
 					err = prog.ParseStreamWith("main", reader, func(*parse.Node) error { callbacks++; return nil }, o)
 				}
-				if err == nil || !strings.Contains(err.Error(), "reference build") || n != nil || d != nil || callbacks != 0 || reader.offset != 0 || prog.vm != nil || prog.ivm != nil || prog.rec != nil {
-					t.Fatalf("omitted=%t backend=%s api=%s error=%v callbacks=%d readeroffset=%d vm=%p ivm=%p rec=%p", omitted, backend, api, err, callbacks, reader.offset, prog.vm, prog.ivm, prog.rec)
+				if err == nil || !strings.Contains(err.Error(), "reference build") || n != nil || d != nil || callbacks != 0 || reader.offset != 0 || prog.preparedVM(Bytecode) != nil || prog.preparedVM(BytecodeIterative) != nil || prog.rec != nil {
+					t.Fatalf("omitted=%t backend=%s api=%s error=%v callbacks=%d readeroffset=%d vm=%p ivm=%p rec=%p", omitted, backend, api, err, callbacks, reader.offset, prog.preparedVM(Bytecode), prog.preparedVM(BytecodeIterative), prog.rec)
 				}
 			}
 		}

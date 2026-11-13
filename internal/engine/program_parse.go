@@ -6,10 +6,10 @@ import (
 	"io"
 	"math"
 	"runtime"
+	"sync"
 
 	"zeroparse.dev/zp/internal/compile"
 	"zeroparse.dev/zp/internal/desugar"
-	"zeroparse.dev/zp/internal/engine/closure"
 	"zeroparse.dev/zp/internal/engine/core"
 	"zeroparse.dev/zp/internal/engine/vm"
 	ir "zeroparse.dev/zp/internal/ir/core"
@@ -127,24 +127,14 @@ func (prog *Program) backend(b Backend) Backend {
 	return b
 }
 
-// family returns the closure rule set that the parse p runs: the call-preserving one when every rule
-// call of p must go through core.Parser.Call (core.Parser.NoPlain: p is traced or reads a Document),
-// and otherwise the inlined one. The parse's options set NoPlain before it runs.
-func family(p *core.Parser) closure.Family {
-	if p.NoPlain {
-		return closure.CallPreserving
-	}
-	return closure.Inlined
-}
-
-// optionsFamily is family for a parse with the options o that does not read a Document (a Document's
+// optionsFamily is core.FamilyOf for a parse with the options o that does not read a Document (a Document's
 // parses run the call-preserving family): such a parse sets NoPlain exactly when it is traced
 // (core.Parser.SetTrace).
-func optionsFamily(o ParseOptions) closure.Family {
+func optionsFamily(o ParseOptions) core.Family {
 	if o.Trace != nil {
-		return closure.CallPreserving
+		return core.CallPreserving
 	}
-	return closure.Inlined
+	return core.Inlined
 }
 
 // familyRules returns the rules that the closure backend runs in the family f, by ID (rule.id),
@@ -153,7 +143,7 @@ func optionsFamily(o ParseOptions) closure.Family {
 // unbuilt. The build that returns last among those that read the Core IR drops it (closureCore); a
 // build that panicked, other than by a panic of the parse's context, counts as returned, since its
 // family only reports an error after.
-func (prog *Program) familyRules(f closure.Family, c *core.BudgetControl) ([]*core.Rule, error) {
+func (prog *Program) familyRules(f core.Family, c *core.BudgetControl) ([]*core.Rule, error) {
 	fam := &prog.families[f]
 	if !fam.built.Load() {
 		if err := prog.buildFamilyRules(fam, f, c); err != nil {
@@ -167,7 +157,7 @@ func (prog *Program) familyRules(f closure.Family, c *core.BudgetControl) ([]*co
 // error only for a build that the parse's context cancelled. The Core IR is built before fam.mu is
 // taken (closureCore.module), since its build calls the parse's context; fam.mu is held only while
 // the closures, which call no context method, are built.
-func (prog *Program) buildFamilyRules(fam *closureFamily, f closure.Family, c *core.BudgetControl) error {
+func (prog *Program) buildFamilyRules(fam *closureFamily, f core.Family, c *core.BudgetControl) error {
 	if prog.buildFamily == nil {
 		fam.mu.Lock()
 		defer fam.mu.Unlock()
@@ -209,7 +199,7 @@ func (prog *Program) buildFamilyRules(fam *closureFamily, f closure.Family, c *c
 // coreModule returns the Core IR for the build of the family f (closureCore.module). A panic of the
 // build that is not the parse context's (core.ContextPanic) is recorded on fam as an internal error,
 // as a panic of the closures' build is, and re-raised.
-func (prog *Program) coreModule(fam *closureFamily, f closure.Family, ctx context.Context) (*ir.Module, error) {
+func (prog *Program) coreModule(fam *closureFamily, f core.Family, ctx context.Context) (*ir.Module, error) {
 	defer func() {
 		if x := recover(); x != nil {
 			if _, ok := x.(core.ContextPanic); !ok {
@@ -229,7 +219,7 @@ func (prog *Program) coreModule(fam *closureFamily, f closure.Family, ctx contex
 
 // closureRule returns the rule the closure backend runs for the rule name in the family f, or nil
 // if there is none.
-func (prog *Program) closureRule(name string, f closure.Family, c *core.BudgetControl) (*core.Rule, error) {
+func (prog *Program) closureRule(name string, f core.Family, c *core.BudgetControl) (*core.Rule, error) {
 	sr := prog.ByName[name]
 	if sr == nil {
 		return nil, nil
@@ -243,7 +233,7 @@ func (prog *Program) closureRule(name string, f closure.Family, c *core.BudgetCo
 
 // rule returns the rule name for backend b; the closure backend returns it from the family f, which
 // it builds on first use under the parse's budget control c (familyRules).
-func (prog *Program) rule(b Backend, name string, f closure.Family, c *core.BudgetControl) (*core.Rule, error) {
+func (prog *Program) rule(b Backend, name string, f core.Family, c *core.BudgetControl) (*core.Rule, error) {
 	if err := desugar.EntryError(name); err != nil {
 		return nil, err
 	}
@@ -252,20 +242,12 @@ func (prog *Program) rule(b Backend, name string, f closure.Family, c *core.Budg
 	}
 	var r *core.Rule
 	switch prog.backend(b) {
-	case Bytecode:
-		m, terms, err := prog.moduleTerms()
+	case Bytecode, BytecodeIterative:
+		v, err := prog.prepareVM(prog.backend(b), f)
 		if err != nil {
 			return nil, err
 		}
-		prog.vmOnce.Do(func() { prog.vm = vm.New(m, terms) })
-		r = prog.vm.Rule(name)
-	case BytecodeIterative:
-		m, terms, err := prog.moduleTerms()
-		if err != nil {
-			return nil, err
-		}
-		prog.ivmOnce.Do(func() { prog.ivm = vm.NewIterative(m, terms) })
-		r = prog.ivm.Rule(name)
+		r = v.Rule(name)
 	case Closure:
 		if prog.Grammar == nil {
 			return nil, errClosureNeedsSource
@@ -283,21 +265,46 @@ func (prog *Program) rule(b Backend, name string, f closure.Family, c *core.Budg
 	return r, nil
 }
 
-// vmFor returns the prepared VM program of backend b (Bytecode or BytecodeIterative).
-func (prog *Program) vmFor(b Backend) *vm.Program {
-	if b == BytecodeIterative {
-		return prog.ivm
-	}
-	return prog.vm
+// familyVM is the VM program of one VM and family, prepared on first use.
+type familyVM struct {
+	once sync.Once
+	vm   *vm.Program
 }
 
-// descs returns the expectation table of backend b (call it after rule has prepared it).
-func (prog *Program) descs(b Backend) []string {
-	switch prog.backend(b) {
-	case Bytecode:
-		return prog.vm.Descs()
-	case BytecodeIterative:
-		return prog.ivm.Descs()
+// vmIndex returns the index of the VM backend b (Bytecode or BytecodeIterative) in Program.vms.
+func vmIndex(b Backend) int {
+	if b == BytecodeIterative {
+		return 1
+	}
+	return 0
+}
+
+// prepareVM returns the VM program of the VM backend b (Bytecode or BytecodeIterative) in the family
+// f, preparing it on first use.
+func (prog *Program) prepareVM(b Backend, f core.Family) (*vm.Program, error) {
+	m, terms, err := prog.moduleTerms()
+	if err != nil {
+		return nil, err
+	}
+	v := &prog.vms[vmIndex(b)][f]
+	v.once.Do(func() {
+		if b == BytecodeIterative {
+			v.vm = vm.NewIterative(m, terms, f)
+		} else {
+			v.vm = vm.New(m, terms, f)
+		}
+	})
+	return v.vm, nil
+}
+
+// vmFor returns the VM program of the VM backend b in the family f, which rule has prepared.
+func (prog *Program) vmFor(b Backend, f core.Family) *vm.Program { return prog.vms[vmIndex(b)][f].vm }
+
+// descs returns the expectation table of backend b in the family f (call it after rule has
+// prepared it).
+func (prog *Program) descs(b Backend, f core.Family) []string {
+	if be := prog.backend(b); be == Bytecode || be == BytecodeIterative {
+		return prog.vmFor(be, f).Descs()
 	}
 	return prog.DescTable
 }
@@ -328,14 +335,14 @@ func recoverParse(x any, b Backend, err *error) {
 // Run parses the whole input of p with the start rule start.
 func (prog *Program) Run(p *core.Parser, b Backend, start string) (n *parse.Node, err error) {
 	p.Aborted = false
-	r, err := prog.rule(b, start, family(p), p.Control)
+	r, err := prog.rule(b, start, core.FamilyOf(p), p.Control)
 	if err != nil {
 		return nil, err
 	}
-	p.Descs = prog.descs(b)
+	p.Descs = prog.descs(b, core.FamilyOf(p))
 	p.Memo.Stride = prog.NSeen
 	if be := prog.backend(b); be == Bytecode || be == BytecodeIterative {
-		p.Memo.Stride = prog.vmFor(be).NumSeen()
+		p.Memo.Stride = prog.vmFor(be, core.FamilyOf(p)).NumSeen()
 	}
 	p.Memo.Sparse = core.SparseMemo && p.Memo.Stride > 64 && p.Loaded() > 1024
 	p.SeedVars()
@@ -442,7 +449,7 @@ func (prog *Program) ParseStreamWith(start string, r io.Reader, emit func(*parse
 	if core.StreamPrefixIsolation && p.Emit == nil {
 		p.NodeChunks = 0 // No callback: collect the ordinary repetition instead.
 	}
-	p.Descs = prog.descs(o.Backend)
+	p.Descs = prog.descs(o.Backend, optionsFamily(o))
 	p.SetTrace(o.Trace)
 	defer func() {
 		x := recover()

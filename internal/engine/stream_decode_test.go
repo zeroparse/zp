@@ -11,7 +11,6 @@ import (
 	"unicode/utf8"
 
 	"zeroparse.dev/zp/internal/compile"
-	"zeroparse.dev/zp/internal/engine/closure"
 	"zeroparse.dev/zp/internal/engine/core"
 	"zeroparse.dev/zp/internal/gentest"
 	"zeroparse.dev/zp/runtime/parse"
@@ -170,7 +169,7 @@ func BenchmarkRuneInputDelivery(b *testing.B) {
 	for _, tc := range []struct{ name, item string }{{"ASCII", "a\n"}, {"Unicode", "😀\n"}} {
 		text := strings.Repeat(tc.item, 1000)
 		for _, backend := range []Backend{Closure, Bytecode, BytecodeIterative} {
-			if _, err := prog.rule(backend, "main", closure.Inlined, nil); err != nil {
+			if _, err := prog.rule(backend, "main", core.Inlined, nil); err != nil {
 				b.Fatal(err)
 			}
 			for _, unit := range []parse.PositionUnit{parse.CodePoints, parse.Bytes} {

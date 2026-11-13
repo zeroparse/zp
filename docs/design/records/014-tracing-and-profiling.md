@@ -45,10 +45,11 @@ Every rule call of the engine goes through one of two paths:
   run `invokePlain` (or `plainCallFrame`) directly. This path was added for speed (performance.md, changes 19, 38, 42,
   43) and is the hottest in the engine.
 
-Tracing is attached to the first path only. The call sites of the plain path test `!p.noPlain` where they tested
-`!p.memoAll`; `noPlain` is set by `Document` (as `memoAll` is) and by tracing. A traced parse therefore sends every call
-through `call`, where plain rules take the same steps they take on the plain path (`call` falls back to `invokePlain`
-for them), and an untraced parse runs exactly the instructions it ran before.
+Tracing is attached to the first path only. `noPlain` is set by `Document` (as `memoAll` is) and by tracing, and a parse
+that sets it runs the call-preserving family of its backend, whose call sites never take the plain path; the inlined
+family, which the other parses run, takes it without a test ([record 062](062-backend-independent-optimization-ir.md)).
+A traced parse therefore sends every call through `call`, where plain rules take the same steps they take on the plain
+path (`call` falls back to `invokePlain` for them), and an untraced parse runs exactly the instructions it ran before.
 
 `call` begins with `if p.tr != nil`. In a traced parse it hands the call to `tracedCall`, which reports the start,
 sets `tr.direct` and calls `call` again; `call` sees `direct`, clears it and proceeds as usual, so the call logic is not
@@ -149,7 +150,7 @@ What an ordinary parse executes in addition, exactly:
 | Place | Before | After |
 |:--|:--|:--|
 | `parser.call` (closure, recursive VM, start rule, streams, documents) | | one `p.tr != nil` test at entry |
-| Plain call sites (closure rule reference, recursive VM `CALL`, iterative VM `bodyFrame`) | test `p.memoAll` | test `p.noPlain` (same cost) |
+| Plain call sites (closure rule reference, recursive VM `CALL`, iterative VM `bodyFrame`) | test `p.memoAll` | none: the family of the program decides |
 | Iterative VM `bodyFrame`, non-plain calls | | one `p.tr != nil` test |
 | `parser` struct | | one pointer (`tr`) and one bool (`noPlain`) |
 

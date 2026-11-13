@@ -8,7 +8,6 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/internal/compile"
-	"zeroparse.dev/zp/internal/engine/closure"
 	"zeroparse.dev/zp/internal/engine/core"
 	"zeroparse.dev/zp/internal/value"
 	"zeroparse.dev/zp/runtime/parse"
@@ -173,7 +172,7 @@ func BenchmarkStreamStorageRetainedHeap(b *testing.B) {
 			b.Fatal(err)
 		}
 		for _, backend := range []Backend{Closure, Bytecode, BytecodeIterative} {
-			rule, err := prog.rule(backend, "main", closure.Inlined, nil)
+			rule, err := prog.rule(backend, "main", core.Inlined, nil)
 			if err != nil {
 				b.Fatal(err)
 			}
@@ -186,7 +185,7 @@ func BenchmarkStreamStorageRetainedHeap(b *testing.B) {
 						var before, during runtime.MemStats
 						runtime.ReadMemStats(&before)
 						p := core.NewStreamParser(&prog.sharedProgram, strings.NewReader(text), unit)
-						p.Descs = prog.descs(backend)
+						p.Descs = prog.descs(backend, core.Inlined)
 						count := 0
 						p.Emit = func(n *parse.Node) error {
 							count++
@@ -223,7 +222,7 @@ func BenchmarkStreamRetentionWorkload(b *testing.B) {
 		b.Fatal(err)
 	}
 	for _, backend := range []Backend{Closure, Bytecode, BytecodeIterative} {
-		if _, err := prog.rule(backend, "main", closure.Inlined, nil); err != nil {
+		if _, err := prog.rule(backend, "main", core.Inlined, nil); err != nil {
 			b.Fatal(err)
 		}
 		for _, unit := range []parse.PositionUnit{parse.CodePoints, parse.Bytes} {
@@ -269,7 +268,7 @@ func BenchmarkStreamPrefixSize(b *testing.B) {
 	for _, size := range []int{32, 5000} {
 		text := "x" + strings.Repeat("abcdefghij,", size) + "\n" + strings.Repeat("xa,\n", 3000)
 		for _, backend := range []Backend{Closure, Bytecode, BytecodeIterative} {
-			if _, err := prog.rule(backend, "main", closure.Inlined, nil); err != nil {
+			if _, err := prog.rule(backend, "main", core.Inlined, nil); err != nil {
 				b.Fatal(err)
 			}
 			for _, noCallback := range []bool{false, true} {

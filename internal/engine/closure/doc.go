@@ -1,6 +1,6 @@
 // Package closure is the closure backend of the engine: Core builds the Core IR of a compiled program
 // and optimizes it with the closure pipeline (choice guards and scans), and Build builds a Go closure
-// for every node of that module, in one family of rules (Family), evaluating actions and other value
+// for every node of that module, in one family of rules (core.Family), evaluating actions and other value
 // expressions with the term programs of package core (core.TermProgram), compiled from the Core IR
 // terms. Build returns the rules that the parser of package core runs.
 //

@@ -8,7 +8,6 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/internal/compile"
-	"zeroparse.dev/zp/internal/engine/closure"
 	"zeroparse.dev/zp/internal/engine/core"
 	"zeroparse.dev/zp/internal/gentest"
 	"zeroparse.dev/zp/runtime/parse"
@@ -92,7 +91,7 @@ rule main = {limit := 1} {i := 0} {j := 0} (` + c.body + `)* $$`)
 					if err != nil {
 						b.Fatal(err)
 					}
-					if _, err := prog.rule(backend, "main", closure.Inlined, nil); err != nil {
+					if _, err := prog.rule(backend, "main", core.Inlined, nil); err != nil {
 						b.Fatal(err)
 					}
 					input := strings.Repeat("a", n)

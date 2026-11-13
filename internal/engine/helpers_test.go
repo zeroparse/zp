@@ -14,6 +14,7 @@ import (
 	"zeroparse.dev/zp/internal/compile"
 	"zeroparse.dev/zp/internal/engine/closure"
 	"zeroparse.dev/zp/internal/engine/core"
+	"zeroparse.dev/zp/internal/engine/vm"
 	"zeroparse.dev/zp/internal/gentest"
 	"zeroparse.dev/zp/internal/starttest"
 	"zeroparse.dev/zp/internal/syntax"
@@ -347,9 +348,20 @@ func closureExprCore(t *testing.T, prog *compile.Program, e grammar.Expr) (*ir.M
 // inlinedRules returns the rules that the closure backend runs in the inlined family, by ID.
 func inlinedRules(t testing.TB, prog *Program) []*core.Rule {
 	t.Helper()
-	rules, err := prog.familyRules(closure.Inlined, nil)
+	rules, err := prog.familyRules(core.Inlined, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
 	return rules
+}
+
+// preparedVM returns a VM program of the VM backend b that prog has prepared, of either family, or
+// nil when it has prepared none.
+func (prog *Program) preparedVM(b Backend) *vm.Program {
+	for f := range prog.vms[vmIndex(b)] {
+		if v := prog.vms[vmIndex(b)][f].vm; v != nil {
+			return v
+		}
+	}
+	return nil
 }

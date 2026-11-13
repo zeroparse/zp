@@ -27,9 +27,9 @@ type Program struct {
 	sharedProgram
 	// buildFamily builds, from the program's Core IR (coreIR), the rules that the closure backend
 	// runs in a family, by ID (rule.id); it is nil when the closure backend cannot run the program (a
-	// program loaded without its grammar). families holds the rules of each family (closure.Inlined,
-	// closure.CallPreserving), built on first use.
-	buildFamily func(*ir.Module, closure.Family) ([]*core.Rule, error)
+	// program loaded without its grammar). families holds the rules of each family (core.Inlined,
+	// core.CallPreserving), built on first use.
+	buildFamily func(*ir.Module, core.Family) ([]*core.Rule, error)
 	families    [2]closureFamily
 	coreIR      *closureCore
 
@@ -44,10 +44,9 @@ type Program struct {
 	vmTermsOnce sync.Once
 	vmTerms     []*core.TermProgram
 	vmTermsErr  error
-	vmOnce      sync.Once
-	vm          *vm.Program
-	ivmOnce     sync.Once
-	ivm         *vm.Program
+	// vms holds the VM programs of the module, prepared on first use, by VM (vmIndex) and family
+	// (core.Family).
+	vms [2][2]familyVM
 	// loaded reports that the program was loaded from a compiled grammar, whose module serves the
 	// parses of mode only (checkMode).
 	loaded bool
@@ -71,7 +70,7 @@ type closureFamily struct {
 
 // newProgram returns the program that runs the static program sp; buildFamily builds the rules of
 // the closure backend in a family from the Core IR of c, or is nil when that backend cannot run sp.
-func newProgram(sp *compile.Program, c *closureCore, buildFamily func(*ir.Module, closure.Family) ([]*core.Rule, error)) *Program {
+func newProgram(sp *compile.Program, c *closureCore, buildFamily func(*ir.Module, core.Family) ([]*core.Rule, error)) *Program {
 	prog := &Program{buildFamily: buildFamily, coreIR: c}
 	core.InitSharedProgram(&prog.sharedProgram, sp)
 	return prog
@@ -81,7 +80,7 @@ func newProgram(sp *compile.Program, c *closureCore, buildFamily func(*ir.Module
 // built from the Core IR of c; plainDispatch leaves out the budget charge of the loop iterations
 // (closure.Build).
 func closureProgram(sp *compile.Program, c *closureCore, plainDispatch bool) *Program {
-	return newProgram(sp, c, func(m *ir.Module, f closure.Family) ([]*core.Rule, error) {
+	return newProgram(sp, c, func(m *ir.Module, f core.Family) ([]*core.Rule, error) {
 		return closure.Build(sp, m, plainDispatch, f)
 	})
 }

@@ -8,10 +8,10 @@ import (
 	"zeroparse.dev/zp/runtime/parse"
 )
 
-// NewIterative prepares a module for execution with the iterative model; terms are the programs
-// of its terms (LoadTerms).
-func NewIterative(m *bytecode.Module, terms []*core.TermProgram) *Program {
-	return buildVMProgram(m, terms, iterateBody)
+// NewIterative prepares a module for execution with the iterative model, in the family f; terms
+// are the programs of its terms (LoadTerms).
+func NewIterative(m *bytecode.Module, terms []*core.TermProgram, f core.Family) *Program {
+	return buildVMProgram(m, terms, f, iterateBody)
 }
 
 // iterateBody runs a rule body with the iterative model: calls push frames instead of recursing.
@@ -127,7 +127,7 @@ func (f *bodyFrame) next(mc *ivmMachine, vm *Program, res iresult) (iframe, ires
 	case evCall:
 		in := &vm.m.Code[f.b.ip]
 		r, min := vm.rules[in.A], int(in.B)
-		if r.Plain && !p.NoPlain {
+		if vm.direct[in.A] {
 			return mc.plainCallFrame(r, min), iresult{}, false
 		}
 		if p.Tr != nil {

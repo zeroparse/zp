@@ -45,13 +45,13 @@ func leastCompute(t *testing.T, run func(parse.Limits) error) uint64 {
 	return hi
 }
 
-// closureCharges returns the least compute limit of every kind of closure parse of input by prog,
-// untraced and traced: each kind runs the closure family that its options select.
-func closureCharges(t *testing.T, prog *Program, input string, stream bool) map[string]uint64 {
+// familyCharges returns the least compute limit of every kind of parse of input by prog on the
+// backend b, untraced and traced: each kind runs the family that its options select.
+func familyCharges(t *testing.T, prog *Program, b Backend, input string, stream bool) map[string]uint64 {
 	t.Helper()
 	out := map[string]uint64{}
 	for _, traced := range []bool{false, true} {
-		o := ParseOptions{Expectations: true, Backend: Closure}
+		o := ParseOptions{Expectations: true, Backend: b}
 		suffix := ""
 		if traced {
 			o.Trace, suffix = func(TraceEvent) {}, "+trace"
@@ -72,7 +72,7 @@ func closureCharges(t *testing.T, prog *Program, input string, stream bool) map[
 		})
 		out["prefix"+suffix] = leastCompute(t, func(l parse.Limits) error { _, err := prog.ParsePrefixWith("main", input, with(l)); return err })
 		out["document"+suffix] = leastCompute(t, func(l parse.Limits) error {
-			d, err := prog.NewDocumentWith("main", input, ParseOptions{Expectations: true, Backend: Closure})
+			d, err := prog.NewDocumentWith("main", input, ParseOptions{Expectations: true, Backend: b})
 			if err != nil {
 				return err
 			}
@@ -111,24 +111,24 @@ func TestClosureFamilyCharges(t *testing.T) {
 	}
 	for _, c := range cases {
 		prog := mustCompile(t, c.src, c.opts)
-		got := closureCharges(t, prog, c.input, c.stream)
+		got := familyCharges(t, prog, Closure, c.input, c.stream)
 		if fmt.Sprint(got) != fmt.Sprint(c.want) {
 			t.Errorf("%s: charges %v, want %v", c.name, got, c.want)
 		}
 	}
 }
 
-// parseInFamily parses input with the start rule main of prog on the closure backend in the family
-// f, with no tracer, and returns the result as ResultJSON and the parse statistics.
-func parseInFamily(prog *Program, input string, unit parse.PositionUnit, f closure.Family) (string, parse.ParseStats) {
+// parseInFamily parses input with the start rule main of prog on the backend b in the family f,
+// with no tracer, and returns the result as ResultJSON and the parse statistics.
+func parseInFamily(prog *Program, b Backend, input string, unit parse.PositionUnit, f core.Family) (string, parse.ParseStats) {
 	p := core.AcquirePooledParser(&prog.sharedProgram)
 	defer p.ReleaseBatchScratch()
 	p.Input = core.NewControlledTextInput(input, unit, true, p.Scratch, nil)
 	p.MaxDepth = DefaultMaxDepth
 	p.Expectations = true
 	p.DeferMemo = true
-	p.NoPlain = f == closure.CallPreserving
-	n, err := prog.Run(p, Closure, "main")
+	p.NoPlain = f == core.CallPreserving
+	n, err := prog.Run(p, b, "main")
 	return gentest.ResultJSON(n, err), p.ReportedStats()
 }
 
@@ -143,8 +143,8 @@ func TestClosureFamiliesMatchOnCorpus(t *testing.T) {
 				prog := mustCompile(t, c.Src, o)
 				for _, in := range c.Inputs {
 					for _, u := range []parse.PositionUnit{parse.CodePoints, parse.Bytes} {
-						a, as := parseInFamily(prog, in, u, closure.Inlined)
-						b, bs := parseInFamily(prog, in, u, closure.CallPreserving)
+						a, as := parseInFamily(prog, Closure, in, u, core.Inlined)
+						b, bs := parseInFamily(prog, Closure, in, u, core.CallPreserving)
 						if a != b || as != bs {
 							t.Errorf("memo off=%t input %q (%v): families differ\n inlined         %s %+v\n call-preserving %s %+v", o.DisableMemo, in, u, a, as, b, bs)
 						}
@@ -167,8 +167,8 @@ func TestClosureFamiliesBuiltOnFirstUse(t *testing.T) {
 		var got [2]bool
 		for _, q := range []*Program{prog, prog.budgetProgram} {
 			if q != nil {
-				got[0] = got[0] || q.families[closure.Inlined].rules != nil
-				got[1] = got[1] || q.families[closure.CallPreserving].rules != nil
+				got[0] = got[0] || q.families[core.Inlined].rules != nil
+				got[1] = got[1] || q.families[core.CallPreserving].rules != nil
 			}
 		}
 		return got
@@ -189,11 +189,11 @@ func TestClosureFamiliesBuiltOnFirstUse(t *testing.T) {
 	if got := built(prog); got != [2]bool{true, true} {
 		t.Fatalf("after a traced parse: built %v, want both families", got)
 	}
-	a, err := prog.rule(Closure, "item", closure.Inlined, nil)
+	a, err := prog.rule(Closure, "item", core.Inlined, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
-	b, err := prog.rule(Closure, "item", closure.CallPreserving, nil)
+	b, err := prog.rule(Closure, "item", core.CallPreserving, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -235,7 +235,7 @@ func TestClosureFamiliesLeaveModuleUnchanged(t *testing.T) {
 				t.Fatal(err)
 			}
 			before := ir.Print(m, true)
-			for _, f := range []closure.Family{closure.Inlined, closure.CallPreserving} {
+			for _, f := range []core.Family{core.Inlined, core.CallPreserving} {
 				for _, plainDispatch := range []bool{true, false} {
 					if _, err := closure.Build(sp, m, plainDispatch, f); err != nil {
 						t.Fatal(err)
@@ -265,7 +265,7 @@ func TestClosureFamiliesBuildConcurrently(t *testing.T) {
 			errs := make([]error, 4)
 			for i := range errs {
 				wg.Go(func() {
-					_, errs[i] = closure.Build(sp, m, i%2 == 0, closure.Family(i/2))
+					_, errs[i] = closure.Build(sp, m, i%2 == 0, core.Family(i/2))
 				})
 			}
 			wg.Wait()
@@ -283,19 +283,19 @@ func TestClosureFamiliesBuildConcurrently(t *testing.T) {
 func TestClosureFamilyBuildPanicIsAnError(t *testing.T) {
 	t.Parallel()
 	prog := mustCompile(t, `rule main = "a" $$`)
-	prog.buildFamily = func(*ir.Module, closure.Family) ([]*core.Rule, error) { panic("build failed") }
+	prog.buildFamily = func(*ir.Module, core.Family) ([]*core.Rule, error) { panic("build failed") }
 	func() {
 		defer func() {
 			if recover() == nil {
 				t.Fatal("the first use did not panic")
 			}
 		}()
-		_, _ = prog.familyRules(closure.Inlined, nil)
+		_, _ = prog.familyRules(core.Inlined, nil)
 	}()
-	if _, err := prog.familyRules(closure.Inlined, nil); err == nil || !strings.Contains(err.Error(), "was not built") {
+	if _, err := prog.familyRules(core.Inlined, nil); err == nil || !strings.Contains(err.Error(), "was not built") {
 		t.Fatalf("err = %v, want the family not built", err)
 	}
-	if r, err := prog.rule(Closure, "main", closure.Inlined, nil); err == nil {
+	if r, err := prog.rule(Closure, "main", core.Inlined, nil); err == nil {
 		t.Fatalf("the start rule %v of a family that was not built", r)
 	}
 }
@@ -309,7 +309,7 @@ rule item = "a" / "b"`)
 	if prog.coreIR.m != nil {
 		t.Fatal("Compile built the Core IR before a family needed it")
 	}
-	if _, err := prog.familyRules(closure.Inlined, nil); err != nil {
+	if _, err := prog.familyRules(core.Inlined, nil); err != nil {
 		t.Fatal(err)
 	}
 	if prog.coreIR.m == nil {
@@ -319,7 +319,7 @@ rule item = "a" / "b"`)
 	if prog.coreIR.m == nil {
 		t.Fatal("the Core IR was dropped while the call-preserving family was not built")
 	}
-	if _, err := prog.familyRules(closure.CallPreserving, nil); err != nil {
+	if _, err := prog.familyRules(core.CallPreserving, nil); err != nil {
 		t.Fatal(err)
 	}
 	if prog.coreIR.m != nil {
@@ -329,7 +329,7 @@ rule item = "a" / "b"`)
 	if module.Value() != nil {
 		t.Fatal("the Core IR is still reachable after both families were built")
 	}
-	for _, f := range []closure.Family{closure.Inlined, closure.CallPreserving} {
+	for _, f := range []core.Family{core.Inlined, core.CallPreserving} {
 		if _, err := prog.rule(Closure, "main", f, nil); err != nil {
 			t.Errorf("family %d after the release: %v", f, err)
 		}
@@ -353,7 +353,7 @@ func TestMeteredProgramSharesTheCoreIR(t *testing.T) {
 	}
 	var m *ir.Module
 	for _, q := range []*Program{prog, metered} {
-		for _, f := range []closure.Family{closure.Inlined, closure.CallPreserving} {
+		for _, f := range []core.Family{core.Inlined, core.CallPreserving} {
 			if m == nil {
 				if _, err := q.familyRules(f, nil); err != nil {
 					t.Fatal(err)
@@ -361,7 +361,7 @@ func TestMeteredProgramSharesTheCoreIR(t *testing.T) {
 				m = prog.coreIR.m
 				continue
 			}
-			if q == metered && f == closure.CallPreserving {
+			if q == metered && f == core.CallPreserving {
 				if prog.coreIR.m != m {
 					t.Fatal("the Core IR was dropped or built again while a family was not built")
 				}
@@ -374,18 +374,18 @@ func TestMeteredProgramSharesTheCoreIR(t *testing.T) {
 	if prog.coreIR.m != nil {
 		t.Fatal("the Core IR is kept after the families of both programs were built")
 	}
-	if a, b := prog.families[closure.Inlined].rules, metered.families[closure.Inlined].rules; len(a) == 0 || &a[0] == &b[0] {
+	if a, b := prog.families[core.Inlined].rules, metered.families[core.Inlined].rules; len(a) == 0 || &a[0] == &b[0] {
 		t.Fatal("the metered program runs the rules of the plain one")
 	}
 
 	late := mustCompile(t, src)
-	for _, f := range []closure.Family{closure.Inlined, closure.CallPreserving} {
+	for _, f := range []core.Family{core.Inlined, core.CallPreserving} {
 		if _, err := late.familyRules(f, nil); err != nil {
 			t.Fatal(err)
 		}
 	}
 	lateMetered := late.meteredProgram()
-	if _, err := lateMetered.familyRules(closure.Inlined, nil); err != nil {
+	if _, err := lateMetered.familyRules(core.Inlined, nil); err != nil {
 		t.Fatal(err)
 	}
 	if late.coreIR.m == nil {
@@ -453,7 +453,7 @@ func TestClosureCoreBuildObservesTheParseContext(t *testing.T) {
 		t.Fatalf("%d checks inside the Core IR build saw the context ended, want 1", ctx.calls)
 	}
 	metered := prog.budgetProgram
-	if metered == nil || metered.families[closure.Inlined].built.Load() || prog.coreIR.m != nil {
+	if metered == nil || metered.families[core.Inlined].built.Load() || prog.coreIR.m != nil {
 		t.Fatal("a cancelled build left a family or the Core IR built")
 	}
 	if want := 2 * len(prog.families); prog.coreIR.pending != want {
@@ -464,7 +464,7 @@ func TestClosureCoreBuildObservesTheParseContext(t *testing.T) {
 	}
 	for _, q := range []*Program{prog, metered} {
 		for f := range q.families {
-			if _, err := q.familyRules(closure.Family(f), nil); err != nil {
+			if _, err := q.familyRules(core.Family(f), nil); err != nil {
 				t.Fatal(err)
 			}
 		}
@@ -527,7 +527,7 @@ func TestClosureCoreBuildContextPanic(t *testing.T) {
 		_, _ = prog.ParseWith("main", "k1ab,k7", ParseOptions{Context: ctx})
 	}()
 	metered := prog.budgetProgram
-	if metered == nil || metered.families[closure.Inlined].built.Load() || prog.coreIR.m != nil {
+	if metered == nil || metered.families[core.Inlined].built.Load() || prog.coreIR.m != nil {
 		t.Fatal("a build interrupted by a context panic left a family or the Core IR built")
 	}
 	if want := 2 * len(prog.families); prog.coreIR.pending != want {
@@ -552,9 +552,9 @@ func TestClosureCoreBuildPanicIsAnError(t *testing.T) {
 				t.Fatal("the first use did not panic")
 			}
 		}()
-		_, _ = prog.familyRules(closure.Inlined, nil)
+		_, _ = prog.familyRules(core.Inlined, nil)
 	}()
-	if _, err := prog.familyRules(closure.Inlined, nil); err == nil || !strings.Contains(err.Error(), "was not built") {
+	if _, err := prog.familyRules(core.Inlined, nil); err == nil || !strings.Contains(err.Error(), "was not built") {
 		t.Fatalf("err = %v, want the family not built", err)
 	}
 	if want := len(prog.families) - 1; prog.coreIR.pending != want {

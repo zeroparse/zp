@@ -13,21 +13,6 @@ import (
 	"zeroparse.dev/zp/runtime/parse"
 )
 
-// Family selects one of the two rule sets that Build builds from a program. A parse runs one family
-// from start to end, chosen by what it observes of the rule calls.
-type Family uint8
-
-const (
-	// Inlined is the family of the parses that observe no rule call: a call site of a plain rule
-	// (compile.Rule.Plain) runs the rule with core.Parser.InvokePlain, which leaves out the call
-	// protocol of core.Parser.Call that such a rule does not need.
-	Inlined Family = iota
-	// CallPreserving is the family of the parses that observe or memoize every rule call (traced
-	// parses, whose tracer Call reports to, and the parses of a Document, which memoize plain rules
-	// too): every call site of every rule goes through core.Parser.Call.
-	CallPreserving
-)
-
 // Core builds the Core IR of the program prog and optimizes it with the closure pipeline (guards
 // and scans), for Build. It runs when a parse first needs a family, outside the compilation: the
 // build and the passes poll control, the parse's (nil for none), and a cancellation unwinds as
@@ -51,7 +36,7 @@ func Core(prog *compile.Program, control *cancel.Control) (*ir.Module, error) {
 // built from the same module, at different times. A failure is an internal error: the program
 // compiled, so its terms build. The build runs when a parse first needs the family, outside the
 // compilation, so no control interrupts it.
-func Build(prog *compile.Program, m *ir.Module, plainDispatch bool, f Family) ([]*core.Rule, error) {
+func Build(prog *compile.Program, m *ir.Module, plainDispatch bool, f core.Family) ([]*core.Rule, error) {
 	b, err := newBuilder(prog, m, plainDispatch)
 	if err != nil {
 		return nil, err

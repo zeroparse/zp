@@ -35,6 +35,10 @@ type Program struct {
 	nodeKinds []*value.NodeTypeKinds
 	// vars is the module's variable table (nil when it declares none).
 	vars *compile.VarTable
+	// direct reports, by rule ID, that a call of the rule invokes it with core.Parser.InvokePlain,
+	// leaving out the call protocol of core.Parser.Call: the rule is plain (core.Rule.Plain) and the
+	// program runs the inlined family (core.Inlined).
+	direct []bool
 }
 
 // vmRunSite is a repetition that a Document can resume (core/resume.go): the REPEAT at ip, whose ITER
@@ -87,10 +91,10 @@ func (vm *Program) runSite(ip int) *vmRunSite {
 // execBody calls exec, which recurses for each rule call.
 type vmBodies func(vm *Program, r *core.Rule, entry int) func(p *core.Parser, min int) (*parse.Node, bool)
 
-// New prepares a module for execution with the recursive model; terms are the programs of its
-// terms (LoadTerms).
-func New(m *bytecode.Module, terms []*core.TermProgram) *Program {
-	return buildVMProgram(m, terms, execBody)
+// New prepares a module for execution with the recursive model, in the family f; terms are the
+// programs of its terms (LoadTerms).
+func New(m *bytecode.Module, terms []*core.TermProgram, f core.Family) *Program {
+	return buildVMProgram(m, terms, f, execBody)
 }
 
 // Rule returns the rule called name, or nil when the module has none.
@@ -112,8 +116,8 @@ func execBody(vm *Program, r *core.Rule, entry int) func(p *core.Parser, min int
 	}
 }
 
-// buildVMProgram prepares a module for execution. bodies makes the rule bodies.
-func buildVMProgram(m *bytecode.Module, terms []*core.TermProgram, bodies vmBodies) *Program {
+// buildVMProgram prepares a module for execution in the family f. bodies makes the rule bodies.
+func buildVMProgram(m *bytecode.Module, terms []*core.TermProgram, f core.Family, bodies vmBodies) *Program {
 	vm := &Program{m: m, byName: map[string]*core.Rule{}, descs: append(append([]string(nil), compile.FixedDescs...), m.Strings...)}
 	vm.literals = m.Strings
 	normalized := false
@@ -197,8 +201,10 @@ func buildVMProgram(m *bytecode.Module, terms []*core.TermProgram, bodies vmBodi
 			vm.runSites[ip] = vm.runSite(ip)
 		}
 	}
-	for _, r := range vm.rules {
+	vm.direct = make([]bool, len(vm.rules))
+	for i, r := range vm.rules {
 		r.Plain = !r.Leader && (!r.Memo || r.Transient) && len(r.Scope.Names) == 0
+		vm.direct[i] = r.Plain && f == core.Inlined
 	}
 	for i := range m.Rules {
 		ri, r := &m.Rules[i], vm.rules[i]
@@ -498,7 +504,7 @@ func (mc *Machine) exec(vm *Program, ip int, r *core.Rule, min int) (result *par
 		switch ev {
 		case evCall:
 			in := &vm.m.Code[b.ip]
-			if r := vm.rules[in.A]; r.Plain && !p.NoPlain {
+			if r := vm.rules[in.A]; vm.direct[in.A] {
 				v, ok = p.InvokePlain(r, int(in.B)) // what call does for such a rule
 			} else {
 				v, ok = p.Call(r, int(in.B))

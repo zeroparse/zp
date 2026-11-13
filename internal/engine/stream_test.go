@@ -8,7 +8,6 @@ import (
 	"strings"
 	"testing"
 
-	"zeroparse.dev/zp/internal/engine/closure"
 	"zeroparse.dev/zp/internal/engine/core"
 	"zeroparse.dev/zp/internal/gentest"
 	"zeroparse.dev/zp/internal/value"
@@ -127,7 +126,7 @@ func TestParseStreamDiscardsInput(t *testing.T) {
 		maxBuf = max(maxBuf, len(p.In))
 		return nil
 	}
-	main, err := prog.rule(Closure, "main", closure.Inlined, nil)
+	main, err := prog.rule(Closure, "main", core.Inlined, nil)
 	if err != nil {
 		t.Fatal(err)
 	}

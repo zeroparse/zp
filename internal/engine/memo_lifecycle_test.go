@@ -7,7 +7,6 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/internal/compile"
-	"zeroparse.dev/zp/internal/engine/closure"
 	"zeroparse.dev/zp/internal/engine/core"
 	"zeroparse.dev/zp/internal/value"
 	"zeroparse.dev/zp/runtime/parse"
@@ -129,7 +128,7 @@ func BenchmarkMemoLifecycle(b *testing.B) {
 					b.Fatal(err)
 				}
 				// Prepare lazy VM compilation outside the timed interval.
-				if _, err := prog.rule(backend, "main", closure.Inlined, nil); err != nil {
+				if _, err := prog.rule(backend, "main", core.Inlined, nil); err != nil {
 					b.Fatal(err)
 				}
 				b.SetBytes(int64(len(c.line) * 10000))

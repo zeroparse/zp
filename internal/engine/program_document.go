@@ -4,7 +4,6 @@ import (
 	"fmt"
 
 	"zeroparse.dev/zp/internal/compile"
-	"zeroparse.dev/zp/internal/engine/closure"
 	"zeroparse.dev/zp/internal/engine/core"
 	"zeroparse.dev/zp/internal/engine/document"
 )
@@ -42,7 +41,7 @@ func (prog *Program) NewDocumentWith(start, text string, o ParseOptions) (d *Doc
 	if err := prog.checkMode(o, true); err != nil {
 		return nil, err
 	}
-	_, _, c, err := prog.admitParse(start, o, closure.CallPreserving, false, text)
+	_, _, c, err := prog.admitParse(start, o, core.CallPreserving, false, text)
 	if err != nil {
 		return nil, err
 	}
@@ -82,7 +81,7 @@ func (prog *Program) PrepareRun(b Backend, c *core.BudgetControl) (document.Runn
 		// A Document parse runs the call-preserving family (its parser sets NoPlain): build it
 		// here, after the check that ends prepareControlledProgram and before one more, rather than
 		// inside the parse.
-		if _, err := active.familyRules(closure.CallPreserving, c); err != nil {
+		if _, err := active.familyRules(core.CallPreserving, c); err != nil {
 			return nil, err
 		}
 		c.Check()

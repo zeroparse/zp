@@ -115,9 +115,9 @@ type Parser struct {
 	MemoAll bool
 	// NoPlain keeps call sites from calling InvokePlain directly for plain rules (Rule.Plain), so
 	// that every rule call goes through Call. It is set when MemoAll is (plain rules are then
-	// memoized) and when tracing (Call reports the calls), before the parse runs. The bytecode
-	// machines test it at their call sites; the closure backend reads it once, to run its
-	// call-preserving rules, whose call sites all go through Call.
+	// memoized) and when tracing (Call reports the calls), before the parse runs. Every backend
+	// reads it once, to run its call-preserving family (FamilyOf), whose call sites all go through
+	// Call.
 	NoPlain bool
 	// Tr is the tracing state, or nil when the parse is not traced.
 	Tr *Tracer
