@@ -163,7 +163,7 @@ position, with the captures of each candidate in its frame.`
 	// consuming input, and -1 otherwise.
 	type loopState struct {
 		a, m0, start, min, lastNone, bound, guard Expr
-		setLastNone, setBound              func(*Builder, Expr)
+		setLastNone, setBound                     func(*Builder, Expr)
 	}
 	// ledStep settles the match a of the loop: it ends the loop, or applies the operator, and ends the
 	// step for a postfix operator or else binds the level of the right operand to the local rmin.
