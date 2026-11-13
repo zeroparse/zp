@@ -416,7 +416,9 @@ internal error, not a user error. A first-use build runs inside the parse that n
 context and budget control before and after the build, as `prepareControlledProgram` does today. The
 parse's context also interrupts the build of the Core IR and its passes, which take the polls that
 `CompileContext` took while `Compile` built the Core IR; the closures themselves are built without
-interruption. An interrupted build leaves neither the Core IR nor the family in the shared `Program`,
+interruption. The Core IR is built outside every lock, the first module published winning, so a
+context method that parses on the same `Program` cannot deadlock the build. An interrupted build, or
+one that a context method's panic unwinds, leaves neither the Core IR nor the family in the shared `Program`,
 so the next parse that needs the family builds it; the build's duration is part of the first-use cost
 that [Performance and Results](#performance-and-results) measures. In the budget-controlled program, entering a `Nest` charges at least one step, as a call does, so the
 budget invariants of the [Flow IR specification](../../../spec/flow-ir/invariants.md#budget) hold.
@@ -708,8 +710,9 @@ stage of its first consumer, so its differential tests and negative controls run
    the corpus. What remains of the stage is the removal of what the compile walker still computes only
    for the old closure construction. The cost gate: `Compile` no longer builds the closures, nor Core IR,
    which the first parse builds with its family, so `Compile` checks the grammar only. `Compile` plus the
-   first-use build of the inlined family is to be within noise of the former `Compile` in time and
-   allocations, and the first-use build of the call-preserving family is to be measured.
+   first-use build of the inlined family, and `Compile` plus the first-use build of the call-preserving
+   family that a Document runs, are each measured against the former `Compile` with its first parse:
+   all are below it in time and allocations.
 
 New optimizations (wider inlining, case-pair folding, slot sharing across alternatives) come after the
 stage that gives them a consumer and follow the same gates.

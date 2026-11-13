@@ -181,9 +181,15 @@ used by its caches. Cache identity and retry behavior remain correctness
 requirements.
 
 Lazy construction is setup, outside the budget. Check the
-invocation context immediately before and after setup; graph construction itself
-is synchronous and cannot be interrupted. Keep context method calls outside the
-`sync.Once` initializer so reentrant context methods cannot deadlock setup. An
+invocation context immediately before and after setup. The build of the shared
+Core IR and its passes also polls the invocation context, so a cancelled parse
+stops inside it and leaves nothing stored; the closures built from it are
+synchronous and cannot be interrupted. Context methods are never called while a
+setup lock is held: the Core IR is built outside every lock and the first
+module published wins, and the lock of a family is held only while its closures
+are built, so reentrant context methods cannot deadlock setup. A panic of a
+context method during the build reaches the caller as its own value and also
+leaves nothing stored. An
 inactive context such as `context.Background()` with zero limits produces no
 budget control and does not materialize the second graph.
 

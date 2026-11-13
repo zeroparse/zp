@@ -113,32 +113,67 @@ func (c *closureCore) share() {
 }
 
 // module returns the Core IR for the build of a family, building it if it is not held; the build
-// calls done when it returns. The build polls ctx, the context of the parse that needs the family
-// (nil for none): if it ends, module returns a buildCancelled with its error and holds no module.
+// calls done when it returns. The build runs without holding c.mu, so a context method that parses on
+// the same program cannot deadlock it: concurrent builds may race, and the first module published
+// wins. A module built while no family is pending (the families were built meanwhile) is returned
+// without being held. The build polls ctx, the context of the parse that needs the family (nil for
+// none): if it ends, module returns a buildCancelled with its error and holds no module; a panic of a
+// method of ctx unwinds as core.ContextPanic and also leaves no module held.
 func (c *closureCore) module(ctx context.Context) (m *ir.Module, err error) {
+	c.mu.Lock()
+	m = c.m
+	c.mu.Unlock()
+	if m != nil {
+		return m, nil
+	}
+	if m, err = buildCore(c.sp, ctx); err != nil {
+		return nil, err
+	}
 	c.mu.Lock()
 	defer c.mu.Unlock()
 	if c.m != nil {
 		return c.m, nil
 	}
-	var control *cancel.Control
-	if ctx != nil {
-		control = &cancel.Control{Ctx: ctx}
-		defer func() {
-			if x := recover(); x != nil {
-				cancelled, ok := x.(cancel.Cancellation)
-				if !ok {
-					panic(x)
-				}
-				m, err = nil, buildCancelled{cancelled.Err}
-			}
-		}()
+	if c.pending > 0 {
+		c.m = m
 	}
-	if m, err = closure.Core(c.sp, control); err != nil {
-		return nil, err
-	}
-	c.m = m
 	return m, nil
+}
+
+// buildCore builds the Core IR of sp for the closures (closure.Core), polling ctx (nil for none):
+// an ended context returns a buildCancelled.
+func buildCore(sp *compile.Program, ctx context.Context) (m *ir.Module, err error) {
+	if ctx == nil {
+		return closure.Core(sp, nil)
+	}
+	defer func() {
+		if x := recover(); x != nil {
+			cancelled, ok := x.(cancel.Cancellation)
+			if !ok {
+				panic(x)
+			}
+			m, err = nil, buildCancelled{cancelled.Err}
+		}
+	}()
+	return closure.Core(sp, &cancel.Control{Ctx: attributedContext{ctx}})
+}
+
+// attributedContext is a parse's context whose Err attributes a panic to the caller's context
+// (core.ContextPanic), as the parse's own checks do, so the parse re-raises the caller's value.
+type attributedContext struct{ context.Context }
+
+func (c attributedContext) Err() error {
+	defer func() {
+		if x := recover(); x != nil {
+			switch x.(type) {
+			case core.Fatal, core.ContextPanic:
+				panic(x) // already attributed
+			default:
+				panic(core.ContextPanic{Value: x})
+			}
+		}
+	}()
+	return c.Context.Err()
 }
 
 // buildCancelled is the error of a build of the Core IR that the parse's context ended: err is the

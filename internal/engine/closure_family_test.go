@@ -11,6 +11,7 @@ import (
 	"strings"
 	"sync"
 	"testing"
+	"time"
 	"weak"
 
 	"zeroparse.dev/zp/internal/compile"
@@ -395,27 +396,33 @@ func TestMeteredProgramSharesTheCoreIR(t *testing.T) {
 	}
 }
 
-// buildCancelContext is a context that has ended exactly while the Core IR of core is being built
-// (its lock is held), and only then; cancelled counts the checks that saw it ended.
-type buildCancelContext struct {
-	context.Context
-	core      *closureCore
-	cancelled int
+// inCoreBuild reports whether the calling goroutine is inside the build of the Core IR of the
+// closures (closure.Core).
+func inCoreBuild() bool {
+	buf := make([]byte, 64<<10)
+	return strings.Contains(string(buf[:runtime.Stack(buf, false)]), "/internal/engine/closure.Core(")
 }
 
-func (c *buildCancelContext) Err() error {
-	if c.core.mu.TryLock() {
-		c.core.mu.Unlock()
+// buildHookContext is a live context whose Err calls hook when it is called from inside the build
+// of the Core IR (inCoreBuild) and returns hook's error; elsewhere it returns nil. calls counts the
+// calls of hook. It is for one goroutine at a time: a parse that uses it must not run concurrently
+// with another parse that uses it.
+type buildHookContext struct {
+	context.Context
+	hook  func() error
+	calls int
+}
+
+func (c *buildHookContext) Err() error {
+	if !inCoreBuild() {
 		return nil
 	}
-	c.cancelled++
-	return context.Canceled
+	c.calls++
+	return c.hook()
 }
 
-// TestClosureCoreBuildObservesTheParseContext checks that the parse that first needs a closure
-// family interrupts the build of the Core IR when its context ends, reports the context's error,
-// and leaves the family and the Core IR unbuilt for the next parse, which builds them.
-func TestClosureCoreBuildObservesTheParseContext(t *testing.T) {
+// closureCoreGrammar is a grammar whose Core IR build polls its context more than once.
+func closureCoreGrammar() string {
 	var src strings.Builder
 	src.WriteString("rule main = (")
 	for i := range 40 {
@@ -428,15 +435,22 @@ func TestClosureCoreBuildObservesTheParseContext(t *testing.T) {
 	for i := range 40 {
 		fmt.Fprintf(&src, "rule r%d = \"k%d\" [a-z]* (\",\" / \";\")?\n", i, i)
 	}
-	prog := mustCompile(t, src.String())
+	return src.String()
+}
+
+// TestClosureCoreBuildObservesTheParseContext checks that the parse that first needs a closure
+// family interrupts the build of the Core IR when its context ends, reports the context's error,
+// and leaves the family and the Core IR unbuilt for the next parse, which builds them.
+func TestClosureCoreBuildObservesTheParseContext(t *testing.T) {
+	prog := mustCompile(t, closureCoreGrammar())
 	base, stop := context.WithCancel(context.Background())
 	defer stop()
-	ctx := &buildCancelContext{Context: base, core: prog.coreIR}
+	ctx := &buildHookContext{Context: base, hook: func() error { return context.Canceled }}
 	if _, err := prog.ParseWith("main", "k1ab,k7", ParseOptions{Context: ctx}); !errors.Is(err, context.Canceled) {
 		t.Fatalf("err = %v, want the context's error", err)
 	}
-	if ctx.cancelled != 1 {
-		t.Fatalf("%d checks inside the Core IR build saw the context ended, want 1", ctx.cancelled)
+	if ctx.calls != 1 {
+		t.Fatalf("%d checks inside the Core IR build saw the context ended, want 1", ctx.calls)
 	}
 	metered := prog.budgetProgram
 	if metered == nil || metered.families[closure.Inlined].built.Load() || prog.coreIR.m != nil {
@@ -457,5 +471,69 @@ func TestClosureCoreBuildObservesTheParseContext(t *testing.T) {
 	}
 	if prog.coreIR.m != nil || prog.coreIR.pending != 0 {
 		t.Fatalf("after every family: Core IR held %v, pending %d", prog.coreIR.m != nil, prog.coreIR.pending)
+	}
+}
+
+// TestClosureCoreBuildAllowsReentrantContexts checks that a context method called during the build
+// of the Core IR may parse on the same program, in the metered and in the plain families, without
+// deadlocking the build, and that both parses succeed.
+func TestClosureCoreBuildAllowsReentrantContexts(t *testing.T) {
+	prog := mustCompile(t, closureCoreGrammar())
+	base, stop := context.WithCancel(context.Background())
+	defer stop()
+	var nested []error
+	ctx := &buildHookContext{Context: base}
+	ctx.hook = func() error {
+		if ctx.calls == 1 {
+			for _, o := range []ParseOptions{{Context: base}, {Limits: limits.Limits{Compute: limits.Unlimited}}} {
+				_, err := prog.ParseWith("main", "k3x;k9", o)
+				nested = append(nested, err)
+			}
+		}
+		return nil
+	}
+	done := make(chan error, 1)
+	go func() {
+		_, err := prog.ParseWith("main", "k1ab,k7", ParseOptions{Context: ctx})
+		done <- err
+	}()
+	select {
+	case err := <-done:
+		if err != nil {
+			t.Fatalf("the parse whose context reentered: %v", err)
+		}
+	case <-time.After(time.Minute):
+		t.Fatal("a parse from a context method during the Core IR build deadlocked")
+	}
+	if len(nested) != 2 || nested[0] != nil || nested[1] != nil {
+		t.Fatalf("the nested parses: %v", nested)
+	}
+}
+
+// TestClosureCoreBuildContextPanic checks that a panic of a context method during the build of the
+// Core IR reaches the caller as its own value and leaves the family unbuilt, so that a later parse
+// with a well-behaved context builds it.
+func TestClosureCoreBuildContextPanic(t *testing.T) {
+	prog := mustCompile(t, closureCoreGrammar())
+	base, stop := context.WithCancel(context.Background())
+	defer stop()
+	ctx := &buildHookContext{Context: base, hook: func() error { panic("context failed") }}
+	func() {
+		defer func() {
+			if x := recover(); x != "context failed" {
+				t.Fatalf("recovered %#v, want the context's own panic value", x)
+			}
+		}()
+		_, _ = prog.ParseWith("main", "k1ab,k7", ParseOptions{Context: ctx})
+	}()
+	metered := prog.budgetProgram
+	if metered == nil || metered.families[closure.Inlined].built.Load() || prog.coreIR.m != nil {
+		t.Fatal("a build interrupted by a context panic left a family or the Core IR built")
+	}
+	if want := 2 * len(prog.families); prog.coreIR.pending != want {
+		t.Fatalf("pending = %d after a context panic, want %d", prog.coreIR.pending, want)
+	}
+	if n, err := prog.ParseWith("main", "k1ab,k7", ParseOptions{Context: base}); n == nil || err != nil {
+		t.Fatalf("the parse after the context panic: node=%v err=%v", n, err)
 	}
 }

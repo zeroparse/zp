@@ -150,7 +150,8 @@ func optionsFamily(o ParseOptions) closure.Family {
 // building them on first use. The build of the Core IR polls the context of c, the parse's budget
 // control (nil for none); if the context ends, familyRules returns its error and leaves the family
 // unbuilt. The build that returns last among those that read the Core IR drops it (closureCore); a
-// build that panicked counts as returned, since its family only reports an error after.
+// build of the closures that panicked counts as returned, since its family only reports an error
+// after.
 func (prog *Program) familyRules(f closure.Family, c *core.BudgetControl) ([]*core.Rule, error) {
 	fam := &prog.families[f]
 	if !fam.built.Load() {
@@ -162,14 +163,13 @@ func (prog *Program) familyRules(f closure.Family, c *core.BudgetControl) ([]*co
 }
 
 // buildFamilyRules builds the family f into fam unless it is built (familyRules). It returns an
-// error only for a build that the parse's context cancelled.
+// error only for a build that the parse's context cancelled. The Core IR is built before fam.mu is
+// taken (closureCore.module), since its build calls the parse's context; fam.mu is held only while
+// the closures, which call no context method, are built.
 func (prog *Program) buildFamilyRules(fam *closureFamily, f closure.Family, c *core.BudgetControl) error {
-	fam.mu.Lock()
-	defer fam.mu.Unlock()
-	if fam.built.Load() {
-		return nil
-	}
 	if prog.buildFamily == nil {
+		fam.mu.Lock()
+		defer fam.mu.Unlock()
 		fam.err = errClosureNeedsSource
 		fam.built.Store(true)
 		return nil
@@ -177,6 +177,15 @@ func (prog *Program) buildFamilyRules(fam *closureFamily, f closure.Family, c *c
 	var ctx context.Context
 	if c != nil {
 		ctx = c.Ctx
+	}
+	m, err := prog.coreIR.module(ctx)
+	if cancelled, ok := err.(buildCancelled); ok {
+		return cancelled.err
+	}
+	fam.mu.Lock()
+	defer fam.mu.Unlock()
+	if fam.built.Load() {
+		return nil
 	}
 	returned := false
 	defer func() {
@@ -186,11 +195,6 @@ func (prog *Program) buildFamilyRules(fam *closureFamily, f closure.Family, c *c
 			prog.coreIR.done()
 		}
 	}()
-	m, err := prog.coreIR.module(ctx)
-	if cancelled, ok := err.(buildCancelled); ok {
-		returned = true
-		return cancelled.err
-	}
 	if err == nil {
 		fam.rules, err = prog.buildFamily(m, f)
 	}
