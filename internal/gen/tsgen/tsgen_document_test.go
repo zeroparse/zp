@@ -399,3 +399,86 @@ Error: invalid range [0,9) for text of length 3 ab!
 		t.Fatalf("got\n%s\nwant\n%s", out, want)
 	}
 }
+
+// TestTSDocumentTouches checks that each terminal records the input it examines: a result that
+// looked at the unit before a line start, at characters past a lookahead, or at the unit past a
+// literal must not be reused after an edit there. The grammars are built so that the rule whose
+// result would be wrongly kept sits where only that touch tells the edit matters, and the Document
+// must return what a new Document of the edited text returns. As a negative control, a runtime
+// without the touch must fail each case.
+func TestTSDocumentTouches(t *testing.T) {
+	type edit struct {
+		text       string
+		start, end int
+		repl       string
+	}
+	cases := []struct {
+		name    string
+		grammar string
+		edits   []edit
+		// mutant removes the touch that the case needs from the runtime.
+		old, new string
+	}{
+		{
+			"line start",
+			"@start\nrule main = (l \"\\n\"?)* $$\nrule l = ^ \"a\" / \"b\"",
+			[]edit{{"a\na", 1, 2, ""}, {"a\na\na", 1, 2, ""}, {"a\nb\na", 3, 4, ""}},
+			"this.documentTouchLine();", "",
+		},
+		{
+			"lookahead",
+			"@start\nrule main = (l / [a-z] / \"1\")*\nrule l = \"a\" &([a-z] [a-z])",
+			[]edit{{"aaa", 2, 3, "1"}, {"aaab", 3, 4, "1"}},
+			"this.documentTouch(this.pos + (c < 0 ? 1 : this.psize));", "",
+		},
+		{
+			"literal lookahead",
+			"@start\nrule main = (l / [a-z])*\nrule l = \"a\" &\"bc\"",
+			[]edit{{"abc", 2, 3, "x"}},
+			"this.documentTouch(this.pos + (this.unit === Bytes ? lit.bytes.length : lit.cps.length));", "",
+		},
+	}
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			g, err := syntax.Parse(c.grammar)
+			if err != nil {
+				t.Fatal(err)
+			}
+			var js []string
+			for _, e := range c.edits {
+				js = append(js, fmt.Sprintf("[%q, %d, %d, %q]", e.text, e.start, e.end, e.repl))
+			}
+			script := `import { createDocument, marshal } from "./parser.ts";
+for (const [text, s, e, r] of [` + strings.Join(js, ", ") + `]) {
+  const d = createDocument(text).document;
+  d.parse();
+  d.edit(s, e, r);
+  const a = d.parse();
+  const f = createDocument(d.text()).document.parse();
+  console.log(JSON.stringify(d.text()), marshal(a.node) === marshal(f.node) && String(a.error) === String(f.error));
+}
+`
+			run := func(mutate func(string) string) string {
+				return gentest.RunTSGrammarScriptBundle(t, g, script, gen.GenOptions{Start: "main", Document: true}, func(g *grammar.Grammar, opts gen.GenOptions) ([]byte, error) {
+					code, err := gentest.GenerateTSBundle(g, opts)
+					if err != nil || mutate == nil {
+						return code, err
+					}
+					return []byte(mutate(string(code))), nil
+				})
+			}
+			if got := run(nil); strings.Contains(got, "false") || strings.Count(got, "true") != len(c.edits) {
+				t.Fatalf("the Document differs from a new Document:\n%s", got)
+			}
+			got := run(func(src string) string {
+				if strings.Count(src, c.old) != 1 {
+					t.Fatalf("the runtime has %d copies of %q, want 1", strings.Count(src, c.old), c.old)
+				}
+				return strings.Replace(src, c.old, c.new, 1)
+			})
+			if !strings.Contains(got, "false") {
+				t.Errorf("the runtime without the touch passes:\n%s", got)
+			}
+		})
+	}
+}

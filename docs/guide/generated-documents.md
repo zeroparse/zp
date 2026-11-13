@@ -82,7 +82,8 @@ included. `parse(options?)` returns the `ParseResult` of `parse`, and with `-typ
 `parseAST(options?)`. An invocation cannot change the unit or the expectations, and a `parse` or `edit` made
 from a trace callback of a parse returns an error. Like the Go `Document`, it keeps the memoized results that
 the edits leave valid and reuses them in the next `parse`; `stats()` returns `{ evaluated, reused }` for the
-last parse, the same counts as Go's `Stats`. A returned tree can share nodes with later results, so do not
+last parse, the same counts as Go's `Stats` after `Parse`; Go's typed `ParseAST` keeps its own memo and can
+count differently. A returned tree can share nodes with later results, so do not
 mutate a tree while the Document is in use.
 
 ## Related Topics
