@@ -120,7 +120,7 @@ func TestClosureFamilyCharges(t *testing.T) {
 
 // parseInFamily parses input with the start rule main of prog on the closure backend in the family
 // f, with no tracer, and returns the result as ResultJSON and the parse statistics.
-func parseInFamily(prog *Program, input string, unit PositionUnit, f closure.Family) (string, core.Stats) {
+func parseInFamily(prog *Program, input string, unit parse.PositionUnit, f closure.Family) (string, parse.ParseStats) {
 	p := core.AcquirePooledParser(&prog.sharedProgram)
 	defer p.ReleaseBatchScratch()
 	p.Input = core.NewControlledTextInput(input, unit, true, p.Scratch, nil)
@@ -142,7 +142,7 @@ func TestClosureFamiliesMatchOnCorpus(t *testing.T) {
 			for _, o := range []compile.Options{{}, {DisableMemo: true}} {
 				prog := mustCompile(t, c.Src, o)
 				for _, in := range c.Inputs {
-					for _, u := range []PositionUnit{CodePoints, Bytes} {
+					for _, u := range []parse.PositionUnit{parse.CodePoints, parse.Bytes} {
 						a, as := parseInFamily(prog, in, u, closure.Inlined)
 						b, bs := parseInFamily(prog, in, u, closure.CallPreserving)
 						if a != b || as != bs {
@@ -485,7 +485,7 @@ func TestClosureCoreBuildAllowsReentrantContexts(t *testing.T) {
 	ctx := &buildHookContext{Context: base}
 	ctx.hook = func() error {
 		if ctx.calls == 1 {
-			for _, o := range []ParseOptions{{Context: base}, {Limits: limits.Limits{Compute: limits.Unlimited}}} {
+			for _, o := range []ParseOptions{{Context: base}, {Limits: parse.Limits{Compute: parse.Unlimited}}} {
 				_, err := prog.ParseWith("main", "k3x;k9", o)
 				nested = append(nested, err)
 			}
@@ -535,5 +535,29 @@ func TestClosureCoreBuildContextPanic(t *testing.T) {
 	}
 	if n, err := prog.ParseWith("main", "k1ab,k7", ParseOptions{Context: base}); n == nil || err != nil {
 		t.Fatalf("the parse after the context panic: node=%v err=%v", n, err)
+	}
+}
+
+// TestClosureCoreBuildPanicIsAnError checks that a panic of the Core IR build that is not the
+// context's reaches the first parse and makes the family report an internal error on later use, as a
+// panic of the closures' build does, and that the family counts as returned.
+func TestClosureCoreBuildPanicIsAnError(t *testing.T) {
+	t.Parallel()
+	prog := mustCompile(t, `rule main = "a" $$`)
+	// A rule list with a nil rule makes the Core IR builder panic (compile.Program.CoreInput).
+	prog.coreIR.sp.RuleList = append(prog.coreIR.sp.RuleList, nil)
+	func() {
+		defer func() {
+			if recover() == nil {
+				t.Fatal("the first use did not panic")
+			}
+		}()
+		_, _ = prog.familyRules(closure.Inlined, nil)
+	}()
+	if _, err := prog.familyRules(closure.Inlined, nil); err == nil || !strings.Contains(err.Error(), "was not built") {
+		t.Fatalf("err = %v, want the family not built", err)
+	}
+	if want := len(prog.families) - 1; prog.coreIR.pending != want {
+		t.Fatalf("pending = %d, want %d", prog.coreIR.pending, want)
 	}
 }

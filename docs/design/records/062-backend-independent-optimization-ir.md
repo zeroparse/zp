@@ -419,7 +419,8 @@ parse's context also interrupts the build of the Core IR and its passes, which t
 interruption. The Core IR is built outside every lock, the first module published winning, so a
 context method that parses on the same `Program` cannot deadlock the build. An interrupted build, or
 one that a context method's panic unwinds, leaves neither the Core IR nor the family in the shared `Program`,
-so the next parse that needs the family builds it; the build's duration is part of the first-use cost
+so the next parse that needs the family builds it. Any other panic of the Core IR or closure build is an
+internal error that the family reports from then on; the build's duration is part of the first-use cost
 that [Performance and Results](#performance-and-results) measures. In the budget-controlled program, entering a `Nest` charges at least one step, as a call does, so the
 budget invariants of the [Flow IR specification](../../../spec/flow-ir/invariants.md#budget) hold.
 

@@ -12,6 +12,7 @@ import (
 	"zeroparse.dev/zp/internal/engine/closure"
 	"zeroparse.dev/zp/internal/engine/core"
 	"zeroparse.dev/zp/internal/engine/vm"
+	ir "zeroparse.dev/zp/internal/ir/core"
 	"zeroparse.dev/zp/runtime/parse"
 )
 
@@ -150,8 +151,8 @@ func optionsFamily(o ParseOptions) closure.Family {
 // building them on first use. The build of the Core IR polls the context of c, the parse's budget
 // control (nil for none); if the context ends, familyRules returns its error and leaves the family
 // unbuilt. The build that returns last among those that read the Core IR drops it (closureCore); a
-// build of the closures that panicked counts as returned, since its family only reports an error
-// after.
+// build that panicked, other than by a panic of the parse's context, counts as returned, since its
+// family only reports an error after.
 func (prog *Program) familyRules(f closure.Family, c *core.BudgetControl) ([]*core.Rule, error) {
 	fam := &prog.families[f]
 	if !fam.built.Load() {
@@ -178,7 +179,7 @@ func (prog *Program) buildFamilyRules(fam *closureFamily, f closure.Family, c *c
 	if c != nil {
 		ctx = c.Ctx
 	}
-	m, err := prog.coreIR.module(ctx)
+	m, err := prog.coreModule(fam, f, ctx)
 	if cancelled, ok := err.(buildCancelled); ok {
 		return cancelled.err
 	}
@@ -203,6 +204,27 @@ func (prog *Program) buildFamilyRules(fam *closureFamily, f closure.Family, c *c
 	fam.built.Store(true)
 	prog.coreIR.done()
 	return nil
+}
+
+// coreModule returns the Core IR for the build of the family f (closureCore.module). A panic of the
+// build that is not the parse context's (core.ContextPanic) is recorded on fam as an internal error,
+// as a panic of the closures' build is, and re-raised.
+func (prog *Program) coreModule(fam *closureFamily, f closure.Family, ctx context.Context) (*ir.Module, error) {
+	defer func() {
+		if x := recover(); x != nil {
+			if _, ok := x.(core.ContextPanic); !ok {
+				fam.mu.Lock()
+				if !fam.built.Load() {
+					fam.err = fmt.Errorf("internal error: the closure family %d was not built", f)
+					fam.built.Store(true)
+					prog.coreIR.done()
+				}
+				fam.mu.Unlock()
+			}
+			panic(x)
+		}
+	}()
+	return prog.coreIR.module(ctx)
 }
 
 // closureRule returns the rule the closure backend runs for the rule name in the family f, or nil
