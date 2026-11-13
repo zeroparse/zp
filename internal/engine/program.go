@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"slices"
 	"sync"
-	"sync/atomic"
 
 	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/bytecode"
@@ -25,20 +24,16 @@ type sharedProgram = core.SharedProgram
 // Program is a compiled grammar. It can be used by multiple parses concurrently.
 type Program struct {
 	sharedProgram
-	// buildFamily builds, from the program's Core IR, the rules that the closure backend runs in a
-	// family, by ID (rule.id); it is nil when the closure backend cannot run the program (a program
-	// loaded without its grammar). families holds the rules of each family (closure.Inlined,
+	// buildFamily builds, from the program's Core IR (coreIR), the rules that the closure backend
+	// runs in a family, by ID (rule.id); it is nil when the closure backend cannot run the program (a
+	// program loaded without its grammar). families holds the rules of each family (closure.Inlined,
 	// closure.CallPreserving), built on first use.
 	buildFamily func(*ir.Module, closure.Family) ([]*core.Rule, error)
 	families    [2]closureFamily
-	// coreIR is the Core IR that buildFamily reads. Nothing else reads it, so it is dropped once
-	// every family has been built: unbuilt counts the families whose build has not returned.
-	coreIR  *ir.Module
-	unbuilt atomic.Int32
+	coreIR      *closureCore
 
 	budgetOnce    sync.Once
 	budgetProgram *Program
-	budgetErr     error
 
 	recOnce sync.Once
 	rec     *Program // program that builds no tree (recognizer)
@@ -74,12 +69,71 @@ type closureFamily struct {
 }
 
 // newProgram returns the program that runs the static program sp; buildFamily builds the rules of
-// the closure backend in a family from the Core IR m, or is nil when that backend cannot run sp.
-func newProgram(sp *compile.Program, m *ir.Module, buildFamily func(*ir.Module, closure.Family) ([]*core.Rule, error)) *Program {
-	prog := &Program{buildFamily: buildFamily, coreIR: m}
-	prog.unbuilt.Store(int32(len(prog.families)))
+// the closure backend in a family from the Core IR of c, or is nil when that backend cannot run sp.
+func newProgram(sp *compile.Program, c *closureCore, buildFamily func(*ir.Module, closure.Family) ([]*core.Rule, error)) *Program {
+	prog := &Program{buildFamily: buildFamily, coreIR: c}
 	core.InitSharedProgram(&prog.sharedProgram, sp)
 	return prog
+}
+
+// closureProgram returns the program that runs the static program sp with the closure families
+// built from the Core IR of c; plainDispatch leaves out the budget charge of the loop iterations
+// (closure.Build).
+func closureProgram(sp *compile.Program, c *closureCore, plainDispatch bool) *Program {
+	return newProgram(sp, c, func(m *ir.Module, f closure.Family) ([]*core.Rule, error) {
+		return closure.Build(sp, m, plainDispatch, f)
+	})
+}
+
+// closureCore is the Core IR of the static program sp that the closure families of a program, and
+// of the metered program that runs its parses under budget controls (prepareControlledProgram), are
+// built from. Nothing else reads it, so it is dropped once no family that reads it is left to build:
+// pending counts the families of those programs whose build has not returned. A family that needs it
+// after that builds it again.
+type closureCore struct {
+	sp      *compile.Program
+	mu      sync.Mutex
+	m       *ir.Module
+	pending int
+}
+
+// newClosureCore returns the Core IR m of sp for the closure families of one program.
+func newClosureCore(sp *compile.Program, m *ir.Module) *closureCore {
+	c := &closureCore{sp: sp, m: m}
+	c.share()
+	return c
+}
+
+// share counts the families of one more program that read the Core IR.
+func (c *closureCore) share() {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	c.pending += len(Program{}.families)
+}
+
+// module returns the Core IR for the build of a family, building it if it was dropped; the build
+// calls done when it returns. The closures are built outside the compilation, so no control
+// interrupts this build.
+func (c *closureCore) module() (*ir.Module, error) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	if c.m == nil {
+		m, err := closure.Core(c.sp, nil)
+		if err != nil {
+			return nil, err
+		}
+		c.m = m
+	}
+	return c.m, nil
+}
+
+// done records that the build of a family returned, and drops the Core IR after the last one.
+func (c *closureCore) done() {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	if c.pending--; c.pending == 0 {
+		c.m = nil
+	}
 }
 
 // SourceInfo reports whether the program records source information in its results
@@ -183,7 +237,7 @@ func buildControlled(g *grammar.Grammar, opts compile.Options, flags []compile.R
 	if err != nil {
 		return nil, names.Rewrite(err)
 	}
-	return lower(prog, opts, control)
+	return lower(prog, control)
 }
 
 // compileChecked builds the program of g and checks its declarations of linear cost. The programs
@@ -230,15 +284,12 @@ func CompileContext(ctx context.Context, g *grammar.Grammar, opts Options) (prog
 }
 
 // lower builds the closure backend's form of the checked program prog from its Core IR.
-func lower(prog *compile.Program, opts compile.Options, control *cancel.Control) (*Program, error) {
+func lower(prog *compile.Program, control *cancel.Control) (*Program, error) {
 	m, err := closure.Core(prog, control)
 	if err != nil {
 		return nil, err
 	}
 	// The closures of each family are built from m on first use, inside the parse that needs them
 	// and outside the compilation and its control (Build only reads m).
-	plainDispatch := !opts.ControlledDispatch
-	return newProgram(prog, m, func(m *ir.Module, f closure.Family) ([]*core.Rule, error) {
-		return closure.Build(prog, m, plainDispatch, f)
-	}), nil
+	return closureProgram(prog, newClosureCore(prog, m), true), nil
 }

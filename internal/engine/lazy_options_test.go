@@ -14,16 +14,15 @@ import (
 // compile.Options, for the controlled graph and for the recognizer. Every other option must be the
 // program's own.
 var lazyOverrides = map[string]struct{ controlled, recognizer *bool }{
-	"ControlledDispatch": {controlled: ptr(true), recognizer: ptr(false)},
-	"Recognize":          {recognizer: ptr(true)},
-	"Recognizer":         {recognizer: ptr(true)},
+	"Recognize":  {recognizer: ptr(true)},
+	"Recognizer": {recognizer: ptr(true)},
 }
 
 func ptr[T any](v T) *T { return &v }
 
 // TestLazyProgramsCarryEveryOption compiles a program with each compile option on in turn, builds
 // its controlled closure graph and its recognizer, and checks that each option reaches both, except
-// the three that the build sets itself. A new option fails the test until it is carried or listed in
+// those that the build sets itself. A new option fails the test until it is carried or listed in
 // lazyOverrides.
 func TestLazyProgramsCarryEveryOption(t *testing.T) {
 	if !core.BudgetControlsEnabled {

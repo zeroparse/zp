@@ -16,8 +16,8 @@ import (
 type Builder struct {
 	prog *compile.Program
 	m    *ir.Module
-	// plainDispatch leaves out the budget charge of the loop iterations (Options.ControlledDispatch
-	// builds the metered closure graph).
+	// plainDispatch leaves out the budget charge of the loop iterations; without it the builder
+	// builds the metered closure graph.
 	plainDispatch bool
 	// family is the rule set being built, which decides how the call sites call plain rules.
 	family Family

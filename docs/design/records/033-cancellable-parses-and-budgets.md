@@ -173,9 +173,9 @@ Later controlled invocations reuse it; ordinary invocations continue to use the
 plain program. Bytecode backends use their existing invocation-control path and
 do not build a second closure program.
 
-The controlled program is derived from the same validated grammar and preserves
-rule metadata needed by the original program. It does not mutate or replace the
-plain graph. A controlled Document parse selects the controlled program before
+The controlled program runs the same checked program as the original, so it
+keeps all of its rule metadata, and builds its closure graphs from the same Core
+IR; only the closures differ. It does not mutate or replace the plain graph. A controlled Document parse selects the controlled program before
 execution and retains the existing Document rule/run-site/description identity
 used by its caches. Cache identity and retry behavior remain correctness
 requirements.

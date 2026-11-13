@@ -193,9 +193,8 @@ func TestLoweringWalksAsChecking(t *testing.T) {
 			}
 			continue
 		}
-		// The engine's recognizer, budget-controlled and insertion programs.
+		// The engine's recognizer and insertion programs.
 		lower(name, g, Options{Recognize: true, Recognizer: true}, prog.Flags())
-		lower(name, g, Options{ControlledDispatch: true}, prog.Flags())
 		if prog.InsertionFlags != nil {
 			insertion++
 			lower(name, g, Options{}, prog.InsertionFlags)

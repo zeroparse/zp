@@ -109,8 +109,6 @@ type Options struct {
 	// decide the match, and the rules that make the values predicates read keep their actions and
 	// types (defaultValueGrammar).
 	DefaultValue bool
-	// ControlledDispatch builds only the metered closure graph for lazy budget setup.
-	ControlledDispatch bool
 	// Recognize builds a program that only checks whether the input conforms to the grammar, without
 	// building a tree (the engine's Program.Recognizer).
 	Recognize bool

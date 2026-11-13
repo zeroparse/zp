@@ -308,20 +308,20 @@ func TestClosureFamilyBuildPanicIsAnError(t *testing.T) {
 func TestClosureFamiliesReleaseTheCoreIR(t *testing.T) {
 	prog := mustCompile(t, `rule main = item+ $$
 rule item = "a" / "b"`)
-	if prog.coreIR == nil {
+	if prog.coreIR.m == nil {
 		t.Fatal("the compiled program holds no Core IR")
 	}
-	module := weak.Make(prog.coreIR)
+	module := weak.Make(prog.coreIR.m)
 	if _, err := prog.familyRules(closure.Inlined); err != nil {
 		t.Fatal(err)
 	}
-	if prog.coreIR == nil {
+	if prog.coreIR.m == nil {
 		t.Fatal("the Core IR was dropped while the call-preserving family was not built")
 	}
 	if _, err := prog.familyRules(closure.CallPreserving); err != nil {
 		t.Fatal(err)
 	}
-	if prog.coreIR != nil {
+	if prog.coreIR.m != nil {
 		t.Fatal("the Core IR is kept after both families were built")
 	}
 	runtime.GC()
@@ -334,4 +334,56 @@ rule item = "a" / "b"`)
 		}
 	}
 	runtime.KeepAlive(prog)
+}
+
+// TestMeteredProgramSharesTheCoreIR checks that the metered program of a program runs the same
+// static program and builds its closure families from the same Core IR, which stays until the
+// families of both programs are built, and that a metered program made after the release builds
+// the Core IR again.
+func TestMeteredProgramSharesTheCoreIR(t *testing.T) {
+	if !core.BudgetControlsEnabled {
+		t.Skip("budget controls are unavailable in the reference build")
+	}
+	const src = "rule main = item+ $$\nrule item = \"a\" / \"b\""
+	prog := mustCompile(t, src)
+	m := prog.coreIR.m
+	metered := prog.meteredProgram()
+	if metered.Static() != prog.Static() || metered.coreIR != prog.coreIR {
+		t.Fatal("the metered program does not share the static program and the Core IR")
+	}
+	for _, q := range []*Program{prog, metered} {
+		for _, f := range []closure.Family{closure.Inlined, closure.CallPreserving} {
+			if q == metered && f == closure.CallPreserving {
+				if prog.coreIR.m != m {
+					t.Fatal("the Core IR was dropped or built again while a family was not built")
+				}
+			}
+			if _, err := q.familyRules(f); err != nil {
+				t.Fatal(err)
+			}
+		}
+	}
+	if prog.coreIR.m != nil {
+		t.Fatal("the Core IR is kept after the families of both programs were built")
+	}
+	if a, b := prog.families[closure.Inlined].rules, metered.families[closure.Inlined].rules; len(a) == 0 || &a[0] == &b[0] {
+		t.Fatal("the metered program runs the rules of the plain one")
+	}
+
+	late := mustCompile(t, src)
+	for _, f := range []closure.Family{closure.Inlined, closure.CallPreserving} {
+		if _, err := late.familyRules(f); err != nil {
+			t.Fatal(err)
+		}
+	}
+	lateMetered := late.meteredProgram()
+	if _, err := lateMetered.familyRules(closure.Inlined); err != nil {
+		t.Fatal(err)
+	}
+	if late.coreIR.m == nil {
+		t.Fatal("the metered program made after the release did not build the Core IR again")
+	}
+	if _, err := lateMetered.ParseWith("main", "ab", ParseOptions{Backend: Closure}); err != nil {
+		t.Fatal(err)
+	}
 }

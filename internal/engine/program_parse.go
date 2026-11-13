@@ -96,7 +96,7 @@ func (prog *Program) Recognizer() (*Program, error) {
 		}
 		flags := prog.Static().Flags()
 		prog.rec, prog.recErr = build(prog.SourceGrammar(), prog.lazyOptions(func(o *compile.Options) {
-			o.Recognize, o.Recognizer, o.ControlledDispatch = true, true, false
+			o.Recognize, o.Recognizer = true, true
 		}), flags)
 	})
 	return prog.rec, prog.recErr
@@ -146,8 +146,9 @@ func optionsFamily(o ParseOptions) closure.Family {
 }
 
 // familyRules returns the rules that the closure backend runs in the family f, by ID (rule.id),
-// building them on first use. The build that returns last drops the Core IR, which no later build
-// reads; a build that panicked counts as returned, since its family only reports an error after.
+// building them on first use. The build that returns last among those that read the Core IR drops
+// it (closureCore); a build that panicked counts as returned, since its family only reports an
+// error after.
 func (prog *Program) familyRules(f closure.Family) ([]*core.Rule, error) {
 	fam := &prog.families[f]
 	fam.once.Do(func() {
@@ -155,14 +156,13 @@ func (prog *Program) familyRules(f closure.Family) ([]*core.Rule, error) {
 			fam.err = errClosureNeedsSource
 			return
 		}
-		// Every build reads coreIR before its own decrement, and each family builds once, so
-		// the decrement that reaches zero follows every read.
-		defer func() {
-			if prog.unbuilt.Add(-1) == 0 {
-				prog.coreIR = nil
-			}
-		}()
-		fam.rules, fam.err = prog.buildFamily(prog.coreIR, f)
+		defer prog.coreIR.done()
+		m, err := prog.coreIR.module()
+		if err != nil {
+			fam.err, fam.done = err, true
+			return
+		}
+		fam.rules, fam.err = prog.buildFamily(m, f)
 		fam.done = true
 	})
 	if !fam.done {
@@ -439,7 +439,7 @@ func (prog *Program) admitMissing(o ParseOptions, stream bool) error {
 }
 
 // lazyOptions returns the options for a program that is built later from the grammar of prog (the
-// controlled closure graph, the recognizer): the options prog was compiled with, changed by derive
+// recognizer, the program of missing-token insertion): the options prog was compiled with, changed by derive
 // for what the build is for. This is the one place that makes them, so no option of prog is
 // dropped from a lazily built program (TestLazyProgramsCarryEveryOption).
 func (prog *Program) lazyOptions(derive func(*compile.Options)) compile.Options {

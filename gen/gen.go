@@ -325,7 +325,7 @@ func compileForGenerator(g *grammar.Grammar, opts compile.Options) (*compile.Pro
 			source = prog.Source
 		}
 		o := prog.Opts
-		o.Recognize, o.Recognizer, o.ControlledDispatch = true, true, false
+		o.Recognize, o.Recognizer = true, true
 		return check(source, o, prog.Flags())
 	}
 	return prog, recognizer, nil

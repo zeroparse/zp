@@ -3,7 +3,6 @@ package engine
 import (
 	"fmt"
 
-	"zeroparse.dev/zp/internal/compile"
 	"zeroparse.dev/zp/internal/engine/closure"
 	"zeroparse.dev/zp/internal/engine/core"
 	"zeroparse.dev/zp/internal/engine/vm"
@@ -148,24 +147,29 @@ func (prog *Program) prepareControlledRule(b Backend, name string, f closure.Fam
 	return prog.rule(b, name, f)
 }
 
-// prepareControlledProgram builds the metered closure graph only when needed.
-// Context methods stay outside Once so reentrant calls cannot deadlock setup.
+// prepareControlledProgram returns the program that runs the closure parses under the budget
+// control c: the metered program (meteredProgram), made on first use. Context methods stay outside
+// Once so reentrant calls cannot deadlock setup.
 func (prog *Program) prepareControlledProgram(b Backend, c *core.BudgetControl) (*Program, error) {
 	if !core.BudgetControlsEnabled || c == nil || prog.backend(b) != Closure {
 		return prog, nil
 	}
 	c.Check()
-	prog.budgetOnce.Do(func() {
-		flags := prog.Static().Flags()
-		// The grammar as written: lowering its inline actions again names them in messages as
-		// the program that was compiled first does.
-		prog.budgetProgram, prog.budgetErr = build(prog.SourceGrammar(), prog.lazyOptions(func(o *compile.Options) {
-			o.ControlledDispatch = true
-		}), flags)
-	})
+	prog.budgetOnce.Do(func() { prog.budgetProgram = prog.meteredProgram() })
 	c.Check()
-	if prog.budgetProgram == nil && prog.budgetErr == nil {
+	if prog.budgetProgram == nil {
 		return nil, fmt.Errorf("controlled closure initialization did not complete")
 	}
-	return prog.budgetProgram, prog.budgetErr
+	return prog.budgetProgram, nil
+}
+
+// meteredProgram returns the program that runs prog's static program with the metered closure
+// graph, whose loops charge the budget for each iteration: its closure families are built from the
+// Core IR of prog's, which it shares.
+func (prog *Program) meteredProgram() *Program {
+	if prog.buildFamily == nil {
+		return newProgram(prog.Static(), nil, nil)
+	}
+	prog.coreIR.share()
+	return closureProgram(prog.Static(), prog.coreIR, false)
 }
