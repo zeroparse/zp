@@ -618,8 +618,9 @@ func BenchmarkStream(b *testing.B) {
 	})
 }
 
-// BenchmarkPrepare compares compiling a grammar from source with loading a compiled grammar of each mode,
-// including backend setup on the first parse after loading.
+// BenchmarkPrepare compares compiling a grammar from source, alone and with the first parse on the
+// default backend, with loading a compiled grammar of each mode, including backend setup on the
+// first parse after loading.
 func BenchmarkPrepare(b *testing.B) {
 	for _, path := range []string{"../testdata/grammars/json/json.zp", "../examples/minilang/minilang.zp"} {
 		name := strings.TrimSuffix(path[strings.LastIndex(path, "/")+1:], ".zp")
@@ -636,6 +637,26 @@ func BenchmarkPrepare(b *testing.B) {
 				}
 			}
 		})
+		// The first parse after compiling from source builds the backend of the parse, which a
+		// compiled grammar of the matching mode builds when it is loaded.
+		for _, c := range []struct {
+			name string
+			opts []zp.ParseOption
+		}{
+			{"parse", nil},
+			{"document", []zp.ParseOption{zp.WithTrace(func(zp.TraceEvent) {})}},
+		} {
+			b.Run(name+"/first/"+c.name, func(b *testing.B) {
+				b.ReportAllocs()
+				for b.Loop() {
+					cp, err := zp.CompileSource(string(src), "main")
+					if err != nil {
+						b.Fatal(err)
+					}
+					cp.Parse("", c.opts...) // set up the backend (the parse may fail)
+				}
+			})
+		}
 		for _, c := range []struct {
 			mode zp.CompiledMode
 			opts []zp.ParseOption // a parse the mode serves
