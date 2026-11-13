@@ -61,6 +61,9 @@ func TestCostViewMatchesCases(t *testing.T) {
 	for _, c := range valueShapeCases {
 		srcs = append(srcs, c.src+"\n")
 	}
+	for _, c := range conditionEdgeCases {
+		srcs = append(srcs, c.src+"\n")
+	}
 	compared := 0
 	seen := map[complexity.Law]int{}
 	for _, src := range srcs {

@@ -1,6 +1,7 @@
 package compile
 
 import (
+	"maps"
 	"slices"
 	"sync"
 	"testing"
@@ -626,4 +627,60 @@ var valueShapeCases = []struct {
 	{name: "a recovery of a sequence that always succeeds in an unread capture is dropped",
 		src:  "rule main = x:(\"q\" (\"a\"? \"b\"?) #recover(skip=\"z\")) {true}",
 		want: map[string]string{"main": `x:("q" "a"? "b"?) {true}`}},
+}
+
+// TestNormalViewConditionEdges checks grammars at the edges of the conditions of the rewrites:
+// where a condition holds only through a fact that the expression does not show (an equal
+// alternative written as a sequence of one item, a call of the loosest level, a rule that is cheap
+// only once the rules that it calls are), or fails only through one (a stream in an inlined body,
+// a value that a predicate reads through a call). Each grammar is valid.
+func TestNormalViewConditionEdges(t *testing.T) {
+	for _, c := range conditionEdgeCases {
+		t.Run(c.name, func(t *testing.T) {
+			got, applied := viewBodies(t, c.src+"\n", c.opts)
+			for name, want := range c.want {
+				if got[name] != want {
+					t.Errorf("view of rule %s = %s, want %s", name, got[name], want)
+				}
+			}
+			if !maps.Equal(applied, c.applied) {
+				t.Errorf("rewrites %v, want %v", applied, c.applied)
+			}
+		})
+	}
+}
+
+// matchingView is the view of matching: labels dropped and calls inlined.
+var matchingView = viewOptions{labels: true, inline: true}
+
+const conditionEdgeOperators = "\nrule o = e\nrule e = #operators {\n  operand num\n  level sum { infix left \"+\" }\n  level mul { infix left \"*\" }\n}\nrule num = \"n\""
+
+// conditionEdgeCases are the cases of TestNormalViewConditionEdges.
+var conditionEdgeCases = []struct {
+	name    string
+	src     string
+	opts    viewOptions
+	want    map[string]string
+	applied map[viewRule]int
+}{
+	{name: "repetitions merge before a later repetition of a sequence",
+		src: "@start\nrule main = \"x\" \"x\"* \"x\"* (\"y\" \"x\"*)*", opts: costView,
+		want:    map[string]string{"main": `"x"+ ("y" "x"*)*`},
+		applied: map[viewRule]int{ruleN9: 2}},
+	{name: "a rule is cheap once the rules that it calls are",
+		src: "@start\nrule main = (a*)* \"z\"\nrule a = b \"q\"\nrule b = \"p\"", opts: costView,
+		want:    map[string]string{"main": `a* "z"`},
+		applied: map[viewRule]int{ruleN10: 1}},
+	{name: "a call of a rule that calls a cheap rule is factored",
+		src: "@start\nrule main = a \"x\" / a \"y\"\nrule a = b \"q\"\nrule b = \"p\"", opts: costView,
+		want:    map[string]string{"main": `a [x-y]`},
+		applied: map[viewRule]int{ruleN12: 1, ruleN8: 1}},
+	{name: "a call of a tighter level is not factored",
+		src: "@start\nrule main = level(e, mul) \"x\" / level(e, mul) \"y\" / o" + conditionEdgeOperators, opts: costView,
+		want:    map[string]string{"main": `level(e, mul) "x" / level(e, mul) "y" / o`},
+		applied: map[viewRule]int{}},
+	{name: "an inlined body is rewritten again at each call",
+		src: "@start\nrule main = t \";\" t \";\" c\nrule c = x:t {len(text($x)) > 0}\nrule t = \"a\" (\"b\" \"b\"*)", opts: matchingView,
+		want:    map[string]string{"main": `"a" "b"+ ";" "a" "b"+ ";" c`, "c": `x:t {len(text($x)) > 0}`},
+		applied: map[viewRule]int{ruleN1: 4, ruleN13: 2, ruleN9: 2}},
 }
