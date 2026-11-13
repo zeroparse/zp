@@ -74,6 +74,7 @@ func GenerateRaw(t testing.TB, g *grammar.Grammar, opts gen.GenOptions) ([]gen.G
 		t.Fatal("gentest.Compile is not set: the test package must set it before generating")
 	}
 	opts.VerifyEachPass = true
+	opts = WithRuntime(opts)
 	if opts.Runtime == gen.RuntimeOnly {
 		return gengo.Generate(g, Compile, opts)
 	}

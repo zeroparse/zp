@@ -173,6 +173,7 @@ func (c Go) Generate(g *grammar.Grammar, start string) ([]File, error) {
 		Package:        c.PackageName,
 		Start:          start,
 		Runtime:        runtime,
+		RuntimeSource:  runtimeSource,
 		Types:          c.Types,
 		DefaultValue:   c.DefaultValue,
 		SourceInfo:     c.SourceInfo,
@@ -198,7 +199,7 @@ func (c Go) Generate(g *grammar.Grammar, start string) ([]File, error) {
 // path c.Module, to refresh a parser generated with RuntimeEmbed without regenerating it. The
 // other settings are not used.
 func (c Go) GenerateRuntime() ([]File, error) {
-	return gengo.Generate(nil, compileForGenerator, gen.GenOptions{Module: c.Module, Runtime: gen.RuntimeOnly})
+	return gengo.Generate(nil, compileForGenerator, gen.GenOptions{Module: c.Module, Runtime: gen.RuntimeOnly, RuntimeSource: runtimeSource})
 }
 
 // TypeScript configures the generation of a TypeScript parser. The zero value generates an
@@ -350,10 +351,11 @@ func check(g *grammar.Grammar, opts compile.Options, flags []compile.RuleFlags) 
 //go:embed _runtime/*.go
 var runtimeFiles embed.FS
 
-func init() {
+// runtimeSource is the embedded copy of the runtime, which Go generation gives to the generator.
+var runtimeSource = func() fs.FS {
 	sub, err := fs.Sub(runtimeFiles, "_runtime")
 	if err != nil {
 		panic(err)
 	}
-	gengo.SetRuntimeSource(sub)
-}
+	return sub
+}()

@@ -65,7 +65,7 @@ func TestCorePipelineVerifiesEveryPass(t *testing.T) {
 				var g *gengo.Generator
 				opts := mode.opts
 				opts.Module = "example.com/p"
-				if _, err := gengo.GenerateParser(pg, gentest.Compile, opts, &gengo.Hooks{Generator: func(x *gengo.Generator) { g = x }}); err != nil || g == nil {
+				if _, err := gengo.GenerateParser(pg, gentest.Compile, gentest.WithRuntime(opts), &gengo.Hooks{Generator: func(x *gengo.Generator) { g = x }}); err != nil || g == nil {
 					return
 				}
 				want, err := pipelinedTypedCore(g, false)

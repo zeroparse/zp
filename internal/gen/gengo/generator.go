@@ -45,7 +45,7 @@ func defaultPackageName(module string) string {
 // exactly like the engine. Without opts.Stream, #stream is a plain repetition.
 func Generate(g *grammar.Grammar, c gen.Compiler, opts gen.GenOptions) ([]gen.GeneratedFile, error) {
 	if opts.Runtime == gen.RuntimeOnly {
-		return runtimeFiles()
+		return runtimeFiles(opts)
 	}
 	return GenerateParser(g, c, opts, nil)
 }
@@ -169,7 +169,7 @@ func generateOnce(g *grammar.Grammar, c gen.Compiler, opts gen.GenOptions, h *Ho
 	if collect == nil {
 		printAfter, _ = opt.ParsePrintAfter(opts.PrintAfter)
 	}
-	info, err := loadRuntime()
+	info, err := loadRuntime(opts)
 	if err != nil {
 		return nil, err
 	}
@@ -430,7 +430,7 @@ func ParseRule(name, input string, opts ...ParseOption) (*Node, error) {
 		files = append(files, gen.GeneratedFile{Path: "types/types.go", Content: typesFile})
 	}
 	if opts.Runtime == gen.RuntimeEmbed {
-		rt, err := runtimeFiles()
+		rt, err := runtimeFiles(opts)
 		if err != nil {
 			return nil, err
 		}

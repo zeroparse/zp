@@ -25,7 +25,7 @@ func execGenerate(src string, opts gen.GenOptions) (string, map[string]int, int,
 	var all []*gengo.Generator
 	h := &gengo.Hooks{Generator: func(x *gengo.Generator) { last = x; all = append(all, x) }}
 	opts.Module, opts.KeepComments = "example.com/p", true
-	files, err := gengo.GenerateParser(g, compileForGenerator, opts, h)
+	files, err := gengo.GenerateParser(g, compileForGenerator, gentest.WithRuntime(opts), h)
 	if err != nil {
 		return "", nil, 0, false
 	}

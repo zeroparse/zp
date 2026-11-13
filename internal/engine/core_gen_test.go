@@ -87,7 +87,7 @@ func coreGenerate(src string, opts gen.GenOptions) (*gengo.Generator, bool) {
 	var gen *gengo.Generator
 	h := &gengo.Hooks{Generator: func(x *gengo.Generator) { gen = x }}
 	opts.Module = "example.com/p"
-	if _, err := gengo.GenerateParser(g, compileForGenerator, opts, h); err != nil || gen == nil {
+	if _, err := gengo.GenerateParser(g, compileForGenerator, gentest.WithRuntime(opts), h); err != nil || gen == nil {
 		return nil, false
 	}
 	return gen, true
