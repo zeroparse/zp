@@ -2,6 +2,8 @@
 
 package document
 
+import "zeroparse.dev/zp/internal/engine/core"
+
 const snapshotPositionOverlayEnabled = true
 
 // SnapshotNode is a comparable read-only handle. Its zero value denotes nil.
@@ -49,10 +51,10 @@ func (g *snapshotGraph) position(i int, r *snapshotRecord) snapshotPosition {
 	return snapshotPosition{r.start, r.end, r.gen}
 }
 
-func (g *snapshotGraph) setPositions(p *parser, next *snapshotGraph) {
+func (g *snapshotGraph) setPositions(p *core.Parser, next *snapshotGraph) {
 	g.positions = make([]snapshotPositionDelta, len(next.nodes))
 	for i := range next.nodes {
-		p.spendValue(3)
+		p.SpendValue(3)
 		delta, fits := relativeSnapshotPosition(g.refs[i], next.position(i, &next.nodes[i]))
 		if !fits {
 			panic("snapshot position delta invariant")
