@@ -611,10 +611,11 @@ parser would read differently:
 - after stopping a repetition or skipping an optional expression, the element must not match there (repetitions are
   greedy);
 - `!e` must not match; for `&e`, a text for `e` is generated and the input must continue with it;
-- predicates are evaluated as the parser evaluates them, on the values that the generated text gives: captures with
+- predicates are evaluated as the parser evaluates them where the generator knows the values that the generated text gives: captures with
   their text and positions, the elements of repetitions and the captures of rule nodes and iterations, variables,
   built-in functions, operators and casts, so indentation (as in [examples/outline](../../examples/outline/outline.zp)) and matching tags (as in
-  [alpha-parsers/xml](../../testdata/grammars/xml/xml.zp)) work;
+  [alpha-parsers/xml](../../testdata/grammars/xml/xml.zp)) work. The node of a rule declared with a named node
+  type has a type that the generator does not model, so a cast to that type stays undecided and the parser decides;
 - Operators Rule expressions are generated as chains of operands and operators, avoiding chains of `infix none` operators,
   with the outer infix/postfix tail filtered by level-restricted calls. Prefixes remain available at every operand
   position, including prefixes below the entry level. Their right operands can use operators tighter than the
