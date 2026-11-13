@@ -70,9 +70,53 @@ func formatRules(rules []*grammar.RuleDef) string {
 	return b.String()
 }
 
+// innerAttrNodes returns the nodes of the module that the attributes of an expression of several
+// attributes are built into, below the outermost one, which has the expression as its origin: one
+// node per attribute, a Label for @error and @diagnostic, a Recover for #recover and a Missing for
+// #missing, and the Stream of the repetition for #stream.
+func innerAttrNodes(cs *compile.CostSource) map[core.Node]bool {
+	inner := map[core.Node]bool{}
+	for _, r := range cs.Module.Rules {
+		core.Walk(r.Body, func(n core.Node) {
+			e, ok := cs.Origin[n].(*grammar.Attributed)
+			if !ok || len(e.Attrs) < 2 {
+				return
+			}
+			operand := func(x core.Node) core.Node {
+				switch x := x.(type) {
+				case *core.Label:
+					return x.Body
+				case *core.Recover:
+					return x.Body
+				case *core.Missing:
+					return x.Lit
+				case *core.Stream:
+					return x.Repeat
+				}
+				return nil
+			}
+			x := n
+			for i := len(e.Attrs) - 1; i >= 0 && x != nil; i-- {
+				if e.Attrs[i].Name == "stream" {
+					continue
+				}
+				if x != n {
+					inner[x] = true
+				}
+				x = operand(x)
+			}
+			if _, ok := x.(*core.Stream); ok && x != n {
+				inner[x] = true
+			}
+		})
+	}
+	return inner
+}
+
 // TestViewOrigins checks that the module a view is built from gives back the rules it is built
-// from: every node has an origin, so a rewrite keeps the expression of every node it does not
-// change, and a view that rewrites nothing writes the rules as they are.
+// from: every node has an origin but the inner nodes of an expression of several attributes
+// (innerAttrNodes), so a rewrite keeps the expression of every node it does not change, and a
+// view that rewrites nothing writes the rules as they are.
 func TestViewOrigins(t *testing.T) {
 	srcs := corpus(t)
 	paths := make([]string, 0, len(srcs))
@@ -84,9 +128,10 @@ func TestViewOrigins(t *testing.T) {
 	for _, p := range paths {
 		t.Run(p, func(t *testing.T) {
 			cs := sourceOf(t, srcs[p])
+			inner := innerAttrNodes(cs)
 			for _, r := range cs.Module.Rules {
 				core.Walk(r.Body, func(n core.Node) {
-					if _, ok := cs.Origin[n]; !ok {
+					if _, ok := cs.Origin[n]; !ok && !inner[n] {
 						missing[fmt.Sprintf("%T", n)]++
 					}
 				})

@@ -66,6 +66,9 @@ type View struct {
 	// replaces gives, for a node that the view builds by giving a node new parts, the node of the
 	// module that it replaces (Grammar). A node that the view builds has no attributes.
 	replaces map[core.Node]core.Node
+	// chains gives, for each node of the module that one attribute of an expression of several
+	// attributes is built into, its place in that expression (attrChains).
+	chains map[core.Node]chainLink
 }
 
 // Build returns the view of src with opts. Until the complexity classifier reads it, the
@@ -74,7 +77,7 @@ func Build(src *Source, opts Options, control *cancel.Control) *View {
 	m := *src.Module
 	m.Rules = make([]*core.Rule, len(src.Module.Rules))
 	v := &View{Module: &m, Origin: src.Origin, Text: map[core.Node]string{}, Applied: map[Law]int{},
-		replaces: map[core.Node]core.Node{}}
+		replaces: map[core.Node]core.Node{}, chains: attrChains(src)}
 	b := &builder{src: src, opts: opts, control: control, view: v, orig: map[core.Node]bool{},
 		values: valueReaders(src.Module)}
 	for _, r := range src.Module.Rules {
