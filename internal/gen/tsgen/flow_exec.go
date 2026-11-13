@@ -45,6 +45,7 @@ func (g *Generator) printTSFlowExec(f *flow.Func) (string, []string, []tsDecl) {
 	if err != nil {
 		panic(fmt.Errorf("rule %s of table %s: %w", f.Name, g.Table, err))
 	}
+	g.ExecPasses(l)
 	g.ExecFuncs++
 	tsRuns(l)
 	vars := map[string]*flow.Var{}

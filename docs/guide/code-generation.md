@@ -202,7 +202,7 @@ zp gen -runtime only -o <directory> [-lang go|ts]
 | `-optimize` | `speed` | The optimization profile (see [Optimizations](#optimizations)). `speed`, `memory` or `size`; any other name is an error that lists the valid ones |
 | `-opt` | none | Optimizations to give a value after the profile is applied and before `-no-opt`, separated by commas, as `name` or `name=count`: a name alone turns on an optimization that the profile leaves off (`-opt ts-literal-sharing`), a count sets an integer one (`-opt class-tables=3`), and `0` turns one off. An unknown name, a count that is not a number, or a value that the optimization does not take is an error |
 | `-no-opt` | none | Optimizations to turn off after the profile is applied, separated by commas (names in [Optimizations](#optimizations)). A name that is unknown is an error; a known name that does not apply to the parser being generated does nothing |
-| `-print-after` | none | Write the intermediate representation that the generator builds to standard error, as text, after the named steps and passes, separated by commas: `build`, a Core pass name, `flow`, a Flow pass name, or `all` (see [Optimizations](#optimizations)); a pass that does not apply to the parser prints nothing |
+| `-print-after` | none | Write the intermediate representation that the generator builds to standard error, as text, after the named steps and passes, separated by commas: `build`, a Core pass name, `flow`, a Flow pass name, `exec`, an Exec pass name, or `all` (see [Optimizations](#optimizations)); a pass that does not apply to the parser prints nothing |
 
 Details:
 
@@ -290,7 +290,7 @@ six language grammars.
 
 ### Optimizations
 
-The generator optimizes what it emits. The contract of the options (the order in which they apply, their values, and the guarantee that none changes what a parser returns) is in [Optimization Options](../../spec/runtime/generated-parsers.md#optimization-options); this section lists the optimizations. Each optimization is a flag with a name. A profile is a preset: a name for fixed
+The generator optimizes what it emits. The contract of the optimization settings (the order in which they apply, their values, and the guarantee that none changes what a parser returns) is in [Optimization Settings](../../spec/runtime/generated-parsers.md#optimization-settings); this section lists the optimizations. Each optimization is a flag with a name. A profile is a preset: a name for fixed
 values of flags, with no logic of its own. The `speed` profile, the default, has every flag on except the opt-ins named
 below (`ts-literal-sharing` and `class-tables`). `-opt` sets a flag, and `-no-opt` turns flags off after the profile and `-opt` are applied, so `-no-opt` wins.
 A flag keeps what the parser returns, the same results, errors and events, and changes the code, the speed and the size.
@@ -343,7 +343,9 @@ parser (the lean passes in a parser with limit controls, for example) prints not
 writes the output prints, and the text starts with `-- Core IR of the <table> after <pass> --`, where `<table>` is
 `typed` for the typed rules, and `rules` or `recRules` for the untyped and recognizer tables. `-print-after flow` shows
 the next form: each function that the parser is printed from, in Flow IR, as lowered from the Core IR, under
-`-- Flow IR of <function> in the <table> table after flow --`; the passes over Flow IR print under their own names.
+`-- Flow IR of <function> in the <table> table after flow --`, and `-print-after exec` the form after that, Exec IR,
+under `-- Exec IR of <function> in the <table> table after exec --`; the passes over Flow IR and Exec IR print under
+their own names.
 
 ### From Go
 

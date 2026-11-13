@@ -21,7 +21,7 @@ and from direct line-body inlining.
 ## Reference Control
 
 No line-elision-only same-source control is maintained. Typed Go output has no
-generation option for the `leanLine` value decision; it is compared with the
+optimization setting for the `leanLine` value decision; it is compared with the
 engine oracle in the `internal/engine` tests.
 
 ## Evidence and Implementation

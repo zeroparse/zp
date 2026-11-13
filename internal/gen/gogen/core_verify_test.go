@@ -9,6 +9,7 @@ import (
 	"zeroparse.dev/zp/internal/gen/gogen"
 	"zeroparse.dev/zp/internal/gentest"
 	"zeroparse.dev/zp/internal/ir/core"
+	"zeroparse.dev/zp/internal/ir/exec"
 	"zeroparse.dev/zp/internal/ir/pipeline"
 )
 
@@ -137,6 +138,38 @@ rule num = [0-9]+
 	}
 }
 
+// Every function that the generator prints from Exec IR runs through the Exec pipeline, in each
+// table, and an Exec pass that breaks a module is caught by the Exec verifier: at the end of the run
+// without VerifyEachPass, and by name right after the pass with it.
+func TestVerifyEachPassNamesTheBreakingExecPass(t *testing.T) {
+	pg, err := parseTest(`rule main = (word / num / -" ")* $$
+rule word = "if" / "else" / [a-z]+
+rule num = [0-9]+
+`)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, c := range pipelineTables {
+		t.Run(c.table, func(t *testing.T) {
+			seen := 0
+			hooks := &gogen.Hooks{ExecRun: gentest.BrokenExecRun(c.table, &seen)}
+			opts := c.opts
+			_, err := gogen.GenerateParser(pg, gentest.Compile, opts, hooks)
+			if err == nil || !strings.Contains(err.Error(), "of table "+c.table+": ") || !strings.Contains(err.Error(), "verification:") || strings.Contains(err.Error(), "break-exec") {
+				t.Fatalf("without VerifyEachPass: %v", err)
+			}
+			if seen == 0 {
+				t.Fatal("no module ran through the Exec pipeline")
+			}
+			opts.VerifyEachPass = true
+			_, err = gogen.GenerateParser(pg, gentest.Compile, opts, hooks)
+			if err == nil || !strings.Contains(err.Error(), "of table "+c.table+": ") || !strings.Contains(err.Error(), "after pass break-exec:") {
+				t.Fatalf("with VerifyEachPass: %v", err)
+			}
+		})
+	}
+}
+
 // A request to print the Core IR needs a writer to print to.
 func TestPrintAfterNeedsAWriter(t *testing.T) {
 	pg, err := parseTest("rule main = [a-z]+ $$\n")
@@ -146,5 +179,44 @@ func TestPrintAfterNeedsAWriter(t *testing.T) {
 	opts := gen.GenOptions{Types: true, TypedOnly: true, Module: "example.com/p", Runtime: gen.RuntimeImport, PrintAfter: "guards"}
 	if _, err := gogen.GenerateParser(pg, gentest.Compile, opts, nil); err == nil || !strings.Contains(err.Error(), "PrintTo") {
 		t.Fatalf("err %v", err)
+	}
+}
+
+// An Exec pass keeps the function that the lowering made and the locals of the Flow IR function in
+// it, which the printers print: a pass that replaces the function or drops such a local fails the
+// generation, though the module it leaves is well formed.
+func TestExecPassKeepsTheLoweredFunction(t *testing.T) {
+	pg, err := parseTest(`rule main = (word / num / -" ")* $$
+rule word = "if" / "else" / [a-z]+
+rule num = [0-9]+
+`)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, c := range []struct {
+		name, want string
+		run        func(m *exec.Module)
+	}{
+		{"replace", "replaced or removed the function", func(m *exec.Module) {
+			f := *m.Funcs[0]
+			m.Funcs[0] = &f
+		}},
+		{"drop local", "removed the local", func(m *exec.Module) {
+			for _, f := range m.Funcs {
+				f.Locals = nil
+			}
+		}},
+	} {
+		t.Run(c.name, func(t *testing.T) {
+			hooks := &gogen.Hooks{ExecRun: func(_ string, m *exec.Module, env *exec.Env, o exec.RunOptions) ([]string, error) {
+				ran, err := exec.RunPasses(m, env, o)
+				c.run(m)
+				return ran, err
+			}}
+			opts := gen.GenOptions{Module: "example.com/p", Runtime: gen.RuntimeImport}
+			if _, err := gogen.GenerateParser(pg, gentest.Compile, opts, hooks); err == nil || !strings.Contains(err.Error(), c.want) {
+				t.Fatalf("err %v, want %q", err, c.want)
+			}
+		})
 	}
 }
