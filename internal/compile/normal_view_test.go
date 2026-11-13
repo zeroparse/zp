@@ -36,6 +36,29 @@ func viewBodies(t *testing.T, src string, opts complexity.Options) (map[string]s
 	return bodies, v.Applied
 }
 
+// builtTexts returns, by spelling, the grammar text that each expression of rule main stands for
+// that the cost view of src with opts builds.
+func builtTexts(t *testing.T, src string, opts complexity.Options) map[string]string {
+	t.Helper()
+	_, source, rules, text := testView(t, src, opts)
+	orig := map[grammar.Expr]bool{}
+	got := map[string]string{}
+	for _, r := range source {
+		WalkExpr(r.Expr, func(x grammar.Expr) { orig[x] = true })
+	}
+	for _, r := range rules {
+		if r.Name != "main" {
+			continue
+		}
+		WalkExpr(r.Expr, func(x grammar.Expr) {
+			if !orig[x] {
+				got[grammar.FormatExpr(x)] = text[x]
+			}
+		})
+	}
+	return got
+}
+
 // testView returns the cost view of the grammar src with opts, the rules it is built from, its
 // rules written as grammar rules and the source text of each expression of them that the view
 // builds.
@@ -649,6 +672,14 @@ func TestNormalViewConditionEdges(t *testing.T) {
 			if !maps.Equal(applied, c.applied) {
 				t.Errorf("rewrites %v, want %v", applied, c.applied)
 			}
+			if c.texts != nil {
+				texts := builtTexts(t, c.src+"\n", c.opts)
+				for spelling, want := range c.texts {
+					if texts[spelling] != want {
+						t.Errorf("%s stands for %q, want %q", spelling, texts[spelling], want)
+					}
+				}
+			}
 		})
 	}
 }
@@ -665,6 +696,9 @@ var conditionEdgeCases = []struct {
 	opts    complexity.Options
 	want    map[string]string
 	applied map[complexity.Law]int
+	// texts maps the spelling of an expression of rule main that the view builds to the grammar
+	// text it stands for.
+	texts map[string]string
 }{
 	{name: "an alternative equal to an earlier one without its cut is dropped",
 		src: "@start\nrule main = (x:\"a\" #cut / x:\"a\") {text($x) == \"a\"}", opts: complexity.Options{},
@@ -711,13 +745,15 @@ var conditionEdgeCases = []struct {
 		want: map[string]string{"main": `("b" "a"*) @error(message="m") #recover(skip=sync) / "x"`}, applied: map[complexity.Law]int{complexity.N9: 1}},
 	{name: "a label inside a recovery is dropped from the recovery",
 		src: "@start\nrule main = ((\"b\" \"a\"* \"a\"*) @error(message=\"m\")) #recover(skip=sync) / \"x\"\nrule sync = [a-z]*", opts: matchingView,
-		want: map[string]string{"main": `("b" "a"*) #recover(skip=sync) / "x"`}, applied: map[complexity.Law]int{complexity.N7: 1, complexity.N9: 1}},
+		want: map[string]string{"main": `("b" "a"*) #recover(skip=sync) / "x"`}, applied: map[complexity.Law]int{complexity.N7: 1, complexity.N9: 1},
+		texts: map[string]string{`("b" "a"*) #recover(skip=sync)`: `("b" "a"* "a"*) @error(message="m") #recover(skip=sync)`}},
 	{name: "a label inside a recovery of a call is dropped from the recovery",
 		src: "@start\nrule main = (sep @error(message=\"m\")) #recover(skip=sync) / \"x\"\nrule sep = \";\"\nrule sync = [a-z]*", opts: matchingView,
 		want: map[string]string{"main": `";" #recover(skip=sync) / "x"`}, applied: map[complexity.Law]int{complexity.N13: 1, complexity.N7: 1}},
 	{name: "a recovery that never runs is dropped from around a label",
 		src: "@start\nrule main = ((\"a\"* \"a\"*) @error(message=\"m\")) #recover(skip=sync) \"x\"\nrule sync = [a-z]*", opts: complexity.Options{},
-		want: map[string]string{"main": `"a"* @error(message="m") "x"`}, applied: map[complexity.Law]int{complexity.N1: 1, complexity.N6: 1, complexity.N9: 1}},
+		want: map[string]string{"main": `"a"* @error(message="m") "x"`}, applied: map[complexity.Law]int{complexity.N1: 1, complexity.N6: 1, complexity.N9: 1},
+		texts: map[string]string{`"a"* @error(message="m")`: `("a"* "a"*) @error(message="m") #recover(skip=sync)`}},
 	{name: "a label on a stream keeps the stream around a rewritten element",
 		src: "@start\nrule main = ((\"a\" \"a\"*)* #stream) @error(message=\"m\")", opts: matchingView,
 		want: map[string]string{"main": `"a"* #stream`}, applied: map[complexity.Law]int{complexity.N1: 1, complexity.N10: 1, complexity.N7: 1, complexity.N9: 1}},
