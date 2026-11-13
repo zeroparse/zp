@@ -7,6 +7,7 @@ import (
 	"zeroparse.dev/zp/internal/compile"
 	"zeroparse.dev/zp/internal/engine/core"
 	"zeroparse.dev/zp/internal/value"
+	"zeroparse.dev/zp/runtime/noderep"
 	"zeroparse.dev/zp/runtime/parse"
 )
 
@@ -37,15 +38,15 @@ func stateBudgetParser(lim parse.Limits) *core.Parser {
 	return &core.Parser{Prog: prog, Input: core.Input{Control: core.NewBudgetControl(nil, lim)}}
 }
 
-func undoFixture(p *core.Parser) (*core.Frame, []*value.Node) {
-	old0 := value.Ptr(value.Data{Text: "old-zero", Fields: value.Fields{{Name: "keep", Value: "zero"}}})
+func undoFixture(p *core.Parser) (*core.Frame, []*parse.Node) {
+	old0 := value.Ptr(value.Data{Text: "old-zero", Fields: noderep.Fields{{Name: "keep", Value: "zero"}}})
 	first0 := value.Ptr(value.Data{Text: "first-zero"})
 	latest0 := value.Ptr(value.Data{Text: "latest-zero"})
 	old1 := value.Ptr(value.Data{Text: "old-one"})
 	last1 := value.Ptr(value.Data{Text: "last-one"})
-	f := &core.Frame{Vals: []*value.Node{latest0, old1}}
+	f := &core.Frame{Vals: []*parse.Node{latest0, old1}}
 	p.Trail = []core.Undo{{F: f, Slot: 0, Old: old0}, {F: f, Slot: 0, Old: first0}, {F: f, Slot: 1, Old: old1}, {F: f, Slot: 1, Old: last1}}
-	return f, []*value.Node{old0, first0, old1, last1, latest0}
+	return f, []*parse.Node{old0, first0, old1, last1, latest0}
 }
 
 func diagnosticParser(lim parse.Limits) *core.Parser {

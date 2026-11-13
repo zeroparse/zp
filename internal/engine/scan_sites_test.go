@@ -14,7 +14,6 @@ import (
 	"zeroparse.dev/zp/internal/compile"
 	"zeroparse.dev/zp/internal/engine/core"
 	"zeroparse.dev/zp/internal/gentest"
-	"zeroparse.dev/zp/internal/value"
 	"zeroparse.dev/zp/runtime/parse"
 )
 
@@ -240,11 +239,11 @@ func scanSitesInStreams(t *testing.T, prog *Program, b Backend) {
 		var want []string
 		o := ParseOptions{Backend: b, Expectations: true}
 		core.SkipRecordsOff = true
-		werr := prog.ParseStreamWith("main", strings.NewReader(text), func(n *value.Node) error { want = append(want, skipDump(t, n, nil)); return nil }, o)
+		werr := prog.ParseStreamWith("main", strings.NewReader(text), func(n *parse.Node) error { want = append(want, skipDump(t, n, nil)); return nil }, o)
 		core.SkipRecordsOff = false
 		for _, mk := range []func(io.Reader) io.Reader{iotest.OneByteReader, iotest.HalfReader, iotest.DataErrReader} {
 			var got []string
-			err := prog.ParseStreamWith("main", mk(strings.NewReader(text)), func(n *value.Node) error { got = append(got, skipDump(t, n, nil)); return nil }, o)
+			err := prog.ParseStreamWith("main", mk(strings.NewReader(text)), func(n *parse.Node) error { got = append(got, skipDump(t, n, nil)); return nil }, o)
 			if (err == nil) != (werr == nil) || strings.Join(got, "|") != strings.Join(want, "|") {
 				t.Fatalf("%s: text %q: got %v (%v), want %v (%v)", b, text, got, err, want, werr)
 			}

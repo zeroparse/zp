@@ -146,10 +146,10 @@ func main() {
 		log.Fatal(err)
 	}
 
-	entries := cfg.Field("Entries").(*zp.Node)
+	entries := cfg.Field("Entries").(*parse.Node)
 	for _, e := range entries.Elems() {
-		key := e.Field("Key").(*zp.Node)
-		value := e.Field("Value").(*zp.Node)
+		key := e.Field("Key").(*parse.Node)
+		value := e.Field("Value").(*parse.Node)
 		fmt.Printf("%-6s %-7s %s\n", key.Text(), value.Type(), value.Text())
 	}
 }
@@ -165,7 +165,7 @@ port   Number  8080
 debug  Bool    true
 ```
 
-`node.Field(name)` returns the value of a struct field as an `any`: a `*zp.Node` for node values, lists, tuples and
+`node.Field(name)` returns the value of a struct field as an `any`: a `*parse.Node` for node values, lists, tuples and
 structs, or an `int`, `string` or `bool`. A list is a node whose elements `Len()`, `Elem(i)` and `Elems()` give.
 A string node keeps the text it matched, which `Text()` returns. `value.Type()` tells you which member of the `Value` join
 you got, so a `switch` on it is how you walk a join.

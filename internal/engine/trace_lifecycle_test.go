@@ -74,11 +74,11 @@ func TestTraceLifecycleStreamDetachment(t *testing.T) {
 					}
 					r := &traceLifecycleClosingReader{Reader: reader}
 					var e TraceEvent
-					var nodes []*value.Node
+					var nodes []*parse.Node
 					var snapshots []string
 					err := error(nil)
 					got := traceLifecycleRecover(func() {
-						err = prog.ParseStreamWith("main", r, func(n *value.Node) error {
+						err = prog.ParseStreamWith("main", r, func(n *parse.Node) error {
 							nodes = append(nodes, n)
 							snapshots = append(snapshots, gentest.ResultJSON(n, nil))
 							if outcome == "emit-error" {
@@ -126,10 +126,10 @@ func TestTraceLifecycleStreamDetachment(t *testing.T) {
 					if r.closed {
 						t.Fatal("parser closed caller's reader")
 					}
-					if value.D(nodes[0].Field("k").(*value.Node)).Text != "a" || value.D(nodes[0].Field("v").(*value.Node)).Text != "1" {
+					if value.D(nodes[0].Field("k").(*parse.Node)).Text != "a" || value.D(nodes[0].Field("v").(*parse.Node)).Text != "1" {
 						t.Fatal("emitted fields changed")
 					}
-					if err := prog.ParseStreamWith("main", strings.NewReader("#records\nxy=3\n"), func(*value.Node) error { return nil }, ParseOptions{Backend: b, Unit: u}); err != nil {
+					if err := prog.ParseStreamWith("main", strings.NewReader("#records\nxy=3\n"), func(*parse.Node) error { return nil }, ParseOptions{Backend: b, Unit: u}); err != nil {
 						t.Fatal(err)
 					}
 					for i, n := range nodes {

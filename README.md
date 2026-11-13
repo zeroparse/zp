@@ -97,7 +97,7 @@ p.Parse(input, zp.WithBackend(zp.Bytecode))   // pick a backend
 p.Parse(input, zp.RecognizeOnly())              // validate without building a tree
 json.Marshal(node)                                // nodes encode with types and positions
 
-err = p.ParseStream(r, func(n *zp.Node) error { return nil }) // one #stream element at a time
+err = p.ParseStream(r, func(n *parse.Node) error { return nil }) // one #stream element at a time
 
 doc, _ := p.NewDocument(text)
 doc.Edit(10, 12, "new text") // replace [10, 12)

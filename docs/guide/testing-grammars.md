@@ -369,13 +369,13 @@ func checkInput(t testing.TB, in string) {
 }
 
 // checkNode checks that a node lies within its parent and that a string node's text is the input it covers.
-func checkNode(t testing.TB, in string, n *zp.Node, lo, hi int) {
+func checkNode(t testing.TB, in string, n *parse.Node, lo, hi int) {
 	t.Helper()
 	if n == nil {
 		return
 	}
 	switch n.Kind() {
-	case zp.KindTupleValue, zp.KindListValue, zp.KindValue:
+	case parse.KindTupleValue, parse.KindListValue, parse.KindValue:
 		// Built by an action, without a range of its own: the elements lie in the enclosing range.
 	default:
 		if n.Start() < lo || n.Start() > n.End() || n.End() > hi {
@@ -383,14 +383,14 @@ func checkNode(t testing.TB, in string, n *zp.Node, lo, hi int) {
 		}
 		lo, hi = n.Start(), n.End()
 	}
-	if n.Kind() == zp.KindString && n.Text() != in[n.Start():n.End()] {
+	if n.Kind() == parse.KindString && n.Text() != in[n.Start():n.End()] {
 		t.Fatalf("%q: string node %s has text %q, but [%d,%d) is %q", in, n, n.Text(), n.Start(), n.End(), in[n.Start():n.End()])
 	}
 	for _, c := range n.Elems() {
 		checkNode(t, in, c, lo, hi)
 	}
 	for _, v := range n.Fields() {
-		if c, ok := v.(*zp.Node); ok {
+		if c, ok := v.(*parse.Node); ok {
 			checkNode(t, in, c, lo, hi)
 		}
 	}

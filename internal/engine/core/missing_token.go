@@ -4,6 +4,7 @@ import (
 	"unsafe"
 
 	"zeroparse.dev/zp/internal/value"
+	"zeroparse.dev/zp/runtime/noderep"
 	"zeroparse.dev/zp/runtime/parse"
 )
 
@@ -138,7 +139,7 @@ func (p *Parser) restoreMissing(events []MissingTokenEvent, errs RecEntry, charg
 // MissingErrorScope is emitted only for grammars using this feature; ordinary
 // grammars retain the existing errorAttr path, without scope/defer machinery.
 func MissingErrorScope(m Matcher, msg ExpID) Matcher {
-	return func(p *Parser) (*value.Node, bool) {
+	return func(p *Parser) (*parse.Node, bool) {
 		if p.Expectations && p.Missing != nil && p.Missing.label == 0 {
 			p.Missing.label = msg
 			defer func() { p.Missing.label = 0 }()
@@ -150,7 +151,7 @@ func MissingErrorScope(m Matcher, msg ExpID) Matcher {
 // MissingLiteral preserves the entire ordinary literal match before trying an
 // insertion. Its stable compile-time site is independent of invocation state.
 func MissingLiteral(literal Matcher, site int, expected string, build bool) Matcher {
-	return func(p *Parser) (*value.Node, bool) {
+	return func(p *Parser) (*parse.Node, bool) {
 		if p.Missing == nil || p.Silent > 0 {
 			return literal(p)
 		}
@@ -175,7 +176,7 @@ func MissingLiteral(literal Matcher, site int, expected string, build bool) Matc
 		if !build {
 			return nil, true
 		}
-		return p.NewNode(value.Data{Kind: value.MissingKind, Start: int32(m0.Pos), End: int32(m0.Pos),
-			Fields: value.Fields{{Name: "expected", Value: expected}, {Name: "message", Value: p.RecoveryErrorText(e)}}, Terminal: true, Fresh: true}), true
+		return p.NewNode(value.Data{Kind: noderep.MissingKind, Start: int32(m0.Pos), End: int32(m0.Pos),
+			Fields: noderep.Fields{{Name: "expected", Value: expected}, {Name: "message", Value: p.RecoveryErrorText(e)}}, Terminal: true, Fresh: true}), true
 	}
 }

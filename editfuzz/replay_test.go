@@ -299,10 +299,10 @@ func TestMismatch(t *testing.T) {
 // TestPanicIsAResult checks that a panicking parse returns its panic value and that a panicking edit is
 // a mismatch.
 func TestPanicIsAResult(t *testing.T) {
-	if tree, x := result(func() (*zp.Node, error) { panic("boom") }); tree != nil || x != "boom" {
+	if tree, x := result(func() (*parse.Node, error) { panic("boom") }); tree != nil || x != "boom" {
 		t.Fatalf("got %v, %q", tree, x)
 	}
-	if _, x := result(func() (*zp.Node, error) { return nil, nil }); x != "" {
+	if _, x := result(func() (*parse.Node, error) { return nil, nil }); x != "" {
 		t.Fatalf("got %q", x)
 	}
 	src := testGrammars[0]
@@ -328,7 +328,7 @@ func TestInvalidUTF8Compares(t *testing.T) {
 		t.Fatal(err)
 	}
 	parse := func(s string) map[string]any {
-		tree, _ := result(func() (*zp.Node, error) { return p.Parse(s, zp.WithUnit(parse.Bytes)) })
+		tree, _ := result(func() (*parse.Node, error) { return p.Parse(s, zp.WithUnit(parse.Bytes)) })
 		expand(tree)
 		return tree
 	}
@@ -351,9 +351,9 @@ func TestErrorsCompareByFields(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	a, _ := result(func() (*zp.Node, error) { return p.Parse("let a=1;let =2;let c=x;") })
+	a, _ := result(func() (*parse.Node, error) { return p.Parse("let a=1;let =2;let c=x;") })
 	// The recovered errors are the same; a name beside them differs.
-	b, _ := result(func() (*zp.Node, error) { return p.Parse("let b=1;let =2;let c=x;") })
+	b, _ := result(func() (*parse.Node, error) { return p.Parse("let b=1;let =2;let c=x;") })
 	expand(a)
 	expand(b)
 	errs := a["error"].(map[string]any)
@@ -363,7 +363,7 @@ func TestErrorsCompareByFields(t *testing.T) {
 	if path, _, _ := firstDifference("", a, b); !strings.HasPrefix(path, "value.") || !strings.HasSuffix(path, ".value") {
 		t.Fatalf("difference at %q", path)
 	}
-	c, _ := result(func() (*zp.Node, error) { return p.Parse("let") })
+	c, _ := result(func() (*parse.Node, error) { return p.Parse("let") })
 	expand(c)
 	if path, _, _ := firstDifference("", a, c); c["error"].(map[string]any)["kind"] == "" || path == "" {
 		t.Fatalf("unrecovered error: %v", c)

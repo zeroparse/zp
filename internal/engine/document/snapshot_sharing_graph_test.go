@@ -9,6 +9,7 @@ import (
 
 	"zeroparse.dev/zp/internal/engine/core"
 	"zeroparse.dev/zp/internal/value"
+	"zeroparse.dev/zp/runtime/noderep"
 	"zeroparse.dev/zp/runtime/parse"
 )
 
@@ -23,8 +24,8 @@ func TestSnapshotSharedStringComparisonRespectsBudgetLimit(t *testing.T) {
 	}{
 		{"terminal text", snapshotRecord{text: long}, snapshotRecord{text: strings.Clone(long)}},
 		{"late text mismatch", snapshotRecord{text: long + "x"}, snapshotRecord{text: long + "y"}},
-		{"field name", snapshotRecord{fields: value.Fields{{Name: long, Value: 1}}}, snapshotRecord{fields: value.Fields{{Name: strings.Clone(long), Value: 1}}}},
-		{"field value", snapshotRecord{fields: value.Fields{{Name: "x", Value: long}}}, snapshotRecord{fields: value.Fields{{Name: "x", Value: strings.Clone(long)}}}},
+		{"field name", snapshotRecord{fields: noderep.Fields{{Name: long, Value: 1}}}, snapshotRecord{fields: noderep.Fields{{Name: strings.Clone(long), Value: 1}}}},
+		{"field value", snapshotRecord{fields: noderep.Fields{{Name: "x", Value: long}}}, snapshotRecord{fields: noderep.Fields{{Name: "x", Value: strings.Clone(long)}}}},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			p := &core.Parser{Control: core.NewBudgetControl(nil, parse.Limits{Compute: 1024})}
@@ -87,7 +88,7 @@ func TestSnapshotChunkedHandleIdentity(t *testing.T) {
 		t.Fatal("wide child sequence did not share")
 	}
 	g := snapshotGraph{nodes: []snapshotRecord{
-		{children: []int{2}, fields: value.Fields{{Name: "wide", Value: snapshotRef(2)}}},
+		{children: []int{2}, fields: noderep.Fields{{Name: "wide", Value: snapshotRef(2)}}},
 		wide,
 	}, root: 1}
 	g.childChunks = map[*snapshotRecord]*snapshotChildChunks{&g.nodes[1]: chunks}

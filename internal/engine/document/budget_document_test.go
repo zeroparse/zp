@@ -13,7 +13,6 @@ import (
 	. "zeroparse.dev/zp/internal/engine"
 	"zeroparse.dev/zp/internal/engine/core"
 	"zeroparse.dev/zp/internal/engine/vm"
-	"zeroparse.dev/zp/internal/value"
 	"zeroparse.dev/zp/runtime/parse"
 )
 
@@ -273,7 +272,7 @@ func TestBudgetDocumentCallerPanicAtBoundaries(t *testing.T) {
 				if at == 0 {
 					o.Context = &budgetContextDonePanic{Context: context.Background(), token: token}
 				}
-				var n *value.Node
+				var n *parse.Node
 				got := budgetContextRecover(func() { n, err = d.ParseWith(o) })
 				if got != token || n != nil {
 					t.Fatalf("panic=%v node=%v", got, n)

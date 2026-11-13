@@ -4,6 +4,8 @@ import (
 	"sort"
 
 	"zeroparse.dev/zp/internal/value"
+	"zeroparse.dev/zp/runtime/noderep"
+	"zeroparse.dev/zp/runtime/parse"
 )
 
 // graphVisit is the adapter boundary for a future common graph walker. Each event contains a
@@ -13,7 +15,7 @@ import (
 // walker rejects active-path cycles and charges before discovery.
 type graphVisit struct {
 	Value  any
-	parent *value.Node
+	parent *parse.Node
 	path   []Edge
 }
 type visitFrame struct {
@@ -23,15 +25,15 @@ type visitFrame struct {
 
 // visitGraph calls visit for every value reachable from root, in the order graphVisit
 // describes, charging the spend to b.
-func visitGraph(root *value.Node, b *budget, visit func(graphVisit) error) error {
+func visitGraph(root *parse.Node, b *budget, visit func(graphVisit) error) error {
 	frames := []visitFrame{{visit: graphVisit{Value: value.UnboxNode(root)}}}
-	nodes := map[*value.Node]bool{}
+	nodes := map[*parse.Node]bool{}
 	for len(frames) > 0 {
 		f := frames[len(frames)-1]
 		frames = frames[:len(frames)-1]
 		v := f.visit
 		if f.leave {
-			delete(nodes, v.Value.(*value.Node))
+			delete(nodes, v.Value.(*parse.Node))
 			continue
 		}
 		if err := b.charge(uint64(1 + len(v.path))); err != nil {
@@ -40,7 +42,7 @@ func visitGraph(root *value.Node, b *budget, visit func(graphVisit) error) error
 		if _, err := valueCategory(v.Value); err != nil {
 			return err
 		}
-		x, ok := v.Value.(*value.Node)
+		x, ok := v.Value.(*parse.Node)
 		if ok && x != nil {
 			if nodes[x] {
 				return ErrCycle
@@ -62,22 +64,22 @@ func visitGraph(root *value.Node, b *budget, visit func(graphVisit) error) error
 			return nil
 		}
 		switch value.ShapeOf(x) {
-		case value.ShapeStruct:
+		case noderep.ShapeStruct:
 			if err := b.charge(uint64(len(value.D(x).Fields))); err != nil {
 				return err
 			}
-			fields := append(value.Fields(nil), value.D(x).Fields...)
+			fields := append(noderep.Fields(nil), value.D(x).Fields...)
 			sort.SliceStable(fields, func(i, j int) bool { return fields[i].Name < fields[j].Name })
 			for i := len(fields) - 1; i >= 0; i-- {
 				if err := push(fields[i].Value, Edge{Kind: "field", Name: fields[i].Name}); err != nil {
 					return err
 				}
 			}
-		case value.ShapeTuple, value.ShapeList, value.ShapeTupleValue, value.ShapeListValue:
+		case noderep.ShapeTuple, noderep.ShapeList, noderep.ShapeTupleValue, noderep.ShapeListValue:
 			if err := b.charge(uint64(len(value.D(x).Children) + len(value.D(x).Fields))); err != nil {
 				return err
 			}
-			if value.ShapeOf(x) == value.ShapeTuple && len(value.D(x).Fields) > 0 {
+			if value.ShapeOf(x) == noderep.ShapeTuple && len(value.D(x).Fields) > 0 {
 				locations := value.CaptureLocations(x)
 				for i := len(locations) - 1; i >= 0; i-- {
 					if c := locations[i]; c.Side {

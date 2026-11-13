@@ -6,6 +6,7 @@ import (
 
 	"zeroparse.dev/zp/internal/gentest"
 	"zeroparse.dev/zp/internal/value"
+	"zeroparse.dev/zp/runtime/parse"
 )
 
 func TestOperatorsRuleCST(t *testing.T) {
@@ -75,7 +76,7 @@ func TestOperatorsRulePositionsWithActions(t *testing.T) {
 	if value.D(n).Start != 0 || value.D(n).End != 9 {
 		t.Errorf("root [%d,%d)", value.D(n).Start, value.D(n).End)
 	}
-	if l := n.Field("L").(*value.Node); value.D(l).Start != 0 || value.D(l).End != 5 {
+	if l := n.Field("L").(*parse.Node); value.D(l).Start != 0 || value.D(l).End != 5 {
 		t.Errorf("left [%d,%d)", value.D(l).Start, value.D(l).End)
 	}
 }

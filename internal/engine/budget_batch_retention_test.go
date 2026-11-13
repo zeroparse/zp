@@ -26,7 +26,7 @@ func batchRetentionParser(t *testing.T, e TraceEvent) *core.Parser {
 	return core.TraceParser(e)
 }
 
-func batchRetentionJSON(t *testing.T, n *value.Node) []byte {
+func batchRetentionJSON(t *testing.T, n *parse.Node) []byte {
 	t.Helper()
 	b, err := json.Marshal(n)
 	if err != nil {
@@ -56,7 +56,7 @@ rule entry = key:[a-z]+ #atomic ":" value:[0-9]+ #atomic => Entry{Key: text($key
 						if active && !core.BudgetControlsEnabled {
 							t.Skip("active budget controls are unavailable in the reference build")
 						}
-						parseFn := func(input string, wantFailure bool) (*value.Node, error, TraceEvent) {
+						parseFn := func(input string, wantFailure bool) (*parse.Node, error, TraceEvent) {
 							var retained TraceEvent
 							opts := ParseOptions{Backend: backend, Unit: unit, Recognize: recognize, Trace: func(e TraceEvent) {
 								if e.Kind == TraceEnter && e.Rule == "main" {
@@ -97,7 +97,7 @@ rule entry = key:[a-z]+ #atomic ":" value:[0-9]+ #atomic => Entry{Key: text($key
 							key, hasKey := value.D(entry).Fields.Get("Key")
 							val, hasValue := value.D(entry).Fields.Get("Value")
 							count, hasCount := value.D(entry).Fields.Get("Count")
-							valueNode, valueIsNode := val.(*value.Node)
+							valueNode, valueIsNode := val.(*parse.Node)
 							if value.D(value.D(node).Children[0]).Text != "!" || value.D(value.D(node).Children[2]).Text != "?" || !hasKey || key != "alpha" || !hasValue || !valueIsNode || valueNode == nil || value.D(valueNode).Text != "123" || !hasCount || count != 3 {
 								t.Fatalf("unexpected fields/terminals: %s", batchRetentionJSON(t, node))
 							}
@@ -143,7 +143,7 @@ func TestBudgetBatchTraceCallbackPanicDetachesParserAndPreservesRetry(t *testing
 			t.Run(backend.String()+"/"+unit.String(), func(t *testing.T) {
 				token := &struct{ marker string }{"trace panic"}
 				var observed *core.Parser
-				var node *value.Node
+				var node *parse.Node
 				var err error
 				got := budgetContextRecover(func() {
 					node, err = prog.ParseWith("main", text, ParseOptions{Backend: backend, Unit: unit, Trace: func(e TraceEvent) {
@@ -215,7 +215,7 @@ func TestBudgetBatchTraceInterruptionDetachesParser(t *testing.T) {
 								panicCtx.armed = true
 							}
 						}
-						var node *value.Node
+						var node *parse.Node
 						var returnedErr error
 						got := budgetContextRecover(func() { node, returnedErr = prog.ParseWith("main", strings.Repeat("a", 512), opts) })
 						if node != nil {

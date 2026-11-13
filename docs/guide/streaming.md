@@ -80,6 +80,7 @@ import (
 	"os"
 
 	"zeroparse.dev/zp"
+	"zeroparse.dev/zp/runtime/parse"
 )
 
 const grammar = `package kv
@@ -99,9 +100,9 @@ func main() {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(2)
 	}
-	err = p.ParseStream(os.Stdin, func(n *zp.Node) error {
-		key := n.Field("Key").(*zp.Node)
-		value := n.Field("Value").(*zp.Node)
+	err = p.ParseStream(os.Stdin, func(n *parse.Node) error {
+		key := n.Field("Key").(*parse.Node)
+		value := n.Field("Value").(*parse.Node)
 		fmt.Printf("[%d,%d) %s = %s\n", n.Start(), n.End(), key.Text(), value.Text())
 		return nil
 	}, zp.WithExpectations())
@@ -187,6 +188,7 @@ import (
 	"time"
 
 	"zeroparse.dev/zp"
+	"zeroparse.dev/zp/runtime/parse"
 )
 
 // run feeds the chunks to the parser through a pipe, 200 ms apart, and prints when each element arrives.
@@ -207,7 +209,7 @@ func run(grammar string, chunks ...string) {
 		}
 		pw.Close()
 	}()
-	err = p.ParseStream(pr, func(n *zp.Node) error {
+	err = p.ParseStream(pr, func(n *parse.Node) error {
 		fmt.Printf("%4dms  element [%d,%d)\n", time.Since(start).Milliseconds()/100*100, n.Start(), n.End())
 		return nil
 	})
@@ -334,7 +336,7 @@ func main() {
 	lines := compile(`@start
 rule main =  line* #stream $$
 rule line =  [a-z0-9]+ #atomic "\n" `)
-	print := func(n *zp.Node) error {
+	print := func(n *parse.Node) error {
 		fmt.Printf("  element [%d,%d)\n", n.Start(), n.End())
 		return nil
 	}
@@ -351,7 +353,7 @@ rule line =  [a-z0-9]+ #atomic "\n" `)
 	fmt.Println("callback error:")
 	errEnough := errors.New("enough")
 	seen := 0
-	err = lines.ParseStream(strings.NewReader("a\nb\nc\nd\n"), func(*zp.Node) error {
+	err = lines.ParseStream(strings.NewReader("a\nb\nc\nd\n"), func(*parse.Node) error {
 		if seen++; seen == 2 {
 			return errEnough
 		}
@@ -372,7 +374,7 @@ rule main =  entry* #stream $$
 rule entry =  (name "=" num "\n") #recover(skip=[^\n]* "\n")
 rule name =  [a-z]+ #atomic
 rule num =  [0-9]+ #atomic `)
-	err = entries.ParseStream(strings.NewReader("a=1\nb=x\nc=3\nd\n"), func(n *zp.Node) error {
+	err = entries.ParseStream(strings.NewReader("a=1\nb=x\nc=3\nd\n"), func(n *parse.Node) error {
 		fmt.Printf("  element %v\n", n)
 		return nil
 	}, zp.WithExpectations())
@@ -491,6 +493,7 @@ import (
 	"runtime"
 
 	"zeroparse.dev/zp"
+	"zeroparse.dev/zp/runtime/parse"
 )
 
 // Two grammars for the same input: the elements are either tuple nodes or structs built by an action.
@@ -531,7 +534,7 @@ func main() {
 		panic(err)
 	}
 	count := 0
-	err = p.ParseStream(&repeat{line: "key=42\n", n: 400000}, func(*zp.Node) error {
+	err = p.ParseStream(&repeat{line: "key=42\n", n: 400000}, func(*parse.Node) error {
 		count++
 		if count%100000 == 0 {
 			var ms runtime.MemStats

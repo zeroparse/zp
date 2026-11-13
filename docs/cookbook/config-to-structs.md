@@ -63,35 +63,35 @@ type Config struct {
 }
 
 // text returns the text of a Key, Int, Str or Bool node.
-func text(v *zp.Node) string { return v.Text() }
+func text(v *parse.Node) string { return v.Text() }
 
-func asString(v *zp.Node) (string, error) {
+func asString(v *parse.Node) (string, error) {
 	if v.Type() != "Str" {
 		return "", fmt.Errorf("want a string, got %s", strings.ToLower(v.Type()))
 	}
 	return strconv.Unquote(text(v))
 }
 
-func asInt(v *zp.Node) (int, error) {
+func asInt(v *parse.Node) (int, error) {
 	if v.Type() != "Int" {
 		return 0, fmt.Errorf("want an integer, got %s", strings.ToLower(v.Type()))
 	}
 	return strconv.Atoi(text(v))
 }
 
-func asBool(v *zp.Node) (bool, error) {
+func asBool(v *parse.Node) (bool, error) {
 	if v.Type() != "Bool" {
 		return false, fmt.Errorf("want true or false, got %s", strings.ToLower(v.Type()))
 	}
 	return text(v) == "true", nil
 }
 
-func asStrings(v *zp.Node) ([]string, error) {
+func asStrings(v *parse.Node) ([]string, error) {
 	if v.Type() != "Array" {
 		return nil, fmt.Errorf("want an array, got %s", strings.ToLower(v.Type()))
 	}
 	var out []string
-	for _, item := range v.Field("Items").(*zp.Node).Elems() {
+	for _, item := range v.Field("Items").(*parse.Node).Elems() {
 		s, err := asString(item)
 		if err != nil {
 			return nil, err
@@ -109,9 +109,9 @@ func Load(p *zp.Parser, src string) (Config, error) {
 	if err != nil {
 		return c, err
 	}
-	for _, e := range tree.Field("Entries").(*zp.Node).Elems() {
-		key := text(e.Field("Key").(*zp.Node))
-		v := e.Field("Value").(*zp.Node)
+	for _, e := range tree.Field("Entries").(*parse.Node).Elems() {
+		key := text(e.Field("Key").(*parse.Node))
+		v := e.Field("Value").(*parse.Node)
 		switch key {
 		case "name":
 			c.Name, err = asString(v)

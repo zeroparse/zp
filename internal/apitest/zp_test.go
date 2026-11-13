@@ -76,7 +76,7 @@ func TestParseStream(t *testing.T) {
 		t.Fatal(err)
 	}
 	var got []string
-	err = p.ParseStream(strings.NewReader("ab\ncd\n"), func(n *zp.Node) error {
+	err = p.ParseStream(strings.NewReader("ab\ncd\n"), func(n *parse.Node) error {
 		got = append(got, n.String())
 		return nil
 	})
@@ -178,9 +178,9 @@ rule pair = k:[a-z]+ #atomic "=" v:[0-9]+ #atomic => list($k, $v)`, "main")
 	if _, err := engine.ParseCompiledMode("ast"); err == nil {
 		t.Error("ParseCompiledMode accepted an unknown mode")
 	}
-	parse := func(q *zp.Parser) error { _, err := q.Parse("a=1"); return err }
+	parseFn := func(q *zp.Parser) error { _, err := q.Parse("a=1"); return err }
 	stream := func(q *zp.Parser) error {
-		return q.ParseStream(strings.NewReader("a=1"), func(*zp.Node) error { return nil })
+		return q.ParseStream(strings.NewReader("a=1"), func(*parse.Node) error { return nil })
 	}
 	prefix := func(q *zp.Parser) error { _, err := q.ParsePrefix("main", "a=1"); return err }
 	iterate := func(opts ...zp.ParseOption) func(q *zp.Parser) error {
@@ -228,7 +228,7 @@ rule pair = k:[a-z]+ #atomic "=" v:[0-9]+ #atomic => list($k, $v)`, "main")
 		run  func(*zp.Parser) error
 		need zp.CompiledMode
 	}{
-		{"parse", parse, zp.CompiledParse},
+		{"parse", parseFn, zp.CompiledParse},
 		{"stream", stream, zp.CompiledParse},
 		{"prefix", prefix, zp.CompiledParse},
 		{"iterate", iterate(), zp.CompiledParse},
@@ -293,7 +293,7 @@ func TestUnits(t *testing.T) {
 	}
 	for unit, want := range map[parse.PositionUnit]int{parse.CodePoints: 1, parse.Bytes: 2} {
 		n, err := p.Parse("éa", zp.WithUnit(unit))
-		if err != nil || n.Field("x").(*zp.Node).Start() != want {
+		if err != nil || n.Field("x").(*parse.Node).Start() != want {
 			t.Errorf("%v: %v %v", unit, n, err)
 		}
 	}
@@ -304,7 +304,7 @@ func TestUnits(t *testing.T) {
 	if err := doc.Edit(2, 3, "b"); err != nil {
 		t.Fatal(err)
 	}
-	if n, err := doc.Parse(); err != nil || n.Field("x").(*zp.Node).Text() != "b" {
+	if n, err := doc.Parse(); err != nil || n.Field("x").(*parse.Node).Text() != "b" {
 		t.Errorf("%v %v", n, err)
 	}
 }

@@ -5,7 +5,6 @@ import (
 
 	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/compile"
-	"zeroparse.dev/zp/internal/value"
 	"zeroparse.dev/zp/runtime/parse"
 )
 
@@ -50,7 +49,7 @@ func splitTrivia(p *Parser, r *Rule) {
 	p.TriviaEnd(m, ok)
 }
 
-func splitNud(p *Parser, r *Rule) (*value.Node, bool) {
+func splitNud(p *Parser, r *Rule) (*parse.Node, bool) {
 	var st NudState
 	splitTrivia(p, r)
 	p.NudBegin(&st)
@@ -77,7 +76,7 @@ func splitNud(p *Parser, r *Rule) (*value.Node, bool) {
 	}
 }
 
-func splitExpr(p *Parser, r *Rule, min int) (*value.Node, bool) {
+func splitExpr(p *Parser, r *Rule, min int) (*parse.Node, bool) {
 	p.Enter()
 	defer func() { p.Depth-- }()
 	st := ExprState{Min: min}
@@ -129,7 +128,7 @@ func oprRule(pr *OperatorsRule) *Rule {
 
 // oprLit matches the byte c of text.
 func oprLit(text string, c byte) Matcher {
-	return func(p *Parser) (*value.Node, bool) {
+	return func(p *Parser) (*parse.Node, bool) {
 		if p.Pos < len(text) && text[p.Pos] == c {
 			p.Pos++
 			return nil, true
@@ -138,10 +137,10 @@ func oprLit(text string, c byte) Matcher {
 	}
 }
 
-func oprFail(*Parser) (*value.Node, bool) { return nil, false }
+func oprFail(*Parser) (*parse.Node, bool) { return nil, false }
 
 // oprFailCut fails after a cut, away from where it started.
-func oprFailCut(p *Parser) (*value.Node, bool) {
+func oprFailCut(p *Parser) (*parse.Node, bool) {
 	p.Cut = true
 	p.Pos += 3
 	return nil, false
@@ -175,7 +174,7 @@ func TestOperatorsLoop(t *testing.T) {
 			return pr
 		}
 	}
-	nothing := func(*Parser) (*value.Node, bool) { return nil, true }
+	nothing := func(*Parser) (*parse.Node, bool) { return nil, true }
 	empty := func(string) *OperatorsRuleOp { return oprOp(grammar.Infix, grammar.AssocLeft, 1, nothing) }
 	for _, c := range []struct {
 		name, text string
@@ -231,7 +230,7 @@ func TestOperatorsWithoutLedEndAtTheStart(t *testing.T) {
 			skips := 0
 			r := oprRule(&OperatorsRule{
 				Operands: []*OperatorsRuleLine{oprLine(oprLit("a", 'a'))},
-				Skip: func(*Parser) (*value.Node, bool) {
+				Skip: func(*Parser) (*parse.Node, bool) {
 					skips++
 					return nil, true
 				},
@@ -254,7 +253,7 @@ func TestOperatorsLongestLineState(t *testing.T) {
 			p.Frame = frame
 			lines := 0
 			line := func(ok bool) Matcher {
-				return func(p *Parser) (*value.Node, bool) {
+				return func(p *Parser) (*parse.Node, bool) {
 					lines++
 					if p.Cut {
 						t.Fatalf("line %d starts inside the cut of its caller", lines)
@@ -283,7 +282,7 @@ func TestOperatorsLongestLineState(t *testing.T) {
 		t.Run(form.name+"/a match after a cut is no failure", func(t *testing.T) {
 			p := oprParser()
 			p.cutFailed = true
-			a := form.longest(p, []*OperatorsRuleOp{oprOp(grammar.Infix, "", 1, func(p *Parser) (*value.Node, bool) {
+			a := form.longest(p, []*OperatorsRuleOp{oprOp(grammar.Infix, "", 1, func(p *Parser) (*parse.Node, bool) {
 				p.Cut = true
 				return nil, true
 			})})
@@ -315,7 +314,7 @@ func TestOperatorsAttemptKeepsItsState(t *testing.T) {
 		t.Run(form.name, func(t *testing.T) {
 			p := oprParser()
 			p.Missing = &MissingTokenState{Limit: 8}
-			a := form.longest(p, []*OperatorsRuleOp{oprOp(grammar.Infix, "", 1, func(p *Parser) (*value.Node, bool) {
+			a := form.longest(p, []*OperatorsRuleOp{oprOp(grammar.Infix, "", 1, func(p *Parser) (*parse.Node, bool) {
 				oprMissing(p)
 				p.Env = env
 				p.Pos = 2
@@ -336,7 +335,7 @@ func TestOperatorsAttemptKeepsItsState(t *testing.T) {
 				p.Missing = &MissingTokenState{Limit: 8}
 				line := func(c byte) Matcher {
 					lit := oprLit(text, c)
-					return func(p *Parser) (*value.Node, bool) {
+					return func(p *Parser) (*parse.Node, bool) {
 						v, ok := lit(p)
 						if ok {
 							oprMissing(p)
@@ -378,7 +377,7 @@ func TestOperatorsTrivia(t *testing.T) {
 				p := oprParser()
 				p.Missing = &MissingTokenState{Limit: 8}
 				silent := 0
-				r := oprRule(&OperatorsRule{Skip: func(p *Parser) (*value.Node, bool) {
+				r := oprRule(&OperatorsRule{Skip: func(p *Parser) (*parse.Node, bool) {
 					silent = p.Silent
 					oprMissing(p)
 					p.PushRecovered(&parse.SyntaxError{})
@@ -410,14 +409,14 @@ func TestOperatorsOperandLines(t *testing.T) {
 			p.Cut = true
 			second := false
 			r := oprRule(&OperatorsRule{Operands: []*OperatorsRuleLine{
-				oprLine(func(p *Parser) (*value.Node, bool) {
+				oprLine(func(p *Parser) (*parse.Node, bool) {
 					if p.Cut {
 						t.Fatal("the first line starts inside the cut of its caller")
 					}
 					p.Pos = 2
 					return nil, false
 				}),
-				oprLine(func(p *Parser) (*value.Node, bool) {
+				oprLine(func(p *Parser) (*parse.Node, bool) {
 					if p.Pos != 0 {
 						t.Fatalf("the second line starts at %d", p.Pos)
 					}
@@ -438,7 +437,7 @@ func TestOperatorsOperandLines(t *testing.T) {
 		})
 		t.Run(form.name+"/a cut in a line stays in it", func(t *testing.T) {
 			p := oprParser()
-			r := oprRule(&OperatorsRule{Operands: []*OperatorsRuleLine{oprLine(func(p *Parser) (*value.Node, bool) {
+			r := oprRule(&OperatorsRule{Operands: []*OperatorsRuleLine{oprLine(func(p *Parser) (*parse.Node, bool) {
 				p.Cut = true
 				return nil, true
 			})}})
@@ -448,7 +447,7 @@ func TestOperatorsOperandLines(t *testing.T) {
 		})
 		t.Run(form.name+"/a failure after a cut fails", func(t *testing.T) {
 			p := oprParser()
-			r := oprRule(&OperatorsRule{Operands: []*OperatorsRuleLine{oprLine(oprFailCut), oprLine(func(*Parser) (*value.Node, bool) {
+			r := oprRule(&OperatorsRule{Operands: []*OperatorsRuleLine{oprLine(oprFailCut), oprLine(func(*Parser) (*parse.Node, bool) {
 				t.Fatal("the next line ran after a cut")
 				return nil, true
 			})}})

@@ -9,7 +9,6 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/internal/gentest"
-	"zeroparse.dev/zp/internal/value"
 	"zeroparse.dev/zp/runtime/parse"
 )
 
@@ -45,7 +44,7 @@ func TestBudgetStreamDefaultIgnoresChunking(t *testing.T) {
 			for _, size := range []int{1, 7, len(c.text)} {
 				var out []string
 				r := &budgetStreamReader{chunks: chunks(c.text, size)}
-				err := prog.ParseStreamWith("main", r, func(n *value.Node) error { out = append(out, gentest.ResultJSON(n, nil)); return nil }, o)
+				err := prog.ParseStreamWith("main", r, func(n *parse.Node) error { out = append(out, gentest.ResultJSON(n, nil)); return nil }, o)
 				var le *parse.LimitError
 				if c.exceeds != errors.As(err, &le) {
 					t.Fatalf("%s chunk size %d: error %v", c.name, size, err)

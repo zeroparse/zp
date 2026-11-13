@@ -8,6 +8,8 @@ import (
 
 	. "zeroparse.dev/zp/internal/engine"
 	"zeroparse.dev/zp/internal/value"
+	"zeroparse.dev/zp/runtime/noderep"
+	"zeroparse.dev/zp/runtime/parse"
 )
 
 func TestSnapshotSharingCyclesAndTypedNil(t *testing.T) {
@@ -21,8 +23,8 @@ func TestSnapshotSharingCyclesAndTypedNil(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	value.D(legacy).Children = []*value.Node{legacy, nil}
-	value.D(legacy).Fields = value.Fields{{Name: "self", Value: legacy}, {Name: "typedNil", Value: (*value.Node)(nil)}, {Name: "int", Value: 7}, {Name: "text", Value: "a"}}
+	value.D(legacy).Children = []*parse.Node{legacy, nil}
+	value.D(legacy).Fields = noderep.Fields{{Name: "self", Value: legacy}, {Name: "typedNil", Value: (*parse.Node)(nil)}, {Name: "int", Value: 7}, {Name: "text", Value: "a"}}
 	first, err := d.SnapshotWith(ParseOptions{})
 	if err != nil {
 		t.Fatal(err)

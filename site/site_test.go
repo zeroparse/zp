@@ -202,11 +202,12 @@ func TestBuild(t *testing.T) {
 			`href="docs/tutorial/getting-started/"`, `id="install"`,
 		},
 		"reference/zp/index.html": {
-			`id="CompileSource"`, `id="Parser.Parse"`, "type Node struct", `id="Node.Clone"`, "pkg.go.dev",
+			`id="CompileSource"`, `id="Parser.Parse"`, "pkg.go.dev",
 			`id="TraceEvent.LineCol"`,
 		},
 		"reference/parse/index.html": {
 			"type Limits struct", `id="LimitError.Error"`, "type SyntaxError struct", `id="SyntaxError.ExpectedInMessage"`,
+			"type Node struct", `id="Node.Clone"`, `id="NodeKind.String"`, `id="Cursor.At"`,
 		},
 		"reference/gen/index.html":       {`id="Go.Generate"`, `id="Generator"`, `id="RuntimeMode.String"`, "Content []byte"},
 		"reference/lint/index.html":      {`id="Config.Run"`, `id="Checks"`, `id="Severity.String"`},

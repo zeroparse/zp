@@ -236,20 +236,20 @@ import (
 )
 
 // errorNodes collects the error values of a tree.
-func errorNodes(n *zp.Node, out *[]*zp.Node) {
+func errorNodes(n *parse.Node, out *[]*parse.Node) {
 	if n == nil {
 		return
 	}
 	switch n.Kind() {
-	case zp.KindError:
+	case parse.KindError:
 		*out = append(*out, n)
-	case zp.KindStruct:
+	case parse.KindStruct:
 		for _, v := range n.Fields() {
-			if child, ok := v.(*zp.Node); ok {
+			if child, ok := v.(*parse.Node); ok {
 				errorNodes(child, out)
 			}
 		}
-	case zp.KindTuple, zp.KindList, zp.KindTupleValue, zp.KindListValue:
+	case parse.KindTuple, parse.KindList, parse.KindTupleValue, parse.KindListValue:
 		for _, child := range n.Elems() {
 			errorNodes(child, out)
 		}
@@ -287,7 +287,7 @@ func main() {
 			for _, e := range recovered {
 				fmt.Printf("  line %d, column %d (offset %d): %s\n", e.Line, e.Col, e.Pos, e.Message())
 			}
-			var nodes []*zp.Node
+			var nodes []*parse.Node
 			errorNodes(node, &nodes)
 			for _, n := range nodes {
 				fmt.Printf("  error value [%d,%d): %s\n", n.Start(), n.End(), n.Text())

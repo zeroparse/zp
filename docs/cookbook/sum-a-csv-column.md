@@ -21,6 +21,7 @@ import (
 	"strconv"
 
 	"zeroparse.dev/zp"
+	"zeroparse.dev/zp/runtime/parse"
 )
 
 //go:embed csv.zp
@@ -39,12 +40,12 @@ func main() {
 	var rows int
 	var total float64
 	// sum adds up the third column of a record. The first record is the header.
-	sum := func(rec *zp.Node) error {
+	sum := func(rec *parse.Node) error {
 		rows++
 		if rows == 1 {
 			return nil
 		}
-		fields := rec.Field("Fields").(*zp.Node)
+		fields := rec.Field("Fields").(*parse.Node)
 		if fields.Len() != 3 {
 			return fmt.Errorf("record %d (offset %d): want 3 fields, got %d", rows, rec.Start(), fields.Len())
 		}
@@ -68,7 +69,7 @@ func main() {
 			fmt.Fprintln(os.Stderr, err)
 			os.Exit(1)
 		}
-		for _, rec := range tree.Field("Records").(*zp.Node).Elems() {
+		for _, rec := range tree.Field("Records").(*parse.Node).Elems() {
 			if err := sum(rec); err != nil {
 				fmt.Fprintln(os.Stderr, err)
 				os.Exit(1)

@@ -10,7 +10,7 @@ Expose a deterministic, versioned description of grammar-declared types and infe
 
 ## Motivation
 
-ZeroParse parses declared `TypeDef` values in `grammar/ast.go`, checks and infers rule results internally, and generates typed Go and TypeScript results ([design 012](012-typed-values.md), [design 030](030-typed-typescript-values.md)). The public `zp.Node` representation also includes reserved CST kinds (`Match`, `Seq`, `List`, `Operator`, `Error`), captures, and scalar fields. A schema consumer cannot treat every Node as a declared AST type or infer a complete schema from observed parses. `zp.Parser` is the public compiled-grammar boundary; `engine.Program` and its inference structures are internal implementation details.
+ZeroParse parses declared `TypeDef` values in `grammar/ast.go`, checks and infers rule results internally, and generates typed Go and TypeScript results ([design 012](012-typed-values.md), [design 030](030-typed-typescript-values.md)). The public `parse.Node` representation also includes reserved CST kinds (`Match`, `Seq`, `List`, `Operator`, `Error`), captures, and scalar fields. A schema consumer cannot treat every Node as a declared AST type or infer a complete schema from observed parses. `zp.Parser` is the public compiled-grammar boundary; `engine.Program` and its inference structures are internal implementation details.
 
 ## Goals and Non-Goals
 

@@ -69,7 +69,7 @@ func TestPublicStreamIteratorLifecycle(t *testing.T) {
 	}
 	early.Close()
 	early.Close()
-	if n, ok, err := early.Next(); n != nil || ok || err != zp.ErrStreamClosed {
+	if n, ok, err := early.Next(); n != nil || ok || err != parse.ErrStreamClosed {
 		t.Fatalf("early close: %v %v %v", n, ok, err)
 	}
 

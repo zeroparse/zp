@@ -93,7 +93,7 @@ func TestRawInvalidASTLiterals(t *testing.T) {
 								}
 								if err == nil {
 									// JSON replaces malformed strings, so compare raw match text too.
-									gotMatch, wantMatch := n.Field("T").(*value.Node), wn.Field("T").(*value.Node)
+									gotMatch, wantMatch := n.Field("T").(*parse.Node), wn.Field("T").(*parse.Node)
 									if value.D(gotMatch).Text != value.D(wantMatch).Text || value.D(gotMatch).Start != value.D(wantMatch).Start || value.D(gotMatch).End != value.D(wantMatch).End {
 										t.Errorf("%s %s/%s input=%x: match %x [%d,%d), want %x [%d,%d)", name, backend, unit, input, value.D(gotMatch).Text, value.D(gotMatch).Start, value.D(gotMatch).End, value.D(wantMatch).Text, value.D(wantMatch).Start, value.D(wantMatch).End)
 									}

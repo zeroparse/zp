@@ -500,9 +500,9 @@ func convertError(e *parse.SyntaxError) syntaxError {
 
 // measureTree returns the number of nodes of the tree n and how deeply they are nested (1 for a
 // single node). It does not recurse, so that it works on trees of any depth.
-func measureTree(n *zp.Node) (count, depth int) {
+func measureTree(n *parse.Node) (count, depth int) {
 	type item struct {
-		n     *zp.Node
+		n     *parse.Node
 		depth int
 	}
 	stack := []item{{n, 1}}
@@ -517,7 +517,7 @@ func measureTree(n *zp.Node) (count, depth int) {
 			}
 		}
 		for _, v := range it.n.Fields() {
-			if c, ok := v.(*zp.Node); ok && c != nil {
+			if c, ok := v.(*parse.Node); ok && c != nil {
 				stack = append(stack, item{c, it.depth + 1})
 			}
 		}

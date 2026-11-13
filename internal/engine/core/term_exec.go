@@ -9,6 +9,8 @@ import (
 
 	"zeroparse.dev/zp/internal/compile"
 	"zeroparse.dev/zp/internal/value"
+	"zeroparse.dev/zp/runtime/noderep"
+	"zeroparse.dev/zp/runtime/parse"
 )
 
 // The codes of the binary operators, as the compositions of terms take them, for generated parsers;
@@ -326,7 +328,7 @@ func (p *Parser) termPush(c *EvalCtx, fn string, v any) error {
 		return nil
 	}
 	if k == 1 || k == 2 || k == 3 {
-		p.KidStack = append(p.KidStack, p.NewNode(value.Data{Kind: value.BoxKind, Box: v, Start: int32(c.Start), End: int32(c.End)}))
+		p.KidStack = append(p.KidStack, p.NewNode(value.Data{Kind: noderep.BoxKind, Box: v, Start: int32(c.Start), End: int32(c.End)}))
 		return nil
 	}
 	n, ok := nodeOf(v)
@@ -355,7 +357,7 @@ func (p *Parser) termPushItems(c *EvalCtx, fn string, v any) error {
 // and those of a list or a tuple. Any other value fails.
 //
 // Printed from Exec IR function items of internal/ir/exec/core.
-func (p *Parser) termItems(fn string, v any) ([]*value.Node, error) {
+func (p *Parser) termItems(fn string, v any) ([]*parse.Node, error) {
 	items, ok := valItems(v)
 	if ok {
 		return items, nil
@@ -368,7 +370,7 @@ func (p *Parser) termItems(fn string, v any) ([]*value.Node, error) {
 // nothing; the loop charges the step (seq.step) before it, so that itemAt stays small enough for a target to inline.
 //
 // Printed from Exec IR function itemAt of internal/ir/exec/core.
-func (p *Parser) termItemAt(items []*value.Node, i int, right bool) any {
+func (p *Parser) termItemAt(items []*parse.Node, i int, right bool) any {
 	if right {
 		return value.UnboxNode(items[len(items)-1-i])
 	}
@@ -448,7 +450,7 @@ func (p *Parser) termConvert(t *value.NodeTypeKinds, x any) (any, error) {
 // whether it had none before, and the first node gives n its range.
 //
 // Printed from Exec IR function cover of internal/ir/exec/core.
-func (p *Parser) termCover(n *value.Node, v any, first bool) bool {
+func (p *Parser) termCover(n *parse.Node, v any, first bool) bool {
 	k, ok := nodeOf(v)
 	if !ok {
 		return first
@@ -471,7 +473,7 @@ func (p *Parser) termCover(n *value.Node, v any, first bool) bool {
 // rule if no field value is a node, and c records n.
 //
 // Printed from Exec IR function made of internal/ir/exec/core.
-func (p *Parser) termMade(c *EvalCtx, n *value.Node, first bool) {
+func (p *Parser) termMade(c *EvalCtx, n *parse.Node, first bool) {
 	if first {
 		rs, re := c.Start, c.End
 		setSpan(n, rs, re)
@@ -485,7 +487,7 @@ func (p *Parser) termMade(c *EvalCtx, n *value.Node, first bool) {
 // struct that holds one covers it.
 //
 // Printed from Exec IR function hull of internal/ir/exec/core.
-func (p *Parser) termHull(c *EvalCtx, tuple bool, kids []*value.Node) *value.Node {
+func (p *Parser) termHull(c *EvalCtx, tuple bool, kids []*parse.Node) *parse.Node {
 	var j int
 	n := p.NewNode(value.Data{Kind: seqKind(tuple), Children: kids})
 	rs, _ := c.Start, c.End
@@ -569,7 +571,7 @@ func (p *Parser) termConforms(t *compile.FieldType, v any) bool {
 		return shape == 3
 	}
 	if kt == 77 {
-		return shape == 3 && (n.Type() == value.TypeMissing)
+		return shape == 3 && (n.Type() == noderep.TypeMissing)
 	}
 	// A struct type or a named node type takes the values that have its name.
 	if kt == 78 {
@@ -599,7 +601,7 @@ func (p *Parser) termConforms(t *compile.FieldType, v any) bool {
 // node has a string, and a tuple node or a list node its elements as value.
 //
 // Printed from Exec IR function valueConforms of internal/ir/exec/core.
-func (p *Parser) termValueConforms(t *compile.FieldType, n *value.Node, shape int) bool {
+func (p *Parser) termValueConforms(t *compile.FieldType, n *parse.Node, shape int) bool {
 	var i int
 	kt := int(t.Kind)
 	// A node of a type whose value is a string, a tuple or a list.
@@ -640,7 +642,7 @@ func (p *Parser) termValueConforms(t *compile.FieldType, n *value.Node, shape in
 // of the list, charging a step for each element it examines; the type _ takes every element, and charges nothing.
 //
 // Printed from Exec IR function elemsConform of internal/ir/exec/core.
-func (p *Parser) termElemsConform(t *compile.FieldType, items []*value.Node) bool {
+func (p *Parser) termElemsConform(t *compile.FieldType, items []*parse.Node) bool {
 	var j int
 	if int(t.Kind) == 95 {
 		return true
@@ -659,7 +661,7 @@ func (p *Parser) termElemsConform(t *compile.FieldType, items []*value.Node) boo
 // as many, and each of its own type, charging a step for each element it examines.
 //
 // Printed from Exec IR function tupleConform of internal/ir/exec/core.
-func (p *Parser) termTupleConform(t *compile.FieldType, items []*value.Node) bool {
+func (p *Parser) termTupleConform(t *compile.FieldType, items []*parse.Node) bool {
 	var j int
 	count := len(items)
 	if count != len(t.Alts) {

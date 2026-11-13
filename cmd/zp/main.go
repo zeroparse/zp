@@ -654,7 +654,7 @@ func runParse(args []string, stdin io.Reader, stdout io.Writer) error {
 		if isFlagSet(fs, "i") {
 			r = strings.NewReader(*input)
 		}
-		return p.ParseStream(r, func(n *zp.Node) error {
+		return p.ParseStream(r, func(n *parse.Node) error {
 			if *format == "sexpr" {
 				_, err := fmt.Fprintln(stdout, n)
 				return err

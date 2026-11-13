@@ -5,7 +5,6 @@ import (
 	"weak"
 
 	"zeroparse.dev/zp/internal/engine/core"
-	"zeroparse.dev/zp/internal/value"
 	"zeroparse.dev/zp/runtime/parse"
 )
 
@@ -34,7 +33,7 @@ func (d *Document) historyBytes() uint64 {
 // retainedBytes returns the bytes a parse under a memory limit starts with: the history, the memo
 // table's count, and the kept child and backend stacks.
 func (d *Document) retainedBytes() uint64 {
-	n := d.historyBytes() + uint64(cap(d.kids))*uint64(unsafe.Sizeof((*value.Node)(nil)))
+	n := d.historyBytes() + uint64(cap(d.kids))*uint64(unsafe.Sizeof((*parse.Node)(nil)))
 	if d.memo != nil {
 		n += d.memo.ChargedBytes()
 	}
@@ -78,7 +77,7 @@ func (d *Document) CacheStats() parse.CacheStats {
 		s.EstimatedBytes += uint64(cap(run.Elems)) * uint64(unsafe.Sizeof(core.RunElem{}))
 	}
 	s.EstimatedBytes += uint64(cap(d.edits)) * uint64(unsafe.Sizeof(core.DocEdit{}))
-	s.EstimatedBytes += uint64(cap(d.kids)) * uint64(unsafe.Sizeof((*value.Node)(nil)))
+	s.EstimatedBytes += uint64(cap(d.kids)) * uint64(unsafe.Sizeof((*parse.Node)(nil)))
 	if d.machine != nil {
 		s.EstimatedBytes += d.machine.RetainedBytes()
 	}

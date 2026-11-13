@@ -49,7 +49,7 @@ func TestNullableRepetitionMinimum(t *testing.T) {
 								opts.Recognize = false
 								if p.checkMode(opts, false) == nil {
 									count := 0
-									err := p.ParseStreamWith("main", strings.NewReader(""), func(*value.Node) error { count++; return nil }, opts)
+									err := p.ParseStreamWith("main", strings.NewReader(""), func(*parse.Node) error { count++; return nil }, opts)
 									if count != bound.count || (err == nil) != bound.ok {
 										t.Errorf("stream %s/%s: %d values, %v; want %d, success=%v", backend, unit, count, err, bound.count, bound.ok)
 									}
@@ -92,7 +92,7 @@ func TestNullableRepetitionAfterConsumption(t *testing.T) {
 							t.Errorf("%s%s/%q %s/%s: %v", body, bound, tc.input, backend, unit, err)
 						}
 						count := 0
-						err := p.ParseStreamWith("main", strings.NewReader(tc.input), func(*value.Node) error { count++; return nil }, opts)
+						err := p.ParseStreamWith("main", strings.NewReader(tc.input), func(*parse.Node) error { count++; return nil }, opts)
 						wantCount := min(len([]rune(tc.input))+1, tc.min)
 						if (err == nil) != tc.ok || count != wantCount {
 							t.Errorf("stream %s%s/%q %s/%s: %d, %v; want %d success=%v", body, bound, tc.input, backend, unit, count, err, wantCount, tc.ok)

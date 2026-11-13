@@ -12,27 +12,28 @@ import (
 	"zeroparse.dev/zp/internal/compile"
 	"zeroparse.dev/zp/internal/engine/core"
 	"zeroparse.dev/zp/internal/value"
+	"zeroparse.dev/zp/runtime/noderep"
 	"zeroparse.dev/zp/runtime/parse"
 	"zeroparse.dev/zp/schema"
 )
 
-func missingNodes(t *testing.T, root *value.Node) []*value.Node {
+func missingNodes(t *testing.T, root *parse.Node) []*parse.Node {
 	t.Helper()
-	var found []*value.Node
-	seen := make(map[*value.Node]bool)
-	if err := value.Walk(root, func(v value.WalkVisit) (value.WalkAction, error) {
-		if v.Node != nil && v.Node.Type() == value.TypeMissing && !seen[v.Node] {
+	var found []*parse.Node
+	seen := make(map[*parse.Node]bool)
+	if err := parse.Walk(root, func(v parse.WalkVisit) (parse.WalkAction, error) {
+		if v.Node != nil && v.Node.Type() == noderep.TypeMissing && !seen[v.Node] {
 			seen[v.Node] = true
 			found = append(found, v.Node)
 		}
-		return value.WalkContinue, nil
+		return parse.WalkContinue, nil
 	}); err != nil {
 		t.Fatal(err)
 	}
 	return found
 }
 
-func requireInsertions(t *testing.T, prog *Program, input string, o ParseOptions, count int) (*value.Node, parse.SyntaxErrors) {
+func requireInsertions(t *testing.T, prog *Program, input string, o ParseOptions, count int) (*parse.Node, parse.SyntaxErrors) {
 	t.Helper()
 	n, err := prog.ParseWith("main", input, o)
 	var recovered parse.SyntaxErrors

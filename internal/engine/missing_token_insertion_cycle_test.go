@@ -8,7 +8,6 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/internal/engine/core"
-	"zeroparse.dev/zp/internal/value"
 	"zeroparse.dev/zp/runtime/parse"
 )
 
@@ -70,7 +69,7 @@ func TestMissingTokensInsertionOnlyLeftRecursion(t *testing.T) {
 func TestMissingTokensInsertionOnlyLeftRecursionLimits(t *testing.T) {
 	t.Parallel()
 	prog := mustCompile(t, insertionCycle)
-	render := func(n *value.Node, err error) string {
+	render := func(n *parse.Node, err error) string {
 		data, jerr := json.Marshal(n)
 		if jerr != nil {
 			t.Fatal(jerr)
@@ -120,7 +119,7 @@ func TestMissingTokensInsertionOnlyLeftRecursionRejected(t *testing.T) {
 			t.Fatalf("backend %v: %v", b, err)
 		}
 	}
-	if err := prog.ParseStream("main", strings.NewReader("y"), func(*value.Node) error { return nil }); err == nil {
+	if err := prog.ParseStream("main", strings.NewReader("y"), func(*parse.Node) error { return nil }); err == nil {
 		t.Fatal("stream parsing accepted the grammar")
 	}
 	if _, err := prog.NewDocument("main", "y"); err == nil {

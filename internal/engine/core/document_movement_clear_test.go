@@ -34,7 +34,7 @@ func wantMovementState(t *testing.T, p *Parser, moved int) {
 func TestClearMovementSpend(t *testing.T) {
 	t.Parallel()
 	fill := func(p *Parser, moved, shifts int) {
-		p.Moved = map[*value.Node]*value.Node{}
+		p.Moved = map[*parse.Node]*parse.Node{}
 		for range moved {
 			n := value.Ptr(value.Data{})
 			p.Moved[n] = n
@@ -80,7 +80,7 @@ func TestClearMovementSpend(t *testing.T) {
 // size that is kept.
 func TestDocumentMoveWithoutControl(t *testing.T) {
 	t.Parallel()
-	moves := func(empty int) (*Parser, *value.Node, []*value.Node) {
+	moves := func(empty int) (*Parser, *parse.Node, []*parse.Node) {
 		p := &Parser{}
 		for range 3 {
 			p.Edits = append(p.Edits, DocEdit{Delta: 1})
@@ -88,8 +88,8 @@ func TestDocumentMoveWithoutControl(t *testing.T) {
 		p.Gen = 3
 		// A child moved through another result after one edit has a shift of its own to replay.
 		late := value.Ptr(value.Data{Start: 3, End: 4, Gen: 1})
-		children := []*value.Node{late}
-		var empties []*value.Node
+		children := []*parse.Node{late}
+		var empties []*parse.Node
 		for range empty {
 			c := value.Ptr(value.Data{Start: 3, End: 3})
 			empties = append(empties, c)

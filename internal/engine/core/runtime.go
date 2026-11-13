@@ -7,6 +7,7 @@ import (
 
 	"zeroparse.dev/zp/internal/compile"
 	"zeroparse.dev/zp/internal/value"
+	"zeroparse.dev/zp/runtime/noderep"
 	"zeroparse.dev/zp/runtime/parse"
 )
 
@@ -100,7 +101,7 @@ type Parser struct {
 	diagnosedList *ErrList
 
 	// Emit receives the elements of the #stream repetition when parsing a stream.
-	Emit func(*value.Node) error
+	Emit func(*parse.Node) error
 	// StreamID is the ID of the start rule of a stream parse, the one rule whose #stream repetition
 	// streams.
 	StreamID int
@@ -109,7 +110,7 @@ type Parser struct {
 	Depth    int
 	MaxDepth int
 	// Created holds the struct nodes built by the action being evaluated (from EvalCtx.Cbase).
-	Created []*value.Node
+	Created []*parse.Node
 	// MemoAll requests memoizing transient rules (rule.transient) too (used by Document).
 	MemoAll bool
 	// NoPlain keeps call sites from calling InvokePlain directly for plain rules (Rule.Plain), so
@@ -130,16 +131,16 @@ type Parser struct {
 	Estack []any
 
 	// Chunks of nodes and child slices (alloc.go), and the stack that collects repetition children
-	NodeSlab  []value.Node
-	PtrSlab   []*value.Node
-	KidStack  []*value.Node
+	NodeSlab  []parse.Node
+	PtrSlab   []*parse.Node
+	KidStack  []*parse.Node
 	FrameSlab []Frame
-	fieldSlab []value.NodeField
+	fieldSlab []noderep.NodeField
 	// Document edits: gen is the number of edits made before this parse, and edits records them
 	// (see moveResult). moved holds the copies made by MoveEmpty.
 	Gen    uint32
 	Edits  []DocEdit
-	Moved  map[*value.Node]*value.Node
+	Moved  map[*parse.Node]*parse.Node
 	Shifts map[uint32]int // ShiftOf of each generation in the current moveResult
 	// moveBase and baseShift are the generation and the shift of the memo entry being moved.
 	moveBase  uint32
@@ -201,9 +202,9 @@ type Parser struct {
 	// A negative count tracks the exact-size prefix budget before #stream.
 	NodeChunks int
 	ectx       EvalCtx        // area for UseCtx
-	item       [1]*value.Node // the element list of an action whose body is not a sequence (one)
+	item       [1]*parse.Node // the element list of an action whose body is not a sequence (one)
 	oplocals   [3]Local       // $lhs, $rhs and $op of a OperatorsRule operator action
-	Saved      []*value.Node  // captures saved across a reset in longest
+	Saved      []*parse.Node  // captures saved across a reset in longest
 	cutFailed  bool           // a candidate of the last longest match failed after a cut
 	afterEmpty bool           // the next expression is the right operand of an infix operator that consumed no input
 	nudBound   int            // the binding level above which no operator can follow the last start of an expression
@@ -250,7 +251,7 @@ type MemoKey struct {
 }
 
 type MemoEntry struct {
-	Node     *value.Node
+	Node     *parse.Node
 	End      int
 	Examined int
 	// From is the start of the examined input (detecting a line start may examine the preceding
@@ -313,7 +314,7 @@ func (p *Parser) ReportedStats() parse.ParseStats {
 
 // Frame holds the capture values for each rule body or repetition element.
 type Frame struct {
-	Vals []*value.Node
+	Vals []*parse.Node
 }
 
 // EmptyFrame is the frame for scopes without captures (shared because it is never written to).
@@ -322,7 +323,7 @@ var EmptyFrame = &Frame{}
 type Undo struct {
 	F    *Frame
 	Slot int
-	Old  *value.Node
+	Old  *parse.Node
 }
 
 // Bind rebinds the variable in slot i. Binding the value it has already is a no-op. Saved
@@ -361,7 +362,7 @@ func (p *Parser) DropRecovered(m Mark) {
 	p.Recovered = p.Recovered[:m.Recovered]
 }
 
-func (p *Parser) SetCapture(slot int, v *value.Node) {
+func (p *Parser) SetCapture(slot int, v *parse.Node) {
 	p.Trail = append(p.Trail, Undo{F: p.Frame, Slot: slot, Old: p.Frame.Vals[slot]})
 	p.Frame.Vals[slot] = v
 }
@@ -401,17 +402,17 @@ func (p *Parser) Unisolate(m ExpMark) (far int, inner []ExpID) {
 type Rule struct {
 	staticRule
 	// Kinds are the node kinds the rule makes (value.NewRuleKinds).
-	Kinds value.RuleKinds
+	Kinds noderep.RuleKinds
 	// Body matches the body of the rule at the current position and returns its node; min is the
 	// binding level of the call (see Call).
-	Body func(p *Parser, min int) (*value.Node, bool)
+	Body func(p *Parser, min int) (*parse.Node, bool)
 	// NodeKinds and OpKinds are the kinds of nodeType and opNodeType.
 	NodeKinds, OpKinds *value.NodeTypeKinds
 	OperatorsRule      *OperatorsRule
 	// Act evaluates the action (nil if there is no action).
 	Act Evaluator
 	// Value makes the rule's value from the value of its body, for a rule without an action.
-	Value func(p *Parser, v *value.Node, start int) *value.Node
+	Value func(p *Parser, v *parse.Node, start int) *parse.Node
 	// Entry is the start of the body in bytecode (only for rules of the bytecode backend).
 	Entry int
 	// InitVals are the initial values of vars, in the same order (nil when vars is empty).
@@ -632,7 +633,7 @@ func (p *Parser) GrowNext(g *GrowState) bool {
 }
 
 // GrowStep receives the body's result of a step and adopts it as the seed if the match grew.
-func (p *Parser) GrowStep(g *GrowState, v *value.Node, ok bool) {
+func (p *Parser) GrowStep(g *GrowState, v *parse.Node, ok bool) {
 	if !g.ctx {
 		if !ok || (g.Best.Ok && p.Pos <= g.Best.End) {
 			g.done = true
@@ -850,7 +851,7 @@ func (p *Parser) unionExpected(a, b []ExpID) []ExpID {
 }
 
 // GrowEnd finalizes and returns the last result. CallEnd stores it (Parser.grown).
-func (p *Parser) GrowEnd(r *Rule, g *GrowState) (*value.Node, bool) {
+func (p *Parser) GrowEnd(r *Rule, g *GrowState) (*parse.Node, bool) {
 	p.recordJumps(g)
 	p.dropTable(g.gi)
 	p.Gamma = p.Gamma[:g.gi]
@@ -885,7 +886,7 @@ func (p *Parser) GrowEnd(r *Rule, g *GrowState) (*value.Node, bool) {
 }
 
 // invoke evaluates the rule body and builds the value with the action or the CST rules.
-func (p *Parser) invoke(r *Rule, min int) (*value.Node, bool) {
+func (p *Parser) invoke(r *Rule, min int) (*parse.Node, bool) {
 	st := p.InvokeBegin(r)
 	v, ok := r.Body(p, min)
 	return p.InvokeEnd(r, &st, v, ok)
@@ -894,7 +895,7 @@ func (p *Parser) invoke(r *Rule, min int) (*value.Node, bool) {
 // InvokePlain is an unmemoized call of a rule without captures: invoke with the steps of
 // InvokeBegin and InvokeEnd inlined, minus the capture frame (the body never writes one, so the
 // caller's stays current), and with the failure handling of call.
-func (p *Parser) InvokePlain(r *Rule, min int) (*value.Node, bool) {
+func (p *Parser) InvokePlain(r *Rule, min int) (*parse.Node, bool) {
 	p.Spend()
 	start, rec, trail, missing := p.Pos, len(p.Recovered), len(p.Trail), p.missingMark()
 	prevEnv, prevCut := p.Env, p.Cut
@@ -943,7 +944,7 @@ func (p *Parser) InvokeBegin(r *Rule) InvokeState {
 	return st
 }
 
-func (p *Parser) InvokeEnd(r *Rule, st *InvokeState, v *value.Node, ok bool) (*value.Node, bool) {
+func (p *Parser) InvokeEnd(r *Rule, st *InvokeState, v *parse.Node, ok bool) (*parse.Node, bool) {
 	if r.Rec {
 		p.Depth--
 	}
@@ -958,7 +959,7 @@ func (p *Parser) InvokeEnd(r *Rule, st *InvokeState, v *value.Node, ok bool) (*v
 
 // Finish builds the rule's value from the value of the rule body, and converts it to the rule's named node type, if any. A value-free
 // rule is never checked.
-func (p *Parser) Finish(r *Rule, f *Frame, v *value.Node, start int) *value.Node {
+func (p *Parser) Finish(r *Rule, f *Frame, v *parse.Node, start int) *parse.Node {
 	if r.Novalue {
 		return nil
 	}
@@ -1003,7 +1004,7 @@ func (p *Parser) Finish(r *Rule, f *Frame, v *value.Node, start int) *value.Node
 }
 
 // convertResult converts v, the value of rule r, to the rule's named node type.
-func (p *Parser) convertResult(r *Rule, v *value.Node) *value.Node {
+func (p *Parser) convertResult(r *Rule, v *parse.Node) *parse.Node {
 	n, ok := r.NodeKinds.Convert(value.UnboxNode(v))
 	if !ok {
 		p.Fail("cannot convert %s to %s in result of rule %s", TypeName(value.UnboxNode(v)), r.NodeType, r.WhereName())
@@ -1013,7 +1014,7 @@ func (p *Parser) convertResult(r *Rule, v *value.Node) *value.Node {
 
 // AttachCaptures attaches captures to the node as fields. Captures that did not match (nil) are
 // not attached. If the node belongs to another rule, it is wrapped in a tuple node first.
-func (p *Parser) AttachCaptures(v *value.Node, s *compile.Scope, f *Frame, start, end int) *value.Node {
+func (p *Parser) AttachCaptures(v *parse.Node, s *compile.Scope, f *Frame, start, end int) *parse.Node {
 	found := false
 	wrap := v == nil || !value.D(v).Fresh
 	for _, c := range f.Vals {
@@ -1030,7 +1031,7 @@ func (p *Parser) AttachCaptures(v *value.Node, s *compile.Scope, f *Frame, start
 		return v
 	}
 	if wrap {
-		v = p.NewNode(value.Data{Kind: value.SeqKind, Start: int32(start), End: int32(end), Children: append(p.Nodes(1)[:0], v), Fresh: true})
+		v = p.NewNode(value.Data{Kind: noderep.SeqKind, Start: int32(start), End: int32(end), Children: append(p.Nodes(1)[:0], v), Fresh: true})
 	}
 	if value.D(v).Fields == nil {
 		value.D(v).Fields = p.fields(len(s.Names))
@@ -1046,7 +1047,7 @@ func (p *Parser) AttachCaptures(v *value.Node, s *compile.Scope, f *Frame, start
 }
 
 // NodeOrNil converts a nil *Node to an interface nil.
-func NodeOrNil(n *value.Node) any {
+func NodeOrNil(n *parse.Node) any {
 	if n == nil {
 		return nil
 	}
@@ -1106,14 +1107,14 @@ func (p *Parser) MakeError(pos int, expected []ExpID) *parse.SyntaxError {
 
 // nodeValue returns the Value of the node n: its text for a string node, and a tuple or list
 // value sharing its elements otherwise.
-func (p *Parser) nodeValue(n *value.Node) any {
+func (p *Parser) nodeValue(n *parse.Node) any {
 	switch {
 	case value.D(n).Terminal:
 		return value.D(n).Text
-	case value.D(n).Kind != nil && value.D(n).Kind.Base == value.BaseList:
-		return p.NewNode(value.Data{Kind: value.ListValueKind, Start: value.D(n).Start, End: value.D(n).End, Children: value.D(n).Children})
+	case value.D(n).Kind != nil && value.D(n).Kind.Base == noderep.BaseList:
+		return p.NewNode(value.Data{Kind: noderep.ListValueKind, Start: value.D(n).Start, End: value.D(n).End, Children: value.D(n).Children})
 	}
-	return p.NewNode(value.Data{Kind: value.TupleValueKind, Start: value.D(n).Start, End: value.D(n).End, Children: value.D(n).Children})
+	return p.NewNode(value.Data{Kind: noderep.TupleValueKind, Start: value.D(n).Start, End: value.D(n).End, Children: value.D(n).Children})
 }
 
 // SeedVars gives the parser the initial environment of the program's variables. Every parse

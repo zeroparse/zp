@@ -33,7 +33,7 @@ rule item = "ab" #recover(skip=[^a]+)`, "main")
 					b.ReportAllocs()
 					for b.Loop() {
 						elements := 0
-						err := p.ParseStream(strings.NewReader(input), func(*zp.Node) error {
+						err := p.ParseStream(strings.NewReader(input), func(*parse.Node) error {
 							elements++
 							return nil
 						}, opts...)

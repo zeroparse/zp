@@ -17,6 +17,7 @@ import (
 	goutline "zeroparse.dev/zp/internal/bench/gen/outline"
 	gxml "zeroparse.dev/zp/internal/bench/gen/xml"
 	"zeroparse.dev/zp/internal/value"
+	"zeroparse.dev/zp/runtime/noderep"
 	"zeroparse.dev/zp/runtime/parse"
 )
 
@@ -278,7 +279,7 @@ func TestControlledFullWorkloads(t *testing.T) {
 }
 
 func TestFullFingerprintDetectsObservableGraphChanges(t *testing.T) {
-	hash := func(n *zp.Node) string {
+	hash := func(n *parse.Node) string {
 		t.Helper()
 		s, e := fullFingerprint(n)
 		if e != nil {
@@ -286,19 +287,19 @@ func TestFullFingerprintDetectsObservableGraphChanges(t *testing.T) {
 		}
 		return s
 	}
-	str := func(start, end int, text string) *zp.Node {
-		return value.NewNode(value.KindString, start, end, text, nil, "", nil, nil)
+	str := func(start, end int, text string) *parse.Node {
+		return value.NewNode(parse.KindString, start, end, text, nil, "", nil, nil)
 	}
-	tuple := func(elems ...*zp.Node) *zp.Node {
-		return value.NewNode(value.KindTuple, 0, 0, "", elems, "", nil, nil)
+	tuple := func(elems ...*parse.Node) *parse.Node {
+		return value.NewNode(parse.KindTuple, 0, 0, "", elems, "", nil, nil)
 	}
-	object := func(fields ...value.NodeField) *zp.Node {
-		return value.NewNode(value.KindStruct, 0, 0, "", nil, "T", value.Fields(fields), nil)
+	object := func(fields ...noderep.NodeField) *parse.Node {
+		return value.NewNode(parse.KindStruct, 0, 0, "", nil, "T", noderep.Fields(fields), nil)
 	}
 	if hash(str(0, 0, "\xff")) == hash(str(0, 0, "\xfe")) {
 		t.Fatal("raw invalid terminal bytes were replaced")
 	}
-	if hash(object(value.NodeField{Name: "x", Value: "\xff"})) == hash(object(value.NodeField{Name: "x", Value: "\xfe"})) {
+	if hash(object(noderep.NodeField{Name: "x", Value: "\xff"})) == hash(object(noderep.NodeField{Name: "x", Value: "\xfe"})) {
 		t.Fatal("raw invalid scalar bytes were replaced")
 	}
 	leaf := str(0, 0, "x")
@@ -307,29 +308,29 @@ func TestFullFingerprintDetectsObservableGraphChanges(t *testing.T) {
 	if hash(shared) == hash(copied) {
 		t.Fatal("sharing was discarded")
 	}
-	fields := object(value.NodeField{Name: "a", Value: "one"}, value.NodeField{Name: "b", Value: "two"})
-	reordered := object(value.NodeField{Name: "b", Value: "two"}, value.NodeField{Name: "a", Value: "one"})
+	fields := object(noderep.NodeField{Name: "a", Value: "one"}, noderep.NodeField{Name: "b", Value: "two"})
+	reordered := object(noderep.NodeField{Name: "b", Value: "two"}, noderep.NodeField{Name: "a", Value: "one"})
 	if hash(fields) == hash(reordered) {
 		t.Fatal("field order was discarded")
 	}
-	if hash(tuple()) == hash(value.NewNode(value.KindList, 0, 0, "", nil, "", nil, nil)) {
+	if hash(tuple()) == hash(value.NewNode(parse.KindList, 0, 0, "", nil, "", nil, nil)) {
 		t.Fatal("the kind of an empty node was discarded")
 	}
 	shifted := str(1, 2, "x")
 	if hash(leaf) == hash(shifted) {
 		t.Fatal("positions were discarded")
 	}
-	changed := object(value.NodeField{Name: "a", Value: "changed"}, value.NodeField{Name: "b", Value: "two"})
+	changed := object(noderep.NodeField{Name: "a", Value: "changed"}, noderep.NodeField{Name: "b", Value: "two"})
 	if hash(fields) == hash(changed) {
 		t.Fatal("field values were discarded")
 	}
-	if hash(value.NewNode(value.KindValue, 0, 0, "", nil, "", nil, 1)) == hash(value.NewNode(value.KindValue, 0, 0, "", nil, "", nil, 2)) {
+	if hash(value.NewNode(parse.KindValue, 0, 0, "", nil, "", nil, 1)) == hash(value.NewNode(parse.KindValue, 0, 0, "", nil, "", nil, 2)) {
 		t.Fatal("carried values were discarded")
 	}
 	cycle := tuple()
-	value.SetNodeElems(cycle, []*zp.Node{cycle})
+	value.SetNodeElems(cycle, []*parse.Node{cycle})
 	other := tuple()
-	value.SetNodeElems(other, []*zp.Node{other})
+	value.SetNodeElems(other, []*parse.Node{other})
 	if hash(cycle) != hash(other) {
 		t.Fatal("equivalent cycles differ")
 	}

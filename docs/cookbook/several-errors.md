@@ -84,12 +84,12 @@ func main() {
 	}
 
 	// The tree has the settings that parsed, and an error value where one did not.
-	for _, s := range tree.Field("Settings").(*zp.Node).Elems() {
-		if s.Kind() == zp.KindError {
+	for _, s := range tree.Field("Settings").(*parse.Node).Elems() {
+		if s.Kind() == parse.KindError {
 			fmt.Printf("skipped %q\n", src[s.Start():s.End()])
 			continue
 		}
-		fmt.Printf("%s = %s\n", s.Field("Key").(*zp.Node).Text(), s.Field("Value").(*zp.Node).Text())
+		fmt.Printf("%s = %s\n", s.Field("Key").(*parse.Node).Text(), s.Field("Value").(*parse.Node).Text())
 	}
 	if len(errs) > 0 {
 		os.Exit(1)
@@ -124,7 +124,7 @@ The program exits with status 1, because there were errors.
   `port = 1;`, `name = 5`, `host = 1;`.)
 - **Types.** `error` is a built-in type that only recovery produces, and `a #recover(...)` has the type `A | error`.
   That is why `setting` is declared `Item`, the join `Setting | error`, and the `Settings` field is a list of `Item`.
-  Go sees `s.Kind() == zp.KindError`, with the skipped range in `s.Start()` and `s.End()` and the message, with its
+  Go sees `s.Kind() == parse.KindError`, with the skipped range in `s.Start()` and `s.End()` and the message, with its
   position (`2:8: expected ...`), in `s.Text()`.
 - **`parse.SyntaxErrors` is the second kind of result.** `Parse` returns the tree and an error that is a
   `parse.SyntaxErrors` (a slice of `*parse.SyntaxError`, each with `Line`, `Col` and `Message()`). Do not write

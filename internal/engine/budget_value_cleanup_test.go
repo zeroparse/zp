@@ -10,13 +10,14 @@ import (
 	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/engine/core"
 	"zeroparse.dev/zp/internal/value"
+	"zeroparse.dev/zp/runtime/noderep"
 	"zeroparse.dev/zp/runtime/parse"
 )
 
 func TestBudgetValueCopyInterruptionPreservesChildren(t *testing.T) {
 	t.Parallel()
-	retained := value.Ptr(value.Data{Text: "retained", Start: 7, End: 9, Fields: value.Fields{{Name: "value", Value: "unchanged"}}})
-	p := &core.Parser{KidStack: make([]*value.Node, 257)}
+	retained := value.Ptr(value.Data{Text: "retained", Start: 7, End: 9, Fields: noderep.Fields{{Name: "value", Value: "unchanged"}}})
+	p := &core.Parser{KidStack: make([]*parse.Node, 257)}
 	for i := range p.KidStack {
 		p.KidStack[i] = retained
 	}
@@ -50,12 +51,12 @@ func TestBudgetValueCopyInterruptionPreservesChildren(t *testing.T) {
 
 func TestBudgetValueFieldAndEnvironmentWalks(t *testing.T) {
 	t.Parallel()
-	fields := make(value.Fields, 300)
+	fields := make(noderep.Fields, 300)
 	st := &grammar.TypeDef{Type: &grammar.StructType{}}
 	values := make([]any, len(fields))
 	for i := range fields {
 		name := fmt.Sprintf("v%d", i)
-		fields[i] = value.NodeField{Name: name, Value: i}
+		fields[i] = noderep.NodeField{Name: name, Value: i}
 		st.Struct().Fields = append(st.Struct().Fields, &grammar.Field{Name: name})
 		values[i] = i
 	}
@@ -89,7 +90,7 @@ func TestBudgetValueFieldAndEnvironmentWalks(t *testing.T) {
 func TestBudgetValueTrackingCleanupAfterInterruption(t *testing.T) {
 	t.Parallel()
 	retained := value.Ptr(value.Data{Text: "retained"})
-	p := &core.Parser{Created: make([]*value.Node, 258)}
+	p := &core.Parser{Created: make([]*parse.Node, 258)}
 	for i := range p.Created {
 		p.Created[i] = retained
 	}

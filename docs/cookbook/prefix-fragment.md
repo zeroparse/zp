@@ -54,7 +54,7 @@ import (
 //go:embed expr.zp
 var grammar string
 
-func eval(n *zp.Node, vars map[string]float64) (float64, error) {
+func eval(n *parse.Node, vars map[string]float64) (float64, error) {
 	switch n.Type() {
 	case "Num":
 		return strconv.ParseFloat(n.Text(), 64)
@@ -66,15 +66,15 @@ func eval(n *zp.Node, vars map[string]float64) (float64, error) {
 		}
 		return v, nil
 	}
-	l, err := eval(n.Field("Left").(*zp.Node), vars)
+	l, err := eval(n.Field("Left").(*parse.Node), vars)
 	if err != nil {
 		return 0, err
 	}
-	r, err := eval(n.Field("Right").(*zp.Node), vars)
+	r, err := eval(n.Field("Right").(*parse.Node), vars)
 	if err != nil {
 		return 0, err
 	}
-	switch n.Field("Op").(*zp.Node).Text() {
+	switch n.Field("Op").(*parse.Node).Text() {
 	case "+":
 		return l + r, nil
 	case "-":

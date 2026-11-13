@@ -9,6 +9,7 @@ import (
 	"zeroparse.dev/zp/internal/check"
 	"zeroparse.dev/zp/internal/diag"
 	"zeroparse.dev/zp/internal/ir/core"
+	"zeroparse.dev/zp/runtime/noderep"
 
 	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/bytecode"
@@ -64,7 +65,7 @@ type Program struct {
 	BytecodeOnce sync.Once
 	Bytecode     *bytecode.Module
 	// typeKinds holds the node kinds of the grammar's types (typeKind), made with the program.
-	typeKinds map[string]*value.NodeKind
+	typeKinds map[string]*noderep.Kind
 	// NodeKinds holds the kinds of the grammar's named node types, also under the names of the
 	// aliases of them.
 	NodeKinds map[string]*value.NodeTypeKinds
@@ -224,7 +225,7 @@ var ErrSchemaUnavailable = errors.New("output schema unavailable")
 // Reserved type names.
 var builtinTypes = map[string]bool{
 	"int": true, "string": true, "bool": true, "node": true, "terminal": true,
-	"Match": true, "Seq": true, "List": true, "Operator": true, "Error": true, "Missing": true, value.TypeMissing: true,
+	"Match": true, "Seq": true, "List": true, "Operator": true, "Error": true, "Missing": true, noderep.TypeMissing: true,
 }
 
 // Compiler holds the state of compiling one program: the program being built, its analysis,
@@ -593,7 +594,7 @@ func checkWith[M any](g *grammar.Grammar, opts Options, flags []RuleFlags, names
 	}
 	prog.NSeen = NumberSeen(prog.RuleList, prog.Twins)
 	NumberLeaders(prog.RuleList)
-	prog.typeKinds = map[string]*value.NodeKind{}
+	prog.typeKinds = map[string]*noderep.Kind{}
 	prog.NodeKinds = map[string]*value.NodeTypeKinds{}
 	for name, spec := range prog.Types {
 		control.Poll()
@@ -611,9 +612,9 @@ func checkWith[M any](g *grammar.Grammar, opts Options, flags []RuleFlags, names
 			}
 		}
 		if canonical != name {
-			prog.typeKinds[name] = value.KindOf(canonical, "")
+			prog.typeKinds[name] = noderep.KindOf(canonical, "")
 		} else {
-			prog.typeKinds[name] = value.KindOf(name, "")
+			prog.typeKinds[name] = noderep.KindOf(name, "")
 		}
 	}
 	for _, rs := range [][]*Rule{prog.RuleList, prog.Twins} {
@@ -1153,9 +1154,9 @@ func (c *Compiler) flatRefs(e grammar.Expr, out []string) []string {
 }
 
 // TypeKind returns the kind of nodes of the grammar's type typ without a rule.
-func (prog *Program) TypeKind(typ string) *value.NodeKind {
+func (prog *Program) TypeKind(typ string) *noderep.Kind {
 	if k := prog.typeKinds[typ]; k != nil {
 		return k
 	}
-	return value.KindOf(typ, "")
+	return noderep.KindOf(typ, "")
 }

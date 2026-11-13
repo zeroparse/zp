@@ -31,7 +31,7 @@ rule item = "ab" @error(message="record") #recover(skip=[^a]+)`, "main")
 					e.Messages[0] = "changed"
 					return nil
 				})}
-				err := p.ParseStream(strings.NewReader(input), func(*zp.Node) error {
+				err := p.ParseStream(strings.NewReader(input), func(*parse.Node) error {
 					events = append(events, "element")
 					return nil
 				}, options...)
@@ -55,7 +55,7 @@ rule item = "ab" @error(message="record") #recover(skip=[^a]+)`, "main")
 					stopped = append(stopped, "diagnostic")
 					return stop
 				})}
-				err = p.ParseStream(strings.NewReader(input), func(*zp.Node) error {
+				err = p.ParseStream(strings.NewReader(input), func(*parse.Node) error {
 					stopped = append(stopped, "element")
 					return nil
 				}, abort...)

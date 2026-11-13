@@ -11,11 +11,11 @@ import (
 	"strings"
 	"testing"
 
-	"zeroparse.dev/zp/internal/engine"
 	"zeroparse.dev/zp/internal/gen"
 	"zeroparse.dev/zp/internal/gentest"
 	"zeroparse.dev/zp/internal/value"
 	zprt "zeroparse.dev/zp/runtime"
+	"zeroparse.dev/zp/runtime/noderep"
 	"zeroparse.dev/zp/runtime/parse"
 )
 
@@ -23,11 +23,11 @@ import (
 // nested lists and a shared value reached through different owning parents.
 func TestTreeRuntimeParity(t *testing.T) {
 	t.Parallel()
-	leaf := value.Ptr(value.Data{Kind: value.MatchKind, Terminal: true, Text: "é<&>", Start: 1, End: 3})
+	leaf := value.Ptr(value.Data{Kind: noderep.MatchKind, Terminal: true, Text: "é<&>", Start: 1, End: 3})
 	gLeaf := zprt.NewNode(zprt.KindString, 1, 3, value.D(leaf).Text, nil, "", nil, nil)
-	child := value.Ptr(value.Data{Children: []*value.Node{leaf}, Fields: value.Fields{{Name: "list", Value: []any{leaf, nil, []byte{1, 2}}}}})
+	child := value.Ptr(value.Data{Children: []*parse.Node{leaf}, Fields: noderep.Fields{{Name: "list", Value: []any{leaf, nil, []byte{1, 2}}}}})
 	gChild := zprt.NewNode(zprt.KindStruct, 0, 0, "", []*zprt.Node{gLeaf}, "", zprt.Fields{{Name: "list", Value: []any{gLeaf, nil, []byte{1, 2}}}}, nil)
-	root := value.Ptr(value.Data{Children: []*value.Node{child, nil, leaf}, Fields: value.Fields{{Name: "z", Value: true}, {Name: "a", Value: leaf}}})
+	root := value.Ptr(value.Data{Children: []*parse.Node{child, nil, leaf}, Fields: noderep.Fields{{Name: "z", Value: true}, {Name: "a", Value: leaf}}})
 	gRoot := zprt.NewNode(zprt.KindStruct, 0, 0, "", []*zprt.Node{gChild, nil, gLeaf}, "", zprt.Fields{{Name: "z", Value: true}, {Name: "a", Value: gLeaf}}, nil)
 	core, err := root.MarshalJSON()
 	if err != nil {
@@ -41,7 +41,7 @@ func TestTreeRuntimeParity(t *testing.T) {
 	describe := func(depth int, kind uint8, child int, field string, list int, nodeText, parentText string) string {
 		return fmt.Sprintf("%d/%d/%d/%s/%d/%s/%s", depth, kind, child, field, list, nodeText, parentText)
 	}
-	ca := func(v value.WalkVisit) (value.WalkAction, error) {
+	ca := func(v parse.WalkVisit) (parse.WalkAction, error) {
 		n, p := "", ""
 		if v.Node != nil {
 			n = value.D(v.Node).Text
@@ -50,7 +50,7 @@ func TestTreeRuntimeParity(t *testing.T) {
 			p = value.D(v.Parent).Text
 		}
 		a = append(a, describe(v.Depth, uint8(v.Edge.Kind), v.Edge.ChildIndex, v.Edge.FieldName, v.Edge.ListIndex, n, p))
-		return value.WalkContinue, nil
+		return parse.WalkContinue, nil
 	}
 	cb := func(v zprt.WalkVisit) (zprt.WalkAction, error) {
 		n, p := "", ""
@@ -63,7 +63,7 @@ func TestTreeRuntimeParity(t *testing.T) {
 		b = append(b, describe(v.Depth, uint8(v.Edge.Kind), v.Edge.ChildIndex, v.Edge.FieldName, v.Edge.ListIndex, n, p))
 		return zprt.WalkContinue, nil
 	}
-	if err := value.Walk(root, ca); err != nil {
+	if err := parse.Walk(root, ca); err != nil {
 		t.Fatal(err)
 	}
 	if err := zprt.Walk(gRoot, cb); err != nil {
@@ -75,7 +75,7 @@ func TestTreeRuntimeParity(t *testing.T) {
 	for _, unit := range []parse.PositionUnit{parse.CodePoints, parse.Bytes} {
 		for _, span := range [][2]int32{{0, 0}, {1, 2}, {3, 4}} {
 			a, b = nil, nil
-			if err := (engine.Cursor{Root: root, Unit: unit}).Range(span[0], span[1], ca); err != nil {
+			if err := (parse.Cursor{Root: root, Unit: unit}).Range(span[0], span[1], ca); err != nil {
 				t.Fatal(err)
 			}
 			if err := (zprt.Cursor{Root: gRoot, Unit: zprt.PositionUnit(unit)}).Range(span[0], span[1], cb); err != nil {
@@ -86,11 +86,11 @@ func TestTreeRuntimeParity(t *testing.T) {
 			}
 		}
 	}
-	value.D(root).Children = []*value.Node{root}
+	value.D(root).Children = []*parse.Node{root}
 	zprt.SetNodeElems(gRoot, []*zprt.Node{gRoot})
-	var c *value.CycleError
+	var c *parse.CycleError
 	var gc *zprt.CycleError
-	if !errors.As(value.Walk(root, ca), &c) || !errors.As(zprt.Walk(gRoot, cb), &gc) {
+	if !errors.As(parse.Walk(root, ca), &c) || !errors.As(zprt.Walk(gRoot, cb), &gc) {
 		t.Fatal("missing cycle errors")
 	}
 	if len(c.Path) != len(gc.Path) || uint8(c.Path[1].Kind) != uint8(gc.Path[1].Kind) {

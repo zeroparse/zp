@@ -7,7 +7,7 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/internal/compile"
-	"zeroparse.dev/zp/internal/value"
+	"zeroparse.dev/zp/runtime/parse"
 )
 
 // Report live memory after the parser has gone, with either one early row
@@ -23,7 +23,7 @@ rule row = key:[a-z]+ #atomic "=" value:[0-9]+ #atomic "\n"`)
 	if err != nil {
 		b.Fatal(err)
 	}
-	if err := prog.ParseStream("main", strings.NewReader("warm=1\n"), func(*value.Node) error { return nil }); err != nil {
+	if err := prog.ParseStream("main", strings.NewReader("warm=1\n"), func(*parse.Node) error { return nil }); err != nil {
 		b.Fatal(err)
 	}
 	for _, size := range []int{5000, 50000} {
@@ -35,8 +35,8 @@ rule row = key:[a-z]+ #atomic "=" value:[0-9]+ #atomic "\n"`)
 					runtime.GC()
 					var before, after runtime.MemStats
 					runtime.ReadMemStats(&before)
-					var rows []*value.Node
-					err := prog.ParseStream("main", strings.NewReader(text), func(n *value.Node) error {
+					var rows []*parse.Node
+					err := prog.ParseStream("main", strings.NewReader(text), func(n *parse.Node) error {
 						if all || len(rows) == 0 {
 							rows = append(rows, n)
 						}

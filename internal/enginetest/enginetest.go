@@ -17,7 +17,6 @@ import (
 	"zeroparse.dev/zp/internal/gentest"
 	ischema "zeroparse.dev/zp/internal/schema"
 	"zeroparse.dev/zp/internal/syntax"
-	"zeroparse.dev/zp/internal/value"
 	"zeroparse.dev/zp/runtime/parse"
 	"zeroparse.dev/zp/schema"
 )
@@ -127,7 +126,7 @@ func CompileMessage(t testing.TB, src string, opts ...compile.Options) string {
 func Reference(t *testing.T, src string, opts compile.Options) gentest.ReferenceParse {
 	t.Helper()
 	prog := CompileBare(t, src, opts)
-	return func(input string, bytes, recognize bool) (*value.Node, error) {
+	return func(input string, bytes, recognize bool) (*parse.Node, error) {
 		unit := parse.CodePoints
 		if bytes {
 			unit = parse.Bytes

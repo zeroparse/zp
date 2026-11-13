@@ -29,6 +29,7 @@ var refPackages = []refPackage{
 	{dir: ".", importPath: modulePath, url: "reference/zp/", title: "Package zp", label: "zp"},
 	{dir: "grammar", importPath: modulePath + "/grammar", url: "reference/grammar/", title: "Package zp/grammar", label: "zp/grammar"},
 	{dir: "runtime/parse", importPath: modulePath + "/runtime/parse", url: "reference/parse/", title: "Package zp/runtime/parse", label: "zp/runtime/parse"},
+	{dir: "runtime/noderep", importPath: modulePath + "/runtime/noderep", url: "reference/noderep/", title: "Package zp/runtime/noderep", label: "zp/runtime/noderep"},
 	{dir: "runtime", importPath: modulePath + "/runtime", url: "reference/runtime/", title: "Package zp/runtime", label: "zp/runtime"},
 	{dir: "gen", importPath: modulePath + "/gen", url: "reference/gen/", title: "Package zp/gen", label: "zp/gen"},
 	{dir: "lint", importPath: modulePath + "/lint", url: "reference/lint/", title: "Package zp/lint", label: "zp/lint"},
@@ -345,7 +346,7 @@ func (r *refRenderer) render(rp refPackage) string {
 }
 
 // aliasTarget returns the package qualifier and the name of the type that t is an alias of, if t
-// aliases a type of another package (as in type Node = value.Node).
+// aliases a type of another package (as in type Profile = engine.Profile).
 func aliasTarget(t *doc.Type) (qual, name string) {
 	for _, spec := range t.Decl.Specs {
 		ts, ok := spec.(*ast.TypeSpec)

@@ -5,6 +5,8 @@ import (
 
 	"zeroparse.dev/zp/internal/compile"
 	"zeroparse.dev/zp/internal/value"
+	"zeroparse.dev/zp/runtime/noderep"
+	"zeroparse.dev/zp/runtime/parse"
 )
 
 // Resuming repetitions in a Document.
@@ -36,7 +38,7 @@ type RunSite struct {
 	Min, Max        int
 	Shiftable       bool // the elements' values contain no position values
 	// Value makes an element's value from the value of the element expression.
-	Value func(p *Parser, v *value.Node, start int) *value.Node
+	Value func(p *Parser, v *parse.Node, start int) *parse.Node
 }
 
 type RunKey struct{ Site, start int }
@@ -52,7 +54,7 @@ type RunElem struct {
 	From, examined int // the input range [from, examined) the element examined
 	far            int // the position of the expectations exp
 	exp            []ExpID
-	V              *value.Node
+	V              *parse.Node
 }
 
 // MinRecorded is the number of elements below which a run is not recorded: a short repetition
@@ -190,7 +192,7 @@ func (p *Parser) BeginElem(r *RunState) {
 
 // EndElem ends parsing an element (before the state is reset if it failed), and records it if it
 // matched with the value v.
-func (p *Parser) EndElem(r *RunState, ok bool, v *value.Node) {
+func (p *Parser) EndElem(r *RunState, ok bool, v *parse.Node) {
 	// Recording the run is work of the Document that a parse from scratch does not do.
 	defer p.FreeEnd(p.FreeBegin(true))
 	far, inner := p.Unisolate(r.mk)
@@ -276,7 +278,7 @@ func (p *Parser) FinishRun(r *RunState) {
 
 // ResumeRepeat runs the repetition rs (see compiler.repeat) in a Document parse, resuming its run
 // from the previous parse when it can.
-func (p *Parser) ResumeRepeat(rs *RunSite) (*value.Node, bool) {
+func (p *Parser) ResumeRepeat(rs *RunSite) (*parse.Node, bool) {
 	start := p.Pos
 	var r RunState
 	p.StartRun(&r, rs.Id, rs.Min, rs.Max, rs.Shiftable)
@@ -343,7 +345,7 @@ func (p *Parser) ResumeRepeat(rs *RunSite) (*value.Node, bool) {
 	if !rs.Build {
 		return nil, true
 	}
-	return p.NewNode(value.Data{Kind: value.ListKind, Start: int32(start), End: int32(p.Pos), Children: p.Kids(base), Fresh: true}), true
+	return p.NewNode(value.Data{Kind: noderep.ListKind, Start: int32(start), End: int32(p.Pos), Children: p.Kids(base), Fresh: true}), true
 }
 
 // after reports whether every element examined only input from end on.

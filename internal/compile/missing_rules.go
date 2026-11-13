@@ -3,9 +3,9 @@ package compile
 import (
 	"fmt"
 	"zeroparse.dev/zp/internal/cancel"
+	"zeroparse.dev/zp/runtime/noderep"
 
 	"zeroparse.dev/zp/grammar"
-	"zeroparse.dev/zp/internal/value"
 )
 
 // markMissingRules records transitive insertion dependencies before matchers or
@@ -16,7 +16,7 @@ func (prog *Program) markMissingRules(control *cancel.Control) {
 		control.Poll()
 		switch t := t.(type) {
 		case *grammar.TypeRef:
-			return t.Name == value.TypeMissing
+			return t.Name == noderep.TypeMissing
 		case *grammar.ListType:
 			return usesMissingType(t.Elem)
 		case *grammar.OptionalType:

@@ -11,6 +11,7 @@ import (
 	"zeroparse.dev/zp/internal/compile"
 	"zeroparse.dev/zp/internal/gentest"
 	"zeroparse.dev/zp/internal/value"
+	"zeroparse.dev/zp/runtime/noderep"
 	"zeroparse.dev/zp/runtime/parse"
 )
 
@@ -49,7 +50,7 @@ func TestBudgetPrimitiveASTAliases(t *testing.T) {
 					width = int32(len(tc.text))
 				}
 				for i, name := range []string{"a", "b", "c"} {
-					val, ok := n.Field(name).(*value.Node)
+					val, ok := n.Field(name).(*parse.Node)
 					text := ""
 					if val != nil && name == "b" {
 						text, _ = val.Field("Text").(string)
@@ -60,7 +61,7 @@ func TestBudgetPrimitiveASTAliases(t *testing.T) {
 						t.Fatalf("unit=%v capture=%s lost value or span: %v", unit, name, val)
 					}
 					// A text struct value carries no rule name.
-					wantType, wantRule := value.TypeString, "value"
+					wantType, wantRule := noderep.TypeString, "value"
 					if name == "b" {
 						wantType, wantRule = "Token", ""
 					}

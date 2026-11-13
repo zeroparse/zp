@@ -42,7 +42,7 @@ rule main = "a"* #stream $$`, "main")
 	ctx, cancel := context.WithCancel(context.Background())
 	cancel()
 	options, emits := 0, 0
-	err = p.ParseStream(strings.NewReader("aaa"), func(*zp.Node) error { emits++; return nil },
+	err = p.ParseStream(strings.NewReader("aaa"), func(*parse.Node) error { emits++; return nil },
 		zp.WithContext(ctx), zp.WithContext(nil), zp.WithLimits(parse.Limits{Compute: 1}), zp.WithLimits(parse.Limits{Compute: parse.Unlimited}),
 		func(o *engine.ParseOptions) { options++ })
 	if err != nil || emits != 3 || options != 1 {
@@ -51,7 +51,7 @@ rule main = "a"* #stream $$`, "main")
 	first, second := 0, 0
 	ctx, cancel = context.WithCancel(context.Background())
 	defer cancel()
-	err = p.ParseStream(strings.NewReader("aaa"), func(*zp.Node) error { t.Fatal("emitted after trace cancellation"); return nil }, zp.WithContext(ctx), zp.WithTrace(func(zp.TraceEvent) { first++; cancel() }), zp.WithTrace(func(zp.TraceEvent) { second++ }))
+	err = p.ParseStream(strings.NewReader("aaa"), func(*parse.Node) error { t.Fatal("emitted after trace cancellation"); return nil }, zp.WithContext(ctx), zp.WithTrace(func(zp.TraceEvent) { first++; cancel() }), zp.WithTrace(func(zp.TraceEvent) { second++ }))
 	if err != context.Canceled || first != 1 || second != 0 {
 		t.Fatalf("error=%v trace=%d/%d", err, first, second)
 	}

@@ -14,7 +14,7 @@ import (
 func streamSteps(t *testing.T, p *zp.Parser, input string, b zp.Backend) uint64 {
 	t.Helper()
 	finishes := func(budget uint64) bool {
-		err := p.ParseStream(strings.NewReader(input), func(*zp.Node) error { return nil },
+		err := p.ParseStream(strings.NewReader(input), func(*parse.Node) error { return nil },
 			zp.WithBackend(b), zp.WithLimits(parse.Limits{Compute: budget}))
 		var le *parse.LimitError
 		if errors.As(err, &le) && le.Kind == parse.LimitCompute {

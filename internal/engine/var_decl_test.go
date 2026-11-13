@@ -7,7 +7,6 @@ import (
 	"zeroparse.dev/zp/internal/bytecode"
 	"zeroparse.dev/zp/internal/compile"
 	"zeroparse.dev/zp/internal/gentest"
-	"zeroparse.dev/zp/internal/value"
 	"zeroparse.dev/zp/runtime/parse"
 )
 
@@ -79,7 +78,7 @@ rule item E = {n := n + 1} "a" => E{N: n}
 `)
 	for _, backend := range []Backend{Closure, Bytecode, BytecodeIterative} {
 		var got []string
-		err := streamed.ParseStreamWith("main", strings.NewReader("aaa"), func(n *value.Node) error {
+		err := streamed.ParseStreamWith("main", strings.NewReader("aaa"), func(n *parse.Node) error {
 			got = append(got, n.String())
 			return nil
 		}, ParseOptions{Backend: backend})

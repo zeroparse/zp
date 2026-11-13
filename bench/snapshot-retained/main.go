@@ -18,7 +18,7 @@ type legacyResult struct {
 	version zp.DocumentVersion
 	unit    parse.PositionUnit
 	text    string
-	root    *zp.Node
+	root    *parse.Node
 	err     error
 	stats   parse.ParseStats
 }

@@ -14,7 +14,6 @@ import (
 	"zeroparse.dev/zp/internal/engine"
 	"zeroparse.dev/zp/internal/gen"
 	"zeroparse.dev/zp/internal/gentest"
-	"zeroparse.dev/zp/internal/value"
 	"zeroparse.dev/zp/runtime/parse"
 )
 
@@ -54,7 +53,7 @@ func TestGeneratedSourceParserMatchesEngine(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		return func(input string, bytes, recognize bool) (*value.Node, error) {
+		return func(input string, bytes, recognize bool) (*parse.Node, error) {
 			unit := parse.CodePoints
 			if bytes {
 				unit = parse.Bytes

@@ -7,7 +7,7 @@ import (
 	"sort"
 	"strings"
 
-	"zeroparse.dev/zp/internal/value"
+	"zeroparse.dev/zp/runtime/noderep"
 )
 
 // Ty is a type used in type checking.
@@ -52,11 +52,11 @@ func (t NamedTy) String() string {
 
 // The reserved node kinds as named types.
 var (
-	TyMatch   = NamedTy{value.TypeString, 'c'}
-	TySeq     = NamedTy{value.TypeTuple, 'c'}
-	TyList    = NamedTy{value.TypeList, 'c'}
-	TyError   = NamedTy{value.TypeError, 'c'}
-	TyMissing = NamedTy{value.TypeMissing, 'c'}
+	TyMatch   = NamedTy{noderep.TypeString, 'c'}
+	TySeq     = NamedTy{noderep.TypeTuple, 'c'}
+	TyList    = NamedTy{noderep.TypeList, 'c'}
+	TyError   = NamedTy{noderep.TypeError, 'c'}
+	TyMissing = NamedTy{noderep.TypeMissing, 'c'}
 )
 
 // ListTy is the list type []Elem.

@@ -11,7 +11,6 @@ import (
 	"zeroparse.dev/zp/internal/compile"
 	"zeroparse.dev/zp/internal/engine/core"
 	"zeroparse.dev/zp/internal/gentest"
-	"zeroparse.dev/zp/internal/value"
 	"zeroparse.dev/zp/runtime/parse"
 )
 
@@ -20,7 +19,7 @@ var skipRunGrammars = gentest.SkipRunGrammars
 
 // skipDump is dump with the expectations and messages of every syntax error, which the message
 // of an error leaves out when it has messages.
-func skipDump(t *testing.T, n *value.Node, err error) string {
+func skipDump(t *testing.T, n *parse.Node, err error) string {
 	t.Helper()
 	s := dump(t, n, err)
 	var errs []*parse.SyntaxError
@@ -261,7 +260,7 @@ rule x = ("b" #recover(skip=[ac]+)) "d"`)
 		core.SkipRecordsOff = off
 		defer func() { core.SkipRecordsOff = false }()
 		var out strings.Builder
-		err := prog.ParseStreamWith("main", strings.NewReader(input), func(n *value.Node) error {
+		err := prog.ParseStreamWith("main", strings.NewReader(input), func(n *parse.Node) error {
 			out.WriteString(skipDump(t, n, nil) + "\n")
 			return nil
 		}, ParseOptions{Backend: b, Expectations: true})

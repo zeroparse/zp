@@ -9,7 +9,6 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/internal/engine/core"
-	"zeroparse.dev/zp/internal/value"
 	"zeroparse.dev/zp/runtime/parse"
 )
 
@@ -160,7 +159,7 @@ func actionErrorMessage(err error) string {
 	return err.Error()
 }
 
-func actionErrorNodeText(node *value.Node) string {
+func actionErrorNodeText(node *parse.Node) string {
 	if node == nil {
 		return ""
 	}

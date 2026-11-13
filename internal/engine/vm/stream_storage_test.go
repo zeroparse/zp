@@ -25,7 +25,7 @@ func TestStreamStorageCommitReferences(t *testing.T) {
 	p.Frame = root
 	p.Trail = make([]core.Undo, 3)
 	p.Trail[0] = core.Undo{F: root, Old: live}
-	p.Trail[2] = core.Undo{F: &core.Frame{Vals: []*value.Node{dead}}, Old: dead}
+	p.Trail[2] = core.Undo{F: &core.Frame{Vals: []*parse.Node{dead}}, Old: dead}
 	p.Trail = p.Trail[:1]
 	machineOf(p).vals = []any{live, dead, dead}
 	machineOf(p).vals = machineOf(p).vals[:1]

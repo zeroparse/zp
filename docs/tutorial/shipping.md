@@ -50,7 +50,7 @@ func main() {
 Config{Entries: [Entry{Key: Key("port"), Value: Number("8080")}]}
 ```
 
-The generated `Node` type mirrors `zp.Node`, and the generated parser gives the same trees and errors as the
+The generated `Node` type mirrors `parse.Node`, and the generated parser gives the same trees and errors as the
 library. `config.ParseRule(name, input)` starts at another rule. The generated entry points accept functional
 options: `config.Parse(input, config.WithUnit(config.Bytes), config.WithLimits(config.Limits{Depth: 600_000}))`.
 `zp gen -max-depth 600000` sets the generated default; omitted or zero keeps 100,000.

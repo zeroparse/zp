@@ -14,7 +14,7 @@ import (
 	"zeroparse.dev/zp/runtime/parse"
 )
 
-func dump(t *testing.T, n *value.Node, err error) string {
+func dump(t *testing.T, n *parse.Node, err error) string {
 	t.Helper()
 	data, jerr := json.Marshal(n)
 	if jerr != nil {
@@ -442,7 +442,7 @@ rule line = x:[a-z]+ #atomic "\n"`)
 	doc.Edit(0, 0, "zz\n")
 	t2, _ := doc.Parse()
 	old, cur := value.D(value.D(t1).Children[0]).Children[3], value.D(value.D(t2).Children[0]).Children[4]
-	if old != cur || value.D(cur).Start != 12 || value.D(cur.Field("x").(*value.Node)).Start != 12 {
+	if old != cur || value.D(cur).Start != 12 || value.D(cur.Field("x").(*parse.Node)).Start != 12 {
 		t.Errorf("line 3 of the earlier tree: shared %v, at %d", old == cur, value.D(cur).Start)
 	}
 	if dump(t, snap, nil) != before {

@@ -10,7 +10,6 @@ import (
 	"zeroparse.dev/zp/internal/compile"
 	"zeroparse.dev/zp/internal/engine/core"
 	"zeroparse.dev/zp/internal/gentest"
-	"zeroparse.dev/zp/internal/value"
 	"zeroparse.dev/zp/runtime/parse"
 )
 
@@ -36,7 +35,7 @@ func TestBoundStreamMemoryIsBounded(t *testing.T) {
 				p := core.NewStreamParser(&prog.sharedProgram, &lineReader{line: "a", n: 60000}, unit)
 				count := 0
 				var at [2]uint64
-				p.Emit = func(*value.Node) error {
+				p.Emit = func(*parse.Node) error {
 					count++
 					if count == 20000 || count == 60000 {
 						// The environment holds one value for each of the three declared

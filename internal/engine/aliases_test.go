@@ -32,7 +32,7 @@ func TestAliasNodeIdentity(t *testing.T) {
 					}
 					terminal := n
 					if v, ok := value.FieldOf(n, "Value"); ok {
-						terminal, _ = v.(*value.Node)
+						terminal, _ = v.(*parse.Node)
 					}
 					if terminal == nil || terminal.Type() != "Num" || value.D(terminal).Text != "éé" {
 						t.Errorf("%s: expected a Num terminal, got %s", unit, gentest.ResultJSON(terminal, nil))

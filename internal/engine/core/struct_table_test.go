@@ -8,6 +8,7 @@ import (
 	"zeroparse.dev/zp/internal/compiletest"
 	"zeroparse.dev/zp/internal/ir/exec/conform"
 	"zeroparse.dev/zp/internal/value"
+	"zeroparse.dev/zp/runtime/noderep"
 	"zeroparse.dev/zp/runtime/parse"
 )
 
@@ -23,14 +24,14 @@ func TestEngineValueStructTable(t *testing.T) {
 			p.Control = NewBudgetControl(nil, parse.Limits{Compute: 1 << 62})
 		}
 		c := &EvalCtx{P: p, Start: conform.StructRuleStart, End: conform.StructRuleEnd}
-		text := p.NewNode(value.Data{Kind: value.MatchKind, Terminal: true, Text: "xyz", Start: 2, End: 4})
+		text := p.NewNode(value.Data{Kind: noderep.MatchKind, Terminal: true, Text: "xyz", Start: 2, End: 4})
 		vals := map[string]any{
 			conform.MemberNil:     nil,
 			conform.MemberInt:     1,
 			conform.BuiltinString: "ab",
 			conform.BuiltinText:   text,
-			conform.BuiltinNode:   p.NewNode(value.Data{Kind: value.SeqKind, Start: 2, End: 5, Children: []*value.Node{text, text}}),
-			conform.StructLate:    p.NewNode(value.Data{Kind: value.MatchKind, Terminal: true, Text: "q", Start: 7, End: 9}),
+			conform.BuiltinNode:   p.NewNode(value.Data{Kind: noderep.SeqKind, Start: 2, End: 5, Children: []*parse.Node{text, text}}),
+			conform.StructLate:    p.NewNode(value.Data{Kind: noderep.MatchKind, Terminal: true, Text: "q", Start: 7, End: 9}),
 		}
 		err := conform.RunStructs("engine", func(fields []string) string {
 			var names []string

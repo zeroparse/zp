@@ -8,7 +8,6 @@ import (
 
 	"zeroparse.dev/zp/internal/compile"
 	"zeroparse.dev/zp/internal/gentest"
-	"zeroparse.dev/zp/internal/value"
 	"zeroparse.dev/zp/runtime/parse"
 )
 
@@ -49,7 +48,7 @@ func TestFiniteStreamRepetitions(t *testing.T) {
 			}
 			for _, unit := range []parse.PositionUnit{parse.CodePoints, parse.Bytes} {
 				var expected []string
-				refErr := prog.ParseStreamWith("main", strings.NewReader(tc.input), func(n *value.Node) error {
+				refErr := prog.ParseStreamWith("main", strings.NewReader(tc.input), func(n *parse.Node) error {
 					expected = append(expected, gentest.ResultJSON(n, nil))
 					return nil
 				}, ParseOptions{Backend: Closure, Unit: unit})
@@ -73,7 +72,7 @@ func TestFiniteStreamRepetitions(t *testing.T) {
 							t.Errorf("batch %s/%s: error %v, want success %v", backend, unit, err, tc.ok)
 						}
 						var got []string
-						err := p.ParseStreamWith("main", strings.NewReader(tc.input), func(n *value.Node) error {
+						err := p.ParseStreamWith("main", strings.NewReader(tc.input), func(n *parse.Node) error {
 							got = append(got, gentest.ResultJSON(n, nil))
 							return nil
 						}, opts)
@@ -129,7 +128,7 @@ func TestFiniteStreamConsumerError(t *testing.T) {
 	for _, backend := range []Backend{Closure, Bytecode, BytecodeIterative} {
 		for _, unit := range []parse.PositionUnit{parse.CodePoints, parse.Bytes} {
 			count := 0
-			err := prog.ParseStreamWith("main", strings.NewReader("aaa"), func(*value.Node) error {
+			err := prog.ParseStreamWith("main", strings.NewReader("aaa"), func(*parse.Node) error {
 				count++
 				return stop
 			}, ParseOptions{Backend: backend, Unit: unit})
@@ -160,7 +159,7 @@ func BenchmarkStreamRepetitionLimit(b *testing.B) {
 				b.ReportAllocs()
 				for b.Loop() {
 					count := 0
-					err := prog.ParseStreamWith("main", strings.NewReader(input), func(*value.Node) error {
+					err := prog.ParseStreamWith("main", strings.NewReader(input), func(*parse.Node) error {
 						count++
 						return nil
 					}, ParseOptions{Backend: backend})

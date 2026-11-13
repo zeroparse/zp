@@ -50,6 +50,7 @@ import (
 	"strconv"
 
 	"zeroparse.dev/zp"
+	"zeroparse.dev/zp/runtime/parse"
 )
 
 //go:embed calc.zp
@@ -66,7 +67,7 @@ var funcs = map[string]struct {
 }
 
 // eval evaluates a tree of the grammar with the given values of the variables.
-func eval(n *zp.Node, vars map[string]float64) (float64, error) {
+func eval(n *parse.Node, vars map[string]float64) (float64, error) {
 	switch n.Type() {
 	case "Num":
 		return strconv.ParseFloat(n.Text(), 64)
@@ -78,18 +79,18 @@ func eval(n *zp.Node, vars map[string]float64) (float64, error) {
 		}
 		return v, nil
 	case "Neg":
-		x, err := eval(n.Field("X").(*zp.Node), vars)
+		x, err := eval(n.Field("X").(*parse.Node), vars)
 		return -x, err
 	case "Bin":
-		l, err := eval(n.Field("Left").(*zp.Node), vars)
+		l, err := eval(n.Field("Left").(*parse.Node), vars)
 		if err != nil {
 			return 0, err
 		}
-		r, err := eval(n.Field("Right").(*zp.Node), vars)
+		r, err := eval(n.Field("Right").(*parse.Node), vars)
 		if err != nil {
 			return 0, err
 		}
-		switch op := n.Field("Op").(*zp.Node).Text(); op {
+		switch op := n.Field("Op").(*parse.Node).Text(); op {
 		case "+":
 			return l + r, nil
 		case "-":
@@ -107,12 +108,12 @@ func eval(n *zp.Node, vars map[string]float64) (float64, error) {
 			return math.Pow(l, r), nil
 		}
 	case "Call":
-		name := n.Field("Fn").(*zp.Node).Text()
+		name := n.Field("Fn").(*parse.Node).Text()
 		fn, ok := funcs[name]
 		if !ok {
 			return 0, fmt.Errorf("undefined function %q", name)
 		}
-		argNodes := n.Field("Args").(*zp.Node)
+		argNodes := n.Field("Args").(*parse.Node)
 		if argNodes.Len() != fn.arity {
 			return 0, fmt.Errorf("%s takes %d arguments, got %d", name, fn.arity, argNodes.Len())
 		}

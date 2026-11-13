@@ -9,6 +9,7 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/internal/value"
+	"zeroparse.dev/zp/runtime/noderep"
 	"zeroparse.dev/zp/runtime/parse"
 )
 
@@ -55,7 +56,7 @@ func TestSnapshotUnsupportedLegacyFieldPreservesParseError(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	value.D(legacy).Fields = value.Fields{{Name: "bad", Value: []int{1}}}
+	value.D(legacy).Fields = noderep.Fields{{Name: "bad", Value: []int{1}}}
 	s, err := d.SnapshotWith(ParseOptions{})
 	var capture *parse.SnapshotCaptureError
 	if s != nil || !errors.As(err, &capture) || capture.ValueType != reflect.TypeOf([]int{}) || !strings.Contains(capture.Path, "bad") || capture.ParseError != nil {
@@ -80,13 +81,13 @@ func TestSnapshotUnsupportedBoxIsRejected(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	value.D(legacy).Kind = value.TupleValueKind
-	value.SetNodeElems(legacy, []*value.Node{value.NewNode(value.KindValue, 0, 0, "", nil, "", nil, 5)})
+	value.D(legacy).Kind = noderep.TupleValueKind
+	value.SetNodeElems(legacy, []*parse.Node{value.NewNode(parse.KindValue, 0, 0, "", nil, "", nil, 5)})
 	s, err := d.SnapshotWith(ParseOptions{})
 	if err != nil || s.Root().Child(0).Value() != 5 {
 		t.Fatal("boxed int", s, err)
 	}
-	value.SetNodeElems(legacy, []*value.Node{value.NewNode(value.KindValue, 0, 0, "", nil, "", nil, []int{1})})
+	value.SetNodeElems(legacy, []*parse.Node{value.NewNode(parse.KindValue, 0, 0, "", nil, "", nil, []int{1})})
 	s, err = d.SnapshotWith(ParseOptions{})
 	var capture *parse.SnapshotCaptureError
 	if s != nil || !errors.As(err, &capture) || capture.ValueType != reflect.TypeOf([]int{}) || !strings.Contains(capture.Path, "Children[0]") {

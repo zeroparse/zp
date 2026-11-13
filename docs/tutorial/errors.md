@@ -159,11 +159,11 @@ func main() {
 		log.Fatal(err)
 	}
 
-	for _, e := range cfg.Field("Entries").(*zp.Node).Elems() {
+	for _, e := range cfg.Field("Entries").(*parse.Node).Elems() {
 		if e.Field("Key") == nil {
 			continue // an entry that was skipped
 		}
-		fmt.Println("entry:", e.Field("Key").(*zp.Node).Text())
+		fmt.Println("entry:", e.Field("Key").(*parse.Node).Text())
 	}
 }
 ```

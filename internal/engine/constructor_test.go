@@ -54,8 +54,8 @@ func TestTypedNodeConstructors(t *testing.T) {
 				} else if got != want {
 					t.Fatalf("%s/%s differs: %s / %s", backend, unit, got, want)
 				}
-				items := n.Field("Items").(*value.Node)
-				if len(value.D(items).Children) != 2 || value.D(items).Children[0].Kind() != value.KindStruct || value.D(items).Children[0].Field("Text") != "0" || value.D(items).Children[1].Field("Text") != "😀" || value.D(items).Children[1].Type() != "Int" {
+				items := n.Field("Items").(*parse.Node)
+				if len(value.D(items).Children) != 2 || value.D(items).Children[0].Kind() != parse.KindStruct || value.D(items).Children[0].Field("Text") != "0" || value.D(items).Children[1].Field("Text") != "😀" || value.D(items).Children[1].Type() != "Int" {
 					t.Fatal(got)
 				}
 				end := int32(1)
@@ -65,11 +65,11 @@ func TestTypedNodeConstructors(t *testing.T) {
 				if value.D(items).Start != 0 || value.D(items).End != end || value.D(value.D(items).Children[0]).Start != 0 || value.D(value.D(items).Children[0]).End != end {
 					t.Fatal(got)
 				}
-				maybe := n.Field("Maybe").(*value.Node)
+				maybe := n.Field("Maybe").(*parse.Node)
 				if len(value.D(maybe).Children) != 2 || value.D(maybe).Children[0] != nil {
 					t.Fatal(got)
 				}
-				empty := n.Field("Empty").(*value.Node)
+				empty := n.Field("Empty").(*parse.Node)
 				if empty == nil || len(value.D(empty).Children) != 0 || value.D(empty).Start != 0 || value.D(empty).End != 0 {
 					t.Fatal(got)
 				}

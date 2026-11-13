@@ -10,7 +10,6 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/internal/engine/core"
-	"zeroparse.dev/zp/internal/value"
 	"zeroparse.dev/zp/runtime/parse"
 )
 
@@ -110,7 +109,7 @@ rule row = .+ #atomic`)
 		reader := &budgetCancelledRefillReader{cancel: func() {}}
 		o.Limits = parse.Limits{Compute: 64}
 		emits := 0
-		err := prog.ParseStreamWith("main", reader, func(*value.Node) error { emits++; return nil }, o)
+		err := prog.ParseStreamWith("main", reader, func(*parse.Node) error { emits++; return nil }, o)
 		var limit *parse.LimitError
 		if !errors.As(err, &limit) || limit.Kind != parse.LimitCompute || limit.Used != 64 || limit.Requested != 1 || reader.calls == 0 || reader.calls > 64 || emits != 0 {
 			t.Fatalf("error=%v calls=%d emits=%d", err, reader.calls, emits)

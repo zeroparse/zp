@@ -5,11 +5,10 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/internal/compile"
-	"zeroparse.dev/zp/internal/value"
 	"zeroparse.dev/zp/runtime/parse"
 )
 
-var missingBenchmarkNode *value.Node
+var missingBenchmarkNode *parse.Node
 var missingBenchmarkError error
 
 // BenchmarkMissingLiteral separates the cost of declaring an insertion site

@@ -5,6 +5,8 @@ import (
 
 	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/value"
+	"zeroparse.dev/zp/runtime/noderep"
+	"zeroparse.dev/zp/runtime/parse"
 )
 
 // The value primitives of terms (ops.AddValue) of the engine. The compositions of the operators in
@@ -85,11 +87,11 @@ func valKind(x any) int {
 // unboxed is the operation val.unbox: the value that a node pointer stands for: nil for a nil
 // pointer, the value of a box, and otherwise v.
 func unboxed(v any) any {
-	if n, ok := v.(*value.Node); ok {
+	if n, ok := v.(*parse.Node); ok {
 		if n == nil {
 			return nil
 		}
-		if value.D(n).Kind == value.BoxKind {
+		if value.D(n).Kind == noderep.BoxKind {
 			return unboxed(value.D(n).Box)
 		}
 	}
@@ -118,11 +120,11 @@ func intIndex(x any, n int) (int, bool) {
 }
 
 // valItems is the operation seq.items.
-func valItems(x any) ([]*value.Node, bool) {
+func valItems(x any) ([]*parse.Node, bool) {
 	switch x := x.(type) {
 	case nil:
 		return nil, true
-	case *value.Node:
+	case *parse.Node:
 		if x == nil {
 			return nil, true
 		}
@@ -166,22 +168,22 @@ func (p *Parser) strEq(l, r any) bool {
 }
 
 // nodeOf is the operation node.of: x as a node, list, tuple or struct.
-func nodeOf(x any) (*value.Node, bool) {
-	n, ok := x.(*value.Node)
+func nodeOf(x any) (*parse.Node, bool) {
+	n, ok := x.(*parse.Node)
 	return n, ok && n != nil
 }
 
 // seqKind is the kind of a tuple value or a list value.
-func seqKind(tuple bool) *value.NodeKind {
+func seqKind(tuple bool) *noderep.Kind {
 	if tuple {
-		return value.TupleValueKind
+		return noderep.TupleValueKind
 	}
-	return value.ListValueKind
+	return noderep.ListValueKind
 }
 
 // elemSpan is the operation seq.span: an element of a list or a tuple is a node, boxed if it was a scalar,
 // and nil adds no range.
-func elemSpan(it *value.Node) (int, int, bool) {
+func elemSpan(it *parse.Node) (int, int, bool) {
 	if it == nil {
 		return 0, 0, false
 	}
@@ -189,15 +191,15 @@ func elemSpan(it *value.Node) (int, int, bool) {
 }
 
 // setSpan is the operation node.setSpan.
-func setSpan(n *value.Node, start, end int) {
+func setSpan(n *parse.Node, start, end int) {
 	value.D(n).Start, value.D(n).End = int32(start), int32(end)
 }
 
 // made is the operation act.made.
-func (c *EvalCtx) made(n *value.Node) { c.P.Created = append(c.P.Created, n) }
+func (c *EvalCtx) made(n *parse.Node) { c.P.Created = append(c.P.Created, n) }
 
 // isStruct is the operation node.isStruct.
-func (p *Parser) isStruct(n *value.Node) bool {
+func (p *Parser) isStruct(n *parse.Node) bool {
 	_, ok := p.Prog.Types[n.Type()].(*grammar.TypeDef)
 	return ok
 }

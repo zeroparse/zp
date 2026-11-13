@@ -117,7 +117,7 @@ func TestMissingTokensUnsupportedPublicPaths(t *testing.T) {
 		}
 	}
 	r := &missingUnusableReader{}
-	if err := p.ParseStream(r, func(*zp.Node) error { t.Fatal("unsupported stream emitted"); return nil }, zp.WithMissingTokens(2)); err == nil {
+	if err := p.ParseStream(r, func(*parse.Node) error { t.Fatal("unsupported stream emitted"); return nil }, zp.WithMissingTokens(2)); err == nil {
 		t.Fatal("stream accepted insertion")
 	}
 	if it, err := p.Iterate(r, zp.WithMissingTokens(2)); it != nil || err == nil {

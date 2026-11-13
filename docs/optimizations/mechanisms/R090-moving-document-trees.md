@@ -37,8 +37,8 @@ Evidence records:
 [045](../045-moving-reused-trees-in-place-after-document-edits.md).
 
 Source owners: [`moveResult and moved Node
-handling`](../../../internal/engine/core/runtime.go), [`Node generation and
-Clone`](../../../internal/value/node.go), [`edit log and result
+handling`](../../../internal/engine/core/runtime.go), the `runtime/parse` package (node
+Clone), [`edit log and result
 shift`](../../../internal/engine/document/document.go).
 
 The [comparison policy](../../design/records/024-optimization-mechanism-controls.md)

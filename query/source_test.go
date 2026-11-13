@@ -8,6 +8,7 @@ import (
 	"zeroparse.dev/zp"
 	"zeroparse.dev/zp/internal/value"
 	"zeroparse.dev/zp/query"
+	"zeroparse.dev/zp/runtime/noderep"
 )
 
 func TestStructuralQueryRuleNeedsSourceInfo(t *testing.T) {
@@ -48,7 +49,7 @@ rule item = [a-z]`
 	if err != nil {
 		t.Fatal(err)
 	}
-	if got, err := q.Matches(value.Ptr(value.Data{Kind: value.KindOf("S", ""), Fields: value.Fields{{Name: "X", Value: 1}}})); err != nil || len(got) != 0 {
+	if got, err := q.Matches(value.Ptr(value.Data{Kind: noderep.KindOf("S", ""), Fields: noderep.Fields{{Name: "X", Value: 1}}})); err != nil || len(got) != 0 {
 		t.Fatalf("struct without nodes: %+v %v", got, err)
 	}
 }

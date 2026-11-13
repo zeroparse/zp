@@ -12,7 +12,7 @@ import (
 	"zeroparse.dev/zp/internal/ir/core"
 	"zeroparse.dev/zp/internal/ir/flow"
 	flowlower "zeroparse.dev/zp/internal/ir/flow/lower"
-	"zeroparse.dev/zp/internal/value"
+	"zeroparse.dev/zp/runtime/noderep"
 )
 
 // Typed Go rules printed from Flow IR.
@@ -580,7 +580,7 @@ func (p *flowPrinter) expr(x flow.Expr) string {
 	case *flow.NewNode:
 		typ := "tuple"
 		if x.List {
-			typ = value.TypeList
+			typ = noderep.TypeList
 		}
 		return fmt.Sprintf("p.%s(%q, %s, p.Pos, %s)", p.g.helper("NewNode"), typ, p.expr(x.Start), p.expr(x.Kids))
 	case *flow.NewVals:

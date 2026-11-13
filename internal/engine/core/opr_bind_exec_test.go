@@ -2,9 +2,10 @@
 
 package core
 
-import "zeroparse.dev/zp/grammar"
-
-import "zeroparse.dev/zp/internal/value"
+import (
+	"zeroparse.dev/zp/grammar"
+	"zeroparse.dev/zp/runtime/parse"
+)
 
 // confOprLed runs opr.led for the conformance suite.
 // Printed from Exec IR function confOprLed of internal/ir/exec/core.
@@ -120,7 +121,7 @@ func (p *Parser) confOprHasSkip(r *Rule) bool {
 
 // confOprAttempt runs opr.attempt for the conformance suite.
 // Printed from Exec IR function confOprAttempt of internal/ir/exec/core.
-func (p *Parser) confOprAttempt(op *OperatorsRuleOp, f *Frame, v *value.Node, start int, cut bool, errs RecEntry) OperatorsRuleAttempt {
+func (p *Parser) confOprAttempt(op *OperatorsRuleOp, f *Frame, v *parse.Node, start int, cut bool, errs RecEntry) OperatorsRuleAttempt {
 	var r OperatorsRuleAttempt
 	r = OperatorsRuleAttempt{Op: op, Frame: f, V: v, Start: start, End: p.Pos, Env: p.Env, Cut: cut, Errs: errs}
 	return r
@@ -428,15 +429,15 @@ func (p *Parser) confOprExprSetMin(st *ExprState, x int) {
 
 // confOprExprLhs runs oprExpr.lhs for the conformance suite.
 // Printed from Exec IR function confOprExprLhs of internal/ir/exec/core.
-func (p *Parser) confOprExprLhs(st *ExprState) *value.Node {
-	var r *value.Node
+func (p *Parser) confOprExprLhs(st *ExprState) *parse.Node {
+	var r *parse.Node
 	r = st.Lhs
 	return r
 }
 
 // confOprExprSetLhs runs oprExpr.setLhs for the conformance suite.
 // Printed from Exec IR function confOprExprSetLhs of internal/ir/exec/core.
-func (p *Parser) confOprExprSetLhs(st *ExprState, x *value.Node) {
+func (p *Parser) confOprExprSetLhs(st *ExprState, x *parse.Node) {
 	st.Lhs = x
 }
 

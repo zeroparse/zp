@@ -13,6 +13,7 @@ import (
 	"zeroparse.dev/zp/internal/syntax"
 	"zeroparse.dev/zp/internal/syntax/genparser/types"
 	rt "zeroparse.dev/zp/runtime"
+	"zeroparse.dev/zp/runtime/parse"
 )
 
 // The adapter reads the typed values of the generated parser of zp.zp. A
@@ -167,7 +168,7 @@ var (
 )
 
 // typedTree moves the File node root of an engine parse into the typed values.
-func typedTree(t testing.TB, root *zp.Node) *types.File {
+func typedTree(t testing.TB, root *parse.Node) *types.File {
 	t.Helper()
 	f, _ := typedValue(t, root, reflect.TypeOf((*types.File)(nil))).Interface().(*types.File)
 	return f
@@ -177,7 +178,7 @@ func typedTree(t testing.TB, root *zp.Node) *types.File {
 func typedValue(t testing.TB, v any, typ reflect.Type) reflect.Value {
 	t.Helper()
 	out := reflect.New(typ).Elem()
-	n, _ := v.(*zp.Node)
+	n, _ := v.(*parse.Node)
 	if v == nil || n == nil && typ.Kind() != reflect.String && typ.Kind() != reflect.Bool {
 		return out
 	}
@@ -202,7 +203,7 @@ func typedValue(t testing.TB, v any, typ reflect.Type) reflect.Value {
 		}
 	case reflect.Interface:
 		var p reflect.Value
-		if n.Kind() == zp.KindError {
+		if n.Kind() == parse.KindError {
 			p = reflect.ValueOf(&types.Error{Span: span(n), Message: n.Text()})
 		} else if pt, ok := treeTypes[n.Type()]; ok {
 			p = typedValue(t, n, pt)
@@ -214,7 +215,7 @@ func typedValue(t testing.TB, v any, typ reflect.Type) reflect.Value {
 		}
 		out.Set(p)
 	case reflect.Pointer:
-		if n.Kind() == zp.KindError {
+		if n.Kind() == parse.KindError {
 			return out // an error in a place of a struct type is nil
 		}
 		p := reflect.New(typ.Elem())
@@ -226,10 +227,10 @@ func typedValue(t testing.TB, v any, typ reflect.Type) reflect.Value {
 	return out
 }
 
-func span(n *zp.Node) rt.Span { return rt.Span{Start: n.Start(), End: n.End()} }
+func span(n *parse.Node) rt.Span { return rt.Span{Start: n.Start(), End: n.End()} }
 
 // fill sets the struct s, a struct or node type of the typed values, from n.
-func fill(t testing.TB, n *zp.Node, s reflect.Value) {
+func fill(t testing.TB, n *parse.Node, s reflect.Value) {
 	t.Helper()
 	st := s.Type()
 	if st.NumField() == 1 && st.Field(0).Anonymous && st.Field(0).Type != spanType {

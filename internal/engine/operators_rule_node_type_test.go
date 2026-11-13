@@ -6,12 +6,12 @@ import (
 
 	"zeroparse.dev/zp/internal/compile"
 	"zeroparse.dev/zp/internal/gentest"
-	"zeroparse.dev/zp/internal/value"
+	"zeroparse.dev/zp/runtime/parse"
 )
 
 // operatorsNodeTypeNames returns the type names of the nodes of n, pre-order, with their children
 // in parentheses.
-func operatorsNodeTypeNames(n *value.Node) string {
+func operatorsNodeTypeNames(n *parse.Node) string {
 	if n == nil {
 		return "nil"
 	}

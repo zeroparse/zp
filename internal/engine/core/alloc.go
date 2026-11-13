@@ -1,6 +1,10 @@
 package core
 
-import "zeroparse.dev/zp/internal/value"
+import (
+	"zeroparse.dev/zp/internal/value"
+	"zeroparse.dev/zp/runtime/noderep"
+	"zeroparse.dev/zp/runtime/parse"
+)
 
 // Nodes and child slices created during a parse are allocated in bulk from per-parse chunks.
 // This reduces the number of allocations and the number of objects the GC has to track. A chunk
@@ -56,15 +60,15 @@ func (p *Parser) PrivatePrefixAlloc() bool {
 }
 
 // NewNode allocates a node with the representation d from a chunk and returns it.
-func (p *Parser) NewNode(d value.Data) *value.Node {
+func (p *Parser) NewNode(d value.Data) *parse.Node {
 	d.Gen = p.Gen
 	if len(p.NodeSlab) == 0 {
 		if p.PrivatePrefixAlloc() {
-			n := new(value.Node)
+			n := new(parse.Node)
 			*value.D(n) = d
 			return n
 		}
-		p.NodeSlab = make([]value.Node, NodeChunk)
+		p.NodeSlab = make([]parse.Node, NodeChunk)
 		p.NodeChunks++
 	}
 	n := &p.NodeSlab[0]
@@ -74,19 +78,19 @@ func (p *Parser) NewNode(d value.Data) *value.Node {
 }
 
 // Nodes allocates a child slice of length n (and capacity n) from a chunk and returns it.
-func (p *Parser) Nodes(n int) []*value.Node {
+func (p *Parser) Nodes(n int) []*parse.Node {
 	if n == 0 {
-		return []*value.Node{}
+		return []*parse.Node{}
 	}
 	if n > PtrChunk/4 {
 		p.MemUsed += uint64(n) * ptrBytes
-		return make([]*value.Node, n)
+		return make([]*parse.Node, n)
 	}
 	if len(p.PtrSlab) < n {
 		if p.PrivatePrefixAlloc() {
-			return make([]*value.Node, n)
+			return make([]*parse.Node, n)
 		}
-		p.PtrSlab = make([]*value.Node, PtrChunk)
+		p.PtrSlab = make([]*parse.Node, PtrChunk)
 		p.MemUsed += PtrChunk * ptrBytes
 	}
 	s := p.PtrSlab[:n:n]
@@ -95,7 +99,7 @@ func (p *Parser) Nodes(n int) []*value.Node {
 }
 
 // Kids returns p.KidStack[base:] as a child slice and resets the stack to base.
-func (p *Parser) Kids(base int) []*value.Node {
+func (p *Parser) Kids(base int) []*parse.Node {
 	ks := p.Nodes(len(p.KidStack) - base)
 	CopySpend(p, ks, p.KidStack[base:])
 	ClearSpend(p, p.KidStack[base:])
@@ -111,16 +115,16 @@ func (p *Parser) DropKids(base int) {
 
 // fields allocates an empty field list with capacity n from a chunk and returns it. Appending
 // beyond n reallocates, so neighbouring lists in the chunk are never overwritten.
-func (p *Parser) fields(n int) value.Fields {
+func (p *Parser) fields(n int) noderep.Fields {
 	if n > NodeChunk/4 {
 		p.MemUsed += uint64(n) * fieldBytes
-		return make(value.Fields, 0, n)
+		return make(noderep.Fields, 0, n)
 	}
 	if len(p.fieldSlab) < n {
 		if p.PrivatePrefixAlloc() {
-			return make(value.Fields, 0, n)
+			return make(noderep.Fields, 0, n)
 		}
-		p.fieldSlab = make([]value.NodeField, NodeChunk)
+		p.fieldSlab = make([]noderep.NodeField, NodeChunk)
 		p.MemUsed += NodeChunk * fieldBytes
 	}
 	fs := p.fieldSlab[:0:n]
@@ -131,7 +135,7 @@ func (p *Parser) fields(n int) value.Fields {
 // one returns a slice holding only v, for the element list of an action. It is owned by the
 // parser and valid until the next call: the list is read only while the action is evaluated
 // (evaluations never nest), and $0 copies it.
-func (p *Parser) one(v *value.Node) []*value.Node {
+func (p *Parser) one(v *parse.Node) []*parse.Node {
 	p.item[0] = v
 	return p.item[:]
 }
@@ -147,7 +151,7 @@ func (p *Parser) NewFrame(n int) *Frame {
 		// an extra buffer pointer in every parser.
 		if len(p.FrameSlab) == cap(p.FrameSlab) {
 			if p.PrivatePrefixAlloc() {
-				return &Frame{Vals: make([]*value.Node, n)}
+				return &Frame{Vals: make([]*parse.Node, n)}
 			}
 			p.FrameSlab = make([]Frame, 0, NodeChunk)
 			p.MemUsed += NodeChunk * frameBytes
@@ -157,7 +161,7 @@ func (p *Parser) NewFrame(n int) *Frame {
 	} else {
 		if len(p.FrameSlab) == 0 {
 			if p.PrivatePrefixAlloc() {
-				return &Frame{Vals: make([]*value.Node, n)}
+				return &Frame{Vals: make([]*parse.Node, n)}
 			}
 			p.FrameSlab = make([]Frame, NodeChunk)
 			p.MemUsed += NodeChunk * frameBytes

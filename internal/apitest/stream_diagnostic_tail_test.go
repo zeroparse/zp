@@ -42,7 +42,7 @@ rule item = "ab" @error(message="record") #recover(skip=[^a]+)`, "main")
 					seen = append(seen, e)
 					return nil
 				}))
-				err := p.ParseStream(strings.NewReader(input), func(*zp.Node) error {
+				err := p.ParseStream(strings.NewReader(input), func(*parse.Node) error {
 					events = append(events, "element")
 					return nil
 				}, opts...)
@@ -127,7 +127,7 @@ rule item = "ab" #recover(skip="!")`, "main")
 	stop := errors.New("stop")
 	for _, backend := range []zp.Backend{zp.Closure, zp.Bytecode, zp.BytecodeIterative} {
 		elements := 0
-		err := p.ParseStream(strings.NewReader("!ab"), func(*zp.Node) error {
+		err := p.ParseStream(strings.NewReader("!ab"), func(*parse.Node) error {
 			elements++
 			return nil
 		}, zp.WithBackend(backend), zp.WithDiagnosticLimit(1), zp.WithDiagnosticCallback(func(*parse.SyntaxError) error {

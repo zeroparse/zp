@@ -11,6 +11,7 @@ import (
 
 	"zeroparse.dev/zp/internal/engine/core"
 	"zeroparse.dev/zp/internal/value"
+	"zeroparse.dev/zp/runtime/noderep"
 	"zeroparse.dev/zp/runtime/parse"
 )
 
@@ -23,9 +24,9 @@ func TestStreamCommitFreezesDeliveredElements(t *testing.T) {
 		for _, unit := range []parse.PositionUnit{parse.CodePoints, parse.Bytes} {
 			t.Run(backend.String()+"/"+unit.String(), func(t *testing.T) {
 				elements := 0
-				err := p.ParseStreamWith("main", strings.NewReader("ababab"), func(n *value.Node) error {
+				err := p.ParseStreamWith("main", strings.NewReader("ababab"), func(n *parse.Node) error {
 					elements++
-					if n == nil || value.D(n).Kind != value.SeqKind || value.D(n).Fresh {
+					if n == nil || value.D(n).Kind != noderep.SeqKind || value.D(n).Fresh {
 						t.Errorf("element %d is %+v", elements, n)
 					}
 					return nil
@@ -49,7 +50,7 @@ rule item = ("a" #recover(skip="x")) ("b" #recover(skip="y"))`)
 		for _, unit := range []parse.PositionUnit{parse.CodePoints, parse.Bytes} {
 			t.Run(backend.String()+"/"+unit.String(), func(t *testing.T) {
 				var events []string
-				err := p.ParseStreamWith("main", strings.NewReader("ayxy"), func(*value.Node) error {
+				err := p.ParseStreamWith("main", strings.NewReader("ayxy"), func(*parse.Node) error {
 					events = append(events, "element")
 					return nil
 				}, ParseOptions{Backend: backend, Unit: unit, DiagnosticLimit: 8, DiagnosticLimitSet: true, DiagnosticCallback: func(*parse.SyntaxError) error {
@@ -129,7 +130,7 @@ rule item = "ab" #recover(skip=[^a]+)`)
 	const count = 100
 	input := strings.Repeat("abX!", count)
 	for _, backend := range []Backend{Closure, Bytecode, BytecodeIterative} {
-		err := p.ParseStreamWith("main", strings.NewReader(input), func(*value.Node) error { return nil },
+		err := p.ParseStreamWith("main", strings.NewReader(input), func(*parse.Node) error { return nil },
 			ParseOptions{Backend: backend, DiagnosticLimit: 2})
 		var tail *parse.TruncatedSyntaxErrors
 		if !errors.As(err, &tail) || tail.Total != count || tail.Dropped != count-2 || len(tail.Errors) != 2 {
@@ -188,7 +189,7 @@ func TestStreamCancelledContextDeliversNoDiagnostic(t *testing.T) {
 	diagnostics, elements := 0, 0
 	p := &core.Parser{Input: core.Input{Control: core.NewBudgetControl(ctx, parse.Limits{})}, Memo: core.NewMemoTable(), Recovered: []core.RecEntry{core.ErrEntry(&parse.SyntaxError{Pos: 1})},
 		Diagnostic: func(*parse.SyntaxError) error { diagnostics++; return nil },
-		Emit:       func(*value.Node) error { elements++; return nil }}
+		Emit:       func(*parse.Node) error { elements++; return nil }}
 	got := catchStreamPanic(func() { p.EmitStream(nil, 0) })
 	if f, ok := got.(core.Fatal); !ok || f.Err != context.Canceled || diagnostics != 0 || elements != 0 {
 		t.Fatalf("panic=%v diagnostics=%d elements=%d", got, diagnostics, elements)
@@ -210,7 +211,7 @@ rule item = "ab" #recover(skip=[^a]+)`)
 				}
 				var err error
 				got := catchStreamPanic(func() {
-					err = p.ParseStreamWith("main", strings.NewReader("abX!"), func(*value.Node) error { return nil },
+					err = p.ParseStreamWith("main", strings.NewReader("abX!"), func(*parse.Node) error { return nil },
 						ParseOptions{Backend: backend, DiagnosticCallback: func(*parse.SyntaxError) error { panic(token) }})
 				})
 				if got != token || err != nil {
@@ -242,7 +243,7 @@ rule item = ("a" #recover(skip="x")) ("b" #recover(skip="y"))`)
 				diagnostics, elements := 0, 0
 				var err error
 				got := catchStreamPanic(func() {
-					err = p.ParseStreamWith("main", strings.NewReader("xyab"), func(*value.Node) error { elements++; return nil },
+					err = p.ParseStreamWith("main", strings.NewReader("xyab"), func(*parse.Node) error { elements++; return nil },
 						ParseOptions{Backend: backend, Context: ctx, DiagnosticCallback: func(*parse.SyntaxError) error {
 							diagnostics++
 							if c.want == stop {

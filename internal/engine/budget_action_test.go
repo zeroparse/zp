@@ -19,8 +19,8 @@ func actionBudgetParser(ctx context.Context, limits parse.Limits, unit parse.Pos
 	return &core.Parser{Input: core.Input{Unit: unit, Control: core.NewBudgetControl(ctx, limits)}}
 }
 
-func actionBudgetNodes(n int) []*value.Node {
-	items := make([]*value.Node, n)
+func actionBudgetNodes(n int) []*parse.Node {
+	items := make([]*parse.Node, n)
 	for i := range items {
 		items[i] = value.Ptr(value.Data{Start: int32(i), End: int32(i + 1), Terminal: true, Text: "x"})
 	}

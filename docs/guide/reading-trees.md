@@ -1,6 +1,6 @@
 # Reading Trees
 
-A successful parse returns a tree of `*zp.Node`. This guide shows how to read that tree from Go: values, positions,
+A successful parse returns a tree of `*parse.Node`. This guide shows how to read that tree from Go: values, positions,
 printing, JSON, reading a whole tree and typed values. [Walking Trees](walking-trees.md) visits and selects nodes
 without writing the recursion, and [Output Schemas and Structural Queries](output-schemas-and-queries.md) describes and
 searches the output of a grammar. How a grammar shapes the tree is the subject of [Shaping Trees](shaping-trees.md);
@@ -25,16 +25,16 @@ A node is an opaque value that stands for what a rule produced, and `node.Kind()
 
 | Kind | The node is | Read it with |
 |:--|:--|:--|
-| `zp.KindString` | A string that the input matched, with a range | `Text()` |
-| `zp.KindTuple`, `zp.KindList` | A tuple or a list, with a range | `Len()`, `Elem(i)`, `Elems()` |
-| `zp.KindError` | An error that recovery produced | `Text()` (its message) |
-| `zp.KindStruct` | A struct that an action built | `Type()`, `Field(name)`, `Fields()` |
-| `zp.KindTupleValue`, `zp.KindListValue` | A tuple or a list that an action built, without a range | `Len()`, `Elem(i)`, `Elems()` |
-| `zp.KindValue` | Another value that an action built, such as an `int` or a `bool` | `Value()` |
+| `parse.KindString` | A string that the input matched, with a range | `Text()` |
+| `parse.KindTuple`, `parse.KindList` | A tuple or a list, with a range | `Len()`, `Elem(i)`, `Elems()` |
+| `parse.KindError` | An error that recovery produced | `Text()` (its message) |
+| `parse.KindStruct` | A struct that an action built | `Type()`, `Field(name)`, `Fields()` |
+| `parse.KindTupleValue`, `parse.KindListValue` | A tuple or a list that an action built, without a range | `Len()`, `Elem(i)`, `Elems()` |
+| `parse.KindValue` | Another value that an action built, such as an `int` or a `bool` | `Value()` |
 
 `Elem(i)` returns `nil` for an optional element that did not match. `node.Field(name)` returns the value of a field of a
 struct, or `nil` if the field is absent or the node is `nil`, and ranging over `node.Fields()` yields each field name
-and value in the order the action wrote them. A field value is a `*zp.Node`, an `int`, a `string`, a `bool` or `nil`.
+and value in the order the action wrote them. A field value is a `*parse.Node`, an `int`, a `string`, a `bool` or `nil`.
 `Field` and `Fields` also return the captures of a node, but only when the parser is compiled with source information
 (see [Printing and JSON](#printing-and-json)). `node.IsTerminal()` reports whether a node is a leaf: a string that the input matched, or an error.
 
@@ -42,7 +42,7 @@ The root of the grammar above is the list that `$ps` captured, and its elements 
 
 ```go
 for _, pair := range node.Elems() {
-	key := pair.Field("Key").(*zp.Node)
+	key := pair.Field("Key").(*parse.Node)
 	fmt.Printf("%s %q at %d-%d\n", pair.Type(), key.Text(), key.Start(), key.End())
 }
 
@@ -63,7 +63,7 @@ Value "12"
 true
 ```
 
-Because a field is an `any`, assert its type: `.(*zp.Node)` for nodes and captures, `.(int)` for integers.
+Because a field is an `any`, assert its type: `.(*parse.Node)` for nodes and captures, `.(int)` for integers.
 
 `Start()` and `End()` return `int`. They delimit the input a node covers as a half-open range in the position unit of
 the parse. A rule that includes trailing white space covers it: the first `Pair` above ends at 8, after `"; "`. To get
@@ -128,6 +128,7 @@ import (
 	"strings"
 
 	"zeroparse.dev/zp"
+	"zeroparse.dev/zp/runtime/parse"
 )
 
 const src = `type Bin = {
@@ -158,22 +159,22 @@ func main() {
 	dump(n, 0)
 
 	// Struct fields are read by name; a string node carries its text.
-	right := n.Field("Right").(*zp.Node)
+	right := n.Field("Right").(*parse.Node)
 	fmt.Println("right operand:", right.Text(), right.Start(), right.End())
 }
 
-func dump(n *zp.Node, depth int) {
+func dump(n *parse.Node, depth int) {
 	indent := strings.Repeat("  ", depth)
 	switch n.Kind() {
-	case zp.KindStruct:
+	case parse.KindStruct:
 		fmt.Printf("%s%s [%d,%d)\n", indent, n.Type(), n.Start(), n.End())
 		for name, v := range n.Fields() {
-			if c, ok := v.(*zp.Node); ok && c != nil {
+			if c, ok := v.(*parse.Node); ok && c != nil {
 				fmt.Printf("%s  .%s\n", indent, name)
 				dump(c, depth+2)
 			}
 		}
-	case zp.KindString:
+	case parse.KindString:
 		fmt.Printf("%s%q [%d,%d)\n", indent, n.Text(), n.Start(), n.End())
 	}
 }

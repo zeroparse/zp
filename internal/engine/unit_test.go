@@ -19,13 +19,13 @@ func TestBytePositions(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	w := n.Field("w").(*value.Node)
-	x := n.Field("x").(*value.Node)
+	w := n.Field("w").(*parse.Node)
+	x := n.Field("x").(*parse.Node)
 	if value.D(w).Start != 0 || value.D(w).End != 6 || value.D(x).Start != 7 || value.D(x).End != 10 || value.D(x).Text != "語" {
 		t.Errorf("w [%d,%d) x [%d,%d) %q", value.D(w).Start, value.D(w).End, value.D(x).Start, value.D(x).End, value.D(x).Text)
 	}
 	n, err = prog.ParseWith("main", "日本 語", ParseOptions{Unit: parse.CodePoints})
-	if err != nil || value.D(n.Field("x").(*value.Node)).Start != 3 {
+	if err != nil || value.D(n.Field("x").(*parse.Node)).Start != 3 {
 		t.Errorf("codepoints: %v %v", n, err)
 	}
 	_, err = prog.ParseWith("main", "日本 ", ParseOptions{Unit: parse.Bytes})
@@ -43,7 +43,7 @@ func TestInvalidUTF8(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if x := n.Field("x").(*value.Node); value.D(x).Start != 1 || value.D(x).End != 2 {
+	if x := n.Field("x").(*parse.Node); value.D(x).Start != 1 || value.D(x).End != 2 {
 		t.Errorf("x [%d,%d)", value.D(x).Start, value.D(x).End)
 	}
 	checkUnits(t, prog, "main", "a\xffb", Closure)
@@ -169,7 +169,7 @@ func TestStreamInBytes(t *testing.T) {
 	t.Parallel()
 	prog := mustCompile(t, gentest.Records)
 	var got []string
-	err := prog.ParseStreamWith("main", strings.NewReader("#records\nä=1\nb=2\n"), func(n *value.Node) error {
+	err := prog.ParseStreamWith("main", strings.NewReader("#records\nä=1\nb=2\n"), func(n *parse.Node) error {
 		got = append(got, n.String())
 		return nil
 	}, ParseOptions{Unit: parse.Bytes})
@@ -185,7 +185,7 @@ func TestStreamInBytes(t *testing.T) {
 		b.WriteString("ab=12\n")
 	}
 	b.WriteString("ab=日\n")
-	err = prog.ParseStreamWith("main", strings.NewReader(b.String()), func(*value.Node) error { return nil }, ParseOptions{Unit: parse.Bytes})
+	err = prog.ParseStreamWith("main", strings.NewReader(b.String()), func(*parse.Node) error { return nil }, ParseOptions{Unit: parse.Bytes})
 	if !errors.As(err, &se) || se.Line != 3002 || se.Col != 4 || se.Pos != len("#records\n")+3000*6+3 {
 		t.Errorf("got %v (pos %d)", err, se.Pos)
 	}

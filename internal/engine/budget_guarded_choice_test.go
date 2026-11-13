@@ -14,6 +14,7 @@ import (
 	"zeroparse.dev/zp/internal/engine/core"
 	"zeroparse.dev/zp/internal/starttest"
 	"zeroparse.dev/zp/internal/value"
+	"zeroparse.dev/zp/runtime/noderep"
 	"zeroparse.dev/zp/runtime/parse"
 )
 
@@ -49,20 +50,20 @@ func budgetGuardedChoiceProgram(t *testing.T) (*Program, *grammar.Choice) {
 	return prog, choice
 }
 
-func budgetGuardedChoiceSnapshot(n *value.Node) *value.Node {
+func budgetGuardedChoiceSnapshot(n *parse.Node) *parse.Node {
 	if n == nil {
 		return nil
 	}
 	copy := *n
 	if value.D(n).Children != nil {
-		value.D(&copy).Children = make([]*value.Node, len(value.D(n).Children))
+		value.D(&copy).Children = make([]*parse.Node, len(value.D(n).Children))
 		for i, child := range value.D(n).Children {
 			value.D(&copy).Children[i] = budgetGuardedChoiceSnapshot(child)
 		}
 	}
-	value.D(&copy).Fields = append(value.Fields(nil), value.D(n).Fields...)
+	value.D(&copy).Fields = append(noderep.Fields(nil), value.D(n).Fields...)
 	for i := range value.D(&copy).Fields {
-		if child, ok := value.D(&copy).Fields[i].Value.(*value.Node); ok {
+		if child, ok := value.D(&copy).Fields[i].Value.(*parse.Node); ok {
 			value.D(&copy).Fields[i].Value = budgetGuardedChoiceSnapshot(child)
 		}
 	}

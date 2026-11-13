@@ -10,7 +10,6 @@ import (
 
 	. "zeroparse.dev/zp/internal/engine"
 	"zeroparse.dev/zp/internal/engine/core"
-	"zeroparse.dev/zp/internal/value"
 	"zeroparse.dev/zp/runtime/parse"
 )
 
@@ -70,7 +69,7 @@ rule t = t "*" "a" / "a"`, "a*a+a+a*a*a"},
 							panic("interrupt growth")
 						}
 					}
-					var n *value.Node
+					var n *parse.Node
 					func() {
 						defer func() {
 							if x := recover(); x != nil && (cause != "panic" || x != "interrupt growth") {

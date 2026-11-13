@@ -83,19 +83,19 @@ func TestStreamPrefixLoadedRepetitions(t *testing.T) {
 			saved := saveLoad(t, prog, "main", mode)
 			for _, backend := range []Backend{Closure, Bytecode, BytecodeIterative} {
 				if backend == Closure {
-					err := saved.ParseStreamWith("main", strings.NewReader(text), func(*value.Node) error { return nil }, servedBy(mode, ParseOptions{Backend: backend}))
+					err := saved.ParseStreamWith("main", strings.NewReader(text), func(*parse.Node) error { return nil }, servedBy(mode, ParseOptions{Backend: backend}))
 					wantClosureRefused(t, err)
 					continue
 				}
 				for _, unit := range []parse.PositionUnit{parse.CodePoints, parse.Bytes} {
 					t.Run(fmt.Sprintf("%s/%s/%s/%s", bound, mode, backend, unit), func(t *testing.T) {
-						var retained []*value.Node
-						err := saved.ParseStreamWith("main", strings.NewReader(text), func(n *value.Node) error { retained = append(retained, n); return nil }, servedBy(mode, ParseOptions{Backend: backend, Unit: unit}))
+						var retained []*parse.Node
+						err := saved.ParseStreamWith("main", strings.NewReader(text), func(n *parse.Node) error { retained = append(retained, n); return nil }, servedBy(mode, ParseOptions{Backend: backend, Unit: unit}))
 						if err != nil || len(retained) != count {
 							t.Fatalf("got %d rows: %v", len(retained), err)
 						}
 						for _, n := range retained {
-							if value.D(n.Field("x").(*value.Node)).Text != "x" {
+							if value.D(n.Field("x").(*parse.Node)).Text != "x" {
 								t.Fatal("retained capture changed")
 							}
 						}
@@ -116,8 +116,8 @@ rule header = "#head\n" #atomic`)
 				opts := ParseOptions{Backend: backend, Unit: unit}
 				input := "#head\n" + strings.Repeat("x", 1300)
 				count := 0
-				err := prog.ParseStreamWith("main", strings.NewReader(input), func(n *value.Node) error {
-					if value.D(n.Field("x").(*value.Node)).Text != "x" {
+				err := prog.ParseStreamWith("main", strings.NewReader(input), func(n *parse.Node) error {
+					if value.D(n.Field("x").(*parse.Node)).Text != "x" {
 						t.Fatal("emitted capture changed")
 					}
 					count++
@@ -142,7 +142,7 @@ rule head = head "a" / "a" #atomic`)
 		for _, unit := range []parse.PositionUnit{parse.CodePoints, parse.Bytes} {
 			t.Run(fmt.Sprintf("%s/%s", backend, unit), func(t *testing.T) {
 				count := 0
-				err := prog.ParseStreamWith("main", strings.NewReader("aaxx"), func(*value.Node) error { count++; return nil }, ParseOptions{Backend: backend, Unit: unit})
+				err := prog.ParseStreamWith("main", strings.NewReader("aaxx"), func(*parse.Node) error { count++; return nil }, ParseOptions{Backend: backend, Unit: unit})
 				if err != nil || count != 2 {
 					t.Fatalf("LR capture lost after stream commits: count=%d, %v", count, err)
 				}
@@ -187,7 +187,7 @@ func BenchmarkStreamStorageRetainedHeap(b *testing.B) {
 						p := core.NewStreamParser(&prog.sharedProgram, strings.NewReader(text), unit)
 						p.Descs = prog.descs(backend)
 						count := 0
-						p.Emit = func(n *value.Node) error {
+						p.Emit = func(n *parse.Node) error {
 							count++
 							if count == 200 {
 								runtime.GC()
@@ -243,7 +243,7 @@ func BenchmarkStreamRetentionWorkload(b *testing.B) {
 					b.ReportAllocs()
 					for b.Loop() {
 						got := 0
-						err := prog.ParseStreamWith("main", strings.NewReader(text), func(*value.Node) error { got++; return nil }, ParseOptions{Backend: backend, Unit: unit})
+						err := prog.ParseStreamWith("main", strings.NewReader(text), func(*parse.Node) error { got++; return nil }, ParseOptions{Backend: backend, Unit: unit})
 						if err != nil || got != count {
 							b.Fatalf("emitted %d of %d: %v", got, count, err)
 						}
@@ -277,9 +277,9 @@ func BenchmarkStreamPrefixSize(b *testing.B) {
 					b.ReportAllocs()
 					for b.Loop() {
 						count := 0
-						var emit func(*value.Node) error
+						var emit func(*parse.Node) error
 						if !noCallback {
-							emit = func(*value.Node) error { count++; return nil }
+							emit = func(*parse.Node) error { count++; return nil }
 						}
 						// This fixture retains the wide prefix rather than the simple header.
 						// The input suffix predicate is disabled in this benchmark's grammar.

@@ -315,7 +315,7 @@ func TestGeneratedDocumentAndStream(t *testing.T) {
 		input := inputs.CSVInput(500)
 		p := load(t, "../testdata/grammars/csv/csv.zp")
 		var want, got []string
-		if err := p.ParseStream(strings.NewReader(input), func(n *zp.Node) error {
+		if err := p.ParseStream(strings.NewReader(input), func(n *parse.Node) error {
 			b, err := json.Marshal(n)
 			want = append(want, string(b))
 			return err
@@ -579,7 +579,7 @@ func BenchmarkStream(b *testing.B) {
 			b.ReportAllocs()
 			for b.Loop() {
 				n := 0
-				err := p.ParseStream(strings.NewReader(input), func(*zp.Node) error { n++; return nil }, zp.WithBackend(be.b))
+				err := p.ParseStream(strings.NewReader(input), func(*parse.Node) error { n++; return nil }, zp.WithBackend(be.b))
 				if err != nil || n != 50001 {
 					b.Fatalf("%d records: %v", n, err)
 				}

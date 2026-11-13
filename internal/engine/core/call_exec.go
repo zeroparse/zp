@@ -2,7 +2,7 @@
 
 package core
 
-import "zeroparse.dev/zp/internal/value"
+import "zeroparse.dev/zp/runtime/parse"
 
 // Call calls rule r at binding level min in the engine: unmemoized while its
 // memoization is deferred, and otherwise between the begin and the end of the split call protocol,
@@ -10,8 +10,8 @@ import "zeroparse.dev/zp/internal/value"
 // engineCallDoc instead, which is decided by one test of a field that the parse sets once.
 //
 // Printed from Exec IR function engineCall of internal/ir/exec/core, specialized for document, missing, budget.
-func (p *Parser) Call(r *Rule, min int) (*value.Node, bool) {
-	var v *value.Node
+func (p *Parser) Call(r *Rule, min int) (*parse.Node, bool) {
+	var v *parse.Node
 	var ok bool
 	var hit bool
 	var mm int
@@ -64,8 +64,8 @@ func (p *Parser) Call(r *Rule, min int) (*value.Node, bool) {
 // the call) of a rule that a parse from scratch does not memoize.
 //
 // Printed from Exec IR function engineCallDoc of internal/ir/exec/core, specialized for document, missing, budget.
-func (p *Parser) callDoc(r *Rule, min int) (*value.Node, bool) {
-	var v *value.Node
+func (p *Parser) callDoc(r *Rule, min int) (*parse.Node, bool) {
+	var v *parse.Node
 	var ok bool
 	var hit bool
 	var mm int
@@ -122,7 +122,7 @@ func (p *Parser) callDoc(r *Rule, min int) (*value.Node, bool) {
 // and otherwise saves in st what the end of the call needs.
 //
 // Printed from Exec IR function callBegin of internal/ir/exec/core, specialized for document, missing, budget.
-func (p *Parser) CallBegin(r *Rule, min int, st *CallState) (*value.Node, bool, bool) {
+func (p *Parser) CallBegin(r *Rule, min int, st *CallState) (*parse.Node, bool, bool) {
 	start := p.Pos
 	env := KeyVals{Missing: p.Missing != nil && r.Missing && p.Silent > 0}
 	if len(r.Vars) > 0 {
@@ -193,7 +193,7 @@ func (p *Parser) CallBegin(r *Rule, min int, st *CallState) (*value.Node, bool, 
 // dependencies send it, and restores the state from before the call.
 //
 // Printed from Exec IR function callEnd of internal/ir/exec/core, specialized for document, missing, budget.
-func (p *Parser) CallEnd(r *Rule, st *CallState, v *value.Node, ok bool) (*value.Node, bool) {
+func (p *Parser) CallEnd(r *Rule, st *CallState, v *parse.Node, ok bool) (*parse.Node, bool) {
 	start := st.start
 	min := st.min
 	env := st.key
@@ -256,7 +256,7 @@ func (p *Parser) CallEnd(r *Rule, st *CallState, v *value.Node, ok bool) (*value
 // the match gets longer, and returns the last longer result.
 //
 // Printed from Exec IR function grow of internal/ir/exec/core.
-func (p *Parser) grow(r *Rule, min int) (*value.Node, bool) {
+func (p *Parser) grow(r *Rule, min int) (*parse.Node, bool) {
 	g := p.GrowBegin(p.GrowKey(r, min), r)
 	for {
 		if !p.GrowNext(&g) {

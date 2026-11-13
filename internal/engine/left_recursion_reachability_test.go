@@ -7,7 +7,6 @@ import (
 
 	"zeroparse.dev/zp/internal/compile"
 	"zeroparse.dev/zp/internal/gentest"
-	"zeroparse.dev/zp/internal/value"
 	"zeroparse.dev/zp/runtime/parse"
 )
 
@@ -126,7 +125,7 @@ rule a = "x" #recover(skip=a) / "y"`, options)
 		for _, backend := range []Backend{Closure, Bytecode, BytecodeIterative} {
 			for _, unit := range []parse.PositionUnit{parse.CodePoints, parse.Bytes} {
 				count := 0
-				err := p.ParseStreamWith("main", strings.NewReader("y\ny\n"), func(*value.Node) error {
+				err := p.ParseStreamWith("main", strings.NewReader("y\ny\n"), func(*parse.Node) error {
 					count++
 					return nil
 				}, ParseOptions{Backend: backend, Unit: unit, Limits: parse.Limits{Depth: 20}})

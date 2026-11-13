@@ -13,6 +13,7 @@ import (
 
 	"zeroparse.dev/zp/internal/engine/core"
 	"zeroparse.dev/zp/internal/value"
+	"zeroparse.dev/zp/runtime/noderep"
 	"zeroparse.dev/zp/runtime/parse"
 )
 
@@ -120,7 +121,7 @@ func TestBudgetMemoKeyEqualityAndLongChains(t *testing.T) {
 	}
 
 	// slices.Equal semantics distinguish a typed nil from a nil interface and equate nil/empty slices.
-	var typedNil *value.Node
+	var typedNil *parse.Node
 	table.Slots[0] = &core.MemoEntry{Rule: 9, Pos: 0, Env: []any{typedNil}}
 	if got, ok := p.MemoGet(core.MemoKey{Rule: 9, Pos: 0, Env: []any{nil}}); ok || got != nil {
 		t.Fatalf("typed-nil key matched nil interface: %v, %t", got, ok)
@@ -272,7 +273,7 @@ func TestBudgetMemoChainAndStringLimits(t *testing.T) {
 		t.Fatal("replacement failed")
 	}
 	// Retiring bookkeeping must not clear the old public node or its descendants.
-	retained := value.Ptr(value.Data{Text: "retained", Children: []*value.Node{value.Ptr(value.Data{Text: "child"})}, Fields: value.Fields{{Name: "value", Value: "unchanged"}}})
+	retained := value.Ptr(value.Data{Text: "retained", Children: []*parse.Node{value.Ptr(value.Data{Text: "child"})}, Fields: noderep.Fields{{Name: "value", Value: "unchanged"}}})
 	table.Slots[0] = &core.MemoEntry{Rule: 1, Node: retained, Env: []any{strings.Repeat("x", 1024)}}
 	before, _ := json.Marshal(retained)
 	key := core.MemoKey{Rule: 1, Env: []any{strings.Repeat("x", 1024)}}
@@ -297,7 +298,7 @@ func TestBudgetMemoChainAndStringLimits(t *testing.T) {
 	}
 }
 
-func budgetMemoPrefix(table *core.MemoTable, retained *value.Node) {
+func budgetMemoPrefix(table *core.MemoTable, retained *parse.Node) {
 	if len(table.Slots) == 0 { // a growth in progress has no entry in the table
 		table.Slots = append(table.Slots, nil)
 	}
@@ -325,7 +326,7 @@ func TestBudgetMemoGrowthFailureCleanup(t *testing.T) {
 
 rule expr = expr "a" / "a"`)
 	p := core.AcquirePooledParser(&prog.sharedProgram)
-	retained := value.Ptr(value.Data{Text: "retained", Children: []*value.Node{value.Ptr(value.Data{Text: "child"})}})
+	retained := value.Ptr(value.Data{Text: "retained", Children: []*parse.Node{value.Ptr(value.Data{Text: "child"})}})
 	before, _ := json.Marshal(retained)
 	key := core.MemoKey{Rule: prog.ByName["expr"].ID}
 	g := p.GrowBegin(key, prog.closureRules[prog.ByName["expr"].ID])
@@ -367,7 +368,7 @@ rule atom = "a"`)
 		for _, unit := range []parse.PositionUnit{parse.Bytes, parse.CodePoints} {
 			for _, recognize := range []bool{false, true} {
 				for _, cancel := range []bool{false, true} {
-					retained := value.Ptr(value.Data{Text: "retained", Children: []*value.Node{value.Ptr(value.Data{Text: "child"})}})
+					retained := value.Ptr(value.Data{Text: "retained", Children: []*parse.Node{value.Ptr(value.Data{Text: "child"})}})
 					before, _ := json.Marshal(retained)
 					var observed *core.Parser
 					var chunks [][]core.MemoEntry

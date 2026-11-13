@@ -20,7 +20,6 @@ import (
 	"zeroparse.dev/zp/internal/engine"
 	"zeroparse.dev/zp/internal/gen"
 	"zeroparse.dev/zp/internal/gentest"
-	"zeroparse.dev/zp/internal/value"
 	"zeroparse.dev/zp/runtime/parse"
 )
 
@@ -542,9 +541,9 @@ func main() {
 func engineStream(prog *engine.Program, v streamRun) string {
 	r := &chunkReader{s: string(v.Input), chunk: v.Chunk, eofWithData: v.EOFWithData, fail: v.Fail}
 	var res streamResult
-	var emit func(*value.Node) error
+	var emit func(*parse.Node) error
 	if !v.NilEmit {
-		emit = func(n *value.Node) error {
+		emit = func(n *parse.Node) error {
 			b, err := json.Marshal(n)
 			if err != nil {
 				panic(err)
@@ -573,9 +572,9 @@ func engineStream(prog *engine.Program, v streamRun) string {
 	}
 	var err error
 	if v.Iterate {
-		var it *engine.StreamIterator
+		var it *parse.StreamIterator
 		if it, err = prog.Iterate("main", r, o); err == nil {
-			err = drain(it.Next, it.Close, emit, func(err error) bool { return err == engine.ErrStreamClosed })
+			err = drain(it.Next, it.Close, emit, func(err error) bool { return err == parse.ErrStreamClosed })
 		}
 	} else {
 		err = prog.ParseStreamWith("main", r, emit, o)

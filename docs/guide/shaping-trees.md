@@ -307,7 +307,7 @@ This is the idiom of the calculator example.
 
 ## Using the Tree From Go
 
-`Parser.Parse` returns a `*zp.Node`, which is opaque: `Kind()` says whether it is a string node, a tuple, a list, an
+`Parser.Parse` returns a `*parse.Node`, which is opaque: `Kind()` says whether it is a string node, a tuple, a list, an
 error value or a struct, and the methods that fit the kind read it: `Start()` and `End()`, `Text()`, `Len()`, `Elem(i)`
 and `Elems()`, `Field(name)` and `Fields()` for the fields of a struct, and `Value()`. `Rule()` and the capture names are
 there only if the parser was compiled with `zp.WithSourceInfo()`. Reading values is covered in

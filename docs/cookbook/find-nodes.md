@@ -3,8 +3,8 @@
 **Problem.** After parsing, you want to answer two questions about the tree without writing a recursive function for each:
 where in the text are all the nodes of one kind (every function call, say), and which node is under the cursor.
 
-Use `zp.Walk` for the first question: it visits every node, and the visit gives the node, its parent and its depth. Use
-`zp.Cursor` for the second: `At` visits the nodes whose span contains a position, outermost first. This recipe lists
+Use `parse.Walk` for the first question: it visits every node, and the visit gives the node, its parent and its depth. Use
+`parse.Cursor` for the second: `At` visits the nodes whose span contains a position, outermost first. This recipe lists
 the calls of a small program with their positions, and finds the call that contains a position and the argument under it.
 
 ```zp
@@ -59,12 +59,12 @@ func main() {
 	}
 
 	// Every node of one kind, with its depth.
-	err = zp.Walk(root, func(v zp.WalkVisit) (zp.WalkAction, error) {
+	err = parse.Walk(root, func(v parse.WalkVisit) (parse.WalkAction, error) {
 		if v.Node != nil && v.Node.Type() == "Call" {
-			name := v.Node.Field("Name").(*zp.Node).Text()
+			name := v.Node.Field("Name").(*parse.Node).Text()
 			fmt.Printf("call %-5s [%2d,%2d) depth %d\n", name, v.Node.Start(), v.Node.End(), v.Depth)
 		}
-		return zp.WalkContinue, nil
+		return parse.WalkContinue, nil
 	})
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
@@ -73,23 +73,23 @@ func main() {
 
 	// The nodes at a position, outermost first.
 	pos := int32(17) // the 2 in mul(2, x)
-	cursor := zp.Cursor{Root: root, Unit: parse.CodePoints}
-	var innermostCall, innermost *zp.Node
-	err = cursor.At(pos, func(v zp.WalkVisit) (zp.WalkAction, error) {
+	cursor := parse.Cursor{Root: root, Unit: parse.CodePoints}
+	var innermostCall, innermost *parse.Node
+	err = cursor.At(pos, func(v parse.WalkVisit) (parse.WalkAction, error) {
 		if v.Node != nil {
 			innermost = v.Node
 			if v.Node.Type() == "Call" {
 				innermostCall = v.Node
 			}
 		}
-		return zp.WalkContinue, nil
+		return parse.WalkContinue, nil
 	})
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
 	}
 	fmt.Printf("at %d: innermost node %s %q, innermost call %s\n", pos, innermost.Type(), innermost.Text(),
-		innermostCall.Field("Name").(*zp.Node).Text())
+		innermostCall.Field("Name").(*parse.Node).Text())
 }
 ```
 
@@ -107,8 +107,8 @@ at 17: innermost node Num "2", innermost call mul
 ## How It Works
 
 - `Walk` visits every edge of the graph in order: first the node, then what it holds. The `Depth` counts edges, so it is
-  larger than the nesting of the source, because lists and fields are edges too. Return `zp.WalkSkip` to leave a
-  subtree out, or `zp.WalkStop` to stop at the first match.
+  larger than the nesting of the source, because lists and fields are edges too. Return `parse.WalkSkip` to leave a
+  subtree out, or `parse.WalkStop` to stop at the first match.
 - `Cursor.At(pos, fn)` calls `fn` for the nodes whose span contains `pos`, from the outermost to the innermost. Keeping
   the last visit of each kind gives the innermost node of that kind. The cursor's `Unit` must be the unit of the parse
   (code points by default).
@@ -120,4 +120,4 @@ at 17: innermost node Num "2", innermost call mul
   Structural Queries](../guide/output-schemas-and-queries.md).
 - For a range, such as a selection in an editor, use `Cursor.Range(start, end, fn)`.
 - A span is half open: `[start, end)`. A position at the end of a node, such as 22 for `mul` (the `)` after `x`), is not inside it.
-- `Walk` visits a shared node once for each edge that reaches it, and returns a `*zp.CycleError` for a cycle.
+- `Walk` visits a shared node once for each edge that reaches it, and returns a `*parse.CycleError` for a cycle.

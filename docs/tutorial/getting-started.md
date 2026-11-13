@@ -196,7 +196,7 @@ tuple 0 11
 - `zp.CompileSource(grammarSource, startRule)` parses and type-checks the grammar and returns a `*zp.Parser`. It
   fails with an error that has the line and column in the grammar source if the grammar is wrong. Compile once and reuse
   the parser; it can be used from several goroutines.
-- `p.Parse(input)` returns a `*zp.Node`. `Kind()` tells what the value is (here a tuple), `Start()` and `End()` give the
+- `p.Parse(input)` returns a `*parse.Node`. `Kind()` tells what the value is (here a tuple), `Start()` and `End()` give the
   range, `Text()` is the text of a string node, and `Elems()` iterates over the elements of a tuple or list. Nodes encode
   to JSON as shown.
 - When the input does not match, `Parse` returns a `*parse.SyntaxError` from the package

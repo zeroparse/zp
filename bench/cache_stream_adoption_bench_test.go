@@ -15,7 +15,7 @@ const streamAdoptionElements = 50001 // inputs.CSVInput(50000) includes the head
 
 var (
 	cacheAdoptionStats parse.CacheStats
-	cacheAdoptionNode  *zp.Node
+	cacheAdoptionNode  *parse.Node
 )
 
 // BenchmarkStreamDeliveryAdoption compares the two public delivery interfaces
@@ -35,7 +35,7 @@ func BenchmarkStreamDeliveryAdoption(b *testing.B) {
 						count := 0
 						reader := strings.NewReader(input)
 						if mode == "callback" {
-							err := p.ParseStream(reader, func(*zp.Node) error {
+							err := p.ParseStream(reader, func(*parse.Node) error {
 								count++
 								return nil
 							}, opts...)
@@ -87,7 +87,7 @@ func BenchmarkStreamFirstElementAdoption(b *testing.B) {
 						reader := strings.NewReader(input)
 						start := time.Now()
 						if mode == "callback" {
-							err := p.ParseStream(reader, func(*zp.Node) error {
+							err := p.ParseStream(reader, func(*parse.Node) error {
 								count++
 								if count == 1 {
 									firstTotal += time.Since(start)

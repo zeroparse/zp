@@ -32,7 +32,7 @@ From a checkout of the repository, `go run ./cmd/zp ...` is equivalent to `zp ..
 ## The Pipeline
 
 ```text
- ZeroParse source (.zp) ──ParseGrammar──▶ grammar AST ──Compile──▶ *zp.Parser ──Parse──▶ *zp.Node
+ ZeroParse source (.zp) ──ParseGrammar──▶ grammar AST ──Compile──▶ *zp.Parser ──Parse──▶ *parse.Node
  grammar JSON (.json) ──UnmarshalJSON─▶     ▲                        │  ▲
  grammar package (Go values) ───────────────┘             MarshalBinary  LoadParser
                                                                      ▼  │

@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/internal/value"
+	"zeroparse.dev/zp/runtime/noderep"
 	"zeroparse.dev/zp/runtime/parse"
 )
 
@@ -27,7 +28,7 @@ func TestStreamIteratorParityDemandAndTermination(t *testing.T) {
 rule item = "あ" / "b"`)
 				o := ParseOptions{Backend: b, Unit: u}
 				var want []string
-				if err := p.ParseStreamWith("main", strings.NewReader("あbあ"), func(n *value.Node) error { want = append(want, dump(t, n, nil)); return nil }, o); err != nil {
+				if err := p.ParseStreamWith("main", strings.NewReader("あbあ"), func(n *parse.Node) error { want = append(want, dump(t, n, nil)); return nil }, o); err != nil {
 					t.Fatal(err)
 				}
 				r := &demandReader{reader: strings.NewReader("あbあ")}
@@ -67,12 +68,12 @@ func TestStreamIteratorNilEmptyCloseAndError(t *testing.T) {
 			t.Fatal(err)
 		}
 		// An element without a value is the unit tuple of its range.
-		if n, ok, err := it.Next(); n == nil || value.ShapeOf(n) != value.ShapeTuple || len(value.D(n).Children) != 0 || !ok || err != nil {
+		if n, ok, err := it.Next(); n == nil || value.ShapeOf(n) != noderep.ShapeTuple || len(value.D(n).Children) != 0 || !ok || err != nil {
 			t.Fatalf("unit element: %v %v %v", n, ok, err)
 		}
 		it.Close()
 		it.Close()
-		if _, ok, err := it.Next(); ok || err != ErrStreamClosed {
+		if _, ok, err := it.Next(); ok || err != parse.ErrStreamClosed {
 			t.Fatalf("closed: %v %v", ok, err)
 		}
 		it, err = p.Iterate("main", strings.NewReader("a!"), ParseOptions{Backend: b})
@@ -121,7 +122,7 @@ func TestStreamIteratorCloseBeforeFirstNext(t *testing.T) {
 					t.Fatalf("Close started parsing: reads=%d traces=%d", reader.calls, traces)
 				}
 				for range 2 {
-					if n, ok, err := it.Next(); n != nil || ok || err != ErrStreamClosed {
+					if n, ok, err := it.Next(); n != nil || ok || err != parse.ErrStreamClosed {
 						t.Fatalf("Next after Close: node=%v ok=%v err=%v", n, ok, err)
 					}
 				}
@@ -140,7 +141,7 @@ rule item = "ab" @error(message="record") #recover(skip=[^a]+)`)
 			t.Run(backend.String()+"/"+unit.String(), func(t *testing.T) {
 				options := ParseOptions{Backend: backend, Unit: unit}
 				var wantNodes []string
-				wantErr := p.ParseStreamWith("main", strings.NewReader(input), func(n *value.Node) error {
+				wantErr := p.ParseStreamWith("main", strings.NewReader(input), func(n *parse.Node) error {
 					wantNodes = append(wantNodes, dump(t, n, nil))
 					return nil
 				}, options)

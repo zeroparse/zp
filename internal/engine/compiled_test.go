@@ -93,8 +93,8 @@ func TestCompiledStreamAndDocument(t *testing.T) {
 		t.Fatalf("%v %q", err, start)
 	}
 	var got []string
-	err = prog.ParseStream("main", strings.NewReader("#records\na=1\nb=2\n"), func(n *value.Node) error {
-		got = append(got, value.D(n.Field("k").(*value.Node)).Text)
+	err = prog.ParseStream("main", strings.NewReader("#records\na=1\nb=2\n"), func(n *parse.Node) error {
+		got = append(got, value.D(n.Field("k").(*parse.Node)).Text)
 		return nil
 	})
 	if err != nil || strings.Join(got, ",") != "a,b" {

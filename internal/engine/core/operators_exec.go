@@ -4,7 +4,7 @@ package core
 
 import (
 	"zeroparse.dev/zp/grammar"
-	"zeroparse.dev/zp/internal/value"
+	"zeroparse.dev/zp/runtime/parse"
 )
 
 // OperatorsRuleParse parses an expression of the Operators Rule r with operators that bind tighter than
@@ -12,7 +12,7 @@ import (
 // operator) counts against the nesting limit, like the entry of a recursive rule.
 //
 // Printed from Exec IR function operatorsParse of internal/ir/exec/core, specialized for budget, missing.
-func (p *Parser) OperatorsRuleParse(r *Rule, min int) (*value.Node, bool) {
+func (p *Parser) OperatorsRuleParse(r *Rule, min int) (*parse.Node, bool) {
 	p.Enter()
 	v, ok := p.operatorsRuleExpr(r, min)
 	p.Depth--
@@ -27,7 +27,7 @@ func (p *Parser) OperatorsRuleParse(r *Rule, min int) (*value.Node, bool) {
 // ends the loop: its right operand refused it, so it cannot apply to the operator as a whole.
 //
 // Printed from Exec IR function operatorsExpr of internal/ir/exec/core, specialized for budget, missing.
-func (p *Parser) operatorsRuleExpr(r *Rule, min int) (*value.Node, bool) {
+func (p *Parser) operatorsRuleExpr(r *Rule, min int) (*parse.Node, bool) {
 	guard := -1
 	if p.afterEmpty {
 		guard = p.Pos
@@ -115,7 +115,7 @@ func (p *Parser) operatorsRuleExpr(r *Rule, min int) (*value.Node, bool) {
 // a cut fails the expression.
 //
 // Printed from Exec IR function operatorsNud of internal/ir/exec/core, specialized for budget, missing.
-func (p *Parser) operatorsRuleNud(r *Rule) (*value.Node, bool) {
+func (p *Parser) operatorsRuleNud(r *Rule) (*parse.Node, bool) {
 	var i int
 	p.skipTrivia(r)
 	m0 := p.Mark()
@@ -308,7 +308,7 @@ func (p *Parser) LongestNext(st *LongestState) (*OperatorsRuleLine, bool) {
 // pays for a call at every line of every match.
 //
 // Printed from Exec IR function longestStep of internal/ir/exec/core, specialized for budget, missing.
-func (p *Parser) LongestStep(st *LongestState, v *value.Node, ok bool) (*OperatorsRuleLine, bool) {
+func (p *Parser) LongestStep(st *LongestState, v *parse.Node, ok bool) (*OperatorsRuleLine, bool) {
 	op := st.L[st.I]
 	cut := p.Cut
 	p.Frame = st.PrevFrame
@@ -376,7 +376,7 @@ func (p *Parser) NudPrefix(r *Rule, st *NudState) (int, bool) {
 // returns the result of the start, and otherwise the parse goes on with the operand lines.
 //
 // Printed from Exec IR function nudRhs of internal/ir/exec/core, specialized for budget, missing.
-func (p *Parser) NudRhs(r *Rule, st *NudState, rhs *value.Node, rok bool) (*value.Node, bool, bool) {
+func (p *Parser) NudRhs(r *Rule, st *NudState, rhs *parse.Node, rok bool) (*parse.Node, bool, bool) {
 	if rok {
 		p.nudBound = st.A.Op.Level
 		return p.OperatorsRuleBuild(r, &st.A, nil, rhs), true, true
@@ -414,7 +414,7 @@ func (p *Parser) NudNext(r *Rule, st *NudState) (*OperatorsRuleLine, bool) {
 // result of the start, and otherwise the next line is tried.
 //
 // Printed from Exec IR function nudOperand of internal/ir/exec/core, specialized for budget, missing.
-func (p *Parser) NudOperand(r *Rule, st *NudState, v *value.Node, ok bool) (*value.Node, bool, bool) {
+func (p *Parser) NudOperand(r *Rule, st *NudState, v *parse.Node, ok bool) (*parse.Node, bool, bool) {
 	o := r.OperatorsRule.Operands[st.I]
 	cut := p.Cut
 	p.Frame = st.PrevFrame
@@ -446,7 +446,7 @@ func (p *Parser) ExprBegin(st *ExprState) {
 // follow it.
 //
 // Printed from Exec IR function exprStart of internal/ir/exec/core, specialized for budget, missing.
-func (p *Parser) ExprStart(r *Rule, st *ExprState, lhs *value.Node, ok bool) (bool, bool) {
+func (p *Parser) ExprStart(r *Rule, st *ExprState, lhs *parse.Node, ok bool) (bool, bool) {
 	if !ok {
 		return true, false
 	}
@@ -518,7 +518,7 @@ func (p *Parser) ExprLed(r *Rule, st *ExprState) (bool, bool, int) {
 // set it ends the expression, and otherwise the loop goes on.
 //
 // Printed from Exec IR function exprRhs of internal/ir/exec/core, specialized for budget, missing.
-func (p *Parser) ExprRhs(r *Rule, st *ExprState, rhs *value.Node, rok bool) (bool, bool) {
+func (p *Parser) ExprRhs(r *Rule, st *ExprState, rhs *parse.Node, rok bool) (bool, bool) {
 	op := st.A.Op
 	if !rok {
 		if st.A.Cut {

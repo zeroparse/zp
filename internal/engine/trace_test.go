@@ -10,7 +10,6 @@ import (
 
 	"zeroparse.dev/zp/internal/engine/core"
 	"zeroparse.dev/zp/internal/gentest"
-	"zeroparse.dev/zp/internal/value"
 	"zeroparse.dev/zp/runtime/parse"
 )
 
@@ -392,8 +391,8 @@ func TestTraceStreamAndDocument(t *testing.T) {
 rule line = [a-z]* #atomic "\n"`)
 	for _, b := range []Backend{Closure, Bytecode, BytecodeIterative} {
 		var lines, traced []string
-		emit := func(dst *[]string) func(*value.Node) error {
-			return func(n *value.Node) error { *dst = append(*dst, n.String()); return nil }
+		emit := func(dst *[]string) func(*parse.Node) error {
+			return func(n *parse.Node) error { *dst = append(*dst, n.String()); return nil }
 		}
 		err1 := prog.ParseStreamWith("main", strings.NewReader("ab\ncd\n"), emit(&lines), ParseOptions{Expectations: true, Backend: b})
 		calls := 0

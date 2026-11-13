@@ -22,9 +22,9 @@ func TestFilterNodeIdentityAndEmptyInput(t *testing.T) {
 			if err != nil {
 				t.Fatalf("%s/%s: %v", backend, unit, err)
 			}
-			first := node.Field("First").(*value.Node)
-			kept := node.Field("Kept").(*value.Node)
-			empty := node.Field("Empty").(*value.Node)
+			first := node.Field("First").(*parse.Node)
+			kept := node.Field("Kept").(*parse.Node)
+			empty := node.Field("Empty").(*parse.Node)
 			if len(value.D(kept).Children) != 2 || value.D(kept).Children[0] != first || value.D(kept).Children[1] != first {
 				t.Fatalf("%s/%s: filter changed order or identity", backend, unit)
 			}

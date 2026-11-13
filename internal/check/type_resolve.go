@@ -7,9 +7,9 @@ import (
 	"zeroparse.dev/zp/internal/cancel"
 	"zeroparse.dev/zp/internal/diag"
 	"zeroparse.dev/zp/internal/types"
+	"zeroparse.dev/zp/runtime/noderep"
 
 	"zeroparse.dev/zp/grammar"
-	"zeroparse.dev/zp/internal/value"
 )
 
 // TypeResolver turns the type expressions of a grammar into types. It reports undefined names,
@@ -230,7 +230,7 @@ func (k *TypeResolver) ResolveNamed(name string, pos grammar.Pos) Ty {
 		return TyTop
 	case "_|_":
 		return TyBottom
-	case value.TypeMissing: // an inserted missing token, one kind of error
+	case noderep.TypeMissing: // an inserted missing token, one kind of error
 		return TyMissing
 	case "error": // the value of recovery: a recovered error or a missing token
 		return TyErr

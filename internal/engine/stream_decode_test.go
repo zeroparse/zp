@@ -13,7 +13,6 @@ import (
 	"zeroparse.dev/zp/internal/compile"
 	"zeroparse.dev/zp/internal/engine/core"
 	"zeroparse.dev/zp/internal/gentest"
-	"zeroparse.dev/zp/internal/value"
 	"zeroparse.dev/zp/runtime/parse"
 )
 
@@ -69,7 +68,7 @@ func TestOpenPipeStreamEmitsCompleteItem(t *testing.T) {
 						done := make(chan error, 1)
 						go func() {
 							defer pr.Close() // Unblock a writer if parsing fails before all chunks arrive.
-							done <- p.ParseStreamWith("main", pr, func(n *value.Node) error { emitted <- gentest.ResultJSON(n, nil); return nil }, ParseOptions{Backend: b, Unit: unit})
+							done <- p.ParseStreamWith("main", pr, func(n *parse.Node) error { emitted <- gentest.ResultJSON(n, nil); return nil }, ParseOptions{Backend: b, Unit: unit})
 						}()
 						t.Cleanup(func() {
 							pw.Close()
@@ -98,7 +97,7 @@ func TestOpenPipeStreamEmitsCompleteItem(t *testing.T) {
 							t.Fatal(err)
 						}
 						want := ""
-						refErr := p.ParseStreamWith("main", strings.NewReader(s+"\n"), func(n *value.Node) error { want = gentest.ResultJSON(n, nil); return nil }, ParseOptions{Unit: unit})
+						refErr := p.ParseStreamWith("main", strings.NewReader(s+"\n"), func(n *parse.Node) error { want = gentest.ResultJSON(n, nil); return nil }, ParseOptions{Unit: unit})
 						if refErr != nil {
 							t.Fatal(refErr)
 						}
@@ -147,7 +146,7 @@ func TestStreamIncompletePrefixPropagatesReaderError(t *testing.T) {
 				stop := errors.New("reader stopped")
 				r := io.MultiReader(strings.NewReader("\xc3"), &failOnRead{err: stop})
 				count := 0
-				err := p.ParseStreamWith("main", r, func(*value.Node) error { count++; return nil }, ParseOptions{Backend: backend, Unit: unit})
+				err := p.ParseStreamWith("main", r, func(*parse.Node) error { count++; return nil }, ParseOptions{Backend: backend, Unit: unit})
 				if !errors.Is(err, stop) || count != 0 {
 					t.Fatalf("error=%v emitted=%d", err, count)
 				}
@@ -186,7 +185,7 @@ func BenchmarkRuneInputDelivery(b *testing.B) {
 						for b.Loop() {
 							if stream {
 								count := 0
-								err := prog.ParseStreamWith("main", strings.NewReader(text), func(*value.Node) error { count++; return nil }, opts)
+								err := prog.ParseStreamWith("main", strings.NewReader(text), func(*parse.Node) error { count++; return nil }, opts)
 								if err != nil || count != 1000 {
 									b.Fatalf("emitted %d: %v", count, err)
 								}

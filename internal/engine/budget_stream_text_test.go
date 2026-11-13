@@ -13,7 +13,6 @@ import (
 	"unicode/utf8"
 
 	"zeroparse.dev/zp/internal/engine/core"
-	"zeroparse.dev/zp/internal/value"
 	"zeroparse.dev/zp/runtime/parse"
 )
 
@@ -241,7 +240,7 @@ rule row = (!"\n" .)+ #atomic "\n"`)
 						_ = p.Text(p.Pos, p.Pos+64)
 					}
 				}
-				err := prog.ParseStreamWith("main", strings.NewReader(text), func(*value.Node) error { emissions++; return nil }, o)
+				err := prog.ParseStreamWith("main", strings.NewReader(text), func(*parse.Node) error { emissions++; return nil }, o)
 				want := parse.ErrLimit
 				if phase == "cancel" {
 					want = context.Canceled
@@ -250,7 +249,7 @@ rule row = (!"\n" .)+ #atomic "\n"`)
 					t.Fatalf("phase=%s armed=%t error=%v emits=%d old=%+v", phase, armed, err, emissions, previous)
 				}
 				assertTraceParserDetached(t, core.TraceParser(saved), false)
-				if err := prog.ParseStreamWith("main", strings.NewReader(text), func(*value.Node) error { return nil }, base); err != nil {
+				if err := prog.ParseStreamWith("main", strings.NewReader(text), func(*parse.Node) error { return nil }, base); err != nil {
 					t.Fatalf("fresh replay: %v", err)
 				}
 			})

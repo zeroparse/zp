@@ -14,6 +14,7 @@ import (
 	"zeroparse.dev/zp/internal/compile"
 	"zeroparse.dev/zp/internal/engine/core"
 	"zeroparse.dev/zp/internal/value"
+	"zeroparse.dev/zp/runtime/noderep"
 	"zeroparse.dev/zp/runtime/parse"
 )
 
@@ -37,7 +38,7 @@ func TestBudgetDiagnosticRecoveredLists(t *testing.T) {
 					records[i] = []*parse.SyntaxError{a, b, a}[i%3]
 				}
 				before, _ := json.Marshal(records)
-				retained := value.Ptr(value.Data{Text: "retained", Fields: value.Fields{{Name: "keep", Value: "stable"}}})
+				retained := value.Ptr(value.Data{Text: "retained", Fields: noderep.Fields{{Name: "keep", Value: "stable"}}})
 				p := diagnosticParser(parse.Limits{})
 				list := core.NewErrList(records)
 				p.Memo, p.Recovered = core.NewMemoTable(), []core.RecEntry{core.ErrEntry(prefix)}
@@ -73,7 +74,7 @@ func TestBudgetDiagnosticRecoveredLists(t *testing.T) {
 					p.Memo.Slots[0] = &core.MemoEntry{Rule: 7, Ok: true, End: 1, Node: retained, Errs: list}
 					steps += 2 // lookup and entry visit; the replay is free
 					var ok, hit bool
-					var val *value.Node
+					var val *parse.Node
 					run = func() { val, ok, hit = p.CallBegin(r, 0, &core.CallState{}) }
 					completed = func() {
 						assertReplay()
@@ -131,7 +132,7 @@ func TestBudgetDiagnosticRecoveredLists(t *testing.T) {
 					var best core.OperatorsRuleAttempt
 					if name == "OperatorsRule snapshot" {
 						steps++ // the operator that the match tries
-						op.Line.M = func(p *core.Parser) (*value.Node, bool) {
+						op.Line.M = func(p *core.Parser) (*parse.Node, bool) {
 							p.Pos = 1
 							pushRecords()
 							return retained, true

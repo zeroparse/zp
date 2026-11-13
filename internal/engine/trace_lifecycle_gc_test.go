@@ -67,7 +67,7 @@ func traceLifecycleDocument(t *testing.T, p *Program, b Backend, u parse.Positio
 }
 
 //go:noinline
-func traceLifecycleStream(t *testing.T, p *Program, b Backend, u parse.PositionUnit) (TraceEvent, weak.Pointer[traceLifecycleReader], weak.Pointer[traceLifecycleSentinel], *value.Node) {
+func traceLifecycleStream(t *testing.T, p *Program, b Backend, u parse.PositionUnit) (TraceEvent, weak.Pointer[traceLifecycleReader], weak.Pointer[traceLifecycleSentinel], *parse.Node) {
 	s := &traceLifecycleSentinel{}
 	s.value[0] = 42
 	r := &traceLifecycleReader{text: "#records\na=1\nbc=22\n"}
@@ -78,8 +78,8 @@ func traceLifecycleStream(t *testing.T, p *Program, b Backend, u parse.PositionU
 		t.Fatal("positive control failed")
 	}
 	var e TraceEvent
-	var held *value.Node
-	err := p.ParseStreamWith("main", r, func(n *value.Node) error {
+	var held *parse.Node
+	err := p.ParseStreamWith("main", r, func(n *parse.Node) error {
 		if held == nil {
 			held = n
 		}
@@ -131,7 +131,7 @@ func TestTraceLifecycleReleasesOwnersAfterGC(t *testing.T) {
 				if sr.Value() != nil {
 					t.Error("stream event retains callback sentinel")
 				}
-				if before != n.String() || value.D(n.Field("k").(*value.Node)).Text != "a" {
+				if before != n.String() || value.D(n.Field("k").(*parse.Node)).Text != "a" {
 					t.Fatal("emitted node changed")
 				}
 				runtime.KeepAlive(e)

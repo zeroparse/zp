@@ -11,7 +11,6 @@ import (
 
 	"zeroparse.dev/zp/internal/engine/document"
 	"zeroparse.dev/zp/internal/gentest"
-	"zeroparse.dev/zp/internal/value"
 	"zeroparse.dev/zp/runtime/parse"
 )
 
@@ -98,7 +97,7 @@ func TestMaxInputStream(t *testing.T) {
 			o.Limits = parse.Limits{Input: max}
 			var out []string
 			r := &budgetStreamReader{chunks: chunks(text, size)}
-			err := prog.ParseStreamWith("main", r, func(v *value.Node) error { out = append(out, gentest.ResultJSON(v, nil)); return nil }, o)
+			err := prog.ParseStreamWith("main", r, func(v *parse.Node) error { out = append(out, gentest.ResultJSON(v, nil)); return nil }, o)
 			return fmt.Sprint(out), err
 		}
 		for _, max := range []uint64{0, parse.Unlimited, n, n + 1} {

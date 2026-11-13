@@ -168,11 +168,11 @@ rule num = -" "* n:[0-9]+ #atomic => $n`)
 	if value.D(n).Start != 0 || value.D(n).End != 9 {
 		t.Errorf("root [%d,%d)", value.D(n).Start, value.D(n).End)
 	}
-	left := n.Field("Left").(*value.Node)
+	left := n.Field("Left").(*parse.Node)
 	if value.D(left).Start != 1 || value.D(left).End != 7 {
 		t.Errorf("left [%d,%d)", value.D(left).Start, value.D(left).End)
 	}
-	if r := left.Field("Right").(*value.Node); value.D(r).Start != 5 || value.D(r).End != 7 || value.D(r).Text != "22" {
+	if r := left.Field("Right").(*parse.Node); value.D(r).Start != 5 || value.D(r).End != 7 || value.D(r).Text != "22" {
 		t.Errorf("22 at [%d,%d) %q", value.D(r).Start, value.D(r).End, value.D(r).Text)
 	}
 }

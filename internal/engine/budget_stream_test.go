@@ -72,7 +72,7 @@ func TestBudgetStreamAdmission(t *testing.T) {
 		r := &budgetStreamReader{chunks: []string{"#records\na=1\n"}}
 		callbacks := 0
 		o.Trace = func(TraceEvent) { callbacks++ }
-		err := prog.ParseStreamWith("main", r, func(*value.Node) error { callbacks++; return nil }, o)
+		err := prog.ParseStreamWith("main", r, func(*parse.Node) error { callbacks++; return nil }, o)
 		if err != context.Canceled || r.reads != 0 || callbacks != 0 || r.closed {
 			t.Fatalf("error=%v reads=%d callbacks=%d closed=%t", err, r.reads, callbacks, r.closed)
 		}
@@ -119,7 +119,7 @@ func TestBudgetStreamUnlimitedParity(t *testing.T) {
 					if withError {
 						r.err = stop
 					}
-					errs[i] = prog.ParseStreamWith("main", r, func(n *value.Node) error { results[i] = append(results[i], gentest.ResultJSON(n, nil)); return nil }, o)
+					errs[i] = prog.ParseStreamWith("main", r, func(n *parse.Node) error { results[i] = append(results[i], gentest.ResultJSON(n, nil)); return nil }, o)
 				}
 				if !reflect.DeepEqual(results[0], results[1]) || fmt.Sprint(errs[0]) != fmt.Sprint(errs[1]) {
 					t.Fatalf("controlled results/errors differ: %v %v; %v %v", results[0], errs[0], results[1], errs[1])
@@ -152,7 +152,7 @@ func TestBudgetStreamReaderErrorPrecedence(t *testing.T) {
 					r.dataError = true
 				}
 				count := 0
-				err := prog.ParseStreamWith("main", r, func(*value.Node) error { count++; return nil }, o)
+				err := prog.ParseStreamWith("main", r, func(*parse.Node) error { count++; return nil }, o)
 				if err != stop || count != 1 || r.reads != 2 || r.closed {
 					t.Fatalf("error=%v emits=%d reads=%d closed=%t", err, count, r.reads, r.closed)
 				}
@@ -162,7 +162,7 @@ func TestBudgetStreamReaderErrorPrecedence(t *testing.T) {
 		defer cancel()
 		base.Context = ctx
 		r := &budgetStreamReader{chunks: []string{"#records\na=1\n"}, cancel: cancel, cancelAt: 2}
-		if err := prog.ParseStreamWith("main", r, func(*value.Node) error { return nil }, base); err != context.Canceled {
+		if err := prog.ParseStreamWith("main", r, func(*parse.Node) error { return nil }, base); err != context.Canceled {
 			t.Fatalf("EOF error=%v", err)
 		}
 	})
@@ -177,10 +177,10 @@ func TestBudgetStreamEmitPrecedenceAndOwnership(t *testing.T) {
 			o := base
 			o.Context = ctx
 			stop := errors.New("emit error wins")
-			var node *value.Node
+			var node *parse.Node
 			var snapshot string
 			count := 0
-			err := prog.ParseStreamWith("main", strings.NewReader("#records\na=1\nbc=22\n"), func(n *value.Node) error {
+			err := prog.ParseStreamWith("main", strings.NewReader("#records\na=1\nbc=22\n"), func(n *parse.Node) error {
 				count++
 				node = n
 				snapshot = gentest.ResultJSON(n, nil)
@@ -198,7 +198,7 @@ func TestBudgetStreamEmitPrecedenceAndOwnership(t *testing.T) {
 			if err != want || count != 1 || node == nil || gentest.ResultJSON(node, nil) != snapshot {
 				t.Fatalf("error=%v emits=%d snapshot changed=%t", err, count, gentest.ResultJSON(node, nil) != snapshot)
 			}
-			if err := prog.ParseStreamWith("main", strings.NewReader("#records\nxy=3\n"), func(*value.Node) error { return nil }, base); err != nil || gentest.ResultJSON(node, nil) != snapshot {
+			if err := prog.ParseStreamWith("main", strings.NewReader("#records\nxy=3\n"), func(*parse.Node) error { return nil }, base); err != nil || gentest.ResultJSON(node, nil) != snapshot {
 				t.Fatalf("fresh replay error=%v", err)
 			}
 		}
@@ -235,7 +235,7 @@ func TestBudgetStreamBlockedReaderCooperation(t *testing.T) {
 		defer release.Do(func() { close(r.release) })
 		result := make(chan error, 1)
 		emits := 0
-		go func() { result <- prog.ParseStreamWith("main", r, func(*value.Node) error { emits++; return nil }, o) }()
+		go func() { result <- prog.ParseStreamWith("main", r, func(*parse.Node) error { emits++; return nil }, o) }()
 		select {
 		case <-r.entered:
 		case err := <-result:
@@ -267,7 +267,7 @@ func TestBudgetStreamLimitsAndCallerPanics(t *testing.T) {
 					saved = e
 				}
 			}
-			err := prog.ParseStreamWith("main", strings.NewReader("#records\n"+strings.Repeat("a", 20000)+"=1\n"), func(*value.Node) error { count++; return nil }, o)
+			err := prog.ParseStreamWith("main", strings.NewReader("#records\n"+strings.Repeat("a", 20000)+"=1\n"), func(*parse.Node) error { count++; return nil }, o)
 			var we *parse.LimitError
 			if !errors.As(err, &we) || we.Kind != kind || count != 0 {
 				t.Fatalf("error=%v emits=%d", err, count)
@@ -303,7 +303,7 @@ func TestBudgetStreamLimitsAndCallerPanics(t *testing.T) {
 					}
 				}
 				got := catchStreamPanic(func() {
-					_ = prog.ParseStreamWith("main", r, func(*value.Node) error {
+					_ = prog.ParseStreamWith("main", r, func(*parse.Node) error {
 						if phase == "emit" {
 							panic(token)
 						}
@@ -359,7 +359,7 @@ func TestBudgetStreamCommitReservations(t *testing.T) {
 	node := value.Ptr(value.Data{Text: "delivered"})
 	p := &core.Parser{Input: core.Input{Control: core.NewBudgetControl(nil, parse.Limits{Compute: 1})}, FrameSlab: make([]core.Frame, 258)}
 	p.Frame = &p.FrameSlab[0]
-	p.FrameSlab[1].Vals = []*value.Node{node}
+	p.FrameSlab[1].Vals = []*parse.Node{node}
 	got := catchStreamPanic(func() { p.ResetStreamFrames() })
 	if _, ok := got.(core.Fatal); !ok || len(p.FrameSlab) != 258 || p.FrameSlab[1].Vals[0] != node || value.D(node).Text != "delivered" {
 		t.Fatalf("frame interruption=%v", got)
@@ -424,12 +424,12 @@ func TestBudgetStreamCommitAfterDelivery(t *testing.T) {
 				saved = e
 			}
 		}
-		var node *value.Node
+		var node *parse.Node
 		var before string
 		count := 0
 		var controller *core.BudgetControl
 		last := 0
-		err := prog.ParseStreamWith("main", strings.NewReader("#records\na=1\nbc=22\n"), func(n *value.Node) error {
+		err := prog.ParseStreamWith("main", strings.NewReader("#records\na=1\nbc=22\n"), func(n *parse.Node) error {
 			count++
 			node = n
 			before = gentest.ResultJSON(n, nil)
@@ -503,7 +503,7 @@ func TestBudgetStreamCommitAfterDelivery(t *testing.T) {
 		o.Limits = parse.Limits{}
 		o.Trace = nil
 		replay := 0
-		if err := prog.ParseStreamWith("main", strings.NewReader("#records\na=1\nbc=22\n"), func(*value.Node) error { replay++; return nil }, o); err != nil || replay != 2 || gentest.ResultJSON(node, nil) != before {
+		if err := prog.ParseStreamWith("main", strings.NewReader("#records\na=1\nbc=22\n"), func(*parse.Node) error { replay++; return nil }, o); err != nil || replay != 2 || gentest.ResultJSON(node, nil) != before {
 			t.Fatalf("fresh replay error=%v emits=%d", err, replay)
 		}
 	})
@@ -518,7 +518,7 @@ func TestBudgetStreamEmitBoundary(t *testing.T) {
 			p := &core.Parser{Input: core.Input{Control: core.NewBudgetControl(ctx, parse.Limits{})}}
 			stop := errors.New("emit")
 			calls := 0
-			p.Emit = func(*value.Node) error {
+			p.Emit = func(*parse.Node) error {
 				calls++
 				cancel()
 				if phase == "error" {
@@ -583,7 +583,7 @@ func TestBudgetStreamVMFaultAttribution(t *testing.T) {
 			restore := corruptVMLiteral(t, prog)
 			defer restore()
 			var saved TraceEvent
-			err := prog.ParseStreamWith("main", strings.NewReader("z"), func(*value.Node) error { t.Fatal("emitted from corrupt VM"); return nil }, ParseOptions{Backend: b, Limits: parse.Limits{Compute: 1 << 20}, Trace: func(e TraceEvent) {
+			err := prog.ParseStreamWith("main", strings.NewReader("z"), func(*parse.Node) error { t.Fatal("emitted from corrupt VM"); return nil }, ParseOptions{Backend: b, Limits: parse.Limits{Compute: 1 << 20}, Trace: func(e TraceEvent) {
 				if core.TraceParser(saved) == nil {
 					saved = e
 				}
@@ -630,7 +630,7 @@ func TestBudgetStreamConcurrentCounters(t *testing.T) {
 						}
 					}
 				}
-				run.err = prog.ParseStreamWith("main", strings.NewReader("#records\na=1\nbc=22\n"), func(*value.Node) error {
+				run.err = prog.ParseStreamWith("main", strings.NewReader("#records\na=1\nbc=22\n"), func(*parse.Node) error {
 					run.count++
 					if i == 0 {
 						cancel()

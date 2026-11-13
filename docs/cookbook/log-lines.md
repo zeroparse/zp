@@ -171,7 +171,7 @@ and inputs; measure your own grammar and input (see [Debugging and Profiling](..
 - **More input than memory.** The generated parser needs the whole input in memory; use the engine and
   [`#stream`](big-files.md).
 - **Without a generated file.** `p.Parse(text, zp.RecognizeOnly())` is the engine's recognition mode, and the typed
-  structs can be replaced by the `Field` and `Elems` of `*zp.Node`.
+  structs can be replaced by the `Field` and `Elems` of `*parse.Node`.
 
 See [Code generation](../guide/code-generation.md) for what generated parsers support and
 [Running parsers](../guide/running-parsers.md) for recognition mode.

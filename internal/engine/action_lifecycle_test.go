@@ -21,7 +21,7 @@ func TestActionResultReleasesTracking(t *testing.T) {
 		err   error
 	}{
 		{"nil", nil, nil},
-		{"typed nil", (*value.Node)(nil), nil},
+		{"typed nil", (*parse.Node)(nil), nil},
 		{"node", value.Ptr(value.Data{Start: 90, End: 91, Fresh: true}), nil},
 		{"error", nil, errors.New("action failed")},
 		{"boxed value", 1, nil},
@@ -29,14 +29,14 @@ func TestActionResultReleasesTracking(t *testing.T) {
 	} {
 		t.Run(c.name, func(t *testing.T) {
 			prefix := value.Ptr(value.Data{Text: "keep"})
-			p := &core.Parser{Created: []*value.Node{prefix}}
+			p := &core.Parser{Created: []*parse.Node{prefix}}
 			ctx := &core.EvalCtx{P: p, Cbase: 1, Start: 3, End: 4}
 			var panicked any
 			func() {
 				defer func() { panicked = recover() }()
 				n := p.ActionResult(ctx, func(*core.EvalCtx) (any, error) {
 					p.Created = append(p.Created, value.Ptr(value.Data{Text: "temporary"}))
-					if n, ok := c.value.(*value.Node); ok && n != nil {
+					if n, ok := c.value.(*parse.Node); ok && n != nil {
 						p.Created = append(p.Created, n)
 					}
 					return c.value, c.err
@@ -69,7 +69,7 @@ func TestNilActionStreamMemoryIsBounded(t *testing.T) {
 				p := core.NewStreamParser(&prog.sharedProgram, &lineReader{line: "a", n: 60000}, unit)
 				var at [2]uint64
 				count := 0
-				p.Emit = func(n *value.Node) error {
+				p.Emit = func(n *parse.Node) error {
 					count++
 					if n != nil || len(p.Created) != 0 {
 						return fmt.Errorf("element %d: node %v, tracking length %d", count, n, len(p.Created))
@@ -118,7 +118,7 @@ func BenchmarkNilActionStream(b *testing.B) {
 			b.ReportAllocs()
 			b.ResetTimer()
 			for i := 0; i < b.N; i++ {
-				if err := prog.ParseStreamWith("main", &lineReader{line: "a", n: 10000}, func(*value.Node) error { return nil }, ParseOptions{Backend: backend}); err != nil {
+				if err := prog.ParseStreamWith("main", &lineReader{line: "a", n: 10000}, func(*parse.Node) error { return nil }, ParseOptions{Backend: backend}); err != nil {
 					b.Fatal(err)
 				}
 			}

@@ -56,7 +56,7 @@ func lineStart(text string, line int) int {
 // Editor keeps a Document and the last tree that parsed.
 type Editor struct {
 	doc  *zp.Document
-	last *zp.Node
+	last *parse.Node
 }
 
 // Apply replaces [start, end) with text and reparses.

@@ -57,6 +57,7 @@ import (
 	"strings"
 
 	"zeroparse.dev/zp"
+	"zeroparse.dev/zp/runtime/parse"
 )
 
 //go:embed filter.zp
@@ -69,10 +70,10 @@ type Record map[string]any
 type value func(Record) any
 
 // text returns the text of a Num, Str, Bool or Field node.
-func text(n *zp.Node) string { return n.Text() }
+func text(n *parse.Node) string { return n.Text() }
 
 // compile turns a tree into closures, so that the tree is walked once, not once per record.
-func compile(n *zp.Node) value {
+func compile(n *parse.Node) value {
 	switch n.Type() {
 	case "Num":
 		v, _ := strconv.ParseFloat(text(n), 64)
@@ -87,13 +88,13 @@ func compile(n *zp.Node) value {
 		name := text(n)
 		return func(r Record) any { return r[name] }
 	case "Not":
-		x := compile(n.Field("X").(*zp.Node))
+		x := compile(n.Field("X").(*parse.Node))
 		return func(r Record) any { return x(r) != true }
 	}
 	// Binary
-	op := n.Field("Op").(*zp.Node).Text()
-	l := compile(n.Field("Left").(*zp.Node))
-	r := compile(n.Field("Right").(*zp.Node))
+	op := n.Field("Op").(*parse.Node).Text()
+	l := compile(n.Field("Left").(*parse.Node))
+	r := compile(n.Field("Right").(*parse.Node))
 	switch op {
 	case "and":
 		return func(rec Record) any { return l(rec) == true && r(rec) == true }

@@ -9,7 +9,6 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/internal/gentest"
-	"zeroparse.dev/zp/internal/value"
 	"zeroparse.dev/zp/runtime/parse"
 )
 
@@ -172,7 +171,7 @@ func TestMemoryLimitStream(t *testing.T) {
 				}
 				stream := func(text string) func(uint64) error {
 					return func(mem uint64) error {
-						return prog.ParseStreamWith("main", strings.NewReader(text), func(*value.Node) error { return nil }, opts(mem))
+						return prog.ParseStreamWith("main", strings.NewReader(text), func(*parse.Node) error { return nil }, opts(mem))
 					}
 				}
 				short := streamMemory(t, stream(streamRecords(2000*c.scale, c.line)))

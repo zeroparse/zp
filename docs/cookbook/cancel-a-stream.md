@@ -21,6 +21,7 @@ import (
 	"time"
 
 	"zeroparse.dev/zp"
+	"zeroparse.dev/zp/runtime/parse"
 )
 
 const grammar = `@start
@@ -30,7 +31,7 @@ rule line =  [a-z0-9]+ #atomic "\n" `
 // parseContext streams r into emit and gives up when ctx is cancelled. The parser blocks inside r.Read, so
 // cancelling needs the reader to fail: cancelRead must make a blocked Read return the error (closing the
 // connection, or the write end of a pipe, does).
-func parseContext(ctx context.Context, p *zp.Parser, r io.Reader, cancelRead func(error), emit func(*zp.Node) error) error {
+func parseContext(ctx context.Context, p *zp.Parser, r io.Reader, cancelRead func(error), emit func(*parse.Node) error) error {
 	stop := context.AfterFunc(ctx, func() { cancelRead(ctx.Err()) })
 	defer stop()
 	return p.ParseStream(r, emit, zp.WithContext(ctx))
@@ -48,7 +49,7 @@ func main() {
 	}()
 	ctx, cancel := context.WithTimeout(context.Background(), 300*time.Millisecond)
 	defer cancel()
-	err = parseContext(ctx, p, pr, func(err error) { pw.CloseWithError(err) }, func(n *zp.Node) error {
+	err = parseContext(ctx, p, pr, func(err error) { pw.CloseWithError(err) }, func(n *parse.Node) error {
 		fmt.Println("line", n.Elem(0).Text())
 		return nil
 	})

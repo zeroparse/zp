@@ -96,7 +96,7 @@ func TestInvalidUTF8LiteralStream(t *testing.T) {
 					}
 					input := strings.Repeat(item, 1100)
 					count := 0
-					err := p.ParseStreamWith("main", strings.NewReader(input), func(n *value.Node) error {
+					err := p.ParseStreamWith("main", strings.NewReader(input), func(n *parse.Node) error {
 						count++
 						width := utf8.RuneCountInString(item)
 						if unit == parse.Bytes {
@@ -126,10 +126,10 @@ func TestOpenPipeInvalidUTF8Literal(t *testing.T) {
 rule item = "�" "\n"`)
 					pr, pw := io.Pipe()
 					done := make(chan error, 1)
-					emitted := make(chan *value.Node, 1)
+					emitted := make(chan *parse.Node, 1)
 					go func() {
 						defer pr.Close()
-						done <- prog.ParseStreamWith("main", pr, func(n *value.Node) error { emitted <- n; return nil }, ParseOptions{Backend: backend, Unit: unit})
+						done <- prog.ParseStreamWith("main", pr, func(n *parse.Node) error { emitted <- n; return nil }, ParseOptions{Backend: backend, Unit: unit})
 					}()
 					t.Cleanup(func() {
 						pw.Close()

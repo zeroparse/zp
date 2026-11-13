@@ -10,7 +10,6 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/internal/engine/core"
-	"zeroparse.dev/zp/internal/value"
 	"zeroparse.dev/zp/runtime/parse"
 )
 
@@ -127,11 +126,11 @@ rule atom Atom = t:("a") #atomic => Atom{Text: text($t)}`,
 	}
 
 	type result struct {
-		Node                 *value.Node
+		Node                 *parse.Node
 		Err                  error
 		ErrorText, ErrorType string
 	}
-	marshal := func(t *testing.T, node *value.Node, err error) []byte {
+	marshal := func(t *testing.T, node *parse.Node, err error) []byte {
 		t.Helper()
 		got := result{Node: node, Err: err}
 		if err != nil {

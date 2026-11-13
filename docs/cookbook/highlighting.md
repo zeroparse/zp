@@ -49,6 +49,7 @@ import (
 	"strings"
 
 	"zeroparse.dev/zp"
+	"zeroparse.dev/zp/runtime/parse"
 )
 
 //go:embed tokens.zp
@@ -66,7 +67,7 @@ func Highlight(p *zp.Parser, src string) (string, error) {
 		return "", err
 	}
 	var b strings.Builder
-	for _, tok := range tree.Field("Items").(*zp.Node).Elems() {
+	for _, tok := range tree.Field("Items").(*parse.Node).Elems() {
 		text := html.EscapeString(tok.Text())
 		if c, ok := class[tok.Type()]; ok {
 			fmt.Fprintf(&b, `<span class="%s">%s</span>`, c, text)

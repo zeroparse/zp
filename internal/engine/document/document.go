@@ -6,7 +6,6 @@ import (
 
 	"zeroparse.dev/zp/internal/compile"
 	"zeroparse.dev/zp/internal/engine/core"
-	"zeroparse.dev/zp/internal/value"
 	"zeroparse.dev/zp/runtime/parse"
 )
 
@@ -43,7 +42,7 @@ type Document struct {
 	edits    []core.DocEdit // all edits so far; nodes record how many their positions account for
 	runs     map[core.RunKey]*core.RunRecord
 	runGen   uint32            // edit generation of runs; unchanged parses keep this map
-	kids     []*value.Node     // the parser's stack of repetition values, kept for the next parse
+	kids     []*parse.Node     // the parser's stack of repetition values, kept for the next parse
 	machine  core.BackendState // the backend state of the last parse, cleared and kept for the next one
 	// resumed is the number of repetition elements the last Parse resumed (for tests).
 	resumed int
@@ -65,7 +64,7 @@ type Runner interface {
 	// Shared returns the program part that a parser for this runner reads.
 	Shared() *core.SharedProgram
 	// Run parses p's input from the rule start on backend b.
-	Run(p *core.Parser, b core.Backend, start string) (*value.Node, error)
+	Run(p *core.Parser, b core.Backend, start string) (*parse.Node, error)
 }
 
 // New returns a Document that parses the text in from the rule start
@@ -90,13 +89,13 @@ func (d *Document) Stats() parse.ParseStats { return d.stats }
 
 // Parse parses the current text. Parser-produced syntax diagnostics belong to
 // this call; returned Nodes can share the Document's mutable graph.
-func (d *Document) Parse() (*value.Node, error) { return d.ParseWith(d.defaults) }
+func (d *Document) Parse() (*parse.Node, error) { return d.ParseWith(d.defaults) }
 
 // ParseWith parses using fully resolved options. Unit, effective backend and
 // recognition mode must match construction; this method does not merge defaults.
-func (d *Document) ParseWith(o core.ParseOptions) (*value.Node, error) {
+func (d *Document) ParseWith(o core.ParseOptions) (*parse.Node, error) {
 	if d.changes != nil {
-		var n *value.Node
+		var n *parse.Node
 		_, err := d.snapshotWith(o, &n)
 		return n, err
 	}
@@ -105,7 +104,7 @@ func (d *Document) ParseWith(o core.ParseOptions) (*value.Node, error) {
 
 // parseWithCapture keeps parsing and result capture inside one interruption and
 // cleanup boundary. capture uses the same controller as the parser.
-func (d *Document) parseWithCapture(o core.ParseOptions, capture func(*core.Parser, *value.Node, error) error) (n *value.Node, err error) {
+func (d *Document) parseWithCapture(o core.ParseOptions, capture func(*core.Parser, *parse.Node, error) error) (n *parse.Node, err error) {
 	if d.runner.Shared().HasMissing || o.MissingTokens != 0 {
 		return nil, compile.MissingUnsupported("Document parsing")
 	}

@@ -75,7 +75,7 @@ func TestContextErrRuntimePanicIdentityThroughPublicOptions(t *testing.T) {
 						opts = append(opts, zp.RecognizeOnly())
 					}
 
-					var node *zp.Node
+					var node *parse.Node
 					var returnedErr error
 					var got any
 					func() {

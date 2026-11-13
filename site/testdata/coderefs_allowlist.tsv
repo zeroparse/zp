@@ -73,13 +73,11 @@ docs/design/records/032-versioned-document-snapshots.md	codelink	internal/engine
 docs/design/records/032-versioned-document-snapshots.md	codelink	internal/engine/core/runtime.go	1
 docs/design/records/032-versioned-document-snapshots.md	codelink	internal/engine/document/document.go	1
 docs/design/records/032-versioned-document-snapshots.md	codelink	internal/engine/document/document_abort_test.go	1
-docs/design/records/032-versioned-document-snapshots.md	codelink	internal/value/node.go	1
 docs/design/records/032-versioned-document-snapshots.md	codelink	zp.go	1
 docs/design/records/032-versioned-document-snapshots.md	gofile	internal/engine/core/input.go	1
 docs/design/records/032-versioned-document-snapshots.md	gofile	internal/engine/core/runtime.go	1
 docs/design/records/032-versioned-document-snapshots.md	gofile	internal/engine/document/document.go	1
 docs/design/records/032-versioned-document-snapshots.md	gofile	internal/engine/document/document_abort_test.go	1
-docs/design/records/032-versioned-document-snapshots.md	gofile	internal/value/node.go	1
 docs/design/records/032-versioned-document-snapshots.md	gofile	zp.go	1
 docs/design/records/032-versioned-document-snapshots.md	unexport	moveResult	1
 docs/design/records/033-cancellable-parses-and-budgets.md	codelink	internal/engine/core/input.go	2
@@ -464,9 +462,7 @@ docs/optimizations/134-records-of-single-character-scans.md	qualified	core.ScanH
 docs/optimizations/134-records-of-single-character-scans.md	unexport	scanSiteList	1
 docs/optimizations/135-shared-recovered-error-lists.md	gofile	core/recovered.go	1
 docs/optimizations/135-shared-recovered-error-lists.md	gofile	runtime/recovered.go	1
-docs/optimizations/mechanisms/A010-compact-node-representation.md	codelink	internal/value/node.go	1
 docs/optimizations/mechanisms/A010-compact-node-representation.md	codelink	runtime/runtime.go	1
-docs/optimizations/mechanisms/A010-compact-node-representation.md	gofile	internal/value/node.go	1
 docs/optimizations/mechanisms/A010-compact-node-representation.md	gofile	runtime/runtime.go	1
 docs/optimizations/mechanisms/A020-node-and-list-slabs.md	codelink	internal/engine/core/runtime.go	1
 docs/optimizations/mechanisms/A020-node-and-list-slabs.md	codelink	runtime/runtime.go	1
@@ -953,10 +949,8 @@ docs/optimizations/mechanisms/R080-lazy-code-point-offsets.md	gofile	internal/en
 docs/optimizations/mechanisms/R080-lazy-code-point-offsets.md	unexport	buildOffs	1
 docs/optimizations/mechanisms/R090-moving-document-trees.md	codelink	internal/engine/core/runtime.go	1
 docs/optimizations/mechanisms/R090-moving-document-trees.md	codelink	internal/engine/document/document.go	1
-docs/optimizations/mechanisms/R090-moving-document-trees.md	codelink	internal/value/node.go	1
 docs/optimizations/mechanisms/R090-moving-document-trees.md	gofile	internal/engine/core/runtime.go	1
 docs/optimizations/mechanisms/R090-moving-document-trees.md	gofile	internal/engine/document/document.go	1
-docs/optimizations/mechanisms/R090-moving-document-trees.md	gofile	internal/value/node.go	1
 docs/optimizations/mechanisms/R090-moving-document-trees.md	unexport	moveResult	1
 docs/optimizations/mechanisms/R100-document-repetition-resumption.md	codelink	internal/engine/core/resume.go	1
 docs/optimizations/mechanisms/R100-document-repetition-resumption.md	codelink	internal/engine/document/document.go	1

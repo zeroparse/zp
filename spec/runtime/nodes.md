@@ -2,7 +2,7 @@
 
 A parse that succeeds returns a value. The value of a rule that has no action is
 a **node**: a value together with the range of input that it covers. This
-chapter defines the node model, the Go type `zp.Node` and its accessors, the
+chapter defines the node model, the Go type `parse.Node` and its accessors, the
 traversal of a node graph, and the text and JSON renderings of values. The text
 and JSON renderings are specified in their own sections.
 
@@ -20,7 +20,7 @@ An **error value** is what [error recovery](../language/pragmas.md#recover) and 
 [missing token](../language/pragmas.md#missing) produce. An action can also build a **struct**
 (`T{...}`), a tuple or list without a range, and an `int`, `string` or `bool`.
 A **value** is any of these or `nil`; Go code reads it through the accessors of
-`zp.Node`, which stands for every one of them except `nil`. A **node graph** is the set
+`parse.Node`, which stands for every one of them except `nil`. A **node graph** is the set
 of nodes reachable from a root through elements and fields. A graph is usually a
 tree, but a node MAY be reachable by several edges (shared), and a graph MAY
 contain a cycle when a caller builds one.
@@ -64,7 +64,7 @@ or the ranges.
 
 ### The Go Type
 
-`zp.Node` is an opaque type: no field is exported, and no method commits to
+`parse.Node` is an opaque type: no field is exported, and no method commits to
 a layout in memory. A `*Node` is nil where a value is `nil`. `Text`, `Len`,
 `Elems`, `Value`, `Field`, `Fields` and `IsTerminal` accept a nil receiver; the
 other methods do not.
@@ -88,7 +88,7 @@ func (n *Node) String() string
 func (n *Node) WriteJSON(w io.Writer) error
 ```
 
-`NodeKind` is `zp.NodeKind`, with the constants below.
+`NodeKind` is `parse.NodeKind`, with the constants below.
 
 | `Kind()` | The node is | Methods that apply |
 |:--|:--|:--|
@@ -122,7 +122,7 @@ slicing the input with its range or with `text(...)` in an action.
 
 ### Traversal
 
-`zp.Walk(root, visit)` visits a node graph in a defined order. `visit`
+`parse.Walk(root, visit)` visits a node graph in a defined order. `visit`
 receives a `WalkVisit` and returns a `WalkAction` and an error.
 
 | `WalkVisit` member | Meaning |
@@ -142,7 +142,7 @@ receives a `WalkVisit` and returns a `WalkAction` and an error.
   them again would make a walk exponential in the nesting of operators.
   Scalar and nil values are visited. Other containers are leaves.
 - A shared node or list is visited once for each incoming edge. Only a cycle on
-  the active traversal path is an error: `Walk` returns `*zp.CycleError`, which
+  the active traversal path is an error: `Walk` returns `*parse.CycleError`, which
   holds the path of the back edge.
 - `WalkSkip` omits the descendants of the visit; `WalkStop` ends the walk
   successfully. An error returned by `visit` stops the walk and is returned
@@ -150,7 +150,7 @@ receives a `WalkVisit` and returns a `WalkAction` and an error.
 - `Walk` does not mutate or retain the graph. The graph MUST NOT be mutated while
   the walk or its callback runs.
 
-`zp.Cursor{Root, Unit}` selects nodes by position, using `Walk` order. `Unit`
+`parse.Cursor{Root, Unit}` selects nodes by position, using `Walk` order. `Unit`
 MUST be the unit of the parse that produced the positions; it is not inferred or
 converted, and an invalid unit is an error. A parent's range does not prune
 traversal, so a matching descendant is visited even if its parent does not match.
@@ -233,7 +233,7 @@ mutated concurrently.
 | Condition | Result |
 |:--|:--|
 | `Walk` with a nil callback | Error |
-| A cycle on the active path of `Walk` or `WriteJSON` | `*zp.CycleError` (`Walk`) or an error (`WriteJSON`) |
+| A cycle on the active path of `Walk` or `WriteJSON` | `*parse.CycleError` (`Walk`) or an error (`WriteJSON`) |
 | `Cursor` with an invalid unit or range | Error |
 | `Field` on a nil node, on a node without source information, or for an absent field | `nil` |
 | `Elem` with an index outside the elements | Panic |

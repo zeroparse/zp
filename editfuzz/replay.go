@@ -341,9 +341,9 @@ var corruptDocumentResult func(text string, tree map[string]any)
 func (r *replayer) check(event int) *Mismatch {
 	// Encode the Document's result before any other parse can move the nodes it shares.
 	var docErr, freshErr error
-	doc, docPanic := result(func() (n *zp.Node, err error) { n, docErr = r.doc.Parse(); return n, docErr })
+	doc, docPanic := result(func() (n *parse.Node, err error) { n, docErr = r.doc.Parse(); return n, docErr })
 	text := r.doc.Text()
-	fresh, freshPanic := result(func() (*zp.Node, error) { n, err := r.p.Parse(text, r.opts...); freshErr = err; return n, err })
+	fresh, freshPanic := result(func() (*parse.Node, error) { n, err := r.p.Parse(text, r.opts...); freshErr = err; return n, err })
 	if docPanic != "" || freshPanic != "" {
 		// A panic in the Document parse alone points at incremental parsing; in both, at the grammar or
 		// the engine.
@@ -386,7 +386,7 @@ func (r *replayer) check(event int) *Mismatch {
 // result parses and returns the value and error as a JSON-like tree: {"value": ..., "error": ...}, or the
 // panic value if the parse panicked. Strings that are not valid UTF-8, which JSON cannot hold, are also
 // listed quoted under "value_invalid_utf8", in tree order.
-func result(parse func() (*zp.Node, error)) (tree map[string]any, panicked string) {
+func result(parse func() (*parse.Node, error)) (tree map[string]any, panicked string) {
 	defer func() {
 		if x := recover(); x != nil {
 			tree, panicked = nil, fmt.Sprint(x)
@@ -430,7 +430,7 @@ func expand(tree map[string]any) {
 }
 
 // invalidStrings returns the quoted texts and string values of the tree at n that are not valid UTF-8.
-func invalidStrings(n *zp.Node) []any {
+func invalidStrings(n *parse.Node) []any {
 	if n == nil {
 		return nil
 	}
@@ -440,13 +440,13 @@ func invalidStrings(n *zp.Node) []any {
 			l = append(l, strconv.Quote(s))
 		}
 	}
-	err := zp.Walk(n, func(v zp.WalkVisit) (zp.WalkAction, error) {
+	err := parse.Walk(n, func(v parse.WalkVisit) (parse.WalkAction, error) {
 		if v.Node != nil {
 			add(v.Node.Text())
 		} else if s, ok := v.Value.(string); ok {
 			add(s)
 		}
-		return zp.WalkContinue, nil
+		return parse.WalkContinue, nil
 	})
 	if err != nil {
 		l = append(l, "walk: "+err.Error())

@@ -12,9 +12,9 @@ import (
 	"sort"
 	"strings"
 
-	"zeroparse.dev/zp"
 	"zeroparse.dev/zp/internal/limits"
 	"zeroparse.dev/zp/internal/value"
+	"zeroparse.dev/zp/runtime/noderep"
 	"zeroparse.dev/zp/runtime/parse"
 	"zeroparse.dev/zp/schema"
 )
@@ -59,7 +59,7 @@ type Edge struct {
 type Capture struct {
 	Name, Category string
 	Value          any
-	Parent         *zp.Node
+	Parent         *parse.Node
 	Path           []Edge
 }
 
@@ -264,7 +264,7 @@ func (b *budget) charge(n uint64) error {
 // therefore charges no input. Cancellation, compute limit exhaustion and cycles (ErrCycle)
 // return an error without partial results. A query with a rule constraint reports
 // ErrNoSourceInfo when the graph has nodes but none records a rule.
-func (q *Query) Matches(root *zp.Node, opts ...Option) ([]Match, error) {
+func (q *Query) Matches(root *parse.Node, opts ...Option) ([]Match, error) {
 	if q == nil {
 		return nil, fmt.Errorf("nil structural query")
 	}
@@ -279,7 +279,7 @@ func (q *Query) Matches(root *zp.Node, opts ...Option) ([]Match, error) {
 	results := []Match{}
 	sawNode, sawRule := false, false
 	err := visitGraph(root, b, func(v graphVisit) error {
-		n, ok := v.Value.(*value.Node)
+		n, ok := v.Value.(*parse.Node)
 		if !ok || n == nil {
 			return nil
 		}
@@ -335,7 +335,7 @@ func (q *Query) match(v graphVisit, b *budget) ([]Capture, bool, error) {
 		if p.Category != "" && category != p.Category {
 			return nil, false, nil
 		}
-		n, _ := v.Value.(*value.Node)
+		n, _ := v.Value.(*parse.Node)
 		if p.Type != "" {
 			if p.Type == "error" {
 				if category != "error" {
@@ -401,12 +401,12 @@ func (q *Query) match(v graphVisit, b *budget) ([]Capture, bool, error) {
 }
 
 // hasElements reports whether n is a tuple or list, or a node whose value is one.
-func hasElements(n *value.Node) bool {
+func hasElements(n *parse.Node) bool {
 	if n == nil {
 		return false
 	}
 	switch value.ShapeOf(n) {
-	case value.ShapeTuple, value.ShapeList, value.ShapeTupleValue, value.ShapeListValue:
+	case noderep.ShapeTuple, noderep.ShapeList, noderep.ShapeTupleValue, noderep.ShapeListValue:
 		return true
 	}
 	return false
@@ -414,12 +414,12 @@ func hasElements(n *value.Node) bool {
 
 // nodeValue returns the value of the node n: its text, or a tuple or list value sharing its
 // elements.
-func nodeValue(n *value.Node) any {
+func nodeValue(n *parse.Node) any {
 	switch value.ShapeOf(n) {
-	case value.ShapeTuple:
-		return value.Ptr(value.Data{Kind: value.TupleValueKind, Start: value.D(n).Start, End: value.D(n).End, Children: value.D(n).Children})
-	case value.ShapeList:
-		return value.Ptr(value.Data{Kind: value.ListValueKind, Start: value.D(n).Start, End: value.D(n).End, Children: value.D(n).Children})
+	case noderep.ShapeTuple:
+		return value.Ptr(value.Data{Kind: noderep.TupleValueKind, Start: value.D(n).Start, End: value.D(n).End, Children: value.D(n).Children})
+	case noderep.ShapeList:
+		return value.Ptr(value.Data{Kind: noderep.ListValueKind, Start: value.D(n).Start, End: value.D(n).End, Children: value.D(n).Children})
 	}
 	return value.D(n).Text
 }
@@ -436,20 +436,20 @@ func valueCategory(v any) (string, error) {
 	switch v := v.(type) {
 	case nil:
 		return "nil", nil
-	case *value.Node:
+	case *parse.Node:
 		if v == nil {
 			return "nil", nil
 		}
 		switch value.ShapeOf(v) {
-		case value.ShapeString, value.ShapeTuple, value.ShapeList:
+		case noderep.ShapeString, noderep.ShapeTuple, noderep.ShapeList:
 			return "node", nil
-		case value.ShapeError:
+		case noderep.ShapeError:
 			return "error", nil
-		case value.ShapeTupleValue:
+		case noderep.ShapeTupleValue:
 			return "tuple", nil
-		case value.ShapeListValue:
+		case noderep.ShapeListValue:
 			return "list", nil
-		case value.ShapeStruct:
+		case noderep.ShapeStruct:
 			return "struct", nil
 		}
 	case int:

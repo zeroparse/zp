@@ -178,7 +178,7 @@ read concurrently while the single-owner Document is edited or parsed.
 | `Fields()` | An owned slice of the fields, in original order |
 
 The snapshot graph preserves shared nodes and cycles. It freezes only field
-values of dynamic type nil, `int`, `string`, `bool`, or `*zp.Node`; an
+values of dynamic type nil, `int`, `string`, `bool`, or `*parse.Node`; an
 unsupported custom value returns `*parse.SnapshotCaptureError` and no Snapshot.
 `Materialize` makes an independently mutable graph, preserving identities,
 cycles, nil slots, and nil versus allocated-empty collections. Use it when an
@@ -297,9 +297,10 @@ import (
 	"strings"
 
 	"zeroparse.dev/zp"
+	"zeroparse.dev/zp/runtime/parse"
 )
 
-func js(n *zp.Node) string {
+func js(n *parse.Node) string {
 	b, _ := json.Marshal(n)
 	return string(b)
 }

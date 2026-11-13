@@ -14,7 +14,6 @@ import (
 	"zeroparse.dev/zp/internal/engine"
 	"zeroparse.dev/zp/internal/gen"
 	"zeroparse.dev/zp/internal/gentest"
-	"zeroparse.dev/zp/internal/value"
 	"zeroparse.dev/zp/runtime/parse"
 )
 
@@ -141,7 +140,7 @@ func main() {
 }
 
 // typedN returns the field N of an engine value of typedLRBindingSource.
-func typedN(n *value.Node) string {
+func typedN(n *parse.Node) string {
 	if n == nil {
 		return "<nil>"
 	}

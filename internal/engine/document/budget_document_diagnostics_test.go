@@ -9,7 +9,6 @@ import (
 
 	. "zeroparse.dev/zp/internal/engine"
 	"zeroparse.dev/zp/internal/engine/core"
-	"zeroparse.dev/zp/internal/value"
 	"zeroparse.dev/zp/runtime/parse"
 )
 
@@ -75,7 +74,7 @@ func TestBudgetDocumentDiagnosticPublication(t *testing.T) {
 						}
 					}
 				}
-				var result *value.Node
+				var result *parse.Node
 				var caught any
 				func() {
 					defer func() { caught = recover() }()

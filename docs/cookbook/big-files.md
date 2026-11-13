@@ -42,6 +42,7 @@ import (
 	"strconv"
 
 	"zeroparse.dev/zp"
+	"zeroparse.dev/zp/runtime/parse"
 )
 
 //go:embed stream.zp
@@ -85,12 +86,12 @@ func main() {
 	}
 
 	var lines, errors, totalMs int
-	count := func(e *zp.Node) error {
+	count := func(e *parse.Node) error {
 		lines++
-		if e.Field("Level").(*zp.Node).Text() == "ERROR" {
+		if e.Field("Level").(*parse.Node).Text() == "ERROR" {
 			errors++
 		}
-		ms, _ := strconv.Atoi(e.Field("Millis").(*zp.Node).Text())
+		ms, _ := strconv.Atoi(e.Field("Millis").(*parse.Node).Text())
 		totalMs += ms
 		return nil
 	}
@@ -160,7 +161,7 @@ memory figures vary by a few MiB from run to run.)
 - **Cancel on a quiet connection.** `ParseStream` blocks in `Read`. To stop it from outside, make `Read` fail (close the
   connection or the write end of a pipe); see [Stop a stream when the caller gives up](cancel-a-stream.md).
 - **Skip bad records.** Add [`#recover`](several-errors.md) inside the record rule. The bad record becomes an `error`
-  value (`Kind()` is `zp.KindError`) that your function receives, and `ParseStream` returns the recorded errors at the end.
+  value (`Kind()` is `parse.KindError`) that your function receives, and `ParseStream` returns the recorded errors at the end.
 - **Do not hold on to nodes.** The record is reachable only through your function; if you keep it (in a slice, say),
   memory grows again.
 - **CSV.** [Sum a column of a big CSV file](sum-a-csv-column.md) streams the grammar of [alpha-parsers/csv](https://github.com/zeroparse/alpha-parsers/tree/main/csv/).

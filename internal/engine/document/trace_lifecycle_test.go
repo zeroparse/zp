@@ -7,7 +7,6 @@ import (
 
 	. "zeroparse.dev/zp/internal/engine"
 	"zeroparse.dev/zp/internal/engine/core"
-	"zeroparse.dev/zp/internal/value"
 	"zeroparse.dev/zp/runtime/parse"
 )
 
@@ -39,7 +38,7 @@ func TestTraceLifecycleDocumentDetachment(t *testing.T) {
 					if err != nil {
 						t.Fatal(err)
 					}
-					var n *value.Node
+					var n *parse.Node
 					got := traceLifecycleRecover(func() { n, err = d.Parse() })
 					switch outcome {
 					case "success":
@@ -66,7 +65,7 @@ func TestTraceLifecycleDocumentDetachment(t *testing.T) {
 					if e.Kind != TraceEnter || e.Rule != "main" || e.Depth != 1 || e.Pos != 0 {
 						t.Fatal("saved event metadata changed")
 					}
-					var clone *value.Node
+					var clone *parse.Node
 					var before string
 					if n != nil {
 						clone = n.Clone()

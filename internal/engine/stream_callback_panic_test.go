@@ -86,10 +86,10 @@ func TestStreamCallerPanicIdentity(t *testing.T) {
 									}
 								}
 								var err error
-								var nodes []*value.Node
+								var nodes []*parse.Node
 								var before []string
 								got := catchStreamPanic(func() {
-									err = prog.ParseStreamWith("main", reader, func(n *value.Node) error {
+									err = prog.ParseStreamWith("main", reader, func(n *parse.Node) error {
 										nodes = append(nodes, n)
 										before = append(before, gentest.ResultJSON(n, nil))
 										if phase == "emit" && len(nodes) == 2 {
@@ -107,11 +107,11 @@ func TestStreamCallerPanicIdentity(t *testing.T) {
 								if traced && (event.Rule != "main" || event.Depth != 1 || event.Pos != 0) {
 									t.Fatal("saved event metadata changed")
 								}
-								if value.D(nodes[0].Field("k").(*value.Node)).Text != "a" || value.D(nodes[1].Field("v").(*value.Node)).Text != "22" {
+								if value.D(nodes[0].Field("k").(*parse.Node)).Text != "a" || value.D(nodes[1].Field("v").(*parse.Node)).Text != "22" {
 									t.Fatal("delivered fields changed")
 								}
 								retryCount := 0
-								if err := prog.ParseStreamWith("main", strings.NewReader("#records\nxy=3\n"), func(*value.Node) error { retryCount++; return nil }, ParseOptions{Backend: b, Unit: u}); err != nil || retryCount != 1 {
+								if err := prog.ParseStreamWith("main", strings.NewReader("#records\nxy=3\n"), func(*parse.Node) error { retryCount++; return nil }, ParseOptions{Backend: b, Unit: u}); err != nil || retryCount != 1 {
 									t.Fatalf("retry error=%v emitted=%d", err, retryCount)
 								}
 								for i, n := range nodes {
@@ -148,7 +148,7 @@ func TestStreamCallerReturnedErrorIdentity(t *testing.T) {
 						count := 0
 						var err error
 						got := catchStreamPanic(func() {
-							err = prog.ParseStreamWith("main", r, func(*value.Node) error {
+							err = prog.ParseStreamWith("main", r, func(*parse.Node) error {
 								count++
 								if phase == "emit" && count == 2 {
 									return stop
@@ -210,7 +210,7 @@ func TestStreamNormalCallerReturnKeepsVMFaultAttribution(t *testing.T) {
 					count := 0
 					var err error
 					got := catchStreamPanic(func() {
-						err = prog.ParseStreamWith("main", r, func(*value.Node) error {
+						err = prog.ParseStreamWith("main", r, func(*parse.Node) error {
 							count++
 							if phase == "emit" {
 								damage()

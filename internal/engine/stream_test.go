@@ -18,7 +18,7 @@ func TestParseStream(t *testing.T) {
 	t.Parallel()
 	prog := mustCompile(t, gentest.Records)
 	var got []string
-	err := prog.ParseStream("main", strings.NewReader("#records\na=1\nbc=22\n"), func(n *value.Node) error {
+	err := prog.ParseStream("main", strings.NewReader("#records\na=1\nbc=22\n"), func(n *parse.Node) error {
 		got = append(got, fmt.Sprintf("%s [%d,%d)", n, value.D(n).Start, value.D(n).End))
 		return nil
 	})
@@ -58,8 +58,8 @@ func TestParseStreamIsIncremental(t *testing.T) {
 	emitted := make(chan string, 2)
 	done := make(chan error)
 	go func() {
-		done <- prog.ParseStream("main", pr, func(n *value.Node) error {
-			emitted <- value.D(n.Field("k").(*value.Node)).Text
+		done <- prog.ParseStream("main", pr, func(n *parse.Node) error {
+			emitted <- value.D(n.Field("k").(*parse.Node)).Text
 			return nil
 		})
 	}()
@@ -87,7 +87,7 @@ func TestParseStreamErrorPosition(t *testing.T) {
 	}
 	b.WriteString("abc=x\n")
 	count := 0
-	err := prog.ParseStream("main", strings.NewReader(b.String()), func(*value.Node) error {
+	err := prog.ParseStream("main", strings.NewReader(b.String()), func(*parse.Node) error {
 		count++
 		return nil
 	})
@@ -105,7 +105,7 @@ func TestParseStreamEmitError(t *testing.T) {
 	prog := mustCompile(t, gentest.Records)
 	stop := errors.New("stop")
 	count := 0
-	err := prog.ParseStream("main", strings.NewReader("#records\na=1\nb=2\n"), func(*value.Node) error {
+	err := prog.ParseStream("main", strings.NewReader("#records\na=1\nb=2\n"), func(*parse.Node) error {
 		count++
 		return stop
 	})
@@ -122,7 +122,7 @@ func TestParseStreamDiscardsInput(t *testing.T) {
 	r := &lineReader{header: "#records\n", line: "key=42\n", n: 100000}
 	maxBuf := 0
 	p := core.NewStreamParser(&prog.sharedProgram, r, parse.CodePoints)
-	p.Emit = func(*value.Node) error {
+	p.Emit = func(*parse.Node) error {
 		maxBuf = max(maxBuf, len(p.In))
 		return nil
 	}
@@ -171,7 +171,7 @@ rule val = [0-9]+ #atomic`,
 			const n = 60000
 			var at [2]uint64
 			count := 0
-			err := prog.ParseStreamWith("main", &lineReader{header: header, line: "key=42\n", n: n}, func(*value.Node) error {
+			err := prog.ParseStreamWith("main", &lineReader{header: header, line: "key=42\n", n: n}, func(*parse.Node) error {
 				count++
 				if count == n/3 || count == n {
 					var ms runtime.MemStats
@@ -201,7 +201,7 @@ rule main = h:("a" "b") rs:r* #stream "!" => T{H: text($h), N: len($rs)}
 rule r = "x" "y"`)
 	for _, b := range []Backend{Closure, Bytecode, BytecodeIterative} {
 		input := "ab" + strings.Repeat("xy", 5000) + "!"
-		err := prog.ParseStreamWith("main", strings.NewReader(input), func(*value.Node) error { return nil }, ParseOptions{Backend: b})
+		err := prog.ParseStreamWith("main", strings.NewReader(input), func(*parse.Node) error { return nil }, ParseOptions{Backend: b})
 		if err != nil {
 			t.Errorf("%v: %v", b, err)
 		}
@@ -245,7 +245,7 @@ func TestStreamCompileErrors(t *testing.T) {
 		})
 	}
 	prog := mustCompile(t, `rule main = "a"*`)
-	if err := prog.ParseStream("main", strings.NewReader("a"), func(*value.Node) error { return nil }); err == nil || err.Error() != "rule main has no #stream repetition" {
+	if err := prog.ParseStream("main", strings.NewReader("a"), func(*parse.Node) error { return nil }); err == nil || err.Error() != "rule main has no #stream repetition" {
 		t.Errorf("got %v", err)
 	}
 }
@@ -295,7 +295,7 @@ func TestStreamOutsideLeftRecursion(t *testing.T) {
 		prog := mustCompile(t, tc.src)
 		for _, backend := range []Backend{Closure, Bytecode, BytecodeIterative} {
 			got := 0
-			err := prog.ParseStreamWith("main", strings.NewReader(tc.in), func(*value.Node) error { got++; return nil }, ParseOptions{Backend: backend})
+			err := prog.ParseStreamWith("main", strings.NewReader(tc.in), func(*parse.Node) error { got++; return nil }, ParseOptions{Backend: backend})
 			if err != nil || got != tc.want {
 				t.Errorf("%s on %v: %d elements, %v; want %d", tc.src, backend, got, err, tc.want)
 			}
@@ -312,7 +312,7 @@ func TestStreamUnderNestedCaptures(t *testing.T) {
 rule item = "a" ";"`)
 	for _, backend := range []Backend{Closure, Bytecode, BytecodeIterative} {
 		got := 0
-		err := prog.ParseStreamWith("main", strings.NewReader("a;a;a;"), func(*value.Node) error { got++; return nil }, ParseOptions{Backend: backend})
+		err := prog.ParseStreamWith("main", strings.NewReader("a;a;a;"), func(*parse.Node) error { got++; return nil }, ParseOptions{Backend: backend})
 		if err != nil || got != 3 {
 			t.Errorf("%v: %d elements, %v; want 3", backend, got, err)
 		}

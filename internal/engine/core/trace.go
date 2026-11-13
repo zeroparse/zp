@@ -1,7 +1,6 @@
 package core
 
 import (
-	"zeroparse.dev/zp/internal/value"
 	"zeroparse.dev/zp/runtime/parse"
 )
 
@@ -193,7 +192,7 @@ func (p *Parser) SetTrace(fn func(TraceEvent)) {
 }
 
 // tracedCall reports a call of r, runs it with call, and reports its result.
-func (p *Parser) tracedCall(r *Rule, min int) (*value.Node, bool) {
+func (p *Parser) tracedCall(r *Rule, min int) (*parse.Node, bool) {
 	p.TraceEnter(r, min)
 	p.Tr.direct = true
 	v, ok := p.Call(r, min)

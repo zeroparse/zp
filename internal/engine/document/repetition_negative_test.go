@@ -8,7 +8,6 @@ import (
 	"zeroparse.dev/zp/internal/compile"
 	. "zeroparse.dev/zp/internal/engine"
 	"zeroparse.dev/zp/internal/engine/core"
-	"zeroparse.dev/zp/internal/value"
 	"zeroparse.dev/zp/runtime/parse"
 )
 
@@ -42,12 +41,12 @@ func TestNegativeMaximumDocumentsAndStreams(t *testing.T) {
 							streamOpts = servedBy(mode, opts)
 						}
 						var got []string
-						err := prog.ParseStreamWith("main", strings.NewReader("ééé"), func(n *value.Node) error {
+						err := prog.ParseStreamWith("main", strings.NewReader("ééé"), func(n *parse.Node) error {
 							got = append(got, resultJSON(n, nil))
 							return nil
 						}, streamOpts)
 						var want []string
-						we := p.ParseStreamWith("main", strings.NewReader("ééé"), func(n *value.Node) error {
+						we := p.ParseStreamWith("main", strings.NewReader("ééé"), func(n *parse.Node) error {
 							want = append(want, resultJSON(n, nil))
 							return nil
 						}, ParseOptions{Unit: unit})

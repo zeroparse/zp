@@ -7,6 +7,7 @@ import (
 	"zeroparse.dev/zp/internal/compiletest"
 	"zeroparse.dev/zp/internal/ir/exec/conform"
 	"zeroparse.dev/zp/internal/value"
+	"zeroparse.dev/zp/runtime/noderep"
 	"zeroparse.dev/zp/runtime/parse"
 )
 
@@ -28,14 +29,14 @@ func TestEngineValueBuiltinTable(t *testing.T) {
 			p.Control = NewBudgetControl(nil, parse.Limits{Compute: 1 << 62})
 		}
 		c := &EvalCtx{P: p}
-		text := p.NewNode(value.Data{Kind: value.MatchKind, Terminal: true, Text: "xyz", Start: 2, End: 4})
+		text := p.NewNode(value.Data{Kind: noderep.MatchKind, Terminal: true, Text: "xyz", Start: 2, End: 4})
 		vals := map[string]any{
 			conform.MemberNil:     nil,
 			conform.MemberInt:     1,
 			conform.BuiltinString: "ab",
 			conform.BuiltinBool:   true,
 			conform.BuiltinText:   text,
-			conform.BuiltinNode:   p.NewNode(value.Data{Kind: value.SeqKind, Start: 2, End: 5, Children: []*value.Node{text, text}}),
+			conform.BuiltinNode:   p.NewNode(value.Data{Kind: noderep.SeqKind, Start: 2, End: 5, Children: []*parse.Node{text, text}}),
 			conform.MemberList:    c.ListNode(nil),
 			conform.BuiltinFunc:   builtinFunc{},
 			conform.BuiltinTyped:  value.NewNodeTypeKinds(conform.BuiltinOther).Retype(text),
@@ -43,7 +44,7 @@ func TestEngineValueBuiltinTable(t *testing.T) {
 		nt := value.NewNodeTypeKinds(conform.BuiltinType)
 		one, _ := element(c, "list", 1)
 		two, _ := element(c, "list", 2)
-		vals[conform.BuiltinPair] = c.ListNode([]*value.Node{one, two})
+		vals[conform.BuiltinPair] = c.ListNode([]*parse.Node{one, two})
 		vals[conform.BuiltinBox] = one
 		err := conform.RunBuiltins("engine", func(call, v string) string {
 			var got any
@@ -56,7 +57,7 @@ func TestEngineValueBuiltinTable(t *testing.T) {
 			case conform.CallConvert:
 				got, err = p.Convert(nt, vals[v])
 			default:
-				var items []*value.Node
+				var items []*parse.Node
 				items, err = p.ValueListItems(conform.BuiltinFn(call), vals[v])
 				got = c.ListNode(items)
 			}
@@ -73,7 +74,7 @@ func TestEngineValueBuiltinTable(t *testing.T) {
 
 // element returns v as the composition push makes it an element of a list or a tuple that fn makes, and pops
 // it again: the tables build the elements of their fixtures with it.
-func element(c *EvalCtx, fn string, v any) (*value.Node, error) {
+func element(c *EvalCtx, fn string, v any) (*parse.Node, error) {
 	base := len(c.P.KidStack)
 	if err := c.Push(fn, v); err != nil {
 		return nil, err

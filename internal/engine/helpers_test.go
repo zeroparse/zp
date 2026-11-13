@@ -16,6 +16,7 @@ import (
 	"zeroparse.dev/zp/internal/starttest"
 	"zeroparse.dev/zp/internal/syntax"
 	"zeroparse.dev/zp/internal/value"
+	"zeroparse.dev/zp/runtime/noderep"
 	"zeroparse.dev/zp/runtime/parse"
 )
 
@@ -203,7 +204,7 @@ func checkRecognize(t *testing.T, prog *Program, start, input string, u parse.Po
 }
 
 // toCodePoints converts the positions in a result parsed in bytes to code points.
-func toCodePoints(input string, n *value.Node, err error) (*value.Node, error) {
+func toCodePoints(input string, n *parse.Node, err error) (*parse.Node, error) {
 	// Map byte offsets to code point positions (a byte in the middle of a character maps to that
 	// character's position).
 	cp := make([]int, len(input)+1)
@@ -244,9 +245,9 @@ func toCodePoints(input string, n *value.Node, err error) (*value.Node, error) {
 		_, c := lineCol(cp[off+col-1])
 		return fmt.Sprintf("%d:%d%s", line, c, rest)
 	}
-	seen := map[*value.Node]*value.Node{}
-	var conv func(*value.Node) *value.Node
-	conv = func(n *value.Node) *value.Node {
+	seen := map[*parse.Node]*parse.Node{}
+	var conv func(*parse.Node) *parse.Node
+	conv = func(n *parse.Node) *parse.Node {
 		if n == nil {
 			return nil
 		}
@@ -257,19 +258,19 @@ func toCodePoints(input string, n *value.Node, err error) (*value.Node, error) {
 		seen[n] = &c
 		value.D(&c).Start, value.D(&c).End = int32(cp[value.D(n).Start]), int32(cp[value.D(n).End])
 		if value.D(n).Children != nil {
-			value.D(&c).Children = make([]*value.Node, len(value.D(n).Children))
+			value.D(&c).Children = make([]*parse.Node, len(value.D(n).Children))
 			for i, ch := range value.D(n).Children {
 				value.D(&c).Children[i] = conv(ch)
 			}
 		}
 		if value.D(n).Fields != nil {
-			value.D(&c).Fields = make(value.Fields, len(value.D(n).Fields))
+			value.D(&c).Fields = make(noderep.Fields, len(value.D(n).Fields))
 			for i, f := range value.D(n).Fields {
 				switch v := f.Value.(type) {
-				case *value.Node:
+				case *parse.Node:
 					f.Value = conv(v)
 				case string:
-					if n.Type() == value.TypeError && f.Name == "message" {
+					if n.Type() == noderep.TypeError && f.Name == "message" {
 						f.Value = fixMessage(v)
 					}
 				}

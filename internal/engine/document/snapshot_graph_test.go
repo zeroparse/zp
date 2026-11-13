@@ -7,6 +7,7 @@ import (
 
 	"zeroparse.dev/zp/internal/engine/core"
 	"zeroparse.dev/zp/internal/value"
+	"zeroparse.dev/zp/runtime/noderep"
 	"zeroparse.dev/zp/runtime/parse"
 )
 
@@ -20,16 +21,16 @@ func snapshotVariants(t *testing.T, run func(*testing.T, core.ParseOptions)) {
 }
 
 func TestSnapshotGraphIdentityAndOwnership(t *testing.T) {
-	leaf := value.Ptr(value.Data{Kind: value.KindOf("Leaf", "leaf"), Start: 2, End: 3, Text: "x", Terminal: true, Children: []*value.Node{}, Fields: value.Fields{}})
-	root := value.Ptr(value.Data{Kind: value.SeqKind, Start: 1, End: 4, Children: []*value.Node{leaf, nil, leaf}})
-	value.D(root).Fields = value.Fields{{Name: "self", Value: root}, {Name: "leaf", Value: leaf}, {Name: "typedNil", Value: (*value.Node)(nil)}, {Name: "nil", Value: nil}, {Name: "int", Value: 42}, {Name: "text", Value: "hi"}, {Name: "bool", Value: true}}
+	leaf := value.Ptr(value.Data{Kind: noderep.KindOf("Leaf", "leaf"), Start: 2, End: 3, Text: "x", Terminal: true, Children: []*parse.Node{}, Fields: noderep.Fields{}})
+	root := value.Ptr(value.Data{Kind: noderep.SeqKind, Start: 1, End: 4, Children: []*parse.Node{leaf, nil, leaf}})
+	value.D(root).Fields = noderep.Fields{{Name: "self", Value: root}, {Name: "leaf", Value: leaf}, {Name: "typedNil", Value: (*parse.Node)(nil)}, {Name: "nil", Value: nil}, {Name: "int", Value: 42}, {Name: "text", Value: "hi"}, {Name: "bool", Value: true}}
 	g, err := freezeSnapshotGraph(&core.Parser{}, root)
 	if err != nil {
 		t.Fatal(err)
 	}
 	s := &Snapshot{graph: g}
 	n := s.Root()
-	if !n.Valid() || n.Type() != value.TypeTuple || n.Start() != 1 || n.End() != 4 || n.ChildCount() != 3 {
+	if !n.Valid() || n.Type() != noderep.TypeTuple || n.Start() != 1 || n.End() != 4 || n.ChildCount() != 3 {
 		t.Fatal("metadata")
 	}
 	if n.Child(0) != n.Child(2) || n.Child(1).Valid() || n.Child(0).Rule() != "leaf" || !n.Child(0).IsTerminal() {
@@ -67,7 +68,7 @@ func TestSnapshotGraphIdentityAndOwnership(t *testing.T) {
 	if value.D(value.D(a).Children[0]).Children == nil || value.D(value.D(a).Children[0]).Fields == nil {
 		t.Fatal("allocated empty lost")
 	}
-	if v, ok := value.D(a).Fields[2].Value.(*value.Node); !ok || v != nil {
+	if v, ok := value.D(a).Fields[2].Value.(*parse.Node); !ok || v != nil {
 		t.Fatal("materialized typed nil")
 	}
 	value.D(value.D(a).Children[0]).Text = "mutated"
@@ -91,14 +92,14 @@ func TestSnapshotGraphIdentityAndOwnership(t *testing.T) {
 }
 
 func TestSnapshotGraphDeepAndUnsupported(t *testing.T) {
-	root := &value.Node{}
+	root := &parse.Node{}
 	at := root
 	for i := 0; i < 20000; i++ {
-		next := &value.Node{}
-		value.D(at).Children = []*value.Node{next}
+		next := &parse.Node{}
+		value.D(at).Children = []*parse.Node{next}
 		at = next
 	}
-	value.D(at).Fields = value.Fields{{Name: "back", Value: root}}
+	value.D(at).Fields = noderep.Fields{{Name: "back", Value: root}}
 	g, err := freezeSnapshotGraph(&core.Parser{}, root)
 	if err != nil || len(g.nodes) != 20001 {
 		t.Fatal("deep capture", err)
@@ -108,13 +109,13 @@ func TestSnapshotGraphDeepAndUnsupported(t *testing.T) {
 	for i := 0; i < 20000; i++ {
 		at = value.D(at).Children[0]
 	}
-	if value.D(value.D(at).Fields[0].Value.(*value.Node)).Children[0] == nil {
+	if value.D(value.D(at).Fields[0].Value.(*parse.Node)).Children[0] == nil {
 		t.Fatal("deep cycle")
 	}
 	type namedInt int
 	for _, val := range []any{namedInt(1), []int(nil), map[string]int(nil), (*int)(nil), (chan int)(nil), (func())(nil)} {
-		child := value.Ptr(value.Data{Fields: value.Fields{{Name: "bad\"name", Value: val}}})
-		root := value.Ptr(value.Data{Children: []*value.Node{child}, Fields: value.Fields{{Name: "other", Value: val}}})
+		child := value.Ptr(value.Data{Fields: noderep.Fields{{Name: "bad\"name", Value: val}}})
+		root := value.Ptr(value.Data{Children: []*parse.Node{child}, Fields: noderep.Fields{{Name: "other", Value: val}}})
 		_, err := freezeSnapshotGraph(&core.Parser{}, root)
 		if err == nil || err.ValueType != reflect.TypeOf(val) || err.Path != `root.Children[0].Fields[0]("bad\"name")` {
 			t.Fatalf("rejection %v", err)

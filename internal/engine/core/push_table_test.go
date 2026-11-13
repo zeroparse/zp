@@ -7,7 +7,6 @@ import (
 	"zeroparse.dev/zp/internal/compile"
 	"zeroparse.dev/zp/internal/compiletest"
 	"zeroparse.dev/zp/internal/ir/exec/conform"
-	"zeroparse.dev/zp/internal/value"
 	"zeroparse.dev/zp/runtime/parse"
 )
 
@@ -31,7 +30,7 @@ func TestEngineValuePushTable(t *testing.T) {
 			conform.BuiltinString: "ab",
 			conform.BuiltinBool:   true,
 			conform.MemberList:    c.ListNode(nil),
-			conform.BuiltinPair:   c.ListNode([]*value.Node{one, two}),
+			conform.BuiltinPair:   c.ListNode([]*parse.Node{one, two}),
 			conform.BuiltinFunc:   builtinFunc{},
 		}
 		err := conform.RunPushes("engine", controlled, func(call, v string) (string, int, int) {

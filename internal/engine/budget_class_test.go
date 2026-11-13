@@ -28,7 +28,7 @@ func budgetClassRanges(n int) []grammar.CharRange {
 	return ranges
 }
 
-func budgetClassNode(t *testing.T, p *Program, input string, opts ParseOptions) *value.Node {
+func budgetClassNode(t *testing.T, p *Program, input string, opts ParseOptions) *parse.Node {
 	t.Helper()
 	n, err := p.ParseWith("main", input, opts)
 	if err != nil || n == nil {

@@ -76,6 +76,7 @@ import (
 	"strings"
 
 	"zeroparse.dev/zp"
+	"zeroparse.dev/zp/runtime/parse"
 )
 
 //go:embed stream.zp
@@ -91,8 +92,8 @@ func main() {
 		log.Fatal(err)
 	}
 	input := "host = \"localhost\"\nport = 8080\ndebug = true\n"
-	err = sp.ParseStream(strings.NewReader(input), func(n *zp.Node) error {
-		key := n.Field("Key").(*zp.Node)
+	err = sp.ParseStream(strings.NewReader(input), func(n *parse.Node) error {
+		key := n.Field("Key").(*parse.Node)
 		fmt.Printf("[%d,%d) %s\n", n.Start(), n.End(), key.Text())
 		return nil
 	})
@@ -124,7 +125,7 @@ func main() {
 	}
 	st := doc.Stats()
 	fmt.Println("after the edit: evaluated", st.Evaluated, "reused", st.Reused)
-	fmt.Println(cfg.Field("Entries").(*zp.Node).Elem(1).Field("Value").(*zp.Node).Text())
+	fmt.Println(cfg.Field("Entries").(*parse.Node).Elem(1).Field("Value").(*parse.Node).Text())
 }
 ```
 

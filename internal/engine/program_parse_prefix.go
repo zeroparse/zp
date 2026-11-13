@@ -2,7 +2,6 @@ package engine
 
 import (
 	"zeroparse.dev/zp/internal/engine/core"
-	"zeroparse.dev/zp/internal/value"
 
 	"zeroparse.dev/zp/internal/compile"
 	"zeroparse.dev/zp/runtime/parse"
@@ -10,7 +9,7 @@ import (
 
 // PrefixResult records the successful cursor independently of the rule's value.
 type PrefixResult struct {
-	Node          *value.Node
+	Node          *parse.Node
 	Consumed      int
 	ConsumedBytes int
 }

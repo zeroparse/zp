@@ -12,7 +12,6 @@ import (
 
 	"zeroparse.dev/zp/internal/engine/core"
 	"zeroparse.dev/zp/internal/gentest"
-	"zeroparse.dev/zp/internal/value"
 	"zeroparse.dev/zp/runtime/parse"
 )
 
@@ -51,7 +50,7 @@ type streamControlRetentionRun struct {
 	context      weak.Pointer[streamControlRetentionContext]
 	reader       weak.Pointer[streamCallbackReader]
 	emitState    weak.Pointer[streamControlRetentionSentinel]
-	nodes        []*value.Node
+	nodes        []*parse.Node
 	snapshots    []string
 	err          error
 	wantErr      error
@@ -91,11 +90,11 @@ func runStreamControlRetentionCase(t *testing.T, prog *Program, outcome string, 
 	panicToken := ctx.token
 	var controlRef weak.Pointer[core.BudgetControl]
 	var event TraceEvent
-	var nodes []*value.Node
+	var nodes []*parse.Node
 	var snapshots []string
 	var returnedErr error
 	gotPanic := catchStreamPanic(func() {
-		returnedErr = prog.ParseStreamWith("main", reader, func(n *value.Node) error {
+		returnedErr = prog.ParseStreamWith("main", reader, func(n *parse.Node) error {
 			if streamControlRetentionTouch(callbackState) != 42 {
 				panic("emit sentinel missing")
 			}
@@ -231,7 +230,7 @@ func TestBudgetStreamTraceRetentionWithActiveControls(t *testing.T) {
 					}
 				}
 				retryCount := 0
-				if err := run.program.ParseStreamWith("main", strings.NewReader("#records\nxy=3\n"), func(*value.Node) error {
+				if err := run.program.ParseStreamWith("main", strings.NewReader("#records\nxy=3\n"), func(*parse.Node) error {
 					retryCount++
 					return nil
 				}, ParseOptions{}); err != nil || retryCount != 1 {

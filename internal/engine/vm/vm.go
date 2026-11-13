@@ -8,6 +8,8 @@ import (
 	"zeroparse.dev/zp/internal/compile"
 	"zeroparse.dev/zp/internal/engine/core"
 	"zeroparse.dev/zp/internal/value"
+	"zeroparse.dev/zp/runtime/noderep"
+	"zeroparse.dev/zp/runtime/parse"
 )
 
 // Program is a module prepared for execution. Rule calls, memoization, left recursion, and
@@ -86,7 +88,7 @@ func (vm *Program) runSite(ip int) *vmRunSite {
 // vmBodies returns the body of the rule r, whose code starts at entry in vm. Each driver of the
 // VM passes its own to buildVMProgram, deciding how a body runs the code: the recursive VM's
 // execBody calls exec, which recurses for each rule call.
-type vmBodies func(vm *Program, r *core.Rule, entry int) func(p *core.Parser, min int) (*value.Node, bool)
+type vmBodies func(vm *Program, r *core.Rule, entry int) func(p *core.Parser, min int) (*parse.Node, bool)
 
 // New prepares a module for execution with the recursive model.
 func New(m *bytecode.Module) *Program { return buildVMProgram(m, execBody) }
@@ -103,8 +105,8 @@ func (vm *Program) Descs() []string { return vm.descs }
 func (vm *Program) NumSeen() int { return vm.nseen }
 
 // execBody runs a rule body with the recursive model: each call recurses into exec.
-func execBody(vm *Program, r *core.Rule, entry int) func(p *core.Parser, min int) (*value.Node, bool) {
-	return func(p *core.Parser, min int) (*value.Node, bool) {
+func execBody(vm *Program, r *core.Rule, entry int) func(p *core.Parser, min int) (*parse.Node, bool) {
+	return func(p *core.Parser, min int) (*parse.Node, bool) {
 		v, ok, _ := machineOf(p).exec(vm, entry, r, min)
 		return v, ok
 	}
@@ -181,8 +183,8 @@ func buildVMProgram(m *bytecode.Module, bodies vmBodies) *Program {
 				r.NodeType, r.NodeKinds = m.Strings[ri.NodeType], vm.nodeKinds[ri.NodeType]
 			}
 		}
-		r.Kinds = value.NewRuleKinds(r.Name)
-		r.Value = func(_ *core.Parser, v *value.Node, _ int) *value.Node { return v } // the code pushes the value of the body's scope
+		r.Kinds = noderep.NewRuleKinds(r.Name)
+		r.Value = func(_ *core.Parser, v *parse.Node, _ int) *parse.Node { return v } // the code pushes the value of the body's scope
 		if ri.Action >= 0 {
 			var locals []string
 			if ri.OperatorsRule >= 0 {
@@ -247,7 +249,7 @@ func (vm *Program) scope(ids []int) *compile.Scope {
 // block returns a matcher that runs the code of an Operators Rule section. It sets p.cut if a cut is passed
 // within the section.
 func (vm *Program) block(entry int) core.Matcher {
-	return func(p *core.Parser) (*value.Node, bool) {
+	return func(p *core.Parser) (*parse.Node, bool) {
 		v, ok, cut := machineOf(p).exec(vm, entry, nil, 0)
 		if cut {
 			p.Cut = true
@@ -260,7 +262,7 @@ func (vm *Program) line(l *bytecode.LineInfo, operator bool) *core.OperatorsRule
 	// The code pushes the line's value already: the value of an operand line's scope, or the
 	// operator's value, which is the node of its tuple if IsSeq (its captures are attached to it).
 	pl := &core.OperatorsRuleLine{Scope: vm.scope(l.Scope), M: vm.block(l.Entry), Entry: l.Entry, Single: compile.SinglePass,
-		Value: func(_ *core.Parser, v *value.Node, _ int) *value.Node { return v }}
+		Value: func(_ *core.Parser, v *parse.Node, _ int) *parse.Node { return v }}
 	if operator && l.IsSeq {
 		pl.Single, pl.Shape = compile.SingleTuple, compile.Shaper{Elems: true}
 	}
@@ -524,7 +526,7 @@ type repState struct {
 // (core/scan_sites.go). The walks in progress are a stack, in the order of their repetitions.
 type scanWalk struct {
 	hw0  int
-	kids []*value.Node // the elements of the record that the walk took the rest from
+	kids []*parse.Node // the elements of the record that the walk took the rest from
 }
 
 func (mc *Machine) save() vmSave {
@@ -552,18 +554,18 @@ func (mc *Machine) pop() any {
 	return v
 }
 
-func asNodeValue(v any) *value.Node {
+func asNodeValue(v any) *parse.Node {
 	if v == nil {
 		return nil
 	}
-	return v.(*value.Node)
+	return v.(*parse.Node)
 }
 
 // exec runs matching code from ip until RETURN or END (the recursive model). On success it
 // returns the pushed value. cut reports whether a cut belonging to no choice was passed (used
 // in Operators Rule sections). Rule calls and Operators Rule expressions call the shared runtime (call,
 // OperatorsRuleParse) through host recursion.
-func (mc *Machine) exec(vm *Program, ip int, r *core.Rule, min int) (result *value.Node, ok bool, cut bool) {
+func (mc *Machine) exec(vm *Program, ip int, r *core.Rule, min int) (result *parse.Node, ok bool, cut bool) {
 	p := mc.p
 	bv := mc.newBody(ip, r, min)
 	b := &bv
@@ -608,7 +610,7 @@ const (
 
 // step runs code until it finishes or reaches a rule call or an Operators Rule expression.
 // If resume is set, it resumes with the result (ok, v) of the suspended instruction.
-func (mc *Machine) step(vm *Program, b *vmBody, resume, rok bool, rv *value.Node) (ev int, result *value.Node, ok bool) {
+func (mc *Machine) step(vm *Program, b *vmBody, resume, rok bool, rv *parse.Node) (ev int, result *parse.Node, ok bool) {
 	p := mc.p
 	m := vm.m
 	code := m.Code
@@ -635,7 +637,7 @@ func (mc *Machine) step(vm *Program, b *vmBody, resume, rok bool, rv *value.Node
 				goto fail
 			}
 			if in.C == 1 {
-				mc.push(p.NewNode(value.Data{Kind: value.MatchKind, Start: int32(start), End: int32(p.Pos), Text: p.LiteralText(start, vm.literals[in.A]), Terminal: true, Fresh: true}))
+				mc.push(p.NewNode(value.Data{Kind: noderep.MatchKind, Start: int32(start), End: int32(p.Pos), Text: p.LiteralText(start, vm.literals[in.A]), Terminal: true, Fresh: true}))
 			}
 		case bytecode.OpStrFold:
 			start := p.Pos
@@ -644,7 +646,7 @@ func (mc *Machine) step(vm *Program, b *vmBody, resume, rok bool, rv *value.Node
 				goto fail
 			}
 			if in.C == 1 {
-				mc.push(p.NewNode(value.Data{Kind: value.MatchKind, Start: int32(start), End: int32(p.Pos), Text: p.Text(start, p.Pos), Terminal: true, Fresh: true}))
+				mc.push(p.NewNode(value.Data{Kind: noderep.MatchKind, Start: int32(start), End: int32(p.Pos), Text: p.Text(start, p.Pos), Terminal: true, Fresh: true}))
 			}
 		case bytecode.OpClass:
 			ch, size, ok := p.Peek()
@@ -727,7 +729,7 @@ func (mc *Machine) step(vm *Program, b *vmBody, resume, rok bool, rv *value.Node
 			mc.single(size, in.A == 1)
 		case bytecode.OpTop:
 			if in.A == 1 {
-				mc.push(p.NewNode(value.Data{Kind: value.MatchKind, Start: int32(p.Pos), End: int32(p.Pos), Terminal: true, Fresh: true}))
+				mc.push(p.NewNode(value.Data{Kind: noderep.MatchKind, Start: int32(p.Pos), End: int32(p.Pos), Terminal: true, Fresh: true}))
 			}
 		case bytecode.OpFail:
 			goto fail
@@ -790,7 +792,7 @@ func (mc *Machine) step(vm *Program, b *vmBody, resume, rok bool, rv *value.Node
 			}
 			start := *mc.vals[top-n-1].(*int)
 			mc.vals = mc.vals[:top-n-1]
-			mc.push(p.NewNode(value.Data{Kind: value.SeqKind, Start: int32(start), End: int32(p.Pos), Children: kids, Fresh: true}))
+			mc.push(p.NewNode(value.Data{Kind: noderep.SeqKind, Start: int32(start), End: int32(p.Pos), Children: kids, Fresh: true}))
 		case bytecode.OpSpread:
 			v := mc.pop()
 			switch {
@@ -807,7 +809,7 @@ func (mc *Machine) step(vm *Program, b *vmBody, resume, rok bool, rv *value.Node
 		case bytecode.OpAtomic:
 			start := *mc.pop().(*int)
 			if in.A == 1 {
-				mc.push(p.NewNode(value.Data{Kind: value.MatchKind, Start: int32(start), End: int32(p.Pos), Text: p.Text(start, p.Pos), Terminal: true, Fresh: true}))
+				mc.push(p.NewNode(value.Data{Kind: noderep.MatchKind, Start: int32(start), End: int32(p.Pos), Text: p.Text(start, p.Pos), Terminal: true, Fresh: true}))
 			}
 		case bytecode.OpCapture:
 			p.SetCapture(int(in.A), asNodeValue(mc.vals[len(mc.vals)-1]))
@@ -927,7 +929,7 @@ func (mc *Machine) step(vm *Program, b *vmBody, resume, rok bool, rv *value.Node
 			rep := &mc.reps[len(mc.reps)-1]
 			if rep.scope >= 0 {
 				if in.B == 3 { // a projected repetition: the value is the field's capture
-					var v *value.Node
+					var v *parse.Node
 					if int(in.C) < len(p.Frame.Vals) { // (a corrupted file may name another slot)
 						v = p.Frame.Vals[in.C]
 					}
@@ -944,7 +946,7 @@ func (mc *Machine) step(vm *Program, b *vmBody, resume, rok bool, rv *value.Node
 			}
 			rep.count++
 			if rep.run != nil {
-				var v *value.Node
+				var v *parse.Node
 				if in.B != 0 {
 					v = asNodeValue(mc.vals[len(mc.vals)-1])
 				}
@@ -999,7 +1001,7 @@ func (mc *Machine) step(vm *Program, b *vmBody, resume, rok bool, rv *value.Node
 				mc.freeRunState(rep.run)
 			}
 			if in.A == 1 {
-				var kids []*value.Node
+				var kids []*parse.Node
 				if rep.scan && rep.hit {
 					kids = mc.scans[len(mc.scans)-1].kids // (shared with the record; no element came after it)
 				} else {
@@ -1015,7 +1017,7 @@ func (mc *Machine) step(vm *Program, b *vmBody, resume, rok bool, rv *value.Node
 				}
 				start := *mc.vals[rep.base-1].(*int)
 				mc.vals = mc.vals[:rep.base-1]
-				mc.push(p.NewNode(value.Data{Kind: value.ListKind, Start: int32(start), End: int32(p.Pos), Children: kids, Fresh: true}))
+				mc.push(p.NewNode(value.Data{Kind: noderep.ListKind, Start: int32(start), End: int32(p.Pos), Children: kids, Fresh: true}))
 			}
 		case bytecode.OpLook:
 			kind := uint8(eLook)
@@ -1087,10 +1089,10 @@ func (mc *Machine) step(vm *Program, b *vmBody, resume, rok bool, rv *value.Node
 			se := p.MakeError(l.far, l.exp)
 			p.PushRecovered(se)
 			if in.A == 1 {
-				mc.push(p.NewNode(value.Data{Kind: value.ErrorKind, Start: int32(e.save.pos), End: int32(p.Pos), Fields: value.Fields{{Name: "message", Value: p.RecoveryErrorText(se)}}, Fresh: true, Terminal: true}))
+				mc.push(p.NewNode(value.Data{Kind: noderep.ErrorKind, Start: int32(e.save.pos), End: int32(p.Pos), Fields: noderep.Fields{{Name: "message", Value: p.RecoveryErrorText(se)}}, Fresh: true, Terminal: true}))
 			}
 		case bytecode.OpReturn, bytecode.OpEnd:
-			var v *value.Node
+			var v *parse.Node
 			if len(mc.vals) > b.vbase { // skip code builds no values
 				v = asNodeValue(mc.vals[len(mc.vals)-1])
 			}
@@ -1208,7 +1210,7 @@ func (mc *Machine) single(size int, b bool) {
 	start := p.Pos
 	p.Pos += size
 	if b {
-		mc.push(p.NewNode(value.Data{Kind: value.MatchKind, Start: int32(start), End: int32(p.Pos), Text: p.Text(start, p.Pos), Terminal: true, Fresh: true}))
+		mc.push(p.NewNode(value.Data{Kind: noderep.MatchKind, Start: int32(start), End: int32(p.Pos), Text: p.Text(start, p.Pos), Terminal: true, Fresh: true}))
 	}
 }
 

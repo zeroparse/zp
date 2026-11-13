@@ -124,21 +124,21 @@ func writeCorpus(t *testing.T, name string, cases []testCase) {
 }
 
 // errorRanges collects the ranges of the error values of a tree.
-func errorRanges(n *zp.Node, out *[][2]int, seen map[*zp.Node]bool) {
+func errorRanges(n *parse.Node, out *[][2]int, seen map[*parse.Node]bool) {
 	if n == nil || seen[n] {
 		return
 	}
 	seen[n] = true
 	switch n.Kind() {
-	case zp.KindError:
+	case parse.KindError:
 		*out = append(*out, [2]int{n.Start(), n.End()})
-	case zp.KindStruct:
+	case parse.KindStruct:
 		for _, v := range n.Fields() {
-			if c, ok := v.(*zp.Node); ok {
+			if c, ok := v.(*parse.Node); ok {
 				errorRanges(c, out, seen)
 			}
 		}
-	case zp.KindTuple, zp.KindList, zp.KindTupleValue, zp.KindListValue:
+	case parse.KindTuple, parse.KindList, parse.KindTupleValue, parse.KindListValue:
 		for _, c := range n.Elems() {
 			errorRanges(c, out, seen)
 		}
@@ -164,7 +164,7 @@ func measure(p *zp.Parser, c testCase) outcome {
 		return outcome{}
 	case errors.As(err, &recovered) && node != nil:
 		var rs [][2]int
-		errorRanges(node, &rs, map[*zp.Node]bool{})
+		errorRanges(node, &rs, map[*parse.Node]bool{})
 		o := outcome{recovered: true, errors: len(recovered), located: len(rs) > 0}
 		covered := 0
 		for _, r := range rs {

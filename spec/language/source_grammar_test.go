@@ -31,12 +31,12 @@ func sourceGrammar(t *testing.T) (*zp.Parser, string) {
 	return p, string(src)
 }
 
-func sourceField(t *testing.T, n *zp.Node, name string) *zp.Node {
+func sourceField(t *testing.T, n *parse.Node, name string) *parse.Node {
 	t.Helper()
 	if n == nil {
 		t.Fatalf("nil node for field %s", name)
 	}
-	child, ok := n.Field(name).(*zp.Node)
+	child, ok := n.Field(name).(*parse.Node)
 	if !ok || child == nil {
 		t.Fatalf("%s.%s is %T, want node", n.Type(), name, n.Field(name))
 	}
@@ -44,26 +44,26 @@ func sourceField(t *testing.T, n *zp.Node, name string) *zp.Node {
 }
 
 // sourceText returns the text held by field name of n, a named string node.
-func sourceText(t *testing.T, n *zp.Node, name string) string {
+func sourceText(t *testing.T, n *parse.Node, name string) string {
 	t.Helper()
 	field := sourceField(t, n, name)
 	text := field.Text()
-	if field.Kind() != zp.KindString {
+	if field.Kind() != parse.KindString {
 		t.Fatalf("%s.%s has no text", n.Type(), name)
 	}
 	return text
 }
 
 // elems returns the elements of the tuple or list n.
-func elems(n *zp.Node) []*zp.Node {
-	var out []*zp.Node
+func elems(n *parse.Node) []*parse.Node {
+	var out []*parse.Node
 	for _, e := range n.Elems() {
 		out = append(out, e)
 	}
 	return out
 }
 
-func sourceDecls(t *testing.T, n *zp.Node) []*zp.Node {
+func sourceDecls(t *testing.T, n *parse.Node) []*parse.Node {
 	t.Helper()
 	if n == nil || n.Type() != "File" {
 		t.Fatalf("source root: %v", n)
@@ -171,13 +171,13 @@ rule tuples = "x" => ((), (Foo{},), ( 1 , "a" , ), (2), (1, (2,)))
 			t.Fatal("meet structure lost")
 		}
 		// One type without a comma is a group, and type arguments follow the name directly.
-		var alts []*zp.Node
+		var alts []*parse.Node
 		for u := sourceField(t, defs[10], "Type"); ; u = sourceField(t, u, "L") {
 			if u.Type() != "JoinType" {
-				alts = append([]*zp.Node{u}, alts...)
+				alts = append([]*parse.Node{u}, alts...)
 				break
 			}
-			alts = append([]*zp.Node{sourceField(t, u, "R")}, alts...)
+			alts = append([]*parse.Node{sourceField(t, u, "R")}, alts...)
 		}
 		want := []struct {
 			typ   string

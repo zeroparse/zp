@@ -9,7 +9,7 @@ import (
 	"zeroparse.dev/zp/internal/compile"
 	"zeroparse.dev/zp/internal/gentest"
 	"zeroparse.dev/zp/internal/syntax"
-	"zeroparse.dev/zp/internal/value"
+	"zeroparse.dev/zp/runtime/parse"
 )
 
 // compileStarts compiles source as written, without marking start rules for the test.
@@ -40,7 +40,7 @@ func checkStartRestriction(t *testing.T, prog *Program, o ParseOptions) {
 		}
 		if !o.Recognize {
 			if parses {
-				surfaces["ParseStream"] = prog.ParseStreamWith(tc.start, strings.NewReader("a"), func(*value.Node) error { return nil }, o)
+				surfaces["ParseStream"] = prog.ParseStreamWith(tc.start, strings.NewReader("a"), func(*parse.Node) error { return nil }, o)
 				_, surfaces["Iterate"] = prog.Iterate(tc.start, strings.NewReader("a"), o)
 			}
 			if documents {
@@ -90,7 +90,7 @@ func checkStartRestriction(t *testing.T, prog *Program, o ParseOptions) {
 			}
 		}
 		if parses {
-			if err := prog.ParseStreamWith("", strings.NewReader("aa"), func(*value.Node) error { return nil }, o); err != nil {
+			if err := prog.ParseStreamWith("", strings.NewReader("aa"), func(*parse.Node) error { return nil }, o); err != nil {
 				t.Errorf("ParseStream(\"\"): %v", err)
 			}
 			if it, err := prog.Iterate("", strings.NewReader("aa"), o); err != nil {
@@ -120,7 +120,7 @@ func checkStartRestriction(t *testing.T, prog *Program, o ParseOptions) {
 	if o.Recognize || !parses {
 		return
 	}
-	if err := prog.ParseStreamWith("main", strings.NewReader("aa"), func(*value.Node) error { return nil }, o); err != nil {
+	if err := prog.ParseStreamWith("main", strings.NewReader("aa"), func(*parse.Node) error { return nil }, o); err != nil {
 		t.Errorf("ParseStream: %v", err)
 	}
 	it, err := prog.Iterate("main", strings.NewReader("aa"), o)

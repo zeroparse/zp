@@ -9,7 +9,6 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/internal/engine/core"
-	"zeroparse.dev/zp/internal/value"
 	"zeroparse.dev/zp/runtime/parse"
 )
 
@@ -47,7 +46,7 @@ rule row = .+ #atomic`)
 				}
 				o.Context = ctx
 				emits := 0
-				err := prog.ParseStreamWith("main", reader, func(*value.Node) error { emits++; return nil }, o)
+				err := prog.ParseStreamWith("main", reader, func(*parse.Node) error { emits++; return nil }, o)
 				if !errors.Is(err, context.Canceled) || reader.calls != 1 || emits != 0 {
 					t.Fatalf("error=%v readercalls=%d emits=%d", err, reader.calls, emits)
 				}
@@ -101,7 +100,7 @@ rule row = .+ #atomic`)
 		}
 		var err error
 		got := budgetContextRecover(func() {
-			err = prog.ParseStreamWith("main", reader, func(*value.Node) error { t.Fatal("unexpected emit"); return nil }, o)
+			err = prog.ParseStreamWith("main", reader, func(*parse.Node) error { t.Fatal("unexpected emit"); return nil }, o)
 		})
 		if got != token || err != nil || reader.calls != 1 {
 			t.Fatalf("panic=%#v error=%v calls=%d", got, err, reader.calls)

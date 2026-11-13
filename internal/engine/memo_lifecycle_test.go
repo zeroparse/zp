@@ -29,7 +29,7 @@ func TestMemoizedStreamMemoryIsBounded(t *testing.T) {
 			for _, unit := range []parse.PositionUnit{parse.CodePoints, parse.Bytes} {
 				var at [2]uint64
 				count := 0
-				err := prog.ParseStreamWith("main", &lineReader{line: "abc,abc\n", n: 60000}, func(*value.Node) error {
+				err := prog.ParseStreamWith("main", &lineReader{line: "abc,abc\n", n: 60000}, func(*parse.Node) error {
 					count++
 					if count == 20000 || count == 60000 {
 						var ms runtime.MemStats
@@ -135,7 +135,7 @@ func BenchmarkMemoLifecycle(b *testing.B) {
 				b.ReportAllocs()
 				b.ResetTimer()
 				for i := 0; i < b.N; i++ {
-					if err := prog.ParseStreamWith("main", &lineReader{line: c.line, n: 10000}, func(*value.Node) error { return nil }, ParseOptions{Backend: backend}); err != nil {
+					if err := prog.ParseStreamWith("main", &lineReader{line: c.line, n: 10000}, func(*parse.Node) error { return nil }, ParseOptions{Backend: backend}); err != nil {
 						b.Fatal(err)
 					}
 				}

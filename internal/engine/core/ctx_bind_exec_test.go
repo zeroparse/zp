@@ -2,7 +2,7 @@
 
 package core
 
-import "zeroparse.dev/zp/internal/value"
+import "zeroparse.dev/zp/runtime/parse"
 
 // confCtxEnter runs ctx.enter for the conformance suite.
 // Printed from Exec IR function confCtxEnter of internal/ir/exec/core.
@@ -33,8 +33,8 @@ func (p *Parser) confCtxOk(s ctxHit) bool {
 
 // confCtxValue runs ctx.value for the conformance suite.
 // Printed from Exec IR function confCtxValue of internal/ir/exec/core.
-func (p *Parser) confCtxValue(s ctxHit) *value.Node {
-	var r *value.Node
+func (p *Parser) confCtxValue(s ctxHit) *parse.Node {
+	var r *parse.Node
 	r = s.e.Node
 	return r
 }
@@ -114,7 +114,7 @@ func (p *Parser) confMemoSetPresent(e *MemoEntry, c CtxState) CtxState {
 
 // confCtxKeep runs ctx.keep for the conformance suite.
 // Printed from Exec IR function confCtxKeep of internal/ir/exec/core.
-func (p *Parser) confCtxKeep(c CtxState, r *Rule, pos int, min int, key KeyVals, ok bool, end int, silent bool, value *value.Node, errs RecEntry, far int, k []ExpID) CtxState {
+func (p *Parser) confCtxKeep(c CtxState, r *Rule, pos int, min int, key KeyVals, ok bool, end int, silent bool, value *parse.Node, errs RecEntry, far int, k []ExpID) CtxState {
 	e := p.grown
 	if r.Leader {
 		p.grown = nil

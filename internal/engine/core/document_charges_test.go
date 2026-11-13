@@ -12,6 +12,7 @@ import (
 	"zeroparse.dev/zp/internal/ir/exec/ops"
 	"zeroparse.dev/zp/internal/ir/exec/ref"
 	"zeroparse.dev/zp/internal/value"
+	"zeroparse.dev/zp/runtime/noderep"
 	"zeroparse.dev/zp/runtime/parse"
 )
 
@@ -454,7 +455,7 @@ func movedBound(nodes, edges, edits int) uint64 { return uint64(2*(nodes+edges) 
 
 func TestDocMoveChargesAtItsBound(t *testing.T) {
 	t.Parallel()
-	entry := func(p *Parser, n *value.Node) *MemoEntry {
+	entry := func(p *Parser, n *parse.Node) *MemoEntry {
 		return &MemoEntry{Node: n, shift: 1, shifted: true, Gen: 0}
 	}
 	moved := func(p *Parser, e *MemoEntry) uint64 { return spent(p, func() { p.moveResult(e) }) }
@@ -477,7 +478,7 @@ func TestDocMoveChargesAtItsBound(t *testing.T) {
 	t.Run("a tree of non-empty nodes charges one pass", func(t *testing.T) {
 		p := edited(1)
 		a, b, f := value.Ptr(value.Data{Start: 2, End: 3}), value.Ptr(value.Data{Start: 3, End: 4}), value.Ptr(value.Data{Start: 4, End: 5})
-		n := value.Ptr(value.Data{Start: 2, End: 5, Children: []*value.Node{a, b}, Fields: value.Fields{{Name: "f", Value: f}}})
+		n := value.Ptr(value.Data{Start: 2, End: 5, Children: []*parse.Node{a, b}, Fields: noderep.Fields{{Name: "f", Value: f}}})
 		if got := moved(p, entry(p, n)); got != 7 {
 			t.Fatalf("charged %d", got)
 		}
@@ -486,7 +487,7 @@ func TestDocMoveChargesAtItsBound(t *testing.T) {
 		// Visits of the root and of three references, three edges, and two copies to forget.
 		p := edited(1)
 		c := value.Ptr(value.Data{Start: 3, End: 3})
-		n := value.Ptr(value.Data{Start: 3, End: 3, Children: []*value.Node{c, c, c}})
+		n := value.Ptr(value.Data{Start: 3, End: 3, Children: []*parse.Node{c, c, c}})
 		got := moved(p, entry(p, n))
 		if got != 4+3+2 || got > movedBound(2, 3, 0) {
 			t.Fatalf("charged %d", got)
@@ -499,7 +500,7 @@ func TestDocMoveChargesAtItsBound(t *testing.T) {
 		a := value.Ptr(value.Data{Start: 2, End: 3, Gen: 1})
 		b := value.Ptr(value.Data{Start: 3, End: 4, Gen: 2})
 		c := value.Ptr(value.Data{Start: 4, End: 5, Gen: 2})
-		n := value.Ptr(value.Data{Start: 2, End: 5, Children: []*value.Node{a, b, c}})
+		n := value.Ptr(value.Data{Start: 2, End: 5, Children: []*parse.Node{a, b, c}})
 		got := moved(p, entry(p, n))
 		if got != 7+3+2+2 || got > movedBound(4, 3, 3+2) {
 			t.Fatalf("charged %d", got)
@@ -540,13 +541,13 @@ func TestDocMoveChargesAtItsBound(t *testing.T) {
 		// The root, three edges, and the shared node once.
 		p := edited(1)
 		c := value.Ptr(value.Data{Start: 3, End: 4})
-		n := value.Ptr(value.Data{Start: 2, End: 5, Children: []*value.Node{c, c}, Fields: value.Fields{{Name: "f", Value: c}}})
+		n := value.Ptr(value.Data{Start: 2, End: 5, Children: []*parse.Node{c, c}, Fields: noderep.Fields{{Name: "f", Value: c}}})
 		if got := moved(p, entry(p, n)); got != 1+3+1 || value.D(c).Start != 4 {
 			t.Fatalf("charged %d, start %d", got, value.D(c).Start)
 		}
 		p = edited(1)
 		c = value.Ptr(value.Data{Start: 3, End: 4})
-		n = value.Ptr(value.Data{Start: 2, End: 5, Fields: value.Fields{{Name: "f", Value: c}, {Name: "g", Value: c}}})
+		n = value.Ptr(value.Data{Start: 2, End: 5, Fields: noderep.Fields{{Name: "f", Value: c}, {Name: "g", Value: c}}})
 		if got := moved(p, entry(p, n)); got != 1+2+1 || value.D(c).Start != 4 {
 			t.Fatalf("fields: charged %d, start %d", got, value.D(c).Start)
 		}
@@ -554,7 +555,7 @@ func TestDocMoveChargesAtItsBound(t *testing.T) {
 	t.Run("an empty child stays when nothing moves", func(t *testing.T) {
 		p := edited(1)
 		c := value.Ptr(value.Data{Start: 3, End: 3})
-		n := value.Ptr(value.Data{Start: 2, End: 5, Children: []*value.Node{c}})
+		n := value.Ptr(value.Data{Start: 2, End: 5, Children: []*parse.Node{c}})
 		e := &MemoEntry{Node: n, shifted: true}
 		if got := moved(p, e); got != 2 || value.D(n).Children[0] != c {
 			t.Fatalf("charged %d", got)
@@ -563,14 +564,14 @@ func TestDocMoveChargesAtItsBound(t *testing.T) {
 	t.Run("an empty node charges its fields", func(t *testing.T) {
 		// The copy, one field, and forgetting the copy.
 		p := edited(1)
-		n := value.Ptr(value.Data{Start: 3, End: 3, Fields: value.Fields{{Name: "f", Value: "x"}}})
+		n := value.Ptr(value.Data{Start: 3, End: 3, Fields: noderep.Fields{{Name: "f", Value: "x"}}})
 		if got := moved(p, entry(p, n)); got != 3 || got > movedBound(1, 1, 0) {
 			t.Fatalf("charged %d", got)
 		}
 	})
 	t.Run("many copies are dropped, not forgotten one by one", func(t *testing.T) {
 		p := edited(1)
-		kids := make([]*value.Node, 1025)
+		kids := make([]*parse.Node, 1025)
 		for i := range kids {
 			kids[i] = value.Ptr(value.Data{Start: 3, End: 3})
 		}
@@ -781,7 +782,7 @@ func TestGrowKidsChargesByTheRoomOfTheParse(t *testing.T) {
 	t.Parallel()
 	for _, capacity := range []int{100, 4096} {
 		p := docParser()
-		p.KidStack = make([]*value.Node, 100, capacity)
+		p.KidStack = make([]*parse.Node, 100, capacity)
 		// resize sets the length of the stack, as the uncharged pushes and pops of a parse do.
 		resize := func(n int) { p.KidStack = slices.Grow(p.KidStack[:0], n)[:n] }
 		if got := spent(p, func() { p.growKids(50) }); got != 100 {

@@ -13,29 +13,8 @@ import (
 	"zeroparse.dev/zp/internal/limits"
 	ischema "zeroparse.dev/zp/internal/schema"
 	"zeroparse.dev/zp/internal/syntax"
-	"zeroparse.dev/zp/internal/value"
 	"zeroparse.dev/zp/runtime/parse"
 	"zeroparse.dev/zp/schema"
-)
-
-// Node is a value of a parse result: a node of the input with a range and a string, tuple or list
-// value, an error value of recovery, or a value built by an action. It is opaque; its methods
-// read it (Kind tells which of them apply). Nodes can be encoded to JSON with encoding/json.
-type Node = value.Node
-
-// NodeKind is what a Node stands for (Node.Kind).
-type NodeKind = value.Kind
-
-// The kinds of nodes.
-const (
-	KindString     = value.KindString     // a node whose value is a string: Text
-	KindTuple      = value.KindTuple      // a node whose value is a tuple: Len and Elem
-	KindList       = value.KindList       // a node whose value is a list: Len and Elem
-	KindError      = value.KindError      // an error value of recovery: Text is its message
-	KindStruct     = value.KindStruct     // a struct built by an action: Type and Field
-	KindTupleValue = value.KindTupleValue // a tuple built by an action, without a range
-	KindListValue  = value.KindListValue  // a list built by an action, without a range
-	KindValue      = value.KindValue      // another value built by an action: Value
 )
 
 // ParseGrammar parses ZeroParse source code into a grammar AST.
@@ -262,7 +241,7 @@ func parseOptions(opts []ParseOption) engine.ParseOptions {
 // Parse parses the whole input and returns the value of the start rule.
 // If the input does not match, it returns a *SyntaxError. If the parse recovered from errors with
 // #recover, it returns both the node and the SyntaxErrors.
-func (p *Parser) Parse(input string, opts ...ParseOption) (*Node, error) {
+func (p *Parser) Parse(input string, opts ...ParseOption) (*parse.Node, error) {
 	return p.prog.ParseWith(p.start, input, parseOptions(opts))
 }
 
@@ -278,7 +257,7 @@ func (p *Parser) Parse(input string, opts ...ParseOption) (*Node, error) {
 // WithDiagnosticCallback delivers committed recoveries immediately before their elements; its
 // error stops parsing before that element is emitted. Recovered errors are still returned at EOF.
 // WithDiagnosticLimit bounds the retained recovery tail and explicitly marks a truncated result.
-func (p *Parser) ParseStream(r io.Reader, emit func(*Node) error, opts ...ParseOption) error {
+func (p *Parser) ParseStream(r io.Reader, emit func(*parse.Node) error, opts ...ParseOption) error {
 	return p.prog.ParseStreamWith(p.start, r, emit, parseOptions(opts))
 }
 
@@ -361,7 +340,7 @@ func (d *Document) Edit(start, end int, text string) error { return d.doc.Edit(s
 // interruption discards reusable state while preserving text for retry.
 // Parser-produced syntax diagnostics belong to that call: mutating them does
 // not affect later parses. Returned Nodes may share the mutable Document graph.
-func (d *Document) Parse(opts ...ParseOption) (*Node, error) {
+func (d *Document) Parse(opts ...ParseOption) (*parse.Node, error) {
 	o := d.doc.ParseDefaults()
 	for _, opt := range opts {
 		opt(&o)
@@ -452,7 +431,7 @@ func (p *Parser) Grammar() *grammar.Grammar { return p.prog.SourceGrammar() }
 // PrefixResult reports a rule's value and successful cursor. Consumption comes
 // from the runtime cursor, even when Node is nil or its span differs.
 type PrefixResult struct {
-	Node          *Node
+	Node          *parse.Node
 	Consumed      int // Selected parser Unit; defaults to CodePoints.
 	ConsumedBytes int // Exact UTF-8 byte endpoint in the supplied input.
 }
@@ -472,18 +451,10 @@ func (p *Parser) ParsePrefix(name, input string, opts ...ParseOption) (PrefixRes
 	return PrefixResult{Node: r.Node, Consumed: r.Consumed, ConsumedBytes: r.ConsumedBytes}, err
 }
 
-// StreamIterator delivers one committed stream element per Next call.
-// It is single-owner; Next and Close must not overlap. The reader remains
-// caller-owned, and Close cannot interrupt a blocked Read.
-type StreamIterator = engine.StreamIterator
-
-// ErrStreamClosed identifies an iterator closed before its terminal result.
-var ErrStreamClosed = engine.ErrStreamClosed
-
 // Iterate validates a #stream parser and returns a lazy pull iterator. Reader
 // access begins on Next; lookahead and buffering may still read ahead. With a
 // diagnostic callback, Next reports committed recoveries before their element.
-func (p *Parser) Iterate(r io.Reader, opts ...ParseOption) (*StreamIterator, error) {
+func (p *Parser) Iterate(r io.Reader, opts ...ParseOption) (*parse.StreamIterator, error) {
 	return p.prog.Iterate(p.start, r, parseOptions(opts))
 }
 
@@ -513,49 +484,6 @@ func (d *Document) ResetHistory() { d.doc.ResetHistory() }
 // CacheStats inspects retained incremental history without changing it.
 // Document methods, including this one, require exclusive ownership.
 func (d *Document) CacheStats() parse.CacheStats { return d.doc.CacheStats() }
-
-// WalkAction controls whether a walk descends, skips descendants, or stops.
-type WalkAction = value.WalkAction
-
-const (
-	WalkContinue = value.WalkContinue
-	WalkSkip     = value.WalkSkip
-	WalkStop     = value.WalkStop
-)
-
-// WalkVisit describes a live value, its incoming edge and nearest owning node.
-// Node is non-nil only for node values. Depth counts edges from the root.
-type WalkVisit = value.WalkVisit
-
-// WalkEdge identifies a root, child, field, or nested []any list edge.
-type WalkEdge = value.WalkEdge
-
-// WalkEdgeKind identifies the kind of a visit's incoming edge.
-type WalkEdgeKind = value.WalkEdgeKind
-
-const (
-	WalkRoot        = value.WalkRoot
-	WalkChild       = value.WalkChild
-	WalkField       = value.WalkField
-	WalkListElement = value.WalkListElement
-)
-
-// CycleError reports the root-to-back-edge path of a cyclic node or []any graph.
-type CycleError = value.CycleError
-
-// Cursor selects node spans in an explicitly supplied input position unit.
-// At selects a point; Range selects a half-open range. It does not infer or
-// convert units and does not prune children based on a parent's span.
-type Cursor = engine.Cursor
-
-// Walk visits a live node graph in pre-order: children in slice order, then
-// fields in name order, and nested []any elements in index order. Scalar and nil
-// values are visits too. Shared subtrees are visited once per incoming edge;
-// active-path cycles return CycleError. The graph must not be mutated concurrently.
-// A callback error returns unchanged; WalkStop succeeds and WalkSkip skips descendants.
-func Walk(root *Node, visit func(WalkVisit) (WalkAction, error)) error {
-	return value.Walk(root, visit)
-}
 
 // ErrSchemaUnavailable reports that checked grammar metadata is unavailable.
 // In particular, a parser loaded from a compiled file cannot export a schema.

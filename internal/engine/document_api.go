@@ -12,7 +12,6 @@ type (
 	ChangeDocument  = document.ChangeDocument
 	DocumentVersion = document.DocumentVersion
 	DocumentChange  = document.DocumentChange
-	Cursor          = document.Cursor
 	Snapshot        = document.Snapshot
 	SnapshotNode    = document.SnapshotNode
 	SnapshotField   = document.SnapshotField

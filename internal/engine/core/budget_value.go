@@ -8,7 +8,7 @@ import (
 
 	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/compile"
-	"zeroparse.dev/zp/internal/value"
+	"zeroparse.dev/zp/runtime/noderep"
 	"zeroparse.dev/zp/runtime/parse"
 )
 
@@ -193,7 +193,7 @@ func (p *Parser) ValueTextLen(s string) int {
 	return n
 }
 
-func (p *Parser) ValueField(fs value.Fields, name string) (any, bool) {
+func (p *Parser) ValueField(fs noderep.Fields, name string) (any, bool) {
 	if !BudgetControlsEnabled || p.Control == nil {
 		return fs.Get(name)
 	}
@@ -206,9 +206,9 @@ func (p *Parser) ValueField(fs value.Fields, name string) (any, bool) {
 	return nil, false
 }
 
-func (p *Parser) SetValueField(fs *value.Fields, name string, v any) {
+func (p *Parser) SetValueField(fs *noderep.Fields, name string, v any) {
 	if !BudgetControlsEnabled || p.Control == nil {
-		value.SetField(fs, name, v)
+		noderep.SetField(fs, name, v)
 		return
 	}
 	for i := range *fs {
@@ -218,7 +218,7 @@ func (p *Parser) SetValueField(fs *value.Fields, name string, v any) {
 			return
 		}
 	}
-	*fs = append(*fs, value.NodeField{Name: name, Value: v})
+	*fs = append(*fs, noderep.NodeField{Name: name, Value: v})
 }
 
 func (p *Parser) HasValueField(st *grammar.TypeDef, name string) bool {

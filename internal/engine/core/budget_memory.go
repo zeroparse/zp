@@ -4,7 +4,7 @@ import (
 	"unsafe"
 
 	"zeroparse.dev/zp/internal/limits"
-	"zeroparse.dev/zp/internal/value"
+	"zeroparse.dev/zp/runtime/noderep"
 	"zeroparse.dev/zp/runtime/parse"
 )
 
@@ -33,9 +33,9 @@ import (
 
 // Sizes of the elements that the counters charge.
 const (
-	nodeBytes     = uint64(unsafe.Sizeof(value.Node{}))
-	ptrBytes      = uint64(unsafe.Sizeof((*value.Node)(nil)))
-	fieldBytes    = uint64(unsafe.Sizeof(value.NodeField{}))
+	nodeBytes     = uint64(unsafe.Sizeof(parse.Node{}))
+	ptrBytes      = uint64(unsafe.Sizeof((*parse.Node)(nil)))
+	fieldBytes    = uint64(unsafe.Sizeof(noderep.NodeField{}))
 	frameBytes    = uint64(unsafe.Sizeof(Frame{}))
 	memoBytes     = uint64(unsafe.Sizeof(MemoEntry{}))
 	memoSlotBytes = uint64(unsafe.Sizeof((*MemoEntry)(nil)))

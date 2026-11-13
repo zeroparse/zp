@@ -9,7 +9,6 @@ import (
 
 	"zeroparse.dev/zp/internal/engine/core"
 	"zeroparse.dev/zp/internal/gentest"
-	"zeroparse.dev/zp/internal/value"
 	"zeroparse.dev/zp/runtime/parse"
 )
 
@@ -86,7 +85,7 @@ var expectedText = regexp.MustCompile(`syntax error: expected [^"\\]*(\\"[^"\\]*
 
 // dumpNode renders a result without the expectations in the text of recovered errors, whose
 // positions and spans stay.
-func dumpNode(n *value.Node) string {
+func dumpNode(n *parse.Node) string {
 	return expectedText.ReplaceAllString(gentest.ResultJSON(n, nil), "syntax error")
 }
 

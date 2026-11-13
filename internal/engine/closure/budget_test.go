@@ -17,7 +17,7 @@ func TestBudgetActionArenaResetInterruption(t *testing.T) {
 	p := &core.Parser{}
 	cm := MachineOf(p)
 	for range 300 {
-		*cm.closures.Alloc() = closure{ctx: &core.EvalCtx{Items: []*value.Node{retained}}}
+		*cm.closures.Alloc() = closure{ctx: &core.EvalCtx{Items: []*parse.Node{retained}}}
 	}
 	p.Control = core.NewBudgetControl(nil, parse.Limits{Compute: 64})
 	if err := catchFatal(t, func() { evalTerm(p.UseCtx(core.EvalCtx{P: p}), &grammar.NilLit{}) }); !errors.Is(err, parse.ErrLimit) {

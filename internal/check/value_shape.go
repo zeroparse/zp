@@ -3,6 +3,7 @@ package check
 import (
 	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/cancel"
+	"zeroparse.dev/zp/runtime/parse"
 
 	"zeroparse.dev/zp/internal/value"
 )
@@ -175,7 +176,7 @@ func SharesTuple(p *Checker, e grammar.Expr) bool {
 }
 
 // One returns the one element of the result v.
-func (s Shaper) One(v *value.Node) *value.Node {
+func (s Shaper) One(v *parse.Node) *parse.Node {
 	if s.Elems {
 		if v == nil || len(value.D(v).Children) == 0 {
 			return nil

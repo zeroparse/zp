@@ -61,12 +61,12 @@ Compared with the engine's API:
   `rule nope is not defined`. An empty name selects the grammar's default start rule, as for
   `Parser.WithStart`. Like the engine, both require the rule to consume the whole input.
 - **The types belong to the generated package.** `pairsparser.Node` has the same fields, methods and JSON encoding as
-  `zp.Node`, but it is a different Go type: you cannot pass one where the other is expected, and error checks use
+  `parse.Node`, but it is a different Go type: you cannot pass one where the other is expected, and error checks use
   `errors.As` with the generated `*pairsparser.SyntaxError` (and `pairsparser.SyntaxErrors` for errors recovered with
-  `#recover`). If other code needs `zp.Node`, convert through JSON, which is identical for both, or write code against
+  `#recover`). If other code needs `parse.Node`, convert through JSON, which is identical for both, or write code against
   the fields you need.
 - **Fields.** As with the engine, a field value is a `*Node`, `int`, `string`, `bool` or `nil`: assert it to
-  `*pairsparser.Node` (as the example does with `Field("Key")`), not to `*zp.Node`.
+  `*pairsparser.Node` (as the example does with `Field("Key")`), not to `*parse.Node`.
 - **Errors** carry the same positions and messages. Recovered errors work too, and the error value that a
   `#recover` produces in a typed result has the range of the skipped input (`Span`) and the `Message`.
   With this grammar, `rec.zp`:

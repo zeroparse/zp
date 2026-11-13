@@ -9,6 +9,7 @@ import (
 	"zeroparse.dev/zp/internal/compile"
 	"zeroparse.dev/zp/internal/gentest"
 	"zeroparse.dev/zp/internal/value"
+	"zeroparse.dev/zp/runtime/noderep"
 	"zeroparse.dev/zp/runtime/parse"
 )
 
@@ -27,7 +28,7 @@ func TestOperatorsRulePrefixPartCuts(t *testing.T) {
 							}
 						} else if n == nil || n.Type() != c.Kind {
 							t.Fatalf("%v/%v: got %v, %v; want %s", backend, unit, n, err, c.Kind)
-						} else if c.Kind == value.TypeError {
+						} else if c.Kind == noderep.TypeError {
 							var recovered parse.SyntaxErrors
 							if !errors.As(err, &recovered) || len(recovered) != 1 {
 								t.Fatalf("%v/%v: expected one recovered error, got %v", backend, unit, err)
@@ -54,7 +55,7 @@ func TestOperatorsRulePrefixPartCuts(t *testing.T) {
 							case "i":
 								wantOp = "a"
 							}
-							op, ok := n.Field("Op").(*value.Node)
+							op, ok := n.Field("Op").(*parse.Node)
 							if !ok || leafText(op) != wantOp {
 								t.Fatalf("%v/%v: wrong operator capture: %v; want %q", backend, unit, op, wantOp)
 							}
@@ -97,11 +98,11 @@ func BenchmarkOperatorsRulePrefixPartCut(b *testing.B) {
 
 // leafText returns the text of the strings in the value of n, in order: the text an operator
 // matched when its line is a sequence.
-func leafText(n *value.Node) string {
+func leafText(n *parse.Node) string {
 	if n == nil {
 		return ""
 	}
-	if value.ShapeOf(n) == value.ShapeString {
+	if value.ShapeOf(n) == noderep.ShapeString {
 		return value.D(n).Text
 	}
 	var b strings.Builder

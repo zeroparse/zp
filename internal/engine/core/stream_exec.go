@@ -2,7 +2,10 @@
 
 package core
 
-import "zeroparse.dev/zp/internal/value"
+import (
+	"zeroparse.dev/zp/internal/value"
+	"zeroparse.dev/zp/runtime/parse"
+)
 
 // EmitStream passes a committed element v of the start rule's #stream repetition to the caller and
 // commits the input before end. The recovered errors committed so far are reported first, so that an
@@ -10,7 +13,7 @@ import "zeroparse.dev/zp/internal/value"
 // once emitted: a caller error ends the parse unchanged.
 //
 // Printed from Exec IR function streamEmit of internal/ir/exec/core, specialized for stream.
-func (p *Parser) EmitStream(v *value.Node, end int) {
+func (p *Parser) EmitStream(v *parse.Node, end int) {
 	if BudgetControlsEnabled {
 		p.Control.Check()
 	}

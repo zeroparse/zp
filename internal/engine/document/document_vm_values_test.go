@@ -16,6 +16,7 @@ import (
 	"zeroparse.dev/zp/internal/engine/core"
 	"zeroparse.dev/zp/internal/engine/vm"
 	"zeroparse.dev/zp/internal/value"
+	"zeroparse.dev/zp/runtime/noderep"
 	"zeroparse.dev/zp/runtime/parse"
 )
 
@@ -57,7 +58,7 @@ rule line = [a-z]+ "\n"`)
 			}
 			for range 2 { // the second parse attaches the kept machine to a new parser
 				var parsed weak.Pointer[core.Parser]
-				if _, err := doc.ParseWithCapture(doc.ParseDefaults(), func(p *core.Parser, _ *value.Node, err error) error {
+				if _, err := doc.ParseWithCapture(doc.ParseDefaults(), func(p *core.Parser, _ *parse.Node, err error) error {
 					parsed = weak.Make(p)
 					return err
 				}); err != nil {
@@ -97,7 +98,7 @@ rule line = [a-z / "é" / "😀"]+ #atomic "\n"`)
 				if err != nil {
 					t.Fatal(err)
 				}
-				check := func() *value.Node {
+				check := func() *parse.Node {
 					t.Helper()
 					n, err := doc.Parse()
 					if got, want := resultJSON(n, err), resultJSON(prog.ParseWith("main", doc.Text(), opts)); got != want {
@@ -114,10 +115,10 @@ rule line = [a-z / "é" / "😀"]+ #atomic "\n"`)
 					return n
 				}
 				n := check()
-				if len(value.D(n).Children) != 1 || value.D(n).Children[0].Type() != value.TypeList || len(value.D(value.D(n).Children[0]).Children) != 5000 {
+				if len(value.D(n).Children) != 1 || value.D(n).Children[0].Type() != noderep.TypeList || len(value.D(value.D(n).Children[0]).Children) != 5000 {
 					t.Fatal("expected one list containing all input lines")
 				}
-				retained := append([]*value.Node(nil), value.D(value.D(n).Children[0]).Children[:3]...)
+				retained := append([]*parse.Node(nil), value.D(value.D(n).Children[0]).Children[:3]...)
 				before := make([]string, len(retained))
 				for i, child := range retained {
 					before[i] = resultJSON(child, nil)

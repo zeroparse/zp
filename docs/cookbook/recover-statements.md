@@ -86,23 +86,23 @@ func main() {
 	}
 
 	// The outline: how many statements were read at each level, and where the bad ones are.
-	var outline func(n *zp.Node, indent string)
-	outline = func(list *zp.Node, indent string) {
+	var outline func(n *parse.Node, indent string)
+	outline = func(list *parse.Node, indent string) {
 		for _, n := range list.Elems() {
-			if n.Kind() == zp.KindError {
+			if n.Kind() == parse.KindError {
 				fmt.Printf("%sERROR %q\n", indent, strings.TrimSpace(source[n.Start():n.End()]))
 				continue
 			}
 			switch n.Type() {
 			case "Set":
-				fmt.Printf("%sset %s\n", indent, n.Field("Name").(*zp.Node).Text())
+				fmt.Printf("%sset %s\n", indent, n.Field("Name").(*parse.Node).Text())
 			case "Block":
-				fmt.Printf("%sif %s\n", indent, n.Field("Cond").(*zp.Node).Text())
-				outline(n.Field("Body").(*zp.Node), indent+"  ")
+				fmt.Printf("%sif %s\n", indent, n.Field("Cond").(*parse.Node).Text())
+				outline(n.Field("Body").(*parse.Node), indent+"  ")
 			}
 		}
 	}
-	outline(root.Field("Body").(*zp.Node), "")
+	outline(root.Field("Body").(*parse.Node), "")
 }
 ```
 

@@ -11,7 +11,6 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/internal/engine/core"
-	"zeroparse.dev/zp/internal/value"
 	"zeroparse.dev/zp/runtime/parse"
 )
 
@@ -74,7 +73,7 @@ func budgetContextAssertCleanup(t *testing.T, p *core.Parser) {
 	}
 }
 
-func budgetContextNodeJSON(t *testing.T, n *value.Node) []byte {
+func budgetContextNodeJSON(t *testing.T, n *parse.Node) []byte {
 	t.Helper()
 	b, err := json.Marshal(n)
 	if err != nil {
@@ -123,7 +122,7 @@ func TestBudgetContextErrPanicIdentityBeforeExecution(t *testing.T) {
 						entries++
 					}
 				}
-				var node *value.Node
+				var node *parse.Node
 				var returnedErr error
 				got := budgetContextRecover(func() { node, returnedErr = prog.ParseWith("main", text, opts) })
 				if got != token || node != nil || returnedErr != nil || entries != 0 {
@@ -157,7 +156,7 @@ rule child = "a"`)
 			ctx := newBudgetContextErrPanic(token, 2)
 			var observed *core.Parser
 			childCallbacks := 0
-			var node *value.Node
+			var node *parse.Node
 			var returnedErr error
 			got := budgetContextRecover(func() {
 				node, returnedErr = childProg.ParseWith("main", "a", ParseOptions{Backend: backend, Unit: base.Unit, Recognize: base.Recognize, Context: ctx, Limits: parse.Limits{Compute: 1 << 20}, Trace: func(e TraceEvent) {
@@ -180,7 +179,7 @@ rule child = "a"`)
 			token := &budgetContextPanicToken{phase: "trace postcheck"}
 			ctx := newBudgetContextErrPanic(token, 1)
 			var observed *core.Parser
-			var node *value.Node
+			var node *parse.Node
 			var returnedErr error
 			got := budgetContextRecover(func() {
 				node, returnedErr = plainProg.ParseWith("main", "a", ParseOptions{Backend: backend, Unit: base.Unit, Recognize: base.Recognize, Context: ctx, Limits: parse.Limits{Compute: 1 << 20}, Trace: func(e TraceEvent) {
@@ -207,7 +206,7 @@ func TestBudgetContextErrPanicIdentityAtPublicationAndFailedReservation(t *testi
 			token := &budgetContextPanicToken{phase: "publication"}
 			ctx := newBudgetContextErrPanic(token, 2)
 			var observed *core.Parser
-			var node *value.Node
+			var node *parse.Node
 			var returnedErr error
 			got := budgetContextRecover(func() {
 				node, returnedErr = prog.ParseWith("main", "a", ParseOptions{Backend: backend, Unit: base.Unit, Recognize: base.Recognize, Context: ctx, Limits: parse.Limits{Compute: 1 << 20}, Trace: func(e TraceEvent) {
@@ -227,7 +226,7 @@ func TestBudgetContextErrPanicIdentityAtPublicationAndFailedReservation(t *testi
 			token := &budgetContextPanicToken{phase: "failed reservation"}
 			ctx := newBudgetContextErrPanic(token, 2)
 			var observed *core.Parser
-			var node *value.Node
+			var node *parse.Node
 			var returnedErr error
 			got := budgetContextRecover(func() {
 				node, returnedErr = prog.ParseWith("main", "a", ParseOptions{Backend: backend, Unit: base.Unit, Recognize: base.Recognize, Context: ctx, Limits: parse.Limits{Compute: 1 << 20}, Trace: func(e TraceEvent) {
@@ -255,7 +254,7 @@ func TestBudgetContextErrPanicIdentityAtCountedBudgetAndRetry(t *testing.T) {
 		for _, unit := range []parse.PositionUnit{parse.Bytes, parse.CodePoints} {
 			for _, recognize := range []bool{false, true} {
 				t.Run(backend.String()+"/"+unit.String()+"/recognize="+strconv.FormatBool(recognize), func(t *testing.T) {
-					var retained *value.Node
+					var retained *parse.Node
 					var retainedJSON []byte
 					if !recognize {
 						var err error
@@ -269,7 +268,7 @@ func TestBudgetContextErrPanicIdentityAtCountedBudgetAndRetry(t *testing.T) {
 					token := &budgetContextPanicToken{phase: "spent budget"}
 					ctx := newBudgetContextErrPanic(token, 2)
 					var observed *core.Parser
-					var node *value.Node
+					var node *parse.Node
 					var returnedErr error
 					got := budgetContextRecover(func() {
 						node, returnedErr = prog.ParseWith("main", literal, ParseOptions{Backend: backend, Unit: unit, Recognize: recognize, Context: ctx, Limits: parse.Limits{Compute: 1 << 30}, Trace: func(e TraceEvent) {
@@ -326,7 +325,7 @@ func TestBudgetContextErrPanicIdentityLoadedASTOmittedProgram(t *testing.T) {
 				token := &budgetContextPanicToken{phase: "loaded spent budget"}
 				ctx := newBudgetContextErrPanic(token, 2)
 				var observed *core.Parser
-				var node *value.Node
+				var node *parse.Node
 				var returnedErr error
 				got := budgetContextRecover(func() {
 					node, returnedErr = prog.ParseWith("main", literal, ParseOptions{Backend: backend, Unit: unit, Context: ctx, Limits: parse.Limits{Compute: 1 << 30}, Trace: func(e TraceEvent) {

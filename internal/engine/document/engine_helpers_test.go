@@ -17,7 +17,6 @@ import (
 	"zeroparse.dev/zp/internal/engine/core"
 	"zeroparse.dev/zp/internal/starttest"
 	"zeroparse.dev/zp/internal/syntax"
-	"zeroparse.dev/zp/internal/value"
 	"zeroparse.dev/zp/runtime/parse"
 )
 
@@ -116,7 +115,7 @@ rule expr = #operators {
     level { prefix "-" }
 }`
 
-func dump(t *testing.T, n *value.Node, err error) string {
+func dump(t *testing.T, n *parse.Node, err error) string {
 	t.Helper()
 	data, jerr := json.Marshal(n)
 	if jerr != nil {
@@ -129,7 +128,7 @@ func dump(t *testing.T, n *value.Node, err error) string {
 	return s
 }
 
-func resultJSON(n *value.Node, err error) string {
+func resultJSON(n *parse.Node, err error) string {
 	out := map[string]any{"node": n}
 	if err != nil {
 		out["err"] = err.Error()

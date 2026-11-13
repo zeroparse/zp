@@ -7,6 +7,7 @@ import (
 	"zeroparse.dev/zp/internal/compiletest"
 	"zeroparse.dev/zp/internal/ir/exec/conform"
 	"zeroparse.dev/zp/internal/value"
+	"zeroparse.dev/zp/runtime/noderep"
 	"zeroparse.dev/zp/runtime/parse"
 )
 
@@ -37,11 +38,11 @@ func TestEngineValueCastTable(t *testing.T) {
 		c := &EvalCtx{P: p}
 		var build func(v conform.CastValue) any
 		build = func(v conform.CastValue) any {
-			text := func() *value.Node {
-				return p.NewNode(value.Data{Kind: value.MatchKind, Terminal: true, Text: "xyz", Start: 2, End: 4})
+			text := func() *parse.Node {
+				return p.NewNode(value.Data{Kind: noderep.MatchKind, Terminal: true, Text: "xyz", Start: 2, End: 4})
 			}
-			elems := func() []*value.Node {
-				var out []*value.Node
+			elems := func() []*parse.Node {
+				var out []*parse.Node
 				for _, e := range v.Elems {
 					if e.Kind == "nilnode" {
 						out = append(out, nil)
@@ -59,7 +60,7 @@ func TestEngineValueCastTable(t *testing.T) {
 			case "nil":
 				return nil
 			case "nilnode":
-				return (*value.Node)(nil)
+				return (*parse.Node)(nil)
 			case "int":
 				return 1
 			case "string":
@@ -69,13 +70,13 @@ func TestEngineValueCastTable(t *testing.T) {
 			case "text":
 				return text()
 			case "tuple":
-				return p.NewNode(value.Data{Kind: value.SeqKind, Start: 2, End: 5, Children: []*value.Node{text(), text()}})
+				return p.NewNode(value.Data{Kind: noderep.SeqKind, Start: 2, End: 5, Children: []*parse.Node{text(), text()}})
 			case "rep":
-				return p.NewNode(value.Data{Kind: value.ListKind, Start: 2, End: 5, Children: []*value.Node{text(), text()}})
+				return p.NewNode(value.Data{Kind: noderep.ListKind, Start: 2, End: 5, Children: []*parse.Node{text(), text()}})
 			case "err":
-				return p.NewNode(value.Data{Kind: value.ErrorKind, Terminal: true, Text: "x", Start: 2, End: 4})
+				return p.NewNode(value.Data{Kind: noderep.ErrorKind, Terminal: true, Text: "x", Start: 2, End: 4})
 			case "missing":
-				return p.NewNode(value.Data{Kind: value.MissingKind, Start: 2, End: 2})
+				return p.NewNode(value.Data{Kind: noderep.MissingKind, Start: 2, End: 2})
 			case "struct":
 				n, err := c.NewStruct(v.Name, nil, nil)
 				if err != nil {

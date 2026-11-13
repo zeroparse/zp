@@ -7,7 +7,6 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/internal/compile"
-	"zeroparse.dev/zp/internal/value"
 	"zeroparse.dev/zp/runtime/parse"
 )
 
@@ -17,7 +16,7 @@ type snapshotLegacyResult struct {
 	version DocumentVersion
 	unit    parse.PositionUnit
 	text    string
-	root    *value.Node
+	root    *parse.Node
 	err     error
 	stats   parse.ParseStats
 }

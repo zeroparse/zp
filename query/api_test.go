@@ -139,7 +139,7 @@ func TestPublicStructuralQuerySharedEdgesAndLimits(t *testing.T) {
 	if partial, err := q.Matches(root, query.WithLimits(parse.Limits{Compute: 1})); partial != nil || !errors.Is(err, parse.ErrLimit) {
 		t.Fatalf("limited query: %+v, %v", partial, err)
 	}
-	var kids []*zp.Node
+	var kids []*parse.Node
 	for _, c := range root.Elems() {
 		kids = append(kids, c)
 	}

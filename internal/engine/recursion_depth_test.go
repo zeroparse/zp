@@ -6,7 +6,6 @@ import (
 	"strings"
 	"testing"
 
-	"zeroparse.dev/zp/internal/value"
 	"zeroparse.dev/zp/runtime/parse"
 )
 
@@ -140,7 +139,7 @@ rule other = ("-")+ #stream`},
 		prog := mustCompile(t, c.src)
 		for _, b := range depthBackends {
 			count := 0
-			err := prog.ParseStreamWith("main", strings.NewReader("x;x;x;-"), func(*value.Node) error { count++; return nil }, ParseOptions{Backend: b})
+			err := prog.ParseStreamWith("main", strings.NewReader("x;x;x;-"), func(*parse.Node) error { count++; return nil }, ParseOptions{Backend: b})
 			if err != nil || count != 3 {
 				t.Errorf("%s/%v: emitted %d, error %v; want 3", c.name, b, count, err)
 			}

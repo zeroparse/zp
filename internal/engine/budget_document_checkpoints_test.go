@@ -11,6 +11,7 @@ import (
 	"zeroparse.dev/zp/internal/engine/core"
 	"zeroparse.dev/zp/internal/gentest"
 	"zeroparse.dev/zp/internal/value"
+	"zeroparse.dev/zp/runtime/noderep"
 	"zeroparse.dev/zp/runtime/parse"
 )
 
@@ -95,7 +96,7 @@ func TestBudgetDocumentMovementChargesEdges(t *testing.T) {
 	t.Parallel()
 	child := value.Ptr(value.Data{Start: 2, End: 3})
 	field := value.Ptr(value.Data{Start: 4, End: 5})
-	root := value.Ptr(value.Data{Start: 1, End: 6, Children: []*value.Node{child}, Fields: value.Fields{{Name: "field", Value: field}}})
+	root := value.Ptr(value.Data{Start: 1, End: 6, Children: []*parse.Node{child}, Fields: noderep.Fields{{Name: "field", Value: field}}})
 	p := stateBudgetParser(parse.Limits{Compute: 3})
 	p.Gen = 1
 	if err := catchFatal(t, func() { p.MoveTree(root, 10) }); !errors.Is(err, parse.ErrLimit) {
@@ -133,11 +134,11 @@ func TestBudgetDocumentRunAssemblyMatchesOrdinarySplice(t *testing.T) {
 
 func TestBudgetDocumentGrowthCopyReservation(t *testing.T) {
 	t.Parallel()
-	values := make([]*value.Node, 129)
+	values := make([]*parse.Node, 129)
 	for i := range values {
 		values[i] = value.Ptr(value.Data{Start: int32(i)})
 	}
-	before := append([]*value.Node(nil), values...)
+	before := append([]*parse.Node(nil), values...)
 	p := stateBudgetParser(parse.Limits{Compute: 128})
 	if err := catchFatal(t, func() { core.GrowSpend(p, values, 1) }); !errors.Is(err, parse.ErrLimit) {
 		t.Fatalf("growth interruption = %v", err)
@@ -156,7 +157,7 @@ func TestBudgetDocumentMovementMapCleanupIsCounted(t *testing.T) {
 	t.Parallel()
 	p := stateBudgetParser(parse.Limits{Compute: 1})
 	a, b := value.Ptr(value.Data{Text: "a"}), value.Ptr(value.Data{Text: "b"})
-	p.Moved = map[*value.Node]*value.Node{a: a, b: b}
+	p.Moved = map[*parse.Node]*parse.Node{a: a, b: b}
 	p.Shifts = map[uint32]int{1: 3, 2: 4}
 	if err := catchFatal(t, func() { p.ClearMovementSpend() }); !errors.Is(err, parse.ErrLimit) {
 		t.Fatalf("cleanup interruption = %v", err)
@@ -189,17 +190,17 @@ func TestBudgetDocumentShiftReplayAndSharedEmptyGraph(t *testing.T) {
 	}
 	empty := value.Ptr(value.Data{Start: 0, End: 0})
 	leaf := value.Ptr(value.Data{Start: 3, End: 4})
-	root := value.Ptr(value.Data{Start: 0, End: 0, Children: []*value.Node{empty, leaf}, Fields: value.Fields{{Name: "empty", Value: empty}, {Name: "leaf", Value: leaf}}})
+	root := value.Ptr(value.Data{Start: 0, End: 0, Children: []*parse.Node{empty, leaf}, Fields: noderep.Fields{{Name: "empty", Value: empty}, {Name: "leaf", Value: leaf}}})
 	clone := root.Clone()
 	history := gentest.ResultJSON(clone, nil)
 	p = stateBudgetParser(parse.Limits{Compute: 32})
 	p.Gen = 1
-	p.Moved = map[*value.Node]*value.Node{}
+	p.Moved = map[*parse.Node]*parse.Node{}
 	got := p.MoveEmpty(root, 2)
-	if got == root || value.D(root).Start != 0 || value.D(empty).Start != 0 || value.D(got).Children[0] != value.D(got).Fields[0].Value.(*value.Node) {
+	if got == root || value.D(root).Start != 0 || value.D(empty).Start != 0 || value.D(got).Children[0] != value.D(got).Fields[0].Value.(*parse.Node) {
 		t.Fatal("empty shared nodes were mutated or duplicated")
 	}
-	if value.D(leaf).Start != 5 || value.D(got).Children[1] != value.D(got).Fields[1].Value.(*value.Node) {
+	if value.D(leaf).Start != 5 || value.D(got).Children[1] != value.D(got).Fields[1].Value.(*parse.Node) {
 		t.Fatal("shared non-empty descendant was moved more than once")
 	}
 	if gentest.ResultJSON(clone, nil) != history {

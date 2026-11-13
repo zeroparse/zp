@@ -41,7 +41,7 @@ func BenchmarkStreamFrameScratch(b *testing.B) {
 					b.ReportAllocs()
 					for b.Loop() {
 						count := 0
-						err := prog.ParseStreamWith("main", strings.NewReader(input), func(*value.Node) error {
+						err := prog.ParseStreamWith("main", strings.NewReader(input), func(*parse.Node) error {
 							count++
 							return nil
 						}, ParseOptions{Backend: backend, Unit: unit})
@@ -74,9 +74,9 @@ rule item = x:"x" #atomic / e:"" #atomic`, strings.Repeat("x", 300), 301, false,
 		for _, backend := range []Backend{Closure, Bytecode, BytecodeIterative} {
 			for _, unit := range []parse.PositionUnit{parse.CodePoints, parse.Bytes} {
 				t.Run(fmt.Sprintf("%s/%s/%s", tc.name, backend, unit), func(t *testing.T) {
-					var retained []*value.Node
+					var retained []*parse.Node
 					var snapshots [][]byte
-					err := prog.ParseStreamWith("main", strings.NewReader(tc.input), func(n *value.Node) error {
+					err := prog.ParseStreamWith("main", strings.NewReader(tc.input), func(n *parse.Node) error {
 						snapshot, err := n.MarshalJSON()
 						if err != nil {
 							return err
@@ -144,10 +144,10 @@ func checkStreamFrameScratchRetainedResults(t *testing.T, src string) {
 				if err != nil {
 					t.Fatal(err)
 				}
-				want := value.D(whole.Field("items").(*value.Node)).Children
-				var retained []*value.Node
+				want := value.D(whole.Field("items").(*parse.Node)).Children
+				var retained []*parse.Node
 				var snapshots [][]byte
-				err = prog.ParseStreamWith("main", strings.NewReader(input.String()), func(n *value.Node) error {
+				err = prog.ParseStreamWith("main", strings.NewReader(input.String()), func(n *parse.Node) error {
 					snapshot, err := n.MarshalJSON()
 					if err != nil {
 						return err

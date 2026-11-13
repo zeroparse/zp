@@ -122,7 +122,7 @@ whose expression has no valued element, such as `rule main = -"a"`, has the unit
 ### Nodes
 
 The value of a rule without an action is a node. The properties of a node, the
-Go type `zp.Node`, traversal, and the text and JSON renderings are defined in
+Go type `parse.Node`, traversal, and the text and JSON renderings are defined in
 [Nodes and Values](nodes.md).
 
 ## Prefix Parsing

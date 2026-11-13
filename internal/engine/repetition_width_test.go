@@ -172,7 +172,7 @@ func TestWideRepetitionDocumentsAndStreams(t *testing.T) {
 				for _, unit := range []parse.PositionUnit{parse.CodePoints, parse.Bytes} {
 					opts := ParseOptions{Backend: backend, Unit: unit}
 					count := 0
-					err := p.ParseStreamWith("main", strings.NewReader("éé"), func(n *value.Node) error {
+					err := p.ParseStreamWith("main", strings.NewReader("éé"), func(n *parse.Node) error {
 						if value.D(n).Text != "é" {
 							t.Errorf("unexpected stream element: %s", gentest.ResultJSON(n, nil))
 						}

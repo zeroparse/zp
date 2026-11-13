@@ -322,7 +322,7 @@ func TestIgnoreCaseDocumentAndStream(t *testing.T) {
 
 	stream := mustCompile(t, `rule main = ("ab"i #atomic)* #stream`)
 	count := 0
-	if err := stream.ParseStream("main", strings.NewReader("ABab"), func(*value.Node) error { count++; return nil }); err != nil {
+	if err := stream.ParseStream("main", strings.NewReader("ABab"), func(*parse.Node) error { count++; return nil }); err != nil {
 		t.Fatal("stream: ", err)
 	}
 	if count != 2 {
@@ -376,7 +376,7 @@ func TestIgnoreCaseDocumentAndStreamBackends(t *testing.T) {
 
 		stream := mustCompile(t, `rule main = ("ab"i #atomic)* #stream`)
 		count := 0
-		if err := stream.ParseStreamWith("main", strings.NewReader("ABab"), func(*value.Node) error { count++; return nil }, ParseOptions{Expectations: true, Backend: b}); err != nil {
+		if err := stream.ParseStreamWith("main", strings.NewReader("ABab"), func(*parse.Node) error { count++; return nil }, ParseOptions{Expectations: true, Backend: b}); err != nil {
 			t.Fatal(b, "stream: ", err)
 		}
 		if count != 2 {

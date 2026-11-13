@@ -50,7 +50,7 @@ func TestBackendsMatchOnStream(t *testing.T) {
 			var out [3]string
 			for i, b := range []Backend{Closure, Bytecode, BytecodeIterative} {
 				var got []string
-				err := prog.ParseStreamWith("main", strings.NewReader(in), func(n *value.Node) error {
+				err := prog.ParseStreamWith("main", strings.NewReader(in), func(n *parse.Node) error {
 					got = append(got, fmt.Sprintf("%s [%d,%d)", n, value.D(n).Start, value.D(n).End))
 					return nil
 				}, ParseOptions{Expectations: true, Unit: u, Backend: b})
@@ -184,7 +184,7 @@ rule e = #operators {
 				{"x;x^x;x^x^x;", 2, false},
 			} {
 				count := 0
-				err := prog.ParseStreamWith("main", strings.NewReader(tc.input), func(*value.Node) error {
+				err := prog.ParseStreamWith("main", strings.NewReader(tc.input), func(*parse.Node) error {
 					count++
 					return nil
 				}, ParseOptions{Expectations: true, Backend: backend, Unit: unit, Limits: parse.Limits{Depth: 2}})

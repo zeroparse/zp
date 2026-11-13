@@ -7,6 +7,8 @@ import (
 	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/compile"
 	"zeroparse.dev/zp/internal/value"
+	"zeroparse.dev/zp/runtime/noderep"
+	"zeroparse.dev/zp/runtime/parse"
 )
 
 // Values of actions and predicates are *Node, int, string, bool, nil, or *closure.
@@ -35,21 +37,21 @@ type EvalCtx struct {
 	P          *Parser
 	Scope      *compile.Scope
 	Frame      *Frame
-	Items      []*value.Node // elements referenced by $n
+	Items      []*parse.Node // elements referenced by $n
 	Start, End int           // range matched by the rule
 	Locals     *Local        // lambda arguments and OperatorsRule's $lhs, $rhs, $op
 	Cbase      int           // start, in p.Created, of the nodes created by this evaluation
 }
 
 // runAction evaluates the rule's action.
-func (p *Parser) runAction(r *Rule, f *Frame, locals *Local, start, end int) *value.Node {
+func (p *Parser) runAction(r *Rule, f *Frame, locals *Local, start, end int) *parse.Node {
 	ctx := p.UseCtx(EvalCtx{P: p, Scope: r.Scope, Frame: f, Locals: locals, Start: start, End: end, Cbase: len(p.Created)})
 	return p.ActionResult(ctx, r.Act, r.WhereName())
 }
 
-func (p *Parser) ActionResult(ctx *EvalCtx, act Evaluator, where string) *value.Node {
+func (p *Parser) ActionResult(ctx *EvalCtx, act Evaluator, where string) *parse.Node {
 	v, err := act(ctx)
-	n, ok := v.(*value.Node)
+	n, ok := v.(*parse.Node)
 	if err == nil && n != nil {
 		for _, c := range p.Created[ctx.Cbase:] {
 			p.Spend()
@@ -71,7 +73,7 @@ func (p *Parser) ActionResult(ctx *EvalCtx, act Evaluator, where string) *value.
 			p.FailAction(where, p.ActionError("result must be a value, got a function"))
 		}
 		// A value other than a node travels boxed, with the range of the action's input.
-		return p.NewNode(value.Data{Kind: value.BoxKind, Box: v, Start: int32(ctx.Start), End: int32(ctx.End)})
+		return p.NewNode(value.Data{Kind: noderep.BoxKind, Box: v, Start: int32(ctx.Start), End: int32(ctx.End)})
 	}
 	if n != nil {
 		// The value of an action is final: a node it returns from the rule body (=> $1) is not
@@ -97,11 +99,11 @@ func TypeName(v any) string {
 	switch v := v.(type) {
 	case nil:
 		return "nil"
-	case *value.Node:
+	case *parse.Node:
 		if v == nil {
 			return "nil"
 		}
-		if value.D(v).Kind == value.BoxKind {
+		if value.D(v).Kind == noderep.BoxKind {
 			return TypeName(value.D(v).Box)
 		}
 		if value.D(v).Kind.IsNodeType() {
@@ -129,7 +131,7 @@ func (c *EvalCtx) Member(x any, name string) (any, error) {
 // memberZero is the operation node.zero: the zero value of the declared type of the field name of the
 // struct n, and false if its type declares no such field. Under budget controls it charges for the
 // declared fields it scans, and for the values it makes.
-func (p *Parser) memberZero(c *EvalCtx, n *value.Node, name string) (any, bool) {
+func (p *Parser) memberZero(c *EvalCtx, n *parse.Node, name string) (any, bool) {
 	if !p.HasValueField(p.Prog.Types[n.Type()].(*grammar.TypeDef), name) {
 		return nil, false
 	}
@@ -194,7 +196,7 @@ func (c *EvalCtx) zeroFrom(d string) (any, string, error) {
 
 // NewStruct creates a struct node. Its range covers the ranges of the fields whose values are
 // nodes, or is the rule's range if there are none.
-func (c *EvalCtx) NewStruct(typ string, names []string, vals []any) (*value.Node, error) {
+func (c *EvalCtx) NewStruct(typ string, names []string, vals []any) (*parse.Node, error) {
 	n := c.P.NewNode(value.Data{Kind: c.P.Prog.TypeKind(typ), Fields: c.P.fields(len(names))})
 	first := true
 	for i, name := range names {
@@ -210,7 +212,7 @@ func (c *EvalCtx) NewStruct(typ string, names []string, vals []any) (*value.Node
 	return n, nil
 }
 
-func (c *EvalCtx) NewList(items []*value.Node) *value.Node {
+func (c *EvalCtx) NewList(items []*parse.Node) *parse.Node {
 	kids := c.P.Nodes(len(items))
 	CopySpend(c.P, kids, items)
 	return c.ListNode(kids)
@@ -218,12 +220,12 @@ func (c *EvalCtx) NewList(items []*value.Node) *value.Node {
 
 // ListNode returns a list value with the child slice kids (which it takes over). Its range,
 // which the value model does not show, covers the elements that are nodes.
-func (c *EvalCtx) ListNode(kids []*value.Node) *value.Node {
+func (c *EvalCtx) ListNode(kids []*parse.Node) *parse.Node {
 	return c.P.termHull(c, false, kids)
 }
 
 // TupleNode is ListNode for a tuple value.
-func (c *EvalCtx) TupleNode(kids []*value.Node) *value.Node {
+func (c *EvalCtx) TupleNode(kids []*parse.Node) *parse.Node {
 	return c.P.termHull(c, true, kids)
 }
 
@@ -318,7 +320,7 @@ func (c *EvalCtx) PushElems(fn string, args []any) error {
 
 // ValueListItems returns the items of the list node v that the built-in fn reads: none for nil, and
 // an error for a value that is not a list.
-func (p *Parser) ValueListItems(fn string, v any) ([]*value.Node, error) {
+func (p *Parser) ValueListItems(fn string, v any) ([]*parse.Node, error) {
 	return p.termItems(fn, v)
 }
 

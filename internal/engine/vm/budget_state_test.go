@@ -14,6 +14,7 @@ import (
 	"zeroparse.dev/zp/internal/compile"
 	"zeroparse.dev/zp/internal/engine/core"
 	"zeroparse.dev/zp/internal/value"
+	"zeroparse.dev/zp/runtime/noderep"
 	"zeroparse.dev/zp/runtime/parse"
 )
 
@@ -22,9 +23,9 @@ func TestBudgetStateVMChildAssembly(t *testing.T) {
 		for _, lim := range []parse.Limits{{Compute: 64}, {Compute: 10000}} {
 			p := stateBudgetParser(lim)
 			start := 3
-			retained := value.Ptr(value.Data{Text: "retained", Fields: value.Fields{{Name: "keep", Value: "unchanged"}}})
+			retained := value.Ptr(value.Data{Text: "retained", Fields: noderep.Fields{{Name: "keep", Value: "unchanged"}}})
 			machineOf(p).vals = append(machineOf(p).vals, &start)
-			want := make([]*value.Node, 320)
+			want := make([]*parse.Node, 320)
 			for i := range want {
 				if i%3 != 0 {
 					want[i] = retained
@@ -38,7 +39,7 @@ func TestBudgetStateVMChildAssembly(t *testing.T) {
 			}
 			vm := &Program{m: &bytecode.Module{Code: []bytecode.Instr{instruction, {Op: bytecode.OpEnd}}}}
 			body := vmBody{}
-			var result *value.Node
+			var result *parse.Node
 			err := catchFatal(t, func() { _, result, _ = machineOf(p).step(vm, &body, false, false, nil) })
 			if lim.Compute == 64 {
 				if !errors.Is(err, parse.ErrLimit) || result != nil || len(machineOf(p).vals) != 321 {
@@ -108,7 +109,7 @@ func TestBudgetStateOperatorsRuleFrameSnapshotAndRestoration(t *testing.T) {
 				compute++
 			}
 			p := stateBudgetParser(parse.Limits{Compute: compute})
-			retained := value.Ptr(value.Data{Text: "retained", Fields: value.Fields{{Name: "keep", Value: "unchanged"}}})
+			retained := value.Ptr(value.Data{Text: "retained", Fields: noderep.Fields{{Name: "keep", Value: "unchanged"}}})
 			before, _ := json.Marshal(retained)
 			op := &core.OperatorsRuleOp{Kind: grammar.Prefix, Line: &core.OperatorsRuleLine{Scope: &compile.Scope{Names: make([]string, 320)}}}
 			setup := func(f *core.Frame) {
@@ -126,7 +127,7 @@ func TestBudgetStateOperatorsRuleFrameSnapshotAndRestoration(t *testing.T) {
 					f.next(ivmMachineOf(p), nil, iresult{ok: true, v: retained})
 					best = ivmMachineOf(p).attempt
 				} else {
-					op.Line.M = func(p *core.Parser) (*value.Node, bool) { setup(p.Frame); return retained, true }
+					op.Line.M = func(p *core.Parser) (*parse.Node, bool) { setup(p.Frame); return retained, true }
 					best = p.Longest([]*core.OperatorsRuleOp{op})
 				}
 			})

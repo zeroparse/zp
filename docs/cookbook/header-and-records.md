@@ -15,6 +15,7 @@ import (
 	"strings"
 
 	"zeroparse.dev/zp"
+	"zeroparse.dev/zp/runtime/parse"
 )
 
 const grammar = `package kv
@@ -39,12 +40,12 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
-	err = p.ParseStream(strings.NewReader("#version 2\na=1\nb=2\n"), func(n *zp.Node) error {
+	err = p.ParseStream(strings.NewReader("#version 2\na=1\nb=2\n"), func(n *parse.Node) error {
 		switch n.Type() {
 		case "Header":
-			fmt.Println("header, version", n.Field("Version").(*zp.Node).Text())
+			fmt.Println("header, version", n.Field("Version").(*parse.Node).Text())
 		case "Pair":
-			fmt.Println("pair", n.Field("Key").(*zp.Node).Text(), "=", n.Field("Value").(*zp.Node).Text())
+			fmt.Println("pair", n.Field("Key").(*parse.Node).Text(), "=", n.Field("Value").(*parse.Node).Text())
 		}
 		return nil
 	})

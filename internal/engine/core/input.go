@@ -11,7 +11,6 @@ import (
 
 	"zeroparse.dev/zp/internal/compile"
 	"zeroparse.dev/zp/internal/limits"
-	"zeroparse.dev/zp/internal/value"
 	"zeroparse.dev/zp/runtime/parse"
 )
 
@@ -287,7 +286,7 @@ type scratch struct {
 	offs  []int32
 	bytes []byte
 	memo  MemoTable
-	kids  []*value.Node
+	kids  []*parse.Node
 	cold  []runCold
 }
 
