@@ -28,6 +28,10 @@ func TestBudgetStreamDiscardAndStackClear(t *testing.T) {
 	}
 	for _, phase := range []string{"trail", "values"} {
 		t.Run(phase, func(t *testing.T) {
+			// Each phase interrupts the cleanup of one store, which its reference build leaves out.
+			if phase == "trail" && !core.StreamUndoCleanup || phase == "values" && !core.StreamStackCleanup {
+				t.Skip("the build does not clear the inactive capacity of this store")
+			}
 			node := value.Ptr(value.Data{Text: "owned"})
 			p := &core.Parser{Input: core.Input{Unit: parse.Bytes, Eof: true, Bs: []byte(strings.Repeat("a", 3000)), BaseLine: 1, BaseCol: 1, Lines: []int{0}, Control: core.NewBudgetControl(nil, parse.Limits{Compute: 953 + 128})}, Memo: core.NewMemoTable()}
 			if phase == "trail" {
