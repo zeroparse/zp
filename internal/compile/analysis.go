@@ -12,23 +12,23 @@ import (
 // Analysis is the result of static analysis across rules.
 type Analysis struct {
 	Control    *cancel.Control
-	nullable   map[string]bool
-	succeeding map[string]bool
-	// leaders are the rules that break left-recursion cycles. These rules are evaluated with
+	Nullable   map[string]bool
+	Succeeding map[string]bool
+	// Leaders are the rules that break left-recursion cycles. These rules are evaluated with
 	// grow-the-seed.
-	leaders map[string]bool
-	// cyclic are the rules that belong to a left-recursion cycle (including leaders).
-	cyclic map[string]bool
-	// cycle numbers the left-recursion cycles: rules with the same number are in the same
+	Leaders map[string]bool
+	// Cyclic are the rules that belong to a left-recursion cycle (including leaders).
+	Cyclic map[string]bool
+	// Cycle numbers the left-recursion cycles: rules with the same number are in the same
 	// strongly connected component of the left-call graph. Only cyclic rules have an entry.
-	cycle map[string]int
-	// positional are the rules whose actions or predicates read positions (.Start, .End),
+	Cycle map[string]int
+	// Positional are the rules whose actions or predicates read positions (.Start, .End),
 	// directly or through callees. Their results may contain position values, so incremental
 	// parsing cannot shift them past an edit.
-	positional map[string]bool
-	// recovering maps each rule whose value can hold an error value of #recover to a rule that has
+	Positional map[string]bool
+	// Recovering maps each rule whose value can hold an error value of #recover to a rule that has
 	// such a #recover: the rule itself or one that it calls (recoveringRules).
-	recovering map[string]string
+	Recovering map[string]string
 	// insertion reports that the analysis is that of a parse with missing-token insertion enabled,
 	// where an expression with #missing succeeds without consuming input by inserting its literal
 	// (AnalyzeInsertion).
@@ -59,11 +59,11 @@ func analyzeMode(rules []*grammar.RuleDef, control *cancel.Control, insertion bo
 	a := &Analysis{
 		insertion:  insertion,
 		Control:    control,
-		nullable:   map[string]bool{},
-		leaders:    map[string]bool{},
-		cyclic:     map[string]bool{},
-		cycle:      map[string]int{},
-		positional: map[string]bool{},
+		Nullable:   map[string]bool{},
+		Leaders:    map[string]bool{},
+		Cyclic:     map[string]bool{},
+		Cycle:      map[string]int{},
+		Positional: map[string]bool{},
 	}
 	byName := map[string]*grammar.RuleDef{}
 	for _, r := range rules {
@@ -77,8 +77,8 @@ func analyzeMode(rules []*grammar.RuleDef, control *cancel.Control, insertion bo
 		changed = false
 		for _, r := range rules {
 			control.Poll()
-			if !a.nullable[r.Name] && a.isNullable(r.Expr) {
-				a.nullable[r.Name] = true
+			if !a.Nullable[r.Name] && a.isNullable(r.Expr) {
+				a.Nullable[r.Name] = true
 				changed = true
 			}
 		}
@@ -88,16 +88,16 @@ func analyzeMode(rules []*grammar.RuleDef, control *cancel.Control, insertion bo
 	calls := map[string][]string{}
 	for _, r := range rules {
 		control.Poll()
-		calls[r.Name] = allCallsControlled(r.Expr, nil, control)
+		calls[r.Name] = AllCallsControlled(r.Expr, nil, control)
 	}
 	for _, r := range rules {
 		control.Poll()
 		if ruleUsesPositions(r, control) {
-			a.positional[r.Name] = true
+			a.Positional[r.Name] = true
 		}
 	}
-	propagate(rules, calls, a.positional, control)
-	a.recovering = recoveringRules(rules, control)
+	propagate(rules, calls, a.Positional, control)
+	a.Recovering = recoveringRules(rules, control)
 
 	// Find left-recursion cycles from the strongly connected components of the left-call graph.
 	order := map[string]int{}
@@ -105,7 +105,7 @@ func analyzeMode(rules []*grammar.RuleDef, control *cancel.Control, insertion bo
 	for i, r := range rules {
 		control.Poll()
 		order[r.Name] = i
-		for _, c := range a.leftCalls(r.Expr, nil) {
+		for _, c := range a.LeftCalls(r.Expr, nil) {
 			control.Poll()
 			if _, ok := byName[c]; ok {
 				left[r.Name] = append(left[r.Name], c)
@@ -119,26 +119,26 @@ func analyzeMode(rules []*grammar.RuleDef, control *cancel.Control, insertion bo
 	for {
 		control.Poll()
 		components = Tarjan(rules, left, control)
-		clear(a.cyclic)
+		clear(a.Cyclic)
 		for _, scc := range components {
 			control.Poll()
 			if len(scc) > 1 || contains(left[scc[0]], scc[0]) {
 				for _, n := range scc {
 					control.Poll()
-					a.cyclic[n] = true
+					a.Cyclic[n] = true
 				}
 			}
 		}
 		if control == nil {
-			a.succeeding = grammaranalysis.SucceedingRules(rules, a.cyclic)
+			a.Succeeding = grammaranalysis.SucceedingRules(rules, a.Cyclic)
 		} else {
-			a.succeeding = grammaranalysis.SucceedingRulesWithPoll(rules, a.cyclic, control.Poll)
+			a.Succeeding = grammaranalysis.SucceedingRulesWithPoll(rules, a.Cyclic, control.Poll)
 		}
 		next := map[string][]string{}
 		changed := false
 		for _, r := range rules {
 			control.Poll()
-			for _, n := range a.leftCalls(r.Expr, nil) {
+			for _, n := range a.LeftCalls(r.Expr, nil) {
 				control.Poll()
 				if byName[n] != nil {
 					next[r.Name] = append(next[r.Name], n)
@@ -160,13 +160,13 @@ func analyzeMode(rules []*grammar.RuleDef, control *cancel.Control, insertion bo
 		for _, n := range scc {
 			control.Poll()
 			in[n] = true
-			a.cyclic[n] = true
-			a.cycle[n] = i
+			a.Cyclic[n] = true
+			a.Cycle[n] = i
 		}
 		// Until every cycle passes through some leader, make the first rule of a found cycle a leader.
 		for {
 			control.Poll()
-			cycle := findCycle(scc, left, in, a.leaders, control)
+			cycle := findCycle(scc, left, in, a.Leaders, control)
 			if cycle == nil {
 				break
 			}
@@ -177,7 +177,7 @@ func analyzeMode(rules []*grammar.RuleDef, control *cancel.Control, insertion bo
 					best = n
 				}
 			}
-			a.leaders[best] = true
+			a.Leaders[best] = true
 		}
 	}
 	return a
@@ -196,7 +196,7 @@ func (a *Analysis) isNullable(e grammar.Expr) bool {
 	a.Control.Poll()
 	switch e := e.(type) {
 	case *grammar.Ref:
-		return a.nullable[e.Name]
+		return a.Nullable[e.Name]
 	case *grammar.Literal:
 		return e.Value == ""
 	case *grammar.CharClass, *grammar.Any, *grammar.Bottom:
@@ -224,7 +224,7 @@ func (a *Analysis) isNullable(e grammar.Expr) bool {
 	case *grammar.Capture:
 		return a.isNullable(e.Expr)
 	case *grammar.Attributed:
-		return a.insertion && hasPragma(e, "missing") || a.isNullable(e.Expr)
+		return a.insertion && HasPragma(e, "missing") || a.isNullable(e.Expr)
 	case *grammar.OperatorsRule:
 		for _, o := range e.Operands {
 			if a.isNullable(o.Expr) {
@@ -238,59 +238,59 @@ func (a *Analysis) isNullable(e grammar.Expr) bool {
 	}
 }
 
-// leftCalls returns the rules that may be called before any input is consumed.
-func (a *Analysis) leftCalls(e grammar.Expr, acc []string) []string {
+// LeftCalls returns the rules that may be called before any input is consumed.
+func (a *Analysis) LeftCalls(e grammar.Expr, acc []string) []string {
 	a.Control.Poll()
 	switch e := e.(type) {
 	case *grammar.Ref:
 		return append(acc, e.Name)
 	case *grammar.Seq:
 		for _, it := range e.Items {
-			acc = a.leftCalls(it, acc)
+			acc = a.LeftCalls(it, acc)
 			if !a.isNullable(it) {
 				break
 			}
 		}
 	case *grammar.Choice:
 		for _, alt := range e.Alts {
-			acc = a.leftCalls(alt, acc)
+			acc = a.LeftCalls(alt, acc)
 			if a.AlwaysSucceeds(alt) {
 				break
 			}
 		}
 	case *grammar.Repeat:
 		if e.Max != 0 {
-			acc = a.leftCalls(e.Expr, acc)
+			acc = a.LeftCalls(e.Expr, acc)
 		}
 	case *grammar.Optional:
-		acc = a.leftCalls(e.Expr, acc)
+		acc = a.LeftCalls(e.Expr, acc)
 	case *grammar.And:
-		acc = a.leftCalls(e.Expr, acc)
+		acc = a.LeftCalls(e.Expr, acc)
 	case *grammar.Not:
-		acc = a.leftCalls(e.Expr, acc)
+		acc = a.LeftCalls(e.Expr, acc)
 	case *grammar.Atomic:
-		acc = a.leftCalls(e.Expr, acc)
+		acc = a.LeftCalls(e.Expr, acc)
 	case *grammar.Discard:
-		acc = a.leftCalls(e.Expr, acc)
+		acc = a.LeftCalls(e.Expr, acc)
 	case *grammar.Capture:
-		acc = a.leftCalls(e.Expr, acc)
+		acc = a.LeftCalls(e.Expr, acc)
 	case *grammar.Attributed:
-		acc = a.leftCalls(e.Expr, acc)
+		acc = a.LeftCalls(e.Expr, acc)
 		if !a.AlwaysSucceeds(e.Expr) {
 			for _, at := range e.Attrs {
 				if at.Name == "recover" {
 					if skip, ok := at.Arg("skip"); ok {
-						acc = a.leftCalls(skip, acc)
+						acc = a.LeftCalls(skip, acc)
 					}
 				}
 			}
 		}
 	case *grammar.OperatorsRule:
 		if e.Skip != nil {
-			acc = a.leftCalls(e.Skip, acc)
+			acc = a.LeftCalls(e.Skip, acc)
 		}
 		for _, o := range e.Operands {
-			acc = a.leftCalls(o.Expr, acc)
+			acc = a.LeftCalls(o.Expr, acc)
 			if a.AlwaysSucceeds(o.Expr) {
 				break
 			}
@@ -298,7 +298,7 @@ func (a *Analysis) leftCalls(e grammar.Expr, acc []string) []string {
 		for _, l := range e.Levels {
 			for _, op := range l.Operators {
 				if op.Kind == grammar.Prefix {
-					acc = a.leftCalls(op.Expr, acc)
+					acc = a.LeftCalls(op.Expr, acc)
 				}
 			}
 		}
@@ -308,10 +308,10 @@ func (a *Analysis) leftCalls(e grammar.Expr, acc []string) []string {
 
 // AllCalls returns every rule called in the expression.
 func AllCalls(e grammar.Expr, acc []string) []string {
-	return allCallsControlled(e, acc, nil)
+	return AllCallsControlled(e, acc, nil)
 }
 
-func allCallsControlled(e grammar.Expr, acc []string, control *cancel.Control) []string {
+func AllCallsControlled(e grammar.Expr, acc []string, control *cancel.Control) []string {
 	walkExprControlled(e, func(x grammar.Expr) {
 		control.Poll()
 		if r, ok := x.(*grammar.Ref); ok {
@@ -321,12 +321,12 @@ func allCallsControlled(e grammar.Expr, acc []string, control *cancel.Control) [
 	return acc
 }
 
-// ruleVariables returns, for each rule, the sorted names of the variables read by
+// RuleVariables returns, for each rule, the sorted names of the variables read by
 // predicates and actions in the rule or in the rules it calls, directly or
 // indirectly. A rule's result depends on the environment
 // only through the values of these variables at the call: definitions made inside a rule are
 // undone when it returns.
-func ruleVariables(rules []*grammar.RuleDef) map[string][]string {
+func RuleVariables(rules []*grammar.RuleDef) map[string][]string {
 	return ruleVariablesControlled(rules, nil)
 }
 
@@ -359,7 +359,7 @@ func ruleVariablesControlled(rules []*grammar.RuleDef, control *cancel.Control) 
 	calls := make(map[string][]string, len(rules))
 	for _, r := range rules {
 		control.Poll()
-		calls[r.Name] = allCallsControlled(r.Expr, nil, control)
+		calls[r.Name] = AllCallsControlled(r.Expr, nil, control)
 	}
 	// Tarjan emits callees before their callers. Every rule in a recursive
 	// component reaches all its peers, so compute their union only once.
@@ -598,7 +598,7 @@ func propagate(rules []*grammar.RuleDef, calls map[string][]string, set map[stri
 	}
 }
 
-// walkRuleTermsControlled is walkRuleTerms polling control for cancellation.
+// walkRuleTermsControlled is WalkRuleTerms polling control for cancellation.
 func walkRuleTermsControlled(r *grammar.RuleDef, f func(grammar.Term), control *cancel.Control) {
 	control.Poll()
 	WalkTerm(r.Action, f)
@@ -636,14 +636,24 @@ func ruleUsesPositions(r *grammar.RuleDef, control *cancel.Control) bool {
 // AlwaysSucceeds preserves the ordinary proof and shares the invocation control.
 func (a *Analysis) AlwaysSucceeds(e grammar.Expr) bool {
 	if a.Control == nil {
-		return grammaranalysis.AlwaysSucceeds(e, a.succeeding)
+		return grammaranalysis.AlwaysSucceeds(e, a.Succeeding)
 	}
-	return grammaranalysis.AlwaysSucceedsWithPoll(e, a.succeeding, a.Control.Poll)
+	return grammaranalysis.AlwaysSucceedsWithPoll(e, a.Succeeding, a.Control.Poll)
 }
 
 // WalkExpr is grammaranalysis.WalkExpr.
 func WalkExpr(e grammar.Expr, f func(grammar.Expr)) { grammaranalysis.WalkExpr(e, f) }
 
-// walkRuleTerms visits every term in a rule's action and predicates, including Operators Rule
+// WalkRuleTerms visits every term in a rule's action and predicates, including Operators Rule
 // operand and operator actions.
-func walkRuleTerms(r *grammar.RuleDef, f func(grammar.Term)) { walkRuleTermsControlled(r, f, nil) }
+func WalkRuleTerms(r *grammar.RuleDef, f func(grammar.Term)) { walkRuleTermsControlled(r, f, nil) }
+
+// HasPragma reports whether e carries the pragma or attribute name.
+func HasPragma(e *grammar.Attributed, name string) bool {
+	for _, a := range e.Attrs {
+		if a.Name == name {
+			return true
+		}
+	}
+	return false
+}

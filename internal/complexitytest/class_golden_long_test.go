@@ -9,7 +9,7 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp"
-	"zeroparse.dev/zp/internal/engine"
+	"zeroparse.dev/zp/internal/complexity"
 	"zeroparse.dev/zp/internal/factstest"
 	"zeroparse.dev/zp/internal/starttest"
 )
@@ -26,7 +26,7 @@ func TestClassGolden(t *testing.T) {
 				if err != nil {
 					t.Fatal(err)
 				}
-				c, err := engine.ClassifyComplexity(context.Background(), starttest.MarkAll(g), "")
+				c, err := complexity.ClassifyComplexity(context.Background(), starttest.MarkAll(g), "")
 				if err != nil {
 					t.Fatal(err)
 				}

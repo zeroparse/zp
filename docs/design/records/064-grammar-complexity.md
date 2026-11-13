@@ -238,7 +238,7 @@ hint with a witness, not a proof that a slow input exists.
 
 ### Where It Plugs In
 
-- The classifier (`internal/compile/complexity*.go`) is a pass over the grammar that the compiler runs: inline actions
+- The classifier (`internal/complexity/complexity*.go`) is a pass over the grammar that the compiler runs: inline actions
   lowered to hidden rules and attributes normalized. It reuses the analyses of `internal/compile/analysis.go`
   (nullability, rules that always succeed, the left-call graph, its SCCs, leaders and cycle members) and runs only when
   asked, not at every compile. It assumes that the memo answers exactly the rules that every parse memoizes, and a test

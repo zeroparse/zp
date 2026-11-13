@@ -355,7 +355,6 @@ docs/design/records/066-limits-by-purpose.md	unexport	streamCopy	2
 docs/design/records/066-limits-by-purpose.md	unexport	streamText	1
 docs/design/records/067-repetition-run-records.md	unexport	checkGrowth	1
 docs/design/records/067-repetition-run-records.md	unexport	checkNesting	1
-docs/design/records/067-repetition-run-records.md	unexport	restartableRepeats	1
 docs/design/records/069-exclusion-analysis.md	qualified	complexitytest.SharedContinuationGrammars	1
 docs/optimizations/008-fast-path-for-unmemoized-calls-scan-nesting-limit-d2db87d.md	unexport	scanRepeat	1
 docs/optimizations/011-generated-parsers-catch-up-with-changes-410.md	gofile	gen.go	1
@@ -401,7 +400,6 @@ docs/optimizations/069-bound-persistent-variable-binding-histories.md	internal	i
 docs/optimizations/071-dependency-propagation-for-sample-constructor-analysis.md	gofile	sample/analysis.go	1
 docs/optimizations/072-reuse-structurally-equal-duplicate-capture-types.md	gofile	check.go	1
 docs/optimizations/073-dependency-component-propagation-of-variable-reads.md	gofile	analysis.go	1
-docs/optimizations/073-dependency-component-propagation-of-variable-reads.md	unexport	ruleVariables	2
 docs/optimizations/074-smaller-first-chunks-for-generated-typed-values.md	unexport	astNew	2
 docs/optimizations/074-smaller-first-chunks-for-generated-typed-values.md	unexport	astSlice	2
 docs/optimizations/078-local-cuts-in-typed-direct-rules.md	unexport	cutInput	2
@@ -910,7 +908,6 @@ docs/optimizations/mechanisms/R010-per-position-memo-chains.md	gofile	internal/c
 docs/optimizations/mechanisms/R010-per-position-memo-chains.md	gofile	internal/engine/core/memo.go	1
 docs/optimizations/mechanisms/R010-per-position-memo-chains.md	gofile	internal/engine/core/runtime.go	1
 docs/optimizations/mechanisms/R010-per-position-memo-chains.md	gofile	runtime/runtime.go	1
-docs/optimizations/mechanisms/R010-per-position-memo-chains.md	unexport	ruleVariables	1
 docs/optimizations/mechanisms/R020-deferred-memoization.md	codelink	internal/engine/core/memo.go	1
 docs/optimizations/mechanisms/R020-deferred-memoization.md	codelink	internal/engine/core/runtime.go	1
 docs/optimizations/mechanisms/R020-deferred-memoization.md	codelink	internal/gen/tsgen/tsrt/runtime.ts	1
@@ -980,7 +977,6 @@ docs/optimizations/mechanisms/R120-transient-rule-memo-policy.md	codelink	intern
 docs/optimizations/mechanisms/R120-transient-rule-memo-policy.md	gofile	internal/compile/compile.go	2
 docs/optimizations/mechanisms/R120-transient-rule-memo-policy.md	gofile	internal/engine/core/runtime.go	1
 docs/optimizations/mechanisms/R120-transient-rule-memo-policy.md	gofile	internal/gen/tsgen/generator.go	1
-docs/optimizations/mechanisms/R120-transient-rule-memo-policy.md	unexport	transientRules	1
 docs/optimizations/mechanisms/R130-document-snapshot-record-sharing.md	codelink	internal/engine/document/document_snapshot.go	1
 docs/optimizations/mechanisms/R130-document-snapshot-record-sharing.md	codelink	internal/engine/document/document_snapshot_sharing_enabled.go	1
 docs/optimizations/mechanisms/R130-document-snapshot-record-sharing.md	codelink	internal/engine/document/document_snapshot_sharing_reference.go	1

@@ -153,9 +153,9 @@ Operators Rule, a size argument for copying, runs in the generated runtimes) are
 
 | Piece | Where | Contract |
 |:--|:--|:--|
-| Normal view | `internal/complexity/` | the laws of [grammar-laws](../../spec/proofs/grammar-laws.md), [cost view](../../spec/core-ir/cost-view.md) |
-| Classifier | `internal/compile/complexity*.go` | [Classification](../../spec/runtime/parsing.md#classification), [linear-cost](../../spec/proofs/linear-cost.md) |
-| Exclusion analysis | `internal/compile/exclusion*.go` | [record 069](records/069-exclusion-analysis.md) |
+| Normal view | `internal/complexity/view*.go` | the laws of [grammar-laws](../../spec/proofs/grammar-laws.md), [cost view](../../spec/core-ir/cost-view.md) |
+| Classifier | `internal/complexity/complexity*.go` | [Classification](../../spec/runtime/parsing.md#classification), [linear-cost](../../spec/proofs/linear-cost.md) |
+| Exclusion analysis | `internal/complexity/exclusion*.go` | [record 069](records/069-exclusion-analysis.md) |
 | Run sites | `internal/compile/run_sites.go`, `internal/engine/core/` | [Run Sites](../../spec/runtime/parsing.md#run-sites), [run-sites](../../spec/proofs/run-sites.md) |
 
 ## Related Topics

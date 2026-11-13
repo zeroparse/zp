@@ -1,6 +1,6 @@
 # 73. Dependency-Component Propagation of Variable Reads
 
-- `ruleVariables` previously ran a fresh reachable-rule DFS per rule, collecting
+- `RuleVariables` previously ran a fresh reachable-rule DFS per rule, collecting
   the same transitive reads repeatedly, even when no rule read variables.
   It now collects direct reads lazily and returns an empty result before
   constructing a graph when there are none. Otherwise, the existing syntactic
@@ -14,7 +14,7 @@
 - Current-parent compilation of a 512-rule no-variable chain reproduces
   10.212 ms / 13.400 MB per operation in a one-second profiled diagnostic.
   An allocation profile attributes 87.61% of sampled bytes directly to
-  `ruleVariables` (87.68% cumulative), confirming the earlier compiler audit.
+  `RuleVariables` (87.68% cumulative), confirming the earlier compiler audit.
   This is an allocation attribution, not a CPU fraction; compilation includes
   all phases. Profile totals also include benchmark setup.
 - Five alternating parent/candidate pairs with a 200 ms benchtime compare

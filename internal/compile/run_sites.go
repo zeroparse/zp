@@ -24,7 +24,7 @@ import (
 //   - it does not repeat a single character itself (a scan walks it);
 //   - every rule its element calls, directly or indirectly, is called without a level, is not
 //     left-recursive (a leader or member of a cycle), and contains none of the above;
-//   - it is restartable (restartableRepeats): a repetition that no iteration can reach is walked
+//   - it is restartable (RestartableRepeats): a repetition that no iteration can reach is walked
 //     from each position at most once, so no walk can reuse another's record.
 //
 // The records of a run site are keyed by the environment, and a walk that reuses one takes its end
@@ -58,7 +58,7 @@ func (prog *Program) markRunSites(control *cancel.Control, defs []*grammar.RuleD
 	for i, r := range prog.RuleList {
 		names[i] = r.Name
 	}
-	restart := restartableRepeats(names, func(n string) grammar.Expr { return prog.ByName[n].Def.Expr }, calls)
+	restart := RestartableRepeats(names, func(n string) grammar.Expr { return prog.ByName[n].Def.Expr }, calls)
 	readsVars := func(n string) bool { r := prog.ByName[n]; return r == nil || len(r.Vars) > 0 }
 	scanRules := prog.scanRules(control, defs, calls)
 	for _, r := range prog.RuleList {
@@ -102,7 +102,7 @@ func (prog *Program) markRunSites(control *cancel.Control, defs []*grammar.RuleD
 		control.Poll()
 		walkExprControlled(r.Def.Expr, func(x grammar.Expr) {
 			rep, ok := x.(*grammar.Repeat)
-			if !ok || prog.skipSites[rep] != 0 || prog.runSites[rep] != 0 || !restart[rep] || !eligible(rep) || isScan(rep) {
+			if !ok || prog.skipSites[rep] != 0 || prog.runSites[rep] != 0 || !restart[rep] || !eligible(rep) || IsScan(rep) {
 				return
 			}
 			prog.NumRunSites++
@@ -166,8 +166,8 @@ func envFree(e *grammar.Repeat, readsVars func(rule string) bool) bool {
 	return free
 }
 
-// isScan reports whether e repeats a single character, which a scan walks without a record.
-func isScan(e *grammar.Repeat) bool {
+// IsScan reports whether e repeats a single character, which a scan walks without a record.
+func IsScan(e *grammar.Repeat) bool {
 	switch e.Expr.(type) {
 	case *grammar.CharClass, *grammar.Any:
 		return true
@@ -191,7 +191,7 @@ func blocksCallee(x grammar.Expr) bool {
 	case *grammar.Stream:
 		return true
 	case *grammar.Attributed:
-		return blocksRunAttrs(x)
+		return BlocksRunAttrs(x)
 	}
 	return false
 }
@@ -200,12 +200,12 @@ func blocksCallee(x grammar.Expr) bool {
 // skip-run sites, so a site's records share the parser's tables with them.
 func (prog *Program) RunSite(e *grammar.Repeat) int { return prog.runSites[e] }
 
-// restartableRepeats returns the repetitions that an iteration of a repetition can reach: those in
+// RestartableRepeats returns the repetitions that an iteration of a repetition can reach: those in
 // the element of another repetition that iterates (its maximum is not 0 or 1), and those in a rule
 // that such an element calls, or that calls itself, directly or indirectly. Every other repetition is reached by a
 // derivation once, from the start rule through sequences, choices and calls, so one walk of it
 // starts at each position at most once per environment, and a record could not be reused.
-func restartableRepeats(names []string, exprOf func(string) grammar.Expr, calls map[string][]string) map[*grammar.Repeat]bool {
+func RestartableRepeats(names []string, exprOf func(string) grammar.Expr, calls map[string][]string) map[*grammar.Repeat]bool {
 	out := map[*grammar.Repeat]bool{}
 	iterated := map[string]bool{}
 	var queue []string
@@ -265,4 +265,16 @@ func restartableRepeats(names []string, exprOf func(string) grammar.Expr, calls 
 		})
 	}
 	return out
+}
+
+// BlocksRunAttrs reports whether the attributes of x keep a repetition that holds it from being a
+// run site: #stream, #missing, #error and #diagnostic.
+func BlocksRunAttrs(x *grammar.Attributed) bool {
+	for _, a := range x.Attrs {
+		switch a.Name {
+		case "stream", "missing", "error", "diagnostic":
+			return true
+		}
+	}
+	return false
 }

@@ -1,7 +1,7 @@
-// Package complexity builds the cost view of a grammar: a Core IR module derived from the
-// untyped module of the grammar's rules by the normalization rules of
-// spec/proofs/grammar-laws.md, which the complexity classifier reads in place of the rules as
-// written (spec/core-ir/cost-view.md).
+// Package complexity classifies the cost of parsing with a grammar (spec/runtime/parsing.md,
+// Classification). The classifier reads the cost view of the grammar: a Core IR module derived
+// from the untyped module of the grammar's rules by the normalization rules of
+// spec/proofs/grammar-laws.md, in place of the rules as written (spec/core-ir/cost-view.md).
 package complexity
 
 import (

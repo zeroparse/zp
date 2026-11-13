@@ -7,7 +7,7 @@ import (
 	"strings"
 	"testing"
 
-	"zeroparse.dev/zp/internal/engine"
+	"zeroparse.dev/zp/internal/complexity"
 	"zeroparse.dev/zp/internal/syntax"
 )
 
@@ -68,13 +68,13 @@ func TestSuperLinear(t *testing.T) {
 func TestExampleClassifications(t *testing.T) {
 	for _, tc := range []struct {
 		file   string
-		class  engine.ComplexityClass
+		class  complexity.ComplexityClass
 		degree int
 	}{
-		{"calculator/calc.zp", engine.ClassUnknown, 0},
-		{"calculator/calc_lr.zp", engine.ClassLinear, 0},
-		{"minilang/minilang.zp", engine.ClassUnknown, 2},
-		{"outline/outline.zp", engine.ClassUnknown, 3},
+		{"calculator/calc.zp", complexity.ClassUnknown, 0},
+		{"calculator/calc_lr.zp", complexity.ClassLinear, 0},
+		{"minilang/minilang.zp", complexity.ClassUnknown, 2},
+		{"outline/outline.zp", complexity.ClassUnknown, 3},
 	} {
 		t.Run(tc.file, func(t *testing.T) {
 			src, err := os.ReadFile("../examples/" + tc.file)
@@ -85,12 +85,12 @@ func TestExampleClassifications(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			c, err := engine.ClassifyComplexity(context.Background(), g, "")
+			c, err := complexity.ClassifyComplexity(context.Background(), g, "")
 			if err != nil {
 				t.Fatal(err)
 			}
 			degree := c.Degree
-			if c.Class == engine.ClassUnknown {
+			if c.Class == complexity.ClassUnknown {
 				degree = c.WitnessedDegree
 			}
 			if c.Class != tc.class || degree != tc.degree {

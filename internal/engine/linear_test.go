@@ -6,6 +6,7 @@ import (
 	"strings"
 	"testing"
 
+	"zeroparse.dev/zp/internal/complexity"
 	"zeroparse.dev/zp/internal/engine"
 	"zeroparse.dev/zp/internal/syntax"
 )
@@ -105,7 +106,7 @@ func TestDeclaredLinearKeepsClassification(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			c, err := engine.ClassifyComplexity(context.Background(), g, "")
+			c, err := complexity.ClassifyComplexity(context.Background(), g, "")
 			if err != nil {
 				t.Fatal(err)
 			}

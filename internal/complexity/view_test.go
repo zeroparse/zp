@@ -11,7 +11,6 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/grammar"
-	"zeroparse.dev/zp/internal/compile"
 	"zeroparse.dev/zp/internal/complexity"
 	"zeroparse.dev/zp/internal/factstest"
 	"zeroparse.dev/zp/internal/ir/core"
@@ -43,20 +42,20 @@ func corpus(t *testing.T) map[string]string {
 }
 
 // sourceOf returns the cost source of the grammar src.
-func sourceOf(t *testing.T, src string) *compile.CostSource {
+func sourceOf(t *testing.T, src string) *complexity.CostSource {
 	t.Helper()
 	g, err := syntax.Parse(src)
 	if err != nil {
 		t.Fatal(err)
 	}
-	cs, err := compile.NewCostSource(g, nil)
+	cs, err := complexity.NewCostSource(g, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
 	return cs
 }
 
-func viewSource(cs *compile.CostSource) *complexity.Source {
+func viewSource(cs *complexity.CostSource) *complexity.Source {
 	return &complexity.Source{Module: cs.Module, Origin: cs.Origin, Facts: cs.Facts}
 }
 
@@ -73,7 +72,7 @@ func formatRules(rules []*grammar.RuleDef) string {
 // attributes are built into, below the outermost one, which has the expression as its origin: one
 // node per attribute, a Label for @error and @diagnostic, a Recover for #recover and a Missing for
 // #missing, and the Stream of the repetition for #stream.
-func innerAttrNodes(cs *compile.CostSource) map[core.Node]bool {
+func innerAttrNodes(cs *complexity.CostSource) map[core.Node]bool {
 	inner := map[core.Node]bool{}
 	for _, r := range cs.Module.Rules {
 		core.Walk(r.Body, func(n core.Node) {
@@ -171,7 +170,7 @@ var ported = []complexity.Law{complexity.N1, complexity.N2, complexity.N3, compl
 	complexity.N6, complexity.N8, complexity.N9, complexity.N10, complexity.N11, complexity.N12}
 
 // offCorpus are the ported rules that no grammar of the corpus applies. The grammars of the
-// normal view's unit tests apply them (compile.TestCostViewMatchesCases).
+// normal view's unit tests apply them (TestNormalViewLawSwitch and TestNormalViewConditionEdges).
 var offCorpus = []complexity.Law{complexity.N3, complexity.N5, complexity.N9, complexity.N10}
 
 // TestViewLabelsAndInlineNeedOptions checks that N7 and N13 apply only when Labels and Inline

@@ -6,7 +6,7 @@ import (
 	"testing"
 	"time"
 
-	"zeroparse.dev/zp/internal/engine"
+	"zeroparse.dev/zp/internal/complexity"
 	"zeroparse.dev/zp/internal/syntax"
 )
 
@@ -24,11 +24,11 @@ func TestClassifyDuplicateRule(t *testing.T) {
 			t.Fatal(err)
 		}
 		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-		_, err = engine.ClassifyComplexity(ctx, g, "")
+		_, err = complexity.ClassifyComplexity(ctx, g, "")
 		if err == nil || !strings.Contains(err.Error(), tc.want) {
 			t.Errorf("ClassifyComplexity(%q) error = %v, want %s", tc.src, err, tc.want)
 		}
-		_, err = engine.GrowingBindings(ctx, g, "main")
+		_, err = complexity.GrowingBindings(ctx, g, "main")
 		if err == nil || !strings.Contains(err.Error(), tc.want) {
 			t.Errorf("GrowingBindings(%q) error = %v, want %s", tc.src, err, tc.want)
 		}

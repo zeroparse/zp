@@ -9,7 +9,7 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/grammar"
-	"zeroparse.dev/zp/internal/compile"
+	"zeroparse.dev/zp/internal/complexity"
 	"zeroparse.dev/zp/internal/engine"
 	"zeroparse.dev/zp/internal/limits"
 	"zeroparse.dev/zp/internal/syntax"
@@ -107,7 +107,7 @@ func TestNormalViewMatchesShapes(t *testing.T) {
 func checkViewMatches(t *testing.T, g *grammar.Grammar, prog *engine.Program, inputs []string) {
 	t.Helper()
 	for _, matching := range []bool{false, true} {
-		vg, err := compile.NormalView(g, matching, nil)
+		vg, err := complexity.NormalView(g, matching, nil)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -227,7 +227,7 @@ func TestNormalViewCompiles(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			vg, err := compile.NormalView(g, false, nil)
+			vg, err := complexity.NormalView(g, false, nil)
 			if err != nil {
 				t.Fatal(err)
 			}
