@@ -53,8 +53,11 @@ func TestUnsetFieldsReadZero(t *testing.T) {
 // when a field of the zero value is read.
 func TestZeroValueOfDeepStructTypes(t *testing.T) {
 	t.Parallel()
-	if !core.BudgetControlsEnabled {
-		t.Skip("budget controls are unavailable in the reference build")
+	// The limit checks that the zero value is not built in full; the reference build has no
+	// budget controls and rejects a limit, so there only the value is checked.
+	var lim parse.Limits
+	if core.BudgetControlsEnabled {
+		lim.Compute = 1 << 12
 	}
 	const depth = 24
 	var src strings.Builder
@@ -65,7 +68,7 @@ func TestZeroValueOfDeepStructTypes(t *testing.T) {
 	src.WriteString("rule main Top = k:\"x\" => Top{K: $k}\nrule read = t:main $$ => $t.In" + strings.Repeat(".X", depth) + ".V\n")
 	prog := mustCompile(t, src.String())
 	for _, backend := range []Backend{Closure, Bytecode, BytecodeIterative} {
-		got := gentest.ResultJSON(prog.ParseWith("read", "x", ParseOptions{Backend: backend, Limits: parse.Limits{Compute: 1 << 12}}))
+		got := gentest.ResultJSON(prog.ParseWith("read", "x", ParseOptions{Backend: backend, Limits: lim}))
 		if !strings.Contains(got, "0") || strings.Contains(got, "limit") {
 			t.Errorf("%s: %s", backend, got)
 		}
