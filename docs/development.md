@@ -261,13 +261,13 @@ instrumentation. After changing test files of `internal/engine` or `internal/api
 with `go vet ./internal/engine/... ./internal/apitest` and
 `go vet -tags zp_budget_controls_reference ./internal/engine/... ./internal/apitest`; test files that use helpers
 defined in untagged files keep both builds compiling.
-The other reference tags (`zp_reference_*`, `zp_snapshot_*_reference` and `zp_snapshot_position_overlays`)
-likewise select the simpler or the former form of an optimized mechanism. `hack/test-reference-tags.sh [tag...]`
-vets the engine packages, `internal/apitest` and every package with a file constrained by a tag, and tests the
-engine packages and `internal/apitest` with `-short`, under every tag of the tree or the tags it is given. A test
-whose feature a tag removes skips under that tag. The run takes tens of minutes: run it after changing
-budget-control code, a reference variant or the tests of the engine packages; a landing batch runs it when it
-touches such code.
+The other reference tags (`zp_reference_*` and `zp_snapshot_*_reference`) likewise select the simpler or the
+former form of an optimized mechanism. The candidate tag `zp_snapshot_position_overlays` instead selects an opt-in
+representation that the default build has not adopted. `hack/test-reference-tags.sh [tag...]` vets and tests
+with `-short` the engine packages, `internal/apitest` and every package with a file constrained by a tag, under
+every tag of the tree or the tags it is given; it rejects a tag that no build constraint names. A test whose
+feature a tag removes skips under that tag. The run takes tens of minutes: run it after changing budget-control
+code, a reference variant or the tests of the engine packages; a landing batch runs it when it touches such code.
 
 GitHub Actions runs the root module, site tests, and
 Node.js/WebAssembly/generated-TypeScript checks as separate jobs. A newer run on the same branch or pull-request
