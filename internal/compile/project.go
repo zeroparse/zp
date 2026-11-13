@@ -1,8 +1,8 @@
 package compile
 
 import (
-	"strings"
 	"zeroparse.dev/zp/internal/cancel"
+	"zeroparse.dev/zp/internal/check"
 
 	"zeroparse.dev/zp/grammar"
 )
@@ -251,17 +251,7 @@ func projField(t grammar.Term) (string, bool) {
 	if !ok || x.Name != l.Params[0] {
 		return "", false
 	}
-	return ProjectionField(m.Name)
-}
-
-// ProjectionField reports whether the member name, read of the element of a map call, reads a capture
-// of the element that a projection can stand for, and returns the capture: e.$f and e.f read the same
-// capture f, while the members of a node (Start, End, ...) are not captures.
-func ProjectionField(name string) (string, bool) {
-	if !strings.HasPrefix(name, "$") && nodeMembers[name] {
-		return "", false
-	}
-	return strings.TrimPrefix(name, "$"), true
+	return check.ProjectionField(m.Name)
 }
 
 // directCapture returns the capture of name that e makes unconditionally: e itself, or an item of

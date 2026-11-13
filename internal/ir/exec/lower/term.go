@@ -7,7 +7,6 @@ import (
 	"strings"
 	"sync"
 
-	"zeroparse.dev/zp/internal/compile"
 	ir "zeroparse.dev/zp/internal/ir/core"
 	"zeroparse.dev/zp/internal/ir/exec"
 	"zeroparse.dev/zp/internal/ir/exec/core"
@@ -724,8 +723,7 @@ func (l *termLowerer) projected(t *ir.Builtin) (*ir.SlotRef, bool) {
 	if !ok || e.Kind != ir.LocalParam || e.Lambda != f {
 		return nil, false
 	}
-	field, ok := compile.ProjectionField(m.Name)
-	return x, ok && field == l.proj[x.Name]
+	return x, m.Field == l.proj[x.Name]
 }
 
 // inDeclaredOrder reports whether the struct literal t gives its fields in the order its type declares

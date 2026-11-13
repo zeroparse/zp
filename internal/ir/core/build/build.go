@@ -745,7 +745,8 @@ func (b *coreBuilder) termNode(t grammar.Term, s *coreScope, env map[string]*cor
 		if err != nil {
 			return nil, err
 		}
-		return &core.Member{X: x, Name: t.Name}, nil
+		field, _ := check.ProjectionField(t.Name)
+		return &core.Member{X: x, Name: t.Name, Field: field}, nil
 	case *grammar.New:
 		if len(t.Args) != 0 {
 			x, err := sub(t.Args[0])
