@@ -65,6 +65,19 @@ func TestMirrorsImplementation(t *testing.T) {
 		}
 	}
 	want := impl.Checks()
+	// Every check of the implementation has a public constant, and every constant names a check.
+	known := map[string]bool{}
+	for _, c := range want {
+		known[c.Name] = true
+		if _, ok := names[c.Name]; !ok {
+			t.Errorf("the implementation has the check %q, which has no constant in the public package", c.Name)
+		}
+	}
+	for pub := range names {
+		if !known[pub] {
+			t.Errorf("the constant %q names no check of the implementation", pub)
+		}
+	}
 	got := Checks()
 	if len(got) != len(want) {
 		t.Fatalf("Checks has %d entries, the implementation has %d", len(got), len(want))

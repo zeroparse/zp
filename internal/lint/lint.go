@@ -191,8 +191,8 @@ func RunChecked(ctx context.Context, res *frontend.Result, g *grammar.Grammar, s
 	return runContext(ctx, res, g, start, options{})
 }
 
-// RewritesChecked returns the Rewrites that prove findings (those of RunChecked on the same g and
-// start), with the front-end result res of g.
+// RewritesChecked returns the Rewrites that prove findings (those of RunChecked on the same g),
+// with the front-end result res of g.
 func RewritesChecked(ctx context.Context, res *frontend.Result, g *grammar.Grammar, findings []Finding) ([]Rewrite, error) {
 	return rewritesOf(ctx, res, g, findings)
 }
