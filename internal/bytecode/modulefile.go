@@ -242,7 +242,7 @@ func (r *Decoder) ReadModule() *Module {
 	m.SourceInfo = r.Bool()
 	m.DefaultValue = r.Bool()
 	n = r.Count()
-	m.Classes = sized[Class](n)
+	m.Classes = sized[Class](r, n, 1)
 	for i := 0; i < n && r.Err == nil; i++ {
 		c := Class{Negated: r.Bool(), Desc: int(r.int32())}
 		k := r.Count()
@@ -252,22 +252,22 @@ func (r *Decoder) ReadModule() *Module {
 		m.Classes = append(m.Classes, c)
 	}
 	n = r.Count()
-	m.Types = sized[TypeInfo](n)
+	m.Types = sized[TypeInfo](r, n, 1)
 	for i := 0; i < n && r.Err == nil; i++ {
 		m.Types = append(m.Types, TypeInfo{Name: int(r.int32()), Fields: r.ints(), Zeros: r.ints(), Node: int(r.int32())})
 	}
 	n = r.Count()
-	m.Scopes = sized[[]int](n)
+	m.Scopes = sized[[]int](r, n, 1)
 	for i := 0; i < n && r.Err == nil; i++ {
 		m.Scopes = append(m.Scopes, r.ints())
 	}
 	n = r.Count()
-	m.Vars = sized[VarInfo](n)
+	m.Vars = sized[VarInfo](r, n, 1)
 	for i := 0; i < n && r.Err == nil; i++ {
 		m.Vars = append(m.Vars, VarInfo{Name: int(r.int32()), Type: int(r.int32()), Int: r.Int(), Str: int(r.int32())})
 	}
 	n = r.Count()
-	m.Rules = sized[RuleInfo](n)
+	m.Rules = sized[RuleInfo](r, n, 1)
 	for i := 0; i < n && r.Err == nil; i++ {
 		ri := RuleInfo{
 			Name: int(r.int32()), Entry: int(r.int32()), Scope: r.ints(), Action: int(r.int32()),
@@ -279,7 +279,7 @@ func (r *Decoder) ReadModule() *Module {
 	m.Starts = r.ints()
 	m.DefaultStart = int(r.int32())
 	n = r.Count()
-	m.OperatorsRules = sized[OperatorsRuleInfo](n)
+	m.OperatorsRules = sized[OperatorsRuleInfo](r, n, 1)
 	for i := 0; i < n && r.Err == nil; i++ {
 		p := OperatorsRuleInfo{Skip: int(r.int32())}
 		k := r.Count()
@@ -298,12 +298,12 @@ func (r *Decoder) ReadModule() *Module {
 	}
 	m.Code = r.code()
 	n = r.Count()
-	m.Ints = sized[int64](n)
+	m.Ints = sized[int64](r, n, 1)
 	for i := 0; i < n && r.Err == nil; i++ {
 		m.Ints = append(m.Ints, r.int64())
 	}
 	n = r.Count()
-	m.Terms = sized[Term](n)
+	m.Terms = sized[Term](r, n, 6)
 	for i := 0; i < n && r.Err == nil; i++ {
 		m.Terms = append(m.Terms, r.term())
 	}
@@ -324,11 +324,15 @@ func (r *Decoder) int64() int64 {
 	return n
 }
 
-// sized returns an empty slice with room for n elements, or nil for none. n is a count that Count
-// bounded by the bytes left, and each element takes at least one byte, so the room is a small
-// multiple of the data (as for ints); a term, much larger than its least encoding, grows instead.
-func sized[T any](n int) []T {
-	if n == 0 {
+// sized returns an empty slice with room for the n elements that follow, or nil for none. Each
+// element takes at least least bytes of the data, so a valid count fits the bytes left; the room is
+// bounded by them, so that a forged count reserves no more elements than the rest of the data could
+// hold.
+func sized[T any](r *Decoder, n, least int) []T {
+	if left := (len(r.Data) - r.Pos) / least; n > left {
+		n = left
+	}
+	if n <= 0 {
 		return nil
 	}
 	return make([]T, 0, n)
@@ -361,37 +365,37 @@ func (r *Decoder) term() Term {
 		return n
 	}
 	n := count(0)
-	t.Consts = sized[TermConst](n)
+	t.Consts = sized[TermConst](r, n, 2)
 	for i := 0; i < n && r.Err == nil; i++ {
 		t.Consts = append(t.Consts, TermConst{Kind: int(r.Byte()), Int: r.int64()})
 	}
 	n = count(1)
-	t.Names = sized[int](n)
+	t.Names = sized[int](r, n, 1)
 	for i := 0; i < n && r.Err == nil; i++ {
 		t.Names = append(t.Names, int(r.int32()))
 	}
 	n = count(2)
-	t.Members = sized[TermMember](n)
+	t.Members = sized[TermMember](r, n, 3)
 	for i := 0; i < n && r.Err == nil; i++ {
 		t.Members = append(t.Members, TermMember{Kind: int(r.int32()), Name: int(r.int32()), Field: int(r.int32())})
 	}
 	n = count(3)
-	t.NodeTypes = sized[int](n)
+	t.NodeTypes = sized[int](r, n, 1)
 	for i := 0; i < n && r.Err == nil; i++ {
 		t.NodeTypes = append(t.NodeTypes, int(r.int32()))
 	}
 	n = count(4)
-	t.Casts = sized[TermCast](n)
+	t.Casts = sized[TermCast](r, n, 3)
 	for i := 0; i < n && r.Err == nil; i++ {
 		t.Casts = append(t.Casts, TermCast{Type: int(r.int32()), Line: int(r.int32()), Col: int(r.int32())})
 	}
 	n = count(5)
-	t.Structs = sized[TermStruct](n)
+	t.Structs = sized[TermStruct](r, n, 2)
 	for i := 0; i < n && r.Err == nil; i++ {
 		t.Structs = append(t.Structs, TermStruct{Type: int(r.int32()), Fields: int(r.int32())})
 	}
 	n = r.Count()
-	t.Code = sized[TermInstr](n)
+	t.Code = sized[TermInstr](r, n, 2)
 	for i := 0; i < n && r.Err == nil; i++ {
 		t.Code = append(t.Code, r.termInstr())
 	}
