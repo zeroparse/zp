@@ -610,9 +610,11 @@ func (b *builder) subsumed(alt core.Node, earlier []core.Node) bool {
 	return false
 }
 
-// prefix reports whether pre is a proper prefix of all.
+// prefix reports whether pre is a prefix of all, which may be the whole of it. An alternative
+// whose items are those of an earlier one matches what the earlier one matches, whatever value
+// each builds: a sequence of one item matches what its item matches.
 func (b *builder) prefix(pre, all []core.Node) bool {
-	if len(pre) >= len(all) {
+	if len(pre) > len(all) {
 		return false
 	}
 	for i, x := range pre {
