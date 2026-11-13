@@ -62,12 +62,14 @@ type Program struct {
 	// from these, so that none is lost (engine.Program.lazyOptions).
 	Opts Options
 
+	// Bytecode is the program's bytecode module, made once under BytecodeOnce: the module a
+	// program loaded from a compiled grammar was read from, or the engine's compilation of the
+	// program's Core IR (vm.Compile) once a VM or a save first needs it. BytecodeErr is the internal
+	// error of that compilation, if any, kept beside the module so that every program sharing this
+	// one reports it.
 	BytecodeOnce sync.Once
 	Bytecode     *bytecode.Module
-	// BytecodeTerms holds the terms of Bytecode, by index of Module.Terms, when the compiler made it;
-	// the engine makes their term code once, under BytecodeTermsOnce.
-	BytecodeTerms     []TermSite
-	BytecodeTermsOnce sync.Once
+	BytecodeErr  error
 	// typeKinds holds the node kinds of the grammar's types (typeKind), made with the program.
 	typeKinds map[string]*noderep.Kind
 	// NodeKinds holds the kinds of the grammar's named node types, also under the names of the

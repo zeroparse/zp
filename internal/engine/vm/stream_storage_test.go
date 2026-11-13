@@ -54,7 +54,7 @@ func TestStreamStorageCommitReferences(t *testing.T) {
 }
 
 func TestVMStreamRepeatShape(t *testing.T) {
-	code := compiletest.Program(t, `rule main = (x:"x" #atomic)* #stream $$`, compile.Options{SourceInfo: true}).BytecodeModule().Code
+	code := compileModule(t, `rule main = (x:"x" #atomic)* #stream $$`).Code
 	ip := -1
 	for i, in := range code {
 		if in.Op == bytecode.OpRepeat {

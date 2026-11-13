@@ -35,7 +35,7 @@ Evidence records:
 
 Source owners: [`LeanLine` and the Operators Rule
 walk](../../../internal/compile/compile_walk.go),
-[`bcompiler.line`](../../../internal/compile/bcompile.go), [`Operators Rule line
+the line emission of the bytecode compiler, [`Operators Rule line
 emission`](../../../internal/gen/gengo/generator.go), [`TypeScript line
 emission`](../../../internal/gen/gents/generator.go).
 

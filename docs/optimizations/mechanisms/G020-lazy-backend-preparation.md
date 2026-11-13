@@ -32,7 +32,7 @@ timing must separate preparation from steady-state matching.
 
 Source owners: [`Program.BytecodeOnce`](../../../internal/compile/compile.go),
 [`Program.recOnce, vmOnce, ivmOnce and Module`](../../../internal/engine/program.go),
-[`Program.BytecodeModule`](../../../internal/compile/bcompile.go), [`Program.Recognizer
+the engine program's bytecode module, [`Program.Recognizer
 and rule`](../../../internal/engine/program_parse.go).
 
 The [comparison policy](../../design/records/024-optimization-mechanism-controls.md)

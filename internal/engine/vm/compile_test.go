@@ -1,18 +1,21 @@
-package compile
+package vm
 
 import (
 	"strings"
 	"testing"
+
+	"zeroparse.dev/zp/internal/bytecode"
+	"zeroparse.dev/zp/internal/compile"
+	"zeroparse.dev/zp/internal/compiletest"
 )
 
-// TestModuleDisassembly checks the disassembly of a module as the compiler makes it: the engine makes
-// the term code of its terms, so the term is empty.
+// TestModuleDisassembly checks the disassembly of the match code of a module as the compiler
+// makes it.
 func TestModuleDisassembly(t *testing.T) {
 	t.Parallel()
-	prog := mustCompile(t, `type P = { K node[string]; N int }
+	got := compileModule(t, `type P = { K node[string]; N int }
 rule main = k:key "=" v:[0-9]+ #atomic (";" / _) => P{K: $k, N: len($v) + 1}
-rule key = [a-z]+ @error(message="expected a key") #atomic`)
-	got := prog.BytecodeModule().Disassemble()
+rule key = [a-z]+ @error(message="expected a key") #atomic`).Disassemble()
 	want := `rules:
   0 main entry=0 scope=[k v] action=0 memo,transient
   1 key entry=13 scope=[] memo,transient
@@ -40,16 +43,16 @@ key:
     18  RETURN     
 terms:
 main.action:
-  term 0 regs=[0 0 0 0]
-`
-	if got != want {
+  term 0 `
+	// The term code is the engine's translation of the action's Core IR, which the term tests pin.
+	if !strings.HasPrefix(got, want) {
 		t.Errorf("got\n%s", got)
 	}
 }
 
 func TestDiagnosticLabelDisassembly(t *testing.T) {
 	t.Parallel()
-	module := mustCompile(t, `rule main = "a" @error(message="explicit") / "b" @diagnostic(name="letter")`).BytecodeModule()
+	module := compileModule(t, `rule main = "a" @error(message="explicit") / "b" @diagnostic(name="letter")`)
 	text := module.Disassemble()
 	if !strings.Contains(text, `LABEL      "explicit"`+"\n") {
 		t.Errorf("explicit error label changed:\n%s", text)
@@ -64,12 +67,12 @@ func TestDiagnosticLabelDisassembly(t *testing.T) {
 // view treats the two as the same expression.
 func TestLoosestLevelCall(t *testing.T) {
 	t.Parallel()
-	text := mustCompile(t, `rule main = level(e, sum) "x" / e "y" / level(e, mul) "z"
+	text := compileModule(t, `rule main = level(e, sum) "x" / e "y" / level(e, mul) "z"
 rule e = #operators {
   operand "n"
   level sum { infix left "+" }
   level mul { infix left "*" }
-}`).BytecodeModule().Disassemble()
+}`).Disassemble()
 	var calls []string
 	for _, line := range strings.Split(text, "\n") {
 		if f := strings.Fields(line); len(f) > 1 && f[1] == "CALL" {
@@ -81,3 +84,35 @@ rule e = #operators {
 		t.Errorf("calls %q, want %q\n%s", calls, want, text)
 	}
 }
+
+// TestMissingTokensModuleGuard checks that a grammar that uses #missing has no bytecode form.
+func TestMissingTokensModuleGuard(t *testing.T) {
+	t.Parallel()
+	prog := compiletest.Program(t, `rule main = ";" #missing`, compile.Options{SourceInfo: true})
+	if _, err := Compile(prog); err == nil || !strings.Contains(err.Error(), "bytecode module construction") {
+		t.Fatal("silent bytecode lowering", err)
+	}
+}
+
+// compileModule compiles src with source information, and the options opts if any, to a module.
+func compileModule(t *testing.T, src string, opts ...compile.Options) *bytecode.Module {
+	t.Helper()
+	var o compile.Options
+	if len(opts) > 0 {
+		o = opts[0]
+	}
+	o.SourceInfo = true
+	m, err := Compile(compiletest.Program(t, src, o))
+	if err != nil {
+		t.Fatal(err)
+	}
+	return m
+}
+
+// varModuleSource declares variables of each type, reads them in predicates and rebinds them.
+const varModuleSource = `var n int = 3
+var s string = "x"
+var b bool
+rule main = {n := n + 1} {s := s + "y"} {n > 2 && s != "" && !b} item "a"
+rule item = {n > 0} "b"?
+`

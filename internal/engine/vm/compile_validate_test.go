@@ -1,11 +1,44 @@
-package compile
+package vm
 
 import (
 	"strings"
 	"testing"
 
 	"zeroparse.dev/zp/internal/bytecode"
+	"zeroparse.dev/zp/internal/compile"
+	"zeroparse.dev/zp/internal/compiletest"
 )
+
+// A module whose rule converts its value to a type that is not a named node type is rejected.
+func TestNodeTypeModuleValidation(t *testing.T) {
+	t.Parallel()
+	prog := compiletest.Program(t, `type Name = node[string]
+rule main = name ("," name)*
+rule name Name = ([a-z]+) #atomic`, compile.Options{})
+	mp, err := Compile(prog)
+	if err != nil {
+		t.Fatal(err)
+	}
+	m := *mp
+	if err := compile.ValidateModule(&m); err != nil {
+		t.Fatal(err)
+	}
+	m.Rules = append([]bytecode.RuleInfo(nil), m.Rules...)
+	found := false
+	for i := range m.Rules {
+		if m.Rules[i].NodeType >= 0 {
+			m.Rules[i].NodeType = m.Rules[i].Name
+			found = true
+			break
+		}
+	}
+	if !found {
+		t.Fatal("no rule of a named node type")
+	}
+	if err := compile.ValidateModule(&m); err == nil || !strings.Contains(err.Error(), "is not a named node type") {
+		t.Fatalf("got %v", err)
+	}
+}
 
 // TestModuleVariableValidation checks that a module whose code names a variable that its table
 // does not declare is rejected, wherever the variable appears in the match code: an operand is a slot
@@ -13,13 +46,13 @@ import (
 func TestModuleVariableValidation(t *testing.T) {
 	t.Parallel()
 	fresh := func() *bytecode.Module {
-		m := *mustCompile(t, varModuleSource).BytecodeModule()
+		m := *compileModule(t, varModuleSource)
 		m.Strings = append([]string(nil), m.Strings...)
 		m.Code = append([]bytecode.Instr(nil), m.Code...)
 		m.Rules = append([]bytecode.RuleInfo(nil), m.Rules...)
 		return &m
 	}
-	if err := ValidateModule(fresh()); err != nil {
+	if err := compile.ValidateModule(fresh()); err != nil {
 		t.Fatal(err)
 	}
 	undeclared := func(m *bytecode.Module) int {
@@ -55,7 +88,7 @@ func TestModuleVariableValidation(t *testing.T) {
 			if !tc.mutate(m) {
 				t.Fatal("nothing to mutate")
 			}
-			if err := ValidateModule(m); err == nil || !strings.Contains(err.Error(), tc.want) {
+			if err := compile.ValidateModule(m); err == nil || !strings.Contains(err.Error(), tc.want) {
 				t.Fatalf("got %v", err)
 			}
 		})
@@ -79,12 +112,28 @@ func TestModuleInitialValueMatchesType(t *testing.T) {
 		{"unknown type", func(m *bytecode.Module) { m.Vars[0].Type = 3 }},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
-			m := *mustCompile(t, varModuleSource).BytecodeModule()
+			m := *compileModule(t, varModuleSource)
 			m.Vars = append([]bytecode.VarInfo(nil), m.Vars...)
 			tc.mutate(&m)
-			if err := ValidateModule(&m); err == nil {
+			if err := compile.ValidateModule(&m); err == nil {
 				t.Fatal("a module with a mistyped initial value was accepted")
 			}
 		})
+	}
+}
+
+// TestLoadedBindingNeedsNoCheck checks that a crafted module whose ASSIGN asks for a check, as the
+// earlier instruction set let it, is rejected.
+func TestLoadedBindingNeedsNoCheck(t *testing.T) {
+	t.Parallel()
+	m := compileModule(t, "var x int\nrule main = {x := 1} \"a\" => x\n")
+	m.Code = append([]bytecode.Instr(nil), m.Code...)
+	for i := range m.Code {
+		if m.Code[i].Op == bytecode.OpBind {
+			m.Code[i].C = 1
+		}
+	}
+	if err := compile.ValidateModule(m); err == nil {
+		t.Error("an ASSIGN with a check operand was accepted")
 	}
 }

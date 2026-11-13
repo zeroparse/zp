@@ -3,8 +3,6 @@ package compile
 import (
 	"strings"
 	"testing"
-
-	"zeroparse.dev/zp/internal/bytecode"
 )
 
 // TestVarDeclarationErrors checks the compile errors of variable declarations and of the uses
@@ -64,24 +62,11 @@ func TestVarDeclarationsCompile(t *testing.T) {
 	}
 }
 
-// TestLoadedBindingNeedsNoCheck checks that a crafted module whose ASSIGN asks for a check, as the
-// earlier instruction set let it, is rejected, and that a binding of a value of another type than
-// the variable's is memory-safe: variables hold any value and reads check the types they use.
-func TestLoadedBindingNeedsNoCheck(t *testing.T) {
+// TestBindingTypeMismatch checks that a binding of a value of another type than the variable's is
+// rejected when the grammar is compiled, whatever reads the variable. (Variables hold any value and
+// reads check the types they use, so a crafted module stays memory-safe.)
+func TestBindingTypeMismatch(t *testing.T) {
 	t.Parallel()
-	prog := mustCompile(t, "var x int\nrule main = {x := 1} \"a\" => x\n")
-	m := prog.BytecodeModule()
-	m.Code = append([]bytecode.Instr(nil), m.Code...)
-	for i := range m.Code {
-		if m.Code[i].Op == bytecode.OpBind {
-			m.Code[i].C = 1
-		}
-	}
-	if err := ValidateModule(m); err == nil {
-		t.Error("an ASSIGN with a check operand was accepted")
-	}
-
-	// A binding of another type is rejected when the grammar is compiled, whatever reads the variable.
 	for _, rule := range []string{"bound = {x := \"s\"} \"a\" => x", "sum = {x := \"s\"} \"a\" => x + 1"} {
 		if got := compileMessage(t, "var x int\nrule "+rule+"\n"); !strings.Contains(got, "cannot use string as int in the binding of variable x") {
 			t.Errorf("%s: %q", rule, got)

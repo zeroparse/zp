@@ -33,8 +33,8 @@ Evidence records:
 [001](../001-value-free-rule-bodies-value-free-twins-transient-rules-0b2c903.md).
 
 Source owners: [`Compiler.twinOf and
-Rule.TwinOK`](../../../internal/compile/compile.go), [`twin rule
-bytecode`](../../../internal/compile/bcompile.go), [`all rule/twin
+Rule.TwinOK`](../../../internal/compile/compile.go), the twin calls of the bytecode
+compiler, [`all rule/twin
 generation`](../../../internal/gen/gengo/generator.go), [`TypeScript twin rule
 generation`](../../../internal/gen/gents/generator.go).
 

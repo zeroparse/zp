@@ -59,6 +59,7 @@ func (prog *Program) definesRule(name string) bool {
 	if prog.Grammar != nil {
 		return prog.ByName[name] != nil
 	}
-	m := prog.BytecodeModule()
+	// A program without a grammar was loaded from its module.
+	m := prog.Bytecode
 	return slices.ContainsFunc(m.Rules, func(r bytecode.RuleInfo) bool { return m.Strings[r.Name] == name })
 }

@@ -219,12 +219,19 @@ func (prog *Program) DefaultStart() string { return prog.DefaultStartRule }
 // of a start rule, or empty for the default start rule.
 func (prog *Program) CheckStart(name string) error { return prog.Static().CheckStart(name) }
 
-// Module compiles the program to bytecode. The result is stored in the program and reused on
-// subsequent calls.
+// Module compiles the program to bytecode (vm.Compile). The result is stored in the program and
+// reused on subsequent calls. It panics for a program whose grammar uses #missing, which has no
+// bytecode form, and on an internal error.
 func (prog *Program) Module() *bytecode.Module {
-	m := prog.BytecodeModule()
-	vm.CompileTerms(prog.Static(), m)
-	return m
+	s := prog.Static()
+	if s.HasMissing {
+		panic(compile.MissingUnsupported("bytecode module construction"))
+	}
+	s.BytecodeOnce.Do(func() { s.Bytecode, s.BytecodeErr = vm.Compile(s) })
+	if s.BytecodeErr != nil {
+		panic(s.BytecodeErr)
+	}
+	return s.Bytecode
 }
 
 // moduleTerms returns the module m (Module) and the programs of its terms, loading them once for

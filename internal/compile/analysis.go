@@ -657,3 +657,13 @@ func HasPragma(e *grammar.Attributed, name string) bool {
 	}
 	return false
 }
+
+// hasRecover reports whether attrs has #recover.
+func hasRecover(attrs []*grammar.Attribute) bool {
+	for _, a := range attrs {
+		if a.Name == "recover" {
+			return true
+		}
+	}
+	return false
+}

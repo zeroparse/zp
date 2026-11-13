@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"unsafe"
 
-	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/bytecode"
 	"zeroparse.dev/zp/internal/compile"
 	"zeroparse.dev/zp/internal/engine/core"
@@ -1232,47 +1231,4 @@ func (mc *Machine) freeRunState(r *core.RunState) {
 	r.Old = nil
 	mc.p.ReleaseRunLists(r)
 	mc.freeRuns = append(mc.freeRuns, r)
-}
-
-// CompileTerms makes the term code of the module m that the compiler made of prog
-// (compile.Program.BytecodeTerms): the program of each term site, compiled from its Core IR term
-// (core.CompileTerm). It does so once per program, and does nothing for a module that holds its term
-// code already, such as a loaded one.
-func CompileTerms(prog *compile.Program, m *bytecode.Module) {
-	prog.BytecodeTermsOnce.Do(func() {
-		if len(prog.BytecodeTerms) == 0 {
-			return
-		}
-		terms, err := core.CoreTerms(prog)
-		if err != nil {
-			panic(err)
-		}
-		strs := map[string]int{}
-		for i, s := range m.Strings {
-			if _, ok := strs[s]; !ok {
-				strs[s] = i
-			}
-		}
-		str := func(s string) int {
-			if i, ok := strs[s]; ok {
-				return i
-			}
-			strs[s] = len(m.Strings)
-			m.Strings = append(m.Strings, s)
-			return len(m.Strings) - 1
-		}
-		for i, site := range prog.BytecodeTerms {
-			t, ok := terms[site.Term]
-			if !ok {
-				panic(fmt.Sprintf("internal error: no Core IR of the term %s", grammar.FormatTerm(site.Term)))
-			}
-			tp, err := core.CompileTerm(t, core.TermEnv{Prog: prog, Scope: site.Scope, Proj: site.Proj})
-			if err != nil {
-				panic(fmt.Sprintf("internal error: %v", err))
-			}
-			if m.Terms[i], err = tp.Export(str); err != nil {
-				panic(fmt.Sprintf("internal error: %v", err))
-			}
-		}
-	})
 }
