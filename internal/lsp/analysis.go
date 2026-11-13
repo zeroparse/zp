@@ -13,8 +13,8 @@ import (
 	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/engine"
 	"zeroparse.dev/zp/internal/frontend"
+	"zeroparse.dev/zp/internal/lint"
 	"zeroparse.dev/zp/internal/syntax"
-	"zeroparse.dev/zp/lint"
 )
 
 // symKind is the namespace of a name: rules and types have separate namespaces.

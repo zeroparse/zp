@@ -77,7 +77,7 @@ func TestExampleClassifications(t *testing.T) {
 		{"outline/outline.zp", engine.ClassUnknown, 3},
 	} {
 		t.Run(tc.file, func(t *testing.T) {
-			src, err := os.ReadFile("../examples/" + tc.file)
+			src, err := os.ReadFile("../../examples/" + tc.file)
 			if err != nil {
 				t.Fatal(err)
 			}

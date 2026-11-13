@@ -6,7 +6,7 @@ import (
 	"strings"
 	"testing"
 	"zeroparse.dev/zp/grammar"
-	"zeroparse.dev/zp/lint"
+	"zeroparse.dev/zp/internal/lint"
 )
 
 // fixActions opens src with a client that takes versioned edits and returns, for each lint
