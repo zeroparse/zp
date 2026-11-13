@@ -36,7 +36,7 @@ Evidence records:
 
 Source owners: [`parser.matchLiteral`](../../../internal/engine/core/input.go),
 [`generated literal matcher`](../../../runtime/runtime.go),
-[`TypeScript literal matcher`](../../../internal/gen/tsgen/tsrt/runtime.ts).
+[`TypeScript literal matcher`](../../../internal/gen/gents/tsrt/runtime.ts).
 
 The [comparison policy](../../design/records/024-optimization-mechanism-controls.md)
 distinguishes same-source controls, historical changes and full checkpoints.

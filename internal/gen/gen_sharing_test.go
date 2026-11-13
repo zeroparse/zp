@@ -8,20 +8,20 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/internal/gen"
-	"zeroparse.dev/zp/internal/gen/gogen"
-	"zeroparse.dev/zp/internal/gen/tsgen"
+	"zeroparse.dev/zp/internal/gen/gengo"
+	"zeroparse.dev/zp/internal/gen/gents"
 	"zeroparse.dev/zp/internal/gentest"
 )
 
 func TestGeneratedSharingIdentity(t *testing.T) {
 	t.Parallel()
-	ts := &tsgen.Generator{Generator: gen.Generator{Table: "rules"}}
+	ts := &gents.Generator{Generator: gen.Generator{Table: "rules"}}
 	name := ts.Method("first", "return [null, true];\n")
 	ts.Table = "recRules"
 	if ts.Method("recognition", "return [null, true];\n") != name {
 		t.Fatal("identical TypeScript bodies should share across rule tables")
 	}
-	g := &gogen.Generator{Table: "rules"}
+	g := &gengo.Generator{Table: "rules"}
 	a := g.Method("first", "return nil, true\n")
 	g.Table = "recRules"
 	if g.Method("recognition", "return nil, true\n") != a {

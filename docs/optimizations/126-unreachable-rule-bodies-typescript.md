@@ -15,7 +15,7 @@ calls of every rule body, and the pass takes the two things that differ by targe
 is entered, through the rule constant (`p.call`, `p.invokePlain`) or through the plain function of a rule without
 captures (`r<N>(p)`).
 
-For TypeScript (`internal/gen/tsgen/reach.go`):
+For TypeScript (`internal/gen/gents/reach.go`):
 
 - The roots are every start rule of the Node table, which `parseRule` can name at run time and `starts` lists, the
   default start rule, and the recognizer's start rule. `startIn` accepts only names in `starts`, so no other rule can

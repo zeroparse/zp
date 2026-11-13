@@ -16,7 +16,7 @@ import (
 
 	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/gen"
-	"zeroparse.dev/zp/internal/gen/gogen"
+	"zeroparse.dev/zp/internal/gen/gengo"
 )
 
 // The generated fixtures are built in two forms: with budget controls, so that the tests of
@@ -72,16 +72,16 @@ var genHooks sync.Map
 
 // SetGenHooks makes the Go parsers that t and its subtests generate use h, so that tests that
 // observe the generator run in parallel.
-func SetGenHooks(t testing.TB, h *gogen.Hooks) {
+func SetGenHooks(t testing.TB, h *gengo.Hooks) {
 	name := t.Name()
 	genHooks.Store(name, h)
 	t.Cleanup(func() { genHooks.Delete(name) })
 }
 
 // testGenHooks returns the hooks of the generator for t, or nil.
-func testGenHooks(t testing.TB) *gogen.Hooks {
+func testGenHooks(t testing.TB) *gengo.Hooks {
 	if h, ok := byTest(&genHooks, t); ok {
-		return h.(*gogen.Hooks)
+		return h.(*gengo.Hooks)
 	}
 	return nil
 }
@@ -352,7 +352,7 @@ func MergeGenerated(files []gen.GeneratedFile) []byte {
 		type span struct{ lo, hi int }
 		var cut []span
 		for _, imp := range file.Imports {
-			if imp.Name != nil && imp.Name.Name == gogen.TypesAlias {
+			if imp.Name != nil && imp.Name.Name == gengo.TypesAlias {
 				continue
 			}
 			text := string(src[fset.Position(imp.Pos()).Offset:fset.Position(imp.End()).Offset])
@@ -400,7 +400,7 @@ func unqualifyTypes(src []byte) []byte {
 	var cuts [][2]int
 	goast.Inspect(file, func(n goast.Node) bool {
 		if sel, ok := n.(*goast.SelectorExpr); ok {
-			if id, ok := sel.X.(*goast.Ident); ok && id.Name == gogen.TypesAlias && id.Obj == nil {
+			if id, ok := sel.X.(*goast.Ident); ok && id.Name == gengo.TypesAlias && id.Obj == nil {
 				cuts = append(cuts, [2]int{fset.Position(id.Pos()).Offset, fset.Position(sel.Sel.Pos()).Offset})
 			}
 		}

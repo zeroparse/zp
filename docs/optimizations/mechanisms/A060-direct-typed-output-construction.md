@@ -33,7 +33,7 @@ remain separate.
 Evidence records: [048](../048-a-typed-runtime-for-parseast.md).
 
 Source owners: [`typed constructors and conversion
-generation`](../../../internal/gen/gogen/types.go),
+generation`](../../../internal/gen/gengo/types.go),
 [`tparser`](../../../runtime/typed.go), [`typed runtime
 design`](../../design/records/012-typed-values.md).
 

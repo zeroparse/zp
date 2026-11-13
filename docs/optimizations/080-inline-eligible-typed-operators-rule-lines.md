@@ -49,7 +49,7 @@ values and errors:
 
 ```sh
 export ZP_TYPED_OPERATORS_RULE_DIR=/tmp/zp-typed-operators-rule
-go test ./internal/gen/gogen -run '^TestGeneratedTypedOperatorsRule(Workload|ActionWorkload)$' -count=1
+go test ./internal/gen/gengo -run '^TestGeneratedTypedOperatorsRule(Workload|ActionWorkload)$' -count=1
 ```
 
 Build each fixture from the `direct` and `general` folders into separate

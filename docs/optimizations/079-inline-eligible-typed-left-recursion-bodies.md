@@ -55,7 +55,7 @@ values and errors:
 
 ```sh
 export ZP_TYPED_LR_DIR=/tmp/zp-typed-lr
-go test ./internal/gen/gogen -run '^TestGeneratedTypedLR(Workload|ActionWorkload)$' -count=1
+go test ./internal/gen/gengo -run '^TestGeneratedTypedLR(Workload|ActionWorkload)$' -count=1
 ```
 
 Build the `direct` and `general` fixtures into separate benchmark binaries.

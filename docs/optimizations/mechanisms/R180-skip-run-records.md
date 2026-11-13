@@ -35,7 +35,7 @@ Evidence record: [132](../132-records-of-recovery-skip-walks.md).
 Source owners: [the site analysis](../../../internal/compile/skip_sites.go), [the engine
 operations](../../../internal/engine/core/skip_runs.go), [the generated Go runtime](../../../runtime/skip_runs.go),
 [the Flow IR operations](../../../internal/ir/flow/flow.go) and [their lowering](../../../internal/ir/flow/lower/lower.go),
-[the TypeScript runtime](../../../internal/gen/tsgen/tsrt/runtime.ts).
+[the TypeScript runtime](../../../internal/gen/gents/tsrt/runtime.ts).
 
 Related mechanisms: [R170](R170-left-recursion-member-memo.md).
 

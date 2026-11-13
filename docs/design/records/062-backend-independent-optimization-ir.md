@@ -68,8 +68,8 @@ more times: the closure evaluator in `closure/eval.go`, bytecode expression code
   [050](../../optimizations/050-first-character-dispatch-in-the-closure-backend.md) and
   [051](../../optimizations/051-first-character-dispatch-in-the-vms-instruction-set-3.md).
 - The first terminal of an expression is defined by three recursive functions (`firstTerminal` in
-  `compile.go` with a cancellable copy in `class_context.go`, `gogen.Generator.first` in `internal/gen/gogen/generator.go`,
-  `terminalProgram.first` in `internal/gen/gogen/terminal.go`), which a change to guard eligibility must keep in step.
+  `compile.go` with a cancellable copy in `class_context.go`, `gengo.Generator.first` in `internal/gen/gengo/generator.go`,
+  `terminalProgram.first` in `internal/gen/gengo/terminal.go`), which a change to guard eligibility must keep in step.
   Guards are emitted in six places.
 - Generated Go is printed from Flow IR: the typed rules and Operators Rule lines, and the rules and lines of the
   Node and recognizer tables. Generation fails if Flow IR prints none of the forms below for a rule, a line or the
@@ -166,7 +166,7 @@ more times: the closure evaluator in `closure/eval.go`, bytecode expression code
 - Budget-control specialization exists twice in the compilers that duplicate code: the closure backend compiles a
   second, metered closure graph (`controlledDispatch`), and TypeScript rewrote printed conditions with regular
   expressions (`tsBudgetCond`). Generated Go and TypeScript print one form of each function, chosen by the options.
-- Code is shared as strings. TypeScript reused the Go conditions of `gogen.Generator.first` and
+- Code is shared as strings. TypeScript reused the Go conditions of `gengo.Generator.first` and
   `controlledClassReject` after rewriting `==` to `===` and rebalancing `&&`/`||` by parenthesis counting
   (`tsCond`, `tsBalancedCondition`). Helper sharing
   ([record 090](../../optimizations/090-share-identical-generated-helpers.md)) compares printed function
@@ -608,7 +608,7 @@ separate interpreter is maintained.
 | First terminals (three implementations) | One Core attribute; `Guard` |
 | Character classes, class tables, VM ASCII masks | Interned Core classes; each emitter chooses its representation |
 | Value-needed rules, twins, lean bodies, projections (`project.go`) | Want and value elision; twin and recognition variants |
-| Terminal programs (`internal/gen/gogen/terminal.go`) | `Terminal` nodes; the emitter keeps the runtime table format |
+| Terminal programs (`internal/gen/gengo/terminal.go`) | `Terminal` nodes; the emitter keeps the runtime table format |
 | Recognizer program and recognize-mode modules | Recognition specialization of Core IR in each family; bytecode emitted from it |
 | Helper sharing by printed body ([record 090](../../optimizations/090-share-identical-generated-helpers.md)) | Structural sharing of identical Flow IR functions before printing |
 | Compile-cancellation copies (`…Controlled`) | The pass driver polls the compile control between and within passes |
@@ -661,8 +661,8 @@ stage of its first consumer, so its differential tests and negative controls run
    table writes its actions without projections, so the decision goldens freeze no terms for its rules. Gate as
    stage 1 plus the Document and stream tests and the Node, recognition, Document and stream benchmarks. The
    direct Go printers are removed; the rest of the Go term lowering and the remaining `go/ast`
-   passes follow. Terminal programs (`internal/gen/gogen/terminal.go`) are owned by no stage: `terminalTable` is called by the
-   Flow IR emitter (`internal/gen/gogen/flow.go`), so Node output keeps the program and does not fall back to straight-line
+   passes follow. Terminal programs (`internal/gen/gengo/terminal.go`) are owned by no stage: `terminalTable` is called by the
+   Flow IR emitter (`internal/gen/gengo/flow.go`), so Node output keeps the program and does not fall back to straight-line
    code, and the emitter stays where it is. Moving the emitter is not part of any stage here, because it is a Go
    emission helper shared by Flow IR, not a lowering of the AST.
 3. **TypeScript.** Gate: the TypeScript parity tests in `bench` and `internal/engine`, TypeScript event

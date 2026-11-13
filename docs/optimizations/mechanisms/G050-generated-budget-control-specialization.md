@@ -51,8 +51,8 @@ table is in [103](../103-inline-the-common-budget-spend.md). Records
 [121](../121-inactive-budget-control-checks.md) hold earlier measurements of the ordinary body of a
 function and of the inlined runtime helpers.
 
-Source owners: [`Flow printer`](../../../internal/gen/gogen/flow.go), [`helper
-names`](../../../internal/gen/gogen/helper_names.go), [`metered runtime
+Source owners: [`Flow printer`](../../../internal/gen/gengo/flow.go), [`helper
+names`](../../../internal/gen/gengo/helper_names.go), [`metered runtime
 helpers`](../../../runtime/budget.go).
 
 The [comparison policy](../../design/records/024-optimization-mechanism-controls.md)

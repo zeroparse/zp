@@ -152,10 +152,10 @@ workload. Run the focused checks and export fixtures with:
 
 ```sh
 go test ./runtime -run '^TestNodeFrameScratch' -count=1
-go test ./internal/gen/gogen -run '^TestGeneratedNodeFrameScratch' -count=1
+go test ./internal/gen/gengo -run '^TestGeneratedNodeFrameScratch' -count=1
 ZP_NODE_FRAME_DIR=/tmp/zp-node-frame \
   ZP_NODE_FRAME_TYPESCRIPT=1 \
-  go test ./internal/gen/gogen -run '^TestGeneratedNodeFrameScratchWorkloads$' -count=1
+  go test ./internal/gen/gengo -run '^TestGeneratedNodeFrameScratchWorkloads$' -count=1
 ```
 
 `TestGeneratedNodeFrameScratchWorkloads` exports fixtures, and

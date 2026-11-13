@@ -9,11 +9,11 @@ import (
 	"sync"
 	"testing"
 
-	"zeroparse.dev/zp/internal/gen/gogen"
+	"zeroparse.dev/zp/internal/gen/gengo"
 )
 
 func init() {
-	gogen.SetRuntimeSource(os.DirFS(filepath.Join(moduleRoot(), "runtime")))
+	gengo.SetRuntimeSource(os.DirFS(filepath.Join(moduleRoot(), "runtime")))
 }
 
 // ModuleRoot returns the root directory of this module (see moduleRoot).

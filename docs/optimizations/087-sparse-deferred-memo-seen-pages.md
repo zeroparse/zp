@@ -40,8 +40,8 @@ For repeatable controls, export optimized and dense-reference generated Go fixtu
 go test ./internal/engine -run '^TestSparseMemo' -count=1
 go test ./internal/gen/... -run 'TestGenerated.*SparseMemo' -count=1
 go test ./runtime -run '^TestSparseMemo' -count=1
-go test ./internal/gen/tsgen -run '^TestGeneratedTSSparseMemoControls$' -count=1
-go test ./internal/gen/gogen -run '^$' -bench '^BenchmarkSparseMemoGenerated$' -benchmem
+go test ./internal/gen/gents -run '^TestGeneratedTSSparseMemoControls$' -count=1
+go test ./internal/gen/gengo -run '^$' -bench '^BenchmarkSparseMemoGenerated$' -benchmem
 go test ./internal/engine -run '^$' -bench '^BenchmarkSparseMemoTypeScript$' -benchmem
 go test ./internal/engine -run '^$' -bench '^BenchmarkSparseMemoDenseGenerated$' -benchmem
 node --expose-gc bench.mjs

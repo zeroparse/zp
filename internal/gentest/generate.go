@@ -8,8 +8,8 @@ import (
 
 	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/gen"
-	"zeroparse.dev/zp/internal/gen/gogen"
-	"zeroparse.dev/zp/internal/gen/tsgen"
+	"zeroparse.dev/zp/internal/gen/gengo"
+	"zeroparse.dev/zp/internal/gen/gents"
 )
 
 // Compile compiles grammars for the generators, as the root package's compiler for them does. The
@@ -75,9 +75,9 @@ func GenerateRaw(t testing.TB, g *grammar.Grammar, opts gen.GenOptions) ([]gen.G
 	}
 	opts.VerifyEachPass = true
 	if opts.Runtime == gen.RuntimeOnly {
-		return gogen.Generate(g, Compile, opts)
+		return gengo.Generate(g, Compile, opts)
 	}
-	return gogen.GenerateParser(g, Compile, opts, testGenHooks(t))
+	return gengo.GenerateParser(g, Compile, opts, testGenHooks(t))
 }
 
 // GenerateTS generates a TypeScript parser for g that records expectations, as
@@ -109,7 +109,7 @@ func GenerateTSRaw(g *grammar.Grammar, opts gen.GenOptions) ([]gen.GeneratedFile
 		panic("gentest.Compile is not set: the test package must set it before generating")
 	}
 	opts.VerifyEachPass = true
-	return tsgen.Generate(g, Compile, opts)
+	return gents.Generate(g, Compile, opts)
 }
 
 // NoOptIf returns the optimizations to turn off (gen.GenOptions.NoOpt) if cond holds, and none
