@@ -482,3 +482,67 @@ for (const [text, s, e, r] of [` + strings.Join(js, ", ") + `]) {
 		})
 	}
 }
+
+// TestTSDocumentSkipRuns reparses the recovery grammars with skip-run sites after random one-character
+// edits and compares each Document with a new one. Walks reuse skip-run records in these parses
+// (hundreds to thousands of hits per grammar). No mutant is attached: removing the touch of a hit
+// record's examined range changes no result on these grammars, so the touch is unproven by a mutant.
+func TestTSDocumentSkipRuns(t *testing.T) {
+	t.Parallel()
+	if testing.Short() {
+		t.Skip("runs generated TypeScript")
+	}
+	rng := rand.New(rand.NewSource(76))
+	type grammarCase struct {
+		src, script string
+	}
+	var cases []grammarCase
+	for _, sg := range gentest.SkipRunGrammars {
+		var items [][3]any
+		for _, in := range gentest.SkipRunInputs(sg.Alphabet, 40, rng) {
+			rs := []rune(in)
+			if len(rs) == 0 {
+				continue
+			}
+			for k := 0; k < 6; k++ {
+				p := rng.Intn(len(rs))
+				items = append(items, [3]any{in, p, string(sg.Alphabet[rng.Intn(len(sg.Alphabet))])})
+			}
+		}
+		b, err := json.Marshal(items)
+		if err != nil {
+			t.Fatal(err)
+		}
+		cases = append(cases, grammarCase{"@start\n" + sg.Src, `import { createDocument, marshal } from "./parser.ts";
+let bad = 0, n = 0;
+for (const [text, p, r] of ` + string(b) + `) {
+  const d = createDocument(text).document;
+  d.parse();
+  d.edit(p, p + 1, r);
+  const a = d.parse();
+  const f = createDocument(d.text()).document.parse();
+  n++;
+  if (marshal(a.node) !== marshal(f.node) || String(a.error) !== String(f.error)) bad++;
+}
+console.log("mismatches", bad, "of", n);
+`})
+	}
+	run := func() (mismatches int) {
+		for _, c := range cases {
+			g, err := syntax.Parse(c.src)
+			if err != nil {
+				t.Fatal(err)
+			}
+			got := gentest.RunTSGrammarScriptBundle(t, g, c.script, gen.GenOptions{Start: "main", Document: true}, gentest.GenerateTSBundle)
+			var bad, n int
+			if _, err := fmt.Sscanf(strings.TrimSpace(got), "mismatches %d of %d", &bad, &n); err != nil || n == 0 {
+				t.Fatalf("unexpected output %q: %v", got, err)
+			}
+			mismatches += bad
+		}
+		return mismatches
+	}
+	if bad := run(); bad != 0 {
+		t.Fatalf("%d Documents differ from a new Document", bad)
+	}
+}
