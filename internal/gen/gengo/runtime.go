@@ -36,8 +36,9 @@ const (
 )
 
 // runtimeCache memoizes the parsed runtime of each source, so that the many generations of one
-// process parse it once. The key is the source value of GenOptions.RuntimeSource; a source that
-// is not comparable is parsed on every call.
+// process parse it once. The key is the source value of GenOptions.RuntimeSource, used only for a
+// source whose dynamic type is a string or a pointer (os.DirFS, an embedded directory): such a value
+// is always a valid map key. Any other source is parsed on every call.
 var runtimeCache struct {
 	mu   sync.Mutex
 	info map[fs.FS]*runtimeInfo
@@ -70,7 +71,8 @@ func loadRuntime(opts gen.GenOptions) (*runtimeInfo, error) {
 	if fsys == nil {
 		return nil, fmt.Errorf("Go generation needs the runtime source: set GenOptions.RuntimeSource")
 	}
-	cacheable := reflect.TypeOf(fsys).Comparable()
+	k := reflect.TypeOf(fsys).Kind()
+	cacheable := k == reflect.String || k == reflect.Pointer
 	runtimeCache.mu.Lock()
 	defer runtimeCache.mu.Unlock()
 	if cacheable {
