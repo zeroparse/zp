@@ -89,50 +89,97 @@ func (v *verifier) decls() {
 		}
 	}
 	for _, o := range m.Ops {
-		where := "op " + o.Name
-		if m.component(o.Component) == nil {
-			v.errorf("%s: undeclared component %s", where, o.Component)
-		}
-		v.unique(where+": parameter", names(o.Params, func(p Param) string { return p.Name }))
-		for _, p := range o.Params {
-			v.typ(p.Type, where+" parameter "+p.Name)
-		}
-		for _, t := range o.Results {
-			v.typ(t, where+" result")
-		}
-		for _, s := range o.Reads {
-			if m.component(s) == nil && m.register(s) == nil {
-				v.errorf("%s: reads undeclared state %s", where, s)
+		v.op(o)
+	}
+}
+
+// VerifyExtension checks what was added to the module m after its first ops operations and funcs
+// functions, given that m without them passes Verify: each added operation and function as Verify
+// checks it, and that no added name is declared before it among the callees. A module that is
+// extended many times, as each term extends the one module of terms, is then not checked whole
+// again each time.
+func VerifyExtension(m *Module, ops, funcs int) error {
+	v := &verifier{m: m}
+	declared := func(name string, i, j int) bool { // whether a callee before op i or func j is named name
+		for _, o := range m.Ops[:i] {
+			if o.Name == name {
+				return true
 			}
 		}
-		for _, s := range o.Writes {
-			switch {
-			case m.register(s) != nil:
-			case m.component(s) == nil:
-				v.errorf("%s: writes undeclared state %s", where, s)
-			case s != o.Component && !o.Transitional:
-				v.errorf("%s: writes component %s, which is not its own (%s)", where, s, o.Component)
+		for _, f := range m.Funcs[:j] {
+			if f.Name == name {
+				return true
 			}
 		}
-		for _, f := range o.Features {
-			if !m.hasFeature(f) {
-				v.errorf("%s: undeclared feature %s", where, f)
-			}
+		return false
+	}
+	for i := ops; i < len(m.Ops); i++ {
+		if o := m.Ops[i]; o.Name == "" {
+			v.errorf("callee without a name")
+		} else if declared(o.Name, i, len(m.Funcs)) {
+			v.errorf("callee %s declared twice", o.Name)
 		}
-		if o.Contract == "" && !o.Transitional {
-			v.errorf("%s: no contract", where)
+		v.op(m.Ops[i])
+	}
+	for j := funcs; j < len(m.Funcs); j++ {
+		if f := m.Funcs[j]; f.Name == "" {
+			v.errorf("callee without a name")
+		} else if declared(f.Name, len(m.Ops), j) {
+			v.errorf("callee %s declared twice", f.Name)
 		}
-		if o.Host && o.Transitional {
-			v.errorf("%s: both host and transitional", where)
+	}
+	for _, f := range m.Funcs[funcs:] {
+		v.fn(f)
+	}
+	return errors.Join(v.errs...)
+}
+
+// op checks the declaration of the operation o.
+func (v *verifier) op(o *Op) {
+	m := v.m
+	where := "op " + o.Name
+	if m.component(o.Component) == nil {
+		v.errorf("%s: undeclared component %s", where, o.Component)
+	}
+	v.unique(where+": parameter", names(o.Params, func(p Param) string { return p.Name }))
+	for _, p := range o.Params {
+		v.typ(p.Type, where+" parameter "+p.Name)
+	}
+	for _, t := range o.Results {
+		v.typ(t, where+" result")
+	}
+	for _, s := range o.Reads {
+		if m.component(s) == nil && m.register(s) == nil {
+			v.errorf("%s: reads undeclared state %s", where, s)
 		}
-		for _, t := range o.Cost.Terms {
-			if t.Coef <= 0 || t.Quantity == "" {
-				v.errorf("%s: cost term needs a positive coefficient and a quantity", where)
-			}
+	}
+	for _, s := range o.Writes {
+		switch {
+		case m.register(s) != nil:
+		case m.component(s) == nil:
+			v.errorf("%s: writes undeclared state %s", where, s)
+		case s != o.Component && !o.Transitional:
+			v.errorf("%s: writes component %s, which is not its own (%s)", where, s, o.Component)
 		}
-		if o.Cost.Const < 0 {
-			v.errorf("%s: negative cost", where)
+	}
+	for _, f := range o.Features {
+		if !m.hasFeature(f) {
+			v.errorf("%s: undeclared feature %s", where, f)
 		}
+	}
+	if o.Contract == "" && !o.Transitional {
+		v.errorf("%s: no contract", where)
+	}
+	if o.Host && o.Transitional {
+		v.errorf("%s: both host and transitional", where)
+	}
+	for _, t := range o.Cost.Terms {
+		if t.Coef <= 0 || t.Quantity == "" {
+			v.errorf("%s: cost term needs a positive coefficient and a quantity", where)
+		}
+	}
+	if o.Cost.Const < 0 {
+		v.errorf("%s: negative cost", where)
 	}
 }
 

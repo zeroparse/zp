@@ -37,6 +37,9 @@ func TestBuildVerifyAndPrint(t *testing.T) {
 	if err := Verify(m); err != nil {
 		t.Fatal(err)
 	}
+	if err := VerifyExtension(m, 2, 0); err != nil {
+		t.Fatal(err)
+	}
 	got := String(m)
 	for _, want := range []string{
 		"op counter.next() (int, Token)\n  component counter\n  reads counter\n  writes counter\n  cost <= 1\n",
@@ -61,6 +64,9 @@ func TestVerifyRejects(t *testing.T) {
 			m.AddComponent("other", "")
 			m.AddOp(&Op{Name: "other.x", Component: "other", Writes: []string{"counter"}, Contract: "x"})
 		}, "writes component counter, which is not its own"},
+		{"callee declared twice", func(m *Module) {
+			m.AddFunc("counter.next", nil, nil, nil, func(b *Builder) {})
+		}, "callee counter.next declared twice"},
 		{"no contract", func(m *Module) {
 			m.AddOp(&Op{Name: "counter.y", Component: "counter"})
 		}, "no contract"},
@@ -238,6 +244,13 @@ func TestVerifyRejects(t *testing.T) {
 			err := Verify(m)
 			if err == nil || !strings.Contains(err.Error(), c.want) {
 				t.Fatalf("Verify = %v, want an error containing %q", err, c.want)
+			}
+			// Each case extends a valid module, so checking only the extension finds the same error.
+			m = testModule()
+			ops, funcs := len(m.Ops), len(m.Funcs)
+			c.edit(m)
+			if err := VerifyExtension(m, ops, funcs); err == nil || !strings.Contains(err.Error(), c.want) {
+				t.Fatalf("VerifyExtension = %v, want an error containing %q", err, c.want)
 			}
 		})
 	}

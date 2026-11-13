@@ -170,6 +170,7 @@ func Term(t ir.Term, o TermOptions) (*TermLowered, error) {
 	if err != nil {
 		return nil, err
 	}
+	nOps, nFuncs := len(m.Ops), len(m.Funcs)
 	datum, failT := exec.THandle(ops.Datum), exec.THandle(ops.Fail)
 	var results []exec.Type
 	if o.Result == "" {
@@ -195,7 +196,8 @@ func Term(t ir.Term, o TermOptions) (*TermLowered, error) {
 			b.Return(v, exec.Null(failT))
 		}
 	})
-	if err := exec.Verify(m); err != nil {
+	// The module the term extends was checked once when it was built.
+	if err := exec.VerifyExtension(m, nOps, nFuncs); err != nil {
 		return nil, fmt.Errorf("lower term: %w", err)
 	}
 	return &TermLowered{Module: m, Func: fn, Result: o.Result}, nil
@@ -310,6 +312,10 @@ func termModule() (*exec.Module, error) {
 			add(name)
 		}
 		m.Funcs = slices.Clip(m.Funcs)
+		if err := exec.Verify(m); err != nil {
+			termBaseErr = fmt.Errorf("lower: the module of terms: %w", err)
+			return
+		}
 		termBase = m
 	})
 	if termBaseErr != nil {
