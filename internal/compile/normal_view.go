@@ -965,7 +965,8 @@ func (v *normalView) attributed(a *grammar.Attributed) grammar.Expr {
 
 // inline returns the view of the body of the rule that r calls when P1 lets the call be replaced
 // by it, or nil: the rule is not memoized, so the call costs what its body costs, it is on no
-// cycle of calls, and its body has no action, binding, capture or cut that the call would delimit.
+// cycle of calls, and its body has no action, binding, capture or cut that the call would delimit,
+// and no stream, recovery or #missing.
 func (v *normalView) inline(r *grammar.Ref) grammar.Expr {
 	rd := v.byName[r.Name]
 	if rd == nil || !v.plainCall(r) || v.memo[r.Name] || v.an.cyclic[r.Name] || v.inlining[r.Name] ||
@@ -983,7 +984,7 @@ func (v *normalView) inline(r *grammar.Ref) grammar.Expr {
 		case *grammar.Predicate:
 			ok = ok && !termBinds(x.Term)
 		case *grammar.Attributed:
-			ok = ok && !hasPragma(x, "missing") && !hasPragma(x, "recover")
+			ok = ok && !hasPragma(x, "missing") && !hasPragma(x, "recover") && !hasPragma(x, "stream")
 		case *grammar.Ref:
 			ok = ok && x.Name != r.Name
 		}
