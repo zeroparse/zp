@@ -133,7 +133,7 @@ func flowGenerate(src string, opts gen.GenOptions) (string, int, int, bool) {
 	var gen *gengo.Generator
 	h := &gengo.Hooks{Generator: func(x *gengo.Generator) { gen = x }}
 	opts.Module, opts.KeepComments = "example.com/p", true
-	files, err := gengo.GenerateParser(g, compileForGenerator, opts, h)
+	files, err := gengo.GenerateParser(g, compileForGenerator, gentest.WithRuntime(opts), h)
 	if err != nil {
 		return "", 0, 0, false
 	}

@@ -150,7 +150,7 @@ rule o = #operators {
 				seq.Items[len(seq.Items)-1] = w(op)
 			}
 		}
-		if _, err = gengo.GenerateParser(g, compileForGenerator, gen.GenOptions{Types: true, TypedOnly: true, Module: "example.com/p"}, nil); err == nil {
+		if _, err = gengo.GenerateParser(g, compileForGenerator, gentest.WithRuntime(gen.GenOptions{Types: true, TypedOnly: true, Module: "example.com/p"}), nil); err == nil {
 			t.Errorf("generate with an Operators Rule spliced into a %s inside a leader: accepted", name)
 		}
 	}

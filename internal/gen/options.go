@@ -6,6 +6,7 @@ package gen
 import (
 	"fmt"
 	"io"
+	"io/fs"
 	"maps"
 	"slices"
 	"strings"
@@ -60,6 +61,12 @@ type GenOptions struct {
 	// Runtime selects how the generated Go code reaches the runtime: embedded in the package
 	// (the default), imported from this module, or generated alone.
 	Runtime RuntimeMode
+	// RuntimeSource holds the files of the runtime package (the directory runtime of this module,
+	// in its root) that Go generation copies with RuntimeEmbed and reads to qualify the names
+	// generated code uses from the runtime. Go generation requires it; the caller chooses the
+	// source (package gen: its embedded copy; tests: the live directory). TypeScript generation
+	// ignores it.
+	RuntimeSource fs.FS
 	// RuntimeModule is the specifier from which TypeScript parsers import the runtime with RuntimeImport,
 	// such as "@scope/zp-runtime" or "../shared/runtime.ts".
 	RuntimeModule string

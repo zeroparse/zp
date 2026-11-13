@@ -232,7 +232,7 @@ func TestGeneratedTypeNamedLikeTypesPackageName(t *testing.T) {
 // type of the grammar named like an export cannot capture the reference.
 func TestGeneratedTypesPackageNamesTheRuntimeExplicitly(t *testing.T) {
 	t.Parallel()
-	info, err := gengo.LoadRuntime()
+	info, err := gengo.LoadRuntime(gentest.WithRuntime(gen.GenOptions{}))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -269,7 +269,7 @@ func TestGeneratedTypesPackageNamesTheRuntimeExplicitly(t *testing.T) {
 // may make the generator fail.
 func TestGeneratedTypesNamedLikeEveryRuntimeExport(t *testing.T) {
 	t.Parallel()
-	info, err := gengo.LoadRuntime()
+	info, err := gengo.LoadRuntime(gentest.WithRuntime(gen.GenOptions{}))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -462,7 +462,7 @@ func TestDefaultPackageName(t *testing.T) {
 // are not.
 func TestQualifyRuntimeConstantKeys(t *testing.T) {
 	t.Parallel()
-	info, err := gengo.LoadRuntime()
+	info, err := gengo.LoadRuntime(gentest.WithRuntime(gen.GenOptions{}))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -580,7 +580,7 @@ func TestGeneratedRichGrammarsWithTypesNamedLikeRuntimeExports(t *testing.T) {
 	if testing.Short() {
 		t.Skip("builds standalone generated parsers")
 	}
-	info, err := gengo.LoadRuntime()
+	info, err := gengo.LoadRuntime(gentest.WithRuntime(gen.GenOptions{}))
 	if err != nil {
 		t.Fatal(err)
 	}

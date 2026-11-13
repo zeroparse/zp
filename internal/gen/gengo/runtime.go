@@ -10,6 +10,7 @@ import (
 	"go/token"
 	"io/fs"
 	"path"
+	"reflect"
 	"sort"
 	"strconv"
 	"strings"
@@ -22,7 +23,7 @@ import (
 // (zeroparse.dev/zp/runtime). Generated code reaches it through the exported names that are
 // documented there as for generated parsers. A generated package either imports the runtime from
 // this module or carries a copy of its files (embed mode), which the generator reads from the
-// source registered with SetRuntimeSource.
+// source in GenOptions.RuntimeSource.
 
 // runtimeImportPath is the import path of the runtime package in this module.
 const runtimeImportPath = "zeroparse.dev/zp/runtime"
@@ -34,19 +35,12 @@ const (
 	TypesAlias   = "types"
 )
 
-var runtimeSrc struct {
+// runtimeCache memoizes the parsed runtime of each source, so that the many generations of one
+// process parse it once. The key is the source value of GenOptions.RuntimeSource; a source that
+// is not comparable is parsed on every call.
+var runtimeCache struct {
 	mu   sync.Mutex
-	fsys fs.FS
-	info *runtimeInfo
-}
-
-// SetRuntimeSource registers the files of the runtime package (the directory runtime of this
-// module, in fsys's root) that Generate copies and reads. Package zeroparse.dev/zp/gen
-// registers its embedded copy when it is imported.
-func SetRuntimeSource(fsys fs.FS) {
-	runtimeSrc.mu.Lock()
-	defer runtimeSrc.mu.Unlock()
-	runtimeSrc.fsys, runtimeSrc.info = fsys, nil
+	info map[fs.FS]*runtimeInfo
 }
 
 type runtimeFile struct {
@@ -69,18 +63,37 @@ type runtimeInfo struct {
 	protocol string
 }
 
-// loadRuntime parses the registered runtime source once and returns its files and exported
-// declarations.
-func loadRuntime() (*runtimeInfo, error) {
-	runtimeSrc.mu.Lock()
-	defer runtimeSrc.mu.Unlock()
-	if runtimeSrc.info != nil {
-		return runtimeSrc.info, nil
+// loadRuntime parses the runtime source of opts (once per source) and returns its files and
+// exported declarations.
+func loadRuntime(opts gen.GenOptions) (*runtimeInfo, error) {
+	fsys := opts.RuntimeSource
+	if fsys == nil {
+		return nil, fmt.Errorf("Go generation needs the runtime source: set GenOptions.RuntimeSource")
 	}
-	if runtimeSrc.fsys == nil {
-		return nil, fmt.Errorf("the runtime source is not registered: import zeroparse.dev/zp/gen, or call gengo.SetRuntimeSource")
+	cacheable := reflect.TypeOf(fsys).Comparable()
+	runtimeCache.mu.Lock()
+	defer runtimeCache.mu.Unlock()
+	if cacheable {
+		if info, ok := runtimeCache.info[fsys]; ok {
+			return info, nil
+		}
 	}
-	entries, err := fs.ReadDir(runtimeSrc.fsys, ".")
+	info, err := parseRuntime(fsys)
+	if err != nil {
+		return nil, err
+	}
+	if cacheable {
+		if runtimeCache.info == nil {
+			runtimeCache.info = map[fs.FS]*runtimeInfo{}
+		}
+		runtimeCache.info[fsys] = info
+	}
+	return info, nil
+}
+
+// parseRuntime reads the files of the runtime package in fsys and their exported declarations.
+func parseRuntime(fsys fs.FS) (*runtimeInfo, error) {
+	entries, err := fs.ReadDir(fsys, ".")
 	if err != nil {
 		return nil, err
 	}
@@ -91,7 +104,7 @@ func loadRuntime() (*runtimeInfo, error) {
 		if e.IsDir() || !strings.HasSuffix(name, ".go") || strings.HasSuffix(name, "_test.go") {
 			continue
 		}
-		data, err := fs.ReadFile(runtimeSrc.fsys, name)
+		data, err := fs.ReadFile(fsys, name)
 		if err != nil {
 			return nil, err
 		}
@@ -132,7 +145,7 @@ func loadRuntime() (*runtimeInfo, error) {
 		}
 	}
 	if len(info.files) == 0 {
-		return nil, fmt.Errorf("the registered runtime source has no files")
+		return nil, fmt.Errorf("the runtime source has no files")
 	}
 	best := 0
 	for name, d := range info.Decls {
@@ -143,16 +156,15 @@ func loadRuntime() (*runtimeInfo, error) {
 		}
 	}
 	if info.protocol == "" {
-		return nil, fmt.Errorf("the registered runtime source declares no protocol version (a constant ProtocolN)")
+		return nil, fmt.Errorf("the runtime source declares no protocol version (a constant ProtocolN)")
 	}
 	sort.Slice(info.files, func(i, j int) bool { return info.files[i].name < info.files[j].name })
-	runtimeSrc.info = info
 	return info, nil
 }
 
 // runtimeFiles returns the copy of the runtime that RuntimeEmbed writes.
-func runtimeFiles() ([]gen.GeneratedFile, error) {
-	info, err := loadRuntime()
+func runtimeFiles(opts gen.GenOptions) ([]gen.GeneratedFile, error) {
+	info, err := loadRuntime(opts)
 	if err != nil {
 		return nil, err
 	}

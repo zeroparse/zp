@@ -4,16 +4,24 @@
 package gentest
 
 import (
+	"io/fs"
 	"os"
 	"path/filepath"
 	"sync"
 	"testing"
 
-	"zeroparse.dev/zp/internal/gen/gengo"
+	"zeroparse.dev/zp/internal/gen"
 )
 
-func init() {
-	gengo.SetRuntimeSource(os.DirFS(filepath.Join(moduleRoot(), "runtime")))
+// RuntimeSource is the runtime source that tests give to the generator: the live runtime
+// directory of this module, so that a test exercises the runtime as it is being edited. Package gen
+// generates from its embedded copy instead.
+func RuntimeSource() fs.FS { return os.DirFS(filepath.Join(moduleRoot(), "runtime")) }
+
+// WithRuntime returns opts with RuntimeSource set to the live runtime directory.
+func WithRuntime(opts gen.GenOptions) gen.GenOptions {
+	opts.RuntimeSource = RuntimeSource()
+	return opts
 }
 
 // ModuleRoot returns the root directory of this module (see moduleRoot).
