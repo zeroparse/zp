@@ -1,6 +1,7 @@
 package build_test
 
 import (
+	"maps"
 	"slices"
 	"strings"
 	"testing"
@@ -258,5 +259,28 @@ rule e = #operators {
 	}
 	if _, err := build.CallLevel(&grammar.Ref{Name: "main", Level: "sum"}, prog.CoreInput().Rules[0]); err == nil {
 		t.Error("level of a rule without levels: no error")
+	}
+}
+
+// TestCoreBuildMemberField checks that the Core IR of an action carries, on each member read, the
+// capture a projection of an element can stand for: e.$v gives v, and a node member gives
+// none.
+func TestCoreBuildMemberField(t *testing.T) {
+	prog := coreProgram(t, `rule main = x:item* => concat(map($x, (e) => e.$v), map($x, (e) => e.Start))
+rule item = v:"a"
+`)
+	m, err := build.CoreFrom(prog, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	got := map[string]string{}
+	core.WalkTerm(m.Rules[0].Finish.Action, func(t core.Term) {
+		if mem, ok := t.(*core.Member); ok {
+			got[mem.Name] = mem.Field
+		}
+	})
+	want := map[string]string{"$v": "v", "Start": ""}
+	if !maps.Equal(got, want) {
+		t.Errorf("member fields = %v, want %v", got, want)
 	}
 }

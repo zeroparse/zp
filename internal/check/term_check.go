@@ -2,6 +2,7 @@ package check
 
 import (
 	"slices"
+	"strings"
 
 	"fmt"
 	"zeroparse.dev/zp/grammar"
@@ -13,6 +14,16 @@ import (
 // NodeMemberNames are the members of a node, and the removed ones that the checker reports: they are
 // not captures, which are read with x.$name.
 var NodeMemberNames = map[string]bool{"Start": true, "End": true, "Value": true, "startPos": true, "endPos": true, "children": true}
+
+// ProjectionField reports whether the member name, read of the element of a map call, reads a capture
+// of the element that a projection can stand for, and returns the capture: e.$f and e.f read the same
+// capture f, while the members of a node (Start, End, ...) are not captures.
+func ProjectionField(name string) (string, bool) {
+	if !strings.HasPrefix(name, "$") && NodeMemberNames[name] {
+		return "", false
+	}
+	return strings.TrimPrefix(name, "$"), true
+}
 
 // builtins maps built-in functions to their number of arguments (-1 for variadic).
 var builtins = map[string]int{

@@ -63,6 +63,10 @@ type Member struct {
 	termBase
 	X    Term
 	Name string
+	// Field is the capture of the value that a projection of an element can stand for: the member
+	// name without its $ for a read of a capture (x.$f and x.f give f), and empty for a node member
+	// (.Start, .End, ...).
+	Field string
 }
 
 // New makes a struct.
