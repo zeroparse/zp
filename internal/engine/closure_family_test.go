@@ -18,7 +18,7 @@ import (
 	"zeroparse.dev/zp/internal/codegentest"
 	"zeroparse.dev/zp/internal/compile"
 	"zeroparse.dev/zp/internal/engine/closure"
-	ecore "zeroparse.dev/zp/internal/engine/core"
+	"zeroparse.dev/zp/internal/engine/state"
 	ir "zeroparse.dev/zp/internal/ir/core"
 )
 
@@ -93,7 +93,7 @@ func familyCharges(t *testing.T, prog *Program, b Backend, input string, stream 
 func TestClosureFamilyCharges(t *testing.T) {
 	t.Parallel()
 	stream := map[string]uint64{"stream": 141, "stream+trace": 151}
-	if !ecore.StreamFrameScratch {
+	if !state.StreamFrameScratch {
 		stream = map[string]uint64{"stream": 137, "stream+trace": 147}
 	}
 	cases := []struct {
@@ -120,14 +120,14 @@ func TestClosureFamilyCharges(t *testing.T) {
 
 // parseInFamily parses input with the start rule main of prog on the backend b in the family f,
 // with no tracer, and returns the result as ResultJSON and the parse statistics.
-func parseInFamily(prog *Program, b Backend, input string, unit core.PositionUnit, f ecore.Family) (string, core.ParseStats) {
-	p := ecore.AcquirePooledParser(&prog.sharedProgram)
+func parseInFamily(prog *Program, b Backend, input string, unit core.PositionUnit, f state.Family) (string, core.ParseStats) {
+	p := state.AcquirePooledParser(&prog.sharedProgram)
 	defer p.ReleaseBatchScratch()
-	p.Input = ecore.NewControlledTextInput(input, unit, true, p.Scratch, nil)
+	p.Input = state.NewControlledTextInput(input, unit, true, p.Scratch, nil)
 	p.MaxDepth = DefaultMaxDepth
 	p.Expectations = true
 	p.DeferMemo = true
-	p.NoPlain = f == ecore.CallPreserving
+	p.NoPlain = f == state.CallPreserving
 	n, err := prog.Run(p, b, "main")
 	return codegentest.ResultJSON(n, err), p.ReportedStats()
 }
@@ -143,8 +143,8 @@ func TestClosureFamiliesMatchOnCorpus(t *testing.T) {
 				prog := mustCompile(t, c.Src, o)
 				for _, in := range c.Inputs {
 					for _, u := range []core.PositionUnit{core.CodePoints, core.Bytes} {
-						a, as := parseInFamily(prog, Closure, in, u, ecore.Inlined)
-						b, bs := parseInFamily(prog, Closure, in, u, ecore.CallPreserving)
+						a, as := parseInFamily(prog, Closure, in, u, state.Inlined)
+						b, bs := parseInFamily(prog, Closure, in, u, state.CallPreserving)
 						if a != b || as != bs {
 							t.Errorf("memo off=%t input %q (%v): families differ\n inlined         %s %+v\n call-preserving %s %+v", o.DisableMemo, in, u, a, as, b, bs)
 						}
@@ -167,8 +167,8 @@ func TestClosureFamiliesBuiltOnFirstUse(t *testing.T) {
 		var got [2]bool
 		for _, q := range []*Program{prog, prog.budgetProgram} {
 			if q != nil {
-				got[0] = got[0] || q.families[ecore.Inlined].rules != nil
-				got[1] = got[1] || q.families[ecore.CallPreserving].rules != nil
+				got[0] = got[0] || q.families[state.Inlined].rules != nil
+				got[1] = got[1] || q.families[state.CallPreserving].rules != nil
 			}
 		}
 		return got
@@ -189,11 +189,11 @@ func TestClosureFamiliesBuiltOnFirstUse(t *testing.T) {
 	if got := built(prog); got != [2]bool{true, true} {
 		t.Fatalf("after a traced parse: built %v, want both families", got)
 	}
-	a, err := prog.rule(Closure, "item", ecore.Inlined, nil)
+	a, err := prog.rule(Closure, "item", state.Inlined, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
-	b, err := prog.rule(Closure, "item", ecore.CallPreserving, nil)
+	b, err := prog.rule(Closure, "item", state.CallPreserving, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -235,7 +235,7 @@ func TestClosureFamiliesLeaveModuleUnchanged(t *testing.T) {
 				t.Fatal(err)
 			}
 			before := ir.Print(m, true)
-			for _, f := range []ecore.Family{ecore.Inlined, ecore.CallPreserving} {
+			for _, f := range []state.Family{state.Inlined, state.CallPreserving} {
 				for _, plainDispatch := range []bool{true, false} {
 					if _, err := closure.Build(sp, m, plainDispatch, f); err != nil {
 						t.Fatal(err)
@@ -265,7 +265,7 @@ func TestClosureFamiliesBuildConcurrently(t *testing.T) {
 			errs := make([]error, 4)
 			for i := range errs {
 				wg.Go(func() {
-					_, errs[i] = closure.Build(sp, m, i%2 == 0, ecore.Family(i/2))
+					_, errs[i] = closure.Build(sp, m, i%2 == 0, state.Family(i/2))
 				})
 			}
 			wg.Wait()
@@ -283,19 +283,19 @@ func TestClosureFamiliesBuildConcurrently(t *testing.T) {
 func TestClosureFamilyBuildPanicIsAnError(t *testing.T) {
 	t.Parallel()
 	prog := mustCompile(t, `rule main = "a" $$`)
-	prog.buildFamily = func(*ir.Module, ecore.Family) ([]*ecore.Rule, error) { panic("build failed") }
+	prog.buildFamily = func(*ir.Module, state.Family) ([]*state.Rule, error) { panic("build failed") }
 	func() {
 		defer func() {
 			if recover() == nil {
 				t.Fatal("the first use did not panic")
 			}
 		}()
-		_, _ = prog.familyRules(ecore.Inlined, nil)
+		_, _ = prog.familyRules(state.Inlined, nil)
 	}()
-	if _, err := prog.familyRules(ecore.Inlined, nil); err == nil || !strings.Contains(err.Error(), "was not built") {
+	if _, err := prog.familyRules(state.Inlined, nil); err == nil || !strings.Contains(err.Error(), "was not built") {
 		t.Fatalf("err = %v, want the family not built", err)
 	}
-	if r, err := prog.rule(Closure, "main", ecore.Inlined, nil); err == nil {
+	if r, err := prog.rule(Closure, "main", state.Inlined, nil); err == nil {
 		t.Fatalf("the start rule %v of a family that was not built", r)
 	}
 }
@@ -309,7 +309,7 @@ rule item = "a" / "b"`)
 	if prog.coreIR.m != nil {
 		t.Fatal("Compile built the Core IR before a family needed it")
 	}
-	if _, err := prog.familyRules(ecore.Inlined, nil); err != nil {
+	if _, err := prog.familyRules(state.Inlined, nil); err != nil {
 		t.Fatal(err)
 	}
 	if prog.coreIR.m == nil {
@@ -319,7 +319,7 @@ rule item = "a" / "b"`)
 	if prog.coreIR.m == nil {
 		t.Fatal("the Core IR was dropped while the call-preserving family was not built")
 	}
-	if _, err := prog.familyRules(ecore.CallPreserving, nil); err != nil {
+	if _, err := prog.familyRules(state.CallPreserving, nil); err != nil {
 		t.Fatal(err)
 	}
 	if prog.coreIR.m != nil {
@@ -329,7 +329,7 @@ rule item = "a" / "b"`)
 	if module.Value() != nil {
 		t.Fatal("the Core IR is still reachable after both families were built")
 	}
-	for _, f := range []ecore.Family{ecore.Inlined, ecore.CallPreserving} {
+	for _, f := range []state.Family{state.Inlined, state.CallPreserving} {
 		if _, err := prog.rule(Closure, "main", f, nil); err != nil {
 			t.Errorf("family %d after the release: %v", f, err)
 		}
@@ -342,7 +342,7 @@ rule item = "a" / "b"`)
 // families of both programs are built, and that a metered program made after the release builds
 // the Core IR again.
 func TestMeteredProgramSharesTheCoreIR(t *testing.T) {
-	if !ecore.BudgetControlsEnabled {
+	if !state.BudgetControlsEnabled {
 		t.Skip("budget controls are unavailable in the reference build")
 	}
 	const src = "rule main = item+ $$\nrule item = \"a\" / \"b\""
@@ -353,7 +353,7 @@ func TestMeteredProgramSharesTheCoreIR(t *testing.T) {
 	}
 	var m *ir.Module
 	for _, q := range []*Program{prog, metered} {
-		for _, f := range []ecore.Family{ecore.Inlined, ecore.CallPreserving} {
+		for _, f := range []state.Family{state.Inlined, state.CallPreserving} {
 			if m == nil {
 				if _, err := q.familyRules(f, nil); err != nil {
 					t.Fatal(err)
@@ -361,7 +361,7 @@ func TestMeteredProgramSharesTheCoreIR(t *testing.T) {
 				m = prog.coreIR.m
 				continue
 			}
-			if q == metered && f == ecore.CallPreserving {
+			if q == metered && f == state.CallPreserving {
 				if prog.coreIR.m != m {
 					t.Fatal("the Core IR was dropped or built again while a family was not built")
 				}
@@ -374,18 +374,18 @@ func TestMeteredProgramSharesTheCoreIR(t *testing.T) {
 	if prog.coreIR.m != nil {
 		t.Fatal("the Core IR is kept after the families of both programs were built")
 	}
-	if a, b := prog.families[ecore.Inlined].rules, metered.families[ecore.Inlined].rules; len(a) == 0 || &a[0] == &b[0] {
+	if a, b := prog.families[state.Inlined].rules, metered.families[state.Inlined].rules; len(a) == 0 || &a[0] == &b[0] {
 		t.Fatal("the metered program runs the rules of the plain one")
 	}
 
 	late := mustCompile(t, src)
-	for _, f := range []ecore.Family{ecore.Inlined, ecore.CallPreserving} {
+	for _, f := range []state.Family{state.Inlined, state.CallPreserving} {
 		if _, err := late.familyRules(f, nil); err != nil {
 			t.Fatal(err)
 		}
 	}
 	lateMetered := late.meteredProgram()
-	if _, err := lateMetered.familyRules(ecore.Inlined, nil); err != nil {
+	if _, err := lateMetered.familyRules(state.Inlined, nil); err != nil {
 		t.Fatal(err)
 	}
 	if late.coreIR.m == nil {
@@ -453,7 +453,7 @@ func TestClosureCoreBuildObservesTheParseContext(t *testing.T) {
 		t.Fatalf("%d checks inside the Core IR build saw the context ended, want 1", ctx.calls)
 	}
 	metered := prog.budgetProgram
-	if metered == nil || metered.families[ecore.Inlined].built.Load() || prog.coreIR.m != nil {
+	if metered == nil || metered.families[state.Inlined].built.Load() || prog.coreIR.m != nil {
 		t.Fatal("a cancelled build left a family or the Core IR built")
 	}
 	if want := 2 * len(prog.families); prog.coreIR.pending != want {
@@ -464,7 +464,7 @@ func TestClosureCoreBuildObservesTheParseContext(t *testing.T) {
 	}
 	for _, q := range []*Program{prog, metered} {
 		for f := range q.families {
-			if _, err := q.familyRules(ecore.Family(f), nil); err != nil {
+			if _, err := q.familyRules(state.Family(f), nil); err != nil {
 				t.Fatal(err)
 			}
 		}
@@ -527,7 +527,7 @@ func TestClosureCoreBuildContextPanic(t *testing.T) {
 		_, _ = prog.ParseWith("main", "k1ab,k7", ParseOptions{Context: ctx})
 	}()
 	metered := prog.budgetProgram
-	if metered == nil || metered.families[ecore.Inlined].built.Load() || prog.coreIR.m != nil {
+	if metered == nil || metered.families[state.Inlined].built.Load() || prog.coreIR.m != nil {
 		t.Fatal("a build interrupted by a context panic left a family or the Core IR built")
 	}
 	if want := 2 * len(prog.families); prog.coreIR.pending != want {
@@ -552,9 +552,9 @@ func TestClosureCoreBuildPanicIsAnError(t *testing.T) {
 				t.Fatal("the first use did not panic")
 			}
 		}()
-		_, _ = prog.familyRules(ecore.Inlined, nil)
+		_, _ = prog.familyRules(state.Inlined, nil)
 	}()
-	if _, err := prog.familyRules(ecore.Inlined, nil); err == nil || !strings.Contains(err.Error(), "was not built") {
+	if _, err := prog.familyRules(state.Inlined, nil); err == nil || !strings.Contains(err.Error(), "was not built") {
 		t.Fatalf("err = %v, want the family not built", err)
 	}
 	if want := len(prog.families) - 1; prog.coreIR.pending != want {

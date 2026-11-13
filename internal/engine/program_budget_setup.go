@@ -3,14 +3,14 @@ package engine
 import (
 	"fmt"
 
-	"zeroparse.dev/zp/internal/engine/core"
+	"zeroparse.dev/zp/internal/engine/state"
 )
 
-// admitParse validates fixed metadata and resolves the limits (core.ResolveLimits) for the input text (empty for a stream) before caller Context methods. Callers
+// admitParse validates fixed metadata and resolves the limits (state.ResolveLimits) for the input text (empty for a stream) before caller Context methods. Callers
 // resolve an empty start to the default start rule first. Lazy setup
 // is not charged, but active calls check immediately around each component. It resolves the rule
 // in the closure family f that the parse runs, building that family on first use.
-func (prog *Program) admitParse(start string, o ParseOptions, f core.Family, stream bool, text string) (*Program, *core.Rule, *core.BudgetControl, error) {
+func (prog *Program) admitParse(start string, o ParseOptions, f state.Family, stream bool, text string) (*Program, *state.Rule, *state.BudgetControl, error) {
 	if err := prog.CheckStart(start); err != nil {
 		return nil, nil, nil, err
 	}
@@ -24,11 +24,11 @@ func (prog *Program) admitParse(start string, o ParseOptions, f core.Family, str
 		}
 		return ins.admitParse(start, o, f, stream, text)
 	}
-	if _, err := core.DepthLimit(o, prog.backend(o.Backend)); err != nil {
+	if _, err := state.DepthLimit(o, prog.backend(o.Backend)); err != nil {
 		return nil, nil, nil, err
 	}
-	lim, adaptive := core.ResolveLimits(o.Limits, core.InputUnits(text, o.Unit), stream)
-	if err := core.CheckInput(lim, text, o.Unit); err != nil {
+	lim, adaptive := state.ResolveLimits(o.Limits, state.InputUnits(text, o.Unit), stream)
+	if err := state.CheckInput(lim, text, o.Unit); err != nil {
 		return nil, nil, nil, err
 	}
 	if o.Context == nil && lim.Compute == 0 && lim.Memory == 0 {
@@ -64,9 +64,9 @@ func (prog *Program) admitParse(start string, o ParseOptions, f core.Family, str
 			return nil, nil, nil, err
 		}
 	}
-	c := core.NewBudgetControl(o.Context, lim)
-	if !core.BudgetControlsEnabled && c != nil {
-		return nil, nil, nil, core.ErrNoControls
+	c := state.NewBudgetControl(o.Context, lim)
+	if !state.BudgetControlsEnabled && c != nil {
+		return nil, nil, nil, state.ErrNoControls
 	}
 	if c != nil {
 		c.Adaptive = adaptive
@@ -117,8 +117,8 @@ func (prog *Program) preflightRule(b Backend, name string, stream bool) (bool, e
 	return false, fmt.Errorf("rule %s is not defined", name)
 }
 
-func (prog *Program) prepareControlledRule(b Backend, name string, f core.Family, c *core.BudgetControl) (*core.Rule, error) {
-	if !core.BudgetControlsEnabled || c == nil {
+func (prog *Program) prepareControlledRule(b Backend, name string, f state.Family, c *state.BudgetControl) (*state.Rule, error) {
+	if !state.BudgetControlsEnabled || c == nil {
 		return prog.rule(b, name, f, nil)
 	}
 	if prog.backend(b) == Closure {
@@ -144,8 +144,8 @@ func (prog *Program) prepareControlledRule(b Backend, name string, f core.Family
 // prepareControlledProgram returns the program that runs the closure parses under the budget
 // control c: the metered program (meteredProgram), made on first use. Context methods stay outside
 // Once so reentrant calls cannot deadlock setup.
-func (prog *Program) prepareControlledProgram(b Backend, c *core.BudgetControl) (*Program, error) {
-	if !core.BudgetControlsEnabled || c == nil || prog.backend(b) != Closure {
+func (prog *Program) prepareControlledProgram(b Backend, c *state.BudgetControl) (*Program, error) {
+	if !state.BudgetControlsEnabled || c == nil || prog.backend(b) != Closure {
 		return prog, nil
 	}
 	c.Check()

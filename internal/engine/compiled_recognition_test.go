@@ -14,7 +14,7 @@ import (
 	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/bytecode"
 	"zeroparse.dev/zp/internal/codegentest"
-	ecore "zeroparse.dev/zp/internal/engine/core"
+	"zeroparse.dev/zp/internal/engine/state"
 )
 
 // moduleRuleNames returns the names of the rules of m in order, each once: value-free twins follow
@@ -210,7 +210,7 @@ rule other = "é" $$`)
 	parsing := saveLoad(t, src, "main", CompiledParse)
 	for _, backend := range []Backend{Default, Bytecode, BytecodeIterative} {
 		// The reference build has no cancellation or limits.
-		if ecore.BudgetControlsEnabled {
+		if state.BudgetControlsEnabled {
 			ctx, cancel := context.WithCancel(context.Background())
 			cancel()
 			n, err := p.ParseWith("main", "abc", ParseOptions{Backend: backend, Recognize: true, Context: ctx})
@@ -367,7 +367,7 @@ rule other = "b"`)
 	m := loaded.Module()
 	for _, backend := range []Backend{Bytecode, BytecodeIterative} {
 		for _, name := range moduleRuleNames(m) {
-			r, err := loaded.rule(backend, name, ecore.Inlined, nil)
+			r, err := loaded.rule(backend, name, state.Inlined, nil)
 			if err != nil {
 				t.Fatal(err)
 			}

@@ -8,11 +8,11 @@ import "testing"
 // environment: each mutant breaks one part of env.bind, env.lookup or env.key.
 func TestEnvironmentMutantsFail(t *testing.T) {
 	const conformance = "^TestEngineExecConformance$"
-	core := []string{"./core"}
+	core := []string{"./state"}
 	t.Run("bind", func(t *testing.T) {
 		const equal = "\tif p.rawValueEqual(p.Env.Get(slot, p.envLevels), val) {\n\t\treturn\n\t}\n"
 		const rebind = "\tfor l := 0; l <= p.envLevels; l++ {\n\t\tp.Spend()\n\t}\n\t// Saved"
-		runPrintedMutants(t, "core/budget_memo.go", []printedMutant{
+		runPrintedMutants(t, "state/budget_memo.go", []printedMutant{
 			{"an equal binding makes a new environment", []printedEdit{{equal, ""}}, conformance, core},
 			{"a binding does not charge the lookup of the old value",
 				[]printedEdit{{"func (p *Parser) bindControlled(slot int, val any) {\n\tp.Spend()\n", "func (p *Parser) bindControlled(slot int, val any) {\n"}},
@@ -25,7 +25,7 @@ func TestEnvironmentMutantsFail(t *testing.T) {
 		})
 	})
 	t.Run("uncontrolled bind", func(t *testing.T) {
-		runPrintedMutants(t, "core/runtime.go", []printedMutant{
+		runPrintedMutants(t, "state/runtime.go", []printedMutant{
 			{"an equal binding makes a new environment",
 				[]printedEdit{{"\tif p.Env.Get(slot, p.envLevels) == val {\n\t\treturn\n\t}\n", ""}}, conformance, core},
 			{"a key keeps the initial values after a binding",
@@ -43,10 +43,10 @@ func TestEnvironmentMutantsFail(t *testing.T) {
 func TestRecoveryMutantsFail(t *testing.T) {
 	const conformance = "^TestEngineExecConformance$"
 	const charges = "^TestSettlingChargesTheSlotsItClears$"
-	core := []string{"./core"}
+	core := []string{"./state"}
 	t.Run("settle", func(t *testing.T) {
 		const keep = "if p.Tr == nil && cap(p.Recovered) <= streamRecoveryScratchMax {"
-		runPrintedMutants(t, "core/stream_ops.go", []printedMutant{
+		runPrintedMutants(t, "state/stream_ops.go", []printedMutant{
 			{"settling keeps the errors",
 				[]printedEdit{{"\t\tp.Recovered = p.Recovered[:0]\n\t} else {", "\t} else {"}}, conformance, core},
 			{"settling clears a list beyond the scratch", []printedEdit{{keep, "if p.Tr == nil {"}}, conformance, core},
@@ -63,7 +63,7 @@ func TestRecoveryMutantsFail(t *testing.T) {
 		})
 	})
 	t.Run("lists", func(t *testing.T) {
-		runPrintedMutants(t, "core/recovered.go", []printedMutant{
+		runPrintedMutants(t, "state/recovered.go", []printedMutant{
 			{"since leaves the entries in place",
 				[]printedEdit{{"\tp.Recovered = append(p.Recovered[:m], RecEntry{list: l})\n", ""}}, conformance, core},
 			{"since copies the errors of the lists",
@@ -79,20 +79,20 @@ func TestRecoveryMutantsFail(t *testing.T) {
 				[]printedEdit{{"p.Diagnosed, p.diagnosedSkip, p.diagnosedList = m, skip, l", "p.Diagnosed = m\n\t\t_ = skip"}},
 				"^TestReportRecoveredOfLists$", core},
 		})
-		runPrintedMutants(t, "core/stream_ops.go", []printedMutant{
+		runPrintedMutants(t, "state/stream_ops.go", []printedMutant{
 			{"a report delivers no errors of a list",
 				[]printedEdit{{"errs = p.Recovered[p.Diagnosed].AppendErrors(errs[:0])",
 					"errs = errs[:0]\n\t\tif e := p.Recovered[p.Diagnosed]; e.err != nil {\n\t\t\terrs = append(errs, e.err)\n\t\t}"}},
 				"^TestStreamDiagnosticsOfSharedLists$", []string{"."}},
 		})
-		runPrintedMutants(t, "core/runtime.go", []printedMutant{
+		runPrintedMutants(t, "state/runtime.go", []printedMutant{
 			{"a growth step keeps the errors of the step before",
 				[]printedEdit{{"\t\tp.Recovered = p.Recovered[:g.Rec]\n", ""}}, "^TestMissingTokensLeftRecursion$", []string{"."}},
 			{"a growth that grew keeps the errors of the step before",
 				[]printedEdit{{"\tp.Pos = g.start\n\tp.Recovered = p.Recovered[:g.Rec]\n\treturn true", "\tp.Pos = g.start\n\treturn true"}},
 				"^TestLeftRecursionDependencyMemoUnexamined$", []string{"."}},
 		})
-		runPrintedMutants(t, "core/missing_token.go", []printedMutant{
+		runPrintedMutants(t, "state/missing_token.go", []printedMutant{
 			{"a replay records the errors of the insertions it repeats",
 				[]printedEdit{{"\tif duplicate == nil {\n\t\tp.recAdd(errs)", "\tif true {\n\t\tp.recAdd(errs)"}},
 				"^TestMissingTokensLedgerSeedBudget$", []string{"."}},

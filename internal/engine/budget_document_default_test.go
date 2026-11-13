@@ -12,7 +12,7 @@ import (
 
 	"zeroparse.dev/zp/core"
 	"zeroparse.dev/zp/internal/codegentest"
-	ecore "zeroparse.dev/zp/internal/engine/core"
+	"zeroparse.dev/zp/internal/engine/state"
 )
 
 // docLines is a grammar of the class Linear whose rules are all transient, so that a fresh parse does
@@ -27,7 +27,7 @@ func usedBy(t *testing.T, o ParseOptions, run func(ParseOptions) error) uint64 {
 	t.Helper()
 	var used uint64
 	o.Limits = core.Limits{Compute: 1 << 50}
-	o.Trace = func(e TraceEvent) { used = ecore.TraceParser(e).Control.Used }
+	o.Trace = func(e TraceEvent) { used = state.TraceParser(e).Control.Used }
 	if err := run(o); err != nil {
 		t.Fatal(err)
 	}
@@ -100,7 +100,7 @@ func countedBy(t *testing.T, o ParseOptions, run func(ParseOptions) error) uint6
 	var counted uint64
 	o.Limits = core.Limits{}
 	o.Trace = func(e TraceEvent) {
-		c := ecore.TraceParser(e).Control
+		c := state.TraceParser(e).Control
 		counted = c.Used - c.Doc
 	}
 	if err := run(o); err != nil {
@@ -409,7 +409,7 @@ func TestBudgetDocumentWorkWithinFactorOfFresh(t *testing.T) {
 				oo := o
 				oo.Limits = core.Limits{Compute: limit}
 				var used uint64
-				oo.Trace = func(e TraceEvent) { used = ecore.TraceParser(e).Control.Used }
+				oo.Trace = func(e TraceEvent) { used = state.TraceParser(e).Control.Used }
 				if _, err := d.ParseWith(oo); err != nil {
 					t.Fatalf("%d pending edits: a document parse needs more than %d units, %d times the %d of a parse from scratch: %v",
 						edits, limit, documentWorkFactor, fresh, err)

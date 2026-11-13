@@ -10,7 +10,7 @@ import (
 
 	"zeroparse.dev/zp/core"
 	. "zeroparse.dev/zp/internal/engine"
-	ecore "zeroparse.dev/zp/internal/engine/core"
+	"zeroparse.dev/zp/internal/engine/state"
 )
 
 // TestDocumentLeftRecursionAbortedGrowth interrupts a Document parse while a
@@ -64,7 +64,7 @@ rule t = t "*" "a" / "a"`, "a*a+a+a*a*a"},
 						case "cancel":
 							cancel()
 						case "steps":
-							ecore.TraceParser(e).Control.Limits.Compute = ecore.TraceParser(e).Control.Used
+							state.TraceParser(e).Control.Limits.Compute = state.TraceParser(e).Control.Used
 						case "panic":
 							panic("interrupt growth")
 						}

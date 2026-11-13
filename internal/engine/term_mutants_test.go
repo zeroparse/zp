@@ -12,7 +12,7 @@ import (
 )
 
 // engineMutant changes the printed code of the operators of terms in the engine in one way: in the
-// compositions of internal/engine/core/term_exec.go, or in the primitives of term_value.go.
+// compositions of internal/engine/state/term_exec.go, or in the primitives of term_value.go.
 type engineMutant struct {
 	name, file, fn, old, new string
 }
@@ -98,7 +98,7 @@ func TestPrintedOperatorMutants(t *testing.T) {
 	for _, m := range engineMutants {
 		t.Run(m.name, func(t *testing.T) {
 			t.Parallel()
-			path := filepath.Join(root, "internal", "engine", "core", m.file)
+			path := filepath.Join(root, "internal", "engine", "state", m.file)
 			src, err := os.ReadFile(path)
 			if err != nil {
 				t.Fatal(err)
@@ -117,7 +117,7 @@ func TestPrintedOperatorMutants(t *testing.T) {
 			if err := os.WriteFile(overlayFile, overlay, 0o644); err != nil {
 				t.Fatal(err)
 			}
-			cmd := exec.Command("go", "test", "-count=1", "-overlay", overlayFile, "-run", "^TestEngineValue(Conformance|BoxedOperands|EqualCharges|MemberTable|BuiltinTable|StructTable|HullTable|IterTable|PushTable|CastTable)$", "./internal/engine/core")
+			cmd := exec.Command("go", "test", "-count=1", "-overlay", overlayFile, "-run", "^TestEngineValue(Conformance|BoxedOperands|EqualCharges|MemberTable|BuiltinTable|StructTable|HullTable|IterTable|PushTable|CastTable)$", "./internal/engine/state")
 			cmd.Dir = root
 			cmd.Env = append(os.Environ(), "GOFLAGS=")
 			out, err := cmd.CombinedOutput()

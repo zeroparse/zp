@@ -14,7 +14,7 @@ import (
 	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/bytecode"
 	"zeroparse.dev/zp/internal/compile"
-	ecore "zeroparse.dev/zp/internal/engine/core"
+	"zeroparse.dev/zp/internal/engine/state"
 	"zeroparse.dev/zp/internal/value"
 )
 
@@ -30,7 +30,7 @@ func TestBudgetStateVMChildAssembly(t *testing.T) {
 				if i%3 != 0 {
 					want[i] = retained
 				}
-				machineOf(p).vals = append(machineOf(p).vals, ecore.NodeOrNil(want[i]))
+				machineOf(p).vals = append(machineOf(p).vals, state.NodeOrNil(want[i]))
 			}
 			instruction := bytecode.Instr{Op: op, A: 320}
 			if op == bytecode.OpEndRepeat {
@@ -86,7 +86,7 @@ func TestBudgetStateVMCutAndFailureUnwind(t *testing.T) {
 		if !cut && len(machineOf(p).ents) != 256 {
 			t.Fatalf("unwind retained %d entries, want256", len(machineOf(p).ents))
 		}
-		p.Control = ecore.NewBudgetControl(newPollingContext(1), core.Limits{})
+		p.Control = state.NewBudgetControl(newPollingContext(1), core.Limits{})
 		if err := catchFatal(t, func() {
 			if cut {
 				body := vmBody{}
@@ -111,24 +111,24 @@ func TestBudgetStateOperatorsRuleFrameSnapshotAndRestoration(t *testing.T) {
 			p := stateBudgetParser(core.Limits{Compute: compute})
 			retained := value.Ptr(value.Data{Text: "retained", Fields: noderep.Fields{{Name: "keep", Value: "unchanged"}}})
 			before, _ := json.Marshal(retained)
-			op := &ecore.OperatorsRuleOp{Kind: grammar.Prefix, Line: &ecore.OperatorsRuleLine{Scope: &compile.Scope{Names: make([]string, 320)}}}
-			setup := func(f *ecore.Frame) {
+			op := &state.OperatorsRuleOp{Kind: grammar.Prefix, Line: &state.OperatorsRuleLine{Scope: &compile.Scope{Names: make([]string, 320)}}}
+			setup := func(f *state.Frame) {
 				for i := range f.Vals {
 					f.Vals[i] = retained
 				}
-				p.Trail = []ecore.Undo{{F: f, Slot: 0, Old: nil}}
+				p.Trail = []state.Undo{{F: f, Slot: 0, Old: nil}}
 				p.Pos = 1
 			}
-			var best ecore.OperatorsRuleAttempt
+			var best state.OperatorsRuleAttempt
 			err := catchFatal(t, func() {
 				if iterative {
-					f := &longestFrame{started: true, st: ecore.LongestState{L: []*ecore.OperatorsRuleOp{op}, F: p.NewFrame(320)}}
+					f := &longestFrame{started: true, st: state.LongestState{L: []*state.OperatorsRuleOp{op}, F: p.NewFrame(320)}}
 					setup(f.st.F)
 					f.next(ivmMachineOf(p), nil, iresult{ok: true, v: retained})
 					best = ivmMachineOf(p).attempt
 				} else {
-					op.Line.M = func(p *ecore.Parser) (*core.Node, bool) { setup(p.Frame); return retained, true }
-					best = p.Longest([]*ecore.OperatorsRuleOp{op})
+					op.Line.M = func(p *state.Parser) (*core.Node, bool) { setup(p.Frame); return retained, true }
+					best = p.Longest([]*state.OperatorsRuleOp{op})
 				}
 			})
 			if limit < 10000 {
@@ -157,9 +157,9 @@ func TestBudgetResetAndVMRestoreInterruptionIsFatal(t *testing.T) {
 			p.Frame = f
 			p.Pos = 99
 			p.SetVars([]any{1})
-			p.Recovered = []ecore.RecEntry{ecore.ErrEntry(&core.SyntaxError{Messages: []string{"temporary"}})}
+			p.Recovered = []state.RecEntry{state.ErrEntry(&core.SyntaxError{Messages: []string{"temporary"}})}
 			if name == "reset" {
-				m := ecore.Mark{Pos: 4, Trail: 0}
+				m := state.Mark{Pos: 4, Trail: 0}
 				if err := catchFatal(t, func() { p.Reset(m) }); !errors.Is(err, core.ErrLimit) {
 					t.Fatalf("reset interruption = %v, want ErrLimit", err)
 				}
@@ -190,7 +190,7 @@ func TestBudgetResetAndVMRestoreInterruptionIsFatal(t *testing.T) {
 
 func TestBudgetDocumentRunStateClearReservation(t *testing.T) {
 	marker := value.Ptr(value.Data{Text: "retained"})
-	r := &ecore.RunState{Old: []ecore.RunElem{{V: marker}}, Mid: make([]ecore.RunElem, 129), Post: []ecore.RunElem{{V: marker}}}
+	r := &state.RunState{Old: []state.RunElem{{V: marker}}, Mid: make([]state.RunElem, 129), Post: []state.RunElem{{V: marker}}}
 	for i := range r.Mid {
 		r.Mid[i].V = marker
 	}
@@ -202,7 +202,7 @@ func TestBudgetDocumentRunStateClearReservation(t *testing.T) {
 	if len(mc.freeRuns) != 0 || r.Old != nil || r.Mid[128].V != marker || r.Post[0].V != marker || value.D(marker).Text != "retained" {
 		t.Fatal("incomplete clear was published or changed pointees")
 	}
-	p.Control = ecore.NewBudgetControl(nil, core.Limits{Compute: 130})
+	p.Control = state.NewBudgetControl(nil, core.Limits{Compute: 130})
 	mc.freeRunState(r)
 	if len(mc.freeRuns) != 1 || r.Mid[128].V != nil || r.Post[0].V != nil {
 		t.Fatal("completed clear did not release references")

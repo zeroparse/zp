@@ -13,7 +13,7 @@ import (
 	"zeroparse.dev/zp/core/noderep"
 	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/compile"
-	ecore "zeroparse.dev/zp/internal/engine/core"
+	"zeroparse.dev/zp/internal/engine/state"
 	"zeroparse.dev/zp/internal/starttest"
 	"zeroparse.dev/zp/internal/value"
 )
@@ -104,12 +104,12 @@ func TestBudgetGuardedChoiceSilentSkipLoopBudgetAndCancellation(t *testing.T) {
 	}
 }
 
-func budgetGuardedChoiceSilentSkip(t *testing.T, prog *Program, m ecore.Matcher) {
+func budgetGuardedChoiceSilentSkip(t *testing.T, prog *Program, m state.Matcher) {
 	t.Helper()
 	for _, unit := range []core.PositionUnit{core.Bytes, core.CodePoints} {
 		t.Run(unit.String()+"/budget", func(t *testing.T) {
-			p := ecore.NewParser(&prog.sharedProgram, "z", unit, false)
-			p.Control = ecore.NewBudgetControl(nil, core.Limits{Compute: 1})
+			p := state.NewParser(&prog.sharedProgram, "z", unit, false)
+			p.Control = state.NewBudgetControl(nil, core.Limits{Compute: 1})
 			p.Silent = 1
 			p.MaxDepth = budgetGuardedChoiceAlternatives + 1
 			if n, ok := m(p); n != nil || ok || p.Control.Used != 1 {
@@ -118,9 +118,9 @@ func budgetGuardedChoiceSilentSkip(t *testing.T, prog *Program, m ecore.Matcher)
 		})
 
 		t.Run(unit.String()+"/cancel", func(t *testing.T) {
-			p := ecore.NewParser(&prog.sharedProgram, "z", unit, false)
+			p := state.NewParser(&prog.sharedProgram, "z", unit, false)
 			ctx := newPollingContext(1)
-			p.Control = ecore.NewBudgetControl(ctx, core.Limits{})
+			p.Control = state.NewBudgetControl(ctx, core.Limits{})
 			p.Silent = 1
 			p.MaxDepth = budgetGuardedChoiceAlternatives + 1
 			if err := catchFatal(t, func() { _, _ = m(p) }); err != nil || p.Control.Used != 1 {
@@ -138,8 +138,8 @@ func TestBudgetGuardedChoiceExactSkipBudget(t *testing.T) {
 		for _, text := range []string{"z", ""} {
 			for _, silent := range []bool{true, false} {
 				t.Run(unit.String()+"/input="+strconv.Quote(text)+"/silent="+strconv.FormatBool(silent), func(t *testing.T) {
-					p := ecore.NewParser(&prog.sharedProgram, text, unit, false)
-					p.Control = ecore.NewBudgetControl(nil, core.Limits{Compute: 1})
+					p := state.NewParser(&prog.sharedProgram, text, unit, false)
+					p.Control = state.NewBudgetControl(nil, core.Limits{Compute: 1})
 					p.MaxDepth = budgetGuardedChoiceAlternatives + 1
 					if silent {
 						p.Silent = 1
@@ -173,8 +173,8 @@ func TestBudgetGuardedChoicePassingMatcherCharge(t *testing.T) {
 				choice := &grammar.Choice{Alts: alts}
 				prog := compileExprProgram(t, &grammar.Not{Expr: choice})
 				m := closureExprMatcher(t, prog.Static(), choice, false)
-				p := ecore.NewParser(&prog.sharedProgram, "z", unit, false)
-				p.Control = ecore.NewBudgetControl(nil, core.Limits{Compute: steps})
+				p := state.NewParser(&prog.sharedProgram, "z", unit, false)
+				p.Control = state.NewBudgetControl(nil, core.Limits{Compute: steps})
 				p.Silent = 1
 				if n, ok := m(p); n != nil || !ok || p.Pos != 1 || p.Control.Used != steps {
 					t.Fatalf("matching choice node=%v ok=%v pos=%d spent=%d", n, ok, p.Pos, p.Control.Used)
@@ -230,7 +230,7 @@ func budgetGuardedChoiceFatalAndRetry(t *testing.T, prog *Program, backend Backe
 		}
 		snapshot := budgetGuardedChoiceSnapshot(retained)
 
-		var observed *ecore.Parser
+		var observed *state.Parser
 		fallbackEntries, exits := 0, 0
 		opts := ParseOptions{
 			Backend:   backend,
@@ -239,11 +239,11 @@ func budgetGuardedChoiceFatalAndRetry(t *testing.T, prog *Program, backend Backe
 			Limits:    core.Limits{Compute: 1 << 30},
 			Trace: func(e TraceEvent) {
 				if e.Kind == TraceEnter && e.Rule == "main" {
-					observed = ecore.TraceParser(e)
+					observed = state.TraceParser(e)
 					if cancel {
-						ecore.TraceParser(e).Control.Ctx = newPollingContext(2)
+						state.TraceParser(e).Control.Ctx = newPollingContext(2)
 					} else {
-						ecore.TraceParser(e).Control.Limits.Compute = ecore.TraceParser(e).Control.Used + 1
+						state.TraceParser(e).Control.Limits.Compute = state.TraceParser(e).Control.Used + 1
 					}
 				}
 				if e.Kind == TraceEnter && e.Rule == "fallback" {

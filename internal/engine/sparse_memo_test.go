@@ -9,13 +9,13 @@ import (
 
 	"zeroparse.dev/zp/core"
 	"zeroparse.dev/zp/internal/compile"
-	ecore "zeroparse.dev/zp/internal/engine/core"
+	"zeroparse.dev/zp/internal/engine/state"
 )
 
 func TestSparseMemoRuleAndPageBoundaries(t *testing.T) {
 	t.Parallel()
 	for _, stride := range []int{63, 64, 65, 128, 175} {
-		memo := ecore.MemoTable{Stride: stride}
+		memo := state.MemoTable{Stride: stride}
 		positions := []int{0, 1, 63, 64, 1023, 1024, 1025, 65535}
 		for _, pos := range positions {
 			for _, rule := range []int{0, stride - 1} {
@@ -45,14 +45,14 @@ func TestSparseMemoRuleAndPageBoundaries(t *testing.T) {
 				}
 			}
 		}
-		if ecore.SparseMemo && stride > 64 && len(memo.Seen) != 0 {
+		if state.SparseMemo && stride > 64 && len(memo.Seen) != 0 {
 			t.Fatal("sparse path allocated the dense bitset")
 		}
 	}
 }
 
-func sparseMemoRecord(memo *ecore.MemoTable, pos, rule int) bool {
-	if ecore.SparseMemo && memo.Stride > 64 {
+func sparseMemoRecord(memo *state.MemoTable, pos, rule int) bool {
+	if state.SparseMemo && memo.Stride > 64 {
 		return memo.MarkSparseSeen(pos, rule)
 	}
 	return memo.MarkSeen(pos, rule)
@@ -60,7 +60,7 @@ func sparseMemoRecord(memo *ecore.MemoTable, pos, rule int) bool {
 
 func TestSparseMemoStrideChanges(t *testing.T) {
 	t.Parallel()
-	memo := ecore.MemoTable{}
+	memo := state.MemoTable{}
 	for _, stride := range []int{175, 65, 64, 128, 175} {
 		memo.Stride = stride
 		if !sparseMemoRecord(&memo, 1024, stride-1) || sparseMemoRecord(&memo, 1024, stride-1) {
@@ -74,17 +74,17 @@ func TestSparseMemoStrideChanges(t *testing.T) {
 
 func TestSparseMemoResetBounds(t *testing.T) {
 	t.Parallel()
-	for _, memo := range []ecore.MemoTable{
-		{Pages: make([]ecore.SeenRulePages, 0, ecore.MaxScratch/5+1)},
-		{Pages: make([]ecore.SeenRulePages, 0, ecore.MaxScratch/5), BitPages: ecore.Arena[[16]uint64]{Chunks: []*[64][16]uint64{new([64][16]uint64)}}},
-		{Pages: []ecore.SeenRulePages{{Pages: make([]*[16]uint64, 0, ecore.MaxScratch+1)}}},
+	for _, memo := range []state.MemoTable{
+		{Pages: make([]state.SeenRulePages, 0, state.MaxScratch/5+1)},
+		{Pages: make([]state.SeenRulePages, 0, state.MaxScratch/5), BitPages: state.Arena[[16]uint64]{Chunks: []*[64][16]uint64{new([64][16]uint64)}}},
+		{Pages: []state.SeenRulePages{{Pages: make([]*[16]uint64, 0, state.MaxScratch+1)}}},
 	} {
 		if memo.Reset() {
 			t.Fatal("oversized directory retained")
 		}
 	}
-	memo := ecore.MemoTable{Stride: 65}
-	for i := 0; i <= ecore.MaxScratch/16; i++ {
+	memo := state.MemoTable{Stride: 65}
+	for i := 0; i <= state.MaxScratch/16; i++ {
 		memo.MarkSparseSeen(i*1024, 0)
 	}
 	if memo.Reset() {
@@ -144,7 +144,7 @@ func TestSparseMemoInputSelection(t *testing.T) {
 	} {
 		for _, backend := range []Backend{Closure, Bytecode, BytecodeIterative} {
 			for _, unit := range []core.PositionUnit{core.CodePoints, core.Bytes} {
-				p := ecore.NewParser(&prog.sharedProgram, text, unit, true)
+				p := state.NewParser(&prog.sharedProgram, text, unit, true)
 				p.DeferMemo = true
 				if _, err := prog.Run(p, backend, "main"); err != nil {
 					t.Fatal(err)
@@ -153,7 +153,7 @@ func TestSparseMemoInputSelection(t *testing.T) {
 				if unit == core.Bytes {
 					want = len(text) > 1024
 				}
-				want = want && ecore.SparseMemo
+				want = want && state.SparseMemo
 				if p.Memo.Sparse != want {
 					t.Fatalf("%s/%s: sparse=%t want=%t", backend, unit, p.Memo.Sparse, want)
 				}

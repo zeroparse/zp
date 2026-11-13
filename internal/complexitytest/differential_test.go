@@ -11,7 +11,7 @@ import (
 	"zeroparse.dev/zp/engine"
 	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/complexity"
-	"zeroparse.dev/zp/internal/engine/core"
+	"zeroparse.dev/zp/internal/engine/state"
 	"zeroparse.dev/zp/internal/starttest"
 )
 
@@ -266,7 +266,7 @@ func linearClaims(t *testing.T, count int, claimsLinear func(*grammar.Grammar) b
 		if n >= count+2*(count/4) {
 			checkedShared++
 		}
-		if !core.BudgetControlsEnabled {
+		if !state.BudgetControlsEnabled {
 			continue // the claim is counted, but the reference build cannot measure it
 		}
 	measure:

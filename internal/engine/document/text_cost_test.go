@@ -10,7 +10,7 @@ import (
 
 	"zeroparse.dev/zp/core"
 	. "zeroparse.dev/zp/internal/engine"
-	ecore "zeroparse.dev/zp/internal/engine/core"
+	"zeroparse.dev/zp/internal/engine/state"
 )
 
 // The grammar takes the text of every level of a nesting. An edit of the center splits the
@@ -18,7 +18,7 @@ import (
 // the square of the depth, and the parse is linear only if a text costs a constant.
 func TestTextCostIsConstantInDocumentPieces(t *testing.T) {
 	t.Parallel()
-	if !ecore.DocumentPieceInput {
+	if !state.DocumentPieceInput {
 		t.Skip("piece input is disabled")
 	}
 	prog := mustCompile(t, `rule main = v:a $$ => $v

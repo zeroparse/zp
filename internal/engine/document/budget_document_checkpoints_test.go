@@ -9,7 +9,7 @@ import (
 	"testing"
 
 	. "zeroparse.dev/zp/internal/engine"
-	"zeroparse.dev/zp/internal/engine/core"
+	"zeroparse.dev/zp/internal/engine/state"
 )
 
 func TestBudgetDocumentReuseCancellationAndFreshRetry(t *testing.T) {
@@ -38,7 +38,7 @@ rule line = [a-z] #repeat(2) #atomic "\n"`)
 					t.Fatal(err)
 				}
 				expectedText := text[:start] + replacement + text[end:]
-				var running *core.Parser
+				var running *state.Parser
 				stoppedAt := 0
 				ctx, cancel := context.WithCancel(context.Background())
 				defer cancel()
@@ -52,7 +52,7 @@ rule line = [a-z] #repeat(2) #atomic "\n"`)
 				o.Context = observed
 				o.Trace = func(e TraceEvent) {
 					if e.Rule == "main" && e.Kind == TraceEnter {
-						running = core.TraceParser(e)
+						running = state.TraceParser(e)
 					}
 				}
 				n, err := d.ParseWith(o)

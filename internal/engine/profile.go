@@ -7,7 +7,7 @@ import (
 	"strings"
 	"time"
 
-	"zeroparse.dev/zp/internal/engine/core"
+	"zeroparse.dev/zp/internal/engine/state"
 )
 
 // Profile accumulates the cost of each rule over the parses it is attached to (as their trace
@@ -190,7 +190,7 @@ func (pr *Profile) Trace(e TraceEvent) {
 // dropDiscarded drops from seen the positions before the input a stream parse still holds: the
 // parser cannot return to them, so no rule is evaluated there again.
 func (pr *Profile) dropDiscarded(e TraceEvent) {
-	if p := core.TraceParser(e); p != nil && p.Base > 0 {
+	if p := state.TraceParser(e); p != nil && p.Base > 0 {
 		for k := range pr.seen {
 			if k.pos < p.Base {
 				delete(pr.seen, k)

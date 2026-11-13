@@ -12,7 +12,7 @@ import (
 	"zeroparse.dev/zp/core/noderep"
 	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/compile"
-	ecore "zeroparse.dev/zp/internal/engine/core"
+	"zeroparse.dev/zp/internal/engine/state"
 	"zeroparse.dev/zp/internal/value"
 	"zeroparse.dev/zp/schema"
 )
@@ -54,7 +54,7 @@ func TestMissingTokensLiteralAndUnits(t *testing.T) {
 	t.Parallel()
 	for _, unit := range []core.PositionUnit{core.CodePoints, core.Bytes} {
 		for _, controlled := range []bool{false, true} {
-			if controlled && !ecore.BudgetControlsEnabled {
+			if controlled && !state.BudgetControlsEnabled {
 				continue
 			}
 			o := ParseOptions{Expectations: true, Unit: unit, MissingTokens: 8}
@@ -116,7 +116,7 @@ func TestMissingTokensRollbackBudgetAndCut(t *testing.T) {
 	prog := mustCompile(t, `rule main = (token "x" / token "y") $$
 rule token = ";" #missing`)
 	for _, controlled := range []bool{false, true} {
-		if controlled && !ecore.BudgetControlsEnabled {
+		if controlled && !state.BudgetControlsEnabled {
 			continue
 		}
 		o := ParseOptions{Expectations: true, MissingTokens: 2}
@@ -198,7 +198,7 @@ rule token = ";" #missing`)
 func TestMissingTokensLeftRecursion(t *testing.T) {
 	t.Parallel()
 	for _, controlled := range []bool{false, true} {
-		if controlled && !ecore.BudgetControlsEnabled {
+		if controlled && !state.BudgetControlsEnabled {
 			continue
 		}
 		o := ParseOptions{Expectations: true, MissingTokens: 64}
@@ -342,8 +342,8 @@ rule main Root = x:(";" #missing) => Root{Token: $x}`
 
 func TestMissingTokensLedgerSeedBudget(t *testing.T) {
 	t.Parallel()
-	p := &ecore.Parser{Missing: &ecore.MissingTokenState{Limit: 2}}
-	event := ecore.MissingTokenEvent{Site: ecore.MissingTokenSite{ID: 1, Pos: 3}, Err: &core.SyntaxError{Pos: 3}}
+	p := &state.Parser{Missing: &state.MissingTokenState{Limit: 2}}
+	event := state.MissingTokenEvent{Site: state.MissingTokenSite{ID: 1, Pos: 3}, Err: &core.SyntaxError{Pos: 3}}
 	if !p.InsertMissing(event) || p.InsertMissing(event) {
 		t.Fatal("site guard")
 	}
@@ -352,20 +352,20 @@ func TestMissingTokensLedgerSeedBudget(t *testing.T) {
 	if p.Missing.Attempts != 1 || seed[0].Site != event.Site {
 		t.Fatal("rollback refunded budget or cleared owned seed")
 	}
-	p.ReplayMissing(seed, ecore.ErrEntry(event.Err))
-	p.ReplayMissing(seed, ecore.ErrEntry(event.Err))
+	p.ReplayMissing(seed, state.ErrEntry(event.Err))
+	p.ReplayMissing(seed, state.ErrEntry(event.Err))
 	if p.Missing.Attempts != 2 || len(p.Recovered) != 1 {
 		t.Fatal("installed event replay was charged or duplicated")
 	}
 	p.ResetMissing(0)
 	defer func() {
-		f, ok := recover().(ecore.Fatal)
+		f, ok := recover().(state.Fatal)
 		var limit *core.MissingTokenLimitError
 		if !ok || !errors.As(f.Err, &limit) || limit.Position != 3 {
 			t.Fatal("seed replay did not exhaust budget")
 		}
 	}()
-	p.ReplayMissing(seed, ecore.ErrEntry(event.Err))
+	p.ReplayMissing(seed, state.ErrEntry(event.Err))
 }
 
 func TestMissingTokensPredicateRecognitionAndMemoDependencies(t *testing.T) {
@@ -438,10 +438,10 @@ rule e = ";" #missing e / "x" ";" #missing`)
 
 func TestMissingTokensMemoSeedContextAndRecycledPointers(t *testing.T) {
 	t.Parallel()
-	p := &ecore.Parser{Missing: &ecore.MissingTokenState{Limit: 8}, Memo: ecore.NewMemoTable()}
+	p := &state.Parser{Missing: &state.MissingTokenState{Limit: 8}, Memo: state.NewMemoTable()}
 	err := &core.SyntaxError{Pos: 0}
-	p.InsertMissing(ecore.MissingTokenEvent{Site: ecore.MissingTokenSite{ID: 1, Pos: 0}, Err: err})
-	e := &ecore.MemoEntry{}
+	p.InsertMissing(state.MissingTokenEvent{Site: state.MissingTokenSite{ID: 1, Pos: 0}, Err: err})
+	e := &state.MemoEntry{}
 	p.RecordMissingSeed(e, 0)
 	if len(p.MissingSeedEvents(e)) != 1 {
 		t.Fatal("seed did not retain insertion")
@@ -453,14 +453,14 @@ func TestMissingTokensMemoSeedContextAndRecycledPointers(t *testing.T) {
 		t.Fatal("recycled pointer inherited an insertion")
 	}
 	for _, controlled := range []bool{false, true} {
-		p := &ecore.Parser{Memo: ecore.NewMemoTable()}
-		if controlled && ecore.BudgetControlsEnabled {
-			p.Control = ecore.NewBudgetControl(context.Background(), core.Limits{})
+		p := &state.Parser{Memo: state.NewMemoTable()}
+		if controlled && state.BudgetControlsEnabled {
+			p.Control = state.NewBudgetControl(context.Background(), core.Limits{})
 		}
-		ordinary := ecore.MemoKey{Rule: 1}
-		lookahead := ecore.MemoKey{Rule: 1, MissingSilent: true}
-		p.MemoPut(ordinary, &ecore.MemoEntry{Ok: true, End: 7})
-		p.MemoPut(lookahead, &ecore.MemoEntry{Ok: false})
+		ordinary := state.MemoKey{Rule: 1}
+		lookahead := state.MemoKey{Rule: 1, MissingSilent: true}
+		p.MemoPut(ordinary, &state.MemoEntry{Ok: true, End: 7})
+		p.MemoPut(lookahead, &state.MemoEntry{Ok: false})
 		if e, ok := p.MemoGet(ordinary); !ok || !e.Ok || e.End != 7 {
 			t.Fatal("lookahead replaced insertion-enabled seed")
 		}

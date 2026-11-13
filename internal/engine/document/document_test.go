@@ -10,7 +10,7 @@ import (
 
 	"zeroparse.dev/zp/core"
 	. "zeroparse.dev/zp/internal/engine"
-	ecore "zeroparse.dev/zp/internal/engine/core"
+	"zeroparse.dev/zp/internal/engine/state"
 )
 
 // TestDocumentEditKeepsMemo checks that an edit keeps exactly the memo entries the rules in
@@ -38,9 +38,9 @@ func TestDocumentEditKeepsMemo(t *testing.T) {
 				ins += pieces[rng.Intn(len(pieces))]
 			}
 			delta := len([]rune(ins)) - (end - start)
-			want := map[*ecore.MemoEntry]int{}
-			doc.Memo().Each(func(e *ecore.MemoEntry) {
-				if !ecore.AdvanceEntry(e, doc.Edits()) {
+			want := map[*state.MemoEntry]int{}
+			doc.Memo().Each(func(e *state.MemoEntry) {
+				if !state.AdvanceEntry(e, doc.Edits()) {
 					return // invalidated by an earlier edit, and not looked up since
 				}
 				switch {
@@ -55,7 +55,7 @@ func TestDocumentEditKeepsMemo(t *testing.T) {
 				t.Fatal(err)
 			}
 			// Entries are brought up to date when they are looked up: do it for every entry.
-			got := map[*ecore.MemoEntry]int{}
+			got := map[*state.MemoEntry]int{}
 			m := doc.Memo()
 			for idx, head := range m.Slots {
 				at := idx
@@ -65,7 +65,7 @@ func TestDocumentEditKeepsMemo(t *testing.T) {
 					t.Fatalf("edit %d: entry in the gap", i)
 				}
 				for e := head; e != nil; e = e.Next {
-					if !ecore.AdvanceEntry(e, doc.Edits()) {
+					if !state.AdvanceEntry(e, doc.Edits()) {
 						continue
 					}
 					if e.Pos != at {
@@ -190,7 +190,7 @@ func TestDocumentEditText(t *testing.T) {
 				// Edit at character boundaries of the current bytes.
 				var bounds []int
 				for k := 0; k <= len(refBytes); k++ {
-					if ecore.ValidBoundary(string(refBytes), core.Bytes, k) == nil {
+					if state.ValidBoundary(string(refBytes), core.Bytes, k) == nil {
 						bounds = append(bounds, k)
 					}
 				}
@@ -214,7 +214,7 @@ func TestDocumentEditText(t *testing.T) {
 			if unit == core.CodePoints {
 				wantText = string(ref)
 			}
-			want := ecore.NewInput(wantText, unit)
+			want := state.NewInput(wantText, unit)
 			got := doc.Input()
 			if got.Loaded() != want.Loaded() || doc.Text() != wantText {
 				t.Fatalf("%v, edit %d: [%d,%d) -> %q: text differs from a fresh read", unit, i, start, end, piece)
@@ -354,7 +354,7 @@ rule val = [0-9]+ #atomic / "[" items:([0-9]+ #atomic ",")* "]"`, false},
 }
 
 // TestDocumentResumesRepetitions checks that a reparse resumes long repetitions around the edit
-// (core/resume.go), with results equal to parsing from scratch.
+// (state/resume.go), with results equal to parsing from scratch.
 func TestDocumentResumesRepetitions(t *testing.T) {
 	for _, b := range []Backend{Closure, Bytecode, BytecodeIterative} {
 		t.Run(b.String(), func(t *testing.T) {

@@ -3,7 +3,7 @@ package bytecode
 // Term is the term code of an action, a predicate or the value of a binding: the instructions of the
 // function that the lowering of terms makes of the term, over registers of four files, with the
 // pools they index. The instruction set and its checks belong to the engine, which compiles and runs
-// term code (internal/engine/core); the module stores it and checks that the pools refer to strings
+// term code (internal/engine/state); the module stores it and checks that the pools refer to strings
 // of the string table. See "Term Code" in spec/bytecode/README.md.
 type Term struct {
 	// Regs holds the sizes of the register files: values, integers and booleans, element

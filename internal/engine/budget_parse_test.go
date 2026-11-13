@@ -10,7 +10,7 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/core"
-	ecore "zeroparse.dev/zp/internal/engine/core"
+	"zeroparse.dev/zp/internal/engine/state"
 )
 
 func TestBudgetParsePreCancelledAndValidation(t *testing.T) {
@@ -56,8 +56,8 @@ func TestBudgetParseCancelledFromTraceAndPanicCleanup(t *testing.T) {
 	prog := mustCompile(t, `rule main = "abc" $$`)
 	for _, b := range []Backend{Closure, Bytecode, BytecodeIterative} {
 		ctx, cancel := context.WithCancel(context.Background())
-		var observed *ecore.Parser
-		n, err := prog.ParseWith("main", "abc", ParseOptions{Backend: b, Context: ctx, Trace: func(e TraceEvent) { observed = ecore.TraceParser(e); cancel() }})
+		var observed *state.Parser
+		n, err := prog.ParseWith("main", "abc", ParseOptions{Backend: b, Context: ctx, Trace: func(e TraceEvent) { observed = state.TraceParser(e); cancel() }})
 		if n != nil || !errors.Is(err, context.Canceled) || observed == nil || observed.Scratch != nil || observed.Control != nil {
 			t.Fatalf("%v: cancellation/cleanup node=%v err=%v parser=%v", b, n, err, observed)
 		}
@@ -65,7 +65,7 @@ func TestBudgetParseCancelledFromTraceAndPanicCleanup(t *testing.T) {
 		var got any
 		func() {
 			defer func() { got = recover() }()
-			_, _ = prog.ParseWith("main", "abc", ParseOptions{Backend: b, Trace: func(e TraceEvent) { observed = ecore.TraceParser(e); panic(token) }})
+			_, _ = prog.ParseWith("main", "abc", ParseOptions{Backend: b, Trace: func(e TraceEvent) { observed = state.TraceParser(e); panic(token) }})
 		}()
 		if got != token || observed.Scratch != nil || observed.Control != nil {
 			t.Fatalf("%v: panic=%v scratch=%v control=%v", b, got, observed.Scratch, observed.Control)
@@ -84,7 +84,7 @@ func TestBudgetParseLongLiteralAndScanner(t *testing.T) {
 			n, err := prog.ParseWith("main", literal, ParseOptions{Backend: b, Unit: core.Bytes, Context: ctx, Trace: func(e TraceEvent) {
 				if e.Kind == TraceEnter {
 					calls++
-					ecore.TraceParser(e).Control.Ctx = newPollingContext(2)
+					state.TraceParser(e).Control.Ctx = newPollingContext(2)
 				}
 			}})
 			cancel()
@@ -142,10 +142,10 @@ func TestBudgetParseTraceAccessorInterruption(t *testing.T) {
 	t.Parallel()
 	prog := mustCompile(t, `rule main = "abc" $$`)
 	for _, b := range []Backend{Closure, Bytecode, BytecodeIterative} {
-		var observed *ecore.Parser
+		var observed *state.Parser
 		n, err := prog.ParseWith("main", "abc", ParseOptions{Backend: b, Limits: core.Limits{Compute: 100}, Trace: func(e TraceEvent) {
-			observed = ecore.TraceParser(e)
-			ecore.TraceParser(e).Control.Limits.Compute = ecore.TraceParser(e).Control.Used
+			observed = state.TraceParser(e)
+			state.TraceParser(e).Control.Limits.Compute = state.TraceParser(e).Control.Used
 			e.LineCol(1) // Building the first line table is engine execution inside caller code.
 		}})
 		if n != nil || !errors.Is(err, core.ErrLimit) || observed == nil || observed.Scratch != nil {

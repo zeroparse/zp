@@ -38,9 +38,9 @@ Evidence records:
 [035](../035-left-recursion-growth-without-allocation.md).
 
 Source owners: [`growState and seed
-growth`](../../../internal/engine/core/runtime.go), [`iterative growth
+growth`](../../../internal/engine/state/runtime.go), [`iterative growth
 frame`](../../../internal/engine/vm/ivm.go),
-[`memoTable.alloc`](../../../internal/engine/core/memo.go), [`generated
+[`memoTable.alloc`](../../../internal/engine/state/memo.go), [`generated
 growth`](../../../codegen/go/lib/lib.go), [`typed
 growth`](../../../codegen/go/lib/typed.go).
 

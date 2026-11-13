@@ -11,7 +11,7 @@ import (
 	"zeroparse.dev/zp/core"
 	"zeroparse.dev/zp/internal/bytecode"
 	"zeroparse.dev/zp/internal/codegentest"
-	ecore "zeroparse.dev/zp/internal/engine/core"
+	"zeroparse.dev/zp/internal/engine/state"
 	"zeroparse.dev/zp/internal/value"
 )
 
@@ -178,7 +178,7 @@ func TestStreamReaderPanicInsideTraceKeepsOriginalValue(t *testing.T) {
 				got := catchStreamPanic(func() {
 					err = prog.ParseStreamWith("main", r, nil, ParseOptions{Backend: b, Unit: u, Trace: func(e TraceEvent) {
 						if e.Kind == TraceEnter && e.Rule == "main" {
-							ecore.TraceParser(e).Fill(1)
+							state.TraceParser(e).Fill(1)
 						}
 					}})
 				})
@@ -197,7 +197,7 @@ func TestStreamNormalCallerReturnKeepsVMFaultAttribution(t *testing.T) {
 			for _, phase := range []string{"reader", "emit"} {
 				t.Run(fmt.Sprintf("%s/%s/%s", b, u, phase), func(t *testing.T) {
 					prog := mustCompile(t, "rule main = item* #stream $$\nrule item = \"a\"")
-					if _, err := prog.rule(b, "main", ecore.Inlined, nil); err != nil {
+					if _, err := prog.rule(b, "main", state.Inlined, nil); err != nil {
 						t.Fatal(err)
 					}
 					// Corrupt the prepared module after a normal caller return. This fault is
@@ -235,7 +235,7 @@ func TestStreamKeepsCallerBufferedReader(t *testing.T) {
 	prog := mustCompile(t, codegentest.Records)
 	for _, u := range []core.PositionUnit{core.CodePoints, core.Bytes} {
 		reader := bufio.NewReader(strings.NewReader("#records\na=1\n"))
-		if p := ecore.NewStreamParser(&prog.sharedProgram, reader, u); p.Reader != reader {
+		if p := state.NewStreamParser(&prog.sharedProgram, reader, u); p.Reader != reader {
 			t.Fatal("stream parser replaced caller's buffered reader")
 		}
 	}

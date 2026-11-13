@@ -7,7 +7,7 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/core"
-	ecore "zeroparse.dev/zp/internal/engine/core"
+	"zeroparse.dev/zp/internal/engine/state"
 )
 
 // leastLimit returns the least limit, as set by with, under which parse ends without reaching a
@@ -89,16 +89,16 @@ rule g = ";" / "x" #recover(skip=[b]+)`
 func TestBudgetCallEndChargesErrorsAfterExpectations(t *testing.T) {
 	t.Parallel()
 	end := func(limit uint64) (err error, kept, stored bool) {
-		p := &ecore.Parser{Memo: ecore.NewMemoTable(), MemoAll: true, Expectations: true}
-		r := &ecore.Rule{}
+		p := &state.Parser{Memo: state.NewMemoTable(), MemoAll: true, Expectations: true}
+		r := &state.Rule{}
 		r.ID, r.Memo = 1, true
-		st := &ecore.CallState{}
+		st := &state.CallState{}
 		p.CallBegin(r, 0, st)
 		p.Expect(0, 7)
-		p.Recovered = append(p.Recovered, ecore.ErrEntry(&core.SyntaxError{}), ecore.ErrEntry(&core.SyntaxError{}), ecore.ErrEntry(&core.SyntaxError{}))
-		p.Control = ecore.NewBudgetControl(nil, core.Limits{Compute: limit})
+		p.Recovered = append(p.Recovered, state.ErrEntry(&core.SyntaxError{}), state.ErrEntry(&core.SyntaxError{}), state.ErrEntry(&core.SyntaxError{}))
+		p.Control = state.NewBudgetControl(nil, core.Limits{Compute: limit})
 		err = catchFatal(t, func() { p.CallEnd(r, st, nil, true) })
-		_, stored = p.Memo.Get(ecore.MemoKey{Rule: r.ID})
+		_, stored = p.Memo.Get(state.MemoKey{Rule: r.ID})
 		return err, len(p.LastKept) == 1, stored
 	}
 	keptOnly := 0

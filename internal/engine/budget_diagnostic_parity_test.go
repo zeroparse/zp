@@ -10,7 +10,7 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/core"
-	ecore "zeroparse.dev/zp/internal/engine/core"
+	"zeroparse.dev/zp/internal/engine/state"
 )
 
 // Compare the public parse result and exported diagnostic records with and
@@ -153,7 +153,7 @@ rule atom Atom = t:("a") #atomic => Atom{Text: text($t)}`,
 							trace := func(e TraceEvent) {
 								// Force eager recording for this fixture, on both paths.
 								if e.Kind == TraceEnter {
-									ecore.TraceParser(e).DeferMemo = false
+									state.TraceParser(e).DeferMemo = false
 								}
 								if e.Kind == TraceExit && e.Memo && e.Rule == "r" {
 									memoObserved = true

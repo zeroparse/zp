@@ -2,13 +2,13 @@ package document
 
 import (
 	"zeroparse.dev/zp/core"
-	ecore "zeroparse.dev/zp/internal/engine/core"
+	"zeroparse.dev/zp/internal/engine/state"
 )
 
 // copyDocumentDiagnostics publishes owned recovered errors without exposing
 // memoized error objects or their mutable slice containers. Ordinary failures
 // are already freshly constructed by Parser.SyntaxError.
-func copyDocumentDiagnostics(p *ecore.Parser, src core.SyntaxErrors) core.SyntaxErrors {
+func copyDocumentDiagnostics(p *state.Parser, src core.SyntaxErrors) core.SyntaxErrors {
 	if src == nil {
 		return nil
 	}
@@ -18,7 +18,7 @@ func copyDocumentDiagnostics(p *ecore.Parser, src core.SyntaxErrors) core.Syntax
 		}
 		p.SpendValue(len(src))
 		out := make([]string, len(src))
-		ecore.CopySpend(p, out, src)
+		state.CopySpend(p, out, src)
 		return out
 	}
 	p.SpendValue(len(src))

@@ -10,11 +10,11 @@ import (
 
 	"zeroparse.dev/zp/core"
 	"zeroparse.dev/zp/internal/codegentest"
-	ecore "zeroparse.dev/zp/internal/engine/core"
+	"zeroparse.dev/zp/internal/engine/state"
 	"zeroparse.dev/zp/internal/value"
 )
 
-func assertTraceParserDetached(t *testing.T, p *ecore.Parser, aborted bool) {
+func assertTraceParserDetached(t *testing.T, p *state.Parser, aborted bool) {
 	t.Helper()
 	if p == nil {
 		t.Fatal("trace callback did not expose a parser")
@@ -119,7 +119,7 @@ func TestTraceLifecycleStreamDetachment(t *testing.T) {
 							t.Fatalf("err=%v panic=%v nodes=%d", err, got, len(nodes))
 						}
 					}
-					assertTraceParserDetached(t, ecore.TraceParser(e), false) // Stream has no Document invalidation flag.
+					assertTraceParserDetached(t, state.TraceParser(e), false) // Stream has no Document invalidation flag.
 					if e.Rule != "main" || e.Depth != 1 || e.Pos != 0 {
 						t.Fatal("saved stream metadata changed")
 					}

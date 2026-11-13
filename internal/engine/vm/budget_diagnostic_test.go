@@ -14,7 +14,7 @@ import (
 	"zeroparse.dev/zp/core/noderep"
 	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/compile"
-	ecore "zeroparse.dev/zp/internal/engine/core"
+	"zeroparse.dev/zp/internal/engine/state"
 	"zeroparse.dev/zp/internal/value"
 )
 
@@ -40,25 +40,25 @@ func TestBudgetDiagnosticRecoveredLists(t *testing.T) {
 				before, _ := json.Marshal(records)
 				retained := value.Ptr(value.Data{Text: "retained", Fields: noderep.Fields{{Name: "keep", Value: "stable"}}})
 				p := diagnosticParser(core.Limits{})
-				list := ecore.NewErrList(records)
-				p.Memo, p.Recovered = ecore.NewMemoTable(), []ecore.RecEntry{ecore.ErrEntry(prefix)}
-				p.Memo.Slots = make([]*ecore.MemoEntry, 1)
-				r := &ecore.Rule{ID: 7}
-				key := ecore.MemoKey{Rule: 7}
+				list := state.NewErrList(records)
+				p.Memo, p.Recovered = state.NewMemoTable(), []state.RecEntry{state.ErrEntry(prefix)}
+				p.Memo.Slots = make([]*state.MemoEntry, 1)
+				r := &state.Rule{ID: 7}
+				key := state.MemoKey{Rule: 7}
 				steps := uint64(len(records))
 				if replay {
 					steps = 0
 				}
 				var run, completed, aborted func()
 				assertReplay := func() {
-					if len(p.Recovered) != 2 || p.Recovered[0] != ecore.ErrEntry(prefix) || p.Recovered[1].List() != list.List() {
+					if len(p.Recovered) != 2 || p.Recovered[0] != state.ErrEntry(prefix) || p.Recovered[1].List() != list.List() {
 						t.Fatal("recovered replay changed the prefix or did not share the list")
 					}
 					if !slices.Equal(p.RecoveredErrors(), append([]*core.SyntaxError{prefix}, records...)) {
 						t.Fatal("recovered replay changed pointer order")
 					}
 				}
-				assertSnapshot := func(got ecore.RecEntry) {
+				assertSnapshot := func(got state.RecEntry) {
 					if got.List() == nil || !slices.Equal(got.Errors(), records) {
 						t.Fatal("snapshot lost pointers")
 					}
@@ -71,11 +71,11 @@ func TestBudgetDiagnosticRecoveredLists(t *testing.T) {
 				aborted = func() {}
 				switch name {
 				case "memo replay":
-					p.Memo.Slots[0] = &ecore.MemoEntry{Rule: 7, Ok: true, End: 1, Node: retained, Errs: list}
+					p.Memo.Slots[0] = &state.MemoEntry{Rule: 7, Ok: true, End: 1, Node: retained, Errs: list}
 					steps += 2 // lookup and entry visit; the replay is free
 					var ok, hit bool
 					var val *core.Node
-					run = func() { val, ok, hit = p.CallBegin(r, 0, &ecore.CallState{}) }
+					run = func() { val, ok, hit = p.CallBegin(r, 0, &state.CallState{}) }
 					completed = func() {
 						assertReplay()
 						if !ok || !hit || val != retained {
@@ -84,7 +84,7 @@ func TestBudgetDiagnosticRecoveredLists(t *testing.T) {
 					}
 				case "memo snapshot":
 					// A call at 0 that begins after the prefix and recovers the records.
-					var st ecore.CallState
+					var st state.CallState
 					p.CallBegin(r, 0, &st)
 					p.Pos = 1
 					pushRecords()
@@ -102,7 +102,7 @@ func TestBudgetDiagnosticRecoveredLists(t *testing.T) {
 						}
 					}
 				case "LR snapshot":
-					g := p.GrowBegin(key, &ecore.Rule{})
+					g := p.GrowBegin(key, &state.Rule{})
 					seed := g.Best
 					p.Pos = 1
 					pushRecords()
@@ -124,24 +124,24 @@ func TestBudgetDiagnosticRecoveredLists(t *testing.T) {
 						}
 					}
 				case "LR replay":
-					g := ecore.GrowState{Rec: 1, Best: &ecore.MemoEntry{Ok: true, End: 1, Node: retained, Errs: list}}
+					g := state.GrowState{Rec: 1, Best: &state.MemoEntry{Ok: true, End: 1, Node: retained, Errs: list}}
 					run = func() { p.GrowEnd(r, &g) }
 					completed = assertReplay
 				case "OperatorsRule snapshot", "iterative OperatorsRule snapshot":
-					op := &ecore.OperatorsRuleOp{Kind: grammar.Prefix, Line: &ecore.OperatorsRuleLine{Scope: &compile.Scope{}}}
-					var best ecore.OperatorsRuleAttempt
+					op := &state.OperatorsRuleOp{Kind: grammar.Prefix, Line: &state.OperatorsRuleLine{Scope: &compile.Scope{}}}
+					var best state.OperatorsRuleAttempt
 					if name == "OperatorsRule snapshot" {
 						steps++ // the operator that the match tries
-						op.Line.M = func(p *ecore.Parser) (*core.Node, bool) {
+						op.Line.M = func(p *state.Parser) (*core.Node, bool) {
 							p.Pos = 1
 							pushRecords()
 							return retained, true
 						}
-						run = func() { best = p.Longest([]*ecore.OperatorsRuleOp{op}) }
+						run = func() { best = p.Longest([]*state.OperatorsRuleOp{op}) }
 					} else {
 						p.Pos = 1
 						pushRecords()
-						f := &longestFrame{started: true, st: ecore.LongestState{L: []*ecore.OperatorsRuleOp{op}, M0: ecore.Mark{Recovered: 1}, F: p.NewFrame(0)}}
+						f := &longestFrame{started: true, st: state.LongestState{L: []*state.OperatorsRuleOp{op}, M0: state.Mark{Recovered: 1}, F: p.NewFrame(0)}}
 						run = func() { f.next(ivmMachineOf(p), nil, iresult{ok: true, v: retained}); best = ivmMachineOf(p).attempt }
 					}
 					completed = func() {
@@ -156,17 +156,17 @@ func TestBudgetDiagnosticRecoveredLists(t *testing.T) {
 						}
 					}
 				case "OperatorsRule replay":
-					run = func() { p.ApplyRecovered(&ecore.OperatorsRuleAttempt{End: 1, Errs: list}) }
+					run = func() { p.ApplyRecovered(&state.OperatorsRuleAttempt{End: 1, Errs: list}) }
 					completed = assertReplay
 				}
 				if mode == "complete" {
 					// A limit of 0 is no limit; a free replay runs under a limit of one unit.
-					p.Control = ecore.NewBudgetControl(nil, core.Limits{Compute: max(steps, 1)})
+					p.Control = state.NewBudgetControl(nil, core.Limits{Compute: max(steps, 1)})
 				} else if mode == "budget" {
 					// Less than the copy itself, so failure cannot be at a later put.
-					p.Control = ecore.NewBudgetControl(nil, core.Limits{Compute: 319})
+					p.Control = state.NewBudgetControl(nil, core.Limits{Compute: 319})
 				} else {
-					p.Control = ecore.NewBudgetControl(newPollingContext(1), core.Limits{})
+					p.Control = state.NewBudgetControl(newPollingContext(1), core.Limits{})
 				}
 				err := catchFatal(t, run)
 				if mode == "complete" {

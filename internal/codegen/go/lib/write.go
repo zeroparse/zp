@@ -1,6 +1,6 @@
 // Package libgogen prints the compositions of internal/ir/exec/core into the Go code that uses them:
 // the library that generated Go parsers use (codegen/go/lib), the parse state of the engine and its
-// backends (internal/engine/core, closure and vm), and the engine's and the library's conformance
+// backends (internal/engine/state, closure and vm), and the engine's and the library's conformance
 // bindings. It owns the paths of those files and the receiver and parameter text of the engine's
 // types, so that the compositions stay free of their consumers' layout. The TypeScript library's
 // compositions are printed by the TypeScript generator.

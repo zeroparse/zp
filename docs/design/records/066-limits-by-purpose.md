@@ -69,7 +69,7 @@ as a run-time error, and it has a default. A caller cannot match it with `errors
 The budget counts work. It bounds memory only because every allocation the parser makes on behalf of a parse is
 preceded by a charge, so the bytes allocated by a batch parse are at most k times the compute spent, for a constant k
 that depends on the backend and the grammar. The argument, site by site, for the generated Go runtime (the engine has
-the same structure in `internal/engine/core/alloc.go` and `memo.go`):
+the same structure in `internal/engine/state/alloc.go` and `memo.go`):
 
 | Storage | Allocated where | Compute charged | Bytes per unit |
 |:--|:--|:--|:--|
@@ -387,7 +387,7 @@ inside the branch that takes a new chunk or allocates a list too large for one:
   and `NewBranchOrdinary` (256 × 104 bytes); `Nodes(n)`, its pointer slab refill (1,024 × 8 bytes) and its large-list
   path (n × 8); `fields(n)`, its slab refill (256 × 32 bytes) and its large-list path (n × 32); the capture frame slab;
   and the typed match slab of `NewMatch`;
-- the engine (`internal/engine/core/alloc.go`, `memo.go`, `runtime.go`): the pointer, field and frame slabs and
+- the engine (`internal/engine/state/alloc.go`, `memo.go`, `runtime.go`): the pointer, field and frame slabs and
   their large-list paths, the expectation arena, and, in `MemoTable.MemBytes`, the memo slot array by its logical
   length and the first-call tables and pages;
 - both: the run of a left-recursive growth and its observed lookaheads, when they grow.

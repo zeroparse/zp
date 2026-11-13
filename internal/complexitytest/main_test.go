@@ -5,14 +5,14 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/internal/codegentest"
-	"zeroparse.dev/zp/internal/engine/core"
+	"zeroparse.dev/zp/internal/engine/state"
 )
 
 // skipWithoutBudget skips the rest of t in the reference build, which has no budget controls: the
 // tests measure the cost of a parse as the budget it spends.
 func skipWithoutBudget(t *testing.T) {
 	t.Helper()
-	if !core.BudgetControlsEnabled {
+	if !state.BudgetControlsEnabled {
 		t.Skip("budget controls are unavailable in the reference build")
 	}
 }

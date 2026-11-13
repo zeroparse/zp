@@ -6,7 +6,7 @@ import (
 
 	"zeroparse.dev/zp/core"
 	"zeroparse.dev/zp/internal/compile"
-	ecore "zeroparse.dev/zp/internal/engine/core"
+	"zeroparse.dev/zp/internal/engine/state"
 )
 
 // Document parses a text that is edited repeatedly. It reuses the memo of the previous parse for
@@ -34,16 +34,16 @@ type Document struct {
 	sequence uint64
 	runner   Runner
 	start    string
-	back     ecore.Backend // resolved construction backend
-	defaults ecore.ParseOptions
-	in       ecore.Input // current text (fully loaded)
-	memo     *ecore.MemoTable
+	back     state.Backend // resolved construction backend
+	defaults state.ParseOptions
+	in       state.Input // current text (fully loaded)
+	memo     *state.MemoTable
 	stats    core.ParseStats
-	edits    []ecore.DocEdit // all edits so far; nodes record how many their positions account for
-	runs     map[ecore.RunKey]*ecore.RunRecord
+	edits    []state.DocEdit // all edits so far; nodes record how many their positions account for
+	runs     map[state.RunKey]*state.RunRecord
 	runGen   uint32             // edit generation of runs; unchanged parses keep this map
 	kids     []*core.Node       // the parser's stack of repetition values, kept for the next parse
-	machine  ecore.BackendState // the backend state of the last parse, cleared and kept for the next one
+	machine  state.BackendState // the backend state of the last parse, cleared and kept for the next one
 	// resumed is the number of repetition elements the last Parse resumed (for tests).
 	resumed int
 	// Candidate-only weak reference: dropped snapshots must remain collectible.
@@ -58,19 +58,19 @@ type Document struct {
 // for one parse and runs it.
 type Runner interface {
 	// SelectBackend returns the backend that a request for b runs on.
-	SelectBackend(b ecore.Backend) ecore.Backend
+	SelectBackend(b state.Backend) state.Backend
 	// PrepareRun returns the runner that parses on backend b under the budget control c.
-	PrepareRun(b ecore.Backend, c *ecore.BudgetControl) (Runner, error)
+	PrepareRun(b state.Backend, c *state.BudgetControl) (Runner, error)
 	// Shared returns the program part that a parser for this runner reads.
-	Shared() *ecore.SharedProgram
+	Shared() *state.SharedProgram
 	// Run parses p's input from the rule start on backend b.
-	Run(p *ecore.Parser, b ecore.Backend, start string) (*core.Node, error)
+	Run(p *state.Parser, b state.Backend, start string) (*core.Node, error)
 }
 
 // New returns a Document that parses the text in from the rule start
 // with runner on backend back. o holds the construction options.
-func New(runner Runner, start string, back ecore.Backend, o ecore.ParseOptions, in ecore.Input) *Document {
-	return &Document{identity: new(documentIdentity), sequence: 1, runner: runner, start: start, back: back, defaults: o, in: in, memo: ecore.NewMemoTable()}
+func New(runner Runner, start string, back state.Backend, o state.ParseOptions, in state.Input) *Document {
+	return &Document{identity: new(documentIdentity), sequence: 1, runner: runner, start: start, back: back, defaults: o, in: in, memo: state.NewMemoTable()}
 }
 
 // maxEdits bounds the edit log: when it is full, the memo is dropped and the log restarts. It is a
@@ -79,7 +79,7 @@ var maxEdits = 1 << 16
 
 // ParseDefaults returns a copy of the construction options. Invocation counters
 // are separate from these defaults.
-func (d *Document) ParseDefaults() ecore.ParseOptions { return d.defaults }
+func (d *Document) ParseDefaults() state.ParseOptions { return d.defaults }
 
 // Text returns the current text.
 func (d *Document) Text() string { return d.in.Text(0, d.in.Loaded()) }
@@ -93,7 +93,7 @@ func (d *Document) Parse() (*core.Node, error) { return d.ParseWith(d.defaults) 
 
 // ParseWith parses using fully resolved options. Unit, effective backend and
 // recognition mode must match construction; this method does not merge defaults.
-func (d *Document) ParseWith(o ecore.ParseOptions) (*core.Node, error) {
+func (d *Document) ParseWith(o state.ParseOptions) (*core.Node, error) {
 	if d.changes != nil {
 		var n *core.Node
 		_, err := d.snapshotWith(o, &n)
@@ -104,17 +104,17 @@ func (d *Document) ParseWith(o ecore.ParseOptions) (*core.Node, error) {
 
 // parseWithCapture keeps parsing and result capture inside one interruption and
 // cleanup boundary. capture uses the same controller as the parser.
-func (d *Document) parseWithCapture(o ecore.ParseOptions, capture func(*ecore.Parser, *core.Node, error) error) (n *core.Node, err error) {
+func (d *Document) parseWithCapture(o state.ParseOptions, capture func(*state.Parser, *core.Node, error) error) (n *core.Node, err error) {
 	if d.runner.Shared().HasMissing || o.MissingTokens != 0 {
 		return nil, compile.MissingUnsupported("Document parsing")
 	}
-	if err := ecore.ValidateStreamDiagnostics(o, false); err != nil {
+	if err := state.ValidateStreamDiagnostics(o, false); err != nil {
 		return nil, err
 	}
 	if o.Unit != d.in.Unit || d.runner.SelectBackend(o.Backend) != d.back || o.Recognize || o.Expectations != d.defaults.Expectations {
 		return nil, fmt.Errorf("document parse cannot change unit, backend, recognition mode or expectations")
 	}
-	var p *ecore.Parser
+	var p *state.Parser
 	executionStarted := false
 	defer func() {
 		x := recover()
@@ -131,9 +131,9 @@ func (d *Document) parseWithCapture(o ecore.ParseOptions, capture func(*ecore.Pa
 			p.ReleaseTraceReferences()
 		}
 		if x != nil {
-			if f, ok := x.(ecore.Fatal); ok {
+			if f, ok := x.(state.Fatal); ok {
 				n, err = nil, f.Err
-			} else if cp, ok := x.(ecore.ContextPanic); ok {
+			} else if cp, ok := x.(state.ContextPanic); ok {
 				panic(cp.Value)
 			} else {
 				// run already classified VM faults; never classify again.
@@ -141,17 +141,17 @@ func (d *Document) parseWithCapture(o ecore.ParseOptions, capture func(*ecore.Pa
 			}
 		}
 	}()
-	depth, err := ecore.DepthLimit(o, d.back)
+	depth, err := state.DepthLimit(o, d.back)
 	if err != nil {
 		return nil, err
 	}
-	lim, _ := ecore.ResolveLimits(o.Limits, uint64(d.in.Loaded()), false)
-	if err := ecore.CheckInputUnits(lim, uint64(d.in.Loaded())); err != nil {
+	lim, _ := state.ResolveLimits(o.Limits, uint64(d.in.Loaded()), false)
+	if err := state.CheckInputUnits(lim, uint64(d.in.Loaded())); err != nil {
 		return nil, err
 	}
-	c := ecore.NewBudgetControl(o.Context, lim)
-	if !ecore.BudgetControlsEnabled && c != nil {
-		return nil, ecore.ErrNoControls
+	c := state.NewBudgetControl(o.Context, lim)
+	if !state.BudgetControlsEnabled && c != nil {
+		return nil, state.ErrNoControls
 	}
 	if c != nil && o.Limits.Compute == 0 && lim.Compute != 0 {
 		// The default limit counts what a parse from scratch counts; the work that only a Document
@@ -175,9 +175,9 @@ func (d *Document) parseWithCapture(o ecore.ParseOptions, capture func(*ecore.Pa
 		// records without copying the map or advancing their edit generation.
 		lastRuns = nil
 	} else {
-		runs = map[ecore.RunKey]*ecore.RunRecord{}
+		runs = map[state.RunKey]*state.RunRecord{}
 	}
-	p = &ecore.Parser{Prog: active.Shared(), Input: d.in, Memo: d.memo, MemoAll: true, NoPlain: true, MaxDepth: depth, Gen: gen, Edits: d.edits, Expectations: o.Expectations,
+	p = &state.Parser{Prog: active.Shared(), Input: d.in, Memo: d.memo, MemoAll: true, NoPlain: true, MaxDepth: depth, Gen: gen, Edits: d.edits, Expectations: o.Expectations,
 		Runs: runs, LastRuns: lastRuns, KidStack: d.kids}
 	p.Control = c
 	if c != nil && lim.Memory != 0 {
@@ -214,7 +214,7 @@ func (d *Document) parseWithCapture(o ecore.ParseOptions, capture func(*ecore.Pa
 
 // finishParse transfers reusable state before any traced parser is detached.
 // Mandatory cleanup is unbudgeted, so interruption cannot abort it.
-func (d *Document) finishParse(p *ecore.Parser) {
+func (d *Document) finishParse(p *state.Parser) {
 	d.stats = p.ReportedStats()
 	d.kids = p.KidStack[:0]
 	clear(d.kids[:cap(d.kids)]) // let go of the nodes, even on a trace panic
@@ -233,7 +233,7 @@ func (d *Document) finishParse(p *ecore.Parser) {
 		// sort out which of its results a completed parse would have kept.
 		d.invalidateParseState()
 	} else {
-		ecore.KeepSeedResults(d.memo, p)
+		state.KeepSeedResults(d.memo, p)
 		d.runs, d.resumed = p.Runs, p.Resumed
 		d.runGen = p.Gen
 	}
@@ -244,7 +244,7 @@ func (d *Document) invalidateParseState() {
 	if d.machine != nil {
 		d.machine.Release()
 	}
-	d.memo = ecore.NewMemoTable()
+	d.memo = state.NewMemoTable()
 	d.runs, d.kids, d.machine, d.resumed = nil, nil, nil, 0
 }
 
@@ -259,10 +259,10 @@ func (d *Document) Edit(start, end int, text string) error {
 	if d.in.Unit == core.Bytes {
 		for _, pos := range []int{start, end} {
 			var err error
-			if ecore.DocumentPieceInput && d.in.Pieces != nil {
+			if state.DocumentPieceInput && d.in.Pieces != nil {
 				err = d.in.Pieces.ValidBoundary(pos)
 			} else {
-				err = ecore.ValidBoundary(d.in.Src, core.Bytes, pos)
+				err = state.ValidBoundary(d.in.Src, core.Bytes, pos)
 			}
 			if err != nil {
 				return err
@@ -276,16 +276,16 @@ func (d *Document) Edit(start, end int, text string) error {
 	delta := d.in.Replace(start, end, text)
 	d.sequence++
 	d.recordEdit(from, []core.TextEdit{{Start: start, End: end, Text: text}})
-	if ecore.DocumentPieceInput && d.in.Pieces == nil && d.in.Loaded() >= ecore.DocumentPieceMinSize {
+	if state.DocumentPieceInput && d.in.Pieces == nil && d.in.Loaded() >= state.DocumentPieceMinSize {
 		// A small Document can grow into the measured range where the piece
 		// representation wins. Promote once, after the flat edit has completed.
-		d.in.Pieces = ecore.NewDocumentPieces(d.in.Text(0, d.in.Loaded()), d.in.Unit)
+		d.in.Pieces = state.NewDocumentPieces(d.in.Text(0, d.in.Loaded()), d.in.Unit)
 		d.in.In, d.in.Bs, d.in.Src, d.in.Offs, d.in.SrcOK = nil, nil, "", nil, false
 	}
 	if len(d.edits) == maxEdits {
-		d.memo, d.edits, d.runs = ecore.NewMemoTable(), nil, nil
+		d.memo, d.edits, d.runs = state.NewMemoTable(), nil, nil
 		return nil
 	}
-	d.edits = ecore.EditMemo(d.memo, d.edits, ecore.DocEdit{Start: start, End: end, Delta: delta})
+	d.edits = state.EditMemo(d.memo, d.edits, state.DocEdit{Start: start, End: end, Delta: delta})
 	return nil
 }

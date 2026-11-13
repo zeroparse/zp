@@ -13,7 +13,7 @@ import (
 	"zeroparse.dev/zp/core"
 	"zeroparse.dev/zp/internal/codegentest"
 	"zeroparse.dev/zp/internal/compile"
-	ecore "zeroparse.dev/zp/internal/engine/core"
+	"zeroparse.dev/zp/internal/engine/state"
 )
 
 // failOnRead lets decode read buffered bytes but reports every attempt to
@@ -36,7 +36,7 @@ func TestByteDecodeDoesNotReadPastCompleteRune(t *testing.T) {
 			if _, err := reader.Peek(len(s)); err != nil {
 				t.Fatal(err)
 			}
-			in := ecore.Input{Unit: core.Bytes, Reader: reader}
+			in := state.Input{Unit: core.Bytes, Reader: reader}
 			defer func() {
 				if x := recover(); x != nil {
 					t.Errorf("decode attempted unrelated read: %v", x)
@@ -124,7 +124,7 @@ func TestByteDecodeIncompletePrefixAtEOF(t *testing.T) {
 	t.Parallel()
 	for _, s := range []string{"", "\xc3", "\xe6\xbc", "\xf0\x9f\x98"} {
 		t.Run(fmt.Sprintf("%x", s), func(t *testing.T) {
-			in := ecore.Input{Unit: core.Bytes, Reader: bufio.NewReader(strings.NewReader(s))}
+			in := state.Input{Unit: core.Bytes, Reader: bufio.NewReader(strings.NewReader(s))}
 			got, size, examined, ok := in.Decode(0)
 			if s == "" {
 				if ok || size != 0 || examined != 1 || !in.Eof {
@@ -169,7 +169,7 @@ func BenchmarkRuneInputDelivery(b *testing.B) {
 	for _, tc := range []struct{ name, item string }{{"ASCII", "a\n"}, {"Unicode", "😀\n"}} {
 		text := strings.Repeat(tc.item, 1000)
 		for _, backend := range []Backend{Closure, Bytecode, BytecodeIterative} {
-			if _, err := prog.rule(backend, "main", ecore.Inlined, nil); err != nil {
+			if _, err := prog.rule(backend, "main", state.Inlined, nil); err != nil {
 				b.Fatal(err)
 			}
 			for _, unit := range []core.PositionUnit{core.CodePoints, core.Bytes} {

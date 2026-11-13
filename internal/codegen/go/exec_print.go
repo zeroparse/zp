@@ -33,7 +33,7 @@ type Target struct {
 	// functions. A call of a function of the module goes through the receiver's name.
 	Recv string
 	// Params, if not empty, are parameters that printed functions take before their own, such as
-	// "p *core.Parser" for a parser the receiver does not hold.
+	// "p *state.Parser" for a parser the receiver does not hold.
 	Params string
 	// Op returns the Go expression of a call of an operation, given the call (with its immediate
 	// operand) and its printed arguments. A call of an operation without results is printed as a

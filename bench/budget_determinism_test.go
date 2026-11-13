@@ -7,10 +7,10 @@ import (
 	"runtime"
 	"testing"
 
+	"zeroparse.dev/zp/internal/bench/inputs"
 	gcsv "zeroparse.dev/zp/internal/bench/parsers/csv"
 	gjson "zeroparse.dev/zp/internal/bench/parsers/json"
 	gxml "zeroparse.dev/zp/internal/bench/parsers/xml"
-	"zeroparse.dev/zp/internal/bench/inputs"
 )
 
 // TestGeneratedBudgetErrorsAreDeterministic requires that a parse under a finite budget fails the

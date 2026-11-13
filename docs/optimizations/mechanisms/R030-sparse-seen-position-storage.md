@@ -42,8 +42,8 @@ and 32-bit effects remain unmeasured.
 Evidence records: [087](../087-sparse-deferred-memo-seen-pages.md).
 
 Source owners: [`sparse memo
-selection`](../../../internal/engine/core/sparse_memo.go),
-[`memoTable.markSparseSeen`](../../../internal/engine/core/memo.go),
+selection`](../../../internal/engine/state/sparse_memo.go),
+[`memoTable.markSparseSeen`](../../../internal/engine/state/memo.go),
 [`UseSparseMemo`](../../../internal/codegen/generator.go), [`generated
 sparse pages`](../../../codegen/go/lib/lib.go), [`TypeScript sparse
 seen pages`](../../../codegen/ts/lib/lib.ts).

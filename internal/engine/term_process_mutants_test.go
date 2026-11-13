@@ -26,7 +26,7 @@ func TestProcessTermTestsKillArithmeticMutants(t *testing.T) {
 	} {
 		t.Run(m.name, func(t *testing.T) {
 			t.Parallel()
-			path := filepath.Join(root, "internal", "engine", "core", "term_exec.go")
+			path := filepath.Join(root, "internal", "engine", "state", "term_exec.go")
 			src, err := os.ReadFile(path)
 			if err != nil {
 				t.Fatal(err)

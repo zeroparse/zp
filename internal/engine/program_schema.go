@@ -3,12 +3,12 @@ package engine
 import (
 	"zeroparse.dev/zp/internal/compile"
 	"zeroparse.dev/zp/internal/desugar"
-	"zeroparse.dev/zp/internal/engine/core"
+	"zeroparse.dev/zp/internal/engine/state"
 )
 
 // Static returns the static program that p runs: the checked grammar, its rules and their facts,
 // which the generators and the output schema read.
-func (p *Program) Static() *compile.Program { return core.StaticProgramOf(&p.sharedProgram) }
+func (p *Program) Static() *compile.Program { return state.StaticProgramOf(&p.sharedProgram) }
 
 // SchemaProgram returns the static program that an output schema of the start rule is exported
 // from, after checking that the export can run: p must not be nil, start must be able to start a

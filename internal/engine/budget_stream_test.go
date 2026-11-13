@@ -14,7 +14,7 @@ import (
 
 	"zeroparse.dev/zp/core"
 	"zeroparse.dev/zp/internal/codegentest"
-	ecore "zeroparse.dev/zp/internal/engine/core"
+	"zeroparse.dev/zp/internal/engine/state"
 	"zeroparse.dev/zp/internal/value"
 )
 
@@ -263,7 +263,7 @@ func TestBudgetStreamLimitsAndCallerPanics(t *testing.T) {
 			count := 0
 			var saved TraceEvent
 			o.Trace = func(e TraceEvent) {
-				if ecore.TraceParser(saved) == nil {
+				if state.TraceParser(saved) == nil {
 					saved = e
 				}
 			}
@@ -272,7 +272,7 @@ func TestBudgetStreamLimitsAndCallerPanics(t *testing.T) {
 			if !errors.As(err, &we) || we.Kind != kind || count != 0 {
 				t.Fatalf("error=%v emits=%d", err, count)
 			}
-			assertTraceParserDetached(t, ecore.TraceParser(saved), false)
+			assertTraceParserDetached(t, state.TraceParser(saved), false)
 		}
 		for _, phase := range []string{"reader", "emit", "trace", "context"} {
 			t.Run(phase, func(t *testing.T) {
@@ -287,7 +287,7 @@ func TestBudgetStreamLimitsAndCallerPanics(t *testing.T) {
 				}
 				var saved TraceEvent
 				o.Trace = func(e TraceEvent) {
-					if ecore.TraceParser(saved) == nil {
+					if state.TraceParser(saved) == nil {
 						saved = e
 					}
 					if e.Kind == TraceEnter && e.Rule == "record" {
@@ -297,7 +297,7 @@ func TestBudgetStreamLimitsAndCallerPanics(t *testing.T) {
 						if phase == "context" {
 							c := newBudgetContextErrPanic(&budgetContextPanicToken{phase: phase}, 1)
 							c.armed = true
-							ecore.TraceParser(e).Control.Ctx = c
+							state.TraceParser(e).Control.Ctx = c
 							token = nil
 						}
 					}
@@ -317,7 +317,7 @@ func TestBudgetStreamLimitsAndCallerPanics(t *testing.T) {
 				} else if got != token {
 					t.Fatalf("panic=%v want %v", got, token)
 				}
-				assertTraceParserDetached(t, ecore.TraceParser(saved), false)
+				assertTraceParserDetached(t, state.TraceParser(saved), false)
 				if r.closed {
 					t.Fatal("reader closed")
 				}
@@ -335,8 +335,8 @@ func TestBudgetStreamCompactionChunks(t *testing.T) {
 		}
 		want := append([]int(nil), source...)
 		n := copy(want, want[shift:])
-		c := ecore.NewBudgetControl(nil, core.Limits{Compute: uint64(n)})
-		if got := ecore.CopyStreamPrefix(c, source, source[shift:]); got != n || !reflect.DeepEqual(source, want) || c.Used != uint64(n) {
+		c := state.NewBudgetControl(nil, core.Limits{Compute: uint64(n)})
+		if got := state.CopyStreamPrefix(c, source, source[shift:]); got != n || !reflect.DeepEqual(source, want) || c.Used != uint64(n) {
 			t.Fatalf("shift=%d result differs", shift)
 		}
 	}
@@ -344,9 +344,9 @@ func TestBudgetStreamCompactionChunks(t *testing.T) {
 	for i := range v {
 		v[i] = i
 	}
-	c := ecore.NewBudgetControl(nil, core.Limits{Compute: 128})
-	got := catchStreamPanic(func() { ecore.CopyStreamPrefix(c, v, v[1:]) })
-	f, ok := got.(ecore.Fatal)
+	c := state.NewBudgetControl(nil, core.Limits{Compute: 128})
+	got := catchStreamPanic(func() { state.CopyStreamPrefix(c, v, v[1:]) })
+	f, ok := got.(state.Fatal)
 	if !ok || !errors.Is(f.Err, core.ErrLimit) || c.Used != 128 || v[128] != 128 {
 		t.Fatalf("copy interruption=%v steps=%d", got, c.Used)
 	}
@@ -357,14 +357,14 @@ func TestBudgetStreamCommitReservations(t *testing.T) {
 	// The frame scan and suffix clear are separately counted; neither touches
 	// a Node already delivered to the caller.
 	node := value.Ptr(value.Data{Text: "delivered"})
-	p := &ecore.Parser{Input: ecore.Input{Control: ecore.NewBudgetControl(nil, core.Limits{Compute: 1})}, FrameSlab: make([]ecore.Frame, 258)}
+	p := &state.Parser{Input: state.Input{Control: state.NewBudgetControl(nil, core.Limits{Compute: 1})}, FrameSlab: make([]state.Frame, 258)}
 	p.Frame = &p.FrameSlab[0]
 	p.FrameSlab[1].Vals = []*core.Node{node}
 	got := catchStreamPanic(func() { p.ResetStreamFrames() })
-	if _, ok := got.(ecore.Fatal); !ok || len(p.FrameSlab) != 258 || p.FrameSlab[1].Vals[0] != node || value.D(node).Text != "delivered" {
+	if _, ok := got.(state.Fatal); !ok || len(p.FrameSlab) != 258 || p.FrameSlab[1].Vals[0] != node || value.D(node).Text != "delivered" {
 		t.Fatalf("frame interruption=%v", got)
 	}
-	p.Control = ecore.NewBudgetControl(nil, core.Limits{Compute: 258})
+	p.Control = state.NewBudgetControl(nil, core.Limits{Compute: 258})
 	p.ResetStreamFrames()
 	if len(p.FrameSlab) != 1 || p.Control.Used != 258 || value.D(node).Text != "delivered" {
 		t.Fatal("frame retry changed ownership or count")
@@ -372,27 +372,27 @@ func TestBudgetStreamCommitReservations(t *testing.T) {
 
 	for _, all := range []bool{false, true} {
 		t.Run(fmt.Sprintf("all=%t", all), func(t *testing.T) {
-			memo := ecore.NewMemoTable()
-			memo.Slots = make([]*ecore.MemoEntry, 260)
+			memo := state.NewMemoTable()
+			memo.Slots = make([]*state.MemoEntry, 260)
 			a, b, growing := memo.Alloc(), memo.Alloc(), memo.Alloc()
 			a.Node, b.Node, growing.Node = node, node, node
 			growing.Growing = true
 			a.Next = b
 			memo.Slots[0] = a
 			memo.Slots[1] = growing
-			p := &ecore.Parser{Input: ecore.Input{Control: ecore.NewBudgetControl(nil, core.Limits{Compute: 2})}, Memo: memo}
+			p := &state.Parser{Input: state.Input{Control: state.NewBudgetControl(nil, core.Limits{Compute: 2})}, Memo: memo}
 			pos := 129
 			if all {
 				pos = 260
 			}
 			got := catchStreamPanic(func() { p.PruneStreamMemo(pos) })
-			if _, ok := got.(ecore.Fatal); !ok || a.Node != nil || b.Node != node || memo.Base != 0 || growing.Node != node {
+			if _, ok := got.(state.Fatal); !ok || a.Node != nil || b.Node != node || memo.Base != 0 || growing.Node != node {
 				t.Fatalf("memo partial prune=%v", got)
 			}
 			// An interrupted stream has no continuation guarantee: check a new
 			// table for complete prune parity, instead of retrying partial links.
-			fresh := ecore.NewMemoTable()
-			fresh.Slots = make([]*ecore.MemoEntry, 260)
+			fresh := state.NewMemoTable()
+			fresh.Slots = make([]*state.MemoEntry, 260)
 			seed := fresh.Alloc()
 			seed.Growing = true
 			seed.Node = node
@@ -401,7 +401,7 @@ func TestBudgetStreamCommitReservations(t *testing.T) {
 			keep.Node = node
 			fresh.Slots[200] = keep
 			p.Memo = fresh
-			p.Control = ecore.NewBudgetControl(nil, core.Limits{Compute: 2000})
+			p.Control = state.NewBudgetControl(nil, core.Limits{Compute: 2000})
 			p.PruneStreamMemo(pos)
 			if fresh.Base != pos || seed.Node != node || value.D(node).Text != "delivered" || len(fresh.Slots) != max(260-pos, 0) {
 				t.Fatal("prune ownership/base differs")
@@ -420,23 +420,23 @@ func TestBudgetStreamCommitAfterDelivery(t *testing.T) {
 		o.Limits.Compute = 1 << 20
 		var saved TraceEvent
 		o.Trace = func(e TraceEvent) {
-			if ecore.TraceParser(saved) == nil {
+			if state.TraceParser(saved) == nil {
 				saved = e
 			}
 		}
 		var node *core.Node
 		var before string
 		count := 0
-		var controller *ecore.BudgetControl
+		var controller *state.BudgetControl
 		last := 0
 		err := prog.ParseStreamWith("main", strings.NewReader("#records\na=1\nbc=22\n"), func(n *core.Node) error {
 			count++
 			node = n
 			before = codegentest.ResultJSON(n, nil)
-			p := ecore.TraceParser(saved)
+			p := state.TraceParser(saved)
 			controller = p.Control
 			// Force the normal inactive-capacity clear at the next commit.
-			p.Trail = make([]ecore.Undo, 0, 129)
+			p.Trail = make([]state.Undo, 0, 129)
 			p.Memo.Base = p.Pos - 1024
 			// The charges of the commit, in order and as requested: the line starts it scans
 			// and the input it compacts, then, with the frame scratch, the frames it scans for
@@ -465,7 +465,7 @@ func TestBudgetStreamCommitAfterDelivery(t *testing.T) {
 			}
 			charge(lineSteps, 1)
 			charge(copyCount, 128)
-			if ecore.StreamFrameScratch {
+			if state.StreamFrameScratch {
 				keep := 0
 				for i := range p.FrameSlab {
 					charge(1, 1)
@@ -476,7 +476,7 @@ func TestBudgetStreamCommitAfterDelivery(t *testing.T) {
 				}
 				charge(len(p.FrameSlab)-keep, 128)
 			}
-			if ecore.StreamUndoCleanup {
+			if state.StreamUndoCleanup {
 				charge(cap(p.Trail), 128)
 			}
 			if len(charges) == 0 {
@@ -496,7 +496,7 @@ func TestBudgetStreamCommitAfterDelivery(t *testing.T) {
 		if !errors.As(err, &we) || we.Kind != core.LimitCompute || we.Requested != uint64(last) || we.Used != controller.Limits.Compute || count != 1 {
 			t.Fatalf("normal commit interruption error=%v emits=%d", err, count)
 		}
-		assertTraceParserDetached(t, ecore.TraceParser(saved), false)
+		assertTraceParserDetached(t, state.TraceParser(saved), false)
 		if node == nil || codegentest.ResultJSON(node, nil) != before {
 			t.Fatal("commit changed emitted Node")
 		}
@@ -515,7 +515,7 @@ func TestBudgetStreamEmitBoundary(t *testing.T) {
 		t.Run(phase, func(t *testing.T) {
 			ctx, cancel := context.WithCancel(context.Background())
 			defer cancel()
-			p := &ecore.Parser{Input: ecore.Input{Control: ecore.NewBudgetControl(ctx, core.Limits{})}}
+			p := &state.Parser{Input: state.Input{Control: state.NewBudgetControl(ctx, core.Limits{})}}
 			stop := errors.New("emit")
 			calls := 0
 			p.Emit = func(*core.Node) error {
@@ -530,7 +530,7 @@ func TestBudgetStreamEmitBoundary(t *testing.T) {
 				cancel()
 			}
 			got := catchStreamPanic(func() { p.EmitStream(nil, 0) })
-			f, ok := got.(ecore.Fatal)
+			f, ok := got.(state.Fatal)
 			if phase == "error" {
 				if !ok || f.Err != stop || calls != 1 || p.EmitCall {
 					t.Fatalf("panic=%v calls=%d caller flag=%t", got, calls, p.EmitCall)
@@ -568,7 +568,7 @@ func TestBudgetStreamReaderPanicInsideTrace(t *testing.T) {
 		if got != token || r.closed {
 			t.Fatalf("panic=%v closed=%t", got, r.closed)
 		}
-		assertTraceParserDetached(t, ecore.TraceParser(saved), false)
+		assertTraceParserDetached(t, state.TraceParser(saved), false)
 	})
 }
 
@@ -577,21 +577,21 @@ func TestBudgetStreamVMFaultAttribution(t *testing.T) {
 	for _, b := range []Backend{Bytecode, BytecodeIterative} {
 		t.Run(b.String(), func(t *testing.T) {
 			prog := mustCompile(t, `rule main = "z"* #stream $$`)
-			if _, err := prog.rule(b, "main", ecore.Inlined, nil); err != nil {
+			if _, err := prog.rule(b, "main", state.Inlined, nil); err != nil {
 				t.Fatal(err)
 			}
 			restore := corruptVMLiteral(t, prog)
 			defer restore()
 			var saved TraceEvent
 			err := prog.ParseStreamWith("main", strings.NewReader("z"), func(*core.Node) error { t.Fatal("emitted from corrupt VM"); return nil }, ParseOptions{Backend: b, Limits: core.Limits{Compute: 1 << 20}, Trace: func(e TraceEvent) {
-				if ecore.TraceParser(saved) == nil {
+				if state.TraceParser(saved) == nil {
 					saved = e
 				}
 			}})
 			if err == nil || !strings.HasPrefix(err.Error(), "invalid bytecode:") {
 				t.Fatalf("VM error=%v", err)
 			}
-			assertTraceParserDetached(t, ecore.TraceParser(saved), false)
+			assertTraceParserDetached(t, state.TraceParser(saved), false)
 			restore()
 			if err := prog.ParseStreamWith("main", strings.NewReader("z"), nil, ParseOptions{Backend: b}); err != nil {
 				t.Fatalf("restored VM: %v", err)
@@ -607,7 +607,7 @@ func TestBudgetStreamConcurrentCounters(t *testing.T) {
 		ctx, cancel := context.WithCancel(context.Background())
 		defer cancel()
 		type result struct {
-			control *ecore.BudgetControl
+			control *state.BudgetControl
 			err     error
 			count   int
 		}
@@ -624,7 +624,7 @@ func TestBudgetStreamConcurrentCounters(t *testing.T) {
 				var run result
 				o.Trace = func(e TraceEvent) {
 					if e.Kind == TraceEnter && e.Rule == "main" {
-						run.control = ecore.TraceParser(e).Control
+						run.control = state.TraceParser(e).Control
 						if run.control.Used > 1 { // at most the entry of the rule
 							panic("stream inherited counters")
 						}

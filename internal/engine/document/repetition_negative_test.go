@@ -8,13 +8,13 @@ import (
 	"zeroparse.dev/zp/core"
 	"zeroparse.dev/zp/internal/compile"
 	. "zeroparse.dev/zp/internal/engine"
-	ecore "zeroparse.dev/zp/internal/engine/core"
+	"zeroparse.dev/zp/internal/engine/state"
 )
 
 func TestNegativeMaximumDocumentsAndStreams(t *testing.T) {
 	// Force recording of this short repetition so edits exercise resumption.
-	defer func(n int) { ecore.MinRecorded = n }(ecore.MinRecorded)
-	ecore.MinRecorded = 1
+	defer func(n int) { state.MinRecorded = n }(state.MinRecorded)
+	state.MinRecorded = 1
 	for _, maximum := range negativeMaxima() {
 		g := grammarWithNegativeMaximum(t, `rule main = "é"* #stream $$`, maximum)
 		p, err := Compile(g, compile.Options{})

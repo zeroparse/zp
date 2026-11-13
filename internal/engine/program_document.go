@@ -4,8 +4,8 @@ import (
 	"fmt"
 
 	"zeroparse.dev/zp/internal/compile"
-	"zeroparse.dev/zp/internal/engine/core"
 	"zeroparse.dev/zp/internal/engine/document"
+	"zeroparse.dev/zp/internal/engine/state"
 )
 
 // NewDocument creates a Document that parses text with the rule start. Positions are in code
@@ -20,14 +20,14 @@ func (prog *Program) NewDocumentWith(start, text string, o ParseOptions) (d *Doc
 	if prog.HasMissing || o.MissingTokens != 0 {
 		return nil, compile.MissingUnsupported("Document parsing")
 	}
-	if err := core.ValidateStreamDiagnostics(o, false); err != nil {
+	if err := state.ValidateStreamDiagnostics(o, false); err != nil {
 		return nil, err
 	}
 	defer func() {
 		if x := recover(); x != nil {
-			if f, ok := x.(core.Fatal); ok {
+			if f, ok := x.(state.Fatal); ok {
 				d, err = nil, f.Err
-			} else if cp, ok := x.(core.ContextPanic); ok {
+			} else if cp, ok := x.(state.ContextPanic); ok {
 				panic(cp.Value)
 			} else {
 				panic(x)
@@ -41,12 +41,12 @@ func (prog *Program) NewDocumentWith(start, text string, o ParseOptions) (d *Doc
 	if err := prog.checkMode(o, true); err != nil {
 		return nil, err
 	}
-	_, _, c, err := prog.admitParse(start, o, core.CallPreserving, false, text)
+	_, _, c, err := prog.admitParse(start, o, state.CallPreserving, false, text)
 	if err != nil {
 		return nil, err
 	}
 	c.Check()
-	in := core.NewControlledDocumentInput(text, o.Unit, c)
+	in := state.NewControlledDocumentInput(text, o.Unit, c)
 	c.Check()
 	in.Control = nil // construction counters never become parse defaults
 	return document.New(prog, start, prog.backend(o.Backend), o, in), nil
@@ -69,10 +69,10 @@ func (p *Program) NewChangeDocumentWith(start, text string, o ParseOptions, queu
 func (prog *Program) SelectBackend(b Backend) Backend { return prog.backend(b) }
 
 // Shared returns the program part that a parser for prog reads.
-func (prog *Program) Shared() *core.SharedProgram { return &prog.sharedProgram }
+func (prog *Program) Shared() *state.SharedProgram { return &prog.sharedProgram }
 
 // PrepareRun returns the program that parses a Document on backend b under the budget control c.
-func (prog *Program) PrepareRun(b Backend, c *core.BudgetControl) (document.Runner, error) {
+func (prog *Program) PrepareRun(b Backend, c *state.BudgetControl) (document.Runner, error) {
 	active, err := prog.prepareControlledProgram(b, c)
 	if err != nil {
 		return nil, err
@@ -81,7 +81,7 @@ func (prog *Program) PrepareRun(b Backend, c *core.BudgetControl) (document.Runn
 		// A Document parse runs the call-preserving family (its parser sets NoPlain): build it
 		// here, after the check that ends prepareControlledProgram and before one more, rather than
 		// inside the parse.
-		if _, err := active.familyRules(core.CallPreserving, c); err != nil {
+		if _, err := active.familyRules(state.CallPreserving, c); err != nil {
 			return nil, err
 		}
 		c.Check()

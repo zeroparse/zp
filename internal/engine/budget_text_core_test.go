@@ -11,13 +11,13 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/core"
-	ecore "zeroparse.dev/zp/internal/engine/core"
+	"zeroparse.dev/zp/internal/engine/state"
 )
 
 func TestBudgetTextFallbackBudgetCore(t *testing.T) {
 	t.Parallel()
 	for _, u := range []core.PositionUnit{core.Bytes, core.CodePoints} {
-		in := ecore.Input{Unit: u, Bs: make([]byte, 8192), In: make([]rune, 256), Control: ecore.NewBudgetControl(nil, core.Limits{Compute: 1})}
+		in := state.Input{Unit: u, Bs: make([]byte, 8192), In: make([]rune, 256), Control: state.NewBudgetControl(nil, core.Limits{Compute: 1})}
 		end := len(in.Bs)
 		if u == core.CodePoints {
 			end = len(in.In)
@@ -31,11 +31,11 @@ func TestBudgetTextFallbackBudgetCore(t *testing.T) {
 func TestBudgetTextSizingOverflow(t *testing.T) {
 	t.Parallel()
 	maxInt := int(^uint(0) >> 1)
-	if got := ecore.CheckedTextSize(maxInt-3, 3); got != maxInt {
+	if got := state.CheckedTextSize(maxInt-3, 3); got != maxInt {
 		t.Fatalf("exact maximum=%d", got)
 	}
 	for _, args := range [][2]int{{maxInt, 1}, {maxInt - 2, 3}, {-1, 1}, {0, -1}} {
-		if err := catchFatal(t, func() { ecore.CheckedTextSize(args[0], args[1]) }); err == nil {
+		if err := catchFatal(t, func() { state.CheckedTextSize(args[0], args[1]) }); err == nil {
 			t.Fatalf("sizing %v did not fail", args)
 		}
 	}
@@ -66,25 +66,25 @@ rule piece = .*`
 						if cancel && u == core.Bytes {
 							continue
 						}
-						var observed *ecore.Parser
+						var observed *state.Parser
 						armed := false
 						n, err := prog.ParseWith("main", source, ParseOptions{Backend: b, Unit: u, Recognize: recognize, Limits: core.Limits{Compute: 1 << 50}, Trace: func(e TraceEvent) {
-							observed = ecore.TraceParser(e)
+							observed = state.TraceParser(e)
 							if e.Kind != TraceExit || e.Rule != "piece" || !e.Matched {
 								return
 							}
 							armed = true
 							if cancel {
-								ecore.TraceParser(e).Control.SinceCheck = 0
+								state.TraceParser(e).Control.SinceCheck = 0
 								polls := 2
 								if traceText {
 									polls = 1
 								}
-								ecore.TraceParser(e).Control.Ctx = newPollingContext(polls)
+								state.TraceParser(e).Control.Ctx = newPollingContext(polls)
 							} else if u == core.CodePoints {
 								// A source substring of Bytes charges no input, so only
 								// code points see the tightened budget.
-								ecore.TraceParser(e).Control.Limits.Compute = ecore.TraceParser(e).Control.Used + 16
+								state.TraceParser(e).Control.Limits.Compute = state.TraceParser(e).Control.Used + 16
 							}
 							if traceText {
 								_ = e.Text()
@@ -130,7 +130,7 @@ rule piece = .*`
 func TestBudgetTextStepBudgetAndLazyOffsets(t *testing.T) {
 	t.Parallel()
 	for _, u := range []core.PositionUnit{core.Bytes, core.CodePoints} {
-		in := ecore.Input{Unit: u, Bs: make([]byte, 4097), In: make([]rune, 129), Control: ecore.NewBudgetControl(nil, core.Limits{Compute: 128})}
+		in := state.Input{Unit: u, Bs: make([]byte, 4097), In: make([]rune, 129), Control: state.NewBudgetControl(nil, core.Limits{Compute: 128})}
 		end := len(in.In)
 		if u == core.Bytes {
 			end = len(in.Bs)
@@ -143,11 +143,11 @@ func TestBudgetTextStepBudgetAndLazyOffsets(t *testing.T) {
 		}
 	}
 	source := "aé😀z"
-	in := ecore.Input{Unit: core.CodePoints, Src: source, SrcOK: true, In: []rune(source), Control: ecore.NewBudgetControl(nil, core.Limits{Compute: 1})}
+	in := state.Input{Unit: core.CodePoints, Src: source, SrcOK: true, In: []rune(source), Control: state.NewBudgetControl(nil, core.Limits{Compute: 1})}
 	if err := catchFatal(t, func() { _ = in.Text(1, 3) }); !errors.Is(err, core.ErrLimit) || in.Offs != nil {
 		t.Fatalf("lazy offsets error=%v offsets=%v", err, in.Offs)
 	}
-	in.Control = ecore.NewBudgetControl(nil, core.Limits{Compute: 100})
+	in.Control = state.NewBudgetControl(nil, core.Limits{Compute: 100})
 	if got := in.Text(1, 3); got != "é😀" {
 		t.Fatalf("offset retry=%q", got)
 	}

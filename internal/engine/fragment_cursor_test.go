@@ -4,7 +4,7 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/core"
-	ecore "zeroparse.dev/zp/internal/engine/core"
+	"zeroparse.dev/zp/internal/engine/state"
 )
 
 func TestFragmentCursorOriginalBytes(t *testing.T) {
@@ -23,7 +23,7 @@ func TestFragmentCursorOriginalBytes(t *testing.T) {
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
 			for _, indexed := range []bool{false, true} {
-				in := ecore.NewTextInput(tc.source, core.CodePoints, indexed)
+				in := state.NewTextInput(tc.source, core.CodePoints, indexed)
 				for cursor, want := range tc.offsets {
 					if got := in.PrefixByteOffset(tc.source, cursor); got != want {
 						t.Fatalf("indexed=%v cursor=%d: byte endpoint=%d, want %d", indexed, cursor, got, want)
@@ -37,7 +37,7 @@ func TestFragmentCursorOriginalBytes(t *testing.T) {
 				}
 			}
 			// A byte-mode cursor can address a valid UTF-8 scalar's interior.
-			in := ecore.NewTextInput(tc.source, core.Bytes, false)
+			in := state.NewTextInput(tc.source, core.Bytes, false)
 			for cursor := 0; cursor <= len(tc.source); cursor++ {
 				if got := in.PrefixByteOffset(tc.source, cursor); got != cursor {
 					t.Fatalf("byte cursor=%d: endpoint=%d", cursor, got)

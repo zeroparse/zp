@@ -25,7 +25,7 @@ with missing-token insertion keeps no slots. Repetitions in rules that skips cal
 
 ## Reference Control
 
-None maintained. Tests compare against parses with records disabled (`core.SkipRecordsOff`) and mutate the
+None maintained. Tests compare against parses with records disabled (`state.SkipRecordsOff`) and mutate the
 runtimes to never record or to store records early.
 
 ## Evidence and Implementation
@@ -33,7 +33,7 @@ runtimes to never record or to store records early.
 Evidence record: [132](../132-records-of-recovery-skip-walks.md).
 
 Source owners: [the site analysis](../../../internal/compile/skip_sites.go), [the engine
-operations](../../../internal/engine/core/skip_runs.go), [the generated Go runtime](../../../codegen/go/lib/skip_runs.go),
+operations](../../../internal/engine/state/skip_runs.go), [the generated Go runtime](../../../codegen/go/lib/skip_runs.go),
 [the Flow IR operations](../../../internal/ir/flow/flow.go) and [their lowering](../../../internal/ir/flow/lower/lower.go),
 [the TypeScript runtime](../../../codegen/ts/lib/lib.ts).
 

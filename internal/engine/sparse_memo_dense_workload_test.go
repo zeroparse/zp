@@ -3,9 +3,9 @@ package engine
 import (
 	"testing"
 
+	"zeroparse.dev/zp/internal/bench/inputs"
 	gjson "zeroparse.dev/zp/internal/bench/parsers/json"
 	gxml "zeroparse.dev/zp/internal/bench/parsers/xml"
-	"zeroparse.dev/zp/internal/bench/inputs"
 )
 
 // BenchmarkSparseMemoDenseGenerated exercises large inputs whose generated

@@ -10,7 +10,7 @@ import (
 
 	"zeroparse.dev/zp/core"
 	"zeroparse.dev/zp/internal/codegentest"
-	ecore "zeroparse.dev/zp/internal/engine/core"
+	"zeroparse.dev/zp/internal/engine/state"
 	"zeroparse.dev/zp/internal/value"
 )
 
@@ -35,8 +35,8 @@ func TestDocumentMatchesFreshParse(t *testing.T) {
 		t.Run(b.String(), func(t *testing.T) { testDocumentMatchesFreshParse(t, b) })
 	}
 	// Record every repetition's run, so that the short repetitions of the test resume too.
-	defer func(n int) { ecore.MinRecorded = n }(ecore.MinRecorded)
-	ecore.MinRecorded = 1
+	defer func(n int) { state.MinRecorded = n }(state.MinRecorded)
+	state.MinRecorded = 1
 	t.Run("resume", func(t *testing.T) { testDocumentMatchesFreshParse(t, Closure) })
 }
 
@@ -230,8 +230,8 @@ rule peek2 = &k:[a-z]+ #atomic => S{K: $k}
 rule peek3 = &([a-z]* #atomic m:"" #atomic)
 rule junk = [^;]* #atomic ";"`, "ab;cd;", []string{"a", "b", ";", "x;", "", "1"}},
 	}
-	defer func(n int) { ecore.MinRecorded = n }(ecore.MinRecorded)
-	ecore.MinRecorded = 1 // resume short repetitions too
+	defer func(n int) { state.MinRecorded = n }(state.MinRecorded)
+	state.MinRecorded = 1 // resume short repetitions too
 	// Edits leave the last character alone: each text ends with a terminator that lets it parse.
 	for ci, c := range cases {
 		prog := mustCompile(t, c.grammar)
@@ -288,8 +288,8 @@ func TestDocumentResumeEdges(t *testing.T) {
 }
 
 func testDocumentResumeEdges(t *testing.T, backend Backend) {
-	defer func(n int) { ecore.MinRecorded = n }(ecore.MinRecorded)
-	ecore.MinRecorded = 1
+	defer func(n int) { state.MinRecorded = n }(state.MinRecorded)
+	state.MinRecorded = 1
 	cases := []struct {
 		name, grammar, text string
 		pieces              []string
@@ -357,7 +357,7 @@ rule rest = [^\n]* #atomic`)
 			t.Fatal(err)
 		}
 		doc.Parse()
-		for _, e := range []ecore.DocEdit{{Start: 0, End: 1, Delta: 0}, {Start: 11, End: 12, Delta: 0}} {
+		for _, e := range []state.DocEdit{{Start: 0, End: 1, Delta: 0}, {Start: 11, End: 12, Delta: 0}} {
 			doc.Edit(e.Start, e.End, "z?"[e.Start/11:e.Start/11+1])
 			got, err := doc.Parse()
 			fn, ferr := prog.Parse("main", doc.Text())
@@ -419,21 +419,21 @@ rule mid = [a-z] #atomic / "\n"`)
 // TestDocumentResumeSequences checks edit sequences that resumed repetitions must get right on
 // every backend.
 func TestDocumentResumeSequences(t *testing.T) {
-	defer func(n int) { ecore.MinRecorded = n }(ecore.MinRecorded)
-	ecore.MinRecorded = 1
+	defer func(n int) { state.MinRecorded = n }(state.MinRecorded)
+	state.MinRecorded = 1
 	cases := []struct {
 		name, grammar, text string
-		edits               []ecore.DocEdit // delta is ignored: the inserted text is ins
+		edits               []state.DocEdit // delta is ignored: the inserted text is ins
 		ins                 []string
 	}{
 		// A minimum met only by reused elements: the edit is after all of them.
-		{"minimum", `rule main = ("a" [a-z] #atomic)+ [0-9]* #atomic $$`, strings.Repeat("ab", 20) + "123", []ecore.DocEdit{{Start: 41, End: 42, Delta: 0}, {Start: 40, End: 41, Delta: 0}}, []string{"9", ""}},
+		{"minimum", `rule main = ("a" [a-z] #atomic)+ [0-9]* #atomic $$`, strings.Repeat("ab", 20) + "123", []state.DocEdit{{Start: 41, End: 42, Delta: 0}, {Start: 40, End: 41, Delta: 0}}, []string{"9", ""}},
 		// Elements that call a rule reading a variable defined before the repetition: an edit to
 		// the header changes how they parse, though not the input they examined.
 		{"variables", `var k int
 rule main = h:hdr {k := len($h)} item* $$
 rule hdr = "x"* #atomic
-rule item = {k == 1} [a-z!] #atomic / [a-z] #atomic "!"`, "x" + strings.Repeat("a!", 20), []ecore.DocEdit{{Start: 0, End: 1, Delta: 0}, {Start: 0, End: 0, Delta: 0}, {Start: 0, End: 0, Delta: 0}}, []string{"", "x", "x"}},
+rule item = {k == 1} [a-z!] #atomic / [a-z] #atomic "!"`, "x" + strings.Repeat("a!", 20), []state.DocEdit{{Start: 0, End: 1, Delta: 0}, {Start: 0, End: 0, Delta: 0}, {Start: 0, End: 0, Delta: 0}}, []string{"", "x", "x"}},
 	}
 	for _, c := range cases {
 		for _, b := range []Backend{Closure, Bytecode, BytecodeIterative} {
@@ -536,8 +536,8 @@ rule item = "(" item* ")" / "x"`, "xxxx(x)", 0, ParseOptions{Limits: core.Limits
 		for _, b := range []Backend{Closure, Bytecode, BytecodeIterative} {
 			t.Run(c.name+"/"+b.String(), func(t *testing.T) {
 				if c.minRecorded > 0 {
-					defer func(n int) { ecore.MinRecorded = n }(ecore.MinRecorded)
-					ecore.MinRecorded = c.minRecorded
+					defer func(n int) { state.MinRecorded = n }(state.MinRecorded)
+					state.MinRecorded = c.minRecorded
 				}
 				prog := mustCompile(t, c.grammar)
 				o := c.o

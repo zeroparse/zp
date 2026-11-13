@@ -420,7 +420,7 @@ func (r *refRenderer) aliasTarget(t *doc.Type) {
 // resolveAlias returns the type of an internal package that t stands for, with the renderer of
 // that package, if t aliases a type of an internal package. It follows aliases from one internal
 // package to another (as in type ParseOptions = engine.ParseOptions, where engine declares
-// type ParseOptions = core.ParseOptions) to the type definition, loading each package once.
+// type ParseOptions = state.ParseOptions) to the type definition, loading each package once.
 func (r *refRenderer) resolveAlias(t *doc.Type) (*refRenderer, *doc.Type, error) {
 	from, ft := r, t
 	for {

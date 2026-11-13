@@ -11,7 +11,7 @@ import (
 	"zeroparse.dev/zp/core"
 	"zeroparse.dev/zp/internal/codegentest"
 	"zeroparse.dev/zp/internal/compile"
-	ecore "zeroparse.dev/zp/internal/engine/core"
+	"zeroparse.dev/zp/internal/engine/state"
 )
 
 // skipRunGrammars are the grammars with skip-run sites that the tests parse.
@@ -56,10 +56,10 @@ func skipRunMismatch(t *testing.T, prog *Program, in string, o ParseOptions) []s
 	t.Helper()
 	var diffs []string
 	{
-		ecore.SkipRecordsOff = true
+		state.SkipRecordsOff = true
 		n, err := prog.ParseWith("main", in, o)
 		want := skipDump(t, n, err)
-		ecore.SkipRecordsOff = false
+		state.SkipRecordsOff = false
 		n, err = prog.ParseWith("main", in, o)
 		if got := skipDump(t, n, err); got != want {
 			diffs = append(diffs, "input "+strings.ReplaceAll(in, "\n", `\n`)+"\n got  "+got+"\n want "+want)
@@ -107,7 +107,7 @@ func TestSkipRunsMatchParsesWithoutRecords(t *testing.T) {
 // Records are reused from the third walk over a position on, which the nested family reaches at
 // once.
 func TestSkipRunsNegativeControls(t *testing.T) {
-	defer func() { ecore.SkipRecordMutation = 0 }()
+	defer func() { state.SkipRecordMutation = 0 }()
 	var prog *Program
 	for _, g := range skipRunGrammars {
 		if g.Name == "nested recovery" {
@@ -118,17 +118,17 @@ func TestSkipRunsNegativeControls(t *testing.T) {
 		mutation int
 		input    string
 	}{
-		{ecore.SkipKeepPos, "((((a"},
-		{ecore.SkipNoExpected, "((((a"},
-		{ecore.SkipEarlyStore, "((((((a("},
+		{state.SkipKeepPos, "((((a"},
+		{state.SkipNoExpected, "((((a"},
+		{state.SkipEarlyStore, "((((((a("},
 	} {
-		ecore.SkipRecordMutation = tc.mutation
+		state.SkipRecordMutation = tc.mutation
 		for _, b := range []Backend{Closure, Bytecode, BytecodeIterative} {
 			if diffs := skipRunMismatches(t, prog, []string{tc.input}, b); len(diffs) == 0 {
 				t.Errorf("mutation %d, %s: no difference on %q", tc.mutation, b, tc.input)
 			}
 		}
-		ecore.SkipRecordMutation = 0
+		state.SkipRecordMutation = 0
 	}
 }
 
@@ -137,7 +137,7 @@ func TestSkipRunsNegativeControls(t *testing.T) {
 // the result of the unlimited parse, and an unlimited parse after each stopped one does too. The
 // nested family stops in recording walks at most budgets.
 func TestSkipRunsBudgetAbort(t *testing.T) {
-	if !ecore.BudgetControlsEnabled {
+	if !state.BudgetControlsEnabled {
 		t.Skip("budget controls are unavailable in the reference build")
 	}
 	var prog *Program
@@ -177,7 +177,7 @@ func TestSkipRunsBudgetAbort(t *testing.T) {
 // give the results of fresh parses with skip-run records, and that random edits detect records
 // that leave out the end or the start of their examined range.
 func TestSkipRunsDocument(t *testing.T) {
-	defer func() { ecore.SkipRecordMutation = 0 }()
+	defer func() { state.SkipRecordMutation = 0 }()
 	var progs []*Program
 	var alphabets []string
 	for _, g := range skipRunGrammars {
@@ -185,8 +185,8 @@ func TestSkipRunsDocument(t *testing.T) {
 			progs, alphabets = append(progs, mustCompile(t, g.Src)), append(alphabets, g.Alphabet)
 		}
 	}
-	for _, mutation := range []int{0, ecore.SkipNoExamined, ecore.SkipNoFrom} {
-		ecore.SkipRecordMutation = mutation
+	for _, mutation := range []int{0, state.SkipNoExamined, state.SkipNoFrom} {
+		state.SkipRecordMutation = mutation
 		for _, b := range []Backend{Closure, Bytecode, BytecodeIterative} {
 			detected := false
 			for i, prog := range progs {
@@ -208,7 +208,7 @@ func TestSkipRunsDocument(t *testing.T) {
 // result can also run past the end of its input; the panic counts as a difference.
 func skipRunDocumentDiff(t *testing.T, prog *Program, alphabet string, b Backend) (diff string) {
 	t.Helper()
-	if ecore.SkipRecordMutation != 0 {
+	if state.SkipRecordMutation != 0 {
 		defer func() {
 			if e := recover(); e != nil {
 				diff = fmt.Sprint("panic: ", e)
@@ -238,10 +238,10 @@ func skipRunDocumentDiff(t *testing.T, prog *Program, alphabet string, b Backend
 		}
 		n, err := doc.Parse()
 		got := skipDump(t, n, err)
-		mutation := ecore.SkipRecordMutation
-		ecore.SkipRecordsOff, ecore.SkipRecordMutation = true, 0
+		mutation := state.SkipRecordMutation
+		state.SkipRecordsOff, state.SkipRecordMutation = true, 0
 		fn, ferr := prog.ParseWith("main", doc.Text(), o)
-		ecore.SkipRecordsOff, ecore.SkipRecordMutation = false, mutation
+		state.SkipRecordsOff, state.SkipRecordMutation = false, mutation
 		if want := skipDump(t, fn, ferr); got != want {
 			return "edit " + strings.ReplaceAll(doc.Text(), "\n", `\n`) + "\n got  " + got + "\n want " + want
 		}
@@ -257,8 +257,8 @@ func TestSkipRunsStream(t *testing.T) {
 rule x = ("b" #recover(skip=[ac]+)) "d"`)
 	input := strings.Repeat(strings.Repeat("a", 40)+"c"+strings.Repeat("a", 9)+"e"+strings.Repeat("a", 20)+"d", 50)
 	run := func(off bool, b Backend) string {
-		ecore.SkipRecordsOff = off
-		defer func() { ecore.SkipRecordsOff = false }()
+		state.SkipRecordsOff = off
+		defer func() { state.SkipRecordsOff = false }()
 		var out strings.Builder
 		err := prog.ParseStreamWith("main", strings.NewReader(input), func(n *core.Node) error {
 			out.WriteString(skipDump(t, n, nil) + "\n")

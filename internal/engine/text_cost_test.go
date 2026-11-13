@@ -9,7 +9,7 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/core"
-	ecore "zeroparse.dev/zp/internal/engine/core"
+	"zeroparse.dev/zp/internal/engine/state"
 )
 
 // nestedTextGrammar takes the text of every level of a nesting: the texts sum to the square of
@@ -97,8 +97,8 @@ func TestTextDecodesInvalidInputOnce(t *testing.T) {
 	t.Parallel()
 	source := strings.Repeat("é\xff", 1000)
 	want := strings.ToValidUTF8(source, "�")
-	c := ecore.NewBudgetControl(nil, core.Limits{Compute: 1 << 30})
-	in := ecore.NewControlledTextInput(source, core.CodePoints, false, nil, c)
+	c := state.NewBudgetControl(nil, core.Limits{Compute: 1 << 30})
+	in := state.NewControlledTextInput(source, core.CodePoints, false, nil, c)
 
 	// The decoding is interruptible and leaves nothing behind.
 	c.Limits.Compute = c.Used + 100
@@ -118,7 +118,7 @@ func TestTextDecodesInvalidInputOnce(t *testing.T) {
 	}
 
 	// An edit of a flat Document decodes its source again.
-	doc := ecore.NewTextInput("a\xffb", core.CodePoints, false)
+	doc := state.NewTextInput("a\xffb", core.CodePoints, false)
 	if got := doc.Text(0, 3); got != "a�b" {
 		t.Fatalf("text %q", got)
 	}
@@ -130,14 +130,14 @@ func TestTextDecodesInvalidInputOnce(t *testing.T) {
 
 func TestDocumentPieceTextFlattensOnce(t *testing.T) {
 	t.Parallel()
-	if !ecore.DocumentPieceInput {
+	if !state.DocumentPieceInput {
 		t.Skip("piece input is disabled")
 	}
 	for _, unit := range []core.PositionUnit{core.Bytes, core.CodePoints} {
-		pieces := ecore.NewDocumentPieces(strings.Repeat("é", 8192), unit)
+		pieces := state.NewDocumentPieces(strings.Repeat("é", 8192), unit)
 		pieces.Replace(10, 11, "x\xff")
-		c := ecore.NewBudgetControl(nil, core.Limits{Compute: 1 << 30})
-		in := ecore.Input{Unit: unit, Eof: true, BaseLine: 1, BaseCol: 1, Pieces: pieces, Control: c}
+		c := state.NewBudgetControl(nil, core.Limits{Compute: 1 << 30})
+		in := state.Input{Unit: unit, Eof: true, BaseLine: 1, BaseCol: 1, Pieces: pieces, Control: c}
 		flat := strings.Repeat("é", 8192)
 		if unit == core.Bytes {
 			flat = flat[:10] + "x\xff" + flat[11:]

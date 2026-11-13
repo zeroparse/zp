@@ -7,7 +7,7 @@ import (
 
 	"zeroparse.dev/zp/core"
 	"zeroparse.dev/zp/engine"
-	ecore "zeroparse.dev/zp/internal/engine/core"
+	"zeroparse.dev/zp/internal/engine/state"
 )
 
 // skipRunControls returns the E8 controls whose walks a parse without skip-run records repeats.
@@ -29,8 +29,8 @@ func skipRunControls(t *testing.T) []Control {
 // recording of walks: with walks that never record, every one is quadratic on every backend. It
 // sets package state, so it does not run in parallel.
 func TestSkipRunsNeverRecordControl(t *testing.T) {
-	ecore.SkipRecordMutation = ecore.SkipNeverRecord
-	defer func() { ecore.SkipRecordMutation = 0 }()
+	state.SkipRecordMutation = state.SkipNeverRecord
+	defer func() { state.SkipRecordMutation = 0 }()
 	controls := skipRunControls(t)
 	progs := make([]*engine.Parser, len(controls))
 	for i, c := range controls {
@@ -122,12 +122,12 @@ func TestAlternatingWalksTurnHot(t *testing.T) {
 			t.Fatal(err)
 		}
 		for _, b := range Backends {
-			turns := ecore.RunHotTurns.Load()
+			turns := state.RunHotTurns.Load()
 			s, err := Measure(p, c.Input, double(100), b, Cap)
 			if err != nil {
 				t.Fatalf("%s, %s: %v", c.Name, BackendName(b), err)
 			}
-			if ecore.RunHotTurns.Load() == turns {
+			if state.RunHotTurns.Load() == turns {
 				t.Errorf("%s, %s: no run site turned hot", c.Name, BackendName(b))
 			}
 			if got := Classify(s); got != Poly(2) {

@@ -10,7 +10,7 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/core"
-	ecore "zeroparse.dev/zp/internal/engine/core"
+	"zeroparse.dev/zp/internal/engine/state"
 )
 
 // envKeyGrammars memoize the rule u under a key that holds the string s, which the text of the head
@@ -38,14 +38,14 @@ func envKeyText(n int) string { return strings.Repeat("a", n) + ";" + strings.Re
 func freshAndDocumentUnits(t *testing.T, prog *Program, text string, o ParseOptions) (fresh, doc uint64, ferr, derr error) {
 	t.Helper()
 	of := o
-	of.Trace = func(e TraceEvent) { fresh = ecore.TraceParser(e).Control.Used }
+	of.Trace = func(e TraceEvent) { fresh = state.TraceParser(e).Control.Used }
 	_, ferr = prog.ParseWith("main", text, of)
 	d, err := prog.NewDocumentWith("main", text, o)
 	if err != nil {
 		t.Fatal(err)
 	}
 	od := o
-	od.Trace = func(e TraceEvent) { c := ecore.TraceParser(e).Control; doc = c.Used }
+	od.Trace = func(e TraceEvent) { c := state.TraceParser(e).Control; doc = c.Used }
 	_, derr = d.ParseWith(od)
 	return
 }
@@ -168,12 +168,12 @@ func TestBudgetDocumentRecoveredErrorsOfDocumentOnlyRuleAfterEdit(t *testing.T) 
 			}
 			var reparse uint64
 			od := o
-			od.Trace = func(e TraceEvent) { reparse = ecore.TraceParser(e).Control.Used }
+			od.Trace = func(e TraceEvent) { reparse = state.TraceParser(e).Control.Used }
 			_, derr := d.ParseWith(od)
 			edited := text[:2000] + "a" + text[2001:]
 			var fresh uint64
 			of := o
-			of.Trace = func(e TraceEvent) { fresh = ecore.TraceParser(e).Control.Used }
+			of.Trace = func(e TraceEvent) { fresh = state.TraceParser(e).Control.Used }
 			_, ferr := prog.ParseWith("main", edited, of)
 			if errors.Is(derr, core.ErrLimit) || errors.Is(ferr, core.ErrLimit) {
 				t.Fatalf("limit error: reparse %.80v, fresh %.80v", derr, ferr)

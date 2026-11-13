@@ -2,7 +2,7 @@
 
 package document
 
-import "zeroparse.dev/zp/internal/engine/core"
+import "zeroparse.dev/zp/internal/engine/state"
 
 const snapshotPositionOverlayEnabled = true
 
@@ -51,7 +51,7 @@ func (g *snapshotGraph) position(i int, r *snapshotRecord) snapshotPosition {
 	return snapshotPosition{r.start, r.end, r.gen}
 }
 
-func (g *snapshotGraph) setPositions(p *core.Parser, next *snapshotGraph) {
+func (g *snapshotGraph) setPositions(p *state.Parser, next *snapshotGraph) {
 	g.positions = make([]snapshotPositionDelta, len(next.nodes))
 	for i := range next.nodes {
 		p.SpendValue(3)

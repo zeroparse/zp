@@ -8,24 +8,24 @@ import (
 	"zeroparse.dev/zp/internal/bytecode"
 	"zeroparse.dev/zp/internal/compile"
 	"zeroparse.dev/zp/internal/compiletest"
-	ecore "zeroparse.dev/zp/internal/engine/core"
+	"zeroparse.dev/zp/internal/engine/state"
 	"zeroparse.dev/zp/internal/value"
 )
 
 // Completed calls can leave references beyond slice length. Stream commits
 // must release them at the next prune without disturbing active root values.
 func TestStreamStorageCommitReferences(t *testing.T) {
-	prog := &ecore.SharedProgram{}
-	ecore.InitSharedProgram(prog, compiletest.Program(t, `rule main = "a"`, compile.Options{SourceInfo: true}))
-	p := ecore.NewParser(prog, strings.Repeat("a", 4096), core.CodePoints, false)
+	prog := &state.SharedProgram{}
+	state.InitSharedProgram(prog, compiletest.Program(t, `rule main = "a"`, compile.Options{SourceInfo: true}))
+	p := state.NewParser(prog, strings.Repeat("a", 4096), core.CodePoints, false)
 	live := value.Ptr(value.Data{Text: "live"})
 	dead := value.Ptr(value.Data{Text: "dead"})
 	root := p.NewFrame(1)
 	root.Vals[0] = live
 	p.Frame = root
-	p.Trail = make([]ecore.Undo, 3)
-	p.Trail[0] = ecore.Undo{F: root, Old: live}
-	p.Trail[2] = ecore.Undo{F: &ecore.Frame{Vals: []*core.Node{dead}}, Old: dead}
+	p.Trail = make([]state.Undo, 3)
+	p.Trail[0] = state.Undo{F: root, Old: live}
+	p.Trail[2] = state.Undo{F: &state.Frame{Vals: []*core.Node{dead}}, Old: dead}
 	p.Trail = p.Trail[:1]
 	machineOf(p).vals = []any{live, dead, dead}
 	machineOf(p).vals = machineOf(p).vals[:1]
@@ -37,14 +37,14 @@ func TestStreamStorageCommitReferences(t *testing.T) {
 	if p.Memo.Base != 1024 || machineOf(p).vals[0] != live || root.Vals[0] != live {
 		t.Fatal("pruning damaged live root or active VM value")
 	}
-	if ecore.StreamUndoCleanup {
+	if state.StreamUndoCleanup {
 		for _, u := range p.Trail[:cap(p.Trail)] {
 			if u.F != nil || u.Old != nil {
 				t.Fatal("inactive undo entry retained a completed value")
 			}
 		}
 	}
-	if ecore.StreamStackCleanup {
+	if state.StreamStackCleanup {
 		for _, v := range machineOf(p).vals[len(machineOf(p).vals):cap(machineOf(p).vals)] {
 			if v != nil {
 				t.Fatal("inactive VM stack entry retained a completed value")

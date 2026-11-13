@@ -9,7 +9,7 @@ import (
 	"zeroparse.dev/zp/core"
 	"zeroparse.dev/zp/internal/codegentest"
 	"zeroparse.dev/zp/internal/compile"
-	ecore "zeroparse.dev/zp/internal/engine/core"
+	"zeroparse.dev/zp/internal/engine/state"
 )
 
 func TestFiniteStreamRepetitions(t *testing.T) {
@@ -153,7 +153,7 @@ func BenchmarkStreamRepetitionLimit(b *testing.B) {
 		input := strings.Repeat("a", 10000)
 		for _, backend := range []Backend{Closure, Bytecode, BytecodeIterative} {
 			b.Run(tc.name+"/"+backend.String(), func(b *testing.B) {
-				if _, err := prog.rule(backend, "main", ecore.Inlined, nil); err != nil {
+				if _, err := prog.rule(backend, "main", state.Inlined, nil); err != nil {
 					b.Fatal(err)
 				}
 				b.SetBytes(int64(len(input)))

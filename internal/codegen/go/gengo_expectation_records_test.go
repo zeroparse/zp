@@ -25,13 +25,13 @@ rule main N = ("é") #atomic`)
 	if err != nil {
 		t.Fatal(err)
 	}
-	fixture, err := os.ReadFile("../../engine/core/expectation_records_test.go")
+	fixture, err := os.ReadFile("../../engine/state/expectation_records_test.go")
 	if err != nil {
 		t.Fatal(err)
 	}
-	// The fixture is also a test of the core package; the generated library exports the names it
+	// The fixture is also a test of the state package; the generated library exports the names it
 	// uses except for the expectation record itself, which the library keeps unexported.
-	fixture = []byte(strings.NewReplacer("package core", "package engine", "&Parser{", "&zprt.Parser{", "ExpID", "zprt.ExpID", "ExpMark", "zprt.ExpMark", "MsgBit", "zprt.MsgBit",
+	fixture = []byte(strings.NewReplacer("package state", "package engine", "&Parser{", "&zprt.Parser{", "ExpID", "zprt.ExpID", "ExpMark", "zprt.ExpMark", "MsgBit", "zprt.MsgBit",
 		"p.ExpBase", "p.expBase", "p.Expect(", "p.Expect(", "p.Exp", "p.exp", "p.Farthest", "p.farthest").Replace(string(fixture)))
 	fixture = []byte(strings.Replace(string(fixture), "import (", "import (\n\tzprt \"zeroparse.dev/zp/codegen/go/lib\"", 1))
 	for _, mode := range []string{"plain", "direct", "conversion"} {

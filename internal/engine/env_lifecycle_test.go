@@ -10,7 +10,7 @@ import (
 	"zeroparse.dev/zp/core"
 	"zeroparse.dev/zp/internal/codegentest"
 	"zeroparse.dev/zp/internal/compile"
-	ecore "zeroparse.dev/zp/internal/engine/core"
+	"zeroparse.dev/zp/internal/engine/state"
 )
 
 func TestEnvironmentRollback(t *testing.T) {
@@ -32,7 +32,7 @@ func TestBoundStreamMemoryIsBounded(t *testing.T) {
 	for _, backend := range []Backend{Closure, Bytecode, BytecodeIterative} {
 		for _, unit := range []core.PositionUnit{core.CodePoints, core.Bytes} {
 			t.Run(fmt.Sprintf("%s/%s", backend, unit), func(t *testing.T) {
-				p := ecore.NewStreamParser(&prog.sharedProgram, &lineReader{line: "a", n: 60000}, unit)
+				p := state.NewStreamParser(&prog.sharedProgram, &lineReader{line: "a", n: 60000}, unit)
 				count := 0
 				var at [2]uint64
 				p.Emit = func(*core.Node) error {
@@ -91,7 +91,7 @@ rule main = {limit := 1} {i := 0} {j := 0} (` + c.body + `)* $$`)
 					if err != nil {
 						b.Fatal(err)
 					}
-					if _, err := prog.rule(backend, "main", ecore.Inlined, nil); err != nil {
+					if _, err := prog.rule(backend, "main", state.Inlined, nil); err != nil {
 						b.Fatal(err)
 					}
 					input := strings.Repeat("a", n)
@@ -147,7 +147,7 @@ func TestBindingSnapshots(t *testing.T) {
 	t.Parallel()
 	for _, n := range variableCounts {
 		t.Run(fmt.Sprint(n), func(t *testing.T) {
-			p := &ecore.Parser{}
+			p := &state.Parser{}
 			p.SetVars(memoTestVars(n))
 			d := p.EnvDepth()
 			first := p.Env
@@ -198,15 +198,15 @@ func TestBindingRestoresReferenceValues(t *testing.T) {
 	for _, n := range variableCounts {
 		t.Run(fmt.Sprint(n), func(t *testing.T) {
 			type snapshot struct {
-				env    *ecore.Env
+				env    *state.Env
 				values []any
 			}
-			p := &ecore.Parser{}
+			p := &state.Parser{}
 			p.SetVars(memoTestVars(n))
 			d := p.EnvDepth()
 			values := memoTestVars(n)
 			saved := []snapshot{{p.Env, slices.Clone(values)}}
-			verify := func(e *ecore.Env, want []any) {
+			verify := func(e *state.Env, want []any) {
 				t.Helper()
 				for i, w := range want {
 					if got := e.Get(i, d); got != w {
@@ -248,7 +248,7 @@ func TestBindingRestoresReferenceValues(t *testing.T) {
 func TestBindingBranchesFromOneSnapshot(t *testing.T) {
 	t.Parallel()
 	for _, n := range variableCounts {
-		p := &ecore.Parser{}
+		p := &state.Parser{}
 		p.SetVars(memoTestVars(n))
 		d := p.EnvDepth()
 		saved := p.Env

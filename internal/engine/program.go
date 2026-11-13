@@ -13,23 +13,23 @@ import (
 	"zeroparse.dev/zp/internal/compile"
 	"zeroparse.dev/zp/internal/desugar"
 	"zeroparse.dev/zp/internal/engine/closure"
-	"zeroparse.dev/zp/internal/engine/core"
+	"zeroparse.dev/zp/internal/engine/state"
 	"zeroparse.dev/zp/internal/engine/vm"
 	ir "zeroparse.dev/zp/internal/ir/core"
 )
 
 // sharedProgram names the part of a program that every backend shares, so that Program embeds it
 // under an unexported field name.
-type sharedProgram = core.SharedProgram
+type sharedProgram = state.SharedProgram
 
 // Program is a compiled grammar. It can be used by multiple parses concurrently.
 type Program struct {
 	sharedProgram
 	// buildFamily builds, from the program's Core IR (coreIR), the rules that the closure backend
 	// runs in a family, by ID (rule.id); it is nil when the closure backend cannot run the program (a
-	// program loaded without its grammar). families holds the rules of each family (core.Inlined,
+	// program loaded without its grammar). families holds the rules of each family (state.Inlined,
 	// core.CallPreserving), built on first use.
-	buildFamily func(*ir.Module, core.Family) ([]*core.Rule, error)
+	buildFamily func(*ir.Module, state.Family) ([]*state.Rule, error)
 	families    [2]closureFamily
 	coreIR      *closureCore
 
@@ -42,10 +42,10 @@ type Program struct {
 	// vmTerms holds the programs of the module's terms, which both VMs run; a loaded program has
 	// them from the checks of its file.
 	vmTermsOnce sync.Once
-	vmTerms     []*core.TermProgram
+	vmTerms     []*state.TermProgram
 	vmTermsErr  error
 	// vms holds the VM programs of the module, prepared on first use, by VM (vmIndex) and family
-	// (core.Family).
+	// (state.Family).
 	vms [2][2]familyVM
 	// loaded reports that the program was loaded from a compiled grammar, whose module serves the
 	// parses of mode only (checkMode).
@@ -64,15 +64,15 @@ type Program struct {
 type closureFamily struct {
 	built atomic.Bool
 	mu    sync.Mutex
-	rules []*core.Rule
+	rules []*state.Rule
 	err   error
 }
 
 // newProgram returns the program that runs the static program sp; buildFamily builds the rules of
 // the closure backend in a family from the Core IR of c, or is nil when that backend cannot run sp.
-func newProgram(sp *compile.Program, c *closureCore, buildFamily func(*ir.Module, core.Family) ([]*core.Rule, error)) *Program {
+func newProgram(sp *compile.Program, c *closureCore, buildFamily func(*ir.Module, state.Family) ([]*state.Rule, error)) *Program {
 	prog := &Program{buildFamily: buildFamily, coreIR: c}
-	core.InitSharedProgram(&prog.sharedProgram, sp)
+	state.InitSharedProgram(&prog.sharedProgram, sp)
 	return prog
 }
 
@@ -80,7 +80,7 @@ func newProgram(sp *compile.Program, c *closureCore, buildFamily func(*ir.Module
 // built from the Core IR of c; plainDispatch leaves out the budget charge of the loop iterations
 // (closure.Build).
 func closureProgram(sp *compile.Program, c *closureCore, plainDispatch bool) *Program {
-	return newProgram(sp, c, func(m *ir.Module, f core.Family) ([]*core.Rule, error) {
+	return newProgram(sp, c, func(m *ir.Module, f state.Family) ([]*state.Rule, error) {
 		return closure.Build(sp, m, plainDispatch, f)
 	})
 }
@@ -117,7 +117,7 @@ func (c *closureCore) share() {
 // wins. A module built while no family is pending (the families were built meanwhile) is returned
 // without being held. The build polls ctx, the context of the parse that needs the family (nil for
 // none): if it ends, module returns a buildCancelled with its error and holds no module; a panic of a
-// method of ctx unwinds as core.ContextPanic and also leaves no module held.
+// method of ctx unwinds as state.ContextPanic and also leaves no module held.
 func (c *closureCore) module(ctx context.Context) (m *ir.Module, err error) {
 	c.mu.Lock()
 	m = c.m
@@ -158,17 +158,17 @@ func buildCore(sp *compile.Program, ctx context.Context) (m *ir.Module, err erro
 }
 
 // attributedContext is a parse's context whose Err attributes a panic to the caller's context
-// (core.ContextPanic), as the parse's own checks do, so the parse re-raises the caller's value.
+// (state.ContextPanic), as the parse's own checks do, so the parse re-raises the caller's value.
 type attributedContext struct{ context.Context }
 
 func (c attributedContext) Err() error {
 	defer func() {
 		if x := recover(); x != nil {
 			switch x.(type) {
-			case core.Fatal, core.ContextPanic:
+			case state.Fatal, state.ContextPanic:
 				panic(x) // already attributed
 			default:
-				panic(core.ContextPanic{Value: x})
+				panic(state.ContextPanic{Value: x})
 			}
 		}
 	}()
@@ -235,7 +235,7 @@ func (prog *Program) Module() *bytecode.Module {
 
 // moduleTerms returns the module m (Module) and the programs of its terms, loading them once for
 // both VMs.
-func (prog *Program) moduleTerms() (*bytecode.Module, []*core.TermProgram, error) {
+func (prog *Program) moduleTerms() (*bytecode.Module, []*state.TermProgram, error) {
 	m := prog.Module()
 	prog.vmTermsOnce.Do(func() {
 		prog.vmTerms, prog.vmTermsErr = vm.LoadTerms(m)

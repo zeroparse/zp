@@ -34,9 +34,9 @@ attributed to that ratio.
 Evidence records: [020](../020-splicing-the-memo-table-on-document-edits.md),
 [056](../056-applying-a-document-edit-to-memo-entries-when-they-are-looked-up.md).
 
-Source owners: [`memoTable.splice`](../../../internal/engine/core/memo.go),
-[`advanceEntry`](../../../internal/engine/core/budget_document_checkpoints.go), [`callBegin edit
-advancement`](../../../internal/engine/core/runtime.go).
+Source owners: [`memoTable.splice`](../../../internal/engine/state/memo.go),
+[`advanceEntry`](../../../internal/engine/state/budget_document_checkpoints.go), [`callBegin edit
+advancement`](../../../internal/engine/state/runtime.go).
 
 The [comparison policy](../../design/records/024-optimization-mechanism-controls.md)
 distinguishes same-source controls, historical changes and full checkpoints.

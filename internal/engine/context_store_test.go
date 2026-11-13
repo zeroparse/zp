@@ -10,7 +10,7 @@ import (
 	"zeroparse.dev/zp/core"
 	"zeroparse.dev/zp/internal/codegentest"
 	"zeroparse.dev/zp/internal/compile"
-	ecore "zeroparse.dev/zp/internal/engine/core"
+	"zeroparse.dev/zp/internal/engine/state"
 )
 
 // contextStoreGrowth parses the shape at the two codegentest.ContextStoreSizes on the backend and
@@ -68,8 +68,8 @@ func TestContextStoreBoundsControls(t *testing.T) {
 		mutation int
 		shape    string
 	}{
-		{ecore.CtxCapDeps, "seven dependencies"},
-		{ecore.CtxNarrowPresent, "70 leaders"},
+		{state.CtxCapDeps, "seven dependencies"},
+		{state.CtxNarrowPresent, "70 leaders"},
 	} {
 		var s codegentest.DependencyMemoShape
 		for _, x := range codegentest.ContextStoreShapes {
@@ -79,8 +79,8 @@ func TestContextStoreBoundsControls(t *testing.T) {
 		}
 		prog := mustCompile(t, "@start\nrule main = "+s.Rules, compile.Options{SourceInfo: true})
 		func() {
-			ecore.ContextMemoMutation = c.mutation
-			defer func() { ecore.ContextMemoMutation = 0 }()
+			state.ContextMemoMutation = c.mutation
+			defer func() { state.ContextMemoMutation = 0 }()
 			for _, b := range []Backend{Closure, Bytecode, BytecodeIterative} {
 				if msg, ok := contextStoreBounded(t, prog, s, ParseOptions{Backend: b}); ok {
 					t.Errorf("mutation %d not detected: %s", c.mutation, msg)
@@ -109,8 +109,8 @@ func TestContextStoreMissingInsertion(t *testing.T) {
 // parse with insertion that keeps no result in a context.
 func TestContextStoreMissingInsertionControl(t *testing.T) {
 	prog := mustCompile(t, "@start\nrule main = "+missingChain.Rules, compile.Options{SourceInfo: true})
-	ecore.ContextMemoMutation = ecore.CtxStrictMissing
-	defer func() { ecore.ContextMemoMutation = 0 }()
+	state.ContextMemoMutation = state.CtxStrictMissing
+	defer func() { state.ContextMemoMutation = 0 }()
 	if msg, ok := contextStoreBounded(t, prog, missingChain, ParseOptions{Backend: Closure, MissingTokens: 1}); ok {
 		t.Errorf("CtxStrictMissing not detected: %s", msg)
 	}
@@ -134,8 +134,8 @@ func TestContextStoreMissingRandom(t *testing.T) {
 // TestContextStoreMissingRandomControl checks that TestContextStoreMissingRandom detects rules
 // that insert tokens keeping their results in contexts.
 func TestContextStoreMissingRandomControl(t *testing.T) {
-	ecore.ContextMemoMutation = ecore.CtxStoreInserts
-	defer func() { ecore.ContextMemoMutation = 0 }()
+	state.ContextMemoMutation = state.CtxStoreInserts
+	defer func() { state.ContextMemoMutation = 0 }()
 	if len(missingRandomMismatches(t, 40)) == 0 {
 		t.Error("CtxStoreInserts not detected")
 	}

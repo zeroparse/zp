@@ -32,7 +32,7 @@ records whole-input retention as a tradeoff.
 Evidence records:
 [010](../010-zero-copy-token-text-reusable-evaluation-context.md).
 
-Source owners: [`input.text and buildOffs`](../../../internal/engine/core/input.go),
+Source owners: [`input.text and buildOffs`](../../../internal/engine/state/input.go),
 [`generated text extraction`](../../../codegen/go/lib/lib.go),
 [`TypeScript text extraction`](../../../codegen/ts/lib/lib.ts).
 

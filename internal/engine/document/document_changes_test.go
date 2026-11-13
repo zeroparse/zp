@@ -9,11 +9,11 @@ import (
 
 	"zeroparse.dev/zp/core"
 	. "zeroparse.dev/zp/internal/engine"
-	ecore "zeroparse.dev/zp/internal/engine/core"
+	"zeroparse.dev/zp/internal/engine/state"
 )
 
 func TestDocumentChangesComparisonInterruptionPublication(t *testing.T) {
-	if !ecore.BudgetControlsEnabled {
+	if !state.BudgetControlsEnabled {
 		t.Skip("the reference build has no limits to interrupt the snapshot")
 	}
 	prog := mustCompile(t, `rule main = .* #atomic $$`)
@@ -170,7 +170,7 @@ rule main Entry = x:([a-z]+ #atomic) $$ => Entry{Name: text($x), At: $x.Start}`)
 			t.Fatal("identity replacement", got)
 		}
 		// The reference build has no cancellation to interrupt the snapshot.
-		if ecore.BudgetControlsEnabled {
+		if state.BudgetControlsEnabled {
 			ctx, cancel := context.WithCancel(context.Background())
 			cancel()
 			cancelled := o

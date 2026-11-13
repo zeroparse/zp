@@ -5,18 +5,18 @@ import (
 
 	"zeroparse.dev/zp/core"
 	"zeroparse.dev/zp/internal/bytecode"
-	ecore "zeroparse.dev/zp/internal/engine/core"
+	"zeroparse.dev/zp/internal/engine/state"
 )
 
 // NewIterative prepares a module for execution with the iterative model, in the family f; terms
 // are the programs of its terms (LoadTerms).
-func NewIterative(m *bytecode.Module, terms []*ecore.TermProgram, f ecore.Family) *Program {
+func NewIterative(m *bytecode.Module, terms []*state.TermProgram, f state.Family) *Program {
 	return buildVMProgram(m, terms, f, iterateBody)
 }
 
 // iterateBody runs a rule body with the iterative model: calls push frames instead of recursing.
-func iterateBody(vm *Program, r *ecore.Rule, entry int) func(p *ecore.Parser, min int) (*core.Node, bool) {
-	return func(p *ecore.Parser, min int) (*core.Node, bool) {
+func iterateBody(vm *Program, r *state.Rule, entry int) func(p *state.Parser, min int) (*core.Node, bool) {
+	return func(p *state.Parser, min int) (*core.Node, bool) {
 		mc := ivmMachineOf(p)
 		res := mc.iterate(vm, mc.bodyFrame(entry, r, min, false))
 		return res.v, res.ok
@@ -37,12 +37,12 @@ func iterateBody(vm *Program, r *ecore.Rule, entry int) func(p *ecore.Parser, mi
 type ivmMachine struct {
 	Machine
 	pool    framePool                  // frames of the iterative-model VM
-	attempt ecore.OperatorsRuleAttempt // result of the longestFrame that just finished
+	attempt state.OperatorsRuleAttempt // result of the longestFrame that just finished
 }
 
 // ivmMachineOf returns the iterative-model VM state of the parse that p runs, making it on first
 // use.
-func ivmMachineOf(p *ecore.Parser) *ivmMachine {
+func ivmMachineOf(p *state.Parser) *ivmMachine {
 	if mc, ok := p.Backend.(*Machine); ok {
 		if im, ok := mc.driver.(*ivmMachine); ok {
 			return im
@@ -54,7 +54,7 @@ func ivmMachineOf(p *ecore.Parser) *ivmMachine {
 // newIVMMachine makes the iterative-model VM state of the parse that p runs. It takes over the
 // stacks of the VM state that p has, such as the value stack a Document kept. The first rule body
 // of a parse makes it, before any code holds the VM state that it replaces.
-func newIVMMachine(p *ecore.Parser) *ivmMachine {
+func newIVMMachine(p *state.Parser) *ivmMachine {
 	im := &ivmMachine{}
 	if mc, ok := p.Backend.(*Machine); ok {
 		im.Machine = *mc
@@ -65,7 +65,7 @@ func newIVMMachine(p *ecore.Parser) *ivmMachine {
 }
 
 func (im *ivmMachine) reset() {
-	im.pool, im.attempt = framePool{}, ecore.OperatorsRuleAttempt{}
+	im.pool, im.attempt = framePool{}, state.OperatorsRuleAttempt{}
 }
 
 // iresult is the result of running a child.
@@ -108,7 +108,7 @@ type bodyFrame struct {
 	block   bool // OperatorsRule section (reports a cut to the caller through p.cut)
 	started bool
 	call    bool              // a plain call of b.r: run the end of InvokePlain when the body finishes
-	inv     ecore.InvokeState // call: the state saved by the call
+	inv     state.InvokeState // call: the state saved by the call
 	rec     int               // call: recovered errors before the call
 }
 
@@ -153,9 +153,9 @@ func (f *bodyFrame) next(mc *ivmMachine, vm *Program, res iresult) (iframe, ires
 			p.Depth--
 		}
 		p.Cut = f.inv.PrevCut
-		p.Trail = p.Trail[:ecore.Min2(f.inv.Trail, len(p.Trail))]
+		p.Trail = p.Trail[:state.Min2(f.inv.Trail, len(p.Trail))]
 		if ok {
-			v = p.Finish(r, ecore.EmptyFrame, v, f.inv.Start)
+			v = p.Finish(r, state.EmptyFrame, v, f.inv.Start)
 		} else {
 			p.Pos = f.inv.Start
 			p.Recovered = p.Recovered[:f.rec]
@@ -166,7 +166,7 @@ func (f *bodyFrame) next(mc *ivmMachine, vm *Program, res iresult) (iframe, ires
 }
 
 // callChild returns the frame that runs a call of r (the same steps as call).
-func (mc *ivmMachine) callChild(r *ecore.Rule, min int) iframe {
+func (mc *ivmMachine) callChild(r *state.Rule, min int) iframe {
 	p := mc.p
 	if !p.MemoAll && (!p.Memoizes(r) || p.FirstCall(r)) || p.MemoAll && p.DirectCallDoc(r) {
 		if len(r.Scope.Names) == 0 {
@@ -179,12 +179,12 @@ func (mc *ivmMachine) callChild(r *ecore.Rule, min int) iframe {
 
 // plainCallFrame starts an unmemoized call of a rule without captures (the start of InvokePlain)
 // and returns the frame that runs its body.
-func (mc *ivmMachine) plainCallFrame(r *ecore.Rule, min int) *bodyFrame {
+func (mc *ivmMachine) plainCallFrame(r *state.Rule, min int) *bodyFrame {
 	p := mc.p
 	p.Spend()
 	f := mc.bodyFrame(r.Entry, r, min, false)
 	f.call = true
-	f.inv = ecore.InvokeState{PrevEnv: p.Env, PrevCut: p.Cut, Trail: len(p.Trail), Start: p.Pos}
+	f.inv = state.InvokeState{PrevEnv: p.Env, PrevCut: p.Cut, Trail: len(p.Trail), Start: p.Pos}
 	f.rec = len(p.Recovered)
 	p.Cut = false
 	if r.Rec {
@@ -221,34 +221,34 @@ func reuse[T any](mem *uint64, list *[]*T) *T {
 	return new(T)
 }
 
-func (mc *ivmMachine) skipFrame(pr *ecore.OperatorsRule) *skipFrame {
+func (mc *ivmMachine) skipFrame(pr *state.OperatorsRule) *skipFrame {
 	f := reuse(&mc.p.MemKept, &mc.pool.skips)
 	*f = skipFrame{pr: pr}
 	return f
 }
 
-func (mc *ivmMachine) longestFrame(ops []*ecore.OperatorsRuleOp) *longestFrame {
+func (mc *ivmMachine) longestFrame(ops []*state.OperatorsRuleOp) *longestFrame {
 	f := reuse(&mc.p.MemKept, &mc.pool.longests)
 	*f = longestFrame{}
 	mc.p.LongestBegin(&f.st, ops)
 	return f
 }
 
-func (mc *ivmMachine) nudFrame(r *ecore.Rule) *nudFrame {
+func (mc *ivmMachine) nudFrame(r *state.Rule) *nudFrame {
 	f := reuse(&mc.p.MemKept, &mc.pool.nuds)
 	*f = nudFrame{r: r}
 	return f
 }
 
-func (mc *ivmMachine) operatorsRuleFrame(r *ecore.Rule, min int) *operatorsRuleFrame {
+func (mc *ivmMachine) operatorsRuleFrame(r *state.Rule, min int) *operatorsRuleFrame {
 	p := mc.p
 	p.Enter()
 	f := reuse(&mc.p.MemKept, &mc.pool.operatorsRules)
-	*f = operatorsRuleFrame{r: r, st: ecore.ExprState{Min: min}}
+	*f = operatorsRuleFrame{r: r, st: state.ExprState{Min: min}}
 	return f
 }
 
-func (mc *ivmMachine) bodyFrame(entry int, r *ecore.Rule, min int, block bool) *bodyFrame {
+func (mc *ivmMachine) bodyFrame(entry int, r *state.Rule, min int, block bool) *bodyFrame {
 	var f *bodyFrame
 	if n := len(mc.pool.bodies); n > 0 {
 		f = mc.pool.bodies[n-1]
@@ -263,7 +263,7 @@ func (mc *ivmMachine) bodyFrame(entry int, r *ecore.Rule, min int, block bool) *
 
 // callFrame returns the frame of a call of r, memoized or not (the caller has decided, calling
 // firstCall once).
-func (mc *ivmMachine) callFrame(r *ecore.Rule, min int, memoized bool) *callFrame {
+func (mc *ivmMachine) callFrame(r *state.Rule, min int, memoized bool) *callFrame {
 	var f *callFrame
 	if n := len(mc.pool.calls); n > 0 {
 		f = mc.pool.calls[n-1]
@@ -282,7 +282,7 @@ func (mc *ivmMachine) releaseFrame(f iframe) {
 	case *bodyFrame:
 		mc.pool.bodies = append(mc.pool.bodies, f)
 	case *callFrame:
-		f.g = ecore.GrowState{}
+		f.g = state.GrowState{}
 		mc.pool.calls = append(mc.pool.calls, f)
 	case *skipFrame:
 		mc.pool.skips = append(mc.pool.skips, f)
@@ -298,15 +298,15 @@ func (mc *ivmMachine) releaseFrame(f iframe) {
 
 // callFrame is a rule call (same steps as parser.call).
 type callFrame struct {
-	r     *ecore.Rule
+	r     *state.Rule
 	min   int
 	state int
 	// memoized is set for a memoized call (CallBegin and CallEnd); otherwise the call is not
 	// memoized (unmemoized calls of rules without captures use plainCallFrame instead).
 	memoized   bool
-	st         ecore.CallState
-	g          ecore.GrowState
-	inv        ecore.InvokeState
+	st         state.CallState
+	g          state.GrowState
+	inv        state.InvokeState
 	start, rec int // unmemoized calls: state to restore on failure
 }
 
@@ -388,8 +388,8 @@ func (f *callFrame) invoke(mc *ivmMachine) iframe {
 // skipFrame is the skip of an Operators Rule expression, between the split form's TriviaBegin and
 // TriviaEnd.
 type skipFrame struct {
-	pr      *ecore.OperatorsRule
-	m       ecore.Mark
+	pr      *state.OperatorsRule
+	m       state.Mark
 	started bool
 }
 
@@ -410,13 +410,13 @@ func (f *skipFrame) next(mc *ivmMachine, vm *Program, res iresult) (iframe, ires
 // longestFrame is the longest match over operator parts: it runs the line of each operator between
 // the steps of the split form.
 type longestFrame struct {
-	st      ecore.LongestState
+	st      state.LongestState
 	started bool
 }
 
 func (f *longestFrame) next(mc *ivmMachine, vm *Program, res iresult) (iframe, iresult, bool) {
 	p := mc.p
-	var l *ecore.OperatorsRuleLine
+	var l *state.OperatorsRuleLine
 	var more bool
 	if f.started {
 		l, more = p.LongestStep(&f.st, res.v, res.ok)
@@ -433,9 +433,9 @@ func (f *longestFrame) next(mc *ivmMachine, vm *Program, res iresult) (iframe, i
 
 // nudFrame is the beginning of an expression, between the steps of the split form.
 type nudFrame struct {
-	r     *ecore.Rule
+	r     *state.Rule
 	state int
-	st    ecore.NudState
+	st    state.NudState
 }
 
 const (
@@ -499,9 +499,9 @@ func (f *nudFrame) next(mc *ivmMachine, vm *Program, res iresult) (iframe, iresu
 // operatorsRuleFrame parses an expression, absorbing only operators that bind tighter than binding level
 // min, between the steps of the split form.
 type operatorsRuleFrame struct {
-	r     *ecore.Rule
+	r     *state.Rule
 	state int
-	st    ecore.ExprState
+	st    state.ExprState
 }
 
 const (
@@ -569,7 +569,7 @@ func (f *operatorsRuleFrame) result(ok bool) iresult {
 // traceFrame is a traced rule call in the iterative-model VM: it reports the call, runs the frame
 // that bodyFrame would have pushed for it, and reports the result.
 type traceFrame struct {
-	r       *ecore.Rule
+	r       *state.Rule
 	min     int
 	started bool
 }

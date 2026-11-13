@@ -36,7 +36,7 @@ Evidence records: [036](../036-comparing-texts-without-boxing-them.md),
 [044](../044-changes-36-and-37-in-the-vms-instruction-set-2.md),
 [102](../102-read-text-struct-fields-without-a-struct-lookup.md).
 
-Source owners: [`text equality evaluator`](../../../internal/engine/core/eval.go),
+Source owners: [`text equality evaluator`](../../../internal/engine/state/eval.go),
 the term lowering of the Exec IR, [`native text
 comparison instructions`](../../../internal/engine/vm/vm.go), and, for generated
 parsers, the term lowering of the Exec IR, which the Go and TypeScript generators

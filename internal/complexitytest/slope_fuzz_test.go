@@ -15,7 +15,7 @@ import (
 	"zeroparse.dev/zp/core"
 	"zeroparse.dev/zp/engine"
 	"zeroparse.dev/zp/internal/complexity"
-	ecore "zeroparse.dev/zp/internal/engine/core"
+	"zeroparse.dev/zp/internal/engine/state"
 	"zeroparse.dev/zp/internal/starttest"
 )
 
@@ -195,7 +195,7 @@ func (g *slopeGrammar) source() string {
 func spent(p *engine.Parser, input string, b engine.Backend) (cost uint64, capped bool) {
 	_, err := p.Parse(input, engine.WithBackend(b), engine.WithLimits(core.Limits{Compute: slopeCap}),
 		engine.WithTrace(func(e engine.TraceEvent) {
-			if c := ecore.TraceParser(e).Control; c != nil {
+			if c := state.TraceParser(e).Control; c != nil {
 				cost = c.Used
 			}
 		}))

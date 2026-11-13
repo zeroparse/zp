@@ -7,7 +7,7 @@ import (
 
 	"zeroparse.dev/zp/core"
 	"zeroparse.dev/zp/engine"
-	ecore "zeroparse.dev/zp/internal/engine/core"
+	"zeroparse.dev/zp/internal/engine/state"
 )
 
 func TestDocumentChangesPublicOptIn(t *testing.T) {
@@ -67,7 +67,7 @@ rule main Entry = x:([a-zé]+ #atomic) $$ => Entry{Name: text($x)}`, "main")
 				t.Fatal(got)
 			}
 			// The reference build has no cancellation to interrupt the Snapshot.
-			if ecore.BudgetControlsEnabled {
+			if state.BudgetControlsEnabled {
 				ctx, cancel := context.WithCancel(context.Background())
 				cancel()
 				if s, err := d.Snapshot(engine.WithContext(ctx)); s != nil || !errors.Is(err, context.Canceled) {

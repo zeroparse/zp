@@ -9,7 +9,7 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/core"
-	ecore "zeroparse.dev/zp/internal/engine/core"
+	"zeroparse.dev/zp/internal/engine/state"
 )
 
 // These public-API probes exercise large action error strings at the final
@@ -114,12 +114,12 @@ rule ` + longRule + ` = a:"a" => A{N: 1 / (len($a) - 1)}`,
 									if mode == "budget" {
 										// Public smoke coverage for fatal propagation. Exact formatter-phase
 										// exhaustion is covered by focused builder whiteboxes.
-										ecore.TraceParser(e).Control.Limits.Compute = ecore.TraceParser(e).Control.Used + 256
+										state.TraceParser(e).Control.Limits.Compute = state.TraceParser(e).Control.Used + 256
 									} else {
 										poll := newPollingContext(2)
-										ecore.TraceParser(e).Control.Ctx = poll
-										ecore.TraceParser(e).Control.SinceCheck = 0
-										ecore.TraceParser(e).Control.SinceCheck = 0
+										state.TraceParser(e).Control.Ctx = poll
+										state.TraceParser(e).Control.SinceCheck = 0
+										state.TraceParser(e).Control.SinceCheck = 0
 									}
 								}
 							}

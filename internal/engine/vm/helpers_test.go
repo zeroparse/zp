@@ -7,7 +7,7 @@ import (
 	"zeroparse.dev/zp/core"
 	"zeroparse.dev/zp/core/noderep"
 	"zeroparse.dev/zp/internal/compile"
-	ecore "zeroparse.dev/zp/internal/engine/core"
+	"zeroparse.dev/zp/internal/engine/state"
 	"zeroparse.dev/zp/internal/value"
 )
 
@@ -18,7 +18,7 @@ func catchFatal(t *testing.T, f func()) error {
 	func() {
 		defer func() {
 			if v := recover(); v != nil {
-				fatal, ok := v.(ecore.Fatal)
+				fatal, ok := v.(state.Fatal)
 				if !ok {
 					t.Fatalf("panic = %T(%v), want fatal", v, v)
 				}
@@ -32,25 +32,25 @@ func catchFatal(t *testing.T, f func()) error {
 
 func catchStreamPanic(f func()) (val any) { defer func() { val = recover() }(); f(); return }
 
-func stateBudgetParser(lim core.Limits) *ecore.Parser {
-	prog := &ecore.SharedProgram{}
-	ecore.InitSharedProgram(prog, &compile.Program{})
-	return &ecore.Parser{Prog: prog, Input: ecore.Input{Control: ecore.NewBudgetControl(nil, lim)}}
+func stateBudgetParser(lim core.Limits) *state.Parser {
+	prog := &state.SharedProgram{}
+	state.InitSharedProgram(prog, &compile.Program{})
+	return &state.Parser{Prog: prog, Input: state.Input{Control: state.NewBudgetControl(nil, lim)}}
 }
 
-func undoFixture(p *ecore.Parser) (*ecore.Frame, []*core.Node) {
+func undoFixture(p *state.Parser) (*state.Frame, []*core.Node) {
 	old0 := value.Ptr(value.Data{Text: "old-zero", Fields: noderep.Fields{{Name: "keep", Value: "zero"}}})
 	first0 := value.Ptr(value.Data{Text: "first-zero"})
 	latest0 := value.Ptr(value.Data{Text: "latest-zero"})
 	old1 := value.Ptr(value.Data{Text: "old-one"})
 	last1 := value.Ptr(value.Data{Text: "last-one"})
-	f := &ecore.Frame{Vals: []*core.Node{latest0, old1}}
-	p.Trail = []ecore.Undo{{F: f, Slot: 0, Old: old0}, {F: f, Slot: 0, Old: first0}, {F: f, Slot: 1, Old: old1}, {F: f, Slot: 1, Old: last1}}
+	f := &state.Frame{Vals: []*core.Node{latest0, old1}}
+	p.Trail = []state.Undo{{F: f, Slot: 0, Old: old0}, {F: f, Slot: 0, Old: first0}, {F: f, Slot: 1, Old: old1}, {F: f, Slot: 1, Old: last1}}
 	return f, []*core.Node{old0, first0, old1, last1, latest0}
 }
 
-func diagnosticParser(lim core.Limits) *ecore.Parser {
-	return &ecore.Parser{Input: ecore.Input{Control: ecore.NewBudgetControl(nil, lim)}}
+func diagnosticParser(lim core.Limits) *state.Parser {
+	return &state.Parser{Input: state.Input{Control: state.NewBudgetControl(nil, lim)}}
 }
 
 type pollingContext struct {

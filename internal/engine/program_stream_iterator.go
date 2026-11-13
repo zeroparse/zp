@@ -6,7 +6,7 @@ import (
 	"io"
 
 	"zeroparse.dev/zp/core"
-	ecore "zeroparse.dev/zp/internal/engine/core"
+	"zeroparse.dev/zp/internal/engine/state"
 )
 
 var errIteratorStop = errors.New("stream iterator stopped")
@@ -16,16 +16,16 @@ var errIteratorStop = errors.New("stream iterator stopped")
 func (prog *Program) Iterate(start string, r io.Reader, o ParseOptions) (it *core.StreamIterator, err error) {
 	defer func() {
 		if x := recover(); x != nil {
-			if f, ok := x.(ecore.Fatal); ok {
+			if f, ok := x.(state.Fatal); ok {
 				it, err = nil, f.Err
-			} else if cp, ok := x.(ecore.ContextPanic); ok {
+			} else if cp, ok := x.(state.ContextPanic); ok {
 				panic(cp.Value)
 			} else {
 				panic(x)
 			}
 		}
 	}()
-	if err := ecore.ValidateStreamDiagnostics(o, true); err != nil {
+	if err := state.ValidateStreamDiagnostics(o, true); err != nil {
 		return nil, err
 	}
 	if o.Recognize {

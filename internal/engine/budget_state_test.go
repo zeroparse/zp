@@ -15,28 +15,28 @@ import (
 	"zeroparse.dev/zp/core"
 	"zeroparse.dev/zp/core/noderep"
 	"zeroparse.dev/zp/internal/compile"
-	ecore "zeroparse.dev/zp/internal/engine/core"
+	"zeroparse.dev/zp/internal/engine/state"
 	"zeroparse.dev/zp/internal/value"
 )
 
-func stateBudgetParser(limits core.Limits) *ecore.Parser {
-	prog := &ecore.SharedProgram{}
-	ecore.InitSharedProgram(prog, &compile.Program{})
-	return &ecore.Parser{Prog: prog, Input: ecore.Input{Control: ecore.NewBudgetControl(nil, limits)}}
+func stateBudgetParser(limits core.Limits) *state.Parser {
+	prog := &state.SharedProgram{}
+	state.InitSharedProgram(prog, &compile.Program{})
+	return &state.Parser{Prog: prog, Input: state.Input{Control: state.NewBudgetControl(nil, limits)}}
 }
 
-func undoFixture(p *ecore.Parser) (*ecore.Frame, []*core.Node) {
+func undoFixture(p *state.Parser) (*state.Frame, []*core.Node) {
 	old0 := value.Ptr(value.Data{Text: "old-zero", Fields: noderep.Fields{{Name: "keep", Value: "zero"}}})
 	first0 := value.Ptr(value.Data{Text: "first-zero"})
 	latest0 := value.Ptr(value.Data{Text: "latest-zero"})
 	old1 := value.Ptr(value.Data{Text: "old-one"})
 	last1 := value.Ptr(value.Data{Text: "last-one"})
-	f := &ecore.Frame{Vals: []*core.Node{latest0, old1}}
-	p.Trail = []ecore.Undo{{F: f, Slot: 0, Old: old0}, {F: f, Slot: 0, Old: first0}, {F: f, Slot: 1, Old: old1}, {F: f, Slot: 1, Old: last1}}
+	f := &state.Frame{Vals: []*core.Node{latest0, old1}}
+	p.Trail = []state.Undo{{F: f, Slot: 0, Old: old0}, {F: f, Slot: 0, Old: first0}, {F: f, Slot: 1, Old: old1}, {F: f, Slot: 1, Old: last1}}
 	return f, []*core.Node{old0, first0, old1, last1, latest0}
 }
 
-func assertUndoRestored(t *testing.T, f *ecore.Frame, nodes []*core.Node) {
+func assertUndoRestored(t *testing.T, f *state.Frame, nodes []*core.Node) {
 	t.Helper()
 	if f.Vals[0] != nodes[0] || f.Vals[1] != nodes[2] {
 		t.Fatalf("restored slots = (%p,%p), want (%p,%p)", f.Vals[0], f.Vals[1], nodes[0], nodes[2])
@@ -53,8 +53,8 @@ func TestBudgetResetRestoresRepeatedCaptureWritesInReverse(t *testing.T) {
 	p.Pos = 71
 	p.Frame = f
 	p.SetVars([]any{1})
-	p.Recovered = []ecore.RecEntry{ecore.ErrEntry(&core.SyntaxError{Messages: []string{"temporary"}})}
-	m := ecore.Mark{Pos: 4, Env: nil, Trail: 0, Recovered: 0}
+	p.Recovered = []state.RecEntry{state.ErrEntry(&core.SyntaxError{Messages: []string{"temporary"}})}
+	m := state.Mark{Pos: 4, Env: nil, Trail: 0, Recovered: 0}
 
 	p.Reset(m)
 	assertUndoRestored(t, f, nodes)
@@ -66,14 +66,14 @@ func TestBudgetResetRestoresRepeatedCaptureWritesInReverse(t *testing.T) {
 func TestBudgetResetPollingCancellationDuringUndo(t *testing.T) {
 	t.Parallel()
 	p := stateBudgetParser(core.Limits{})
-	f := &ecore.Frame{Vals: make([]*core.Node, 257)}
+	f := &state.Frame{Vals: make([]*core.Node, 257)}
 	for i := range f.Vals {
 		old := value.Ptr(value.Data{Text: "old"})
 		f.Vals[i] = value.Ptr(value.Data{Text: "new"})
-		p.Trail = append(p.Trail, ecore.Undo{F: f, Slot: i, Old: old})
+		p.Trail = append(p.Trail, state.Undo{F: f, Slot: i, Old: old})
 	}
-	p.Control = ecore.NewBudgetControl(newPollingContext(1), core.Limits{})
-	err := catchFatal(t, func() { p.Reset(ecore.Mark{Trail: 0}) })
+	p.Control = state.NewBudgetControl(newPollingContext(1), core.Limits{})
+	err := catchFatal(t, func() { p.Reset(state.Mark{Trail: 0}) })
 	if !errors.Is(err, context.Canceled) {
 		t.Fatalf("undo cancellation = %v, want context.Canceled", err)
 	}
@@ -90,7 +90,7 @@ func TestBudgetResetPollingCancellationDuringUndo(t *testing.T) {
 func TestBudgetAttachCapturesNilFrameAndFieldOrder(t *testing.T) {
 	t.Parallel()
 	retained := value.Ptr(value.Data{Text: "base", Fields: noderep.Fields{{Name: "existing", Value: "kept"}}})
-	allNil := &ecore.Frame{Vals: make([]*core.Node, 320)}
+	allNil := &state.Frame{Vals: make([]*core.Node, 320)}
 	p := stateBudgetParser(core.Limits{Compute: 100_000})
 	got := p.AttachCaptures(retained, &compile.Scope{Names: make([]string, len(allNil.Vals))}, allNil, 2, 9)
 	if got != retained || len(value.D(retained).Fields) != 1 || value.D(retained).Fields[0].Value != "kept" {
@@ -102,7 +102,7 @@ func TestBudgetAttachCapturesNilFrameAndFieldOrder(t *testing.T) {
 		value.Ptr(value.Data{Text: "first-value"}), value.Ptr(value.Data{Text: "old-duplicate"}), value.Ptr(value.Data{Text: "third-value"}), value.Ptr(value.Data{Text: "new-duplicate"}), value.Ptr(value.Data{Text: "late-value"}),
 	}
 	base := value.Ptr(value.Data{Text: "fresh-body", Fresh: true})
-	result := p.AttachCaptures(base, &compile.Scope{Names: fields}, &ecore.Frame{Vals: values}, 0, 5)
+	result := p.AttachCaptures(base, &compile.Scope{Names: fields}, &state.Frame{Vals: values}, 0, 5)
 	if result != base {
 		t.Fatal("fresh body was unexpectedly wrapped")
 	}
@@ -126,7 +126,7 @@ func TestBudgetAttachCapturesWrapsNonfreshAndSelfCapture(t *testing.T) {
 	prior := noderep.Fields{{Name: "prior", Value: "unchanged"}}
 	shared := value.Ptr(value.Data{Text: "shared", Fields: append(noderep.Fields(nil), prior...)})
 	p := stateBudgetParser(core.Limits{Compute: 100_000})
-	wrapped := p.AttachCaptures(shared, &compile.Scope{Names: []string{"child"}}, &ecore.Frame{Vals: []*core.Node{child}}, 4, 7)
+	wrapped := p.AttachCaptures(shared, &compile.Scope{Names: []string{"child"}}, &state.Frame{Vals: []*core.Node{child}}, 4, 7)
 	if wrapped == shared || len(value.D(wrapped).Children) != 1 || value.D(wrapped).Children[0] != shared {
 		t.Fatal("nonfresh node was not wrapped before capture attachment")
 	}
@@ -138,7 +138,7 @@ func TestBudgetAttachCapturesWrapsNonfreshAndSelfCapture(t *testing.T) {
 	}
 
 	self := value.Ptr(value.Data{Text: "self", Fresh: true})
-	got := p.AttachCaptures(self, &compile.Scope{Names: []string{"self"}}, &ecore.Frame{Vals: []*core.Node{self}}, 1, 2)
+	got := p.AttachCaptures(self, &compile.Scope{Names: []string{"self"}}, &state.Frame{Vals: []*core.Node{self}}, 1, 2)
 	if got == self || len(value.D(got).Children) != 1 || value.D(got).Children[0] != self {
 		t.Fatal("self-capture did not wrap the body node")
 	}
@@ -150,7 +150,7 @@ func TestBudgetAttachCapturesWrapsNonfreshAndSelfCapture(t *testing.T) {
 func TestBudgetAttachCapturesInterruptsDiscoveryAndFieldWalk(t *testing.T) {
 	t.Parallel()
 	base := value.Ptr(value.Data{Text: "retained", Fields: noderep.Fields{{Name: "prior", Value: "kept"}}})
-	wide := &ecore.Frame{Vals: make([]*core.Node, 320)}
+	wide := &state.Frame{Vals: make([]*core.Node, 320)}
 	p := stateBudgetParser(core.Limits{Compute: 128})
 	if err := catchFatal(t, func() { _ = p.AttachCaptures(base, &compile.Scope{Names: make([]string, 320)}, wide, 0, 1) }); !errors.Is(err, core.ErrLimit) {
 		t.Fatalf("all-nil discovery interruption = %v, want ErrLimit", err)
@@ -168,7 +168,7 @@ func TestBudgetAttachCapturesInterruptsDiscoveryAndFieldWalk(t *testing.T) {
 	}
 	retained := value.Ptr(value.Data{Text: "shared-retained", Fields: noderep.Fields{{Name: "existing", Value: "stable"}}})
 	p = stateBudgetParser(core.Limits{Compute: 256})
-	if err := catchFatal(t, func() { _ = p.AttachCaptures(retained, &compile.Scope{Names: names}, &ecore.Frame{Vals: vals}, 3, 9) }); !errors.Is(err, core.ErrLimit) {
+	if err := catchFatal(t, func() { _ = p.AttachCaptures(retained, &compile.Scope{Names: names}, &state.Frame{Vals: vals}, 3, 9) }); !errors.Is(err, core.ErrLimit) {
 		t.Fatalf("capture field walk interruption = %v, want ErrLimit", err)
 	}
 	if len(value.D(retained).Fields) != 1 || value.D(retained).Fields[0].Name != "existing" || value.D(retained).Fields[0].Value != "stable" || value.D(retained).Text != "shared-retained" {
@@ -197,18 +197,18 @@ rule arm = _`
 			for _, recognize := range []bool{false, true} {
 				armed := false
 				fallback := 0
-				var observed *ecore.Parser
+				var observed *state.Parser
 				n, err := prog.ParseWith("main", "a", ParseOptions{Backend: b, Unit: u, Recognize: recognize, Limits: core.Limits{Compute: 1 << 50}, Trace: func(e TraceEvent) {
-					observed = ecore.TraceParser(e)
+					observed = state.TraceParser(e)
 					if e.Kind == TraceEnter && e.Rule == "fallback" {
 						fallback++
 					}
 					if e.Kind == TraceExit && e.Rule == "arm" && e.Matched {
-						if len(ecore.TraceParser(e).Trail) < 320 {
-							t.Fatalf("%v/%v recognize=%t: outer capture trail=%d", b, u, recognize, len(ecore.TraceParser(e).Trail))
+						if len(state.TraceParser(e).Trail) < 320 {
+							t.Fatalf("%v/%v recognize=%t: outer capture trail=%d", b, u, recognize, len(state.TraceParser(e).Trail))
 						}
 						armed = true
-						ecore.TraceParser(e).Control.Limits.Compute = ecore.TraceParser(e).Control.Used + 20
+						state.TraceParser(e).Control.Limits.Compute = state.TraceParser(e).Control.Used + 20
 					}
 				}})
 				if !armed || n != nil || !errors.Is(err, core.ErrLimit) || fallback != 0 || observed == nil || observed.Scratch != nil || observed.Control != nil {

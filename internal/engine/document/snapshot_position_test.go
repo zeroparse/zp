@@ -11,8 +11,8 @@ import (
 
 	"zeroparse.dev/zp/core"
 	. "zeroparse.dev/zp/internal/engine"
-	ecore "zeroparse.dev/zp/internal/engine/core"
 	"zeroparse.dev/zp/internal/engine/document"
+	"zeroparse.dev/zp/internal/engine/state"
 	"zeroparse.dev/zp/internal/value"
 )
 
@@ -134,7 +134,7 @@ rule item = .`)
 
 func TestSnapshotPositionOverlayCancellationDuringMetadataCopy(t *testing.T) {
 	t.Parallel()
-	if !ecore.BudgetControlsEnabled {
+	if !state.BudgetControlsEnabled {
 		t.Skip("budget control reference")
 	}
 	prog := mustCompile(t, `rule main = -[ ]* item* $$

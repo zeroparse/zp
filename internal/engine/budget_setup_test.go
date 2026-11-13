@@ -11,7 +11,7 @@ import (
 
 	"zeroparse.dev/zp/core"
 	"zeroparse.dev/zp/internal/codegentest"
-	ecore "zeroparse.dev/zp/internal/engine/core"
+	"zeroparse.dev/zp/internal/engine/state"
 )
 
 type setupPhaseContext struct {
@@ -352,14 +352,14 @@ func TestBudgetSetupInputPreparationPanicIdentity(t *testing.T) {
 		t.Run(unit.String(), func(t *testing.T) {
 			token := &budgetContextPanicToken{phase: "input materialization"}
 			ctx := newBudgetContextErrPanic(token, 2)
-			c := ecore.NewBudgetControl(ctx, core.Limits{})
+			c := state.NewBudgetControl(ctx, core.Limits{})
 			ctx.control, ctx.armed = c, true
 			completed := false
 			got := budgetContextRecover(func() {
-				_ = ecore.NewControlledTextInput(strings.Repeat("a", 8192), unit, true, nil, c)
+				_ = state.NewControlledTextInput(strings.Repeat("a", 8192), unit, true, nil, c)
 				completed = true
 			})
-			attributed, ok := got.(ecore.ContextPanic)
+			attributed, ok := got.(state.ContextPanic)
 			if !ok || attributed.Value != token || completed {
 				t.Fatalf("panic=%#v completed=%t", got, completed)
 			}

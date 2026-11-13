@@ -6,7 +6,7 @@ import (
 	"zeroparse.dev/zp/core"
 	"zeroparse.dev/zp/internal/codegentest"
 	"zeroparse.dev/zp/internal/compile"
-	ecore "zeroparse.dev/zp/internal/engine/core"
+	"zeroparse.dev/zp/internal/engine/state"
 )
 
 // TestTextFieldComparisons checks that the backends agree on comparisons of string fields, with
@@ -43,10 +43,10 @@ func parseSteps(t *testing.T, prog *Program, backend Backend, unit core.Position
 	if err != nil {
 		t.Fatal(err)
 	}
-	p := ecore.AcquirePooledParser(&active.sharedProgram)
+	p := state.AcquirePooledParser(&active.sharedProgram)
 	defer p.ReleaseBatchScratch()
-	p.Input = ecore.NewControlledTextInput(input, o.Unit, true, p.Scratch, control)
-	p.MaxDepth, _ = ecore.DepthLimit(o, o.Backend) // the options of these tests are valid
+	p.Input = state.NewControlledTextInput(input, o.Unit, true, p.Scratch, control)
+	p.MaxDepth, _ = state.DepthLimit(o, o.Backend) // the options of these tests are valid
 	p.DeferMemo = true
 	n, err := active.Run(p, o.Backend, "main")
 	return control.Used, codegentest.ResultJSON(n, err)
@@ -76,12 +76,12 @@ func TestTextFieldComparisonEdges(t *testing.T) {
 		for _, input := range inputs {
 			// The reference build has no budget controls to compare against.
 			var wantResult string
-			if ecore.BudgetControlsEnabled {
+			if state.BudgetControlsEnabled {
 				_, wantResult = parseSteps(t, prog, Closure, unit, input)
 			}
 			wantUncontrolled := codegentest.ResultJSON(prog.ParseWith("main", input, ParseOptions{Backend: Closure, Unit: unit}))
 			for _, backend := range []Backend{Bytecode, BytecodeIterative} {
-				if ecore.BudgetControlsEnabled {
+				if state.BudgetControlsEnabled {
 					if _, gotResult := parseSteps(t, prog, backend, unit, input); gotResult != wantResult {
 						t.Errorf("%s/%s %q: %s\nwant %s", backend, unit, input, gotResult, wantResult)
 					}

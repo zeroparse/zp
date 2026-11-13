@@ -10,7 +10,7 @@ import (
 
 	"zeroparse.dev/zp/core"
 	"zeroparse.dev/zp/internal/codegentest"
-	ecore "zeroparse.dev/zp/internal/engine/core"
+	"zeroparse.dev/zp/internal/engine/state"
 )
 
 // traceLines parses input with a trace and returns one line per event:
@@ -102,9 +102,9 @@ func parseSpend(prog *Program, start, input string, o ParseOptions) (parseBudget
 		}
 		target = rp
 	}
-	p := ecore.NewParser(&target.sharedProgram, input, o.Unit, !o.Recognize)
+	p := state.NewParser(&target.sharedProgram, input, o.Unit, !o.Recognize)
 	p.Expectations = o.Expectations
-	p.MaxDepth, _ = ecore.DepthLimit(o, o.Backend) // the options of these tests are valid
+	p.MaxDepth, _ = state.DepthLimit(o, o.Backend) // the options of these tests are valid
 	p.DeferMemo = true
 	p.SetTrace(o.Trace)
 	n, err := target.Run(p, o.Backend, start)

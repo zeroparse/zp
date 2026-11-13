@@ -9,7 +9,7 @@ import (
 
 	"zeroparse.dev/zp/core"
 	"zeroparse.dev/zp/internal/compile"
-	ecore "zeroparse.dev/zp/internal/engine/core"
+	"zeroparse.dev/zp/internal/engine/state"
 	"zeroparse.dev/zp/internal/value"
 )
 
@@ -19,10 +19,10 @@ rule value = v:[a-z]+ #atomic ","`
 
 func TestStreamPrefixStorageIsolation(t *testing.T) {
 	t.Parallel()
-	if !ecore.StreamPrefixIsolation {
+	if !state.StreamPrefixIsolation {
 		t.Skip("reference build shares prefix storage")
 	}
-	p := ecore.NewStreamParser(&mustCompile(t, `rule main = "a"`).sharedProgram, strings.NewReader("a"), core.CodePoints)
+	p := state.NewStreamParser(&mustCompile(t, `rule main = "a"`).sharedProgram, strings.NewReader("a"), core.CodePoints)
 	root := p.NewFrame(1)
 	p.Frame = root
 	prefix := p.NewNode(value.Data{Text: "prefix"})
@@ -44,11 +44,11 @@ func TestStreamPrefixStorageIsolation(t *testing.T) {
 // Large prefixes must switch to slabs instead of allocating every object.
 func TestStreamPrefixAllocationBudget(t *testing.T) {
 	t.Parallel()
-	if !ecore.StreamPrefixIsolation {
+	if !state.StreamPrefixIsolation {
 		t.Skip("reference build uses slabs")
 	}
-	p := ecore.NewStreamParser(&mustCompile(t, `rule main = "a"`).sharedProgram, strings.NewReader("a"), core.CodePoints)
-	for range ecore.NodeChunk/8 + 4 {
+	p := state.NewStreamParser(&mustCompile(t, `rule main = "a"`).sharedProgram, strings.NewReader("a"), core.CodePoints)
+	for range state.NodeChunk/8 + 4 {
 		p.NewNode(value.Data{Text: "prefix"})
 	}
 	if len(p.NodeSlab) == 0 || p.NodeChunks != 1 {
@@ -59,7 +59,7 @@ func TestStreamPrefixAllocationBudget(t *testing.T) {
 		t.Fatal("stream boundary did not seal large prefix storage")
 	}
 	p.NewNode(value.Data{Text: "element"})
-	if p.NodeChunks != 1 || len(p.NodeSlab) != ecore.NodeChunk-1 {
+	if p.NodeChunks != 1 || len(p.NodeSlab) != state.NodeChunk-1 {
 		t.Fatal("elements did not resume normal slab allocation")
 	}
 }
@@ -172,7 +172,7 @@ func BenchmarkStreamStorageRetainedHeap(b *testing.B) {
 			b.Fatal(err)
 		}
 		for _, backend := range []Backend{Closure, Bytecode, BytecodeIterative} {
-			rule, err := prog.rule(backend, "main", ecore.Inlined, nil)
+			rule, err := prog.rule(backend, "main", state.Inlined, nil)
 			if err != nil {
 				b.Fatal(err)
 			}
@@ -184,8 +184,8 @@ func BenchmarkStreamStorageRetainedHeap(b *testing.B) {
 						runtime.GC()
 						var before, during runtime.MemStats
 						runtime.ReadMemStats(&before)
-						p := ecore.NewStreamParser(&prog.sharedProgram, strings.NewReader(text), unit)
-						p.Descs = prog.descs(backend, ecore.Inlined)
+						p := state.NewStreamParser(&prog.sharedProgram, strings.NewReader(text), unit)
+						p.Descs = prog.descs(backend, state.Inlined)
 						count := 0
 						p.Emit = func(n *core.Node) error {
 							count++
@@ -222,7 +222,7 @@ func BenchmarkStreamRetentionWorkload(b *testing.B) {
 		b.Fatal(err)
 	}
 	for _, backend := range []Backend{Closure, Bytecode, BytecodeIterative} {
-		if _, err := prog.rule(backend, "main", ecore.Inlined, nil); err != nil {
+		if _, err := prog.rule(backend, "main", state.Inlined, nil); err != nil {
 			b.Fatal(err)
 		}
 		for _, unit := range []core.PositionUnit{core.CodePoints, core.Bytes} {
@@ -268,7 +268,7 @@ func BenchmarkStreamPrefixSize(b *testing.B) {
 	for _, size := range []int{32, 5000} {
 		text := "x" + strings.Repeat("abcdefghij,", size) + "\n" + strings.Repeat("xa,\n", 3000)
 		for _, backend := range []Backend{Closure, Bytecode, BytecodeIterative} {
-			if _, err := prog.rule(backend, "main", ecore.Inlined, nil); err != nil {
+			if _, err := prog.rule(backend, "main", state.Inlined, nil); err != nil {
 				b.Fatal(err)
 			}
 			for _, noCallback := range []bool{false, true} {

@@ -7,15 +7,15 @@ import (
 
 	"zeroparse.dev/zp/core"
 	"zeroparse.dev/zp/core/noderep"
-	ecore "zeroparse.dev/zp/internal/engine/core"
+	"zeroparse.dev/zp/internal/engine/state"
 	"zeroparse.dev/zp/internal/value"
 )
 
-func snapshotVariants(t *testing.T, run func(*testing.T, ecore.ParseOptions)) {
+func snapshotVariants(t *testing.T, run func(*testing.T, state.ParseOptions)) {
 	t.Helper()
-	for _, backend := range []ecore.Backend{ecore.Closure, ecore.Bytecode, ecore.BytecodeIterative} {
+	for _, backend := range []state.Backend{state.Closure, state.Bytecode, state.BytecodeIterative} {
 		for _, unit := range []core.PositionUnit{core.CodePoints, core.Bytes} {
-			t.Run(fmt.Sprintf("%s/%s", backend, unit), func(t *testing.T) { run(t, ecore.ParseOptions{Backend: backend, Unit: unit}) })
+			t.Run(fmt.Sprintf("%s/%s", backend, unit), func(t *testing.T) { run(t, state.ParseOptions{Backend: backend, Unit: unit}) })
 		}
 	}
 }
@@ -24,7 +24,7 @@ func TestSnapshotGraphIdentityAndOwnership(t *testing.T) {
 	leaf := value.Ptr(value.Data{Kind: noderep.KindOf("Leaf", "leaf"), Start: 2, End: 3, Text: "x", Terminal: true, Children: []*core.Node{}, Fields: noderep.Fields{}})
 	root := value.Ptr(value.Data{Kind: noderep.SeqKind, Start: 1, End: 4, Children: []*core.Node{leaf, nil, leaf}})
 	value.D(root).Fields = noderep.Fields{{Name: "self", Value: root}, {Name: "leaf", Value: leaf}, {Name: "typedNil", Value: (*core.Node)(nil)}, {Name: "nil", Value: nil}, {Name: "int", Value: 42}, {Name: "text", Value: "hi"}, {Name: "bool", Value: true}}
-	g, err := freezeSnapshotGraph(&ecore.Parser{}, root)
+	g, err := freezeSnapshotGraph(&state.Parser{}, root)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -100,7 +100,7 @@ func TestSnapshotGraphDeepAndUnsupported(t *testing.T) {
 		at = next
 	}
 	value.D(at).Fields = noderep.Fields{{Name: "back", Value: root}}
-	g, err := freezeSnapshotGraph(&ecore.Parser{}, root)
+	g, err := freezeSnapshotGraph(&state.Parser{}, root)
 	if err != nil || len(g.nodes) != 20001 {
 		t.Fatal("deep capture", err)
 	}
@@ -116,7 +116,7 @@ func TestSnapshotGraphDeepAndUnsupported(t *testing.T) {
 	for _, val := range []any{namedInt(1), []int(nil), map[string]int(nil), (*int)(nil), (chan int)(nil), (func())(nil)} {
 		child := value.Ptr(value.Data{Fields: noderep.Fields{{Name: "bad\"name", Value: val}}})
 		root := value.Ptr(value.Data{Children: []*core.Node{child}, Fields: noderep.Fields{{Name: "other", Value: val}}})
-		_, err := freezeSnapshotGraph(&ecore.Parser{}, root)
+		_, err := freezeSnapshotGraph(&state.Parser{}, root)
 		if err == nil || err.ValueType != reflect.TypeOf(val) || err.Path != `root.Children[0].Fields[0]("bad\"name")` {
 			t.Fatalf("rejection %v", err)
 		}

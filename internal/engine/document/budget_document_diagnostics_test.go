@@ -9,7 +9,7 @@ import (
 
 	"zeroparse.dev/zp/core"
 	. "zeroparse.dev/zp/internal/engine"
-	ecore "zeroparse.dev/zp/internal/engine/core"
+	"zeroparse.dev/zp/internal/engine/state"
 )
 
 func TestBudgetDocumentDiagnosticPublication(t *testing.T) {
@@ -38,7 +38,7 @@ func TestBudgetDocumentDiagnosticPublication(t *testing.T) {
 					t.Fatal("missing recovered error")
 				}
 				before := d.Memo()
-				var observed *ecore.Parser
+				var observed *state.Parser
 				var exitSteps uint64
 				publicationPolled := false
 				token := new(int)
@@ -68,9 +68,9 @@ func TestBudgetDocumentDiagnosticPublication(t *testing.T) {
 				}
 				o.Trace = func(e TraceEvent) {
 					if e.Kind == TraceExit && e.Rule == "main" {
-						observed, exitSteps = ecore.TraceParser(e), ecore.TraceParser(e).Control.Used
+						observed, exitSteps = state.TraceParser(e), state.TraceParser(e).Control.Used
 						if mode == "budget" {
-							ecore.TraceParser(e).Control.Limits.Compute = exitSteps + 64
+							state.TraceParser(e).Control.Limits.Compute = exitSteps + 64
 						}
 					}
 				}
@@ -133,7 +133,7 @@ func TestBudgetDocumentFatalSyntaxErrorsRemainUnchanged(t *testing.T) {
 		o.Trace = func(e TraceEvent) {
 			if e.Kind == TraceEnter && e.Rule == "main" {
 				ctx.fn = func() error { return original }
-				ecore.TraceParser(e).Control.Check()
+				state.TraceParser(e).Control.Check()
 			}
 		}
 		n, err := d.ParseWith(o)

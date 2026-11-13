@@ -1,0 +1,5 @@
+//go:build !zp_reference_stream_undo && !zp_reference_stream_storage
+
+package state
+
+const StreamUndoCleanup = true

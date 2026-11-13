@@ -8,7 +8,7 @@ import (
 	"strings"
 	"testing"
 
-	"zeroparse.dev/zp/internal/engine/core"
+	"zeroparse.dev/zp/internal/engine/state"
 )
 
 // Cancel only after a real grammar has produced a successful LR seed and a
@@ -17,7 +17,7 @@ import (
 type missingReplayCancelContext struct {
 	context.Context
 	cancel                              context.CancelFunc
-	p                                   *core.Parser
+	p                                   *state.Parser
 	literalCount                        int
 	interrupted                         bool
 	installedAtCancel, attemptsAtCancel int
@@ -40,7 +40,7 @@ func TestMissingTokensCancellationDuringLRSeedReplay(t *testing.T) {
 	t.Parallel()
 	// More events than the cancellation polling interval ensure a checkpoint
 	// occurs inside replay, without relying on an exact absolute step count.
-	literalCount := int(2 * core.BudgetCheckInterval)
+	literalCount := int(2 * state.BudgetCheckInterval)
 	source := `rule main = e $$
 rule e = e "x" / (` + strings.Repeat(`";" #missing `, literalCount) + `)`
 	prog := mustCompile(t, source)
@@ -51,7 +51,7 @@ rule e = e "x" / (` + strings.Repeat(`";" #missing `, literalCount) + `)`
 			MissingTokens: 8 * literalCount,
 			Recognize:     recognize,
 			Context:       ctx,
-			Trace:         func(e TraceEvent) { ctx.p = core.TraceParser(e) },
+			Trace:         func(e TraceEvent) { ctx.p = state.TraceParser(e) },
 		})
 		cancel()
 		if !ctx.interrupted || ctx.installedAtCancel <= 0 || ctx.installedAtCancel >= literalCount || ctx.attemptsAtCancel <= literalCount {

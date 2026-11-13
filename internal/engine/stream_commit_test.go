@@ -11,7 +11,7 @@ import (
 
 	"zeroparse.dev/zp/core"
 	"zeroparse.dev/zp/core/noderep"
-	ecore "zeroparse.dev/zp/internal/engine/core"
+	"zeroparse.dev/zp/internal/engine/state"
 	"zeroparse.dev/zp/internal/value"
 )
 
@@ -75,7 +75,7 @@ rule item = ("a" #recover(skip="x")) ("b" #recover(skip="y"))`)
 func TestStreamCommitBoundsTheErrorScratch(t *testing.T) {
 	t.Parallel()
 	for capacity, reused := range map[int]bool{16: true, 17: false} {
-		p := &ecore.Parser{Memo: ecore.NewMemoTable(), Recovered: make([]ecore.RecEntry, 1, capacity)}
+		p := &state.Parser{Memo: state.NewMemoTable(), Recovered: make([]state.RecEntry, 1, capacity)}
 		p.DiagnosticTail.Limit = 1
 		p.Commit(1)
 		if (p.Recovered != nil) != reused || reused && cap(p.Recovered) != capacity {
@@ -90,17 +90,17 @@ func TestStreamCommitDiscardsBeforeItReleases(t *testing.T) {
 	t.Parallel()
 	// The discard before position 129 copies 127 units, and the scan of the frames takes two more.
 	// Without frame scratch the release charges nothing, so the same commit runs to its end.
-	p := &ecore.Parser{Input: ecore.Input{Unit: core.Bytes, Eof: true, Bs: []byte(strings.Repeat("a", 256)), BaseLine: 1, BaseCol: 1, Lines: []int{0},
-		Control: ecore.NewBudgetControl(nil, core.Limits{Compute: 128})}, Memo: ecore.NewMemoTable(), FrameSlab: make([]ecore.Frame, 2)}
+	p := &state.Parser{Input: state.Input{Unit: core.Bytes, Eof: true, Bs: []byte(strings.Repeat("a", 256)), BaseLine: 1, BaseCol: 1, Lines: []int{0},
+		Control: state.NewBudgetControl(nil, core.Limits{Compute: 128})}, Memo: state.NewMemoTable(), FrameSlab: make([]state.Frame, 2)}
 	p.Frame = &p.FrameSlab[1]
 	got := catchStreamPanic(func() { p.Commit(130) })
-	if !ecore.StreamFrameScratch {
+	if !state.StreamFrameScratch {
 		if got != nil || p.Base != 129 || p.Control.Used != 127 {
 			t.Fatalf("interruption=%v base=%d used=%d", got, p.Base, p.Control.Used)
 		}
 		return
 	}
-	if _, ok := got.(ecore.Fatal); !ok || p.Base != 129 || len(p.FrameSlab) != 2 || p.Control.Used != 128 {
+	if _, ok := got.(state.Fatal); !ok || p.Base != 129 || len(p.FrameSlab) != 2 || p.Control.Used != 128 {
 		t.Fatalf("interruption=%v base=%d frames=%d used=%d", got, p.Base, len(p.FrameSlab), p.Control.Used)
 	}
 }
@@ -110,13 +110,13 @@ func TestStreamCommitDiscardsBeforeItReleases(t *testing.T) {
 func TestStreamCommitPrunesBeforeItSettles(t *testing.T) {
 	t.Parallel()
 	first := &core.SyntaxError{Pos: 1}
-	memo := ecore.NewMemoTable()
-	memo.Slots = make([]*ecore.MemoEntry, 2)
-	p := &ecore.Parser{Input: ecore.Input{Base: 1023, Control: ecore.NewBudgetControl(nil, core.Limits{Compute: 1})}, Memo: memo, Recovered: []ecore.RecEntry{ecore.ErrEntry(first)}}
+	memo := state.NewMemoTable()
+	memo.Slots = make([]*state.MemoEntry, 2)
+	p := &state.Parser{Input: state.Input{Base: 1023, Control: state.NewBudgetControl(nil, core.Limits{Compute: 1})}, Memo: memo, Recovered: []state.RecEntry{state.ErrEntry(first)}}
 	p.DiagnosticTail.Limit = 1
 	p.Diagnosed = 1
 	got := catchStreamPanic(func() { p.Commit(1024) })
-	if _, ok := got.(ecore.Fatal); !ok || len(p.Recovered) != 1 || p.Recovered[0] != ecore.ErrEntry(first) || p.Diagnosed != 1 || memo.Base != 0 {
+	if _, ok := got.(state.Fatal); !ok || len(p.Recovered) != 1 || p.Recovered[0] != state.ErrEntry(first) || p.Diagnosed != 1 || memo.Base != 0 {
 		t.Fatalf("interruption=%v recovered=%v diagnosed=%d floor=%d", got, p.Recovered, p.Diagnosed, memo.Base)
 	}
 }
@@ -146,14 +146,14 @@ rule item = "ab" #recover(skip=[^a]+)`)
 // size of their argument, at the bounds that they declare in internal/ir/exec/ops.
 func TestStreamCommitChargesItsDeclaredWork(t *testing.T) {
 	t.Parallel()
-	budget := func() *ecore.BudgetControl { return ecore.NewBudgetControl(nil, core.Limits{Compute: 1 << 20}) }
+	budget := func() *state.BudgetControl { return state.NewBudgetControl(nil, core.Limits{Compute: 1 << 20}) }
 	t.Run("the frames are scanned and cleared", func(t *testing.T) {
 		// The frame in use lies outside the scratch, so the scan finds nothing and the clear visits
 		// every frame again: two units for each of the four.
-		p := &ecore.Parser{Input: ecore.Input{Control: budget()}, Memo: ecore.NewMemoTable(), FrameSlab: make([]ecore.Frame, 4), Frame: &ecore.Frame{}}
+		p := &state.Parser{Input: state.Input{Control: budget()}, Memo: state.NewMemoTable(), FrameSlab: make([]state.Frame, 4), Frame: &state.Frame{}}
 		p.Commit(1)
 		want := uint64(8)
-		if !ecore.StreamFrameScratch {
+		if !state.StreamFrameScratch {
 			want = 0
 		}
 		if p.Control.Used != want {
@@ -163,14 +163,14 @@ func TestStreamCommitChargesItsDeclaredWork(t *testing.T) {
 	t.Run("the whole input is scanned for lines", func(t *testing.T) {
 		// The input is complete from its first byte, so the line table covers all 3000 bytes, past the
 		// 1501 that go; the compaction copies the 1499 that stay.
-		p := &ecore.Parser{Input: ecore.Input{Unit: core.Bytes, Eof: true, Bs: []byte(strings.Repeat("a", 3000)), BaseLine: 1, BaseCol: 1, Control: budget()}, Memo: ecore.NewMemoTable()}
+		p := &state.Parser{Input: state.Input{Unit: core.Bytes, Eof: true, Bs: []byte(strings.Repeat("a", 3000)), BaseLine: 1, BaseCol: 1, Control: budget()}, Memo: state.NewMemoTable()}
 		p.Commit(1502)
 		if p.Base != 1501 || p.Control.Used != 3000+1499 {
 			t.Fatalf("base=%d used=%d", p.Base, p.Control.Used)
 		}
 	})
 	t.Run("the scratch of the errors is cleared", func(t *testing.T) {
-		p := &ecore.Parser{Input: ecore.Input{Control: budget()}, Memo: ecore.NewMemoTable(), Recovered: make([]ecore.RecEntry, 1, 16)}
+		p := &state.Parser{Input: state.Input{Control: budget()}, Memo: state.NewMemoTable(), Recovered: make([]state.RecEntry, 1, 16)}
 		p.DiagnosticTail.Limit = 1
 		p.Commit(1)
 		if p.Control.Used != 16 {
@@ -187,11 +187,11 @@ func TestStreamCancelledContextDeliversNoDiagnostic(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	cancel()
 	diagnostics, elements := 0, 0
-	p := &ecore.Parser{Input: ecore.Input{Control: ecore.NewBudgetControl(ctx, core.Limits{})}, Memo: ecore.NewMemoTable(), Recovered: []ecore.RecEntry{ecore.ErrEntry(&core.SyntaxError{Pos: 1})},
+	p := &state.Parser{Input: state.Input{Control: state.NewBudgetControl(ctx, core.Limits{})}, Memo: state.NewMemoTable(), Recovered: []state.RecEntry{state.ErrEntry(&core.SyntaxError{Pos: 1})},
 		Diagnostic: func(*core.SyntaxError) error { diagnostics++; return nil },
 		Emit:       func(*core.Node) error { elements++; return nil }}
 	got := catchStreamPanic(func() { p.EmitStream(nil, 0) })
-	if f, ok := got.(ecore.Fatal); !ok || f.Err != context.Canceled || diagnostics != 0 || elements != 0 {
+	if f, ok := got.(state.Fatal); !ok || f.Err != context.Canceled || diagnostics != 0 || elements != 0 {
 		t.Fatalf("panic=%v diagnostics=%d elements=%d", got, diagnostics, elements)
 	}
 }
@@ -269,7 +269,7 @@ rule item = ("a" #recover(skip="x")) ("b" #recover(skip="y"))`)
 func TestStreamDiagnosticCallbackMarkEndsWithIt(t *testing.T) {
 	t.Parallel()
 	for _, want := range []error{nil, errors.New("stop")} {
-		p := &ecore.Parser{Recovered: []ecore.RecEntry{ecore.ErrEntry(&core.SyntaxError{Pos: 1})}}
+		p := &state.Parser{Recovered: []state.RecEntry{state.ErrEntry(&core.SyntaxError{Pos: 1})}}
 		p.Diagnostic = func(*core.SyntaxError) error {
 			if !p.EmitCall {
 				t.Error("the callback runs without the mark")

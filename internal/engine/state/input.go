@@ -1,0 +1,932 @@
+package state
+
+import (
+	"bufio"
+	"context"
+	"fmt"
+	"io"
+	"math"
+	"slices"
+	"unicode/utf8"
+
+	"zeroparse.dev/zp/core"
+	"zeroparse.dev/zp/internal/compile"
+	"zeroparse.dev/zp/internal/limits"
+)
+
+// ParseOptions holds per-parse settings.
+type ParseOptions struct {
+	// MissingTokens bounds attempted #missing insertions. Zero disables insertion.
+	// Only Closure whole-input parsing and recognition support a positive limit.
+	MissingTokens int
+	// Context cooperatively interrupts this invocation. Nil means no cancellation.
+	Context context.Context
+	// Limits bound the cost of the parse, the length of its input and the nesting of its recursive
+	// rule calls (DepthLimit).
+	Limits core.Limits
+	// Unit is the position unit. Matching is done per code point regardless of the unit.
+	Unit core.PositionUnit
+	// Backend is the backend that runs the parse.
+	Backend Backend
+	// Recognize checks only whether the input conforms to the grammar and reports syntax errors,
+	// without building a tree (the resulting node is nil). Actions are not evaluated, so runtime
+	// errors in actions are not reported. Values of captures referenced by predicates are still
+	// built.
+	Recognize bool
+	// Trace, if not nil, receives an event at the start and at the end of every rule call (see
+	// TraceEvent). Tracing does not change the result of the parse.
+	Trace func(TraceEvent)
+	// DiagnosticCallback receives committed recoveries during stream parsing, immediately before
+	// the corresponding element. It is invalid for batch parses and Documents.
+	DiagnosticCallback func(*core.SyntaxError) error
+	// DiagnosticLimit retains only the latest committed stream recoveries when positive.
+	// DiagnosticLimitSet records an explicit zero limit, which is stream-only too.
+	DiagnosticLimit    int
+	DiagnosticLimitSet bool
+	// Expectations records the expectations of syntax errors: what was expected at the farthest
+	// failure and the messages of @error. Without it, a syntax error has the farthest failure
+	// position, no expectations and no messages. A Document fixes it at construction.
+	Expectations bool
+	// ContextMemoOff evaluates again every call of a rule of a left-recursion cycle where a leader
+	// grows, instead of reusing a result (Parser.ContextMemoOff): the reference that tests compare
+	// the dependency memo with.
+	ContextMemoOff bool
+	// ContextMemoUnexamined leaves the examined range out of the identities of growth steps and the
+	// outcomes of lookaheads in a context (Parser.ContextMemoUnexamined): the reference that tests
+	// compare the traces of generated parsers with, which record no examined range outside a
+	// Document parse.
+	ContextMemoUnexamined bool
+}
+
+// Default limits on call nesting depth. Backends that run recursively use the host stack, so
+// their limit is smaller.
+const (
+	DefaultMaxDepth          = limits.DefaultMaxDepth
+	DefaultMaxDepthIterative = limits.DefaultMaxDepthIterative
+)
+
+// DepthLimit returns the rule call nesting limit that the options set for backend b: the Depth
+// limit, or the default of b for zero. Unlimited is accepted only by BytecodeIterative, whose call
+// stack is on the heap; the other backends nest calls on the goroutine stack, which would
+// overflow first.
+func DepthLimit(o ParseOptions, b Backend) (int, error) {
+	switch d := o.Limits.Depth; {
+	case d == core.Unlimited && b != BytecodeIterative:
+		return 0, fmt.Errorf("an unlimited depth needs the bytecode-iterative backend: %s nests rule calls on the goroutine stack", b)
+	case d == core.Unlimited || d > math.MaxInt:
+		return math.MaxInt, nil
+	case d > 0:
+		return int(d), nil
+	case b == BytecodeIterative:
+		return DefaultMaxDepthIterative, nil
+	}
+	return DefaultMaxDepth, nil
+}
+
+// Input is the parser's input. Positions are in Unit, and the start of in or bs is at position
+// base. When parsing a stream, more input is read from reader as needed and the committed part is
+// discarded.
+type Input struct {
+	Control *BudgetControl // invocation-local; never retained by results
+	// MaxInput, when positive, is the longest stream the parse accepts, in units: Fill fails the parse
+	// when the parser needs a unit beyond it and the stream has one.
+	MaxInput int
+	Unit     core.PositionUnit
+	In       []rune // for CodePoints
+	Bs       []byte // for Bytes
+	Base     int
+	BaseLine int // line and column of base (1-based; columns in Unit)
+	BaseCol  int
+	Reader   *bufio.Reader // nil if the whole input has been read
+	Eof      bool
+
+	// ReaderCall distinguishes buffered reader execution from VM execution.
+	ReaderCall   bool
+	readerResult error // most recent caller Read result, before bufio defers its error
+	// Src is the whole input as a string (unused for streams). If SrcOK, text returns substrings
+	// of src without building new strings. In code points, offs[i] is the byte offset of position i
+	// (its length is the number of characters + 1); it is built when text first needs it, which a
+	// recognition often never does. For input containing invalid UTF-8, text in code points returns
+	// strings with U+FFFD substituted, so src is not used: the first text decodes the whole input
+	// into dec, with its offset table decOffs, and later texts slice it. decoded records that this
+	// was tried. A source too large for int32 offsets (offsLimit) is not SrcOK: its first text
+	// builds the table decWide of int offsets instead, over dec, which already is the source
+	// itself when that is valid UTF-8, so text stays constant-cost at any size.
+	Src     string
+	SrcOK   bool
+	Offs    []int32
+	dec     string
+	decOffs []int32
+	decWide []int
+	decoded bool
+	// Lines holds the positions where lines start, for lineCol on fully loaded input (built on
+	// first use; nil until then).
+	Lines      []int
+	StreamText StreamTextSnapshot
+	// Only Documents use pieces. Batch and stream inputs retain their slices.
+	Pieces *documentPieces
+	// streamLines indexes the lines of a stream buffer for lineCol; it is made by the first error
+	// of a stream parse, and is nil for every other input.
+	streamLines *streamLines
+}
+
+// streamLines holds the positions after each newline in [Base, scanned) of a stream buffer, in
+// ascending order, and scanned, the position up to which lineCol has scanned. Discard drops the
+// entries up to the new base.
+type streamLines struct {
+	starts  []int
+	scanned int
+}
+
+// offsLimit is the largest source whose offset table holds int32 offsets; a variable so that
+// tests can exercise the wide table without gigabytes of input.
+var offsLimit = 1<<31 - 1
+
+// setSource records the whole input string s for use by text.
+func (in *Input) setSource(s string) {
+	in.Src, in.Offs = s, nil
+	in.dec, in.decOffs, in.decWide, in.decoded = "", nil, nil, false
+	valid := in.Unit == core.Bytes || utf8.ValidString(s)
+	in.SrcOK = valid && len(s) <= offsLimit
+	in.setWideSource(s, valid)
+}
+
+// setWideSource makes a valid code-point source too large for int32 offsets its own decoded
+// text, so that the first text builds the wide table without copying it.
+func (in *Input) setWideSource(s string, valid bool) {
+	if valid && in.Unit != core.Bytes && len(s) > offsLimit {
+		in.dec = s
+	}
+}
+
+// buildOffs builds the offset table of src (code points).
+func (in *Input) buildOffs() {
+	offs := make([]int32, 0, len(in.In)+1)
+	for i := 0; i < len(in.Src); {
+		offs = append(offs, int32(i))
+		_, size := utf8.DecodeRuneInString(in.Src[i:])
+		in.spendRead(uint64(size))
+		i += size
+	}
+	in.Offs = append(offs, int32(len(in.Src)))
+}
+
+// Replace replaces the positions [start, end) of a fully loaded input with text and returns the
+// change in length. The source string and its offset table are spliced rather than rebuilt; the
+// text is updated in place, since only the parser reads it (nodes refer to the source string, which
+// is never modified).
+func (in *Input) Replace(start, end int, text string) (delta int) {
+	in.Lines = nil
+	if DocumentPieceInput && in.Pieces != nil {
+		return in.Pieces.Replace(start, end, text)
+	}
+	if in.Unit == core.Bytes {
+		in.Bs = slices.Replace(in.Bs, start, end, []byte(text)...)
+		in.Src = in.Src[:start] + text + in.Src[end:]
+		return len(text) - (end - start)
+	}
+	ins := []rune(text)
+	in.In = slices.Replace(in.In, start, end, ins...)
+	delta = len(ins) - (end - start)
+	enc := text
+	if !utf8.ValidString(text) {
+		enc = string(ins) // invalid bytes read as U+FFFD
+	}
+	if !in.SrcOK || len(in.Src)+len(enc) > offsLimit {
+		in.setSource(string(in.In))
+		return delta
+	}
+	if in.Offs == nil {
+		in.buildOffs()
+	}
+	from, to := in.Offs[start], in.Offs[end]
+	in.Src = in.Src[:from] + enc + in.Src[to:]
+	added := make([]int32, 0, len(ins))
+	for i := range enc {
+		added = append(added, from+int32(i))
+	}
+	in.Offs = slices.Replace(in.Offs, start, end, added...)
+	shift := int32(len(enc)) - (to - from)
+	for i := start + len(ins); i < len(in.Offs); i++ {
+		in.Offs[i] += shift
+	}
+	return delta
+}
+
+func NewInput(s string, unit core.PositionUnit) Input { return NewTextInput(s, unit, false) }
+
+// NewTextInput returns the input s. If offsets is set (the parse will need token text), the
+// offset table is built in the same pass as the decoding; otherwise it is built on demand.
+func NewTextInput(s string, unit core.PositionUnit, offsets bool) Input {
+	return newTextInputIn(s, unit, offsets, nil)
+}
+
+// newTextInputIn is NewTextInput with the buffers of sc, if not nil.
+func newTextInputIn(s string, unit core.PositionUnit, offsets bool, sc *scratch) Input {
+	in := Input{Unit: unit, Eof: true, BaseLine: 1, BaseCol: 1}
+	if unit == core.Bytes {
+		if sc != nil {
+			in.Bs = append(sc.bytes[:0], s...)
+		} else {
+			in.Bs = []byte(s)
+		}
+		in.setSource(s)
+		return in
+	}
+	// Decode and check validity in one pass (a U+FFFD that decodes from three bytes is valid).
+	n := utf8.RuneCountInString(s)
+	offsets = offsets && len(s) <= offsLimit
+	var offs []int32
+	if sc != nil {
+		in.In = grow(sc.runes, n)
+		if offsets {
+			offs = grow(sc.offs, n+1)
+		}
+	} else {
+		in.In = make([]rune, n)
+		if offsets {
+			offs = make([]int32, n+1)
+		}
+	}
+	if offsets {
+		offs[n] = int32(len(s))
+	}
+	valid := true
+	i := 0
+	for off, r := range s {
+		if r == utf8.RuneError && valid {
+			if _, size := utf8.DecodeRuneInString(s[off:]); size == 1 {
+				valid = false
+			}
+		}
+		in.In[i] = r
+		if offsets {
+			offs[i] = int32(off)
+		}
+		i++
+	}
+	in.Src, in.SrcOK = s, valid && len(s) <= offsLimit
+	if in.SrcOK {
+		in.Offs = offs
+	}
+	in.setWideSource(s, valid)
+	return in
+}
+
+// NewParser returns a parser of the input s; offsets is as for NewTextInput.
+func NewParser(prog *SharedProgram, s string, unit core.PositionUnit, offsets bool) *Parser {
+	return &Parser{Prog: prog, Input: NewTextInput(s, unit, offsets), Memo: NewMemoTable(), MaxDepth: DefaultMaxDepth}
+}
+
+// scratch holds the buffers of a whole-input parse that nothing refers to once it returns: the
+// decoded input, its offset table, the memo table and the stack of repetition values. Node text
+// slices the input string itself, and errors are built before the parse returns.
+type scratch struct {
+	runes []rune
+	offs  []int32
+	bytes []byte
+	memo  MemoTable
+	kids  []*core.Node
+	cold  []runCold
+}
+
+// MaxScratch is the size, in elements, beyond which a buffer is not kept for later parses.
+const MaxScratch = 1 << 22
+
+// AcquirePooledParser separates scratch acquisition from input initialization,
+// so a caller can arm release before controlled decoding can interrupt.
+func AcquirePooledParser(prog *SharedProgram) *Parser {
+	sc, _ := prog.scratch.Get().(*scratch)
+	if sc == nil {
+		sc = &scratch{}
+	}
+	p := &Parser{Prog: prog, Memo: &sc.memo, MaxDepth: DefaultMaxDepth, KidStack: sc.kids[:0], runCold: sc.cold}
+	p.Scratch = sc
+	return p
+}
+
+// ReleaseScratch returns the buffers of a parser made by AcquirePooledParser for later parses.
+func (p *Parser) ReleaseScratch() {
+	p.Control = nil
+	sc := p.Scratch
+	if sc == nil {
+		return
+	}
+	p.Scratch = nil
+	if cap(p.In) > cap(sc.runes) && cap(p.In) <= MaxScratch {
+		sc.runes = p.In[:0]
+	}
+	if p.Offs != nil && cap(p.Offs) > cap(sc.offs) && cap(p.Offs) <= MaxScratch {
+		sc.offs = p.Offs[:0]
+	}
+	if cap(p.Bs) > cap(sc.bytes) && cap(p.Bs) <= MaxScratch {
+		sc.bytes = p.Bs[:0]
+	}
+	if cap(p.KidStack) <= MaxScratch {
+		clear(p.KidStack[:cap(p.KidStack)])
+		sc.kids = p.KidStack[:0]
+	} else {
+		sc.kids = nil
+	}
+	if cap(p.runCold) <= MaxScratch {
+		clear(p.runCold)
+		sc.cold = p.runCold
+	} else {
+		sc.cold = nil
+	}
+	if !sc.memo.Reset() {
+		sc.memo = MemoTable{}
+	}
+	p.Prog.scratch.Put(sc)
+}
+
+// ReleaseBatchScratch finishes a whole-input invocation. Saved trace events
+// may retain its parser, so detach private references after recycling scratch.
+// Node storage is separately allocated and remains owned by returned results.
+func (p *Parser) ReleaseBatchScratch() {
+	p.Missing, p.MissingLen = nil, 0
+	p.ReleaseScratch()
+	p.ReleaseTraceReferences()
+}
+
+// ReleaseTraceReferences detaches a finished traced parser after its owner has
+// transferred reusable state. It does not mutate result or event backing arrays.
+func (p *Parser) ReleaseTraceReferences() {
+	if p.Tr != nil {
+		*p = Parser{Aborted: p.Aborted}
+	}
+}
+
+// grow returns a slice of n elements, reusing buf if it is large enough. The elements are not
+// cleared.
+func grow[T any](buf []T, n int) []T {
+	if cap(buf) >= n {
+		return buf[:n]
+	}
+	return make([]T, n)
+}
+
+func NewStreamParser(prog *SharedProgram, r io.Reader, unit core.PositionUnit) *Parser {
+	return NewControlledStreamParser(prog, r, unit, nil)
+}
+
+func NewControlledStreamParser(prog *SharedProgram, r io.Reader, unit core.PositionUnit, control *BudgetControl) *Parser {
+	p := &Parser{Prog: prog, Input: Input{Unit: unit, Control: control, BaseLine: 1, BaseCol: 1}, Memo: NewMemoTable(), MaxDepth: DefaultMaxDepth}
+	if BudgetControlsEnabled && control != nil {
+		r = &StreamReaderObserver{Reader: r, Result: &p.readerResult, Control: control}
+	}
+	p.Reader = bufio.NewReader(r)
+	if StreamPrefixIsolation {
+		p.NodeChunks = -NodeChunk / 8 // Small prefixes use private exact-size storage.
+	}
+	return p
+}
+
+// Loaded returns the position of the end of the input read so far.
+func (in *Input) Loaded() int {
+	if DocumentPieceInput && in.Pieces != nil {
+		return in.Pieces.N
+	}
+	if in.Unit == core.Bytes {
+		return in.Base + len(in.Bs)
+	}
+	return in.Base + len(in.In)
+}
+
+// Fill reads the input up to just before position n and reports whether it succeeded.
+// Once the required amount has been read, it reads only what is already buffered and does not
+// wait for more.
+func (in *Input) Fill(n int) bool {
+	if BudgetControlsEnabled && in.Control != nil {
+		in.Control.Demand(n)
+	}
+	ok := in.fill(n)
+	if in.MaxInput > 0 && n > in.MaxInput && in.Loaded() > in.MaxInput {
+		// The outcome does not depend on how the reader chunks the stream: the parser needed
+		// the unit at MaxInput and the stream holds it. Loaded is at least n unless the stream ended.
+		panic(Fatal{Err: &core.LimitError{Kind: core.LimitInput, Limit: uint64(in.MaxInput), Requested: uint64(min(n, in.Loaded()))}})
+	}
+	return ok
+}
+
+func (in *Input) fill(n int) bool {
+	for in.Loaded() < n && !in.Eof {
+		in.read()
+		for in.Reader.Buffered() > 0 {
+			if in.Unit == core.CodePoints {
+				if b, _ := in.Reader.Peek(in.Reader.Buffered()); !utf8.FullRune(b) {
+					break
+				}
+			}
+			in.read()
+		}
+	}
+	return in.Loaded() >= n
+}
+
+func (in *Input) read() {
+	if BudgetControlsEnabled && in.Control != nil {
+		in.Control.Check()
+		in.Control.Charge(1) // reading and staging one byte or code point
+	}
+	var err error
+	var b byte
+	var r rune
+	in.ReaderCall = true
+	if in.Unit == core.Bytes {
+		b, err = in.Reader.ReadByte()
+	} else {
+		r, _, err = in.Reader.ReadRune()
+	}
+	in.ReaderCall = false
+	if err != nil && err != io.EOF {
+		panic(Fatal{err})
+	}
+	if BudgetControlsEnabled && in.Control != nil {
+		returned := in.readerResult
+		in.readerResult = nil
+		in.Control.checkAfterReader(returned)
+	}
+	if err == io.EOF {
+		in.Eof = true
+	} else if in.Unit == core.Bytes {
+		in.Bs = append(in.Bs, b)
+	} else {
+		in.In = append(in.In, r)
+	}
+}
+
+// Decode returns the character at position i, its size (in units), and the end of the examined
+// range.
+func (in *Input) Decode(i int) (r rune, size, examined int, ok bool) {
+	in.spendRead(1)
+	if i < in.Base {
+		return 0, 0, i + 1, false
+	}
+	if DocumentPieceInput && in.Pieces != nil {
+		return in.decodePieces(i)
+	}
+	if in.Unit == core.CodePoints {
+		if !in.Fill(i + 1) {
+			return 0, 0, i + 1, false
+		}
+		return in.In[i-in.Base], 1, i + 1, true
+	}
+	if !in.Fill(i + 1) {
+		return 0, 0, i + 1, false
+	}
+	b := in.Bs[i-in.Base:]
+	if b[0] < utf8.RuneSelf {
+		return rune(b[0]), 1, i + 1, true
+	}
+	// A complete rune (including an invalid prefix) needs no future bytes.
+	// Wait only while the available UTF-8 prefix is genuinely incomplete.
+	for !in.Eof && !utf8.FullRune(b) {
+		in.fill(in.Loaded() + 1)
+		b = in.Bs[i-in.Base:]
+	}
+	in.spendRead(uint64(min(utf8.UTFMax, len(b))))
+	r, size = utf8.DecodeRune(b)
+	examined = i + size
+	if r == utf8.RuneError && size == 1 {
+		// Whether the bytes are invalid depends on the following bytes.
+		examined = i + min(utf8.UTFMax, len(b))
+		if !utf8.FullRune(b) {
+			// EOF completed the decoding decision, not the character. An
+			// insertion here may complete the prefix and change its size.
+			examined++
+		}
+	}
+	return r, size, examined, true
+}
+
+// byteAt returns the byte at position i when the unit is Bytes.
+func (in *Input) byteAt(i int) (byte, bool) {
+	in.spendRead(1)
+	if i < in.Base || !in.Fill(i+1) {
+		return 0, false
+	}
+	if DocumentPieceInput && in.Pieces != nil {
+		b, _ := in.Pieces.At(i)
+		return byte(b), true
+	}
+	return in.Bs[i-in.Base], true
+}
+
+func (in *Input) Text(start, end int) string {
+	// The part discarded by a stream cannot be returned: the text is cut to what is still held
+	// (possibly nothing).
+	start, end = max(start, in.Base), max(end, in.Base)
+	if DocumentPieceInput && in.Pieces != nil {
+		if BudgetControlsEnabled && in.Control != nil {
+			return in.controlledPieceText(start, end)
+		}
+		return in.Pieces.Text(start, end)
+	}
+	if !in.SrcOK && in.Unit != core.Bytes && in.Eof && in.Reader == nil && in.Base == 0 {
+		if !in.decoded {
+			in.decodeSource()
+		}
+		if in.decOffs != nil {
+			return in.dec[in.decOffs[start]:in.decOffs[end]]
+		}
+		if in.decWide != nil {
+			return in.dec[in.decWide[start]:in.decWide[end]]
+		}
+	}
+	if in.SrcOK {
+		if in.Unit == core.Bytes {
+			return in.Src[start:end]
+		}
+		if in.Offs == nil {
+			in.buildOffs()
+		}
+		return in.Src[in.Offs[start]:in.Offs[end]]
+	}
+	if StreamTextSnapshots && in.Reader != nil {
+		return in.snapshotText(start, end)
+	}
+	if BudgetControlsEnabled && in.Control != nil {
+		return in.detachedText(start-in.Base, end-in.Base)
+	}
+	if in.Unit == core.Bytes {
+		return string(in.Bs[start-in.Base : end-in.Base])
+	}
+	return string(in.In[start-in.Base : end-in.Base])
+}
+
+// decodeSource decodes a whole code-point input containing invalid UTF-8 and builds the offset
+// table of the result, so that text slices it like a valid source. It runs once, on the first
+// text, and costs the length of the input; a recognition that takes no text never pays it.
+func (in *Input) decodeSource() {
+	s := in.dec
+	if s == "" {
+		if BudgetControlsEnabled && in.Control != nil {
+			s = in.detachedText(0, len(in.In))
+		} else {
+			s = string(in.In)
+		}
+	}
+	if len(s) > offsLimit {
+		offs := make([]int, 0, len(in.In)+1)
+		for i := 0; i < len(s); {
+			offs = append(offs, i)
+			_, size := utf8.DecodeRuneInString(s[i:])
+			in.spendRead(uint64(size))
+			i += size
+		}
+		in.dec, in.decWide, in.decoded = s, append(offs, len(s)), true
+		return
+	}
+	offs := make([]int32, 0, len(in.In)+1)
+	for i := 0; i < len(s); {
+		offs = append(offs, int32(i))
+		_, size := utf8.DecodeRuneInString(s[i:])
+		in.spendRead(uint64(size))
+		i += size
+	}
+	// An interrupted decoding leaves the input untouched, so the next text retries it.
+	in.dec, in.decOffs, in.decoded = s, append(offs, int32(len(s))), true
+}
+
+// isNewline reports whether position i holds a newline character (used to detect line starts).
+func (in *Input) isNewline(i int) bool {
+	if DocumentPieceInput && in.Pieces != nil {
+		b, ok := in.Pieces.At(i)
+		return ok && b == '\n'
+	}
+	if in.Unit == core.Bytes {
+		b, ok := in.byteAt(i)
+		return ok && b == '\n'
+	}
+	if i < in.Base || !in.Fill(i+1) {
+		return false
+	}
+	return in.In[i-in.Base] == '\n'
+}
+
+// lineCol returns the line and column (in Unit) of position pos.
+func (in *Input) lineCol(pos int) (int, int) {
+	if in.Eof && in.Base == 0 {
+		// The whole input is loaded: look the line up in a table of line starts, built on first
+		// use, instead of scanning from the start for each error.
+		if in.Lines == nil {
+			in.buildLines()
+		}
+		pos = min(pos, in.Loaded())
+		i, _ := slices.BinarySearch(in.Lines, pos+1)
+		return i, pos - in.Lines[i-1] + 1
+	}
+	// A stream buffer: scan each unit once, whatever the order of the queries, and look the
+	// position up in the line starts found so far.
+	pos = max(min(pos, in.Loaded()), in.Base)
+	if in.streamLines == nil {
+		in.streamLines = &streamLines{}
+	}
+	sl := in.streamLines
+	sl.scanned = max(sl.scanned, in.Base)
+	for ; sl.scanned < pos; sl.scanned++ {
+		in.spendRead(1)
+		var nl bool
+		if in.Unit == core.Bytes {
+			nl = in.Bs[sl.scanned-in.Base] == '\n'
+		} else {
+			nl = in.In[sl.scanned-in.Base] == '\n'
+		}
+		if nl {
+			sl.starts = append(sl.starts, sl.scanned+1)
+		}
+	}
+	// k is the number of line starts at or before pos.
+	k, _ := slices.BinarySearch(sl.starts, pos+1)
+	if k == 0 {
+		return in.BaseLine, in.BaseCol + pos - in.Base
+	}
+	return in.BaseLine + k, pos - sl.starts[k-1] + 1
+}
+
+// buildLines builds the table of the positions where lines start.
+func (in *Input) buildLines() {
+	// A Document retains successful lookup tables across invocations. An
+	// interrupted scan must leave no partial table for a later parse to reuse.
+	complete := false
+	defer func() {
+		if !complete {
+			in.Lines = nil
+		}
+	}()
+	in.Lines = append(in.Lines[:0], 0)
+	if DocumentPieceInput && in.Pieces != nil {
+		for _, p := range in.Pieces.Parts {
+			if in.Unit == core.Bytes {
+				for i := 0; i < len(p.Text); i++ {
+					in.spendRead(1)
+					if p.Text[i] == '\n' {
+						in.Lines = append(in.Lines, p.start+i+1)
+					}
+				}
+			} else {
+				for i, r := range p.Runes {
+					in.spendRead(1)
+					if r == '\n' {
+						in.Lines = append(in.Lines, p.start+i+1)
+					}
+				}
+			}
+		}
+		complete = true
+		return
+	}
+	if in.Unit == core.Bytes {
+		for i := range in.Bs {
+			in.spendRead(1)
+			b := in.Bs[i]
+			if b == '\n' {
+				in.Lines = append(in.Lines, i+1)
+			}
+		}
+		complete = true
+		return
+	}
+	for i := range in.In {
+		in.spendRead(1)
+		r := in.In[i]
+		if r == '\n' {
+			in.Lines = append(in.Lines, i+1)
+		}
+	}
+	complete = true
+}
+
+// Discard discards the input before position keep. The buffer holds read-ahead input, so it is
+// compacted in place only once at least half of it can go: copying the rest on every call would
+// cost the size of the buffer per element of a stream.
+func (in *Input) Discard(keep int) {
+	n := keep - in.Base
+	if n <= 0 || 2*n < len(in.In)+len(in.Bs) {
+		return
+	}
+	in.BaseLine, in.BaseCol = in.lineCol(keep)
+	// Drop the line starts up to the new base; lineCol has scanned up to keep (or the end).
+	if sl := in.streamLines; sl != nil {
+		k, _ := slices.BinarySearch(sl.starts, keep+1)
+		sl.starts = sl.starts[:copy(sl.starts, sl.starts[k:])]
+	}
+	if in.Unit == core.Bytes {
+		in.Bs = in.Bs[:CopyStreamPrefix(in.Control, in.Bs, in.Bs[n:])]
+	} else {
+		in.In = in.In[:CopyStreamPrefix(in.Control, in.In, in.In[n:])]
+	}
+	in.Base = keep
+	if StreamTextSnapshots && in.StreamText.End <= keep {
+		in.StreamText.Source = ""
+	}
+}
+
+// Peek returns the character at the current position and its size.
+func (p *Parser) Peek() (rune, int, bool) {
+	r, size, examined, ok := p.Decode(p.Pos)
+	p.touch(examined)
+	return r, size, ok
+}
+
+// MatchLiteral advances past the string lit if it matches at the current position.
+func (p *Parser) MatchLiteral(rs []rune, bs []byte) bool {
+	if DocumentPieceInput && p.Pieces != nil {
+		return p.matchLiteralPieces(rs, bs)
+	}
+	if p.Eof && p.Pos >= p.Base {
+		// The whole input is loaded: compare in one go. As below, a mismatch leaves pos after the
+		// matching prefix and the examined range includes the first character that differs.
+		var k, n int
+		if p.Unit == core.Bytes {
+			in := p.Bs[p.Pos-p.Base:]
+			n = len(bs)
+			for k < n {
+				p.spendRead(1)
+				if k >= len(in) || in[k] != bs[k] {
+					break
+				}
+				k++
+			}
+		} else {
+			in := p.In[p.Pos-p.Base:]
+			n = len(rs)
+			for k < n {
+				p.spendRead(1)
+				if k >= len(in) || in[k] != rs[k] {
+					break
+				}
+				k++
+			}
+		}
+		if k == n {
+			p.touch(p.Pos + n)
+			p.Pos += n
+			return true
+		}
+		if p.Unit == core.Bytes && p.LiteralHasReplacement(rs) {
+			return p.matchLiteralRunes(rs)
+		}
+		p.touch(p.Pos + k + 1)
+		p.Pos += k
+		return false
+	}
+	if p.Unit == core.Bytes {
+		start := p.Pos
+		for _, b := range bs {
+			p.touch(p.Pos + 1)
+			c, ok := p.byteAt(p.Pos)
+			if !ok || c != b {
+				if p.LiteralHasReplacement(rs) {
+					p.Pos = start
+					return p.matchLiteralRunes(rs)
+				}
+				return false
+			}
+			p.Pos++
+		}
+		return true
+	}
+	for _, r := range rs {
+		p.spendRead(1)
+		p.touch(p.Pos + 1)
+		if p.Pos < p.Base || !p.Fill(p.Pos+1) || p.In[p.Pos-p.Base] != r {
+			return false
+		}
+		p.Pos++
+	}
+	return true
+}
+
+// MatchLiteralFold advances past a case-insensitive literal if the input matches it. rs are the
+// folded runes of the literal (foldedRunes), and each input rune is folded before the comparison.
+// It decodes the input rune by rune, as matchLiteralRunes does, so both position units agree.
+func (p *Parser) MatchLiteralFold(rs []rune) bool {
+	for _, want := range rs {
+		p.spendRead(1)
+		got, size, ok := p.Peek()
+		if !ok || compile.FoldASCIIRune(got) != want {
+			return false
+		}
+		p.Pos += size
+	}
+	return true
+}
+
+// LiteralHasReplacement bounds the grammar-side scan after a byte mismatch.
+// Only visited literal runes consume steps; they do not inspect input.
+func (p *Parser) LiteralHasReplacement(rs []rune) bool {
+	if !BudgetControlsEnabled || p.Control == nil {
+		return slices.Contains(rs, utf8.RuneError)
+	}
+	for _, r := range rs {
+		p.Spend()
+		if r == utf8.RuneError {
+			return true
+		}
+	}
+	return false
+}
+
+// LiteralText preserves matched input bytes when replacement decoding accepts
+// a shorter spelling than the literal's valid UTF-8 encoding.
+func (p *Parser) LiteralText(start int, text string) string {
+	if p.Unit == core.Bytes && p.Pos-start != len(text) {
+		return p.Text(start, p.Pos)
+	}
+	return text
+}
+
+// matchLiteralRunes handles replacement characters that can occupy one invalid
+// input byte or three valid UTF-8 bytes. peek records decoding dependencies.
+func (p *Parser) matchLiteralRunes(rs []rune) bool {
+	for _, want := range rs {
+		got, size, ok := p.Peek()
+		if !ok || got != want {
+			return false
+		}
+		p.Pos += size
+	}
+	return true
+}
+
+func (p *Parser) AtEOF() bool {
+	p.spendRead(1)
+	p.touch(p.Pos + 1)
+	return !p.Fill(p.Pos + 1)
+}
+
+// AtLineStart reports whether the current position is at the start of a line. It examines the
+// preceding character, or the absence of one: in both cases the result depends on the input
+// before the position, so it records that (lw), which keeps a Document from shifting the result
+// past an edit before it.
+func (p *Parser) AtLineStart() bool {
+	p.lw = Min2(p.lw, p.Pos-1)
+	if p.Pos == 0 {
+		return true
+	}
+	return p.isNewline(p.Pos - 1)
+}
+
+// AtInputStart reports whether the current position is the start of the input. Like
+// AtLineStart, the result depends on the input before the position.
+func (p *Parser) AtInputStart() bool {
+	p.lw = Min2(p.lw, p.Pos-1)
+	return p.Pos == 0
+}
+
+// TextLen returns the length of the string in unit u.
+func TextLen(u core.PositionUnit, s string) int {
+	if u == core.Bytes {
+		return len(s)
+	}
+	return utf8.RuneCountInString(s)
+}
+
+// ValidBoundary checks, when the unit is Bytes, that the position lies on a character boundary.
+func ValidBoundary(text string, unit core.PositionUnit, pos int) error {
+	if unit == core.Bytes && pos < len(text) && !utf8.RuneStart(text[pos]) {
+		// A continuation byte is interior only when a valid rune covers
+		// it. Invalid bytes are separate one-byte replacement characters.
+		// No UTF-8 character starts more than three bytes before pos.
+		for start := pos - 1; start >= max(0, pos-utf8.UTFMax+1); start-- {
+			if utf8.RuneStart(text[start]) {
+				_, size := utf8.DecodeRuneInString(text[start:])
+				if start+size > pos {
+					return fmt.Errorf("position %d is not at a character boundary", pos)
+				}
+				break
+			}
+		}
+	}
+	return nil
+}
+
+// Backend is the backend used to run a parse.
+type Backend int
+
+const (
+	// Default is the default backend. It uses the closure engine if the grammar's AST is available,
+	// and bytecode otherwise.
+	Default Backend = iota
+	// Closure assembles parsing expressions into Go functions and runs them (the closure engine).
+	Closure
+	// Bytecode runs bytecode on the VM. Rule calls use host (Go) recursion (the recursive model).
+	Bytecode
+	// BytecodeIterative runs bytecode on the VM. Rule calls and Operators Rule expressions also run on the VM
+	// stack, so deeply nested input does not consume the host stack (the iterative model).
+	BytecodeIterative
+)
+
+func (b Backend) String() string {
+	switch b {
+	case Bytecode:
+		return "bytecode"
+	case BytecodeIterative:
+		return "bytecode-iterative"
+	case Closure:
+		return "closure"
+	}
+	return "default"
+}

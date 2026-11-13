@@ -4,11 +4,11 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/core"
-	ecore "zeroparse.dev/zp/internal/engine/core"
+	"zeroparse.dev/zp/internal/engine/state"
 )
 
 func TestDocumentDiagnosticContainers(t *testing.T) {
-	p := &ecore.Parser{}
+	p := &state.Parser{}
 	if copyDocumentDiagnostics(p, nil) != nil {
 		t.Fatal("nil diagnostics became nonnil")
 	}

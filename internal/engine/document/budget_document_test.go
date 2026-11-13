@@ -12,7 +12,7 @@ import (
 
 	"zeroparse.dev/zp/core"
 	. "zeroparse.dev/zp/internal/engine"
-	ecore "zeroparse.dev/zp/internal/engine/core"
+	"zeroparse.dev/zp/internal/engine/state"
 	"zeroparse.dev/zp/internal/engine/vm"
 )
 
@@ -33,12 +33,12 @@ rule item = "a"`)
 				}
 				clone := before.Clone()
 				oldMemo := d.Memo()
-				state := *d
+				kept := *d
 				ctx, cancel := context.WithCancel(context.Background())
 				defer cancel()
 				o := base
 				o.Context = ctx
-				var saved *ecore.Parser
+				var saved *state.Parser
 				if phase == "setup" {
 					cancel()
 				}
@@ -47,7 +47,7 @@ rule item = "a"`)
 				}
 				if phase == "enter" || phase == "exit" {
 					o.Trace = func(e TraceEvent) {
-						saved = ecore.TraceParser(e)
+						saved = state.TraceParser(e)
 						if e.Rule == "main" && ((phase == "enter" && e.Kind == TraceEnter) || (phase == "exit" && e.Kind == TraceExit)) {
 							cancel()
 						}
@@ -62,7 +62,7 @@ rule item = "a"`)
 					t.Fatalf("node=%v error=%v", n, err)
 				}
 				if phase == "setup" {
-					budgetDocumentAssertPreserved(t, d, state)
+					budgetDocumentAssertPreserved(t, d, kept)
 				} else {
 					budgetDocumentAssertAborted(t, d)
 					if d.Memo() == oldMemo {
@@ -97,7 +97,7 @@ func TestBudgetDocumentConstruction(t *testing.T) {
 			case "input":
 				o.Limits.Compute = 1
 			case "steps":
-				if ecore.DocumentPieceInput && base.Unit == core.Bytes {
+				if state.DocumentPieceInput && base.Unit == core.Bytes {
 					continue
 				}
 				o.Limits.Compute = 1
@@ -126,13 +126,13 @@ func TestBudgetDocumentConstruction(t *testing.T) {
 		if d.Input().Control != nil {
 			t.Fatal("construction control retained")
 		}
-		var last *ecore.BudgetControl
+		var last *state.BudgetControl
 		o.Trace = func(e TraceEvent) {
 			if e.Kind == TraceEnter && e.Rule == "main" {
-				if ecore.TraceParser(e).Control == nil || ecore.TraceParser(e).Control == last || ecore.TraceParser(e).Control.Used > 1 { // at most the entry of the rule
+				if state.TraceParser(e).Control == nil || state.TraceParser(e).Control == last || state.TraceParser(e).Control.Used > 1 { // at most the entry of the rule
 					t.Fatal("parse inherited construction or previous counters")
 				}
-				last = ecore.TraceParser(e).Control
+				last = state.TraceParser(e).Control
 			}
 		}
 		for i := 0; i < 2; i++ {
@@ -265,7 +265,7 @@ func TestBudgetDocumentCallerPanicAtBoundaries(t *testing.T) {
 				if _, err := d.Parse(); err != nil {
 					t.Fatal(err)
 				}
-				state := *d
+				kept := *d
 				token := &budgetContextPanicToken{phase: fmt.Sprint(at)}
 				o := base
 				ctx := newBudgetContextErrPanic(token, at)
@@ -283,7 +283,7 @@ func TestBudgetDocumentCallerPanicAtBoundaries(t *testing.T) {
 					t.Fatalf("checkpoint calls=%d want %d", ctx.calls, at)
 				}
 				if at < last {
-					budgetDocumentAssertPreserved(t, d, state)
+					budgetDocumentAssertPreserved(t, d, kept)
 				} else {
 					budgetDocumentAssertAborted(t, d)
 				}

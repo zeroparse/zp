@@ -13,7 +13,7 @@ import (
 	"zeroparse.dev/zp/core"
 	"zeroparse.dev/zp/core/noderep"
 	"zeroparse.dev/zp/internal/compile"
-	ecore "zeroparse.dev/zp/internal/engine/core"
+	"zeroparse.dev/zp/internal/engine/state"
 	"zeroparse.dev/zp/internal/value"
 )
 
@@ -337,7 +337,7 @@ func (c *snapshotContext) Err() error {
 
 // SnapshotWith parses and freezes the current text with fully resolved options.
 // Cancellation and compute limits cover both phases; interruption returns nil.
-func (d *Document) SnapshotWith(o ecore.ParseOptions) (*Snapshot, error) {
+func (d *Document) SnapshotWith(o state.ParseOptions) (*Snapshot, error) {
 	return d.snapshotWith(o, nil)
 }
 
@@ -349,7 +349,7 @@ func interruptsSnapshot(err error) bool {
 	return errors.As(err, &le) && le.Kind != core.LimitDepth
 }
 
-func (d *Document) snapshotWith(o ecore.ParseOptions, legacy **core.Node) (*Snapshot, error) {
+func (d *Document) snapshotWith(o state.ParseOptions, legacy **core.Node) (*Snapshot, error) {
 	if d.runner.Shared().HasMissing || o.MissingTokens != 0 {
 		return nil, compile.MissingUnsupported("Document parsing")
 	}
@@ -360,7 +360,7 @@ func (d *Document) snapshotWith(o ecore.ParseOptions, legacy **core.Node) (*Snap
 	}
 	var result *Snapshot
 	output := core.OutputUnavailable
-	_, err := d.parseWithCapture(o, func(p *ecore.Parser, root *core.Node, parseErr error) error {
+	_, err := d.parseWithCapture(o, func(p *state.Parser, root *core.Node, parseErr error) error {
 		if observed != nil && observed.interrupted || interruptsSnapshot(parseErr) {
 			return parseErr
 		}
@@ -420,7 +420,7 @@ func (d *Document) snapshotWith(o ecore.ParseOptions, legacy **core.Node) (*Snap
 	return result, err
 }
 
-func snapshotStrings(p *ecore.Parser, in []string) []string {
+func snapshotStrings(p *state.Parser, in []string) []string {
 	if in == nil {
 		return nil
 	}
@@ -428,11 +428,11 @@ func snapshotStrings(p *ecore.Parser, in []string) []string {
 	if p == nil {
 		copy(out, in)
 	} else {
-		ecore.CopySpend(p, out, in)
+		state.CopySpend(p, out, in)
 	}
 	return out
 }
-func copySnapshotError(p *ecore.Parser, err error) error {
+func copySnapshotError(p *state.Parser, err error) error {
 	syntax := func(e *core.SyntaxError) *core.SyntaxError {
 		if e == nil {
 			return nil
@@ -498,7 +498,7 @@ func unsupportedBox(n *core.Node) reflect.Type {
 // freezeSnapshotGraph registers identities before following their edges. The
 // explicit DFS stack gives deterministic child-then-field rejection paths and
 // supports arbitrary depth and caller-created cycles without recursion.
-func freezeSnapshotGraph(p *ecore.Parser, root *core.Node) (snapshotGraph, *core.SnapshotCaptureError) {
+func freezeSnapshotGraph(p *state.Parser, root *core.Node) (snapshotGraph, *core.SnapshotCaptureError) {
 	var g snapshotGraph
 	if root == nil {
 		return g, nil
@@ -524,7 +524,7 @@ func freezeSnapshotGraph(p *ecore.Parser, root *core.Node) (snapshotGraph, *core
 			// as a field, so a record stays as small as it was.
 			r.fields = noderep.Fields{{Value: value.D(n).Box}}
 		}
-		g.nodes = ecore.GrowSpend(p, g.nodes, 1)
+		g.nodes = state.GrowSpend(p, g.nodes, 1)
 		g.nodes = append(g.nodes, r)
 		id := len(g.nodes)
 		seen[n] = id
@@ -573,13 +573,13 @@ func freezeSnapshotGraph(p *ecore.Parser, root *core.Node) (snapshotGraph, *core
 		}
 		f.next++
 		if fresh {
-			stack = ecore.GrowSpend(p, stack, 1)
+			stack = state.GrowSpend(p, stack, 1)
 			stack = append(stack, snapshotFrame{node: child, id: id, edge: edge})
 		}
 	}
 	return g, nil
 }
-func snapshotFieldPath(p *ecore.Parser, stack []snapshotFrame, edge snapshotEdge) string {
+func snapshotFieldPath(p *state.Parser, stack []snapshotFrame, edge snapshotEdge) string {
 	var out strings.Builder
 	out.WriteString("root")
 	write := func(e snapshotEdge) {
@@ -623,7 +623,7 @@ func snapshotFieldPath(p *ecore.Parser, stack []snapshotFrame, edge snapshotEdge
 // of the same root was taken: the charge never depends on collection, or on what the previous
 // snapshot held. The reuse itself then runs unmetered, within what was charged, and still observes
 // cancellation.
-func (d *Document) shareWithPrevious(p *ecore.Parser, next snapshotGraph) snapshotGraph {
+func (d *Document) shareWithPrevious(p *state.Parser, next snapshotGraph) snapshotGraph {
 	if d.previousRoot != next.root {
 		return next
 	}
@@ -662,7 +662,7 @@ func snapshotSharingCharge(next *snapshotGraph) int {
 // shareSnapshotGraph reuses immutable records after freezing the current parse.
 // The default requires exact metadata; the private position-overlay candidate
 // keeps changed metadata separately. No mutable Node or parser slice is shared.
-func shareSnapshotGraph(p *ecore.Parser, previous *snapshotGraph, next snapshotGraph) snapshotGraph {
+func shareSnapshotGraph(p *state.Parser, previous *snapshotGraph, next snapshotGraph) snapshotGraph {
 	if previous == nil || previous.root != next.root {
 		return next
 	}
@@ -761,7 +761,7 @@ func shareSnapshotGraph(p *ecore.Parser, previous *snapshotGraph, next snapshotG
 	return shared
 }
 
-func sameSnapshotPayload(p *ecore.Parser, ag *snapshotGraph, a *snapshotRecord, bg *snapshotGraph, b *snapshotRecord) bool {
+func sameSnapshotPayload(p *state.Parser, ag *snapshotGraph, a *snapshotRecord, bg *snapshotGraph, b *snapshotRecord) bool {
 	if a.kind != b.kind || a.fresh != b.fresh || a.terminal != b.terminal ||
 		ag.hasChildren(a) != bg.hasChildren(b) || (a.fields == nil) != (b.fields == nil) ||
 		ag.childCount(a) != bg.childCount(b) || len(a.fields) != len(b.fields) || len(a.text) != len(b.text) {
@@ -784,7 +784,7 @@ func sameSnapshotPayload(p *ecore.Parser, ag *snapshotGraph, a *snapshotRecord, 
 // point into an older flat child slice, but never into an old graph or parser.
 // Changed runs own exact-size backing arrays, so later snapshots do not retain
 // a whole discarded child slice through one changed run.
-func shareSnapshotChildren(p *ecore.Parser, previousGraph *snapshotGraph, previous, next *snapshotRecord) *snapshotChildChunks {
+func shareSnapshotChildren(p *state.Parser, previousGraph *snapshotGraph, previous, next *snapshotRecord) *snapshotChildChunks {
 	if len(next.children) < 4*snapshotChildChunkSize || !previousGraph.hasChildren(previous) {
 		return nil
 	}
@@ -813,7 +813,7 @@ func shareSnapshotChildren(p *ecore.Parser, previousGraph *snapshotGraph, previo
 			chunks[i] = previousGraph.childChunk(previous, i, end-start)
 		} else {
 			chunks[i] = make([]int, end-start)
-			ecore.CopySpend(p, chunks[i], next.children[start:end])
+			state.CopySpend(p, chunks[i], next.children[start:end])
 		}
 	}
 	length := len(next.children)
@@ -822,7 +822,7 @@ func shareSnapshotChildren(p *ecore.Parser, previousGraph *snapshotGraph, previo
 	return &snapshotChildChunks{parts: chunks, length: length}
 }
 
-func sameSnapshotRecord(p *ecore.Parser, ag *snapshotGraph, a *snapshotRecord, bg *snapshotGraph, b *snapshotRecord) bool {
+func sameSnapshotRecord(p *state.Parser, ag *snapshotGraph, a *snapshotRecord, bg *snapshotGraph, b *snapshotRecord) bool {
 	if !a.childChunked && !b.childChunked {
 		return sameFlatSnapshotRecord(p, a, b)
 	}
@@ -851,7 +851,7 @@ func sameSnapshotRecord(p *ecore.Parser, ag *snapshotGraph, a *snapshotRecord, b
 	return true
 }
 
-func sameFlatSnapshotRecord(p *ecore.Parser, a, b *snapshotRecord) bool {
+func sameFlatSnapshotRecord(p *state.Parser, a, b *snapshotRecord) bool {
 	if a.kind != b.kind || a.start != b.start || a.end != b.end ||
 		a.fresh != b.fresh || a.terminal != b.terminal ||
 		a.gen != b.gen || (a.children == nil) != (b.children == nil) ||
@@ -879,7 +879,7 @@ func sameFlatSnapshotRecord(p *ecore.Parser, a, b *snapshotRecord) bool {
 	return true
 }
 
-func sameSnapshotChildren(p *ecore.Parser, ag *snapshotGraph, a *snapshotRecord, bg *snapshotGraph, b *snapshotRecord) bool {
+func sameSnapshotChildren(p *state.Parser, ag *snapshotGraph, a *snapshotRecord, bg *snapshotGraph, b *snapshotRecord) bool {
 	count := ag.childCount(a)
 	if !a.childChunked && !b.childChunked {
 		for offset := 0; offset < count; offset += 4096 {
@@ -901,7 +901,7 @@ func sameSnapshotChildren(p *ecore.Parser, ag *snapshotGraph, a *snapshotRecord,
 	return true
 }
 
-func sameSnapshotFieldValue(p *ecore.Parser, a, b any) bool {
+func sameSnapshotFieldValue(p *state.Parser, a, b any) bool {
 	switch v := a.(type) {
 	case nil:
 		return b == nil

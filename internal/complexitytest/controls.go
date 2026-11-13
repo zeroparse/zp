@@ -76,7 +76,7 @@ func Controls() []Control {
 		},
 		{
 			// Sizes start above the length of input that a run site may walk again while it is
-			// cold (core.RunHotSpan, 64): below it the walks are plain and the cost is cubic.
+			// cold (state.RunHotSpan, 64): below it the walks are plain and the cost is cubic.
 			Name: "E7 nested scans, degree 3", Family: "E7",
 			Source: "rule main = (a / \"a\")* $$\nrule a = (b / \"a\")* \"c\"\nrule b = \"a\"* \"d\"\n",
 			Input:  func(n int) string { return rep("a", n) },

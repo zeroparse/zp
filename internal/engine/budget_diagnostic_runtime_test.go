@@ -12,7 +12,7 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/core"
-	ecore "zeroparse.dev/zp/internal/engine/core"
+	"zeroparse.dev/zp/internal/engine/state"
 )
 
 func diagnosticAlternatives() string {
@@ -46,19 +46,19 @@ func TestBudgetDiagnosticBatchFailureAndTraceAccessor(t *testing.T) {
 						}
 						armed, accessorReturned := false, false
 						fallback := 0
-						var observed *ecore.Parser
-						var c *ecore.BudgetControl
+						var observed *state.Parser
+						var c *state.BudgetControl
 						var at uint64
 						n, err := active.ParseWith("main", "x", ParseOptions{Expectations: true, Backend: b, Unit: u, Recognize: recognize, Limits: core.Limits{Compute: 1 << 50}, Trace: func(e TraceEvent) {
-							observed = ecore.TraceParser(e)
+							observed = state.TraceParser(e)
 							if e.Kind == TraceEnter && e.Rule == "fallback" {
 								fallback++
 							}
 							if !armed && e.Kind == TraceExit && ((accessor && e.Rule == "bad") || (!accessor && e.Rule == "main")) {
-								if e.Matched || len(ecore.TraceExpectations(e)) != 16 {
-									t.Fatalf("unexpected diagnostic fixture exp=%d", len(ecore.TraceExpectations(e)))
+								if e.Matched || len(state.TraceExpectations(e)) != 16 {
+									t.Fatalf("unexpected diagnostic fixture exp=%d", len(state.TraceExpectations(e)))
 								}
-								armed, c, at = true, ecore.TraceParser(e).Control, ecore.TraceParser(e).Control.Used
+								armed, c, at = true, state.TraceParser(e).Control, state.TraceParser(e).Control.Used
 								if accessor {
 									if cancel {
 										c.Ctx = newPollingContext(1)
@@ -121,15 +121,15 @@ rule bad = "a" @error(message=` + strconv.Quote(message) + `)`
 			beforeErr, _ := json.Marshal(retainedErr)
 			for _, recognize := range []bool{false, true} {
 				armed, fallback := false, 0
-				var observed *ecore.Parser
+				var observed *state.Parser
 				n, err := prog.ParseWith("main", "x", ParseOptions{Expectations: true, Backend: b, Unit: u, Recognize: recognize, Limits: core.Limits{Compute: 1 << 50}, Trace: func(e TraceEvent) {
-					observed = ecore.TraceParser(e)
+					observed = state.TraceParser(e)
 					if e.Kind == TraceEnter && e.Rule == "fallback" {
 						fallback++
 					}
 					if !armed && e.Kind == TraceExit && e.Rule == "bad" {
 						armed = true
-						ecore.TraceParser(e).Control.Limits.Compute = ecore.TraceParser(e).Control.Used + 256
+						state.TraceParser(e).Control.Limits.Compute = state.TraceParser(e).Control.Used + 256
 					}
 				}})
 				if !armed || n != nil || observed.Scratch != nil || observed.Control != nil {
@@ -146,15 +146,15 @@ rule bad = "a" @error(message=` + strconv.Quote(message) + `)`
 				if !recognize {
 					armed, fallback = false, 0
 					n, err = prog.ParseWith("main", "x", ParseOptions{Expectations: true, Backend: b, Unit: u, Limits: core.Limits{Compute: 1 << 50}, Trace: func(e TraceEvent) {
-						observed = ecore.TraceParser(e)
+						observed = state.TraceParser(e)
 						if e.Kind == TraceEnter && e.Rule == "fallback" {
 							fallback++
 						}
 						if !armed && e.Kind == TraceExit && e.Rule == "bad" {
 							armed = true
 							// The post-callback check succeeds; the message copy polls next.
-							ecore.TraceParser(e).Control.Ctx = newPollingContext(2)
-							ecore.TraceParser(e).Control.SinceCheck = 0
+							state.TraceParser(e).Control.Ctx = newPollingContext(2)
+							state.TraceParser(e).Control.SinceCheck = 0
 						}
 					}})
 					if !armed || n != nil || !errors.Is(err, context.Canceled) || fallback != 0 || observed.Scratch != nil || observed.Control != nil {

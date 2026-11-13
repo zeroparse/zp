@@ -2,16 +2,16 @@
 
 package vm
 
-import "zeroparse.dev/zp/internal/engine/core"
+import "zeroparse.dev/zp/internal/engine/state"
 
 // predicate evaluates the term of a predicate, which fails on the boolean false and on a term that
 // fails, and holds on every other value.
 //
 // Printed from Exec IR function predicate of internal/ir/exec/core.
-func (vm *Program) predicate(p *core.Parser, t int) bool {
+func (vm *Program) predicate(p *state.Parser, t int) bool {
 	created := len(p.Created)
 	kids := len(p.KidStack)
-	ctx := p.UseCtx(core.EvalCtx{P: p, Frame: p.Frame, Start: p.Pos, End: p.Pos, Cbase: len(p.Created)})
+	ctx := p.UseCtx(state.EvalCtx{P: p, Frame: p.Frame, Start: p.Pos, End: p.Pos, Cbase: len(p.Created)})
 	v, err := vm.terms[t].Eval(ctx)
 	ok := err == nil
 	if !ok {
@@ -24,7 +24,7 @@ func (vm *Program) predicate(p *core.Parser, t int) bool {
 	if len(p.Created) > created {
 		p.DropCreated(created)
 	}
-	return !core.IsFalse(v)
+	return !state.IsFalse(v)
 }
 
 // bind binds the value of the term of a binding to the variable in slot. A term that fails and a
@@ -32,10 +32,10 @@ func (vm *Program) predicate(p *core.Parser, t int) bool {
 // value fits the variable.
 //
 // Printed from Exec IR function bind of internal/ir/exec/core.
-func (vm *Program) bind(p *core.Parser, slot int, t int) bool {
+func (vm *Program) bind(p *state.Parser, slot int, t int) bool {
 	created := len(p.Created)
 	kids := len(p.KidStack)
-	ctx := p.UseCtx(core.EvalCtx{P: p, Frame: p.Frame, Start: p.Pos, End: p.Pos, Cbase: len(p.Created)})
+	ctx := p.UseCtx(state.EvalCtx{P: p, Frame: p.Frame, Start: p.Pos, End: p.Pos, Cbase: len(p.Created)})
 	v, err := vm.terms[t].Eval(ctx)
 	ok := err == nil
 	if !ok {

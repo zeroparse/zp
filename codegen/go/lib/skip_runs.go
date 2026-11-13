@@ -1,7 +1,7 @@
 package libgo
 
 // Skip runs: the records of the walks of skip-run sites, a mirror of the engine's
-// (internal/engine/core/skip_runs.go; see "Skip Runs" in spec/runtime/parsing.md and the proofs in
+// (internal/engine/state/skip_runs.go; see "Skip Runs" in spec/runtime/parsing.md and the proofs in
 // spec/proofs/skip-runs.md).
 //
 // A walk of a site repetition visits positions r0 < r1 < ... with one iteration each. The slot of

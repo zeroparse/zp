@@ -9,7 +9,7 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/core"
-	ecore "zeroparse.dev/zp/internal/engine/core"
+	"zeroparse.dev/zp/internal/engine/state"
 )
 
 type budgetCancelledRefillReader struct {
@@ -61,7 +61,7 @@ func TestBudgetStreamRawReaderAdmission(t *testing.T) {
 	cancel()
 	caller := &budgetCancelledRefillReader{cancel: func() {}}
 	var returned error
-	observer := &ecore.StreamReaderObserver{Reader: caller, Result: &returned, Control: ecore.NewBudgetControl(ctx, core.Limits{})}
+	observer := &state.StreamReaderObserver{Reader: caller, Result: &returned, Control: state.NewBudgetControl(ctx, core.Limits{})}
 	err := catchFatal(t, func() { _, _ = observer.Read(make([]byte, 4)) })
 	if !errors.Is(err, context.Canceled) || caller.calls != 0 || returned != nil {
 		t.Fatalf("error=%v calls=%d returned=%v", err, caller.calls, returned)
@@ -94,7 +94,7 @@ rule row = .+ #atomic`)
 		o.Context = &budgetRawReaderPanicContext{Context: ctx, reader: reader, token: token}
 		var saved TraceEvent
 		o.Trace = func(e TraceEvent) {
-			if ecore.TraceParser(saved) == nil {
+			if state.TraceParser(saved) == nil {
 				saved = e
 			}
 		}
@@ -105,6 +105,6 @@ rule row = .+ #atomic`)
 		if got != token || err != nil || reader.calls != 1 {
 			t.Fatalf("panic=%#v error=%v calls=%d", got, err, reader.calls)
 		}
-		assertTraceParserDetached(t, ecore.TraceParser(saved), false)
+		assertTraceParserDetached(t, state.TraceParser(saved), false)
 	})
 }

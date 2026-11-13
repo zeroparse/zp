@@ -7,7 +7,7 @@ import (
 )
 
 // Scan sites: the records of the walks of the repetitions of one character without a maximum in
-// the rules that call no rule, a mirror of the engine's (internal/engine/core/scan_sites.go; see
+// the rules that call no rule, a mirror of the engine's (internal/engine/state/scan_sites.go; see
 // "Scan Sites" in spec/runtime/parsing.md and the proof in spec/proofs/run-sites.md).
 //
 // An iteration of such a repetition reads one character and nothing else, so the walk from a

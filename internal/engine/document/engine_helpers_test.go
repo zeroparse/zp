@@ -15,7 +15,7 @@ import (
 	"zeroparse.dev/zp/internal/bytecode"
 	"zeroparse.dev/zp/internal/compile"
 	. "zeroparse.dev/zp/internal/engine"
-	ecore "zeroparse.dev/zp/internal/engine/core"
+	"zeroparse.dev/zp/internal/engine/state"
 	"zeroparse.dev/zp/internal/starttest"
 	"zeroparse.dev/zp/internal/syntax"
 )
@@ -203,7 +203,7 @@ type snapshotPhaseContext struct {
 	phase      string
 }
 
-func assertTraceParserDetached(t *testing.T, p *ecore.Parser, aborted bool) {
+func assertTraceParserDetached(t *testing.T, p *state.Parser, aborted bool) {
 	t.Helper()
 	if p == nil {
 		t.Fatal("trace callback did not expose a parser")
@@ -263,11 +263,11 @@ func budgetDocumentVariants(t *testing.T, run func(*testing.T, ParseOptions)) {
 	}
 }
 
-func snapshotVariants(t *testing.T, run func(*testing.T, ecore.ParseOptions)) {
+func snapshotVariants(t *testing.T, run func(*testing.T, state.ParseOptions)) {
 	t.Helper()
-	for _, backend := range []ecore.Backend{ecore.Closure, ecore.Bytecode, ecore.BytecodeIterative} {
+	for _, backend := range []state.Backend{state.Closure, state.Bytecode, state.BytecodeIterative} {
 		for _, unit := range []core.PositionUnit{core.CodePoints, core.Bytes} {
-			t.Run(fmt.Sprintf("%s/%s", backend, unit), func(t *testing.T) { run(t, ecore.ParseOptions{Backend: backend, Unit: unit}) })
+			t.Run(fmt.Sprintf("%s/%s", backend, unit), func(t *testing.T) { run(t, state.ParseOptions{Backend: backend, Unit: unit}) })
 		}
 	}
 }
@@ -340,7 +340,7 @@ type budgetContextErrPanic struct {
 	panicAt int
 	calls   int
 	token   *budgetContextPanicToken
-	control *ecore.BudgetControl
+	control *state.BudgetControl
 	atPanic uint64
 	since   uint64
 }

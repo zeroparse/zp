@@ -14,7 +14,7 @@ import (
 // site: an iteration reads one character and nothing else, so the walk from a start ends at a
 // position, examines the input up to a position, matches a number of characters and builds
 // elements that depend on the start and the input alone, whatever the rule around it does, and a
-// record kept at the start holds for every later walk from there (core/scan_sites.go). A
+// record kept at the start holds for every later walk from there (state/scan_sites.go). A
 // repetition that is a skip-run site records its walks as one, and one that delivers the elements
 // of a #stream is not a site.
 //

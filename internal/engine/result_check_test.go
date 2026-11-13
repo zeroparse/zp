@@ -9,7 +9,7 @@ import (
 	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/codegentest"
 	"zeroparse.dev/zp/internal/compile"
-	ecore "zeroparse.dev/zp/internal/engine/core"
+	"zeroparse.dev/zp/internal/engine/state"
 )
 
 // resultCheckRoutes maps an input's route character to the rule it reaches.
@@ -87,7 +87,7 @@ func checkRuleResultType(t *testing.T, typ string, resultGrammar func(typ, rt st
 				var want string
 				for _, unit := range []core.PositionUnit{core.CodePoints, core.Bytes} {
 					for _, run := range runs {
-						if run.o.Limits.Compute != 0 && !ecore.BudgetControlsEnabled {
+						if run.o.Limits.Compute != 0 && !state.BudgetControlsEnabled {
 							continue // the reference build has no limits
 						}
 						o := run.o
@@ -209,7 +209,7 @@ func TestOperatorResultChecks(t *testing.T) {
 			{"loaded iterative", loaded, ParseOptions{Backend: BytecodeIterative}},
 			{"limited loaded bytecode", loaded, ParseOptions{Backend: Bytecode, Limits: limits}},
 		} {
-			if run.o.Limits.Compute != 0 && !ecore.BudgetControlsEnabled {
+			if run.o.Limits.Compute != 0 && !state.BudgetControlsEnabled {
 				continue // the reference build has no limits
 			}
 			if got := resultWith(run.prog, in, run.o); got != want {

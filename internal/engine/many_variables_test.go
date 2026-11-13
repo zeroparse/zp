@@ -7,7 +7,7 @@ import (
 
 	"zeroparse.dev/zp/core"
 	"zeroparse.dev/zp/internal/compile"
-	ecore "zeroparse.dev/zp/internal/engine/core"
+	"zeroparse.dev/zp/internal/engine/state"
 )
 
 // manyVariablesGrammar declares n variables whose names share a long prefix. The start rule
@@ -32,7 +32,7 @@ func TestManyVariables(t *testing.T) {
 	t.Parallel()
 	prog := mustCompile(t, manyVariablesGrammar(280))
 	var l core.Limits
-	if ecore.BudgetControlsEnabled {
+	if state.BudgetControlsEnabled {
 		l.Compute = 1 << 40
 	}
 	for _, backend := range []Backend{Closure, Bytecode, BytecodeIterative} {
@@ -68,7 +68,7 @@ func minBudget(t testing.TB, prog *Program, backend Backend, input string) uint6
 }
 
 func TestManyVariablesBudget(t *testing.T) {
-	if !ecore.BudgetControlsEnabled {
+	if !state.BudgetControlsEnabled {
 		t.Skip("budget controls are unavailable in the reference build")
 	}
 	prog := mustCompile(t, manyVariablesGrammar(280))

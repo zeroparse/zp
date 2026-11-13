@@ -10,12 +10,12 @@ import (
 
 	"zeroparse.dev/zp/core"
 	. "zeroparse.dev/zp/internal/engine"
-	ecore "zeroparse.dev/zp/internal/engine/core"
+	"zeroparse.dev/zp/internal/engine/state"
 )
 
 func TestDocumentBatchOriginalUTF8Boundaries(t *testing.T) {
 	p := mustCompile(t, `rule main = .*`)
-	for _, prefix := range []string{"", strings.Repeat("a", ecore.DocumentPieceMinSize)} {
+	for _, prefix := range []string{"", strings.Repeat("a", state.DocumentPieceMinSize)} {
 		text := prefix + "\xc3x\xa9"
 		d, _ := p.NewDocumentWith("main", text, ParseOptions{Unit: core.Bytes})
 		n := len(prefix)
@@ -44,13 +44,13 @@ func TestDocumentBatchOriginalUTF8Boundaries(t *testing.T) {
 }
 
 func TestDocumentBatchPreservesPiecePromotion(t *testing.T) {
-	if !ecore.DocumentPieceInput {
+	if !state.DocumentPieceInput {
 		t.Skip("piece input disabled by reference build")
 	}
 	p := mustCompile(t, `rule main = .* $$`)
 	for _, unit := range []core.PositionUnit{core.CodePoints, core.Bytes} {
 		for _, promoted := range []bool{false, true} {
-			text := strings.Repeat("x", ecore.DocumentPieceMinSize)
+			text := strings.Repeat("x", state.DocumentPieceMinSize)
 			if promoted {
 				text = "x"
 			}
@@ -59,7 +59,7 @@ func TestDocumentBatchPreservesPiecePromotion(t *testing.T) {
 				t.Fatal(err)
 			}
 			if promoted {
-				if err := d.Edit(1, 1, strings.Repeat("x", ecore.DocumentPieceMinSize)); err != nil {
+				if err := d.Edit(1, 1, strings.Repeat("x", state.DocumentPieceMinSize)); err != nil {
 					t.Fatal(err)
 				}
 			}
@@ -94,7 +94,7 @@ func TestDocumentBatchValidationPreservesState(t *testing.T) {
 			for _, back := range []Backend{Closure, Bytecode, BytecodeIterative} {
 				text := "éab"
 				if large {
-					text += strings.Repeat("x", ecore.DocumentPieceMinSize)
+					text += strings.Repeat("x", state.DocumentPieceMinSize)
 				}
 				d, err := p.NewDocumentWith("main", text, ParseOptions{Unit: unit, Backend: back})
 				if err != nil {
@@ -108,7 +108,7 @@ func TestDocumentBatchValidationPreservesState(t *testing.T) {
 				beforeVersion, beforeText := d.Version(), d.Text()
 				input := *d.Input()
 				memo, runs, stats, runGen, resumed := d.Memo(), d.Runs(), d.Stats(), d.RunGen(), d.Resumed()
-				editsCopy := append([]ecore.DocEdit(nil), d.Edits()...)
+				editsCopy := append([]state.DocEdit(nil), d.Edits()...)
 				rejects := [][]core.TextEdit{
 					{{Start: -1, End: 0, Text: "x"}}, {{Start: 0, End: -1, Text: "x"}}, {{Start: 0, End: d.Input().Loaded() + 1, Text: "x"}},
 					{{Start: 1, End: 1, Text: "x"}, {Start: 0, End: 0, Text: "y"}}, {{Start: 0, End: 2, Text: "x"}, {Start: 1, End: 3, Text: "y"}}, {{Start: 0, End: 0, Text: "x"}, {Start: 0, End: 1, Text: "y"}},

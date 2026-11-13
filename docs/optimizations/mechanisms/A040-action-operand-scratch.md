@@ -40,9 +40,9 @@ Evidence records: [014](../014-one-operand-stack-for-vm-expression-code.md),
 [027](../027-struct-and-call-operands-on-the-expression-stack-in-the-closure-backend.md),
 [028](../028-field-lists-and-list-built-ins-without-allocation-in-the-generated-parsers.md).
 
-Source owners: [`evalCtx`](../../../internal/engine/core/eval.go), [`engine term programs`](../../../internal/engine/core/),
+Source owners: [`evalCtx`](../../../internal/engine/state/eval.go), [`engine term programs`](../../../internal/engine/state/),
 [`term registers and operator
-locals`](../../../internal/engine/core/runtime.go), [`generated
+locals`](../../../internal/engine/state/runtime.go), [`generated
 ActCtx`](../../../codegen/go/lib/lib.go), [`typed evaluation
 scratch`](../../../codegen/go/lib/typed.go), [`Parser action
 context`](../../../codegen/ts/lib/lib.ts).

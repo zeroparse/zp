@@ -9,7 +9,7 @@ import (
 
 	"zeroparse.dev/zp/core"
 	"zeroparse.dev/zp/internal/codegentest"
-	ecore "zeroparse.dev/zp/internal/engine/core"
+	"zeroparse.dev/zp/internal/engine/state"
 )
 
 // decodedBoundaries is an independent oracle for edit validation: invalid
@@ -40,7 +40,7 @@ func TestInvalidUTF8EditBoundaries(t *testing.T) {
 			want[pos] = true
 		}
 		for pos := 0; pos <= len(s); pos++ {
-			if got := ecore.ValidBoundary(s, core.Bytes, pos) == nil; got != want[pos] {
+			if got := state.ValidBoundary(s, core.Bytes, pos) == nil; got != want[pos] {
 				t.Fatalf("input %x position %d: valid=%v, want %v", s, pos, got, want[pos])
 			}
 		}
@@ -116,7 +116,7 @@ func BenchmarkDecodedEditBoundary(b *testing.B) {
 			pos := len(s) - len(string([]rune(s)[0]))
 			b.ReportAllocs()
 			for b.Loop() {
-				if err := ecore.ValidBoundary(s, core.Bytes, pos); err != nil {
+				if err := state.ValidBoundary(s, core.Bytes, pos); err != nil {
 					b.Fatal(err)
 				}
 			}
@@ -125,7 +125,7 @@ func BenchmarkDecodedEditBoundary(b *testing.B) {
 			b.Run(fmt.Sprintf("%x/interior", s[:min(len(s), 4)]), func(b *testing.B) {
 				b.ReportAllocs()
 				for b.Loop() {
-					if err := ecore.ValidBoundary(s, core.Bytes, len(s)-1); err == nil {
+					if err := state.ValidBoundary(s, core.Bytes, len(s)-1); err == nil {
 						b.Fatal("accepted interior position")
 					}
 				}
@@ -137,7 +137,7 @@ func BenchmarkDecodedEditBoundary(b *testing.B) {
 func BenchmarkByteDecodeDependency(b *testing.B) {
 	for _, s := range []string{"a", "é", "日", "😀", "\x80", "\xc3", "\xe6\xbc", "\xf0\x9f\x98"} {
 		b.Run(fmt.Sprintf("%x", s), func(b *testing.B) {
-			in := ecore.NewInput(s, core.Bytes)
+			in := state.NewInput(s, core.Bytes)
 			b.ReportAllocs()
 			for b.Loop() {
 				if _, size, _, ok := in.Decode(0); !ok || size < 1 {

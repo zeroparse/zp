@@ -33,7 +33,7 @@ not establish a current isolated effect in all targets.
 Evidence records: [037](../037-no-intermediate-lists-in-concat.md),
 [044](../044-changes-36-and-37-in-the-vms-instruction-set-2.md).
 
-Source owners: [`concat element evaluation`](../../../internal/engine/core/eval.go),
+Source owners: [`concat element evaluation`](../../../internal/engine/state/eval.go),
 the term lowering of the Exec IR,
 [`concat emission`](../../../internal/codegen/go/generator.go), [`concat
 emission`](../../../internal/codegen/ts/generator.go).

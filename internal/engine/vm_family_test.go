@@ -11,7 +11,7 @@ import (
 	"zeroparse.dev/zp/core"
 	"zeroparse.dev/zp/internal/codegentest"
 	"zeroparse.dev/zp/internal/compile"
-	ecore "zeroparse.dev/zp/internal/engine/core"
+	"zeroparse.dev/zp/internal/engine/state"
 )
 
 var vmBackends = []Backend{Bytecode, BytecodeIterative}
@@ -27,7 +27,7 @@ func TestVMFamilyCharges(t *testing.T) {
 	// The stream parses of the default build also charge for walking and clearing the capture
 	// frames they keep for reuse at each commit, which the reference build of stream frames drops.
 	stream := map[Backend]charges{Bytecode: {"stream": 152, "stream+trace": 162}, BytecodeIterative: {"stream": 152, "stream+trace": 157}}
-	if !ecore.StreamFrameScratch {
+	if !state.StreamFrameScratch {
 		stream = map[Backend]charges{Bytecode: {"stream": 148, "stream+trace": 158}, BytecodeIterative: {"stream": 148, "stream+trace": 153}}
 	}
 	cases := []struct {
@@ -81,8 +81,8 @@ func TestVMFamiliesMatchOnCorpus(t *testing.T) {
 				for _, b := range vmBackends {
 					for _, in := range c.Inputs {
 						for _, u := range []core.PositionUnit{core.CodePoints, core.Bytes} {
-							x, xs := parseInFamily(prog, b, in, u, ecore.Inlined)
-							y, ys := parseInFamily(prog, b, in, u, ecore.CallPreserving)
+							x, xs := parseInFamily(prog, b, in, u, state.Inlined)
+							y, ys := parseInFamily(prog, b, in, u, state.CallPreserving)
 							if x != y || xs != ys {
 								t.Errorf("%s memo off=%t input %q (%v): families differ\n inlined         %s %+v\n call-preserving %s %+v", b, o.DisableMemo, in, u, x, xs, y, ys)
 							}
@@ -104,7 +104,7 @@ func TestVMFamiliesPreparedOnFirstUse(t *testing.T) {
 	for _, b := range vmBackends {
 		prepared := func(prog *Program) [2]bool {
 			v := &prog.vms[vmIndex(b)]
-			return [2]bool{v[ecore.Inlined].vm != nil, v[ecore.CallPreserving].vm != nil}
+			return [2]bool{v[state.Inlined].vm != nil, v[state.CallPreserving].vm != nil}
 		}
 		o := ParseOptions{Backend: b}
 		prog := mustCompile(t, src)
@@ -122,11 +122,11 @@ func TestVMFamiliesPreparedOnFirstUse(t *testing.T) {
 		if got := prepared(prog); got != [2]bool{true, true} {
 			t.Fatalf("%s: after a traced parse: prepared %v, want both families", b, got)
 		}
-		in, err := prog.rule(b, "item", ecore.Inlined, nil)
+		in, err := prog.rule(b, "item", state.Inlined, nil)
 		if err != nil {
 			t.Fatal(err)
 		}
-		cp, err := prog.rule(b, "item", ecore.CallPreserving, nil)
+		cp, err := prog.rule(b, "item", state.CallPreserving, nil)
 		if err != nil {
 			t.Fatal(err)
 		}

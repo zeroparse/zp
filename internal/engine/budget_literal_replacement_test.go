@@ -12,7 +12,7 @@ import (
 	"unicode/utf8"
 
 	"zeroparse.dev/zp/core"
-	ecore "zeroparse.dev/zp/internal/engine/core"
+	"zeroparse.dev/zp/internal/engine/state"
 )
 
 func TestBudgetLiteralReplacementMismatchBudget(t *testing.T) {
@@ -20,8 +20,8 @@ func TestBudgetLiteralReplacementMismatchBudget(t *testing.T) {
 	for _, streaming := range []bool{false, true} {
 		for _, suffix := range []string{"", string(utf8.RuneError)} {
 			literal := strings.Repeat("a", 4096) + suffix
-			c := ecore.NewBudgetControl(nil, core.Limits{Compute: 32})
-			p := &ecore.Parser{Input: ecore.Input{Unit: core.Bytes, Bs: []byte("b"), Eof: !streaming, Control: c}}
+			c := state.NewBudgetControl(nil, core.Limits{Compute: 32})
+			p := &state.Parser{Input: state.Input{Unit: core.Bytes, Bs: []byte("b"), Eof: !streaming, Control: c}}
 			if streaming {
 				p.Reader = bufio.NewReader(strings.NewReader(""))
 			}
@@ -36,8 +36,8 @@ func TestBudgetLiteralReplacementMismatchBudget(t *testing.T) {
 			// With a limit that is not reached, the total is the scan of the literal for the replacement
 			// character (one unit per rune of the literal) and the inspection of the first byte: peek and
 			// mismatch, a few units, never a unit per byte compared.
-			c = ecore.NewBudgetControl(nil, core.Limits{Compute: 1 << 20})
-			p = &ecore.Parser{Input: ecore.Input{Unit: core.Bytes, Bs: []byte("b"), Eof: !streaming, Control: c}}
+			c = state.NewBudgetControl(nil, core.Limits{Compute: 1 << 20})
+			p = &state.Parser{Input: state.Input{Unit: core.Bytes, Bs: []byte("b"), Eof: !streaming, Control: c}}
 			if streaming {
 				p.Reader = bufio.NewReader(strings.NewReader(""))
 			}
@@ -85,14 +85,14 @@ func TestBudgetLiteralReplacementSentinelBoundaries(t *testing.T) {
 		{"absent", "aaaaa", 5, false},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
-			c := ecore.NewBudgetControl(nil, core.Limits{Compute: tc.visits})
-			p := &ecore.Parser{Input: ecore.Input{Control: c}}
+			c := state.NewBudgetControl(nil, core.Limits{Compute: tc.visits})
+			p := &state.Parser{Input: state.Input{Control: c}}
 			got := p.LiteralHasReplacement([]rune(tc.literal))
 			if got != tc.found || c.Used != tc.visits {
 				t.Fatalf("found=%v spent=%d, want %v/%d", got, c.Used, tc.found, tc.visits)
 			}
 			if tc.visits > 1 {
-				c = ecore.NewBudgetControl(nil, core.Limits{Compute: tc.visits - 1})
+				c = state.NewBudgetControl(nil, core.Limits{Compute: tc.visits - 1})
 				p.Control = c
 				err := catchFatal(t, func() { p.LiteralHasReplacement([]rune(tc.literal)) })
 				var limit *core.LimitError
@@ -111,10 +111,10 @@ func TestBudgetLiteralReplacementSentinelBoundaries(t *testing.T) {
 func TestBudgetLiteralReplacementSentinelCancellation(t *testing.T) {
 	t.Parallel()
 	ctx := newPollingContext(1)
-	c := ecore.NewBudgetControl(ctx, core.Limits{Compute: 1 << 20})
-	p := &ecore.Parser{Input: ecore.Input{Control: c}}
+	c := state.NewBudgetControl(ctx, core.Limits{Compute: 1 << 20})
+	p := &state.Parser{Input: state.Input{Control: c}}
 	err := catchFatal(t, func() { p.LiteralHasReplacement([]rune(strings.Repeat("a", 4096) + string(utf8.RuneError))) })
-	if !errors.Is(err, context.Canceled) || c.Used != ecore.BudgetCheckInterval-1 {
+	if !errors.Is(err, context.Canceled) || c.Used != state.BudgetCheckInterval-1 {
 		t.Fatalf("error=%v spent=%d, want cancellation before first 256-unit poll reservation", err, c.Used)
 	}
 }

@@ -10,7 +10,7 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/core"
-	ecore "zeroparse.dev/zp/internal/engine/core"
+	"zeroparse.dev/zp/internal/engine/state"
 )
 
 type streamRefillResult struct {
@@ -37,15 +37,15 @@ func (r *streamRefillScript) Read(dst []byte) (int, error) {
 	return copy(dst, result.data), result.err
 }
 
-func streamRefillObserver(reader io.Reader, control *ecore.BudgetControl) (*ecore.StreamReaderObserver, *error) {
+func streamRefillObserver(reader io.Reader, control *state.BudgetControl) (*state.StreamReaderObserver, *error) {
 	var readErr error
-	return &ecore.StreamReaderObserver{Reader: reader, Result: &readErr, Control: control}, &readErr
+	return &state.StreamReaderObserver{Reader: reader, Result: &readErr, Control: control}, &readErr
 }
 
 func TestStreamReaderObserverChargesEachUnderlyingRead(t *testing.T) {
 	t.Parallel()
 	reader := &streamRefillScript{results: []streamRefillResult{{data: []byte("a")}, {data: []byte("b")}}}
-	control := ecore.NewBudgetControl(nil, core.Limits{Compute: 2})
+	control := state.NewBudgetControl(nil, core.Limits{Compute: 2})
 	observer, _ := streamRefillObserver(reader, control)
 	for i, want := range []byte("ab") {
 		var dst [1]byte
@@ -66,7 +66,7 @@ func TestStreamReaderObserverBoundsBufioRetries(t *testing.T) {
 	t.Parallel()
 	t.Run("empty retries", func(t *testing.T) {
 		reader := &streamRefillScript{results: []streamRefillResult{{}, {}, {}, {}}}
-		control := ecore.NewBudgetControl(nil, core.Limits{Compute: 3})
+		control := state.NewBudgetControl(nil, core.Limits{Compute: 3})
 		observer, _ := streamRefillObserver(reader, control)
 		buffered := bufio.NewReader(observer)
 		limitErr := catchFatal(t, func() { _, _ = buffered.ReadByte() })
@@ -78,7 +78,7 @@ func TestStreamReaderObserverBoundsBufioRetries(t *testing.T) {
 	for _, max := range []uint64{1, 2} {
 		t.Run(map[uint64]string{1: "one-short split rune", 2: "exact split rune"}[max], func(t *testing.T) {
 			reader := &streamRefillScript{results: []streamRefillResult{{data: []byte{0xc3}}, {data: []byte{0xa9}}}}
-			control := ecore.NewBudgetControl(nil, core.Limits{Compute: max})
+			control := state.NewBudgetControl(nil, core.Limits{Compute: max})
 			observer, _ := streamRefillObserver(reader, control)
 			buffered := bufio.NewReader(observer)
 			var r rune
@@ -120,7 +120,7 @@ rule row = .+ #atomic`)
 func TestStreamReaderObserverOneShortFailsBeforeCallerRead(t *testing.T) {
 	t.Parallel()
 	reader := &streamRefillScript{results: []streamRefillResult{{data: []byte("a")}, {data: []byte("b")}}}
-	control := ecore.NewBudgetControl(nil, core.Limits{Compute: 1})
+	control := state.NewBudgetControl(nil, core.Limits{Compute: 1})
 	observer, _ := streamRefillObserver(reader, control)
 	var first [1]byte
 	if n, err := observer.Read(first[:]); n != 1 || err != nil || first[0] != 'a' {
@@ -142,7 +142,7 @@ func TestStreamReaderObserverCancellationAndReadErrorPrecedence(t *testing.T) {
 	t.Parallel()
 	t.Run("cancellation before exhausted reservation", func(t *testing.T) {
 		ctx, cancel := context.WithCancel(context.Background())
-		control := ecore.NewBudgetControl(ctx, core.Limits{Compute: 1})
+		control := state.NewBudgetControl(ctx, core.Limits{Compute: 1})
 		control.Charge(1)
 		cancel()
 		reader := &streamRefillScript{results: []streamRefillResult{{data: []byte("x")}}}
@@ -162,7 +162,7 @@ func TestStreamReaderObserverCancellationAndReadErrorPrecedence(t *testing.T) {
 			ctx, cancel := context.WithCancel(context.Background())
 			defer cancel()
 			reader := &streamRefillScript{results: []streamRefillResult{{err: returned}}, onRead: func(int) { cancel() }}
-			control := ecore.NewBudgetControl(ctx, core.Limits{Compute: 1})
+			control := state.NewBudgetControl(ctx, core.Limits{Compute: 1})
 			observer, result := streamRefillObserver(reader, control)
 			fatalErr := catchFatal(t, func() { _, _ = observer.Read(make([]byte, 1)) })
 			if returned == io.EOF {

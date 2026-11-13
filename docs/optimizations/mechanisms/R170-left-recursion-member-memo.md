@@ -32,10 +32,10 @@ parse option `ContextMemoOff`, which evaluates every call in a context again.
 Evidence record: [130](../130-memoizing-members-of-left-recursion-cycles.md).
 
 Source owners: [`Check`](../../../internal/compile/compile.go) (the memo flags and the cycle numbers),
-[`CallBegin` and `CallEnd`](../../../internal/engine/core/call_exec.go) with
-[the engine's context state](../../../internal/engine/core/call_ops.go),
-[`GrowBegin`](../../../internal/engine/core/runtime.go) with
-[the engine's dependency memo](../../../internal/engine/core/context_memo.go),
+[`CallBegin` and `CallEnd`](../../../internal/engine/state/call_exec.go) with
+[the engine's context state](../../../internal/engine/state/call_ops.go),
+[`GrowBegin`](../../../internal/engine/state/runtime.go) with
+[the engine's dependency memo](../../../internal/engine/state/context_memo.go),
 [the dependency memo of the generated Go runtime](../../../codegen/go/lib/context_memo.go) and
 [its calls and growths](../../../codegen/go/lib/call_exec.go), [the call protocol in Exec IR](../../../internal/ir/exec/core/core.go)
 with [its context and growth operations](../../../internal/ir/exec/ops/transitional.go),

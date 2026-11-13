@@ -11,7 +11,7 @@ compositions as they stand; this record keeps the decision, the measurements and
 
 The algorithmic core of a ZeroParse parse — memoization, left-recursion growth, expected-set merging, recovery bookkeeping,
 the variable environment, budget charges, stream commitment, Document reuse and the Operators Rule loop — is written
-once per runtime: in the engine (`internal/engine/core`, shared by the closure backend and both bytecode VMs), twice in
+once per runtime: in the engine (`internal/engine/state`, shared by the closure backend and both bytecode VMs), twice in
 the generated Go runtime (the node `Parser` in `codegen/go/lib/lib.go` and the typed `TParser` in `codegen/go/lib/typed.go`), and
 in the TypeScript runtime (`codegen/ts/lib/lib.ts`). A fix to one of these mechanisms is a fix to up to four
 copies, and the copies already differ in algorithm where they should only differ in host.
@@ -39,7 +39,7 @@ flowchart LR
   exec --> gob["Go backend"]
   exec --> tsb["TypeScript backend"]
   gob --> goout["Generated Go parser<br/>and runtime"]
-  gob --> eng["internal/engine/core<br/>(last stage)"]
+  gob --> eng["internal/engine/state<br/>(last stage)"]
   tsb --> tsout["Generated TypeScript parser<br/>and runtime"]
   spec --> conf["Conformance suite"]
   conf -. checks .-> gob
@@ -59,7 +59,7 @@ covers 2026-10-07 to 2026-10-30: 1,263 commits.
 ### Four Copies of One Core
 
 The engine's closure backend and both VMs already share one core: they drive `CallBegin`, `CallEnd`, `GrowBegin`,
-`GrowStep` and `GrowEnd` in `internal/engine/core/runtime.go`. The generated runtimes do not use it. The generated Go
+`GrowStep` and `GrowEnd` in `internal/engine/state/runtime.go`. The generated runtimes do not use it. The generated Go
 runtime has one copy for node results and one for typed results, and the TypeScript runtime a fourth.
 [Appendix A](#appendix-a-inventory) lists every mechanism with its files, functions and sizes. In approximate lines:
 
@@ -549,7 +549,7 @@ backends' choice.
 - Loops print as `for (;;)` with labeled `break`; no iterator protocol or closure appears in a hot path.
 
 Printed code is checked in: the Go library in `codegen/go/lib/`, the TypeScript library in
-`codegen/ts/lib/`, and the engine's in `internal/engine/core`. A test regenerates them and fails on any
+`codegen/ts/lib/`, and the engine's in `internal/engine/state`. A test regenerates them and fails on any
 difference. Names come from the compositions and operations, with a suffix only
 for a specialization; each printed function starts with a comment naming its source and specialization, so that a
 stack trace or a profile leads back to it; comments carry through; output is formatted by `go/format` and by the
@@ -610,8 +610,8 @@ default; it can become an option of its own.
 
 ### The Engine and a Second VM
 
-The closure backend and both VMs already share `internal/engine/core`, so the engine is one copy, not three. It
-adopts the shared core last: the Go backend prints the compositions into `internal/engine/core` with the `missing`
+The closure backend and both VMs already share `internal/engine/state`, so the engine is one copy, not three. It
+adopts the shared core last: the Go backend prints the compositions into `internal/engine/state` with the `missing`
 feature and the split protocols that the iterative VM needs, over the Go operation library with the engine's value
 type. Until then it is the independent oracle of the differential tests.
 
@@ -681,7 +681,7 @@ move to Exec IR at once while mechanisms move one at a time.
    less, `BenchmarkStream/generated` is within noise, and the batch parses and recognizers are within 2% each, 0.4%
    slower in geomean.
 9. **Engine adoption.** The compositions and the Go operation library replace the hand-written mechanisms of
-   `internal/engine/core`; the closure backend and both VMs run on them. The iterative VM suspends a call while
+   `internal/engine/state`; the closure backend and both VMs run on them. The iterative VM suspends a call while
    the rule body runs, so the call protocol also has a split form, a begin and an end composition built from the
    same builder functions as the recursive call, with its state in a record that the caller holds. The
    mechanisms that only the engine has keep their meaning and become the engine's implementations of
@@ -698,7 +698,7 @@ move to Exec IR at once while mechanisms move one at a time.
       `memo.splice`, and the repetition runs a host operation of the engine.
 
    In the first part, the compositions `engineCall`, `callBegin`, `callEnd` and `grow` print the engine's `Call`,
-   `CallBegin`, `CallEnd` and `grow` into `internal/engine/core/call_exec.go`, the first three specialized for
+   `CallBegin`, `CallEnd` and `grow` into `internal/engine/state/call_exec.go`, the first three specialized for
    Documents, the missing-token mode and budget controls; `call_ops.go` holds the engine's implementations of the operations they
    call, and the split form keeps its state in a `CallState` that the caller holds. An entry's `From` is the low
    bound of the input its call examined: a call examines from its position, or from the unit before it to tell a
@@ -740,7 +740,7 @@ move to Exec IR at once while mechanisms move one at a time.
    that operation of the variable environment, and the engine has it from the first part.
 
    In the third part, the Operators Rule compositions print the engine's loop, longest match, skip of trivia and
-   `Reset` into `core/operators_exec.go`, specialized for budget controls and missing tokens, and the engine gains
+   `Reset` into `state/operators_exec.go`, specialized for budget controls and missing tokens, and the engine gains
    `env.restore` with them. The iterative VM does not recurse, so the compositions gain split forms: steps between
    the points where it runs a line, a skip or an expression, built from the same builders as the recursive forms, with
    their state in records that its frames hold. One step ends a line of a longest match and starts the next, because
@@ -794,7 +794,7 @@ move to Exec IR at once while mechanisms move one at a time.
    links: their code grows by 78 KB and the engine's by 3.9 KB. Generated parsers are at most 0.8% slower.
 
    In the fourth part, the compositions `streamEmit`, `streamCommit` and `streamsIn` print the engine's `EmitStream`,
-   `Commit` and `StreamsIn` into `core/stream_exec.go`, specialized for stream, and `core/stream_ops.go` holds the
+   `Commit` and `StreamsIn` into `state/stream_exec.go`, specialized for stream, and `state/stream_ops.go` holds the
    engine's implementations of the operations. Delivery and commit run straight through on every backend, so the
    iterative VM needs no split form. The backends call `EmitStream`, whose delivery also freezes the element. The
    floor of the window is the memo's `Base`, so the parser keeps no second copy of it. The report and the delivery run
@@ -815,7 +815,7 @@ move to Exec IR at once while mechanisms move one at a time.
    nothing. A test measures the release, the discard and the settling at those values.
 
    A long test builds 60 mutants through `-overlay`: each drops, reorders or moves one step of the printed functions,
-   of `core/stream_ops.go` or of the backends' calls, and each fails a named test. Four more edits are equivalent and
+   of `state/stream_ops.go` or of the backends' calls, and each fails a named test. Four more edits are equivalent and
    left out; the test states why. Moving the first checkpoint after the report and dropping the checkpoint before each
    diagnostic are two of them, since each stands in for the other; one of the 60 takes both edits. The operations of
    the window are host operations without reference models, so the tests bind their behaviour directly: a delivered
@@ -839,9 +839,9 @@ move to Exec IR at once while mechanisms move one at a time.
    shows them is not measured. `B/op` rises by at most 0.06% and `allocs/op` by at most 0.02%. The `zp` binary grows
    by 240 bytes. Generated parsers run the same code as before: their significant changes range from -1.59% to +0.76%.
 
-   In the fifth part, the composition `memoAdvance` prints the engine's `AdvanceEntry` into `core/document_exec.go` in
+   In the fifth part, the composition `memoAdvance` prints the engine's `AdvanceEntry` into `state/document_exec.go` in
    two forms, one for a parse, which charges each edit, and one for an edit, which has no parse to charge.
-   `core/document_ops.go` holds `EditMemo`, the engine's `memo.splice`, and `doc.move`, which moves nodes in place. The
+   `state/document_ops.go` holds `EditMemo`, the engine's `memo.splice`, and `doc.move`, which moves nodes in place. The
    generated runtimes apply an edit to every entry at once, so the decision is a condition of their own loop and they
    print no `memoAdvance`; conformance binds both to the contract of `memo.splice`. The repetition runs stay host code
    of the engine, declared as operations. The closure backend and the VMs drive them, each charging its own steps, and
@@ -1107,7 +1107,7 @@ in non-test sources, and include comments.
 
 | Implementation | Files | Non-test lines |
 |:--|:--|--:|
-| Engine core, shared by closures and both VMs | `internal/engine/core/*.go` | 7,142 |
+| Engine core, shared by closures and both VMs | `internal/engine/state/*.go` | 7,142 |
 | Engine backends (dispatch only) | `internal/engine/closure/*.go`, `internal/engine/vm/vm.go`, `ivm.go` | 1,218 + 2,015 |
 | Engine Document API | `internal/engine/document/*.go` | 1,784 |
 | Generated Go library | `codegen/go/lib/*.go` | 11,475 |

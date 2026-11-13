@@ -9,7 +9,7 @@ import (
 	"zeroparse.dev/zp/core"
 	"zeroparse.dev/zp/internal/codegentest"
 	"zeroparse.dev/zp/internal/compile"
-	ecore "zeroparse.dev/zp/internal/engine/core"
+	"zeroparse.dev/zp/internal/engine/state"
 	"zeroparse.dev/zp/internal/value"
 )
 
@@ -29,12 +29,12 @@ func TestActionResultReleasesTracking(t *testing.T) {
 	} {
 		t.Run(c.name, func(t *testing.T) {
 			prefix := value.Ptr(value.Data{Text: "keep"})
-			p := &ecore.Parser{Created: []*core.Node{prefix}}
-			ctx := &ecore.EvalCtx{P: p, Cbase: 1, Start: 3, End: 4}
+			p := &state.Parser{Created: []*core.Node{prefix}}
+			ctx := &state.EvalCtx{P: p, Cbase: 1, Start: 3, End: 4}
 			var panicked any
 			func() {
 				defer func() { panicked = recover() }()
-				n := p.ActionResult(ctx, func(*ecore.EvalCtx) (any, error) {
+				n := p.ActionResult(ctx, func(*state.EvalCtx) (any, error) {
 					p.Created = append(p.Created, value.Ptr(value.Data{Text: "temporary"}))
 					if n, ok := c.value.(*core.Node); ok && n != nil {
 						p.Created = append(p.Created, n)
@@ -66,7 +66,7 @@ func TestNilActionStreamMemoryIsBounded(t *testing.T) {
 	for _, backend := range []Backend{Closure, Bytecode, BytecodeIterative} {
 		for _, unit := range []core.PositionUnit{core.CodePoints, core.Bytes} {
 			t.Run(fmt.Sprintf("%s/%s", backend, unit), func(t *testing.T) {
-				p := ecore.NewStreamParser(&prog.sharedProgram, &lineReader{line: "a", n: 60000}, unit)
+				p := state.NewStreamParser(&prog.sharedProgram, &lineReader{line: "a", n: 60000}, unit)
 				var at [2]uint64
 				count := 0
 				p.Emit = func(n *core.Node) error {
@@ -111,7 +111,7 @@ func BenchmarkNilActionStream(b *testing.B) {
 	}
 	for _, backend := range []Backend{Closure, Bytecode, BytecodeIterative} {
 		b.Run(backend.String(), func(b *testing.B) {
-			if _, err := prog.rule(backend, "main", ecore.Inlined, nil); err != nil {
+			if _, err := prog.rule(backend, "main", state.Inlined, nil); err != nil {
 				b.Fatal(err)
 			}
 			b.SetBytes(10000)

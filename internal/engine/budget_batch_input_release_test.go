@@ -10,7 +10,7 @@ import (
 	"weak"
 
 	"zeroparse.dev/zp/core"
-	ecore "zeroparse.dev/zp/internal/engine/core"
+	"zeroparse.dev/zp/internal/engine/state"
 )
 
 //go:noinline
@@ -36,8 +36,8 @@ func batchInputReleaseFixture(t *testing.T, prog *Program, backend Backend, unit
 		opts.Context = ctx
 	}
 	n, err := prog.ParseWith("main", text, opts)
-	if n != nil || err != nil || ecore.TraceParser(event) == nil {
-		t.Fatalf("recognition node=%v error=%v event parser=%p", n, err, ecore.TraceParser(event))
+	if n != nil || err != nil || state.TraceParser(event) == nil {
+		t.Fatalf("recognition node=%v error=%v event parser=%p", n, err, state.TraceParser(event))
 	}
 	runtime.KeepAlive(text)
 	return ref, event
@@ -50,7 +50,7 @@ func TestBudgetBatchTraceEventReleasesOriginalInputAfterGC(t *testing.T) {
 		for _, unit := range []core.PositionUnit{core.CodePoints, core.Bytes} {
 			for _, active := range []bool{false, true} {
 				t.Run(fmt.Sprintf("%s/%s/active=%t", backend, unit, active), func(t *testing.T) {
-					if active && !ecore.BudgetControlsEnabled {
+					if active && !state.BudgetControlsEnabled {
 						t.Skip("active controls are unavailable in the reference build")
 					}
 					ref, event := batchInputReleaseFixture(t, prog, backend, unit, active)

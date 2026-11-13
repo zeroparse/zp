@@ -6,7 +6,7 @@ import (
 	"testing"
 	"zeroparse.dev/zp/core"
 	"zeroparse.dev/zp/engine"
-	ecore "zeroparse.dev/zp/internal/engine/core"
+	"zeroparse.dev/zp/internal/engine/state"
 )
 
 func TestDocumentVersionAndBatchAfterInterruption(t *testing.T) {
@@ -21,7 +21,7 @@ func TestDocumentVersionAndBatchAfterInterruption(t *testing.T) {
 		}
 		base := d.Version()
 		// The reference build has no cancellation or limits to interrupt the parse.
-		if ecore.BudgetControlsEnabled {
+		if state.BudgetControlsEnabled {
 			ctx, cancel := context.WithCancel(context.Background())
 			cancel()
 			if n, err := d.Parse(engine.WithContext(ctx)); n != nil || !errors.Is(err, context.Canceled) {

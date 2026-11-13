@@ -11,11 +11,11 @@ import (
 
 	"zeroparse.dev/zp/core"
 	. "zeroparse.dev/zp/internal/engine"
-	ecore "zeroparse.dev/zp/internal/engine/core"
+	"zeroparse.dev/zp/internal/engine/state"
 )
 
 func TestSnapshotControlledFreezeBudgetAndRetry(t *testing.T) {
-	if !ecore.BudgetControlsEnabled {
+	if !state.BudgetControlsEnabled {
 		t.Skip("budget controls reference")
 	}
 	prog := mustCompile(t, `rule main = .* $$`)
@@ -70,7 +70,7 @@ func TestSnapshotControlledFreezeBudgetAndRetry(t *testing.T) {
 
 func TestSnapshotDiagnosticCopyAndNilResult(t *testing.T) {
 	original := core.SyntaxErrors{&core.SyntaxError{Expected: []string{}, Messages: []string{"problem"}}, nil}
-	copy := document.CopySnapshotError(&ecore.Parser{}, original).(core.SyntaxErrors)
+	copy := document.CopySnapshotError(&state.Parser{}, original).(core.SyntaxErrors)
 	original[0].Messages[0] = "changed"
 	original[0] = nil
 	if copy[0].Messages[0] != "problem" || copy[0].Expected == nil || copy[1] != nil {
@@ -147,7 +147,7 @@ rule item = [a-zé]`)
 }
 
 func TestSnapshotFreezeCancellationAndContextPanic(t *testing.T) {
-	if !ecore.BudgetControlsEnabled {
+	if !state.BudgetControlsEnabled {
 		t.Skip("budget controls reference")
 	}
 	prog := mustCompile(t, `rule main = .* $$`)

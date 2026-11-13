@@ -6,7 +6,7 @@ import (
 	"unicode/utf8"
 
 	"zeroparse.dev/zp/core"
-	ecore "zeroparse.dev/zp/internal/engine/core"
+	"zeroparse.dev/zp/internal/engine/state"
 )
 
 // documentIdentity deliberately has nonzero size. Tokens retain only this
@@ -63,10 +63,10 @@ func (d *Document) EditBatch(base DocumentVersion, edits ...core.TextEdit) error
 		for i, edit := range edits {
 			for _, pos := range []int{edit.Start, edit.End} {
 				var err error
-				if ecore.DocumentPieceInput && d.in.Pieces != nil {
+				if state.DocumentPieceInput && d.in.Pieces != nil {
 					err = d.in.Pieces.ValidBoundary(pos)
 				} else {
-					err = ecore.ValidBoundary(d.in.Src, core.Bytes, pos)
+					err = state.ValidBoundary(d.in.Src, core.Bytes, pos)
 				}
 				if err != nil {
 					return fmt.Errorf("edit %d [%d,%d): %w", i, edit.Start, edit.End, err)
@@ -104,7 +104,7 @@ func (d *Document) EditBatch(base DocumentVersion, edits ...core.TextEdit) error
 			return fmt.Errorf("edit %d [%d,%d): %w", i, edit.Start, edit.End, err)
 		}
 		text := edit.Text
-		units := ecore.TextLen(d.in.Unit, text)
+		units := state.TextLen(d.in.Unit, text)
 		if d.in.Unit != core.Bytes && !utf8.ValidString(text) {
 			text = string([]rune(text))
 		}
@@ -125,12 +125,12 @@ func (d *Document) EditBatch(base DocumentVersion, edits ...core.TextEdit) error
 	in := newDocumentInput(text, d.in.Unit)
 	if d.in.Pieces != nil && in.Pieces == nil {
 		// Promotion is one-way, including batches that shrink the input.
-		in = ecore.Input{Unit: d.in.Unit, Eof: true, BaseLine: 1, BaseCol: 1, Pieces: ecore.NewDocumentPieces(text, d.in.Unit)}
+		in = state.Input{Unit: d.in.Unit, Eof: true, BaseLine: 1, BaseCol: 1, Pieces: state.NewDocumentPieces(text, d.in.Unit)}
 	}
 	// Publication follows all ordinary failure points. No Parse is performed;
 	// old result Nodes remain untouched until a later ordinary Parse.
 	d.in = in
-	d.memo = ecore.NewMemoTable()
+	d.memo = state.NewMemoTable()
 	d.edits, d.runs, d.kids, d.machine = nil, nil, nil, nil
 	d.runGen, d.resumed = 0, 0
 	d.sequence++
@@ -145,9 +145,9 @@ func checkedDocumentLength(length, added int) (int, error) {
 	return length + added, nil
 }
 
-func newDocumentInput(text string, unit core.PositionUnit) ecore.Input {
-	if ecore.UseDocumentPieces(text, unit) {
-		return ecore.Input{Unit: unit, Eof: true, BaseLine: 1, BaseCol: 1, Pieces: ecore.NewDocumentPieces(text, unit)}
+func newDocumentInput(text string, unit core.PositionUnit) state.Input {
+	if state.UseDocumentPieces(text, unit) {
+		return state.Input{Unit: unit, Eof: true, BaseLine: 1, BaseCol: 1, Pieces: state.NewDocumentPieces(text, unit)}
 	}
-	return ecore.NewTextInput(text, unit, true)
+	return state.NewTextInput(text, unit, true)
 }

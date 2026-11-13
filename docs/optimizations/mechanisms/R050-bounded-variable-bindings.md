@@ -34,7 +34,7 @@ Evidence records: [069](../069-bound-persistent-variable-binding-histories.md),
 [128](../128-indexed-variable-environments.md).
 
 Source owners: [`environment lookup and
-replacement`](../../../internal/engine/core/env.go), [`generated environment
+replacement`](../../../internal/engine/state/env.go), [`generated environment
 binding`](../../../codegen/go/lib/lib.go), [`TypeScript persistent
 environment`](../../../codegen/ts/lib/lib.ts).
 

@@ -9,7 +9,7 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/core"
-	ecore "zeroparse.dev/zp/internal/engine/core"
+	"zeroparse.dev/zp/internal/engine/state"
 )
 
 func TestBudgetContextAttributionPreservesVMFaults(t *testing.T) {
@@ -17,16 +17,16 @@ func TestBudgetContextAttributionPreservesVMFaults(t *testing.T) {
 	for _, backend := range []Backend{Bytecode, BytecodeIterative} {
 		t.Run(backend.String(), func(t *testing.T) {
 			prog := mustCompile(t, `rule main = "z" $$`)
-			if _, err := prog.rule(backend, "main", ecore.Inlined, nil); err != nil {
+			if _, err := prog.rule(backend, "main", state.Inlined, nil); err != nil {
 				t.Fatal(err)
 			}
 			// Corrupt the prepared VM, bypassing the saved-module validator, to
 			// exercise its execution recovery rather than a caller's panic.
 			restore := corruptVMLiteral(t, prog)
-			var observed *ecore.Parser
+			var observed *state.Parser
 			n, err := prog.ParseWith("main", "z", ParseOptions{
 				Backend: backend, Limits: core.Limits{Compute: 1 << 20},
-				Trace: func(e TraceEvent) { observed = ecore.TraceParser(e) },
+				Trace: func(e TraceEvent) { observed = state.TraceParser(e) },
 			})
 			if n != nil || err == nil || !strings.HasPrefix(err.Error(), "invalid bytecode: ") {
 				t.Fatalf("VM fault node=%v error=%v", n, err)
@@ -64,7 +64,7 @@ func TestBudgetContextAccessorInterruptionRemainsFatal(t *testing.T) {
 		for _, unit := range []core.PositionUnit{core.Bytes, core.CodePoints} {
 			t.Run(backend.String()+"/"+unit.String(), func(t *testing.T) {
 				ctx := &budgetContextAccessorContext{Context: context.Background(), done: make(chan struct{})}
-				var observed *ecore.Parser
+				var observed *state.Parser
 				accessorEntered := false
 				n, err := prog.ParseWith("main", text, ParseOptions{
 					Backend: backend, Unit: unit, Context: ctx,
@@ -72,8 +72,8 @@ func TestBudgetContextAccessorInterruptionRemainsFatal(t *testing.T) {
 						if e.Kind != TraceEnter || e.Rule != "main" {
 							return
 						}
-						observed = ecore.TraceParser(e)
-						ecore.TraceParser(e).Control.Limits.Compute = ecore.TraceParser(e).Control.Used + 1
+						observed = state.TraceParser(e)
+						state.TraceParser(e).Control.Limits.Compute = state.TraceParser(e).Control.Used + 1
 						ctx.fn = func() error {
 							// The accessor's own reservation may poll the context.
 							ctx.fn = nil
@@ -82,7 +82,7 @@ func TestBudgetContextAccessorInterruptionRemainsFatal(t *testing.T) {
 							return nil
 						}
 						// Keep the accessor within the trace callback's lifetime.
-						ecore.TraceParser(e).Control.Check()
+						state.TraceParser(e).Control.Check()
 					},
 				})
 				var limit *core.LimitError
@@ -109,7 +109,7 @@ func TestBudgetContextNestedAccessorPanicIdentity(t *testing.T) {
 			t.Run(backend.String()+"/"+unit.String(), func(t *testing.T) {
 				token := &struct{ label string }{"nested context panic"}
 				ctx := &budgetContextAccessorContext{Context: context.Background(), done: make(chan struct{})}
-				var observed *ecore.Parser
+				var observed *state.Parser
 				var got any
 				accessorEntered, nestedPoll := false, false
 				func() {
@@ -120,7 +120,7 @@ func TestBudgetContextNestedAccessorPanicIdentity(t *testing.T) {
 							if e.Kind != TraceEnter || e.Rule != "main" {
 								return
 							}
-							observed = ecore.TraceParser(e)
+							observed = state.TraceParser(e)
 							ctx.fn = func() error {
 								if accessorEntered {
 									nestedPoll = true
@@ -131,7 +131,7 @@ func TestBudgetContextNestedAccessorPanicIdentity(t *testing.T) {
 								return nil
 							}
 							// The accessor remains inside the trace callback.
-							ecore.TraceParser(e).Control.Check()
+							state.TraceParser(e).Control.Check()
 						},
 					})
 				}()

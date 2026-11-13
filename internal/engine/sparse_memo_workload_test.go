@@ -10,7 +10,7 @@ import (
 
 	"zeroparse.dev/zp/core"
 	"zeroparse.dev/zp/internal/compile"
-	ecore "zeroparse.dev/zp/internal/engine/core"
+	"zeroparse.dev/zp/internal/engine/state"
 )
 
 var sparseMemoSynthetic = func() string {
@@ -122,7 +122,7 @@ func BenchmarkSparseMemoTypeScript(b *testing.B) {
 								b.Fatal(err)
 							}
 						}
-						p := ecore.NewParser(&target.sharedProgram, source.text, unit, !recognize)
+						p := state.NewParser(&target.sharedProgram, source.text, unit, !recognize)
 						p.DeferMemo = true
 						if _, err := target.Run(p, backend, "main"); err != nil {
 							b.Fatal(err)
@@ -140,8 +140,8 @@ func BenchmarkSparseMemoTypeScript(b *testing.B) {
 	}
 }
 
-func sparseMemoStorage(m *ecore.MemoTable) int {
-	size := cap(m.Seen)*8 + cap(m.Pages)*int(unsafe.Sizeof(ecore.SeenRulePages{}))
+func sparseMemoStorage(m *state.MemoTable) int {
+	size := cap(m.Seen)*8 + cap(m.Pages)*int(unsafe.Sizeof(state.SeenRulePages{}))
 	size += len(m.BitPages.Chunks)*64*16*8 + cap(m.BitPages.Chunks)*int(unsafe.Sizeof(uintptr(0)))
 	for _, dir := range m.Pages {
 		size += cap(dir.Pages) * int(unsafe.Sizeof(uintptr(0)))

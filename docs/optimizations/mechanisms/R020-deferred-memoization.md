@@ -38,8 +38,8 @@ isolate later sparse storage; unadapted LR cost was 20–33%.
 Evidence records: [018](../018-memoizing-from-the-second-call-at-a-position.md),
 [021](../021-changes-18-and-19-in-the-generated-parsers.md).
 
-Source owners: [`parser.firstCall`](../../../internal/engine/core/runtime.go),
-[`memoTable.firstCall`](../../../internal/engine/core/memo.go), [`generated
+Source owners: [`parser.firstCall`](../../../internal/engine/state/runtime.go),
+[`memoTable.firstCall`](../../../internal/engine/state/memo.go), [`generated
 FirstCall`](../../../codegen/go/lib/lib.go), [`TypeScript
 firstCall`](../../../codegen/ts/lib/lib.ts).
 

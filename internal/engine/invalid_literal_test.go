@@ -11,7 +11,7 @@ import (
 
 	"zeroparse.dev/zp/core"
 	"zeroparse.dev/zp/internal/compile"
-	ecore "zeroparse.dev/zp/internal/engine/core"
+	"zeroparse.dev/zp/internal/engine/state"
 	"zeroparse.dev/zp/internal/value"
 )
 
@@ -190,7 +190,7 @@ func BenchmarkByteLiteralMatching(b *testing.B) {
 					}
 					return p
 				}()
-				if _, err := prog.rule(backend, "main", ecore.Inlined, nil); err != nil {
+				if _, err := prog.rule(backend, "main", state.Inlined, nil); err != nil {
 					b.Fatal(err)
 				}
 				for _, unit := range []core.PositionUnit{core.Bytes, core.CodePoints} {

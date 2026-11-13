@@ -10,7 +10,7 @@ import (
 
 	"zeroparse.dev/zp/core"
 	"zeroparse.dev/zp/internal/codegentest"
-	ecore "zeroparse.dev/zp/internal/engine/core"
+	"zeroparse.dev/zp/internal/engine/state"
 )
 
 //go:noinline
@@ -90,7 +90,7 @@ rule item = .`, codegentest.IncrementalGrammar, `rule main = ("a" @error("need a
 						t.Run(fmt.Sprintf("%d/%d/%s/%s/%v", gi, pi, back, unit, large), func(t *testing.T) {
 							initial := "é\xc3x\xa9\n"
 							if large {
-								initial += strings.Repeat("a", ecore.DocumentPieceMinSize)
+								initial += strings.Repeat("a", state.DocumentPieceMinSize)
 							}
 							d, err := p.NewDocumentWith("main", initial, ParseOptions{Backend: back, Unit: unit})
 							if err != nil {

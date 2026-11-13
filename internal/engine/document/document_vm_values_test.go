@@ -14,7 +14,7 @@ import (
 	"zeroparse.dev/zp/core/noderep"
 	"zeroparse.dev/zp/internal/compile"
 	. "zeroparse.dev/zp/internal/engine"
-	ecore "zeroparse.dev/zp/internal/engine/core"
+	"zeroparse.dev/zp/internal/engine/state"
 	"zeroparse.dev/zp/internal/engine/vm"
 	"zeroparse.dev/zp/internal/value"
 )
@@ -56,8 +56,8 @@ rule line = [a-z]+ "\n"`)
 				t.Fatal(err)
 			}
 			for range 2 { // the second parse attaches the kept machine to a new parser
-				var parsed weak.Pointer[ecore.Parser]
-				if _, err := doc.ParseWithCapture(doc.ParseDefaults(), func(p *ecore.Parser, _ *core.Node, err error) error {
+				var parsed weak.Pointer[state.Parser]
+				if _, err := doc.ParseWithCapture(doc.ParseDefaults(), func(p *state.Parser, _ *core.Node, err error) error {
 					parsed = weak.Make(p)
 					return err
 				}); err != nil {

@@ -16,7 +16,7 @@ import (
 
 	"zeroparse.dev/zp/core"
 	"zeroparse.dev/zp/engine"
-	ecore "zeroparse.dev/zp/internal/engine/core"
+	"zeroparse.dev/zp/internal/engine/state"
 	"zeroparse.dev/zp/internal/starttest"
 )
 
@@ -140,7 +140,7 @@ func StepsTraced(p *engine.Parser, input string, b engine.Backend, cap uint64) (
 	seen := false
 	_, err := p.Parse(input, engine.WithBackend(b), engine.WithLimits(core.Limits{Compute: cap}),
 		engine.WithTrace(func(e engine.TraceEvent) {
-			if c := ecore.TraceParser(e).Control; c != nil {
+			if c := state.TraceParser(e).Control; c != nil {
 				used, seen = c.Used, true
 			}
 		}))

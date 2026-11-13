@@ -8,7 +8,7 @@ import (
 	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/bytecode"
 	"zeroparse.dev/zp/internal/compile"
-	"zeroparse.dev/zp/internal/engine/core"
+	"zeroparse.dev/zp/internal/engine/state"
 	ir "zeroparse.dev/zp/internal/ir/core"
 	"zeroparse.dev/zp/internal/ir/core/build"
 )
@@ -43,7 +43,7 @@ func CompileCore(prog *compile.Program, m *ir.Module) (*bytecode.Module, error) 
 	// The term code comes after the match code, so the strings the terms add follow those of the
 	// rules.
 	for i, s := range c.terms {
-		tp, err := core.CompileTerm(s.term, core.TermEnv{Prog: prog, Scope: scopeOf(s.scope), Proj: s.proj})
+		tp, err := state.CompileTerm(s.term, state.TermEnv{Prog: prog, Scope: scopeOf(s.scope), Proj: s.proj})
 		if err != nil {
 			return nil, fmt.Errorf("internal error: %w", err)
 		}

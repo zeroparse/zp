@@ -9,7 +9,7 @@ import (
 
 	"zeroparse.dev/zp/core"
 	"zeroparse.dev/zp/internal/codegentest"
-	ecore "zeroparse.dev/zp/internal/engine/core"
+	"zeroparse.dev/zp/internal/engine/state"
 )
 
 // expectationCases are grammars with inputs that fail, recover or succeed.
@@ -177,7 +177,7 @@ func TestLongExpectedLists(t *testing.T) {
 		for _, b := range expectationBackends {
 			// A compute limit sorts and formats under budget controls, with the same result.
 			ls := []core.Limits{{}}
-			if ecore.BudgetControlsEnabled {
+			if state.BudgetControlsEnabled {
 				ls = append(ls, core.Limits{Compute: 1 << 50})
 			}
 			for _, l := range ls {

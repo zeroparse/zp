@@ -9,7 +9,7 @@ import (
 	"zeroparse.dev/zp/internal/codegentest"
 	"zeroparse.dev/zp/internal/compile"
 	"zeroparse.dev/zp/internal/desugar"
-	ecore "zeroparse.dev/zp/internal/engine/core"
+	"zeroparse.dev/zp/internal/engine/state"
 )
 
 func TestNormalizationCopyOnChangeParity(t *testing.T) {
@@ -77,7 +77,7 @@ rule main (Alias) = {count := (1)} {(count == 1)} n:([0-9]+) => (Number{Text: (t
 			// The closure parses above ran the controlled graph, which is built from the source grammar
 			// when the first parse needs it. It is compiled the way its program was, so the closure half
 			// of the comparison is of the two normalizations and not of one with itself.
-			if ecore.BudgetControlsEnabled {
+			if state.BudgetControlsEnabled {
 				for _, c := range []struct {
 					p     *Program
 					eager bool

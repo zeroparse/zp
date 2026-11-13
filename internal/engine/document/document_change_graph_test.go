@@ -8,13 +8,13 @@ import (
 
 	"zeroparse.dev/zp/core"
 	"zeroparse.dev/zp/core/noderep"
-	ecore "zeroparse.dev/zp/internal/engine/core"
+	"zeroparse.dev/zp/internal/engine/state"
 	"zeroparse.dev/zp/internal/value"
 )
 
 func changeGraphSnapshot(t *testing.T, root *core.Node) *Snapshot {
 	t.Helper()
-	graph, err := freezeSnapshotGraph(&ecore.Parser{}, root)
+	graph, err := freezeSnapshotGraph(&state.Parser{}, root)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -72,16 +72,16 @@ func TestDocumentChangesConservativeGraphEquality(t *testing.T) {
 func TestDocumentChangesComparisonUsesCumulativeBudget(t *testing.T) {
 	leaf := value.Ptr(value.Data{Kind: noderep.KindOf("Leaf", "leaf"), Terminal: true, Text: strings.Repeat("x", 8192)})
 	a, b := changeGraphSnapshot(t, leaf), changeGraphSnapshot(t, leaf.Clone())
-	control := ecore.NewBudgetControl(nil, core.Limits{Compute: 8192})
+	control := state.NewBudgetControl(nil, core.Limits{Compute: 8192})
 	control.Charge(4096) // Budget already spent by parsing/capture in this invocation.
-	p := &ecore.Parser{Control: control}
+	p := &state.Parser{Control: control}
 	if err := catchFatal(t, func() { equalChangeSnapshotsControlled(p, a, b) }); !errors.Is(err, core.ErrLimit) {
 		t.Fatal("comparison escaped cumulative spend", err)
 	}
 	ctx, cancel := context.WithCancel(context.Background())
 	cancel()
 	if err := catchFatal(t, func() {
-		equalChangeSnapshotsControlled(&ecore.Parser{Control: ecore.NewBudgetControl(ctx, core.Limits{})}, a, b)
+		equalChangeSnapshotsControlled(&state.Parser{Control: state.NewBudgetControl(ctx, core.Limits{})}, a, b)
 	}); !errors.Is(err, context.Canceled) {
 		t.Fatal("comparison ignored cancellation", err)
 	}

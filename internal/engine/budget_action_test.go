@@ -11,12 +11,12 @@ import (
 	"unicode/utf8"
 
 	"zeroparse.dev/zp/core"
-	ecore "zeroparse.dev/zp/internal/engine/core"
+	"zeroparse.dev/zp/internal/engine/state"
 	"zeroparse.dev/zp/internal/value"
 )
 
-func actionBudgetParser(ctx context.Context, limits core.Limits, unit core.PositionUnit) *ecore.Parser {
-	return &ecore.Parser{Input: ecore.Input{Unit: unit, Control: ecore.NewBudgetControl(ctx, limits)}}
+func actionBudgetParser(ctx context.Context, limits core.Limits, unit core.PositionUnit) *state.Parser {
+	return &state.Parser{Input: state.Input{Unit: unit, Control: state.NewBudgetControl(ctx, limits)}}
 }
 
 func actionBudgetNodes(n int) []*core.Node {
@@ -98,12 +98,12 @@ func TestBudgetActionCollectionLoopsChargeElements(t *testing.T) {
 
 	cases := []struct {
 		name string
-		run  func(*ecore.EvalCtx) error
+		run  func(*state.EvalCtx) error
 	}{
-		{"map", func(c *ecore.EvalCtx) error { _, err := c.Builtin("map", []any{list, identity}); return err }},
-		{"foldl", func(c *ecore.EvalCtx) error { _, err := c.Builtin("foldl", []any{nil, list, keepLeft}); return err }},
-		{"foldr", func(c *ecore.EvalCtx) error { _, err := c.Builtin("foldr", []any{nil, list, keepLeft}); return err }},
-		{"list", func(c *ecore.EvalCtx) error {
+		{"map", func(c *state.EvalCtx) error { _, err := c.Builtin("map", []any{list, identity}); return err }},
+		{"foldl", func(c *state.EvalCtx) error { _, err := c.Builtin("foldl", []any{nil, list, keepLeft}); return err }},
+		{"foldr", func(c *state.EvalCtx) error { _, err := c.Builtin("foldr", []any{nil, list, keepLeft}); return err }},
+		{"list", func(c *state.EvalCtx) error {
 			args := make([]any, len(items))
 			for i, item := range items {
 				args[i] = item
@@ -111,23 +111,23 @@ func TestBudgetActionCollectionLoopsChargeElements(t *testing.T) {
 			_, err := c.Builtin("list", args)
 			return err
 		}},
-		{"concat", func(c *ecore.EvalCtx) error { _, err := c.Builtin("concat", []any{list}); return err }},
-		{"newList", func(c *ecore.EvalCtx) error { _ = c.NewList(items); return nil }},
-		{"listNode", func(c *ecore.EvalCtx) error { _ = c.ListNode(items); return nil }},
-		{"local copy", func(c *ecore.EvalCtx) error { _ = c.Keep(); return nil }},
+		{"concat", func(c *state.EvalCtx) error { _, err := c.Builtin("concat", []any{list}); return err }},
+		{"newList", func(c *state.EvalCtx) error { _ = c.NewList(items); return nil }},
+		{"listNode", func(c *state.EvalCtx) error { _ = c.ListNode(items); return nil }},
+		{"local copy", func(c *state.EvalCtx) error { _ = c.Keep(); return nil }},
 	}
 
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
 			ctx := newPollingContext(1)
 			p := actionBudgetParser(ctx, core.Limits{}, core.CodePoints)
-			var locals *ecore.Local
+			var locals *state.Local
 			if tc.name == "local copy" {
 				for i := 0; i < size; i++ {
-					locals = &ecore.Local{Name: fmt.Sprintf("v%d", i), Val: i, Next: locals}
+					locals = &state.Local{Name: fmt.Sprintf("v%d", i), Val: i, Next: locals}
 				}
 			}
-			c := &ecore.EvalCtx{P: p, Locals: locals}
+			c := &state.EvalCtx{P: p, Locals: locals}
 			var returned error
 			fatalErr := catchFatal(t, func() { returned = tc.run(c) })
 			if returned != nil {
@@ -163,7 +163,7 @@ rule items = [a-z] #atomic*`)
 						n, err := prog.ParseWith("main", input, ParseOptions{Backend: backend, Unit: unit, Trace: func(e TraceEvent) {
 							if !armed && e.Kind == TraceExit && e.Rule == "items" {
 								armed = true
-								ecore.TraceParser(e).Control = ecore.NewBudgetControl(nil, core.Limits{Compute: 128})
+								state.TraceParser(e).Control = state.NewBudgetControl(nil, core.Limits{Compute: 128})
 							}
 						}})
 						if !armed || n != nil || !errors.Is(err, core.ErrLimit) {
@@ -190,12 +190,12 @@ rule items = [a-z] #atomic*`)
 		for _, unit := range []core.PositionUnit{core.Bytes, core.CodePoints} {
 			t.Run(fmt.Sprintf("%v/%v", backend, unit), func(t *testing.T) {
 				armed := false
-				var attempt *ecore.BudgetControl
+				var attempt *state.BudgetControl
 				n, err := prog.ParseWith("main", input, ParseOptions{Backend: backend, Unit: unit, Trace: func(e TraceEvent) {
 					if !armed && e.Kind == TraceExit && e.Rule == "items" {
 						armed = true
-						attempt = ecore.NewBudgetControl(newPollingContext(2), core.Limits{})
-						ecore.TraceParser(e).Control = attempt
+						attempt = state.NewBudgetControl(newPollingContext(2), core.Limits{})
+						state.TraceParser(e).Control = attempt
 					}
 				}})
 				if !armed || n != nil || !errors.Is(err, context.Canceled) || attempt.Used < 128 {
@@ -226,7 +226,7 @@ rule items = [a-z]* #atomic`)
 				armContext := func(e TraceEvent, armed *bool) {
 					if !*armed && e.Kind == TraceExit && e.Rule == "items" {
 						*armed = true
-						ecore.TraceParser(e).Control = ecore.NewBudgetControl(nil, core.Limits{Compute: 128})
+						state.TraceParser(e).Control = state.NewBudgetControl(nil, core.Limits{Compute: 128})
 					}
 				}
 				armed := false
@@ -239,7 +239,7 @@ rule items = [a-z]* #atomic`)
 				n, err = recovery.ParseWith("main", input, ParseOptions{Backend: backend, Unit: unit, Trace: func(e TraceEvent) {
 					if !armed && e.Kind == TraceExit && e.Rule == "items" {
 						armed = true
-						ecore.TraceParser(e).Control = ecore.NewBudgetControl(nil, core.Limits{Compute: 256})
+						state.TraceParser(e).Control = state.NewBudgetControl(nil, core.Limits{Compute: 256})
 					}
 				}})
 				if !armed || n != nil || !errors.Is(err, core.ErrLimit) {

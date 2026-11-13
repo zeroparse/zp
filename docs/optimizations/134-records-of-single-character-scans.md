@@ -12,7 +12,7 @@ cost quadratic steps.
 [Scan Sites](../../spec/runtime/parsing.md#scan-sites) define the mechanism: an unbounded repetition of a character
 class or of any character in a pure scan rule (called from two places, no attribute but `@start`, no type, no action,
 no called rule, no capture, predicate or lookahead) is a scan site. A walk matches its first 16 characters
-(`core.ScanHotSpan`, separate from the 64 of run sites) as an ordinary repetition. At a hot site the walk then looks
+(`state.ScanHotSpan`, separate from the 64 of run sites) as an ordinary repetition. At a hot site the walk then looks
 for the record of its start. On a hit it moves to the recorded end, takes the count and the elements, and examines
 the recorded range. Otherwise it goes on and records itself, only if the input it examined is available. A site is
 hot by the rule of run sites, at 16 characters. The charge is one step for the lookup, one for the slot of a record
@@ -23,7 +23,7 @@ that is found and one for a record that is made; the characters a record skips c
 
 | Execution profile | Applied / Partial / Not applied / Not applicable | Reason |
 |:--|:--|:--|
-| Closure, bytecode, iterative bytecode | Applied | `ScanRepeat` and `scanSiteList` of the closure builder and `SCANSITE` and `ITER` of the VMs, over the operations of `core/scan_sites.go`; always on |
+| Closure, bytecode, iterative bytecode | Applied | `ScanRepeat` and `scanSiteList` of the closure builder and `SCANSITE` and `ITER` of the VMs, over the operations of `state/scan_sites.go`; always on |
 | Generated Go and TypeScript | Not applied | The generated runtimes keep no records of scan sites |
 | Documents | Not applied | A repetition that a Document resumes neither looks up nor makes records; the records of the other parses last for one parse |
 | Streams | Applied | A record is made only for input that is loaded |

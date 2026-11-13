@@ -16,7 +16,7 @@ import (
 	"zeroparse.dev/zp/internal/codegentest"
 	"zeroparse.dev/zp/internal/compile"
 	"zeroparse.dev/zp/internal/engine/closure"
-	ecore "zeroparse.dev/zp/internal/engine/core"
+	"zeroparse.dev/zp/internal/engine/state"
 	"zeroparse.dev/zp/internal/engine/vm"
 	"zeroparse.dev/zp/internal/starttest"
 	"zeroparse.dev/zp/internal/syntax"
@@ -304,7 +304,7 @@ func toCodePoints(input string, n *core.Node, err error) (*core.Node, error) {
 // closureExprMatcher returns the closure that the closure backend builds for the expression e of
 // the program prog, from the program's Core IR after the closure pipeline. The expression must be
 // one that a node of Core IR is built from.
-func closureExprMatcher(t *testing.T, prog *compile.Program, e grammar.Expr, plainDispatch bool) ecore.Matcher {
+func closureExprMatcher(t *testing.T, prog *compile.Program, e grammar.Expr, plainDispatch bool) state.Matcher {
 	t.Helper()
 	m, found := closureExprCore(t, prog, e)
 	f, err := closure.Matcher(prog, m, found, nil, plainDispatch)
@@ -346,9 +346,9 @@ func closureExprCore(t *testing.T, prog *compile.Program, e grammar.Expr) (*ir.M
 }
 
 // inlinedRules returns the rules that the closure backend runs in the inlined family, by ID.
-func inlinedRules(t testing.TB, prog *Program) []*ecore.Rule {
+func inlinedRules(t testing.TB, prog *Program) []*state.Rule {
 	t.Helper()
-	rules, err := prog.familyRules(ecore.Inlined, nil)
+	rules, err := prog.familyRules(state.Inlined, nil)
 	if err != nil {
 		t.Fatal(err)
 	}

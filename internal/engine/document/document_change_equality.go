@@ -2,12 +2,12 @@ package document
 
 import (
 	"zeroparse.dev/zp/core"
-	ecore "zeroparse.dev/zp/internal/engine/core"
+	"zeroparse.dev/zp/internal/engine/state"
 )
 
 // equalChangeDiagnostics compares complete supported diagnostic values. Unknown
 // diagnostic types conservatively differ rather than running uncontrolled code.
-func equalChangeDiagnostics(p *ecore.Parser, a, b error) bool {
+func equalChangeDiagnostics(p *state.Parser, a, b error) bool {
 	if a == nil || b == nil {
 		return a == nil && b == nil
 	}
@@ -53,7 +53,7 @@ func equalChangeDiagnostics(p *ecore.Parser, a, b error) bool {
 	}
 }
 
-func equalChangeText(p *ecore.Parser, a, b string) bool {
+func equalChangeText(p *state.Parser, a, b string) bool {
 	p.Spend()
 	if len(a) != len(b) {
 		return false
@@ -70,7 +70,7 @@ func equalChangeText(p *ecore.Parser, a, b string) bool {
 }
 
 func equalChangeSnapshots(a, b *Snapshot) bool {
-	return equalChangeSnapshotsControlled(&ecore.Parser{}, a, b)
+	return equalChangeSnapshotsControlled(&state.Parser{}, a, b)
 }
 
 // equalChangeSnapshotsControlled compares corresponding immutable directory IDs.
@@ -78,7 +78,7 @@ func equalChangeSnapshots(a, b *Snapshot) bool {
 // Exact directory equality proves equal metadata, ordered edges and alias topology,
 // including cycles. A different directory layout may conservatively differ; no
 // allocation or isomorphism search is needed to establish unchanged output.
-func equalChangeSnapshotsControlled(p *ecore.Parser, a, b *Snapshot) bool {
+func equalChangeSnapshotsControlled(p *state.Parser, a, b *Snapshot) bool {
 	p.Control.Check()
 	p.Spend()
 	if a.Unit() != b.Unit() || !equalChangeDiagnostics(p, a.parseError, b.parseError) {

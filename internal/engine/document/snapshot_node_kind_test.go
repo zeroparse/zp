@@ -7,7 +7,7 @@ import (
 
 	"zeroparse.dev/zp/core"
 	. "zeroparse.dev/zp/internal/engine"
-	ecore "zeroparse.dev/zp/internal/engine/core"
+	"zeroparse.dev/zp/internal/engine/state"
 )
 
 // compareSnapshotNode checks that Kind, Len and Value of a snapshot node answer as those of the node
@@ -38,7 +38,7 @@ func compareSnapshotNode(t *testing.T, path string, s SnapshotNode, n *core.Node
 func TestSnapshotNodeKindLenValueMatchNode(t *testing.T) {
 	prog := mustCompile(t, `type Pair = { All []node[string]; Nums []int; Names []string; N int }
 rule main = v1:"a" v2:"b" => Pair{All: list($v1, $v2), Nums: list(7, 8), Names: list("x", text($v2)), N: 1}`)
-	snapshotVariants(t, func(t *testing.T, o ecore.ParseOptions) {
+	snapshotVariants(t, func(t *testing.T, o state.ParseOptions) {
 		d, err := prog.NewDocumentWith("main", "ab", o)
 		if err != nil {
 			t.Fatal(err)

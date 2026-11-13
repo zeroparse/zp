@@ -2,7 +2,7 @@ package document
 
 import (
 	"zeroparse.dev/zp/core"
-	ecore "zeroparse.dev/zp/internal/engine/core"
+	"zeroparse.dev/zp/internal/engine/state"
 )
 
 // The external tests of this package parse with the engine's programs, which import this
@@ -23,8 +23,8 @@ const (
 // KeepSeedResults makes later parses of Documents reuse the results that read a growing seed,
 // which they must not, and returns a function that restores dropping them.
 func KeepSeedResults() (restore func()) {
-	ecore.ContextMemoMutation = ecore.CtxKeepSeedResults
-	return func() { ecore.ContextMemoMutation = 0 }
+	state.ContextMemoMutation = state.CtxKeepSeedResults
+	return func() { state.ContextMemoMutation = 0 }
 }
 
 // SetMaxEdits sets the bound of the edit log to n and returns a function that restores it.
@@ -34,29 +34,29 @@ func SetMaxEdits(n int) (restore func()) {
 	return func() { maxEdits = old }
 }
 
-func (d *Document) Memo() *ecore.MemoTable                  { return d.memo }
+func (d *Document) Memo() *state.MemoTable                  { return d.memo }
 func (d *Document) PendingEdits() int                       { return len(d.edits) }
 func (d *Document) RetainedBytes() uint64                   { return d.retainedBytes() }
-func (d *Document) Runs() map[ecore.RunKey]*ecore.RunRecord { return d.runs }
-func (d *Document) SetRuns(r map[ecore.RunKey]*ecore.RunRecord) {
+func (d *Document) Runs() map[state.RunKey]*state.RunRecord { return d.runs }
+func (d *Document) SetRuns(r map[state.RunKey]*state.RunRecord) {
 	d.runs = r
 }
 func (d *Document) RunGen() uint32                           { return d.runGen }
 func (d *Document) Kids() []*core.Node                       { return d.kids }
 func (d *Document) SetKids(k []*core.Node)                   { d.kids = k }
-func (d *Document) Machine() ecore.BackendState              { return d.machine }
-func (d *Document) SetMachine(m ecore.BackendState)          { d.machine = m }
-func (d *Document) Input() *ecore.Input                      { return &d.in }
+func (d *Document) Machine() state.BackendState              { return d.machine }
+func (d *Document) SetMachine(m state.BackendState)          { d.machine = m }
+func (d *Document) Input() *state.Input                      { return &d.in }
 func (d *Document) Resumed() int                             { return d.resumed }
-func (d *Document) Edits() []ecore.DocEdit                   { return d.edits }
-func (d *Document) SetEdits(e []ecore.DocEdit)               { d.edits = e }
+func (d *Document) Edits() []state.DocEdit                   { return d.edits }
+func (d *Document) SetEdits(e []state.DocEdit)               { d.edits = e }
 func (d *Document) SetSequence(n uint64)                     { d.sequence = n }
-func (d *Document) SetDefaultTrace(f func(ecore.TraceEvent)) { d.defaults.Trace = f }
+func (d *Document) SetDefaultTrace(f func(state.TraceEvent)) { d.defaults.Trace = f }
 func (d *Document) Start() string                            { return d.start }
 func (d *Document) Runner() Runner                           { return d.runner }
 func (d *Document) HasPreviousSnapshot() bool                { return d.previousSnapshot.Value() != nil }
 func (d *Document) ChangeBaseline() *Snapshot                { return d.changes.previous }
-func (d *Document) ParseWithCapture(o ecore.ParseOptions, capture func(*ecore.Parser, *core.Node, error) error) (*core.Node, error) {
+func (d *Document) ParseWithCapture(o state.ParseOptions, capture func(*state.Parser, *core.Node, error) error) (*core.Node, error) {
 	return d.parseWithCapture(o, capture)
 }
 

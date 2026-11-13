@@ -7,7 +7,7 @@ import (
 
 	"zeroparse.dev/zp/core"
 	"zeroparse.dev/zp/engine"
-	ecore "zeroparse.dev/zp/internal/engine/core"
+	"zeroparse.dev/zp/internal/engine/state"
 )
 
 // termBackends are the backends that print the term compositions.
@@ -120,7 +120,7 @@ func minimumCompute(t *testing.T, p *engine.Parser, input string, b engine.Backe
 // created: one more node costs the five units of building it and gathering it, and the unit of
 // forgetting it.
 func TestTermChargesCreatedNodes(t *testing.T) {
-	if !ecore.BudgetControlsEnabled {
+	if !state.BudgetControlsEnabled {
 		t.Skip("budget controls are unavailable in the reference build")
 	}
 	src := func(term string) string {
@@ -150,7 +150,7 @@ func TestTermChargesCreatedNodes(t *testing.T) {
 // it. Grammar code builds no node from what a term gathers, so the charge is where a value that
 // stayed behind would show.
 func TestTermChargesGatheredValues(t *testing.T) {
-	if !ecore.BudgetControlsEnabled {
+	if !state.BudgetControlsEnabled {
 		t.Skip("budget controls are unavailable in the reference build")
 	}
 	src := func(first string) string {
@@ -178,7 +178,7 @@ func TestTermChargesGatheredValues(t *testing.T) {
 // walks them, so finding $op passes two locals more than finding $rhs. Neither "rhs" nor "lhs" has
 // the length of "op", so passing them compares no text, which has charges of its own.
 func TestTermChargesOperatorsLocals(t *testing.T) {
-	if !ecore.BudgetControlsEnabled {
+	if !state.BudgetControlsEnabled {
 		t.Skip("budget controls are unavailable in the reference build")
 	}
 	src := func(local string) string {

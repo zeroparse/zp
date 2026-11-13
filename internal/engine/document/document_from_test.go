@@ -5,7 +5,7 @@ import (
 	"testing"
 
 	. "zeroparse.dev/zp/internal/engine"
-	"zeroparse.dev/zp/internal/engine/core"
+	"zeroparse.dev/zp/internal/engine/state"
 )
 
 // TestDocumentEntriesExamineFromTheirPosition checks the bound that the call protocol records
@@ -32,8 +32,8 @@ func TestDocumentEntriesExamineFromTheirPosition(t *testing.T) {
 			rng := rand.New(rand.NewSource(11))
 			for i := 0; i < 300; i++ {
 				doc.Parse()
-				doc.Memo().Each(func(e *core.MemoEntry) {
-					if !core.AdvanceEntry(e, doc.Edits()) {
+				doc.Memo().Each(func(e *state.MemoEntry) {
+					if !state.AdvanceEntry(e, doc.Edits()) {
 						return
 					}
 					if e.From != e.Pos && e.From != e.Pos-1 {
@@ -80,8 +80,8 @@ func TestDocumentFailedEntriesHoldNoErrors(t *testing.T) {
 		rng := rand.New(rand.NewSource(12))
 		for i := 0; i < 300; i++ {
 			doc.Parse()
-			doc.Memo().Each(func(e *core.MemoEntry) {
-				if e.Ok || !core.AdvanceEntry(e, doc.Edits()) {
+			doc.Memo().Each(func(e *state.MemoEntry) {
+				if e.Ok || !state.AdvanceEntry(e, doc.Edits()) {
 					return
 				}
 				failed++

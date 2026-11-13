@@ -32,7 +32,7 @@ Evidence records:
 
 Source owners: [`TransientRules`](../../../internal/compile/compile.go),
 [`Rule.Transient`](../../../internal/compile/compile.go), [`ordinary versus
-Document memo decision`](../../../internal/engine/core/runtime.go), [`transient rule
+Document memo decision`](../../../internal/engine/state/runtime.go), [`transient rule
 metadata emission`](../../../internal/codegen/ts/generator.go).
 
 The [comparison policy](../../design/records/024-optimization-mechanism-controls.md)

@@ -11,7 +11,7 @@ import (
 	"zeroparse.dev/zp/core"
 	"zeroparse.dev/zp/internal/compile"
 	"zeroparse.dev/zp/internal/desugar"
-	ecore "zeroparse.dev/zp/internal/engine/core"
+	"zeroparse.dev/zp/internal/engine/state"
 	"zeroparse.dev/zp/internal/engine/vm"
 	ir "zeroparse.dev/zp/internal/ir/core"
 )
@@ -26,7 +26,7 @@ func (prog *Program) Parse(start, input string) (*core.Node, error) {
 
 // ParseWith parses with options such as the position unit.
 func (prog *Program) ParseWith(start, input string, o ParseOptions) (n *core.Node, err error) {
-	if err := ecore.ValidateStreamDiagnostics(o, false); err != nil {
+	if err := state.ValidateStreamDiagnostics(o, false); err != nil {
 		return nil, err
 	}
 	// Initialization can interrupt before run installs its execution recovery.
@@ -34,9 +34,9 @@ func (prog *Program) ParseWith(start, input string, o ParseOptions) (n *core.Nod
 	// caller panics, so an outer boundary must not classify them again.
 	defer func() {
 		if x := recover(); x != nil {
-			if f, ok := x.(ecore.Fatal); ok {
+			if f, ok := x.(state.Fatal); ok {
 				n, err = nil, f.Err
-			} else if cp, ok := x.(ecore.ContextPanic); ok {
+			} else if cp, ok := x.(state.ContextPanic); ok {
 				panic(cp.Value)
 			} else {
 				panic(x)
@@ -52,17 +52,17 @@ func (prog *Program) ParseWith(start, input string, o ParseOptions) (n *core.Nod
 		return nil, err
 	}
 	control.Check()
-	p := ecore.AcquirePooledParser(&active.sharedProgram)
+	p := state.AcquirePooledParser(&active.sharedProgram)
 	defer p.ReleaseBatchScratch()
-	p.Input = ecore.NewControlledTextInput(input, o.Unit, !o.Recognize, p.Scratch, control)
+	p.Input = state.NewControlledTextInput(input, o.Unit, !o.Recognize, p.Scratch, control)
 	control.AttachMemory(p)
-	p.MaxDepth, _ = ecore.DepthLimit(o, o.Backend) // admitParse rejected an invalid limit
+	p.MaxDepth, _ = state.DepthLimit(o, o.Backend) // admitParse rejected an invalid limit
 	p.Expectations = o.Expectations
 	p.DeferMemo = true
 	p.ContextMemoOff = o.ContextMemoOff
 	p.ContextMemoUnexamined = o.ContextMemoUnexamined
 	if o.MissingTokens > 0 && active.HasMissing {
-		p.Missing, p.MissingLen = &ecore.MissingTokenState{Limit: o.MissingTokens}, 0
+		p.Missing, p.MissingLen = &state.MissingTokenState{Limit: o.MissingTokens}, 0
 	}
 	p.SetTrace(o.Trace)
 	n, err = active.Run(p, o.Backend, start)
@@ -127,14 +127,14 @@ func (prog *Program) backend(b Backend) Backend {
 	return b
 }
 
-// optionsFamily is core.FamilyOf for a parse with the options o that does not read a Document (a Document's
+// optionsFamily is state.FamilyOf for a parse with the options o that does not read a Document (a Document's
 // parses run the call-preserving family): such a parse sets NoPlain exactly when it is traced
-// (core.Parser.SetTrace).
-func optionsFamily(o ParseOptions) ecore.Family {
+// (state.Parser.SetTrace).
+func optionsFamily(o ParseOptions) state.Family {
 	if o.Trace != nil {
-		return ecore.CallPreserving
+		return state.CallPreserving
 	}
-	return ecore.Inlined
+	return state.Inlined
 }
 
 // familyRules returns the rules that the closure backend runs in the family f, by ID (rule.id),
@@ -143,7 +143,7 @@ func optionsFamily(o ParseOptions) ecore.Family {
 // unbuilt. The build that returns last among those that read the Core IR drops it (closureCore); a
 // build that panicked, other than by a panic of the parse's context, counts as returned, since its
 // family only reports an error after.
-func (prog *Program) familyRules(f ecore.Family, c *ecore.BudgetControl) ([]*ecore.Rule, error) {
+func (prog *Program) familyRules(f state.Family, c *state.BudgetControl) ([]*state.Rule, error) {
 	fam := &prog.families[f]
 	if !fam.built.Load() {
 		if err := prog.buildFamilyRules(fam, f, c); err != nil {
@@ -157,7 +157,7 @@ func (prog *Program) familyRules(f ecore.Family, c *ecore.BudgetControl) ([]*eco
 // error only for a build that the parse's context cancelled. The Core IR is built before fam.mu is
 // taken (closureCore.module), since its build calls the parse's context; fam.mu is held only while
 // the closures, which call no context method, are built.
-func (prog *Program) buildFamilyRules(fam *closureFamily, f ecore.Family, c *ecore.BudgetControl) error {
+func (prog *Program) buildFamilyRules(fam *closureFamily, f state.Family, c *state.BudgetControl) error {
 	if prog.buildFamily == nil {
 		fam.mu.Lock()
 		defer fam.mu.Unlock()
@@ -197,12 +197,12 @@ func (prog *Program) buildFamilyRules(fam *closureFamily, f ecore.Family, c *eco
 }
 
 // coreModule returns the Core IR for the build of the family f (closureCore.module). A panic of the
-// build that is not the parse context's (core.ContextPanic) is recorded on fam as an internal error,
+// build that is not the parse context's (state.ContextPanic) is recorded on fam as an internal error,
 // as a panic of the closures' build is, and re-raised.
-func (prog *Program) coreModule(fam *closureFamily, f ecore.Family, ctx context.Context) (*ir.Module, error) {
+func (prog *Program) coreModule(fam *closureFamily, f state.Family, ctx context.Context) (*ir.Module, error) {
 	defer func() {
 		if x := recover(); x != nil {
-			if _, ok := x.(ecore.ContextPanic); !ok {
+			if _, ok := x.(state.ContextPanic); !ok {
 				fam.mu.Lock()
 				if !fam.built.Load() {
 					fam.err = fmt.Errorf("internal error: the closure family %d was not built", f)
@@ -219,7 +219,7 @@ func (prog *Program) coreModule(fam *closureFamily, f ecore.Family, ctx context.
 
 // closureRule returns the rule the closure backend runs for the rule name in the family f, or nil
 // if there is none.
-func (prog *Program) closureRule(name string, f ecore.Family, c *ecore.BudgetControl) (*ecore.Rule, error) {
+func (prog *Program) closureRule(name string, f state.Family, c *state.BudgetControl) (*state.Rule, error) {
 	sr := prog.ByName[name]
 	if sr == nil {
 		return nil, nil
@@ -233,14 +233,14 @@ func (prog *Program) closureRule(name string, f ecore.Family, c *ecore.BudgetCon
 
 // rule returns the rule name for backend b; the closure backend returns it from the family f, which
 // it builds on first use under the parse's budget control c (familyRules).
-func (prog *Program) rule(b Backend, name string, f ecore.Family, c *ecore.BudgetControl) (*ecore.Rule, error) {
+func (prog *Program) rule(b Backend, name string, f state.Family, c *state.BudgetControl) (*state.Rule, error) {
 	if err := desugar.EntryError(name); err != nil {
 		return nil, err
 	}
 	if prog.HasMissing && prog.backend(b) != Closure {
 		return nil, compile.MissingUnsupported("bytecode backends")
 	}
-	var r *ecore.Rule
+	var r *state.Rule
 	switch prog.backend(b) {
 	case Bytecode, BytecodeIterative:
 		v, err := prog.prepareVM(prog.backend(b), f)
@@ -281,7 +281,7 @@ func vmIndex(b Backend) int {
 
 // prepareVM returns the VM program of the VM backend b (Bytecode or BytecodeIterative) in the family
 // f, preparing it on first use.
-func (prog *Program) prepareVM(b Backend, f ecore.Family) (*vm.Program, error) {
+func (prog *Program) prepareVM(b Backend, f state.Family) (*vm.Program, error) {
 	m, terms, err := prog.moduleTerms()
 	if err != nil {
 		return nil, err
@@ -298,11 +298,11 @@ func (prog *Program) prepareVM(b Backend, f ecore.Family) (*vm.Program, error) {
 }
 
 // vmFor returns the VM program of the VM backend b in the family f, which rule has prepared.
-func (prog *Program) vmFor(b Backend, f ecore.Family) *vm.Program { return prog.vms[vmIndex(b)][f].vm }
+func (prog *Program) vmFor(b Backend, f state.Family) *vm.Program { return prog.vms[vmIndex(b)][f].vm }
 
 // descs returns the expectation table of backend b in the family f (call it after rule has
 // prepared it).
-func (prog *Program) descs(b Backend, f ecore.Family) []string {
+func (prog *Program) descs(b Backend, f state.Family) []string {
 	if be := prog.backend(b); be == Bytecode || be == BytecodeIterative {
 		return prog.vmFor(be, f).Descs()
 	}
@@ -315,14 +315,14 @@ func recoverParse(x any, b Backend, err *error) {
 	if x == nil {
 		return
 	}
-	if f, ok := x.(ecore.Fatal); ok {
+	if f, ok := x.(state.Fatal); ok {
 		*err = f.Err
 		return
 	}
-	if tp, ok := x.(ecore.TracePanic); ok {
+	if tp, ok := x.(state.TracePanic); ok {
 		panic(tp.Value) // a panic of the trace function, not of the parse
 	}
-	if cp, ok := x.(ecore.ContextPanic); ok {
+	if cp, ok := x.(state.ContextPanic); ok {
 		panic(cp.Value)
 	}
 	if re, ok := x.(runtime.Error); ok && (b == Bytecode || b == BytecodeIterative) {
@@ -333,18 +333,18 @@ func recoverParse(x any, b Backend, err *error) {
 }
 
 // Run parses the whole input of p with the start rule start.
-func (prog *Program) Run(p *ecore.Parser, b Backend, start string) (n *core.Node, err error) {
+func (prog *Program) Run(p *state.Parser, b Backend, start string) (n *core.Node, err error) {
 	p.Aborted = false
-	r, err := prog.rule(b, start, ecore.FamilyOf(p), p.Control)
+	r, err := prog.rule(b, start, state.FamilyOf(p), p.Control)
 	if err != nil {
 		return nil, err
 	}
-	p.Descs = prog.descs(b, ecore.FamilyOf(p))
+	p.Descs = prog.descs(b, state.FamilyOf(p))
 	p.Memo.Stride = prog.NSeen
 	if be := prog.backend(b); be == Bytecode || be == BytecodeIterative {
-		p.Memo.Stride = prog.vmFor(be, ecore.FamilyOf(p)).NumSeen()
+		p.Memo.Stride = prog.vmFor(be, state.FamilyOf(p)).NumSeen()
 	}
-	p.Memo.Sparse = ecore.SparseMemo && p.Memo.Stride > 64 && p.Loaded() > 1024
+	p.Memo.Sparse = state.SparseMemo && p.Memo.Stride > 64 && p.Loaded() > 1024
 	p.SeedVars()
 	defer func() {
 		if x := recover(); x != nil {
@@ -405,16 +405,16 @@ func (prog *Program) ParseStreamWith(start string, r io.Reader, emit func(*core.
 	// Preserve their panic values rather than classifying them as VM faults.
 	defer func() {
 		if x := recover(); x != nil {
-			if f, ok := x.(ecore.Fatal); ok {
+			if f, ok := x.(state.Fatal); ok {
 				err = f.Err
-			} else if cp, ok := x.(ecore.ContextPanic); ok {
+			} else if cp, ok := x.(state.ContextPanic); ok {
 				panic(cp.Value)
 			} else {
 				panic(x)
 			}
 		}
 	}()
-	if err := ecore.ValidateStreamDiagnostics(o, true); err != nil {
+	if err := state.ValidateStreamDiagnostics(o, true); err != nil {
 		return err
 	}
 	if o.Recognize {
@@ -429,7 +429,7 @@ func (prog *Program) ParseStreamWith(start string, r io.Reader, emit func(*core.
 		return err
 	}
 	control.Check()
-	p := ecore.NewControlledStreamParser(&prog.sharedProgram, r, o.Unit, control)
+	p := state.NewControlledStreamParser(&prog.sharedProgram, r, o.Unit, control)
 	control.AttachMemory(p)
 	// A limit beyond math.MaxInt bounds no stream.
 	if lim := o.Limits.Input; lim != 0 && lim != core.Unlimited && lim <= math.MaxInt {
@@ -437,7 +437,7 @@ func (prog *Program) ParseStreamWith(start string, r io.Reader, emit func(*core.
 	}
 	defer p.ReleaseTraceReferences() // after error recovery, including rethrown panics
 	control.Check()
-	p.MaxDepth, _ = ecore.DepthLimit(o, o.Backend) // admitParse rejected an invalid limit
+	p.MaxDepth, _ = state.DepthLimit(o, o.Backend) // admitParse rejected an invalid limit
 	p.Expectations = o.Expectations
 	p.Emit, p.StreamID = emit, rule.ID
 	p.Diagnostic = o.DiagnosticCallback
@@ -446,7 +446,7 @@ func (prog *Program) ParseStreamWith(start string, r io.Reader, emit func(*core.
 		// A diagnostic-only stream still needs element commit boundaries.
 		p.Emit = func(*core.Node) error { return nil }
 	}
-	if ecore.StreamPrefixIsolation && p.Emit == nil {
+	if state.StreamPrefixIsolation && p.Emit == nil {
 		p.NodeChunks = 0 // No callback: collect the ordinary repetition instead.
 	}
 	p.Descs = prog.descs(o.Backend, optionsFamily(o))
@@ -456,7 +456,7 @@ func (prog *Program) ParseStreamWith(start string, r io.Reader, emit func(*core.
 		if x != nil && (p.ReaderCall || p.EmitCall) {
 			// A caller panic is not a VM fault. Trace callbacks may have
 			// already attributed a nested reader panic; unwrap it as usual.
-			if tp, ok := x.(ecore.TracePanic); ok {
+			if tp, ok := x.(state.TracePanic); ok {
 				panic(tp.Value)
 			}
 			panic(x)

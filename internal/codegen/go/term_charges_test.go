@@ -12,7 +12,7 @@ import (
 	"zeroparse.dev/zp/internal/codegentest"
 	"zeroparse.dev/zp/internal/compile"
 	"zeroparse.dev/zp/internal/engine"
-	ecore "zeroparse.dev/zp/internal/engine/core"
+	"zeroparse.dev/zp/internal/engine/state"
 )
 
 // termChargesGoldenFile returns the golden of the charges of the terms of the generator; what names it in
@@ -157,7 +157,7 @@ func checkTermCharges(t *testing.T, golden, what, unset, prefix string, all []co
 			}{{"engine-closure", engine.Closure}, {"engine-vm", engine.Bytecode}, {"engine-iterative", engine.BytecodeIterative}} {
 				var used uint64
 				_, err := prog.ParseWith("main", in, engine.ParseOptions{Backend: b.be, Limits: core.Limits{Compute: 1 << 50},
-					Trace: func(e engine.TraceEvent) { used = ecore.TraceParser(e).Control.Used }})
+					Trace: func(e engine.TraceEvent) { used = state.TraceParser(e).Control.Used }})
 				got[key(i, in, b.name)] = fmt.Sprintf("%d %s", used, termOutcome(fmt.Sprint(err)))
 			}
 		}

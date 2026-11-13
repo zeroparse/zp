@@ -4,7 +4,7 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/core"
-	ecore "zeroparse.dev/zp/internal/engine/core"
+	"zeroparse.dev/zp/internal/engine/state"
 )
 
 // A wrapper can return a growing seed without examining another character.
@@ -67,7 +67,7 @@ rule seed = ^ "é"`, "\né", true},
 						if e.Kind != TraceExit || e.Rule != "expr" || !e.Memo || !e.Matched {
 							return
 						}
-						seed, found := ecore.TraceParser(e).GrowingSeed(ecore.MemoKey{Rule: prog.ByName["expr"].ID, Pos: e.Pos})
+						seed, found := state.TraceParser(e).GrowingSeed(state.MemoKey{Rule: prog.ByName["expr"].ID, Pos: e.Pos})
 						if !found || !seed.Growing || !seed.Ok {
 							t.Fatal("successful growing seed is not available")
 						}

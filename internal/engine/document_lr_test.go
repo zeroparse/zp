@@ -6,7 +6,7 @@ import (
 
 	"zeroparse.dev/zp/internal/codegentest"
 	"zeroparse.dev/zp/internal/compile"
-	"zeroparse.dev/zp/internal/engine/core"
+	"zeroparse.dev/zp/internal/engine/state"
 )
 
 // TestDocumentSeedDependentResultsNotInMemo checks the invariant that lets a Document keep its
@@ -15,35 +15,35 @@ import (
 // reads none is stored with the leaders that grew (MemoEntry.Present).
 func TestDocumentSeedDependentResultsNotInMemo(t *testing.T) {
 	t.Parallel()
-	leader := func(id int, bit uint64) *core.Rule {
-		r := &core.Rule{}
+	leader := func(id int, bit uint64) *state.Rule {
+		r := &state.Rule{}
 		r.ID, r.Leader, r.LeaderBit, r.Cycle = id, true, bit, 1
 		return r
 	}
-	member := func(id int) *core.Rule {
-		r := &core.Rule{}
+	member := func(id int) *state.Rule {
+		r := &state.Rule{}
 		r.ID, r.Member, r.Cycle = id, true, 1
 		return r
 	}
 	t.Run("a member that reads the seed", func(t *testing.T) {
-		p := &core.Parser{Memo: core.NewMemoTable(), MemoAll: true}
+		p := &state.Parser{Memo: state.NewMemoTable(), MemoAll: true}
 		head, m := leader(1, 1), member(2)
-		var headCall core.CallState
+		var headCall state.CallState
 		p.CallBegin(head, 0, &headCall)
 		growth := p.GrowBegin(p.GrowKey(head, 0), head)
 		if !p.GrowNext(&growth) {
 			t.Fatal("the growth did not evaluate its first step")
 		}
-		var mCall core.CallState
+		var mCall state.CallState
 		_, _, hit := p.CallBegin(m, 0, &mCall)
 		if hit {
 			t.Fatal("fresh member unexpectedly memoized")
 		}
-		if _, _, hit := p.CallBegin(head, 0, &core.CallState{}); !hit || p.SeedReads != 1 {
+		if _, _, hit := p.CallBegin(head, 0, &state.CallState{}); !hit || p.SeedReads != 1 {
 			t.Fatal("the member did not read the seed")
 		}
 		p.CallEnd(m, &mCall, nil, false)
-		if e, found := p.Memo.Get(core.MemoKey{Rule: m.ID}); found {
+		if e, found := p.Memo.Get(state.MemoKey{Rule: m.ID}); found {
 			t.Fatalf("a result that read the growing seed was stored in the memo table: %+v", e)
 		}
 		p.GrowStep(&growth, nil, false)
@@ -52,24 +52,24 @@ func TestDocumentSeedDependentResultsNotInMemo(t *testing.T) {
 		}
 		v, ok := p.GrowEnd(head, &growth)
 		p.CallEnd(head, &headCall, v, ok)
-		if e, found := p.Memo.Get(core.MemoKey{Rule: head.ID}); !found || e.Present != 0 {
+		if e, found := p.Memo.Get(state.MemoKey{Rule: head.ID}); !found || e.Present != 0 {
 			t.Fatal("the result of the growth was not stored without a present set")
 		}
 	})
 	t.Run("a member that reads no seed", func(t *testing.T) {
-		p := &core.Parser{Memo: core.NewMemoTable(), MemoAll: true}
+		p := &state.Parser{Memo: state.NewMemoTable(), MemoAll: true}
 		head, m := leader(1, 1), member(2)
-		var headCall core.CallState
+		var headCall state.CallState
 		p.CallBegin(head, 0, &headCall)
 		growth := p.GrowBegin(p.GrowKey(head, 0), head)
 		p.GrowNext(&growth)
-		var mCall core.CallState
+		var mCall state.CallState
 		p.CallBegin(m, 0, &mCall)
 		p.CallEnd(m, &mCall, nil, false)
-		if e, found := p.Memo.Get(core.MemoKey{Rule: m.ID}); !found || e.Present != 1 {
+		if e, found := p.Memo.Get(state.MemoKey{Rule: m.ID}); !found || e.Present != 1 {
 			t.Fatal("a result that read no seed was not stored with the leader that grew")
 		}
-		if _, _, hit := p.CallBegin(m, 0, &core.CallState{}); !hit {
+		if _, _, hit := p.CallBegin(m, 0, &state.CallState{}); !hit {
 			t.Fatal("the result was not reused while the leader grows")
 		}
 		p.GrowStep(&growth, nil, false)
@@ -78,13 +78,13 @@ func TestDocumentSeedDependentResultsNotInMemo(t *testing.T) {
 		p.CallEnd(head, &headCall, v, ok)
 	})
 	t.Run("a nested leader that reads the outer seed", func(t *testing.T) {
-		p := &core.Parser{Memo: core.NewMemoTable(), MemoAll: true}
+		p := &state.Parser{Memo: state.NewMemoTable(), MemoAll: true}
 		outer, inner := leader(1, 1), leader(2, 2)
-		var outerCall core.CallState
+		var outerCall state.CallState
 		p.CallBegin(outer, 0, &outerCall)
 		outerGrow := p.GrowBegin(p.GrowKey(outer, 0), outer)
 		p.GrowNext(&outerGrow)
-		var innerCall core.CallState
+		var innerCall state.CallState
 		_, _, hit := p.CallBegin(inner, 0, &innerCall)
 		if hit {
 			t.Fatal("the inner leader was reused before it grew")
@@ -93,21 +93,21 @@ func TestDocumentSeedDependentResultsNotInMemo(t *testing.T) {
 		if !p.GrowNext(&innerGrow) {
 			t.Fatal("the inner growth did not evaluate its first step")
 		}
-		if _, _, hit := p.CallBegin(outer, 0, &core.CallState{}); !hit {
+		if _, _, hit := p.CallBegin(outer, 0, &state.CallState{}); !hit {
 			t.Fatal("outer seed was not read")
 		}
 		p.GrowStep(&innerGrow, nil, false)
 		p.GrowNext(&innerGrow)
 		v, ok := p.GrowEnd(inner, &innerGrow)
 		p.CallEnd(inner, &innerCall, v, ok)
-		if _, found := p.Memo.Get(core.MemoKey{Rule: inner.ID}); found {
+		if _, found := p.Memo.Get(state.MemoKey{Rule: inner.ID}); found {
 			t.Fatal("the inner result, which read the outer seed, was stored in the memo table")
 		}
 		p.GrowStep(&outerGrow, nil, false)
 		p.GrowNext(&outerGrow)
 		v, ok = p.GrowEnd(outer, &outerGrow)
 		p.CallEnd(outer, &outerCall, v, ok)
-		if e, found := p.Memo.Get(core.MemoKey{Rule: outer.ID}); !found || e.Present != 0 {
+		if e, found := p.Memo.Get(state.MemoKey{Rule: outer.ID}); !found || e.Present != 0 {
 			t.Fatal("the outer result was not stored")
 		}
 	})

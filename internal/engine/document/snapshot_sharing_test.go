@@ -12,7 +12,7 @@ import (
 	"zeroparse.dev/zp/internal/engine/document"
 
 	. "zeroparse.dev/zp/internal/engine"
-	"zeroparse.dev/zp/internal/engine/core"
+	"zeroparse.dev/zp/internal/engine/state"
 )
 
 func TestSnapshotSharedChildRunsAfterMiddleEdit(t *testing.T) {
@@ -93,7 +93,7 @@ rule item = [a-z]`)
 }
 
 func TestSnapshotSharedRecordsAndInterruption(t *testing.T) {
-	if !core.BudgetControlsEnabled {
+	if !state.BudgetControlsEnabled {
 		t.Skip("budget controls reference")
 	}
 	prog := mustCompile(t, `rule main = item* $$

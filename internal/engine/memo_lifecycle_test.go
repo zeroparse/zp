@@ -8,7 +8,7 @@ import (
 
 	"zeroparse.dev/zp/core"
 	"zeroparse.dev/zp/internal/compile"
-	ecore "zeroparse.dev/zp/internal/engine/core"
+	"zeroparse.dev/zp/internal/engine/state"
 	"zeroparse.dev/zp/internal/value"
 )
 
@@ -85,13 +85,13 @@ func TestDocumentReplacedMemoMemoryIsBounded(t *testing.T) {
 
 func TestMemoPruneKeepsActiveSeed(t *testing.T) {
 	t.Parallel()
-	table := ecore.NewMemoTable()
+	table := state.NewMemoTable()
 	seed := table.Alloc()
-	*seed = ecore.MemoEntry{Growing: true, Node: value.Ptr(value.Data{Text: "active"})}
-	table.Put(ecore.MemoKey{Rule: 1}, seed)
+	*seed = state.MemoEntry{Growing: true, Node: value.Ptr(value.Data{Text: "active"})}
+	table.Put(state.MemoKey{Rule: 1}, seed)
 	completed := table.Alloc()
-	*completed = ecore.MemoEntry{Node: value.Ptr(value.Data{Text: "retired"})}
-	table.Put(ecore.MemoKey{Rule: 2}, completed)
+	*completed = state.MemoEntry{Node: value.Ptr(value.Data{Text: "retired"})}
+	table.Put(state.MemoKey{Rule: 2}, completed)
 	table.Prune(1)
 	if seed.Node == nil || value.D(seed.Node).Text != "active" || !seed.Growing {
 		t.Fatal("pruning overwrote a stack-owned growth seed")
@@ -128,7 +128,7 @@ func BenchmarkMemoLifecycle(b *testing.B) {
 					b.Fatal(err)
 				}
 				// Prepare lazy VM compilation outside the timed interval.
-				if _, err := prog.rule(backend, "main", ecore.Inlined, nil); err != nil {
+				if _, err := prog.rule(backend, "main", state.Inlined, nil); err != nil {
 					b.Fatal(err)
 				}
 				b.SetBytes(int64(len(c.line) * 10000))

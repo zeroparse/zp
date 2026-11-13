@@ -7,7 +7,7 @@ import (
 	"zeroparse.dev/zp/core"
 	"zeroparse.dev/zp/internal/codegentest"
 	"zeroparse.dev/zp/internal/compile"
-	ecore "zeroparse.dev/zp/internal/engine/core"
+	"zeroparse.dev/zp/internal/engine/state"
 )
 
 // lazyOverrides are the options that a lazily built program sets itself, by the field of
@@ -25,7 +25,7 @@ func ptr[T any](v T) *T { return &v }
 // those that the build sets itself. A new option fails the test until it is carried or listed in
 // lazyOverrides.
 func TestLazyProgramsCarryEveryOption(t *testing.T) {
-	if !ecore.BudgetControlsEnabled {
+	if !state.BudgetControlsEnabled {
 		t.Skip("budget controls are unavailable in the reference build")
 	}
 	typ := reflect.TypeFor[compile.Options]()

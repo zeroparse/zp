@@ -3,7 +3,7 @@ package document
 import (
 	"testing"
 
-	"zeroparse.dev/zp/internal/engine/core"
+	"zeroparse.dev/zp/internal/engine/state"
 )
 
 // catchFatal runs f and returns the error of the Fatal panic it raises, or nil.
@@ -13,7 +13,7 @@ func catchFatal(t *testing.T, f func()) error {
 	func() {
 		defer func() {
 			if v := recover(); v != nil {
-				fatal, ok := v.(core.Fatal)
+				fatal, ok := v.(state.Fatal)
 				if !ok {
 					t.Fatalf("panic = %T(%v), want fatal", v, v)
 				}

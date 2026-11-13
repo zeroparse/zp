@@ -129,7 +129,7 @@ contract is [Observability](../../spec/runtime/observability.md).
 | Compilation, analysis, checking and the bytecode compiler | `internal/compile/`; the type model the checker uses in `internal/types/` |
 | The front end: a grammar checked to its program, Core IR and facts, which the analysis tools read without a runtime backend | `internal/frontend/`; the program comes from checking in `internal/compile/`, which also lowers it to closures; the generators read the checked program from there |
 | The parser runtime: compilation entry points, streams and limit controls, over the backends and the Document | `internal/engine/` |
-| The parse state that every backend shares, and what a backend provides | `internal/engine/core/` |
+| The parse state that every backend shares, and what a backend provides | `internal/engine/state/` |
 | The closure backend | `internal/engine/closure/` |
 | The bytecode VMs, recursive and iterative | `internal/engine/vm/` |
 | The incremental Document, its snapshots and change reports | `internal/engine/document/` |

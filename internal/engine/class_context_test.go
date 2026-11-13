@@ -15,7 +15,7 @@ import (
 	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/compile"
 	"zeroparse.dev/zp/internal/engine/closure"
-	ecore "zeroparse.dev/zp/internal/engine/core"
+	"zeroparse.dev/zp/internal/engine/state"
 	"zeroparse.dev/zp/internal/starttest"
 )
 
@@ -79,9 +79,9 @@ func TestClassConstructionContextFacts(t *testing.T) {
 				}
 				for _, r := range runes {
 					for _, active := range []bool{false, true} {
-						p := &ecore.Parser{}
+						p := &state.Parser{}
 						if active {
-							p.Control = ecore.NewBudgetControl(nil, core.Limits{Compute: 1 << 30})
+							p.Control = state.NewBudgetControl(nil, core.Limits{Compute: 1 << 30})
 						}
 						expected := false
 						for _, rg := range rs {
@@ -104,7 +104,7 @@ func TestClassConstructionContextFacts(t *testing.T) {
 	cl = &grammar.CharClass{Ranges: rs}
 	accept := closure.ClassAccept(cl)
 	rs[0] = grammar.CharRange{Lo: 'a', Hi: 'a'}
-	if !accept(&ecore.Parser{}, 256) || accept(&ecore.Parser{}, 'a') {
+	if !accept(&state.Parser{}, 256) || accept(&state.Parser{}, 'a') {
 		t.Fatal("matcher aliases source range slice")
 	}
 }

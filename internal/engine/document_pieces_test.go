@@ -6,7 +6,7 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/core"
-	ecore "zeroparse.dev/zp/internal/engine/core"
+	"zeroparse.dev/zp/internal/engine/state"
 )
 
 func TestDocumentPiecesMatchFlatEdits(t *testing.T) {
@@ -15,7 +15,7 @@ func TestDocumentPiecesMatchFlatEdits(t *testing.T) {
 	for _, unit := range []core.PositionUnit{core.Bytes, core.CodePoints} {
 		t.Run(unit.String(), func(t *testing.T) {
 			const initial = "first\né日\xff\nlast"
-			d := ecore.NewDocumentPieces(initial, unit)
+			d := state.NewDocumentPieces(initial, unit)
 			flatBytes := []byte(initial)
 			flatRunes := []rune(initial)
 			rng := rand.New(rand.NewSource(76))
@@ -79,7 +79,7 @@ func TestDocumentPiecesMatchFlatEdits(t *testing.T) {
 func TestDocumentPieceLargeByteOffsets(t *testing.T) {
 	t.Parallel()
 	// Model a slice of a >2 GiB code-point chunk without allocating that input.
-	p := ecore.DocumentPiece{
+	p := state.DocumentPiece{
 		Text: "éa", Runes: []rune{'é', 'a'},
 		LargeOffs: []int{1<<31 + 4, 1<<31 + 6, 1<<31 + 7},
 	}

@@ -32,7 +32,7 @@ Evidence records:
 [019](../019-a-plain-call-path-for-unmemoized-rules-without-captures.md).
 
 Source owners: [`emptyFrame` and
-`invokePlain`](../../../internal/engine/core/runtime.go), [`newFrame`](../../../internal/engine/core/alloc.go), [`generated empty
+`invokePlain`](../../../internal/engine/state/runtime.go), [`newFrame`](../../../internal/engine/state/alloc.go), [`generated empty
 frame`](../../../codegen/go/lib/lib.go),
 [`Parser.newFrame`](../../../codegen/ts/lib/lib.ts).
 

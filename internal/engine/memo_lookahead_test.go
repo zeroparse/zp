@@ -5,7 +5,7 @@ import (
 
 	"zeroparse.dev/zp/core"
 	"zeroparse.dev/zp/internal/codegentest"
-	ecore "zeroparse.dev/zp/internal/engine/core"
+	"zeroparse.dev/zp/internal/engine/state"
 )
 
 // TestMemoLookaheadStateEvaluations checks that calls that alternate between lookahead states
@@ -18,7 +18,7 @@ func TestMemoLookaheadStateEvaluations(t *testing.T) {
 		prog := mustCompile(t, c.Src)
 		for _, b := range []Backend{Closure, Bytecode, BytecodeIterative} {
 			for _, lim := range []core.Limits{{}, {Compute: 1 << 40}} {
-				if lim.Compute != 0 && !ecore.BudgetControlsEnabled {
+				if lim.Compute != 0 && !state.BudgetControlsEnabled {
 					// The reference build has no budget controls: it rejects a parse with a limit
 					// (ErrNoControls) before the parse starts.
 					continue

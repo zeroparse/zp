@@ -8,7 +8,7 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/core"
-	ecore "zeroparse.dev/zp/internal/engine/core"
+	"zeroparse.dev/zp/internal/engine/state"
 )
 
 // insertionCycle is left-recursive only through an insertion: without insertion, a calls itself
@@ -35,7 +35,7 @@ func TestMissingTokensInsertionOnlyLeftRecursion(t *testing.T) {
 		t.Fatal("a parse without insertion built the insertion program")
 	}
 	for _, controlled := range []bool{false, true} {
-		if controlled && !ecore.BudgetControlsEnabled {
+		if controlled && !state.BudgetControlsEnabled {
 			continue
 		}
 		for _, recognize := range []bool{false, true} {

@@ -14,16 +14,16 @@ import (
 	"weak"
 
 	"zeroparse.dev/zp/core"
-	ecore "zeroparse.dev/zp/internal/engine/core"
+	"zeroparse.dev/zp/internal/engine/state"
 	"zeroparse.dev/zp/internal/value"
 )
 
-func batchRetentionParser(t *testing.T, e TraceEvent) *ecore.Parser {
+func batchRetentionParser(t *testing.T, e TraceEvent) *state.Parser {
 	t.Helper()
-	if ecore.TraceParser(e) == nil {
+	if state.TraceParser(e) == nil {
 		t.Fatal("trace callback did not retain parser")
 	}
-	return ecore.TraceParser(e)
+	return state.TraceParser(e)
 }
 
 func batchRetentionJSON(t *testing.T, n *core.Node) []byte {
@@ -53,7 +53,7 @@ rule entry = key:[a-z]+ #atomic ":" value:[0-9]+ #atomic => Entry{Key: text($key
 				for _, active := range []bool{false, true} {
 					name := backend.String() + "/" + unit.String() + "/recognize=" + map[bool]string{false: "false", true: "true"}[recognize] + "/controls=" + map[bool]string{false: "inactive", true: "active"}[active]
 					t.Run(name, func(t *testing.T) {
-						if active && !ecore.BudgetControlsEnabled {
+						if active && !state.BudgetControlsEnabled {
 							t.Skip("active budget controls are unavailable in the reference build")
 						}
 						parseFn := func(input string, wantFailure bool) (*core.Node, error, TraceEvent) {
@@ -142,13 +142,13 @@ func TestBudgetBatchTraceCallbackPanicDetachesParserAndPreservesRetry(t *testing
 		for _, unit := range []core.PositionUnit{core.Bytes, core.CodePoints} {
 			t.Run(backend.String()+"/"+unit.String(), func(t *testing.T) {
 				token := &struct{ marker string }{"trace panic"}
-				var observed *ecore.Parser
+				var observed *state.Parser
 				var node *core.Node
 				var err error
 				got := budgetContextRecover(func() {
 					node, err = prog.ParseWith("main", text, ParseOptions{Backend: backend, Unit: unit, Trace: func(e TraceEvent) {
 						if e.Kind == TraceEnter && e.Rule == "main" {
-							observed = ecore.TraceParser(e)
+							observed = state.TraceParser(e)
 							panic(token)
 						}
 					}})
@@ -179,7 +179,7 @@ func TestBudgetBatchTraceInterruptionDetachesParser(t *testing.T) {
 						}
 						before := batchRetentionJSON(t, held)
 						token := &budgetContextPanicToken{phase: cause}
-						var observed *ecore.Parser
+						var observed *state.Parser
 						var panicCtx *budgetContextErrPanic
 						var cancel context.CancelFunc
 						opts := ParseOptions{Backend: backend, Unit: unit, Recognize: recognize}
@@ -202,12 +202,12 @@ func TestBudgetBatchTraceInterruptionDetachesParser(t *testing.T) {
 								return
 							}
 							if e.Kind == TraceEnter {
-								observed = ecore.TraceParser(e)
+								observed = state.TraceParser(e)
 								switch cause {
 								case "cancel":
 									cancel()
 								case "steps":
-									ecore.TraceParser(e).Control.Limits.Compute = ecore.TraceParser(e).Control.Used
+									state.TraceParser(e).Control.Limits.Compute = state.TraceParser(e).Control.Used
 								case "context-panic":
 									panicCtx.armed = true
 								}
@@ -312,8 +312,8 @@ func TestBudgetBatchTraceEventReleasesCapturedContextAfterReturn(t *testing.T) {
 			for _, active := range []bool{false, true} {
 				t.Run(fmt.Sprintf("%s/%s/active=%t", backend, unit, active), func(t *testing.T) {
 					event, ref, err := batchRetentionCaptureEvent(prog, text, backend, unit, active)
-					if err != nil || ecore.TraceParser(event) == nil {
-						t.Fatalf("event parser=%p err=%v", ecore.TraceParser(event), err)
+					if err != nil || state.TraceParser(event) == nil {
+						t.Fatalf("event parser=%p err=%v", state.TraceParser(event), err)
 					}
 					released := false
 					for range 5 {
@@ -328,7 +328,7 @@ func TestBudgetBatchTraceEventReleasesCapturedContextAfterReturn(t *testing.T) {
 					if !released {
 						t.Fatal("stored event still retains its trace-captured context after bounded GC")
 					}
-					assertTraceParserDetached(t, ecore.TraceParser(event), false)
+					assertTraceParserDetached(t, state.TraceParser(event), false)
 				})
 			}
 		}

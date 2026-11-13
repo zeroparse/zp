@@ -6,7 +6,7 @@ import (
 	"testing"
 
 	. "zeroparse.dev/zp/internal/engine"
-	"zeroparse.dev/zp/internal/engine/core"
+	"zeroparse.dev/zp/internal/engine/state"
 )
 
 // Grammars where a repetition runs at a position first outside a growth there, where its first
@@ -30,8 +30,8 @@ rule x = l "c" / "c"`,
 // the first Document parses that differ from a fresh parse, at most limit of them.
 func runGrowthMismatches(t *testing.T, limit int) []string {
 	t.Helper()
-	defer func(n int) { core.MinRecorded = n }(core.MinRecorded)
-	core.MinRecorded = 1
+	defer func(n int) { state.MinRecorded = n }(state.MinRecorded)
+	state.MinRecorded = 1
 	const alphabet = "cmlk!?"
 	var bad []string
 	for gi, src := range runGrowthGrammars {
@@ -88,8 +88,8 @@ func TestDocumentRunReadsGrowthWithin(t *testing.T) {
 // seeds of growths that started within it makes Document parses differ from fresh ones, already in
 // the first parse of "clc?".
 func TestDocumentRunReadsGrowthWithinControl(t *testing.T) {
-	defer func(m int) { core.RunMutation = m }(core.RunMutation)
-	core.RunMutation = core.RunOpenGrowthsOnly
+	defer func(m int) { state.RunMutation = m }(state.RunMutation)
+	state.RunMutation = state.RunOpenGrowthsOnly
 	for _, backend := range []Backend{Closure, Bytecode, BytecodeIterative} {
 		if got, want := firstRunGrowthParse(t, backend); got == want {
 			t.Errorf("%s: the first Document parse of \"clc?\" equals the fresh one, %s", backend, got)
@@ -106,8 +106,8 @@ func TestDocumentRunReadsGrowthWithinControl(t *testing.T) {
 // again: there x reads the seed of the growth that is open.
 func firstRunGrowthParse(t *testing.T, backend Backend) (got, want string) {
 	t.Helper()
-	defer func(n int) { core.MinRecorded = n }(core.MinRecorded)
-	core.MinRecorded = 1
+	defer func(n int) { state.MinRecorded = n }(state.MinRecorded)
+	state.MinRecorded = 1
 	prog := mustCompile(t, runGrowthGrammars[0])
 	opts := ParseOptions{Backend: backend}
 	d, err := prog.NewDocumentWith("main", "clc?", opts)

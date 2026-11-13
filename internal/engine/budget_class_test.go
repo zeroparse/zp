@@ -12,7 +12,7 @@ import (
 	"zeroparse.dev/zp/core"
 	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/bytecode"
-	ecore "zeroparse.dev/zp/internal/engine/core"
+	"zeroparse.dev/zp/internal/engine/state"
 	"zeroparse.dev/zp/internal/value"
 )
 
@@ -37,7 +37,7 @@ func budgetClassNode(t *testing.T, p *Program, input string, opts ParseOptions) 
 	return n
 }
 
-func budgetClassBudgetOptions(backend Backend, unit core.PositionUnit, allowance uint64, observed **ecore.Parser) ParseOptions {
+func budgetClassBudgetOptions(backend Backend, unit core.PositionUnit, allowance uint64, observed **state.Parser) ParseOptions {
 	return ParseOptions{
 		Backend: backend,
 		Unit:    unit,
@@ -45,17 +45,17 @@ func budgetClassBudgetOptions(backend Backend, unit core.PositionUnit, allowance
 		Trace: func(e TraceEvent) {
 			if e.Kind == TraceEnter && e.Rule == "main" {
 				if observed != nil {
-					*observed = ecore.TraceParser(e)
+					*observed = state.TraceParser(e)
 				}
-				ecore.TraceParser(e).Control.Limits.Compute = ecore.TraceParser(e).Control.Used + allowance
+				state.TraceParser(e).Control.Limits.Compute = state.TraceParser(e).Control.Used + allowance
 			}
 		},
 	}
 }
 
-func requireClassBudgetLimit(t *testing.T, p *Program, input string, backend Backend, unit core.PositionUnit) *ecore.Parser {
+func requireClassBudgetLimit(t *testing.T, p *Program, input string, backend Backend, unit core.PositionUnit) *state.Parser {
 	t.Helper()
-	var observed *ecore.Parser
+	var observed *state.Parser
 	n, err := p.ParseWith("main", input, budgetClassBudgetOptions(backend, unit, 32, &observed))
 	if n != nil || !errors.Is(err, core.ErrLimit) {
 		t.Fatalf("%v/%v input %q: node=%v err type=%T, want fatal compute limit error", backend, unit, input, n, err)
@@ -110,8 +110,8 @@ func TestBudgetClassRangeCancellationAndPoolRetry(t *testing.T) {
 	for _, backend := range []Backend{Closure, Bytecode, BytecodeIterative} {
 		for _, unit := range []core.PositionUnit{core.CodePoints, core.Bytes} {
 			t.Run(backend.String()+"/"+unit.String(), func(t *testing.T) {
-				var observed *ecore.Parser
-				var control *ecore.BudgetControl
+				var observed *state.Parser
+				var control *state.BudgetControl
 				var startSteps uint64
 				exits := 0
 				opts := ParseOptions{
@@ -120,7 +120,7 @@ func TestBudgetClassRangeCancellationAndPoolRetry(t *testing.T) {
 					Limits:  core.Limits{Compute: 1 << 30},
 					Trace: func(e TraceEvent) {
 						if e.Kind == TraceEnter && e.Rule == "main" {
-							observed, control = ecore.TraceParser(e), ecore.TraceParser(e).Control
+							observed, control = state.TraceParser(e), state.TraceParser(e).Control
 							startSteps = control.Used
 							// Trace emit polls once after this callback; cancel at the next
 							// 256-step checkpoint, inside the deliberately long range scan.
@@ -274,13 +274,13 @@ func TestBudgetClassOptimizedRoutes(t *testing.T) {
 						}
 						budgetClassNode(t, program, tc.input, servedBy(program.mode, ParseOptions{Backend: backend, Unit: unit}))
 						requireClassBudgetLimit(t, program, tc.input, backend, unit)
-						var c *ecore.BudgetControl
+						var c *state.BudgetControl
 						var start uint64
 						n, err := program.ParseWith("main", tc.input, ParseOptions{
 							Backend: backend, Unit: unit, Limits: core.Limits{Compute: 1 << 30},
 							Trace: func(e TraceEvent) {
 								if e.Kind == TraceEnter && e.Rule == "main" {
-									c = ecore.TraceParser(e).Control
+									c = state.TraceParser(e).Control
 									start = c.Used
 									c.Ctx = newPollingContext(2)
 								}

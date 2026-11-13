@@ -10,7 +10,7 @@ import (
 
 	"zeroparse.dev/zp/core"
 	"zeroparse.dev/zp/internal/codegentest"
-	ecore "zeroparse.dev/zp/internal/engine/core"
+	"zeroparse.dev/zp/internal/engine/state"
 	"zeroparse.dev/zp/internal/value"
 )
 
@@ -121,12 +121,12 @@ func TestParseStreamDiscardsInput(t *testing.T) {
 	prog := mustCompile(t, codegentest.Records)
 	r := &lineReader{header: "#records\n", line: "key=42\n", n: 100000}
 	maxBuf := 0
-	p := ecore.NewStreamParser(&prog.sharedProgram, r, core.CodePoints)
+	p := state.NewStreamParser(&prog.sharedProgram, r, core.CodePoints)
 	p.Emit = func(*core.Node) error {
 		maxBuf = max(maxBuf, len(p.In))
 		return nil
 	}
-	main, err := prog.rule(Closure, "main", ecore.Inlined, nil)
+	main, err := prog.rule(Closure, "main", state.Inlined, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
