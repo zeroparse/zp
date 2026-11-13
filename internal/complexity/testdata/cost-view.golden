@@ -1,0 +1,639 @@
+== bench/grammars/terms/heavy.zp matching=false
+applied:
+== bench/grammars/terms/heavy.zp matching=true
+applied:
+sha256 37ac7c37d0466d2dfdc3a010d654036e0e66b3171a34fe28bdf41b809a4c57ae
+== bench/grammars/terms/pred.zp matching=false
+applied:
+== bench/grammars/terms/pred.zp matching=true
+applied:
+sha256 37ac7c37d0466d2dfdc3a010d654036e0e66b3171a34fe28bdf41b809a4c57ae
+== examples/calculator/calc.zp matching=false
+applied:
+== examples/calculator/calc.zp matching=true
+applied: N13=1
+sha256 446c0f25de59447d6a435472f71bfe4366b8df29833718c5f0deb81c6a41e4a5
+== examples/calculator/calc_lr.zp matching=false
+applied: N8=3
+rule add = l:expr ws op:[+\-] #atomic r:term
+  24:17 l:expr ws op:[+\-] #atomic r:term = "l:expr ws op:(\"+\" / \"-\") #atomic r:term"
+  24:27 op:[+\-] #atomic = "op:(\"+\" / \"-\") #atomic"
+  24:31 [+\-] = "\"+\" / \"-\""
+  24:42 [+\-] #atomic = "(\"+\" / \"-\") #atomic"
+rule mul = l:term ws op:[%*/] #atomic r:unary
+  27:17 l:term ws op:[%*/] #atomic r:unary = "l:term ws op:(\"*\" / \"/\" / \"%\") #atomic r:unary"
+  27:27 op:[%*/] #atomic = "op:(\"*\" / \"/\" / \"%\") #atomic"
+  27:31 [%*/] = "\"*\" / \"/\" / \"%\""
+  27:48 [%*/] #atomic = "(\"*\" / \"/\" / \"%\") #atomic"
+rule neg = ws op:[+\-] #atomic x:unary
+  30:17 ws op:[+\-] #atomic x:unary = "ws op:(\"-\" / \"+\") #atomic x:unary"
+  30:20 op:[+\-] #atomic = "op:(\"-\" / \"+\") #atomic"
+  30:24 [+\-] = "\"-\" / \"+\""
+  30:35 [+\-] #atomic = "(\"-\" / \"+\") #atomic"
+== examples/calculator/calc_lr.zp matching=true
+applied: N1=1 N13=9 N8=3
+sha256 64ed61f0cafcdb2ed1fbf31e4e604396aef206c6001074fae2488b11364dcbaa
+== examples/minilang/minilang.zp matching=false
+applied:
+== examples/minilang/minilang.zp matching=true
+applied: N1=6 N13=45 N7=2
+sha256 c053f70ef805805acd91b1a61c2829c9102b47d6b51fbb5163e28267697c5c63
+== examples/outline/outline.zp matching=false
+applied:
+== examples/outline/outline.zp matching=true
+applied: N13=5
+sha256 45586980bb7e9887548224bdc570cd129bd9f837e72bf1f81b15c91618919ce5
+== internal/gen/gogen/testdata/routes/lr_calls_ops.zp matching=false
+applied:
+== internal/gen/gogen/testdata/routes/lr_calls_ops.zp matching=true
+applied:
+sha256 37ac7c37d0466d2dfdc3a010d654036e0e66b3171a34fe28bdf41b809a4c57ae
+== internal/gen/gogen/testdata/routes/lr_inline.zp matching=false
+applied: N4=1
+rule a = a "," x:[a-z] &(y:[a-z0-9] {text($y) != "q"}) !("z" {text($x) != "z"}) / "(" _|_ / [0-9]
+  4:10 a "," x:[a-z] &(y:[a-z0-9] {text($y) != "q"}) !("z" {text($x) != "z"}) / "(" _|_ / [0-9] = "a \",\" x:[a-z] &(y:[a-z0-9] {text($y) != \"q\"}) !(\"z\" {text($x) != \"z\"}) / \"(\" _|_ [0-9] \")\" / [0-9]"
+  4:83 "(" _|_ = "\"(\" _|_ [0-9] \")\""
+== internal/gen/gogen/testdata/routes/lr_inline.zp matching=true
+applied: N4=1
+sha256 679aeb1e10d20c6ab78d39cd05d17cbf33d831e6be7b88a0e0106fc99d6347a8
+== internal/gen/gogen/testdata/routes/lr_looks.zp matching=false
+applied: N4=1
+rule _e_2 = "(" _|_
+  3:99 "(" _|_ = "\"(\" _|_ m:[0-9] \")\""
+== internal/gen/gogen/testdata/routes/lr_looks.zp matching=true
+applied: N4=1
+sha256 3230700b6736d516fb00bce20062fbf88b821e7c88225148f52d2f18387081ac
+== internal/gen/gogen/testdata/routes/lr_recover.zp matching=false
+applied:
+== internal/gen/gogen/testdata/routes/lr_recover.zp matching=true
+applied:
+sha256 37ac7c37d0466d2dfdc3a010d654036e0e66b3171a34fe28bdf41b809a4c57ae
+== internal/gen/gogen/testdata/routes/lr_recover_rep.zp matching=false
+applied:
+== internal/gen/gogen/testdata/routes/lr_recover_rep.zp matching=true
+applied:
+sha256 37ac7c37d0466d2dfdc3a010d654036e0e66b3171a34fe28bdf41b809a4c57ae
+== internal/gen/gogen/testdata/routes/ops_lines.zp matching=false
+applied:
+== internal/gen/gogen/testdata/routes/ops_lines.zp matching=true
+applied:
+sha256 37ac7c37d0466d2dfdc3a010d654036e0e66b3171a34fe28bdf41b809a4c57ae
+== internal/gen/gogen/testdata/routes/ops_recover.zp matching=false
+applied:
+== internal/gen/gogen/testdata/routes/ops_recover.zp matching=true
+applied:
+sha256 37ac7c37d0466d2dfdc3a010d654036e0e66b3171a34fe28bdf41b809a4c57ae
+== internal/gen/gogen/testdata/routes/recover_nested.zp matching=false
+applied: N4=1 N6=1
+rule items = xs:(x:[a-z] &(y:[a-z0-9] {len($y) == 1})? ("!" _|_ / [0-9]?))* #recover(skip=[^>]*)
+  0:0 (x:[a-z] &(y:[a-z0-9] {len($y) == 1})? ("!" _|_ / [0-9]?))* #recover(skip=[^>]*) = "(x:[a-z] &(y:[a-z0-9] {len($y) == 1})? (\"!\" _|_ [0-9] / [0-9]?) #recover(skip=[^a-z>]*))* #recover(skip=[^>]*)"
+  3:21 xs:(x:[a-z] &(y:[a-z0-9] {len($y) == 1})? ("!" _|_ / [0-9]?))* #recover(skip=[^>]*) = "xs:(x:[a-z] &(y:[a-z0-9] {len($y) == 1})? (\"!\" _|_ [0-9] / [0-9]?) #recover(skip=[^a-z>]*))* #recover(skip=[^>]*)"
+  3:24 (x:[a-z] &(y:[a-z0-9] {len($y) == 1})? ("!" _|_ / [0-9]?))* = "(x:[a-z] &(y:[a-z0-9] {len($y) == 1})? (\"!\" _|_ [0-9] / [0-9]?) #recover(skip=[^a-z>]*))*"
+  3:25 x:[a-z] &(y:[a-z0-9] {len($y) == 1})? ("!" _|_ / [0-9]?) = "x:[a-z] &(y:[a-z0-9] {len($y) == 1})? (\"!\" _|_ [0-9] / [0-9]?) #recover(skip=[^a-z>]*)"
+  3:64 "!" _|_ / [0-9]? = "\"!\" _|_ [0-9] / [0-9]?"
+  3:64 "!" _|_ = "\"!\" _|_ [0-9]"
+== internal/gen/gogen/testdata/routes/recover_nested.zp matching=true
+applied: N4=1 N6=1
+sha256 6b91499d2f983c01ba9f2a37efc97c04fb499b61209774bc1408319535fbc53f
+== internal/gen/gogen/testdata/routes/scopes.zp matching=false
+applied:
+== internal/gen/gogen/testdata/routes/scopes.zp matching=true
+applied:
+sha256 37ac7c37d0466d2dfdc3a010d654036e0e66b3171a34fe28bdf41b809a4c57ae
+== internal/gentest/testdata/typed/calclr.zp matching=false
+applied: N8=3
+rule add = l:expr ws op:[+\-] #atomic r:term
+  23:17 l:expr ws op:[+\-] #atomic r:term = "l:expr ws op:(\"+\" / \"-\") #atomic r:term"
+  23:27 op:[+\-] #atomic = "op:(\"+\" / \"-\") #atomic"
+  23:31 [+\-] = "\"+\" / \"-\""
+  23:42 [+\-] #atomic = "(\"+\" / \"-\") #atomic"
+rule mul = l:term ws op:[%*/] #atomic r:unary
+  26:17 l:term ws op:[%*/] #atomic r:unary = "l:term ws op:(\"*\" / \"/\" / \"%\") #atomic r:unary"
+  26:27 op:[%*/] #atomic = "op:(\"*\" / \"/\" / \"%\") #atomic"
+  26:31 [%*/] = "\"*\" / \"/\" / \"%\""
+  26:48 [%*/] #atomic = "(\"*\" / \"/\" / \"%\") #atomic"
+rule neg = ws op:[+\-] #atomic x:unary
+  29:17 ws op:[+\-] #atomic x:unary = "ws op:(\"-\" / \"+\") #atomic x:unary"
+  29:20 op:[+\-] #atomic = "op:(\"-\" / \"+\") #atomic"
+  29:24 [+\-] = "\"-\" / \"+\""
+  29:35 [+\-] #atomic = "(\"-\" / \"+\") #atomic"
+== internal/gentest/testdata/typed/calclr.zp matching=true
+applied: N1=1 N13=9 N8=3
+sha256 b813dde9448801c326b8907506d33176104e0276d82382a2f7956ea02316e7df
+== internal/gentest/testdata/typed/direct_backtrack.zp matching=false
+applied: N1=1 N12=2 N8=1
+rule alt = x:name "+" (y:name "!" / z:name) ("(" q:name ")")? ("(" w:name ".")? ("[" ps:(&p:name name ",")* last:name "]")? ({m := 1} "<" / ">")? bump? s:("-" [0-9] [!?] / "+")? #atomic
+  12:5 x:name "+" (y:name "!" / z:name) ("(" q:name ")")? ("(" w:name ".")? ("[" ps:(&p:name name ",")* last:name "]")? ({m := 1} "<" / ">")? bump? s:("-" [0-9] [!?] / "+")? #atomic = "(x:name \"+\" y:name \"!\" / x:name \"+\" z:name) (\"(\" q:name \")\")? (\"(\" w:name \".\")? (\"[\" ps:(&p:name name \",\")* last:name \"]\")? ({m := 1} \"<\" / \">\")? bump? s:(\"-\" [0-9] \"!\" / \"-\" [0-9] \"?\" / \"+\")? #atomic"
+  12:6 y:name "!" / z:name = "x:name \"+\" y:name \"!\" / x:name \"+\" z:name"
+  12:6 y:name "!" = "x:name \"+\" y:name \"!\""
+  15:33 s:("-" [0-9] [!?] / "+")? #atomic = "s:(\"-\" [0-9] \"!\" / \"-\" [0-9] \"?\" / \"+\")? #atomic"
+  15:35 ("-" [0-9] [!?] / "+")? = "(\"-\" [0-9] \"!\" / \"-\" [0-9] \"?\" / \"+\")?"
+  15:36 "-" [0-9] [!?] / "+" = "\"-\" [0-9] \"!\" / \"-\" [0-9] \"?\" / \"+\""
+  15:36 "-" [0-9] [!?] = "\"-\" [0-9] \"!\""
+  15:46 [!?] = "\"!\" / \"?\""
+  15:74 ("-" [0-9] [!?] / "+")? #atomic = "(\"-\" [0-9] \"!\" / \"-\" [0-9] \"?\" / \"+\")? #atomic"
+== internal/gentest/testdata/typed/direct_backtrack.zp matching=true
+applied: N1=1 N12=2 N13=9 N8=1
+sha256 94f165d3b4f03d38c790efd197f22767089498e8ed157bea4132534c35dd1c74
+== internal/gentest/testdata/typed/direct_errors.zp matching=false
+applied: N12=1 N2=1 N8=1
+rule main = ^^ ts:(t:tag [.;])* e:end $$
+  7:15 ^^ ts:(t:tag [.;])* e:end $$ = "^^ ts:(t:tag \";\" / t:tag \".\")* e:end $$"
+  7:18 ts:(t:tag [.;])* = "ts:(t:tag \";\" / t:tag \".\")*"
+  7:21 (t:tag [.;])* = "(t:tag \";\" / t:tag \".\")*"
+  7:22 t:tag [.;] = "t:tag \";\""
+  7:28 [.;] = "\";\" / \".\""
+rule tag = "<" a:name ">" ("w" _|_ / "w")? b:name {text($a) == text($b)} @error(message="mismatched") n:note? k:"Q"? ws:(-"," w:[0-9] #repeat(2, 3) #atomic)* "\n"? x:((^ "!") #atomic / $ #atomic / _)
+  10:5 k:"Q"? = "k:(\"Q\"? / \"Z\")"
+  9:5 "<" a:name ">" ("w" _|_ / "w")? b:name {text($a) == text($b)} @error(message="mismatched") n:note? k:"Q"? ws:(-"," w:[0-9] #repeat(2, 3) #atomic)* "\n"? x:((^ "!") #atomic / $ #atomic / _) = "\"<\" a:name \">\" (\"w\" _|_ / \"w\")? b:name {text($a) == text($b)} @error(message=\"mismatched\") n:note? k:(\"Q\"? / \"Z\") ws:(-\",\" w:[0-9] #repeat(2, 3) #atomic)* \"\\n\"? x:((^ \"!\") #atomic / $ #atomic / _)"
+== internal/gentest/testdata/typed/direct_errors.zp matching=true
+applied: N12=1 N13=1 N2=1 N7=1 N8=1
+sha256 003c3f053149b9067e7473339d35f907bf8eab3a24e386b1ac172cb0ebee6ae8
+== internal/gentest/testdata/typed/direct_lists.zp matching=false
+applied:
+== internal/gentest/testdata/typed/direct_lists.zp matching=true
+applied: N13=5
+sha256 a37617de2bb9f465df8a684c428723650ec9b60c1aaa580b6129cf0aafc50b64
+== internal/gentest/testdata/typed/direct_literals.zp matching=false
+applied:
+== internal/gentest/testdata/typed/direct_literals.zp matching=true
+applied:
+sha256 37ac7c37d0466d2dfdc3a010d654036e0e66b3171a34fe28bdf41b809a4c57ae
+== internal/gentest/testdata/typed/direct_names.zp matching=false
+applied:
+== internal/gentest/testdata/typed/direct_names.zp matching=true
+applied:
+sha256 37ac7c37d0466d2dfdc3a010d654036e0e66b3171a34fe28bdf41b809a4c57ae
+== internal/gentest/testdata/typed/element_scope_optional.zp matching=false
+applied:
+== internal/gentest/testdata/typed/element_scope_optional.zp matching=true
+applied:
+sha256 37ac7c37d0466d2dfdc3a010d654036e0e66b3171a34fe28bdf41b809a4c57ae
+== internal/gentest/testdata/typed/element_scope_plain.zp matching=false
+applied:
+== internal/gentest/testdata/typed/element_scope_plain.zp matching=true
+applied:
+sha256 37ac7c37d0466d2dfdc3a010d654036e0e66b3171a34fe28bdf41b809a4c57ae
+== internal/gentest/testdata/typed/element_scope_recover.zp matching=false
+applied:
+== internal/gentest/testdata/typed/element_scope_recover.zp matching=true
+applied:
+sha256 37ac7c37d0466d2dfdc3a010d654036e0e66b3171a34fe28bdf41b809a4c57ae
+== internal/gentest/testdata/typed/errlist.zp matching=false
+applied:
+== internal/gentest/testdata/typed/errlist.zp matching=true
+applied:
+sha256 37ac7c37d0466d2dfdc3a010d654036e0e66b3171a34fe28bdf41b809a4c57ae
+== internal/gentest/testdata/typed/errlist2.zp matching=false
+applied:
+== internal/gentest/testdata/typed/errlist2.zp matching=true
+applied:
+sha256 37ac7c37d0466d2dfdc3a010d654036e0e66b3171a34fe28bdf41b809a4c57ae
+== internal/gentest/testdata/typed/fields.zp matching=false
+applied:
+== internal/gentest/testdata/typed/fields.zp matching=true
+applied:
+sha256 37ac7c37d0466d2dfdc3a010d654036e0e66b3171a34fe28bdf41b809a4c57ae
+== internal/gentest/testdata/typed/mix.zp matching=false
+applied:
+== internal/gentest/testdata/typed/mix.zp matching=true
+applied: N13=3
+sha256 67856f305b290d131eb0cbcfb4f1a946ef5efe2a65ec08baf52b707a10860b28
+== internal/gentest/testdata/typed/mixf.zp matching=false
+applied:
+== internal/gentest/testdata/typed/mixf.zp matching=true
+applied: N13=3
+sha256 67856f305b290d131eb0cbcfb4f1a946ef5efe2a65ec08baf52b707a10860b28
+== internal/gentest/testdata/typed/operators_rule1.zp matching=false
+applied:
+== internal/gentest/testdata/typed/operators_rule1.zp matching=true
+applied: N13=1
+sha256 1018021f8a6fc8855c867ccd6d7b2d7f35c32c3cd76dee8cc83067f765cf10d3
+== internal/gentest/testdata/typed/operators_rule1f.zp matching=false
+applied:
+== internal/gentest/testdata/typed/operators_rule1f.zp matching=true
+applied: N13=1
+sha256 1018021f8a6fc8855c867ccd6d7b2d7f35c32c3cd76dee8cc83067f765cf10d3
+== internal/gentest/testdata/typed/order.zp matching=false
+applied:
+== internal/gentest/testdata/typed/order.zp matching=true
+applied:
+sha256 37ac7c37d0466d2dfdc3a010d654036e0e66b3171a34fe28bdf41b809a4c57ae
+== internal/gentest/testdata/typed/proj1.zp matching=false
+applied:
+== internal/gentest/testdata/typed/proj1.zp matching=true
+applied:
+sha256 37ac7c37d0466d2dfdc3a010d654036e0e66b3171a34fe28bdf41b809a4c57ae
+== internal/gentest/testdata/typed/proj2.zp matching=false
+applied:
+== internal/gentest/testdata/typed/proj2.zp matching=true
+applied:
+sha256 37ac7c37d0466d2dfdc3a010d654036e0e66b3171a34fe28bdf41b809a4c57ae
+== internal/gentest/testdata/typed/proj3.zp matching=false
+applied:
+== internal/gentest/testdata/typed/proj3.zp matching=true
+applied:
+sha256 37ac7c37d0466d2dfdc3a010d654036e0e66b3171a34fe28bdf41b809a4c57ae
+== internal/gentest/testdata/typed/proj4.zp matching=false
+applied:
+== internal/gentest/testdata/typed/proj4.zp matching=true
+applied:
+sha256 37ac7c37d0466d2dfdc3a010d654036e0e66b3171a34fe28bdf41b809a4c57ae
+== internal/gentest/testdata/typed/proj5.zp matching=false
+applied:
+== internal/gentest/testdata/typed/proj5.zp matching=true
+applied:
+sha256 37ac7c37d0466d2dfdc3a010d654036e0e66b3171a34fe28bdf41b809a4c57ae
+== internal/gentest/testdata/typed/proj6.zp matching=false
+applied:
+== internal/gentest/testdata/typed/proj6.zp matching=true
+applied:
+sha256 37ac7c37d0466d2dfdc3a010d654036e0e66b3171a34fe28bdf41b809a4c57ae
+== internal/gentest/testdata/typed/proj7.zp matching=false
+applied:
+== internal/gentest/testdata/typed/proj7.zp matching=true
+applied:
+sha256 37ac7c37d0466d2dfdc3a010d654036e0e66b3171a34fe28bdf41b809a4c57ae
+== internal/gentest/testdata/typed/spanname.zp matching=false
+applied:
+== internal/gentest/testdata/typed/spanname.zp matching=true
+applied:
+sha256 37ac7c37d0466d2dfdc3a010d654036e0e66b3171a34fe28bdf41b809a4c57ae
+== internal/gentest/testdata/typed/splice_recursive_capture.zp matching=false
+applied:
+== internal/gentest/testdata/typed/splice_recursive_capture.zp matching=true
+applied:
+sha256 37ac7c37d0466d2dfdc3a010d654036e0e66b3171a34fe28bdf41b809a4c57ae
+== internal/gentest/testdata/typed/splice_recursive_capture_action.zp matching=false
+applied:
+== internal/gentest/testdata/typed/splice_recursive_capture_action.zp matching=true
+applied:
+sha256 37ac7c37d0466d2dfdc3a010d654036e0e66b3171a34fe28bdf41b809a4c57ae
+== internal/gentest/testdata/typed/splice_recursive_choice.zp matching=false
+applied:
+== internal/gentest/testdata/typed/splice_recursive_choice.zp matching=true
+applied:
+sha256 37ac7c37d0466d2dfdc3a010d654036e0e66b3171a34fe28bdf41b809a4c57ae
+== internal/gentest/testdata/typed/splice_recursive_choice_in_seq.zp matching=false
+applied:
+== internal/gentest/testdata/typed/splice_recursive_choice_in_seq.zp matching=true
+applied:
+sha256 37ac7c37d0466d2dfdc3a010d654036e0e66b3171a34fe28bdf41b809a4c57ae
+== internal/gentest/testdata/typed/splice_recursive_optional.zp matching=false
+applied:
+== internal/gentest/testdata/typed/splice_recursive_optional.zp matching=true
+applied:
+sha256 37ac7c37d0466d2dfdc3a010d654036e0e66b3171a34fe28bdf41b809a4c57ae
+== internal/gentest/testdata/typed/splice_recursive_repeat.zp matching=false
+applied:
+== internal/gentest/testdata/typed/splice_recursive_repeat.zp matching=true
+applied:
+sha256 37ac7c37d0466d2dfdc3a010d654036e0e66b3171a34fe28bdf41b809a4c57ae
+== internal/gentest/testdata/typed/unif.zp matching=false
+applied:
+== internal/gentest/testdata/typed/unif.zp matching=true
+applied: N13=1
+sha256 4456d51da6a68b73cbbbf448dc9ac532d2a2b491a4e7de8be3a16095058fee93
+== spec/language/testdata/comment-boundaries.zp matching=false
+applied: N8=1
+rule scope_end = [)\]}] / $$
+  77:18 [)\]}] / $$ = "\")\" / \"]\" / \"}\" / $$"
+  77:18 [)\]}] = "\")\" / \"]\" / \"}\""
+== spec/language/testdata/comment-boundaries.zp matching=true
+applied: N1=13 N13=22 N8=2
+sha256 2f6fa1cfbe0dd416902db91f9bd74372aafcb8e9332583825517157eb9336788
+== testdata/grammars/cel/cel.zp matching=false
+applied: N1=6 N11=2 N12=6 N4=5
+rule expected_start = _|_ #atomic
+  96:103 _|_ #atomic = "(![A-Za-z_] [A-Za-z_] / ![0-9] [0-9] / ![\"'] [\"'] / !\".\" \".\" / !\"-\" \"-\") #atomic"
+  96:31 _|_ = "![A-Za-z_] [A-Za-z_] / ![0-9] [0-9] / ![\"'] [\"'] / !\".\" \".\" / !\"-\" \"-\""
+rule message = &(("." ws)? [A-Za-z_] ([A-Za-z0-9_] / ws "." ws [A-Za-z_])* ws "{") t:type_name ws "{" ws fs:fields? ws ","? ws "}"
+  123:27 ([A-Za-z0-9_] / ws "." ws [A-Za-z_])* = "[A-Za-z0-9_]* (ws \".\" ws [A-Za-z_] [A-Za-z0-9_]*)*"
+  123:27 [A-Za-z0-9_] / ws "." ws [A-Za-z_] = ""
+  123:42 ws "." ws [A-Za-z_] = ""
+  123:5 &(("." ws)? [A-Za-z_] ([A-Za-z0-9_] / ws "." ws [A-Za-z_])* ws "{") = "&((\".\" ws)? [A-Za-z_] [A-Za-z0-9_]* (ws \".\" ws [A-Za-z_] [A-Za-z0-9_]*)* ws \"{\")"
+  123:5 &(("." ws)? [A-Za-z_] ([A-Za-z0-9_] / ws "." ws [A-Za-z_])* ws "{") t:type_name ws "{" ws fs:fields? ws ","? ws "}" = "&((\".\" ws)? [A-Za-z_] [A-Za-z0-9_]* (ws \".\" ws [A-Za-z_] [A-Za-z0-9_]*)* ws \"{\") t:type_name ws \"{\" ws fs:fields? ws \",\"? ws \"}\""
+  123:7 ("." ws)? [A-Za-z_] ([A-Za-z0-9_] / ws "." ws [A-Za-z_])* ws "{" = "(\".\" ws)? [A-Za-z_] [A-Za-z0-9_]* (ws \".\" ws [A-Za-z_] [A-Za-z0-9_]*)* ws \"{\""
+rule double = (sign? ([0-9]+ ("." [0-9]+ exponent? / exponent) / "." [0-9]+ exponent?)) #atomic
+  144:104 (sign? ([0-9]+ ("." [0-9]+ exponent? / exponent) / "." [0-9]+ exponent?)) #atomic = "(sign? ([0-9]+ \".\" [0-9]+ exponent? / [0-9]+ exponent / \".\" [0-9]+ exponent?)) #atomic"
+  144:26 sign? ([0-9]+ ("." [0-9]+ exponent? / exponent) / "." [0-9]+ exponent?) = "sign? ([0-9]+ \".\" [0-9]+ exponent? / [0-9]+ exponent / \".\" [0-9]+ exponent?)"
+  144:33 "." [0-9]+ exponent? / exponent = "[0-9]+ \".\" [0-9]+ exponent? / [0-9]+ exponent"
+  144:33 "." [0-9]+ exponent? = "[0-9]+ \".\" [0-9]+ exponent?"
+  144:33 [0-9]+ ("." [0-9]+ exponent? / exponent) / "." [0-9]+ exponent? = "[0-9]+ \".\" [0-9]+ exponent? / [0-9]+ exponent / \".\" [0-9]+ exponent?"
+  144:33 [0-9]+ ("." [0-9]+ exponent? / exponent) = "[0-9]+ \".\" [0-9]+ exponent?"
+rule ws = ([ \t\r\n\u{c}] / "//" [^\n]*)*
+  192:11 ([ \t\r\n\u{c}] / "//" [^\n]*)* = "[ \\t\\r\\n\\u{c}]* (\"//\" [^\\n]* [ \\t\\r\\n\\u{c}]*)*"
+  192:11 [ \t\r\n\u{c}] / "//" [^\n]* = ""
+  192:28 "//" [^\n]* = ""
+== testdata/grammars/cel/cel.zp matching=true
+applied: N1=17 N11=3 N12=11 N13=81 N4=10
+sha256 e636fbedcf3f111c61a99f4d2c7f1e2d7f9d4c675fae85bbd7f6742d4521398e
+== testdata/grammars/csv/csv.zp matching=false
+applied: N1=1 N11=2
+rule field = ("\"" ([^"] / "\"\"")* "\"" / ([^,"\r\n] / "\r" &[^\n])*) #atomic
+  29:10 ([^"] / "\"\"")* = "[^\"]* (\"\\\"\\\"\" [^\"]*)*"
+  29:10 [^"] / "\"\"" = ""
+  29:5 "\"" ([^"] / "\"\"")* "\"" / ([^,"\r\n] / "\r" &[^\n])* = "\"\\\"\" [^\"]* (\"\\\"\\\"\" [^\"]*)* \"\\\"\" / [^,\"\\r\\n]* (\"\\r\" &[^\\n] [^,\"\\r\\n]*)*"
+  29:5 "\"" ([^"] / "\"\"")* "\"" = "\"\\\"\" [^\"]* (\"\\\"\\\"\" [^\"]*)* \"\\\"\""
+  30:19 "\r" &[^\n] = ""
+  30:7 ([^,"\r\n] / "\r" &[^\n])* = "[^,\"\\r\\n]* (\"\\r\" &[^\\n] [^,\"\\r\\n]*)*"
+  30:7 [^,"\r\n] / "\r" &[^\n] = ""
+  31:3 ("\"" ([^"] / "\"\"")* "\"" / ([^,"\r\n] / "\r" &[^\n])*) #atomic = "(\"\\\"\" [^\"]* (\"\\\"\\\"\" [^\"]*)* \"\\\"\" / [^,\"\\r\\n]* (\"\\r\" &[^\\n] [^,\"\\r\\n]*)*) #atomic"
+== testdata/grammars/csv/csv.zp matching=true
+applied: N1=2 N11=4 N13=3
+sha256 7f0fd0828202a69dac853c82d628332fb4d576f30caff4ff38b4a9506ea1121c
+== testdata/grammars/cue/cue.zp matching=false
+applied: N8=13
+rule isep = comma / sp &[)}]
+  106:13 comma / sp &[)}] = "comma / sp &(\")\" / \"}\")"
+  106:21 sp &[)}] = "sp &(\")\" / \"}\")"
+  106:24 &[)}] = "&(\")\" / \"}\")"
+  106:26 [)}] = "\")\" / \"}\""
+rule after_ec = sp ([\n,}] / "//" / $$)
+  145:17 sp ([\n,}] / "//" / $$) = "sp (\",\" / \"}\" / \"\\n\" / \"//\" / $$)"
+  145:21 [\n,}] / "//" / $$ = "\",\" / \"}\" / \"\\n\" / \"//\" / $$"
+  145:21 [\n,}] = "\",\" / \"}\" / \"\\n\""
+rule after_ne = ws ([,}] / $$)
+  146:17 ws ([,}] / $$) = "ws (\",\" / \"}\" / $$)"
+  146:21 [,}] / $$ = "\",\" / \"}\" / $$"
+  146:21 [,}] = "\",\" / \"}\""
+rule func_bare = "func" !idchar sp ([\n,] / "//" / $$ / "}")
+  166:18 "func" !idchar sp ([\n,] / "//" / $$ / "}") = "\"func\" !idchar sp (\",\" / \"\\n\" / \"//\" / $$ / \"}\")"
+  166:37 [\n,] / "//" / $$ / "}" = "\",\" / \"\\n\" / \"//\" / $$ / \"}\""
+  166:37 [\n,] = "\",\" / \"\\n\""
+rule bare_for = ("for" !idchar &(sp ([\n,] / "//" / $$))) #atomic
+  167:24 "for" !idchar &(sp ([\n,] / "//" / $$)) = "\"for\" !idchar &(sp (\",\" / \"\\n\" / \"//\" / $$))"
+  167:38 &(sp ([\n,] / "//" / $$)) = "&(sp (\",\" / \"\\n\" / \"//\" / $$))"
+  167:40 sp ([\n,] / "//" / $$) = "sp (\",\" / \"\\n\" / \"//\" / $$)"
+  167:44 [\n,] / "//" / $$ = "\",\" / \"\\n\" / \"//\" / $$"
+  167:44 [\n,] = "\",\" / \"\\n\""
+  167:70 ("for" !idchar &(sp ([\n,] / "//" / $$))) #atomic = "(\"for\" !idchar &(sp (\",\" / \"\\n\" / \"//\" / $$))) #atomic"
+rule bare_if = ("if" !idchar &(sp ([\n,] / "//" / $$))) #atomic
+  168:23 "if" !idchar &(sp ([\n,] / "//" / $$)) = "\"if\" !idchar &(sp (\",\" / \"\\n\" / \"//\" / $$))"
+  168:36 &(sp ([\n,] / "//" / $$)) = "&(sp (\",\" / \"\\n\" / \"//\" / $$))"
+  168:38 sp ([\n,] / "//" / $$) = "sp (\",\" / \"\\n\" / \"//\" / $$)"
+  168:42 [\n,] / "//" / $$ = "\",\" / \"\\n\" / \"//\" / $$"
+  168:42 [\n,] = "\",\" / \"\\n\""
+  168:68 ("if" !idchar &(sp ([\n,] / "//" / $$))) #atomic = "(\"if\" !idchar &(sp (\",\" / \"\\n\" / \"//\" / $$))) #atomic"
+rule bare_let = ("let" !idchar !(sp ident) &(sp ([\n,] / "//" / $$ / "}"))) #atomic
+  169:24 "let" !idchar !(sp ident) &(sp ([\n,] / "//" / $$ / "}")) = "\"let\" !idchar !(sp ident) &(sp (\",\" / \"\\n\" / \"//\" / $$ / \"}\"))"
+  169:50 &(sp ([\n,] / "//" / $$ / "}")) = "&(sp (\",\" / \"\\n\" / \"//\" / $$ / \"}\"))"
+  169:52 sp ([\n,] / "//" / $$ / "}") = "sp (\",\" / \"\\n\" / \"//\" / $$ / \"}\")"
+  169:56 [\n,] / "//" / $$ / "}" = "\",\" / \"\\n\" / \"//\" / $$ / \"}\""
+  169:56 [\n,] = "\",\" / \"\\n\""
+  169:88 ("let" !idchar !(sp ident) &(sp ([\n,] / "//" / $$ / "}"))) #atomic = "(\"let\" !idchar !(sp ident) &(sp (\",\" / \"\\n\" / \"//\" / $$ / \"}\"))) #atomic"
+rule for_label = ("for" !idchar &(sp (":" / "=" ![=~] / "?" / "!" ![=~] / [\n,] / "//" / $$))) #atomic
+  223:107 ("for" !idchar &(sp (":" / "=" ![=~] / "?" / "!" ![=~] / [\n,] / "//" / $$))) #atomic = "(\"for\" !idchar &(sp (\":\" / \"=\" ![=~] / \"?\" / \"!\" ![=~] / \",\" / \"\\n\" / \"//\" / $$))) #atomic"
+  223:25 "for" !idchar &(sp (":" / "=" ![=~] / "?" / "!" ![=~] / [\n,] / "//" / $$)) = "\"for\" !idchar &(sp (\":\" / \"=\" ![=~] / \"?\" / \"!\" ![=~] / \",\" / \"\\n\" / \"//\" / $$))"
+  223:39 &(sp (":" / "=" ![=~] / "?" / "!" ![=~] / [\n,] / "//" / $$)) = "&(sp (\":\" / \"=\" ![=~] / \"?\" / \"!\" ![=~] / \",\" / \"\\n\" / \"//\" / $$))"
+  223:41 sp (":" / "=" ![=~] / "?" / "!" ![=~] / [\n,] / "//" / $$) = "sp (\":\" / \"=\" ![=~] / \"?\" / \"!\" ![=~] / \",\" / \"\\n\" / \"//\" / $$)"
+  223:45 ":" / "=" ![=~] / "?" / "!" ![=~] / [\n,] / "//" / $$ = "\":\" / \"=\" ![=~] / \"?\" / \"!\" ![=~] / \",\" / \"\\n\" / \"//\" / $$"
+  223:81 [\n,] = "\",\" / \"\\n\""
+rule if_label = ("if" !idchar &(sp (":" / "=" ![=~] / [\n,?] / "//" / $$ / "!" ws ":"))) #atomic
+  224:106 ("if" !idchar &(sp (":" / "=" ![=~] / [\n,?] / "//" / $$ / "!" ws ":"))) #atomic = "(\"if\" !idchar &(sp (\":\" / \"=\" ![=~] / \"?\" / \",\" / \"\\n\" / \"//\" / $$ / \"!\" ws \":\"))) #atomic"
+  224:24 "if" !idchar &(sp (":" / "=" ![=~] / [\n,?] / "//" / $$ / "!" ws ":")) = "\"if\" !idchar &(sp (\":\" / \"=\" ![=~] / \"?\" / \",\" / \"\\n\" / \"//\" / $$ / \"!\" ws \":\"))"
+  224:37 &(sp (":" / "=" ![=~] / [\n,?] / "//" / $$ / "!" ws ":")) = "&(sp (\":\" / \"=\" ![=~] / \"?\" / \",\" / \"\\n\" / \"//\" / $$ / \"!\" ws \":\"))"
+  224:39 sp (":" / "=" ![=~] / [\n,?] / "//" / $$ / "!" ws ":") = "sp (\":\" / \"=\" ![=~] / \"?\" / \",\" / \"\\n\" / \"//\" / $$ / \"!\" ws \":\")"
+  224:43 ":" / "=" ![=~] / [\n,?] / "//" / $$ / "!" ws ":" = "\":\" / \"=\" ![=~] / \"?\" / \",\" / \"\\n\" / \"//\" / $$ / \"!\" ws \":\""
+  224:61 [\n,?] = "\"?\" / \",\" / \"\\n\""
+rule gate_for_if = "for" !idchar &(sp (":" / "=" ![=~] / "?" / "!" ![=~] / [\n,] / "//" / $$)) / "if" !idchar &(sp (":" / "=" ![=~] / [\n,?] / "//" / $$ / "!" ws ":"))
+  258:19 &(sp (":" / "=" ![=~] / "?" / "!" ![=~] / [\n,] / "//" / $$)) = "&(sp (\":\" / \"=\" ![=~] / \"?\" / \"!\" ![=~] / \",\" / \"\\n\" / \"//\" / $$))"
+  258:21 sp (":" / "=" ![=~] / "?" / "!" ![=~] / [\n,] / "//" / $$) = "sp (\":\" / \"=\" ![=~] / \"?\" / \"!\" ![=~] / \",\" / \"\\n\" / \"//\" / $$)"
+  258:25 ":" / "=" ![=~] / "?" / "!" ![=~] / [\n,] / "//" / $$ = "\":\" / \"=\" ![=~] / \"?\" / \"!\" ![=~] / \",\" / \"\\n\" / \"//\" / $$"
+  258:5 "for" !idchar &(sp (":" / "=" ![=~] / "?" / "!" ![=~] / [\n,] / "//" / $$)) / "if" !idchar &(sp (":" / "=" ![=~] / [\n,?] / "//" / $$ / "!" ws ":")) = "\"for\" !idchar &(sp (\":\" / \"=\" ![=~] / \"?\" / \"!\" ![=~] / \",\" / \"\\n\" / \"//\" / $$)) / \"if\" !idchar &(sp (\":\" / \"=\" ![=~] / \"?\" / \",\" / \"\\n\" / \"//\" / $$ / \"!\" ws \":\"))"
+  258:5 "for" !idchar &(sp (":" / "=" ![=~] / "?" / "!" ![=~] / [\n,] / "//" / $$)) = "\"for\" !idchar &(sp (\":\" / \"=\" ![=~] / \"?\" / \"!\" ![=~] / \",\" / \"\\n\" / \"//\" / $$))"
+  258:61 [\n,] = "\",\" / \"\\n\""
+  259:20 &(sp (":" / "=" ![=~] / [\n,?] / "//" / $$ / "!" ws ":")) = "&(sp (\":\" / \"=\" ![=~] / \"?\" / \",\" / \"\\n\" / \"//\" / $$ / \"!\" ws \":\"))"
+  259:22 sp (":" / "=" ![=~] / [\n,?] / "//" / $$ / "!" ws ":") = "sp (\":\" / \"=\" ![=~] / \"?\" / \",\" / \"\\n\" / \"//\" / $$ / \"!\" ws \":\")"
+  259:26 ":" / "=" ![=~] / [\n,?] / "//" / $$ / "!" ws ":" = "\":\" / \"=\" ![=~] / \"?\" / \",\" / \"\\n\" / \"//\" / $$ / \"!\" ws \":\""
+  259:44 [\n,?] = "\"?\" / \",\" / \"\\n\""
+  259:7 "if" !idchar &(sp (":" / "=" ![=~] / [\n,?] / "//" / $$ / "!" ws ":")) = "\"if\" !idchar &(sp (\":\" / \"=\" ![=~] / \"?\" / \",\" / \"\\n\" / \"//\" / $$ / \"!\" ws \":\"))"
+rule bare_for_if = ("for" !idchar &(sp (":" / "=" ![=~] / "?" / "!" ![=~] / [\n,] / "//" / $$)) / "if" !idchar &(sp (":" / "=" ![=~] / [\n,?] / "//" / $$ / "!" ws ":"))) #atomic
+  290:19 &(sp (":" / "=" ![=~] / "?" / "!" ![=~] / [\n,] / "//" / $$)) = "&(sp (\":\" / \"=\" ![=~] / \"?\" / \"!\" ![=~] / \",\" / \"\\n\" / \"//\" / $$))"
+  290:21 sp (":" / "=" ![=~] / "?" / "!" ![=~] / [\n,] / "//" / $$) = "sp (\":\" / \"=\" ![=~] / \"?\" / \"!\" ![=~] / \",\" / \"\\n\" / \"//\" / $$)"
+  290:25 ":" / "=" ![=~] / "?" / "!" ![=~] / [\n,] / "//" / $$ = "\":\" / \"=\" ![=~] / \"?\" / \"!\" ![=~] / \",\" / \"\\n\" / \"//\" / $$"
+  290:5 "for" !idchar &(sp (":" / "=" ![=~] / "?" / "!" ![=~] / [\n,] / "//" / $$)) / "if" !idchar &(sp (":" / "=" ![=~] / [\n,?] / "//" / $$ / "!" ws ":")) = "\"for\" !idchar &(sp (\":\" / \"=\" ![=~] / \"?\" / \"!\" ![=~] / \",\" / \"\\n\" / \"//\" / $$)) / \"if\" !idchar &(sp (\":\" / \"=\" ![=~] / \"?\" / \",\" / \"\\n\" / \"//\" / $$ / \"!\" ws \":\"))"
+  290:5 "for" !idchar &(sp (":" / "=" ![=~] / "?" / "!" ![=~] / [\n,] / "//" / $$)) = "\"for\" !idchar &(sp (\":\" / \"=\" ![=~] / \"?\" / \"!\" ![=~] / \",\" / \"\\n\" / \"//\" / $$))"
+  290:61 [\n,] = "\",\" / \"\\n\""
+  291:20 &(sp (":" / "=" ![=~] / [\n,?] / "//" / $$ / "!" ws ":")) = "&(sp (\":\" / \"=\" ![=~] / \"?\" / \",\" / \"\\n\" / \"//\" / $$ / \"!\" ws \":\"))"
+  291:22 sp (":" / "=" ![=~] / [\n,?] / "//" / $$ / "!" ws ":") = "sp (\":\" / \"=\" ![=~] / \"?\" / \",\" / \"\\n\" / \"//\" / $$ / \"!\" ws \":\")"
+  291:26 ":" / "=" ![=~] / [\n,?] / "//" / $$ / "!" ws ":" = "\":\" / \"=\" ![=~] / \"?\" / \",\" / \"\\n\" / \"//\" / $$ / \"!\" ws \":\""
+  291:44 [\n,?] = "\"?\" / \",\" / \"\\n\""
+  291:7 "if" !idchar &(sp (":" / "=" ![=~] / [\n,?] / "//" / $$ / "!" ws ":")) = "\"if\" !idchar &(sp (\":\" / \"=\" ![=~] / \"?\" / \",\" / \"\\n\" / \"//\" / $$ / \"!\" ws \":\"))"
+  292:3 ("for" !idchar &(sp (":" / "=" ![=~] / "?" / "!" ![=~] / [\n,] / "//" / $$)) / "if" !idchar &(sp (":" / "=" ![=~] / [\n,?] / "//" / $$ / "!" ws ":"))) #atomic = "(\"for\" !idchar &(sp (\":\" / \"=\" ![=~] / \"?\" / \"!\" ![=~] / \",\" / \"\\n\" / \"//\" / $$)) / \"if\" !idchar &(sp (\":\" / \"=\" ![=~] / \"?\" / \",\" / \"\\n\" / \"//\" / $$ / \"!\" ws \":\"))) #atomic"
+== testdata/grammars/cue/cue.zp matching=true
+applied: N1=51 N12=4 N13=228 N8=18
+sha256 a8007c4745c24ed7d2200e1c26318e99311c4fbe792b9d6a17a699cc07bc2c6f
+== testdata/grammars/duckdb/duckdb.zp matching=false
+applied: N1=1 N8=10
+rule op_special = !(([%\^] / "!=") !rc) (!cut [+\-*/<>=])* [~!@\^&|`%] (!cut opc)*
+  545:19 !(([%\^] / "!=") !rc) (!cut [+\-*/<>=])* [~!@\^&|`%] (!cut opc)* = "!((\"^\" / \"%\" / \"!=\") !rc) (!cut [+\\-*/<>=])* [~!@\\^&|`%] (!cut opc)*"
+  545:19 !(([%\^] / "!=") !rc) = "!((\"^\" / \"%\" / \"!=\") !rc)"
+  545:21 ([%\^] / "!=") !rc = "(\"^\" / \"%\" / \"!=\") !rc"
+  545:22 [%\^] / "!=" = "\"^\" / \"%\" / \"!=\""
+  545:22 [%\^] = "\"^\" / \"%\""
+rule colon = ":" ![:=]
+  685:14 ":" ![:=] = "\":\" !(\":\" / \"=\")"
+  685:18 ![:=] = "!(\":\" / \"=\")"
+  685:20 [:=] = "\":\" / \"=\""
+rule plain_literal = l:(number / bit_lit) !(ws [.\[])
+  759:27 l:(number / bit_lit) !(ws [.\[]) = "l:(number / bit_lit) !(ws (\".\" / \"[\"))"
+  759:48 !(ws [.\[]) = "!(ws (\".\" / \"[\"))"
+  759:50 ws [.\[] = "ws (\".\" / \"[\")"
+  759:54 [.\[] = "\".\" / \"[\""
+rule plain_column = !(DOUBLE ws PRECISION / (CHARACTER / CHAR / NCHAR / NATIONAL / BIT) ws (VARYING / CHARACTER / CHAR) / INTERVAL ws (iconst / "(")) ps:dotted_idents !(ws ([$'-({] / [eEbBxXnN] "'" / [uU] "&'"))
+  771:5 !(DOUBLE ws PRECISION / (CHARACTER / CHAR / NCHAR / NATIONAL / BIT) ws (VARYING / CHARACTER / CHAR) / INTERVAL ws (iconst / "(")) ps:dotted_idents !(ws ([$'-({] / [eEbBxXnN] "'" / [uU] "&'")) = "!(DOUBLE ws PRECISION / (CHARACTER / CHAR / NCHAR / NATIONAL / BIT) ws (VARYING / CHARACTER / CHAR) / INTERVAL ws (iconst / \"(\")) ps:dotted_idents !(ws (\"(\" / \"{\" / \"'\" / \"$\" / [eEbBxXnN] \"'\" / [uU] \"&'\"))"
+  772:22 !(ws ([$'-({] / [eEbBxXnN] "'" / [uU] "&'")) = "!(ws (\"(\" / \"{\" / \"'\" / \"$\" / [eEbBxXnN] \"'\" / [uU] \"&'\"))"
+  772:24 ws ([$'-({] / [eEbBxXnN] "'" / [uU] "&'") = "ws (\"(\" / \"{\" / \"'\" / \"$\" / [eEbBxXnN] \"'\" / [uU] \"&'\")"
+  772:28 [$'-({] / [eEbBxXnN] "'" / [uU] "&'" = "\"(\" / \"{\" / \"'\" / \"$\" / [eEbBxXnN] \"'\" / [uU] \"&'\""
+  772:28 [$'-({] = "\"(\" / \"{\" / \"'\" / \"$\""
+rule keyword_primary = k:(bool_lit / null_lit / exists_expr / interval_lit / grouping_expr) !(ws [.\[])
+  856:100 ws [.\[] = "ws (\".\" / \"[\")"
+  856:104 [.\[] = "\".\" / \"[\""
+  856:29 k:(bool_lit / null_lit / exists_expr / interval_lit / grouping_expr) !(ws [.\[]) = "k:(bool_lit / null_lit / exists_expr / interval_lit / grouping_expr) !(ws (\".\" / \"[\"))"
+  856:98 !(ws [.\[]) = "!(ws (\".\" / \"[\"))"
+rule frame_shift = AT / OPERATOR / PRECEDING / FOLLOWING / op_generic / op_plus / op_minus / op_star / [#-$(?\[{]
+  954:5 AT / OPERATOR / PRECEDING / FOLLOWING / op_generic / op_plus / op_minus / op_star / [#-$(?\[{] = "AT / OPERATOR / PRECEDING / FOLLOWING / op_generic / op_plus / op_minus / op_star / \"[\" / \"(\" / \"?\" / \"{\" / \"#\" / \"$\""
+  955:7 [#-$(?\[{] = "\"[\" / \"(\" / \"?\" / \"{\" / \"#\" / \"$\""
+rule typed_literal = tl:(typed_literal_nchar / typed_literal_const / typed_literal_name) !(ws [.\[])
+  1010:101 ws [.\[] = "ws (\".\" / \"[\")"
+  1010:105 [.\[] = "\".\" / \"[\""
+  1010:31 tl:(typed_literal_nchar / typed_literal_const / typed_literal_name) !(ws [.\[]) = "tl:(typed_literal_nchar / typed_literal_const / typed_literal_name) !(ws (\".\" / \"[\"))"
+  1010:99 !(ws [.\[]) = "!(ws (\".\" / \"[\"))"
+rule into_temp = t:(TEMPORARY / TEMP / LOCAL ws (TEMPORARY / TEMP) / GLOBAL ws (TEMPORARY / TEMP) / UNLOGGED) #atomic ws (TABLE ws)? n:qualified_name
+  1111:124 (TEMPORARY / TEMP / LOCAL ws (TEMPORARY / TEMP) / GLOBAL ws (TEMPORARY / TEMP) / UNLOGGED) #atomic = "((TEMPORARY / TEMP) / LOCAL ws (TEMPORARY / TEMP) / GLOBAL ws (TEMPORARY / TEMP) / UNLOGGED) #atomic"
+  1111:29 t:(TEMPORARY / TEMP / LOCAL ws (TEMPORARY / TEMP) / GLOBAL ws (TEMPORARY / TEMP) / UNLOGGED) #atomic = "t:((TEMPORARY / TEMP) / LOCAL ws (TEMPORARY / TEMP) / GLOBAL ws (TEMPORARY / TEMP) / UNLOGGED) #atomic"
+  1111:29 t:(TEMPORARY / TEMP / LOCAL ws (TEMPORARY / TEMP) / GLOBAL ws (TEMPORARY / TEMP) / UNLOGGED) #atomic ws (TABLE ws)? n:qualified_name = "t:((TEMPORARY / TEMP) / LOCAL ws (TEMPORARY / TEMP) / GLOBAL ws (TEMPORARY / TEMP) / UNLOGGED) #atomic ws (TABLE ws)? n:qualified_name"
+  1111:32 TEMPORARY / TEMP / LOCAL ws (TEMPORARY / TEMP) / GLOBAL ws (TEMPORARY / TEMP) / UNLOGGED = "(TEMPORARY / TEMP) / LOCAL ws (TEMPORARY / TEMP) / GLOBAL ws (TEMPORARY / TEMP) / UNLOGGED"
+rule kw_r = ([aA] ([lL] [lL] / [nN] ([aA] [lL] [yY] ([sS] [eE] / [zZ] [eE]) / [DYdy]) / [rR] [rR] [aA] [yY] / [sS] ([cC] / [yY] [mM] [mM] [eE] [tT] [rR] [iI] [cC])?) / [bB] [oO] [tT] [hH] / [cC] ([aA] [sS] [ETet] / [hH] [eE] [cC] [kK] / [oO] ([lL] ([lL] [aA] [tT] [eE] / [uU] [mM] [nN]) / [nN] [sS] [tT] [rR] [aA] [iI] [nN] [tT]) / [rR] [eE] [aA] [tT] [eE]) / [dD] ([eE] ([fF] ([aA] [uU] [lL] [tT] / [eE] [rR] [rR] [aA] [bB] [lL] [eE]) / [sS] [cC] ([rR] [iI] [bB] [eE])?) / [iI] [sS] [tT] [iI] [nN] [cC] [tT] / [oO]) / [eE] ([lL] [sS] [eE] / [nN] [dD] / [xX] [cC] [eE] [pP] [tT]) / [fF] ([aA] [lL] [sS] [eE] / [eE] [tT] [cC] [hH] / [oO] [rR] ([eE] [iI] [gG] [nN])? / [rR] [oO] [mM]) / [gG] [rR] [oO] [uU] [pP] / [hH] [aA] [vV] [iI] [nN] [gG] / [iI] [nN] ([iI] [tT] [iI] [aA] [lL] [lL] [yY] / [tT] ([eE] [rR] [sS] [eE] [cC] [tT] / [oO]))? / [lL] ([aA] ([mM] [bB] [dD] [aA] / [tT] [eE] [rR] [aA] [lL]) / [eE] [aA] [dD] [iI] [nN] [gG] / [iI] [mM] [iI] [tT]) / [nN] ([oO] [tT] / [uU] [lL] [lL]) / [oO] ([fF] [fF] [sS] [eE] [tT] / [nN] ([lL] [yY])? / [rR] ([dD] [eE] [rR])?) / [pP] ([iI] [vV] [oO] [tT] ("_" ([lL] [oO] [nN] [gG] [eE] [rR] / [wW] [iI] [dD] [eE] [rR]))? / [lL] [aA] [cC] [iI] [nN] [gG] / [rR] [iI] [mM] [aA] [rR] [yY]) / [qQ] [uU] [aA] [lL] [iI] [fF] [yY] / [rR] [eE] ([fF] [eE] [rR] [eE] [nN] [cC] [eE] [sS] / [tT] [uU] [rR] [nN] [iI] [nN] [gG]) / [sS] ([eE] [lL] [eE] [cC] [tT] / [hH] [oO] [wW] / [oO] [mM] [eE] / [uU] [mM] [mM] [aA] [rR] [iI] [zZ] [eE] / [yY] [mM] [mM] [eE] [tT] [rR] [iI] [cC]) / [tT] ([aA] [bB] [lL] [eE] / [hH] [eE] [nN] / [oO] / [rR] ([aA] [iI] [lL] [iI] [nN] [gG] / [uU] [eE])) / [uU] ([nN] ([iI] ([oO] [nN] / [qQ] [uU] [eE]) / [pP] [iI] [vV] [oO] [tT]) / [sS] [iI] [nN] [gG]) / [vV] [aA] [rR] [iI] [aA] [dD] [iI] [cC] / [wW] ([hH] [eE] ([nN] / [rR] [eE]) / [iI] ([nN] [dD] [oO] [wW] / [tT] [hH]))) ![a-zA-Z0-9_$\u{80}-\u{9f}¡-\u{1fff}\u{200c}-\u{202e}‰-⁞\u{2061}-⿿、-\u{fefe}\u{ff00}-\u{10ffff}]
+  2536:12 [lL] [lL] / [nN] ([aA] [lL] [yY] ([sS] [eE] / [zZ] [eE]) / [DYdy]) / [rR] [rR] [aA] [yY] / [sS] ([cC] / [yY] [mM] [mM] [eE] [tT] [rR] [iI] [cC])? = "[lL] [lL] / [nN] ([aA] [lL] [yY] ([sS] [eE] / [zZ] [eE]) / [dD] / [yY]) / [rR] [rR] [aA] [yY] / [sS] ([cC] / [yY] [mM] [mM] [eE] [tT] [rR] [iI] [cC])?"
+  2536:188 [cC] ([aA] [sS] [ETet] / [hH] [eE] [cC] [kK] / [oO] ([lL] ([lL] [aA] [tT] [eE] / [uU] [mM] [nN]) / [nN] [sS] [tT] [rR] [aA] [iI] [nN] [tT]) / [rR] [eE] [aA] [tT] [eE]) = "[cC] ([aA] [sS] ([eE] / [tT]) / [hH] [eE] [cC] [kK] / [oO] ([lL] ([lL] [aA] [tT] [eE] / [uU] [mM] [nN]) / [nN] [sS] [tT] [rR] [aA] [iI] [nN] [tT]) / [rR] [eE] [aA] [tT] [eE])"
+  2536:194 [aA] [sS] [ETet] / [hH] [eE] [cC] [kK] / [oO] ([lL] ([lL] [aA] [tT] [eE] / [uU] [mM] [nN]) / [nN] [sS] [tT] [rR] [aA] [iI] [nN] [tT]) / [rR] [eE] [aA] [tT] [eE] = "[aA] [sS] ([eE] / [tT]) / [hH] [eE] [cC] [kK] / [oO] ([lL] ([lL] [aA] [tT] [eE] / [uU] [mM] [nN]) / [nN] [sS] [tT] [rR] [aA] [iI] [nN] [tT]) / [rR] [eE] [aA] [tT] [eE]"
+  2536:194 [aA] [sS] [ETet] = "[aA] [sS] ([eE] / [tT])"
+  2536:205 [ETet] = "[eE] / [tT]"
+  2536:24 [nN] ([aA] [lL] [yY] ([sS] [eE] / [zZ] [eE]) / [DYdy]) = "[nN] ([aA] [lL] [yY] ([sS] [eE] / [zZ] [eE]) / [dD] / [yY])"
+  2536:30 [aA] [lL] [yY] ([sS] [eE] / [zZ] [eE]) / [DYdy] = "[aA] [lL] [yY] ([sS] [eE] / [zZ] [eE]) / [dD] / [yY]"
+  2536:5 ([aA] ([lL] [lL] / [nN] ([aA] [lL] [yY] ([sS] [eE] / [zZ] [eE]) / [DYdy]) / [rR] [rR] [aA] [yY] / [sS] ([cC] / [yY] [mM] [mM] [eE] [tT] [rR] [iI] [cC])?) / [bB] [oO] [tT] [hH] / [cC] ([aA] [sS] [ETet] / [hH] [eE] [cC] [kK] / [oO] ([lL] ([lL] [aA] [tT] [eE] / [uU] [mM] [nN]) / [nN] [sS] [tT] [rR] [aA] [iI] [nN] [tT]) / [rR] [eE] [aA] [tT] [eE]) / [dD] ([eE] ([fF] ([aA] [uU] [lL] [tT] / [eE] [rR] [rR] [aA] [bB] [lL] [eE]) / [sS] [cC] ([rR] [iI] [bB] [eE])?) / [iI] [sS] [tT] [iI] [nN] [cC] [tT] / [oO]) / [eE] ([lL] [sS] [eE] / [nN] [dD] / [xX] [cC] [eE] [pP] [tT]) / [fF] ([aA] [lL] [sS] [eE] / [eE] [tT] [cC] [hH] / [oO] [rR] ([eE] [iI] [gG] [nN])? / [rR] [oO] [mM]) / [gG] [rR] [oO] [uU] [pP] / [hH] [aA] [vV] [iI] [nN] [gG] / [iI] [nN] ([iI] [tT] [iI] [aA] [lL] [lL] [yY] / [tT] ([eE] [rR] [sS] [eE] [cC] [tT] / [oO]))? / [lL] ([aA] ([mM] [bB] [dD] [aA] / [tT] [eE] [rR] [aA] [lL]) / [eE] [aA] [dD] [iI] [nN] [gG] / [iI] [mM] [iI] [tT]) / [nN] ([oO] [tT] / [uU] [lL] [lL]) / [oO] ([fF] [fF] [sS] [eE] [tT] / [nN] ([lL] [yY])? / [rR] ([dD] [eE] [rR])?) / [pP] ([iI] [vV] [oO] [tT] ("_" ([lL] [oO] [nN] [gG] [eE] [rR] / [wW] [iI] [dD] [eE] [rR]))? / [lL] [aA] [cC] [iI] [nN] [gG] / [rR] [iI] [mM] [aA] [rR] [yY]) / [qQ] [uU] [aA] [lL] [iI] [fF] [yY] / [rR] [eE] ([fF] [eE] [rR] [eE] [nN] [cC] [eE] [sS] / [tT] [uU] [rR] [nN] [iI] [nN] [gG]) / [sS] ([eE] [lL] [eE] [cC] [tT] / [hH] [oO] [wW] / [oO] [mM] [eE] / [uU] [mM] [mM] [aA] [rR] [iI] [zZ] [eE] / [yY] [mM] [mM] [eE] [tT] [rR] [iI] [cC]) / [tT] ([aA] [bB] [lL] [eE] / [hH] [eE] [nN] / [oO] / [rR] ([aA] [iI] [lL] [iI] [nN] [gG] / [uU] [eE])) / [uU] ([nN] ([iI] ([oO] [nN] / [qQ] [uU] [eE]) / [pP] [iI] [vV] [oO] [tT]) / [sS] [iI] [nN] [gG]) / [vV] [aA] [rR] [iI] [aA] [dD] [iI] [cC] / [wW] ([hH] [eE] ([nN] / [rR] [eE]) / [iI] ([nN] [dD] [oO] [wW] / [tT] [hH]))) ![a-zA-Z0-9_$\u{80}-\u{9f}¡-\u{1fff}\u{200c}-\u{202e}‰-⁞\u{2061}-⿿、-\u{fefe}\u{ff00}-\u{10ffff}] = "([aA] ([lL] [lL] / [nN] ([aA] [lL] [yY] ([sS] [eE] / [zZ] [eE]) / [dD] / [yY]) / [rR] [rR] [aA] [yY] / [sS] ([cC] / [yY] [mM] [mM] [eE] [tT] [rR] [iI] [cC])?) / [bB] [oO] [tT] [hH] / [cC] ([aA] [sS] ([eE] / [tT]) / [hH] [eE] [cC] [kK] / [oO] ([lL] ([lL] [aA] [tT] [eE] / [uU] [mM] [nN]) / [nN] [sS] [tT] [rR] [aA] [iI] [nN] [tT]) / [rR] [eE] [aA] [tT] [eE]) / [dD] ([eE] ([fF] ([aA] [uU] [lL] [tT] / [eE] [rR] [rR] [aA] [bB] [lL] [eE]) / [sS] [cC] ([rR] [iI] [bB] [eE])?) / [iI] [sS] [tT] [iI] [nN] [cC] [tT] / [oO]) / [eE] ([lL] [sS] [eE] / [nN] [dD] / [xX] [cC] [eE] [pP] [tT]) / [fF] ([aA] [lL] [sS] [eE] / [eE] [tT] [cC] [hH] / [oO] [rR] ([eE] [iI] [gG] [nN])? / [rR] [oO] [mM]) / [gG] [rR] [oO] [uU] [pP] / [hH] [aA] [vV] [iI] [nN] [gG] / [iI] [nN] ([iI] [tT] [iI] [aA] [lL] [lL] [yY] / [tT] ([eE] [rR] [sS] [eE] [cC] [tT] / [oO]))? / [lL] ([aA] ([mM] [bB] [dD] [aA] / [tT] [eE] [rR] [aA] [lL]) / [eE] [aA] [dD] [iI] [nN] [gG] / [iI] [mM] [iI] [tT]) / [nN] ([oO] [tT] / [uU] [lL] [lL]) / [oO] ([fF] [fF] [sS] [eE] [tT] / [nN] ([lL] [yY])? / [rR] ([dD] [eE] [rR])?) / [pP] ([iI] [vV] [oO] [tT] (\"_\" ([lL] [oO] [nN] [gG] [eE] [rR] / [wW] [iI] [dD] [eE] [rR]))? / [lL] [aA] [cC] [iI] [nN] [gG] / [rR] [iI] [mM] [aA] [rR] [yY]) / [qQ] [uU] [aA] [lL] [iI] [fF] [yY] / [rR] [eE] ([fF] [eE] [rR] [eE] [nN] [cC] [eE] [sS] / [tT] [uU] [rR] [nN] [iI] [nN] [gG]) / [sS] ([eE] [lL] [eE] [cC] [tT] / [hH] [oO] [wW] / [oO] [mM] [eE] / [uU] [mM] [mM] [aA] [rR] [iI] [zZ] [eE] / [yY] [mM] [mM] [eE] [tT] [rR] [iI] [cC]) / [tT] ([aA] [bB] [lL] [eE] / [hH] [eE] [nN] / [oO] / [rR] ([aA] [iI] [lL] [iI] [nN] [gG] / [uU] [eE])) / [uU] ([nN] ([iI] ([oO] [nN] / [qQ] [uU] [eE]) / [pP] [iI] [vV] [oO] [tT]) / [sS] [iI] [nN] [gG]) / [vV] [aA] [rR] [iI] [aA] [dD] [iI] [cC] / [wW] ([hH] [eE] ([nN] / [rR] [eE]) / [iI] ([nN] [dD] [oO] [wW] / [tT] [hH]))) ![a-zA-Z0-9_$\\u{80}-\\u{9f}¡-\\u{1fff}\\u{200c}-\\u{202e}‰-⁞\\u{2061}-⿿、-\\u{fefe}\\u{ff00}-\\u{10ffff}]"
+  2536:6 [aA] ([lL] [lL] / [nN] ([aA] [lL] [yY] ([sS] [eE] / [zZ] [eE]) / [DYdy]) / [rR] [rR] [aA] [yY] / [sS] ([cC] / [yY] [mM] [mM] [eE] [tT] [rR] [iI] [cC])?) / [bB] [oO] [tT] [hH] / [cC] ([aA] [sS] [ETet] / [hH] [eE] [cC] [kK] / [oO] ([lL] ([lL] [aA] [tT] [eE] / [uU] [mM] [nN]) / [nN] [sS] [tT] [rR] [aA] [iI] [nN] [tT]) / [rR] [eE] [aA] [tT] [eE]) / [dD] ([eE] ([fF] ([aA] [uU] [lL] [tT] / [eE] [rR] [rR] [aA] [bB] [lL] [eE]) / [sS] [cC] ([rR] [iI] [bB] [eE])?) / [iI] [sS] [tT] [iI] [nN] [cC] [tT] / [oO]) / [eE] ([lL] [sS] [eE] / [nN] [dD] / [xX] [cC] [eE] [pP] [tT]) / [fF] ([aA] [lL] [sS] [eE] / [eE] [tT] [cC] [hH] / [oO] [rR] ([eE] [iI] [gG] [nN])? / [rR] [oO] [mM]) / [gG] [rR] [oO] [uU] [pP] / [hH] [aA] [vV] [iI] [nN] [gG] / [iI] [nN] ([iI] [tT] [iI] [aA] [lL] [lL] [yY] / [tT] ([eE] [rR] [sS] [eE] [cC] [tT] / [oO]))? / [lL] ([aA] ([mM] [bB] [dD] [aA] / [tT] [eE] [rR] [aA] [lL]) / [eE] [aA] [dD] [iI] [nN] [gG] / [iI] [mM] [iI] [tT]) / [nN] ([oO] [tT] / [uU] [lL] [lL]) / [oO] ([fF] [fF] [sS] [eE] [tT] / [nN] ([lL] [yY])? / [rR] ([dD] [eE] [rR])?) / [pP] ([iI] [vV] [oO] [tT] ("_" ([lL] [oO] [nN] [gG] [eE] [rR] / [wW] [iI] [dD] [eE] [rR]))? / [lL] [aA] [cC] [iI] [nN] [gG] / [rR] [iI] [mM] [aA] [rR] [yY]) / [qQ] [uU] [aA] [lL] [iI] [fF] [yY] / [rR] [eE] ([fF] [eE] [rR] [eE] [nN] [cC] [eE] [sS] / [tT] [uU] [rR] [nN] [iI] [nN] [gG]) / [sS] ([eE] [lL] [eE] [cC] [tT] / [hH] [oO] [wW] / [oO] [mM] [eE] / [uU] [mM] [mM] [aA] [rR] [iI] [zZ] [eE] / [yY] [mM] [mM] [eE] [tT] [rR] [iI] [cC]) / [tT] ([aA] [bB] [lL] [eE] / [hH] [eE] [nN] / [oO] / [rR] ([aA] [iI] [lL] [iI] [nN] [gG] / [uU] [eE])) / [uU] ([nN] ([iI] ([oO] [nN] / [qQ] [uU] [eE]) / [pP] [iI] [vV] [oO] [tT]) / [sS] [iI] [nN] [gG]) / [vV] [aA] [rR] [iI] [aA] [dD] [iI] [cC] / [wW] ([hH] [eE] ([nN] / [rR] [eE]) / [iI] ([nN] [dD] [oO] [wW] / [tT] [hH])) = "[aA] ([lL] [lL] / [nN] ([aA] [lL] [yY] ([sS] [eE] / [zZ] [eE]) / [dD] / [yY]) / [rR] [rR] [aA] [yY] / [sS] ([cC] / [yY] [mM] [mM] [eE] [tT] [rR] [iI] [cC])?) / [bB] [oO] [tT] [hH] / [cC] ([aA] [sS] ([eE] / [tT]) / [hH] [eE] [cC] [kK] / [oO] ([lL] ([lL] [aA] [tT] [eE] / [uU] [mM] [nN]) / [nN] [sS] [tT] [rR] [aA] [iI] [nN] [tT]) / [rR] [eE] [aA] [tT] [eE]) / [dD] ([eE] ([fF] ([aA] [uU] [lL] [tT] / [eE] [rR] [rR] [aA] [bB] [lL] [eE]) / [sS] [cC] ([rR] [iI] [bB] [eE])?) / [iI] [sS] [tT] [iI] [nN] [cC] [tT] / [oO]) / [eE] ([lL] [sS] [eE] / [nN] [dD] / [xX] [cC] [eE] [pP] [tT]) / [fF] ([aA] [lL] [sS] [eE] / [eE] [tT] [cC] [hH] / [oO] [rR] ([eE] [iI] [gG] [nN])? / [rR] [oO] [mM]) / [gG] [rR] [oO] [uU] [pP] / [hH] [aA] [vV] [iI] [nN] [gG] / [iI] [nN] ([iI] [tT] [iI] [aA] [lL] [lL] [yY] / [tT] ([eE] [rR] [sS] [eE] [cC] [tT] / [oO]))? / [lL] ([aA] ([mM] [bB] [dD] [aA] / [tT] [eE] [rR] [aA] [lL]) / [eE] [aA] [dD] [iI] [nN] [gG] / [iI] [mM] [iI] [tT]) / [nN] ([oO] [tT] / [uU] [lL] [lL]) / [oO] ([fF] [fF] [sS] [eE] [tT] / [nN] ([lL] [yY])? / [rR] ([dD] [eE] [rR])?) / [pP] ([iI] [vV] [oO] [tT] (\"_\" ([lL] [oO] [nN] [gG] [eE] [rR] / [wW] [iI] [dD] [eE] [rR]))? / [lL] [aA] [cC] [iI] [nN] [gG] / [rR] [iI] [mM] [aA] [rR] [yY]) / [qQ] [uU] [aA] [lL] [iI] [fF] [yY] / [rR] [eE] ([fF] [eE] [rR] [eE] [nN] [cC] [eE] [sS] / [tT] [uU] [rR] [nN] [iI] [nN] [gG]) / [sS] ([eE] [lL] [eE] [cC] [tT] / [hH] [oO] [wW] / [oO] [mM] [eE] / [uU] [mM] [mM] [aA] [rR] [iI] [zZ] [eE] / [yY] [mM] [mM] [eE] [tT] [rR] [iI] [cC]) / [tT] ([aA] [bB] [lL] [eE] / [hH] [eE] [nN] / [oO] / [rR] ([aA] [iI] [lL] [iI] [nN] [gG] / [uU] [eE])) / [uU] ([nN] ([iI] ([oO] [nN] / [qQ] [uU] [eE]) / [pP] [iI] [vV] [oO] [tT]) / [sS] [iI] [nN] [gG]) / [vV] [aA] [rR] [iI] [aA] [dD] [iI] [cC] / [wW] ([hH] [eE] ([nN] / [rR] [eE]) / [iI] ([nN] [dD] [oO] [wW] / [tT] [hH]))"
+  2536:6 [aA] ([lL] [lL] / [nN] ([aA] [lL] [yY] ([sS] [eE] / [zZ] [eE]) / [DYdy]) / [rR] [rR] [aA] [yY] / [sS] ([cC] / [yY] [mM] [mM] [eE] [tT] [rR] [iI] [cC])?) = "[aA] ([lL] [lL] / [nN] ([aA] [lL] [yY] ([sS] [eE] / [zZ] [eE]) / [dD] / [yY]) / [rR] [rR] [aA] [yY] / [sS] ([cC] / [yY] [mM] [mM] [eE] [tT] [rR] [iI] [cC])?)"
+  2536:71 [DYdy] = "[dD] / [yY]"
+rule kw_u = ([aA] ([bB] ([oO] [rR] [tT] / [sS] [oO] [lL] [uU] [tT] [eE]) / [cC] ([cC] [eE] [sS] [sS] / [tT] [iI] [oO] [nN]) / [dD] ([dD] / [mM] [iI] [nN]) / [fF] [tT] [eE] [rR] / [gG] [gG] [rR] [eE] [gG] [aA] [tT] [eE] / [lL] ([sS] [oO] / [tT] [eE] [rR] / [wW] [aA] [yY] [sS]) / [sS] [sS] ([eE] [rR] [tT] [iI] [oO] [nN] / [iI] [gG] [nN] [mM] [eE] [nN] [tT]) / [tT] [tT] ([aA] [cC] [hH] / [rR] [iI] [bB] [uU] [tT] [eE])) / [bB] ([aA] [cC] [kK] [wW] [aA] [rR] [dD] / [eE] ([fF] [oO] [rR] [eE] / [gG] [iI] [nN])) / [cC] ([aA] ([cC] [hH] [eE] / [lL] [lL] ([eE] [dD])? / [sS] [cC] [aA] [dD] [eE] [dD]? / [tT] [aA] [lL] [oO] [gG]) / [eE] [nN] [tT] [uU] [rR] ([iI] [eE] [sS] / [yY]) / [hH] ([aA] ([iI] [nN] / [rR] [aA] [cC] [tT] [eE] [rR] [iI] [sS] [tT] [iI] [cC] [sS]) / [eE] [cC] [kK] [pP] [oO] [iI] [nN] [tT]) / [lL] ([aA] [sS] [sS] / [oO] [sS] [eE] / [uU] [sS] [tT] [eE] [rR]) / [oO] ([mM] ([mM] ([eE] [nN] [tT] [sS]? / [iI] [tT] ([tT] [eE] [dD])?) / [pP] [rR] [eE] [sS] [sS] [iI] [oO] [nN]) / [nN] ([fF] ([iI] [gG] [uU] [rR] [aA] [tT] [iI] [oO] [nN] / [lL] [iI] [cC] [tT]) / [nN] [eE] [cC] [tT] [iI] [oO] [nN] / [sS] [tT] [rR] [aA] [iI] [nN] [tT] [sS] / [tT] ([eE] [nN] [tT] / [iI] [nN] [uU] [eE]) / [vV] [eE] [rR] [sS] [iI] [oO] [nN]) / [pP] [yY] / [sS] [tT]) / [sS] [vV] / [uU] ([bB] [eE] / [rR] ([rR] [eE] [nN] [tT] / [sS] [oO] [rR])) / [yY] [cC] [lL] [eE]) / [dD] ([aA] ([tT] [aA] ([bB] [aA] [sS] [eE])? / [yY] [sS]?) / [eE] ([aA] [lL] [lL] [oO] [cC] [aA] [tT] [eE] / [cC] ([aA] [dD] [eE] [sS]? / [lL] [aA] [rR] [eE]) / [fF] ([aA] [uU] [lL] [tT] [sS] / [eE] [rR] [rR] [eE] [dD] / [iI] [nN] [eE] [rR]) / [lL] ([eE] [tT] [eE] / [iI] [mM] [iI] [tT] [eE] [rR] [sS]?) / [pP] [eE] [nN] [dD] [sS] / [tT] [aA] [cC] [hH]) / [iI] ([cC] [tT] [iI] [oO] [nN] [aA] [rR] [yY] / [sS] ([aA] [bB] [lL] [eE] / [cC] [aA] [rR] [dD])) / [oO] ([cC] [uU] [mM] [eE] [nN] [tT] / [mM] [aA] [iI] [nN] / [uU] [bB] [lL] [eE]) / [rR] [oO] [pP]) / [eE] ([aA] [cC] [hH] / [nN] ([aA] [bB] [lL] [eE] / [cC] ([oO] [dD] [iI] [nN] [gG] / [rR] [yY] [pP] [tT] [eE] [dD]) / [uU] [mM]) / [rR] [rR] [oO] [rR] / [sS] [cC] [aA] [pP] [eE] / [vV] [eE] [nN] [tT] / [xX] ([cC] [lL] [uU] ([dD] ([eE] / [iI] [nN] [gG]) / [sS] [iI] [vV] [eE]) / [eE] [cC] [uU] [tT] [eE] / [pP] ([lL] [aA] [iI] [nN] / [oO] [rR] [tT] ("_" [sS] [tT] [aA] [tT] [eE])?) / [tT] [eE] ([nN] [sS] [iI] [oO] [nN] [sS]? / [rR] [nN] [aA] [lL]))) / [fF] ([aA] [mM] [iI] [lL] [yY] / [iI] ([lL] [tT] [eE] [rR] / [rR] [sS] [tT]) / [oO] ([lL] [lL] [oO] [wW] [iI] [nN] [gG] / [rR] ([cC] [eE] / [wW] [aA] [rR] [dD])) / [uU] [nN] [cC] [tT] [iI] [oO] [nN] [sS]?) / [gG] ([lL] [oO] [bB] [aA] [lL] / [rR] ([aA] [nN] [tT] ([eE] [dD])? / [oO] [uU] [pP] [sS])) / [hH] ([aA] [nN] [dD] [lL] [eE] [rR] / [eE] [aA] [dD] [eE] [rR] / [oO] ([lL] [dD] / [uU] [rR] [sS]?)) / [iI] ([dD] [eE] [nN] [tT] [iI] [tT] [yY] / [fF] / [gG] [nN] [oO] [rR] [eE] / [mM] ([mM] ([eE] [dD] [iI] [aA] [tT] [eE] / [uU] [tT] [aA] [bB] [lL] [eE]) / [pP] ([lL] [iI] [cC] [iI] [tT] / [oO] [rR] [tT])) / [nN] ([cC] ([lL] [uU] [dD] ([eE] / [iI] [nN] [gG]) / [rR] [eE] [mM] [eE] [nN] [tT]) / [dD] [eE] [xX] ([eE] [sS])? / [hH] [eE] [rR] [iI] [tT] [sS]? / [lL] [iI] [nN] [eE] / [pP] [uU] [tT] / [sS] ([eE] ([nN] [sS] [iI] [tT] [iI] [vV] [eE] / [rR] [tT]) / [tT] ([aA] [lL] [lL] / [eE] [aA] [dD])) / [vV] [oO] [kK] [eE] [rR]) / [sS] [oO] [lL] [aA] [tT] [iI] [oO] [nN]) / [jJ] [sS] [oO] [nN] / [kK] [eE] [yY] / [lL] ([aA] ([bB] [eE] [lL] / [nN] [gG] [uU] [aA] [gG] [eE] / [rR] [gG] [eE] / [sS] [tT]) / [eE] ([aA] [kK] [pP] [rR] [oO] [oO] [fF] / [vV] [eE] [lL]) / [iI] [sS] [tT] [eE] [nN] / [oO] ([aA] [dD] / [cC] ([aA] ([lL] / [tT] [iI] [oO] [nN]) / [kK] ([eE] [dD])?) / [gG] [gG] [eE] [dD])) / [mM] ([aA] ([cC] [rR] [oO] / [pP] [pP] [iI] [nN] [gG] / [tT] ([cC] [hH] ([eE] [dD])? / [eE] [rR] [iI] [aA] [lL] [iI] [zZ] [eE] [dD]) / [xX] [vV] [aA] [lL] [uU] [eE]) / [eE] ([rR] [gG] [eE] / [tT] [hH] [oO] [dD]) / [iI] ([cC] [rR] [oO] [sS] [eE] [cC] [oO] [nN] [dD] [sS]? / [lL] [lL] ([eE] [nN] [nN] [iI] ([aA] / [uU] [mM]) / [iI] [sS] [eE] [cC] [oO] [nN] [dD] [sS]?) / [nN] ([uU] [tT] [eE] [sS]? / [vV] [aA] [lL] [uU] [eE])) / [oO] ([dD] [eE] / [nN] [tT] [hH] [sS]? / [vV] [eE])) / [nN] ([aA] [mM] [eE] [sS]? / [eE] ([wW] / [xX] [tT]) / [oO] ([tT] ([hH] [iI] [nN] [gG] / [iI] [fF] [yY]) / [wW] [aA] [iI] [tT])? / [uU] [lL] [lL] [sS]) / [oO] ([bB] [jJ] [eE] [cC] [tT] / [fF] [fF]? / [iI] [dD] [sS] / [lL] [dD] / [pP] ([eE] [rR] [aA] [tT] [oO] [rR] / [tT] [iI] [oO] [nN] [sS]?) / [rR] [dD] [iI] [nN] [aA] [lL] [iI] [tT] [yY] / [tT] [hH] [eE] [rR] [sS] / [vV] [eE] [rR] ([rR] [iI] [dD] [iI] [nN] [gG])? / [wW] [nN] [eE] [DRdr]) / [pP] ([aA] ([rR] ([aA] [lL] [lL] [eE] [lL] / [sS] [eE] [rR] / [tT] [iI] ([aA] [lL] / [tT] [iI] [oO] [nN] ([eE] [dD])?)) / [sS] [sS] ([iI] [nN] [gG] / [wW] [oO] [rR] [dD])) / [eE] [rR] ([cC] [eE] [nN] [tT] / [sS] [iI] [sS] [tT] [eE] [nN] [tT]) / [lL] [aA] [nN] [sS] / [oO] [lL] [iI] [cC] [yY] / [rR] ([aA] [gG] [mM] [aA] / [eE] ([cC] [eE] [dD] [iI] [nN] [gG] / [pP] [aA] [rR] [eE] [dD]? / [sS] [eE] [rR] [vV] [eE]) / [iI] ([oO] [rR] / [vV] [iI] [lL] [eE] [gG] [eE] [sS]) / [oO] ([cC] [eE] [dD] [uU] [rR] ([aA] [lL] / [eE]) / [gG] [rR] [aA] [mM])) / [uU] [bB] [lL] [iI] [cC] [aA] [tT] [iI] [oO] [nN]) / [qQ] [uU] ([aA] [rR] [tT] [eE] [rR] [sS]? / [oO] [tT] [eE]) / [rR] ([aA] [nN] [gG] [eE] / [eE] ([aA] ([dD] / [sS] [sS] [iI] [gG] [nN]) / [cC] ([hH] [eE] [cC] [kK] / [uU] [rR] [sS] [iI] [vV] [eE]) / [fF] ([eE] [rR] [eE] [nN] [cC] [iI] [nN] [gG] / [rR] [eE] [sS] [hH])? / [iI] [nN] [dD] [eE] [xX] / [lL] ([aA] [tT] [iI] [vV] [eE] / [eE] [aA] [sS] [eE]) / [nN] [aA] [mM] [eE] / [pP] ([eE] [aA] [tT] [aA] [bB] [lL] [eE] / [lL] ([aA] [cC] [eE] / [iI] [cC] [aA])) / [sS] ([eE] [tT] / [pP] [eE] [cC] [tT] / [tT] ([aA] [rR] [tT] / [rR] [iI] [cC] [tT])) / [tT] [uU] [rR] [nN] [sS] / [vV] [oO] [kK] [eE]) / [oO] ([lL] ([eE] / [lL] ([bB] [aA] [cC] [kK] / [uU] [pP])) / [wW] [sS]) / [uU] [lL] [eE]) / [sS] ([aA] ([mM] [pP] [lL] [eE] / [vV] [eE] [pP] [oO] [iI] [nN] [tT]) / [cC] ([hH] [eE] [mM] [aA] [sS]? / [oO] [pP] [eE] / [rR] [oO] [lL] [lL]) / [eE] ([aA] [rR] [cC] [hH] / [cC] ([oO] [nN] [dD] [sS]? / [rR] [eE] [tT] / [uU] [rR] [iI] [tT] [yY]) / [qQ] [uU] [eE] [nN] [cC] [eE] [sS]? / [rR] ([iI] [aA] [lL] [iI] [zZ] [aA] [bB] [lL] [eE] / [vV] [eE] [rR]) / [sS] [sS] [iI] [oO] [nN] / [tT] [sS]?) / [hH] [aA] [rR] [eE] / [iI] [mM] [pP] [lL] [eE] / [kK] [iI] [pP] / [nN] [aA] [pP] [sS] [hH] [oO] [tT] / [oO] ([rR] [tT] [eE] [dD] / [uU] [rR] [cC] [eE]) / [qQ] [lL] / [tT] ([aA] ([bB] [lL] [eE] / [nN] [dD] [aA] [lL] [oO] [nN] [eE] / [rR] [tT] / [tT] ([eE] [mM] [eE] [nN] [tT] / [iI] [sS] [tT] [iI] [cC] [sS])) / [dD] ([iI] [nN] / [oO] [uU] [tT]) / [oO] [rR] ([aA] [gG] [eE] / [eE] [dD]) / [rR] [iI] ([cC] [tT] / [pP])) / [uU] [bB] [sS] [cC] [rR] [iI] [pP] [tT] [iI] [oO] [nN] / [yY] [sS] ([iI] [dD] / [tT] [eE] [mM])) / [tT] ([aA] ([bB] [lL] [eE] [sS] ([pP] [aA] [cC] [eE])? / [rR] [gG] [eE] [tT]) / [eE] ([mM] [pP] ([lL] [aA] [tT] [eE] / [oO] [rR] [aA] [rR] [yY])? / [xX] [tT]) / [iI] [eE] [sS] / [rR] ([aA] [nN] [sS] ([aA] [cC] [tT] [iI] [oO] [nN] / [fF] [oO] [rR] [mM]) / [iI] [gG] [gG] [eE] [rR] / [uU] ([nN] [cC] [aA] [tT] [eE] / [sS] [tT] [eE] [dD])) / [yY] [pP] [eE] [sS]?) / [uU] ([nN] ([bB] [oO] [uU] [nN] [dD] [eE] [dD] / [cC] [oO] [mM] [mM] [iI] [tT] [tT] [eE] [dD] / [eE] [nN] [cC] [rR] [yY] [pP] [tT] [eE] [dD] / [kK] [nN] [oO] [wW] [nN] / [lL] ([iI] [sS] [tT] [eE] [nN] / [oO] [gG] [gG] [eE] [dD]) / [tT] [iI] [lL]) / [pP] [dD] [aA] [tT] [eE] / [sS] [eE] [rR]?) / [vV] ([aA] ([cC] [uU] [uU] [mM] / [lL] ([iI] [dD] ([aA] [tT] ([eE] / [oO] [rR]))? / [uU] [eE]) / [rR] ([iI] [aA] [bB] [lL] [eE] / [yY] [iI] [nN] [gG])) / [eE] [rR] [sS] [iI] [oO] [nN] / [iI] ([eE] [wW] [sS]? / [rR] [tT] [uU] [aA] [lL]) / [oO] [lL] [aA] [tT] [iI] [lL] [eE]) / [wW] ([eE] [eE] [kK] [sS]? / [hH] [iI] [tT] [eE] [sS] [pP] [aA] [cC] [eE] / [iI] [tT] [hH] ([iI] [nN] / [oO] [uU] [tT]) / [oO] [rR] [kK] / [rR] ([aA] [pP] [pP] [eE] [rR] / [iI] [tT] [eE])) / [xX] [mM] [lL] / [yY] [eE] ([aA] [rR] [sS]? / [sS]) / [zZ] [oO] [nN] [eE]) ![a-zA-Z0-9_$\u{80}-\u{9f}¡-\u{1fff}\u{200c}-\u{202e}‰-⁞\u{2061}-⿿、-\u{fefe}\u{ff00}-\u{10ffff}]
+  2572:4294 [oO] ([bB] [jJ] [eE] [cC] [tT] / [fF] [fF]? / [iI] [dD] [sS] / [lL] [dD] / [pP] ([eE] [rR] [aA] [tT] [oO] [rR] / [tT] [iI] [oO] [nN] [sS]?) / [rR] [dD] [iI] [nN] [aA] [lL] [iI] [tT] [yY] / [tT] [hH] [eE] [rR] [sS] / [vV] [eE] [rR] ([rR] [iI] [dD] [iI] [nN] [gG])? / [wW] [nN] [eE] [DRdr]) = "[oO] ([bB] [jJ] [eE] [cC] [tT] / [fF] [fF]? / [iI] [dD] [sS] / [lL] [dD] / [pP] ([eE] [rR] [aA] [tT] [oO] [rR] / [tT] [iI] [oO] [nN] [sS]?) / [rR] [dD] [iI] [nN] [aA] [lL] [iI] [tT] [yY] / [tT] [hH] [eE] [rR] [sS] / [vV] [eE] [rR] ([rR] [iI] [dD] [iI] [nN] [gG])? / [wW] [nN] [eE] ([dD] / [rR]))"
+  2572:4300 [bB] [jJ] [eE] [cC] [tT] / [fF] [fF]? / [iI] [dD] [sS] / [lL] [dD] / [pP] ([eE] [rR] [aA] [tT] [oO] [rR] / [tT] [iI] [oO] [nN] [sS]?) / [rR] [dD] [iI] [nN] [aA] [lL] [iI] [tT] [yY] / [tT] [hH] [eE] [rR] [sS] / [vV] [eE] [rR] ([rR] [iI] [dD] [iI] [nN] [gG])? / [wW] [nN] [eE] [DRdr] = "[bB] [jJ] [eE] [cC] [tT] / [fF] [fF]? / [iI] [dD] [sS] / [lL] [dD] / [pP] ([eE] [rR] [aA] [tT] [oO] [rR] / [tT] [iI] [oO] [nN] [sS]?) / [rR] [dD] [iI] [nN] [aA] [lL] [iI] [tT] [yY] / [tT] [hH] [eE] [rR] [sS] / [vV] [eE] [rR] ([rR] [iI] [dD] [iI] [nN] [gG])? / [wW] [nN] [eE] ([dD] / [rR])"
+  2572:4560 [wW] [nN] [eE] [DRdr] = "[wW] [nN] [eE] ([dD] / [rR])"
+  2572:4576 [DRdr] = "[dD] / [rR]"
+  2572:5 ([aA] ([bB] ([oO] [rR] [tT] / [sS] [oO] [lL] [uU] [tT] [eE]) / [cC] ([cC] [eE] [sS] [sS] / [tT] [iI] [oO] [nN]) / [dD] ([dD] / [mM] [iI] [nN]) / [fF] [tT] [eE] [rR] / [gG] [gG] [rR] [eE] [gG] [aA] [tT] [eE] / [lL] ([sS] [oO] / [tT] [eE] [rR] / [wW] [aA] [yY] [sS]) / [sS] [sS] ([eE] [rR] [tT] [iI] [oO] [nN] / [iI] [gG] [nN] [mM] [eE] [nN] [tT]) / [tT] [tT] ([aA] [cC] [hH] / [rR] [iI] [bB] [uU] [tT] [eE])) / [bB] ([aA] [cC] [kK] [wW] [aA] [rR] [dD] / [eE] ([fF] [oO] [rR] [eE] / [gG] [iI] [nN])) / [cC] ([aA] ([cC] [hH] [eE] / [lL] [lL] ([eE] [dD])? / [sS] [cC] [aA] [dD] [eE] [dD]? / [tT] [aA] [lL] [oO] [gG]) / [eE] [nN] [tT] [uU] [rR] ([iI] [eE] [sS] / [yY]) / [hH] ([aA] ([iI] [nN] / [rR] [aA] [cC] [tT] [eE] [rR] [iI] [sS] [tT] [iI] [cC] [sS]) / [eE] [cC] [kK] [pP] [oO] [iI] [nN] [tT]) / [lL] ([aA] [sS] [sS] / [oO] [sS] [eE] / [uU] [sS] [tT] [eE] [rR]) / [oO] ([mM] ([mM] ([eE] [nN] [tT] [sS]? / [iI] [tT] ([tT] [eE] [dD])?) / [pP] [rR] [eE] [sS] [sS] [iI] [oO] [nN]) / [nN] ([fF] ([iI] [gG] [uU] [rR] [aA] [tT] [iI] [oO] [nN] / [lL] [iI] [cC] [tT]) / [nN] [eE] [cC] [tT] [iI] [oO] [nN] / [sS] [tT] [rR] [aA] [iI] [nN] [tT] [sS] / [tT] ([eE] [nN] [tT] / [iI] [nN] [uU] [eE]) / [vV] [eE] [rR] [sS] [iI] [oO] [nN]) / [pP] [yY] / [sS] [tT]) / [sS] [vV] / [uU] ([bB] [eE] / [rR] ([rR] [eE] [nN] [tT] / [sS] [oO] [rR])) / [yY] [cC] [lL] [eE]) / [dD] ([aA] ([tT] [aA] ([bB] [aA] [sS] [eE])? / [yY] [sS]?) / [eE] ([aA] [lL] [lL] [oO] [cC] [aA] [tT] [eE] / [cC] ([aA] [dD] [eE] [sS]? / [lL] [aA] [rR] [eE]) / [fF] ([aA] [uU] [lL] [tT] [sS] / [eE] [rR] [rR] [eE] [dD] / [iI] [nN] [eE] [rR]) / [lL] ([eE] [tT] [eE] / [iI] [mM] [iI] [tT] [eE] [rR] [sS]?) / [pP] [eE] [nN] [dD] [sS] / [tT] [aA] [cC] [hH]) / [iI] ([cC] [tT] [iI] [oO] [nN] [aA] [rR] [yY] / [sS] ([aA] [bB] [lL] [eE] / [cC] [aA] [rR] [dD])) / [oO] ([cC] [uU] [mM] [eE] [nN] [tT] / [mM] [aA] [iI] [nN] / [uU] [bB] [lL] [eE]) / [rR] [oO] [pP]) / [eE] ([aA] [cC] [hH] / [nN] ([aA] [bB] [lL] [eE] / [cC] ([oO] [dD] [iI] [nN] [gG] / [rR] [yY] [pP] [tT] [eE] [dD]) / [uU] [mM]) / [rR] [rR] [oO] [rR] / [sS] [cC] [aA] [pP] [eE] / [vV] [eE] [nN] [tT] / [xX] ([cC] [lL] [uU] ([dD] ([eE] / [iI] [nN] [gG]) / [sS] [iI] [vV] [eE]) / [eE] [cC] [uU] [tT] [eE] / [pP] ([lL] [aA] [iI] [nN] / [oO] [rR] [tT] ("_" [sS] [tT] [aA] [tT] [eE])?) / [tT] [eE] ([nN] [sS] [iI] [oO] [nN] [sS]? / [rR] [nN] [aA] [lL]))) / [fF] ([aA] [mM] [iI] [lL] [yY] / [iI] ([lL] [tT] [eE] [rR] / [rR] [sS] [tT]) / [oO] ([lL] [lL] [oO] [wW] [iI] [nN] [gG] / [rR] ([cC] [eE] / [wW] [aA] [rR] [dD])) / [uU] [nN] [cC] [tT] [iI] [oO] [nN] [sS]?) / [gG] ([lL] [oO] [bB] [aA] [lL] / [rR] ([aA] [nN] [tT] ([eE] [dD])? / [oO] [uU] [pP] [sS])) / [hH] ([aA] [nN] [dD] [lL] [eE] [rR] / [eE] [aA] [dD] [eE] [rR] / [oO] ([lL] [dD] / [uU] [rR] [sS]?)) / [iI] ([dD] [eE] [nN] [tT] [iI] [tT] [yY] / [fF] / [gG] [nN] [oO] [rR] [eE] / [mM] ([mM] ([eE] [dD] [iI] [aA] [tT] [eE] / [uU] [tT] [aA] [bB] [lL] [eE]) / [pP] ([lL] [iI] [cC] [iI] [tT] / [oO] [rR] [tT])) / [nN] ([cC] ([lL] [uU] [dD] ([eE] / [iI] [nN] [gG]) / [rR] [eE] [mM] [eE] [nN] [tT]) / [dD] [eE] [xX] ([eE] [sS])? / [hH] [eE] [rR] [iI] [tT] [sS]? / [lL] [iI] [nN] [eE] / [pP] [uU] [tT] / [sS] ([eE] ([nN] [sS] [iI] [tT] [iI] [vV] [eE] / [rR] [tT]) / [tT] ([aA] [lL] [lL] / [eE] [aA] [dD])) / [vV] [oO] [kK] [eE] [rR]) / [sS] [oO] [lL] [aA] [tT] [iI] [oO] [nN]) / [jJ] [sS] [oO] [nN] / [kK] [eE] [yY] / [lL] ([aA] ([bB] [eE] [lL] / [nN] [gG] [uU] [aA] [gG] [eE] / [rR] [gG] [eE] / [sS] [tT]) / [eE] ([aA] [kK] [pP] [rR] [oO] [oO] [fF] / [vV] [eE] [lL]) / [iI] [sS] [tT] [eE] [nN] / [oO] ([aA] [dD] / [cC] ([aA] ([lL] / [tT] [iI] [oO] [nN]) / [kK] ([eE] [dD])?) / [gG] [gG] [eE] [dD])) / [mM] ([aA] ([cC] [rR] [oO] / [pP] [pP] [iI] [nN] [gG] / [tT] ([cC] [hH] ([eE] [dD])? / [eE] [rR] [iI] [aA] [lL] [iI] [zZ] [eE] [dD]) / [xX] [vV] [aA] [lL] [uU] [eE]) / [eE] ([rR] [gG] [eE] / [tT] [hH] [oO] [dD]) / [iI] ([cC] [rR] [oO] [sS] [eE] [cC] [oO] [nN] [dD] [sS]? / [lL] [lL] ([eE] [nN] [nN] [iI] ([aA] / [uU] [mM]) / [iI] [sS] [eE] [cC] [oO] [nN] [dD] [sS]?) / [nN] ([uU] [tT] [eE] [sS]? / [vV] [aA] [lL] [uU] [eE])) / [oO] ([dD] [eE] / [nN] [tT] [hH] [sS]? / [vV] [eE])) / [nN] ([aA] [mM] [eE] [sS]? / [eE] ([wW] / [xX] [tT]) / [oO] ([tT] ([hH] [iI] [nN] [gG] / [iI] [fF] [yY]) / [wW] [aA] [iI] [tT])? / [uU] [lL] [lL] [sS]) / [oO] ([bB] [jJ] [eE] [cC] [tT] / [fF] [fF]? / [iI] [dD] [sS] / [lL] [dD] / [pP] ([eE] [rR] [aA] [tT] [oO] [rR] / [tT] [iI] [oO] [nN] [sS]?) / [rR] [dD] [iI] [nN] [aA] [lL] [iI] [tT] [yY] / [tT] [hH] [eE] [rR] [sS] / [vV] [eE] [rR] ([rR] [iI] [dD] [iI] [nN] [gG])? / [wW] [nN] [eE] [DRdr]) / [pP] ([aA] ([rR] ([aA] [lL] [lL] [eE] [lL] / [sS] [eE] [rR] / [tT] [iI] ([aA] [lL] / [tT] [iI] [oO] [nN] ([eE] [dD])?)) / [sS] [sS] ([iI] [nN] [gG] / [wW] [oO] [rR] [dD])) / [eE] [rR] ([cC] [eE] [nN] [tT] / [sS] [iI] [sS] [tT] [eE] [nN] [tT]) / [lL] [aA] [nN] [sS] / [oO] [lL] [iI] [cC] [yY] / [rR] ([aA] [gG] [mM] [aA] / [eE] ([cC] [eE] [dD] [iI] [nN] [gG] / [pP] [aA] [rR] [eE] [dD]? / [sS] [eE] [rR] [vV] [eE]) / [iI] ([oO] [rR] / [vV] [iI] [lL] [eE] [gG] [eE] [sS]) / [oO] ([cC] [eE] [dD] [uU] [rR] ([aA] [lL] / [eE]) / [gG] [rR] [aA] [mM])) / [uU] [bB] [lL] [iI] [cC] [aA] [tT] [iI] [oO] [nN]) / [qQ] [uU] ([aA] [rR] [tT] [eE] [rR] [sS]? / [oO] [tT] [eE]) / [rR] ([aA] [nN] [gG] [eE] / [eE] ([aA] ([dD] / [sS] [sS] [iI] [gG] [nN]) / [cC] ([hH] [eE] [cC] [kK] / [uU] [rR] [sS] [iI] [vV] [eE]) / [fF] ([eE] [rR] [eE] [nN] [cC] [iI] [nN] [gG] / [rR] [eE] [sS] [hH])? / [iI] [nN] [dD] [eE] [xX] / [lL] ([aA] [tT] [iI] [vV] [eE] / [eE] [aA] [sS] [eE]) / [nN] [aA] [mM] [eE] / [pP] ([eE] [aA] [tT] [aA] [bB] [lL] [eE] / [lL] ([aA] [cC] [eE] / [iI] [cC] [aA])) / [sS] ([eE] [tT] / [pP] [eE] [cC] [tT] / [tT] ([aA] [rR] [tT] / [rR] [iI] [cC] [tT])) / [tT] [uU] [rR] [nN] [sS] / [vV] [oO] [kK] [eE]) / [oO] ([lL] ([eE] / [lL] ([bB] [aA] [cC] [kK] / [uU] [pP])) / [wW] [sS]) / [uU] [lL] [eE]) / [sS] ([aA] ([mM] [pP] [lL] [eE] / [vV] [eE] [pP] [oO] [iI] [nN] [tT]) / [cC] ([hH] [eE] [mM] [aA] [sS]? / [oO] [pP] [eE] / [rR] [oO] [lL] [lL]) / [eE] ([aA] [rR] [cC] [hH] / [cC] ([oO] [nN] [dD] [sS]? / [rR] [eE] [tT] / [uU] [rR] [iI] [tT] [yY]) / [qQ] [uU] [eE] [nN] [cC] [eE] [sS]? / [rR] ([iI] [aA] [lL] [iI] [zZ] [aA] [bB] [lL] [eE] / [vV] [eE] [rR]) / [sS] [sS] [iI] [oO] [nN] / [tT] [sS]?) / [hH] [aA] [rR] [eE] / [iI] [mM] [pP] [lL] [eE] / [kK] [iI] [pP] / [nN] [aA] [pP] [sS] [hH] [oO] [tT] / [oO] ([rR] [tT] [eE] [dD] / [uU] [rR] [cC] [eE]) / [qQ] [lL] / [tT] ([aA] ([bB] [lL] [eE] / [nN] [dD] [aA] [lL] [oO] [nN] [eE] / [rR] [tT] / [tT] ([eE] [mM] [eE] [nN] [tT] / [iI] [sS] [tT] [iI] [cC] [sS])) / [dD] ([iI] [nN] / [oO] [uU] [tT]) / [oO] [rR] ([aA] [gG] [eE] / [eE] [dD]) / [rR] [iI] ([cC] [tT] / [pP])) / [uU] [bB] [sS] [cC] [rR] [iI] [pP] [tT] [iI] [oO] [nN] / [yY] [sS] ([iI] [dD] / [tT] [eE] [mM])) / [tT] ([aA] ([bB] [lL] [eE] [sS] ([pP] [aA] [cC] [eE])? / [rR] [gG] [eE] [tT]) / [eE] ([mM] [pP] ([lL] [aA] [tT] [eE] / [oO] [rR] [aA] [rR] [yY])? / [xX] [tT]) / [iI] [eE] [sS] / [rR] ([aA] [nN] [sS] ([aA] [cC] [tT] [iI] [oO] [nN] / [fF] [oO] [rR] [mM]) / [iI] [gG] [gG] [eE] [rR] / [uU] ([nN] [cC] [aA] [tT] [eE] / [sS] [tT] [eE] [dD])) / [yY] [pP] [eE] [sS]?) / [uU] ([nN] ([bB] [oO] [uU] [nN] [dD] [eE] [dD] / [cC] [oO] [mM] [mM] [iI] [tT] [tT] [eE] [dD] / [eE] [nN] [cC] [rR] [yY] [pP] [tT] [eE] [dD] / [kK] [nN] [oO] [wW] [nN] / [lL] ([iI] [sS] [tT] [eE] [nN] / [oO] [gG] [gG] [eE] [dD]) / [tT] [iI] [lL]) / [pP] [dD] [aA] [tT] [eE] / [sS] [eE] [rR]?) / [vV] ([aA] ([cC] [uU] [uU] [mM] / [lL] ([iI] [dD] ([aA] [tT] ([eE] / [oO] [rR]))? / [uU] [eE]) / [rR] ([iI] [aA] [bB] [lL] [eE] / [yY] [iI] [nN] [gG])) / [eE] [rR] [sS] [iI] [oO] [nN] / [iI] ([eE] [wW] [sS]? / [rR] [tT] [uU] [aA] [lL]) / [oO] [lL] [aA] [tT] [iI] [lL] [eE]) / [wW] ([eE] [eE] [kK] [sS]? / [hH] [iI] [tT] [eE] [sS] [pP] [aA] [cC] [eE] / [iI] [tT] [hH] ([iI] [nN] / [oO] [uU] [tT]) / [oO] [rR] [kK] / [rR] ([aA] [pP] [pP] [eE] [rR] / [iI] [tT] [eE])) / [xX] [mM] [lL] / [yY] [eE] ([aA] [rR] [sS]? / [sS]) / [zZ] [oO] [nN] [eE]) ![a-zA-Z0-9_$\u{80}-\u{9f}¡-\u{1fff}\u{200c}-\u{202e}‰-⁞\u{2061}-⿿、-\u{fefe}\u{ff00}-\u{10ffff}] = "([aA] ([bB] ([oO] [rR] [tT] / [sS] [oO] [lL] [uU] [tT] [eE]) / [cC] ([cC] [eE] [sS] [sS] / [tT] [iI] [oO] [nN]) / [dD] ([dD] / [mM] [iI] [nN]) / [fF] [tT] [eE] [rR] / [gG] [gG] [rR] [eE] [gG] [aA] [tT] [eE] / [lL] ([sS] [oO] / [tT] [eE] [rR] / [wW] [aA] [yY] [sS]) / [sS] [sS] ([eE] [rR] [tT] [iI] [oO] [nN] / [iI] [gG] [nN] [mM] [eE] [nN] [tT]) / [tT] [tT] ([aA] [cC] [hH] / [rR] [iI] [bB] [uU] [tT] [eE])) / [bB] ([aA] [cC] [kK] [wW] [aA] [rR] [dD] / [eE] ([fF] [oO] [rR] [eE] / [gG] [iI] [nN])) / [cC] ([aA] ([cC] [hH] [eE] / [lL] [lL] ([eE] [dD])? / [sS] [cC] [aA] [dD] [eE] [dD]? / [tT] [aA] [lL] [oO] [gG]) / [eE] [nN] [tT] [uU] [rR] ([iI] [eE] [sS] / [yY]) / [hH] ([aA] ([iI] [nN] / [rR] [aA] [cC] [tT] [eE] [rR] [iI] [sS] [tT] [iI] [cC] [sS]) / [eE] [cC] [kK] [pP] [oO] [iI] [nN] [tT]) / [lL] ([aA] [sS] [sS] / [oO] [sS] [eE] / [uU] [sS] [tT] [eE] [rR]) / [oO] ([mM] ([mM] ([eE] [nN] [tT] [sS]? / [iI] [tT] ([tT] [eE] [dD])?) / [pP] [rR] [eE] [sS] [sS] [iI] [oO] [nN]) / [nN] ([fF] ([iI] [gG] [uU] [rR] [aA] [tT] [iI] [oO] [nN] / [lL] [iI] [cC] [tT]) / [nN] [eE] [cC] [tT] [iI] [oO] [nN] / [sS] [tT] [rR] [aA] [iI] [nN] [tT] [sS] / [tT] ([eE] [nN] [tT] / [iI] [nN] [uU] [eE]) / [vV] [eE] [rR] [sS] [iI] [oO] [nN]) / [pP] [yY] / [sS] [tT]) / [sS] [vV] / [uU] ([bB] [eE] / [rR] ([rR] [eE] [nN] [tT] / [sS] [oO] [rR])) / [yY] [cC] [lL] [eE]) / [dD] ([aA] ([tT] [aA] ([bB] [aA] [sS] [eE])? / [yY] [sS]?) / [eE] ([aA] [lL] [lL] [oO] [cC] [aA] [tT] [eE] / [cC] ([aA] [dD] [eE] [sS]? / [lL] [aA] [rR] [eE]) / [fF] ([aA] [uU] [lL] [tT] [sS] / [eE] [rR] [rR] [eE] [dD] / [iI] [nN] [eE] [rR]) / [lL] ([eE] [tT] [eE] / [iI] [mM] [iI] [tT] [eE] [rR] [sS]?) / [pP] [eE] [nN] [dD] [sS] / [tT] [aA] [cC] [hH]) / [iI] ([cC] [tT] [iI] [oO] [nN] [aA] [rR] [yY] / [sS] ([aA] [bB] [lL] [eE] / [cC] [aA] [rR] [dD])) / [oO] ([cC] [uU] [mM] [eE] [nN] [tT] / [mM] [aA] [iI] [nN] / [uU] [bB] [lL] [eE]) / [rR] [oO] [pP]) / [eE] ([aA] [cC] [hH] / [nN] ([aA] [bB] [lL] [eE] / [cC] ([oO] [dD] [iI] [nN] [gG] / [rR] [yY] [pP] [tT] [eE] [dD]) / [uU] [mM]) / [rR] [rR] [oO] [rR] / [sS] [cC] [aA] [pP] [eE] / [vV] [eE] [nN] [tT] / [xX] ([cC] [lL] [uU] ([dD] ([eE] / [iI] [nN] [gG]) / [sS] [iI] [vV] [eE]) / [eE] [cC] [uU] [tT] [eE] / [pP] ([lL] [aA] [iI] [nN] / [oO] [rR] [tT] (\"_\" [sS] [tT] [aA] [tT] [eE])?) / [tT] [eE] ([nN] [sS] [iI] [oO] [nN] [sS]? / [rR] [nN] [aA] [lL]))) / [fF] ([aA] [mM] [iI] [lL] [yY] / [iI] ([lL] [tT] [eE] [rR] / [rR] [sS] [tT]) / [oO] ([lL] [lL] [oO] [wW] [iI] [nN] [gG] / [rR] ([cC] [eE] / [wW] [aA] [rR] [dD])) / [uU] [nN] [cC] [tT] [iI] [oO] [nN] [sS]?) / [gG] ([lL] [oO] [bB] [aA] [lL] / [rR] ([aA] [nN] [tT] ([eE] [dD])? / [oO] [uU] [pP] [sS])) / [hH] ([aA] [nN] [dD] [lL] [eE] [rR] / [eE] [aA] [dD] [eE] [rR] / [oO] ([lL] [dD] / [uU] [rR] [sS]?)) / [iI] ([dD] [eE] [nN] [tT] [iI] [tT] [yY] / [fF] / [gG] [nN] [oO] [rR] [eE] / [mM] ([mM] ([eE] [dD] [iI] [aA] [tT] [eE] / [uU] [tT] [aA] [bB] [lL] [eE]) / [pP] ([lL] [iI] [cC] [iI] [tT] / [oO] [rR] [tT])) / [nN] ([cC] ([lL] [uU] [dD] ([eE] / [iI] [nN] [gG]) / [rR] [eE] [mM] [eE] [nN] [tT]) / [dD] [eE] [xX] ([eE] [sS])? / [hH] [eE] [rR] [iI] [tT] [sS]? / [lL] [iI] [nN] [eE] / [pP] [uU] [tT] / [sS] ([eE] ([nN] [sS] [iI] [tT] [iI] [vV] [eE] / [rR] [tT]) / [tT] ([aA] [lL] [lL] / [eE] [aA] [dD])) / [vV] [oO] [kK] [eE] [rR]) / [sS] [oO] [lL] [aA] [tT] [iI] [oO] [nN]) / [jJ] [sS] [oO] [nN] / [kK] [eE] [yY] / [lL] ([aA] ([bB] [eE] [lL] / [nN] [gG] [uU] [aA] [gG] [eE] / [rR] [gG] [eE] / [sS] [tT]) / [eE] ([aA] [kK] [pP] [rR] [oO] [oO] [fF] / [vV] [eE] [lL]) / [iI] [sS] [tT] [eE] [nN] / [oO] ([aA] [dD] / [cC] ([aA] ([lL] / [tT] [iI] [oO] [nN]) / [kK] ([eE] [dD])?) / [gG] [gG] [eE] [dD])) / [mM] ([aA] ([cC] [rR] [oO] / [pP] [pP] [iI] [nN] [gG] / [tT] ([cC] [hH] ([eE] [dD])? / [eE] [rR] [iI] [aA] [lL] [iI] [zZ] [eE] [dD]) / [xX] [vV] [aA] [lL] [uU] [eE]) / [eE] ([rR] [gG] [eE] / [tT] [hH] [oO] [dD]) / [iI] ([cC] [rR] [oO] [sS] [eE] [cC] [oO] [nN] [dD] [sS]? / [lL] [lL] ([eE] [nN] [nN] [iI] ([aA] / [uU] [mM]) / [iI] [sS] [eE] [cC] [oO] [nN] [dD] [sS]?) / [nN] ([uU] [tT] [eE] [sS]? / [vV] [aA] [lL] [uU] [eE])) / [oO] ([dD] [eE] / [nN] [tT] [hH] [sS]? / [vV] [eE])) / [nN] ([aA] [mM] [eE] [sS]? / [eE] ([wW] / [xX] [tT]) / [oO] ([tT] ([hH] [iI] [nN] [gG] / [iI] [fF] [yY]) / [wW] [aA] [iI] [tT])? / [uU] [lL] [lL] [sS]) / [oO] ([bB] [jJ] [eE] [cC] [tT] / [fF] [fF]? / [iI] [dD] [sS] / [lL] [dD] / [pP] ([eE] [rR] [aA] [tT] [oO] [rR] / [tT] [iI] [oO] [nN] [sS]?) / [rR] [dD] [iI] [nN] [aA] [lL] [iI] [tT] [yY] / [tT] [hH] [eE] [rR] [sS] / [vV] [eE] [rR] ([rR] [iI] [dD] [iI] [nN] [gG])? / [wW] [nN] [eE] ([dD] / [rR])) / [pP] ([aA] ([rR] ([aA] [lL] [lL] [eE] [lL] / [sS] [eE] [rR] / [tT] [iI] ([aA] [lL] / [tT] [iI] [oO] [nN] ([eE] [dD])?)) / [sS] [sS] ([iI] [nN] [gG] / [wW] [oO] [rR] [dD])) / [eE] [rR] ([cC] [eE] [nN] [tT] / [sS] [iI] [sS] [tT] [eE] [nN] [tT]) / [lL] [aA] [nN] [sS] / [oO] [lL] [iI] [cC] [yY] / [rR] ([aA] [gG] [mM] [aA] / [eE] ([cC] [eE] [dD] [iI] [nN] [gG] / [pP] [aA] [rR] [eE] [dD]? / [sS] [eE] [rR] [vV] [eE]) / [iI] ([oO] [rR] / [vV] [iI] [lL] [eE] [gG] [eE] [sS]) / [oO] ([cC] [eE] [dD] [uU] [rR] ([aA] [lL] / [eE]) / [gG] [rR] [aA] [mM])) / [uU] [bB] [lL] [iI] [cC] [aA] [tT] [iI] [oO] [nN]) / [qQ] [uU] ([aA] [rR] [tT] [eE] [rR] [sS]? / [oO] [tT] [eE]) / [rR] ([aA] [nN] [gG] [eE] / [eE] ([aA] ([dD] / [sS] [sS] [iI] [gG] [nN]) / [cC] ([hH] [eE] [cC] [kK] / [uU] [rR] [sS] [iI] [vV] [eE]) / [fF] ([eE] [rR] [eE] [nN] [cC] [iI] [nN] [gG] / [rR] [eE] [sS] [hH])? / [iI] [nN] [dD] [eE] [xX] / [lL] ([aA] [tT] [iI] [vV] [eE] / [eE] [aA] [sS] [eE]) / [nN] [aA] [mM] [eE] / [pP] ([eE] [aA] [tT] [aA] [bB] [lL] [eE] / [lL] ([aA] [cC] [eE] / [iI] [cC] [aA])) / [sS] ([eE] [tT] / [pP] [eE] [cC] [tT] / [tT] ([aA] [rR] [tT] / [rR] [iI] [cC] [tT])) / [tT] [uU] [rR] [nN] [sS] / [vV] [oO] [kK] [eE]) / [oO] ([lL] ([eE] / [lL] ([bB] [aA] [cC] [kK] / [uU] [pP])) / [wW] [sS]) / [uU] [lL] [eE]) / [sS] ([aA] ([mM] [pP] [lL] [eE] / [vV] [eE] [pP] [oO] [iI] [nN] [tT]) / [cC] ([hH] [eE] [mM] [aA] [sS]? / [oO] [pP] [eE] / [rR] [oO] [lL] [lL]) / [eE] ([aA] [rR] [cC] [hH] / [cC] ([oO] [nN] [dD] [sS]? / [rR] [eE] [tT] / [uU] [rR] [iI] [tT] [yY]) / [qQ] [uU] [eE] [nN] [cC] [eE] [sS]? / [rR] ([iI] [aA] [lL] [iI] [zZ] [aA] [bB] [lL] [eE] / [vV] [eE] [rR]) / [sS] [sS] [iI] [oO] [nN] / [tT] [sS]?) / [hH] [aA] [rR] [eE] / [iI] [mM] [pP] [lL] [eE] / [kK] [iI] [pP] / [nN] [aA] [pP] [sS] [hH] [oO] [tT] / [oO] ([rR] [tT] [eE] [dD] / [uU] [rR] [cC] [eE]) / [qQ] [lL] / [tT] ([aA] ([bB] [lL] [eE] / [nN] [dD] [aA] [lL] [oO] [nN] [eE] / [rR] [tT] / [tT] ([eE] [mM] [eE] [nN] [tT] / [iI] [sS] [tT] [iI] [cC] [sS])) / [dD] ([iI] [nN] / [oO] [uU] [tT]) / [oO] [rR] ([aA] [gG] [eE] / [eE] [dD]) / [rR] [iI] ([cC] [tT] / [pP])) / [uU] [bB] [sS] [cC] [rR] [iI] [pP] [tT] [iI] [oO] [nN] / [yY] [sS] ([iI] [dD] / [tT] [eE] [mM])) / [tT] ([aA] ([bB] [lL] [eE] [sS] ([pP] [aA] [cC] [eE])? / [rR] [gG] [eE] [tT]) / [eE] ([mM] [pP] ([lL] [aA] [tT] [eE] / [oO] [rR] [aA] [rR] [yY])? / [xX] [tT]) / [iI] [eE] [sS] / [rR] ([aA] [nN] [sS] ([aA] [cC] [tT] [iI] [oO] [nN] / [fF] [oO] [rR] [mM]) / [iI] [gG] [gG] [eE] [rR] / [uU] ([nN] [cC] [aA] [tT] [eE] / [sS] [tT] [eE] [dD])) / [yY] [pP] [eE] [sS]?) / [uU] ([nN] ([bB] [oO] [uU] [nN] [dD] [eE] [dD] / [cC] [oO] [mM] [mM] [iI] [tT] [tT] [eE] [dD] / [eE] [nN] [cC] [rR] [yY] [pP] [tT] [eE] [dD] / [kK] [nN] [oO] [wW] [nN] / [lL] ([iI] [sS] [tT] [eE] [nN] / [oO] [gG] [gG] [eE] [dD]) / [tT] [iI] [lL]) / [pP] [dD] [aA] [tT] [eE] / [sS] [eE] [rR]?) / [vV] ([aA] ([cC] [uU] [uU] [mM] / [lL] ([iI] [dD] ([aA] [tT] ([eE] / [oO] [rR]))? / [uU] [eE]) / [rR] ([iI] [aA] [bB] [lL] [eE] / [yY] [iI] [nN] [gG])) / [eE] [rR] [sS] [iI] [oO] [nN] / [iI] ([eE] [wW] [sS]? / [rR] [tT] [uU] [aA] [lL]) / [oO] [lL] [aA] [tT] [iI] [lL] [eE]) / [wW] ([eE] [eE] [kK] [sS]? / [hH] [iI] [tT] [eE] [sS] [pP] [aA] [cC] [eE] / [iI] [tT] [hH] ([iI] [nN] / [oO] [uU] [tT]) / [oO] [rR] [kK] / [rR] ([aA] [pP] [pP] [eE] [rR] / [iI] [tT] [eE])) / [xX] [mM] [lL] / [yY] [eE] ([aA] [rR] [sS]? / [sS]) / [zZ] [oO] [nN] [eE]) ![a-zA-Z0-9_$\\u{80}-\\u{9f}¡-\\u{1fff}\\u{200c}-\\u{202e}‰-⁞\\u{2061}-⿿、-\\u{fefe}\\u{ff00}-\\u{10ffff}]"
+  2572:6 [aA] ([bB] ([oO] [rR] [tT] / [sS] [oO] [lL] [uU] [tT] [eE]) / [cC] ([cC] [eE] [sS] [sS] / [tT] [iI] [oO] [nN]) / [dD] ([dD] / [mM] [iI] [nN]) / [fF] [tT] [eE] [rR] / [gG] [gG] [rR] [eE] [gG] [aA] [tT] [eE] / [lL] ([sS] [oO] / [tT] [eE] [rR] / [wW] [aA] [yY] [sS]) / [sS] [sS] ([eE] [rR] [tT] [iI] [oO] [nN] / [iI] [gG] [nN] [mM] [eE] [nN] [tT]) / [tT] [tT] ([aA] [cC] [hH] / [rR] [iI] [bB] [uU] [tT] [eE])) / [bB] ([aA] [cC] [kK] [wW] [aA] [rR] [dD] / [eE] ([fF] [oO] [rR] [eE] / [gG] [iI] [nN])) / [cC] ([aA] ([cC] [hH] [eE] / [lL] [lL] ([eE] [dD])? / [sS] [cC] [aA] [dD] [eE] [dD]? / [tT] [aA] [lL] [oO] [gG]) / [eE] [nN] [tT] [uU] [rR] ([iI] [eE] [sS] / [yY]) / [hH] ([aA] ([iI] [nN] / [rR] [aA] [cC] [tT] [eE] [rR] [iI] [sS] [tT] [iI] [cC] [sS]) / [eE] [cC] [kK] [pP] [oO] [iI] [nN] [tT]) / [lL] ([aA] [sS] [sS] / [oO] [sS] [eE] / [uU] [sS] [tT] [eE] [rR]) / [oO] ([mM] ([mM] ([eE] [nN] [tT] [sS]? / [iI] [tT] ([tT] [eE] [dD])?) / [pP] [rR] [eE] [sS] [sS] [iI] [oO] [nN]) / [nN] ([fF] ([iI] [gG] [uU] [rR] [aA] [tT] [iI] [oO] [nN] / [lL] [iI] [cC] [tT]) / [nN] [eE] [cC] [tT] [iI] [oO] [nN] / [sS] [tT] [rR] [aA] [iI] [nN] [tT] [sS] / [tT] ([eE] [nN] [tT] / [iI] [nN] [uU] [eE]) / [vV] [eE] [rR] [sS] [iI] [oO] [nN]) / [pP] [yY] / [sS] [tT]) / [sS] [vV] / [uU] ([bB] [eE] / [rR] ([rR] [eE] [nN] [tT] / [sS] [oO] [rR])) / [yY] [cC] [lL] [eE]) / [dD] ([aA] ([tT] [aA] ([bB] [aA] [sS] [eE])? / [yY] [sS]?) / [eE] ([aA] [lL] [lL] [oO] [cC] [aA] [tT] [eE] / [cC] ([aA] [dD] [eE] [sS]? / [lL] [aA] [rR] [eE]) / [fF] ([aA] [uU] [lL] [tT] [sS] / [eE] [rR] [rR] [eE] [dD] / [iI] [nN] [eE] [rR]) / [lL] ([eE] [tT] [eE] / [iI] [mM] [iI] [tT] [eE] [rR] [sS]?) / [pP] [eE] [nN] [dD] [sS] / [tT] [aA] [cC] [hH]) / [iI] ([cC] [tT] [iI] [oO] [nN] [aA] [rR] [yY] / [sS] ([aA] [bB] [lL] [eE] / [cC] [aA] [rR] [dD])) / [oO] ([cC] [uU] [mM] [eE] [nN] [tT] / [mM] [aA] [iI] [nN] / [uU] [bB] [lL] [eE]) / [rR] [oO] [pP]) / [eE] ([aA] [cC] [hH] / [nN] ([aA] [bB] [lL] [eE] / [cC] ([oO] [dD] [iI] [nN] [gG] / [rR] [yY] [pP] [tT] [eE] [dD]) / [uU] [mM]) / [rR] [rR] [oO] [rR] / [sS] [cC] [aA] [pP] [eE] / [vV] [eE] [nN] [tT] / [xX] ([cC] [lL] [uU] ([dD] ([eE] / [iI] [nN] [gG]) / [sS] [iI] [vV] [eE]) / [eE] [cC] [uU] [tT] [eE] / [pP] ([lL] [aA] [iI] [nN] / [oO] [rR] [tT] ("_" [sS] [tT] [aA] [tT] [eE])?) / [tT] [eE] ([nN] [sS] [iI] [oO] [nN] [sS]? / [rR] [nN] [aA] [lL]))) / [fF] ([aA] [mM] [iI] [lL] [yY] / [iI] ([lL] [tT] [eE] [rR] / [rR] [sS] [tT]) / [oO] ([lL] [lL] [oO] [wW] [iI] [nN] [gG] / [rR] ([cC] [eE] / [wW] [aA] [rR] [dD])) / [uU] [nN] [cC] [tT] [iI] [oO] [nN] [sS]?) / [gG] ([lL] [oO] [bB] [aA] [lL] / [rR] ([aA] [nN] [tT] ([eE] [dD])? / [oO] [uU] [pP] [sS])) / [hH] ([aA] [nN] [dD] [lL] [eE] [rR] / [eE] [aA] [dD] [eE] [rR] / [oO] ([lL] [dD] / [uU] [rR] [sS]?)) / [iI] ([dD] [eE] [nN] [tT] [iI] [tT] [yY] / [fF] / [gG] [nN] [oO] [rR] [eE] / [mM] ([mM] ([eE] [dD] [iI] [aA] [tT] [eE] / [uU] [tT] [aA] [bB] [lL] [eE]) / [pP] ([lL] [iI] [cC] [iI] [tT] / [oO] [rR] [tT])) / [nN] ([cC] ([lL] [uU] [dD] ([eE] / [iI] [nN] [gG]) / [rR] [eE] [mM] [eE] [nN] [tT]) / [dD] [eE] [xX] ([eE] [sS])? / [hH] [eE] [rR] [iI] [tT] [sS]? / [lL] [iI] [nN] [eE] / [pP] [uU] [tT] / [sS] ([eE] ([nN] [sS] [iI] [tT] [iI] [vV] [eE] / [rR] [tT]) / [tT] ([aA] [lL] [lL] / [eE] [aA] [dD])) / [vV] [oO] [kK] [eE] [rR]) / [sS] [oO] [lL] [aA] [tT] [iI] [oO] [nN]) / [jJ] [sS] [oO] [nN] / [kK] [eE] [yY] / [lL] ([aA] ([bB] [eE] [lL] / [nN] [gG] [uU] [aA] [gG] [eE] / [rR] [gG] [eE] / [sS] [tT]) / [eE] ([aA] [kK] [pP] [rR] [oO] [oO] [fF] / [vV] [eE] [lL]) / [iI] [sS] [tT] [eE] [nN] / [oO] ([aA] [dD] / [cC] ([aA] ([lL] / [tT] [iI] [oO] [nN]) / [kK] ([eE] [dD])?) / [gG] [gG] [eE] [dD])) / [mM] ([aA] ([cC] [rR] [oO] / [pP] [pP] [iI] [nN] [gG] / [tT] ([cC] [hH] ([eE] [dD])? / [eE] [rR] [iI] [aA] [lL] [iI] [zZ] [eE] [dD]) / [xX] [vV] [aA] [lL] [uU] [eE]) / [eE] ([rR] [gG] [eE] / [tT] [hH] [oO] [dD]) / [iI] ([cC] [rR] [oO] [sS] [eE] [cC] [oO] [nN] [dD] [sS]? / [lL] [lL] ([eE] [nN] [nN] [iI] ([aA] / [uU] [mM]) / [iI] [sS] [eE] [cC] [oO] [nN] [dD] [sS]?) / [nN] ([uU] [tT] [eE] [sS]? / [vV] [aA] [lL] [uU] [eE])) / [oO] ([dD] [eE] / [nN] [tT] [hH] [sS]? / [vV] [eE])) / [nN] ([aA] [mM] [eE] [sS]? / [eE] ([wW] / [xX] [tT]) / [oO] ([tT] ([hH] [iI] [nN] [gG] / [iI] [fF] [yY]) / [wW] [aA] [iI] [tT])? / [uU] [lL] [lL] [sS]) / [oO] ([bB] [jJ] [eE] [cC] [tT] / [fF] [fF]? / [iI] [dD] [sS] / [lL] [dD] / [pP] ([eE] [rR] [aA] [tT] [oO] [rR] / [tT] [iI] [oO] [nN] [sS]?) / [rR] [dD] [iI] [nN] [aA] [lL] [iI] [tT] [yY] / [tT] [hH] [eE] [rR] [sS] / [vV] [eE] [rR] ([rR] [iI] [dD] [iI] [nN] [gG])? / [wW] [nN] [eE] [DRdr]) / [pP] ([aA] ([rR] ([aA] [lL] [lL] [eE] [lL] / [sS] [eE] [rR] / [tT] [iI] ([aA] [lL] / [tT] [iI] [oO] [nN] ([eE] [dD])?)) / [sS] [sS] ([iI] [nN] [gG] / [wW] [oO] [rR] [dD])) / [eE] [rR] ([cC] [eE] [nN] [tT] / [sS] [iI] [sS] [tT] [eE] [nN] [tT]) / [lL] [aA] [nN] [sS] / [oO] [lL] [iI] [cC] [yY] / [rR] ([aA] [gG] [mM] [aA] / [eE] ([cC] [eE] [dD] [iI] [nN] [gG] / [pP] [aA] [rR] [eE] [dD]? / [sS] [eE] [rR] [vV] [eE]) / [iI] ([oO] [rR] / [vV] [iI] [lL] [eE] [gG] [eE] [sS]) / [oO] ([cC] [eE] [dD] [uU] [rR] ([aA] [lL] / [eE]) / [gG] [rR] [aA] [mM])) / [uU] [bB] [lL] [iI] [cC] [aA] [tT] [iI] [oO] [nN]) / [qQ] [uU] ([aA] [rR] [tT] [eE] [rR] [sS]? / [oO] [tT] [eE]) / [rR] ([aA] [nN] [gG] [eE] / [eE] ([aA] ([dD] / [sS] [sS] [iI] [gG] [nN]) / [cC] ([hH] [eE] [cC] [kK] / [uU] [rR] [sS] [iI] [vV] [eE]) / [fF] ([eE] [rR] [eE] [nN] [cC] [iI] [nN] [gG] / [rR] [eE] [sS] [hH])? / [iI] [nN] [dD] [eE] [xX] / [lL] ([aA] [tT] [iI] [vV] [eE] / [eE] [aA] [sS] [eE]) / [nN] [aA] [mM] [eE] / [pP] ([eE] [aA] [tT] [aA] [bB] [lL] [eE] / [lL] ([aA] [cC] [eE] / [iI] [cC] [aA])) / [sS] ([eE] [tT] / [pP] [eE] [cC] [tT] / [tT] ([aA] [rR] [tT] / [rR] [iI] [cC] [tT])) / [tT] [uU] [rR] [nN] [sS] / [vV] [oO] [kK] [eE]) / [oO] ([lL] ([eE] / [lL] ([bB] [aA] [cC] [kK] / [uU] [pP])) / [wW] [sS]) / [uU] [lL] [eE]) / [sS] ([aA] ([mM] [pP] [lL] [eE] / [vV] [eE] [pP] [oO] [iI] [nN] [tT]) / [cC] ([hH] [eE] [mM] [aA] [sS]? / [oO] [pP] [eE] / [rR] [oO] [lL] [lL]) / [eE] ([aA] [rR] [cC] [hH] / [cC] ([oO] [nN] [dD] [sS]? / [rR] [eE] [tT] / [uU] [rR] [iI] [tT] [yY]) / [qQ] [uU] [eE] [nN] [cC] [eE] [sS]? / [rR] ([iI] [aA] [lL] [iI] [zZ] [aA] [bB] [lL] [eE] / [vV] [eE] [rR]) / [sS] [sS] [iI] [oO] [nN] / [tT] [sS]?) / [hH] [aA] [rR] [eE] / [iI] [mM] [pP] [lL] [eE] / [kK] [iI] [pP] / [nN] [aA] [pP] [sS] [hH] [oO] [tT] / [oO] ([rR] [tT] [eE] [dD] / [uU] [rR] [cC] [eE]) / [qQ] [lL] / [tT] ([aA] ([bB] [lL] [eE] / [nN] [dD] [aA] [lL] [oO] [nN] [eE] / [rR] [tT] / [tT] ([eE] [mM] [eE] [nN] [tT] / [iI] [sS] [tT] [iI] [cC] [sS])) / [dD] ([iI] [nN] / [oO] [uU] [tT]) / [oO] [rR] ([aA] [gG] [eE] / [eE] [dD]) / [rR] [iI] ([cC] [tT] / [pP])) / [uU] [bB] [sS] [cC] [rR] [iI] [pP] [tT] [iI] [oO] [nN] / [yY] [sS] ([iI] [dD] / [tT] [eE] [mM])) / [tT] ([aA] ([bB] [lL] [eE] [sS] ([pP] [aA] [cC] [eE])? / [rR] [gG] [eE] [tT]) / [eE] ([mM] [pP] ([lL] [aA] [tT] [eE] / [oO] [rR] [aA] [rR] [yY])? / [xX] [tT]) / [iI] [eE] [sS] / [rR] ([aA] [nN] [sS] ([aA] [cC] [tT] [iI] [oO] [nN] / [fF] [oO] [rR] [mM]) / [iI] [gG] [gG] [eE] [rR] / [uU] ([nN] [cC] [aA] [tT] [eE] / [sS] [tT] [eE] [dD])) / [yY] [pP] [eE] [sS]?) / [uU] ([nN] ([bB] [oO] [uU] [nN] [dD] [eE] [dD] / [cC] [oO] [mM] [mM] [iI] [tT] [tT] [eE] [dD] / [eE] [nN] [cC] [rR] [yY] [pP] [tT] [eE] [dD] / [kK] [nN] [oO] [wW] [nN] / [lL] ([iI] [sS] [tT] [eE] [nN] / [oO] [gG] [gG] [eE] [dD]) / [tT] [iI] [lL]) / [pP] [dD] [aA] [tT] [eE] / [sS] [eE] [rR]?) / [vV] ([aA] ([cC] [uU] [uU] [mM] / [lL] ([iI] [dD] ([aA] [tT] ([eE] / [oO] [rR]))? / [uU] [eE]) / [rR] ([iI] [aA] [bB] [lL] [eE] / [yY] [iI] [nN] [gG])) / [eE] [rR] [sS] [iI] [oO] [nN] / [iI] ([eE] [wW] [sS]? / [rR] [tT] [uU] [aA] [lL]) / [oO] [lL] [aA] [tT] [iI] [lL] [eE]) / [wW] ([eE] [eE] [kK] [sS]? / [hH] [iI] [tT] [eE] [sS] [pP] [aA] [cC] [eE] / [iI] [tT] [hH] ([iI] [nN] / [oO] [uU] [tT]) / [oO] [rR] [kK] / [rR] ([aA] [pP] [pP] [eE] [rR] / [iI] [tT] [eE])) / [xX] [mM] [lL] / [yY] [eE] ([aA] [rR] [sS]? / [sS]) / [zZ] [oO] [nN] [eE] = "[aA] ([bB] ([oO] [rR] [tT] / [sS] [oO] [lL] [uU] [tT] [eE]) / [cC] ([cC] [eE] [sS] [sS] / [tT] [iI] [oO] [nN]) / [dD] ([dD] / [mM] [iI] [nN]) / [fF] [tT] [eE] [rR] / [gG] [gG] [rR] [eE] [gG] [aA] [tT] [eE] / [lL] ([sS] [oO] / [tT] [eE] [rR] / [wW] [aA] [yY] [sS]) / [sS] [sS] ([eE] [rR] [tT] [iI] [oO] [nN] / [iI] [gG] [nN] [mM] [eE] [nN] [tT]) / [tT] [tT] ([aA] [cC] [hH] / [rR] [iI] [bB] [uU] [tT] [eE])) / [bB] ([aA] [cC] [kK] [wW] [aA] [rR] [dD] / [eE] ([fF] [oO] [rR] [eE] / [gG] [iI] [nN])) / [cC] ([aA] ([cC] [hH] [eE] / [lL] [lL] ([eE] [dD])? / [sS] [cC] [aA] [dD] [eE] [dD]? / [tT] [aA] [lL] [oO] [gG]) / [eE] [nN] [tT] [uU] [rR] ([iI] [eE] [sS] / [yY]) / [hH] ([aA] ([iI] [nN] / [rR] [aA] [cC] [tT] [eE] [rR] [iI] [sS] [tT] [iI] [cC] [sS]) / [eE] [cC] [kK] [pP] [oO] [iI] [nN] [tT]) / [lL] ([aA] [sS] [sS] / [oO] [sS] [eE] / [uU] [sS] [tT] [eE] [rR]) / [oO] ([mM] ([mM] ([eE] [nN] [tT] [sS]? / [iI] [tT] ([tT] [eE] [dD])?) / [pP] [rR] [eE] [sS] [sS] [iI] [oO] [nN]) / [nN] ([fF] ([iI] [gG] [uU] [rR] [aA] [tT] [iI] [oO] [nN] / [lL] [iI] [cC] [tT]) / [nN] [eE] [cC] [tT] [iI] [oO] [nN] / [sS] [tT] [rR] [aA] [iI] [nN] [tT] [sS] / [tT] ([eE] [nN] [tT] / [iI] [nN] [uU] [eE]) / [vV] [eE] [rR] [sS] [iI] [oO] [nN]) / [pP] [yY] / [sS] [tT]) / [sS] [vV] / [uU] ([bB] [eE] / [rR] ([rR] [eE] [nN] [tT] / [sS] [oO] [rR])) / [yY] [cC] [lL] [eE]) / [dD] ([aA] ([tT] [aA] ([bB] [aA] [sS] [eE])? / [yY] [sS]?) / [eE] ([aA] [lL] [lL] [oO] [cC] [aA] [tT] [eE] / [cC] ([aA] [dD] [eE] [sS]? / [lL] [aA] [rR] [eE]) / [fF] ([aA] [uU] [lL] [tT] [sS] / [eE] [rR] [rR] [eE] [dD] / [iI] [nN] [eE] [rR]) / [lL] ([eE] [tT] [eE] / [iI] [mM] [iI] [tT] [eE] [rR] [sS]?) / [pP] [eE] [nN] [dD] [sS] / [tT] [aA] [cC] [hH]) / [iI] ([cC] [tT] [iI] [oO] [nN] [aA] [rR] [yY] / [sS] ([aA] [bB] [lL] [eE] / [cC] [aA] [rR] [dD])) / [oO] ([cC] [uU] [mM] [eE] [nN] [tT] / [mM] [aA] [iI] [nN] / [uU] [bB] [lL] [eE]) / [rR] [oO] [pP]) / [eE] ([aA] [cC] [hH] / [nN] ([aA] [bB] [lL] [eE] / [cC] ([oO] [dD] [iI] [nN] [gG] / [rR] [yY] [pP] [tT] [eE] [dD]) / [uU] [mM]) / [rR] [rR] [oO] [rR] / [sS] [cC] [aA] [pP] [eE] / [vV] [eE] [nN] [tT] / [xX] ([cC] [lL] [uU] ([dD] ([eE] / [iI] [nN] [gG]) / [sS] [iI] [vV] [eE]) / [eE] [cC] [uU] [tT] [eE] / [pP] ([lL] [aA] [iI] [nN] / [oO] [rR] [tT] (\"_\" [sS] [tT] [aA] [tT] [eE])?) / [tT] [eE] ([nN] [sS] [iI] [oO] [nN] [sS]? / [rR] [nN] [aA] [lL]))) / [fF] ([aA] [mM] [iI] [lL] [yY] / [iI] ([lL] [tT] [eE] [rR] / [rR] [sS] [tT]) / [oO] ([lL] [lL] [oO] [wW] [iI] [nN] [gG] / [rR] ([cC] [eE] / [wW] [aA] [rR] [dD])) / [uU] [nN] [cC] [tT] [iI] [oO] [nN] [sS]?) / [gG] ([lL] [oO] [bB] [aA] [lL] / [rR] ([aA] [nN] [tT] ([eE] [dD])? / [oO] [uU] [pP] [sS])) / [hH] ([aA] [nN] [dD] [lL] [eE] [rR] / [eE] [aA] [dD] [eE] [rR] / [oO] ([lL] [dD] / [uU] [rR] [sS]?)) / [iI] ([dD] [eE] [nN] [tT] [iI] [tT] [yY] / [fF] / [gG] [nN] [oO] [rR] [eE] / [mM] ([mM] ([eE] [dD] [iI] [aA] [tT] [eE] / [uU] [tT] [aA] [bB] [lL] [eE]) / [pP] ([lL] [iI] [cC] [iI] [tT] / [oO] [rR] [tT])) / [nN] ([cC] ([lL] [uU] [dD] ([eE] / [iI] [nN] [gG]) / [rR] [eE] [mM] [eE] [nN] [tT]) / [dD] [eE] [xX] ([eE] [sS])? / [hH] [eE] [rR] [iI] [tT] [sS]? / [lL] [iI] [nN] [eE] / [pP] [uU] [tT] / [sS] ([eE] ([nN] [sS] [iI] [tT] [iI] [vV] [eE] / [rR] [tT]) / [tT] ([aA] [lL] [lL] / [eE] [aA] [dD])) / [vV] [oO] [kK] [eE] [rR]) / [sS] [oO] [lL] [aA] [tT] [iI] [oO] [nN]) / [jJ] [sS] [oO] [nN] / [kK] [eE] [yY] / [lL] ([aA] ([bB] [eE] [lL] / [nN] [gG] [uU] [aA] [gG] [eE] / [rR] [gG] [eE] / [sS] [tT]) / [eE] ([aA] [kK] [pP] [rR] [oO] [oO] [fF] / [vV] [eE] [lL]) / [iI] [sS] [tT] [eE] [nN] / [oO] ([aA] [dD] / [cC] ([aA] ([lL] / [tT] [iI] [oO] [nN]) / [kK] ([eE] [dD])?) / [gG] [gG] [eE] [dD])) / [mM] ([aA] ([cC] [rR] [oO] / [pP] [pP] [iI] [nN] [gG] / [tT] ([cC] [hH] ([eE] [dD])? / [eE] [rR] [iI] [aA] [lL] [iI] [zZ] [eE] [dD]) / [xX] [vV] [aA] [lL] [uU] [eE]) / [eE] ([rR] [gG] [eE] / [tT] [hH] [oO] [dD]) / [iI] ([cC] [rR] [oO] [sS] [eE] [cC] [oO] [nN] [dD] [sS]? / [lL] [lL] ([eE] [nN] [nN] [iI] ([aA] / [uU] [mM]) / [iI] [sS] [eE] [cC] [oO] [nN] [dD] [sS]?) / [nN] ([uU] [tT] [eE] [sS]? / [vV] [aA] [lL] [uU] [eE])) / [oO] ([dD] [eE] / [nN] [tT] [hH] [sS]? / [vV] [eE])) / [nN] ([aA] [mM] [eE] [sS]? / [eE] ([wW] / [xX] [tT]) / [oO] ([tT] ([hH] [iI] [nN] [gG] / [iI] [fF] [yY]) / [wW] [aA] [iI] [tT])? / [uU] [lL] [lL] [sS]) / [oO] ([bB] [jJ] [eE] [cC] [tT] / [fF] [fF]? / [iI] [dD] [sS] / [lL] [dD] / [pP] ([eE] [rR] [aA] [tT] [oO] [rR] / [tT] [iI] [oO] [nN] [sS]?) / [rR] [dD] [iI] [nN] [aA] [lL] [iI] [tT] [yY] / [tT] [hH] [eE] [rR] [sS] / [vV] [eE] [rR] ([rR] [iI] [dD] [iI] [nN] [gG])? / [wW] [nN] [eE] ([dD] / [rR])) / [pP] ([aA] ([rR] ([aA] [lL] [lL] [eE] [lL] / [sS] [eE] [rR] / [tT] [iI] ([aA] [lL] / [tT] [iI] [oO] [nN] ([eE] [dD])?)) / [sS] [sS] ([iI] [nN] [gG] / [wW] [oO] [rR] [dD])) / [eE] [rR] ([cC] [eE] [nN] [tT] / [sS] [iI] [sS] [tT] [eE] [nN] [tT]) / [lL] [aA] [nN] [sS] / [oO] [lL] [iI] [cC] [yY] / [rR] ([aA] [gG] [mM] [aA] / [eE] ([cC] [eE] [dD] [iI] [nN] [gG] / [pP] [aA] [rR] [eE] [dD]? / [sS] [eE] [rR] [vV] [eE]) / [iI] ([oO] [rR] / [vV] [iI] [lL] [eE] [gG] [eE] [sS]) / [oO] ([cC] [eE] [dD] [uU] [rR] ([aA] [lL] / [eE]) / [gG] [rR] [aA] [mM])) / [uU] [bB] [lL] [iI] [cC] [aA] [tT] [iI] [oO] [nN]) / [qQ] [uU] ([aA] [rR] [tT] [eE] [rR] [sS]? / [oO] [tT] [eE]) / [rR] ([aA] [nN] [gG] [eE] / [eE] ([aA] ([dD] / [sS] [sS] [iI] [gG] [nN]) / [cC] ([hH] [eE] [cC] [kK] / [uU] [rR] [sS] [iI] [vV] [eE]) / [fF] ([eE] [rR] [eE] [nN] [cC] [iI] [nN] [gG] / [rR] [eE] [sS] [hH])? / [iI] [nN] [dD] [eE] [xX] / [lL] ([aA] [tT] [iI] [vV] [eE] / [eE] [aA] [sS] [eE]) / [nN] [aA] [mM] [eE] / [pP] ([eE] [aA] [tT] [aA] [bB] [lL] [eE] / [lL] ([aA] [cC] [eE] / [iI] [cC] [aA])) / [sS] ([eE] [tT] / [pP] [eE] [cC] [tT] / [tT] ([aA] [rR] [tT] / [rR] [iI] [cC] [tT])) / [tT] [uU] [rR] [nN] [sS] / [vV] [oO] [kK] [eE]) / [oO] ([lL] ([eE] / [lL] ([bB] [aA] [cC] [kK] / [uU] [pP])) / [wW] [sS]) / [uU] [lL] [eE]) / [sS] ([aA] ([mM] [pP] [lL] [eE] / [vV] [eE] [pP] [oO] [iI] [nN] [tT]) / [cC] ([hH] [eE] [mM] [aA] [sS]? / [oO] [pP] [eE] / [rR] [oO] [lL] [lL]) / [eE] ([aA] [rR] [cC] [hH] / [cC] ([oO] [nN] [dD] [sS]? / [rR] [eE] [tT] / [uU] [rR] [iI] [tT] [yY]) / [qQ] [uU] [eE] [nN] [cC] [eE] [sS]? / [rR] ([iI] [aA] [lL] [iI] [zZ] [aA] [bB] [lL] [eE] / [vV] [eE] [rR]) / [sS] [sS] [iI] [oO] [nN] / [tT] [sS]?) / [hH] [aA] [rR] [eE] / [iI] [mM] [pP] [lL] [eE] / [kK] [iI] [pP] / [nN] [aA] [pP] [sS] [hH] [oO] [tT] / [oO] ([rR] [tT] [eE] [dD] / [uU] [rR] [cC] [eE]) / [qQ] [lL] / [tT] ([aA] ([bB] [lL] [eE] / [nN] [dD] [aA] [lL] [oO] [nN] [eE] / [rR] [tT] / [tT] ([eE] [mM] [eE] [nN] [tT] / [iI] [sS] [tT] [iI] [cC] [sS])) / [dD] ([iI] [nN] / [oO] [uU] [tT]) / [oO] [rR] ([aA] [gG] [eE] / [eE] [dD]) / [rR] [iI] ([cC] [tT] / [pP])) / [uU] [bB] [sS] [cC] [rR] [iI] [pP] [tT] [iI] [oO] [nN] / [yY] [sS] ([iI] [dD] / [tT] [eE] [mM])) / [tT] ([aA] ([bB] [lL] [eE] [sS] ([pP] [aA] [cC] [eE])? / [rR] [gG] [eE] [tT]) / [eE] ([mM] [pP] ([lL] [aA] [tT] [eE] / [oO] [rR] [aA] [rR] [yY])? / [xX] [tT]) / [iI] [eE] [sS] / [rR] ([aA] [nN] [sS] ([aA] [cC] [tT] [iI] [oO] [nN] / [fF] [oO] [rR] [mM]) / [iI] [gG] [gG] [eE] [rR] / [uU] ([nN] [cC] [aA] [tT] [eE] / [sS] [tT] [eE] [dD])) / [yY] [pP] [eE] [sS]?) / [uU] ([nN] ([bB] [oO] [uU] [nN] [dD] [eE] [dD] / [cC] [oO] [mM] [mM] [iI] [tT] [tT] [eE] [dD] / [eE] [nN] [cC] [rR] [yY] [pP] [tT] [eE] [dD] / [kK] [nN] [oO] [wW] [nN] / [lL] ([iI] [sS] [tT] [eE] [nN] / [oO] [gG] [gG] [eE] [dD]) / [tT] [iI] [lL]) / [pP] [dD] [aA] [tT] [eE] / [sS] [eE] [rR]?) / [vV] ([aA] ([cC] [uU] [uU] [mM] / [lL] ([iI] [dD] ([aA] [tT] ([eE] / [oO] [rR]))? / [uU] [eE]) / [rR] ([iI] [aA] [bB] [lL] [eE] / [yY] [iI] [nN] [gG])) / [eE] [rR] [sS] [iI] [oO] [nN] / [iI] ([eE] [wW] [sS]? / [rR] [tT] [uU] [aA] [lL]) / [oO] [lL] [aA] [tT] [iI] [lL] [eE]) / [wW] ([eE] [eE] [kK] [sS]? / [hH] [iI] [tT] [eE] [sS] [pP] [aA] [cC] [eE] / [iI] [tT] [hH] ([iI] [nN] / [oO] [uU] [tT]) / [oO] [rR] [kK] / [rR] ([aA] [pP] [pP] [eE] [rR] / [iI] [tT] [eE])) / [xX] [mM] [lL] / [yY] [eE] ([aA] [rR] [sS]? / [sS]) / [zZ] [oO] [nN] [eE]"
+== testdata/grammars/duckdb/duckdb.zp matching=true
+applied: N1=714 N12=129 N13=1454 N8=16
+sha256 c0595a6d63fb45b03d812152e34e78c026f3123490a02f7763464558b5d36350
+== testdata/grammars/golang/golang.zp matching=false
+applied: N8=5
+rule generalStart = "[" -ws ident -sp !("]" / binaryOp / dot / [(\[{])
+  167:21 "[" -ws ident -sp !("]" / binaryOp / dot / [(\[{]) = "\"[\" -ws ident -sp !(\"]\" / binaryOp / dot / \"(\" / \"{\" / \"[\")"
+  167:39 !("]" / binaryOp / dot / [(\[{]) = "!(\"]\" / binaryOp / dot / \"(\" / \"{\" / \"[\")"
+  167:41 "]" / binaryOp / dot / [(\[{] = "\"]\" / binaryOp / dot / \"(\" / \"{\" / \"[\""
+  167:64 [(\[{] = "\"(\" / \"{\" / \"[\""
+rule embeddedField = &(ident -sp (dot / ["`] / semi / "}")) t:typeName g:tagSp?
+  323:28 &(ident -sp (dot / ["`] / semi / "}")) = "&(ident -sp (dot / \"\\\"\" / \"`\" / semi / \"}\"))"
+  323:28 &(ident -sp (dot / ["`] / semi / "}")) t:typeName g:tagSp? = "&(ident -sp (dot / \"\\\"\" / \"`\" / semi / \"}\")) t:typeName g:tagSp?"
+  323:30 ident -sp (dot / ["`] / semi / "}") = "ident -sp (dot / \"\\\"\" / \"`\" / semi / \"}\")"
+  323:41 dot / ["`] / semi / "}" = "dot / \"\\\"\" / \"`\" / semi / \"}\""
+  323:47 ["`] = "\"\\\"\" / \"`\""
+rule goEnd = semi / [)}]
+  560:14 semi / [)}] = "semi / \"}\" / \")\""
+  560:21 [)}] = "\"}\" / \")\""
+rule semi = [\n;] / blockComment / $$
+  654:13 [\n;] / blockComment / $$ = "\";\" / \"\\n\" / blockComment / $$"
+  654:13 [\n;] = "\";\" / \"\\n\""
+rule hsemi = [\n;] / blockComment
+  660:14 [\n;] / blockComment = "\";\" / \"\\n\" / blockComment"
+  660:14 [\n;] = "\";\" / \"\\n\""
+== testdata/grammars/golang/golang.zp matching=true
+applied: N1=4 N13=24 N4=2 N7=2 N8=5
+sha256 f1cbdee66eb0cc7ff2cb454867c388be9e21e81c6d82e871e7800b888f911488
+== testdata/grammars/json/json.zp matching=false
+applied:
+== testdata/grammars/json/json.zp matching=true
+applied: N13=32
+sha256 d263f1f732c4c123fba93f4ff5fbebd39927948492b12ac4c8615c3be05e486b
+== testdata/grammars/python/python.zp matching=false
+applied: N8=1
+rule del_stmt = kw_del -ws f:del_target r:(-ws -"," -ws t:del_target)* (-ws -",")? &(ws ([#;] / newline / $$))
+  317:5 kw_del -ws f:del_target r:(-ws -"," -ws t:del_target)* (-ws -",")? &(ws ([#;] / newline / $$)) = "kw_del -ws f:del_target r:(-ws -\",\" -ws t:del_target)* (-ws -\",\")? &(ws (\";\" / \"#\" / newline / $$))"
+  317:72 &(ws ([#;] / newline / $$)) = "&(ws (\";\" / \"#\" / newline / $$))"
+  317:74 ws ([#;] / newline / $$) = "ws (\";\" / \"#\" / newline / $$)"
+  317:78 [#;] / newline / $$ = "\";\" / \"#\" / newline / $$"
+  317:78 [#;] = "\";\" / \"#\""
+== testdata/grammars/python/python.zp matching=true
+applied: N1=1 N11=3 N13=20 N7=20 N8=1
+sha256 ef476193e4e0c112e89afbfadbb66c0511181301a4dac6372c3f735af8e51476
+== testdata/grammars/typescript/typescript.zp matching=false
+applied: N12=2 N8=4
+rule declarationStart = ("var" / "let" / "const" / "function" / "class" / "enum") !idPart / "using" !idPart usingFollows / "await" !idPart -ws "using" !idPart usingFollows / ("interface" / "type" / "defer") !idPart sp identifier / ("module" / "namespace") !idPart sp (identifier / ["']) / "declare" !idPart sp "type" !idPart / ("abstract" / "accessor" / "async" / "declare" / "private" / "protected" / "public" / "readonly") !idPart !nlAhead -ws declarationStart / "global" !idPart -ws ("{" / !anyKeyword identifierName / "export" !idPart) / "import" !idPart -ws ("defer" !idPart / ["'*{#] / idStart) / "export" !idPart -ws (("type" !idPart -ws)? ([=*{@] / ("default" / "as") !idPart) / declarationStart) / "static" !idPart -ws declarationStart
+  661:5 ("var" / "let" / "const" / "function" / "class" / "enum") !idPart / "using" !idPart usingFollows / "await" !idPart -ws "using" !idPart usingFollows / ("interface" / "type" / "defer") !idPart sp identifier / ("module" / "namespace") !idPart sp (identifier / ["']) / "declare" !idPart sp "type" !idPart / ("abstract" / "accessor" / "async" / "declare" / "private" / "protected" / "public" / "readonly") !idPart !nlAhead -ws declarationStart / "global" !idPart -ws ("{" / !anyKeyword identifierName / "export" !idPart) / "import" !idPart -ws ("defer" !idPart / ["'*{#] / idStart) / "export" !idPart -ws (("type" !idPart -ws)? ([=*{@] / ("default" / "as") !idPart) / declarationStart) / "static" !idPart -ws declarationStart = "(\"var\" / \"let\" / \"const\" / \"function\" / \"class\" / \"enum\") !idPart / \"using\" !idPart usingFollows / \"await\" !idPart -ws \"using\" !idPart usingFollows / (\"interface\" / \"type\" / \"defer\") !idPart sp identifier / (\"module\" / \"namespace\") !idPart sp (identifier / [\"']) / \"declare\" !idPart sp \"type\" !idPart / (\"abstract\" / \"accessor\" / \"async\" / \"declare\" / \"private\" / \"protected\" / \"public\" / \"readonly\") !idPart !nlAhead -ws declarationStart / \"global\" !idPart -ws (\"{\" / !anyKeyword identifierName / \"export\" !idPart) / \"import\" !idPart -ws (\"defer\" !idPart / [\"'*{#] / idStart) / \"export\" !idPart -ws (\"type\" !idPart -ws)? ([=*{@] / (\"default\" / \"as\") !idPart) / \"export\" !idPart -ws declarationStart / \"static\" !idPart -ws declarationStart"
+  671:7 "export" !idPart -ws (("type" !idPart -ws)? ([=*{@] / ("default" / "as") !idPart) / declarationStart) = "\"export\" !idPart -ws (\"type\" !idPart -ws)? ([=*{@] / (\"default\" / \"as\") !idPart)"
+  671:7 ("type" !idPart -ws)? ([=*{@] / ("default" / "as") !idPart) / declarationStart = "\"export\" !idPart -ws (\"type\" !idPart -ws)? ([=*{@] / (\"default\" / \"as\") !idPart) / \"export\" !idPart -ws declarationStart"
+  671:7 ("type" !idPart -ws)? ([=*{@] / ("default" / "as") !idPart) = "\"export\" !idPart -ws (\"type\" !idPart -ws)? ([=*{@] / (\"default\" / \"as\") !idPart)"
+rule moduleExportNameStart = idStart / ["-#']
+  952:30 idStart / ["-#'] = "idStart / \"#\" / [\"']"
+  952:40 ["-#'] = "\"#\" / [\"']"
+rule literalPropertyNameStart = idStart / ["-#'0-9] / "." [0-9]
+  1045:33 idStart / ["-#'0-9] / "." [0-9] = "idStart / \"#\" / [\"'0-9] / \".\" [0-9]"
+  1045:43 ["-#'0-9] = "\"#\" / [\"'0-9]"
+rule identifierOrKeywordOrLiteralStart = idStart / ["-#'0-9] / "." [0-9]
+  1096:42 idStart / ["-#'0-9] / "." [0-9] = "idStart / \"#\" / [0-9\"'] / \".\" [0-9]"
+  1096:52 ["-#'0-9] = "\"#\" / [0-9\"']"
+rule prefixUnaryExpression = o:("+" !"+" / "-" !"-" / [!~]) #atomic -ws e:simpleUnaryExpression
+  1231:30 [!~] = "\"~\" / \"!\""
+  1231:41 ("+" !"+" / "-" !"-" / [!~]) #atomic = "(\"+\" !\"+\" / \"-\" !\"-\" / \"~\" / \"!\") #atomic"
+  1231:5 o:("+" !"+" / "-" !"-" / [!~]) #atomic -ws e:simpleUnaryExpression = "o:(\"+\" !\"+\" / \"-\" !\"-\" / \"~\" / \"!\") #atomic -ws e:simpleUnaryExpression"
+  1231:5 o:("+" !"+" / "-" !"-" / [!~]) #atomic = "o:(\"+\" !\"+\" / \"-\" !\"-\" / \"~\" / \"!\") #atomic"
+  1231:8 "+" !"+" / "-" !"-" / [!~] = "\"+\" !\"+\" / \"-\" !\"-\" / \"~\" / \"!\""
+rule typeMemberStart = [(<] / ("get" / "set") !idPart / (modifierKeyword -ws)* ("[" / literalPropertyNameToken typeMemberNameFollows) / modifierKeyword (-ws modifierKeyword)* typeMemberNameFollows
+  1740:5 [(<] / ("get" / "set") !idPart / (modifierKeyword -ws)* ("[" / literalPropertyNameToken typeMemberNameFollows) / modifierKeyword (-ws modifierKeyword)* typeMemberNameFollows = "[(<] / (\"get\" / \"set\") !idPart / (modifierKeyword -ws)* \"[\" / (modifierKeyword -ws)* literalPropertyNameToken typeMemberNameFollows / modifierKeyword (-ws modifierKeyword)* typeMemberNameFollows"
+  1741:7 "[" / literalPropertyNameToken typeMemberNameFollows = "(modifierKeyword -ws)* \"[\" / (modifierKeyword -ws)* literalPropertyNameToken typeMemberNameFollows"
+  1741:7 (modifierKeyword -ws)* ("[" / literalPropertyNameToken typeMemberNameFollows) = "(modifierKeyword -ws)* \"[\""
+  1742:7 literalPropertyNameToken typeMemberNameFollows = "(modifierKeyword -ws)* literalPropertyNameToken typeMemberNameFollows"
+== testdata/grammars/typescript/typescript.zp matching=true
+applied: N1=3 N12=2 N13=89 N7=2 N8=4
+sha256 ab5e2711ba40896f82655d1cf5a039ef6ebe4c8d0ff96280490efd006d5de176
+== testdata/grammars/xml/xml.zp matching=false
+applied:
+== testdata/grammars/xml/xml.zp matching=true
+applied: N1=2 N13=124 N7=2
+sha256 4da107c6c2eb44683f95aefa5cf21fad9af28b114d66bc4ae695b4cc32e43b8e
+== testdata/grammars/yaml/yaml.zp matching=false
+applied: N8=2
+rule b_comment = "\r\n" / [\n\r] / $$
+  509:18 "\r\n" / [\n\r] / $$ = "\"\\r\\n\" / \"\\r\" / \"\\n\" / $$"
+  509:27 [\n\r] = "\"\\r\" / \"\\n\""
+rule b_break = "\r\n" / [\n\r]
+  520:16 "\r\n" / [\n\r] = "\"\\r\\n\" / \"\\r\" / \"\\n\""
+  520:25 [\n\r] = "\"\\r\" / \"\\n\""
+== testdata/grammars/yaml/yaml.zp matching=true
+applied: N1=14 N13=114 N8=4
+sha256 81b719687d7b973189221277a1d837ef64dd335826b780a2ea5a59d92fb5069e
+== zp.zp matching=false
+applied: N8=12
+rule sync_open = [(\[{] / (!digit ident_char+ / [)\]]) "["
+  243:18 [(\[{] / (!digit ident_char+ / [)\]]) "[" = "\"(\" / \"{\" / \"[\" / (!digit ident_char+ / \")\" / \"]\") \"[\""
+  243:18 [(\[{] = "\"(\" / \"{\" / \"[\""
+  243:36 (!digit ident_char+ / [)\]]) "[" = "(!digit ident_char+ / \")\" / \"]\") \"[\""
+  243:37 !digit ident_char+ / [)\]] = "!digit ident_char+ / \")\" / \"]\""
+  243:58 [)\]] = "\")\" / \"]\""
+rule decl_shape_line = space_no_line+ ![/:] (assign_op / source_string / source_class / inline_comment / !nl !"//" ![(-);={}-~] .)* [=~]
+  275:113 !nl !"//" ![(-);={}-~] . = "!nl !\"//\" !(\"=\" / \"~\" / \";\" / \"{\" / \"}\" / \"(\" / \")\") ."
+  275:123 ![(-);={}-~] = "!(\"=\" / \"~\" / \";\" / \"{\" / \"}\" / \"(\" / \")\")"
+  275:125 [(-);={}-~] = "\"=\" / \"~\" / \";\" / \"{\" / \"}\" / \"(\" / \")\""
+  275:171 [=~] = "\"=\" / \"~\""
+  275:24 space_no_line+ ![/:] (assign_op / source_string / source_class / inline_comment / !nl !"//" ![(-);={}-~] .)* [=~] = "space_no_line+ !(\":\" / \"/\") (assign_op / source_string / source_class / inline_comment / !nl !\"//\" !(\"=\" / \"~\" / \";\" / \"{\" / \"}\" / \"(\" / \")\") .)* (\"=\" / \"~\")"
+  275:39 ![/:] = "!(\":\" / \"/\")"
+  275:41 [/:] = "\":\" / \"/\""
+  275:52 (assign_op / source_string / source_class / inline_comment / !nl !"//" ![(-);={}-~] .)* = "(assign_op / source_string / source_class / inline_comment / !nl !\"//\" !(\"=\" / \"~\" / \";\" / \"{\" / \"}\" / \"(\" / \")\") .)*"
+  275:53 assign_op / source_string / source_class / inline_comment / !nl !"//" ![(-);={}-~] . = "assign_op / source_string / source_class / inline_comment / !nl !\"//\" !(\"=\" / \"~\" / \";\" / \"{\" / \"}\" / \"(\" / \")\") ."
+rule attr_paren = "(" (attr_paren / source_string / inline_comment / comment_line / ![(-)] .)* ")"
+  292:19 "(" (attr_paren / source_string / inline_comment / comment_line / ![(-)] .)* ")" = "\"(\" (attr_paren / source_string / inline_comment / comment_line / !(\"(\" / \")\") .)* \")\""
+  292:23 (attr_paren / source_string / inline_comment / comment_line / ![(-)] .)* = "(attr_paren / source_string / inline_comment / comment_line / !(\"(\" / \")\") .)*"
+  292:24 attr_paren / source_string / inline_comment / comment_line / ![(-)] . = "attr_paren / source_string / inline_comment / comment_line / !(\"(\" / \")\") ."
+  292:85 ![(-)] . = "!(\"(\" / \")\") ."
+  292:85 ![(-)] = "!(\"(\" / \")\")"
+  292:87 [(-)] = "\"(\" / \")\""
+rule sync_ml_paren = "(" (sync_ml / ![(-)] .)* ")"
+  299:22 "(" (sync_ml / ![(-)] .)* ")" = "\"(\" (sync_ml / !(\"(\" / \")\") .)* \")\""
+  299:26 (sync_ml / ![(-)] .)* = "(sync_ml / !(\"(\" / \")\") .)*"
+  299:27 sync_ml / ![(-)] . = "sync_ml / !(\"(\" / \")\") ."
+  299:37 ![(-)] . = "!(\"(\" / \")\") ."
+  299:37 ![(-)] = "!(\"(\" / \")\")"
+  299:39 [(-)] = "\"(\" / \")\""
+rule sync_ml_brace = "{" (sync_ml / ![{}] .)* "}"
+  300:22 "{" (sync_ml / ![{}] .)* "}" = "\"{\" (sync_ml / !(\"{\" / \"}\") .)* \"}\""
+  300:26 (sync_ml / ![{}] .)* = "(sync_ml / !(\"{\" / \"}\") .)*"
+  300:27 sync_ml / ![{}] . = "sync_ml / !(\"{\" / \"}\") ."
+  300:37 ![{}] . = "!(\"{\" / \"}\") ."
+  300:37 ![{}] = "!(\"{\" / \"}\")"
+  300:39 [{}] = "\"{\" / \"}\""
+rule legacy_operators_start = "operators" !ident_char horizontal "{" comments (("skip" / "operand" / "level" / "prefix" / "postfix" / "infix") !ident_char (comments (["\[] / ident_start) / space comments "(") / "level" !ident_char comments "{" comments ("prefix" / "postfix" / "infix") !ident_char)
+  463:5 "operators" !ident_char horizontal "{" comments (("skip" / "operand" / "level" / "prefix" / "postfix" / "infix") !ident_char (comments (["\[] / ident_start) / space comments "(") / "level" !ident_char comments "{" comments ("prefix" / "postfix" / "infix") !ident_char) = "\"operators\" !ident_char horizontal \"{\" comments ((\"skip\" / \"operand\" / \"level\" / \"prefix\" / \"postfix\" / \"infix\") !ident_char (comments (\"\\\"\" / \"[\" / ident_start) / space comments \"(\") / \"level\" !ident_char comments \"{\" comments (\"prefix\" / \"postfix\" / \"infix\") !ident_char)"
+  464:9 ("skip" / "operand" / "level" / "prefix" / "postfix" / "infix") !ident_char (comments (["\[] / ident_start) / space comments "(") / "level" !ident_char comments "{" comments ("prefix" / "postfix" / "infix") !ident_char = "(\"skip\" / \"operand\" / \"level\" / \"prefix\" / \"postfix\" / \"infix\") !ident_char (comments (\"\\\"\" / \"[\" / ident_start) / space comments \"(\") / \"level\" !ident_char comments \"{\" comments (\"prefix\" / \"postfix\" / \"infix\") !ident_char"
+  464:9 ("skip" / "operand" / "level" / "prefix" / "postfix" / "infix") !ident_char (comments (["\[] / ident_start) / space comments "(") = "(\"skip\" / \"operand\" / \"level\" / \"prefix\" / \"postfix\" / \"infix\") !ident_char (comments (\"\\\"\" / \"[\" / ident_start) / space comments \"(\")"
+  465:10 comments (["\[] / ident_start) / space comments "(" = "comments (\"\\\"\" / \"[\" / ident_start) / space comments \"(\""
+  465:10 comments (["\[] / ident_start) = "comments (\"\\\"\" / \"[\" / ident_start)"
+  465:20 ["\[] / ident_start = "\"\\\"\" / \"[\" / ident_start"
+  465:20 ["\[] = "\"\\\"\" / \"[\""
+rule lambda_param = !((true_lit / false_lit / nil_lit) -ws &[),]) i:ident
+  649:27 !((true_lit / false_lit / nil_lit) -ws &[),]) = "!((true_lit / false_lit / nil_lit) -ws &(\",\" / \")\"))"
+  649:27 !((true_lit / false_lit / nil_lit) -ws &[),]) i:ident = "!((true_lit / false_lit / nil_lit) -ws &(\",\" / \")\")) i:ident"
+  649:29 (true_lit / false_lit / nil_lit) -ws &[),] = "(true_lit / false_lit / nil_lit) -ws &(\",\" / \")\")"
+  649:66 &[),] = "&(\",\" / \")\")"
+  649:68 [),] = "\",\" / \")\""
+rule source_scope_end = [);\]}] / $$
+  863:25 [);\]}] / $$ = "\")\" / \"]\" / \"}\" / \";\" / $$"
+  863:25 [);\]}] = "\")\" / \"]\" / \"}\" / \";\""
+rule source_bracket = (ident_char / [)\]}]) "["
+  896:23 (ident_char / [)\]}]) "[" = "(ident_char / \")\" / \"]\" / \"}\") \"[\""
+  896:24 ident_char / [)\]}] = "ident_char / \")\" / \"]\" / \"}\""
+  896:37 [)\]}] = "\")\" / \"]\" / \"}\""
+== zp.zp matching=true
+applied: N1=38 N12=2 N13=220 N4=7 N7=74 N8=28
+sha256 f69bfdce897c7ede9047df4fd7e3ca259a6a1d2be1ecd82f00d29c32aabc7a16

@@ -1,7 +1,6 @@
 # Violations of the Code References rule that are still to be fixed (see docs/documentation-style.md).
 # The list only shrinks. Columns: file, category, token, number of references.
 docs/design/architecture.md	gofile	zp.go	1
-docs/design/cost-analysis.md	gofile	internal/compile/normal_view.go	1
 docs/design/cost-analysis.md	gofile	internal/compile/run_sites.go	1
 docs/design/intermediate-representations.md	qualified	core.Verify	1
 docs/design/records/001-grammar-json.md	gofile	grammar/ast.go	1
