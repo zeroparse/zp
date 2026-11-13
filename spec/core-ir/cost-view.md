@@ -45,8 +45,11 @@ analyses of matching only, which compare what a parse matches and where it ends 
 
 | Rewrite | Replaces | Why the cost view leaves it out |
 |:--|:--|:--|
-| N7 | a label (`@error`, `@diagnostic`) by its body | it changes the expectations and the run sites |
+| N7, for labels | a label (`@error`, `@diagnostic`) by its body | it changes the expectations and the run sites |
 | N13 | a call by the body of the called rule | it changes which evaluations the memo answers |
+
+Of N7, the view applies only the part that removes labels. The law also removes `#atomic`, discards and captures that
+no predicate reads; the view keeps them.
 
 ## Writing the View as a Grammar
 
@@ -54,5 +57,5 @@ The view can be written back as grammar rules: a shared node is its origin, a no
 a node of the source module new parts (a repetition, an option, a lookahead, a capture, a discard, an atomic
 expression, a label, a recovery or a stream with a rewritten body) is the origin of that node with the new parts,
 and any other node that the view builds is written in the grammar syntax of its kind (a sequence, a choice, a
-repetition, an option, a lookahead, a class, a cut, `_` or `_|_`). Written so, the view of a grammar is the same text as the cost view that
-[Cost View](../runtime/parsing.md#cost-view) defines on the grammar's rule bodies.
+repetition, an option, a lookahead, a class, a cut, `_` or `_|_`). Written so, the view shows the rewrites of
+[Cost View](../runtime/parsing.md#cost-view) applied to the grammar's rule bodies, in the text that a message quotes.
