@@ -663,6 +663,10 @@ var conditionEdgeCases = []struct {
 	want    map[string]string
 	applied map[viewRule]int
 }{
+	{name: "an alternative equal to an earlier one without its cut is dropped",
+		src: "@start\nrule main = (x:\"a\" #cut / x:\"a\") {text($x) == \"a\"}", opts: costView,
+		want:    map[string]string{"main": `(x:"a") {text($x) == "a"}`},
+		applied: map[viewRule]int{ruleN3: 1, ruleN6: 1}},
 	{name: "repetitions merge before a later repetition of a sequence",
 		src: "@start\nrule main = \"x\" \"x\"* \"x\"* (\"y\" \"x\"*)*", opts: costView,
 		want:    map[string]string{"main": `"x"+ ("y" "x"*)*`},
