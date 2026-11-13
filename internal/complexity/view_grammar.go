@@ -10,19 +10,27 @@ import (
 
 // Grammar returns the rules of the view as grammar rules: rules are the rules the source module
 // is built from, rule i of the module from rules[i]. A node the view shares with the module is
-// the expression it is built from, and a node the view builds is written in the grammar's syntax,
-// so that the formatted rules can be compared with the normal view of the grammar and the view
-// can run on an engine that reads grammars. It is a bridge for tests until the engines run Core
-// IR.
+// the expression it is built from, and a node the view builds is written in the grammar's syntax
+// at the position of the expression it rewrites, so that the formatted rules can be compared with
+// the grammar, the complexity classifier can read them, and the view can run on an engine that
+// reads grammars.
 func (v *View) Grammar(rules []*grammar.RuleDef) ([]*grammar.RuleDef, error) {
+	out, _, err := v.GrammarText(rules)
+	return out, err
+}
+
+// GrammarText returns the rules of Grammar and, for each expression of them that the view
+// builds, the source text it stands for (Text).
+func (v *View) GrammarText(rules []*grammar.RuleDef) ([]*grammar.RuleDef, map[grammar.Expr]string, error) {
 	if len(rules) != len(v.Module.Rules) {
-		return nil, fmt.Errorf("%d rules for a module of %d", len(rules), len(v.Module.Rules))
+		return nil, nil, fmt.Errorf("%d rules for a module of %d", len(rules), len(v.Module.Rules))
 	}
+	w := &writer{View: v, text: map[grammar.Expr]string{}}
 	out := make([]*grammar.RuleDef, len(rules))
 	for i, rd := range rules {
-		body, err := v.expr(v.Module.Rules[i].Body)
+		body, err := w.expr(v.Module.Rules[i].Body)
 		if err != nil {
-			return nil, fmt.Errorf("rule %s: %w", rd.Name, err)
+			return nil, nil, fmt.Errorf("rule %s: %w", rd.Name, err)
 		}
 		if body == rd.Expr {
 			out[i] = rd
@@ -32,21 +40,54 @@ func (v *View) Grammar(rules []*grammar.RuleDef) ([]*grammar.RuleDef, error) {
 		cp.Expr = body
 		out[i] = &cp
 	}
-	return out, nil
+	return out, w.text, nil
+}
+
+// writer writes nodes of a view as grammar expressions and records the source text of each
+// expression that it writes for a built node.
+type writer struct {
+	*View
+	text map[grammar.Expr]string
 }
 
 // expr returns the grammar expression of the node n of the view.
 func (v *View) expr(n core.Node) (grammar.Expr, error) {
+	return (&writer{View: v}).expr(n)
+}
+
+// expr returns the grammar expression of the node n of the view.
+func (v *writer) expr(n core.Node) (grammar.Expr, error) {
 	if e, ok := v.Origin[n]; ok {
 		return e, nil
 	}
+	e, err := v.built(n)
+	if err != nil || e == nil {
+		return e, err
+	}
+	if v.text != nil {
+		if t, ok := v.Text[n]; ok {
+			v.text[e] = t
+		}
+	}
+	return e, nil
+}
+
+// built returns the grammar expression of the node n that the view builds.
+func (v *writer) built(n core.Node) (grammar.Expr, error) {
 	if l, ok := v.chainOf(n); ok {
 		return v.chainExpr(n, l)
 	}
 	if s, ok := v.replaces[n]; ok {
 		if e, ok := v.Origin[s]; ok {
-			if r, err := v.withParts(n, e); r != nil || err != nil {
-				return r, err
+			r, err := v.withParts(n, e)
+			if err != nil {
+				return nil, err
+			}
+			if r != nil {
+				if at, ok := v.at[n]; ok && at != s {
+					v.place(r, at)
+				}
+				return r, nil
 			}
 		}
 	}
@@ -61,6 +102,28 @@ func (v *View) expr(n core.Node) (grammar.Expr, error) {
 		}
 		return es, nil
 	}
+	e, err := v.spelled(n, exprs)
+	if err != nil {
+		return nil, err
+	}
+	if s, ok := v.at[n]; ok {
+		v.place(e, s)
+	}
+	return e, nil
+}
+
+// place gives the expression e, which the writer built, the position of the module node at.
+func (v *writer) place(e grammar.Expr, at core.Node) {
+	if o, ok := v.Origin[at].(interface{ Source() *grammar.SourceInfo }); ok && o.Source() != nil {
+		if d, ok := e.(interface{ Source() *grammar.SourceInfo }); ok {
+			*d.Source() = grammar.SourceInfo{Pos: o.Source().Diagnostic()}
+		}
+	}
+}
+
+// spelled returns the grammar expression of the node n that the view builds, of a kind written
+// in the grammar's syntax of its own, with the expressions exprs of its parts.
+func (v *writer) spelled(n core.Node, exprs func([]core.Node) ([]grammar.Expr, error)) (grammar.Expr, error) {
 	switch n := n.(type) {
 	case *core.Seq:
 		items, err := exprs(n.Items)
@@ -114,7 +177,7 @@ func (v *View) expr(n core.Node) (grammar.Expr, error) {
 // withParts returns the expression e of the node of the module that the built node n replaces,
 // with the parts of n: a copy of e with the expression of the body of n. It returns nil for a
 // node whose kind is written in the grammar's syntax of its own.
-func (v *View) withParts(n core.Node, e grammar.Expr) (grammar.Expr, error) {
+func (v *writer) withParts(n core.Node, e grammar.Expr) (grammar.Expr, error) {
 	var body core.Node
 	switch n := n.(type) {
 	case *core.Repeat:
@@ -355,7 +418,7 @@ func (v *View) chainParts(n core.Node, l chainLink) (keep []bool, parts []core.N
 
 // chainExpr returns the expression of the node n of the view at l: the expression of the
 // attributes whose nodes the view keeps from n down, around the expression of their operand.
-func (v *View) chainExpr(n core.Node, l chainLink) (grammar.Expr, error) {
+func (v *writer) chainExpr(n core.Node, l chainLink) (grammar.Expr, error) {
 	keep, _, body := v.chainParts(n, l)
 	if body == nil {
 		return nil, fmt.Errorf("a built %T without an operand", n)

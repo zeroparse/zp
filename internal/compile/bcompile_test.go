@@ -65,7 +65,7 @@ func TestDiagnosticLabelDisassembly(t *testing.T) {
 
 // TestLoosestLevelCall checks that a call of the loosest level of an Operators Rule is the plain
 // call of the rule: the same instruction, with binding level 0, so the same memo entry. The cost
-// views treat the two as the same expression.
+// view treats the two as the same expression.
 func TestLoosestLevelCall(t *testing.T) {
 	t.Parallel()
 	text := mustCompile(t, `rule main = level(e, sum) "x" / e "y" / level(e, mul) "z"
