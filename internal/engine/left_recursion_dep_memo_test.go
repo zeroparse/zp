@@ -3,6 +3,7 @@ package engine
 import (
 	"fmt"
 	"runtime"
+	"slices"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -15,9 +16,47 @@ import (
 )
 
 // depMemoGrammars returns the grammars that the dependency memo tests compare
-// (gentest.DependencyMemoCases).
+// (gentest.DependencyMemoCases), without the inputs of limitBoundReferences in a build without
+// budget controls.
 func depMemoGrammars(seeds int) []gentest.Case {
-	return gentest.DependencyMemoCases(seeds)
+	return withoutLimitBoundReferences(gentest.DependencyMemoCases(seeds))
+}
+
+// limitBoundReferences names the inputs of grammars on which the evaluation without a memo, which
+// evaluates every call in a context again, takes time exponential in the number of the grammar's
+// nested leaders: only the compute limit ends it. The comparisons accept a result that a limit
+// ended (endedByResourceLimit), so these inputs check the memo against a reference only where a
+// limit applies. In a build without budget controls no limit applies and the evaluation does not
+// finish, so the tests leave these inputs out there. checkReferenceLimit keeps the list exact.
+var limitBoundReferences = map[string][]string{
+	"seven dependencies and 33 leaders":                         {"axy", "aaxx", "aaaxxx", "axq", "aaxzx", "a"},
+	"random cycle grammar 341 with cuts and 63 padding leaders": {"a", "accaab"},
+}
+
+// withoutLimitBoundReferences returns cases without the inputs of limitBoundReferences in a build
+// without budget controls, and cases otherwise.
+func withoutLimitBoundReferences(cases []gentest.Case) []gentest.Case {
+	if core.BudgetControlsEnabled {
+		return cases
+	}
+	kept := make([]gentest.Case, 0, len(cases))
+	for _, c := range cases {
+		if bound := limitBoundReferences[c.Name]; len(bound) > 0 {
+			c.Inputs = slices.DeleteFunc(slices.Clone(c.Inputs), func(in string) bool { return slices.Contains(bound, in) })
+		}
+		kept = append(kept, c)
+	}
+	return kept
+}
+
+// checkReferenceLimit reports an error if the result of the evaluation without a memo of the
+// grammar of c on in, want, was ended by a limit and limitBoundReferences does not name the input: a
+// build without budget controls would not finish that evaluation.
+func checkReferenceLimit(t *testing.T, c gentest.Case, in, want string) {
+	t.Helper()
+	if endedByResourceLimit(want, "") && !slices.Contains(limitBoundReferences[c.Name], in) {
+		t.Errorf("%s %q: the evaluation without a memo ended by a limit; name the input in limitBoundReferences", c.Name, in)
+	}
 }
 
 // depMemoDiffers compares, on every backend, the results of the grammar with the dependency
@@ -58,6 +97,7 @@ func depMemoDiffers(t *testing.T, c gentest.Case, limit int, unexamined, paralle
 		o.ContextMemoUnexamined, o.ContextMemoOff = false, true
 		want, wantErr := ref.ParseWith("", j.in, o)
 		a, b := gentest.ResultJSON(got, err), gentest.ResultJSON(want, wantErr)
+		checkReferenceLimit(t, c, j.in, b)
 		if a != b && !endedByResourceLimit(a, b) {
 			return fmt.Sprintf("%s %q %s recognize=%v:\n got %s\nwant %s", c.Name, j.in, j.backend, j.rec, a, b)
 		}
@@ -155,7 +195,7 @@ func TestLeftRecursionDependencyMemoControls(t *testing.T) {
 	}
 	cases := depMemoGrammars(seeds)
 	if testing.Short() {
-		cases = append(cases, gentest.DependencyMemoControlCases()...)
+		cases = append(cases, withoutLimitBoundReferences(gentest.DependencyMemoControlCases())...)
 	}
 	for _, m := range []struct {
 		name       string
@@ -250,6 +290,7 @@ func TestLeftRecursionDependencyMemoUnexamined(t *testing.T) {
 				got, err := memo.ParseWith("", in, ParseOptions{Backend: backend, ContextMemoUnexamined: true})
 				want, wantErr := ref.ParseWith("", in, ParseOptions{Backend: backend, ContextMemoOff: true})
 				a, b := gentest.ResultJSON(got, err), gentest.ResultJSON(want, wantErr)
+				checkReferenceLimit(t, c, in, b)
 				if a != b && !endedByResourceLimit(a, b) {
 					if n++; n <= 5 {
 						t.Errorf("%s\n%q %s:\n got %s\nwant %s", c.Src, in, backend, a, b)
