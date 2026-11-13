@@ -43,7 +43,8 @@ func BenchmarkDocumentVMValuesUnchanged(b *testing.B) {
 }
 
 // A Document keeps the backend state of its last parse, but not the parser that ran it: the
-// parser holds the whole parse state (runs, trail, slabs), which the next parse replaces.
+// parser holds the whole parse state (runs, trail, slabs), which the next parse replaces. The
+// reference build keeps no backend state, and the parser must not stay reachable there either.
 func TestDocumentKeptMachineReleasesParser(t *testing.T) {
 	// The lambda makes the closure backend use its machine too.
 	prog := mustCompile(t, `rule main = ls:line* $$ => map($ls, (l) => l)
@@ -70,6 +71,10 @@ rule line = [a-z]+ "\n"`)
 				case *closure.Machine:
 					if mc.P != nil {
 						t.Fatal("kept machine refers to the finished parser")
+					}
+				case nil:
+					if document.ReuseDocumentVMValues {
+						t.Fatal("document kept no machine")
 					}
 				default:
 					t.Fatalf("document kept %T", doc.Machine())
