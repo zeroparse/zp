@@ -1,6 +1,7 @@
 package syntax
 
 import (
+	"reflect"
 	"strings"
 	"testing"
 
@@ -106,5 +107,18 @@ func TestSourceErrorsKeepTheFirstOfTheCap(t *testing.T) {
 		if e.Pos.Line != i+1 {
 			t.Fatalf("error %d is at line %d, want %d", i, e.Pos.Line, i+1)
 		}
+	}
+}
+
+// A source with lexical errors only, and no failure of the grammar, reports exactly the lexical errors.
+func TestSourceErrorsWithoutGrammarFailureAreTheLexicalErrors(t *testing.T) {
+	src := "rule a = \"x\" \x01\n"
+	lexical := lexSource(src).errs
+	if len(lexical) == 0 {
+		t.Fatalf("lexSource(%q) reports no error", src)
+	}
+	got := SourceErrors(src, nil)
+	if !reflect.DeepEqual([]*Error(got), lexical) {
+		t.Errorf("SourceErrors(%q, nil) = %v, want the lexical errors %v", src, got, lexical)
 	}
 }

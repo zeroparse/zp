@@ -7,8 +7,8 @@ import (
 	"testing"
 )
 
-// A spelling that the language no longer has fails with a message in the current syntax, at the
-// old spelling, that says what to write.
+// A spelling that is not in the language fails with a message in the current syntax, at the
+// spelling, that says what to write.
 func TestOldSpellingsReportCurrentSyntax(t *testing.T) {
 	for _, c := range []struct{ src, want string }{
 		{`rule a = "x" -- "y"`, `1:14: the cut is written #cut`},
