@@ -7,8 +7,7 @@ import (
 	"strings"
 
 	"zeroparse.dev/zp/internal/frontend"
-	"zeroparse.dev/zp/internal/lintrun"
-	"zeroparse.dev/zp/lint"
+	"zeroparse.dev/zp/internal/lint"
 )
 
 type findingData struct {
@@ -75,11 +74,7 @@ func (a *analysis) lintFindingsContext(ctx context.Context) ([]lint.Finding, err
 	if err != nil {
 		return nil, err
 	}
-	findings, err := lintrun.Run(ctx, res, a.g, a.prog.DefaultStart())
-	if err != nil {
-		return nil, err
-	}
-	return findings.([]lint.Finding), nil
+	return lint.RunChecked(ctx, res, a.g, a.prog.DefaultStart())
 }
 
 // frontResult returns the front-end result of the compiled grammar, built from the program that

@@ -368,12 +368,12 @@ func TestDirectives(t *testing.T) {
 // TestExamples lints the example grammars. They have no findings: any finding is a false positive
 // (or a new mistake in an example).
 func TestExamples(t *testing.T) {
-	files, err := filepath.Glob("../examples/*/*.zp")
+	files, err := filepath.Glob("../../examples/*/*.zp")
 	if err != nil || len(files) == 0 {
 		t.Fatalf("no example grammars: %v", err)
 	}
 	for _, f := range files {
-		name, _ := filepath.Rel("../examples", f)
+		name, _ := filepath.Rel("../../examples", f)
 		t.Run(name, func(t *testing.T) {
 			src, err := os.ReadFile(f)
 			if err != nil {

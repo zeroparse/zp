@@ -10,8 +10,7 @@ import (
 	"strings"
 
 	"zeroparse.dev/zp/internal/desugar"
-	"zeroparse.dev/zp/internal/lintrun"
-	"zeroparse.dev/zp/lint"
+	"zeroparse.dev/zp/internal/lint"
 )
 
 // A lint fix is offered for a finding only when lint.Rewrites proves its kind of change, and then
@@ -54,11 +53,7 @@ func (a *analysis) rewrites(ctx context.Context, findings []lint.Finding) ([]lin
 	if err != nil {
 		return nil, err
 	}
-	out, err := lintrun.Rewrites(ctx, res, a.g, a.prog.DefaultStart(), findings)
-	if err != nil {
-		return nil, err
-	}
-	return out.([]lint.Rewrite), nil
+	return lint.RewritesChecked(ctx, res, a.g, findings)
 }
 
 // fixerFor returns the fixer of the finding at index i alone, computing only its rewrite.
