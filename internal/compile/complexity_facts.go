@@ -3,6 +3,7 @@ package compile
 import (
 	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/cancel"
+	"zeroparse.dev/zp/internal/complexity"
 )
 
 // ruleFacts are the rule facts that the classifier reads, by rule name. They are the facts of the
@@ -22,18 +23,22 @@ type ruleFacts struct {
 	// nullable are the rules that can succeed without consuming input when token insertion is
 	// enabled.
 	nullable map[string]bool
+	// source is the untyped Core IR module of the rules that the facts are of, which the cost view
+	// is built from.
+	source *complexity.Source
 }
 
 // classifierFacts returns the rule facts of rules, the unique rules of g.
 func classifierFacts(g *grammar.Grammar, rules []*grammar.RuleDef, control *cancel.Control) (*ruleFacts, error) {
-	f, err := structuralFacts(g, rules, control)
+	src, err := costSource(g, rules, control)
 	if err != nil {
 		return nil, err
 	}
+	f := src.Facts
 	an := &Analysis{Control: control, nullable: map[string]bool{}, succeeding: map[string]bool{},
 		leaders: map[string]bool{}, cyclic: map[string]bool{}, cycle: map[string]int{},
 		positional: map[string]bool{}, recovering: map[string]string{}}
-	rf := &ruleFacts{an: an, memo: map[string]bool{}, members: map[string]bool{}, vars: map[string][]string{},
+	rf := &ruleFacts{source: src, an: an, memo: map[string]bool{}, members: map[string]bool{}, vars: map[string][]string{},
 		nullable: map[string]bool{}}
 	set := func(m map[string]bool, name string, v bool) {
 		if v {

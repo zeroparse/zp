@@ -76,16 +76,33 @@ func (b *builder) standsFor(x, n core.Node) {
 	if b.orig[x] {
 		return
 	}
-	b.standsForText(x, b.view.textOf(n))
+	b.standsForText(x, b.view.textOf(n), n)
 }
 
-// standsForText records that x, if the view built it, stands for the source text t.
-func (b *builder) standsForText(x core.Node, t string) {
+// standsForText records that x, if the view built it, stands for the source text t and sits
+// where the node n of the view does.
+func (b *builder) standsForText(x core.Node, t string, n core.Node) {
 	if b.orig[x] {
 		return
 	}
 	if _, ok := b.view.Text[x]; !ok {
 		b.view.Text[x] = t
+	}
+	b.place(x, n)
+}
+
+// place records that x, if the view built it and placed it nowhere yet, sits where the node n of
+// the view does.
+func (b *builder) place(x, n core.Node) {
+	if b.orig[x] {
+		return
+	}
+	if _, ok := b.view.at[x]; !ok {
+		if b.orig[n] {
+			b.view.at[x] = n
+		} else if s, ok := b.view.at[n]; ok {
+			b.view.at[x] = s
+		}
 	}
 }
 
@@ -219,7 +236,7 @@ func (b *builder) seq(s *core.Seq) core.Node {
 	}
 	for i := 0; i+1 < len(items); i++ {
 		if m := b.adjacent(items[i], items[i+1]); m != nil {
-			b.standsForText(m, b.textOfAll(items[i:i+2], " "))
+			b.standsForText(m, b.textOfAll(items[i:i+2], " "), items[i])
 			items = slices.Replace(slices.Clip(items), i, i+2, m)
 			changed = true
 			i = max(i-2, -1)
@@ -432,6 +449,7 @@ func (b *builder) unroll(rx, ry *core.Repeat) core.Node {
 		y = s.Items[0]
 	} else {
 		y = b.built(&core.Seq{Items: slices.Clone(s.Items[:len(s.Items)-1])}, s)
+		b.place(y, s)
 	}
 	if facts.LooseCut(y) || bindsOutsideCalls(y) || !b.idempotent(x) {
 		return nil
@@ -441,9 +459,14 @@ func (b *builder) unroll(rx, ry *core.Repeat) core.Node {
 	// fails again only if Y bound nothing that X reads, and which the view drops: so Y makes no
 	// binding outside its calls, and X evaluated again costs at most what it cost first.
 	b.count(N11)
+	// The unrolled repetition and its choice sit where the first repetition does.
 	c := *ry
-	c.Body = &core.Choice{Alts: []*core.Alt{{Body: x}, {Body: y}}}
-	return b.built(&c, ry)
+	ch := &core.Choice{Alts: []*core.Alt{{Body: x}, {Body: y}}}
+	b.place(ch, rx)
+	c.Body = ch
+	r := b.built(&c, ry)
+	b.place(r, rx)
+	return r
 }
 
 // nestedRepeat applies R6 to a repetition whose element, rewritten, is body, or returns nil.
@@ -653,7 +676,7 @@ func (b *builder) mergeChars(alts []core.Node) ([]core.Node, bool) {
 			b.count(N8)
 			changed = true
 			class := &core.ClassNode{Class: b.class(ranges)}
-			b.standsForText(class, b.textOfAll(alts[i:j], " / "))
+			b.standsForText(class, b.textOfAll(alts[i:j], " / "), alts[i])
 			out = append(out, class)
 			i = j
 			continue
@@ -783,7 +806,7 @@ func (b *builder) factor(alts []core.Node) ([]core.Node, bool) {
 			b.standsFor(r, a)
 			run.Alts = append(run.Alts, &core.Alt{Body: r})
 		}
-		b.standsForText(run, b.textOfAll(alts[i:j], " / "))
+		b.standsForText(run, b.textOfAll(alts[i:j], " / "), alts[i])
 		f := &core.Seq{Items: append(slices.Clone(prefix), run)}
 		b.standsFor(f, alts[i])
 		out = append(out, f)

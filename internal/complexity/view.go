@@ -66,15 +66,17 @@ type View struct {
 	// replaces gives, for a node that the view builds by giving a node new parts, the node of the
 	// module that it replaces (Grammar). A node that the view builds has no attributes.
 	replaces map[core.Node]core.Node
+	// at gives, for a node that the view builds, the node of the module whose position it takes:
+	// that of the expression it rewrites, or of the first of those it merges.
+	at map[core.Node]core.Node
 }
 
-// Build returns the view of src with opts. Until the complexity classifier reads it, the
-// classifier reads the view that compile.NormalView builds on the grammar's rules.
+// Build returns the view of src with opts.
 func Build(src *Source, opts Options, control *cancel.Control) *View {
 	m := *src.Module
 	m.Rules = make([]*core.Rule, len(src.Module.Rules))
 	v := &View{Module: &m, Origin: src.Origin, Text: map[core.Node]string{}, Applied: map[Law]int{},
-		replaces: map[core.Node]core.Node{}}
+		replaces: map[core.Node]core.Node{}, at: map[core.Node]core.Node{}}
 	b := &builder{src: src, opts: opts, control: control, view: v, orig: map[core.Node]bool{},
 		values: valueReaders(src.Module)}
 	for _, r := range src.Module.Rules {
