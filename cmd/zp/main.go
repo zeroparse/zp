@@ -39,6 +39,7 @@ import (
 	"zeroparse.dev/zp"
 	"zeroparse.dev/zp/gen"
 	"zeroparse.dev/zp/grammar"
+	"zeroparse.dev/zp/internal/engine"
 	igen "zeroparse.dev/zp/internal/gen"
 	genopt "zeroparse.dev/zp/internal/gen/opt"
 )
@@ -1113,7 +1114,7 @@ func compileCmd(args []string) error {
 	if *grammarPath == "" || *output == "" {
 		return fmt.Errorf("-g and -o are required")
 	}
-	mode, err := zp.ParseCompiledMode(*modeName)
+	mode, err := engine.ParseCompiledMode(*modeName)
 	if err != nil {
 		return fmt.Errorf("compile: %w", err)
 	}

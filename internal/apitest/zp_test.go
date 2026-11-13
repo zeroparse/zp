@@ -10,6 +10,7 @@ import (
 
 	"zeroparse.dev/zp"
 	"zeroparse.dev/zp/grammar"
+	"zeroparse.dev/zp/internal/engine"
 )
 
 func TestCompileSource(t *testing.T) {
@@ -160,7 +161,7 @@ rule key = [a-z]+ #atomic`, "main", zp.WithSourceInfo())
 
 // TestCompiledModes checks that each mode of a compiled grammar serves its own operations, refuses
 // the others with the mode they need, is saved again in its own mode only, and is named by
-// ParseCompiledMode.
+// engine.ParseCompiledMode.
 func TestCompiledModes(t *testing.T) {
 	p, err := compileTestSource(`rule main = pair* #stream $$
 rule pair = k:[a-z]+ #atomic "=" v:[0-9]+ #atomic => list($k, $v)`, "main")
@@ -169,11 +170,11 @@ rule pair = k:[a-z]+ #atomic "=" v:[0-9]+ #atomic => list($k, $v)`, "main")
 	}
 	modes := []zp.CompiledMode{zp.CompiledParse, zp.CompiledRecognize, zp.CompiledDocument}
 	for _, mode := range modes {
-		if got, err := zp.ParseCompiledMode(mode.String()); err != nil || got != mode {
+		if got, err := engine.ParseCompiledMode(mode.String()); err != nil || got != mode {
 			t.Errorf("ParseCompiledMode(%q) = %v, %v", mode.String(), got, err)
 		}
 	}
-	if _, err := zp.ParseCompiledMode("ast"); err == nil {
+	if _, err := engine.ParseCompiledMode("ast"); err == nil {
 		t.Error("ParseCompiledMode accepted an unknown mode")
 	}
 	parse := func(q *zp.Parser) error { _, err := q.Parse("a=1"); return err }
