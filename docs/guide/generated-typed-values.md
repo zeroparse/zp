@@ -127,7 +127,7 @@ stars text 42
   outline grammar alike; the Operators Rule calculator is about as fast). Otherwise
   `ParseValue` runs `Parse` and converts the tree, which takes about 0.95 times the time of `Parse` and 0.3 times the
   memory (minilang and the recovery grammar). The figures are those of the
-  [benchmark results](../benchmarks.md#typed-values-parseast-of-zp-gen--types). The
+  [benchmark results](../benchmarks.md#typed-values-parsevalue-of-zp-gen--types). The
   [design record](../design/records/012-typed-values.md) explains both. The types, their conversions and the typed rules add about
   as much code to `parser.go` as the parser itself.
 
