@@ -175,7 +175,7 @@ Binary{Left: "2", Op: "^", Right: Unary{Op: "-", X: "1"}}
 Binary{Left: Binary{Left: "1", Op: "+", Right: "2"}, Op: "*", Right: "3"}
 ```
 
-The trees are identical, because both grammars build the same typed AST through actions. What differs is how the
+The trees are identical, because both grammars build the same typed value through actions. What differs is how the
 grammar is organized.
 
 - **One rule per level, linked in a chain.** `expr` is `add / term`, `term` is `mul / unary`, and so on. A new level

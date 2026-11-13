@@ -150,7 +150,7 @@ func TestLRWorkload(t *testing.T) {
 			p.X_recycle()
 		}
 		after, _ := json.Marshal(saved)
-		if string(before) != string(after) { t.Fatal("returned LR AST changed") }
+		if string(before) != string(after) { t.Fatal("returned LR value changed") }
 	}
 }
 
@@ -213,7 +213,7 @@ func TestLRWorkload(t *testing.T) {
 		}
 		after, _ := json.Marshal(saved)
 		if string(before) != string(after) {
-			t.Fatal("parser reuse changed returned LR AST")
+			t.Fatal("parser reuse changed returned LR value")
 		}
 	}
 }

@@ -22,7 +22,7 @@ The constant `nodeFrameScratch` in the shared generated runtime
 (`runtime/runtime.go`) selects the scratch allocator; the per-parse frame slab
 remains in the runtime only as the disabled alternative. No parse option,
 generation option or runtime selector chooses between them. The mechanism changes the generated
-Go Node frame allocator; typed AST capture storage, the core engine, VM paths
+Go Node frame allocator; typed value capture storage, the core engine, VM paths
 and TypeScript are outside its scope. Recognition can use the shared Node
 frame path for capture-dependent predicates. The parser gains nine native
 words of state; same-source reference binaries include this 72-byte field on
@@ -68,7 +68,7 @@ recognition from about 6.18 MB to 2.58 MB, with roughly 495–510 fewer
 allocations. Capture-free medians were near parity and allocation counts were
 unchanged.
 
-The typed AST controls kept allocation counts unchanged. One large capture
+The typed value controls kept allocation counts unchanged. One large capture
 AST Bytes case measured 1.038× against the parent and 1.012× against the
 same-source reference; both paired ranges include parity, so no typed-AST
 speedup is claimed. In that 36-case sample, no parent-comparison case was slower in all five rounds.

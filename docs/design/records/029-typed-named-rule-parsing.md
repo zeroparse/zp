@@ -205,7 +205,7 @@ Measured on 2026-10-11 with Go 1.27.1 on Apple M3 arm64, GOMAXPROCS=4,
 five alternating parent/candidate pairs and 300 ms per benchmark sample. The
 parent generator is `c85db9e`; regenerating fixtures from `9a0eee2` produces
 identical source. Both fixtures use the same benchmark harness and inputs.
-Across 36 existing Node, Recognize and typed AST cases for capture-heavy,
+Across 36 existing Node, Recognize and typed value cases for capture-heavy,
 capture-free and TypeScript grammars generated as Go, allocation counts are
 unchanged. Paired median candidate/parent time ratios range from 0.962 to 1.024
 for Node, 0.978 to 1.022 for Recognize and 0.919 to 1.077 for AST. No case is

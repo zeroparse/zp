@@ -3,7 +3,7 @@
 A ZeroParse grammar does two jobs: it decides which input is valid, and it decides what **tree** you get back. This guide is
 about the tree that every grammar produces without any extra work and how to shape it with captures, atomic (`#atomic`), discard (`-`) and
 hidden rules (`_name`). [Declaring Types](types.md) describes the typed nodes of a grammar, and
-[Actions](actions.md) shows how to replace the tree with a typed AST built by [actions](../../spec/language/actions.md).
+[Actions](actions.md) shows how to replace the tree with a typed value built by [actions](../../spec/language/actions.md).
 
 The guide complements the normative chapters [Rule Expressions](../../spec/language/parser-expressions.md),
 [Type System](../../spec/language/types.md) and [Actions](../../spec/language/actions.md); read them for the exact rules. Here the focus

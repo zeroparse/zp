@@ -36,7 +36,7 @@ literal experiment remains opt-in, separate from production helper sharing.
 At measured revision `c87f89a`, the native full test suite, focused
 Linux/386 checks, generated freshness and final five-mode parity checks passed.
 Those checks describe that revision; the integration checks are listed below. Go and TypeScript controls covered
-Node, typed AST and recognition output, both position units, invalid and
+Node, typed value and recognition output, both position units, invalid and
 non-ASCII inputs, and retained Nodes after pool reuse. A negative rollback
 test confirms that failed direct lowering does not leave stale cached entries.
 
@@ -60,7 +60,7 @@ TypeScript literal sharing is excluded from the production result.
 Generation time, bytes allocated and allocations are ratios to the no-sharing
 control; time ranges are min/max of five paired runs. These fixtures show
 smaller output and lower generation allocations, with timing ranges that
-often overlap parity. Go fixtures include Node, typed AST and recognition entry points; TypeScript
+often overlap parity. Go fixtures include Node, typed value and recognition entry points; TypeScript
 fixtures include Node and recognition entry points. The table reports the
 adopted production defaults, excluding experimental TypeScript literal sharing.
 
@@ -80,7 +80,7 @@ generation-time opt-in.
 Five paired three-second Go parser runs on two larger workloads compared
 production with the same-source no-sharing control. JSON Node Bytes was
 0.991 [0.986–1.029] with 138 allocations in both modes; TypeScript-grammar
-typed AST Bytes was 1.012 [0.994–1.020] with 6,111 allocations in both modes.
+typed value Bytes was 1.012 [0.994–1.020] with 6,111 allocations in both modes.
 An earlier short screen showed small increases; the longer paired ranges include parity and do not
 establish a sustained regression. Generated test-binary sizes were 4,743,858 versus
 4,746,002 bytes for JSON and 18,914,002 versus 20,196,162 bytes for the
@@ -98,7 +98,7 @@ Integration onto `9ec4768` independently passed the five-mode Go/TypeScript
 workloads, unshared TypeScript corpus, rollback and identity checks, all ten
 standalone parser modules (short tests and vet), generated freshness, and site
 tests. Three alternating three-second production/control pairs on that tree
-measured JSON Node Bytes at 1.000 [0.985–1.039] and TypeScript-grammar typed AST
+measured JSON Node Bytes at 1.000 [0.985–1.039] and TypeScript-grammar typed value
 Bytes at 1.006 [1.001–1.018]. Allocation counts remained 138 and 6,111,
 respectively. This screen showed a small 0.6% median time increase for the
 latter workload; the optimization primarily reduces source and build costs,

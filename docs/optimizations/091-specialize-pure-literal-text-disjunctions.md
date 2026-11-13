@@ -32,7 +32,7 @@ TypeScript switches and generation-only reference outputs.
 `TestLiteralTextPredicateDispatchRejectsUnsafeShapes` verifies that mixed,
 aliased, bound, and different-capture forms remain general.
 `TestLiteralTextPredicateDispatchDisabledParity` compares generated Go Node,
-typed AST and recognition results against the engine in both input units.
+typed value and recognition results against the engine in both input units.
 `TestLiteralTextPredicateDispatchTSDisabledParity` checks empty and Unicode
 literals, duplicate collapse, both input units and reference parity; it runs
 strict `tsc` when available. The generated Go and TypeScript fixtures also

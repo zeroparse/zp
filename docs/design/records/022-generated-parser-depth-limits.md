@@ -276,11 +276,11 @@ insufficient to claim a general TypeScript speedup.
 
 The existing approximately 256KiB JSON corpus uses three alternating 1s rounds
 with the same toolchain and isolated CPU policy. Its generated CodePoints Node,
-Bytes Node, typed AST and recognition median ratios are respectively
+Bytes Node, typed value and recognition median ratios are respectively
 0.982 [0.942–1.090], 0.947 [0.921–1.040], 0.965 [0.957–1.027] and
 1.011 [0.977–1.041]. Each paired range includes parity; this corpus does not
 establish a consistent throughput regression or improvement. No-option Node
-and typed AST allocation counts are unchanged; byte-unit Node parsing adds
+and typed value allocation counts are unchanged; byte-unit Node parsing adds
 the configuration allocation, with small amortized pool differences across
 samples. These larger inputs do not erase the small-input costs above.
 Reproduce with `BenchmarkParse/JSON/generated`, `generated_ast` and
