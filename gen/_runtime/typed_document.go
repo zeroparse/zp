@@ -3,11 +3,11 @@ package runtime
 import "fmt"
 
 // The typed Document runtime, appended to generated parsers made with both zp gen -types and
-// -document: Document.ParseAST parses directly into typed values, which a typed Document keeps
+// -document: Document.ParseValue parses directly into typed values, which a typed Document keeps
 // privately (typedDocumentState) and publishes as read-only values that later results may share.
-// The generated CloneAST copies a published value.
+// The generated CloneValue copies a published value.
 
-// TypedDocumentCloneBase is the state of a CloneAST copy of a published typed Document value. The
+// TypedDocumentCloneBase is the state of a CloneValue copy of a published typed Document value. The
 // generated typedDocumentClone embeds it and adds the copies of the grammar's types.
 //
 // TypedDocumentCloneBase is for generated parsers; not a stable API.

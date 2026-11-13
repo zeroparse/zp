@@ -32,7 +32,7 @@ times differ from machine to machine.
 | Recipe | What it shows |
 |:--|:--|
 | [Read a configuration file into Go structs](config-to-structs.md) | A grammar for `key = value` lines with typed values, and Go code that fills a struct and reports the line of a wrong value |
-| [Parse log lines fast](log-lines.md) | A generated parser with typed values (`ParseAST`) and `Recognize`; what each costs on 100,000 lines |
+| [Parse log lines fast](log-lines.md) | A generated parser with typed values (`ParseValue`) and `Recognize`; what each costs on 100,000 lines |
 | [Process a file that does not fit in memory](big-files.md) | `#stream` and `ParseStream`: records one at a time, in 17 MiB for 5 million lines |
 | [Sum a column of a big CSV file](sum-a-csv-column.md) | The CSV grammar of `alpha-parsers/csv` streamed record by record: a total in about 13 MB, and the offset of the first bad record |
 | [Read a header and then records](header-and-records.md) | A stream whose first element is a header: telling the kinds of element apart in the callback |

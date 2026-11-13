@@ -20,7 +20,7 @@ import (
 // on both entries: building and gathering the value, and the unit of forgetting it, which a runtime that
 // forgets without charging leaves out (see TestGeneratedTermChargeMutants).
 //
-// typedParse is the same for the parse entry of a typed parser (ParseAST), whose Created and KidStack hold
+// typedParse is the same for the parse entry of a typed parser (ParseValue), whose Created and KidStack hold
 // typed values and cost less to forget than nodes; its recognize entry runs the node parser's code. engine is
 // the same for the engine, in every backend and entry. The three differ today, since every target charges
 // the values of a term in its own way; they are pinned apart so that a change in any is a stated change.
@@ -150,7 +150,7 @@ func TestGeneratedTypedTermChargesPerValue(t *testing.T) {
 	if testing.Short() {
 		t.Skip("builds generated consumers")
 	}
-	got := termChargeDeltasWith(t, gentest.RuntimeCopy(), gen.GenOptions{Types: true}, "ParseAST")
+	got := termChargeDeltasWith(t, gentest.RuntimeCopy(), gen.GenOptions{Types: true}, "ParseValue")
 	for k, want := range termChargeWantTyped() {
 		if got[k] != want {
 			t.Errorf("%s: one more value costs %d units, want %d", k, got[k], want)

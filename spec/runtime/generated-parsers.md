@@ -48,7 +48,7 @@ zp gen -g <grammar> [-lang go|ts] [-module <import path>] [-pkg <package>]
 | `-document` | `Document` | Generate the `Document` (`createDocument` in TypeScript) |
 | `-stream` | `Stream` | Generate `ParseStream` (Go only; the start rule MUST contain a `#stream` repetition) |
 | `-recognize` | `Recognize` | Generate recognition without a tree |
-| `-typed-only` | `TypedOnly` | Go only; needs `-types`. Generate only the typed entry points (`ParseAST`, `ParseRuleAST` and their options); there is no `Parse`, `ParseRule` or `Recognize`. Rejected with `-recognize`, `-document`, `-stream` and `-lang ts`. A typed entry point that converts the Node of its rule keeps the unexported Node rule functions it runs |
+| `-typed-only` | `TypedOnly` | Go only; needs `-types`. Generate only the typed entry points (`ParseValue`, `ParseRuleValue` and their options); there is no `Parse`, `ParseRule` or `Recognize`. Rejected with `-recognize`, `-document`, `-stream` and `-lang ts`. A typed entry point that converts the Node of its rule keeps the unexported Node rule functions it runs |
 | `-expectations` | `Expectations` | Let a parse [record expectations](parsing.md#recording-expectations): what a syntax error expects and the messages of `@error`. The parser then has the table of expectations and a parse option `WithExpectations` (Go) or `expectations` (TypeScript); a parse records only when it passes the option, and otherwise a syntax error has the farthest position, an empty `Expected`, no `Messages` and the message `syntax error`. Without the flag the parser has no table and no option. A `Document` fixes the choice when it is created. It applies to every entry point, including the typed, `Document` and stream forms |
 | `-observability` | `Observability` | Generate tracing and profiling, specified in [Observability](observability.md) |
 | `-source-info` | `SourceInfo` | Make the parser record [source information](nodes.md#source-information): the rule of each node and the names of captures. Without it, `Node.Rule`, `Node.Field` and `Node.Fields` of a parsed node are empty and the outputs omit them |
@@ -192,11 +192,11 @@ With `-types`, the Go package also defines a Go type for each type of the gramma
 and the functions
 
 ```go
-func ParseAST(input string, opts ...ParseOption) (T, error) // T: the Go type of the start rule's type
-func ParseRuleAST(name, input string, opts ...ParseOption) (any, error)
+func ParseValue(input string, opts ...ParseOption) (T, error) // T: the Go type of the start rule's type
+func ParseRuleValue(name, input string, opts ...ParseOption) (any, error)
 ```
 
-`ParseAST` returns the errors of `Parse`. The mapping of types is:
+`ParseValue` returns the errors of `Parse`. The mapping of types is:
 
 | Grammar type | Go type |
 |:--|:--|
@@ -230,7 +230,7 @@ func ParseRuleAST(name, input string, opts ...ParseOption) (any, error)
   the span; the value still reads back under the grammar name. Every declared alias is exported.
 - After `#recover`, an error value in a list of a join type stays in the list as
   `*Error`; where a struct type is expected it becomes `nil`.
-- `ParseRuleAST` consumes the whole input, applies options once before it looks up
+- `ParseRuleValue` consumes the whole input, applies options once before it looks up
   the name, and returns the selected start rule's typed value as `any`. Names that
   `ParseRule` rejects, with the same errors, and invalid options return `nil` with an
   error. A parse failure returns the zero value
@@ -240,7 +240,7 @@ func ParseRuleAST(name, input string, opts ...ParseOption) (any, error)
   same either way.
 
 Typed TypeScript output (`-types`) exports an interface for every struct
-and alias and the functions `parseAST` and `parseASTWithOptions`, which parse the
+and alias and the functions `parseValue` and `parseValueWithOptions`, which parse the
 configured start rule and convert the node result. They return `{ value, error }`:
 a successful nil result has a null value and a null error; a failure has a null
 value and the error; recovery keeps the converted value and `SyntaxErrors`. The
@@ -275,7 +275,7 @@ can report runtime errors.
 
 With `-document`, the Go package gains `NewDocument(text string, opts ...ParseOption) (*Document, error)` and a
 `Document` with these members: `Parse`, `Edit(start, end, replacement)`, `Text`,
-`Stats` and, with `-types`, `ParseAST`.
+`Stats` and, with `-types`, `ParseValue`.
 
 - `Edit` replaces a half-open range in the position unit chosen at construction. It
   rejects an invalid range, and a position inside a UTF-8 character in `Bytes`
@@ -287,9 +287,9 @@ With `-document`, the Go package gains `NewDocument(text string, opts ...ParseOp
   discards memo history so that a later call can retry.
 - A `Document` is for one goroutine. A returned tree can share nodes with later
   parses; `Node.Clone` makes a detached copy that preserves cycles and repeated
-  references. With `-types`, `ParseAST` returns read-only values that share storage
+  references. With `-types`, `ParseValue` returns read-only values that share storage
   with the document and with earlier results. Caller mutation can therefore change
-  what later results contain, as with `Node` values. `CloneAST(value)` returns an
+  what later results contain, as with `Node` values. `CloneValue(value)` returns an
   independent copy that shares nothing with the document or other results, and
   preserves aliases within the copy. Every slice in a returned value has capacity
   equal to its length, so `append` on a result cannot write into another result.
@@ -302,7 +302,7 @@ With `-document`, the Go package gains `NewDocument(text string, opts ...ParseOp
 With `-document`, the TypeScript `parser.ts` gains
 `createDocument(input: string | Uint8Array, options?)`, which returns `{ document, error }`, and a `Document`
 class with these methods: `parse(options?)`, `edit(start, end, replacement)`, `text()`, `bytes()`, `stats()`
-and, with `-types`, `parseAST(options?)`.
+and, with `-types`, `parseValue(options?)`.
 
 - `createDocument` copies the input and reads the options once. They become the
   defaults of every parse; `document` is null, with the error, when they are
@@ -311,14 +311,14 @@ and, with `-types`, `parseAST(options?)`.
   is its UTF-8 encoding, with lone surrogates as U+FFFD; a `Uint8Array` replacement
   is taken as it is. `text()` returns the text as nodes hold it in the unit, and
   `bytes()` a copy of the exact input.
-- A parse returns what `parse` of the whole current text returns, and `parseAST`
-  what `parseAST` returns. An invocation MUST NOT change the unit or the
+- A parse returns what `parse` of the whole current text returns, and `parseValue`
+  what `parseValue` returns. An invocation MUST NOT change the unit or the
   expectations. A `parse` or `edit` made while the Document parses, from a trace
   callback, returns an error.
 - A parse reuses the results of earlier parses that the edits since left valid, by
   the rules of the Go `Document`. `stats()` returns `{ evaluated, reused }`, the
   rule evaluations and the reused results of the last parse, which equal the Go
-  `Stats` after `Parse` of the same grammar, text and edits. The Go `ParseAST`
+  `Stats` after `Parse` of the same grammar, text and edits. The Go `ParseValue`
   keeps its own typed memo, so the Go `Stats` after it can differ.
 - A returned tree can share nodes with the results of later parses, so mutating it
   can change what they contain. A reused result whose position an edit moved is
@@ -331,12 +331,12 @@ With `-stream`, the Go package gains `ParseStream(r io.Reader, emit func(*Node) 
 `WithDiagnosticCallback` and `WithDiagnosticLimit` with `TruncatedSyntaxErrors`. They
 follow the contract of [Streaming](streaming.md), with these differences: a nil
 `emit` parses the stream without delivering elements, and the diagnostic options are
-accepted only by the stream entry points (`Parse`, `ParseRule`, `ParseAST`,
+accepted only by the stream entry points (`Parse`, `ParseRule`, `ParseValue`,
 `Recognize`, `NewDocument` and `Document` methods reject them). `Parse` treats
 `#stream` as an ordinary repetition.
 
-With `-types` as well, the package gains `StreamValue`, `ParseStreamAST` and
-`IterateAST` with `StreamASTIterator`. `StreamValue` is the Go type of one element
+With `-types` as well, the package gains `StreamValue`, `ParseStreamValue` and
+`IterateValue` with `StreamValueIterator`. `StreamValue` is the Go type of one element
 of the `#stream` repetition, not of the start rule. Each element is converted on
 its own when it is committed, so the value stays valid after the callback returns.
 The conversion counts toward the compute limits and observes the context.
@@ -439,7 +439,7 @@ export function marshal(n: Node | null): string;
   environments and frames, syntax errors, the text copied out of the input and the strings
   that actions concatenate, and the slots of the working stacks at their largest length
   at a poll. Not counted are the caller's input, the values of the typed conversion that
-  `parseAST` hands to the caller, and what the JavaScript engine adds beyond the model.
+  `parseValue` hands to the caller, and what the JavaScript engine adds beyond the model.
   A count above the limit returns a `ParseInterruptionError` whose `kind` is
   `"memory-limit"`, message `memory-limit exceeded: limit N, used M`, with `limit` the
   memory limit, `used` the count and `requested` zero.
@@ -449,7 +449,7 @@ export function marshal(n: Node | null): string;
   [a `LimitError` reports](parsing.md#cancellation-and-compute-limits); for cancellation, `cause` is the
   `reason` of the signal. Recovery does not turn an interruption into a partial result,
   and the parser keeps no reference to the signal after the call returns. Typed
-  conversion (`parseAST`) and recognition report interruptions the same way.
+  conversion (`parseValue`) and recognition report interruptions the same way.
 - A synchronous parse does not yield to the event loop: a signal that changes only
   through timers or other tasks of the same thread is not observed during the call. A
   signal that is already aborted is observed at the first poll, and the compute limits do not
@@ -518,7 +518,7 @@ program, so a TypeScript parser can reject nesting that the engine accepts.
 | Position units | `WithUnit` | `unit` |
 | Another start rule | `ParseRule` | `parseRule` |
 | Recognition | `Recognize` with `-recognize` | `recognize` with `-recognize` |
-| Typed values | `ParseAST`, `ParseRuleAST` with `-types` | `parseAST`, `parseASTWithOptions` with `-types` |
+| Typed values | `ParseValue`, `ParseRuleValue` with `-types` | `parseValue`, `parseValueWithOptions` with `-types` |
 | Streaming | `ParseStream`, `Iterate` with `-stream` | None; `#stream` is an ordinary repetition |
 | Incremental documents | A subset with `-document` | The same subset, `createDocument` with `-document` |
 | Cancellation and compute limits | `WithContext` and a finite `Compute` with `-limits`; `WithLimits` | `signal` and `limits.compute` with `-limits`; `limits.input`; `ParseInterruptionError` |

@@ -29,7 +29,7 @@ and field pointers. Slab allocation can reduce object counts while increasing
 retained siblings; current broad speedup is not established by the individual
 allocator controls.
 
-Evidence records: [048](../048-a-typed-runtime-for-parseast.md),
+Evidence records: [048](../048-a-typed-runtime-for-parsevalue.md),
 [074](../074-smaller-first-chunks-for-generated-typed-values.md),
 [098](../098-bootstrap-generated-typed-output-allocations.md).
 

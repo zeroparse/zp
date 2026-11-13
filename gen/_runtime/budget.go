@@ -677,7 +677,7 @@ func RunParseConverted[T any](r *Rule, input string, o parseOptions, conv func(*
 	return res, err
 }
 
-// Ordinary runtime/depth errors retain the configured ParseAST converter's
+// Ordinary runtime/depth errors retain the configured ParseValue converter's
 // historical nil mapping. Budget interruptions bypass conversion without calling
 // methods on a caller-owned error to classify it.
 func parseConversionInput(r *Rule, input string, o parseOptions) (n *Node, err error) {

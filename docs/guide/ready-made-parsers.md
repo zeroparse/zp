@@ -62,7 +62,7 @@ All ten have the API of a parser generated with `zp gen -types -recognize`
 
 | | |
 |:--|:--|
-| `ParseAST(input, opts...)` | The document as the Go types the grammar declares, each with its `Span` in the input |
+| `ParseValue(input, opts...)` | The document as the Go types the grammar declares, each with its `Span` in the input |
 | `Parse(input, opts...)` | The document as a tree of `*Node`, as the engine returns it |
 | `Recognize(input, opts...)` | Only checks the input; returns the error, builds nothing |
 | `*SyntaxError` | The position (`Line`, `Col`, `Pos`) and the expected tokens of a syntax error |
@@ -74,15 +74,15 @@ reference does after parsing, helpers to walk the tree. The entry points you nor
 | Language | Package | You normally call |
 |:--|:--|:--|
 | CEL | `alpha-parsers/cel` | `ParseExpr` (parse and check, as cel-go does), `Format`, `Inspect`, `Constant`; `Valid` |
-| CSV | `alpha-parsers/csv` | `Records`, `Table` (a header and rows), `ParseAST`; `Valid` |
+| CSV | `alpha-parsers/csv` | `Records`, `Table` (a header and rows), `ParseValue`; `Valid` |
 | CUE | `alpha-parsers/cue` | `ParseFile`, `Comments`, `Inspect`; `Valid` |
-| DuckDB SQL | `alpha-parsers/duckdb` | `ParseAST`, `Split` (the statements of a script, with their kind), `Walk`, `Keyword`, `QuoteIdent` |
-| Go | `alpha-parsers/golang` | `ParseFile` (a `go/ast` tree, as `go/parser` returns it), `ParseAST`, `ToGoAST`; `Valid` |
-| JSON | `alpha-parsers/json` | `Decode` (Go values), `ParseAST`; `Valid` |
+| DuckDB SQL | `alpha-parsers/duckdb` | `ParseValue`, `Split` (the statements of a script, with their kind), `Walk`, `Keyword`, `QuoteIdent` |
+| Go | `alpha-parsers/golang` | `ParseFile` (a `go/ast` tree, as `go/parser` returns it), `ParseValue`, `ToGoAST`; `Valid` |
+| JSON | `alpha-parsers/json` | `Decode` (Go values), `ParseValue`; `Valid` |
 | Python | `alpha-parsers/python` | `ParseModule` (parse and check, as `ast.parse` does), `Dump`, `Inspect` |
 | TypeScript | `alpha-parsers/typescript` | `ParseFile`, `ParseTSX`, `Inspect`, `ForEachChild` |
 | XML | `alpha-parsers/xml` | `Decode`, `DecodeBytes` (any of the encodings XML allows), `WellFormed` |
-| YAML | `alpha-parsers/yaml` | `Load`, `LoadAll` (Go values), `ParseAST`, `Events`; `Valid` |
+| YAML | `alpha-parsers/yaml` | `Load`, `LoadAll` (Go values), `ParseValue`, `Events`; `Valid` |
 
 For example, a table and a document as Go values, and an error of the table:
 
@@ -126,11 +126,11 @@ There are four kinds of entry point, and the same input costs different amounts 
 | Entry point | You get | Use it when |
 |:--|:--|:--|
 | The language's own (`Decode`, `Load`, `ParseFile`, `ParseModule`, `ParseExpr`, `Records`) | Values or a tree as the language's tools produce them, after the checks that the language's reference does and that are not part of its grammar | You want what the reference implementation would give you: it accepts what the reference accepts |
-| `ParseAST` | The grammar's own typed values, with positions | You analyze or transform the source and need to know where everything is, or the language has no value form (SQL, TypeScript) |
+| `ParseValue` | The grammar's own typed values, with positions | You analyze or transform the source and need to know where everything is, or the language has no value form (SQL, TypeScript) |
 | `Parse` | The generic `*Node` tree, as the engine builds it | You work with several ZeroParse grammars at once, or compare with the engine ([testing](testing-grammars.md)) |
 | `Recognize`, `Valid` | Only whether the input is valid | You validate input and do not need the tree |
 
-Note the first row: `ParseAST` is the grammar alone. The language's own function also runs the checks that a grammar
+Note the first row: `ParseValue` is the grammar alone. The language's own function also runs the checks that a grammar
 cannot express (the range of a literal, the limits of CEL, the `from __future__` rules of Python), so the two can
 differ on inputs that are syntactically right and semantically wrong. The README of each parser lists them.
 
@@ -139,23 +139,23 @@ What each costs, for JSON, on an array of objects of 262 KB (the parser's own be
 
 | | Time | Allocated | Allocations |
 |:--|--:|--:|--:|
-| `ParseAST` | 3.2 ms | 2.4 MB | 233 |
-| `Decode` (`ParseAST` and a conversion to `map[string]any`) | 4.3 ms | 5.2 MB | 24,648 |
+| `ParseValue` | 3.2 ms | 2.4 MB | 233 |
+| `Decode` (`ParseValue` and a conversion to `map[string]any`) | 4.3 ms | 5.2 MB | 24,648 |
 | `Valid` | 3.5 ms | 6.9 KB | 0 |
 | `Parse` | 7.1 ms | 10.5 MB | 744 |
 | `encoding/json` `Unmarshal` into an `any` (for comparison) | 6.4 ms | 1.9 MB | 54,357 |
 | `encoding/json` `Valid` (for comparison) | 0.31 ms | 0 | 0 |
 
-Two lessons from this table. The typed tree (`ParseAST`) is cheaper than the generic one (`Parse`): twice as fast, with
+Two lessons from this table. The typed tree (`ParseValue`) is cheaper than the generic one (`Parse`): twice as fast, with
 a quarter of the memory. Prefer it. And `Valid` (`Recognize`) builds nothing, but it does not make a parser as fast as a
-hand-written scanner: here it takes about as long as `ParseAST` and is 11 times slower than `encoding/json`'s `Valid`.
+hand-written scanner: here it takes about as long as `ParseValue` and is 11 times slower than `encoding/json`'s `Valid`.
 Use it to avoid allocating, not to save time. These are the numbers of one grammar and one input; measure yours.
 How these compare with the engine's backends is in [benchmarks.md](../benchmarks.md) and
 [performance.md](../performance.md#where-zeroparse-stands).
 
 ## Reading the Tree
 
-`ParseAST` returns Go types: a struct for each type of the grammar, and an interface for each join. Walk them with
+`ParseValue` returns Go types: a struct for each type of the grammar, and an interface for each join. Walk them with
 type switches, and ask the node for its `Span`. A small program that reports every `port` member of a JSON document that
 is not a number, at the line and column where it starts:
 
@@ -188,7 +188,7 @@ func lineCol(src string, pos int) (line, col int) {
 }
 
 func check(src string) error {
-	v, err := json.ParseAST(src)
+	v, err := json.ParseValue(src)
 	if err != nil {
 		var se *json.SyntaxError
 		if errors.As(err, &se) {
@@ -236,7 +236,7 @@ func main() {
 error: 4:1: syntax error: expected "\"", [ \t\r\n]
 ```
 
-The second document has a trailing comma, so `ParseAST` fails and `check` returns the `SyntaxError`'s position and
+The second document has a trailing comma, so `ParseValue` fails and `check` returns the `SyntaxError`'s position and
 message.
 
 The `Value()` method of `*json.String` decodes the escapes of the source text, which `Text` keeps as written. The other
@@ -287,7 +287,7 @@ func main() {
 	})
 
 	// The same file as the typed values of the grammar, each with its Span (here in bytes).
-	file, err := golang.ParseAST(src, golang.WithUnit(golang.Bytes))
+	file, err := golang.ParseValue(src, golang.WithUnit(golang.Bytes))
 	if err != nil {
 		panic(err)
 	}
@@ -312,7 +312,7 @@ bad.go:2:9: expected type
 ```
 
 `ParseFile` takes the same arguments as `go/parser.ParseFile` and returns the same tree, positions included, so `go/printer`,
-`go/format` and `go/types` work on it; its errors are `scanner.ErrorList`s, as `go/parser`'s are. `ParseAST` returns the
+`go/format` and `go/types` work on it; its errors are `scanner.ErrorList`s, as `go/parser`'s are. `ParseValue` returns the
 typed values of the grammar instead, with spans in the unit you ask for (here bytes).
 
 A last example, a DuckDB script cut into statements, with the tables each one reads:
@@ -367,7 +367,7 @@ subquery. (The target of an `INSERT` is not a `BaseTable`, so the third statemen
 
 Every node has a `Span` with `Start` and `End`, a half-open range of the input. Positions are in **code points** by
 default; pass `WithUnit(Bytes)` to generated entry points for byte offsets, which is what you want when you slice the input as a Go string or when another
-tool counts bytes (`ToGoAST` of the Go parser needs bytes). `ParseAST`, `Parse` and `Recognize` accept functional options, and it applies to `Span`, to `SyntaxError.Pos` and to `Col` alike (`Line` is the same in both):
+tool counts bytes (`ToGoAST` of the Go parser needs bytes). `ParseValue`, `Parse` and `Recognize` accept functional options, and it applies to `Span`, to `SyntaxError.Pos` and to `Col` alike (`Line` is the same in both):
 
 ```go
 package main
@@ -386,12 +386,12 @@ func main() {
 		unit json.PositionUnit
 	}{{"code points", json.CodePoints}, {"bytes", json.Bytes}} {
 		unit := u.unit
-		_, err := json.ParseAST(src, json.WithUnit(unit))
+		_, err := json.ParseValue(src, json.WithUnit(unit))
 		var se *json.SyntaxError
 		if errors.As(err, &se) {
 			fmt.Printf("%-11s error at pos %d, line %d, col %d\n", u.name, se.Pos, se.Line, se.Col)
 		}
-		v, _ := json.ParseAST(`["あい", 1]`, json.WithUnit(unit))
+		v, _ := json.ParseValue(`["あい", 1]`, json.WithUnit(unit))
 		last := v.(*json.Array).Elements[1]
 		fmt.Printf("%-11s the number 1 is at %d-%d\n", u.name, last.(*json.Number).Start, last.(*json.Number).End)
 	}
@@ -419,7 +419,7 @@ A parse that fails returns a `*SyntaxError` of the parser's own package (not `zp
 import ZeroParse). Use `errors.As`:
 
 ```go
-_, err := json.ParseAST(`{"a": [1, 2,]}`)
+_, err := json.ParseValue(`{"a": [1, 2,]}`)
 var se *json.SyntaxError
 if errors.As(err, &se) {
 	fmt.Println(se.Line, se.Col, se.Message())

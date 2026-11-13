@@ -9,10 +9,10 @@ import (
 
 func TestGeneratedTypedTSNodeConstructors(t *testing.T) {
 	t.Parallel()
-	runTypedTSFixture(t, gentest.ConstructorGrammar, `import {parseAST, parse, CodePoints, Bytes} from "./parser.ts";
+	runTypedTSFixture(t, gentest.ConstructorGrammar, `import {parseValue, parse, CodePoints, Bytes} from "./parser.ts";
 `+tsTypedAssert+`
 for (const unit of [CodePoints, Bytes]) {
-  const r = parseAST("😀", unit);
+  const r = parseValue("😀", unit);
   check(r.error === null && r.value !== null, "parse");
   const v = r.value;
   check(stable(v).length > 0, "serializable output");

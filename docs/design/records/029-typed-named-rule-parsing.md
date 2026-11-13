@@ -6,10 +6,10 @@
 
 ## Summary
 
-Generated parsers built with `-types` should offer `ParseRuleAST`, a
+Generated parsers built with `-types` should offer `ParseRuleValue`, a
 whole-input API that selects a grammar rule by name and returns its generated
 typed representation as `any`. It leaves the declared signatures and parse
-semantics of `ParseRule` and `ParseAST` unchanged, but reserving the new
+semantics of `ParseRule` and `ParseValue` unchanged, but reserving the new
 exported name can rename a colliding generated type and its underscore
 cascade. The API uses the generated parser's `ParseOption` values, including
 position-unit and maximum-depth options.
@@ -17,7 +17,7 @@ position-unit and maximum-depth options.
 ## Motivation
 
 Generated Go parsers expose `ParseRule(name, input, opts...) (*Node, error)`
-and `ParseAST(input, opts...) (StartType, error)`. Typed generation emits a
+and `ParseValue(input, opts...) (StartType, error)`. Typed generation emits a
 typed rule table, but the public typed entry point only parses the configured
 start rule. Callers that need a typed subrule must currently parse a larger
 wrapper or use `ParseRule` and reproduce generated conversion behavior.
@@ -30,20 +30,20 @@ available.
 
 ## Goals
 
-- Add `ParseRuleAST(name, input, opts...) (any, error)` only to parsers
+- Add `ParseRuleValue(name, input, opts...) (any, error)` only to parsers
   generated with `-types`.
 - Select the result type from the selected grammar rule's existing generated
   type mapping; do not introduce another type system.
 - Preserve whole-input, action, recovery, error and position-unit semantics.
 - Resolve and validate options before looking up the rule, as required by the
   generated parser options contract.
-- Preserve `ParseRule` and `ParseAST` declarations, start-rule behavior and
+- Preserve `ParseRule` and `ParseValue` declarations, start-rule behavior and
   parse semantics; identify and test the generated-name collision migration
-  for grammars that define a type named `ParseRuleAST`.
+  for grammars that define a type named `ParseRuleValue`.
 
 ## Non-Goals
 
-- Changing the return type or behavior of `ParseRule` or `ParseAST`.
+- Changing the return type or behavior of `ParseRule` or `ParseValue`.
 - Generating a separate public function for every grammar rule.
 - Adding generic type parameters, a parser-specific type registry or a new
   conversion contract.
@@ -56,18 +56,18 @@ available.
 For a typed generated parser, emit:
 
 ```go
-func ParseRuleAST(name, input string, opts ...ParseOption) (any, error)
+func ParseRuleValue(name, input string, opts ...ParseOption) (any, error)
 ```
 
 The function applies and validates `opts` exactly once before resolving
 `name`, then dispatches by the existing rule-name table using those resolved
 options. An unknown name returns `(nil, err)` with the same undefined-rule
 error used by `ParseRule`. Calls parse the entire input, just
-like `ParseRule` and `ParseAST`; a prefix match with trailing input is an
+like `ParseRule` and `ParseValue`; a prefix match with trailing input is an
 error.
 
 The returned dynamic value follows the selected rule's inferred type and the
-existing `ParseAST` mapping:
+existing `ParseValue` mapping:
 
 - structs and terminals use their generated Go values; terminal values retain
   their `Span` and text;
@@ -85,7 +85,7 @@ use a type assertion or type switch after selecting a rule by name. `any` is
 necessary because the return type cannot be chosen statically from a runtime
 string.
 
-If `#recover` produces syntax errors, preserve the generated `ParseAST`
+If `#recover` produces syntax errors, preserve the generated `ParseValue`
 contract: return the value together with `SyntaxErrors`. An `Error` where a
 struct or terminal is expected becomes the documented nil value; join and
 list positions follow the existing generated conversion rules. For an ordinary
@@ -95,7 +95,7 @@ when assigned to `any`); an
 option or unknown-name error returns a plain nil because no rule type was
 selected. A successful rule whose semantic value is nil also returns the selected type's
 zero value with a nil error. Thus successful `any`, `node` and join-interface
-nil results return plain nil from `ParseRuleAST`. Legacy `ParseAST` retains its
+nil results return plain nil from `ParseRuleValue`. Legacy `ParseValue` retains its
 existing conversion behavior, which can box a nil `*Node` in an `any` result.
 Action errors, syntax errors and trailing-input errors retain their existing
 classification.
@@ -109,14 +109,14 @@ full `TypedGen.runtimeOK` guard succeeds for the grammar and selected result.
 That guard also rejects field-reading actions or predicates and any
 unrepresentable field type anywhere in the generated structs; do not replace
 it with a selected-result-only check. On the direct path, call the corresponding
-typed rule in `trules` and use the same generated mapping as `ParseAST`.
+typed rule in `trules` and use the same generated mapping as `ParseValue`.
 Otherwise, use the matching Node rule in `rules` and the existing conversion
 semantics, even if the selected rule's result alone appears representable.
 
 Reuse the existing typed runtime, converters, parser pool and result ownership
 rules. If a result converter is currently generated only for the start type,
 make the required per-rule converters available without changing the result
-or output of the existing `ParseAST` entry point. Keep one parse per call and
+or output of the existing `ParseValue` entry point. Keep one parse per call and
 preserve the generated runtime's frame, memo and scratch-recycling behavior.
 
 Options must be applied exactly once and resolved before rule lookup, so invalid
@@ -128,9 +128,9 @@ with those resolved options, including the requested `Unit` and depth limit.
 ### Compatibility and Support
 
 The new entry point is additive at the API level for typed generated Go
-parsers, and it does not change `ParseRule`'s `*Node` return or `ParseAST`'s
+parsers, and it does not change `ParseRule`'s `*Node` return or `ParseValue`'s
 configured start-rule behavior. The generated Go types of the grammar are
-declared in the package `types`, so a grammar type or alias named `ParseRuleAST`
+declared in the package `types`, so a grammar type or alias named `ParseRuleValue`
 does not clash with the entry point in the parser package. Untyped parsers continue to expose only
 `ParseRule`. No grammar, serialized format, TypeScript API or runtime option
 changes are required.
@@ -138,8 +138,8 @@ changes are required.
 ### Implementation Sequence
 
 1. Derive and emit per-rule result mappings from the same type metadata used by
-   `ParseAST`, including any converters needed for Node fallback.
-2. Emit `ParseRuleAST` dispatch for typed parsers, preserving option
+   `ParseValue`, including any converters needed for Node fallback.
+2. Emit `ParseRuleValue` dispatch for typed parsers, preserving option
    validation before name lookup and using the selected rule in either the
    typed or Node-conversion path.
 3. Document the generated name-to-type mapping and add the API to the typed
@@ -154,7 +154,7 @@ changes are required.
   gives static return types, but expands the API and requires a naming and
   collision policy for arbitrary grammar rule names. It also does not provide
   dynamic name lookup.
-- **Use a generic `ParseRuleAST[T]`.** Go cannot infer `T` from `name`; callers
+- **Use a generic `ParseRuleValue[T]`.** Go cannot infer `T` from `name`; callers
   must supply a type that can disagree with the selected rule, requiring a
   runtime assertion without added safety.
 - **Require callers to parse a `Node` and convert it themselves.** This
@@ -182,8 +182,8 @@ field; add an unrelated struct with an unrepresentable field to force the full
 be representable. Compile consumer fixtures for both execution modes and
 assert the documented zero and typed-nil results on ordinary failure. Also
 cover successful nil-valued `_`, `node` and join rules and verify legacy
-`ParseAST` nil boxing remains unchanged. Add
-a grammar type named `ParseRuleAST` to verify that it compiles beside the entry point. For the XML subrule use case, compare `content` and declaration
+`ParseValue` nil boxing remains unchanged. Add
+a grammar type named `ParseRuleValue` to verify that it compiles beside the entry point. For the XML subrule use case, compare `content` and declaration
 results with the existing wrapper-based behavior on nested markup, Unicode and
 malformed input; verify spans remain relative to the fragment without
 caller-side shifting.

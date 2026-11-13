@@ -29,7 +29,7 @@ var sourceLimits = genparser.WithLimits(genparser.Limits{Compute: genparser.Unli
 func Parse(src string) (*grammar.Grammar, error) {
 	lx := lexSource(src)
 	text, invalid := lx.withoutInvalidCharacters()
-	f, err := genparser.ParseAST(text, genparser.WithExpectations(), sourceLimits)
+	f, err := genparser.ParseValue(text, genparser.WithExpectations(), sourceLimits)
 	if err != nil {
 		errs, ok := lx.sourceErrorsOf(err)
 		if !ok {
@@ -63,7 +63,7 @@ func ParsePartialContext(ctx context.Context, src string) (*grammar.Grammar, Err
 	}
 	lx := lexSource(src)
 	text, _ := lx.withoutInvalidCharacters()
-	f, err := genparser.ParseAST(text, genparser.WithExpectations(), sourceLimits, genparser.WithContext(ctx))
+	f, err := genparser.ParseValue(text, genparser.WithExpectations(), sourceLimits, genparser.WithContext(ctx))
 	var errs []SourceError
 	if err != nil {
 		if ctxErr := ctx.Err(); ctxErr != nil {

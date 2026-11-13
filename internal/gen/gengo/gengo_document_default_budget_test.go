@@ -95,7 +95,7 @@ func TestGeneratedTypedDocumentLeftoverEntriesAreNotCounted(t *testing.T) {
 		"rule main = h:head { a := text($h) + \"1\"; b := text($h) + \"2\"; c := \"z\" } \";\" " +
 		"({ s := a } u \"!\" / { s := c } { s := b } u \"!\" / { s := c } { s := a } u)* $$\n" +
 		"rule head = [a-z]* #atomic\nrule u = { s != \"\" } bb\nrule bb = \"b\""
-	typed := strings.NewReplacer("Parse(head", "ParseAST(head", "d.Parse()", "d.ParseAST()").Replace(fixtureLeftover)
+	typed := strings.NewReplacer("Parse(head", "ParseValue(head", "d.Parse()", "d.ParseValue()").Replace(fixtureLeftover)
 	runDocumentBudgetFixtureWith(t, gen.GenOptions{Package: "fixture", Start: "main", Types: true, Document: true}, grammar, typed)
 }
 
@@ -443,10 +443,10 @@ import (
 func TestTypedDocumentCountedWithinFresh(t *testing.T) {
   for _, n := range []int{1 << 12, 1 << 14} {
     text := strings.Repeat("b;", n)
-    if _, err := ParseAST(text); errors.Is(err, ErrLimit) { t.Fatalf("n=%d: typed parse from scratch: %.80v", n, err) }
+    if _, err := ParseValue(text); errors.Is(err, ErrLimit) { t.Fatalf("n=%d: typed parse from scratch: %.80v", n, err) }
     d, err := NewDocument(text)
     if err != nil { t.Fatal(err) }
-    if _, err := d.ParseAST(); errors.Is(err, ErrLimit) {
+    if _, err := d.ParseValue(); errors.Is(err, ErrLimit) {
       t.Errorf("n=%d: the typed Document parse ends at the limit where a parse from scratch does not: %.80v", n, err)
     }
   }

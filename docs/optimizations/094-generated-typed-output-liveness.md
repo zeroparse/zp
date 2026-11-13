@@ -9,7 +9,7 @@ Generated Go typed parsers allocate values in backing chunks. A small published 
 
 Two private generation-time variants were evaluated: an unbudgeted full sweep and a bounded sweep. The bounded variant preflights ownership directories and uses fixed work, key, pending-value, owner-record and slot budgets. Parent promotion consumes the bounded budget. If ownership is unknown or preflight, tracing or promotion exceeds a limit, it falls back to keep-all before clearing any cell. Directory collection during parsing is currently uncapped. The sweep examines whole backing blocks but zeros only unmarked slots; a live cell reached through an interior pointer retains its owner and descendants.
 
-The controls are private and default-off. They affect generated Go typed `ParseAST` and `ParseRuleAST` publication, for direct and conversion-based results, including returned `Match` values and owned backing cells. Generated Node `Parse`, `Recognize`, engine and VM backends, and TypeScript are outside this mechanism. No runtime selector is added and no default allocation policy has changed.
+The controls are private and default-off. They affect generated Go typed `ParseValue` and `ParseRuleValue` publication, for direct and conversion-based results, including returned `Match` values and owned backing cells. Generated Node `Parse`, `Recognize`, engine and VM backends, and TypeScript are outside this mechanism. No runtime selector is added and no default allocation policy has changed.
 
 ## Applicability
 

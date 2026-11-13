@@ -84,9 +84,9 @@ func TestComparisons(t *testing.T){
  for _,in:=range INPUTS{
   for _,unit:=range []PositionUnit{CodePoints,Bytes}{
    if got,want:=show(Parse(in,WithUnit(unit),limits)),show(Parse(in,WithUnit(unit)));got!=want{t.Errorf("Parse %q: %s, want %s",in,got,want)}
-   if got,want:=show(ParseAST(in,WithUnit(unit),limits)),show(ParseAST(in,WithUnit(unit)));got!=want{t.Errorf("ParseAST %q: %s, want %s",in,got,want)}
+   if got,want:=show(ParseValue(in,WithUnit(unit),limits)),show(ParseValue(in,WithUnit(unit)));got!=want{t.Errorf("ParseValue %q: %s, want %s",in,got,want)}
    node:=least(func(o ...ParseOption)(any,error){return Parse(in,append(o,WithUnit(unit))...)})
-   ast:=least(func(o ...ParseOption)(any,error){return ParseAST(in,append(o,WithUnit(unit))...)})
+   ast:=least(func(o ...ParseOption)(any,error){return ParseValue(in,append(o,WithUnit(unit))...)})
    fmt.Fprintf(&steps,"%q %d: %d %d\n",in,unit,node,ast)
   }
  }

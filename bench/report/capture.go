@@ -33,7 +33,7 @@ var tsWorkloads = []tsWorkload{
 // they have in the results.
 var tsModes = []struct{ name, entry string }{
 	{"Parse", "parse"},
-	{"ParseAST", "parseAST"},
+	{"ParseValue", "parseValue"},
 	{"Recognize", "recognize"},
 }
 
@@ -104,7 +104,7 @@ func genOptions(root, name string) ([]string, error) { return probe.GenOptions(r
 func parserGenArgs(root, name string) ([]string, error) { return probe.GenTSArgs(root, name) }
 
 // captureSizes records, for each parser of sizeParsers, the size of the generated Go parser.go,
-// of a binary that calls its ParseAST (built with -trimpath and stripped of symbols and DWARF), of
+// of a binary that calls its ParseValue (built with -trimpath and stripped of symbols and DWARF), of
 // the generated TypeScript parser.ts and of that file compressed with gzip -9. The embedded
 // TypeScript runtime is common to all parsers and is recorded once as parser "runtime".
 func captureSizes(root, commit, work string) ([]byte, error) {
@@ -114,7 +114,7 @@ func captureSizes(root, commit, work string) ([]byte, error) {
 	}
 	var b bytes.Buffer
 	writeHeader(&b, commit)
-	fmt.Fprintln(&b, "# go binary: a main that calls ParseAST; go build -trimpath -ldflags=\"-s -w\"")
+	fmt.Fprintln(&b, "# go binary: a main that calls ParseValue; go build -trimpath -ldflags=\"-s -w\"")
 	for _, name := range sizeParsers {
 		genDir, err := generateGo(root, zpBin, work, name)
 		if err != nil {
@@ -164,7 +164,7 @@ func generateGo(root, zpBin, work, name string) (string, error) {
 	return dir, probe.GenerateGo(root, zpBin, dir, name)
 }
 
-// buildBinary builds a program that calls ParseAST of the parser generated into genDir, in a module of
+// buildBinary builds a program that calls ParseValue of the parser generated into genDir, in a module of
 // its own in the work directory, and returns the size of the binary.
 func buildBinary(root, work, name, genDir string) (int, error) {
 	_, size, err := probe.BuildProgram(root, filepath.Join(work, "bin-"+name), genDir, probe.SizeMain)

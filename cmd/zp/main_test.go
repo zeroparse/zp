@@ -354,12 +354,12 @@ func TestGen(t *testing.T) {
 	if _, err := runCLI(t, "", "gen", "-g", g); err == nil {
 		t.Error("expected an error without -pkg")
 	}
-	if strings.Contains(out, "func ParseAST(") {
-		t.Error("ParseAST generated without -types")
+	if strings.Contains(out, "func ParseValue(") {
+		t.Error("ParseValue generated without -types")
 	}
 	typed, err := runGenGo(t, "-g", g, "-pkg", "kv", "-types")
-	if err != nil || !strings.Contains(typed, "func ParseAST(") {
-		t.Errorf("-types: no ParseAST: %v", err)
+	if err != nil || !strings.Contains(typed, "func ParseValue(") {
+		t.Errorf("-types: no ParseValue: %v", err)
 	}
 	if strings.Contains(out, "func Recognize(") {
 		t.Error("Recognize generated without -recognize")
@@ -395,7 +395,7 @@ rule main = "a"`)
 		t.Fatalf("-document: missing constructor: %v", err)
 	}
 	typed, err := runGenGo(t, "-g", g, "-pkg", "node", "-document", "-types")
-	if err != nil || !strings.Contains(typed, "func (d *Document) ParseAST(") {
+	if err != nil || !strings.Contains(typed, "func (d *Document) ParseValue(") {
 		t.Fatalf("-document -types: %v", err)
 	}
 	dir, err := runGenTS(t, "-g", g, "-document")
@@ -484,7 +484,7 @@ func TestGenTypeScript(t *testing.T) {
 	if err == nil {
 		typed = readTS(t, dir, "parser.ts", "types.ts")
 	}
-	if err != nil || !strings.Contains(typed, "export function parseAST(") || !strings.Contains(typed, "export function parseASTWithOptions(") || !strings.Contains(typed, "export interface TypedParseResult") {
+	if err != nil || !strings.Contains(typed, "export function parseValue(") || !strings.Contains(typed, "export function parseValueWithOptions(") || !strings.Contains(typed, "export interface TypedParseResult") {
 		t.Errorf("TS -types: missing typed entry points: %v", err)
 	}
 	for _, args := range [][]string{
@@ -721,14 +721,14 @@ rule main = "a"`)
 	if err != nil || !strings.Contains(out, "func WithTrace(") || !strings.Contains(out, "func Recognize(") {
 		t.Fatalf("trace generation: %v\n%s", err, out)
 	}
-	if out, err := runGenGo(t, "-g", path, "-pkg", "fixture", "-observability", "-types"); err != nil || !strings.Contains(out, "func ParseAST(") || !strings.Contains(out, "func WithTrace(") {
+	if out, err := runGenGo(t, "-g", path, "-pkg", "fixture", "-observability", "-types"); err != nil || !strings.Contains(out, "func ParseValue(") || !strings.Contains(out, "func WithTrace(") {
 		t.Fatalf("typed trace generation: %v\n%s", err, out)
 	}
 	dir, err := runGenTS(t, "-g", path, "-observability", "-types", "-recognize")
 	if err != nil {
 		t.Fatalf("TypeScript trace generation: %v", err)
 	}
-	if out := readTS(t, dir, "runtime.ts", "parser.ts"); !strings.Contains(out, "export interface TraceEvent") || !strings.Contains(out, "export function parseASTWithOptions(") || !strings.Contains(out, "mkGrammar(100000, false, true, false)") {
+	if out := readTS(t, dir, "runtime.ts", "parser.ts"); !strings.Contains(out, "export interface TraceEvent") || !strings.Contains(out, "export function parseValueWithOptions(") || !strings.Contains(out, "mkGrammar(100000, false, true, false)") {
 		t.Fatalf("TypeScript trace generation: missing trace declarations\n%s", out)
 	}
 	for _, flags := range [][]string{{"-document"}, {"-types", "-document"}} {

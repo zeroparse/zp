@@ -33,14 +33,14 @@ func TestGeneratedTypedDocumentBenchmarkPreflight(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			if _, err := d.ParseAST(); err != nil {
+			if _, err := d.ParseValue(); err != nil {
 				t.Fatal(err)
 			}
 			if err := d.Edit(pos, pos+1, "4"); err != nil {
 				t.Fatal(err)
 			}
-			got, gotErr := d.ParseAST()
-			want, wantErr := typeddocument.ParseAST(alternate, typeddocument.WithUnit(unit))
+			got, gotErr := d.ParseValue()
+			want, wantErr := typeddocument.ParseValue(alternate, typeddocument.WithUnit(unit))
 			if gotErr != nil || wantErr != nil || !reflect.DeepEqual(got, want) || d.Stats().Reused == 0 {
 				t.Fatalf("%d/%v: edited typed result differs from fresh parse: %v / %v, stats %+v", records, unit, gotErr, wantErr, d.Stats())
 			}
@@ -64,13 +64,13 @@ func BenchmarkTypedBatchGenerationFlag(b *testing.B) {
 		} {
 			b.Run(strconv.Itoa(records)+"/"+unit.name+"/without-document", func(b *testing.B) {
 				opt := typedbatch.WithUnit(unit.batchUnit)
-				if got, err := typedbatch.ParseAST(input, opt); err != nil || len(got) != records {
+				if got, err := typedbatch.ParseValue(input, opt); err != nil || len(got) != records {
 					b.Fatalf("preflight: %d items, %v", len(got), err)
 				}
 				b.ReportAllocs()
 				b.ResetTimer()
 				for i := 0; i < b.N; i++ {
-					got, err := typedbatch.ParseAST(input, opt)
+					got, err := typedbatch.ParseValue(input, opt)
 					if err != nil {
 						b.Fatal(err)
 					}
@@ -79,13 +79,13 @@ func BenchmarkTypedBatchGenerationFlag(b *testing.B) {
 			})
 			b.Run(strconv.Itoa(records)+"/"+unit.name+"/with-document", func(b *testing.B) {
 				opt := typeddocument.WithUnit(unit.documentUnit)
-				if got, err := typeddocument.ParseAST(input, opt); err != nil || len(got) != records {
+				if got, err := typeddocument.ParseValue(input, opt); err != nil || len(got) != records {
 					b.Fatalf("preflight: %d items, %v", len(got), err)
 				}
 				b.ReportAllocs()
 				b.ResetTimer()
 				for i := 0; i < b.N; i++ {
-					got, err := typeddocument.ParseAST(input, opt)
+					got, err := typeddocument.ParseValue(input, opt)
 					if err != nil {
 						b.Fatal(err)
 					}
@@ -117,7 +117,7 @@ func BenchmarkTypedDocumentNearEOF(b *testing.B) {
 				if err != nil {
 					b.Fatal(err)
 				}
-				if got, err := d.ParseAST(); err != nil || len(got) != records {
+				if got, err := d.ParseValue(); err != nil || len(got) != records {
 					b.Fatalf("preflight: %d items, %v", len(got), err)
 				}
 				b.ReportAllocs()
@@ -130,7 +130,7 @@ func BenchmarkTypedDocumentNearEOF(b *testing.B) {
 					if err := d.Edit(pos, pos+1, replacement); err != nil {
 						b.Fatal(err)
 					}
-					got, err := d.ParseAST()
+					got, err := d.ParseValue()
 					if err != nil {
 						b.Fatal(err)
 					}
@@ -158,13 +158,13 @@ func BenchmarkTypedDocumentNoEdit(b *testing.B) {
 				if err != nil {
 					b.Fatal(err)
 				}
-				if got, err := d.ParseAST(); err != nil || len(got) != records {
+				if got, err := d.ParseValue(); err != nil || len(got) != records {
 					b.Fatalf("preflight: %d items, %v", len(got), err)
 				}
 				b.ReportAllocs()
 				b.ResetTimer()
 				for i := 0; i < b.N; i++ {
-					got, err := d.ParseAST()
+					got, err := d.ParseValue()
 					if err != nil {
 						b.Fatal(err)
 					}
@@ -189,7 +189,7 @@ func BenchmarkTypedDocumentFresh(b *testing.B) {
 				if err != nil {
 					b.Fatal(err)
 				}
-				result, err := d.ParseAST()
+				result, err := d.ParseValue()
 				if err != nil {
 					b.Fatal(err)
 				}
@@ -220,7 +220,7 @@ func TestGeneratedTypedDocumentRetained(t *testing.T) {
 				if err != nil {
 					t.Fatal(err)
 				}
-				if _, err := d.ParseAST(); err != nil {
+				if _, err := d.ParseValue(); err != nil {
 					t.Fatal(err)
 				}
 				pos := len(input) - 2
@@ -235,7 +235,7 @@ func TestGeneratedTypedDocumentRetained(t *testing.T) {
 					if err := d.Edit(pos, pos+1, text); err != nil {
 						t.Fatal(err)
 					}
-					if _, err := d.ParseAST(); err != nil {
+					if _, err := d.ParseValue(); err != nil {
 						t.Fatal(err)
 					}
 				}

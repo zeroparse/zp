@@ -28,7 +28,7 @@ const short = "a".repeat(300);
 if (limitOf(p.parse(short).error) !== want) fail("parse default " + p.parse(short).error);
 if (limitOf(p.parseRule("", short).error) !== want) fail("parseRule default");
 if (limitOf(p.recognize(short)) !== want) fail("recognize default");
-if (limitOf(p.parseAST(short).error) !== want) fail("parseAST default");
+if (limitOf(p.parseValue(short).error) !== want) fail("parseValue default");
 if (limitOf(p.parseWithOptions(short, {}).error) !== want) fail("parseWithOptions default");
 if (limitOf(p.parseWithOptions(short, { limits: { compute: 0 } }).error) !== want) fail("zero budget default");
 if (limitOf(p.parseWithOptions(short, { limits: { compute: 1000 } }).error) !== 1000) fail("explicit budget");
@@ -86,13 +86,13 @@ for (const [unit, n] of [[p.CodePoints, 301], [p.Bytes, 302]] as const) {
     const r = p.parseWithOptions(text, { unit, limits: { input: maxInput } });
     if (r.error !== null) fail("maxInput " + maxInput + ": " + r.error);
     if (p.recognizeWithOptions(text, { unit, limits: { input: maxInput } }) !== null) fail("recognize " + maxInput);
-    if (p.parseASTWithOptions(text, { unit, limits: { input: maxInput } }).error !== null) fail("parseAST " + maxInput);
+    if (p.parseValueWithOptions(text, { unit, limits: { input: maxInput } }).error !== null) fail("parseValue " + maxInput);
   }
   for (const [name, error] of [
     ["parse", p.parseWithOptions(text, { unit, limits: { input: n - 1 } }).error],
     ["parseRule", p.parseRuleWithOptions("", text, { unit, limits: { input: n - 1 } }).error],
     ["recognize", p.recognizeWithOptions(text, { unit, limits: { input: n - 1 } })],
-    ["parseAST", p.parseASTWithOptions(text, { unit, limits: { input: n - 1 } }).error],
+    ["parseValue", p.parseValueWithOptions(text, { unit, limits: { input: n - 1 } }).error],
     ["bytes", p.parseWithOptions(new TextEncoder().encode(text), { unit, limits: { input: n - 1 } }).error],
   ] as const) {
     if (!(error instanceof p.ParseInterruptionError) || error.kind !== "input-limit" || error.limit !== n - 1 || error.requested !== n || error.used !== 0) fail(name + " unit " + unit + ": " + error);

@@ -152,7 +152,7 @@ func TestTerminalProgramEligibility(t *testing.T) {
 		{"disabled", "rule main = -" + choice16 + " $$\n", gen.GenOptions{NoOpt: []string{"terminals"}}, false},
 		// The typed body of a left-recursive rule is a frame body, which keeps straight-line code.
 		{"left recursion", "rule main = e $$\nrule e = e -" + choice16 + " [0-9] / [0-9]\n", gen.GenOptions{}, false},
-		// Streaming parses run the Node bodies; only the typed bodies of ParseAST hold programs.
+		// Streaming parses run the Node bodies; only the typed bodies of ParseValue hold programs.
 		{"stream", "rule main = (-" + choice16 + " w:[0-9]+ \";\")* #stream $$\n", gen.GenOptions{Stream: true}, true},
 	} {
 		g, err := parseTest(c.src)

@@ -40,7 +40,7 @@ cost of the record on the failures inside alternations.
 | JSON bytecode, bytes | 21.32 ms | 20.45 ms (~) | 21.23 ms (~) |
 | JSON generated, bytes | 7.41 ms | 7.31 ms (~) | 7.48 ms (~) |
 | JSON geomean of ten benchmarks | 12.23 ms | 11.93 ms (-2.4%, ~) | 12.21 ms (-0.2%, ~) |
-| Go parser (`ParseAST`) | 29.35 ms | 28.45 ms (~) | 29.63 ms (~) |
+| Go parser (`ParseValue`) | 29.35 ms | 28.45 ms (~) | 29.63 ms (~) |
 
 The Go parser allocates 4.7% fewer bytes per parse (5.766 to 5.495 MiB, p < 0.001) and 1.2% fewer
 objects in the default mode. The difference with recording on is within noise of the base.
@@ -65,11 +65,11 @@ early return for a silent position or one before the farthest failure is therefo
 guard, and the recording sits in `expectOrdinarySlow`, which is not inlined. The method stays in
 the hot-path inlining test.
 
-Measured on the Go parser (`ParseAST` of `alpha-parsers/golang`, which is the row that runs these
+Measured on the Go parser (`ParseValue` of `alpha-parsers/golang`, which is the row that runs these
 rule bodies), 12 interleaved runs per variant, at a machine load average that fell from 53 to 24
 during the run, so differences of a few percent are noise:
 
-| ParseAST | Base | Without the guard | With the guard |
+| ParseValue | Base | Without the guard | With the guard |
 |:--|--:|--:|--:|
 | Default (no recording), ms/op | 28.27 | 27.58 (~) | 27.31 (-3.4%, p=0.03) |
 | With `WithExpectations()`, ms/op | 28.27 | 28.79 (~) | 28.73 (~) |
@@ -82,5 +82,5 @@ rows, and the generated rows show no difference.
 The ready-made parsers whose grammars define `@error` messages (Go, Python, TypeScript, XML) are
 generated with expectations, because their messages are part of what they report. Their
 compatibility entry points that print messages (`ParseFile`, `ParseModule`, `Decode`) pass the parse
-option themselves; `ParseAST` records only when the caller passes it. The others are generated
+option themselves; `ParseValue` records only when the caller passes it. The others are generated
 without.

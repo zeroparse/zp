@@ -1206,19 +1206,19 @@ func (c *typedDocumentClone) list2(v []*types.Ident) []*types.Ident {
 	return out
 }
 
-// ParseAST parses the input like Parse and returns the result as typed values. If the parse recovered
+// ParseValue parses the input like Parse and returns the result as typed values. If the parse recovered
 // from errors, the result is returned together with SyntaxErrors; an Error node where a struct
 // type is expected becomes nil.
 // It builds the values directly, without the nodes Parse returns.
-func ParseAST(input string, opts ...rt.ParseOption) (*types.Program, error) {
+func ParseValue(input string, opts ...rt.ParseOption) (*types.Program, error) {
 	a := &tslabs{}
 	return rt.TParse(trules[0], input, opts, a, func(v any) *types.Program { return rt.TAs[*types.Program](v) })
 }
 
-// ParseAST directly parses the Document and returns typed values. The values are shared with the
+// ParseValue directly parses the Document and returns typed values. The values are shared with the
 // Document and with earlier results, so a caller that modifies one may change later results, as with
-// Node values. CloneAST returns an independent copy.
-func (d *Document) ParseAST(opts ...rt.ParseOption) (*types.Program, error) {
+// Node values. CloneValue returns an independent copy.
+func (d *Document) ParseValue(opts ...rt.ParseOption) (*types.Program, error) {
 	if err := d.BeginParse(); err != nil {
 		var zero *types.Program
 		return zero, err
@@ -1235,9 +1235,9 @@ func (d *Document) ParseAST(opts ...rt.ParseOption) (*types.Program, error) {
 	})
 }
 
-// CloneAST returns a copy of a value that ParseAST returned. The copy shares nothing with the
+// CloneValue returns a copy of a value that ParseValue returned. The copy shares nothing with the
 // Document or with other results, so the caller may modify it; aliases within value are preserved.
-func CloneAST(value *types.Program) *types.Program {
+func CloneValue(value *types.Program) *types.Program {
 	c := &typedDocumentClone{}
 	out := c.toTypeProgram(value)
 	c.Finish()
@@ -1245,13 +1245,13 @@ func CloneAST(value *types.Program) *types.Program {
 	return out
 }
 
-// ParseRuleAST parses the whole input with the named start rule and returns its typed value; an empty
+// ParseRuleValue parses the whole input with the named start rule and returns its typed value; an empty
 // name selects the grammar's default start rule.
 // Recovered values accompany SyntaxErrors. Nil results and failed parses return the selected type's zero value.
 // Invalid options and names of rules that are not start rules return nil with an error. Start rule result types:
 //
 //	main: *types.Program
-func ParseRuleAST(name, input string, opts ...rt.ParseOption) (any, error) {
+func ParseRuleValue(name, input string, opts ...rt.ParseOption) (any, error) {
 	o, err := rt.ResolveOptions(zpGrammar, opts)
 	if err != nil {
 		return nil, err

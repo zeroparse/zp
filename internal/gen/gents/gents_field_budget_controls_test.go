@@ -33,25 +33,25 @@ function minimum(fits:(n:number)=>boolean):number {
  return hi;
 }
 for(const unit of [p.CodePoints,p.Bytes]) {
- const normal=p.parse("z",unit),typed=p.parseAST("z",unit);
- const active=p.parseWithOptions("z",{unit,signal:{aborted:false}}),converted=p.parseASTWithOptions("z",{unit,signal:{aborted:false}});
+ const normal=p.parse("z",unit),typed=p.parseValue("z",unit);
+ const active=p.parseWithOptions("z",{unit,signal:{aborted:false}}),converted=p.parseValueWithOptions("z",{unit,signal:{aborted:false}});
  check(normal.error===null&&typed.error===null&&active.error===null&&converted.error===null&&stable(active.node)===stable(normal.node)&&stable(converted.value)===stable(typed.value),"field construction, lookup and typed conversion parity");
  check(p.parseRuleWithOptions("fast","z",{unit,limits:{compute:4096}}).error===null,"matching fits before field construction");
  const construction=p.parseRuleWithOptions("item","z",{unit,limits:{compute:4096}});
  check(construction.node===null&&construction.error instanceof p.ParseInterruptionError&&construction.error.kind==="compute-limit","field construction scans consume budget");
- for(const error of [p.parseWithOptions("z",{unit,limits:{compute:4096}}).error,p.parseASTWithOptions("z",{unit,limits:{compute:4096}}).error,p.recognizeWithOptions("z",{unit,limits:{compute:4096}})])check(error instanceof p.ParseInterruptionError&&error.kind==="compute-limit","field-dependent parse routes consume budget");
+ for(const error of [p.parseWithOptions("z",{unit,limits:{compute:4096}}).error,p.parseValueWithOptions("z",{unit,limits:{compute:4096}}).error,p.recognizeWithOptions("z",{unit,limits:{compute:4096}})])check(error instanceof p.ParseInterruptionError&&error.kind==="compute-limit","field-dependent parse routes consume budget");
  const itemBudget=minimum(n=>p.parseRuleWithOptions("item","z",{unit,limits:{compute:n}}).error===null);
  const lookup=p.parseWithOptions("z",{unit,limits:{compute:itemBudget+128}});
  check(lookup.node===null&&lookup.error instanceof p.ParseInterruptionError&&lookup.error.kind==="compute-limit","member lookup charges beyond construction");
  const parseBudget=minimum(n=>p.parseWithOptions("z",{unit,limits:{compute:n}}).error===null);
  check(p.parseWithOptions("z",{unit,limits:{compute:parseBudget+1024}}).error===null,"same budget finishes parse");
- const conversion=p.parseASTWithOptions("z",{unit,limits:{compute:parseBudget+1024}});
+ const conversion=p.parseValueWithOptions("z",{unit,limits:{compute:parseBudget+1024}});
  check(conversion.value===null&&conversion.error instanceof p.ParseInterruptionError&&conversion.error.kind==="compute-limit","typed field scans share cumulative spend");
  let polls=0;check(p.parseWithOptions("z",{unit,signal:{get aborted(){polls++;return false}}}).error===null,"observe parse checkpoints");
  const cancelAt=polls+1;polls=0;
- const canceled=p.parseASTWithOptions("z",{unit,signal:{get aborted(){return ++polls>=cancelAt},reason:"fields"}});
+ const canceled=p.parseValueWithOptions("z",{unit,signal:{get aborted(){return ++polls>=cancelAt},reason:"fields"}});
  check(canceled.value===null&&canceled.error instanceof p.ParseInterruptionError&&canceled.error.kind==="canceled"&&canceled.error.cause==="fields","typed conversion cancellation exposes no partial value");
- check(p.parseASTWithOptions("z",{unit,limits:{compute:0}}).error===null,"fresh retry after field interruption");
+ check(p.parseValueWithOptions("z",{unit,limits:{compute:0}}).error===null,"fresh retry after field interruption");
 }
 `
 	runTypedTSFixture(t, src, consumer, gen.GenOptions{Start: "main", LimitControls: true, Types: true, Recognize: true}, "")

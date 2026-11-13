@@ -144,7 +144,7 @@ The test is skipped without `node`, and the type check without `tsc`.
 ## Limitations
 
 - Typed values are now available in generated TypeScript with `-types`: the generator exports declarations and
-  configured-start `parseAST` conversion ([guide](../../guide/typescript.md#typed-values), [design 030](030-typed-typescript-values.md)).
+  configured-start `parseValue` conversion ([guide](../../guide/typescript.md#typed-values), [design 030](030-typed-typescript-values.md)).
   Streaming and incremental parsing are not generated.
 - Deep nesting is limited by the JavaScript stack (see above) as well as by the limit of 100,000 nested rule calls.
 - In byte mode, Go concatenates bytes: `text($a) + text($b)` of two halves of a character is that character, while

@@ -402,15 +402,15 @@ have no maintained same-source control, so their contribution cannot be re-measu
 
 | Measure (workload) | Today |
 |:--|:--|
-| Typed `ParseAST` time ÷ standard library (JSON, XML) | 1.11×, 1.33× |
-| Typed `ParseAST` time ÷ standard library (CSV, two arithmetic workloads) | 3.10×, 3.36×, 5.41× |
+| Typed `ParseValue` time ÷ standard library (JSON, XML) | 1.11×, 1.33× |
+| Typed `ParseValue` time ÷ standard library (CSV, two arithmetic workloads) | 3.10×, 3.36×, 5.41× |
 | Generated `Parse` time ÷ standard library (five comparable workloads) | 1.62–6.76× |
 | Generated `Recognize` time ÷ `json.Valid` (JSON) | 8.05× |
 | Streaming, closure backend ÷ `encoding/csv` read loop (50,000 records) | 11.5× |
-| Typed `ParseAST` allocated bytes ÷ standard library (JSON, XML) | 1.18×, 1.25× |
+| Typed `ParseValue` allocated bytes ÷ standard library (JSON, XML) | 1.18×, 1.25× |
 | Generated Go with finite compute limits ÷ without (`Parse`; JSON and XML, generated with `-limits`) | 1.30–1.47× |
 | Engine backends with a context or limits active ÷ inactive | 1.45–1.79× |
-| Allocations per parse: generated `Recognize`; typed `ParseAST` ÷ standard library (JSON, CSV, XML) | 0 on JSON, CSV and Operators Rule arithmetic, 74–1,700 on the other workloads; 260, 184, 263 against 53 k, 10 k, 80 k |
+| Allocations per parse: generated `Recognize`; typed `ParseValue` ÷ standard library (JSON, CSV, XML) | 0 on JSON, CSV and Operators Rule arithmetic, 74–1,700 on the other workloads; 260, 184, 263 against 53 k, 10 k, 80 k |
 | Generated TypeScript `parse` ÷ generated Go `Parse` (seven workloads) | 2.43–4.00× |
 | `Document` one-character edit and reparse (Minilang, 89 KB; engine backends) | 116–133 µs |
 | `Document` at 100,000 lines, one-digit replacement (incremental guide, Apple silicon) | `Edit` 0.33–0.36 ms, then reparse 0.61–1.85 ms; length-changing edits not measured |
@@ -439,14 +439,14 @@ so cutting it comes first in the Performance track.
 
 | Measure (output class) | Credibility | Long-term | Mechanisms |
 |:--|:--|:--|:--|
-| Compute limit overhead, generated Go `Parse` and `ParseAST`, limits on ÷ off | ≤ 1.15×; ≤ 1.05× (stretch) | ≤ 1.05×; ≤ 1.02× (stretch) | One budget; charging input by position change at rewinds and rule exits instead of per unit read; one charge per straight-line block; context polls only on recursive cycles and loop back-edges |
-| Typed `ParseAST` ÷ standard library, JSON and XML (typed values with spans) | < 1.0× | < 1.0× | Statically typed generated Go; byte positions; smaller string nodes |
-| Typed `ParseAST` ÷ standard library, JSON and XML (typed values without spans, byte positions) | ≤ 1.0× | ≤ 0.6× (stretch) | The above; an option to generate values without spans |
-| Typed `ParseAST` ÷ standard library, CSV (without spans) and arithmetic (with spans, against `go/parser`'s positioned AST) | ≤ 2.0× | ≤ 1.0× | Byte-search scans for character runs; cross-rule optimization; statically typed generated Go |
+| Compute limit overhead, generated Go `Parse` and `ParseValue`, limits on ÷ off | ≤ 1.15×; ≤ 1.05× (stretch) | ≤ 1.05×; ≤ 1.02× (stretch) | One budget; charging input by position change at rewinds and rule exits instead of per unit read; one charge per straight-line block; context polls only on recursive cycles and loop back-edges |
+| Typed `ParseValue` ÷ standard library, JSON and XML (typed values with spans) | < 1.0× | < 1.0× | Statically typed generated Go; byte positions; smaller string nodes |
+| Typed `ParseValue` ÷ standard library, JSON and XML (typed values without spans, byte positions) | ≤ 1.0× | ≤ 0.6× (stretch) | The above; an option to generate values without spans |
+| Typed `ParseValue` ÷ standard library, CSV (without spans) and arithmetic (with spans, against `go/parser`'s positioned AST) | ≤ 2.0× | ≤ 1.0× | Byte-search scans for character runs; cross-rule optimization; statically typed generated Go |
 | Generated `Parse` ÷ standard library, comparable workloads (a positioned tree with rule names, a richer output than the baselines) | ≤ 2.0× | ≤ 1.5×; ≤ 1.0× (stretch) | Cross-rule optimization; expected sets on request; depth checks only where recursion is possible; smaller nodes; optional arenas |
 | Generated `Recognize` ÷ `json.Valid` (acceptance and error offset, no expected sets) | ≤ 3.0× | ≤ 1.5×; ≤ 1.0× (stretch) | Expected sets on request; depth checks only where recursion is possible; byte positions; a table-driven scanner for lexical rules (not yet designed) |
 | Allocations per generated `Recognize`, pooled parser in steady state | 0 on JSON, CSV and arithmetic (met today) | 0 on all eight workloads (stretch) | Pooled scratch; zero-copy captured text; pooled left-recursion and recovery state |
-| Allocations per typed `ParseAST` | Count grows no faster than the logarithm of the input (slab growth only) | 0 with a caller-owned arena (stretch) | Slab storage; statically typed generated Go; optional arenas |
+| Allocations per typed `ParseValue` | Count grows no faster than the logarithm of the input (slab growth only) | 0 with a caller-owned arena (stretch) | Slab storage; statically typed generated Go; optional arenas |
 | Typed allocated bytes ÷ standard library, JSON and XML | ≤ 1.0× (with spans) | ≤ 0.8× (with spans); ≤ 0.5× without spans (stretch) | Statically typed generated Go; values without spans; smaller string nodes; byte positions |
 | Generated TypeScript `parse` ÷ generated Go `Parse` | ≤ 2.0× | ≤ 1.5×; ≤ 1.2× (stretch) | Close the TypeScript Flow IR slowdown; shared sub-expressions; cheaper typed conversion and UTF-8 decoding; JavaScript-specific layouts for the stretch value |
 | Generated Go streaming ÷ `encoding/csv` read loop (benchmark to be added) | ≤ 2.0× (stretch) | ≤ 1.0× (stretch) | None yet beyond the batch mechanisms |

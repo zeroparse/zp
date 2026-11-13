@@ -81,7 +81,7 @@ func testGenerateErrors(t *testing.T) {
 	}
 }
 
-// TestGeneratedTypes checks ParseAST of parsers generated with Types: it compiles for every
+// TestGeneratedTypes checks ParseValue of parsers generated with Types: it compiles for every
 // grammar of the corpus and returns the errors of Parse, and it converts the trees of
 // typedGrammar into the expected values.
 func TestGeneratedTypes(t *testing.T) {

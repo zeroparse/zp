@@ -755,7 +755,7 @@ func tsIntList(xs []int) string {
 }
 
 // document writes the Document of the start rule: createDocument and, with types, the Document's
-// parseAST, which converts the Node result as parseAST does.
+// parseValue, which converts the Node result as parseValue does.
 func (g *Generator) document(out *strings.Builder, start *compile.Rule, types bool) {
 	fmt.Fprintf(out, `/**
  * Document is an incremental Document of the start rule %[1]s: a text that edit changes, and parse,
@@ -765,8 +765,8 @@ func (g *Generator) document(out *strings.Builder, start *compile.Rule, types bo
 export class Document extends DocumentBase {
 `, start.Name)
 	if types {
-		fmt.Fprintf(out, `  /** parseAST parses the current text and converts its completed Node result, as parseAST does. */
-  parseAST(options?: %[1]s): Types.TypedParseResult<%[2]s> {
+		fmt.Fprintf(out, `  /** parseValue parses the current text and converts its completed Node result, as parseValue does. */
+  parseValue(options?: %[1]s): Types.TypedParseResult<%[2]s> {
     return this.parseWith<Types.TypedParseResult<%[2]s>>(options, (r, control) => astResult<%[2]s>(r, %[3]d, control), error => ({ value: null, error }));
   }
 `, g.optionsType, g.startType, g.startRepr)

@@ -33,7 +33,7 @@ their own contracts below.
 ### Typed Go Batch Trace Extension
 
 With `Observability` and `Types`, generated Go packages
-trace `ParseAST` and `ParseRuleAST` as well as Node `Parse`, `ParseRule` and
+trace `ParseValue` and `ParseRuleValue` as well as Node `Parse`, `ParseRule` and
 optional `Recognize`. This covers direct typed execution and Node-conversion
 fallback. Events describe parser calls made by the selected route; converting
 a Node result to typed values is not a rule call and emits no separate event.
@@ -48,7 +48,7 @@ without `-types`, and with `-recognize` when recognition is generated. The
 generated module adds `trace`, `traceRules` and `traceMaxDepth` to
 `ParseOptions`; `parseWithOptions`, `parseRuleWithOptions` and
 `recognizeWithOptions` accept these options. With `-types`, the configured-start
-`parseASTWithOptions` does too. The legacy positional-unit APIs do not accept a
+`parseValueWithOptions` does too. The legacy positional-unit APIs do not accept a
 trace callback, and TypeScript does not generate a separately named typed-rule
 API.
 
@@ -122,9 +122,9 @@ func ParseRule(name, input string, opts ...ParseOption) (*Node, error)
 func Recognize(input string, opts ...ParseOption) error
 ```
 
-For the Go Node and typed batch slices, tracing options compose with unit and depth options. Typed packages expose `ParseAST` and `ParseRuleAST` with the same `ParseOption` values, and optional `Recognize` remains available. Positions are half-open; `Examined` is an exclusive end where the backend can report it.
+For the Go Node and typed batch slices, tracing options compose with unit and depth options. Typed packages expose `ParseValue` and `ParseRuleValue` with the same `ParseOption` values, and optional `Recognize` remains available. Positions are half-open; `Examined` is an exclusive end where the backend can report it.
 
-The Go Node slice supports `Parse`, `ParseRule` and generated `Recognize`; the typed Go slice also supports `ParseAST` and `ParseRuleAST`. Both export `TraceEvent`, `WithTrace`, `WithTraceFilter`, `WithTraceMaxDepth` and `WithProfile`. TypeScript tracing and profiling use per-call `ParseOptions` fields instead of Go functional options; TypeScript profiles use `Profile` and `ProfileSnapshot`.
+The Go Node slice supports `Parse`, `ParseRule` and generated `Recognize`; the typed Go slice also supports `ParseValue` and `ParseRuleValue`. Both export `TraceEvent`, `WithTrace`, `WithTraceFilter`, `WithTraceMaxDepth` and `WithProfile`. TypeScript tracing and profiling use per-call `ParseOptions` fields instead of Go functional options; TypeScript profiles use `Profile` and `ProfileSnapshot`.
 
 The option callback receives a copied value event containing scalar/string fields, not a pointer into parser state. Callbacks run synchronously on the parsing goroutine/JavaScript stack. There is no retained input or parser-state accessor in this API. Per-invocation trace/profile state is private; concurrent or reentrant parses of the same generated parser have independent state. A `Profile` aggregates across calls and is not safe to share across concurrent parses.
 
@@ -151,7 +151,7 @@ Root `Time` sums completed root rule calls and excludes input setup, whole-input
 ### Generated Go Document Tracing and Profiling
 
 With `-document -observability`, generated Go Documents support `Parse` and,
-with `-types`, `ParseAST` tracing and profiling. `NewDocument` accepts
+with `-types`, `ParseValue` tracing and profiling. `NewDocument` accepts
 `WithTrace` and `WithProfile` as retained defaults; construction itself emits
 no events or profile counts. Per-call options override those defaults for that
 invocation only and do not change later calls. `Edit` does not parse and emits
@@ -200,7 +200,7 @@ After a completed parse, the invocation's increases in profile `Evals` and
 parses can leave statistics for calls that began but did not complete. Temporary
 observer and profile state is released after return or panic; constructor
 defaults remain for later calls. While a Document parses, its `Parse`,
-`ParseAST` and `Edit` return the generated `ErrDocumentBusy` without changing
+`ParseValue` and `Edit` return the generated `ErrDocumentBusy` without changing
 it, so a callback cannot re-enter the same Document; callers can schedule later
 work or use another Document. Every generated Document has the guard, but only
 observability callbacks, the documented way to run caller code during a parse,
@@ -234,7 +234,7 @@ full root, nested-module and site validation pass.
 With generation-time observability enabled, TypeScript batch parsers export
 `Profile` and `ProfileSnapshot`, and add `profile?: Profile | null` to
 `ParseOptions`. Pass a `Profile` to `parseWithOptions`, `parseRuleWithOptions`,
-`recognizeWithOptions`, or, with `-types`, `parseASTWithOptions`. Legacy
+`recognizeWithOptions`, or, with `-types`, `parseValueWithOptions`. Legacy
 positional-unit APIs do not accept a profile. Each invocation keeps private
 accounting state; the sink aggregates completed calls across invocations and
 retains no input, callback, parser history or per-call frames. A profile is not
@@ -279,7 +279,7 @@ Observability types are emitted only with the generation option. Existing genera
 1. **Implemented:** generation-time opt-in and event sinks for standalone Go Node and typed Go batch parsing, covering actual rule calls, memo results, typed direct/conversion paths, recognition and representable first-character skips.
 2. **Implemented:** TypeScript batch events and typed-result tracing preserve exception identity and per-invocation isolation.
 3. **Implemented for generated Go Node and typed batch parsers; implemented for TypeScript batch parsers:** aggregate per-rule profiles over completed calls, with owned sorted snapshots. Focused synthetic Go and TypeScript profile costs are measured below; broader workload costs remain unmeasured.
-4. **Implemented:** a generated Document rejects a `Parse`, `ParseAST` or `Edit` made from its own observability callback with `ErrDocumentBusy`; callers use another Document or schedule later work.
+4. **Implemented:** a generated Document rejects a `Parse`, `ParseValue` or `Edit` made from its own observability callback with `ErrDocumentBusy`; callers use another Document or schedule later work.
 
 ## Alternatives Considered
 
@@ -321,11 +321,11 @@ logging callbacks or establish workload-wide costs.
 
 Typed Go tracing was measured separately against ordinary typed packages from
 the same generator, with direct typed execution and forced Node-conversion
-fallback across `ParseAST` and `ParseRuleAST`. Three alternating 200 ms pairs
+fallback across `ParseValue` and `ParseRuleValue`. Three alternating 200 ms pairs
 used the same synthetic JSON (64 objects), XML (64 items) and calculator
 (32 repetitions) inputs in both position units. The table gives
 observed-to-ordinary median ratio ranges. No-callback ranges span
-`ParseAST`/`ParseRuleAST` and both units; callback ranges cover `ParseAST` in
+`ParseValue`/`ParseRuleValue` and both units; callback ranges cover `ParseValue` in
 both units. Individual paired ratios were noisy (0.934–1.171 across
 no-callback profiles), so these data do not support a significance claim.
 
@@ -356,7 +356,7 @@ Profile costs were measured with Go 1.27.1 on an Apple M3 Max (darwin/arm64),
 alternating 150 ms pairs on the same JSON (64 objects), XML (64 items) and
 calculator (32 repetitions) fixtures in both position units. Node sources
 timed `Parse` and `Recognize`; typed sources timed `Parse`, `Recognize` and
-`ParseAST`. Typed Node-conversion fallback was tested but not timed. Ordinary
+`ParseValue`. Typed Node-conversion fallback was tested but not timed. Ordinary
 output from all six Node/typed fixtures remained byte-identical to baseline
 `90edba2`.
 
@@ -374,7 +374,7 @@ median time ratios were 1.026–1.114 for Node-generated packages and
 individual-pair ranges were 1.022–1.160 and 0.969–1.161. Allocation counts
 were unchanged and paired B/op increased by 9–25. These are six focused
 fixtures/routes in both units, not a statistical or workload-wide claim, and
-they do not measure typed `ParseAST` tracing.
+they do not measure typed `ParseValue` tracing.
 
 With `WithProfile`, the table compares the profiled parser against the current
 ordinary package (no `WithTrace` callback). This measures the opt-in profile
@@ -386,7 +386,7 @@ path, not the cost of an individual counter or clock operation.
 | Node `Recognize` | 5.302–26.860× |
 | Typed `Parse` | 3.821–10.212× |
 | Typed `Recognize` | 5.397–25.639× |
-| Typed `ParseAST` | 4.117–14.432× |
+| Typed `ParseValue` | 4.117–14.432× |
 
 Across all profiled paths and fixtures, the measured additions ranged from
 44,990 to 395,085 B/op and 25 to 50 allocations/op; these ranges are not
@@ -404,7 +404,7 @@ each fixture and unit:
 ```sh
 ZP_PROFILE_BENCH_DIR=/tmp/zp-profile-bench go test ./internal/gen/gengo -run '^TestExportGeneratedGoProfileBenchmarks$' -count=1
 cd /tmp/zp-profile-bench/json/node/ordinary || exit 1
-go test -run '^$' -bench '^(Benchmark(Parse|ParseAST|Recognize|TraceParse)|BenchmarkProfile(Parse|Recognize|ParseAST))$' -benchmem -benchtime=150ms
+go test -run '^$' -bench '^(Benchmark(Parse|ParseValue|Recognize|TraceParse)|BenchmarkProfile(Parse|Recognize|ParseValue))$' -benchmem -benchtime=150ms
 # Repeat from json/node/observed and the typed routes, then alternate order for xml and calc.
 ```
 
@@ -453,9 +453,9 @@ All timing profiles used modules generated with `-types` and `-recognize`,
 with string input in both position units. Ratios compare enabled and ordinary
 packages from the same generator and workload. Source-size and default-source
 comparisons additionally include Node-only modules. No-callback option-API ranges include `parseWithOptions`,
-`parseRuleWithOptions`, `parseASTWithOptions` and `recognizeWithOptions`; the
-legacy ranges include positional-unit `parse`, `parseAST` and `recognize`.
-Callback ranges cover `parseWithOptions` and `parseASTWithOptions` only.
+`parseRuleWithOptions`, `parseValueWithOptions` and `recognizeWithOptions`; the
+legacy ranges include positional-unit `parse`, `parseValue` and `recognize`.
+Callback ranges cover `parseWithOptions` and `parseValueWithOptions` only.
 
 | Fixture | Options APIs, no callback | Legacy positional APIs, no callback | Full scalar-store callback | Root-only callback | Unknown-name filter |
 |:--|--:|--:|--:|--:|--:|
@@ -503,7 +503,7 @@ fixture/route medians, not a workload-wide estimate.
 | Node `Recognize` | 1.872–4.016× |
 | Typed-generated Node `Parse` | 1.742–3.193× |
 | Typed `Recognize` | 1.866–4.021× |
-| Typed `ParseAST` | 1.581–2.760× |
+| Typed `ParseValue` | 1.581–2.760× |
 
 Individual paired ratios ranged from 1.492–4.313×. One `Profile` was reused
 per case and `snapshot()` was outside the timed region. The runs do not measure

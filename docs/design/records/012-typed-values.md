@@ -7,7 +7,7 @@
 ## Summary
 
 With `zp gen -types` (`gen.Go{Types: true}`), a generated parser also defines a Go type for each type of the grammar
-and a function `ParseAST`, which parses like `Parse` and returns the result of the start rule as values of those
+and a function `ParseValue`, which parses like `Parse` and returns the result of the start rule as values of those
 types instead of `*Node`.
 
 ## Design
@@ -43,11 +43,11 @@ applies to alias names as well as struct and terminal declarations.
 
 `Error` implements every join so that a `#recover` inside a list of a join type (`[]Stmt`) keeps the error in the
 list. Where a struct or terminal type is expected, an `Error` node becomes `nil`; it is reported in the
-`SyntaxErrors` that `ParseAST` returns anyway.
+`SyntaxErrors` that `ParseValue` returns anyway.
 
 ### The Typed Runtime
 
-When every value `ParseAST` can return has a Go type of its own (`runtimeOK`: no `Seq`, `List`, `Operator`, record,
+When every value `ParseValue` can return has a Go type of its own (`runtimeOK`: no `Seq`, `List`, `Operator`, record,
 `node`, `terminal` or `_` in the result type or in any struct field) and no action or predicate reads a field of a
 struct whose type has no plain form (a typed value keeps its fields converted, so reading back a `node`, a named node
 type, a join, an `any` or a record would differ from the node's field) other than to copy it, the generated parser
@@ -131,7 +131,7 @@ errors and memoization decisions are literally shared. The generator writes the 
   path.
 
 The parity test generates every corpus grammar twice, with the typed runtime and with conversion (below), and checks
-that `ParseAST` returns the same values and errors, also when parsing concurrently. The corpus includes the cases two
+that `ParseValue` returns the same values and errors, also when parsing concurrently. The corpus includes the cases two
 reviews found where the first version differed (`internal/gentest/testdata/typed`): field reads in actions, the order
 in which fields are evaluated, projections of names captured twice, of lists that `$n` also reaches and of nil
 values, and an `Error` where a list is expected; and grammars for the code paths of direct rules (`direct_*.zp`).
@@ -139,7 +139,7 @@ It runs in both position units.
 
 ### Conversion After the Parse
 
-Otherwise `ParseAST` calls `Parse` and converts the tree. The generated converter has one method per type and per
+Otherwise `ParseValue` calls `Parse` and converts the tree. The generated converter has one method per type and per
 list type, looks fields up by name, and allocates the values of each type, and the elements of lists, in chunks, as
 the runtime does nodes. The parse itself is unchanged, so the typed result is exactly the engine's tree in another
 form.
@@ -149,7 +149,7 @@ form.
 Both paths allocate typed values in separate chunks for each struct, terminal and list element type. Value chunks
 start at 8 elements and double up to 256; list chunks start at 64 and double up to 1,024, accommodating the requested
 list length. Lists longer than 256 elements use an exact-size allocation. Each allocator keeps its next chunk size
-separately from its unused slice, so exhausting a chunk does not reset growth. A new `ParseAST` invocation starts
+separately from its unused slice, so exhausting a chunk does not reset growth. A new `ParseValue` invocation starts
 fresh allocators; the parser pool never recycles arrays that returned typed values can still reference.
 
 Every handed-out value stays at its original address. Returned lists have capacity equal to their length, so an
@@ -162,14 +162,14 @@ discarded siblings in the same array. Allocation granularity does not solve that
 
 ### Cost
 
-In the earlier benchmark snapshot (Apple M3 Max, min of 6–8 runs), the typed runtime made `ParseAST` 35–55% faster than `Parse`
+In the earlier benchmark snapshot (Apple M3 Max, min of 6–8 runs), the typed runtime made `ParseValue` 35–55% faster than `Parse`
 with a fifth to a third of the memory: JSON (262 KB) 7.2 → 3.3 ms and 12.8 → 2.9 MB, XML 7.5 → 4.0 ms, the
 left-recursive calculator 15.1 → 9.8 ms, the outline 4.0 → 2.1 ms; at that time, the Operators Rule calculator used the
-general Operators Rule loop and took 6.4 → 5.8 ms. JSON `ParseAST` is faster than `Recognize` (3.8 ms), which builds nothing but runs the
+general Operators Rule loop and took 6.4 → 5.8 ms. JSON `ParseValue` is faster than `Recognize` (3.8 ms), which builds nothing but runs the
 general code. Conversion costs about 6% more than `Parse`.
 
 Direct rules made most of that difference (performance.md, changes 60–62): before them, with every rule run by the
-general machinery of rule calls (capture frames and their trail, the evaluation context of actions), `ParseAST` was
+general machinery of rule calls (capture frames and their trail, the evaluation context of actions), `ParseValue` was
 about 15% faster than `Parse` (JSON 6.2 ms). A hand-written prototype for JSON that kept captures in Go variables and
 built lists directly had taken 4.5 ms.
 
@@ -198,5 +198,5 @@ built lists directly had taken 4.5 ms.
 ## Limitations
 
 - Grammars whose results include CST values convert the tree after the parse, at a small extra cost.
-- `ParseAST` is generated for the start rule only (`ParseRule` returns `*Node`).
+- `ParseValue` is generated for the start rule only (`ParseRule` returns `*Node`).
 - Values whose type is not known statically (`node`, `_`, joins with basic members) are `any`.

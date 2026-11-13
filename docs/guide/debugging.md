@@ -491,7 +491,7 @@ rule. `TraceSkipped` is not paired with an exit event, and in batch parses `Exam
 (`ExaminedKnown` is false). The [specification](../../spec/runtime/observability.md#generated-go-batch-tracing) defines the
 events, the filters and what an aborted parse omits.
 
-With `-types`, `ParseAST` and `ParseRuleAST` accept the same trace options. This
+With `-types`, `ParseValue` and `ParseRuleValue` accept the same trace options. This
 applies to both direct typed execution and Node-conversion fallback. Events
 describe the rule calls made by the selected path; typed conversion itself is
 not a separate rule event. The Node and typed traces can therefore differ.
@@ -499,7 +499,7 @@ not a separate rule event. The Node and typed traces can therefore differ.
 For example, the same callback can observe typed parsing:
 
 ```go
-_, err := pairsparser.ParseAST(input,
+_, err := pairsparser.ParseValue(input,
 	pairsparser.WithTrace(func(e pairsparser.TraceEvent) {
 		fmt.Printf("%v %s depth=%d pos=%d\n", e.Kind, e.Rule, e.Depth, e.Pos)
 	}),
@@ -507,8 +507,8 @@ _, err := pairsparser.ParseAST(input,
 ```
 
 This Go mode supports Node batch `Parse`, `ParseRule` and, when generated
-with `-recognize`, `Recognize`; with `-types`, it also supports `ParseAST` and
-`ParseRuleAST`. It can be combined with `-document`; see [Tracing and Profiling
+with `-recognize`, `Recognize`; with `-types`, it also supports `ParseValue` and
+`ParseRuleValue`. It can be combined with `-document`; see [Tracing and Profiling
 Generated Go Documents](#tracing-and-profiling-generated-go-documents). With
 `-stream`, `ParseStream` accepts the same options for the whole stream; its
 events report no examined range, and a profile counts the stream as one parse.
@@ -614,7 +614,7 @@ prevent reuse. Profiles of Document parses sum it into per-rule `Examined` and
 those values unknown. Generated Documents do not resume repetition bodies, so there is no
 `ReusedElements` count.
 
-A trace callback cannot call `Parse`, `ParseAST` or `Edit` on the Document
+A trace callback cannot call `Parse`, `ParseValue` or `Edit` on the Document
 being parsed: those calls return `ErrDocumentBusy` and leave the Document
 unchanged, while the outer parse continues. Schedule that work after the
 current call or use another Document.
@@ -633,9 +633,9 @@ zp gen -lang ts -g pairs.zp -observability -types -recognize -o pairs
 ```
 
 ```ts
-import { parseASTWithOptions } from "./pairs/parser.ts";
+import { parseValueWithOptions } from "./pairs/parser.ts";
 
-const result = parseASTWithOptions(input, {
+const result = parseValueWithOptions(input, {
   trace: (event) => console.log(event.kind, event.rule, event.depth, event.pos),
   traceRules: ["pair"],
   traceMaxDepth: 4,
@@ -643,7 +643,7 @@ const result = parseASTWithOptions(input, {
 ```
 
 `parseWithOptions`, `parseRuleWithOptions` and `recognizeWithOptions` accept the
-same trace options. With `-types`, the configured-start `parseASTWithOptions`
+same trace options. With `-types`, the configured-start `parseValueWithOptions`
 does as well; TypeScript does not add a named typed-rule API. The
 positional-unit functions do not accept trace callbacks. `traceMaxDepth` must
 be a safe integer; zero and negative values mean unlimited depth. Events use
@@ -678,7 +678,7 @@ const snapshot = profile.snapshot();
 console.log(JSON.stringify(snapshot));
 ```
 
-The same option works with `parseRuleWithOptions`, `recognizeWithOptions` and, with `-types`, `parseASTWithOptions`.
+The same option works with `parseRuleWithOptions`, `recognizeWithOptions` and, with `-types`, `parseValueWithOptions`.
 A `Profile` aggregates across parses but cannot be shared by concurrent calls, and a snapshot is a copy that later
 parses do not change. The counters are the camel-case counterparts of the generated Go profile; `time` and `selfTime`
 are in milliseconds, measured with the host's `performance.now()` clock, and the flags `examinedKnown`

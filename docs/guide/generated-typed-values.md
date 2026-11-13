@@ -7,9 +7,9 @@ the generated package is in [The Generated Go API](generated-go-api.md).
 ## The Generated Functions
 
 ```go
-// ParseAST parses the input like Parse and returns the result as typed values.
-func ParseAST(input string, opts ...ParseOption) (T, error) // T: the Go type of the start rule's type
-func ParseRuleAST(name, input string, opts ...ParseOption) (any, error)
+// ParseValue parses the input like Parse and returns the result as typed values.
+func ParseValue(input string, opts ...ParseOption) (T, error) // T: the Go type of the start rule's type
+func ParseRuleValue(name, input string, opts ...ParseOption) (any, error)
 ```
 
 ## An Example
@@ -65,10 +65,10 @@ type Value interface{ isValue() }
 
 ```
 
-and `jsonparser.ParseAST` returns a `types.Value`. A type switch replaces the field lookups and type assertions of `*Node`:
+and `jsonparser.ParseValue` returns a `types.Value`. A type switch replaces the field lookups and type assertions of `*Node`:
 
 ```go
-v, err := jsonparser.ParseAST(`{"name": "zp", "tags": ["peg", "go"], "stars": 42}`)
+v, err := jsonparser.ParseValue(`{"name": "zp", "tags": ["peg", "go"], "stars": 42}`)
 if err != nil {
 	log.Fatal(err)
 }
@@ -117,17 +117,17 @@ stars text 42
   joins with the same normalized representation share one generated interface; additional names are Go aliases
   to it. Aliases preserve assignment compatibility and add no new runtime value kind. Regenerate existing parsers
   to receive previously omitted alias names.
-- **Errors.** `ParseAST` returns the errors of `Parse`. After `#recover`, an `Error` in a list of a join type stays
+- **Errors.** `ParseValue` returns the errors of `Parse`. After `#recover`, an `Error` in a list of a join type stays
   in the list as `*Error`; where a struct type is expected it becomes `nil` (it is among the returned
   `SyntaxErrors` anyway).
 - **Speed.** When every value has a Go type of its own and actions read the fields of struct values that have no
   plain form (a node, a named node type, a join, an `any` or a record) only to copy them, the generated parser builds
-  the values directly, without the nodes `Parse` makes: on the benchmarks `ParseAST` then takes 0.7 to 1.0 times the time of `Parse` and 0.3 to 0.4 times
+  the values directly, without the nodes `Parse` makes: on the benchmarks `ParseValue` then takes 0.7 to 1.0 times the time of `Parse` and 0.3 to 0.4 times
   the memory (JSON 5.7 → 3.9 ms and 9.1 → 2.6 MB; XML, CSV, the left-recursive calculator and the
   outline grammar alike; the Operators Rule calculator is about as fast). Otherwise
-  `ParseAST` runs `Parse` and converts the tree, which takes about 0.95 times the time of `Parse` and 0.3 times the
+  `ParseValue` runs `Parse` and converts the tree, which takes about 0.95 times the time of `Parse` and 0.3 times the
   memory (minilang and the recovery grammar). The figures are those of the
-  [benchmark results](../benchmarks.md#typed-values-parseast-of-zp-gen--types). The
+  [benchmark results](../benchmarks.md#typed-values-parsevalue-of-zp-gen--types). The
   [design record](../design/records/012-typed-values.md) explains both. The types, their conversions and the typed rules add about
   as much code to `parser.go` as the parser itself.
 
@@ -136,24 +136,24 @@ stars text 42
   a place of a list type, an argument of `concat` or, for an element, an argument of `list` or the result of the
   function of `map`. So `RuleDef{Name: $d.Name, Comments: concat($d.Comments, $more)}` copies, while any other read,
   such as `text($d.Name)`, `len($d.Comments)`, a cast, a comparison or a copy into a field of another type, makes
-  `ParseAST` convert the tree.
+  `ParseValue` convert the tree.
 - **Scratch reuse.** The typed runtime clears discarded undo entries after rollback, rule return and captured
   repetition elements. Parser recycling also clears saved-capture backing slices, so overwritten values do not remain
   reachable through pooled scratch after a later failed parse. Returned values remain valid. Output strings may still retain their own backing storage.
-- **Named rules.** `ParseRuleAST("expr", input)` returns the selected rule's typed value as `any`.
+- **Named rules.** `ParseRuleValue("expr", input)` returns the selected rule's typed value as `any`.
   Its generated documentation lists each rule's Go result type; use a type assertion or type switch.
   It consumes the whole input and applies options once before looking up the name. Unknown names and
   invalid options return plain nil with an error. Ordinary parse failure returns the selected type's
   zero value: nil pointers and slices retain their dynamic type in `any`, while a nil interface stays
   nil. A successful rule whose value is nil also returns the selected type's zero value, with no error.
-  This includes plain nil for `any` and join-interface results; `ParseAST` converts a tree, so its
+  This includes plain nil for `any` and join-interface results; `ParseValue` converts a tree, so its
   `any` result can hold a nil `*Node`.
-  Recovery and conversion follow `ParseAST`, including `Error` values in joins and nil where
+  Recovery and conversion follow `ParseValue`, including `Error` values in joins and nil where
   a struct is expected. Direct typed execution uses the same full grammar guard as
-  `ParseAST`; unsupported result or struct-field types and actions that read fields without a plain form other than
+  `ParseValue`; unsupported result or struct-field types and actions that read fields without a plain form other than
   to copy them use Node conversion.
   A rule whose value is an int, string or bool returns that Go type.
-  `ParseRule` continues to return `*Node`, and `ParseAST` continues to use the configured start rule.
+  `ParseRule` continues to return `*Node`, and `ParseValue` continues to use the configured start rule.
 
 ## Related Topics
 

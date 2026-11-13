@@ -89,7 +89,7 @@ func TestGenerateTSErrors(t *testing.T) {
 	if _, err := gentest.GenerateTSBundle(g, gen.GenOptions{Start: "b"}); err == nil || err.Error() != "rule b is not a start rule; parsing can begin only at a rule marked @start" {
 		t.Errorf("not a start rule: got %v", err)
 	}
-	if code, err := gentest.GenerateTSBundle(g, gen.GenOptions{Start: "main", Types: true}); err != nil || !strings.Contains(string(code), "export function parseAST(") {
+	if code, err := gentest.GenerateTSBundle(g, gen.GenOptions{Start: "main", Types: true}); err != nil || !strings.Contains(string(code), "export function parseValue(") {
 		t.Errorf("Types: %v", err)
 	}
 	bad, _ := parseTest(`rule main = x`)

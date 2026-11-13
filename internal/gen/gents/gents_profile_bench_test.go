@@ -8,7 +8,7 @@ const input=INPUT;
 const duration=Number(process.env.ZP_PROFILE_BENCH_MS??150);
 const warm=Number(process.env.ZP_PROFILE_WARM_MS??75);
 const modes=(process.env.ZP_PROFILE_MODES??(OBSERVED?"none,trace,profile":"none")).split(",");
-const operations=TYPED?["Parse","ParseAST","Recognize"]:["Parse","Recognize"];
+const operations=TYPED?["Parse","ParseValue","Recognize"]:["Parse","Recognize"];
 let sink,eventSink;
 const trace=e=>{eventSink=e.pos^e.end^e.evals};
 for(const mode of modes)for(const op of operations)for(const unit of [p.CodePoints,p.Bytes]){
@@ -16,7 +16,7 @@ for(const mode of modes)for(const op of operations)for(const unit of [p.CodePoin
  if(mode==="trace")options.trace=trace;
  const profile=mode==="profile"?new p.Profile():null;
  if(profile!==null)options.profile=profile;
- const run=op==="Parse"?()=>p.parseWithOptions(input,options):op==="ParseAST"?()=>p.parseASTWithOptions(input,options):()=>({error:p.recognizeWithOptions(input,options)});
+ const run=op==="Parse"?()=>p.parseWithOptions(input,options):op==="ParseValue"?()=>p.parseValueWithOptions(input,options):()=>({error:p.recognizeWithOptions(input,options)});
  const once=()=>{sink=run();if(sink.error!==null)throw sink.error};
  for(let until=performance.now()+warm;performance.now()<until;){for(let n=0;n<16;n++)once()}
  globalThis.gc?.();

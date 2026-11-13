@@ -121,7 +121,7 @@ func checkLocal(v *Doc, err error, n int, rejected bool, unit PositionUnit) bool
 
 func TestLocalLayoutWorkload(t *testing.T) {
     for _, unit := range []PositionUnit{CodePoints,Bytes} {
-        saved, err := ParseAST(localInput(3,false),WithUnit(unit))
+        saved, err := ParseValue(localInput(3,false),WithUnit(unit))
         if !checkLocal(saved,err,3,false,unit) { t.Fatalf("saved value %v %v",saved,err) }
         before, _ := json.Marshal(saved)
         p := &zprt.TParser{Parser:&zprt.Parser{}}
@@ -132,7 +132,7 @@ func TestLocalLayoutWorkload(t *testing.T) {
                 v := zprt.TAs[*Doc](value)
                 if !checkLocal(v,err,n,rejected,unit) { t.Fatalf("%d/%v: %v %v",n,rejected,v,err) }
                 data, _ := json.Marshal(struct { Value any; Error string }{v,fmt.Sprint(err)})
-                pooled, pooledErr := ParseAST(input,WithUnit(unit))
+                pooled, pooledErr := ParseValue(input,WithUnit(unit))
                 pooledData, _ := json.Marshal(struct { Value any; Error string }{pooled,fmt.Sprint(pooledErr)})
                 if string(data) != string(pooledData) { t.Fatal("manual and pooled parsers differ") }
                 fmt.Printf("OBS %v %d/%v %s\n",unit,n,rejected,data)
@@ -159,10 +159,10 @@ func BenchmarkTypedLocalLayout(b *testing.B) {
             input := localInput(n,rejected)
             for _, unit := range []PositionUnit{CodePoints,Bytes} {
                 b.Run(fmt.Sprintf("%d/rejected=%v/%v",n,rejected,unit),func(b *testing.B) {
-                    v, err := ParseAST(input,WithUnit(unit))
+                    v, err := ParseValue(input,WithUnit(unit))
                     if !checkLocal(v,err,n,rejected,unit) { b.Fatalf("%v %v",v,err) }
                     b.ReportAllocs()
-                    for b.Loop() { localResult,localErr = ParseAST(input,WithUnit(unit)) }
+                    for b.Loop() { localResult,localErr = ParseValue(input,WithUnit(unit)) }
                 })
             }
         }

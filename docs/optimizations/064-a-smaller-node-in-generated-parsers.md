@@ -6,5 +6,5 @@
   `int` spans of the typed values.
 - Effect (min of 6 interleaved runs, Apple M3 Max): `Parse` JSON −2%/−3% (code points/bytes), CSV −8%/−12%, XML
   −7%/−5%, Arith_OperatorsRule −3%/−4%, Arith_LeftRec −2%/−4%, Minilang within noise, Outline and Recovery +1% to +5%
-  (noise-level); allocation −10% to −21% (JSON 12.8 → 10.7 MB, Outline 12.8 → 10.2 MB); `ParseAST` and `Recognize`
+  (noise-level); allocation −10% to −21% (JSON 12.8 → 10.7 MB, Outline 12.8 → 10.2 MB); `ParseValue` and `Recognize`
   unchanged within noise.

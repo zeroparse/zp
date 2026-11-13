@@ -12,7 +12,7 @@ import (
 
 // The published typed values of a Document are shared with later results, so every test here
 // generates a typed Document package and checks the sharing contract: results are read-only and
-// unchanged by later edits and parses, aliases follow the memo, and CloneAST detaches a copy.
+// unchanged by later edits and parses, aliases follow the memo, and CloneValue detaches a copy.
 
 // Tail is a second list of the same type as Items. A parse allocates its first list of a type
 // with make, and later lists from a slab, whose slices must still have no spare capacity.
@@ -187,11 +187,11 @@ func TestSharedResultsAreImmutableAndFresh(t *testing.T) {
 	type kept struct{ result, snapshot *Pair }
 	var all []kept
 	for i := 0; i < 60; i++ {
-		got, err := d.ParseAST()
+		got, err := d.ParseValue()
 		if err != nil {
 			t.Fatal(err)
 		}
-		want, err := ParseAST(build(letters))
+		want, err := ParseValue(build(letters))
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -202,7 +202,7 @@ func TestSharedResultsAreImmutableAndFresh(t *testing.T) {
 			t.Fatalf("step %d: head and last item are not one value", i)
 		}
 		checkSlices(t, reflect.ValueOf(got), "result")
-		all = append(all, kept{got, CloneAST(got)})
+		all = append(all, kept{got, CloneValue(got)})
 		edit(t, d, &letters, rng)
 	}
 	// Every result stays as it was published, whatever edits and parses came after it.
@@ -218,14 +218,14 @@ func TestSharedPrefixValuesAreTheSameValues(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	before, err := d.ParseAST()
+	before, err := d.ParseValue()
 	if err != nil {
 		t.Fatal(err)
 	}
 	if err := d.Edit(6, 7, "z"); err != nil { // replace the last item
 		t.Fatal(err)
 	}
-	after, err := d.ParseAST()
+	after, err := d.ParseValue()
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -239,10 +239,10 @@ func TestSharedPrefixValuesAreTheSameValues(t *testing.T) {
 	if before.Items[2].Text != "d" {
 		t.Fatal("earlier result changed")
 	}
-	// CloneAST detaches the result and keeps its inner aliases.
-	c := CloneAST(after)
+	// CloneValue detaches the result and keeps its inner aliases.
+	c := CloneValue(after)
 	if c.Head == after.Head || c.Items[len(c.Items)-1] != c.Head || c.Items[0] == after.Items[0] {
-		t.Fatal("CloneAST shares values with the result or lost its alias")
+		t.Fatal("CloneValue shares values with the result or lost its alias")
 	}
 }
 
@@ -253,7 +253,7 @@ func TestSharedResultMutationIsVisibleLater(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	first, err := d.ParseAST()
+	first, err := d.ParseValue()
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -261,7 +261,7 @@ func TestSharedResultMutationIsVisibleLater(t *testing.T) {
 		t.Fatal(err)
 	}
 	first.Items[0].Text = "caller"
-	second, err := d.ParseAST()
+	second, err := d.ParseValue()
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -278,15 +278,15 @@ func TestSharedLeftRecursionSnapshotSurvivesEdit(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	before, err := d.ParseAST()
+	before, err := d.ParseValue()
 	if err != nil {
 		t.Fatal(err)
 	}
-	snapshot := CloneAST(before)
+	snapshot := CloneValue(before)
 	if err := d.Edit(8, 9, "z"); err != nil {
 		t.Fatal(err)
 	}
-	after, err := d.ParseAST()
+	after, err := d.ParseValue()
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -300,7 +300,7 @@ func TestSharedLeftRecursionSnapshotSurvivesEdit(t *testing.T) {
 	}
 	// Literal expectations, not only a comparison with a fresh parse: a bug in the growth would
 	// corrupt both parses the same way.
-	if want, _ := ParseAST("a;b;c;d;z"); !reflect.DeepEqual(after, want) {
+	if want, _ := ParseValue("a;b;c;d;z"); !reflect.DeepEqual(after, want) {
 		t.Fatal("edited result differs from a fresh parse")
 	}
 	if !reflect.DeepEqual(before, snapshot) {
@@ -323,17 +323,17 @@ func TestSharedInterruptionDuringPublication(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	before, err := d.ParseAST()
+	before, err := d.ParseValue()
 	if err != nil {
 		t.Fatal(err)
 	}
-	snapshot := CloneAST(before)
+	snapshot := CloneValue(before)
 	if err := d.Edit(14, 15, "z"); err != nil {
 		t.Fatal(err)
 	}
 	interrupted := 0
 	for limit := uint64(1); ; limit++ {
-		got, err := d.ParseAST(WithLimits(Limits{Compute: limit}))
+		got, err := d.ParseValue(WithLimits(Limits{Compute: limit}))
 		if err == nil {
 			if got == nil {
 				t.Fatal("successful parse returned nil")
@@ -354,11 +354,11 @@ func TestSharedInterruptionDuringPublication(t *testing.T) {
 	if interrupted == 0 {
 		t.Fatal("no step limit interrupted the parse")
 	}
-	got, err := d.ParseAST()
+	got, err := d.ParseValue()
 	if err != nil {
 		t.Fatal(err)
 	}
-	if want, _ := ParseAST("a;b;c;d;e;f;g;z"); !reflect.DeepEqual(got, want) {
+	if want, _ := ParseValue("a;b;c;d;e;f;g;z"); !reflect.DeepEqual(got, want) {
 		t.Fatal("parse after interruptions differs from a fresh parse")
 	}
 }
@@ -434,11 +434,11 @@ func checkSlices(t *testing.T, v reflect.Value, name string) {
 // The outer slice of a top-level list result is fresh: appending to one result must not write
 // into another, because its capacity equals its length.
 func TestSharedOuterSliceIsFresh(t *testing.T) {
-	a, err := ParseAST("a;b;c")
+	a, err := ParseValue("a;b;c")
 	if err != nil {
 		t.Fatal(err)
 	}
-	b, err := ParseAST("a;b;c")
+	b, err := ParseValue("a;b;c")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -468,15 +468,15 @@ func TestSharedLeftRecursionSnapshotSurvivesEdit(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	before, err := d.ParseAST()
+	before, err := d.ParseValue()
 	if err != nil {
 		t.Fatal(err)
 	}
-	snapshot := CloneAST(before)
+	snapshot := CloneValue(before)
 	if err := d.Edit(8, 9, "z"); err != nil {
 		t.Fatal(err)
 	}
-	after, err := d.ParseAST()
+	after, err := d.ParseValue()
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -486,7 +486,7 @@ func TestSharedLeftRecursionSnapshotSurvivesEdit(t *testing.T) {
 	if got := listTexts(after); got != "a;b;c;d;z" {
 		t.Fatalf("edited result: %q", got)
 	}
-	if want, _ := ParseAST("a;b;c;d;z"); !reflect.DeepEqual(after, want) {
+	if want, _ := ParseValue("a;b;c;d;z"); !reflect.DeepEqual(after, want) {
 		t.Fatal("edited result differs from a fresh parse")
 	}
 
@@ -504,11 +504,11 @@ func TestSharedListEditsKeepEarlierResults(t *testing.T) {
 	}
 	var kept, snapshots [][]*Item
 	for i := 0; i < 60; i++ {
-		got, err := d.ParseAST()
+		got, err := d.ParseValue()
 		if err != nil {
 			t.Fatal(err)
 		}
-		want, err := ParseAST(strings.Join(letters, ";"))
+		want, err := ParseValue(strings.Join(letters, ";"))
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -517,7 +517,7 @@ func TestSharedListEditsKeepEarlierResults(t *testing.T) {
 		}
 		checkSlices(t, reflect.ValueOf(got), "list result")
 		kept = append(kept, got)
-		snapshots = append(snapshots, CloneAST(got))
+		snapshots = append(snapshots, CloneValue(got))
 		edit(t, d, &letters, rng)
 	}
 	for i := range kept {
@@ -549,11 +549,11 @@ func TestSharedOperatorsKeepEarlierResults(t *testing.T) {
 	var kept []Expr
 	var snapshots []Expr
 	for i := 0; i < 80; i++ {
-		got, err := d.ParseAST()
+		got, err := d.ParseValue()
 		if err != nil {
 			t.Fatal(err)
 		}
-		want, err := ParseAST(string(text))
+		want, err := ParseValue(string(text))
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -561,7 +561,7 @@ func TestSharedOperatorsKeepEarlierResults(t *testing.T) {
 			t.Fatalf("step %d: edited result differs from a fresh parse of %q", i, text)
 		}
 		kept = append(kept, got)
-		snapshots = append(snapshots, CloneAST(got))
+		snapshots = append(snapshots, CloneValue(got))
 		var letters []int
 		for j, c := range text {
 			if c >= 'a' && c <= 'z' {
@@ -608,7 +608,7 @@ import (
 )
 
 func TestSharedSlabOuterSliceHasNoSpareCapacity(t *testing.T) {
-	got, err := ParseAST("a;b;c;d")
+	got, err := ParseValue("a;b;c;d")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -616,7 +616,7 @@ func TestSharedSlabOuterSliceHasNoSpareCapacity(t *testing.T) {
 		t.Fatalf("outer slice len %d cap %d, want 4 4", len(got), cap(got))
 	}
 	// Appending to the result must not write into another result of the same parse.
-	other, err := ParseAST("e;f;g;h")
+	other, err := ParseValue("e;f;g;h")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -641,19 +641,19 @@ func TestSharedAnyFieldIsDetachedFromParserState(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	first, err := d.ParseAST()
+	first, err := d.ParseValue()
 	if err != nil {
 		t.Fatal(err)
 	}
-	snapshot := CloneAST(first)
+	snapshot := CloneValue(first)
 	if err := d.Edit(2, 3, "z"); err != nil {
 		t.Fatal(err)
 	}
-	second, err := d.ParseAST()
+	second, err := d.ParseValue()
 	if err != nil {
 		t.Fatal(err)
 	}
-	if want, _ := ParseAST("a;z;"); !reflect.DeepEqual(second, want) {
+	if want, _ := ParseValue("a;z;"); !reflect.DeepEqual(second, want) {
 		t.Fatal("edited result differs from a fresh parse")
 	}
 	if !reflect.DeepEqual(first, snapshot) {
@@ -717,16 +717,16 @@ func TestSharedRecoverErrorValuesKeepEarlierResults(t *testing.T) {
 	errorValues := 0
 	for step := 0; step < 300; step++ {
 		// Recovered items are reported as the error, next to the value; both must match a fresh parse.
-		got, gerr := d.ParseAST()
-		want, werr := ParseAST(recText(pieces))
+		got, gerr := d.ParseValue()
+		want, werr := ParseValue(recText(pieces))
 		if !reflect.DeepEqual(got, want) || fmt.Sprint(gerr) != fmt.Sprint(werr) {
 			t.Fatalf("step %d: result of %q differs from a fresh parse: %v vs %v", step, recText(pieces), gerr, werr)
 		}
 		errorValues += countErrors(reflect.ValueOf(got))
 		kept = append(kept, got)
-		snaps = append(snaps, CloneAST(got))
+		snaps = append(snaps, CloneValue(got))
 		for k := range kept {
-			if !reflect.DeepEqual(CloneAST(kept[k]), snaps[k]) {
+			if !reflect.DeepEqual(CloneValue(kept[k]), snaps[k]) {
 				t.Fatalf("step %d: result %d changed after a later parse", step, k)
 			}
 		}

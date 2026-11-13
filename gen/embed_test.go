@@ -58,7 +58,7 @@ rule main Pair = k:[a-z]+ #atomic "=" v:[0-9]+ #atomic => Pair{Key: $k, Value: $
 import "testing"
 
 func TestEmbedded(t *testing.T) {
-	v, err := ParseAST("ab=12")
+	v, err := ParseValue("ab=12")
 	if err != nil {
 		t.Fatal(err)
 	}

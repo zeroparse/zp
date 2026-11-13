@@ -8,13 +8,13 @@ import (
 	"zeroparse.dev/zp/internal/gentest"
 )
 
-func TestGeneratedNamedASTUntypedAndTS(t *testing.T) {
+func TestGeneratedNamedValueUntypedAndTS(t *testing.T) {
 	t.Parallel()
-	gentest.EachMode(t, testGeneratedNamedASTUntypedAndTS)
+	gentest.EachMode(t, testGeneratedNamedValueUntypedAndTS)
 }
 
-func testGeneratedNamedASTUntypedAndTS(t *testing.T) {
-	g, err := parseTest(gentest.NamedASTGrammar)
+func testGeneratedNamedValueUntypedAndTS(t *testing.T) {
+	g, err := parseTest(gentest.NamedValueGrammar)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -22,14 +22,14 @@ func testGeneratedNamedASTUntypedAndTS(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if strings.Contains(string(plain), "func ParseRuleAST(") {
+	if strings.Contains(string(plain), "func ParseRuleValue(") {
 		t.Fatal("typed entry point in untyped parser")
 	}
 	ts, err := gentest.GenerateTSBundle(g, gen.GenOptions{Package: "plain", Start: "main"})
 	if err != nil {
 		t.Fatal(err)
 	}
-	if strings.Contains(string(ts), "function ParseRuleAST(") {
+	if strings.Contains(string(ts), "function ParseRuleValue(") {
 		t.Fatal("Go API leaked into TypeScript")
 	}
 }

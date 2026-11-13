@@ -129,7 +129,7 @@ func TestFrameResults(t *testing.T) {
  for _,unit:=range []PositionUnit{CodePoints,Bytes} {
   for i,input:=range []string{small,large,invalid,""} {
    for pass:=0;pass<3;pass++ {
-    n,err:=frameNode(input,unit);a,aerr:=frameAST(input,unit);rerr:=frameRecognize(input,unit)
+    n,err:=frameNode(input,unit);a,aerr:=frameValue(input,unit);rerr:=frameRecognize(input,unit)
     if i<2 && (err!=nil || aerr!=nil || rerr!=nil) {t.Fatalf("valid input: %v %v %v",err,aerr,rerr)}
     if i==2 && (err==nil || aerr==nil || rerr==nil) {t.Fatal("invalid input accepted")}
     data,jerr:=json.Marshal([]any{n,fmt.Sprint(err),a,fmt.Sprint(aerr),fmt.Sprint(rerr)});if jerr!=nil {t.Fatal(jerr)}
@@ -187,16 +187,16 @@ const frameScratchWorkload = `package framefixture
 import("fmt";"strings";"testing")
 INPUTS
 func frameNode(input string,unit PositionUnit)(*Node,error) {if unit==CodePoints {return Parse(input)};return Parse(input, unit)}
-func frameAST(input string,unit PositionUnit)(any,error) {if unit==CodePoints {return ParseAST(input)};return ParseAST(input, unit)}
+func frameValue(input string,unit PositionUnit)(any,error) {if unit==CodePoints {return ParseValue(input)};return ParseValue(input, unit)}
 func frameRecognize(input string,unit PositionUnit)error {if unit==CodePoints {return Recognize(input)};return Recognize(input, unit)}
 func frameRule(name,input string,unit PositionUnit)(*Node,error) {if unit==CodePoints {return ParseRule(name,input)};return ParseRule(name,input, unit)}
 var frameNodeSink *Node
-var frameASTSink any
+var frameValueSink any
 var frameErrorSink error
 func BenchmarkNodeFrameScratch(b *testing.B) {
  small,large,_:=frameInputs()
  for _,input:=range []struct{name,text string}{{"Small",small},{"Large",large}} {for _,unit:=range []PositionUnit{CodePoints,Bytes} {for _,api:=range []string{"Node","Recognize","AST"} {
-  b.Run(fmt.Sprintf("%s/%s/%d",input.name,api,unit),func(b *testing.B){run:=func(){switch api {case "Node":frameNodeSink,frameErrorSink=frameNode(input.text,unit);case "AST":frameASTSink,frameErrorSink=frameAST(input.text,unit);default:frameErrorSink=frameRecognize(input.text,unit)};if frameErrorSink!=nil {b.Fatal(frameErrorSink)}}
+  b.Run(fmt.Sprintf("%s/%s/%d",input.name,api,unit),func(b *testing.B){run:=func(){switch api {case "Node":frameNodeSink,frameErrorSink=frameNode(input.text,unit);case "AST":frameValueSink,frameErrorSink=frameValue(input.text,unit);default:frameErrorSink=frameRecognize(input.text,unit)};if frameErrorSink!=nil {b.Fatal(frameErrorSink)}}
    run();b.SetBytes(int64(len(input.text)));b.ReportAllocs();for b.Loop(){run()}
   })
  }}}

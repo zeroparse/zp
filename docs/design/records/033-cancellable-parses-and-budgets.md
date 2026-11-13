@@ -159,8 +159,8 @@ once in order. No-argument calls are unchanged. A stored method value typed as
 signature change; document this small source migration explicitly.
 
 Generated Go emits corresponding package-local Limits/errors/options and
-uses one resolved control instance across Parse, ParseRule, Recognize, ParseAST,
-and named ParseRuleAST where available. Named typed dispatch resolves options
+uses one resolved control instance across Parse, ParseRule, Recognize, ParseValue,
+and named ParseRuleValue where available. Named typed dispatch resolves options
 once before lookup, then shares the resolved state through direct execution or
 Node conversion; it must not reevaluate callbacks to establish a budget.
 

@@ -128,10 +128,10 @@ func jsonValue(t *testing.T,v any)string {t.Helper();b,err:=json.Marshal(v);if e
 func errorValue(err error)string {if err==nil{return ""};return err.Error()}
 func assertDirect(t *testing.T,d *Document,unit PositionUnit){
  t.Helper()
- got,gotErr:=d.ParseAST()
- want,wantErr:=ParseAST(d.Text(),WithUnit(unit))
+ got,gotErr:=d.ParseValue()
+ want,wantErr:=ParseValue(d.Text(),WithUnit(unit))
  if !reflect.DeepEqual(got,want)||!reflect.DeepEqual(gotErr,wantErr){t.Fatalf("unit %v input %q: Document %#v / %#v; batch %#v / %#v",unit,d.Text(),got,gotErr,want,wantErr)}
- ref,refErr:=reference.ParseAST(d.Text(),reference.WithUnit(reference.PositionUnit(unit)))
+ ref,refErr:=reference.ParseValue(d.Text(),reference.WithUnit(reference.PositionUnit(unit)))
  if jsonValue(t,got)!=jsonValue(t,ref)||errorValue(gotErr)!=errorValue(refErr){t.Fatalf("unit %v input %q differs from conversion: %s / %s; %v / %v",unit,d.Text(),jsonValue(t,got),jsonValue(t,ref),gotErr,refErr)}
  if _,ok:=d.X_typedMemo.(*zprt.X_typedDocumentState);!ok{t.Fatal("direct typed cache not retained")}
 }
@@ -170,17 +170,17 @@ func TestControlsAndInvalidOptions(t *testing.T){
   if before.Evaluated!=0||before.Reused!=1{t.Fatal("root was not warm",before)}
   unchanged:=func(){t.Helper();if d.X_typedMemo!=old||d.Stats()!=before{t.Fatal("pre-admission failure changed cache or stats",d.Stats())}}
   reused:=func(){t.Helper();assertDirect(t,d,unit);if d.Stats()!=before{t.Fatal("valid cache was not reused after pre-admission failure",d.Stats())}}
-  if _,err:=d.ParseAST(WithLimits(Limits{Depth: Unlimited}));err==nil{t.Fatal("invalid depth accepted")};unchanged();reused()
-  if _,err:=d.ParseAST(WithUnit(PositionUnit(1-int(unit))));err==nil{t.Fatal("unit change accepted")};unchanged();reused()
+  if _,err:=d.ParseValue(WithLimits(Limits{Depth: Unlimited}));err==nil{t.Fatal("invalid depth accepted")};unchanged();reused()
+  if _,err:=d.ParseValue(WithUnit(PositionUnit(1-int(unit))));err==nil{t.Fatal("unit change accepted")};unchanged();reused()
   if err:=d.Edit(-1,0,"");err==nil{t.Fatal("invalid edit accepted")};unchanged();reused()
   ctx,cancel:=context.WithCancel(context.Background());cancel()
-  if _,err:=d.ParseAST(WithContext(ctx));!errors.Is(err,context.Canceled){t.Fatalf("pre-admission cancellation: %v",err)};unchanged();reused()
+  if _,err:=d.ParseValue(WithContext(ctx));!errors.Is(err,context.Canceled){t.Fatalf("pre-admission cancellation: %v",err)};unchanged();reused()
   for _,donePanic:=range []bool{false,true}{
    token:=new(int);ctx:=&admissionPanicContext{Context:context.Background(),token:token,donePanic:donePanic,done:make(chan struct{})}
-   func(){defer func(){if recover()!=token{t.Fatal("context panic identity changed")}}();d.ParseAST(WithContext(ctx));t.Fatal("context did not panic")}()
+   func(){defer func(){if recover()!=token{t.Fatal("context panic identity changed")}}();d.ParseValue(WithContext(ctx));t.Fatal("context did not panic")}()
    unchanged();reused()
   }
-  if _,err:=d.ParseAST(WithLimits(Limits{Compute:1}));!errors.Is(err,ErrLimit)||d.X_typedMemo!=nil{t.Fatalf("compute limit cleanup: %v",err)}
+  if _,err:=d.ParseValue(WithLimits(Limits{Compute:1}));!errors.Is(err,ErrLimit)||d.X_typedMemo!=nil{t.Fatalf("compute limit cleanup: %v",err)}
   assertDirect(t,d,unit)
  }
 }
@@ -202,15 +202,15 @@ func poisonValue(v reflect.Value,seen map[uintptr]bool){
 // as Node values are: a caller that mutates a result may change what later parses return (see
 // TestSharedResultMutationIsVisibleLater in the shared contract tests), so this test does not
 // require the Document to stay correct after such a mutation. It requires what the contract
-// promises: CloneAST returns a copy that mutating the result cannot reach.
+// promises: CloneValue returns a copy that mutating the result cannot reach.
 func TestReturnedValuesAreReadOnlyShared(t *testing.T){
  for _,input:=range inputs{
   d,err:=NewDocument(input);if err!=nil{t.Fatal(err)}
-  value,_:=d.ParseAST()
-  want,_:=ParseAST(d.Text(),WithUnit(CodePoints))
-  detached:=CloneAST(value)
+  value,_:=d.ParseValue()
+  want,_:=ParseValue(d.Text(),WithUnit(CodePoints))
+  detached:=CloneValue(value)
   poisonValue(reflect.ValueOf(value),make(map[uintptr]bool))
-  if !reflect.DeepEqual(detached,want){t.Fatalf("input %q: CloneAST changed when the result was mutated",input)}
+  if !reflect.DeepEqual(detached,want){t.Fatalf("input %q: CloneValue changed when the result was mutated",input)}
  }
 }
 type syntaxErrorContext struct {context.Context; polls int; err error; done chan struct{}}
@@ -221,7 +221,7 @@ func TestInterruptionWithSyntaxErrorPayload(t *testing.T){
   d,err:=NewDocument(inputs[0]);if err!=nil{t.Fatal(err)}
   assertDirect(t,d,CodePoints)
   ctx:=&syntaxErrorContext{Context:context.Background(),err:failure,done:make(chan struct{})}
-  _,err=d.ParseAST(WithContext(ctx))
+  _,err=d.ParseValue(WithContext(ctx))
   if errorValue(err)!=errorValue(failure)||d.X_typedMemo!=nil{t.Fatalf("interrupted cache retained: %v",err)}
   assertDirect(t,d,CodePoints)
  }
@@ -229,14 +229,14 @@ func TestInterruptionWithSyntaxErrorPayload(t *testing.T){
 func TestReturnedDiagnosticsAreOwned(t *testing.T){
  for _,input:=range inputs{
   d,err:=NewDocument(input);if err!=nil{t.Fatal(err)}
-  _,err=d.ParseAST()
+  _,err=d.ParseValue()
   switch e:=err.(type){
   case SyntaxErrors:
    for _,item:=range e{item.Expected=[]string{"mutated"};item.Messages=[]string{"mutated"}}
    clear(e)
   case *SyntaxError:e.Expected=[]string{"mutated"};e.Messages=[]string{"mutated"}
   }
-  _,err=d.ParseAST()
+  _,err=d.ParseValue()
   if err!=nil&&strings.Contains(err.Error(),"mutated"){t.Fatal("caller mutation changed memo diagnostics")}
   assertDirect(t,d,CodePoints)
  }

@@ -87,8 +87,8 @@ type Go struct {
 	PackageName string
 	// Runtime selects how the generated code reaches the runtime (RuntimeEmbed by default).
 	Runtime RuntimeMode
-	// Types generates declarations for the grammar's types and typed results: ParseAST for the
-	// start rule and ParseRuleAST for named rules. The types are declared in the package
+	// Types generates declarations for the grammar's types and typed results: ParseValue for the
+	// start rule and ParseRuleValue for named rules. The types are declared in the package
 	// Module/types, so Module is required.
 	Types bool
 	// DefaultValue makes the generated parser produce default values, as zp.WithDefaultValue
@@ -119,15 +119,15 @@ type Go struct {
 	// negative values fail generation. Individual invocations may override it with Limits.Depth.
 	MaxDepth int
 	// Document generates a mutable incremental Document. With Types, it also generates
-	// Document.ParseAST with direct incremental matching for eligible grammars and Node
+	// Document.ParseValue with direct incremental matching for eligible grammars and Node
 	// conversion otherwise.
 	Document bool
 	// Stream generates ParseStream, which reads the input from an io.Reader and passes each
 	// committed element of the start rule's #stream repetition to a callback, as
 	// zp.Parser.ParseStream does. The start rule must have a #stream repetition. With Types it
-	// also generates ParseStreamAST and IterateAST, which pass the typed value of each element.
+	// also generates ParseStreamValue and IterateValue, which pass the typed value of each element.
 	Stream bool
-	// TypedOnly generates only the typed entry points of a parser: ParseAST and its siblings, and
+	// TypedOnly generates only the typed entry points of a parser: ParseValue and its siblings, and
 	// no Parse or ParseRule. Recognize may be added. The generated package is smaller and builds
 	// faster. It needs Types and cannot be combined with Document or Stream, which build untyped
 	// Nodes.
@@ -213,8 +213,8 @@ type TypeScript struct {
 	// module is the runtime.ts of GenerateRuntime (or of any parser generated with RuntimeEmbed).
 	// It is an error with another mode.
 	RuntimeModule string
-	// Types generates declarations for the grammar's types and the entry points parseAST and
-	// parseASTWithOptions, which convert the completed Node result into plain objects and arrays.
+	// Types generates declarations for the grammar's types and the entry points parseValue and
+	// parseValueWithOptions, which convert the completed Node result into plain objects and arrays.
 	// Declared aliases preserve the target value type.
 	Types bool
 	// DefaultValue makes the generated parser produce default values, as zp.WithDefaultValue
@@ -243,7 +243,7 @@ type TypeScript struct {
 	Recognize bool
 	// Document also generates createDocument, which makes a mutable Document of the start rule:
 	// edit changes its text, and parse returns what parse of the whole current text returns, as
-	// the Go Document does. With Types, the Document also has parseAST.
+	// the Go Document does. With Types, the Document also has parseValue.
 	Document bool
 	// MaxDepth is the generated parser's default nested rule-call limit. Zero selects 100,000;
 	// negative values and values that are not exact JavaScript integers fail generation.

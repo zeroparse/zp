@@ -116,7 +116,7 @@ func main() {
 		if err != nil {
 			fail(err)
 		}
-		if _, err := p.ParseAST(string(data)); err == nil {
+		if _, err := p.ParseValue(string(data)); err == nil {
 			inputs = append(inputs, string(data))
 		}
 	}
@@ -128,14 +128,14 @@ func main() {
 	before := heap()
 	held := make([]any, len(inputs))
 	for i, in := range inputs {
-		held[i], _ = p.ParseAST(in)
+		held[i], _ = p.ParseValue(in)
 	}
 	res.Retained = int64(heap()) - int64(before)
 	runtime.KeepAlive(held)
 	held = nil
 	bench(&res, func() {
 		for _, in := range inputs {
-			p.ParseAST(in)
+			p.ParseValue(in)
 		}
 	})
 	emit(res)
@@ -153,7 +153,7 @@ func main() {
 	if err != nil {
 		fail(err)
 	}
-	if _, err := doc.ParseAST(); err != nil {
+	if _, err := doc.ParseValue(); err != nil {
 		fail(err)
 	}
 	res := result{Inputs: 1}
@@ -169,7 +169,7 @@ func main() {
 		if err != nil {
 			fail(err)
 		}
-		if _, err := doc.ParseAST(); err != nil {
+		if _, err := doc.ParseValue(); err != nil {
 			fail(err)
 		}
 	})
@@ -183,7 +183,7 @@ func main() {
 	res := result{Inputs: 1}
 	bench(&res, func() {
 		n := 0
-		if err := p.ParseStreamAST(strings.NewReader(in), func(p.StreamValue) error { n++; return nil }); err != nil || n != 50001 {
+		if err := p.ParseStreamValue(strings.NewReader(in), func(p.StreamValue) error { n++; return nil }); err != nil || n != 50001 {
 			fail(fmt.Errorf("%d records: %v", n, err))
 		}
 	})
