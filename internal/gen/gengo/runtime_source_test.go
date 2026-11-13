@@ -1,6 +1,7 @@
 package gengo_test
 
 import (
+	"io/fs"
 	"strings"
 	"testing"
 	"testing/fstest"
@@ -43,5 +44,24 @@ func TestRuntimeSourceIsPerCall(t *testing.T) {
 	}
 	if _, err := gengo.Generate(nil, nil, gen.GenOptions{Module: "example.com/m", Runtime: gen.RuntimeOnly}); err == nil || !strings.Contains(err.Error(), "RuntimeSource") {
 		t.Errorf("generation without a runtime source: err = %v, want a RuntimeSource error", err)
+	}
+}
+
+// unhashableFS is a runtime source that cannot be a map key: a struct with an interface field that
+// holds a slice, which reflect reports as a comparable type.
+type unhashableFS struct {
+	fs.FS
+	tag any
+}
+
+// TestRuntimeSourceNotHashable shows that a source that is not a valid map key is used, not cached.
+func TestRuntimeSourceNotHashable(t *testing.T) {
+	src := unhashableFS{FS: miniRuntime("source-u"), tag: []int{1}}
+	files, err := gengo.Generate(nil, nil, gen.GenOptions{Module: "example.com/m", Runtime: gen.RuntimeOnly, RuntimeSource: src})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(files) == 0 || !strings.Contains(string(files[0].Content), "source-u") {
+		t.Errorf("source not used: %v", files)
 	}
 }
