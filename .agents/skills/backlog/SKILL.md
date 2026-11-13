@@ -39,9 +39,11 @@ in the same step as its event, never later.
   waits on.
 - **Ready**: set Status=In review (under review, or reviewed and queued to land) and
   comment the branch, SHA and checks.
-- **Landed/close**: set Status=Done and Target date=the close date (JST). Add the commit
-  link and one outcome sentence to Recently completed in the Issue #1 body (drop the
-  oldest beyond ten). Fix the parent epic's dates. Keep any unfinished scope open.
+- **Landed/close**: close the issue (`gh issue close N --reason completed`), set Status=Done
+  and Target date=the close date (JST). Add the commit link and one outcome sentence to
+  Recently completed in the Issue #1 body (drop the oldest beyond ten). Fix the parent
+  epic's dates. Keep any unfinished scope open. Status=Done on an open issue is invalid;
+  if scope remains, keep the issue In progress.
 - **Pause**: set Status=Pending and comment the reason and where the WIP lives
   (branch); keep the Target date realistic.
 - **New issue**: use the .github/ISSUE_TEMPLATE form for its Category (epic.yml for an epic; `gh issue create
