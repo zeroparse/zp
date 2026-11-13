@@ -105,6 +105,38 @@ func classifySource(t *testing.T, src string) *Complexity {
 
 // TestClassifyComplexity checks the class of grammars that each exercise one part of the
 // conditions for linear cost.
+// TestClassifyLabelInsideRecovery classifies grammars whose label inside a recovery, one
+// expression of two attributes, has an operand that the cost view rewrites, under a recovery
+// that the view drops or keeps: the classifier reads the view written back as grammar rules, and
+// a kept recovery before a later alternative is the reason for the class unknown.
+func TestClassifyLabelInsideRecovery(t *testing.T) {
+	const reason = "contains the skip expression sync of #recover at rule main and is not committing"
+	for _, c := range []struct {
+		src  string
+		want ComplexityClass
+	}{
+		{"rule main = ((\"a\"* \"a\"*) @error(message=\"m\")) #recover(skip=sync) / \"x\"", ClassLinear},
+		{"rule main = ((\"b\" \"a\"* \"a\"*) @error(message=\"m\")) #recover(skip=sync) / \"x\"", ClassUnknown},
+		{"rule main = (sep @error(message=\"m\")) #recover(skip=sync) / \"x\"\nrule sep = \";\"", ClassUnknown},
+	} {
+		src := "@start\n" + c.src + "\nrule sync = [a-z]*\n"
+		g, err := syntax.Parse(src)
+		if err != nil {
+			t.Fatal(err)
+		}
+		got, err := ClassifyComplexity(g, "", nil)
+		if err != nil {
+			t.Fatalf("%s: %v", src, err)
+		}
+		if got.Class != c.want {
+			t.Errorf("%s: class %v, want %v", src, got.Class, c.want)
+		}
+		if c.want == ClassUnknown && (len(got.Reasons) != 1 || !strings.Contains(got.Reasons[0].Message, reason)) {
+			t.Errorf("%s: reasons %v, want one that %s", src, got.Reasons, reason)
+		}
+	}
+}
+
 func TestClassifyComplexity(t *testing.T) {
 	for _, tc := range []struct {
 		name, src string
