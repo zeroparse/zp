@@ -26,26 +26,32 @@ func (e *SyntaxError) Message() string {
 	if len(e.Messages) > 0 {
 		return strings.Join(e.Messages, "; ")
 	}
-	return expectedMessage(e.Expected)
+	return e.expectedMessage()
 }
 
 // expectedInMessage is the number of expected entries that the message of a syntax error lists.
-// A longer list is cut after them and ends with the count of the rest; SyntaxError.Expected keeps
-// every entry. The parsers charge the message they build by the same rule.
 const expectedInMessage = 10
 
-// expectedMessage describes the expected entries of a syntax error without messages.
-func expectedMessage(expected []string) string {
-	if len(expected) == 0 {
+// ExpectedInMessage returns the expected entries that Message lists when e has no messages from
+// @error, and the number of entries after them that it leaves out. Message lists at most the
+// first ten entries and ends a longer list with the count of the rest; Expected keeps every entry.
+// Parsers that charge the message they build use it to build the same text.
+func (e *SyntaxError) ExpectedInMessage() (shown []string, omitted int) {
+	if len(e.Expected) > expectedInMessage {
+		return e.Expected[:expectedInMessage], len(e.Expected) - expectedInMessage
+	}
+	return e.Expected, 0
+}
+
+// expectedMessage describes the expected entries of e, which has no messages.
+func (e *SyntaxError) expectedMessage() string {
+	if len(e.Expected) == 0 {
 		return "syntax error"
 	}
-	shown, rest := expected, 0
-	if len(expected) > expectedInMessage {
-		shown, rest = expected[:expectedInMessage], len(expected)-expectedInMessage
-	}
+	shown, omitted := e.ExpectedInMessage()
 	msg := "syntax error: expected " + strings.Join(shown, ", ")
-	if rest > 0 {
-		msg += fmt.Sprintf(", ... and %d more", rest)
+	if omitted > 0 {
+		msg += fmt.Sprintf(", ... and %d more", omitted)
 	}
 	return msg
 }

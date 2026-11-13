@@ -61,6 +61,9 @@ func TestSyntaxErrorMessage(t *testing.T) {
 	if got := e.Message(); !strings.HasSuffix(got, `"9", ... and 3 more`) || strings.Contains(got, `"10"`) {
 		t.Errorf("cut list: %q", got)
 	}
+	if shown, omitted := e.ExpectedInMessage(); len(shown) != expectedInMessage || omitted != 3 || shown[9] != `"9"` {
+		t.Errorf("ExpectedInMessage = %q, %d", shown, omitted)
+	}
 	e.Messages = []string{"bad", "worse"}
 	if got := e.Message(); got != "bad; worse" {
 		t.Errorf("messages: %q", got)
