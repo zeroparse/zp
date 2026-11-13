@@ -1,38 +1,22 @@
 package lower_test
 
 import (
-	"go/parser"
-	"go/token"
-	"os"
-	"path/filepath"
-	"strconv"
+	"os/exec"
 	"strings"
 	"testing"
 )
 
-// TestLoweringDoesNotImportTheCompiler checks the direction of the layers: the lowering of Flow IR
-// reads the Core IR and the Exec IR, and does not import the compiler (the Core IR carries what the
-// lowering needs from the grammar).
-func TestLoweringDoesNotImportTheCompiler(t *testing.T) {
-	files, err := filepath.Glob("*.go")
+// TestLoweringDoesNotDependOnTheCompiler checks the direction of the layers: the lowering of Flow IR
+// reads the Core IR and the Exec IR, and neither it nor anything it imports depends on the compiler
+// (the Core IR carries what the lowering needs from the grammar).
+func TestLoweringDoesNotDependOnTheCompiler(t *testing.T) {
+	out, err := exec.Command("go", "list", "-deps", ".").Output()
 	if err != nil {
-		t.Fatal(err)
+		t.Fatalf("go list -deps: %v", err)
 	}
-	for _, name := range files {
-		if strings.HasSuffix(name, "_test.go") {
-			continue
+	for _, p := range strings.Fields(string(out)) {
+		if strings.HasSuffix(p, "/internal/compile") {
+			t.Errorf("the lowering depends on %s", p)
 		}
-		f, err := parser.ParseFile(token.NewFileSet(), name, nil, parser.ImportsOnly)
-		if err != nil {
-			t.Fatal(err)
-		}
-		for _, imp := range f.Imports {
-			if p, _ := strconv.Unquote(imp.Path.Value); strings.HasSuffix(p, "/internal/compile") {
-				t.Errorf("%s imports %s", name, p)
-			}
-		}
-	}
-	if _, err := os.Stat("term.go"); err != nil {
-		t.Fatal(err)
 	}
 }
