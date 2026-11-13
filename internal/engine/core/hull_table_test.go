@@ -31,7 +31,8 @@ func TestEngineValueHullTable(t *testing.T) {
 			conform.BuiltinNode:   p.NewNode(value.Data{Kind: value.SeqKind, Start: 2, End: 5, Children: []*value.Node{text, text}}),
 			conform.StructLate:    p.NewNode(value.Data{Kind: value.MatchKind, Terminal: true, Text: "q", Start: 7, End: 9}),
 		}
-		err := conform.RunHulls("engine", controlled, func(kind string, elems []string) (string, int) {
+		// The budget-controls reference build charges nothing, so its units are not checked.
+		err := conform.RunHulls("engine", controlled && BudgetControlsEnabled, func(kind string, elems []string) (string, int) {
 			var kids []*value.Node
 			for _, e := range elems {
 				n, err := element(c, kind, vals[e])

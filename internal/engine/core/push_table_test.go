@@ -34,7 +34,8 @@ func TestEngineValuePushTable(t *testing.T) {
 			conform.BuiltinPair:   c.ListNode([]*value.Node{one, two}),
 			conform.BuiltinFunc:   builtinFunc{},
 		}
-		err := conform.RunPushes("engine", controlled, func(call, v string) (string, int, int) {
+		// The budget-controls reference build charges nothing, so its units are not checked.
+		err := conform.RunPushes("engine", controlled && BudgetControlsEnabled, func(call, v string) (string, int, int) {
 			base := len(p.KidStack)
 			var before uint64
 			if controlled {

@@ -49,7 +49,8 @@ func TestEngineValueIterTable(t *testing.T) {
 			conform.MemberList:    c.ListNode(nil),
 			conform.BuiltinPair:   c.ListNode([]*value.Node{one, two}),
 		}
-		err := conform.RunIters("engine", controlled, func(call, v string) (string, int) {
+		// The budget-controls reference build charges nothing, so its units are not checked.
+		err := conform.RunIters("engine", controlled && BudgetControlsEnabled, func(call, v string) (string, int) {
 			var args []any
 			fn := call
 			switch call {

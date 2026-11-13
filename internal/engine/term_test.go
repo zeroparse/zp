@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp"
+	"zeroparse.dev/zp/internal/engine/core"
 )
 
 // termBackends are the backends that print the term compositions.
@@ -118,6 +119,9 @@ func minimumCompute(t *testing.T, p *zp.Parser, input string, b zp.Backend) uint
 // created: one more node costs the five units of building it and gathering it, and the unit of
 // forgetting it.
 func TestTermChargesCreatedNodes(t *testing.T) {
+	if !core.BudgetControlsEnabled {
+		t.Skip("budget controls are unavailable in the reference build")
+	}
 	src := func(term string) string {
 		return "type T = { N int }\n@start\nrule main = {" + term + "} \"a\" $$\n"
 	}
@@ -145,6 +149,9 @@ func TestTermChargesCreatedNodes(t *testing.T) {
 // it. Grammar code builds no node from what a term gathers, so the charge is where a value that
 // stayed behind would show.
 func TestTermChargesGatheredValues(t *testing.T) {
+	if !core.BudgetControlsEnabled {
+		t.Skip("budget controls are unavailable in the reference build")
+	}
 	src := func(first string) string {
 		return "@start\nrule main = x:\"a\" ({len(concat(list(" + first + "), list(10 / (1 - len($x))))) > 0} \"!\" / \"\") $$\n"
 	}

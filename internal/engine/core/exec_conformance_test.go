@@ -275,6 +275,16 @@ var (
 	recoveryExact = []string{"rec.mark", "rec.push", "rec.truncate", "rec.since", "rec.add", "rec.none"}
 )
 
+// exactCharges returns ops, the operations whose charges a suite holds to their declared cost, or none
+// in the budget-controls reference build, which charges nothing; its charges still stay within the
+// bounds.
+func exactCharges(ops []string) []string {
+	if !BudgetControlsEnabled {
+		return nil
+	}
+	return ops
+}
+
 func engineSuites() []conform.Suite {
 	var suites []conform.Suite
 	for _, controlled := range []bool{false, true} {
@@ -298,7 +308,7 @@ func engineSuites() []conform.Suite {
 		suites = append(suites, conform.Suite{
 			Name:  fmt.Sprintf("engine recovered errors (controlled=%v)", controlled),
 			Ops:   ops,
-			Exact: recoveryExact,
+			Exact: exactCharges(recoveryExact),
 			New:   func(c ref.Config) conform.Impl { return newEngineMachine(c, controlled, false) },
 		})
 	}
@@ -320,7 +330,7 @@ func engineSuites() []conform.Suite {
 		suites = append(suites, conform.Suite{
 			Name:  fmt.Sprintf("engine environment (controlled=%v)", controlled),
 			Ops:   ops,
-			Exact: engineEnvExact,
+			Exact: exactCharges(engineEnvExact),
 			New:   func(c ref.Config) conform.Impl { return newEngineMachine(c, controlled, false) },
 		})
 	}
