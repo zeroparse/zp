@@ -1,6 +1,6 @@
 // Package probe generates the parsers of testdata/grammars with the options of the repository and
 // measures what they leave behind: the size of the generated source, of a stripped program that
-// calls ParseAST, and of the generated TypeScript. bench/report and bench/profilematrix share it.
+// calls ParseValue, and of the generated TypeScript. bench/report and bench/profilematrix share it.
 package probe
 
 import (
@@ -116,7 +116,7 @@ func SizeOfFile(path string) (raw, gz int, err error) {
 	return len(data), buf.Len(), nil
 }
 
-// SizeMain is a program that calls ParseAST of the parser in the package sizeprobe/gen.
+// SizeMain is a program that calls ParseValue of the parser in the package sizeprobe/gen.
 const SizeMain = `package main
 
 import (
@@ -126,7 +126,7 @@ import (
 )
 
 func main() {
-	if _, err := p.ParseAST(os.Args[1]); err != nil {
+	if _, err := p.ParseValue(os.Args[1]); err != nil {
 		os.Exit(1)
 	}
 }

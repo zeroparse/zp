@@ -18,7 +18,7 @@ type Document struct {
 	parsing bool
 }
 
-// DocumentBusy returned by a Parse, ParseAST or Edit of a Document that is
+// DocumentBusy returned by a Parse, ParseValue or Edit of a Document that is
 // already parsing. Only a trace callback of that parse can make one; parsers
 // generated with observability export it as ErrDocumentBusy.
 //

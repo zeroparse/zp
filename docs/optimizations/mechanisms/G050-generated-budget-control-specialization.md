@@ -42,9 +42,9 @@ A parser generated with `-limits` has one controlled form of its functions. The 
 the same parser generated without the option is 0.50 to 0.85 of its size (every grammar of `testdata/grammars/`,
 Node-only, with `-types`, with `-types -recognize` or with `-types -typed-only`; larger grammars save
 more, and duckdb with `-typed-only` is the smallest at 0.50). Against a parser generated without `-limits`, a parse of the controlled form that passes no
-option takes 1.08 to 1.13 times as long (`Parse`) and 1.08 to 1.17 times (`ParseAST`) on the JSON, XML,
+option takes 1.08 to 1.13 times as long (`Parse`) and 1.08 to 1.17 times (`ParseValue`) on the JSON, XML,
 YAML and CSV inputs, and one that passes a limit takes 1.25 to 1.33 times (`Parse`) and 1.26 to 1.45
-times (`ParseAST`). The aim of 1.15 times for a parse with a limit is not met; with every charge
+times (`ParseValue`). The aim of 1.15 times for a parse with a limit is not met; with every charge
 made free JSON still takes 1.15 times, so the rest is the shape of the controlled bodies. The
 table is in [103](../103-inline-the-common-budget-spend.md). Records
 [096](../096-specialize-generated-go-method-helpers.md) and

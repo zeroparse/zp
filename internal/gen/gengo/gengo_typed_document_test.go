@@ -25,7 +25,7 @@ func TestGenerateTypedDocument(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !strings.Contains(string(code), "func (d *Document) ParseAST(") || !strings.Contains(string(code), "TParse(trules") {
+	if !strings.Contains(string(code), "func (d *Document) ParseValue(") || !strings.Contains(string(code), "TParse(trules") {
 		t.Fatal("typed Document conversion or existing direct batch path missing")
 	}
 	dir := t.TempDir()
@@ -45,27 +45,27 @@ func TestTypedDocumentResultAndOwnership(t *testing.T) {
   calls := 0
   d, err := NewDocument("é", func(o *zprt.X_parseOptions) { calls++; o.X_unit = unit })
   if err != nil || calls != 1 { t.Fatalf("construction: %v, calls %d", err, calls) }
-  old, err := d.ParseAST()
-  fresh, freshErr := ParseAST("é", WithUnit(unit))
+  old, err := d.ParseValue()
+  fresh, freshErr := ParseValue("é", WithUnit(unit))
   if err != nil || freshErr != nil || !reflect.DeepEqual(old, fresh) { t.Fatalf("initial: %v / %v", err, freshErr) }
   if old.First == nil || len(old.Items) != 2 || old.First != old.Items[0] || old.First != old.Items[1] { t.Fatal("typed aliases were lost") }
   if len(old.Optional) != 4 || old.Optional[0] != nil || old.Optional[1] != old.First || old.Optional[2] != nil || old.Optional[3] != old.First { t.Fatal("optional aliases changed") }
   end := 1
   if unit == Bytes { end = 2 }
   if err := d.Edit(0, end, "b"); err != nil { t.Fatal(err) }
-  next, err := d.ParseAST()
-  fresh, freshErr = ParseAST("b", WithUnit(unit))
+  next, err := d.ParseValue()
+  fresh, freshErr = ParseValue("b", WithUnit(unit))
   if err != nil || freshErr != nil || !reflect.DeepEqual(next, fresh) { t.Fatalf("edited: %v / %v", err, freshErr) }
   if old.First.Text != "é" || old.Items[0] != old.First || next.First.Text != "b" { t.Fatal("later edit changed a retained typed value") }
   if calls != 1 { t.Fatalf("constructor option re-evaluated: %d", calls) }
   invocationCalls := 0
-  _, err = d.ParseAST(func(o *zprt.X_parseOptions) { invocationCalls++; o.X_unit = unit })
+  _, err = d.ParseValue(func(o *zprt.X_parseOptions) { invocationCalls++; o.X_unit = unit })
   if err != nil || invocationCalls != 1 { t.Fatalf("invocation option: %v, calls %d", err, invocationCalls) }
-  if _, err := d.ParseAST(WithUnit(PositionUnit(1-int(unit)))); err == nil { t.Fatal("unit change accepted") }
-  if _, err := d.ParseAST(WithLimits(Limits{Depth: Unlimited})); err == nil { t.Fatal("unlimited depth accepted") }
+  if _, err := d.ParseValue(WithUnit(PositionUnit(1-int(unit)))); err == nil { t.Fatal("unit change accepted") }
+  if _, err := d.ParseValue(WithLimits(Limits{Depth: Unlimited})); err == nil { t.Fatal("unlimited depth accepted") }
   cancelled, cancel := context.WithCancel(context.Background()); cancel()
-  if v, err := d.ParseAST(WithContext(cancelled)); v != nil || !errors.Is(err, context.Canceled) { t.Fatalf("cancellation: %v %v", v, err) }
-  if v, err := d.ParseAST(); v == nil || err != nil { t.Fatalf("retry: %v", err) }
+  if v, err := d.ParseValue(WithContext(cancelled)); v != nil || !errors.Is(err, context.Canceled) { t.Fatalf("cancellation: %v %v", v, err) }
+  if v, err := d.ParseValue(); v == nil || err != nil { t.Fatalf("retry: %v", err) }
  }
 }
 
@@ -75,8 +75,8 @@ func TestTypedDocumentConversionBudget(t *testing.T) {
  // The Node parse can reuse its result, while typed conversion must still be
  // charged to the same invocation controller and abandon interrupted work.
  if _, err := d.Parse(); err != nil { t.Fatal(err) }
- if v, err := d.ParseAST(WithLimits(Limits{Compute: 1})); v != nil || !errors.Is(err, ErrLimit) { t.Fatalf("conversion budget: %v %v", v, err) }
- if v, err := d.ParseAST(); v == nil || v.First == nil || err != nil { t.Fatalf("retry after conversion interruption: %v", err) }
+ if v, err := d.ParseValue(WithLimits(Limits{Compute: 1})); v != nil || !errors.Is(err, ErrLimit) { t.Fatalf("conversion budget: %v %v", v, err) }
+ if v, err := d.ParseValue(); v == nil || v.First == nil || err != nil { t.Fatalf("retry after conversion interruption: %v", err) }
 }
 `,
 	} {
@@ -105,7 +105,7 @@ func testGenerateTypedDocumentNilAndRecovery(t *testing.T) {
 	// The union S | node does not generate in Document mode: its conversion returns any, which does
 	// not implement the union interface (S | Seq did). This test is about nil results and
 	// recovery, so the grammar uses a string node member instead.
-	source := strings.NewReplacer("type Mixed ~ S | node[_]\n", "type Mixed ~ S | node[string]\n", "rule mixed Mixed = cst\n", "rule mixed Mixed = \"t\"\n").Replace(gentest.NamedASTGrammar)
+	source := strings.NewReplacer("type Mixed ~ S | node[_]\n", "type Mixed ~ S | node[string]\n", "rule mixed Mixed = cst\n", "rule mixed Mixed = \"t\"\n").Replace(gentest.NamedValueGrammar)
 	g, err := parseTest(source)
 	if err != nil {
 		t.Fatal(err)
@@ -130,23 +130,23 @@ func TestNilAndRecovery(t *testing.T) {
  for _, unit := range []optional.PositionUnit{optional.CodePoints, optional.Bytes} {
   d, err := optional.NewDocument("", optional.WithUnit(unit))
   if err != nil { t.Fatal(err) }
-  if value, err := d.ParseAST(); value != nil || err != nil { t.Fatalf("nil success: %v %v", value, err) }
+  if value, err := d.ParseValue(); value != nil || err != nil { t.Fatalf("nil success: %v %v", value, err) }
   if err := d.Edit(0, 0, "é"); err != nil { t.Fatal(err) }
-  got, gotErr := d.ParseAST()
-  want, wantErr := optional.ParseAST("é", optional.WithUnit(unit))
+  got, gotErr := d.ParseValue()
+  want, wantErr := optional.ParseValue("é", optional.WithUnit(unit))
   if gotErr != nil || wantErr != nil || !reflect.DeepEqual(got, want) { t.Fatalf("edited optional: %v / %v", gotErr, wantErr) }
  }
  for _, unit := range []recovery.PositionUnit{recovery.CodePoints, recovery.Bytes} {
   d, err := recovery.NewDocument("?", recovery.WithUnit(unit))
   if err != nil { t.Fatal(err) }
-  got, gotErr := d.ParseAST()
-  want, wantErr := recovery.ParseAST("?", recovery.WithUnit(unit))
+  got, gotErr := d.ParseValue()
+  want, wantErr := recovery.ParseValue("?", recovery.WithUnit(unit))
   if _, ok := gotErr.(recovery.SyntaxErrors); !ok || !reflect.DeepEqual(got, want) || got == nil || !isRecoveryError(got.T) || gotErr.Error() != wantErr.Error() {
    t.Fatalf("recovered result: %#v / %#v, %v / %v", got, want, gotErr, wantErr)
   }
   if err := d.Edit(0, 1, "é"); err != nil { t.Fatal(err) }
-  got, gotErr = d.ParseAST()
-  want, wantErr = recovery.ParseAST("é", recovery.WithUnit(unit))
+  got, gotErr = d.ParseValue()
+  want, wantErr = recovery.ParseValue("é", recovery.WithUnit(unit))
   if gotErr != nil || wantErr != nil || !reflect.DeepEqual(got, want) { t.Fatalf("recovered retry: %v / %v", gotErr, wantErr) }
  }
 }
@@ -204,8 +204,8 @@ func TestOpenUnion(t *testing.T) {
  if err != nil { t.Fatal(err) }
  for _, edit := range []struct{ start, end int; text string }{{0, 0, ""}, {1, 1, "s"}, {6, 6, "cd"}, {0, 1, "cd"}} {
   if err := d.Edit(edit.start, edit.end, edit.text); err != nil { t.Fatal(err) }
-  got, gotErr := d.ParseAST()
-  want, wantErr := ParseAST(d.Text())
+  got, gotErr := d.ParseValue()
+  want, wantErr := ParseValue(d.Text())
   if gotErr != nil || wantErr != nil || !reflect.DeepEqual(got, want) { t.Fatalf("%q: %#v / %#v, %v / %v", d.Text(), got, want, gotErr, wantErr) }
   for _, v := range append(append([]any{}, anys(got.M)...), anysF(got.F)...) {
    if v == nil { t.Fatalf("%q: a nil element", d.Text()) }
@@ -262,7 +262,7 @@ import ("testing"; "typedcollision/fixture/types")
 func TestCollision(t *testing.T) {
  d, err := NewDocument("a")
  if err != nil { t.Fatal(err) }
- got, err := d.ParseAST()
+ got, err := d.ParseValue()
  var typed *types.Document = got
  if err != nil || typed.Text != "a" { t.Fatal(got, err) }
  var _ *types.NewDocument
@@ -318,11 +318,11 @@ import ("errors"; "testing"; "observedcollision/fixture/types")
 func TestCollision(t *testing.T) {
  d, err := NewDocument("a")
  if err != nil { t.Fatal(err) }
- got, err := d.ParseAST()
+ got, err := d.ParseValue()
  var typed *types.ErrDocumentBusy = got
  if err != nil || typed.Text != "a" { t.Fatal(got, err) }
  var inner error
- d.ParseAST(zprt.WithTrace(func(zprt.TraceEvent) { if inner == nil { _, inner = d.ParseAST(WithLimits(Limits{Depth: Unlimited})) } }))
+ d.ParseValue(zprt.WithTrace(func(zprt.TraceEvent) { if inner == nil { _, inner = d.ParseValue(WithLimits(Limits{Depth: Unlimited})) } }))
  if !errors.Is(inner, ErrDocumentBusy) { t.Fatal("busy Document checked options first", inner) }
 }
 `,

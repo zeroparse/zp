@@ -32,7 +32,7 @@ func BenchmarkSparseMemoDenseGenerated(b *testing.B) {
 								_, err := gjson.Parse(w.input, gjson.WithUnit(u))
 								return err
 							case "AST":
-								_, err := gjson.ParseAST(w.input, gjson.WithUnit(u))
+								_, err := gjson.ParseValue(w.input, gjson.WithUnit(u))
 								return err
 							default:
 								return gjson.Recognize(w.input, gjson.WithUnit(u))
@@ -47,7 +47,7 @@ func BenchmarkSparseMemoDenseGenerated(b *testing.B) {
 							_, err := gxml.Parse(w.input, gxml.WithUnit(u))
 							return err
 						case "AST":
-							_, err := gxml.ParseAST(w.input, gxml.WithUnit(u))
+							_, err := gxml.ParseValue(w.input, gxml.WithUnit(u))
 							return err
 						default:
 							return gxml.Recognize(w.input, gxml.WithUnit(u))

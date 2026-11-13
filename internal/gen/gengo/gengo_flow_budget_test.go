@@ -211,7 +211,7 @@ func runBudgetProbesAt(t *testing.T, rt string, cases []gentest.Case, start stri
 }
 
 // runBudgetProbesWith is runBudgetProbesAt with generator options, and with the entry point that the
-// "parse" entry of a report runs: Parse, or ParseAST for a typed parser (opts.Types).
+// "parse" entry of a report runs: Parse, or ParseValue for a typed parser (opts.Types).
 func runBudgetProbesWith(t *testing.T, rt string, cases []gentest.Case, start string, mutate func([]byte) []byte, opts gen.GenOptions, parse string) []string {
 	t.Helper()
 	dir := t.TempDir()

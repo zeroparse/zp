@@ -1,6 +1,6 @@
 // Measure the plain-parse throughput of a generated TypeScript parser in one fresh process.
 //
-//   node --experimental-strip-types bench/ts-parse.mjs --module DIR/parser.ts --input FILE [--name json] [--entry parse|parseAST|recognize]
+//   node --experimental-strip-types bench/ts-parse.mjs --module DIR/parser.ts --input FILE [--name json] [--entry parse|parseValue|recognize]
 //
 // The inputs come from the bench package: ZP_TS_INPUT_DIR=DIR go test ./bench -run TestExportTSInputs.
 // The script prints one line in the format of go test -bench, so that benchstat can compare runs:

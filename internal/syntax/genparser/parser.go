@@ -1792,23 +1792,23 @@ func (a *tslabs) MemoryBytes() uint64 {
 	return a.tActionBind.MemoryBytes() + a.tActionBlock.MemoryBytes() + a.tActionGroup.MemoryBytes() + a.tActionTuple.MemoryBytes() + a.tAtomic.MemoryBytes() + a.tAttr.MemoryBytes() + a.tAttrArgs.MemoryBytes() + a.tAttrNamed.MemoryBytes() + a.tAttrSlot.MemoryBytes() + a.tAttributed.MemoryBytes() + a.tBinaryOp.MemoryBytes() + a.tCall.MemoryBytes() + a.tCapture.MemoryBytes() + a.tCaptureAccess.MemoryBytes() + a.tCast.MemoryBytes() + a.tCharClass.MemoryBytes() + a.tCharRng.MemoryBytes() + a.tChoice.MemoryBytes() + a.tCommentGap.MemoryBytes() + a.tCommentGroup.MemoryBytes() + a.tConstructor.MemoryBytes() + a.tDiscard.MemoryBytes() + a.tField.MemoryBytes() + a.tFieldAccess.MemoryBytes() + a.tFieldBody.MemoryBytes() + a.tFile.MemoryBytes() + a.tGapFlag.MemoryBytes() + a.tIgnoreCase.MemoryBytes() + a.tInfix.MemoryBytes() + a.tInitField.MemoryBytes() + a.tInitFieldBody.MemoryBytes() + a.tInlineAction.MemoryBytes() + a.tInlineComment.MemoryBytes() + a.tJoinType.MemoryBytes() + a.tLambda.MemoryBytes() + a.tLevelCall.MemoryBytes() + a.tListConstructor.MemoryBytes() + a.tListType.MemoryBytes() + a.tLookahead.MemoryBytes() + a.tMeetType.MemoryBytes() + a.tMissingPragma.MemoryBytes() + a.tOneOrMore.MemoryBytes() + a.tOperatorsLevel.MemoryBytes() + a.tOperatorsLevelBody.MemoryBytes() + a.tOperatorsOperand.MemoryBytes() + a.tOperatorsOperandBody.MemoryBytes() + a.tOperatorsOperatorBody.MemoryBytes() + a.tOperatorsRule.MemoryBytes() + a.tOperatorsSkip.MemoryBytes() + a.tOperatorsSkipBody.MemoryBytes() + a.tOptional.MemoryBytes() + a.tOptionalType.MemoryBytes() + a.tPkg.MemoryBytes() + a.tPkgBody.MemoryBytes() + a.tPostfix.MemoryBytes() + a.tPredicate.MemoryBytes() + a.tPrefix.MemoryBytes() + a.tRecover.MemoryBytes() + a.tRepeat.MemoryBytes() + a.tRepeatBounds.MemoryBytes() + a.tRuleDef.MemoryBytes() + a.tRuleDefBody.MemoryBytes() + a.tRuleGroup.MemoryBytes() + a.tRuleRef.MemoryBytes() + a.tSequence.MemoryBytes() + a.tSourceBoundary.MemoryBytes() + a.tSourceComment.MemoryBytes() + a.tSourceItem.MemoryBytes() + a.tSourceLead.MemoryBytes() + a.tSourceMetadata.MemoryBytes() + a.tStream.MemoryBytes() + a.tStructType.MemoryBytes() + a.tTupleType.MemoryBytes() + a.tTypeAlias.MemoryBytes() + a.tTypeAliasBody.MemoryBytes() + a.tTypeApp.MemoryBytes() + a.tTypeDef.MemoryBytes() + a.tTypeDefBody.MemoryBytes() + a.tTypeGroup.MemoryBytes() + a.tTypeRef.MemoryBytes() + a.tUnaryOp.MemoryBytes() + a.tVarDef.MemoryBytes() + a.tVarDefBody.MemoryBytes() + a.tZeroOrMore.MemoryBytes() + a.tl0Chunk.MemoryBytes() + a.tl1Chunk.MemoryBytes() + a.tl2Chunk.MemoryBytes() + a.tl3Chunk.MemoryBytes() + a.tl4Chunk.MemoryBytes() + a.tl5Chunk.MemoryBytes() + a.tl6Chunk.MemoryBytes() + a.tl7Chunk.MemoryBytes() + a.tl8Chunk.MemoryBytes() + a.tl9Chunk.MemoryBytes() + a.tl10Chunk.MemoryBytes() + a.tl11Chunk.MemoryBytes() + a.tl12Chunk.MemoryBytes() + a.tl13Chunk.MemoryBytes() + a.tl14Chunk.MemoryBytes() + a.tl15Chunk.MemoryBytes() + a.tl16Chunk.MemoryBytes() + a.tl17Chunk.MemoryBytes()
 }
 
-// ParseAST parses the input like Parse and returns the result as typed values. If the parse recovered
+// ParseValue parses the input like Parse and returns the result as typed values. If the parse recovered
 // from errors, the result is returned together with SyntaxErrors; an Error node where a struct
 // type is expected becomes nil.
 // It builds the values directly, without the nodes Parse returns.
-func ParseAST(input string, opts ...rt.ParseOption) (*types.File, error) {
+func ParseValue(input string, opts ...rt.ParseOption) (*types.File, error) {
 	a := &tslabs{}
 	return rt.TParse(trules[0], input, opts, a, func(v any) *types.File { return rt.TAs[*types.File](v) })
 }
 
-// ParseRuleAST parses the whole input with the named start rule and returns its typed value; an empty
+// ParseRuleValue parses the whole input with the named start rule and returns its typed value; an empty
 // name selects the grammar's default start rule.
 // Recovered values accompany SyntaxErrors. Nil results and failed parses return the selected type's zero value.
 // Invalid options and names of rules that are not start rules return nil with an error. Start rule result types:
 //
 //	main: *types.File
 //	file: *types.File
-func ParseRuleAST(name, input string, opts ...rt.ParseOption) (any, error) {
+func ParseRuleValue(name, input string, opts ...rt.ParseOption) (any, error) {
 	o, err := rt.ResolveOptions(zpGrammar, opts)
 	if err != nil {
 		return nil, err

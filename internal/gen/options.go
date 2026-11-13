@@ -17,7 +17,7 @@ import (
 
 // GenOptions configures code generation.
 type GenOptions struct {
-	// TypedOnly generates only the typed entry points (ParseAST, ParseRuleAST and their
+	// TypedOnly generates only the typed entry points (ParseValue, ParseRuleValue and their
 	// siblings): no Parse or ParseRule, and no function that builds an untyped Node. Recognize
 	// may be added. It needs Types and excludes Document and Stream.
 	TypedOnly bool
@@ -68,7 +68,7 @@ type GenOptions struct {
 	// Start is the start rule of the generated Parse function, a rule marked @start. Empty
 	// selects the default start rule.
 	Start string
-	// Types generates Go types, ParseAST for the start rule, and ParseRuleAST
+	// Types generates Go types, ParseValue for the start rule, and ParseRuleValue
 	// for a named rule as values of those types (see gengo/types.go).
 	Types bool
 	// Recognize also generates Recognize, which checks the input without building a tree (as the

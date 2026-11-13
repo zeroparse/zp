@@ -115,12 +115,12 @@ func TestTranscript(t *testing.T) {
 	var b strings.Builder
 	for _, in := range INPUTS {
 		for _, unit := range []PositionUnit{CodePoints, Bytes} {
-			v, err := ParseAST(in, WithUnit(unit))
+			v, err := ParseValue(in, WithUnit(unit))
 			fmt.Fprintf(&b, "ast %q %v: %s\n", in, unit, show(v, err))
-			w, err := ParseRuleAST("main", in, WithUnit(unit))
+			w, err := ParseRuleValue("main", in, WithUnit(unit))
 			fmt.Fprintf(&b, "rule main %q %v: %s\n", in, unit, show(w, err))
 		}
-		v, err := ParseAST(in, WithLimits(Limits{Depth: 3}))
+		v, err := ParseValue(in, WithLimits(Limits{Depth: 3}))
 		fmt.Fprintf(&b, "depth %q: %s\n", in, show(v, err))
 	}
 	if err := os.WriteFile(filepath.Join(os.Getenv("TRANSCRIPT_DIR"), "PKG.txt"), []byte(b.String()), 0o644); err != nil {

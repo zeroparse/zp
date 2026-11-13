@@ -14,7 +14,7 @@
   `c96fe18`; regenerate the same grammars and prebuild both binaries.
   Five alternating 300 ms pairs cover eight workloads, both units and
   recognition/Node output (32 conditions, 110.552 seconds). A separate
-  five-pair 300 ms schedule covers eight ParseAST controls (27.928 seconds).
+  five-pair 300 ms schedule covers eight ParseValue controls (27.928 seconds).
   These focused raw records stay local; no concurrent CPU work runs during
   timing. Medians in milliseconds for recognition:
 

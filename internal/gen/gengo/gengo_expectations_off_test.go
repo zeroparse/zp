@@ -40,7 +40,7 @@ rule main N = ("a" "b" "c") #atomic`
 	forms := []form{
 		{"plain", plain, gen.GenOptions{}, "Parse(in)"},
 		{"recover", recover, gen.GenOptions{}, "Parse(in)"},
-		{"typed", typed, gen.GenOptions{Types: true}, "ParseAST(in)"},
+		{"typed", typed, gen.GenOptions{Types: true}, "ParseValue(in)"},
 		{"document", plain, gen.GenOptions{Document: true}, "docParse(in)"},
 	}
 	inputs := []string{"xy", "xz", "z", "(ab)", "(a", "ab;1x;cd;", "abc", "ab", "abd", "ab;cd;", ""}
@@ -65,7 +65,7 @@ rule main N = ("a" "b" "c") #atomic`
 			gentest.GeneratePackageRaw(t, dir, pkg, g, opts)
 			fmt.Fprintf(&imports, "\t%s \"gentest/%s\"\n", pkg, pkg)
 			call := strings.ReplaceAll(f.call, "docParse(", "func(s string) (any, error) { d, err := "+pkg+".NewDocument(s"+opt(ask)+"); if err != nil { return nil, err }; return d.Parse() }(")
-			call = strings.ReplaceAll(call, "ParseAST(in)", pkg+".ParseAST(in"+opt(ask)+")")
+			call = strings.ReplaceAll(call, "ParseValue(in)", pkg+".ParseValue(in"+opt(ask)+")")
 			if strings.HasPrefix(call, "Parse(in)") {
 				call = pkg + ".Parse(in" + opt(ask) + ")"
 			}
@@ -219,7 +219,7 @@ func try(name string, f func() error) {
 func main() {
 	ask := rt.WithExpectations()
 	try("parse", func() error { _, err := off.Parse("a", ask); return err })
-	try("ast", func() error { _, err := off.ParseAST("a", ask); return err })
+	try("ast", func() error { _, err := off.ParseValue("a", ask); return err })
 	try("stream", func() error { return offs.ParseStream(strings.NewReader("a\n"), func(*offs.Node) error { return nil }, ask) })
 	try("document", func() error { _, err := off.NewDocument("a", ask); return err })
 	d, err := off.NewDocument("a")
@@ -227,9 +227,9 @@ func main() {
 		panic(err)
 	}
 	try("document-parse", func() error { _, err := d.Parse(ask); return err })
-	try("document-ast", func() error { _, err := d.ParseAST(ask); return err })
+	try("document-ast", func() error { _, err := d.ParseValue(ask); return err })
 	try("avail-parse", func() error { _, err := avail.Parse("a", avail.WithExpectations()); return err })
-	try("avail-ast", func() error { _, err := avail.ParseAST("a", avail.WithExpectations()); return err })
+	try("avail-ast", func() error { _, err := avail.ParseValue("a", avail.WithExpectations()); return err })
 }
 `
 	if err := os.WriteFile(filepath.Join(dir, "main.go"), []byte(main), 0o644); err != nil {

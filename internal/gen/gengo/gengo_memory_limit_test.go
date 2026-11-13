@@ -148,7 +148,7 @@ func TestMemoryLimitThreshold(t *testing.T) {
 	for _, unit := range []PositionUnit{CodePoints, Bytes} {
 		entries := map[string]func(mem uint64) error{
 			"Parse": func(mem uint64) error { _, err := Parse(text, memory(mem, WithUnit(unit))...); return err },
-			"ParseAST": func(mem uint64) error { _, err := ParseAST(text, memory(mem, WithUnit(unit))...); return err },
+			"ParseValue": func(mem uint64) error { _, err := ParseValue(text, memory(mem, WithUnit(unit))...); return err },
 			"Document.Parse": func(mem uint64) error {
 				d, err := NewDocument(text, WithUnit(unit))
 				if err != nil {
@@ -157,12 +157,12 @@ func TestMemoryLimitThreshold(t *testing.T) {
 				_, err = d.Parse(memory(mem)...)
 				return err
 			},
-			"Document.ParseAST": func(mem uint64) error {
+			"Document.ParseValue": func(mem uint64) error {
 				d, err := NewDocument(text, WithUnit(unit))
 				if err != nil {
 					t.Fatal(err)
 				}
-				_, err = d.ParseAST(memory(mem)...)
+				_, err = d.ParseValue(memory(mem)...)
 				return err
 			},
 		}
@@ -177,7 +177,7 @@ func TestMemoryLimitThreshold(t *testing.T) {
 			if _, err := Parse(input(3000), WithUnit(unit)); err != nil {
 				t.Fatal(err)
 			}
-			if _, err := ParseAST(input(3000), WithUnit(unit)); err != nil {
+			if _, err := ParseValue(input(3000), WithUnit(unit)); err != nil {
 				t.Fatal(err)
 			}
 			checkThreshold(t, name, m, parse)
@@ -197,7 +197,7 @@ func TestMemoryLimitAlone(t *testing.T) {
 		if _, err := Parse(text, WithLimits(Limits{Memory: mem})); err != nil {
 			t.Fatalf("Memory %d: %v", mem, err)
 		}
-		if _, err := ParseAST(text, WithLimits(Limits{Memory: mem})); err != nil {
+		if _, err := ParseValue(text, WithLimits(Limits{Memory: mem})); err != nil {
 			t.Fatalf("Memory %d: %v", mem, err)
 		}
 	}
@@ -266,12 +266,12 @@ func TestMemoryLimitStreamAST(t *testing.T) {
 	for _, unit := range []PositionUnit{CodePoints, Bytes} {
 		stream := func(text string) func(uint64) error {
 			return func(mem uint64) error {
-				return ParseStreamAST(strings.NewReader(text), func(StreamValue) error { return nil }, memory(mem, WithUnit(unit))...)
+				return ParseStreamValue(strings.NewReader(text), func(StreamValue) error { return nil }, memory(mem, WithUnit(unit))...)
 			}
 		}
 		short, long := minMemory(t, stream(records(2000))), minMemory(t, stream(records(40000)))
 		checkThreshold(t, "typed stream", long, stream(records(40000)))
-		batch := minMemory(t, func(mem uint64) error { _, err := ParseAST(records(40000), memory(mem, WithUnit(unit))...); return err })
+		batch := minMemory(t, func(mem uint64) error { _, err := ParseValue(records(40000), memory(mem, WithUnit(unit))...); return err })
 		t.Logf("unit %d: typed stream of 2,000 records %d bytes, of 40,000 %d, batch %d", unit, short, long, batch)
 		if 5*long > 6*short || long*4 > batch {
 			t.Fatalf("unit %d: typed stream of 40,000 records needs %d bytes, of 2,000 records %d, batch %d", unit, long, short, batch)
@@ -337,7 +337,7 @@ func TestMemoryLimitStreamConcat(t *testing.T) {
 		}
 		typed := func(text string) func(uint64) error {
 			return func(mem uint64) error {
-				return ParseStreamAST(strings.NewReader(text), func(StreamValue) error { return nil }, memory(mem, WithUnit(unit))...)
+				return ParseStreamValue(strings.NewReader(text), func(StreamValue) error { return nil }, memory(mem, WithUnit(unit))...)
 			}
 		}
 		for name, stream := range map[string]func(string) func(uint64) error{"node": node, "typed": typed} {

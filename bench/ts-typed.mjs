@@ -77,12 +77,12 @@ if (entryMode === "options") {
 let invoke;
 if (entryMode === "direct") {
   if (mode === "node") invoke = () => mod.parse(input, unit);
-  else invoke = () => mod.parseAST(input, unit);
+  else invoke = () => mod.parseValue(input, unit);
 } else {
   if (mode === "node") invoke = () => mod.parseWithOptions(input, options);
-  else invoke = () => mod.parseASTWithOptions(input, options);
+  else invoke = () => mod.parseValueWithOptions(input, options);
 }
-const expectedFunction = mode === "node" ? (entryMode === "direct" ? "parse" : "parseWithOptions") : (entryMode === "direct" ? "parseAST" : "parseASTWithOptions");
+const expectedFunction = mode === "node" ? (entryMode === "direct" ? "parse" : "parseWithOptions") : (entryMode === "direct" ? "parseValue" : "parseValueWithOptions");
 if (typeof mod[expectedFunction] !== "function") throw new Error(`Module does not export ${expectedFunction}`);
 function rootOf(result) { return mode === "node" ? result.node : result.value; }
 function diagnosticSummary(error) {

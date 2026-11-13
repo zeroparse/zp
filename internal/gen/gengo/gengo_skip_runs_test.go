@@ -105,9 +105,9 @@ func testSkipRunsGeneratedDocuments(t *testing.T) {
 			if s := differ("Parse", d.Text(), n, err, bn, berr); s != "" {
 				return s
 			}
-			v, err := d.ParseAST()
-			bv, berr := g%[3]d.ParseAST(d.Text())
-			if s := differ("ParseAST", d.Text(), v, err, bv, berr); s != "" {
+			v, err := d.ParseValue()
+			bv, berr := g%[3]d.ParseValue(d.Text())
+			if s := differ("ParseValue", d.Text(), v, err, bv, berr); s != "" {
 				return s
 			}
 			start, end, ins, ok := edits(d.Text())

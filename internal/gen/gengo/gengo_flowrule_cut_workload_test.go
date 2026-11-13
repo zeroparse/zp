@@ -90,13 +90,13 @@ func cutInput(n int) string { return strings.Repeat("let alpha:123;var beta:456;
 
 func TestCutWorkload(t *testing.T) {
 	for _, unit := range []PositionUnit{CodePoints, Bytes} {
-		saved, err := ParseAST(cutInput(1), WithUnit(unit))
+		saved, err := ParseValue(cutInput(1), WithUnit(unit))
 		if err != nil || len(saved.Rows) != 2 || saved.Rows[0].Key.Value != "alpha" || saved.Rows[1].Value.Value != "456" {
 			t.Fatalf("typed rows: %v %v", saved, err)
 		}
 		before, _ := json.Marshal(saved)
 		for _, input := range []string{cutInput(1), cutInput(32), "let alpha:;", "let alpha:123", "var beta:x;", "let é:1;", "", "let alpha:123;?"} {
-			v, err := ParseAST(input, WithUnit(unit))
+			v, err := ParseValue(input, WithUnit(unit))
 			data, _ := json.Marshal(struct { Value any; Error string }{v, fmt.Sprint(err)})
 			fmt.Printf("OBS %v %q %s\n", unit, input, data)
 			if (input == cutInput(1) || input == cutInput(32)) != (err == nil) {
@@ -120,7 +120,7 @@ func BenchmarkTypedCuts(b *testing.B) {
 				b.ReportAllocs()
 				b.SetBytes(int64(len(input)))
 				for b.Loop() {
-					v, err := ParseAST(input, WithUnit(unit))
+					v, err := ParseValue(input, WithUnit(unit))
 					if err != nil || len(v.Rows) != 2*n {
 						b.Fatalf("parse: %v", err)
 					}

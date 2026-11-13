@@ -337,8 +337,8 @@ func GeneratedTypesMismatches(t *testing.T, goBin string, cases []Case, referenc
 		refOpts.SourceInfo = true
 		GeneratePackage(t, dir, fmt.Sprintf("c%d", i), g, refOpts)
 		fmt.Fprintf(&imports, "\tg%d \"gentest/g%d\"\n\tc%d \"gentest/c%d\"\n", i, i, i, i)
-		fmt.Fprintf(&parsers, "\tfunc(s string, b bool) (any, error) { u := g%d.CodePoints; if b { u = g%d.Bytes }; return g%d.ParseAST(s, g%[3]d.WithUnit(u)) },\n", i, i, i)
-		fmt.Fprintf(&converters, "\tfunc(s string, b bool) (any, error) { u := c%d.CodePoints; if b { u = c%d.Bytes }; return c%d.ParseAST(s, c%[3]d.WithUnit(u)) },\n", i, i, i)
+		fmt.Fprintf(&parsers, "\tfunc(s string, b bool) (any, error) { u := g%d.CodePoints; if b { u = g%d.Bytes }; return g%d.ParseValue(s, g%[3]d.WithUnit(u)) },\n", i, i, i)
+		fmt.Fprintf(&converters, "\tfunc(s string, b bool) (any, error) { u := c%d.CodePoints; if b { u = c%d.Bytes }; return c%d.ParseValue(s, c%[3]d.WithUnit(u)) },\n", i, i, i)
 		inputs = append(inputs, c.Inputs)
 		prog := refProgram(t, c.Src, compile.Options{SourceInfo: true})
 		for _, in := range c.Inputs {

@@ -210,8 +210,8 @@ func TestFormatAndGenerate(t *testing.T) {
 		t.Errorf("format error: %+v", f)
 	}
 	g := call[generateResult](t, "generate", generateRequest{Grammar: pairs, Package: "pairs", Types: true})
-	if !strings.Contains(g.Code, "package pairs") || !strings.Contains(g.Code, "func ParseAST(") {
-		t.Errorf("generated code lacks package or ParseAST: %.200s %+v", g.Code, g.Diagnostics)
+	if !strings.Contains(g.Code, "package pairs") || !strings.Contains(g.Code, "func ParseValue(") {
+		t.Errorf("generated code lacks package or ParseValue: %.200s %+v", g.Code, g.Diagnostics)
 	}
 	// Each file is also given on its own, to be saved: the displayed text joins them under banners.
 	if len(g.Files) != 3 || g.Files[0].Path != "parser.go" || g.Files[1].Path != "api.go" || g.Files[2].Path != "types/types.go" {

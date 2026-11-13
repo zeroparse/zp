@@ -101,10 +101,10 @@ Commands:
       imports the runtime from the module -runtime-module (required), such as
       ../shared/runtime.ts; -runtime only writes just runtime.ts, to share it
       or to refresh the copy. With
-      -types, types for the grammar's types and ParseAST (parseAST in TypeScript),
+      -types, types for the grammar's types and ParseValue (parseValue in TypeScript),
       which returns the result as typed values, are generated too.
       -document adds an incremental Document; with -types it also provides
-      Document.ParseAST (parseAST in TypeScript). Without -limits the
+      Document.ParseValue (parseValue in TypeScript). Without -limits the
       Document runs without budget charges.
       -stream adds Go ParseStream, which reads an io.Reader and passes each
       committed element of the start rule's #stream repetition to a callback.
@@ -120,7 +120,7 @@ Commands:
       way. The parser has this one form only: a parse that sets no limit
       runs the same code. Generate a second parser without the option to
       have the plain form too.
-      -typed-only generates only the typed entry points (ParseAST and its
+      -typed-only generates only the typed entry points (ParseValue and its
       siblings), without Parse and ParseRule. It needs -types and cannot be
       combined with -document, -stream or -lang ts. -recognize-only generates
       only Recognize, without Parse, ParseRule or typed entry points; it
@@ -732,13 +732,13 @@ func genCmd(args []string, stdout io.Writer) error {
 	runtimeModule := fs.String("runtime-module", "", "module specifier a TypeScript parser imports its runtime from with -runtime import, such as ../shared/runtime.ts")
 	start := fs.String("s", "", "start rule of the generated Parse function (default: the grammar's default start rule)")
 	output := fs.String("o", "", "output directory")
-	types := fs.Bool("types", false, "also generate typed values and ParseAST (parseAST in TypeScript)")
-	document := fs.Bool("document", false, "also generate an incremental Document (typed ParseAST with -types)")
+	types := fs.Bool("types", false, "also generate typed values and ParseValue (parseValue in TypeScript)")
+	document := fs.Bool("document", false, "also generate an incremental Document (typed ParseValue with -types)")
 	stream := fs.Bool("stream", false, "also generate Go ParseStream and Iterate for the start rule's #stream repetition (and their typed forms with -types; incompatible with -lang ts)")
 	observability := fs.Bool("observability", false, "emit opt-in rule tracing and profiling for Go batch/Documents and TypeScript batch parsing, including typed entry points")
 	expectations := fs.Bool("expectations", false, "generate a parser that records what a syntax error expects (the expected list and @error messages); without it the error reports only the farthest failure position")
 	limitControls := fs.Bool("limits", false, "generate the limit-controlled form of the parser, which supports WithContext and finite Compute and Memory limits (signal and the compute limit in TypeScript)")
-	typedOnly := fs.Bool("typed-only", false, "generate only the typed entry points (ParseAST and siblings), without Parse, ParseRule and Recognize (needs -types)")
+	typedOnly := fs.Bool("typed-only", false, "generate only the typed entry points (ParseValue and siblings), without Parse, ParseRule and Recognize (needs -types)")
 	recognizeOnly := fs.Bool("recognize-only", false, "generate only Recognize, without Parse, ParseRule or typed entry points (Go only; not with -types, -typed-only, -document or -stream)")
 	recognize := fs.Bool("recognize", false, "also generate Recognize, which checks input without building a tree")
 	maxDepth := fs.Int("max-depth", 0, "generated default nested recursive rule-call limit (0 selects 100000)")

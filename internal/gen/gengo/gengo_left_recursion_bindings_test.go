@@ -18,7 +18,7 @@ import (
 	"zeroparse.dev/zp/internal/value"
 )
 
-// typedLRBindingSource is lrBindingSource with typed values, so that ParseAST runs the typed
+// typedLRBindingSource is lrBindingSource with typed values, so that ParseValue runs the typed
 // runtime: step binds k before its left call of R, which reads k in seed.
 const typedLRBindingSource = `type Doc = { N int }
 var k int
@@ -30,7 +30,7 @@ rule seed Doc = {k < 1000} "x" => Doc{N: 1}
 `
 
 // TestGeneratedLeftRecursionGuardIgnoresVariables is TestLeftRecursionGuardIgnoresVariables
-// for generated Go parsers: Parse, Recognize and the typed ParseAST of a left-recursive rule
+// for generated Go parsers: Parse, Recognize and the typed ParseValue of a left-recursive rule
 // re-entered with other variable values match the engine instead of nesting until the limit.
 func TestGeneratedLeftRecursionGuardIgnoresVariables(t *testing.T) {
 	t.Parallel()
@@ -101,7 +101,7 @@ func run(in string, o []g.ParseOption, to []tg.ParseOption) {
 	}
 	b, _ := json.Marshal(out)
 	recErr := g.Recognize(in, o...)
-	v, typedErr := tg.ParseAST(in, to...)
+	v, typedErr := tg.ParseValue(in, to...)
 	fmt.Printf("%s %v %v | ", b, recErr, typedErr)
 	if v == nil {
 		fmt.Println("<nil>")

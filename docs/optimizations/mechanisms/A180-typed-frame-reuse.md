@@ -26,7 +26,7 @@ within noise. The same experiment in ordinary engine capture frames measured
 slower and was not adopted. Typed allocation or direct-body comparisons remove
 more work and cannot isolate frame release.
 
-Evidence records: [048](../048-a-typed-runtime-for-parseast.md).
+Evidence records: [048](../048-a-typed-runtime-for-parsevalue.md).
 
 Source owners: [`typed frame allocation and
 TParser.FreeFrame`](../../../runtime/typed.go), [`direct local

@@ -76,13 +76,13 @@ func BenchmarkControlledParse(b *testing.B) {
 							if unit.u == zp.Bytes {
 								selected = gjson.Bytes
 							}
-							_, err = gjson.ParseAST(input, gjson.WithUnit(selected), gjson.WithLimits(gjson.Limits(limits)))
+							_, err = gjson.ParseValue(input, gjson.WithUnit(selected), gjson.WithLimits(gjson.Limits(limits)))
 						} else {
 							selected := gxml.CodePoints
 							if unit.u == zp.Bytes {
 								selected = gxml.Bytes
 							}
-							_, err = gxml.ParseAST(input, gxml.WithUnit(selected), gxml.WithLimits(gxml.Limits(limits)))
+							_, err = gxml.ParseValue(input, gxml.WithUnit(selected), gxml.WithLimits(gxml.Limits(limits)))
 						}
 						if err != nil {
 							b.Fatal(err)
@@ -150,15 +150,15 @@ func TestControlledWorkloads(t *testing.T) {
 						t.Fatal(err)
 					}
 					equal(plain, controlled)
-					plainAST, err := gjson.ParseAST(input, gjson.WithUnit(selected))
+					plainValue, err := gjson.ParseValue(input, gjson.WithUnit(selected))
 					if err != nil {
 						t.Fatal(err)
 					}
-					controlledAST, err := gjson.ParseAST(input, gjson.WithUnit(selected), gjson.WithLimits(gjson.Limits(limits)))
+					controlledValue, err := gjson.ParseValue(input, gjson.WithUnit(selected), gjson.WithLimits(gjson.Limits(limits)))
 					if err != nil {
 						t.Fatal(err)
 					}
-					equal(plainAST, controlledAST)
+					equal(plainValue, controlledValue)
 				} else {
 					selected := gxml.CodePoints
 					if unit.u == zp.Bytes {
@@ -173,15 +173,15 @@ func TestControlledWorkloads(t *testing.T) {
 						t.Fatal(err)
 					}
 					equal(plain, controlled)
-					plainAST, err := gxml.ParseAST(input, gxml.WithUnit(selected))
+					plainValue, err := gxml.ParseValue(input, gxml.WithUnit(selected))
 					if err != nil {
 						t.Fatal(err)
 					}
-					controlledAST, err := gxml.ParseAST(input, gxml.WithUnit(selected), gxml.WithLimits(gxml.Limits(limits)))
+					controlledValue, err := gxml.ParseValue(input, gxml.WithUnit(selected), gxml.WithLimits(gxml.Limits(limits)))
 					if err != nil {
 						t.Fatal(err)
 					}
-					equal(plainAST, controlledAST)
+					equal(plainValue, controlledValue)
 				}
 			}
 		})

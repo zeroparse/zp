@@ -98,15 +98,15 @@ func BenchmarkParse(b *testing.B){benchOperation(b,benchmarkParseOp)}
 func BenchmarkRecognize(b *testing.B){benchOperation(b,benchmarkRecognizeOp)}
 `
 const generatedGoProfileTypedBenchmark = `
-func benchmarkASTOp(opts ...ParseOption)error{var err error;valueSink,err=ParseAST(input,opts...);return err}
-func BenchmarkParseAST(b *testing.B){benchOperation(b,benchmarkASTOp)}
+func benchmarkValueOp(opts ...ParseOption)error{var err error;valueSink,err=ParseValue(input,opts...);return err}
+func BenchmarkParseValue(b *testing.B){benchOperation(b,benchmarkValueOp)}
 `
 const generatedGoProfileEnabledBenchmark = `
 func BenchmarkProfileParse(b *testing.B){var pr Profile;benchOperation(b,benchmarkParseOp,WithProfile(&pr))}
 func BenchmarkProfileRecognize(b *testing.B){var pr Profile;benchOperation(b,benchmarkRecognizeOp,WithProfile(&pr))}
 `
 const generatedGoProfileTypedEnabledBenchmark = `
-func BenchmarkProfileParseAST(b *testing.B){var pr Profile;benchOperation(b,benchmarkASTOp,WithProfile(&pr))}
+func BenchmarkProfileParseValue(b *testing.B){var pr Profile;benchOperation(b,benchmarkValueOp,WithProfile(&pr))}
 `
 
 const generatedGoProfileTraceBenchmark = `

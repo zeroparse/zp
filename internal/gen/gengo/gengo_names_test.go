@@ -25,7 +25,7 @@ import (
 // both.
 var runtimeNameTypes = []string{
 	"Walk", "SetNodeText", "SetNodeElems", "SetNodeField", "SetNodeStart", "TOperand", "TPubHooks", "TDeref",
-	"NewTError", "NewStreamIterator", "NewNode", "Mark", "TSeq", "Node", "Parser", "Span", "Rule", "Parse", "ParseAST",
+	"NewTError", "NewStreamIterator", "NewNode", "Mark", "TSeq", "Node", "Parser", "Span", "Rule", "Parse", "ParseValue",
 	"Document", "ParseStats", "StreamValue", "ParseOption",
 }
 
@@ -91,7 +91,7 @@ import (
 )
 
 func TestNames(t *testing.T) {
-	v, err := ParseAST("a")
+	v, err := ParseValue("a")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -397,7 +397,7 @@ func TestGeneratedTypedFieldNamedRange(t *testing.T) {
 import "testing"
 
 func TestRange(t *testing.T) {
-	v, err := ParseAST("12")
+	v, err := ParseValue("12")
 	if err != nil {
 		t.Fatal(err)
 	}

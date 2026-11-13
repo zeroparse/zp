@@ -243,7 +243,7 @@ the free list without a new charge. A finite `Memory` therefore bounds the strea
 the memo entries and nodes since the last commit, and the diagnostics it retains. It does not bound the stream's
 length, except through recovered errors: a stream keeps them for its result, so without a diagnostic limit
 (`WithDiagnosticLimit`) the count grows by every recovered error, whether or not a diagnostic callback receives
-them. With a limit of `n`, the count holds the `n` errors of the tail. `ParseStreamAST` converts each element to a
+them. With a limit of `n`, the count holds the `n` errors of the tail. `ParseStreamValue` converts each element to a
 typed value with its own typed state, which is handed to the callback and not attached to the stream's control, so
 typed elements, struct values included, are not counted after delivery either. Compute keeps its adaptive default, which follows the furthest demanded position. `Input` keeps its stream
 meaning.
@@ -520,8 +520,8 @@ refill function each put `NewNodeOrdinary`, `Nodes` and `memoTable.alloc` over t
 - Threshold tests per measure and site. For compute, input and depth, a cap equal to the final counter succeeds, one
   less fails with the right kind before the work, and `Used` and `Requested` are exact. For memory, the parse is
   checked again at its end, so a cap equal to the final count succeeds and one less fails with `Used` equal to the
-  count, on each engine backend and for each generated entry point (`Parse`, `ParseAST`, `Document.Parse`,
-  `Document.ParseAST`), in both position units.
+  count, on each engine backend and for each generated entry point (`Parse`, `ParseValue`, `Document.Parse`,
+  `Document.ParseValue`), in both position units.
 - Determinism: the same parse twice on a pooled parser, and once on a fresh one, charges the same memory.
 - Parity: every backend and generated Go fails the same input at the same kind for compute-independent caps (input,
   depth). Memory, like compute, is per backend.
@@ -667,7 +667,7 @@ binary per round:
 
 The benchmarks are:
 
-- `BenchmarkParse` for generated Go: Node parsing in both position units, and typed `ParseAST`, which allocates
+- `BenchmarkParse` for generated Go: Node parsing in both position units, and typed `ParseValue`, which allocates
   through generated slabs that the prototype does not touch, as a control;
 - `BenchmarkIncremental` and `BenchmarkIncrementalLong` (generated Documents);
 - `BenchmarkStream` (generated stream);
@@ -716,7 +716,7 @@ With memory unlimited (`off`), every ratio is within 0.970 to 1.019, and Node pa
 the untouched typed control is within 0.993 to 1.010. The counter additions cost nothing measurable.
 
 With a finite cap (`on`), Node parsing takes 0.994 to 1.034 times the base, and XML is the only grammar whose whole
-paired range lies above 1 (1.016 to 1.075). The typed control slows as much (XML `ParseAST` 1.057), although it charges
+paired range lies above 1 (1.016 to 1.075). The typed control slows as much (XML `ParseValue` 1.057), although it charges
 no memory. The cost therefore comes from the 256-unit poll interval that a finite cap imposes, not from counting. A
 longer interval for memory alone, such as 4,096 units, would cut that cost. The price is a larger overshoot: up to
 4,096 units of allocation, about 512 KiB at the worst site. [Decision 11](#decisions) keeps 256 units. Allocated bytes

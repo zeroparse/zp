@@ -78,7 +78,7 @@ medians were 0.815–0.936× the disabled variant. Active-control medians were
 0.985–1.005×; individual sample ranges remained noisy, including an XML case
 with a 9.7% slower sample. These harnesses do not explicitly pre-parse, so
 they do not isolate warmed active calls. In a separate fixed-100-iteration
-allocation comparison of Minilang `ParseAST`, the time ratio was 0.922× [0.908–0.926], bytes/op
+allocation comparison of Minilang `ParseValue`, the time ratio was 0.922× [0.908–0.926], bytes/op
 1.000× [0.959–1.071], and allocations/op 1.000× [0.970–1.053]. No persistent
 allocation increase was identified in that control.
 

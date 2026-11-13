@@ -70,7 +70,7 @@ func TestTraceOptions(t *testing.T) {
 		entries := map[string]func() error{
 			"Parse":     func() error { _, err := Parse("aa", opts...); return err },
 			"ParseRule": func() error { _, err := ParseRule("main", "aa", opts...); return err },
-			"ParseAST":  func() error { _, err := ParseAST("aa", opts...); return err },
+			"ParseValue":  func() error { _, err := ParseValue("aa", opts...); return err },
 			"Recognize": func() error { return Recognize("aa", opts...) },
 			"NewDocument": func() error { _, err := NewDocument("aa", opts...); return err },
 			"Document.Parse": func() error {

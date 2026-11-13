@@ -16,7 +16,7 @@ import (
 // TestGeneratedDocumentInvalidUTF8EditEquivalence is the generated Document
 // counterpart of TestDocumentInvalidUTF8EditEquivalence: random edits at
 // decoded boundaries insert, join and split valid and invalid UTF-8
-// sequences, and each Node Parse and typed ParseAST must match a batch parse
+// sequences, and each Node Parse and typed ParseValue must match a batch parse
 // of the current text, in both position units.
 func TestGeneratedDocumentInvalidUTF8EditEquivalence(t *testing.T) {
 	t.Parallel()
@@ -114,8 +114,8 @@ func TestInvalidUTF8EditEquivalence(t *testing.T) {
 					t.Fatalf("unit %d, edit %d, text %x: document %s / %v; batch %s / %v", unit, i, d.Text(), g, err, w, wantErr)
 				}
 			} else {
-				got, err := d.ParseAST()
-				want, wantErr := ParseAST(d.Text(), WithUnit(unit))
+				got, err := d.ParseValue()
+				want, wantErr := ParseValue(d.Text(), WithUnit(unit))
 				if !reflect.DeepEqual(got, want) || fmt.Sprint(err) != fmt.Sprint(wantErr) {
 					t.Fatalf("unit %d, edit %d, text %x: document %#v / %v; batch %#v / %v", unit, i, d.Text(), got, err, want, wantErr)
 				}

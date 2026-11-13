@@ -23,7 +23,7 @@ for(const unit of [p.CodePoints,p.Bytes]) {
  const node=p.parseWithOptions(input,{unit,signal:{get aborted(){parsePolls++;return false}}});
  check(node.node!==null&&node.error===null,"Node baseline");
  let typedPolls=0;
- const saved=p.parseASTWithOptions(input,{unit,signal:{get aborted(){typedPolls++;return false}}});
+ const saved=p.parseValueWithOptions(input,{unit,signal:{get aborted(){typedPolls++;return false}}});
  check(saved.value!==null&&saved.error===null&&saved.value.Items?.length===8192,"typed baseline");
  // Parsing has the same checkpoints. More than one extra typed poll ensures
  // the selected poll is in conversion, before final invocation publication.
@@ -31,15 +31,15 @@ for(const unit of [p.CodePoints,p.Bytes]) {
  const old=stable(saved.value);
  const reason={phase:"conversion"};
  let polls=0;
- const canceled=p.parseASTWithOptions(input,{unit,signal:{get aborted(){return ++polls>parsePolls},reason}});
+ const canceled=p.parseValueWithOptions(input,{unit,signal:{get aborted(){return ++polls>parsePolls},reason}});
  check(canceled.value===null&&canceled.error instanceof p.ParseInterruptionError&&canceled.error.kind==="canceled"&&canceled.error.cause===reason,"conversion cancellation withholds value");
  check(polls===parsePolls+1,"conversion cancellation poll");
  const token={phase:"conversion-getter-panic"};
  polls=0;let threw=false;
- try { p.parseASTWithOptions(input,{unit,signal:{get aborted(){if(++polls>parsePolls)throw token;return false}}}); }
+ try { p.parseValueWithOptions(input,{unit,signal:{get aborted(){if(++polls>parsePolls)throw token;return false}}}); }
  catch(e){threw=true;check(e===token,"conversion caller exception identity")}
  check(threw&&polls===parsePolls+1,"exception raised inside conversion");
- const retry=p.parseAST(input,unit);
+ const retry=p.parseValue(input,unit);
  check(retry.error===null&&stable(retry.value)===old&&stable(saved.value)===old,"retry and retained output ownership");
 }
 `

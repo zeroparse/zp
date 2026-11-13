@@ -132,7 +132,7 @@ zp gen -lang ts -g <grammar> -o <directory> [-s <rule>] [-runtime embed|import|o
 | `-o` | (required) | The output directory (it is created). Generated files that the new run does not write again are removed, except that `-runtime import` leaves `runtime.ts` alone; a file that zp did not generate is never removed or overwritten |
 | `-runtime` | `embed` | `embed` writes `runtime.ts` next to `parser.ts`; `import` imports the runtime from `-runtime-module` and writes no copy; `only` writes just `runtime.ts` (no `-g`) |
 | `-runtime-module` | (required with `-runtime import`) | The module specifier `parser.ts` and `types.ts` import the runtime from, for example `../shared/runtime.ts`. Several parsers share one runtime this way: generate it once with `-runtime only` |
-| `-types` | off | Write `types.ts` with the grammar's interfaces and aliases (also exported from `parser.ts`), and add the configured-start `parseAST`/`parseASTWithOptions` |
+| `-types` | off | Write `types.ts` with the grammar's interfaces and aliases (also exported from `parser.ts`), and add the configured-start `parseValue`/`parseValueWithOptions` |
 | `-recognize` | off | Also generate `recognize` and `recognizeWithOptions`, which check input without building a tree |
 | `-expectations` | off | Allow a parse to record what a syntax error expects: the `expected` list and the `messages` of `@error` (see [recording expectations](error-messages.md#recording-expectations)). A parse records only with `parseWithOptions(input, { expectations: true })`; otherwise the errors have the farthest position, an empty `expected` and `messages`, and the message `syntax error`. Without the flag the option is rejected |
 | `-observability` | off | Accept the trace and profile options (see [debugging](debugging.md#generated-typescript-traces)); without it they are rejected |
@@ -258,7 +258,7 @@ project settings. Exclude it from linters and formatters: it starts with `/* esl
 ## Typed Values
 
 Add `-types` to generation to write `types.ts` with a declaration for every grammar struct
-and alias (`parser.ts` exports them too, so it stays the one module to import), plus `parseAST` and `parseASTWithOptions`. They parse the
+and alias (`parser.ts` exports them too, so it stays the one module to import), plus `parseValue` and `parseValueWithOptions`. They parse the
 configured start rule once, then convert its completed Node result. `parse`,
 `parseRule`, recognition and `marshal` retain their existing APIs. Named typed
 parsing is outside this API.
@@ -281,17 +281,17 @@ zp gen -lang ts -types -g pairs.zp -o pairs
 ```
 
 ```ts
-import { parseAST, parseASTWithOptions, Bytes } from "./pairs/parser.ts";
+import { parseValue, parseValueWithOptions, Bytes } from "./pairs/parser.ts";
 import type { Pair } from "./pairs/parser.ts";
 
-const { value, error } = parseAST("abc=12; あい=3");
+const { value, error } = parseValue("abc=12; あい=3");
 if (error !== null) throw error;
 for (const pair of value ?? []) {
   const p: Pair | null = pair;
   if (p === null) continue;
   console.log(p.type, p.Key, p.Value, p.start, p.end);
 }
-const bytes = parseASTWithOptions("あい=3", { unit: Bytes, limits: { depth: 0 } });
+const bytes = parseValueWithOptions("あい=3", { unit: Bytes, limits: { depth: 0 } });
 console.log(bytes.value?.[0]?.end);
 ```
 
@@ -553,7 +553,7 @@ Generated TypeScript supports every feature of the grammar language: Rule Expres
 `#recover`. It adds `parseRule` for another start rule, a `unit` argument for the position unit, `recognize` (with
 `-recognize`) for matching without a tree, and `limits.input` and `limits.depth`, and with `-limits` `signal` and the compute limit, in the options-aware
 entry points. With `-document` it adds [`createDocument`](generated-documents.md#typescript-documents), a Document that reuses the results of earlier parses as the Go `Document` does. It has no `#stream` and `ParseStream`: `#stream` is an ordinary repetition, as in Go.
-Typed values (`-types`) give interfaces and aliases and `parseAST`/`parseASTWithOptions` for the configured start rule,
+Typed values (`-types`) give interfaces and aliases and `parseValue`/`parseValueWithOptions` for the configured start rule,
 while `parse` still returns Nodes. The [specification](../../spec/runtime/generated-parsers.md#compatibility-and-support) has
 the complete table of what each target supports.
 
@@ -610,6 +610,6 @@ in strict TypeScript builds.
   generated parser for formats that have no native parser.
 - **Stack.** Deep nesting needs a bigger stack than JavaScript gives by default (see
   [above](#deep-nesting-and-the-javascript-stack)).
-- **Typed conversion costs.** With `-types`, `parseAST` builds the Node result and then converts it. Both graphs can
+- **Typed conversion costs.** With `-types`, `parseValue` builds the Node result and then converts it. Both graphs can
   remain live during conversion, and per-call caching adds bookkeeping. Shared fold/LR subgraphs stay shared; ordinary
   tree workloads still pay conversion allocation and lookup costs. This API does not imply a parsing speedup.

@@ -3,7 +3,7 @@
 **Problem.** A service writes one line per request, and you want to read a few fields of millions of lines, or only
 check that every line is well formed. You want it fast, and you want typed values, not a tree to search.
 
-Describe the line, generate a Go parser from the grammar, and call `ParseAST` (typed values) or `Recognize` (no values).
+Describe the line, generate a Go parser from the grammar, and call `ParseValue` (typed values) or `Recognize` (no values).
 A line looks like this:
 
 ```text
@@ -47,7 +47,7 @@ rule status Status = ([0-9] #repeat(3)) #atomic
 rule millis Millis = ([0-9]+) #atomic
 ```
 
-Generate the parser with `-types` (Go types for the grammar's types and `ParseAST`) and `-recognize` (`Recognize`).
+Generate the parser with `-types` (Go types for the grammar's types and `ParseValue`) and `-recognize` (`Recognize`).
 The tool is recorded in the module with `go get -tool zeroparse.dev/zp/cmd/zp`, and `zp gen` creates the output
 directory:
 
@@ -76,7 +76,7 @@ func main() {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
 	}
-	log, err := logparser.ParseAST(string(data))
+	log, err := logparser.ParseValue(string(data))
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err) // for example 3:12: syntax error: expected ...
 		os.Exit(1)
@@ -136,18 +136,18 @@ printf '2026-10-09T11:12:41Z INFO api GET /x 200 12ms\n2026-10-09T11:12:41Z INFO
 ## How It Works
 
 - **A generated parser is the fast one.** `zp gen` writes a Go package with no dependency on ZeroParse. With `-types`, every
-  rule here has a Go type of its own, so `ParseAST` builds `*Line` values directly, without the generic nodes `Parse`
+  rule here has a Go type of its own, so `ParseValue` builds `*Line` values directly, without the generic nodes `Parse`
   would build first. The values are plain structs: `l.Level.Value`, `l.Millis.Value`.
 - **Strings stay strings.** `Millis` is a string node, so its `Value` is the matched digits, and you convert
   (`strconv.Atoi`) only the fields you use.
 - **`Recognize` only checks.** If all you need is "is this file well formed", `logparser.Recognize(text)` returns the
-  same error as `ParseAST` without building anything.
+  same error as `ParseValue` without building anything.
 
 ## How Fast
 
 A benchmark in the same directory parses 100,000 lines (5.7 MB) of the same shape, once per iteration, with each entry
 point in turn (`b.Loop()`, `b.SetBytes(len(input))`): `p.Parse` and `p.Parse(input, zp.RecognizeOnly())` of the engine
-(`zp.CompileSource`), and `Parse`, `ParseAST` and `Recognize` of the generated parser. This is the output of
+(`zp.CompileSource`), and `Parse`, `ParseValue` and `Recognize` of the generated parser. This is the output of
 `go test -bench . -benchmem` on an Apple M3 Max with Go 1.27.1, rounded, with the columns that are not used here left
 out:
 
@@ -155,7 +155,7 @@ out:
 BenchmarkEngineParse          100 ms    57 MB/s   205.0 MB/op  709789 allocs/op
 BenchmarkEngineRecognizeOnly   52 ms   110 MB/s    22.9 MB/op      40 allocs/op
 BenchmarkGeneratedParse        48 ms   118 MB/s   195.6 MB/op  708688 allocs/op
-BenchmarkGeneratedParseAST     24 ms   240 MB/s    81.7 MB/op    3192 allocs/op
+BenchmarkGeneratedParseValue     24 ms   240 MB/s    81.7 MB/op    3192 allocs/op
 BenchmarkGeneratedRecognize    14 ms   414 MB/s    45.7 MB/op       4 allocs/op
 ```
 

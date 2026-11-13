@@ -18,7 +18,7 @@ until EOF; `WithDiagnosticLimit` can bound the retained diagnostic tail.
 `#stream` has no effect on `Parse`, and `ParseStream` works with every backend ([Runtime](running-parsers.md)) and with both
 position units. It does not work with `RecognizeOnly` (`ParseStream` returns an error). A parser produced by `gen.Go` has a
 `ParseStream` and `Iterate` of its own, with the same diagnostic options, when generated with `-stream`, and with
-`-types` also `ParseStreamAST` and `IterateAST` for typed elements ([Code generation](generated-streams.md)). If the problem is the opposite one, a text that stays in memory and is edited again and again, see
+`-types` also `ParseStreamValue` and `IterateValue` for typed elements ([Code generation](generated-streams.md)). If the problem is the opposite one, a text that stays in memory and is edited again and again, see
 [Incremental parsing](incremental.md): a `Document` is always parsed as a whole, so the two do not combine.
 
 The design is in [design record 007](../design/records/007-streaming-and-incremental-parsing.md); the pragma is specified in

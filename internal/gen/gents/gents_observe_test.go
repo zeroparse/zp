@@ -118,7 +118,7 @@ rule part W = t:("input, o.unit, o.maxDepth, control)") #atomic => W{Text: text(
 			typedRoute := ""
 			if typed {
 				typedConsumer = tsTraceTypedConsumer
-				typedRoute = `routes.push((input,o)=>{const r=p.parseASTWithOptions(input,o);return {value:r.value,error:r.error}});`
+				typedRoute = `routes.push((input,o)=>{const r=p.parseValueWithOptions(input,o);return {value:r.value,error:r.error}});`
 			}
 			// Only rules in a call cycle count toward the depth limit, so a limit of 1 raises no depth error here. The depth option tests check the limit on recursive grammars.
 			deepCheck := `tooDeep.error===null||!tooDeep.error.message.includes("nesting too deep")`
@@ -242,6 +242,6 @@ check(p.parseRuleWithOptions("not-defined",source,{trace:()=>{throw new Error("u
 `
 
 const tsTraceTypedConsumer = `
- events=[];const typed=p.parseASTWithOptions(input,{...o,trace:e=>events.push(e)}),refTyped=reference.parseASTWithOptions(input,o);
+ events=[];const typed=p.parseValueWithOptions(input,{...o,trace:e=>events.push(e)}),refTyped=reference.parseValueWithOptions(input,o);
  check(stable(typed.value)===stable(refTyped.value)&&stable(errorView(typed.error))===stable(errorView(refTyped.error)),"typed parity");balanced(events);
 `

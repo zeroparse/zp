@@ -76,7 +76,7 @@ type Expr ~ Ident | Int | Float | String | Bool | Null | Bottom | Interpolation 
 // A file is first read inside a lookahead, where a failed alternative is not recorded: the parse of a file that is
 // valid does not search the set of the items that the farthest failure expects, which it needs only for the error of
 // a file that is not. The values built in a lookahead stay, and the rest of the input is skipped. If the file is not
-// valid, it is read again outside, which gives the error. (ParseAST of 256 KB: 37 ms to 26 ms.)
+// valid, it is read again outside, which gives the error. (ParseValue of 256 KB: 37 ms to 26 ms.)
 @start
 rule main File = main_fast / file
 rule main_fast File = &f:file .* => $f
@@ -300,7 +300,7 @@ rule dots_type Expr = sp x:expr => $x
 rule paren_expr ParenExpr = "(" ws e:expr sp ")" => ParenExpr{X: $e}
 
 // An expression that is a single operand, which most are, is read without the operator loop: unless an operator
-// or a postfix operator may follow, the operand is the expression. (Without it, ParseAST of 256 KB takes 25% longer
+// or a postfix operator may follow, the operand is the expression. (Without it, ParseValue of 256 KB takes 25% longer
 // on a configuration, 30.8 against 24.6 ms, and 13% longer on the corpus of the tests, 20.2 against 17.9 ms.)
 rule expr Expr = atom_expr / full_expr
 rule atom_expr Expr = a:operand_any !(sp [.\[(|&=!<>+\-*/]) => $a

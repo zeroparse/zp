@@ -1,7 +1,7 @@
 package gentest
 
-// NamedASTGrammar is the grammar of the named node types and the AST they build.
-const NamedASTGrammar = `type T = { Text string }
+// NamedValueGrammar is the grammar of the named node types and the AST they build.
+const NamedValueGrammar = `type T = { Text string }
 type S = { T T }
 type U ~ S | T
 type Alias ~ T
@@ -10,9 +10,9 @@ type Number ~ int
 type Values = { N Number; Text string; Flag bool }
 type Recovery = { T T | error }
 type Items ~ []S
-type ParseRuleAST = { T T }
-type ParseRuleAST_ ~ ParseRuleAST
-rule main = t:term => ParseRuleAST{T: $t}
+type ParseRuleValue = { T T }
+type ParseRuleValue_ ~ ParseRuleValue
+rule main = t:term => ParseRuleValue{T: $t}
 rule term T = t:("é") #atomic => T{Text: text($t)}
 rule aliased Alias = t:("é") #atomic => T{Text: text($t)}
 rule mixed Mixed = cst

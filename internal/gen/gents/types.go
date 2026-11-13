@@ -96,10 +96,10 @@ func (g *Generator) typedTS(start *compile.Rule) (types, parser string, err erro
 	stType := qualifyTypes(t.tsType(st))
 	g.startType, g.startRepr = stType, repr
 	b.WriteString("\n// --- Typed values (zp gen -types) ---\n\n")
-	// With limit controls every parse is controlled, so parseAST takes the path of parseASTWithOptions.
+	// With limit controls every parse is controlled, so parseValue takes the path of parseValueWithOptions.
 	astBody := fmt.Sprintf("astResult<%s>(run(G, R%d, nseen, input, unit), %d)", stType, start.ID, repr)
 	if !g.NoBudget {
-		astBody = "parseASTWithOptions(input, { unit: unit ?? CodePoints })"
+		astBody = "parseValueWithOptions(input, { unit: unit ?? CodePoints })"
 	}
 	fmt.Fprintf(&b, tsTypedAPI, stType, start.ID, repr, g.optionsType, astBody)
 	runtime := tsTypedRuntime
@@ -443,12 +443,12 @@ const tsTypedAPI = `/** Parses the configured start rule once and converts its c
  * Recovery preserves SyntaxErrors; absent values and incompatible recovered fields are null.
  * Positions and integer/text representations are those of parse. Conversion is invocation-local.
  */
-export function parseAST(input: string | Uint8Array, unit?: Unit): Types.TypedParseResult<%[1]s> {
+export function parseValue(input: string | Uint8Array, unit?: Unit): Types.TypedParseResult<%[1]s> {
   return %[5]s;
 }
 
 /** Typed configured-start parsing with options read and validated once. */
-export function parseASTWithOptions(input: string | Uint8Array, options?: %[4]s): Types.TypedParseResult<%[1]s> {
+export function parseValueWithOptions(input: string | Uint8Array, options?: %[4]s): Types.TypedParseResult<%[1]s> {
   const o = resolveOptions(G, options, input);
   if (o instanceof Error) return { value: null, error: o };
   return withObservedOptions<Types.TypedParseResult<%[1]s>>(o,
@@ -460,13 +460,13 @@ export function parseASTWithOptions(input: string | Uint8Array, options?: %[4]s)
 
 const tsTypedValueDeclaration = "export type TypedValue = "
 
-const tsTypedRecipeTable = "\nconst astRecipes: readonly ASTRecipe[] = [\n"
+const tsTypedRecipeTable = "\nconst valueRecipes: readonly ValueRecipe[] = [\n"
 const tsTypedNodeRecipeTable = "];\nconst astNodeRecipes: ReadonlyMap<string, number> = new Map([\n"
 
 // tsTypedCharge matches the statements of tsTypedRuntime that charge the budget control.
 var tsTypedCharge = regexp.MustCompile(`(?m)^[ \t]*control\?\.charge\([^\n]*\);\n`)
 
-const tsTypedRuntime = `interface ASTRecipe {
+const tsTypedRuntime = `interface ValueRecipe {
   readonly kind: string;
   readonly name?: string;
   readonly fields?: readonly { readonly name: string; readonly repr: number }[];
@@ -476,8 +476,8 @@ const tsTypedRuntime = `interface ASTRecipe {
   readonly members?: ReadonlyMap<string, number>;
   readonly fallback?: number;
 }
-type ASTObject = { [name: string]: unknown };
-interface ASTPending { readonly node: Node; readonly repr: number; readonly out: ASTObject | unknown[] }
+type ValueObject = { [name: string]: unknown };
+interface ValuePending { readonly node: Node; readonly repr: number; readonly out: ValueObject | unknown[] }
 
 // astKid returns the value of the i-th element of a tuple or list node.
 function astKid(n: Node, i: number): Value {
@@ -494,11 +494,11 @@ function astResult<T>(r: ParseResult, repr: number, control: BudgetControl | nul
 // output graphs do not consume the JavaScript call stack. Source Nodes stay intact.
 function astConvert(value: Value, repr: number, control: BudgetControl | null = null): unknown {
   const cache = new Map<Node, Map<number, unknown>>();
-  const pending: ASTPending[] = [];
+  const pending: ValuePending[] = [];
   const get = (v: Value, id: number): unknown => {
     for (;;) {
       control?.charge(1);
-      const recipe = astRecipes[id]!;
+      const recipe = valueRecipes[id]!;
       switch (recipe.kind) {
         case "int": return isInt(v) ? v : 0;
         case "string": return typeof v === "string" ? v : "";
@@ -545,7 +545,7 @@ function astConvert(value: Value, repr: number, control: BudgetControl | null = 
         cache.set(v, reps);
       }
       if (reps.has(id)) return reps.get(id);
-      let out: ASTObject | unknown[] | null = null;
+      let out: ValueObject | unknown[] | null = null;
       if (recipe.kind === "list") {
         control?.charge(v.children.length);
         out = new Array<unknown>(v.children.length);
@@ -556,7 +556,7 @@ function astConvert(value: Value, repr: number, control: BudgetControl | null = 
         // A named node type takes only its own nodes.
         out = recipe.name === undefined || v.type === recipe.name ? { type: v.type, start: v.start, end: v.end, value: null } : null;
       } else if (v.type === recipe.name) {
-        const obj: ASTObject = { type: v.type, start: v.start, end: v.end };
+        const obj: ValueObject = { type: v.type, start: v.start, end: v.end };
         if (recipe.name === "string") obj["value"] = v.text;
         else if (recipe.kind !== "struct" && recipe.kind !== "error") obj["text"] = v.text;
         if (recipe.kind === "error") {
@@ -576,7 +576,7 @@ function astConvert(value: Value, repr: number, control: BudgetControl | null = 
   while (pending.length !== 0) {
     control?.charge(1);
     const work = pending.pop()!;
-    const recipe = astRecipes[work.repr]!;
+    const recipe = valueRecipes[work.repr]!;
     if (recipe.kind === "list") {
       const array = work.out as unknown[];
       for (let i = 0; i < work.node.children.length; i++) {
@@ -590,18 +590,18 @@ function astConvert(value: Value, repr: number, control: BudgetControl | null = 
         array[i] = get(astKid(work.node, i), recipe.elems![i]!);
       }
     } else if (recipe.kind === "tnode") {
-      const n = work.node, obj = work.out as ASTObject;
+      const n = work.node, obj = work.out as ValueObject;
       if (recipe.mode === "text") obj["value"] = n.text;
       else if (recipe.mode === "self") obj["value"] = get(n, recipe.elem!);
       else if (n.terminal) obj["value"] = get(n.text, recipe.elem!);
-      else if (astRecipes[recipe.elem!]!.kind !== "any") obj["value"] = get(null, recipe.elem!);
+      else if (valueRecipes[recipe.elem!]!.kind !== "any") obj["value"] = get(null, recipe.elem!);
       else {
         // The elements of an open value, converted like any other open value.
         control?.charge(n.children.length);
         obj["value"] = n.children.map((_, i) => get(astKid(n, i), recipe.elem!));
       }
     } else {
-      const obj = work.out as ASTObject;
+      const obj = work.out as ValueObject;
       for (const f of recipe.fields!) {
         control?.charge(1);
         obj[f.name] = get(getFieldSpend(work.node, f.name, control), f.repr);

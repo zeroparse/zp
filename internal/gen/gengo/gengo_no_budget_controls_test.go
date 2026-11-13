@@ -85,14 +85,14 @@ func TestOptions(t *testing.T) {
  if _,err:=Parse("abc 12.5 x"); err!=nil {t.Fatal(err)}
  if err:=Recognize("abc 12.5 x"); err!=nil {t.Fatal(err)}
  if _,err:=Parse("abc ("); err==nil {t.Fatal("no error for bad input")}
- if _,err:=ParseAST("abc 12.5 x"); err!=nil {t.Fatal(err)}
+ if _,err:=ParseValue("abc 12.5 x"); err!=nil {t.Fatal(err)}
  // A zero Limits and a nil context set no control, so they are accepted.
  if _,err:=Parse("abc",zprt.WithLimits(zprt.Limits{}),zprt.WithContext(nil)); err!=nil {t.Fatal(err)}
  for name,opt:=range map[string]zprt.ParseOption{"limits":zprt.WithLimits(zprt.Limits{Compute:1}),"memory":zprt.WithLimits(zprt.Limits{Memory:1}),"context":zprt.WithContext(context.Background())} {
   for entry,call:=range map[string]func() error{
    "Parse":func() error {_,err:=Parse("abc",opt);return err},
    "Recognize":func() error {return Recognize("abc",opt)},
-   "ParseAST":func() error {_,err:=ParseAST("abc",opt);return err},
+   "ParseValue":func() error {_,err:=ParseValue("abc",opt);return err},
    "ParseRule":func() error {_,err:=ParseRule("word","abc",opt);return err},
   } {
    err:=call()
@@ -104,7 +104,7 @@ func TestOptions(t *testing.T) {
  for entry,call:=range map[string]func(...zprt.ParseOption) error{
   "Parse":func(o ...zprt.ParseOption) error {_,err:=Parse("abc 12.5 x",o...);return err},
   "Recognize":func(o ...zprt.ParseOption) error {return Recognize("abc 12.5 x",o...)},
-  "ParseAST":func(o ...zprt.ParseOption) error {_,err:=ParseAST("abc 12.5 x",o...);return err},
+  "ParseValue":func(o ...zprt.ParseOption) error {_,err:=ParseValue("abc 12.5 x",o...);return err},
   "ParseRule":func(o ...zprt.ParseOption) error {_,err:=ParseRule("word","abcdefghij",o...);return err},
  } {
   if err:=call(WithLimits(Limits{Input:10}));err!=nil {t.Errorf("%s: an input as long as the limit: %v",entry,err)}

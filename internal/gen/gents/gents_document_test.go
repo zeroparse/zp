@@ -102,7 +102,7 @@ func documentInside(text string, k int) bool {
 
 // TestTSDocumentMatchesFreshParse edits generated TypeScript Documents at random, in both units and
 // with replacements that join invalid UTF-8 bytes into characters, and requires each parse to return
-// what the engine returns for a parse of the whole text, each typed parse what parseAST returns, and
+// what the engine returns for a parse of the whole text, each typed parse what parseValue returns, and
 // the text to be the edited one. Rejected edits change nothing. The Documents must reuse results:
 // over the script they evaluate fewer rules than a new Document of each text does, and a parse with
 // no edit since the last one evaluates none. Only main is a start rule, so the other rules are
@@ -201,7 +201,7 @@ func TestTSDocumentMatchesFreshParse(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	script := `import { createDocument, parse, parseAST, marshal, Bytes, CodePoints } from "./parser.ts";
+	script := `import { createDocument, parse, parseValue, marshal, Bytes, CodePoints } from "./parser.ts";
 const cases = ` + string(data) + `;
 const b64 = (u) => Buffer.from(u).toString("base64");
 // evaluated and reused sum the statistics of the Documents' parses, full the rule evaluations of a
@@ -228,9 +228,9 @@ for (const c of cases) {
       full += n.stats().evaluated;
       const fresh = parse(text, unit);
       if (marshal(fresh.node) !== marshal(r.node) || String(fresh.error) !== String(r.error)) throw new Error("Document parse differs from parse");
-      const typed = d.parseAST();
-      const freshTyped = parseAST(text, unit);
-      if (JSON.stringify(typed.value) !== JSON.stringify(freshTyped.value) || String(typed.error) !== String(freshTyped.error)) throw new Error("Document parseAST differs from parseAST");
+      const typed = d.parseValue();
+      const freshTyped = parseValue(text, unit);
+      if (JSON.stringify(typed.value) !== JSON.stringify(freshTyped.value) || String(typed.error) !== String(freshTyped.error)) throw new Error("Document parseValue differs from parseValue");
       const out = r.error === null ? '{"node":' + marshal(r.node) + "}" : '{"err":' + JSON.stringify(r.error.message) + ',"node":' + marshal(r.node) + "}";
       console.log(b64(text) + " " + out);
     } catch (err) {

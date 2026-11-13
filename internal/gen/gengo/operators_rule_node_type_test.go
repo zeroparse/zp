@@ -37,7 +37,7 @@ func testGeneratedTypedOperatorsRuleNamedNodeType(t *testing.T) {
 
 func main() {
 	for _, in := range []string{"1", "1+2", "-1+2", "2^3^4", "1 + (2 - 3) + 4", "1[2]!", "1+2*3"} {
-		out, err := p.ParseAST(in)
+		out, err := p.ParseValue(in)
 		if err != nil {
 			panic(err)
 		}
