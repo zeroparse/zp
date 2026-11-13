@@ -6,7 +6,7 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp"
-	"zeroparse.dev/zp/internal/engine"
+	"zeroparse.dev/zp/internal/complexity"
 	"zeroparse.dev/zp/internal/starttest"
 )
 
@@ -97,7 +97,7 @@ func TestControlClasses(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			got, err := engine.ClassifyComplexity(context.Background(), starttest.MarkAll(g), "main")
+			got, err := complexity.ClassifyComplexity(context.Background(), starttest.MarkAll(g), "main")
 			if err != nil {
 				t.Fatal(err)
 			}

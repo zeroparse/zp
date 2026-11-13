@@ -10,7 +10,7 @@ import (
 
 	"zeroparse.dev/zp"
 	"zeroparse.dev/zp/grammar"
-	"zeroparse.dev/zp/internal/engine"
+	"zeroparse.dev/zp/internal/complexity"
 	"zeroparse.dev/zp/internal/engine/core"
 	"zeroparse.dev/zp/internal/starttest"
 )
@@ -304,7 +304,7 @@ func TestLinearClaims(t *testing.T) {
 		count /= 4
 	}
 	checked, checkedShared, failures := linearClaims(t, count, func(g *grammar.Grammar) bool {
-		c, err := engine.ClassifyComplexity(context.Background(), g, "main")
+		c, err := complexity.ClassifyComplexity(context.Background(), g, "main")
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -335,7 +335,7 @@ func TestLinearClaimsNegativeControl(t *testing.T) {
 		count /= 4
 	}
 	_, _, failures := linearClaims(t, count, func(g *grammar.Grammar) bool {
-		c, err := engine.ClassifyComplexity(context.Background(), g, "main")
+		c, err := complexity.ClassifyComplexity(context.Background(), g, "main")
 		if err != nil {
 			t.Fatal(err)
 		}

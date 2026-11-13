@@ -13,7 +13,7 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp"
-	"zeroparse.dev/zp/internal/engine"
+	"zeroparse.dev/zp/internal/complexity"
 	"zeroparse.dev/zp/internal/engine/core"
 	"zeroparse.dev/zp/internal/starttest"
 )
@@ -230,12 +230,12 @@ func slopeHit(p *zp.Parser, build func(int) string, b zp.Backend, limit float64)
 
 // slopeLimit returns the slope above which the class of the grammar is false, or 0 when the class
 // makes no statement to hold it to.
-func slopeLimit(src string) (limit float64, class *engine.Complexity) {
+func slopeLimit(src string) (limit float64, class *complexity.Complexity) {
 	g, err := zp.ParseGrammar(src)
 	if err != nil {
 		return 0, class
 	}
-	class, err = engine.ClassifyComplexity(context.Background(), starttest.MarkAll(g), "main")
+	class, err = complexity.ClassifyComplexity(context.Background(), starttest.MarkAll(g), "main")
 	if err != nil {
 		return 0, class
 	}

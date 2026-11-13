@@ -43,9 +43,9 @@ func programFacts(prog *Program) []factstest.Rule {
 	var out []factstest.Rule
 	for _, r := range prog.RuleList {
 		f := factstest.Rule{
-			Name: r.Name, Nullable: an.nullable[r.Name], Cyclic: an.cyclic[r.Name], Cycle: r.Cycle,
+			Name: r.Name, Nullable: an.Nullable[r.Name], Cyclic: an.Cyclic[r.Name], Cycle: r.Cycle,
 			Leader: r.Leader, Member: r.Member, Rec: r.Rec, Positional: r.Positional,
-			Recovering: an.recovering[r.Name], Vars: r.Vars,
+			Recovering: an.Recovering[r.Name], Vars: r.Vars,
 			Memo: r.Memo, Transient: r.Transient, Missing: r.Missing,
 			First: terminalFact(firstTerminal(prog, r.Def.Expr, 0, map[string]bool{})),
 		}

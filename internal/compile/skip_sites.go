@@ -41,7 +41,7 @@ func (prog *Program) markSkipSites(control *cancel.Control) {
 	for _, r := range prog.RuleList {
 		control.Poll()
 		defs = append(defs, r.Def)
-		calls[r.Name] = allCallsControlled(r.Def.Expr, nil, control)
+		calls[r.Name] = AllCallsControlled(r.Def.Expr, nil, control)
 		if r.Leader || r.Member {
 			recursive[r.Name] = true
 		}
@@ -121,7 +121,7 @@ func skipOf(e grammar.Expr) grammar.Expr {
 	case *grammar.Recovery:
 		return e.Skip
 	case *grammar.Attributed:
-		return recoverSkip(e)
+		return RecoverSkip(e)
 	}
 	return nil
 }
@@ -141,4 +141,16 @@ func readsOrBindsVariable(t grammar.Term) bool {
 		}
 	})
 	return found
+}
+
+// RecoverSkip returns the skip expression of a #recover on e, if it has one.
+func RecoverSkip(e *grammar.Attributed) grammar.Expr {
+	for _, a := range e.Attrs {
+		if a.Name == "recover" {
+			if skip, ok := a.Arg("skip"); ok {
+				return skip
+			}
+		}
+	}
+	return nil
 }

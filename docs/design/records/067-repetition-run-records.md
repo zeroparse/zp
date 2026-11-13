@@ -107,7 +107,7 @@ The classifier decides, per repetition `e` with no maximum, whether `e` is a **r
   it starts at each position at most once and no record could be reused.
 
 A marked repetition is no longer a scanning source for `checkNesting` and `checkGrowth`; unmarked ones remain sources.
-Marking is one rule that the classifier and the compiler both apply (`restartableRepeats` and the eligibility tests are
+Marking is one rule that the classifier and the compiler both apply (`RestartableRepeats` and the eligibility tests are
 shared in meaning, and a test compares the repetitions they mark on the bundled grammars). The classifier's use of the
 marking stays off until the proofs of the bounds exist, so the classes do not move.
 

@@ -238,7 +238,7 @@ type options struct {
 	// Classify runs the super-linear check.
 	Classify bool
 	// values is the context of a run without cancellation, whose values the classification reads
-	// (see engine.WithComplexitySink); nil stands for context.Background().
+	// (see complexity.WithComplexitySink); nil stands for context.Background().
 	values context.Context
 }
 

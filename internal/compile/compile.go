@@ -303,14 +303,14 @@ func insertionFlags(prog *Program, ins *Analysis, opts Options, control *cancel.
 	differ := false
 	for i, r := range prog.RuleList {
 		control.Poll()
-		f := RuleFlags{Leader: ins.leaders[r.Name], Positional: r.Positional}
-		f.Member = ins.cyclic[r.Name] && !f.Leader
-		if ins.cyclic[r.Name] {
-			f.Cycle = ins.cycle[r.Name] + 1
+		f := RuleFlags{Leader: ins.Leaders[r.Name], Positional: r.Positional}
+		f.Member = ins.Cyclic[r.Name] && !f.Leader
+		if ins.Cyclic[r.Name] {
+			f.Cycle = ins.Cycle[r.Name] + 1
 		}
 		f.Memo = !opts.DisableMemo && !f.Leader
 		_, isOperatorsRule := r.Def.Expr.(*grammar.OperatorsRule)
-		f.Twin = r.Action == nil && !isOperatorsRule && !ins.cyclic[r.Name] && !hasStream(r.Def.Expr, control)
+		f.Twin = r.Action == nil && !isOperatorsRule && !ins.Cyclic[r.Name] && !hasStream(r.Def.Expr, control)
 		out[i] = f
 		differ = differ || f != (RuleFlags{Memo: r.Memo, Leader: r.Leader, Member: r.Member, Positional: r.Positional, Cycle: r.Cycle, Twin: r.TwinOK})
 	}
@@ -498,7 +498,7 @@ func checkWith[M any](g *grammar.Grammar, opts Options, flags []RuleFlags, names
 	c.errs = append(c.errs, redeclared...)
 	for _, rd := range rules {
 		control.Poll()
-		r := &Rule{ID: len(prog.RuleList), Name: rd.Name, Def: rd, Scope: NewScope(), Action: rd.Action, Splice: spliceRule(rd)}
+		r := &Rule{ID: len(prog.RuleList), Name: rd.Name, Def: rd, Scope: NewScope(), Action: rd.Action, Splice: SpliceRule(rd)}
 		if r.Splice && rd.Type != nil {
 			c.errorf(rd.Diagnostic(), "rule %s makes no node of its own, so it cannot have a result type", rd.Name)
 		}
@@ -517,7 +517,7 @@ func checkWith[M any](g *grammar.Grammar, opts Options, flags []RuleFlags, names
 	} else if len(flags) != len(prog.RuleList) {
 		return nil, fmt.Errorf("compiled grammar has %d rule flags for %d rules", len(flags), len(prog.RuleList))
 	}
-	transient := transientRules(rules, control)
+	transient := TransientRules(rules, control)
 	vars := ruleVariablesControlled(rules, control)
 	recursive := ruleCycles(rules, prog.defsByName(), control)
 	for i, r := range prog.RuleList {
@@ -527,13 +527,13 @@ func checkWith[M any](g *grammar.Grammar, opts Options, flags []RuleFlags, names
 			r.Memo, r.Leader, r.Member, r.Positional, twin = flags[i].Memo, flags[i].Leader, flags[i].Member, flags[i].Positional, flags[i].Twin
 			r.Cycle = flags[i].Cycle
 		} else {
-			r.Leader = c.an.leaders[r.Name]
-			r.Member = c.an.cyclic[r.Name] && !r.Leader
+			r.Leader = c.an.Leaders[r.Name]
+			r.Member = c.an.Cyclic[r.Name] && !r.Leader
 			r.Cycle = 0
-			if c.an.cyclic[r.Name] {
-				r.Cycle = c.an.cycle[r.Name] + 1
+			if c.an.Cyclic[r.Name] {
+				r.Cycle = c.an.Cycle[r.Name] + 1
 			}
-			r.Positional = c.an.positional[r.Name]
+			r.Positional = c.an.Positional[r.Name]
 			// Leaders are always memoized (Leader); the other members of a cycle memoize the results
 			// that read no growing seed.
 			r.Memo = !opts.DisableMemo && !r.Leader
@@ -543,7 +543,7 @@ func checkWith[M any](g *grammar.Grammar, opts Options, flags []RuleFlags, names
 		r.Vars = vars[r.Name]
 		if flags == nil {
 			_, isOperatorsRule := r.Def.Expr.(*grammar.OperatorsRule)
-			twin = r.Action == nil && !isOperatorsRule && !c.an.cyclic[r.Name] && !hasStream(r.Def.Expr, control)
+			twin = r.Action == nil && !isOperatorsRule && !c.an.Cyclic[r.Name] && !hasStream(r.Def.Expr, control)
 		}
 		r.TwinOK = twin
 	}
@@ -785,16 +785,16 @@ func (c *Compiler) twinOf(r *Rule) *Rule {
 	return r.Twin
 }
 
-// transientRules returns the rules that ordinary parses do not memoize: those that call no rule,
+// TransientRules returns the rules that ordinary parses do not memoize: those that call no rule,
 // and those called from at most one place, except a start rule on a cycle of calls whose rules are
 // each called from one place. A parse can enter such a start rule without a call, and its body
 // calls it again, so it is memoized; no rule outside the cycle calls a rule of it.
-func transientRules(rules []*grammar.RuleDef, control *cancel.Control) map[string]bool {
+func TransientRules(rules []*grammar.RuleDef, control *cancel.Control) map[string]bool {
 	refs := map[string]int{}
 	caller := map[string]string{}
 	for _, rd := range rules {
 		control.Poll()
-		for _, name := range allCallsControlled(rd.Expr, nil, control) {
+		for _, name := range AllCallsControlled(rd.Expr, nil, control) {
 			refs[name]++
 			caller[name] = rd.Name
 		}
@@ -814,7 +814,7 @@ func transientRules(rules []*grammar.RuleDef, control *cancel.Control) map[strin
 	out := map[string]bool{}
 	for _, rd := range rules {
 		control.Poll()
-		calls := len(allCallsControlled(rd.Expr, nil, control))
+		calls := len(AllCallsControlled(rd.Expr, nil, control))
 		out[rd.Name] = calls == 0 || refs[rd.Name] < 2 && !(desugar.StartMarked(rd) && selfCalled(rd.Name))
 	}
 	return out
@@ -837,7 +837,7 @@ func valueNeededRules(rules []*grammar.RuleDef, control *cancel.Control, streams
 			return
 		}
 		needed[name] = true
-		for _, callee := range allCallsControlled(byName[name].Expr, nil, control) {
+		for _, callee := range AllCallsControlled(byName[name].Expr, nil, control) {
 			control.Poll()
 			mark(callee)
 		}
@@ -848,7 +848,7 @@ func valueNeededRules(rules []*grammar.RuleDef, control *cancel.Control, streams
 			mark(rd.Name)
 		}
 		for cp := range predicateCaptures(rd.Expr, control).Read {
-			for _, callee := range allCallsControlled(cp.Expr, nil, control) {
+			for _, callee := range AllCallsControlled(cp.Expr, nil, control) {
 				control.Poll()
 				mark(callee)
 			}
@@ -910,7 +910,7 @@ func (c *Compiler) noRecoveringCaptures(e grammar.Expr) {
 			return
 		}
 		for _, name := range calls {
-			switch w := c.an.recovering[name]; w {
+			switch w := c.an.Recovering[name]; w {
 			case "":
 				continue
 			case name:
@@ -1085,10 +1085,10 @@ func (r *Rule) WhereName() string {
 	return r.Name
 }
 
-// spliceRule reports whether the rule rd makes no node of its own: it is hidden and has no action
+// SpliceRule reports whether the rule rd makes no node of its own: it is hidden and has no action
 // (not even => ...), and its body is not an Operators Rule. A call of it contributes the elements
 // of its body, as a group does.
-func spliceRule(rd *grammar.RuleDef) bool {
+func SpliceRule(rd *grammar.RuleDef) bool {
 	if !desugar.HiddenRule(rd.Name) || rd.Action != nil || rd.DefaultAction {
 		return false
 	}

@@ -11,13 +11,13 @@ import (
 // CheckStart reports why name cannot begin a parse of prog: it is empty and there is no default
 // start rule, it is hidden, it is not defined, or it is not a start rule.
 func (prog *Program) CheckStart(name string) error {
-	return checkStartName(prog.StartRules, prog.DefaultStartRule, prog.definesRule, name)
+	return CheckStartName(prog.StartRules, prog.DefaultStartRule, prog.definesRule, name)
 }
 
-// checkStartName reports why name cannot begin a parse of a grammar with the start rules starts,
+// CheckStartName reports why name cannot begin a parse of a grammar with the start rules starts,
 // the default start rule def and the rules that defined reports. It is the check that every entry
 // to a parse makes, and that the classification of a grammar makes of its start rule.
-func checkStartName(starts []string, def string, defined func(string) bool, name string) error {
+func CheckStartName(starts []string, def string, defined func(string) bool, name string) error {
 	resolved := name
 	if name == "" {
 		resolved = def

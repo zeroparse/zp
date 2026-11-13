@@ -15,13 +15,13 @@ import (
 
 	"zeroparse.dev/zp"
 	"zeroparse.dev/zp/gen"
-	"zeroparse.dev/zp/internal/engine"
+	"zeroparse.dev/zp/internal/complexity"
 )
 
 var updateTriage = flag.Bool("update-triage", false, "rewrite the cause lists in testdata/triage")
 
 // classifyFile classifies the grammar at path from its default start rule.
-func classifyFile(t *testing.T, path string) *engine.Complexity {
+func classifyFile(t *testing.T, path string) *complexity.Complexity {
 	t.Helper()
 	src, err := os.ReadFile(path)
 	if err != nil {
@@ -31,7 +31,7 @@ func classifyFile(t *testing.T, path string) *engine.Complexity {
 	if err != nil {
 		t.Fatal(err)
 	}
-	c, err := engine.ClassifyComplexity(context.Background(), g, "")
+	c, err := complexity.ClassifyComplexity(context.Background(), g, "")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -49,7 +49,7 @@ func TestTriageCoverage(t *testing.T) {
 		t.Run(tg.Name, func(t *testing.T) {
 			t.Parallel()
 			c := classifyFile(t, tg.Path)
-			if c.Class == engine.ClassLinear {
+			if c.Class == complexity.ClassLinear {
 				t.Fatalf("%s is classified Linear; remove it from TriageGrammars", tg.Name)
 			}
 			var mine []*TriageGroup
@@ -61,7 +61,7 @@ func TestTriageCoverage(t *testing.T) {
 			members := map[string][]string{}
 			for _, list := range []struct {
 				witness bool
-				causes  []engine.ComplexityCause
+				causes  []complexity.ComplexityCause
 			}{{true, c.Causes}, {false, c.Reasons}} {
 				for _, x := range list.causes {
 					var in []string
@@ -114,7 +114,7 @@ func TestTriageCoverage(t *testing.T) {
 	for _, tg := range LinearGrammars {
 		t.Run(tg.Name, func(t *testing.T) {
 			t.Parallel()
-			if c := classifyFile(t, tg.Path); c.Class != engine.ClassLinear {
+			if c := classifyFile(t, tg.Path); c.Class != complexity.ClassLinear {
 				t.Errorf("%s is classified %v; add it to TriageGrammars", tg.Name, c.Class)
 			}
 		})
