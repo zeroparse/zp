@@ -62,3 +62,26 @@ func TestDiagnosticLabelDisassembly(t *testing.T) {
 		t.Errorf("diagnostic label mode missing:\n%s", text)
 	}
 }
+
+// TestLoosestLevelCall checks that a call of the loosest level of an Operators Rule is the plain
+// call of the rule: the same instruction, with binding level 0, so the same memo entry. The cost
+// views treat the two as the same expression.
+func TestLoosestLevelCall(t *testing.T) {
+	t.Parallel()
+	text := mustCompile(t, `rule main = level(e, sum) "x" / e "y" / level(e, mul) "z"
+rule e = #operators {
+  operand "n"
+  level sum { infix left "+" }
+  level mul { infix left "*" }
+}`).BytecodeModule().Disassemble()
+	var calls []string
+	for _, line := range strings.Split(text, "\n") {
+		if f := strings.Fields(line); len(f) > 1 && f[1] == "CALL" {
+			calls = append(calls, strings.Join(f[2:], " "))
+		}
+	}
+	want := []string{"e min=0 keep=1", "e min=0 keep=1", "e min=1 keep=1"}
+	if strings.Join(calls, "; ") != strings.Join(want, "; ") {
+		t.Errorf("calls %q, want %q\n%s", calls, want, text)
+	}
+}
