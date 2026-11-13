@@ -2,12 +2,15 @@ package gen
 
 import (
 	"fmt"
+	"slices"
 	"strings"
 
 	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/compile"
 	"zeroparse.dev/zp/internal/ir/core"
 	irbuild "zeroparse.dev/zp/internal/ir/core/build"
+	"zeroparse.dev/zp/internal/ir/exec"
+	"zeroparse.dev/zp/internal/ir/exec/lower"
 	"zeroparse.dev/zp/internal/ir/flow"
 	flowlower "zeroparse.dev/zp/internal/ir/flow/lower"
 	"zeroparse.dev/zp/internal/ir/opt"
@@ -233,6 +236,35 @@ func (g *Generator) FlowPasses(f *flow.Func, err error) (*flow.Func, error) {
 		g.FlowErr = fmt.Errorf("function %s of table %s: %w", f.Name, g.irTable(), err)
 	}
 	return f, nil
+}
+
+// ExecPasses runs the pipeline of Exec passes on the module of l, which the lowering of a Flow IR
+// function made, labeled with the table being generated as FlowPasses labels it. A failure is kept as
+// the first internal error of the generation (FlowErr), which fails it. The printers print l.Func with
+// the locals l.Vars, so a pass keeps that function in the module and those locals in it (the
+// pipeline contract of Exec IR); a run that breaks this is an internal error too.
+func (g *Generator) ExecPasses(l *lower.Lowered) {
+	err := g.RunExec(g.irTable(), l.Module, g.Observability)
+	if err == nil {
+		err = keepsLowered(l)
+	}
+	if err != nil && g.FlowErr == nil {
+		g.FlowErr = fmt.Errorf("module %s of table %s: %w", l.Module.Name, g.irTable(), err)
+	}
+}
+
+// keepsLowered reports an error if the module of l no longer holds l.Func, or l.Func no longer
+// declares a local of l.Vars.
+func keepsLowered(l *lower.Lowered) error {
+	if !slices.Contains(l.Module.Funcs, l.Func) {
+		return fmt.Errorf("internal error: an Exec pass replaced or removed the function %s", l.Func.Name)
+	}
+	for _, v := range l.Vars {
+		if !slices.ContainsFunc(l.Func.Locals, func(p exec.Param) bool { return p.Name == v }) {
+			return fmt.Errorf("internal error: an Exec pass removed the local %s of the function %s", v, l.Func.Name)
+		}
+	}
+	return nil
 }
 
 // irTable is the name of the table being generated in the dumps of the IR: "typed" for the typed

@@ -60,10 +60,12 @@ ordered list. Flow IR declares a pipeline of its own on the same manager. Its un
 framed body, a line of an Operators Rule or an outlined node), and its verifier is the Flow verifier. Every function that a
 generator prints from Flow IR runs through it after the lowering, so a pass placed there reaches every backend that prints
 from Flow IR. The lowering has already verified the function, so a run in which no Flow pass runs does not verify it again.
-The Flow pipeline has no pass yet: the representation choices that the lowering makes from Core effects (what to save and
-restore at a backtracking point, which variables and blocks to use) are the candidates. A Flow pass is a flag of its own
-kind in the registry, and its name differs from every Core pass name, so one name selects one pass in the flags and in
-the dumps.
+Exec IR declares a third pipeline the same way, with the module that the lowering of one Flow function makes as its
+unit and the Exec verifier after its passes; the generators run it on every function they print from Exec IR. The Flow
+pipeline has no pass yet: the representation choices that the lowering makes from Core effects (what to save and
+restore at a backtracking point, which variables and blocks to use) are the candidates. Flow and Exec passes are flags of
+kinds of their own in the registry, and every pass name differs from the others, so one name selects one pass in the
+flags and in the dumps.
 
 `Validate` checks the declarations before anything runs: names are non-empty and distinct, every required analysis can be
 computed, and every pass named in a `follow` list precedes the pass that names it. A declaration that cannot be
@@ -109,7 +111,7 @@ API.
 The same names serve three uses: a user turns an optimization off to see what it is worth, a test compares a parser
 against the same source with one flag changed, and a reference page names the flag that is the control of a measured
 mechanism. A flag is how an optimization becomes something that can be measured by itself, which is why the catalog of
-[measured mechanisms](../optimizations/README.md) names the generation flag that is each mechanism's control.
+[measured mechanisms](../optimizations/README.md) names the optimization flag that is each mechanism's control.
 
 ## Profiles
 
@@ -141,7 +143,8 @@ diagnosis ask for this; it costs generation time and changes no output.
 
 A run can also **dump** the module as text: after the build, and after each pass that ran. `zp gen -print-after guards`
 (or `all`) prints the Core IR after the named passes to standard error. The names follow the order the steps run in:
-`build`, the Core passes, then `flow` (each Flow function as the lowering made it) and the Flow passes. A pass that did not apply prints nothing, which is
+`build`, the Core passes, then `flow` (each Flow function as the lowering made it) and the Flow passes, then `exec`
+(each Exec function as lowered from Flow IR) and the Exec passes. A pass that did not apply prints nothing, which is
 itself information: the dump is the way to see why an optimization did not happen for a parser.
 
 ```mermaid

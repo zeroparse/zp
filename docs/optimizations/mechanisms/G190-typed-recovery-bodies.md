@@ -18,7 +18,7 @@ parsing/recognition, closure, VMs and TypeScript retain their separate routes.
 
 ## Reference Control
 
-No generation option selects an alternative for this mechanism. Typed Go
+No optimization setting selects an alternative for this mechanism. Typed Go
 output comes from the Flow IR printer, and its generated parsers are compared
 with the engine oracle in the `internal/engine` tests.
 

@@ -24,7 +24,7 @@ shape.
 
 ## Reference Control
 
-The generation option `-no-opt text-dispatch` emits the general
+The optimization setting `-no-opt text-dispatch` emits the general
 predicate from the same generator. It adds no runtime selector to the generated parser.
 
 ## Evidence and Implementation

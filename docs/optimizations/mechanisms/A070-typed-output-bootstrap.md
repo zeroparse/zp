@@ -22,7 +22,7 @@ are unchanged.
 
 ## Reference Control
 
-Private generation option `disableTypedOutputBootstrap` emits the legacy
+The optimization setting `-no-opt typed-output-bootstrap` emits the legacy
 first-slab strategy. Object/list slab controls can further isolate ownership.
 The legacy same-source comparator retains bootstrap state fields, so it is not
 layout-identical to historical main.

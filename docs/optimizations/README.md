@@ -16,7 +16,7 @@ Backend cells describe default applicability: `✓` applies; `Partial` applies o
 
 Backend headers use C for Closure, RVM for recursive VM, IVM for iterative VM, Go Node / Recognize for generated Go Node parsing and recognition, Typed Go for generated `ParseAST`, and TS for generated TypeScript. Path scope abbreviations GN and TG refer to those generated Go paths.
 
-The same-source controls of generated parsers are the generation flags of `zp gen` (`-no-opt name`, `-opt name=count`; the [code-generation guide](../guide/code-generation.md#optimizations) lists them and [record 136](136-measured-effect-of-the-generation-flags.md) measures each one). The closure backend and the VMs have no generation flags; their controls are build tags and compile options.
+The same-source controls of generated parsers are the optimization settings of `zp gen` (`-optimize profile`, `-no-opt name`, `-opt name=count`; the [code-generation guide](../guide/code-generation.md#optimizations) lists them and [record 136](136-measured-effect-of-the-generation-flags.md) measures each one). The closure backend and the VMs have no optimization settings; their controls are build tags and compile options.
 
 Each linked mechanism page describes its source, eligibility, interactions, control/reference scope, and evidence. Numbered records remain historical measurement reports and may cover multiple mechanisms. Their results apply only to the workloads, backends, and baselines stated in each record.
 
