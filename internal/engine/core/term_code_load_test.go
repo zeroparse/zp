@@ -7,6 +7,7 @@ import (
 	"zeroparse.dev/zp/internal/bytecode"
 	"zeroparse.dev/zp/internal/ir/exec/ops"
 	"zeroparse.dev/zp/internal/value"
+	"zeroparse.dev/zp/runtime/noderep"
 )
 
 // TestLoadTermRejectsEachCheck checks the operand and pool checks of LoadTerm one by one: each case
@@ -16,9 +17,9 @@ func TestLoadTermRejectsEachCheck(t *testing.T) {
 	strs := []string{"S"}
 	types := TermTypes{
 		NodeType: func(string) *value.NodeTypeKinds { return nil },
-		Struct: func(name string) *value.NodeKind {
+		Struct: func(name string) *noderep.Kind {
 			if name == "S" {
-				return value.SeqKind
+				return noderep.SeqKind
 			}
 			return nil
 		},
@@ -41,6 +42,15 @@ func TestLoadTermRejectsEachCheck(t *testing.T) {
 				in.Dst = 1
 			}
 			*x = term(in)
+		}, "invalid operand"},
+		{"field cover register", func(x *bytecode.Term, bad bool) {
+			// The integer register that FIELD reads and writes, the one operand no other case pins.
+			in := bytecode.TermInstr{Op: uint8(tField)}
+			if bad {
+				in.Dst = 1
+			}
+			*x = term(in)
+			x.Names = []int{0}
 		}, "invalid operand"},
 		{"variable", func(x *bytecode.Term, bad bool) {
 			in := bytecode.TermInstr{Op: uint8(tVar), A: vars - 1}
