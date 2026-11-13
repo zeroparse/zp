@@ -219,18 +219,24 @@ func (g *gen) predicate(e *grammar.Predicate) (ok bool, def *variable) {
 	return holds || !known, nil
 }
 
-// makesNode reports whether the rule's declared type is a named node type, which converts the value of
-// the rule to a node of that type. Any other declared type leaves the value of the body as it is.
+// makesNode reports whether the rule's declared type is exactly a named node type, also through
+// aliases, which converts the value of the rule to a node of that type. Any other declared type,
+// a join included, leaves the value of the body as it is.
 func (t *terms) makesNode(def *grammar.RuleDef) bool {
 	ty := def.Type
-	for {
+	for range len(t.aliases) + 1 {
 		switch x := ty.(type) {
 		case *grammar.TypeGroup:
 			ty = x.Type
 			continue
 		case *grammar.TypeRef:
+			if a, ok := t.aliases[x.Name]; ok {
+				ty = a
+				continue
+			}
 			return t.nodeTypes[x.Name]
 		}
 		return false
 	}
+	return false
 }
