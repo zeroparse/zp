@@ -386,10 +386,9 @@ pipeline without it (see [Testing](#testing)).
 
 A traced or profiled parse (`WithTrace`, `WithProfile`) reports an enter and an exit event for every rule
 call, and a Document parse memoizes transient rules ([Engine Tracing](../../../spec/runtime/observability.md#engine-tracing),
-[Rule Calls](../../../spec/bytecode/README.md#rule-calls)). Both are options of a parse. The closure backend and the
-VMs share one program between these parses and all others and decide at every call whether to take the
-plain path (`r.plain && !p.noPlain` in `closure/builder.go`, `vm.go` and `ivm.go`; `setTrace` in `trace.go` and
-every Document parse in `document.go` set `noPlain`). Recognition and, in the closure backend, work
+[Rule Calls](../../../spec/bytecode/README.md#rule-calls)). Both are options of a parse. A program
+shared between these parses and all others would decide at every call whether to take the plain path,
+testing the parse's `noPlain`, which tracing and every Document parse set. Recognition and, in the closure backend, work
 controls already select separate programs, built on first use under a `sync.Once` of the shared
 `Program` (`Program.Recognizer` in `program_parse.go`, `prepareControlledProgram` in `program_budget_setup.go`); a program
 saved in recognize mode stores the recognizer's module.
@@ -398,7 +397,7 @@ Closures and bytecode therefore compile each program in two **families**:
 
 | Family | Serves | Rule calls |
 |:--|:--|:--|
-| Inlined | Parses without tracing, profiling or a Document: batch parses, streams, recognition and budget-controlled parses | Inlining produces `Nest`; a plain rule that is not inlined is called on the plain path, without the memo and trace checks of a call |
+| Inlined | Parses without tracing, profiling or a Document: batch parses, streams, recognition and budget-controlled parses | A plain rule is called on the plain path, without the memo and trace checks of a call; with inlining (decision 3), inlined calls become `Nest` |
 | Call-preserving | Traced and profiled parses, and Document parses | Every rule reference stays a full `Call` |
 
 A parse selects its family from its options when it starts, so no rule call checks the mode, and
@@ -429,7 +428,7 @@ The family is independent of the other variants, which gives this matrix:
 | Target | Variants | Count |
 |:--|:--|--:|
 | Closures | family × budget control × recognition | up to 8 closure graphs, each built on first use |
-| VMs | family × recognition (budget controls do not select a separate program) | up to 4 modules |
+| VMs | family × recognition (budget controls do not select a separate program) | up to 4 VM programs, each prepared on first use from the parse or the recognition module |
 | Saved programs | one mode per file: parse (inlined family), recognize (recognition in the inlined family) or document (call-preserving family) | 1 module per file |
 
 [Performance and Results](#performance-and-results) measures the first-use cost of each family and the
@@ -622,8 +621,8 @@ separate interpreter is maintained.
 
 ### Compatibility and Backend Support
 
-The public API and the grammar language do not change. The bytecode instruction set gains `NEST` and
-`ENDNEST`, and the instruction-set version of every module is bumped, because it covers the encoding of
+The public API and the grammar language do not change. With inlining (decision 3), the bytecode
+instruction set gains `NEST` and `ENDNEST`, and the instruction-set version of every module is bumped, because it covers the encoding of
 the module's contents; the container version covers only the header of a compiled file and the order of
 its sections, and changes only when they do. A saved file holds one module of one mode: a parse-mode file the inlined family's, a
 document-mode file the call-preserving family's, and a recognize-mode file the recognition specialization
@@ -635,13 +634,13 @@ the specification allows.
 
 ### Implementation Sequence
 
-**Status of the stages.** Stage 3 is implemented, as are the typed-Go and value-free Node and recognizer parts of
-stages 1 and 2; the rest of generated Go still reads the grammar. Stage 5 is implemented apart from its cleanup and
-its cost gate: the closure backend is built from Core IR in both families. Of stage 4, only the terms are built
-from Core IR: a module stores the term programs that the closure backend runs, while the bytecode compiler still
-lowers the match code from the program, the VMs still check `noPlain`, and the instruction set has no `NEST` or
-`ENDNEST`. The text below states the intended end state and the gates of each stage, and the record is Partially
-Implemented until every stage lands.
+**Status of the stages.** Stages 3, 4 and 5 are implemented, as are the typed-Go and value-free Node and
+recognizer parts of stages 1 and 2. Generated Go is printed from Flow IR; its generator still reads grammar
+expressions in emission helpers, such as the terminal programs and the Operators Rule lines, which the rest
+of stages 1 and 2 removes. The closure backend and the bytecode compiler build both families from Core IR,
+and the compiler's walk of the rule bodies only checks them. Inlining (decision 3) is planned as an
+optimization of its own and is not part of any stage. The text below states the intended end state and the
+gates of each stage, and the record is Partially Implemented until every stage lands.
 
 All five stages precede the first release, in this order, so that a release can be cut after any
 completed stage. Each stage ends by deleting the lowerings it replaces, including their term lowering.
@@ -678,8 +677,8 @@ stage of its first consumer, so its differential tests and negative controls run
 3. **TypeScript.** Gate: the TypeScript parity tests in `bench` and `internal/engine`, TypeScript event
    streams, and the TypeScript benchmarks (`bench/ts-*.mjs`). Then remove `tsGen.expr`, the TypeScript term
    lowering and the condition rewriting.
-4. **Bytecode**, in both families, with `NEST`, `ENDNEST`, the new instruction-set version and their
-   specification. Gate: the call-preserving modules, main and recognition, have the rule
+4. **Bytecode**, in both families: the match code is compiled from Core IR, and each family is chosen
+   when a VM program is prepared from a module. Gate: the call-preserving modules, main and recognition, have the rule
    table, match code, string table and character class table of today's modules, with term operands
    compared by index only and the term table excluded, for all repository grammars and the
    specification test data. Term code is the engine's translation of the Exec IR function that the
@@ -692,8 +691,11 @@ stage of its first consumer, so its differential tests and negative controls run
    differential tests and by event-free equality with the call-preserving family (equal results, errors,
    expected sets, recovered errors and positions on every parse without events) in both VMs; saved
    programs of each mode load and run in their family; the VM benchmarks, `Compile` cost and
-   saved-file size. Then remove the match and expression-code lowering of `bcompile.go` and the VMs'
-   `noPlain` checks.
+   saved-file size. Then remove the match and expression-code lowering of the grammar and the VMs'
+   `noPlain` checks. The two families of a VM run the same module and differ only in how their call
+   sites call plain rules, so their budget charges are those of the former run-time choice, which
+   tests pin. `NEST`, `ENDNEST` and the instruction-set version they need come with inlining
+   (decision 3).
 5. **Closures**, in both families. The closure backend is built from Core IR: one closure per node after
    the closure pipeline, with actions, predicates and bindings run as term programs compiled from Core IR
    terms. The grammar-driven construction of closures is removed; `closure/builder.go` stays as the
@@ -708,12 +710,19 @@ stage of its first consumer, so its differential tests and negative controls run
    as the closures (see decision 6). A call site of a plain rule takes the plain
    path only in the inlined family, so the closures no longer check `noPlain`; the families are checked
    by their budget charges, which are those of the former run-time choice, and by event-free equality on
-   the corpus. What remains of the stage is the removal of what the compile walker still computes only
-   for the old closure construction. The cost gate: `Compile` no longer builds the closures, nor Core IR,
-   which the first parse builds with its family, so `Compile` checks the grammar only. `Compile` plus the
-   first-use build of the inlined family, and `Compile` plus the first-use build of the call-preserving
-   family that a Document runs, are each measured against the former `Compile` with its first parse:
-   all are below it in time and allocations.
+   the corpus. The compiler's walk of the rule bodies then only checks them. The cost gate: `Compile` no
+   longer builds the closures, nor Core IR, which the first parse builds with its family, so `Compile`
+   checks the grammar only. `Compile` plus the first-use build of the inlined family, and `Compile` plus
+   the first-use build of the call-preserving family that a Document runs, are each measured against the
+   former `Compile` with its first parse: all are to be below it in time and allocations. The gate is
+   not met. Measured on JSON and Minilang (20 interleaved rounds with an A/A copy, Apple M3 Max), the
+   first-use build of a family costs 14% to 17% of `CompileSource`, about 170 µs for JSON and 460 µs
+   for Minilang. In a CPU profile of `CompileSource` on JSON, the closure lowering that `Compile` used
+   to run cost about 76 µs, and `Compile` as a whole fell from about 276 µs to 215 µs; type checking
+   within it went from about 76 µs to 99 µs. The difference in `CompileSource` lies outside this design:
+   the generated grammar-source frontend parses the JSON grammar in about 850 µs, against about 90 µs
+   for the hand-written parser it replaced, and takes four fifths of `CompileSource`. Allocations of
+   `CompileSource` fell by 27% for JSON and 17% for Minilang.
 
 New optimizations (wider inlining, case-pair folding, slot sharing across alternatives) come after the
 stage that gives them a consumer and follow the same gates.
@@ -817,7 +826,9 @@ Each enabled pass records its measured effect in the [optimization catalog](../.
    keeping the AST lowering would keep a parallel path (see [Emission](#emission)).
 3. **Inlining in closures and the VMs.** Closures and the VMs inline at compile time in the inlined
    family and keep every call in the call-preserving family; each family is built on first use, a parse
-   selects its family when it starts, and no rule call checks the mode. Documents use the
+   selects its family when it starts, and no rule call checks the mode. The families exist without
+   inlining; inlining itself is planned as an optimization in which the closures and the VMs land
+   together, measured against the families without it, after the stages. Documents use the
    call-preserving family, because they memoize nearly every rule
    ([Rule Calls in Each Target](#rule-calls-in-each-target)). The VMs execute `Nest` with `NEST` and
    `ENDNEST` ([Emission](#emission)). Instructions for `ClassRun` and `Terminal` are a measured follow-up
