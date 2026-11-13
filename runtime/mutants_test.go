@@ -1,7 +1,6 @@
-package runtimetest
+package runtime_test
 
 import (
-	"os/exec"
 	"strings"
 	"testing"
 
@@ -114,7 +113,7 @@ func TestPrintedOperatorMutants(t *testing.T) {
 			t.Run(m.name+" "+strings.TrimSuffix(strings.TrimPrefix(head, "func "), " "), func(t *testing.T) {
 				t.Parallel()
 				done := false
-				dir := runtimeCopy(t, func(name, src string) string {
+				overlay := runtimeOverlay(t, func(name, src string) string {
 					if name != m.file {
 						return src
 					}
@@ -136,10 +135,7 @@ func TestPrintedOperatorMutants(t *testing.T) {
 				if !done {
 					t.Fatalf("the runtime has no %s%s with %q", head, m.fn, m.old)
 				}
-				cmd := exec.Command("go", "test", "-count=1", "-run", "^TestValue(Conformance|BoxedOperands|BoxedStringCharges|CompareStrings|MemberTable|BuiltinTable|StructTable|HullTable|IterTable|PushTable|CastTable)$", ".")
-				cmd.Dir = dir
-				cmd.Env = append(cmd.Environ(), "GOTOOLCHAIN=local", "GOWORK=off", "GOFLAGS=-mod=mod -trimpath")
-				out, err := cmd.CombinedOutput()
+				out, err := goTestRuntime(overlay, "-count=1", "-run", "^TestValue(Conformance|BoxedOperands|BoxedStringCharges|CompareStrings|MemberTable|BuiltinTable|StructTable|HullTable|IterTable|PushTable|CastTable)$").CombinedOutput()
 				if err == nil {
 					t.Fatalf("the value tests pass with the mutant %q:\n%s", m.name, out)
 				}

@@ -263,11 +263,11 @@ Details:
 - A `.zpc` cannot be used, because code generation needs the grammar and a compiled grammar holds only bytecode:
   `zp: pairs.zpc: a compiled grammar holds only the bytecode of one mode; gen needs the grammar source (.zp or .json)`.
 - Without `-s`, the grammar's default start rule is used.
-- With `-runtime import`, the module of the generated package requires `zeroparse.dev/zp/runtime`
-  (`go get zeroparse.dev/zp/runtime@vX.Y.Z`, the version of `zp`). `parser.go` refers to the runtime protocol it was
+- With `-runtime import`, the module of the generated package requires `zeroparse.dev/zp`
+  (`go get zeroparse.dev/zp@vX.Y.Z`, the version of `zp`). `parser.go` refers to the runtime protocol it was
   generated for (`const _ = rt.Protocol13`), so a runtime that does not implement that protocol fails the build with
-  `undefined: rt.Protocol13` on that line. Regenerate the parser with the `zp` of the runtime version, or require a
-  runtime version that implements the protocol.
+  `undefined: rt.Protocol13` on that line. Regenerate the parser with the `zp` of the required version, or require a
+  version of `zeroparse.dev/zp` whose runtime implements the protocol.
 
 ### Choosing Entry Points
 

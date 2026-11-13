@@ -143,35 +143,26 @@ Generated Go typed-output cleanup is not implemented; the measured full-sweep an
 
 ## Modules and the Workspace
 
-The repository holds three modules:
+The repository holds two modules:
 
 | Module | Directory | Holds |
 |:--|:--|:--|
-| `zeroparse.dev/zp` | the root | The engine, the generators, the `zp` command and the public packages |
-| `zeroparse.dev/zp/runtime` | `runtime/` | The runtime that generated Go parsers import with `-runtime import`. It requires no other module. The tests that check it against packages of the root module are in `internal/runtimetest/` |
+| `zeroparse.dev/zp` | the root | The engine, the generators, the runtime of generated Go parsers, the `zp` command and the public packages |
 | `zeroparse.dev/zp/site` | `site/` | The documentation site |
 
-The committed `go.work` joins them, so a go command run in the checkout builds the root module against the runtime of
-the same checkout. The root `go.mod` requires the runtime at a published version and has no `replace` directive,
-because `go install zeroparse.dev/zp/cmd/zp@version` refuses a module whose `go.mod` has one. The generated benchmark
-parsers (`internal/bench/gen/`) and the test helpers of `internal/gentest/` import the runtime, so `GOWORK=off go build
-./...` in the checkout builds them against that published version. A change to the runtime that the root module needs is
-therefore published in two commits: the change, then a commit that requires its pseudo-version (`GOWORK=off go get
-zeroparse.dev/zp/runtime@<commit> && GOWORK=off go mod tidy`, then `GOWORK=off go build ./...`). A release tags the
-runtime first and makes the root module require that tag ([tagging a release](releasing.md#tagging-a-release)).
+The committed `go.work` joins them. The root module requires no other module, so a generated parser that imports the
+runtime (`-runtime import`) adds only `zeroparse.dev/zp` to its module's requirements.
 
 - A pattern such as `./...` matches the packages of the module of the current directory only, so the root suite is
-  `go test ./... ./runtime/...`, and the site's is `cd site && go test ./...`.
-- The commands of this guide expect the workspace: `GOWORK` unset, or set to the checkout's `go.work`. With
-  `GOWORK=off`, a command in the checkout uses the runtime version that `go.mod` requires instead of `runtime/`.
-  `site/build.sh` builds the site module with `GOWORK=off`, to check the pinned version of its site generator, and gives
+  `go test ./...`, and the site's is `cd site && go test ./...`.
+- `site/build.sh` builds the site module with `GOWORK=off`, to check the pinned version of its site generator, and gives
   the go commands that it runs in the root module (the `zp` command, the playground) `GOWORK` set to the checkout's
   `go.work`.
 - Tests that build generated programs write temporary modules outside the checkout, which the workspace does not
-  reach. Those modules `replace` `zeroparse.dev/zp/runtime` with a directory, a copy of the runtime module
-  (`gentest.GoModAt`) or the checkout's `runtime/`, and `zeroparse.dev/zp` with the checkout when they import other
-  packages of the root module. `internal/runtimetest` runs the runtime's conformance tests, which need packages of the
-  root module, in a copy of the runtime module that requires the checkout's root module.
+  reach. Those modules `replace` `zeroparse.dev/zp` with a directory: a partial copy of the module that holds only the
+  packages generated code imports (`gentest.GoModAt`), or the checkout when they import other packages. The runtime's
+  conformance tests (`runtime/conformance_test.go`) add the tests of `runtime/testdata/conformance/` and the bindings
+  that the printer prints to the runtime package with a `go build` overlay, so that they reach its unexported code.
 
 The protocol version of the runtime (`runtime/protocol.go`) names the interface between generated code and the runtime,
 which [the runtime protocol](releasing.md#the-runtime-protocol) describes. `TestProtocol` in `runtime/` compares the exported
@@ -185,12 +176,12 @@ another protocol.
 ## Testing
 
 ```bash
-go test ./... ./runtime/...
+go test ./...
 ```
 
 `go test` stops a package's tests after 10 minutes by default, which a loaded machine can exceed in the packages that build generated parsers (`internal/engine`, `internal/gen/gengo`, `internal/gen/gents`, `internal/complexitytest`). Run the root suite with `-timeout 45m` and the long tier with `-timeout 90m`; CI uses the 45-minute value (below). The tests that compare wall-clock times (the Document memo-drop check and the linear-scaling tests of recovery) compare ratios of times measured in one attempt and pass if any of a few attempts does, so a loaded machine slows them but does not fail them; a ratio that fails every attempt is a real growth.
 
-The negative controls and mutants that rebuild or rerun the generated corpora many times are in the long tier: files named `*_long_test.go` with `//go:build zp_long`, run once per batch of changes with `go test -tags zp_long ./... ./runtime/...`. The long tier includes every test of the default tier at the same or a larger size, so a batch that needs it runs it instead of the default run, not after it. `hack/affected-tests.sh [base [head]]` prints the packages whose tests a change between two commits can affect, to choose what to run while developing; it is not yet a gate, so a landing still runs the whole suite. Each keeps its parity or invariant test, which checks the unmutated behavior, in the default tier. In `internal/gen/gengo` and `internal/gen/gents` the long tier holds the dependency-memo controls (`TestGeneratedLeftRecursionDependencyMemoControls`, `TestGeneratedTSLeftRecursionDependencyMemoControls`), the mutants of the Node budget, observation, stream observation and Document tests, the negative control of the Flow recognizer and the rule table limit test.
+The negative controls and mutants that rebuild or rerun the generated corpora many times are in the long tier: files named `*_long_test.go` with `//go:build zp_long`, run once per batch of changes with `go test -tags zp_long ./...`. The long tier includes every test of the default tier at the same or a larger size, so a batch that needs it runs it instead of the default run, not after it. `hack/affected-tests.sh [base [head]]` prints the packages whose tests a change between two commits can affect, to choose what to run while developing; it is not yet a gate, so a landing still runs the whole suite. Each keeps its parity or invariant test, which checks the unmutated behavior, in the default tier. In `internal/gen/gengo` and `internal/gen/gents` the long tier holds the dependency-memo controls (`TestGeneratedLeftRecursionDependencyMemoControls`, `TestGeneratedTSLeftRecursionDependencyMemoControls`), the mutants of the Node budget, observation, stream observation and Document tests, the negative control of the Flow recognizer and the rule table limit test.
 
 In `internal/complexitytest` the default tier measures every control, corpus entry and family of random grammars at the reduced sizes and counts that `-short` selects, and the long tier measures them at full size. `TestSlopeGate` holds the classes that the classifier assigns to random grammars to their measured slopes on every backend, and leaves out of the cost the copies of recovered errors that Compute counts: it runs a few seeds, and the seeds in `slopeCaught` that found a false class under a negative control, in the default tier, and many more in the long tier. A seed that catches a new false class belongs in `slopeCaught`, and its grammar in `TestSlopeGateGrowth`. The gate holds the class Linear and the degree of a polynomial class, and fails on a polynomial class that has reasons for the class unknown. Its grammars reach some checks of the classifier too rarely to hold them: breaking the cut check of a choice in what an expression surely consumes, the condition that a counted rule is off every cycle, or the repetition depth of the nesting check passes the gate, and only the class tests of `internal/complexity` and the controls of `TestControlClasses` catch it.
 
@@ -294,7 +285,7 @@ The guides show how to test a grammar in an application. The repository uses the
 | Compiled grammars, Documents and backend equivalence | `internal/engine/` tests such as `compiled_test.go` and `document_test.go`, and the tests of `internal/engine/document/` |
 | Generated Go against the engine and regression freezes of what the engine cannot say (observation, Documents, budget, streams, lowering decisions) | `internal/gen/gengo/` tests such as `gengo_flow_*_test.go` with `internal/gen/gengo/testdata/*.golden`, and `internal/engine/` tests `core_*_test.go` with `internal/engine/testdata/*.golden`; a change of what a golden freezes is rewritten with `go test <package> -run <test> -update` and its diff reviewed |
 
-Root `go test ./... ./runtime/...` covers the main module and the runtime module. Run `hack/test-alpha-parsers.sh` to vet and test the parsers of the alpha-parsers checkout against this tree (see [Ready-Made Parsers and Their Corpora](#ready-made-parsers-and-their-corpora)); `cd site && go test ./...` covers the site module.
+Root `go test ./...` covers the main module. Run `hack/test-alpha-parsers.sh` to vet and test the parsers of the alpha-parsers checkout against this tree (see [Ready-Made Parsers and Their Corpora](#ready-made-parsers-and-their-corpora)); `cd site && go test ./...` covers the site module.
 
 ### Ready-Made Parsers and Their Corpora
 
@@ -310,7 +301,7 @@ hack/sync-alpha-parsers.sh     # copy the grammars, inputs and duckdb/inspect.go
 hack/test-alpha-parsers.sh     # check the checkout is in sync, then vet and test it
 ```
 
-Both scripts join this tree, the runtime module and the checkout with a temporary `go.work` file, so they use the
+Both scripts join this tree and the checkout with a temporary `go.work` file, so they use the
 working tree they are run from, not a pushed commit: run them from the tree that holds the change. They print the
 checkout they use. `hack/test-alpha-parsers.sh` fails when there is no checkout, when a grammar, a sample input or
 `duckdb/inspect.go` differs from `testdata/grammars/`, and when the options of the checkout's `generate.go` differ from

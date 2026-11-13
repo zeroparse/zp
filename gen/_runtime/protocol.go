@@ -13,8 +13,8 @@ package runtime
 // The runtime declares a constant ProtocolN for each protocol version N it implements. A parser
 // generated with zp gen -runtime import refers to the constant of the protocol it was generated
 // for, so building it against a runtime that does not implement that protocol fails with an
-// undefined name; regenerate the parser, or require a version of zeroparse.dev/zp/runtime that
-// implements its protocol.
+// undefined name; regenerate the parser, or require a version of zeroparse.dev/zp that implements
+// its protocol.
 
 // Protocol13 is declared because the runtime implements protocol version 13.
 const Protocol13 = 13

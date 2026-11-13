@@ -145,16 +145,10 @@ func BuildProgram(root, dir, genDir, main string, buildFlags ...string) (path st
 
 go 1.27.1
 
-require (
-	%[1]s v0.0.0
-	%[1]s/runtime v0.0.0
-)
+require %[1]s v0.0.0
 
-replace (
-	%[1]s => %[2]s
-	%[1]s/runtime => %[3]s
-)
-`, "zeroparse.dev/zp", root, filepath.Join(root, "runtime"))
+replace %[1]s => %[2]s
+`, "zeroparse.dev/zp", root)
 	if err := os.CopyFS(filepath.Join(dir, "gen"), os.DirFS(genDir)); err != nil {
 		return "", 0, err
 	}

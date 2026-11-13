@@ -51,7 +51,7 @@ rule main Pair = k:[a-z]+ #atomic "=" v:[0-9]+ #atomic => Pair{Key: $k, Value: $
 			t.Fatal(err)
 		}
 	}
-	// Without the runtime module in go.mod, the package can only build if it imports nothing of it.
+	// Without zeroparse.dev/zp in go.mod, the package can only build if it imports nothing of it.
 	write("go.mod", "module example.com/embedded/v2\n\ngo 1.27.1\n")
 	write("embedded_test.go", `package embedded
 

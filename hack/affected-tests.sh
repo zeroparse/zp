@@ -22,7 +22,7 @@ root=$(git rev-parse --show-toplevel)
 cd "$root"
 git diff --name-only "$base" "$head" > "${TMPDIR:-/tmp}/affected.$$.files"
 trap 'rm -f "${TMPDIR:-/tmp}/affected.$$.files"' EXIT
-go list -json ./... ./runtime/... | python3 -I -c '
+go list -json ./... | python3 -I -c '
 import json, sys, os, re, subprocess
 why = int(sys.argv[1]); files = [l.strip() for l in open(sys.argv[2]) if l.strip()]
 root = os.getcwd(); mod = "zeroparse.dev/zp"
@@ -33,7 +33,7 @@ while i < len(s):
     o, i = dec.raw_decode(s, i); pk[o["ImportPath"]] = o
 rel = {p: os.path.relpath(o["Dir"], root) for p, o in pk.items()}
 bydir = {r: p for p, r in rel.items()}
-HEAVY = ["internal/gen", "internal/gen/gengo", "internal/gen/gents", "internal/engine", "internal/runtimetest",
+HEAVY = ["internal/gen", "internal/gen/gengo", "internal/gen/gents", "internal/engine", "runtime",
          "internal/complexitytest", "spec/language", "gen", "bench", "internal/compile"]
 HEAVY_TRIG = ("runtime/", "gen/_runtime/", "internal/gentest/", "internal/gen/gents/tsrt/")
 rev = {p: set() for p in pk}

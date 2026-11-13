@@ -1,6 +1,6 @@
 //go:build ignore
 
-// copy_runtime replaces the copy of the runtime module in _runtime with the non-test Go files of
+// copy_runtime replaces the copy of the runtime in _runtime with the non-test Go files of
 // ../runtime and of its package directories noderep and parse. It runs from go generate in the
 // directory of package gen.
 package main
@@ -12,7 +12,7 @@ import (
 	"strings"
 )
 
-// dirs are the package directories of the runtime module that generated code needs, relative to
+// dirs are the package directories of the runtime that generated code needs, relative to
 // the runtime's.
 var dirs = []string{".", "noderep", "parse"}
 

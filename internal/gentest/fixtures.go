@@ -170,8 +170,9 @@ var (
 	runtimeCopyDir  string
 )
 
-// RuntimeCopy returns the directory of a runtime module that holds a copy of the runtime package with the
-// identifiers that testdata/export_names.txt lists renamed (see ExportNames).
+// RuntimeCopy returns the directory of a module zeroparse.dev/zp that holds a copy of the packages
+// generated code imports (copiedPackages), with the identifiers that testdata/export_names.txt
+// lists renamed in the runtime package (see ExportNames).
 func RuntimeCopy() string {
 	runtimeCopyOnce.Do(func() {
 		dir, err := os.MkdirTemp("", "zprt-copy")
@@ -185,7 +186,8 @@ func RuntimeCopy() string {
 }
 
 // RuntimeCopyWith returns a copy of the runtime like RuntimeCopy that has patch applied to the
-// source of each file (by name) and the extra files, which are given as name and source.
+// source of each file (by name) of the runtime package and the extra files of that package, which
+// are given as name and source.
 func RuntimeCopyWith(t testing.TB, patch func(name, src string) string, extra map[string]string) string {
 	t.Helper()
 	dir := t.TempDir()
@@ -193,44 +195,43 @@ func RuntimeCopyWith(t testing.TB, patch func(name, src string) string, extra ma
 	return dir
 }
 
+// copiedPackages are the directories of the packages that generated code imports, relative to the
+// module root: the runtime package first, then the packages it imports, which are copied
+// unchanged. A copy holds only them, so a test module that requires it builds generated code
+// against them and nothing else of this module.
+var copiedPackages = []string{"runtime", "runtime/noderep", "runtime/parse"}
+
 func writeRuntimeCopy(dir string, patch func(name, src string) string, extra map[string]string) {
 	must := func(err error) {
 		if err != nil {
 			panic(err)
 		}
 	}
-	must(os.WriteFile(filepath.Join(dir, "go.mod"), []byte("module zeroparse.dev/zp/runtime\n\ngo 1.27.1\n"), 0o644))
-	src := filepath.Join(moduleRoot(), "runtime")
-	entries, err := os.ReadDir(src)
-	must(err)
-	for _, e := range entries {
-		if e.IsDir() || !strings.HasSuffix(e.Name(), ".go") || strings.HasSuffix(e.Name(), "_test.go") {
-			continue
-		}
-		data, err := os.ReadFile(filepath.Join(src, e.Name()))
+	must(os.WriteFile(filepath.Join(dir, "go.mod"), []byte("module zeroparse.dev/zp\n\ngo 1.27.1\n"), 0o644))
+	for i, pkg := range copiedPackages {
+		src, dst := filepath.Join(moduleRoot(), filepath.FromSlash(pkg)), filepath.Join(dir, filepath.FromSlash(pkg))
+		must(os.MkdirAll(dst, 0o755))
+		entries, err := os.ReadDir(src)
 		must(err)
-		if patch != nil {
-			data = []byte(patch(e.Name(), string(data)))
-		}
-		must(os.WriteFile(filepath.Join(dir, e.Name()), ExportNames(data), 0o644))
-	}
-	// The runtime's own packages, parse and noderep, are copied unchanged.
-	for _, sub := range []string{"noderep", "parse"} {
-		files, err := os.ReadDir(filepath.Join(src, sub))
-		must(err)
-		must(os.MkdirAll(filepath.Join(dir, sub), 0o755))
-		for _, e := range files {
+		for _, e := range entries {
 			if e.IsDir() || !strings.HasSuffix(e.Name(), ".go") || strings.HasSuffix(e.Name(), "_test.go") {
 				continue
 			}
-			data, err := os.ReadFile(filepath.Join(src, sub, e.Name()))
+			data, err := os.ReadFile(filepath.Join(src, e.Name()))
 			must(err)
-			must(os.WriteFile(filepath.Join(dir, sub, e.Name()), data, 0o644))
+			if i == 0 {
+				if patch != nil {
+					data = []byte(patch(e.Name(), string(data)))
+				}
+				data = ExportNames(data)
+			}
+			must(os.WriteFile(filepath.Join(dst, e.Name()), data, 0o644))
 		}
 	}
-	must(os.WriteFile(filepath.Join(dir, "zz_testing.go"), ExportNames([]byte(runtimeTestingShim)), 0o644))
+	rt := filepath.Join(dir, filepath.FromSlash(copiedPackages[0]))
+	must(os.WriteFile(filepath.Join(rt, "zz_testing.go"), ExportNames([]byte(runtimeTestingShim)), 0o644))
 	for name, data := range extra {
-		must(os.WriteFile(filepath.Join(dir, name), ExportNames([]byte(data)), 0o644))
+		must(os.WriteFile(filepath.Join(rt, name), ExportNames([]byte(data)), 0o644))
 	}
 }
 
@@ -240,10 +241,10 @@ func GoMod(module string) string {
 	return GoModAt(module, RuntimeCopy())
 }
 
-// GoModAt returns the go.mod of a test module that imports the runtime from the runtime module in
-// dir.
+// GoModAt returns the go.mod of a test module that imports the runtime from the copy of this
+// module in dir (RuntimeCopy, RuntimeCopyWith).
 func GoModAt(module, dir string) string {
-	return "module " + module + "\n\ngo 1.27.1\n\nrequire zeroparse.dev/zp/runtime v0.0.0\n\nreplace zeroparse.dev/zp/runtime => " + dir + "\n"
+	return "module " + module + "\n\ngo 1.27.1\n\nrequire zeroparse.dev/zp v0.0.0\n\nreplace zeroparse.dev/zp => " + dir + "\n"
 }
 
 // WriteGenerated writes the files of a generated package into dir. A go.mod for the module is

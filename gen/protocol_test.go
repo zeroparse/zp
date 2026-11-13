@@ -28,8 +28,8 @@ func TestMain(m *testing.M) {
 // protocolName matches the declaration of the protocol constant of the runtime.
 var protocolName = regexp.MustCompile(`\bconst Protocol([1-9][0-9]*) = ([1-9][0-9]*)\b`)
 
-// TestImportProtocol builds a parser generated with RuntimeImport against the runtime module that
-// the generator carries, which builds, and against the same runtime declaring the next protocol
+// TestImportProtocol builds a parser generated with RuntimeImport against the runtime that the
+// generator carries, which builds, and against the same runtime declaring the next protocol
 // version instead, which must fail to build on the protocol constant the parser refers to.
 func TestImportProtocol(t *testing.T) {
 	if testing.Short() {
@@ -82,10 +82,10 @@ rule main = [a-z]+ "=" [0-9]+`)
 		for _, f := range files {
 			write("p/"+f.Path, f.Content)
 		}
-		write("rt/go.mod", []byte("module zeroparse.dev/zp/runtime\n\ngo 1.27.1\n"))
+		write("rt/go.mod", []byte("module zeroparse.dev/zp\n\ngo 1.27.1\n"))
 		for _, f := range runtimeFiles {
-			// The copy names the copies of the runtime's packages; as the runtime module it names them by
-			// the module's path.
+			// The copy names the copies of the runtime's packages; as a copy of this module's runtime it
+			// names them by their import paths in this module.
 			data := bytes.ReplaceAll(f.Content, []byte(`"`+copyPath), []byte(`"zeroparse.dev/zp/runtime/`))
 			if bump {
 				data = protocolName.ReplaceAllFunc(data, func(m []byte) []byte {
@@ -93,9 +93,9 @@ rule main = [a-z]+ "=" [0-9]+`)
 					return []byte("const Protocol" + strconv.Itoa(n+1) + " = " + strconv.Itoa(n+1))
 				})
 			}
-			write("rt/"+strings.TrimPrefix(f.Path, "internal/runtime/"), data)
+			write("rt/runtime/"+strings.TrimPrefix(f.Path, "internal/runtime/"), data)
 		}
-		write("p/go.mod", []byte("module example.com/proto\n\ngo 1.27.1\n\nrequire zeroparse.dev/zp/runtime v0.0.0\n\nreplace zeroparse.dev/zp/runtime => ../rt\n"))
+		write("p/go.mod", []byte("module example.com/proto\n\ngo 1.27.1\n\nrequire zeroparse.dev/zp v0.0.0\n\nreplace zeroparse.dev/zp => ../rt\n"))
 		cmd := exec.Command("go", "build", "./...")
 		cmd.Dir = filepath.Join(dir, "p")
 		cmd.Env = append(os.Environ(), "GOTOOLCHAIN=local", "GOFLAGS=-mod=mod -trimpath", "GOWORK=off")

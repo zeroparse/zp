@@ -19,11 +19,10 @@ import (
 	"zeroparse.dev/zp/internal/gen"
 )
 
-// The Go runtime of generated parsers is the module zeroparse.dev/zp/runtime: the package runtime,
-// whose exported names that are documented as for generated parsers the generated code reaches, the
+// The Go runtime of generated parsers is the package zeroparse.dev/zp/runtime, whose exported names that are documented as for generated parsers the generated code reaches, the
 // package parse, which declares the result types (Node, Limits, SyntaxError, ...) that generated
 // parsers share with the engine, and the node representation noderep, which both use. A generated
-// package either imports the runtime module or carries a copy of the files of its packages (embed
+// package either imports these packages or carries a copy of the files of its packages (embed
 // mode), which the generator reads from the source in GenOptions.RuntimeSource: the runtime package
 // at its root, and the others in the subdirectories runtimeSubpackages names.
 
@@ -38,7 +37,7 @@ const (
 	TypesAlias   = "types"
 )
 
-// runtimeSubpackages are the packages of the runtime module besides the runtime package, by their
+// runtimeSubpackages are the packages of the runtime besides the runtime package, by their
 // directory under the runtime's, which is also their package name. Generated code names the
 // declarations of parse (parseAlias); the runtime and parse import noderep.
 var runtimeSubpackages = []string{"noderep", parseAlias}
@@ -52,7 +51,7 @@ var runtimeCache struct {
 	info map[fs.FS]*runtimeInfo
 }
 
-// runtimeFile is a file of the runtime module: name is its path relative to the runtime's
+// runtimeFile is a file of the runtime: name is its path relative to the runtime's
 // directory.
 type runtimeFile struct {
 	name string
@@ -213,7 +212,7 @@ func addRuntimeDecls(info *runtimeInfo, f *goast.File, pkg string) error {
 	return nil
 }
 
-// runtimeFiles returns the copy of the runtime module that RuntimeEmbed writes: the runtime package
+// runtimeFiles returns the copy of the runtime that RuntimeEmbed writes: the runtime package
 // in internal/runtime, and the other packages in its subdirectories, whose imports of each other
 // name their copies.
 func runtimeFiles(opts gen.GenOptions) ([]gen.GeneratedFile, error) {

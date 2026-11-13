@@ -62,7 +62,7 @@ func termFailedBinding(term string) string {
 	return "type T = { N int }\nvar n int = 7\n@start\nrule main = x:\"a\" ({n := len(" + term + ")} \"!\" / \"\") $$ => n\n"
 }
 
-// termChargeDeltas builds the pairs of termChargePairs against the runtime module in rt and returns, by
+// termChargeDeltas builds the pairs of termChargePairs against the runtime copy in rt and returns, by
 // pair and entry, what the second grammar spends more than the first.
 func termChargeDeltas(t *testing.T, rt string) map[string]int64 {
 	t.Helper()

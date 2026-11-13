@@ -470,7 +470,7 @@ closure backend peaks at 84,090 bytes for 2,000 records and 84,107 for 40,000; t
 records. The tests bound the growth from 2,000 to 40,000 records at 1.2.
 
 Inlining costs, from `go build -gcflags=-m=2`, of the allocators that must stay inlined. The inlining test of
-`internal/runtimetest` and the engine's inline guard check them:
+`runtime/` and the engine's inline guard check them:
 
 | Function | Base | With the counts |
 |:--|--:|--:|

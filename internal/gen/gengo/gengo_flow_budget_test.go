@@ -204,7 +204,7 @@ func runBudgetProbes(t *testing.T, cases []gentest.Case, start string, mutate fu
 	return runBudgetProbesAt(t, gentest.RuntimeCopy(), cases, start, mutate)
 }
 
-// runBudgetProbesAt is runBudgetProbes with the runtime module in rt.
+// runBudgetProbesAt is runBudgetProbes with the runtime copy in rt.
 func runBudgetProbesAt(t *testing.T, rt string, cases []gentest.Case, start string, mutate func([]byte) []byte) []string {
 	t.Helper()
 	return runBudgetProbesWith(t, rt, cases, start, mutate, gen.GenOptions{}, "Parse")
@@ -405,7 +405,7 @@ func budgetTotals(t *testing.T, group string, cases []gentest.Case, start string
 	return budgetTotalsAt(t, gentest.RuntimeCopy(), group, cases, start, mutate)
 }
 
-// budgetTotalsAt is budgetTotals with the runtime module in rt.
+// budgetTotalsAt is budgetTotals with the runtime copy in rt.
 func budgetTotalsAt(t *testing.T, rt, group string, cases []gentest.Case, start string, mutate func([]byte) []byte) (got map[string]string, problems []string) {
 	t.Helper()
 	return budgetTotalsWith(t, rt, group, cases, start, mutate, gen.GenOptions{}, "Parse")

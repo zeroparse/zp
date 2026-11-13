@@ -1,4 +1,4 @@
-package runtimetest
+package runtime_test
 
 import (
 	"os"

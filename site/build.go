@@ -402,8 +402,8 @@ func readExamples(repo string) ([]example, error) {
 }
 
 // repoEnv returns the environment of a go command that builds a package of the repository: the
-// workspace of the repository (its go.work, which holds the runtime module), whatever GOWORK the
-// site build runs with (build.sh turns the workspace off for the site module).
+// workspace of the repository (its go.work), whatever GOWORK the site build runs with (build.sh
+// turns the workspace off for the site module).
 func repoEnv(repo string) []string {
 	work, err := filepath.Abs(filepath.Join(repo, "go.work"))
 	if err != nil {

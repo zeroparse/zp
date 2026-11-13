@@ -1,7 +1,7 @@
 # Shared by test-alpha-parsers.sh and sync-alpha-parsers.sh; sourced, not run.
 #
 # Sets $root (this tree), $dir (the alpha-parsers checkout) and $work (a temporary directory, removed on exit)
-# holding a go.work file that joins this tree, its runtime module and the checkout. $ZP_ALPHA_PARSERS names the
+# holding a go.work file that joins this tree and the checkout. $ZP_ALPHA_PARSERS names the
 # checkout (default: ../alpha-parsers); ZP_ALPHA_PARSERS=skip makes the caller succeed without doing anything.
 # alpha_options_drift prints the differences between the generator options of testdata/grammars/generate.txt and
 # the go:generate lines of the checkout's generate.go, and fails when there is one.
@@ -24,7 +24,7 @@ alpha_setup() {
 	trap 'rm -rf "$work"' EXIT
 	# The replace directives of this tree's go.work, with their directories made absolute.
 	{
-		printf 'go 1.27.1\n\nuse (\n\t%s\n\t%s\n\t%s\n)\n' "$root" "$root/runtime" "$dir"
+		printf 'go 1.27.1\n\nuse (\n\t%s\n\t%s\n)\n' "$root" "$dir"
 		grep '^replace ' "$root/go.work" | sed "s#=> \./#=> $root/#"
 	} >"$work/go.work" || exit 1
 }

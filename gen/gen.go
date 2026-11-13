@@ -342,7 +342,7 @@ func check(g *grammar.Grammar, opts compile.Options, flags []compile.RuleFlags) 
 	return prog, nil
 }
 
-// runtimeFiles holds a copy of the files of the runtime module's packages (the runtime package and
+// runtimeFiles holds a copy of the files of the runtime's packages (the runtime package and
 // its subdirectories noderep and parse), which Go.Generate copies into packages generated with
 // RuntimeEmbed and reads to qualify the names generated code uses from them. The copy lives in this
 // package rather than in package zp so that only programs that generate code carry it;

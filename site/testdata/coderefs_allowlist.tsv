@@ -408,7 +408,7 @@ docs/optimizations/103-inline-the-common-budget-spend.md	unexport	budgetUsed	1
 docs/optimizations/103-inline-the-common-budget-spend.md	unexport	chargeStep	4
 docs/optimizations/103-inline-the-common-budget-spend.md	unexport	setControlledSource	1
 docs/optimizations/103-inline-the-common-budget-spend.md	unexport	takeSlow	1
-docs/optimizations/108-prologue-and-rollback-helpers.md	gofile	internal/runtimetest/inline_test.go	1
+docs/optimizations/108-prologue-and-rollback-helpers.md	gofile	runtime/inline_test.go	1
 docs/optimizations/111-terminal-programs.md	gofile	runtime/terminal.go	1
 docs/optimizations/113-action-rule-name-set-once.md	unexport	evalError	4
 docs/optimizations/114-no-comments-on-unexported-generated-code.md	qualified	gentest.GenerateCode	1

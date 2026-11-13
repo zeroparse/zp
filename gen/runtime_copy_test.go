@@ -11,7 +11,7 @@ import (
 	"zeroparse.dev/zp/gen"
 )
 
-// TestRuntimeCopy checks that _runtime, the copy of the runtime module that package gen embeds,
+// TestRuntimeCopy checks that _runtime, the copy of the runtime that package gen embeds,
 // holds exactly the non-test Go files of the runtime package and of its package directories
 // noderep and parse. Run go generate ./gen to refresh it.
 func TestRuntimeCopy(t *testing.T) {

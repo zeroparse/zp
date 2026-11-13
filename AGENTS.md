@@ -43,7 +43,7 @@ with implementation changes; regenerate generated files.
   or `hack/test-alpha-parsers.sh`: the landing gate does (the latter fails
   without an alpha-parsers checkout; `hack/sync-alpha-parsers.sh` updates one).
   When the generator changed, diff the `zp gen` output of the affected grammars
-  against main instead. The default root `go test ./... ./runtime/...` takes
+  against main instead. The default root `go test ./...` takes
   minutes; run it on the final commit of each landing batch, and when the
   batch touches the engine, generator or runtime run it with `-tags zp_long` (the
   long tier in `docs/development.md`) instead,

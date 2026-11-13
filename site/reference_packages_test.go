@@ -13,8 +13,7 @@ import (
 
 // TestReferenceListsPublicPackages checks that the API reference documents every public package of
 // the root module: every importable non-main package outside internal directories that exports a
-// name, and those of the nested modules published from the repository (nestedModules). Other
-// directories with a go.mod of their own (such as the site) are other modules.
+// name. Directories with a go.mod of their own (such as the site) are other modules.
 func TestReferenceListsPublicPackages(t *testing.T) {
 	const repo = ".."
 	listed := map[string]bool{}
@@ -39,7 +38,7 @@ func TestReferenceListsPublicPackages(t *testing.T) {
 			if strings.HasPrefix(name, ".") || strings.HasPrefix(name, "_") || name == "testdata" || name == "internal" || name == "node_modules" {
 				return fs.SkipDir
 			}
-			if _, err := os.Stat(filepath.Join(p, "go.mod")); err == nil && !slices.Contains(nestedModules, rel) {
+			if _, err := os.Stat(filepath.Join(p, "go.mod")); err == nil {
 				return fs.SkipDir
 			}
 		}
