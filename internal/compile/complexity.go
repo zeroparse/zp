@@ -9,6 +9,7 @@ import (
 	"zeroparse.dev/zp/internal/cancel"
 
 	"zeroparse.dev/zp/grammar"
+	"zeroparse.dev/zp/internal/complexity"
 	"zeroparse.dev/zp/internal/desugar"
 )
 
@@ -248,14 +249,18 @@ func prepareClassifierWith(g *grammar.Grammar, start string, control *cancel.Con
 	return k, names, nil
 }
 
-// newViewClassifier returns a classifier of the normal view of rules (normal_view.go) from start,
-// with the rule facts rf of rules. What the runtime decides by the grammar as it is written stays
-// decided by rules: the left-recursion cycles and their leaders, the memoized rules, the variables
-// that key the memo, and the run sites.
+// newViewClassifier returns a classifier of the cost view of rules (internal/complexity) from
+// start, with the rule facts rf of rules. What the runtime decides by the grammar as it is written
+// stays decided by rules: the left-recursion cycles and their leaders, the memoized rules, the
+// variables that key the memo, and the run sites.
 func newViewClassifier(g *grammar.Grammar, rules []*grammar.RuleDef, rf *ruleFacts, start string, control *cancel.Control) *classifier {
-	v := normalizeRules(rules, rf.an, rf.memo, costView, control)
-	k := newClassifierOf(g, v.rules, rules, rf, start, control)
-	k.viewText = v.text
+	view, text, err := complexity.Build(rf.source, complexity.Options{}, control).GrammarText(rules)
+	if err != nil {
+		// Every node the view builds has a grammar spelling; an error is a defect of the view.
+		panic("compile: cost view: " + err.Error())
+	}
+	k := newClassifierOf(g, view, rules, rf, start, control)
+	k.viewText = text
 	return k
 }
 

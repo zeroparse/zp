@@ -6,14 +6,14 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/grammar"
-	"zeroparse.dev/zp/internal/desugar"
+	"zeroparse.dev/zp/internal/complexity"
 	"zeroparse.dev/zp/internal/factstest"
 	"zeroparse.dev/zp/internal/syntax"
 )
 
 // viewOf returns the view of the body of rule main of src with opts, and the rewrites of each
 // rule.
-func viewOf(t *testing.T, src string, opts viewOptions) (string, map[viewRule]int) {
+func viewOf(t *testing.T, src string, opts complexity.Options) (string, map[complexity.Law]int) {
 	t.Helper()
 	bodies, applied := viewBodies(t, src, opts)
 	body, ok := bodies["main"]
@@ -23,25 +23,37 @@ func viewOf(t *testing.T, src string, opts viewOptions) (string, map[viewRule]in
 	return body, applied
 }
 
-// viewBodies returns the view of the body of every rule of src with opts, and the rewrites.
-func viewBodies(t *testing.T, src string, opts viewOptions) (map[string]string, map[viewRule]int) {
+// viewBodies returns the formatted rule bodies of the cost view of the grammar src with opts, by
+// rule name, and the rewrites that the view counts.
+func viewBodies(t *testing.T, src string, opts complexity.Options) (map[string]string, map[complexity.Law]int) {
+	t.Helper()
+	v, _, rules, _ := testView(t, src, opts)
+	bodies := map[string]string{}
+	for _, r := range rules {
+		bodies[r.Name] = grammar.FormatExpr(r.Expr)
+	}
+	return bodies, v.Applied
+}
+
+// testView returns the cost view of the grammar src with opts, the rules it is built from, its
+// rules written as grammar rules and the source text of each expression of them that the view
+// builds.
+func testView(t *testing.T, src string, opts complexity.Options) (*complexity.View, []*grammar.RuleDef, []*grammar.RuleDef, map[grammar.Expr]string) {
 	t.Helper()
 	g, err := syntax.Parse(src)
 	if err != nil {
 		t.Fatal(err)
 	}
-	g, err = desugar.NormalizeAttributesControlled(g, false, nil)
+	cs, err := NewCostSource(g, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
-	rules := g.Rules()
-	rf := testRuleFacts(t, g, rules)
-	v := normalizeRules(rules, rf.an, rf.memo, opts, nil)
-	bodies := map[string]string{}
-	for _, r := range v.rules {
-		bodies[r.Name] = grammar.FormatExpr(r.Expr)
+	v := complexity.Build(&complexity.Source{Module: cs.Module, Origin: cs.Origin, Facts: cs.Facts}, opts, nil)
+	rules, text, err := v.GrammarText(cs.Rules)
+	if err != nil {
+		t.Fatal(err)
 	}
-	return bodies, v.applied
+	return v, cs.Rules, rules, text
 }
 
 // TestNormalView checks each rewrite of spec/runtime/parsing.md (Cost View): where its conditions
@@ -69,7 +81,17 @@ func TestNormalView(t *testing.T) {
 func TestNormalViewPredicateCaptures(t *testing.T) {
 	for _, c := range predicateCaptureCases {
 		t.Run(c.name, func(t *testing.T) {
-			got, _ := viewBodies(t, c.src+"\n", costView)
+			if c.rejected {
+				g, err := syntax.Parse(c.src + "\n")
+				if err != nil {
+					t.Fatal(err)
+				}
+				if _, err := NewCostSource(g, nil); err == nil {
+					t.Errorf("the cost source of a rejected grammar was built: %s", c.src)
+				}
+				return
+			}
+			got, _ := viewBodies(t, c.src+"\n", complexity.Options{})
 			for name, want := range c.want {
 				if got[name] != want {
 					t.Errorf("view of rule %s = %s, want %s", name, got[name], want)
@@ -88,7 +110,7 @@ func TestNormalViewPredicateCaptures(t *testing.T) {
 func TestNormalViewPredicateValueFlow(t *testing.T) {
 	for _, c := range valueFlowCases {
 		t.Run(c.name, func(t *testing.T) {
-			got, _ := viewBodies(t, c.src+"\n", costView)
+			got, _ := viewBodies(t, c.src+"\n", complexity.Options{})
 			for name, want := range c.want {
 				if got[name] != want {
 					t.Errorf("view of rule %s = %s, want %s", name, got[name], want)
@@ -112,7 +134,7 @@ func TestNormalViewPredicateValueFlow(t *testing.T) {
 func TestNormalViewCheapRules(t *testing.T) {
 	for _, c := range cheapRuleCases {
 		t.Run(c.name, func(t *testing.T) {
-			got, _ := viewBodies(t, c.src+"\n", costView)
+			got, _ := viewBodies(t, c.src+"\n", complexity.Options{})
 			if got["main"] != c.want {
 				t.Errorf("view of rule main = %s, want %s", got["main"], c.want)
 			}
@@ -126,21 +148,15 @@ func TestNormalViewCheapRules(t *testing.T) {
 func TestNormalViewText(t *testing.T) {
 	for _, c := range textCases {
 		t.Run(c.body, func(t *testing.T) {
-			g, err := syntax.Parse("rule main = " + c.body + "\n")
-			if err != nil {
-				t.Fatal(err)
-			}
-			rules := g.Rules()
-			rf := testRuleFacts(t, g, rules)
-			v := normalizeRules(rules, rf.an, rf.memo, costView, nil)
+			_, source, rules, text := testView(t, "rule main = "+c.body+"\n", complexity.Options{})
 			orig := map[grammar.Expr]bool{}
-			WalkExpr(rules[0].Expr, func(x grammar.Expr) { orig[x] = true })
+			WalkExpr(source[0].Expr, func(x grammar.Expr) { orig[x] = true })
 			got := map[string]string{}
-			WalkExpr(v.rules[0].Expr, func(x grammar.Expr) {
+			WalkExpr(rules[0].Expr, func(x grammar.Expr) {
 				if orig[x] {
 					return
 				}
-				text, ok := v.text[x]
+				text, ok := text[x]
 				if !ok {
 					t.Errorf("%s, built by the view, stands for no text of the grammar", grammar.FormatExpr(x))
 				}
@@ -148,7 +164,7 @@ func TestNormalViewText(t *testing.T) {
 			})
 			for spelling, text := range c.want {
 				if got[spelling] != text {
-					t.Errorf("%s stands for %q, want %q (view %s)", spelling, got[spelling], text, grammar.FormatExpr(v.rules[0].Expr))
+					t.Errorf("%s stands for %q, want %q (view %s)", spelling, got[spelling], text, grammar.FormatExpr(rules[0].Expr))
 				}
 			}
 		})
@@ -162,19 +178,9 @@ func TestNormalViewText(t *testing.T) {
 func TestNormalViewCutKeepsTuple(t *testing.T) {
 	for _, c := range cutTupleCases {
 		t.Run(c.name, func(t *testing.T) {
-			g, err := syntax.Parse(c.src)
-			if err != nil {
-				t.Fatal(err)
-			}
-			g, err = desugar.NormalizeAttributesControlled(g, false, nil)
-			if err != nil {
-				t.Fatal(err)
-			}
-			rules := g.Rules()
-			rf := testRuleFacts(t, g, rules)
-			v := normalizeRules(rules, rf.an, rf.memo, costView, nil)
+			_, _, rules, _ := testView(t, c.src, complexity.Options{})
 			got := 0
-			for _, r := range v.rules {
+			for _, r := range rules {
 				WalkExpr(r.Expr, func(x grammar.Expr) {
 					if s, ok := x.(*grammar.Seq); ok && len(s.Items) == 1 {
 						got++
@@ -212,9 +218,10 @@ func TestNormalViewKeepsValueShapes(t *testing.T) {
 // or of lawsGrammar, so the check is not vacuous for those.
 func TestNormalViewLawSwitch(t *testing.T) {
 	t.Parallel()
-	laws := []viewRule{ruleN1, ruleN2, ruleN3, ruleN4, ruleN5, ruleN6, ruleN7, ruleN8, ruleN9, ruleN10, ruleN11, ruleN12, ruleN13}
+	laws := []complexity.Law{complexity.N1, complexity.N2, complexity.N3, complexity.N4, complexity.N5, complexity.N6,
+		complexity.N7, complexity.N8, complexity.N9, complexity.N10, complexity.N11, complexity.N12, complexity.N13}
 	var mu sync.Mutex
-	seen := map[viewRule]bool{}
+	seen := map[complexity.Law]bool{}
 	t.Run("corpus", func(t *testing.T) {
 		for _, path := range append(slices.Clone(factstest.Corpus), "laws") {
 			t.Run(path, func(t *testing.T) {
@@ -223,36 +230,29 @@ func TestNormalViewLawSwitch(t *testing.T) {
 				if path != "laws" {
 					src = factstest.Read(t, path)
 				}
-				g, err := syntax.Parse(src)
-				if err != nil {
-					t.Fatal(err)
-				}
 				for _, matching := range []bool{false, true} {
-					all, _, err := normalViewOf(g, matching, nil, nil)
-					if err != nil {
-						t.Fatal(err)
+					view := func(laws []complexity.Law) (*complexity.View, []*grammar.RuleDef, []*grammar.RuleDef) {
+						v, source, rules, _ := testView(t, src, complexity.Options{Labels: matching, Inline: matching, Laws: laws})
+						return v, source, rules
 					}
+					all, _, _ := view(nil)
 					mu.Lock()
-					for r, n := range all.applied {
+					for r, n := range all.Applied {
 						seen[r] = seen[r] || n > 0
 					}
 					mu.Unlock()
-					none, _, _ := normalViewOf(g, matching, []string{}, nil)
-					if len(none.applied) != 0 {
-						t.Errorf("matching %v, no law: %v", matching, none.applied)
+					none, source, rules := view([]complexity.Law{})
+					if len(none.Applied) != 0 {
+						t.Errorf("matching %v, no law: %v", matching, none.Applied)
 					}
-					_, rules, err := classifierRules(g, nil)
-					if err != nil {
-						t.Fatal(err)
-					}
-					for i, r := range none.rules {
-						if got, want := grammar.FormatExpr(r.Expr), grammar.FormatExpr(rules[i].Expr); got != want {
+					for i, r := range rules {
+						if got, want := grammar.FormatExpr(r.Expr), grammar.FormatExpr(source[i].Expr); got != want {
 							t.Errorf("matching %v, no law: rule %s is %s, want %s", matching, r.Name, got, want)
 						}
 					}
 					for _, l := range laws {
-						one, _, _ := normalViewOf(g, matching, []string{string(l)}, nil)
-						for r, n := range one.applied {
+						one, _, _ := view([]complexity.Law{l})
+						for r, n := range one.Applied {
 							if r != l && n > 0 {
 								t.Errorf("matching %v, law %s alone: %d rewrites of %s", matching, l, n, r)
 							}
@@ -263,7 +263,7 @@ func TestNormalViewLawSwitch(t *testing.T) {
 		}
 	})
 	for _, l := range laws[:12] {
-		if l != ruleN7 && !seen[l] {
+		if l != complexity.N7 && !seen[l] {
 			t.Errorf("no corpus grammar applies %s", l)
 		}
 	}
@@ -279,21 +279,21 @@ const normalViewHelpers = "\nrule r = \"r\" \"r\"\nrule p = {true} \"p\"\n"
 // normalViewCases are the cases of TestNormalView: the body of rule main, with normalViewHelpers.
 var normalViewCases = []struct {
 	name string
-	rule viewRule // the rule that applies, or "" for a negative case
+	rule complexity.Law // the rule that applies, or "" for a negative case
 	body string
 	want string
-	opts viewOptions
+	opts complexity.Options
 }{
-	{name: "S1 splices a grouped sequence", rule: ruleN1, body: `"ab" ("cd" "ef")`, want: `"ab" "cd" "ef"`},
-	{name: "C2 flattens a right-nested choice", rule: ruleN1, body: `"ab" / ("cd" #cut "x" / "ef")`, want: `"ab" / "cd" #cut "x" / "ef"`},
-	{name: "C2 flattens a left-nested choice without cuts", rule: ruleN1, body: `("ab" / "cd") / "ef"`, want: `"ab" / "cd" / "ef"`},
+	{name: "S1 splices a grouped sequence", rule: complexity.N1, body: `"ab" ("cd" "ef")`, want: `"ab" "cd" "ef"`},
+	{name: "C2 flattens a right-nested choice", rule: complexity.N1, body: `"ab" / ("cd" #cut "x" / "ef")`, want: `"ab" / "cd" #cut "x" / "ef"`},
+	{name: "C2 flattens a left-nested choice without cuts", rule: complexity.N1, body: `("ab" / "cd") / "ef"`, want: `"ab" / "cd" / "ef"`},
 	{name: "C2 keeps a left-nested choice with a cut", body: `("ab" #cut "x" / "cd") / "ef"`, want: `("ab" #cut "x" / "cd") / "ef"`},
-	{name: "C3 drops alternatives after one that always succeeds", rule: ruleN2, body: `"ab"* / "cd"`, want: `"ab"*`},
+	{name: "C3 drops alternatives after one that always succeeds", rule: complexity.N2, body: `"ab"* / "cd"`, want: `"ab"*`},
 	{name: "C3 keeps alternatives after a repetition with a loose cut", body: `("ab" #cut "x")* / "cd"`, want: `("ab" #cut "x")* / "cd"`},
-	{name: "C1 drops a duplicate alternative", rule: ruleN3, body: `"ab" / "cd" / "ab"`, want: `"ab" / "cd"`},
-	{name: "C5 drops an alternative that an earlier one prefixes", rule: ruleN3, body: `"ab" / "ab" "cd"`, want: `"ab"`},
+	{name: "C1 drops a duplicate alternative", rule: complexity.N3, body: `"ab" / "cd" / "ab"`, want: `"ab" / "cd"`},
+	{name: "C5 drops an alternative that an earlier one prefixes", rule: complexity.N3, body: `"ab" / "ab" "cd"`, want: `"ab"`},
 	{name: "C5 keeps a literal that no earlier alternative prefixes", body: `"=" "x" / "==" "y" / "="`, want: `"=" "x" / "==" "y" / "="`},
-	{name: "C5 drops a longer literal", rule: ruleN3, body: `"=" / "=="`, want: `"="`},
+	{name: "C5 drops a longer literal", rule: complexity.N3, body: `"=" / "=="`, want: `"="`},
 	{name: "C5 keeps a longer literal after one without case", body: `"a"i / "ab"`, want: `"a"i / "ab"`},
 	{name: "C5 keeps a longer literal without case", body: `"a" / "ab"i`, want: `"a" / "ab"i`},
 	{name: "C1 keeps a duplicate recovery", body: `"a" #recover(skip="z") / "a" #recover(skip="z")`, want: `"a" #recover(skip="z") / "a" #recover(skip="z")`},
@@ -302,50 +302,50 @@ var normalViewCases = []struct {
 	{name: "C9 keeps a class with the replacement character", body: `[\u{fff0}-\u{ffff}] / "b"`, want: `[\u{fff0}-\u{ffff}] / "b"`},
 	{name: "C1 keeps a duplicate with a predicate", body: `{true} "ab" / {true} "ab"`, want: `{true} "ab" / {true} "ab"`},
 	{name: "C1 keeps a duplicate that calls a rule with a predicate", body: `p / p`, want: `p / p`},
-	{name: "C4 drops a bottom alternative", rule: ruleN4, body: `_|_ / "ab" / "cd"`, want: `"ab" / "cd"`},
+	{name: "C4 drops a bottom alternative", rule: complexity.N4, body: `_|_ / "ab" / "cd"`, want: `"ab" / "cd"`},
 	{name: "C4 keeps a labelled bottom", body: `_|_ @error("e") / "ab"`, want: `_|_ @error(message="e") / "ab"`},
-	{name: "S2 drops what follows a bottom", rule: ruleN4, body: `"ab" _|_ "cd"`, want: `"ab" _|_`},
-	{name: "K2 removes a positive lookahead under a lookahead", rule: ruleN5, body: `!&"ab" "c"`, want: `!"ab" "c"`},
-	{name: "K2 keeps the negation of a negation under a positive lookahead", rule: ruleN5, body: `&!"ab" "c"`, want: `!"ab" "c"`},
-	{name: "K1 turns a double negation into a positive lookahead", rule: ruleN5, body: `!!"ab" "c"`, want: `&"ab" "c"`},
+	{name: "S2 drops what follows a bottom", rule: complexity.N4, body: `"ab" _|_ "cd"`, want: `"ab" _|_`},
+	{name: "K2 removes a positive lookahead under a lookahead", rule: complexity.N5, body: `!&"ab" "c"`, want: `!"ab" "c"`},
+	{name: "K2 keeps the negation of a negation under a positive lookahead", rule: complexity.N5, body: `&!"ab" "c"`, want: `!"ab" "c"`},
+	{name: "K1 turns a double negation into a positive lookahead", rule: complexity.N5, body: `!!"ab" "c"`, want: `&"ab" "c"`},
 	{name: "K1 keeps a double negation of a binding", body: `!!({v := 1}) "c"` + "\nvar v int", want: `!!{v := 1} "c"`},
-	{name: "T2 drops a cut that ends an alternative", rule: ruleN6, body: `"ab" #cut / "cd"`, want: `"ab" / "cd"`},
-	{name: "T2 drops a cut in the last alternative", rule: ruleN6, body: `"ab" / "cd" #cut "ef"`, want: `"ab" / "cd" "ef"`},
-	{name: "T2 drops the alternatives after a leading cut", rule: ruleN6, body: `#cut "ab" / "cd"`, want: `"ab"`},
-	{name: "T2 drops a cut nested in the last alternative", rule: ruleN6, body: `"ab" / -("cd" #cut "x")`, want: `"ab" / -("cd" "x")`},
-	{name: "T2 drops a nested cut of an only alternative left in a repetition", rule: ruleN6, body: `(-("a" #cut "b") / !"q" "q")* "ac"`, want: `(-("a" "b"))* "ac"`},
-	{name: "T2 drops a nested cut of an only alternative left in an option", rule: ruleN6, body: `(x:("a" #cut "b") / !"q" "q")? "ac"`, want: `(x:("a" "b"))? "ac"`},
-	{name: "T2 drops a nested cut of an only alternative spliced into a choice", rule: ruleN6, body: `((-("x" #cut "y" "q") / !"z" "z") / "x")* $$`, want: `(-("x" "y" "q") / "x")* $$`},
+	{name: "T2 drops a cut that ends an alternative", rule: complexity.N6, body: `"ab" #cut / "cd"`, want: `"ab" / "cd"`},
+	{name: "T2 drops a cut in the last alternative", rule: complexity.N6, body: `"ab" / "cd" #cut "ef"`, want: `"ab" / "cd" "ef"`},
+	{name: "T2 drops the alternatives after a leading cut", rule: complexity.N6, body: `#cut "ab" / "cd"`, want: `"ab"`},
+	{name: "T2 drops a cut nested in the last alternative", rule: complexity.N6, body: `"ab" / -("cd" #cut "x")`, want: `"ab" / -("cd" "x")`},
+	{name: "T2 drops a nested cut of an only alternative left in a repetition", rule: complexity.N6, body: `(-("a" #cut "b") / !"q" "q")* "ac"`, want: `(-("a" "b"))* "ac"`},
+	{name: "T2 drops a nested cut of an only alternative left in an option", rule: complexity.N6, body: `(x:("a" #cut "b") / !"q" "q")? "ac"`, want: `(x:("a" "b"))? "ac"`},
+	{name: "T2 drops a nested cut of an only alternative spliced into a choice", rule: complexity.N6, body: `((-("x" #cut "y" "q") / !"z" "z") / "x")* $$`, want: `(-("x" "y" "q") / "x")* $$`},
 	{name: "T2 keeps a choice whose only alternative left has a cut in a skip", body: `("a" "b" #recover(skip=#cut [^;]*) / !"q" "q")* "ac"`, want: `("a" "b" #recover(skip=#cut [^;]*) / !"q" "q")* "ac"`},
 	{name: "T1 keeps a cut that commits", body: `"ab" #cut "x" / "cd"`, want: `"ab" #cut "x" / "cd"`},
-	{name: "V1 drops a recovery that never fires", rule: ruleN6, body: `"ab"* #recover(skip=[^;]*)`, want: `"ab"*`},
+	{name: "V1 drops a recovery that never fires", rule: complexity.N6, body: `"ab"* #recover(skip=[^;]*)`, want: `"ab"*`},
 	{name: "V1 keeps a recovery that can fire", body: `"ab" #recover(skip=[^;]*)`, want: `"ab" #recover(skip=[^;]*)`},
-	{name: "N7 drops labels for analyses of matching", rule: ruleN7, body: `"ab" @error("e")`, want: `"ab"`, opts: viewOptions{labels: true}},
+	{name: "N7 drops labels for analyses of matching", rule: complexity.N7, body: `"ab" @error("e")`, want: `"ab"`, opts: complexity.Options{Labels: true}},
 	{name: "N7 is off for the classifier", body: `"ab" @error("e")`, want: `"ab" @error(message="e")`},
-	{name: "C9 merges single characters", rule: ruleN8, body: `"a" / [0-9] / "b" "c"`, want: `[0-9a] / "b" "c"`},
+	{name: "C9 merges single characters", rule: complexity.N8, body: `"a" / [0-9] / "b" "c"`, want: `[0-9a] / "b" "c"`},
 	{name: "C9 keeps a literal without case", body: `"a"i / "b"i`, want: `"a"i / "b"i`},
 	{name: "C9 keeps a negated class", body: `[^a] / "b"`, want: `[^a] / "b"`},
 	{name: "C9 keeps the replacement character", body: `"\u{fffd}" / "b"`, want: "\"\ufffd\" / \"b\""},
-	{name: "R3 merges repetitions in a row", rule: ruleN9, body: `"ab"* "ab"*`, want: `"ab"*`},
-	{name: "R4 merges a plus and a star", rule: ruleN9, body: `"ab"+ "ab"*`, want: `"ab"+`},
-	{name: "R4 merges an option and a star", rule: ruleN9, body: `"ab"? "ab"*`, want: `"ab"*`},
-	{name: "R5 folds an item and its repetition", rule: ruleN9, body: `"ab" "ab"*`, want: `"ab"+`},
+	{name: "R3 merges repetitions in a row", rule: complexity.N9, body: `"ab"* "ab"*`, want: `"ab"*`},
+	{name: "R4 merges a plus and a star", rule: complexity.N9, body: `"ab"+ "ab"*`, want: `"ab"+`},
+	{name: "R4 merges an option and a star", rule: complexity.N9, body: `"ab"? "ab"*`, want: `"ab"*`},
+	{name: "R5 folds an item and its repetition", rule: complexity.N9, body: `"ab" "ab"*`, want: `"ab"+`},
 	{name: "R3 keeps repetitions with a loose cut", body: `("ab" #cut "x")* ("ab" #cut "x")*`, want: `("ab" #cut "x")* ("ab" #cut "x")*`},
 	{name: "R3 keeps nullable repetitions that bind", body: `({v == 0} {v := 1} / {v == 1} "a")* ({v == 0} {v := 1} / {v == 1} "a")*` + "\nvar v int",
 		want: `({v == 0} {v := 1} / {v == 1} "a")* ({v == 0} {v := 1} / {v == 1} "a")*`},
 	{name: "R3 keeps repetitions of a rule with a predicate", body: `p* p*`, want: `p* p*`},
-	{name: "R3 merges repetitions of a cheap rule", rule: ruleN9, body: `r* r*`, want: `r*`},
-	{name: "R6 flattens a star of a star", rule: ruleN10, body: `("ab"*)*`, want: `"ab"*`},
-	{name: "R6 flattens a star of an option", rule: ruleN10, body: `("ab"?)*`, want: `"ab"*`},
+	{name: "R3 merges repetitions of a cheap rule", rule: complexity.N9, body: `r* r*`, want: `r*`},
+	{name: "R6 flattens a star of a star", rule: complexity.N10, body: `("ab"*)*`, want: `"ab"*`},
+	{name: "R6 flattens a star of an option", rule: complexity.N10, body: `("ab"?)*`, want: `"ab"*`},
 	{name: "R6 keeps a nested repetition with a loose cut", body: `(("ab" #cut "x")*)*`, want: `("ab" #cut "x")**`},
-	{name: "R7 unrolls whitespace", rule: ruleN11, body: `[ ]* ("//" [^\n]* [ ]*)*`, want: `([ ] / "//" [^\n]*)*`},
-	{name: "R7 absorbs a repetition into a choice", rule: ruleN11, body: `"ab"* ("ab" / "cd")*`, want: `("ab" / "cd")*`},
+	{name: "R7 unrolls whitespace", rule: complexity.N11, body: `[ ]* ("//" [^\n]* [ ]*)*`, want: `([ ] / "//" [^\n]*)*`},
+	{name: "R7 absorbs a repetition into a choice", rule: complexity.N11, body: `"ab"* ("ab" / "cd")*`, want: `("ab" / "cd")*`},
 	{name: "R7 keeps a nullable element", body: `("ab" / "")* ("cd" ("ab" / "")*)*`, want: `("ab" / "")* ("cd" ("ab" / "")*)*`},
 	{name: "R7 keeps a loose cut", body: `[ ]* ("//" #cut [^\n]* [ ]*)*`, want: `[ ]* ("//" #cut [^\n]* [ ]*)*`},
 	{name: "R7 keeps a separator that binds", body: `x* ({v := 1} x*)*` + "\nvar v int = 0\nrule x = {v == 1} a\nrule a = \"a\"",
 		want: `x* ({v := 1} x*)*`},
 	{name: "R7 keeps an element with a predicate", body: `p* ("c" p*)*`, want: `p* ("c" p*)*`},
-	{name: "R7 unrolls a cheap rule", rule: ruleN11, body: `r* ("c" r*)*`, want: `(r / "c")*`},
+	{name: "R7 unrolls a cheap rule", rule: complexity.N11, body: `r* ("c" r*)*`, want: `(r / "c")*`},
 	{name: "R3 keeps a star before a plus", body: `"ab"* "ab"+`, want: `"ab"* "ab"+`},
 	{name: "R3 keeps a repetition with a minimum above one", body: `"ab"#repeat(2,) "ab"*`, want: `"ab" #repeat(2,) "ab"*`},
 	{name: "R3 keeps a bounded repetition", body: `"ab"#repeat(1,3) "ab"*`, want: `"ab" #repeat(1, 3) "ab"*`},
@@ -354,7 +354,7 @@ var normalViewCases = []struct {
 	{name: "R5 keeps a rule with a predicate", body: `p p*`, want: `p p*`},
 	{name: "R4 keeps an option of a nullable element", body: `("ab" / "")? ("ab" / "")*`, want: `("ab" / "")? ("ab" / "")*`},
 	{name: "R4 keeps an option of a rule with a predicate", body: `p? p*`, want: `p? p*`},
-	{name: "R6 flattens a star of a plus", rule: ruleN10, body: `("ab"+)*`, want: `"ab"*`},
+	{name: "R6 flattens a star of a plus", rule: complexity.N10, body: `("ab"+)*`, want: `"ab"*`},
 	{name: "R6 keeps a plus of a plus", body: `("ab"+)+`, want: `"ab"++`},
 	{name: "R6 keeps a bounded repetition of a star", body: `("ab"*)#repeat(,3)`, want: `"ab"* #repeat(,3)`},
 	{name: "R6 keeps a star of an option of a nullable element", body: `(("ab" / "")?)*`, want: `("ab" / "")?*`},
@@ -363,27 +363,27 @@ var normalViewCases = []struct {
 	{name: "R7 keeps a separator followed by a plus", body: `[ ]* ("//" [ ]+)*`, want: `[ ]* ("//" [ ]+)*`},
 	{name: "R7 keeps a separator followed by a bounded repetition", body: `[ ]* ("//" [ ]#repeat(,3))*`, want: `[ ]* ("//" [ ] #repeat(,3))*`},
 	{name: "R7 keeps the absorption of a rule with a predicate", body: `p* (p / "c")*`, want: `p* (p / "c")*`},
-	{name: "R3 and R7 apply in a row", rule: ruleN9, body: `"a"* "a"* ("c" "a"*)*`, want: `[ac]*`},
-	{name: "K4 turns self exclusion into bottom", rule: ruleN12, body: `!"ab" "ab"`, want: `_|_`},
+	{name: "R3 and R7 apply in a row", rule: complexity.N9, body: `"a"* "a"* ("c" "a"*)*`, want: `[ac]*`},
+	{name: "K4 turns self exclusion into bottom", rule: complexity.N12, body: `!"ab" "ab"`, want: `_|_`},
 	{name: "K4 keeps self exclusion of a call", body: `!r r`, want: `!r r`},
-	{name: "K4 turns self exclusion of a bounded repetition into bottom", rule: ruleN12, body: `!"a"#repeat(2) "a"#repeat(2)`, want: `_|_`},
+	{name: "K4 turns self exclusion of a bounded repetition into bottom", rule: complexity.N12, body: `!"a"#repeat(2) "a"#repeat(2)`, want: `_|_`},
 	{name: "K4 keeps self exclusion of an unbounded repetition", body: `!"a"+ "a"+`, want: `!"a"+ "a"+`},
-	{name: "C6 factors a shared first item", rule: ruleN12, body: `"(" "xy" / "(" "zw"`, want: `"(" ("xy" / "zw")`},
-	{name: "C6 factors a call of a cheap rule", rule: ruleN12, body: `r "xy" / r "zw" / "q"`, want: `r ("xy" / "zw") / "q"`},
+	{name: "C6 factors a shared first item", rule: complexity.N12, body: `"(" "xy" / "(" "zw"`, want: `"(" ("xy" / "zw")`},
+	{name: "C6 factors a call of a cheap rule", rule: complexity.N12, body: `r "xy" / r "zw" / "q"`, want: `r ("xy" / "zw") / "q"`},
 	{name: "C6 keeps a cut", body: `"(" #cut "xy" / "(" "zw"`, want: `"(" #cut "xy" / "(" "zw"`},
 	{name: "C6 keeps a predicate prefix", body: `{true} "xy" / {true} "zw"`, want: `{true} "xy" / {true} "zw"`},
 	{name: "C6 keeps a prefix that calls a rule with a predicate", body: `p "xy" / p "zw"`, want: `p "xy" / p "zw"`},
-	{name: "P1 inlines a rule that is not memoized", rule: ruleN13, body: `a "x"` + "\nrule a = \"y\" \"z\"", want: `"y" "z" "x"`, opts: viewOptions{inline: true}},
+	{name: "P1 inlines a rule that is not memoized", rule: complexity.N13, body: `a "x"` + "\nrule a = \"y\" \"z\"", want: `"y" "z" "x"`, opts: complexity.Options{Inline: true}},
 	{name: "N13 is off for the classifier", body: `a "x"` + "\nrule a = \"y\" \"z\"", want: `a "x"`},
-	{name: "P1 inlines a rule declared @linear", rule: ruleN13, body: `a "x"` + "\n@linear\nrule a = \"y\" \"z\"", want: `"y" "z" "x"`, opts: viewOptions{inline: true}},
-	{name: "P1 keeps a rule with a capture", body: `a "x"` + "\nrule a = c:\"y\" \"z\"", want: `a "x"`, opts: viewOptions{inline: true}},
-	{name: "P1 keeps a rule with a loose cut", body: `a "x"` + "\nrule a = \"y\" #cut \"z\"", want: `a "x"`, opts: viewOptions{inline: true}},
-	{name: "P1 keeps a start rule", body: `s "x"` + "\n@start\nrule s = \"y\" \"z\"", want: `s "x"`, opts: viewOptions{inline: true}},
-	{name: "P1 keeps a rule that calls itself", body: `a` + "\nrule a = \"x\" a m / \"y\"\nrule m = \"m\" #missing", want: `a`, opts: viewOptions{inline: true}},
-	{name: "P1 keeps a rule of a left-recursion cycle", body: `a` + "\nrule a = b \"x\" / \"y\"\nrule b = a \"z\"", want: `a`, opts: viewOptions{inline: true}},
-	{name: "P1 inlines a call whose value no predicate reads of a rule that one reads elsewhere", rule: ruleN13,
+	{name: "P1 inlines a rule declared @linear", rule: complexity.N13, body: `a "x"` + "\n@linear\nrule a = \"y\" \"z\"", want: `"y" "z" "x"`, opts: complexity.Options{Inline: true}},
+	{name: "P1 keeps a rule with a capture", body: `a "x"` + "\nrule a = c:\"y\" \"z\"", want: `a "x"`, opts: complexity.Options{Inline: true}},
+	{name: "P1 keeps a rule with a loose cut", body: `a "x"` + "\nrule a = \"y\" #cut \"z\"", want: `a "x"`, opts: complexity.Options{Inline: true}},
+	{name: "P1 keeps a start rule", body: `s "x"` + "\n@start\nrule s = \"y\" \"z\"", want: `s "x"`, opts: complexity.Options{Inline: true}},
+	{name: "P1 keeps a rule that calls itself", body: `a` + "\nrule a = \"x\" a m / \"y\"\nrule m = \"m\" #missing", want: `a`, opts: complexity.Options{Inline: true}},
+	{name: "P1 keeps a rule of a left-recursion cycle", body: `a` + "\nrule a = b \"x\" / \"y\"\nrule b = a \"z\"", want: `a`, opts: complexity.Options{Inline: true}},
+	{name: "P1 inlines a call whose value no predicate reads of a rule that one reads elsewhere", rule: complexity.N13,
 		body: `y:a {len($y) == 2} a` + "\nrule a = \"r\"* \"r\"*",
-		want: `y:a {len($y) == 2} "r"*`, opts: viewOptions{inline: true}},
+		want: `y:a {len($y) == 2} "r"*`, opts: complexity.Options{Inline: true}},
 	{name: "P1 is off for the classifier", body: `a "x"` + "\nrule a = \"y\" \"z\"", want: `a "x"`},
 }
 
@@ -392,6 +392,9 @@ var predicateCaptureCases = []struct {
 	name string
 	src  string
 	want map[string]string // the view of each rule named
+	// rejected marks a grammar that the language rejects (a capture under a repetition of a
+	// repetition is not in scope after it), so that the view never meets it.
+	rejected bool
 }{
 	{name: "a capture that a predicate reads keeps its repetitions",
 		src:  "rule main = x:(\"a\"* \"a\"*) {len($x) == 2} (e \"q\" / \"x\")* $$\nrule e = e \"x\" / \"x\"",
@@ -428,13 +431,13 @@ var predicateCaptureCases = []struct {
 		want: map[string]string{"main": `(x:"a")? (x:"a")* {text($x) == "a"} "b"`}},
 	{name: "a repetition of a repetition of a read capture keeps its shape",
 		src:  "rule main = ((x:\"a\")*)* {len($x) == 1} \"b\"",
-		want: map[string]string{"main": `(x:"a")** {len($x) == 1} "b"`}},
+		want: map[string]string{"main": `(x:"a")** {len($x) == 1} "b"`}, rejected: true},
 	{name: "a repetition of an optional read capture keeps its shape",
 		src:  "rule main = ((x:\"a\")?)* {len($x) == 1} \"b\"",
-		want: map[string]string{"main": `(x:"a")?* {len($x) == 1} "b"`}},
+		want: map[string]string{"main": `(x:"a")?* {len($x) == 1} "b"`}, rejected: true},
 	{name: "a nested repetition of a read capture keeps its shape",
 		src:  "rule main = (x:\"a\"*)* {len($x) == 1} \"b\"",
-		want: map[string]string{"main": `(x:"a"*)* {len($x) == 1} "b"`}},
+		want: map[string]string{"main": `(x:"a"*)* {len($x) == 1} "b"`}, rejected: true},
 	{name: "a repetition of a call that reaches a read capture keeps its shape",
 		src:  "rule main = y:r {len($y) == 1} r r*\nrule r = \"a\"",
 		want: map[string]string{"main": `y:r {len($y) == 1} r r*`}},
@@ -486,7 +489,7 @@ var valueFlowCases = []struct {
 		want: map[string]string{"r": `y:("a"* "a"*) "q"`}},
 	{name: "a capture in an inline action keeps its repetitions",
 		src:  "rule main = (x:(\"a\"* \"a\"*) {len($x) == 2} => $x)",
-		want: map[string]string{"main": `(x:("a"* "a"*) {len($x) == 2} => $x)`}},
+		want: map[string]string{"main": `_main_1`, "_main_1": `x:("a"* "a"*) {len($x) == 2}`}},
 }
 
 // textCases are the cases of TestNormalViewText: the body of rule main.
@@ -544,7 +547,7 @@ var cutTupleCases = []struct {
 var valueShapeCases = []struct {
 	name string
 	src  string
-	opts viewOptions
+	opts complexity.Options
 	want map[string]string
 }{
 	{name: "a choice of one sequence in a read capture stays",
@@ -606,11 +609,11 @@ var valueShapeCases = []struct {
 		want: map[string]string{"main": `x:("a" "b" "c") {true}`}},
 	{name: "a call in a read capture is not inlined",
 		src:  "rule main = x:(\"a\" r) {len($x) == 2}\nrule r = \"b\" \"c\"",
-		opts: viewOptions{inline: true},
+		opts: complexity.Options{Inline: true},
 		want: map[string]string{"main": `x:("a" r) {len($x) == 2}`}},
 	{name: "a call in an unread capture is inlined",
 		src:  "rule main = x:(\"a\" r) {true}\nrule r = \"b\" \"c\"",
-		opts: viewOptions{inline: true},
+		opts: complexity.Options{Inline: true},
 		want: map[string]string{"main": `x:("a" "b" "c") {true}`}},
 	{name: "a recovery of a sequence that always succeeds in a read capture stays",
 		src:  "rule main = x:(\"q\" (\"a\"? \"b\"?) #recover(skip=\"z\")) {len($x) == 2}",
