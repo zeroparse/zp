@@ -55,9 +55,9 @@ func GenOptions(root, name string) ([]string, error) {
 	return nil, fmt.Errorf("testdata/grammars/generate.txt has no line for %s", name)
 }
 
-// TSGenArgs returns the options with which testdata/grammars/generate.txt generates parser name,
+// GenTSArgs returns the options with which testdata/grammars/generate.txt generates parser name,
 // adapted to TypeScript: the Go-only options (-module, -runtime import, -nodoc, -typed-only) are dropped.
-func TSGenArgs(root, name string) ([]string, error) {
+func GenTSArgs(root, name string) ([]string, error) {
 	f, err := GenOptions(root, name)
 	if err != nil {
 		return nil, err
@@ -89,9 +89,9 @@ func GenerateGo(root, zpBin, dir, name string, extra ...string) error {
 }
 
 // GenerateTS generates the TypeScript parser of grammar name into dir, with extra options after those
-// of TSGenArgs.
+// of GenTSArgs.
 func GenerateTS(root, zpBin, dir, name string, extra ...string) error {
-	args, err := TSGenArgs(root, name)
+	args, err := GenTSArgs(root, name)
 	if err != nil {
 		return err
 	}

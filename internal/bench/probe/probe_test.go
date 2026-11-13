@@ -7,7 +7,7 @@ import (
 	"testing"
 )
 
-func TestGenOptionsAndTSGenArgs(t *testing.T) {
+func TestGenOptionsAndGenTSArgs(t *testing.T) {
 	root := filepath.Join("..", "..", "..")
 	got, err := GenOptions(root, "json")
 	if err != nil {
@@ -16,7 +16,7 @@ func TestGenOptionsAndTSGenArgs(t *testing.T) {
 	if !slicesContain(got, "-recognize") || !slicesContain(got, "-module") && !slicesContain(got, "-runtime") {
 		t.Errorf("options of json = %v", got)
 	}
-	ts, err := TSGenArgs(root, "json")
+	ts, err := GenTSArgs(root, "json")
 	if err != nil {
 		t.Fatal(err)
 	}
