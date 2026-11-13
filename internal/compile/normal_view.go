@@ -968,7 +968,7 @@ func (v *normalView) attributed(a *grammar.Attributed) grammar.Expr {
 // cycle of calls, and its body has no action, binding, capture or cut that the call would delimit.
 func (v *normalView) inline(r *grammar.Ref) grammar.Expr {
 	rd := v.byName[r.Name]
-	if rd == nil || r.Level != "" || v.memo[r.Name] || v.an.cyclic[r.Name] || v.inlining[r.Name] ||
+	if rd == nil || !v.plainCall(r) || v.memo[r.Name] || v.an.cyclic[r.Name] || v.inlining[r.Name] ||
 		rd.Action != nil || slices.ContainsFunc(rd.Attrs, func(a *grammar.Attribute) bool { return !desugar.IsLinear(a) }) {
 		return nil
 	}
@@ -1157,6 +1157,21 @@ func (v *normalView) cheapRules(rules []*grammar.RuleDef) {
 	}
 }
 
+// plainCall reports whether r calls its rule as a reference without a binding level does: it names
+// no level or the loosest one, and a call of the loosest level applies every level of the
+// Operators Rule, under the same memo entry.
+func (v *normalView) plainCall(r *grammar.Ref) bool {
+	if r.Level == "" {
+		return true
+	}
+	rd := v.byName[r.Name]
+	if rd == nil {
+		return false
+	}
+	o, ok := rd.Expr.(*grammar.OperatorsRule)
+	return ok && len(o.Levels) > 0 && o.Levels[0].Name == r.Level
+}
+
 // evaluatedAgainCheaply reports whether an evaluation of e made again in a state in which it was
 // made before costs at most a constant factor of the first, whatever the input: every rule that e
 // calls is cheap (cheapRules), and e has nothing else whose cost the runtime does not bound by the
@@ -1167,7 +1182,7 @@ func (v *normalView) evaluatedAgainCheaply(e grammar.Expr) bool {
 	WalkExpr(e, func(x grammar.Expr) {
 		switch x := x.(type) {
 		case *grammar.Ref:
-			ok = ok && x.Level == "" && v.cheap[x.Name]
+			ok = ok && v.plainCall(x) && v.cheap[x.Name]
 		case *grammar.Predicate, *grammar.InlineAction, *grammar.Recovery, *grammar.Stream, *grammar.OperatorsRule:
 			ok = false
 		case *grammar.Attributed:
@@ -1220,10 +1235,15 @@ func termBinds(t grammar.Term) bool {
 }
 
 // same reports whether two expressions are the same expression, whatever their positions and
-// layout.
+// layout. A call of the loosest level of a rule is the same as its plain call (plainCall).
 func (v *normalView) same(a, b grammar.Expr) bool {
 	if a == b {
 		return true
+	}
+	if x, ok := a.(*grammar.Ref); ok {
+		if y, ok := b.(*grammar.Ref); ok && x.Name == y.Name && v.plainCall(x) && v.plainCall(y) {
+			return true
+		}
 	}
 	return grammar.FormatExpr(a) == grammar.FormatExpr(b)
 }

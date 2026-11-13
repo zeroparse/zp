@@ -44,6 +44,7 @@ func (b *builder) evaluatedAgainCheaply(n core.Node) bool {
 	core.Walk(n, func(x core.Node) {
 		switch x := x.(type) {
 		case *core.Call:
+			// A call of the loosest level has level 0: the runtime makes it as the plain call.
 			ok = ok && x.Level == 0 && b.cheap[x.Rule]
 		case *core.Pred, *core.BindNode, *core.Recover, *core.Stream, *core.OperatorsRule, *core.Missing, *core.Nest:
 			ok = false
