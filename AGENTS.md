@@ -34,13 +34,16 @@ with implementation changes; regenerate generated files.
   `internal/compile/`; runtime: `internal/engine/`; generators:
   `internal/gen/`; grammars: `testdata/grammars/`; ready-made parsers: the separate
   `alpha-parsers` repository.
-- Use Go 1.27.1. Choose checks by what a change touches. Docs or spec only:
-  `cd site && go test ./...` and the site build/check in `docs/site.md`. Code:
-  `go vet` and the tests of the changed packages and their dependents. Engine,
-  generator or runtime: also `go generate ./gen ./bench` and
-  `hack/test-alpha-parsers.sh` (it fails without an alpha-parsers checkout;
-  `hack/sync-alpha-parsers.sh` updates one); budget-control code: also the reference build
-  in `docs/development.md`. The default root `go test ./... ./runtime/...` takes
+- Use Go 1.27.1. Choose checks by what a change touches. Light gate (changes
+  only to docs, spec, site, skills or test files, no non-test Go code):
+  `go vet ./...`, `cd site && go test -count=1 ./...` and the tests of the
+  packages whose files changed. Code: `go vet` and the tests of the changed
+  packages and their dependents; budget-control code: also the reference build
+  in `docs/development.md`. A work branch does not run `go generate ./gen ./bench`
+  or `hack/test-alpha-parsers.sh`: the landing gate does (the latter fails
+  without an alpha-parsers checkout; `hack/sync-alpha-parsers.sh` updates one).
+  When the generator changed, diff the `zp gen` output of the affected grammars
+  against main instead. The default root `go test ./... ./runtime/...` takes
   minutes; run it on the final commit of each landing batch, and when the
   batch touches the engine, generator or runtime run it with `-tags zp_long` (the
   long tier in `docs/development.md`) instead,
