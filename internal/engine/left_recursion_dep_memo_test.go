@@ -328,9 +328,13 @@ func TestEndedByResourceLimit(t *testing.T) {
 	if !strings.Contains(ins, "insertion limit") || endedByResourceLimit(ins, "") || endedByResourceLimit("", ins) {
 		t.Errorf("the insertion limit error %s must not count as a resource limit", ins)
 	}
-	loop := mustCompile(t, "@start\nrule main = \"a\"+")
-	got, err = loop.ParseWith("", strings.Repeat("a", 100), ParseOptions{Backend: Closure, Limits: parse.Limits{Compute: 5}})
-	res := gentest.ResultJSON(got, err)
+	// The reference build without budget controls rejects a limit, so there the classifier reads
+	// the error that a parse ended by the compute limit returns.
+	res := gentest.ResultJSON(nil, &parse.LimitError{Kind: parse.LimitCompute, Limit: 5, Used: 4, Requested: 2})
+	if core.BudgetControlsEnabled {
+		loop := mustCompile(t, "@start\nrule main = \"a\"+")
+		res = gentest.ResultJSON(loop.ParseWith("", strings.Repeat("a", 100), ParseOptions{Backend: Closure, Limits: parse.Limits{Compute: 5}}))
+	}
 	if !strings.Contains(res, "compute limit") || !endedByResourceLimit(res, "x") || !endedByResourceLimit("x", res) {
 		t.Errorf("the compute limit error %s must count as a resource limit", res)
 	}
