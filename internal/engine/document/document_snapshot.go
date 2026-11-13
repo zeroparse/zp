@@ -282,7 +282,7 @@ func (s *Snapshot) Materialize() *parse.Node {
 	for i := range nodes {
 		r := s.graph.at(i)
 		pos := s.graph.position(i, r)
-		nodes[i] = value.Ptr(value.Data{Kind: r.kind, Start: pos.start, End: pos.end, Text: r.text, Fresh: r.fresh, Terminal: r.terminal, Gen: pos.gen})
+		nodes[i] = value.Ptr(value.Data{Kind: r.kind, Start: pos.start, End: pos.end, Text: r.text, Fresh: r.fresh, Terminal: r.terminal, Mark: pos.gen})
 	}
 	node := func(id int) *parse.Node {
 		if id == 0 {
@@ -512,7 +512,7 @@ func freezeSnapshotGraph(p *core.Parser, root *parse.Node) (snapshotGraph, *pars
 			return id, false
 		}
 		p.Spend()
-		r := snapshotRecord{kind: value.D(n).Kind, start: value.D(n).Start, end: value.D(n).End, text: value.D(n).Text, fresh: value.D(n).Fresh, terminal: value.D(n).Terminal, gen: value.D(n).Gen}
+		r := snapshotRecord{kind: value.D(n).Kind, start: value.D(n).Start, end: value.D(n).End, text: value.D(n).Text, fresh: value.D(n).Fresh, terminal: value.D(n).Terminal, gen: value.D(n).Mark}
 		if value.D(n).Children != nil {
 			r.children = make([]int, len(value.D(n).Children))
 		}

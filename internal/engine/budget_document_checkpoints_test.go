@@ -177,7 +177,7 @@ func TestBudgetDocumentShiftReplayAndSharedEmptyGraph(t *testing.T) {
 	p := stateBudgetParser(parse.Limits{Compute: 2})
 	p.Gen = 4
 	p.Edits = []core.DocEdit{{Start: 0, End: 1, Delta: 1}, {Start: 0, End: 1, Delta: 1}, {Start: 0, End: 1, Delta: 1}, {Start: 0, End: 1, Delta: 1}}
-	n := value.Ptr(value.Data{Start: 10, End: 11, Gen: 1})
+	n := value.Ptr(value.Data{Start: 10, End: 11, Mark: 1})
 	if err := catchFatal(t, func() { p.ShiftOf(n) }); !errors.Is(err, parse.ErrLimit) {
 		t.Fatalf("shift interruption = %v", err)
 	}

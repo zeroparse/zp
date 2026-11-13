@@ -47,25 +47,25 @@ func (p *Parser) moveResult(e *MemoEntry) {
 	}
 	if value.D(n).Start == value.D(n).End {
 		e.Node = p.MoveEmpty(n, p.baseShift)
-	} else if value.D(n).Gen < p.Gen {
+	} else if value.D(n).Mark < p.Gen {
 		p.MoveTree(n, p.ShiftOf(n))
 	}
 	p.ClearMovementSpend()
 }
 
 // ShiftOf returns how far the non-empty node n of the result being moved moves with the edits
-// since the generation of n (Data.Gen). The nodes of a result move together. Those that were current when the entry's
+// since the generation of n (Data.Mark). The nodes of a result move together. Those that were current when the entry's
 // result was last current (gen at most moveBase) move by the entry's shift; others were moved through
 // another result since, and the edits after that are replayed once per generation (shifts).
 func (p *Parser) ShiftOf(n *parse.Node) int {
-	if value.D(n).Gen <= p.moveBase {
+	if value.D(n).Mark <= p.moveBase {
 		return p.baseShift
 	}
-	if d, ok := p.Shifts[value.D(n).Gen]; ok {
+	if d, ok := p.Shifts[value.D(n).Mark]; ok {
 		return d
 	}
 	s := int(value.D(n).Start)
-	for _, ed := range p.Edits[value.D(n).Gen:p.Gen] {
+	for _, ed := range p.Edits[value.D(n).Mark:p.Gen] {
 		p.Spend()
 		if s >= ed.End {
 			s += ed.Delta
@@ -74,26 +74,26 @@ func (p *Parser) ShiftOf(n *parse.Node) int {
 	if p.Shifts == nil {
 		p.Shifts = map[uint32]int{}
 	}
-	p.Shifts[value.D(n).Gen] = s - int(value.D(n).Start)
+	p.Shifts[value.D(n).Mark] = s - int(value.D(n).Start)
 	return s - int(value.D(n).Start)
 }
 
 // MoveTree moves the non-empty node n by shift (ShiftOf(n)), and its descendants, in place.
 func (p *Parser) MoveTree(n *parse.Node, shift int) {
 	p.Spend()
-	gen := value.D(n).Gen
+	gen := value.D(n).Mark
 	value.D(n).Start += int32(shift)
 	value.D(n).End += int32(shift)
-	value.D(n).Gen = p.Gen
+	value.D(n).Mark = p.Gen
 	for i, c := range value.D(n).Children {
 		p.Spend()
-		if c != nil && value.D(c).Gen < p.Gen {
+		if c != nil && value.D(c).Mark < p.Gen {
 			value.D(n).Children[i] = p.moveChild(c, gen, shift)
 		}
 	}
 	for i := range value.D(n).Fields {
 		p.Spend()
-		if c, ok := value.D(n).Fields[i].Value.(*parse.Node); ok && c != nil && value.D(c).Gen < p.Gen {
+		if c, ok := value.D(n).Fields[i].Value.(*parse.Node); ok && c != nil && value.D(c).Mark < p.Gen {
 			value.D(n).Fields[i].Value = p.moveChild(c, gen, shift)
 		}
 	}
@@ -103,7 +103,7 @@ func (p *Parser) MoveTree(n *parse.Node, shift int) {
 // it or its copy.
 func (p *Parser) moveChild(c *parse.Node, gen uint32, shift int) *parse.Node {
 	if value.D(c).Start != value.D(c).End {
-		if value.D(c).Gen != gen {
+		if value.D(c).Mark != gen {
 			shift = p.ShiftOf(c)
 		}
 		p.MoveTree(c, shift)
@@ -133,7 +133,7 @@ func (p *Parser) MoveEmpty(n *parse.Node, shift int) *parse.Node {
 		value.D(c).Children = p.Nodes(len(value.D(n).Children))
 		for i, ch := range value.D(n).Children {
 			p.Spend()
-			value.D(c).Children[i] = p.moveDescendant(ch, value.D(n).Gen, shift)
+			value.D(c).Children[i] = p.moveDescendant(ch, value.D(n).Mark, shift)
 		}
 	}
 	if value.D(n).Fields != nil {
@@ -141,7 +141,7 @@ func (p *Parser) MoveEmpty(n *parse.Node, shift int) *parse.Node {
 		for i, f := range value.D(n).Fields {
 			p.Spend()
 			if vn, ok := f.Value.(*parse.Node); ok {
-				f.Value = p.moveDescendant(vn, value.D(n).Gen, shift)
+				f.Value = p.moveDescendant(vn, value.D(n).Mark, shift)
 			}
 			value.D(c).Fields[i] = f
 		}
@@ -156,7 +156,7 @@ func (p *Parser) moveDescendant(c *parse.Node, gen uint32, shift int) *parse.Nod
 		return nil
 	case value.D(c).Start == value.D(c).End:
 		return p.MoveEmpty(c, shift)
-	case value.D(c).Gen < p.Gen:
+	case value.D(c).Mark < p.Gen:
 		return p.moveChild(c, gen, shift)
 	}
 	return c
@@ -175,7 +175,7 @@ func (p *Parser) moveValue(v *parse.Node, shift int, base uint32) *parse.Node {
 	p.moveBase, p.baseShift = base, shift
 	if value.D(v).Start == value.D(v).End {
 		v = p.MoveEmpty(v, shift)
-	} else if value.D(v).Gen < p.Gen {
+	} else if value.D(v).Mark < p.Gen {
 		p.MoveTree(v, p.ShiftOf(v))
 	}
 	p.ClearMovementSpend()

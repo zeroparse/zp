@@ -497,9 +497,9 @@ func TestDocMoveChargesAtItsBound(t *testing.T) {
 		// Nodes last moved through other results, after 1, 2 and 2 edits of 4: the replays charge 3 and
 		// 2, once for the generation, and forgetting the two generations charges one each.
 		p := edited(4)
-		a := value.Ptr(value.Data{Start: 2, End: 3, Gen: 1})
-		b := value.Ptr(value.Data{Start: 3, End: 4, Gen: 2})
-		c := value.Ptr(value.Data{Start: 4, End: 5, Gen: 2})
+		a := value.Ptr(value.Data{Start: 2, End: 3, Mark: 1})
+		b := value.Ptr(value.Data{Start: 3, End: 4, Mark: 2})
+		c := value.Ptr(value.Data{Start: 4, End: 5, Mark: 2})
 		n := value.Ptr(value.Data{Start: 2, End: 5, Children: []*parse.Node{a, b, c}})
 		got := moved(p, entry(p, n))
 		if got != 7+3+2+2 || got > movedBound(4, 3, 3+2) {
@@ -513,7 +513,7 @@ func TestDocMoveChargesAtItsBound(t *testing.T) {
 		n := value.Ptr(value.Data{Start: 2, End: 3})
 		p.Edits = append(p.Edits, DocEdit{Delta: 1})
 		p.Gen = 2
-		value.D(n).Gen = 1
+		value.D(n).Mark = 1
 		e := entry(p, n)
 		if got := moved(p, e); got != 1+1+1 || got > movedBound(1, 0, 1) {
 			t.Fatalf("charged %d", got)
@@ -521,7 +521,7 @@ func TestDocMoveChargesAtItsBound(t *testing.T) {
 	})
 	t.Run("the nodes of the entry's generation replay nothing", func(t *testing.T) {
 		p := edited(3)
-		n := value.Ptr(value.Data{Start: 2, End: 3, Gen: 1})
+		n := value.Ptr(value.Data{Start: 2, End: 3, Mark: 1})
 		e := &MemoEntry{Node: n, shift: 5, shifted: true, Gen: 1}
 		if got := moved(p, e); got != 1 || value.D(n).Start != 7 {
 			t.Fatalf("charged %d, start %d", got, value.D(n).Start)
@@ -532,7 +532,7 @@ func TestDocMoveChargesAtItsBound(t *testing.T) {
 	})
 	t.Run("a root that another result moved stays", func(t *testing.T) {
 		p := edited(1)
-		n := value.Ptr(value.Data{Start: 2, End: 3, Gen: 1})
+		n := value.Ptr(value.Data{Start: 2, End: 3, Mark: 1})
 		if got := moved(p, entry(p, n)); got != 0 || value.D(n).Start != 2 {
 			t.Fatalf("charged %d, start %d", got, value.D(n).Start)
 		}
@@ -674,7 +674,7 @@ func TestRunOperationsChargeTheirDeclaredWork(t *testing.T) {
 		p := docParser()
 		p.Edits, p.Gen = []DocEdit{{Start: 0, End: 0}, {Start: 0, End: 0, Delta: 2}}, 2
 		r := RunState{Old: oldRun(1, nil), J: 0, max: -1, edit: p.Edits[1]}
-		r.Old[0].V = value.Ptr(value.Data{Start: 0, End: 2, Gen: 1})
+		r.Old[0].V = value.Ptr(value.Data{Start: 0, End: 2, Mark: 1})
 		if got := spent(p, func() { p.NextTail(&r) }); got != 1+1 {
 			t.Fatalf("charged %d", got)
 		}
@@ -683,7 +683,7 @@ func TestRunOperationsChargeTheirDeclaredWork(t *testing.T) {
 		p := docParser()
 		p.Edits, p.Gen = []DocEdit{{Start: 0, End: 0, Delta: 2}}, 1
 		r := RunState{Old: oldRun(1, nil), J: 0, max: -1, edit: p.Edits[0]}
-		r.Old[0].V = value.Ptr(value.Data{Start: 2, End: 4, Gen: 1})
+		r.Old[0].V = value.Ptr(value.Data{Start: 2, End: 4, Mark: 1})
 		if got := spent(p, func() { p.NextTail(&r) }); got != 1 || value.D(r.Old[0].V).Start != 2 {
 			t.Fatalf("charged %d", got)
 		}

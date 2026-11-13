@@ -943,7 +943,7 @@ func nodesEqual(p *Parser, a, b *parse.Node, budget *int) bool {
 	p.Spend()
 	da, db := value.D(a), value.D(b)
 	if da.Kind != db.Kind || da.Start != db.Start || da.End != db.End || da.Terminal != db.Terminal ||
-		da.Labeled != db.Labeled || da.Gen != db.Gen || da.Box != nil || db.Box != nil ||
+		da.Labeled != db.Labeled || da.Mark != db.Mark || da.Box != nil || db.Box != nil ||
 		len(da.Children) != len(db.Children) || len(da.Fields) != len(db.Fields) || da.Text != db.Text {
 		return false
 	}

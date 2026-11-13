@@ -61,7 +61,7 @@ func (p *Parser) PrivatePrefixAlloc() bool {
 
 // NewNode allocates a node with the representation d from a chunk and returns it.
 func (p *Parser) NewNode(d value.Data) *parse.Node {
-	d.Gen = p.Gen
+	d.Mark = p.Gen
 	if len(p.NodeSlab) == 0 {
 		if p.PrivatePrefixAlloc() {
 			n := new(parse.Node)

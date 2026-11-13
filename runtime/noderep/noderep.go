@@ -45,8 +45,10 @@ type Data[N any] struct {
 	Terminal bool
 	// Labeled reports that the captures in Fields are output (source information was requested).
 	Labeled bool
-	// Gen is the number of Document edits that the positions account for.
-	Gen uint32
+	// Mark belongs to the Document that holds the node, which alone writes it. The engine's
+	// Document stores the number of edits that the positions account for, and a generated
+	// parser's Document the number of the last move after an edit that visited the node.
+	Mark uint32
 	// Box is the value of an action that is not a node (a box node).
 	Box any
 }

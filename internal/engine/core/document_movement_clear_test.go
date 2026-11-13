@@ -87,7 +87,7 @@ func TestDocumentMoveWithoutControl(t *testing.T) {
 		}
 		p.Gen = 3
 		// A child moved through another result after one edit has a shift of its own to replay.
-		late := value.Ptr(value.Data{Start: 3, End: 4, Gen: 1})
+		late := value.Ptr(value.Data{Start: 3, End: 4, Mark: 1})
 		children := []*parse.Node{late}
 		var empties []*parse.Node
 		for range empty {
