@@ -8,7 +8,7 @@ import (
 
 	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/cancel"
-	"zeroparse.dev/zp/internal/compile"
+	"zeroparse.dev/zp/internal/complexity"
 	"zeroparse.dev/zp/internal/desugar"
 	"zeroparse.dev/zp/internal/diag"
 )
@@ -23,18 +23,18 @@ type rewrite struct{ advice, section string }
 
 // rewrites holds the rewrite of each kind of cause that the recipe has a section for, with the
 // advice of the section's row in the recipe's table.
-var rewrites = map[compile.ComplexityCauseKind]rewrite{
-	compile.CauseRestartedRepetition: {"scan once: put the scan and what may follow it in one alternative", "a-repetition-restarted-after-backtracking"},
-	compile.CauseLookaheadScan:       {"check once after the scan instead of at every iteration", "a-lookahead-over-a-scan"},
-	compile.CauseRecoverySkip:        {"write the repetition inside skip=", "a-recovery-skip-followed-by-failure"},
-	compile.CauseRegrowth:            {"call the rule once at a position: factor the caller", "a-left-recursive-rule-or-an-operators-rule-called-again-and-again"},
-	compile.CauseDivergingBinding:    {"bind a value that does not depend on the earlier value", "diverging-variable-bindings"},
-	compile.CauseSelfGrowingValue:    {"keep a count or another property of the value instead of the value", "self-growing-values"},
+var rewrites = map[complexity.ComplexityCauseKind]rewrite{
+	complexity.CauseRestartedRepetition: {"scan once: put the scan and what may follow it in one alternative", "a-repetition-restarted-after-backtracking"},
+	complexity.CauseLookaheadScan:       {"check once after the scan instead of at every iteration", "a-lookahead-over-a-scan"},
+	complexity.CauseRecoverySkip:        {"write the repetition inside skip=", "a-recovery-skip-followed-by-failure"},
+	complexity.CauseRegrowth:            {"call the rule once at a position: factor the caller", "a-left-recursive-rule-or-an-operators-rule-called-again-and-again"},
+	complexity.CauseDivergingBinding:    {"bind a value that does not depend on the earlier value", "diverging-variable-bindings"},
+	complexity.CauseSelfGrowingValue:    {"keep a count or another property of the value instead of the value", "self-growing-values"},
 }
 
 // rewriteOf returns the advice for a cause of kind k and the link to the recipe's section for it.
 // A kind the recipe has no section for gets general advice and the link to the recipe.
-func rewriteOf(k compile.ComplexityCauseKind) (advice, link string) {
+func rewriteOf(k complexity.ComplexityCauseKind) (advice, link string) {
 	if r, ok := rewrites[k]; ok {
 		return r.advice, linearRewrites + "#" + r.section
 	}
@@ -67,11 +67,11 @@ func checkDeclaredLinear(g *grammar.Grammar, control *cancel.Control) error {
 	}
 	seen := map[key]bool{}
 	var out diag.ErrorList
-	check := func(subject string, at grammar.Pos, c *compile.Complexity) {
+	check := func(subject string, at grammar.Pos, c *complexity.Complexity) {
 		// report reports cause with format, whose verbs are the subject, the message of the cause,
 		// the advice and the link to the recipe's section for the kind of the cause. The advice is
 		// the section's, or advice when it is not empty.
-		report := func(cause compile.ComplexityCause, advice, format string) {
+		report := func(cause complexity.ComplexityCause, advice, format string) {
 			control.Poll()
 			pos := cause.Pos
 			if !pos.IsValid() {
@@ -92,9 +92,9 @@ func checkDeclaredLinear(g *grammar.Grammar, control *cancel.Control) error {
 			out = append(out, &diag.Error{Pos: pos, Msg: fmt.Sprintf(format, subject, cause.Message, advice, link)})
 		}
 		switch c.Class {
-		case compile.ClassLinear:
+		case complexity.ClassLinear:
 			return
-		case compile.ClassLinearEnv:
+		case complexity.ClassLinearEnv:
 			if len(c.Env) == 0 {
 				break
 			}
@@ -118,8 +118,8 @@ func checkDeclaredLinear(g *grammar.Grammar, control *cancel.Control) error {
 		// A class other than linear has a cause or a reason; this is a guard, not a case.
 		out = append(out, &diag.Error{Pos: at, Msg: fmt.Sprintf("%s is declared @linear, but its cost is %s (see %s)", subject, c.Class, linearRewrites)})
 	}
-	classify := func(g *grammar.Grammar, start string) (*compile.Complexity, error) {
-		return compile.ClassifyComplexity(g, start, control)
+	classify := func(g *grammar.Grammar, start string) (*complexity.Complexity, error) {
+		return complexity.ClassifyComplexityControlled(g, start, control)
 	}
 	starts, _, _ := desugar.ResolveStarts(control.Rules(g), control)
 	if whole {
@@ -134,7 +134,7 @@ func checkDeclaredLinear(g *grammar.Grammar, control *cancel.Control) error {
 	for _, name := range rules {
 		control.Poll()
 		rd := defs[name]
-		var c *compile.Complexity
+		var c *complexity.Complexity
 		var err error
 		if slices.Contains(starts, name) {
 			c, err = classify(g, name)

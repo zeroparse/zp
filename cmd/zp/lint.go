@@ -11,7 +11,7 @@ import (
 	"text/tabwriter"
 
 	"zeroparse.dev/zp"
-	"zeroparse.dev/zp/internal/engine"
+	"zeroparse.dev/zp/internal/complexity"
 	"zeroparse.dev/zp/lint"
 )
 
@@ -50,19 +50,19 @@ type lintCause struct {
 }
 
 // classNames are the names of the classes in the output of zp lint -classify.
-var classNames = map[engine.ComplexityClass]string{
-	engine.ClassLinear:    "linear",
-	engine.ClassLinearEnv: "linear-env",
-	engine.ClassUnknown:   "unknown",
-	engine.ClassPoly:      "polynomial",
-	engine.ClassExp:       "exponential",
+var classNames = map[complexity.ComplexityClass]string{
+	complexity.ClassLinear:    "linear",
+	complexity.ClassLinearEnv: "linear-env",
+	complexity.ClassUnknown:   "unknown",
+	complexity.ClassPoly:      "polynomial",
+	complexity.ClassExp:       "exponential",
 }
 
 // classifyShown is the number of witnesses and of reasons that the text output of -classify shows.
 const classifyShown = 3
 
-func lintClassificationOf(c *engine.Complexity) *lintClassification {
-	causes := func(cs []engine.ComplexityCause) []lintCause {
+func lintClassificationOf(c *complexity.Complexity) *lintClassification {
+	causes := func(cs []complexity.ComplexityCause) []lintCause {
 		out := []lintCause{}
 		for _, x := range cs {
 			out = append(out, lintCause{x.Pos.Line, x.Pos.Col, x.Rule, x.Message})
@@ -70,7 +70,7 @@ func lintClassificationOf(c *engine.Complexity) *lintClassification {
 		return out
 	}
 	out := &lintClassification{Class: classNames[c.Class], Degree: c.Degree, WitnessedDegree: c.WitnessedDegree, Witnesses: causes(c.Causes), Reasons: causes(c.Reasons)}
-	if c.Class == engine.ClassLinear && c.Combinations > 1 {
+	if c.Class == complexity.ClassLinear && c.Combinations > 1 {
 		out.Combinations = c.Combinations
 	}
 	return out
@@ -171,21 +171,21 @@ func lintCmd(args []string, stdout io.Writer) error {
 	}
 	// The super-linear check classifies the grammar; the class and its witnesses come from that
 	// classification, or from one of their own when the check is disabled.
-	var complexity *engine.Complexity
-	ctx := engine.WithComplexitySink(context.Background(), func(c *engine.Complexity) { complexity = c })
+	var classified *complexity.Complexity
+	ctx := complexity.WithComplexitySink(context.Background(), func(c *complexity.Complexity) { classified = c })
 	findings, err := (lint.Config{Disable: disable, Classify: *classify}).Run(ctx, g, *start)
 	if err != nil {
 		return fileError(*grammarPath, err)
 	}
 	var classification *lintClassification
 	if *classify {
-		if complexity == nil {
-			complexity, err = engine.ClassifyComplexity(context.Background(), g, *start)
+		if classified == nil {
+			classified, err = complexity.ClassifyComplexity(context.Background(), g, *start)
 			if err != nil {
 				return fileError(*grammarPath, err)
 			}
 		}
-		classification = lintClassificationOf(complexity)
+		classification = lintClassificationOf(classified)
 	}
 	counts := map[lint.Severity]int{}
 	out := lintOutput{Grammar: *grammarPath, Start: *start, Findings: []lintFinding{}, Classification: classification}

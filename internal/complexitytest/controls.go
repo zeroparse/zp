@@ -3,16 +3,16 @@ package complexitytest
 import (
 	"strings"
 
-	"zeroparse.dev/zp/internal/engine"
+	"zeroparse.dev/zp/internal/complexity"
 )
 
 // The classes that the complexity classifier assigns to a start rule.
 const (
-	ClassLinear    = engine.ClassLinear
-	ClassLinearEnv = engine.ClassLinearEnv
-	ClassPoly      = engine.ClassPoly
-	ClassExp       = engine.ClassExp
-	ClassUnknown   = engine.ClassUnknown
+	ClassLinear    = complexity.ClassLinear
+	ClassLinearEnv = complexity.ClassLinearEnv
+	ClassPoly      = complexity.ClassPoly
+	ClassExp       = complexity.ClassExp
+	ClassUnknown   = complexity.ClassUnknown
 )
 
 // Control is a grammar family with a known growth order.
@@ -29,7 +29,7 @@ type Control struct {
 	// Capped lets the 4n point reach Cap steps. Only Exp entries may be capped.
 	Capped bool
 	// Class is the class that the complexity classifier assigns to main (see TestControlClasses).
-	Class engine.ComplexityClass
+	Class complexity.ComplexityClass
 	// Positive marks a control that is linear and guards against a classifier or runtime that
 	// reports growth where there is none.
 	Positive bool

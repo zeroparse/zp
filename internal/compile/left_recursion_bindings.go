@@ -17,18 +17,18 @@ import (
 // The cycles and left calls are those of a, the analysis with or without insertion; reported holds
 // the bindings already reported, so that a binding is reported once over both analyses.
 func (c *Compiler) checkLeftRecursionBindings(a *Analysis, rules []*grammar.RuleDef, vars map[string][]string, reported map[*grammar.Bind]bool) {
-	if len(a.cycle) == 0 {
+	if len(a.Cycle) == 0 {
 		return
 	}
 	for _, r := range rules {
 		a.Control.Poll()
-		cycle, ok := a.cycle[r.Name]
+		cycle, ok := a.Cycle[r.Name]
 		if !ok || len(vars[r.Name]) == 0 {
 			continue
 		}
 		read := vars[r.Name]
 		a.leftBindings(r.Expr, nil, func(callee string, bound []*grammar.Bind) {
-			if k, ok := a.cycle[callee]; !ok || k != cycle {
+			if k, ok := a.Cycle[callee]; !ok || k != cycle {
 				return
 			}
 			for _, b := range bound {

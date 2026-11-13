@@ -6,7 +6,7 @@ import (
 	"regexp"
 	"strings"
 
-	"zeroparse.dev/zp/internal/engine"
+	"zeroparse.dev/zp/internal/complexity"
 )
 
 // A TriageGrammar is a bundled grammar whose causes are sorted into triage groups.
@@ -93,7 +93,7 @@ type TriageFamily struct {
 }
 
 // Matches reports whether the cause c, a witness when witness is set, belongs to g.
-func (g *TriageGroup) Matches(c engine.ComplexityCause, witness bool) bool {
+func (g *TriageGroup) Matches(c complexity.ComplexityCause, witness bool) bool {
 	if witness != g.Witness {
 		return false
 	}

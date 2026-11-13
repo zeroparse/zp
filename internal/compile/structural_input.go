@@ -2,13 +2,9 @@ package compile
 
 import (
 	"zeroparse.dev/zp/grammar"
-	"zeroparse.dev/zp/internal/cancel"
 	"zeroparse.dev/zp/internal/check"
-	"zeroparse.dev/zp/internal/complexity"
 	"zeroparse.dev/zp/internal/desugar"
-	"zeroparse.dev/zp/internal/ir/core"
 	"zeroparse.dev/zp/internal/ir/core/build"
-	"zeroparse.dev/zp/internal/ir/core/facts"
 )
 
 // StructuralInput returns the input of the untyped Core IR module (build.Structural) of rules,
@@ -40,22 +36,4 @@ func StructuralInput(g *grammar.Grammar, rules []*grammar.RuleDef, starts []stri
 		}
 	}
 	return in
-}
-
-// costSource returns the untyped Core IR module of rules, the unique rules of g, whose start rules
-// are those marked @start, with the expression each node is built from and the facts of the
-// module: what the cost view is built from. Rule i of rules has ID i in the module.
-func costSource(g *grammar.Grammar, rules []*grammar.RuleDef, control *cancel.Control) (*complexity.Source, error) {
-	var starts []string
-	for _, rd := range rules {
-		if desugar.StartMarked(rd) {
-			starts = append(starts, rd.Name)
-		}
-	}
-	origin := map[core.Node]grammar.Expr{}
-	m, err := build.Structural(StructuralInput(g, rules, starts), origin)
-	if err != nil {
-		return nil, err
-	}
-	return &complexity.Source{Module: m, Origin: origin, Facts: facts.Compute(m, control)}, nil
 }

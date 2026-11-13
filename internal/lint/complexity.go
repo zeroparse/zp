@@ -5,7 +5,7 @@ import (
 	"fmt"
 
 	"zeroparse.dev/zp/grammar"
-	"zeroparse.dev/zp/internal/engine"
+	"zeroparse.dev/zp/internal/complexity"
 )
 
 // complexity runs the checks that come from the classification of the cost of the grammar g as
@@ -23,13 +23,13 @@ func (l *linter) complexity(g *grammar.Grammar, start string) {
 	} else if l.opts.values != nil {
 		ctx = l.opts.values
 	}
-	var c *engine.Complexity
+	var c *complexity.Complexity
 	var err error
 	if superLinear {
-		c, err = engine.ClassifyComplexity(ctx, g, start)
+		c, err = complexity.ClassifyComplexity(ctx, g, start)
 	} else {
-		c = &engine.Complexity{}
-		c.Growing, err = engine.GrowingBindings(ctx, g, start)
+		c = &complexity.Complexity{}
+		c.Growing, err = complexity.GrowingBindings(ctx, g, start)
 	}
 	if err != nil {
 		l.control.check()

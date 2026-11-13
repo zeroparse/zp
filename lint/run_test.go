@@ -9,7 +9,7 @@ import (
 	"time"
 
 	"zeroparse.dev/zp"
-	"zeroparse.dev/zp/internal/engine"
+	"zeroparse.dev/zp/internal/complexity"
 	"zeroparse.dev/zp/lint"
 )
 
@@ -156,13 +156,13 @@ func TestRunClassifySink(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	var got []*engine.Complexity
-	ctx := engine.WithComplexitySink(context.Background(), func(c *engine.Complexity) { got = append(got, c) })
+	var got []*complexity.Complexity
+	ctx := complexity.WithComplexitySink(context.Background(), func(c *complexity.Complexity) { got = append(got, c) })
 	findings, err := (lint.Config{Classify: true}).Run(ctx, g, "main")
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(got) != 1 || got[0].Class != engine.ClassPoly || len(got[0].Causes) != len(findings) {
+	if len(got) != 1 || got[0].Class != complexity.ClassPoly || len(got[0].Causes) != len(findings) {
 		t.Fatalf("sink got %+v, findings %v", got, findings)
 	}
 	got = nil

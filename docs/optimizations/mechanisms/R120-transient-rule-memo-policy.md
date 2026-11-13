@@ -30,7 +30,7 @@ transient policy's timing or memory effect.
 Evidence records:
 [001](../001-value-free-rule-bodies-value-free-twins-transient-rules-0b2c903.md).
 
-Source owners: [`transientRules`](../../../internal/compile/compile.go),
+Source owners: [`TransientRules`](../../../internal/compile/compile.go),
 [`Rule.Transient`](../../../internal/compile/compile.go), [`ordinary versus
 Document memo decision`](../../../internal/engine/core/runtime.go), [`transient rule
 metadata emission`](../../../internal/gen/gents/generator.go).
