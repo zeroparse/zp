@@ -8,8 +8,8 @@ import (
 	"zeroparse.dev/zp/internal/compile"
 	irc "zeroparse.dev/zp/internal/ir/core"
 	"zeroparse.dev/zp/internal/ir/exec"
-	"zeroparse.dev/zp/internal/ir/exec/core"
 	"zeroparse.dev/zp/internal/ir/exec/execgo"
+	"zeroparse.dev/zp/internal/ir/exec/libgo"
 	"zeroparse.dev/zp/internal/ir/exec/lower"
 	"zeroparse.dev/zp/internal/ir/exec/ops"
 )
@@ -99,7 +99,7 @@ func (g *Generator) termTarget(s *compile.Scope, locals map[string]string) *exec
 	return &execgo.Target{
 		Handle: func(name string) string { return handles[name] },
 		FuncName: func(name string) string {
-			n, ok := core.GoTermExports[name]
+			n, ok := libgo.GoTermExports[name]
 			if !ok {
 				panic("gengo: the runtime does not export the composition " + name)
 			}
@@ -209,11 +209,11 @@ func (g *Generator) termTarget(s *compile.Scope, locals map[string]string) *exec
 }
 
 // loweredTermNames returns the names of the runtime functions and methods that only lowered terms
-// call: the compositions of core.GoTermExports and the operations of the leaves that the runtime
+// call: the compositions of libgo.GoTermExports and the operations of the leaves that the runtime
 // exports for them.
 func loweredTermNames() []string {
 	names := []string{rtTermNodeType, rtTermCastFailed, rtTermStruct, rtTermSetField, "TermRaise", "TermFieldOperand", "TermCompare"}
-	for _, n := range core.GoTermExports {
+	for _, n := range libgo.GoTermExports {
 		names = append(names, n)
 	}
 	return names

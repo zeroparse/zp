@@ -1,33 +1,34 @@
-package core
+package libgo
 
 import (
 	"fmt"
 	"strings"
 
 	"zeroparse.dev/zp/internal/ir/exec"
+	"zeroparse.dev/zp/internal/ir/exec/core"
 	"zeroparse.dev/zp/internal/ir/exec/execgo"
 	"zeroparse.dev/zp/internal/ir/exec/ops"
 	"zeroparse.dev/zp/internal/ir/exec/pass"
 )
 
-// EngineFile is the file of the printed compositions of the engine, relative to the directory of
+// engineFile is the file of the printed compositions of the engine, relative to the directory of
 // this package.
-const EngineFile = "../../../engine/core/call_exec.go"
+const engineFile = "../../../engine/core/call_exec.go"
 
-// EngineOperatorsFile is the file of the printed Operators Rule compositions of the engine.
-const EngineOperatorsFile = "../../../engine/core/operators_exec.go"
+// engineOperatorsFile is the file of the printed Operators Rule compositions of the engine.
+const engineOperatorsFile = "../../../engine/core/operators_exec.go"
 
-// EngineStreamFile is the file of the printed stream compositions of the engine.
-const EngineStreamFile = "../../../engine/core/stream_exec.go"
+// engineStreamFile is the file of the printed stream compositions of the engine.
+const engineStreamFile = "../../../engine/core/stream_exec.go"
 
-// EngineDocumentFile is the file of the printed Document compositions of the engine.
-const EngineDocumentFile = "../../../engine/core/document_exec.go"
+// engineDocumentFile is the file of the printed Document compositions of the engine.
+const engineDocumentFile = "../../../engine/core/document_exec.go"
 
-// EngineClosureTermFile is the file of the printed term compositions of the closure backend.
-const EngineClosureTermFile = "../../../engine/closure/term_exec.go"
+// engineClosureTermFile is the file of the printed term compositions of the closure backend.
+const engineClosureTermFile = "../../../engine/closure/term_exec.go"
 
-// EngineVMTermFile is the file of the printed term compositions of the bytecode VM.
-const EngineVMTermFile = "../../../engine/vm/term_exec.go"
+// engineVMTermFile is the file of the printed term compositions of the bytecode VM.
+const engineVMTermFile = "../../../engine/vm/term_exec.go"
 
 // engineOn are the features of the engine's specializations: it keeps the bookkeeping of the
 // examined input in every parse, has the missing-token mode and charges a budget. Its observation
@@ -86,35 +87,35 @@ var engineDocumentSpecs = []goSpec{
 	{fn: "memoAdvance", on: []string{ops.Document}, name: "AdvanceEntry", plain: true},
 }
 
-// Engine returns the Go file of the printed compositions for package core of the engine.
-func Engine() (string, error) {
-	return engineFile(engineSpecs, "import \"zeroparse.dev/zp/internal/value\"\n")
+// printEngine returns the Go file of the printed compositions for package core of the engine.
+func printEngine() (string, error) {
+	return printEngineSpecs(engineSpecs, "import \"zeroparse.dev/zp/internal/value\"\n")
 }
 
-// EngineOperators returns the Go file of the printed Operators Rule compositions for package core of
+// printEngineOperators returns the Go file of the printed Operators Rule compositions for package core of
 // the engine.
-func EngineOperators() (string, error) {
-	return engineFile(engineOperatorSpecs, "import (\n\t\"zeroparse.dev/zp/grammar\"\n\t\"zeroparse.dev/zp/internal/value\"\n)\n")
+func printEngineOperators() (string, error) {
+	return printEngineSpecs(engineOperatorSpecs, "import (\n\t\"zeroparse.dev/zp/grammar\"\n\t\"zeroparse.dev/zp/internal/value\"\n)\n")
 }
 
-// EngineStream returns the Go file of the printed stream compositions for package core of the engine.
-func EngineStream() (string, error) {
-	return engineFile(engineStreamSpecs, "import \"zeroparse.dev/zp/internal/value\"\n")
+// printEngineStream returns the Go file of the printed stream compositions for package core of the engine.
+func printEngineStream() (string, error) {
+	return printEngineSpecs(engineStreamSpecs, "import \"zeroparse.dev/zp/internal/value\"\n")
 }
 
-// EngineDocument returns the Go file of the printed Document compositions for package core of the
+// printEngineDocument returns the Go file of the printed Document compositions for package core of the
 // engine.
-func EngineDocument() (string, error) { return engineFile(engineDocumentSpecs, "") }
+func printEngineDocument() (string, error) { return printEngineSpecs(engineDocumentSpecs, "") }
 
-// EngineClosureTerms returns the Go file of the term compositions for the closure backend, which
+// printEngineClosureTerms returns the Go file of the term compositions for the closure backend, which
 // holds a term as a site of its matcher.
-func EngineClosureTerms() (string, error) {
+func printEngineClosureTerms() (string, error) {
 	return engineTerms("closure", &execgo.Target{Params: "p *core.Parser"}, "*termSite", "Scope: t.scope, ", "evalTerm(ctx, t.term)")
 }
 
-// EngineVMTerms returns the Go file of the term compositions for the bytecode VM, which holds a term
+// printEngineVMTerms returns the Go file of the term compositions for the bytecode VM, which holds a term
 // as the entry of its expression code.
-func EngineVMTerms() (string, error) {
+func printEngineVMTerms() (string, error) {
 	return engineTerms("vm", &execgo.Target{Recv: "vm *Program", Params: "p *core.Parser"}, "int", "", "vm.eval(ctx, t, nil)")
 }
 
@@ -128,9 +129,9 @@ var engineBackendFuncs = []string{"predicate", "bind"}
 // scope is the field of the evaluation context that the term t selects, and eval the evaluation of t
 // in the context ctx.
 func engineTerms(pkg string, t *execgo.Target, term, scope, eval string) (string, error) {
-	m := Build()
+	m := core.Build()
 	var b strings.Builder
-	fmt.Fprintf(&b, "// Code generated by internal/ir/exec/core; DO NOT EDIT.\n\npackage %s\n\nimport \"zeroparse.dev/zp/internal/engine/core\"\n", pkg)
+	fmt.Fprintf(&b, "// Code generated by internal/ir/exec/libgo; DO NOT EDIT.\n\npackage %s\n\nimport \"zeroparse.dev/zp/internal/engine/core\"\n", pkg)
 	t.Source = "internal/ir/exec/core"
 	t.Handle = func(name string) string { return map[string]string{ops.Term: term, ops.Datum: "any"}[name] }
 	t.Stmt = func(c *exec.Call, a []string, dst []string, _ bool) (string, bool) {
@@ -174,11 +175,11 @@ func engineTerms(pkg string, t *execgo.Target, term, scope, eval string) (string
 	return b.String(), nil
 }
 
-// engineFile returns the Go file of the printed functions specs with the imports imports.
-func engineFile(specs []goSpec, imports string) (string, error) {
-	m := Build()
+// printEngineSpecs returns the Go file of the printed functions specs with the imports imports.
+func printEngineSpecs(specs []goSpec, imports string) (string, error) {
+	m := core.Build()
 	var b strings.Builder
-	b.WriteString("// Code generated by internal/ir/exec/core; DO NOT EDIT.\n\npackage core\n")
+	b.WriteString("// Code generated by internal/ir/exec/libgo; DO NOT EDIT.\n\npackage core\n")
 	if imports != "" {
 		b.WriteString("\n" + imports)
 	}

@@ -1,13 +1,13 @@
 // Package core holds the compositions of the parser VM (design 065): the algorithms that the
 // hand-written runtimes repeat, written once in Exec IR over the operations of
-// internal/ir/exec/ops, and their specializations for each runtime.
+// internal/ir/exec/ops.
 //
 // The compositions are the call protocol of a rule (deferred memoization, memo lookup with its
 // reuse conditions, the dependency memo of left-recursion contexts, store and restore on failure),
 // left-recursion growth, the observation of a call and the bookkeeping of a call in a Document
-// parse. The Go backend prints
-// them into the generated Go runtime (GoRuntime) and the TypeScript backend into the TypeScript
-// runtime (TSMethods).
+// parse. The compositions know no target: internal/ir/exec/libgo prints them into the generated Go
+// runtime and the engine, and the TypeScript generator (internal/gen/gents) into the TypeScript
+// runtime, each choosing the specializations it needs.
 package core
 
 import (

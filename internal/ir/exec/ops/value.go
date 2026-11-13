@@ -1,6 +1,10 @@
 package ops
 
-import "zeroparse.dev/zp/internal/ir/exec"
+import (
+	"strings"
+
+	"zeroparse.dev/zp/internal/ir/exec"
+)
 
 // Val is the component of the value primitives: the operations on the values of terms. A primitive
 // acts on one kind of value and has none of the policy of an operator: the compositions binary,
@@ -231,6 +235,29 @@ var TermErrors = []TermError{
 	ErrTextArg:    {Name: "invalid text argument", Text: "text: invalid argument {a}"},
 	ErrConvert:    {Name: "not convertible", Text: "cannot convert {a} to {name}"},
 	ErrFilter:     {Name: "filter result not a bool", Text: "filter: predicate must produce a bool, got {a}"},
+}
+
+// MessageSegment is a piece of the message of a TermError: fixed text, or the name of a hole.
+type MessageSegment struct{ Text, Hole string }
+
+// Segments cuts the message of e at its placeholders, so that a target can print the message with
+// its own formatting of the holes.
+func (e TermError) Segments() []MessageSegment {
+	var out []MessageSegment
+	for text := e.Text; text != ""; {
+		i := strings.IndexByte(text, '{')
+		if i < 0 {
+			out = append(out, MessageSegment{Text: text})
+			break
+		}
+		if i > 0 {
+			out = append(out, MessageSegment{Text: text[:i]})
+		}
+		j := strings.IndexByte(text, '}')
+		out = append(out, MessageSegment{Hole: text[i+1 : j]})
+		text = text[j+1:]
+	}
+	return out
 }
 
 // Kinds of a member read, by the code the composition member takes. A member name of a term is the

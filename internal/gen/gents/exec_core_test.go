@@ -3,14 +3,12 @@ package gents
 import (
 	"strings"
 	"testing"
-
-	"zeroparse.dev/zp/internal/ir/exec/core"
 )
 
 // TestSubstituteMethods checks that the printed compositions replace the hand-written methods of
 // the runtime, with the comment lines before them, and nothing else.
 func TestSubstituteMethods(t *testing.T) {
-	ms, err := core.TSMethods()
+	ms, err := tsMethods()
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -45,7 +43,7 @@ func TestSubstituteMethods(t *testing.T) {
 // TestSubstituteMethodsRefusesMalformedRuntime checks that a runtime without the method, with it
 // twice, or without its closing brace at the class body's indentation stops the substitution.
 func TestSubstituteMethodsRefusesMalformedRuntime(t *testing.T) {
-	m := []core.TSMethod{{Name: "grow", Text: "  grow() {}\n"}}
+	m := []tsMethod{{Name: "grow", Text: "  grow() {}\n"}}
 	for name, src := range map[string]string{
 		"missing":          "class P {\n  other() {\n  }\n}\n",
 		"twice":            "class P {\n  grow() {\n  }\n  grow() {\n  }\n}\n",
@@ -65,7 +63,7 @@ func TestSubstituteMethodsRefusesMalformedRuntime(t *testing.T) {
 // TestPrintedMethodsHaveNoConstantTest checks that a condition the TypeScript library prints as a
 // constant leaves no test in the printed methods.
 func TestPrintedMethodsHaveNoConstantTest(t *testing.T) {
-	ms, err := core.TSMethods()
+	ms, err := tsMethods()
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -74,6 +72,20 @@ func TestPrintedMethodsHaveNoConstantTest(t *testing.T) {
 			if strings.Contains(m.Text, c) {
 				t.Errorf("method %s has %q:\n%s", m.Name, c, m.Text)
 			}
+		}
+	}
+}
+
+// TestPrintedMethodsVerify checks that the functions verify for every specialization the
+// TypeScript runtime prints, and that each printed method defines its name.
+func TestPrintedMethodsVerify(t *testing.T) {
+	ms, err := tsMethods()
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, x := range ms {
+		if !strings.Contains(x.Text, x.Name+"(") {
+			t.Errorf("method %s prints as\n%s", x.Name, x.Text)
 		}
 	}
 }

@@ -7,7 +7,6 @@ import (
 	"zeroparse.dev/zp/internal/compile"
 	irc "zeroparse.dev/zp/internal/ir/core"
 	"zeroparse.dev/zp/internal/ir/exec"
-	"zeroparse.dev/zp/internal/ir/exec/core"
 	"zeroparse.dev/zp/internal/ir/exec/exects"
 	"zeroparse.dev/zp/internal/ir/exec/lower"
 	"zeroparse.dev/zp/internal/ir/exec/ops"
@@ -71,8 +70,8 @@ func (g *Generator) leaf(name string, variable bool, s *compile.Scope, locals ma
 func (g *Generator) termTarget(s *compile.Scope, locals map[string]string) *exects.Target {
 	return &exects.Target{
 		Self:     "c.p",
-		Handle:   core.TSHandle,
-		FuncName: core.TSTermMethod,
+		Handle:   tsHandle,
+		FuncName: tsTermMethod,
 		Reg:      func(name string) string { panic("gents: a lowered term reads the register " + name) },
 		Op: func(c *exec.Call, a []string) string {
 			switch c.Callee {
@@ -117,7 +116,7 @@ func (g *Generator) termTarget(s *compile.Scope, locals map[string]string) *exec
 				return fmt.Sprintf("castFailure(c, %s, %s, %d, %d)", a[0], g.castTypeVar(x), x.Line, x.Col)
 			case lower.OpTermTextEqual:
 				// == of two strings, which charges as binary does.
-				return fmt.Sprintf("c.p.%s(%d, %s, %s)[0] === true", core.TSTermMethod("binary"), ops.BinaryCode("=="), a[0], a[1])
+				return fmt.Sprintf("c.p.%s(%d, %s, %s)[0] === true", tsTermMethod("binary"), ops.BinaryCode("=="), a[0], a[1])
 			case lower.OpTermFromStr, lower.OpTermFromObj, "val.fromBool":
 				return a[0]
 			case lower.OpTermSpend, "seq.step":
