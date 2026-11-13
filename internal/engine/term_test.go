@@ -206,3 +206,30 @@ rule e = #operators {
 		})
 	}
 }
+
+// TestStructFieldValueReadOnce checks that a struct literal reads each field value once although the
+// term both sets the field and covers the struct's range with the value: reading an Operators Rule
+// local instead of a constant costs as much in a field as in the argument of a call, which uses its
+// value once.
+func TestStructFieldValueReadOnce(t *testing.T) {
+	src := func(action string) string {
+		return "type N = { Text string }\ntype T = { A _ }\n@start\nrule main = e $$\nrule e = #operators {\n" +
+			"    operand \"n\" => N{Text: \"n\"}\n    level { infix left \"+\" => " + action + " }\n}\n"
+	}
+	for _, be := range termBackends {
+		t.Run(be.name, func(t *testing.T) {
+			cost := func(action string) uint64 {
+				p, err := zp.CompileSource(src(action), "main")
+				if err != nil {
+					t.Fatal(err)
+				}
+				return minimumCompute(t, p, "n+n", be.b)
+			}
+			field := int64(cost(`T{A: $lhs}`)) - int64(cost(`T{A: 1}`))
+			arg := int64(cost(`list($lhs)`)) - int64(cost(`list(1)`))
+			if field != arg {
+				t.Errorf("reading the local instead of a constant costs %d units in a field, %d in an argument", field, arg)
+			}
+		})
+	}
+}
