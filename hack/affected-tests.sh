@@ -33,9 +33,9 @@ while i < len(s):
     o, i = dec.raw_decode(s, i); pk[o["ImportPath"]] = o
 rel = {p: os.path.relpath(o["Dir"], root) for p, o in pk.items()}
 bydir = {r: p for p, r in rel.items()}
-HEAVY = ["internal/gen", "internal/gen/gogen", "internal/gen/tsgen", "internal/engine", "internal/runtimetest",
+HEAVY = ["internal/gen", "internal/gen/gengo", "internal/gen/gents", "internal/engine", "internal/runtimetest",
          "internal/complexitytest", "spec/language", "gen", "bench", "internal/compile"]
-HEAVY_TRIG = ("runtime/", "gen/_runtime/", "internal/gentest/", "internal/gen/tsgen/tsrt/")
+HEAVY_TRIG = ("runtime/", "gen/_runtime/", "internal/gentest/", "internal/gen/gents/tsrt/")
 rev = {p: set() for p in pk}
 for p, o in pk.items():
     for q in (o.get("Imports") or []) + (o.get("TestImports") or []) + (o.get("XTestImports") or []):

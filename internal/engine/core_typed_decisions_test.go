@@ -11,7 +11,7 @@ import (
 
 	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/compile"
-	"zeroparse.dev/zp/internal/gen/gogen"
+	"zeroparse.dev/zp/internal/gen/gengo"
 	"zeroparse.dev/zp/internal/gentest"
 )
 
@@ -322,13 +322,13 @@ func (gd *decisionsGolden) freeze(t *testing.T, modes []coreGenMode, cases func(
 }
 
 // typedRules returns the rules of the program of the generator by ID, value-free twins included.
-func typedRules(g *gogen.Generator) []*compile.Rule {
+func typedRules(g *gengo.Generator) []*compile.Rule {
 	return append(append([]*compile.Rule(nil), g.Prog.RuleList...), g.Prog.Twins...)
 }
 
 // recognizerRules returns the rules of the recognizer program of the generator by ID, value-free
 // twins included.
-func recognizerRules(g *gogen.Generator) []*compile.Rule {
+func recognizerRules(g *gengo.Generator) []*compile.Rule {
 	rec, err := recognizerOf(g)
 	if err != nil {
 		panic(err)

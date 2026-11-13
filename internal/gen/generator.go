@@ -324,7 +324,7 @@ func (g *Generator) RunCore(table string, m *core.Module, mode core.Mode, local 
 // table), with the passes of the untyped tables (no terminal programs and no class runs), for
 // printing its eligible rules from Flow IR. It runs the pipeline of Core passes in a mode that is not
 // Lean: the rewrites, the guards and the scans, with the repeats that irbuild.FollowRepeats keeps in
-// step with them. Terminals and class runs apply only to lean typed rules (gogen.Generator.TypedCore):
+// step with them. Terminals and class runs apply only to lean typed rules (gengo.Generator.TypedCore):
 // the Node recognizer writes its terminals and classes as inline tests.
 func (g *Generator) StartRecFlow(rec *compile.Program) error {
 	origin := map[core.Node]grammar.Expr{}

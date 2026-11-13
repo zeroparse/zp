@@ -15,13 +15,13 @@ parser of the grammar is `parser.ts`, and its types (`-types`) are `types.ts`.
 
 ### The Same Generator, Another Runtime
 
-The TypeScript generator (`internal/gen/tsgen/generator.go`) is the Go generator with a different output: it compiles the
+The TypeScript generator (`internal/gen/gents/generator.go`) is the Go generator with a different output: it compiles the
 grammar with the engine, walks the same analysis results (memoized rules, left-recursion leaders, value-free twins,
 plain rules, projected repetitions, first-character dispatch, the recognizer) and emits a function per parsing
 expression and a function per action and predicate. It shares the expectation table, the naming and `first` with the
 Go generator (both embed `gen.Generator`).
 
-The runtime, `internal/gen/tsgen/tsrt/runtime.ts`, is a port of `runtime/runtime.go`, function for function: rule calls with
+The runtime, `internal/gen/gents/tsrt/runtime.ts`, is a port of `runtime/runtime.go`, function for function: rule calls with
 deferred memoization (`firstCall`, with the per-rule eager switch), left recursion by growing the seed, memo entries
 keyed by variable values, expectation records isolated in memoized calls and kept for reuse, captures with frames and
 the trail, `attachCaptures` and `finish`, `@error` and `#recover`, the Operators Rule loop, and every built-in function including
@@ -111,7 +111,7 @@ without a build step, and only the ES2020 library (for `BigInt`), so it needs no
 
 ### Verifying Identical Behavior
 
-`TestGeneratedTSParsersMatchEngine` (`internal/gen/tsgen/tsgen_test.go`) generates a module for every grammar of the
+`TestGeneratedTSParsersMatchEngine` (`internal/gen/gents/gents_test.go`) generates a module for every grammar of the
 corpus of the Go generator's test (the grammars of `internal/gentest`, its `testdata/typed` and `examples/`), plus a grammar of ints
 and strings that exercises wrapping, big ints, negative division and code-point comparison, and the nested-parentheses
 grammar exactly at and beyond the nesting limit. Node.js runs every input in both units, as bytes and (when valid UTF-8)

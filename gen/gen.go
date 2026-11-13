@@ -16,8 +16,8 @@ import (
 	"zeroparse.dev/zp/internal/compile"
 	"zeroparse.dev/zp/internal/desugar"
 	"zeroparse.dev/zp/internal/gen"
-	"zeroparse.dev/zp/internal/gen/gogen"
-	"zeroparse.dev/zp/internal/gen/tsgen"
+	"zeroparse.dev/zp/internal/gen/gengo"
+	"zeroparse.dev/zp/internal/gen/gents"
 )
 
 // Generator generates the source code of parsers in one language.
@@ -166,7 +166,7 @@ func (c Go) Generate(g *grammar.Grammar, start string) ([]File, error) {
 	if err != nil {
 		return nil, err
 	}
-	return gogen.Generate(g, compileForGenerator, gen.GenOptions{
+	return gengo.Generate(g, compileForGenerator, gen.GenOptions{
 		Module:         c.Module,
 		Package:        c.PackageName,
 		Start:          start,
@@ -196,7 +196,7 @@ func (c Go) Generate(g *grammar.Grammar, start string) ([]File, error) {
 // path c.Module, to refresh a parser generated with RuntimeEmbed without regenerating it. The
 // other settings are not used.
 func (c Go) GenerateRuntime() ([]File, error) {
-	return gogen.Generate(nil, compileForGenerator, gen.GenOptions{Module: c.Module, Runtime: gen.RuntimeOnly})
+	return gengo.Generate(nil, compileForGenerator, gen.GenOptions{Module: c.Module, Runtime: gen.RuntimeOnly})
 }
 
 // TypeScript configures the generation of a TypeScript parser. The zero value generates an
@@ -278,7 +278,7 @@ func (c TypeScript) Generate(g *grammar.Grammar, start string) ([]File, error) {
 	if err != nil {
 		return nil, err
 	}
-	return tsgen.Generate(g, compileForGenerator, gen.GenOptions{
+	return gents.Generate(g, compileForGenerator, gen.GenOptions{
 		Start:         start,
 		Runtime:       runtime,
 		RuntimeModule: c.RuntimeModule,
@@ -303,7 +303,7 @@ func (c TypeScript) Generate(g *grammar.Grammar, start string) ([]File, error) {
 // parsers generated with RuntimeImport import, or the copy of a parser generated with RuntimeEmbed.
 // The settings are not used.
 func (c TypeScript) GenerateRuntime() ([]File, error) {
-	return tsgen.Generate(nil, compileForGenerator, gen.GenOptions{Runtime: gen.RuntimeOnly})
+	return gents.Generate(nil, compileForGenerator, gen.GenOptions{Runtime: gen.RuntimeOnly})
 }
 
 // compileForGenerator is the gen.Compiler that the generators compile grammars with: it checks g
@@ -351,5 +351,5 @@ func init() {
 	if err != nil {
 		panic(err)
 	}
-	gogen.SetRuntimeSource(sub)
+	gengo.SetRuntimeSource(sub)
 }

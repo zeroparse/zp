@@ -32,9 +32,9 @@ Evidence records: [048](../048-a-typed-runtime-for-parseast.md),
 [074](../074-smaller-first-chunks-for-generated-typed-values.md),
 [098](../098-bootstrap-generated-typed-output-allocations.md).
 
-Source owners: [`astSlice generation`](../../../internal/gen/gogen/types.go),
-[`disableTypedListSlabs`](../../../internal/gen/gogen/generator.go), [`slices/individual
-controls`](../../../internal/gen/gogen/gogen_typed_output_retention_test.go).
+Source owners: [`astSlice generation`](../../../internal/gen/gengo/types.go),
+[`disableTypedListSlabs`](../../../internal/gen/gengo/generator.go), [`slices/individual
+controls`](../../../internal/gen/gengo/gengo_typed_output_retention_test.go).
 
 The [comparison policy](../../design/records/024-optimization-mechanism-controls.md)
 distinguishes same-source controls, historical changes and full checkpoints.

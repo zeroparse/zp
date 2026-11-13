@@ -66,7 +66,7 @@ The retained-output fixture can be generated and tested with:
 
 ```sh
 tmpdir=$(mktemp -d)
-ZP_TYPED_OUTPUT_RETENTION_DIR="$tmpdir" go test ./internal/gen/gogen -run '^TestGeneratedTypedOutputRetentionFixture$' -count=1
+ZP_TYPED_OUTPUT_RETENTION_DIR="$tmpdir" go test ./internal/gen/gengo -run '^TestGeneratedTypedOutputRetentionFixture$' -count=1
 for variant in slabs objects slices individual sweep bounded; do
   (cd "$tmpdir/$variant" && go test -run '^$' -bench '^BenchmarkTypedOutputRetainedHeap$' -benchmem -benchtime=1x -count=1)
 done
@@ -76,7 +76,7 @@ The same fixture exporter writes conversion variants with `-conversion` appended
 
 ```sh
 tmpdir=$(mktemp -d)
-ZP_TYPED_OUTPUT_RETENTION_DIR="$tmpdir" go test ./internal/gen/gogen -run '^TestGeneratedTypedOutputRetentionFixture$' -count=1
+ZP_TYPED_OUTPUT_RETENTION_DIR="$tmpdir" go test ./internal/gen/gengo -run '^TestGeneratedTypedOutputRetentionFixture$' -count=1
 for variant in slabs-conversion objects-conversion slices-conversion individual-conversion sweep-conversion bounded-conversion; do
   (cd "$tmpdir/$variant" && go test -run '^$' -bench '^BenchmarkTypedOutputParse$' -benchmem -benchtime=500ms -count=1)
   (cd "$tmpdir/$variant" && go test -run '^$' -bench '^BenchmarkTypedOutputRetainedHeap$' -benchmem -benchtime=1x -count=1)

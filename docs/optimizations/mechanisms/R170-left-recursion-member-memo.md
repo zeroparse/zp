@@ -39,7 +39,7 @@ Source owners: [`Check`](../../../internal/compile/compile.go) (the memo flags a
 [the dependency memo of the generated Go runtime](../../../runtime/context_memo.go) and
 [its calls and growths](../../../runtime/call_exec.go), [the call protocol in Exec IR](../../../internal/ir/exec/core/core.go)
 with [its context and growth operations](../../../internal/ir/exec/ops/transitional.go),
-[`Parser.ctxEnter` and the growths of the TypeScript runtime](../../../internal/gen/tsgen/tsrt/runtime.ts).
+[`Parser.ctxEnter` and the growths of the TypeScript runtime](../../../internal/gen/gents/tsrt/runtime.ts).
 
 Related mechanisms: [R020](R020-deferred-memoization.md), [R120](R120-transient-rule-memo-policy.md).
 

@@ -32,8 +32,8 @@ LR grammar.
 Evidence records: [079](../079-inline-eligible-typed-left-recursion-bodies.md).
 
 Source owners: [`typed structural
-emitter`](../../../internal/gen/gogen/flowrule.go), [`framed body
-emission`](../../../internal/gen/gogen/flowframe.go).
+emitter`](../../../internal/gen/gengo/flowrule.go), [`framed body
+emission`](../../../internal/gen/gengo/flowframe.go).
 
 The [comparison policy](../../design/records/024-optimization-mechanism-controls.md)
 distinguishes same-source controls, historical changes and full checkpoints.

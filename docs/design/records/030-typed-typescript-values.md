@@ -16,10 +16,10 @@ its own correctness and measurement gates.
 
 ## Motivation
 
-`internal/gen/tsgen/generator.go` previously rejected `GenOptions.Types`. Generated TS
+`internal/gen/gents/generator.go` previously rejected `GenOptions.Types`. Generated TS
 returns `Node` values whose fields require runtime name lookup and consumer
 casts. Generated Go already maps grammar types to public values through
-`internal/gen/gogen/types.go`; its metadata and converter semantics provide the reference
+`internal/gen/gengo/types.go`; its metadata and converter semantics provide the reference
 for the new TS mapping. The feature acceptance criterion requires actual
 consumer use, value equivalence and declaration exports, not merely compiling
 a generated module.

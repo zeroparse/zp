@@ -7,7 +7,7 @@ import (
 	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/compile"
 	"zeroparse.dev/zp/internal/gen"
-	"zeroparse.dev/zp/internal/gen/gogen"
+	"zeroparse.dev/zp/internal/gen/gengo"
 	"zeroparse.dev/zp/internal/gentest"
 	"zeroparse.dev/zp/internal/ir/core"
 	irbuild "zeroparse.dev/zp/internal/ir/core/build"
@@ -16,7 +16,7 @@ import (
 // coreRecognizeCase builds the Core IR of the recognizer of the parser generated with Recognize,
 // with the passes that apply to its rule table recRules (no terminal programs and no class runs
 // there), verifying the module after each pass.
-func coreRecognizeCase(name, mode string, g *gogen.Generator) (*coreGenCase, error) {
+func coreRecognizeCase(name, mode string, g *gengo.Generator) (*coreGenCase, error) {
 	rec, err := recognizerOf(g)
 	if err != nil {
 		return nil, err

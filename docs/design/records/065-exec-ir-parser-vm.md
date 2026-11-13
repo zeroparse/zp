@@ -13,7 +13,7 @@ The algorithmic core of a ZeroParse parse — memoization, left-recursion growth
 the variable environment, budget charges, stream commitment, Document reuse and the Operators Rule loop — is written
 once per runtime: in the engine (`internal/engine/core`, shared by the closure backend and both bytecode VMs), twice in
 the generated Go runtime (the node `Parser` in `runtime/runtime.go` and the typed `TParser` in `runtime/typed.go`), and
-in the TypeScript runtime (`internal/gen/tsgen/tsrt/runtime.ts`). A fix to one of these mechanisms is a fix to up to four
+in the TypeScript runtime (`internal/gen/gents/tsrt/runtime.ts`). A fix to one of these mechanisms is a fix to up to four
 copies, and the copies already differ in algorithm where they should only differ in host.
 
 This design specifies the **parser VM** once. **Exec IR** (`internal/ir/exec`) is that specification: it declares the
@@ -549,7 +549,7 @@ backends' choice.
 - Loops print as `for (;;)` with labeled `break`; no iterator protocol or closure appears in a hot path.
 
 Printed code is checked in: the Go runtime in `runtime/` (and its copy in `gen/_runtime`), the TypeScript runtime in
-`internal/gen/tsgen/tsrt/`, and the engine's in `internal/engine/core`. A test regenerates them and fails on any
+`internal/gen/gents/tsrt/`, and the engine's in `internal/engine/core`. A test regenerates them and fails on any
 difference, as the runtime copy test does today. Names come from the compositions and operations, with a suffix only
 for a specialization; each printed function starts with a comment naming its source and specialization, so that a
 stack trace or a profile leads back to it; comments carry through; output is formatted by `go/format` and by the
@@ -1111,7 +1111,7 @@ comments.
 | Engine backends (dispatch only) | `internal/engine/closure/*.go`, `internal/engine/vm/vm.go`, `ivm.go` | 1,218 + 2,015 |
 | Engine Document API | `internal/engine/document/*.go` | 1,784 |
 | Generated Go runtime | `runtime/*.go` (copied to `gen/_runtime`) | 11,475 |
-| TypeScript runtime | `internal/gen/tsgen/tsrt/*.ts` | 4,444 |
+| TypeScript runtime | `internal/gen/gents/tsrt/*.ts` | 4,444 |
 
 ### Mechanisms
 

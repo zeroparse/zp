@@ -44,8 +44,8 @@ Evidence records: [007](../007-recognition-mode-3f7e9bf.md),
 Source owners: [`Program.Recognizer`](../../../internal/engine/program_parse.go),
 [`recognize compilation and predicate capture
 analysis`](../../../internal/compile/compile.go), [`recognizer
-generation`](../../../internal/gen/gogen/generator.go), [`generated recognize entry
-point`](../../../internal/gen/tsgen/generator.go).
+generation`](../../../internal/gen/gengo/generator.go), [`generated recognize entry
+point`](../../../internal/gen/gents/generator.go).
 
 The [comparison policy](../../design/records/024-optimization-mechanism-controls.md)
 distinguishes same-source controls, historical changes and full checkpoints.
