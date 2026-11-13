@@ -429,6 +429,11 @@ func TestScanSitesHitAtTheirOwnHotSpan(t *testing.T) {
 // other state.
 func TestScanSitesInConcurrentParses(t *testing.T) {
 	prog := mustCompile(t, scanSpanProbe)
+	lim := parse.Limits{Compute: 1 << 40}
+	if !core.BudgetControlsEnabled {
+		// The reference build has no budget controls; the parses still share the counters.
+		lim = parse.Limits{}
+	}
 	var wg sync.WaitGroup
 	for g := 0; g < 8; g++ {
 		wg.Add(1)
@@ -437,7 +442,7 @@ func TestScanSitesInConcurrentParses(t *testing.T) {
 			for i := 0; i < 20; i++ {
 				for _, b := range []Backend{Closure, Bytecode, BytecodeIterative} {
 					in := strings.Repeat(" ", 20+(g+i)%50) + "e"
-					if _, err := prog.ParseWith("main", in, ParseOptions{Backend: b, Limits: parse.Limits{Compute: 1 << 40}}); err != nil {
+					if _, err := prog.ParseWith("main", in, ParseOptions{Backend: b, Limits: lim}); err != nil {
 						t.Errorf("%s: %v", b, err)
 						return
 					}

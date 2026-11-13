@@ -207,7 +207,8 @@ var ruleEngineOps = append([]string{"rule.memo", "rule.leader", "rule.plain", "r
 
 // ruleSuites are the suites of the engine's operations of the rules: its Document parse takes the call
 // protocol, and its doc.enter starts the range of a call as the empty range at its position. The
-// controlled suite checks the charges against the cost bounds.
+// controlled suite checks the charges against the cost bounds and the interruptions of the budget. The
+// budget-controls reference build has no budget, so it runs only the first.
 func ruleSuites() []conform.Suite {
 	s := conform.Suite{Name: "engine rules", Ops: ruleEngineOps, DocCallMemo: true, DocEmptyEnter: true,
 		New: func(c ref.Config) conform.Impl { return newRuleMachine(c, false) }}
@@ -216,6 +217,9 @@ func ruleSuites() []conform.Suite {
 	controlled.Exact = ruleExact
 	controlled.Ops = append(slices.Clone(ruleEngineOps), engineBudgetOps...)
 	controlled.New = func(c ref.Config) conform.Impl { return newRuleMachine(c, true) }
+	if !BudgetControlsEnabled {
+		return []conform.Suite{s}
+	}
 	return []conform.Suite{s, controlled}
 }
 
@@ -245,6 +249,9 @@ func ruleConformanceFailures(s conform.Suite, seeds, n int) (fails []error, ran 
 // those of the missing-token mode and of the budget too, but those that read rule.docMemo, which the
 // engine does not have.
 func TestEngineRuleCasesRun(t *testing.T) {
+	if !BudgetControlsEnabled {
+		t.Skip("the budget-controls reference build has no controlled engine")
+	}
 	s := ruleSuites()[1]
 	for _, c := range conform.RuleCases() {
 		if strings.HasPrefix(c.Func.Name, "rule_flags_document_") {
@@ -347,6 +354,9 @@ var ruleExact = []string{"rule.invoke", "rule.invokePlain"}
 // charges one more unit for each field it attaches, or whose rule.invokePlain charges one more unit,
 // fails the controlled suite.
 func TestEngineRuleChargesArePinned(t *testing.T) {
+	if !BudgetControlsEnabled {
+		t.Skip("the variants break a charge, and the reference build charges nothing")
+	}
 	invoke := func(m *ruleMachine, args []any, f func(r *Rule, min int) (*parse.Node, bool)) (*parse.Node, bool) {
 		p := m.p
 		p.Pos = int(m.regs[ops.Pos].(int64))

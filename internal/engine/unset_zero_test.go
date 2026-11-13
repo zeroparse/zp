@@ -5,6 +5,7 @@ import (
 	"strings"
 	"testing"
 
+	"zeroparse.dev/zp/internal/engine/core"
 	"zeroparse.dev/zp/internal/gentest"
 	"zeroparse.dev/zp/runtime/parse"
 )
@@ -52,6 +53,9 @@ func TestUnsetFieldsReadZero(t *testing.T) {
 // when a field of the zero value is read.
 func TestZeroValueOfDeepStructTypes(t *testing.T) {
 	t.Parallel()
+	if !core.BudgetControlsEnabled {
+		t.Skip("budget controls are unavailable in the reference build")
+	}
 	const depth = 24
 	var src strings.Builder
 	for i := range depth {

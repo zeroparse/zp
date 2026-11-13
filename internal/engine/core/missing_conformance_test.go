@@ -135,7 +135,7 @@ func TestEngineMissingConformance(t *testing.T) {
 		if controlled {
 			ops = append(ops, engineBudgetOps...)
 		}
-		s := conform.Suite{Name: fmt.Sprintf("engine missing tokens (controlled=%v)", controlled), Ops: ops, Exact: missingExact,
+		s := conform.Suite{Name: fmt.Sprintf("engine missing tokens (controlled=%v)", controlled), Ops: ops, Exact: exactCharges(missingExact),
 			New: func(c ref.Config) conform.Impl { return newMissingMachineControlled(c, controlled) }}
 		t.Run(s.Name, func(t *testing.T) {
 			fails, ran := missingConformanceFailures(s, seeds, 150)

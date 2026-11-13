@@ -96,7 +96,8 @@ func TestEngineValueCastTable(t *testing.T) {
 			}
 			panic("no value " + v.Kind)
 		}
-		err := conform.RunCasts("engine", controlled, func(typ *conform.CastType, v conform.CastValue) (bool, int) {
+		// The budget-controls reference build charges nothing, so its units are not checked.
+		err := conform.RunCasts("engine", controlled && BudgetControlsEnabled, func(typ *conform.CastType, v conform.CastValue) (bool, int) {
 			val := build(v)
 			var before uint64
 			if controlled {
