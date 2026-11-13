@@ -16,7 +16,7 @@ import (
 	"zeroparse.dev/zp/internal/compile"
 	"zeroparse.dev/zp/internal/gen"
 	"zeroparse.dev/zp/internal/gen/opt"
-	"zeroparse.dev/zp/internal/ir/core"
+	"zeroparse.dev/zp/internal/ir/coreir"
 )
 
 //go:embed tsrt/runtime.ts
@@ -440,7 +440,7 @@ func tsActxParam(body string) string {
 
 // action emits a function that evaluates the term ct of Core IR (an action or a predicate) and
 // returns its name.
-func (g *Generator) action(ct core.Term, s *compile.Scope, locals map[string]string) string {
+func (g *Generator) action(ct coreir.Term, s *compile.Scope, locals map[string]string) string {
 	name := g.Name("a")
 	g.Methods.WriteString(g.actionFunc(name, ct, s, locals))
 	return name
@@ -638,12 +638,12 @@ func (g *Generator) operatorsRule(r *compile.Rule, e *grammar.OperatorsRule) {
 	var b strings.Builder
 	fmt.Fprintf(&b, "%s.operatorsRule = {\n", g.ruleVar(r))
 	// The lines of the rule's Core IR, in the order of e, if the printer prints them from Flow IR.
-	var co *core.OperatorsRule
+	var co *coreir.OperatorsRule
 	if g.Flow != nil {
-		co, _ = g.Flow.M.Rules[r.ID].Body.(*core.OperatorsRule)
+		co, _ = g.Flow.M.Rules[r.ID].Body.(*coreir.OperatorsRule)
 	}
 	if e.Skip != nil {
-		var skip *core.OpLine
+		var skip *coreir.OpLine
 		if co != nil {
 			skip = co.Skip
 		}
@@ -658,7 +658,7 @@ func (g *Generator) operatorsRule(r *compile.Rule, e *grammar.OperatorsRule) {
 	}
 	b.WriteString("  operands: [\n")
 	for i, o := range e.Operands {
-		var l *core.OpLine
+		var l *coreir.OpLine
 		if co != nil {
 			l = co.Operands[i]
 		}
@@ -669,7 +669,7 @@ func (g *Generator) operatorsRule(r *compile.Rule, e *grammar.OperatorsRule) {
 	id := 0
 	for i, l := range e.Levels {
 		for _, op := range l.Operators {
-			var line *core.OpLine
+			var line *coreir.OpLine
 			if co != nil {
 				line = co.Ops[id].Line
 			}
@@ -691,7 +691,7 @@ func (g *Generator) operatorsRule(r *compile.Rule, e *grammar.OperatorsRule) {
 
 // operatorsRuleLine returns the line of an Operators Rule with the expression e and the action; l is
 // its Core IR if the printer prints it from Flow IR, or nil.
-func (g *Generator) operatorsRuleLine(e grammar.Expr, action grammar.Term, operator bool, l *core.OpLine) string {
+func (g *Generator) operatorsRuleLine(e grammar.Expr, action grammar.Term, operator bool, l *coreir.OpLine) string {
 	s := compile.NewScope()
 	var locals []string
 	if operator {
@@ -712,7 +712,7 @@ func (g *Generator) operatorsRuleLine(e grammar.Expr, action grammar.Term, opera
 		if operator {
 			locals = map[string]string{"lhs": "c.lhs", "rhs": "c.rhs", "op": "c.op"}
 		}
-		var ct core.Term
+		var ct coreir.Term
 		if l != nil {
 			ct = l.Action
 		}

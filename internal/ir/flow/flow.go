@@ -19,12 +19,12 @@
 // unreachable.
 package flow
 
-import "zeroparse.dev/zp/internal/ir/core"
+import "zeroparse.dev/zp/internal/ir/coreir"
 
 // Func is a function of Flow IR: the body of a rule variant.
 type Func struct {
 	Name string
-	Rule *core.Rule
+	Rule *coreir.Rule
 	// Vars holds the function's local variables, in the order they were made.
 	Vars []*Var
 	// Body is the statements of the function. Running to its end is success; an Exit to Fail is
@@ -177,13 +177,13 @@ type Advance struct{ N Expr }
 // Expect records the expectation Exp at At; with Message, as the message of a failed @error.
 type Expect struct {
 	At      Expr
-	Exp     core.ExpID
+	Exp     coreir.ExpID
 	Message bool
 }
 
 // ObserveSkip reports to the parser's observation that the guard of a choice skips the alternative
 // Alt.
-type ObserveSkip struct{ Alt core.Node }
+type ObserveSkip struct{ Alt coreir.Node }
 
 // Restore goes back to the position Pos and the number of recovered errors Rec.
 type Restore struct{ Pos, Rec Expr }
@@ -196,7 +196,7 @@ type MergeExpected struct{ Far, Exps Expr }
 // scope, renamed to Exp (@diagnostic).
 type MergeRenamed struct {
 	Far, Exps Expr
-	Exp       core.ExpID
+	Exp       coreir.ExpID
 }
 
 // PushKid pushes X on the stack of gathered values.
@@ -209,7 +209,7 @@ type DropKids struct{ Base Expr }
 // to run (runtime StreamStart). It is guarded by StreamOn.
 type StreamStart struct{}
 
-// SkipBegin begins a walk of the skip-run site Site (core.Repeat.Site) at the position: the
+// SkipBegin begins a walk of the skip-run site Site (coreir.Repeat.Site) at the position: the
 // iterations of the repetition that follow are visits of the walk, until SkipEnd.
 type SkipBegin struct{ Site int }
 
@@ -220,7 +220,7 @@ type SkipVisit struct{}
 // from each position it visited.
 type SkipEnd struct{}
 
-// ScanEnd ends a walk of the value-free scan site Site (core.Scan.Site) that began at Start and matched
+// ScanEnd ends a walk of the value-free scan site Site (coreir.Scan.Site) that began at Start and matched
 // Count characters, at least ScanHotSpan, and that ScanReach reached: unless the walk took the rest
 // from a record, it records itself at a hot site, or notes that it walked at a site that is not hot.
 type ScanEnd struct {
@@ -375,7 +375,7 @@ type ScanReach struct {
 	Start, Count Expr
 }
 
-// ScanKids is Kids for a walk of the scan site Site (core.Repeat.ScanSite plus one) that began at
+// ScanKids is Kids for a walk of the scan site Site (coreir.Repeat.ScanSite plus one) that began at
 // Start, gathered its elements on the stack from Base and matched Count characters: for a walk that
 // reached ScanHotSpan characters, it ends the walk as ScanEnd does, and its value is the elements of
 // the record that the walk took, if it took one (the stack is dropped to Base), or the gathered
@@ -408,37 +408,37 @@ type Cmp struct {
 
 // HasLit reports that the input at the position begins with the literal, read in place without
 // spending budget or recording anything; it is false where the input cannot be read in place.
-type HasLit struct{ Lit *core.Lit }
+type HasLit struct{ Lit *coreir.Lit }
 
 // MatchLit matches the literal, recording its expectation on failure. Its results are its value
 // (not used) and whether it matched.
-type MatchLit struct{ Lit *core.Lit }
+type MatchLit struct{ Lit *coreir.Lit }
 
 // MatchClass matches one character of the class through its membership table, recording the
 // class's expectation on failure, and reports whether it matched.
-type MatchClass struct{ Class *core.Class }
+type MatchClass struct{ Class *coreir.Class }
 
 // InClass reports whether the code point Ch is in the class.
 type InClass struct {
-	Class *core.Class
+	Class *coreir.Class
 	Ch    *Var
 }
 
 // GuardFails reports that the guard skips its alternative: the character that More (there is
 // one) and Ch describe cannot begin it, and the nesting limit allows the guard's depth of calls.
 type GuardFails struct {
-	Guard    *core.First
+	Guard    *coreir.First
 	Ch, More *Var
 }
 
 // AtAnchor reports whether the position is at the anchor.
-type AtAnchor struct{ Kind core.AnchorKind }
+type AtAnchor struct{ Kind coreir.AnchorKind }
 
 // SkipTerminal runs the terminal region as one program and reports whether it matched.
-type SkipTerminal struct{ T *core.Terminal }
+type SkipTerminal struct{ T *coreir.Terminal }
 
 // SkipClasses matches the classes of the run in turn and reports whether they matched.
-type SkipClasses struct{ Run *core.ClassRun }
+type SkipClasses struct{ Run *coreir.ClassRun }
 
 // CallRule calls rule Rule from Operators Rule level Level. Its results are the rule's value and
 // whether it matched.
@@ -448,8 +448,8 @@ type CallRule struct{ Rule, Level int }
 // frame, whose capture scope has the slots Slots. Its results are the value of the node, built if Build,
 // and whether it matched.
 type CallOutline struct {
-	Node  core.Node
-	Slots []core.Slot
+	Node  coreir.Node
+	Slots []coreir.Slot
 	Build bool
 }
 
@@ -504,20 +504,20 @@ type Kids struct{ Base Expr }
 // ShapeSingle is the value of X, matched from Start by an expression of the shape, where it takes
 // one element. Its results are the value and whether it is a single element (not used).
 type ShapeSingle struct {
-	Shape    core.Shape
+	Shape    coreir.Shape
 	X, Start Expr
 }
 
 // ShapeCapture is the value of X, matched from Start by an expression of the shape, where it is
 // captured.
 type ShapeCapture struct {
-	Shape    core.Shape
+	Shape    coreir.Shape
 	X, Start Expr
 }
 
 // ScopeValue is the value of a scope whose body, of the shape, matched X from Start.
 type ScopeValue struct {
-	Shape    core.Shape
+	Shape    coreir.Shape
 	X, Start Expr
 }
 
@@ -600,21 +600,21 @@ type Captures struct {
 // Pred evaluates the term of the predicate Node with the captures Caps and reports whether it
 // holds.
 type Pred struct {
-	Node *core.Pred
+	Node *coreir.Pred
 	Caps Captures
 }
 
 // Bind binds the variable of Node to the value of its term, evaluated with the captures Caps,
 // and reports whether the evaluation succeeded.
 type Bind struct {
-	Node *core.BindNode
+	Node *coreir.BindNode
 	Caps Captures
 }
 
 // Eval is the value of the action Term of the function's rule, evaluated in the context C with
 // the captures Caps.
 type Eval struct {
-	Term core.Term
+	Term coreir.Term
 	C    *Var
 	Caps Captures
 }
@@ -853,9 +853,9 @@ func Uses(x Expr, f func(*Var)) {
 }
 
 // capUses calls f with the variables of caps that the term t reads.
-func capUses(t core.Term, caps Captures, f func(*Var)) {
-	core.WalkTerm(t, func(t core.Term) {
-		if r, ok := t.(*core.SlotRef); ok && r.Slot < len(caps.Vars) && caps.Vars[r.Slot] != nil {
+func capUses(t coreir.Term, caps Captures, f func(*Var)) {
+	coreir.WalkTerm(t, func(t coreir.Term) {
+		if r, ok := t.(*coreir.SlotRef); ok && r.Slot < len(caps.Vars) && caps.Vars[r.Slot] != nil {
 			f(caps.Vars[r.Slot])
 		}
 	})

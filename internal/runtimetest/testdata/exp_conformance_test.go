@@ -136,8 +136,8 @@ func expSuites() []conform.Suite {
 			ops = append(ops, rtBudgetOps...)
 		}
 		suites = append(suites, conform.Suite{
-			Name:      fmt.Sprintf("node runtime expectations (controlled=%v)", controlled),
-			Ops:       ops,
+			Name: fmt.Sprintf("node runtime expectations (controlled=%v)", controlled),
+			Ops:  ops,
 			New:  func(c ref.Config) conform.Impl { return newExpMachine(c, controlled) },
 		})
 	}

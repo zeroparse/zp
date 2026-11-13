@@ -9,9 +9,9 @@ import (
 	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/compile"
 	"zeroparse.dev/zp/internal/gen"
-	"zeroparse.dev/zp/internal/ir/core"
+	"zeroparse.dev/zp/internal/ir/coreir"
 	"zeroparse.dev/zp/internal/ir/flow"
-	flowlower "zeroparse.dev/zp/internal/ir/flow/lower"
+	flowlower "zeroparse.dev/zp/internal/ir/flow/flowlower"
 	"zeroparse.dev/zp/internal/value"
 )
 
@@ -33,7 +33,7 @@ import (
 
 // startFlow builds the Core IR of the typed rules for printing them from Flow IR.
 func (g *Generator) startFlow() error {
-	origin := map[core.Node]grammar.Expr{}
+	origin := map[coreir.Node]grammar.Expr{}
 	m, err := g.TypedCore(origin)
 	if err != nil {
 		return err
@@ -45,7 +45,7 @@ func (g *Generator) startFlow() error {
 
 // FlowOptions returns the options of lowering the typed rules of the Core IR m, while the typed
 // table is generated.
-func (g *Generator) FlowOptions(m *core.Module) flowlower.Options {
+func (g *Generator) FlowOptions(m *coreir.Module) flowlower.Options {
 	// Node is false: the options of the Node and recognizer tables (gen.Generator.StartRecFlow) are
 	// built apart, and a function lowered with one set of options is never printed for the other
 	// runtime.
@@ -87,7 +87,7 @@ func (g *Generator) flowFrameBody(r *compile.Rule, scope *compile.Scope) string 
 	comment, ok := g.typedFrameComment(r)
 	cr := g.Flow.M.Rules[r.ID]
 	// The runtime-owned frame has the slots of the Node rule's scope.
-	if !ok || !flowlower.FramedBody(cr.Body) || !slices.Equal(core.SlotNames(cr.Scope), g.NodeScopes[r]) {
+	if !ok || !flowlower.FramedBody(cr.Body) || !slices.Equal(coreir.SlotNames(cr.Scope), g.NodeScopes[r]) {
 		return ""
 	}
 	if g.Flow.Opts.Node {
@@ -155,7 +155,7 @@ func (g *Generator) flowStreamBody(r *compile.Rule, scope *compile.Scope) string
 // on the shape of every capture, and the checker lets an action name only captures of its line. With budget
 // controls (Options.Budget) the method that holds the function charges its entry and the function charges
 // each iteration of a repetition, as Flow IR makes them explicit.
-func (g *Generator) flowOperatorsRuleBody(l *core.OpLine, e grammar.Expr, scope *compile.Scope, build bool) string {
+func (g *Generator) flowOperatorsRuleBody(l *coreir.OpLine, e grammar.Expr, scope *compile.Scope, build bool) string {
 	if g.Flow == nil || l == nil || !gen.FlowLineOK(e) || !flowlower.FramedBody(l.Body) {
 		return ""
 	}
@@ -181,18 +181,18 @@ func (g *Generator) flowOperatorsRuleBody(l *core.OpLine, e grammar.Expr, scope 
 // flowOperatorsRule returns the Core IR of the Operators Rule r, or nil if its lines are not
 // printed from Flow IR: the typed table prints them all from it, the Node and recognizer tables
 // when their Flow route is on (flowOperatorsRuleBody decides each line).
-func (g *Generator) flowOperatorsRule(r *compile.Rule) *core.OperatorsRule {
+func (g *Generator) flowOperatorsRule(r *compile.Rule) *coreir.OperatorsRule {
 	if g.Flow == nil || g.Table != "trules" && !g.Flow.Opts.Node {
 		return nil
 	}
-	o, _ := g.Flow.M.Rules[r.ID].Body.(*core.OperatorsRule)
+	o, _ := g.Flow.M.Rules[r.ID].Body.(*coreir.OperatorsRule)
 	return o
 }
 
 // flowFramed prints the framed function f, whose capture scope has the slots, as a matcher method
 // with the comment, as finishFrameBody does, and sets scope to its capture scope. A rule body (ruleBody)
 // has the signature of the Body field of the rule table (see bodyMethod).
-func (g *Generator) flowFramed(f *flow.Func, slots []core.Slot, scope *compile.Scope, comment string, ruleBody bool) string {
+func (g *Generator) flowFramed(f *flow.Func, slots []coreir.Slot, scope *compile.Scope, comment string, ruleBody bool) string {
 	p := newFlowPrinter(g, true)
 	p.document = f.Document
 	return g.execFramed(p, f, slots, scope, comment, ruleBody)
@@ -415,7 +415,7 @@ var fixedExpNames = []string{"IdAny", "IdBeginInput", "IdEndInput", "IdBeginLine
 
 // exp returns the Go expression of the expectation id: the name of a fixed one, otherwise its ID
 // in the parser's table.
-func (p *flowPrinter) exp(id core.ExpID) string {
+func (p *flowPrinter) exp(id coreir.ExpID) string {
 	if int(id) < len(fixedExpNames) {
 		return fixedExpNames[id]
 	}
@@ -423,10 +423,10 @@ func (p *flowPrinter) exp(id core.ExpID) string {
 }
 
 // desc returns the ID in the parser's table of the expectation id of the module.
-func (p *flowPrinter) desc(id core.ExpID) compile.ExpID { return p.g.Desc(p.g.Flow.M.Exps[id]) }
+func (p *flowPrinter) desc(id coreir.ExpID) compile.ExpID { return p.g.Desc(p.g.Flow.M.Exps[id]) }
 
 // grammarClass returns the character class expression of the class c.
-func grammarClass(c *core.Class) *grammar.CharClass {
+func grammarClass(c *coreir.Class) *grammar.CharClass {
 	e := &grammar.CharClass{Negated: c.Negated}
 	for _, r := range c.Ranges {
 		e.Ranges = append(e.Ranges, grammar.CharRange{Lo: r.Lo, Hi: r.Hi})
@@ -435,7 +435,7 @@ func grammarClass(c *core.Class) *grammar.CharClass {
 }
 
 // reject returns the condition under which the code point in the variable ch is not in the class.
-func (p *flowPrinter) reject(c *core.Class, ch *flow.Var) string {
+func (p *flowPrinter) reject(c *coreir.Class, ch *flow.Var) string {
 	cond := p.g.ControlledClassReject(grammarClass(c))
 	if ch.Name != "ch" {
 		cond = chIdent.ReplaceAllString(cond, ch.Name)
@@ -444,7 +444,7 @@ func (p *flowPrinter) reject(c *core.Class, ch *flow.Var) string {
 }
 
 // shaper returns the package variable that holds the shaper of the shape.
-func (p *flowPrinter) shaper(sh core.Shape) string {
+func (p *flowPrinter) shaper(sh coreir.Shape) string {
 	return p.g.shaperOf(fmt.Sprintf("Shaper{Elems: %v, K: %d, Mode: %d, Tuple: %v, Shared: %v}", sh.Elems, sh.K, sh.Mode, sh.Tuple, sh.Shared))
 }
 
@@ -656,11 +656,11 @@ func (p *flowPrinter) not(x flow.Expr) string {
 		return "!" + x.V.Name
 	case *flow.AtAnchor:
 		switch x.Kind {
-		case core.BeginInput:
+		case coreir.BeginInput:
 			return "p.Pos != 0"
-		case core.EndInput:
+		case coreir.EndInput:
 			return "!p." + g.atEnd() + "()"
-		case core.BeginLine:
+		case coreir.BeginLine:
 			return "!p." + g.atLineStart() + "()"
 		default:
 			return "!p." + g.helper("AtLineEnd") + "()"
@@ -702,7 +702,7 @@ func (p *flowPrinter) not(x flow.Expr) string {
 }
 
 // term returns the term of the grammar predicate that the node n is built from.
-func (p *flowPrinter) term(n core.Node) grammar.Term {
+func (p *flowPrinter) term(n coreir.Node) grammar.Term {
 	e, ok := p.g.Flow.Origin[n].(*grammar.Predicate)
 	if !ok {
 		panic(fmt.Sprintf("flow printer: no grammar predicate for %T", n))

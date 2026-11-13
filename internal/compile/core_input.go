@@ -1,6 +1,6 @@
 package compile
 
-import "zeroparse.dev/zp/internal/ir/core/build"
+import "zeroparse.dev/zp/internal/ir/coreir/build"
 
 // CoreInput returns the rules and declarations of the program as the Core IR builder reads them
 // (build.Program).

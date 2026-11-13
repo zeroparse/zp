@@ -14,9 +14,9 @@ import (
 	"zeroparse.dev/zp/internal/cancel"
 	"zeroparse.dev/zp/internal/compile"
 	"zeroparse.dev/zp/internal/desugar"
-	"zeroparse.dev/zp/internal/ir/core"
-	"zeroparse.dev/zp/internal/ir/core/build"
-	"zeroparse.dev/zp/internal/ir/core/facts"
+	"zeroparse.dev/zp/internal/ir/coreir"
+	"zeroparse.dev/zp/internal/ir/coreir/build"
+	"zeroparse.dev/zp/internal/ir/coreir/facts"
 )
 
 // A fact error of the untyped module that the compiler does not report is added to its errors
@@ -27,9 +27,9 @@ type Result struct {
 	// Program is the compiled program: rules, flags and types.
 	Program *compile.Program
 	// Module is the Core IR of the program.
-	Module *core.Module
+	Module *coreir.Module
 	// Origin maps the nodes of Module to the expressions they were built from.
-	Origin map[core.Node]grammar.Expr
+	Origin map[coreir.Node]grammar.Expr
 	// Facts are the grammar facts of Module.
 	Facts *facts.Facts
 }
@@ -51,7 +51,7 @@ func Run(g *grammar.Grammar, opts compile.Options, control *cancel.Control) (*Re
 // FromProgram builds the Result of a program that was compiled already, for a caller that keeps
 // the program for its own use and must not compile the grammar twice.
 func FromProgram(prog *compile.Program, control *cancel.Control) (*Result, error) {
-	origin := map[core.Node]grammar.Expr{}
+	origin := map[coreir.Node]grammar.Expr{}
 	m, err := build.CoreFrom(prog, origin)
 	if err != nil {
 		return nil, err

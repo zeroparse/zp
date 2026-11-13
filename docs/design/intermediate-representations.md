@@ -3,7 +3,7 @@
 Core IR, Flow IR and Exec IR are the three internal representations between a checked grammar and the code a backend
 emits. This page explains why there are three, what each one is for, and how optimization works on them. It
 deliberately omits field tables, node inventories and call sites: those change often and the code, starting with the
-package comments of `internal/ir/core`, `internal/ir/flow` and `internal/ir/exec`, is their source of truth. The reasons behind the design are in
+package comments of `internal/ir/coreir`, `internal/ir/flow` and `internal/ir/exec`, is their source of truth. The reasons behind the design are in
 [record 062](records/062-backend-independent-optimization-ir.md) (Core and Flow IR) and
 [record 065](records/065-exec-ir-parser-vm.md) (Exec IR); the whole system is in
 [Architecture](architecture.md). The exact definitions are in the [Core IR Specification](../../spec/core-ir/README.md), including the [text form](../../spec/core-ir/text-form.md), which prints the module of this page's example in full, the [Flow IR Specification](../../spec/flow-ir/README.md), which defines every statement and expression of a rule's body, and the [Exec IR Specification](../../spec/exec-ir/README.md), which defines the parser VM, every operation with its contract, the compositions and their lowering, passes and printing. Nothing here is a public API.
@@ -69,7 +69,7 @@ the families.
 
 ### What the Verifier Guarantees
 
-`core.Verify` checks, by default once after the last pass, that the module is well formed and that the facts on it are true. With verification between passes on (`GenOptions.VerifyEachPass`), it also runs after every pass and names the pass that broke an invariant; see [Verification Between Passes](records/063-configurable-optimization-pass-pipeline.md#verification-between-passes). In
+`coreir.Verify` checks, by default once after the last pass, that the module is well formed and that the facts on it are true. With verification between passes on (`GenOptions.VerifyEachPass`), it also runs after every pass and names the pass that broke an invariant; see [Verification Between Passes](records/063-configurable-optimization-pass-pipeline.md#verification-between-passes). In
 principle it guarantees four things.
 
 - **Referential integrity.** Every call, capture and slot reference points at something that exists in the scope it

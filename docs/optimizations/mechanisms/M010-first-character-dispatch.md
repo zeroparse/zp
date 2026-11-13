@@ -56,7 +56,7 @@ Evidence records:
 [136](../136-measured-effect-of-the-generation-flags.md).
 
 Source owners: [`firstTerminal`](../../../internal/compile/compile.go),
-[`Guards pass`](../../../internal/ir/core/passes.go), [`Walker.ExprForm and Compiler.first`](../../../internal/compile/compile_walk.go),
+[`Guards pass`](../../../internal/ir/coreir/passes.go), [`Walker.ExprForm and Compiler.first`](../../../internal/compile/compile_walk.go),
 [`closure.Builder.Choice and Guard`](../../../internal/engine/closure/builder.go), [`GUARD
 emission`](../../../internal/compile/bcompile.go), [`generated choice
 guards`](../../../internal/gen/gogen/generator.go), [`TypeScript choice

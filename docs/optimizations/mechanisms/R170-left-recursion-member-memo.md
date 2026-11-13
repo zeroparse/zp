@@ -37,7 +37,7 @@ Source owners: [`Check`](../../../internal/compile/compile.go) (the memo flags a
 [`GrowBegin`](../../../internal/engine/core/runtime.go) with
 [the engine's dependency memo](../../../internal/engine/core/context_memo.go),
 [the dependency memo of the generated Go runtime](../../../runtime/context_memo.go) and
-[its calls and growths](../../../runtime/call_exec.go), [the call protocol in Exec IR](../../../internal/ir/exec/core/core.go)
+[its calls and growths](../../../runtime/call_exec.go), [the call protocol in Exec IR](../../../internal/ir/exec/execcore/core.go)
 with [its context and growth operations](../../../internal/ir/exec/ops/transitional.go),
 [`Parser.ctxEnter` and the growths of the TypeScript runtime](../../../internal/gen/tsgen/tsrt/runtime.ts).
 

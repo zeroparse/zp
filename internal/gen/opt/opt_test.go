@@ -5,17 +5,17 @@ import (
 	"strings"
 	"testing"
 
-	"zeroparse.dev/zp/internal/ir/core"
+	"zeroparse.dev/zp/internal/ir/coreir"
 )
 
 // Every pass of the Core pipeline is an optimization that can be turned off, under its own name.
 func TestEveryCorePassIsAFlag(t *testing.T) {
-	for _, name := range core.Pipeline.Names() {
+	for _, name := range coreir.Pipeline.Names() {
 		if f, ok := lookup(name); !ok || f.Kind != Pass {
 			t.Errorf("pass %s is not a registered optimization of kind pass", name)
 		}
 	}
-	for _, name := range []string{"text-dispatch", "field-compare", core.FlagGuardedClasses} {
+	for _, name := range []string{"text-dispatch", "field-compare", coreir.FlagGuardedClasses} {
 		if _, ok := lookup(name); !ok {
 			t.Errorf("the flag %s is not registered", name)
 		}

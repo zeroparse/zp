@@ -5,8 +5,8 @@ import (
 	"strings"
 
 	"zeroparse.dev/zp/internal/ir/exec"
+	"zeroparse.dev/zp/internal/ir/exec/execlower"
 	"zeroparse.dev/zp/internal/ir/exec/exects"
-	"zeroparse.dev/zp/internal/ir/exec/lower"
 	"zeroparse.dev/zp/internal/ir/exec/pass"
 	"zeroparse.dev/zp/internal/ir/flow"
 )
@@ -14,7 +14,7 @@ import (
 // Rules printed from Exec IR.
 //
 // The functions of Flow IR are lowered to Exec
-// IR (lower.Flow) and printed by exects.Body, which prints their structure and decides which
+// IR (execlower.Flow) and printed by exects.Body, which prints their structure and decides which
 // assignments stay (pass.DeadStores). The primitives of Flow IR are transitional operations there,
 // which tsFlowPrinter prints as it prints them from Flow IR. Before printing (tsRuns), charges in a
 // row become one spend, the end of an expectation record followed by the merge of its expectations
@@ -41,7 +41,7 @@ const (
 
 // printTSFlowExec is printTSFlow from Exec IR.
 func (g *Generator) printTSFlowExec(f *flow.Func) (string, []string, []tsDecl) {
-	l, err := lower.Flow(f)
+	l, err := execlower.Flow(f)
 	if err != nil {
 		panic(fmt.Errorf("rule %s of table %s: %w", f.Name, g.Table, err))
 	}
@@ -152,12 +152,12 @@ func (g *Generator) printTSFlowExec(f *flow.Func) (string, []string, []tsDecl) {
 // tsRuns replaces, in the lowered function l, each run of charges with one call of tsSpendOp, each
 // end of an expectation record that a merge of its expectations follows with one call of tsMergeOp,
 // and the condition of an If that tests the call of its Init with a call of tsFailedOp.
-func tsRuns(l *lower.Lowered) {
+func tsRuns(l *execlower.Lowered) {
 	m := l.Module
-	m.AddOp(&exec.Op{Name: tsFailedOp, Component: lower.Component, Results: []exec.Type{exec.TBool}, Reads: []string{lower.Component},
+	m.AddOp(&exec.Op{Name: tsFailedOp, Component: execlower.Component, Results: []exec.Type{exec.TBool}, Reads: []string{execlower.Component},
 		Transitional: true, Imm: "the bool the Init sets",
 		Contract: "Reports that the call of the Init of the If failed: that the bool it sets is false."})
-	m.AddOp(&exec.Op{Name: tsSpendOp, Component: lower.Component, Writes: []string{lower.Component}, NoReturn: true,
+	m.AddOp(&exec.Op{Name: tsSpendOp, Component: execlower.Component, Writes: []string{execlower.Component}, NoReturn: true,
 		Transitional: true, Imm: "the number of charges", Contract: "Charges a step as many times as Imm says."})
 	// The merge reads what the end of the record reads: one operation for each operation of the end.
 	merges := map[string]string{}
@@ -170,8 +170,8 @@ func tsRuns(l *lower.Lowered) {
 			name = fmt.Sprintf("%s.%d", tsMergeOp, len(merges)+1)
 		}
 		merges[end.Name] = name
-		m.AddOp(&exec.Op{Name: name, Component: lower.Component, Params: end.Params,
-			Reads: []string{lower.Component}, Writes: []string{lower.Component}, NoReturn: true, Transitional: true,
+		m.AddOp(&exec.Op{Name: name, Component: execlower.Component, Params: end.Params,
+			Reads: []string{execlower.Component}, Writes: []string{execlower.Component}, NoReturn: true, Transitional: true,
 			Imm: "the end of the expectation record", Contract: "Ends the expectation record and merges its expectations into the enclosing record."})
 		return name
 	}
@@ -286,7 +286,7 @@ func tsMergedRecord(a, b exec.Stmt) (*exec.Call, bool) {
 
 // bodyTarget returns the printing of the operations of the lowered function l, whose variables by
 // name are vars, by the printer p.
-func (p *tsFlowPrinter) bodyTarget(l *lower.Lowered, vars map[string]*flow.Var) *exects.BodyTarget {
+func (p *tsFlowPrinter) bodyTarget(l *execlower.Lowered, vars map[string]*flow.Var) *exects.BodyTarget {
 	// at runs print at the point that dead tells and returns what it writes.
 	at := func(dead bool, print func()) string {
 		prev, prevDead := p.b, p.dead
@@ -311,7 +311,7 @@ func (p *tsFlowPrinter) bodyTarget(l *lower.Lowered, vars map[string]*flow.Var) 
 		fs := &flow.Set{X: []flow.Expr{x}}
 		for _, d := range s.Dst {
 			switch {
-			case d.Reg && d.Name == lower.Pos:
+			case d.Reg && d.Name == execlower.Pos:
 				fs.Dst = append(fs.Dst, flow.RegPos)
 			case d.Reg:
 				fs.Dst = append(fs.Dst, flow.RegCut)
@@ -325,7 +325,7 @@ func (p *tsFlowPrinter) bodyTarget(l *lower.Lowered, vars map[string]*flow.Var) 
 	}
 	return &exects.BodyTarget{
 		Reg: func(name string) string {
-			if name == lower.Cut {
+			if name == execlower.Cut {
 				return "p.cut"
 			}
 			return "p.pos"

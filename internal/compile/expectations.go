@@ -1,6 +1,6 @@
 package compile
 
-import "zeroparse.dev/zp/internal/ir/core"
+import "zeroparse.dev/zp/internal/ir/coreir"
 
 // ExpID is an expectation (an index into descs). If MsgBit is set, it is an @error message.
 type ExpID int32
@@ -24,4 +24,4 @@ const (
 )
 
 // FixedDescs are the descriptions of the fixed expectations, in ExpID order.
-var FixedDescs = core.FixedDescs
+var FixedDescs = coreir.FixedDescs

@@ -7,9 +7,9 @@ import (
 	"zeroparse.dev/zp/internal/compiletest"
 	"zeroparse.dev/zp/internal/factstest"
 	"zeroparse.dev/zp/internal/frontend"
-	"zeroparse.dev/zp/internal/ir/core"
-	"zeroparse.dev/zp/internal/ir/core/build"
-	"zeroparse.dev/zp/internal/ir/core/facts"
+	"zeroparse.dev/zp/internal/ir/coreir"
+	"zeroparse.dev/zp/internal/ir/coreir/build"
+	"zeroparse.dev/zp/internal/ir/coreir/facts"
 	"zeroparse.dev/zp/internal/syntax"
 )
 
@@ -50,7 +50,7 @@ func TestRunMatchesCompile(t *testing.T) {
 				if err != nil {
 					t.Fatalf("%s: %v", v.name, err)
 				}
-				if got, want := core.Print(res.Module, true), core.Print(want, true); got != want {
+				if got, want := coreir.Print(res.Module, true), coreir.Print(want, true); got != want {
 					t.Errorf("%s: module differs:\n%s\nwant\n%s", v.name, got, want)
 				}
 				if len(res.Facts.Rules) != len(res.Module.Rules) {

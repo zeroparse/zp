@@ -8,7 +8,7 @@ import (
 	"testing"
 )
 
-// The hand-written Operators Rule loop and reset that the compositions of internal/ir/exec/core
+// The hand-written Operators Rule loop and reset that the compositions of internal/ir/exec/execcore
 // replaced, kept as the reference model of TestOperatorsRuleMatchesReference.
 
 func (p *Parser) refReset(m Mark) {

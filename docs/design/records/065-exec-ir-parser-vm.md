@@ -153,7 +153,7 @@ already exists in each copy; it is not written down.
 
 The names say what each level holds. Core IR is the core language of a grammar: what remains of its meaning once the
 surface syntax is gone. Flow IR is the control flow of a parse. Exec IR is the executable form: the operations of a
-parser VM and the program that drives them. Its package is `internal/ir/exec`, beside `internal/ir/core` and
+parser VM and the program that drives them. Its package is `internal/ir/exec`, beside `internal/ir/coreir` and
 `internal/ir/flow`.
 
 [Record 062](062-backend-independent-optimization-ir.md) keeps runtime algorithms out of Core IR and Flow IR: Flow IR

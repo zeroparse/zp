@@ -211,6 +211,7 @@ func (n SnapshotNode) Child(i int) SnapshotNode {
 	}
 	return snapshotHandle(n.graph, n.record().children[i])
 }
+
 // fields returns the fields of the node, none for a box, which keeps its value in the one field of
 // its record.
 func (n SnapshotNode) fields() value.Fields {

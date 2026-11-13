@@ -10,7 +10,7 @@ import (
 	"unicode/utf8"
 
 	"zeroparse.dev/zp/internal/gen"
-	"zeroparse.dev/zp/internal/ir/exec/core"
+	"zeroparse.dev/zp/internal/ir/exec/execcore"
 )
 
 // TsGeneratedHeader starts every generated TypeScript file. The command line tool removes stale
@@ -43,7 +43,7 @@ var tsPublicControls = strings.Fields(`CancellationSignal`)
 // observation code, as one module that exports every declaration the generated code uses.
 var TsRuntimeText = sync.OnceValue(func() string {
 	src := tsRuntimeSource
-	ms, err := core.TSMethods()
+	ms, err := execcore.TSMethods()
 	if err != nil {
 		panic(err)
 	}
@@ -67,7 +67,7 @@ var TsRuntimeText = sync.OnceValue(func() string {
 // substituteMethods replaces methods of the Parser class in the runtime source src by the printed
 // methods ms: each method, with the comment lines before it, from its first line at the class
 // body's indentation to the closing brace at that indentation.
-func substituteMethods(src string, ms []core.TSMethod) string {
+func substituteMethods(src string, ms []execcore.TSMethod) string {
 	for _, m := range ms {
 		head := "\n  " + m.Name + "("
 		i := strings.Index(src, head)

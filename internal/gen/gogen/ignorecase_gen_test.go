@@ -200,7 +200,7 @@ func TestIgnoreCaseGeneratedDocument(t *testing.T) {
 }
 
 // ignoreCaseTerminalGrammar holds a value-free choice with more literals than a terminal program
-// needs (core.MinTerminalLeaves), some of them case-insensitive. The typed generator must keep
+// needs (coreir.MinTerminalLeaves), some of them case-insensitive. The typed generator must keep
 // the choice on the general path instead of lowering it to a terminal program.
 const ignoreCaseTerminalGrammar = `package k
 @start
