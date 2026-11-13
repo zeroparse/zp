@@ -32,7 +32,7 @@ module; a recognize-mode file holds the module of the grammar's recognizer.
 |:--|:--|:--|
 | Save in parse mode | `Parser.MarshalBinary()` or `Parser.Marshal(zp.CompiledParse)` | `zp compile -g g.zp -o g.zpc` |
 | Save in another mode | `Parser.Marshal(zp.CompiledRecognize)`, `Parser.Marshal(zp.CompiledDocument)` | `zp compile -g g.zp -mode recognize\|document -o g.zpc` |
-| Name a mode | `zp.ParseCompiledMode("document")`, `CompiledMode.String()` | The value of `-mode` |
+| Name a mode | `CompiledMode.String()` | The value of `-mode` |
 | Load | `zp.LoadParser(data)` | `-g file.zpc` on `parse`, `trace`, `profile`, `explain` and `compile` |
 | Mode of a loaded parser | `Parser.CompiledMode()` returns the mode and `true`; `false` for a parser compiled from a grammar | |
 | Recognize a compiled grammar | `zp.IsCompiled(data)` | Used to tell source, JSON and a compiled grammar apart |

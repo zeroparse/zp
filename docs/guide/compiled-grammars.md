@@ -126,7 +126,7 @@ fmt.Println(err)
 ```
 
 `q.CompiledMode()` returns the mode of a loaded parser and `true`, and `false` for a parser compiled from source, which
-serves every mode. `zp.ParseCompiledMode` turns the name of a mode into the value.
+serves every mode. `CompiledMode.String()` names a mode.
 
 Some things need the grammar itself, so they work only from source, whatever the mode:
 

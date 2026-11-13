@@ -484,9 +484,6 @@ const (
 	CompiledDocument = engine.CompiledDocument
 )
 
-// ParseCompiledMode returns the mode named s: "parse", "recognize" or "document".
-func ParseCompiledMode(s string) (CompiledMode, error) { return engine.ParseCompiledMode(s) }
-
 // MarshalBinary encodes the parser in parse mode (CompiledParse); see Marshal.
 func (p *Parser) MarshalBinary() ([]byte, error) {
 	return p.prog.Marshal(p.start, CompiledParse)

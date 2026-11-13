@@ -13,6 +13,7 @@ import (
 
 	"zeroparse.dev/zp"
 	"zeroparse.dev/zp/editfuzz"
+	"zeroparse.dev/zp/internal/cliflag"
 )
 
 func editFuzzCmd(args []string, stdout io.Writer) error {
@@ -76,7 +77,7 @@ func editFuzzCmd(args []string, stdout io.Writer) error {
 	}
 	var bs []zp.Backend
 	for _, name := range strings.Split(*backends, ",") {
-		b, err := editfuzz.ParseBackend(name)
+		b, err := cliflag.ParseBackend(name)
 		if err != nil {
 			return err
 		}
@@ -84,7 +85,7 @@ func editFuzzCmd(args []string, stdout io.Writer) error {
 	}
 	var us []zp.PositionUnit
 	for _, name := range strings.Split(*units, ",") {
-		u, err := editfuzz.ParseUnit(name)
+		u, err := cliflag.ParseUnit(name)
 		if err != nil {
 			return err
 		}

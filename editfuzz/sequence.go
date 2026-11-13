@@ -28,6 +28,7 @@ import (
 	"sort"
 
 	"zeroparse.dev/zp"
+	"zeroparse.dev/zp/internal/cliflag"
 )
 
 // Version is the version of the Sequence format that this package reads and writes.
@@ -227,11 +228,11 @@ func (s *Sequence) UnmarshalJSON(data []byte) error {
 	if j.Start == "" {
 		return errors.New("missing start rule")
 	}
-	backend, err := ParseBackend(j.Backend)
+	backend, err := cliflag.ParseBackend(j.Backend)
 	if err != nil {
 		return err
 	}
-	unit, err := ParseUnit(j.Unit)
+	unit, err := cliflag.ParseUnit(j.Unit)
 	if err != nil {
 		return err
 	}
@@ -249,31 +250,11 @@ func (s *Sequence) UnmarshalJSON(data []byte) error {
 var sequenceFields = []string{"version", "grammar_sha256", "grammar_normalization", "start", "backend", "unit", "seed",
 	"text_encoding", "initial_base64", "operations"}
 
-// ParseBackend returns the backend named closure, bytecode or bytecode-iterative.
-func ParseBackend(name string) (zp.Backend, error) {
-	for _, b := range []zp.Backend{zp.Closure, zp.Bytecode, zp.BytecodeIterative} {
-		if b.String() == name {
-			return b, nil
-		}
-	}
-	return 0, fmt.Errorf("unknown backend %q", name)
-}
-
-// ParseUnit returns the unit named codepoints or bytes.
-func ParseUnit(name string) (zp.PositionUnit, error) {
-	for _, u := range []zp.PositionUnit{zp.CodePoints, zp.Bytes} {
-		if u.String() == name {
-			return u, nil
-		}
-	}
-	return 0, fmt.Errorf("unknown unit %q", name)
-}
-
 func backendName(b zp.Backend) (string, error) {
 	if b == zp.DefaultBackend {
 		return "", errors.New("a sequence needs an explicit backend")
 	}
-	if _, err := ParseBackend(b.String()); err != nil {
+	if _, err := cliflag.ParseBackend(b.String()); err != nil {
 		return "", err
 	}
 	return b.String(), nil
