@@ -65,13 +65,15 @@ func zeroValue(t grammar.TypeExpr) ref.V {
 // terms holds what the reference evaluator needs of the grammar besides the input: the zero values of
 // the fields of its struct types, its aliases, and the initial values of its variables.
 type terms struct {
-	zeros    map[string]map[string]ref.V
-	aliases  map[string]grammar.TypeExpr
-	initVars *variable
+	zeros   map[string]map[string]ref.V
+	aliases map[string]grammar.TypeExpr
+	// nodeTypes are the named node types: the type definitions that are not struct types.
+	nodeTypes map[string]bool
+	initVars  *variable
 }
 
 func newTerms(g *grammar.Grammar) *terms {
-	t := &terms{zeros: map[string]map[string]ref.V{}, aliases: map[string]grammar.TypeExpr{}}
+	t := &terms{zeros: map[string]map[string]ref.V{}, aliases: map[string]grammar.TypeExpr{}, nodeTypes: map[string]bool{}}
 	for _, d := range g.Types() {
 		switch d := d.(type) {
 		case *grammar.TypeDef:
@@ -81,6 +83,8 @@ func newTerms(g *grammar.Grammar) *terms {
 					z[f.Name] = zeroValue(f.Type)
 				}
 				t.zeros[d.Name] = z
+			} else {
+				t.nodeTypes[d.Name] = true
 			}
 		case *grammar.TypeAlias:
 			t.aliases[d.Name] = d.Type
@@ -213,4 +217,20 @@ func (g *gen) predicate(e *grammar.Predicate) (ok bool, def *variable) {
 	}
 	holds, known := decide(g.env(), e.Term)
 	return holds || !known, nil
+}
+
+// makesNode reports whether the rule's declared type is a named node type, which converts the value of
+// the rule to a node of that type. Any other declared type leaves the value of the body as it is.
+func (t *terms) makesNode(def *grammar.RuleDef) bool {
+	ty := def.Type
+	for {
+		switch x := ty.(type) {
+		case *grammar.TypeGroup:
+			ty = x.Type
+			continue
+		case *grammar.TypeRef:
+			return t.nodeTypes[x.Name]
+		}
+		return false
+	}
 }

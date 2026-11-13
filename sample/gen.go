@@ -945,8 +945,8 @@ func ruleValue(ri *ruleInfo, v val, start, end int, caps *capture, known bool) v
 	case strings.HasPrefix(ri.def.Name, "_"):
 		// A hidden rule makes no node: its value is that of its expression, and its captures end with it.
 		return v
-	case ri.def.Type != nil || caps != nil || !known:
-		// A node of the rule, of the declared type when there is one.
+	case ri.makesNode || caps != nil || !known:
+		// A node of the rule, of the named node type when it is declared with one.
 		return val{kind: vNode, start: start, end: end, caps: caps, capsKnown: known}
 	case v.kind == vNode && !v.capsKnown:
 		// The node of the rule's own sequence, without captures.
