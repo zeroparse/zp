@@ -129,3 +129,34 @@ func TestProfileHints(t *testing.T) {
 		t.Fatal("nil profile snapshot has nil Rules")
 	}
 }
+
+// streamSource is a TraceSource of a stream that holds the input from base on.
+type streamSource struct{ base int }
+
+func (s *streamSource) LineCol(int) (int, int)    { return 0, 0 }
+func (s *streamSource) Text(int, int) string      { return "" }
+func (s *streamSource) Failure() *SyntaxError     { return nil }
+func (s *streamSource) Recovered() []*SyntaxError { return nil }
+func (s *streamSource) Retained() int             { return s.base }
+
+// TestProfileRecorderStreamBound checks that the evaluation counts of a long stream stay bounded:
+// the positions the source no longer holds are dropped.
+func TestProfileRecorderStreamBound(t *testing.T) {
+	var pr Profile
+	r := pr.Recorder()
+	src := &streamSource{}
+	r.Record(enter("s", 1, 0).WithSource(src))
+	const n = 100 * profileSeenMin
+	for pos := range n {
+		src.base = max(pos-10, 0)
+		r.Record(enter("line", 2, pos).WithSource(src))
+		r.Record(exit("line", 2, pos, pos+1, true, 1, pos+1).WithSource(src))
+	}
+	if len(r.seen) > 4*profileSeenMin {
+		t.Fatalf("%d positions kept", len(r.seen))
+	}
+	r.Record(exit("s", 1, 0, n, true, 1, n).WithSource(src))
+	if row := pr.Snapshot().Rules[0]; row.Calls != n || row.Repeats != 0 {
+		t.Fatalf("line %+v", row)
+	}
+}

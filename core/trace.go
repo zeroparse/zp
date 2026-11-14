@@ -134,6 +134,11 @@ func (e TraceEvent) WithSource(src TraceSource) TraceEvent {
 	return e
 }
 
+// Source returns the parser state that WithSource attached to e, or nil.
+func (e TraceEvent) Source() TraceSource {
+	return e.src
+}
+
 // LineCol returns the 1-based line and column of the position pos, or 0, 0 when the position is
 // unknown: when the parser does not provide it, or, in a stream parse, for a position (other than
 // 0) in input that has been discarded or not read yet.
