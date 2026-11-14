@@ -35,10 +35,32 @@ var unknownMutants = []struct{ name, file, old, new string }{
 	{"a constructor keeps the alias", "term.go", "x.Type = e.typeName(t.Type)", "x.Type = t.Type"},
 }
 
+// errorMutants each break one way in which the cast and the list built-ins treat an error value.
+var errorMutants = []struct{ name, file, old, new string }{
+	{"error admits no value", "term.go", "return x.Kind == KError\n", "return false\n"},
+	{"error admits every node", "term.go", "return x.Kind == KError\n", "return x.Kind == KError || x.Kind == KNode\n"},
+	{"missing admits a skipped range", "term.go", "return x.Kind == KError && x.Missing\n", "return x.Kind == KError\n"},
+	{"missing admits no token", "term.go", "return x.Kind == KError && x.Missing\n", "return false\n"},
+	{"a type name reads the node of the error", "value.go", "\tcase KError:\n\t\tif v.Missing {\n\t\t\treturn \"missing\"\n\t\t}\n\t\treturn \"error\"\n", "\tcase KError:\n\t\treturn \"error\"\n"},
+	{"an error value is not a list", "term.go", "case KNil, KError: // an error value counts as an empty list", "case KNil:"},
+}
+
 // TestUnknownMutants is the proof that TestUnknownNeverLeaks and TestUnknownResults, with
 // TestPartialNodeNeverLeaks and TestPartialNodeResults for nodes of UnknownShape and aliases, hold the
 // handling of Unknown: each mutant, built over the package's sources with -overlay, fails one of them.
 func TestUnknownMutants(t *testing.T) {
+	runMutants(t, unknownMutants, "^Test(Unknown|PartialNode)(NeverLeaks|Results)$", "--- FAIL: TestUnknown", "--- FAIL: TestPartialNode")
+}
+
+// TestErrorValueMutants is the proof that TestErrorValueCast and TestErrorValueTerms hold the types that
+// admit an error value and the terms that take one: each mutant fails one of them.
+func TestErrorValueMutants(t *testing.T) {
+	runMutants(t, errorMutants, "^TestErrorValue(Cast|Terms)$", "--- FAIL: TestErrorValue")
+}
+
+// runMutants builds each mutant over the package's sources with -overlay, runs the tests that match run, and
+// requires that they fail with a line that contains one of fails.
+func runMutants(t *testing.T, mutants []struct{ name, file, old, new string }, run string, fails ...string) {
 	if testing.Short() {
 		t.Skip("runs the tests on mutated sources")
 	}
@@ -46,7 +68,7 @@ func TestUnknownMutants(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	for _, m := range unknownMutants {
+	for _, m := range mutants {
 		t.Run(m.name, func(t *testing.T) {
 			t.Parallel()
 			path := filepath.Join(dir, m.file)
@@ -67,14 +89,18 @@ func TestUnknownMutants(t *testing.T) {
 			if err := os.WriteFile(ov, overlay, 0o644); err != nil {
 				t.Fatal(err)
 			}
-			cmd := exec.Command("go", "test", "-count=1", "-overlay", ov, "-run", "^Test(Unknown|PartialNode)(NeverLeaks|Results)$", ".")
+			cmd := exec.Command("go", "test", "-count=1", "-overlay", ov, "-run", run, ".")
 			cmd.Dir = dir
 			out, err := cmd.CombinedOutput()
 			if err == nil {
 				t.Fatalf("the tests pass with the mutant:\n%s", out)
 			}
-			if !strings.Contains(string(out), "--- FAIL: TestUnknown") && !strings.Contains(string(out), "--- FAIL: TestPartialNode") {
-				t.Fatalf("the mutant fails no Unknown test:\n%s", out)
+			failed := false
+			for _, f := range fails {
+				failed = failed || strings.Contains(string(out), f)
+			}
+			if !failed {
+				t.Fatalf("the mutant fails none of %q:\n%s", fails, out)
 			}
 		})
 	}

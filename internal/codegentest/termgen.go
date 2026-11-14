@@ -31,6 +31,9 @@ type TermCase struct {
 	// fixed cases write them by hand from their rules, so that the reference evaluator reads the
 	// captures that the grammar defines without a parser of its own.
 	Captures func(in string) map[string]Capture
+	// Recovers is set if the rule recovers from an error on some input, so that its parse reports the
+	// syntax errors it recovered from besides the value.
+	Recovers bool
 }
 
 // Capture is a node that a capture holds after a match, with its range in characters of the input: a
@@ -52,6 +55,8 @@ const (
 	StringCapture
 	TupleCapture
 	ListCapture
+	// ErrorCapture is an error value of recovery over [From, To).
+	ErrorCapture
 )
 
 // litCap is the string node of the literal at character i.
@@ -876,6 +881,51 @@ func castCaptures(lit string) func(string) map[string]Capture {
 		return map[string]Capture{"x": litCap(0), "y": {Shape: TupleCapture, From: 1, To: 3, Elems: []Capture{litCap(1), litCap(2)}},
 			"z": litsCap(3, lits(in, lit))}
 	}
+}
+
+// ErrorCastTermCases returns fixed terms that cast the value of a capture that holds an error value of
+// recovery or a string node, to the types that admit it and to those that do not. The rule captures the
+// string node $x and $e, the value of "b" #recover(skip=";"), which is a string node on the input "ab" and an
+// error value that covers the ";" on the input "a;". The terms compare the cast value with nil, so that a
+// successful cast gives true and a failed one the error of the cast, which the terms put in a list with a
+// field of the type, as CastTermCases does, to cast a value whose static type is a join.
+func ErrorCastTermCases() []TermCase {
+	casts := []struct{ typ, value string }{
+		{"error", "$e"}, {"*error", "$e"}, {"_", "$e"}, {"error | int", "$e"}, {"node[string] | error", "$e"},
+		{"node[string]", "$e"}, {"node[_]", "$e"}, {"string", "$e"}, {"int", "$e"}, {"bool", "$e"}, {"[]_", "$e"},
+		{"Num", "$e"}, {"error", "$x"}, {"error", "1"}, {"*error", "1"},
+	}
+	fieldOf := map[string]int{}
+	var fields []string
+	for _, a := range casts {
+		if _, ok := fieldOf[a.typ]; !ok {
+			typ := a.typ
+			if (strings.ContainsAny(typ, "|") || strings.Contains(typ, "node") || strings.Contains(typ, "Num") || typ == "error") && !strings.HasPrefix(typ, "*") {
+				typ = "*(" + typ + ")"
+			}
+			fieldOf[a.typ] = len(fields)
+			fields = append(fields, fmt.Sprintf("F%d %s", len(fields), typ))
+		}
+	}
+	prelude := "type Num = node[string]\ntype F = { " + strings.Join(fields, "; ") + " }\n@start\n"
+	var out []TermCase
+	for _, a := range casts {
+		term := fmt.Sprintf("list(%s, (F{}).F%d)[0].(%s) != nil", a.value, fieldOf[a.typ], a.typ)
+		out = append(out, TermCase{
+			Case: Case{Name: "error cast: " + term,
+				Src:    fmt.Sprintf("%srule main bool = x:\"a\" e:(\"b\" #recover(skip=\";\")) $$ => %s\n", prelude, term),
+				Inputs: []string{"ab", "a;"}},
+			Term: term, Type: "bool", Kind: TermAction, Lit: "a", Recovers: true,
+			Captures: func(in string) map[string]Capture {
+				e := Capture{Shape: StringCapture, From: 1, To: 2}
+				if in == "a;" {
+					e.Shape = ErrorCapture
+				}
+				return map[string]Capture{"x": litCap(0), "e": e}
+			},
+		})
+	}
+	return out
 }
 
 // hullPrelude declares the struct type of HullTermCases: S has a list and a tuple field.

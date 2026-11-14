@@ -2,6 +2,7 @@ package codegen_test
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"os"
 	"os/exec"
@@ -729,6 +730,10 @@ func checkReference(t *testing.T, c codegentest.TermCase, prog *engine.Program, 
 	t.Helper()
 	v, msg := env.Eval(term)
 	n, err := prog.ParseWith("main", in, engine.ParseOptions{Backend: engine.Closure, Unit: unit})
+	var recovered core.SyntaxErrors
+	if c.Recovers && n != nil && errors.As(err, &recovered) {
+		err = nil // the recovered syntax errors are not what the term gives; the value is
+	}
 	if c.Kind == codegentest.TermPredicate {
 		held := err == nil && n != nil
 		if want := !strings.HasSuffix(in, "b") || ref.Holds(v, msg); held != want {
@@ -756,7 +761,7 @@ func checkReference(t *testing.T, c codegentest.TermCase, prog *engine.Program, 
 func fixedTermCases() []codegentest.TermCase {
 	var all []codegentest.TermCase
 	for _, set := range [][]codegentest.TermCase{codegentest.ConvertTermCases(), codegentest.StructTermCases(), codegentest.CastTermCases(),
-		codegentest.HullTermCases(), codegentest.IterTermCases(), codegentest.PushTermCases(), codegentest.ScalarTermCases()} {
+		codegentest.HullTermCases(), codegentest.IterTermCases(), codegentest.PushTermCases(), codegentest.ScalarTermCases(), codegentest.ErrorCastTermCases()} {
 		all = append(all, set...)
 	}
 	return all
@@ -820,6 +825,9 @@ func referenceCaptures(caps map[string]codegentest.Capture, in string, bytes boo
 	}
 	var node func(c codegentest.Capture) ref.V
 	node = func(c codegentest.Capture) ref.V {
+		if c.Shape == codegentest.ErrorCapture {
+			return ref.ErrorValue(offset(c.From), offset(c.To), false)
+		}
 		shape := map[codegentest.CaptureShape]ref.Shape{codegentest.StringCapture: ref.StringNode, codegentest.TupleCapture: ref.TupleNode,
 			codegentest.ListCapture: ref.ListNode}
 		if c.Shape == codegentest.Unmatched {

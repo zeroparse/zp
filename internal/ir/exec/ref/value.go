@@ -23,6 +23,8 @@ const (
 	KTuple
 	KStruct
 	KNode
+	// KError is an error value of recovery: a range skipped by #recover, or a token that #missing inserted.
+	KError
 	// KUnknown is a value that the caller of an evaluation does not know yet (see Unknown).
 	KUnknown
 )
@@ -46,6 +48,8 @@ type V struct {
 	// Caps are the captures of a node by name; a capture that did not match is absent and reads as nil.
 	// For a node of UnknownShape, a nil Caps means that its captures are unknown as well.
 	Caps map[string]V
+	// Missing is set for a KError value that is a missing token, which is an error value of the type missing.
+	Missing bool
 }
 
 // Shape is the shape of the value of a node.
@@ -66,6 +70,12 @@ const (
 // or a list node, and the captures. A named node has Type set to the name of its node type.
 func Node(shape Shape, text string, start, end int, items []V, caps map[string]V) V {
 	return V{Kind: KNode, Shape: shape, S: text, Start: start, End: end, Items: items, Caps: caps}
+}
+
+// ErrorValue returns an error value of recovery over the range [start, end) of the input: that of a missing
+// token if missing is set, whose range is empty.
+func ErrorValue(start, end int, missing bool) V {
+	return V{Kind: KError, Start: start, End: end, Missing: missing}
 }
 
 // nodeValue is the value of a node, .Value: its string, its tuple or its list of elements.
@@ -110,6 +120,11 @@ func (v V) TypeName() string {
 		return "(" + strings.TrimSuffix(strings.Repeat("_, ", len(v.Items)), ", ") + ")"
 	case KStruct:
 		return v.Type
+	case KError:
+		if v.Missing {
+			return "missing"
+		}
+		return "error"
 	case KUnknown:
 		return "unknown"
 	}

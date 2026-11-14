@@ -11,7 +11,10 @@ import (
 // evaluation. The reference evaluator covers every term of a value or predicate action: literals,
 // captures and lambda parameters, the members of nodes (.Start, .End, .Value and captures) and of
 // structs, struct, tuple and named node constructors, the built-in functions, the operators and casts
-// to every type (spec/language/actions.md). It does not model the values of error recovery.
+// to every type (spec/language/actions.md). An error value of recovery (ErrorValue) is modelled as far as
+// the specification defines what a term does with one: a cast to a type that admits it, a comparison with
+// nil, and the list built-ins, which take it as an empty list. A term that reads its range, text or
+// members, takes its length or converts it is not modelled, and the evaluation panics.
 type TermEnv struct {
 	// Captures are the captures by name, made with Node; a capture that did not match is absent.
 	Captures map[string]V
@@ -99,6 +102,7 @@ func (e *TermEnv) eval(t grammar.Term, p params) V {
 			// of x and carries the name N (types.md, Named Node Types). The checker admits only nodes.
 			x := e.eval(t.Args[0], p)
 			need(x)
+			unmodelled(x, "the conversion of")
 			if x.Kind != KNode {
 				panic("ref: conversion of a value that is not a node: " + x.TypeName())
 			}
@@ -128,6 +132,14 @@ func (e *TermEnv) eval(t grammar.Term, p params) V {
 		return e.cast(t, e.eval(t.X, p))
 	}
 	panic(fmt.Sprintf("ref: unsupported term %T", t))
+}
+
+// unmodelled panics if x is an error value, which the specification does not say what the operation does
+// with (see TermEnv).
+func unmodelled(x V, what string) {
+	if x.Kind == KError {
+		panic("ref: " + what + " an error value is not modelled")
+	}
 }
 
 func (e *TermEnv) terms(ts []grammar.Term, p params) []V {
@@ -167,6 +179,7 @@ func (e *TermEnv) member(x V, name string) V {
 		}
 		return z
 	}
+	unmodelled(x, "a member of")
 	fail("cannot select %s from %s", name, x.TypeName())
 	return Nil
 }
@@ -210,7 +223,7 @@ func (e *TermEnv) strictLogic(t *grammar.Binary, p params) V {
 func (e *TermEnv) items(fn string, v V) []V {
 	need(v)
 	switch v.Kind {
-	case KNil:
+	case KNil, KError: // an error value counts as an empty list
 		return nil
 	case KList:
 		return v.Items
@@ -249,6 +262,7 @@ func (e *TermEnv) call(c *grammar.Call, p params) V {
 		case KList, KTuple:
 			return Int(int64(len(x.Items)))
 		}
+		unmodelled(x, "the length of")
 		fail("len: invalid argument %s", x.TypeName())
 	case "text":
 		x := e.eval(c.Args[0], p)
@@ -259,6 +273,7 @@ func (e *TermEnv) call(c *grammar.Call, p params) V {
 		case KStr, KNode:
 			return Str(x.S)
 		}
+		unmodelled(x, "the text of")
 		fail("text: invalid argument %s", x.TypeName())
 	case "foldl", "foldr":
 		acc := e.eval(c.Args[0], p)
@@ -346,7 +361,8 @@ func (e *TermEnv) typeName(n string) string {
 
 // admits reports whether the type t admits the value x (actions.md, Values and Constructors): a name
 // other than a built-in one or an alias is a declared struct type or named node type, which admits
-// only its own values. The model has no values of error recovery, so error admits none.
+// only its own values. error admits every error value and missing the missing tokens among them; no other
+// type admits one but _.
 func (e *TermEnv) admits(t grammar.TypeExpr, x V) bool {
 	need(x)
 	switch t := t.(type) {
@@ -366,7 +382,9 @@ func (e *TermEnv) admits(t grammar.TypeExpr, x V) bool {
 		case "bool":
 			return x.Kind == KBool
 		case "error":
-			return false
+			return x.Kind == KError
+		case "missing":
+			return x.Kind == KError && x.Missing
 		}
 		if x.Kind == KNode && x.Shape == UnknownShape {
 			need(Unknown) // the type of the node is unknown
@@ -468,6 +486,7 @@ func (e *TermEnv) plain(v V, result bool) any {
 func (e *TermEnv) structRange(v V) (start, end int) {
 	first := true
 	for _, x := range v.Fields {
+		unmodelled(x, "the range of a struct that holds")
 		if x.Kind != KList && x.Kind != KTuple && x.Kind != KStruct && x.Kind != KNode {
 			continue // a scalar or nil field is not a node
 		}
