@@ -598,8 +598,8 @@ func testTermLoweringOptionsDetectBrokenTargets(t *testing.T) {
 		{"control: unchanged", "", "", `c.P.TermBinary(rt.OpEq,`, `c.P.TermBinary(rt.OpEq,`},
 		{"a predicate's equality becomes not equal", "", "", `c.P.TermBinary(rt.OpEq,`, `c.P.TermBinary(rt.OpNe,`},
 		{"a predicate's or does not decide", "", "", `if !tb`, `if tb`},
-		{"control: the literals are tested", goForce, goForced, ` == "a" ||`, ` == "a" ||`},
-		{"a tested literal is not matched", goForce, goForced, ` == "a" ||`, ` == "\x00" ||`},
+		{"control: the literals are tested", goForce, goForced, `case "a", `, `case "a", `},
+		{"a tested literal is not matched", goForce, goForced, `case "a", `, `case "\x00", `},
 	} {
 		run("Go", literal, m, func(mutate func(string) string) []string {
 			return codegentest.GeneratedParsersMismatches(t, goBin, literal, codegen.GenOptions{}, goBytes(mutate))
@@ -626,8 +626,8 @@ func testTermLoweringOptionsDetectBrokenTargets(t *testing.T) {
 		{"control: the term as written runs", tsForce, tsForced, `c.p.termLogic(1,`, `c.p.termLogic(1,`},
 		{"a predicate's equality becomes not equal", tsForce, tsForced, `c.p.termBinary(5,`, `c.p.termBinary(6,`},
 		{"a predicate's or does not decide", tsForce, tsForced, `if (!tb`, `if (tb`},
-		{"control: the literals are tested", "", "", ` === "a" ||`, ` === "a" ||`},
-		{"a tested literal is not matched", "", "", ` === "a" ||`, ` === "\x00" ||`},
+		{"control: the literals are tested", "", "", `case "a": `, `case "a": `},
+		{"a tested literal is not matched", "", "", `case "a": `, `case "\x00": `},
 	} {
 		run("TypeScript", literal, m, func(mutate func(string) string) []string {
 			return codegentest.TSParsersMismatches(t, node, literal, codegen.GenOptions{}, mutate)

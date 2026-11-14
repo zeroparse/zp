@@ -193,6 +193,22 @@ func (g *Generator) termTarget(s *compile.Scope, locals map[string]string) *Targ
 			}
 			panic("gogen: term operation " + c.Callee)
 		},
+		Stmt: func(c *exec.Call, a []string, dst []string, define bool) (string, bool) {
+			if c.Callee != lower.OpTermTextIn || len(dst) != 1 || dst[0] == "_" {
+				return "", false
+			}
+			// One switch over the literals, which the Go compiler can dispatch on the length and
+			// the bytes of the text instead of comparing it with each literal in turn.
+			cases := make([]string, len(c.Imm.([]string)))
+			for i, lit := range c.Imm.([]string) {
+				cases[i] = strconv.Quote(lit)
+			}
+			init := " = "
+			if define {
+				init = " := "
+			}
+			return dst[0] + init + "false\nswitch " + a[0] + " {\ncase " + strings.Join(cases, ", ") + ":\n\t" + dst[0] + " = true\n}", true
+		},
 		Prec: goPrec,
 		Name: termConstName,
 		Pure: func(c *exec.Call) bool {

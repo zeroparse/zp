@@ -22,17 +22,19 @@ func TestLiteralTextPredicateDispatchGeneration(t *testing.T) {
 	codegentest.EachMode(t, testLiteralTextPredicateDispatchGeneration)
 }
 
-// The lowered literal text dispatch tests the text of the capture against every literal at once:
-// (ts1 == "a" || ts1 == "b") in Go, (ts1 === "a" || ts1 === "b") in TypeScript.
+// The lowered literal text dispatch binds whether the text of the capture is one of the distinct
+// literals with one switch: switch ts1 { case "a", "b": ... } in Go, switch (ts1) { case "a": case "b": ... }
+// in TypeScript.
 var (
-	goTextDispatch   = regexp.MustCompile(`\(ts\d+ == "`)
-	goTextDispatchAB = regexp.MustCompile(`\((ts\d+) == "a" \|\| ts\d+ == "b"\)`)
-	tsTextDispatch   = regexp.MustCompile(`\(ts\d+ === "`)
-	tsTextDispatchAB = regexp.MustCompile(`\((ts\d+) === "a" \|\| ts\d+ === "b"\)`)
+	goTextDispatch   = regexp.MustCompile(`switch ts\d+ \{`)
+	goTextDispatchAB = regexp.MustCompile(`switch ts\d+ \{\s*case "a", "b":`)
+	tsTextDispatch   = regexp.MustCompile(`switch \(ts\d+\) \{`)
+	tsTextDispatchAB = regexp.MustCompile(`switch \(ts\d+\) \{ case "a": case "b": \w+ = true; \}`)
 )
 
 func testLiteralTextPredicateDispatchGeneration(t *testing.T) {
-	const source = `rule main = w:[a-z]+ #atomic {text($w) == "a" || "b" == text($w)} $$`
+	// The repeated literal is one case: Go rejects a switch with duplicate cases.
+	const source = `rule main = w:[a-z]+ #atomic {text($w) == "a" || "b" == text($w) || text($w) == "a"} $$`
 	g, err := parseTest(source)
 	if err != nil {
 		t.Fatal(err)
@@ -65,6 +67,36 @@ func testLiteralTextPredicateDispatchGeneration(t *testing.T) {
 	if tsTextDispatch.Match(tsBaseline) {
 		t.Fatal("TypeScript generation-only control did not preserve the general baseline")
 	}
+}
+
+// One distinct literal, however often it is written, stays an equality: no switch.
+func TestLiteralTextPredicateSingleLiteralIsEquality(t *testing.T) {
+	t.Parallel()
+	codegentest.EachMode(t, func(t *testing.T) {
+		for _, src := range []string{
+			`rule main = w:[a-z]+ #atomic {text($w) == "a"} $$`,
+			`rule main = w:[a-z]+ #atomic {text($w) == "a" || "a" == text($w)} $$`,
+		} {
+			g, err := parseTest(src)
+			if err != nil {
+				t.Fatal(err)
+			}
+			code, err := codegentest.GenerateCode(t, g, codegen.GenOptions{Package: "dispatch", Start: "main", Types: true})
+			if err != nil {
+				t.Fatal(err)
+			}
+			if goTextDispatch.Match(code) || !regexp.MustCompile(`ts\d+ == "a"`).Match(code) {
+				t.Errorf("%s: Go did not print an equality for one literal", src)
+			}
+			ts, err := codegentest.GenerateTSBundle(g, codegen.GenOptions{Start: "main"})
+			if err != nil {
+				t.Fatal(err)
+			}
+			if tsTextDispatch.Match(ts) || !regexp.MustCompile(`ts\d+ === "a"`).Match(ts) {
+				t.Errorf("%s: TypeScript did not print an equality for one literal", src)
+			}
+		}
+	})
 }
 
 // TestGeneratedLiteralDispatchWorkload preserves paired generated parsers for

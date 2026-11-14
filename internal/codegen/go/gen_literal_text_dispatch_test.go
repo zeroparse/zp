@@ -35,7 +35,7 @@ rule main = w:[a-z]+ #atomic {result := text($w) == "a" || text($w) == "b"} $$`,
 		if err != nil {
 			t.Fatalf("case %d: %v", i, err)
 		}
-		if regexp.MustCompile(`\(ts\d+ == "`).Match(code) {
+		if regexp.MustCompile(`switch ts\d+ \{`).Match(code) {
 			t.Errorf("unsafe case %d was specialized", i)
 		}
 	}

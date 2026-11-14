@@ -95,7 +95,10 @@ lowering:
   field is then compared without making a value of it.
 - With `text-dispatch`, a predicate that compares the text of one capture with string literals, `text($x) == "a" ||
   text($x) == "b"` and so on, first tests `term.uncontrolled`: without limit controls it takes the text of the capture
-  with `text` and returns whether `term.textIn` finds it among the literals; with them it evaluates the term as written.
+  with `text` and tests whether `term.textIn` finds it among the distinct literals; with them it evaluates the
+  term as written. With two or more distinct literals the result is bound to a local first, which a
+  target may print as one switch over the literals; with one distinct literal (repeats collapse) it is returned
+  directly, as a plain equality.
 
 A cast to a type that every value fits checks nothing; a target that charges a step for each subterm charges one for it
 too.
@@ -179,4 +182,4 @@ The operations of the leaves are transitional, of the component `runtime`:
 | `term.operand` | none | Returns a value as an operand of `term.compare`. |
 | `term.compare` | the comparison operator | Applies the comparison to two operands as `binary` does, comparing two strings directly, and returns the value and the failure. |
 | `term.uncontrolled` | none | Returns whether the parse runs without limit controls. |
-| `term.textIn` | the literals | Returns whether a string is one of the literals, charging nothing. |
+| `term.textIn` | the distinct literals | Returns whether a string is one of the literals, charging nothing. |

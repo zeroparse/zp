@@ -68,6 +68,20 @@ func (g *Generator) leaf(name string, variable bool, s *compile.Scope, locals ma
 // the scope s and the locals resolve.
 func (g *Generator) termTarget(s *compile.Scope, locals map[string]string) *Target {
 	return &Target{
+		Stmt: func(c *exec.Call, a []string, dst []string, decl string) (string, bool) {
+			if c.Callee != lower.OpTermTextIn || len(dst) != 1 || dst[0] == "_" {
+				return "", false
+			}
+			// One switch over the literals instead of a comparison with each literal in turn.
+			cases := ""
+			for _, lit := range c.Imm.([]string) {
+				cases += "case " + TsString(lit) + ": "
+			}
+			if decl != "" {
+				decl = "let "
+			}
+			return decl + dst[0] + " = false;\nswitch (" + a[0] + ") { " + cases + dst[0] + " = true; }", true
+		},
 		Self:     "c.p",
 		Handle:   tsHandle,
 		FuncName: tsTermMethod,

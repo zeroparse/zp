@@ -40,11 +40,11 @@ func TestLiteralTextPredicateDispatchTSDisabledParity(t *testing.T) {
 			t.Fatal(err)
 		}
 	}
-	// The lowered dispatch reads the text once and compares it with the literals in order.
-	if !regexp.MustCompile(`\((ts\d+) === "" \|\| ts\d+ === "a" \|\| ts\d+ === "b" \|\| ts\d+ === "é" \|\| ts\d+ === "😀" \|\| ts\d+ === "a"\)`).Match(optimized) {
+	// The lowered dispatch reads the text once and switches over the distinct literals, each once.
+	if !regexp.MustCompile(`switch \(ts\d+\) \{ case "": case "a": case "b": case "é": case "😀": \w+ = true; \}`).Match(optimized) {
 		t.Fatal("optimized TypeScript lacks the dispatch over all literals")
 	}
-	if regexp.MustCompile(`\(ts\d+ === "`).Match(reference) {
+	if regexp.MustCompile(`switch \(ts\d+\)`).Match(reference) {
 		t.Fatal("TypeScript without text-dispatch still dispatches")
 	}
 	if tsc, err := exec.LookPath("tsc"); err == nil {

@@ -186,7 +186,12 @@ func Term(t ir.Term, o TermOptions) (*TermLowered, error) {
 		if x, lits, ok := textMembership(t); ok && o.TextDispatch && res == nil {
 			b.If(exec.C(OpTermUncontrolled), func(b *exec.Builder) {
 				s := l.fallible(b, "ts", exec.C("text", imm(OpTermRead, TermRead{x})))
-				b.Return(exec.C("val.fromBool", &exec.Call{Callee: OpTermTextIn, Args: []exec.Expr{s}, Imm: lits}), exec.Null(failT))
+				var in exec.Expr = &exec.Call{Callee: OpTermTextIn, Args: []exec.Expr{s}, Imm: lits}
+				if len(lits) > 1 {
+					// A target may print the binding as one switch; one literal stays an equality.
+					in = b.Let(l.local("tin"), in)
+				}
+				b.Return(exec.C("val.fromBool", in), exec.Null(failT))
 			})
 		}
 		v := l.value(b, t)
@@ -388,7 +393,7 @@ func addTermOps(m *exec.Module) {
 	op(&exec.Op{Name: OpTermUncontrolled, Results: []exec.Type{exec.TBool}, Reads: reads,
 		Contract: "Returns whether the parse runs without limit controls."})
 	op(&exec.Op{Name: OpTermTextIn, Params: []exec.Param{exec.P("s", str)}, Results: []exec.Type{exec.TBool},
-		Imm: "the literals (a []string)", Contract: "Returns whether s is one of the literals in Imm, charging nothing."})
+		Imm: "the literals (a []string of distinct strings)", Contract: "Returns whether s is one of the literals in Imm, charging nothing."})
 }
 
 type termLowerer struct {
@@ -860,7 +865,7 @@ func (l *termLowerer) operand(b *exec.Builder, t ir.Term) exec.Expr {
 }
 
 // textMembership reports whether t compares the text of one capture with string literals,
-// text($x) == "a" || ..., with the capture and the literals in the order written.
+// text($x) == "a" || ..., with the capture and the distinct literals in the order written.
 func textMembership(t ir.Term) (ir.Term, []string, bool) {
 	var x ir.Term
 	var name string
@@ -900,7 +905,9 @@ func textMembership(t ir.Term) (ir.Term, []string, bool) {
 			return false
 		}
 		x, name = arg, n
-		lits = append(lits, s)
+		if !slices.Contains(lits, s) {
+			lits = append(lits, s)
+		}
 		return true
 	}
 	if !walk(t) {

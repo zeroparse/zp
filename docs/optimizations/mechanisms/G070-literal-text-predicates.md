@@ -40,8 +40,12 @@ OR expressions or all parsers.
 
 Evidence records: [091](../091-specialize-pure-literal-text-disjunctions.md).
 
-Source owners: the term lowering of the Exec IR, which the Go and TypeScript
-generators print; [`route and unsafe-shape
+Only predicates with two or more distinct literals become a switch: repeated literals collapse, and a single
+distinct literal stays the plain equality `ts == "x"`, which is shorter and says what it is.
+
+Source owners: the term lowering of the Exec IR, which recognizes the literal
+text dispatch, and the Go and TypeScript term targets, which print it as one
+switch; [`route and unsafe-shape
 checks`](../../../internal/codegen/gen_literal_text_dispatch_test.go).
 
 The [comparison policy](../../design/records/024-optimization-mechanism-controls.md)
