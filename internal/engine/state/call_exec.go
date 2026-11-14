@@ -179,11 +179,11 @@ func (p *Parser) CallBegin(r *Rule, min int, st *CallState) (*core.Node, bool, b
 	if c.framed {
 		p.pushFrame(p.Pos, c.gp)
 	}
-	oldHigh, oldLow := p.Hw, p.lw
+	oldExamined, oldLow := p.Hw, p.lw
 	p.Hw, p.lw = start, start
 	m := p.Isolate(start)
 	st.start, st.min, st.key, st.ctx, st.rec, st.exp = start, min, env, c, rec, m
-	st.high, st.low = oldHigh, oldLow
+	st.examined, st.low = oldExamined, oldLow
 	st.missing = p.missingMark()
 	return nil, false, false
 }
@@ -200,7 +200,7 @@ func (p *Parser) CallEnd(r *Rule, st *CallState, v *core.Node, ok bool) (*core.N
 	c := st.ctx
 	rec := st.rec
 	m := st.exp
-	oldHigh := st.high
+	oldExamined := st.examined
 	oldLow := st.low
 	if !r.Leader && !ok {
 		p.Recovered = p.Recovered[:rec]
@@ -244,7 +244,7 @@ func (p *Parser) CallEnd(r *Rule, st *CallState, v *core.Node, ok bool) (*core.N
 		p.mergeDeps(c.ds)
 	}
 	p.MergeExpected(far, inner)
-	p.Hw = max(oldHigh, p.Hw)
+	p.Hw = max(oldExamined, p.Hw)
 	p.lw = Min2(oldLow, p.lw)
 	if !ok {
 		p.Pos = start

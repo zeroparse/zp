@@ -1096,7 +1096,7 @@ op doc.enter(pos int) (int, int)
   requires:
     // The parse reads a Document.
 
-op doc.leave(high int, low int)
+op doc.leave(examined int, low int)
   component call
   reads call
   writes call
@@ -1104,9 +1104,9 @@ op doc.leave(high int, low int)
   cost <= 0
   contract:
     // Ends a rule call in a Document parse: the examined input of the enclosing call becomes the smallest
-    // range that holds [low, high) and the call's.
+    // range that holds [low, examined) and the call's.
   requires:
-    // The parse reads a Document; high and low are the results of the matching doc.enter.
+    // The parse reads a Document; examined and low are the results of the matching doc.enter.
 
 op doc.active() bool
   component call
@@ -1146,7 +1146,7 @@ op doc.low() int
   requires:
     // The parse reads a Document.
 
-op doc.high() int
+op doc.examined() int
   component call
   reads call
   features document
@@ -1545,7 +1545,7 @@ op call.save(st CallState, start int, min int, key Values, c Ctx, rec int, m Exp
     // values of its key, its context state, the mark of its recovered errors and the record that its
     // isolation set aside.
 
-op call.saveExamined(st CallState, high int, low int)
+op call.saveExamined(st CallState, examined int, low int)
   component suspended
   writes suspended
   features document
@@ -1615,7 +1615,7 @@ op call.mark(st CallState) ExpMark
   requires:
     // st holds a call that call.save saved.
 
-op call.high(st CallState) int
+op call.examined(st CallState) int
   component suspended
   reads suspended
   features document

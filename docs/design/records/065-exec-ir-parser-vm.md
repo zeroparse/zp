@@ -300,7 +300,7 @@ and how their memory is accounted.
 
 **Examined input.** In a Document parse the active rule call examines a range of the input, which a call starts at its
 position, widens as it reads and merges into the enclosing call's range when it ends; the operations `doc.enter`,
-`doc.leave`, `doc.touch`, `doc.touchFrom`, `doc.low`, `doc.high`, the observed form `doc.examinedBegin` and
+`doc.leave`, `doc.touch`, `doc.touchFrom`, `doc.low`, `doc.examined`, the observed form `doc.examinedBegin` and
 `doc.examinedEnd`, and the counts `doc.reused` and `doc.evaluated` are operations of the call bookkeeping with a
 reference model and conformance cases that run on generated Go and the engine (which does not observe calls, so
 the observed form runs on generated Go only). A parse that reads no Document keeps no range. A target may start the

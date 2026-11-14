@@ -391,11 +391,11 @@ the call's examined end and true in a Document parse, and false otherwise.`,
 its end and its start, and starts the call's examined input as the empty range at pos: a call has
 examined nothing when it begins, and each read extends the range by exactly what it examined.`,
 		Requires: `The parse reads a Document.`})
-	m.AddOp(&exec.Op{Name: "doc.leave", Component: Call, Params: []exec.Param{exec.P("high", exec.TInt), exec.P("low", exec.TInt)},
+	m.AddOp(&exec.Op{Name: "doc.leave", Component: Call, Params: []exec.Param{exec.P("examined", exec.TInt), exec.P("low", exec.TInt)},
 		Reads: []string{Call}, Writes: []string{Call}, Features: []string{Document},
 		Contract: `Ends a rule call in a Document parse: the examined input of the enclosing call becomes the smallest
-range that holds [low, high) and the call's.`,
-		Requires: `The parse reads a Document; high and low are the results of the matching doc.enter.`})
+range that holds [low, examined) and the call's.`,
+		Requires: `The parse reads a Document; examined and low are the results of the matching doc.enter.`})
 	doc := []string{Document}
 	inDoc := `The parse reads a Document.`
 	m.AddOp(&exec.Op{Name: "doc.active", Component: Call, Results: []exec.Type{exec.TBool}, Reads: []string{Call}, Features: doc,
@@ -410,7 +410,7 @@ last unit that what the call read depends on. A parse that reads no Document kee
 that reads no Document keeps none.`})
 	m.AddOp(&exec.Op{Name: "doc.low", Component: Call, Results: []exec.Type{exec.TInt}, Reads: []string{Call},
 		Features: doc, Contract: `Returns the start of the input that the current call examined so far.`, Requires: inDoc})
-	m.AddOp(&exec.Op{Name: "doc.high", Component: Call, Results: []exec.Type{exec.TInt}, Reads: []string{Call},
+	m.AddOp(&exec.Op{Name: "doc.examined", Component: Call, Results: []exec.Type{exec.TInt}, Reads: []string{Call},
 		Features: doc, Contract: `Returns the examined end of the current call: the exact end of the input it examined
 so far, exclusive.`, Requires: inDoc})
 	m.AddOp(&exec.Op{Name: "doc.reused", Component: Call, Writes: []string{Call}, Features: doc,

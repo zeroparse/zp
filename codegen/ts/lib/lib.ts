@@ -2567,11 +2567,11 @@ export class Parser {
   skipFar = 0;
   skipBase = 0;
   skipHitRec: SkipRecord | null = null;
-  // skipHigh is the examined input of the enclosing call (docHigh) while a recording visit runs.
-  skipHigh = 0;
-  // docHigh and docLow bound the input that the active rule call of a Document parse examined,
-  // [docLow, docHigh). Outside a Document parse nothing reads them.
-  docHigh = 0;
+  // skipExamined is the examined input of the enclosing call (docExamined) while a recording visit runs.
+  skipExamined = 0;
+  // docExamined and docLow bound the input that the active rule call of a Document parse examined,
+  // [docLow, docExamined). Outside a Document parse nothing reads them.
+  docExamined = 0;
   docLow = 0;
 
   // scanTables are the records of the walks of scan sites by site, scanCold whether each site is hot,
@@ -3398,8 +3398,8 @@ export class Parser {
     this.skipVisits.push({ pos: this.pos, far: 0, exp: noExp, examined: 0 });
     this.skipOpen = true;
     // The visit measures the input it examines from its position on.
-    this.skipHigh = this.docHigh;
-    this.docHigh = this.pos;
+    this.skipExamined = this.docExamined;
+    this.docExamined = this.pos;
     this.skipFar = this.farthest;
     this.skipBase = this.expBase;
     this.expBase = this.expTop;
@@ -3423,8 +3423,8 @@ export class Parser {
     v.far = far;
     v.exp = this.keep(from, to);
     this.mergeExpected(far, from, to);
-    v.examined = this.docHigh;
-    this.docHigh = Math.max(this.skipHigh, this.docHigh);
+    v.examined = this.docExamined;
+    this.docExamined = Math.max(this.skipExamined, this.docExamined);
   }
 
   // skipEnd ends the walk and records the rest of it from each position it visited recording.
@@ -5312,7 +5312,7 @@ export class Parser {
 /**
  * DocumentParser is the parser of a Document parse: every rule call takes callDocument, which
  * memoizes the rules that the Document memoizes (Rule.docMemo) from their first call, and records the
- * input that each call examined, [docLow, docHigh), with its memo entry. The batch Parser stays
+ * input that each call examined, [docLow, docExamined), with its memo entry. The batch Parser stays
  * without this bookkeeping.
  */
 export class DocumentParser extends Parser {
@@ -5347,31 +5347,31 @@ export class DocumentParser extends Parser {
   }
 
   override documentTouch(end: number): void {
-    if (end > this.docHigh) this.docHigh = end;
+    if (end > this.docExamined) this.docExamined = end;
   }
 
   override documentTouchFrom(from: number): void {
     if (from < this.docLow) this.docLow = from;
   }
 
-  // scanHigh is the examined end of the enclosing call while the rest of a scan walk that records
+  // scanExamined is the examined end of the enclosing call while the rest of a scan walk that records
   // itself runs (scanExaminedBegin).
-  scanHigh = 0;
+  scanExamined = 0;
 
   override scanExaminedBegin(): void {
-    this.scanHigh = this.docHigh;
-    this.docHigh = this.pos;
+    this.scanExamined = this.docExamined;
+    this.docExamined = this.pos;
   }
 
   override scanExaminedEnd(): number {
-    const x = this.docHigh;
-    this.docHigh = Math.max(this.scanHigh, x);
+    const x = this.docExamined;
+    this.docExamined = Math.max(this.scanExamined, x);
     return x;
   }
 
   // documentTouchLine records that a line start test at the position examined the unit before it.
   documentTouchLine(): void {
-    if (this.pos > this.docHigh) this.docHigh = this.pos;
+    if (this.pos > this.docExamined) this.docExamined = this.pos;
     if (this.pos - 1 < this.docLow) this.docLow = this.pos - 1;
   }
 
@@ -5460,9 +5460,9 @@ export class DocumentParser extends Parser {
   // the call ends, an interruption included, so that a parse after it starts from the state it would
   // start from otherwise.
   callDocument(r: Rule, min: number): R {
-    const oldHigh = this.docHigh;
+    const oldExamined = this.docExamined;
     const oldLow = this.docLow;
-    this.docHigh = this.pos;
+    this.docExamined = this.pos;
     this.docLow = this.pos;
     try {
       if (!r.docMemo) {
@@ -5472,7 +5472,7 @@ export class DocumentParser extends Parser {
       const v = this.callMemo(r, min);
       return v;
     } finally {
-      this.docHigh = Math.max(oldHigh, this.docHigh);
+      this.docExamined = Math.max(oldExamined, this.docExamined);
       if (oldLow < this.docLow) {
         this.docLow = oldLow;
       }
@@ -5577,7 +5577,7 @@ export class DocumentParser extends Parser {
       entry.present = c.present;
       entry.far = far;
       entry.expected = kept;
-      entry.examined = this.docHigh;
+      entry.examined = this.docExamined;
       entry.from = this.docLow < start ? fromBefore : fromPos;
       entry.pinned = false;
       if (r.positional) {

@@ -22,7 +22,7 @@ call the exact end of the input that the call examined (the trace exit's `Examin
 the evaluation count and the reuse statistics follow from it), which each read
 extends; the position that the invocation leaves at its failure plays no part, so
 the rollback of a merged body changes none of them, and the typed route reports as
-the Node route does. `TestGeneratedDocumentFrontierAfterFailure` pins this on a rule
+the Node route does. `TestGeneratedDocumentExaminedAfterFailure` pins this on a rule
 that fails after its callee matched.
 
 ## Results

@@ -606,8 +606,8 @@ var tsDocTarget = func() *Target {
 			return "this.documentTouch(" + a[0] + ")"
 		case "doc.touchFrom":
 			return "this.documentTouchFrom(" + a[0] + ")"
-		case "doc.high":
-			return "this.docHigh"
+		case "doc.examined":
+			return "this.docExamined"
 		case "doc.low":
 			return "this.docLow"
 		case "doc.reused":
@@ -630,9 +630,9 @@ var tsDocTarget = func() *Target {
 	t.Stmt = func(c *exec.Call, a []string, dst []string, decl string) (string, bool) {
 		switch c.Callee {
 		case "doc.enter":
-			return fmt.Sprintf("%[1]s %[2]s = this.docHigh;\n%[1]s %[3]s = this.docLow;\nthis.docHigh = %[4]s;\nthis.docLow = %[4]s;", decl, dst[0], dst[1], a[0]), true
+			return fmt.Sprintf("%[1]s %[2]s = this.docExamined;\n%[1]s %[3]s = this.docLow;\nthis.docExamined = %[4]s;\nthis.docLow = %[4]s;", decl, dst[0], dst[1], a[0]), true
 		case "doc.leave":
-			return fmt.Sprintf("this.docHigh = Math.max(%s, this.docHigh);\nif (%s < this.docLow) {\n  this.docLow = %[2]s;\n}", a[0], a[1]), true
+			return fmt.Sprintf("this.docExamined = Math.max(%s, this.docExamined);\nif (%s < this.docLow) {\n  this.docLow = %[2]s;\n}", a[0], a[1]), true
 		}
 		return tsTarget.Stmt(c, a, dst, decl)
 	}

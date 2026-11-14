@@ -90,17 +90,17 @@ func docMutants() map[string]mutant {
 	return map[string]mutant{
 		"active is always true": {op: "doc.active", edit: func(m *ref.Model, a []any) []any { return []any{true} }},
 		"enter keeps the range of the enclosing call": {op: "doc.enter", edit: func(m *ref.Model, a []any) []any {
-			low, high := m.DocRange()
+			low, examined := m.DocRange()
 			r := docCall(m, "doc.enter", a...)
 			docCall(m, "doc.touchFrom", low)
-			docCall(m, "doc.touch", high)
+			docCall(m, "doc.touch", examined)
 			return r
 		}},
 		"enter returns the start first": {op: "doc.enter", edit: func(m *ref.Model, a []any) []any {
 			r := docCall(m, "doc.enter", a...)
 			return []any{r[1], r[0]}
 		}},
-		"leave ignores the nested frontier": {op: "doc.leave", edit: func(m *ref.Model, a []any) []any {
+		"leave ignores the nested examined end": {op: "doc.leave", edit: func(m *ref.Model, a []any) []any {
 			return docCall(m, "doc.leave", int64(0), a[1])
 		}},
 		"leave ignores the nested start": {op: "doc.leave", edit: func(m *ref.Model, a []any) []any {
@@ -109,24 +109,24 @@ func docMutants() map[string]mutant {
 		"touch stops one short": {op: "doc.touch", edit: func(m *ref.Model, a []any) []any {
 			return docCall(m, "doc.touch", a[0].(int64)-1)
 		}},
-		"touch ignores the frontier":  {op: "doc.touch", edit: func(m *ref.Model, a []any) []any { return nil }},
-		"touchFrom ignores the start": {op: "doc.touchFrom", edit: func(m *ref.Model, a []any) []any { return nil }},
+		"touch ignores the examined end": {op: "doc.touch", edit: func(m *ref.Model, a []any) []any { return nil }},
+		"touchFrom ignores the start":    {op: "doc.touchFrom", edit: func(m *ref.Model, a []any) []any { return nil }},
 		"touchFrom stops one short": {op: "doc.touchFrom", edit: func(m *ref.Model, a []any) []any {
 			return docCall(m, "doc.touchFrom", a[0].(int64)+1)
 		}},
-		"low returns the frontier": {op: "doc.low", edit: func(m *ref.Model, a []any) []any { return docCall(m, "doc.high") }},
-		"high returns one more": {op: "doc.high", edit: func(m *ref.Model, a []any) []any {
-			return []any{docCall(m, "doc.high")[0].(int64) + 1}
+		"low returns the examined end": {op: "doc.low", edit: func(m *ref.Model, a []any) []any { return docCall(m, "doc.examined") }},
+		"examined returns one more": {op: "doc.examined", edit: func(m *ref.Model, a []any) []any {
+			return []any{docCall(m, "doc.examined")[0].(int64) + 1}
 		}},
 		"reused counts evaluated":  {op: "doc.reused", edit: func(m *ref.Model, a []any) []any { return docCall(m, "doc.evaluated") }},
 		"evaluated counts nothing": {op: "doc.evaluated", edit: func(m *ref.Model, a []any) []any { return nil }},
-		"examinedBegin leaves the frontier": {op: "doc.examinedBegin", edit: func(m *ref.Model, a []any) []any {
-			_, high := m.DocRange()
+		"examinedBegin leaves the examined end": {op: "doc.examinedBegin", edit: func(m *ref.Model, a []any) []any {
+			_, examined := m.DocRange()
 			r := docCall(m, "doc.examinedBegin")
-			docCall(m, "doc.touch", high)
+			docCall(m, "doc.touch", examined)
 			return r
 		}},
-		"examinedEnd drops the enclosing frontier": {op: "doc.examinedEnd", edit: func(m *ref.Model, a []any) []any {
+		"examinedEnd drops the enclosing end": {op: "doc.examinedEnd", edit: func(m *ref.Model, a []any) []any {
 			return docCall(m, "doc.examinedEnd", int64(0))
 		}},
 		"examinedEnd is unknown": {op: "doc.examinedEnd", edit: func(m *ref.Model, a []any) []any {

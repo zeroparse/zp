@@ -330,7 +330,7 @@ func documentNodeString(n *core.Node) string {
 }
 
 // TestCallDocumentRestoresOnPanic checks that a Document call restores the enclosing call's
-// frontier when its rule panics, memoized and not: the enclosing call keeps the farther frontier,
+// examined end when its rule panics, memoized and not: the enclosing call keeps the farther end,
 // which here is its own.
 func TestCallDocumentRestoresOnPanic(t *testing.T) {
 	for _, memo := range []bool{true, false} {
@@ -341,7 +341,7 @@ func TestCallDocumentRestoresOnPanic(t *testing.T) {
 		p.setGrammar(d.root.g)
 		p.setSource(d.text)
 		p.Document, p.memo = d, d.memo
-		p.Pos, p.docHigh = 1, 3
+		p.Pos, p.docExamined = 1, 3
 		func() {
 			defer func() {
 				if x := recover(); x == nil {
@@ -350,8 +350,8 @@ func TestCallDocumentRestoresOnPanic(t *testing.T) {
 			}()
 			p.callDocument(r, 0)
 		}()
-		if p.docHigh != 3 {
-			t.Errorf("memo=%v: the panic left the frontier %d, want 3", memo, p.docHigh)
+		if p.docExamined != 3 {
+			t.Errorf("memo=%v: the panic left the examined end %d, want 3", memo, p.docExamined)
 		}
 	}
 }

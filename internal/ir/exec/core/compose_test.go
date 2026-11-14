@@ -60,11 +60,11 @@ type machine struct {
 	kids, created, binds int
 	// ctx is what the context operations answer (ops.Growth): the context state of every call.
 	ctx ctxModel
-	// events lists what the observation was told (obs.enter, obs.exit); high is the examined frontier
+	// events lists what the observation was told (obs.enter, obs.exit); examinedEnd is the examined end
 	// of the active call (doc.examinedBegin, doc.examinedEnd).
-	events []string
-	high   int64
-	low    int64
+	events      []string
+	examinedEnd int64
+	low         int64
 	// docMemo tells whether a Document parse memoizes the rules (rule.docMemo).
 	docMemo bool
 	// docActive tells whether the parse reads a Document (doc.active); examined holds what each
@@ -75,7 +75,7 @@ type machine struct {
 	// last is the entry stored last (memo.store).
 	last *ref.Entry
 	// evaluated counts the bodies evaluated through an invocation (doc.evaluated); forgot lists the
-	// frontiers of the records forgotten (memo.forgetDoc).
+	// examined ends of the records forgotten (memo.forgetDoc).
 	evaluated int
 	forgot    []int64
 }
@@ -113,9 +113,9 @@ type growth struct {
 
 // callState is the record of a suspended call in the model (call.state).
 type callState struct {
-	start, min, key, rec, high, low, missing any
-	ctx, mark                                any
-	saved                                    bool
+	start, min, key, rec, examined, low, missing any
+	ctx, mark                                    any
+	saved                                        bool
 }
 
 // stateOf returns the record st of a suspended call, which call.save must have filled.
@@ -301,19 +301,19 @@ func (m *machine) Call(o *exec.Op, args []any) []any {
 		m.events = append(m.events, fmt.Sprintf("exit %v at %d examined %d %v", args[0], args[1], args[2], args[3]))
 		return nil
 	case "doc.examinedBegin":
-		h := m.high
-		m.high = m.pos()
+		h := m.examinedEnd
+		m.examinedEnd = m.pos()
 		return []any{h}
 	case "doc.examinedEnd":
-		x := m.high
-		m.high = max(args[0].(int64), x)
+		x := m.examinedEnd
+		m.examinedEnd = max(args[0].(int64), x)
 		return []any{x, true}
 	case "doc.enter":
-		h, l := m.high, m.low
-		m.high, m.low = args[0].(int64)+1, args[0].(int64)
+		h, l := m.examinedEnd, m.low
+		m.examinedEnd, m.low = args[0].(int64), args[0].(int64)
 		return []any{h, l}
 	case "doc.leave":
-		m.high, m.low = max(args[0].(int64), m.high), min(args[1].(int64), m.low)
+		m.examinedEnd, m.low = max(args[0].(int64), m.examinedEnd), min(args[1].(int64), m.low)
 		return nil
 	case "doc.touchFrom":
 		m.low = min(m.low, args[0].(int64))
@@ -335,10 +335,10 @@ func (m *machine) Call(o *exec.Op, args []any) []any {
 	case "doc.active":
 		return []any{m.docActive}
 	case "doc.touch":
-		m.high = max(m.high, args[0].(int64))
+		m.examinedEnd = max(m.examinedEnd, args[0].(int64))
 		return nil
-	case "doc.high":
-		return []any{m.high}
+	case "doc.examined":
+		return []any{m.examinedEnd}
 	case "memo.examined":
 		return []any{m.examined[entryOf(args[0])]}
 	case "doc.reused":
@@ -416,7 +416,7 @@ func (m *machine) Call(o *exec.Op, args []any) []any {
 		return nil
 	case "call.saveExamined":
 		st := args[0].(*callState)
-		st.high, st.low = args[1], args[2]
+		st.examined, st.low = args[1], args[2]
 		return nil
 	case "call.saveMissing":
 		args[0].(*callState).missing = args[1]
@@ -433,8 +433,8 @@ func (m *machine) Call(o *exec.Op, args []any) []any {
 		return []any{stateOf(args[0]).rec}
 	case "call.mark":
 		return []any{stateOf(args[0]).mark}
-	case "call.high":
-		return []any{stateOf(args[0]).high}
+	case "call.examined":
+		return []any{stateOf(args[0]).examined}
 	case "call.low":
 		return []any{stateOf(args[0]).low}
 	case "call.missing":
@@ -741,21 +741,21 @@ func TestCallLookaheadStates(t *testing.T) {
 }
 
 // TestObserved checks that an observed call reports its beginning and its end to the observation,
-// with its outcome, its end and how far its call examined the input, which joins the frontier of the
-// enclosing call.
+// with its outcome, its end and how far its call examined the input, which joins the examined end
+// of the enclosing call.
 func TestObserved(t *testing.T) {
 	mod := Build()
 	f := composition(t, mod, "observed", ops.Document, ops.Observe)
 	for _, ok := range []bool{true, false} {
 		t.Run(fmt.Sprint(ok), func(t *testing.T) {
 			m := newMachine()
-			m.high = 12
+			m.examinedEnd = 12
 			var at int64 = -1
 			r := &trule{id: 2, body: func(m *machine) (any, bool) {
-				at = m.high
+				at = m.examinedEnd
 				m.events = append(m.events, "body")
 				m.advance(2)
-				m.high = 9
+				m.examinedEnd = 9
 				return "v", ok
 			}}
 			v, got := callAt(t, mod, m, f, r, 3)
@@ -766,16 +766,16 @@ func TestObserved(t *testing.T) {
 			if !slices.Equal(m.events, want) {
 				t.Errorf("observed %q, want %q", m.events, want)
 			}
-			if at != 3 || m.high != 12 {
-				t.Errorf("the body began with the frontier %d and the call left %d, want 3 and 12", at, m.high)
+			if at != 3 || m.examinedEnd != 12 {
+				t.Errorf("the body began with the examined end %d and the call left %d, want 3 and 12", at, m.examinedEnd)
 			}
 		})
 	}
 }
 
-// TestDocument checks that a Document call starts the frontier of the call past its position and
-// leaves the enclosing call the farther frontier, when the call returns and when an operation in it
-// interrupts the parse.
+// TestDocument checks that a Document call starts the examined input of the call as the empty
+// range at its position and leaves the enclosing call the farther examined end, when the call
+// returns and when an operation in it interrupts the parse.
 func TestDocument(t *testing.T) {
 	mod := Build()
 	f := composition(t, mod, "document", ops.Document, ops.Budget)
@@ -828,17 +828,17 @@ func (f *fakeT) Fatal(args ...any)                 { f.failed = true; panic(f) }
 func checkDocument(t testing.TB, mod *exec.Module, f *exec.Func, extra ...any) {
 	t.Helper()
 	for _, c := range []struct {
-		name      string
-		memo, ok  bool
-		interrupt bool
-		high      int64
-		callHigh  int64
-		wantHigh  int64
+		name         string
+		memo, ok     bool
+		interrupt    bool
+		examinedEnd  int64
+		callExamined int64
+		wantExamined int64
 	}{
-		{name: "memoized", memo: true, ok: true, high: 2, callHigh: 9, wantHigh: 9},
-		{name: "unmemoized failure", ok: false, high: 12, callHigh: 9, wantHigh: 12},
-		{name: "interrupted", memo: true, interrupt: true, high: 2, callHigh: 9, wantHigh: 9},
-		{name: "interrupted unmemoized", interrupt: true, high: 12, callHigh: 9, wantHigh: 12},
+		{name: "memoized", memo: true, ok: true, examinedEnd: 2, callExamined: 9, wantExamined: 9},
+		{name: "unmemoized failure", ok: false, examinedEnd: 12, callExamined: 9, wantExamined: 12},
+		{name: "interrupted", memo: true, interrupt: true, examinedEnd: 2, callExamined: 9, wantExamined: 9},
+		{name: "interrupted unmemoized", interrupt: true, examinedEnd: 12, callExamined: 9, wantExamined: 12},
 	} {
 		func() {
 			defer func() {
@@ -847,12 +847,12 @@ func checkDocument(t testing.TB, mod *exec.Module, f *exec.Func, extra ...any) {
 				}
 			}()
 			m := newMachine()
-			m.high, m.docMemo, m.docActive = c.high, c.memo, true
-			var atHigh int64 = -1
+			m.examinedEnd, m.docMemo, m.docActive = c.examinedEnd, c.memo, true
+			var atEnter int64 = -1
 			r := &trule{id: 2, memo: true, body: func(m *machine) (any, bool) {
-				atHigh = m.high
+				atEnter = m.examinedEnd
 				m.advance(2)
-				m.high = c.callHigh
+				m.examinedEnd = c.callExamined
 				if c.interrupt {
 					panic(exec.Interrupt{Reason: "limit"})
 				}
@@ -866,11 +866,11 @@ func checkDocument(t testing.TB, mod *exec.Module, f *exec.Func, extra ...any) {
 			} else if err != nil || res[1] != c.ok {
 				t.Errorf("%s: %v, %v, want success %v", c.name, res, err, c.ok)
 			}
-			if atHigh != 4 {
-				t.Errorf("%s: the call began with the frontier %d, want 4", c.name, atHigh)
+			if atEnter != 3 {
+				t.Errorf("%s: the call began with the examined end %d, want 3", c.name, atEnter)
 			}
-			if m.high != c.wantHigh {
-				t.Errorf("%s: the call left the frontier %d, want %d", c.name, m.high, c.wantHigh)
+			if m.examinedEnd != c.wantExamined {
+				t.Errorf("%s: the call left the examined end %d, want %d", c.name, m.examinedEnd, c.wantExamined)
 			}
 			if r.runs != 1 {
 				t.Errorf("%s: evaluates the body %d times, want once", c.name, r.runs)
@@ -968,7 +968,7 @@ func TestTypedDocument(t *testing.T) {
 	m.docMemo = true
 	r := &trule{id: 1, memo: true, body: func(m *machine) (any, bool) {
 		m.advance(2)
-		m.high = max(m.high, 4+m.pos())
+		m.examinedEnd = max(m.examinedEnd, 4+m.pos())
 		return "v", true
 	}}
 	run(m, r, r, 3, 1)
@@ -976,16 +976,16 @@ func TestTypedDocument(t *testing.T) {
 	if m.examined[first] != 9 || m.evaluated != 1 {
 		t.Fatalf("the entry records %d after %d counted evaluations, want 9 and 1", m.examined[first], m.evaluated)
 	}
-	m.high = 0
+	m.examinedEnd = 0
 	run(m, r, nil, 3, 0)
 	second := m.lastEntry(t)
 	if second == first || !slices.Equal(m.forgot, []int64{9}) || m.examined[second] != 9 || r.runs != 2 {
 		t.Errorf("replacing the entry forgot %v and records %d after %d evaluations; want [9], 9 and 2", m.forgot, m.examined[second], r.runs)
 	}
-	m.high = 0
-	if v, ok := run(m, r, r, 3, 0); !ok || v != "v" || m.pos() != 5 || r.runs != 2 || m.reused != 1 || m.high != 9 {
-		t.Errorf("the reuse gives %v %v at %d after %d evaluations, %d reuses and the frontier %d; want v true at 5, 2, 1 and 9",
-			v, ok, m.pos(), r.runs, m.reused, m.high)
+	m.examinedEnd = 0
+	if v, ok := run(m, r, r, 3, 0); !ok || v != "v" || m.pos() != 5 || r.runs != 2 || m.reused != 1 || m.examinedEnd != 9 {
+		t.Errorf("the reuse gives %v %v at %d after %d evaluations, %d reuses and the examined end %d; want v true at 5, 2, 1 and 9",
+			v, ok, m.pos(), r.runs, m.reused, m.examinedEnd)
 	}
 	// A leader's grown entry is replaced in the same way.
 	m = newMachine()
@@ -1020,10 +1020,10 @@ func TestMemoizedDocument(t *testing.T) {
 		m.docActive = active
 		r := &trule{id: 1, memo: true, body: func(m *machine) (any, bool) {
 			m.advance(2)
-			m.high = max(m.high, 5) // the body examined the input up to its end and nothing past it
+			m.examinedEnd = max(m.examinedEnd, 5) // the body examined the input up to its end and nothing past it
 			return "v", true
 		}}
-		m.high = 2
+		m.examinedEnd = 2
 		if v, ok := callAt(t, mod, m, f, r, 3); !ok || v != "v" {
 			t.Fatalf("active=%v: %v %v", active, v, ok)
 		}
@@ -1035,17 +1035,17 @@ func TestMemoizedDocument(t *testing.T) {
 			t.Errorf("outside a Document the entry records %v", m.examined)
 		}
 		// A later call at the position reuses the entry from a call that examined less.
-		m.high = 3
+		m.examinedEnd = 3
 		if v, ok := callAt(t, mod, m, f, r, 3); !ok || v != "v" || m.pos() != 5 || r.runs != 1 || m.memoHit != 1 {
 			t.Fatalf("active=%v: reuse gives %v %v at %d after %d evaluations and %d hits", active, v, ok, m.pos(), r.runs, m.memoHit)
 		}
-		wantHigh, wantReused := int64(5), 1
+		wantExamined, wantReused := int64(5), 1
 		if !active {
-			wantHigh, wantReused = 3, 0
+			wantExamined, wantReused = 3, 0
 		}
-		if m.high != wantHigh || m.reused != wantReused {
+		if m.examinedEnd != wantExamined || m.reused != wantReused {
 			t.Errorf("active=%v: the reuse leaves the examined end %d and %d reuses, want %d and %d",
-				active, m.high, m.reused, wantHigh, wantReused)
+				active, m.examinedEnd, m.reused, wantExamined, wantReused)
 		}
 	}
 }
@@ -1180,23 +1180,23 @@ func TestEngineCallExamined(t *testing.T) {
 	m := newMachine()
 	r := &trule{id: 1, memo: true, body: func(m *machine) (any, bool) {
 		m.advance(2)
-		m.high = max(m.high, 6)
+		m.examinedEnd = max(m.examinedEnd, 6)
 		return "v", true
 	}}
-	m.high, m.low = 1, 0
+	m.examinedEnd, m.low = 1, 0
 	if v, ok := callAt(t, mod, m, f, r, 3); !ok || v != "v" {
 		t.Fatalf("%v %v", v, ok)
 	}
 	e := m.lastEntry(t)
-	if m.examined[e] != 6 || m.high != 6 || m.low != 0 {
-		t.Errorf("entry examined %d, enclosing call [%d, %d); want 6 and [0, 6)", m.examined[e], m.low, m.high)
+	if m.examined[e] != 6 || m.examinedEnd != 6 || m.low != 0 {
+		t.Errorf("entry examined %d, enclosing call [%d, %d); want 6 and [0, 6)", m.examined[e], m.low, m.examinedEnd)
 	}
-	m.high = 1
+	m.examinedEnd = 1
 	if v, ok := callAt(t, mod, m, f, r, 3); !ok || v != "v" || r.runs != 1 {
 		t.Fatalf("the reuse gives %v %v after %d evaluations", v, ok, r.runs)
 	}
-	if m.high != 6 || m.reused != 1 {
-		t.Errorf("the reuse leaves the frontier at %d with %d reuses, want 6 and 1", m.high, m.reused)
+	if m.examinedEnd != 6 || m.reused != 1 {
+		t.Errorf("the reuse leaves the examined end at %d with %d reuses, want 6 and 1", m.examinedEnd, m.reused)
 	}
 }
 

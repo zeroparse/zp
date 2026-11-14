@@ -12,8 +12,8 @@ func (p *Parser) confDocEnter(pos int) (int, int) {
 
 // confDocLeave runs doc.leave for the conformance suite.
 // Printed from Exec IR function confDocLeave of internal/ir/exec/core, specialized for document.
-func (p *Parser) confDocLeave(high int, low int) {
-	p.Hw = max(high, p.Hw)
+func (p *Parser) confDocLeave(examined int, low int) {
+	p.Hw = max(examined, p.Hw)
 	p.lw = Min2(low, p.lw)
 }
 
@@ -45,9 +45,9 @@ func (p *Parser) confDocLow() int {
 	return r
 }
 
-// confDocHigh runs doc.high for the conformance suite.
-// Printed from Exec IR function confDocHigh of internal/ir/exec/core, specialized for document.
-func (p *Parser) confDocHigh() int {
+// confDocExamined runs doc.examined for the conformance suite.
+// Printed from Exec IR function confDocExamined of internal/ir/exec/core, specialized for document.
+func (p *Parser) confDocExamined() int {
 	var r int
 	r = p.Hw
 	return r

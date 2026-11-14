@@ -119,7 +119,7 @@ func Build() *Module {
 	// With Document bookkeeping, a call in a Document parse reuses an entry that an edit moved once
 	// its value is moved too (doc.move), and extends the input it examined to the entry's. With the
 	// engine's bookkeeping, it also starts the examined input of the call (doc.enter), whose ends
-	// finish restores from oldHigh and oldLow.
+	// finish restores from oldExamined and oldLow.
 	reuse := func(b *Builder, level Expr, doc docMode, exit func(b *Builder, v, ok Expr)) {
 		b.Let("env", C("env.key", r))
 		cs := b.LetN([]string{"c", "seed"}, C("ctx.enter", r, level))
@@ -166,7 +166,7 @@ func Build() *Module {
 		b.Let("rec", C("rec.mark"))
 		b.Do("ctx.push", c)
 		if doc == engineDoc {
-			b.LetN([]string{"oldHigh", "oldLow"}, C("doc.enter", L("start")))
+			b.LetN([]string{"oldExamined", "oldLow"}, C("doc.enter", L("start")))
 		}
 		// The memoized result includes the expectations recorded in this call.
 		b.Let("m", C("exp.isolate", L("start")))
@@ -196,7 +196,7 @@ func Build() *Module {
 			b.Do("memo.setPresent", entry, c)
 			b.Do("memo.setExpected", entry, L("far"), L("kept"))
 			inDocument(b, doc, func(b *Builder) {
-				b.Do("memo.examine", entry, Bin("<", C("doc.low"), L("start")), C("doc.high"))
+				b.Do("memo.examine", entry, Bin("<", C("doc.low"), L("start")), C("doc.examined"))
 				b.If(C("rule.positional", r), func(b *Builder) { b.Do("memo.pin", entry) })
 			})
 		}, func(b *Builder) {
@@ -208,7 +208,7 @@ func Build() *Module {
 		b.Do("ctx.done", c)
 		b.Do("mergeExpected", L("far"), L("inner"))
 		if doc == engineDoc {
-			b.Do("doc.leave", L("oldHigh"), L("oldLow"))
+			b.Do("doc.leave", L("oldExamined"), L("oldLow"))
 		}
 		b.If(Not(L("ok")), func(b *Builder) { b.SetReg(ops.Pos, L("start")) })
 		if doc == nodeDoc || doc == typedDoc {
@@ -331,7 +331,7 @@ bookkeeping of how far each call examined the input.`
 
 	document := m.AddFunc("document", []Param{P("r", rule), P("min", TInt)}, result,
 		[]string{ops.Document, ops.Budget}, func(b *Builder) {
-			b.LetN([]string{"oldHigh", "oldLow"}, C("doc.enter", R(ops.Pos)))
+			b.LetN([]string{"oldExamined", "oldLow"}, C("doc.enter", R(ops.Pos)))
 			b.Protect(func(b *Builder) {
 				b.If(Not(C("rule.docMemo", r)), func(b *Builder) {
 					b.LetN([]string{"v", "ok"}, C("unmemoized", r, L("min")))
@@ -339,7 +339,7 @@ bookkeeping of how far each call examined the input.`
 				})
 				b.LetN([]string{"v", "ok"}, C("memoized", r, L("min")))
 				b.Return(L("v"), L("ok"))
-			}, func(b *Builder) { b.Do("doc.leave", L("oldHigh"), L("oldLow")) })
+			}, func(b *Builder) { b.Do("doc.leave", L("oldExamined"), L("oldLow")) })
 		})
 	document.Doc = `document is a rule call in a Document parse, which memoizes the rules that the Document reuses
 and records the input each call examined. The enclosing call's examined input is restored however
@@ -359,7 +359,7 @@ start from otherwise.`
 			b.Var("fm", TU64)
 			charge(b)
 			b.Let("start", R(ops.Pos))
-			b.LetN([]string{"oldHigh", "oldLow"}, C("doc.enter", L("start")))
+			b.LetN([]string{"oldExamined", "oldLow"}, C("doc.enter", L("start")))
 			b.Protect(func(b *Builder) {
 				b.If(Not(C("rule.docMemo", r)), func(b *Builder) {
 					b.Let("rec", C("rec.mark"))
@@ -375,7 +375,7 @@ start from otherwise.`
 				docClose(b)
 				evaluate(b, L("min"), run)
 				finish(b, L("min"), typedDoc)
-			}, func(b *Builder) { b.Do("doc.leave", L("oldHigh"), L("oldLow")) })
+			}, func(b *Builder) { b.Do("doc.leave", L("oldExamined"), L("oldLow")) })
 		})
 	typedDocument.Doc = `typedDocument is a typed rule call in a Document parse, for the rule r at binding level min,
 invoked by inv when a generated call passes it: unmemoized for a rule that the Document does not
@@ -393,7 +393,7 @@ in document, the enclosing call's examined input is restored however the call en
 			b.Let("start", R(ops.Pos))
 			reuse(b, L("min"), engineDoc, hit)
 			b.Do("call.save", st, L("start"), L("min"), L("env"), L("c"), L("rec"), L("m"))
-			b.Do("call.saveExamined", st, L("oldHigh"), L("oldLow"))
+			b.Do("call.saveExamined", st, L("oldExamined"), L("oldLow"))
 			b.If(F(ops.Missing), func(b *Builder) { b.Do("call.saveMissing", st, C("missing.mark")) })
 			b.Return(Null(value), BoolC(false), BoolC(false))
 		})
@@ -408,7 +408,7 @@ and otherwise saves in st what the end of the call needs.`
 			b.Let("c", C("call.ctx", st))
 			b.Let("rec", C("call.rec", st))
 			b.Let("m", C("call.mark", st))
-			b.Let("oldHigh", C("call.high", st))
+			b.Let("oldExamined", C("call.examined", st))
 			b.Let("oldLow", C("call.low", st))
 			// The growth of a leader settles its recovered errors itself (grow.end).
 			b.If(And(Not(C("rule.leader", r)), Not(L("ok"))), func(b *Builder) {

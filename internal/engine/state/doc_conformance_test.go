@@ -52,8 +52,8 @@ func (m *docMachine) Call(o *exec.Op, args []any) (res []any) {
 		return nil
 	case "doc.low":
 		return []any{int64(p.confDocLow())}
-	case "doc.high":
-		return []any{int64(p.confDocHigh())}
+	case "doc.examined":
+		return []any{int64(p.confDocExamined())}
 	case "doc.reused":
 		p.confDocReused()
 		return nil
@@ -126,7 +126,7 @@ func TestEngineDocConformanceDetectsBrokenEngine(t *testing.T) {
 			m.p.Hw = max(int(args[0].(int64)), m.p.Hw)
 			return nil
 		},
-		"doc.touch moves the frontier": func(m *docMachine, args []any) []any {
+		"doc.touch moves the examined end": func(m *docMachine, args []any) []any {
 			m.p.Hw = int(args[0].(int64))
 			return nil
 		},

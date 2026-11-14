@@ -24,7 +24,7 @@ const DocStatOp = "test.docStat"
 // DocOps are the doc operations of the examined input of a Document parse.
 var DocOps = []string{
 	"doc.examinedBegin", "doc.examinedEnd", "doc.enter", "doc.leave", "doc.active", "doc.touch",
-	"doc.touchFrom", "doc.low", "doc.high", "doc.reused", "doc.evaluated",
+	"doc.touchFrom", "doc.low", "doc.examined", "doc.reused", "doc.evaluated",
 }
 
 // DocCoreOps are the doc operations of a target that does not observe calls: all but
@@ -54,7 +54,7 @@ func DocCases() []Case {
 	}
 	doc := ref.Config{Document: true}
 	low := func() exec.Expr { return exec.C("doc.low") }
-	high := func() exec.Expr { return exec.C("doc.high") }
+	high := func() exec.Expr { return exec.C("doc.examined") }
 	i := exec.Int
 	// starts asserts the range of a call that began at pos: the empty range there, since a call has
 	// examined nothing when it begins.

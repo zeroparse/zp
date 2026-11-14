@@ -50,8 +50,8 @@ func (m *docMachine) Call(o *exec.Op, args []any) (res []any) {
 		x, known := p.confDocExaminedEnd(int(args[0].(int64)))
 		return []any{int64(x), known}
 	case "doc.enter":
-		high, low := p.confDocEnter(int(args[0].(int64)))
-		return []any{int64(high), int64(low)}
+		examined, low := p.confDocEnter(int(args[0].(int64)))
+		return []any{int64(examined), int64(low)}
 	case "doc.leave":
 		p.confDocLeave(int(args[0].(int64)), int(args[1].(int64)))
 		return nil
@@ -65,8 +65,8 @@ func (m *docMachine) Call(o *exec.Op, args []any) (res []any) {
 		return nil
 	case "doc.low":
 		return []any{int64(p.confDocLow())}
-	case "doc.high":
-		return []any{int64(p.confDocHigh())}
+	case "doc.examined":
+		return []any{int64(p.confDocExamined())}
 	case "doc.reused":
 		p.confDocReused()
 		return nil
@@ -125,22 +125,22 @@ func TestExecConformanceDoc(t *testing.T) {
 func TestExecConformanceDocDetectsBrokenLib(t *testing.T) {
 	variants := map[string]func(m *docMachine, args []any) []any{
 		"doc.enter keeps the range of the enclosing call": func(m *docMachine, args []any) []any {
-			high, low := m.p.docHigh, m.p.docLow
+			examined, low := m.p.docExamined, m.p.docLow
 			m.p.confDocEnter(int(args[0].(int64)))
-			m.p.docHigh, m.p.docLow = max(m.p.docHigh, high), min(m.p.docLow, low)
-			return []any{int64(high), int64(low)}
+			m.p.docExamined, m.p.docLow = max(m.p.docExamined, examined), min(m.p.docLow, low)
+			return []any{int64(examined), int64(low)}
 		},
 		"doc.enter starts the empty range": func(m *docMachine, args []any) []any {
-			high, low := m.p.confDocEnter(int(args[0].(int64)))
-			m.p.docHigh--
-			return []any{int64(high), int64(low)}
+			examined, low := m.p.confDocEnter(int(args[0].(int64)))
+			m.p.docExamined--
+			return []any{int64(examined), int64(low)}
 		},
 		"doc.leave ignores the start of the call": func(m *docMachine, args []any) []any {
-			m.p.docHigh = max(int(args[0].(int64)), m.p.docHigh)
+			m.p.docExamined = max(int(args[0].(int64)), m.p.docExamined)
 			return nil
 		},
 		"doc.touch moves the frontier": func(m *docMachine, args []any) []any {
-			m.p.docHigh = int(args[0].(int64))
+			m.p.docExamined = int(args[0].(int64))
 			return nil
 		},
 		"doc.touchFrom moves the start": func(m *docMachine, args []any) []any {
@@ -153,13 +153,13 @@ func TestExecConformanceDocDetectsBrokenLib(t *testing.T) {
 		},
 		"doc.active is false": func(m *docMachine, args []any) []any { return []any{false} },
 		"doc.examinedBegin leaves the frontier": func(m *docMachine, args []any) []any {
-			return []any{int64(m.p.docHigh)}
+			return []any{int64(m.p.docExamined)}
 		},
 		"doc.examinedEnd does not merge": func(m *docMachine, args []any) []any {
 			if !m.p.confDocActive() {
 				return []any{int64(0), false}
 			}
-			return []any{int64(m.p.docHigh), true}
+			return []any{int64(m.p.docExamined), true}
 		},
 	}
 	for name, v := range variants {

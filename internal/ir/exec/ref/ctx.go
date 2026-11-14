@@ -146,8 +146,8 @@ type ctxTable struct {
 }
 
 type lookRec struct {
-	site int64
-	high int64
+	site     int64
+	examined int64
 	// frame is the number of frames after the lookahead began.
 	frame int
 }
@@ -571,12 +571,12 @@ func (m *Model) callCtx(o *exec.Op, args []any) ([]any, bool) {
 		if n := len(s.frames); n > 0 {
 			f := s.frames[n-1]
 			if g := len(s.growths); f.pos == pos && f.gp < g && s.growths[g-1].pos == pos && s.growths[g-1].cycle == s.growths[f.gp].cycle {
-				high := m.doc.high
+				examined := m.doc.examined
 				if m.cfg.Document {
-					m.doc.high = pos
+					m.doc.examined = pos
 				}
 				s.frames = append(s.frames, ctxFrame{pos: pos, gp: f.gp, depth: len(s.growths)})
-				s.looks = append(s.looks, lookRec{site: args[0].(int64), high: high, frame: len(s.frames)})
+				s.looks = append(s.looks, lookRec{site: args[0].(int64), examined: examined, frame: len(s.frames)})
 				return nil, true
 			}
 		}
@@ -591,8 +591,8 @@ func (m *Model) callCtx(o *exec.Op, args []any) ([]any, bool) {
 		f, ds := s.popFrame()
 		examined := f.pos
 		if m.cfg.Document {
-			examined = m.doc.high
-			m.doc.high = max(l.high, m.doc.high)
+			examined = m.doc.examined
+			m.doc.examined = max(l.examined, m.doc.examined)
 		}
 		if !slices.ContainsFunc(ds, func(d ctxDep) bool { return d.kind == depSeed }) {
 			s.mergeDeps(ds)
@@ -682,7 +682,7 @@ func (m *Model) callCtx(o *exec.Op, args []any) ([]any, bool) {
 	case "ctx.keep":
 		c, r := args[0].(*CtxState), args[1].(RuleRef)
 		res := &CtxResult{ok: args[5].(bool), end: args[6].(int64), silent: args[7].(bool), value: args[8], errs: args[9],
-			far: args[10].(int64), kept: args[11].(*ExpKept), examined: m.doc.high, from: m.doc.low}
+			far: args[10].(int64), kept: args[11].(*ExpKept), examined: m.doc.examined, from: m.doc.low}
 		s.store(args[2].(int64), c.gp, ctxHead{id: r.Index, min: args[3].(int64), present: c.present}, c.sd,
 			&ctxSlot{res: res, key: args[4].(int64)})
 		return nil, true
@@ -718,7 +718,7 @@ func (m *Model) ctxPop(c *CtxState) int64 {
 // errors.
 func (m *Model) ctxReplay(r *CtxResult, seed bool) {
 	if m.cfg.Document {
-		m.doc.high = max(m.doc.high, r.examined)
+		m.doc.examined = max(m.doc.examined, r.examined)
 		m.doc.low = min(m.doc.low, r.from)
 		m.doc.reused++
 	}
@@ -745,9 +745,6 @@ func (m *Model) replayExpected(far int64, k *ExpKept, apply bool) int64 {
 	cur := expRecord{far: s.cur.far, ids: slices.Clone(s.cur.ids)}
 	for _, id := range k.ids {
 		units++
-		if apply && m.cfg.Document {
-			m.doc.high = max(m.doc.high, far+1)
-		}
 		if m.silent() || far < cur.far {
 			continue
 		}

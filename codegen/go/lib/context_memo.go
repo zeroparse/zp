@@ -41,7 +41,7 @@ import (
 // seed of such a run, the seed at its end, with the observations, the expectations and the
 // examined input of the steps from there.
 //
-// The examined input of a result is the Document examined end (Parser.docHigh); outside a Document
+// The examined input of a result is the Document examined end (Parser.docExamined); outside a Document
 // parse it is not tracked and is 0.
 
 // failSeed is the identity of the failure that every growth starts from.
@@ -72,7 +72,7 @@ type ctxResult struct {
 	expected []ExpID
 	end      int
 	far      int
-	examined int // the examined end of a Document parse (Parser.docHigh)
+	examined int // the examined end of a Document parse (Parser.docExamined)
 	ok       bool
 	silent   bool
 }
@@ -257,8 +257,8 @@ type ctxTable struct {
 // lookRec is a lookahead in progress: its site (-1 for one that records nothing) and the Document
 // examined end from before it.
 type lookRec struct {
-	site int32
-	high int
+	site     int32
+	examined int
 }
 
 // The values of an observation other than outcomes (obsOutcome).
@@ -301,7 +301,7 @@ func (p *Parser) seedAt(i int) *ctxResult {
 // outside a Document parse.
 func (p *Parser) examinedNow() int {
 	if p.Document != nil {
-		return p.docHigh
+		return p.docExamined
 	}
 	return 0
 }
@@ -906,9 +906,9 @@ func (p *Parser) lookBegin(site int) {
 		f := &p.frames[len(p.frames)-1]
 		if g := len(p.gamma); f.pos == p.Pos && f.gp < g && p.gamma[g-1].pos == p.Pos && p.gamma[g-1].cycle == p.gamma[f.gp].cycle {
 			// The Document examined end of the lookahead is part of its observation.
-			p.looks = append(p.looks, lookRec{site: int32(site), high: p.docHigh})
+			p.looks = append(p.looks, lookRec{site: int32(site), examined: p.docExamined})
 			if p.Document != nil {
-				p.docHigh = p.Pos
+				p.docExamined = p.Pos
 			}
 			p.pushFrame(p.Pos, f.gp)
 			return
@@ -927,8 +927,8 @@ func (p *Parser) lookEnd(ok bool) {
 	f, ds := p.popFrame()
 	examined := f.pos
 	if p.Document != nil {
-		examined = p.docHigh
-		p.docHigh = max(l.high, p.docHigh)
+		examined = p.docExamined
+		p.docExamined = max(l.examined, p.docExamined)
 	}
 	read := false
 	for _, d := range ds {
@@ -972,8 +972,8 @@ type growState struct {
 	done    bool
 	// The step being evaluated in a context: the Document examined end and the expectation record it is
 	// kept apart from.
-	savedHigh int
-	exp       ExpMark
+	savedExamined int
+	exp           ExpMark
 	// run holds the steps since the last step that read a seed other than the leader's own.
 	run []runStep
 }
@@ -1056,8 +1056,8 @@ func (p *Parser) growNext(g *growState) bool {
 		// Evaluate the step, with its own frame, Document examined end and expectations.
 		p.pushFrame(g.start, g.gp)
 		if p.Document != nil {
-			g.savedHigh = p.docHigh
-			p.docHigh = g.start
+			g.savedExamined = p.docExamined
+			p.docExamined = g.start
 		}
 		g.exp = p.Isolate(g.start)
 		return true
@@ -1088,7 +1088,7 @@ func (p *Parser) growStep(g *growState, node *core.Node, val any, ok bool) {
 	examined := p.examinedNow()
 	p.MergeExpected(far, inner)
 	if p.Document != nil {
-		p.docHigh = max(g.savedHigh, p.docHigh)
+		p.docExamined = max(g.savedExamined, p.docExamined)
 	}
 	res := &ctxResult{node: node, val: val, ok: ok, end: p.Pos, examined: examined, silent: p.Silent > 0}
 	if ok {

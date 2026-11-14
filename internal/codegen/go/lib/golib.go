@@ -451,7 +451,7 @@ func goTarget(s goSpec) *gogen.Target {
 			return "p.ExaminedEnd(" + a[0] + ")"
 		case "doc.leave":
 			// The binding level of a call is named min: the low end is lowered without the builtin.
-			return fmt.Sprintf("p.docHigh = max(%s, p.docHigh)\nif %s < p.docLow {\np.docLow = %s\n}", a[0], a[1], a[1])
+			return fmt.Sprintf("p.docExamined = max(%s, p.docExamined)\nif %s < p.docLow {\np.docLow = %s\n}", a[0], a[1], a[1])
 		case "doc.touchFrom":
 			return "p.documentTouchFrom(" + a[0] + ")"
 		case "doc.low":
@@ -477,8 +477,8 @@ func goTarget(s goSpec) *gogen.Target {
 			return "p.Document != nil"
 		case "doc.touch":
 			return "p.documentTouch(" + a[0] + ")"
-		case "doc.high":
-			return "p.docHigh"
+		case "doc.examined":
+			return "p.docExamined"
 		case "memo.examined":
 			if typed {
 				return "p.TypedDocument.meta[" + a[0] + "].examined"
@@ -611,7 +611,7 @@ p.arena = appendSpend(p, p.arena, %[1]s)
 p.lastKept = p.arena[off:len(p.arena):len(p.arena)]
 %[2]s%[3]sp.lastKept`, a[0], dst[0], op), true
 		case "doc.enter":
-			return fmt.Sprintf("%s, %s%sp.docHigh, p.docLow\np.docHigh, p.docLow = %s, %s", dst[0], dst[1], op, a[0], a[0]), true
+			return fmt.Sprintf("%s, %s%sp.docExamined, p.docLow\np.docExamined, p.docLow = %s, %s", dst[0], dst[1], op, a[0], a[0]), true
 		case "memo.store":
 			e := dst[0]
 			fields := fmt.Sprintf("%s: %s, ok: %s, end: %s, silent: %s, errs: %s", valueField, a[7], a[4], a[5], a[6], a[8])

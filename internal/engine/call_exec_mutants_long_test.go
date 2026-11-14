@@ -39,7 +39,7 @@ func TestCallProtocolMutantsFail(t *testing.T) {
 			[]printedEdit{{reuse, "if found && true && (!e.silent || p.Silent > 0) && "}},
 			"^TestLeftRecursionMemberMemoStale$", []string{"."}},
 		{"a call leaves the examined end of its caller",
-			[]printedEdit{{"p.Hw = max(oldHigh, p.Hw)", "p.Hw = oldHigh"}},
+			[]printedEdit{{"p.Hw = max(oldExamined, p.Hw)", "p.Hw = oldExamined"}},
 			"^TestDocumentMatchesFreshParse$", []string{"."}},
 		{"a result that goes nowhere is stored in the memo",
 			[]printedEdit{{route, "\tif store != storeCtx {\n"}},

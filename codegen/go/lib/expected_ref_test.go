@@ -175,7 +175,7 @@ func TestKeepMatchesReference(t *testing.T) {
 // through the printed compositions and through the hand-written forms they replaced, in parses that
 // record expectations and parses that do not, with and without budget controls, and checks that
 // the record (the farthest position, the entries and, where it is consulted, the filter of the
-// entries), the frontier a Document parse examined and the units charged are the same after every
+// entries), the examined end of a Document parse and the units charged are the same after every
 // operation.
 func TestExpectRecordMatchesReference(t *testing.T) {
 	for _, recording := range []bool{false, true} {
@@ -205,7 +205,7 @@ func TestExpectRecordMatchesReference(t *testing.T) {
 					var stack []frame
 					check := func(step int, what string) {
 						t.Helper()
-						same := a.farthest == b.farthest && a.Silent == b.Silent && a.docHigh == b.docHigh
+						same := a.farthest == b.farthest && a.Silent == b.Silent && a.docExamined == b.docExamined
 						if recording {
 							same = same && a.expBase == b.expBase && slices.Equal(a.exp, b.exp) && a.expBits == b.expBits
 						} else {
@@ -217,8 +217,8 @@ func TestExpectRecordMatchesReference(t *testing.T) {
 							same = same && a.Control.budgetUsed() == b.Control.budgetUsed()
 						}
 						if !same {
-							t.Fatalf("recording %v controlled %v document %v round %d step %d after %s: far %d/%d base %d/%d exp %v/%v silent %d/%d docHigh %d/%d",
-								recording, controlled, document, round, step, what, a.farthest, b.farthest, a.expBase, b.expBase, a.exp, b.exp, a.Silent, b.Silent, a.docHigh, b.docHigh)
+							t.Fatalf("recording %v controlled %v document %v round %d step %d after %s: far %d/%d base %d/%d exp %v/%v silent %d/%d docExamined %d/%d",
+								recording, controlled, document, round, step, what, a.farthest, b.farthest, a.expBase, b.expBase, a.exp, b.exp, a.Silent, b.Silent, a.docExamined, b.docExamined)
 						}
 					}
 					for step := 0; step < 60; step++ {

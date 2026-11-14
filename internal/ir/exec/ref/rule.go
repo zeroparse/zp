@@ -189,7 +189,7 @@ func (m *Model) evaluate(index, level int64, count bool) (any, bool) {
 		}
 	}
 	if e.Touch > 0 && m.cfg.Document {
-		m.doc.high = max(m.doc.high, start+e.Touch)
+		m.doc.examined = max(m.doc.examined, start+e.Touch)
 	}
 	m.regs["pos"] = start + e.Len
 	if rec {

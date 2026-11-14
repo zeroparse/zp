@@ -509,10 +509,10 @@ func (p *TParser) invokePlainObserved(r *TRule, min int) (any, bool) {
 //
 // Printed from Exec IR function document of internal/ir/exec/core, specialized for document, budget.
 func (p *Parser) callDocument(r *Rule, min int) (*core.Node, bool) {
-	oldHigh, oldLow := p.docHigh, p.docLow
-	p.docHigh, p.docLow = p.Pos, p.Pos
+	oldExamined, oldLow := p.docExamined, p.docLow
+	p.docExamined, p.docLow = p.Pos, p.Pos
 	defer func() {
-		p.docHigh = max(oldHigh, p.docHigh)
+		p.docExamined = max(oldExamined, p.docExamined)
 		if oldLow < p.docLow {
 			p.docLow = oldLow
 		}
@@ -649,7 +649,7 @@ func (p *Parser) callMemo(r *Rule, min int) (*core.Node, bool) {
 		entry.present = c.present
 		entry.far, entry.expected = far, kept
 		if p.Document != nil {
-			entry.examined, entry.from, entry.pinned = p.docHigh, examinedFromOf(p.docLow < start), false
+			entry.examined, entry.from, entry.pinned = p.docExamined, examinedFromOf(p.docLow < start), false
 			if r.Positional {
 				entry.pinned = true
 			}
@@ -712,10 +712,10 @@ func (p *TParser) DocumentCall(r *TRule, min int, inv func(*TParser) (any, bool)
 	var fm uint64
 	p.Spend()
 	start := p.Pos
-	oldHigh, oldLow := p.docHigh, p.docLow
-	p.docHigh, p.docLow = start, start
+	oldExamined, oldLow := p.docExamined, p.docLow
+	p.docExamined, p.docLow = start, start
 	defer func() {
-		p.docHigh = max(oldHigh, p.docHigh)
+		p.docExamined = max(oldExamined, p.docExamined)
 		if oldLow < p.docLow {
 			p.docLow = oldLow
 		}
@@ -831,7 +831,7 @@ func (p *TParser) DocumentCall(r *TRule, min int, inv func(*TParser) (any, bool)
 		p.memoPut(r.Id, start, min, env, (r.DocMemo && !r.Memo && !r.Leader), entry)
 		entry.present = c.present
 		entry.far, entry.expected = far, kept
-		p.TypedDocument.meta[entry] = typedDocumentMeta{examined: p.docHigh, recorded: true, before: p.docLow < start}
+		p.TypedDocument.meta[entry] = typedDocumentMeta{examined: p.docExamined, recorded: true, before: p.docLow < start}
 		if r.Positional {
 			p.TypedDocument.pin(entry)
 		}

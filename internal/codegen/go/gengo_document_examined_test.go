@@ -15,12 +15,12 @@ import (
 // after its callee matched must be the same for the typed route and the Node route, and the end must
 // be exact: a direct rule without captures is generated as one body for its call and its
 // invocation, whose rollback on failure changes nothing that the Document records.
-func TestGeneratedDocumentFrontierAfterFailure(t *testing.T) {
+func TestGeneratedDocumentExaminedAfterFailure(t *testing.T) {
 	t.Parallel()
-	codegentest.EachMode(t, testGeneratedDocumentFrontierAfterFailure)
+	codegentest.EachMode(t, testGeneratedDocumentExaminedAfterFailure)
 }
 
-func testGeneratedDocumentFrontierAfterFailure(t *testing.T) {
+func testGeneratedDocumentExaminedAfterFailure(t *testing.T) {
 	if testing.Short() {
 		t.Skip("builds standalone generated Document consumers")
 	}
@@ -44,7 +44,7 @@ rule leaf = &"a"
 			t.Fatal(err)
 		}
 	}
-	write("go.mod", codegentest.GoMod("frontier"))
+	write("go.mod", codegentest.GoMod("examined"))
 	const consumer = `package PACKAGE
 
 import (
@@ -55,7 +55,7 @@ import (
 	zprt "zeroparse.dev/zp/codegen/go/lib"
 )
 
-func TestFrontier(t *testing.T) {
+func TestExamined(t *testing.T) {
 	d, err := NewDocument("ab")
 	if err != nil {
 		t.Fatal(err)
@@ -88,7 +88,7 @@ func TestFrontier(t *testing.T) {
 		if route == "typed" {
 			parse = "ParseValue"
 		}
-		write(route+"/frontier_test.go", strings.NewReplacer("PACKAGE", route, "PARSE", parse).Replace(consumer))
+		write(route+"/examined_test.go", strings.NewReplacer("PACKAGE", route, "PARSE", parse).Replace(consumer))
 		cmd := exec.Command("go", "test", "-trimpath", "-count=1", "-v", "./"+route)
 		cmd.Dir = dir
 		out, err := cmd.CombinedOutput()

@@ -141,12 +141,12 @@ type skipWalk struct {
 	prevOK bool
 	visits []skipVisit
 	// open reports that the last visit's iteration is running: its expectations are isolated
-	// from mk, and the examined end from before it is savedHigh.
-	open      bool
-	mk        ExpMark
-	savedHigh int
-	hit       skipRecord
-	hitOK     bool
+	// from mk, and the examined end from before it is savedExamined.
+	open          bool
+	mk            ExpMark
+	savedExamined int
+	hit           skipRecord
+	hitOK         bool
 }
 
 // SkipBegin starts a walk of the site at the current position.
@@ -232,9 +232,9 @@ func (p *Parser) SkipVisit() {
 	}
 	p.skipClose()
 	w.visits = append(w.visits, skipVisit{pos: p.Pos})
-	w.open, w.savedHigh = true, p.docHigh
+	w.open, w.savedExamined = true, p.docExamined
 	if p.Document != nil {
-		p.docHigh = p.Pos
+		p.docExamined = p.Pos
 	}
 	w.mk = p.Isolate(p.Pos)
 }
@@ -251,8 +251,8 @@ func (p *Parser) skipClose() {
 	v := &w.visits[len(w.visits)-1]
 	v.far, v.exp = far, p.Keep(inner)
 	p.MergeExpected(far, inner)
-	v.examined = p.docHigh
-	p.docHigh = max(w.savedHigh, p.docHigh)
+	v.examined = p.docExamined
+	p.docExamined = max(w.savedExamined, p.docExamined)
 }
 
 // SkipEnd ends the walk and records the rest of it from each position it visited recording.

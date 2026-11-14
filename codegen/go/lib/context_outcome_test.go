@@ -2,7 +2,7 @@ package libgo
 
 import "testing"
 
-// TestObsOutcomeWide checks that outcomes whose frontier does not fit in a word get numbers that
+// TestObsOutcomeWide checks that outcomes whose examined end does not fit in a word get numbers that
 // tell equal outcomes from others and from the outcomes that fit.
 func TestObsOutcomeWide(t *testing.T) {
 	p := &Parser{}

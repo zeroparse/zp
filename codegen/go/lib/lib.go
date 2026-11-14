@@ -752,10 +752,10 @@ type Parser struct {
 	sourceInfo bool
 	// Document is set only by the private incremental runner.
 	Document *documentState
-	// docHigh is the exact end of the input that the active rule call of a Document parse examined:
+	// docExamined is the exact end of the input that the active rule call of a Document parse examined:
 	// one past the last unit that can influence its result, with the end of the input counting as
 	// the unit at its length (docLow).
-	docHigh int
+	docExamined int
 	// The state of left recursion (context_memo.go): the growths in progress, innermost last; the
 	// frames that record dependencies, and their dependencies; the dependencies of the call that
 	// ctxPop ended; the context tables; the lookaheads in progress; the lookahead sites whose
@@ -851,7 +851,7 @@ type Parser struct {
 	// memUsed counts the bytes of the chunks the allocators have taken (budget_memory.go); a
 	// stream's commit returns them. memKept counts those that stay in use for the whole parse.
 	memUsed, memKept uint64
-	// docLow is the start of the input that the active rule call examined, [docLow, docHigh). The
+	// docLow is the start of the input that the active rule call examined, [docLow, docExamined). The
 	// fields that only Documents use come last, away from those of every parse.
 	docLow int
 	// moved maps the nodes of a value that holds a node more than once to their copies
@@ -904,8 +904,8 @@ func (p *Parser) setGrammar(g *grammar) {
 // end. Every caller passes the exact end of what it read: one past the last unit that its outcome
 // depends on, so that an edit at or after that end leaves the outcome as it was.
 func (p *Parser) documentTouch(end int) {
-	if p.Document != nil && end > p.docHigh {
-		p.docHigh = end
+	if p.Document != nil && end > p.docExamined {
+		p.docExamined = end
 	}
 }
 
@@ -944,7 +944,7 @@ func (p *Parser) documentTouchFrom(from int) {
 // documentTouchLine records that a line start test at the position examined the unit before it.
 func (p *Parser) documentTouchLine() {
 	if p.Document != nil {
-		p.docHigh = max(p.docHigh, p.Pos)
+		p.docExamined = max(p.docExamined, p.Pos)
 		p.docLow = min(p.docLow, p.Pos-1)
 	}
 }
@@ -2020,9 +2020,9 @@ func (p *Parser) MakeError(pos int, expected []ExpID) *core.SyntaxError {
 // itself, and any memo entry it reads or records, extends the end as in an
 // unobserved parse, so observation does not change reuse.
 func (p *Parser) ExaminedBegin() int {
-	h := p.docHigh
+	h := p.docExamined
 	if p.Document != nil {
-		p.docHigh = p.Pos
+		p.docExamined = p.Pos
 	}
 	return h
 }
@@ -2033,8 +2033,8 @@ func (p *Parser) ExaminedEnd(enclosing int) (int, bool) {
 	if p.Document == nil {
 		return 0, false
 	}
-	x := p.docHigh
-	p.docHigh = max(enclosing, x)
+	x := p.docExamined
+	p.docExamined = max(enclosing, x)
 	return x, true
 }
 

@@ -29,7 +29,7 @@ func TestGeneratedDocumentObservation(t *testing.T) {
 			t.Fatal(err)
 		}
 	}
-	// The library reports the teardown of each invocation and the frontier of each memo entry it
+	// The library reports the teardown of each invocation and the examined end of each memo entry it
 	// keeps or reuses to hooks that the consumers set.
 	write("go.mod", codegentest.GoModAt("documentobserve", observedLib(t)))
 	for _, f := range []struct{ name, grammar, input string }{
@@ -48,7 +48,7 @@ func TestGeneratedDocumentObservation(t *testing.T) {
 		{"string", "type N = { Value string }\nrule main N = part => N{Value:\"hello\"}\nrule part = \"a\"", "a"},
 		{"nilvalue", "type W = { Text string }\nrule main *W = part => nil\nrule part W = t:(\"a\") #atomic => W{Text: text($t)}", "a"},
 		// The start rule examines the whole input before calling part, whose own
-		// frontier stays near its match.
+		// examined end stays near its match.
 		{"lookahead", "type W = { Text string }\nrule main W = &\"abcd\" p:part \"bcd\" => $p\nrule part W = t:(\"a\") #atomic => W{Text: text($t)}", "abcd"},
 		// inner's memo result depends on its lookahead, which nothing after part reads again.
 		{"innerlookahead", "type W = { Text string }\nrule main W = p:inner \"bcd\" => $p\nrule inner W = &\"abcd\" p:part => $p\nrule part W = t:(\"a\") #atomic => W{Text: text($t)}", "abcd"},
@@ -110,17 +110,17 @@ import(
 )
 var documentParserProbes []*zprt.X_observation
 var documentProbeMu sync.Mutex
-// frontierHook receives the frontier kept by each new memo entry, or reused by a memo hit, just before the call's exit.
-var frontierHook func(rule string,pos,level,examined int,hit bool)
-func init(){zprt.ProbeHook=recordDocumentProbe;zprt.FrontierHook=recordFrontier}
-func recordFrontier(rule string,pos,level,examined int,hit bool){if frontierHook!=nil{frontierHook(rule,pos,level,examined,hit)}}
-type keptFrontier struct{at int;event zprt.TraceEvent}
-// checkFrontiers requires each exit that recorded a memo entry to report the entry's frontier.
-var checkedFrontiers int
-// wantFrontier is the examined end an exit reports for a stored one: exactly the stored end, for a call that
+// examinedHook receives the examined end kept by each new memo entry, or reused by a memo hit, just before the call's exit.
+var examinedHook func(rule string,pos,level,examined int,hit bool)
+func init(){zprt.ProbeHook=recordDocumentProbe;zprt.ExaminedHook=recordExamined}
+func recordExamined(rule string,pos,level,examined int,hit bool){if examinedHook!=nil{examinedHook(rule,pos,level,examined,hit)}}
+type keptExamined struct{at int;event zprt.TraceEvent}
+// checkExamined requires each exit that recorded a memo entry to report the entry's examined end.
+var checkedExamined int
+// wantExamined is the examined end an exit reports for a stored one: exactly the stored end, for a call that
 // records an entry and for a hit alike. A matched call in a provisional context may instead report its end.
-func wantFrontier(e zprt.TraceEvent,stored int)int{return stored}
-func checkFrontiers(t *testing.T,events []zprt.TraceEvent,kept []keptFrontier){t.Helper();checkedFrontiers+=len(kept);for _,k:=range kept{if k.at>=len(events){t.Fatal("frontier without exit",k)};e:=events[k.at];if e.Kind!=zprt.TraceExit||e.Rule!=k.event.Rule||e.Pos!=k.event.Pos||e.Level!=k.event.Level||e.Memo!=k.event.Memo||!e.ExaminedKnown||e.Examined!=wantFrontier(e,k.event.Examined)&&!(e.Matched&&e.Examined==max(wantFrontier(e,k.event.Examined),e.End)){t.Fatal("reported examined frontier differs from the kept one",e,k)}}}
+func wantExamined(e zprt.TraceEvent,stored int)int{return stored}
+func checkExamined(t *testing.T,events []zprt.TraceEvent,kept []keptExamined){t.Helper();checkedExamined+=len(kept);for _,k:=range kept{if k.at>=len(events){t.Fatal("examined end without exit",k)};e:=events[k.at];if e.Kind!=zprt.TraceExit||e.Rule!=k.event.Rule||e.Pos!=k.event.Pos||e.Level!=k.event.Level||e.Memo!=k.event.Memo||!e.ExaminedKnown||e.Examined!=wantExamined(e,k.event.Examined)&&!(e.Matched&&e.Examined==max(wantExamined(e,k.event.Examined),e.End)){t.Fatal("reported examined end differs from the kept one",e,k)}}}
 func recordDocumentProbe(o *zprt.X_observation){documentProbeMu.Lock();defer documentProbeMu.Unlock();documentParserProbes=append(documentParserProbes,o)}
 func released(t *testing.T){t.Helper();documentProbeMu.Lock();defer documentProbeMu.Unlock();for _,o:=range documentParserProbes{if o!=nil&&(o.X_trace!=nil||o.X_profile!=nil||o.X_rules!=nil||len(o.X_stack)!=0){t.Fatal("observer references retained",o)}};documentParserProbes=nil}
 func documentEqual(t *testing.T,a,b any){t.Helper();x,err:=json.Marshal(a);if err!=nil{t.Fatal(err)};y,err:=json.Marshal(b);if err!=nil{t.Fatal(err)};if string(x)!=string(y){t.Fatalf("value/diagnostic mismatch\n%s\n%s",x,y)}}
@@ -133,7 +133,7 @@ func TestDocumentCalls(t *testing.T){
  TYPED
  for i,parse:=range routes{for _,unit:=range []PositionUnit{CodePoints,Bytes}{
   source:=testInput();d,err:=NewDocument(source,WithUnit(unit));if err!=nil{t.Fatal(err)};ref,err:=reference.NewDocument(source,reference.WithUnit(reference.PositionUnit(unit)));if err!=nil{t.Fatal(err)}
-  run:=func(warm bool){t.Helper();var profile zprt.Profile;var events []zprt.TraceEvent;var kept []keptFrontier;frontierHook=func(rule string,pos,level,examined int,hit bool){kept=append(kept,keptFrontier{len(events),zprt.TraceEvent{Rule:rule,Pos:pos,Level:level,Examined:examined,Memo:hit}})};v,gotErr:=parse(d,zprt.WithProfile(&profile),zprt.WithTrace(func(e zprt.TraceEvent){events=append(events,e)}));frontierHook=nil;checkFrontiers(t,events,kept);if LOOKAHEAD{for _,e:=range events{if e.Kind==zprt.TraceExit&&e.Rule=="part"&&!e.Memo&&e.Examined>e.Pos+2{t.Fatal("call frontier includes its caller's lookahead",e)}}};want,wantErr:=referenceRoutes[i](ref);documentEqual(t,v,want);documentEqual(t,gotErr,wantErr);eventStats(t,d,&profile,events);for _,e:=range events{if e.Kind==zprt.TraceExit&&!e.ExaminedKnown{t.Fatal("Document exit without examined frontier",e)}};if warm&&(len(events)!=2||events[1].Kind!=zprt.TraceExit||!events[1].Memo||events[1].Evals!=0||profile.Snapshot().Calls!=1){t.Fatal("warm parse replayed old calls",events,profile.Snapshot())};released(t)}
+  run:=func(warm bool){t.Helper();var profile zprt.Profile;var events []zprt.TraceEvent;var kept []keptExamined;examinedHook=func(rule string,pos,level,examined int,hit bool){kept=append(kept,keptExamined{len(events),zprt.TraceEvent{Rule:rule,Pos:pos,Level:level,Examined:examined,Memo:hit}})};v,gotErr:=parse(d,zprt.WithProfile(&profile),zprt.WithTrace(func(e zprt.TraceEvent){events=append(events,e)}));examinedHook=nil;checkExamined(t,events,kept);if LOOKAHEAD{for _,e:=range events{if e.Kind==zprt.TraceExit&&e.Rule=="part"&&!e.Memo&&e.Examined>e.Pos+2{t.Fatal("call examined end includes its caller's lookahead",e)}}};want,wantErr:=referenceRoutes[i](ref);documentEqual(t,v,want);documentEqual(t,gotErr,wantErr);eventStats(t,d,&profile,events);for _,e:=range events{if e.Kind==zprt.TraceExit&&!e.ExaminedKnown{t.Fatal("Document exit without examined end",e)}};if warm&&(len(events)!=2||events[1].Kind!=zprt.TraceExit||!events[1].Memo||events[1].Evals!=0||profile.Snapshot().Calls!=1){t.Fatal("warm parse replayed old calls",events,profile.Snapshot())};released(t)}
   run(false);run(true)
   _,size:=utf8.DecodeLastRuneInString(source);start,end:=utf8.RuneCountInString(source)-1,utf8.RuneCountInString(source);if unit==Bytes{start,end=len(source)-size,len(source)}
   if err:=d.Edit(start,end,source[len(source)-size:]);err!=nil{t.Fatal(err)};if err:=ref.Edit(start,end,source[len(source)-size:]);err!=nil{t.Fatal(err)}
@@ -154,7 +154,7 @@ func TestDocumentCalls(t *testing.T){
   v,err=parse(d,WithLimits(Limits{Compute:1}),zprt.WithTrace(func(zprt.TraceEvent){}));var interrupted *LimitError;if v!=nil&&!reflect.ValueOf(v).IsZero()||!errors.As(err,&interrupted)||interrupted.Kind!=LimitCompute{t.Fatal("budget result",v,err)};released(t)
   retry=zprt.Profile{};events=nil;parse(d,zprt.WithProfile(&retry),zprt.WithTrace(func(e zprt.TraceEvent){events=append(events,e)}));eventStats(t,d,&retry,events);if events[len(events)-1].Memo{t.Fatal("budget interruption retained root memo",events)};released(t)
  }}
- if checkedFrontiers==0{t.Fatal("no memo frontier checked")}
+ if checkedExamined==0{t.Fatal("no memo examined end checked")}
 }
 // Observation must not change which results a Document keeps across edits.
 func TestDocumentObservationKeepsReuse(t *testing.T){
@@ -209,7 +209,7 @@ func TestDocumentConcurrentIsolation(t *testing.T){var wg sync.WaitGroup;for ran
 `
 
 // observedLib returns a copy of the library that calls ProbeHook when an invocation starts
-// observing and FrontierHook with the frontier each memo entry keeps or reuses.
+// observing and ExaminedHook with the examined end each memo entry keeps or reuses.
 func observedLib(t *testing.T) string {
 	t.Helper()
 	replace := func(src, old, new string, count int) string {
@@ -225,22 +225,22 @@ func observedLib(t *testing.T) string {
 				"p.Observation = newObservation(&o.observe)\n\tif ProbeHook != nil {\n\t\tProbeHook(p.Observation)\n\t}\n\tdefer p.releaseObservation()", 1)
 		case "call_exec.go":
 			// The printed calls name the stored entry entry and the reused entry e.
-			stores := []string{"entry.examined, entry.from, entry.pinned = p.docHigh, examinedFromOf(p.docLow < start), false\n",
-				"p.TypedDocument.meta[entry] = typedDocumentMeta{examined: p.docHigh, recorded: true, before: p.docLow < start}"}
+			stores := []string{"entry.examined, entry.from, entry.pinned = p.docExamined, examinedFromOf(p.docLow < start), false\n",
+				"p.TypedDocument.meta[entry] = typedDocumentMeta{examined: p.docExamined, recorded: true, before: p.docLow < start}"}
 			hits := []string{"e.examined", "p.TypedDocument.meta[e].examined"}
-			keep := "FrontierHook(r.Name, start, min, p.docHigh, false); "
+			keep := "ExaminedHook(r.Name, start, min, p.docExamined, false); "
 			for _, old := range stores {
 				src = replace(src, old, keep+old, 1)
 			}
 			for _, examined := range hits {
 				old := "p.documentTouch(" + examined + ")\n"
-				src = replace(src, old, old+"FrontierHook(r.Name, start, min, "+examined+", true)\n", 1)
+				src = replace(src, old, old+"ExaminedHook(r.Name, start, min, "+examined+", true)\n", 1)
 			}
 		}
 		return src
 	}, map[string]string{"zz_hooks.go": `package libgo
 
 var ProbeHook func(*observation)
-var FrontierHook = func(rule string, pos, level, examined int, hit bool) {}
+var ExaminedHook = func(rule string, pos, level, examined int, hit bool) {}
 `})
 }

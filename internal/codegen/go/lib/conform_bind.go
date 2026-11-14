@@ -36,12 +36,12 @@ func expBindingName(op string) string {
 
 // docBindingEngineOps are the doc operations that the engine has a Go form for: it has no observation of
 // calls, so it has neither doc.examinedBegin nor doc.examinedEnd.
-var docBindingEngineOps = []string{"doc.enter", "doc.leave", "doc.active", "doc.touch", "doc.touchFrom", "doc.low", "doc.high",
+var docBindingEngineOps = []string{"doc.enter", "doc.leave", "doc.active", "doc.touch", "doc.touchFrom", "doc.low", "doc.examined",
 	"doc.reused", "doc.evaluated"}
 
 // docBindingOps are the doc operations of the node library.
 var docBindingOps = []string{"doc.examinedBegin", "doc.examinedEnd", "doc.enter", "doc.leave", "doc.active", "doc.touch",
-	"doc.touchFrom", "doc.low", "doc.high", "doc.reused", "doc.evaluated"}
+	"doc.touchFrom", "doc.low", "doc.examined", "doc.reused", "doc.evaluated"}
 
 // oprBindingDescriptorOps are the operations of the Operators Rule descriptors and of the matches of
 // operators that conformance cases cover. oprBindingEngineOps adds those of the records of the split

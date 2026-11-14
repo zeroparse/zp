@@ -401,10 +401,10 @@ func engineTarget() *gogen.Target {
 		case "call.save":
 			return fmt.Sprintf("%s.start, %[1]s.min, %[1]s.key, %[1]s.ctx, %[1]s.rec, %[1]s.exp = %s, %s, %s, %s, %s, %s", a[0], a[1], a[2], a[3], a[4], a[5], a[6])
 		case "call.saveExamined":
-			return fmt.Sprintf("%s.high, %[1]s.low = %s, %s", a[0], a[1], a[2])
+			return fmt.Sprintf("%s.examined, %[1]s.low = %s, %s", a[0], a[1], a[2])
 		case "call.saveMissing":
 			return a[0] + ".missing = " + a[1]
-		case "call.start", "call.min", "call.key", "call.ctx", "call.rec", "call.high", "call.low", "call.missing":
+		case "call.start", "call.min", "call.key", "call.ctx", "call.rec", "call.examined", "call.low", "call.missing":
 			return a[0] + "." + strings.TrimPrefix(c.Callee, "call.")
 		case "call.mark":
 			return a[0] + ".exp"
@@ -521,7 +521,7 @@ func engineTarget() *gogen.Target {
 			return "p.lw = Min2(p.lw, " + a[0] + ")"
 		case "doc.low":
 			return "p.lw"
-		case "doc.high":
+		case "doc.examined":
 			return "p.Hw"
 		case "doc.reused":
 			return "p.Stats.Reused++"

@@ -104,10 +104,10 @@ type CallState struct {
 	ctx        CtxState
 	rec        int
 	exp        ExpMark
-	// high and low are the examined range of the enclosing call; missing is the mark of the
+	// examined and low are the examined range of the enclosing call; missing is the mark of the
 	// missing-token record.
-	high, low int
-	missing   int
+	examined, low int
+	missing       int
 }
 
 // CtxState is the context state of a memoized call (see context_memo.go).

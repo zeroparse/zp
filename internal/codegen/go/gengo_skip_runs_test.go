@@ -152,7 +152,7 @@ func main() {
 	failed := false
 	for _, c := range checks {
 		rng := rand.New(rand.NewSource(7))
-		left := 30000 // fewer edits miss a record that leaves out its examined frontier
+		left := 30000 // fewer edits miss a record that leaves out its examined end
 		edits := func(text string) (int, int, string, bool) {
 			if left == 0 {
 				return 0, 0, "", false
@@ -197,8 +197,8 @@ var skipRunMutations = map[string][][2]string{
 		"if false {",
 	}},
 	"early store": {{
-		"	v.examined = p.docHigh\n",
-		"	v.examined = p.docHigh\n\tp.skipTable().put(v.pos, skipRecord{end: p.Pos, far: v.far, exp: v.exp, examined: v.examined, state: skipRecorded})\n",
+		"	v.examined = p.docExamined\n",
+		"	v.examined = p.docExamined\n\tp.skipTable().put(v.pos, skipRecord{end: p.Pos, far: v.far, exp: v.exp, examined: v.examined, state: skipRecorded})\n",
 	}, {
 		"	p.skipClose()\n\tvs := w.visits\n",
 		"	p.skipClose()\n\tw.visits = w.visits[:0]\n\tif true {\n\t\treturn\n\t}\n\tvs := w.visits\n",

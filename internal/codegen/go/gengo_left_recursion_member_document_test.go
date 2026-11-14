@@ -192,13 +192,13 @@ func TestGeneratedDocumentLeftRecursionMemberReparseControl(t *testing.T) {
 	keep := func(doc, minExpr, entry, alloc, meta string) string {
 		return "if " + doc + " != nil {\n" +
 			"\t\t\tentry := " + entry + "\n" +
-			"\t\t\texamined, rule := p.docHigh, r.Id\n\t\t\t_ = examined\n" +
+			"\t\t\texamined, rule := p.docExamined, r.Id\n\t\t\t_ = examined\n" +
 			"\t\t\tkeptSeedResults = append(keptSeedResults, func() {\n" +
 			"\t\t\t\te := " + alloc + "\n\t\t\t\t*e = entry\n" +
 			"\t\t\t\tp.memoPut(rule, start, " + minExpr + ", env, false, e)\n" + meta +
 			"\t\t\t})\n\t\t}\n\t\t"
 	}
-	nodeKeep := keep("p.Document", "min", "memoEntry{node: v, ok: ok, end: p.Pos, examined: p.docHigh, from: fromPos, present: ^uint32(0), errs: p.recSince(rec), far: far, expected: kept}", "p.memo.alloc()", "")
+	nodeKeep := keep("p.Document", "min", "memoEntry{node: v, ok: ok, end: p.Pos, examined: p.docExamined, from: fromPos, present: ^uint32(0), errs: p.recSince(rec), far: far, expected: kept}", "p.memo.alloc()", "")
 	typedKeep := func(minExpr string) string {
 		return keep("p.TypedDocument", minExpr, "tmemoEntry{val: v, ok: ok, end: p.Pos, present: ^uint32(0), errs: p.recSince(rec), far: far, expected: kept}", "p.memoSlab.one()", "\t\t\t\tp.TypedDocument.meta[e] = typedDocumentMeta{examined: examined, recorded: true}\n")
 	}

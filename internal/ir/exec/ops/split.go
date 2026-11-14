@@ -28,7 +28,7 @@ protocol, each with the state that its begin saved for its end in a record that 
 values of its key, its context state, the mark of its recovered errors and the record that its
 isolation set aside.`})
 	m.AddOp(&exec.Op{Name: "call.saveExamined", Component: Suspended,
-		Params: []exec.Param{stArg, exec.P("high", exec.TInt), exec.P("low", exec.TInt)}, Writes: []string{Suspended},
+		Params: []exec.Param{stArg, exec.P("examined", exec.TInt), exec.P("low", exec.TInt)}, Writes: []string{Suspended},
 		Features: []string{Document},
 		Contract: `Saves in st the examined input of the enclosing call, which doc.enter returned.`})
 	m.AddOp(&exec.Op{Name: "call.saveMissing", Component: Suspended,
@@ -46,7 +46,7 @@ isolation set aside.`})
 		{"call.ctx", ctx, nil, "the context state of the call"},
 		{"call.rec", exec.TInt, nil, "the mark of the recovered errors of the call"},
 		{"call.mark", mark, nil, "the record that the isolation of the call set aside"},
-		{"call.high", exec.TInt, []string{Document}, "the end of the examined input of the enclosing call"},
+		{"call.examined", exec.TInt, []string{Document}, "the end of the examined input of the enclosing call"},
 		{"call.low", exec.TInt, []string{Document}, "the start of the examined input of the enclosing call"},
 		{"call.missing", exec.TInt, []string{Missing}, "the mark of the missing-token record"},
 	} {

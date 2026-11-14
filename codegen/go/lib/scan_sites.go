@@ -51,11 +51,11 @@ type scanCold struct {
 
 // scanWalk is the state of the walk that ScanReach reached: whether its site was hot, whether it
 // took a record, and the record; in a Document parse, for a walk that records itself, the examined
-// end of the enclosing call before ScanReach (savedHigh).
+// end of the enclosing call before ScanReach (savedExamined).
 type scanWalk struct {
-	hot, hit  bool
-	rec       scanRecord
-	savedHigh int
+	hot, hit      bool
+	rec           scanRecord
+	savedExamined int
 }
 
 // scanHot reports whether the site keeps records for the walk at the position.
@@ -86,7 +86,7 @@ func (p *Parser) ScanReach(site, start, count int) int {
 	if !ok {
 		if p.Document != nil {
 			// The walk records itself: measure what the rest of it examines.
-			w.savedHigh, p.docHigh = p.docHigh, p.Pos
+			w.savedExamined, p.docExamined = p.docExamined, p.Pos
 		}
 		return count
 	}
@@ -103,8 +103,8 @@ func (p *Parser) scanExamined() int {
 	if p.Document == nil {
 		return 0
 	}
-	x := p.docHigh
-	p.docHigh = max(p.scanWalk.savedHigh, x)
+	x := p.docExamined
+	p.docExamined = max(p.scanWalk.savedExamined, x)
 	return x
 }
 
