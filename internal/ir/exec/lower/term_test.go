@@ -135,3 +135,46 @@ func TestTermRejectsMalformedTerms(t *testing.T) {
 		t.Errorf("Term(%s): %v", core.TermString(mapped), err)
 	}
 }
+
+// TestTermLowersNoFunctionValue pins the closed set of built-ins and where a lambda may stand, which is
+// why a lowered term never yields a function and the targets keep no check for one: a lambda is accepted
+// only as the last argument of map, filter, foldl and foldr, with one parameter for the first two and two
+// for the folds, and no other built-in takes one.
+func TestTermLowersNoFunctionValue(t *testing.T) {
+	one := &core.Const{Value: 1}
+	list := &core.Builtin{Func: "list", Args: []core.Term{one}}
+	lambda := func(params ...string) *core.Lambda { return &core.Lambda{Params: params, Body: one} }
+	b := func(fn string, args ...core.Term) core.Term { return &core.Builtin{Func: fn, Args: args} }
+	for _, c := range []struct {
+		name string
+		term core.Term
+		ok   bool
+	}{
+		{"len", b("len", one), true},
+		{"text", b("text", one), true},
+		{"list", b("list", one, one), true},
+		{"concat", b("concat", list, list), true},
+		{"map", b("map", list, lambda("e")), true},
+		{"filter", b("filter", list, lambda("e")), true},
+		{"foldl", b("foldl", one, list, lambda("a", "e")), true},
+		{"foldr", b("foldr", one, list, lambda("a", "e")), true},
+		{"len of a lambda", b("len", lambda("e")), false},
+		{"text of a lambda", b("text", lambda("e")), false},
+		{"list of a lambda", b("list", lambda("e")), false},
+		{"list with a lambda among its elements", b("list", one, lambda("e")), false},
+		{"concat of a lambda", b("concat", lambda("e")), false},
+		{"map of a lambda", b("map", lambda("e"), lambda("e")), false},
+		{"map with a function of two parameters", b("map", list, lambda("a", "e")), false},
+		{"filter with a function of two parameters", b("filter", list, lambda("a", "e")), false},
+		{"foldl with a function of one parameter", b("foldl", one, list, lambda("e")), false},
+		{"foldr with a lambda as the seed", b("foldr", lambda("a", "e"), list, lambda("a", "e")), false},
+		{"lambda returning a lambda", b("map", list, &core.Lambda{Params: []string{"e"}, Body: lambda("x")}), false},
+		{"a built-in that is not one", b("apply", list, lambda("e")), false},
+		{"a lambda alone", lambda("e"), false},
+	} {
+		l, err := lower.Term(c.term, lower.TermOptions{})
+		if (err == nil) != c.ok || (err == nil) != (l != nil) {
+			t.Errorf("%s: Term(%s) = %v, %v; want ok %v", c.name, core.TermString(c.term), l, err, c.ok)
+		}
+	}
+}

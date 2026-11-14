@@ -5787,8 +5787,6 @@ export function typeName(v: unknown): string {
       return "string";
     case "boolean":
       return "bool";
-    case "function":
-      return "func";
   }
   return typeof v;
 }

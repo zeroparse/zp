@@ -118,18 +118,14 @@ func TestBudgetActionErrorProducersAreEager(t *testing.T) {
 			_, err := (&state.EvalCtx{P: p}).Member(value.Ptr(value.Data{Kind: prog.TypeKind("A")}), long)
 			return err
 		}},
-		{"function field", func(p *state.Parser) error {
-			_, err := (&state.EvalCtx{P: p}).NewStruct("A", []string{long}, []any{budgetActionFunc{params: 1}})
-			return err
-		}},
 		{"unary type", func(p *state.Parser) error { _, err := p.ValueUnary("-", node); return err }},
 		{"binary type", func(p *state.Parser) error { _, err := p.ValueBinary("+", node, 1); return err }},
 		{"list name", func(p *state.Parser) error { _, err := p.ValueListItems(long, 1); return err }},
 		{"element name", func(p *state.Parser) error {
-			return (&state.EvalCtx{P: p}).Push(long, budgetActionFunc{})
+			return (&state.EvalCtx{P: p}).Push(long, struct{}{})
 		}},
 		{"text type", func(p *state.Parser) error {
-			_, err := (&state.EvalCtx{P: p}).TextString(budgetActionFunc{})
+			_, err := (&state.EvalCtx{P: p}).TextString(struct{}{})
 			return err
 		}},
 	}

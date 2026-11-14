@@ -11,17 +11,8 @@ import (
 	"zeroparse.dev/zp/internal/value"
 )
 
-// Values of actions and predicates are *Node, int, string, bool, nil, or *closure.
+// Values of actions and predicates are *Node, int, string, bool or nil.
 // Nodes created by actions are not fresh, so they get no rule name.
-
-// Function is a function (lambda) passed to a built-in function: *closure when evaluating the
-// AST, *vmFunc in bytecode.
-type Function interface {
-	Arity() int
-	// Apply calls the function with the arguments x and y; y is ignored by a function of one
-	// parameter. (Arguments are not passed as a slice, which would escape through the interface.)
-	Apply(x, y any) (any, error)
-}
 
 // Evaluator evaluates an action expression (it differs per backend).
 type Evaluator func(ctx *EvalCtx) (any, error)
@@ -113,8 +104,6 @@ func TypeName(v any) string {
 		return "string"
 	case bool:
 		return "bool"
-	case Function:
-		return "function"
 	}
 	return fmt.Sprintf("%T", v)
 }
@@ -199,9 +188,6 @@ func (c *EvalCtx) NewStruct(typ string, names []string, vals []any) (*core.Node,
 	for i, name := range names {
 		c.P.Spend()
 		v := vals[i]
-		if _, isFn := v.(Function); isFn {
-			return nil, c.P.ActionError("field ", name, ": cannot store a function")
-		}
 		c.P.SetValueField(&value.D(n).Fields, name, v)
 		first = c.P.termCover(n, v, first)
 	}
@@ -237,26 +223,8 @@ func (c *EvalCtx) Builtin(fn string, args []any) (any, error) {
 			return nil, err
 		}
 		return s, nil
-	case "foldl", "foldr":
-		f, ok := args[2].(Function)
-		if !ok || f.Arity() != 2 {
-			return nil, c.P.ActionError(fn, ": third argument must be a function of two parameters")
-		}
-		items, err := c.P.ValueListItems(fn, args[1])
-		if err != nil {
-			return nil, err
-		}
-		acc := args[0]
-		right := fn == "foldr"
-		for i := range items {
-			c.P.Spend()
-			if acc, err = f.Apply(acc, c.P.termItemAt(items, i, right)); err != nil {
-				return nil, err
-			}
-		}
-		return acc, nil
-	case "map", "list", "concat", "filter":
-		// The elements are gathered on KidStack; lambdas that build lists push above them.
+	case "list", "concat":
+		// The elements are gathered on KidStack.
 		base := len(c.P.KidStack)
 		if err := c.PushElems(fn, args); err != nil {
 			c.P.DropKids(base)
@@ -272,31 +240,10 @@ func (c *EvalCtx) TextString(v any) (string, error) {
 	return c.P.termText(v)
 }
 
-// PushElems pushes onto KidStack the elements of the list that the list built-in fn (map, list
-// or concat) makes from args.
+// PushElems pushes onto KidStack the elements of the list that the list built-in fn (list or
+// concat) makes from args.
 func (c *EvalCtx) PushElems(fn string, args []any) error {
 	switch fn {
-	case "filter":
-		return c.pushFiltered(args)
-	case "map":
-		f, ok := args[1].(Function)
-		if !ok || f.Arity() != 1 {
-			return c.P.ActionError("map: second argument must be a function of one parameter")
-		}
-		items, err := c.P.ValueListItems("map", args[0])
-		if err != nil {
-			return err
-		}
-		for i := range items {
-			c.P.Spend()
-			v, err := f.Apply(c.P.termItemAt(items, i, false), nil)
-			if err != nil {
-				return err
-			}
-			if err := c.Push("map", v); err != nil {
-				return err
-			}
-		}
 	case "list":
 		for _, a := range args {
 			c.P.Spend()

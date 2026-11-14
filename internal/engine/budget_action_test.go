@@ -93,16 +93,11 @@ func TestBudgetActionCollectionLoopsChargeElements(t *testing.T) {
 	const size = 2048
 	items := actionBudgetNodes(size)
 	list := value.Ptr(value.Data{Children: items})
-	identity := budgetActionFunc{params: 1, fn: func(x, _ any) (any, error) { return x, nil }}
-	keepLeft := budgetActionFunc{params: 2, fn: func(x, _ any) (any, error) { return x, nil }}
 
 	cases := []struct {
 		name string
 		run  func(*state.EvalCtx) error
 	}{
-		{"map", func(c *state.EvalCtx) error { _, err := c.Builtin("map", []any{list, identity}); return err }},
-		{"foldl", func(c *state.EvalCtx) error { _, err := c.Builtin("foldl", []any{nil, list, keepLeft}); return err }},
-		{"foldr", func(c *state.EvalCtx) error { _, err := c.Builtin("foldr", []any{nil, list, keepLeft}); return err }},
 		{"list", func(c *state.EvalCtx) error {
 			args := make([]any, len(items))
 			for i, item := range items {

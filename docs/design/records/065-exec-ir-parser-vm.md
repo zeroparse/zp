@@ -364,6 +364,9 @@ fixtures. On generated Go and TypeScript, a term made of constants, captures, lo
 `text`, conversions and casts is lowered from Core IR to a function of Exec IR that calls those compositions,
 which the Go runtime exports for generated parsers and the TypeScript runtime has as methods of its parser; terms with constructors, tuples, list built-ins or lambdas are
 not yet written on them.
+A term never evaluates to a function: the lowering accepts a lambda only as the function argument of `map`, `filter`,
+`foldl` or `foldr`, which it turns into loops, and the built-ins are a closed set, so no target keeps a value of that
+kind or a test for one.
 
 **Capture frames.** Slots of a rule body or a line, and a trail of writes that a backtracking point undoes. A mark
 is the position, the environment, the recovered errors and the length of the trail; what a reset restores from it
