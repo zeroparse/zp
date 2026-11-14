@@ -177,15 +177,7 @@ decisions exactly and matches the engine's examined end. The
 end can be one position past the end of the input when a call observed the end
 of input.
 
-The examined end was measured against the previous observed source on the
-same generated Document fixture with 4,096 records: node and typed drivers,
-both units, batch, cold, warm and edit parses, each traced and profiled, in
-eight alternating rounds of 400 iterations. Median time ratios were
-0.974–1.017, except for the profiled warm byte-unit node parse, a 0.4 µs memo
-hit whose ratio was 1.069 (0.97–1.48). Allocations per parse were unchanged.
-An earlier version that kept unknown rules in a map measured up to 1.040 for
-profiled batch parses; a flag on each rule row removed that lookup. Without
-observability the same hooks are no-ops behind a nil observation. Profiles sum `Examined - Pos` per
+Without observability the same hooks are no-ops behind a nil observation. Profiles sum `Examined - Pos` per
 rule over completed calls into `Examined`, and over completed failed non-memo
 calls into `Wasted`; a rule's values are known only when every completed call
 in the profile was a Document call.
