@@ -25,7 +25,6 @@ func TestActionResultReleasesTracking(t *testing.T) {
 		{"node", value.Ptr(value.Data{Start: 90, End: 91, Fresh: true}), nil},
 		{"error", nil, errors.New("action failed")},
 		{"boxed value", 1, nil},
-		{"invalid result", budgetActionFunc{params: 1}, nil},
 	} {
 		t.Run(c.name, func(t *testing.T) {
 			prefix := value.Ptr(value.Data{Text: "keep"})
@@ -45,7 +44,7 @@ func TestActionResultReleasesTracking(t *testing.T) {
 					t.Errorf("returned node has wrong span/freshness: %+v", n)
 				}
 			}()
-			wantPanic := c.err != nil || c.name == "invalid result"
+			wantPanic := c.err != nil
 			if (panicked != nil) != wantPanic {
 				t.Errorf("panic = %v, want panic %v", panicked, wantPanic)
 			}

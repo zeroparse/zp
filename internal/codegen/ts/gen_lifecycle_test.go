@@ -35,14 +35,11 @@ for (const unit of [CodePoints, Bytes]) {
   const n = p.call(rules[0]!, 0);
   if (n === undefined || n === null || p.pos !== p.n) throw new Error("parse failed");
   if (p.created.length !== 0) throw new Error("nil actions retain tracking");
-  // Any value is a result (boxed unless it is a node); a function is not.
-  for (const v of [null, 1, () => 0]) {
+  // Any value is a result (boxed unless it is a node).
+  for (const v of [null, 1]) {
     p.created = [n];
     const c = p.useCtx(emptyFrame, 0, 4, null, null, null);
-    let failed = false;
-    try { c.result(() => { p.created.push(n); return [v, null]; }, "test"); }
-    catch { failed = true; }
-    if (failed !== (typeof v === "function")) throw new Error("wrong result validation");
+    c.result(() => { p.created.push(n); return [v, null]; }, "test");
     if (p.created.length !== 1 || p.created[0] !== n) throw new Error("result tracking cleanup");
   }
   // A returned failure ends the parse with the evaluation error of the action.

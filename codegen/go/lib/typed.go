@@ -1776,9 +1776,6 @@ func (c *TActCtx) Finish(v any) any {
 		return nil
 	}
 	if t == nil {
-		if _, isFn := v.(func(...any) any); isFn {
-			c.P.actionFailed(c.P.Where, c.P.evalErrorValue("result must be a value, got a function"))
-		}
 		return v
 	}
 	t.TSetFresh(false)

@@ -69,9 +69,6 @@ func (p *Parser) ActionResult(ctx *EvalCtx, act Evaluator, where string) *core.N
 		return nil
 	}
 	if !ok {
-		if _, isFn := v.(Function); isFn {
-			p.FailAction(where, p.ActionError("result must be a value, got a function"))
-		}
 		// A value other than a node travels boxed, with the range of the action's input.
 		return p.NewNode(value.Data{Kind: coreimpl.BoxKind, Box: v, Start: int32(ctx.Start), End: int32(ctx.End)})
 	}

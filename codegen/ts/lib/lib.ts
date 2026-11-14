@@ -5641,9 +5641,6 @@ export class Actx {
         return null;
       }
       if (!(v instanceof Node)) {
-        if (typeof (v as unknown) === "function") {
-          return this.failed(where, "result must be a value, got a function");
-        }
         // A value other than a node travels boxed, with the range of the action's input.
         this.p.alloc(nodeBytes);
         const b = new Node(typeBox, "", this.start, this.end, "", noNodes, noFields, false, false);

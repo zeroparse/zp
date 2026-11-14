@@ -2702,9 +2702,6 @@ func (c *ActCtx) result(action func(*ActCtx) (any, any), where string) (n *core.
 	}
 	n, ok := v.(*core.Node)
 	if !ok {
-		if _, isFn := v.(func(...any) any); isFn {
-			c.P.actionFailed(where, c.P.evalErrorValue("result must be a value, got a function"))
-		}
 		// A value other than a node travels boxed, with the range of the action's input.
 		return c.P.NewNode(Data{Kind: coreimpl.BoxKind, Box: v, Start: int32(c.start), End: int32(c.end)})
 	}
