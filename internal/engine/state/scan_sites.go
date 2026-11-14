@@ -4,7 +4,7 @@ import (
 	"sync/atomic"
 
 	"zeroparse.dev/zp/core"
-	"zeroparse.dev/zp/core/noderep"
+	"zeroparse.dev/zp/core/impl"
 	"zeroparse.dev/zp/internal/value"
 )
 
@@ -153,5 +153,5 @@ func (p *Parser) FinishScanList(site, start, base, count int, hot, hit bool, rec
 		kids = p.Kids(base)
 	}
 	p.EndScanWalk(site, start, count, kids, hot, hit, hw0)
-	return p.NewNode(value.Data{Kind: noderep.ListKind, Start: int32(start), End: int32(p.Pos), Children: kids, Fresh: true})
+	return p.NewNode(value.Data{Kind: coreimpl.ListKind, Start: int32(start), End: int32(p.Pos), Children: kids, Fresh: true})
 }

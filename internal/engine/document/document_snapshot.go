@@ -11,7 +11,7 @@ import (
 	"weak"
 
 	"zeroparse.dev/zp/core"
-	"zeroparse.dev/zp/core/noderep"
+	"zeroparse.dev/zp/core/impl"
 	"zeroparse.dev/zp/internal/compile"
 	"zeroparse.dev/zp/internal/engine/state"
 	"zeroparse.dev/zp/internal/value"
@@ -69,11 +69,11 @@ func (g *snapshotGraph) at(i int) *snapshotRecord {
 }
 
 type snapshotRecord struct {
-	kind                          *noderep.Kind
+	kind                          *coreimpl.Kind
 	start, end                    int32
 	text                          string
 	children                      []int
-	fields                        noderep.Fields
+	fields                        coreimpl.Fields
 	fresh, terminal, childChunked bool
 	gen                           uint32
 }
@@ -201,8 +201,8 @@ func (n SnapshotNode) Child(i int) SnapshotNode {
 
 // fields returns the fields of the node, none for a box, which keeps its value in the one field of
 // its record.
-func (n SnapshotNode) fields() noderep.Fields {
-	if r := n.record(); r.kind != noderep.BoxKind {
+func (n SnapshotNode) fields() coreimpl.Fields {
+	if r := n.record(); r.kind != coreimpl.BoxKind {
 		return r.fields
 	}
 	return nil
@@ -216,16 +216,16 @@ func (n SnapshotNode) Kind() core.NodeKind {
 	return value.KindOfShape(n.shape())
 }
 
-func (n SnapshotNode) shape() noderep.Shape {
+func (n SnapshotNode) shape() coreimpl.Shape {
 	r := n.record()
-	return noderep.ShapeOfKind(r.kind, r.terminal)
+	return coreimpl.ShapeOfKind(r.kind, r.terminal)
 }
 
 // Len returns the number of elements of a tuple or a list (KindTuple, KindList, KindTupleValue,
 // KindListValue), counting nil elements, and 0 for other nodes and for nil, as Node.Len does.
 func (n SnapshotNode) Len() int {
 	switch n.shape() {
-	case noderep.ShapeTuple, noderep.ShapeList, noderep.ShapeTupleValue, noderep.ShapeListValue:
+	case coreimpl.ShapeTuple, coreimpl.ShapeList, coreimpl.ShapeTupleValue, coreimpl.ShapeListValue:
 		return n.ChildCount()
 	}
 	return 0
@@ -238,9 +238,9 @@ func (n SnapshotNode) Value() any {
 		return nil
 	}
 	switch n.shape() {
-	case noderep.ShapeBox:
+	case coreimpl.ShapeBox:
 		return n.record().fields[0].Value
-	case noderep.ShapeString:
+	case coreimpl.ShapeString:
 		return n.record().text
 	}
 	return nil
@@ -307,10 +307,10 @@ func (s *Snapshot) Materialize() *core.Node {
 				value.D(n).Children[j] = node(id)
 			}
 		}
-		if r.kind == noderep.BoxKind {
+		if r.kind == coreimpl.BoxKind {
 			value.D(n).Box = r.fields[0].Value
 		} else if r.fields != nil {
-			value.D(n).Fields = make(noderep.Fields, len(r.fields))
+			value.D(n).Fields = make(coreimpl.Fields, len(r.fields))
 			for j, f := range r.fields {
 				if id, ok := f.Value.(snapshotRef); ok {
 					f.Value = node(int(id))
@@ -485,7 +485,7 @@ type snapshotFrame struct {
 // unsupportedBox returns the dynamic type of the value of a box node that a snapshot cannot hold, as
 // it cannot hold a field value of that type, and nil for any other node.
 func unsupportedBox(n *core.Node) reflect.Type {
-	if n == nil || value.D(n).Kind != noderep.BoxKind {
+	if n == nil || value.D(n).Kind != coreimpl.BoxKind {
 		return nil
 	}
 	switch value.D(n).Box.(type) {
@@ -517,12 +517,12 @@ func freezeSnapshotGraph(p *state.Parser, root *core.Node) (snapshotGraph, *core
 			r.children = make([]int, len(value.D(n).Children))
 		}
 		if value.D(n).Fields != nil {
-			r.fields = make(noderep.Fields, len(value.D(n).Fields))
+			r.fields = make(coreimpl.Fields, len(value.D(n).Fields))
 		}
-		if r.kind == noderep.BoxKind {
+		if r.kind == coreimpl.BoxKind {
 			// A box carries its value in the one field of its record, which no accessor exposes
 			// as a field, so a record stays as small as it was.
-			r.fields = noderep.Fields{{Value: value.D(n).Box}}
+			r.fields = coreimpl.Fields{{Value: value.D(n).Box}}
 		}
 		g.nodes = state.GrowSpend(p, g.nodes, 1)
 		g.nodes = append(g.nodes, r)
@@ -560,7 +560,7 @@ func freezeSnapshotGraph(p *state.Parser, root *core.Node) (snapshotGraph, *core
 			default:
 				return snapshotGraph{}, &core.SnapshotCaptureError{Path: snapshotFieldPath(p, stack, edge), ValueType: reflect.TypeOf(v)}
 			}
-			g.nodes[f.id-1].fields[i] = noderep.NodeField{Name: field.Name, Value: val}
+			g.nodes[f.id-1].fields[i] = coreimpl.NodeField{Name: field.Name, Value: val}
 		}
 		if t := unsupportedBox(child); t != nil {
 			return snapshotGraph{}, &core.SnapshotCaptureError{Path: snapshotFieldPath(p, stack, edge), ValueType: t}

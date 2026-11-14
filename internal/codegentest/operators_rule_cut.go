@@ -1,6 +1,6 @@
 package codegentest
 
-import "zeroparse.dev/zp/core/noderep"
+import "zeroparse.dev/zp/core/impl"
 
 // One shared grammar keeps the same scope/selection cases in the engine and generated Go/TS corpus.
 const PrefixPartCuts = `type Atom = { Text string }
@@ -149,7 +149,7 @@ var PrefixPartCutInputs = []struct {
 	{"v -x", ""}, {"v a", "Atom"}, {"v -z a", "Prefix"},
 	{"za", ""}, {"oa", "Atom"},
 	{"p~-x", ""}, {"p~a", "Prefix"}, {"d~-x", "Atom"},
-	{"m-x", ""}, {"l-x", "Atom"}, {"r-x", noderep.TypeError}, {"r-za", "Prefix"}, {"i-x", "Atom"}, {"iaa", "Prefix"},
+	{"m-x", ""}, {"l-x", "Atom"}, {"r-x", coreimpl.TypeError}, {"r-za", "Prefix"}, {"i-x", "Atom"}, {"iaa", "Prefix"},
 }
 
 func PrefixPartCutCorpus() Case {

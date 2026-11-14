@@ -7,7 +7,7 @@ import (
 	"unsafe"
 
 	"zeroparse.dev/zp/core"
-	"zeroparse.dev/zp/core/noderep"
+	"zeroparse.dev/zp/core/impl"
 )
 
 // The typed library, appended to generated parsers made with zp gen -types. It parses like the
@@ -331,25 +331,25 @@ func (n *TSeq) set(name string, v any) {
 }
 
 // tshape is Node.shape for the values of the typed library that are TVal.
-func tshape(n TVal) noderep.Shape {
+func tshape(n TVal) coreimpl.Shape {
 	switch x := n.(type) {
 	case *TError:
-		return noderep.ShapeError
+		return coreimpl.ShapeError
 	case *TSeq:
 		switch x.Typ {
 		case "list":
-			return noderep.ShapeList
+			return coreimpl.ShapeList
 		case TypeTupleValue:
-			return noderep.ShapeTupleValue
+			return coreimpl.ShapeTupleValue
 		case TypeListValue:
-			return noderep.ShapeListValue
+			return coreimpl.ShapeListValue
 		}
-		return noderep.ShapeTuple
+		return coreimpl.ShapeTuple
 	}
 	if n.TStruct() {
-		return noderep.ShapeStruct
+		return coreimpl.ShapeStruct
 	}
-	return noderep.ShapeString
+	return coreimpl.ShapeString
 }
 
 // AsTval returns v as a node value, or nil. Values never hold nil pointers: nil is always the

@@ -2,7 +2,7 @@ package libgo
 
 import (
 	"zeroparse.dev/zp/core"
-	"zeroparse.dev/zp/core/noderep"
+	"zeroparse.dev/zp/core/impl"
 )
 
 // The functions in this file build and change nodes for the tests of packages outside runtime, which
@@ -15,25 +15,25 @@ import (
 // fields its fields (or captures), and value the value of a KindValue node.
 //
 // NewNode is for generated parsers and tests; not a stable API.
-func NewNode(k core.NodeKind, start, end int, text string, elems []*core.Node, typ string, fields noderep.Fields, value any) *core.Node {
+func NewNode(k core.NodeKind, start, end int, text string, elems []*core.Node, typ string, fields coreimpl.Fields, value any) *core.Node {
 	d := &Data{Start: int32(start), End: int32(end), Text: text, Children: elems, Fields: fields, Box: value}
 	switch k {
 	case core.KindString:
-		d.Kind, d.Terminal = noderep.MatchKind, true
+		d.Kind, d.Terminal = coreimpl.MatchKind, true
 	case core.KindTuple:
-		d.Kind = noderep.SeqKind
+		d.Kind = coreimpl.SeqKind
 	case core.KindList:
-		d.Kind = noderep.ListKind
+		d.Kind = coreimpl.ListKind
 	case core.KindError:
-		d.Kind = noderep.ErrorKind
+		d.Kind = coreimpl.ErrorKind
 	case core.KindStruct:
 		d.Kind = KindOf(typ, "")
 	case core.KindTupleValue:
-		d.Kind = noderep.TupleValueKind
+		d.Kind = coreimpl.TupleValueKind
 	case core.KindListValue:
-		d.Kind = noderep.ListValueKind
+		d.Kind = coreimpl.ListValueKind
 	case core.KindValue:
-		d.Kind = noderep.BoxKind
+		d.Kind = coreimpl.BoxKind
 	}
 	return nodeOfData(d)
 }
@@ -65,5 +65,5 @@ func SetNodeField(n *core.Node, name string, v any) {
 			return
 		}
 	}
-	D(n).Fields = append(D(n).Fields, noderep.NodeField{Name: name, Value: v})
+	D(n).Fields = append(D(n).Fields, coreimpl.NodeField{Name: name, Value: v})
 }

@@ -3,7 +3,7 @@ package core
 import (
 	"fmt"
 
-	"zeroparse.dev/zp/core/noderep"
+	"zeroparse.dev/zp/core/impl"
 )
 
 // WalkAction controls descent after a visit.
@@ -142,7 +142,7 @@ func Walk(root *Node, visit func(WalkVisit) (WalkAction, error)) error {
 // Walk visits as elements. Visiting those again would make Walk exponential in the nesting of
 // operator nodes, whose captures are their operands. The captures of a node without source
 // information are not part of the tree.
-func walkFields(n *Node) noderep.Fields {
+func walkFields(n *Node) coreimpl.Fields {
 	if !n.fieldsVisible() {
 		return nil
 	}
@@ -153,7 +153,7 @@ func walkFields(n *Node) noderep.Fields {
 	out := fields[:0]
 	for _, f := range fields {
 		if v, ok := f.Value.(*Node); ok && v != nil {
-			if _, found := noderep.ElementPath(&n.d, v, rep); found {
+			if _, found := coreimpl.ElementPath(&n.d, v, rep); found {
 				continue
 			}
 		}

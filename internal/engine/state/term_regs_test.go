@@ -3,7 +3,7 @@ package state
 import (
 	"testing"
 
-	"zeroparse.dev/zp/core/noderep"
+	"zeroparse.dev/zp/core/impl"
 	"zeroparse.dev/zp/internal/compile"
 	ir "zeroparse.dev/zp/internal/ir/core"
 	"zeroparse.dev/zp/internal/value"
@@ -18,7 +18,7 @@ func TestTermEvalClearsRegisters(t *testing.T) {
 		t.Fatal(err)
 	}
 	p := &Parser{}
-	op := value.Ptr(value.Data{Kind: noderep.SeqKind, Start: 0, End: 1})
+	op := value.Ptr(value.Data{Kind: coreimpl.SeqKind, Start: 0, End: 1})
 	got, err := prog.Eval(&EvalCtx{P: p, Locals: &Local{Name: "op", Val: op}})
 	if err != nil {
 		t.Fatal(err)

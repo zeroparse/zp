@@ -3,7 +3,7 @@ package state
 import (
 	"fmt"
 
-	"zeroparse.dev/zp/core/noderep"
+	"zeroparse.dev/zp/core/impl"
 	"zeroparse.dev/zp/internal/bytecode"
 	"zeroparse.dev/zp/internal/compile"
 	"zeroparse.dev/zp/internal/ir/exec/ops"
@@ -46,7 +46,7 @@ func (t *TermProgram) Export(str func(string) int) (bytecode.Term, error) {
 		x.Members = append(x.Members, bytecode.TermMember{Kind: m.kind, Name: str(m.name), Field: str(m.field)})
 	}
 	for _, k := range t.nodeTypes {
-		x.NodeTypes = append(x.NodeTypes, str(k[noderep.BaseList].Type))
+		x.NodeTypes = append(x.NodeTypes, str(k[coreimpl.BaseList].Type))
 	}
 	for _, c := range t.casts {
 		typ := -1
@@ -66,7 +66,7 @@ type TermTypes struct {
 	// NodeType returns the kinds of the named node type name, or nil if there is none.
 	NodeType func(name string) *value.NodeTypeKinds
 	// Struct returns the kind of the nodes of the struct type name, or nil if there is none.
-	Struct func(name string) *noderep.Kind
+	Struct func(name string) *coreimpl.Kind
 	// Cast returns the type of the resolved type text of a cast, or an error.
 	Cast func(text string) (*compile.FieldType, error)
 }

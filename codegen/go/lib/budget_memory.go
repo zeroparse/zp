@@ -4,7 +4,7 @@ import (
 	"unsafe"
 
 	"zeroparse.dev/zp/core"
-	"zeroparse.dev/zp/core/noderep"
+	"zeroparse.dev/zp/core/impl"
 )
 
 // Memory is counted in bytes of logical capacity: the element count of a buffer times the size of
@@ -30,7 +30,7 @@ import (
 const (
 	nodeBytes      = uint64(unsafe.Sizeof(Data{}))
 	ptrBytes       = uint64(unsafe.Sizeof((*core.Node)(nil)))
-	fieldBytes     = uint64(unsafe.Sizeof(noderep.NodeField{}))
+	fieldBytes     = uint64(unsafe.Sizeof(coreimpl.NodeField{}))
 	frameBytes     = uint64(unsafe.Sizeof(CaptureFrame{}))
 	memoEntryBytes = uint64(unsafe.Sizeof(memoEntry{}))
 	anyBytes       = uint64(unsafe.Sizeof(any(nil)))

@@ -2,7 +2,7 @@
 //
 // A generated parser imports this package as rt, or carries a copy of its files in its
 // internal/libgo directory, so that it depends only on zeroparse.dev/zp/core (with
-// core/noderep) and the standard library. The code generated from a grammar sets up the rules and
+// core/impl) and the standard library. The code generated from a grammar sets up the rules and
 // calls the exported names that are documented as for generated parsers; those are not a stable
 // API. The file api.go of the generated parser re-exports the names its users need. Its behavior
 // must match internal/engine exactly; the generator tests in internal/engine compare them.
@@ -18,13 +18,13 @@ import (
 	"unicode/utf8"
 
 	"zeroparse.dev/zp/core"
-	"zeroparse.dev/zp/core/noderep"
+	"zeroparse.dev/zp/core/impl"
 )
 
 // isNode reports whether n is a node of the value model (a string node, a tuple or list node, or
 // an error value) rather than a struct, a box or a list or tuple value.
 func isNode(n *core.Node) bool {
-	if k := D(n).Kind; k != nil && k.Base >= 0 && k.Base <= noderep.BaseError {
+	if k := D(n).Kind; k != nil && k.Base >= 0 && k.Base <= coreimpl.BaseError {
 		return true
 	}
 	return D(n).Terminal
@@ -38,7 +38,7 @@ func UnboxNode(n *core.Node) any {
 	if n == nil {
 		return nil
 	}
-	if D(n).Kind == noderep.BoxKind {
+	if D(n).Kind == coreimpl.BoxKind {
 		return D(n).Box
 	}
 	return n
@@ -60,20 +60,20 @@ func (p *Parser) nodeValue(n *core.Node) any {
 	switch {
 	case D(n).Terminal:
 		return D(n).Text
-	case D(n).Kind != nil && D(n).Kind.Base == noderep.BaseList:
-		return p.NewNode(Data{Kind: noderep.ListValueKind, Start: D(n).Start, End: D(n).End, Children: D(n).Children})
+	case D(n).Kind != nil && D(n).Kind.Base == coreimpl.BaseList:
+		return p.NewNode(Data{Kind: coreimpl.ListValueKind, Start: D(n).Start, End: D(n).End, Children: D(n).Children})
 	}
-	return p.NewNode(Data{Kind: noderep.TupleValueKind, Start: D(n).Start, End: D(n).End, Children: D(n).Children})
+	return p.NewNode(Data{Kind: coreimpl.TupleValueKind, Start: D(n).Start, End: D(n).End, Children: D(n).Children})
 }
 
 // KindOf returns the interned kind of the type and rule names (rules and actions prepare theirs).
 //
 // KindOf is for generated parsers; not a stable API.
-func KindOf(typ, rule string) *noderep.Kind { return noderep.KindOf(typ, rule) }
+func KindOf(typ, rule string) *coreimpl.Kind { return coreimpl.KindOf(typ, rule) }
 
 // nodeTypeKinds are the kinds of the nodes of a named node type, by the base (BaseString,
-// noderep.BaseTuple, noderep.BaseList) of the node converted to it. They have no rule.
-type nodeTypeKinds [noderep.BaseList + 1]*noderep.Kind
+// coreimpl.BaseTuple, coreimpl.BaseList) of the node converted to it. They have no rule.
+type nodeTypeKinds [coreimpl.BaseList + 1]*coreimpl.Kind
 
 // NewNodeTypeKinds returns the interned kinds of the named node type typ.
 //
@@ -81,7 +81,7 @@ type nodeTypeKinds [noderep.BaseList + 1]*noderep.Kind
 func NewNodeTypeKinds(typ string) *nodeTypeKinds {
 	var ks nodeTypeKinds
 	for base := range ks {
-		ks[base] = noderep.NodeTypeKind(typ, base)
+		ks[base] = coreimpl.NodeTypeKind(typ, base)
 	}
 	return &ks
 }
@@ -100,7 +100,7 @@ func (ks *nodeTypeKinds) convert(v any) (*core.Node, bool) {
 // hasBase reports whether n is a string, tuple or list node, of a named node type or not: a node
 // that a conversion converts. It is the operation node.hasBase.
 func hasBase(n *core.Node) bool {
-	return D(n).Kind != nil && D(n).Kind.Base >= 0 && D(n).Kind.Base <= noderep.BaseList
+	return D(n).Kind != nil && D(n).Kind.Base >= 0 && D(n).Kind.Base <= coreimpl.BaseList
 }
 
 // retype returns n, a string, tuple or list node, as a node of the named node type of ks: a copy of
@@ -117,7 +117,7 @@ func (ks *nodeTypeKinds) retype(n *core.Node) *core.Node {
 		// The rule that made n may still change it; the copy keeps what it holds now.
 		c.Children = append([]*core.Node(nil), D(n).Children...)
 	}
-	c.Fields = append(noderep.Fields(nil), D(n).Fields...)
+	c.Fields = append(coreimpl.Fields(nil), D(n).Fields...)
 	return nodeOfData(&c)
 }
 
@@ -160,19 +160,19 @@ func RawField(n *core.Node, name string) any {
 // value model: node[string] for a string node, node[(_, _)] and node[[]_] for tuple and list
 // nodes (a tuple has elems elements), error for an error value, (_, _) and []_ for tuple and list
 // values, and name for a struct.
-func valueTypeName(shape noderep.Shape, name string, elems int) string {
+func valueTypeName(shape coreimpl.Shape, name string, elems int) string {
 	switch shape {
-	case noderep.ShapeString:
+	case coreimpl.ShapeString:
 		return "node[string]"
-	case noderep.ShapeTuple:
+	case coreimpl.ShapeTuple:
 		return "node[" + tupleTerm(elems) + "]"
-	case noderep.ShapeList:
+	case coreimpl.ShapeList:
 		return "node[[]_]"
-	case noderep.ShapeError:
+	case coreimpl.ShapeError:
 		return "error"
-	case noderep.ShapeTupleValue:
+	case coreimpl.ShapeTupleValue:
 		return tupleTerm(elems)
-	case noderep.ShapeListValue:
+	case coreimpl.ShapeListValue:
 		return "[]_"
 	}
 	return name
@@ -190,7 +190,7 @@ func tupleTerm(n int) string {
 
 // Rule is for generated parsers; not a stable API.
 type Rule struct {
-	kinds noderep.RuleKinds // the node kinds the rule makes (set by setKinds)
+	kinds coreimpl.RuleKinds // the node kinds the rule makes (set by setKinds)
 	Id    int
 	Name  string
 	Scope []string // capture names of the rule body, in slot order
@@ -272,7 +272,7 @@ type grammar struct {
 	// StructFields holds the fields of each struct type (DeclareStruct).
 	StructFields map[string]*structFields
 	// TypeKinds holds the node kinds of the struct types.
-	TypeKinds map[string]*noderep.Kind
+	TypeKinds map[string]*coreimpl.Kind
 	// NodeTypes holds the kinds of the grammar's named node types, also under the names of the
 	// aliases of them.
 	NodeTypes map[string]*nodeTypeKinds
@@ -351,7 +351,7 @@ func (g *grammar) indexInitVals() {
 // NewGrammar is for generated parsers; not a stable API.
 func NewGrammar(maxDepth int) *grammar {
 	return &grammar{maxDepth: maxDepth, StructFields: map[string]*structFields{},
-		TypeKinds: map[string]*noderep.Kind{}, NodeTypes: map[string]*nodeTypeKinds{}}
+		TypeKinds: map[string]*coreimpl.Kind{}, NodeTypes: map[string]*nodeTypeKinds{}}
 }
 
 // structFields holds the zero descriptor of each field of a struct type (spec/language/types.md#zero-values): i, s and b for 0, "" and false; n for nil; l for the
@@ -380,7 +380,7 @@ func (g *grammar) SetRules(rules []*Rule, nseen int) {
 	numberLeaders(rules)
 	for _, r := range rules {
 		r.g = g
-		r.kinds = noderep.NewRuleKinds(r.Name)
+		r.kinds = coreimpl.NewRuleKinds(r.Name)
 		if r.NodeType != "" {
 			r.nodeKinds = NewNodeTypeKinds(r.NodeType)
 		}
@@ -832,7 +832,7 @@ type Parser struct {
 	frameSlab []CaptureFrame // per-parse reference allocation only
 	// Capture slots are private scratch, separate from returned child lists.
 	captureScratch frameScratch
-	fieldSlab      []noderep.NodeField
+	fieldSlab      []coreimpl.NodeField
 	lines          []int // positions where lines start (MakeError)
 	ac             ActCtx
 	saved          []*core. // captures saved across a reset in longest
@@ -1412,7 +1412,7 @@ func (p *Parser) NewNodeOrdinary(v Data) *core.Node {
 }
 
 // NewTerminal returns the node of text matched from start to the current position, allocated like
-// NewNode(Data{Kind: noderep.MatchKind, ...}).
+// NewNode(Data{Kind: coreimpl.MatchKind, ...}).
 func (p *Parser) NewTerminal(start int, text string) *core.Node {
 	p.Spend()
 	return p.NewTerminalOrdinary(start, text)
@@ -1429,19 +1429,19 @@ func (p *Parser) NewTerminalOrdinary(start int, text string) *core.Node {
 	}
 	n := &p.nodeSlab[0]
 	p.nodeSlab = p.nodeSlab[1:]
-	*D(n) = Data{Kind: noderep.MatchKind, Start: int32(start), End: int32(p.Pos), Text: text, Terminal: true, Fresh: true}
+	*D(n) = Data{Kind: coreimpl.MatchKind, Start: int32(start), End: int32(p.Pos), Text: text, Terminal: true, Fresh: true}
 	return n
 }
 
-// NewBranch returns the node of kind (noderep.SeqKind or noderep.ListKind) with children from start to the
+// NewBranch returns the node of kind (coreimpl.SeqKind or coreimpl.ListKind) with children from start to the
 // current position, allocated like NewNode(Data{Kind: kind, ...}).
-func (p *Parser) NewBranch(kind *noderep.Kind, start int, children []*core.Node) *core.Node {
+func (p *Parser) NewBranch(kind *coreimpl.Kind, start int, children []*core.Node) *core.Node {
 	p.Spend()
 	return p.NewBranchOrdinary(kind, start, children)
 }
 
 // NewBranchOrdinary is NewBranch in an ordinary parse (ExpectOrdinary).
-func (p *Parser) NewBranchOrdinary(kind *noderep.Kind, start int, children []*core.Node) *core.Node {
+func (p *Parser) NewBranchOrdinary(kind *coreimpl.Kind, start int, children []*core.Node) *core.Node {
 	if len(p.nodeSlab) == 0 {
 		p.nodeSlab = make([]core.Node, nodeChunk)
 		p.memUsed += nodeChunk * nodeBytes
@@ -1475,13 +1475,13 @@ func (p *Parser) Nodes(n int) []*core.Node {
 
 // fields returns an empty field list with capacity n from a chunk. Appending beyond n
 // reallocates, so neighbouring lists in the chunk are never overwritten.
-func (p *Parser) fields(n int) noderep.Fields {
+func (p *Parser) fields(n int) coreimpl.Fields {
 	if n > nodeChunk/4 {
 		p.memUsed += uint64(n) * fieldBytes
-		return make(noderep.Fields, 0, n)
+		return make(coreimpl.Fields, 0, n)
 	}
 	if len(p.fieldSlab) < n {
-		p.fieldSlab = make([]noderep.NodeField, nodeChunk)
+		p.fieldSlab = make([]coreimpl.NodeField, nodeChunk)
 		p.memUsed += nodeChunk * fieldBytes
 	}
 	fs := p.fieldSlab[:0:n]
@@ -2209,7 +2209,7 @@ func (p *Parser) AttachCaptures(v *core.Node, names []string, f *CaptureFrame, s
 		return v
 	}
 	if wrap {
-		v = p.NewNode(Data{Kind: noderep.SeqKind, Start: int32(start), End: int32(end), Children: append(p.Nodes(1)[:0], v), Fresh: true})
+		v = p.NewNode(Data{Kind: coreimpl.SeqKind, Start: int32(start), End: int32(end), Children: append(p.Nodes(1)[:0], v), Fresh: true})
 	}
 	if D(v).Fields == nil {
 		D(v).Fields = p.fields(len(names))
@@ -2270,7 +2270,7 @@ type Shaper struct {
 func (p *Parser) shapeTuple(s Shaper, v *core.Node, start int) *core.Node {
 	if s.Elems {
 		if s.Shared && v != nil {
-			return p.NewNode(Data{Kind: noderep.SeqKind, Start: D(v).Start, End: D(v).End, Children: D(v).Children, Fresh: true})
+			return p.NewNode(Data{Kind: coreimpl.SeqKind, Start: D(v).Start, End: D(v).End, Children: D(v).Children, Fresh: true})
 		}
 		return v
 	}
@@ -2279,7 +2279,7 @@ func (p *Parser) shapeTuple(s Shaper, v *core.Node, start int) *core.Node {
 		kids = p.Nodes(1)
 		kids[0] = v
 	}
-	return p.NewNode(Data{Kind: noderep.SeqKind, Start: int32(start), End: int32(p.Pos), Children: kids, Fresh: true})
+	return p.NewNode(Data{Kind: coreimpl.SeqKind, Start: int32(start), End: int32(p.Pos), Children: kids, Fresh: true})
 }
 
 // one returns the one element of the result v.
@@ -2310,7 +2310,7 @@ func (p *Parser) ShapeSingle(s Shaper, v *core.Node, start int) (*core.Node, boo
 func (p *Parser) ShapeCapture(s Shaper, v *core.Node, start int) *core.Node {
 	v, ok := p.ShapeSingle(s, v, start)
 	if !ok {
-		v = p.NewNode(Data{Kind: noderep.SeqKind, Start: int32(start), End: int32(p.Pos), Fresh: true})
+		v = p.NewNode(Data{Kind: coreimpl.SeqKind, Start: int32(start), End: int32(p.Pos), Fresh: true})
 	}
 	return v
 }
@@ -2362,7 +2362,7 @@ func (p *Parser) MatchLiteral(rs []rune, text string, desc ExpID, build bool) (*
 	if !build {
 		return nil, true
 	}
-	return p.NewNode(Data{Kind: noderep.MatchKind, Start: int32(start), End: int32(p.Pos), Text: p.LiteralText(start, text), Terminal: true, Fresh: true}), true
+	return p.NewNode(Data{Kind: coreimpl.MatchKind, Start: int32(start), End: int32(p.Pos), Text: p.LiteralText(start, text), Terminal: true, Fresh: true}), true
 }
 
 // MatchLiteralFold is MatchLiteral for a case-insensitive literal. rs is the literal with each ASCII
@@ -2382,7 +2382,7 @@ func (p *Parser) MatchLiteralFold(rs []rune, desc ExpID, build bool) (*core.Node
 	if !build {
 		return nil, true
 	}
-	return p.NewNode(Data{Kind: noderep.MatchKind, Start: int32(start), End: int32(p.Pos), Text: p.Text(start, p.Pos), Terminal: true, Fresh: true}), true
+	return p.NewNode(Data{Kind: coreimpl.MatchKind, Start: int32(start), End: int32(p.Pos), Text: p.Text(start, p.Pos), Terminal: true, Fresh: true}), true
 }
 
 // MatchLiteralFoldOrdinary is MatchLiteralFold in an ordinary parse (ExpectOrdinary).
@@ -2399,7 +2399,7 @@ func (p *Parser) MatchLiteralFoldOrdinary(rs []rune, desc ExpID, build bool) (*c
 	if !build {
 		return nil, true
 	}
-	return p.NewNodeOrdinary(Data{Kind: noderep.MatchKind, Start: int32(start), End: int32(p.Pos), Text: p.Text(start, p.Pos), Terminal: true, Fresh: true}), true
+	return p.NewNodeOrdinary(Data{Kind: coreimpl.MatchKind, Start: int32(start), End: int32(p.Pos), Text: p.Text(start, p.Pos), Terminal: true, Fresh: true}), true
 }
 
 // foldASCIIRune maps A-Z to a-z and leaves every other rune as it is.
@@ -2429,7 +2429,7 @@ func (p *Parser) matchReplacementLiteral(rs []rune, text string, desc ExpID, bui
 	if !build {
 		return nil, true
 	}
-	return p.NewNode(Data{Kind: noderep.MatchKind, Start: int32(start), End: int32(p.Pos), Text: p.LiteralText(start, text), Terminal: true, Fresh: true}), true
+	return p.NewNode(Data{Kind: coreimpl.MatchKind, Start: int32(start), End: int32(p.Pos), Text: p.LiteralText(start, text), Terminal: true, Fresh: true}), true
 }
 
 // MatchLiteralOrdinary is MatchLiteral in an ordinary parse (ExpectOrdinary).
@@ -2455,7 +2455,7 @@ func (p *Parser) MatchLiteralOrdinary(rs []rune, text string, desc ExpID, build 
 	if !build {
 		return nil, true
 	}
-	return p.NewNodeOrdinary(Data{Kind: noderep.MatchKind, Start: int32(start), End: int32(p.Pos), Text: p.LiteralText(start, text), Terminal: true, Fresh: true}), true
+	return p.NewNodeOrdinary(Data{Kind: coreimpl.MatchKind, Start: int32(start), End: int32(p.Pos), Text: p.LiteralText(start, text), Terminal: true, Fresh: true}), true
 }
 
 // MatchAnyOrdinary is MatchAny in an ordinary parse (ExpectOrdinary).
@@ -2484,7 +2484,7 @@ func (p *Parser) Single(size int, build bool) (*core.Node, bool) {
 	if !build {
 		return nil, true
 	}
-	return p.NewNode(Data{Kind: noderep.MatchKind, Start: int32(start), End: int32(p.Pos), Text: p.Text(start, p.Pos), Terminal: true, Fresh: true}), true
+	return p.NewNode(Data{Kind: coreimpl.MatchKind, Start: int32(start), End: int32(p.Pos), Text: p.Text(start, p.Pos), Terminal: true, Fresh: true}), true
 }
 
 func (p *Parser) Anchor(ok bool, desc ExpID) (*core.Node, bool) {
@@ -2662,7 +2662,7 @@ func (p *Parser) RecoverAttr(m, skip matcher, build bool) (*core.Node, bool) {
 //
 // NewErrorNode is for generated parsers; not a stable API.
 func (p *Parser) NewErrorNode(start int, e *core.SyntaxError) *core.Node {
-	return p.NewNode(Data{Kind: noderep.ErrorKind, Start: int32(start), End: int32(p.Pos), Fields: noderep.Fields{{Name: "message", Value: p.RecoveryErrorText(e)}}, Fresh: true, Terminal: true})
+	return p.NewNode(Data{Kind: coreimpl.ErrorKind, Start: int32(start), End: int32(p.Pos), Fields: coreimpl.Fields{{Name: "message", Value: p.RecoveryErrorText(e)}}, Fresh: true, Terminal: true})
 }
 
 // --- Actions and predicates ---
@@ -2706,7 +2706,7 @@ func (c *ActCtx) result(action func(*ActCtx) (any, any), where string) (n *core.
 			c.P.actionFailed(where, c.P.evalErrorValue("result must be a value, got a function"))
 		}
 		// A value other than a node travels boxed, with the range of the action's input.
-		return c.P.NewNode(Data{Kind: noderep.BoxKind, Box: v, Start: int32(c.start), End: int32(c.end)})
+		return c.P.NewNode(Data{Kind: coreimpl.BoxKind, Box: v, Start: int32(c.start), End: int32(c.end)})
 	}
 	for _, x := range c.P.created[c.cbase:] {
 		c.P.Spend()
@@ -2764,7 +2764,7 @@ func typeName(v any) string {
 		if v == nil {
 			return "nil"
 		}
-		if D(v).Kind == noderep.BoxKind {
+		if D(v).Kind == coreimpl.BoxKind {
 			return typeName(D(v).Box)
 		}
 		if D(v).Kind.IsNodeType() {
@@ -2966,7 +2966,7 @@ func (p *Parser) operatorsRuleBuild(r *Rule, a *operatorsRuleAttempt, lhs, rhs *
 	// captures.
 	opv, ok := p.ShapeSingle(l.Value, a.v, a.start)
 	if !ok {
-		opv = p.NewNode(Data{Kind: noderep.SeqKind, Start: int32(a.start), End: int32(a.end)})
+		opv = p.NewNode(Data{Kind: coreimpl.SeqKind, Start: int32(a.start), End: int32(a.end)})
 	}
 	if l.Value.Mode == singleTuple && len(l.Scope) > 0 {
 		opv = p.AttachCaptures(opv, l.Scope, a.frame, a.start, a.end)
@@ -2986,26 +2986,26 @@ func (p *Parser) operatorsRuleBuild(r *Rule, a *operatorsRuleAttempt, lhs, rhs *
 	// Without an action, the application is the node of the tuple (lhs, op, rhs) of the line's
 	// kind, with those captures.
 	var kids []*core.Node
-	var fields noderep.Fields
+	var fields coreimpl.Fields
 	switch a.op.Kind {
 	case "prefix":
 		kids = p.Nodes(2)
 		kids[0], kids[1] = opv, rhs
-		fields = noderep.Fields{{Name: "op", Value: nodeOrNil(opv)}, {Name: "rhs", Value: nodeOrNil(rhs)}}
+		fields = coreimpl.Fields{{Name: "op", Value: nodeOrNil(opv)}, {Name: "rhs", Value: nodeOrNil(rhs)}}
 	case "postfix":
 		kids = p.Nodes(2)
 		kids[0], kids[1] = lhs, opv
-		fields = noderep.Fields{{Name: "lhs", Value: nodeOrNil(lhs)}, {Name: "op", Value: nodeOrNil(opv)}}
+		fields = coreimpl.Fields{{Name: "lhs", Value: nodeOrNil(lhs)}, {Name: "op", Value: nodeOrNil(opv)}}
 	default:
 		kids = p.Nodes(3)
 		kids[0], kids[1], kids[2] = lhs, opv, rhs
-		fields = noderep.Fields{{Name: "lhs", Value: nodeOrNil(lhs)}, {Name: "op", Value: nodeOrNil(opv)}, {Name: "rhs", Value: nodeOrNil(rhs)}}
+		fields = coreimpl.Fields{{Name: "lhs", Value: nodeOrNil(lhs)}, {Name: "op", Value: nodeOrNil(opv)}, {Name: "rhs", Value: nodeOrNil(rhs)}}
 	}
-	kind := noderep.SeqKind
+	kind := coreimpl.SeqKind
 	if r.opKinds != nil {
-		kind = r.opKinds[noderep.BaseTuple] // made with the named node type of the operators
+		kind = r.opKinds[coreimpl.BaseTuple] // made with the named node type of the operators
 	} else if p.sourceInfo {
-		kind = r.kinds.Named(noderep.SeqKind, r.Name)
+		kind = r.kinds.Named(coreimpl.SeqKind, r.Name)
 	}
 	n := p.NewNode(Data{Kind: kind, Start: int32(start), End: int32(end), Children: kids, Fields: fields, Labeled: p.sourceInfo})
 	return n

@@ -5,7 +5,7 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/core"
-	"zeroparse.dev/zp/core/noderep"
+	"zeroparse.dev/zp/core/impl"
 	"zeroparse.dev/zp/internal/compile"
 	"zeroparse.dev/zp/internal/compiletest"
 	"zeroparse.dev/zp/internal/ir/exec/conform"
@@ -32,11 +32,11 @@ func engineMemberCanon(x any) string {
 			elems = append(elems, engineMemberCanon(value.UnboxNode(k)))
 		}
 		switch value.D(x).Kind {
-		case noderep.BoxKind:
+		case coreimpl.BoxKind:
 			return "box " + engineMemberCanon(value.D(x).Box)
-		case noderep.ListValueKind:
+		case coreimpl.ListValueKind:
 			return conform.MemberCanon("list", nil, elems)
-		case noderep.TupleValueKind:
+		case coreimpl.TupleValueKind:
 			return conform.MemberCanon("tuple", nil, elems)
 		}
 		return x.Type()
@@ -67,8 +67,8 @@ func engineMemberFixture(t *testing.T, controlled bool) (*EvalCtx, map[string]an
 		p.Control = NewBudgetControl(nil, core.Limits{Compute: 1 << 62})
 	}
 	c := &EvalCtx{P: p}
-	node := p.NewNode(value.Data{Kind: noderep.SeqKind, Start: 2, End: 5})
-	noderep.SetField(&value.D(node).Fields, "y", p.NewNode(value.Data{Kind: noderep.BoxKind, Box: 7}))
+	node := p.NewNode(value.Data{Kind: coreimpl.SeqKind, Start: 2, End: 5})
+	coreimpl.SetField(&value.D(node).Fields, "y", p.NewNode(value.Data{Kind: coreimpl.BoxKind, Box: 7}))
 	empty, err := c.NewStruct("S", nil, nil)
 	if err != nil {
 		t.Fatal(err)

@@ -205,7 +205,7 @@ func addLibDecls(info *libInfo, f *goast.File, pkg string) error {
 }
 
 // libFiles returns the copy of the library that LibEmbed writes, in internal/libgo. The copy
-// imports core and core/noderep of this module, as generated code does.
+// imports core and core/impl of this module, as generated code does.
 func libFiles(opts codegen.GenOptions) ([]codegen.GeneratedFile, error) {
 	info, err := loadLib(opts)
 	if err != nil {

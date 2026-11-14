@@ -666,14 +666,14 @@ var engineImportPaths = []struct{ name, path string }{
 	{"compile", "zeroparse.dev/zp/internal/compile"},
 	{"grammar", "zeroparse.dev/zp/grammar"},
 	{"value", "zeroparse.dev/zp/internal/value"},
-	{"noderep", "zeroparse.dev/zp/core/noderep"},
+	{"coreimpl", "zeroparse.dev/zp/core/impl"},
 	{"core", "zeroparse.dev/zp/core"},
 }
 
 // libImportPaths are the packages that the printed code of the Go library may name, by package
 // name.
 var libImportPaths = []struct{ name, path string }{
-	{"noderep", "zeroparse.dev/zp/core/noderep"},
+	{"coreimpl", "zeroparse.dev/zp/core/impl"},
 	{"core", "zeroparse.dev/zp/core"},
 }
 

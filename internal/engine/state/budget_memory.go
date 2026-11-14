@@ -4,7 +4,7 @@ import (
 	"unsafe"
 
 	"zeroparse.dev/zp/core"
-	"zeroparse.dev/zp/core/noderep"
+	"zeroparse.dev/zp/core/impl"
 	"zeroparse.dev/zp/internal/limits"
 )
 
@@ -35,7 +35,7 @@ import (
 const (
 	nodeBytes     = uint64(unsafe.Sizeof(core.Node{}))
 	ptrBytes      = uint64(unsafe.Sizeof((*core.Node)(nil)))
-	fieldBytes    = uint64(unsafe.Sizeof(noderep.NodeField{}))
+	fieldBytes    = uint64(unsafe.Sizeof(coreimpl.NodeField{}))
 	frameBytes    = uint64(unsafe.Sizeof(Frame{}))
 	memoBytes     = uint64(unsafe.Sizeof(MemoEntry{}))
 	memoSlotBytes = uint64(unsafe.Sizeof((*MemoEntry)(nil)))

@@ -1,10 +1,10 @@
 package libgo
 
-import "zeroparse.dev/zp/core/noderep"
+import "zeroparse.dev/zp/core/impl"
 
 // The protocol is the interface between generated code and the library: the exported declarations
 // of this package, the exported fields and methods of the types they reach in this package and in
-// the node representation (package noderep), and what those declarations mean, including the
+// the node representation (package coreimpl), and what those declarations mean, including the
 // encoding of the data generated parsers pass to the library (grammar tables, node kinds and
 // expectation IDs). A protocol version names one state of that interface, independent of the
 // release version, and increases whenever the interface changes. testdata/protocol.golden records
@@ -17,19 +17,19 @@ import "zeroparse.dev/zp/core/noderep"
 // name; regenerate the parser, or require a version of zeroparse.dev/zp that implements its
 // protocol.
 //
-// The library reaches core and core/noderep, which a parser generated with zp gen -lib embed
-// imports from zeroparse.dev/zp while it carries its own copy of the library. Package noderep
+// The library reaches core and core/impl, which a parser generated with zp gen -lib embed
+// imports from zeroparse.dev/zp while it carries its own copy of the library. Package coreimpl
 // declares exactly one constant ProtocolN: N is the protocol version that introduced the node
 // representation it serves. The library refers to that constant (below), so a copy of the library
 // fails to build, with an undefined name, against a core that serves another representation,
 // whether the core is older or newer than the copy; regenerate the parser, or require a version of
 // zeroparse.dev/zp that serves it. When a protocol version changes the node representation (the
 // layout of its types, the values of its constants or the signatures of its functions, which
-// noderep's testdata/representation.golden records), noderep replaces its constant with the one of
+// coreimpl's testdata/representation.golden records), coreimpl replaces its constant with the one of
 // that version, and the library refers to the new constant.
 
 // Protocol16 is declared because the library implements protocol version 16.
 const Protocol16 = 16
 
-// The node representation of protocol version 15, which core/noderep must serve.
-const _ = noderep.Protocol15
+// The node representation of protocol version 15, which core/impl must serve.
+const _ = coreimpl.Protocol15

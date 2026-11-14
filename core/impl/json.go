@@ -1,4 +1,4 @@
-package noderep
+package coreimpl
 
 import (
 	"encoding/json"

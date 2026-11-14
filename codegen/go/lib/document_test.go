@@ -8,7 +8,7 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/core"
-	"zeroparse.dev/zp/core/noderep"
+	"zeroparse.dev/zp/core/impl"
 )
 
 func documentTestRules() (*Rule, *Rule) {
@@ -30,7 +30,7 @@ func documentTestRules() (*Rule, *Rule) {
 		if !p.AtEnd() {
 			return nil, false
 		}
-		return nodeOfData(&Data{Kind: noderep.ListKind, Start: int32(start), End: int32(p.Pos), Children: children}), true
+		return nodeOfData(&Data{Kind: coreimpl.ListKind, Start: int32(start), End: int32(p.Pos), Children: children}), true
 	}
 	return main, item
 }
@@ -148,7 +148,7 @@ func TestDocumentReturnedRecoveryErrorOwnership(t *testing.T) {
 	r.Body = func(p *Parser, _ int) (*core.Node, bool) {
 		p.Pos = 1
 		p.PushRecovered(&core.SyntaxError{Line: 1, Col: 1, Expected: []string{"original"}, Messages: []string{"original"}})
-		return nodeOfData(&Data{Kind: noderep.ErrorKind, End: 1}), true
+		return nodeOfData(&Data{Kind: coreimpl.ErrorKind, End: 1}), true
 	}
 	d := testDocumentState(r, "x", core.CodePoints)
 	o := parseOptions{maxDepth: defaultMaxDepth}
@@ -180,7 +180,7 @@ func TestDocumentDiagnosticPublicationBudget(t *testing.T) {
 			expected[i] = "original"
 		}
 		p.PushRecovered(&core.SyntaxError{Line: 1, Col: 1, Expected: expected, Messages: []string{"original"}})
-		return nodeOfData(&Data{Kind: noderep.ErrorKind, End: 1}), true
+		return nodeOfData(&Data{Kind: coreimpl.ErrorKind, End: 1}), true
 	}
 	d := testDocumentState(r, "x", core.CodePoints)
 	normal := parseOptions{maxDepth: defaultMaxDepth}
@@ -232,7 +232,7 @@ func TestDocumentDiagnosticPublicationCancellation(t *testing.T) {
 	r.Body = func(p *Parser, _ int) (*core.Node, bool) {
 		p.Pos = 1
 		p.PushRecovered(&core.SyntaxError{Expected: make([]string, 2048)})
-		return nodeOfData(&Data{Kind: noderep.ErrorKind, End: 1}), true
+		return nodeOfData(&Data{Kind: coreimpl.ErrorKind, End: 1}), true
 	}
 	d := testDocumentState(r, "x", core.CodePoints)
 	normal := parseOptions{maxDepth: defaultMaxDepth}
@@ -361,9 +361,9 @@ func TestCallDocumentRestoresOnPanic(t *testing.T) {
 // value held a host value that cannot be moved, and a second entry shares that node. The numbers of
 // the moves belong to the Document, so each parse numbers its moves after those of the parses before.
 func TestDocumentMoveMarksDoNotCarryAcrossParses(t *testing.T) {
-	shared := nodeOfData(&Data{Kind: noderep.MatchKind, Start: 1, End: 2, Box: []int{1}})
-	first := nodeOfData(&Data{Kind: noderep.ListKind, Start: 1, End: 2, Children: []*core.Node{shared}})
-	second := nodeOfData(&Data{Kind: noderep.ListKind, Start: 1, End: 2, Children: []*core.Node{shared}})
+	shared := nodeOfData(&Data{Kind: coreimpl.MatchKind, Start: 1, End: 2, Box: []int{1}})
+	first := nodeOfData(&Data{Kind: coreimpl.ListKind, Start: 1, End: 2, Children: []*core.Node{shared}})
+	second := nodeOfData(&Data{Kind: coreimpl.ListKind, Start: 1, End: 2, Children: []*core.Node{shared}})
 	d := &documentState{}
 	for i, n := range []*core.Node{first, second} {
 		// Each parse starts its moves anew in a Parser of its own.
@@ -408,13 +408,13 @@ func TestDocumentMoveMarksRestartWithAnEmptyMemo(t *testing.T) {
 // the check alone in a refusal.
 func TestDocumentMoveChargesTheCheckAndTheCopy(t *testing.T) {
 	leaf := func(box any) *core.Node {
-		return nodeOfData(&Data{Kind: noderep.MatchKind, Start: 1, End: 2, Box: box})
+		return nodeOfData(&Data{Kind: coreimpl.MatchKind, Start: 1, End: 2, Box: box})
 	}
 	// The size of a root of three children, two distinct leaves of which one is held twice, and a field:
 	// 5 for the root and 1 for each leaf.
 	build := func(box any) *core.Node {
 		a, b := leaf(nil), leaf(box)
-		return nodeOfData(&Data{Kind: noderep.ListKind, Start: 1, End: 2, Children: []*core.Node{a, b, a}, Fields: noderep.Fields{{Name: "x", Value: "v"}}})
+		return nodeOfData(&Data{Kind: coreimpl.ListKind, Start: 1, End: 2, Children: []*core.Node{a, b, a}, Fields: coreimpl.Fields{{Name: "x", Value: "v"}}})
 	}
 	const size = 5 + 2
 	for _, c := range []struct {
@@ -457,7 +457,7 @@ func TestDocumentMoveKeepsSharedNodesShared(t *testing.T) {
 		if !ok {
 			return nil, false
 		}
-		return nodeOfData(&Data{Kind: noderep.ListKind, Start: int32(start), End: int32(p.Pos), Children: []*core.Node{v}, Fields: noderep.Fields{{Name: "x", Value: v}}}), true
+		return nodeOfData(&Data{Kind: coreimpl.ListKind, Start: int32(start), End: int32(p.Pos), Children: []*core.Node{v}, Fields: coreimpl.Fields{{Name: "x", Value: v}}}), true
 	}
 	main := &Rule{Id: 0, Name: "main", Memo: true, DocMemo: true, Seen: -1}
 	main.Body = func(p *Parser, _ int) (*core.Node, bool) {
@@ -471,7 +471,7 @@ func TestDocumentMoveKeepsSharedNodesShared(t *testing.T) {
 		if !ok || !p.AtEnd() {
 			return nil, false
 		}
-		return nodeOfData(&Data{Kind: noderep.ListKind, Start: int32(start), End: int32(p.Pos), Children: []*core.Node{v}}), true
+		return nodeOfData(&Data{Kind: coreimpl.ListKind, Start: int32(start), End: int32(p.Pos), Children: []*core.Node{v}}), true
 	}
 	d := testDocumentState(main, "ba", core.CodePoints)
 	o := parseOptions{unit: core.CodePoints, maxDepth: defaultMaxDepth}

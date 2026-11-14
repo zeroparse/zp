@@ -57,11 +57,11 @@ func D(*zeroparse.dev/zp/core.Node) *Data
 func DocumentParseConverted[T any](*documentState, parseOptions, func(*zeroparse.dev/zp/core.Node, *BudgetControl, error) T) (T, error)
 func IterateNodes(*grammar, []ParseOption, func(func(*zeroparse.dev/zp/core.Node) error) error) (*zeroparse.dev/zp/core.StreamIterator, error)
 func IterateStream[T any](*grammar, []ParseOption, func(func(T) error) error) (*StreamPull[T], error)
-func KindOf(string, string) *zeroparse.dev/zp/core/noderep.Kind
+func KindOf(string, string) *zeroparse.dev/zp/core/impl.Kind
 func MakeDocument(*Rule, string, []ParseOption) (*Document, error)
 func NewBudgetClass([]BudgetRange, bool) *BudgetClass
 func NewGrammar(int) *grammar
-func NewNode(zeroparse.dev/zp/core.NodeKind, int, int, string, []*zeroparse.dev/zp/core.Node, string, zeroparse.dev/zp/core/noderep.Fields, any) *zeroparse.dev/zp/core.Node
+func NewNode(zeroparse.dev/zp/core.NodeKind, int, int, string, []*zeroparse.dev/zp/core.Node, string, zeroparse.dev/zp/core/impl.Fields, any) *zeroparse.dev/zp/core.Node
 func NewNodeTypeKinds(string) *nodeTypeKinds
 func NewRules[S interface{~struct{Name string; Value *Shaper; Flags uint8; Seen int32; Scope uint16; Vars uint16}}, E interface{~struct{Id int; Where string; NodeType string; OpNodeType string; Cycle int32}}]([]S, [][]string, []E) []*Rule
 func NewTError(int, int, string) *TError
@@ -171,8 +171,8 @@ method (*Parser) MatchLiteralFold([]rune, ExpID, bool) (*zeroparse.dev/zp/core.N
 method (*Parser) MatchLiteralFoldOrdinary([]rune, ExpID, bool) (*zeroparse.dev/zp/core.Node, bool)
 method (*Parser) MatchLiteralOrdinary([]rune, string, ExpID, bool) (*zeroparse.dev/zp/core.Node, bool)
 method (*Parser) MergeExpected(int, []ExpID)
-method (*Parser) NewBranch(*zeroparse.dev/zp/core/noderep.Kind, int, []*zeroparse.dev/zp/core.Node) *zeroparse.dev/zp/core.Node
-method (*Parser) NewBranchOrdinary(*zeroparse.dev/zp/core/noderep.Kind, int, []*zeroparse.dev/zp/core.Node) *zeroparse.dev/zp/core.Node
+method (*Parser) NewBranch(*zeroparse.dev/zp/core/impl.Kind, int, []*zeroparse.dev/zp/core.Node) *zeroparse.dev/zp/core.Node
+method (*Parser) NewBranchOrdinary(*zeroparse.dev/zp/core/impl.Kind, int, []*zeroparse.dev/zp/core.Node) *zeroparse.dev/zp/core.Node
 method (*Parser) NewErrorNode(int, *zeroparse.dev/zp/core.SyntaxError) *zeroparse.dev/zp/core.Node
 method (*Parser) NewFrame(int) *CaptureFrame
 method (*Parser) NewNode(Data) *zeroparse.dev/zp/core.Node
@@ -341,12 +341,12 @@ method (*observation) Enter(string, int, int)
 method (*observation) Evaluated()
 method (*observation) Exit(bool, int, int, bool)
 method (*observation) Skipped(string, int, int)
-method (*zeroparse.dev/zp/core/noderep.Kind) IsNodeType() bool
-method (*zeroparse.dev/zp/core/noderep.Kind) RuleName() string
-method (*zeroparse.dev/zp/core/noderep.Kind) TypeName() string
+method (*zeroparse.dev/zp/core/impl.Kind) IsNodeType() bool
+method (*zeroparse.dev/zp/core/impl.Kind) RuleName() string
+method (*zeroparse.dev/zp/core/impl.Kind) TypeName() string
 method (Span) Range() (int, int)
-method (zeroparse.dev/zp/core/noderep.Fields) Get(string) (any, bool)
-method (zeroparse.dev/zp/core/noderep.Fields) Sorted() zeroparse.dev/zp/core/noderep.Fields
+method (zeroparse.dev/zp/core/impl.Fields) Get(string) (any, bool)
+method (zeroparse.dev/zp/core/impl.Fields) Sorted() zeroparse.dev/zp/core/impl.Fields
 type ActCtx struct{P *Parser; Lhs any; Rhs any; Op any; Value any}
 type BudgetClass struct{}
 type BudgetControl struct{}
@@ -355,7 +355,7 @@ type CaptureFrame struct{Vals []*zeroparse.dev/zp/core.Node}
 type Chunk[T any] struct{}
 type Class struct{ASCII [2]uint64; Wide []rune; Neg bool}
 type ClassStep struct{C *Class; ID ExpID}
-type Data = zeroparse.dev/zp/core/noderep.Data[zeroparse.dev/zp/core.Node]
+type Data = zeroparse.dev/zp/core/impl.Data[zeroparse.dev/zp/core.Node]
 type Document struct{State *documentState}
 type DocumentSliceKey struct{First any; Length int; Capacity int}
 type Env struct{}
@@ -402,9 +402,9 @@ type TypedDocumentCloneBase struct{Control *BudgetControl; Values map[any]any; S
 type TypedDocumentCloneTask struct{Source any; Target any}
 type budgetControlSetter interface{SetBudgetControl(*BudgetControl)}
 type documentState struct{}
-type grammar struct{Starts []string; DefaultStart string; Descs []string; Expectations bool; StructFields map[string]*structFields; TypeKinds map[string]*zeroparse.dev/zp/core/noderep.Kind; NodeTypes map[string]*nodeTypeKinds; SourceInfo bool; Observable bool; NoBudgetControls bool}
+type grammar struct{Starts []string; DefaultStart string; Descs []string; Expectations bool; StructFields map[string]*structFields; TypeKinds map[string]*zeroparse.dev/zp/core/impl.Kind; NodeTypes map[string]*nodeTypeKinds; SourceInfo bool; Observable bool; NoBudgetControls bool}
 type matcher = func(*Parser) (*zeroparse.dev/zp/core.Node, bool)
-type nodeTypeKinds [3]*zeroparse.dev/zp/core/noderep.Kind
+type nodeTypeKinds [3]*zeroparse.dev/zp/core/impl.Kind
 type observation struct{}
 type parseOptions struct{}
 type recEntry struct{}
@@ -415,13 +415,13 @@ type tmatcher = func(*TParser) (any, bool)
 type tundo struct{}
 type typedDocumentState struct{}
 type undo struct{}
-type zeroparse.dev/zp/core/noderep.Data[N any] struct{Kind *zeroparse.dev/zp/core/noderep.Kind; Start int32; End int32; Text string; Children []*N; Fields zeroparse.dev/zp/core/noderep.Fields; Fresh bool; Terminal bool; Labeled bool; Mark uint32; Box any}
-type zeroparse.dev/zp/core/noderep.Fields []zeroparse.dev/zp/core/noderep.NodeField
-type zeroparse.dev/zp/core/noderep.Kind struct{Type string; Rule string; Reserved int; Base int}
-type zeroparse.dev/zp/core/noderep.NodeField struct{Name string; Value any}
+type zeroparse.dev/zp/core/impl.Data[N any] struct{Kind *zeroparse.dev/zp/core/impl.Kind; Start int32; End int32; Text string; Children []*N; Fields zeroparse.dev/zp/core/impl.Fields; Fresh bool; Terminal bool; Labeled bool; Mark uint32; Box any}
+type zeroparse.dev/zp/core/impl.Fields []zeroparse.dev/zp/core/impl.NodeField
+type zeroparse.dev/zp/core/impl.Kind struct{Type string; Rule string; Reserved int; Base int}
+type zeroparse.dev/zp/core/impl.NodeField struct{Name string; Value any}
 var DocumentBusy error
 var EmptyFrame *CaptureFrame
 var EmptyTFrame *TCaptureFrame
-var ListKind *zeroparse.dev/zp/core/noderep.Kind
-var MatchKind *zeroparse.dev/zp/core/noderep.Kind
-var SeqKind *zeroparse.dev/zp/core/noderep.Kind
+var ListKind *zeroparse.dev/zp/core/impl.Kind
+var MatchKind *zeroparse.dev/zp/core/impl.Kind
+var SeqKind *zeroparse.dev/zp/core/impl.Kind

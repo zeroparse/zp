@@ -5,7 +5,7 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/core"
-	"zeroparse.dev/zp/core/noderep"
+	"zeroparse.dev/zp/core/impl"
 	"zeroparse.dev/zp/internal/compile"
 	"zeroparse.dev/zp/internal/compiletest"
 	"zeroparse.dev/zp/internal/ir/exec/conform"
@@ -23,14 +23,14 @@ func TestEngineValueHullTable(t *testing.T) {
 			p.Control = NewBudgetControl(nil, core.Limits{Compute: 1 << 62})
 		}
 		c := &EvalCtx{P: p, Start: conform.StructRuleStart, End: conform.StructRuleEnd}
-		text := p.NewNode(value.Data{Kind: noderep.MatchKind, Terminal: true, Text: "xyz", Start: 2, End: 4})
+		text := p.NewNode(value.Data{Kind: coreimpl.MatchKind, Terminal: true, Text: "xyz", Start: 2, End: 4})
 		vals := map[string]any{
 			conform.MemberNil:     nil,
 			conform.MemberInt:     1,
 			conform.BuiltinString: "ab",
 			conform.BuiltinText:   text,
-			conform.BuiltinNode:   p.NewNode(value.Data{Kind: noderep.SeqKind, Start: 2, End: 5, Children: []*core.Node{text, text}}),
-			conform.StructLate:    p.NewNode(value.Data{Kind: noderep.MatchKind, Terminal: true, Text: "q", Start: 7, End: 9}),
+			conform.BuiltinNode:   p.NewNode(value.Data{Kind: coreimpl.SeqKind, Start: 2, End: 5, Children: []*core.Node{text, text}}),
+			conform.StructLate:    p.NewNode(value.Data{Kind: coreimpl.MatchKind, Terminal: true, Text: "q", Start: 7, End: 9}),
 		}
 		// The budget-controls reference build charges nothing, so its units are not checked.
 		err := conform.RunHulls("engine", controlled && BudgetControlsEnabled, func(kind string, elems []string) (string, int) {

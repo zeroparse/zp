@@ -6,7 +6,7 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/core"
-	"zeroparse.dev/zp/core/noderep"
+	"zeroparse.dev/zp/core/impl"
 	"zeroparse.dev/zp/internal/engine/state"
 	"zeroparse.dev/zp/internal/value"
 )
@@ -21,16 +21,16 @@ func snapshotVariants(t *testing.T, run func(*testing.T, state.ParseOptions)) {
 }
 
 func TestSnapshotGraphIdentityAndOwnership(t *testing.T) {
-	leaf := value.Ptr(value.Data{Kind: noderep.KindOf("Leaf", "leaf"), Start: 2, End: 3, Text: "x", Terminal: true, Children: []*core.Node{}, Fields: noderep.Fields{}})
-	root := value.Ptr(value.Data{Kind: noderep.SeqKind, Start: 1, End: 4, Children: []*core.Node{leaf, nil, leaf}})
-	value.D(root).Fields = noderep.Fields{{Name: "self", Value: root}, {Name: "leaf", Value: leaf}, {Name: "typedNil", Value: (*core.Node)(nil)}, {Name: "nil", Value: nil}, {Name: "int", Value: 42}, {Name: "text", Value: "hi"}, {Name: "bool", Value: true}}
+	leaf := value.Ptr(value.Data{Kind: coreimpl.KindOf("Leaf", "leaf"), Start: 2, End: 3, Text: "x", Terminal: true, Children: []*core.Node{}, Fields: coreimpl.Fields{}})
+	root := value.Ptr(value.Data{Kind: coreimpl.SeqKind, Start: 1, End: 4, Children: []*core.Node{leaf, nil, leaf}})
+	value.D(root).Fields = coreimpl.Fields{{Name: "self", Value: root}, {Name: "leaf", Value: leaf}, {Name: "typedNil", Value: (*core.Node)(nil)}, {Name: "nil", Value: nil}, {Name: "int", Value: 42}, {Name: "text", Value: "hi"}, {Name: "bool", Value: true}}
 	g, err := freezeSnapshotGraph(&state.Parser{}, root)
 	if err != nil {
 		t.Fatal(err)
 	}
 	s := &Snapshot{graph: g}
 	n := s.Root()
-	if !n.Valid() || n.Type() != noderep.TypeTuple || n.Start() != 1 || n.End() != 4 || n.ChildCount() != 3 {
+	if !n.Valid() || n.Type() != coreimpl.TypeTuple || n.Start() != 1 || n.End() != 4 || n.ChildCount() != 3 {
 		t.Fatal("metadata")
 	}
 	if n.Child(0) != n.Child(2) || n.Child(1).Valid() || n.Child(0).Rule() != "leaf" || !n.Child(0).IsTerminal() {
@@ -99,7 +99,7 @@ func TestSnapshotGraphDeepAndUnsupported(t *testing.T) {
 		value.D(at).Children = []*core.Node{next}
 		at = next
 	}
-	value.D(at).Fields = noderep.Fields{{Name: "back", Value: root}}
+	value.D(at).Fields = coreimpl.Fields{{Name: "back", Value: root}}
 	g, err := freezeSnapshotGraph(&state.Parser{}, root)
 	if err != nil || len(g.nodes) != 20001 {
 		t.Fatal("deep capture", err)
@@ -114,8 +114,8 @@ func TestSnapshotGraphDeepAndUnsupported(t *testing.T) {
 	}
 	type namedInt int
 	for _, val := range []any{namedInt(1), []int(nil), map[string]int(nil), (*int)(nil), (chan int)(nil), (func())(nil)} {
-		child := value.Ptr(value.Data{Fields: noderep.Fields{{Name: "bad\"name", Value: val}}})
-		root := value.Ptr(value.Data{Children: []*core.Node{child}, Fields: noderep.Fields{{Name: "other", Value: val}}})
+		child := value.Ptr(value.Data{Fields: coreimpl.Fields{{Name: "bad\"name", Value: val}}})
+		root := value.Ptr(value.Data{Children: []*core.Node{child}, Fields: coreimpl.Fields{{Name: "other", Value: val}}})
 		_, err := freezeSnapshotGraph(&state.Parser{}, root)
 		if err == nil || err.ValueType != reflect.TypeOf(val) || err.Path != `root.Children[0].Fields[0]("bad\"name")` {
 			t.Fatalf("rejection %v", err)

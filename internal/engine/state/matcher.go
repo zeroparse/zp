@@ -2,7 +2,7 @@ package state
 
 import (
 	"zeroparse.dev/zp/core"
-	"zeroparse.dev/zp/core/noderep"
+	"zeroparse.dev/zp/core/impl"
 	"zeroparse.dev/zp/internal/compile"
 	"zeroparse.dev/zp/internal/value"
 )
@@ -37,7 +37,7 @@ func RenamedExpected(p *Parser, expected []ExpID, name ExpID) []ExpID {
 func ShapeTuple(p *Parser, s compile.Shaper, v *core.Node, start int) *core.Node {
 	if s.Elems {
 		if s.Shared && v != nil {
-			return p.NewNode(value.Data{Kind: noderep.SeqKind, Start: value.D(v).Start, End: value.D(v).End, Children: value.D(v).Children, Fresh: true})
+			return p.NewNode(value.Data{Kind: coreimpl.SeqKind, Start: value.D(v).Start, End: value.D(v).End, Children: value.D(v).Children, Fresh: true})
 		}
 		return v
 	}
@@ -46,7 +46,7 @@ func ShapeTuple(p *Parser, s compile.Shaper, v *core.Node, start int) *core.Node
 		kids = p.Nodes(1)
 		kids[0] = v
 	}
-	return p.NewNode(value.Data{Kind: noderep.SeqKind, Start: int32(start), End: int32(p.Pos), Children: kids, Fresh: true})
+	return p.NewNode(value.Data{Kind: coreimpl.SeqKind, Start: int32(start), End: int32(p.Pos), Children: kids, Fresh: true})
 }
 
 // ShapeSingle returns the value, shaped by s, of the result v where the expression takes one

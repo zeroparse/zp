@@ -7,7 +7,7 @@ import (
 	"strings"
 
 	"zeroparse.dev/zp/core"
-	"zeroparse.dev/zp/core/noderep"
+	"zeroparse.dev/zp/core/impl"
 )
 
 // The codes of the binary operators, as the compositions of terms take them, for generated parsers;
@@ -378,7 +378,7 @@ func (p *Parser) TermPush(c *ActCtx, fn string, v any) any {
 		return nil
 	}
 	if k == 1 || k == 2 || k == 3 {
-		p.KidStack = append(p.KidStack, p.NewNode(Data{Kind: noderep.BoxKind, Box: v, Start: int32(c.start), End: int32(c.end)}))
+		p.KidStack = append(p.KidStack, p.NewNode(Data{Kind: coreimpl.BoxKind, Box: v, Start: int32(c.start), End: int32(c.end)}))
 		return nil
 	}
 	n, ok := nodeOf(v)

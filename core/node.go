@@ -7,7 +7,7 @@ import (
 	"strconv"
 	"strings"
 
-	"zeroparse.dev/zp/core/noderep"
+	"zeroparse.dev/zp/core/impl"
 )
 
 // Node is a value produced by parsing. It is a CST node, a terminal, a list, or a struct built by
@@ -15,7 +15,7 @@ import (
 // value, and, with source information, rule and captures; an error value is one with start, end
 // and error, and a struct one with type, start, end and fields.
 type Node struct {
-	d noderep.Data[Node]
+	d coreimpl.Data[Node]
 }
 
 // Type returns the node's type name: the kind of a node of the value model (string, tuple, list,
@@ -71,7 +71,7 @@ func (c *cloner) node(n *Node) *Node {
 		out.d.Children = c.value(n.d.Children).([]*Node)
 	}
 	if n.d.Fields != nil {
-		out.d.Fields = make(noderep.Fields, len(n.d.Fields))
+		out.d.Fields = make(coreimpl.Fields, len(n.d.Fields))
 		for i, f := range n.d.Fields {
 			f.Value = c.value(f.Value)
 			out.d.Fields[i] = f
@@ -160,21 +160,21 @@ func (k NodeKind) String() string {
 func (n *Node) Kind() NodeKind { return kindOfShape(shapeOf(n)) }
 
 // kindOfShape returns the NodeKind of a node that has the shape.
-func kindOfShape(shape noderep.Shape) NodeKind {
+func kindOfShape(shape coreimpl.Shape) NodeKind {
 	switch shape {
-	case noderep.ShapeString:
+	case coreimpl.ShapeString:
 		return KindString
-	case noderep.ShapeTuple:
+	case coreimpl.ShapeTuple:
 		return KindTuple
-	case noderep.ShapeList:
+	case coreimpl.ShapeList:
 		return KindList
-	case noderep.ShapeError:
+	case coreimpl.ShapeError:
 		return KindError
-	case noderep.ShapeBox:
+	case coreimpl.ShapeBox:
 		return KindValue
-	case noderep.ShapeTupleValue:
+	case coreimpl.ShapeTupleValue:
 		return KindTupleValue
-	case noderep.ShapeListValue:
+	case coreimpl.ShapeListValue:
 		return KindListValue
 	}
 	return KindStruct
@@ -195,9 +195,9 @@ func (n *Node) Text() string {
 		return ""
 	}
 	switch shapeOf(n) {
-	case noderep.ShapeString:
+	case coreimpl.ShapeString:
 		return n.d.Text
-	case noderep.ShapeError:
+	case coreimpl.ShapeError:
 		msg, _ := n.d.Fields.Get("message")
 		s, _ := msg.(string)
 		return s
@@ -212,7 +212,7 @@ func (n *Node) Len() int {
 		return 0
 	}
 	switch shapeOf(n) {
-	case noderep.ShapeTuple, noderep.ShapeList, noderep.ShapeTupleValue, noderep.ShapeListValue:
+	case coreimpl.ShapeTuple, coreimpl.ShapeList, coreimpl.ShapeTupleValue, coreimpl.ShapeListValue:
 		return len(n.d.Children)
 	}
 	return 0
@@ -245,9 +245,9 @@ func (n *Node) Value() any {
 		return nil
 	}
 	switch shapeOf(n) {
-	case noderep.ShapeBox:
+	case coreimpl.ShapeBox:
 		return n.d.Box
-	case noderep.ShapeString:
+	case coreimpl.ShapeString:
 		return n.d.Text
 	}
 	return nil
@@ -266,7 +266,7 @@ func (n *Node) Field(name string) any {
 // fieldsVisible reports whether the fields of n are public: those of a struct, and the captures
 // of a node with source information.
 func (n *Node) fieldsVisible() bool {
-	return n != nil && (n.d.Labeled || shapeOf(n) == noderep.ShapeStruct)
+	return n != nil && (n.d.Labeled || shapeOf(n) == coreimpl.ShapeStruct)
 }
 
 // Fields returns the fields of a struct, and, with source information, the captures of a node,
@@ -285,15 +285,15 @@ func (n *Node) Fields() iter.Seq2[string, any] {
 }
 
 // ShapeOf returns what n stands for in the value model.
-func shapeOf(n *Node) noderep.Shape { return noderep.ShapeOfKind(n.d.Kind, n.d.Terminal) }
+func shapeOf(n *Node) coreimpl.Shape { return coreimpl.ShapeOfKind(n.d.Kind, n.d.Terminal) }
 
 // captureLocations returns the locations of the captures of the tuple node n, in name order.
-func captureLocations(n *Node) []noderep.CaptureLocation {
-	return noderep.CaptureLocations(&n.d, rep)
+func captureLocations(n *Node) []coreimpl.CaptureLocation {
+	return coreimpl.CaptureLocations(&n.d, rep)
 }
 
 // rep returns the representation of n.
-func rep(n *Node) *noderep.Data[Node] { return &n.d }
+func rep(n *Node) *coreimpl.Data[Node] { return &n.d }
 
 // String renders the value as an S-expression of its shape, without positions, for tests and
 // debugging: a string is quoted, a tuple is ( ), a list [ ], nil is nil, a struct is
@@ -314,7 +314,7 @@ type sexprFrame struct {
 	enter bool
 	// labels maps the elements of the tuples being written to the names that capture them.
 	labels map[*Node][]string
-	side   []noderep.CaptureLocation
+	side   []coreimpl.CaptureLocation
 	close  string
 }
 
@@ -332,10 +332,10 @@ func writeValue(b *strings.Builder, v any) {
 		if f.enter {
 			f.enter = false
 			switch sh {
-			case noderep.ShapeBox:
+			case coreimpl.ShapeBox:
 				f.v, f.enter = n.d.Box, true
 				continue
-			case noderep.ShapeString:
+			case coreimpl.ShapeString:
 				if n.d.Kind.IsNodeType() {
 					b.WriteString(n.Type() + "(" + strconv.Quote(n.d.Text))
 					f.close = ")" + ruleSuffix(n)
@@ -344,7 +344,7 @@ func writeValue(b *strings.Builder, v any) {
 					f.close = ruleSuffix(n)
 				}
 				f.i = -1
-			case noderep.ShapeError:
+			case coreimpl.ShapeError:
 				msg, _ := n.d.Fields.Get("message")
 				b.WriteString("error(" + strconv.Quote(fmt.Sprint(msg)))
 				if expected, ok := n.d.Fields.Get("expected"); ok {
@@ -352,10 +352,10 @@ func writeValue(b *strings.Builder, v any) {
 				}
 				b.WriteString(")")
 				f.i = -1
-			case noderep.ShapeTuple, noderep.ShapeTupleValue:
+			case coreimpl.ShapeTuple, coreimpl.ShapeTupleValue:
 				b.WriteString(nodeTypePrefix(n) + "(")
 				f.close = ")" + ruleSuffix(n)
-				if sh == noderep.ShapeTuple && n.d.Labeled {
+				if sh == coreimpl.ShapeTuple && n.d.Labeled {
 					f.labels = map[*Node][]string{}
 					for _, c := range captureLocations(n) {
 						if c.Side {
@@ -369,10 +369,10 @@ func writeValue(b *strings.Builder, v any) {
 						f.labels[x] = append(f.labels[x], c.Name)
 					}
 				}
-			case noderep.ShapeList, noderep.ShapeListValue:
+			case coreimpl.ShapeList, coreimpl.ShapeListValue:
 				b.WriteString(nodeTypePrefix(n) + "[")
 				f.close = "]" + ruleSuffix(n)
-			case noderep.ShapeStruct:
+			case coreimpl.ShapeStruct:
 				b.WriteString(n.Type() + "{")
 				f.close = "}"
 			}
@@ -382,7 +382,7 @@ func writeValue(b *strings.Builder, v any) {
 			stack = stack[:len(stack)-1]
 			continue
 		}
-		if sh == noderep.ShapeStruct {
+		if sh == coreimpl.ShapeStruct {
 			fields := n.d.Fields.Sorted()
 			if f.i == len(fields) {
 				b.WriteString(f.close)
@@ -421,7 +421,7 @@ func writeValue(b *strings.Builder, v any) {
 			b.WriteString(name + ":")
 		}
 		next := sexprFrame{v: c, enter: true}
-		if c != nil && shapeOf(c) == noderep.ShapeTuple && c.Rule() == "" {
+		if c != nil && shapeOf(c) == coreimpl.ShapeTuple && c.Rule() == "" {
 			// A tuple nested in the node's own tuple holds the node's captures too.
 			next.labels = labels
 		}

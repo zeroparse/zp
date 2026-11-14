@@ -7,7 +7,7 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/core"
-	"zeroparse.dev/zp/core/noderep"
+	"zeroparse.dev/zp/core/impl"
 	"zeroparse.dev/zp/internal/engine/state"
 	"zeroparse.dev/zp/internal/value"
 )
@@ -40,7 +40,7 @@ func TestSnapshotPositionOverlayZeroAndOverflow(t *testing.T) {
 
 func TestSnapshotPositionOverlayCyclesAndTypedNil(t *testing.T) {
 	root := value.Ptr(value.Data{Start: 0, End: 128, Children: make([]*core.Node, 128)})
-	value.D(root).Fields = noderep.Fields{{Name: "self", Value: root}, {Name: "typedNil", Value: (*core.Node)(nil)}, {Name: "scalarPosition", Value: 42}}
+	value.D(root).Fields = coreimpl.Fields{{Name: "self", Value: root}, {Name: "typedNil", Value: (*core.Node)(nil)}, {Name: "scalarPosition", Value: 42}}
 	for i := range value.D(root).Children {
 		value.D(root).Children[i] = value.Ptr(value.Data{Start: int32(i), End: int32(i + 1), Mark: 1})
 	}

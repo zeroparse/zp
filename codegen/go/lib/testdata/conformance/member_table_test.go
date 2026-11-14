@@ -5,7 +5,7 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/core"
-	"zeroparse.dev/zp/core/noderep"
+	"zeroparse.dev/zp/core/impl"
 	"zeroparse.dev/zp/internal/ir/exec/conform"
 )
 
@@ -35,11 +35,11 @@ func memberCanon(x any) string {
 			return out
 		}
 		switch D(x).Kind {
-		case noderep.BoxKind:
+		case coreimpl.BoxKind:
 			return "box " + memberCanon(D(x).Box)
-		case noderep.ListValueKind:
+		case coreimpl.ListValueKind:
 			return conform.MemberCanon("list", nil, elems())
-		case noderep.TupleValueKind:
+		case coreimpl.TupleValueKind:
 			return conform.MemberCanon("tuple", nil, elems())
 		}
 		return x.Type()
@@ -78,7 +78,7 @@ func nodeMemberFixture(controlled bool) (*ActCtx, map[string]any) {
 	}
 	c := &ActCtx{P: p}
 	node := nodeOfData(&Data{Kind: SeqKind, Start: 2, End: 5})
-	noderep.SetField(&D(node).Fields, "y", nodeOfData(&Data{Kind: noderep.BoxKind, Box: 7}))
+	coreimpl.SetField(&D(node).Fields, "y", nodeOfData(&Data{Kind: coreimpl.BoxKind, Box: 7}))
 	return c, map[string]any{
 		conform.MemberNil:   nil,
 		conform.MemberInt:   1,

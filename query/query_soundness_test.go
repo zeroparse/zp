@@ -4,7 +4,7 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/core"
-	"zeroparse.dev/zp/core/noderep"
+	"zeroparse.dev/zp/core/impl"
 	"zeroparse.dev/zp/engine"
 	"zeroparse.dev/zp/internal/codegentest"
 	"zeroparse.dev/zp/internal/starttest"
@@ -88,7 +88,7 @@ func TestStructuralQueryNestedShapesAreSound(t *testing.T) {
 				n := m.Captures[0].Value.(*core.Node)
 				pattern := describeQueryValue(n, 3)
 				patterns++
-				if value.ShapeOf(n) == noderep.ShapeError {
+				if value.ShapeOf(n) == coreimpl.ShapeError {
 					recovered++
 				}
 				q, err := query.Compile(pattern, s)
@@ -128,9 +128,9 @@ func describeQueryValue(v any, depth int) query.Pattern {
 		// The value of a node is its text, or a tuple or list sharing its elements.
 		val := query.Pattern{Category: "string"}
 		switch value.ShapeOf(n) {
-		case noderep.ShapeTuple:
+		case coreimpl.ShapeTuple:
 			val.Category = "tuple"
-		case noderep.ShapeList:
+		case coreimpl.ShapeList:
 			val.Category = "list"
 		}
 		p.Value = &val
@@ -141,7 +141,7 @@ func describeQueryValue(v any, depth int) query.Pattern {
 		}
 	}
 	switch value.ShapeOf(n) {
-	case noderep.ShapeTuple, noderep.ShapeList, noderep.ShapeTupleValue, noderep.ShapeListValue:
+	case coreimpl.ShapeTuple, coreimpl.ShapeList, coreimpl.ShapeTupleValue, coreimpl.ShapeListValue:
 		for i, c := range value.D(n).Children {
 			if i == 2 {
 				break
@@ -160,15 +160,15 @@ func queryCategory(v any) string {
 			return "nil"
 		}
 		switch value.ShapeOf(v) {
-		case noderep.ShapeString, noderep.ShapeTuple, noderep.ShapeList:
+		case coreimpl.ShapeString, coreimpl.ShapeTuple, coreimpl.ShapeList:
 			return "node"
-		case noderep.ShapeError:
+		case coreimpl.ShapeError:
 			return "error"
-		case noderep.ShapeTupleValue:
+		case coreimpl.ShapeTupleValue:
 			return "tuple"
-		case noderep.ShapeListValue:
+		case coreimpl.ShapeListValue:
 			return "list"
-		case noderep.ShapeStruct:
+		case coreimpl.ShapeStruct:
 			return "struct"
 		}
 	case int:

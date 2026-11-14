@@ -3,7 +3,7 @@ package core
 import (
 	"testing"
 
-	"zeroparse.dev/zp/core/noderep"
+	"zeroparse.dev/zp/core/impl"
 )
 
 // Clone copies a tree built without a generator: subtrees, slice views and cycles stay shared in the
@@ -17,8 +17,8 @@ func TestCloneKeepsSharingAndCycles(t *testing.T) {
 	b := &Node{}
 	root.d.Children = []*Node{a, b, leaf}
 	// a and b hold the same slice view in a field; b also holds it as its children.
-	a.d.Fields = noderep.Fields{{Name: "xs", Value: shared}, {Name: "vs", Value: values}}
-	b.d.Fields = noderep.Fields{{Name: "xs", Value: shared}, {Name: "back", Value: root}}
+	a.d.Fields = coreimpl.Fields{{Name: "xs", Value: shared}, {Name: "vs", Value: values}}
+	b.d.Fields = coreimpl.Fields{{Name: "xs", Value: shared}, {Name: "back", Value: root}}
 	b.d.Children = shared
 
 	c := root.Clone()

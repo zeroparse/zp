@@ -11,7 +11,7 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/core"
-	"zeroparse.dev/zp/core/noderep"
+	"zeroparse.dev/zp/core/impl"
 	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/compile"
 	"zeroparse.dev/zp/internal/engine/state"
@@ -38,7 +38,7 @@ func TestBudgetDiagnosticRecoveredLists(t *testing.T) {
 					records[i] = []*core.SyntaxError{a, b, a}[i%3]
 				}
 				before, _ := json.Marshal(records)
-				retained := value.Ptr(value.Data{Text: "retained", Fields: noderep.Fields{{Name: "keep", Value: "stable"}}})
+				retained := value.Ptr(value.Data{Text: "retained", Fields: coreimpl.Fields{{Name: "keep", Value: "stable"}}})
 				p := diagnosticParser(core.Limits{})
 				list := state.NewErrList(records)
 				p.Memo, p.Recovered = state.NewMemoTable(), []state.RecEntry{state.ErrEntry(prefix)}

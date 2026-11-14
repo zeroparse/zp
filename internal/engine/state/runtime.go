@@ -6,7 +6,7 @@ import (
 	"sync"
 
 	"zeroparse.dev/zp/core"
-	"zeroparse.dev/zp/core/noderep"
+	"zeroparse.dev/zp/core/impl"
 	"zeroparse.dev/zp/internal/compile"
 	"zeroparse.dev/zp/internal/value"
 )
@@ -134,7 +134,7 @@ type Parser struct {
 	PtrSlab   []*core.Node
 	KidStack  []*core.Node
 	FrameSlab []Frame
-	fieldSlab []noderep.NodeField
+	fieldSlab []coreimpl.NodeField
 	// Document edits: gen is the number of edits made before this parse, and edits records them
 	// (see moveResult). moved holds the copies made by MoveEmpty.
 	Gen    uint32
@@ -401,8 +401,8 @@ func (p *Parser) Unisolate(m ExpMark) (far int, inner []ExpID) {
 // the backend built for it.
 type Rule struct {
 	staticRule
-	// Kinds are the node kinds the rule makes (noderep.NewRuleKinds).
-	Kinds noderep.RuleKinds
+	// Kinds are the node kinds the rule makes (coreimpl.NewRuleKinds).
+	Kinds coreimpl.RuleKinds
 	// Body matches the body of the rule at the current position and returns its node; min is the
 	// binding level of the call (see Call).
 	Body func(p *Parser, min int) (*core.Node, bool)
@@ -1031,7 +1031,7 @@ func (p *Parser) AttachCaptures(v *core.Node, s *compile.Scope, f *Frame, start,
 		return v
 	}
 	if wrap {
-		v = p.NewNode(value.Data{Kind: noderep.SeqKind, Start: int32(start), End: int32(end), Children: append(p.Nodes(1)[:0], v), Fresh: true})
+		v = p.NewNode(value.Data{Kind: coreimpl.SeqKind, Start: int32(start), End: int32(end), Children: append(p.Nodes(1)[:0], v), Fresh: true})
 	}
 	if value.D(v).Fields == nil {
 		value.D(v).Fields = p.fields(len(s.Names))
@@ -1111,10 +1111,10 @@ func (p *Parser) nodeValue(n *core.Node) any {
 	switch {
 	case value.D(n).Terminal:
 		return value.D(n).Text
-	case value.D(n).Kind != nil && value.D(n).Kind.Base == noderep.BaseList:
-		return p.NewNode(value.Data{Kind: noderep.ListValueKind, Start: value.D(n).Start, End: value.D(n).End, Children: value.D(n).Children})
+	case value.D(n).Kind != nil && value.D(n).Kind.Base == coreimpl.BaseList:
+		return p.NewNode(value.Data{Kind: coreimpl.ListValueKind, Start: value.D(n).Start, End: value.D(n).End, Children: value.D(n).Children})
 	}
-	return p.NewNode(value.Data{Kind: noderep.TupleValueKind, Start: value.D(n).Start, End: value.D(n).End, Children: value.D(n).Children})
+	return p.NewNode(value.Data{Kind: coreimpl.TupleValueKind, Start: value.D(n).Start, End: value.D(n).End, Children: value.D(n).Children})
 }
 
 // SeedVars gives the parser the initial environment of the program's variables. Every parse

@@ -4,7 +4,7 @@ import (
 	"strings"
 	"testing"
 
-	"zeroparse.dev/zp/core/noderep"
+	"zeroparse.dev/zp/core/impl"
 	"zeroparse.dev/zp/internal/bytecode"
 	"zeroparse.dev/zp/internal/ir/exec/ops"
 	"zeroparse.dev/zp/internal/value"
@@ -17,9 +17,9 @@ func TestLoadTermRejectsEachCheck(t *testing.T) {
 	strs := []string{"S"}
 	types := TermTypes{
 		NodeType: func(string) *value.NodeTypeKinds { return nil },
-		Struct: func(name string) *noderep.Kind {
+		Struct: func(name string) *coreimpl.Kind {
 			if name == "S" {
-				return noderep.SeqKind
+				return coreimpl.SeqKind
 			}
 			return nil
 		},

@@ -173,14 +173,14 @@ type surface struct {
 
 func (s *surface) add(line string) { s.lines[line] = true }
 
-// noderepPath is the import path of the node representation, which generated code reaches through
+// coreimplPath is the import path of the node representation, which generated code reaches through
 // the library (Data) and which belongs to the protocol like the library's own declarations.
-const noderepPath = "zeroparse.dev/zp/core/noderep"
+const coreimplPath = "zeroparse.dev/zp/core/impl"
 
-// typeName records a type or alias declaration of the package or of noderep and walks what it
+// typeName records a type or alias declaration of the package or of coreimpl and walks what it
 // reaches.
 func (s *surface) typeName(obj *types.TypeName) {
-	if obj.Pkg() == nil || (obj.Pkg() != s.pkg && obj.Pkg().Path() != noderepPath) || s.seen[obj] {
+	if obj.Pkg() == nil || (obj.Pkg() != s.pkg && obj.Pkg().Path() != coreimplPath) || s.seen[obj] {
 		return
 	}
 	s.seen[obj] = true
@@ -407,15 +407,15 @@ func TestProtocolSurfaceSeesReachedTypes(t *testing.T) {
 	_, want := packageSurface(t, ".", nil)
 	for _, line := range []string{
 		"method (*grammar) DeclareStruct(string, ...string)",
-		"type zeroparse.dev/zp/core/noderep.Kind struct{Type string; Rule string; Reserved int; Base int}",
-		"method (*zeroparse.dev/zp/core/noderep.Kind) IsNodeType() bool",
+		"type zeroparse.dev/zp/core/impl.Kind struct{Type string; Rule string; Reserved int; Base int}",
+		"method (*zeroparse.dev/zp/core/impl.Kind) IsNodeType() bool",
 	} {
 		if !strings.Contains(want, line+"\n") {
 			t.Errorf("the interface lacks %q", line)
 		}
 	}
-	if !strings.Contains(want, "type zeroparse.dev/zp/core/noderep.Data[N any] struct{Kind *zeroparse.dev/zp/core/noderep.Kind; ") {
-		t.Errorf("the interface lacks the fields of noderep.Data")
+	if !strings.Contains(want, "type zeroparse.dev/zp/core/impl.Data[N any] struct{Kind *zeroparse.dev/zp/core/impl.Kind; ") {
+		t.Errorf("the interface lacks the fields of coreimpl.Data")
 	}
 	dir := t.TempDir()
 	entries, err := os.ReadDir(".")
@@ -442,12 +442,12 @@ func TestProtocolSurfaceSeesReachedTypes(t *testing.T) {
 	}
 }
 
-// TestNoderepProtocol checks the guard between the library and the node representation: package
-// noderep declares exactly one protocol constant, of a version up to the library's, and the library
+// TestCoreImplProtocol checks the guard between the library and the node representation: package
+// coreimpl declares exactly one protocol constant, of a version up to the library's, and the library
 // refers to exactly that one, so a copy of the library builds only against a core that serves its
-// representation. TestRepresentation in core/noderep makes a change of the representation replace
+// representation. TestRepresentation in core/impl makes a change of the representation replace
 // the constant.
-func TestNoderepProtocol(t *testing.T) {
+func TestCoreImplProtocol(t *testing.T) {
 	fset := token.NewFileSet()
 	constants := func(dir string) (declared, referred []string) {
 		t.Helper()
@@ -469,7 +469,7 @@ func TestNoderepProtocol(t *testing.T) {
 						}
 					}
 				case *ast.SelectorExpr:
-					if x, ok := n.X.(*ast.Ident); ok && x.Name == "noderep" && strings.HasPrefix(n.Sel.Name, "Protocol") {
+					if x, ok := n.X.(*ast.Ident); ok && x.Name == "coreimpl" && strings.HasPrefix(n.Sel.Name, "Protocol") {
 						referred = append(referred, n.Sel.Name)
 					}
 				}
@@ -478,17 +478,17 @@ func TestNoderepProtocol(t *testing.T) {
 		}
 		return declared, referred
 	}
-	served, _ := constants(filepath.Join("..", "..", "..", "core", "noderep"))
+	served, _ := constants(filepath.Join("..", "..", "..", "core", "impl"))
 	_, referred := constants(".")
 	if len(served) != 1 {
-		t.Fatalf("core/noderep declares the protocol constants %v, want exactly one", served)
+		t.Fatalf("core/impl declares the protocol constants %v, want exactly one", served)
 	}
 	if !slices.Equal(referred, served) {
-		t.Errorf("the library refers to the noderep protocol constants %v, want exactly %v", referred, served)
+		t.Errorf("the library refers to the coreimpl protocol constants %v, want exactly %v", referred, served)
 	}
 	// The representation was introduced by a protocol version the library implements or a former one.
 	version, _ := protocolSurface(t)
 	if n, err := strconv.Atoi(strings.TrimPrefix(served[0], "Protocol")); err != nil || n > version {
-		t.Errorf("core/noderep declares %s, which is not a protocol version up to the library's %d", served[0], version)
+		t.Errorf("core/impl declares %s, which is not a protocol version up to the library's %d", served[0], version)
 	}
 }

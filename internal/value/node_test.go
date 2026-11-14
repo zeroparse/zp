@@ -5,7 +5,7 @@ import (
 	"unsafe"
 
 	"zeroparse.dev/zp/core"
-	"zeroparse.dev/zp/core/noderep"
+	"zeroparse.dev/zp/core/impl"
 )
 
 // KindOfShape and core.Node.Kind map shapes to kinds by separate copies of one table.
@@ -17,7 +17,7 @@ func TestKindOfShape(t *testing.T) {
 			t.Errorf("node of kind %v: KindOfShape = %v, Kind = %v", k, got, n.Kind())
 		}
 	}
-	n := Ptr(Data{Kind: noderep.MissingKind})
+	n := Ptr(Data{Kind: coreimpl.MissingKind})
 	if KindOfShape(ShapeOf(n)) != n.Kind() {
 		t.Errorf("missing token: KindOfShape = %v, Kind = %v", KindOfShape(ShapeOf(n)), n.Kind())
 	}

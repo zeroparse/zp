@@ -13,7 +13,7 @@ import (
 	"strings"
 
 	"zeroparse.dev/zp/core"
-	"zeroparse.dev/zp/core/noderep"
+	"zeroparse.dev/zp/core/impl"
 	"zeroparse.dev/zp/internal/limits"
 	"zeroparse.dev/zp/internal/value"
 	"zeroparse.dev/zp/schema"
@@ -406,7 +406,7 @@ func hasElements(n *core.Node) bool {
 		return false
 	}
 	switch value.ShapeOf(n) {
-	case noderep.ShapeTuple, noderep.ShapeList, noderep.ShapeTupleValue, noderep.ShapeListValue:
+	case coreimpl.ShapeTuple, coreimpl.ShapeList, coreimpl.ShapeTupleValue, coreimpl.ShapeListValue:
 		return true
 	}
 	return false
@@ -416,10 +416,10 @@ func hasElements(n *core.Node) bool {
 // elements.
 func nodeValue(n *core.Node) any {
 	switch value.ShapeOf(n) {
-	case noderep.ShapeTuple:
-		return value.Ptr(value.Data{Kind: noderep.TupleValueKind, Start: value.D(n).Start, End: value.D(n).End, Children: value.D(n).Children})
-	case noderep.ShapeList:
-		return value.Ptr(value.Data{Kind: noderep.ListValueKind, Start: value.D(n).Start, End: value.D(n).End, Children: value.D(n).Children})
+	case coreimpl.ShapeTuple:
+		return value.Ptr(value.Data{Kind: coreimpl.TupleValueKind, Start: value.D(n).Start, End: value.D(n).End, Children: value.D(n).Children})
+	case coreimpl.ShapeList:
+		return value.Ptr(value.Data{Kind: coreimpl.ListValueKind, Start: value.D(n).Start, End: value.D(n).End, Children: value.D(n).Children})
 	}
 	return value.D(n).Text
 }
@@ -441,15 +441,15 @@ func valueCategory(v any) (string, error) {
 			return "nil", nil
 		}
 		switch value.ShapeOf(v) {
-		case noderep.ShapeString, noderep.ShapeTuple, noderep.ShapeList:
+		case coreimpl.ShapeString, coreimpl.ShapeTuple, coreimpl.ShapeList:
 			return "node", nil
-		case noderep.ShapeError:
+		case coreimpl.ShapeError:
 			return "error", nil
-		case noderep.ShapeTupleValue:
+		case coreimpl.ShapeTupleValue:
 			return "tuple", nil
-		case noderep.ShapeListValue:
+		case coreimpl.ShapeListValue:
 			return "list", nil
-		case noderep.ShapeStruct:
+		case coreimpl.ShapeStruct:
 			return "struct", nil
 		}
 	case int:

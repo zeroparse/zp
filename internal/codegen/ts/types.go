@@ -7,7 +7,7 @@ import (
 	"strconv"
 	"strings"
 
-	"zeroparse.dev/zp/core/noderep"
+	"zeroparse.dev/zp/core/impl"
 	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/codegen"
 	"zeroparse.dev/zp/internal/compile"
@@ -121,10 +121,10 @@ func (g *Generator) typedTS(start *compile.Rule) (types, parser string, err erro
 		fmt.Fprintf(&b, "  [%s, %d],\n", TsString(n.Name), t.recipe(n))
 	}
 	// Open values: tuple and list nodes become TNode<unknown>, and tuple and list values arrays.
-	for _, name := range []string{noderep.TypeTuple, noderep.TypeList} {
+	for _, name := range []string{coreimpl.TypeTuple, coreimpl.TypeList} {
 		fmt.Fprintf(&b, "  [%s, %d],\n", TsString(name), openID)
 	}
-	for _, name := range []string{noderep.TypeTupleValue, noderep.TypeListValue} {
+	for _, name := range []string{coreimpl.TypeTupleValue, coreimpl.TypeListValue} {
 		fmt.Fprintf(&b, "  [%s, %d],\n", TsString(name), elemsID)
 	}
 	for _, name := range t.all {
@@ -406,7 +406,7 @@ func (t *tsTypedGen) recipe(x compile.Ty) int {
 		r += ", elems: [" + strings.Join(elems, ", ") + "]"
 	case compile.JoinTy:
 		if kind == "union" {
-			members := []string{fmt.Sprintf("[%s, %d]", TsString(noderep.TypeError), t.recipe(compile.TyError))}
+			members := []string{fmt.Sprintf("[%s, %d]", TsString(coreimpl.TypeError), t.recipe(compile.TyError))}
 			for _, m := range a.Alts {
 				if m, ok := m.(compile.NamedTy); ok && (m == compile.TyMatch || m.Kind == 's') {
 					members = append(members, fmt.Sprintf("[%s, %d]", TsString(m.Name), t.recipe(m)))

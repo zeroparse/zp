@@ -10,7 +10,7 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/core"
-	"zeroparse.dev/zp/core/noderep"
+	"zeroparse.dev/zp/core/impl"
 	"zeroparse.dev/zp/internal/engine"
 	"zeroparse.dev/zp/internal/enginetest"
 	"zeroparse.dev/zp/internal/value"
@@ -37,9 +37,9 @@ func referenceJSON(n *core.Node) any {
 		Fields map[string]any `json:"fields"`
 	}
 	switch value.ShapeOf(n) {
-	case noderep.ShapeString:
+	case coreimpl.ShapeString:
 		return node{value.D(n).Start, value.D(n).End, value.D(n).Text, n.Rule()}
-	case noderep.ShapeTuple, noderep.ShapeList:
+	case coreimpl.ShapeTuple, coreimpl.ShapeList:
 		elems := make([]any, len(value.D(n).Children))
 		for i, c := range value.D(n).Children {
 			elems[i] = referenceJSON(c)
@@ -73,19 +73,19 @@ func referenceField(val any) any {
 
 func TestNodeWriteJSONMatchesReferenceShape(t *testing.T) {
 	t.Parallel()
-	child := value.Ptr(value.Data{Kind: noderep.MatchKind, Start: 3, End: 5, Text: "<&>\xff"})
+	child := value.Ptr(value.Data{Kind: coreimpl.MatchKind, Start: 3, End: 5, Text: "<&>\xff"})
 	record := value.Ptr(value.Data{
-		Kind:  noderep.KindOf("Record", "entry"),
+		Kind:  coreimpl.KindOf("Record", "entry"),
 		Start: 1,
 		End:   8,
-		Fields: noderep.Fields{
+		Fields: coreimpl.Fields{
 			{Name: "z", Value: []any{"<tag>", []byte{0, 1, 255}, child}},
 			{Name: "a", Value: int64(9007199254740992)},
 			{Name: "nilList", Value: []any(nil)},
 			{Name: "emptyList", Value: []any{}},
 		},
 	})
-	tuple := value.Ptr(value.Data{Kind: noderep.KindOf("tuple", "pair"), Start: 1, End: 8, Children: []*core.Node{child, nil, child}})
+	tuple := value.Ptr(value.Data{Kind: coreimpl.KindOf("tuple", "pair"), Start: 1, End: 8, Children: []*core.Node{child, nil, child}})
 	for _, n := range []*core.Node{record, tuple} {
 		want, err := json.Marshal(referenceJSON(n))
 		if err != nil {
@@ -125,7 +125,7 @@ func TestNodeWriteJSONNilAndFields(t *testing.T) {
 	}
 
 	// The fields of a struct encode as an object with names in lexicographic order.
-	fields := noderep.Fields{{Name: "child", Value: value.Ptr(value.Data{Kind: noderep.MatchKind, Text: "x"})}, {Name: "bytes", Value: []byte{1, 2}}}
+	fields := coreimpl.Fields{{Name: "child", Value: value.Ptr(value.Data{Kind: coreimpl.MatchKind, Text: "x"})}, {Name: "bytes", Value: []byte{1, 2}}}
 	got, err = value.NewNode(core.KindStruct, 0, 0, "", nil, "T", fields, nil).MarshalJSON()
 	if err != nil {
 		t.Fatal(err)
@@ -133,7 +133,7 @@ func TestNodeWriteJSONNilAndFields(t *testing.T) {
 	if want := `{"bytes":"AQI=","child":{"start":0,"end":0,"value":"x"}}`; !strings.Contains(string(got), want) {
 		t.Fatalf("struct fields JSON = %s, want it to contain %s", got, want)
 	}
-	listFields := noderep.Fields{{Name: "nil", Value: []any(nil)}, {Name: "empty", Value: []any{}}}
+	listFields := coreimpl.Fields{{Name: "nil", Value: []any(nil)}, {Name: "empty", Value: []any{}}}
 	got, err = value.NewNode(core.KindStruct, 0, 0, "", nil, "T", listFields, nil).MarshalJSON()
 	if err != nil || !strings.Contains(string(got), `{"empty":[],"nil":null}`) {
 		t.Fatalf("struct nil/empty list fields JSON = %s, %v; want {\"empty\":[],\"nil\":null} in it", got, err)
@@ -142,8 +142,8 @@ func TestNodeWriteJSONNilAndFields(t *testing.T) {
 
 func TestNodeWriteJSONSharedNodesAndCycles(t *testing.T) {
 	t.Parallel()
-	leaf := value.Ptr(value.Data{Kind: noderep.MatchKind, Text: "shared"})
-	root := value.Ptr(value.Data{Kind: noderep.SeqKind, Children: []*core.Node{leaf, leaf}})
+	leaf := value.Ptr(value.Data{Kind: coreimpl.MatchKind, Text: "shared"})
+	root := value.Ptr(value.Data{Kind: coreimpl.SeqKind, Children: []*core.Node{leaf, leaf}})
 	data, err := root.MarshalJSON()
 	if err != nil {
 		t.Fatal(err)
@@ -157,20 +157,20 @@ func TestNodeWriteJSONSharedNodesAndCycles(t *testing.T) {
 		make func() *core.Node
 	}{
 		{"child", func() *core.Node {
-			n := value.Ptr(value.Data{Kind: noderep.SeqKind})
+			n := value.Ptr(value.Data{Kind: coreimpl.SeqKind})
 			value.D(n).Children = []*core.Node{n}
 			return n
 		}},
 		{"field", func() *core.Node {
-			n := value.Ptr(value.Data{Kind: noderep.KindOf("R", "")})
-			value.D(n).Fields = noderep.Fields{{Name: "self", Value: n}}
+			n := value.Ptr(value.Data{Kind: coreimpl.KindOf("R", "")})
+			value.D(n).Fields = coreimpl.Fields{{Name: "self", Value: n}}
 			return n
 		}},
 		{"slice", func() *core.Node {
 			var values []any
 			values = append(values, nil)
 			values[0] = values
-			return value.Ptr(value.Data{Kind: noderep.KindOf("R", ""), Fields: noderep.Fields{{Name: "cycle", Value: values}}})
+			return value.Ptr(value.Data{Kind: coreimpl.KindOf("R", ""), Fields: coreimpl.Fields{{Name: "cycle", Value: values}}})
 		}},
 	} {
 		t.Run(makeCycle.name, func(t *testing.T) {
@@ -195,7 +195,7 @@ func (v failingJSONValue) MarshalJSON() ([]byte, error) { return nil, sentinelJS
 func TestNodeWriteJSONPreservesLeafErrors(t *testing.T) {
 	t.Parallel()
 	want := errors.New("leaf cause")
-	n := value.Ptr(value.Data{Kind: noderep.KindOf("R", ""), Fields: noderep.Fields{{Name: "bad", Value: failingJSONValue{want}}}})
+	n := value.Ptr(value.Data{Kind: coreimpl.KindOf("R", ""), Fields: coreimpl.Fields{{Name: "bad", Value: failingJSONValue{want}}}})
 	for name, err := range map[string]error{
 		"WriteJSON":    n.WriteJSON(io.Discard),
 		"MarshalJSON":  func() error { _, err := n.MarshalJSON(); return err }(),
@@ -212,10 +212,10 @@ func TestNodeWriteJSONPreservesLeafErrors(t *testing.T) {
 func TestNodeWriteJSONDeepAndStandardLibraryLimit(t *testing.T) {
 	t.Parallel()
 	const depth = 12_000
-	root := value.Ptr(value.Data{Kind: noderep.SeqKind})
+	root := value.Ptr(value.Data{Kind: coreimpl.SeqKind})
 	current := root
 	for i := 1; i < depth; i++ {
-		child := value.Ptr(value.Data{Kind: noderep.SeqKind})
+		child := value.Ptr(value.Data{Kind: coreimpl.SeqKind})
 		value.D(current).Children = []*core.Node{child}
 		current = child
 	}
@@ -246,7 +246,7 @@ func (w *countingWriter) Write(p []byte) (int, error) { w.n += len(p); return le
 
 func TestNodeWriteJSONShortWriter(t *testing.T) {
 	t.Parallel()
-	n := value.Ptr(value.Data{Kind: noderep.MatchKind, Text: "x"})
+	n := value.Ptr(value.Data{Kind: coreimpl.MatchKind, Text: "x"})
 	err := n.WriteJSON(shortWriter{})
 	if !errors.Is(err, io.ErrShortWrite) {
 		t.Fatalf("WriteJSON short write error = %v, want io.ErrShortWrite", err)
@@ -264,7 +264,7 @@ func (shortWriter) Write(p []byte) (int, error) {
 
 func TestNodeWriteJSONLargeScalarAcrossBufferBoundary(t *testing.T) {
 	t.Parallel()
-	n := value.Ptr(value.Data{Kind: noderep.MatchKind, Text: strings.Repeat("x", 600)})
+	n := value.Ptr(value.Data{Kind: coreimpl.MatchKind, Text: strings.Repeat("x", 600)})
 	want, err := json.Marshal(referenceJSON(n))
 	if err != nil {
 		t.Fatal(err)
@@ -296,7 +296,7 @@ func (w *partialAfterFlushWriter) Write(p []byte) (int, error) {
 
 func TestNodeWriteJSONPartialWriteErrorAfterFlush(t *testing.T) {
 	t.Parallel()
-	n := value.Ptr(value.Data{Kind: noderep.MatchKind, Text: strings.Repeat("x", 600)})
+	n := value.Ptr(value.Data{Kind: coreimpl.MatchKind, Text: strings.Repeat("x", 600)})
 	wantErr := errors.New("writer failed")
 	w := &partialAfterFlushWriter{err: wantErr}
 	err := n.WriteJSON(w)
@@ -318,7 +318,7 @@ func TestNodeWriteJSONPartialWriteErrorAfterFlush(t *testing.T) {
 
 func TestNodeWriteJSONInvalidValueParity(t *testing.T) {
 	t.Parallel()
-	n := value.Ptr(value.Data{Kind: noderep.KindOf("R", ""), Fields: noderep.Fields{{Name: "bad", Value: math.NaN()}}})
+	n := value.Ptr(value.Data{Kind: coreimpl.KindOf("R", ""), Fields: coreimpl.Fields{{Name: "bad", Value: math.NaN()}}})
 	_, gotErr := n.MarshalJSON()
 	_, wantErr := json.Marshal(struct {
 		Type   string         `json:"type"`
@@ -335,7 +335,7 @@ func TestNodeWriteJSONInvalidValueParity(t *testing.T) {
 func TestNodeJSONSliceIdentityAllowsRepeatedAcyclicEdges(t *testing.T) {
 	t.Parallel()
 	shared := []any{"ok"}
-	n := value.Ptr(value.Data{Kind: noderep.KindOf("R", ""), Fields: noderep.Fields{{Name: "a", Value: shared}, {Name: "b", Value: shared}}})
+	n := value.Ptr(value.Data{Kind: coreimpl.KindOf("R", ""), Fields: coreimpl.Fields{{Name: "a", Value: shared}, {Name: "b", Value: shared}}})
 	got, err := n.MarshalJSON()
 	if err != nil {
 		t.Fatal(err)
@@ -349,7 +349,7 @@ func TestNodeWriteJSONSliceIdentityIgnoresCapacity(t *testing.T) {
 	t.Parallel()
 	x := make([]any, 1, 2)
 	x[0] = x[:1:1]
-	root := value.Ptr(value.Data{Fields: noderep.Fields{{Name: "x", Value: x}}})
+	root := value.Ptr(value.Data{Fields: coreimpl.Fields{{Name: "x", Value: x}}})
 	var prefix bytes.Buffer
 	err := root.WriteJSON(&prefix)
 	var cycle *json.UnsupportedValueError

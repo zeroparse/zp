@@ -4,7 +4,7 @@ import (
 	"sort"
 
 	"zeroparse.dev/zp/core"
-	"zeroparse.dev/zp/core/noderep"
+	"zeroparse.dev/zp/core/impl"
 	"zeroparse.dev/zp/internal/value"
 )
 
@@ -64,22 +64,22 @@ func visitGraph(root *core.Node, b *budget, visit func(graphVisit) error) error 
 			return nil
 		}
 		switch value.ShapeOf(x) {
-		case noderep.ShapeStruct:
+		case coreimpl.ShapeStruct:
 			if err := b.charge(uint64(len(value.D(x).Fields))); err != nil {
 				return err
 			}
-			fields := append(noderep.Fields(nil), value.D(x).Fields...)
+			fields := append(coreimpl.Fields(nil), value.D(x).Fields...)
 			sort.SliceStable(fields, func(i, j int) bool { return fields[i].Name < fields[j].Name })
 			for i := len(fields) - 1; i >= 0; i-- {
 				if err := push(fields[i].Value, Edge{Kind: "field", Name: fields[i].Name}); err != nil {
 					return err
 				}
 			}
-		case noderep.ShapeTuple, noderep.ShapeList, noderep.ShapeTupleValue, noderep.ShapeListValue:
+		case coreimpl.ShapeTuple, coreimpl.ShapeList, coreimpl.ShapeTupleValue, coreimpl.ShapeListValue:
 			if err := b.charge(uint64(len(value.D(x).Children) + len(value.D(x).Fields))); err != nil {
 				return err
 			}
-			if value.ShapeOf(x) == noderep.ShapeTuple && len(value.D(x).Fields) > 0 {
+			if value.ShapeOf(x) == coreimpl.ShapeTuple && len(value.D(x).Fields) > 0 {
 				locations := value.CaptureLocations(x)
 				for i := len(locations) - 1; i >= 0; i-- {
 					if c := locations[i]; c.Side {

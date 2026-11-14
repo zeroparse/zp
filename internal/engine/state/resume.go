@@ -4,7 +4,7 @@ import (
 	"slices"
 
 	"zeroparse.dev/zp/core"
-	"zeroparse.dev/zp/core/noderep"
+	"zeroparse.dev/zp/core/impl"
 	"zeroparse.dev/zp/internal/compile"
 	"zeroparse.dev/zp/internal/value"
 )
@@ -345,7 +345,7 @@ func (p *Parser) ResumeRepeat(rs *RunSite) (*core.Node, bool) {
 	if !rs.Build {
 		return nil, true
 	}
-	return p.NewNode(value.Data{Kind: noderep.ListKind, Start: int32(start), End: int32(p.Pos), Children: p.Kids(base), Fresh: true}), true
+	return p.NewNode(value.Data{Kind: coreimpl.ListKind, Start: int32(start), End: int32(p.Pos), Children: p.Kids(base), Fresh: true}), true
 }
 
 // after reports whether every element examined only input from end on.

@@ -269,8 +269,8 @@ Details:
   `zeroparse.dev/zp/codegen/go/lib`. Both refer to the library protocol they were generated for, so a mismatched
   version fails the build on that line instead of misbehaving. With `-lib import`, `parser.go` declares
   `const _ = rt.Protocol16`, and a library that does not implement the protocol fails with
-  `undefined: rt.Protocol16`. The embedded copy declares `const _ = noderep.Protocol15`, and a `core` that does
-  not serve the node representation of that protocol fails with `undefined: noderep.Protocol15`. Regenerate the
+  `undefined: rt.Protocol16`. The embedded copy declares `const _ = coreimpl.Protocol15`, and a `core` that does
+  not serve the node representation of that protocol fails with `undefined: coreimpl.Protocol15`. Regenerate the
   parser with the `zp` of the required version, or require a version of `zeroparse.dev/zp` that implements the
   protocol.
 

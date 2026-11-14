@@ -5,7 +5,7 @@ grammar at run time, and without a stale parser after somebody changes the gramm
 
 Generate Go code from the grammar with `zp gen`, commit it, regenerate it with `go generate`, and let a test fail
 when the committed file does not match the grammar. The generated package imports only the standard library and
-ZeroParse's small package `core` (with `core/noderep`), not the engine or the generator.
+ZeroParse's small package `core` (with `core/impl`), not the engine or the generator.
 
 The grammar reads versions such as `1.2.3` and `1.2.3-rc.1`:
 
@@ -148,7 +148,7 @@ FAIL
 ## How It Works
 
 - **A small dependency at run time.** `go list -deps .` for the program lists only `zeroparse.dev/zp/core` and
-  `zeroparse.dev/zp/core/noderep` of ZeroParse: the result and error types of the generated API. The engine and the
+  `zeroparse.dev/zp/core/impl` of ZeroParse: the result and error types of the generated API. The engine and the
   generator are not linked into it. `go.mod` requires ZeroParse for these, for the tool and for the test.
 - **The generator is deterministic.** The same grammar and options give the same file, which is what makes the
   comparison in the test, and a review of a diff of `parser.go`, meaningful.

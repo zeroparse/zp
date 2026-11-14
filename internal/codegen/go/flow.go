@@ -6,7 +6,7 @@ import (
 	"strconv"
 	"strings"
 
-	"zeroparse.dev/zp/core/noderep"
+	"zeroparse.dev/zp/core/impl"
 	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/codegen"
 	"zeroparse.dev/zp/internal/compile"
@@ -576,7 +576,7 @@ func (p *flowPrinter) expr(x flow.Expr) string {
 	case *flow.NewNode:
 		typ := "tuple"
 		if x.List {
-			typ = noderep.TypeList
+			typ = coreimpl.TypeList
 		}
 		return fmt.Sprintf("p.%s(%q, %s, p.Pos, %s)", p.g.helper("NewNode"), typ, p.expr(x.Start), p.expr(x.Kids))
 	case *flow.NewVals:

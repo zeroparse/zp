@@ -4,7 +4,7 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/core"
-	"zeroparse.dev/zp/core/noderep"
+	"zeroparse.dev/zp/core/impl"
 	"zeroparse.dev/zp/internal/value"
 )
 
@@ -110,7 +110,7 @@ func TestSkipRunsShareElements(t *testing.T) {
 	el := func(s string) []*core.Node {
 		var ns []*core.Node
 		for _, c := range s {
-			ns = append(ns, p.NewNode(value.Data{Kind: noderep.MatchKind, Text: string(c)}))
+			ns = append(ns, p.NewNode(value.Data{Kind: coreimpl.MatchKind, Text: string(c)}))
 		}
 		return ns
 	}

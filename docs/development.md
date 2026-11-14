@@ -33,7 +33,7 @@ This document describes the repository layout and architecture, how to run tests
 | `internal/codegen/` | What the Go and TypeScript generators share: generation options, the library mode of generated Go parsers, generated files, and the generator state both print with (the program and rule being printed, the expectation table, shared names, the Flow IR state of recognizer rules and the action value resolver) |
 | `codegen/go/lib/` | Library of generated Go parsers, imported by them or copied into them (`zeroparse.dev/zp/codegen/go/lib`); it depends only on `core` |
 | `core/` | The types that the engine and generated Go parsers share: nodes with their JSON form, traversal and cursors, the stream iterator, limits and their errors, position units, syntax errors, edits and statistics (`zeroparse.dev/zp/core`) |
-| `core/noderep/` | The representation of `core.Node` that the parsers build and read; not a stable API |
+| `core/impl/` | The representation of `core.Node` that the parsers build and read; not a stable API |
 | `internal/codegen/go/` | Go generator: prints the parser, its types package and the library copy from the compiled program and Exec IR, and leaves out what the entry points cannot reach |
 | `internal/codegen/ts/` | TypeScript generator: prints the parser, its types and its library file from the compiled program and Exec IR |
 | `internal/ir/` | The internal representations between a compiled program and generated code: `core/` (Core IR, its builder in `core/build/` and its passes), `flow/` (Flow IR, and in `flow/lower/` its lowering and which compiled rules it lowers), `exec/` (Exec IR: the operations of the parser VM in `exec/ops/`, the compositions in `exec/core/` and their Go library printing in `exec/libgo/`, the lowering from Flow IR in `exec/lower/`, the passes in `exec/pass/`, the Go and TypeScript printers in `exec/gogen/` and `exec/tsgen/`, the specification-table reader of their tests in `exec/spectest/`, and the reference models and conformance suite in `exec/ref/` and `exec/conform/`) and `pipeline/` (the runner of declared passes). See [Core, Flow and Exec IR](design/intermediate-representations.md) |
@@ -170,12 +170,12 @@ compares the exported declarations of the library, with the exported fields and 
 types that aliases stand for, with `codegen/go/lib/testdata/protocol.golden` and fails when they changed under the same
 protocol version: replace `ProtocolN` with `ProtocolN+1` in the library, then run
 `go test ./codegen/go/lib -run TestProtocol -update-protocol`. A change of what the declarations mean or of how
-generated parsers encode their data needs the same bump, which no test detects. `TestRepresentation` in `core/noderep`
+generated parsers encode their data needs the same bump, which no test detects. `TestRepresentation` in `core/impl`
 compares the node representation (every declaration of the package, exported or not: type layouts, constant values and
-signatures) with `core/noderep/testdata/representation.golden` and fails when it changed under the same constant: replace
-the constant of `core/noderep` with `ProtocolN` of the protocol version that makes the change, refer to it in the
-library, then run `go test ./core/noderep -run TestRepresentation -update-representation`. `TestNoderepProtocol` checks
-that `core/noderep` declares exactly one protocol constant, of a version up to the library's, and that the library
+signatures) with `core/impl/testdata/representation.golden` and fails when it changed under the same constant: replace
+the constant of `core/impl` with `ProtocolN` of the protocol version that makes the change, refer to it in the
+library, then run `go test ./core/impl -run TestRepresentation -update-representation`. `TestCoreImplProtocol` checks
+that `core/impl` declares exactly one protocol constant, of a version up to the library's, and that the library
 refers to it, and `codegen/protocol_test.go` checks that a parser generated with `-lib import` fails to build against a
 library of another protocol and that an embedded copy fails to build against a `core` of another protocol.
 

@@ -3,7 +3,7 @@ package state
 import (
 	"fmt"
 
-	"zeroparse.dev/zp/core/noderep"
+	"zeroparse.dev/zp/core/impl"
 	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/compile"
 	ir "zeroparse.dev/zp/internal/ir/core"
@@ -61,7 +61,7 @@ type termCast struct {
 }
 
 type termStruct struct {
-	kind   *noderep.Kind
+	kind   *coreimpl.Kind
 	fields int
 }
 

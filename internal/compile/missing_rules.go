@@ -2,7 +2,7 @@ package compile
 
 import (
 	"fmt"
-	"zeroparse.dev/zp/core/noderep"
+	"zeroparse.dev/zp/core/impl"
 	"zeroparse.dev/zp/internal/cancel"
 
 	"zeroparse.dev/zp/grammar"
@@ -16,7 +16,7 @@ func (prog *Program) markMissingRules(control *cancel.Control) {
 		control.Poll()
 		switch t := t.(type) {
 		case *grammar.TypeRef:
-			return t.Name == noderep.TypeMissing
+			return t.Name == coreimpl.TypeMissing
 		case *grammar.ListType:
 			return usesMissingType(t.Elem)
 		case *grammar.OptionalType:

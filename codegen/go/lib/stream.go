@@ -10,7 +10,7 @@ import (
 	"unicode/utf8"
 
 	"zeroparse.dev/zp/core"
-	"zeroparse.dev/zp/core/noderep"
+	"zeroparse.dev/zp/core/impl"
 )
 
 // streamInput is the input of a stream parse. Positions are absolute; the
@@ -701,7 +701,7 @@ func (p *Parser) streamMatchLiteral(rs []rune, text string, desc ExpID, build bo
 	if !build {
 		return nil, true
 	}
-	return p.NewNode(Data{Kind: noderep.MatchKind, Start: int32(start), End: int32(p.Pos), Text: p.LiteralText(start, text), Terminal: true, Fresh: true}), true
+	return p.NewNode(Data{Kind: coreimpl.MatchKind, Start: int32(start), End: int32(p.Pos), Text: p.LiteralText(start, text), Terminal: true, Fresh: true}), true
 }
 
 func (p *Parser) streamAtLineStart() bool {

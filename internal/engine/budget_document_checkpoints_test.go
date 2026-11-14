@@ -9,7 +9,7 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/core"
-	"zeroparse.dev/zp/core/noderep"
+	"zeroparse.dev/zp/core/impl"
 	"zeroparse.dev/zp/internal/codegentest"
 	"zeroparse.dev/zp/internal/engine/state"
 	"zeroparse.dev/zp/internal/value"
@@ -96,7 +96,7 @@ func TestBudgetDocumentMovementChargesEdges(t *testing.T) {
 	t.Parallel()
 	child := value.Ptr(value.Data{Start: 2, End: 3})
 	field := value.Ptr(value.Data{Start: 4, End: 5})
-	root := value.Ptr(value.Data{Start: 1, End: 6, Children: []*core.Node{child}, Fields: noderep.Fields{{Name: "field", Value: field}}})
+	root := value.Ptr(value.Data{Start: 1, End: 6, Children: []*core.Node{child}, Fields: coreimpl.Fields{{Name: "field", Value: field}}})
 	p := stateBudgetParser(core.Limits{Compute: 3})
 	p.Gen = 1
 	if err := catchFatal(t, func() { p.MoveTree(root, 10) }); !errors.Is(err, core.ErrLimit) {
@@ -190,7 +190,7 @@ func TestBudgetDocumentShiftReplayAndSharedEmptyGraph(t *testing.T) {
 	}
 	empty := value.Ptr(value.Data{Start: 0, End: 0})
 	leaf := value.Ptr(value.Data{Start: 3, End: 4})
-	root := value.Ptr(value.Data{Start: 0, End: 0, Children: []*core.Node{empty, leaf}, Fields: noderep.Fields{{Name: "empty", Value: empty}, {Name: "leaf", Value: leaf}}})
+	root := value.Ptr(value.Data{Start: 0, End: 0, Children: []*core.Node{empty, leaf}, Fields: coreimpl.Fields{{Name: "empty", Value: empty}, {Name: "leaf", Value: leaf}}})
 	clone := root.Clone()
 	history := codegentest.ResultJSON(clone, nil)
 	p = stateBudgetParser(core.Limits{Compute: 32})

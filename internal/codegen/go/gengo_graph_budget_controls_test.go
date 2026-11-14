@@ -72,7 +72,7 @@ const generatedGoGraphTypedRuleCheck = `for _,name:=range []string{"main","rollb
 const generatedGoGraphConsumer = `package PACKAGE
 
 import zprt "zeroparse.dev/zp/codegen/go/lib"
-import "zeroparse.dev/zp/core/noderep"
+import "zeroparse.dev/zp/core/impl"
 import("context";"errors";"fmt";"reflect";"strings";"testing")
 const conversion = CONVERT
 func graphParser(limit uint64)*zprt.Parser{p:=&zprt.Parser{Control:zprt.X_newBudgetControl(nil,Limits{Compute:limit})};p.X_setGrammar(zpGrammar);return p}
@@ -94,8 +94,8 @@ func graphKids()([]*Node,[]any){
  return nodes,values
 }
 func TestGraphFields(t *testing.T){
- nodes,_:=graphKids();fs:=make(noderep.Fields,300);tn:=&zprt.TSeq{Typ:"tuple",X_fields:make([]zprt.X_tfield,300)}
- for i:=range fs{name:=fmt.Sprintf("field%d",i);fs[i]=noderep.NodeField{Name:name,Value:i};tn.X_fields[i]=zprt.X_tfield{name,i}}
+ nodes,_:=graphKids();fs:=make(coreimpl.Fields,300);tn:=&zprt.TSeq{Typ:"tuple",X_fields:make([]zprt.X_tfield,300)}
+ for i:=range fs{name:=fmt.Sprintf("field%d",i);fs[i]=coreimpl.NodeField{Name:name,Value:i};tn.X_fields[i]=zprt.X_tfield{name,i}}
  for _,typed:=range []bool{false,true}{
   p:=graphParser(32);tp:=&zprt.TParser{Parser:p};node:=dataNode(zprt.Data{Fields:fs})
   requireGraphLimit(t,p,func(){if typed{typedMember(tp,tn,"absent-field-with-distinct-length")}else{nodeMember(p,node,"absent-field-with-distinct-length")}})

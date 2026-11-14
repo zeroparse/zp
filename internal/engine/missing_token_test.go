@@ -9,7 +9,7 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/core"
-	"zeroparse.dev/zp/core/noderep"
+	"zeroparse.dev/zp/core/impl"
 	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/compile"
 	"zeroparse.dev/zp/internal/engine/state"
@@ -22,7 +22,7 @@ func missingNodes(t *testing.T, root *core.Node) []*core.Node {
 	var found []*core.Node
 	seen := make(map[*core.Node]bool)
 	if err := core.Walk(root, func(v core.WalkVisit) (core.WalkAction, error) {
-		if v.Node != nil && v.Node.Type() == noderep.TypeMissing && !seen[v.Node] {
+		if v.Node != nil && v.Node.Type() == coreimpl.TypeMissing && !seen[v.Node] {
 			seen[v.Node] = true
 			found = append(found, v.Node)
 		}

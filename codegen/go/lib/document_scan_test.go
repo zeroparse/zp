@@ -5,7 +5,7 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/core"
-	"zeroparse.dev/zp/core/noderep"
+	"zeroparse.dev/zp/core/impl"
 )
 
 // scanDocumentRules returns a main rule that walks the same scan site from the same start four
@@ -37,7 +37,7 @@ func scanDocumentRules(hit *bool) (main, last *Rule) {
 		if count >= scanHotSpan {
 			p.ScanEnd(site, start, count)
 		}
-		return nodeOfData(&Data{Kind: noderep.ListKind, Start: int32(start), End: int32(p.Pos)}), true
+		return nodeOfData(&Data{Kind: coreimpl.ListKind, Start: int32(start), End: int32(p.Pos)}), true
 	}
 	plain := &Rule{Id: 1, Name: "plain", Seen: -1}
 	plain.Body = func(p *Parser, _ int) (*core.Node, bool) { return walk(p) }

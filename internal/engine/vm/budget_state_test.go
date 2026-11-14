@@ -10,7 +10,7 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/core"
-	"zeroparse.dev/zp/core/noderep"
+	"zeroparse.dev/zp/core/impl"
 	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/bytecode"
 	"zeroparse.dev/zp/internal/compile"
@@ -23,7 +23,7 @@ func TestBudgetStateVMChildAssembly(t *testing.T) {
 		for _, lim := range []core.Limits{{Compute: 64}, {Compute: 10000}} {
 			p := stateBudgetParser(lim)
 			start := 3
-			retained := value.Ptr(value.Data{Text: "retained", Fields: noderep.Fields{{Name: "keep", Value: "unchanged"}}})
+			retained := value.Ptr(value.Data{Text: "retained", Fields: coreimpl.Fields{{Name: "keep", Value: "unchanged"}}})
 			machineOf(p).vals = append(machineOf(p).vals, &start)
 			want := make([]*core.Node, 320)
 			for i := range want {
@@ -109,7 +109,7 @@ func TestBudgetStateOperatorsRuleFrameSnapshotAndRestoration(t *testing.T) {
 				compute++
 			}
 			p := stateBudgetParser(core.Limits{Compute: compute})
-			retained := value.Ptr(value.Data{Text: "retained", Fields: noderep.Fields{{Name: "keep", Value: "unchanged"}}})
+			retained := value.Ptr(value.Data{Text: "retained", Fields: coreimpl.Fields{{Name: "keep", Value: "unchanged"}}})
 			before, _ := json.Marshal(retained)
 			op := &state.OperatorsRuleOp{Kind: grammar.Prefix, Line: &state.OperatorsRuleLine{Scope: &compile.Scope{Names: make([]string, 320)}}}
 			setup := func(f *state.Frame) {

@@ -1,8 +1,9 @@
-// Package noderep is the representation of core.Node that the parsers share: the engine
-// (zeroparse.dev/zp/engine) and generated Go parsers build and read nodes through it. It is not a
-// stable API. Generated code depends on it through the library protocol version, which its
-// ProtocolN constant names, and programs should use the methods of core.Node instead.
-package noderep
+// Package coreimpl is the implementation of core.Node that core, the engine
+// (zeroparse.dev/zp/engine) and the generated Go parsers share: the node data, its kinds and
+// fields, and the code that builds and reads them. It is not an API and not stable. Programs use
+// the methods of core.Node. Generated code depends on this package through the library protocol
+// version, which its ProtocolN constant names.
+package coreimpl
 
 import (
 	"sort"

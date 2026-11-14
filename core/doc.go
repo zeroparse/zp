@@ -7,6 +7,6 @@
 //
 // Package core is part of the API of generated Go parsers and of zeroparse.dev/zp/engine, and it
 // is stable in intent at v0.x: a change needs a reason and is announced. The packages
-// zeroparse.dev/zp/codegen/go/lib and zeroparse.dev/zp/core/noderep are support for generated
+// zeroparse.dev/zp/codegen/go/lib and zeroparse.dev/zp/core/impl are support for generated
 // code; they are judged by the library protocol version and have no stable API.
 package core

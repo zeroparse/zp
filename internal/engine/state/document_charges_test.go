@@ -10,7 +10,7 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/core"
-	"zeroparse.dev/zp/core/noderep"
+	"zeroparse.dev/zp/core/impl"
 	"zeroparse.dev/zp/internal/ir/exec/ops"
 	"zeroparse.dev/zp/internal/ir/exec/ref"
 	"zeroparse.dev/zp/internal/value"
@@ -478,7 +478,7 @@ func TestDocMoveChargesAtItsBound(t *testing.T) {
 	t.Run("a tree of non-empty nodes charges one pass", func(t *testing.T) {
 		p := edited(1)
 		a, b, f := value.Ptr(value.Data{Start: 2, End: 3}), value.Ptr(value.Data{Start: 3, End: 4}), value.Ptr(value.Data{Start: 4, End: 5})
-		n := value.Ptr(value.Data{Start: 2, End: 5, Children: []*core.Node{a, b}, Fields: noderep.Fields{{Name: "f", Value: f}}})
+		n := value.Ptr(value.Data{Start: 2, End: 5, Children: []*core.Node{a, b}, Fields: coreimpl.Fields{{Name: "f", Value: f}}})
 		if got := moved(p, entry(p, n)); got != 7 {
 			t.Fatalf("charged %d", got)
 		}
@@ -541,13 +541,13 @@ func TestDocMoveChargesAtItsBound(t *testing.T) {
 		// The root, three edges, and the shared node once.
 		p := edited(1)
 		c := value.Ptr(value.Data{Start: 3, End: 4})
-		n := value.Ptr(value.Data{Start: 2, End: 5, Children: []*core.Node{c, c}, Fields: noderep.Fields{{Name: "f", Value: c}}})
+		n := value.Ptr(value.Data{Start: 2, End: 5, Children: []*core.Node{c, c}, Fields: coreimpl.Fields{{Name: "f", Value: c}}})
 		if got := moved(p, entry(p, n)); got != 1+3+1 || value.D(c).Start != 4 {
 			t.Fatalf("charged %d, start %d", got, value.D(c).Start)
 		}
 		p = edited(1)
 		c = value.Ptr(value.Data{Start: 3, End: 4})
-		n = value.Ptr(value.Data{Start: 2, End: 5, Fields: noderep.Fields{{Name: "f", Value: c}, {Name: "g", Value: c}}})
+		n = value.Ptr(value.Data{Start: 2, End: 5, Fields: coreimpl.Fields{{Name: "f", Value: c}, {Name: "g", Value: c}}})
 		if got := moved(p, entry(p, n)); got != 1+2+1 || value.D(c).Start != 4 {
 			t.Fatalf("fields: charged %d, start %d", got, value.D(c).Start)
 		}
@@ -564,7 +564,7 @@ func TestDocMoveChargesAtItsBound(t *testing.T) {
 	t.Run("an empty node charges its fields", func(t *testing.T) {
 		// The copy, one field, and forgetting the copy.
 		p := edited(1)
-		n := value.Ptr(value.Data{Start: 3, End: 3, Fields: noderep.Fields{{Name: "f", Value: "x"}}})
+		n := value.Ptr(value.Data{Start: 3, End: 3, Fields: coreimpl.Fields{{Name: "f", Value: "x"}}})
 		if got := moved(p, entry(p, n)); got != 3 || got > movedBound(1, 1, 0) {
 			t.Fatalf("charged %d", got)
 		}

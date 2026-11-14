@@ -13,7 +13,7 @@ import (
 
 	zprt "zeroparse.dev/zp/codegen/go/lib"
 	zpcore "zeroparse.dev/zp/core"
-	"zeroparse.dev/zp/core/noderep"
+	"zeroparse.dev/zp/core/impl"
 	"zeroparse.dev/zp/internal/codegen"
 	"zeroparse.dev/zp/internal/codegentest"
 	"zeroparse.dev/zp/internal/value"
@@ -23,12 +23,12 @@ import (
 // nested lists and a shared value reached through different owning parents.
 func TestTreeLibParity(t *testing.T) {
 	t.Parallel()
-	leaf := value.Ptr(value.Data{Kind: noderep.MatchKind, Terminal: true, Text: "é<&>", Start: 1, End: 3})
+	leaf := value.Ptr(value.Data{Kind: coreimpl.MatchKind, Terminal: true, Text: "é<&>", Start: 1, End: 3})
 	gLeaf := zprt.NewNode(zpcore.KindString, 1, 3, value.D(leaf).Text, nil, "", nil, nil)
-	child := value.Ptr(value.Data{Children: []*zpcore.Node{leaf}, Fields: noderep.Fields{{Name: "list", Value: []any{leaf, nil, []byte{1, 2}}}}})
-	gChild := zprt.NewNode(zpcore.KindStruct, 0, 0, "", []*zpcore.Node{gLeaf}, "", noderep.Fields{{Name: "list", Value: []any{gLeaf, nil, []byte{1, 2}}}}, nil)
-	root := value.Ptr(value.Data{Children: []*zpcore.Node{child, nil, leaf}, Fields: noderep.Fields{{Name: "z", Value: true}, {Name: "a", Value: leaf}}})
-	gRoot := zprt.NewNode(zpcore.KindStruct, 0, 0, "", []*zpcore.Node{gChild, nil, gLeaf}, "", noderep.Fields{{Name: "z", Value: true}, {Name: "a", Value: gLeaf}}, nil)
+	child := value.Ptr(value.Data{Children: []*zpcore.Node{leaf}, Fields: coreimpl.Fields{{Name: "list", Value: []any{leaf, nil, []byte{1, 2}}}}})
+	gChild := zprt.NewNode(zpcore.KindStruct, 0, 0, "", []*zpcore.Node{gLeaf}, "", coreimpl.Fields{{Name: "list", Value: []any{gLeaf, nil, []byte{1, 2}}}}, nil)
+	root := value.Ptr(value.Data{Children: []*zpcore.Node{child, nil, leaf}, Fields: coreimpl.Fields{{Name: "z", Value: true}, {Name: "a", Value: leaf}}})
+	gRoot := zprt.NewNode(zpcore.KindStruct, 0, 0, "", []*zpcore.Node{gChild, nil, gLeaf}, "", coreimpl.Fields{{Name: "z", Value: true}, {Name: "a", Value: gLeaf}}, nil)
 	core, err := root.MarshalJSON()
 	if err != nil {
 		t.Fatal(err)

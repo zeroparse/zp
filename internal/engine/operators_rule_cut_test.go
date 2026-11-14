@@ -7,7 +7,7 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/core"
-	"zeroparse.dev/zp/core/noderep"
+	"zeroparse.dev/zp/core/impl"
 	"zeroparse.dev/zp/internal/codegentest"
 	"zeroparse.dev/zp/internal/compile"
 	"zeroparse.dev/zp/internal/value"
@@ -28,7 +28,7 @@ func TestOperatorsRulePrefixPartCuts(t *testing.T) {
 							}
 						} else if n == nil || n.Type() != c.Kind {
 							t.Fatalf("%v/%v: got %v, %v; want %s", backend, unit, n, err, c.Kind)
-						} else if c.Kind == noderep.TypeError {
+						} else if c.Kind == coreimpl.TypeError {
 							var recovered core.SyntaxErrors
 							if !errors.As(err, &recovered) || len(recovered) != 1 {
 								t.Fatalf("%v/%v: expected one recovered error, got %v", backend, unit, err)
@@ -102,7 +102,7 @@ func leafText(n *core.Node) string {
 	if n == nil {
 		return ""
 	}
-	if value.ShapeOf(n) == noderep.ShapeString {
+	if value.ShapeOf(n) == coreimpl.ShapeString {
 		return value.D(n).Text
 	}
 	var b strings.Builder

@@ -4,7 +4,7 @@ import (
 	"unsafe"
 
 	"zeroparse.dev/zp/core"
-	"zeroparse.dev/zp/core/noderep"
+	"zeroparse.dev/zp/core/impl"
 	"zeroparse.dev/zp/internal/value"
 )
 
@@ -176,7 +176,7 @@ func MissingLiteral(literal Matcher, site int, expected string, build bool) Matc
 		if !build {
 			return nil, true
 		}
-		return p.NewNode(value.Data{Kind: noderep.MissingKind, Start: int32(m0.Pos), End: int32(m0.Pos),
-			Fields: noderep.Fields{{Name: "expected", Value: expected}, {Name: "message", Value: p.RecoveryErrorText(e)}}, Terminal: true, Fresh: true}), true
+		return p.NewNode(value.Data{Kind: coreimpl.MissingKind, Start: int32(m0.Pos), End: int32(m0.Pos),
+			Fields: coreimpl.Fields{{Name: "expected", Value: expected}, {Name: "message", Value: p.RecoveryErrorText(e)}}, Terminal: true, Fresh: true}), true
 	}
 }

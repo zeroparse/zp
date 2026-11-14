@@ -1,7 +1,7 @@
 # 63. A Smaller `Node`
 
 - `Node` was 120 bytes: two name strings (`Type`, `Rule`), `int` positions, the text, children, fields and flags. The
-  pair of names now sits behind one pointer to an interned kind (`noderep.Kind`; rules precompute the kinds they give
+  pair of names now sits behind one pointer to an interned kind (`coreimpl.Kind`; rules precompute the kinds they give
   their nodes, and programs those of the grammar's types, so a parse never looks one up), and `Start` and `End` are
   `int32`: 88 bytes. This changes the API: `Type()` and `Rule()` are methods, and positions are `int32` (Go accepts
   them as slice indexes; arithmetic with `int`s needs a conversion). JSON and `String` output are unchanged

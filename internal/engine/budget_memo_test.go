@@ -12,7 +12,7 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/core"
-	"zeroparse.dev/zp/core/noderep"
+	"zeroparse.dev/zp/core/impl"
 	"zeroparse.dev/zp/internal/engine/state"
 	"zeroparse.dev/zp/internal/value"
 )
@@ -273,7 +273,7 @@ func TestBudgetMemoChainAndStringLimits(t *testing.T) {
 		t.Fatal("replacement failed")
 	}
 	// Retiring bookkeeping must not clear the old public node or its descendants.
-	retained := value.Ptr(value.Data{Text: "retained", Children: []*core.Node{value.Ptr(value.Data{Text: "child"})}, Fields: noderep.Fields{{Name: "value", Value: "unchanged"}}})
+	retained := value.Ptr(value.Data{Text: "retained", Children: []*core.Node{value.Ptr(value.Data{Text: "child"})}, Fields: coreimpl.Fields{{Name: "value", Value: "unchanged"}}})
 	table.Slots[0] = &state.MemoEntry{Rule: 1, Node: retained, Env: []any{strings.Repeat("x", 1024)}}
 	before, _ := json.Marshal(retained)
 	key := state.MemoKey{Rule: 1, Env: []any{strings.Repeat("x", 1024)}}

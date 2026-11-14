@@ -4,7 +4,7 @@ import (
 	"sync/atomic"
 
 	"zeroparse.dev/zp/core"
-	"zeroparse.dev/zp/core/noderep"
+	"zeroparse.dev/zp/core/impl"
 	"zeroparse.dev/zp/internal/value"
 )
 
@@ -506,7 +506,7 @@ func (p *Parser) SkipEndList(start int, build, chargeClear bool) *core.Node {
 	if !build {
 		return nil
 	}
-	return p.NewNode(value.Data{Kind: noderep.ListKind, Start: int32(start), End: int32(p.Pos), Children: kids, Fresh: true})
+	return p.NewNode(value.Data{Kind: coreimpl.ListKind, Start: int32(start), End: int32(p.Pos), Children: kids, Fresh: true})
 }
 
 func (p *Parser) skipEnd() {

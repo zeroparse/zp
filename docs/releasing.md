@@ -18,7 +18,7 @@ Go modules give a v0 version no compatibility guarantee. ZeroParse states its in
 | The testing packages `sample` (input generation) and `editfuzz` (incremental-parsing fuzzing), and the sequence files of `editfuzz` | Public so that Go programs can test their own grammars and documents; unstable: may change in any release |
 | The fixture suites of `zp test` (the JSON format) | Unstable: may change in any release; the runner is internal, not a Go API |
 | The package `zeroparse.dev/zp/core`: the nodes, limits, positions, errors, edits and statistics that `zp` and generated Go parsers share | Stable in intent, as part of the API of generated parsers |
-| The packages `zeroparse.dev/zp/codegen/go/lib` and `zeroparse.dev/zp/core/noderep`, as generated code uses them with `zp gen -lib import` | Not a stable API. Judged by the protocol version (see [the library protocol](#the-library-protocol)), not by the release version |
+| The packages `zeroparse.dev/zp/codegen/go/lib` and `zeroparse.dev/zp/core/impl`, as generated code uses them with `zp gen -lib import` | Not a stable API. Judged by the protocol version (see [the library protocol](#the-library-protocol)), not by the release version |
 | Compiled grammars (`.zpc`) and the bytecode: container version 8, instruction-set version 35 ([bytecode specification](../spec/bytecode/README.md)) | Unstable: may change in any release. A loader accepts only its own versions and asks for the grammar to be compiled again |
 | The JSON forms of grammars and nodes | Unstable: may change in any release |
 | Ready-made parsers (`zeroparse.dev/alpha-parsers`) | Not part of a release: a separate repository, used from a checkout next to this one with a `go.work` |
@@ -38,10 +38,10 @@ pass to the library.
 - The library declares a constant `ProtocolN` for each protocol version N it implements.
 - A parser generated with `-lib import` refers to the constant of the protocol it was generated for, so a parser
   and a library that do not match fail to build (`undefined: rt.Protocol16`), never at run time.
-- The package `zeroparse.dev/zp/core/noderep` declares exactly one constant `ProtocolN`, where N is the protocol
+- The package `zeroparse.dev/zp/core/impl` declares exactly one constant `ProtocolN`, where N is the protocol
   version that introduced the node representation it serves, and the library refers to that constant. A copy of the
   library embedded in a generated parser and a `core` that do not match therefore fail to build
-  (`undefined: noderep.Protocol15`), in either direction. A test of `noderep` records the representation (the layout
+  (`undefined: coreimpl.Protocol15`), in either direction. A test of `coreimpl` records the representation (the layout
   of its types, the values of its constants and the signatures of its functions) with the constant, and fails when
   the representation changes while the constant does not.
 - The protocol version increases whenever that interface changes; a test of the library compares the declarations

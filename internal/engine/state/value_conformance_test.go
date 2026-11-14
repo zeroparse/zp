@@ -5,7 +5,7 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/core"
-	"zeroparse.dev/zp/core/noderep"
+	"zeroparse.dev/zp/core/impl"
 	"zeroparse.dev/zp/internal/ir/exec"
 	"zeroparse.dev/zp/internal/ir/exec/conform"
 	"zeroparse.dev/zp/internal/ir/exec/ops"
@@ -33,10 +33,10 @@ func (engineValues) Datum(v ref.V) any {
 		kids := make([]*core.Node, len(v.Items))
 		for i, x := range v.Items {
 			if x.Kind != ref.KNil {
-				kids[i] = p.NewNode(value.Data{Kind: noderep.BoxKind, Box: engineValues{}.Datum(x)})
+				kids[i] = p.NewNode(value.Data{Kind: coreimpl.BoxKind, Box: engineValues{}.Datum(x)})
 			}
 		}
-		return p.NewNode(value.Data{Kind: noderep.ListValueKind, Children: kids})
+		return p.NewNode(value.Data{Kind: coreimpl.ListValueKind, Children: kids})
 	}
 	switch v.Kind {
 	case ref.KInt:
@@ -154,7 +154,7 @@ func TestEngineValueConformanceDetectsBrokenEvaluation(t *testing.T) {
 // an arithmetic operator.
 func TestEngineValueBoxedOperands(t *testing.T) {
 	p := &Parser{}
-	box := func(v any) *core.Node { return p.NewNode(value.Data{Kind: noderep.BoxKind, Box: v}) }
+	box := func(v any) *core.Node { return p.NewNode(value.Data{Kind: coreimpl.BoxKind, Box: v}) }
 	for _, c := range []struct {
 		op   string
 		l, r any

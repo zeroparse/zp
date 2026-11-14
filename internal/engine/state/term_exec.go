@@ -8,7 +8,7 @@ import (
 	"strings"
 
 	"zeroparse.dev/zp/core"
-	"zeroparse.dev/zp/core/noderep"
+	"zeroparse.dev/zp/core/impl"
 	"zeroparse.dev/zp/internal/compile"
 	"zeroparse.dev/zp/internal/value"
 )
@@ -328,7 +328,7 @@ func (p *Parser) termPush(c *EvalCtx, fn string, v any) error {
 		return nil
 	}
 	if k == 1 || k == 2 || k == 3 {
-		p.KidStack = append(p.KidStack, p.NewNode(value.Data{Kind: noderep.BoxKind, Box: v, Start: int32(c.Start), End: int32(c.End)}))
+		p.KidStack = append(p.KidStack, p.NewNode(value.Data{Kind: coreimpl.BoxKind, Box: v, Start: int32(c.Start), End: int32(c.End)}))
 		return nil
 	}
 	n, ok := nodeOf(v)
@@ -571,7 +571,7 @@ func (p *Parser) termConforms(t *compile.FieldType, v any) bool {
 		return shape == 3
 	}
 	if kt == 77 {
-		return shape == 3 && (n.Type() == noderep.TypeMissing)
+		return shape == 3 && (n.Type() == coreimpl.TypeMissing)
 	}
 	// A struct type or a named node type takes the values that have its name.
 	if kt == 78 {

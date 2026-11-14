@@ -26,7 +26,7 @@ func TestMain(m *testing.M) {
 	os.Exit(code)
 }
 
-// protocolName matches the declaration of a protocol constant of the library or of core/noderep.
+// protocolName matches the declaration of a protocol constant of the library or of core/impl.
 var protocolName = regexp.MustCompile(`\bconst Protocol([1-9][0-9]*) = ([1-9][0-9]*)\b`)
 
 // bumpProtocol replaces the protocol constants that src declares with those of the version after
@@ -39,10 +39,10 @@ func bumpProtocol(src []byte, by int) []byte {
 }
 
 // protocolBuild writes a module zeroparse.dev/zp in dir/zp that holds this module's core and
-// core/noderep, with noderep's source passed through noderep, and the files libFiles at their paths
+// core/impl, with coreimpl's source passed through coreimpl, and the files libFiles at their paths
 // below lib (the directory of the library in it, or "" to leave it out), and the parser files in
 // dir/p, a module that requires it; then it builds the parser.
-func protocolBuild(t *testing.T, files, libFiles []codegen.File, lib string, noderep func([]byte) []byte) (string, error) {
+func protocolBuild(t *testing.T, files, libFiles []codegen.File, lib string, coreimpl func([]byte) []byte) (string, error) {
 	t.Helper()
 	dir := t.TempDir()
 	write := func(rel string, data []byte) {
@@ -59,7 +59,7 @@ func protocolBuild(t *testing.T, files, libFiles []codegen.File, lib string, nod
 		write("p/"+f.Path, f.Content)
 	}
 	write("zp/go.mod", []byte("module zeroparse.dev/zp\n\ngo 1.27.1\n"))
-	for _, pkg := range []string{"core", "core/noderep"} {
+	for _, pkg := range []string{"core", "core/impl"} {
 		src := filepath.Join(codegentest.ModuleRoot(), filepath.FromSlash(pkg))
 		entries, err := os.ReadDir(src)
 		if err != nil {
@@ -73,8 +73,8 @@ func protocolBuild(t *testing.T, files, libFiles []codegen.File, lib string, nod
 			if err != nil {
 				t.Fatal(err)
 			}
-			if pkg == "core/noderep" && noderep != nil {
-				data = noderep(data)
+			if pkg == "core/impl" && coreimpl != nil {
+				data = coreimpl(data)
 			}
 			write("zp/"+pkg+"/"+e.Name(), data)
 		}
@@ -155,9 +155,9 @@ rule main = [a-z]+ "=" [0-9]+`)
 }
 
 // TestEmbedCoreProtocol builds a parser generated with LibEmbed, whose copy of the library imports
-// core and core/noderep from zeroparse.dev/zp, against this module's core, which builds, and against
-// a core whose noderep serves the representation of the protocol version after or before the
-// library's, which must fail to build on the noderep constant the copy refers to.
+// core and core/impl from zeroparse.dev/zp, against this module's core, which builds, and against
+// a core whose coreimpl serves the representation of the protocol version after or before the
+// library's, which must fail to build on the coreimpl constant the copy refers to.
 func TestEmbedCoreProtocol(t *testing.T) {
 	if testing.Short() {
 		t.Skip("builds a generated parser")
@@ -183,22 +183,22 @@ rule main = [a-z]+ "=" [0-9]+`)
 	if out, err := protocolBuild(t, files, nil, "", nil); err != nil {
 		t.Fatalf("the parser does not build against the core of its generator: %v\n%s", err, out)
 	}
-	src, err := os.ReadFile(filepath.Join(codegentest.ModuleRoot(), "core", "noderep", "noderep.go"))
+	src, err := os.ReadFile(filepath.Join(codegentest.ModuleRoot(), "core", "impl", "impl.go"))
 	if err != nil {
 		t.Fatal(err)
 	}
 	m := protocolName.FindSubmatch(src)
 	if m == nil {
-		t.Fatal("core/noderep declares no protocol constant")
+		t.Fatal("core/impl declares no protocol constant")
 	}
-	want := "undefined: noderep.Protocol" + string(m[1])
+	want := "undefined: coreimpl.Protocol" + string(m[1])
 	for _, by := range []int{1, -1} {
 		out, err := protocolBuild(t, files, nil, "", func(src []byte) []byte { return bumpProtocol(src, by) })
 		if err == nil {
-			t.Fatalf("the copy of the library builds against a core/noderep of protocol %+d", by)
+			t.Fatalf("the copy of the library builds against a core/impl of protocol %+d", by)
 		}
 		if !strings.Contains(out, want) {
-			t.Errorf("protocol %+d: the build fails for another reason than the noderep constant:\n%s", by, out)
+			t.Errorf("protocol %+d: the build fails for another reason than the coreimpl constant:\n%s", by, out)
 		}
 	}
 }

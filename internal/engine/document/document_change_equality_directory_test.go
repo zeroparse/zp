@@ -4,17 +4,17 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/core"
-	"zeroparse.dev/zp/core/noderep"
+	"zeroparse.dev/zp/core/impl"
 	"zeroparse.dev/zp/internal/value"
 )
 
 func TestDocumentChangesDirectoryEqualityHasBoundedScratch(t *testing.T) {
-	root := value.Ptr(value.Data{Kind: noderep.KindOf("Root", "main"), Children: make([]*core.Node, 4096)})
+	root := value.Ptr(value.Data{Kind: coreimpl.KindOf("Root", "main"), Children: make([]*core.Node, 4096)})
 	for i := range value.D(root).Children {
-		value.D(root).Children[i] = value.Ptr(value.Data{Kind: noderep.KindOf("Leaf", "item"), Start: int32(i), End: int32(i + 1), Text: "a", Terminal: true})
+		value.D(root).Children[i] = value.Ptr(value.Data{Kind: coreimpl.KindOf("Leaf", "item"), Start: int32(i), End: int32(i + 1), Text: "a", Terminal: true})
 	}
 	// Keep aliases and a cycle in the wide graph, not only a flat tree.
-	value.D(root).Fields = noderep.Fields{{Name: "self", Value: root}, {Name: "alias", Value: value.D(root).Children[0]}}
+	value.D(root).Fields = coreimpl.Fields{{Name: "self", Value: root}, {Name: "alias", Value: value.D(root).Children[0]}}
 	a, b := changeGraphSnapshot(t, root), changeGraphSnapshot(t, root.Clone())
 	equal := true
 	allocations := testing.AllocsPerRun(10, func() { equal = equal && equalChangeSnapshots(a, b) })
@@ -30,10 +30,10 @@ func TestDocumentChangesDirectoryEqualityHasBoundedScratch(t *testing.T) {
 
 func TestDocumentChangesDirectoryEqualityChecksIDEdges(t *testing.T) {
 	leaf := func() *core.Node {
-		return value.Ptr(value.Data{Kind: noderep.KindOf("Leaf", "item"), Text: "x", Terminal: true})
+		return value.Ptr(value.Data{Kind: coreimpl.KindOf("Leaf", "item"), Text: "x", Terminal: true})
 	}
 	first, second := leaf(), leaf()
-	root := value.Ptr(value.Data{Children: []*core.Node{first, second, first}, Fields: noderep.Fields{{Name: "link", Value: first}, {Name: "cycle", Value: nil}}})
+	root := value.Ptr(value.Data{Children: []*core.Node{first, second, first}, Fields: coreimpl.Fields{{Name: "link", Value: first}, {Name: "cycle", Value: nil}}})
 	value.D(root).Fields[1].Value = root
 	a := changeGraphSnapshot(t, root)
 	changed := root.Clone()

@@ -2,7 +2,7 @@ package state
 
 import (
 	"zeroparse.dev/zp/core"
-	"zeroparse.dev/zp/core/noderep"
+	"zeroparse.dev/zp/core/impl"
 	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/compile"
 	"zeroparse.dev/zp/internal/value"
@@ -151,7 +151,7 @@ func (p *Parser) OperatorsRuleBuild(r *Rule, a *OperatorsRuleAttempt, lhs, rhs *
 	// captures.
 	opv, ok := ShapeSingle(p, l.Shape, l.Single, a.V, a.Start)
 	if !ok {
-		opv = p.NewNode(value.Data{Kind: noderep.SeqKind, Start: int32(a.Start), End: int32(a.End)})
+		opv = p.NewNode(value.Data{Kind: coreimpl.SeqKind, Start: int32(a.Start), End: int32(a.End)})
 	}
 	if l.Single == compile.SingleTuple && len(l.Scope.Names) > 0 {
 		opv = p.AttachCaptures(opv, l.Scope, a.Frame, a.Start, a.End)
@@ -182,26 +182,26 @@ func (p *Parser) OperatorsRuleBuild(r *Rule, a *OperatorsRuleAttempt, lhs, rhs *
 	// Without an action, the application is the node of the tuple (lhs, op, rhs) of the line's
 	// kind, with those captures.
 	var kids []*core.Node
-	var fields noderep.Fields
+	var fields coreimpl.Fields
 	switch a.Op.Kind {
 	case grammar.Prefix:
 		kids = p.Nodes(2)
 		kids[0], kids[1] = opv, rhs
-		fields = noderep.Fields{{Name: "op", Value: NodeOrNil(opv)}, {Name: "rhs", Value: NodeOrNil(rhs)}}
+		fields = coreimpl.Fields{{Name: "op", Value: NodeOrNil(opv)}, {Name: "rhs", Value: NodeOrNil(rhs)}}
 	case grammar.Postfix:
 		kids = p.Nodes(2)
 		kids[0], kids[1] = lhs, opv
-		fields = noderep.Fields{{Name: "lhs", Value: NodeOrNil(lhs)}, {Name: "op", Value: NodeOrNil(opv)}}
+		fields = coreimpl.Fields{{Name: "lhs", Value: NodeOrNil(lhs)}, {Name: "op", Value: NodeOrNil(opv)}}
 	default:
 		kids = p.Nodes(3)
 		kids[0], kids[1], kids[2] = lhs, opv, rhs
-		fields = noderep.Fields{{Name: "lhs", Value: NodeOrNil(lhs)}, {Name: "op", Value: NodeOrNil(opv)}, {Name: "rhs", Value: NodeOrNil(rhs)}}
+		fields = coreimpl.Fields{{Name: "lhs", Value: NodeOrNil(lhs)}, {Name: "op", Value: NodeOrNil(opv)}, {Name: "rhs", Value: NodeOrNil(rhs)}}
 	}
-	kind := noderep.SeqKind
+	kind := coreimpl.SeqKind
 	if r.OpKinds != nil {
-		kind = r.OpKinds[noderep.BaseTuple] // made with the named node type of the operators
+		kind = r.OpKinds[coreimpl.BaseTuple] // made with the named node type of the operators
 	} else if p.Prog.RecordsSourceInfo {
-		kind = r.Kinds.Named(noderep.SeqKind, r.Name)
+		kind = r.Kinds.Named(coreimpl.SeqKind, r.Name)
 	}
 	n := p.NewNode(value.Data{Kind: kind, Start: int32(start), End: int32(end), Children: kids, Fields: fields, Labeled: p.Prog.RecordsSourceInfo})
 	return n

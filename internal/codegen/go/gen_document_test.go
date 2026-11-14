@@ -40,7 +40,7 @@ func TestGenerateDocumentNode(t *testing.T) {
 		"parser_test.go": `package fixture
 import (
 	zprt "zeroparse.dev/zp/codegen/go/lib"
-	"zeroparse.dev/zp/core/noderep"
+	"zeroparse.dev/zp/core/impl"
   "context"
   "encoding/json"
   "fmt"
@@ -97,7 +97,7 @@ func TestGeneratedDocumentByteBoundary(t *testing.T) {
 func dataNode(d zprt.Data) *Node { n := new(Node); *zprt.D(n) = d; return n }
 func TestGeneratedDocumentCloneSharing(t *testing.T) {
   n := dataNode(zprt.Data{Text: "a"})
-  parent := dataNode(zprt.Data{Children: []*Node{n,n}, Fields: noderep.Fields{{Name: "value", Value: []any{n}}}})
+  parent := dataNode(zprt.Data{Children: []*Node{n,n}, Fields: coreimpl.Fields{{Name: "value", Value: []any{n}}}})
   copy := parent.Clone()
   if zprt.D(copy).Children[0] != zprt.D(copy).Children[1] || zprt.D(copy).Children[0] == n { t.Fatal("shared children not cloned") }
   value := zprt.D(copy).Fields[0].Value.([]any)[0].(*Node)
@@ -112,7 +112,7 @@ func TestGeneratedDocumentCloneCyclicAndSharedSlices(t *testing.T) {
   nodes[0] = child
   emptyValues := make([]any, 0, backingCapacity)
   emptyNodes := make([]*Node, 0, backingCapacity)
-  root := dataNode(zprt.Data{Children: nodes, Fields: noderep.Fields{
+  root := dataNode(zprt.Data{Children: nodes, Fields: coreimpl.Fields{
     {Name: "first", Value: values}, {Name: "second", Value: values},
     {Name: "nodes1", Value: nodes}, {Name: "nodes2", Value: nodes},
     {Name: "emptyValues", Value: emptyValues}, {Name: "emptyNodes", Value: emptyNodes},

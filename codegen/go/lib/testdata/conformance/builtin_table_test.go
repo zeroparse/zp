@@ -5,7 +5,7 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/core"
-	"zeroparse.dev/zp/core/noderep"
+	"zeroparse.dev/zp/core/impl"
 	"zeroparse.dev/zp/internal/ir/exec/conform"
 )
 
@@ -29,7 +29,7 @@ func nodeBuiltinFixture(controlled bool) (*ActCtx, map[string]any) {
 	typed, _ := g.NodeTypes[conform.BuiltinOther].convert(text)
 	return c, map[string]any{
 		conform.BuiltinTyped:  typed,
-		conform.BuiltinBox:    nodeOfData(&Data{Kind: noderep.BoxKind, Box: 1}),
+		conform.BuiltinBox:    nodeOfData(&Data{Kind: coreimpl.BoxKind, Box: 1}),
 		conform.MemberNil:     nil,
 		conform.MemberInt:     1,
 		conform.BuiltinString: "ab",

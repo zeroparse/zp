@@ -8,7 +8,7 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/core"
-	"zeroparse.dev/zp/core/noderep"
+	"zeroparse.dev/zp/core/impl"
 	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/codegentest"
 	"zeroparse.dev/zp/internal/compile"
@@ -61,7 +61,7 @@ func TestBudgetPrimitiveASTAliases(t *testing.T) {
 						t.Fatalf("unit=%v capture=%s lost value or span: %v", unit, name, val)
 					}
 					// A text struct value carries no rule name.
-					wantType, wantRule := noderep.TypeString, "value"
+					wantType, wantRule := coreimpl.TypeString, "value"
 					if name == "b" {
 						wantType, wantRule = "Token", ""
 					}

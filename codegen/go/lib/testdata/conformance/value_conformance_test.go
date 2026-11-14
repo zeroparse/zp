@@ -6,7 +6,7 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/core"
-	"zeroparse.dev/zp/core/noderep"
+	"zeroparse.dev/zp/core/impl"
 	"zeroparse.dev/zp/internal/ir/exec"
 	"zeroparse.dev/zp/internal/ir/exec/conform"
 	"zeroparse.dev/zp/internal/ir/exec/ops"
@@ -51,10 +51,10 @@ func (g goValues) Datum(v ref.V) any {
 	kids := make([]*core.Node, len(v.Items))
 	for i, x := range v.Items {
 		if x.Kind != ref.KNil {
-			kids[i] = nodeOfData(&Data{Kind: noderep.BoxKind, Box: scalar(x)})
+			kids[i] = nodeOfData(&Data{Kind: coreimpl.BoxKind, Box: scalar(x)})
 		}
 	}
-	return nodeOfData(&Data{Kind: noderep.ListValueKind, Children: kids})
+	return nodeOfData(&Data{Kind: coreimpl.ListValueKind, Children: kids})
 }
 
 func (goValues) Canon(x any) ref.V {
@@ -197,7 +197,7 @@ func TestValueConformanceDetectsBrokenLib(t *testing.T) {
 // TestValueBoxedOperands holds == of the node library to the rule that a box counts as the value it
 // holds, which the pool of the conformance cannot show: it has no box.
 func TestValueBoxedOperands(t *testing.T) {
-	box := func(v any) *core.Node { return nodeOfData(&Data{Kind: noderep.BoxKind, Box: v}) }
+	box := func(v any) *core.Node { return nodeOfData(&Data{Kind: coreimpl.BoxKind, Box: v}) }
 	p := &Parser{}
 	for _, c := range []struct {
 		op   int
@@ -226,7 +226,7 @@ func TestValueBoxedOperands(t *testing.T) {
 // side or both: the same answer and, under a budget control, the same units. The box only changes how
 // the operand is carried, so it must neither skip the charge of the comparison nor add one.
 func TestValueBoxedStringCharges(t *testing.T) {
-	box := func(v any) *core.Node { return nodeOfData(&Data{Kind: noderep.BoxKind, Box: v}) }
+	box := func(v any) *core.Node { return nodeOfData(&Data{Kind: coreimpl.BoxKind, Box: v}) }
 	var strs []string
 	for _, v := range conform.ValuePool() {
 		if v.Kind == ref.KStr {

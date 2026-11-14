@@ -5,7 +5,7 @@ import (
 	"unsafe"
 
 	"zeroparse.dev/zp/core"
-	"zeroparse.dev/zp/core/noderep"
+	"zeroparse.dev/zp/core/impl"
 	"zeroparse.dev/zp/internal/bytecode"
 	"zeroparse.dev/zp/internal/compile"
 	"zeroparse.dev/zp/internal/engine/state"
@@ -179,7 +179,7 @@ func buildVMProgram(m *bytecode.Module, terms []*state.TermProgram, f state.Fami
 				r.NodeType, r.NodeKinds = m.Strings[ri.NodeType], vm.nodeKinds[ri.NodeType]
 			}
 		}
-		r.Kinds = noderep.NewRuleKinds(r.Name)
+		r.Kinds = coreimpl.NewRuleKinds(r.Name)
 		r.Value = func(_ *state.Parser, v *core.Node, _ int) *core.Node { return v } // the code pushes the value of the body's scope
 		if ri.Action >= 0 {
 			r.Act = vm.terms[ri.Action].Eval
@@ -567,7 +567,7 @@ func (mc *Machine) step(vm *Program, b *vmBody, resume, rok bool, rv *core.Node)
 				goto fail
 			}
 			if in.C == 1 {
-				mc.push(p.NewNode(value.Data{Kind: noderep.MatchKind, Start: int32(start), End: int32(p.Pos), Text: p.LiteralText(start, vm.literals[in.A]), Terminal: true, Fresh: true}))
+				mc.push(p.NewNode(value.Data{Kind: coreimpl.MatchKind, Start: int32(start), End: int32(p.Pos), Text: p.LiteralText(start, vm.literals[in.A]), Terminal: true, Fresh: true}))
 			}
 		case bytecode.OpStrFold:
 			start := p.Pos
@@ -576,7 +576,7 @@ func (mc *Machine) step(vm *Program, b *vmBody, resume, rok bool, rv *core.Node)
 				goto fail
 			}
 			if in.C == 1 {
-				mc.push(p.NewNode(value.Data{Kind: noderep.MatchKind, Start: int32(start), End: int32(p.Pos), Text: p.Text(start, p.Pos), Terminal: true, Fresh: true}))
+				mc.push(p.NewNode(value.Data{Kind: coreimpl.MatchKind, Start: int32(start), End: int32(p.Pos), Text: p.Text(start, p.Pos), Terminal: true, Fresh: true}))
 			}
 		case bytecode.OpClass:
 			ch, size, ok := p.Peek()
@@ -659,7 +659,7 @@ func (mc *Machine) step(vm *Program, b *vmBody, resume, rok bool, rv *core.Node)
 			mc.single(size, in.A == 1)
 		case bytecode.OpTop:
 			if in.A == 1 {
-				mc.push(p.NewNode(value.Data{Kind: noderep.MatchKind, Start: int32(p.Pos), End: int32(p.Pos), Terminal: true, Fresh: true}))
+				mc.push(p.NewNode(value.Data{Kind: coreimpl.MatchKind, Start: int32(p.Pos), End: int32(p.Pos), Terminal: true, Fresh: true}))
 			}
 		case bytecode.OpFail:
 			goto fail
@@ -722,7 +722,7 @@ func (mc *Machine) step(vm *Program, b *vmBody, resume, rok bool, rv *core.Node)
 			}
 			start := *mc.vals[top-n-1].(*int)
 			mc.vals = mc.vals[:top-n-1]
-			mc.push(p.NewNode(value.Data{Kind: noderep.SeqKind, Start: int32(start), End: int32(p.Pos), Children: kids, Fresh: true}))
+			mc.push(p.NewNode(value.Data{Kind: coreimpl.SeqKind, Start: int32(start), End: int32(p.Pos), Children: kids, Fresh: true}))
 		case bytecode.OpSpread:
 			v := mc.pop()
 			switch {
@@ -739,7 +739,7 @@ func (mc *Machine) step(vm *Program, b *vmBody, resume, rok bool, rv *core.Node)
 		case bytecode.OpAtomic:
 			start := *mc.pop().(*int)
 			if in.A == 1 {
-				mc.push(p.NewNode(value.Data{Kind: noderep.MatchKind, Start: int32(start), End: int32(p.Pos), Text: p.Text(start, p.Pos), Terminal: true, Fresh: true}))
+				mc.push(p.NewNode(value.Data{Kind: coreimpl.MatchKind, Start: int32(start), End: int32(p.Pos), Text: p.Text(start, p.Pos), Terminal: true, Fresh: true}))
 			}
 		case bytecode.OpCapture:
 			p.SetCapture(int(in.A), asNodeValue(mc.vals[len(mc.vals)-1]))
@@ -947,7 +947,7 @@ func (mc *Machine) step(vm *Program, b *vmBody, resume, rok bool, rv *core.Node)
 				}
 				start := *mc.vals[rep.base-1].(*int)
 				mc.vals = mc.vals[:rep.base-1]
-				mc.push(p.NewNode(value.Data{Kind: noderep.ListKind, Start: int32(start), End: int32(p.Pos), Children: kids, Fresh: true}))
+				mc.push(p.NewNode(value.Data{Kind: coreimpl.ListKind, Start: int32(start), End: int32(p.Pos), Children: kids, Fresh: true}))
 			}
 		case bytecode.OpLook:
 			kind := uint8(eLook)
@@ -1019,7 +1019,7 @@ func (mc *Machine) step(vm *Program, b *vmBody, resume, rok bool, rv *core.Node)
 			se := p.MakeError(l.far, l.exp)
 			p.PushRecovered(se)
 			if in.A == 1 {
-				mc.push(p.NewNode(value.Data{Kind: noderep.ErrorKind, Start: int32(e.save.pos), End: int32(p.Pos), Fields: noderep.Fields{{Name: "message", Value: p.RecoveryErrorText(se)}}, Fresh: true, Terminal: true}))
+				mc.push(p.NewNode(value.Data{Kind: coreimpl.ErrorKind, Start: int32(e.save.pos), End: int32(p.Pos), Fields: coreimpl.Fields{{Name: "message", Value: p.RecoveryErrorText(se)}}, Fresh: true, Terminal: true}))
 			}
 		case bytecode.OpReturn, bytecode.OpEnd:
 			var v *core.Node
@@ -1140,7 +1140,7 @@ func (mc *Machine) single(size int, b bool) {
 	start := p.Pos
 	p.Pos += size
 	if b {
-		mc.push(p.NewNode(value.Data{Kind: noderep.MatchKind, Start: int32(start), End: int32(p.Pos), Text: p.Text(start, p.Pos), Terminal: true, Fresh: true}))
+		mc.push(p.NewNode(value.Data{Kind: coreimpl.MatchKind, Start: int32(start), End: int32(p.Pos), Text: p.Text(start, p.Pos), Terminal: true, Fresh: true}))
 	}
 }
 
@@ -1168,20 +1168,20 @@ func LoadTerms(m *bytecode.Module) ([]*state.TermProgram, error) {
 // moduleTermTypes resolves the types that the term code of m names from its type table.
 func moduleTermTypes(m *bytecode.Module) state.TermTypes {
 	nodeTypes := map[string]*value.NodeTypeKinds{}
-	structs := map[string]*noderep.Kind{}
+	structs := map[string]*coreimpl.Kind{}
 	for _, t := range m.Types {
 		name := m.Strings[t.Name]
 		if t.Node >= 0 {
 			nodeTypes[name] = value.NewNodeTypeKinds(name)
 		} else {
-			structs[name] = noderep.KindOf(name, "")
+			structs[name] = coreimpl.KindOf(name, "")
 		}
 	}
 	var typeNames map[string]bool
 	casts := map[string]*compile.FieldType{}
 	return state.TermTypes{
 		NodeType: func(name string) *value.NodeTypeKinds { return nodeTypes[name] },
-		Struct:   func(name string) *noderep.Kind { return structs[name] },
+		Struct:   func(name string) *coreimpl.Kind { return structs[name] },
 		Cast: func(text string) (*compile.FieldType, error) {
 			if t, ok := casts[text]; ok {
 				return t, nil

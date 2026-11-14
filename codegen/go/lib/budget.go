@@ -13,7 +13,7 @@ import (
 	"unsafe"
 
 	"zeroparse.dev/zp/core"
-	"zeroparse.dev/zp/core/noderep"
+	"zeroparse.dev/zp/core/impl"
 )
 
 // The default budget of a parse is defaultBudgetPerUnit for each unit of input, and at least
@@ -1360,14 +1360,14 @@ func (p *Parser) controlledFirstCallPrepare(r *Rule) {
 
 // Graph helpers account for normal construction and capture restoration.
 // Release/recycle, DropKids/DropTrail and arena reset remain unconditional.
-func (p *Parser) valueField(fs noderep.Fields, name string) (any, bool) {
+func (p *Parser) valueField(fs coreimpl.Fields, name string) (any, bool) {
 	if p.Control != nil {
 		return p.valueFieldControlled(fs, name)
 	}
 	return fs.Get(name)
 }
 
-func (p *Parser) valueFieldControlled(fs noderep.Fields, name string) (any, bool) {
+func (p *Parser) valueFieldControlled(fs coreimpl.Fields, name string) (any, bool) {
 	for _, f := range fs {
 		p.Spend()
 		if p.rawValueEqual(f.Name, name) {
@@ -1376,15 +1376,15 @@ func (p *Parser) valueFieldControlled(fs noderep.Fields, name string) (any, bool
 	}
 	return nil, false
 }
-func (p *Parser) setValueField(fs *noderep.Fields, name string, v any) {
+func (p *Parser) setValueField(fs *coreimpl.Fields, name string, v any) {
 	if p.Control != nil {
 		p.setValueFieldControlled(fs, name, v)
 		return
 	}
-	noderep.SetField(fs, name, v)
+	coreimpl.SetField(fs, name, v)
 }
 
-func (p *Parser) setValueFieldControlled(fs *noderep.Fields, name string, v any) {
+func (p *Parser) setValueFieldControlled(fs *coreimpl.Fields, name string, v any) {
 	for i := range *fs {
 		p.Spend()
 		if p.rawValueEqual((*fs)[i].Name, name) {
@@ -1393,7 +1393,7 @@ func (p *Parser) setValueFieldControlled(fs *noderep.Fields, name string, v any)
 		}
 	}
 	// Adding the field is constant work, which the step that sets it has paid.
-	*fs = append(*fs, noderep.NodeField{Name: name, Value: v})
+	*fs = append(*fs, coreimpl.NodeField{Name: name, Value: v})
 }
 func (p *Parser) pushKid(v *core.Node) { p.Spend(); p.KidStack = append(p.KidStack, v) }
 func (p *Parser) undoCaptures(from int) {

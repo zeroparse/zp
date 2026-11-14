@@ -4,7 +4,7 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/core"
-	"zeroparse.dev/zp/core/noderep"
+	"zeroparse.dev/zp/core/impl"
 	"zeroparse.dev/zp/internal/ir/exec/conform"
 )
 
@@ -58,11 +58,11 @@ func nodeCastValue(c *ActCtx, v conform.CastValue) any {
 	case "rep":
 		return nodeOfData(&Data{Kind: ListKind, Start: 2, End: 5, Children: []*core.Node{text(), text()}})
 	case "err":
-		return nodeOfData(&Data{Kind: noderep.ErrorKind, Terminal: true, Start: 2, End: 4, Text: "x"})
+		return nodeOfData(&Data{Kind: coreimpl.ErrorKind, Terminal: true, Start: 2, End: 4, Text: "x"})
 	case "struct":
 		return c.fxStruct(v.Name)
 	case "box":
-		return nodeOfData(&Data{Kind: noderep.BoxKind, Box: 1})
+		return nodeOfData(&Data{Kind: coreimpl.BoxKind, Box: 1})
 	case "list":
 		return c.fxList(elems()...)
 	case "tupleValue":

@@ -6,7 +6,7 @@ import (
 	"strconv"
 	"strings"
 
-	"zeroparse.dev/zp/core/noderep"
+	"zeroparse.dev/zp/core/impl"
 )
 
 // GNode is a node of the value model: the range of input a rule or a valued subexpression
@@ -236,7 +236,7 @@ const (
 // list are arrays; nil is null; a struct is an object with the members type and fields; an error
 // is an object with the members start, end, error and, for a missing token, expected.
 func writeValueJSON(w io.Writer, v any) error {
-	out := noderep.JSONOutput{W: w, Buf: make([]byte, 0, 512)}
+	out := coreimpl.JSONOutput{W: w, Buf: make([]byte, 0, 512)}
 	stack := []valueFrame{{v: v}}
 	for len(stack) > 0 {
 		f := &stack[len(stack)-1]
@@ -403,7 +403,7 @@ func pathOrEmpty(p []int) []int {
 	return p
 }
 
-func writeErrorJSON(out *noderep.JSONOutput, e *ErrorValue) error {
+func writeErrorJSON(out *coreimpl.JSONOutput, e *ErrorValue) error {
 	if err := out.Raw(`{"start":`); err != nil {
 		return err
 	}

@@ -5,12 +5,12 @@ package document
 import (
 	"testing"
 
-	"zeroparse.dev/zp/core/noderep"
+	"zeroparse.dev/zp/core/impl"
 	"zeroparse.dev/zp/internal/value"
 )
 
 func TestDocumentChangesDirectoryEqualityUsesPositionOverlay(t *testing.T) {
-	a := changeGraphSnapshot(t, value.Ptr(value.Data{Kind: noderep.KindOf("Leaf", "item"), Start: 1, End: 2, Text: "x", Terminal: true}))
+	a := changeGraphSnapshot(t, value.Ptr(value.Data{Kind: coreimpl.KindOf("Leaf", "item"), Start: 1, End: 2, Text: "x", Terminal: true}))
 	// Same immutable record pointer, but version-owned observed positions differ.
 	b := &Snapshot{graph: snapshotGraph{root: a.graph.root, refs: []*snapshotRecord{a.graph.at(0)}, snapshotPositionState: snapshotPositionState{positions: []snapshotPositionDelta{{start: 1, end: 1}}}}}
 	if equalChangeSnapshots(a, b) {

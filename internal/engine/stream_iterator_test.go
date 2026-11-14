@@ -8,7 +8,7 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/core"
-	"zeroparse.dev/zp/core/noderep"
+	"zeroparse.dev/zp/core/impl"
 	"zeroparse.dev/zp/internal/value"
 )
 
@@ -68,7 +68,7 @@ func TestStreamIteratorNilEmptyCloseAndError(t *testing.T) {
 			t.Fatal(err)
 		}
 		// An element without a value is the unit tuple of its range.
-		if n, ok, err := it.Next(); n == nil || value.ShapeOf(n) != noderep.ShapeTuple || len(value.D(n).Children) != 0 || !ok || err != nil {
+		if n, ok, err := it.Next(); n == nil || value.ShapeOf(n) != coreimpl.ShapeTuple || len(value.D(n).Children) != 0 || !ok || err != nil {
 			t.Fatalf("unit element: %v %v %v", n, ok, err)
 		}
 		it.Close()

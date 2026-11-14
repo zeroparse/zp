@@ -2,7 +2,7 @@ package state
 
 import (
 	"zeroparse.dev/zp/core"
-	"zeroparse.dev/zp/core/noderep"
+	"zeroparse.dev/zp/core/impl"
 	"zeroparse.dev/zp/internal/value"
 )
 
@@ -115,16 +115,16 @@ func (p *Parser) DropKids(base int) {
 
 // fields allocates an empty field list with capacity n from a chunk and returns it. Appending
 // beyond n reallocates, so neighbouring lists in the chunk are never overwritten.
-func (p *Parser) fields(n int) noderep.Fields {
+func (p *Parser) fields(n int) coreimpl.Fields {
 	if n > NodeChunk/4 {
 		p.MemUsed += uint64(n) * fieldBytes
-		return make(noderep.Fields, 0, n)
+		return make(coreimpl.Fields, 0, n)
 	}
 	if len(p.fieldSlab) < n {
 		if p.PrivatePrefixAlloc() {
-			return make(noderep.Fields, 0, n)
+			return make(coreimpl.Fields, 0, n)
 		}
-		p.fieldSlab = make([]noderep.NodeField, NodeChunk)
+		p.fieldSlab = make([]coreimpl.NodeField, NodeChunk)
 		p.MemUsed += NodeChunk * fieldBytes
 	}
 	fs := p.fieldSlab[:0:n]

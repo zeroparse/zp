@@ -4,7 +4,7 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/core"
-	"zeroparse.dev/zp/core/noderep"
+	"zeroparse.dev/zp/core/impl"
 	"zeroparse.dev/zp/internal/compile"
 	"zeroparse.dev/zp/internal/compiletest"
 	"zeroparse.dev/zp/internal/ir/exec/conform"
@@ -39,7 +39,7 @@ func TestEngineValueCastTable(t *testing.T) {
 		var build func(v conform.CastValue) any
 		build = func(v conform.CastValue) any {
 			text := func() *core.Node {
-				return p.NewNode(value.Data{Kind: noderep.MatchKind, Terminal: true, Text: "xyz", Start: 2, End: 4})
+				return p.NewNode(value.Data{Kind: coreimpl.MatchKind, Terminal: true, Text: "xyz", Start: 2, End: 4})
 			}
 			elems := func() []*core.Node {
 				var out []*core.Node
@@ -70,13 +70,13 @@ func TestEngineValueCastTable(t *testing.T) {
 			case "text":
 				return text()
 			case "tuple":
-				return p.NewNode(value.Data{Kind: noderep.SeqKind, Start: 2, End: 5, Children: []*core.Node{text(), text()}})
+				return p.NewNode(value.Data{Kind: coreimpl.SeqKind, Start: 2, End: 5, Children: []*core.Node{text(), text()}})
 			case "rep":
-				return p.NewNode(value.Data{Kind: noderep.ListKind, Start: 2, End: 5, Children: []*core.Node{text(), text()}})
+				return p.NewNode(value.Data{Kind: coreimpl.ListKind, Start: 2, End: 5, Children: []*core.Node{text(), text()}})
 			case "err":
-				return p.NewNode(value.Data{Kind: noderep.ErrorKind, Terminal: true, Text: "x", Start: 2, End: 4})
+				return p.NewNode(value.Data{Kind: coreimpl.ErrorKind, Terminal: true, Text: "x", Start: 2, End: 4})
 			case "missing":
-				return p.NewNode(value.Data{Kind: noderep.MissingKind, Start: 2, End: 2})
+				return p.NewNode(value.Data{Kind: coreimpl.MissingKind, Start: 2, End: 2})
 			case "struct":
 				n, err := c.NewStruct(v.Name, nil, nil)
 				if err != nil {

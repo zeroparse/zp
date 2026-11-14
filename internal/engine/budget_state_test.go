@@ -13,7 +13,7 @@ import (
 	ir "zeroparse.dev/zp/internal/ir/core"
 
 	"zeroparse.dev/zp/core"
-	"zeroparse.dev/zp/core/noderep"
+	"zeroparse.dev/zp/core/impl"
 	"zeroparse.dev/zp/internal/compile"
 	"zeroparse.dev/zp/internal/engine/state"
 	"zeroparse.dev/zp/internal/value"
@@ -26,7 +26,7 @@ func stateBudgetParser(limits core.Limits) *state.Parser {
 }
 
 func undoFixture(p *state.Parser) (*state.Frame, []*core.Node) {
-	old0 := value.Ptr(value.Data{Text: "old-zero", Fields: noderep.Fields{{Name: "keep", Value: "zero"}}})
+	old0 := value.Ptr(value.Data{Text: "old-zero", Fields: coreimpl.Fields{{Name: "keep", Value: "zero"}}})
 	first0 := value.Ptr(value.Data{Text: "first-zero"})
 	latest0 := value.Ptr(value.Data{Text: "latest-zero"})
 	old1 := value.Ptr(value.Data{Text: "old-one"})
@@ -89,7 +89,7 @@ func TestBudgetResetPollingCancellationDuringUndo(t *testing.T) {
 
 func TestBudgetAttachCapturesNilFrameAndFieldOrder(t *testing.T) {
 	t.Parallel()
-	retained := value.Ptr(value.Data{Text: "base", Fields: noderep.Fields{{Name: "existing", Value: "kept"}}})
+	retained := value.Ptr(value.Data{Text: "base", Fields: coreimpl.Fields{{Name: "existing", Value: "kept"}}})
 	allNil := &state.Frame{Vals: make([]*core.Node, 320)}
 	p := stateBudgetParser(core.Limits{Compute: 100_000})
 	got := p.AttachCaptures(retained, &compile.Scope{Names: make([]string, len(allNil.Vals))}, allNil, 2, 9)
@@ -123,8 +123,8 @@ func TestBudgetAttachCapturesNilFrameAndFieldOrder(t *testing.T) {
 func TestBudgetAttachCapturesWrapsNonfreshAndSelfCapture(t *testing.T) {
 	t.Parallel()
 	child := value.Ptr(value.Data{Text: "retained-child"})
-	prior := noderep.Fields{{Name: "prior", Value: "unchanged"}}
-	shared := value.Ptr(value.Data{Text: "shared", Fields: append(noderep.Fields(nil), prior...)})
+	prior := coreimpl.Fields{{Name: "prior", Value: "unchanged"}}
+	shared := value.Ptr(value.Data{Text: "shared", Fields: append(coreimpl.Fields(nil), prior...)})
 	p := stateBudgetParser(core.Limits{Compute: 100_000})
 	wrapped := p.AttachCaptures(shared, &compile.Scope{Names: []string{"child"}}, &state.Frame{Vals: []*core.Node{child}}, 4, 7)
 	if wrapped == shared || len(value.D(wrapped).Children) != 1 || value.D(wrapped).Children[0] != shared {
@@ -149,7 +149,7 @@ func TestBudgetAttachCapturesWrapsNonfreshAndSelfCapture(t *testing.T) {
 
 func TestBudgetAttachCapturesInterruptsDiscoveryAndFieldWalk(t *testing.T) {
 	t.Parallel()
-	base := value.Ptr(value.Data{Text: "retained", Fields: noderep.Fields{{Name: "prior", Value: "kept"}}})
+	base := value.Ptr(value.Data{Text: "retained", Fields: coreimpl.Fields{{Name: "prior", Value: "kept"}}})
 	wide := &state.Frame{Vals: make([]*core.Node, 320)}
 	p := stateBudgetParser(core.Limits{Compute: 128})
 	if err := catchFatal(t, func() { _ = p.AttachCaptures(base, &compile.Scope{Names: make([]string, 320)}, wide, 0, 1) }); !errors.Is(err, core.ErrLimit) {
@@ -166,7 +166,7 @@ func TestBudgetAttachCapturesInterruptsDiscoveryAndFieldWalk(t *testing.T) {
 		names[i] = fmt.Sprintf("capture_%03d_%s", i, strings.Repeat("common_prefix_", 12))
 		vals[i] = value.Ptr(value.Data{Text: fmt.Sprintf("value-%d", i)})
 	}
-	retained := value.Ptr(value.Data{Text: "shared-retained", Fields: noderep.Fields{{Name: "existing", Value: "stable"}}})
+	retained := value.Ptr(value.Data{Text: "shared-retained", Fields: coreimpl.Fields{{Name: "existing", Value: "stable"}}})
 	p = stateBudgetParser(core.Limits{Compute: 256})
 	if err := catchFatal(t, func() { _ = p.AttachCaptures(retained, &compile.Scope{Names: names}, &state.Frame{Vals: vals}, 3, 9) }); !errors.Is(err, core.ErrLimit) {
 		t.Fatalf("capture field walk interruption = %v, want ErrLimit", err)

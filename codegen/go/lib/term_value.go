@@ -4,7 +4,7 @@ import (
 	"strings"
 
 	"zeroparse.dev/zp/core"
-	"zeroparse.dev/zp/core/noderep"
+	"zeroparse.dev/zp/core/impl"
 )
 
 // The value primitives of terms (ops.AddValue) of the node and the typed library. The compositions
@@ -79,11 +79,11 @@ func nodeOf(x any) (*core.Node, bool) {
 }
 
 // seqKind is the kind of a tuple value or a list value.
-func seqKind(tuple bool) *noderep.Kind {
+func seqKind(tuple bool) *coreimpl.Kind {
 	if tuple {
-		return noderep.TupleValueKind
+		return coreimpl.TupleValueKind
 	}
-	return noderep.ListValueKind
+	return coreimpl.ListValueKind
 }
 
 // elemSpan is the operation seq.span: an element of a list or a tuple is a node, boxed if it was a scalar,

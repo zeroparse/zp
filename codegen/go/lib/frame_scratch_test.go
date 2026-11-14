@@ -5,7 +5,7 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/core"
-	"zeroparse.dev/zp/core/noderep"
+	"zeroparse.dev/zp/core/impl"
 )
 
 func TestNodeFrameScratchBoundaries(t *testing.T) {
@@ -64,7 +64,7 @@ func TestNodeFrameScratchChunkStability(t *testing.T) {
 func TestNodeFrameScratchReleaseOwnership(t *testing.T) {
 	p := &Parser{}
 	f := p.NewFrame(2)
-	captured := p.NewNode(Data{Kind: noderep.MatchKind, Text: "é", Start: 1, End: 2, Terminal: true})
+	captured := p.NewNode(Data{Kind: coreimpl.MatchKind, Text: "é", Start: 1, End: 2, Terminal: true})
 	f.Vals[0] = captured
 	result := p.AttachCaptures(nil, []string{"x", "missing"}, f, 0, 2)
 	before, err := json.Marshal(result)

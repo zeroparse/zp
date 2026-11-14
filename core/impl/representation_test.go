@@ -1,4 +1,4 @@
-package noderep
+package coreimpl
 
 import (
 	"flag"
@@ -127,7 +127,7 @@ func representation(t *testing.T, dir string) (int, string) {
 		files = append(files, f)
 	}
 	conf := types.Config{Importer: importer.ForCompiler(fset, "source", nil)}
-	pkg, err := conf.Check("zeroparse.dev/zp/core/noderep", fset, files, nil)
+	pkg, err := conf.Check("zeroparse.dev/zp/core/impl", fset, files, nil)
 	if err != nil {
 		t.Fatal(err)
 	}

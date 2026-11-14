@@ -9,11 +9,11 @@ import (
 	"unsafe"
 
 	"zeroparse.dev/zp/core"
-	"zeroparse.dev/zp/core/noderep"
+	"zeroparse.dev/zp/core/impl"
 )
 
 // Data is the representation of a core.Node.
-type Data = noderep.Data[core.Node]
+type Data = coreimpl.Data[core.Node]
 
 // D returns the representation of n. A core.Node holds its representation as its only field.
 func D(n *core.Node) *Data { return (*Data)(unsafe.Pointer(n)) }
@@ -32,7 +32,7 @@ func Ptr(d Data) *core.Node {
 // node of a named node type, or an error value) rather than a struct, a box or a list or tuple
 // value.
 func IsNode(n *core.Node) bool {
-	if k := D(n).Kind; k != nil && k.Base >= 0 && k.Base <= noderep.BaseMissing {
+	if k := D(n).Kind; k != nil && k.Base >= 0 && k.Base <= coreimpl.BaseMissing {
 		return true
 	}
 	return D(n).Terminal
@@ -44,7 +44,7 @@ func UnboxNode(n *core.Node) any {
 	if n == nil {
 		return nil
 	}
-	if D(n).Kind == noderep.BoxKind {
+	if D(n).Kind == coreimpl.BoxKind {
 		return D(n).Box
 	}
 	return n
@@ -60,13 +60,13 @@ func UnboxValue(v any) any {
 
 // NodeTypeKinds are the kinds of the nodes of a named node type, by the base (BaseString,
 // BaseTuple, BaseList) of the node converted to it. They have no rule.
-type NodeTypeKinds [noderep.BaseList + 1]*noderep.Kind
+type NodeTypeKinds [coreimpl.BaseList + 1]*coreimpl.Kind
 
 // NewNodeTypeKinds returns the interned kinds of the named node type typ.
 func NewNodeTypeKinds(typ string) *NodeTypeKinds {
 	var ks NodeTypeKinds
 	for base := range ks {
-		ks[base] = noderep.NodeTypeKind(typ, base)
+		ks[base] = coreimpl.NodeTypeKind(typ, base)
 	}
 	return &ks
 }
@@ -86,7 +86,7 @@ func (ks *NodeTypeKinds) Convert(v any) (*core.Node, bool) {
 // a conversion converts.
 func HasBase(n *core.Node) bool {
 	k := D(n).Kind
-	return k != nil && k.Base >= 0 && k.Base <= noderep.BaseList
+	return k != nil && k.Base >= 0 && k.Base <= coreimpl.BaseList
 }
 
 // Retype returns n, a string, tuple or list node (HasBase), as a node of the named node type of ks: a
@@ -124,25 +124,25 @@ func FieldOf(n *core.Node, name string) (any, bool) {
 }
 
 // ShapeOf returns what n stands for in the value model.
-func ShapeOf(n *core.Node) noderep.Shape { return noderep.ShapeOfKind(D(n).Kind, D(n).Terminal) }
+func ShapeOf(n *core.Node) coreimpl.Shape { return coreimpl.ShapeOfKind(D(n).Kind, D(n).Terminal) }
 
 // KindOfShape returns the core.NodeKind of a node that has the shape. It agrees with
 // core.Node.Kind, which TestKindOfShape checks.
-func KindOfShape(shape noderep.Shape) core.NodeKind {
+func KindOfShape(shape coreimpl.Shape) core.NodeKind {
 	switch shape {
-	case noderep.ShapeString:
+	case coreimpl.ShapeString:
 		return core.KindString
-	case noderep.ShapeTuple:
+	case coreimpl.ShapeTuple:
 		return core.KindTuple
-	case noderep.ShapeList:
+	case coreimpl.ShapeList:
 		return core.KindList
-	case noderep.ShapeError:
+	case coreimpl.ShapeError:
 		return core.KindError
-	case noderep.ShapeBox:
+	case coreimpl.ShapeBox:
 		return core.KindValue
-	case noderep.ShapeTupleValue:
+	case coreimpl.ShapeTupleValue:
 		return core.KindTupleValue
-	case noderep.ShapeListValue:
+	case coreimpl.ShapeListValue:
 		return core.KindListValue
 	}
 	return core.KindStruct
@@ -152,19 +152,19 @@ func KindOfShape(shape noderep.Shape) core.NodeKind {
 // value model: node[string] for a string node, node[(_, _)] and node[[]_] for tuple and list
 // nodes (a tuple has elems elements), error for an error value, (_, _) and []_ for tuple and list
 // values, and name for a struct.
-func ValueTypeName(shape noderep.Shape, name string, elems int) string {
+func ValueTypeName(shape coreimpl.Shape, name string, elems int) string {
 	switch shape {
-	case noderep.ShapeString:
+	case coreimpl.ShapeString:
 		return "node[string]"
-	case noderep.ShapeTuple:
+	case coreimpl.ShapeTuple:
 		return "node[" + tupleTerm(elems) + "]"
-	case noderep.ShapeList:
+	case coreimpl.ShapeList:
 		return "node[[]_]"
-	case noderep.ShapeError:
+	case coreimpl.ShapeError:
 		return "error"
-	case noderep.ShapeTupleValue:
+	case coreimpl.ShapeTupleValue:
 		return tupleTerm(elems)
-	case noderep.ShapeListValue:
+	case coreimpl.ShapeListValue:
 		return "[]_"
 	}
 	return name
@@ -179,7 +179,7 @@ func tupleTerm(n int) string {
 }
 
 // CaptureLocations returns the locations of the captures of the tuple node n, in name order (see
-// noderep.CaptureLocations).
-func CaptureLocations(n *core.Node) []noderep.CaptureLocation {
-	return noderep.CaptureLocations(D(n), D)
+// coreimpl.CaptureLocations).
+func CaptureLocations(n *core.Node) []coreimpl.CaptureLocation {
+	return coreimpl.CaptureLocations(D(n), D)
 }

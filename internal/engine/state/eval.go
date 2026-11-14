@@ -5,7 +5,7 @@ import (
 	"strings"
 
 	"zeroparse.dev/zp/core"
-	"zeroparse.dev/zp/core/noderep"
+	"zeroparse.dev/zp/core/impl"
 	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/compile"
 	"zeroparse.dev/zp/internal/value"
@@ -73,7 +73,7 @@ func (p *Parser) ActionResult(ctx *EvalCtx, act Evaluator, where string) *core.N
 			p.FailAction(where, p.ActionError("result must be a value, got a function"))
 		}
 		// A value other than a node travels boxed, with the range of the action's input.
-		return p.NewNode(value.Data{Kind: noderep.BoxKind, Box: v, Start: int32(ctx.Start), End: int32(ctx.End)})
+		return p.NewNode(value.Data{Kind: coreimpl.BoxKind, Box: v, Start: int32(ctx.Start), End: int32(ctx.End)})
 	}
 	if n != nil {
 		// The value of an action is final: a node it returns from the rule body (=> $1) is not
@@ -103,7 +103,7 @@ func TypeName(v any) string {
 		if v == nil {
 			return "nil"
 		}
-		if value.D(v).Kind == noderep.BoxKind {
+		if value.D(v).Kind == coreimpl.BoxKind {
 			return TypeName(value.D(v).Box)
 		}
 		if value.D(v).Kind.IsNodeType() {

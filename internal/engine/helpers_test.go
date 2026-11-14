@@ -11,7 +11,7 @@ import (
 	irbuild "zeroparse.dev/zp/internal/ir/core/build"
 
 	"zeroparse.dev/zp/core"
-	"zeroparse.dev/zp/core/noderep"
+	"zeroparse.dev/zp/core/impl"
 	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/codegentest"
 	"zeroparse.dev/zp/internal/compile"
@@ -267,13 +267,13 @@ func toCodePoints(input string, n *core.Node, err error) (*core.Node, error) {
 			}
 		}
 		if value.D(n).Fields != nil {
-			value.D(&c).Fields = make(noderep.Fields, len(value.D(n).Fields))
+			value.D(&c).Fields = make(coreimpl.Fields, len(value.D(n).Fields))
 			for i, f := range value.D(n).Fields {
 				switch v := f.Value.(type) {
 				case *core.Node:
 					f.Value = conv(v)
 				case string:
-					if n.Type() == noderep.TypeError && f.Name == "message" {
+					if n.Type() == coreimpl.TypeError && f.Name == "message" {
 						f.Value = fixMessage(v)
 					}
 				}

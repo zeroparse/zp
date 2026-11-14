@@ -6,7 +6,7 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/core"
-	"zeroparse.dev/zp/core/noderep"
+	"zeroparse.dev/zp/core/impl"
 	"zeroparse.dev/zp/internal/value"
 )
 
@@ -14,8 +14,8 @@ func TestWalkEdgeOrderAndSharedParents(t *testing.T) {
 	t.Parallel()
 	shared := value.Ptr(value.Data{Text: "shared"})
 	left := value.Ptr(value.Data{Children: []*core.Node{shared}})
-	right := value.Ptr(value.Data{Fields: noderep.Fields{{Name: "nested", Value: []any{shared, nil, 7}}}})
-	root := value.Ptr(value.Data{Children: []*core.Node{left, right, nil}, Fields: noderep.Fields{{Name: "z", Value: false}, {Name: "a", Value: shared}}})
+	right := value.Ptr(value.Data{Fields: coreimpl.Fields{{Name: "nested", Value: []any{shared, nil, 7}}}})
+	root := value.Ptr(value.Data{Children: []*core.Node{left, right, nil}, Fields: coreimpl.Fields{{Name: "z", Value: false}, {Name: "a", Value: shared}}})
 	var got []string
 	var parents []*core.Node
 	err := core.Walk(root, func(v core.WalkVisit) (core.WalkAction, error) {
@@ -60,7 +60,7 @@ func TestWalkCyclesAndControls(t *testing.T) {
 	}
 	list := make([]any, 1)
 	list[0] = list
-	n = value.Ptr(value.Data{Fields: noderep.Fields{{Name: "x", Value: list}}})
+	n = value.Ptr(value.Data{Fields: coreimpl.Fields{{Name: "x", Value: list}}})
 	err = core.Walk(n, func(core.WalkVisit) (core.WalkAction, error) { return core.WalkContinue, nil })
 	if !errors.As(err, &cycle) || len(cycle.Path) != 3 {
 		t.Fatalf("list cycle = %v", err)
@@ -92,7 +92,7 @@ func TestWalkDeep(t *testing.T) {
 	n := &core.Node{}
 	const depth = 20000
 	for i := 0; i < depth; i++ {
-		n = value.Ptr(value.Data{Fields: noderep.Fields{{Name: "next", Value: []any{n}}}})
+		n = value.Ptr(value.Data{Fields: coreimpl.Fields{{Name: "next", Value: []any{n}}}})
 	}
 	count := 0
 	if err := core.Walk(n, func(v core.WalkVisit) (core.WalkAction, error) {
@@ -149,7 +149,7 @@ func TestWalkSliceIdentityIgnoresCapacity(t *testing.T) {
 	t.Parallel()
 	x := make([]any, 1, 2)
 	x[0] = x[:1:1]
-	root := value.Ptr(value.Data{Fields: noderep.Fields{{Name: "x", Value: x}}})
+	root := value.Ptr(value.Data{Fields: coreimpl.Fields{{Name: "x", Value: x}}})
 	visits := 0
 	err := core.Walk(root, func(core.WalkVisit) (core.WalkAction, error) {
 		visits++

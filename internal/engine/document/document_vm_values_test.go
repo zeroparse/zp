@@ -11,7 +11,7 @@ import (
 	"zeroparse.dev/zp/internal/engine/document"
 
 	"zeroparse.dev/zp/core"
-	"zeroparse.dev/zp/core/noderep"
+	"zeroparse.dev/zp/core/impl"
 	"zeroparse.dev/zp/internal/compile"
 	. "zeroparse.dev/zp/internal/engine"
 	"zeroparse.dev/zp/internal/engine/state"
@@ -116,7 +116,7 @@ rule line = [a-z / "é" / "😀"]+ #atomic "\n"`)
 					return n
 				}
 				n := check()
-				if len(value.D(n).Children) != 1 || value.D(n).Children[0].Type() != noderep.TypeList || len(value.D(value.D(n).Children[0]).Children) != 5000 {
+				if len(value.D(n).Children) != 1 || value.D(n).Children[0].Type() != coreimpl.TypeList || len(value.D(value.D(n).Children[0]).Children) != 5000 {
 					t.Fatal("expected one list containing all input lines")
 				}
 				retained := append([]*core.Node(nil), value.D(value.D(n).Children[0]).Children[:3]...)

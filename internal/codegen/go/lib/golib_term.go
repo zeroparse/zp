@@ -268,7 +268,7 @@ func goValueOp(callee string, a []string, typed bool) (string, bool) {
 		if typed {
 			return a[1], true
 		}
-		return fmt.Sprintf("p.NewNode(Data{Kind: noderep.BoxKind, Box: %[2]s, Start: int32(%[1]s.start), End: int32(%[1]s.end)})", a[0], a[1]), true
+		return fmt.Sprintf("p.NewNode(Data{Kind: coreimpl.BoxKind, Box: %[2]s, Start: int32(%[1]s.start), End: int32(%[1]s.end)})", a[0], a[1]), true
 	case "node.hasText":
 		if typed {
 			return "tnodeHasText(" + a[0] + ")", true
@@ -500,7 +500,7 @@ func engineValueOp(callee string, a []string) (string, bool) {
 	case "node.field":
 		return fmt.Sprintf("p.ValueField(value.D(%s).Fields, %s)", a[0], a[1]), true
 	case "val.box":
-		return fmt.Sprintf("p.NewNode(value.Data{Kind: noderep.BoxKind, Box: %[2]s, Start: int32(%[1]s.Start), End: int32(%[1]s.End)})", a[0], a[1]), true
+		return fmt.Sprintf("p.NewNode(value.Data{Kind: coreimpl.BoxKind, Box: %[2]s, Start: int32(%[1]s.Start), End: int32(%[1]s.End)})", a[0], a[1]), true
 	case "node.hasText":
 		return "value.D(" + a[0] + ").Terminal", true
 	case "node.heldText":
@@ -536,7 +536,7 @@ func engineValueOp(callee string, a []string) (string, bool) {
 	case "node.isType":
 		return fmt.Sprintf("%s.Type() == %s.Name", a[0], a[1]), true
 	case "node.isMissing":
-		return a[0] + ".Type() == noderep.TypeMissing", true
+		return a[0] + ".Type() == coreimpl.TypeMissing", true
 	case "node.children":
 		return "value.D(" + a[0] + ").Children", true
 	case "node.hasBase":

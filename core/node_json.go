@@ -6,13 +6,13 @@ import (
 	"io"
 	"reflect"
 
-	"zeroparse.dev/zp/core/noderep"
+	"zeroparse.dev/zp/core/impl"
 )
 
 type nodeJSONFrame struct {
 	value  any
-	fields noderep.Fields
-	caps   []noderep.CaptureLocation
+	fields coreimpl.Fields
+	caps   []coreimpl.CaptureLocation
 	index  int
 	phase  uint8
 	slice  nodeJSONSliceID
@@ -32,7 +32,7 @@ const (
 )
 
 // writeJSONRange writes prefix and the members start and end of n.
-func writeJSONRange(out *noderep.JSONOutput, n *Node, prefix string) error {
+func writeJSONRange(out *coreimpl.JSONOutput, n *Node, prefix string) error {
 	if err := out.Raw(prefix); err != nil {
 		return err
 	}
@@ -54,7 +54,7 @@ type nodeJSONSliceID struct {
 // edges. Other values are delegated to encoding/json, preserving its scalar and custom-marshaler
 // behavior. []byte intentionally stays in that fallback so it keeps encoding as base64.
 func writeJSONValue(w io.Writer, value any) error {
-	out := noderep.JSONOutput{W: w, Buf: make([]byte, 0, 512)}
+	out := coreimpl.JSONOutput{W: w, Buf: make([]byte, 0, 512)}
 	stack := []nodeJSONFrame{{value: value}}
 	activeNodes := make(map[*Node]struct{})
 	activeSlices := make(map[nodeJSONSliceID]struct{})
@@ -76,11 +76,11 @@ func writeJSONValue(w io.Writer, value any) error {
 				}
 				activeNodes[value] = struct{}{}
 				switch shape := shapeOf(value); shape {
-				case noderep.ShapeBox:
+				case coreimpl.ShapeBox:
 					// The box stands for its value.
 					delete(activeNodes, value)
 					stack[len(stack)-1] = nodeJSONFrame{value: value.d.Box}
-				case noderep.ShapeString, noderep.ShapeTuple, noderep.ShapeList:
+				case coreimpl.ShapeString, coreimpl.ShapeTuple, coreimpl.ShapeList:
 					prefix := `{"start":`
 					if value.d.Kind.IsNodeType() {
 						// A node of a named node type names its type.
@@ -98,14 +98,14 @@ func writeJSONValue(w io.Writer, value any) error {
 					if err = out.Raw(`,"value":`); err != nil {
 						break
 					}
-					if shape == noderep.ShapeString {
+					if shape == coreimpl.ShapeString {
 						err = out.Encoded(value.d.Text)
 						frame.phase = nodeJSONFieldsStart
 						break
 					}
 					err = out.Raw("[")
 					frame.phase = nodeJSONChildren
-				case noderep.ShapeError:
+				case coreimpl.ShapeError:
 					if err = writeJSONRange(&out, value, `{"start":`); err != nil {
 						break
 					}
@@ -119,7 +119,7 @@ func writeJSONValue(w io.Writer, value any) error {
 						}
 					}
 					frame.phase = nodeJSONExit
-				case noderep.ShapeTupleValue, noderep.ShapeListValue:
+				case coreimpl.ShapeTupleValue, coreimpl.ShapeListValue:
 					err = out.Raw("[")
 					frame.phase = nodeJSONSliceItems
 				default: // a struct

@@ -10,7 +10,7 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/core"
-	"zeroparse.dev/zp/core/noderep"
+	"zeroparse.dev/zp/core/impl"
 	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/compile"
 	"zeroparse.dev/zp/internal/engine/state"
@@ -71,7 +71,7 @@ func budgetGuardedChoiceSnapshot(n *core.Node) *core.Node {
 			value.D(&copy).Children[i] = budgetGuardedChoiceSnapshot(child)
 		}
 	}
-	value.D(&copy).Fields = append(noderep.Fields(nil), value.D(n).Fields...)
+	value.D(&copy).Fields = append(coreimpl.Fields(nil), value.D(n).Fields...)
 	for i := range value.D(&copy).Fields {
 		if child, ok := value.D(&copy).Fields[i].Value.(*core.Node); ok {
 			value.D(&copy).Fields[i].Value = budgetGuardedChoiceSnapshot(child)

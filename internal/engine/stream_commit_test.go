@@ -10,7 +10,7 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/core"
-	"zeroparse.dev/zp/core/noderep"
+	"zeroparse.dev/zp/core/impl"
 	"zeroparse.dev/zp/internal/engine/state"
 	"zeroparse.dev/zp/internal/value"
 )
@@ -26,7 +26,7 @@ func TestStreamCommitFreezesDeliveredElements(t *testing.T) {
 				elements := 0
 				err := p.ParseStreamWith("main", strings.NewReader("ababab"), func(n *core.Node) error {
 					elements++
-					if n == nil || value.D(n).Kind != noderep.SeqKind || value.D(n).Fresh {
+					if n == nil || value.D(n).Kind != coreimpl.SeqKind || value.D(n).Fresh {
 						t.Errorf("element %d is %+v", elements, n)
 					}
 					return nil

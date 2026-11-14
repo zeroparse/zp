@@ -4,7 +4,7 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/core"
-	"zeroparse.dev/zp/core/noderep"
+	"zeroparse.dev/zp/core/impl"
 	"zeroparse.dev/zp/internal/compile"
 	"zeroparse.dev/zp/internal/compiletest"
 	"zeroparse.dev/zp/internal/ir/exec/conform"
@@ -29,14 +29,14 @@ func TestEngineValueBuiltinTable(t *testing.T) {
 			p.Control = NewBudgetControl(nil, core.Limits{Compute: 1 << 62})
 		}
 		c := &EvalCtx{P: p}
-		text := p.NewNode(value.Data{Kind: noderep.MatchKind, Terminal: true, Text: "xyz", Start: 2, End: 4})
+		text := p.NewNode(value.Data{Kind: coreimpl.MatchKind, Terminal: true, Text: "xyz", Start: 2, End: 4})
 		vals := map[string]any{
 			conform.MemberNil:     nil,
 			conform.MemberInt:     1,
 			conform.BuiltinString: "ab",
 			conform.BuiltinBool:   true,
 			conform.BuiltinText:   text,
-			conform.BuiltinNode:   p.NewNode(value.Data{Kind: noderep.SeqKind, Start: 2, End: 5, Children: []*core.Node{text, text}}),
+			conform.BuiltinNode:   p.NewNode(value.Data{Kind: coreimpl.SeqKind, Start: 2, End: 5, Children: []*core.Node{text, text}}),
 			conform.MemberList:    c.ListNode(nil),
 			conform.BuiltinFunc:   builtinFunc{},
 			conform.BuiltinTyped:  value.NewNodeTypeKinds(conform.BuiltinOther).Retype(text),

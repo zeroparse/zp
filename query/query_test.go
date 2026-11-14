@@ -8,16 +8,16 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/core"
-	"zeroparse.dev/zp/core/noderep"
+	"zeroparse.dev/zp/core/impl"
 	"zeroparse.dev/zp/internal/value"
 	"zeroparse.dev/zp/schema"
 )
 
 func TestStructuralQuerySharedEdgesAndCaptures(t *testing.T) {
-	leaf := value.Ptr(value.Data{Kind: noderep.KindOf(noderep.TypeString, "identifier"), Terminal: true, Text: "hello"})
-	tuple := value.Ptr(value.Data{Kind: noderep.TupleValueKind, Children: []*core.Node{leaf}})
-	list := value.Ptr(value.Data{Kind: noderep.ListValueKind, Children: []*core.Node{nil, leaf}})
-	root := value.Ptr(value.Data{Kind: noderep.KindOf("Pair", ""), Fields: noderep.Fields{{Name: "z", Value: list}, {Name: "a", Value: leaf}, {Name: "t", Value: tuple}}})
+	leaf := value.Ptr(value.Data{Kind: coreimpl.KindOf(coreimpl.TypeString, "identifier"), Terminal: true, Text: "hello"})
+	tuple := value.Ptr(value.Data{Kind: coreimpl.TupleValueKind, Children: []*core.Node{leaf}})
+	list := value.Ptr(value.Data{Kind: coreimpl.ListValueKind, Children: []*core.Node{nil, leaf}})
+	root := value.Ptr(value.Data{Kind: coreimpl.KindOf("Pair", ""), Fields: coreimpl.Fields{{Name: "z", Value: list}, {Name: "a", Value: leaf}, {Name: "t", Value: tuple}}})
 	q, err := Compile(Pattern{Rule: "identifier", Capture: "name", Value: &Pattern{Category: "string", Capture: "text"}}, nil)
 	if err != nil {
 		t.Fatal(err)
@@ -43,10 +43,10 @@ func TestStructuralQuerySharedEdgesAndCaptures(t *testing.T) {
 }
 
 func TestStructuralQueryElementsSeeThroughNodes(t *testing.T) {
-	a := value.Ptr(value.Data{Kind: noderep.MatchKind, Terminal: true, Text: "a"})
-	b := value.Ptr(value.Data{Kind: noderep.BoxKind, Box: 7})
-	look := value.Ptr(value.Data{Kind: noderep.MatchKind, Terminal: true, Text: "!"})
-	tuple := value.Ptr(value.Data{Kind: noderep.SeqKind, Children: []*core.Node{a, b}, Fields: noderep.Fields{{Name: "x", Value: a}, {Name: "y", Value: look}}})
+	a := value.Ptr(value.Data{Kind: coreimpl.MatchKind, Terminal: true, Text: "a"})
+	b := value.Ptr(value.Data{Kind: coreimpl.BoxKind, Box: 7})
+	look := value.Ptr(value.Data{Kind: coreimpl.MatchKind, Terminal: true, Text: "!"})
+	tuple := value.Ptr(value.Data{Kind: coreimpl.SeqKind, Children: []*core.Node{a, b}, Fields: coreimpl.Fields{{Name: "x", Value: a}, {Name: "y", Value: look}}})
 	elements := Pattern{Category: "node", Elements: []Pattern{{Value: &Pattern{Category: "string"}, Capture: "first"}, {Category: "int", Capture: "second"}}}
 	val := Pattern{Value: &Pattern{Category: "tuple", Elements: []Pattern{{}, {Category: "int"}}, Capture: "value"}}
 	for name, tc := range map[string]struct {
@@ -72,7 +72,7 @@ func TestStructuralQueryElementsSeeThroughNodes(t *testing.T) {
 		if name == "elements" && (got[0].Captures[0].Value != a || got[0].Captures[1].Value != 7) {
 			t.Fatalf("element values: %+v", got[0].Captures)
 		}
-		if v, ok := got[0].Captures[0].Value.(*core.Node); name == "value" && (!ok || value.ShapeOf(v) != noderep.ShapeTupleValue || len(value.D(v).Children) != 2) {
+		if v, ok := got[0].Captures[0].Value.(*core.Node); name == "value" && (!ok || value.ShapeOf(v) != coreimpl.ShapeTupleValue || len(value.D(v).Children) != 2) {
 			t.Fatalf("node value: %+v", got[0].Captures[0])
 		}
 	}
@@ -127,22 +127,22 @@ func TestStructuralQueryAllOrError(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	root := value.Ptr(value.Data{Kind: noderep.SeqKind})
+	root := value.Ptr(value.Data{Kind: coreimpl.SeqKind})
 	value.D(root).Children = []*core.Node{root}
 	got, err := q.Matches(root)
 	if got != nil || !errors.Is(err, ErrCycle) {
 		t.Fatalf("cycle: %v %v", got, err)
 	}
-	list := value.Ptr(value.Data{Kind: noderep.ListValueKind})
+	list := value.Ptr(value.Data{Kind: coreimpl.ListValueKind})
 	value.D(list).Children = []*core.Node{list}
 	value.D(root).Children = nil
-	value.D(root).Fields = noderep.Fields{{Name: "cycle", Value: list}}
-	value.D(root).Kind = noderep.KindOf("S", "")
+	value.D(root).Fields = coreimpl.Fields{{Name: "cycle", Value: list}}
+	value.D(root).Kind = coreimpl.KindOf("S", "")
 	got, err = q.Matches(root)
 	if got != nil || !errors.Is(err, ErrCycle) {
 		t.Fatalf("list cycle: %v %v", got, err)
 	}
-	root = value.Ptr(value.Data{Kind: noderep.MatchKind, Terminal: true})
+	root = value.Ptr(value.Data{Kind: coreimpl.MatchKind, Terminal: true})
 	ctx, cancel := context.WithCancel(context.Background())
 	cancel()
 	got, err = q.Matches(root, WithContext(ctx))
@@ -165,8 +165,8 @@ func TestStructuralQueryCycleThroughValues(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	root := value.Ptr(value.Data{Kind: noderep.SeqKind})
-	list := value.Ptr(value.Data{Kind: noderep.ListValueKind, Children: []*core.Node{root}})
+	root := value.Ptr(value.Data{Kind: coreimpl.SeqKind})
+	list := value.Ptr(value.Data{Kind: coreimpl.ListValueKind, Children: []*core.Node{root}})
 	value.D(root).Children = []*core.Node{list}
 	// The repeated node is rejected before its contents are reserved.
 	budget := &budget{limits: core.Limits{Compute: 100}}
@@ -183,7 +183,7 @@ func TestStructuralQueryCycleThroughValues(t *testing.T) {
 		t.Fatalf("value cycle: %+v, %v", results, err)
 	}
 	// Go slices are not values of the value model.
-	results, err = q.Matches(value.Ptr(value.Data{Kind: noderep.KindOf("S", ""), Fields: noderep.Fields{{Name: "x", Value: []any{1}}}}))
+	results, err = q.Matches(value.Ptr(value.Data{Kind: coreimpl.KindOf("S", ""), Fields: coreimpl.Fields{{Name: "x", Value: []any{1}}}}))
 	if results != nil || err == nil || !strings.Contains(err.Error(), "unsupported query value") {
 		t.Fatalf("Go slice: %+v, %v", results, err)
 	}
@@ -213,11 +213,11 @@ func TestStructuralQueryValidationAndRuntimeMismatch(t *testing.T) {
 		t.Fatal(err)
 	}
 	p.Fields[0].Pattern.Category = "int"
-	got, err := q.Matches(value.Ptr(value.Data{Kind: noderep.KindOf("Item", ""), Fields: noderep.Fields{{Name: "Value", Value: false}}}))
+	got, err := q.Matches(value.Ptr(value.Data{Kind: coreimpl.KindOf("Item", ""), Fields: coreimpl.Fields{{Name: "Value", Value: false}}}))
 	if err != nil || len(got) != 0 {
 		t.Fatalf("runtime mismatch: %v %v", got, err)
 	}
-	got, err = q.Matches(value.Ptr(value.Data{Kind: noderep.KindOf("Item", ""), Fields: noderep.Fields{{Name: "Value", Value: "ok"}}}))
+	got, err = q.Matches(value.Ptr(value.Data{Kind: coreimpl.KindOf("Item", ""), Fields: coreimpl.Fields{{Name: "Value", Value: "ok"}}}))
 	if err != nil || len(got) != 1 {
 		t.Fatalf("pattern ownership: %v %v", got, err)
 	}
@@ -302,7 +302,7 @@ func TestStructuralQueryOptionalScalarFieldCategory(t *testing.T) {
 		if category == "nil" {
 			val = nil
 		}
-		matches, err := q.Matches(value.Ptr(value.Data{Kind: noderep.KindOf("Item", ""), Fields: noderep.Fields{{Name: "Value", Value: val}}}))
+		matches, err := q.Matches(value.Ptr(value.Data{Kind: coreimpl.KindOf("Item", ""), Fields: coreimpl.Fields{{Name: "Value", Value: val}}}))
 		if err != nil || len(matches) != 1 || len(matches[0].Captures) != 1 || matches[0].Captures[0].Category != category {
 			t.Fatalf("category %q at runtime: %+v, %v", category, matches, err)
 		}

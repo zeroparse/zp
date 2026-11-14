@@ -9,7 +9,7 @@ import (
 	"reflect"
 	"testing"
 	"zeroparse.dev/zp/core"
-	"zeroparse.dev/zp/core/noderep"
+	"zeroparse.dev/zp/core/impl"
 	"zeroparse.dev/zp/engine"
 	gcalc "zeroparse.dev/zp/internal/bench/parsers/calc"
 	gcalclr "zeroparse.dev/zp/internal/bench/parsers/calclr"
@@ -293,13 +293,13 @@ func TestFullFingerprintDetectsObservableGraphChanges(t *testing.T) {
 	tuple := func(elems ...*core.Node) *core.Node {
 		return value.NewNode(core.KindTuple, 0, 0, "", elems, "", nil, nil)
 	}
-	object := func(fields ...noderep.NodeField) *core.Node {
-		return value.NewNode(core.KindStruct, 0, 0, "", nil, "T", noderep.Fields(fields), nil)
+	object := func(fields ...coreimpl.NodeField) *core.Node {
+		return value.NewNode(core.KindStruct, 0, 0, "", nil, "T", coreimpl.Fields(fields), nil)
 	}
 	if hash(str(0, 0, "\xff")) == hash(str(0, 0, "\xfe")) {
 		t.Fatal("raw invalid terminal bytes were replaced")
 	}
-	if hash(object(noderep.NodeField{Name: "x", Value: "\xff"})) == hash(object(noderep.NodeField{Name: "x", Value: "\xfe"})) {
+	if hash(object(coreimpl.NodeField{Name: "x", Value: "\xff"})) == hash(object(coreimpl.NodeField{Name: "x", Value: "\xfe"})) {
 		t.Fatal("raw invalid scalar bytes were replaced")
 	}
 	leaf := str(0, 0, "x")
@@ -308,8 +308,8 @@ func TestFullFingerprintDetectsObservableGraphChanges(t *testing.T) {
 	if hash(shared) == hash(copied) {
 		t.Fatal("sharing was discarded")
 	}
-	fields := object(noderep.NodeField{Name: "a", Value: "one"}, noderep.NodeField{Name: "b", Value: "two"})
-	reordered := object(noderep.NodeField{Name: "b", Value: "two"}, noderep.NodeField{Name: "a", Value: "one"})
+	fields := object(coreimpl.NodeField{Name: "a", Value: "one"}, coreimpl.NodeField{Name: "b", Value: "two"})
+	reordered := object(coreimpl.NodeField{Name: "b", Value: "two"}, coreimpl.NodeField{Name: "a", Value: "one"})
 	if hash(fields) == hash(reordered) {
 		t.Fatal("field order was discarded")
 	}
@@ -320,7 +320,7 @@ func TestFullFingerprintDetectsObservableGraphChanges(t *testing.T) {
 	if hash(leaf) == hash(shifted) {
 		t.Fatal("positions were discarded")
 	}
-	changed := object(noderep.NodeField{Name: "a", Value: "changed"}, noderep.NodeField{Name: "b", Value: "two"})
+	changed := object(coreimpl.NodeField{Name: "a", Value: "changed"}, coreimpl.NodeField{Name: "b", Value: "two"})
 	if hash(fields) == hash(changed) {
 		t.Fatal("field values were discarded")
 	}

@@ -199,7 +199,7 @@ func LibCopyWith(t testing.TB, patch func(name, src string) string, extra map[st
 // module root: the library first, then the packages it imports, which are copied
 // unchanged. A copy holds only them, so a test module that requires it builds generated code
 // against them and nothing else of this module.
-var copiedPackages = []string{"codegen/go/lib", "core", "core/noderep"}
+var copiedPackages = []string{"codegen/go/lib", "core", "core/impl"}
 
 func writeLibCopy(dir string, patch func(name, src string) string, extra map[string]string) {
 	must := func(err error) {

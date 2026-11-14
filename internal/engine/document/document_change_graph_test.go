@@ -7,7 +7,7 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/core"
-	"zeroparse.dev/zp/core/noderep"
+	"zeroparse.dev/zp/core/impl"
 	"zeroparse.dev/zp/internal/engine/state"
 	"zeroparse.dev/zp/internal/value"
 )
@@ -23,11 +23,11 @@ func changeGraphSnapshot(t *testing.T, root *core.Node) *Snapshot {
 
 func TestDocumentChangesConservativeGraphEquality(t *testing.T) {
 	leaf := func() *core.Node {
-		return value.Ptr(value.Data{Kind: noderep.KindOf("Leaf", "leaf"), Start: 1, End: 2, Terminal: true, Text: "x"})
+		return value.Ptr(value.Data{Kind: coreimpl.KindOf("Leaf", "leaf"), Start: 1, End: 2, Terminal: true, Text: "x"})
 	}
 	shared := leaf()
 	a := value.Ptr(value.Data{Children: []*core.Node{shared, shared, nil}})
-	value.D(a).Fields = noderep.Fields{{Name: "self", Value: a}, {Name: "nil", Value: (*core.Node)(nil)}, {Name: "value", Value: 4}, {Name: "flag", Value: true}}
+	value.D(a).Fields = coreimpl.Fields{{Name: "self", Value: a}, {Name: "nil", Value: (*core.Node)(nil)}, {Name: "value", Value: 4}, {Name: "flag", Value: true}}
 	b := a.Clone()
 	if !equalChangeSnapshots(changeGraphSnapshot(t, a), changeGraphSnapshot(t, b)) {
 		t.Fatal("equal cyclic graph")
@@ -56,7 +56,7 @@ func TestDocumentChangesConservativeGraphEquality(t *testing.T) {
 	if equalChangeSnapshots(changeGraphSnapshot(t, a), changeGraphSnapshot(t, b)) {
 		t.Fatal("field order omitted")
 	}
-	for _, pair := range [][2]*core.Node{{{}, value.Ptr(value.Data{Children: []*core.Node{}})}, {{}, value.Ptr(value.Data{Fields: noderep.Fields{}})}} {
+	for _, pair := range [][2]*core.Node{{{}, value.Ptr(value.Data{Children: []*core.Node{}})}, {{}, value.Ptr(value.Data{Fields: coreimpl.Fields{}})}} {
 		if equalChangeSnapshots(changeGraphSnapshot(t, pair[0]), changeGraphSnapshot(t, pair[1])) {
 			t.Fatal("nil versus empty omitted")
 		}
@@ -70,7 +70,7 @@ func TestDocumentChangesConservativeGraphEquality(t *testing.T) {
 }
 
 func TestDocumentChangesComparisonUsesCumulativeBudget(t *testing.T) {
-	leaf := value.Ptr(value.Data{Kind: noderep.KindOf("Leaf", "leaf"), Terminal: true, Text: strings.Repeat("x", 8192)})
+	leaf := value.Ptr(value.Data{Kind: coreimpl.KindOf("Leaf", "leaf"), Terminal: true, Text: strings.Repeat("x", 8192)})
 	a, b := changeGraphSnapshot(t, leaf), changeGraphSnapshot(t, leaf.Clone())
 	control := state.NewBudgetControl(nil, core.Limits{Compute: 8192})
 	control.Charge(4096) // Budget already spent by parsing/capture in this invocation.

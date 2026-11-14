@@ -11,7 +11,7 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/core"
-	"zeroparse.dev/zp/core/noderep"
+	"zeroparse.dev/zp/core/impl"
 	"zeroparse.dev/zp/internal/engine/state"
 	"zeroparse.dev/zp/internal/value"
 )
@@ -108,7 +108,7 @@ func TestBudgetActionErrorProducersAreEager(t *testing.T) {
 	t.Parallel()
 	long := strings.Repeat("T", 1024)
 	prog := mustCompile(t, "type A = {\n    N int\n}\n\nrule main = \"a\"\n")
-	node := value.Ptr(value.Data{Kind: &noderep.Kind{Type: long}})
+	node := value.Ptr(value.Data{Kind: &coreimpl.Kind{Type: long}})
 	producers := []struct {
 		name string
 		make func(*state.Parser) error

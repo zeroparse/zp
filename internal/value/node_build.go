@@ -2,7 +2,7 @@ package value
 
 import (
 	"zeroparse.dev/zp/core"
-	"zeroparse.dev/zp/core/noderep"
+	"zeroparse.dev/zp/core/impl"
 )
 
 // The functions in this file build and change nodes for the tests of packages outside the engine,
@@ -12,26 +12,26 @@ import (
 // NewNode returns a node of kind k with the range [start, end). text is the string of a
 // KindString node, elems the elements of a tuple or list, typ the type name of a KindStruct node,
 // fields its fields (or captures), and value the value of a KindValue node.
-func NewNode(k core.NodeKind, start, end int, text string, elems []*core.Node, typ string, fields noderep.Fields, value any) *core.Node {
+func NewNode(k core.NodeKind, start, end int, text string, elems []*core.Node, typ string, fields coreimpl.Fields, value any) *core.Node {
 	n := Ptr(Data{Start: int32(start), End: int32(end), Text: text, Children: elems, Fields: fields, Box: value})
 	d := D(n)
 	switch k {
 	case core.KindString:
-		d.Kind, d.Terminal = noderep.MatchKind, true
+		d.Kind, d.Terminal = coreimpl.MatchKind, true
 	case core.KindTuple:
-		d.Kind = noderep.SeqKind
+		d.Kind = coreimpl.SeqKind
 	case core.KindList:
-		d.Kind = noderep.ListKind
+		d.Kind = coreimpl.ListKind
 	case core.KindError:
-		d.Kind = noderep.ErrorKind
+		d.Kind = coreimpl.ErrorKind
 	case core.KindStruct:
-		d.Kind = noderep.KindOf(typ, "")
+		d.Kind = coreimpl.KindOf(typ, "")
 	case core.KindTupleValue:
-		d.Kind = noderep.TupleValueKind
+		d.Kind = coreimpl.TupleValueKind
 	case core.KindListValue:
-		d.Kind = noderep.ListValueKind
+		d.Kind = coreimpl.ListValueKind
 	case core.KindValue:
-		d.Kind = noderep.BoxKind
+		d.Kind = coreimpl.BoxKind
 	}
 	return n
 }
@@ -49,5 +49,5 @@ func SetNodeStart(n *core.Node, start int) { D(n).Start = int32(start) }
 
 // SetNodeField sets the field name of n to v, adding it if absent.
 func SetNodeField(n *core.Node, name string, v any) {
-	noderep.SetField(&D(n).Fields, name, v)
+	coreimpl.SetField(&D(n).Fields, name, v)
 }
