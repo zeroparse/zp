@@ -118,9 +118,9 @@ type keptExamined struct{at int;event zprt.TraceEvent}
 // checkExamined requires each exit that recorded a memo entry to report the entry's examined end.
 var checkedExamined int
 // wantExamined is the examined end an exit reports for a stored one: exactly the stored end, for a call that
-// records an entry and for a hit alike. A matched call in a provisional context may instead report its end.
+// records an entry and for a hit alike.
 func wantExamined(e zprt.TraceEvent,stored int)int{return stored}
-func checkExamined(t *testing.T,events []zprt.TraceEvent,kept []keptExamined){t.Helper();checkedExamined+=len(kept);for _,k:=range kept{if k.at>=len(events){t.Fatal("examined end without exit",k)};e:=events[k.at];if e.Kind!=zprt.TraceExit||e.Rule!=k.event.Rule||e.Pos!=k.event.Pos||e.Level!=k.event.Level||e.Memo!=k.event.Memo||!e.ExaminedKnown||e.Examined!=wantExamined(e,k.event.Examined)&&!(e.Matched&&e.Examined==max(wantExamined(e,k.event.Examined),e.End)){t.Fatal("reported examined end differs from the kept one",e,k)}}}
+func checkExamined(t *testing.T,events []zprt.TraceEvent,kept []keptExamined){t.Helper();checkedExamined+=len(kept);for _,k:=range kept{if k.at>=len(events){t.Fatal("examined end without exit",k)};e:=events[k.at];if e.Kind!=zprt.TraceExit||e.Rule!=k.event.Rule||e.Pos!=k.event.Pos||e.Level!=k.event.Level||e.Memo!=k.event.Memo||!e.ExaminedKnown||e.Examined!=wantExamined(e,k.event.Examined){t.Fatal("reported examined end differs from the kept one",e,k)}}}
 func recordDocumentProbe(o *zprt.X_observation){documentProbeMu.Lock();defer documentProbeMu.Unlock();documentParserProbes=append(documentParserProbes,o)}
 func released(t *testing.T){t.Helper();documentProbeMu.Lock();defer documentProbeMu.Unlock();for _,o:=range documentParserProbes{if o!=nil&&(o.X_trace!=nil||o.X_profile!=nil||o.X_rules!=nil||len(o.X_stack)!=0){t.Fatal("observer references retained",o)}};documentParserProbes=nil}
 func documentEqual(t *testing.T,a,b any){t.Helper();x,err:=json.Marshal(a);if err!=nil{t.Fatal(err)};y,err:=json.Marshal(b);if err!=nil{t.Fatal(err)};if string(x)!=string(y){t.Fatalf("value/diagnostic mismatch\n%s\n%s",x,y)}}

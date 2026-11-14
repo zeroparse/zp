@@ -139,7 +139,7 @@ func TestExecConformanceDocDetectsBrokenLib(t *testing.T) {
 			m.p.docExamined = max(int(args[0].(int64)), m.p.docExamined)
 			return nil
 		},
-		"doc.touch moves the frontier": func(m *docMachine, args []any) []any {
+		"doc.touch moves the end": func(m *docMachine, args []any) []any {
 			m.p.docExamined = int(args[0].(int64))
 			return nil
 		},
@@ -152,7 +152,7 @@ func TestExecConformanceDocDetectsBrokenLib(t *testing.T) {
 			return nil
 		},
 		"doc.active is false": func(m *docMachine, args []any) []any { return []any{false} },
-		"doc.examinedBegin leaves the frontier": func(m *docMachine, args []any) []any {
+		"doc.examinedBegin leaves the end": func(m *docMachine, args []any) []any {
 			return []any{int64(m.p.docExamined)}
 		},
 		"doc.examinedEnd does not merge": func(m *docMachine, args []any) []any {
