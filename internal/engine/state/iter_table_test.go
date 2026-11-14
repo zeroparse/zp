@@ -34,19 +34,11 @@ func TestEngineValueIterTable(t *testing.T) {
 		}
 		// The budget-controls reference build charges nothing, so its units are not checked.
 		err := conform.RunIters("engine", false, func(call, v string) (string, int) {
-			var before uint64
-			if controlled {
-				before = p.Control.Used
-			}
 			got, err := iterate(c, cp, call, vals[v])
-			steps := 0
-			if controlled {
-				steps = int(p.Control.Used - before)
-			}
 			if err != nil {
-				return "error: " + err.Error(), steps
+				return "error: " + err.Error(), 0
 			}
-			return engineMemberCanon(got), steps
+			return engineMemberCanon(got), 0
 		})
 		if err != nil {
 			t.Errorf("controlled=%v: %v", controlled, err)
