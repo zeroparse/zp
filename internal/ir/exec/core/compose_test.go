@@ -34,9 +34,6 @@ type term struct {
 	kids, created int
 }
 
-// fnValue is the function of the model's terms.
-const fnValue = "function"
-
 // record is an expectation record of the model: the farthest position and the expectations there.
 type record struct {
 	far  int64
@@ -199,8 +196,6 @@ func (m *machine) Call(o *exec.Op, args []any) []any {
 		return nil
 	case "term.isFalse":
 		return []any{args[0] == false}
-	case "term.isFunction":
-		return []any{args[0] == fnValue}
 	case "call.tracked":
 		return []any{false}
 	case "budget.charge":
@@ -1214,13 +1209,11 @@ func TestTerms(t *testing.T) {
 		{name: "false", t: term{value: false}, bind: true, binds: true},
 		{name: "nil holds", t: term{value: nil}, predicate: true, bind: true, binds: true},
 		{name: "a number holds", t: term{value: int64(0)}, predicate: true, bind: true, binds: true},
-		{name: "a function", t: term{value: fnValue}, predicate: true},
 		{name: "created nodes go", t: term{value: true, created: 3}, predicate: true, bind: true, binds: true, charge: 3},
 		// A successful term consumed its gathered values into a list; none stays above the mark.
 		{name: "kept kids stay", t: term{value: true, kids: 2}, predicate: true, bind: true, binds: true, kidsLeft: 2},
 		{name: "failure", t: term{fails: true}},
 		{name: "failure drops", t: term{value: true, fails: true, kids: 2, created: 3}, charge: 5},
-		{name: "failure of a function", t: term{value: fnValue, fails: true}},
 	}
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {

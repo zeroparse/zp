@@ -962,8 +962,7 @@ These stay transitional, each declared with its contract and cost bound and impl
 - the primitives of grammar code, which reach each runtime's helpers through the lowering of Flow IR, among them the
   sites that make a recovered error;
 - evaluating a term (`term.eval`), which is the following work: term evaluation written on the value operations that
-  the specification already declares with tables that every target shares. It takes in the function values that
-  bindings refuse today;
+  the specification already declares with tables that every target shares;
 - TypeScript's conformance: a runner of the suite in TypeScript does not exist, so TypeScript stays on its parity
   tests and on the printed forms it shares.
 

@@ -1149,13 +1149,6 @@ func (mc *Machine) single(size int, b bool) {
 // The VM implements the backend state of package state.
 var _ state.BackendState = (*Machine)(nil)
 
-// isFunction is the operation term.isFunction. A lowered term has no function values: the lambdas
-// of map, filter and the folds are evaluated in place.
-func isFunction(v any) bool {
-	_, ok := v.(state.Function)
-	return ok
-}
-
 // LoadTerms makes the programs of the terms of the module m, checking each (state.LoadTerm). A
 // loader calls it to reject a module file whose term code is invalid.
 func LoadTerms(m *bytecode.Module) ([]*state.TermProgram, error) {

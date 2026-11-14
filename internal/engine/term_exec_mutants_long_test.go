@@ -7,15 +7,13 @@ import "testing"
 // TestTermMutantsFail is the negative control of the tests of the printed term compositions of the
 // engine's backends: each mutant breaks one part of predicate or bind in a copy of the printed file.
 //
-// Two edits have no mutant, because they are equivalent. Leaving out term.dropKids in the closure
+// One edit has no mutant, because it is equivalent. Leaving out term.dropKids in the closure
 // backend changes nothing: its list built-ins drop what they gathered where they fail, and the
 // composition finds nothing above its mark; the bytecode backends gather without such a drop, and
-// their mutant below fails. Leaving out the refusal of a function changes nothing for a compiled
-// grammar: the compiler lets a function reach only filter, foldl, foldr and map, so no term of a
-// binding evaluates to one; TestTerms holds the composition to the refusal.
+// their mutant below fails.
 func TestTermMutantsFail(t *testing.T) {
 	const predicateEnd = "\tif len(p.Created) > created {\n\t\tp.DropCreated(created)\n\t}\n\treturn !state.IsFalse(v)\n"
-	const bindEnd = "\tif len(p.Created) > created {\n\t\tp.DropCreated(created)\n\t}\n\tif isFunction(v) {\n"
+	const bindEnd = "\tif len(p.Created) > created {\n\t\tp.DropCreated(created)\n\t}\n\tp.Bind(slot, v)\n"
 	common := func() []printedMutant {
 		return []printedMutant{
 			{"a predicate holds on false",

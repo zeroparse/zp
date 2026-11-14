@@ -21,10 +21,3 @@ func (b *Builder) term(t ir.Term, proj map[string]string) (*state.TermProgram, e
 	}
 	return prog, nil
 }
-
-// isFunction is the operation term.isFunction. A lowered term has no function values: the lambdas
-// of map, filter and the folds are evaluated in place.
-func isFunction(v any) bool {
-	_, ok := v.(state.Function)
-	return ok
-}

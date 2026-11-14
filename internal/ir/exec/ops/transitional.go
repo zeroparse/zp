@@ -461,6 +461,4 @@ ends the parse and leaves them too, for the next parse starts without them.`})
 		Requires: `mark came from term.kids, and nothing dropped it since.`})
 	add(&exec.Op{Name: "term.isFalse", Component: Host, Params: []exec.Param{exec.P("v", datum)}, Results: []exec.Type{exec.TBool},
 		Contract: `Reports whether v is the boolean false. Any other value, nil among them, is not.`})
-	add(&exec.Op{Name: "term.isFunction", Component: Host, Params: []exec.Param{exec.P("v", datum)}, Results: []exec.Type{exec.TBool},
-		Contract: `Reports whether v is a function, which no variable may hold.`})
 }

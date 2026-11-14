@@ -869,9 +869,8 @@ func (p *Parser) Predicate(t func(*ActCtx) (any, any)) bool {
 	return !isFalse(v)
 }
 
-// Bind binds the value of the term of a binding to the variable in slot. A term that fails and a
-// function, which no variable holds, fail the binding and bind nothing. The compiler has checked that the
-// value fits the variable.
+// Bind binds the value of the term of a binding to the variable in slot. A term that fails fails the
+// binding and binds nothing. The compiler has checked that the value fits the variable.
 //
 // Printed from Exec IR function bind of internal/ir/exec/core.
 func (p *Parser) Bind(slot int, t func(*ActCtx) (any, any)) bool {
@@ -887,9 +886,6 @@ func (p *Parser) Bind(slot int, t func(*ActCtx) (any, any)) bool {
 	}
 	clearSpend(p, p.created[created:])
 	p.created = p.created[:created]
-	if isFunction(v) {
-		return false
-	}
 	p.bind(slot, v)
 	return true
 }
@@ -914,9 +910,8 @@ func (p *TParser) Predicate(t func(*TActCtx) (any, any)) bool {
 	return !isFalse(v)
 }
 
-// Bind binds the value of the term of a binding to the variable in slot. A term that fails and a
-// function, which no variable holds, fail the binding and bind nothing. The compiler has checked that the
-// value fits the variable.
+// Bind binds the value of the term of a binding to the variable in slot. A term that fails fails the
+// binding and binds nothing. The compiler has checked that the value fits the variable.
 //
 // Printed from Exec IR function bind of internal/ir/exec/core.
 func (p *TParser) Bind(slot int, t func(*TActCtx) (any, any)) bool {
@@ -932,9 +927,6 @@ func (p *TParser) Bind(slot int, t func(*TActCtx) (any, any)) bool {
 	}
 	clearSpend(p.Parser, p.Created[created:])
 	p.Created = p.Created[:created]
-	if isFunction(v) {
-		return false
-	}
 	p.bind(slot, v)
 	return true
 }

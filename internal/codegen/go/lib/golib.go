@@ -285,8 +285,6 @@ func goTarget(s goSpec) *gogen.Target {
 			return fmt.Sprintf("clearSpend(%s, p.KidStack[%s:])\np.KidStack = p.KidStack[:%[2]s]", spender, a[0])
 		case "term.isFalse":
 			return "isFalse(" + a[0] + ")"
-		case "term.isFunction":
-			return "isFunction(" + a[0] + ")"
 		case "opr.led":
 			return a[0] + ".OperatorsRule.Led"
 		case "opr.prefix":

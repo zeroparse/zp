@@ -157,8 +157,6 @@ func engineTerms(pkg string, t *gogen.Target, term, scope, eval string) (string,
 			return "p.DropKids(" + a[0] + ")"
 		case "term.isFalse":
 			return "state.IsFalse(" + a[0] + ")"
-		case "term.isFunction":
-			return "isFunction(" + a[0] + ")"
 		case "env.bind":
 			return fmt.Sprintf("p.Bind(%s, %s)", a[0], a[1])
 		}

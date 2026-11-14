@@ -689,11 +689,9 @@ func addTerms(m *Module) {
 fails, and holds on every other value.`
 	bind := m.AddFunc("bind", []Param{P("slot", TInt), t}, []Type{TBool}, nil, func(b *Builder) {
 		v := evaluate(b)
-		b.If(C("term.isFunction", v), func(b *Builder) { b.Return(BoolC(false)) })
 		b.Do("env.bind", L("slot"), v)
 		b.Return(BoolC(true))
 	})
-	bind.Doc = `bind binds the value of the term of a binding to the variable in slot. A term that fails and a
-function, which no variable holds, fail the binding and bind nothing. The compiler has checked that the
-value fits the variable.`
+	bind.Doc = `bind binds the value of the term of a binding to the variable in slot. A term that fails fails the
+binding and binds nothing. The compiler has checked that the value fits the variable.`
 }

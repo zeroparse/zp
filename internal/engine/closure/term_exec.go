@@ -27,9 +27,8 @@ func predicate(p *state.Parser, t *termSite) bool {
 	return !state.IsFalse(v)
 }
 
-// bind binds the value of the term of a binding to the variable in slot. A term that fails and a
-// function, which no variable holds, fail the binding and bind nothing. The compiler has checked that the
-// value fits the variable.
+// bind binds the value of the term of a binding to the variable in slot. A term that fails fails the
+// binding and binds nothing. The compiler has checked that the value fits the variable.
 //
 // Printed from Exec IR function bind of internal/ir/exec/core.
 func bind(p *state.Parser, slot int, t *termSite) bool {
@@ -47,9 +46,6 @@ func bind(p *state.Parser, slot int, t *termSite) bool {
 	}
 	if len(p.Created) > created {
 		p.DropCreated(created)
-	}
-	if isFunction(v) {
-		return false
 	}
 	p.Bind(slot, v)
 	return true

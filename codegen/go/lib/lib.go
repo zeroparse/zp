@@ -2745,12 +2745,6 @@ func isFalse(v any) bool {
 	return isBool && !b
 }
 
-// isFunction is the operation term.isFunction.
-func isFunction(v any) bool {
-	_, isFn := v.(func(...any) any)
-	return isFn
-}
-
 func (c *ActCtx) Cap(slot int) any { return UnboxNode(c.f.Vals[slot]) }
 
 // Var returns the value of the variable in slot i.

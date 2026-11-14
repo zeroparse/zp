@@ -333,8 +333,6 @@ var tsTarget = &Target{
 			return "this.dropSpend(this.kidStack, " + a[0] + ")"
 		case "term.isFalse":
 			return a[0] + " === false"
-		case "term.isFunction":
-			return `typeof ` + a[0] + ` === "function"`
 		case "opr.led", "opr.prefix":
 			return a[0] + ".operatorsRule!." + strings.TrimPrefix(c.Callee, "opr.")
 		case "opr.count":
