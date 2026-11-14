@@ -380,12 +380,8 @@ func (p *flowPrinter) stmt(s flow.Stmt) {
 	}
 }
 
-// expectHelper names the library method that records an expectation. A function without a
-// Document records no examined input, so it calls the form that only charges the budget.
+// expectHelper names the library method that records an expectation.
 func (p *flowPrinter) expectHelper() string {
-	if name := p.g.helper("Expect"); name == "Expect" && !p.document && p.g.Flow.Opts.Budget {
-		return "ExpectBudget"
-	}
 	return p.g.helper("Expect")
 }
 

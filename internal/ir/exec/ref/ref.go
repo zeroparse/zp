@@ -38,10 +38,6 @@ type Config struct {
 	NoExpectations bool
 	// Document makes a Document parse (doc.active is true).
 	Document bool
-	// DocEmptyEnter models a target whose doc.enter starts the examined range of a call as the empty
-	// range at its position, where the others start it as [pos, pos+1) (as the engine does: its matches
-	// extend the examined input to the end of each unit they read).
-	DocEmptyEnter bool
 	// Oprs are the Operators Rules of a case, the rules of the indexes of RuleRef for the operations
 	// of the Operators Rule family.
 	Oprs []OprRule

@@ -210,7 +210,7 @@ var ruleEngineOps = append([]string{"rule.memo", "rule.leader", "rule.plain", "r
 // controlled suite checks the charges against the cost bounds and the interruptions of the budget. The
 // budget-controls reference build has no budget, so it runs only the first.
 func ruleSuites() []conform.Suite {
-	s := conform.Suite{Name: "engine rules", Ops: ruleEngineOps, DocCallMemo: true, DocEmptyEnter: true,
+	s := conform.Suite{Name: "engine rules", Ops: ruleEngineOps, DocCallMemo: true,
 		New: func(c ref.Config) conform.Impl { return newRuleMachine(c, false) }}
 	controlled := s
 	controlled.Name = "engine rules, controlled"

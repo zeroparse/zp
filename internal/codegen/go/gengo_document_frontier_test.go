@@ -11,11 +11,10 @@ import (
 	"zeroparse.dev/zp/internal/codegentest"
 )
 
-// The examined frontier, the evaluations and the reuse that a Document reports for a rule that
-// fails after its callee matched must be the same for the typed route and the Node route, and must
-// include the position where the rule failed: a direct rule without captures is generated as one
-// body for its call and its invocation only without Documents, since a Document reads the
-// position the invocation leaves at its failure.
+// The examined end, the evaluations and the reuse that a Document reports for a rule that fails
+// after its callee matched must be the same for the typed route and the Node route, and the end must
+// be exact: a direct rule without captures is generated as one body for its call and its
+// invocation, whose rollback on failure changes nothing that the Document records.
 func TestGeneratedDocumentFrontierAfterFailure(t *testing.T) {
 	t.Parallel()
 	codegentest.EachMode(t, testGeneratedDocumentFrontierAfterFailure)
@@ -105,8 +104,13 @@ func TestFrontier(t *testing.T) {
 	if results["node"] != results["typed"] {
 		t.Errorf("the typed route reports differently from the Node route\nnode:\n%s\ntyped:\n%s", results["node"], results["typed"])
 	}
-	// The failing part examines the position after the matched leaf, then fails at it.
-	if !strings.Contains(results["typed"], "exit part pos=0 memo=false evals=1 examined=2") {
-		t.Errorf("part does not report the position where it failed:\n%s", results["typed"])
+	// The failing part examines the unit of its leaf and its "a" and nothing after: its predicate
+	// fails at 1 without reading the unit there. Its examined end is exact, so the edit of [1, 2)
+	// keeps its entry, and the second parse reuses it twice and evaluates main alone.
+	if !strings.Contains(results["typed"], "exit part pos=0 memo=false evals=1 examined=1") {
+		t.Errorf("part does not report the exact end of what it examined:\n%s", results["typed"])
+	}
+	if !strings.Contains(results["typed"], "stats {Evaluated:1 Reused:2 MemoHits:2 ResumedElements:0}") {
+		t.Errorf("the parse after the edit does not reuse part:\n%s", results["typed"])
 	}
 }

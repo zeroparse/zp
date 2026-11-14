@@ -255,16 +255,21 @@ its result depends on what the slot holds:
 - testing for the end of the input or of a line at i examines slot i;
 - testing for the beginning of a line (`^`) or of the input (`^^`) at i
   examines slot i − 1, or at i = 0 the absence of one, written slot -1;
-- decoding the character at position i in bytes examines every byte that it
-  reads, and reads no byte before i.
+- decoding the character at position i in bytes examines the bytes from i up
+  to the first that completes it or makes it invalid, or slot n when the text
+  ends inside a valid prefix of a character, and no byte before i.
 
 **Examined range.** The examined range of an evaluation is the interval
 [l, h) from the least to one past the greatest slot that it, or a call
-within it, examined. For an evaluation at p, l ≤ p. Every failure that
-an evaluation records is at a slot that it examined. A Document may keep a
-larger interval in place of [l, h), such as the `Examined` frontier of
-[Generated Go Document Tracing and Profiling](observability.md#generated-go-document-tracing-and-profiling);
-a larger interval only drops more entries and resumes fewer iterations.
+within it, examined; an evaluation at p that examined no slot has the empty
+range [p, p). For an evaluation at p, l ≤ p ≤ h. Every failure that an
+evaluation records is at a slot that it examined. The range is sound: every
+slot whose content can change the outcome of the evaluation lies in it, so
+an edit that changes only slots outside it leaves that outcome as it was.
+A Document may record a smaller l or a larger h; that only drops more
+entries and resumes fewer iterations. Generated Documents record h exactly,
+one past the greatest examined slot; the engine records a larger h only
+after invalid UTF-8, where decoding counts up to four bytes from i.
 
 **Position-free evaluations.** An evaluation is **position-free** when no
 action or predicate in it, or in a call within it, reads a position (the

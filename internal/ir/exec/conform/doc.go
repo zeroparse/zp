@@ -45,9 +45,7 @@ func DocModule() *exec.Module {
 // docInt is an argument or result of a doc operation: a position of the input.
 func docRegs() []string { return []string{"budget", "stream", "document"} }
 
-// DocCases returns the handwritten conformance cases of the doc operations, in one module. A case
-// does not tell where doc.enter starts the examined range of a call, the empty range or one unit,
-// which targets differ in (ref.Config.DocEmptyEnter); it asserts what holds for both.
+// DocCases returns the handwritten conformance cases of the doc operations, in one module.
 func DocCases() []Case {
 	m := DocModule()
 	var cs []Case
@@ -58,9 +56,10 @@ func DocCases() []Case {
 	low := func() exec.Expr { return exec.C("doc.low") }
 	high := func() exec.Expr { return exec.C("doc.high") }
 	i := exec.Int
-	// starts asserts the range of a call that began at pos, in either target.
+	// starts asserts the range of a call that began at pos: the empty range there, since a call has
+	// examined nothing when it begins.
 	starts := func(b *exec.Builder, pos int64, msg string) {
-		b.Assert(exec.And(exec.Eq(low(), i(pos)), exec.And(exec.Bin(">=", high(), i(pos)), exec.Bin("<=", high(), i(pos+1)))), msg)
+		b.Assert(exec.And(exec.Eq(low(), i(pos)), exec.Eq(high(), i(pos))), msg)
 	}
 
 	add("doc_active", ref.Config{}, func(b *exec.Builder) {
@@ -78,9 +77,9 @@ func DocCases() []Case {
 		b.Assert(exec.And(exec.Eq(r[0], i(0)), exec.Eq(r[1], i(0))), "the first call encloses the empty range at 0")
 		starts(b, 5, "a call starts its examined input at its position")
 		b.Do("doc.touch", i(8))
-		b.Assert(exec.And(exec.Eq(low(), i(5)), exec.Eq(high(), i(8))), "reading extends the frontier")
+		b.Assert(exec.And(exec.Eq(low(), i(5)), exec.Eq(high(), i(8))), "reading extends the examined end")
 		b.Do("doc.touch", i(7))
-		b.Assert(exec.Eq(high(), i(8)), "a frontier does not move back")
+		b.Assert(exec.Eq(high(), i(8)), "an examined end does not move back")
 		b.Do("doc.touchFrom", i(3))
 		b.Assert(exec.And(exec.Eq(low(), i(3)), exec.Eq(high(), i(8))), "examining before the start extends the start back")
 		b.Do("doc.touchFrom", i(4))
@@ -121,25 +120,25 @@ func DocCases() []Case {
 		b.Do("doc.touch", i(3))
 		b.SetReg(ops.Pos, i(4))
 		h := b.Let("h", exec.C("doc.examinedBegin"))
-		b.Assert(exec.Eq(h, i(3)), "an observed call encloses the frontier before it")
-		b.Assert(exec.Eq(high(), i(4)), "its own frontier starts at the position")
+		b.Assert(exec.Eq(h, i(3)), "an observed call encloses the examined end before it")
+		b.Assert(exec.Eq(high(), i(4)), "its own examined end starts at the position")
 		b.Do("doc.touch", i(9))
 		r := b.LetN([]string{"x", "known"}, exec.C("doc.examinedEnd", h))
-		b.Assert(exec.And(r[1], exec.Eq(r[0], i(9))), "it returns its frontier, known in a Document parse")
+		b.Assert(exec.And(r[1], exec.Eq(r[0], i(9))), "it returns its examined end, known in a Document parse")
 		b.Assert(exec.Eq(high(), i(9)), "and merges it into the enclosing one")
 		b.SetReg(ops.Pos, i(1))
 		g := b.Let("g", exec.C("doc.examinedBegin"))
 		b.Assert(exec.Eq(g, i(9)), "the next observed call encloses what the last one left")
 		r2 := b.LetN([]string{"y", "known2"}, exec.C("doc.examinedEnd", g))
 		b.Assert(exec.And(r2[1], exec.Eq(r2[0], i(1))), "a call that read nothing examined up to its position")
-		b.Assert(exec.Eq(high(), i(9)), "and leaves the enclosing frontier as it was")
+		b.Assert(exec.Eq(high(), i(9)), "and leaves the enclosing examined end as it was")
 	})
 
 	add("doc_examined_no_document", ref.Config{}, func(b *exec.Builder) {
 		b.SetReg(ops.Pos, i(4))
 		h := b.Let("h", exec.C("doc.examinedBegin"))
 		r := b.LetN([]string{"x", "known"}, exec.C("doc.examinedEnd", h))
-		b.Assert(exec.Not(r[1]), "outside a Document parse the frontier is unknown")
+		b.Assert(exec.Not(r[1]), "outside a Document parse the examined end is unknown")
 	})
 	return cs
 }

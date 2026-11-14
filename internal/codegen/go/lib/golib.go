@@ -40,13 +40,12 @@ var goSpecs = []goSpec{
 	// reads a Document itself.
 	{fn: "call", on: []string{ops.Document, ops.Budget}, name: "Call"},
 	{fn: "grow", name: "grow"},
-	// The expectation record: the Document form, the form of a parse without a Document, and the
-	// form of an ordinary parse with its slow path.
-	{fn: "expect", on: []string{ops.Document, ops.Budget}, name: "Expect"},
-	{fn: "expect", on: []string{ops.Budget}, name: "ExpectBudget"},
+	// The expectation record: the form of a parse with limit controls or a Document, and the form of
+	// an ordinary parse with its slow path.
+	{fn: "expect", on: []string{ops.Budget}, name: "Expect"},
 	{fn: "expectOrdinary", name: "ExpectOrdinary"},
 	{fn: "expectSlow", name: "expectOrdinarySlow"},
-	{fn: "mergeExpected", on: []string{ops.Document, ops.Budget}, name: "MergeExpected"},
+	{fn: "mergeExpected", on: []string{ops.Budget}, name: "MergeExpected"},
 	{fn: "keep", on: []string{ops.Budget}, name: "Keep"},
 	{fn: "call", typed: true, on: []string{ops.Document, ops.Observe, ops.Typed, ops.Budget}, name: "callBody"},
 	{fn: "callMemo", typed: true, on: []string{ops.Document, ops.Observe, ops.Typed}, name: "CallMemo"},
@@ -612,7 +611,7 @@ p.arena = appendSpend(p, p.arena, %[1]s)
 p.lastKept = p.arena[off:len(p.arena):len(p.arena)]
 %[2]s%[3]sp.lastKept`, a[0], dst[0], op), true
 		case "doc.enter":
-			return fmt.Sprintf("%s, %s%sp.docHigh, p.docLow\np.docHigh, p.docLow = %s+1, %s", dst[0], dst[1], op, a[0], a[0]), true
+			return fmt.Sprintf("%s, %s%sp.docHigh, p.docLow\np.docHigh, p.docLow = %s, %s", dst[0], dst[1], op, a[0], a[0]), true
 		case "memo.store":
 			e := dst[0]
 			fields := fmt.Sprintf("%s: %s, ok: %s, end: %s, silent: %s, errs: %s", valueField, a[7], a[4], a[5], a[6], a[8])

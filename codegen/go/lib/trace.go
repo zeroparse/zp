@@ -13,7 +13,9 @@ const (
 // invocation's selected unit. Examined is valid only when ExaminedKnown, which
 // holds for exits of Document parses: it is then the exclusive end of the input
 // the Document treats the call as having examined when deciding reuse after an
-// edit. That frontier is conservative and can exceed the input actually read.
+// edit. That end is exact: one past the last unit whose content the call or a
+// call it used could have observed, so no unit at or beyond it can change the
+// call's result.
 // An aborted parse may leave enters without exits.
 type TraceEvent struct {
 	Kind              TraceKind
@@ -31,7 +33,7 @@ type TraceEvent struct {
 // WithTrace observes actual generated calls synchronously. Callback panics
 // propagate unchanged after cleanup; an aborted parse can omit exit events.
 // Events do not expose input or parser state. ExaminedKnown is true only for
-// Document parses, where Examined is the frontier used for edit reuse.
+// Document parses, where Examined is the examined end used for edit reuse.
 func WithTrace(trace func(TraceEvent)) ParseOption {
 	return func(o *parseOptions) { o.observe.trace = trace }
 }

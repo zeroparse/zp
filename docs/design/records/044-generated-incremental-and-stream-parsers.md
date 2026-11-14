@@ -82,7 +82,7 @@ conversion does not add a rule event. After a completed parse, the invocation's
 increases in profile `Evals` and `MemoHits` match `Document.Stats().Evaluated`
 and `.Reused`, respectively. `Stats` has no call counter. An interrupted parse
 can leave statistics for calls that began but did not complete. Exit events
-report `Examined` as the conservative examined frontier the Document keeps for
+report `Examined` as the exact examined end the Document keeps for
 edit reuse, and profiles sum it into per-rule `Examined` and `Wasted`; see
 design 043. Temporary per-invocation observer and profile
 state is released after return or panic, while constructor defaults remain for

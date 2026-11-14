@@ -28,8 +28,8 @@ import "zeroparse.dev/zp/core/noderep"
 // noderep's testdata/representation.golden records), noderep replaces its constant with the one of
 // that version, and the library refers to the new constant.
 
-// Protocol15 is declared because the library implements protocol version 15.
-const Protocol15 = 15
+// Protocol16 is declared because the library implements protocol version 16.
+const Protocol16 = 16
 
 // The node representation of protocol version 15, which core/noderep must serve.
 const _ = noderep.Protocol15

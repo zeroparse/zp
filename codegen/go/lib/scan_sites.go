@@ -17,8 +17,10 @@ import (
 // (the site after the value-free one), the elements. A walk that has matched scanHotSpan characters
 // at a hot site looks for the record of its start (ScanReach): it moves to the recorded end and
 // takes the count, and its next iteration fails there as it did when the walk was recorded, with
-// the same expectation and the same examined input; otherwise it goes on and records itself when it
-// ends (ScanEnd, ScanKids). A site turns hot, separately inside and outside lookaheads, once a walk
+// the same expectation; otherwise it goes on and records itself when it ends (ScanEnd, ScanKids). In
+// a Document parse a record also holds the end of the input that the rest of its walk examined, which
+// a walk that takes the record examines too: decoding the last characters it skips may examine input
+// past the character where it fails. A site turns hot, separately inside and outside lookaheads, once a walk
 // of scanHotSpan characters or more starts below the furthest end of its walks and walks
 // scanHotSpan characters below it (scanWalked), as a run site of the engine does: until then the
 // walks of a site that never go back record nothing. The records of a parse last for that parse; a
@@ -32,12 +34,12 @@ import (
 const scanHotSpan = 16
 
 // scanRecord is the record of a walk of a scan site: where it ended, how many characters it
-// matched and, for a walk that builds a value, its elements (kids for a Node parse, tkids for a
-// typed one).
+// matched, in a Document parse the end of the input that the walk examined after ScanReach and, for a
+// walk that builds a value, its elements (kids for a Node parse, tkids for a typed one).
 type scanRecord struct {
-	end, count int
-	kids       []*core.Node
-	tkids      []any
+	end, count, examined int
+	kids                 []*core.Node
+	tkids                []any
 }
 
 // scanCold is the state of a site that decides whether it is hot: the furthest end of the walks of
@@ -48,10 +50,12 @@ type scanCold struct {
 }
 
 // scanWalk is the state of the walk that ScanReach reached: whether its site was hot, whether it
-// took a record, and the record.
+// took a record, and the record; in a Document parse, for a walk that records itself, the examined
+// end of the enclosing call before ScanReach (savedHigh).
 type scanWalk struct {
-	hot, hit bool
-	rec      scanRecord
+	hot, hit  bool
+	rec       scanRecord
+	savedHigh int
 }
 
 // scanHot reports whether the site keeps records for the walk at the position.
@@ -74,17 +78,34 @@ func (p *Parser) ScanReach(site, start, count int) int {
 		return count
 	}
 	p.Spend()
-	if site >= len(p.scanTables) {
-		return count
+	var rec scanRecord
+	ok := false
+	if site < len(p.scanTables) {
+		rec, ok = p.scanTables[site][start]
 	}
-	rec, ok := p.scanTables[site][start]
 	if !ok {
+		if p.Document != nil {
+			// The walk records itself: measure what the rest of it examines.
+			w.savedHigh, p.docHigh = p.docHigh, p.Pos
+		}
 		return count
 	}
 	p.Spend()
 	w.hit, w.rec = true, rec
 	p.Pos = rec.end
+	p.documentTouch(rec.examined)
 	return rec.count
+}
+
+// scanExamined returns the end of the input that the rest of a walk that records itself examined
+// (ScanReach), restoring that of the enclosing call, or 0 outside a Document parse.
+func (p *Parser) scanExamined() int {
+	if p.Document == nil {
+		return 0
+	}
+	x := p.docHigh
+	p.docHigh = max(p.scanWalk.savedHigh, x)
+	return x
 }
 
 // ScanEnd ends a value-free walk of the scan site that began at start, matched count characters
@@ -95,7 +116,7 @@ func (p *Parser) ScanEnd(site, start, count int) {
 	switch {
 	case w.hit:
 	case w.hot:
-		p.scanStore(site, start, scanRecord{end: p.Pos, count: count})
+		p.scanStore(site, start, scanRecord{end: p.Pos, count: count, examined: p.scanExamined()})
 	default:
 		p.scanWalked(site, start)
 	}
@@ -122,7 +143,7 @@ func (p *Parser) ScanKids(site, start, base, count int) []*core.Node {
 				D(k).Fresh = false
 			}
 		}
-		p.scanStore(site, start, scanRecord{end: p.Pos, count: count, kids: kids})
+		p.scanStore(site, start, scanRecord{end: p.Pos, count: count, examined: p.scanExamined(), kids: kids})
 	} else {
 		p.scanWalked(site, start)
 	}
@@ -146,7 +167,7 @@ func (p *TParser) ScanKids(site, start, base, count int) []any {
 				t.TSetFresh(false)
 			}
 		}
-		p.scanStore(site, start, scanRecord{end: p.Pos, count: count, tkids: kids})
+		p.scanStore(site, start, scanRecord{end: p.Pos, count: count, examined: p.scanExamined(), tkids: kids})
 	} else {
 		p.scanWalked(site, start)
 	}

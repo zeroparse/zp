@@ -752,7 +752,10 @@ type Parser struct {
 	sourceInfo bool
 	// Document is set only by the private incremental runner.
 	Document *documentState
-	docHigh  int // exclusive upper bound examined by the active rule call (docLow)
+	// docHigh is the exact end of the input that the active rule call of a Document parse examined:
+	// one past the last unit that can influence its result, with the end of the input counting as
+	// the unit at its length (docLow).
+	docHigh int
 	// The state of left recursion (context_memo.go): the growths in progress, innermost last; the
 	// frames that record dependencies, and their dependencies; the dependencies of the call that
 	// ctxPop ended; the context tables; the lookaheads in progress; the lookahead sites whose
@@ -897,10 +900,38 @@ func (p *Parser) setGrammar(g *grammar) {
 	}
 }
 
+// documentTouch records that the active rule call of a Document parse examined the input before
+// end. Every caller passes the exact end of what it read: one past the last unit that its outcome
+// depends on, so that an edit at or after that end leaves the outcome as it was.
 func (p *Parser) documentTouch(end int) {
 	if p.Document != nil && end > p.docHigh {
 		p.docHigh = end
 	}
+}
+
+// documentTouchLiteral records what a comparison of the literal text with the input at the position
+// examined when it failed: the input up to its first unit that differs, or the end of the input.
+func (p *Parser) documentTouchLiteral(text string) {
+	k := 0
+	for k < len(text) && p.Pos+k < p.n && p.bs[p.Pos+k] == text[k] {
+		k++
+	}
+	p.documentTouch(p.Pos + k + 1)
+}
+
+// decodedEnd returns the end of the input that decoding the character at the start of s, at
+// position pos, examined, for a character of size units: its units for a valid one, and for an
+// invalid one the units up to the first that makes it invalid, or the end of the input (counted as
+// the unit at its position) when the input ends inside a valid prefix.
+func decodedEnd(s string, pos, size int) int {
+	if size > 1 {
+		return pos + size
+	}
+	k := 1
+	for k <= len(s) && !utf8.FullRuneInString(s[:k]) {
+		k++
+	}
+	return pos + k
 }
 
 // documentTouchFrom extends the input that the active rule call examined back to from.
@@ -1830,7 +1861,9 @@ func (p *Parser) Peek() (rune, int, bool) {
 		}
 		p.SpendRead(uint64(min(utf8.UTFMax, p.n-p.Pos)))
 		r, size := utf8.DecodeRuneInString(p.bs[p.Pos:])
-		p.documentTouch(p.Pos + size)
+		if p.Document != nil {
+			p.documentTouch(decodedEnd(p.bs[p.Pos:], p.Pos, size))
+		}
 		return r, size, true
 	}
 	p.documentTouch(p.Pos + 1)
@@ -1982,9 +2015,9 @@ func (p *Parser) MakeError(pos int, expected []ExpID) *core.SyntaxError {
 
 // --- Rule calls ---
 
-// ExaminedBegin starts measuring an observed call's examined frontier in a
-// Document parse, returning the enclosing frontier for ExaminedEnd. The call
-// itself, and any memo entry it reads or records, extends the frontier as in an
+// ExaminedBegin starts measuring the examined end of an observed call in a
+// Document parse, returning that of the enclosing call for ExaminedEnd. The call
+// itself, and any memo entry it reads or records, extends the end as in an
 // unobserved parse, so observation does not change reuse.
 func (p *Parser) ExaminedBegin() int {
 	h := p.docHigh
@@ -1994,8 +2027,8 @@ func (p *Parser) ExaminedBegin() int {
 	return h
 }
 
-// ExaminedEnd returns the call's frontier and merges it into the enclosing one.
-// Outside a Document parse the frontier is unknown.
+// ExaminedEnd returns the examined end of the call and merges it into the
+// enclosing one. Outside a Document parse the end is unknown.
 func (p *Parser) ExaminedEnd(enclosing int) (int, bool) {
 	if p.Document == nil {
 		return 0, false
@@ -2307,22 +2340,25 @@ func (p *Parser) MatchLiteral(rs []rune, text string, desc ExpID, build bool) (*
 	}
 	start := p.Pos
 	if p.unit == core.Bytes {
-		p.documentTouch(start + len(text))
 		if !p.hasLiteralPrefix(text) {
+			if p.Document != nil {
+				p.documentTouchLiteral(text)
+			}
 			return p.matchReplacementLiteral(rs, text, desc, build)
 		}
 		p.Pos += len(text)
 	} else {
-		p.documentTouch(start + len(rs))
 		for _, r := range rs {
 			p.SpendRead(1)
 			if p.Pos >= p.n || p.In[p.Pos] != r {
+				p.documentTouch(p.Pos + 1)
 				p.Expect(start, desc)
 				return nil, false
 			}
 			p.Pos++
 		}
 	}
+	p.documentTouch(p.Pos)
 	if !build {
 		return nil, true
 	}

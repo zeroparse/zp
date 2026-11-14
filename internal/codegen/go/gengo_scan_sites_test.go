@@ -49,8 +49,8 @@ rule s = xs:[ ]+ => text($xs)`, Inputs: []string{strings.Repeat(unit, 50), strin
 // never take a record, and records stored at the position after the start of their walk.
 var scanSiteMutations = map[string][][2]string{
 	"never reuse": {{
-		"	rec, ok := p.scanTables[site][start]\n",
-		"	rec, ok := p.scanTables[site][start]\n\tok = false\n",
+		"		rec, ok = p.scanTables[site][start]\n",
+		"		rec, ok = p.scanTables[site][start]\n\t\tok = false\n",
 	}},
 	"shifted start": {{
 		"	t[start] = rec\n",

@@ -429,13 +429,13 @@ func TestTSDocumentTouches(t *testing.T) {
 			"lookahead",
 			"@start\nrule main = (l / [a-z] / \"1\")*\nrule l = \"a\" &([a-z] [a-z])",
 			[]edit{{"aaa", 2, 3, "1"}, {"aaab", 3, 4, "1"}},
-			"this.documentTouch(this.pos + (c < 0 ? 1 : this.psize));", "",
+			"this.documentTouch(this.pos + this.psize);", "",
 		},
 		{
 			"literal lookahead",
 			"@start\nrule main = (l / [a-z])*\nrule l = \"a\" &\"bc\"",
 			[]edit{{"abc", 2, 3, "x"}},
-			"this.documentTouch(this.pos + (this.unit === Bytes ? lit.bytes.length : lit.cps.length));", "",
+			"      this.documentTouch(this.pos);\n      return v;", "      return v;",
 		},
 	}
 	for _, c := range cases {

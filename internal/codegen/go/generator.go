@@ -994,11 +994,11 @@ func (g *Generator) typedCall(r *compile.Rule, body string, s *compile.Scope, d 
 		name = g.traceCallWrapper(r, name, false)
 	}
 	fmt.Fprintf(m, "// rule %s\nfunc %s(p *TParser) (any, bool) {\n", r.Name, name)
-	// Without Documents the invocation of a flat rule without captures is its plain method: the
-	// two bodies differ only in the rollback to the start on failure, which the callers of the
-	// invocation repeat harmlessly, so one body serves both. A Document reads the position the
-	// invocation leaves at its failure to find the frontier it examined, so Documents keep both.
-	merged := d != nil && ncaps == 0 && !g.Document
+	// The invocation of a flat rule without captures is its plain method: the two bodies differ
+	// only in the rollback to the start on failure, which the callers of the invocation repeat
+	// harmlessly, so one body serves both. A Document records the exact end of the input the body
+	// examined, which does not depend on the position a failed invocation leaves.
+	merged := d != nil && ncaps == 0
 	iname := fmt.Sprintf("i%d", r.ID)
 	if merged {
 		iname = fmt.Sprintf("v%d", r.ID)

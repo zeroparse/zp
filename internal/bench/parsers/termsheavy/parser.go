@@ -476,7 +476,7 @@ func e2(p *rt.Parser, _ int) (*core.Node, bool) {
 	v9 = p.NewBranch(rt.ListKind, x2, p.Kids(x3))
 	p.SetCapture(0, v9)
 	if !p.AtEndBatch() {
-		p.ExpectBudget(p.Pos, rt.IdEndInput)
+		p.Expect(p.Pos, rt.IdEndInput)
 		goto fail
 	}
 	return nil, true
@@ -551,7 +551,7 @@ func e7(p *rt.Parser, _ int) (*core.Node, bool) {
 			ch, size, ok = p.Peek()
 		}
 		if !ok || !(ch >= 97 && ch <= 122) {
-			p.ExpectBudget(p.Pos, 7)
+			p.Expect(p.Pos, 7)
 			goto L8
 		}
 		x9 = p.Pos
@@ -609,7 +609,7 @@ func e11(p *rt.Parser, _ int) (*core.Node, bool) {
 		break
 	}
 	if !p.AtEndBatch() {
-		p.ExpectBudget(p.Pos, rt.IdEndInput)
+		p.Expect(p.Pos, rt.IdEndInput)
 		goto fail
 	}
 	v = nil
@@ -677,7 +677,7 @@ func q2(p *rt.Parser) (*core.Node, bool) {
 			ch, size, ok = p.Peek()
 		}
 		if !ok || !(ch >= 97 && ch <= 122) {
-			p.ExpectBudget(p.Pos, 7)
+			p.Expect(p.Pos, 7)
 			break
 		}
 		p.Pos += size
@@ -743,7 +743,7 @@ func i0(p *rt.TParser) (any, bool) {
 	v10 = p.NewNode("list", x3, p.Pos, p.Kids(x4))
 	k1 = v10
 	if !p.AtEndBatch() {
-		p.ExpectBudget(p.Pos, rt.IdEndInput)
+		p.Expect(p.Pos, rt.IdEndInput)
 		goto fail
 	}
 	c = p.UseCtx(rt.TActCtx{P: p, Start: start, End: p.Pos, Cbase: len(p.Created)})
@@ -1062,7 +1062,7 @@ func i2(p *rt.TParser) (any, bool) {
 			ch, size, ok = p.Peek()
 		}
 		if !ok || !(ch >= 97 && ch <= 122) {
-			p.ExpectBudget(p.Pos, 7)
+			p.Expect(p.Pos, 7)
 			goto L9
 		}
 		x10 = p.Pos
@@ -1107,4 +1107,4 @@ fail:
 
 const _ = types.ZPSchema_e363e9a5033ad260
 
-const _ = rt.Protocol15
+const _ = rt.Protocol16

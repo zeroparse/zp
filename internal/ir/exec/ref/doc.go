@@ -12,7 +12,7 @@ import "zeroparse.dev/zp/internal/ir/exec"
 type docState struct {
 	low, high int64
 	// enters are the ranges that the calls in progress began with, innermost last (doc.enter,
-	// doc.leave); begins are the frontiers that observed calls in progress began with (doc.examinedBegin,
+	// doc.leave); begins are the examined ends that observed calls in progress began with (doc.examinedBegin,
 	// doc.examinedEnd).
 	enters, begins    []docRange
 	reused, evaluated int64
@@ -63,10 +63,7 @@ func (m *Model) callDoc(o *exec.Op, args []any) ([]any, bool) {
 		old := docRange{s.high, s.low}
 		s.enters = append(s.enters, old)
 		pos := args[0].(int64)
-		s.low, s.high = pos, pos+1
-		if m.cfg.DocEmptyEnter {
-			s.high = pos
-		}
+		s.low, s.high = pos, pos
 		return []any{old.high, old.low}, true
 	case "doc.leave":
 		s.enters = s.enters[:len(s.enters)-1]

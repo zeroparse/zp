@@ -67,7 +67,7 @@ func (m *docMachine) Call(o *exec.Op, args []any) (res []any) {
 // docSuite is the suite of the engine's doc operations: its doc.enter starts the range of a call as
 // the empty range at its position.
 func docSuite() conform.Suite {
-	return conform.Suite{Name: "engine doc", Ops: conform.DocCoreOps, DocEmptyEnter: true, New: newDocMachine}
+	return conform.Suite{Name: "engine doc", Ops: conform.DocCoreOps, New: newDocMachine}
 }
 
 // docConformanceFailures runs the handwritten cases of the doc operations and seeds randomized cases

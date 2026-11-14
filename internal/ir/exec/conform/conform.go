@@ -67,9 +67,6 @@ type Suite struct {
 	// LazyEdits sets ref.Config.LazyEdits for the model of every case: the implementation is a memo
 	// that applies edits to an entry when it finds it.
 	LazyEdits bool
-	// DocEmptyEnter sets ref.Config.DocEmptyEnter: the implementation's doc.enter starts the examined
-	// range of a call as the empty range at its position.
-	DocEmptyEnter bool
 	// DocCallMemo sets ref.Config.DocCallMemo: the implementation's Document parse calls rules through
 	// the call protocol of a parse from scratch.
 	DocCallMemo bool
@@ -160,7 +157,6 @@ func Run(s Suite, c Case) (skipped bool, err error) {
 	}
 	cfg := c.Config
 	cfg.LazyEdits = s.LazyEdits
-	cfg.DocEmptyEnter = s.DocEmptyEnter
 	cfg.DocCallMemo = s.DocCallMemo
 	cfg.CallUnitBefore = s.CallUnitBefore
 	p := &pair{suite: s, model: ref.New(cfg), impl: s.New(cfg),

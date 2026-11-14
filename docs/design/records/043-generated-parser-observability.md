@@ -165,23 +165,19 @@ Documents do not resume repetition bodies, so there is no `ReusedElements`
 counter.
 
 Exit events of Document parses report `ExaminedKnown=true`, with `Examined`
-set to the frontier the Document keeps for edit reuse. A call that records a
-memo result reports the frontier stored with it, and a memo hit reports the
-stored frontier it reuses, but at least one position past its start. Each wrapper starts the call's frontier at its
-position and merges it back into the caller's afterwards, so the caller's
-earlier lookahead is excluded and the Document's own frontier is unchanged.
-The frontier is conservative rather than the engine's exact examined range:
-calls that record or reuse memo results count at least one position past their
-start and end, which keeps edit reuse safe without tracking every read for
-validity. Reporting this frontier makes the trace explain reuse decisions
-exactly; an exact range would need a second high-water mark and an extra field
-per memo entry. A recursive call that reuses a growing left-recursive seed sees
-the frontier stored with an earlier seed, so any call completing in such a
-provisional context reports at least its end; the raise affects only the
-report, not the Document's frontier. Values can be one position past the end
-of the input.
+set to the examined end the Document keeps for edit reuse: one past the last
+input unit whose content the call, or a call or memo result it used, could
+have observed. A call that records a memo result reports the end stored with
+it, and a memo hit reports the stored end it reuses. Each wrapper starts the
+call's end at its position and merges it back into the caller's afterwards, so
+the caller's earlier lookahead is excluded and the Document's own end is
+unchanged. The Document keeps one high-water mark per call, and that mark is
+both the reuse bound and the reported value, so the trace explains reuse
+decisions exactly and matches the engine's examined end for valid input. The
+end can be one position past the end of the input when a call observed the end
+of input.
 
-The examined frontier was measured against the previous observed source on the
+The examined end was measured against the previous observed source on the
 same generated Document fixture with 4,096 records: node and typed drivers,
 both units, batch, cold, warm and edit parses, each traced and profiled, in
 eight alternating rounds of 400 iterations. Median time ratios were

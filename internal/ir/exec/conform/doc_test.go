@@ -9,15 +9,14 @@ import (
 )
 
 // docConfig returns the configuration of the randomized case with the seed: every third parse reads no
-// Document, and every other Document parse starts the examined range of a call as the empty range.
+// Document.
 func docConfig(seed uint64) ref.Config {
-	return ref.Config{Document: seed%3 != 2, DocEmptyEnter: seed%2 == 1}
+	return ref.Config{Document: seed%3 != 2}
 }
 
-// docSuite is a suite of the doc operations over the model with mu, and where its doc.enter starts
-// the range of a call as the model with emptyEnter does.
-func docSuite(name string, emptyEnter bool, mu *mutant) Suite {
-	return Suite{Name: name, Ops: DocOps, DocEmptyEnter: emptyEnter, New: func(c ref.Config) Impl {
+// docSuite is a suite of the doc operations over the model with mu.
+func docSuite(name string, mu *mutant) Suite {
+	return Suite{Name: name, Ops: DocOps, New: func(c ref.Config) Impl {
 		if mu == nil {
 			return modelImpl{ref.New(c)}
 		}
@@ -52,20 +51,18 @@ func docFails(s Suite) (handwritten, random bool) {
 }
 
 // TestModelPassesDocCases checks the cases of the doc operations against the contract as the model
-// states it, with either start of the range of a call.
+// states it.
 func TestModelPassesDocCases(t *testing.T) {
-	for _, empty := range []bool{false, true} {
-		s := docSuite("model", empty, nil)
-		for _, c := range DocCases() {
-			if skipped, err := Run(s, c); err != nil || skipped {
-				t.Errorf("%s: skipped %v, %v", c.Func.Name, skipped, err)
-			}
+	s := docSuite("model", nil)
+	for _, c := range DocCases() {
+		if skipped, err := Run(s, c); err != nil || skipped {
+			t.Errorf("%s: skipped %v, %v", c.Func.Name, skipped, err)
 		}
-		for seed := uint64(0); seed < 200; seed++ {
-			c := RandomDoc("random", rand.New(rand.NewPCG(seed, 7)), DocOps, 100, docConfig(seed))
-			if _, err := Run(s, c); err != nil {
-				t.Fatal(err)
-			}
+	}
+	for seed := uint64(0); seed < 200; seed++ {
+		c := RandomDoc("random", rand.New(rand.NewPCG(seed, 7)), DocOps, 100, docConfig(seed))
+		if _, err := Run(s, c); err != nil {
+			t.Fatal(err)
 		}
 	}
 }
@@ -144,29 +141,29 @@ func docMutants() map[string]mutant {
 func TestDocMutantsFail(t *testing.T) {
 	for name, mu := range docMutants() {
 		t.Run(name, func(t *testing.T) {
-			for _, empty := range []bool{false, true} {
-				handwritten, random := docFails(docSuite(name, empty, &mu))
-				if !handwritten {
-					t.Errorf("no handwritten case detected the mutant (empty enter %v)", empty)
-				}
-				if !random {
-					t.Errorf("no randomized case detected the mutant (empty enter %v)", empty)
-				}
+			handwritten, random := docFails(docSuite(name, &mu))
+			if !handwritten {
+				t.Errorf("no handwritten case detected the mutant")
+			}
+			if !random {
+				t.Errorf("no randomized case detected the mutant")
 			}
 		})
 	}
 }
 
-// TestDocEnterStartsTheRange checks that the cases tell the two starts of a range apart from a
-// broken one: an implementation that starts the range of a call as the model with the other start
-// does is accepted only where it is configured as such.
+// TestDocEnterStartsTheRange checks that the cases reject a doc.enter that starts the range of a
+// call wider than the empty range at its position, by one unit or by two: a call that examined
+// nothing has an exact end at its position.
 func TestDocEnterStartsTheRange(t *testing.T) {
-	mu := mutant{op: "doc.enter", edit: func(m *ref.Model, a []any) []any {
-		r := docCall(m, "doc.enter", a...)
-		docCall(m, "doc.touch", a[0].(int64)+2)
-		return r
-	}}
-	if handwritten, random := docFails(docSuite("range of two units", false, &mu)); !handwritten || !random {
-		t.Errorf("a range of two units passes: handwritten %v, random %v", handwritten, random)
+	for _, units := range []int64{1, 2} {
+		mu := mutant{op: "doc.enter", edit: func(m *ref.Model, a []any) []any {
+			r := docCall(m, "doc.enter", a...)
+			docCall(m, "doc.touch", a[0].(int64)+units)
+			return r
+		}}
+		if handwritten, random := docFails(docSuite("wide range", &mu)); !handwritten || !random {
+			t.Errorf("a range of %d units passes: handwritten %v, random %v", units, handwritten, random)
+		}
 	}
 }

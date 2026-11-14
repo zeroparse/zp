@@ -41,7 +41,7 @@ import (
 // seed of such a run, the seed at its end, with the observations, the expectations and the
 // examined input of the steps from there.
 //
-// The examined input of a result is the Document frontier (Parser.docHigh); outside a Document
+// The examined input of a result is the Document examined end (Parser.docHigh); outside a Document
 // parse it is not tracked and is 0.
 
 // failSeed is the identity of the failure that every growth starts from.
@@ -72,7 +72,7 @@ type ctxResult struct {
 	expected []ExpID
 	end      int
 	far      int
-	examined int // the frontier of a Document parse (Parser.docHigh)
+	examined int // the examined end of a Document parse (Parser.docHigh)
 	ok       bool
 	silent   bool
 }
@@ -255,7 +255,7 @@ type ctxTable struct {
 }
 
 // lookRec is a lookahead in progress: its site (-1 for one that records nothing) and the Document
-// frontier from before it.
+// examined end from before it.
 type lookRec struct {
 	site int32
 	high int
@@ -264,7 +264,7 @@ type lookRec struct {
 // The values of an observation other than outcomes (obsOutcome).
 const (
 	obsNone uint64 = 1 << 63 // no outcome is memoized
-	// obsWide tags the number that intern gives an outcome whose frontier does not fit in the bits of
+	// obsWide tags the number that intern gives an outcome whose examined end does not fit in the bits of
 	// a word.
 	obsWide uint64 = 1<<63 | 1<<60
 )
@@ -297,7 +297,7 @@ func (p *Parser) seedAt(i int) *ctxResult {
 	return &p.gamma[i].inl
 }
 
-// examinedNow returns the examined input of the current evaluation: the Document frontier, or 0
+// examinedNow returns the examined input of the current evaluation: the Document examined end, or 0
 // outside a Document parse.
 func (p *Parser) examinedNow() int {
 	if p.Document != nil {
@@ -636,8 +636,8 @@ func (p *Parser) dropTable(i int) {
 }
 
 // obsOutcome encodes the outcome of a lookahead at pos whose expression matched if ok and whose
-// Document frontier is examined (pos outside a Document parse): equal values are equal outcomes
-// with equal frontiers. An outcome whose frontier is 2^62 units or more from pos, or before it,
+// Document examined end is examined (pos outside a Document parse): equal values are equal outcomes
+// with equal examined ends. An outcome whose examined end is 2^62 units or more from pos, or before it,
 // gets an interned number (obsWide).
 func (p *Parser) obsOutcome(ok bool, pos, examined int) uint64 {
 	hi := examined - pos
@@ -905,7 +905,7 @@ func (p *Parser) lookBegin(site int) {
 	{
 		f := &p.frames[len(p.frames)-1]
 		if g := len(p.gamma); f.pos == p.Pos && f.gp < g && p.gamma[g-1].pos == p.Pos && p.gamma[g-1].cycle == p.gamma[f.gp].cycle {
-			// The Document frontier of the lookahead is part of its observation.
+			// The Document examined end of the lookahead is part of its observation.
 			p.looks = append(p.looks, lookRec{site: int32(site), high: p.docHigh})
 			if p.Document != nil {
 				p.docHigh = p.Pos
@@ -970,7 +970,7 @@ type growState struct {
 	ctx     bool
 	present uint32
 	done    bool
-	// The step being evaluated in a context: the Document frontier and the expectation record it is
+	// The step being evaluated in a context: the Document examined end and the expectation record it is
 	// kept apart from.
 	savedHigh int
 	exp       ExpMark
@@ -1053,11 +1053,11 @@ func (p *Parser) growNext(g *growState) bool {
 			}
 			continue
 		}
-		// Evaluate the step, with its own frame, Document frontier and expectations.
+		// Evaluate the step, with its own frame, Document examined end and expectations.
 		p.pushFrame(g.start, g.gp)
 		if p.Document != nil {
 			g.savedHigh = p.docHigh
-			p.docHigh = g.start + 1
+			p.docHigh = g.start
 		}
 		g.exp = p.Isolate(g.start)
 		return true

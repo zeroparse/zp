@@ -1009,9 +1009,9 @@ func TestTypedDocument(t *testing.T) {
 }
 
 // TestMemoizedDocument checks the Document bookkeeping of a memoized call: the call that stores an
-// entry records with it the frontier of the call, and the call that reuses it extends its own
-// frontier to the entry's and counts the reuse. Outside a Document parse the call keeps no such
-// record.
+// entry records with it the exact examined end of the call, what its body examined and nothing past
+// it, and the call that reuses it extends its own examined end to the entry's and counts the reuse.
+// Outside a Document parse the call keeps no such record.
 func TestMemoizedDocument(t *testing.T) {
 	mod := Build()
 	f := composition(t, mod, "memoized", ops.Document, ops.Observe, ops.Budget)
@@ -1020,7 +1020,7 @@ func TestMemoizedDocument(t *testing.T) {
 		m.docActive = active
 		r := &trule{id: 1, memo: true, body: func(m *machine) (any, bool) {
 			m.advance(2)
-			m.high = max(m.high, 4) // the body examined the input up to 4, before the end of the call
+			m.high = max(m.high, 5) // the body examined the input up to its end and nothing past it
 			return "v", true
 		}}
 		m.high = 2
@@ -1028,8 +1028,8 @@ func TestMemoizedDocument(t *testing.T) {
 			t.Fatalf("active=%v: %v %v", active, v, ok)
 		}
 		e := m.lastEntry(t)
-		if active && m.examined[e] != 6 {
-			t.Errorf("the entry records the frontier %d, want 6 (past its end)", m.examined[e])
+		if active && m.examined[e] != 5 {
+			t.Errorf("the entry records the examined end %d, want 5 (the end of what the body examined)", m.examined[e])
 		}
 		if !active && len(m.examined) != 0 {
 			t.Errorf("outside a Document the entry records %v", m.examined)
@@ -1039,12 +1039,12 @@ func TestMemoizedDocument(t *testing.T) {
 		if v, ok := callAt(t, mod, m, f, r, 3); !ok || v != "v" || m.pos() != 5 || r.runs != 1 || m.memoHit != 1 {
 			t.Fatalf("active=%v: reuse gives %v %v at %d after %d evaluations and %d hits", active, v, ok, m.pos(), r.runs, m.memoHit)
 		}
-		wantHigh, wantReused := int64(6), 1
+		wantHigh, wantReused := int64(5), 1
 		if !active {
 			wantHigh, wantReused = 3, 0
 		}
 		if m.high != wantHigh || m.reused != wantReused {
-			t.Errorf("active=%v: the reuse leaves the frontier %d and %d reuses, want %d and %d",
+			t.Errorf("active=%v: the reuse leaves the examined end %d and %d reuses, want %d and %d",
 				active, m.high, m.reused, wantHigh, wantReused)
 		}
 	}

@@ -287,7 +287,7 @@ none.`})
 	add(&exec.Op{Name: "ctx.replay", Component: Growth, Params: append(resArg, exec.P("seed", exec.TBool)),
 		Reads: []string{Growth}, Writes: append([]string{Growth, Rec}, regs...), NoReturn: true, Cost: exec.Cost{Terms: []exec.CostTerm{{Coef: 1, Quantity: QMerge}, {Coef: 1, Quantity: QErrs}}},
 		Contract: `Applies the result s as the call that it records would have: counts a reuse, extends the
-examined frontier of a Document parse, adds its expectations unless it is a seed, and on success moves
+examined end of a Document parse to the result's, adds its expectations unless it is a seed, and on success moves
 the position to its end and records its recovered errors again. Outside the missing-token mode it
 records them as rec.add does, as one entry that shares their list, at no cost; in that mode it records
 them as missing.replay does, one by one when the tokens they inserted repeat.`})
@@ -330,7 +330,7 @@ a bit in a word of bits), ctx.storeCtx for the table of the context, or another 
 		exec.P("value", value), exec.P("errs", errs), exec.P("far", exec.TInt), exec.P("k", kept)},
 		Reads: []string{Growth, Call}, Writes: []string{Growth}, NoReturn: true, Cost: exec.Cost{Terms: []exec.CostTerm{{Coef: 1, Quantity: QTable}, {Coef: 1, Quantity: QDeps}}},
 		Contract: `Keeps the result of the call in the table of its context with the dependencies that ctx.pop
-ended, and the examined frontier of a Document parse.`,
+ended, and the examined end of a Document parse.`,
 		Requires: `The last ctx.pop of c returned ctx.storeCtx.`})
 	m.AddOp(&exec.Op{Name: "ctx.done", Component: Growth, Params: []exec.Param{ctxArg}, Writes: []string{Growth},
 		NoReturn: true, Cost: exec.Cost{Terms: []exec.CostTerm{{Coef: 1, Quantity: QDeps}}},
@@ -376,21 +376,20 @@ ends, with its success ok, at pos, and with the end of the input it examined if 
 	m.AddOp(&exec.Op{Name: "doc.examinedBegin", Component: Call, Results: []exec.Type{exec.TInt}, Reads: []string{Call, Pos},
 		Writes: []string{Call}, Features: []string{Document},
 		Contract: `Starts measuring how far an observed call examines the input: in a Document parse, the
-frontier of the call starts at the position. Returns the enclosing call's frontier, for
-doc.examinedEnd. The call itself, and any memo entry it reads or records, extends the frontier as in
+examined end of the call starts at the position. Returns the enclosing call's examined end, for
+doc.examinedEnd. The call itself, and any memo entry it reads or records, extends the end as in
 an unobserved parse, so that observation does not change reuse. Outside a Document parse it starts
 nothing and returns 0.`})
 	m.AddOp(&exec.Op{Name: "doc.examinedEnd", Component: Call, Params: []exec.Param{exec.P("enclosing", exec.TInt)},
 		Results: []exec.Type{exec.TInt, exec.TBool}, Reads: []string{Call}, Writes: []string{Call}, Features: []string{Document},
-		Contract: `Ends measuring the frontier of an observed call and merges it into the enclosing one; returns
-the call's frontier and true in a Document parse, and false otherwise.`,
+		Contract: `Ends measuring the examined end of an observed call and merges it into the enclosing one; returns
+the call's examined end and true in a Document parse, and false otherwise.`,
 		Requires: `enclosing is the result of the matching doc.examinedBegin.`})
 	m.AddOp(&exec.Op{Name: "doc.enter", Component: Call, Params: []exec.Param{exec.P("pos", exec.TInt)},
 		Results: []exec.Type{exec.TInt, exec.TInt}, Reads: []string{Call}, Writes: []string{Call}, Features: []string{Document},
 		Contract: `Begins a rule call at pos in a Document parse: returns the examined input of the enclosing call,
-its end and its start, and starts the call's examined input at pos: as [pos, pos+1), or, in a target
-whose matches extend the examined input to the end of each unit they read and whose calls do not
-extend it past their end, as the empty range at pos.`,
+its end and its start, and starts the call's examined input as the empty range at pos: a call has
+examined nothing when it begins, and each read extends the range by exactly what it examined.`,
 		Requires: `The parse reads a Document.`})
 	m.AddOp(&exec.Op{Name: "doc.leave", Component: Call, Params: []exec.Param{exec.P("high", exec.TInt), exec.P("low", exec.TInt)},
 		Reads: []string{Call}, Writes: []string{Call}, Features: []string{Document},
@@ -403,8 +402,8 @@ range that holds [low, high) and the call's.`,
 		Contract: `Reports whether the parse reads a Document.`})
 	m.AddOp(&exec.Op{Name: "doc.touch", Component: Call, Params: []exec.Param{exec.P("end", exec.TInt)}, Reads: []string{Call},
 		Writes: []string{Call}, Features: doc,
-		Contract: `Extends the examined frontier of the current call to end, if end is past it. A parse that reads
-no Document keeps none.`})
+		Contract: `Extends the examined end of the current call to end, if end is past it: end is exactly one past the
+last unit that what the call read depends on. A parse that reads no Document keeps none.`})
 	m.AddOp(&exec.Op{Name: "doc.touchFrom", Component: Call, Params: []exec.Param{exec.P("from", exec.TInt)}, Reads: []string{Call},
 		Writes: []string{Call}, Features: doc,
 		Contract: `Extends the examined input of the current call back to from, if from is before its start. A parse
@@ -412,7 +411,7 @@ that reads no Document keeps none.`})
 	m.AddOp(&exec.Op{Name: "doc.low", Component: Call, Results: []exec.Type{exec.TInt}, Reads: []string{Call},
 		Features: doc, Contract: `Returns the start of the input that the current call examined so far.`, Requires: inDoc})
 	m.AddOp(&exec.Op{Name: "doc.high", Component: Call, Results: []exec.Type{exec.TInt}, Reads: []string{Call},
-		Features: doc, Contract: `Returns the examined frontier of the current call: the end of the input it examined
+		Features: doc, Contract: `Returns the examined end of the current call: the exact end of the input it examined
 so far, exclusive.`, Requires: inDoc})
 	m.AddOp(&exec.Op{Name: "doc.reused", Component: Call, Writes: []string{Call}, Features: doc,
 		Contract: `Counts a reused memo entry in the statistics of the Document.`, Requires: inDoc})

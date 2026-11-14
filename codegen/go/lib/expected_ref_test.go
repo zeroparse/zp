@@ -11,36 +11,8 @@ import (
 // The hand-written forms of the expectation record that the compositions of internal/ir/exec/core
 // replaced, kept as the reference model of TestExpectRecordMatchesReference.
 
+// refExpect records no examined input, in a Document parse too: the read that failed at pos did.
 func (p *Parser) refExpect(pos int, id ExpID) {
-	p.documentTouch(pos + 1)
-	if p.Silent > 0 || pos < p.farthest {
-		return
-	}
-	if pos > p.farthest {
-		p.farthest = pos
-		p.exp = p.exp[:p.expBase]
-		p.expBits = 0
-	}
-	if !p.Expectations {
-		if len(p.exp) == p.expBase {
-			p.exp = append(p.exp, ExpFar)
-		}
-		return
-	}
-	bit := uint64(1) << (uint32(id) * 0x9e3779b1 >> 26)
-	if p.expBits&bit != 0 {
-		for _, e := range p.exp[p.expBase:] {
-			p.Spend()
-			if e == id {
-				return
-			}
-		}
-	}
-	p.expBits |= bit
-	p.exp = append(p.exp, id)
-}
-
-func (p *Parser) refExpectBudget(pos int, id ExpID) {
 	if p.Silent > 0 || pos < p.farthest {
 		return
 	}
@@ -267,9 +239,10 @@ func TestExpectRecordMatchesReference(t *testing.T) {
 							if !recording && ordinary {
 								continue
 							}
-							a.ExpectBudget(pos, id)
-							b.refExpectBudget(pos, id)
-							check(step, "ExpectBudget")
+							// A second weight for the one form that parses with limit controls or a Document take.
+							a.Expect(pos, id)
+							b.refExpect(pos, id)
+							check(step, "Expect")
 						case 3, 4:
 							if controlled || !recording && !ordinary {
 								continue // an ordinary parse has no budget controls
@@ -342,7 +315,7 @@ func TestNonRecordingRecordHoldsOnePlaceholder(t *testing.T) {
 				case 0:
 					p.Expect(pos, id)
 				case 1:
-					p.ExpectBudget(pos, id)
+					p.Expect(pos, id)
 				case 2:
 					if !controlled {
 						p.ExpectOrdinary(pos, id)

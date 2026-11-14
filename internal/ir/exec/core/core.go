@@ -186,9 +186,6 @@ func Build() *Module {
 		}
 		b.LetN([]string{"far", "inner"}, C("exp.unisolate", L("m")))
 		b.Let("kept", C("keep", L("inner")))
-		if doc != engineDoc {
-			inDocument(b, doc, func(b *Builder) { b.Do("doc.touch", Add(R(ops.Pos), Int(1))) })
-		}
 		b.Let("store", C("ctx.pop", c))
 		b.IfElse(Eq(L("store"), C("ctx.storeMemo")), func(b *Builder) {
 			if doc == typedDoc {
@@ -383,7 +380,7 @@ start from otherwise.`
 	typedDocument.Doc = `typedDocument is a typed rule call in a Document parse, for the rule r at binding level min,
 invoked by inv when a generated call passes it: unmemoized for a rule that the Document does not
 memoize, and otherwise through the memo, with the Document record of each entry kept beside it. As
-in document, the enclosing call's frontier is restored however the call ends.`
+in document, the enclosing call's examined input is restored however the call ends.`
 
 	// The split call protocol of the engine: callBegin and callEnd hold the state of a memoized call
 	// between them in a record that the caller keeps (call.state), so that a target that does not
@@ -572,15 +569,14 @@ so its outermost entry is the first; any other rule is entered once). It is not 
 		})
 		b.Do("exp.add", eid)
 	}
-	expect := m.AddFunc("expect", expParams, nil, []string{ops.Document, ops.Budget}, func(b *Builder) {
-		b.If(F(ops.Document), func(b *Builder) { b.Do("doc.touch", Add(pos, Int(1))) })
+	expect := m.AddFunc("expect", expParams, nil, []string{ops.Budget}, func(b *Builder) {
 		b.If(Bin("||", silent, Lt(pos, C("exp.farthest"))), func(b *Builder) { b.Return() })
 		record(b)
 	})
 	expect.Doc = `expect records that id was expected at pos: an expectation before the farthest failure or in a
-lookahead is dropped, one past it starts the record anew, and one at it joins the entries. A form specialized
-for Document parses also extends the examined frontier of the call past pos; a form without it leaves
-that out. It is for parser code and not a stable API.`
+lookahead is dropped, one past it starts the record anew, and one at it joins the entries. It records no
+examined input: the read that failed at pos recorded what it examined. It is for parser code and not a
+stable API.`
 	expectSlow := m.AddFunc("expectSlow", expParams, nil, []string{ops.Budget}, func(b *Builder) { record(b) })
 	expectSlow.Doc = `expectSlow records the expectation of expectOrdinary at or beyond the farthest position. It is
 separate so that the guard of expectOrdinary inlines into the generated code.`
@@ -595,7 +591,7 @@ helpers, which leave out the budget charges and the Document's record of the exa
 parsers and not a stable API.`
 
 	mergeKept := m.AddFunc("mergeKept", []Param{P("far", TInt), P("k", THandle(ops.Kept))}, nil,
-		[]string{ops.Document, ops.Budget}, func(b *Builder) {
+		[]string{ops.Budget}, func(b *Builder) {
 			b.Var("i", TInt)
 			b.For("each", Assign("i", Int(0)), Lt(L("i"), C("exp.keptCount", L("k"))), Assign("i", Add(L("i"), Int(1))), func(b *Builder) {
 				charge(b)
@@ -604,7 +600,7 @@ parsers and not a stable API.`
 		})
 	mergeKept.Doc = `mergeKept records the expectations that a memo entry kept at far, as expect does for each of them.`
 	mergeExpected := m.AddFunc("mergeExpected", []Param{P("far", TInt), P("s", THandle(ops.Set))}, nil,
-		[]string{ops.Document, ops.Budget}, func(b *Builder) {
+		[]string{ops.Budget}, func(b *Builder) {
 			far, s := L("far"), L("s")
 			b.Var("i", TInt)
 			// Each expectation costs one unit, whether or not the record keeps it. A parse that does not
@@ -617,7 +613,6 @@ parsers and not a stable API.`
 			}, func(b *Builder) {
 				b.For("each", Assign("i", Int(0)), Lt(L("i"), C("exp.setCount", s)), Assign("i", Add(L("i"), Int(1))), func(b *Builder) {
 					charge(b)
-					b.If(F(ops.Document), func(b *Builder) { b.Do("doc.touch", Add(far, Int(1))) })
 					b.If(Not(Bin("||", silent, Lt(far, C("exp.farthest")))), func(b *Builder) {
 						b.If(Bin(">", far, C("exp.farthest")), func(b *Builder) { b.Do("exp.reset", far) })
 						b.If(C("exp.fresh"), func(b *Builder) { b.Do("exp.placeholder") })

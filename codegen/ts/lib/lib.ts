@@ -1727,6 +1727,30 @@ export function decodeRune(b: Uint8Array, i: number, n: number): number {
   return ((c0 & 0x07) << 18) | ((c1 & 0x3f) << 12) | ((c2 & 0x3f) << 6) | (c3 & 0x3f);
 }
 
+// decodedEnd returns the end of the input that decoding the character at b[i] (i < n) examined, for
+// a character of size bytes: its bytes for a valid one, and for an invalid one the bytes up to the
+// first that makes it invalid, or the end of the input (counted as the unit at n) when the input ends
+// inside a valid prefix.
+export function decodedEnd(b: Uint8Array, i: number, n: number, size: number): number {
+  const c0 = b[i]!;
+  if (size > 1 || c0 < 0xc2 || c0 > 0xf4) {
+    return i + size;
+  }
+  const need = c0 < 0xe0 ? 2 : c0 < 0xf0 ? 3 : 4;
+  for (let k = 1; k < need; k++) {
+    if (i + k >= n) {
+      return i + k + 1;
+    }
+    const c = b[i + k]!;
+    const lo = k === 1 ? (c0 === 0xe0 ? 0xa0 : c0 === 0xf0 ? 0x90 : 0x80) : 0x80;
+    const hi = k === 1 ? (c0 === 0xed ? 0x9f : c0 === 0xf4 ? 0x8f : 0xbf) : 0xbf;
+    if (c < lo || c > hi) {
+      return i + k + 1;
+    }
+  }
+  return i + need;
+}
+
 // encodeUTF8 encodes s in UTF-8, with lone surrogates as U+FFFD.
 export function encodeUTF8(s: string): Uint8Array {
   const out = new Uint8Array(utf8EncodingLen(s));
@@ -2012,6 +2036,9 @@ const SCAN_HOT_SPAN = 16;
 interface ScanRecord {
   end: number;
   count: number;
+  // examined is, in a Document parse, the end of the input that the walk examined after scanReach;
+  // decoding the last characters it matched may examine input past the character where it fails.
+  examined: number;
   kids: (Node | null)[] | null;
 }
 
@@ -3228,12 +3255,25 @@ export class Parser {
     if (!this.scanHotNow) return count;
     this.spend();
     const rec = this.scanTables[site]?.get(start);
-    if (rec === undefined) return count;
+    if (rec === undefined) {
+      this.scanExaminedBegin();
+      return count;
+    }
     this.spend();
     this.scanHit = true;
     this.scanRec = rec;
     this.pos = rec.end;
+    this.documentTouch(rec.examined);
     return rec.count;
+  }
+
+  // scanExaminedBegin starts measuring, in a Document parse, the input that the rest of a walk that
+  // records itself examines; scanExaminedEnd returns its end and restores that of the enclosing call
+  // (0 outside a Document parse).
+  scanExaminedBegin(): void {}
+
+  scanExaminedEnd(): number {
+    return 0;
   }
 
   // scanEnd ends a value-free walk of the scan site that began at start, matched count characters (at
@@ -3241,7 +3281,7 @@ export class Parser {
   // itself if the site is hot and notes that it walked if not.
   scanEnd(site: number, start: number, count: number): void {
     if (this.scanHit) return;
-    if (this.scanHotNow) this.scanStore(site, start, { end: this.pos, count, kids: null });
+    if (this.scanHotNow) this.scanStore(site, start, { end: this.pos, count, examined: this.scanExaminedEnd(), kids: null });
     else this.scanWalked(site, start);
   }
 
@@ -3261,7 +3301,7 @@ export class Parser {
       for (const k of kids) {
         if (k !== null) k.fresh = false;
       }
-      this.scanStore(site, start, { end: this.pos, count, kids });
+      this.scanStore(site, start, { end: this.pos, count, examined: this.scanExaminedEnd(), kids });
     } else {
       this.scanWalked(site, start);
     }
@@ -5314,23 +5354,60 @@ export class DocumentParser extends Parser {
     if (from < this.docLow) this.docLow = from;
   }
 
+  // scanHigh is the examined end of the enclosing call while the rest of a scan walk that records
+  // itself runs (scanExaminedBegin).
+  scanHigh = 0;
+
+  override scanExaminedBegin(): void {
+    this.scanHigh = this.docHigh;
+    this.docHigh = this.pos;
+  }
+
+  override scanExaminedEnd(): number {
+    const x = this.docHigh;
+    this.docHigh = Math.max(this.scanHigh, x);
+    return x;
+  }
+
   // documentTouchLine records that a line start test at the position examined the unit before it.
   documentTouchLine(): void {
     if (this.pos > this.docHigh) this.docHigh = this.pos;
     if (this.pos - 1 < this.docLow) this.docLow = this.pos - 1;
   }
 
-  // The terminals record the input they examine: a character, the length of a literal, the unit
-  // before a line start, and the end of the input past the last character.
+  // The terminals record exactly the input they examine: the units that decoding a character
+  // examined, a literal up to its first unit that differs, the unit before a line start, and the end
+  // of the input, counted as the unit at its position.
   override peek(): number {
     const c = super.peek();
-    this.documentTouch(this.pos + (c < 0 ? 1 : this.psize));
+    if (c < 0) {
+      this.documentTouch(this.pos + 1);
+    } else if (this.unit === Bytes && c >= 0x80) {
+      this.documentTouch(decodedEnd(this.bs, this.pos, this.n, this.psize));
+    } else {
+      this.documentTouch(this.pos + this.psize);
+    }
     return c;
   }
 
   override matchLiteral(lit: Lit, desc: number, build: boolean): R {
-    this.documentTouch(this.pos + (this.unit === Bytes ? lit.bytes.length : lit.cps.length));
-    return super.matchLiteral(lit, desc, build);
+    const start = this.pos;
+    const v = super.matchLiteral(lit, desc, build);
+    if (v !== undefined) {
+      this.documentTouch(this.pos);
+      return v;
+    }
+    // A mismatch examined the literal up to its first unit that differs, or the end of the input.
+    let k = 0;
+    if (this.unit === Bytes) {
+      const b = lit.bytes;
+      while (k < b.length && start + k < this.n && this.bs[start + k] === b[k]) k++;
+    } else {
+      const cps = lit.cps;
+      while (k < cps.length && start + k < this.n && this.cps[start + k] === cps[k]) k++;
+    }
+    this.documentTouch(start + k + 1);
+    return v;
   }
 
   override atLineStart(): boolean {
@@ -5341,33 +5418,6 @@ export class DocumentParser extends Parser {
   override atEnd(): boolean {
     this.documentTouch(this.pos + 1);
     return super.atEnd();
-  }
-
-  // An expectation at pos examined the input there.
-  override expect(pos: number, id: number): void {
-    this.expectDocument(pos, id);
-  }
-
-  override mergeKept(far: number, ids: number[]): void {
-    this.mergeKeptDocument(far, ids);
-  }
-
-  override mergeExpected(far: number, from: number, to: number): void {
-    this.mergeExpectedDocument(far, from, to);
-  }
-
-  // expectDocument, mergeKeptDocument and mergeExpectedDocument are printed from Exec IR
-  // (internal/ir/exec/core).
-  expectDocument(pos: number, id: number): void {
-    throw new Error("the printed method replaces this one");
-  }
-
-  mergeKeptDocument(far: number, ids: number[]): void {
-    throw new Error("the printed method replaces this one");
-  }
-
-  mergeExpectedDocument(far: number, from: number, to: number): void {
-    throw new Error("the printed method replaces this one");
   }
 
   // A result that a context kept was made inside the growth of its leader, whose call examined what
@@ -5412,7 +5462,7 @@ export class DocumentParser extends Parser {
   callDocument(r: Rule, min: number): R {
     const oldHigh = this.docHigh;
     const oldLow = this.docLow;
-    this.docHigh = this.pos + 1;
+    this.docHigh = this.pos;
     this.docLow = this.pos;
     try {
       if (!r.docMemo) {
@@ -5520,7 +5570,6 @@ export class DocumentParser extends Parser {
     this.expBase = mBase;
     this.farthest = mFar;
     const kept = this.keep(innerFrom, innerTo);
-    this.documentTouch(this.pos + 1);
     const store = this.ctxPop(c);
     if (store === storeMemo) {
       const entry = newEntry(v, v !== undefined, this.pos, this.silent > 0, this.recSince(rec));

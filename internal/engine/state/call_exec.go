@@ -270,9 +270,9 @@ func (p *Parser) grow(r *Rule, min int) (*core.Node, bool) {
 }
 
 // Expect records that id was expected at pos: an expectation before the farthest failure or in a
-// lookahead is dropped, one past it starts the record anew, and one at it joins the entries. A form specialized
-// for Document parses also extends the examined frontier of the call past pos; a form without it leaves
-// that out. It is for parser code and not a stable API.
+// lookahead is dropped, one past it starts the record anew, and one at it joins the entries. It records no
+// examined input: the read that failed at pos recorded what it examined. It is for parser code and not a
+// stable API.
 //
 // Printed from Exec IR function expect of internal/ir/exec/core, specialized for budget.
 func (p *Parser) Expect(pos int, id ExpID) {

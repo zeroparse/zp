@@ -13,7 +13,7 @@ package libgo
 // from there did (where it ended, its farthest failure and the expectations there, and, in a
 // Document parse, how far it examined the input). A recording walk that reaches a recorded
 // position (once it has matched its minimum) takes the rest from the record: it moves to the end,
-// records the expectations again and extends the examined frontier, as a memo hit does. The record
+// records the expectations again and extends the examined end, as a memo hit does. The record
 // of a position combines the iteration there with the record of the next position, so a walk
 // fills the records of its recording visits backward when it ends: at a failed or empty
 // iteration, whose record ends at its own start, or at a recorded position.
@@ -141,7 +141,7 @@ type skipWalk struct {
 	prevOK bool
 	visits []skipVisit
 	// open reports that the last visit's iteration is running: its expectations are isolated
-	// from mk, and the examined frontier from before it is savedHigh.
+	// from mk, and the examined end from before it is savedHigh.
 	open      bool
 	mk        ExpMark
 	savedHigh int
@@ -239,7 +239,7 @@ func (p *Parser) SkipVisit() {
 	w.mk = p.Isolate(p.Pos)
 }
 
-// skipClose ends the running iteration, if any: it keeps its expectations and examined frontier
+// skipClose ends the running iteration, if any: it keeps its expectations and examined end
 // and records them as usual.
 func (p *Parser) skipClose() {
 	w := &p.skip

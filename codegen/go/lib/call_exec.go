@@ -120,47 +120,12 @@ func (p *Parser) grow(r *Rule, min int) (*core.Node, bool) {
 }
 
 // Expect records that id was expected at pos: an expectation before the farthest failure or in a
-// lookahead is dropped, one past it starts the record anew, and one at it joins the entries. A form specialized
-// for Document parses also extends the examined frontier of the call past pos; a form without it leaves
-// that out. It is for parser code and not a stable API.
-//
-// Printed from Exec IR function expect of internal/ir/exec/core, specialized for document, budget.
-func (p *Parser) Expect(pos int, id ExpID) {
-	var i int
-	p.documentTouch(pos + 1)
-	if p.Silent > 0 || pos < p.farthest {
-		return
-	}
-	if pos > p.farthest {
-		p.farthest = pos
-		p.exp = p.exp[:p.expBase]
-		p.expBits = 0
-	}
-	if !p.Expectations {
-		if len(p.exp) == p.expBase {
-			p.exp = append(p.exp, ExpFar)
-		}
-		return
-	}
-	if p.expBits&(uint64(1)<<(uint32(id)*0x9e3779b1>>26)) != 0 {
-		for i = 0; i < (len(p.exp) - p.expBase); i++ {
-			p.Spend()
-			if p.exp[p.expBase+i] == id {
-				return
-			}
-		}
-	}
-	p.expBits |= uint64(1) << (uint32(id) * 0x9e3779b1 >> 26)
-	p.exp = append(p.exp, id)
-}
-
-// ExpectBudget records that id was expected at pos: an expectation before the farthest failure or in a
-// lookahead is dropped, one past it starts the record anew, and one at it joins the entries. A form specialized
-// for Document parses also extends the examined frontier of the call past pos; a form without it leaves
-// that out. It is for parser code and not a stable API.
+// lookahead is dropped, one past it starts the record anew, and one at it joins the entries. It records no
+// examined input: the read that failed at pos recorded what it examined. It is for parser code and not a
+// stable API.
 //
 // Printed from Exec IR function expect of internal/ir/exec/core, specialized for budget.
-func (p *Parser) ExpectBudget(pos int, id ExpID) {
+func (p *Parser) Expect(pos int, id ExpID) {
 	var i int
 	if p.Silent > 0 || pos < p.farthest {
 		return
@@ -236,7 +201,7 @@ func (p *Parser) expectOrdinarySlow(pos int, id ExpID) {
 // record. s may alias the stack above the current record: writes only happen below the read position. It
 // is for parser code and not a stable API.
 //
-// Printed from Exec IR function mergeExpected of internal/ir/exec/core, specialized for document, budget.
+// Printed from Exec IR function mergeExpected of internal/ir/exec/core, specialized for budget.
 func (p *Parser) MergeExpected(far int, s []ExpID) {
 	var i int
 	if p.Expectations {
@@ -247,7 +212,6 @@ func (p *Parser) MergeExpected(far int, s []ExpID) {
 	} else {
 		for i = 0; i < len(s); i++ {
 			p.Spend()
-			p.documentTouch(far + 1)
 			if !(p.Silent > 0 || far < p.farthest) {
 				if far > p.farthest {
 					p.farthest = far
@@ -546,7 +510,7 @@ func (p *TParser) invokePlainObserved(r *TRule, min int) (any, bool) {
 // Printed from Exec IR function document of internal/ir/exec/core, specialized for document, budget.
 func (p *Parser) callDocument(r *Rule, min int) (*core.Node, bool) {
 	oldHigh, oldLow := p.docHigh, p.docLow
-	p.docHigh, p.docLow = p.Pos+1, p.Pos
+	p.docHigh, p.docLow = p.Pos, p.Pos
 	defer func() {
 		p.docHigh = max(oldHigh, p.docHigh)
 		if oldLow < p.docLow {
@@ -677,9 +641,6 @@ func (p *Parser) callMemo(r *Rule, min int) (*core.Node, bool) {
 	}
 	far, inner := p.Unisolate(m)
 	kept := p.Keep(inner)
-	if p.Document != nil {
-		p.documentTouch(p.Pos + 1)
-	}
 	store := p.ctxPop(&c)
 	if store == storeMemo {
 		entry := p.memo.alloc()
@@ -742,7 +703,7 @@ func (p *Parser) callTracked(r *Rule, min int) (*core.Node, bool) {
 // DocumentCall is a typed rule call in a Document parse, for the rule r at binding level min,
 // invoked by inv when a generated call passes it: unmemoized for a rule that the Document does not
 // memoize, and otherwise through the memo, with the Document record of each entry kept beside it. As
-// in document, the enclosing call's frontier is restored however the call ends.
+// in document, the enclosing call's examined input is restored however the call ends.
 //
 // Printed from Exec IR function typedDocument of internal/ir/exec/core, specialized for document, observe, typed, budget.
 func (p *TParser) DocumentCall(r *TRule, min int, inv func(*TParser) (any, bool)) (any, bool) {
@@ -752,7 +713,7 @@ func (p *TParser) DocumentCall(r *TRule, min int, inv func(*TParser) (any, bool)
 	p.Spend()
 	start := p.Pos
 	oldHigh, oldLow := p.docHigh, p.docLow
-	p.docHigh, p.docLow = start+1, start
+	p.docHigh, p.docLow = start, start
 	defer func() {
 		p.docHigh = max(oldHigh, p.docHigh)
 		if oldLow < p.docLow {
@@ -860,7 +821,6 @@ func (p *TParser) DocumentCall(r *TRule, min int, inv func(*TParser) (any, bool)
 	}
 	far, inner := p.Unisolate(m)
 	kept := p.Keep(inner)
-	p.documentTouch(p.Pos + 1)
 	store := p.ctxPop(&c)
 	if store == storeMemo {
 		if found {

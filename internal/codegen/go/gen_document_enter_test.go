@@ -14,10 +14,10 @@ import (
 	"zeroparse.dev/zp/internal/starttest"
 )
 
-// TestDocumentEmptyEnterReuse pins what the two ways of starting the examined range of a call
-// (spec/exec-ir doc.enter: the empty range or one unit) can be told apart by: the Document statistics
-// alone. An empty match at the start of an insertion is kept by the engine, whose range is empty, and
-// dropped by generated Go, whose range is one unit; the parse results are the same.
+// TestDocumentEmptyEnterReuse checks that a generated Go Document starts the examined range of a
+// call empty (spec/exec-ir doc.enter), as the engine does: an empty match at the start of an
+// insertion examined nothing, so both keep it and reuse as many results. Only the Document
+// statistics tell an empty start from one of a unit; the parse results are the same either way.
 func TestDocumentEmptyEnterReuse(t *testing.T) {
 	codegentest.NeedsBudgetControls(t)
 	const src = "rule main = pad \"a\"+\nrule pad = \"\""
@@ -87,8 +87,8 @@ func TestEnter(t *testing.T) {
 	}
 	goReused, _ := strconv.Atoi(string(m[1]))
 	t.Logf("reused: engine %d, generated Go %d; engine node %v, Go node %s", engineReused, goReused, engineNode, m[2])
-	if int(engineReused) <= goReused {
-		t.Errorf("empty match at an insertion: engine reused %d, generated Go %d; want the engine to keep more", engineReused, goReused)
+	if int(engineReused) != goReused {
+		t.Errorf("empty match at an insertion: engine reused %d, generated Go %d; want the same", engineReused, goReused)
 	}
 	if engineNode.String() != string(m[2]) {
 		t.Errorf("results differ: engine %v, Go %s", engineNode, m[2])

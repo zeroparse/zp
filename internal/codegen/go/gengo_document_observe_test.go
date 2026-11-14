@@ -117,10 +117,9 @@ func recordFrontier(rule string,pos,level,examined int,hit bool){if frontierHook
 type keptFrontier struct{at int;event zprt.TraceEvent}
 // checkFrontiers requires each exit that recorded a memo entry to report the entry's frontier.
 var checkedFrontiers int
-// wantFrontier is the frontier an exit reports for a stored one: a hit still counts one position past its start,
-// which only a growing left-recursive seed's stored frontier can lack. A matched call in a provisional context
-// may instead report its end.
-func wantFrontier(e zprt.TraceEvent,stored int)int{if e.Memo{return max(stored,e.Pos+1)};return stored}
+// wantFrontier is the examined end an exit reports for a stored one: exactly the stored end, for a call that
+// records an entry and for a hit alike. A matched call in a provisional context may instead report its end.
+func wantFrontier(e zprt.TraceEvent,stored int)int{return stored}
 func checkFrontiers(t *testing.T,events []zprt.TraceEvent,kept []keptFrontier){t.Helper();checkedFrontiers+=len(kept);for _,k:=range kept{if k.at>=len(events){t.Fatal("frontier without exit",k)};e:=events[k.at];if e.Kind!=zprt.TraceExit||e.Rule!=k.event.Rule||e.Pos!=k.event.Pos||e.Level!=k.event.Level||e.Memo!=k.event.Memo||!e.ExaminedKnown||e.Examined!=wantFrontier(e,k.event.Examined)&&!(e.Matched&&e.Examined==max(wantFrontier(e,k.event.Examined),e.End)){t.Fatal("reported examined frontier differs from the kept one",e,k)}}}
 func recordDocumentProbe(o *zprt.X_observation){documentProbeMu.Lock();defer documentProbeMu.Unlock();documentParserProbes=append(documentParserProbes,o)}
 func released(t *testing.T){t.Helper();documentProbeMu.Lock();defer documentProbeMu.Unlock();for _,o:=range documentParserProbes{if o!=nil&&(o.X_trace!=nil||o.X_profile!=nil||o.X_rules!=nil||len(o.X_stack)!=0){t.Fatal("observer references retained",o)}};documentParserProbes=nil}

@@ -412,33 +412,16 @@ func saturatingAdd(a, b uint64) uint64 {
 
 // Spend helpers keep long engine-owned scans between bounded reservations.
 //
-// SpendRead has one guarded call so that it inlines into the matchers.
+// SpendRead charges the read of n units. It records no input: in a Document parse each matcher
+// records the exact end of what it read itself (documentTouch).
 func (p *Parser) SpendRead(n uint64) {
-	if p.Document != nil {
-		p.spendReadTracked(n)
-	} else if p.Control != nil {
+	if p.Control != nil {
 		p.Control.Charge(n)
 	}
 }
 
 // spendReadOrdinary is SpendRead in an ordinary parse (ExpectOrdinary), which tracks no input.
 func (p *Parser) spendReadOrdinary(uint64) {}
-
-// spendReadTracked is SpendRead in a Document or controlled parse.
-func (p *Parser) spendReadTracked(n uint64) {
-	if p.Document != nil {
-		// Generated matchers can read directly after charging the spend of the read.
-		// Overestimating the dependency only discards a reusable memo entry.
-		if n > uint64(int(^uint(0)>>1)-p.Pos) {
-			p.documentTouch(int(^uint(0) >> 1))
-		} else {
-			p.documentTouch(p.Pos + int(n))
-		}
-	}
-	if p.Control != nil {
-		p.Control.Charge(n)
-	}
-}
 func (p *Parser) Spend() {
 	p.Control.chargeStep()
 }
@@ -456,7 +439,7 @@ func (p *Parser) setControlledSource(s string) {
 	}
 	// Each of the two passes charges one unit per byte of the source: outside a Document in
 	// chunks, before the bytes of a chunk are decoded; in a Document by the size
-	// of each character, which it records as examined.
+	// of each character.
 	for off, charged := 0, 0; off < len(s); {
 		if c != nil && off >= charged {
 			k := min(sourceChunk, len(s)-charged)

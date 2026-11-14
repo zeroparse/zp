@@ -172,7 +172,7 @@ func opCallees(t *testing.T, pkg *types.Package, op *exec.Op, typed bool) (form 
 }
 
 // chargeWrappers are the functions of the library that only pass charges on to the budget control.
-var chargeWrappers = []string{"Spend", "SpendRead", "spendReadTracked", "spendValue", "growthSpend", "appendSpend", "copySpend", "clearSpend"}
+var chargeWrappers = []string{"Spend", "SpendRead", "spendValue", "growthSpend", "appendSpend", "copySpend", "clearSpend"}
 
 // formSite stands for a charge that the Go form of an operation makes itself, through a wrapper.
 const formSite = "the form"

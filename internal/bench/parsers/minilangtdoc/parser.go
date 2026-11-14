@@ -5817,10 +5817,10 @@ fail:
 // rule ident
 func u16(p *rt.TParser) (any, bool) {
 	if p.TypedDocument != nil {
-		return p.DocumentCall(trules[16], 0, i16)
+		return p.DocumentCall(trules[16], 0, v16)
 	}
 	if !p.FirstCall(rules[16]) {
-		return p.CallMemo(trules[16], i16)
+		return p.CallMemo(trules[16], v16)
 	}
 	return v16(p)
 }
@@ -5882,65 +5882,6 @@ L4:
 	return v, true
 fail:
 	p.Restore(start, rec)
-	return nil, false
-}
-
-func i16(p *rt.TParser) (any, bool) {
-	p.Spend()
-	var start, x1, x2, x3, size, x6, x7 int
-	var v, v9, bv any
-	var ok bool
-	var ch rune
-	start = p.Pos
-	x1 = p.Pos
-	x2, x3 = p.Pos, len(p.Recovered)
-	p.Silent++
-	p.LookBegin(2)
-	if _, ok = s38(p); !ok {
-		goto L4
-	}
-	p.LookEnd(true)
-	p.Silent--
-	p.Restore(x2, x3)
-	goto fail
-L4:
-	p.LookEnd(false)
-	p.Silent--
-	p.Restore(x2, x3)
-	if p.Document == nil && p.Pos < len(p.In) {
-		p.SpendRead(1)
-		ch, size, ok = p.In[p.Pos], 1, true
-	} else {
-		ch, size, ok = p.Peek()
-	}
-	if !ok || !(ch >= 97 && ch <= 122 || ch >= 65 && ch <= 90 || ch == 95) {
-		p.Expect(p.Pos, 19)
-		goto fail
-	}
-	p.Pos += size
-	for {
-		p.Spend()
-		x6, x7 = p.Pos, len(p.Recovered)
-		if _, ok = s39(p); !ok {
-			goto L8
-		}
-		if p.Pos == x6 {
-			break
-		}
-		continue
-	L8:
-		p.Restore(x6, x7)
-		break
-	}
-	v9 = p.NewMatch(x1, p.Pos, p.Text(x1, p.Pos), true)
-	bv = rt.TFreshNode(v9)
-	v = p.ScopeValue(sh38, v9, start)
-	if n := rt.AsTval(v); n != nil {
-		n.TSetFresh(false)
-	}
-	v = p.TConvertResultOwned(trules[16], v, bv)
-	return v, true
-fail:
 	return nil, false
 }
 
@@ -6914,4 +6855,4 @@ fail:
 
 const _ = types.ZPSchema_7a469fc635b6a20e
 
-const _ = rt.Protocol15
+const _ = rt.Protocol16

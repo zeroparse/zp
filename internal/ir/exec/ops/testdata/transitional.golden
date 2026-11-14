@@ -879,7 +879,7 @@ transitional op ctx.replay(s CtxResult, seed bool)
   cost <= 0 + 1*merge + 1*errs
   contract:
     // Applies the result s as the call that it records would have: counts a reuse, extends the
-    // examined frontier of a Document parse, adds its expectations unless it is a seed, and on success moves
+    // examined end of a Document parse to the result's, adds its expectations unless it is a seed, and on success moves
     // the position to its end and records its recovered errors again. Outside the missing-token mode it
     // records them as rec.add does, as one entry that shares their list, at no cost; in that mode it records
     // them as missing.replay does, one by one when the tokens they inserted repeat.
@@ -962,7 +962,7 @@ op ctx.keep(c Ctx, r Rule, pos int, min int, key Values, ok bool, end int, silen
   cost <= 0 + 1*table + 1*deps
   contract:
     // Keeps the result of the call in the table of its context with the dependencies that ctx.pop
-    // ended, and the examined frontier of a Document parse.
+    // ended, and the examined end of a Document parse.
   requires:
     // The last ctx.pop of c returned ctx.storeCtx.
 
@@ -1066,8 +1066,8 @@ op doc.examinedBegin() int
   cost <= 0
   contract:
     // Starts measuring how far an observed call examines the input: in a Document parse, the
-    // frontier of the call starts at the position. Returns the enclosing call's frontier, for
-    // doc.examinedEnd. The call itself, and any memo entry it reads or records, extends the frontier as in
+    // examined end of the call starts at the position. Returns the enclosing call's examined end, for
+    // doc.examinedEnd. The call itself, and any memo entry it reads or records, extends the end as in
     // an unobserved parse, so that observation does not change reuse. Outside a Document parse it starts
     // nothing and returns 0.
 
@@ -1078,8 +1078,8 @@ op doc.examinedEnd(enclosing int) (int, bool)
   features document
   cost <= 0
   contract:
-    // Ends measuring the frontier of an observed call and merges it into the enclosing one; returns
-    // the call's frontier and true in a Document parse, and false otherwise.
+    // Ends measuring the examined end of an observed call and merges it into the enclosing one; returns
+    // the call's examined end and true in a Document parse, and false otherwise.
   requires:
     // enclosing is the result of the matching doc.examinedBegin.
 
@@ -1091,9 +1091,8 @@ op doc.enter(pos int) (int, int)
   cost <= 0
   contract:
     // Begins a rule call at pos in a Document parse: returns the examined input of the enclosing call,
-    // its end and its start, and starts the call's examined input at pos: as [pos, pos+1), or, in a target
-    // whose matches extend the examined input to the end of each unit they read and whose calls do not
-    // extend it past their end, as the empty range at pos.
+    // its end and its start, and starts the call's examined input as the empty range at pos: a call has
+    // examined nothing when it begins, and each read extends the range by exactly what it examined.
   requires:
     // The parse reads a Document.
 
@@ -1124,8 +1123,8 @@ op doc.touch(end int)
   features document
   cost <= 0
   contract:
-    // Extends the examined frontier of the current call to end, if end is past it. A parse that reads
-    // no Document keeps none.
+    // Extends the examined end of the current call to end, if end is past it: end is exactly one past the
+    // last unit that what the call read depends on. A parse that reads no Document keeps none.
 
 op doc.touchFrom(from int)
   component call
@@ -1153,7 +1152,7 @@ op doc.high() int
   features document
   cost <= 0
   contract:
-    // Returns the examined frontier of the current call: the end of the input it examined
+    // Returns the examined end of the current call: the exact end of the input it examined
     // so far, exclusive.
   requires:
     // The parse reads a Document.

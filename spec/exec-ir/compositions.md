@@ -19,7 +19,7 @@ The call protocol of a rule: deferred memoization, the memo with its reuse condi
 | `func unmemoized(r Rule, min int) (Value, bool)` | Calls rule r at binding level min without memo bookkeeping, as call does while the rule's memoization is deferred: its expectations need no isolation, and a failure restores the position and the recovered errors. |
 | `func memoized(r Rule, min int) (Value, bool) [document, observe, budget]` | Calls rule r at binding level min through the memo, as call does once the rule's memoization is no longer deferred, with the observation of a reuse and, in a Document parse, the bookkeeping of how far each call examined the input. |
 | `func document(r Rule, min int) (Value, bool) [document, budget]` | A rule call in a Document parse, which memoizes the rules that the Document reuses and records the input each call examined. The enclosing call's examined input is restored however the call ends, an interruption included, so that a parse after it starts from the state it would start from otherwise. |
-| `func typedDocument(r Rule, min int, inv Body) (Value, bool) [document, observe, typed, budget]` | A typed rule call in a Document parse, for the rule r at binding level min, invoked by inv when a generated call passes it: unmemoized for a rule that the Document does not memoize, and otherwise through the memo, with the Document record of each entry kept beside it. As in document, the enclosing call's frontier is restored however the call ends. |
+| `func typedDocument(r Rule, min int, inv Body) (Value, bool) [document, observe, typed, budget]` | A typed rule call in a Document parse, for the rule r at binding level min, invoked by inv when a generated call passes it: unmemoized for a rule that the Document does not memoize, and otherwise through the memo, with the Document record of each entry kept beside it. As in document, the enclosing call's examined input is restored however the call ends. |
 | `func callBegin(r Rule, min int, st CallState) (Value, bool, bool) [document, observe, missing, budget]` | Begins a memoized call of rule r at binding level min, with the engine's bookkeeping of the input each call examines: it returns hit set with a result that the call reuses, and otherwise saves in st what the end of the call needs. |
 | `func callEnd(r Rule, st CallState, v Value, ok bool) (Value, bool) [document, observe, missing, budget]` | Ends the memoized call of rule r whose state its begin saved in st with the value v and success ok of its body, or of the growth of a leader: it records the result where its dependencies send it, and restores the state from before the call. |
 | `func engineCall(r Rule, min int) (Value, bool) [document, observe, missing, budget]` | Calls rule r at binding level min in the engine: unmemoized while its memoization is deferred, and otherwise between the begin and the end of the split call protocol, growing the seed of a left-recursion leader. A parse that reads a Document makes the call of `engineCallDoc` instead, which is decided by one test of a field that the parse sets once. |
@@ -33,11 +33,11 @@ Recording an expectation, keeping a set and merging a set at a position.
 
 | Declaration | Meaning |
 |:--|:--|
-| `func expect(pos int, id ExpID) [document, budget]` | Records that id was expected at pos: an expectation before the farthest failure or in a lookahead is dropped, one past it starts the record anew, and one at it joins the entries. A form specialized for Document parses also extends the examined frontier of the call past pos; a form without it leaves that out. |
+| `func expect(pos int, id ExpID) [budget]` | Records that id was expected at pos: an expectation before the farthest failure or in a lookahead is dropped, one past it starts the record anew, and one at it joins the entries. It records no examined input: the read that failed at pos recorded what it examined. |
 | `func expectOrdinary(pos int, id ExpID) [budget]` | `expect` in an ordinary parse: one without limit controls and outside a Document, for the branch of a generated rule body that runs in such parses and leaves out the budget charges and the Document's record of the examined input. Printed only for the generated Go runtime, which parsers of nodes and of typed values share, so that only the nodes column lists it. |
 | `func expectSlow(pos int, id ExpID) [budget]` | Records the expectation of `expectOrdinary` at or beyond the farthest position. It is separate so that the guard of `expectOrdinary` inlines into the generated code. Printed only for the generated Go runtime, which parsers of nodes and of typed values share, so that only the nodes column lists it. |
-| `func mergeKept(far int, k ExpKept) [document, budget]` | Records the expectations that a memo entry kept at far, as expect does for each of them. |
-| `func mergeExpected(far int, s ExpSet) [document, budget]` | Records the expectations of s at far, as expect does for each of them, so that the expectations of a call that a memo entry or a finished isolation kept become those of the enclosing record. s may alias the stack above the current record: writes only happen below the read position. |
+| `func mergeKept(far int, k ExpKept) [budget]` | Records the expectations that a memo entry kept at far, as expect does for each of them. |
+| `func mergeExpected(far int, s ExpSet) [budget]` | Records the expectations of s at far, as expect does for each of them, so that the expectations of a call that a memo entry or a finished isolation kept become those of the enclosing record. s may alias the stack above the current record: writes only happen below the read position. |
 | `func keep(s ExpSet) ExpKept [budget]` | Returns the expectations of s as a set that outlives the record, for a memo entry, a context or a recovery to keep: the empty set for none, the set kept last when it has the same entries in the same order, and otherwise a copy, which becomes the set kept last. |
 
 ## Streams
@@ -149,11 +149,11 @@ row includes what its backends print into packages of their own.
 | streamCommit | `[stream]` |  | `[stream]` |  |
 | streamEmit | `[stream]` |  | `[stream]` |  |
 | streamsIn | `[stream]` |  | `[stream]` |  |
-| expect | `[budget, document]` `[budget]` |  | `[budget]` | `[budget]` `[budget, document]` |
+| expect | `[budget]` |  | `[budget]` | `[budget]` |
 | expectSlow | `[]` |  |  |  |
 | expectOrdinary | `[]` |  |  |  |
-| mergeKept |  |  |  | `[budget]` `[budget, document]` |
-| mergeExpected | `[budget, document]` |  | `[budget]` | `[budget]` `[budget, document]` |
+| mergeKept |  |  |  | `[budget]` |
+| mergeExpected | `[budget]` |  | `[budget]` | `[budget]` |
 | keep | `[budget]` |  | `[budget]` | `[budget]` |
 | reset | `[]` | `[]` | `[missing]` | `[]` |
 | skipTrivia | `[]` | `[]` | `[missing]` | `[]` |

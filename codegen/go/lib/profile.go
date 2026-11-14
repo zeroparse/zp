@@ -15,7 +15,7 @@ type Profile struct {
 }
 
 // profileRow accumulates one rule. unknown records a completed call whose
-// examined frontier was unknown, which makes Examined and Wasted incomplete.
+// examined end was unknown, which makes Examined and Wasted incomplete.
 type profileRow struct {
 	RuleProfile
 	unknown bool
@@ -40,10 +40,10 @@ type ProfileSnapshot struct {
 // RuleProfile describes actual generated calls of one rule. Skipped counts
 // only identifiable optimized dispatch sites and is separate from Entered.
 // Examined sums, over completed calls, the input from each call's position to
-// its trace Examined frontier; Wasted sums the same for completed failed calls
+// its trace Examined end; Wasted sums the same for completed failed calls
 // that did not reuse a memo result. Both are known only when every completed call of the
-// rule had a known frontier, that is, when the rule was profiled only in
-// Document parses; like the frontier, they are conservative.
+// rule had a known examined end, that is, when the rule was profiled only in
+// Document parses.
 // Within one invocation, Time counts recursive calls of the same rule once;
 // SelfTime excludes children. Reentrant invocations are accumulated separately.
 // Both include instrumentation and callback costs within the timed boundary.

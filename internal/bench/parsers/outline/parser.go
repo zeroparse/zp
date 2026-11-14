@@ -289,7 +289,7 @@ func e1(p *rt.Parser, _ int) (*core.Node, bool) {
 		break
 	}
 	if !p.AtEndBatch() {
-		p.ExpectBudget(p.Pos, rt.IdEndInput)
+		p.Expect(p.Pos, rt.IdEndInput)
 		goto fail
 	}
 	return nil, true
@@ -510,7 +510,7 @@ func e8(p *rt.Parser, _ int) (*core.Node, bool) {
 			ch, size, ok = p.Peek()
 		}
 		if !ok || (ch == 10) {
-			p.ExpectBudget(p.Pos, 6)
+			p.Expect(p.Pos, 6)
 			break
 		}
 		p.Pos += size
@@ -582,7 +582,7 @@ func r8(p *rt.Parser) (*core.Node, bool) {
 			ch, size, ok = p.Peek()
 		}
 		if !ok || !(ch == 32 || ch == 9) {
-			p.ExpectBudget(p.Pos, 8)
+			p.Expect(p.Pos, 8)
 			break
 		}
 		p.Pos += size
@@ -621,7 +621,7 @@ func r9(p *rt.Parser) (*core.Node, bool) {
 		x3, _, x4 = p.Peek()
 	}
 	if !(x4 && (x3 == 10)) && p.Depth <= p.MaxDepth {
-		p.ExpectBudget(p.Pos, 7)
+		p.Expect(p.Pos, 7)
 		goto L5
 	}
 	if (p.Pos < len(p.In) && p.In[p.Pos] == 10) && p.Control.Take(1) {
@@ -634,7 +634,7 @@ L6:
 	p.Pos = x1
 L5:
 	if !p.AtEndBatch() {
-		p.ExpectBudget(p.Pos, rt.IdEndInput)
+		p.Expect(p.Pos, rt.IdEndInput)
 		goto L7
 	}
 	goto L2
@@ -676,7 +676,7 @@ func e15(p *rt.Parser, _ int) (*core.Node, bool) {
 		break
 	}
 	if !p.AtEndBatch() {
-		p.ExpectBudget(p.Pos, rt.IdEndInput)
+		p.Expect(p.Pos, rt.IdEndInput)
 		goto fail
 	}
 	return nil, true
@@ -874,7 +874,7 @@ func q5(p *rt.Parser) (*core.Node, bool) {
 			ch, size, ok = p.Peek()
 		}
 		if !ok || (ch == 10) {
-			p.ExpectBudget(p.Pos, 6)
+			p.Expect(p.Pos, 6)
 			break
 		}
 		p.Pos += size
@@ -911,7 +911,7 @@ func q6(p *rt.Parser) (*core.Node, bool) {
 		x3, _, x4 = p.Peek()
 	}
 	if !(x4 && (x3 == 10)) && p.Depth <= p.MaxDepth {
-		p.ExpectBudget(p.Pos, 7)
+		p.Expect(p.Pos, 7)
 		goto L5
 	}
 	if (p.Pos < len(p.In) && p.In[p.Pos] == 10) && p.Control.Take(1) {
@@ -924,7 +924,7 @@ L6:
 	p.Pos = x1
 L5:
 	if !p.AtEndBatch() {
-		p.ExpectBudget(p.Pos, rt.IdEndInput)
+		p.Expect(p.Pos, rt.IdEndInput)
 		goto L7
 	}
 	goto L2
@@ -956,7 +956,7 @@ func q7(p *rt.Parser) (*core.Node, bool) {
 			ch, size, ok = p.Peek()
 		}
 		if !ok || !(ch == 32 || ch == 9) {
-			p.ExpectBudget(p.Pos, 8)
+			p.Expect(p.Pos, 8)
 			break
 		}
 		p.Pos += size
@@ -1025,7 +1025,7 @@ func i0(p *rt.TParser) (any, bool) {
 		break
 	}
 	if !p.AtEndBatch() {
-		p.ExpectBudget(p.Pos, rt.IdEndInput)
+		p.Expect(p.Pos, rt.IdEndInput)
 		goto fail
 	}
 	c = p.UseCtx(rt.TActCtx{P: p, Start: start, End: p.Pos, Cbase: len(p.Created)})
@@ -1349,7 +1349,7 @@ func s5(p *rt.TParser) (any, bool) {
 			ch, size, ok = p.Peek()
 		}
 		if !ok || (ch == 10) {
-			p.ExpectBudget(p.Pos, 6)
+			p.Expect(p.Pos, 6)
 			break
 		}
 		p.Pos += size
@@ -1392,7 +1392,7 @@ func s8(p *rt.TParser) (any, bool) {
 			ch, size, ok = p.Peek()
 		}
 		if !ok || !(ch == 32 || ch == 9) {
-			p.ExpectBudget(p.Pos, 8)
+			p.Expect(p.Pos, 8)
 			break
 		}
 		p.Pos += size
@@ -1431,7 +1431,7 @@ func s9(p *rt.TParser) (any, bool) {
 		x3, _, x4 = p.Peek()
 	}
 	if !(x4 && (x3 == 10)) && p.Depth <= p.MaxDepth {
-		p.ExpectBudget(p.Pos, 7)
+		p.Expect(p.Pos, 7)
 		goto L5
 	}
 	if (p.Pos < len(p.In) && p.In[p.Pos] == 10) && p.Control.Take(1) {
@@ -1444,7 +1444,7 @@ L6:
 	p.Pos = x1
 L5:
 	if !p.AtEndBatch() {
-		p.ExpectBudget(p.Pos, rt.IdEndInput)
+		p.Expect(p.Pos, rt.IdEndInput)
 		goto L7
 	}
 	goto L2
@@ -1461,4 +1461,4 @@ fail:
 
 const _ = types.ZPSchema_3851c59bf7b450ca
 
-const _ = rt.Protocol15
+const _ = rt.Protocol16

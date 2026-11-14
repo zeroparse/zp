@@ -1,4 +1,4 @@
-protocol 15
+protocol 16
 const BaseString untyped int = 0
 const ExpFar ExpID = 536870912
 const IdAny ExpID = 0
@@ -152,7 +152,6 @@ method (*Parser) ErrorAttr(matcher, ExpID) (*zeroparse.dev/zp/core.Node, bool)
 method (*Parser) ExaminedBegin() int
 method (*Parser) ExaminedEnd(int) (int, bool)
 method (*Parser) Expect(int, ExpID)
-method (*Parser) ExpectBudget(int, ExpID)
 method (*Parser) ExpectOrdinary(int, ExpID)
 method (*Parser) Finish(*Rule, *CaptureFrame, *zeroparse.dev/zp/core.Node, int) *zeroparse.dev/zp/core.Node
 method (*Parser) FirstCall(*Rule) bool

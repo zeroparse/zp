@@ -36,11 +36,6 @@ var tsSpecs = []struct {
 	{fn: "expect", on: []string{ops.Budget}, name: "expect"},
 	{fn: "mergeKept", on: []string{ops.Budget}, name: "mergeKept"},
 	{fn: "mergeExpected", on: []string{ops.Budget}, name: "mergeExpected"},
-	// The forms of the DocumentParser, which its expect, mergeKept and mergeExpected call. They come
-	// after the forms above, whose names the printed calls take.
-	{fn: "expect", on: []string{ops.Document, ops.Budget}, name: "expectDocument", doc: true},
-	{fn: "mergeKept", on: []string{ops.Document, ops.Budget}, name: "mergeKeptDocument", doc: true},
-	{fn: "mergeExpected", on: []string{ops.Document, ops.Budget}, name: "mergeExpectedDocument", doc: true},
 	{fn: "keep", on: []string{ops.Budget}, name: "keep"},
 	// The Operators Rule loop and backtracking.
 	{fn: "operatorsParse", on: []string{ops.Budget}, name: "operatorsRuleParse"},
@@ -635,7 +630,7 @@ var tsDocTarget = func() *Target {
 	t.Stmt = func(c *exec.Call, a []string, dst []string, decl string) (string, bool) {
 		switch c.Callee {
 		case "doc.enter":
-			return fmt.Sprintf("%[1]s %[2]s = this.docHigh;\n%[1]s %[3]s = this.docLow;\nthis.docHigh = %[4]s + 1;\nthis.docLow = %[4]s;", decl, dst[0], dst[1], a[0]), true
+			return fmt.Sprintf("%[1]s %[2]s = this.docHigh;\n%[1]s %[3]s = this.docLow;\nthis.docHigh = %[4]s;\nthis.docLow = %[4]s;", decl, dst[0], dst[1], a[0]), true
 		case "doc.leave":
 			return fmt.Sprintf("this.docHigh = Math.max(%s, this.docHigh);\nif (%s < this.docLow) {\n  this.docLow = %[2]s;\n}", a[0], a[1]), true
 		}
