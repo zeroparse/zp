@@ -105,8 +105,8 @@ import (
 	"path/filepath"
 	"testing"
 
-	"zeroparse.dev/zp/engine"
 	"zeroparse.dev/zp/codegen"
+	"zeroparse.dev/zp/engine"
 )
 
 //go:embed version.zp
