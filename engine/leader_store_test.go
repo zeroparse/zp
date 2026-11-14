@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"strings"
 	"testing"
+	"zeroparse.dev/zp/core"
 
 	"zeroparse.dev/zp/engine"
 	"zeroparse.dev/zp/internal/codegentest"
@@ -44,8 +45,8 @@ func TestLeaderGrowthStoresResult(t *testing.T) {
 		for _, backend := range []engine.Backend{engine.Closure, engine.Bytecode} {
 			var stack []frame
 			var got []string
-			_, _ = p.Parse(c.input, engine.WithBackend(backend), engine.WithTrace(func(e engine.TraceEvent) {
-				if e.Kind == engine.TraceEnter {
+			_, _ = p.Parse(c.input, engine.WithBackend(backend), engine.WithTrace(func(e core.TraceEvent) {
+				if e.Kind == core.TraceEnter {
 					fromMain := len(stack) > 0 && stack[len(stack)-1].rule == "main"
 					stack = append(stack, frame{e.Rule, e.Pos, fromMain})
 					return
@@ -81,10 +82,10 @@ func TestLeaderGrowthEvals(t *testing.T) {
 			t.Fatalf("%s: %v", c.Name, err)
 		}
 		for _, backend := range []engine.Backend{engine.Closure, engine.Bytecode} {
-			var prof engine.Profile
+			var prof core.Profile
 			_, _ = p.Parse(c.Input, engine.WithBackend(backend), engine.WithProfile(&prof))
 			got := -1
-			for _, r := range prof.Rules {
+			for _, r := range prof.Snapshot().Rules {
 				if r.Rule == "e" {
 					got = r.Evals
 				}

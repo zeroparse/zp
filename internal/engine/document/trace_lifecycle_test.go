@@ -20,17 +20,17 @@ func TestTraceLifecycleDocumentDetachment(t *testing.T) {
 					if outcome == "syntax" {
 						text += "bad=x\n"
 					}
-					var e TraceEvent
+					var e core.TraceEvent
 					token := &struct{ value string }{"trace panic"}
 					armed := outcome == "trace-panic"
-					opts := ParseOptions{Backend: b, Unit: u, Trace: func(v TraceEvent) {
+					opts := ParseOptions{Backend: b, Unit: u, Trace: func(v core.TraceEvent) {
 						v.LineCol(v.Pos)
 						v.Text()
 						v.Failure()
-						if v.Kind == TraceEnter && v.Rule == "main" {
+						if v.Kind == core.TraceEnter && v.Rule == "main" {
 							e = v
 						}
-						if armed && v.Kind == TraceExit && v.Rule == "record" && v.Matched {
+						if armed && v.Kind == core.TraceExit && v.Rule == "record" && v.Matched {
 							panic(token)
 						}
 					}}
@@ -62,7 +62,7 @@ func TestTraceLifecycleDocumentDetachment(t *testing.T) {
 						}
 					}
 					assertTraceParserDetached(t, state.TraceParser(e), outcome == "trace-panic")
-					if e.Kind != TraceEnter || e.Rule != "main" || e.Depth != 1 || e.Pos != 0 {
+					if e.Kind != core.TraceEnter || e.Rule != "main" || e.Depth != 1 || e.Pos != 0 {
 						t.Fatal("saved event metadata changed")
 					}
 					var clone *core.Node

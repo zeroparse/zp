@@ -51,10 +51,10 @@ rule t = t "*" "a" / "a"`, "a*a+a+a*a*a"},
 					o := base
 					o.Context = ctx
 					grown := 0
-					o.Trace = func(e TraceEvent) {
+					o.Trace = func(e core.TraceEvent) {
 						// A matched memo hit of a growing rule returns its
 						// provisional result to a deeper call.
-						if e.Kind != TraceExit || !e.Memo || !e.Matched || e.Rule == "main" {
+						if e.Kind != core.TraceExit || !e.Memo || !e.Matched || e.Rule == "main" {
 							return
 						}
 						if grown++; grown != 2 {

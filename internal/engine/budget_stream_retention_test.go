@@ -44,7 +44,7 @@ func (c *streamControlRetentionContext) Err() error {
 }
 
 type streamControlRetentionRun struct {
-	event        TraceEvent
+	event        core.TraceEvent
 	program      *Program
 	control      weak.Pointer[state.BudgetControl]
 	context      weak.Pointer[streamControlRetentionContext]
@@ -89,7 +89,7 @@ func runStreamControlRetentionCase(t *testing.T, prog *Program, outcome string, 
 	}
 	panicToken := ctx.token
 	var controlRef weak.Pointer[state.BudgetControl]
-	var event TraceEvent
+	var event core.TraceEvent
 	var nodes []*core.Node
 	var snapshots []string
 	var returnedErr error
@@ -111,8 +111,8 @@ func runStreamControlRetentionCase(t *testing.T, prog *Program, outcome string, 
 				ctx.armed = true // The post-emit checkpoint must rethrow this caller panic.
 			}
 			return nil
-		}, streamControlRetentionOptions(options, ctx, func(e TraceEvent) {
-			if e.Kind == TraceEnter && e.Rule == "main" {
+		}, streamControlRetentionOptions(options, ctx, func(e core.TraceEvent) {
+			if e.Kind == core.TraceEnter && e.Rule == "main" {
 				event = e
 				controlRef = weak.Make(state.TraceParser(e).Control)
 				if controlRef.Value() == nil {
@@ -120,9 +120,9 @@ func runStreamControlRetentionCase(t *testing.T, prog *Program, outcome string, 
 				}
 			}
 			switch {
-			case outcome == "trace-panic" && e.Kind == TraceEnter && e.Rule == "record" && e.Pos > 9:
+			case outcome == "trace-panic" && e.Kind == core.TraceEnter && e.Rule == "record" && e.Pos > 9:
 				panic(ctx.token)
-			case outcome == "input-limit" && e.Kind == TraceExit && e.Rule == "record" && e.Matched && state.TraceParser(e).Control != nil:
+			case outcome == "input-limit" && e.Kind == core.TraceExit && e.Rule == "record" && e.Matched && state.TraceParser(e).Control != nil:
 				if state.TraceParser(e).Control.Used == 0 {
 					panic("input limit fixture did not consume input")
 				}
@@ -145,7 +145,7 @@ func runStreamControlRetentionCase(t *testing.T, prog *Program, outcome string, 
 	}
 }
 
-func streamControlRetentionOptions(o ParseOptions, ctx context.Context, trace func(TraceEvent)) ParseOptions {
+func streamControlRetentionOptions(o ParseOptions, ctx context.Context, trace func(core.TraceEvent)) ParseOptions {
 	o.Context = ctx
 	o.Limits = core.Limits{Compute: 1 << 30}
 	o.Trace = trace
@@ -190,7 +190,7 @@ func TestBudgetStreamTraceRetentionWithActiveControls(t *testing.T) {
 						t.Fatalf("panic=%v err=%v emitted=%d", run.panic, run.err, len(run.nodes))
 					}
 				}
-				if run.event.Kind != TraceEnter || run.event.Rule != "main" || run.event.Depth != 1 || run.event.Pos != 0 {
+				if run.event.Kind != core.TraceEnter || run.event.Rule != "main" || run.event.Depth != 1 || run.event.Pos != 0 {
 					t.Fatalf("saved trace metadata changed: %+v", run.event)
 				}
 				if len(run.nodes) != len(run.snapshots) || len(run.nodes) == 0 {
@@ -221,7 +221,7 @@ func TestBudgetStreamTraceRetentionWithActiveControls(t *testing.T) {
 				if run.emitState.Value() != nil {
 					t.Error("saved trace event retains the emit callback capture")
 				}
-				if run.event.Kind != TraceEnter || run.event.Rule != "main" || run.event.Depth != 1 || run.event.Pos != 0 {
+				if run.event.Kind != core.TraceEnter || run.event.Rule != "main" || run.event.Depth != 1 || run.event.Pos != 0 {
 					t.Fatal("GC changed saved trace metadata")
 				}
 				for i, n := range run.nodes {

@@ -245,8 +245,8 @@ rule x = x "a" / "a"`)
 			t.Fatal(err)
 		}
 		marker := &struct{ label string }{"trace panic"}
-		o.Trace = func(e TraceEvent) {
-			if e.Kind == TraceExit && e.Rule == "x" && e.Memo && e.Matched {
+		o.Trace = func(e core.TraceEvent) {
+			if e.Kind == core.TraceExit && e.Rule == "x" && e.Memo && e.Matched {
 				panic(marker)
 			}
 		}

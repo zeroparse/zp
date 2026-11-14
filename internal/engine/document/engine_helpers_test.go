@@ -36,7 +36,7 @@ func servedBy(mode CompiledMode, o ParseOptions) ParseOptions {
 		o.Recognize = true
 	case CompiledDocument:
 		if o.Trace == nil {
-			o.Trace = func(TraceEvent) {}
+			o.Trace = func(core.TraceEvent) {}
 		}
 	}
 	return o

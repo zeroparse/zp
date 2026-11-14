@@ -31,11 +31,11 @@ func TestTraceDocumentReusedElements(t *testing.T) {
 					if err != nil {
 						t.Fatal(err)
 					}
-					var pr Profile
-					var events []TraceEvent
+					var pr core.Profile
+					var events []core.TraceEvent
 					tracedOpts := opts
-					tracedOpts.Trace = func(e TraceEvent) {
-						pr.Trace(e)
+					tracedOpts.Profiles = []*core.Profile{&pr}
+					tracedOpts.Trace = func(e core.TraceEvent) {
 						events = append(events, e)
 					}
 					doc, err := prog.NewDocumentWith("main", text, tracedOpts)
@@ -44,7 +44,7 @@ func TestTraceDocumentReusedElements(t *testing.T) {
 					}
 					check := func(phase string, resumed int, rootMemo bool) {
 						t.Helper()
-						pr, events = Profile{}, nil
+						pr, events = core.Profile{}, nil
 						n, err := doc.Parse()
 						if (err != nil) != failedRoot {
 							t.Fatalf("%s: error=%v; failed root=%t", phase, err, failedRoot)
@@ -60,13 +60,14 @@ func TestTraceDocumentReusedElements(t *testing.T) {
 							t.Fatalf("%s: tracing changed work: %+v/%d versus %+v/%d", phase,
 								doc.Stats(), doc.Resumed(), plain.Stats(), plain.Resumed())
 						}
-						if pr.ReusedElements != resumed || doc.Resumed() != resumed {
-							t.Fatalf("%s: profile resumed=%d, document=%d; want %d", phase, pr.ReusedElements, doc.Resumed(), resumed)
+						snap := pr.Snapshot()
+						if snap.ReusedElements != resumed || doc.Resumed() != resumed {
+							t.Fatalf("%s: profile resumed=%d, document=%d; want %d", phase, snap.ReusedElements, doc.Resumed(), resumed)
 						}
 						calls, evals, memo := 0, 0, 0
-						var root TraceEvent
+						var root core.TraceEvent
 						for _, e := range events {
-							if e.Kind == TraceEnter {
+							if e.Kind == core.TraceEnter {
 								if e.ReusedElements != 0 {
 									t.Fatalf("%s: enter reports reuse: %+v", phase, e)
 								}
@@ -93,12 +94,12 @@ func TestTraceDocumentReusedElements(t *testing.T) {
 						if root.Rule != "main" || root.Memo != rootMemo || root.ReusedElements != resumed {
 							t.Fatalf("%s: root=%+v", phase, root)
 						}
-						if pr.Parses != 1 || pr.Calls != calls || pr.Evals != evals || pr.MemoHits != memo ||
+						if snap.Parses != 1 || snap.Calls != calls || snap.Evals != evals || snap.MemoHits != memo ||
 							evals != doc.Stats().Evaluated || memo+resumed != doc.Stats().Reused {
-							t.Fatalf("%s: profile=%+v; event counts=%d/%d/%d; document=%+v", phase, pr, calls, evals, memo, doc.Stats())
+							t.Fatalf("%s: profile=%+v; event counts=%d/%d/%d; document=%+v", phase, snap, calls, evals, memo, doc.Stats())
 						}
 						rowResumed := 0
-						for _, r := range pr.Rules {
+						for _, r := range snap.Rules {
 							rowResumed += r.ReusedElements
 							want := 0
 							if r.Rule == "main" || r.Rule == "lines" {
@@ -108,8 +109,8 @@ func TestTraceDocumentReusedElements(t *testing.T) {
 								t.Fatalf("%s: profile rule=%+v; want resumed=%d", phase, r, want)
 							}
 						}
-						if resumed > 0 && rowResumed != 2*pr.ReusedElements {
-							t.Fatalf("%s: nested inclusive rows=%d; root-only total=%d", phase, rowResumed, pr.ReusedElements)
+						if resumed > 0 && rowResumed != 2*snap.ReusedElements {
+							t.Fatalf("%s: nested inclusive rows=%d; root-only total=%d", phase, rowResumed, snap.ReusedElements)
 						}
 					}
 					check("initial", 0, false)
@@ -148,11 +149,11 @@ func TestTraceDocumentReusedElementsPanicRetry(t *testing.T) {
 					t.Fatal(err)
 				}
 				marker := &struct{ name string }{"trace abort"}
-				var pr Profile
+				var pr core.Profile
 				tracedOpts := opts
-				tracedOpts.Trace = func(e TraceEvent) {
-					pr.Trace(e)
-					if e.Kind == TraceExit && e.Rule == "lines" && e.ReusedElements > 0 {
+				tracedOpts.Profiles = []*core.Profile{&pr}
+				tracedOpts.Trace = func(e core.TraceEvent) {
+					if e.Kind == core.TraceExit && e.Rule == "lines" && e.ReusedElements > 0 {
 						panic(marker)
 					}
 				}
@@ -166,11 +167,12 @@ func TestTraceDocumentReusedElementsPanicRetry(t *testing.T) {
 				}()
 				// The completed child row can report reuse, but no root exit was
 				// delivered. Aggregate metrics must not count a synthetic exit.
-				if pr.ReusedElements != 0 {
-					t.Fatalf("aborted root contributed reuse: %d", pr.ReusedElements)
+				snap := pr.Snapshot()
+				if snap.ReusedElements != 0 {
+					t.Fatalf("aborted root contributed reuse: %d", snap.ReusedElements)
 				}
 				childResumed := 0
-				for _, r := range pr.Rules {
+				for _, r := range snap.Rules {
 					if r.Rule == "lines" {
 						childResumed = r.ReusedElements
 					}
@@ -178,13 +180,14 @@ func TestTraceDocumentReusedElementsPanicRetry(t *testing.T) {
 				if childResumed != 31 || doc.Memo().Len() != 0 || len(doc.Runs()) != 0 {
 					t.Fatalf("child resumed=%d; aborted document retained reusable state", childResumed)
 				}
-				pr = Profile{}
-				tracedOpts.Trace = pr.Trace
+				pr = core.Profile{}
+				tracedOpts.Trace = nil
 				if got, want := resultJSON(doc.ParseWith(tracedOpts)), resultJSON(prog.ParseWith("main", doc.Text(), opts)); got != want {
 					t.Fatalf("retry=%s; fresh=%s", got, want)
 				}
-				if pr.ReusedElements != 0 || doc.Resumed() != 0 || pr.MemoHits+pr.ReusedElements != doc.Stats().Reused {
-					t.Fatalf("retry replayed aborted reuse: profile=%+v; stats=%+v", pr, doc.Stats())
+				snap = pr.Snapshot()
+				if snap.ReusedElements != 0 || doc.Resumed() != 0 || snap.MemoHits+snap.ReusedElements != doc.Stats().Reused {
+					t.Fatalf("retry replayed aborted reuse: profile=%+v; stats=%+v", snap, doc.Stats())
 				}
 			})
 		}

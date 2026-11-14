@@ -150,12 +150,12 @@ rule atom Atom = t:("a") #atomic => Atom{Text: text($t)}`,
 					for _, recognize := range []bool{false, true} {
 						t.Run(fmt.Sprintf("%v/%v/recognize=%t", backend, unit, recognize), func(t *testing.T) {
 							memoObserved, recoveredObserved := false, false
-							trace := func(e TraceEvent) {
+							trace := func(e core.TraceEvent) {
 								// Force eager recording for this fixture, on both paths.
-								if e.Kind == TraceEnter {
+								if e.Kind == core.TraceEnter {
 									state.TraceParser(e).DeferMemo = false
 								}
-								if e.Kind == TraceExit && e.Memo && e.Rule == "r" {
+								if e.Kind == core.TraceExit && e.Memo && e.Rule == "r" {
 									memoObserved = true
 								}
 							}

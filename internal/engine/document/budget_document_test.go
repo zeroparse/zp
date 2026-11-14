@@ -46,9 +46,9 @@ rule item = "a"`)
 					o.Limits.Compute = 1
 				}
 				if phase == "enter" || phase == "exit" {
-					o.Trace = func(e TraceEvent) {
+					o.Trace = func(e core.TraceEvent) {
 						saved = state.TraceParser(e)
-						if e.Rule == "main" && ((phase == "enter" && e.Kind == TraceEnter) || (phase == "exit" && e.Kind == TraceExit)) {
+						if e.Rule == "main" && ((phase == "enter" && e.Kind == core.TraceEnter) || (phase == "exit" && e.Kind == core.TraceExit)) {
 							cancel()
 						}
 					}
@@ -127,8 +127,8 @@ func TestBudgetDocumentConstruction(t *testing.T) {
 			t.Fatal("construction control retained")
 		}
 		var last *state.BudgetControl
-		o.Trace = func(e TraceEvent) {
-			if e.Kind == TraceEnter && e.Rule == "main" {
+		o.Trace = func(e core.TraceEvent) {
+			if e.Kind == core.TraceEnter && e.Rule == "main" {
 				if state.TraceParser(e).Control == nil || state.TraceParser(e).Control == last || state.TraceParser(e).Control.Used > 1 { // at most the entry of the rule
 					t.Fatal("parse inherited construction or previous counters")
 				}

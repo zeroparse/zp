@@ -27,8 +27,8 @@ rule inner = "(" inner ")" / "a"`, "main")
 			var order []string
 			d, err := p.NewDocument("((a))", engine.WithBackend(backend), engine.WithLimits(core.Limits{Depth: 1}),
 				func(o *iengine.ParseOptions) { constructCalls++ },
-				engine.WithTrace(func(e engine.TraceEvent) {
-					if e.Rule == "main" && e.Kind == engine.TraceEnter {
+				engine.WithTrace(func(e core.TraceEvent) {
+					if e.Rule == "main" && e.Kind == core.TraceEnter {
 						order = append(order, "default")
 					}
 				}))
@@ -40,8 +40,8 @@ rule inner = "(" inner ")" / "a"`, "main")
 			}
 			order = nil
 			n, err := d.Parse(engine.WithLimits(core.Limits{Depth: 20}), func(o *iengine.ParseOptions) { parseCalls++ },
-				engine.WithTrace(func(e engine.TraceEvent) {
-					if e.Rule == "main" && e.Kind == engine.TraceEnter {
+				engine.WithTrace(func(e core.TraceEvent) {
+					if e.Rule == "main" && e.Kind == core.TraceEnter {
 						order = append(order, "invocation")
 					}
 				}))
@@ -87,7 +87,7 @@ rule main = "a" $$`, "main")
 		}
 		ctx, cancel = context.WithCancel(context.Background())
 		first, second := 0, 0
-		_, err = d.Parse(engine.WithContext(ctx), engine.WithTrace(func(engine.TraceEvent) { first++; cancel() }), engine.WithTrace(func(engine.TraceEvent) { second++ }))
+		_, err = d.Parse(engine.WithContext(ctx), engine.WithTrace(func(core.TraceEvent) { first++; cancel() }), engine.WithTrace(func(core.TraceEvent) { second++ }))
 		cancel()
 		if !errors.Is(err, context.Canceled) || first != 1 || second != 0 {
 			t.Fatalf("%s callbacks: error=%v first=%d second=%d", backend, err, first, second)

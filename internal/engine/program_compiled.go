@@ -107,11 +107,11 @@ func (prog *Program) checkMode(o ParseOptions, document bool) error {
 	switch {
 	case document:
 		need, what = CompiledDocument, "documents need"
-	case o.Recognize && o.Trace != nil:
+	case o.Recognize && o.Traced():
 		return fmt.Errorf("the compiled grammar is in %s mode; traced or profiled recognition needs the grammar source: compile the grammar from source", prog.mode)
 	case o.Recognize:
 		need, what = CompiledRecognize, "recognition needs"
-	case o.Trace != nil:
+	case o.Traced():
 		need, what = CompiledDocument, "tracing and profiling need"
 	default:
 		need, what = CompiledParse, "parsing needs"

@@ -3,6 +3,7 @@ package engine
 import (
 	"strings"
 	"testing"
+	"zeroparse.dev/zp/core"
 )
 
 // valueModes are the modes of compiled grammars that build values: parse mode serves plain parses
@@ -21,7 +22,7 @@ func servedBy(mode CompiledMode, o ParseOptions) ParseOptions {
 		o.Recognize = true
 	case CompiledDocument:
 		if o.Trace == nil {
-			o.Trace = func(TraceEvent) {}
+			o.Trace = func(core.TraceEvent) {}
 		}
 	}
 	return o

@@ -64,8 +64,8 @@ func TestContextErrRuntimePanicIdentityThroughPublicOptions(t *testing.T) {
 						engine.WithBackend(backend),
 						engine.WithUnit(unit),
 						engine.WithContext(ctx),
-						engine.WithTrace(func(e engine.TraceEvent) {
-							if e.Kind == engine.TraceEnter && e.Rule == "main" {
+						engine.WithTrace(func(e core.TraceEvent) {
+							if e.Kind == core.TraceEnter && e.Rule == "main" {
 								traceEntries++
 								ctx.armed = true
 							}

@@ -72,7 +72,7 @@ func TestMissingTokensConcurrentReentrantAndRetry(t *testing.T) {
 	}
 	wg.Wait()
 	entered := false
-	_, err = p.Parse("", engine.WithMissingTokens(1), engine.WithTrace(func(engine.TraceEvent) {
+	_, err = p.Parse("", engine.WithMissingTokens(1), engine.WithTrace(func(core.TraceEvent) {
 		if entered {
 			return
 		}

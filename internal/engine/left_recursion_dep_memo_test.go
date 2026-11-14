@@ -233,11 +233,11 @@ func TestLeftRecursionDependencyMemoLinear(t *testing.T) {
 		prog := mustCompile(t, "@start\nrule main = "+s.Rules, compile.Options{SourceInfo: true})
 		for _, b := range []Backend{Closure, Bytecode, BytecodeIterative} {
 			evals := func(n int) int {
-				var pr Profile
-				if _, err := prog.ParseWith("", s.Input(n), ParseOptions{Backend: b, Trace: pr.Trace}); err != nil {
+				var pr core.Profile
+				if _, err := prog.ParseWith("", s.Input(n), ParseOptions{Backend: b, Profiles: []*core.Profile{&pr}}); err != nil {
 					t.Fatalf("%s %s n=%d: %v", s.Name, b, n, err)
 				}
-				return pr.Evals
+				return pr.Snapshot().Evals
 			}
 			small, large := evals(80), evals(160)
 			if large > small*5/2 {
@@ -305,11 +305,11 @@ func TestLeftRecursionDependencyMemoUnexamined(t *testing.T) {
 	prog := mustCompile(t, "rule main = a $$\nrule a = a \"x\" / b \"y\" / \"n\"\nrule b = b \"z\" / a \"w\" / \"m\"")
 	for _, b := range []Backend{Closure, Bytecode, BytecodeIterative} {
 		evals := func(unexamined bool) int {
-			var pr Profile
-			if _, err := prog.ParseWith("", "mzy", ParseOptions{Backend: b, Trace: pr.Trace, ContextMemoUnexamined: unexamined}); err != nil {
+			var pr core.Profile
+			if _, err := prog.ParseWith("", "mzy", ParseOptions{Backend: b, Profiles: []*core.Profile{&pr}, ContextMemoUnexamined: unexamined}); err != nil {
 				t.Fatalf("%s: %v", b, err)
 			}
-			return pr.Evals
+			return pr.Snapshot().Evals
 		}
 		if strict, loose := evals(false), evals(true); loose >= strict {
 			t.Errorf("%s: %d evaluations without examined ranges, %d with them", b, loose, strict)

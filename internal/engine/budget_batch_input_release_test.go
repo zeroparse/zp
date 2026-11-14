@@ -14,7 +14,7 @@ import (
 )
 
 //go:noinline
-func batchInputReleaseFixture(t *testing.T, prog *Program, backend Backend, unit core.PositionUnit, active bool) (weak.Pointer[byte], TraceEvent) {
+func batchInputReleaseFixture(t *testing.T, prog *Program, backend Backend, unit core.PositionUnit, active bool) (weak.Pointer[byte], core.TraceEvent) {
 	t.Helper()
 	text := strings.Repeat("a", 256<<10)
 	// Observe the original immutable string's backing allocation, rather than
@@ -24,9 +24,9 @@ func batchInputReleaseFixture(t *testing.T, prog *Program, backend Backend, unit
 	if ref.Value() == nil {
 		t.Fatal("live input disappeared before parsing")
 	}
-	var event TraceEvent
-	opts := ParseOptions{Backend: backend, Unit: unit, Recognize: true, Trace: func(e TraceEvent) {
-		if e.Kind == TraceEnter && e.Rule == "main" {
+	var event core.TraceEvent
+	opts := ParseOptions{Backend: backend, Unit: unit, Recognize: true, Trace: func(e core.TraceEvent) {
+		if e.Kind == core.TraceEnter && e.Rule == "main" {
 			event = e
 		}
 	}}

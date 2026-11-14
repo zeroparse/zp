@@ -27,7 +27,7 @@ func usedBy(t *testing.T, o ParseOptions, run func(ParseOptions) error) uint64 {
 	t.Helper()
 	var used uint64
 	o.Limits = core.Limits{Compute: 1 << 50}
-	o.Trace = func(e TraceEvent) { used = state.TraceParser(e).Control.Used }
+	o.Trace = func(e core.TraceEvent) { used = state.TraceParser(e).Control.Used }
 	if err := run(o); err != nil {
 		t.Fatal(err)
 	}
@@ -99,7 +99,7 @@ func countedBy(t *testing.T, o ParseOptions, run func(ParseOptions) error) uint6
 	t.Helper()
 	var counted uint64
 	o.Limits = core.Limits{}
-	o.Trace = func(e TraceEvent) {
+	o.Trace = func(e core.TraceEvent) {
 		c := state.TraceParser(e).Control
 		counted = c.Used - c.Doc
 	}
@@ -409,7 +409,7 @@ func TestBudgetDocumentWorkWithinFactorOfFresh(t *testing.T) {
 				oo := o
 				oo.Limits = core.Limits{Compute: limit}
 				var used uint64
-				oo.Trace = func(e TraceEvent) { used = state.TraceParser(e).Control.Used }
+				oo.Trace = func(e core.TraceEvent) { used = state.TraceParser(e).Control.Used }
 				if _, err := d.ParseWith(oo); err != nil {
 					t.Fatalf("%d pending edits: a document parse needs more than %d units, %d times the %d of a parse from scratch: %v",
 						edits, limit, documentWorkFactor, fresh, err)

@@ -71,7 +71,7 @@ func TestBudgetStreamAdmission(t *testing.T) {
 		o.Context = ctx
 		r := &budgetStreamReader{chunks: []string{"#records\na=1\n"}}
 		callbacks := 0
-		o.Trace = func(TraceEvent) { callbacks++ }
+		o.Trace = func(core.TraceEvent) { callbacks++ }
 		err := prog.ParseStreamWith("main", r, func(*core.Node) error { callbacks++; return nil }, o)
 		if err != context.Canceled || r.reads != 0 || callbacks != 0 || r.closed {
 			t.Fatalf("error=%v reads=%d callbacks=%d closed=%t", err, r.reads, callbacks, r.closed)
@@ -261,8 +261,8 @@ func TestBudgetStreamLimitsAndCallerPanics(t *testing.T) {
 				o.Limits.Compute = 1
 			}
 			count := 0
-			var saved TraceEvent
-			o.Trace = func(e TraceEvent) {
+			var saved core.TraceEvent
+			o.Trace = func(e core.TraceEvent) {
 				if state.TraceParser(saved) == nil {
 					saved = e
 				}
@@ -285,12 +285,12 @@ func TestBudgetStreamLimitsAndCallerPanics(t *testing.T) {
 				if phase != "reader" {
 					r.panicValue = nil
 				}
-				var saved TraceEvent
-				o.Trace = func(e TraceEvent) {
+				var saved core.TraceEvent
+				o.Trace = func(e core.TraceEvent) {
 					if state.TraceParser(saved) == nil {
 						saved = e
 					}
-					if e.Kind == TraceEnter && e.Rule == "record" {
+					if e.Kind == core.TraceEnter && e.Rule == "record" {
 						if phase == "trace" {
 							panic(token)
 						}
@@ -418,8 +418,8 @@ func TestBudgetStreamCommitAfterDelivery(t *testing.T) {
 	prog := mustCompile(t, codegentest.Records)
 	budgetStreamVariants(t, func(t *testing.T, o ParseOptions) {
 		o.Limits.Compute = 1 << 20
-		var saved TraceEvent
-		o.Trace = func(e TraceEvent) {
+		var saved core.TraceEvent
+		o.Trace = func(e core.TraceEvent) {
 			if state.TraceParser(saved) == nil {
 				saved = e
 			}
@@ -557,9 +557,9 @@ func TestBudgetStreamReaderPanicInsideTrace(t *testing.T) {
 		o.Context = ctx
 		token := &streamRuntimePanicToken{phase: "trace reader"}
 		r := &streamCallbackReader{panicValue: token}
-		var saved TraceEvent
-		o.Trace = func(e TraceEvent) {
-			if e.Kind == TraceEnter && e.Rule == "main" {
+		var saved core.TraceEvent
+		o.Trace = func(e core.TraceEvent) {
+			if e.Kind == core.TraceEnter && e.Rule == "main" {
 				saved = e
 				e.LineCol(1)
 			}
@@ -582,8 +582,8 @@ func TestBudgetStreamVMFaultAttribution(t *testing.T) {
 			}
 			restore := corruptVMLiteral(t, prog)
 			defer restore()
-			var saved TraceEvent
-			err := prog.ParseStreamWith("main", strings.NewReader("z"), func(*core.Node) error { t.Fatal("emitted from corrupt VM"); return nil }, ParseOptions{Backend: b, Limits: core.Limits{Compute: 1 << 20}, Trace: func(e TraceEvent) {
+			var saved core.TraceEvent
+			err := prog.ParseStreamWith("main", strings.NewReader("z"), func(*core.Node) error { t.Fatal("emitted from corrupt VM"); return nil }, ParseOptions{Backend: b, Limits: core.Limits{Compute: 1 << 20}, Trace: func(e core.TraceEvent) {
 				if state.TraceParser(saved) == nil {
 					saved = e
 				}
@@ -622,8 +622,8 @@ func TestBudgetStreamConcurrentCounters(t *testing.T) {
 					o.Context = ctx
 				}
 				var run result
-				o.Trace = func(e TraceEvent) {
-					if e.Kind == TraceEnter && e.Rule == "main" {
+				o.Trace = func(e core.TraceEvent) {
+					if e.Kind == core.TraceEnter && e.Rule == "main" {
 						run.control = state.TraceParser(e).Control
 						if run.control.Used > 1 { // at most the entry of the rule
 							panic("stream inherited counters")

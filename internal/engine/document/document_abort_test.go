@@ -67,10 +67,10 @@ rule x = x "a" / "a"`)
 		for _, unit := range []core.PositionUnit{core.CodePoints, core.Bytes} {
 			t.Run(fmt.Sprintf("%s/%s", backend, unit), func(t *testing.T) {
 				opts := ParseOptions{Backend: backend, Unit: unit}
-				opts.Trace = func(e TraceEvent) {
+				opts.Trace = func(e core.TraceEvent) {
 					// A successful recursive memo hit uses an active leader's
 					// provisional best result, after the initial failing seed.
-					if e.Kind == TraceExit && e.Rule == "x" && e.Memo && e.Matched {
+					if e.Kind == core.TraceExit && e.Rule == "x" && e.Memo && e.Matched {
 						panic("interrupt growth")
 					}
 				}

@@ -157,30 +157,18 @@ func RecognizeOnly() ParseOption {
 	return func(o *engine.ParseOptions) { o.Recognize = true }
 }
 
-// TraceEvent describes the start (TraceEnter) or the end (TraceExit) of a rule call. See WithTrace.
-type TraceEvent = engine.TraceEvent
-
-// TraceKind tells whether a TraceEvent starts or ends a rule call.
-type TraceKind = engine.TraceKind
-
-const (
-	// TraceEnter is reported when a rule is called, before the memo is consulted.
-	TraceEnter = engine.TraceEnter
-	// TraceExit is reported when a rule call returns.
-	TraceExit = engine.TraceExit
-)
-
 // WithTrace calls f at the start and at the end of every rule call of the parse, in order, so that the
-// events nest like the calls (the depth of an event is in TraceEvent.Depth). It reports the calls the
-// backend makes: a call skipped because the next character cannot start the rule (first-character
-// dispatch) is not reported, and the backends do not skip the same calls. Tracing does not change the
-// result, but it makes the parse several times slower. The event's methods (LineCol, Text, Failure) read
-// the parser's state, so call them from f; its fields can be kept. With several WithTrace options, each
-// function is called in order. A nil f is ignored.
+// events nest like the calls (the depth of an event is in core.TraceEvent.Depth). It reports the calls
+// the backend makes: a call skipped because the next character cannot start the rule (first-character
+// dispatch) is not reported (the engine reports no core.TraceSkipped events), and the backends do not
+// skip the same calls. Tracing does not change the result, but it makes the parse several times
+// slower. The event's methods (LineCol, Text, Failure, Recovered) read the parser's state, so call them
+// from f; its fields can be kept. With several WithTrace options, each function is called in order. A
+// nil f is ignored.
 //
 // Tracing works with every backend, with Parse, ParsePrefix, RecognizeOnly, ParseStream and Document (whose
 // option applies to every Document.Parse), but not with generated Go parsers.
-func WithTrace(f func(TraceEvent)) ParseOption {
+func WithTrace(f func(core.TraceEvent)) ParseOption {
 	return func(o *engine.ParseOptions) {
 		if f == nil {
 			return
@@ -214,26 +202,16 @@ func WithDiagnosticLimit(n int) ParseOption {
 	}
 }
 
-// Profile accumulates the cost of each rule over the parses given WithProfile: calls, body evaluations,
-// memo hits, matches and failures, the input consumed and the input examined by failed calls, repeated
-// evaluations at a position, and time. Hints summarizes where to look. A Profile is not safe for
-// concurrent use.
-type Profile = engine.Profile
-
-// RuleProfile is the cost of one rule in a Profile.
-type RuleProfile = engine.RuleProfile
-
-// Location is a position with its line and column.
-type Location = engine.Location
-
-// WithProfile adds the cost of the parse to prof. It traces the parse (see WithTrace), so the parse is
-// several times slower, and the times in prof are meaningful relative to each other only. A nil prof is
-// ignored.
-func WithProfile(prof *Profile) ParseOption {
-	if prof == nil {
-		return WithTrace(nil)
+// WithProfile adds the cost of the parse to prof (see core.Profile). It traces the parse (see
+// WithTrace), so the parse is several times slower, and the times in prof are meaningful relative to
+// each other only; they exclude the trace functions of the parse. With several WithProfile options,
+// each profile receives the parse. A nil prof is ignored.
+func WithProfile(prof *core.Profile) ParseOption {
+	return func(o *engine.ParseOptions) {
+		if prof != nil {
+			o.Profiles = append(o.Profiles, prof)
+		}
 	}
-	return WithTrace(prof.Trace)
 }
 
 func parseOptions(opts []ParseOption) engine.ParseOptions {

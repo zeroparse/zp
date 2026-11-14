@@ -28,8 +28,8 @@ rule seed = ""`,
 					for _, recognize := range []bool{false, true} {
 						o := ParseOptions{Unit: unit, Backend: backend, Recognize: recognize}
 						checkTrace(t, prog, "main", input, o)
-						o.Trace = func(e TraceEvent) {
-							if e.Kind == TraceExit && e.Matched && e.Examined < e.End {
+						o.Trace = func(e core.TraceEvent) {
+							if e.Kind == core.TraceExit && e.Matched && e.Examined < e.End {
 								t.Errorf("%v/%v %q: %s seed range ends at %d, examined %d", backend, unit, input, e.Rule, e.End, e.Examined)
 							}
 						}
@@ -63,8 +63,8 @@ rule seed = ^ "é"`, "\né", true},
 				for _, recognize := range []bool{false, true} {
 					seen := false
 					o := ParseOptions{Unit: unit, Backend: backend, Recognize: recognize}
-					o.Trace = func(e TraceEvent) {
-						if e.Kind != TraceExit || e.Rule != "expr" || !e.Memo || !e.Matched {
+					o.Trace = func(e core.TraceEvent) {
+						if e.Kind != core.TraceExit || e.Rule != "expr" || !e.Memo || !e.Matched {
 							return
 						}
 						seed, found := state.TraceParser(e).GrowingSeed(state.MemoKey{Rule: prog.ByName["expr"].ID, Pos: e.Pos})

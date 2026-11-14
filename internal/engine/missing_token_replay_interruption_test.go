@@ -7,6 +7,7 @@ import (
 	"errors"
 	"strings"
 	"testing"
+	"zeroparse.dev/zp/core"
 
 	"zeroparse.dev/zp/internal/engine/state"
 )
@@ -51,7 +52,7 @@ rule e = e "x" / (` + strings.Repeat(`";" #missing `, literalCount) + `)`
 			MissingTokens: 8 * literalCount,
 			Recognize:     recognize,
 			Context:       ctx,
-			Trace:         func(e TraceEvent) { ctx.p = state.TraceParser(e) },
+			Trace:         func(e core.TraceEvent) { ctx.p = state.TraceParser(e) },
 		})
 		cancel()
 		if !ctx.interrupted || ctx.installedAtCancel <= 0 || ctx.installedAtCancel >= literalCount || ctx.attemptsAtCancel <= literalCount {

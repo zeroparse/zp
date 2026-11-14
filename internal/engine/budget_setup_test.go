@@ -202,7 +202,7 @@ func TestBudgetSetupPreCancelledLeavesColdProgramsUnprepared(t *testing.T) {
 					ctx, cancel := context.WithCancel(context.Background())
 					cancel()
 					traceCalls := 0
-					n, err := p.ParseWith("main", strings.Repeat("a", 8192), ParseOptions{Backend: backend, Recognize: recognize, Context: ctx, Limits: core.Limits{Compute: 1}, Trace: func(TraceEvent) { traceCalls++ }})
+					n, err := p.ParseWith("main", strings.Repeat("a", 8192), ParseOptions{Backend: backend, Recognize: recognize, Context: ctx, Limits: core.Limits{Compute: 1}, Trace: func(core.TraceEvent) { traceCalls++ }})
 					if n != nil || !errors.Is(err, context.Canceled) || traceCalls != 0 {
 						t.Fatalf("ParseWith node=%v err=%v traces=%d", n, err, traceCalls)
 					}
@@ -228,7 +228,7 @@ func TestBudgetSetupPreCancelledLeavesColdProgramsUnprepared(t *testing.T) {
 					cancel()
 					reader := &setupCountingReader{r: strings.NewReader(text)}
 					emits, traces := 0, 0
-					err = streamProg.ParseStreamWith("main", reader, func(*core.Node) error { emits++; return nil }, ParseOptions{Backend: backend, Context: ctx, Limits: core.Limits{Compute: 1}, Trace: func(TraceEvent) { traces++ }})
+					err = streamProg.ParseStreamWith("main", reader, func(*core.Node) error { emits++; return nil }, ParseOptions{Backend: backend, Context: ctx, Limits: core.Limits{Compute: 1}, Trace: func(core.TraceEvent) { traces++ }})
 					if !errors.Is(err, context.Canceled) || reader.reads != 0 || emits != 0 || traces != 0 {
 						t.Fatalf("ParseStreamWith err=%v reads=%d emits=%d traces=%d", err, reader.reads, emits, traces)
 					}
@@ -250,7 +250,7 @@ func TestBudgetSetupPostBackendChecksStopBeforePublication(t *testing.T) {
 				prog := setupProgram(t, `rule main = [a-z]* #atomic $$`, moduleOnly)
 				gate := newSetupPhaseContext(func() bool { return setupBackendReady(prog, backend) })
 				traceCalls := 0
-				n, err := prog.ParseWith("main", strings.Repeat("a", 8192), ParseOptions{Backend: backend, Context: gate, Limits: core.Limits{Compute: 1}, Trace: func(TraceEvent) { traceCalls++ }})
+				n, err := prog.ParseWith("main", strings.Repeat("a", 8192), ParseOptions{Backend: backend, Context: gate, Limits: core.Limits{Compute: 1}, Trace: func(core.TraceEvent) { traceCalls++ }})
 				if n != nil || !errors.Is(err, context.Canceled) || !gate.triggered || traceCalls != 0 {
 					t.Fatalf("ParseWith node=%v err=%v gate=%t traces=%d", n, err, gate.triggered, traceCalls)
 				}
@@ -274,7 +274,7 @@ func TestBudgetSetupPostBackendChecksStopBeforePublication(t *testing.T) {
 				streamGate := newSetupPhaseContext(func() bool { return setupBackendReady(streamProg, backend) })
 				reader := &setupCountingReader{r: strings.NewReader("#records\na=1\n")}
 				emits, traces := 0, 0
-				err = streamProg.ParseStreamWith("main", reader, func(*core.Node) error { emits++; return nil }, ParseOptions{Backend: backend, Context: streamGate, Limits: core.Limits{Compute: 1}, Trace: func(TraceEvent) { traces++ }})
+				err = streamProg.ParseStreamWith("main", reader, func(*core.Node) error { emits++; return nil }, ParseOptions{Backend: backend, Context: streamGate, Limits: core.Limits{Compute: 1}, Trace: func(core.TraceEvent) { traces++ }})
 				if !errors.Is(err, context.Canceled) || !streamGate.triggered || reader.reads != 0 || emits != 0 || traces != 0 {
 					t.Fatalf("ParseStreamWith err=%v gate=%t reads=%d emits=%d traces=%d", err, streamGate.triggered, reader.reads, emits, traces)
 				}
@@ -297,7 +297,7 @@ func TestBudgetSetupChecksAfterModuleBeforeVM(t *testing.T) {
 	}
 	gate := newSetupPhaseContext(func() bool { return prog.Bytecode != nil && prog.preparedVM(Bytecode) == nil })
 	traceCalls := 0
-	n, err := prog.ParseWith("main", "a", ParseOptions{Backend: Bytecode, Context: gate, Trace: func(TraceEvent) { traceCalls++ }})
+	n, err := prog.ParseWith("main", "a", ParseOptions{Backend: Bytecode, Context: gate, Trace: func(core.TraceEvent) { traceCalls++ }})
 	if n != nil || !errors.Is(err, context.Canceled) || !gate.triggered || traceCalls != 0 {
 		t.Fatalf("ParseWith node=%v err=%v gate=%t traces=%d", n, err, gate.triggered, traceCalls)
 	}
@@ -324,7 +324,7 @@ func TestBudgetSetupRecognizerPhaseChecks(t *testing.T) {
 			prog := setupProgram(t, `rule main = "a" $$`, false)
 			gate := newSetupPhaseContext(func() bool { return tc.ready(prog) })
 			traceCalls := 0
-			n, err := prog.ParseWith("main", strings.Repeat("a", 8192), ParseOptions{Backend: tc.backend, Recognize: true, Context: gate, Limits: core.Limits{Compute: 1}, Trace: func(TraceEvent) { traceCalls++ }})
+			n, err := prog.ParseWith("main", strings.Repeat("a", 8192), ParseOptions{Backend: tc.backend, Recognize: true, Context: gate, Limits: core.Limits{Compute: 1}, Trace: func(core.TraceEvent) { traceCalls++ }})
 			if n != nil || !errors.Is(err, context.Canceled) || !gate.triggered || traceCalls != 0 {
 				t.Fatalf("recognition node=%v err=%v gate=%t traces=%d", n, err, gate.triggered, traceCalls)
 			}
@@ -396,7 +396,7 @@ func TestBudgetSetupPostBackendPanicIdentity(t *testing.T) {
 					gate := &setupPhasePanicContext{Context: ctx, ready: func() bool { return setupBackendReady(prog, backend) }, token: token}
 					callbacks := 0
 					reader := &setupCountingReader{r: strings.NewReader("#records\na=1\n")}
-					o := ParseOptions{Backend: backend, Context: gate, Trace: func(TraceEvent) { callbacks++ }}
+					o := ParseOptions{Backend: backend, Context: gate, Trace: func(core.TraceEvent) { callbacks++ }}
 					var n *core.Node
 					var d *Document
 					var err error

@@ -45,7 +45,7 @@ rule item = [a-z] " "`)
 			var n uint64
 			o := base
 			o.Limits = core.Limits{Compute: 1 << 50}
-			o.Trace = func(e TraceEvent) { n = state.TraceParser(e).Control.Used }
+			o.Trace = func(e core.TraceEvent) { n = state.TraceParser(e).Control.Used }
 			if _, err := d.ParseWith(o); err != nil {
 				t.Fatal(err)
 			}

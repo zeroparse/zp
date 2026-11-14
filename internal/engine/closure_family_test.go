@@ -54,7 +54,7 @@ func familyCharges(t *testing.T, prog *Program, b Backend, input string, stream 
 		o := ParseOptions{Expectations: true, Backend: b}
 		suffix := ""
 		if traced {
-			o.Trace, suffix = func(TraceEvent) {}, "+trace"
+			o.Trace, suffix = func(core.TraceEvent) {}, "+trace"
 		}
 		with := func(l core.Limits) ParseOptions { x := o; x.Limits = l; return x }
 		if stream {
@@ -183,7 +183,7 @@ func TestClosureFamiliesBuiltOnFirstUse(t *testing.T) {
 	if got := built(prog); got != [2]bool{true, false} {
 		t.Fatalf("after a parse: built %v, want the inlined family", got)
 	}
-	if _, err := prog.ParseWith("main", "aa", ParseOptions{Trace: func(TraceEvent) {}}); err != nil {
+	if _, err := prog.ParseWith("main", "aa", ParseOptions{Trace: func(core.TraceEvent) {}}); err != nil {
 		t.Fatal(err)
 	}
 	if got := built(prog); got != [2]bool{true, true} {
@@ -214,7 +214,7 @@ func TestClosureFamiliesBuiltOnFirstUse(t *testing.T) {
 	}
 
 	stream := mustCompile(t, codegentest.Records)
-	if err := stream.ParseStreamWith("main", strings.NewReader("#records\na=1\n"), func(*core.Node) error { return nil }, ParseOptions{Trace: func(TraceEvent) {}}); err != nil && err != io.EOF {
+	if err := stream.ParseStreamWith("main", strings.NewReader("#records\na=1\n"), func(*core.Node) error { return nil }, ParseOptions{Trace: func(core.TraceEvent) {}}); err != nil && err != io.EOF {
 		t.Fatal(err)
 	}
 	if got := built(stream); got != [2]bool{false, true} {

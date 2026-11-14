@@ -112,7 +112,7 @@ func TestStreamIteratorCloseBeforeFirstNext(t *testing.T) {
 			t.Run(backend.String()+"/"+unit.String(), func(t *testing.T) {
 				reader := &demandReader{reader: strings.NewReader("aaa")}
 				traces := 0
-				it, err := p.Iterate("main", reader, ParseOptions{Backend: backend, Unit: unit, Trace: func(TraceEvent) { traces++ }})
+				it, err := p.Iterate("main", reader, ParseOptions{Backend: backend, Unit: unit, Trace: func(core.TraceEvent) { traces++ }})
 				if err != nil {
 					t.Fatal(err)
 				}

@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"reflect"
 	"testing"
+	"zeroparse.dev/zp/core"
 
 	"zeroparse.dev/zp/internal/codegentest"
 )
@@ -17,7 +18,7 @@ func TestTraceFirstCharacterDispatch(t *testing.T) {
 	prog := mustCompile(t, `rule main = "a" / tail
 rule tail = "b"`)
 	type event struct {
-		kind                 TraceKind
+		kind                 core.TraceKind
 		rule                 string
 		depth, pos, level    int
 		lookahead, matched   bool
@@ -25,7 +26,7 @@ rule tail = "b"`)
 		memo                 bool
 	}
 	enter := func(rule string, depth int) event {
-		return event{kind: TraceEnter, rule: rule, depth: depth}
+		return event{kind: core.TraceEnter, rule: rule, depth: depth}
 	}
 	exit := func(rule string, depth int, matched bool) event {
 		end := 0
@@ -33,7 +34,7 @@ rule tail = "b"`)
 			end = 1
 		}
 		// EOF probes at position zero also examine through position one.
-		return event{kind: TraceExit, rule: rule, depth: depth,
+		return event{kind: core.TraceExit, rule: rule, depth: depth,
 			matched: matched, end: end, evals: 1, examined: 1}
 	}
 	for _, tc := range []struct {
@@ -50,12 +51,12 @@ rule tail = "b"`)
 			wantResult := codegentest.ResultJSON(n, err)
 			for _, backend := range []Backend{Closure, Bytecode, BytecodeIterative} {
 				t.Run(fmt.Sprint(backend), func(t *testing.T) {
-					var pr Profile
+					var pr core.Profile
 					var got []event
 					n, err := prog.ParseWith("main", tc.input, ParseOptions{
-						Backend: backend,
-						Trace: func(e TraceEvent) {
-							pr.Trace(e)
+						Backend:  backend,
+						Profiles: []*core.Profile{&pr},
+						Trace: func(e core.TraceEvent) {
 							got = append(got, event{kind: e.Kind, rule: e.Rule, depth: e.Depth,
 								pos: e.Pos, level: e.Level, lookahead: e.Lookahead,
 								matched: e.Matched, end: e.End, evals: e.Evals,
@@ -87,11 +88,12 @@ rule tail = "b"`)
 					if enteredTail {
 						calls++
 					}
-					if pr.Parses != 1 || pr.Calls != calls || pr.Evals != calls ||
-						pr.MemoHits != 0 || pr.Examined != 1 || len(pr.Rules) != calls {
-						t.Fatalf("profile totals = %+v; want %d executed calls/evaluations", pr, calls)
+					snap := pr.Snapshot()
+					if snap.Parses != 1 || snap.Calls != calls || snap.Evals != calls ||
+						snap.MemoHits != 0 || snap.Examined != 1 || len(snap.Rules) != calls {
+						t.Fatalf("profile totals = %+v; want %d executed calls/evaluations", snap, calls)
 					}
-					for i, r := range pr.Rules {
+					for i, r := range snap.Rules {
 						name := "main"
 						if i == 1 {
 							name = "tail"

@@ -11,147 +11,74 @@ import (
 // parse does not: it runs the call-preserving family of its backend (FamilyOf). See
 // docs/design/records/014-tracing-and-profiling.md.
 
-// TraceKind tells whether a TraceEvent starts or ends a rule call.
-type TraceKind uint8
-
-const (
-	// TraceEnter is reported when a rule is called, before the memo is consulted.
-	TraceEnter TraceKind = iota
-	// TraceExit is reported when the call returns.
-	TraceExit
+// TraceKind and TraceEvent are the shared types of package core. The engine reports TraceEnter and
+// TraceExit; it does not identify skipped calls.
+type (
+	TraceKind  = core.TraceKind
+	TraceEvent = core.TraceEvent
 )
 
-func (k TraceKind) String() string {
-	if k == TraceExit {
-		return "exit"
-	}
-	return "enter"
-}
-
-// TraceEvent describes the start or the end of a rule call. Events nest: every TraceEnter is
-// followed, after the events of the calls the rule makes, by its TraceExit, unless the parse is
-// aborted: by a runtime error in an action, an error returned by a stream's emit function or
-// reader, the nesting limit, or a panic in the trace function, which propagates out of the parse
-// unchanged.
-//
-// The methods LineCol, Text and Failure read the parser's state: call them only from the trace
-// function, while it handles the event.
-type TraceEvent struct {
-	Kind TraceKind
-	// Rule is the name of the rule called.
-	Rule string
-	// Level is the binding level the rule was called with: for an Operators Rule rule called as e:level,
-	// the operators that bind no tighter than that level are left to the caller. It is 0 for
-	// calls without a level.
-	Level int
-	// Depth is the nesting depth of the call: 1 for the start rule.
-	Depth int
-	// Pos is the position at which the call starts.
-	Pos int
-	// Lookahead reports that the call is inside a lookahead (& or !), where failures record no
-	// expectations.
-	Lookahead bool
-
-	// The remaining fields are set on TraceExit only.
-
-	// Matched reports whether the rule matched.
-	Matched bool
-	// End is the position after the match (Pos if the rule failed).
-	End int
-	// Memo reports that the result came from the memo, without evaluating the rule body.
-	Memo bool
-	// Evals is the number of times this call evaluated the rule body: 0 for a result from the
-	// memo, 1 usually, and one more per step for a left-recursive rule whose match grows. Bodies of
-	// nested calls are not included.
-	Evals int
-	// ReusedElements counts repetition elements reused during this call, including nested calls.
-	// It measures resumption performed in this invocation, not the calls skipped by reusing an
-	// element or work from the parse that originally built a memo result.
-	ReusedElements int
-	// Examined is the end of the input the call examined (exclusive): looking at a character to
-	// reject it counts, as do lookaheads.
-	Examined int
-
-	p   *Parser
-	far int
-	exp []ExpID
-	// rec is the errors of a bounded stream's tail, and recs, otherwise, the entries of the record of
-	// recovered errors that the call left, which Recovered lists.
-	rec  []*core.SyntaxError
-	recs []RecEntry
-}
-
-// LineCol returns the 1-based line and column of the position pos. In a stream parse, it returns
-// 0, 0 for a position (other than 0) in input that has been discarded or not read yet: keeping
-// the line starts of discarded input would make the memory of a stream grow with its length.
-func (e TraceEvent) LineCol(pos int) (line, col int) {
-	switch {
-	case e.p == nil:
-		return 0, 0
-	case pos == 0:
-		return 1, 1
-	case pos < e.p.Base || pos > e.p.Loaded():
-		return 0, 0
-	}
-	return e.p.lineCol(pos)
-}
-
-// Text returns the input the call matched (empty for an enter event or a failure). Input that a
-// stream parse has already discarded is not available.
-func (e TraceEvent) Text() string {
-	if e.p == nil || e.Kind != TraceExit || !e.Matched {
-		return ""
-	}
-	return e.p.Text(e.Pos, e.End)
-}
-
-// Failure returns, for an exit event, the farthest failure recorded during the call: the position
-// and what was expected there, as a parse that failed there would report it. It is nil when the
-// call recorded no expectation (inside a lookahead, or when nothing failed). A call that matched
-// can have one too: the input after its match was tried and rejected.
-func (e TraceEvent) Failure() *core.SyntaxError {
-	if e.p == nil || len(e.exp) == 0 {
-		return nil
-	}
-	return e.p.MakeError(e.far, e.exp)
-}
-
-// Recovered returns, for an exit event of a call that matched, the syntax errors that #recover
-// recovered from during the call, in nested calls too, or taken from the memo with the call's
-// result. The expectations of a recovered error are not part of Failure: recovering removes them
-// from the record of the call that contains the #recover.
-func (e TraceEvent) Recovered() []*core.SyntaxError {
-	if e.recs != nil {
-		return appendRecErrors(nil, e.recs)
-	}
-	return e.rec
-}
+const (
+	TraceEnter = core.TraceEnter
+	TraceExit  = core.TraceExit
+)
 
 // TraceParser returns the parser that reported e, or nil for an event that no parse reported.
-// It gives code outside the public API, such as Profile, the parse state behind an event.
+// It gives code outside the public API the parse state behind an event.
 func TraceParser(e TraceEvent) *Parser {
-	return e.p
+	if t, ok := e.Source().(*Tracer); ok {
+		return t.p
+	}
+	return nil
 }
 
-// TraceExpectations returns the expectations of the farthest failure that e records.
+// TraceExpectations returns the expectations of the farthest failure of the exit event that the
+// trace function handles.
 func TraceExpectations(e TraceEvent) []ExpID {
-	return e.exp
+	if t, ok := e.Source().(*Tracer); ok && e.Kind == TraceExit {
+		return t.exp
+	}
+	return nil
 }
 
-// Tracer is the tracing state of a parse.
+// Tracer is the tracing state of a parse. It is the core.TraceSource of the parse's events: the
+// details of the exit event being handled (exp, far, rec, tail) are kept here, not in the event,
+// and read only while the trace function runs.
 type Tracer struct {
-	fn func(TraceEvent)
+	p    *Parser
+	fn   func(TraceEvent)
+	recs []*core.ProfileRecorder
 	// direct is set by tracedCall just before it calls call for the call it has reported, so that
 	// call runs it instead of reporting it again.
 	direct bool
 	stack  []tracedCallState
+	// The exit event being handled: the farthest failure of the call (far, exp), the first entry of
+	// the record of recovered errors it left (rec, -1 if none), and whether the errors are the tail of
+	// a bounded stream (tail).
+	far, rec int
+	exp      []ExpID
+	tail     bool
 }
 
-// emit passes ev to the trace function. A panic there is carried through recoverParse as a
-// TracePanic, so that it is not taken for a fault of the parse (a runtime error on a bytecode
-// backend is reported as invalid bytecode), and is raised again unchanged.
+// emit passes ev to the profiles and to the trace function. A panic there is carried through
+// recoverParse as a TracePanic, so that it is not taken for a fault of the parse (a runtime error on
+// a bytecode backend is reported as invalid bytecode), and is raised again unchanged.
 func (t *Tracer) emit(ev TraceEvent) {
-	ev.p.Control.Check()
+	ev = ev.WithSource(t)
+	for _, r := range t.recs {
+		r.Record(ev)
+	}
+	if t.fn != nil {
+		t.p.Control.Check()
+		t.call(ev)
+		t.p.Control.Check()
+	}
+	for _, r := range t.recs {
+		r.Resume()
+	}
+}
+
+func (t *Tracer) call(ev TraceEvent) {
 	defer func() {
 		if x := recover(); x != nil {
 			if _, ok := x.(Fatal); ok {
@@ -161,7 +88,51 @@ func (t *Tracer) emit(ev TraceEvent) {
 		}
 	}()
 	t.fn(ev)
-	ev.p.Control.Check()
+}
+
+// LineCol returns the 1-based line and column of the position pos. In a stream parse, it returns
+// 0, 0 for a position (other than 0) in input that has been discarded or not read yet: keeping
+// the line starts of discarded input would make the memory of a stream grow with its length.
+func (t *Tracer) LineCol(pos int) (line, col int) {
+	switch p := t.p; {
+	case pos == 0:
+		return 1, 1
+	case pos < p.Base || pos > p.Loaded():
+		return 0, 0
+	}
+	return t.p.lineCol(pos)
+}
+
+// Text returns the input [start, end).
+func (t *Tracer) Text(start, end int) string {
+	return t.p.Text(start, end)
+}
+
+// Failure returns the farthest failure of the exit event being handled, or nil.
+func (t *Tracer) Failure() *core.SyntaxError {
+	if len(t.exp) == 0 {
+		return nil
+	}
+	return t.p.MakeError(t.far, t.exp)
+}
+
+// Recovered returns the errors recovered during the call of the exit event being handled.
+func (t *Tracer) Recovered() []*core.SyntaxError {
+	p := t.p
+	switch {
+	case t.tail:
+		// A bounded stream has released earlier committed recoveries.
+		// Report the same ordered tail, including a successful suffix.
+		return p.DiagnosticTail.Preview(p, p.RecoveredErrors())
+	case t.rec >= 0 && len(p.Recovered) > t.rec:
+		return appendRecErrors(nil, p.Recovered[t.rec:])
+	}
+	return nil
+}
+
+// Retained returns the first position of the input the parse still holds.
+func (t *Tracer) Retained() int {
+	return t.p.Base
 }
 
 // TracePanic is a panic of the trace function, with the value it panicked with.
@@ -183,13 +154,27 @@ type tracedCallState struct {
 	exp     ExpMark
 }
 
-// SetTrace makes the parse report its rule calls to fn (nothing if fn is nil).
-func (p *Parser) SetTrace(fn func(TraceEvent)) {
-	if fn == nil {
+// SetTrace makes the parse report its rule calls to fn and to profiles (nothing if fn is nil and
+// there are no profiles).
+func (p *Parser) SetTrace(fn func(TraceEvent), profiles []*core.Profile) {
+	if fn == nil && len(profiles) == 0 {
 		return
 	}
-	p.Tr = &Tracer{fn: fn}
+	t := &Tracer{p: p, fn: fn}
+	for _, pr := range profiles {
+		t.recs = append(t.recs, pr.Recorder())
+	}
+	p.Tr = t
 	p.NoPlain = true
+}
+
+// closeTrace ends the recording of the parse's profiles and drops what the tracer refers to, except
+// the parser (which its owner resets), since events that callers keep refer to the tracer.
+func (t *Tracer) closeTrace() {
+	for _, r := range t.recs {
+		r.Close()
+	}
+	*t = Tracer{p: t.p}
 }
 
 // tracedCall reports a call of r, runs it with call, and reports its result.
@@ -210,7 +195,7 @@ func (p *Parser) TraceEnter(r *Rule, min int) {
 	t.stack = append(t.stack, tracedCallState{r: r, min: min, start: p.Pos, evals: p.Stats.Evaluated, resumed: p.Resumed, hw: p.Hw, rec: len(p.Recovered)})
 	p.Hw = p.Pos
 	t.stack[len(t.stack)-1].exp = p.Isolate(p.Pos)
-	t.emit(TraceEvent{Kind: TraceEnter, Rule: r.Name, Level: min, Depth: len(t.stack), Pos: p.Pos, Lookahead: p.Silent > 0, p: p})
+	t.emit(TraceEvent{Kind: TraceEnter, Rule: r.Name, Level: min, Depth: len(t.stack), Pos: p.Pos, Lookahead: p.Silent > 0})
 }
 
 // TraceExit reports the end of the innermost call in progress, whose result is ok.
@@ -221,20 +206,18 @@ func (p *Parser) TraceExit(ok bool) {
 	far, inner := p.Unisolate(c.exp)
 	ev := TraceEvent{Kind: TraceExit, Rule: c.r.Name, Level: c.min, Depth: len(t.stack), Pos: c.start,
 		Lookahead: p.Silent > 0, Matched: ok, End: c.start, Memo: all == 0, Evals: all - c.nested,
-		Examined: p.Hw, ReusedElements: p.Resumed - c.resumed, p: p, far: far, exp: inner}
+		Examined: p.Hw, ReusedElements: p.Resumed - c.resumed}
+	t.far, t.exp, t.rec, t.tail = far, inner, -1, false
 	if ok {
 		ev.End = p.Pos
 		if len(t.stack) == 1 && p.DiagnosticTail.Limit > 0 {
-			// A bounded stream has released earlier committed recoveries.
-			// Report the same ordered tail, including a successful suffix.
-			ev.rec = p.DiagnosticTail.Preview(p, p.RecoveredErrors())
-		} else if len(p.Recovered) > c.rec {
-			// The record changes in place as the parse goes on (recSince), so the event keeps its
-			// own copy of the entries; a call that recorded its errors as one list leaves one.
-			ev.recs = append([]RecEntry(nil), p.Recovered[c.rec:]...)
+			t.tail = true
+		} else {
+			t.rec = c.rec
 		}
 	}
 	t.emit(ev)
+	t.exp = nil
 	p.MergeExpected(far, inner)
 	p.Hw = max(c.hw, p.Hw)
 	t.stack = t.stack[:len(t.stack)-1]
@@ -250,7 +233,9 @@ func ComposeTrace(prev, next func(TraceEvent)) func(TraceEvent) {
 	return func(ev TraceEvent) {
 		prev(ev)
 		if BudgetControlsEnabled {
-			ev.p.Control.Check()
+			if p := TraceParser(ev); p != nil {
+				p.Control.Check()
+			}
 		}
 		next(ev)
 	}

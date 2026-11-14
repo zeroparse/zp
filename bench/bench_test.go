@@ -644,7 +644,7 @@ func BenchmarkPrepare(b *testing.B) {
 			opts []engine.ParseOption
 		}{
 			{"parse", nil},
-			{"document", []engine.ParseOption{engine.WithTrace(func(engine.TraceEvent) {})}},
+			{"document", []engine.ParseOption{engine.WithTrace(func(core.TraceEvent) {})}},
 		} {
 			b.Run(name+"/first/"+c.name, func(b *testing.B) {
 				b.ReportAllocs()
@@ -663,7 +663,7 @@ func BenchmarkPrepare(b *testing.B) {
 		}{
 			{engine.CompiledParse, nil},
 			{engine.CompiledRecognize, []engine.ParseOption{engine.RecognizeOnly()}},
-			{engine.CompiledDocument, []engine.ParseOption{engine.WithTrace(func(engine.TraceEvent) {})}},
+			{engine.CompiledDocument, []engine.ParseOption{engine.WithTrace(func(core.TraceEvent) {})}},
 		} {
 			data, err := p.Marshal(c.mode)
 			if err != nil {

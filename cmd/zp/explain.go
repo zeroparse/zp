@@ -28,7 +28,7 @@ func explainCmd(args []string, stdin io.Reader, stdout io.Writer) error {
 	first := opts
 	if _, loaded := p.CompiledMode(); loaded {
 		// A compiled grammar here is in document mode, which serves only traced parses.
-		first = append(slices.Clip(opts), engine.WithTrace(func(engine.TraceEvent) {}))
+		first = append(slices.Clip(opts), engine.WithTrace(func(core.TraceEvent) {}))
 	}
 	_, perr := p.Parse(src, first...)
 	var errs []*core.SyntaxError
@@ -109,8 +109,8 @@ type explainedCall struct {
 	recovered bool
 }
 
-func (x *explainer) event(e engine.TraceEvent) {
-	if e.Kind == engine.TraceEnter {
+func (x *explainer) event(e core.TraceEvent) {
+	if e.Kind == core.TraceEnter {
 		x.stack = append(x.stack, explainFrame{rule: e.Rule, pos: e.Pos})
 		return
 	}
@@ -134,7 +134,7 @@ func (x *explainer) event(e engine.TraceEvent) {
 
 // record lists, for the call top that e ends, the expectations of f (its failure or an error it
 // recovered from) that it recorded itself, and passes all of them on to its caller.
-func (x *explainer) record(e engine.TraceEvent, top explainFrame, f *core.SyntaxError, recovered bool) {
+func (x *explainer) record(e core.TraceEvent, top explainFrame, f *core.SyntaxError, recovered bool) {
 	if x.at[f.Pos] == nil {
 		return
 	}

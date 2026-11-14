@@ -7,6 +7,7 @@ import (
 	"errors"
 	"strings"
 	"testing"
+	"zeroparse.dev/zp/core"
 
 	. "zeroparse.dev/zp/internal/engine"
 	"zeroparse.dev/zp/internal/engine/state"
@@ -50,8 +51,8 @@ rule line = [a-z] #repeat(2) #atomic "\n"`)
 				}}
 				o := base
 				o.Context = observed
-				o.Trace = func(e TraceEvent) {
-					if e.Rule == "main" && e.Kind == TraceEnter {
+				o.Trace = func(e core.TraceEvent) {
+					if e.Rule == "main" && e.Kind == core.TraceEnter {
 						running = state.TraceParser(e)
 					}
 				}

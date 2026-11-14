@@ -22,8 +22,8 @@ func TestBudgetDocumentDiagnosticPublication(t *testing.T) {
 					t.Fatal(err)
 				}
 				warm := base
-				warm.Trace = func(e TraceEvent) {
-					if e.Kind == TraceExit && e.Rule == "main" {
+				warm.Trace = func(e core.TraceEvent) {
+					if e.Kind == core.TraceExit && e.Rule == "main" {
 						// The large private diagnostic makes copying span poll
 						// boundaries without making the warm memo hit expensive.
 						private := e.Recovered()[0]
@@ -66,8 +66,8 @@ func TestBudgetDocumentDiagnosticPublication(t *testing.T) {
 				if mode != "budget" {
 					o.Context = ctx
 				}
-				o.Trace = func(e TraceEvent) {
-					if e.Kind == TraceExit && e.Rule == "main" {
+				o.Trace = func(e core.TraceEvent) {
+					if e.Kind == core.TraceExit && e.Rule == "main" {
 						observed, exitSteps = state.TraceParser(e), state.TraceParser(e).Control.Used
 						if mode == "budget" {
 							state.TraceParser(e).Control.Limits.Compute = exitSteps + 64
@@ -130,8 +130,8 @@ func TestBudgetDocumentFatalSyntaxErrorsRemainUnchanged(t *testing.T) {
 		ctx := &budgetContextAccessorContext{Context: context.Background(), done: make(chan struct{})}
 		o := base
 		o.Context = ctx
-		o.Trace = func(e TraceEvent) {
-			if e.Kind == TraceEnter && e.Rule == "main" {
+		o.Trace = func(e core.TraceEvent) {
+			if e.Kind == core.TraceEnter && e.Rule == "main" {
 				ctx.fn = func() error { return original }
 				state.TraceParser(e).Control.Check()
 			}

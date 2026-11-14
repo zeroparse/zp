@@ -79,8 +79,8 @@ rule ` + longRule + ` = a:"a" => A{N: 1 / (len($a) - 1)}`,
 						base := ParseOptions{Backend: backend, Unit: unit}
 						base.Recognize = recognize
 						baseFallback := 0
-						base.Trace = func(e TraceEvent) {
-							if e.Kind == TraceEnter && e.Rule == probe.fallback {
+						base.Trace = func(e core.TraceEvent) {
+							if e.Kind == core.TraceEnter && e.Rule == probe.fallback {
 								baseFallback++
 							}
 						}
@@ -105,11 +105,11 @@ rule ` + longRule + ` = a:"a" => A{N: 1 / (len($a) - 1)}`,
 								opts.Context = context.Background()
 							}
 							armed := false
-							opts.Trace = func(e TraceEvent) {
-								if e.Kind == TraceEnter && e.Rule == probe.fallback {
+							opts.Trace = func(e core.TraceEvent) {
+								if e.Kind == core.TraceEnter && e.Rule == probe.fallback {
 									enteredFallback++
 								}
-								if !armed && e.Kind == TraceEnter && e.Rule == probe.start {
+								if !armed && e.Kind == core.TraceEnter && e.Rule == probe.start {
 									armed = true
 									if mode == "budget" {
 										// Public smoke coverage for fatal propagation. Exact formatter-phase

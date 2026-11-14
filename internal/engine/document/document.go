@@ -184,7 +184,7 @@ func (d *Document) parseWithCapture(o state.ParseOptions, capture func(*state.Pa
 		c.Mem = d.historyBytes()
 		c.AttachMemory(p)
 	}
-	p.SetTrace(o.Trace)
+	p.SetTrace(o.Trace, o.Profiles)
 	c.Check()
 	if reuseDocumentVMValues && d.machine != nil {
 		d.machine.Keep(d.in.Loaded(), false)

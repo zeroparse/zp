@@ -74,13 +74,13 @@ func TestStreamCallerPanicIdentity(t *testing.T) {
 									reader = bufio.NewReader(r)
 								}
 								opts := ParseOptions{Backend: b, Unit: u}
-								var event TraceEvent
+								var event core.TraceEvent
 								if traced {
-									opts.Trace = func(e TraceEvent) {
+									opts.Trace = func(e core.TraceEvent) {
 										e.LineCol(e.Pos)
 										e.Text()
 										e.Failure()
-										if e.Kind == TraceEnter && e.Rule == "main" {
+										if e.Kind == core.TraceEnter && e.Rule == "main" {
 											event = e
 										}
 									}
@@ -143,7 +143,7 @@ func TestStreamCallerReturnedErrorIdentity(t *testing.T) {
 						}
 						opts := ParseOptions{Backend: b, Unit: u}
 						if traced {
-							opts.Trace = func(e TraceEvent) { e.LineCol(e.Pos) }
+							opts.Trace = func(e core.TraceEvent) { e.LineCol(e.Pos) }
 						}
 						count := 0
 						var err error
@@ -176,8 +176,8 @@ func TestStreamReaderPanicInsideTraceKeepsOriginalValue(t *testing.T) {
 				r := &streamCallbackReader{panicValue: token}
 				var err error
 				got := catchStreamPanic(func() {
-					err = prog.ParseStreamWith("main", r, nil, ParseOptions{Backend: b, Unit: u, Trace: func(e TraceEvent) {
-						if e.Kind == TraceEnter && e.Rule == "main" {
+					err = prog.ParseStreamWith("main", r, nil, ParseOptions{Backend: b, Unit: u, Trace: func(e core.TraceEvent) {
+						if e.Kind == core.TraceEnter && e.Rule == "main" {
 							state.TraceParser(e).Fill(1)
 						}
 					}})

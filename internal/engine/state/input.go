@@ -36,6 +36,8 @@ type ParseOptions struct {
 	// Trace, if not nil, receives an event at the start and at the end of every rule call (see
 	// TraceEvent). Tracing does not change the result of the parse.
 	Trace func(TraceEvent)
+	// Profiles, if not empty, receive the cost of the parse (see core.Profile).
+	Profiles []*core.Profile
 	// DiagnosticCallback receives committed recoveries during stream parsing, immediately before
 	// the corresponding element. It is invalid for batch parses and Documents.
 	DiagnosticCallback func(*core.SyntaxError) error
@@ -353,6 +355,7 @@ func (p *Parser) ReleaseBatchScratch() {
 // transferred reusable state. It does not mutate result or event backing arrays.
 func (p *Parser) ReleaseTraceReferences() {
 	if p.Tr != nil {
+		p.Tr.closeTrace()
 		*p = Parser{Aborted: p.Aborted}
 	}
 }
@@ -929,4 +932,9 @@ func (b Backend) String() string {
 		return "closure"
 	}
 	return "default"
+}
+
+// Traced reports whether the options observe the parse: a trace function or a profile.
+func (o *ParseOptions) Traced() bool {
+	return o.Trace != nil || len(o.Profiles) > 0
 }

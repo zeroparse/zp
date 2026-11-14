@@ -255,8 +255,8 @@ func scanSitesInStreams(t *testing.T, prog *Program, b Backend) {
 func scanSteps(t *testing.T, prog *Program, in string, b Backend) uint64 {
 	t.Helper()
 	var steps uint64
-	o := ParseOptions{Backend: b, Limits: core.Limits{Compute: 1 << 40}, Trace: func(e TraceEvent) {
-		if e.Kind == TraceExit && e.Rule == "main" {
+	o := ParseOptions{Backend: b, Limits: core.Limits{Compute: 1 << 40}, Trace: func(e core.TraceEvent) {
+		if e.Kind == core.TraceExit && e.Rule == "main" {
 			steps = state.TraceParser(e).Control.Used
 		}
 	}}
@@ -486,8 +486,8 @@ func TestScanSitesChargeIsPinned(t *testing.T) {
 // exit of a rule in the parse of in, and its result.
 func scanExamined(t *testing.T, prog *Program, in string, o ParseOptions) (out []string, tree string) {
 	t.Helper()
-	o.Trace = func(e TraceEvent) {
-		if e.Kind == TraceExit {
+	o.Trace = func(e core.TraceEvent) {
+		if e.Kind == core.TraceExit {
 			out = append(out, fmt.Sprintf("%s@%d hw=%d", e.Rule, e.Pos, state.TraceParser(e).Hw))
 		}
 	}
@@ -588,8 +588,8 @@ func TestScanSitesShareRecordsWithLookaheads(t *testing.T) {
 func documentSteps(t *testing.T, prog *Program, b Backend, text string, a, e int, ins string) (first, edit uint64) {
 	t.Helper()
 	var steps uint64
-	o := ParseOptions{Backend: b, Limits: core.Limits{Compute: 1 << 40}, Trace: func(ev TraceEvent) {
-		if ev.Kind == TraceExit && ev.Rule == "main" {
+	o := ParseOptions{Backend: b, Limits: core.Limits{Compute: 1 << 40}, Trace: func(ev core.TraceEvent) {
+		if ev.Kind == core.TraceExit && ev.Rule == "main" {
 			steps = state.TraceParser(ev).Control.Used
 		}
 	}}

@@ -124,7 +124,7 @@ func TestTermEngineBackends(t *testing.T) {
 					for _, b := range []engine.Backend{engine.Closure, engine.Bytecode, engine.BytecodeIterative} {
 						var used uint64
 						n, err := prog.ParseWith("main", in, engine.ParseOptions{Backend: b, Unit: unit, Limits: core.Limits{Compute: 1 << 50},
-							Trace: func(e engine.TraceEvent) { used = state.TraceParser(e).Control.Used }})
+							Trace: func(e core.TraceEvent) { used = state.TraceParser(e).Control.Used }})
 						got := codegentest.ResultJSON(n, err)
 						if used == 0 {
 							t.Errorf("%s: backend %d reports no charges", c.Name, b)

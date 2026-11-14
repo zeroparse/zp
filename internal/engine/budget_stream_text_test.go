@@ -214,17 +214,17 @@ rule row = (!"\n" .)+ #atomic "\n"`)
 				text := strings.Repeat("aé😀\xff", 350) + "\n" + strings.Repeat("b", 100) + "\n"
 				o := base
 				o.Limits.Compute = 1 << 30
-				var saved TraceEvent
+				var saved core.TraceEvent
 				var previous state.StreamTextSnapshot
 				armed := false
 				emissions := 0
 				ctx, cancel := context.WithCancel(context.Background())
 				defer cancel()
-				o.Trace = func(e TraceEvent) {
+				o.Trace = func(e core.TraceEvent) {
 					if state.TraceParser(saved) == nil {
 						saved = e
 					}
-					if !armed && e.Kind == TraceEnter && e.Rule == "row" {
+					if !armed && e.Kind == core.TraceEnter && e.Rule == "row" {
 						// The rule has not captured text yet. Fill loads input
 						// explicitly; Text on the entry exercises materialization.
 						p := state.TraceParser(e)

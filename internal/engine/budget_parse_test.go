@@ -20,7 +20,7 @@ func TestBudgetParsePreCancelledAndValidation(t *testing.T) {
 	cancel()
 	for _, b := range []Backend{Closure, Bytecode, BytecodeIterative} {
 		calls := 0
-		opts := ParseOptions{Backend: b, Context: ctx, Trace: func(TraceEvent) { calls++ }}
+		opts := ParseOptions{Backend: b, Context: ctx, Trace: func(core.TraceEvent) { calls++ }}
 		n, err := prog.ParseWith("main", "ok", opts)
 		if n != nil || !errors.Is(err, context.Canceled) || calls != 0 {
 			t.Fatalf("%v: node=%v err=%v calls=%d", b, n, err, calls)
@@ -57,7 +57,7 @@ func TestBudgetParseCancelledFromTraceAndPanicCleanup(t *testing.T) {
 	for _, b := range []Backend{Closure, Bytecode, BytecodeIterative} {
 		ctx, cancel := context.WithCancel(context.Background())
 		var observed *state.Parser
-		n, err := prog.ParseWith("main", "abc", ParseOptions{Backend: b, Context: ctx, Trace: func(e TraceEvent) { observed = state.TraceParser(e); cancel() }})
+		n, err := prog.ParseWith("main", "abc", ParseOptions{Backend: b, Context: ctx, Trace: func(e core.TraceEvent) { observed = state.TraceParser(e); cancel() }})
 		if n != nil || !errors.Is(err, context.Canceled) || observed == nil || observed.Scratch != nil || observed.Control != nil {
 			t.Fatalf("%v: cancellation/cleanup node=%v err=%v parser=%v", b, n, err, observed)
 		}
@@ -65,7 +65,7 @@ func TestBudgetParseCancelledFromTraceAndPanicCleanup(t *testing.T) {
 		var got any
 		func() {
 			defer func() { got = recover() }()
-			_, _ = prog.ParseWith("main", "abc", ParseOptions{Backend: b, Trace: func(e TraceEvent) { observed = state.TraceParser(e); panic(token) }})
+			_, _ = prog.ParseWith("main", "abc", ParseOptions{Backend: b, Trace: func(e core.TraceEvent) { observed = state.TraceParser(e); panic(token) }})
 		}()
 		if got != token || observed.Scratch != nil || observed.Control != nil {
 			t.Fatalf("%v: panic=%v scratch=%v control=%v", b, got, observed.Scratch, observed.Control)
@@ -81,8 +81,8 @@ func TestBudgetParseLongLiteralAndScanner(t *testing.T) {
 		for _, b := range []Backend{Closure, Bytecode, BytecodeIterative} {
 			ctx, cancel := context.WithCancel(context.Background())
 			calls := 0
-			n, err := prog.ParseWith("main", literal, ParseOptions{Backend: b, Unit: core.Bytes, Context: ctx, Trace: func(e TraceEvent) {
-				if e.Kind == TraceEnter {
+			n, err := prog.ParseWith("main", literal, ParseOptions{Backend: b, Unit: core.Bytes, Context: ctx, Trace: func(e core.TraceEvent) {
+				if e.Kind == core.TraceEnter {
 					calls++
 					state.TraceParser(e).Control.Ctx = newPollingContext(2)
 				}
@@ -120,8 +120,8 @@ func TestBudgetParseFinalPublicationAndRecovery(t *testing.T) {
 	prog := mustCompile(t, `rule main = "abc" $$`)
 	for _, b := range []Backend{Closure, Bytecode, BytecodeIterative} {
 		ctx, cancel := context.WithCancel(context.Background())
-		n, err := prog.ParseWith("main", "abc", ParseOptions{Backend: b, Context: ctx, Trace: func(e TraceEvent) {
-			if e.Kind == TraceExit {
+		n, err := prog.ParseWith("main", "abc", ParseOptions{Backend: b, Context: ctx, Trace: func(e core.TraceEvent) {
+			if e.Kind == core.TraceExit {
 				cancel()
 			}
 		}})
@@ -143,7 +143,7 @@ func TestBudgetParseTraceAccessorInterruption(t *testing.T) {
 	prog := mustCompile(t, `rule main = "abc" $$`)
 	for _, b := range []Backend{Closure, Bytecode, BytecodeIterative} {
 		var observed *state.Parser
-		n, err := prog.ParseWith("main", "abc", ParseOptions{Backend: b, Limits: core.Limits{Compute: 100}, Trace: func(e TraceEvent) {
+		n, err := prog.ParseWith("main", "abc", ParseOptions{Backend: b, Limits: core.Limits{Compute: 100}, Trace: func(e core.TraceEvent) {
 			observed = state.TraceParser(e)
 			state.TraceParser(e).Control.Limits.Compute = state.TraceParser(e).Control.Used
 			e.LineCol(1) // Building the first line table is engine execution inside caller code.
@@ -162,8 +162,8 @@ rule expr = expr "+" "a" / "a"`)
 	for _, b := range []Backend{Closure, Bytecode, BytecodeIterative} {
 		ctx, cancel := context.WithCancel(context.Background())
 		entries := 0
-		n, err := prog.ParseWith("main", "a+a+a+a", ParseOptions{Backend: b, Context: ctx, Trace: func(e TraceEvent) {
-			if e.Kind == TraceEnter && e.Rule == "expr" {
+		n, err := prog.ParseWith("main", "a+a+a+a", ParseOptions{Backend: b, Context: ctx, Trace: func(e core.TraceEvent) {
+			if e.Kind == core.TraceEnter && e.Rule == "expr" {
 				entries++
 				if entries == 3 {
 					cancel()
@@ -178,7 +178,7 @@ rule expr = expr "+" "a" / "a"`)
 			t.Fatalf("%v LR retry: node=%v err=%v", b, n, err)
 		}
 		nested := false
-		n, err = prog.ParseWith("main", "a", ParseOptions{Backend: b, Limits: core.Limits{Compute: 10000}, Trace: func(e TraceEvent) {
+		n, err = prog.ParseWith("main", "a", ParseOptions{Backend: b, Limits: core.Limits{Compute: 10000}, Trace: func(e core.TraceEvent) {
 			if nested {
 				return
 			}

@@ -64,7 +64,7 @@ func (prog *Program) ParseWith(start, input string, o ParseOptions) (n *core.Nod
 	if o.MissingTokens > 0 && active.HasMissing {
 		p.Missing, p.MissingLen = &state.MissingTokenState{Limit: o.MissingTokens}, 0
 	}
-	p.SetTrace(o.Trace)
+	p.SetTrace(o.Trace, o.Profiles)
 	n, err = active.Run(p, o.Backend, start)
 	if !p.Aborted {
 		control.Check()
@@ -131,7 +131,7 @@ func (prog *Program) backend(b Backend) Backend {
 // parses run the call-preserving family): such a parse sets NoPlain exactly when it is traced
 // (state.Parser.SetTrace).
 func optionsFamily(o ParseOptions) state.Family {
-	if o.Trace != nil {
+	if o.Traced() {
 		return state.CallPreserving
 	}
 	return state.Inlined
@@ -450,7 +450,7 @@ func (prog *Program) ParseStreamWith(start string, r io.Reader, emit func(*core.
 		p.NodeChunks = 0 // No callback: collect the ordinary repetition instead.
 	}
 	p.Descs = prog.descs(o.Backend, optionsFamily(o))
-	p.SetTrace(o.Trace)
+	p.SetTrace(o.Trace, o.Profiles)
 	defer func() {
 		x := recover()
 		if x != nil && (p.ReaderCall || p.EmitCall) {

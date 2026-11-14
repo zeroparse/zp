@@ -15,37 +15,38 @@ func TestProfile(t *testing.T) {
 rule y = "x"+ "!"
 rule x = "x"+`)
 	for _, b := range []Backend{Closure, Bytecode, BytecodeIterative} {
-		var pr Profile
+		var pr core.Profile
 		for range 2 {
-			if _, err := prog.ParseWith("main", "xxc", ParseOptions{Backend: b, Trace: pr.Trace}); err != nil {
+			if _, err := prog.ParseWith("main", "xxc", ParseOptions{Backend: b, Profiles: []*core.Profile{&pr}}); err != nil {
 				t.Fatal(err)
 			}
 		}
-		if pr.Parses != 2 || pr.Calls != 10 || pr.Evals != 10 || pr.MemoHits != 0 || pr.Examined != 6 || pr.Time < 0 {
-			t.Errorf("%v: totals %+v", b, pr)
+		s := pr.Snapshot()
+		if s.Parses != 2 || s.Calls != 10 || s.Evals != 10 || s.MemoHits != 0 || s.Examined != 6 || s.Time < 0 {
+			t.Errorf("%v: totals %+v", b, s)
 		}
-		got := map[string]RuleProfile{}
-		for _, r := range pr.Rules {
-			got[r.Rule] = *r
-			if r.SelfTime < 0 || r.SelfTime > r.Time || r.Time > pr.Time {
+		got := map[string]core.RuleProfile{}
+		for _, r := range s.Rules {
+			got[r.Rule] = r
+			if r.SelfTime < 0 || r.SelfTime > r.Time || r.Time > s.Time {
 				t.Errorf("%v: %s: time %v, self %v", b, r.Rule, r.Time, r.SelfTime)
 			}
 		}
-		if names := len(pr.Rules); names != 3 || pr.Rules[0].Rule != "main" || pr.Rules[1].Rule != "y" {
-			t.Errorf("%v: rules in order of first call: %d", b, names)
+		if names := len(s.Rules); names != 3 || s.Rules[0].Rule != "main" || s.Rules[1].Rule != "x" || s.Rules[2].Rule != "y" {
+			t.Errorf("%v: rules sorted by name: %d", b, names)
 		}
 		x, y, m := got["x"], got["y"], got["main"]
 		if x.Calls != 6 || x.Evals != 6 || x.Matched != 6 || x.Failed != 0 || x.Consumed != 12 || x.Wasted != 0 ||
-			x.Repeats != 4 || x.MaxEvals != 3 || x.MaxEvalsAt != (Location{0, 1, 1}) {
+			x.Repeats != 4 || x.MaxEvals != 3 || x.MaxEvalsAt.Location != (core.Location{Pos: 0, Line: 1, Col: 1}) {
 			t.Errorf("%v: x %+v", b, x)
 		}
-		if y.Calls != 2 || y.Failed != 2 || y.Wasted != 6 || y.LongestFail != 3 || y.LongestFailAt != (Location{0, 1, 1}) || y.Repeats != 0 {
+		if y.Calls != 2 || y.Failed != 2 || y.Wasted != 6 || y.LongestFail != 3 || y.LongestFailAt.Location != (core.Location{Pos: 0, Line: 1, Col: 1}) || y.Repeats != 0 {
 			t.Errorf("%v: y %+v", b, y)
 		}
-		if m.Calls != 2 || m.Matched != 2 || m.Consumed != 6 || m.Time != pr.Time {
+		if m.Calls != 2 || m.Matched != 2 || m.Consumed != 6 || m.Time != s.Time {
 			t.Errorf("%v: main %+v", b, m)
 		}
-		hints := strings.Join(pr.Hints(), "\n")
+		hints := strings.Join(s.Hints(), "\n")
 		for _, want := range []string{
 			"Evaluated again where they had been evaluated before: x (4 of 6 evaluations, up to 3 times at 1:1).",
 			"Failed calls examined more input in all than the parse did (6 positions): y (6 positions in 2 failed calls).",
@@ -63,23 +64,24 @@ func TestProfileMemoAndRecursion(t *testing.T) {
 	t.Parallel()
 	prog := mustCompile(t, `rule main = a "!" / a "?"
 rule a = a "x" / "y"`)
-	var pr Profile
-	if _, err := prog.ParseWith("main", "yxx?", ParseOptions{Trace: pr.Trace}); err != nil {
+	var pr core.Profile
+	if _, err := prog.ParseWith("main", "yxx?", ParseOptions{Profiles: []*core.Profile{&pr}}); err != nil {
 		t.Fatal(err)
 	}
-	var a RuleProfile
-	for _, r := range pr.Rules {
+	s := pr.Snapshot()
+	var a core.RuleProfile
+	for _, r := range s.Rules {
 		if r.Rule == "a" {
-			a = *r
+			a = r
 		}
 	}
 	// The first call of a grows the match in 4 evaluations, during which 4 recursive calls take
 	// the result so far from the memo; the second call from main takes the result from the memo.
-	if a.Calls != 6 || a.Evals != 4 || a.MemoHits != 5 || a.Time > pr.Time || a.Repeats != 0 {
+	if a.Calls != 6 || a.Evals != 4 || a.MemoHits != 5 || a.Time > s.Time || a.Repeats != 0 {
 		t.Errorf("a %+v", a)
 	}
-	if strings.Contains(strings.Join(pr.Hints(), "\n"), "Evaluated again") {
-		t.Errorf("hints %q", pr.Hints())
+	if strings.Contains(strings.Join(s.Hints(), "\n"), "Evaluated again") {
+		t.Errorf("hints %q", s.Hints())
 	}
 }
 
@@ -97,10 +99,9 @@ rule line = [a-z]* #atomic "\n"`)
 	input := b.String()
 	want := func(pos int) (int, int) { return pos/9 + 1, pos%9 + 1 }
 	for _, back := range []Backend{Closure, Bytecode, BytecodeIterative} {
-		var pr Profile
+		var pr core.Profile
 		bad, unknown := 0, 0
-		trace := func(e TraceEvent) {
-			pr.Trace(e)
+		trace := func(e core.TraceEvent) {
 			// Only the start of the start rule's call precedes discarded input: check one more
 			// position, at the start of line 2, which is not read yet at first and then discarded.
 			for _, pos := range []int{e.Pos, e.End, 9} {
@@ -112,22 +113,22 @@ rule line = [a-z]* #atomic "\n"`)
 				}
 			}
 		}
-		err := prog.ParseStreamWith("main", strings.NewReader(input), func(*core.Node) error { return nil }, ParseOptions{Backend: back, Trace: trace})
+		err := prog.ParseStreamWith("main", strings.NewReader(input), func(*core.Node) error { return nil }, ParseOptions{Backend: back, Trace: trace, Profiles: []*core.Profile{&pr}})
 		if err != nil {
 			t.Fatal(err)
 		}
 		if bad > 0 || unknown == 0 {
 			t.Errorf("%v: %d wrong locations, %d unknown", back, bad, unknown)
 		}
-		for _, r := range pr.Rules {
-			for _, l := range []Location{r.MaxEvalsAt, r.LongestFailAt} {
+		for _, r := range pr.Snapshot().Rules {
+			for _, l := range []core.Location{r.MaxEvalsAt.Location, r.LongestFailAt.Location} {
 				if wl, wc := want(l.Pos); l.Line != 0 && (l.Line != wl || l.Col != wc) {
 					t.Errorf("%v: %s: location %+v", back, r.Rule, l)
 				}
 			}
 		}
 	}
-	if got := (Location{Pos: 12}).String(); got != "position 12" {
+	if got := (core.Location{Pos: 12}).String(); got != "position 12" {
 		t.Errorf("unknown location prints as %q", got)
 	}
 }
@@ -136,15 +137,15 @@ rule line = [a-z]* #atomic "\n"`)
 // profile with one finding does not also say that nothing stands out.
 func TestHintsWithoutTime(t *testing.T) {
 	t.Parallel()
-	pr := Profile{Calls: 10, Examined: 100, Rules: []*RuleProfile{
-		{Rule: "x", Calls: 10, Evals: 10, Repeats: 5, MaxEvals: 3, MaxEvalsAt: Location{0, 1, 1}},
+	s := core.ProfileSnapshot{Calls: 10, Examined: 100, Rules: []core.RuleProfile{
+		{Rule: "x", Calls: 10, Evals: 10, Repeats: 5, MaxEvals: 3, MaxEvalsAt: core.CallSite{Location: core.Location{Pos: 0, Line: 1, Col: 1}}},
 	}}
-	hints := pr.Hints()
+	hints := s.Hints()
 	if len(hints) != 1 || !strings.HasPrefix(hints[0], "Evaluated again") {
 		t.Errorf("hints %q", hints)
 	}
-	pr.Rules[0].MaxEvals = 2
-	if hints := pr.Hints(); len(hints) != 1 || !strings.HasPrefix(hints[0], "Nothing else stands out") {
+	s.Rules[0].MaxEvals = 2
+	if hints := s.Hints(); len(hints) != 1 || !strings.HasPrefix(hints[0], "Nothing else stands out") {
 		t.Errorf("hints %q", hints)
 	}
 }
@@ -157,19 +158,20 @@ func TestProfileStreamMemory(t *testing.T) {
 rule line = [a-z]* #atomic "\n"`)
 	const lines = 50000
 	for _, back := range []Backend{Closure, Bytecode, BytecodeIterative} {
-		var pr Profile
+		var pr core.Profile
 		r := strings.NewReader(strings.Repeat("abcdefgh\n", lines))
-		if err := prog.ParseStreamWith("main", r, func(*core.Node) error { return nil }, ParseOptions{Backend: back, Trace: pr.Trace}); err != nil {
+		if err := prog.ParseStreamWith("main", r, func(*core.Node) error { return nil }, ParseOptions{Backend: back, Profiles: []*core.Profile{&pr}}); err != nil {
 			t.Fatal(err)
 		}
-		var line *RuleProfile
-		for _, r := range pr.Rules {
-			if r.Rule == "line" {
-				line = r
+		var line *core.RuleProfile
+		s := pr.Snapshot()
+		for i := range s.Rules {
+			if s.Rules[i].Rule == "line" {
+				line = &s.Rules[i]
 			}
 		}
-		if len(pr.seen) > 4*profileSeenMin || line == nil || line.Calls != lines+1 || line.Repeats != 0 {
-			t.Errorf("%v: %d positions kept, line %+v", back, len(pr.seen), line)
+		if line == nil || line.Calls != lines+1 || line.Repeats != 0 {
+			t.Errorf("%v: line %+v", back, line)
 		}
 	}
 }

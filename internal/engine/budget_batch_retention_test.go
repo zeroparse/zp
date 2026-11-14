@@ -18,7 +18,7 @@ import (
 	"zeroparse.dev/zp/internal/value"
 )
 
-func batchRetentionParser(t *testing.T, e TraceEvent) *state.Parser {
+func batchRetentionParser(t *testing.T, e core.TraceEvent) *state.Parser {
 	t.Helper()
 	if state.TraceParser(e) == nil {
 		t.Fatal("trace callback did not retain parser")
@@ -56,13 +56,13 @@ rule entry = key:[a-z]+ #atomic ":" value:[0-9]+ #atomic => Entry{Key: text($key
 						if active && !state.BudgetControlsEnabled {
 							t.Skip("active budget controls are unavailable in the reference build")
 						}
-						parseFn := func(input string, wantFailure bool) (*core.Node, error, TraceEvent) {
-							var retained TraceEvent
-							opts := ParseOptions{Backend: backend, Unit: unit, Recognize: recognize, Trace: func(e TraceEvent) {
-								if e.Kind == TraceEnter && e.Rule == "main" {
+						parseFn := func(input string, wantFailure bool) (*core.Node, error, core.TraceEvent) {
+							var retained core.TraceEvent
+							opts := ParseOptions{Backend: backend, Unit: unit, Recognize: recognize, Trace: func(e core.TraceEvent) {
+								if e.Kind == core.TraceEnter && e.Rule == "main" {
 									retained = e
 								}
-								if e.Kind != TraceExit || e.Rule != "main" {
+								if e.Kind != core.TraceExit || e.Rule != "main" {
 									return
 								}
 								if line, col := e.LineCol(0); line != 1 || col != 1 {
@@ -103,7 +103,7 @@ rule entry = key:[a-z]+ #atomic ":" value:[0-9]+ #atomic => Entry{Key: text($key
 							}
 							before = batchRetentionJSON(t, node)
 						}
-						if event.Kind != TraceEnter || event.Rule != "main" || event.Depth != 1 || event.Pos != 0 {
+						if event.Kind != core.TraceEnter || event.Rule != "main" || event.Depth != 1 || event.Pos != 0 {
 							t.Fatalf("retained event metadata changed: %+v", event)
 						}
 						assertTraceParserDetached(t, batchRetentionParser(t, event), false)
@@ -146,8 +146,8 @@ func TestBudgetBatchTraceCallbackPanicDetachesParserAndPreservesRetry(t *testing
 				var node *core.Node
 				var err error
 				got := budgetContextRecover(func() {
-					node, err = prog.ParseWith("main", text, ParseOptions{Backend: backend, Unit: unit, Trace: func(e TraceEvent) {
-						if e.Kind == TraceEnter && e.Rule == "main" {
+					node, err = prog.ParseWith("main", text, ParseOptions{Backend: backend, Unit: unit, Trace: func(e core.TraceEvent) {
+						if e.Kind == core.TraceEnter && e.Rule == "main" {
 							observed = state.TraceParser(e)
 							panic(token)
 						}
@@ -197,11 +197,11 @@ func TestBudgetBatchTraceInterruptionDetachesParser(t *testing.T) {
 							panicCtx = newBudgetContextErrPanic(token, at)
 							opts.Context = panicCtx
 						}
-						opts.Trace = func(e TraceEvent) {
+						opts.Trace = func(e core.TraceEvent) {
 							if e.Rule != "main" {
 								return
 							}
-							if e.Kind == TraceEnter {
+							if e.Kind == core.TraceEnter {
 								observed = state.TraceParser(e)
 								switch cause {
 								case "cancel":
@@ -265,7 +265,7 @@ func (c *batchRetentionContext) Done() <-chan struct{} { return c.done }
 func (c *batchRetentionContext) Err() error            { return nil }
 
 //go:noinline
-func batchRetentionCaptureEvent(prog *Program, text string, backend Backend, unit core.PositionUnit, active bool) (TraceEvent, weak.Pointer[batchRetentionContext], error) {
+func batchRetentionCaptureEvent(prog *Program, text string, backend Backend, unit core.PositionUnit, active bool) (core.TraceEvent, weak.Pointer[batchRetentionContext], error) {
 	ctx := &batchRetentionContext{Context: context.Background(), done: make(chan struct{})}
 	for i := range ctx.payload {
 		ctx.payload[i] = byte(i)
@@ -274,13 +274,13 @@ func batchRetentionCaptureEvent(prog *Program, text string, backend Backend, uni
 	runtime.GC()
 	if weakCtx.Value() != ctx {
 		runtime.KeepAlive(ctx)
-		return TraceEvent{}, weakCtx, errors.New("weak context positive control was not live with a strong local root")
+		return core.TraceEvent{}, weakCtx, errors.New("weak context positive control was not live with a strong local root")
 	}
 	runtime.KeepAlive(ctx)
 
-	var retained TraceEvent
-	opts := ParseOptions{Backend: backend, Unit: unit, Recognize: true, Trace: func(e TraceEvent) {
-		if e.Kind == TraceEnter && e.Rule == "main" {
+	var retained core.TraceEvent
+	opts := ParseOptions{Backend: backend, Unit: unit, Recognize: true, Trace: func(e core.TraceEvent) {
+		if e.Kind == core.TraceEnter && e.Rule == "main" {
 			retained = e
 			if !batchRetentionContextLive(ctx) {
 				panic("trace context state missing")

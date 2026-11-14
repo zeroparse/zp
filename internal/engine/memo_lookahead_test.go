@@ -24,11 +24,11 @@ func TestMemoLookaheadStateEvaluations(t *testing.T) {
 					continue
 				}
 				for _, recognize := range []bool{false, true} {
-					var pr Profile
+					var pr core.Profile
 					// The parses with recovered errors end with a syntax error.
-					_, _ = prog.ParseWith("s", c.Input, ParseOptions{Backend: b, Limits: lim, Recognize: recognize, Trace: pr.Trace})
+					_, _ = prog.ParseWith("s", c.Input, ParseOptions{Backend: b, Limits: lim, Recognize: recognize, Profiles: []*core.Profile{&pr}})
 					evals := -1
-					for _, r := range pr.Rules {
+					for _, r := range pr.Snapshot().Rules {
 						if r.Rule == "a" {
 							evals = r.Evals
 						}

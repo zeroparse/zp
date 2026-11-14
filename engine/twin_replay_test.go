@@ -6,6 +6,7 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+	"zeroparse.dev/zp/core"
 
 	"zeroparse.dev/zp/engine"
 	"zeroparse.dev/zp/internal/compile"
@@ -86,8 +87,8 @@ func TestBodyEvaluationsReplay(t *testing.T) {
 				seen := map[string]string{}
 				states := map[string]bool{}
 				var stack []*frame
-				_, _ = p.Parse(text, engine.WithBackend(backend), engine.WithTrace(func(e engine.TraceEvent) {
-					if e.Kind == engine.TraceEnter {
+				_, _ = p.Parse(text, engine.WithBackend(backend), engine.WithTrace(func(e core.TraceEvent) {
+					if e.Kind == core.TraceEnter {
 						stack = append(stack, &frame{name: e.Rule, level: e.Level, pos: e.Pos})
 						return
 					}

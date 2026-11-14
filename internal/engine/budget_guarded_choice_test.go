@@ -237,8 +237,8 @@ func budgetGuardedChoiceFatalAndRetry(t *testing.T, prog *Program, backend Backe
 			Unit:      unit,
 			Recognize: recognize,
 			Limits:    core.Limits{Compute: 1 << 30},
-			Trace: func(e TraceEvent) {
-				if e.Kind == TraceEnter && e.Rule == "main" {
+			Trace: func(e core.TraceEvent) {
+				if e.Kind == core.TraceEnter && e.Rule == "main" {
 					observed = state.TraceParser(e)
 					if cancel {
 						state.TraceParser(e).Control.Ctx = newPollingContext(2)
@@ -246,10 +246,10 @@ func budgetGuardedChoiceFatalAndRetry(t *testing.T, prog *Program, backend Backe
 						state.TraceParser(e).Control.Limits.Compute = state.TraceParser(e).Control.Used + 1
 					}
 				}
-				if e.Kind == TraceEnter && e.Rule == "fallback" {
+				if e.Kind == core.TraceEnter && e.Rule == "fallback" {
 					fallbackEntries++
 				}
-				if e.Kind == TraceExit {
+				if e.Kind == core.TraceExit {
 					exits++
 				}
 			},

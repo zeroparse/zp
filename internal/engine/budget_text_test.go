@@ -182,8 +182,8 @@ func TestBudgetTraceTextInterruptionRetriesPooledParser(t *testing.T) {
 				Limits: core.Limits{
 					Compute: 1 << 30,
 				},
-				Trace: func(e TraceEvent) {
-					if !armed && e.Kind == TraceExit && e.Rule == "main" && e.Matched {
+				Trace: func(e core.TraceEvent) {
+					if !armed && e.Kind == core.TraceExit && e.Rule == "main" && e.Matched {
 						armed = true
 						observed = state.TraceParser(e)
 						if unit == core.Bytes {

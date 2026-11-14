@@ -42,8 +42,8 @@ func budgetClassBudgetOptions(backend Backend, unit core.PositionUnit, allowance
 		Backend: backend,
 		Unit:    unit,
 		Limits:  core.Limits{Compute: 1 << 30},
-		Trace: func(e TraceEvent) {
-			if e.Kind == TraceEnter && e.Rule == "main" {
+		Trace: func(e core.TraceEvent) {
+			if e.Kind == core.TraceEnter && e.Rule == "main" {
 				if observed != nil {
 					*observed = state.TraceParser(e)
 				}
@@ -118,14 +118,14 @@ func TestBudgetClassRangeCancellationAndPoolRetry(t *testing.T) {
 					Backend: backend,
 					Unit:    unit,
 					Limits:  core.Limits{Compute: 1 << 30},
-					Trace: func(e TraceEvent) {
-						if e.Kind == TraceEnter && e.Rule == "main" {
+					Trace: func(e core.TraceEvent) {
+						if e.Kind == core.TraceEnter && e.Rule == "main" {
 							observed, control = state.TraceParser(e), state.TraceParser(e).Control
 							startSteps = control.Used
 							// Trace emit polls once after this callback; cancel at the next
 							// 256-step checkpoint, inside the deliberately long range scan.
 							control.Ctx = newPollingContext(2)
-						} else if e.Kind == TraceExit {
+						} else if e.Kind == core.TraceExit {
 							exits++
 						}
 					},
@@ -278,8 +278,8 @@ func TestBudgetClassOptimizedRoutes(t *testing.T) {
 						var start uint64
 						n, err := program.ParseWith("main", tc.input, ParseOptions{
 							Backend: backend, Unit: unit, Limits: core.Limits{Compute: 1 << 30},
-							Trace: func(e TraceEvent) {
-								if e.Kind == TraceEnter && e.Rule == "main" {
+							Trace: func(e core.TraceEvent) {
+								if e.Kind == core.TraceEnter && e.Rule == "main" {
 									c = state.TraceParser(e).Control
 									start = c.Used
 									c.Ctx = newPollingContext(2)

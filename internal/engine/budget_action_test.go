@@ -160,8 +160,8 @@ rule items = [a-z] #atomic*`)
 				for _, unit := range []core.PositionUnit{core.Bytes, core.CodePoints} {
 					t.Run(fmt.Sprintf("%v/%v", backend, unit), func(t *testing.T) {
 						armed := false
-						n, err := prog.ParseWith("main", input, ParseOptions{Backend: backend, Unit: unit, Trace: func(e TraceEvent) {
-							if !armed && e.Kind == TraceExit && e.Rule == "items" {
+						n, err := prog.ParseWith("main", input, ParseOptions{Backend: backend, Unit: unit, Trace: func(e core.TraceEvent) {
+							if !armed && e.Kind == core.TraceExit && e.Rule == "items" {
 								armed = true
 								state.TraceParser(e).Control = state.NewBudgetControl(nil, core.Limits{Compute: 128})
 							}
@@ -191,8 +191,8 @@ rule items = [a-z] #atomic*`)
 			t.Run(fmt.Sprintf("%v/%v", backend, unit), func(t *testing.T) {
 				armed := false
 				var attempt *state.BudgetControl
-				n, err := prog.ParseWith("main", input, ParseOptions{Backend: backend, Unit: unit, Trace: func(e TraceEvent) {
-					if !armed && e.Kind == TraceExit && e.Rule == "items" {
+				n, err := prog.ParseWith("main", input, ParseOptions{Backend: backend, Unit: unit, Trace: func(e core.TraceEvent) {
+					if !armed && e.Kind == core.TraceExit && e.Rule == "items" {
 						armed = true
 						attempt = state.NewBudgetControl(newPollingContext(2), core.Limits{})
 						state.TraceParser(e).Control = attempt
@@ -223,21 +223,21 @@ rule items = [a-z]* #atomic`)
 	for _, backend := range []Backend{Closure, Bytecode, BytecodeIterative} {
 		for _, unit := range []core.PositionUnit{core.Bytes, core.CodePoints} {
 			t.Run(fmt.Sprintf("%v/%v", backend, unit), func(t *testing.T) {
-				armContext := func(e TraceEvent, armed *bool) {
-					if !*armed && e.Kind == TraceExit && e.Rule == "items" {
+				armContext := func(e core.TraceEvent, armed *bool) {
+					if !*armed && e.Kind == core.TraceExit && e.Rule == "items" {
 						*armed = true
 						state.TraceParser(e).Control = state.NewBudgetControl(nil, core.Limits{Compute: 128})
 					}
 				}
 				armed := false
-				n, err := shortCircuit.ParseWith("main", strings.TrimSuffix(input, "!"), ParseOptions{Backend: backend, Unit: unit, Trace: func(e TraceEvent) { armContext(e, &armed) }})
+				n, err := shortCircuit.ParseWith("main", strings.TrimSuffix(input, "!"), ParseOptions{Backend: backend, Unit: unit, Trace: func(e core.TraceEvent) { armContext(e, &armed) }})
 				if !armed || err != nil || n == nil {
 					t.Fatalf("short-circuit parse: armed=%t node=%v err=%v", armed, n, err)
 				}
 
 				armed = false
-				n, err = recovery.ParseWith("main", input, ParseOptions{Backend: backend, Unit: unit, Trace: func(e TraceEvent) {
-					if !armed && e.Kind == TraceExit && e.Rule == "items" {
+				n, err = recovery.ParseWith("main", input, ParseOptions{Backend: backend, Unit: unit, Trace: func(e core.TraceEvent) {
+					if !armed && e.Kind == core.TraceExit && e.Rule == "items" {
 						armed = true
 						state.TraceParser(e).Control = state.NewBudgetControl(nil, core.Limits{Compute: 256})
 					}

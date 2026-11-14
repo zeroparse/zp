@@ -27,7 +27,7 @@ rule main = "abc" $$`, "main")
 	}
 	ctx, cancel = context.WithCancel(context.Background())
 	first, second := 0, 0
-	n, err = p.Parse("abc", engine.WithContext(ctx), engine.WithTrace(func(engine.TraceEvent) { first++; cancel() }), engine.WithTrace(func(engine.TraceEvent) { second++ }))
+	n, err = p.Parse("abc", engine.WithContext(ctx), engine.WithTrace(func(core.TraceEvent) { first++; cancel() }), engine.WithTrace(func(core.TraceEvent) { second++ }))
 	if n != nil || !errors.Is(err, context.Canceled) || first != 1 || second != 0 {
 		t.Fatalf("callback order: node=%v err=%v first=%d second=%d", n, err, first, second)
 	}
@@ -51,7 +51,7 @@ rule main = "a"* #stream $$`, "main")
 	first, second := 0, 0
 	ctx, cancel = context.WithCancel(context.Background())
 	defer cancel()
-	err = p.ParseStream(strings.NewReader("aaa"), func(*core.Node) error { t.Fatal("emitted after trace cancellation"); return nil }, engine.WithContext(ctx), engine.WithTrace(func(engine.TraceEvent) { first++; cancel() }), engine.WithTrace(func(engine.TraceEvent) { second++ }))
+	err = p.ParseStream(strings.NewReader("aaa"), func(*core.Node) error { t.Fatal("emitted after trace cancellation"); return nil }, engine.WithContext(ctx), engine.WithTrace(func(core.TraceEvent) { first++; cancel() }), engine.WithTrace(func(core.TraceEvent) { second++ }))
 	if err != context.Canceled || first != 1 || second != 0 {
 		t.Fatalf("error=%v trace=%d/%d", err, first, second)
 	}

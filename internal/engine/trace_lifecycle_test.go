@@ -73,7 +73,7 @@ func TestTraceLifecycleStreamDetachment(t *testing.T) {
 						reader = io.MultiReader(strings.NewReader("#records\na=1\nbad="), &failOnRead{err: stop})
 					}
 					r := &traceLifecycleClosingReader{Reader: reader}
-					var e TraceEvent
+					var e core.TraceEvent
 					var nodes []*core.Node
 					var snapshots []string
 					err := error(nil)
@@ -88,14 +88,14 @@ func TestTraceLifecycleStreamDetachment(t *testing.T) {
 								panic(token)
 							}
 							return nil
-						}, ParseOptions{Backend: b, Unit: u, Trace: func(v TraceEvent) {
+						}, ParseOptions{Backend: b, Unit: u, Trace: func(v core.TraceEvent) {
 							v.LineCol(v.Pos)
 							v.Text()
 							v.Failure()
-							if v.Kind == TraceEnter && v.Rule == "main" {
+							if v.Kind == core.TraceEnter && v.Rule == "main" {
 								e = v
 							}
-							if outcome == "trace-panic" && v.Kind == TraceEnter && v.Rule == "record" && v.Pos > 9 {
+							if outcome == "trace-panic" && v.Kind == core.TraceEnter && v.Rule == "record" && v.Pos > 9 {
 								panic(token)
 							}
 						}})

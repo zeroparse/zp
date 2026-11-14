@@ -23,7 +23,7 @@ func TestBudgetSetupReferenceAdmission(t *testing.T) {
 				ctx, cancel := context.WithCancel(context.Background())
 				cancel()
 				callbacks := 0
-				o := ParseOptions{Backend: backend, Context: ctx, Trace: func(TraceEvent) { callbacks++ }}
+				o := ParseOptions{Backend: backend, Context: ctx, Trace: func(core.TraceEvent) { callbacks++ }}
 				reader := &streamCallbackReader{text: "#records\na=1\n", onRead: func() { callbacks++ }}
 				var n *core.Node
 				var d *Document

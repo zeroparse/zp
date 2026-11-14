@@ -3,6 +3,7 @@ package engine_test
 import (
 	"fmt"
 	"strings"
+	"zeroparse.dev/zp/core"
 
 	"zeroparse.dev/zp/engine"
 )
@@ -16,11 +17,11 @@ rule value = [0-9]+ #atomic`, "main")
 	if err != nil {
 		panic(err)
 	}
-	_, err = p.Parse("a=1;b=x", engine.WithExpectations(), engine.WithTrace(func(e engine.TraceEvent) {
+	_, err = p.Parse("a=1;b=x", engine.WithExpectations(), engine.WithTrace(func(e core.TraceEvent) {
 		indent := strings.Repeat("  ", e.Depth-1)
 		line, col := e.LineCol(e.Pos)
 		switch {
-		case e.Kind == engine.TraceEnter:
+		case e.Kind == core.TraceEnter:
 			fmt.Printf("%s%s at %d:%d\n", indent, e.Rule, line, col)
 		case e.Matched:
 			fmt.Printf("%s%s matched %q\n", indent, e.Rule, e.Text())
@@ -56,20 +57,21 @@ rule num = [0-9]+ #atomic`, "main")
 	if err != nil {
 		panic(err)
 	}
-	var prof engine.Profile
+	var prof core.Profile
 	for _, input := range []string{"a=1;b+=2;", "c+=3;"} {
 		if _, err := p.Parse(input, engine.WithProfile(&prof)); err != nil {
 			panic(err)
 		}
 	}
-	fmt.Printf("%d parses, %d calls\n", prof.Parses, prof.Calls)
-	for _, r := range prof.Rules {
+	snap := prof.Snapshot()
+	fmt.Printf("%d parses, %d calls\n", snap.Parses, snap.Calls)
+	for _, r := range snap.Rules {
 		fmt.Printf("%-5s calls=%d matched=%d failed=%d repeats=%d consumed=%d\n", r.Rule, r.Calls, r.Matched, r.Failed, r.Repeats, r.Consumed)
 	}
 	// Output:
 	// 2 parses, 19 calls
 	// main  calls=2 matched=2 failed=0 repeats=0 consumed=14
-	// stmt  calls=5 matched=3 failed=2 repeats=0 consumed=11
 	// name  calls=9 matched=5 failed=4 repeats=4 consumed=5
 	// num   calls=3 matched=3 failed=0 repeats=0 consumed=3
+	// stmt  calls=5 matched=3 failed=2 repeats=0 consumed=11
 }

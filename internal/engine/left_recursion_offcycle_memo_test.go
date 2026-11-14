@@ -2,6 +2,8 @@ package engine
 
 import (
 	"testing"
+
+	"zeroparse.dev/zp/core"
 )
 
 // offCycleMemoCases are grammars where rule w, on no left-recursion cycle, is called at position 0
@@ -31,14 +33,14 @@ func TestLeftRecursionOffCycleMemo(t *testing.T) {
 		prog := mustCompile(t, c.src)
 		for _, b := range []Backend{Closure, Bytecode, BytecodeIterative} {
 			for _, rec := range []bool{false, true} {
-				var pr Profile
-				if _, err := prog.ParseWith("", c.input, ParseOptions{Backend: b, Recognize: rec, Trace: pr.Trace}); err != nil {
+				var pr core.Profile
+				if _, err := prog.ParseWith("", c.input, ParseOptions{Backend: b, Recognize: rec, Profiles: []*core.Profile{&pr}}); err != nil {
 					t.Fatalf("%s %s recognize=%v: %v", c.name, b, rec, err)
 				}
-				var w *RuleProfile
-				for _, r := range pr.Rules {
+				var w *core.RuleProfile
+				for _, r := range pr.Snapshot().Rules {
 					if r.Rule == "w" {
-						w = r
+						w = &r
 					}
 				}
 				if w == nil || w.Evals != c.evals || w.MemoHits != c.hits {

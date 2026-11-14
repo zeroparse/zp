@@ -19,15 +19,16 @@ import (
 func contextStoreGrowth(t *testing.T, prog *Program, s codegentest.DependencyMemoShape, o ParseOptions) (b, all [2]int) {
 	t.Helper()
 	for i, m := range codegentest.ContextStoreSizes {
-		var pr Profile
-		o.Trace = pr.Trace
+		var pr core.Profile
+		o.Profiles = []*core.Profile{&pr}
 		o.Limits = core.Limits{Compute: core.Unlimited}
 		// With missing-token insertion, the parse reports the insertion as an error.
 		if r, err := prog.ParseWith("", s.Input(m), o); err != nil && (r == nil || o.MissingTokens == 0) {
 			t.Fatalf("%s %s m=%d: %v", s.Name, o.Backend, m, err)
 		}
-		all[i] = pr.Evals
-		for _, r := range pr.Rules {
+		snap := pr.Snapshot()
+		all[i] = snap.Evals
+		for _, r := range snap.Rules {
 			if r.Rule == "B" {
 				b[i] = r.MaxEvals
 			}

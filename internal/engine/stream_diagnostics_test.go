@@ -174,14 +174,14 @@ rule item = "ab" #recover(skip=[^a]+)`)
 			var rootRecovered []*core.SyntaxError
 			var firstItemRecovered []*core.SyntaxError
 			o.DiagnosticCallback = func(*core.SyntaxError) error { callbacks++; return nil }
-			o.Trace = func(e TraceEvent) {
-				if e.Kind == TraceExit && e.Rule == "item" && len(state.TraceParser(e).Recovered) > maxWorking {
+			o.Trace = func(e core.TraceEvent) {
+				if e.Kind == core.TraceExit && e.Rule == "item" && len(state.TraceParser(e).Recovered) > maxWorking {
 					maxWorking = len(state.TraceParser(e).Recovered)
 				}
-				if e.Kind == TraceExit && e.Rule == "item" && firstItemRecovered == nil && len(e.Recovered()) > 0 {
+				if e.Kind == core.TraceExit && e.Rule == "item" && firstItemRecovered == nil && len(e.Recovered()) > 0 {
 					firstItemRecovered = e.Recovered()
 				}
-				if e.Kind == TraceExit && e.Rule == "main" {
+				if e.Kind == core.TraceExit && e.Rule == "main" {
 					rootRecovered = e.Recovered()
 				}
 			}

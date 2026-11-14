@@ -115,7 +115,7 @@ func TestVMFamiliesPreparedOnFirstUse(t *testing.T) {
 			t.Fatalf("%s: after a parse: prepared %v, want the inlined family", b, got)
 		}
 		traced := o
-		traced.Trace = func(TraceEvent) {}
+		traced.Trace = func(core.TraceEvent) {}
 		if _, err := prog.ParseWith("main", "aa", traced); err != nil {
 			t.Fatal(err)
 		}

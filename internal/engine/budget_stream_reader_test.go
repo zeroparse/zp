@@ -92,8 +92,8 @@ rule row = .+ #atomic`)
 		reader := &budgetCancelledRefillReader{cancel: cancel, first: []byte{0xc3}}
 		token := &budgetContextPanicToken{phase: "raw reader postcheck"}
 		o.Context = &budgetRawReaderPanicContext{Context: ctx, reader: reader, token: token}
-		var saved TraceEvent
-		o.Trace = func(e TraceEvent) {
+		var saved core.TraceEvent
+		o.Trace = func(e core.TraceEvent) {
 			if state.TraceParser(saved) == nil {
 				saved = e
 			}

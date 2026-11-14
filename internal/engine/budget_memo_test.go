@@ -174,11 +174,11 @@ func TestBudgetMemoParseBudgetPoolRetryAndRetainedResult(t *testing.T) {
 			markerCalls := 0
 			limited := opts
 			limited.Limits = core.Limits{Compute: 1 << 50}
-			limited.Trace = func(e TraceEvent) {
-				if e.Kind == TraceEnter && e.Rule == "marker" {
+			limited.Trace = func(e core.TraceEvent) {
+				if e.Kind == core.TraceEnter && e.Rule == "marker" {
 					markerCalls++
 				}
-				if !armed && e.Kind == TraceEnter && e.Rule == "r" {
+				if !armed && e.Kind == core.TraceEnter && e.Rule == "r" {
 					armed = true
 					state.TraceParser(e).DeferMemo = false
 					state.TraceParser(e).Control.Limits.Compute = state.TraceParser(e).Control.Used + 16
@@ -374,11 +374,11 @@ rule atom = "a"`)
 					var chunks [][]state.MemoEntry
 					armed := false
 					exprExits := 0
-					opts := ParseOptions{Backend: backend, Unit: unit, Recognize: recognize, Limits: core.Limits{Compute: 1 << 40}, Trace: func(e TraceEvent) {
-						if e.Kind == TraceExit && e.Rule == "expr" {
+					opts := ParseOptions{Backend: backend, Unit: unit, Recognize: recognize, Limits: core.Limits{Compute: 1 << 40}, Trace: func(e core.TraceEvent) {
+						if e.Kind == core.TraceExit && e.Rule == "expr" {
 							exprExits++
 						}
-						if !armed && e.Kind == TraceExit && e.Rule == "atom" {
+						if !armed && e.Kind == core.TraceExit && e.Rule == "atom" {
 							armed = true
 							observed = state.TraceParser(e)
 							budgetMemoPrefix(state.TraceParser(e).Memo, retained)

@@ -117,8 +117,8 @@ rule item = "é😀"`, "main")
 			go func(b engine.Backend) {
 				defer wg.Done()
 				for range 8 {
-					r, err := p.ParsePrefix("item", "é😀tail", engine.WithBackend(b), engine.WithTrace(func(e engine.TraceEvent) {
-						if e.Kind == engine.TraceEnter && e.Rule == "item" {
+					r, err := p.ParsePrefix("item", "é😀tail", engine.WithBackend(b), engine.WithTrace(func(e core.TraceEvent) {
+						if e.Kind == core.TraceEnter && e.Rule == "item" {
 							inner, innerErr := p.ParsePrefix("item", "é😀other", engine.WithBackend(b), engine.WithUnit(core.Bytes))
 							if innerErr != nil || inner.Consumed != 6 || inner.ConsumedBytes != 6 {
 								failures <- fmt.Errorf("nested: %+v %v", inner, innerErr)
@@ -157,7 +157,7 @@ func TestParsePrefixRejectsDiagnosticCallback(t *testing.T) {
 				opts := []engine.ParseOption{
 					engine.WithBackend(backend),
 					engine.WithContext(ctx),
-					engine.WithTrace(func(engine.TraceEvent) { traceCalls++ }),
+					engine.WithTrace(func(core.TraceEvent) { traceCalls++ }),
 					engine.WithDiagnosticCallback(func(*core.SyntaxError) error { diagnosticCalls++; return nil }),
 				}
 				if recognize {

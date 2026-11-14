@@ -216,8 +216,8 @@ func TestDocumentNoEditTracePanicClearsRuns(t *testing.T) {
 		for _, unit := range []core.PositionUnit{core.CodePoints, core.Bytes} {
 			t.Run(fmt.Sprintf("%s/%s", backend, unit), func(t *testing.T) {
 				interrupt := false
-				opts := ParseOptions{Backend: backend, Unit: unit, Trace: func(e TraceEvent) {
-					if interrupt && e.Kind == TraceExit && e.Rule == "main" && e.Memo {
+				opts := ParseOptions{Backend: backend, Unit: unit, Trace: func(e core.TraceEvent) {
+					if interrupt && e.Kind == core.TraceExit && e.Rule == "main" && e.Memo {
 						panic("interrupt cached parse")
 					}
 				}}

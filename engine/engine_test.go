@@ -209,11 +209,11 @@ rule pair = k:[a-z]+ #atomic "=" v:[0-9]+ #atomic => list($k, $v)`, "main")
 	}
 	recognize := func(q *engine.Parser) error { _, err := q.Parse("a=1", engine.RecognizeOnly()); return err }
 	trace := func(q *engine.Parser) error {
-		_, err := q.Parse("a=1", engine.WithTrace(func(engine.TraceEvent) {}))
+		_, err := q.Parse("a=1", engine.WithTrace(func(core.TraceEvent) {}))
 		return err
 	}
 	profile := func(q *engine.Parser) error {
-		_, err := q.Parse("a=1", engine.WithProfile(&engine.Profile{}))
+		_, err := q.Parse("a=1", engine.WithProfile(&core.Profile{}))
 		return err
 	}
 	document := func(q *engine.Parser) error {
@@ -232,7 +232,7 @@ rule pair = k:[a-z]+ #atomic "=" v:[0-9]+ #atomic => list($k, $v)`, "main")
 		{"stream", stream, engine.CompiledParse},
 		{"prefix", prefix, engine.CompiledParse},
 		{"iterate", iterate(), engine.CompiledParse},
-		{"traced iterate", iterate(engine.WithTrace(func(engine.TraceEvent) {})), engine.CompiledDocument},
+		{"traced iterate", iterate(engine.WithTrace(func(core.TraceEvent) {})), engine.CompiledDocument},
 		{"recognize", recognize, engine.CompiledRecognize},
 		{"trace", trace, engine.CompiledDocument},
 		{"profile", profile, engine.CompiledDocument},
@@ -275,7 +275,7 @@ rule pair = k:[a-z]+ #atomic "=" v:[0-9]+ #atomic => list($k, $v)`, "main")
 			}
 		}
 		// Traced or profiled recognition needs the grammar source in every mode.
-		for _, opt := range []engine.ParseOption{engine.WithTrace(func(engine.TraceEvent) {}), engine.WithProfile(&engine.Profile{})} {
+		for _, opt := range []engine.ParseOption{engine.WithTrace(func(core.TraceEvent) {}), engine.WithProfile(&core.Profile{})} {
 			if _, err := loaded.Parse("a=1", engine.RecognizeOnly(), opt); err == nil || !strings.Contains(err.Error(), "needs the grammar source") {
 				t.Errorf("%s file, traced recognition: %v", mode, err)
 			}

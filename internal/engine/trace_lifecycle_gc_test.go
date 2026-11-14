@@ -35,7 +35,7 @@ func (r *traceLifecycleReader) Read(b []byte) (int, error) {
 }
 
 //go:noinline
-func traceLifecycleDocument(t *testing.T, p *Program, b Backend, u core.PositionUnit) (TraceEvent, weak.Pointer[byte], weak.Pointer[traceLifecycleSentinel]) {
+func traceLifecycleDocument(t *testing.T, p *Program, b Backend, u core.PositionUnit) (core.TraceEvent, weak.Pointer[byte], weak.Pointer[traceLifecycleSentinel]) {
 	s := &traceLifecycleSentinel{}
 	s.value[0] = 42
 	text := strings.Repeat("a", 4096)
@@ -45,12 +45,12 @@ func traceLifecycleDocument(t *testing.T, p *Program, b Backend, u core.Position
 	if sr.Value() == nil || ir.Value() == nil {
 		t.Fatal("positive control failed")
 	}
-	var e TraceEvent
-	d, err := p.NewDocumentWith("main", text, ParseOptions{Backend: b, Unit: u, Trace: func(v TraceEvent) {
+	var e core.TraceEvent
+	d, err := p.NewDocumentWith("main", text, ParseOptions{Backend: b, Unit: u, Trace: func(v core.TraceEvent) {
 		if traceLifecycleTouch(s) != 42 {
 			panic("sentinel")
 		}
-		if v.Kind == TraceEnter && v.Rule == "main" {
+		if v.Kind == core.TraceEnter && v.Rule == "main" {
 			e = v
 		}
 	}})
@@ -67,7 +67,7 @@ func traceLifecycleDocument(t *testing.T, p *Program, b Backend, u core.Position
 }
 
 //go:noinline
-func traceLifecycleStream(t *testing.T, p *Program, b Backend, u core.PositionUnit) (TraceEvent, weak.Pointer[traceLifecycleReader], weak.Pointer[traceLifecycleSentinel], *core.Node) {
+func traceLifecycleStream(t *testing.T, p *Program, b Backend, u core.PositionUnit) (core.TraceEvent, weak.Pointer[traceLifecycleReader], weak.Pointer[traceLifecycleSentinel], *core.Node) {
 	s := &traceLifecycleSentinel{}
 	s.value[0] = 42
 	r := &traceLifecycleReader{text: "#records\na=1\nbc=22\n"}
@@ -77,18 +77,18 @@ func traceLifecycleStream(t *testing.T, p *Program, b Backend, u core.PositionUn
 	if sr.Value() == nil || rr.Value() == nil {
 		t.Fatal("positive control failed")
 	}
-	var e TraceEvent
+	var e core.TraceEvent
 	var held *core.Node
 	err := p.ParseStreamWith("main", r, func(n *core.Node) error {
 		if held == nil {
 			held = n
 		}
 		return nil
-	}, ParseOptions{Backend: b, Unit: u, Trace: func(v TraceEvent) {
+	}, ParseOptions{Backend: b, Unit: u, Trace: func(v core.TraceEvent) {
 		if traceLifecycleTouch(s) != 42 {
 			panic("sentinel")
 		}
-		if v.Kind == TraceEnter && v.Rule == "main" {
+		if v.Kind == core.TraceEnter && v.Rule == "main" {
 			e = v
 		}
 	}})

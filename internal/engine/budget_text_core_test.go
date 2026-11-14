@@ -68,9 +68,9 @@ rule piece = .*`
 						}
 						var observed *state.Parser
 						armed := false
-						n, err := prog.ParseWith("main", source, ParseOptions{Backend: b, Unit: u, Recognize: recognize, Limits: core.Limits{Compute: 1 << 50}, Trace: func(e TraceEvent) {
+						n, err := prog.ParseWith("main", source, ParseOptions{Backend: b, Unit: u, Recognize: recognize, Limits: core.Limits{Compute: 1 << 50}, Trace: func(e core.TraceEvent) {
 							observed = state.TraceParser(e)
-							if e.Kind != TraceExit || e.Rule != "piece" || !e.Matched {
+							if e.Kind != core.TraceExit || e.Rule != "piece" || !e.Matched {
 								return
 							}
 							armed = true

@@ -156,8 +156,8 @@ rule line = [a-z / "é" / "😀"]+ #atomic "\n"`)
 				check()
 				if backing != nil {
 					dirty := documentVMValues(doc)[:cap(documentVMValues(doc))]
-					doc.SetDefaultTrace(func(e TraceEvent) {
-						if e.Kind == TraceExit && e.Rule == "line" && !e.Memo && e.Matched {
+					doc.SetDefaultTrace(func(e core.TraceEvent) {
+						if e.Kind == core.TraceExit && e.Rule == "line" && !e.Memo && e.Matched {
 							panic("stop after writing values")
 						}
 					})
@@ -196,8 +196,8 @@ rule line = [a-z / "é" / "😀"]+ #atomic "\n"`)
 					}
 				}
 				if backing != nil {
-					doc.SetDefaultTrace(func(e TraceEvent) {
-						if e.Kind == TraceEnter {
+					doc.SetDefaultTrace(func(e core.TraceEvent) {
+						if e.Kind == core.TraceEnter {
 							panic("stop before cached root")
 						}
 					})

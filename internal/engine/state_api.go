@@ -1,6 +1,7 @@
 package engine
 
 import (
+	"zeroparse.dev/zp/core"
 	"zeroparse.dev/zp/internal/engine/state"
 )
 
@@ -10,8 +11,6 @@ import (
 type (
 	Backend      = state.Backend
 	ParseOptions = state.ParseOptions
-	TraceKind    = state.TraceKind
-	TraceEvent   = state.TraceEvent
 	GNode        = state.GNode
 	Tuple        = state.Tuple
 	List         = state.List
@@ -27,12 +26,9 @@ const (
 
 	DefaultMaxDepth          = state.DefaultMaxDepth
 	DefaultMaxDepthIterative = state.DefaultMaxDepthIterative
-
-	TraceEnter = state.TraceEnter
-	TraceExit  = state.TraceExit
 )
 
 // ComposeTrace returns a trace function that calls prev and then next; see state.ComposeTrace.
-func ComposeTrace(prev, next func(TraceEvent)) func(TraceEvent) {
+func ComposeTrace(prev, next func(core.TraceEvent)) func(core.TraceEvent) {
 	return state.ComposeTrace(prev, next)
 }

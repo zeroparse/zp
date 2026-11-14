@@ -198,12 +198,12 @@ rule arm = _`
 				armed := false
 				fallback := 0
 				var observed *state.Parser
-				n, err := prog.ParseWith("main", "a", ParseOptions{Backend: b, Unit: u, Recognize: recognize, Limits: core.Limits{Compute: 1 << 50}, Trace: func(e TraceEvent) {
+				n, err := prog.ParseWith("main", "a", ParseOptions{Backend: b, Unit: u, Recognize: recognize, Limits: core.Limits{Compute: 1 << 50}, Trace: func(e core.TraceEvent) {
 					observed = state.TraceParser(e)
-					if e.Kind == TraceEnter && e.Rule == "fallback" {
+					if e.Kind == core.TraceEnter && e.Rule == "fallback" {
 						fallback++
 					}
-					if e.Kind == TraceExit && e.Rule == "arm" && e.Matched {
+					if e.Kind == core.TraceExit && e.Rule == "arm" && e.Matched {
 						if len(state.TraceParser(e).Trail) < 320 {
 							t.Fatalf("%v/%v recognize=%t: outer capture trail=%d", b, u, recognize, len(state.TraceParser(e).Trail))
 						}

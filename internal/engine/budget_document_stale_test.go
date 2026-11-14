@@ -31,7 +31,7 @@ func TestBudgetDocumentLeftoverEntriesAreNotCounted(t *testing.T) {
 				}
 				var used, doc uint64
 				od := o
-				od.Trace = func(e TraceEvent) { c := state.TraceParser(e).Control; used, doc = c.Used, c.Doc }
+				od.Trace = func(e core.TraceEvent) { c := state.TraceParser(e).Control; used, doc = c.Used, c.Doc }
 				budget := limits.DefaultBudget(uint64(2*n + 1))
 				for k := 0; k < 12; k++ {
 					rep := fmt.Sprintf("%c%c", 'c'+k/6, 'c'+k%6)
@@ -44,7 +44,7 @@ func TestBudgetDocumentLeftoverEntriesAreNotCounted(t *testing.T) {
 					counted := used - doc
 					var fresh uint64
 					of := o
-					of.Trace = func(e TraceEvent) { c := state.TraceParser(e).Control; fresh = c.Used - c.Doc }
+					of.Trace = func(e core.TraceEvent) { c := state.TraceParser(e).Control; fresh = c.Used - c.Doc }
 					cur := strings.Repeat("a", n-2) + rep + ";" + strings.Repeat("b", n)
 					if _, err := prog.ParseWith("main", cur, of); err != nil {
 						t.Fatalf("edit %d: parse from scratch: %.100v", k, err)
@@ -77,7 +77,7 @@ func TestBudgetDocumentLeftoverEntriesAreBoundedByTheEditLimit(t *testing.T) {
 			}
 			var used uint64
 			od := o
-			od.Trace = func(e TraceEvent) { used = state.TraceParser(e).Control.Used }
+			od.Trace = func(e core.TraceEvent) { used = state.TraceParser(e).Control.Used }
 			var settled, last uint64
 			for k := 0; k < 230; k++ {
 				rep := fmt.Sprintf("%c%c", 'c'+k/20, 'c'+k%20)

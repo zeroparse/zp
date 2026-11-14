@@ -320,7 +320,7 @@ func profileMismatch(r *observedReport) string {
 // engineTraceMismatch compares the calls of a generated parse (the events of got, skipped events set aside)
 // with the engine's trace eng of the same input and entry, and returns the first difference. An engine call
 // that fails having looked at no more than its first character may be missing from the generated trace.
-func engineTraceMismatch(eng []engine.TraceEvent, got []observedEvent, in string) string {
+func engineTraceMismatch(eng []core.TraceEvent, got []observedEvent, in string) string {
 	var g []observedEvent
 	for _, e := range got {
 		if e.kind != 2 {
@@ -330,7 +330,7 @@ func engineTraceMismatch(eng []engine.TraceEvent, got []observedEvent, in string
 	subtreeEnd := func(ei int) int {
 		depth := 0
 		for k := ei; k < len(eng); k++ {
-			if eng[k].Kind == engine.TraceEnter {
+			if eng[k].Kind == core.TraceEnter {
 				depth++
 			} else if depth--; depth == 0 {
 				return k + 1
@@ -341,7 +341,7 @@ func engineTraceMismatch(eng []engine.TraceEvent, got []observedEvent, in string
 	gi := 0
 	for ei := 0; ei < len(eng); {
 		e := eng[ei]
-		if e.Kind == engine.TraceExit {
+		if e.Kind == core.TraceExit {
 			if gi >= len(g) {
 				return "the generated trace ends before the exit of " + e.Rule
 			}
@@ -400,12 +400,12 @@ func checkObservations(t *testing.T, group string, cases []codegentest.Case, sta
 				}
 				checked++
 				events += len(r.events)
-				var eng []engine.TraceEvent
+				var eng []core.TraceEvent
 				// Generated parsers record no examined range outside a Document parse, so they reuse
 				// the steps and lookahead outcomes of left-recursion contexts that differ only in it.
 				o := engine.ParseOptions{Expectations: true, Backend: engine.Closure, Unit: core.CodePoints, Recognize: entry == "recognize",
 					ContextMemoUnexamined: true}
-				o.Trace = func(e engine.TraceEvent) { eng = append(eng, e) }
+				o.Trace = func(e core.TraceEvent) { eng = append(eng, e) }
 				prog.ParseWith(start, c.Inputs[j], o)
 				if msg := engineTraceMismatch(eng, r.events, c.Inputs[j]); msg != "" {
 					t.Errorf("%s %q %s: %s", c.Name, c.Inputs[j], entry, msg)

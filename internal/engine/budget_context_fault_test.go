@@ -26,7 +26,7 @@ func TestBudgetContextAttributionPreservesVMFaults(t *testing.T) {
 			var observed *state.Parser
 			n, err := prog.ParseWith("main", "z", ParseOptions{
 				Backend: backend, Limits: core.Limits{Compute: 1 << 20},
-				Trace: func(e TraceEvent) { observed = state.TraceParser(e) },
+				Trace: func(e core.TraceEvent) { observed = state.TraceParser(e) },
 			})
 			if n != nil || err == nil || !strings.HasPrefix(err.Error(), "invalid bytecode: ") {
 				t.Fatalf("VM fault node=%v error=%v", n, err)
@@ -68,8 +68,8 @@ func TestBudgetContextAccessorInterruptionRemainsFatal(t *testing.T) {
 				accessorEntered := false
 				n, err := prog.ParseWith("main", text, ParseOptions{
 					Backend: backend, Unit: unit, Context: ctx,
-					Trace: func(e TraceEvent) {
-						if e.Kind != TraceEnter || e.Rule != "main" {
+					Trace: func(e core.TraceEvent) {
+						if e.Kind != core.TraceEnter || e.Rule != "main" {
 							return
 						}
 						observed = state.TraceParser(e)
@@ -116,8 +116,8 @@ func TestBudgetContextNestedAccessorPanicIdentity(t *testing.T) {
 					defer func() { got = recover() }()
 					_, _ = prog.ParseWith("main", text, ParseOptions{
 						Backend: backend, Unit: unit, Context: ctx,
-						Trace: func(e TraceEvent) {
-							if e.Kind != TraceEnter || e.Rule != "main" {
+						Trace: func(e core.TraceEvent) {
+							if e.Kind != core.TraceEnter || e.Rule != "main" {
 								return
 							}
 							observed = state.TraceParser(e)

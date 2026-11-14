@@ -194,7 +194,7 @@ func (g *slopeGrammar) source() string {
 // capped.
 func spent(p *engine.Parser, input string, b engine.Backend) (cost uint64, capped bool) {
 	_, err := p.Parse(input, engine.WithBackend(b), engine.WithLimits(core.Limits{Compute: slopeCap}),
-		engine.WithTrace(func(e engine.TraceEvent) {
+		engine.WithTrace(func(e core.TraceEvent) {
 			if c := state.TraceParser(e).Control; c != nil {
 				cost = c.Used
 			}

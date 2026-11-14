@@ -21,10 +21,10 @@ import (
 // indented by depth, and the parse result.
 func traceLines(prog *Program, start, input string, o ParseOptions) ([]string, string) {
 	var out []string
-	o.Trace = func(e TraceEvent) {
+	o.Trace = func(e core.TraceEvent) {
 		var b strings.Builder
 		b.WriteString(strings.Repeat(" ", e.Depth-1))
-		if e.Kind == TraceEnter {
+		if e.Kind == core.TraceEnter {
 			fmt.Fprintf(&b, "> %s@%d", e.Rule, e.Pos)
 		} else {
 			fmt.Fprintf(&b, "< %s@%d", e.Rule, e.Pos)
@@ -35,7 +35,7 @@ func traceLines(prog *Program, start, input string, o ParseOptions) ([]string, s
 		if e.Lookahead {
 			b.WriteString(" lookahead")
 		}
-		if e.Kind == TraceExit {
+		if e.Kind == core.TraceExit {
 			if e.Matched {
 				fmt.Fprintf(&b, " ok %d %q", e.End, e.Text())
 			} else {
@@ -73,7 +73,7 @@ func checkTrace(t *testing.T, prog *Program, start, input string, o ParseOptions
 			t.Errorf("input %q (%v, unit %v, recognize %v): tracing changes the result\n without %s\n with    %s", input, b, o.Unit, o.Recognize, want, got)
 		}
 		w1, r1 := parseSpend(prog, start, input, o)
-		o.Trace = func(TraceEvent) {}
+		o.Trace = func(core.TraceEvent) {}
 		w2, r2 := parseSpend(prog, start, input, o)
 		o.Trace = nil
 		if r1 != want || r2 != want || w1 != w2 {
@@ -106,7 +106,7 @@ func parseSpend(prog *Program, start, input string, o ParseOptions) (parseBudget
 	p.Expectations = o.Expectations
 	p.MaxDepth, _ = state.DepthLimit(o, o.Backend) // the options of these tests are valid
 	p.DeferMemo = true
-	p.SetTrace(o.Trace)
+	p.SetTrace(o.Trace, o.Profiles)
 	n, err := target.Run(p, o.Backend, start)
 	if o.Recognize {
 		n = nil
@@ -142,13 +142,13 @@ func parseSpend(prog *Program, start, input string, o ParseOptions) (parseBudget
 // checkEvents checks that the events of a parse nest and that exits agree with their enters.
 func checkEvents(t *testing.T, prog *Program, start, input string, o ParseOptions) {
 	t.Helper()
-	var stack []TraceEvent
+	var stack []core.TraceEvent
 	bad := ""
-	o.Trace = func(e TraceEvent) {
+	o.Trace = func(e core.TraceEvent) {
 		if bad != "" {
 			return
 		}
-		if e.Kind == TraceEnter {
+		if e.Kind == core.TraceEnter {
 			stack = append(stack, e)
 			if e.Depth != len(stack) {
 				bad = fmt.Sprintf("enter %s at depth %d, want %d", e.Rule, e.Depth, len(stack))
@@ -211,7 +211,7 @@ func checkTraceDocument(t *testing.T, prog *Program, input string) {
 	}{{mid, mid, "x"}, {mid, mid + 1, ""}, {0, min(1, len(runes)), "a"}}
 	for _, b := range []Backend{Closure, Bytecode, BytecodeIterative} {
 		plain, err1 := prog.NewDocumentWith("main", input, ParseOptions{Expectations: true, Backend: b})
-		traced, err2 := prog.NewDocumentWith("main", input, ParseOptions{Expectations: true, Backend: b, Trace: func(TraceEvent) {}})
+		traced, err2 := prog.NewDocumentWith("main", input, ParseOptions{Expectations: true, Backend: b, Trace: func(core.TraceEvent) {}})
 		if err1 != nil || err2 != nil {
 			t.Fatal(err1, err2)
 		}
@@ -396,8 +396,8 @@ rule line = [a-z]* #atomic "\n"`)
 		}
 		err1 := prog.ParseStreamWith("main", strings.NewReader("ab\ncd\n"), emit(&lines), ParseOptions{Expectations: true, Backend: b})
 		calls := 0
-		err2 := prog.ParseStreamWith("main", strings.NewReader("ab\ncd\n"), emit(&traced), ParseOptions{Expectations: true, Backend: b, Trace: func(e TraceEvent) {
-			if e.Kind == TraceExit && e.Rule == "line" && e.Matched {
+		err2 := prog.ParseStreamWith("main", strings.NewReader("ab\ncd\n"), emit(&traced), ParseOptions{Expectations: true, Backend: b, Trace: func(e core.TraceEvent) {
+			if e.Kind == core.TraceExit && e.Rule == "line" && e.Matched {
 				calls++
 			}
 		}})
@@ -406,8 +406,8 @@ rule line = [a-z]* #atomic "\n"`)
 		}
 
 		var evals, memo int
-		d, err := prog.NewDocumentWith("main", "ab\ncd\n", ParseOptions{Expectations: true, Backend: b, Trace: func(e TraceEvent) {
-			if e.Kind == TraceExit {
+		d, err := prog.NewDocumentWith("main", "ab\ncd\n", ParseOptions{Expectations: true, Backend: b, Trace: func(e core.TraceEvent) {
+			if e.Kind == core.TraceExit {
 				evals += e.Evals
 				if e.Memo {
 					memo++
@@ -448,7 +448,7 @@ func TestTracePanic(t *testing.T) {
 		func() {
 			defer func() { got = recover() }()
 			var m map[string]int
-			_, err = prog.ParseWith("main", "abc", ParseOptions{Expectations: true, Backend: b, Trace: func(TraceEvent) {
+			_, err = prog.ParseWith("main", "abc", ParseOptions{Expectations: true, Backend: b, Trace: func(core.TraceEvent) {
 				m["x"]++ // a runtime error
 			}})
 		}()
@@ -467,8 +467,8 @@ rule stmt = (word ";") #recover(skip=[^;]+ ";")
 rule word = [a-z]+ #atomic`)
 	for _, b := range []Backend{Closure, Bytecode, BytecodeIterative} {
 		var got []string
-		_, err := prog.ParseWith("main", "ab1;cd;", ParseOptions{Expectations: true, Backend: b, Trace: func(e TraceEvent) {
-			if e.Kind == TraceExit && len(e.Recovered()) > 0 {
+		_, err := prog.ParseWith("main", "ab1;cd;", ParseOptions{Expectations: true, Backend: b, Trace: func(e core.TraceEvent) {
+			if e.Kind == core.TraceExit && len(e.Recovered()) > 0 {
 				got = append(got, fmt.Sprintf("%s@%d %v; failure %v", e.Rule, e.Pos, e.Recovered(), e.Failure()))
 			}
 		}})
@@ -492,12 +492,12 @@ func dispatchFreeTrace(prog *Program, input string, o ParseOptions) ([]string, s
 	}
 	var lines []line
 	var open []int
-	o.Trace = func(e TraceEvent) {
+	o.Trace = func(e core.TraceEvent) {
 		switch e.Kind {
-		case TraceEnter:
+		case core.TraceEnter:
 			open = append(open, len(lines))
 			lines = append(lines, line{text: fmt.Sprintf("> %s@%d:%d", e.Rule, e.Pos, e.Level)})
-		case TraceExit:
+		case core.TraceExit:
 			i := open[len(open)-1]
 			open = open[:len(open)-1]
 			if !e.Matched && e.Examined <= firstCharEnd(input, e.Pos, o.Unit) {

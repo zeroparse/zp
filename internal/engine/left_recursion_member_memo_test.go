@@ -17,8 +17,8 @@ func nestedLeftRecursionEvals(t *testing.T, prog *Program, input string) map[Bac
 	got := map[Backend]int{}
 	var want string
 	for _, b := range []Backend{Closure, Bytecode, BytecodeIterative} {
-		var pr Profile
-		n, err := prog.ParseWith("", input, ParseOptions{Backend: b, Trace: pr.Trace})
+		var pr core.Profile
+		n, err := prog.ParseWith("", input, ParseOptions{Backend: b, Profiles: []*core.Profile{&pr}})
 		if err != nil {
 			t.Fatalf("%s: %v", b, err)
 		}
@@ -27,7 +27,7 @@ func nestedLeftRecursionEvals(t *testing.T, prog *Program, input string) map[Bac
 		} else if n.String() != want {
 			t.Fatalf("%s: result differs from the first backend", b)
 		}
-		got[b] = pr.Evals
+		got[b] = pr.Snapshot().Evals
 	}
 	return got
 }

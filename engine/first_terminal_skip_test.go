@@ -2,6 +2,7 @@ package engine_test
 
 import (
 	"testing"
+	"zeroparse.dev/zp/core"
 
 	"zeroparse.dev/zp/engine"
 	"zeroparse.dev/zp/internal/codegentest"
@@ -25,8 +26,8 @@ func TestLookaheadHasNoFirstTerminal(t *testing.T) {
 				opts = append(opts, engine.RecognizeOnly())
 			}
 			calls := 0
-			if _, err := p.Parse("bc", append(opts, engine.WithTrace(func(e engine.TraceEvent) {
-				if e.Kind == engine.TraceEnter && e.Rule == "x" {
+			if _, err := p.Parse("bc", append(opts, engine.WithTrace(func(e core.TraceEvent) {
+				if e.Kind == core.TraceEnter && e.Rule == "x" {
 					calls++
 				}
 			}))...); err != nil {

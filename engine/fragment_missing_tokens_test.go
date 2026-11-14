@@ -17,7 +17,7 @@ func TestParsePrefixRejectsMissingTokenOptions(t *testing.T) {
 	for _, backend := range []engine.Backend{engine.Closure, engine.Bytecode, engine.BytecodeIterative} {
 		for _, recognize := range []bool{false, true} {
 			traceCalls := 0
-			opts := []engine.ParseOption{engine.WithBackend(backend), engine.WithTrace(func(engine.TraceEvent) { traceCalls++ })}
+			opts := []engine.ParseOption{engine.WithBackend(backend), engine.WithTrace(func(core.TraceEvent) { traceCalls++ })}
 			if recognize {
 				opts = append(opts, engine.RecognizeOnly())
 			}

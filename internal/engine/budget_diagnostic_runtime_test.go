@@ -49,12 +49,12 @@ func TestBudgetDiagnosticBatchFailureAndTraceAccessor(t *testing.T) {
 						var observed *state.Parser
 						var c *state.BudgetControl
 						var at uint64
-						n, err := active.ParseWith("main", "x", ParseOptions{Expectations: true, Backend: b, Unit: u, Recognize: recognize, Limits: core.Limits{Compute: 1 << 50}, Trace: func(e TraceEvent) {
+						n, err := active.ParseWith("main", "x", ParseOptions{Expectations: true, Backend: b, Unit: u, Recognize: recognize, Limits: core.Limits{Compute: 1 << 50}, Trace: func(e core.TraceEvent) {
 							observed = state.TraceParser(e)
-							if e.Kind == TraceEnter && e.Rule == "fallback" {
+							if e.Kind == core.TraceEnter && e.Rule == "fallback" {
 								fallback++
 							}
-							if !armed && e.Kind == TraceExit && ((accessor && e.Rule == "bad") || (!accessor && e.Rule == "main")) {
+							if !armed && e.Kind == core.TraceExit && ((accessor && e.Rule == "bad") || (!accessor && e.Rule == "main")) {
 								if e.Matched || len(state.TraceExpectations(e)) != 16 {
 									t.Fatalf("unexpected diagnostic fixture exp=%d", len(state.TraceExpectations(e)))
 								}
@@ -122,12 +122,12 @@ rule bad = "a" @error(message=` + strconv.Quote(message) + `)`
 			for _, recognize := range []bool{false, true} {
 				armed, fallback := false, 0
 				var observed *state.Parser
-				n, err := prog.ParseWith("main", "x", ParseOptions{Expectations: true, Backend: b, Unit: u, Recognize: recognize, Limits: core.Limits{Compute: 1 << 50}, Trace: func(e TraceEvent) {
+				n, err := prog.ParseWith("main", "x", ParseOptions{Expectations: true, Backend: b, Unit: u, Recognize: recognize, Limits: core.Limits{Compute: 1 << 50}, Trace: func(e core.TraceEvent) {
 					observed = state.TraceParser(e)
-					if e.Kind == TraceEnter && e.Rule == "fallback" {
+					if e.Kind == core.TraceEnter && e.Rule == "fallback" {
 						fallback++
 					}
-					if !armed && e.Kind == TraceExit && e.Rule == "bad" {
+					if !armed && e.Kind == core.TraceExit && e.Rule == "bad" {
 						armed = true
 						state.TraceParser(e).Control.Limits.Compute = state.TraceParser(e).Control.Used + 256
 					}
@@ -145,12 +145,12 @@ rule bad = "a" @error(message=` + strconv.Quote(message) + `)`
 				}
 				if !recognize {
 					armed, fallback = false, 0
-					n, err = prog.ParseWith("main", "x", ParseOptions{Expectations: true, Backend: b, Unit: u, Limits: core.Limits{Compute: 1 << 50}, Trace: func(e TraceEvent) {
+					n, err = prog.ParseWith("main", "x", ParseOptions{Expectations: true, Backend: b, Unit: u, Limits: core.Limits{Compute: 1 << 50}, Trace: func(e core.TraceEvent) {
 						observed = state.TraceParser(e)
-						if e.Kind == TraceEnter && e.Rule == "fallback" {
+						if e.Kind == core.TraceEnter && e.Rule == "fallback" {
 							fallback++
 						}
-						if !armed && e.Kind == TraceExit && e.Rule == "bad" {
+						if !armed && e.Kind == core.TraceExit && e.Rule == "bad" {
 							armed = true
 							// The post-callback check succeeds; the message copy polls next.
 							state.TraceParser(e).Control.Ctx = newPollingContext(2)

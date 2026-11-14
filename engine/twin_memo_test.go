@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"strings"
 	"testing"
+	"zeroparse.dev/zp/core"
 
 	"zeroparse.dev/zp/engine"
 	"zeroparse.dev/zp/internal/codegentest"
@@ -72,8 +73,8 @@ func TestTwinMemo(t *testing.T) {
 			}
 			var stack []frame
 			var got []string
-			_, _ = p.Parse(c.input, append(opts, engine.WithTrace(func(e engine.TraceEvent) {
-				if e.Kind == engine.TraceEnter {
+			_, _ = p.Parse(c.input, append(opts, engine.WithTrace(func(e core.TraceEvent) {
+				if e.Kind == core.TraceEnter {
 					fromCaller := len(stack) > 0 && stack[len(stack)-1].rule == c.caller
 					stack = append(stack, frame{e.Rule, e.Pos, fromCaller})
 					return

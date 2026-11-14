@@ -20,7 +20,7 @@ func TestBudgetStreamReferenceAdmission(t *testing.T) {
 		r := &streamCallbackReader{text: "#records\na=1\n"}
 		callbacks := 0
 		r.onRead = func() { callbacks++ }
-		o.Trace = func(TraceEvent) { callbacks++ }
+		o.Trace = func(core.TraceEvent) { callbacks++ }
 		err := prog.ParseStreamWith("main", r, func(*core.Node) error { callbacks++; return nil }, o)
 		if err == nil || !strings.Contains(err.Error(), "reference build") || callbacks != 0 || r.offset != 0 || r.closed {
 			t.Fatalf("error=%v callbacks=%d offset=%d", err, callbacks, r.offset)

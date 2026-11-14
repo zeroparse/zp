@@ -166,7 +166,7 @@ func TestEngineTermChargesPerValue(t *testing.T) {
 		prog := compileBare(t, src)
 		var n uint64
 		_, err := prog.ParseWith("main", "a", engine.ParseOptions{Backend: b, Recognize: recognize, Limits: core.Limits{Compute: 1 << 50},
-			Trace: func(e engine.TraceEvent) { n = state.TraceParser(e).Control.Used }})
+			Trace: func(e core.TraceEvent) { n = state.TraceParser(e).Control.Used }})
 		if err != nil {
 			t.Fatalf("%s: %v", src, err)
 		}
