@@ -153,8 +153,9 @@ pushes them and for each projected `map` among the arguments of one whose are, b
 each other call of `map`, before `items`. A variable is read into a local where the term
 reads it, since reading it charges the budget; the other leaves are operands of the calls that read them. The
 function takes the context that the term is applied to as its one parameter, which `member`, `push`, `pushItems`, `hull` and
-`made` take, and has the signature of the callable type `Term`. It returns the term's value, or, when the target places
-the value itself, assigns it as its last statement to a local of the function that the target declares.
+`made` take. A term lowered for its value returns it and has the signature of the callable type `Term`. A term that the
+target evaluates in place, which assigns the value as its last statement to a local of the function that the target
+declares, has no results and is never a `Term` handle.
 
 The operations of the leaves are transitional, of the component `runtime`:
 

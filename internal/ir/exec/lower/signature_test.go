@@ -1,6 +1,7 @@
 package lower
 
 import (
+	"slices"
 	"strings"
 	"testing"
 
@@ -41,5 +42,36 @@ func TestLoweredTermHasTheSignatureOfTerm(t *testing.T) {
 		if err == nil || !strings.Contains(err.Error(), "signature of Term") {
 			t.Errorf("%s: err = %v, want the signature of Term to be reported", c.name, err)
 		}
+	}
+}
+
+// TestTermChecksItsSignature goes through Term itself: when the callable type Term declares another signature than
+// the function that Term lowers, lowering fails, so a lowering that dropped the check would pass for any change to
+// the signature. The test changes the handle type of the shared base module of terms and restores it.
+func TestTermChecksItsSignature(t *testing.T) {
+	m, err := termModule()
+	if err != nil {
+		t.Fatal(err)
+	}
+	h := m.HandleType(ops.Term)
+	saved := h.Callable
+	defer func() { h.Callable = saved }()
+	for _, c := range []struct {
+		name string
+		sig  exec.Signature
+	}{
+		{"a second parameter", exec.Signature{Params: append(slices.Clone(saved.Params), saved.Params[0]), Results: saved.Results}},
+		{"one result", exec.Signature{Params: saved.Params, Results: saved.Results[:1]}},
+		{"no parameter", exec.Signature{Results: saved.Results}},
+	} {
+		h.Callable = &c.sig
+		_, err := Term(&core.Const{Value: 1}, TermOptions{})
+		if err == nil || !strings.Contains(err.Error(), "signature of Term") {
+			t.Errorf("%s: err = %v, want the signature of Term to be reported", c.name, err)
+		}
+	}
+	h.Callable = saved
+	if _, err := Term(&core.Const{Value: 1}, TermOptions{}); err != nil {
+		t.Errorf("with the declared signature: %v", err)
 	}
 }
