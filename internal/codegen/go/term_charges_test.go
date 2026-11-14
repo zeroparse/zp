@@ -191,8 +191,8 @@ func termChargeKey(prefix string, terms []codegentest.TermCase, i int, input, ta
 
 // goTermCharges returns the golden entries of the generated Go targets for terms: the charges of the node
 // parser's Parse and Recognize and of the typed parser's ParseValue. mutate, if not nil, edits each generated
-// parser before it is built.
-func goTermCharges(t *testing.T, prefix string, terms []codegentest.TermCase, mutate func([]byte) []byte) map[string]string {
+// parser before it is built; it is given the target the parser is built for, "go-node" or "go-typed".
+func goTermCharges(t *testing.T, prefix string, terms []codegentest.TermCase, mutate func(target string, src []byte) []byte) map[string]string {
 	t.Helper()
 	cases := make([]codegentest.Case, len(terms))
 	for i, c := range terms {
@@ -206,7 +206,11 @@ func goTermCharges(t *testing.T, prefix string, terms []codegentest.TermCase, mu
 		opts  codegen.GenOptions
 		parse string
 	}{{"go-node", codegen.GenOptions{}, "Parse"}, {"go-typed", codegen.GenOptions{Types: true}, "ParseValue"}} {
-		totals, problems := budgetTotalsWith(t, rt, prefix, cases, "main", mutate, run.opts, run.parse)
+		var edit func([]byte) []byte
+		if mutate != nil {
+			edit = func(src []byte) []byte { return mutate(run.name, src) }
+		}
+		totals, problems := budgetTotalsWith(t, rt, prefix, cases, "main", edit, run.opts, run.parse)
 		for _, p := range problems {
 			t.Error(p)
 		}

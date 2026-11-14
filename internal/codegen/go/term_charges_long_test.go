@@ -40,31 +40,38 @@ func TestTermChargeGoldensDetectBrokenCharges(t *testing.T) {
 	} {
 		t.Run(m.name, func(t *testing.T) {
 			t.Parallel()
-			var hits atomic.Int64
-			got := goTermCharges(t, m.prefix, termChargeCases(t, m.cases()), func(src []byte) []byte {
+			hits := map[string]*atomic.Int64{"go-node": {}, "go-typed": {}}
+			got := goTermCharges(t, m.prefix, termChargeCases(t, m.cases()), func(target string, src []byte) []byte {
 				out, n := m.mutate(src)
-				hits.Add(int64(n))
+				hits[target].Add(int64(n))
 				return out
 			})
-			if hits.Load() == 0 {
-				t.Fatalf("the mutant %q matches no generated parser", m.name)
-			}
 			want := codegentest.ReadGolden(t, m.golden)
-			differ := 0
+			differ := map[string]int{}
 			for k, v := range got {
 				w, ok := want[k]
 				if !ok {
 					t.Fatalf("%s has no entry for %q", m.golden, k)
 				}
 				if w != v {
-					differ++
-					if differ <= 5 {
+					// The target is the last word of the key, with -recognize for the node parser's Recognize.
+					target := k[strings.LastIndex(k, " ")+1:]
+					target = strings.TrimSuffix(target, "-recognize")
+					differ[target]++
+					if differ[target] <= 3 {
 						t.Logf("%s: %s, golden %s", k, v, w)
 					}
 				}
 			}
-			if differ == 0 {
-				t.Errorf("the mutant %q (%d edits) changes no Go entry of %s", m.name, hits.Load(), m.golden)
+			// The mutant must apply to, and change the charges of, the node and the typed parser alike: a
+			// pattern that only one of them prints would leave the other's goldens unchecked.
+			for _, target := range []string{"go-node", "go-typed"} {
+				switch n := hits[target].Load(); {
+				case n == 0:
+					t.Errorf("the mutant %q matches no generated %s parser", m.name, target)
+				case differ[target] == 0:
+					t.Errorf("the mutant %q (%d edits) changes no %s entry of %s", m.name, n, target, m.golden)
+				}
 			}
 		})
 	}
