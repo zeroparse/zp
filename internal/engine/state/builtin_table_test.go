@@ -51,9 +51,9 @@ func TestEngineValueBuiltinTable(t *testing.T) {
 			var err error
 			switch call {
 			case conform.CallLen:
-				got, err = c.Builtin("len", []any{vals[v]})
+				got, err = p.termLength(vals[v])
 			case conform.CallText:
-				got, err = c.TextString(vals[v])
+				got, err = p.termText(vals[v])
 			case conform.CallConvert:
 				got, err = p.Convert(nt, vals[v])
 			default:

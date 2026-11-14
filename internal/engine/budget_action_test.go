@@ -92,21 +92,11 @@ func TestBudgetActionCollectionLoopsChargeElements(t *testing.T) {
 	t.Parallel()
 	const size = 2048
 	items := actionBudgetNodes(size)
-	list := value.Ptr(value.Data{Children: items})
 
 	cases := []struct {
 		name string
 		run  func(*state.EvalCtx) error
 	}{
-		{"list", func(c *state.EvalCtx) error {
-			args := make([]any, len(items))
-			for i, item := range items {
-				args[i] = item
-			}
-			_, err := c.Builtin("list", args)
-			return err
-		}},
-		{"concat", func(c *state.EvalCtx) error { _, err := c.Builtin("concat", []any{list}); return err }},
 		{"newList", func(c *state.EvalCtx) error { _ = c.NewList(items); return nil }},
 		{"listNode", func(c *state.EvalCtx) error { _ = c.ListNode(items); return nil }},
 		{"local copy", func(c *state.EvalCtx) error { _ = c.Keep(); return nil }},
@@ -177,7 +167,14 @@ rule items = [a-z] #atomic*`)
 
 func TestBudgetActionBatchCancellationStopsPublication(t *testing.T) {
 	t.Parallel()
-	prog := mustCompile(t, `rule main = parts:items => map($parts, (x) => x)
+	for _, action := range []string{`map($parts, (x) => x)`, `concat($parts)`} {
+		t.Run(action, func(t *testing.T) { batchCancellationStopsPublication(t, action) })
+	}
+}
+
+func batchCancellationStopsPublication(t *testing.T, action string) {
+	t.Helper()
+	prog := mustCompile(t, `rule main = parts:items => `+action+`
 
 rule items = [a-z] #atomic*`)
 	input := strings.Repeat("a", 1024)

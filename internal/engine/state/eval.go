@@ -212,56 +212,6 @@ func (c *EvalCtx) TupleNode(kids []*core.Node) *core.Node {
 	return c.P.termHull(c, true, kids)
 }
 
-// Builtin calls the built-in function fn with evaluated arguments.
-func (c *EvalCtx) Builtin(fn string, args []any) (any, error) {
-	switch fn {
-	case "len":
-		return c.P.termLength(args[0])
-	case "text":
-		s, err := c.TextString(args[0])
-		if err != nil {
-			return nil, err
-		}
-		return s, nil
-	case "list", "concat":
-		// The elements are gathered on KidStack.
-		base := len(c.P.KidStack)
-		if err := c.PushElems(fn, args); err != nil {
-			c.P.DropKids(base)
-			return nil, err
-		}
-		return c.ListNode(c.P.Kids(base)), nil
-	}
-	return nil, c.P.ActionError("unknown function ", fn)
-}
-
-// TextString returns text(v) (the built-in) as a string.
-func (c *EvalCtx) TextString(v any) (string, error) {
-	return c.P.termText(v)
-}
-
-// PushElems pushes onto KidStack the elements of the list that the list built-in fn (list or
-// concat) makes from args.
-func (c *EvalCtx) PushElems(fn string, args []any) error {
-	switch fn {
-	case "list":
-		for _, a := range args {
-			c.P.Spend()
-			if err := c.Push("list", a); err != nil {
-				return err
-			}
-		}
-	case "concat":
-		for _, a := range args {
-			c.P.Spend()
-			if err := c.P.termPushItems(c, "concat", a); err != nil {
-				return err
-			}
-		}
-	}
-	return nil
-}
-
 // ValueListItems returns the items of the list node v that the built-in fn reads: none for nil, and
 // an error for a value that is not a list.
 func (p *Parser) ValueListItems(fn string, v any) ([]*core.Node, error) {

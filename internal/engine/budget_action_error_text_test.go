@@ -124,10 +124,6 @@ func TestBudgetActionErrorProducersAreEager(t *testing.T) {
 		{"element name", func(p *state.Parser) error {
 			return (&state.EvalCtx{P: p}).Push(long, struct{}{})
 		}},
-		{"text type", func(p *state.Parser) error {
-			_, err := (&state.EvalCtx{P: p}).TextString(struct{}{})
-			return err
-		}},
 	}
 	for _, tc := range producers {
 		t.Run(tc.name, func(t *testing.T) {
