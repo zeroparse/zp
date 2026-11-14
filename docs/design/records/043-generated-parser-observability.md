@@ -173,7 +173,7 @@ call's end at its position and merges it back into the caller's afterwards, so
 the caller's earlier lookahead is excluded and the Document's own end is
 unchanged. The Document keeps one high-water mark per call, and that mark is
 both the reuse bound and the reported value, so the trace explains reuse
-decisions exactly and matches the engine's examined end for valid input. The
+decisions exactly and matches the engine's examined end. The
 end can be one position past the end of the input when a call observed the end
 of input.
 

@@ -156,14 +156,10 @@ func (in *Input) decodePieces(i int) (r rune, size, examined int, ok bool) {
 	}
 	b := buf[:available]
 	r, size = utf8.DecodeRune(b)
-	examined = i + size
 	if r == utf8.RuneError && size == 1 {
-		examined = i + min(utf8.UTFMax, in.Pieces.N-i)
-		if !utf8.FullRune(b) {
-			examined++
-		}
+		return r, size, i + invalidLen(b), true
 	}
-	return r, size, examined, true
+	return r, size, i + size, true
 }
 
 func (p *Parser) matchLiteralPieces(rs []rune, bs []byte) bool {

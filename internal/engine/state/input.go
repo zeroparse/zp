@@ -487,17 +487,22 @@ func (in *Input) Decode(i int) (r rune, size, examined int, ok bool) {
 	}
 	in.spendRead(uint64(min(utf8.UTFMax, len(b))))
 	r, size = utf8.DecodeRune(b)
-	examined = i + size
 	if r == utf8.RuneError && size == 1 {
-		// Whether the bytes are invalid depends on the following bytes.
-		examined = i + min(utf8.UTFMax, len(b))
-		if !utf8.FullRune(b) {
-			// EOF completed the decoding decision, not the character. An
-			// insertion here may complete the prefix and change its size.
-			examined++
-		}
+		return r, size, i + invalidLen(b), true
 	}
-	return r, size, examined, true
+	return r, size, i + size, true
+}
+
+// invalidLen returns how many bytes decoding the invalid UTF-8 at the start of b examined: the
+// bytes up to the first that makes it invalid, or one more than len(b) when b ends inside a valid
+// prefix, since the end of the input decided the decoding and an insertion there may complete the
+// character.
+func invalidLen(b []byte) int {
+	k := 1
+	for k <= len(b) && !utf8.FullRune(b[:k]) {
+		k++
+	}
+	return k
 }
 
 // byteAt returns the byte at position i when the unit is Bytes.

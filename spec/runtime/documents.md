@@ -267,9 +267,8 @@ evaluation records is at a slot that it examined. The range is sound: every
 slot whose content can change the outcome of the evaluation lies in it, so
 an edit that changes only slots outside it leaves that outcome as it was.
 A Document may record a smaller l or a larger h; that only drops more
-entries and resumes fewer iterations. Generated Documents record h exactly,
-one past the greatest examined slot; the engine records a larger h only
-after invalid UTF-8, where decoding counts up to four bytes from i.
+entries and resumes fewer iterations. Every Document records h exactly,
+one past the greatest examined slot.
 
 **Position-free evaluations.** An evaluation is **position-free** when no
 action or predicate in it, or in a call within it, reads a position (the

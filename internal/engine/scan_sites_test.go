@@ -502,8 +502,9 @@ func scanExamined(t *testing.T, prog *Program, in string, o ParseOptions) (out [
 const scanLookahead = `rule main = &(ws "z") (ws "a" / ws "b" / ws "c" / ws "d" / ws "z")* $$
 rule ws = [ ]*`
 
-// scanInvalidBytes walks over invalid UTF-8, whose bytes are examined with the three that follow
-// them, so that the walk examines past the character that ends it.
+// scanInvalidBytes walks over invalid UTF-8. Decoding a truncated prefix examines the byte that
+// makes it invalid, or the end of the input, so that the walk examines past the character that
+// ends it.
 const scanInvalidBytes = `rule main = (r "?" / r "." / r ":" / r ";" / r "!")* $$
 rule r = [^!]*`
 
@@ -519,13 +520,13 @@ func TestScanSitesKeepTheExaminedRange(t *testing.T) {
 	grammars := append([]struct{ Name, Src, Alphabet string }{
 		{"a lookahead that examines further", scanLookahead, " abdz"},
 		{"a rule that examined further before the walk", scanEarlierExamined, "xyz!?.:;"},
-		{"invalid bytes examined with the bytes that follow", scanInvalidBytes, "\xffz!?é"},
+		{"invalid bytes examined up to the byte that invalidates them", scanInvalidBytes, "\xffz!?é"},
 	}, scanSiteGrammars...)
 	for _, span := range []int{16, 2} {
 		state.ScanHotSpan = span
 		for _, g := range grammars {
 			prog, plain := mustCompile(t, g.Src), compileWithoutScanSites(t, g.Src)
-			inputs := append([]string{strings.Repeat(" ", 30) + "z", strings.Repeat(" ", 20) + "z ", strings.Repeat("x", 20) + "yzzzzzA!", strings.Repeat("x", 20) + "yzzzzzA?", strings.Repeat("\xff", 20) + "!zzz", strings.Repeat("\xff", 20) + "!z", strings.Repeat("é", 20) + "!zzz", strings.Repeat("é", 20) + "?"}, scanSiteInputs(g.Alphabet, rng)...)
+			inputs := append([]string{strings.Repeat(" ", 30) + "z", strings.Repeat(" ", 20) + "z ", strings.Repeat("x", 20) + "yzzzzzA!", strings.Repeat("x", 20) + "yzzzzzA?", strings.Repeat("\xff", 20) + "!zzz", strings.Repeat("\xff", 20) + "!z", strings.Repeat("é", 20) + "!zzz", strings.Repeat("é", 20) + "?", strings.Repeat("\xe2\x82", 10) + "!zzz", strings.Repeat("\xe2\x82!", 10) + "\xe2\x82"}, scanSiteInputs(g.Alphabet, rng)...)
 			for _, unit := range []core.PositionUnit{core.CodePoints, core.Bytes} {
 				for _, b := range []Backend{Closure, Bytecode, BytecodeIterative} {
 					o := ParseOptions{Backend: b, Unit: unit}
