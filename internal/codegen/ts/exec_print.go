@@ -229,6 +229,9 @@ func zero(t exec.Type) string {
 
 // results returns the result types of the call c.
 func (p *printer) results(c *exec.Call) []exec.Type {
+	if c.Fn != nil {
+		return p.m.HandleType(p.typeOf(c.Fn).Handle).Callable.Results
+	}
 	if o := p.m.Op(c.Callee); o != nil {
 		return o.Results
 	}
@@ -935,6 +938,10 @@ func (p *printer) expr(x exec.Expr, outer int) string {
 		return p.convert(p.typeOf(x.X), x.To, x.X, outer)
 	case *exec.Call:
 		args := p.args(x)
+		if x.Fn != nil {
+			// The application of a callable handle, which a TypeScript target holds as a function.
+			return p.expr(x.Fn, 12) + "(" + strings.Join(args, ", ") + ")"
+		}
 		if p.m.Op(x.Callee) != nil {
 			s := p.t.Op(x, args)
 			if outer > 0 && !exec.Atomic(s) {

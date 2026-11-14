@@ -139,9 +139,6 @@ handle RunElem of runs
 handle RunSite of runs
   // A repetition that a Document parse can resume.
 
-handle Term of host
-  // A term of a predicate or a binding, in the form the target evaluates.
-
 handle CallState of suspended
   // The record of a suspended call, which its caller holds.
 
@@ -1470,18 +1467,6 @@ host op run.finish(r Run)
   contract:
     // Records the run of a repetition that matched for the next parse, unless it is too short, or recovered
     // errors, or read the seed of a growth.
-
-transitional op term.eval(t Term) (Datum, bool)
-  component host
-  reads host
-  writes host
-  noreturn
-  cost <= 0 + 1*term
-  contract:
-    // Evaluates t over the current capture frame with an empty span at the position, and returns its
-    // value and true. A term that fails, a list element or a conversion it cannot make, returns false and may
-    // leave the values it gathered and created; term.dropKids and term.dropCreated release them. An interruption
-    // ends the parse and leaves them too, for the next parse starts without them.
 
 transitional op term.created() int
   component host

@@ -91,7 +91,7 @@ The application of the edits of a Document to a memo entry when a lookup finds i
 
 ## Terms
 
-The operators, member reads and built-in functions of terms over the operations of [Values](values.md), and the evaluation of predicates and bindings.
+The operators, member reads and built-in functions of terms over the operations of [Values](values.md), and the application of the terms of predicates and bindings.
 
 | Declaration | Meaning |
 |:--|:--|
@@ -116,8 +116,8 @@ The operators, member reads and built-in functions of terms over the operations 
 | `func valueConforms(t FType, n Obj, shape int) bool` | Returns whether the value of the node n, whose shape is shape, is of the type t: a string node has a string, and a tuple node or a list node its elements as value. |
 | `func elemsConform(t FType, items Seq) bool` | Returns whether every element of items, the elements of a list, is of the element type t of the list, charging a step for each element it examines; the type top takes every element and charges nothing. |
 | `func tupleConform(t FType, items Seq) bool` | Returns whether the elements items of a tuple are of the element types of the tuple type t: as many, and each of its own type, charging a step for each element it examines. |
-| `func predicate(t Term) bool` | Evaluates the term of a predicate, which fails on the boolean false and on a term that fails, and holds on every other value. |
-| `func bind(slot int, t Term) bool` | Binds the value of the term of a binding to the variable in slot. A term that fails fails the binding and binds nothing. The compiler has checked that the value fits the variable. |
+| `func predicate(t Term) bool` | Applies the term of a predicate to the context that `term.ctx` makes. It fails on the boolean false and on a term that fails, and holds on every other value. The value of a term is never a function. |
+| `func bind(slot int, t Term) bool` | Binds the value of the term of a binding to the variable in slot. A term that fails fails the binding and binds nothing. The compiler has checked that the value fits the variable. The value of a term is never a function. |
 
 ## Specializations
 

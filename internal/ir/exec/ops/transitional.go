@@ -36,8 +36,6 @@ const (
 	Res = "CtxResult"
 	// Grow is the state of the growth of a leader (grow.begin).
 	Grow = "Grow"
-	// Term is a term of the grammar, a predicate's or a binding's, in the form its target evaluates.
-	Term = "Term"
 )
 
 // Cost quantities of the transitional operations: measures of their arguments and of the state
@@ -81,8 +79,6 @@ const (
 	QCaptureFields = "capture_fields"
 	// QSteps is the number of memoized steps and jumps that the call takes.
 	QSteps = "steps"
-	// QTerm is what evaluating the term of the call charges, which the term's expression decides.
-	QTerm = "term"
 	// QDropped is the number of values above the mark of the call.
 	QDropped = "dropped"
 	// QStreamScan is the number of input elements that the call copies when it compacts the buffer,
@@ -432,21 +428,12 @@ that the target's observed function wraps.`})
 	framesAndOperators(m, add, rule, value, errs)
 }
 
-// addTerms adds the operations of evaluating a term of a predicate or a binding. What a term means
-// stays with each target: these operations are its boundary, the compositions predicate and bind
-// what surrounds it.
+// addTerms adds the operations that release what a term gathered and created, and test its value.
+// The compositions predicate and bind apply the term and call them (AddTermCode).
 func addTerms(m *exec.Module, add func(*exec.Op)) {
-	term := m.AddHandle(Term, Host, "A term of a predicate or a binding, in the form the target evaluates.")
 	datum := exec.THandle(Datum)
 	mark := exec.P("mark", exec.TInt)
 	dropped := exec.Cost{Terms: []exec.CostTerm{{Coef: 1, Quantity: QDropped}}}
-	add(&exec.Op{Name: "term.eval", Component: Host, Params: []exec.Param{exec.P("t", term)}, Results: []exec.Type{datum, exec.TBool},
-		Reads: []string{Host}, Writes: []string{Host}, NoReturn: true,
-		Cost: exec.Cost{Terms: []exec.CostTerm{{Coef: 1, Quantity: QTerm}}},
-		Contract: `Evaluates t over the current capture frame with an empty span at the position, and returns its
-value and true. A term that fails, a list element or a conversion it cannot make, returns false and may
-leave the values it gathered and created; term.dropKids and term.dropCreated release them. An interruption
-ends the parse and leaves them too, for the next parse starts without them.`})
 	add(&exec.Op{Name: "term.created", Component: Host, Results: []exec.Type{exec.TInt}, Reads: []string{Host},
 		Contract: `Returns the mark of the nodes that terms and actions created, which term.dropCreated takes.`})
 	add(&exec.Op{Name: "term.dropCreated", Component: Host, Params: []exec.Param{mark}, Writes: []string{Host},

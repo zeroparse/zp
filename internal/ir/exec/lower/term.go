@@ -61,11 +61,14 @@ type TermCast struct{ Cast *ir.Cast }
 
 func (c TermCast) String() string { return fmt.Sprintf("cast %d:%d", c.Cast.Line, c.Cast.Col) }
 
+// CtxParam is the parameter of a lowered term: the context the term is applied to. A term's results are those of
+// the callable type Term (ops.Term) unless the term is evaluated in place of an action (TermOptions.Result).
+const CtxParam = "c"
+
 // Names of the operations that lowered terms call besides the compositions.
 const (
 	OpTermConst      = "term.const"
 	OpTermRead       = "term.read"
-	OpTermCtx        = "term.ctx"
 	OpTermName       = "term.name"
 	OpTermField      = "term.field"
 	OpTermNodeType   = "term.nodeType"
@@ -178,7 +181,7 @@ func Term(t ir.Term, o TermOptions) (*TermLowered, error) {
 	}
 	l := &termLowerer{m: m, steps: o.Steps, structCall: o.StructCall, unbounded: o.Unbounded, proj: o.Proj,
 		params: map[*ir.Lambda][]exec.Expr{}, inPlace: o.Result != "", fieldCompare: o.FieldCompare}
-	fn := m.AddFunc("term", nil, results, nil, func(b *exec.Builder) {
+	fn := m.AddFunc("term", []exec.Param{exec.P(CtxParam, exec.THandle(ops.Act))}, results, nil, func(b *exec.Builder) {
 		var res exec.Expr
 		if o.Result != "" {
 			res = b.Var(o.Result, datum)
@@ -205,7 +208,34 @@ func Term(t ir.Term, o TermOptions) (*TermLowered, error) {
 	if err := exec.VerifyExtension(m, nOps, nFuncs); err != nil {
 		return nil, fmt.Errorf("lower term: %w", err)
 	}
+	if o.Result == "" {
+		if err := checkTermSignature(m, fn); err != nil {
+			return nil, err
+		}
+	}
 	return &TermLowered{Module: m, Func: fn, Result: o.Result}, nil
+}
+
+// checkTermSignature reports an error unless the parameters and results of f are those of the callable
+// type Term of m, which is how the compositions apply a term: the lowered term is the definition of what an
+// application of a Term runs.
+func checkTermSignature(m *exec.Module, f *exec.Func) error {
+	h := m.HandleType(ops.Term)
+	if h == nil || h.Callable == nil {
+		return fmt.Errorf("lower term: the module declares no callable type %s", ops.Term)
+	}
+	sig := h.Callable
+	same := len(f.Params) == len(sig.Params) && len(f.Results) == len(sig.Results)
+	for i := 0; same && i < len(f.Params); i++ {
+		same = f.Params[i].Type == sig.Params[i]
+	}
+	for i := 0; same && i < len(f.Results); i++ {
+		same = f.Results[i] == sig.Results[i]
+	}
+	if !same {
+		return fmt.Errorf("lower term: the function %s does not have the signature of %s", f.Name, ops.Term)
+	}
+	return nil
 }
 
 // wellFormed reports whether t is a term that Term lowers: the built-ins of the language with their
@@ -347,8 +377,6 @@ func addTermOps(m *exec.Module) {
 		Contract: "Returns the constant in Imm."})
 	op(&exec.Op{Name: OpTermRead, Results: []exec.Type{datum}, Reads: reads, Imm: "the capture, local or variable (TermRead)",
 		Contract: "Returns the value of the capture, the local or the variable in Imm, as the target reads a leaf of an action."})
-	op(&exec.Op{Name: OpTermCtx, Results: []exec.Type{exec.THandle(ops.Act)}, Reads: reads,
-		Contract: "Returns the context of the evaluation of the term."})
 	op(&exec.Op{Name: OpTermName, Results: []exec.Type{exec.THandle(ops.Name)}, Imm: "the name (a string)",
 		Contract: "Returns the name in Imm."})
 	op(&exec.Op{Name: OpTermField, Results: []exec.Type{exec.THandle(ops.Name)}, Imm: "the member and the name it reads (TermField)",
@@ -477,7 +505,7 @@ func (l *termLowerer) value(b *exec.Builder, t ir.Term) exec.Expr {
 	case *ir.Member:
 		x := l.value(b, t.X)
 		kind, field := memberKind(t.Name)
-		return l.fallible(b, "tv", exec.C("member", exec.C(OpTermCtx), exec.Int(int64(kind)), x,
+		return l.fallible(b, "tv", exec.C("member", exec.L(CtxParam), exec.Int(int64(kind)), x,
 			imm(OpTermName, t.Name), imm(OpTermField, TermField{t.Name, field})))
 	case *ir.Unary:
 		x := l.value(b, t.X)
@@ -531,7 +559,7 @@ func (l *termLowerer) value(b *exec.Builder, t ir.Term) exec.Expr {
 				if l.steps {
 					b.Do(OpTermSpend)
 				}
-				l.check(b, exec.C("pushItems", exec.C(OpTermCtx), imm(OpTermName, "concat"), v))
+				l.check(b, exec.C("pushItems", exec.L(CtxParam), imm(OpTermName, "concat"), v))
 			}
 			return l.hull(b, false, base)
 		case "map":
@@ -621,14 +649,14 @@ func (l *termLowerer) pushes(b *exec.Builder, fn string, vals []exec.Expr) {
 	}
 	for _, v := range vals {
 		l.step(b)
-		l.check(b, exec.C("push", exec.C(OpTermCtx), imm(OpTermName, fn), v))
+		l.check(b, exec.C("push", exec.L(CtxParam), imm(OpTermName, fn), v))
 	}
 }
 
 // hull returns the tuple value, if tuple, or the list value of the elements pushed since base.
 func (l *termLowerer) hull(b *exec.Builder, tuple bool, base exec.Expr) exec.Expr {
 	kids := b.Let(l.local("tk"), exec.C(OpTermElemsAbove, base))
-	return exec.C(OpTermFromObj, b.Let(l.local("tn"), exec.C("hull", exec.C(OpTermCtx), exec.BoolC(tuple), kids)))
+	return exec.C(OpTermFromObj, b.Let(l.local("tn"), exec.C("hull", exec.L(CtxParam), exec.BoolC(tuple), kids)))
 }
 
 // concatParts pushes the elements of the arguments of the fusable concat call t: those of a list call
@@ -647,7 +675,7 @@ func (l *termLowerer) concatParts(b *exec.Builder, t *ir.Builtin) {
 				if l.steps {
 					b.Do(OpTermSpend)
 				}
-				l.check(b, exec.C("pushItems", exec.C(OpTermCtx), imm(OpTermName, "concat"), v))
+				l.check(b, exec.C("pushItems", exec.L(CtxParam), imm(OpTermName, "concat"), v))
 				break
 			}
 			l.mapPush(b, l.value(b, call.Args[0]), call.Args[1].(*ir.Lambda))
@@ -684,7 +712,7 @@ func (l *termLowerer) mapPush(b *exec.Builder, list exec.Expr, f *ir.Lambda) {
 	items := l.fallible(b, "ti", exec.C("items", imm(OpTermName, "map"), list))
 	l.loop(b, items, func(b *exec.Builder, i exec.Expr) {
 		v := l.call(b, f, exec.C("itemAt", items, i, exec.BoolC(false)))
-		l.check(b, exec.C("push", exec.C(OpTermCtx), imm(OpTermName, "map"), v))
+		l.check(b, exec.C("push", exec.L(CtxParam), imm(OpTermName, "map"), v))
 	})
 }
 
@@ -801,7 +829,7 @@ func (l *termLowerer) structLiteral(b *exec.Builder, t *ir.New) exec.Expr {
 		b.Append(&exec.Do{Call: &exec.Call{Callee: OpTermSetField, Args: []exec.Expr{n, vals[i]}, Imm: f.Name}})
 		b.Set(first, exec.C("cover", n, vals[i], exec.L(first)))
 	}
-	b.Do("made", exec.C(OpTermCtx), n, exec.L(first))
+	b.Do("made", exec.L(CtxParam), n, exec.L(first))
 	return exec.C(OpTermFromObj, n)
 }
 

@@ -4,17 +4,16 @@ package closure
 
 import "zeroparse.dev/zp/internal/engine/state"
 
-// predicate evaluates the term of a predicate, which fails on the boolean false and on a term that
-// fails, and holds on every other value.
+// predicate applies the term of a predicate to the context that term.ctx makes. It fails on the boolean
+// false and on a term that fails, and holds on every other value. The value of a term is never a function.
 //
 // Printed from Exec IR function predicate of internal/ir/exec/core.
 func predicate(p *state.Parser, t *termSite) bool {
 	created := len(p.Created)
 	kids := len(p.KidStack)
 	ctx := p.UseCtx(state.EvalCtx{P: p, Frame: p.Frame, Start: p.Pos, End: p.Pos, Cbase: len(p.Created)})
-	v, err := t.term.Eval(ctx)
-	ok := err == nil
-	if !ok {
+	v, f := t.term.Eval(ctx)
+	if f != nil {
 		p.DropKids(kids)
 		if len(p.Created) > created {
 			p.DropCreated(created)
@@ -28,16 +27,16 @@ func predicate(p *state.Parser, t *termSite) bool {
 }
 
 // bind binds the value of the term of a binding to the variable in slot. A term that fails fails the
-// binding and binds nothing. The compiler has checked that the value fits the variable.
+// binding and binds nothing. The compiler has checked that the value fits the variable. The value of a term is never a
+// function.
 //
 // Printed from Exec IR function bind of internal/ir/exec/core.
 func bind(p *state.Parser, slot int, t *termSite) bool {
 	created := len(p.Created)
 	kids := len(p.KidStack)
 	ctx := p.UseCtx(state.EvalCtx{P: p, Frame: p.Frame, Start: p.Pos, End: p.Pos, Cbase: len(p.Created)})
-	v, err := t.term.Eval(ctx)
-	ok := err == nil
-	if !ok {
+	v, f := t.term.Eval(ctx)
+	if f != nil {
 		p.DropKids(kids)
 		if len(p.Created) > created {
 			p.DropCreated(created)

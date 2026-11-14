@@ -20,6 +20,7 @@ func Walk(b *Block, stmt func(Stmt), expr func(Expr)) {
 		case *Convert:
 			x(e.X)
 		case *Call:
+			x(e.Fn)
 			for _, a := range e.Args {
 				x(a)
 			}

@@ -2,6 +2,7 @@ package exec
 
 import (
 	"errors"
+	"strings"
 	"testing"
 )
 
@@ -115,4 +116,47 @@ func TestRunProtect(t *testing.T) {
 	if _, err := Run(m, charged, c, uint64(2)); !errors.As(err, new(Interrupt)) || c.n != 2 {
 		t.Fatalf("charged(2) again = %v with the cleanup run %d times, want an interrupt and 2", err, c.n)
 	}
+}
+
+// applier is a Machine for a module with a callable handle: the handle values are Go functions.
+type applier struct{ counter }
+
+func (a *applier) Apply(h any, args []any) []any { return h.(func([]any) []any)(args) }
+
+// TestRunApply runs the application of a callable handle: the callee and the arguments evaluate from left to
+// right, and the results bind like those of a call.
+func TestRunApply(t *testing.T) {
+	m := testModule()
+	m.AddCallable("Code", "counter", "Code that doubles its argument and tells whether it is positive.", []Type{TInt}, []Type{TInt, TBool})
+	f := m.AddFunc("twice", []Param{P("c", THandle("Code")), P("x", TInt)}, []Type{TInt}, []string{"budget"}, func(b *Builder) {
+		r := b.LetN([]string{"y", "pos"}, Ap(L("c"), L("x")))
+		b.Do("counter.charge", U64(1))
+		b.If(r[1], func(b *Builder) {
+			s := b.LetN([]string{"z", "p2"}, Ap(L("c"), r[0]))
+			b.Return(s[0])
+		})
+		b.Return(r[0])
+	})
+	if err := Verify(m); err != nil {
+		t.Fatal(err)
+	}
+	if got := String(m); !strings.Contains(got, "handle Code of counter callable (int) (int, bool)") ||
+		!strings.Contains(got, "let y, pos = apply c(x)") {
+		t.Errorf("listing lacks the callable handle or the application:\n%s", got)
+	}
+	code := func(args []any) []any { x := args[0].(int64); return []any{2 * x, x > 0} }
+	res, err := Run(m, f, &applier{}, code, int64(3))
+	if err != nil || res[0] != int64(12) {
+		t.Errorf("Run = %v, %v; want 12", res, err)
+	}
+	res, err = Run(m, f, &applier{}, code, int64(-3))
+	if err != nil || res[0] != int64(-6) {
+		t.Errorf("Run = %v, %v; want -6", res, err)
+	}
+	defer func() {
+		if recover() == nil {
+			t.Error("a machine that does not apply handles ran an application")
+		}
+	}()
+	Run(m, f, &counter{}, code, int64(1))
 }

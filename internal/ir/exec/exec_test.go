@@ -70,6 +70,36 @@ func TestVerifyRejects(t *testing.T) {
 		{"no contract", func(m *Module) {
 			m.AddOp(&Op{Name: "counter.y", Component: "counter"})
 		}, "no contract"},
+		{"application of a handle that is not callable", func(m *Module) {
+			m.AddFunc("f", []Param{P("t", THandle("Token"))}, nil, nil, func(b *Builder) { b.Do("counter.charge", U64(1)); b.Let("x", Ap(L("t"), Int(1))) })
+		}, "application of a value of type Token, which is not a callable handle"},
+		{"application of an int", func(m *Module) {
+			m.AddFunc("f", nil, nil, nil, func(b *Builder) { b.Let("x", Ap(Int(1))) })
+		}, "application of a value of type int, which is not a callable handle"},
+		{"application arity", func(m *Module) {
+			m.AddCallable("Code", "counter", "Code.", []Type{TInt}, []Type{TInt})
+			m.AddFunc("f", []Param{P("t", THandle("Code"))}, nil, nil, func(b *Builder) { b.Let("x", Ap(L("t"))) })
+		}, "application of Code with 0 arguments, want 1"},
+		{"application argument type", func(m *Module) {
+			m.AddCallable("Code", "counter", "Code.", []Type{TInt}, []Type{TInt})
+			m.AddFunc("f", []Param{P("t", THandle("Code"))}, nil, nil, func(b *Builder) { b.Let("x", Ap(L("t"), BoolC(true))) })
+		}, "application of Code argument 1: bool, want int"},
+		{"application result count", func(m *Module) {
+			m.AddCallable("Code", "counter", "Code.", []Type{TInt}, []Type{TInt, TBool})
+			m.AddFunc("f", []Param{P("t", THandle("Code"))}, nil, nil, func(b *Builder) { b.Let("x", Ap(L("t"), Int(1))) })
+		}, "application has 2 results where one value is needed"},
+		{"application with a callee", func(m *Module) {
+			m.AddCallable("Code", "counter", "Code.", []Type{TInt}, []Type{TInt})
+			m.AddFunc("f", []Param{P("t", THandle("Code"))}, nil, nil, func(b *Builder) {
+				b.Let("x", &Call{Callee: "counter.next", Fn: L("t"), Args: []Expr{Int(1)}})
+			})
+		}, "application with a callee"},
+		{"application in a cleanup", func(m *Module) {
+			m.AddCallable("Code", "counter", "Code.", []Type{TInt}, []Type{TInt})
+			m.AddFunc("f", []Param{P("t", THandle("Code"))}, nil, nil, func(b *Builder) {
+				b.Protect(func(b *Builder) {}, func(b *Builder) { b.Let("x", Ap(L("t"), Int(1))) })
+			})
+		}, "a cleanup calls application, which is not an operation"},
 		{"host and transitional", func(m *Module) {
 			m.AddOp(&Op{Name: "counter.h", Component: "counter", Contract: "h", Host: true, Transitional: true})
 		}, "both host and transitional"},
@@ -253,5 +283,15 @@ func TestVerifyRejects(t *testing.T) {
 				t.Fatalf("VerifyExtension = %v, want an error containing %q", err, c.want)
 			}
 		})
+	}
+}
+
+func TestVerifyRejectsCallableSignatureOfUndeclaredType(t *testing.T) {
+	m := testModule()
+	m.AddCallable("Code", "counter", "Code.", []Type{THandle("Nope")}, []Type{THandle("Gone")})
+	err := Verify(m)
+	if err == nil || !strings.Contains(err.Error(), "handle type Code parameter: undeclared handle type Nope") ||
+		!strings.Contains(err.Error(), "handle type Code result: undeclared handle type Gone") {
+		t.Fatalf("Verify = %v", err)
 	}
 }

@@ -273,8 +273,11 @@ func goTarget(s goSpec) *gogen.Target {
 			return "p.Env = " + a[0]
 		case "env.bind":
 			return fmt.Sprintf("p.bind(%s, %s)", a[0], a[1])
-		case "term.eval":
-			return "p.evalTerm(" + a[0] + ")"
+		case "term.ctx":
+			if typed {
+				return "p.UseCtx(TActCtx{P: p, F: p.Frame, Start: p.Pos, End: p.Pos, Cbase: len(p.Created)})"
+			}
+			return "p.useCtx(ActCtx{P: p, f: p.Frame, start: p.Pos, end: p.Pos, cbase: len(p.created)})"
 		case "term.created":
 			return "len(p." + created + ")"
 		case "term.dropCreated":

@@ -1,6 +1,6 @@
 ## main action
-func term() (Datum, Fail) {
-  let tv1, tf1 = member(term.ctx(), 3, term.read([$rs]), term.name([Value]), term.field([Value of Value]))
+func term(c Act) (Datum, Fail) {
+  let tv1, tf1 = member(c, 3, term.read([$rs]), term.name([Value]), term.field([Value of Value]))
   if (tf1 != null(Fail)) {
     return null(Datum), tf1
   }
@@ -9,15 +9,15 @@ func term() (Datum, Fail) {
   seq.step()
   term.setField([Records], tn2, tv1)
   tfirst3 = cover(tn2, tv1, tfirst3)
-  made(term.ctx(), tn2, tfirst3)
+  made(c, tn2, tfirst3)
   return term.fromObj(tn2), null(Fail)
 }
 
 ## record action
-func term() (Datum, Fail) {
+func term(c Act) (Datum, Fail) {
   let tm1 = term.kids()
   seq.step()
-  let tf2 = push(term.ctx(), term.name([list]), term.read([$first]))
+  let tf2 = push(c, term.name([list]), term.read([$first]))
   if (tf2 != null(Fail)) {
     return null(Datum), tf2
   }
@@ -29,25 +29,25 @@ func term() (Datum, Fail) {
   loop each5 while (tj4 < seq.len(ti3)); post tj4 = (tj4 + 1) {
     seq.step()
     let tp6 = itemAt(ti3, tj4, false)
-    let tv8, tf8 = member(term.ctx(), 4, val.unbox(tp6), term.name([$f]), term.field([f of $f]))
+    let tv8, tf8 = member(c, 4, val.unbox(tp6), term.name([$f]), term.field([f of $f]))
     if (tf8 != null(Fail)) {
       return null(Datum), tf8
     }
     let tv7 = tv8
-    let tf9 = push(term.ctx(), term.name([map]), tv7)
+    let tf9 = push(c, term.name([map]), tv7)
     if (tf9 != null(Fail)) {
       return null(Datum), tf9
     }
   }
   let tk10 = term.elemsAbove(tm1)
-  let tn11 = hull(term.ctx(), false, tk10)
+  let tn11 = hull(c, false, tk10)
   let tf12 = term.fromObj(tn11)
   let tn13 = term.struct([Record])
   let tfirst14 = true
   seq.step()
   term.setField([Fields], tn13, tf12)
   tfirst14 = cover(tn13, tf12, tfirst14)
-  made(term.ctx(), tn13, tfirst14)
+  made(c, tn13, tfirst14)
   return term.fromObj(tn13), null(Fail)
 }
 

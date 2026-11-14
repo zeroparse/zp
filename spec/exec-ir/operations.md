@@ -229,7 +229,7 @@ values in [Operations That Write Host State](values.md#operations-that-write-hos
 
 | Declaration | State | Cost | Contract |
 |:--|:--|:--|:--|
-| `transitional op term.eval(t Term) (Datum, bool) noreturn` | reads host; writes host | `0 + 1*term` | Evaluates t over the current capture frame with an empty span at the position, and returns its value and true. A term that fails, a list element or a conversion it cannot make, returns false and may leave the values it gathered and created; term.dropKids and term.dropCreated release them. An interruption ends the parse and leaves them too, for the next parse starts without them. |
+| `host op term.ctx() Act` | reads host, pos; writes host | `0` | Returns the context in which a term runs: the current capture frame, an empty span at the position, and the mark of the nodes created so far. |
 | `transitional op term.created() int` | reads host | `0` | Returns the mark of the nodes that terms and actions created, which term.dropCreated takes. |
 | `transitional op term.dropCreated(mark int) noreturn` | writes host | `0 + 1*dropped` | Forgets the nodes created after the mark, without changing them, and charges one unit for each. Requires: mark came from term.created, and nothing dropped it since. |
 | `transitional op term.kids() int` | reads host | `0` | Returns the mark of the values that list built-ins gather, which term.dropKids takes. |

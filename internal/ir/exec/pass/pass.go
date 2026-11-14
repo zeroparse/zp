@@ -146,6 +146,9 @@ func mapBlock(b *exec.Block, fn func(exec.Expr) exec.Expr) *exec.Block {
 
 func call(c *exec.Call, x func(exec.Expr) exec.Expr) *exec.Call {
 	n := &exec.Call{Callee: c.Callee, Imm: c.Imm}
+	if c.Fn != nil {
+		n.Fn = x(c.Fn)
+	}
 	for _, a := range c.Args {
 		n.Args = append(n.Args, x(a))
 	}

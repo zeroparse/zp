@@ -28,6 +28,14 @@ func (m *Module) AddHandle(name, component, doc string) Type {
 	return THandle(name)
 }
 
+// AddCallable declares a handle type whose values are code that a Call with Fn applies to arguments of
+// types params, and that returns results.
+func (m *Module) AddCallable(name, component, doc string, params, results []Type) Type {
+	m.Handles = append(m.Handles, &HandleType{Name: name, Component: component, Doc: doc,
+		Callable: &Signature{Params: params, Results: results}})
+	return THandle(name)
+}
+
 // AddOp declares an operation.
 func (m *Module) AddOp(o *Op) *Op {
 	m.Ops = append(m.Ops, o)
@@ -185,6 +193,9 @@ func F(name string) Expr { return &Feature{Name: name} }
 
 // C calls an operation or a function as an expression.
 func C(callee string, args ...Expr) *Call { return &Call{Callee: callee, Args: args} }
+
+// Ap applies the value fn of a callable handle type to args.
+func Ap(fn Expr, args ...Expr) *Call { return &Call{Fn: fn, Args: args} }
 
 // CI calls an operation with the immediate operand imm.
 func CI(callee string, imm any, args ...Expr) *Call {

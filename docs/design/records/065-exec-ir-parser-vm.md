@@ -210,8 +210,8 @@ An operation is placed by four rules.
    collector, the word size of a bit page, a membership filter.
 4. **No re-entry.** An operation does not run grammar code. Where a mechanism must run a rule body in the middle — a
    memoized call, a growth step — it is a composition, or a begin and an end operation around the body. The
-   transitional operations that invoke a rule's body, a line of an Operators Rule or a term are the exception
-   until their mechanism is a composition; their contracts say so ([Operations](../../../spec/exec-ir/machine.md#operations)).
+   transitional operations that invoke a rule's body or a line of an Operators Rule are the exception until their
+   mechanism is a composition; their contracts say so ([Operations](../../../spec/exec-ir/machine.md#operations)).
 
 The measured history supports these rules. Each of the 22 core commits of [Changes Paid Several
 Times](#changes-paid-several-times) is placed below by the part of this design it would change (classified by hand
@@ -355,18 +355,18 @@ of equal and unequal values, on generated Go and the engine; TypeScript stays on
 scoping, equal bindings, key equality by the host's value equality. *Target*: the representation of the
 environment, and a key shared for the initial environment.
 
-**Terms.** Evaluating a term stays a transitional operation of each runtime, since it reads the value model;
-what surrounds it, the predicate and the binding, is one composition on every runtime. On either, a term that
-fails is an ordinary failure of the expression: what it gathered and created is dropped, and the parse goes on to
-its next alternative. The operators, member reads and built-in functions of terms are compositions over value
-operations ([Values](../../../spec/exec-ir/values.md)), with tables that every target shares and runs on fixed
-fixtures. On generated Go and TypeScript, a term made of constants, captures, locals, variables, operators, member reads, `len`,
-`text`, conversions and casts is lowered from Core IR to a function of Exec IR that calls those compositions,
-which the Go runtime exports for generated parsers and the TypeScript runtime has as methods of its parser; terms with constructors, tuples, list built-ins or lambdas are
-not yet written on them.
-A term never evaluates to a function: the lowering accepts a lambda only as the function argument of `map`, `filter`,
-`foldl` or `foldr`, which it turns into loops, and the built-ins are a closed set, so no target keeps a value of that
-kind or a test for one.
+**Terms.** A term is a function of Exec IR that is lowered from Core IR for every target, the engine included. It
+calls compositions over value operations ([Values](../../../spec/exec-ir/values.md)) for each operator, member read,
+built-in function, constructor, conversion and cast, and its lambdas are loops; the tables of those operations are
+shared by every target and run on fixed fixtures. Generated Go and TypeScript print the function as code; the engine
+holds it as a term program, its own form of the same function. Exec IR names that form with the callable handle type
+`Term` and applies it with an application ([Application](../../../spec/exec-ir/functions.md#application)), which each
+target prints as the call of its form; `term.ctx` makes the context that the term is applied to, which the lowered function takes as its one parameter, and the lowering checks that the function has the signature of `Term`. What surrounds the
+application, the predicate and the binding, is one composition on every runtime. On either, a term that fails is an
+ordinary failure of the expression: what it gathered and created is dropped, and the parse goes on to its next
+alternative. A term never evaluates to a function: the lowering accepts a lambda only as the function argument of
+`map`, `filter`, `foldl` or `foldr`, which it turns into loops, and the built-ins are a closed set, so no target keeps
+a value of that kind or a test for one.
 
 **Capture frames.** Slots of a rule body or a line, and a trail of writes that a backtracking point undoes. A mark
 is the position, the environment, the recovered errors and the length of the trail; what a reset restores from it
@@ -422,8 +422,8 @@ of the engine measure their charges.
 The Operators Rule loop has no operation of its own: the longest operator match, the loop, binding powers, prefix
 commitment and the application order are composition, which is where all three of its core changes landed. The
 operations it calls read the rule's descriptors, run the grammar code of a line, make the values of lines and
-applications as host primitives and hold a match of an operator. Term evaluation and the value model join in a
-second wave ([Decisions](#decisions)).
+applications as host primitives and hold a match of an operator. Term evaluation and the value model are compositions
+over the value operations ([Decisions](#decisions)).
 
 ### Compositions
 
@@ -474,8 +474,9 @@ record allocates and by the size of a dense record of calls in position order. A
 list declares the copy in its bound. A transitional or host operation that charges declares a bound too, with no
 reference model to measure it against; a test instead follows the static calls of the Go runtime from each such
 operation and requires a quantity of its bound for every charge it can reach, so that a charge added to the
-runtime is accounted for when it is added. The operations that run a rule body or a term declare none: what they
-charge includes the grammar code or the term they run, which no bound of theirs can state.
+runtime is accounted for when it is added. The operations that run a rule body declare none: what they
+charge includes the grammar code they run, which no bound of theirs can state. The application of a term charges
+nothing itself: it adds what the code of the term charges, which the operations it calls declare.
 
 Charges inside an operation spend the same budget that `budget.charge` and `budget.used` see. The conformance suite
 measures what an implementation charges in each call, checks it against the bound and adds it to the model's budget;
@@ -964,8 +965,6 @@ These stay transitional, each declared with its contract and cost bound and impl
   tests bind what they do;
 - the primitives of grammar code, which reach each runtime's helpers through the lowering of Flow IR, among them the
   sites that make a recovered error;
-- evaluating a term (`term.eval`), which is the following work: term evaluation written on the value operations that
-  the specification already declares with tables that every target shares;
 - TypeScript's conformance: a runner of the suite in TypeScript does not exist, so TypeScript stays on its parity
   tests and on the printed forms it shares.
 
@@ -1033,8 +1032,9 @@ These are settled.
    generated runtime moves as the engine does, the specification makes reuse visible only through the
    statistics ([Reuse](../../../spec/runtime/documents.md#reuse)), so results do not change.
 7. **Printed code is checked in**, with a drift test.
-8. **Term evaluation and the value model are a second wave.** The value operations and their tables are specified
-   first; term evaluation moves onto them afterwards. They account for 35 of the 79 multi-copy commits.
+8. **Term evaluation and the value model are Exec IR compositions.** The value operations and their tables are
+   specified, and every target lowers its terms onto them; the target implements the value primitives and how it
+   applies a term. They account for 35 of the 79 multi-copy commits.
 
 9. **Cost contracts are deterministic per target, within a declared bound.** Each operation's contract states an
    upper bound on its charges in abstract terms (for `exp.copy`, at most one unit per expectation of the set)

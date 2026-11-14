@@ -860,6 +860,10 @@ func (p *TParser) DropTrail(base int) {
 	p.Trail = p.Trail[:base]
 }
 
+// SetCapture stores v in the capture slot. v is a value of the grammar's value model, never a function
+// value: the library does not check it, because the code of a generated parser makes values only by
+// lowered terms, and a lowered term never yields a function. Like every exported symbol of this
+// package it is not a stable API.
 func (p *TParser) SetCapture(slot int, v any) {
 	p.Trail = append(p.Trail, tundo{f: p.Frame, slot: slot, old: p.Frame.Vals[slot]})
 	p.Frame.Vals[slot] = v
@@ -1743,7 +1747,8 @@ func (p *TParser) UseCtx(c TActCtx) *TActCtx {
 	return &p.ac
 }
 
-// Result evaluates an action. Its errors fail the parse: tparse reports them with the rule
+// Result evaluates an action, whose result is a value of the grammar's value model and never a function
+// value; the library does not check it (see SetCapture). Its errors fail the parse: tparse reports them with the rule
 // name, which result records in p.Where instead of deferring a recovery for each action.
 func (c *TActCtx) Result(action func(*TActCtx) (any, any), where string) (n any) {
 	prev := c.P.Where
@@ -1757,7 +1762,8 @@ func (c *TActCtx) Result(action func(*TActCtx) (any, any), where string) (n any)
 	return n
 }
 
-// Finish checks and finishes the value v of an action (see result): a struct the action made
+// Finish checks and finishes the value v of an action (see result; v is never a function value, see
+// SetCapture): a struct the action made
 // takes the rule's range, and the value is no longer fresh. A value other than a node needs no
 // carrier here.
 func (c *TActCtx) Finish(v any) any {
@@ -1785,12 +1791,6 @@ func (c *TActCtx) Finish(v any) any {
 func (p *TParser) DropCreated(base int) {
 	clear(p.Created[base:])
 	p.Created = p.Created[:base]
-}
-
-// evalTerm is Parser.evalTerm for the typed library.
-func (p *TParser) evalTerm(t func(*TActCtx) (any, any)) (v any, ok bool) {
-	v, f := t(p.UseCtx(TActCtx{P: p, F: p.Frame, Start: p.Pos, End: p.Pos, Cbase: len(p.Created)}))
-	return v, f == nil
 }
 
 // TermRaise ends the parse with the failure f of the action that the generated rule evaluates in

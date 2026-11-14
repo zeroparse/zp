@@ -1,10 +1,10 @@
 ## main_fast action
-func term() (Datum, Fail) {
+func term(c Act) (Datum, Fail) {
   return term.read([$f]), null(Fail)
 }
 
 ## file action
-func term() (Datum, Fail) {
+func term(c Act) (Datum, Fail) {
   let tm1 = term.kids()
   let ti2, tf2 = items(term.name([map]), term.read([$as1]))
   if (tf2 != null(Fail)) {
@@ -14,18 +14,18 @@ func term() (Datum, Fail) {
   loop each4 while (tj3 < seq.len(ti2)); post tj3 = (tj3 + 1) {
     seq.step()
     let tp5 = itemAt(ti2, tj3, false)
-    let tv7, tf7 = member(term.ctx(), 4, val.unbox(tp5), term.name([$a]), term.field([a of $a]))
+    let tv7, tf7 = member(c, 4, val.unbox(tp5), term.name([$a]), term.field([a of $a]))
     if (tf7 != null(Fail)) {
       return null(Datum), tf7
     }
     let tv6 = tv7
-    let tf8 = push(term.ctx(), term.name([map]), tv6)
+    let tf8 = push(c, term.name([map]), tv6)
     if (tf8 != null(Fail)) {
       return null(Datum), tf8
     }
   }
   let tk9 = term.elemsAbove(tm1)
-  let tn10 = hull(term.ctx(), false, tk9)
+  let tn10 = hull(c, false, tk9)
   let tm11 = term.kids()
   let ti12, tf12 = items(term.name([map]), term.read([$pkg]))
   if (tf12 != null(Fail)) {
@@ -35,18 +35,18 @@ func term() (Datum, Fail) {
   loop each14 while (tj13 < seq.len(ti12)); post tj13 = (tj13 + 1) {
     seq.step()
     let tp15 = itemAt(ti12, tj13, false)
-    let tv17, tf17 = member(term.ctx(), 4, val.unbox(tp15), term.name([$p]), term.field([p of $p]))
+    let tv17, tf17 = member(c, 4, val.unbox(tp15), term.name([$p]), term.field([p of $p]))
     if (tf17 != null(Fail)) {
       return null(Datum), tf17
     }
     let tv16 = tv17
-    let tf18 = push(term.ctx(), term.name([map]), tv16)
+    let tf18 = push(c, term.name([map]), tv16)
     if (tf18 != null(Fail)) {
       return null(Datum), tf18
     }
   }
   let tk19 = term.elemsAbove(tm11)
-  let tn20 = hull(term.ctx(), false, tk19)
+  let tn20 = hull(c, false, tk19)
   let tm21 = term.kids()
   let ti22, tf22 = items(term.name([map]), term.read([$as2]))
   if (tf22 != null(Fail)) {
@@ -56,18 +56,18 @@ func term() (Datum, Fail) {
   loop each24 while (tj23 < seq.len(ti22)); post tj23 = (tj23 + 1) {
     seq.step()
     let tp25 = itemAt(ti22, tj23, false)
-    let tv27, tf27 = member(term.ctx(), 4, val.unbox(tp25), term.name([$a]), term.field([a of $a]))
+    let tv27, tf27 = member(c, 4, val.unbox(tp25), term.name([$a]), term.field([a of $a]))
     if (tf27 != null(Fail)) {
       return null(Datum), tf27
     }
     let tv26 = tv27
-    let tf28 = push(term.ctx(), term.name([map]), tv26)
+    let tf28 = push(c, term.name([map]), tv26)
     if (tf28 != null(Fail)) {
       return null(Datum), tf28
     }
   }
   let tk29 = term.elemsAbove(tm21)
-  let tn30 = hull(term.ctx(), false, tk29)
+  let tn30 = hull(c, false, tk29)
   let tm31 = term.kids()
   let ti32, tf32 = items(term.name([map]), term.read([$is]))
   if (tf32 != null(Fail)) {
@@ -77,58 +77,58 @@ func term() (Datum, Fail) {
   loop each34 while (tj33 < seq.len(ti32)); post tj33 = (tj33 + 1) {
     seq.step()
     let tp35 = itemAt(ti32, tj33, false)
-    let tv37, tf37 = member(term.ctx(), 4, val.unbox(tp35), term.name([$i]), term.field([i of $i]))
+    let tv37, tf37 = member(c, 4, val.unbox(tp35), term.name([$i]), term.field([i of $i]))
     if (tf37 != null(Fail)) {
       return null(Datum), tf37
     }
     let tv36 = tv37
-    let tf38 = push(term.ctx(), term.name([map]), tv36)
+    let tf38 = push(c, term.name([map]), tv36)
     if (tf38 != null(Fail)) {
       return null(Datum), tf38
     }
   }
   let tk39 = term.elemsAbove(tm31)
-  let tn40 = hull(term.ctx(), false, tk39)
+  let tn40 = hull(c, false, tk39)
   let tm41 = term.kids()
   seq.step()
-  let tf42 = pushItems(term.ctx(), term.name([concat]), term.fromObj(tn10))
+  let tf42 = pushItems(c, term.name([concat]), term.fromObj(tn10))
   if (tf42 != null(Fail)) {
     return null(Datum), tf42
   }
   seq.step()
-  let tf43 = pushItems(term.ctx(), term.name([concat]), term.fromObj(tn20))
+  let tf43 = pushItems(c, term.name([concat]), term.fromObj(tn20))
   if (tf43 != null(Fail)) {
     return null(Datum), tf43
   }
   seq.step()
-  let tf44 = pushItems(term.ctx(), term.name([concat]), term.fromObj(tn30))
+  let tf44 = pushItems(c, term.name([concat]), term.fromObj(tn30))
   if (tf44 != null(Fail)) {
     return null(Datum), tf44
   }
   seq.step()
-  let tf45 = pushItems(term.ctx(), term.name([concat]), term.fromObj(tn40))
+  let tf45 = pushItems(c, term.name([concat]), term.fromObj(tn40))
   if (tf45 != null(Fail)) {
     return null(Datum), tf45
   }
   seq.step()
-  let tf46 = pushItems(term.ctx(), term.name([concat]), term.read([$ds]))
+  let tf46 = pushItems(c, term.name([concat]), term.read([$ds]))
   if (tf46 != null(Fail)) {
     return null(Datum), tf46
   }
   let tk47 = term.elemsAbove(tm41)
-  let tn48 = hull(term.ctx(), false, tk47)
+  let tn48 = hull(c, false, tk47)
   let tf49 = term.fromObj(tn48)
   let tn50 = term.struct([File])
   let tfirst51 = true
   seq.step()
   term.setField([Decls], tn50, tf49)
   tfirst51 = cover(tn50, tf49, tfirst51)
-  made(term.ctx(), tn50, tfirst51)
+  made(c, tn50, tfirst51)
   return term.fromObj(tn50), null(Fail)
 }
 
 ## file predicate
-func term() (Datum, Fail) {
+func term(c Act) (Datum, Fail) {
   let tv1, tf1 = length(term.read([$pkg]))
   if (tf1 != null(Fail)) {
     return null(Datum), tf1
@@ -141,19 +141,19 @@ func term() (Datum, Fail) {
 }
 
 ## package_clause action
-func term() (Datum, Fail) {
+func term(c Act) (Datum, Fail) {
   let tf1 = term.read([$n])
   let tn2 = term.struct([Package])
   let tfirst3 = true
   seq.step()
   term.setField([Name], tn2, tf1)
   tfirst3 = cover(tn2, tf1, tfirst3)
-  made(term.ctx(), tn2, tfirst3)
+  made(c, tn2, tfirst3)
   return term.fromObj(tn2), null(Fail)
 }
 
 ## package_clause predicate
-func term() (Datum, Fail) {
+func term(c Act) (Datum, Fail) {
   let ts1, tf1 = text(term.read([$n]))
   if (tf1 != null(Fail)) {
     return null(Datum), tf1
@@ -234,7 +234,7 @@ func term() (Datum, Fail) {
 }
 
 ## import_paren action
-func term() (Datum, Fail) {
+func term(c Act) (Datum, Fail) {
   let tf1 = term.read([$lp])
   let tm2 = term.kids()
   let ti3, tf3 = items(term.name([map]), term.read([$ss]))
@@ -245,18 +245,18 @@ func term() (Datum, Fail) {
   loop each5 while (tj4 < seq.len(ti3)); post tj4 = (tj4 + 1) {
     seq.step()
     let tp6 = itemAt(ti3, tj4, false)
-    let tv8, tf8 = member(term.ctx(), 4, val.unbox(tp6), term.name([$s]), term.field([s of $s]))
+    let tv8, tf8 = member(c, 4, val.unbox(tp6), term.name([$s]), term.field([s of $s]))
     if (tf8 != null(Fail)) {
       return null(Datum), tf8
     }
     let tv7 = tv8
-    let tf9 = push(term.ctx(), term.name([map]), tv7)
+    let tf9 = push(c, term.name([map]), tv7)
     if (tf9 != null(Fail)) {
       return null(Datum), tf9
     }
   }
   let tk10 = term.elemsAbove(tm2)
-  let tn11 = hull(term.ctx(), false, tk10)
+  let tn11 = hull(c, false, tk10)
   let tf12 = term.fromObj(tn11)
   let tn13 = term.struct([ImportDecl])
   let tfirst14 = true
@@ -266,32 +266,32 @@ func term() (Datum, Fail) {
   seq.step()
   term.setField([Specs], tn13, tf12)
   tfirst14 = cover(tn13, tf12, tfirst14)
-  made(term.ctx(), tn13, tfirst14)
+  made(c, tn13, tfirst14)
   return term.fromObj(tn13), null(Fail)
 }
 
 ## import_single action
-func term() (Datum, Fail) {
+func term(c Act) (Datum, Fail) {
   let tm1 = term.kids()
   seq.step()
-  let tf2 = push(term.ctx(), term.name([list]), term.read([$s]))
+  let tf2 = push(c, term.name([list]), term.read([$s]))
   if (tf2 != null(Fail)) {
     return null(Datum), tf2
   }
   let tk3 = term.elemsAbove(tm1)
-  let tn4 = hull(term.ctx(), false, tk3)
+  let tn4 = hull(c, false, tk3)
   let tf5 = term.fromObj(tn4)
   let tn6 = term.struct([ImportDecl])
   let tfirst7 = true
   seq.step()
   term.setField([Specs], tn6, tf5)
   tfirst7 = cover(tn6, tf5, tfirst7)
-  made(term.ctx(), tn6, tfirst7)
+  made(c, tn6, tfirst7)
   return term.fromObj(tn6), null(Fail)
 }
 
 ## import_spec action
-func term() (Datum, Fail) {
+func term(c Act) (Datum, Fail) {
   let tf1 = term.read([$n])
   let tf2 = term.read([$p])
   let tn3 = term.struct([ImportSpec])
@@ -302,17 +302,17 @@ func term() (Datum, Fail) {
   seq.step()
   term.setField([Path], tn3, tf2)
   tfirst4 = cover(tn3, tf2, tfirst4)
-  made(term.ctx(), tn3, tfirst4)
+  made(c, tn3, tfirst4)
   return term.fromObj(tn3), null(Fail)
 }
 
 ## import_name action
-func term() (Datum, Fail) {
+func term(c Act) (Datum, Fail) {
   return term.read([$i]), null(Fail)
 }
 
 ## import_name predicate
-func term() (Datum, Fail) {
+func term(c Act) (Datum, Fail) {
   let ts1, tf1 = text(term.read([$i]))
   if (tf1 != null(Fail)) {
     return null(Datum), tf1
@@ -437,7 +437,7 @@ func term() (Datum, Fail) {
 }
 
 ## import_path action
-func term() (Datum, Fail) {
+func term(c Act) (Datum, Fail) {
   let ts1, tf1 = text(term.read([$t]))
   if (tf1 != null(Fail)) {
     return null(Datum), tf1
@@ -448,12 +448,12 @@ func term() (Datum, Fail) {
   seq.step()
   term.setField([Text], tn3, tf2)
   tfirst4 = cover(tn3, tf2, tfirst4)
-  made(term.ctx(), tn3, tfirst4)
+  made(c, tn3, tfirst4)
   return term.fromObj(tn3), null(Fail)
 }
 
 ## decls action
-func term() (Datum, Fail) {
+func term(c Act) (Datum, Fail) {
   let tm1 = term.kids()
   let ti2, tf2 = items(term.name([map]), term.read([$ds]))
   if (tf2 != null(Fail)) {
@@ -463,33 +463,33 @@ func term() (Datum, Fail) {
   loop each4 while (tj3 < seq.len(ti2)); post tj3 = (tj3 + 1) {
     seq.step()
     let tp5 = itemAt(ti2, tj3, false)
-    let tv7, tf7 = member(term.ctx(), 4, val.unbox(tp5), term.name([$d]), term.field([d of $d]))
+    let tv7, tf7 = member(c, 4, val.unbox(tp5), term.name([$d]), term.field([d of $d]))
     if (tf7 != null(Fail)) {
       return null(Datum), tf7
     }
     let tv6 = tv7
-    let tf8 = push(term.ctx(), term.name([map]), tv6)
+    let tf8 = push(c, term.name([map]), tv6)
     if (tf8 != null(Fail)) {
       return null(Datum), tf8
     }
   }
   let tk9 = term.elemsAbove(tm1)
-  let tn10 = hull(term.ctx(), false, tk9)
+  let tn10 = hull(c, false, tk9)
   return term.fromObj(tn10), null(Fail)
 }
 
 ## item_normal action
-func term() (Datum, Fail) {
+func term(c Act) (Datum, Fail) {
   return term.read([$d]), null(Fail)
 }
 
 ## item_tail action
-func term() (Datum, Fail) {
+func term(c Act) (Datum, Fail) {
   return term.read([$e]), null(Fail)
 }
 
 ## embed_tail action
-func term() (Datum, Fail) {
+func term(c Act) (Datum, Fail) {
   let tf1 = term.read([$l])
   let tf2 = term.read([$a])
   let tn3 = term.struct([EmbedDecl])
@@ -500,25 +500,25 @@ func term() (Datum, Fail) {
   seq.step()
   term.setField([Alias], tn3, tf2)
   tfirst4 = cover(tn3, tf2, tfirst4)
-  made(term.ctx(), tn3, tfirst4)
+  made(c, tn3, tfirst4)
   return term.fromObj(tn3), null(Fail)
 }
 
 ## comp_decl action
-func term() (Datum, Fail) {
+func term(c Act) (Datum, Fail) {
   return term.read([$c]), null(Fail)
 }
 
 ## ellipsis_decl action
-func term() (Datum, Fail) {
+func term(c Act) (Datum, Fail) {
   let tn1 = term.struct([Ellipsis])
   let tfirst2 = true
-  made(term.ctx(), tn1, tfirst2)
+  made(c, tn1, tfirst2)
   return term.fromObj(tn1), null(Fail)
 }
 
 ## let_decl action
-func term() (Datum, Fail) {
+func term(c Act) (Datum, Fail) {
   let tf1 = term.read([$i])
   let tf2 = term.read([$e])
   let tn3 = term.struct([LetClause])
@@ -529,12 +529,12 @@ func term() (Datum, Fail) {
   seq.step()
   term.setField([Expr], tn3, tf2)
   tfirst4 = cover(tn3, tf2, tfirst4)
-  made(term.ctx(), tn3, tfirst4)
+  made(c, tn3, tfirst4)
   return term.fromObj(tn3), null(Fail)
 }
 
 ## let_decl predicate
-func term() (Datum, Fail) {
+func term(c Act) (Datum, Fail) {
   let ts1, tf1 = text(term.read([$i]))
   if (tf1 != null(Fail)) {
     return null(Datum), tf1
@@ -571,31 +571,31 @@ func term() (Datum, Fail) {
 }
 
 ## embed_plain action
-func term() (Datum, Fail) {
+func term(c Act) (Datum, Fail) {
   let tf1 = term.read([$e])
   let tn2 = term.struct([EmbedDecl])
   let tfirst3 = true
   seq.step()
   term.setField([Expr], tn2, tf1)
   tfirst3 = cover(tn2, tf1, tfirst3)
-  made(term.ctx(), tn2, tfirst3)
+  made(c, tn2, tfirst3)
   return term.fromObj(tn2), null(Fail)
 }
 
 ## embed_bare action
-func term() (Datum, Fail) {
+func term(c Act) (Datum, Fail) {
   let tf1 = term.read([$k])
   let tn2 = term.struct([EmbedDecl])
   let tfirst3 = true
   seq.step()
   term.setField([Expr], tn2, tf1)
   tfirst3 = cover(tn2, tf1, tfirst3)
-  made(term.ctx(), tn2, tfirst3)
+  made(c, tn2, tfirst3)
   return term.fromObj(tn2), null(Fail)
 }
 
 ## field_plain action
-func term() (Datum, Fail) {
+func term(c Act) (Datum, Fail) {
   let tf1 = term.read([$l])
   let tf2 = term.read([$al])
   let tf3 = term.read([$c])
@@ -618,12 +618,12 @@ func term() (Datum, Fail) {
   seq.step()
   term.setField([Attrs], tn6, tf5)
   tfirst7 = cover(tn6, tf5, tfirst7)
-  made(term.ctx(), tn6, tfirst7)
+  made(c, tn6, tfirst7)
   return term.fromObj(tn6), null(Fail)
 }
 
 ## field_alias action
-func term() (Datum, Fail) {
+func term(c Act) (Datum, Fail) {
   let tf1 = term.read([$l])
   let tf2 = term.read([$al])
   let tf3 = term.read([$c])
@@ -646,12 +646,12 @@ func term() (Datum, Fail) {
   seq.step()
   term.setField([Attrs], tn6, tf5)
   tfirst7 = cover(tn6, tf5, tfirst7)
-  made(term.ctx(), tn6, tfirst7)
+  made(c, tn6, tfirst7)
   return term.fromObj(tn6), null(Fail)
 }
 
 ## nfield_plain action
-func term() (Datum, Fail) {
+func term(c Act) (Datum, Fail) {
   let tf1 = term.read([$l])
   let tf2 = term.read([$al])
   let tf3 = term.read([$c])
@@ -674,12 +674,12 @@ func term() (Datum, Fail) {
   seq.step()
   term.setField([Attrs], tn6, tf5)
   tfirst7 = cover(tn6, tf5, tfirst7)
-  made(term.ctx(), tn6, tfirst7)
+  made(c, tn6, tfirst7)
   return term.fromObj(tn6), null(Fail)
 }
 
 ## nfield_alias action
-func term() (Datum, Fail) {
+func term(c Act) (Datum, Fail) {
   let tf1 = term.read([$l])
   let tf2 = term.read([$al])
   let tf3 = term.read([$c])
@@ -702,47 +702,47 @@ func term() (Datum, Fail) {
   seq.step()
   term.setField([Attrs], tn6, tf5)
   tfirst7 = cover(tn6, tf5, tfirst7)
-  made(term.ctx(), tn6, tfirst7)
+  made(c, tn6, tfirst7)
   return term.fromObj(tn6), null(Fail)
 }
 
 ## fv_label action
-func term() (Datum, Fail) {
+func term(c Act) (Datum, Fail) {
   return term.read([$v]), null(Fail)
 }
 
 ## let_skip action
-func term() (Datum, Fail) {
+func term(c Act) (Datum, Fail) {
   return term.read([$e]), null(Fail)
 }
 
 ## expr_nolet action
-func term() (Datum, Fail) {
+func term(c Act) (Datum, Fail) {
   return term.read([$e]), null(Fail)
 }
 
 ## nested action
-func term() (Datum, Fail) {
+func term(c Act) (Datum, Fail) {
   let tm1 = term.kids()
   seq.step()
-  let tf2 = push(term.ctx(), term.name([list]), term.read([$f]))
+  let tf2 = push(c, term.name([list]), term.read([$f]))
   if (tf2 != null(Fail)) {
     return null(Datum), tf2
   }
   let tk3 = term.elemsAbove(tm1)
-  let tn4 = hull(term.ctx(), false, tk3)
+  let tn4 = hull(c, false, tk3)
   let tf5 = term.fromObj(tn4)
   let tn6 = term.struct([StructLit])
   let tfirst7 = true
   seq.step()
   term.setField([Elts], tn6, tf5)
   tfirst7 = cover(tn6, tf5, tfirst7)
-  made(term.ctx(), tn6, tfirst7)
+  made(c, tn6, tfirst7)
   return term.fromObj(tn6), null(Fail)
 }
 
 ## alias_value action
-func term() (Datum, Fail) {
+func term(c Act) (Datum, Fail) {
   let tf1 = term.read([$i])
   let tf2 = term.read([$e])
   let tn3 = term.struct([Alias])
@@ -753,12 +753,12 @@ func term() (Datum, Fail) {
   seq.step()
   term.setField([Expr], tn3, tf2)
   tfirst4 = cover(tn3, tf2, tfirst4)
-  made(term.ctx(), tn3, tfirst4)
+  made(c, tn3, tfirst4)
   return term.fromObj(tn3), null(Fail)
 }
 
 ## alias_value predicate
-func term() (Datum, Fail) {
+func term(c Act) (Datum, Fail) {
   let ts1, tf1 = text(term.read([$i]))
   if (tf1 != null(Fail)) {
     return null(Datum), tf1
@@ -795,7 +795,7 @@ func term() (Datum, Fail) {
 }
 
 ## attrs action
-func term() (Datum, Fail) {
+func term(c Act) (Datum, Fail) {
   let tm1 = term.kids()
   let ti2, tf2 = items(term.name([map]), term.read([$as]))
   if (tf2 != null(Fail)) {
@@ -805,28 +805,28 @@ func term() (Datum, Fail) {
   loop each4 while (tj3 < seq.len(ti2)); post tj3 = (tj3 + 1) {
     seq.step()
     let tp5 = itemAt(ti2, tj3, false)
-    let tv7, tf7 = member(term.ctx(), 4, val.unbox(tp5), term.name([$a]), term.field([a of $a]))
+    let tv7, tf7 = member(c, 4, val.unbox(tp5), term.name([$a]), term.field([a of $a]))
     if (tf7 != null(Fail)) {
       return null(Datum), tf7
     }
     let tv6 = tv7
-    let tf8 = push(term.ctx(), term.name([map]), tv6)
+    let tf8 = push(c, term.name([map]), tv6)
     if (tf8 != null(Fail)) {
       return null(Datum), tf8
     }
   }
   let tk9 = term.elemsAbove(tm1)
-  let tn10 = hull(term.ctx(), false, tk9)
+  let tn10 = hull(c, false, tk9)
   return term.fromObj(tn10), null(Fail)
 }
 
 ## postfix_alias_at action
-func term() (Datum, Fail) {
+func term(c Act) (Datum, Fail) {
   return term.read([$p]), null(Fail)
 }
 
 ## alias_dual action
-func term() (Datum, Fail) {
+func term(c Act) (Datum, Fail) {
   let tf1 = term.read([$k])
   let tf2 = term.read([$v])
   let tn3 = term.struct([PostfixAlias])
@@ -837,36 +837,36 @@ func term() (Datum, Fail) {
   seq.step()
   term.setField([Field], tn3, tf2)
   tfirst4 = cover(tn3, tf2, tfirst4)
-  made(term.ctx(), tn3, tfirst4)
+  made(c, tn3, tfirst4)
   return term.fromObj(tn3), null(Fail)
 }
 
 ## alias_paren action
-func term() (Datum, Fail) {
+func term(c Act) (Datum, Fail) {
   let tf1 = term.read([$f])
   let tn2 = term.struct([PostfixAlias])
   let tfirst3 = true
   seq.step()
   term.setField([Field], tn2, tf1)
   tfirst3 = cover(tn2, tf1, tfirst3)
-  made(term.ctx(), tn2, tfirst3)
+  made(c, tn2, tfirst3)
   return term.fromObj(tn2), null(Fail)
 }
 
 ## alias_simple action
-func term() (Datum, Fail) {
+func term(c Act) (Datum, Fail) {
   let tf1 = term.read([$f])
   let tn2 = term.struct([PostfixAlias])
   let tfirst3 = true
   seq.step()
   term.setField([Field], tn2, tf1)
   tfirst3 = cover(tn2, tf1, tfirst3)
-  made(term.ctx(), tn2, tfirst3)
+  made(c, tn2, tfirst3)
   return term.fromObj(tn2), null(Fail)
 }
 
 ## alias_label action
-func term() (Datum, Fail) {
+func term(c Act) (Datum, Fail) {
   let tf1 = term.read([$i])
   let tf2 = term.read([$r])
   let tn3 = term.struct([Alias])
@@ -877,12 +877,12 @@ func term() (Datum, Fail) {
   seq.step()
   term.setField([Expr], tn3, tf2)
   tfirst4 = cover(tn3, tf2, tfirst4)
-  made(term.ctx(), tn3, tfirst4)
+  made(c, tn3, tfirst4)
   return term.fromObj(tn3), null(Fail)
 }
 
 ## alias_label predicate
-func term() (Datum, Fail) {
+func term(c Act) (Datum, Fail) {
   let ts1, tf1 = text(term.read([$i]))
   if (tf1 != null(Fail)) {
     return null(Datum), tf1
@@ -919,7 +919,7 @@ func term() (Datum, Fail) {
 }
 
 ## alias_nlabel action
-func term() (Datum, Fail) {
+func term(c Act) (Datum, Fail) {
   let tf1 = term.read([$i])
   let tf2 = term.read([$r])
   let tn3 = term.struct([Alias])
@@ -930,12 +930,12 @@ func term() (Datum, Fail) {
   seq.step()
   term.setField([Expr], tn3, tf2)
   tfirst4 = cover(tn3, tf2, tfirst4)
-  made(term.ctx(), tn3, tfirst4)
+  made(c, tn3, tfirst4)
   return term.fromObj(tn3), null(Fail)
 }
 
 ## alias_nlabel predicate
-func term() (Datum, Fail) {
+func term(c Act) (Datum, Fail) {
   let ts1, tf1 = text(term.read([$i]))
   if (tf1 != null(Fail)) {
     return null(Datum), tf1
@@ -972,15 +972,15 @@ func term() (Datum, Fail) {
 }
 
 ## comp_single action
-func term() (Datum, Fail) {
+func term(c Act) (Datum, Fail) {
   let tm1 = term.kids()
   seq.step()
-  let tf2 = push(term.ctx(), term.name([list]), term.read([$c]))
+  let tf2 = push(c, term.name([list]), term.read([$c]))
   if (tf2 != null(Fail)) {
     return null(Datum), tf2
   }
   let tk3 = term.elemsAbove(tm1)
-  let tn4 = hull(term.ctx(), false, tk3)
+  let tn4 = hull(c, false, tk3)
   let tf5 = term.fromObj(tn4)
   let tf6 = term.read([$v])
   let tf7 = term.read([$f])
@@ -995,15 +995,15 @@ func term() (Datum, Fail) {
   seq.step()
   term.setField([Fallback], tn8, tf7)
   tfirst9 = cover(tn8, tf7, tfirst9)
-  made(term.ctx(), tn8, tfirst9)
+  made(c, tn8, tfirst9)
   return term.fromObj(tn8), null(Fail)
 }
 
 ## comp_multi action
-func term() (Datum, Fail) {
+func term(c Act) (Datum, Fail) {
   let tm1 = term.kids()
   seq.step()
-  let tf2 = push(term.ctx(), term.name([list]), term.read([$first]))
+  let tf2 = push(c, term.name([list]), term.read([$first]))
   if (tf2 != null(Fail)) {
     return null(Datum), tf2
   }
@@ -1015,18 +1015,18 @@ func term() (Datum, Fail) {
   loop each5 while (tj4 < seq.len(ti3)); post tj4 = (tj4 + 1) {
     seq.step()
     let tp6 = itemAt(ti3, tj4, false)
-    let tv8, tf8 = member(term.ctx(), 4, val.unbox(tp6), term.name([$c]), term.field([c of $c]))
+    let tv8, tf8 = member(c, 4, val.unbox(tp6), term.name([$c]), term.field([c of $c]))
     if (tf8 != null(Fail)) {
       return null(Datum), tf8
     }
     let tv7 = tv8
-    let tf9 = push(term.ctx(), term.name([map]), tv7)
+    let tf9 = push(c, term.name([map]), tv7)
     if (tf9 != null(Fail)) {
       return null(Datum), tf9
     }
   }
   let tk10 = term.elemsAbove(tm1)
-  let tn11 = hull(term.ctx(), false, tk10)
+  let tn11 = hull(c, false, tk10)
   let tf12 = term.fromObj(tn11)
   let tf13 = term.read([$v])
   let tf14 = term.read([$f])
@@ -1041,51 +1041,51 @@ func term() (Datum, Fail) {
   seq.step()
   term.setField([Fallback], tn15, tf14)
   tfirst16 = cover(tn15, tf14, tfirst16)
-  made(term.ctx(), tn15, tfirst16)
+  made(c, tn15, tfirst16)
   return term.fromObj(tn15), null(Fail)
 }
 
 ## fb_else action
-func term() (Datum, Fail) {
+func term(c Act) (Datum, Fail) {
   return term.read([$f]), null(Fail)
 }
 
 ## fb_other action
-func term() (Datum, Fail) {
+func term(c Act) (Datum, Fail) {
   return term.read([$f]), null(Fail)
 }
 
 ## else_clause action
-func term() (Datum, Fail) {
+func term(c Act) (Datum, Fail) {
   let tf1 = term.read([$b])
   let tn2 = term.struct([FallbackClause])
   let tfirst3 = true
   seq.step()
   term.setField([Body], tn2, tf1)
   tfirst3 = cover(tn2, tf1, tfirst3)
-  made(term.ctx(), tn2, tfirst3)
+  made(c, tn2, tfirst3)
   return term.fromObj(tn2), null(Fail)
 }
 
 ## otherwise_clause action
-func term() (Datum, Fail) {
+func term(c Act) (Datum, Fail) {
   let tf1 = term.read([$b])
   let tn2 = term.struct([FallbackClause])
   let tfirst3 = true
   seq.step()
   term.setField([Body], tn2, tf1)
   tfirst3 = cover(tn2, tf1, tfirst3)
-  made(term.ctx(), tn2, tfirst3)
+  made(c, tn2, tfirst3)
   return term.fromObj(tn2), null(Fail)
 }
 
 ## start_clause action
-func term() (Datum, Fail) {
+func term(c Act) (Datum, Fail) {
   return term.read([$c]), null(Fail)
 }
 
 ## for_kv action
-func term() (Datum, Fail) {
+func term(c Act) (Datum, Fail) {
   let tf1 = term.read([$k])
   let tf2 = term.read([$v])
   let tf3 = term.read([$s])
@@ -1100,12 +1100,12 @@ func term() (Datum, Fail) {
   seq.step()
   term.setField([Source], tn4, tf3)
   tfirst5 = cover(tn4, tf3, tfirst5)
-  made(term.ctx(), tn4, tfirst5)
+  made(c, tn4, tfirst5)
   return term.fromObj(tn4), null(Fail)
 }
 
 ## for_kv predicate
-func term() (Datum, Fail) {
+func term(c Act) (Datum, Fail) {
   let ts1, tf1 = text(term.read([$k]))
   if (tf1 != null(Fail)) {
     return null(Datum), tf1
@@ -1142,7 +1142,7 @@ func term() (Datum, Fail) {
 }
 
 ## for_kv predicate
-func term() (Datum, Fail) {
+func term(c Act) (Datum, Fail) {
   let ts1, tf1 = text(term.read([$v]))
   if (tf1 != null(Fail)) {
     return null(Datum), tf1
@@ -1179,7 +1179,7 @@ func term() (Datum, Fail) {
 }
 
 ## for_v action
-func term() (Datum, Fail) {
+func term(c Act) (Datum, Fail) {
   let tf1 = term.read([$v])
   let tf2 = term.read([$s])
   let tn3 = term.struct([ForClause])
@@ -1190,12 +1190,12 @@ func term() (Datum, Fail) {
   seq.step()
   term.setField([Source], tn3, tf2)
   tfirst4 = cover(tn3, tf2, tfirst4)
-  made(term.ctx(), tn3, tfirst4)
+  made(c, tn3, tfirst4)
   return term.fromObj(tn3), null(Fail)
 }
 
 ## for_v predicate
-func term() (Datum, Fail) {
+func term(c Act) (Datum, Fail) {
   let ts1, tf1 = text(term.read([$v]))
   if (tf1 != null(Fail)) {
     return null(Datum), tf1
@@ -1232,19 +1232,19 @@ func term() (Datum, Fail) {
 }
 
 ## if_clause action
-func term() (Datum, Fail) {
+func term(c Act) (Datum, Fail) {
   let tf1 = term.read([$c])
   let tn2 = term.struct([IfClause])
   let tfirst3 = true
   seq.step()
   term.setField([Condition], tn2, tf1)
   tfirst3 = cover(tn2, tf1, tfirst3)
-  made(term.ctx(), tn2, tfirst3)
+  made(c, tn2, tfirst3)
   return term.fromObj(tn2), null(Fail)
 }
 
 ## try_assign action
-func term() (Datum, Fail) {
+func term(c Act) (Datum, Fail) {
   let tf1 = term.read([$i])
   let tf2 = term.read([$e])
   let tn3 = term.struct([TryClause])
@@ -1255,32 +1255,32 @@ func term() (Datum, Fail) {
   seq.step()
   term.setField([Expr], tn3, tf2)
   tfirst4 = cover(tn3, tf2, tfirst4)
-  made(term.ctx(), tn3, tfirst4)
+  made(c, tn3, tfirst4)
   return term.fromObj(tn3), null(Fail)
 }
 
 ## try_plain action
-func term() (Datum, Fail) {
+func term(c Act) (Datum, Fail) {
   let tn1 = term.struct([TryClause])
   let tfirst2 = true
-  made(term.ctx(), tn1, tfirst2)
+  made(c, tn1, tfirst2)
   return term.fromObj(tn1), null(Fail)
 }
 
 ## struct_lit action
-func term() (Datum, Fail) {
+func term(c Act) (Datum, Fail) {
   let tf1 = term.read([$ds])
   let tn2 = term.struct([StructLit])
   let tfirst3 = true
   seq.step()
   term.setField([Elts], tn2, tf1)
   tfirst3 = cover(tn2, tf1, tfirst3)
-  made(term.ctx(), tn2, tfirst3)
+  made(c, tn2, tfirst3)
   return term.fromObj(tn2), null(Fail)
 }
 
 ## list_lit action
-func term() (Datum, Fail) {
+func term(c Act) (Datum, Fail) {
   let tm1 = term.kids()
   let ti2, tf2 = items(term.name([map]), term.read([$es]))
   if (tf2 != null(Fail)) {
@@ -1290,12 +1290,12 @@ func term() (Datum, Fail) {
   loop each4 while (tj3 < seq.len(ti2)); post tj3 = (tj3 + 1) {
     seq.step()
     let tp5 = itemAt(ti2, tj3, false)
-    let tv7, tf7 = member(term.ctx(), 4, val.unbox(tp5), term.name([$e]), term.field([e of $e]))
+    let tv7, tf7 = member(c, 4, val.unbox(tp5), term.name([$e]), term.field([e of $e]))
     if (tf7 != null(Fail)) {
       return null(Datum), tf7
     }
     let tv6 = tv7
-    let tf8 = push(term.ctx(), term.name([map]), tv6)
+    let tf8 = push(c, term.name([map]), tv6)
     if (tf8 != null(Fail)) {
       return null(Datum), tf8
     }
@@ -1308,35 +1308,35 @@ func term() (Datum, Fail) {
   loop each11 while (tj10 < seq.len(ti9)); post tj10 = (tj10 + 1) {
     seq.step()
     let tp12 = itemAt(ti9, tj10, false)
-    let tv14, tf14 = member(term.ctx(), 4, val.unbox(tp12), term.name([$x]), term.field([x of $x]))
+    let tv14, tf14 = member(c, 4, val.unbox(tp12), term.name([$x]), term.field([x of $x]))
     if (tf14 != null(Fail)) {
       return null(Datum), tf14
     }
     let tv13 = tv14
-    let tf15 = push(term.ctx(), term.name([map]), tv13)
+    let tf15 = push(c, term.name([map]), tv13)
     if (tf15 != null(Fail)) {
       return null(Datum), tf15
     }
   }
   let tk16 = term.elemsAbove(tm1)
-  let tn17 = hull(term.ctx(), false, tk16)
+  let tn17 = hull(c, false, tk16)
   let tf18 = term.fromObj(tn17)
   let tn19 = term.struct([ListLit])
   let tfirst20 = true
   seq.step()
   term.setField([Elts], tn19, tf18)
   tfirst20 = cover(tn19, tf18, tfirst20)
-  made(term.ctx(), tn19, tfirst20)
+  made(c, tn19, tfirst20)
   return term.fromObj(tn19), null(Fail)
 }
 
 ## elem_expr action
-func term() (Datum, Fail) {
+func term(c Act) (Datum, Fail) {
   return term.read([$e]), null(Fail)
 }
 
 ## alias_elem action
-func term() (Datum, Fail) {
+func term(c Act) (Datum, Fail) {
   let tf1 = term.read([$i])
   let tf2 = term.read([$e])
   let tn3 = term.struct([Alias])
@@ -1347,12 +1347,12 @@ func term() (Datum, Fail) {
   seq.step()
   term.setField([Expr], tn3, tf2)
   tfirst4 = cover(tn3, tf2, tfirst4)
-  made(term.ctx(), tn3, tfirst4)
+  made(c, tn3, tfirst4)
   return term.fromObj(tn3), null(Fail)
 }
 
 ## alias_elem predicate
-func term() (Datum, Fail) {
+func term(c Act) (Datum, Fail) {
   let ts1, tf1 = text(term.read([$i]))
   if (tf1 != null(Fail)) {
     return null(Datum), tf1
@@ -1389,51 +1389,51 @@ func term() (Datum, Fail) {
 }
 
 ## list_dots action
-func term() (Datum, Fail) {
+func term(c Act) (Datum, Fail) {
   let tf1 = term.read([$t])
   let tn2 = term.struct([Ellipsis])
   let tfirst3 = true
   seq.step()
   term.setField([Type], tn2, tf1)
   tfirst3 = cover(tn2, tf1, tfirst3)
-  made(term.ctx(), tn2, tfirst3)
+  made(c, tn2, tfirst3)
   return term.fromObj(tn2), null(Fail)
 }
 
 ## dots_type action
-func term() (Datum, Fail) {
+func term(c Act) (Datum, Fail) {
   return term.read([$x]), null(Fail)
 }
 
 ## paren_expr action
-func term() (Datum, Fail) {
+func term(c Act) (Datum, Fail) {
   let tf1 = term.read([$e])
   let tn2 = term.struct([ParenExpr])
   let tfirst3 = true
   seq.step()
   term.setField([X], tn2, tf1)
   tfirst3 = cover(tn2, tf1, tfirst3)
-  made(term.ctx(), tn2, tfirst3)
+  made(c, tn2, tfirst3)
   return term.fromObj(tn2), null(Fail)
 }
 
 ## atom_expr action
-func term() (Datum, Fail) {
+func term(c Act) (Datum, Fail) {
   return term.read([$a]), null(Fail)
 }
 
 ## operand_word action
-func term() (Datum, Fail) {
+func term(c Act) (Datum, Fail) {
   return term.read([$o]), null(Fail)
 }
 
 ## operand_digit action
-func term() (Datum, Fail) {
+func term(c Act) (Datum, Fail) {
   return term.read([$n]), null(Fail)
 }
 
 ## ident_q action
-func term() (Datum, Fail) {
+func term(c Act) (Datum, Fail) {
   let tf1 = term.read([$i])
   let tf2 = term.read([$q])
   let tn3 = term.struct([PostfixExpr])
@@ -1444,12 +1444,12 @@ func term() (Datum, Fail) {
   seq.step()
   term.setField([Op], tn3, tf2)
   tfirst4 = cover(tn3, tf2, tfirst4)
-  made(term.ctx(), tn3, tfirst4)
+  made(c, tn3, tfirst4)
   return term.fromObj(tn3), null(Fail)
 }
 
 ## full_expr line 2
-func term() (Datum, Fail) {
+func term(c Act) (Datum, Fail) {
   let tf1 = term.read([$lhs])
   let tf2 = term.read([$o])
   let tf3 = term.read([$rhs])
@@ -1464,12 +1464,12 @@ func term() (Datum, Fail) {
   seq.step()
   term.setField([Y], tn4, tf3)
   tfirst5 = cover(tn4, tf3, tfirst5)
-  made(term.ctx(), tn4, tfirst5)
+  made(c, tn4, tfirst5)
   return term.fromObj(tn4), null(Fail)
 }
 
 ## full_expr line 3
-func term() (Datum, Fail) {
+func term(c Act) (Datum, Fail) {
   let tf1 = term.read([$lhs])
   let tf2 = term.read([$o])
   let tf3 = term.read([$rhs])
@@ -1484,12 +1484,12 @@ func term() (Datum, Fail) {
   seq.step()
   term.setField([Y], tn4, tf3)
   tfirst5 = cover(tn4, tf3, tfirst5)
-  made(term.ctx(), tn4, tfirst5)
+  made(c, tn4, tfirst5)
   return term.fromObj(tn4), null(Fail)
 }
 
 ## full_expr line 4
-func term() (Datum, Fail) {
+func term(c Act) (Datum, Fail) {
   let tf1 = term.read([$lhs])
   let tf2 = term.read([$o])
   let tf3 = term.read([$rhs])
@@ -1504,12 +1504,12 @@ func term() (Datum, Fail) {
   seq.step()
   term.setField([Y], tn4, tf3)
   tfirst5 = cover(tn4, tf3, tfirst5)
-  made(term.ctx(), tn4, tfirst5)
+  made(c, tn4, tfirst5)
   return term.fromObj(tn4), null(Fail)
 }
 
 ## full_expr line 5
-func term() (Datum, Fail) {
+func term(c Act) (Datum, Fail) {
   let tf1 = term.read([$lhs])
   let tf2 = term.read([$o])
   let tf3 = term.read([$rhs])
@@ -1524,12 +1524,12 @@ func term() (Datum, Fail) {
   seq.step()
   term.setField([Y], tn4, tf3)
   tfirst5 = cover(tn4, tf3, tfirst5)
-  made(term.ctx(), tn4, tfirst5)
+  made(c, tn4, tfirst5)
   return term.fromObj(tn4), null(Fail)
 }
 
 ## full_expr line 6
-func term() (Datum, Fail) {
+func term(c Act) (Datum, Fail) {
   let tf1 = term.read([$lhs])
   let tf2 = term.read([$o])
   let tf3 = term.read([$rhs])
@@ -1544,12 +1544,12 @@ func term() (Datum, Fail) {
   seq.step()
   term.setField([Y], tn4, tf3)
   tfirst5 = cover(tn4, tf3, tfirst5)
-  made(term.ctx(), tn4, tfirst5)
+  made(c, tn4, tfirst5)
   return term.fromObj(tn4), null(Fail)
 }
 
 ## full_expr line 7
-func term() (Datum, Fail) {
+func term(c Act) (Datum, Fail) {
   let tf1 = term.read([$lhs])
   let tf2 = term.read([$o])
   let tf3 = term.read([$rhs])
@@ -1564,12 +1564,12 @@ func term() (Datum, Fail) {
   seq.step()
   term.setField([Y], tn4, tf3)
   tfirst5 = cover(tn4, tf3, tfirst5)
-  made(term.ctx(), tn4, tfirst5)
+  made(c, tn4, tfirst5)
   return term.fromObj(tn4), null(Fail)
 }
 
 ## full_expr line 8
-func term() (Datum, Fail) {
+func term(c Act) (Datum, Fail) {
   let tf1 = term.read([$lhs])
   let tf2 = term.read([$o])
   let tf3 = term.read([$rhs])
@@ -1584,12 +1584,12 @@ func term() (Datum, Fail) {
   seq.step()
   term.setField([Y], tn4, tf3)
   tfirst5 = cover(tn4, tf3, tfirst5)
-  made(term.ctx(), tn4, tfirst5)
+  made(c, tn4, tfirst5)
   return term.fromObj(tn4), null(Fail)
 }
 
 ## full_expr line 9
-func term() (Datum, Fail) {
+func term(c Act) (Datum, Fail) {
   let tf1 = term.read([$o])
   let tf2 = term.read([$rhs])
   let tn3 = term.struct([UnaryExpr])
@@ -1600,12 +1600,12 @@ func term() (Datum, Fail) {
   seq.step()
   term.setField([X], tn3, tf2)
   tfirst4 = cover(tn3, tf2, tfirst4)
-  made(term.ctx(), tn3, tfirst4)
+  made(c, tn3, tfirst4)
   return term.fromObj(tn3), null(Fail)
 }
 
 ## full_expr line 10
-func term() (Datum, Fail) {
+func term(c Act) (Datum, Fail) {
   let tf1 = term.read([$lhs])
   let tf2 = term.read([$s])
   let tn3 = term.struct([SelectorExpr])
@@ -1616,7 +1616,7 @@ func term() (Datum, Fail) {
   seq.step()
   term.setField([Sel], tn3, tf2)
   tfirst4 = cover(tn3, tf2, tfirst4)
-  made(term.ctx(), tn3, tfirst4)
+  made(c, tn3, tfirst4)
   let tf5 = term.fromObj(tn3)
   let tf6 = term.read([$q])
   let tn7 = term.struct([PostfixExpr])
@@ -1627,12 +1627,12 @@ func term() (Datum, Fail) {
   seq.step()
   term.setField([Op], tn7, tf6)
   tfirst8 = cover(tn7, tf6, tfirst8)
-  made(term.ctx(), tn7, tfirst8)
+  made(c, tn7, tfirst8)
   return term.fromObj(tn7), null(Fail)
 }
 
 ## full_expr line 11
-func term() (Datum, Fail) {
+func term(c Act) (Datum, Fail) {
   let tf1 = term.read([$lhs])
   let tf2 = term.read([$s])
   let tn3 = term.struct([SelectorExpr])
@@ -1643,12 +1643,12 @@ func term() (Datum, Fail) {
   seq.step()
   term.setField([Sel], tn3, tf2)
   tfirst4 = cover(tn3, tf2, tfirst4)
-  made(term.ctx(), tn3, tfirst4)
+  made(c, tn3, tfirst4)
   return term.fromObj(tn3), null(Fail)
 }
 
 ## full_expr line 12
-func term() (Datum, Fail) {
+func term(c Act) (Datum, Fail) {
   let tf1 = term.read([$lhs])
   let tf2 = term.read([$i])
   let tf3 = term.read([$r])
@@ -1663,7 +1663,7 @@ func term() (Datum, Fail) {
   seq.step()
   term.setField([Rbrack], tn4, tf3)
   tfirst5 = cover(tn4, tf3, tfirst5)
-  made(term.ctx(), tn4, tfirst5)
+  made(c, tn4, tfirst5)
   let tf6 = term.fromObj(tn4)
   let tf7 = term.read([$q])
   let tn8 = term.struct([PostfixExpr])
@@ -1674,12 +1674,12 @@ func term() (Datum, Fail) {
   seq.step()
   term.setField([Op], tn8, tf7)
   tfirst9 = cover(tn8, tf7, tfirst9)
-  made(term.ctx(), tn8, tfirst9)
+  made(c, tn8, tfirst9)
   return term.fromObj(tn8), null(Fail)
 }
 
 ## full_expr line 13
-func term() (Datum, Fail) {
+func term(c Act) (Datum, Fail) {
   let tf1 = term.read([$lhs])
   let tf2 = term.read([$i])
   let tf3 = term.read([$r])
@@ -1694,12 +1694,12 @@ func term() (Datum, Fail) {
   seq.step()
   term.setField([Rbrack], tn4, tf3)
   tfirst5 = cover(tn4, tf3, tfirst5)
-  made(term.ctx(), tn4, tfirst5)
+  made(c, tn4, tfirst5)
   return term.fromObj(tn4), null(Fail)
 }
 
 ## full_expr line 14
-func term() (Datum, Fail) {
+func term(c Act) (Datum, Fail) {
   let tf1 = term.read([$lhs])
   let tf2 = term.read([$lo])
   let tf3 = term.read([$hi])
@@ -1714,12 +1714,12 @@ func term() (Datum, Fail) {
   seq.step()
   term.setField([High], tn4, tf3)
   tfirst5 = cover(tn4, tf3, tfirst5)
-  made(term.ctx(), tn4, tfirst5)
+  made(c, tn4, tfirst5)
   return term.fromObj(tn4), null(Fail)
 }
 
 ## full_expr line 15
-func term() (Datum, Fail) {
+func term(c Act) (Datum, Fail) {
   let tf1 = term.read([$lhs])
   let tm2 = term.kids()
   let ti3, tf3 = items(term.name([map]), term.read([$as]))
@@ -1730,18 +1730,18 @@ func term() (Datum, Fail) {
   loop each5 while (tj4 < seq.len(ti3)); post tj4 = (tj4 + 1) {
     seq.step()
     let tp6 = itemAt(ti3, tj4, false)
-    let tv8, tf8 = member(term.ctx(), 4, val.unbox(tp6), term.name([$a]), term.field([a of $a]))
+    let tv8, tf8 = member(c, 4, val.unbox(tp6), term.name([$a]), term.field([a of $a]))
     if (tf8 != null(Fail)) {
       return null(Datum), tf8
     }
     let tv7 = tv8
-    let tf9 = push(term.ctx(), term.name([map]), tv7)
+    let tf9 = push(c, term.name([map]), tv7)
     if (tf9 != null(Fail)) {
       return null(Datum), tf9
     }
   }
   let tk10 = term.elemsAbove(tm2)
-  let tn11 = hull(term.ctx(), false, tk10)
+  let tn11 = hull(c, false, tk10)
   let tf12 = term.fromObj(tn11)
   let tn13 = term.struct([CallExpr])
   let tfirst14 = true
@@ -1751,12 +1751,12 @@ func term() (Datum, Fail) {
   seq.step()
   term.setField([Args], tn13, tf12)
   tfirst14 = cover(tn13, tf12, tfirst14)
-  made(term.ctx(), tn13, tfirst14)
+  made(c, tn13, tfirst14)
   return term.fromObj(tn13), null(Fail)
 }
 
 ## full_expr line 16
-func term() (Datum, Fail) {
+func term(c Act) (Datum, Fail) {
   let tf1 = term.read([$lhs])
   let tf2 = term.read([$o])
   let tn3 = term.struct([PostfixExpr])
@@ -1767,12 +1767,12 @@ func term() (Datum, Fail) {
   seq.step()
   term.setField([Op], tn3, tf2)
   tfirst4 = cover(tn3, tf2, tfirst4)
-  made(term.ctx(), tn3, tfirst4)
+  made(c, tn3, tfirst4)
   return term.fromObj(tn3), null(Fail)
 }
 
 ## sel_string action
-func term() (Datum, Fail) {
+func term(c Act) (Datum, Fail) {
   let ts1, tf1 = text(term.read([$t]))
   if (tf1 != null(Fail)) {
     return null(Datum), tf1
@@ -1783,27 +1783,27 @@ func term() (Datum, Fail) {
   seq.step()
   term.setField([Text], tn3, tf2)
   tfirst4 = cover(tn3, tf2, tfirst4)
-  made(term.ctx(), tn3, tfirst4)
+  made(c, tn3, tfirst4)
   return term.fromObj(tn3), null(Fail)
 }
 
 ## interp_expr action
-func term() (Datum, Fail) {
+func term(c Act) (Datum, Fail) {
   return term.read([$e]), null(Fail)
 }
 
 ## number action
-func term() (Datum, Fail) {
+func term(c Act) (Datum, Fail) {
   return term.read([$n]), null(Fail)
 }
 
 ## strlit action
-func term() (Datum, Fail) {
+func term(c Act) (Datum, Fail) {
   return term.read([$s]), null(Fail)
 }
 
 ## dq_plain action
-func term() (Datum, Fail) {
+func term(c Act) (Datum, Fail) {
   let ts1, tf1 = text(term.read([$t]))
   if (tf1 != null(Fail)) {
     return null(Datum), tf1
@@ -1814,12 +1814,12 @@ func term() (Datum, Fail) {
   seq.step()
   term.setField([Text], tn3, tf2)
   tfirst4 = cover(tn3, tf2, tfirst4)
-  made(term.ctx(), tn3, tfirst4)
+  made(c, tn3, tfirst4)
   return term.fromObj(tn3), null(Fail)
 }
 
 ## dq_open action
-func term() (Datum, Fail) {
+func term(c Act) (Datum, Fail) {
   let ts1, tf1 = text(term.read([$t]))
   if (tf1 != null(Fail)) {
     return null(Datum), tf1
@@ -1830,12 +1830,12 @@ func term() (Datum, Fail) {
   seq.step()
   term.setField([Text], tn3, tf2)
   tfirst4 = cover(tn3, tf2, tfirst4)
-  made(term.ctx(), tn3, tfirst4)
+  made(c, tn3, tfirst4)
   return term.fromObj(tn3), null(Fail)
 }
 
 ## dq_mid action
-func term() (Datum, Fail) {
+func term(c Act) (Datum, Fail) {
   let ts1, tf1 = text(term.read([$t]))
   if (tf1 != null(Fail)) {
     return null(Datum), tf1
@@ -1846,12 +1846,12 @@ func term() (Datum, Fail) {
   seq.step()
   term.setField([Text], tn3, tf2)
   tfirst4 = cover(tn3, tf2, tfirst4)
-  made(term.ctx(), tn3, tfirst4)
+  made(c, tn3, tfirst4)
   return term.fromObj(tn3), null(Fail)
 }
 
 ## dq_end action
-func term() (Datum, Fail) {
+func term(c Act) (Datum, Fail) {
   let ts1, tf1 = text(term.read([$t]))
   if (tf1 != null(Fail)) {
     return null(Datum), tf1
@@ -1862,94 +1862,94 @@ func term() (Datum, Fail) {
   seq.step()
   term.setField([Text], tn3, tf2)
   tfirst4 = cover(tn3, tf2, tfirst4)
-  made(term.ctx(), tn3, tfirst4)
+  made(c, tn3, tfirst4)
   return term.fromObj(tn3), null(Fail)
 }
 
 ## dq_interp action
-func term() (Datum, Fail) {
+func term(c Act) (Datum, Fail) {
   let tm1 = term.kids()
   seq.step()
-  let tf2 = push(term.ctx(), term.name([list]), term.read([$f]))
+  let tf2 = push(c, term.name([list]), term.read([$f]))
   if (tf2 != null(Fail)) {
     return null(Datum), tf2
   }
   let tk3 = term.elemsAbove(tm1)
-  let tn4 = hull(term.ctx(), false, tk3)
+  let tn4 = hull(c, false, tk3)
   let tm5 = term.kids()
   seq.step()
-  let tf6 = pushItems(term.ctx(), term.name([concat]), term.fromObj(tn4))
+  let tf6 = pushItems(c, term.name([concat]), term.fromObj(tn4))
   if (tf6 != null(Fail)) {
     return null(Datum), tf6
   }
   seq.step()
-  let tf7 = pushItems(term.ctx(), term.name([concat]), term.read([$t]))
+  let tf7 = pushItems(c, term.name([concat]), term.read([$t]))
   if (tf7 != null(Fail)) {
     return null(Datum), tf7
   }
   let tk8 = term.elemsAbove(tm5)
-  let tn9 = hull(term.ctx(), false, tk8)
+  let tn9 = hull(c, false, tk8)
   let tf10 = term.fromObj(tn9)
   let tn11 = term.struct([Interpolation])
   let tfirst12 = true
   seq.step()
   term.setField([Elts], tn11, tf10)
   tfirst12 = cover(tn11, tf10, tfirst12)
-  made(term.ctx(), tn11, tfirst12)
+  made(c, tn11, tfirst12)
   return term.fromObj(tn11), null(Fail)
 }
 
 ## dq_more action
-func term() (Datum, Fail) {
+func term(c Act) (Datum, Fail) {
   let tm1 = term.kids()
   seq.step()
-  let tf2 = push(term.ctx(), term.name([list]), term.read([$e]))
+  let tf2 = push(c, term.name([list]), term.read([$e]))
   if (tf2 != null(Fail)) {
     return null(Datum), tf2
   }
   seq.step()
-  let tf3 = push(term.ctx(), term.name([list]), term.read([$m]))
+  let tf3 = push(c, term.name([list]), term.read([$m]))
   if (tf3 != null(Fail)) {
     return null(Datum), tf3
   }
   let tk4 = term.elemsAbove(tm1)
-  let tn5 = hull(term.ctx(), false, tk4)
+  let tn5 = hull(c, false, tk4)
   let tm6 = term.kids()
   seq.step()
-  let tf7 = pushItems(term.ctx(), term.name([concat]), term.fromObj(tn5))
+  let tf7 = pushItems(c, term.name([concat]), term.fromObj(tn5))
   if (tf7 != null(Fail)) {
     return null(Datum), tf7
   }
   seq.step()
-  let tf8 = pushItems(term.ctx(), term.name([concat]), term.read([$t]))
+  let tf8 = pushItems(c, term.name([concat]), term.read([$t]))
   if (tf8 != null(Fail)) {
     return null(Datum), tf8
   }
   let tk9 = term.elemsAbove(tm6)
-  let tn10 = hull(term.ctx(), false, tk9)
+  let tn10 = hull(c, false, tk9)
   return term.fromObj(tn10), null(Fail)
 }
 
 ## dq_last action
-func term() (Datum, Fail) {
+func term(c Act) (Datum, Fail) {
   let tm1 = term.kids()
   seq.step()
-  let tf2 = push(term.ctx(), term.name([list]), term.read([$e]))
+  let tf2 = push(c, term.name([list]), term.read([$e]))
   if (tf2 != null(Fail)) {
     return null(Datum), tf2
   }
   seq.step()
-  let tf3 = push(term.ctx(), term.name([list]), term.read([$z]))
+  let tf3 = push(c, term.name([list]), term.read([$z]))
   if (tf3 != null(Fail)) {
     return null(Datum), tf3
   }
   let tk4 = term.elemsAbove(tm1)
-  let tn5 = hull(term.ctx(), false, tk4)
+  let tn5 = hull(c, false, tk4)
   return term.fromObj(tn5), null(Fail)
 }
 
 ## sq_plain action
-func term() (Datum, Fail) {
+func term(c Act) (Datum, Fail) {
   let ts1, tf1 = text(term.read([$t]))
   if (tf1 != null(Fail)) {
     return null(Datum), tf1
@@ -1960,12 +1960,12 @@ func term() (Datum, Fail) {
   seq.step()
   term.setField([Text], tn3, tf2)
   tfirst4 = cover(tn3, tf2, tfirst4)
-  made(term.ctx(), tn3, tfirst4)
+  made(c, tn3, tfirst4)
   return term.fromObj(tn3), null(Fail)
 }
 
 ## sq_open action
-func term() (Datum, Fail) {
+func term(c Act) (Datum, Fail) {
   let ts1, tf1 = text(term.read([$t]))
   if (tf1 != null(Fail)) {
     return null(Datum), tf1
@@ -1976,12 +1976,12 @@ func term() (Datum, Fail) {
   seq.step()
   term.setField([Text], tn3, tf2)
   tfirst4 = cover(tn3, tf2, tfirst4)
-  made(term.ctx(), tn3, tfirst4)
+  made(c, tn3, tfirst4)
   return term.fromObj(tn3), null(Fail)
 }
 
 ## sq_mid action
-func term() (Datum, Fail) {
+func term(c Act) (Datum, Fail) {
   let ts1, tf1 = text(term.read([$t]))
   if (tf1 != null(Fail)) {
     return null(Datum), tf1
@@ -1992,12 +1992,12 @@ func term() (Datum, Fail) {
   seq.step()
   term.setField([Text], tn3, tf2)
   tfirst4 = cover(tn3, tf2, tfirst4)
-  made(term.ctx(), tn3, tfirst4)
+  made(c, tn3, tfirst4)
   return term.fromObj(tn3), null(Fail)
 }
 
 ## sq_end action
-func term() (Datum, Fail) {
+func term(c Act) (Datum, Fail) {
   let ts1, tf1 = text(term.read([$t]))
   if (tf1 != null(Fail)) {
     return null(Datum), tf1
@@ -2008,94 +2008,94 @@ func term() (Datum, Fail) {
   seq.step()
   term.setField([Text], tn3, tf2)
   tfirst4 = cover(tn3, tf2, tfirst4)
-  made(term.ctx(), tn3, tfirst4)
+  made(c, tn3, tfirst4)
   return term.fromObj(tn3), null(Fail)
 }
 
 ## sq_interp action
-func term() (Datum, Fail) {
+func term(c Act) (Datum, Fail) {
   let tm1 = term.kids()
   seq.step()
-  let tf2 = push(term.ctx(), term.name([list]), term.read([$f]))
+  let tf2 = push(c, term.name([list]), term.read([$f]))
   if (tf2 != null(Fail)) {
     return null(Datum), tf2
   }
   let tk3 = term.elemsAbove(tm1)
-  let tn4 = hull(term.ctx(), false, tk3)
+  let tn4 = hull(c, false, tk3)
   let tm5 = term.kids()
   seq.step()
-  let tf6 = pushItems(term.ctx(), term.name([concat]), term.fromObj(tn4))
+  let tf6 = pushItems(c, term.name([concat]), term.fromObj(tn4))
   if (tf6 != null(Fail)) {
     return null(Datum), tf6
   }
   seq.step()
-  let tf7 = pushItems(term.ctx(), term.name([concat]), term.read([$t]))
+  let tf7 = pushItems(c, term.name([concat]), term.read([$t]))
   if (tf7 != null(Fail)) {
     return null(Datum), tf7
   }
   let tk8 = term.elemsAbove(tm5)
-  let tn9 = hull(term.ctx(), false, tk8)
+  let tn9 = hull(c, false, tk8)
   let tf10 = term.fromObj(tn9)
   let tn11 = term.struct([Interpolation])
   let tfirst12 = true
   seq.step()
   term.setField([Elts], tn11, tf10)
   tfirst12 = cover(tn11, tf10, tfirst12)
-  made(term.ctx(), tn11, tfirst12)
+  made(c, tn11, tfirst12)
   return term.fromObj(tn11), null(Fail)
 }
 
 ## sq_more action
-func term() (Datum, Fail) {
+func term(c Act) (Datum, Fail) {
   let tm1 = term.kids()
   seq.step()
-  let tf2 = push(term.ctx(), term.name([list]), term.read([$e]))
+  let tf2 = push(c, term.name([list]), term.read([$e]))
   if (tf2 != null(Fail)) {
     return null(Datum), tf2
   }
   seq.step()
-  let tf3 = push(term.ctx(), term.name([list]), term.read([$m]))
+  let tf3 = push(c, term.name([list]), term.read([$m]))
   if (tf3 != null(Fail)) {
     return null(Datum), tf3
   }
   let tk4 = term.elemsAbove(tm1)
-  let tn5 = hull(term.ctx(), false, tk4)
+  let tn5 = hull(c, false, tk4)
   let tm6 = term.kids()
   seq.step()
-  let tf7 = pushItems(term.ctx(), term.name([concat]), term.fromObj(tn5))
+  let tf7 = pushItems(c, term.name([concat]), term.fromObj(tn5))
   if (tf7 != null(Fail)) {
     return null(Datum), tf7
   }
   seq.step()
-  let tf8 = pushItems(term.ctx(), term.name([concat]), term.read([$t]))
+  let tf8 = pushItems(c, term.name([concat]), term.read([$t]))
   if (tf8 != null(Fail)) {
     return null(Datum), tf8
   }
   let tk9 = term.elemsAbove(tm6)
-  let tn10 = hull(term.ctx(), false, tk9)
+  let tn10 = hull(c, false, tk9)
   return term.fromObj(tn10), null(Fail)
 }
 
 ## sq_last action
-func term() (Datum, Fail) {
+func term(c Act) (Datum, Fail) {
   let tm1 = term.kids()
   seq.step()
-  let tf2 = push(term.ctx(), term.name([list]), term.read([$e]))
+  let tf2 = push(c, term.name([list]), term.read([$e]))
   if (tf2 != null(Fail)) {
     return null(Datum), tf2
   }
   seq.step()
-  let tf3 = push(term.ctx(), term.name([list]), term.read([$z]))
+  let tf3 = push(c, term.name([list]), term.read([$z]))
   if (tf3 != null(Fail)) {
     return null(Datum), tf3
   }
   let tk4 = term.elemsAbove(tm1)
-  let tn5 = hull(term.ctx(), false, tk4)
+  let tn5 = hull(c, false, tk4)
   return term.fromObj(tn5), null(Fail)
 }
 
 ## qc predicate
-func term() (Datum, Fail) {
+func term(c Act) (Datum, Fail) {
   let tv1 = term.read([var sv])
   let tv2, tf2 = binary(4, tv1, term.const([2]))
   if (tf2 != null(Fail)) {
@@ -2109,7 +2109,7 @@ func term() (Datum, Fail) {
 }
 
 ## qc predicate
-func term() (Datum, Fail) {
+func term(c Act) (Datum, Fail) {
   let tv1 = term.read([var sv])
   let tv2, tf2 = binary(4, tv1, term.const([2]))
   if (tf2 != null(Fail)) {
@@ -2123,7 +2123,7 @@ func term() (Datum, Fail) {
 }
 
 ## hq predicate
-func term() (Datum, Fail) {
+func term(c Act) (Datum, Fail) {
   let tv1 = term.read([var sv])
   let tv2, tf2 = binary(7, tv1, term.const([2]))
   if (tf2 != null(Fail)) {
@@ -2133,7 +2133,7 @@ func term() (Datum, Fail) {
 }
 
 ## hq predicate
-func term() (Datum, Fail) {
+func term(c Act) (Datum, Fail) {
   let tv1 = term.read([var sv])
   let tv2, tf2 = binary(10, tv1, term.const([2]))
   if (tf2 != null(Fail)) {
@@ -2143,7 +2143,7 @@ func term() (Datum, Fail) {
 }
 
 ## hq binding sv
-func term() (Datum, Fail) {
+func term(c Act) (Datum, Fail) {
   let tv1 = term.read([var sv])
   let tv2, tf2 = binary(1, tv1, term.const([2]))
   if (tf2 != null(Fail)) {
@@ -2153,7 +2153,7 @@ func term() (Datum, Fail) {
 }
 
 ## g_escbody predicate
-func term() (Datum, Fail) {
+func term(c Act) (Datum, Fail) {
   let tv1 = term.read([var sv])
   let tv2, tf2 = binary(4, tv1, term.const([2]))
   if (tf2 != null(Fail)) {
@@ -2167,7 +2167,7 @@ func term() (Datum, Fail) {
 }
 
 ## g_escbody predicate
-func term() (Datum, Fail) {
+func term(c Act) (Datum, Fail) {
   let tv1 = term.read([var sv])
   let tv2, tf2 = binary(4, tv1, term.const([2]))
   if (tf2 != null(Fail)) {
@@ -2181,7 +2181,7 @@ func term() (Datum, Fail) {
 }
 
 ## gs_esc predicate
-func term() (Datum, Fail) {
+func term(c Act) (Datum, Fail) {
   let tv1, tf1 = length(term.read([$h]))
   if (tf1 != null(Fail)) {
     return null(Datum), tf1
@@ -2199,7 +2199,7 @@ func term() (Datum, Fail) {
 }
 
 ## gs_esc predicate
-func term() (Datum, Fail) {
+func term(c Act) (Datum, Fail) {
   let tv1, tf1 = length(term.read([$h]))
   if (tf1 != null(Fail)) {
     return null(Datum), tf1
@@ -2217,7 +2217,7 @@ func term() (Datum, Fail) {
 }
 
 ## g_interp_open predicate
-func term() (Datum, Fail) {
+func term(c Act) (Datum, Fail) {
   let tv1, tf1 = length(term.read([$h]))
   if (tf1 != null(Fail)) {
     return null(Datum), tf1
@@ -2235,7 +2235,7 @@ func term() (Datum, Fail) {
 }
 
 ## ml_open_tail predicate
-func term() (Datum, Fail) {
+func term(c Act) (Datum, Fail) {
   let tv1, tf1 = length(term.read([$xh]))
   if (tf1 != null(Fail)) {
     return null(Datum), tf1
@@ -2273,7 +2273,7 @@ func term() (Datum, Fail) {
 }
 
 ## gtriple action
-func term() (Datum, Fail) {
+func term(c Act) (Datum, Fail) {
   let ts1, tf1 = text(term.read([$t]))
   if (tf1 != null(Fail)) {
     return null(Datum), tf1
@@ -2284,12 +2284,12 @@ func term() (Datum, Fail) {
   seq.step()
   term.setField([Text], tn3, tf2)
   tfirst4 = cover(tn3, tf2, tfirst4)
-  made(term.ctx(), tn3, tfirst4)
+  made(c, tn3, tfirst4)
   return term.fromObj(tn3), null(Fail)
 }
 
 ## gtriple binding sv
-func term() (Datum, Fail) {
+func term(c Act) (Datum, Fail) {
   let tv1, tf1 = length(term.read([$hs]))
   if (tf1 != null(Fail)) {
     return null(Datum), tf1
@@ -2302,7 +2302,7 @@ func term() (Datum, Fail) {
 }
 
 ## gtriple binding sv
-func term() (Datum, Fail) {
+func term(c Act) (Datum, Fail) {
   let tv1, tf1 = length(term.read([$hs]))
   if (tf1 != null(Fail)) {
     return null(Datum), tf1
@@ -2319,7 +2319,7 @@ func term() (Datum, Fail) {
 }
 
 ## gs_quote predicate
-func term() (Datum, Fail) {
+func term(c Act) (Datum, Fail) {
   let tv1 = term.read([var sv])
   let tv2, tf2 = binary(4, tv1, term.const([2]))
   if (tf2 != null(Fail)) {
@@ -2333,7 +2333,7 @@ func term() (Datum, Fail) {
 }
 
 ## gs_quote predicate
-func term() (Datum, Fail) {
+func term(c Act) (Datum, Fail) {
   let tv1, tf1 = length(term.read([$h]))
   if (tf1 != null(Fail)) {
     return null(Datum), tf1
@@ -2351,7 +2351,7 @@ func term() (Datum, Fail) {
 }
 
 ## gs_quote predicate
-func term() (Datum, Fail) {
+func term(c Act) (Datum, Fail) {
   let tv1 = term.read([var sv])
   let tv2, tf2 = binary(4, tv1, term.const([2]))
   if (tf2 != null(Fail)) {
@@ -2365,7 +2365,7 @@ func term() (Datum, Fail) {
 }
 
 ## gs_quote predicate
-func term() (Datum, Fail) {
+func term(c Act) (Datum, Fail) {
   let tv1, tf1 = length(term.read([$h]))
   if (tf1 != null(Fail)) {
     return null(Datum), tf1
@@ -2383,7 +2383,7 @@ func term() (Datum, Fail) {
 }
 
 ## gsl_plain action
-func term() (Datum, Fail) {
+func term(c Act) (Datum, Fail) {
   let ts1, tf1 = text(term.read([$t]))
   if (tf1 != null(Fail)) {
     return null(Datum), tf1
@@ -2394,12 +2394,12 @@ func term() (Datum, Fail) {
   seq.step()
   term.setField([Text], tn3, tf2)
   tfirst4 = cover(tn3, tf2, tfirst4)
-  made(term.ctx(), tn3, tfirst4)
+  made(c, tn3, tfirst4)
   return term.fromObj(tn3), null(Fail)
 }
 
 ## gsl_plain binding sv
-func term() (Datum, Fail) {
+func term(c Act) (Datum, Fail) {
   let tv1, tf1 = length(term.read([$hs]))
   if (tf1 != null(Fail)) {
     return null(Datum), tf1
@@ -2412,7 +2412,7 @@ func term() (Datum, Fail) {
 }
 
 ## gsl_plain binding sv
-func term() (Datum, Fail) {
+func term(c Act) (Datum, Fail) {
   let tv1, tf1 = length(term.read([$hs]))
   if (tf1 != null(Fail)) {
     return null(Datum), tf1
@@ -2429,7 +2429,7 @@ func term() (Datum, Fail) {
 }
 
 ## gsl_open action
-func term() (Datum, Fail) {
+func term(c Act) (Datum, Fail) {
   let ts1, tf1 = text(term.read([$t]))
   if (tf1 != null(Fail)) {
     return null(Datum), tf1
@@ -2440,12 +2440,12 @@ func term() (Datum, Fail) {
   seq.step()
   term.setField([Text], tn3, tf2)
   tfirst4 = cover(tn3, tf2, tfirst4)
-  made(term.ctx(), tn3, tfirst4)
+  made(c, tn3, tfirst4)
   return term.fromObj(tn3), null(Fail)
 }
 
 ## gsl_mid action
-func term() (Datum, Fail) {
+func term(c Act) (Datum, Fail) {
   let ts1, tf1 = text(term.read([$t]))
   if (tf1 != null(Fail)) {
     return null(Datum), tf1
@@ -2456,12 +2456,12 @@ func term() (Datum, Fail) {
   seq.step()
   term.setField([Text], tn3, tf2)
   tfirst4 = cover(tn3, tf2, tfirst4)
-  made(term.ctx(), tn3, tfirst4)
+  made(c, tn3, tfirst4)
   return term.fromObj(tn3), null(Fail)
 }
 
 ## gsl_end action
-func term() (Datum, Fail) {
+func term(c Act) (Datum, Fail) {
   let ts1, tf1 = text(term.read([$t]))
   if (tf1 != null(Fail)) {
     return null(Datum), tf1
@@ -2472,45 +2472,45 @@ func term() (Datum, Fail) {
   seq.step()
   term.setField([Text], tn3, tf2)
   tfirst4 = cover(tn3, tf2, tfirst4)
-  made(term.ctx(), tn3, tfirst4)
+  made(c, tn3, tfirst4)
   return term.fromObj(tn3), null(Fail)
 }
 
 ## gsl_interp action
-func term() (Datum, Fail) {
+func term(c Act) (Datum, Fail) {
   let tm1 = term.kids()
   seq.step()
-  let tf2 = push(term.ctx(), term.name([list]), term.read([$f]))
+  let tf2 = push(c, term.name([list]), term.read([$f]))
   if (tf2 != null(Fail)) {
     return null(Datum), tf2
   }
   let tk3 = term.elemsAbove(tm1)
-  let tn4 = hull(term.ctx(), false, tk3)
+  let tn4 = hull(c, false, tk3)
   let tm5 = term.kids()
   seq.step()
-  let tf6 = pushItems(term.ctx(), term.name([concat]), term.fromObj(tn4))
+  let tf6 = pushItems(c, term.name([concat]), term.fromObj(tn4))
   if (tf6 != null(Fail)) {
     return null(Datum), tf6
   }
   seq.step()
-  let tf7 = pushItems(term.ctx(), term.name([concat]), term.read([$t]))
+  let tf7 = pushItems(c, term.name([concat]), term.read([$t]))
   if (tf7 != null(Fail)) {
     return null(Datum), tf7
   }
   let tk8 = term.elemsAbove(tm5)
-  let tn9 = hull(term.ctx(), false, tk8)
+  let tn9 = hull(c, false, tk8)
   let tf10 = term.fromObj(tn9)
   let tn11 = term.struct([Interpolation])
   let tfirst12 = true
   seq.step()
   term.setField([Elts], tn11, tf10)
   tfirst12 = cover(tn11, tf10, tfirst12)
-  made(term.ctx(), tn11, tfirst12)
+  made(c, tn11, tfirst12)
   return term.fromObj(tn11), null(Fail)
 }
 
 ## gsl_interp binding sv
-func term() (Datum, Fail) {
+func term(c Act) (Datum, Fail) {
   let tv1, tf1 = length(term.read([$hs]))
   if (tf1 != null(Fail)) {
     return null(Datum), tf1
@@ -2523,40 +2523,40 @@ func term() (Datum, Fail) {
 }
 
 ## gsl_interp_s action
-func term() (Datum, Fail) {
+func term(c Act) (Datum, Fail) {
   let tm1 = term.kids()
   seq.step()
-  let tf2 = push(term.ctx(), term.name([list]), term.read([$f]))
+  let tf2 = push(c, term.name([list]), term.read([$f]))
   if (tf2 != null(Fail)) {
     return null(Datum), tf2
   }
   let tk3 = term.elemsAbove(tm1)
-  let tn4 = hull(term.ctx(), false, tk3)
+  let tn4 = hull(c, false, tk3)
   let tm5 = term.kids()
   seq.step()
-  let tf6 = pushItems(term.ctx(), term.name([concat]), term.fromObj(tn4))
+  let tf6 = pushItems(c, term.name([concat]), term.fromObj(tn4))
   if (tf6 != null(Fail)) {
     return null(Datum), tf6
   }
   seq.step()
-  let tf7 = pushItems(term.ctx(), term.name([concat]), term.read([$t]))
+  let tf7 = pushItems(c, term.name([concat]), term.read([$t]))
   if (tf7 != null(Fail)) {
     return null(Datum), tf7
   }
   let tk8 = term.elemsAbove(tm5)
-  let tn9 = hull(term.ctx(), false, tk8)
+  let tn9 = hull(c, false, tk8)
   let tf10 = term.fromObj(tn9)
   let tn11 = term.struct([Interpolation])
   let tfirst12 = true
   seq.step()
   term.setField([Elts], tn11, tf10)
   tfirst12 = cover(tn11, tf10, tfirst12)
-  made(term.ctx(), tn11, tfirst12)
+  made(c, tn11, tfirst12)
   return term.fromObj(tn11), null(Fail)
 }
 
 ## gsl_interp_s binding sv
-func term() (Datum, Fail) {
+func term(c Act) (Datum, Fail) {
   let tv1, tf1 = length(term.read([$hs]))
   if (tf1 != null(Fail)) {
     return null(Datum), tf1
@@ -2573,61 +2573,61 @@ func term() (Datum, Fail) {
 }
 
 ## gsl_more action
-func term() (Datum, Fail) {
+func term(c Act) (Datum, Fail) {
   let tm1 = term.kids()
   seq.step()
-  let tf2 = push(term.ctx(), term.name([list]), term.read([$e]))
+  let tf2 = push(c, term.name([list]), term.read([$e]))
   if (tf2 != null(Fail)) {
     return null(Datum), tf2
   }
   seq.step()
-  let tf3 = push(term.ctx(), term.name([list]), term.read([$m]))
+  let tf3 = push(c, term.name([list]), term.read([$m]))
   if (tf3 != null(Fail)) {
     return null(Datum), tf3
   }
   let tk4 = term.elemsAbove(tm1)
-  let tn5 = hull(term.ctx(), false, tk4)
+  let tn5 = hull(c, false, tk4)
   let tm6 = term.kids()
   seq.step()
-  let tf7 = pushItems(term.ctx(), term.name([concat]), term.fromObj(tn5))
+  let tf7 = pushItems(c, term.name([concat]), term.fromObj(tn5))
   if (tf7 != null(Fail)) {
     return null(Datum), tf7
   }
   seq.step()
-  let tf8 = pushItems(term.ctx(), term.name([concat]), term.read([$t]))
+  let tf8 = pushItems(c, term.name([concat]), term.read([$t]))
   if (tf8 != null(Fail)) {
     return null(Datum), tf8
   }
   let tk9 = term.elemsAbove(tm6)
-  let tn10 = hull(term.ctx(), false, tk9)
+  let tn10 = hull(c, false, tk9)
   return term.fromObj(tn10), null(Fail)
 }
 
 ## gsl_last action
-func term() (Datum, Fail) {
+func term(c Act) (Datum, Fail) {
   let tm1 = term.kids()
   seq.step()
-  let tf2 = push(term.ctx(), term.name([list]), term.read([$e]))
+  let tf2 = push(c, term.name([list]), term.read([$e]))
   if (tf2 != null(Fail)) {
     return null(Datum), tf2
   }
   seq.step()
-  let tf3 = push(term.ctx(), term.name([list]), term.read([$z]))
+  let tf3 = push(c, term.name([list]), term.read([$z]))
   if (tf3 != null(Fail)) {
     return null(Datum), tf3
   }
   let tk4 = term.elemsAbove(tm1)
-  let tn5 = hull(term.ctx(), false, tk4)
+  let tn5 = hull(c, false, tk4)
   return term.fromObj(tn5), null(Fail)
 }
 
 ## ml_close action
-func term() (Datum, Fail) {
+func term(c Act) (Datum, Fail) {
   return term.read([$c]), null(Fail)
 }
 
 ## gml_plain action
-func term() (Datum, Fail) {
+func term(c Act) (Datum, Fail) {
   let ts1, tf1 = text(term.read([$t]))
   if (tf1 != null(Fail)) {
     return null(Datum), tf1
@@ -2638,12 +2638,12 @@ func term() (Datum, Fail) {
   seq.step()
   term.setField([Text], tn3, tf2)
   tfirst4 = cover(tn3, tf2, tfirst4)
-  made(term.ctx(), tn3, tfirst4)
+  made(c, tn3, tfirst4)
   return term.fromObj(tn3), null(Fail)
 }
 
 ## gml_plain binding sv
-func term() (Datum, Fail) {
+func term(c Act) (Datum, Fail) {
   let tv1, tf1 = length(term.read([$hs]))
   if (tf1 != null(Fail)) {
     return null(Datum), tf1
@@ -2656,7 +2656,7 @@ func term() (Datum, Fail) {
 }
 
 ## gml_plain binding sv
-func term() (Datum, Fail) {
+func term(c Act) (Datum, Fail) {
   let tv1, tf1 = length(term.read([$hs]))
   if (tf1 != null(Fail)) {
     return null(Datum), tf1
@@ -2673,7 +2673,7 @@ func term() (Datum, Fail) {
 }
 
 ## gml_plain predicate
-func term() (Datum, Fail) {
+func term(c Act) (Datum, Fail) {
   let ti1, tf1 = items(term.name([foldl]), term.read([$ls]))
   if (tf1 != null(Fail)) {
     return null(Datum), tf1
@@ -2690,7 +2690,7 @@ func term() (Datum, Fail) {
     }
     let tv9 = val.fromBool(false)
     if tb8 {
-      let tv10, tf10 = member(term.ctx(), 4, val.unbox(tp6), term.name([$lead]), term.field([lead of $lead]))
+      let tv10, tf10 = member(c, 4, val.unbox(tp6), term.name([$lead]), term.field([lead of $lead]))
       if (tf10 != null(Fail)) {
         return null(Datum), tf10
       }
@@ -2708,7 +2708,7 @@ func term() (Datum, Fail) {
       }
       let tv14 = val.fromBool(false)
       if tb13 {
-        let tv15, tf15 = member(term.ctx(), 4, val.unbox(tp6), term.name([$body]), term.field([body of $body]))
+        let tv15, tf15 = member(c, 4, val.unbox(tp6), term.name([$body]), term.field([body of $body]))
         if (tf15 != null(Fail)) {
           return null(Datum), tf15
         }
@@ -2732,7 +2732,7 @@ func term() (Datum, Fail) {
       }
       let tv20 = val.fromBool(true)
       if !tb19 {
-        let tv21, tf21 = member(term.ctx(), 4, val.unbox(tp6), term.name([$lead]), term.field([lead of $lead]))
+        let tv21, tf21 = member(c, 4, val.unbox(tp6), term.name([$lead]), term.field([lead of $lead]))
         if (tf21 != null(Fail)) {
           return null(Datum), tf21
         }
@@ -2754,7 +2754,7 @@ func term() (Datum, Fail) {
         }
         let tv26 = val.fromBool(false)
         if tb25 {
-          let tv27, tf27 = member(term.ctx(), 4, val.unbox(tp6), term.name([$lead]), term.field([lead of $lead]))
+          let tv27, tf27 = member(c, 4, val.unbox(tp6), term.name([$lead]), term.field([lead of $lead]))
           if (tf27 != null(Fail)) {
             return null(Datum), tf27
           }
@@ -2799,7 +2799,7 @@ func term() (Datum, Fail) {
 }
 
 ## gml_open action
-func term() (Datum, Fail) {
+func term(c Act) (Datum, Fail) {
   let ts1, tf1 = text(term.read([$t]))
   if (tf1 != null(Fail)) {
     return null(Datum), tf1
@@ -2810,12 +2810,12 @@ func term() (Datum, Fail) {
   seq.step()
   term.setField([Text], tn3, tf2)
   tfirst4 = cover(tn3, tf2, tfirst4)
-  made(term.ctx(), tn3, tfirst4)
+  made(c, tn3, tfirst4)
   return term.fromObj(tn3), null(Fail)
 }
 
 ## gml_mid action
-func term() (Datum, Fail) {
+func term(c Act) (Datum, Fail) {
   let ts1, tf1 = text(term.read([$t]))
   if (tf1 != null(Fail)) {
     return null(Datum), tf1
@@ -2826,12 +2826,12 @@ func term() (Datum, Fail) {
   seq.step()
   term.setField([Text], tn3, tf2)
   tfirst4 = cover(tn3, tf2, tfirst4)
-  made(term.ctx(), tn3, tfirst4)
+  made(c, tn3, tfirst4)
   return term.fromObj(tn3), null(Fail)
 }
 
 ## gml_end action
-func term() (Datum, Fail) {
+func term(c Act) (Datum, Fail) {
   let ts1, tf1 = text(term.read([$t]))
   if (tf1 != null(Fail)) {
     return null(Datum), tf1
@@ -2842,45 +2842,45 @@ func term() (Datum, Fail) {
   seq.step()
   term.setField([Text], tn3, tf2)
   tfirst4 = cover(tn3, tf2, tfirst4)
-  made(term.ctx(), tn3, tfirst4)
+  made(c, tn3, tfirst4)
   return term.fromObj(tn3), null(Fail)
 }
 
 ## gml_interp action
-func term() (Datum, Fail) {
+func term(c Act) (Datum, Fail) {
   let tm1 = term.kids()
   seq.step()
-  let tf2 = push(term.ctx(), term.name([list]), term.read([$f]))
+  let tf2 = push(c, term.name([list]), term.read([$f]))
   if (tf2 != null(Fail)) {
     return null(Datum), tf2
   }
   let tk3 = term.elemsAbove(tm1)
-  let tn4 = hull(term.ctx(), false, tk3)
+  let tn4 = hull(c, false, tk3)
   let tm5 = term.kids()
   seq.step()
-  let tf6 = pushItems(term.ctx(), term.name([concat]), term.fromObj(tn4))
+  let tf6 = pushItems(c, term.name([concat]), term.fromObj(tn4))
   if (tf6 != null(Fail)) {
     return null(Datum), tf6
   }
   seq.step()
-  let tf7 = pushItems(term.ctx(), term.name([concat]), term.read([$t]))
+  let tf7 = pushItems(c, term.name([concat]), term.read([$t]))
   if (tf7 != null(Fail)) {
     return null(Datum), tf7
   }
   let tk8 = term.elemsAbove(tm5)
-  let tn9 = hull(term.ctx(), false, tk8)
+  let tn9 = hull(c, false, tk8)
   let tf10 = term.fromObj(tn9)
   let tn11 = term.struct([Interpolation])
   let tfirst12 = true
   seq.step()
   term.setField([Elts], tn11, tf10)
   tfirst12 = cover(tn11, tf10, tfirst12)
-  made(term.ctx(), tn11, tfirst12)
+  made(c, tn11, tfirst12)
   return term.fromObj(tn11), null(Fail)
 }
 
 ## gml_interp binding sv
-func term() (Datum, Fail) {
+func term(c Act) (Datum, Fail) {
   let tv1, tf1 = length(term.read([$hs]))
   if (tf1 != null(Fail)) {
     return null(Datum), tf1
@@ -2893,40 +2893,40 @@ func term() (Datum, Fail) {
 }
 
 ## gml_interp_s action
-func term() (Datum, Fail) {
+func term(c Act) (Datum, Fail) {
   let tm1 = term.kids()
   seq.step()
-  let tf2 = push(term.ctx(), term.name([list]), term.read([$f]))
+  let tf2 = push(c, term.name([list]), term.read([$f]))
   if (tf2 != null(Fail)) {
     return null(Datum), tf2
   }
   let tk3 = term.elemsAbove(tm1)
-  let tn4 = hull(term.ctx(), false, tk3)
+  let tn4 = hull(c, false, tk3)
   let tm5 = term.kids()
   seq.step()
-  let tf6 = pushItems(term.ctx(), term.name([concat]), term.fromObj(tn4))
+  let tf6 = pushItems(c, term.name([concat]), term.fromObj(tn4))
   if (tf6 != null(Fail)) {
     return null(Datum), tf6
   }
   seq.step()
-  let tf7 = pushItems(term.ctx(), term.name([concat]), term.read([$t]))
+  let tf7 = pushItems(c, term.name([concat]), term.read([$t]))
   if (tf7 != null(Fail)) {
     return null(Datum), tf7
   }
   let tk8 = term.elemsAbove(tm5)
-  let tn9 = hull(term.ctx(), false, tk8)
+  let tn9 = hull(c, false, tk8)
   let tf10 = term.fromObj(tn9)
   let tn11 = term.struct([Interpolation])
   let tfirst12 = true
   seq.step()
   term.setField([Elts], tn11, tf10)
   tfirst12 = cover(tn11, tf10, tfirst12)
-  made(term.ctx(), tn11, tfirst12)
+  made(c, tn11, tfirst12)
   return term.fromObj(tn11), null(Fail)
 }
 
 ## gml_interp_s binding sv
-func term() (Datum, Fail) {
+func term(c Act) (Datum, Fail) {
   let tv1, tf1 = length(term.read([$hs]))
   if (tf1 != null(Fail)) {
     return null(Datum), tf1
@@ -2943,56 +2943,56 @@ func term() (Datum, Fail) {
 }
 
 ## gml_more action
-func term() (Datum, Fail) {
+func term(c Act) (Datum, Fail) {
   let tm1 = term.kids()
   seq.step()
-  let tf2 = push(term.ctx(), term.name([list]), term.read([$e]))
+  let tf2 = push(c, term.name([list]), term.read([$e]))
   if (tf2 != null(Fail)) {
     return null(Datum), tf2
   }
   seq.step()
-  let tf3 = push(term.ctx(), term.name([list]), term.read([$m]))
+  let tf3 = push(c, term.name([list]), term.read([$m]))
   if (tf3 != null(Fail)) {
     return null(Datum), tf3
   }
   let tk4 = term.elemsAbove(tm1)
-  let tn5 = hull(term.ctx(), false, tk4)
+  let tn5 = hull(c, false, tk4)
   let tm6 = term.kids()
   seq.step()
-  let tf7 = pushItems(term.ctx(), term.name([concat]), term.fromObj(tn5))
+  let tf7 = pushItems(c, term.name([concat]), term.fromObj(tn5))
   if (tf7 != null(Fail)) {
     return null(Datum), tf7
   }
   seq.step()
-  let tf8 = pushItems(term.ctx(), term.name([concat]), term.read([$t]))
+  let tf8 = pushItems(c, term.name([concat]), term.read([$t]))
   if (tf8 != null(Fail)) {
     return null(Datum), tf8
   }
   let tk9 = term.elemsAbove(tm6)
-  let tn10 = hull(term.ctx(), false, tk9)
+  let tn10 = hull(c, false, tk9)
   return term.fromObj(tn10), null(Fail)
 }
 
 ## gml_last action
-func term() (Datum, Fail) {
+func term(c Act) (Datum, Fail) {
   let tm1 = term.kids()
   seq.step()
-  let tf2 = push(term.ctx(), term.name([list]), term.read([$e]))
+  let tf2 = push(c, term.name([list]), term.read([$e]))
   if (tf2 != null(Fail)) {
     return null(Datum), tf2
   }
   seq.step()
-  let tf3 = push(term.ctx(), term.name([list]), term.read([$z]))
+  let tf3 = push(c, term.name([list]), term.read([$z]))
   if (tf3 != null(Fail)) {
     return null(Datum), tf3
   }
   let tk4 = term.elemsAbove(tm1)
-  let tn5 = hull(term.ctx(), false, tk4)
+  let tn5 = hull(c, false, tk4)
   return term.fromObj(tn5), null(Fail)
 }
 
 ## gstr_plain action
-func term() (Datum, Fail) {
+func term(c Act) (Datum, Fail) {
   let ts1, tf1 = text(term.read([$t]))
   if (tf1 != null(Fail)) {
     return null(Datum), tf1
@@ -3003,12 +3003,12 @@ func term() (Datum, Fail) {
   seq.step()
   term.setField([Text], tn3, tf2)
   tfirst4 = cover(tn3, tf2, tfirst4)
-  made(term.ctx(), tn3, tfirst4)
+  made(c, tn3, tfirst4)
   return term.fromObj(tn3), null(Fail)
 }
 
 ## qc predicate
-func term() (Datum, Fail) {
+func term(c Act) (Datum, Fail) {
   let tv1 = term.read([var sv])
   let tv2, tf2 = binary(4, tv1, term.const([2]))
   if (tf2 != null(Fail)) {
@@ -3022,7 +3022,7 @@ func term() (Datum, Fail) {
 }
 
 ## qc predicate
-func term() (Datum, Fail) {
+func term(c Act) (Datum, Fail) {
   let tv1 = term.read([var sv])
   let tv2, tf2 = binary(4, tv1, term.const([2]))
   if (tf2 != null(Fail)) {
@@ -3036,7 +3036,7 @@ func term() (Datum, Fail) {
 }
 
 ## g_interp_open predicate
-func term() (Datum, Fail) {
+func term(c Act) (Datum, Fail) {
   let tv1, tf1 = length(term.read([$h]))
   if (tf1 != null(Fail)) {
     return null(Datum), tf1
@@ -3054,7 +3054,7 @@ func term() (Datum, Fail) {
 }
 
 ## hq predicate
-func term() (Datum, Fail) {
+func term(c Act) (Datum, Fail) {
   let tv1 = term.read([var sv])
   let tv2, tf2 = binary(7, tv1, term.const([2]))
   if (tf2 != null(Fail)) {
@@ -3064,7 +3064,7 @@ func term() (Datum, Fail) {
 }
 
 ## hq predicate
-func term() (Datum, Fail) {
+func term(c Act) (Datum, Fail) {
   let tv1 = term.read([var sv])
   let tv2, tf2 = binary(10, tv1, term.const([2]))
   if (tf2 != null(Fail)) {
@@ -3074,7 +3074,7 @@ func term() (Datum, Fail) {
 }
 
 ## hq binding sv
-func term() (Datum, Fail) {
+func term(c Act) (Datum, Fail) {
   let tv1 = term.read([var sv])
   let tv2, tf2 = binary(1, tv1, term.const([2]))
   if (tf2 != null(Fail)) {
@@ -3084,7 +3084,7 @@ func term() (Datum, Fail) {
 }
 
 ## ml_open_tail predicate
-func term() (Datum, Fail) {
+func term(c Act) (Datum, Fail) {
   let tv1, tf1 = length(term.read([$xh]))
   if (tf1 != null(Fail)) {
     return null(Datum), tf1
@@ -3122,7 +3122,7 @@ func term() (Datum, Fail) {
 }
 
 ## gs_quote predicate
-func term() (Datum, Fail) {
+func term(c Act) (Datum, Fail) {
   let tv1 = term.read([var sv])
   let tv2, tf2 = binary(4, tv1, term.const([2]))
   if (tf2 != null(Fail)) {
@@ -3136,7 +3136,7 @@ func term() (Datum, Fail) {
 }
 
 ## gs_quote predicate
-func term() (Datum, Fail) {
+func term(c Act) (Datum, Fail) {
   let tv1, tf1 = length(term.read([$h]))
   if (tf1 != null(Fail)) {
     return null(Datum), tf1
@@ -3154,7 +3154,7 @@ func term() (Datum, Fail) {
 }
 
 ## gs_quote predicate
-func term() (Datum, Fail) {
+func term(c Act) (Datum, Fail) {
   let tv1 = term.read([var sv])
   let tv2, tf2 = binary(4, tv1, term.const([2]))
   if (tf2 != null(Fail)) {
@@ -3168,7 +3168,7 @@ func term() (Datum, Fail) {
 }
 
 ## gs_quote predicate
-func term() (Datum, Fail) {
+func term(c Act) (Datum, Fail) {
   let tv1, tf1 = length(term.read([$h]))
   if (tf1 != null(Fail)) {
     return null(Datum), tf1
@@ -3186,7 +3186,7 @@ func term() (Datum, Fail) {
 }
 
 ## gs_esc predicate
-func term() (Datum, Fail) {
+func term(c Act) (Datum, Fail) {
   let tv1, tf1 = length(term.read([$h]))
   if (tf1 != null(Fail)) {
     return null(Datum), tf1
@@ -3204,7 +3204,7 @@ func term() (Datum, Fail) {
 }
 
 ## gs_esc predicate
-func term() (Datum, Fail) {
+func term(c Act) (Datum, Fail) {
   let tv1, tf1 = length(term.read([$h]))
   if (tf1 != null(Fail)) {
     return null(Datum), tf1
@@ -3222,7 +3222,7 @@ func term() (Datum, Fail) {
 }
 
 ## g_escbody predicate
-func term() (Datum, Fail) {
+func term(c Act) (Datum, Fail) {
   let tv1 = term.read([var sv])
   let tv2, tf2 = binary(4, tv1, term.const([2]))
   if (tf2 != null(Fail)) {
@@ -3236,7 +3236,7 @@ func term() (Datum, Fail) {
 }
 
 ## g_escbody predicate
-func term() (Datum, Fail) {
+func term(c Act) (Datum, Fail) {
   let tv1 = term.read([var sv])
   let tv2, tf2 = binary(4, tv1, term.const([2]))
   if (tf2 != null(Fail)) {

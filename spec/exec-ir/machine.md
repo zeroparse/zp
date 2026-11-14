@@ -76,7 +76,8 @@ A register is a scalar of the abstract state that functions read and assign dire
 
 ### Handle Types
 
-A handle type is a type of opaque values. Its component is the state component whose operations make its values.
+A handle type is a type of opaque values. Its component is the state component whose operations make its values. A
+handle type may be callable: its values are code that [an application](functions.md#application) runs.
 
 | Handle type | Component | Stands for |
 |:--|:--|:--|
@@ -102,7 +103,7 @@ A handle type is a type of opaque values. Its component is the state component w
 | `Run` | `runs` | A repetition run in progress in a Document parse. |
 | `RunElem` | `runs` | An element of an old run that the parse reuses, or none. |
 | `RunSite` | `runs` | A repetition that a Document parse can resume. |
-| `Term` | `host` | A term of a predicate or a binding, in the form the target evaluates. |
+| `Term` | `host` | A term of a predicate or a binding, in the form the target holds: code that is applied to an `Act`, and returns a `Datum` and a `Fail` ([Application](functions.md#application)). |
 | `CallState` | `suspended` | The record of a suspended call, which its caller holds. |
 | `Frame` | `frames` | A capture frame: the slots of the captures of a rule body or a line. |
 | `Mark` | `frames` | A backtracking point: the position, the variable environment, the recovered errors and the length of the trail when it was taken. |
@@ -152,8 +153,9 @@ An operation is of one of three kinds.
 
 An operation never runs grammar code and never chooses between outcomes of the parse: reusing or recomputing a
 result, growing or stopping, which error or expectation survives. Those choices are made in functions, which read
-the results of operations. The exceptions are the transitional operations that invoke a rule's body, a line of an
-Operators Rule or a term, which say so in their contracts. [Operations](operations.md) and [Values](values.md) list
+the results of operations. The exceptions are the transitional operations that invoke a rule's body or a line of an
+Operators Rule, which say so in their contracts. A term is not run by an operation: a function applies it
+([Application](functions.md#application)). [Operations](operations.md) and [Values](values.md) list
 every operation.
 
 ## Costs
@@ -168,8 +170,9 @@ bound could exceed the limit.
 
 A charge that pays for one call, step, iteration or line is made by the function that runs it, with `budget.charge`;
 an operation of constant work charges nothing, because the call or step around it has paid. An operation that runs a
-rule body or a term bounds its charges by what the grammar code or the term it runs charges (the quantities `body` and
-`term`), and its own work besides.
+rule body bounds its charges by what the grammar code it runs charges (the quantity `body`), and its own work
+besides. The application of a term is not an operation and charges nothing itself: the operations of the code of the
+term charge.
 
 A bound is written `c + k*q + ...`, where `c` is the constant and each `k*q` a coefficient and a quantity. The
 quantities are the following.
@@ -214,7 +217,6 @@ quantities are the following.
 | `stream_inactive` | The capacity of the trail and the inactive capacity of a target's value stack. |
 | `stream_scan` | The number of input elements that the call copies when it compacts the buffer, and of those it scans for line starts: every loaded element when the whole input is loaded from its first element and no table of its lines exists yet, otherwise those before its argument that no call scanned. |
 | `table` | The work of the call's lookups and stores in the context tables at its position: one for each lookup or store; one for each dependency set of the head it scans, each result under the values the set selects and each key value those results compare, a string counting two for each byte compared; and one for each jump it scans for a seed. A lookup that the outcome of an observation leads to counts again on each path through the observations that outcomes depend on. |
-| `term` | What evaluating the term of the call charges, which the term's expression decides. |
 | `tokens` | The number of missing tokens that the call removes (those inserted after its mark, or for rule.invokePlain those that its failed body inserted) or records again (those that the call of its entry inserted). |
 | `trail` | The number of trail writes after the mark that the call undoes. |
 | `value_bytes` | The number of bytes of the string operands of a primitive, which it reads and, for a concatenation, copies. |

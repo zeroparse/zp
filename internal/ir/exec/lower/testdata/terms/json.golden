@@ -1,33 +1,33 @@
 ## main action
-func term() (Datum, Fail) {
+func term(c Act) (Datum, Fail) {
   return term.read([$v]), null(Fail)
 }
 
 ## object action
-func term() (Datum, Fail) {
+func term(c Act) (Datum, Fail) {
   let tm1 = term.kids()
   seq.step()
-  let tf2 = pushItems(term.ctx(), term.name([concat]), term.read([$ms]))
+  let tf2 = pushItems(c, term.name([concat]), term.read([$ms]))
   if (tf2 != null(Fail)) {
     return null(Datum), tf2
   }
   let tk3 = term.elemsAbove(tm1)
-  let tn4 = hull(term.ctx(), false, tk3)
+  let tn4 = hull(c, false, tk3)
   let tf5 = term.fromObj(tn4)
   let tn6 = term.struct([Object])
   let tfirst7 = true
   seq.step()
   term.setField([Members], tn6, tf5)
   tfirst7 = cover(tn6, tf5, tfirst7)
-  made(term.ctx(), tn6, tfirst7)
+  made(c, tn6, tfirst7)
   return term.fromObj(tn6), null(Fail)
 }
 
 ## members action
-func term() (Datum, Fail) {
+func term(c Act) (Datum, Fail) {
   let tm1 = term.kids()
   seq.step()
-  let tf2 = push(term.ctx(), term.name([list]), term.read([$first]))
+  let tf2 = push(c, term.name([list]), term.read([$first]))
   if (tf2 != null(Fail)) {
     return null(Datum), tf2
   }
@@ -39,23 +39,23 @@ func term() (Datum, Fail) {
   loop each5 while (tj4 < seq.len(ti3)); post tj4 = (tj4 + 1) {
     seq.step()
     let tp6 = itemAt(ti3, tj4, false)
-    let tv8, tf8 = member(term.ctx(), 4, val.unbox(tp6), term.name([$m]), term.field([m of $m]))
+    let tv8, tf8 = member(c, 4, val.unbox(tp6), term.name([$m]), term.field([m of $m]))
     if (tf8 != null(Fail)) {
       return null(Datum), tf8
     }
     let tv7 = tv8
-    let tf9 = push(term.ctx(), term.name([map]), tv7)
+    let tf9 = push(c, term.name([map]), tv7)
     if (tf9 != null(Fail)) {
       return null(Datum), tf9
     }
   }
   let tk10 = term.elemsAbove(tm1)
-  let tn11 = hull(term.ctx(), false, tk10)
+  let tn11 = hull(c, false, tk10)
   return term.fromObj(tn11), null(Fail)
 }
 
 ## member action
-func term() (Datum, Fail) {
+func term(c Act) (Datum, Fail) {
   let tf1 = term.read([$k])
   let tf2 = term.read([$v])
   let tn3 = term.struct([Member])
@@ -66,35 +66,35 @@ func term() (Datum, Fail) {
   seq.step()
   term.setField([Value], tn3, tf2)
   tfirst4 = cover(tn3, tf2, tfirst4)
-  made(term.ctx(), tn3, tfirst4)
+  made(c, tn3, tfirst4)
   return term.fromObj(tn3), null(Fail)
 }
 
 ## array action
-func term() (Datum, Fail) {
+func term(c Act) (Datum, Fail) {
   let tm1 = term.kids()
   seq.step()
-  let tf2 = pushItems(term.ctx(), term.name([concat]), term.read([$es]))
+  let tf2 = pushItems(c, term.name([concat]), term.read([$es]))
   if (tf2 != null(Fail)) {
     return null(Datum), tf2
   }
   let tk3 = term.elemsAbove(tm1)
-  let tn4 = hull(term.ctx(), false, tk3)
+  let tn4 = hull(c, false, tk3)
   let tf5 = term.fromObj(tn4)
   let tn6 = term.struct([Array])
   let tfirst7 = true
   seq.step()
   term.setField([Elements], tn6, tf5)
   tfirst7 = cover(tn6, tf5, tfirst7)
-  made(term.ctx(), tn6, tfirst7)
+  made(c, tn6, tfirst7)
   return term.fromObj(tn6), null(Fail)
 }
 
 ## elements action
-func term() (Datum, Fail) {
+func term(c Act) (Datum, Fail) {
   let tm1 = term.kids()
   seq.step()
-  let tf2 = push(term.ctx(), term.name([list]), term.read([$first]))
+  let tf2 = push(c, term.name([list]), term.read([$first]))
   if (tf2 != null(Fail)) {
     return null(Datum), tf2
   }
@@ -106,23 +106,23 @@ func term() (Datum, Fail) {
   loop each5 while (tj4 < seq.len(ti3)); post tj4 = (tj4 + 1) {
     seq.step()
     let tp6 = itemAt(ti3, tj4, false)
-    let tv8, tf8 = member(term.ctx(), 4, val.unbox(tp6), term.name([$v]), term.field([v of $v]))
+    let tv8, tf8 = member(c, 4, val.unbox(tp6), term.name([$v]), term.field([v of $v]))
     if (tf8 != null(Fail)) {
       return null(Datum), tf8
     }
     let tv7 = tv8
-    let tf9 = push(term.ctx(), term.name([map]), tv7)
+    let tf9 = push(c, term.name([map]), tv7)
     if (tf9 != null(Fail)) {
       return null(Datum), tf9
     }
   }
   let tk10 = term.elemsAbove(tm1)
-  let tn11 = hull(term.ctx(), false, tk10)
+  let tn11 = hull(c, false, tk10)
   return term.fromObj(tn11), null(Fail)
 }
 
 ## string action
-func term() (Datum, Fail) {
+func term(c Act) (Datum, Fail) {
   return term.read([$s]), null(Fail)
 }
 

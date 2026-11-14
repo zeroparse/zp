@@ -152,8 +152,9 @@ and before the first `push`, once for each argument of a `concat` whose argument
 pushes them and for each projected `map` among the arguments of one whose are, before its `pushItems`, and once for
 each other call of `map`, before `items`. A variable is read into a local where the term
 reads it, since reading it charges the budget; the other leaves are operands of the calls that read them. The
-function returns the term's value, or, when the target places the value itself, assigns it as its last statement to
-a local of the function that the target declares.
+function takes the context that the term is applied to as its one parameter, which `member`, `push`, `pushItems`, `hull` and
+`made` take, and has the signature of the callable type `Term`. It returns the term's value, or, when the target places
+the value itself, assigns it as its last statement to a local of the function that the target declares.
 
 The operations of the leaves are transitional, of the component `runtime`:
 
@@ -161,7 +162,6 @@ The operations of the leaves are transitional, of the component `runtime`:
 |:--|:--|:--|
 | `term.const` | the constant | Returns the constant. |
 | `term.read` | the capture, local or variable | Returns its value. |
-| `term.ctx` | none | Returns the context of the evaluation, which `member` takes. |
 | `term.name` | a name | Returns the name, an operand of `member`, `push` and `pushItems`. |
 | `term.field` | a member and the name it reads | Returns the name of the field or the capture that the member reads, an operand of `member`. A target whose comparison of names charges less for the same string data than for equal bytes cuts it from the name of the member, so that the charge does not depend on whether equal literals share their data. |
 | `term.nodeType` | the name of a named node type | Returns the node type, an operand of `convert`. |

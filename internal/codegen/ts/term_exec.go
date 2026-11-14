@@ -108,8 +108,6 @@ func (g *Generator) termTarget(s *compile.Scope, locals map[string]string) *Targ
 				case *irc.VarRef:
 					return g.leaf(x.Name, true, s, locals)
 				}
-			case lower.OpTermCtx:
-				return "c"
 			case lower.OpTermName, lower.OpTermNodeType:
 				return TsString(c.Imm.(string))
 			case lower.OpTermField:

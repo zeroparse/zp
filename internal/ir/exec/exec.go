@@ -113,6 +113,16 @@ type HandleType struct {
 	Name      string
 	Component string
 	Doc       string
+	// Callable, if not nil, makes the values of the type code that a Call with Fn applies: it states
+	// the types of the arguments and of the results of that application. The type is how a target holds
+	// code that Exec IR does not write as a function of the module (a term of a predicate or a binding).
+	Callable *Signature
+}
+
+// Signature is the parameter and result types of the application of a callable handle.
+type Signature struct {
+	Params  []Type
+	Results []Type
 }
 
 // Param is a named parameter of an operation or a function.
@@ -351,10 +361,17 @@ type Convert struct {
 // Call calls the operation or function Callee. As an expression it must have exactly one result,
 // except as the value of a Let or a Set with as many names or places as results. Imm is the
 // immediate operand of an operation that declares one (Op.Imm).
+//
+// A Call with Fn applies the value of Fn, an expression of a callable handle type (HandleType.Callable),
+// to Args, and has Callee and Imm empty. It is not an operation: it declares no contract and charges
+// nothing itself, so that what an application charges and what it may end the parse with are those of
+// the code of the value. It reads and writes what that code does, which is a function of the
+// module's parser state only through the operations the code calls.
 type Call struct {
 	Callee string
 	Args   []Expr
 	Imm    any
+	Fn     Expr
 }
 
 func (*Const) expr()   {}
@@ -365,6 +382,14 @@ func (*Unary) expr()   {}
 func (*Binary) expr()  {}
 func (*Convert) expr() {}
 func (*Call) expr()    {}
+
+// name returns the callee of c for messages: its name, or "application" for an application.
+func (c *Call) name() string {
+	if c.Fn != nil {
+		return "application"
+	}
+	return c.Callee
+}
 
 // Op returns the operation named name, or nil.
 func (m *Module) Op(name string) *Op {
@@ -385,6 +410,9 @@ func (m *Module) Func(name string) *Func {
 	}
 	return nil
 }
+
+// HandleType returns the handle type named name, or nil.
+func (m *Module) HandleType(name string) *HandleType { return m.handle(name) }
 
 func (m *Module) register(name string) *Register {
 	for _, r := range m.Registers {

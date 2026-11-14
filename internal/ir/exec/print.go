@@ -26,7 +26,11 @@ func String(m *Module) string {
 	}
 	for _, h := range m.Handles {
 		p.line(0, "")
-		p.line(0, "handle %s of %s", h.Name, h.Component)
+		if h.Callable != nil {
+			p.line(0, "handle %s of %s callable (%s)%s", h.Name, h.Component, types(h.Callable.Params), results(h.Callable.Results))
+		} else {
+			p.line(0, "handle %s of %s", h.Name, h.Component)
+		}
 		p.doc(1, h.Doc)
 	}
 	for _, o := range m.Ops {
@@ -71,6 +75,14 @@ func params(ps []Param) string {
 	s := make([]string, len(ps))
 	for i, x := range ps {
 		s[i] = x.Name + " " + x.Type.String()
+	}
+	return strings.Join(s, ", ")
+}
+
+func types(ts []Type) string {
+	s := make([]string, len(ts))
+	for i, t := range ts {
+		s[i] = t.String()
 	}
 	return strings.Join(s, ", ")
 }
@@ -267,6 +279,9 @@ func expr(x Expr) string {
 		}
 		if x.Imm != nil {
 			as = append([]string{fmt.Sprintf("[%v]", x.Imm)}, as...)
+		}
+		if x.Fn != nil {
+			return "apply " + expr(x.Fn) + "(" + strings.Join(as, ", ") + ")"
 		}
 		return x.Callee + "(" + strings.Join(as, ", ") + ")"
 	}

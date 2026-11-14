@@ -323,6 +323,8 @@ var tsTarget = &Target{
 			return "this.env = " + a[0]
 		case "env.bind":
 			return fmt.Sprintf("this.bindValue(%s, %s)", a[0], a[1])
+		case "term.ctx":
+			return "this.useCtx(this.frame, this.pos, this.pos, null, null, null)"
 		case "term.created":
 			return "this.created.length"
 		case "term.dropCreated":
@@ -570,8 +572,6 @@ var tsTarget = &Target{
 			c, seed := dst[0], dst[1]
 			return fmt.Sprintf("let %s = noCtx;\nlet %s: CtxResult | null = null;\nif (%s.cycle !== 0 && this.gamma.length !== 0) {\n  %s = newCtxCall();\n  %s = this.ctxEnter(%s, %s, %s);\n}",
 				c, seed, a[0], c, seed, c, a[0], a[1]), true
-		case "term.eval":
-			return fmt.Sprintf("const %[1]sR = %[3]s(this.useCtx(this.frame, this.pos, this.pos, null, null, null));\nlet %[1]s: Value = %[1]sR[0];\nlet %[2]s = %[1]sR[1] === null;", dst[0], dst[1], a[0]), true
 		case "rec.add":
 			return "this.recAdd(" + a[0] + ");", true
 		case "exp.copy":

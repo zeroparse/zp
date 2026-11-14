@@ -2724,13 +2724,6 @@ func (p *Parser) dropCreated(base int) {
 	p.created = p.created[:base]
 }
 
-// evalTerm is the operation term.eval: it reports false for a term that fails. A panic, an
-// interruption among them, ends the parse and passes through.
-func (p *Parser) evalTerm(t func(*ActCtx) (any, any)) (v any, ok bool) {
-	v, f := t(p.useCtx(ActCtx{P: p, f: p.Frame, start: p.Pos, end: p.Pos, cbase: len(p.created)}))
-	return v, f == nil
-}
-
 // actionFailed ends the parse with the failure f of the action in where.
 func (p *Parser) actionFailed(where string, f any) {
 	panic(fatal{p.wrapEvalError(where, f.(evalError).msg)})

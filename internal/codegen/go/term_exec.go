@@ -123,8 +123,6 @@ func (g *Generator) termTarget(s *compile.Scope, locals map[string]string) *Targ
 				case *irc.VarRef:
 					return g.leaf(x.Name, true, s, locals)
 				}
-			case lower.OpTermCtx:
-				return "c"
 			case lower.OpTermName:
 				return strconv.Quote(c.Imm.(string))
 			case lower.OpTermField:
@@ -213,7 +211,7 @@ func (g *Generator) termTarget(s *compile.Scope, locals map[string]string) *Targ
 		Name: termConstName,
 		Pure: func(c *exec.Call) bool {
 			switch c.Callee {
-			case lower.OpTermConst, lower.OpTermName, lower.OpTermField, lower.OpTermCtx, lower.OpTermFromStr, "val.fromBool",
+			case lower.OpTermConst, lower.OpTermName, lower.OpTermField, lower.OpTermFromStr, "val.fromBool",
 				"val.unbox", "seq.len", lower.OpTermOperand, lower.OpTermTextIn:
 				return true
 			}

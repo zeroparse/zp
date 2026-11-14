@@ -849,15 +849,16 @@ func (p *TParser) DocumentCall(r *TRule, min int, inv func(*TParser) (any, bool)
 	return v, ok
 }
 
-// Predicate evaluates the term of a predicate, which fails on the boolean false and on a term that
-// fails, and holds on every other value.
+// Predicate applies the term of a predicate to the context that term.ctx makes. It fails on the boolean
+// false and on a term that fails, and holds on every other value. The value of a term is never a function.
 //
 // Printed from Exec IR function predicate of internal/ir/exec/core.
 func (p *Parser) Predicate(t func(*ActCtx) (any, any)) bool {
 	created := len(p.created)
 	kids := len(p.KidStack)
-	v, ok := p.evalTerm(t)
-	if !ok {
+	ctx := p.useCtx(ActCtx{P: p, f: p.Frame, start: p.Pos, end: p.Pos, cbase: len(p.created)})
+	v, f := t(ctx)
+	if f != nil {
 		clearSpend(p, p.KidStack[kids:])
 		p.KidStack = p.KidStack[:kids]
 		clearSpend(p, p.created[created:])
@@ -870,14 +871,16 @@ func (p *Parser) Predicate(t func(*ActCtx) (any, any)) bool {
 }
 
 // Bind binds the value of the term of a binding to the variable in slot. A term that fails fails the
-// binding and binds nothing. The compiler has checked that the value fits the variable.
+// binding and binds nothing. The compiler has checked that the value fits the variable. The value of a term is never a
+// function.
 //
 // Printed from Exec IR function bind of internal/ir/exec/core.
 func (p *Parser) Bind(slot int, t func(*ActCtx) (any, any)) bool {
 	created := len(p.created)
 	kids := len(p.KidStack)
-	v, ok := p.evalTerm(t)
-	if !ok {
+	ctx := p.useCtx(ActCtx{P: p, f: p.Frame, start: p.Pos, end: p.Pos, cbase: len(p.created)})
+	v, f := t(ctx)
+	if f != nil {
 		clearSpend(p, p.KidStack[kids:])
 		p.KidStack = p.KidStack[:kids]
 		clearSpend(p, p.created[created:])
@@ -890,15 +893,16 @@ func (p *Parser) Bind(slot int, t func(*ActCtx) (any, any)) bool {
 	return true
 }
 
-// Predicate evaluates the term of a predicate, which fails on the boolean false and on a term that
-// fails, and holds on every other value.
+// Predicate applies the term of a predicate to the context that term.ctx makes. It fails on the boolean
+// false and on a term that fails, and holds on every other value. The value of a term is never a function.
 //
 // Printed from Exec IR function predicate of internal/ir/exec/core.
 func (p *TParser) Predicate(t func(*TActCtx) (any, any)) bool {
 	created := len(p.Created)
 	kids := len(p.KidStack)
-	v, ok := p.evalTerm(t)
-	if !ok {
+	ctx := p.UseCtx(TActCtx{P: p, F: p.Frame, Start: p.Pos, End: p.Pos, Cbase: len(p.Created)})
+	v, f := t(ctx)
+	if f != nil {
 		clearSpend(p.Parser, p.KidStack[kids:])
 		p.KidStack = p.KidStack[:kids]
 		clearSpend(p.Parser, p.Created[created:])
@@ -911,14 +915,16 @@ func (p *TParser) Predicate(t func(*TActCtx) (any, any)) bool {
 }
 
 // Bind binds the value of the term of a binding to the variable in slot. A term that fails fails the
-// binding and binds nothing. The compiler has checked that the value fits the variable.
+// binding and binds nothing. The compiler has checked that the value fits the variable. The value of a term is never a
+// function.
 //
 // Printed from Exec IR function bind of internal/ir/exec/core.
 func (p *TParser) Bind(slot int, t func(*TActCtx) (any, any)) bool {
 	created := len(p.Created)
 	kids := len(p.KidStack)
-	v, ok := p.evalTerm(t)
-	if !ok {
+	ctx := p.UseCtx(TActCtx{P: p, F: p.Frame, Start: p.Pos, End: p.Pos, Cbase: len(p.Created)})
+	v, f := t(ctx)
+	if f != nil {
 		clearSpend(p.Parser, p.KidStack[kids:])
 		p.KidStack = p.KidStack[:kids]
 		clearSpend(p.Parser, p.Created[created:])

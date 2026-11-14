@@ -41,8 +41,8 @@ instead of returning, and the parse ends with it (an interruption).
 
 A `Protect` is the last statement of its function's body, so that its cleanup runs as the function ends. The cleanup
 restores state that the body saved: it holds no `Exit`, `Break`, `Continue`, `Return`, `Loop`, nested `Protect` or
-`Assert`; it assigns only its own locals; it reads no register; and it calls no function, and no operation that reads or
-writes a register or may end the parse. It reads the parameters and the locals declared before the `Protect`, not
+`Assert`; it assigns only its own locals; it reads no register; and it calls no function, applies no handle, and
+calls no operation that reads or writes a register or may end the parse. It reads the parameters and the locals declared before the `Protect`, not
 those that the body declares.
 
 Statements after an `Exit`, `Break`, `Continue` or `Return` in the same block are unreachable. A function may hold
@@ -59,7 +59,7 @@ them; running it never reaches them, and backends leave them out.
 | `Unary` | `!` negates a `bool`; `-` negates an integer, wrapping at its width |
 | `Binary` | An operator on two operands (below) |
 | `Convert` | Converts an integer to another integer type, wrapping at the width of the type it converts to |
-| `Call` | Calls an operation or a function with arguments, which are evaluated in order. As an expression it has exactly one result, except as the value of a `Let` or a `Set` with as many names or places as results. A call of an operation that declares an immediate operand holds it |
+| `Call` | Calls an operation or a function with arguments, which are evaluated in order. As an expression it has exactly one result, except as the value of a `Let` or a `Set` with as many names or places as results. A call of an operation that declares an immediate operand holds it. A call may instead apply a value of a callable handle type to arguments ([Application](#application)) |
 
 The binary operators are the following.
 
@@ -76,6 +76,23 @@ unspecified: a function MUST NOT reach them, and backends may differ there.
 
 Expressions are evaluated from left to right, the operands of an operator and the arguments of a call included. Only
 calls have effects.
+
+### Application
+
+A handle type that declares a signature is *callable*: its values are code that a target holds in its own form, and
+that no function of the module defines, such as the `Term` of a predicate or a binding. An application is a call whose
+callee is an expression of a callable handle type instead of the name of an operation or a function. It evaluates the
+callee and then the arguments, runs the code of the callee on them, and has the results that the signature declares,
+bound as the results of any call are. The verifier requires the callee to have a callable handle type, and the arguments
+to have the types of its parameters; an application has no immediate operand. The application of a `Term` to a
+context returns the value of the term and its failure, which is null when the term does not fail. A term that fails, on
+a list element or a conversion it cannot make, may leave the values it gathered and the nodes it created, which the
+operations that release them release. An interruption ends the parse and leaves them too, for the next parse starts without them.
+
+An application is not an operation. It has no contract, no cost bound and no component of its own, because what it
+reads, writes and charges, and whether it ends the parse, are those of the code it runs, which is built from the
+operations that the module declares. A target prints it as the call of its form of the code. The conformance suite and
+the reference interpreter treat a callable handle as a value that the machine they run on applies.
 
 ## Interpretation
 

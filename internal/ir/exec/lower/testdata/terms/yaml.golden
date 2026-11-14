@@ -1,5 +1,5 @@
 ## l_yaml_stream action
-func term() (Datum, Fail) {
+func term(c Act) (Datum, Fail) {
   let tm1 = term.kids()
   let ti2, tf2 = items(term.name([map]), term.read([$rest]))
   if (tf2 != null(Fail)) {
@@ -9,44 +9,44 @@ func term() (Datum, Fail) {
   loop each4 while (tj3 < seq.len(ti2)); post tj3 = (tj3 + 1) {
     seq.step()
     let tp5 = itemAt(ti2, tj3, false)
-    let tv7, tf7 = member(term.ctx(), 4, val.unbox(tp5), term.name([$d]), term.field([d of $d]))
+    let tv7, tf7 = member(c, 4, val.unbox(tp5), term.name([$d]), term.field([d of $d]))
     if (tf7 != null(Fail)) {
       return null(Datum), tf7
     }
     let tv6 = tv7
-    let tf8 = push(term.ctx(), term.name([map]), tv6)
+    let tf8 = push(c, term.name([map]), tv6)
     if (tf8 != null(Fail)) {
       return null(Datum), tf8
     }
   }
   let tk9 = term.elemsAbove(tm1)
-  let tn10 = hull(term.ctx(), false, tk9)
+  let tn10 = hull(c, false, tk9)
   let tm11 = term.kids()
   seq.step()
-  let tf12 = pushItems(term.ctx(), term.name([concat]), term.read([$first]))
+  let tf12 = pushItems(c, term.name([concat]), term.read([$first]))
   if (tf12 != null(Fail)) {
     return null(Datum), tf12
   }
   seq.step()
-  let tf13 = pushItems(term.ctx(), term.name([concat]), term.fromObj(tn10))
+  let tf13 = pushItems(c, term.name([concat]), term.fromObj(tn10))
   if (tf13 != null(Fail)) {
     return null(Datum), tf13
   }
   let tk14 = term.elemsAbove(tm11)
-  let tn15 = hull(term.ctx(), false, tk14)
+  let tn15 = hull(c, false, tk14)
   let tf16 = term.fromObj(tn15)
   let tn17 = term.struct([Stream])
   let tfirst18 = true
   seq.step()
   term.setField([Documents], tn17, tf16)
   tfirst18 = cover(tn17, tf16, tfirst18)
-  made(term.ctx(), tn17, tfirst18)
+  made(c, tn17, tfirst18)
   return term.fromObj(tn17), null(Fail)
 }
 
 ## l_directive_document action
-func term() (Datum, Fail) {
-  let tv1, tf1 = member(term.ctx(), 3, term.read([$ds]), term.name([Value]), term.field([Value of Value]))
+func term(c Act) (Datum, Fail) {
+  let tv1, tf1 = member(c, 3, term.read([$ds]), term.name([Value]), term.field([Value of Value]))
   if (tf1 != null(Fail)) {
     return null(Datum), tf1
   }
@@ -67,15 +67,15 @@ func term() (Datum, Fail) {
   seq.step()
   term.setField([End], tn5, tf4)
   tfirst6 = cover(tn5, tf4, tfirst6)
-  made(term.ctx(), tn5, tfirst6)
+  made(c, tn5, tfirst6)
   return term.fromObj(tn5), null(Fail)
 }
 
 ## l_explicit_document action
-func term() (Datum, Fail) {
+func term(c Act) (Datum, Fail) {
   let tm1 = term.kids()
   let tk2 = term.elemsAbove(tm1)
-  let tn3 = hull(term.ctx(), false, tk2)
+  let tn3 = hull(c, false, tk2)
   let tf4 = term.fromObj(tn3)
   let tf5 = term.read([$m])
   let tf6 = term.read([$r])
@@ -94,15 +94,15 @@ func term() (Datum, Fail) {
   seq.step()
   term.setField([End], tn8, tf7)
   tfirst9 = cover(tn8, tf7, tfirst9)
-  made(term.ctx(), tn8, tfirst9)
+  made(c, tn8, tfirst9)
   return term.fromObj(tn8), null(Fail)
 }
 
 ## l_bare_document action
-func term() (Datum, Fail) {
+func term(c Act) (Datum, Fail) {
   let tm1 = term.kids()
   let tk2 = term.elemsAbove(tm1)
-  let tn3 = hull(term.ctx(), false, tk2)
+  let tn3 = hull(c, false, tk2)
   let tf4 = term.fromObj(tn3)
   let tf5 = term.read([$r])
   let tf6 = term.read([$e])
@@ -117,17 +117,17 @@ func term() (Datum, Fail) {
   seq.step()
   term.setField([End], tn7, tf6)
   tfirst8 = cover(tn7, tf6, tfirst8)
-  made(term.ctx(), tn7, tfirst8)
+  made(c, tn7, tfirst8)
   return term.fromObj(tn7), null(Fail)
 }
 
 ## bare_root action
-func term() (Datum, Fail) {
+func term(c Act) (Datum, Fail) {
   return term.read([$r]), null(Fail)
 }
 
 ## bare_root binding n
-func term() (Datum, Fail) {
+func term(c Act) (Datum, Fail) {
   let tv1, tf1 = unary(0, term.const([1]))
   if (tf1 != null(Fail)) {
     return null(Datum), tf1
@@ -136,31 +136,31 @@ func term() (Datum, Fail) {
 }
 
 ## bare_root binding c
-func term() (Datum, Fail) {
+func term(c Act) (Datum, Fail) {
   return term.const(["block-in"]), null(Fail)
 }
 
 ## document_end action
-func term() (Datum, Fail) {
+func term(c Act) (Datum, Fail) {
   return term.read([$m]), null(Fail)
 }
 
 ## l_directive action
-func term() (Datum, Fail) {
+func term(c Act) (Datum, Fail) {
   return term.read([$d]), null(Fail)
 }
 
 ## ns_yaml_directive action
-func term() (Datum, Fail) {
+func term(c Act) (Datum, Fail) {
   let tf1 = term.read([$name])
   let tm2 = term.kids()
   seq.step()
-  let tf3 = push(term.ctx(), term.name([list]), term.read([$v]))
+  let tf3 = push(c, term.name([list]), term.read([$v]))
   if (tf3 != null(Fail)) {
     return null(Datum), tf3
   }
   let tk4 = term.elemsAbove(tm2)
-  let tn5 = hull(term.ctx(), false, tk4)
+  let tn5 = hull(c, false, tk4)
   let tf6 = term.fromObj(tn5)
   let tn7 = term.struct([Directive])
   let tfirst8 = true
@@ -170,26 +170,26 @@ func term() (Datum, Fail) {
   seq.step()
   term.setField([Params], tn7, tf6)
   tfirst8 = cover(tn7, tf6, tfirst8)
-  made(term.ctx(), tn7, tfirst8)
+  made(c, tn7, tfirst8)
   return term.fromObj(tn7), null(Fail)
 }
 
 ## ns_tag_directive action
-func term() (Datum, Fail) {
+func term(c Act) (Datum, Fail) {
   let tf1 = term.read([$name])
   let tm2 = term.kids()
   seq.step()
-  let tf3 = push(term.ctx(), term.name([list]), term.read([$h]))
+  let tf3 = push(c, term.name([list]), term.read([$h]))
   if (tf3 != null(Fail)) {
     return null(Datum), tf3
   }
   seq.step()
-  let tf4 = push(term.ctx(), term.name([list]), term.read([$p]))
+  let tf4 = push(c, term.name([list]), term.read([$p]))
   if (tf4 != null(Fail)) {
     return null(Datum), tf4
   }
   let tk5 = term.elemsAbove(tm2)
-  let tn6 = hull(term.ctx(), false, tk5)
+  let tn6 = hull(c, false, tk5)
   let tf7 = term.fromObj(tn6)
   let tn8 = term.struct([Directive])
   let tfirst9 = true
@@ -199,12 +199,12 @@ func term() (Datum, Fail) {
   seq.step()
   term.setField([Params], tn8, tf7)
   tfirst9 = cover(tn8, tf7, tfirst9)
-  made(term.ctx(), tn8, tfirst9)
+  made(c, tn8, tfirst9)
   return term.fromObj(tn8), null(Fail)
 }
 
 ## ns_reserved_directive action
-func term() (Datum, Fail) {
+func term(c Act) (Datum, Fail) {
   let tf1 = term.read([$name])
   let tm2 = term.kids()
   let ti3, tf3 = items(term.name([map]), term.read([$ps]))
@@ -215,18 +215,18 @@ func term() (Datum, Fail) {
   loop each5 while (tj4 < seq.len(ti3)); post tj4 = (tj4 + 1) {
     seq.step()
     let tp6 = itemAt(ti3, tj4, false)
-    let tv8, tf8 = member(term.ctx(), 4, val.unbox(tp6), term.name([$p]), term.field([p of $p]))
+    let tv8, tf8 = member(c, 4, val.unbox(tp6), term.name([$p]), term.field([p of $p]))
     if (tf8 != null(Fail)) {
       return null(Datum), tf8
     }
     let tv7 = tv8
-    let tf9 = push(term.ctx(), term.name([map]), tv7)
+    let tf9 = push(c, term.name([map]), tv7)
     if (tf9 != null(Fail)) {
       return null(Datum), tf9
     }
   }
   let tk10 = term.elemsAbove(tm2)
-  let tn11 = hull(term.ctx(), false, tk10)
+  let tn11 = hull(c, false, tk10)
   let tf12 = term.fromObj(tn11)
   let tn13 = term.struct([Directive])
   let tfirst14 = true
@@ -236,12 +236,12 @@ func term() (Datum, Fail) {
   seq.step()
   term.setField([Params], tn13, tf12)
   tfirst14 = cover(tn13, tf12, tfirst14)
-  made(term.ctx(), tn13, tfirst14)
+  made(c, tn13, tfirst14)
   return term.fromObj(tn13), null(Fail)
 }
 
 ## c_ns_properties action
-func term() (Datum, Fail) {
+func term(c Act) (Datum, Fail) {
   let tf1 = term.read([$t])
   let tf2 = term.read([$a])
   let tn3 = term.struct([Properties])
@@ -252,22 +252,22 @@ func term() (Datum, Fail) {
   seq.step()
   term.setField([Anchor], tn3, tf2)
   tfirst4 = cover(tn3, tf2, tfirst4)
-  made(term.ctx(), tn3, tfirst4)
+  made(c, tn3, tfirst4)
   return term.fromObj(tn3), null(Fail)
 }
 
 ## s_l_block_node action
-func term() (Datum, Fail) {
+func term(c Act) (Datum, Fail) {
   return term.read([$v]), null(Fail)
 }
 
 ## s_l_flow_in_block action
-func term() (Datum, Fail) {
+func term(c Act) (Datum, Fail) {
   return term.read([$v]), null(Fail)
 }
 
 ## s_l_flow_in_block binding n
-func term() (Datum, Fail) {
+func term(c Act) (Datum, Fail) {
   let tv1 = term.read([var n])
   let tv2, tf2 = binary(0, tv1, term.const([1]))
   if (tf2 != null(Fail)) {
@@ -277,17 +277,17 @@ func term() (Datum, Fail) {
 }
 
 ## flow_out_node action
-func term() (Datum, Fail) {
+func term(c Act) (Datum, Fail) {
   return term.read([$v]), null(Fail)
 }
 
 ## flow_out_node binding c
-func term() (Datum, Fail) {
+func term(c Act) (Datum, Fail) {
   return term.const(["flow-out"]), null(Fail)
 }
 
 ## plain_out_node action
-func term() (Datum, Fail) {
+func term(c Act) (Datum, Fail) {
   let ts1, tf1 = text(term.read([$t]))
   if (tf1 != null(Fail)) {
     return null(Datum), tf1
@@ -301,12 +301,12 @@ func term() (Datum, Fail) {
   seq.step()
   term.setField([Text], tn3, tf2)
   tfirst4 = cover(tn3, tf2, tfirst4)
-  made(term.ctx(), tn3, tfirst4)
+  made(c, tn3, tfirst4)
   return term.fromObj(tn3), null(Fail)
 }
 
 ## block_sequence_node action
-func term() (Datum, Fail) {
+func term(c Act) (Datum, Fail) {
   let tf1 = term.read([$p])
   let tf2 = term.read([$items])
   let tn3 = term.struct([Sequence])
@@ -317,12 +317,12 @@ func term() (Datum, Fail) {
   seq.step()
   term.setField([Items], tn3, tf2)
   tfirst4 = cover(tn3, tf2, tfirst4)
-  made(term.ctx(), tn3, tfirst4)
+  made(c, tn3, tfirst4)
   return term.fromObj(tn3), null(Fail)
 }
 
 ## block_mapping_node action
-func term() (Datum, Fail) {
+func term(c Act) (Datum, Fail) {
   let tf1 = term.read([$p])
   let tf2 = term.read([$pairs])
   let tn3 = term.struct([Mapping])
@@ -333,27 +333,27 @@ func term() (Datum, Fail) {
   seq.step()
   term.setField([Pairs], tn3, tf2)
   tfirst4 = cover(tn3, tf2, tfirst4)
-  made(term.ctx(), tn3, tfirst4)
+  made(c, tn3, tfirst4)
   return term.fromObj(tn3), null(Fail)
 }
 
 ## block_collection_start action
-func term() (Datum, Fail) {
+func term(c Act) (Datum, Fail) {
   return term.read([$p]), null(Fail)
 }
 
 ## block_sequence_start action
-func term() (Datum, Fail) {
+func term(c Act) (Datum, Fail) {
   return term.read([$p]), null(Fail)
 }
 
 ## block_collection_properties action
-func term() (Datum, Fail) {
+func term(c Act) (Datum, Fail) {
   return term.read([$p]), null(Fail)
 }
 
 ## block_collection_properties binding n
-func term() (Datum, Fail) {
+func term(c Act) (Datum, Fail) {
   let tv1 = term.read([var n])
   let tv2, tf2 = binary(0, tv1, term.const([1]))
   if (tf2 != null(Fail)) {
@@ -363,7 +363,7 @@ func term() (Datum, Fail) {
 }
 
 ## block_collection_property action
-func term() (Datum, Fail) {
+func term(c Act) (Datum, Fail) {
   let tf1 = term.read([$t])
   let tf2 = term.read([$a])
   let tn3 = term.struct([Properties])
@@ -374,12 +374,12 @@ func term() (Datum, Fail) {
   seq.step()
   term.setField([Anchor], tn3, tf2)
   tfirst4 = cover(tn3, tf2, tfirst4)
-  made(term.ctx(), tn3, tfirst4)
+  made(c, tn3, tfirst4)
   return term.fromObj(tn3), null(Fail)
 }
 
 ## block_collection_property binding n
-func term() (Datum, Fail) {
+func term(c Act) (Datum, Fail) {
   let tv1 = term.read([var n])
   let tv2, tf2 = binary(0, tv1, term.const([1]))
   if (tf2 != null(Fail)) {
@@ -389,12 +389,12 @@ func term() (Datum, Fail) {
 }
 
 ## seq_space action
-func term() (Datum, Fail) {
+func term(c Act) (Datum, Fail) {
   return term.read([$s]), null(Fail)
 }
 
 ## seq_space predicate
-func term() (Datum, Fail) {
+func term(c Act) (Datum, Fail) {
   let tv1 = term.read([var c])
   let tv2, tf2 = binary(5, tv1, term.const(["block-out"]))
   if (tf2 != null(Fail)) {
@@ -404,7 +404,7 @@ func term() (Datum, Fail) {
 }
 
 ## seq_space binding n
-func term() (Datum, Fail) {
+func term(c Act) (Datum, Fail) {
   let tv1 = term.read([var n])
   let tv2, tf2 = binary(1, tv1, term.const([1]))
   if (tf2 != null(Fail)) {
@@ -414,7 +414,7 @@ func term() (Datum, Fail) {
 }
 
 ## seq_space predicate
-func term() (Datum, Fail) {
+func term(c Act) (Datum, Fail) {
   let tv1 = term.read([var c])
   let tv2, tf2 = binary(5, tv1, term.const(["block-in"]))
   if (tf2 != null(Fail)) {
@@ -424,7 +424,7 @@ func term() (Datum, Fail) {
 }
 
 ## l_block_sequence action
-func term() (Datum, Fail) {
+func term(c Act) (Datum, Fail) {
   let tm1 = term.kids()
   let ti2, tf2 = items(term.name([map]), term.read([$es]))
   if (tf2 != null(Fail)) {
@@ -434,23 +434,23 @@ func term() (Datum, Fail) {
   loop each4 while (tj3 < seq.len(ti2)); post tj3 = (tj3 + 1) {
     seq.step()
     let tp5 = itemAt(ti2, tj3, false)
-    let tv7, tf7 = member(term.ctx(), 4, val.unbox(tp5), term.name([$e]), term.field([e of $e]))
+    let tv7, tf7 = member(c, 4, val.unbox(tp5), term.name([$e]), term.field([e of $e]))
     if (tf7 != null(Fail)) {
       return null(Datum), tf7
     }
     let tv6 = tv7
-    let tf8 = push(term.ctx(), term.name([map]), tv6)
+    let tf8 = push(c, term.name([map]), tv6)
     if (tf8 != null(Fail)) {
       return null(Datum), tf8
     }
   }
   let tk9 = term.elemsAbove(tm1)
-  let tn10 = hull(term.ctx(), false, tk9)
+  let tn10 = hull(c, false, tk9)
   return term.fromObj(tn10), null(Fail)
 }
 
 ## l_block_sequence predicate
-func term() (Datum, Fail) {
+func term(c Act) (Datum, Fail) {
   let tv1, tf1 = length(term.read([$s]))
   if (tf1 != null(Fail)) {
     return null(Datum), tf1
@@ -464,7 +464,7 @@ func term() (Datum, Fail) {
 }
 
 ## l_block_sequence binding n
-func term() (Datum, Fail) {
+func term(c Act) (Datum, Fail) {
   let tv1, tf1 = length(term.read([$s]))
   if (tf1 != null(Fail)) {
     return null(Datum), tf1
@@ -473,22 +473,22 @@ func term() (Datum, Fail) {
 }
 
 ## c_l_block_seq_entry action
-func term() (Datum, Fail) {
+func term(c Act) (Datum, Fail) {
   return term.read([$v]), null(Fail)
 }
 
 ## c_l_block_seq_entry binding c
-func term() (Datum, Fail) {
+func term(c Act) (Datum, Fail) {
   return term.const(["block-in"]), null(Fail)
 }
 
 ## compact_collection action
-func term() (Datum, Fail) {
+func term(c Act) (Datum, Fail) {
   return term.read([$v]), null(Fail)
 }
 
 ## compact_collection binding n
-func term() (Datum, Fail) {
+func term(c Act) (Datum, Fail) {
   let tv1 = term.read([var n])
   let tv2, tf2 = binary(0, tv1, term.const([1]))
   if (tf2 != null(Fail)) {
@@ -506,10 +506,10 @@ func term() (Datum, Fail) {
 }
 
 ## ns_l_compact_sequence action
-func term() (Datum, Fail) {
+func term(c Act) (Datum, Fail) {
   let tm1 = term.kids()
   seq.step()
-  let tf2 = push(term.ctx(), term.name([list]), term.read([$first]))
+  let tf2 = push(c, term.name([list]), term.read([$first]))
   if (tf2 != null(Fail)) {
     return null(Datum), tf2
   }
@@ -521,30 +521,30 @@ func term() (Datum, Fail) {
   loop each5 while (tj4 < seq.len(ti3)); post tj4 = (tj4 + 1) {
     seq.step()
     let tp6 = itemAt(ti3, tj4, false)
-    let tv8, tf8 = member(term.ctx(), 4, val.unbox(tp6), term.name([$e]), term.field([e of $e]))
+    let tv8, tf8 = member(c, 4, val.unbox(tp6), term.name([$e]), term.field([e of $e]))
     if (tf8 != null(Fail)) {
       return null(Datum), tf8
     }
     let tv7 = tv8
-    let tf9 = push(term.ctx(), term.name([map]), tv7)
+    let tf9 = push(c, term.name([map]), tv7)
     if (tf9 != null(Fail)) {
       return null(Datum), tf9
     }
   }
   let tk10 = term.elemsAbove(tm1)
-  let tn11 = hull(term.ctx(), false, tk10)
+  let tn11 = hull(c, false, tk10)
   let tf12 = term.fromObj(tn11)
   let tn13 = term.struct([Sequence])
   let tfirst14 = true
   seq.step()
   term.setField([Items], tn13, tf12)
   tfirst14 = cover(tn13, tf12, tfirst14)
-  made(term.ctx(), tn13, tfirst14)
+  made(c, tn13, tfirst14)
   return term.fromObj(tn13), null(Fail)
 }
 
 ## l_block_mapping action
-func term() (Datum, Fail) {
+func term(c Act) (Datum, Fail) {
   let tm1 = term.kids()
   let ti2, tf2 = items(term.name([map]), term.read([$es]))
   if (tf2 != null(Fail)) {
@@ -554,23 +554,23 @@ func term() (Datum, Fail) {
   loop each4 while (tj3 < seq.len(ti2)); post tj3 = (tj3 + 1) {
     seq.step()
     let tp5 = itemAt(ti2, tj3, false)
-    let tv7, tf7 = member(term.ctx(), 4, val.unbox(tp5), term.name([$e]), term.field([e of $e]))
+    let tv7, tf7 = member(c, 4, val.unbox(tp5), term.name([$e]), term.field([e of $e]))
     if (tf7 != null(Fail)) {
       return null(Datum), tf7
     }
     let tv6 = tv7
-    let tf8 = push(term.ctx(), term.name([map]), tv6)
+    let tf8 = push(c, term.name([map]), tv6)
     if (tf8 != null(Fail)) {
       return null(Datum), tf8
     }
   }
   let tk9 = term.elemsAbove(tm1)
-  let tn10 = hull(term.ctx(), false, tk9)
+  let tn10 = hull(c, false, tk9)
   return term.fromObj(tn10), null(Fail)
 }
 
 ## l_block_mapping predicate
-func term() (Datum, Fail) {
+func term(c Act) (Datum, Fail) {
   let tv1, tf1 = length(term.read([$s]))
   if (tf1 != null(Fail)) {
     return null(Datum), tf1
@@ -584,7 +584,7 @@ func term() (Datum, Fail) {
 }
 
 ## l_block_mapping binding n
-func term() (Datum, Fail) {
+func term(c Act) (Datum, Fail) {
   let tv1, tf1 = length(term.read([$s]))
   if (tf1 != null(Fail)) {
     return null(Datum), tf1
@@ -593,10 +593,10 @@ func term() (Datum, Fail) {
 }
 
 ## ns_l_compact_mapping action
-func term() (Datum, Fail) {
+func term(c Act) (Datum, Fail) {
   let tm1 = term.kids()
   seq.step()
-  let tf2 = push(term.ctx(), term.name([list]), term.read([$first]))
+  let tf2 = push(c, term.name([list]), term.read([$first]))
   if (tf2 != null(Fail)) {
     return null(Datum), tf2
   }
@@ -608,30 +608,30 @@ func term() (Datum, Fail) {
   loop each5 while (tj4 < seq.len(ti3)); post tj4 = (tj4 + 1) {
     seq.step()
     let tp6 = itemAt(ti3, tj4, false)
-    let tv8, tf8 = member(term.ctx(), 4, val.unbox(tp6), term.name([$e]), term.field([e of $e]))
+    let tv8, tf8 = member(c, 4, val.unbox(tp6), term.name([$e]), term.field([e of $e]))
     if (tf8 != null(Fail)) {
       return null(Datum), tf8
     }
     let tv7 = tv8
-    let tf9 = push(term.ctx(), term.name([map]), tv7)
+    let tf9 = push(c, term.name([map]), tv7)
     if (tf9 != null(Fail)) {
       return null(Datum), tf9
     }
   }
   let tk10 = term.elemsAbove(tm1)
-  let tn11 = hull(term.ctx(), false, tk10)
+  let tn11 = hull(c, false, tk10)
   let tf12 = term.fromObj(tn11)
   let tn13 = term.struct([Mapping])
   let tfirst14 = true
   seq.step()
   term.setField([Pairs], tn13, tf12)
   tfirst14 = cover(tn13, tf12, tfirst14)
-  made(term.ctx(), tn13, tfirst14)
+  made(c, tn13, tfirst14)
   return term.fromObj(tn13), null(Fail)
 }
 
 ## c_l_block_map_explicit_entry action
-func term() (Datum, Fail) {
+func term(c Act) (Datum, Fail) {
   let tf1 = term.read([$k])
   let tf2 = term.read([$v])
   let tn3 = term.struct([Pair])
@@ -642,32 +642,32 @@ func term() (Datum, Fail) {
   seq.step()
   term.setField([Value], tn3, tf2)
   tfirst4 = cover(tn3, tf2, tfirst4)
-  made(term.ctx(), tn3, tfirst4)
+  made(c, tn3, tfirst4)
   return term.fromObj(tn3), null(Fail)
 }
 
 ## c_l_block_map_explicit_key action
-func term() (Datum, Fail) {
+func term(c Act) (Datum, Fail) {
   return term.read([$v]), null(Fail)
 }
 
 ## c_l_block_map_explicit_key binding c
-func term() (Datum, Fail) {
+func term(c Act) (Datum, Fail) {
   return term.const(["block-out"]), null(Fail)
 }
 
 ## l_block_map_explicit_value action
-func term() (Datum, Fail) {
+func term(c Act) (Datum, Fail) {
   return term.read([$v]), null(Fail)
 }
 
 ## l_block_map_explicit_value binding c
-func term() (Datum, Fail) {
+func term(c Act) (Datum, Fail) {
   return term.const(["block-out"]), null(Fail)
 }
 
 ## ns_l_block_map_implicit_entry action
-func term() (Datum, Fail) {
+func term(c Act) (Datum, Fail) {
   let tf1 = term.read([$k])
   let tf2 = term.read([$v])
   let tn3 = term.struct([Pair])
@@ -678,22 +678,22 @@ func term() (Datum, Fail) {
   seq.step()
   term.setField([Value], tn3, tf2)
   tfirst4 = cover(tn3, tf2, tfirst4)
-  made(term.ctx(), tn3, tfirst4)
+  made(c, tn3, tfirst4)
   return term.fromObj(tn3), null(Fail)
 }
 
 ## ns_s_block_map_implicit_key action
-func term() (Datum, Fail) {
+func term(c Act) (Datum, Fail) {
   return term.read([$k]), null(Fail)
 }
 
 ## ns_s_block_map_implicit_key binding c
-func term() (Datum, Fail) {
+func term(c Act) (Datum, Fail) {
   return term.const(["block-key"]), null(Fail)
 }
 
 ## plain_key_node action
-func term() (Datum, Fail) {
+func term(c Act) (Datum, Fail) {
   let ts1, tf1 = text(term.read([$t]))
   if (tf1 != null(Fail)) {
     return null(Datum), tf1
@@ -707,27 +707,27 @@ func term() (Datum, Fail) {
   seq.step()
   term.setField([Text], tn3, tf2)
   tfirst4 = cover(tn3, tf2, tfirst4)
-  made(term.ctx(), tn3, tfirst4)
+  made(c, tn3, tfirst4)
   return term.fromObj(tn3), null(Fail)
 }
 
 ## c_l_block_map_implicit_value action
-func term() (Datum, Fail) {
+func term(c Act) (Datum, Fail) {
   return term.read([$v]), null(Fail)
 }
 
 ## block_out_node action
-func term() (Datum, Fail) {
+func term(c Act) (Datum, Fail) {
   return term.read([$v]), null(Fail)
 }
 
 ## block_out_node binding c
-func term() (Datum, Fail) {
+func term(c Act) (Datum, Fail) {
   return term.const(["block-out"]), null(Fail)
 }
 
 ## s_l_block_scalar action
-func term() (Datum, Fail) {
+func term(c Act) (Datum, Fail) {
   let tf1 = term.read([$p])
   let tv2, tf2 = length(term.read([$f]))
   if (tf2 != null(Fail)) {
@@ -757,12 +757,12 @@ func term() (Datum, Fail) {
   seq.step()
   term.setField([Text], tn7, tf6)
   tfirst8 = cover(tn7, tf6, tfirst8)
-  made(term.ctx(), tn7, tfirst8)
+  made(c, tn7, tfirst8)
   return term.fromObj(tn7), null(Fail)
 }
 
 ## s_l_block_scalar binding n
-func term() (Datum, Fail) {
+func term(c Act) (Datum, Fail) {
   let tv1 = term.read([var n])
   let tv2, tf2 = binary(0, tv1, term.const([1]))
   if (tf2 != null(Fail)) {
@@ -772,7 +772,7 @@ func term() (Datum, Fail) {
 }
 
 ## s_l_block_scalar binding n
-func term() (Datum, Fail) {
+func term(c Act) (Datum, Fail) {
   let tv1 = term.read([var n])
   let tv2, tf2 = binary(0, tv1, term.const([2]))
   if (tf2 != null(Fail)) {
@@ -782,7 +782,7 @@ func term() (Datum, Fail) {
 }
 
 ## s_l_block_scalar binding n
-func term() (Datum, Fail) {
+func term(c Act) (Datum, Fail) {
   let tv1 = term.read([var n])
   let tv2, tf2 = binary(0, tv1, term.const([3]))
   if (tf2 != null(Fail)) {
@@ -792,7 +792,7 @@ func term() (Datum, Fail) {
 }
 
 ## s_l_block_scalar binding n
-func term() (Datum, Fail) {
+func term(c Act) (Datum, Fail) {
   let tv1 = term.read([var n])
   let tv2, tf2 = binary(0, tv1, term.const([4]))
   if (tf2 != null(Fail)) {
@@ -802,7 +802,7 @@ func term() (Datum, Fail) {
 }
 
 ## s_l_block_scalar binding n
-func term() (Datum, Fail) {
+func term(c Act) (Datum, Fail) {
   let tv1 = term.read([var n])
   let tv2, tf2 = binary(0, tv1, term.const([5]))
   if (tf2 != null(Fail)) {
@@ -812,7 +812,7 @@ func term() (Datum, Fail) {
 }
 
 ## s_l_block_scalar binding n
-func term() (Datum, Fail) {
+func term(c Act) (Datum, Fail) {
   let tv1 = term.read([var n])
   let tv2, tf2 = binary(0, tv1, term.const([6]))
   if (tf2 != null(Fail)) {
@@ -822,7 +822,7 @@ func term() (Datum, Fail) {
 }
 
 ## s_l_block_scalar binding n
-func term() (Datum, Fail) {
+func term(c Act) (Datum, Fail) {
   let tv1 = term.read([var n])
   let tv2, tf2 = binary(0, tv1, term.const([7]))
   if (tf2 != null(Fail)) {
@@ -832,7 +832,7 @@ func term() (Datum, Fail) {
 }
 
 ## s_l_block_scalar binding n
-func term() (Datum, Fail) {
+func term(c Act) (Datum, Fail) {
   let tv1 = term.read([var n])
   let tv2, tf2 = binary(0, tv1, term.const([8]))
   if (tf2 != null(Fail)) {
@@ -842,7 +842,7 @@ func term() (Datum, Fail) {
 }
 
 ## s_l_block_scalar binding n
-func term() (Datum, Fail) {
+func term(c Act) (Datum, Fail) {
   let tv1 = term.read([var n])
   let tv2, tf2 = binary(0, tv1, term.const([9]))
   if (tf2 != null(Fail)) {
@@ -852,7 +852,7 @@ func term() (Datum, Fail) {
 }
 
 ## s_l_block_scalar predicate
-func term() (Datum, Fail) {
+func term(c Act) (Datum, Fail) {
   let tv1, tf1 = length(term.read([$s]))
   if (tf1 != null(Fail)) {
     return null(Datum), tf1
@@ -866,7 +866,7 @@ func term() (Datum, Fail) {
 }
 
 ## s_l_block_scalar binding n
-func term() (Datum, Fail) {
+func term(c Act) (Datum, Fail) {
   let tv1, tf1 = length(term.read([$s]))
   if (tf1 != null(Fail)) {
     return null(Datum), tf1
@@ -875,7 +875,7 @@ func term() (Datum, Fail) {
 }
 
 ## s_l_block_scalar predicate
-func term() (Datum, Fail) {
+func term(c Act) (Datum, Fail) {
   let tv1, tf1 = length(term.read([$e]))
   if (tf1 != null(Fail)) {
     return null(Datum), tf1
@@ -889,7 +889,7 @@ func term() (Datum, Fail) {
 }
 
 ## s_l_block_scalar predicate
-func term() (Datum, Fail) {
+func term(c Act) (Datum, Fail) {
   let tv1, tf1 = length(term.read([$s]))
   if (tf1 != null(Fail)) {
     return null(Datum), tf1
@@ -903,7 +903,7 @@ func term() (Datum, Fail) {
 }
 
 ## s_l_block_scalar binding n
-func term() (Datum, Fail) {
+func term(c Act) (Datum, Fail) {
   let tv1 = term.read([var n])
   let tv2, tf2 = binary(0, tv1, term.const([1]))
   if (tf2 != null(Fail)) {
@@ -913,7 +913,7 @@ func term() (Datum, Fail) {
 }
 
 ## s_l_block_scalar predicate
-func term() (Datum, Fail) {
+func term(c Act) (Datum, Fail) {
   let tv1, tf1 = length(term.read([$e]))
   if (tf1 != null(Fail)) {
     return null(Datum), tf1
@@ -927,7 +927,7 @@ func term() (Datum, Fail) {
 }
 
 ## s_l_block_scalar binding n
-func term() (Datum, Fail) {
+func term(c Act) (Datum, Fail) {
   let tv1, tf1 = length(term.read([$e]))
   if (tf1 != null(Fail)) {
     return null(Datum), tf1
@@ -936,7 +936,7 @@ func term() (Datum, Fail) {
 }
 
 ## s_l_block_scalar predicate
-func term() (Datum, Fail) {
+func term(c Act) (Datum, Fail) {
   let tv1, tf1 = length(term.read([$c1]))
   if (tf1 != null(Fail)) {
     return null(Datum), tf1
@@ -957,7 +957,7 @@ func term() (Datum, Fail) {
 }
 
 ## s_separate_n1 binding n
-func term() (Datum, Fail) {
+func term(c Act) (Datum, Fail) {
   let tv1 = term.read([var n])
   let tv2, tf2 = binary(0, tv1, term.const([1]))
   if (tf2 != null(Fail)) {
@@ -967,12 +967,12 @@ func term() (Datum, Fail) {
 }
 
 ## block_scalar_properties action
-func term() (Datum, Fail) {
+func term(c Act) (Datum, Fail) {
   return term.read([$p]), null(Fail)
 }
 
 ## block_scalar_properties binding n
-func term() (Datum, Fail) {
+func term(c Act) (Datum, Fail) {
   let tv1 = term.read([var n])
   let tv2, tf2 = binary(0, tv1, term.const([1]))
   if (tf2 != null(Fail)) {
@@ -982,7 +982,7 @@ func term() (Datum, Fail) {
 }
 
 ## l_nb_literal_text predicate
-func term() (Datum, Fail) {
+func term(c Act) (Datum, Fail) {
   let tv1, tf1 = length(term.read([$sp]))
   if (tf1 != null(Fail)) {
     return null(Datum), tf1
@@ -996,7 +996,7 @@ func term() (Datum, Fail) {
 }
 
 ## l_nb_literal_text predicate
-func term() (Datum, Fail) {
+func term(c Act) (Datum, Fail) {
   let tv1, tf1 = length(term.read([$sp]))
   if (tf1 != null(Fail)) {
     return null(Datum), tf1
@@ -1010,7 +1010,7 @@ func term() (Datum, Fail) {
 }
 
 ## l_empty_block predicate
-func term() (Datum, Fail) {
+func term(c Act) (Datum, Fail) {
   let tv1, tf1 = length(term.read([$sp]))
   if (tf1 != null(Fail)) {
     return null(Datum), tf1
@@ -1024,7 +1024,7 @@ func term() (Datum, Fail) {
 }
 
 ## l_trail_comments predicate
-func term() (Datum, Fail) {
+func term(c Act) (Datum, Fail) {
   let tv1, tf1 = length(term.read([$sp]))
   if (tf1 != null(Fail)) {
     return null(Datum), tf1
@@ -1038,51 +1038,51 @@ func term() (Datum, Fail) {
 }
 
 ## ns_flow_node action
-func term() (Datum, Fail) {
+func term(c Act) (Datum, Fail) {
   return term.read([$v]), null(Fail)
 }
 
 ## properties_node action
-func term() (Datum, Fail) {
+func term(c Act) (Datum, Fail) {
   let tf1 = term.read([$p])
   let tn2 = term.struct([Scalar])
   let tfirst3 = true
   seq.step()
   term.setField([Props], tn2, tf1)
   tfirst3 = cover(tn2, tf1, tfirst3)
-  made(term.ctx(), tn2, tfirst3)
+  made(c, tn2, tfirst3)
   return term.fromObj(tn2), null(Fail)
 }
 
 ## properties_separate action
-func term() (Datum, Fail) {
+func term(c Act) (Datum, Fail) {
   return term.read([$p]), null(Fail)
 }
 
 ## e_node action
-func term() (Datum, Fail) {
+func term(c Act) (Datum, Fail) {
   let tn1 = term.struct([Scalar])
   let tfirst2 = true
-  made(term.ctx(), tn1, tfirst2)
+  made(c, tn1, tfirst2)
   return term.fromObj(tn1), null(Fail)
 }
 
 ## e_node_comments action
-func term() (Datum, Fail) {
+func term(c Act) (Datum, Fail) {
   return term.read([$v]), null(Fail)
 }
 
 ## c_flow_sequence action
-func term() (Datum, Fail) {
+func term(c Act) (Datum, Fail) {
   let tf1 = term.read([$p])
   let tm2 = term.kids()
   seq.step()
-  let tf3 = pushItems(term.ctx(), term.name([concat]), term.read([$es]))
+  let tf3 = pushItems(c, term.name([concat]), term.read([$es]))
   if (tf3 != null(Fail)) {
     return null(Datum), tf3
   }
   let tk4 = term.elemsAbove(tm2)
-  let tn5 = hull(term.ctx(), false, tk4)
+  let tn5 = hull(c, false, tk4)
   let tf6 = term.fromObj(tn5)
   let tn7 = term.struct([Sequence])
   let tfirst8 = true
@@ -1095,12 +1095,12 @@ func term() (Datum, Fail) {
   seq.step()
   term.setField([Items], tn7, tf6)
   tfirst8 = cover(tn7, tf6, tfirst8)
-  made(term.ctx(), tn7, tfirst8)
+  made(c, tn7, tfirst8)
   return term.fromObj(tn7), null(Fail)
 }
 
 ## c_flow_sequence predicate
-func term() (Datum, Fail) {
+func term(c Act) (Datum, Fail) {
   let tv1 = term.read([var c])
   let tv2, tf2 = binary(5, tv1, term.const(["flow-in"]))
   if (tf2 != null(Fail)) {
@@ -1127,7 +1127,7 @@ func term() (Datum, Fail) {
 }
 
 ## c_flow_sequence predicate
-func term() (Datum, Fail) {
+func term(c Act) (Datum, Fail) {
   let tv1 = term.read([var c])
   let tv2, tf2 = binary(5, tv1, term.const(["flow-out"]))
   if (tf2 != null(Fail)) {
@@ -1137,20 +1137,20 @@ func term() (Datum, Fail) {
 }
 
 ## c_flow_sequence binding c
-func term() (Datum, Fail) {
+func term(c Act) (Datum, Fail) {
   return term.const(["flow-in"]), null(Fail)
 }
 
 ## c_flow_sequence binding c
-func term() (Datum, Fail) {
+func term(c Act) (Datum, Fail) {
   return term.const(["flow-key"]), null(Fail)
 }
 
 ## ns_s_flow_seq_entries action
-func term() (Datum, Fail) {
+func term(c Act) (Datum, Fail) {
   let tm1 = term.kids()
   seq.step()
-  let tf2 = push(term.ctx(), term.name([list]), term.read([$first]))
+  let tf2 = push(c, term.name([list]), term.read([$first]))
   if (tf2 != null(Fail)) {
     return null(Datum), tf2
   }
@@ -1162,32 +1162,32 @@ func term() (Datum, Fail) {
   loop each5 while (tj4 < seq.len(ti3)); post tj4 = (tj4 + 1) {
     seq.step()
     let tp6 = itemAt(ti3, tj4, false)
-    let tv8, tf8 = member(term.ctx(), 4, val.unbox(tp6), term.name([$e]), term.field([e of $e]))
+    let tv8, tf8 = member(c, 4, val.unbox(tp6), term.name([$e]), term.field([e of $e]))
     if (tf8 != null(Fail)) {
       return null(Datum), tf8
     }
     let tv7 = tv8
-    let tf9 = push(term.ctx(), term.name([map]), tv7)
+    let tf9 = push(c, term.name([map]), tv7)
     if (tf9 != null(Fail)) {
       return null(Datum), tf9
     }
   }
   let tk10 = term.elemsAbove(tm1)
-  let tn11 = hull(term.ctx(), false, tk10)
+  let tn11 = hull(c, false, tk10)
   return term.fromObj(tn11), null(Fail)
 }
 
 ## c_flow_mapping action
-func term() (Datum, Fail) {
+func term(c Act) (Datum, Fail) {
   let tf1 = term.read([$p])
   let tm2 = term.kids()
   seq.step()
-  let tf3 = pushItems(term.ctx(), term.name([concat]), term.read([$es]))
+  let tf3 = pushItems(c, term.name([concat]), term.read([$es]))
   if (tf3 != null(Fail)) {
     return null(Datum), tf3
   }
   let tk4 = term.elemsAbove(tm2)
-  let tn5 = hull(term.ctx(), false, tk4)
+  let tn5 = hull(c, false, tk4)
   let tf6 = term.fromObj(tn5)
   let tn7 = term.struct([Mapping])
   let tfirst8 = true
@@ -1200,12 +1200,12 @@ func term() (Datum, Fail) {
   seq.step()
   term.setField([Pairs], tn7, tf6)
   tfirst8 = cover(tn7, tf6, tfirst8)
-  made(term.ctx(), tn7, tfirst8)
+  made(c, tn7, tfirst8)
   return term.fromObj(tn7), null(Fail)
 }
 
 ## c_flow_mapping predicate
-func term() (Datum, Fail) {
+func term(c Act) (Datum, Fail) {
   let tv1 = term.read([var c])
   let tv2, tf2 = binary(5, tv1, term.const(["flow-in"]))
   if (tf2 != null(Fail)) {
@@ -1232,7 +1232,7 @@ func term() (Datum, Fail) {
 }
 
 ## c_flow_mapping predicate
-func term() (Datum, Fail) {
+func term(c Act) (Datum, Fail) {
   let tv1 = term.read([var c])
   let tv2, tf2 = binary(5, tv1, term.const(["flow-out"]))
   if (tf2 != null(Fail)) {
@@ -1242,20 +1242,20 @@ func term() (Datum, Fail) {
 }
 
 ## c_flow_mapping binding c
-func term() (Datum, Fail) {
+func term(c Act) (Datum, Fail) {
   return term.const(["flow-in"]), null(Fail)
 }
 
 ## c_flow_mapping binding c
-func term() (Datum, Fail) {
+func term(c Act) (Datum, Fail) {
   return term.const(["flow-key"]), null(Fail)
 }
 
 ## ns_s_flow_map_entries action
-func term() (Datum, Fail) {
+func term(c Act) (Datum, Fail) {
   let tm1 = term.kids()
   seq.step()
-  let tf2 = push(term.ctx(), term.name([list]), term.read([$first]))
+  let tf2 = push(c, term.name([list]), term.read([$first]))
   if (tf2 != null(Fail)) {
     return null(Datum), tf2
   }
@@ -1267,28 +1267,28 @@ func term() (Datum, Fail) {
   loop each5 while (tj4 < seq.len(ti3)); post tj4 = (tj4 + 1) {
     seq.step()
     let tp6 = itemAt(ti3, tj4, false)
-    let tv8, tf8 = member(term.ctx(), 4, val.unbox(tp6), term.name([$e]), term.field([e of $e]))
+    let tv8, tf8 = member(c, 4, val.unbox(tp6), term.name([$e]), term.field([e of $e]))
     if (tf8 != null(Fail)) {
       return null(Datum), tf8
     }
     let tv7 = tv8
-    let tf9 = push(term.ctx(), term.name([map]), tv7)
+    let tf9 = push(c, term.name([map]), tv7)
     if (tf9 != null(Fail)) {
       return null(Datum), tf9
     }
   }
   let tk10 = term.elemsAbove(tm1)
-  let tn11 = hull(term.ctx(), false, tk10)
+  let tn11 = hull(c, false, tk10)
   return term.fromObj(tn11), null(Fail)
 }
 
 ## flow_map_explicit action
-func term() (Datum, Fail) {
+func term(c Act) (Datum, Fail) {
   return term.read([$e]), null(Fail)
 }
 
 ## empty_pair action
-func term() (Datum, Fail) {
+func term(c Act) (Datum, Fail) {
   let tf1 = term.read([$k])
   let tf2 = term.read([$v])
   let tn3 = term.struct([Pair])
@@ -1299,12 +1299,12 @@ func term() (Datum, Fail) {
   seq.step()
   term.setField([Value], tn3, tf2)
   tfirst4 = cover(tn3, tf2, tfirst4)
-  made(term.ctx(), tn3, tfirst4)
+  made(c, tn3, tfirst4)
   return term.fromObj(tn3), null(Fail)
 }
 
 ## ns_flow_map_yaml_key_entry action
-func term() (Datum, Fail) {
+func term(c Act) (Datum, Fail) {
   let tf1 = term.read([$k])
   let tf2 = term.read([$v])
   let tn3 = term.struct([Pair])
@@ -1315,17 +1315,17 @@ func term() (Datum, Fail) {
   seq.step()
   term.setField([Value], tn3, tf2)
   tfirst4 = cover(tn3, tf2, tfirst4)
-  made(term.ctx(), tn3, tfirst4)
+  made(c, tn3, tfirst4)
   return term.fromObj(tn3), null(Fail)
 }
 
 ## separate_value action
-func term() (Datum, Fail) {
+func term(c Act) (Datum, Fail) {
   return term.read([$v]), null(Fail)
 }
 
 ## c_ns_flow_map_empty_key_entry action
-func term() (Datum, Fail) {
+func term(c Act) (Datum, Fail) {
   let tf1 = term.read([$k])
   let tf2 = term.read([$v])
   let tn3 = term.struct([Pair])
@@ -1336,22 +1336,22 @@ func term() (Datum, Fail) {
   seq.step()
   term.setField([Value], tn3, tf2)
   tfirst4 = cover(tn3, tf2, tfirst4)
-  made(term.ctx(), tn3, tfirst4)
+  made(c, tn3, tfirst4)
   return term.fromObj(tn3), null(Fail)
 }
 
 ## c_ns_flow_map_separate_value action
-func term() (Datum, Fail) {
+func term(c Act) (Datum, Fail) {
   return term.read([$v]), null(Fail)
 }
 
 ## separated_flow_node action
-func term() (Datum, Fail) {
+func term(c Act) (Datum, Fail) {
   return term.read([$v]), null(Fail)
 }
 
 ## c_ns_flow_map_json_key_entry action
-func term() (Datum, Fail) {
+func term(c Act) (Datum, Fail) {
   let tf1 = term.read([$k])
   let tf2 = term.read([$v])
   let tn3 = term.struct([Pair])
@@ -1362,35 +1362,35 @@ func term() (Datum, Fail) {
   seq.step()
   term.setField([Value], tn3, tf2)
   tfirst4 = cover(tn3, tf2, tfirst4)
-  made(term.ctx(), tn3, tfirst4)
+  made(c, tn3, tfirst4)
   return term.fromObj(tn3), null(Fail)
 }
 
 ## adjacent_value action
-func term() (Datum, Fail) {
+func term(c Act) (Datum, Fail) {
   return term.read([$v]), null(Fail)
 }
 
 ## c_ns_flow_map_adjacent_value action
-func term() (Datum, Fail) {
+func term(c Act) (Datum, Fail) {
   return term.read([$v]), null(Fail)
 }
 
 ## optionally_separated_flow_node action
-func term() (Datum, Fail) {
+func term(c Act) (Datum, Fail) {
   return term.read([$v]), null(Fail)
 }
 
 ## ns_flow_pair action
-func term() (Datum, Fail) {
+func term(c Act) (Datum, Fail) {
   let tm1 = term.kids()
   seq.step()
-  let tf2 = push(term.ctx(), term.name([list]), term.read([$e]))
+  let tf2 = push(c, term.name([list]), term.read([$e]))
   if (tf2 != null(Fail)) {
     return null(Datum), tf2
   }
   let tk3 = term.elemsAbove(tm1)
-  let tn4 = hull(term.ctx(), false, tk3)
+  let tn4 = hull(c, false, tk3)
   let tf5 = term.fromObj(tn4)
   let tn6 = term.struct([Mapping])
   let tfirst7 = true
@@ -1400,12 +1400,12 @@ func term() (Datum, Fail) {
   seq.step()
   term.setField([Pairs], tn6, tf5)
   tfirst7 = cover(tn6, tf5, tfirst7)
-  made(term.ctx(), tn6, tfirst7)
+  made(c, tn6, tfirst7)
   return term.fromObj(tn6), null(Fail)
 }
 
 ## ns_flow_pair_yaml_key_entry action
-func term() (Datum, Fail) {
+func term(c Act) (Datum, Fail) {
   let tf1 = term.read([$k])
   let tf2 = term.read([$v])
   let tn3 = term.struct([Pair])
@@ -1416,17 +1416,17 @@ func term() (Datum, Fail) {
   seq.step()
   term.setField([Value], tn3, tf2)
   tfirst4 = cover(tn3, tf2, tfirst4)
-  made(term.ctx(), tn3, tfirst4)
+  made(c, tn3, tfirst4)
   return term.fromObj(tn3), null(Fail)
 }
 
 ## flow_pair_yaml_key action
-func term() (Datum, Fail) {
+func term(c Act) (Datum, Fail) {
   return term.read([$k]), null(Fail)
 }
 
 ## flow_pair_yaml_key predicate
-func term() (Datum, Fail) {
+func term(c Act) (Datum, Fail) {
   let tv1 = term.read([var c])
   let tv2, tf2 = binary(5, tv1, term.const(["flow-key"]))
   if (tf2 != null(Fail)) {
@@ -1436,12 +1436,12 @@ func term() (Datum, Fail) {
 }
 
 ## flow_pair_yaml_key binding c
-func term() (Datum, Fail) {
+func term(c Act) (Datum, Fail) {
   return term.const(["flow-key"]), null(Fail)
 }
 
 ## c_ns_flow_pair_json_key_entry action
-func term() (Datum, Fail) {
+func term(c Act) (Datum, Fail) {
   let tf1 = term.read([$k])
   let tf2 = term.read([$v])
   let tn3 = term.struct([Pair])
@@ -1452,17 +1452,17 @@ func term() (Datum, Fail) {
   seq.step()
   term.setField([Value], tn3, tf2)
   tfirst4 = cover(tn3, tf2, tfirst4)
-  made(term.ctx(), tn3, tfirst4)
+  made(c, tn3, tfirst4)
   return term.fromObj(tn3), null(Fail)
 }
 
 ## flow_pair_json_key action
-func term() (Datum, Fail) {
+func term(c Act) (Datum, Fail) {
   return term.read([$k]), null(Fail)
 }
 
 ## flow_pair_json_key predicate
-func term() (Datum, Fail) {
+func term(c Act) (Datum, Fail) {
   let tv1 = term.read([var c])
   let tv2, tf2 = binary(5, tv1, term.const(["flow-key"]))
   if (tf2 != null(Fail)) {
@@ -1472,12 +1472,12 @@ func term() (Datum, Fail) {
 }
 
 ## flow_pair_json_key binding c
-func term() (Datum, Fail) {
+func term(c Act) (Datum, Fail) {
   return term.const(["flow-key"]), null(Fail)
 }
 
 ## plain_node action
-func term() (Datum, Fail) {
+func term(c Act) (Datum, Fail) {
   let tf1 = term.read([$p])
   let ts2, tf2 = text(term.read([$t]))
   if (tf2 != null(Fail)) {
@@ -1492,12 +1492,12 @@ func term() (Datum, Fail) {
   seq.step()
   term.setField([Text], tn4, tf3)
   tfirst5 = cover(tn4, tf3, tfirst5)
-  made(term.ctx(), tn4, tfirst5)
+  made(c, tn4, tfirst5)
   return term.fromObj(tn4), null(Fail)
 }
 
 ## ns_plain predicate
-func term() (Datum, Fail) {
+func term(c Act) (Datum, Fail) {
   let tv1 = term.read([var c])
   let tv2, tf2 = binary(5, tv1, term.const(["flow-out"]))
   if (tf2 != null(Fail)) {
@@ -1507,7 +1507,7 @@ func term() (Datum, Fail) {
 }
 
 ## ns_plain predicate
-func term() (Datum, Fail) {
+func term(c Act) (Datum, Fail) {
   let tv1 = term.read([var c])
   let tv2, tf2 = binary(5, tv1, term.const(["block-key"]))
   if (tf2 != null(Fail)) {
@@ -1517,7 +1517,7 @@ func term() (Datum, Fail) {
 }
 
 ## ns_plain predicate
-func term() (Datum, Fail) {
+func term(c Act) (Datum, Fail) {
   let tv1 = term.read([var c])
   let tv2, tf2 = binary(5, tv1, term.const(["flow-in"]))
   if (tf2 != null(Fail)) {
@@ -1527,7 +1527,7 @@ func term() (Datum, Fail) {
 }
 
 ## ns_plain predicate
-func term() (Datum, Fail) {
+func term(c Act) (Datum, Fail) {
   let tv1 = term.read([var c])
   let tv2, tf2 = binary(5, tv1, term.const(["flow-key"]))
   if (tf2 != null(Fail)) {
@@ -1537,7 +1537,7 @@ func term() (Datum, Fail) {
 }
 
 ## ns_plain_safe predicate
-func term() (Datum, Fail) {
+func term(c Act) (Datum, Fail) {
   let tv1 = term.read([var c])
   let tv2, tf2 = binary(5, tv1, term.const(["flow-out"]))
   if (tf2 != null(Fail)) {
@@ -1564,7 +1564,7 @@ func term() (Datum, Fail) {
 }
 
 ## ns_plain_safe predicate
-func term() (Datum, Fail) {
+func term(c Act) (Datum, Fail) {
   let tv1 = term.read([var c])
   let tv2, tf2 = binary(5, tv1, term.const(["flow-in"]))
   if (tf2 != null(Fail)) {
@@ -1591,7 +1591,7 @@ func term() (Datum, Fail) {
 }
 
 ## c_double_quoted action
-func term() (Datum, Fail) {
+func term(c Act) (Datum, Fail) {
   let tf1 = term.read([$p])
   let ts2, tf2 = text(term.read([$t]))
   if (tf2 != null(Fail)) {
@@ -1609,12 +1609,12 @@ func term() (Datum, Fail) {
   seq.step()
   term.setField([Text], tn4, tf3)
   tfirst5 = cover(tn4, tf3, tfirst5)
-  made(term.ctx(), tn4, tfirst5)
+  made(c, tn4, tfirst5)
   return term.fromObj(tn4), null(Fail)
 }
 
 ## double_quoted predicate
-func term() (Datum, Fail) {
+func term(c Act) (Datum, Fail) {
   let tv1 = term.read([var c])
   let tv2, tf2 = binary(5, tv1, term.const(["flow-out"]))
   if (tf2 != null(Fail)) {
@@ -1641,7 +1641,7 @@ func term() (Datum, Fail) {
 }
 
 ## double_quoted predicate
-func term() (Datum, Fail) {
+func term(c Act) (Datum, Fail) {
   let tv1 = term.read([var c])
   let tv2, tf2 = binary(5, tv1, term.const(["block-key"]))
   if (tf2 != null(Fail)) {
@@ -1668,7 +1668,7 @@ func term() (Datum, Fail) {
 }
 
 ## c_single_quoted action
-func term() (Datum, Fail) {
+func term(c Act) (Datum, Fail) {
   let tf1 = term.read([$p])
   let ts2, tf2 = text(term.read([$t]))
   if (tf2 != null(Fail)) {
@@ -1686,12 +1686,12 @@ func term() (Datum, Fail) {
   seq.step()
   term.setField([Text], tn4, tf3)
   tfirst5 = cover(tn4, tf3, tfirst5)
-  made(term.ctx(), tn4, tfirst5)
+  made(c, tn4, tfirst5)
   return term.fromObj(tn4), null(Fail)
 }
 
 ## single_quoted predicate
-func term() (Datum, Fail) {
+func term(c Act) (Datum, Fail) {
   let tv1 = term.read([var c])
   let tv2, tf2 = binary(5, tv1, term.const(["flow-out"]))
   if (tf2 != null(Fail)) {
@@ -1718,7 +1718,7 @@ func term() (Datum, Fail) {
 }
 
 ## single_quoted predicate
-func term() (Datum, Fail) {
+func term(c Act) (Datum, Fail) {
   let tv1 = term.read([var c])
   let tv2, tf2 = binary(5, tv1, term.const(["block-key"]))
   if (tf2 != null(Fail)) {
@@ -1745,7 +1745,7 @@ func term() (Datum, Fail) {
 }
 
 ## l_empty_flow predicate
-func term() (Datum, Fail) {
+func term(c Act) (Datum, Fail) {
   let tv1, tf1 = length(term.read([$sp]))
   if (tf1 != null(Fail)) {
     return null(Datum), tf1
@@ -1759,7 +1759,7 @@ func term() (Datum, Fail) {
 }
 
 ## l_empty_flow predicate
-func term() (Datum, Fail) {
+func term(c Act) (Datum, Fail) {
   let tv1, tf1 = length(term.read([$sp]))
   if (tf1 != null(Fail)) {
     return null(Datum), tf1
@@ -1773,7 +1773,7 @@ func term() (Datum, Fail) {
 }
 
 ## s_flow_line_prefix predicate
-func term() (Datum, Fail) {
+func term(c Act) (Datum, Fail) {
   let tv1, tf1 = length(term.read([$sp]))
   if (tf1 != null(Fail)) {
     return null(Datum), tf1
@@ -1787,7 +1787,7 @@ func term() (Datum, Fail) {
 }
 
 ## s_separate predicate
-func term() (Datum, Fail) {
+func term(c Act) (Datum, Fail) {
   let tv1 = term.read([var c])
   let tv2, tf2 = binary(5, tv1, term.const(["block-key"]))
   if (tf2 != null(Fail)) {
@@ -1814,7 +1814,7 @@ func term() (Datum, Fail) {
 }
 
 ## s_separate predicate
-func term() (Datum, Fail) {
+func term(c Act) (Datum, Fail) {
   let tv1 = term.read([var c])
   let tv2, tf2 = binary(6, tv1, term.const(["block-key"]))
   if (tf2 != null(Fail)) {
@@ -1841,7 +1841,7 @@ func term() (Datum, Fail) {
 }
 
 ## s_indent predicate
-func term() (Datum, Fail) {
+func term(c Act) (Datum, Fail) {
   let tv1, tf1 = length(term.read([$s]))
   if (tf1 != null(Fail)) {
     return null(Datum), tf1
@@ -1855,7 +1855,7 @@ func term() (Datum, Fail) {
 }
 
 ## s_separate predicate
-func term() (Datum, Fail) {
+func term(c Act) (Datum, Fail) {
   let tv1 = term.read([var c])
   let tv2, tf2 = binary(5, tv1, term.const(["block-key"]))
   if (tf2 != null(Fail)) {
@@ -1882,7 +1882,7 @@ func term() (Datum, Fail) {
 }
 
 ## s_separate predicate
-func term() (Datum, Fail) {
+func term(c Act) (Datum, Fail) {
   let tv1 = term.read([var c])
   let tv2, tf2 = binary(6, tv1, term.const(["block-key"]))
   if (tf2 != null(Fail)) {
@@ -1909,7 +1909,7 @@ func term() (Datum, Fail) {
 }
 
 ## s_indent predicate
-func term() (Datum, Fail) {
+func term(c Act) (Datum, Fail) {
   let tv1, tf1 = length(term.read([$s]))
   if (tf1 != null(Fail)) {
     return null(Datum), tf1
@@ -1923,7 +1923,7 @@ func term() (Datum, Fail) {
 }
 
 ## s_separate_n1 binding n
-func term() (Datum, Fail) {
+func term(c Act) (Datum, Fail) {
   let tv1 = term.read([var n])
   let tv2, tf2 = binary(0, tv1, term.const([1]))
   if (tf2 != null(Fail)) {
@@ -1933,7 +1933,7 @@ func term() (Datum, Fail) {
 }
 
 ## l_trail_comments predicate
-func term() (Datum, Fail) {
+func term(c Act) (Datum, Fail) {
   let tv1, tf1 = length(term.read([$sp]))
   if (tf1 != null(Fail)) {
     return null(Datum), tf1
@@ -1947,7 +1947,7 @@ func term() (Datum, Fail) {
 }
 
 ## ns_plain_safe predicate
-func term() (Datum, Fail) {
+func term(c Act) (Datum, Fail) {
   let tv1 = term.read([var c])
   let tv2, tf2 = binary(5, tv1, term.const(["flow-out"]))
   if (tf2 != null(Fail)) {
@@ -1974,7 +1974,7 @@ func term() (Datum, Fail) {
 }
 
 ## ns_plain_safe predicate
-func term() (Datum, Fail) {
+func term(c Act) (Datum, Fail) {
   let tv1 = term.read([var c])
   let tv2, tf2 = binary(5, tv1, term.const(["flow-in"]))
   if (tf2 != null(Fail)) {
@@ -2001,7 +2001,7 @@ func term() (Datum, Fail) {
 }
 
 ## ns_plain predicate
-func term() (Datum, Fail) {
+func term(c Act) (Datum, Fail) {
   let tv1 = term.read([var c])
   let tv2, tf2 = binary(5, tv1, term.const(["flow-out"]))
   if (tf2 != null(Fail)) {
@@ -2011,7 +2011,7 @@ func term() (Datum, Fail) {
 }
 
 ## ns_plain predicate
-func term() (Datum, Fail) {
+func term(c Act) (Datum, Fail) {
   let tv1 = term.read([var c])
   let tv2, tf2 = binary(5, tv1, term.const(["block-key"]))
   if (tf2 != null(Fail)) {
@@ -2021,7 +2021,7 @@ func term() (Datum, Fail) {
 }
 
 ## ns_plain predicate
-func term() (Datum, Fail) {
+func term(c Act) (Datum, Fail) {
   let tv1 = term.read([var c])
   let tv2, tf2 = binary(5, tv1, term.const(["flow-in"]))
   if (tf2 != null(Fail)) {
@@ -2031,7 +2031,7 @@ func term() (Datum, Fail) {
 }
 
 ## ns_plain predicate
-func term() (Datum, Fail) {
+func term(c Act) (Datum, Fail) {
   let tv1 = term.read([var c])
   let tv2, tf2 = binary(5, tv1, term.const(["flow-key"]))
   if (tf2 != null(Fail)) {
@@ -2041,7 +2041,7 @@ func term() (Datum, Fail) {
 }
 
 ## double_quoted predicate
-func term() (Datum, Fail) {
+func term(c Act) (Datum, Fail) {
   let tv1 = term.read([var c])
   let tv2, tf2 = binary(5, tv1, term.const(["flow-out"]))
   if (tf2 != null(Fail)) {
@@ -2068,7 +2068,7 @@ func term() (Datum, Fail) {
 }
 
 ## double_quoted predicate
-func term() (Datum, Fail) {
+func term(c Act) (Datum, Fail) {
   let tv1 = term.read([var c])
   let tv2, tf2 = binary(5, tv1, term.const(["block-key"]))
   if (tf2 != null(Fail)) {
@@ -2095,7 +2095,7 @@ func term() (Datum, Fail) {
 }
 
 ## single_quoted predicate
-func term() (Datum, Fail) {
+func term(c Act) (Datum, Fail) {
   let tv1 = term.read([var c])
   let tv2, tf2 = binary(5, tv1, term.const(["flow-out"]))
   if (tf2 != null(Fail)) {
@@ -2122,7 +2122,7 @@ func term() (Datum, Fail) {
 }
 
 ## single_quoted predicate
-func term() (Datum, Fail) {
+func term(c Act) (Datum, Fail) {
   let tv1 = term.read([var c])
   let tv2, tf2 = binary(5, tv1, term.const(["block-key"]))
   if (tf2 != null(Fail)) {
@@ -2149,7 +2149,7 @@ func term() (Datum, Fail) {
 }
 
 ## s_flow_line_prefix predicate
-func term() (Datum, Fail) {
+func term(c Act) (Datum, Fail) {
   let tv1, tf1 = length(term.read([$sp]))
   if (tf1 != null(Fail)) {
     return null(Datum), tf1
@@ -2163,7 +2163,7 @@ func term() (Datum, Fail) {
 }
 
 ## l_empty_flow predicate
-func term() (Datum, Fail) {
+func term(c Act) (Datum, Fail) {
   let tv1, tf1 = length(term.read([$sp]))
   if (tf1 != null(Fail)) {
     return null(Datum), tf1
@@ -2177,7 +2177,7 @@ func term() (Datum, Fail) {
 }
 
 ## l_empty_flow predicate
-func term() (Datum, Fail) {
+func term(c Act) (Datum, Fail) {
   let tv1, tf1 = length(term.read([$sp]))
   if (tf1 != null(Fail)) {
     return null(Datum), tf1

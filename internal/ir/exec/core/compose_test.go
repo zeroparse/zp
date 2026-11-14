@@ -53,7 +53,7 @@ type machine struct {
 	// exps holds the expectations of each entry (memo.setExpected).
 	exps                   map[*ref.Entry]record
 	spends, steps, memoHit int
-	// kids and created count what terms left (term.eval), binds the bindings they made (env.bind).
+	// kids and created count what terms left (Apply of a term), binds the bindings they made (env.bind).
 	kids, created, binds int
 	// ctx is what the context operations answer (ops.Growth): the context state of every call.
 	ctx ctxModel
@@ -170,16 +170,28 @@ func entryOf(x any) *ref.Entry {
 	return e
 }
 
+// Apply applies a term: it gathers and creates what the term says, and returns its value and its failure,
+// which is null (nil) when the term does not fail.
+func (m *machine) Apply(h any, args []any) []any {
+	if args[0] != "ctx" {
+		panic("a term is applied to a context that term.ctx made")
+	}
+	tm := h.(*term)
+	m.kids += tm.kids
+	m.created += tm.created
+	if tm.fails {
+		return []any{nil, "failed"}
+	}
+	return []any{tm.value, nil}
+}
+
 func (m *machine) Call(o *exec.Op, args []any) []any {
 	switch o.Name {
 	case "env.bind":
 		m.binds++
 		return nil
-	case "term.eval":
-		tm := args[0].(*term)
-		m.kids += tm.kids
-		m.created += tm.created
-		return []any{tm.value, !tm.fails}
+	case "term.ctx":
+		return []any{"ctx"}
 	case "term.created":
 		return []any{int64(m.created)}
 	case "term.kids":

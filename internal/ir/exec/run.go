@@ -10,6 +10,13 @@ type Machine interface {
 	Call(o *Op, args []any) []any
 }
 
+// Applier is a Machine that applies the values of callable handle types: Apply runs the code h, a handle
+// value of a type with a signature, with args and returns its results. A Machine that does not implement it
+// cannot run a function that applies one.
+type Applier interface {
+	Apply(h any, args []any) []any
+}
+
 // RegisterMachine is a Machine whose operations read and write the registers they declare, as
 // target implementations of transitional operations do (rule.invoke moves the position): Run hands
 // it the registers of the run, by name, before it runs the function.
@@ -238,9 +245,20 @@ func (r *runner) set(fr *frame, st *Set) {
 }
 
 func (r *runner) invoke(fr *frame, c *Call) []any {
+	var fn any
+	if c.Fn != nil {
+		fn = r.eval(fr, c.Fn)
+	}
 	args := make([]any, len(c.Args))
 	for i, a := range c.Args {
 		args[i] = r.eval(fr, a)
+	}
+	if c.Fn != nil {
+		ap, ok := r.mach.(Applier)
+		if !ok {
+			panic("exec: the machine does not apply callable handles")
+		}
+		return ap.Apply(fn, args)
 	}
 	if o := r.m.Op(c.Callee); o != nil {
 		res := r.mach.Call(o, args)

@@ -5,7 +5,7 @@
   parse.
 - Contexts and parameters of a call now come from LIFO arenas of the closure evaluator (`arena[T]` in
   `closureMachine`), freed when the call returns; closures come from an arena freed at the next evaluation
-  (`evalTerm`), since a lambda cannot outlive the action or predicate that created it (lambdas are only arguments
+  (at each evaluation of a term), since a lambda cannot outlive the action or predicate that created it (lambdas are only arguments
   of `map`, `foldl` and `foldr`, and functions cannot be stored). A lambda created inside another lambda's call
   keeps a heap copy of that call's context (`keep`).
 - Effect (min of 8 interleaved runs, Apple M3 Max, closure backend, code points): JSON 15.9 → 15.3 ms, 37k → 1.3k

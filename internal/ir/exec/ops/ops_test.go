@@ -4,6 +4,7 @@ import (
 	"flag"
 	"os"
 	"slices"
+	"strings"
 	"testing"
 
 	"zeroparse.dev/zp/internal/ir/exec"
@@ -86,5 +87,35 @@ func TestValueGolden(t *testing.T) {
 	}
 	if got != string(want) {
 		t.Errorf("listing differs from %s; run go test -run TestValueGolden -update", golden)
+	}
+}
+
+// TestTermCodeGolden checks that the declarations of applying a term verify, on the pilot and the value
+// and transitional operations they extend, and what the listing says of them.
+func TestTermCodeGolden(t *testing.T) {
+	m := ValueModule()
+	Transitional(m)
+	AddTermCode(m)
+	if err := exec.Verify(m); err != nil {
+		t.Fatal(err)
+	}
+	h := m.HandleType(Term)
+	if h == nil || h.Callable == nil || len(h.Callable.Params) != 1 || h.Callable.Params[0] != exec.THandle(Act) ||
+		len(h.Callable.Results) != 2 || h.Callable.Results[0] != exec.THandle(Datum) || h.Callable.Results[1] != exec.THandle(Fail) {
+		t.Fatalf("handle Term = %+v, want code of an Act with a Datum and a Fail", h)
+	}
+	for _, o := range m.Ops {
+		if o.Name == "term.ctx" && (!o.Host || o.Transitional || o.NoReturn || len(o.Cost.Terms) != 0 || o.Cost.Const != 0) {
+			t.Errorf("term.ctx = %+v, want a host operation that charges nothing and does not end the parse", o)
+		}
+	}
+	got := exec.String(m)
+	for _, want := range []string{
+		"handle Term of host callable (Act) (Datum, Fail)\n",
+		"host op term.ctx() Act\n  component host\n  reads host, pos\n  writes host\n  cost <= 0\n",
+	} {
+		if !strings.Contains(got, want) {
+			t.Errorf("listing lacks\n%s", want)
+		}
 	}
 }

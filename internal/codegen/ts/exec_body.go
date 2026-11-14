@@ -90,7 +90,7 @@ func Pure(x exec.Expr, call func(*exec.Call) bool) bool {
 			return Pure(x.X, call) && Pure(x.Y, call)
 		}
 	case *exec.Call:
-		return call != nil && call(x)
+		return x.Fn == nil && call != nil && call(x)
 	}
 	return false
 }

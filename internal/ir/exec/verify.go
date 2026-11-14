@@ -87,6 +87,14 @@ func (v *verifier) decls() {
 		if m.component(h.Component) == nil {
 			v.errorf("handle type %s: undeclared component %s", h.Name, h.Component)
 		}
+		if h.Callable != nil {
+			for _, t := range h.Callable.Params {
+				v.typ(t, "handle type "+h.Name+" parameter")
+			}
+			for _, t := range h.Callable.Results {
+				v.typ(t, "handle type "+h.Name+" result")
+			}
+		}
 	}
 	for _, o := range m.Ops {
 		v.op(o)
@@ -299,7 +307,7 @@ func (v *verifier) cleanup(b *Block) {
 		}
 		o := v.m.Op(c.Callee)
 		if o == nil {
-			v.errorf("a cleanup calls %s, which is not an operation", c.Callee)
+			v.errorf("a cleanup calls %s, which is not an operation", c.name())
 			return
 		}
 		if o.NoReturn {
@@ -382,7 +390,7 @@ func (v *verifier) stmt(st Stmt, s *scope) {
 		if c, ok := st.Value.(*Call); ok && len(st.Names) != 1 {
 			types = v.call(c, s)
 			if types != nil && len(types) != len(st.Names) {
-				v.errorf("let %v: %s has %d results", st.Names, c.Callee, len(types))
+				v.errorf("let %v: %s has %d results", st.Names, c.name(), len(types))
 				types = nil
 			}
 		} else if len(st.Names) == 1 {
@@ -486,7 +494,7 @@ func (v *verifier) set(st *Set, s *scope) {
 			return
 		}
 		if len(rs) != len(st.Dst) {
-			v.errorf("set of %d places: %s has %d results", len(st.Dst), c.Callee, len(rs))
+			v.errorf("set of %d places: %s has %d results", len(st.Dst), c.name(), len(rs))
 			return
 		}
 		for i, t := range rs {
@@ -505,6 +513,9 @@ func (v *verifier) want(x Expr, s *scope, t Type, where string) {
 
 // call checks a call and returns its result types (nil after an error).
 func (v *verifier) call(c *Call, s *scope) []Type {
+	if c.Fn != nil {
+		return v.apply(c, s)
+	}
 	var params []Param
 	var results []Type
 	if o := v.m.Op(c.Callee); o != nil {
@@ -537,6 +548,39 @@ func (v *verifier) call(c *Call, s *scope) []Type {
 		results = []Type{}
 	}
 	return results
+}
+
+// apply checks the application of a callable handle and returns its result types (nil after an error):
+// the callee is an expression of a handle type that declares a signature, and the arguments have its
+// parameter types.
+func (v *verifier) apply(c *Call, s *scope) []Type {
+	if c.Callee != "" || c.Imm != nil {
+		v.errorf("application with a callee %q or an immediate operand", c.Callee)
+		return nil
+	}
+	t, ok := v.expr(c.Fn, s)
+	if !ok {
+		return nil
+	}
+	var h *HandleType
+	if t.Kind == KHandle {
+		h = v.m.handle(t.Handle)
+	}
+	if h == nil || h.Callable == nil {
+		v.errorf("application of a value of type %s, which is not a callable handle", t)
+		return nil
+	}
+	if len(c.Args) != len(h.Callable.Params) {
+		v.errorf("application of %s with %d arguments, want %d", t, len(c.Args), len(h.Callable.Params))
+		return nil
+	}
+	for i, a := range c.Args {
+		v.want(a, s, h.Callable.Params[i], fmt.Sprintf("application of %s argument %d", t, i+1))
+	}
+	if h.Callable.Results == nil {
+		return []Type{}
+	}
+	return h.Callable.Results
 }
 
 // expr returns the type of x, or false after reporting an error.
@@ -649,7 +693,7 @@ func (v *verifier) expr(x Expr, s *scope) (Type, bool) {
 			return Type{}, false
 		}
 		if len(r) != 1 {
-			v.errorf("%s has %d results where one value is needed", x.Callee, len(r))
+			v.errorf("%s has %d results where one value is needed", x.name(), len(r))
 			return Type{}, false
 		}
 		return r[0], true

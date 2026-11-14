@@ -351,7 +351,6 @@ docs/optimizations/020-splicing-the-memo-table-on-document-edits.md	unexport	mem
 docs/optimizations/021-changes-18-and-19-in-the-generated-parsers.md	internal	internal/bench/parsers	1
 docs/optimizations/022-bounded-memory-and-less-copying-in-stream-parsing.md	unexport	splitChunks	1
 docs/optimizations/024-the-plain-call-path-in-the-iterative-vm.md	unexport	firstCall	1
-docs/optimizations/026-lambda-calls-without-allocation-in-the-closure-backend.md	unexport	evalTerm	1
 docs/optimizations/034-one-frame-per-plain-call-in-the-iterative-vm.md	unexport	plainCallFrame	1
 docs/optimizations/035-left-recursion-growth-without-allocation.md	unexport	growState	1
 docs/optimizations/043-direct-calls-of-plain-rules-in-the-vms.md	unexport	plainCallFrame	1

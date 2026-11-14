@@ -63,6 +63,11 @@ type Target struct {
 	// Pure, if not nil, reports whether evaluating a call of an operation has no effect and cannot
 	// panic, for leaving out unread assignments (Body).
 	Pure func(c *exec.Call) bool
+	// Apply, if not nil, returns the Go expression that applies the callable handle fn, printed, to the
+	// printed arguments (an application, exec.Call.Fn). Without it a handle is a Go function and the
+	// application is the call fn(args): a target whose handle is not callable in Go (the engine's term
+	// program) says how it is run, once, for every application.
+	Apply func(fn string, args []string) string
 	// Name, if not nil, returns the name that a Go constant has for the int constant v that a call of
 	// the function callee takes as its argument number arg, or reports false to print the number.
 	Name func(callee string, arg int, v int64) (string, bool)
@@ -128,7 +133,7 @@ func Pure(x exec.Expr, call func(*exec.Call) bool) bool {
 			return Pure(x.X, call) && Pure(x.Y, call)
 		}
 	case *exec.Call:
-		return call != nil && call(x)
+		return x.Fn == nil && call != nil && call(x)
 	}
 	return false
 }
@@ -705,6 +710,13 @@ func (p *execPrinter) expr(x exec.Expr, outer int) string {
 		return p.typ(x.To) + "(" + p.expr(x.X, 0) + ")"
 	case *exec.Call:
 		args := p.args(x)
+		if x.Fn != nil {
+			fn := p.expr(x.Fn, 6)
+			if p.t.Apply != nil {
+				return p.paren(p.t.Apply(fn, args), outer)
+			}
+			return fn + "(" + strings.Join(args, ", ") + ")"
+		}
 		if p.m.Op(x.Callee) != nil {
 			return p.paren(p.t.Op(x, args), outer)
 		}
