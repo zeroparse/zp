@@ -1,13 +1,27 @@
 // Run the embedded TypeScript literal matcher without rule/input setup or trees.
-// Requires a Node.js version that runs TypeScript directly. An optional path
-// selects another checkout's lib.ts for before/after comparisons.
+// Requires a Node.js version that runs TypeScript directly, and Go to generate the library.
+// The library is the lib.ts that `zp gen -lang ts -lib only` writes: the lib.ts source of the tree
+// holds placeholder methods and lacks budget.ts, trace.ts and profile.ts, which generation fills in
+// and appends. An optional path selects another generated lib.ts for before/after comparisons.
 import { readFileSync, writeFileSync, mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { fileURLToPath } from "node:url";
 import { spawnSync } from "node:child_process";
 
-const runtimePath = process.argv[2] ?? new URL("../codegen/ts/lib/lib.ts", import.meta.url);
-const source = readFileSync(runtimePath, "utf8");
+function generatedLibrary() {
+  const out = mkdtempSync(join(tmpdir(), "zp-ts-lib-"));
+  try {
+    const root = fileURLToPath(new URL("..", import.meta.url));
+    const gen = spawnSync("go", ["run", "./cmd/zp", "gen", "-lang", "ts", "-lib", "only", "-o", out], { cwd: root, stdio: "inherit" });
+    if (gen.error) throw gen.error;
+    if (gen.status !== 0) throw new Error("zp gen failed");
+    return readFileSync(join(out, "lib.ts"), "utf8");
+  } finally {
+    rmSync(out, { recursive: true, force: true });
+  }
+}
+const source = process.argv[2] ? readFileSync(process.argv[2], "utf8") : generatedLibrary();
 const helper = String.raw`
 export function benchmarkLiteralMatchers() {
  for(const text of ["keyword","日本語","�","é�x"]){
