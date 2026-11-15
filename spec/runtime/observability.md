@@ -6,16 +6,56 @@ A parse can report every rule call it makes to a caller-supplied function
 defines the engine API and the opt-in APIs of generated Go and TypeScript
 parsers.
 
+## Observation Options
+
+The engine (package `engine`) and generated Go parsers select what a parse
+reports with the same four parse options, which have the same meaning in both.
+Generated Go parsers accept them only when generated with observability (see
+[Generated Go Batch Tracing](#generated-go-batch-tracing)).
+
+| Option | Meaning |
+|:--|:--|
+| `WithTrace(f)` | Calls `f` with every event of the parse that the trace filter and the depth limit select |
+| `WithProfile(prof)` | Adds every call of the parse to the `Profile` `prof` |
+| `WithTraceFilter(rules...)` | Selects the calls of the named rules and the calls nested in them |
+| `WithTraceMaxDepth(n)` | Selects the calls at most `n` deep; the start rule has depth 1 |
+
+Several `WithTrace` options compose: each function receives every selected
+event, a copy of its own, in the order of the options, and a function receives
+an event only after the functions before it have returned; if one panics, the
+parse ends with that panic and the functions after it do not receive the event.
+Several `WithProfile`
+options compose too: each profile records the whole parse. A nil function or
+profile is ignored.
+
+`WithTraceFilter` and `WithTraceMaxDepth` select the events that the trace
+functions receive; they apply to all of them. A call is selected by the filter
+if its rule is one of the named rules or the call is nested in a selected call;
+a skipped call (`TraceSkipped`) is selected in the same way, as if it were made
+at its place. A name that is not a rule selects no call, and a filter with no
+names selects every call. A call deeper than `n` is not selected; zero or a
+negative `n` sets no limit. The enter and exit events of a call are both
+selected or both not. If several `WithTraceFilter` or several `WithTraceMaxDepth`
+options are given, the last of each applies. Neither option changes the parse,
+the events' fields (`Depth` stays the depth in the whole parse) or what the
+profiles record.
+
+A `Document` keeps the options given when it is created as defaults for every
+parse of the Document; the options given to one parse apply over those defaults
+for that parse only. Trace functions and profiles given to a parse are added to
+those of the defaults, so both receive the parse; a trace filter or depth limit
+given to a parse replaces the default for that parse.
+
 ## Engine Tracing
 
 `engine.WithTrace(f)` calls `f` at the start and at the end of every rule call of
-the parse, in order, so that the events nest like the calls. With several
-`WithTrace` options each function is called in order; a nil `f` is ignored.
+the parse, in order, so that the events nest like the calls.
 Tracing works with every backend, with `Parse`, `ParsePrefix`, recognition,
-`ParseStream` and `Document` (an option given to `NewDocument` applies to every
-`Document.Parse`). Generated parsers do not provide this API; they have their own
-options defined below. The events are the `TraceEvent` of the package `core`,
-which every producer of events uses; `engine.TraceEvent` names the same type.
+`ParseStream` and `Document`. The trace options of generated parsers are those of
+their own package, with the same meaning
+([Observation Options](#observation-options)). The events are the `TraceEvent`
+of the package `core`, which every producer of events uses; `engine.TraceEvent`
+names the same type.
 
 The engine reports the calls that its backend makes, as defined in
 [Reported Calls](#reported-calls). It never reports `TraceSkipped`.
@@ -89,8 +129,7 @@ leave out.
 
 `engine.WithProfile(prof)` adds the cost of a parse to `prof`, a `Profile` of
 the package `core`, which accumulates any number of parses of any producer;
-`engine.Profile` names the same type. The profiled parse is traced; a nil
-`prof` is ignored, and several `WithProfile` and `WithTrace` options compose. A
+`engine.Profile` names the same type. The profiled parse is traced. A
 `Profile` is not safe for concurrent use and keeps nothing of a parse after it
 returns. A stream parse keeps the memory of the profile bounded: the profile
 forgets the positions that the stream has discarded, where no rule is evaluated
@@ -151,11 +190,13 @@ parsers provide profiling through `Profile` in per-call options.
 
 A parser generated without observability does not observe: passing it the trace or
 profile options (`WithTrace`, `WithProfile`, `WithTraceFilter`, `WithTraceMaxDepth`)
-returns an error before the parse instead of delivering partial data.
+returns an error before the parse instead of delivering partial data. A parser
+generated with observability gives them the meaning that
+[Observation Options](#observation-options) defines.
 
 The generated package re-exports the event types of the package `core`
 (`TraceEvent`, `TraceKind` with `TraceEnter`, `TraceExit` and `TraceSkipped`,
-`SkipReason` and `SkipFirstCharacter`) and defines its own trace options.
+`SkipReason` and `SkipFirstCharacter`) and the trace options.
 Events observe actual generated execution, not an event-for-event replay of
 engine parser calls. `TraceEnter` begins a rule call before its memo lookup or
 body dispatch; `TraceExit` reports the call's result and end position. The start
@@ -185,12 +226,7 @@ parser state: their `LineCol` returns 0, 0, `Text` returns the empty string, and
 string `"enter"`, `"exit"` or `"skipped"`), `rule`, `level`, `depth`, `pos`,
 `lookahead`, `matched`, `end`, `memo`, `evals`, `reusedElements`, `examined`
 and `skipReason`. Callback panics propagate with their original value after
-cleanup. `WithTraceFilter` limits callback delivery
-to named rules and their descendants; an unknown name matches no rule, and an
-empty filter selects every rule. `WithTraceMaxDepth` limits delivered events;
-the start rule counts as depth 1, and zero or a negative value means no limit.
-Filtering and depth limits do not change parsing. Trace state is local to one
-invocation.
+cleanup. Trace state is local to one invocation.
 
 ### Generated Go Batch Profiling
 
@@ -198,7 +234,7 @@ Generated Go Node and typed batch packages generated with
 `Observability` MUST expose `WithProfile` and re-export from the package `core`
 `Profile`, `ProfileSnapshot`, `RuleProfile`, `Location`, `CallSite` and
 `SkipReasonCount`. A `Profile` is opaque. The zero value of `Profile` MUST be
-ready to use; passing a nil profile disables collection. A profile sink is not
+ready to use; a nil profile is ignored. A profile sink is not
 safe for concurrent use. Reentrant parses on one goroutine MUST keep separate
 per-invocation accounting, and a profile MUST NOT retain anything of a parse
 after it returns. `Snapshot()` MUST return an owned copy with rules sorted by
@@ -236,11 +272,12 @@ completed call; a panic in an enter callback does not synthesize an exit.
 ## Generated Go Document Tracing and Profiling
 
 When generated Go observability and Document support are both enabled,
-`NewDocument` MUST accept `WithTrace` and `WithProfile` as retained defaults.
+`NewDocument` MUST accept the observation options as retained defaults.
 Construction MUST NOT emit parser events or profile counts. `Document.Parse`
-and, with generated types, `Document.ParseValue` MUST accept invocation-local
-overrides; an override applies only to that call and MUST NOT replace the
-constructor default for later calls. `Edit` does not parse and MUST NOT emit
+and, with generated types, `Document.ParseValue` MUST accept them for one
+invocation, combined with the defaults as
+[Observation Options](#observation-options) defines; they MUST NOT change the
+defaults for later calls. `Edit` does not parse and MUST NOT emit
 rule events.
 
 Events MUST report actual rule calls in the current invocation, including Node,

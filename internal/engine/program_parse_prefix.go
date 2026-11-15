@@ -53,7 +53,7 @@ func (prog *Program) ParsePrefixWith(start, input string, o ParseOptions) (resul
 	p.Expectations = o.Expectations
 	p.DeferMemo = true
 	if o.Traced() {
-		p.SetTrace(o.Trace, o.Profiles)
+		p.SetTrace(&o)
 		defer p.CloseTrace()
 	}
 	result, err = active.runPrefix(p, o.Backend, start)

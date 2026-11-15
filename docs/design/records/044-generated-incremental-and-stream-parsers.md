@@ -72,8 +72,8 @@ a safe retry.
 
 With `-observability`, constructor `WithTrace` and `WithProfile` options are
 retained as defaults for later `Parse` and `ParseValue` calls; construction itself
-emits no parser events or profile counts. Per-call options override those
-defaults for that invocation only. `Edit` does not parse and emits no rule
+emits no parser events or profile counts. Per-call trace functions and profiles
+are added to those defaults for that invocation only. `Edit` does not parse and emits no rule
 events. Events describe calls made during the current invocation. A memoized
 whole-call reuse reports that call as a memo hit (`Memo=true`, `Evals=0`)
 without replaying nested events from an earlier parse. Node parsing, direct

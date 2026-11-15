@@ -10,6 +10,7 @@ package engine
 import (
 	"context"
 	"io"
+	"slices"
 
 	"zeroparse.dev/zp/core"
 	"zeroparse.dev/zp/grammar"
@@ -178,10 +179,12 @@ const (
 // dispatch) is not reported, and the backends do not skip the same calls. Tracing does not change the
 // result, but it makes the parse several times slower. The event's methods (LineCol, Text, Failure) read
 // the parser's state, so call them from f; its fields can be kept. With several WithTrace options, each
-// function is called in order. A nil f is ignored.
+// function receives every event, in the order of the options. A nil f is ignored. WithTraceFilter and
+// WithTraceMaxDepth select the events the functions receive.
 //
 // Tracing works with every backend, with Parse, ParsePrefix, RecognizeOnly, ParseStream and Document (whose
-// option applies to every Document.Parse), but not with generated Go parsers.
+// option applies to every Document.Parse, together with those given to the Parse), but not with
+// generated Go parsers, which have options of the same names and meaning.
 func WithTrace(f func(TraceEvent)) ParseOption {
 	return func(o *engine.ParseOptions) {
 		if f == nil {
@@ -193,6 +196,22 @@ func WithTrace(f func(TraceEvent)) ParseOption {
 		}
 		o.Trace = f
 	}
+}
+
+// WithTraceFilter limits the events that the trace functions receive to the calls of the named rules
+// and the calls nested in them. A name that is not a rule matches no call; with no names, every call
+// is selected. The last WithTraceFilter of a parse applies. It does not change the parse or what
+// WithProfile records.
+func WithTraceFilter(rules ...string) ParseOption {
+	names := slices.Clone(rules)
+	return func(o *engine.ParseOptions) { o.TraceRules = names }
+}
+
+// WithTraceMaxDepth limits the events that the trace functions receive to the calls at most n deep,
+// counting the start rule as 1. Zero or a negative n sets no limit. The last WithTraceMaxDepth of a
+// parse applies. It does not change the parse or what WithProfile records.
+func WithTraceMaxDepth(n int) ParseOption {
+	return func(o *engine.ParseOptions) { o.TraceMaxDepth = n }
 }
 
 // WithDiagnosticCallback reports each committed #recover error during ParseStream or Iterate,
@@ -235,11 +254,14 @@ type CallSite = core.CallSite
 
 // WithProfile adds the cost of the parse to prof. It traces the parse (see WithTrace), so the parse is
 // several times slower, and the times in prof are meaningful relative to each other only; they do not
-// include the time of the functions given WithTrace. A nil prof is ignored.
+// include the time of the functions given WithTrace. prof records every call, whatever WithTraceFilter
+// and WithTraceMaxDepth select. With several WithProfile options, each profile records the parse. A nil
+// prof is ignored.
 func WithProfile(prof *Profile) ParseOption {
 	return func(o *engine.ParseOptions) {
 		if prof != nil {
-			o.Profiles = append(o.Profiles, prof)
+			// Clip: the profiles of a Document's defaults are shared by its parses.
+			o.Profiles = append(slices.Clip(o.Profiles), prof)
 		}
 	}
 }

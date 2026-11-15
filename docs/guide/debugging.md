@@ -451,10 +451,12 @@ Profile text prints the root-only total on its own summary line and the inclusiv
 `ProfileSnapshot.Rules` lists the rules sorted by name; sort them as you need. The times in a profile exclude the time
 of the `WithTrace` functions. Engine tracing works with
 every backend, with `RecognizeOnly`, `ParseStream` and `Document` (the option given to `NewDocument` traces each
-`Document.Parse`), and several `WithTrace` and `WithProfile` options can be combined. A `Profile` is not safe for
-concurrent parses. Generated Go Node and typed parsers have separate opt-in
-trace and profile APIs described below; they do not provide the engine
-trace/profile API.
+`Document.Parse`). Several `WithTrace` options each receive every event, and several `WithProfile` options each
+record the parse. `engine.WithTraceFilter` and `engine.WithTraceMaxDepth` select the events that the trace functions
+receive, as described for generated parsers below; profiles still record every call. A `Profile` is not safe for
+concurrent parses. Generated Go Node and typed parsers have their own opt-in
+trace and profile options, described below, with the same names and meaning
+as the engine's.
 
 ### Generated Go Node and Typed Traces
 
@@ -489,8 +491,9 @@ _, err := pairsparser.Parse(input,
 )
 ```
 
-Filtering a rule includes its named descendants, and unknown names match nothing. Depth starts at one for the start
-rule. `TraceSkipped` is not paired with an exit event, and `Examined` on an exit event is the exact end of the input
+Filtering a rule includes the calls nested in it, and unknown names match nothing. Depth starts at one for the start
+rule. Several `WithTrace` functions each receive every selected event; if several filters or depth limits are given, the
+last of each applies. `TraceSkipped` is not paired with an exit event, and `Examined` on an exit event is the exact end of the input
 that the call examined. `Lookahead` tells a call inside a lookahead, and `ReusedElements` is always 0. The [specification](../../spec/runtime/observability.md#generated-go-batch-tracing) defines the
 events, the filters and what an aborted parse omits.
 
@@ -513,8 +516,8 @@ This Go mode supports Node batch `Parse`, `ParseRule` and, when generated
 with `-recognize`, `Recognize`; with `-types`, it also supports `ParseValue` and
 `ParseRuleValue`. It can be combined with `-document`; see [Tracing and Profiling
 Generated Go Documents](#tracing-and-profiling-generated-go-documents). With
-`-stream`, `ParseStream` accepts the same options for the whole stream; its
-events report no examined range, and a profile counts the stream as one parse.
+`-stream`, `ParseStream` accepts the same options for the whole stream, and a
+profile counts the stream as one parse.
 Generated Go traces also report their generated execution strategy rather than promise
 event-for-event equivalence with engine traces. Generated TypeScript traces
 and profiles have their own contracts and do not promise event-for-event
@@ -574,8 +577,10 @@ zp gen -g pairs.zp -module example.com/pairs/pairsparser -document -observabilit
 ```
 
 Constructor trace and profile options are defaults for later parses. They do
-not run during construction, and an option passed to `Parse` overrides that
-call only. Editing does not parse or emit events.
+not run during construction. Trace functions and profiles passed to `Parse` are
+added to the defaults for that call only; a trace filter or depth limit passed
+to `Parse` replaces the default for that call. Editing does not parse or emit
+events.
 
 ```go
 var profile pairsparser.Profile

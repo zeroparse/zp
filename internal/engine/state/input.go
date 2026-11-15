@@ -39,6 +39,11 @@ type ParseOptions struct {
 	// Profiles record the rule calls of the parse (see core.ProfileRecorder): each records an event
 	// before Trace handles it. A profiled parse is traced (Traced).
 	Profiles []*core.Profile
+	// TraceRules, if not empty, limits the events Trace receives to the calls of these rules and the
+	// calls nested in them; TraceMaxDepth, if positive, to the calls at most that deep. Neither
+	// changes the parse or what Profiles record.
+	TraceRules    []string
+	TraceMaxDepth int
 	// DiagnosticCallback receives committed recoveries during stream parsing, immediately before
 	// the corresponding element. It is invalid for batch parses and Documents.
 	DiagnosticCallback func(*core.SyntaxError) error

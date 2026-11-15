@@ -24,8 +24,12 @@ type engineObservationMutant struct {
 }
 
 var (
-	agreementRun = engineObservationRun{"./internal/codegen/go", "TestEngineObservationsAgreeWithGenerated", ""}
-	discardRun   = engineObservationRun{"./internal/engine", "TestProfileStreamMemory", ""}
+	agreementRun     = engineObservationRun{"./internal/codegen/go", "TestEngineObservationsAgreeWithGenerated", ""}
+	discardRun       = engineObservationRun{"./internal/engine", "TestProfileStreamMemory", ""}
+	engineOptionsRun = engineObservationRun{"./engine", "TestTraceOptions", ""}
+	// The generated parsers of the agreement use a copy of the library that the overlay does not
+	// change, so the library's trace options are checked by its own tests.
+	libOptionsRun = engineObservationRun{"./codegen/go/lib", "TestTraceOption(Selection|Composition)", ""}
 )
 
 func expecting(r engineObservationRun, want string) engineObservationRun { r.want = want; return r }
@@ -40,16 +44,46 @@ var engineObservationMutants = []engineObservationMutant{
 	{name: "profiles not told of discarded input", file: "internal/engine/state/stream_ops.go",
 		old: "\t\tp.Tr.discard(pos)\n", new: "",
 		runs: []engineObservationRun{expecting(discardRun, "heap")}},
+	// The trace options: a producer that ignores the trace filter or the depth limit, keeps only the
+	// last trace function or profile, or lets a Document's parses share what they add to its defaults.
+	{name: "engine trace filter ignored", file: "internal/engine/state/trace.go",
+		old: "selected := t.rules == nil || t.rules[r.Name] ||", new: "selected := len(t.rules) >= 0 || t.rules[r.Name] ||",
+		runs: []engineObservationRun{expecting(agreementRun, "the trace filter"), expecting(engineOptionsRun, "filtered events")}},
+	{name: "engine depth limit ignored", file: "internal/engine/state/trace.go",
+		old: "deliver := t.fn != nil && selected && (t.maxDepth <= 0 || ev.Depth <= t.maxDepth)", new: "deliver := t.fn != nil && selected",
+		runs: []engineObservationRun{expecting(agreementRun, "the trace filter"), expecting(engineOptionsRun, "filtered events")}},
+	{name: "engine keeps the last trace function", file: "engine/engine.go",
+		old: "o.Trace = engine.ComposeTrace(prev, f)", new: "o.Trace = f",
+		runs: []engineObservationRun{expecting(engineOptionsRun, "the second trace function")}},
+	{name: "engine keeps the last profile", file: "engine/engine.go",
+		old: "o.Profiles = append(slices.Clip(o.Profiles), prof)", new: "o.Profiles = append(o.Profiles[:0:0], prof)",
+		runs: []engineObservationRun{expecting(engineOptionsRun, "the second profile")}},
+	{name: "generated trace filter ignored", file: "codegen/go/lib/trace.go",
+		old: "return len(o.rules) == 0 || o.rules[rule] ||", new: "return len(o.rules) >= 0 || o.rules[rule] ||",
+		runs: []engineObservationRun{expecting(libOptionsRun, "pair and nested: got")}},
+	{name: "generated depth limit ignored", file: "codegen/go/lib/trace.go",
+		old: "if len(o.traces) == 0 || !selected || o.maxDepth > 0 && e.Depth > o.maxDepth {", new: "if len(o.traces) == 0 || !selected {",
+		runs: []engineObservationRun{expecting(libOptionsRun, "depth: got")}},
+	{name: "generated keeps the last trace function", file: "codegen/go/lib/trace.go",
+		old: "\t\t\t\tprev(e)\n", new: "\t\t\t\t_ = prev\n",
+		runs: []engineObservationRun{expecting(libOptionsRun, "trace functions received")}},
+	{name: "generated keeps the last profile", file: "codegen/go/lib/trace.go",
+		old: "o.observe.more = append(slices.Clip(o.observe.more), profile)", new: "o.observe.more, o.observe.profile = slices.Clip(o.observe.more), profile",
+		runs: []engineObservationRun{expecting(libOptionsRun, "profiles recorded")}},
+	{name: "generated Document parses share added profiles", file: "codegen/go/lib/trace.go",
+		old: "o.observe.more = append(slices.Clip(o.observe.more), profile)", new: "_ = slices.Clip[[]int]\n\t\t\to.observe.more = append(o.observe.more, profile)",
+		runs: []engineObservationRun{expecting(libOptionsRun, "was replaced")}},
 	// The control changes nothing that the tests observe: they must pass with it, so that what makes the
 	// other mutants fail is their change, not the overlay.
 	{name: "control", file: "internal/engine/state/trace.go",
 		old: "\tt.exp = nil\n", new: "\tt.exp = nil\n\t_ = t\n",
-		runs: []engineObservationRun{agreementRun, discardRun}},
+		runs: []engineObservationRun{agreementRun, discardRun, engineOptionsRun, libOptionsRun}},
 }
 
 // TestEngineObservationMutants checks that the agreement of the engine's observations with the generated
 // parsers' and the bound on the profile of a stream notice an engine that leaves out the examined end of a
-// memo hit, inverts Lookahead or keeps the profile's records of discarded input.
+// memo hit, inverts Lookahead or keeps the profile's records of discarded input, and that the tests of the
+// trace options notice either producer getting one of them wrong.
 func TestEngineObservationMutants(t *testing.T) {
 	t.Parallel()
 	if testing.Short() {

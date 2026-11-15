@@ -279,6 +279,16 @@ func middle(in string, unit core.PositionUnit) (int, int, string) {
 	return k, k + 1, string(r[k])
 }
 
+// untimed returns the snapshot of prof without its times.
+func untimed(prof *core.Profile) core.ProfileSnapshot {
+	snap := prof.Snapshot()
+	snap.Time = 0
+	for k := range snap.Rules {
+		snap.Rules[k].Time, snap.Rules[k].SelfTime = 0, 0
+	}
+	return snap
+}
+
 func main() {
 	var inputs [][][]byte
 	data, _ := os.ReadFile(os.Args[1])
@@ -289,22 +299,37 @@ func main() {
 		for j, in := range inputs[i] {
 			for _, unit := range []core.PositionUnit{core.CodePoints, core.Bytes} {
 				for _, e := range entries[i] {
-					var events []core.TraceEvent
-					var prof core.Profile
-					err := e.run(string(in), unit, zprt.WithTrace(func(ev core.TraceEvent) { events = append(events, ev) }), zprt.WithProfile(&prof))
-					snap := prof.Snapshot()
-					snap.Time = 0
-					for k := range snap.Rules {
-						snap.Rules[k].Time, snap.Rules[k].SelfTime = 0, 0
+					// Two trace functions and two profiles, each of which must receive the whole parse.
+					var events, second []core.TraceEvent
+					var prof, prof2 core.Profile
+					err := e.run(string(in), unit, zprt.WithTrace(func(ev core.TraceEvent) { events = append(events, ev) }), zprt.WithProfile(&prof),
+						zprt.WithTrace(func(ev core.TraceEvent) { second = append(second, ev) }), zprt.WithProfile(&prof2))
+					// The same parse with a trace filter and a depth limit: the filter names a rule called
+					// within the start rule, if any, and a name that is not a rule.
+					filter := []string{"main", "no such rule"}
+					for _, ev := range events {
+						if ev.Depth == 2 {
+							filter[0] = ev.Rule
+							break
+						}
 					}
+					var filtered []core.TraceEvent
+					var filteredProf core.Profile
+					e.run(string(in), unit, zprt.WithTraceFilter("main"), zprt.WithTraceFilter(filter...), zprt.WithTraceMaxDepth(1), zprt.WithTraceMaxDepth(MAXDEPTH),
+						zprt.WithTrace(func(ev core.TraceEvent) { filtered = append(filtered, ev) }), zprt.WithProfile(&filteredProf))
 					b, _ := json.Marshal(struct {
 						Case, Input int
 						Bytes       bool
 						Entry       string
 						Events      []core.TraceEvent
 						Profile     core.ProfileSnapshot
+						Second      []core.TraceEvent
+						Profile2    core.ProfileSnapshot
+						Filter      []string
+						Filtered    []core.TraceEvent
+						FilteredProfile core.ProfileSnapshot
 						Err         string
-					}{i, j, unit == core.Bytes, e.name, events, snap, fmt.Sprint(err)})
+					}{i, j, unit == core.Bytes, e.name, events, untimed(&prof), second, untimed(&prof2), filter, filtered, untimed(&filteredProf), fmt.Sprint(err)})
 					fmt.Println(string(b))
 				}
 			}
@@ -313,15 +338,25 @@ func main() {
 }
 `
 
-// agreeReport is one report of the consumer.
+// agreeReport is one report of the consumer: the events and the profile of the parse, those of the
+// second trace function and profile given to it (Second, Profile2), and those of the same parse with the
+// trace filter Filter and the depth limit agreeMaxDepth (Filtered, FilteredProfile).
 type agreeReport struct {
-	Case, Input int
-	Bytes       bool
-	Entry       string
-	Events      []core.TraceEvent
-	Profile     core.ProfileSnapshot
-	Err         string
+	Case, Input     int
+	Bytes           bool
+	Entry           string
+	Events          []core.TraceEvent
+	Profile         core.ProfileSnapshot
+	Second          []core.TraceEvent
+	Profile2        core.ProfileSnapshot
+	Filter          []string
+	Filtered        []core.TraceEvent
+	FilteredProfile core.ProfileSnapshot
+	Err             string
 }
+
+// agreeMaxDepth is the depth limit of the filtered parses of the agreement.
+const agreeMaxDepth = 3
 
 // runAgreeProbes builds the cases with observability, the recognizer, ParseStream where the start rule
 // has a #stream repetition and Document where it can, and returns the reports of the consumer.
@@ -395,7 +430,7 @@ func runAgreeProbes(t *testing.T, cases []codegentest.Case) []agreeReport {
 		}
 		inputs = append(inputs, in)
 	}
-	write("main.go", []byte(strings.NewReplacer("IMPORTS", imports.String(), "ENTRIES", entries.String()).Replace(agreeProbeMain)))
+	write("main.go", []byte(strings.NewReplacer("IMPORTS", imports.String(), "ENTRIES", entries.String(), "MAXDEPTH", fmt.Sprint(agreeMaxDepth)).Replace(agreeProbeMain)))
 	data, _ := json.Marshal(inputs)
 	write("inputs.json", data)
 	cmd := exec.Command(filepath.Join(runtime.GOROOT(), "bin", "go"), "run", ".", "inputs.json")
@@ -432,9 +467,9 @@ func middleChar(in string, unit core.PositionUnit) (int, int, string) {
 	return k, k + 1, string(r[k])
 }
 
-// engineObservation runs the parse of the report r on the engine with the backend b and returns its
-// events, its profile and its error.
-func engineObservation(t *testing.T, prog *engine.Program, r agreeReport, in string, b engine.Backend) ([]core.TraceEvent, core.ProfileSnapshot, error) {
+// engineObservation runs the parse of the report r on the engine with the backend b, the trace filter
+// rules and the depth limit maxDepth, and returns its events, its profile and its error.
+func engineObservation(t *testing.T, prog *engine.Program, r agreeReport, in string, b engine.Backend, rules []string, maxDepth int) ([]core.TraceEvent, core.ProfileSnapshot, error) {
 	t.Helper()
 	var events []core.TraceEvent
 	var prof core.Profile
@@ -445,6 +480,7 @@ func engineObservation(t *testing.T, prog *engine.Program, r agreeReport, in str
 	traced := o
 	traced.Trace = func(e core.TraceEvent) { events = append(events, e) }
 	traced.Profiles = []*core.Profile{&prof}
+	traced.TraceRules, traced.TraceMaxDepth = rules, maxDepth
 	var err error
 	switch r.Entry {
 	case "parse", "recognize":
@@ -564,6 +600,34 @@ type agreementStats struct {
 	// swaps counts the edit observations whose growth steps were swapped (swapGrowthExamined) to check
 	// that sameCallExamined tells them apart.
 	swaps int
+	// filtered counts the events of the engine's filtered parses; partial, the parses whose filter and
+	// depth limit left out some events but not all.
+	filtered, partial int
+}
+
+// optionsHonored checks the observation of one producer with several trace functions and profiles and
+// with a trace filter: the second trace function and profile (second, prof2) received the parse as the
+// first did (events, prof), the filtered parse delivered the events that the filter rules and the depth
+// limit agreeMaxDepth select (codegentest.SelectedEvents), and its profile recorded the whole parse. It
+// returns the first difference.
+func optionsHonored(producer string, events []core.TraceEvent, prof core.ProfileSnapshot, second []core.TraceEvent, prof2 core.ProfileSnapshot,
+	rules []string, filtered []core.TraceEvent, filteredProf core.ProfileSnapshot) string {
+	same := func(a, b any) bool {
+		x, _ := json.Marshal(a)
+		y, _ := json.Marshal(b)
+		return string(x) == string(y)
+	}
+	switch want := codegentest.SelectedEvents(events, rules, agreeMaxDepth); {
+	case !same(events, second):
+		return fmt.Sprintf("%s: the second trace function received %d events, the first %d", producer, len(second), len(events))
+	case !same(prof, prof2):
+		return producer + ": the second profile differs from the first"
+	case !same(want, filtered):
+		return fmt.Sprintf("%s: the trace filter %q with depth limit %d delivered %d events, want %d", producer, rules, agreeMaxDepth, len(filtered), len(want))
+	case !same(prof, filteredProf):
+		return producer + ": the profile depends on the trace filter"
+	}
+	return ""
 }
 
 // agreementMismatches checks each report against the same parse on each engine backend with callsAgree
@@ -590,12 +654,25 @@ func agreementMismatches(t *testing.T, cases []codegentest.Case, reports []agree
 			stats[r.Entry] = st
 		}
 		st.reports++
+		where := fmt.Sprintf("%s %q bytes=%v %s", c.Name, in, r.Bytes, r.Entry)
+		if msg := optionsHonored("generated", r.Events, r.Profile, r.Second, r.Profile2, r.Filter, r.Filtered, r.FilteredProfile); msg != "" {
+			diffs[r.Entry] = append(diffs[r.Entry], where+": "+msg)
+		}
 		for _, b := range []engine.Backend{engine.Closure, engine.Bytecode, engine.BytecodeIterative} {
-			events, snap, err := engineObservation(t, prog, r, in, b)
-			where := fmt.Sprintf("%s %q bytes=%v %s %v", c.Name, in, r.Bytes, r.Entry, b)
+			events, snap, err := engineObservation(t, prog, r, in, b, nil, 0)
+			where := fmt.Sprintf("%s %v", where, b)
 			if (err == nil) != (r.Err == "<nil>") {
 				diffs[r.Entry] = append(diffs[r.Entry], fmt.Sprintf("%s: engine error %v, generated %s", where, err, r.Err))
 				continue
+			}
+			filtered, filteredSnap, _ := engineObservation(t, prog, r, in, b, r.Filter, agreeMaxDepth)
+			if msg := optionsHonored("engine", events, snap, events, snap, r.Filter, filtered, filteredSnap); msg != "" {
+				diffs[r.Entry] = append(diffs[r.Entry], where+": "+msg)
+				continue
+			}
+			st.filtered += len(filtered)
+			if len(filtered) > 0 && len(filtered) < len(events) {
+				st.partial++
 			}
 			if r.Entry == "edit" {
 				n, d := sameCallExamined(events, r.Events)
@@ -614,6 +691,11 @@ func agreementMismatches(t *testing.T, cases []codegentest.Case, reports []agree
 			aside, msg := callsAgree(events, r.Events, in, unit)
 			if msg == "" {
 				msg = profilesAgree(snap, r.Profile, aside)
+			}
+			if msg == "" {
+				if _, m := callsAgree(filtered, r.Filtered, in, unit); m != "" {
+					msg = "filtered: " + m
+				}
 			}
 			if msg != "" {
 				diffs[r.Entry] = append(diffs[r.Entry], where+": "+msg)
@@ -638,7 +720,9 @@ func agreementMismatches(t *testing.T, cases []codegentest.Case, reports []agree
 }
 
 // TestEngineObservationsAgreeWithGenerated checks the events and profiles of every engine backend against
-// those of the generated parsers (callsAgree, profilesAgree) on every route both have, in both units.
+// those of the generated parsers (callsAgree, profilesAgree) on every route both have, in both units, and
+// that both producers honor several trace functions and profiles and the trace filter and depth limit
+// (optionsHonored).
 func TestEngineObservationsAgreeWithGenerated(t *testing.T) {
 	t.Parallel()
 	if testing.Short() {
@@ -655,6 +739,10 @@ func TestEngineObservationsAgreeWithGenerated(t *testing.T) {
 		}
 		t.Logf("%s: %d reports, %d events compared; %d skipped events paired, %d unpaired; %d calls of the engine only, %d of the generated parser only",
 			entry, st.reports, st.compared, st.paired, st.unpaired, st.engineOnly, st.generatedOnly)
+		t.Logf("%s: %d filtered engine events; %d parses filtered in part", entry, st.filtered, st.partial)
+		if st.partial == 0 {
+			t.Errorf("no parse of %s was filtered in part", entry)
+		}
 		if entry == "edit" {
 			if st.swaps == 0 {
 				t.Error("no edit observation had growth steps to swap")

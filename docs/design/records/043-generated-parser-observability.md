@@ -153,8 +153,9 @@ Root `Time` sums completed root rule calls and excludes input setup, whole-input
 With `-document -observability`, generated Go Documents support `Parse` and,
 with `-types`, `ParseValue` tracing and profiling. `NewDocument` accepts
 `WithTrace` and `WithProfile` as retained defaults; construction itself emits
-no events or profile counts. Per-call options override those defaults for that
-invocation only and do not change later calls. `Edit` does not parse and emits
+no events or profile counts. Per-call trace functions and profiles are added to
+those defaults, and a per-call trace filter or depth limit replaces the default,
+for that invocation only; they do not change later calls. `Edit` does not parse and emits
 no rule events.
 
 Events report calls made during the current invocation, including Node calls,

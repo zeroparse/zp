@@ -48,6 +48,10 @@ func TraceExpectations(e TraceEvent) []ExpID {
 type Tracer struct {
 	p  *Parser
 	fn func(TraceEvent)
+	// rules, if not nil, selects the calls fn receives: those of the rules it holds and the calls
+	// nested in them. maxDepth, if positive, leaves out the calls nested deeper.
+	rules    map[string]bool
+	maxDepth int
 	// profiles record the events of the parse. Each records an event before fn handles it and resumes
 	// after, so that the time of fn is not counted.
 	profiles []*core.ProfileRecorder
@@ -113,19 +117,21 @@ func (t *Tracer) discard(pos int) {
 	}
 }
 
-// emit passes ev to the profile recorders and the trace function. A panic there is carried through
-// recoverParse as a TracePanic, so that it is not taken for a fault of the parse (a runtime error
-// on a bytecode backend is reported as invalid bytecode), and is raised again unchanged.
-func (t *Tracer) emit(ev TraceEvent) {
+// emit passes ev to the profile recorders and, if the call is selected and no deeper than the
+// depth limit, to the trace function. A panic there is carried through recoverParse as a
+// TracePanic, so that it is not taken for a fault of the parse (a runtime error on a bytecode
+// backend is reported as invalid bytecode), and is raised again unchanged.
+func (t *Tracer) emit(ev TraceEvent, selected bool) {
 	p := t.p
 	p.Control.Check()
+	deliver := t.fn != nil && selected && (t.maxDepth <= 0 || ev.Depth <= t.maxDepth)
+	for _, r := range t.profiles {
+		r.Record(ev)
+	}
+	if !deliver {
+		return
+	}
 	if t.profiles != nil {
-		for _, r := range t.profiles {
-			r.Record(ev)
-		}
-		if t.fn == nil {
-			return
-		}
 		defer func() {
 			for _, r := range t.profiles {
 				r.Resume()
@@ -161,16 +167,25 @@ type tracedCallState struct {
 	// entries of the record of recovered errors.
 	hw, rec int
 	exp     ExpMark
+	// selected is set when the trace function receives the call's events (Tracer.rules).
+	selected bool
 }
 
-// SetTrace makes the parse report its rule calls to fn and record them in profiles (nothing if fn is
-// nil and there are no profiles). CloseTrace ends the recording when the parse returns.
-func (p *Parser) SetTrace(fn func(TraceEvent), profiles []*core.Profile) {
-	if fn == nil && len(profiles) == 0 {
+// SetTrace makes the parse report its rule calls to the trace function of o, as its trace rules and
+// depth limit select them, and record them in its profiles (nothing if o is not Traced). CloseTrace
+// ends the recording when the parse returns.
+func (p *Parser) SetTrace(o *ParseOptions) {
+	if !o.Traced() {
 		return
 	}
-	t := &Tracer{p: p, fn: fn}
-	for _, pr := range profiles {
+	t := &Tracer{p: p, fn: o.Trace, maxDepth: o.TraceMaxDepth}
+	if len(o.TraceRules) != 0 {
+		t.rules = make(map[string]bool, len(o.TraceRules))
+		for _, name := range o.TraceRules {
+			t.rules[name] = true
+		}
+	}
+	for _, pr := range o.Profiles {
 		t.profiles = append(t.profiles, pr.Recorder())
 	}
 	p.Tr = t
@@ -204,10 +219,11 @@ func (p *Parser) tracedCall(r *Rule, min int) (*core.Node, bool) {
 // keep a maximum).
 func (p *Parser) TraceEnter(r *Rule, min int) {
 	t := p.Tr
-	t.stack = append(t.stack, tracedCallState{r: r, min: min, start: p.Pos, evals: p.Stats.Evaluated, resumed: p.Resumed, hw: p.Hw, rec: len(p.Recovered)})
+	selected := t.rules == nil || t.rules[r.Name] || len(t.stack) > 0 && t.stack[len(t.stack)-1].selected
+	t.stack = append(t.stack, tracedCallState{r: r, min: min, start: p.Pos, evals: p.Stats.Evaluated, resumed: p.Resumed, hw: p.Hw, rec: len(p.Recovered), selected: selected})
 	p.Hw = p.Pos
 	t.stack[len(t.stack)-1].exp = p.Isolate(p.Pos)
-	t.emit(TraceEvent{Kind: TraceEnter, Rule: r.Name, Level: min, Depth: len(t.stack), Pos: p.Pos, Lookahead: p.Silent > 0}.WithSource(t))
+	t.emit(TraceEvent{Kind: TraceEnter, Rule: r.Name, Level: min, Depth: len(t.stack), Pos: p.Pos, Lookahead: p.Silent > 0}.WithSource(t), selected)
 }
 
 // TraceExit reports the end of the innermost call in progress, whose result is ok.
@@ -225,7 +241,7 @@ func (p *Parser) TraceExit(ok bool) {
 		t.tail = len(t.stack) == 1 && p.DiagnosticTail.Limit > 0
 		t.rec = c.rec
 	}
-	t.emit(ev)
+	t.emit(ev, c.selected)
 	t.exp = nil
 	p.MergeExpected(far, inner)
 	p.Hw = max(c.hw, p.Hw)

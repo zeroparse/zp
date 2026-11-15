@@ -1,39 +1,71 @@
 package libgo
 
-import "zeroparse.dev/zp/core"
+import (
+	"slices"
 
-// WithTrace observes actual generated calls synchronously. Callback panics
-// propagate unchanged after cleanup; an aborted parse can omit exit events.
-// The events carry no parser state: their LineCol, Text, Failure and Recovered
-// return zero values.
+	"zeroparse.dev/zp/core"
+)
+
+// WithTrace observes actual generated calls synchronously. With several
+// WithTrace options, each function receives every event, in the order of the
+// options; a nil function is ignored. Callback panics propagate unchanged after
+// cleanup; an aborted parse can omit exit events. The events carry no parser
+// state: their LineCol, Text, Failure and Recovered return zero values.
 func WithTrace(trace func(core.TraceEvent)) ParseOption {
-	return func(o *parseOptions) { o.observe.trace = trace }
+	return func(o *parseOptions) {
+		switch prev := o.observe.trace; {
+		case trace == nil:
+		case prev == nil:
+			o.observe.trace = trace
+		default:
+			o.observe.trace = func(e core.TraceEvent) {
+				prev(e)
+				trace(e)
+			}
+		}
+	}
 }
 
-// WithProfile adds the rule calls of the parse to profile. It is independent of
-// trace delivery filters, and its times exclude the trace function. A Profile
-// must not be shared by concurrent parses.
+// WithProfile adds the rule calls of the parse to profile. It records every
+// call, whatever WithTraceFilter and WithTraceMaxDepth select, and its times
+// exclude the trace functions. With several WithProfile options, each profile
+// records the parse; a nil profile is ignored. A Profile must not be shared by
+// concurrent parses.
 func WithProfile(profile *core.Profile) ParseOption {
-	return func(o *parseOptions) { o.observe.profile = profile }
+	return func(o *parseOptions) {
+		switch {
+		case profile == nil:
+		case o.observe.profile == nil:
+			o.observe.profile = profile
+		default:
+			// Clip: the options of a Document's defaults are shared by its parses.
+			o.observe.more = append(slices.Clip(o.observe.more), profile)
+		}
+	}
 }
 
 // WithTraceFilter selects named rules and their nested calls. Unknown names
-// match nothing. With no names, every entered rule is selected.
+// match nothing. With no names, every entered rule is selected. The last
+// WithTraceFilter applies.
 func WithTraceFilter(rules ...string) ParseOption {
 	names := append([]string(nil), rules...)
 	return func(o *parseOptions) { o.observe.rules = names }
 }
 
 // WithTraceMaxDepth limits delivered events, counting the start rule as one.
-// Zero and negative values leave delivery unlimited; parsing is unaffected.
+// Zero and negative values leave delivery unlimited; parsing is unaffected. The
+// last WithTraceMaxDepth applies.
 func WithTraceMaxDepth(n int) ParseOption {
 	return func(o *parseOptions) { o.observe.maxDepth = n }
 }
 
-// observeOptions are the parse options that select an observation.
+// observeOptions are the parse options that select an observation: the trace
+// function (the trace functions of the options in order), the profiles (profile,
+// then more), the trace filter and the depth limit.
 type observeOptions struct {
 	trace    func(core.TraceEvent)
 	profile  *core.Profile
+	more     []*core.Profile
 	rules    []string
 	maxDepth int
 }
@@ -44,7 +76,14 @@ func newObservation(o *observeOptions, silent *int) *observation {
 	if o.trace == nil && o.profile == nil {
 		return nil
 	}
-	out := &observation{trace: o.trace, maxDepth: o.maxDepth, profile: o.profile.Recorder(), silent: silent}
+	out := &observation{trace: o.trace, maxDepth: o.maxDepth, silent: silent}
+	out.profiles = out.one[:0]
+	if o.profile != nil {
+		out.profiles = append(out.profiles, o.profile.Recorder())
+	}
+	for _, pr := range o.more {
+		out.profiles = append(out.profiles, pr.Recorder())
+	}
 	if len(o.rules) != 0 {
 		out.rules = make(map[string]bool, len(o.rules))
 		for _, name := range o.rules {
@@ -57,7 +96,9 @@ func newObservation(o *observeOptions, silent *int) *observation {
 // release drops what the observation refers to once its parse returns.
 func (o *observation) release() {
 	if o != nil {
-		o.profile.Close()
+		for _, r := range o.profiles {
+			r.Close()
+		}
 		*o = observation{}
 	}
 }
@@ -66,14 +107,18 @@ func (o *observation) release() {
 // stream discarded: no rule is evaluated there again.
 func (o *observation) dropDiscarded(pos int) {
 	if o != nil {
-		o.profile.Discard(pos)
+		for _, r := range o.profiles {
+			r.Discard(pos)
+		}
 	}
 }
 
 // Of its fields and methods, Enter, Evaluated, Exit, Skipped are for generated parsers; not a stable API.
 type observation struct {
-	trace    func(core.TraceEvent)
-	profile  *core.ProfileRecorder
+	trace func(core.TraceEvent)
+	// profiles record the parse; one holds them when there is one.
+	profiles []*core.ProfileRecorder
+	one      [1]*core.ProfileRecorder
 	rules    map[string]bool
 	maxDepth int
 	silent   *int
@@ -89,19 +134,19 @@ type observationCall struct {
 // handling its own private interruption types, preserving every callback value.
 type tracePanic struct{ value any }
 
-// record adds e to the profile and delivers it to the trace function. The
-// profile records e first and resumes after the trace function returns, so
-// that profile times exclude it. e is read before record returns and not kept.
+// record adds e to the profiles and delivers it to the trace function. The
+// profiles record e first and resume after the trace function returns, so that
+// profile times exclude it. e is read before record returns and not kept.
 func (o *observation) record(e *core.TraceEvent, selected bool) {
-	if o.profile != nil {
-		o.profile.Record(*e)
+	for _, r := range o.profiles {
+		r.Record(*e)
 	}
 	if o.trace == nil || !selected || o.maxDepth > 0 && e.Depth > o.maxDepth {
 		return
 	}
 	o.deliver(e)
-	if o.profile != nil {
-		o.profile.Resume()
+	for _, r := range o.profiles {
+		r.Resume()
 	}
 }
 
