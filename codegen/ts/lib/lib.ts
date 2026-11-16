@@ -1101,13 +1101,22 @@ export interface Limits {
 
 /** Options for one invocation. */
 export interface ParseOptions {
-  /** Accumulate unfiltered rule metrics; requires host performance.now() and a parser generated with observability. */
-  profile?: Profile | null;
-  /** Synchronous scalar events; thrown callback values propagate unchanged. Requires a parser generated with observability. */
-  trace?: (event: TraceEvent) => void;
-  /** Named rules and descendants; empty selects all, unknown names select none. */
+  /**
+   * Adds every call of the parse to the profile, or to each profile of an array, whatever traceRules
+   * and traceMaxDepth select; null entries are ignored. Requires host performance.now() and a parser
+   * generated with observability.
+   */
+  profile?: Profile | readonly (Profile | null)[] | null;
+  /**
+   * Calls the trace function, or each function of an array in order, synchronously with its own copy
+   * of every selected event; null entries are ignored. A thrown value propagates unchanged, and the
+   * functions after the one that threw do not receive the event. Requires a parser generated with
+   * observability.
+   */
+  trace?: TraceFunction | readonly (TraceFunction | null)[] | null;
+  /** Selects the calls of the named rules and the calls nested in them; empty selects every call, unknown names select none. */
   traceRules?: readonly string[];
-  /** Start depth is one; nonpositive values leave delivery unlimited. */
+  /** Selects the calls at most this deep; the start rule has depth one, and a nonpositive value sets no limit. */
   traceMaxDepth?: number;
   unit?: Unit;
   /** Records what a syntax error expects and the messages of @error; requires a parser generated with expectations. Without it an error carries the farthest failure position only. */
@@ -1200,16 +1209,16 @@ export function resolveOptions(g: Grammar, options: ParseOptions | undefined, in
   if (!g.observable && (options?.profile != null || options?.trace != null || options?.traceRules !== undefined || options?.traceMaxDepth !== undefined)) {
     return new Error("trace and profile options are only supported by a parser generated with observability");
   }
-  const profile = options?.profile ?? null;
-  if (profile !== null && (!(profile instanceof Profile) || !profileData.has(profile))) return new Error("profile must be a Profile");
-  const profileClock = profile === null ? null : resolveProfileClock();
+  const profiles = observers(options?.profile, (x): x is Profile => x instanceof Profile && profileData.has(x), noProfiles);
+  if (profiles === null) return new Error("profile must be a Profile or an array of Profiles");
+  const profileClock = profiles.length === 0 ? null : resolveProfileClock();
   if (profileClock instanceof Error) return profileClock;
   if (options?.expectations === true && !g.expectations) {
     return new Error("this parser was generated without expectations (generate with expectations to use the expectations option)");
   }
-  const trace = options?.trace ?? null;
+  const traces = observers(options?.trace, (x): x is TraceFunction => typeof x === "function", noTraces);
+  if (traces === null) return new Error("trace must be a function or an array of functions");
   const traceMaxDepth = options?.traceMaxDepth ?? 0;
-  if (trace !== null && typeof trace !== "function") return new Error("trace must be a function");
   if (!Number.isSafeInteger(traceMaxDepth)) return new Error("trace max depth must be a safe integer");
   const traceRules = Array.from(options?.traceRules ?? []);
   const unit = options?.unit === Bytes ? Bytes : CodePoints;
@@ -1238,7 +1247,25 @@ export function resolveOptions(g: Grammar, options: ParseOptions | undefined, in
     if (over !== null) return new ParseInterruptionError("input-limit", maxInput, 0, over);
   }
   const budget = requested === Unlimited ? 0 : requested !== 0 ? requested : g.controlled ? defaultBudget(inputUnits(input, unit)) : 0;
-  return { unit, maxDepth: depth === 0 ? g.maxDepth : depth, expectations: options?.expectations === true, signal, budget, memory: memory === Unlimited ? 0 : memory, trace, traceRules, traceMaxDepth, profile, profileClock };
+  return { unit, maxDepth: depth === 0 ? g.maxDepth : depth, expectations: options?.expectations === true, signal, budget, memory: memory === Unlimited ? 0 : memory, traces, traceRules, traceMaxDepth, profiles, profileClock };
+}
+
+// noProfiles and noTraces are the observers of an invocation that observes nothing.
+export const noProfiles: readonly Profile[] = Object.freeze([]);
+export const noTraces: readonly TraceFunction[] = Object.freeze([]);
+
+// observers returns the value of a trace or profile option as an array, in order and without nulls:
+// none for null or undefined, or null if an entry is not an observer.
+function observers<T>(value: T | readonly (T | null)[] | null | undefined, is: (x: unknown) => x is T, none: readonly T[]): readonly T[] | null {
+  if (value == null) return none;
+  if (!Array.isArray(value)) return is(value) ? [value] : null;
+  const out: T[] = [];
+  for (const x of value as readonly unknown[]) {
+    if (x === null) continue;
+    if (!is(x)) return null;
+    out.push(x);
+  }
+  return out.length === 0 ? none : out;
 }
 
 // run parses the whole input of the grammar g with rule r of a rule table with seen rules that have rule.seen set.
@@ -1258,7 +1285,7 @@ export function run(g: Grammar, r: Rule, seen: number, input: string | Uint8Arra
       p = new Parser(g, input, u, seen, maxDepth, control);
     }
     p.expectations = traceOptions?.expectations === true;
-    p.observation = traceOptions?.profile != null ? new ProfileObservation(traceOptions) : traceOptions?.trace == null ? null : new Observation(traceOptions);
+    if (traceOptions !== null && (traceOptions.traces.length !== 0 || traceOptions.profiles.length !== 0)) p.observation = new Observation(traceOptions, p);
     if (document === null) return result(p, p.call(r, 0));
     const d = p as DocumentParser;
     const res = publishDocumentResult(result(d, d.call(r, 0)));
@@ -1334,8 +1361,29 @@ const documentBusyMessage = "document is already parsing";
 function optionsSnapshot(options: ParseOptions | undefined): ParseOptions | undefined {
   if (options == null) return options;
   const out: { [key: string]: unknown } = { ...options };
-  const limits = out["limits"];
-  if (limits != null && typeof limits === "object") out["limits"] = { ...limits };
+  for (const key of ["limits", "trace", "profile", "traceRules"]) {
+    const value = out[key];
+    if (Array.isArray(value)) out[key] = Array.from(value as unknown[]);
+    else if (key === "limits" && value != null && typeof value === "object") out[key] = { ...value };
+  }
+  return out as ParseOptions;
+}
+
+// mergeOptions returns the options of a Document parse: the invocation's options over the Document's
+// defaults. Trace functions and profiles add to those of the defaults; any other option, the trace
+// filter and the depth limit included, replaces the default when the invocation gives it. Neither
+// argument is changed.
+function mergeOptions(defaults: ParseOptions | undefined, invocation: ParseOptions | undefined): ParseOptions | undefined {
+  if (invocation == null) return defaults;
+  if (defaults == null) return invocation;
+  const out: { [key: string]: unknown } = { ...defaults, ...invocation };
+  for (const key of ["trace", "profile"] as const) {
+    const a: unknown = defaults[key], b: unknown = invocation[key];
+    out[key] = a == null ? b : b == null ? a : [...(Array.isArray(a) ? a : [a]), ...(Array.isArray(b) ? b : [b])];
+  }
+  for (const key of ["traceRules", "traceMaxDepth"] as const) {
+    if (invocation[key] === undefined) out[key] = defaults[key];
+  }
   return out as ParseOptions;
 }
 
@@ -1600,7 +1648,7 @@ export class DocumentBase {
   protected parseWith<T>(options: ParseOptions | undefined, convert: (r: ParseResult, control: BudgetControl | null) => T, fail: (error: Error) => T): T {
     if (this.parsing) return fail(new Error(documentBusyMessage));
     const invocation = optionsSnapshot(options);
-    const merged = invocation == null ? this.defaults : { ...this.defaults, ...invocation };
+    const merged = mergeOptions(this.defaults, invocation);
     const input = this.input;
     const o = resolveOptions(this.g, merged, input);
     if (o instanceof Error) return fail(o);
