@@ -695,7 +695,7 @@ op rule.invokePlain(r Rule, min int) (Value, bool)
   requires:
     // rule.plain is true of r.
 
-transitional op rule.run(inv Body) (Value, bool)
+op rule.run(inv Body) (Value, bool)
   component rules
   writes rules, pos, silent
   noreturn

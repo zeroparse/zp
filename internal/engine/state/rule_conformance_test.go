@@ -253,15 +253,15 @@ func ruleConformanceFailures(s conform.Suite, seeds, n int) (fails []error, ran 
 }
 
 // TestEngineRuleCasesRun checks that every handwritten case of the rules runs on the controlled engine:
-// those of the missing-token mode and of the budget too, but those that read rule.docMemo, which the
-// engine does not have.
+// those of the missing-token mode and of the budget too, but those that read rule.docMemo or call
+// rule.run, which the engine does not have.
 func TestEngineRuleCasesRun(t *testing.T) {
 	if !BudgetControlsEnabled {
 		t.Skip("the budget-controls reference build has no controlled engine")
 	}
 	s := ruleSuites()[1]
 	for _, c := range conform.RuleCases() {
-		if strings.HasPrefix(c.Func.Name, "rule_flags_document_") {
+		if strings.HasPrefix(c.Func.Name, "rule_flags_document_") || strings.HasPrefix(c.Func.Name, "rule_run") {
 			continue
 		}
 		if skipped, err := conform.Run(s, c); skipped || err != nil {
