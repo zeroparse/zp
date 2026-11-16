@@ -947,10 +947,10 @@ $k$ for these only that the unit of the link starts at $p$ and that from its
 end the parser starts no evaluation before $p$ until the next activation.
 Let both be outer, with $\pi_l = \pi_{l'}$. Then $Y_{l'}$ encloses $w_l$, or
 $Y_{l'}$ starts after $e'_l$ ends and an index $j$ with $l < j < l'$ has
-$\alpha_j$ inside $Y_{l'}$ and $w_j$ starting no later than $Y_{l'}$, so
-before $p$.
+$\alpha_j$ inside $Y_{l'}$ and $w_j$ starting at a position no later than
+the start of $Y_{l'}$, so before $p$.
 
-*Proof.* $Y_{l'}$ holds $w_{l'}$, which contains $\alpha_{l'-1}$, and
+*Proof.* $Y_{l'}$ encloses $w_{l'}$, which contains $\alpha_{l'-1}$, and
 $\alpha_{l'-1}$ starts no earlier than $\alpha_l$, which starts after $w_l$
 ends, so $Y_{l'}$ is in progress after $w_l$ ends. It was not started inside
 $w_l$, since an evaluation started inside $w_l$ ends inside it. If it was
@@ -968,8 +968,17 @@ $\alpha_{j-1}$, which starts before $Y_{l'}$, so $w_j$ started before
 $Y_{l'}$; it ends before $\alpha_j$ starts, so it does not enclose $Y_{l'}$,
 and it ended before $Y_{l'}$ started. From the end of $w_j$ to the start of
 $\alpha_j$ the parser starts no evaluation before the start of $w_j$
-(*Restarts*, *Dropped steps*), so $w_j$ starts no later than $Y_{l'}$, before
-$p$. $\square$
+(*Restarts*, *Dropped steps*), so $w_j$ starts at a position no later than
+the start of $Y_{l'}$, before $p$. $\square$
+
+Neither $Y_l$ nor $Y_{l'}$ is a growth step. A frame that a link $m$ leaves
+succeeds and is no dropped step: it lies on the path from $N_m$ to
+$\alpha_{m-1}$ above $w_m$, the first abandoned evaluation on that path. If
+it were a step of a growth that started before $p$, that growth would go on
+after it with another step from its own position, before $p$, since a growth
+ends only with a dropped step; the parser would start that step before
+$\alpha_m$, after the end of $w_m$, which starts at $p$ (*Restarts*,
+*Dropped steps*).
 
 Two outer links through one call place of which the later $Y$ does not
 enclose the earlier unit therefore have between them an index whose unit
@@ -978,7 +987,9 @@ link whose shared call is not the first, or linked by a leaf link at a
 position before $p$; none of these lies in a run of consecutive leaf links at
 $p$ whose shared call is the first, so the two lie in different runs. The
 other case is the one that *Nesting at one end* rules out, with $Y_{l'}$ as
-$X$ and $Y_l$ as $T$. So outside that case the outer links at $p$ through
+$X$ and $Y_l$ as $T$, under its hypotheses on the dropped steps of growths
+on the path between them and on the alike calls, and apart from the three
+points that it leaves open; this is not shown here. So outside that case the outer links at $p$ through
 one call place are at most one in each run, and the argument of the claim above does not
 bound them without a bound on the runs. The second case occurs in a grammar
 that the conditions accept:
@@ -992,11 +1003,12 @@ rule S = "a"+
 rule ws = [ ]*
 ```
 
-On `a`s followed by spaces and `!`, the lookahead evaluates `B`, whose call
+On `a`s followed by spaces and `x`, the lookahead evaluates `B`, whose call
 of `Y` ends at the first space $p$, where the option fails after `ws` and
 `B` calls `ws` again after leaving `Y`: a leaf link at $p$ through the call
-of `Y` in `B`, outer, since `Y` starts at $0$. The lookahead fails, the
-entry of `B` made inside it does not answer the call of `B` outside it, and
+of `Y` in `B`, outer, since `Y` starts at $0$. The lookahead succeeds and
+its expression is abandoned, the entry of `B` made inside it does not answer
+the call of `B` outside it, and
 that call evaluates `Y` again from $0$, which gives a second outer link
 through the same call place. The index between them is the memoized link of
 the two evaluations of `B`, whose unit, the expression of the lookahead,
@@ -1727,16 +1739,20 @@ at their start, which *Memoized links keep positions* leaves out, and each
 activation that case 5 or a dropped step at the position of its growth repeats. For a leaf link $j$ whose shared call is the first, so that
 $w_j$ starts at $p_j$, a head that holds $\alpha_j$ starts at $p_j$ or before
 it. The heads that start at $p_j$ are of the classes at $p_j$, one head each.
-Those that start before $p_j$ enclose $w_j$: such a head $H$ contains $P_j$, so
-it started before $\alpha_j$; from the end of $w_j$ to $\alpha_j$ the parser
-starts no evaluation before $p_j$ (*Restarts*), so $H$ started before $w_j$
+Those that start before $p_j$ enclose $w_j$: such a head $H$ contains $P_j$,
+since both contain $\alpha_j$, $H$ is not $P_j$, as the parse does not
+memoize $R$ at its calls, and $P_j$, which makes no call, contains no other
+body evaluation; so $H$ started before $\alpha_j$. From the end of $w_j$ to
+$\alpha_j$ the parser starts no evaluation before $p_j$ (*Restarts*,
+*Dropped steps*), so $H$ started before $w_j$
 ended, and not inside $w_j$, since an evaluation started inside $w_j$ ends
 inside it, while $P_j$ starts after $w_j$ ends. As $\alpha_j$ lies in the own
 region of $H$, no call of a rule that the parse memoizes lies between $H$ and
 $P_j$. For two such heads, $H$ holding $\alpha_j$ and $H'$ holding
-$\alpha_{j'}$ with $j < j'$, either $H'$ started before $\alpha_j$ and then
-encloses it, since $\alpha_j$ lies in a call of $R$, which calls no rule, or
-$H'$ started after $\alpha_j$ ended. In the second case $H'$ encloses $w_{j'}$
+$\alpha_{j'}$ with $j < j'$, $H'$ did not start during $\alpha_j$, which lies
+in a call of $R$, which calls no rule; so either $H'$ started before
+$\alpha_j$ and, being in progress after it, encloses it, or $H'$ started
+after $\alpha_j$ ended. In the second case $H'$ encloses $w_{j'}$
 and with it $\alpha_{j'-1}$, so $j' - 1 > j$, and the least $i > j$ with
 $\alpha_i$ inside $H'$ has $\alpha_{i-1}$ before $H'$ and $i < j'$. That $i$ is
 free, or linked by a leaf link whose unit $H'$ does not enclose, or linked by a
@@ -5416,12 +5432,15 @@ condition of the cost view that the [Cost View](cost-view.md) proof leaves open.
    position of the scan are bounded by the classes there (*Memoized links keep
    positions*); those that start before it, and the activations that one head
    holds, are not. *Calls that call no rule* bounds only a run of consecutive
-   leaf links whose shared call is the first, and the runs start after free activations and links of
-   other kinds, which include the memoized links that the heads bound in turn,
-   so the runs cannot be counted by those links. Across such links, two outer
+   leaf links whose shared call is the first. The runs are separated by free
+   activations, by links of other kinds and by the growth steps and
+   evaluations in a context of growths that it leaves out. Among those links
+   are the memoized links, and the count of the memoized links rests on the
+   bound on the heads, so it cannot in turn bound the runs. Across such links, two outer
    links $l < l'$ at one position $p$ through one call place still contradict
    the sharing of their call when $Y_{l'}$ encloses $w_l$: *Nesting at one end*
-   applies with $Y_{l'}$ as $X$ and $Y_l$ as $T$, with its open points. In the
+   applies with $Y_{l'}$ as $X$ and $Y_l$ as $T$, under its hypotheses and
+   with its open points; neither frame is a growth step. In the
    other case the parser starts $Y_{l'}$ after $e'_l$, and an index between
    them has its unit before $p$, so the two links lie in different runs
    (*Outer links across runs*), which occurs in a grammar that the conditions
