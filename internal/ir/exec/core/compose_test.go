@@ -109,7 +109,6 @@ type result struct {
 type growth struct {
 	start, rec int64
 	best       *result
-	done       bool
 }
 
 // parseState is the record of a suspended call in the model (call.state).
@@ -479,14 +478,14 @@ func (m *machine) Call(o *exec.Op, args []any) []any {
 	case "grow.begin":
 		m.steps++
 		return []any{&growth{start: m.pos(), rec: int64(len(m.rec)), best: &result{end: m.pos()}}}
-	case "grow.next":
-		return []any{!args[0].(*growth).done}
-	case "grow.step":
+	case "grow.ctx":
+		// The machine runs no growth in a context.
+		return []any{false}
+	case "grow.longer":
 		g := args[0].(*growth)
-		if !args[2].(bool) || g.best.ok && m.pos() <= g.best.end {
-			g.done = true
-			return nil
-		}
+		return []any{args[1].(bool) && (!g.best.ok || m.pos() > g.best.end)}
+	case "grow.adopt":
+		g := args[0].(*growth)
 		m.steps++
 		g.best = &result{v: args[1], ok: true, end: m.pos(), errs: slices.Clone(m.rec[g.rec:])}
 		m.setPos(g.start)

@@ -88,7 +88,7 @@ const (
 	// its entry inserted).
 	QTokens = "tokens"
 	// QSegs is the number of entries of the recovered-error list after the mark of the call, or for
-	// grow.step after the mark that the growth took when it began: errors that rec.push recorded and
+	// grow.adopt and grow.step after the mark that the growth took when it began: errors that rec.push recorded and
 	// lists that rec.add recorded or rec.since put in their place.
 	QSegs = "segs"
 	// QValueCompare is what comparing the value of the call with the one the slot holds inspects: two

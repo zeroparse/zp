@@ -374,16 +374,25 @@ the rule is called at the position again, or its memoization is no longer deferr
 	grow := m.AddFunc("grow", []Param{P("r", rule), P("min", TInt)}, result,
 		[]string{ops.Typed}, func(b *Builder) {
 			g := b.Let("g", C("grow.begin", r, L("min")))
-			b.Loop("l", func(b *Builder) {
-				b.If(Not(C("grow.next", g)), func(b *Builder) { b.Break("l") })
-				b.LetN([]string{"v", "ok"}, C("rule.invoke", r, L("min")))
-				b.Do("grow.step", g, L("v"), L("ok"))
+			b.IfElse(C("grow.ctx", g), func(b *Builder) {
+				b.Loop("l", func(b *Builder) {
+					b.If(Not(C("grow.next", g)), func(b *Builder) { b.Break("l") })
+					b.LetN([]string{"v", "ok"}, C("rule.invoke", r, L("min")))
+					b.Do("grow.step", g, L("v"), L("ok"))
+				})
+			}, func(b *Builder) {
+				b.Loop("m", func(b *Builder) {
+					b.LetN([]string{"v", "ok"}, C("rule.invoke", r, L("min")))
+					b.If(Not(C("grow.longer", g, L("ok"))), func(b *Builder) { b.Break("m") })
+					b.Do("grow.adopt", g, L("v"))
+				})
 			})
 			best := b.Let("best", C("grow.end", g))
 			b.Return(C("ctx.value", best), C("ctx.ok", best))
 		})
 	grow.Doc = `grow grows the seed of a left-recursive leader from a failure: it evaluates the body again while
-the match gets longer, and returns the last longer result.`
+the match gets longer, and returns the last longer result. A growth in a context takes its steps
+through the context, which may give them without evaluating the body.`
 
 	// observe reports the call that body makes to the observation, with how far it examined the input.
 	observe := func(body func(b *Builder)) func(b *Builder) {
