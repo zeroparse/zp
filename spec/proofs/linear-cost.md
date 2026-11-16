@@ -1040,6 +1040,14 @@ the own region of $Z$. So $Z$ is $e'_j$ or lies inside it, and it holds an
 activation, $\alpha$, so by *Nothing in a memoized link is a head* it is not
 the head of its class. $\square$
 
+The same holds with $E_2$ of an evaluated pair of a shared call in the place
+of $e'_j$, under the hypotheses of *Evaluated pairs of a shared call* and
+outside cases (a) and (b) of the covered keys on its path: no head holds an
+activation that starts while $E_2$ is in progress. The proof above uses of
+$e'_j$ only that a call of a rule that the parse memoizes makes it, and that
+claim in the place of *Nothing in a memoized link is a head*. The pair need not
+be a link, so its unit need not hold an activation of $\sigma$ at $q$.
+
 An activation that no head holds is held by a memoized evaluation that is not
 a head, which *Replayed activations* charges to the head of its class, or by
 no memoized evaluation, and then a growth step or an evaluation in a context
@@ -1892,6 +1900,42 @@ repeated evaluations* uses of $Z$ only that it is $e'_i$ or inside it and that
 it holds an activation, $\alpha_i$ there, whose counterpart at the same place
 in $\mathcal{R}(e_i)$ excludes case (c) of the covered keys. Another
 activation at any depth of $Z$ does the same. $\square$
+
+**Evaluated pairs of a shared call.** Let a committing unit $w$ and its
+continuation $\kappa$ share a call of a rule that reads no variable and that the
+parse memoizes at both calls, let $E_1$ be the evaluation of the call inside $w$ and $E_2$ the
+evaluation of the call that $\kappa$ makes at the same position (case 2),
+where the memo answers neither and neither is in a context of growths, and let
+every growth at their position that is open at the start of $E_1$ or of $E_2$
+be open at the start of both or be read by neither. Then no evaluation of a key
+that is $E_2$ or lies inside it and holds an activation at any depth is the
+head of its class, outside cases (a) and (b) of the covered keys on the path
+from $\mathcal{R}(E_1)$ down to the call that corresponds to it. No activation
+of $\sigma$ at $q$ need lie in $E_1$ or $E_2$, and $E_1$ need not have stored a
+result: a first evaluation may leave none
+([Evaluations of Rules](../runtime/parsing.md#evaluations-of-rules)), and then
+the memo answers neither call.
+
+*Proof.* The proofs of *Links lead to repeated evaluations* and of *Nothing in a
+memoized link is a head* use of the $i$-th link only what holds of $E_1$ and
+$E_2$ in the place of $e_i$ and $e'_i$, with $N$ the innermost evaluation that
+contains $E_1$ and $E_2$ in the place of the one that contains $\alpha_{i-1}$
+and $\alpha_i$: the two are evaluations of one call at one position whose keys
+are of one class; $E_2$ is evaluated after $w$ is abandoned, since $\kappa$ is
+(*Repeats*), and so after $E_1$ ends; and when $N$ is a growth, $E_1$ and $E_2$
+lie in different children of $N$, which are its steps, $E_2$ in a later one.
+Only the activation that $Z$ holds, at
+the same place in $\mathcal{R}(E_1)$, excludes case (c). $\square$
+
+So a link is the case of such a pair where $E_1$ holds $\alpha_{i-1}$ and
+$E_2$ holds $\alpha_i$, and the claims about outer links below need of a
+memoized link only that it is an evaluated pair. The first evaluation of a
+key that stores no result does not repeat: by Lemma 3 it is the only
+evaluation of its key that stores none, so a key has at most one, and the
+evaluations that it lets the memo make again are at most the three of its key.
+Of the evaluations of a class, only the first is a head, so a no-result
+evaluation changes which evaluation is the head of its class and not the
+number of activations charged to it (*Activations held by heads*).
 
 So the body evaluations of $R$ that hold the $\alpha_i$ start at most at one
 position for each free $i$, each link that *Links to heads* leaves
@@ -5621,9 +5665,11 @@ condition of the cost view that the [Cost View](cost-view.md) proof leaves open.
    on its own. When the unit of the index starts after the unit of the earlier
    outer link ends, it lies in a continuation of the last unit before it that
    encloses the frame of the earlier link, if no growth step around that frame
-   is dropped (*The last unit around the earlier frame*); that it lies in a
-   call that the two share, and that the memo then answers one of the two
-   evaluations of the index, is not shown. A later
+   is dropped (*The last unit around the earlier frame*). That the later outer
+   activation then lies in the later evaluation of a pair of evaluations of a
+   call that the two share, which keeps it from every head (*Evaluated pairs
+   of a shared call*), is not shown; the memo need not answer either
+   evaluation of such a call, since a first evaluation may leave no result. A later
    evaluation that lies inside that frame, an index that is free and one
    linked by a leaf link at a position before the scan are not treated. So the outer links do not bound the
    runs, and the count of the
