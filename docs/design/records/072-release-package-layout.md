@@ -8,10 +8,12 @@
 
 ZeroParse is released with one package layout. A public layer `pkg/` is the only Go API, the runtime side of the module
 never links the compiler side, and the middle of the pipeline is one Code IR with three dialects. This record fixes that
-layout as the **target**. The tree does not have it yet: the repository is being moved to it in stages, listed under
-[Implementation Sequence](#implementation-sequence), and until a stage lands the packages of that stage keep their
-current names. Documents that describe today's tree describe today's tree; this record describes where it is going and
-why.
+layout as the **target** and gives the reasons for it. The tree does not have it yet: the repository is being moved to
+it in stages, listed under [Implementation Sequence](#implementation-sequence), and until a stage lands the packages of
+that stage keep their current names. The complete architecture (the package tree with the responsibility of each
+package, the public API, the import rules, the pass model, the driver and the stages in detail) is
+[Architecture](../architecture.md); the design pages describe that target and say at their top that the code is still
+being migrated to it. This record keeps the decision: the problems, what was decided, why, and what was rejected.
 
 ## Motivation
 
@@ -53,6 +55,9 @@ from Code IR at the Flow stage. None of these is kept compatible with the earlie
 
 ## Design
 
+The sections below state each decision with its reason. The full package tree, the signatures of the public API and the
+code of the pass model are in [Architecture](../architecture.md).
+
 ### The Public Layer
 
 Everything a user imports lives under `pkg/`; everything else is `internal/` or a command. The packages are cut by the
@@ -81,7 +86,10 @@ vocabulary they own, not by the stage that implements them.
   compiled file into a parser) and `golib` (the support declarations that generated Go parsers import; it is not an API
   for direct calls). The node representation sits below the value package because a generated parser copied into a
   user's module imports it, which an internal package cannot allow. The output schema is runtime-side because a parser,
-  structural queries and the typed API use it while running.
+  structural queries and the typed API use it while running, and `Compare`, a pure function over schemas, lives with
+  the types. The library of generated Go is a package of its own, apart from `pkg/runtime`, because it holds many
+  support declarations that the library protocol versions, and keeping them out of the user API avoids clashes of names
+  such as `Parser`, `Document` and `ParseOption`.
 
 ### The Runtime and Compiler Sides
 
@@ -110,6 +118,10 @@ compiler side. The rules, which a test enforces, are these.
      compiler, in the same layer as the public tool packages.
    - Only the commands and the repository's test support import `internal/lsp/**`, and only test support imports
      `internal/testing/**` from non-test code.
+
+The library printer prints the compositions of the Exec dialect into the generated-parser library and into the shared
+engine state. That is an edge of generation through `go generate`, not an import edge, so it does not make the runtime
+side depend on the printer; a freshness test keeps the printed files and the embedded copy current.
 
 The consequences are concrete. Loading a compiled file never constructs a grammar AST or runs the type checker, because
 the runtime side cannot name them: a compiled file holds a closed instruction set and the runtime program, not a
@@ -144,6 +156,14 @@ flowchart TD
   cmd --> analysis["internal/analysis: lint, complexity; internal/lsp"]
   driver --> rt["internal/runtime: program, state, document, vm, engine, nodes, limits"]
 ```
+
+The IR packages hold data, attribute computation, verifiers and printers; the passes that transform and analyze are in
+the middle end. A verifier checks that the facts agree with the structure by recomputing the attributes, so it lives
+with the attribute computation. The dialects are nested
+under the Code IR base, so the tree and the import paths say that they are dialects of one representation, and the
+lowerings are packages of their own, outside the IR packages and apart from the passes of each dialect. Names are
+chosen so that packages that are imported together do not clash: the grammar language server is not named like the
+grammar package, and the compositions are not named like Core IR.
 
 `internal/runtime/**` is the runtime side and holds the runtime program (the tables a parse needs, which a compiled file
 serializes), the shared parser state, the incremental Document, the VM drivers, the entry points for parse, document
@@ -190,8 +210,13 @@ choice instruction, a sound over-approximation. The compositions are native in t
 conformance suite. The reason is that the VM, Go, TypeScript and a future LLVM backend then all take grammar code from
 one Code IR, so charging and option propagation cannot drift between two lowerings of grammar code. Go and TypeScript
 are produced from the Exec stage after language-specific passes that legalize and optimize it for the target, then
-printed. The closure backend deliberately does not share this lowering: it is built from Core IR so that a bug in the
-lowering shows up as a difference between backends.
+printed, and a printer prints the legalized Exec stage as it is, without carrying transformations as string
+processing or regeneration. The closure backend deliberately does not share this lowering: it is built from Core IR so
+that a bug in the lowering shows up as a difference between backends.
+
+The complexity classifier works on its own Core IR module, the cost view, derived by normalization laws. The proofs
+that the classification is sound speak about the cost view, so it is kept apart from the Core module that the
+optimizations rewrite; it reaches users through lint.
 
 ### The Pass Model
 
@@ -203,7 +228,9 @@ A pass is a named unit with a declared shape, and a manager runs a list of them.
   target language) registers its own passes, and printers and library controls register under their own kind, so no name
   is declared twice.
 - **Analyses.** An analysis is computed when a pass asks for it and cached. What a pass preserves is a set that defaults
-  to nothing: forgetting to declare it invalidates everything, which is the safe side. Invalidating an analysis
+  to nothing: forgetting to declare it invalidates everything, which is the safe side. An analysis key is registered
+  by name, and a second key with the same name is rejected, so two analyses of one name and different result types
+  cannot confuse the cache. Invalidating an analysis
   invalidates the analyses that used it, transitively; an analysis that depends on itself is an error; a transform that
   returns a different IR value invalidates the whole cache; a failed analysis returns an error and never degrades
   silently. Facts about rules are computed once on Core, through the analysis manager, and read by the generators, the
@@ -236,61 +263,33 @@ A pass is a named unit with a declared shape, and a manager runs a list of them.
 
 The layout is reached in stages that keep the behavior of the tree. Each stage is checked by the tests of the changed
 packages and the import-graph test; stages that touch the engine, generator or runtime also pass the full gate with
-generated output and the ready-made parsers. Moving a package is a separate commit from changing behavior. The
-numbers give the landing order, except where a stage says it can run in parallel.
+generated output and the ready-made parsers. Moving a package is a separate commit from changing behavior. The stages,
+with their content, prerequisites and acceptance checks, are in [Migration](../architecture.md#migration); in short:
 
-1. **Enforce the dependency rule.** Add the import-graph test with the allowlist of today's violations.
-2. **Correct the documents** that describe the tree, and record this layout.
-3. **Reorganize the front end, analysis and test support.** Regenerate the self-hosted grammar parser under the front
-   end; move desugaring, checking, the type model, AST facts and the schema export; move diagnostics, the analysis tools
-   (lint, complexity) and the language server; and move test support under one tree with a documented naming
-   convention. The part of the compile package that is semantic model only (names, types, scopes, start rules, the type
-   declaration table) moves into the checker and the type model.
-4. **Reorganize the IR and the passes.** Make the pass infrastructure `internal/pass` with a generic registry that each
-   pipeline fills, and move driving into `internal/driver`; make the Exec infrastructure the Code IR base and put the
-   operation table, the compositions and the reference models and conformance suite under the Exec dialect, keep the
-   spec tests there, and move the printer test support under `internal/testing` (it calls passes, so it is test support
-   and not part of the dialect); move Core passes and facts to `corepass`, the Core-to-Flow lowering to `flowlower` and
-   the shared passes to `codepass`; rename the Core IR `Term` to `ActionExpr` and `terms` in the Core IR specification
-   to `actions`; and rename the `-print-after` stage `build` to `core`, with no alias. Flow and its lowering stay where
-   they are until the dialect stage.
-5. **Unify the rule facts.** The generators and the engine read policy flags and site numbers from Core facts, and the
-   grammar-AST analysis they duplicated is removed. Its differential tests become unit tests of the Core facts.
-6. **Implement the analysis manager** in `internal/pass`, move the Core pipeline onto it, and share facts among lint,
-   complexity and the generators. This and the stage of the dialects can run in parallel with the backend, tool and
-   runtime stages, since they touch only the IR and the middle end.
-7. **Reorganize the backends**: `backend/codegen/{common, golang, typescript}` with a place for language-specific
-   passes, `closure`, `vmlower` and the library printer.
-8. **Publish the tool packages.** Introduce `pkg/grammar` (source, load, convert), `pkg/lint`, `pkg/sample`,
-   `pkg/editfuzz`, `pkg/runtime/schema` and `pkg/runtime/query`; read grammars in the command line through the grammar
-   source; and rename the AST, JSON and syntax symbol of action expressions in the same landing. The ready-made parsers
-   need no hand-written change.
-9. **Separate the runtime.** Introduce the runtime program, lower action expressions at compile time, remove the
-   checked-program type, and move the shared state, Document, the VM execution part, node access and the limits under
-   `internal/runtime`, with the compile entry in the driver. The allowlist becomes empty, a loaded compiled file creates
-   no grammar AST, and the performance of the loaded parser is measured against the previous one, together with its
-   binary size.
-10. **Make Flow and Action dialects of Code IR.** Fold the Flow types into a dialect operation table with contracts,
-    costs, features, laws and reference expansions; put value operations in the Action dialect; lower action expressions
-    to Action operations; replace the copying from Flow to Exec with the complete lowering and drive the transitional
-    operations to zero; type the immediates; and write the Code IR specification with the dialects as its parts.
-11. **Publish the runtime and compiler packages**, together with the recognition term. Split the shared result types
-    into `pkg/runtime` and its subpackages, add the generated-parser library and its embedded copy, `pkg/bytecode`,
-    `pkg/runtime/vm` and `pkg/compiler` (VM-based `Compile`, reference parser, generation and `Marshal` with `Optimize`
-    for every backend), and remove the old public packages. Generated parsers must satisfy rule 1a, and the ready-made
-    parsers are regenerated and their hand-written tests adjusted with the owner's approval of each landing. The
-    recognition term lands with it: `parse -recognize`, `Parser.Recognize` as the only form, and the definition in the
-    glossary and the recognition guide.
-12. **Move control-level decisions into Flow passes** (terminals, class runs and guarded classes and the lowering
-    options leave Core; charge merging moves from the printer to the charge pass) and register language-specific
-    legalization and optimization in the language pipelines.
-13. **Select bytecode from the Flow stage**, and remove the bytecode generation that starts from Core. The switch
-    happens only when the size of compiled files and the throughput of the VM are within the noise of the previous
-    construction (at least twenty interleaved rounds); until then instruction selection is improved.
+- **S0.** Enforce the dependency rule: the import-graph test with the allowlist of today's violations.
+- **S1.** Correct the documents that describe the tree, and record this layout.
+- **S2.** Reorganize the front end, analysis and test support; the semantic-model part of the compile package moves into
+  the checker and the type model.
+- **S3.** Reorganize the IR and the passes: `internal/pass` with a generic registry, driving in `internal/driver`, the
+  Exec infrastructure as the Code IR base, `corepass`, `flowlower` and `codepass`, the rename of the Core IR `Term` to
+  `ActionExpr`, and the `-print-after` stage `build` renamed to `core`.
+- **S3a.** Unify the rule facts on Core IR.
+- **S4.** Reorganize the backends.
+- **S5.** Separate the runtime; the allowlist becomes empty.
+- **S6a.** Publish the tool packages and rename action expressions in the AST, JSON and syntax.
+- **S6b.** Publish the runtime and compiler packages; generated parsers satisfy rule 1a.
+- **S6c.** One term for recognition, landed with S6b.
+- **S7.** Implement the analysis manager and share facts among lint, complexity and the generators.
+- **S7a.** Make Flow and Action dialects of Code IR, with `execlower` as the complete conversion.
+- **S7b.** Move control-level decisions into Flow passes and register the language passes.
+- **S8.** Select bytecode from the Flow stage, only once compiled-file size and VM throughput are within the noise of the
+  previous construction.
 
-Stages 3 to 5 and 8 do not change names that the ready-made parsers import; stage 11 changes the import paths of
-generated code. Each stage lands with the specification, guides and design pages that it changes, and specifications and
-guides describe public names only after the stage that introduces them.
+The recommended order is S0 and S1, S2, S3, S3a and S7, S4, S6a, S5, S7a, S6b with S6c, S7b and S8; S7 and S7a touch
+only the IR and the middle end and can run in parallel with S4 to S6. S0 to S6a do not change names that the
+ready-made parsers import; S6b changes the import paths of generated code. Each stage lands with the specification,
+guides and design pages that it changes, and specifications and guides describe public names only after the stage that
+introduces them.
 
 ## Alternatives Considered
 
@@ -304,6 +303,25 @@ guides describe public names only after the stage that introduces them.
   stable.
 - **Enforce the runtime separation by review.** Dependencies grow silently and the loss shows up as binary size. A test
   that fails on the first wrong edge is cheaper and does not depend on who reviews.
+- **Let the closure backend share the lowering of grammar code.** One lowering for every backend would be less code,
+  but the closure backend is the oracle of the differential tests, and an oracle that shares the lowering cannot reveal
+  a bug in it. It is built from Core IR instead.
+- **Keep generating bytecode from Core IR.** Bytecode would then come from a second lowering of grammar code beside the
+  one that feeds Go and TypeScript, and charging and the propagation of options would have to be kept equal in both by
+  hand. Selecting instructions from the Flow stage gives every practical backend one source of grammar code; the switch
+  waits until size and throughput match.
+- **Keep a checked-program layer.** A layer between the semantic model and Core IR held part of what a rule is, so the
+  same knowledge had several homes and analyses were written on both sides. Its content is divided among the semantic
+  model, Core IR and the runtime program.
+- **Share one type for the grammar source and the parse input.** The parse input is about positions, streams, edits and
+  budgets; a grammar source is a named, formatted set of files read once at compile time. A shared type would carry the
+  concerns of both. They share only the naming convention of their constructors.
+- **Classify complexity on the Core module of the optimizations.** The soundness proofs are stated over a module in a
+  normal form, and the optimizations rewrite their module freely; one module could not serve both without the proofs
+  tracking every rewrite. The cost view is a separate module.
+- **Call the transformations between levels passes, or legalizations.** A lowering changes the dialect and has its own
+  postcondition, so it is a separate step; the words follow LLVM and MLIR, with *lower* between dialects and *legalize*
+  only inside a target.
 
 ## Testing
 
@@ -315,5 +333,7 @@ a copy of the previous tree.
 ## Limitations and Open Questions
 
 The layout is the target. The tree still has the current public packages, the pass runners per pipeline, and the
-violations in the allowlist until the stages above land; this record changes status as they do. The signatures in the
-public layer are fixed stage by stage in the package documentation, not here.
+violations in the allowlist until the stages above land; this record changes status as they do. The signatures of the
+grammar source and `Load`, of `Compile`, of the query and instrument packages and of the pass infrastructure are
+decided and given in [Architecture](../architecture.md#the-public-api); the other signatures of the public layer are
+rough shapes, fixed stage by stage in the package documentation.
