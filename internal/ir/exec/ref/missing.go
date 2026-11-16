@@ -40,6 +40,8 @@ func (m *Model) allowsMissing(o *exec.Op, args []any) (allowed, ok bool) {
 		return mark >= 0 && mark <= int64(len(m.missing.path)), true
 	case "missing.replay":
 		return m.cfg.Missing && !args[0].(*Entry).pruned, true
+	case "missing.replayResult":
+		return m.cfg.Missing && ctxRes(args[0]) != nil, true
 	case MissingInsertOp:
 		return m.cfg.Missing, true
 	case MissingSeedOp:
@@ -65,26 +67,11 @@ func (m *Model) callMissing(o *exec.Op, args []any) ([]any, bool) {
 		return nil, true
 	case "missing.replay":
 		e := args[0].(*Entry)
-		dup := map[*Err]bool{}
-		for _, t := range e.seed {
-			if s.installed[[2]int64{t.site, t.pos}] {
-				dup[t.err] = true
-			} else {
-				s.install(t)
-			}
-		}
-		l, _ := e.errs.(*ErrList)
-		switch {
-		case l == nil || l.n == 0:
-		case len(dup) == 0:
-			m.rec = append(slices.Clip(m.rec), l)
-		default:
-			for _, err := range l.errPtrs(nil) {
-				if !dup[err] {
-					m.rec = append(slices.Clip(m.rec), err.list())
-				}
-			}
-		}
+		m.replayMissing(e.seed, e.errs)
+		return nil, true
+	case "missing.replayResult":
+		r := ctxRes(args[0])
+		m.replayMissing(r.seed, r.errs)
 		return nil, true
 	case MissingInsertOp:
 		return []any{m.insertMissing(missingToken{args[0].(int64), args[1].(int64), args[2].(*Err)})}, true
@@ -152,6 +139,33 @@ func (m *Model) observeMissing() []string {
 	return out
 }
 
+// replayMissing records again the tokens that a call inserted and the errors errs it recovered: the
+// errors are shared as rec.add shares them, unless a token is already present, whose errors are left
+// out one by one.
+func (m *Model) replayMissing(tokens []missingToken, errs any) {
+	s := &m.missing
+	dup := map[*Err]bool{}
+	for _, t := range tokens {
+		if s.installed[[2]int64{t.site, t.pos}] {
+			dup[t.err] = true
+		} else {
+			s.install(t)
+		}
+	}
+	l, _ := errs.(*ErrList)
+	switch {
+	case l == nil || l.n == 0:
+	case len(dup) == 0:
+		m.rec = append(slices.Clip(m.rec), l)
+	default:
+		for _, err := range l.errPtrs(nil) {
+			if !dup[err] {
+				m.rec = append(slices.Clip(m.rec), err.list())
+			}
+		}
+	}
+}
+
 // errsQuantity returns ops.QErrs for a call of o with args, in the state before the call.
 func (m *Model) errsQuantity(o *exec.Op, args []any) int64 {
 	switch o.Name {
@@ -160,6 +174,12 @@ func (m *Model) errsQuantity(o *exec.Op, args []any) int64 {
 		// they are shared as rec.add shares them.
 		e := args[0].(*Entry)
 		if l, ok := e.errs.(*ErrList); ok && m.missing.repeats(e.seed) {
+			return int64(l.n)
+		}
+		return 0
+	case "missing.replayResult":
+		r := ctxRes(args[0])
+		if l, ok := r.errs.(*ErrList); ok && m.missing.repeats(r.seed) {
 			return int64(l.n)
 		}
 		return 0
@@ -191,6 +211,8 @@ func (m *Model) tokensQuantity(o *exec.Op, args []any) int64 {
 		return int64(len(m.missing.path)) - args[0].(int64)
 	case "missing.replay":
 		return int64(len(args[0].(*Entry).seed))
+	case "missing.replayResult":
+		return int64(len(ctxRes(args[0]).seed))
 	case "rule.invokePlain":
 		// The tokens that a failed evaluation inserted, which the call removes.
 		e := m.next(args[0].(RuleRef).Index)

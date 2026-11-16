@@ -99,6 +99,10 @@ type result struct {
 	errs []string
 	far  int64
 	exps []string
+	// examined and before are the input that the call of the result examined: its end, and whether it
+	// starts before the position of the call.
+	examined int64
+	before   bool
 }
 
 // growth is the state of a growth in the model: a growth in no context.
@@ -397,17 +401,18 @@ func (m *machine) Call(o *exec.Op, args []any) []any {
 		return []any{resultOf(args[0]).ok}
 	case "ctx.value":
 		return []any{resultOf(args[0]).v}
-	case "ctx.replay":
-		r := resultOf(args[0])
-		m.memoHit++
-		if !args[1].(bool) {
-			m.merge(r.far, r.exps)
-		}
-		if r.ok {
-			m.setPos(r.end)
-			m.rec = append(m.rec, r.errs...)
-		}
-		return nil
+	case "ctx.end":
+		return []any{resultOf(args[0]).end}
+	case "ctx.errs":
+		return []any{resultOf(args[0]).errs}
+	case "ctx.far":
+		return []any{resultOf(args[0]).far}
+	case "ctx.expected":
+		return []any{resultOf(args[0]).exps}
+	case "ctx.examined":
+		return []any{resultOf(args[0]).examined}
+	case "ctx.before":
+		return []any{resultOf(args[0]).before}
 	case "ctx.allows":
 		return []any{!args[0].(*ctxModel).deny}
 	case "ctx.active":
@@ -1202,8 +1207,13 @@ func TestCallContext(t *testing.T) {
 			if v, ok := callAt(t, mod, m, f, r, 3); !ok || v != "k" || m.pos() != 6 || r.runs != 0 {
 				t.Errorf("%v %v at %d after %d evaluations, want the kept result", v, ok, m.pos(), r.runs)
 			}
-			if !slices.Equal(m.rec, []string{"e"}) || m.farthest() != 6 || !slices.Equal(m.expected(), []string{"z"}) || m.memoHit != 1 {
-				t.Errorf("the reuse recorded %v, %d %v and %d hits", m.rec, m.farthest(), m.expected(), m.memoHit)
+			// The form reports the reuse of a kept result as it reports the reuse of a memo entry.
+			mm := newMachine()
+			rm := &trule{id: 1, memo: true, body: body}
+			callAt(t, mod, mm, f, rm, 3)
+			callAt(t, mod, mm, f, rm, 3)
+			if !slices.Equal(m.rec, []string{"e"}) || m.farthest() != 6 || !slices.Equal(m.expected(), []string{"z"}) || m.memoHit != mm.memoHit {
+				t.Errorf("the reuse recorded %v, %d %v and %d hits, want %d", m.rec, m.farthest(), m.expected(), m.memoHit, mm.memoHit)
 			}
 		})
 	})
@@ -1235,6 +1245,26 @@ func TestEngineCallExamined(t *testing.T) {
 	}
 	if m.examinedEnd != 6 || m.reused != 1 {
 		t.Errorf("the reuse leaves the examined end at %d with %d reuses, want 6 and 1", m.examinedEnd, m.reused)
+	}
+	// A result that a context keeps extends the examined input as an entry does: to its end, and back
+	// to the unit before the call where it examined input before it.
+	for _, before := range []bool{false, true} {
+		m := newMachine()
+		m.ctx.active = true
+		m.ctx.held = &result{v: "k", ok: true, end: 5, examined: 8, before: before}
+		m.examinedEnd, m.low = 3, 3
+		r := &trule{id: 1, memo: true, body: r.body}
+		if v, ok := callAt(t, mod, m, f, r, 3); !ok || v != "k" || r.runs != 0 {
+			t.Fatalf("before=%v: the kept result gives %v %v after %d evaluations", before, v, ok, r.runs)
+		}
+		low := int64(3)
+		if before {
+			low = 2
+		}
+		if m.examinedEnd != 8 || m.low != low || m.reused != 1 {
+			t.Errorf("before=%v: the reuse of a kept result leaves [%d, %d) with %d reuses, want [%d, 8) and 1",
+				before, m.low, m.examinedEnd, m.reused, low)
+		}
 	}
 }
 

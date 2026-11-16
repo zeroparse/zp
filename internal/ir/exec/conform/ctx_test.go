@@ -67,10 +67,7 @@ func TestRandomCtxCasesUseTheOperations(t *testing.T) {
 		c := RandomCtx("random", rand.New(rand.NewPCG(seed, 9)), ctxCalls)
 		walkCalls(c.Func.Body, func(x *exec.Call) { counts[x.Callee]++ })
 		walkCalls(c.Func.Body, func(x *exec.Call) {
-			if x.Callee != "ctx.replay" {
-				return
-			}
-			if b, ok := x.Args[1].(*exec.Const); ok && b.Value == false {
+			if x.Callee == "ctx.expected" {
 				found++
 			}
 		})
@@ -81,7 +78,7 @@ func TestRandomCtxCasesUseTheOperations(t *testing.T) {
 		}
 	}
 	if found < 30 {
-		t.Errorf("randomized cases replay %d results kept in a context", found)
+		t.Errorf("randomized cases read %d results kept in a context", found)
 	}
 }
 

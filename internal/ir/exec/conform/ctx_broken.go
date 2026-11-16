@@ -32,12 +32,20 @@ func CtxBrokenOps() []OprBroken {
 	add("ctx.storeCtx is ctx.storeMemo", "ctx.storeCtx", func(call func(string, ...any) []any, a []any) []any {
 		return call("ctx.storeMemo")
 	})
-	add("ctx.replay replays a seed", "ctx.replay", func(call func(string, ...any) []any, a []any) []any {
-		return call("ctx.replay", a[0], true)
+	add("ctx.end is one further", "ctx.end", func(call func(string, ...any) []any, a []any) []any {
+		return []any{call("ctx.end", a...)[0].(int64) + 1}
+	})
+	add("ctx.far is the start", "ctx.far", func(call func(string, ...any) []any, a []any) []any {
+		return []any{int64(0)}
+	})
+	add("ctx.expected is empty", "ctx.expected", func(call func(string, ...any) []any, a []any) []any {
+		return call("exp.empty")
+	})
+	add("ctx.errs is none", "ctx.errs", func(call func(string, ...any) []any, a []any) []any {
+		return []any{nil}
 	})
 	ignore("ctx.keep")
 	ignore("ctx.done")
-	ignore("ctx.replay")
 	ignore("memo.setPresent")
 	return bs
 }

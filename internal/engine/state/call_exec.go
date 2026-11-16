@@ -152,9 +152,19 @@ func (p *Parser) CallBegin(r *Rule, min int, st *CallState) (*core.Node, bool, b
 		seed = p.ctxEnter(&c, r, min)
 	}
 	if seed.e != nil {
-		p.ctxReplay(seed, true)
+		p.touch(seed.e.Examined)
+		if seed.e.From < start {
+			p.lw = Min2(p.lw, start+-1)
+		}
+		p.Stats.Reused++
 		if !seed.e.Ok {
 			return nil, false, true
+		}
+		p.Pos = seed.e.End
+		if p.Missing != nil {
+			p.ReplayMissing(p.MissingSeedEvents(seed.e), seed.e.Errs)
+		} else {
+			p.recAdd(seed.e.Errs)
 		}
 		return seed.e.Node, true, true
 	}
@@ -186,9 +196,20 @@ func (p *Parser) CallBegin(r *Rule, min int, st *CallState) (*core.Node, bool, b
 	if c.ctx {
 		held := p.ctxLookup(&c, r, min, env)
 		if held.e != nil {
-			p.ctxReplay(held, false)
+			p.touch(held.e.Examined)
+			if held.e.From < start {
+				p.lw = Min2(p.lw, start+-1)
+			}
+			p.Stats.Reused++
+			p.MergeExpected(held.e.Far, held.e.Expected)
 			if !held.e.Ok {
 				return nil, false, true
+			}
+			p.Pos = held.e.End
+			if p.Missing != nil {
+				p.ReplayMissing(p.MissingSeedEvents(held.e), held.e.Errs)
+			} else {
+				p.recAdd(held.e.Errs)
 			}
 			return held.e.Node, true, true
 		}

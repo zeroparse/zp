@@ -329,9 +329,9 @@ var documentShapes = []codegentest.Case{
 	{Name: "line start", Src: "rule main = item* $$\nrule item = ^ \"a\" x / \"a\" y / \"\\n\" / \"b\"\nrule x = \"\"\nrule y = \"\"\n",
 		Inputs: []string{"a\na", "ba\nab\na", "\n\naa"}},
 	// A line start inside a left recursion: in the seed of an indirect leader, in a member of a cycle,
-	// and in an alternative of a leader that another leader reads. A result that a context replays
+	// and in an alternative of a leader that another leader reads. A result that a context keeps
 	// was made inside the growth that owns the context, so it needs no line start of its own recorded:
-	// removing the touch of the unit before it (replayCtx, growNext) changes the counts of reuse of
+	// removing the touch of the unit before it (its reuse in the calls, growNext) changes the counts of reuse of
 	// these Documents, not their results.
 	{Name: "line start in a leader", Src: "rule main = item* $$\nrule item = expr \";\" / \";\" / \"\\n\"\nrule expr = add / term\nrule add = expr \"+\" term\nrule term = ^ \"a\" / \"a\"\n",
 		Inputs: []string{"a+a;", "a\na+a;a", "\n\na+a+a;\n"}},
