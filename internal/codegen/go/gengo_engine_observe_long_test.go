@@ -62,7 +62,7 @@ var engineObservationMutants = []engineObservationMutant{
 		old: "return len(o.rules) == 0 || o.rules[rule] ||", new: "return len(o.rules) >= 0 || o.rules[rule] ||",
 		runs: []engineObservationRun{expecting(libOptionsRun, "pair and nested: got")}},
 	{name: "generated depth limit ignored", file: "codegen/go/lib/trace.go",
-		old: "if len(o.traces) == 0 || !selected || o.maxDepth > 0 && e.Depth > o.maxDepth {", new: "if len(o.traces) == 0 || !selected {",
+		old: "if o.trace == nil || !selected || o.maxDepth > 0 && e.Depth > o.maxDepth {", new: "if o.trace == nil || !selected {",
 		runs: []engineObservationRun{expecting(libOptionsRun, "depth: got")}},
 	{name: "generated keeps the last trace function", file: "codegen/go/lib/trace.go",
 		old: "\t\t\t\tprev(e)\n", new: "\t\t\t\t_ = prev\n",
