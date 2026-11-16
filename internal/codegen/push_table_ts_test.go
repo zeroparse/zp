@@ -70,7 +70,9 @@ func runTSPushes(t *testing.T, controlled bool, mutate func(string) string) map[
 	if err != nil {
 		t.Fatal(err)
 	}
-	code, err := codegentest.GenerateTSBundle(g, codegen.GenOptions{Start: "main"})
+	// The whole library (used-features off): the table calls functions that the parser of this grammar
+	// does not use.
+	code, err := codegentest.GenerateTSBundle(g, codegen.GenOptions{Start: "main", NoOpt: []string{codegen.UsedFeatures}})
 	if err != nil {
 		t.Fatal(err)
 	}

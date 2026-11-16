@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"strings"
 
+	"zeroparse.dev/zp/internal/codegen"
+
 	"zeroparse.dev/zp/internal/ir/exec"
 	"zeroparse.dev/zp/internal/ir/exec/core"
 	"zeroparse.dev/zp/internal/ir/exec/ops"
@@ -72,11 +74,29 @@ var tsSpecs = []struct {
 }
 
 // tsMethods returns the printed methods of the TypeScript library.
-func tsMethods() ([]tsMethod, error) {
+func tsMethods() ([]tsMethod, error) { return tsMethodsFor(codegen.AllFeatures) }
+
+// specFeatures maps the features of the compositions that the library's methods are specialized
+// for to the features of a parser.
+var specFeatures = map[string]codegen.Feature{ops.Document: codegen.FeatureDocument, ops.Observe: codegen.FeatureObserve, ops.Budget: codegen.FeatureBudget}
+
+// tsMethodsFor returns the printed methods of the TypeScript library of a parser with the features
+// fs: each is specialized for the features of its specification that fs has.
+func tsMethodsFor(fs codegen.FeatureSet) ([]tsMethod, error) {
 	m := core.Build()
 	var out []tsMethod
 	for _, s := range tsSpecs {
-		f, err := pass.Specialize(m, m.Func(s.fn), s.fn, s.on)
+		var on []string
+		for _, o := range s.on {
+			f, ok := specFeatures[o]
+			if !ok {
+				return nil, fmt.Errorf("tslib: the method %s is specialized for %s, which no feature of a parser maps to", s.name, o)
+			}
+			if fs.Has(f) {
+				on = append(on, o)
+			}
+		}
+		f, err := pass.Specialize(m, m.Func(s.fn), s.fn, on)
 		if err != nil {
 			return nil, err
 		}

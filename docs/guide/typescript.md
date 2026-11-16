@@ -4,8 +4,8 @@
 other module. The modules have no dependencies, not even on Node.js: they are written to run in Node.js, Deno, Bun and
 browsers, and the repository tests run them under Node.js only. They return **the same trees and the same errors** as
 the engine and the generated Go parsers. The output is a directory of up to three files: `parser.ts` (the parser of the
-grammar), `lib.ts` (the library, which is the same for every grammar) and, with `-types`, `types.ts` (the types of
-the grammar).
+grammar), `lib.ts` (the library, with only the code that this parser can run) and, with `-types`, `types.ts` (the
+types of the grammar).
 
 This guide shows how to generate a parser, how to call it, how it maps the engine's Go types to TypeScript, what is
 different in JavaScript (strings, ints, the stack), and how to keep it up to date. It assumes you know the Go
@@ -130,7 +130,7 @@ zp gen -lang ts -g <grammar> -o <directory> [-s <rule>] [-lib embed|import|only]
 | `-g` | (required) | The grammar: `.zp` or `.json` |
 | `-s` | the default start rule | The start rule of `parse` |
 | `-o` | (required) | The output directory (it is created). Generated files that the new run does not write again are removed, except that `-lib import` leaves `lib.ts` alone; a file that zp did not generate is never removed or overwritten |
-| `-lib` | `embed` | `embed` writes `lib.ts` next to `parser.ts`; `import` imports the library from `-lib-module` and writes no copy; `only` writes just `lib.ts` (no `-g`) |
+| `-lib` | `embed` | `embed` writes `lib.ts` next to `parser.ts`; `import` imports the library from `-lib-module` and writes no copy; `only` writes just `lib.ts`, the whole library, which parsers of any grammar can import (no `-g`) |
 | `-lib-module` | (required with `-lib import`) | The module specifier `parser.ts` and `types.ts` import the library from, for example `../shared/lib.ts`. Several parsers share one library this way: generate it once with `-lib only` |
 | `-types` | off | Write `types.ts` with the grammar's interfaces and aliases (also exported from `parser.ts`), and add the configured-start `parseValue`/`parseValueWithOptions` |
 | `-recognize` | off | Also generate `recognize` and `recognizeWithOptions`, which check input without building a tree |
@@ -220,9 +220,9 @@ Compared with the Go API:
   levels; `marshal` does not). `JSON.stringify` recurses and throws a `RangeError` on Node.js's default stack beyond
   a few thousand levels (between 3,000 and 5,000 for `rule e = e "+" n / n`): use `marshal` for such trees.
 - **One parser module per grammar.** Every `parser.ts` exports the same names, so import two parsers under namespaces:
-  `import * as pairs from "./pairs/parser.ts"`. Their `lib.ts` files are identical; generate the library once and
-  point each parser at it with `-lib import -lib-module` to share it (then a `Node` from one parser is an
-  `instanceof Node` of the other).
+  `import * as pairs from "./pairs/parser.ts"`. Each `lib.ts` keeps only what its parser uses, so two of them differ
+  and each `Node` class is its own; generate the whole library once with `-lib only` and point each parser at it with
+  `-lib import -lib-module` to share it (then a `Node` from one parser is an `instanceof Node` of the other).
 - **Names of types.** `types.ts` is a module of its own, so a grammar type may be called `Node`, `Value`, `Parser` or
   anything else of the library; `parser.ts` exports the library's own declaration under such a name, and the type
   stays reachable from `types.ts`. The names `Span`, `TNode`, `StringNode`, `RecoveredError`, `TypedParseResult`,
@@ -600,11 +600,10 @@ in strict TypeScript builds.
 
 ## Trade-Offs
 
-- **Size.** `lib.ts` is 143,536 bytes (about 4,400 lines, with a 3 KB table of printable characters) and is the same for every grammar; `parser.ts` grows with the
-  grammar. The JSON grammar ([alpha-parsers/json](../../testdata/grammars/json/json.zp)) generates a 46,364-byte `parser.ts`
-  (55,131 bytes with `-types`, plus a 2,203-byte `types.ts`) and the TypeScript grammar
-  ([alpha-parsers/typescript](../../testdata/grammars/typescript/typescript.zp)) 2,158,721 bytes. Minified and compressed by a bundler,
-  it is a fraction of that.
+- **Size.** `parser.ts` grows with the grammar. The whole `lib.ts`, which `-lib only` writes, is the same for every
+  grammar; the copy written next to a parser keeps only the code that the parser can run.
+  [Generated Parser Size](../benchmarks.md#generated-parser-size) lists both for the grammars of the repository.
+  Minified and compressed by a bundler, they are a fraction of that.
 - **Speed.** On Node.js 24 (Apple M-series), the JSON grammar parses a 260 KB document in about 18 ms in code points
   and 25 ms in bytes, once the code is warm. That is fine for editors and tools, but no match for `JSON.parse`: use a
   generated parser for formats that have no native parser.

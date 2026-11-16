@@ -170,13 +170,14 @@ Sizes of the parsers generated from `testdata/grammars/` with the options of `te
 calls the parser's `ParseValue`, built with `-trimpath -ldflags="-s -w"`, so it includes the ZeroParse runtime and the
 parser's types. With `-lib embed` instead, a parser carries its own copy of the library, which keeps only the code
 the parser can run: "Go library copy" is the source of that copy (the whole library weighs {{sizeOf "runtime" "go-lib"}}),
-and "Go binary, embed" is the same program built with it. "TypeScript" is the generated `parser.ts`, raw and compressed
-with `gzip -9`; it imports the embedded runtime, which is the same for every parser and weighs {{sizeOf "runtime" "ts-raw"}} ({{sizeOf "runtime" "ts-gzip"}} gzipped).
+and "Go binary, embed" is the same program built with it. "TypeScript" is the generated `parser.ts` and "TypeScript
+library copy" the `lib.ts` written with it, which likewise keeps only the code the parser can run (the whole `lib.ts`
+weighs {{sizeOf "runtime" "ts-lib-raw"}}, {{sizeOf "runtime" "ts-lib-gzip"}} gzipped); both are given raw and compressed with `gzip -9`.
 
-| Parser | Go source | Go binary | Go library copy | Go binary, embed | TypeScript | TypeScript, gzip -9 |
-|:--|--:|--:|--:|--:|--:|--:|
+| Parser | Go source | Go binary | Go library copy | Go binary, embed | TypeScript | TypeScript, gzip -9 | TypeScript library copy | TypeScript library copy, gzip -9 |
+|:--|--:|--:|--:|--:|--:|--:|--:|--:|
 {{- range sizeParsers}}
-| {{.}} | {{sizeOf . "go-source"}} | {{sizeOf . "go-binary"}} | {{sizeOf . "go-lib"}} | {{sizeOf . "go-binary-embed"}} | {{sizeOf . "ts-raw"}} | {{sizeOf . "ts-gzip"}} |
+| {{.}} | {{sizeOf . "go-source"}} | {{sizeOf . "go-binary"}} | {{sizeOf . "go-lib"}} | {{sizeOf . "go-binary-embed"}} | {{sizeOf . "ts-raw"}} | {{sizeOf . "ts-gzip"}} | {{sizeOf . "ts-lib-raw"}} | {{sizeOf . "ts-lib-gzip"}} |
 {{- end}}
 
 {{end -}}

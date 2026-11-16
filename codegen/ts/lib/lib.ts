@@ -36,6 +36,26 @@ export interface NodeField {
   value: Value;
 }
 
+// The features of the library that a parser may not use, by bit, as the generator's feature
+// analysis numbers them. The library has every feature; the copy embedded in a parser has only
+// those the parser uses, in usedFeatures. Code that only a feature runs is guarded by the conjunct
+// (usedFeatures & featureX) !== 0, which the generator removes, with the code, from a copy without
+// the feature.
+export const featureDocument = 1 << 0;
+export const featureStream = 1 << 1;
+export const featureObserve = 1 << 2;
+export const featureBudget = 1 << 3;
+export const featureMemo = 1 << 4;
+export const featureLeftRecursion = 1 << 5;
+export const featureRecovery = 1 << 6;
+export const featureOperators = 1 << 7;
+export const featureVars = 1 << 8;
+export const featureSkipRuns = 1 << 9;
+export const featureScanSites = 1 << 10;
+export const allFeatures = (1 << 11) - 1;
+// usedFeatures is the features of this copy of the library.
+export const usedFeatures: number = allFeatures;
+
 export const noNodes: readonly (Node | null)[] = Object.freeze([]);
 export const noFields: readonly NodeField[] = Object.freeze([]);
 
@@ -1248,7 +1268,7 @@ export function run(g: Grammar, r: Rule, seen: number, input: string | Uint8Arra
   try {
     // Made inside the try, so that decoding the input fails as parsing does.
     const u = unit === Bytes ? Bytes : CodePoints;
-    if (document !== null) {
+    if ((usedFeatures & featureDocument) !== 0 && document !== null) {
       const d = new DocumentParser(g, input, u, seen, maxDepth, control);
       d.memoState = document;
       d.slots = document.slots;
@@ -1259,13 +1279,15 @@ export function run(g: Grammar, r: Rule, seen: number, input: string | Uint8Arra
     }
     p.expectations = traceOptions?.expectations === true;
     p.observation = traceOptions?.profile != null ? new ProfileObservation(traceOptions) : traceOptions?.trace == null ? null : new Observation(traceOptions);
-    if (document === null) return result(p, p.call(r, 0));
-    const d = p as DocumentParser;
-    const res = publishDocumentResult(result(d, d.call(r, 0)));
-    document.slots = d.slots;
-    document.evaluated = d.evaluated;
-    document.reused = d.reused;
-    return res;
+    if ((usedFeatures & featureDocument) !== 0 && document !== null) {
+      const d = p as DocumentParser;
+      const res = publishDocumentResult(result(d, d.call(r, 0)));
+      document.slots = d.slots;
+      document.evaluated = d.evaluated;
+      document.reused = d.reused;
+      return res;
+    }
+    return result(p, p.call(r, 0));
   } catch (x) {
     // A parse that ends with an exception leaves no memo for the next one.
     document?.clear();

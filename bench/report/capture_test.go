@@ -27,8 +27,8 @@ func syntheticSizes() string {
 	var b strings.Builder
 	b.WriteString("# commit: abc\n# go: go1.27.1\n")
 	for _, p := range append([]string{"runtime"}, sizeParsers...) {
-		for _, m := range []string{"go-source", "go-binary", "go-lib", "go-binary-embed", "ts-raw", "ts-gzip"} {
-			if p == "runtime" && strings.HasPrefix(m, "go") && m != "go-lib" {
+		for _, m := range []string{"go-source", "go-binary", "go-lib", "go-binary-embed", "ts-raw", "ts-gzip", "ts-lib-raw", "ts-lib-gzip"} {
+			if p == "runtime" && m != "go-lib" && m != "ts-lib-raw" && m != "ts-lib-gzip" {
 				continue
 			}
 			fmt.Fprintf(&b, "size %s %s 12345\n", p, m)
@@ -58,8 +58,8 @@ func TestRenderTypeScriptAndSizeSections(t *testing.T) {
 		"Each figure is the median of 3 runs",
 		"| JSON | 2.00 ms (2.5 MB/s) |", // the median of 1, 2 and 3 ms and of 1.5, 2.5 and 3.5 MB/s
 		"### Generated Parser Size",
-		"| duckdb | 12.3 KB | 12.3 KB | 12.3 KB | 12.3 KB | 12.3 KB | 12.3 KB |",
-		"weighs 12.3 KB (12.3 KB gzipped)",
+		"| duckdb | 12.3 KB | 12.3 KB | 12.3 KB | 12.3 KB | 12.3 KB | 12.3 KB | 12.3 KB | 12.3 KB |",
+		"weighs 12.3 KB, 12.3 KB gzipped",
 	} {
 		if !strings.Contains(got, want) {
 			t.Errorf("document lacks %q", want)

@@ -249,7 +249,7 @@ func renderAll(root string, data, tsData, sizeData []byte) ([]byte, error) {
 		"tsRel": func(name, base string) string { return fmtFactor(ratio(name, base)) },
 		// sizeParsers are the parsers of the size table.
 		"sizeParsers": func() []string { return sizeParsers },
-		// sizeOf is a size of a generated parser: metric is go-source, go-binary, go-lib, go-binary-embed, ts-raw or ts-gzip.
+		// sizeOf is a size of a generated parser: metric is go-source, go-binary, go-lib, go-binary-embed, ts-raw, ts-gzip, ts-lib-raw or ts-lib-gzip.
 		"sizeOf": func(parser, metric string) string {
 			v, ok := sizes[parser][metric]
 			if !ok {

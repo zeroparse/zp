@@ -107,9 +107,9 @@ func parserGenArgs(root, name string) ([]string, error) { return probe.GenTSArgs
 // of a binary that calls its ParseValue (built with -trimpath and stripped of symbols and DWARF), of
 // the copy of the library that the parser generated with -lib embed carries and of the binary
 // built from that parser (the whole library, which -no-opt used-features copies, is recorded once
-// as parser "runtime"), of
-// the generated TypeScript parser.ts and of that file compressed with gzip -9. The embedded
-// TypeScript runtime is common to all parsers and is recorded once as parser "runtime".
+// as parser "runtime"), of the generated TypeScript parser.ts and of the lib.ts copy of the
+// library generated with it, each raw and compressed with gzip -9 (the whole lib.ts, which
+// -no-opt used-features writes, is recorded once as parser "runtime").
 func captureSizes(root, commit, work string) ([]byte, error) {
 	zpBin, err := buildZP(root, work)
 	if err != nil {
@@ -173,12 +173,22 @@ func captureSizes(root, commit, work string) ([]byte, error) {
 			return nil, err
 		}
 		fmt.Fprintf(&b, "size %s ts-raw %d\nsize %s ts-gzip %d\n", name, raw, name, gz)
+		raw, gz, err = sizeOfFile(filepath.Join(out, "lib.ts"))
+		if err != nil {
+			return nil, err
+		}
+		fmt.Fprintf(&b, "size %s ts-lib-raw %d\nsize %s ts-lib-gzip %d\n", name, raw, name, gz)
 		if name == sizeParsers[0] {
-			raw, gz, err := sizeOfFile(filepath.Join(out, "lib.ts"))
+			// The whole library, which every copy had before it was narrowed.
+			fullOut := filepath.Join(work, "size-ts-full", name)
+			if _, err := execOut(root, nil, zpBin, append(append([]string{"gen", "-lang", "ts", "-no-opt", "used-features"}, args...), "-o", fullOut)...); err != nil {
+				return nil, err
+			}
+			raw, gz, err := sizeOfFile(filepath.Join(fullOut, "lib.ts"))
 			if err != nil {
 				return nil, err
 			}
-			fmt.Fprintf(&b, "size runtime ts-raw %d\nsize runtime ts-gzip %d\n", raw, gz)
+			fmt.Fprintf(&b, "size runtime ts-lib-raw %d\nsize runtime ts-lib-gzip %d\n", raw, gz)
 		}
 	}
 	return b.Bytes(), nil

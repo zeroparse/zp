@@ -263,7 +263,11 @@ export function recognizeWithOptions(input: string | Uint8Array, options?: %[1]s
 	out.WriteString(tsg.Init.String())
 	out.WriteString("\n")
 	out.WriteString(tsg.Methods.String())
-	return tsFiles(opts, out.String(), types)
+	features, err := codegen.ParserFeatures(prog, rec, opts, settings)
+	if err != nil {
+		return nil, err
+	}
+	return tsFiles(opts, features, settings.On(codegen.UsedFeatures), out.String(), types)
 }
 
 // TsPrintRuns returns the code points that strconv.IsPrint accepts, for the library's quoteGo: the
