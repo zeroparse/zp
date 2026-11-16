@@ -187,6 +187,10 @@ func TestNegativeControls(t *testing.T) {
 	addEdge(mod("internal/ir/exec/core"), mod("internal/fakeaction"))
 	addEdge(mod("internal/ir/exec/ops"), mod("internal/fakeaction"))
 	addEdge(mod("internal/ir/flow"), mod("internal/fakeaction"))
+	// Rule 2: the Action dialect imports another dialect.
+	addEdge(mod("internal/fakeaction"), mod("internal/ir/exec/ops"))
+	// Rule 1a: a generated parser imports a third-party package.
+	addEdge(mod("internal/bench/parsers/json"), "example.org/thirdparty")
 	// A package that no layout row places.
 	g.pkgs[mod("internal/unplaced")] = &pkg{ImportPath: mod("internal/unplaced"), Module: &struct{ Path string }{modulePath}}
 	addEdge(mod("cmd/zp"), mod("internal/unplaced"))
@@ -229,6 +233,8 @@ func TestNegativeControls(t *testing.T) {
 		{"rule 2: internal/ir/exec/ops -> internal/fakeaction", []string{"within internal/ir, code/exec imports only code (internal/ir/code/exec -> internal/ir/code/action)"}},
 		{"rule 2: internal/ir/flow -> internal/fakeaction", []string{"within internal/ir, code/flow imports only code and ir/core"}},
 		{"rule 2: internal/ir/flow -> dialects action, exec, flow", []string{"only the conversions of the middle end and the back end and test support import more than one dialect (internal/ir/code/flow)"}},
+		{"rule 2: internal/fakeaction -> internal/ir/exec/ops", []string{"within internal/ir, code/action imports only code (internal/ir/code/action -> internal/ir/code/exec)"}},
+		{"rule 1a: internal/bench/parsers/json -> example.org/thirdparty", []string{"a generated parser imports no third-party package"}},
 		{"internal/unplaced: no row of layout places the package", nil},
 		{"rule 1: internal/engine/document -> internal/compile: no build has this edge any more; remove it from the allowlist", nil},
 	}
