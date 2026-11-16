@@ -545,7 +545,8 @@ $w$ and $w'$: the start $s'$ of $w'$, or, for a dropped step, the end of its
 seed, which this claim then takes as $s'$. These evaluations do not fail, so
 $w$ ends at or after $s'$, and since the result of $w$ ends at or before $e$,
 $s' \le e$. From the end of $w$ the parser returns to no position before $e$,
-as shown above, so the conclusion of the restarts holds for $w'$ at $s'$. What
+apart from the exception of the restarts, which lies in growths that end
+before $\alpha'$, as shown above, so the conclusion of the restarts holds for $w'$ at $s'$. What
 the parser evaluates after $w'$, through the end of the body of $R$ in $w$
 and then from $e$, is a continuation of $w'$, which continues at the end of a
 rule body through every call of the rule. $w'$ is then a unit, which the
@@ -886,7 +887,9 @@ $\alpha_l$ the parser starts no evaluation at a position before $p$.
 when it is a growth and the growth of which $\bar{w}$ is a step excluded, the
 growths around $w_l$. Each has one step on the path, which contains $w_l$; the
 evaluations on the path other than $w_l$ and $\bar{w}$ succeed and are not
-abandoned (*Restarts*, *Dropped steps*), so that step is kept, and a later
+abandoned (*Restarts*, *Dropped steps*, and the first case of *Repeats
+inside a growth* in Lemma 5 when $N_l$ is a growth), so that step is kept,
+and a later
 step of its growth starts only after it ends. When $\bar{w}$ is a dropped step,
 dropping it returns the parser to the end of its seed, which is no earlier
 than $p$, the start of $w_l$, nor than the end of an evaluation on the path
@@ -2156,7 +2159,7 @@ body evaluation; so $H$ started before $\alpha_j$. From the end of $w_j$ to
 $\alpha_j$ the parser starts no evaluation before $p_j$ apart from the
 exception of the restarts (*Restarts*, *Dropped steps*, and the first case of
 *Repeats inside a growth* in Lemma 5 when $N_j$ is a growth, the second
-leaving $\alpha_j$ out of the sequence). $H$ lies in no evaluation of the
+leaving $\alpha_j$ out of the sequence). $H$ is no evaluation of the
 exception. When $N_j$ is no growth, the exception lies in growths that do not
 contain $\alpha_j$. When $N_j$ is a growth, $\alpha_j$ follows a read $\rho$
 of the seed of its step; an evaluation in the exception that contains
@@ -3675,7 +3678,8 @@ that $w$ and $\kappa$ share, outside case 5 and the activations that start
 after $q - c_W$, as in *Repeats*. It uses of $w$ only what *Dropped steps*
 gives of the unit that it gives: when that unit is a step at the end of its
 seed $e \le p$, the parser returns to no position before $e$ until
-$\alpha'$, and its shared calls and its first characters after them are
+$\alpha'$ apart from the exception of the restarts, which lies in growths
+that end before $\alpha'$, and its shared calls and its first characters after them are
 those of the step tail that holds $c_1$, so the character at $t$ is one of
 them; when it is an evaluation
 $w'$ below the step, it holds $c_1$, and what the parser evaluates after it
@@ -5888,8 +5892,10 @@ condition of the cost view that the [Cost View](cost-view.md) proof leaves open.
    before it is shown only when the indices between are linked by links that
    meet that hypothesis. When the unit of the index starts after the unit of the earlier
    outer link ends, it lies in a continuation of the last unit before it that
-   encloses the frame of the earlier link, if no growth step around that frame
-   is dropped (*The last unit around the earlier frame*). That the later outer
+   encloses the frame of the earlier link, or, in the second form, only its
+   part after its read of the seed of a later growth step lies there, if no
+   growth step around that frame is dropped (*The last unit around the earlier
+   frame*); the second form is not followed further. That the later outer
    activation then lies in the later evaluation of a pair of evaluations of a
    call that the two share, which keeps it from every head (*Evaluated pairs
    of a shared call*), is not shown; the memo need not answer either
