@@ -75,7 +75,7 @@ definition and the place where the term is defined.
 | terminal | A string node. `Node.IsTerminal` reports it. See [Nodes and Values](runtime/nodes.md#node-model). |
 | token | A lexical element of a grammar file: an identifier, a literal, a capture reference or punctuation. See [Tokens](language/lexical.md#tokens). |
 | trace, profile | A trace reports every rule call of a parse, at its start and its end, to a callback; a profile totals the cost of each rule. Both are opt-in and never change what the parser accepts or returns. See [Tracing and Profiling](runtime/observability.md). |
-| trivia rule | A rule whose body is a greedy repetition of an element that cannot match nothing by its form, such as the whitespace of a grammar, and that runs no action. See [Evaluations of Rules](runtime/parsing.md#evaluations-of-rules). |
+| trivia rule | A rule whose body is a greedy repetition of an element that cannot match nothing by its form, such as the whitespace of a grammar, and that runs no action. See [Conditions for Linear Cost](runtime/parsing.md#conditions-for-linear-cost). |
 | tuple | The value of a sequence: the values of its elements, in order. A rule without a valued element produces the empty tuple, the unit `()`. See [Nodes and Values](runtime/nodes.md#node-model). |
 | Type Alias | `type a ~ b`: gives the type `b` another name `a`, and defines no type. See [Type Aliases](language/types.md#type-aliases). |
 | Type Declaration Statement | A statement `type ...` that declares a type name: a Type Definition or a Type Alias. See [Type Declaration Statements](language/types.md#type-declaration-statements). |
