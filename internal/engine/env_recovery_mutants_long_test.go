@@ -87,7 +87,7 @@ func TestRecoveryMutantsFail(t *testing.T) {
 		})
 		runPrintedMutants(t, "state/runtime.go", []printedMutant{
 			{"a growth step keeps the errors of the step before",
-				[]printedEdit{{"\t\tp.Recovered = p.Recovered[:g.Rec]\n", ""}}, "^TestMissingTokensLeftRecursion$", []string{"."}},
+				[]printedEdit{{"\tp.Pos = g.start\n\tp.Recovered = p.Recovered[:g.Rec]\n\tif p.Missing != nil {\n\t\tp.ResetMissing(g.missing)\n\t}\n}", "\tp.Pos = g.start\n\tif p.Missing != nil {\n\t\tp.ResetMissing(g.missing)\n\t}\n}"}}, "^TestMissingTokensLeftRecursion$", []string{"."}},
 			{"a growth that grew keeps the errors of the step before",
 				[]printedEdit{{"\tp.Pos = g.start\n\tp.Recovered = p.Recovered[:g.Rec]\n\treturn true", "\tp.Pos = g.start\n\treturn true"}},
 				"^TestLeftRecursionDependencyMemoUnexamined$", []string{"."}},
