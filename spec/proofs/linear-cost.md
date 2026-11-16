@@ -1112,8 +1112,64 @@ after $w_m$ ends: the parser returns before $p$ after $\alpha_l$ through a
 unit $w_m$ that contains $Y_l$ and $\alpha_l$, as the expression of the lookahead `&B`
 does in `main = &B "b" &Y B / P`, with the other rules as above and
 `S = [ab]+`. That expression does not commit against `"b" &Y B`, and the
-conditions reject the grammar; that $w_m$ never commits in this case is not
-shown, nor is the case in which $Y_{l'}$ contains $e'_j$ and is not $e'_j$.
+conditions reject the grammar. The conditions do not keep such a unit from
+committing through a call that it shares with its continuation and that holds
+$Y_l$, so the case is not ruled out by the units alone; the claim below places
+$w_j$ after the last unit that encloses $Y_l$.
+
+**The last unit around the earlier frame.** In the case above, where $w_j$
+starts after $w_l$ ends, let $\bar{m}$ be the greatest index below $j$ whose unit
+encloses $Y_l$, and let $\bar{s}$ be the start of $w_{\bar{m}}$. Let no step of a
+growth that encloses $Y_l$ be dropped before $\alpha_{j-1}$ starts. Then
+$m \le \bar{m} < j$, from the end of $w_{\bar{m}}$ to the start of $w_j$ the parser
+starts no evaluation at a position before $\bar{s}$, and $w_j$ lies in the
+evaluation from $\bar{s}$ of a continuation of $w_{\bar{m}}$.
+
+*Proof.* $w_m$ encloses $Y_l$, and $w_j$ does not, since it starts after
+$w_l$ ends and $Y_l$, a frame that the link $l$ leaves, encloses $w_l$; so
+$\bar{m}$ exists and $m \le \bar{m} < j$. For an index $k$, the first abandoned
+evaluation on the path from $N_k$ to $\alpha_{k-1}$ is $w_k$ unless it is a
+dropped step (*Restarts*, *Dropped steps*); when it encloses $Y_l$ and ends
+before $\alpha_{j-1}$ starts, the hypothesis makes it no dropped step, so it
+is $w_k$. This holds for $k = \bar{m}$: that evaluation encloses $w_{\bar{m}}$, and
+it ends before $\alpha_{\bar{m}}$ starts, so before $\alpha_{j-1}$. So $w_{\bar{m}}$
+fails or is the expression of a lookahead, and when it ends the parser is at
+$\bar{s}$. Only the abandonment of an evaluation $v$ that started before $\bar{s}$
+then returns the parser before $\bar{s}$; let $v$ be the first one abandoned
+after the end of $w_{\bar{m}}$ and before $w_j$ starts. Everything that the parser
+starts after the end of $w_{\bar{m}}$ and before $v$ ends starts at $\bar{s}$ or
+later, so $v$ started before the end of $w_{\bar{m}}$, and since it is in
+progress after that end, it encloses $w_{\bar{m}}$, and with it $Y_l$ and
+$\alpha_{\bar{m}-1}$. It ends before $w_j$ starts, so it does not contain
+$\alpha_{j-1}$. Let $k$ be the last index with $\alpha_k$ in $v$, so that
+$\bar{m} - 1 \le k < j - 1$. The innermost evaluation $N_{k+1}$ that contains
+$\alpha_k$ and $\alpha_{k+1}$ encloses $v$, which is abandoned and lies on
+the path from $N_{k+1}$ to $\alpha_k$, so the first abandoned evaluation on
+that path is $v$ or encloses it. It encloses $Y_l$ and ends before
+$\alpha_{k+1}$ starts, so it is $w_{k+1}$, which encloses $Y_l$. If
+$k = \bar{m} - 1$, then $w_{\bar{m}}$ is that evaluation, but $v$ is abandoned and
+strictly encloses $w_{\bar{m}}$. Otherwise $\bar{m} < k + 1 < j$, against the choice
+of $\bar{m}$. So there is no such $v$, and as in *Direct activations* the parser
+evaluates from $\bar{s}$ continuations of $w_{\bar{m}}$ up to the start of $w_j$, the
+last of which contains $w_j$. $\square$
+
+Let $\bar{\kappa}$ be that continuation. What remains of this case is to place
+$w_j$, or $e_j$, inside the evaluation in $\bar{\kappa}$ of a call $c$ that
+$w_{\bar{m}}$ and $\bar{\kappa}$ share and whose evaluation in $w_{\bar{m}}$ contains
+$Y_l$, and then to rule the case out through the memo: the two evaluations of
+$c$ are of one call and both are evaluated, so with one variant and outside
+contexts of growths the earlier one is inside a lookahead and the later one
+outside them (*Answered calls*); the call of $e_j$ inside the later one has a
+counterpart inside the earlier one, which leaves an entry that answers $e_j$
+when $e_j$ is inside a lookahead, and otherwise the entry of $e_j$ answers
+the call of $e'_j$, outside cases (a) and (b) of the covered keys. This is not
+shown: $\bar{\kappa}$ need not be the continuation $\kappa_{\bar{m}}$ of the link
+$\bar{m}$, so the pair need not be that link; $w_j$ can enclose the evaluation of
+$c$ rather than lie inside it; the variants of the calls can differ, and an
+entry of one variant answers no call of the other; and the evaluation of the
+key that the covered keys give can be in a context of growths, where it
+stores no entry. Nor is the case shown in which $Y_{l'}$ contains $e'_j$ and
+is not $e'_j$, nor the case of a growth step around $Y_l$ that is dropped.
 
 **Calls of scan-only rules.** Let the rule $r$ of the links $i$ to $k$ be a
 scan-only rule ([Conditions for Linear
@@ -5557,9 +5613,12 @@ condition of the cost view that the [Cost View](cost-view.md) proof leaves open.
    the activation of that call (*Memoized links to the frame of an outer
    link*); what else that unit examines there is not determined, since a unit
    that decides its continuation compares each way through a call of a rule
-   on its own. A unit of the index that starts after the unit of the earlier
-   outer link ends, with the unit that then contains the earlier link and
-   returns the parser before the scan, a later
+   on its own. When the unit of the index starts after the unit of the earlier
+   outer link ends, it lies in a continuation of the last unit before it that
+   encloses the frame of the earlier link, if no growth step around that frame
+   is dropped (*The last unit around the earlier frame*); that it lies in a
+   call that the two share, and that the memo then answers one of the two
+   evaluations of the index, is not shown. A later
    evaluation that lies inside that frame, an index that is free and one
    linked by a leaf link at a position before the scan are not treated. So the outer links do not bound the
    runs, and the count of the
