@@ -30,6 +30,9 @@ var (
 	// The generated parsers of the agreement use a copy of the library that the overlay does not
 	// change; a mutant of the library changes that copy too (agreeLibPatchEnv).
 	libOptionsRun = engineObservationRun{"./codegen/go/lib", "TestTraceOption(Selection|Composition)", ""}
+	// The Documents of both producers, whose parses share the defaults' trace selection.
+	engineDocumentRun    = engineObservationRun{"./engine", "TestDocumentTraceSelection", ""}
+	generatedDocumentRun = engineObservationRun{"./internal/codegen/go", "TestGeneratedDocumentObservation", ""}
 )
 
 func expecting(r engineObservationRun, want string) engineObservationRun { r.want = want; return r }
@@ -58,6 +61,10 @@ var engineObservationMutants = []engineObservationMutant{
 	{name: "engine keeps the last profile", file: "engine/engine.go",
 		old: "o.Profiles = append(slices.Clip(o.Profiles), prof)", new: "o.Profiles = append(o.Profiles[:0:0], prof)",
 		runs: []engineObservationRun{expecting(engineOptionsRun, "the second profile")}},
+	{name: "engine Document parses change the default selection", file: "engine/engine.go",
+		old:  "\ts := new(engine.TraceSelection)\n\tif o.TraceSelection != nil {\n\t\t*s = *o.TraceSelection\n\t}\n\to.TraceSelection = s\n",
+		new:  "\tif o.TraceSelection == nil {\n\t\to.TraceSelection = new(engine.TraceSelection)\n\t}\n\ts := o.TraceSelection\n",
+		runs: []engineObservationRun{expecting(engineDocumentRun, "Parse 3 selected")}},
 	{name: "generated trace filter ignored", file: "codegen/go/lib/trace.go",
 		old: "return len(o.rules) == 0 || o.rules[rule] ||", new: "return len(o.rules) >= 0 || o.rules[rule] ||",
 		runs: []engineObservationRun{expecting(agreementRun, "generated: the trace filter"), expecting(libOptionsRun, "pair and nested: got")}},
@@ -73,14 +80,18 @@ var engineObservationMutants = []engineObservationMutant{
 	{name: "generated Document parses share added profiles", file: "codegen/go/lib/trace.go",
 		old: "x.more = append(slices.Clip(x.more), profile)", new: "_ = slices.Clip[[]int]\n\t\t\tx.more = append(x.more, profile)",
 		runs: []engineObservationRun{expecting(libOptionsRun, "was replaced")}},
+	{name: "generated Document parses change the default filter", file: "codegen/go/lib/trace.go",
+		old:  "return func(o *parseOptions) { o.observe.withExtras().rules = names }",
+		new:  "return func(o *parseOptions) {\n\t\tif o.observe.extras == nil {\n\t\t\to.observe.extras = new(observeExtras)\n\t\t}\n\t\to.observe.extras.rules = names\n\t}",
+		runs: []engineObservationRun{expecting(generatedDocumentRun, "Parse 3 selected")}},
 	// The control changes nothing that the tests observe: they must pass with it, so that what makes the
 	// other mutants fail is their change, not the overlay.
 	{name: "control", file: "internal/engine/state/trace.go",
 		old: "\tt.exp = nil\n", new: "\tt.exp = nil\n\t_ = t\n",
-		runs: []engineObservationRun{agreementRun, discardRun, engineOptionsRun, libOptionsRun}},
+		runs: []engineObservationRun{agreementRun, discardRun, engineOptionsRun, libOptionsRun, engineDocumentRun}},
 	{name: "library control", file: "codegen/go/lib/trace.go",
 		old: "\tx := new(observeExtras)\n", new: "\tx := new(observeExtras)\n\t_ = x\n",
-		runs: []engineObservationRun{agreementRun, libOptionsRun}},
+		runs: []engineObservationRun{agreementRun, libOptionsRun, generatedDocumentRun}},
 }
 
 // TestEngineObservationMutants checks that the agreement of the engine's observations with the generated

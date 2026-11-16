@@ -208,3 +208,56 @@ func sameProfiles(a, b engine.Profile) bool {
 	y, _ := json.Marshal(untimed(b))
 	return string(x) == string(y)
 }
+
+// A trace filter or depth limit given to a Document's Parse replaces the default for that Parse only.
+// Each Parse follows an Edit of the whole text, so that it makes every call again.
+func TestDocumentTraceSelection(t *testing.T) {
+	p, err := compileTestSource(`rule main = item* #stream $$
+rule item = pair / word
+rule pair = word "=" word
+rule word = [a-z]+ #atomic ";"?`, "main")
+	if err != nil {
+		t.Fatal(err)
+	}
+	const in = "a=b;c;d=e;"
+	for _, b := range []engine.Backend{engine.Closure, engine.Bytecode, engine.BytecodeIterative} {
+		var events []engine.TraceEvent
+		record := engine.WithTrace(func(e engine.TraceEvent) { events = append(events, e) })
+		full := func(d *engine.Document, opts ...engine.ParseOption) []engine.TraceEvent {
+			t.Helper()
+			if err := d.Edit(0, len(d.Text()), in); err != nil {
+				t.Fatal(err)
+			}
+			events = nil
+			if _, err := d.Parse(opts...); err != nil {
+				t.Fatal(err)
+			}
+			return events
+		}
+		ref, err := p.NewDocument(in, engine.WithBackend(b), record)
+		if err != nil {
+			t.Fatal(err)
+		}
+		d, err := p.NewDocument(in, engine.WithBackend(b), record, engine.WithTraceFilter("pair"), engine.WithTraceMaxDepth(3))
+		if err != nil {
+			t.Fatal(err)
+		}
+		for i, step := range []struct {
+			opts     []engine.ParseOption
+			rules    []string
+			maxDepth int
+		}{
+			{nil, []string{"pair"}, 3},
+			{[]engine.ParseOption{engine.WithTraceFilter("word")}, []string{"word"}, 3},
+			{nil, []string{"pair"}, 3},
+			{[]engine.ParseOption{engine.WithTraceMaxDepth(0)}, []string{"pair"}, 0},
+			{nil, []string{"pair"}, 3},
+		} {
+			all := full(ref)
+			want, got := codegentest.SelectedEvents(all, step.rules, step.maxDepth), full(d, step.opts...)
+			if len(want) == 0 || len(want) == len(all) || !sameEvents(want, got) {
+				t.Fatalf("%v: Parse %d selected\n%v\nwant\n%v", b, i+1, got, want)
+			}
+		}
+	}
+}

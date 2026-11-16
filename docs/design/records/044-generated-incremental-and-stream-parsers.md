@@ -70,10 +70,12 @@ before execution admission preserves the valid memo and the last published
 `Stats`. Once execution starts, an interruption clears the execution memo for
 a safe retry.
 
-With `-observability`, constructor `WithTrace` and `WithProfile` options are
-retained as defaults for later `Parse` and `ParseValue` calls; construction itself
-emits no parser events or profile counts. Per-call trace functions and profiles
-are added to those defaults for that invocation only. `Edit` does not parse and emits no rule
+With `-observability`, constructor `WithTrace`, `WithProfile`, `WithTraceFilter`
+and `WithTraceMaxDepth` options are retained as defaults for later `Parse` and
+`ParseValue` calls; construction itself emits no parser events or profile counts.
+Per-call trace functions and profiles are added to those defaults for that
+invocation only, and a per-call trace filter or depth limit replaces the default
+for that invocation only. `Edit` does not parse and emits no rule
 events. Events describe calls made during the current invocation. A memoized
 whole-call reuse reports that call as a memo hit (`Memo=true`, `Evals=0`)
 without replaying nested events from an earlier parse. Node parsing, direct

@@ -356,18 +356,20 @@ type agreeReport struct {
 }
 
 // agreeLibPatchEnv names the environment variable through which the mutants of
-// TestEngineObservationMutants change the library of the generated parsers: a JSON object with the
-// file of the library (relative to the module root) and the text to replace (Old) with New. The go
-// command's overlay does not reach the copy of the library that the probes import.
+// TestEngineObservationMutants change the library that generated parsers import in the tests that
+// build them in a module of their own (the agreement and the generated Document observation): a JSON
+// object with the file of the library (relative to the module root) and the text to replace (Old) with
+// New. The go command's overlay does not reach those copies of the library.
 const agreeLibPatchEnv = "ZP_AGREE_LIB_PATCH"
 
-// agreeLib returns the library that the probes import: the copy of the library, changed as
-// agreeLibPatchEnv says if it is set.
-func agreeLib(t *testing.T) string {
+// libPatchFromEnv returns the patch of agreeLibPatchEnv, applied after then (if not nil), for
+// codegentest.LibCopyWith, and a function that fails t unless the patch replaced exactly one occurrence.
+// Without the variable it returns then and a check that passes.
+func libPatchFromEnv(t *testing.T, then func(name, src string) string) (func(name, src string) string, func()) {
 	t.Helper()
 	spec := os.Getenv(agreeLibPatchEnv)
 	if spec == "" {
-		return codegentest.LibCopy()
+		return then, func() {}
 	}
 	var m struct{ File, Old, New string }
 	if err := json.Unmarshal([]byte(spec), &m); err != nil {
@@ -378,16 +380,34 @@ func agreeLib(t *testing.T) string {
 		t.Fatalf("%s: %s is not a file of the library", agreeLibPatchEnv, m.File)
 	}
 	patched := 0
-	lib := codegentest.LibCopyWith(t, func(file, src string) string {
-		if file != name {
-			return src
+	patch := func(file, src string) string {
+		if file == name {
+			patched += strings.Count(src, m.Old)
+			src = strings.Replace(src, m.Old, m.New, 1)
 		}
-		patched += strings.Count(src, m.Old)
-		return strings.Replace(src, m.Old, m.New, 1)
-	}, nil)
-	if patched != 1 {
-		t.Fatalf("%s: %q occurs %d times in %s", agreeLibPatchEnv, m.Old, patched, m.File)
+		if then != nil {
+			src = then(file, src)
+		}
+		return src
 	}
+	return patch, func() {
+		t.Helper()
+		if patched != 1 {
+			t.Fatalf("%s: %q occurs %d times in %s", agreeLibPatchEnv, m.Old, patched, m.File)
+		}
+	}
+}
+
+// agreeLib returns the library that the probes import: the copy of the library, changed as
+// agreeLibPatchEnv says if it is set.
+func agreeLib(t *testing.T) string {
+	t.Helper()
+	if os.Getenv(agreeLibPatchEnv) == "" {
+		return codegentest.LibCopy()
+	}
+	patch, check := libPatchFromEnv(t, nil)
+	lib := codegentest.LibCopyWith(t, patch, nil)
+	check()
 	return lib
 }
 

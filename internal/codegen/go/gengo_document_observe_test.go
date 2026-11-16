@@ -183,6 +183,29 @@ func TestDocumentDefaultsAndIsolation(t *testing.T){
  var unfiltered zpcore.Profile;makeDoc().Parse(zprt.WithProfile(&unfiltered));for _,opts:=range [][]ParseOption{{zprt.WithTraceFilter("unknown")},{zprt.WithTraceMaxDepth(1)},{zprt.WithTraceFilter("main")}}{var filtered zpcore.Profile;opts=append(opts,zprt.WithProfile(&filtered),zprt.WithTrace(func(zpcore.TraceEvent){}));makeDoc().Parse(opts...);if !reflect.DeepEqual(scalarProfile(unfiltered.Snapshot()),scalarProfile(filtered.Snapshot())){t.Fatal("profile depends on trace filter")}};released(t)
  var nested zpcore.Profile;entered:=false;makeDoc().Parse(zprt.WithProfile(&nested),zprt.WithTrace(func(zpcore.TraceEvent){if !entered{entered=true;other:=makeDoc();other.Parse(zprt.WithProfile(&nested));Parse(testInput(),zprt.WithProfile(&nested))}}));if nested.Snapshot().Parses!=3{t.Fatal("independent reentry lost")};released(t)
 }
+// A trace filter or depth limit given to one Parse replaces the Document's default for that Parse only.
+// Each Parse follows an Edit of the whole text, so that it makes every call again.
+func TestDocumentTraceSelection(t *testing.T){
+ for _,unit:=range []PositionUnit{CodePoints,Bytes}{
+  var events []zpcore.TraceEvent;record:=zprt.WithTrace(func(e zpcore.TraceEvent){events=append(events,e)})
+  full:=func(d *Document,opts ...ParseOption)[]zpcore.TraceEvent{t.Helper();n:=len(d.Text());if unit==CodePoints{n=utf8.RuneCountInString(d.Text())};if err:=d.Edit(0,n,testInput());err!=nil{t.Fatal(err)};events=nil;d.Parse(opts...);return events}
+  ref,err:=NewDocument(testInput(),WithUnit(unit),record);if err!=nil{t.Fatal(err)}
+  d,err:=NewDocument(testInput(),WithUnit(unit),record,zprt.WithTraceFilter("main"),zprt.WithTraceMaxDepth(1));if err!=nil{t.Fatal(err)}
+  top:=func(all []zpcore.TraceEvent)(out []zpcore.TraceEvent){for _,e:=range all{if e.Depth==1{out=append(out,e)}};return}
+  for i,step:=range []struct{opts []ParseOption;want func([]zpcore.TraceEvent)[]zpcore.TraceEvent}{
+   {nil,top},
+   {[]ParseOption{zprt.WithTraceFilter("no such rule")},func([]zpcore.TraceEvent)[]zpcore.TraceEvent{return nil}},
+   {nil,top},
+   {[]ParseOption{zprt.WithTraceMaxDepth(0)},func(all []zpcore.TraceEvent)[]zpcore.TraceEvent{return all}},
+   {nil,top},
+  }{
+   all:=full(ref);if len(top(all))==0||len(top(all))==len(all){t.Fatal("no call below the start rule",all)}
+   got,want:=full(d,step.opts...),step.want(all)
+   if len(got)!=len(want)||len(want)!=0&&!reflect.DeepEqual(got,want){t.Fatalf("Parse %d selected\n%v\nwant\n%v",i+1,got,want)}
+  }
+ }
+ released(t)
+}
 func TestDocumentReentryRejected(t *testing.T){
  routes:=[]func(*Document,...ParseOption)(any,error){func(d *Document,opts ...ParseOption)(any,error){return d.Parse(opts...)}}
  referenceRoutes:=[]func(*reference.Document)(any,error){func(d *reference.Document)(any,error){return d.Parse()}}
@@ -222,7 +245,7 @@ func observedLib(t *testing.T) string {
 		}
 		return strings.ReplaceAll(src, old, new)
 	}
-	return codegentest.LibCopyWith(t, func(name, src string) string {
+	patch, check := libPatchFromEnv(t, func(name, src string) string {
 		switch name {
 		case "document.go", "typed_document.go":
 			return replace(src, "p.Observation = newObservation(&o.observe, &p.Silent)\n\tdefer p.releaseObservation()",
@@ -244,9 +267,13 @@ func observedLib(t *testing.T) string {
 			}
 		}
 		return src
-	}, map[string]string{"zz_hooks.go": `package libgo
+	})
+	hooks := map[string]string{"zz_hooks.go": `package libgo
 
 var ProbeHook func(*observation)
 var ExaminedHook = func(rule string, pos, level, examined int, hit bool) {}
-`})
+`}
+	lib := codegentest.LibCopyWith(t, patch, hooks)
+	check()
+	return lib
 }
