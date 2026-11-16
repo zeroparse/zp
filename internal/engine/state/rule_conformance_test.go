@@ -45,6 +45,8 @@ func newRuleMachine(cfg ref.Config, controlled bool) conform.Impl {
 		base = e.engineMachine
 	}
 	base.p.MemoAll = cfg.Document
+	// As the parses of a Document and of a stream set it.
+	base.p.DeferMemo = !cfg.Document && !cfg.Stream
 	if cfg.Missing {
 		base.p.Missing = &MissingTokenState{Limit: 1 << 30}
 	}
@@ -77,6 +79,7 @@ func scriptRules(rules []*Rule, cfg ref.Config, eval func(index int64, p *Parser
 		// transient.
 		r.Memo, r.Transient = s.Memo || s.DocMemo, !s.Memo
 		r.Leader, r.Plain, r.Positional, r.Rec = s.Leader, s.DocPlain, s.Positional, s.Rec
+		r.Seen = int(ref.SeenIndex(cfg.RuleSpecs, int64(i)))
 		r.Scope = &compile.Scope{}
 		for k := range s.Captures {
 			r.Scope.Names = append(r.Scope.Names, ref.CaptureName(k))
@@ -180,6 +183,10 @@ func (m *ruleMachine) Call(o *exec.Op, args []any) (res []any) {
 		return []any{p.confRulePositional(rule())}
 	case "rule.id":
 		return []any{int64(p.confRuleId(rule()))}
+	case "rule.seen":
+		return []any{int64(p.confRuleSeen(rule()))}
+	case "seen.defers":
+		return []any{p.confSeenDefers()}
 	case "rule.invoke":
 		return invoke(p.confRuleInvoke)
 	case "rule.invokePlain":
@@ -202,7 +209,7 @@ func (m *ruleMachine) Call(o *exec.Op, args []any) (res []any) {
 
 // ruleEngineOps are the operations of the rules that the engine provides, with the doc operations.
 var ruleEngineOps = append([]string{"rule.memo", "rule.leader", "rule.plain", "rule.docOnlyMemo", "rule.docPlain",
-	"rule.positional", "rule.id", "rule.invoke", "rule.invokePlain", "depth.enter", "depth.exit", "depth.current",
+	"rule.positional", "rule.id", "rule.seen", "rule.invoke", "rule.invokePlain", "seen.defers", "depth.enter", "depth.exit", "depth.current",
 	"rec.mark", "rec.truncate", "missing.active", "missing.mark"}, conform.DocCoreOps...)
 
 // ruleSuites are the suites of the engine's operations of the rules: its Document parse takes the call
@@ -295,6 +302,10 @@ func TestEngineRuleConformanceDetectsBrokenEngine(t *testing.T) {
 		"rule.id is the position of the rule after it": func(m *ruleMachine, args []any) []any {
 			return []any{int64(args[0].(*Rule).ID + 1)}
 		},
+		"rule.seen is the rule's identifier": func(m *ruleMachine, args []any) []any {
+			return []any{int64(args[0].(*Rule).ID)}
+		},
+		"seen.defers ignores the Document": func(m *ruleMachine, args []any) []any { return []any{true} },
 		"rule.invoke runs the body without its own frame": func(m *ruleMachine, args []any) []any {
 			p := m.p
 			p.Pos = int(m.regs[ops.Pos].(int64))
@@ -393,6 +404,14 @@ func TestEngineRuleChargesArePinned(t *testing.T) {
 			v, ok := invoke(m, args, m.p.confRuleInvokePlain)
 			m.p.Spend()
 			return []any{v, ok}
+		},
+		"rule.seen charges a unit": func(m *ruleMachine, args []any) []any {
+			m.p.Spend()
+			return []any{int64(m.p.confRuleSeen(args[0].(*Rule)))}
+		},
+		"seen.defers charges a unit": func(m *ruleMachine, args []any) []any {
+			m.p.Spend()
+			return []any{m.p.confSeenDefers()}
 		},
 	}
 	for name, v := range variants {

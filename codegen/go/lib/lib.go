@@ -1054,27 +1054,18 @@ type seenCalls struct {
 	eager          bool
 }
 
-// FirstCall records a call of rule r at the current position and reports whether its
-// memoization is deferred: it is the first call there, and repeated calls of the rule have been
-// rare so far. Results are reused only when a rule is called again at a position, which is rare,
-// so memoizing every first call cost an entry each for nothing; deferring memoization to the
-// second call evaluates a rule at most twice per position, which keeps parse time linear.
-func (p *Parser) FirstCall(r *Rule) bool {
-	// Documents memoize on the first call and never get here (callDocument).
-	if p.Stream != nil {
-		return false // streams memoize on the first call, as the engine does
-	}
+// seenFirst records a call of the rule with the seen index s at pos and reports whether its
+// memoization is deferred (seen.first): it is the first call there, and repeated calls of the rule
+// have been rare so far. FirstCall decides whether the parse and the rule defer at all.
+func (p *Parser) seenFirst(s, pos int) bool {
 	if p.Control != nil {
-		p.controlledFirstCallPrepare(r)
-	}
-	if r.Seen < 0 {
-		return false
+		p.controlledFirstCallPrepare(s, pos)
 	}
 	t := &p.memo
 	if t.calls == nil {
 		t.calls = make([]seenCalls, t.stride)
 	}
-	c := &t.calls[r.Seen]
+	c := &t.calls[s]
 	if c.eager {
 		return false
 	}
@@ -1088,14 +1079,13 @@ func (p *Parser) FirstCall(r *Rule) bool {
 	c.calls = int32(calls)
 	var first bool
 	if t.sparse {
-		pos := p.Pos
-		page := t.cachedSeenPage(pos, r.Seen)
+		page := t.cachedSeenPage(pos, s)
 		if page == nil {
-			page = t.sparsePage(pos, r.Seen)
+			page = t.sparsePage(pos, s)
 		}
 		first = markSeenPage(page, pos)
 	} else {
-		first = t.markSeen(p.Pos, r.Seen)
+		first = t.markSeen(pos, s)
 	}
 	if first {
 		return true

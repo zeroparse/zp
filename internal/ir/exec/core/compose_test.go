@@ -72,7 +72,7 @@ type machine struct {
 	// last is the entry stored last (memo.store).
 	last *ref.Entry
 	// evaluated counts the bodies evaluated through an invocation (doc.evaluated); forgot lists the
-	// examined ends of the records forgotten (memo.forgetDoc).
+	// examined ends of the records that memo.store dropped with the entries it replaced.
 	evaluated int
 	forgot    []int64
 }
@@ -225,12 +225,17 @@ func (m *machine) Call(o *exec.Op, args []any) []any {
 	case "budget.charge":
 		m.spends += int(args[0].(uint64))
 		return nil
-	case "call.first":
+	case "seen.defers":
+		return []any{true}
+	case "rule.seen":
+		// A rule whose memoization the parse defers has its identifier as its seen index.
 		r := args[0].(*trule)
 		if !r.defer_ {
-			return []any{false}
+			return []any{int64(-1)}
 		}
-		return m.Model.Call(&exec.Op{Name: "seen.first"}, []any{r.id, m.pos()})
+		return []any{r.id}
+	case "seen.first":
+		return m.Model.Call(o, args)
 	case "rule.id":
 		return []any{args[0].(*trule).id}
 	case "rule.memo":
@@ -368,11 +373,6 @@ func (m *machine) Call(o *exec.Op, args []any) []any {
 	case "doc.evaluated":
 		m.evaluated++
 		return nil
-	case "memo.forgetDoc":
-		e := entryOf(args[0])
-		m.forgot = append(m.forgot, m.examined[e])
-		delete(m.examined, e)
-		return nil
 	case "rule.run":
 		return args[0].(*trule).Call(m)
 	case "memo.examine":
@@ -491,6 +491,14 @@ func (m *machine) Call(o *exec.Op, args []any) []any {
 	res := m.Model.Call(o, args)
 	if o.Name == "memo.store" {
 		m.last = res[0].(*ref.Entry)
+		// A target that keeps records beside the entries drops those of the entry the store replaced,
+		// which the model no longer allows to be read.
+		for e, end := range m.examined {
+			if !m.Model.Allows(&exec.Op{Name: "memo.examined"}, []any{e}) {
+				m.forgot = append(m.forgot, end)
+				delete(m.examined, e)
+			}
+		}
 	}
 	return res
 }

@@ -12,6 +12,7 @@ The call protocol of a rule: deferred memoization, the memo with its reuse condi
 
 | Declaration | Meaning |
 |:--|:--|
+| `func firstCall(r Rule) bool` | Records a call of the memoized rule r at the position and reports whether its memoization is deferred, so that the call is not memoized: in a parse that defers memoization (seen.defers), for a rule with a seen index (rule.seen), as seen.first decides. A result is reused only when a rule is called again at a position, which is rare, so deferring memoization to the second call saves a memo entry for each position where the rule is called once, and evaluates the body of a rule at most twice per position, binding level and combination of variable values. |
 | `func call(r Rule, min int) (Value, bool) [document, observe, typed, budget]` | Calls rule r at binding level min: unmemoized while its memoization is deferred, and otherwise through the memo and the dependency memo of left-recursion contexts, growing the seed of a left-recursion leader. |
 | `func callMemo(r Rule, inv Body) (Value, bool) [document, observe, typed]` | The memoized part of a rule call, for the rule r at binding level 0 invoked by inv: the rule is called at the position again, or its memoization is no longer deferred. |
 | `func grow(r Rule, min int) (Value, bool) [typed]` | Grows the seed of a left-recursive leader from a failure: it evaluates the body again while the match gets longer, and returns the last longer result. |
@@ -132,6 +133,7 @@ row includes what its backends print into packages of their own.
 
 | Composition | Generated Go, nodes | Generated Go, typed values | The engine | TypeScript |
 |:--|:--|:--|:--|:--|
+| firstCall | `[]` | `[]` | `[]` | `[]` |
 | call | `[budget, document]` | `[budget, document, observe, typed]` |  | `[budget, observe]` |
 | callMemo |  | `[document, observe, typed]` |  |  |
 | grow | `[]` | `[typed]` | `[]` | `[]` |

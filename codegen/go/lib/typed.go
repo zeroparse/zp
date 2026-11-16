@@ -1140,6 +1140,7 @@ func (p *TParser) memoPut(rule, pos, min int, env []any, docOnly bool, e *tmemoE
 				slot, _ := ix.probe(h, func(y *tmemoEntry) bool { return y == x })
 				ix[slot] = e
 			}
+			p.dropRecord(x)
 			e.next = x.next
 			*link = e
 			return
@@ -1155,6 +1156,7 @@ func (p *TParser) memoPut(rule, pos, min int, env []any, docOnly bool, e *tmemoE
 			p.memoIndexBytes += memoIndexEntryBytes
 		}
 		if x != nil {
+			p.dropRecord(x)
 			link = &p.memoSlots[pos]
 			for *link != x {
 				link = &(*link).next
@@ -1235,12 +1237,23 @@ func (p *TParser) memoPutControlled(rule, pos, min int, key []any, ident bool, e
 		p.memoIndexBytes += uint64(len(ix)-n) * memoIndexEntryBytes
 	}
 	if replaced != nil {
+		if replaced != e {
+			p.dropRecord(replaced)
+		}
 		e.next = replaced.next
 		*link = e
 		return
 	}
 	e.next = slots[pos]
 	slots[pos] = e
+}
+
+// dropRecord forgets the Document record of the entry x that a store replaces (memo.store), so that
+// the record does not keep the entry alive.
+func (p *TParser) dropRecord(x *tmemoEntry) {
+	if p.TypedDocument != nil {
+		delete(p.TypedDocument.meta, x)
+	}
 }
 
 // --- Typed Document memo ---

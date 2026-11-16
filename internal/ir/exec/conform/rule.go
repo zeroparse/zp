@@ -30,10 +30,12 @@ type Bodies interface {
 // (Bodies.Body). It is not an operation of the parser VM.
 const BodyOp = "test.body"
 
-// RuleOps are the operations of the rules that a parse from scratch and a Document parse read.
+// RuleOps are the operations of the rules that a parse from scratch and a Document parse read, with
+// seen.defers, which tells the two kinds of parse apart for the deferral of memoization as rule.seen
+// tells the rules apart.
 var RuleOps = []string{
 	"rule.memo", "rule.leader", "rule.plain", "rule.docMemo", "rule.docOnlyMemo", "rule.docPlain",
-	"rule.positional", "rule.id", "rule.invoke", "rule.invokePlain",
+	"rule.positional", "rule.id", "rule.seen", "rule.invoke", "rule.invokePlain", "seen.defers",
 }
 
 // RuleCaseOps are the operations besides those of the rules that the cases of the rules call: the
@@ -88,11 +90,31 @@ func RuleCases() []Case {
 		cfg.Document = doc
 		add(fmt.Sprint("rule_flags_document_", doc), cfg, func(b *exec.Builder) {
 			for k := range int64(RuleRules) {
-				for _, o := range RuleOps[:8] {
+				for _, o := range RuleOps[:9] {
 					b.Let(fmt.Sprintf("%s_%d", o[5:], k), exec.C(o, rule(k)))
 				}
 			}
 			b.Assert(exec.Eq(exec.C("rule.id", rule(2)), i(2)), "a rule's index is its identifier")
+			b.Let("defers", exec.C("seen.defers"))
+		})
+	}
+
+	// The seen indexes number the rules that a parse from scratch memoizes and that lead no cycle, in
+	// order; a stream parse and a Document parse memoize on the first call.
+	seen := RuleConfig(ref.RuleSpec{Memo: true, Leader: true}, ref.RuleSpec{DocMemo: true}, ref.RuleSpec{Memo: true}, ref.RuleSpec{Memo: true})
+	add("rule_seen", seen, func(b *exec.Builder) {
+		b.Assert(exec.Eq(exec.C("rule.seen", rule(0)), i(-1)), "a leader has no seen index")
+		b.Assert(exec.Eq(exec.C("rule.seen", rule(1)), i(-1)), "a rule that only a Document memoizes has none")
+		b.Assert(exec.Eq(exec.C("rule.seen", rule(2)), i(0)), "the first deferred rule has index 0")
+		b.Assert(exec.Eq(exec.C("rule.seen", rule(3)), i(1)), "the next has index 1")
+		b.Assert(exec.C("seen.defers"), "a parse of a whole input defers")
+	})
+	for _, kind := range []string{"document", "stream"} {
+		cfg := seen
+		cfg.Document, cfg.Stream = kind == "document", kind == "stream"
+		add("seen_defers_"+kind, cfg, func(b *exec.Builder) {
+			b.Assert(exec.Not(exec.C("seen.defers")), "the parse memoizes on the first call")
+			b.Assert(exec.Eq(exec.C("rule.seen", rule(3)), i(1)), "the seen index is the grammar's")
 		})
 	}
 

@@ -58,6 +58,21 @@ func (p *Parser) Call(r *Rule, min int) (*core.Node, bool) {
 	return v, ok
 }
 
+// FirstCall records a call of the memoized rule r at the position and reports whether its
+// memoization is deferred, in which case the call is not memoized. A result is reused only when the rule
+// is called again at the same position, which in practice is rare, so memoizing every first call would
+// cost a memo entry per call for nothing. Deferring memoization to the second call evaluates the body of
+// a rule at most twice per position, binding level and combination of variable values. That bounds how
+// often a rule body runs, not the time of a parse: loops inside a body, left-recursion growth and
+// variable environments do work that the memo does not share. A parse that memoizes on the first call, a
+// rule without a seen index and an eager rule are memoized at once.
+//
+// Printed from Exec IR function firstCall of internal/ir/exec/core.
+func (p *Parser) FirstCall(r *Rule) bool {
+	s := r.Seen
+	return p.DeferMemo && s >= 0 && p.memoFirstCall(p.Pos, s)
+}
+
 // callDoc is engineCall for a parse that reads a Document. Under the default limit, what a
 // parse from scratch does not do is Document work and leaves the count against the limit: the unit of
 // the call protocol for a plain rule, and the memo protocol (its deferral, the begin and the end of

@@ -102,6 +102,36 @@ func (p *Parser) Call(r *Rule, min int) (*core.Node, bool) {
 	return v, ok
 }
 
+// FirstCall records a call of the memoized rule r at the position and reports whether its
+// memoization is deferred, in which case the call is not memoized. A result is reused only when the rule
+// is called again at the same position, which in practice is rare, so memoizing every first call would
+// cost a memo entry per call for nothing. Deferring memoization to the second call evaluates the body of
+// a rule at most twice per position, binding level and combination of variable values. That bounds how
+// often a rule body runs, not the time of a parse: loops inside a body, left-recursion growth and
+// variable environments do work that the memo does not share. A parse that memoizes on the first call, a
+// rule without a seen index and an eager rule are memoized at once.
+//
+// Printed from Exec IR function firstCall of internal/ir/exec/core.
+func (p *Parser) FirstCall(r *Rule) bool {
+	s := r.Seen
+	return (p.Stream == nil && p.Document == nil) && s >= 0 && p.seenFirst(s, p.Pos)
+}
+
+// firstCall records a call of the memoized rule r at the position and reports whether its
+// memoization is deferred, in which case the call is not memoized. A result is reused only when the rule
+// is called again at the same position, which in practice is rare, so memoizing every first call would
+// cost a memo entry per call for nothing. Deferring memoization to the second call evaluates the body of
+// a rule at most twice per position, binding level and combination of variable values. That bounds how
+// often a rule body runs, not the time of a parse: loops inside a body, left-recursion growth and
+// variable environments do work that the memo does not share. A parse that memoizes on the first call, a
+// rule without a seen index and an eager rule are memoized at once.
+//
+// Printed from Exec IR function firstCall of internal/ir/exec/core.
+func (p *TParser) firstCall(r *TRule) bool {
+	s := r.Seen
+	return (p.Stream == nil && p.Document == nil) && s >= 0 && p.seenFirst(s, p.Pos)
+}
+
 // grow grows the seed of a left-recursive leader from a failure: it evaluates the body again while
 // the match gets longer, and returns the last longer result.
 //
@@ -276,7 +306,7 @@ func (p *TParser) callBody(r *TRule, min int) (any, bool) {
 	}
 	p.Spend()
 	start := p.Pos
-	if !r.Memo && !r.Leader || p.FirstCall(r.Rule) {
+	if !r.Memo && !r.Leader || p.firstCall(r) {
 		if len(r.Scope) == 0 {
 			v, ok = p.invokePlainBody(r, min)
 			return v, ok
@@ -841,9 +871,6 @@ func (p *TParser) DocumentCall(r *TRule, min int, inv func(*TParser) (any, bool)
 	kept := p.Keep(inner)
 	store := p.ctxPop(&c)
 	if store == storeMemo {
-		if found {
-			delete(p.TypedDocument.meta, e)
-		}
 		entry := p.memoSlab.one()
 		*entry = tmemoEntry{val: v, ok: ok, end: p.Pos, silent: p.Silent > 0, errs: p.recSince(rec)}
 		p.memoPut(r.Id, start, min, env, (r.DocMemo && !r.Memo && !r.Leader), entry)

@@ -19,9 +19,8 @@ import (
 // does (call_exec.go): memo.store allocates an entry and stores it with MemoPut.
 
 type engineMachine struct {
-	p     *Parser
-	vals  map[int64][]any
-	rules []*Rule
+	p    *Parser
+	vals map[int64][]any
 	// envRules are the rules of ref.Config.RuleVars, and nextKey the Values handle that env.key made last.
 	envRules []*Rule
 	nextKey  int64
@@ -34,11 +33,6 @@ func newEngineMachine(cfg ref.Config, controlled, sparse bool) conform.Impl {
 	p := &Parser{Memo: NewMemoTable(), MaxDepth: int(cfg.MaxDepth), DeferMemo: true}
 	p.Memo.Stride, p.Memo.Sparse = cfg.Rules, sparse
 	m := &engineMachine{p: p, vals: map[int64][]any{}, lists: map[RecEntry]*errorList{}}
-	for i := range cfg.Rules {
-		r := &Rule{}
-		r.Seen = i
-		m.rules = append(m.rules, r)
-	}
 	if len(cfg.Vars) > 0 {
 		vals := make([]any, len(cfg.Vars))
 		for i, id := range cfg.Vars {
@@ -220,8 +214,7 @@ func (m *engineMachine) Call(o *exec.Op, args []any) (res []any) {
 	case "memo.silent":
 		return []any{args[0].(*MemoEntry).silent}
 	case "seen.first":
-		p.Pos = int(args[1].(int64))
-		return []any{p.FirstCall(m.rules[args[0].(int64)])}
+		return []any{p.confSeenFirst(int(args[0].(int64)), int(args[1].(int64)))}
 	case "budget.charge":
 		p.Control.Charge(args[0].(uint64))
 		return nil
@@ -441,8 +434,7 @@ func TestEngineExecConformanceDetectsBrokenEngine(t *testing.T) {
 		}},
 		// A first-call record that drops the rule (every rule shares one record).
 		"seen ignores the rule": {op: "seen.first", call: func(m *engineMachine, args []any) []any {
-			m.p.Pos = int(args[1].(int64))
-			return []any{m.p.FirstCall(m.rules[0])}
+			return []any{m.p.confSeenFirst(0, int(args[1].(int64)))}
 		}},
 		// A lookup that charges each entry it passes twice: within the results, beyond the bound.
 		"lookup charges twice": {op: "memo.lookup", controlled: true, want: "more than the bound", call: func(m *engineMachine, args []any) []any {

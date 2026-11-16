@@ -180,7 +180,8 @@ the first entries of a long chain: a miss is always sound, since the rule is the
 context, its value and its recovered errors under the key, replacing the entry stored under the same
 key, and returns it. Entries under other keys are unchanged. With docOnly set, the key of a stored
 entry matches only the key of a lookup with the same values (see memo.lookup), so the store replaces
-the entry of the same values only.`,
+the entry of the same values only. A target that keeps records beside the entries (memo.examine) drops
+those of the entry that the store replaces.`,
 		Requires: `end is at least pos. The handle of the entry that the store replaces is not used after
 it: an implementation may reuse it for a later entry.`})
 	m.AddOp(&exec.Op{Name: "memo.prune", Component: Memo, Params: []exec.Param{exec.P("pos", exec.TInt)},
@@ -260,6 +261,11 @@ repeats exceed the calls divided by 16 (rounding down), the rule becomes eager f
 parse. The policy decides how
 many rule bodies run, which the statistics report, so every target follows it exactly.`,
 		Requires: `0 <= rule < the number of rules the component was created with; pos >= 0.`})
+
+	m.AddOp(&exec.Op{Name: "seen.defers", Component: Seen, Results: []exec.Type{exec.TBool}, Reads: []string{Seen},
+		Contract: `Reports whether the parse defers the memoization of a rule at a position to the rule's second
+call there (seen.first): a parse of a whole input or of a prefix does, and a stream parse and a
+Document parse memoize on the first call.`})
 
 	m.AddOp(&exec.Op{Name: "budget.charge", Component: Bud, Params: []exec.Param{exec.P("n", exec.TU64)},
 		Reads: []string{Bud}, Writes: []string{Bud}, Features: []string{Budget}, NoReturn: true,

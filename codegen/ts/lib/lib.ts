@@ -2864,16 +2864,21 @@ export class Parser {
   }
 
 
-  // firstCall records a call of rule r at the current position and reports whether its
-  // memoization is deferred: it is the first call there, and repeated calls of the rule have been
-  // rare so far. Results are reused only when a rule is called again at a position, which is rare,
-  // so memoizing every first call cost an entry each for nothing; deferring memoization to the
-  // second call evaluates a rule at most twice per position, which keeps parse time linear.
+  // firstCall records a call of the memoized rule r at the position and reports whether its
+  // memoization is deferred, in which case the call is not memoized. A result is reused only when the rule
+  // is called again at the same position, which in practice is rare, so memoizing every first call would
+  // cost a memo entry per call for nothing. Deferring memoization to the second call evaluates the body of
+  // a rule at most twice per position, binding level and combination of variable values. A parse that
+  // memoizes on the first call, a rule without a seen index and an eager rule are memoized at once.
   firstCall(r: Rule): boolean {
-    if (r.seen < 0) {
-      return false;
-    }
     const s = r.seen;
+    return s >= 0 && this.seenFirst(s, this.pos);
+  }
+
+  // seenFirst records a call of the rule with the seen index s at pos and reports whether its
+  // memoization is deferred (seen.first): it is the first call there, and repeated calls of the rule
+  // have been rare so far. firstCall decides whether the rule defers at all.
+  seenFirst(s: number, pos: number): boolean {
     if (this.eager[s] !== 0) {
       return false;
     }
@@ -2886,8 +2891,8 @@ export class Parser {
     }
     this.calls[s] = calls;
     const first = this.sparse
-      ? this.markSparseSeen(this.pos, s)
-      : this.markSeen(this.pos, s);
+      ? this.markSparseSeen(pos, s)
+      : this.markSeen(pos, s);
     if (first) {
       return true;
     }

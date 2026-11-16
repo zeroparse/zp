@@ -279,13 +279,15 @@ func GoTypedFrameBindings() (string, error) {
 // rules, relative to the directory of this package. It is a test file of package state of the engine.
 const engineRuleBindingsFile = "../../../engine/state/rule_bind_exec_test.go"
 
-// ruleBindingEngineOps are the operations of the rules that the engine provides.
+// ruleBindingEngineOps are the operations of the rules that the engine provides, with those of the
+// deferral of memoization (seen.defers, seen.first), which firstCall composes with rule.seen.
 var ruleBindingEngineOps = []string{"rule.memo", "rule.leader", "rule.plain", "rule.docOnlyMemo", "rule.docPlain",
-	"rule.positional", "rule.id", "rule.invoke", "rule.invokePlain"}
+	"rule.positional", "rule.id", "rule.seen", "rule.invoke", "rule.invokePlain", "seen.defers", "seen.first"}
 
-// ruleBindingOps are the operations of the rules that the node library provides.
+// ruleBindingOps are the operations of the rules that the node library provides, with those of the
+// deferral of memoization.
 var ruleBindingOps = []string{"rule.memo", "rule.leader", "rule.plain", "rule.docMemo", "rule.docOnlyMemo",
-	"rule.positional", "rule.id", "rule.invoke", "rule.invokePlain"}
+	"rule.positional", "rule.id", "rule.seen", "rule.invoke", "rule.invokePlain", "seen.defers", "seen.first"}
 
 // printEngineRuleBindings returns the Go test file of the conformance bindings of the operations of the rules
 // for package state of the engine.

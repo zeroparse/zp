@@ -1298,26 +1298,23 @@ func (p *Parser) memoPutControlled(rule, pos, min int, key []any, ident bool, e 
 	slots[pos] = e
 }
 
-// controlledFirstCallPrepare charges and grows the first-call bookkeeping of a controlled parse; the
-// ordinary FirstCall body then runs on the grown state.
-func (p *Parser) controlledFirstCallPrepare(r *Rule) {
-	if r.Seen < 0 {
-		return
-	}
+// controlledFirstCallPrepare charges and grows the first-call bookkeeping of a controlled parse for
+// the rule with the seen index s at pos; the ordinary seenFirst body then runs on the grown state.
+func (p *Parser) controlledFirstCallPrepare(s, pos int) {
 	p.Spend()
 	t := &p.memo
 	if t.calls == nil {
 		t.calls = make([]seenCalls, t.stride)
 		t.memBytes += uint64(t.stride) * uint64(unsafe.Sizeof(seenCalls{}))
 	}
-	if !t.calls[r.Seen].eager && t.sparse {
+	if !t.calls[s].eager && t.sparse {
 		if len(t.pages) != t.stride {
 			// No step of its own: whether the directory table exists is the pooled parser's state.
 			t.pages = make([]seenRulePages, t.stride)
 			t.memBytes += uint64(t.stride) * uint64(unsafe.Sizeof(seenRulePages{}))
 		}
-		dir := &t.pages[r.Seen]
-		at := p.Pos >> 10
+		dir := &t.pages[s]
+		at := pos >> 10
 		if at >= len(dir.pages) {
 			// The directory is empty at the start of a parse, so its length is the parse's own.
 			p.growthSpend(len(dir.pages), at+1)
@@ -1338,8 +1335,8 @@ func (p *Parser) controlledFirstCallPrepare(r *Rule) {
 			t.memBytes += uint64(unsafe.Sizeof(*dir.pages[at]))
 		}
 		dir.last, dir.at = dir.pages[at], at
-	} else if !t.calls[r.Seen].eager {
-		w := (p.Pos*t.stride + r.Seen) >> 6
+	} else if !t.calls[s].eager {
+		w := (pos*t.stride + s) >> 6
 		if w >= len(t.seen) {
 			n := len(t.seen) + max(w+1-len(t.seen), len(t.seen), 64)
 			// The new words are the spend, whether they come from spare capacity or an allocation.
