@@ -21,9 +21,11 @@ import (
 type expMachine struct {
 	*rtMachine
 	metered bool
-	// kept are the kept sets by identity: the start of their memory and their length.
-	kept map[keptID][]ExpID
+	kept    keptSets
 }
+
+// keptSets are the kept sets by identity: the start of their memory and their length.
+type keptSets map[keptID][]ExpID
 
 // keptID is the identity of a kept set of the library, a slice: equal identities are one set.
 type keptID struct {
@@ -50,7 +52,7 @@ func newExpMachine(cfg ref.Config, controlled bool) conform.Impl {
 		rm = x.rtMachine
 	}
 	rm.p.Expectations = !cfg.NoExpectations
-	m := &expMachine{rtMachine: rm, kept: map[keptID][]ExpID{}}
+	m := &expMachine{rtMachine: rm, kept: keptSets{}}
 	if controlled {
 		return meteredExp{m}
 	}
@@ -62,59 +64,25 @@ func (m *expMachine) Exp(id int64) any { return ExpID(id) }
 func (m *expMachine) Placeholder() any { return ExpFar }
 
 // keptHandle returns the handle of the kept set k.
-func (m *expMachine) keptHandle(k []ExpID) keptID {
+func (m *expMachine) keptHandle(k []ExpID) keptID { return m.kept.handle(k) }
+
+// handle returns the handle of the kept set k.
+func (ks keptSets) handle(k []ExpID) keptID {
 	id := keptID{unsafe.SliceData(k), len(k)}
 	if id.n == 0 {
 		id.data = nil
 	}
-	m.kept[id] = k
+	ks[id] = k
 	return id
 }
 
 func (m *expMachine) Call(o *exec.Op, args []any) (res []any) {
 	defer interrupted()
+	if res, ok := m.kept.callRecord(m.p, o, args); ok {
+		return res
+	}
 	p := m.p
 	switch o.Name {
-	case "exp.isolate":
-		return []any{&markHandle{p.confExpIsolate(int(args[0].(int64)))}}
-	case "exp.unisolate":
-		far, s := p.confExpUnisolate(args[0].(*markHandle).m)
-		return []any{int64(far), &setHandle{s}}
-	case "exp.farthest":
-		return []any{int64(p.confExpFarthest())}
-	case "exp.recording":
-		return []any{p.confExpRecording()}
-	case "exp.reset":
-		p.confExpReset(int(args[0].(int64)))
-		return nil
-	case "exp.fresh":
-		return []any{p.confExpFresh()}
-	case "exp.placeholder":
-		p.confExpPlaceholder()
-		return nil
-	case "exp.maybe":
-		return []any{p.confExpMaybe(args[0].(ExpID))}
-	case "exp.count":
-		return []any{int64(p.confExpCount())}
-	case "exp.at":
-		return []any{p.confExpAt(int(args[0].(int64)))}
-	case "exp.add":
-		p.confExpAdd(args[0].(ExpID))
-		return nil
-	case "exp.setCount":
-		return []any{int64(p.confExpSetCount(args[0].(*setHandle).s))}
-	case "exp.setAt":
-		return []any{p.confExpSetAt(args[0].(*setHandle).s, int(args[1].(int64)))}
-	case "exp.keptCount":
-		return []any{int64(p.confExpKeptCount(m.kept[args[0].(keptID)]))}
-	case "exp.keptAt":
-		return []any{p.confExpKeptAt(m.kept[args[0].(keptID)], int(args[1].(int64)))}
-	case "exp.empty":
-		return []any{m.keptHandle(p.confExpEmpty())}
-	case "exp.last":
-		return []any{m.keptHandle(p.confExpLast())}
-	case "exp.copy":
-		return []any{m.keptHandle(p.confExpCopy(args[0].(*setHandle).s))}
 	case "memo.far":
 		return []any{int64(p.confMemoFar(args[0].(*memoEntry)))}
 	case "memo.expected":
@@ -124,6 +92,55 @@ func (m *expMachine) Call(o *exec.Op, args []any) (res []any) {
 		return nil
 	}
 	return m.rtMachine.Call(o, args)
+}
+
+// callRecord runs an operation of the expectation record of p, which the node and the typed library
+// share, and reports false for any other.
+func (ks keptSets) callRecord(p *Parser, o *exec.Op, args []any) ([]any, bool) {
+	res := func(r ...any) ([]any, bool) { return r, true }
+	switch o.Name {
+	case "exp.isolate":
+		return res(&markHandle{p.confExpIsolate(int(args[0].(int64)))})
+	case "exp.unisolate":
+		far, s := p.confExpUnisolate(args[0].(*markHandle).m)
+		return res(int64(far), &setHandle{s})
+	case "exp.farthest":
+		return res(int64(p.confExpFarthest()))
+	case "exp.recording":
+		return res(p.confExpRecording())
+	case "exp.reset":
+		p.confExpReset(int(args[0].(int64)))
+		return nil, true
+	case "exp.fresh":
+		return res(p.confExpFresh())
+	case "exp.placeholder":
+		p.confExpPlaceholder()
+		return nil, true
+	case "exp.maybe":
+		return res(p.confExpMaybe(args[0].(ExpID)))
+	case "exp.count":
+		return res(int64(p.confExpCount()))
+	case "exp.at":
+		return res(p.confExpAt(int(args[0].(int64))))
+	case "exp.add":
+		p.confExpAdd(args[0].(ExpID))
+		return nil, true
+	case "exp.setCount":
+		return res(int64(p.confExpSetCount(args[0].(*setHandle).s)))
+	case "exp.setAt":
+		return res(p.confExpSetAt(args[0].(*setHandle).s, int(args[1].(int64))))
+	case "exp.keptCount":
+		return res(int64(p.confExpKeptCount(ks[args[0].(keptID)])))
+	case "exp.keptAt":
+		return res(p.confExpKeptAt(ks[args[0].(keptID)], int(args[1].(int64))))
+	case "exp.empty":
+		return res(ks.handle(p.confExpEmpty()))
+	case "exp.last":
+		return res(ks.handle(p.confExpLast()))
+	case "exp.copy":
+		return res(ks.handle(p.confExpCopy(args[0].(*setHandle).s)))
+	}
+	return nil, false
 }
 
 // expSuites are the suites of the library's expectation record: with and without charge controls, and
@@ -139,9 +156,62 @@ func expSuites() []conform.Suite {
 			Name: fmt.Sprintf("node library expectations (controlled=%v)", controlled),
 			Ops:  ops,
 			New:  func(c ref.Config) conform.Impl { return newExpMachine(c, controlled) },
+		}, conform.Suite{
+			Name: fmt.Sprintf("typed library expectations (controlled=%v)", controlled),
+			Ops:  ops,
+			New:  func(c ref.Config) conform.Impl { return newTExpMachine(c, controlled) },
 		})
 	}
 	return suites
+}
+
+// texpMachine binds the expectation record of the typed library, which is its node Parser's, the
+// operations of the memo that keep the expectations of its entries, and the memo through typedMachine.
+type texpMachine struct {
+	*typedMachine
+	kept keptSets
+}
+
+type meteredTExp struct{ *texpMachine }
+
+func (m meteredTExp) Used() uint64 { return m.p.Control.budgetUsed() }
+
+func newTExpMachine(cfg ref.Config, controlled bool) conform.Impl {
+	var tm *typedMachine
+	switch x := newTypedMachine(cfg, controlled).(type) {
+	case *typedMachine:
+		tm = x
+	case meteredTyped:
+		tm = x.typedMachine
+	}
+	tm.p.Expectations = !cfg.NoExpectations
+	m := &texpMachine{typedMachine: tm, kept: keptSets{}}
+	if controlled {
+		return meteredTExp{m}
+	}
+	return m
+}
+
+func (m *texpMachine) Exp(id int64) any { return ExpID(id) }
+
+func (m *texpMachine) Placeholder() any { return ExpFar }
+
+func (m *texpMachine) Call(o *exec.Op, args []any) (res []any) {
+	defer interrupted()
+	if res, ok := m.kept.callRecord(m.p.Parser, o, args); ok {
+		return res
+	}
+	p := m.p
+	switch o.Name {
+	case "memo.far":
+		return []any{int64(p.confMemoFar(args[0].(*tmemoEntry)))}
+	case "memo.expected":
+		return []any{m.kept.handle(p.confMemoExpected(args[0].(*tmemoEntry)))}
+	case "memo.setExpected":
+		p.confMemoSetExpected(args[0].(*tmemoEntry), int(args[1].(int64)), m.kept[args[2].(keptID)])
+		return nil
+	}
+	return m.typedMachine.Call(o, args)
 }
 
 // expConformanceFailures runs the handwritten cases of the expectation record and seeds randomized
@@ -211,6 +281,16 @@ func TestExecConformanceExpDetectsBrokenLib(t *testing.T) {
 		"exp.isolate keeps the farthest position": func(m *expMachine, args []any) []any {
 			return []any{&markHandle{m.p.Isolate(m.p.farthest)}}
 		},
+		"memo.far reads the end of the entry": func(m *expMachine, args []any) []any {
+			return []any{int64(args[0].(*memoEntry).end)}
+		},
+		"memo.expected returns the set kept last": func(m *expMachine, args []any) []any {
+			return []any{m.keptHandle(m.p.lastKept)}
+		},
+		"memo.setExpected keeps the far position": func(m *expMachine, args []any) []any {
+			args[0].(*memoEntry).expected = m.kept[args[2].(keptID)]
+			return nil
+		},
 	}
 	for name, v := range variants {
 		t.Run(name, func(t *testing.T) {
@@ -225,6 +305,50 @@ func TestExecConformanceExpDetectsBrokenLib(t *testing.T) {
 	}
 }
 
+// TestExecConformanceTypedExpDetectsBrokenLib is the negative control of the typed library: an operation
+// of the memo that keeps the expectations of an entry broken, as a wrong line of its printed code would
+// break it, fails the suite.
+func TestExecConformanceTypedExpDetectsBrokenLib(t *testing.T) {
+	variants := map[string]func(m *texpMachine, args []any) []any{
+		"memo.far reads the end of the entry": func(m *texpMachine, args []any) []any {
+			return []any{int64(args[0].(*tmemoEntry).end)}
+		},
+		"memo.expected returns the set kept last": func(m *texpMachine, args []any) []any {
+			return []any{m.kept.handle(m.p.lastKept)}
+		},
+		"memo.setExpected keeps the far position": func(m *texpMachine, args []any) []any {
+			args[0].(*tmemoEntry).expected = m.kept[args[2].(keptID)]
+			return nil
+		},
+	}
+	for name, v := range variants {
+		t.Run(name, func(t *testing.T) {
+			op := strings.Fields(name)[0]
+			s := expSuites()[1]
+			s.New = func(c ref.Config) conform.Impl {
+				return brokenTExp{newTExpMachine(c, false).(*texpMachine), op, v}
+			}
+			if fails, _ := expConformanceFailures(s, 10, 150); len(fails) == 0 {
+				t.Fatal("no case detected the broken library")
+			}
+		})
+	}
+}
+
+// brokenTExp is the typed library with one operation replaced.
+type brokenTExp struct {
+	*texpMachine
+	op   string
+	call func(m *texpMachine, args []any) []any
+}
+
+func (b brokenTExp) Call(o *exec.Op, args []any) []any {
+	if o.Name == b.op {
+		return b.call(b.texpMachine, args)
+	}
+	return b.texpMachine.Call(o, args)
+}
+
 // brokenExp is the library with one operation of the record replaced.
 type brokenExp struct {
 	*expMachine
@@ -237,4 +361,61 @@ func (b brokenExp) Call(o *exec.Op, args []any) []any {
 		return b.call(b.expMachine, args)
 	}
 	return b.expMachine.Call(o, args)
+}
+
+// brokenExpCharge and brokenTExpCharge are the metered node and typed library whose op charges one unit
+// beyond its work.
+type brokenExpCharge struct {
+	meteredExp
+	op string
+}
+
+func (b brokenExpCharge) Call(o *exec.Op, args []any) []any {
+	res := b.meteredExp.Call(o, args)
+	if o.Name == b.op {
+		b.p.Control.Charge(1)
+	}
+	return res
+}
+
+type brokenTExpCharge struct {
+	meteredTExp
+	op string
+}
+
+func (b brokenTExpCharge) Call(o *exec.Op, args []any) []any {
+	res := b.meteredTExp.Call(o, args)
+	if o.Name == b.op {
+		b.p.Control.Charge(1)
+	}
+	return res
+}
+
+// TestExecConformanceExpDetectsCharges is the negative control of the charges: the metered library whose
+// operation of the memo's expectations charges a unit, which its cost bound does not allow, fails the
+// suite.
+func TestExecConformanceExpDetectsCharges(t *testing.T) {
+	newMetered := map[string]func(c ref.Config, op string) conform.Impl{
+		"node": func(c ref.Config, op string) conform.Impl {
+			return brokenExpCharge{newExpMachine(c, true).(meteredExp), op}
+		},
+		"typed": func(c ref.Config, op string) conform.Impl {
+			return brokenTExpCharge{newTExpMachine(c, true).(meteredTExp), op}
+		},
+	}
+	for lib, suite := range map[string]conform.Suite{"node": expSuites()[2], "typed": expSuites()[3]} {
+		for _, op := range []string{"memo.far", "memo.expected", "memo.setExpected"} {
+			t.Run(lib+" "+op+" charges a unit", func(t *testing.T) {
+				s := suite
+				s.New = func(c ref.Config) conform.Impl { return newMetered[lib](c, op) }
+				fails, _ := expConformanceFailures(s, 10, 150)
+				if len(fails) == 0 {
+					t.Fatal("no case detected the charge")
+				}
+				if msg := fails[0].Error(); !strings.Contains(msg, "more than the bound") {
+					t.Fatalf("the first failure is not the charge: %s", msg)
+				}
+			})
+		}
+	}
 }

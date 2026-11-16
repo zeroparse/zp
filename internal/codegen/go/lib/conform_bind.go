@@ -179,6 +179,13 @@ func GoExpBindings() (string, error) {
 	return bindingFile("libgo", expBindingOps(), goTarget(goSpec{fn: "expect", name: "Expect"}), "")
 }
 
+// GoTypedExpBindings returns the Go test file of the conformance bindings of the operations of the memo
+// that keep the expectations of an entry for package libgo, for the typed library's TParser, whose
+// entries differ from the node library's; the record itself is the node Parser's (GoExpBindings).
+func GoTypedExpBindings() (string, error) {
+	return bindingFile("libgo", expBindingMemoOps, goTarget(goSpec{fn: "reset", typed: true, name: "Reset"}), "")
+}
+
 // engineDocBindingsFile is the file of the engine's conformance bindings of the doc operations,
 // relative to the directory of this package. It is a test file of package state of the engine.
 const engineDocBindingsFile = "../../../engine/state/doc_bind_exec_test.go"
