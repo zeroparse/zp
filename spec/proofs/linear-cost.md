@@ -1050,6 +1050,74 @@ What remains of the second case is an index $j$ that is free, linked by a leaf
 link at a position before $p$, or linked by a memoized link whose later
 evaluation ends before $\alpha_{l'}$ starts.
 
+In the last case $e'_j$ and $Y_{l'}$ both contain $\alpha_j$, so one contains
+the other. $e'_j$ does not contain $Y_{l'}$ other than as $Y_{l'}$ itself:
+$Y_{l'}$ is in progress at $\alpha_{l'-1}$, and a frame around it that ends
+before $\alpha_{l'}$ would be left by the link $l'$ after $Y_{l'}$, which is the
+last frame that the link leaves. So $e'_j$ is $Y_{l'}$, or $Y_{l'}$ contains
+$e'_j$ and is not $e'_j$.
+
+**Memoized links to the frame of an outer link.** In the second case of
+*Outer links across runs*, let the index $j$ there be linked by a memoized
+link with $e'_j = Y_{l'}$, at a position $s_0 < p$, and let the parse keep no
+records of scan sites. Then, after $e_j$ ends, $w_j$ examines no input, and
+if $w_j$ starts before $w_l$ ends, this is the case that *Nesting at one end*
+rules out, with $e_j$ as $X$ and $Y_l$ as $T$.
+
+*Proof.* $e_j$ and $e'_j$ are evaluations of one call of the rule $Y$ of
+$Y_{l'}$ at $s_0$, and $e'_j$ ends at $p$, where the link $l'$ leaves it, so
+$e_j$ ends at $p$ too (case 2). The unit $w_{l'}$ starts at $p$ inside
+$Y_{l'}$, and $\kappa_{l'}$ leaves the frames up to $Y_{l'}$ through the ends
+of their bodies and evaluates the call of $r$ before anything else that
+examines the input, since that call is the first that the two share. That
+continuation goes on, through the end of the body of $Y$, at every call of
+$Y$, the call in $w_j$ that makes $e_j$ included, and shares the call of $r$
+with the unit through each of them ([Conditions for Linear
+Cost](../runtime/parsing.md#conditions-for-linear-cost)). So what follows that
+call in $w_j$ evaluates a call of $r$ before anything else that examines the
+input, or examines nothing. If $w_j$ evaluated $r$ at $p$ after $e_j$, that
+evaluation would make the activations of $e'_{l'}$, which evaluates $r$ at
+$p$ on the same input, since $r$ calls no rule and reads no variable; one of
+them would start at $q$ after $\alpha_{j-1}$, which lies in $e_j$, and before
+$Y_{l'}$ starts, since $w_j$ ends before then, so it would be an
+activation at $q$ between $\alpha_{j-1}$ and $\alpha_j$, which starts after
+$Y_{l'}$ starts. So $w_j$ examines no input after $e_j$: it fails at $p$
+before it examines input, or it reaches its end there, as the expression of
+a lookahead does.
+
+Let $w_j$ start before $w_l$ ends. It is in progress at $\alpha_{j-1}$, which
+starts no earlier than $\alpha_l$, after $w_l$ ends, and it was not started
+inside $w_l$, so it encloses $w_l$, as $Y_l$ does. It does not lie inside
+$Y_l$, which ends before $\alpha_l$ starts, so it encloses $Y_l$. The shared
+calls that $w_j$ evaluates before $e_j$ end at or before $s_0 < p$, and $w_j$
+examines no input before its shared calls, so $Y_l$, which examines the input
+from before $p$ to $p$, lies in none of them and is not evaluated before
+$e_j$; it does not start after $e_j$ ends, since $e_j$ contains
+$\alpha_{j-1}$, which starts after $Y_l$ ends. So $Y_l$ lies inside $e_j$, and
+is not $e_j$. $e_j$ succeeds and ends at $p$, and $Y_l$ is an evaluation of
+$\pi_l$ that starts before $p$, ends at $p$ and holds $\alpha_{l-1}$; $Y$
+reaches the caller of $\pi_l$, which calls $Y$, so $Y$ is of the recursion of
+$\pi_l$. These are the hypotheses of *Nesting at one end* with $e_j$ as $X$
+and $Y_l$ as $T$, which give that $\pi_l$ nests at one end under its
+hypotheses on the dropped steps and the alike calls and apart from its open
+points; the continuation of $w_l$ then reaches the call of $r$ after leaving
+the body of $Y_l$, in what follows $\pi_l$, so the call is not shared unless
+$r$ is a scan-only rule, which *Calls of scan-only rules* treats. $\square$
+
+So the case $e'_j = Y_{l'}$ that remains is that of a unit $w_j$ that starts
+after $w_l$ ends and examines no input after $e_j$. Let $m$ be the least index
+after $l$ whose unit starts before $p$, so that $m \le j$. From the end of
+$w_l$ to the start of $\alpha_{m-1}$ the parser starts no evaluation before
+$p$ (*Restarts* and *Dropped steps* for each index between), so $w_m$, which
+contains $\alpha_{m-1}$, started before $w_l$ ended and encloses $Y_l$, as
+$w_j$ does above. Here $m < j$, and $w_j$, which contains $\alpha_{j-1}$, starts
+after $w_m$ ends: the parser returns before $p$ after $\alpha_l$ through a
+unit $w_m$ that holds the link $l$, as the expression of the lookahead `&B`
+does in `main = &B "b" &Y B / P`, with the other rules as above and
+`S = [ab]+`. That expression does not commit against `"b" &Y B`, and the
+conditions reject the grammar; that $w_m$ never commits in this case is not
+shown, nor is the case in which $Y_{l'}$ contains $e'_j$ and is not $e'_j$.
+
 **Calls of scan-only rules.** Let the rule $r$ of the links $i$ to $k$ be a
 scan-only rule ([Conditions for Linear
 Cost](../runtime/parsing.md#conditions-for-linear-cost)) that is not memoized
@@ -5483,9 +5551,14 @@ condition of the cost view that the [Cost View](cost-view.md) proof leaves open.
    accept. When that index is linked by a memoized link whose later evaluation
    is still in progress at the later outer link, no head holds the activation
    of the later link (*Outer links inside a memoized link*), which covers that
-   grammar; an index that is free, linked by a leaf link at a position before
-   the scan, or linked by a memoized link whose later evaluation ends before
-   the later outer link is not treated. So the outer links do not bound the
+   grammar. When that later evaluation ends before the later outer link and is
+   the frame that the later outer link leaves, the unit of the index examines
+   no input after its shared call, and a unit that starts before the unit of
+   the earlier outer link ends meets *Nesting at one end* (*Memoized links to the frame
+   of an outer link*); a unit that starts after it, with the unit that then
+   holds the earlier link and returns the parser before the scan, a later
+   evaluation that lies inside that frame, an index that is free and one
+   linked by a leaf link at a position before the scan are not treated. So the outer links do not bound the
    runs, and the count of the
    runs, of the heads that start before the position of the scan and of the
    activations that one head holds stays open. Second, the leaf links when the shared call follows other

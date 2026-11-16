@@ -1322,7 +1322,14 @@ The conditions below use these terms.
   the bodies of the calls they start with evaluate: a call of the same rule with the
   same level restriction, or with none in both, of a rule that reads no
   variable and that is memoized at each of the two calls or calls no rule,
-  itself included. A rule memoized in every parse is memoized at each of its
+  itself included. A continuation that goes on through the end of a rule
+  body goes on through every call of the rule, so it shares a call only
+  when, through each of them, it evaluates the call before anything else
+  that examines the input or examines nothing there, as at the end of the
+  expression of a lookahead or of the parse: in `main = Y "b" / B`, with
+  `B = Y ws "x"` and `Y = "a"+ (ws ";")?`, the option in `Y` shares no call with
+  what follows it, which is `"b"` through one call of `Y` and `ws "x"`
+  through the other. A rule memoized in every parse is memoized at each of its
   calls, and a rule of a left-recursion cycle other than a leader at a call
   that is not a left call. A call of a rule of a left-recursion cycle is
   shared only when the two calls lie in the same growths of that cycle:
