@@ -51,7 +51,7 @@ the memoization proof, is evaluated again and repeats the first activation at
 the position in it; the memo bounds these for a
 memoized rule and the cycles of calls that nest at one end bound for a rule that
 calls no rule when the call is the first that the two share, and it shows,
-apart from three open points, that evaluations of a call that nest without a
+apart from four open points, that evaluations of a call that nest without a
 bound and end at one position make the call nest at one end. It proves the sum
 over the positions for the activations owned by memoized evaluations of the
 sources of rules that call a rule or are memoized at their calls, by charging
@@ -378,12 +378,23 @@ ends at a position $e \le q$, which *Dropped steps* below treats, or $w$ is an
 evaluation of a unit that starts at a position $s \le q$, which is committing
 when the source is not a bounded scan. From
 the end of $w$ to the start of $\alpha'$, the parser starts no evaluation at a
-position before the start of $w$, apart from the later steps of the growths
-on the path from $N$ down to $w$ and what those steps evaluate at the
-positions of their growths on paths that go on from the end of no read of a
-growing result that succeeds. Each such step goes on past the position of its
-growth otherwise only from the end of a read of its seed, at or after the
-start of $w$.
+position before the start of $w$, apart from the **exception**: the later
+steps of the growths on the path from $N$ down to $w$, and the evaluations in
+them that follow no read of the seed of their step. An evaluation $x$ in a
+step $S$ of a growth **follows a read of the seed** of $S$ when $S$ holds a
+call $\rho$ that the growth answers with its growing result, or a call whose
+result includes such a call, that succeeds and ends before $x$ starts, and the
+innermost evaluation $M$ that contains both $\rho$ and $x$ is not a growth and
+holds $\rho$ in a child $c$ before the child that holds $x$, with no abandoned
+evaluation from $c$ down to $\rho$. So a read inside the expression of a
+lookahead, or inside an alternative that fails, is followed by nothing, and
+the evaluation of a growing alternative, which starts at the position of its
+growth, follows no read, while its parts after its left call do. Every
+evaluation in a later step that follows a read of its seed starts at or after
+the end of that seed, which is at or after the start of $w$. The exception
+lies inside the growths on the path from $N$ down to $w$, which contain
+$\alpha$ and, since $N$ is no growth, not $\alpha'$, so they end before
+$\alpha'$ starts and $\alpha'$ lies in no evaluation of the exception.
 
 *Proof.* Suppose that $\alpha'$ is inside $\alpha$. Every evaluation from
 $\alpha$ down to $\alpha'$ starts at $q$. The source is in the body of a rule
@@ -418,19 +429,27 @@ Let $v$ be the first evaluation in progress that started before $s$, is
 not in the exception of the claim, and fails after the end of $w$ and before
 $\alpha'$. In that time the parser goes back to a position before $s$ only
 through the failure of $v$, by starting a later step of a growth that started
-before $s$, at the position of the growth, or through the failure of a part
-in the exception. Such a growth $G$ encloses $w$, since it is in progress
+before $s$, at the position of the growth, or inside an evaluation in the
+exception, which starts no evaluation at a position before its own start. Such
+a growth $G$ encloses $w$, since it is in progress
 after $w$ ends and was not started inside $w$, so it lies on the path from $N$ to $w$, where every
 evaluation succeeds and none is a dropped step: its step that holds $w$ ends
 where the parser is, and its later steps read a seed that ends there or
-later. Each later step of $G$ goes past the position of $G$ only through a
-part there that reads no growing result or through a read of its seed, and
-such a part ends inside the step, so the parser returns from it to the
-position of $G$; when the step ends, it ends at the end of its seed or later,
-and $G$ ends at the end of the seed of its last step. So, by induction over
-the steps that start in that time, every evaluation that starts after the
-end of $w$ and before the failure of $v$ starts at $s$ or later, or lies in
-the exception of the claim. So $v$ started before the end of $w$, and since
+later. Let $x$ follow a read $\rho$ of the seed in a later step $S$ of $G$,
+with $M$ and $c$ as in the claim. An evaluation that is not abandoned ends at
+or after the end of each child of it that is not abandoned: the parser goes
+back inside it only to the start of an abandoned evaluation or, in a growth,
+to its position for a later step, and a growth gives the result of its last
+kept step, the longest. So $c$ ends at or after
+the end of $\rho$, which is the end of the seed or later. $M$ is not a growth,
+so after $c$ it goes on from the end of $c$, and $x$, in a later child, starts
+at or after the end of the seed. Every other evaluation in $S$ follows no read
+of the seed and lies in the exception. $S$ ends with a result longer than its
+seed, or it is dropped and $G$ ends at the end of its seed. So, by induction
+over the steps that start in that time, every evaluation that starts after
+the end of $w$ and before the failure of $v$ starts at $s$ or later, or lies
+in the exception of the claim, and each growth that encloses $w$ ends at $s$
+or later. So $v$ started before the end of $w$, and since
 it is still in progress after $w$ ends, it encloses $w$.
 It ends before $\alpha'$, so it does not enclose $\alpha'$, and it lies on the
 path from $N$ to $w$, where no evaluation fails. So there is no such $v$.
@@ -446,8 +465,9 @@ sources has examined input. Condition 2 makes it committing. $\square$
 **Dropped steps.** Let the evaluation $w$ of the restarts be a dropped step of
 a growth $G$ of a leader $R$ at $p$, whose seed ends at $e \le q$. From the end
 of $G$ to the start of $\alpha'$, the parser starts no evaluation at a position
-before $e$, apart from the later steps of the growths that enclose $G$ and what
-they evaluate at the positions of their growths, as in the restarts, and it evaluates from $e$ what follows the calls that start $G$, the
+before $e$, apart from the later steps of the growths that enclose $G$ and the
+evaluations in them that follow no read of the seed of their step, as in the
+restarts, and it evaluates from $e$ what follows the calls that start $G$, the
 continuations of a step of $G$ after the first as a unit
 ([Conditions for Linear Cost](../runtime/parsing.md#conditions-for-linear-cost),
 condition 2). One of three cases holds.
@@ -472,8 +492,8 @@ that step as its result, so $G$ ends when $w$ does, at $e$. Let $v$ be the
 first evaluation in progress that started before $e$ and fails after the end
 of $G$ and before $\alpha'$. Every evaluation that starts after the end of $G$
 and before the failure of $v$ starts at $e$ or later, apart from the later
-steps of the growths that enclose $G$ and what they evaluate at the positions
-of their growths, since the parser goes on at $e$ and a dropped step that
+steps of the growths that enclose $G$ and the evaluations in them that follow
+no read of the seed of their step, as in the restarts, since the parser goes on at $e$ and a dropped step that
 starts in that time returns it to the end of its own seed, which is not before
 the start of its growth. So $v$ started
 before the end of $G$ and encloses $G$; it does not enclose $\alpha'$, so it
@@ -498,7 +518,8 @@ step as a unit that starts at $e$, and it is committing when the source is no
 bounded scan. The arguments of *Direct activations* and *Repeats* below use of
 $w$ only that it is checked against the continuation $\kappa$ that the parser
 evaluates from its start, that the parser returns to no position before that
-start until $\alpha'$, and that $\alpha$ is consumed in $w$ after the calls
+start until $\alpha'$ outside the exception of the restarts, which lies in
+growths that end before $\alpha'$, and that $\alpha$ is consumed in $w$ after the calls
 that $w$ and $\kappa$ share. Condition 2 compares the step with $\kappa$ one
 step tail at a time, and these arguments need only the step tail that holds
 $\alpha$: its evaluation $\tau$ in $w$ starts at $e$, at the end of the read,
@@ -519,7 +540,8 @@ seed of the next step and so of the result of the growth. So $w'$ exists. The
 evaluations between $w$ and $w'$ succeed and are not abandoned, so the
 argument of the restarts gives that from the end of $w'$ to the end of $w$ the
 parser starts no evaluation before the position where the parent of $w'$ goes
-on after it: the start $s'$ of $w'$, or, for a dropped step, the end of its
+on after it, apart from the exception of the restarts for the growths between
+$w$ and $w'$: the start $s'$ of $w'$, or, for a dropped step, the end of its
 seed, which this claim then takes as $s'$. These evaluations do not fail, so
 $w$ ends at or after $s'$, and since the result of $w$ ends at or before $e$,
 $s' \le e$. From the end of $w$ the parser returns to no position before $e$,
@@ -652,12 +674,14 @@ position only after a dropped step of a growth, which *Dropped steps* turns
 into a unit at the end of its seed or into one below it, apart from its third
 case, which Lemma 5 counts, or after a
 committing unit that contains the earlier one is abandoned, and the parser does
-not return before the start of that unit until the repetition. The restarts
+not return before the start of that unit until the repetition, apart from what
+the later steps of the growths around the unit evaluate before a read of their
+seeds, inside growths that end before the repetition. The restarts
 leave out two activations whose innermost common evaluation is a growth;
 *Repeats inside a growth* in Lemma 5 shows that they are related in the same
 way, through a unit whose continuation goes on through the reads of the seed,
-unless the later one lies in a part that a step evaluates at the position of
-the growth without reading a growing result, which Lemma 5 counts. The ways in which
+unless the later one follows no read of the seed in its step, which Lemma 5
+counts. The ways in which
 a unit is committing give the following cases.
 
 1. *Disjoint first characters.* The continuation does not consume the
@@ -738,7 +762,8 @@ path from $N$ to $\alpha$, which is no growth step, since no call lies on that
 path. So $w$ is a committing unit that starts at $s \le q$, and no call made
 in $w$ contains $\alpha$. From the end of $w$ until $\alpha'$, the parser
 evaluates continuations of $w$ from $s$ and returns to no position before
-$s$; let $\kappa$ be the one that it evaluates from $s$ the last time before
+$s$, since no growth lies on the path from $N$ to $w$, so that the exception
+of the restarts is empty; let $\kappa$ be the one that it evaluates from $s$ the last time before
 $\alpha'$, whose evaluation contains $\alpha'$. Let $t$ be the position where
 the calls that $w$ and $\kappa$ share end in $w$. They end there in $\kappa$
 too: every path of both that examines the input begins with them, each has the
@@ -870,8 +895,8 @@ than its seed. As the proofs of the restarts and of *Dropped steps* show, from
 the end of $w_l$ the parser returns to a position before one where it is only
 through the abandonment of an evaluation that started before that position and
 is in progress, which encloses $w_l$ and so lies on the path, or through a
-later step of a growth around $w_l$ and what that step evaluates at the
-position of its growth.
+later step of a growth around $w_l$ and the evaluations in it that follow no
+read of its seed, the exception of the restarts.
 
 Suppose that a step on the path of a growth around $w_l$ ends before
 $\alpha_l$ starts. These steps nest, so those that do form the inner part of
@@ -905,13 +930,11 @@ with it $\alpha_l$, lies in a later step of $H$, and $\alpha_{l-1}$, in $w_l$,
 lies in $S_m$. $H$ contains both, so $N_l$ lies in $H$, and $H$ lies on the
 path from $N_l$ down: $H$ is $N_l$, a growth, with $\alpha_{l-1}$ and
 $\alpha_l$ in different steps. Both activations are in the sequence, so the
-first case of *Repeats inside a growth* of Lemma 5 holds: the path to
-$\alpha_l$ goes on, in its step, from the end of a read of the growing result
-that succeeds, or of a call whose result includes one, which ends at or after
-the end of the seed of that step, and so no earlier than the end of the result
-of $S_m$, after $p$. $e'_l$, an evaluation of $r$, which calls no rule,
-contains neither, so it lies after them on the path and starts at or after
-that end, not at $p$. So no step on the path of a growth around $w_l$ ends
+first case of *Repeats inside a growth* of Lemma 5 holds: $\alpha_l$ follows
+a read $\rho$ of the seed of its step. $e'_l$, an evaluation of $r$, which
+calls no rule, contains $\alpha_l$ and not $\rho$, so it follows $\rho$ too and
+starts at or after the end of that seed (*Restarts*), which is no earlier
+than the end of the result of $S_m$, after $p$: not at $p$. So no step on the path of a growth around $w_l$ ends
 before $\alpha_l$ starts.
 
 If $N_l$ were a growth, its step that holds $\alpha_{l-1}$ would lie on the
@@ -1082,22 +1105,20 @@ $\alpha_j$ the parser starts no evaluation before the start $s_j$ of $w_j$
 apart from the exception of the restarts (*Restarts*, *Dropped steps*), so
 $Y_{l'}$ starts at $s_j$ or later unless it lies in that exception. $Y_{l'}$ is
 no growth step, since the parser leaves it at $p$ from the end of $w_{l'}$ to
-$e'_{l'}$. If it lay in a part that a later step of a growth $G$ on the path
-from $N_j$ down to $w_j$ evaluates at the position of $G$, then $\alpha_j$,
-inside $Y_{l'}$, would lie in that later step, and $\alpha_{j-1}$, inside
-$w_j$, in an earlier step, so $N_j$ would be $G$, and the first case of
-*Repeats inside a growth* of Lemma 5 would hold: the path to $\alpha_j$ would
-go on, in its step, from the end of a read of the growing result that
-succeeds, or of a call whose result includes one, which ends no earlier than
-the end of the seed of the step after the one that holds $w_j$, and so no
-earlier than $s_j$. $Y_{l'}$ lies on that path. It does not contain that read
-or call: it would then start at the position of $G$, where its step starts,
-reach the read and be reached from the start of the step without consuming
+$e'_{l'}$. If it lay in a later step $S$ of a growth $G$ on the path from
+$N_j$ down to $w_j$ and followed no read of the seed of $S$, then $\alpha_j$,
+inside $Y_{l'}$, would lie in $S$, and $\alpha_{j-1}$, inside $w_j$, in an
+earlier step, so $N_j$ would be $G$, and the first case of *Repeats inside a
+growth* of Lemma 5 would hold: $\alpha_j$ would follow a read $\rho$ of the
+seed of $S$. $Y_{l'}$ contains $\alpha_j$ and follows no read, so it contains
+$\rho$: otherwise the innermost evaluation that contains $\rho$ and $\alpha_j$
+would contain $Y_{l'}$ in the child that holds $\alpha_j$, and $Y_{l'}$ would
+follow $\rho$. It would then start at the position of $G$, where $S$ starts,
+reach the read and be reached from the start of $S$ without consuming
 input, so its rule would be of the cycle of $G$, and $Y_{l'}$, which $G$ is in
 progress around at its position, would be in a context of growths, which the
-hypothesis excludes. So $Y_{l'}$ lies after that read or call on the path and
-starts at or after its end, at $s_j$ or later, and does not lie in a part that
-goes on from the end of no such read. In both cases $w_j$ starts at a position
+hypothesis excludes. So $Y_{l'}$ does not lie in the exception and starts at
+$s_j$ or later. In both cases $w_j$ starts at a position
 no later than the start of $Y_{l'}$, before $p$. $\square$
 
 A frame that a link $m$ leaves succeeds and is no dropped step: it lies on
@@ -1123,7 +1144,7 @@ position before $p$; none of these lies in a run of consecutive leaf links at
 $p$ whose shared call is the first, so the two lie in different runs. The
 other case is the one that *Nesting at one end* rules out, with $Y_{l'}$ as
 $X$ and $Y_l$ as $T$, under its hypotheses on the dropped steps of growths
-on the path between them and on the alike calls, and apart from the three
+on the path between them and on the alike calls, and apart from the four
 points that it leaves open; this is not shown here. So outside that case the outer links at $p$ through
 one call place are at most one in each run, and the argument of the claim above does not
 bound them without a bound on the runs. The second case occurs in a grammar
@@ -1273,7 +1294,10 @@ starts no evaluation at a position before $\bar{s}$ apart from the exception
 of *Restarts* for the growths that enclose $w_{\bar{m}}$, and $w_j$ lies in the
 evaluation from $\bar{s}$ of a continuation of $w_{\bar{m}}$, which goes on at
 the end of the body of a leader through the reads of the seed in the later
-steps of those growths.
+steps of those growths, or $w_j$ starts at the position of one of those
+growths, in a later step, and holds a read of the seed of that step that
+$\alpha_{j-1}$ follows; then the part of $w_j$ after that read, which starts at
+the end of the seed, lies in that evaluation of the continuation.
 
 *Proof.* $w_m$ encloses $Y_l$, and $w_j$ does not, since it starts after
 $w_l$ ends and $Y_l$, a frame that the link $l$ leaves, encloses $w_l$; so
@@ -1284,10 +1308,10 @@ before $\alpha_{j-1}$ starts, the hypothesis makes it no dropped step, so it
 is $w_k$. This holds for $k = \bar{m}$: that evaluation encloses $w_{\bar{m}}$, and
 it ends before $\alpha_{\bar{m}}$ starts, so before $\alpha_{j-1}$. So $w_{\bar{m}}$
 fails or is the expression of a lookahead, and when it ends the parser is at
-$\bar{s}$. Apart from the later steps of the growths that enclose $w_{\bar{m}}$
-and the parts in the exception of *Restarts*, which return the parser to no
-position before $\bar{s}$ outside that exception, as the proof of the restarts
-shows, only the abandonment of an evaluation $v$ that started before
+$\bar{s}$. Apart from the evaluations in the exception of *Restarts* for the
+growths that enclose $w_{\bar{m}}$, which start no evaluation outside that
+exception at a position before $\bar{s}$, as the proof of the restarts shows,
+only the abandonment of an evaluation $v$ that started before
 $\bar{s}$ then returns the parser before $\bar{s}$; let $v$ be the first such
 evaluation outside the exception abandoned after the end of $w_{\bar{m}}$ and
 before $w_j$ starts. Everything that the parser starts after the end of
@@ -1307,16 +1331,26 @@ of $\bar{m}$. So there is no such $v$, and as in *Direct activations* the parser
 evaluates from $\bar{s}$ continuations of $w_{\bar{m}}$ up to the start of $w_j$,
 going on at the end of the body of a leader through the reads of the seed, as
 in the first case of *Repeats inside a growth* in Lemma 5. $w_j$ lies in the
-last of them: otherwise it starts before $\bar{s}$, in the exception, and so in
-a later step of a growth $G$ that encloses $w_{\bar{m}}$. If $w_j$ is a part of
-that step at the position of $G$ on a path that goes on from the end of no
-read of a growing result that succeeds, or lies in one, $\alpha_{j-1}$ lies
-there too, after $\alpha_{\bar{m}-1}$, which lies in an earlier step of $G$, and
-the sequence leaves such an activation out (*Repeats inside a growth*).
-Otherwise $w_j$ is that later step, or the unit that *Dropped steps* gives
-for it; either way the step is the first abandoned evaluation on the path
-from $N_j$ to $\alpha_{j-1}$, and so a dropped step of $G$, which encloses
-$Y_l$, that contains $\alpha_{j-1}$, against the hypothesis. $\square$
+last of them: otherwise it starts before $\bar{s}$, in the exception, and so it
+is a later step $S$ of a growth $G$ that encloses $w_{\bar{m}}$, or the unit
+that *Dropped steps* gives for such a step, or it lies in $S$ and follows no
+read of the seed of $S$. In the first two cases $S$ is the first abandoned
+evaluation on the path from $N_j$ to $\alpha_{j-1}$, and so a dropped step of
+$G$, which encloses $Y_l$, that contains $\alpha_{j-1}$, against the
+hypothesis. In the third, $\alpha_{j-1}$ lies in $S$, and $\alpha_{\bar{m}-1}$,
+inside $w_{\bar{m}}$, in an earlier step of $G$, so $G$ is the innermost
+evaluation that contains both. If $\alpha_{j-1}$ follows no read of the seed of
+$S$, the sequence leaves it out (second case of *Repeats inside a growth*).
+Otherwise it follows such a read $\rho$, and $w_j$, which contains
+$\alpha_{j-1}$ and follows no read, contains $\rho$: were $\rho$ outside
+$w_j$, the innermost evaluation that contains $\rho$ and $\alpha_{j-1}$ would
+contain $w_j$ and hold it in the child that holds $\alpha_{j-1}$, and $w_j$
+would follow $\rho$. So $w_j$ starts at the position of $G$, before $\rho$,
+and the part of it after $\rho$, which holds $\alpha_{j-1}$, starts at the end
+of the seed, which is at or after $\bar{s}$, as in the proof of *Restarts*; the parser reaches it
+through $\rho$, a read of the seed in a later step of $G$, so it lies in the
+evaluation from $\bar{s}$ of the continuation, which is the second form of the
+claim. $\square$
 
 Let $\bar{\kappa}$ be that continuation. What remains of this case is to place
 $w_j$, or $e_j$, inside the evaluation in $\bar{\kappa}$ of a call $c$ that
@@ -1334,7 +1368,10 @@ $c$ rather than lie inside it; the variants of the calls can differ, and an
 entry of one variant answers no call of the other; and the evaluation of the
 key that the covered keys give can be in a context of growths, where it
 stores no entry. Nor is the case shown in which $Y_{l'}$ contains $e'_j$ and
-is not $e'_j$, nor the case of a growth step around $Y_l$ that is dropped.
+is not $e'_j$, nor the case of a growth step around $Y_l$ that is dropped,
+nor the second form of the claim, in which the part of $w_j$ after its read
+of the seed takes the place of $w_j$ and is checked from the end of the seed
+as a growing unit, as in the first case of *Dropped steps*.
 
 **Calls of scan-only rules.** Let the rule $r$ of the links $i$ to $k$ be a
 scan-only rule ([Conditions for Linear
@@ -1423,7 +1460,13 @@ evaluations above $w$ on the path, up to $X$, succeed and are kept, so after
 $w$ the parser evaluates from $s$ a continuation $\kappa$ of $w$, through the
 ends of the enclosing expressions and, at the end of a rule body, through the
 call of the rule, and ends $X$ at $p_0$, returning to no position before $s$
-in between (*Restarts*). For the unit that a dropped step of $G$ gives,
+in between apart from the exception of the restarts for the growths on the
+path from $X$ to $w$ (*Restarts*), whose later steps $\kappa$ goes on through
+at the reads of their seeds. That $X$ ends at $p_0$ through those reads is
+not shown when a later kept step of such a growth gives its result through an
+alternative whose every read of the seed is abandoned, as the second step of
+`E` does in
+`E = E "x" / &(E "b") "a" "b" "c" / "a"` on `abc`. For the unit that a dropped step of $G$ gives,
 *Dropped steps* gives the same, with the continuation that it names, which
 goes on from $e$ after $G$ ends. $\kappa$ consumes the input from $s$ to $p_0$, so it
 begins with the calls that $w$ and $\kappa$ share or that the comparison passes
@@ -1478,7 +1521,11 @@ reaches it and it reaches $B$, which reaches $Z$. The calls on the path from $X$
 $K$ end at $p_0$ in body evaluations that end at $p_0$, so the second case
 adds each rule above $K$, up to $A$.
 
-Three points of this proof are open. The hypothesis that the alike calls end
+Four points of this proof are open. That $X$ ends at $p_0$ through the reads
+of the seeds in the later steps of the growths between $X$ and $w$, and so
+through $\kappa$, is not shown when a later kept step gives its result through
+an alternative whose every read of the seed is abandoned, as inside a
+lookahead. The hypothesis that the alike calls end
 at one position in both evaluations is what
 [Conditions for Linear Cost](../runtime/parsing.md#conditions-for-linear-cost)
 states for the shared calls and the comparison of a decided unit for the
@@ -2083,12 +2130,17 @@ the same place in $\mathcal{R}(E_1)$, excludes case (c). $\square$
 So a link is the case of such a pair where $E_1$ holds $\alpha_{i-1}$ and
 $E_2$ holds $\alpha_i$, and the claims about outer links below need of a
 memoized link only that it is an evaluated pair. The first evaluation of a
-key that stores no result does not repeat: by Lemma 3 it is the only
-evaluation of its key that stores none, so a key has at most one, and the
-evaluations that it lets the memo make again are at most the three of its key.
-Of the evaluations of a class, only the first is a head, so a no-result
-evaluation changes which evaluation is the head of its class and not the
-number of activations charged to it (*Activations held by heads*).
+key that stores no result does not repeat: among the memoized evaluations of
+a key, which the proof of Lemma 3 counts, the only one that stores none is
+that of the first call of the variant at the position, so a key has at most
+one, and the evaluations that it lets the memo make again are at most the
+three of its key. An evaluation of a key in a context of growths, which
+Lemma 3 does not count, is no memoized evaluation, and the evaluated pairs
+above exclude it. The head of a class is its first evaluation, whether or not
+it stores a result; a no-result evaluation only makes a later call of its key
+evaluated instead of answered, and that evaluation is one of the three of its
+key, and so of the six memoized evaluations of its class that *Activations
+held by heads* allows.
 
 So the body evaluations of $R$ that hold the $\alpha_i$ start at most at one
 position for each free $i$, each link that *Links to heads* leaves
@@ -2101,9 +2153,19 @@ Those that start before $p_j$ enclose $w_j$: such a head $H$ contains $P_j$,
 since both contain $\alpha_j$, $H$ is not $P_j$, as the parse does not
 memoize $R$ at its calls, and $P_j$, which makes no call, contains no other
 body evaluation; so $H$ started before $\alpha_j$. From the end of $w_j$ to
-$\alpha_j$ the parser starts no evaluation before $p_j$ (*Restarts*,
-*Dropped steps*), so $H$ started before $w_j$
-ended, and not inside $w_j$, since an evaluation started inside $w_j$ ends
+$\alpha_j$ the parser starts no evaluation before $p_j$ apart from the
+exception of the restarts (*Restarts*, *Dropped steps*, and the first case of
+*Repeats inside a growth* in Lemma 5 when $N_j$ is a growth, the second
+leaving $\alpha_j$ out of the sequence). $H$ lies in no evaluation of the
+exception. When $N_j$ is no growth, the exception lies in growths that do not
+contain $\alpha_j$. When $N_j$ is a growth, $\alpha_j$ follows a read $\rho$
+of the seed of its step; an evaluation in the exception that contains
+$\alpha_j$ follows no read, so it contains $\rho$, as in *The last unit
+around the earlier frame*. A body evaluation that contains $\rho$ is a later
+step, the body evaluation of a leader, or lies in one and is made by a call
+that reads, through $\rho$, the growth open at its start; either way it is no
+evaluation of a key and no head. So $H$ started before
+$w_j$ ended, and not inside $w_j$, since an evaluation started inside $w_j$ ends
 inside it, while $P_j$ starts after $w_j$ ends. As $\alpha_j$ lies in the own
 region of $H$, no call of a rule that the parse memoizes lies between $H$ and
 $P_j$. For two such heads, $H$ holding $\alpha_j$ and $H'$ holding
@@ -2997,18 +3059,18 @@ growth at $p$, with $\alpha$ in its step $j$ and $\alpha'$ in a later step
 $j'$, and let $e_k$ be the end of the seed of step $k$. Then step $j$ is kept,
 and one of two cases holds.
 
-- *After the seed.* The path to $\alpha'$ goes on, in step $j'$, from the
-  end of a read of the growing result that succeeds, or of a call whose
-  result includes one. Then the path
+- *After the seed.* $\alpha'$ follows a read of the seed of step $j'$, a read
+  of the growing result that succeeds or a call whose result includes one
+  (*Restarts* in Lemma 4). Then the path
   from step $j$ down to $\alpha$ holds a first abandoned evaluation $w$, a
   dropped step of a growth or a unit that starts at a position $s$ with
   $s \le q$ and $s \le e_{j+1}$, and the conclusion of the restarts holds for
   $\alpha$ and $\alpha'$ with this $w$, where the continuation of $w$ that the
   parser evaluates goes on, at the end of the body of the leader, through the
   reads of the seed in the steps after $j$.
-- *At the position of the growth.* Otherwise $\alpha'$ lies in a part that
-  step $j'$ evaluates on a path that goes on from the end of no such read, as
-  after a lookahead that reads the seed and returns to $p$:
+- *At the position of the growth.* Otherwise $\alpha'$ follows no such read,
+  and so lies in a part that step $j'$ evaluates at $p$ and that follows no
+  such read either, as after a lookahead that reads the seed and returns to $p$:
   the parts at $p$ that the claims of this lemma before *Calls in a context of
   growths* bound. Then step $j'$ is one of the constant number of steps of the
   growth that those claims leave out, or $q$ is at most a constant after $p$.
@@ -3024,10 +3086,12 @@ exists. As in the restarts, the evaluations above $w$ on that path succeed,
 are no expression of a lookahead and no dropped step, so $w$ is a dropped step
 or a unit, and its parent goes on after it at $s$, inside the result of step
 $j$, so $s \le e_{j+1}$. From the end of $w$ the parser returns to no position
-before $s$ in step $j$, by the argument of the restarts, and then starts the
-steps after $j$ at $p$; each of them reaches positions after $p$ only by a part
-at $p$ that reads no growing result, or by a read of the seed, which ends at
-the end of the seed, at or after $e_{j+1}$, and so at or after $s$. Up to
+before $s$ in step $j$, apart from the exception of the restarts for the
+growths between step $j$ and $w$, by the argument of the restarts, and then
+starts the steps after $j$ at $p$; in each of them, an evaluation that follows
+a read of the seed starts at or after the end of the seed, at or after
+$e_{j+1}$, and so at or after $s$, and the others follow no read of the seed,
+as in that exception. Up to
 $\alpha'$, which follows such a read, the parser therefore evaluates, from
 $s$ on, what follows $w$ in step $j$ up to the end of the body of the leader
 and then what follows the reads of the seed, step after step: this is a
@@ -3509,7 +3573,8 @@ conclusion of the restarts holds with the start of $g'$ for the start of
 $\alpha'$: on the path from $N$ down to $\alpha$ there is a first abandoned
 evaluation $w$ below $N$, a dropped step of a growth or a committing unit
 that starts at a position $s \le p$, and from the end of $w$ to the start of
-$g'$ the parser starts no evaluation at a position before $s$. If $N$ is a
+$g'$ the parser starts no evaluation at a position before $s$, apart from the
+exception of the restarts. If $N$ is a
 growth, the two cases of *Repeats inside a growth* hold with the start of
 $g'$ for $\alpha'$.
 
@@ -5842,7 +5907,7 @@ condition of the cost view that the [Cost View](cost-view.md) proof leaves open.
    *Nesting at one end* shows that evaluations of a call that nest without a
    bound and end at one position, through restarts as well, make the call
    nest at one end, which keeps the call of `R` in that grammar from being
-   shared, apart from the three points that it leaves open and a nesting
+   shared, apart from the four points that it leaves open and a nesting
    through a part that a dropped step evaluates at the position of its growth
    before a read of its seed; what remains is
    to bound the frames left at the earlier positions by it. And the leaf links
@@ -5850,7 +5915,7 @@ condition of the cost view that the [Cost View](cost-view.md) proof leaves open.
    step or an evaluation in a context of growths, which that claim leaves
    out, and for which the condition has its case of seed reads (*Seed
    reads*); that case is argued from *Nesting at one end* but not proved:
-   besides the three open points of that claim, it is not shown that the
+   besides the four open points of that claim, it is not shown that the
    nested evaluations of a leader that it picks end at the position, since a
    leader whose current result ends there can grow beyond it, nor that each
    dropped step of a growth on the path between them holds the inner one after
