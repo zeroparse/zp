@@ -34,15 +34,22 @@ type tsLib struct {
 	exports map[string]bool
 }
 
-// libCache memoizes the assembled library of each source, keyed as gogen keys its library cache:
-// only a source whose dynamic type is a string or a pointer is a valid map key.
-var libCache struct {
-	mu  sync.Mutex
-	lib map[fs.FS]*tsLib
+// libKey identifies an assembled library: its source and the features of the parsers it serves.
+type libKey struct {
+	fsys     fs.FS
+	features codegen.FeatureSet
 }
 
-// loadLib assembles the library of fsys (once per source).
-func loadLib(fsys fs.FS) (*tsLib, error) {
+// libCache memoizes the assembled library of each source and feature set, keyed as gogen keys its
+// library cache: only a source whose dynamic type is a string or a pointer is a valid map key.
+var libCache struct {
+	mu  sync.Mutex
+	lib map[libKey]*tsLib
+}
+
+// loadLib assembles the library of fsys for parsers with the features fs (once per source and
+// feature set).
+func loadLib(fsys fs.FS, features codegen.FeatureSet) (*tsLib, error) {
 	if fsys == nil {
 		return nil, fmt.Errorf("TypeScript generation needs the library source: set GenOptions.TSLib")
 	}
@@ -51,26 +58,27 @@ func loadLib(fsys fs.FS) (*tsLib, error) {
 	libCache.mu.Lock()
 	defer libCache.mu.Unlock()
 	if cacheable {
-		if lib, ok := libCache.lib[fsys]; ok {
+		if lib, ok := libCache.lib[libKey{fsys, features}]; ok {
 			return lib, nil
 		}
 	}
-	lib, err := assembleLib(fsys)
+	lib, err := assembleLib(fsys, features)
 	if err != nil {
 		return nil, err
 	}
 	if cacheable {
 		if libCache.lib == nil {
-			libCache.lib = map[fs.FS]*tsLib{}
+			libCache.lib = map[libKey]*tsLib{}
 		}
-		libCache.lib[fsys] = lib
+		libCache.lib[libKey{fsys, features}] = lib
 	}
 	return lib, nil
 }
 
-// assembleLib returns the generated lib.ts of the library in fsys: lib.ts after its marker, with the
-// printed methods substituted, followed by libModules, and the exported names of the result.
-func assembleLib(fsys fs.FS) (*tsLib, error) {
+// assembleLib returns the generated lib.ts of the library in fsys for parsers with the features fs:
+// lib.ts after its marker, with the printed methods substituted, followed by libModules, narrowed
+// to fs (narrowLib) unless fs has every feature, and the exported names of the result.
+func assembleLib(fsys fs.FS, features codegen.FeatureSet) (*tsLib, error) {
 	read := func(name string) (string, error) {
 		data, err := fs.ReadFile(fsys, name)
 		return string(data), err
@@ -79,7 +87,7 @@ func assembleLib(fsys fs.FS) (*tsLib, error) {
 	if err != nil {
 		return nil, err
 	}
-	ms, err := tsMethods()
+	ms, err := tsMethodsFor(features)
 	if err != nil {
 		return nil, err
 	}
@@ -102,7 +110,13 @@ func assembleLib(fsys fs.FS) (*tsLib, error) {
 		b.WriteString("\n// --- " + m.heading + " ---\n")
 		b.WriteString(text)
 	}
-	lib := &tsLib{text: b.String(), exports: map[string]bool{}}
+	text := b.String()
+	if features != codegen.FeatureSet(codegen.AllFeatures) {
+		if text, err = narrowLib(text, features); err != nil {
+			return nil, err
+		}
+	}
+	lib := &tsLib{text: text, exports: map[string]bool{}}
 	for _, m := range tsExportDecl.FindAllStringSubmatch(lib.text, -1) {
 		// An interface merged with a class of the same name is a value.
 		isType := m[1] == "interface" || m[1] == "type"
@@ -116,7 +130,7 @@ func assembleLib(fsys fs.FS) (*tsLib, error) {
 
 // LibText returns the text of the generated lib.ts of the library in fsys.
 func LibText(fsys fs.FS) (string, error) {
-	lib, err := loadLib(fsys)
+	lib, err := loadLib(fsys, codegen.FeatureSet(codegen.AllFeatures))
 	if err != nil {
 		return "", err
 	}

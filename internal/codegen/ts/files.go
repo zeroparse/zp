@@ -65,10 +65,11 @@ func substituteMethods(src string, ms []tsMethod) string {
 	return src
 }
 
-// tsFiles assembles the files of a parser from the code generated from the grammar (body) and the
-// declarations of its types (types, empty without opts.Types).
-func tsFiles(opts codegen.GenOptions, body, types string) ([]codegen.GeneratedFile, error) {
-	lib, err := loadLib(opts.TSLib)
+// tsFiles assembles the files of a parser with the features fs from the code generated from the
+// grammar (body) and the declarations of its types (types, empty without opts.Types). With shake,
+// the library a LibEmbed parser carries keeps only what the parser's files name (shakeLib).
+func tsFiles(opts codegen.GenOptions, fs codegen.FeatureSet, shake bool, body, types string) ([]codegen.GeneratedFile, error) {
+	lib, err := loadLib(opts.TSLib, fs)
 	if err != nil {
 		return nil, err
 	}
@@ -125,9 +126,6 @@ func tsFiles(opts codegen.GenOptions, body, types string) ([]codegen.GeneratedFi
 	}
 	parser.WriteString("\n")
 	parser.WriteString(body)
-	if opts.Lib != codegen.LibImport {
-		files = append(files, codegen.GeneratedFile{Path: tsLibFileName, Content: []byte(lib.text)})
-	}
 	files = append(files, codegen.GeneratedFile{Path: "parser.ts", Content: []byte(parser.String())})
 	if types != "" {
 		var t strings.Builder
@@ -137,6 +135,19 @@ func tsFiles(opts codegen.GenOptions, body, types string) ([]codegen.GeneratedFi
 		t.WriteString("import type {Node as RuntimeNode} from " + TsString(spec) + ";\n\n")
 		t.WriteString(types)
 		files = append(files, codegen.GeneratedFile{Path: "types.ts", Content: []byte(t.String())})
+	}
+	if opts.Lib != codegen.LibImport {
+		text := lib.text
+		if shake {
+			roots := make([]string, len(files))
+			for i, f := range files {
+				roots[i] = string(f.Content)
+			}
+			if text, err = shakeLib(text, roots); err != nil {
+				return nil, err
+			}
+		}
+		files = append([]codegen.GeneratedFile{{Path: tsLibFileName, Content: []byte(text)}}, files...)
 	}
 	return files, nil
 }
