@@ -6048,8 +6048,9 @@ condition of the cost view that the [Cost View](cost-view.md) proof leaves open.
    the call and the frame of the earlier outer link lies inside a body
    evaluation of the earlier one other than as it, or contains the earlier
    one other than as its body evaluation, *Nesting at one end* rules the case
-   out, apart from a scan-only rule of the scan (*The frame of an outer link
-   as the later evaluation of a shared call*); not shown are the cases in
+   out, apart from a scan-only rule of the scan in a parse without records of
+   scan sites, which no claim treats (*The frame of an outer link as the later
+   evaluation of a shared call*); not shown are the cases in
    which the frame of the earlier outer link is the body evaluation of the
    earlier evaluation, in which the frame of the later outer link encloses the later
    evaluation of the call, or in which the continuation
