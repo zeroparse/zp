@@ -152,7 +152,7 @@ func TestMemoKeysAndStorage(t *testing.T){
 }
 func TestFirstCallStoragePublication(t *testing.T){
  for _,reuse:=range []bool{false,true}{
-  p:=&zprt.Parser{Pos:64000,Control:zprt.X_newBudgetControl(nil,Limits{Compute:129})}
+  p:=&zprt.Parser{Pos:64000,Control:zprt.X_newBudgetControl(nil,Limits{Compute:129}),X_deferMemo:true}
   p.X_memo.X_stride=1;p.X_memo.X_calls=[]zprt.X_seenCalls{{X_calls:17,X_repeats:1}}
   if reuse{p.X_memo.X_seen=make([]uint64,0,2048);for i:=range p.X_memo.X_seen[:cap(p.X_memo.X_seen)]{p.X_memo.X_seen[:cap(p.X_memo.X_seen)][i]=^uint64(0)}}else{p.X_memo.X_seen=make([]uint64,512)}
   oldLen:=len(p.X_memo.X_seen);before:=p.X_memo.X_calls[0]
@@ -181,7 +181,7 @@ func TestMemoCancellation(t *testing.T){
 func TestSparseFirstCallInterruptionAndRetry(t *testing.T){
  if zpGrammar.X_nseen<=64{t.Fatal("sparse interruption fixture has too few seen rules for sparse tracking")}
  for _,at:=range []int{600,1200}{
-  p:=&zprt.Parser{Pos:at*1024,Control:zprt.X_newBudgetControl(nil,Limits{Compute:129})}
+  p:=&zprt.Parser{Pos:at*1024,Control:zprt.X_newBudgetControl(nil,Limits{Compute:129}),X_deferMemo:true}
   p.X_memo.X_stride=65;p.X_memo.X_sparse=true;p.X_memo.X_calls=make([]zprt.X_seenCalls,65)
   p.X_memo.X_calls[0]=zprt.X_seenCalls{X_calls:17,X_repeats:1}
   p.X_memo.X_pages=make([]zprt.X_seenRulePages,65)

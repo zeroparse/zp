@@ -8,7 +8,7 @@ expBits expBase farthest exp
 rule ok node envValues bind trace
 memoPut memoGet memoSlots longest undo toperatorsRuleAttempt operatorsRuleAttempt
 seen calls stride op listNode seenCalls
-seenRulePages repeats pages last at sparse
+seenRulePages repeats pages last at sparse deferMemo
 frame end
 typedMemo
 typedDocumentState
