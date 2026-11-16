@@ -158,6 +158,23 @@ func GeneratedParsersCorpus(t *testing.T, goBin string, cases []Case, opts codeg
 func GeneratedParsersMismatches(t *testing.T, goBin string, cases []Case, opts codegen.GenOptions, mutate func([]byte) []byte) []string {
 	t.Helper()
 	got, want := GeneratedParsersOutputs(t, goBin, cases, opts, mutate)
+	return outputMismatches(cases, got, want)
+}
+
+// GeneratedParsersEmbedCorpus is GeneratedParsersCorpus with packages that carry their own copy of
+// the library, as zp gen writes them with -lib embed, generated with opts (whose Lib is ignored)
+// with comments and the limit controls of the fixtures.
+func GeneratedParsersEmbedCorpus(t *testing.T, goBin string, cases []Case, opts codegen.GenOptions) {
+	t.Helper()
+	got, want := generatedParsersOutputs(t, goBin, cases, opts, nil, true)
+	for _, m := range outputMismatches(cases, got, want) {
+		t.Error(m)
+	}
+}
+
+// outputMismatches describes the results of got that differ from those of want, as
+// GeneratedParsersOutputs orders them.
+func outputMismatches(cases []Case, got, want []string) []string {
 	var mismatches []string
 	k := 0
 	for _, c := range cases {
@@ -179,6 +196,13 @@ func GeneratedParsersMismatches(t *testing.T, goBin string, cases []Case, opts c
 // error.
 func GeneratedParsersOutputs(t *testing.T, goBin string, cases []Case, opts codegen.GenOptions, mutate func([]byte) []byte) (got, want []string) {
 	t.Helper()
+	return generatedParsersOutputs(t, goBin, cases, opts, mutate, false)
+}
+
+// generatedParsersOutputs is GeneratedParsersOutputs, with packages that carry their own copy of
+// the library if embed is set.
+func generatedParsersOutputs(t *testing.T, goBin string, cases []Case, opts codegen.GenOptions, mutate func([]byte) []byte, embed bool) (got, want []string) {
+	t.Helper()
 	dir := t.TempDir()
 	write := func(name, content string) {
 		path := filepath.Join(dir, name)
@@ -196,10 +220,10 @@ func GeneratedParsersOutputs(t *testing.T, goBin string, cases []Case, opts code
 			t.Fatalf("%s: %v", c.Name, err)
 		}
 		opts.Package, opts.Start, opts.Recognize = fmt.Sprintf("g%d", i), "main", true
-		if opts.Lib == codegen.LibEmbed {
+		if embed {
 			// The package carries its own copy of the library, as zp gen writes it.
 			o := opts
-			o.Module, o.KeepComments, o.LimitControls = "codegentest/"+o.Package, true, FixtureBudgetControls(t)
+			o.Lib, o.Module, o.KeepComments, o.LimitControls = codegen.LibEmbed, "codegentest/"+o.Package, true, FixtureBudgetControls(t)
 			files, err := Generate(t, g, o)
 			if err != nil {
 				t.Fatalf("%s: %v", c.Name, err)

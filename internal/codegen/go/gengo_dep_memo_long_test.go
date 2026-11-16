@@ -138,7 +138,8 @@ type depMemoPackage struct {
 }
 
 // depMemoPackages generates the parsers of cases, untyped and typed, with the embedded library.
-// The library does not depend on the grammar, so the packages import one copy of it, at
+// With the optimization used-features off the library copy is the whole library, which does not
+// depend on the grammar, so the packages import one copy of it, at
 // depmemo/internal/libgo, which depMemoOutcomes writes (changed by a mutation) once: the go
 // command then builds the library once per program rather than once per grammar. The library files
 // are the second result.
@@ -152,7 +153,7 @@ func depMemoPackages(t *testing.T, cases []codegentest.Case) ([]depMemoPackage, 
 			t.Fatalf("%s: %v", c.Name, err)
 		}
 		pkg := fmt.Sprintf("g%d", i)
-		files, err := codegentest.Generate(t, g, codegen.GenOptions{Module: "depmemo/" + pkg, Package: pkg, Start: "main", Types: true, SourceInfo: true, Lib: codegen.LibEmbed})
+		files, err := codegentest.Generate(t, g, codegen.GenOptions{Module: "depmemo/" + pkg, Package: pkg, Start: "main", Types: true, SourceInfo: true, Lib: codegen.LibEmbed, NoOpt: []string{codegen.UsedFeatures}})
 		if err != nil {
 			t.Fatalf("%s: %v", c.Name, err)
 		}
