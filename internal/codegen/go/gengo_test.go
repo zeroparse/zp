@@ -10,7 +10,7 @@ import (
 
 	"zeroparse.dev/zp/internal/codegen"
 	"zeroparse.dev/zp/internal/engine"
-	"zeroparse.dev/zp/internal/syntax"
+	"zeroparse.dev/zp/internal/frontend/parser"
 	"zeroparse.dev/zp/internal/testing/codegentest"
 )
 
@@ -62,7 +62,7 @@ func TestGenerateErrors(t *testing.T) {
 }
 
 func testGenerateErrors(t *testing.T) {
-	g, _ := syntax.Parse("@start\nrule main = \"a\" b\nrule b = \"b\"")
+	g, _ := parser.Parse("@start\nrule main = \"a\" b\nrule b = \"b\"")
 	if _, err := codegentest.GenerateCode(t, g, codegen.GenOptions{Package: "p", Start: "nope"}); err == nil || err.Error() != "rule nope is not defined" {
 		t.Errorf("got %v", err)
 	}

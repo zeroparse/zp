@@ -8,7 +8,7 @@ import (
 	"zeroparse.dev/zp/internal/codegen"
 	"zeroparse.dev/zp/internal/engine"
 	"zeroparse.dev/zp/internal/frontend/desugar"
-	"zeroparse.dev/zp/internal/syntax"
+	"zeroparse.dev/zp/internal/frontend/parser"
 	"zeroparse.dev/zp/internal/testing/codegentest"
 )
 
@@ -31,7 +31,7 @@ func testStartHiddenRule(t *testing.T) {
 		if err == nil || err.Error() != tc.want {
 			t.Errorf("%q\n got %v\nwant %s", tc.src, err, tc.want)
 		}
-		g, perr := syntax.Parse(tc.src)
+		g, perr := parser.Parse(tc.src)
 		if perr != nil {
 			t.Fatal(perr)
 		}

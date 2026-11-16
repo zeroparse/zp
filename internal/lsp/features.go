@@ -8,7 +8,7 @@ import (
 	"unicode/utf8"
 
 	"zeroparse.dev/zp/grammar"
-	"zeroparse.dev/zp/internal/syntax"
+	"zeroparse.dev/zp/internal/frontend/parser"
 )
 
 // --- Formatting ---
@@ -259,7 +259,7 @@ func (a *analysis) fieldSymbolsControlled(d *definition, st *grammar.TypeDef, co
 		last := i
 		for j := i + 1; j < len(a.toks) && a.toks[j].end < limit; j++ {
 			control.poll()
-			if a.toks[j].Kind != syntax.TokenComment {
+			if a.toks[j].Kind != parser.TokenComment {
 				last = j
 			}
 		}
@@ -314,7 +314,7 @@ func (a *analysis) hoverAtControlled(off int, control *renderControl) (text stri
 		}
 	}
 	i := a.tokenAt(off)
-	if i < 0 || a.toks[i].Kind != syntax.TokenIdent {
+	if i < 0 || a.toks[i].Kind != parser.TokenIdent {
 		return "", 0, 0, false
 	}
 	t := a.toks[i]

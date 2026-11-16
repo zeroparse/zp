@@ -8,7 +8,7 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/internal/compile"
-	"zeroparse.dev/zp/internal/syntax"
+	"zeroparse.dev/zp/internal/frontend/parser"
 	"zeroparse.dev/zp/internal/testing/starttest"
 )
 
@@ -281,7 +281,7 @@ func TestRestartRuleAtGrowthStart(t *testing.T) {
 	// can end. So each tail's call of M nests at one end by E3 through itself, with M its callee,
 	// although W "x" follows the call at 3:12 in R.
 	src := "@start\nrule main = R $$\nrule R = R M W \"x\" / M / \".\"\nrule M = R M / \"m\"\nrule W = [ ]*\n"
-	g, err := syntax.Parse(src)
+	g, err := parser.Parse(src)
 	if err != nil {
 		t.Fatal(err)
 	}

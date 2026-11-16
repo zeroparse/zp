@@ -21,21 +21,21 @@ func TestGeneratedSourceParserCurrent(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	files, err := codegen.Go{Module: "zeroparse.dev/zp/internal/syntax/grammarparser", Lib: codegen.LibImport, Types: true, TypedOnly: true, LimitControls: true, Expectations: true}.Generate(g, "main")
+	files, err := codegen.Go{Module: "zeroparse.dev/zp/internal/frontend/parser/zpparser", Lib: codegen.LibImport, Types: true, TypedOnly: true, LimitControls: true, Expectations: true}.Generate(g, "main")
 	if err != nil {
 		t.Fatal(err)
 	}
-	dir := filepath.Join("..", "..", "internal", "syntax", "grammarparser")
+	dir := filepath.Join("..", "..", "internal", "frontend", "parser", "zpparser")
 	var want []string
 	for _, f := range files {
 		want = append(want, filepath.ToSlash(f.Path))
 		got, err := os.ReadFile(filepath.Join(dir, f.Path))
 		if err != nil {
-			t.Errorf("%s: %v (run go generate ./internal/syntax)", f.Path, err)
+			t.Errorf("%s: %v (run go generate ./internal/frontend/parser)", f.Path, err)
 			continue
 		}
 		if !bytes.Equal(afterFirstLine(got), afterFirstLine(f.Content)) {
-			t.Errorf("%s is stale: run go generate ./internal/syntax", f.Path)
+			t.Errorf("%s is stale: run go generate ./internal/frontend/parser", f.Path)
 		}
 	}
 	var have []string

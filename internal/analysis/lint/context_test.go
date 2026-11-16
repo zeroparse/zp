@@ -10,7 +10,7 @@ import (
 
 	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/engine"
-	"zeroparse.dev/zp/internal/syntax"
+	"zeroparse.dev/zp/internal/frontend/parser"
 	"zeroparse.dev/zp/internal/testing/starttest"
 )
 
@@ -37,7 +37,7 @@ func lintTestContext(t *testing.T, cancelAt int) *lintPollContext {
 
 func lintContextGrammar(t *testing.T, source string) *grammar.Grammar {
 	t.Helper()
-	g, err := syntax.Parse(source)
+	g, err := parser.Parse(source)
 	if err != nil {
 		t.Fatal(err)
 	}

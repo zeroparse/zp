@@ -15,15 +15,15 @@ import (
 	"zeroparse.dev/zp/core"
 	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/engine"
+	"zeroparse.dev/zp/internal/frontend/parser"
 	"zeroparse.dev/zp/internal/frontend/schemaexport"
 	"zeroparse.dev/zp/internal/limits"
-	"zeroparse.dev/zp/internal/syntax"
 	"zeroparse.dev/zp/schema"
 )
 
 // ParseGrammar parses ZeroParse source code into a grammar AST.
 func ParseGrammar(src string) (*grammar.Grammar, error) {
-	return syntax.Parse(src)
+	return parser.Parse(src)
 }
 
 // Parser is a compiled grammar. It is safe for concurrent use by multiple goroutines.

@@ -6,7 +6,7 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/internal/frontend/desugar"
-	"zeroparse.dev/zp/internal/syntax"
+	"zeroparse.dev/zp/internal/frontend/parser"
 	"zeroparse.dev/zp/internal/testing/factstest"
 )
 
@@ -30,7 +30,7 @@ func TestErrorsGolden(t *testing.T) {
 	var b strings.Builder
 	for _, tc := range cases {
 		fmt.Fprintf(&b, "# %s\n", tc.name)
-		g, err := syntax.Parse(tc.src)
+		g, err := parser.Parse(tc.src)
 		if err != nil {
 			t.Fatalf("%s: %v", tc.name, err)
 		}

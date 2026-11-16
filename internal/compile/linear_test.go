@@ -5,7 +5,7 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/internal/frontend/desugar"
-	"zeroparse.dev/zp/internal/syntax"
+	"zeroparse.dev/zp/internal/frontend/parser"
 )
 
 // TestLinearKeepsSites checks that @linear, which only adds a check, leaves the sites of a program
@@ -15,7 +15,7 @@ func TestLinearKeepsSites(t *testing.T) {
 	const src = "@start\nrule main = r \"a\" / r \"b\"\n%srule r = (\"xy\")*\n"
 	sites := func(decl string) (run, scan int) {
 		t.Helper()
-		g, err := syntax.Parse(strings.Replace(src, "%s", decl, 1))
+		g, err := parser.Parse(strings.Replace(src, "%s", decl, 1))
 		if err != nil {
 			t.Fatal(err)
 		}

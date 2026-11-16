@@ -4,14 +4,14 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/internal/engine"
-	"zeroparse.dev/zp/internal/syntax"
+	"zeroparse.dev/zp/internal/frontend/parser"
 	"zeroparse.dev/zp/internal/testing/starttest"
 )
 
 func TestMissingTokenDoesNotProveAChoiceShadowed(t *testing.T) {
 	// Insertion permits the first alternative to match a different source
 	// prefix. A strict literal-prefix proof must not discard that alternative.
-	g, err := syntax.Parse(`rule main = "a" / "ab" #missing`)
+	g, err := parser.Parse(`rule main = "a" / "ab" #missing`)
 	if err != nil {
 		t.Fatal(err)
 	}

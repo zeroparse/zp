@@ -11,7 +11,7 @@ import (
 
 	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/codegen"
-	"zeroparse.dev/zp/internal/syntax"
+	"zeroparse.dev/zp/internal/frontend/parser"
 	"zeroparse.dev/zp/internal/testing/codegentest"
 )
 
@@ -19,7 +19,7 @@ import (
 // first rule that is not private) is a start rule, as in a grammar written for use. A grammar that
 // has attributes marks its own start rules.
 func parseNaturalStart(src string) (*grammar.Grammar, error) {
-	g, err := syntax.Parse(src)
+	g, err := parser.Parse(src)
 	if err != nil {
 		return nil, err
 	}

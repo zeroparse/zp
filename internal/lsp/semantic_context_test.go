@@ -8,7 +8,7 @@ import (
 	"sync"
 	"testing"
 
-	"zeroparse.dev/zp/internal/syntax"
+	"zeroparse.dev/zp/internal/frontend/parser"
 )
 
 func TestSemanticResponsesControlledParity(t *testing.T) {
@@ -118,7 +118,7 @@ func TestSemanticInteriorWalksCancel(t *testing.T) {
 		assertOccurrencePhaseCancels(t, 2, func(c *renderControl) (any, *rpcError) { return a.semanticTokensControlled(c), nil })
 	})
 	t.Run("occurrence-cursor", func(t *testing.T) {
-		a := &analysis{toks: []token{{Token: syntax.Token{Kind: syntax.TokenIdent, Text: "tail"}, start: 8192, end: 8196}}}
+		a := &analysis{toks: []token{{Token: parser.Token{Kind: parser.TokenIdent, Text: "tail"}, start: 8192, end: 8196}}}
 		for i := range 4096 {
 			a.occs = append(a.occs, occurrence{start: i * 2, end: i*2 + 1})
 		}

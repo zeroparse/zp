@@ -2,7 +2,7 @@ package language_test
 
 import (
 	"go/ast"
-	"go/parser"
+	goparser "go/parser"
 	"go/token"
 	"reflect"
 	"strings"
@@ -12,8 +12,8 @@ import (
 	"zeroparse.dev/zp/core"
 	"zeroparse.dev/zp/engine"
 	"zeroparse.dev/zp/grammar"
-	"zeroparse.dev/zp/internal/syntax"
-	"zeroparse.dev/zp/internal/syntax/grammarparser/types"
+	"zeroparse.dev/zp/internal/frontend/parser"
+	"zeroparse.dev/zp/internal/frontend/parser/zpparser/types"
 )
 
 // The adapter reads the typed values of the generated parser of zp.zp. A
@@ -138,7 +138,7 @@ var treeTypes = func() map[string]reflect.Type {
 // TestTreeTypesComplete requires treeTypes to name every exported struct type
 // of the typed values, so that a type that zp.zp adds is not missed.
 func TestTreeTypesComplete(t *testing.T) {
-	f, err := parser.ParseFile(token.NewFileSet(), "../../internal/syntax/grammarparser/types/types.go", nil, 0)
+	f, err := goparser.ParseFile(token.NewFileSet(), "../../internal/frontend/parser/zpparser/types/types.go", nil, 0)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -256,14 +256,14 @@ func fill(t testing.TB, n *core.Node, s reflect.Value) {
 // the engine: the parse, the move into the typed values and the adapter.
 func bridgedFrontend(t testing.TB, p *engine.Parser) func(string) (*grammar.Grammar, error) {
 	return func(src string) (*grammar.Grammar, error) {
-		text, invalid := syntax.WithoutInvalidCharacters(src)
+		text, invalid := parser.WithoutInvalidCharacters(src)
 		n, err := p.Parse(text)
 		if err != nil {
 			return nil, canonicalErrors(src, err)
 		}
 		if invalid {
-			return nil, syntax.SourceErrors(src, nil)
+			return nil, parser.SourceErrors(src, nil)
 		}
-		return syntax.FromSourceTree(src, typedTree(t, n))
+		return parser.FromSourceTree(src, typedTree(t, n))
 	}
 }

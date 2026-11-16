@@ -8,7 +8,7 @@ import (
 
 	"zeroparse.dev/zp/internal/cancel"
 
-	"zeroparse.dev/zp/internal/syntax"
+	"zeroparse.dev/zp/internal/frontend/parser"
 )
 
 // TestAnalysisEntryPointsReportDuplicateRule checks that the entry points that analyze a grammar
@@ -18,7 +18,7 @@ func TestAnalysisEntryPointsReportDuplicateRule(t *testing.T) {
 		{"@start\nrule main = main \"a\" / \"a\"\nrule main = main \"b\" / \"b\"", "3:1: rule main is already defined"},
 		{"@start\nrule main = a\nrule a = \"a\" main?\nrule main = a \"b\"", "4:1: rule main is already defined"},
 	} {
-		g, err := syntax.Parse(tc.src)
+		g, err := parser.Parse(tc.src)
 		if err != nil {
 			t.Fatal(err)
 		}

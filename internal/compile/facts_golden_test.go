@@ -5,7 +5,7 @@ import (
 
 	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/frontend/desugar"
-	"zeroparse.dev/zp/internal/syntax"
+	"zeroparse.dev/zp/internal/frontend/parser"
 	"zeroparse.dev/zp/internal/testing/factstest"
 	"zeroparse.dev/zp/internal/testing/starttest"
 )
@@ -17,7 +17,7 @@ func TestFactsGolden(t *testing.T) {
 	for _, path := range factstest.Corpus {
 		t.Run(path, func(t *testing.T) {
 			t.Parallel()
-			g, err := syntax.Parse(factstest.Read(t, path))
+			g, err := parser.Parse(factstest.Read(t, path))
 			if err != nil {
 				t.Fatal(err)
 			}

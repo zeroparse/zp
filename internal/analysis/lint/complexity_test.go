@@ -8,7 +8,7 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/internal/analysis/complexity"
-	"zeroparse.dev/zp/internal/syntax"
+	"zeroparse.dev/zp/internal/frontend/parser"
 )
 
 func TestGrowingVariable(t *testing.T) {
@@ -81,7 +81,7 @@ func TestExampleClassifications(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			g, err := syntax.Parse(string(src))
+			g, err := parser.Parse(string(src))
 			if err != nil {
 				t.Fatal(err)
 			}

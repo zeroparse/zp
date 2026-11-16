@@ -3,7 +3,7 @@ package lsp
 import (
 	"encoding/json"
 
-	"zeroparse.dev/zp/internal/syntax"
+	"zeroparse.dev/zp/internal/frontend/parser"
 )
 
 // Semantic tokens tell rule names, type names, captures and fields apart, which a TextMate grammar
@@ -114,17 +114,17 @@ func (a *analysis) classify(i int, occ *int, control *renderControl) (semClass, 
 	control.poll()
 	t := a.toks[i]
 	switch t.Kind {
-	case syntax.TokenComment:
+	case parser.TokenComment:
 		return semClass{semComment, 0}, true
-	case syntax.TokenString:
+	case parser.TokenString:
 		return semClass{semString, 0}, true
-	case syntax.TokenInt:
+	case parser.TokenInt:
 		return semClass{semNumber, 0}, true
-	case syntax.TokenCharClass:
+	case parser.TokenCharClass:
 		return semClass{semRegexp, 0}, true
-	case syntax.TokenCapture, syntax.TokenIndex:
+	case parser.TokenCapture, parser.TokenIndex:
 		return semClass{semParameter, 0}, true
-	case syntax.TokenIdent:
+	case parser.TokenIdent:
 		if i > 0 && (a.isPunct(i-1, "@") || a.isPunct(i-1, "#")) {
 			return semClass{semDecorator, 0}, true
 		}

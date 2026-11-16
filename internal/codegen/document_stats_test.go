@@ -13,7 +13,7 @@ import (
 	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/codegen"
 	"zeroparse.dev/zp/internal/engine"
-	"zeroparse.dev/zp/internal/syntax"
+	"zeroparse.dev/zp/internal/frontend/parser"
 	"zeroparse.dev/zp/internal/testing/codegentest"
 )
 
@@ -55,7 +55,7 @@ rule id = [a-z]+ #atomic`,
 			[]string{"1", "+", "-", "*", "(", ")", ";", "x", "=", "0", "7*8;", "a=(1);", ""}},
 	} {
 		t.Run(c.name, func(t *testing.T) {
-			g, err := syntax.Parse(c.src)
+			g, err := parser.Parse(c.src)
 			if err != nil {
 				t.Fatal(err)
 			}

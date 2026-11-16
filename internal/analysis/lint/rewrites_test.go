@@ -6,7 +6,7 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/grammar"
-	"zeroparse.dev/zp/internal/syntax"
+	"zeroparse.dev/zp/internal/frontend/parser"
 )
 
 // applyRewrite applies r to src, whose characters are all single bytes.
@@ -26,7 +26,7 @@ func applyRewrite(src string, r Rewrite) string {
 // that has one, in the order of the findings.
 func rewrites(t *testing.T, src, check string) (fixed []string, findings int) {
 	t.Helper()
-	g, err := syntax.Parse(src)
+	g, err := parser.Parse(src)
 	if err != nil {
 		t.Fatal(err)
 	}

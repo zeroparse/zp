@@ -10,7 +10,7 @@ import (
 
 	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/engine"
-	"zeroparse.dev/zp/internal/syntax"
+	"zeroparse.dev/zp/internal/frontend/parser"
 	"zeroparse.dev/zp/internal/testing/starttest"
 )
 
@@ -18,7 +18,7 @@ import (
 // "line:col severity check".
 func lintSource(t *testing.T, src string, opts options) ([]string, []Finding) {
 	t.Helper()
-	return lintSourceWith(t, syntax.Parse, src, opts)
+	return lintSourceWith(t, parser.Parse, src, opts)
 }
 
 // lintSourceWith is lintSource with the given parser.
@@ -75,7 +75,7 @@ func runCases(t *testing.T, cases []lintCase) {
 	t.Helper()
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
-			got, fs := lintSourceWith(t, syntax.Parse, tc.src, options{})
+			got, fs := lintSourceWith(t, parser.Parse, tc.src, options{})
 			if !slices.Equal(got, tc.want) {
 				var msgs []string
 				for _, f := range fs {
@@ -398,7 +398,7 @@ func TestAnyIsNotAType(t *testing.T) {
 		{"rule main any = x:\"x\" => $x", "1:11: any is not a type; write _"},
 		{"rule main = x:\"x\" => $x.(any)", "1:26: any is not a type; write _"},
 	} {
-		g, err := syntax.Parse(tc.src)
+		g, err := parser.Parse(tc.src)
 		if err != nil {
 			t.Fatal(err)
 		}

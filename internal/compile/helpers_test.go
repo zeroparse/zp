@@ -7,7 +7,7 @@ import (
 
 	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/frontend/desugar"
-	"zeroparse.dev/zp/internal/syntax"
+	"zeroparse.dev/zp/internal/frontend/parser"
 )
 
 // The helpers of the tests that check the compile phase: they compile ZeroParse source with
@@ -89,7 +89,7 @@ func compileMessage(t *testing.T, src string, opts ...Options) string {
 // compileStarts parses src as written, without marking start rules, and compiles it.
 func compileStarts(t *testing.T, src string) (*Program, error) {
 	t.Helper()
-	g, err := syntax.Parse(src)
+	g, err := parser.Parse(src)
 	if err != nil {
 		t.Fatalf("syntax error: %v\n%s", err, src)
 	}

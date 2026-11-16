@@ -1,0 +1,314 @@
+package parser
+
+import (
+	"strings"
+	"testing"
+
+	"zeroparse.dev/zp/grammar"
+)
+
+func TestDeclarationAttributesParse(t *testing.T) {
+	const src = "rule a = \"x\"\n\n@start(default) @foo\n@bar\nrule b = a\n"
+	g, err := Parse(src)
+	if err != nil {
+		t.Fatal(err)
+	}
+	rules := g.Rules()
+	if len(rules[0].Attrs) != 0 || rules[0].AttrBreaks != nil || rules[0].KeywordBreak != nil {
+		t.Errorf("a rule without attributes has %v", rules[0].Attrs)
+	}
+	b := rules[1]
+	var names []string
+	for _, a := range b.Attrs {
+		if a.Pragma {
+			t.Errorf("@%s is a pragma", a.Name)
+		}
+		names = append(names, a.Name)
+	}
+	if got := strings.Join(names, " "); got != "start foo bar" {
+		t.Fatalf("attributes %q", got)
+	}
+	if ref, ok := b.Attrs[0].Args[0].(*grammar.Ref); !ok || ref.Name != "default" || len(b.Attrs[0].Args) != 1 {
+		t.Errorf("@start(default) arguments %#v", b.Attrs[0].Args)
+	}
+	// The declaration starts at its first attribute; its diagnostics point at "rule".
+	if b.Pos != (grammar.Pos{Line: 3, Col: 1}) || b.Diagnostic() != (grammar.Pos{Line: 5, Col: 1}) {
+		t.Errorf("pos %v diagnostic %v", b.Pos, b.Diagnostic())
+	}
+	if b.Attrs[2].Pos != (grammar.Pos{Line: 4, Col: 1}) {
+		t.Errorf("@bar at %v", b.Attrs[2].Pos)
+	}
+	if len(b.AttrBreaks) != 3 || b.AttrBreaks[1] != nil || b.AttrBreaks[2] == nil || b.KeywordBreak == nil {
+		t.Errorf("breaks %v keyword %v", b.AttrBreaks, b.KeywordBreak)
+	}
+}
+
+// An expression attribute that ends a rule does not take the attributes of
+// the next declaration on the following line.
+func TestDeclarationAttributesAfterExpressionAttribute(t *testing.T) {
+	const src = "@start\nrule a = \"x\" @error(message=\"m\")\n@start\nrule b = \"y\" @error(message=\"n\") @foo\n@bar\nrule c = (\"z\"\n    @baz)\n"
+	g, err := Parse(src)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var got []string
+	for _, rd := range g.Rules() {
+		var names []string
+		for _, a := range rd.Attrs {
+			names = append(names, a.Name)
+		}
+		var expr []string
+		e := rd.Expr
+		if grp, ok := e.(*grammar.Group); ok {
+			// Inside parentheses, attributes still continue on the next line.
+			e = grp.Expr
+		}
+		if a, ok := e.(*grammar.Attributed); ok {
+			for _, x := range a.Attrs {
+				expr = append(expr, x.Name)
+			}
+		}
+		got = append(got, rd.Name+": "+strings.Join(names, " ")+" / "+strings.Join(expr, " "))
+	}
+	want := "a: start / error|b: start / error foo|c: bar / baz"
+	if s := strings.Join(got, "|"); s != want {
+		t.Errorf("got  %s\nwant %s", s, want)
+	}
+}
+
+// The errors of declaration attributes are at the token that cannot follow them.
+func TestDeclarationAttributesErrors(t *testing.T) {
+	for _, tc := range []struct{ src, want string }{
+		{"@start rule a = \"x\"\n", "1:8: expected newline, found 'rule'"},
+		{"@start /* c */ rule a = \"x\"\n", "1:16: expected newline, found 'rule'"},
+		{"@start @foo rule a = \"x\"\n", "1:13: expected newline, found 'rule'"},
+		{"@start\ntype T = node[string]\n", `2:1: expected "@", "rule", found 'type'`},
+		{"@start\nvar v = 1\nrule a = \"x\"\n", `2:1: expected "@", "rule", found 'var'`},
+		{"@start\n", `2:1: expected "@", "rule", found end of file`},
+		{"@start\nfoo\n", `2:1: expected "@", "rule", found 'foo'`},
+		{"@ start\nrule a = \"x\"\n", "1:3: expected attribute name"},
+	} {
+		_, err := Parse(tc.src)
+		if err == nil || !strings.HasPrefix(err.Error(), tc.want) {
+			t.Errorf("%q\n got %v\nwant %s", tc.src, err, tc.want)
+		}
+	}
+}
+
+// After an error, parsing resumes at the attributes of the next rule, so the
+// rule keeps them.
+func TestDeclarationAttributesRecovery(t *testing.T) {
+	g, errs := ParsePartial("rule a = (\n\n@start @foo(1)\n@bar\nrule b = \"y\"\n")
+	if len(errs) == 0 {
+		t.Fatal("no error")
+	}
+	rules := g.Rules()
+	last := rules[len(rules)-1]
+	if last.Name != "b" || len(last.Attrs) != 3 {
+		t.Fatalf("recovered %s with %d attributes; errors %v", last.Name, len(last.Attrs), errs)
+	}
+	// An "@" that starts a line of a rule body is no declaration.
+	g, errs = ParsePartial("rule a = (\n@foo \"x\"\nrule b = \"y\"\n")
+	if len(errs) == 0 {
+		t.Fatal("no error")
+	}
+	if rules := g.Rules(); rules[len(rules)-1].Name != "b" || len(rules[len(rules)-1].Attrs) != 0 {
+		t.Errorf("recovered %v", rules[len(rules)-1])
+	}
+}
+
+func TestDeclarationAttributesFormat(t *testing.T) {
+	for _, tc := range []struct{ name, src, want string }{
+		{"one", "@start\nrule a = \"x\"\n", "@start\nrule a = \"x\"\n"},
+		{"several on a line", "@start(default)   @foo\nrule a = \"x\"\n", "@start(default) @foo\nrule a = \"x\"\n"},
+		{
+			"comments around and between",
+			"rule z = \"q\"\n// lead\n@start(default) @foo // trail\n// between\n@bar /* in */ @baz\n\n// before rule\nrule a = z // after\n",
+			"rule z = \"q\"\n// lead\n@start(default) @foo // trail\n// between\n@bar /* in */ @baz\n\n// before rule\nrule a = z // after\n",
+		},
+		{
+			"arguments over lines",
+			"@start(\n// c\ndefault,\n)\nrule a = \"x\"\n",
+			"@start(\n    // c\n    default,\n)\nrule a = \"x\"\n",
+		},
+		{"comment in the header", "@start\nrule /* c */ a = \"x\"\n", "@start\nrule /* c */ a = \"x\"\n"},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			g, err := Parse(tc.src)
+			if err != nil {
+				t.Fatal(err)
+			}
+			got := grammar.Format(g)
+			if got != tc.want {
+				t.Fatalf("got\n%s\nwant\n%s", got, tc.want)
+			}
+			if problem := checkRandomFormat(tc.src, g); problem != "" {
+				t.Error(problem)
+			}
+		})
+	}
+}
+
+// The comments around declaration attributes come back from JSON where they
+// were: before "rule" on lines of their own, and between two attributes of a
+// line on that line.
+func TestDeclarationAttributesJSONRoundTrip(t *testing.T) {
+	for _, src := range []string{
+		"@start\n// explains main\nrule main = \"a\"\n",
+		"package p\n\n// leading comment\n@start(default) /* inline */ @start // trailing\n/* before rule */\nrule main = \"a\"\n",
+		"@start(default) // the default\n// comment between\n@foo /* a */ @bar\n\n/* detached */\n\n// leads rule\nrule b = \"b\"\n",
+	} {
+		g, err := Parse(src)
+		if err != nil {
+			t.Fatal(err)
+		}
+		data, err := grammar.MarshalJSON(g)
+		if err != nil {
+			t.Fatal(err)
+		}
+		decoded, err := grammar.UnmarshalJSON(data)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if got := grammar.Format(decoded); got != src {
+			t.Errorf("got\n%s\nwant\n%s", got, src)
+		}
+	}
+}
+
+// A grammar built without source layout writes each attribute on the line of
+// the one before, and "rule" on a line of its own.
+func TestDeclarationAttributesFormatWithoutLayout(t *testing.T) {
+	g := &grammar.Grammar{File: grammar.File{Decls: []grammar.Decl{&grammar.RuleDef{
+		Attrs: []*grammar.Attribute{{Name: "start", Args: []any{&grammar.Ref{Name: "default"}}}, {Name: "foo"}},
+		Name:  "a",
+		Expr:  &grammar.Literal{Value: "x"},
+	}}}}
+	if got, want := grammar.Format(g), "@start(default) @foo\nrule a = \"x\"\n"; got != want {
+		t.Errorf("got\n%s\nwant\n%s", got, want)
+	}
+	if err := grammar.Validate(g); err != nil {
+		t.Error(err)
+	}
+	g.Rules()[0].Attrs[1].Name = "1x"
+	if err := grammar.Validate(g); err == nil || !strings.Contains(err.Error(), "attrs[1]") {
+		t.Errorf("an invalid attribute name: %v", err)
+	}
+}
+
+// The package clause takes declaration attributes on the lines before
+// "package", as a rule does before "rule".
+func TestPackageAttributesParse(t *testing.T) {
+	const src = "// lead\n@linear @foo\n@bar\npackage p\n\n@linear\nrule a = \"x\"\n"
+	g, err := Parse(src)
+	if err != nil {
+		t.Fatal(err)
+	}
+	pkg := g.File.Pkg
+	var names []string
+	for _, a := range pkg.Attrs {
+		names = append(names, a.Name)
+	}
+	if got := strings.Join(names, " "); got != "linear foo bar" || pkg.Name != "p" {
+		t.Fatalf("package %q attributes %q", pkg.Name, got)
+	}
+	// The clause starts at its first attribute; its diagnostics point at "package".
+	if pkg.Pos != (grammar.Pos{Line: 2, Col: 1}) || pkg.Diagnostic() != (grammar.Pos{Line: 4, Col: 1}) {
+		t.Errorf("pos %v diagnostic %v", pkg.Pos, pkg.Diagnostic())
+	}
+	if len(pkg.AttrBreaks) != 3 || pkg.AttrBreaks[1] != nil || pkg.AttrBreaks[2] == nil || pkg.KeywordBreak == nil {
+		t.Errorf("breaks %v keyword %v", pkg.AttrBreaks, pkg.KeywordBreak)
+	}
+	if rules := g.Rules(); len(rules) != 1 || len(rules[0].Attrs) != 1 || rules[0].Attrs[0].Name != "linear" {
+		t.Errorf("rules %v", rules)
+	}
+	// Attributes before the first rule of a file without a package clause
+	// stay the rule's.
+	g, err = Parse("@linear\nrule a = \"x\"\n")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(g.File.Pkg.Attrs) != 0 || len(g.Rules()[0].Attrs) != 1 {
+		t.Errorf("package %v rule %v", g.File.Pkg.Attrs, g.Rules()[0].Attrs)
+	}
+}
+
+func TestPackageAttributesErrors(t *testing.T) {
+	for _, tc := range []struct{ src, want string }{
+		{"@linear package p\nrule a = \"x\"\n", "1:9: expected newline, found 'package'"},
+		{"rule a = \"x\"\n@linear\npackage p\n", `3:1: expected "@", "rule", found 'package'`},
+		// Unclosed arguments do not reach "package", so they are a rule's.
+		{"@linear(\npackage p\nrule a = \"x\"\n", "3:8: expected closing parenthesis for attribute arguments"},
+	} {
+		_, err := Parse(tc.src)
+		if err == nil || !strings.HasPrefix(err.Error(), tc.want) {
+			t.Errorf("%q\n got %v\nwant %s", tc.src, err, tc.want)
+		}
+	}
+}
+
+// TestPackageAttributeNamedPackage checks that an attribute named package, on the line of other
+// attributes, is an attribute of the rule that follows, not the start of the package clause.
+func TestPackageAttributeNamedPackage(t *testing.T) {
+	g, err := Parse("@start @package\nrule a = \"x\"\n")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if rd := g.Rules(); len(rd) != 1 || len(rd[0].Attrs) != 2 || rd[0].Attrs[1].Name != "package" || len(g.File.Pkg.Attrs) != 0 {
+		t.Errorf("rules %v, package attributes %v; want rule a with @start @package", rd, g.File.Pkg.Attrs)
+	}
+}
+
+func TestPackageAttributesFormat(t *testing.T) {
+	for _, tc := range []struct{ name, src, want string }{
+		{"one", "@linear\npackage p\nrule a = \"x\"\n", "@linear\npackage p\nrule a = \"x\"\n"},
+		{"several on a line", "@linear   @foo\npackage p\n", "@linear @foo\npackage p\n"},
+		{
+			"comments around and between",
+			"// lead\n@linear @foo // trail\n// between\n@bar /* in */ @baz\n\n// before package\npackage p // after\n\nrule a = \"x\"\n",
+			"// lead\n@linear @foo // trail\n// between\n@bar /* in */ @baz\n\n// before package\npackage p // after\n\nrule a = \"x\"\n",
+		},
+		{"comment in the header", "@linear\npackage /* c */ p\n", "@linear\npackage /* c */ p\n"},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			g, err := Parse(tc.src)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if got := grammar.Format(g); got != tc.want {
+				t.Fatalf("got\n%s\nwant\n%s", got, tc.want)
+			}
+			if problem := checkRandomFormat(tc.src, g); problem != "" {
+				t.Error(problem)
+			}
+			data, err := grammar.MarshalJSON(g)
+			if err != nil {
+				t.Fatal(err)
+			}
+			decoded, err := grammar.UnmarshalJSON(data)
+			if err != nil {
+				t.Fatal(err)
+			}
+			// JSON keeps the attributes and their comments, though not every
+			// blank line of the layout.
+			if a, b := g.File.Pkg, decoded.File.Pkg; len(a.Attrs) != len(b.Attrs) || a.Name != b.Name || a.KeywordComments != b.KeywordComments {
+				t.Errorf("from JSON got %+v\nwant %+v", b, a)
+			}
+		})
+	}
+	// Without source layout, the attributes share a line before "package".
+	g := &grammar.Grammar{File: grammar.File{
+		Pkg:   grammar.Pkg{Attrs: []*grammar.Attribute{{Name: "linear"}, {Name: "foo"}}, Name: "p"},
+		Decls: []grammar.Decl{&grammar.RuleDef{Name: "a", Expr: &grammar.Literal{Value: "x"}}},
+	}}
+	if got, want := grammar.Format(g), "@linear @foo\npackage p\n\nrule a = \"x\"\n"; got != want {
+		t.Errorf("got\n%s\nwant\n%s", got, want)
+	}
+	if err := grammar.Validate(g); err != nil {
+		t.Error(err)
+	}
+	g.File.Pkg.Name = ""
+	if err := grammar.Validate(g); err == nil || !strings.Contains(err.Error(), "file.pkg.attrs") {
+		t.Errorf("attributes without a package name: %v", err)
+	}
+}

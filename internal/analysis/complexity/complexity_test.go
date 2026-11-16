@@ -12,7 +12,7 @@ import (
 
 	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/frontend/check"
-	"zeroparse.dev/zp/internal/syntax"
+	"zeroparse.dev/zp/internal/frontend/parser"
 	"zeroparse.dev/zp/internal/testing/starttest"
 )
 
@@ -53,7 +53,7 @@ func TestComplexityMemoPolicy(t *testing.T) {
 	}
 	for name, src := range srcs {
 		t.Run(name, func(t *testing.T) {
-			g, err := syntax.Parse(src)
+			g, err := parser.Parse(src)
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -93,7 +93,7 @@ func classDegree(c *Complexity) int {
 
 func classifySource(t *testing.T, src string) *Complexity {
 	t.Helper()
-	g, err := syntax.Parse(src)
+	g, err := parser.Parse(src)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -121,7 +121,7 @@ func TestClassifyLabelInsideRecovery(t *testing.T) {
 		{"rule main = (sep @error(message=\"m\")) #recover(skip=sync) / \"x\"\nrule sep = \";\"", ClassUnknown},
 	} {
 		src := "@start\n" + c.src + "\nrule sync = [a-z]*\n"
-		g, err := syntax.Parse(src)
+		g, err := parser.Parse(src)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -675,7 +675,7 @@ func TestGrowingBindingsAlone(t *testing.T) {
 	for name, src := range srcs {
 		t.Run(name, func(t *testing.T) {
 			c := classifySource(t, src)
-			g, err := syntax.Parse(src)
+			g, err := parser.Parse(src)
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -779,7 +779,7 @@ func TestSplicedLen(t *testing.T) {
 		{"mutually recursive splice rules", "rule main = x:(\"q\" _r) $$\nrule _r = \"a\" _s\nrule _s = \"b\" _r\n", 0, false},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
-			g, err := syntax.Parse(tc.src)
+			g, err := parser.Parse(tc.src)
 			if err != nil {
 				t.Fatal(err)
 			}

@@ -7,7 +7,7 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/grammar"
-	"zeroparse.dev/zp/internal/syntax"
+	"zeroparse.dev/zp/internal/frontend/parser"
 )
 
 var formatBenchmarkOutput string
@@ -22,7 +22,7 @@ func BenchmarkGrammarFormatCancellation(b *testing.B) {
 		sources[name] = string(data)
 	}
 	for _, name := range []string{"json", "source-grammar", "long-literal"} {
-		g, err := syntax.Parse(sources[name])
+		g, err := parser.Parse(sources[name])
 		if err != nil {
 			b.Fatal(err)
 		}

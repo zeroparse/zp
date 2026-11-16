@@ -51,9 +51,9 @@ var layout = []place{
 
 	// Front end.
 	{pkg: "internal/frontend", target: "internal/frontend"},
-	{pkg: "internal/syntax", target: "internal/frontend/parser"},
-	{pkg: "internal/syntax/sourceast", target: "internal/frontend/parser"},
-	{pkg: "internal/syntax/grammarparser/...", target: "internal/frontend/parser/zpparser", generated: true},
+	{pkg: "internal/frontend/parser", target: "internal/frontend/parser"},
+	{pkg: "internal/frontend/parser/sourceast", target: "internal/frontend/parser/sourceast"},
+	{pkg: "internal/frontend/parser/zpparser/...", target: "internal/frontend/parser/zpparser", generated: true},
 	{pkg: "internal/frontend/desugar", target: "internal/frontend/desugar"},
 	// compile splits into the semantic model (internal/frontend/check and types), Core
 	// construction (internal/frontend/elaborate), rule facts and site numbers

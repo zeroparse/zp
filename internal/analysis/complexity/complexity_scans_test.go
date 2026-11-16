@@ -9,7 +9,7 @@ import (
 	"zeroparse.dev/zp/internal/frontend/astfacts"
 
 	"zeroparse.dev/zp/grammar"
-	"zeroparse.dev/zp/internal/syntax"
+	"zeroparse.dev/zp/internal/frontend/parser"
 	"zeroparse.dev/zp/internal/testing/starttest"
 )
 
@@ -53,7 +53,7 @@ func TestRunFlow(t *testing.T) {
 // scans; main is evaluated once, at the start of the input, so its own repetitions always are.
 func boundedScans(t *testing.T, src string) map[string]bool {
 	t.Helper()
-	g, err := syntax.Parse(src)
+	g, err := parser.Parse(src)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -189,7 +189,7 @@ func TestScanRuns(t *testing.T) {
 		{"the alphabet holds the skip", "rule main = \"aa\" y $$\nrule y = (\"b\" #recover(skip=\"a\"))* \"z\"\n", "recover", 2},
 	} {
 		t.Run(c.name, func(t *testing.T) {
-			g, err := syntax.Parse(c.src)
+			g, err := parser.Parse(c.src)
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -221,7 +221,7 @@ func TestScanRuns(t *testing.T) {
 
 // TestLooseCutInSkip checks that a cut in the skip of a recovery commits the choice around it.
 func TestLooseCutInSkip(t *testing.T) {
-	g, err := syntax.Parse("rule main = \"x\"\n")
+	g, err := parser.Parse("rule main = \"x\"\n")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -256,7 +256,7 @@ func TestScanWork(t *testing.T) {
 		return b.String()
 	}
 	steps := func(t *testing.T, src string) uint32 {
-		g, err := syntax.Parse(src)
+		g, err := parser.Parse(src)
 		if err != nil {
 			t.Fatal(err)
 		}

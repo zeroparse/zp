@@ -11,7 +11,7 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/grammar"
-	"zeroparse.dev/zp/internal/syntax"
+	"zeroparse.dev/zp/internal/frontend/parser"
 )
 
 func TestDiagnostics(t *testing.T) {
@@ -156,7 +156,7 @@ func formatDoc(c *testClient, uri, text string) string {
 func TestFormatting(t *testing.T) {
 	c := newInitialized(t)
 	src := "// The 😀 rule.\nrule main = \"😀\" x // trailing\n\nrule x = \"名\" @error(message=\"e\")\n"
-	g, err := syntax.Parse(src)
+	g, err := parser.Parse(src)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -430,7 +430,7 @@ func TestRename(t *testing.T) {
 		we = workspaceEdit{}
 		c.requestInto("textDocument/rename", rename(12, 26, name), &we)
 		got := applyEdits(navSrc, we.Changes[uri])
-		if _, err := syntax.Parse(got); err != nil {
+		if _, err := parser.Parse(got); err != nil {
 			t.Fatalf("rename to contextual word %s: %v", name, err)
 		}
 	}

@@ -6,7 +6,7 @@ import (
 	"sync/atomic"
 	"testing"
 
-	"zeroparse.dev/zp/internal/syntax"
+	"zeroparse.dev/zp/internal/frontend/parser"
 )
 
 // enumerationAlphabet are the tokens that the exhaustive enumeration combines: each decides how a
@@ -56,7 +56,7 @@ func enumerate(t *testing.T, ctx, join string) {
 			src := head + strings.Join(toks, join) + tail + "\n"
 			total++
 			stats.add(t, src, nil)
-			if _, err := syntax.ParseReference(src); err == nil {
+			if _, err := parser.ParseReference(src); err == nil {
 				accepted++
 			}
 			if d := grammarDiff(t, adaptCanonical, src); d != "" {

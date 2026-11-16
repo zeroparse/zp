@@ -77,9 +77,9 @@ for f in files:
                 if a in t: add(p, f)
     if f.startswith(HEAVY_TRIG):
         for h in HEAVY: add(mod + ("/" + h if h else ""), f, True)
-    if f.startswith(("codegen/", "core/", "bench/", "internal/codegen/", "internal/compile/", "internal/engine/", "internal/syntax/", "internal/ir/", "testdata/grammars/", "internal/bench/")):
+    if f.startswith(("codegen/", "core/", "bench/", "internal/codegen/", "internal/compile/", "internal/engine/", "internal/frontend/parser/", "internal/ir/", "testdata/grammars/", "internal/bench/")):
         gen = True
-    if f.startswith(("testdata/grammars/", "internal/codegen/", "internal/compile/", "internal/engine/", "internal/syntax/", "codegen/", "core/", "internal/ir/")):
+    if f.startswith(("testdata/grammars/", "internal/codegen/", "internal/compile/", "internal/engine/", "internal/frontend/parser/", "codegen/", "core/", "internal/ir/")):
         alpha = True
 work = list(prop); seen = {}
 while work:

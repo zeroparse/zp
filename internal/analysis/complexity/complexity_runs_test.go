@@ -8,7 +8,7 @@ import (
 	"zeroparse.dev/zp/internal/compile"
 	"zeroparse.dev/zp/internal/frontend/astfacts"
 	"zeroparse.dev/zp/internal/frontend/desugar"
-	"zeroparse.dev/zp/internal/syntax"
+	"zeroparse.dev/zp/internal/frontend/parser"
 )
 
 // TestRunSitesInClassification checks that the classifier's marking of run sites is off by default,
@@ -52,7 +52,7 @@ func TestRunSitesMatchClassifier(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		g, err := syntax.Parse(string(src))
+		g, err := parser.Parse(string(src))
 		if err != nil {
 			t.Fatalf("%s: %v", name, err)
 		}

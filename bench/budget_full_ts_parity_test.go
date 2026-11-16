@@ -8,7 +8,7 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/codegen"
-	"zeroparse.dev/zp/internal/syntax"
+	"zeroparse.dev/zp/internal/frontend/parser"
 )
 
 // TestGeneratedTSFullWorkloadParity compares generated TypeScript against its
@@ -34,7 +34,7 @@ func TestGeneratedTSFullWorkloadParity(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			grammar, err := syntax.Parse(string(source))
+			grammar, err := parser.Parse(string(source))
 			if err != nil {
 				t.Fatal(err)
 			}

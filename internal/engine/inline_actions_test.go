@@ -5,7 +5,7 @@ import (
 	"strings"
 	"testing"
 
-	"zeroparse.dev/zp/internal/syntax"
+	"zeroparse.dev/zp/internal/frontend/parser"
 	"zeroparse.dev/zp/internal/testing/codegentest"
 )
 
@@ -89,7 +89,7 @@ func TestInlineActionsCompiledRoundTrip(t *testing.T) {
 	for _, tc := range codegentest.InlineActionCases() {
 		t.Run(tc.Name, func(t *testing.T) {
 			prog := mustCompile(t, tc.Inline)
-			written, err := syntax.Parse(tc.Inline)
+			written, err := parser.Parse(tc.Inline)
 			if err != nil {
 				t.Fatal(err)
 			}

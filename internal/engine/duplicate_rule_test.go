@@ -7,7 +7,7 @@ import (
 	"time"
 
 	"zeroparse.dev/zp/internal/analysis/complexity"
-	"zeroparse.dev/zp/internal/syntax"
+	"zeroparse.dev/zp/internal/frontend/parser"
 )
 
 // duplicateRuleGrammars declare a rule twice where the rules call rules; the analyses once
@@ -19,7 +19,7 @@ var duplicateRuleGrammars = []struct{ src, want string }{
 
 func TestClassifyDuplicateRule(t *testing.T) {
 	for _, tc := range duplicateRuleGrammars {
-		g, err := syntax.Parse(tc.src)
+		g, err := parser.Parse(tc.src)
 		if err != nil {
 			t.Fatal(err)
 		}

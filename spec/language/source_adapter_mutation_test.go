@@ -10,7 +10,7 @@ import (
 	"strings"
 	"testing"
 
-	"zeroparse.dev/zp/internal/syntax"
+	"zeroparse.dev/zp/internal/frontend/parser"
 )
 
 // mutationTokens are the pieces a mutation inserts: punctuation, keywords,
@@ -211,7 +211,7 @@ func TestCanonicalFrontendMutations(t *testing.T) {
 			stats := newHarmStats()
 			for i := 0; i < mutationCases; i++ {
 				s, edits := mutatedSourceEdits(rng, corpus)
-				if _, err := syntax.ParseReference(s); err == nil {
+				if _, err := parser.ParseReference(s); err == nil {
 					accepted++
 				}
 				if !compareGrammars(t, fmt.Sprintf("mutation %d (%q)", i, s), s) {

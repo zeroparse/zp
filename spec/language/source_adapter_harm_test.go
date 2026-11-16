@@ -12,8 +12,8 @@ import (
 	"unicode"
 
 	"zeroparse.dev/zp/grammar"
-	"zeroparse.dev/zp/internal/syntax"
-	"zeroparse.dev/zp/internal/syntax/sourceast"
+	"zeroparse.dev/zp/internal/frontend/parser"
+	"zeroparse.dev/zp/internal/frontend/parser/sourceast"
 )
 
 // errorAt is an error of a frontend: its place in the source as a code point offset, and its message.
@@ -24,7 +24,7 @@ type errorAt struct {
 
 // errorsOf returns the errors of err, which a frontend returned for src, in the order of the list.
 func errorsOf(src string, err error) []errorAt {
-	var list syntax.ErrorList
+	var list parser.ErrorList
 	if !errors.As(err, &list) {
 		return nil
 	}
@@ -105,7 +105,7 @@ func shortMsg(m string) string {
 // add compares the errors of the frontends on src, which edits changed in the ranges of code points that
 // edits holds (nil when it is not known).
 func (s *harmStats) add(t *testing.T, src string, edits [][2]int) {
-	_, merr := syntax.ParseReference(src)
+	_, merr := parser.ParseReference(src)
 	_, err := adaptCanonical(src)
 	if merr == nil || err == nil {
 		return
@@ -596,7 +596,7 @@ func TestErrorPositionClasses(t *testing.T) {
 		{"unclosed", "type R = { S string; N int; T string) =>\nvar k1 int\nrule main R = {k1 := 1} a:\"x\"\n"},
 	}
 	for _, c := range cases {
-		_, merr := syntax.ParseReference(c.src)
+		_, merr := parser.ParseReference(c.src)
 		_, err := adaptCanonical(c.src)
 		h, g := errorsOf(c.src, merr), errorsOf(c.src, err)
 		if len(h) == 0 || len(g) == 0 {

@@ -170,7 +170,7 @@ const triageCap = 4_000_000_000
 // the length and the order read from them. It runs only when ZP_TRIAGE is set to a regular
 // expression that selects grammar/group/family names ("." for all), because it takes minutes:
 //
-//	ZP_TRIAGE=. ZP_TRIAGE_GO=1 go test -run TestTriageMeasure -v ./internal/complexitytest
+//	ZP_TRIAGE=. ZP_TRIAGE_GO=1 go test -run TestTriageMeasure -v ./internal/testing/complexitytest
 //
 // A family whose measured order differs from the recorded one fails.
 func TestTriageMeasure(t *testing.T) {

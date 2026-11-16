@@ -5,8 +5,8 @@ import (
 	"testing"
 	"zeroparse.dev/zp/engine"
 	"zeroparse.dev/zp/grammar"
-	"zeroparse.dev/zp/internal/syntax"
-	"zeroparse.dev/zp/internal/syntax/sourceast"
+	"zeroparse.dev/zp/internal/frontend/parser"
+	"zeroparse.dev/zp/internal/frontend/parser/sourceast"
 )
 
 func TestCanonicalTypeDeclarationSpans(t *testing.T) {
@@ -25,7 +25,7 @@ func TestCanonicalTypeDeclarationSpans(t *testing.T) {
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			assertCanonicalTypeSpans(t, p, tc.source, tc.spans)
-			manual, err := syntax.ParseReference(tc.source)
+			manual, err := parser.ParseReference(tc.source)
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -38,7 +38,7 @@ func TestCanonicalTypeDeclarationSpans(t *testing.T) {
 
 func assertCanonicalTypeSpans(t *testing.T, p *engine.Parser, source string, expected []string) {
 	t.Helper()
-	manual, err := syntax.ParseReference(source)
+	manual, err := parser.ParseReference(source)
 	if err != nil {
 		t.Fatal(err)
 	}

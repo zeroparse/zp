@@ -11,7 +11,7 @@ import (
 
 	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/engine"
-	"zeroparse.dev/zp/internal/syntax"
+	"zeroparse.dev/zp/internal/frontend/parser"
 )
 
 // A render control belongs to one analysis or immutable-snapshot request. It is
@@ -95,7 +95,7 @@ func (c *renderControl) ruleType(p *engine.Program, name string) (string, bool) 
 }
 func (c *renderControl) isIdentifier(s string) bool {
 	if c == nil {
-		return syntax.IsIdentifier(s)
+		return parser.IsIdentifier(s)
 	}
 	if s == "" {
 		return false
@@ -112,10 +112,10 @@ func (c *renderControl) isIdentifier(s string) bool {
 }
 
 // isRuleName is isIdentifier for the name of a rule, which may begin with an underscore that
-// hides the rule (see syntax.IsRuleName).
+// hides the rule (see parser.IsRuleName).
 func (c *renderControl) isRuleName(s string) bool {
 	if c == nil {
-		return syntax.IsRuleName(s)
+		return parser.IsRuleName(s)
 	}
 	if len(s) < 2 || s[0] != '_' {
 		return c.isIdentifier(s)

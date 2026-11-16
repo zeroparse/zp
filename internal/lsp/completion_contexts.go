@@ -2,7 +2,7 @@ package lsp
 
 import (
 	"zeroparse.dev/zp/grammar"
-	"zeroparse.dev/zp/internal/syntax"
+	"zeroparse.dev/zp/internal/frontend/parser"
 )
 
 // contextualItems recognizes unfinished syntax without requiring the containing
@@ -59,7 +59,7 @@ func (a *analysis) contextualItemsControlled(prev, off int, control *renderContr
 	if a.isPunct(name, "=") {
 		typeName := a.previousSignificantTokenControlled(name-1, control)
 		keyword := a.previousSignificantTokenControlled(typeName-1, control)
-		if typeName >= 0 && a.toks[typeName].Kind == syntax.TokenIdent && a.isIdent(keyword, "type") && a.isDefKeyword(keyword) {
+		if typeName >= 0 && a.toks[typeName].Kind == parser.TokenIdent && a.isIdent(keyword, "type") && a.isDefKeyword(keyword) {
 			last := a.previousSignificantTokenControlled(prev, control)
 			// A field name starts after the opening brace, a semicolon or a
 			// physical newline. Open type groups are handled by the innermost
@@ -73,7 +73,7 @@ func (a *analysis) contextualItemsControlled(prev, off int, control *renderContr
 			return nil, false // The existing field-type completion handles this position.
 		}
 	}
-	if name < 0 || a.toks[name].Kind != syntax.TokenIdent || !a.inValueControlled(name, control) {
+	if name < 0 || a.toks[name].Kind != parser.TokenIdent || !a.inValueControlled(name, control) {
 		return nil, false
 	}
 	d := a.types[a.toks[name].Text]
@@ -98,7 +98,7 @@ func (a *analysis) contextualItemsControlled(prev, off int, control *renderContr
 		if a.isPunct(i, ")") || a.isPunct(i, "}") {
 			depth--
 		}
-		if depth == 0 && a.toks[i].Kind == syntax.TokenIdent && a.isPunct(a.significantTokenControlled(i+1, control), ":") {
+		if depth == 0 && a.toks[i].Kind == parser.TokenIdent && a.isPunct(a.significantTokenControlled(i+1, control), ":") {
 			used[a.toks[i].Text] = true
 		}
 	}

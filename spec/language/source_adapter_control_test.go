@@ -11,9 +11,9 @@ import (
 
 	"zeroparse.dev/zp/engine"
 	"zeroparse.dev/zp/grammar"
-	"zeroparse.dev/zp/internal/syntax"
-	"zeroparse.dev/zp/internal/syntax/grammarparser"
-	"zeroparse.dev/zp/internal/syntax/grammarparser/types"
+	"zeroparse.dev/zp/internal/frontend/parser"
+	"zeroparse.dev/zp/internal/frontend/parser/zpparser"
+	"zeroparse.dev/zp/internal/frontend/parser/zpparser/types"
 )
 
 // The comparison of the frontends is only worth something if it sees a change
@@ -174,7 +174,7 @@ func swapNodeTypes(g *grammar.Grammar, check func(path string)) int {
 func TestGrammarComparisonSeesNodeTypes(t *testing.T) {
 	total := 0
 	for _, src := range append(append([]string(nil), ownershipCorpus...), nodeBases...) {
-		manual, merr := syntax.ParseReference(src)
+		manual, merr := parser.ParseReference(src)
 		g, err := adaptCanonical(src)
 		if merr != nil || err != nil {
 			continue
@@ -198,7 +198,7 @@ func TestGrammarComparisonSeesNodeTypes(t *testing.T) {
 func TestGrammarComparisonSeesEveryField(t *testing.T) {
 	total, kinds := 0, map[string]bool{}
 	for _, src := range append(append([]string(nil), ownershipCorpus...), nodeBases...) {
-		manual, merr := syntax.ParseReference(src)
+		manual, merr := parser.ParseReference(src)
 		g, err := adaptCanonical(src)
 		if merr != nil || err != nil {
 			continue
@@ -369,15 +369,15 @@ func TestGrammarComparisonSeesBrokenAdapters(t *testing.T) {
 		t.Run(b.name, func(t *testing.T) {
 			changed := 0
 			broken := func(src string) (*grammar.Grammar, error) {
-				text, invalid := syntax.WithoutInvalidCharacters(src)
-				f, err := grammarparser.ParseValue(text)
+				text, invalid := parser.WithoutInvalidCharacters(src)
+				f, err := zpparser.ParseValue(text)
 				if err != nil || invalid {
 					return adaptCanonical(src)
 				}
 				if b.change(f) {
 					changed++
 				}
-				return syntax.FromSourceTree(src, f)
+				return parser.FromSourceTree(src, f)
 			}
 			for _, src := range corpus {
 				if grammarDiff(t, broken, src) != "" {
@@ -389,9 +389,9 @@ func TestGrammarComparisonSeesBrokenAdapters(t *testing.T) {
 	}
 }
 
-// errorPositions returns the positions of the errors in err, a syntax.ErrorList, or its text.
+// errorPositions returns the positions of the errors in err, a parser.ErrorList, or its text.
 func errorPositions(err error) string {
-	var list syntax.ErrorList
+	var list parser.ErrorList
 	if !errors.As(err, &list) {
 		return err.Error()
 	}

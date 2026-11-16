@@ -5,8 +5,8 @@ import (
 	"testing"
 	"unicode"
 
-	"zeroparse.dev/zp/internal/syntax"
-	"zeroparse.dev/zp/internal/syntax/grammarparser"
+	"zeroparse.dev/zp/internal/frontend/parser"
+	"zeroparse.dev/zp/internal/frontend/parser/zpparser"
 )
 
 // The positions of the errors of the canonical frontend come from SourceErrors, which moves the
@@ -16,7 +16,7 @@ import (
 // the corpora cannot tell apart from the right one is found.
 
 // rawErrors returns the errors that the generated parser returns for src, with its offsets.
-func rawErrors(src string, err error) []syntax.SourceError {
+func rawErrors(src string, err error) []parser.SourceError {
 	errs, _ := sourceErrorsOf(err)
 	return errs
 }
@@ -104,12 +104,12 @@ func TestPositionPlacementsAreSeen(t *testing.T) {
 	seen := make([]int, len(placements))
 	example := make([]string, len(placements))
 	for _, src := range rejectedSources(t) {
-		_, merr := syntax.ParseReference(src)
-		text, invalid := syntax.WithoutInvalidCharacters(src)
+		_, merr := parser.ParseReference(src)
+		text, invalid := parser.WithoutInvalidCharacters(src)
 		if invalid || merr == nil {
 			continue
 		}
-		_, perr := grammarparser.ParseValue(text)
+		_, perr := zpparser.ParseValue(text)
 		if perr == nil {
 			continue
 		}
@@ -125,11 +125,11 @@ func TestPositionPlacementsAreSeen(t *testing.T) {
 		for i, pl := range placements {
 			var errs []errorAt
 			if pl.through {
-				moved := make([]syntax.SourceError, len(raw))
+				moved := make([]parser.SourceError, len(raw))
 				for j, e := range raw {
-					moved[j] = syntax.SourceError{Offset: pl.move(rs, e.Offset), Msg: e.Msg}
+					moved[j] = parser.SourceError{Offset: pl.move(rs, e.Offset), Msg: e.Msg}
 				}
-				errs = errorsOf(src, syntax.SourceErrors(src, moved))
+				errs = errorsOf(src, parser.SourceErrors(src, moved))
 			} else {
 				for _, e := range raw {
 					errs = append(errs, errorAt{pl.move(rs, e.Offset), e.Msg})

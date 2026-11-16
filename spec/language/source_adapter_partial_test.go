@@ -11,13 +11,13 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/grammar"
-	"zeroparse.dev/zp/internal/syntax"
+	"zeroparse.dev/zp/internal/frontend/parser"
 )
 
-// partialCanonical parses src as the editor APIs do, with syntax.ParsePartial: the declarations
+// partialCanonical parses src as the editor APIs do, with parser.ParsePartial: the declarations
 // that are complete, and the syntax errors followed by the errors of the checks.
-func partialCanonical(src string) (*grammar.Grammar, syntax.ErrorList) {
-	return syntax.ParsePartial(src)
+func partialCanonical(src string) (*grammar.Grammar, parser.ErrorList) {
+	return parser.ParsePartial(src)
 }
 
 // declJSON returns the JSON form of every declaration of g by its kind, name and start.
@@ -50,7 +50,7 @@ func TestPartialSourceTree(t *testing.T) {
 	for i := 0; i < 3000; i++ {
 		s := mutatedSource(rng, corpus)
 		cases++
-		mg, merrs := syntax.ParsePartialReference(s)
+		mg, merrs := parser.ParsePartialReference(s)
 		if len(merrs) == 0 {
 			continue
 		}
@@ -128,7 +128,7 @@ func TestPartialKeepsDeclarationsOfRepositoryGrammars(t *testing.T) {
 			}
 		}
 		src := strings.Join(lines, "")
-		mg, merrs := syntax.ParsePartialReference(src)
+		mg, merrs := parser.ParsePartialReference(src)
 		gg, gerrs := partialCanonical(src)
 		if len(merrs) > 0 && len(gerrs) == 0 {
 			t.Errorf("%s: the canonical partial parse reports no error", file)
@@ -152,7 +152,7 @@ func TestPartialKeepsDeclarationsWithInvalidEscapes(t *testing.T) {
 		"rule a = \"\\u{110000}\"\nrule b = \"y\"\n",
 		"rule a = x => \"\\z\"\nrule b = \"y\"\n",
 	} {
-		mg, merrs := syntax.ParsePartialReference(src)
+		mg, merrs := parser.ParsePartialReference(src)
 		gg, gerrs := partialCanonical(src)
 		if len(merrs) == 0 || len(gerrs) == 0 || merrs[0].Pos != gerrs[0].Pos || merrs[0].Msg != gerrs[0].Msg {
 			t.Errorf("%q: errors: manual %v, canonical %v", src, merrs, gerrs)
@@ -181,7 +181,7 @@ func TestPartialKeepsDeclarationsOfEditingStates(t *testing.T) {
 	}
 	for _, c := range cases {
 		g, errs := partialCanonical(c.src)
-		mg, merrs := syntax.ParsePartialReference(c.src)
+		mg, merrs := parser.ParsePartialReference(c.src)
 		var names []string
 		for _, d := range g.File.Decls {
 			switch d := d.(type) {

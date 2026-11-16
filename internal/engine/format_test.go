@@ -11,7 +11,7 @@ import (
 	"zeroparse.dev/zp/core"
 	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/compile"
-	"zeroparse.dev/zp/internal/syntax"
+	"zeroparse.dev/zp/internal/frontend/parser"
 	"zeroparse.dev/zp/internal/testing/codegentest"
 )
 
@@ -77,12 +77,12 @@ func TestFormatPreservesCorpus(t *testing.T) {
 	}
 	for _, s := range sources {
 		t.Run(s.name, func(t *testing.T) {
-			before, err := syntax.Parse(s.src)
+			before, err := parser.Parse(s.src)
 			if err != nil {
 				t.Fatal(err)
 			}
 			formatted := grammar.Format(before)
-			after, err := syntax.Parse(formatted)
+			after, err := parser.Parse(formatted)
 			if err != nil {
 				t.Fatalf("%v\n%s", err, formatted)
 			}

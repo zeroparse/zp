@@ -9,7 +9,7 @@ import (
 	"sync"
 	"testing"
 
-	"zeroparse.dev/zp/internal/syntax"
+	"zeroparse.dev/zp/internal/frontend/parser"
 )
 
 func renderFixture(fields int) string {
@@ -106,7 +106,7 @@ func TestRenderRequestsCancellationDiscardsResponses(t *testing.T) {
 func TestRenderInnerWalksCancellation(t *testing.T) {
 	a := &analysis{toks: make([]token, 1024)}
 	for i := range a.toks {
-		a.toks[i].Kind = syntax.TokenComment
+		a.toks[i].Kind = parser.TokenComment
 	}
 	keys := make([]string, 1024)
 	for i := range keys {
@@ -140,7 +140,7 @@ func TestRenderInnerWalksCancellation(t *testing.T) {
 func TestRenderDocumentationAndIdentifierParity(t *testing.T) {
 	for _, s := range []string{"", "rule", "_reserved", "x9_", "x_😀", "\xff", strings.Repeat("a", 4097)} {
 		c := &renderControl{ctx: formatContext(t, 0)}
-		if got := c.isIdentifier(s); got != syntax.IsIdentifier(s) {
+		if got := c.isIdentifier(s); got != parser.IsIdentifier(s) {
 			t.Fatalf("identifier %q: %v", s, got)
 		}
 	}

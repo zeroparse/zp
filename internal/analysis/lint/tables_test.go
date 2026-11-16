@@ -3,7 +3,7 @@ package lint
 import (
 	"testing"
 
-	"zeroparse.dev/zp/internal/syntax"
+	"zeroparse.dev/zp/internal/frontend/parser"
 )
 
 // TestRuleTablesRefineLeftCalls requires the rule tables to come from the fixed point of the
@@ -13,7 +13,7 @@ import (
 // only then is a proven to succeed, which removes c's left call of itself in the third.
 func TestRuleTablesRefineLeftCalls(t *testing.T) {
 	t.Parallel()
-	g, err := syntax.Parse("@start\nrule main = c\nrule c = a / c \"z\"\nrule a = b / a \"x\"\nrule b = \"y\"?")
+	g, err := parser.Parse("@start\nrule main = c\nrule c = a / c \"z\"\nrule a = b / a \"x\"\nrule b = \"y\"?")
 	if err != nil {
 		t.Fatal(err)
 	}

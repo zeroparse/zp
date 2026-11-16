@@ -9,7 +9,7 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/grammar"
-	"zeroparse.dev/zp/internal/syntax"
+	"zeroparse.dev/zp/internal/frontend/parser"
 )
 
 func metadataWideSource(n int, invalid bool) string {
@@ -39,7 +39,7 @@ func metadataSources(tb testing.TB) []semanticSourceCase {
 func metadataPrepared(tb testing.TB, text string) *analysis {
 	tb.Helper()
 	a := newAnalysis(text)
-	toks, err := syntax.TokenizeContext(context.Background(), text)
+	toks, err := parser.TokenizeContext(context.Background(), text)
 	if err != nil {
 		tb.Fatal(err)
 	}
@@ -48,7 +48,7 @@ func metadataPrepared(tb testing.TB, text string) *analysis {
 		a.tokAt[start] = len(a.toks)
 		a.toks = append(a.toks, token{tok, start, end})
 	}
-	a.g, a.syntaxErrs, err = syntax.ParsePartialContext(context.Background(), text)
+	a.g, a.syntaxErrs, err = parser.ParsePartialContext(context.Background(), text)
 	if err != nil {
 		tb.Fatal(err)
 	}
@@ -79,7 +79,7 @@ func metadataFingerprint(tb testing.TB, a *analysis) []byte {
 		Mods int
 	}
 	type tokDTO struct {
-		Token      syntax.Token
+		Token      parser.Token
 		Start, End int
 	}
 	ruleStatements := map[*grammar.RuleDef]int{}
@@ -155,7 +155,7 @@ func metadataFingerprint(tb testing.TB, a *analysis) []byte {
 		Rules, Types map[string]int
 		Semantic     map[int]semDTO
 		Variables    map[string]bool
-		SyntaxErrors syntax.ErrorList
+		SyntaxErrors parser.ErrorList
 		Diagnostics  []Diagnostic
 	}{a.g, a.prog != nil, toks, a.tokAt, a.declarationStarts, defs, occs, rules, types, sem, a.vars, a.syntaxErrs, a.diags})
 	if err != nil {

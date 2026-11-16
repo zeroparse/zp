@@ -8,7 +8,7 @@ import (
 	"strings"
 	"testing"
 	"zeroparse.dev/zp/grammar"
-	"zeroparse.dev/zp/internal/syntax"
+	"zeroparse.dev/zp/internal/frontend/parser"
 )
 
 func sourceInfoAt(line, col, endLine, endCol int) grammar.SourceInfo {
@@ -97,14 +97,14 @@ func TestCanonicalNodeParityNegativeControl(t *testing.T) {
 	if r := got[nodeKey("Ref", sourceInfoAt(4, 5, 4, 6))]; !slices.Equal(r.TrailingComments, []string{" trail\n"}) {
 		t.Fatalf("the operand before a comment owns it: %+v", r)
 	}
-	manual, err := syntax.ParseReference(strings.Replace(src, "// trail", "// other", 1))
+	manual, err := parser.ParseReference(strings.Replace(src, "// trail", "// other", 1))
 	if err != nil {
 		t.Fatal(err)
 	}
 	if reflect.DeepEqual(got, manualNodes(t, manual)) {
 		t.Fatal("changed comment was not detected")
 	}
-	manual, err = syntax.ParseReference(src)
+	manual, err = parser.ParseReference(src)
 	if err != nil {
 		t.Fatal(err)
 	}

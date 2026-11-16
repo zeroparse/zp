@@ -12,8 +12,8 @@ import (
 
 	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/analysis/complexity"
+	"zeroparse.dev/zp/internal/frontend/parser"
 	"zeroparse.dev/zp/internal/ir/core"
-	"zeroparse.dev/zp/internal/syntax"
 	"zeroparse.dev/zp/internal/testing/factstest"
 )
 
@@ -44,7 +44,7 @@ func corpus(t *testing.T) map[string]string {
 // sourceOf returns the cost source of the grammar src.
 func sourceOf(t *testing.T, src string) *complexity.CostSource {
 	t.Helper()
-	g, err := syntax.Parse(src)
+	g, err := parser.Parse(src)
 	if err != nil {
 		t.Fatal(err)
 	}

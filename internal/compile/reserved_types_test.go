@@ -5,7 +5,7 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/grammar"
-	"zeroparse.dev/zp/internal/syntax"
+	"zeroparse.dev/zp/internal/frontend/parser"
 )
 
 // Tuple types and type arguments parse, format and round-trip through JSON. Tuple types and node[T]
@@ -129,7 +129,7 @@ func TestReservedTypeSyntax(t *testing.T) {
 func TestReservedUnnamedStructType(t *testing.T) {
 	t.Parallel()
 	src := "type A ~ {} | { X int; Y *A } | []{\n  // the name\n  Name string\n  Inner { V int }\n}\ntype T = {\n  F {}\n  G (int, { H int })\n}\nrule main = \"a\""
-	g, err := syntax.Parse(src)
+	g, err := parser.Parse(src)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -138,7 +138,7 @@ func TestReservedUnnamedStructType(t *testing.T) {
 	if formatted != want {
 		t.Fatalf("formatted:\n%s\nwant\n%s", formatted, want)
 	}
-	again, err := syntax.Parse(formatted)
+	again, err := parser.Parse(formatted)
 	if err != nil || grammar.Format(again) != formatted {
 		t.Fatalf("formatting is not idempotent: %v", err)
 	}

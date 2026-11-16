@@ -12,7 +12,7 @@ import (
 	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/codegen"
 	"zeroparse.dev/zp/internal/compile"
-	"zeroparse.dev/zp/internal/syntax"
+	"zeroparse.dev/zp/internal/frontend/parser"
 	"zeroparse.dev/zp/internal/testing/codegentest"
 )
 
@@ -110,7 +110,7 @@ func documentInside(text string, k int) bool {
 // edit or a broken retention of results must fail the comparison or the reuse.
 func TestTSDocumentMatchesFreshParse(t *testing.T) {
 	src := strings.Replace(codegentest.IncrementalGrammar, "rule main", "@start\nrule main", 1)
-	g, err := syntax.Parse(src)
+	g, err := parser.Parse(src)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -321,7 +321,7 @@ var documentMutants = []struct{ name, old, new string }{
 // p is evaluated again with w reused, an edit that w looked at must make p evaluated again. As a
 // negative control, the library without that record must fail.
 func TestTSDocumentReuseRecordsExamined(t *testing.T) {
-	g, err := syntax.Parse("@start\nrule main = p \";\" [a-z?]*\nrule p = \"s\" w\nrule w = [0-9]+ !\";x\"")
+	g, err := parser.Parse("@start\nrule main = p \";\" [a-z?]*\nrule p = \"s\" w\nrule w = [0-9]+ !\";x\"")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -440,7 +440,7 @@ func TestTSDocumentTouches(t *testing.T) {
 	}
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
-			g, err := syntax.Parse(c.grammar)
+			g, err := parser.Parse(c.grammar)
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -529,7 +529,7 @@ console.log("mismatches", bad, "of", n);
 	}
 	run := func() (mismatches int) {
 		for _, c := range cases {
-			g, err := syntax.Parse(c.src)
+			g, err := parser.Parse(c.src)
 			if err != nil {
 				t.Fatal(err)
 			}

@@ -5,8 +5,8 @@ import (
 	"testing"
 	"zeroparse.dev/zp/engine"
 	"zeroparse.dev/zp/grammar"
-	"zeroparse.dev/zp/internal/syntax"
-	"zeroparse.dev/zp/internal/syntax/sourceast"
+	"zeroparse.dev/zp/internal/frontend/parser"
+	"zeroparse.dev/zp/internal/frontend/parser/sourceast"
 )
 
 // Package ownership is compared at the public metadata boundary. The adapter
@@ -25,7 +25,7 @@ func TestCanonicalPackageMetadataParity(t *testing.T) {
 		"package p\n\n// unowned\n",
 	} {
 		t.Run(src, func(t *testing.T) {
-			manual, manualErr := syntax.ParseReference(src)
+			manual, manualErr := parser.ParseReference(src)
 			for _, backend := range []engine.Backend{engine.Closure, engine.Bytecode, engine.BytecodeIterative} {
 				n, err := p.Parse(src, engine.WithBackend(backend))
 				if (err == nil) != (manualErr == nil) {

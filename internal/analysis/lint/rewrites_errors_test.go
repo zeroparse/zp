@@ -5,7 +5,7 @@ import (
 	"errors"
 	"testing"
 
-	"zeroparse.dev/zp/internal/syntax"
+	"zeroparse.dev/zp/internal/frontend/parser"
 )
 
 // TestRewritesErrors requires Rewrites to return an error and no rewrites for a grammar that does
@@ -14,14 +14,14 @@ import (
 func TestRewritesErrors(t *testing.T) {
 	t.Parallel()
 	ctx := context.Background()
-	bad, err := syntax.Parse("@start\nrule main = missing")
+	bad, err := parser.Parse("@start\nrule main = missing")
 	if err != nil {
 		t.Fatal(err)
 	}
 	if rs, err := Rewrites(ctx, bad, "main", nil); err == nil || rs != nil {
 		t.Errorf("grammar that does not compile: %v, %v", rs, err)
 	}
-	g, err := syntax.Parse("@start\nrule main = [a-cb-d]\nrule unused = \"x\"")
+	g, err := parser.Parse("@start\nrule main = [a-cb-d]\nrule unused = \"x\"")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -52,7 +52,7 @@ func TestRewritesErrors(t *testing.T) {
 // as before.
 func TestCheckGrammarCancelledMidCompile(t *testing.T) {
 	t.Parallel()
-	g, err := syntax.Parse("@start\nrule main = (a / \"a\")* \"b\"\nrule a = \"a\" a / \"x\"\nrule unused = \"x\"")
+	g, err := parser.Parse("@start\nrule main = (a / \"a\")* \"b\"\nrule a = \"a\" a / \"x\"\nrule unused = \"x\"")
 	if err != nil {
 		t.Fatal(err)
 	}

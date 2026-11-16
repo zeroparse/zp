@@ -6,7 +6,7 @@ import (
 
 	"zeroparse.dev/zp/internal/compile"
 	"zeroparse.dev/zp/internal/frontend/desugar"
-	"zeroparse.dev/zp/internal/syntax"
+	"zeroparse.dev/zp/internal/frontend/parser"
 )
 
 // TestClassifyComplexityStartRule checks that an empty start name selects the default start rule
@@ -14,7 +14,7 @@ import (
 func TestClassifyComplexityStartRule(t *testing.T) {
 	parse := func(t *testing.T, src string) *Complexity {
 		t.Helper()
-		g, err := syntax.Parse(src)
+		g, err := parser.Parse(src)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -25,7 +25,7 @@ func TestClassifyComplexityStartRule(t *testing.T) {
 		return c
 	}
 	t.Run("no start rule", func(t *testing.T) {
-		g, err := syntax.Parse("rule main = \"a\"\n")
+		g, err := parser.Parse("rule main = \"a\"\n")
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -39,7 +39,7 @@ func TestClassifyComplexityStartRule(t *testing.T) {
 	t.Run("default start rule", func(t *testing.T) {
 		const body = "rule main = (a / \"a\")* $$\nrule a = \"a\"* \"c\"\n"
 		marked := parse(t, "@start\n"+body)
-		g, err := syntax.Parse("@start\n" + body)
+		g, err := parser.Parse("@start\n" + body)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -55,7 +55,7 @@ func TestClassifyComplexityStartRule(t *testing.T) {
 	// rejects or accepts it, with the same message.
 	t.Run("agrees with parsing", func(t *testing.T) {
 		const src = "@start(default)\nrule main = \"a\"\n@start\nrule other = \"b\"\nrule inner = \"c\"\nrule _hidden = \"d\"\n"
-		g, err := syntax.Parse(src)
+		g, err := parser.Parse(src)
 		if err != nil {
 			t.Fatal(err)
 		}

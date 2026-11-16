@@ -8,7 +8,7 @@ import (
 
 	"zeroparse.dev/zp/internal/analysis/complexity"
 	"zeroparse.dev/zp/internal/engine"
-	"zeroparse.dev/zp/internal/syntax"
+	"zeroparse.dev/zp/internal/frontend/parser"
 )
 
 // TestDeclaredLinear checks @linear on the package clause and on rules: a declaration whose start
@@ -40,7 +40,7 @@ func TestDeclaredLinear(t *testing.T) {
 		{"unknown", "@linear\npackage p\n@start\nrule main = r $$\nrule r = [ab]? (r / [a-c]) (w [ ] [b])\nrule w = [^a]* $$\n", []string{"the grammar from start rule main is declared @linear, but the classifier cannot prove its cost linear: a step of the growth of r", "the grammar from start rule main is declared @linear, but the classifier cannot prove its cost linear: the alternative"}},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
-			g, err := syntax.Parse(tc.src)
+			g, err := parser.Parse(tc.src)
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -82,7 +82,7 @@ func TestDeclaredLinearAttributeErrors(t *testing.T) {
 		{"@start @linear @linear\nrule main = \"x\"\n", "1:16: duplicate @linear on rule main"},
 		{"@start @linear(x=1)\nrule main = \"x\"\n", "1:8: @linear takes no arguments"},
 	} {
-		g, err := syntax.Parse(tc.src)
+		g, err := parser.Parse(tc.src)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -102,7 +102,7 @@ func TestDeclaredLinearKeepsClassification(t *testing.T) {
 	} {
 		var got [2]string
 		for i, decl := range []string{"\n", "@linear\n"} { // a blank line keeps the positions
-			g, err := syntax.Parse(fmt.Sprintf(src, decl))
+			g, err := parser.Parse(fmt.Sprintf(src, decl))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -150,7 +150,7 @@ func TestDeclaredLinearRewrites(t *testing.T) {
 		{"unknown", head + "@start\nrule main = r $$\nrule r = [ab]? (r / [a-c]) (w [ ] [b])\nrule w = [^a]* $$\n", "other"},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
-			g, err := syntax.Parse(tc.src)
+			g, err := parser.Parse(tc.src)
 			if err != nil {
 				t.Fatal(err)
 			}

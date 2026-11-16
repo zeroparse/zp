@@ -10,7 +10,7 @@ import (
 	"strings"
 	"testing"
 	"zeroparse.dev/zp/grammar"
-	"zeroparse.dev/zp/internal/syntax"
+	"zeroparse.dev/zp/internal/frontend/parser"
 )
 
 // The formatter reads the raw comment tokens and line breaks that the parser
@@ -73,7 +73,7 @@ var layoutIndex = regexp.MustCompile(`\[\d+\]`)
 // "format" when only the text that Format writes differs. class is "" when the
 // two agree, or when either rejects src.
 func layoutDifference(src string) (class, detail string) {
-	manual, err := syntax.ParseReference(src)
+	manual, err := parser.ParseReference(src)
 	if err != nil {
 		return "", ""
 	}
@@ -155,7 +155,7 @@ func TestCanonicalLayout(t *testing.T) {
 	examples := map[string]string{}
 	compared := 0
 	for _, src := range inputs {
-		if _, err := syntax.ParseReference(src); err == nil {
+		if _, err := parser.ParseReference(src); err == nil {
 			compared++
 		}
 		class, detail := layoutDifference(src)

@@ -8,7 +8,7 @@ import (
 
 	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/frontend/astfacts"
-	"zeroparse.dev/zp/internal/syntax"
+	"zeroparse.dev/zp/internal/frontend/parser"
 	"zeroparse.dev/zp/internal/testing/factstest"
 )
 
@@ -64,7 +64,7 @@ func builtTexts(t *testing.T, src string, opts Options) map[string]string {
 // builds.
 func testView(t *testing.T, src string, opts Options) (*View, []*grammar.RuleDef, []*grammar.RuleDef, map[grammar.Expr]string) {
 	t.Helper()
-	g, err := syntax.Parse(src)
+	g, err := parser.Parse(src)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -106,7 +106,7 @@ func TestNormalViewPredicateCaptures(t *testing.T) {
 	for _, c := range predicateCaptureCases {
 		t.Run(c.name, func(t *testing.T) {
 			if c.rejected {
-				g, err := syntax.Parse(c.src + "\n")
+				g, err := parser.Parse(c.src + "\n")
 				if err != nil {
 					t.Fatal(err)
 				}
@@ -146,7 +146,7 @@ func TestNormalViewPredicateValueFlow(t *testing.T) {
 		"rule main = (\"a\"* \"a\"*) {len($0) == 2} \"b\"\n",
 		"rule main = (\"a\"* \"a\"*) {len($1) == 2} \"b\"\n",
 	} {
-		if _, err := syntax.Parse(src); err == nil {
+		if _, err := parser.Parse(src); err == nil {
 			t.Errorf("a positional reference was accepted: %s", src)
 		}
 	}

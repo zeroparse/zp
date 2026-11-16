@@ -8,8 +8,8 @@ import (
 	"zeroparse.dev/zp/core"
 	"zeroparse.dev/zp/engine"
 	"zeroparse.dev/zp/grammar"
-	"zeroparse.dev/zp/internal/syntax"
-	"zeroparse.dev/zp/internal/syntax/sourceast"
+	"zeroparse.dev/zp/internal/frontend/parser"
+	"zeroparse.dev/zp/internal/frontend/parser/sourceast"
 )
 
 // The canonical grammar keeps every comment of the source with the gaps between
@@ -667,7 +667,7 @@ var compared int
 
 func compareNodes(t *testing.T, p *engine.Parser, name, src string) bool {
 	t.Helper()
-	manual, merr := syntax.ParseReference(src)
+	manual, merr := parser.ParseReference(src)
 	n, err := p.Parse(src)
 	switch {
 	case merr != nil && err != nil:

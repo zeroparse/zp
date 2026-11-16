@@ -17,7 +17,7 @@ import (
 	"zeroparse.dev/zp/internal/engine/closure"
 	"zeroparse.dev/zp/internal/engine/state"
 	"zeroparse.dev/zp/internal/engine/vm"
-	"zeroparse.dev/zp/internal/syntax"
+	"zeroparse.dev/zp/internal/frontend/parser"
 	"zeroparse.dev/zp/internal/testing/codegentest"
 	"zeroparse.dev/zp/internal/testing/starttest"
 	"zeroparse.dev/zp/internal/value"
@@ -26,7 +26,7 @@ import (
 // parseTest parses ZeroParse source for a test whose subject is not start rules: unless the source
 // has declaration attributes, every rule becomes a start rule, the first one the default.
 func parseTest(src string) (*grammar.Grammar, error) {
-	g, err := syntax.Parse(src)
+	g, err := parser.Parse(src)
 	return starttest.MarkAll(g), err
 }
 

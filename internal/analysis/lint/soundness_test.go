@@ -10,7 +10,7 @@ import (
 
 	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/engine"
-	"zeroparse.dev/zp/internal/syntax"
+	"zeroparse.dev/zp/internal/frontend/parser"
 	"zeroparse.dev/zp/internal/testing/starttest"
 )
 
@@ -39,7 +39,7 @@ func TestSoundness(t *testing.T) {
 	checked := map[string]int{}
 	for n := range *soundnessGrammars {
 		src := randomGrammar(rng)
-		g, err := syntax.Parse(src)
+		g, err := parser.Parse(src)
 		if err != nil {
 			t.Fatalf("generated grammar does not parse: %v\n%s", err, src)
 		}
@@ -53,7 +53,7 @@ func TestSoundness(t *testing.T) {
 		}
 		for _, f := range runUnchecked(g, "main", options{}) {
 			for _, fix := range []bool{false, true} {
-				g2, _ := syntax.Parse(src)
+				g2, _ := parser.Parse(src)
 				if !applyFinding(g2, f, fix) {
 					continue
 				}

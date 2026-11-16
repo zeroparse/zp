@@ -6,7 +6,7 @@ import (
 	"strings"
 	"testing"
 
-	"zeroparse.dev/zp/internal/syntax"
+	"zeroparse.dev/zp/internal/frontend/parser"
 )
 
 var proofLintBenchmarkFindings []Finding
@@ -21,7 +21,7 @@ func BenchmarkSuccessProofLintCancellation(b *testing.B) {
 		sources[name] = string(data)
 	}
 	for _, name := range []string{"json", "source-grammar", "attributes"} {
-		g, err := syntax.Parse(sources[name])
+		g, err := parser.Parse(sources[name])
 		if err != nil {
 			b.Fatal(err)
 		}

@@ -4,12 +4,12 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/internal/engine"
-	"zeroparse.dev/zp/internal/syntax"
+	"zeroparse.dev/zp/internal/frontend/parser"
 	"zeroparse.dev/zp/internal/testing/starttest"
 )
 
 func TestMarkAllSkipsHiddenRules(t *testing.T) {
-	g, err := syntax.Parse("rule _a = \"x\"\nrule b = _a\nrule c = b\n")
+	g, err := parser.Parse("rule _a = \"x\"\nrule b = _a\nrule c = b\n")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -24,7 +24,7 @@ func TestMarkAllSkipsHiddenRules(t *testing.T) {
 
 // A grammar that already has declaration attributes keeps them.
 func TestMarkAllKeepsAttributes(t *testing.T) {
-	g, err := syntax.Parse("rule a = \"x\"\n@start\nrule b = a\n")
+	g, err := parser.Parse("rule a = \"x\"\n@start\nrule b = a\n")
 	if err != nil {
 		t.Fatal(err)
 	}

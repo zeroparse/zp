@@ -12,7 +12,7 @@ import (
 
 	"zeroparse.dev/zp/internal/codegen"
 	"zeroparse.dev/zp/internal/codegen/go"
-	"zeroparse.dev/zp/internal/syntax"
+	"zeroparse.dev/zp/internal/frontend/parser"
 	"zeroparse.dev/zp/internal/testing/codegentest"
 )
 
@@ -93,7 +93,7 @@ func TestTypedUnreachedRulesAreLeftOut(t *testing.T) {
 }
 
 func testTypedUnreachedRulesAreLeftOut(t *testing.T) {
-	g, err := syntax.Parse(reachTypedGrammar)
+	g, err := parser.Parse(reachTypedGrammar)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -131,7 +131,7 @@ func testTypedUnreachedRulesAreLeftOut(t *testing.T) {
 func TestTypedUnreachedCalleeFailsGeneration(t *testing.T) {
 	t.Parallel()
 	codegentest.EachMode(t, func(t *testing.T) {
-		g, err := syntax.Parse(reachTypedGrammar)
+		g, err := parser.Parse(reachTypedGrammar)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -189,7 +189,7 @@ func testTypedUnreachedRulesRunLikeTheFullOutput(t *testing.T) {
 	for _, tc := range cases {
 		for _, typedOnly := range []bool{false, true} {
 			t.Run(fmt.Sprintf("%s typedOnly=%v", tc.name, typedOnly), func(t *testing.T) {
-				g, err := syntax.Parse(tc.src)
+				g, err := parser.Parse(tc.src)
 				if err != nil {
 					t.Fatal(err)
 				}

@@ -11,8 +11,8 @@ import (
 
 	"zeroparse.dev/zp/core"
 	"zeroparse.dev/zp/grammar"
-	"zeroparse.dev/zp/internal/syntax"
-	"zeroparse.dev/zp/internal/syntax/grammarparser"
+	"zeroparse.dev/zp/internal/frontend/parser"
+	"zeroparse.dev/zp/internal/frontend/parser/zpparser"
 )
 
 // The generated source parser, with its adapter, must build the grammar that
@@ -21,12 +21,12 @@ import (
 // grammar and of its source metadata. The raw comment tokens that only the
 // formatter reads are not in it.
 
-// adaptCanonical parses src as the source APIs do: with syntax.Parse, which runs the generated
+// adaptCanonical parses src as the source APIs do: with parser.Parse, which runs the generated
 // parser of the canonical grammar with its limits and expectations and builds the public AST from
-// its typed values. It rejects a source with a syntax.ErrorList: the lexical errors, then the
+// its typed values. It rejects a source with a parser.ErrorList: the lexical errors, then the
 // errors of the grammar or of the checks on the tree.
 func adaptCanonical(src string) (*grammar.Grammar, error) {
-	return syntax.Parse(src)
+	return parser.Parse(src)
 }
 
 // canonicalErrors converts the error that the canonical grammar returns for src.
@@ -35,30 +35,30 @@ func canonicalErrors(src string, err error) error {
 	if !ok {
 		return err
 	}
-	return syntax.SourceErrors(src, errs)
+	return parser.SourceErrors(src, errs)
 }
 
 // sourceErrorsOf returns the syntax errors of a parse by the generated parser
 // or by the engine, and whether err holds them.
-func sourceErrorsOf(err error) ([]syntax.SourceError, bool) {
-	var out []syntax.SourceError
-	var glist grammarparser.SyntaxErrors
-	var gone *grammarparser.SyntaxError
+func sourceErrorsOf(err error) ([]parser.SourceError, bool) {
+	var out []parser.SourceError
+	var glist zpparser.SyntaxErrors
+	var gone *zpparser.SyntaxError
 	var list core.SyntaxErrors
 	var one *core.SyntaxError
 	switch {
 	case errors.As(err, &glist):
 		for _, e := range glist {
-			out = append(out, syntax.SourceError{Offset: e.Pos, Msg: e.Message()})
+			out = append(out, parser.SourceError{Offset: e.Pos, Msg: e.Message()})
 		}
 	case errors.As(err, &gone):
-		out = append(out, syntax.SourceError{Offset: gone.Pos, Msg: gone.Message()})
+		out = append(out, parser.SourceError{Offset: gone.Pos, Msg: gone.Message()})
 	case errors.As(err, &list):
 		for _, e := range list {
-			out = append(out, syntax.SourceError{Offset: e.Pos, Msg: e.Message()})
+			out = append(out, parser.SourceError{Offset: e.Pos, Msg: e.Message()})
 		}
 	case errors.As(err, &one):
-		out = append(out, syntax.SourceError{Offset: one.Pos, Msg: one.Message()})
+		out = append(out, parser.SourceError{Offset: one.Pos, Msg: one.Message()})
 	default:
 		return nil, false
 	}
@@ -137,7 +137,7 @@ func firstDifference(want, got []string) string {
 // agree. Where both reject src, only the rejection is compared.
 func grammarDiff(t *testing.T, frontend func(string) (*grammar.Grammar, error), src string) string {
 	t.Helper()
-	manual, merr := syntax.ParseReference(src)
+	manual, merr := parser.ParseReference(src)
 	got, err := frontend(src)
 	switch {
 	case merr != nil && err != nil:
@@ -191,7 +191,7 @@ var frontendRejections = []string{
 
 func TestCanonicalFrontendRejections(t *testing.T) {
 	for _, src := range frontendRejections {
-		if _, err := syntax.ParseReference(src); err == nil {
+		if _, err := parser.ParseReference(src); err == nil {
 			t.Errorf("%q: the hand-written parser accepts it", src)
 		}
 		if _, err := adaptCanonical(src); err == nil {
@@ -223,7 +223,7 @@ var frontendAgreements = []string{
 
 func TestCanonicalFrontendAgreements(t *testing.T) {
 	for _, src := range frontendAgreements {
-		if _, err := syntax.ParseReference(src); err != nil {
+		if _, err := parser.ParseReference(src); err != nil {
 			t.Errorf("%q: the hand-written parser rejects it: %v", src, err)
 		}
 		compareGrammars(t, src, src)

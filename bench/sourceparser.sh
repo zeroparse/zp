@@ -1,5 +1,5 @@
 #!/bin/sh
-# Grammar-source frontend benchmark: runs BenchmarkFrontend of internal/syntax in interleaved rounds
+# Grammar-source frontend benchmark: runs BenchmarkFrontend of internal/frontend/parser in interleaved rounds
 # and prints the raw results, which benchstat summarizes:
 #
 #	bench/sourceparser.sh > frontend.txt && benchstat -col /fe frontend.txt
@@ -19,9 +19,9 @@ sourcebench_time=${BENCHTIME:-500ms}
 sourcebench_sources=${SOURCES:-.*}
 case "$sourcebench_rounds" in ''|*[!0-9]*|0) echo 'ROUNDS must be a positive integer.' >&2; exit 1;; esac
 cd "$sourcebench_repo"
-go test -c -o "$sourcebench_dir/syntax.test" ./internal/syntax
-cd internal/syntax
-"$sourcebench_dir/syntax.test" -test.run '^TestFrontendSamples$' >&2
+go test -c -o "$sourcebench_dir/parser.test" ./internal/frontend/parser
+cd internal/frontend/parser
+"$sourcebench_dir/parser.test" -test.run '^TestFrontendSamples$' >&2
 sourcebench_frontends='manual manual-aa generated generated-exp manual-partial generated-partial generated-partial-exp'
 sourcebench_round=0
 while [ "$sourcebench_round" -lt "$sourcebench_rounds" ]; do
@@ -35,7 +35,7 @@ while [ "$sourcebench_round" -lt "$sourcebench_rounds" ]; do
 		sourcebench_shift=$((sourcebench_shift - 1))
 	done
 	for sourcebench_fe in "$@"; do
-		"$sourcebench_dir/syntax.test" -test.run '^$' \
+		"$sourcebench_dir/parser.test" -test.run '^$' \
 			-test.bench "^BenchmarkFrontend$/^src=($sourcebench_sources)\$/^fe=$sourcebench_fe\$" \
 			-test.benchtime "$sourcebench_time" -test.count 1
 	done

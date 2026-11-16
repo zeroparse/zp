@@ -9,7 +9,7 @@ import (
 	"strings"
 	"testing"
 
-	"zeroparse.dev/zp/internal/syntax"
+	"zeroparse.dev/zp/internal/frontend/parser"
 	"zeroparse.dev/zp/internal/testing/factstest"
 )
 
@@ -36,7 +36,7 @@ func TestLintGolden(t *testing.T) {
 			path = filepath.ToSlash(path)
 			t.Run(path, func(t *testing.T) {
 				t.Parallel()
-				g, err := syntax.Parse(factstest.Read(t, path))
+				g, err := parser.Parse(factstest.Read(t, path))
 				if err != nil {
 					t.Fatal(err)
 				}

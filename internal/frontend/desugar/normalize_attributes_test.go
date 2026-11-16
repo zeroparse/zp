@@ -5,7 +5,7 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/grammar"
-	"zeroparse.dev/zp/internal/syntax"
+	"zeroparse.dev/zp/internal/frontend/parser"
 )
 
 func TestNormalizationContainerShapes(t *testing.T) {
@@ -59,7 +59,7 @@ func TestNormalizationAttributeBindingDoesNotMutate(t *testing.T) {
 
 func TestNormalizationSharesUnchangedNodes(t *testing.T) {
 	t.Parallel()
-	g, err := syntax.Parse(`rule main = "a" "b"*`)
+	g, err := parser.Parse(`rule main = "a" "b"*`)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -70,7 +70,7 @@ func TestNormalizationSharesUnchangedNodes(t *testing.T) {
 	if normalized != g {
 		t.Fatal("unchanged grammar was copied")
 	}
-	g, err = syntax.Parse("rule main = (\"a\") \"b\"*\nrule other = \"c\"")
+	g, err = parser.Parse("rule main = (\"a\") \"b\"*\nrule other = \"c\"")
 	if err != nil {
 		t.Fatal(err)
 	}

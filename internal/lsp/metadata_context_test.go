@@ -13,7 +13,7 @@ import (
 	"zeroparse.dev/zp/internal/diagnostic"
 
 	"zeroparse.dev/zp/grammar"
-	"zeroparse.dev/zp/internal/syntax"
+	"zeroparse.dev/zp/internal/frontend/parser"
 )
 
 type metadataPredicateContext struct {
@@ -158,7 +158,7 @@ func TestMetadataInteriorCancellation(t *testing.T) {
 	t.Run("syntax-diagnostics", func(t *testing.T) {
 		a := newAnalysis("x")
 		for range n {
-			a.syntaxErrs = append(a.syntaxErrs, &syntax.Error{Msg: "invalid"})
+			a.syntaxErrs = append(a.syntaxErrs, &parser.Error{Msg: "invalid"})
 		}
 		assertMetadataPhaseCancels(t, a.mapSyntaxDiagnostics)
 	})

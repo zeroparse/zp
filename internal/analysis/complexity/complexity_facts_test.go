@@ -11,7 +11,7 @@ import (
 
 	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/compile"
-	"zeroparse.dev/zp/internal/syntax"
+	"zeroparse.dev/zp/internal/frontend/parser"
 	"zeroparse.dev/zp/internal/testing/factstest"
 	"zeroparse.dev/zp/internal/testing/starttest"
 )
@@ -111,7 +111,7 @@ func TestClassifierFactsMatchAnalysis(t *testing.T) {
 	for path, src := range classifierCorpus(t) {
 		t.Run(path, func(t *testing.T) {
 			t.Parallel()
-			parsed, err := syntax.Parse(src)
+			parsed, err := parser.Parse(src)
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -129,7 +129,7 @@ func TestClassifierFactsMatchAnalysis(t *testing.T) {
 // TestClassifierFactsDetectsDifference is the negative control of TestClassifierFactsMatchAnalysis:
 // changing one fact of one rule must change the rendering.
 func TestClassifierFactsDetectsDifference(t *testing.T) {
-	g, err := syntax.Parse("@start\nrule a = a \"x\" / b\nrule b = \"y\"\n")
+	g, err := parser.Parse("@start\nrule a = a \"x\" / b\nrule b = \"y\"\n")
 	if err != nil {
 		t.Fatal(err)
 	}

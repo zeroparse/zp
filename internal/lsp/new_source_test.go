@@ -4,7 +4,7 @@ import (
 	"strings"
 	"testing"
 
-	"zeroparse.dev/zp/internal/syntax"
+	"zeroparse.dev/zp/internal/frontend/parser"
 )
 
 func TestNewSourceServices(t *testing.T) {
@@ -27,7 +27,7 @@ func TestNewSourceServices(t *testing.T) {
 		t.Fatalf("hover: %s", hover)
 	}
 	for _, tok := range a.toks {
-		if tok.Kind == syntax.TokenComment && strings.HasPrefix(tok.Text, "/*") {
+		if tok.Kind == parser.TokenComment && strings.HasPrefix(tok.Text, "/*") {
 			if items := a.complete(tok.start + len("/* A number\n")); len(items) != 0 {
 				t.Fatalf("completion inside block comment: %+v", items)
 			}

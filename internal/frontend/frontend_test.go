@@ -6,9 +6,9 @@ import (
 	"zeroparse.dev/zp/internal/compile"
 	"zeroparse.dev/zp/internal/frontend"
 	"zeroparse.dev/zp/internal/frontend/elaborate"
+	"zeroparse.dev/zp/internal/frontend/parser"
 	"zeroparse.dev/zp/internal/ir/core"
 	"zeroparse.dev/zp/internal/ir/core/facts"
-	"zeroparse.dev/zp/internal/syntax"
 	"zeroparse.dev/zp/internal/testing/compiletest"
 	"zeroparse.dev/zp/internal/testing/factstest"
 )
@@ -67,7 +67,7 @@ func TestRunMatchesCompile(t *testing.T) {
 // TestRunReportsCompileErrors requires Run to return the compiler's error list as is.
 func TestRunReportsCompileErrors(t *testing.T) {
 	t.Parallel()
-	g, err := syntax.Parse("type T = { A string }\n@start\nrule main = t $$\nrule t = \"a\" => T{A: 1}")
+	g, err := parser.Parse("type T = { A string }\n@start\nrule main = t $$\nrule t = \"a\" => T{A: 1}")
 	if err != nil {
 		t.Fatal(err)
 	}

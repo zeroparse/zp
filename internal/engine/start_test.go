@@ -8,14 +8,14 @@ import (
 	"zeroparse.dev/zp/core"
 	"zeroparse.dev/zp/internal/bytecode"
 	"zeroparse.dev/zp/internal/compile"
-	"zeroparse.dev/zp/internal/syntax"
+	"zeroparse.dev/zp/internal/frontend/parser"
 	"zeroparse.dev/zp/internal/testing/codegentest"
 )
 
 // compileStarts compiles source as written, without marking start rules for the test.
 func compileStarts(t *testing.T, src string) (*Program, error) {
 	t.Helper()
-	g, err := syntax.Parse(src)
+	g, err := parser.Parse(src)
 	if err != nil {
 		t.Fatalf("syntax error: %v\n%s", err, src)
 	}
@@ -134,7 +134,7 @@ func checkStartRestriction(t *testing.T, prog *Program, o ParseOptions) {
 func TestStartRestriction(t *testing.T) {
 	t.Parallel()
 	for _, recognition := range []bool{false, true} {
-		g, err := syntax.Parse(codegentest.StartRestrictionSource)
+		g, err := parser.Parse(codegentest.StartRestrictionSource)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -156,7 +156,7 @@ func TestStartRoundTrip(t *testing.T) {
 	t.Parallel()
 	for _, recognition := range []bool{false, true} {
 		for _, mode := range allModes {
-			g, err := syntax.Parse(codegentest.StartRestrictionSource)
+			g, err := parser.Parse(codegentest.StartRestrictionSource)
 			if err != nil {
 				t.Fatal(err)
 			}

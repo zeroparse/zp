@@ -14,7 +14,7 @@ import (
 
 	"zeroparse.dev/zp/internal/codegen"
 	"zeroparse.dev/zp/internal/codegen/go"
-	"zeroparse.dev/zp/internal/syntax"
+	"zeroparse.dev/zp/internal/frontend/parser"
 	"zeroparse.dev/zp/internal/testing/codegentest"
 )
 
@@ -88,7 +88,7 @@ func undefinedGenerated(t *testing.T, src []byte) []string {
 
 func generateReach(t *testing.T, src string, opts codegen.GenOptions) []byte {
 	t.Helper()
-	g, err := syntax.Parse(src)
+	g, err := parser.Parse(src)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -186,7 +186,7 @@ STREAM
 func runReach(t *testing.T, src string, opts codegen.GenOptions, hook func(*gogen.LiveRules)) (pruned, full []string) {
 	t.Helper()
 	goBin := filepath.Join(runtime.GOROOT(), "bin", "go")
-	g, err := syntax.Parse(src)
+	g, err := parser.Parse(src)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -384,7 +384,7 @@ func TestUnreachableCalleeFailsGeneration(t *testing.T) {
 }
 
 func testUnreachableCalleeFailsGeneration(t *testing.T) {
-	g, err := syntax.Parse(reachTwinGrammar)
+	g, err := parser.Parse(reachTwinGrammar)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -405,7 +405,7 @@ func testUnreachableCalleeFailsGeneration(t *testing.T) {
 
 	// The stream body is a copy of the start rule's body, so its calls repeat the start rule's. With
 	// the rules the start rule calls left out, generation must notice that the stream body calls one.
-	gs, err := syntax.Parse(reachStreamGrammar)
+	gs, err := parser.Parse(reachStreamGrammar)
 	if err != nil {
 		t.Fatal(err)
 	}

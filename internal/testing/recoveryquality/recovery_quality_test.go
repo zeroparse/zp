@@ -4,7 +4,7 @@
 // generated from the ready-made grammar (testdata/grammars/<language>), one JSON object per line. The
 // recovering variant of the grammar is testdata/recovery/<language>.zp. The test parses every corpus input with
 // the variant, computes the measures of docs/guide/recovery-quality.md and compares them with the table in that
-// guide; go test ./internal/recoveryquality -update regenerates the corpora and the table.
+// guide; go test ./internal/testing/recoveryquality -update regenerates the corpora and the table.
 package recoveryquality_test
 
 import (
@@ -293,6 +293,6 @@ func TestRecoveryQuality(t *testing.T) {
 		return
 	}
 	if want != s {
-		t.Fatalf("the table in %s is stale; run go test ./internal/recoveryquality -update", tablePath)
+		t.Fatalf("the table in %s is stale; run go test ./internal/testing/recoveryquality -update", tablePath)
 	}
 }

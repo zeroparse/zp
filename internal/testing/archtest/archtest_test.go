@@ -214,7 +214,7 @@ func TestNegativeControls(t *testing.T) {
 			"pkg/runtime/golib imports only pkg/runtime and its input, value, value/impl, instrument and schema packages, not internal/runtime/vm",
 			"a generated parser links neither pkg/runtime/vm nor internal/runtime/**",
 			"\tchain: codegen/go/lib -> internal/engine/vm\n",
-			"generated parser (-lib import)", "internal/bench/parsers/json,", "internal/syntax/grammarparser,"}},
+			"generated parser (-lib import)", "internal/bench/parsers/json,", "internal/frontend/parser/zpparser,"}},
 		{"rule 1a: core/impl -> internal/value", []string{"codegen/go/lib -> core/impl -> internal/value\n\tbuilds", "\tgenerated parsers: generated parser (-lib embed), generated parser (-lib import), internal/bench/parsers/"}},
 		{"rule 2: internal/ir/exec -> internal/ir/flow", []string{"\tbreaks: internal/ir/code imports no dialect (internal/ir/code -> internal/ir/code/flow)\n"}},
 		{"rule 2: internal/frontend/desugar -> internal/analysis/lint", []string{"the front end layer does not import the analysis layer (internal/frontend/desugar -> internal/analysis/lint)"}},

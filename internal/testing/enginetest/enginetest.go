@@ -14,8 +14,8 @@ import (
 	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/compile"
 	"zeroparse.dev/zp/internal/engine"
+	"zeroparse.dev/zp/internal/frontend/parser"
 	"zeroparse.dev/zp/internal/frontend/schemaexport"
-	"zeroparse.dev/zp/internal/syntax"
 	"zeroparse.dev/zp/internal/testing/codegentest"
 	"zeroparse.dev/zp/internal/testing/compiletest"
 	"zeroparse.dev/zp/schema"
@@ -96,7 +96,7 @@ func CompileBare(t testing.TB, src string, opts ...compile.Options) *engine.Prog
 // CompileStarts compiles source as written, without marking start rules for the test.
 func CompileStarts(t testing.TB, src string) (*engine.Program, error) {
 	t.Helper()
-	g, err := syntax.Parse(src)
+	g, err := parser.Parse(src)
 	if err != nil {
 		t.Fatalf("syntax error: %v\n%s", err, src)
 	}

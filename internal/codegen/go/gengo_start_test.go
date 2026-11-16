@@ -10,7 +10,7 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/internal/codegen"
-	"zeroparse.dev/zp/internal/syntax"
+	"zeroparse.dev/zp/internal/frontend/parser"
 	"zeroparse.dev/zp/internal/testing/codegentest"
 )
 
@@ -32,7 +32,7 @@ func testGeneratedGoStartRules(t *testing.T) {
 	if !strings.Contains(want, "other: rule other is not a start rule") || !strings.Contains(want, "_h: rule _h is hidden") || !strings.Contains(want, "item: ok") {
 		t.Fatalf("unexpected interpreter results:\n%s", want)
 	}
-	g, err := syntax.Parse(codegentest.StartRestrictionSource)
+	g, err := parser.Parse(codegentest.StartRestrictionSource)
 	if err != nil {
 		t.Fatal(err)
 	}

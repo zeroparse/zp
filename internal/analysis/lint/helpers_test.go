@@ -7,7 +7,7 @@ import (
 	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/compile"
 	"zeroparse.dev/zp/internal/frontend"
-	"zeroparse.dev/zp/internal/syntax"
+	"zeroparse.dev/zp/internal/frontend/parser"
 )
 
 // checked runs the front end on g without cancellation. Many test grammars are one rule without
@@ -22,7 +22,7 @@ func checked(g *grammar.Grammar) *frontend.Result {
 	if i := strings.Index(text, "rule "); i >= 0 && !strings.Contains(text, "@start") {
 		text = text[:i] + "@start\n" + text[i:]
 	}
-	copied, perr := syntax.Parse(text)
+	copied, perr := parser.Parse(text)
 	if perr == nil {
 		if res, err2 := frontend.Run(copied, compile.Options{}, nil); err2 == nil {
 			return res

@@ -12,7 +12,7 @@ import (
 	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/analysis/complexity"
 	"zeroparse.dev/zp/internal/engine"
-	"zeroparse.dev/zp/internal/syntax"
+	"zeroparse.dev/zp/internal/frontend/parser"
 )
 
 // TestNormalViewMatches checks that the normal view of each bundled grammar matches what the
@@ -35,7 +35,7 @@ func TestNormalViewMatches(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			g, err := syntax.Parse(string(src))
+			g, err := parser.Parse(string(src))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -81,7 +81,7 @@ func TestNormalViewMatchesShapes(t *testing.T) {
 		{"cut in a skip", `rule main = ("a" "b" #recover(skip=#cut [^;]*) / !"q" "q")* "ac"`, []string{"abac", "ac", "aac", "a;ac"}},
 	} {
 		t.Run(c.name, func(t *testing.T) {
-			g, err := syntax.Parse("@start\n" + c.src + "\n")
+			g, err := parser.Parse("@start\n" + c.src + "\n")
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -223,7 +223,7 @@ func TestNormalViewCompiles(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			g, err := syntax.Parse(string(src))
+			g, err := parser.Parse(string(src))
 			if err != nil {
 				t.Fatal(err)
 			}

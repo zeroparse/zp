@@ -9,7 +9,7 @@ import (
 
 	"zeroparse.dev/zp/core"
 	"zeroparse.dev/zp/internal/compile"
-	"zeroparse.dev/zp/internal/syntax"
+	"zeroparse.dev/zp/internal/frontend/parser"
 	"zeroparse.dev/zp/internal/testing/codegentest"
 )
 
@@ -126,7 +126,7 @@ func BenchmarkStreamCaptureRecognition(b *testing.B) {
 // builds none.
 func TestStreamRecognitionCompiled(t *testing.T) {
 	t.Parallel()
-	g, err := syntax.Parse(codegentest.StartRestrictionSource)
+	g, err := parser.Parse(codegentest.StartRestrictionSource)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -158,7 +158,7 @@ func TestStreamRecognitionCompiled(t *testing.T) {
 		}
 	}
 	// The recognizer of an ordinary program only recognizes.
-	g, err = syntax.Parse(codegentest.StartRestrictionSource)
+	g, err = parser.Parse(codegentest.StartRestrictionSource)
 	if err != nil {
 		t.Fatal(err)
 	}

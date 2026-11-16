@@ -6,7 +6,7 @@ import (
 	"os/exec"
 	"strings"
 	"testing"
-	"zeroparse.dev/zp/internal/syntax"
+	"zeroparse.dev/zp/internal/frontend/parser"
 
 	"zeroparse.dev/zp/internal/codegen"
 	"zeroparse.dev/zp/internal/engine"
@@ -82,7 +82,7 @@ rule big = {big > 9007199254740992} "!"+ #atomic`, Inputs: []string{"", "a", "ab
 
 func TestGenerateTSErrors(t *testing.T) {
 	t.Parallel()
-	g, _ := syntax.Parse("@start\nrule main = \"a\" b\nrule b = \"b\"")
+	g, _ := parser.Parse("@start\nrule main = \"a\" b\nrule b = \"b\"")
 	if _, err := codegentest.GenerateTSBundle(g, codegen.GenOptions{Start: "nope"}); err == nil || err.Error() != "rule nope is not defined" {
 		t.Errorf("got %v", err)
 	}

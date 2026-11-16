@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"strings"
 	"testing"
-	"zeroparse.dev/zp/internal/syntax"
+	"zeroparse.dev/zp/internal/frontend/parser"
 
 	"zeroparse.dev/zp/internal/codegen"
 	"zeroparse.dev/zp/internal/testing/codegentest"
@@ -32,7 +32,7 @@ func startEntryWant(t *testing.T) string {
 func TestGeneratedTSStartRules(t *testing.T) {
 	t.Parallel()
 	want := startEntryWant(t)
-	g, err := syntax.Parse(codegentest.StartRestrictionSource)
+	g, err := parser.Parse(codegentest.StartRestrictionSource)
 	if err != nil {
 		t.Fatal(err)
 	}

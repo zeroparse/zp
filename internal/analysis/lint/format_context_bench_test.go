@@ -5,7 +5,7 @@ import (
 	"strings"
 	"testing"
 
-	"zeroparse.dev/zp/internal/syntax"
+	"zeroparse.dev/zp/internal/frontend/parser"
 )
 
 func BenchmarkDiagnosticFormatCancellation(b *testing.B) {
@@ -14,7 +14,7 @@ func BenchmarkDiagnosticFormatCancellation(b *testing.B) {
 		"long-diagnostic": `rule main = "" / "` + strings.Repeat("x", 8192) + `"`,
 	}
 	for _, name := range []string{"predicates", "long-diagnostic"} {
-		g, err := syntax.Parse(sources[name])
+		g, err := parser.Parse(sources[name])
 		if err != nil {
 			b.Fatal(err)
 		}

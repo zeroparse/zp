@@ -8,7 +8,7 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/grammar"
-	"zeroparse.dev/zp/internal/syntax"
+	"zeroparse.dev/zp/internal/frontend/parser"
 	"zeroparse.dev/zp/internal/testing/starttest"
 )
 
@@ -32,7 +32,7 @@ func TestCompileCancellationDoesNotPublishDiagnostics(t *testing.T) {
 	for i := range 1024 {
 		fmt.Fprintf(&source, "rule r%d = \"a\"\n", i)
 	}
-	g, err := syntax.Parse(source.String())
+	g, err := parser.Parse(source.String())
 	if err != nil {
 		t.Fatal(err)
 	}

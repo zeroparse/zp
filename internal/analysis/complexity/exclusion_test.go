@@ -13,7 +13,7 @@ import (
 
 	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/frontend/astfacts"
-	"zeroparse.dev/zp/internal/syntax"
+	"zeroparse.dev/zp/internal/frontend/parser"
 	"zeroparse.dev/zp/internal/testing/starttest"
 )
 
@@ -64,7 +64,7 @@ func TestDecideAlt(t *testing.T) {
 		{"equal literals that ignore case", `"if"i "(" x / "IF"i "." x`, true, 2, 2},
 	} {
 		src := "rule main = (" + c.main + ") x\n" + rules
-		g, err := syntax.Parse(src)
+		g, err := parser.Parse(src)
 		if err != nil {
 			t.Fatalf("%s: %v", c.name, err)
 		}
@@ -115,7 +115,7 @@ func TestDecideAltTrivia(t *testing.T) {
 		{"a repetition that captures", `ident wsc wsc "(" x / ident wsc wsc "." x`, nil, false, true},
 		{"calls of two trivia rules", `ident ws ws2 "(" x / ident ws2 ws "." x`, nil, false, false},
 	} {
-		g, err := syntax.Parse("rule main = (" + c.main + ") x\n" + rules)
+		g, err := parser.Parse("rule main = (" + c.main + ") x\n" + rules)
 		if err != nil {
 			t.Fatalf("%s: %v", c.name, err)
 		}
@@ -167,7 +167,7 @@ func TestDecidedUnitsTrivia(t *testing.T) {
 // trivia rules are memoized per position: the second call at a position then costs a memo access.
 func TestTriviaCheap(t *testing.T) {
 	defer restoreExclusionDefaults()
-	g, err := syntax.Parse("rule main = (ws2 \"x\" / .)* $$\nrule ws2 = (sp)*\nrule sp = \" \"\n")
+	g, err := parser.Parse("rule main = (ws2 \"x\" / .)* $$\nrule ws2 = (sp)*\nrule sp = \" \"\n")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -189,7 +189,7 @@ func TestTriviaCheap(t *testing.T) {
 func TestCollapseTrivia(t *testing.T) {
 	defer restoreExclusionDefaults()
 	triviaOn = true
-	g, err := syntax.Parse("rule main = ws ws2 \"x\"\nrule ws = [ ]*\nrule ws2 = [\\t]*\n")
+	g, err := parser.Parse("rule main = ws ws2 \"x\"\nrule ws = [ ]*\nrule ws2 = [\\t]*\n")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -214,7 +214,7 @@ func TestCollapseTrivia(t *testing.T) {
 func TestCollapseTriviaBinding(t *testing.T) {
 	defer restoreExclusionDefaults()
 	triviaOn = true
-	g, err := syntax.Parse("var v int = 0\nrule main = wv ws \"x\"\nrule wv = ({v == 0} \" \")*\nrule ws = [ ]*\n")
+	g, err := parser.Parse("var v int = 0\nrule main = wv ws \"x\"\nrule wv = ({v == 0} \" \")*\nrule ws = [ ]*\n")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -244,7 +244,7 @@ func TestTriviaWhy(t *testing.T) {
 	src := "var v int = 0\nrule main = ws ws2 wsp wsv wsc wsa wsr\nrule ws = ([ ] / \"#\" (!\"\\n\" .)*)*\n" +
 		"rule sp = \" \"\nrule ws2 = (sp)*\nrule wsp = [ ]+\nrule wsv = ({v == 0} \" \")*\nrule wsc = (c:\" \")*\n" +
 		"rule wsa = [ ]* => 1\nrule wsr = (sp / r)*\nrule r = \"(\" v2 \")\"\nrule v2 = {v == 1} \"a\"\n"
-	g, err := syntax.Parse(src)
+	g, err := parser.Parse(src)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -264,7 +264,7 @@ func TestTriviaWhy(t *testing.T) {
 // TestTriviaWhyCut checks that a #cut of the body of a rule keeps it from being a trivia rule:
 // it can commit the repetition, which then fails.
 func TestTriviaWhyCut(t *testing.T) {
-	g, err := syntax.Parse("rule main = wscut wsin\nrule wscut = (\"#\" #cut [a]*)*\nrule wsin = (in)*\nrule in = \"#\" #cut [a]*\n")
+	g, err := parser.Parse("rule main = wscut wsin\nrule wscut = (\"#\" #cut [a]*)*\nrule wsin = (in)*\nrule in = \"#\" #cut [a]*\n")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -287,7 +287,7 @@ func TestTriviaWhyVariables(t *testing.T) {
 	src := "var v int = 0\nrule main = wsv wsc wsb wsw\nrule wsv = ({v == 0} \" \")*\n" +
 		"rule wsc = (c:[ a] {$c == \" \"})*\nrule wsb = ({v == 0} \"b\" {v := 1} / {v == 0} \"a\")*\n" +
 		"rule wsw = ({w := 1} \" \")*\nvar w int = 0\n"
-	g, err := syntax.Parse(src)
+	g, err := parser.Parse(src)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -306,7 +306,7 @@ func TestTriviaWhyVariables(t *testing.T) {
 // X* (Y X*)*, which the normal view writes as (X / Y)*, but not a form whose last repetition
 // differs from the first.
 func TestTriviaShapeExtended(t *testing.T) {
-	g, err := syntax.Parse("rule main = wsu wsa wsb wsn\nrule wsu = [ ]* (\"#\" [^\\n]* [ ]*)*\n" +
+	g, err := parser.Parse("rule main = wsu wsa wsb wsn\nrule wsu = [ ]* (\"#\" [^\\n]* [ ]*)*\n" +
 		"rule wsa = \" \"* #atomic\nrule wsb = [ ]* (\"#\" [a]*)*\nrule wsn = ([ ]?)* (\"#\" ([ ]?)*)*\n")
 	if err != nil {
 		t.Fatal(err)
@@ -340,7 +340,7 @@ func TestDecideAltVariables(t *testing.T) {
 		{"a binding inside a called rule", `c "(" x1 / b "a(" x1`, false, 0, 0},
 	} {
 		src := "rule main = (" + c.main + ") x1\n" + rules
-		g, err := syntax.Parse(src)
+		g, err := parser.Parse(src)
 		if err != nil {
 			t.Fatalf("%s: %v", c.name, err)
 		}
@@ -373,7 +373,7 @@ const scanSeparator = "rule main = value $$\nrule value = \"[\" ws elems? (\",\"
 // analysis does not look into, so the unit stays not committing for the cost condition alone.
 func TestDecidedUnitsCost(t *testing.T) {
 	defer exclHooks{decided: true, k: 8}.set()()
-	g, err := syntax.Parse(scanSeparator)
+	g, err := parser.Parse(scanSeparator)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -644,7 +644,7 @@ func TestExclusionReport(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		g, err := syntax.Parse(string(src))
+		g, err := parser.Parse(string(src))
 		if err != nil {
 			t.Fatalf("%s: %v", f, err)
 		}
@@ -744,7 +744,7 @@ func TestFollowPaths(t *testing.T) {
 	for i := 1; i <= 6; i++ {
 		src += fmt.Sprintf("rule r%d = r%d \";\" / r%d \",\" / r%d \".\" / r%d \"!\"\n", i, i-1, i-1, i-1, i-1)
 	}
-	g, err := syntax.Parse(src)
+	g, err := parser.Parse(src)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -783,7 +783,7 @@ func TestContPathsEnds(t *testing.T) {
 	const src = "rule main = e $$\n" +
 		"rule e = #operators {\n  operand atom\n  level post { postfix \"+\" \"-\" }\n  level add { infix left \"*\" }\n}\n" +
 		"rule atom = ident (\"+\" ident \"x\")?\nrule ident = [a-z]+\n"
-	g, err := syntax.Parse(src)
+	g, err := parser.Parse(src)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -839,7 +839,7 @@ func TestDecidedUnitsOperand(t *testing.T) {
 func comparePaths(t *testing.T, src string, strict bool, maxK int) (bool, string) {
 	t.Helper()
 	// The alternatives after "." keep the scans of the rules from being bounded scans.
-	g, err := syntax.Parse("rule main = (p q / . q / .)* $$\n" + src)
+	g, err := parser.Parse("rule main = (p q / . q / .)* $$\n" + src)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -1035,7 +1035,7 @@ func TestExclusionBudget(t *testing.T) {
 		n                 int
 		decided, exceeded bool
 	}{{3, true, false}, {40, false, true}} {
-		g, err := syntax.Parse(grammarOf(c.n))
+		g, err := parser.Parse(grammarOf(c.n))
 		if err != nil {
 			t.Fatal(err)
 		}

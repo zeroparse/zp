@@ -6,7 +6,7 @@ import (
 	"testing"
 	"time"
 
-	"zeroparse.dev/zp/internal/syntax"
+	"zeroparse.dev/zp/internal/frontend/parser"
 	"zeroparse.dev/zp/spec/language/internal/classretry"
 )
 
@@ -17,7 +17,7 @@ import (
 // class again from every later "[". These sources fail, and the parse time of 8 times as many brackets
 // is compared with the time of the first size. The generated parser of the grammar source keeps no
 // records of the walks that the engine reuses, so the grammar itself must keep the recovery linear.
-// The sources are parsed by syntax.Parse, with the limits of the source APIs: the default limit on
+// The sources are parsed by parser.Parse, with the limits of the source APIs: the default limit on
 // the work of a generated parser would end a parse that grows faster than the source early, at a
 // cost that grows with the source, and hide the growth.
 var scaleSources = []struct {
@@ -105,7 +105,7 @@ func TestRecoveryScalesLinearly(t *testing.T) {
 		t.Run(c.name, func(t *testing.T) {
 			ratio, ok := scalesLinearly(t, 2000, func(n int) time.Duration {
 				src := c.make(n)
-				return bestTime(func() { syntax.Parse(src) })
+				return bestTime(func() { parser.Parse(src) })
 			})
 			if !ok {
 				t.Errorf("the time grows %.1f times for %d times as many brackets in each attempt (limit 24)", ratio, scaleFactor)

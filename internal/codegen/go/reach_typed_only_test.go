@@ -6,7 +6,7 @@ import (
 
 	"zeroparse.dev/zp/internal/codegen"
 	"zeroparse.dev/zp/internal/codegen/go"
-	"zeroparse.dev/zp/internal/syntax"
+	"zeroparse.dev/zp/internal/frontend/parser"
 	"zeroparse.dev/zp/internal/testing/codegentest"
 )
 
@@ -58,7 +58,7 @@ func TestTypedOnlyUnreachedCalleeFailsGeneration(t *testing.T) {
 }
 
 func testTypedOnlyUnreachedCalleeFails(t *testing.T) {
-	g, err := syntax.Parse(typedOnlyLonelyGrammar(t))
+	g, err := parser.Parse(typedOnlyLonelyGrammar(t))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -85,7 +85,7 @@ func TestTypedOnlyTypedCalleeFailsGeneration(t *testing.T) {
 }
 
 func testTypedOnlyTypedCalleeFails(t *testing.T) {
-	g, err := syntax.Parse(reachTypedGrammar)
+	g, err := parser.Parse(reachTypedGrammar)
 	if err != nil {
 		t.Fatal(err)
 	}
