@@ -30,7 +30,6 @@ type goSpec struct {
 	typed bool
 	on    []string
 	name  string // the Go name
-	body  string // the method that call.body calls
 	plain bool   // printed as a function of its package, without the parser as receiver
 	// docMeta keeps the Document record of a typed memo entry beside the entry (typedDocumentState.meta),
 	// as a typed Document does; other typed calls keep the examined end in the entry.
@@ -39,9 +38,9 @@ type goSpec struct {
 
 // goSpecs are the functions of the Go library that the compositions replace.
 var goSpecs = []goSpec{
-	// Parser.Call takes the tracked path for observation and Documents, so it neither observes nor
-	// reads a Document itself.
-	{fn: "call", on: []string{ops.Document, ops.Budget}, name: "Call"},
+	// Parser.Call hands observed and Document parses to the tracked path, so it neither observes nor
+	// reads a Document itself beyond that test.
+	{fn: "call", on: []string{ops.Document, ops.Observe, ops.Budget}, name: "Call"},
 	// The deferral of memoization: the node library's is the one that generated parsers call, also for
 	// the typed library's rules; the typed library's compositions call their own, of a typed rule.
 	{fn: "firstCall", name: "FirstCall"},
@@ -59,10 +58,10 @@ var goSpecs = []goSpec{
 	{fn: "grow", typed: true, on: []string{ops.Typed}, name: "grow"},
 	// The observed calls and plain invocations of both libraries, which their callers take in an
 	// observed parse.
-	{fn: "observed", on: []string{ops.Document, ops.Observe}, name: "callObserved", body: "callBody"},
-	{fn: "observed", on: []string{ops.Document, ops.Observe}, name: "invokePlainObserved", body: "invokePlainBody"},
-	{fn: "observed", typed: true, on: []string{ops.Document, ops.Observe}, name: "callObserved", body: "callBody"},
-	{fn: "observed", typed: true, on: []string{ops.Document, ops.Observe}, name: "invokePlainObserved", body: "invokePlainBody"},
+	{fn: "observed", on: []string{ops.Document, ops.Observe}, name: "callObserved"},
+	{fn: "observedPlain", on: []string{ops.Document, ops.Observe}, name: "invokePlainObserved"},
+	{fn: "observed", typed: true, on: []string{ops.Document, ops.Observe, ops.Typed}, name: "callObserved"},
+	{fn: "observedPlain", typed: true, on: []string{ops.Document, ops.Observe}, name: "invokePlainObserved"},
 	// The tracked path of the node library: the rule call of a Document parse, the unmemoized and
 	// memoized calls, the call without observation, and the entry of the path.
 	{fn: "document", on: []string{ops.Document, ops.Budget}, name: "callDocument"},
@@ -192,7 +191,7 @@ func goTarget(s goSpec) *gogen.Target {
 		ops.NodeType: "*nodeTypeKinds", ops.FType: "*FieldType",
 	}
 	names := map[string]string{"streamEmit": "EmitStream", "streamCommit": "streamCommit", "streamsIn": "StreamsIn", "call": "Call", "firstCall": "FirstCall", "grow": "grow", "unmemoized": "callUnmemoized", "memoized": "callMemo",
-		"document": "callDocument", "body": "callBody", "observed": "callObserved", "expectSlow": "expectOrdinarySlow", "expect": "Expect", "mergeExpected": "MergeExpected", "keep": "Keep",
+		"document": "callDocument", "body": "callBody", "observed": "callObserved", "tracked": "callTracked", "expectSlow": "expectOrdinarySlow", "expect": "Expect", "mergeExpected": "MergeExpected", "keep": "Keep",
 		// A kept set is a slice like the set of an isolation, so MergeExpected merges both.
 		"mergeKept": "MergeExpected"}
 	for _, s := range goOperatorSpecs {
@@ -216,7 +215,7 @@ func goTarget(s goSpec) *gogen.Target {
 		handles[ops.Term] = "func(*TActCtx) (any, any)"
 		handles[ops.Seq], handles[ops.Obj], handles[ops.Act], handles[ops.Elem] = "[]any", "TVal", "*TActCtx", "any"
 		handles[ops.NodeType] = "uint16"
-		names = map[string]string{"call": "callBody", "firstCall": "firstCall", "callMemo": "CallMemo", "grow": "grow", "keep": "Keep",
+		names = map[string]string{"call": "callBody", "firstCall": "firstCall", "typedDocument": "DocumentCall", "observed": "callObserved", "callMemo": "CallMemo", "grow": "grow", "keep": "Keep",
 			"mergeExpected": "MergeExpected", "mergeKept": "MergeExpected"}
 		for _, s := range goOperatorSpecs {
 			names[s.fn] = s.name
@@ -352,18 +351,6 @@ func goTarget(s goSpec) *gogen.Target {
 			return "p.afterEmpty = " + a[0]
 		case "opr.afterEmpty":
 			return "p.afterEmpty"
-		case "call.tracked":
-			if typed {
-				return "p.TypedDocument != nil"
-			}
-			return "p.Observation != nil || p.Document != nil"
-		case "call.track":
-			if typed {
-				return fmt.Sprintf("p.DocumentCall(%s, %s, nil)", a[0], a[1])
-			}
-			return fmt.Sprintf("p.callTracked(%s, %s)", a[0], a[1])
-		case "call.trackBody":
-			return fmt.Sprintf("p.DocumentCall(%s, 0, %s)", a[0], a[1])
 		case "budget.charge":
 			// Spend is the charge of one unit, small enough to inline.
 			if k, ok := c.Args[0].(*exec.Const); ok && k.Value == uint64(1) {
@@ -518,8 +505,6 @@ func goTarget(s goSpec) *gogen.Target {
 				return "p.examine(" + a[0] + ", " + a[2] + ")"
 			}
 			return fmt.Sprintf("%s.examined, %s.from, %s.pinned = %s, examinedFromOf(%s), false", a[0], a[0], a[0], a[2], a[1])
-		case "call.body":
-			return fmt.Sprintf("p.%s(%s, %s)", s.body, a[0], a[1])
 		case "ctx.found":
 			return a[0] + " != nil"
 		case "ctx.ok":

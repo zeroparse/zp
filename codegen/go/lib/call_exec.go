@@ -12,13 +12,15 @@ const pendingEditLimit = 128
 
 // Call calls rule r at binding level min: unmemoized while its memoization is deferred, and
 // otherwise through the memo and the dependency memo of left-recursion contexts, growing the seed of
-// a left-recursion leader.
+// a left-recursion leader. A call that is also the entry of Document
+// parses first hands a Document parse to its tracked path (typedDocument for typed values), and for
+// nodes an observed parse too (tracked).
 //
-// Printed from Exec IR function call of internal/ir/exec/core, specialized for document, budget.
+// Printed from Exec IR function call of internal/ir/exec/core, specialized for document, observe, budget.
 func (p *Parser) Call(r *Rule, min int) (*core.Node, bool) {
 	var v *core.Node
 	var ok bool
-	if p.Observation != nil || p.Document != nil {
+	if (p.Observation != nil) || (p.Document != nil) {
 		v, ok = p.callTracked(r, min)
 		return v, ok
 	}
@@ -300,13 +302,15 @@ copy:
 
 // callBody calls rule r at binding level min: unmemoized while its memoization is deferred, and
 // otherwise through the memo and the dependency memo of left-recursion contexts, growing the seed of
-// a left-recursion leader.
+// a left-recursion leader. A call that is also the entry of Document
+// parses first hands a Document parse to its tracked path (typedDocument for typed values), and for
+// nodes an observed parse too (tracked).
 //
 // Printed from Exec IR function call of internal/ir/exec/core, specialized for document, observe, typed, budget.
 func (p *TParser) callBody(r *TRule, min int) (any, bool) {
 	var v any
 	var ok bool
-	if p.TypedDocument != nil {
+	if p.Document != nil {
 		v, ok = p.DocumentCall(r, min, nil)
 		return v, ok
 	}
@@ -404,7 +408,7 @@ func (p *TParser) callBody(r *TRule, min int) (any, bool) {
 func (p *TParser) CallMemo(r *TRule, inv func(*TParser) (any, bool)) (any, bool) {
 	var v any
 	var ok bool
-	if p.TypedDocument != nil {
+	if p.Document != nil {
 		v, ok = p.DocumentCall(r, 0, inv)
 		return v, ok
 	}
@@ -499,52 +503,62 @@ func (p *TParser) grow(r *TRule, min int) (any, bool) {
 }
 
 // callObserved is a rule call in an observed parse: it reports the call to the observation, with how
-// far it examined the input, around the call without observation.
+// far it examined the input, around the call without observation: the typed call, which observes nothing
+// itself, or the node call of the tracked path without observation.
 //
 // Printed from Exec IR function observed of internal/ir/exec/core, specialized for document, observe.
 func (p *Parser) callObserved(r *Rule, min int) (*core.Node, bool) {
+	var v *core.Node
+	var ok bool
 	p.Observation.Enter(r.Name, p.Pos, min)
 	h := p.ExaminedBegin()
-	v, ok := p.callBody(r, min)
+	v, ok = p.callBody(r, min)
 	x := p.ExaminedEnd(h)
 	p.Observation.Exit(ok, p.Pos, x)
 	return v, ok
 }
 
-// invokePlainObserved is a rule call in an observed parse: it reports the call to the observation, with how
-// far it examined the input, around the call without observation.
+// invokePlainObserved is the plain invocation of rule r at binding level min in an observed parse: it
+// reports the invocation to the observation as observed reports a call.
 //
-// Printed from Exec IR function observed of internal/ir/exec/core, specialized for document, observe.
+// Printed from Exec IR function observedPlain of internal/ir/exec/core, specialized for document, observe.
 func (p *Parser) invokePlainObserved(r *Rule, min int) (*core.Node, bool) {
+	var v *core.Node
+	var ok bool
 	p.Observation.Enter(r.Name, p.Pos, min)
 	h := p.ExaminedBegin()
-	v, ok := p.invokePlainBody(r, min)
+	v, ok = p.invokePlainBody(r, min)
 	x := p.ExaminedEnd(h)
 	p.Observation.Exit(ok, p.Pos, x)
 	return v, ok
 }
 
 // callObserved is a rule call in an observed parse: it reports the call to the observation, with how
-// far it examined the input, around the call without observation.
+// far it examined the input, around the call without observation: the typed call, which observes nothing
+// itself, or the node call of the tracked path without observation.
 //
-// Printed from Exec IR function observed of internal/ir/exec/core, specialized for document, observe.
+// Printed from Exec IR function observed of internal/ir/exec/core, specialized for document, observe, typed.
 func (p *TParser) callObserved(r *TRule, min int) (any, bool) {
+	var v any
+	var ok bool
 	p.Observation.Enter(r.Name, p.Pos, min)
 	h := p.ExaminedBegin()
-	v, ok := p.callBody(r, min)
+	v, ok = p.callBody(r, min)
 	x := p.ExaminedEnd(h)
 	p.Observation.Exit(ok, p.Pos, x)
 	return v, ok
 }
 
-// invokePlainObserved is a rule call in an observed parse: it reports the call to the observation, with how
-// far it examined the input, around the call without observation.
+// invokePlainObserved is the plain invocation of rule r at binding level min in an observed parse: it
+// reports the invocation to the observation as observed reports a call.
 //
-// Printed from Exec IR function observed of internal/ir/exec/core, specialized for document, observe.
+// Printed from Exec IR function observedPlain of internal/ir/exec/core, specialized for document, observe.
 func (p *TParser) invokePlainObserved(r *TRule, min int) (any, bool) {
+	var v any
+	var ok bool
 	p.Observation.Enter(r.Name, p.Pos, min)
 	h := p.ExaminedBegin()
-	v, ok := p.invokePlainBody(r, min)
+	v, ok = p.invokePlainBody(r, min)
 	x := p.ExaminedEnd(h)
 	p.Observation.Exit(ok, p.Pos, x)
 	return v, ok
