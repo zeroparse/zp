@@ -196,14 +196,31 @@ func GeneratedParsersOutputs(t *testing.T, goBin string, cases []Case, opts code
 			t.Fatalf("%s: %v", c.Name, err)
 		}
 		opts.Package, opts.Start, opts.Recognize = fmt.Sprintf("g%d", i), "main", true
-		code, err := GenerateCode(t, g, opts)
-		if err != nil {
-			t.Fatalf("%s: %v", c.Name, err)
+		if opts.Lib == codegen.LibEmbed {
+			// The package carries its own copy of the library, as zp gen writes it.
+			o := opts
+			o.Module, o.KeepComments, o.LimitControls = "codegentest/"+o.Package, true, FixtureBudgetControls(t)
+			files, err := Generate(t, g, o)
+			if err != nil {
+				t.Fatalf("%s: %v", c.Name, err)
+			}
+			for _, f := range files {
+				content := f.Content
+				if mutate != nil && f.Path == "parser.go" {
+					content = mutate(content)
+				}
+				write(o.Package+"/"+f.Path, string(content))
+			}
+		} else {
+			code, err := GenerateCode(t, g, opts)
+			if err != nil {
+				t.Fatalf("%s: %v", c.Name, err)
+			}
+			if mutate != nil {
+				code = mutate(code)
+			}
+			write(fmt.Sprintf("g%d/parser.go", i), string(code))
 		}
-		if mutate != nil {
-			code = mutate(code)
-		}
-		write(fmt.Sprintf("g%d/parser.go", i), string(code))
 		fmt.Fprintf(&imports, "\tg%d \"codegentest/g%d\"\n", i, i)
 		if opts.Document {
 			// The Document route: parse the text of a new Document, as an editor does before its first edit.
