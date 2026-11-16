@@ -768,16 +768,22 @@ $\kappa$:
 
 ```zp
 @start
-rule main = s "x" / s "w" / s (R "b")? "y"
-rule s = "." (R "a")?
+rule main = s "x" / s "w" / s ":" R "y" / P
+rule P = (" " " ")* R "?"
+rule s = "." (":" R "a")?
 rule R = [ ]*
 ```
 
-On `.` followed by spaces and `y`, the second activation of the repetition of
-`R` at a space lies in the second evaluation of `s`, inside the unit `s "w"`,
-whose continuation `s (R "b")? "y"` shares the call of `s` at $0$. The memo
-answers that call, and the next activation at the space lies in the call of
-`R` that `main` makes after it, in no evaluation of `s`.
+`P` evaluates `R` after any number of spaces, with a space next, so the
+repetition of `R` is no bounded scan. On `.:` followed by spaces and `y`, the
+option in `s` scans the spaces in `R` and fails at `y`, and `s` ends at $1$.
+The second activation of the repetition of `R` at a space lies in the second
+evaluation of `s`, inside the unit `s "w"`, whose continuation
+`s ":" R "y"` shares the call of `s` at $0$. The memo answers that call, and
+the next activation at the space lies in the call of `R` that `main` makes
+after `:`, in no evaluation of `s`. The conditions accept the grammar, and on `.:` followed
+by $2k$ spaces and `y`, the compute is $8k + 121$ for $k$ from $500$ to
+$4000$.
 
 So the successful activations of $\sigma$ at $q$, $\alpha_1, \alpha_2, \ldots$
 in the order in which they start, outside case 5, the third case of *Dropped
