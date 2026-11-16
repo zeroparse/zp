@@ -105,6 +105,8 @@ compiler side. The rules, which a test enforces, are these.
      dialects import more than one dialect.
    - The front end imports no middle end, backend, analysis tool or language server; the middle end imports no backend,
      analysis tool or language server; a backend imports no analysis tool or language server.
+   - The utility packages (diagnostics, cancellation, command-line flag names and fixtures) may import `pkg/grammar`,
+     because diagnostics carry source positions.
    - Only the commands and the repository's test support import `internal/lsp/**`, and only test support imports
      `internal/testing/**` from non-test code.
 
@@ -133,6 +135,8 @@ flowchart TD
   backend --> ir
   front --> ir
   ir --> pass["internal/pass: Manager, AnalysisManager, Registry"]
+  util["utilities: diagnostics, cancellation, command-line flag names, fixtures"] --> gram["pkg/grammar"]
+  ir --> gram
   cmd --> analysis["internal/analysis: lint, complexity; internal/lsp"]
   driver --> rt["internal/runtime: program, state, document, vm, engine, nodes, limits"]
 ```
