@@ -4,7 +4,7 @@ import (
 	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/cancel"
 	"zeroparse.dev/zp/internal/check"
-	"zeroparse.dev/zp/internal/diag"
+	"zeroparse.dev/zp/internal/diagnostic"
 )
 
 // The checker lives in internal/check. These aliases and forwarders keep the packages that name it
@@ -42,10 +42,10 @@ var (
 )
 
 // CheckTypes is check.CheckTypes over p, whose Typed it sets.
-func CheckTypes(prog *Program, errs *diag.ErrorList) { CheckTypesControlled(prog, errs, nil) }
+func CheckTypes(prog *Program, errs *diagnostic.ErrorList) { CheckTypesControlled(prog, errs, nil) }
 
 // CheckTypesControlled is CheckTypes polling control; a nil control never cancels.
-func CheckTypesControlled(prog *Program, errs *diag.ErrorList, control *cancel.Control) {
+func CheckTypesControlled(prog *Program, errs *diagnostic.ErrorList, control *cancel.Control) {
 	c := prog.Checker()
 	check.CheckTypesControlled(c, errs, control)
 	prog.Typed = c.Typed
@@ -82,6 +82,6 @@ func (p *Program) operatorsNodeType(rd *grammar.RuleDef) (NodeTy, bool) {
 }
 
 // ValueTypes is check.ValueTypes over p.
-func ValueTypes(p *Program, control *cancel.Control) (map[string]Ty, diag.ErrorList) {
+func ValueTypes(p *Program, control *cancel.Control) (map[string]Ty, diagnostic.ErrorList) {
 	return check.ValueTypes(checkerOf(p), control)
 }

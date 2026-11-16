@@ -1,6 +1,6 @@
-// Package diag holds the positioned errors that the static work on a grammar reports: compilation
+// Package diagnostic holds the positioned errors that the static work on a grammar reports: compilation
 // and the analyses that check the grammar.
-package diag
+package diagnostic
 
 import (
 	"fmt"

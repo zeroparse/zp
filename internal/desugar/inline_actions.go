@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"strings"
 	"zeroparse.dev/zp/internal/cancel"
-	"zeroparse.dev/zp/internal/diag"
+	"zeroparse.dev/zp/internal/diagnostic"
 
 	"zeroparse.dev/zp/grammar"
 )
@@ -87,11 +87,11 @@ func (names InlineNames) Holder(name string) (rule string, ok bool) {
 // lowered grammar, by the description of the inline action, so that no message names a rule that the
 // grammar does not declare.
 func (names InlineNames) Rewrite(err error) error {
-	list, ok := err.(diag.ErrorList)
+	list, ok := err.(diagnostic.ErrorList)
 	if !ok || len(names) == 0 {
 		return err
 	}
-	out := make(diag.ErrorList, len(list))
+	out := make(diagnostic.ErrorList, len(list))
 	for i, e := range list {
 		copy := *e
 		copy.Msg = names.Text(e.Msg)
@@ -146,16 +146,16 @@ func isNameByte(c byte) bool {
 // UndeclaredRules reports the references of g to a rule it does not declare. The lowering adds
 // hidden rules, so a reference is checked against the grammar as written: a generated name can
 // never satisfy one.
-func UndeclaredRules(g *grammar.Grammar, control *cancel.Control) diag.ErrorList {
+func UndeclaredRules(g *grammar.Grammar, control *cancel.Control) diagnostic.ErrorList {
 	declared := map[string]bool{}
 	for _, rd := range control.Rules(g) {
 		declared[rd.Name] = true
 	}
-	var errs diag.ErrorList
+	var errs diagnostic.ErrorList
 	for _, rd := range control.Rules(g) {
 		walkExpr(rd.Expr, func(e grammar.Expr) {
 			if ref, ok := e.(*grammar.Ref); ok && !declared[ref.Name] {
-				errs = append(errs, &diag.Error{Pos: ref.Diagnostic(), Msg: "undefined rule " + ref.Name})
+				errs = append(errs, &diagnostic.Error{Pos: ref.Diagnostic(), Msg: "undefined rule " + ref.Name})
 			}
 		}, control)
 	}
@@ -188,7 +188,7 @@ type inlineLowerer struct {
 	names   InlineNames
 	hidden  []grammar.Decl
 	unused  int // depth of the expressions whose value is not used: lookaheads and discards
-	errs    diag.ErrorList
+	errs    diagnostic.ErrorList
 	control *cancel.Control
 	// keepInline, when set, makes the walk keep the inline actions: it returns the inline action e
 	// whose expression is now inner, as it should stay in the result.
@@ -197,8 +197,8 @@ type inlineLowerer struct {
 
 // LowerInlineActionsControlled returns g with every inline action replaced by a reference to a hidden rule.
 // g itself does not change. Errors report inline actions in expressions that make no value.
-func LowerInlineActionsControlled(g *grammar.Grammar, names InlineNames, control *cancel.Control) (*grammar.Grammar, diag.ErrorList) {
-	var errs diag.ErrorList
+func LowerInlineActionsControlled(g *grammar.Grammar, names InlineNames, control *cancel.Control) (*grammar.Grammar, diagnostic.ErrorList) {
+	var errs diagnostic.ErrorList
 	taken := map[string]bool{}
 	for _, rd := range control.Rules(g) {
 		taken[rd.Name] = true
@@ -263,7 +263,7 @@ func (l *inlineLowerer) expr(e grammar.Expr) grammar.Expr {
 			return l.keepInline(e, l.expr(e.Expr))
 		}
 		if l.unused > 0 {
-			l.errs = append(l.errs, &diag.Error{Pos: e.Diagnostic(), Msg: "an inline action is not allowed in a lookahead or a discard, whose value is not used"})
+			l.errs = append(l.errs, &diagnostic.Error{Pos: e.Diagnostic(), Msg: "an inline action is not allowed in a lookahead or a discard, whose value is not used"})
 		}
 		inner := l.expr(e.Expr)
 		l.count++

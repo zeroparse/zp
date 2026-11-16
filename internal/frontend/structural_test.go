@@ -7,7 +7,7 @@ import (
 	"zeroparse.dev/zp/internal/compile"
 	"zeroparse.dev/zp/internal/compiletest"
 	"zeroparse.dev/zp/internal/desugar"
-	"zeroparse.dev/zp/internal/diag"
+	"zeroparse.dev/zp/internal/diagnostic"
 )
 
 // rejected are grammars that the compiler rejects for the errors that depend on the facts and on
@@ -31,7 +31,7 @@ func TestStructuralErrorsMatchCompile(t *testing.T) {
 				t.Fatal(err)
 			}
 			_, cerr := compiletest.Compile(g, compile.Options{})
-			want, ok := cerr.(diag.ErrorList)
+			want, ok := cerr.(diagnostic.ErrorList)
 			if !ok {
 				t.Fatalf("compile error %v is not a list", cerr)
 			}
@@ -75,23 +75,23 @@ func TestRunErrorsMatchCompile(t *testing.T) {
 // and the compiler's error to be returned as is if it has them all.
 func TestMergeErrors(t *testing.T) {
 	t.Parallel()
-	pos := func(line int) *diag.Error { return &diag.Error{Pos: grammarPos(line), Msg: "m"} }
+	pos := func(line int) *diagnostic.Error { return &diagnostic.Error{Pos: grammarPos(line), Msg: "m"} }
 	a, b, c := pos(1), pos(2), pos(3)
-	if got := mergeErrors(diag.ErrorList{a, c}, diag.ErrorList{c}); got.(diag.ErrorList)[1] != c || len(got.(diag.ErrorList)) != 2 {
+	if got := mergeErrors(diagnostic.ErrorList{a, c}, diagnostic.ErrorList{c}); got.(diagnostic.ErrorList)[1] != c || len(got.(diagnostic.ErrorList)) != 2 {
 		t.Fatalf("all reported: %v", got)
 	}
-	got := mergeErrors(diag.ErrorList{a, c}, diag.ErrorList{b})
-	if l := got.(diag.ErrorList); len(l) != 3 || l[0] != a || l[1] != b || l[2] != c {
+	got := mergeErrors(diagnostic.ErrorList{a, c}, diagnostic.ErrorList{b})
+	if l := got.(diagnostic.ErrorList); len(l) != 3 || l[0] != a || l[1] != b || l[2] != c {
 		t.Fatalf("merged: %v", got)
 	}
 	// The compiler's order is kept even where it is not the order of the positions.
 	d := pos(4)
-	got = mergeErrors(diag.ErrorList{d, a, c}, diag.ErrorList{b})
-	if l := got.(diag.ErrorList); len(l) != 4 || l[0] != b || l[1] != d || l[2] != a || l[3] != c {
+	got = mergeErrors(diagnostic.ErrorList{d, a, c}, diagnostic.ErrorList{b})
+	if l := got.(diagnostic.ErrorList); len(l) != 4 || l[0] != b || l[1] != d || l[2] != a || l[3] != c {
 		t.Fatalf("merged into an unsorted list: %v", got)
 	}
-	got = mergeErrors(diag.ErrorList{c, a}, diag.ErrorList{d})
-	if l := got.(diag.ErrorList); len(l) != 3 || l[0] != c || l[1] != a || l[2] != d {
+	got = mergeErrors(diagnostic.ErrorList{c, a}, diagnostic.ErrorList{d})
+	if l := got.(diagnostic.ErrorList); len(l) != 3 || l[0] != c || l[1] != a || l[2] != d {
 		t.Fatalf("appended: %v", got)
 	}
 }

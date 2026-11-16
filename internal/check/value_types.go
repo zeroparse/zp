@@ -6,7 +6,7 @@ import (
 	"slices"
 	"sort"
 	"zeroparse.dev/zp/internal/cancel"
-	"zeroparse.dev/zp/internal/diag"
+	"zeroparse.dev/zp/internal/diagnostic"
 	"zeroparse.dev/zp/internal/types"
 
 	"zeroparse.dev/zp/grammar"
@@ -38,7 +38,7 @@ type ValueInference struct {
 	// Computing holds the rules outside cycles that are being computed.
 	Computing map[string]bool
 	// errs holds the type errors of the rule being computed, and final those of computed rules.
-	errs, final diag.ErrorList
+	errs, final diagnostic.ErrorList
 	Quiet       bool // while a lambda body is typed again with a wider parameter type
 	Rule        *grammar.RuleDef
 	// spliced holds the splice rules whose bodies are being expanded; a call inside them is an
@@ -114,7 +114,7 @@ func (p *Checker) ValueType(name string) (string, bool) {
 }
 
 // valueErrors returns the errors of actions in the value model of a type-checked program.
-func (p *Checker) ValueErrors() diag.ErrorList {
+func (p *Checker) ValueErrors() diagnostic.ErrorList {
 	if p.ValueTypes() == nil {
 		return nil
 	}
@@ -122,13 +122,13 @@ func (p *Checker) ValueErrors() diag.ErrorList {
 }
 
 // ValueTypes returns the value type of each rule, and the errors of the actions.
-func ValueTypes(p *Checker, control *cancel.Control) (map[string]Ty, diag.ErrorList) {
+func ValueTypes(p *Checker, control *cancel.Control) (map[string]Ty, diagnostic.ErrorList) {
 	return valueTypesChecked(p, control, nil, nil)
 }
 
 // valueTypesChecked is valueTypes recording the node member accesses in nodeMembers and the
 // types of the program's parts in rec, each if not nil.
-func valueTypesChecked(p *Checker, control *cancel.Control, nodeMembers map[*grammar.Member]bool, rec *ValueRecord) (map[string]Ty, diag.ErrorList) {
+func valueTypesChecked(p *Checker, control *cancel.Control, nodeMembers map[*grammar.Member]bool, rec *ValueRecord) (map[string]Ty, diagnostic.ErrorList) {
 	v := &ValueInference{Prog: p, control: control, Rules: map[string]*grammar.RuleDef{}, Out: map[string]Ty{}, Approx: map[string]Ty{}, Computing: map[string]bool{}, nodeMembers: nodeMembers, rec: rec}
 	rules := p.Grammar().Rules()
 	for _, rd := range rules {
@@ -281,7 +281,7 @@ func (v *ValueInference) ruleValue(name string) Ty {
 	for _, m := range cycle {
 		v.Approx[m] = TyBottom
 	}
-	var mine diag.ErrorList
+	var mine diagnostic.ErrorList
 	for round := 0; ; round++ {
 		next := make(map[string]Ty, len(cycle))
 		mine = nil

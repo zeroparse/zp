@@ -7,7 +7,7 @@ import (
 	"reflect"
 	"testing"
 	"zeroparse.dev/zp/internal/cancel"
-	"zeroparse.dev/zp/internal/diag"
+	"zeroparse.dev/zp/internal/diagnostic"
 
 	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/codegentest"
@@ -116,7 +116,7 @@ func TestCompileContextPhaseCancellation(t *testing.T) {
 				}
 				compile.Tarjan(g.Rules(), edges, control)
 			case "type-checking":
-				var diagnostics diag.ErrorList
+				var diagnostics diagnostic.ErrorList
 				compile.CheckTypesControlled(p.Static(), &diagnostics, control)
 			case "type-inference":
 				compile.ValueTypes(p.Static(), control)

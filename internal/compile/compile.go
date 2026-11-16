@@ -7,7 +7,7 @@ import (
 	"zeroparse.dev/zp/core/impl"
 	"zeroparse.dev/zp/internal/cancel"
 	"zeroparse.dev/zp/internal/check"
-	"zeroparse.dev/zp/internal/diag"
+	"zeroparse.dev/zp/internal/diagnostic"
 	"zeroparse.dev/zp/internal/ir/core"
 
 	"zeroparse.dev/zp/grammar"
@@ -252,7 +252,7 @@ type Compiler struct {
 	// has an insertion, and nil otherwise or for a loaded compiled grammar.
 	ins     *Analysis
 	opts    Options
-	errs    diag.ErrorList
+	errs    diagnostic.ErrorList
 	rule    *Rule
 	descIDs map[string]ExpID
 }
@@ -278,7 +278,7 @@ func (c *Compiler) desc(s string) ExpID {
 }
 
 func (c *Compiler) errorf(pos grammar.Pos, format string, args ...any) {
-	c.errs = append(c.errs, &diag.Error{Pos: pos, Msg: fmt.Sprintf(format, args...)})
+	c.errs = append(c.errs, &diagnostic.Error{Pos: pos, Msg: fmt.Sprintf(format, args...)})
 }
 
 // RuleFlags are rule properties determined by static analysis. They are saved in compiled
@@ -337,7 +337,7 @@ type Canonical struct {
 	Starts       []string
 	DefaultStart string
 	// StartErrors are the errors of the start declarations; compilation reports them.
-	StartErrors diag.ErrorList
+	StartErrors diagnostic.ErrorList
 }
 
 // Canonicalize validates the grammar and returns the canonical form that Check checks.
@@ -377,16 +377,16 @@ func Canonicalize(g *grammar.Grammar, opts Options, names desugar.InlineNames, c
 		}
 	}
 	keepSource := source != g
-	var unsupported diag.ErrorList
+	var unsupported diagnostic.ErrorList
 	for _, comment := range g.File.HeaderComments {
 		control.Poll()
-		unsupported = append(unsupported, &diag.Error{Pos: comment.Pos, Msg: "comments are not allowed inside statement headers"})
+		unsupported = append(unsupported, &diagnostic.Error{Pos: comment.Pos, Msg: "comments are not allowed inside statement headers"})
 	}
 	checkBlocks := func(term grammar.Term) {
 		WalkTerm(term, func(t grammar.Term) {
 			control.Poll()
 			if block, ok := t.(*grammar.Block); ok {
-				unsupported = append(unsupported, &diag.Error{Pos: block.Diagnostic(), Msg: "action statement blocks are not implemented"})
+				unsupported = append(unsupported, &diagnostic.Error{Pos: block.Diagnostic(), Msg: "action statement blocks are not implemented"})
 			}
 		})
 	}
@@ -657,7 +657,7 @@ func validateGrammar(g *grammar.Grammar, control *cancel.Control) error {
 	control.Check()
 	if validationError != nil {
 		e := validationError.(*grammar.ValidationError)
-		return diag.ErrorList{&diag.Error{Pos: e.Pos, Msg: e.Path + ": " + e.Msg}}
+		return diagnostic.ErrorList{&diagnostic.Error{Pos: e.Pos, Msg: e.Path + ": " + e.Msg}}
 	}
 	return nil
 }

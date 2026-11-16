@@ -7,7 +7,7 @@ import (
 	"zeroparse.dev/zp/internal/cancel"
 	"zeroparse.dev/zp/internal/compile"
 	"zeroparse.dev/zp/internal/desugar"
-	"zeroparse.dev/zp/internal/diag"
+	"zeroparse.dev/zp/internal/diagnostic"
 	"zeroparse.dev/zp/internal/ir/core"
 	"zeroparse.dev/zp/internal/ir/core/build"
 	"zeroparse.dev/zp/internal/ir/core/facts"
@@ -18,7 +18,7 @@ import (
 // if g cannot be built into such a module (the compiler then reports why); the errors are in the
 // order of Facts.Errors, with the names of the hidden rules that inline actions generate shown as
 // written.
-func structuralErrors(g *grammar.Grammar, opts compile.Options, names desugar.InlineNames, control *cancel.Control) diag.ErrorList {
+func structuralErrors(g *grammar.Grammar, opts compile.Options, names desugar.InlineNames, control *cancel.Control) diagnostic.ErrorList {
 	canon, err := compile.Canonicalize(g, opts, names, control)
 	if err != nil {
 		return nil
@@ -31,7 +31,7 @@ func structuralErrors(g *grammar.Grammar, opts compile.Options, names desugar.In
 		return nil
 	}
 	f := facts.Compute(m, control)
-	var out diag.ErrorList
+	var out diagnostic.ErrorList
 	for _, e := range f.Errors(m, !opts.LeftRecursionBindings) {
 		var pos grammar.Pos
 		switch x := origin[e.Node].(type) {
@@ -42,29 +42,29 @@ func structuralErrors(g *grammar.Grammar, opts compile.Options, names desugar.In
 		default:
 			pos = defs[e.Rule.ID].Diagnostic()
 		}
-		out = append(out, &diag.Error{Pos: pos, Msg: e.Msg})
+		out = append(out, &diagnostic.Error{Pos: pos, Msg: e.Msg})
 	}
 	if len(out) == 0 {
 		return nil
 	}
-	return names.Rewrite(out).(diag.ErrorList)
+	return names.Rewrite(out).(diagnostic.ErrorList)
 }
 
 // mergeErrors returns the compiler's error with the fact errors it does not report. The compiler's
 // errors keep their order; each added error goes before the first error already in the list that
 // comes after it in the source, or last. If the compiler reports all of them, it returns the
 // compiler's error unchanged.
-func mergeErrors(err error, factErrs diag.ErrorList) error {
-	list, ok := err.(diag.ErrorList)
+func mergeErrors(err error, factErrs diagnostic.ErrorList) error {
+	list, ok := err.(diagnostic.ErrorList)
 	if !ok || len(factErrs) == 0 {
 		return err
 	}
 	merged := slices.Clone(list)
 	for _, fe := range factErrs {
-		if slices.ContainsFunc(list, func(e *diag.Error) bool { return *e == *fe }) {
+		if slices.ContainsFunc(list, func(e *diagnostic.Error) bool { return *e == *fe }) {
 			continue
 		}
-		i := slices.IndexFunc(merged, func(e *diag.Error) bool { return before(fe.Pos, e.Pos) })
+		i := slices.IndexFunc(merged, func(e *diagnostic.Error) bool { return before(fe.Pos, e.Pos) })
 		if i < 0 {
 			i = len(merged)
 		}

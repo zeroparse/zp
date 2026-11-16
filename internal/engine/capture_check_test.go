@@ -5,7 +5,7 @@ import (
 	"os"
 	"strings"
 	"testing"
-	"zeroparse.dev/zp/internal/diag"
+	"zeroparse.dev/zp/internal/diagnostic"
 
 	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/compile"
@@ -43,7 +43,7 @@ func TestDuplicateCaptureTypes(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			var errs diag.ErrorList
+			var errs diagnostic.ErrorList
 			compile.CheckTypes(p.Static(), &errs)
 			got, ok := captureType(p, "main", "x")
 			if tc.action {
@@ -116,7 +116,7 @@ func BenchmarkCaptureChecking(b *testing.B) {
 			b.ReportAllocs()
 			b.ResetTimer()
 			for range b.N {
-				var errs diag.ErrorList
+				var errs diagnostic.ErrorList
 				compile.CheckTypes(p.Static(), &errs)
 				if len(errs) != 0 {
 					b.Fatal(errs)
@@ -134,7 +134,7 @@ func BenchmarkCaptureChecking(b *testing.B) {
 				b.ReportAllocs()
 				b.ResetTimer()
 				for range b.N {
-					var errs diag.ErrorList
+					var errs diagnostic.ErrorList
 					compile.CheckTypes(p.Static(), &errs)
 					if len(errs) != 0 {
 						b.Fatal(errs)
@@ -151,7 +151,7 @@ func BenchmarkCaptureChecking(b *testing.B) {
 		b.ReportAllocs()
 		b.ResetTimer()
 		for range b.N {
-			var errs diag.ErrorList
+			var errs diagnostic.ErrorList
 			compile.CheckTypes(p.Static(), &errs)
 			if len(errs) != 0 {
 				b.Fatal(errs)

@@ -7,7 +7,7 @@ import (
 	"fmt"
 	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/cancel"
-	"zeroparse.dev/zp/internal/diag"
+	"zeroparse.dev/zp/internal/diagnostic"
 	"zeroparse.dev/zp/internal/types"
 )
 
@@ -34,7 +34,7 @@ var builtins = map[string]int{
 type TermChecker struct {
 	Control *cancel.Control
 	Prog    *Checker
-	Errs    *diag.ErrorList
+	Errs    *diagnostic.ErrorList
 }
 
 // ScopeView is what CheckTerm reads of the captures in scope.
@@ -51,7 +51,7 @@ type ScopeView interface {
 const OperatorsRuleValue = "value"
 
 func (c *TermChecker) errorf(pos grammar.Pos, format string, args ...any) {
-	*c.Errs = append(*c.Errs, &diag.Error{Pos: pos, Msg: fmt.Sprintf(format, args...)})
+	*c.Errs = append(*c.Errs, &diagnostic.Error{Pos: pos, Msg: fmt.Sprintf(format, args...)})
 }
 
 // CheckTerm resolves the names in a value expression and reports statically detectable errors.

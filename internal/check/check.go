@@ -3,7 +3,7 @@ package check
 import (
 	"sync"
 	"zeroparse.dev/zp/internal/cancel"
-	"zeroparse.dev/zp/internal/diag"
+	"zeroparse.dev/zp/internal/diagnostic"
 
 	"zeroparse.dev/zp/grammar"
 )
@@ -11,7 +11,7 @@ import (
 // dropRepeatedErrors removes the errors after the first from that repeat an earlier one at the same
 // position. A type is resolved wherever it is used, so an undefined name inside an alias would be
 // reported once per use of the alias.
-func dropRepeatedErrors(errs *diag.ErrorList, from int) {
+func dropRepeatedErrors(errs *diagnostic.ErrorList, from int) {
 	type key struct {
 		pos grammar.Pos
 		msg string
@@ -29,13 +29,13 @@ func dropRepeatedErrors(errs *diag.ErrorList, from int) {
 }
 
 // CheckTypes checks the types of the whole grammar.
-func CheckTypes(prog *Checker, errs *diag.ErrorList) {
+func CheckTypes(prog *Checker, errs *diagnostic.ErrorList) {
 	CheckTypesControlled(prog, errs, nil)
 }
 
 // CheckTypesControlled is CheckTypes polling control for cancellation; a nil control never
 // cancels.
-func CheckTypesControlled(prog *Checker, errs *diag.ErrorList, control *cancel.Control) {
+func CheckTypesControlled(prog *Checker, errs *diagnostic.ErrorList, control *cancel.Control) {
 	defer dropRepeatedErrors(errs, len(*errs))
 	k := &TypeResolver{control: control, Prog: prog, errs: errs, report: true}
 	k.checkTypeDefinitions()
@@ -80,8 +80,8 @@ func CheckTypesControlled(prog *Checker, errs *diag.ErrorList, control *cancel.C
 type TypeInfo struct {
 	// Values holds the type of each rule's value in the value model (Program.ValueTypes).
 	Values     map[string]Ty
-	valueErrs  diag.ErrorList // the errors of actions in the value model
-	shown      map[string]Ty  // the type of each rule as RuleType shows it (shownRuleTypes)
+	valueErrs  diagnostic.ErrorList // the errors of actions in the value model
+	shown      map[string]Ty        // the type of each rule as RuleType shows it (shownRuleTypes)
 	valuesOnce sync.Once
 	Fields     map[string][]typedField // the fields of each struct type, in declaration order
 	Aliases    map[string]Ty           // the type each alias stands for

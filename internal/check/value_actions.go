@@ -5,7 +5,7 @@ import (
 	"maps"
 	"slices"
 	"strings"
-	"zeroparse.dev/zp/internal/diag"
+	"zeroparse.dev/zp/internal/diagnostic"
 	"zeroparse.dev/zp/internal/types"
 
 	"zeroparse.dev/zp/grammar"
@@ -49,7 +49,7 @@ func (v *ValueInference) errorf(pos grammar.Pos, format string, args ...any) {
 			args[i] = v.shown(t)
 		}
 	}
-	v.errs = append(v.errs, &diag.Error{Pos: pos, Msg: fmt.Sprintf(format, args...)})
+	v.errs = append(v.errs, &diagnostic.Error{Pos: pos, Msg: fmt.Sprintf(format, args...)})
 }
 
 // shown returns t as a message shows it. The rule of an inline action has no name the author

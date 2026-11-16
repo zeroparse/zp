@@ -4,7 +4,7 @@ import (
 	"strings"
 	"testing"
 	"zeroparse.dev/zp/core"
-	"zeroparse.dev/zp/internal/diag"
+	"zeroparse.dev/zp/internal/diagnostic"
 
 	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/codegen"
@@ -97,7 +97,7 @@ func testOperatorsRuleWholeActionCompiles(t *testing.T) {
 								}
 								return
 							}
-							errs, ok := err.(diag.ErrorList)
+							errs, ok := err.(diagnostic.ErrorList)
 							if !ok || len(errs) == 0 || !strings.Contains(errs[0].Msg, want.message) {
 								t.Fatalf("got %v; want an error containing %q", err, want.message)
 							}

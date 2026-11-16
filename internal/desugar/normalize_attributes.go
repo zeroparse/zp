@@ -4,7 +4,7 @@ import (
 	"strings"
 	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/cancel"
-	"zeroparse.dev/zp/internal/diag"
+	"zeroparse.dev/zp/internal/diagnostic"
 	"zeroparse.dev/zp/internal/grammaranalysis"
 )
 
@@ -46,7 +46,7 @@ func NormalizeAttributesControlled(g *grammar.Grammar, eager bool, control *canc
 // attributeNormalizer binds and lowers the attributes of a grammar, collecting the errors of
 // invalid ones. An eager normalizer copies every attribute it visits.
 type attributeNormalizer struct {
-	errors  diag.ErrorList
+	errors  diagnostic.ErrorList
 	eager   bool
 	control *cancel.Control
 	poll    func()
@@ -101,7 +101,7 @@ func normalizeItems[T comparable](items []T, eager bool, normalize func(T) T, co
 }
 
 func (n *attributeNormalizer) error(a *grammar.Attribute, message string) {
-	n.errors = append(n.errors, &diag.Error{Pos: a.Diagnostic(), Msg: AnnotationMarker(a) + a.Name + ": " + message})
+	n.errors = append(n.errors, &diagnostic.Error{Pos: a.Diagnostic(), Msg: AnnotationMarker(a) + a.Name + ": " + message})
 }
 
 func (n *attributeNormalizer) value(value any) (any, bool) {

@@ -6,7 +6,7 @@ import (
 	"strings"
 	"testing"
 	"unicode/utf8"
-	"zeroparse.dev/zp/internal/diag"
+	"zeroparse.dev/zp/internal/diagnostic"
 
 	"zeroparse.dev/zp/core"
 	"zeroparse.dev/zp/grammar"
@@ -40,7 +40,7 @@ func testInvalidCharacterClassEntryPoints(t *testing.T) {
 			} {
 				t.Run(name, func(t *testing.T) {
 					err := run()
-					if errs, ok := err.(diag.ErrorList); !ok || len(errs) != 1 || errs[0].Pos != cc.Pos || !strings.Contains(err.Error(), "$.file.decls[0].expr.ranges[0]") {
+					if errs, ok := err.(diagnostic.ErrorList); !ok || len(errs) != 1 || errs[0].Pos != cc.Pos || !strings.Contains(err.Error(), "$.file.decls[0].expr.ranges[0]") {
 						t.Fatalf("got %v, want positioned range error", err)
 					}
 				})

@@ -9,7 +9,7 @@ import (
 	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/compile"
 	"zeroparse.dev/zp/internal/compiletest"
-	"zeroparse.dev/zp/internal/diag"
+	"zeroparse.dev/zp/internal/diagnostic"
 	"zeroparse.dev/zp/internal/factstest"
 	"zeroparse.dev/zp/internal/ir/core"
 	"zeroparse.dev/zp/internal/ir/core/build"
@@ -74,7 +74,7 @@ func TestBindingErrorsMatchCompile(t *testing.T) {
 
 func errorLines(err error) []string {
 	var out []string
-	if l, ok := err.(diag.ErrorList); ok {
+	if l, ok := err.(diagnostic.ErrorList); ok {
 		for _, e := range l {
 			out = append(out, e.Error())
 		}

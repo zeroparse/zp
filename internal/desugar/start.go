@@ -7,7 +7,7 @@ import (
 
 	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/cancel"
-	"zeroparse.dev/zp/internal/diag"
+	"zeroparse.dev/zp/internal/diagnostic"
 )
 
 // ResolveStarts reads the declaration attributes of rules and returns the
@@ -17,9 +17,9 @@ import (
 // (which LinearDeclarations checks) is an error, and so is @start on a hidden
 // rule. A grammar needs a start rule;
 // with several, one of them must be the default.
-func ResolveStarts(rules []*grammar.RuleDef, control *cancel.Control) (starts []string, def string, errs diag.ErrorList) {
+func ResolveStarts(rules []*grammar.RuleDef, control *cancel.Control) (starts []string, def string, errs diagnostic.ErrorList) {
 	errorf := func(pos grammar.Pos, format string, args ...any) {
-		errs = append(errs, &diag.Error{Pos: pos, Msg: fmt.Sprintf(format, args...)})
+		errs = append(errs, &diagnostic.Error{Pos: pos, Msg: fmt.Sprintf(format, args...)})
 	}
 	var second *grammar.Attribute
 	for _, rd := range rules {

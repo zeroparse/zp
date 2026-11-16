@@ -8,7 +8,7 @@ import (
 	"strings"
 	"sync"
 	"unicode/utf8"
-	"zeroparse.dev/zp/internal/diag"
+	"zeroparse.dev/zp/internal/diagnostic"
 
 	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/engine"
@@ -221,7 +221,7 @@ func (a *analysis) compileContextControlled(ctx context.Context, control *render
 		a.prog, a.front = prog, &frontCell{}
 		return nil
 	}
-	var list diag.ErrorList
+	var list diagnostic.ErrorList
 	if !errors.As(err, &list) {
 		a.diag(a.idx.rangeOf(0, 0), err.Error())
 		return nil

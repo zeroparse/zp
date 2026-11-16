@@ -6,7 +6,7 @@ import (
 	"unicode/utf8"
 	"zeroparse.dev/zp/core/impl"
 	"zeroparse.dev/zp/internal/cancel"
-	"zeroparse.dev/zp/internal/diag"
+	"zeroparse.dev/zp/internal/diagnostic"
 	"zeroparse.dev/zp/internal/types"
 
 	"zeroparse.dev/zp/grammar"
@@ -17,7 +17,7 @@ import (
 type TypeResolver struct {
 	control *cancel.Control
 	Prog    *Checker
-	errs    *diag.ErrorList
+	errs    *diagnostic.ErrorList
 	report  bool
 	// sawUnsupported records that a resolved type used syntax that is not supported yet, whether
 	// or not it was reported here, so that checks of the type are not reported on top.
@@ -38,7 +38,7 @@ func (k *TypeResolver) errorf(pos grammar.Pos, format string, args ...any) {
 	if !pos.IsValid() && k.rule != nil {
 		pos = k.rule.Diagnostic()
 	}
-	*k.errs = append(*k.errs, &diag.Error{Pos: pos, Msg: fmt.Sprintf(format, args...)})
+	*k.errs = append(*k.errs, &diagnostic.Error{Pos: pos, Msg: fmt.Sprintf(format, args...)})
 }
 
 // Resolve turns a type expression into a value type.
@@ -196,7 +196,7 @@ func (k *TypeResolver) defined(name string) bool {
 	if _, ok := k.Prog.TypeDecls()[name]; ok {
 		return true
 	}
-	r := &TypeResolver{Prog: k.Prog, errs: &diag.ErrorList{}, report: true}
+	r := &TypeResolver{Prog: k.Prog, errs: &diagnostic.ErrorList{}, report: true}
 	r.ResolveNamed(name, grammar.Pos{})
 	return len(*r.errs) == 0
 }

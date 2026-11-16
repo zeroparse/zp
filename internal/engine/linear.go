@@ -10,7 +10,7 @@ import (
 	"zeroparse.dev/zp/internal/cancel"
 	"zeroparse.dev/zp/internal/complexity"
 	"zeroparse.dev/zp/internal/desugar"
-	"zeroparse.dev/zp/internal/diag"
+	"zeroparse.dev/zp/internal/diagnostic"
 )
 
 // linearRewrites is the recipe that shows how to rewrite the constructs whose cost the classifier
@@ -66,7 +66,7 @@ func checkDeclaredLinear(g *grammar.Grammar, control *cancel.Control) error {
 		msg string
 	}
 	seen := map[key]bool{}
-	var out diag.ErrorList
+	var out diagnostic.ErrorList
 	check := func(subject string, at grammar.Pos, c *complexity.Complexity) {
 		// report reports cause with format, whose verbs are the subject, the message of the cause,
 		// the advice and the link to the recipe's section for the kind of the cause. The advice is
@@ -89,7 +89,7 @@ func checkDeclaredLinear(g *grammar.Grammar, control *cancel.Control) error {
 			if advice == "" {
 				advice = sectionAdvice
 			}
-			out = append(out, &diag.Error{Pos: pos, Msg: fmt.Sprintf(format, subject, cause.Message, advice, link)})
+			out = append(out, &diagnostic.Error{Pos: pos, Msg: fmt.Sprintf(format, subject, cause.Message, advice, link)})
 		}
 		switch c.Class {
 		case complexity.ClassLinear:
@@ -116,7 +116,7 @@ func checkDeclaredLinear(g *grammar.Grammar, control *cancel.Control) error {
 			return
 		}
 		// A class other than linear has a cause or a reason; this is a guard, not a case.
-		out = append(out, &diag.Error{Pos: at, Msg: fmt.Sprintf("%s is declared @linear, but its cost is %s (see %s)", subject, c.Class, linearRewrites)})
+		out = append(out, &diagnostic.Error{Pos: at, Msg: fmt.Sprintf("%s is declared @linear, but its cost is %s (see %s)", subject, c.Class, linearRewrites)})
 	}
 	classify := func(g *grammar.Grammar, start string) (*complexity.Complexity, error) {
 		return complexity.ClassifyComplexityControlled(g, start, control)
@@ -149,7 +149,7 @@ func checkDeclaredLinear(g *grammar.Grammar, control *cancel.Control) error {
 	if len(out) == 0 {
 		return nil
 	}
-	slices.SortStableFunc(out, func(a, b *diag.Error) int {
+	slices.SortStableFunc(out, func(a, b *diagnostic.Error) int {
 		return cmp.Or(cmp.Compare(a.Pos.Line, b.Pos.Line), cmp.Compare(a.Pos.Col, b.Pos.Col))
 	})
 	return out

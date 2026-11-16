@@ -6,7 +6,7 @@ import (
 
 	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/cancel"
-	"zeroparse.dev/zp/internal/diag"
+	"zeroparse.dev/zp/internal/diagnostic"
 )
 
 // LinearAttribute is the name of the declaration attribute that declares linear cost: on the
@@ -23,9 +23,9 @@ func IsLinear(a *grammar.Attribute) bool { return !a.Pragma && a.Name == LinearA
 // in declaration order. @linear takes no arguments and appears at most once on a declaration;
 // the package clause takes no other declaration attribute. Each violation is an error. The other
 // declaration attributes of rules are checked by ResolveStarts.
-func LinearDeclarations(g *grammar.Grammar, control *cancel.Control) (whole bool, rules []string, errs diag.ErrorList) {
+func LinearDeclarations(g *grammar.Grammar, control *cancel.Control) (whole bool, rules []string, errs diagnostic.ErrorList) {
 	errorf := func(pos grammar.Pos, format string, args ...any) {
-		errs = append(errs, &diag.Error{Pos: pos, Msg: fmt.Sprintf(format, args...)})
+		errs = append(errs, &diagnostic.Error{Pos: pos, Msg: fmt.Sprintf(format, args...)})
 	}
 	declared := func(attrs []*grammar.Attribute, what string, others bool) bool {
 		found := false

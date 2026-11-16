@@ -3,7 +3,7 @@ package codegen_test
 import (
 	"strings"
 	"testing"
-	"zeroparse.dev/zp/internal/diag"
+	"zeroparse.dev/zp/internal/diagnostic"
 
 	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/codegen"
@@ -56,7 +56,7 @@ func testStreamRecoveryRejected(t *testing.T) {
 	}}}}}
 	starttest.MarkAll(g)
 	_, err := engine.Compile(g, compile.Options{})
-	if errs, ok := err.(diag.ErrorList); !ok || len(errs) != 1 || errs[0].Pos != pos || !strings.Contains(err.Error(), streamRecoveryError) {
+	if errs, ok := err.(diagnostic.ErrorList); !ok || len(errs) != 1 || errs[0].Pos != pos || !strings.Contains(err.Error(), streamRecoveryError) {
 		t.Errorf("public AST: %v; want positioned recovery error", err)
 	}
 }

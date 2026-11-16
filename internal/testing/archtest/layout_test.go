@@ -47,7 +47,7 @@ var layout = []place{
 	// Utilities of the compiler side.
 	{pkg: "internal/cancel", target: "internal/cancel"},
 	{pkg: "internal/cliflag", target: "internal/cliflag"},
-	{pkg: "internal/diag", target: "internal/diagnostic"},
+	{pkg: "internal/diagnostic", target: "internal/diagnostic"},
 
 	// Front end.
 	{pkg: "internal/frontend", target: "internal/frontend"},

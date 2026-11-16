@@ -6,7 +6,7 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
-	"zeroparse.dev/zp/internal/diag"
+	"zeroparse.dev/zp/internal/diagnostic"
 )
 
 // The value types of rules follow the value model (spec/language/types.md).
@@ -142,7 +142,7 @@ func TestValueTypesOptionalCaptures(t *testing.T) {
 
 // valueTypesOf builds src without running the type check, as a compiled grammar is rebuilt, and returns the value types of its rules and
 // the errors of its actions.
-func valueTypesOf(t *testing.T, src string) (map[string]Ty, diag.ErrorList) {
+func valueTypesOf(t *testing.T, src string) (map[string]Ty, diagnostic.ErrorList) {
 	t.Helper()
 	g, err := parseTest(src)
 	if err != nil {

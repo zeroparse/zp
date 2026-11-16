@@ -3,7 +3,7 @@ package engine
 import (
 	"strings"
 	"testing"
-	"zeroparse.dev/zp/internal/diag"
+	"zeroparse.dev/zp/internal/diagnostic"
 
 	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/codegen"
@@ -35,7 +35,7 @@ func testMalformedASTEntryPointsAndPosition(t *testing.T) {
 	} {
 		t.Run(name, func(t *testing.T) {
 			err := run()
-			if errs, ok := err.(diag.ErrorList); !ok || len(errs) != 1 || errs[0].Pos != e.Pos || !strings.Contains(err.Error(), "$.file.decls[0].expr.expr") {
+			if errs, ok := err.(diagnostic.ErrorList); !ok || len(errs) != 1 || errs[0].Pos != e.Pos || !strings.Contains(err.Error(), "$.file.decls[0].expr.expr") {
 				t.Fatalf("got %v; want positioned pointer-cycle error", err)
 			}
 		})
