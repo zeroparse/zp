@@ -1499,12 +1499,15 @@ The conditions below use these terms.
   counting as one symbol; a call that is not alike stands for the paths of the
   body of its rule, each of which must part.
   The decisive symbol is one on each side that cannot both match at the
-  position: first characters that are disjoint, two literals of which neither
+  position: two symbols that are **disjoint**, which means that each consumes
+  input whenever it succeeds and that no character is a first character of
+  both, two literals of which neither
   is a prefix of the other, or two character classes with no character in
   common; a negative lookahead `!K` on one side that the rest of the other side
   must match, in the form below, or a positive lookahead `&K` on one side
   whose expression and the
-  next symbol of the other side are disjoint; a dead symbol on one side; or, in
+  next symbol of the other side are disjoint, so that `&{ true }`, `&{ false }`
+  and `&""` decide nothing; a dead symbol on one side; or, in
   the continuation, the end of the parse, which costs a constant. A symbol at
   which neither side can go on is not decisive: the two do not part where each,
   before it consumes more input, reaches a dead symbol, a symbol that no
