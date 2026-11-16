@@ -2872,7 +2872,10 @@ export class Parser {
   // memoizes on the first call, a rule without a seen index and an eager rule are memoized at once.
   firstCall(r: Rule): boolean {
     const s = r.seen;
-    return s >= 0 && this.seenFirst(s, this.pos);
+    if (!(s >= 0)) {
+      return false;
+    }
+    return this.seenFirst(s, this.pos);
   }
 
   // seenFirst records a call of the rule with the seen index s at pos and reports whether its
