@@ -105,8 +105,9 @@ compiler side. The rules, which a test enforces, are these.
      dialects import more than one dialect.
    - The front end imports no middle end, backend, analysis tool or language server; the middle end imports no backend,
      analysis tool or language server; a backend imports no analysis tool or language server.
-   - The utility packages (diagnostics, cancellation, command-line flag names and fixtures) may import `pkg/grammar`,
-     because diagnostics carry source positions.
+   - The utility packages (diagnostics, cancellation and command-line flag names) may import `pkg/grammar`, because
+     diagnostics carry source positions. The fixture suite of `zp test` is not a utility: it is a tool that uses the
+     compiler, in the same layer as the public tool packages.
    - Only the commands and the repository's test support import `internal/lsp/**`, and only test support imports
      `internal/testing/**` from non-test code.
 
@@ -122,12 +123,15 @@ deliberately wrong edge in the test is a negative control.
 
 ### The Internal Tree
 
-The compiler side is a pipeline with a driver on top; the tree names the stages.
+The compiler side is a pipeline with a driver on top; the tree names the stages. The front end returns the semantic
+model and Core IR; the facts about rules are computed by the Core analyses of the middle end, which a pass or a tool
+asks for through the analysis manager, and the front end does not return them.
 
 ```mermaid
 flowchart TD
   cmd["cmd/zp, cmd/playground"] --> pub["pkg/compiler, pkg/lint, pkg/sample, pkg/editfuzz"]
   pub --> driver["internal/driver"]
+  cmd --> fixture["fixture suites of zp test"] --> driver
   driver --> backend["internal/backend: closure, vmlower, llvm (future), codegen/{common, golang, typescript}"]
   driver --> middle["internal/middleend: corepass, flowlower, flowpass, execlower, codepass"]
   driver --> front["internal/frontend: parser, desugar, check, types, astfacts, elaborate, schemaexport"]
@@ -135,7 +139,7 @@ flowchart TD
   backend --> ir
   front --> ir
   ir --> pass["internal/pass: Manager, AnalysisManager, Registry"]
-  util["utilities: diagnostics, cancellation, command-line flag names, fixtures"] --> gram["pkg/grammar"]
+  util["utilities: diagnostics, cancellation, command-line flag names"] --> gram["pkg/grammar"]
   ir --> gram
   cmd --> analysis["internal/analysis: lint, complexity; internal/lsp"]
   driver --> rt["internal/runtime: program, state, document, vm, engine, nodes, limits"]
