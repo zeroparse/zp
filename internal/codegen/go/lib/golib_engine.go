@@ -587,6 +587,12 @@ func engineTarget() *gogen.Target {
 			return "storeCtx"
 		case "grow.begin":
 			return fmt.Sprintf("p.GrowBegin(p.GrowKey(%s, %s), %[1]s)", a[0], a[1])
+		case "grow.ctx":
+			return a[0] + ".ctx"
+		case "grow.longer":
+			return fmt.Sprintf("p.growLonger(&%s, %s)", a[0], a[1])
+		case "grow.adopt":
+			return fmt.Sprintf("p.growAdopt(&%s, %s)", a[0], a[1])
 		case "grow.next":
 			return "p.GrowNext(&" + a[0] + ")"
 		case "grow.step":

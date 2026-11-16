@@ -1011,9 +1011,6 @@ func (p *Parser) growNext(g *growState) bool {
 	if g.done {
 		return false
 	}
-	if !g.ctx {
-		return true
-	}
 	for {
 		id := p.gamma[g.gi].id
 		if j := p.findJump(g, id); j != nil {
@@ -1049,23 +1046,27 @@ func (p *Parser) growNext(g *growState) bool {
 	}
 }
 
-// growStep receives the result of a step, a node or a typed value, and adopts it as the seed if the
-// match grew.
+// growLonger reports whether a step of a growth outside a context, with success ok and ending at the
+// position, matched more than the seed.
+func (p *Parser) growLonger(g *growState, ok bool) bool {
+	best := &p.gamma[g.gi].inl
+	return ok && (!best.ok || p.Pos > best.end)
+}
+
+// growAdopt adopts the successful longer step of a growth outside a context, a node or a typed value,
+// as its seed, and returns to the start of the growth.
+func (p *Parser) growAdopt(g *growState, node *core.Node, val any) {
+	p.Spend()
+	p.gamma[g.gi].inl = ctxResult{node: node, val: val, ok: true, end: p.Pos, examined: p.examinedNow(),
+		errs: p.recSince(g.rec)}
+	p.gamma[g.gi].id = p.nextSeedID()
+	p.Pos = g.start
+	p.Recovered = p.Recovered[:g.rec]
+}
+
+// growStep receives the result of a step of a growth in a context, a node or a typed value, and
+// adopts it as the seed if the match grew.
 func (p *Parser) growStep(g *growState, node *core.Node, val any, ok bool) {
-	if !g.ctx {
-		best := &p.gamma[g.gi].inl
-		if !ok || (best.ok && p.Pos <= best.end) {
-			g.done = true
-			return
-		}
-		p.Spend()
-		*best = ctxResult{node: node, val: val, ok: true, end: p.Pos, examined: p.examinedNow(),
-			errs: p.recSince(g.rec)}
-		p.gamma[g.gi].id = p.nextSeedID()
-		p.Pos = g.start
-		p.Recovered = p.Recovered[:g.rec]
-		return
-	}
 	id := p.gamma[g.gi].id
 	_, ds := p.popFrame()
 	far, inner := p.Unisolate(g.exp)

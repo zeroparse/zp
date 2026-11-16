@@ -616,31 +616,45 @@ func (p *Parser) GrowNext(g *GrowState) bool {
 	}
 }
 
-// GrowStep receives the body's result of a step and adopts it as the seed if the match grew.
+// growLonger reports whether a step of a growth outside a context, with success ok and ending at
+// the position, matched more than the seed.
+func (p *Parser) growLonger(g *GrowState, ok bool) bool {
+	return ok && (!g.Best.Ok || p.Pos > g.Best.End)
+}
+
+// growAdopt adopts the successful longer step of a growth outside a context, with value v, as its
+// seed, and returns to the start of the growth.
+func (p *Parser) growAdopt(g *GrowState, v *core.Node) {
+	p.Spend()
+	old := g.Best
+	g.Best = p.entry(g.inCtx)
+	if !g.inCtx {
+		// Only this growth holds its replaced seed.
+		p.Memo.Retire(old)
+	}
+	*g.Best = MemoEntry{Node: v, Ok: true, End: p.Pos, Examined: p.Hw, From: p.lw, Growing: true, Gen: p.Gen, Vgen: p.Gen, Errs: p.recSince(g.Rec)}
+	if p.Missing != nil {
+		p.RecordMissingSeed(g.Best, g.missing)
+	}
+	p.seedSeq++
+	p.Gamma[g.gi].seed, p.Gamma[g.gi].id = g.Best, p.seedSeq+failSeed
+	p.Pos = g.start
+	p.Recovered = p.Recovered[:g.Rec]
+	if p.Missing != nil {
+		p.ResetMissing(g.missing)
+	}
+}
+
+// GrowStep receives the body's result of a step and adopts it as the seed if the match grew. The
+// printed growth takes the steps of a growth outside a context with growLonger and growAdopt; the
+// iterative VM takes every step here.
 func (p *Parser) GrowStep(g *GrowState, v *core.Node, ok bool) {
 	if !g.ctx {
-		if !ok || (g.Best.Ok && p.Pos <= g.Best.End) {
+		if !p.growLonger(g, ok) {
 			g.done = true
 			return
 		}
-		p.Spend()
-		old := g.Best
-		g.Best = p.entry(g.inCtx)
-		if !g.inCtx {
-			// Only this growth holds its replaced seed.
-			p.Memo.Retire(old)
-		}
-		*g.Best = MemoEntry{Node: v, Ok: true, End: p.Pos, Examined: p.Hw, From: p.lw, Growing: true, Gen: p.Gen, Vgen: p.Gen, Errs: p.recSince(g.Rec)}
-		if p.Missing != nil {
-			p.RecordMissingSeed(g.Best, g.missing)
-		}
-		p.seedSeq++
-		p.Gamma[g.gi].seed, p.Gamma[g.gi].id = g.Best, p.seedSeq+failSeed
-		p.Pos = g.start
-		p.Recovered = p.Recovered[:g.Rec]
-		if p.Missing != nil {
-			p.ResetMissing(g.missing)
-		}
+		p.growAdopt(g, v)
 		return
 	}
 	id := p.Gamma[g.gi].id
