@@ -152,6 +152,11 @@ func TestNegativeControls(t *testing.T) {
 	addEdge(mod("core/impl"), mod("internal/value"))
 	// Rule 2: the Code IR base imports a dialect.
 	addEdge(mod("internal/ir/exec"), mod("internal/ir/flow"))
+	// Rule 2: the front end imports the analysis layer.
+	addEdge(mod("internal/desugar"), mod("internal/lint"))
+	// Rule 2: an analysis package imports two dialects.
+	addEdge(mod("internal/lint"), mod("internal/ir/flow"))
+	addEdge(mod("internal/lint"), mod("internal/ir/exec/ops"))
 	// A package that no layout row places.
 	g.pkgs[mod("internal/unplaced")] = &pkg{ImportPath: mod("internal/unplaced"), Module: &struct{ Path string }{modulePath}}
 	addEdge(mod("cmd/zp"), mod("internal/unplaced"))
@@ -163,20 +168,36 @@ func TestNegativeControls(t *testing.T) {
 	for _, m := range msgs {
 		t.Log(m)
 	}
-	want := []string{
-		"rule 1: internal/limits -> internal/ir/core\n\tbreaks: the runtime side (internal/runtime/limits) imports only the runtime side, not internal/ir/core\n\tchain: query -> internal/limits -> internal/ir/core\n",
-		"rule 1: schema -> example.org/thirdparty\n\tbreaks: the runtime side imports no third-party package\n\tchain: schema -> example.org/thirdparty\n",
-		"rule 1a: codegen/go/lib -> internal/engine/vm\n",
-		"rule 1a: internal/bench/parsers/json -> internal/engine/vm\n\tbreaks: a generated parser links neither pkg/runtime/vm nor internal/runtime/**\n\tchain: internal/bench/parsers/json -> codegen/go/lib -> internal/engine/vm\n",
-		"rule 1a: generated parser (-lib import) -> internal/engine/vm\n\tbreaks: a generated parser links neither pkg/runtime/vm nor internal/runtime/**\n\tchain: generated parser (-lib import) -> codegen/go/lib -> internal/engine/vm\n",
-		"rule 1a: generated parser (-lib embed) -> internal/value\n\tbreaks: a generated parser links neither pkg/runtime/vm nor internal/runtime/**\n\tchain: generated parser (-lib embed) -> core/impl -> internal/value\n",
-		"rule 2: internal/ir/exec -> internal/ir/flow\n\tbreaks: internal/ir/code imports no dialect (internal/ir/code -> internal/ir/code/flow)\n",
-		"internal/unplaced: no row of layout places the package",
-		"rule 1: internal/engine/document -> internal/compile: no build has this edge any more; remove it from the allowlist",
+	// Each failure begins with the key and contains the parts.
+	want := []struct {
+		key   string
+		parts []string
+	}{
+		{"rule 1: internal/limits -> internal/ir/core", []string{"\tbreaks: the runtime side (internal/runtime/limits) imports only the runtime side, not internal/ir/core\n", "\tchain: query -> internal/limits -> internal/ir/core\n"}},
+		{"rule 1: schema -> example.org/thirdparty", []string{"\tbreaks: the runtime side imports no third-party package\n", "\tchain: schema -> example.org/thirdparty\n"}},
+		// One failure for the edge, listing the generated parsers that reach it.
+		{"rule 1a: codegen/go/lib -> internal/engine/vm", []string{
+			"pkg/runtime/golib imports only pkg/runtime and its input, value, value/impl, instrument and schema packages, not internal/runtime/vm",
+			"a generated parser links neither pkg/runtime/vm nor internal/runtime/**",
+			"\tchain: codegen/go/lib -> internal/engine/vm\n",
+			"generated parser (-lib import)", "internal/bench/parsers/json,", "internal/syntax/grammarparser,"}},
+		{"rule 1a: core/impl -> internal/value", []string{"codegen/go/lib -> core/impl -> internal/value\n\tbuilds", "\tgenerated parsers: generated parser (-lib embed), generated parser (-lib import), internal/bench/parsers/"}},
+		{"rule 2: internal/ir/exec -> internal/ir/flow", []string{"\tbreaks: internal/ir/code imports no dialect (internal/ir/code -> internal/ir/code/flow)\n"}},
+		{"rule 2: internal/desugar -> internal/lint", []string{"the front end layer does not import the analysis layer (internal/frontend/desugar -> internal/analysis/lint)"}},
+		{"rule 2: internal/lint -> dialects exec, flow", []string{"only the conversions of the middle end and the back end and test support import more than one dialect (internal/analysis/lint)"}},
+		{"internal/unplaced: no row of layout places the package", nil},
+		{"rule 1: internal/engine/document -> internal/compile: no build has this edge any more; remove it from the allowlist", nil},
 	}
 	for _, w := range want {
-		if !slices.ContainsFunc(msgs, func(m string) bool { return strings.HasPrefix(m+"\n", w) }) {
-			t.Errorf("no failure begins with %q", w)
+		i := slices.IndexFunc(msgs, func(m string) bool { return strings.HasPrefix(m, w.key) })
+		if i < 0 {
+			t.Errorf("no failure begins with %q", w.key)
+			continue
+		}
+		for _, part := range w.parts {
+			if !strings.Contains(msgs[i]+"\n", part) {
+				t.Errorf("the failure %q does not contain %q", msgs[i], part)
+			}
 		}
 	}
 	if len(msgs) == 0 {

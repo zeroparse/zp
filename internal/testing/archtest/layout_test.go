@@ -74,7 +74,6 @@ var layout = []place{
 	{pkg: "internal/ir/exec/ops", target: "internal/ir/code/exec"},
 	{pkg: "internal/ir/exec/core", target: "internal/ir/code/exec/compose"},
 	{pkg: "internal/ir/exec/conform", target: "internal/ir/code/exec/conform"},
-	{pkg: "internal/ir/exec/printtest", target: "internal/ir/code/exec/printtest"},
 	{pkg: "internal/ir/exec/ref", target: "internal/ir/code/exec/ref"},
 	{pkg: "internal/ir/exec/spectest", target: "internal/ir/code/exec/spectest"},
 
@@ -124,6 +123,8 @@ var layout = []place{
 	{pkg: "internal/factstest", target: "internal/testing/factstest"},
 	{pkg: "internal/recoveryquality", target: "internal/testing/recoveryquality"},
 	{pkg: "internal/starttest", target: "internal/testing/starttest"},
+	// The printer tests of the Exec dialect are test support of the back ends.
+	{pkg: "internal/ir/exec/printtest", target: "internal/testing/exectest"},
 	{pkg: "internal/testing/...", target: "internal/testing"},
 
 	// Commands, benchmarks, examples and the language specification's tests.
@@ -227,24 +228,8 @@ func layer2(a, b string) []string {
 			}
 		}
 	}
-	for _, l := range []struct {
-		dir   string
-		not   []string
-		label string
-	}{
-		{"internal/frontend", []string{"internal/middleend", "internal/backend", "internal/analysis", "internal/lsp"}, "the front end imports no middle end, back end, analysis or LSP package"},
-		{"internal/middleend", []string{"internal/backend", "internal/analysis", "internal/lsp"}, "the middle end imports no back end, analysis or LSP package"},
-		{"internal/backend", []string{"internal/analysis", "internal/lsp"}, "the back end imports no analysis or LSP package"},
-	} {
-		if !under(a, l.dir) {
-			continue
-		}
-		for _, n := range l.not {
-			if under(b, n) {
-				broken = append(broken, l.label)
-				break
-			}
-		}
+	if la, lb := layerOf(a), layerOf(b); la != layerRuntime && la != lb && !layerImports(la, lb) {
+		broken = append(broken, fmt.Sprintf("the %s layer does not import the %s layer", la, lb))
 	}
 	if under(b, "internal/lsp") && !under(a, "internal/lsp") && !under(a, "cmd") && !under(a, "internal/testing") {
 		broken = append(broken, "only cmd/** and internal/testing/** import internal/lsp/**")
@@ -282,4 +267,123 @@ func dialect(a, b string) string {
 		}
 	}
 	return ""
+}
+
+// A layer is a group of packages of the release layout that the layer graph orders.
+type layer string
+
+// The layers. The compiler-side layers follow the layer graph of the design; outside are the
+// commands' neighbours that the graph does not order (benchmarks, examples and the language
+// specification's tests).
+const (
+	layerRuntime  layer = "runtime"
+	layerCmd      layer = "cmd"
+	layerPublic   layer = "public tool API"
+	layerLSP      layer = "lsp"
+	layerDriver   layer = "driver"
+	layerAnalysis layer = "analysis"
+	layerBackend  layer = "back end"
+	layerMiddle   layer = "middle end"
+	layerFront    layer = "front end"
+	layerIR       layer = "ir"
+	layerPass     layer = "pass"
+	layerGrammar  layer = "grammar"
+	layerUtil     layer = "utility"
+	layerTesting  layer = "testing"
+	layerOutside  layer = "outside"
+)
+
+// layerOf returns the layer of the package at the layout path t.
+func layerOf(t string) layer {
+	switch {
+	case runtimeSide(t):
+		return layerRuntime
+	case under(t, "cmd"):
+		return layerCmd
+	case under(t, "pkg/compiler"), under(t, "pkg/lint"), under(t, "pkg/sample"), under(t, "pkg/editfuzz"):
+		return layerPublic
+	case under(t, "pkg/grammar"):
+		return layerGrammar
+	case under(t, "internal/lsp"):
+		return layerLSP
+	case under(t, "internal/driver"):
+		return layerDriver
+	case under(t, "internal/analysis"):
+		return layerAnalysis
+	case under(t, "internal/backend"):
+		return layerBackend
+	case under(t, "internal/middleend"):
+		return layerMiddle
+	case under(t, "internal/frontend"), under(t, "internal/syntax/fmt"):
+		return layerFront
+	case under(t, "internal/ir"):
+		return layerIR
+	case under(t, "internal/pass"):
+		return layerPass
+	case under(t, "internal/diagnostic"), under(t, "internal/cancel"), under(t, "internal/cliflag"), under(t, "internal/fixture"):
+		return layerUtil
+	case under(t, "internal/testing"):
+		return layerTesting
+	}
+	return layerOutside
+}
+
+// layerArrows are the arrows of the layer graph: each layer imports the layers that it points
+// to and, through them, every layer below. Every compiler-side layer may import the runtime
+// side and the utilities, which import only the grammar AST (the positions of diagnostics).
+var layerArrows = map[layer][]layer{
+	layerCmd:      {layerPublic, layerLSP},
+	layerPublic:   {layerDriver},
+	layerLSP:      {layerAnalysis},
+	layerDriver:   {layerAnalysis},
+	layerAnalysis: {layerBackend},
+	layerBackend:  {layerMiddle, layerIR},
+	layerMiddle:   {layerFront, layerIR},
+	layerFront:    {layerIR, layerGrammar},
+	layerIR:       {layerPass, layerGrammar},
+	layerUtil:     {layerGrammar},
+}
+
+// layerImports reports whether a package of layer a may import one of layer b, a != b.
+func layerImports(a, b layer) bool {
+	switch {
+	case a == layerTesting, a == layerOutside:
+		return true // test support and the packages outside the graph may import any layer
+	case b == layerRuntime, b == layerUtil:
+		return true
+	}
+	seen := map[layer]bool{}
+	var reach func(l layer) bool
+	reach = func(l layer) bool {
+		for _, n := range layerArrows[l] {
+			if n == b {
+				return true
+			}
+			if !seen[n] {
+				seen[n] = true
+				if reach(n) {
+					return true
+				}
+			}
+		}
+		return false
+	}
+	return reach(a)
+}
+
+// dialectOf returns the Code IR dialect of the package at the layout path t, or "".
+func dialectOf(t string) string {
+	for _, d := range []string{"flow", "action", "exec"} {
+		if under(t, "internal/ir/code/"+d) {
+			return d
+		}
+	}
+	return ""
+}
+
+// multiDialect reports whether the package at the layout path t may import more than one
+// dialect: only the conversions of the middle end and the back end and test support may.
+func multiDialect(t string) bool {
+	return under(t, "internal/middleend/flowlower") || under(t, "internal/middleend/execlower") ||
+		under(t, "internal/backend/vmlower") || under(t, "internal/testing")
 }

@@ -31,6 +31,17 @@ var allowlist = []string{
 
 	// The front end computes the rule facts of the Core IR, which belong to the middle end.
 	"rule 2: internal/frontend -> internal/ir/core/facts",
-	// The printer tests of the Exec dialect build specialized functions with a middle-end pass.
-	"rule 2: internal/ir/exec/printtest -> internal/ir/exec/pass",
+	// The generators read the optimization registry and profiles, which go to internal/pass
+	// (registrations beside each pass) and the driver (profiles, pipeline driving).
+	"rule 2: internal/codegen -> internal/ir/opt",
+	"rule 2: internal/codegen/go -> internal/ir/opt",
+	"rule 2: internal/codegen/ts -> internal/ir/opt",
+	// The Go and TypeScript generators drive the lowering to Flow and print Exec; the driver
+	// takes over the lowering and the printers read Exec only.
+	"rule 2: internal/codegen/go -> dialects exec, flow",
+	"rule 2: internal/codegen/ts -> dialects exec, flow",
+	// The flag names and fixture suites use the backend choice, Parser and parse options of
+	// engine, which go to pkg/runtime (the backend choice goes away).
+	"rule 2: internal/cliflag -> engine",
+	"rule 2: internal/fixture -> engine",
 }

@@ -7,14 +7,21 @@
 //   - Rule 1a: the library of generated Go parsers (pkg/runtime/golib) imports only pkg/runtime,
 //     its input, value, value/impl, instrument and schema packages, and a generated Go parser,
 //     in either library mode, links neither the VM (pkg/runtime/vm) nor internal/runtime/**.
-//   - Rule 2: the layers of the compiler side. internal/pass imports nothing of the module;
-//     internal/ir/** imports only internal/ir/**, internal/pass, internal/cancel and pkg/grammar,
-//     and within it internal/ir/code imports no dialect, code/flow imports only code and ir/core,
-//     code/action and code/exec import only code, and the packages under code/exec also code/exec
-//     and code/action; the front end imports no middle end, back end, analysis or LSP package,
-//     the middle end no back end, analysis or LSP package, the back end no analysis or LSP
-//     package; only cmd/** and internal/testing/** import internal/lsp/**; and only
-//     internal/testing/** imports internal/testing/** outside tests.
+//   - Rule 2: the layers of the compiler side. Each layer imports only the layers that the
+//     layer graph puts below it: cmd over the public tool API and the LSP, the public tool API
+//     over the driver, the LSP and the driver over analysis, analysis over the back end, the back
+//     end over the middle end, the middle end over the front end, and those over internal/ir,
+//     which is over internal/pass and pkg/grammar; every layer may import the runtime side and
+//     the utilities (diagnostic, cancel, cliflag, fixture), which import only pkg/grammar. Test
+//     support and the packages outside the graph (benchmarks, examples, the specification's
+//     tests) may import any layer except the LSP, and only test support imports test support
+//     outside tests.
+//     internal/pass imports nothing of the module; internal/ir/** imports only internal/ir/**,
+//     internal/pass, internal/cancel and pkg/grammar, and within it internal/ir/code imports no
+//     dialect, code/flow imports only code and ir/core, code/action and code/exec import only
+//     code, and the packages of a dialect's subtree also each other and, under code/exec,
+//     code/action. Only the conversions (flowlower, execlower, vmlower) and test support import
+//     more than one dialect.
 //
 // The rules are stated on the paths of the release layout. The test places every package of the
 // module at its path in that layout (layout_test.go), so it checks the rules while the packages

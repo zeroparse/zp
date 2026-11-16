@@ -13,6 +13,7 @@ type violation struct {
 	why      []string // the clauses it breaks
 	chain    []string // the shortest import chain that shows it
 	builds   []string // the builds that have it
+	parsers  []string // for rule 1a, the generated parsers that reach the edge
 }
 
 // key identifies the violation in the allowlist.
@@ -78,7 +79,7 @@ func check(graphs []*graph, gens []generatedParser) *report {
 				roots = append(roots, p)
 			}
 		}
-		add := func(rule, from, to string, why string, chain []string) {
+		add := func(rule, from, to string, why string, chain []string) *violation {
 			v := &violation{rule: rule, from: from, to: to}
 			if old, ok := r.violations[v.key()]; ok {
 				v = old
@@ -92,6 +93,7 @@ func check(graphs []*graph, gens []generatedParser) *report {
 			if b := buildName(g.tags); !slices.Contains(v.builds, b) {
 				v.builds = append(v.builds, b)
 			}
+			return v
 		}
 		runtimeEdge := func(a, b string) bool {
 			if !inModule(b) {
@@ -127,8 +129,15 @@ func check(graphs []*graph, gens []generatedParser) *report {
 					pa, _ := target(a)
 					return !engineSide(pa.target)
 				})
-				if chain != nil {
-					add("1a", name, rel(p), "a generated parser links neither pkg/runtime/vm nor internal/runtime/**", append(slices.Clone(head), relAll(chain)...))
+				if chain == nil {
+					continue
+				}
+				// One violation per edge into the engine side, listing the parsers that reach it.
+				full := append(slices.Clone(head), relAll(chain)...)
+				from := full[len(full)-2]
+				v := add("1a", from, rel(p), "a generated parser links neither pkg/runtime/vm nor internal/runtime/**", full)
+				if !slices.Contains(v.parsers, name) {
+					v.parsers = append(v.parsers, name)
 				}
 			}
 		}
@@ -173,6 +182,22 @@ func check(graphs []*graph, gens []generatedParser) *report {
 				for _, why := range layer2(pa.target, pb.target) {
 					add("2", rel(a), rel(b), fmt.Sprintf("%s (%s -> %s)", why, pa.target, pb.target), edge)
 				}
+			}
+			// Rule 2: only conversions and test support import more than one dialect.
+			var dialects []string
+			for _, b := range g.pkgs[a].Imports {
+				if pb, ok := places[b]; ok && inModule(b) {
+					if d := dialectOf(pb.target); d != "" && d != dialectOf(pa.target) && !slices.Contains(dialects, d) {
+						dialects = append(dialects, d)
+					}
+				}
+			}
+			if d := dialectOf(pa.target); d != "" && len(dialects) > 0 {
+				dialects = append(dialects, d)
+			}
+			if len(dialects) > 1 && !multiDialect(pa.target) {
+				slices.Sort(dialects)
+				add("2", rel(a), "dialects "+strings.Join(dialects, ", "), fmt.Sprintf("only the conversions of the middle end and the back end and test support import more than one dialect (%s)", pa.target), []string{rel(a)})
 			}
 			if importsGolib && !pa.generated && !runtimeSide(pa.target) {
 				if !placeErr[a] {
@@ -252,8 +277,13 @@ func (r *report) compare(allow []string, nbuilds int) []string {
 		if len(v.builds) < nbuilds {
 			builds = strings.Join(v.builds, ", ")
 		}
-		msgs = append(msgs, fmt.Sprintf("%s\n\tbreaks: %s\n\tchain: %s\n\tbuilds: %s",
-			k, strings.Join(v.why, "; "), strings.Join(v.chain, " -> "), builds))
+		m := fmt.Sprintf("%s\n\tbreaks: %s\n\tchain: %s\n\tbuilds: %s",
+			k, strings.Join(v.why, "; "), strings.Join(v.chain, " -> "), builds)
+		if len(v.parsers) > 0 {
+			slices.Sort(v.parsers)
+			m += "\n\tgenerated parsers: " + strings.Join(v.parsers, ", ")
+		}
+		msgs = append(msgs, m)
 	}
 	return msgs
 }
