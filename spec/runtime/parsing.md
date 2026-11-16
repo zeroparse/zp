@@ -1327,7 +1327,8 @@ The conditions below use these terms.
   when, through each of them, it evaluates the call before anything else
   that examines the input or examines nothing more there, as at the end of
   the expression of a lookahead or of the parse and at a check for the end of
-  the input; a lookahead or a dead symbol (below) there examines the input. In `main = Y "b" / B`, with
+  the input; a lookahead or a dead symbol (below) there examines the input,
+  and a predicate (`{ ... }`) there examines nothing and is passed over. In `main = Y "b" / B`, with
   `B = Y ws "x"` and `Y = "a"+ (ws ";")?`, the option in `Y` shares no call with
   what follows it, which is `"b"` through one call of `Y` and `ws "x"`
   through the other. A unit that decides every one of its continuations
@@ -1477,10 +1478,12 @@ The conditions below use these terms.
   evaluation of the expression that succeeds succeeds on the symbols of one
   path in order, each starting where the one before it ended; an expression
   that is not looked into, such as `#recover` or an Operators Rule, ends the
-  path without deciding anything. A part that no evaluation passes, such as
-  `_|_`, to which the normal view reduces `!"b" "b"`, is a **dead** symbol and
-  ends the path too: the paths also cover the evaluations that fail there, so a
-  unit that never succeeds has the paths of what it evaluates before it fails,
+  path without deciding anything. A `_|_` of the normal view, such as the one
+  to which it reduces `!"b" "b"`, is a **dead** symbol and ends the path too.
+  A predicate (`{ ... }`) examines nothing and is passed over, even one that
+  no evaluation passes, such as `{ false }`; it is not a dead symbol. The
+  paths also cover the evaluations that fail at a dead symbol, so a unit
+  that never succeeds has the paths of what it evaluates before it fails,
   and these must part like any other. The unit decides the continuation when
   every path of the unit, compared with every path of the continuation from
   their common start, passes symbols that both evaluate alike and then
