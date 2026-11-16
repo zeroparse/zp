@@ -1014,6 +1014,33 @@ through the same call place. The index between them is the memoized link of
 the two evaluations of `B`, whose unit, the expression of the lookahead,
 starts at $0$.
 
+**Outer links inside a memoized link.** Let the $j$-th link of $\sigma$ at
+$q$ be memoized and meet the hypotheses of *Links lead to repeated
+evaluations*. Then, outside cases (a) and (b) of the covered keys, no head
+holds an activation that starts while $e'_j$ is in progress. In particular,
+in the second case of *Outer links across runs*, when the index $j$ there is
+linked by such a link and $\alpha_{l'}$ starts before $e'_j$ ends, no head
+holds $\alpha_{l'}$.
+
+*Proof.* An activation $\alpha$ that starts while $e'_j$ is in progress lies
+inside $e'_j$. Let an evaluation $Z$ of a key hold $\alpha$. $Z$ and $e'_j$
+both contain $\alpha$, so one contains the other. If $Z$ contained $e'_j$ and
+were not $e'_j$, the call that makes $e'_j$, of a rule that the parse
+memoizes, would lie between $Z$ and $\alpha$, and $\alpha$ would lie outside
+the own region of $Z$. So $Z$ is $e'_j$ or lies inside it, and it holds an
+activation, $\alpha$, so by *Nothing in a memoized link is a head* it is not
+the head of its class. $\square$
+
+An activation that no head holds is held by a memoized evaluation that is not
+a head, which *Replayed activations* charges to the head of its class, or by
+no memoized evaluation, and then a growth step or an evaluation in a context
+of growths owns it (Lemma 5). In the grammar above, the second outer link lies
+in the evaluation of `B` outside the lookahead, the later evaluation of the
+memoized link between the two outer links, so no head holds its activation.
+What remains of the second case is an index $j$ that is free, linked by a leaf
+link at a position before $p$, or linked by a memoized link whose later
+evaluation ends before $\alpha_{l'}$ starts.
+
 **Calls of scan-only rules.** Let the rule $r$ of the links $i$ to $k$ be a
 scan-only rule ([Conditions for Linear
 Cost](../runtime/parsing.md#conditions-for-linear-cost)) that is not memoized
@@ -5444,7 +5471,13 @@ condition of the cost view that the [Cost View](cost-view.md) proof leaves open.
    other case the parser starts $Y_{l'}$ after $e'_l$, and an index between
    them has its unit before $p$, so the two links lie in different runs
    (*Outer links across runs*), which occurs in a grammar that the conditions
-   accept; so the outer links do not bound the runs, and the count of the
+   accept. When that index is linked by a memoized link whose later evaluation
+   is still in progress at the later outer link, no head holds the activation
+   of the later link (*Outer links inside a memoized link*), which covers that
+   grammar; an index that is free, linked by a leaf link at a position before
+   the scan, or linked by a memoized link whose later evaluation ends before
+   the later outer link is not treated. So the outer links do not bound the
+   runs, and the count of the
    runs, of the heads that start before the position of the scan and of the
    activations that one head holds stays open. Second, the leaf links when the shared call follows other
    shared calls: the continuation then leaves frames at the ends of the
