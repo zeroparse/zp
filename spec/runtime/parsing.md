@@ -1316,6 +1316,17 @@ The conditions below use these terms.
   the part after its left call. As a continuation of a unit that is not
   growing, a growing unit examines the input from that unit's start, through
   the seed.
+- An expression **can match nothing** when its form allows it, whether or not
+  an evaluation of it ever succeeds without consuming input. This holds of
+  `""`, a lookahead, a predicate, an option, a cut, an anchor, a literal
+  marked `#missing`, a repetition with a minimum of 0 or of an expression that
+  can match nothing, a sequence whose parts all can, a choice with an
+  alternative that can, an Operators Rule with an `operand` item that can, a
+  call of a rule whose body can, and a group, a capture, a `#recover` or any
+  other wrapper whose expression can. A character class, `.`, a literal that
+  is not empty and not marked `#missing`, and a `_|_` of the normal view
+  cannot. So `{ false }`, `!""` and `("a" / "") &"a"` can match nothing,
+  although no evaluation of any of them succeeds without consuming input.
 - A unit and a continuation **share** a call when, at the position where the
   unit starts examining the input, both evaluate the same call before
   anything else that examines the input, directly or as the first thing that
@@ -1499,15 +1510,17 @@ The conditions below use these terms.
   counting as one symbol; a call that is not alike stands for the paths of the
   body of its rule, each of which must part.
   The decisive symbol is one on each side that cannot both match at the
-  position: two symbols that are **disjoint**, which means that each consumes
-  input whenever it succeeds and that no character is a first character of
+  position: two symbols that are **disjoint**, which means that neither can
+  match nothing and that no character is a first character of
   both, two literals of which neither
   is a prefix of the other, or two character classes with no character in
   common; a negative lookahead `!K` on one side that the rest of the other side
   must match, in the form below, or a positive lookahead `&K` on one side
   whose expression and the
-  next symbol of the other side are disjoint, so that `&{ true }`, `&{ false }`
-  and `&""` decide nothing; a dead symbol on one side; or, in
+  next symbol of the other side are disjoint, so that a lookahead `&K` whose
+  `K` can match nothing, such as `&{ true }`, `&{ false }`, `&""`, `&(!"")` or
+  `&(("a" / "") &"a")`, decides nothing (a nested lookahead such as
+  `&(&"q")` is first reduced to `&"q"` by the normal view); a dead symbol on one side; or, in
   the continuation, the end of the parse, which costs a constant. A symbol at
   which neither side can go on is not decisive: the two do not part where each,
   before it consumes more input, reaches a dead symbol, a symbol that no
