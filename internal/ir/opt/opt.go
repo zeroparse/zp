@@ -86,6 +86,7 @@ var Flags = []Flag{
 	{Name: "class-tables", Kind: Lowering, Int: true, Default: 0, Doc: "match a class of at least this many ranges through a membership table (lean typed Go); smaller source against a slower parse, so an opt-in: 0 in speed, 5 is the measured choice"},
 	{Name: "inline-literals", Kind: Lowering, Int: true, Default: 4, Doc: "compare literals of at most this many code points in place first; 0 turns it off"},
 	{Name: "method-sharing", Kind: Printer, Default: 1, Doc: "emit one helper for generated bodies that are exactly equal (Go and TypeScript)"},
+	{Name: "used-features", Kind: Printer, Default: 1, Doc: "leave out the library code of the features that the grammar and the options rule out (Go with the embedded library); off, the parser carries every feature"},
 	{Name: "literal-sharing", Kind: Printer, Default: 1, Doc: "emit one table for equal literals (Go; TypeScript also needs ts-literal-sharing)"},
 	{Name: "ts-literal-sharing", Kind: Printer, Default: 0, Doc: "share literal tables in TypeScript parsers; off because a small cold parse measured about 1.5 times slower (design 090)"},
 	{Name: "typed-object-slabs", Kind: Runtime, Default: 1, Doc: "allocate typed objects in slabs (typed Go)"},

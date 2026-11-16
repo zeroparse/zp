@@ -268,8 +268,8 @@ Details:
   `zp`): the generated code imports `zeroparse.dev/zp/core` with either `-lib` mode, and with `-lib import` also
   `zeroparse.dev/zp/codegen/go/lib`. Both refer to the library protocol they were generated for, so a mismatched
   version fails the build on that line instead of misbehaving. With `-lib import`, `parser.go` declares
-  `const _ = rt.Protocol18`, and a library that does not implement the protocol fails with
-  `undefined: rt.Protocol18`. The embedded copy declares `const _ = coreimpl.Protocol15`, and a `core` that does
+  `const _ = rt.Protocol19`, and a library that does not implement the protocol fails with
+  `undefined: rt.Protocol19`. The embedded copy declares `const _ = coreimpl.Protocol15`, and a `core` that does
   not serve the node representation of that protocol fails with `undefined: coreimpl.Protocol15`. Regenerate the
   parser with the `zp` of the required version, or require a version of `zeroparse.dev/zp` that implements the
   protocol.
@@ -322,6 +322,7 @@ table changes output yet:
 | `class-tables` | lowering | off | Match a class of at least this many ranges through a membership table (lean typed Go); `-opt class-tables=5` is the measured choice, and 0 turns the tables off. Table data against code: about 3% smaller source, and about 1% slower parsing on the language grammars (3.7% on TypeScript). It is an opt-in |
 | `inline-literals` | lowering | 4 | Compare literals of at most four code points in place first; the number is the longest literal, and 0 turns it off. Code against calls: faster, with more code |
 | `method-sharing` | printer | on | Emit one helper for generated bodies that are exactly equal (Go and TypeScript). Code against calls: smaller source, with a call where a body was |
+| `used-features` | printer | on | Leave out the library code of the features that the grammar and the options rule out (Go with the embedded library), such as left recursion, recovery, Operators Rules, streams or Documents. Off, the parser carries every feature; what a parse returns and charges is the same either way. Smaller source and binary, no cost |
 | `literal-sharing` | printer | on | Emit one table for equal literals (Go; TypeScript also needs `ts-literal-sharing`). Smaller source against an indirection to the table |
 | `ts-literal-sharing` | printer | off | Share literal tables in TypeScript parsers. Smaller code against speed: a small cold parse measured about 1.5 times slower. It is an opt-in: turn it on with `-opt ts-literal-sharing` |
 | `typed-object-slabs` | runtime | on | Allocate typed objects in slabs (typed Go). Fewer allocations against memory: an object that escapes keeps the unused objects of its chunk |

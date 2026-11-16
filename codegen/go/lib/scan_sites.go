@@ -72,6 +72,7 @@ func (p *Parser) scanHot(site int) bool {
 // recorded end and returns the recorded count, charging one step for the lookup and one for the
 // record; otherwise it returns count, charging one step for the lookup at a hot site.
 func (p *Parser) ScanReach(site, start, count int) int {
+	p.use(FeatureScanSites)
 	w := &p.scanWalk
 	w.hot, w.hit = p.scanHot(site), false
 	if !w.hot {

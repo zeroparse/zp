@@ -67,6 +67,7 @@ var optimizationTests = map[string]string{
 	"class-tables":           "",
 	"inline-literals":        "",
 	"method-sharing":         "TestGeneratedUnsharedParsersMatchEngine",
+	"used-features":          "",
 	"literal-sharing":        "TestGeneratedUnsharedParsersMatchEngine",
 	"ts-literal-sharing":     "TestGeneratedSharingIdentity (internal/codegen)",
 	"typed-object-slabs":     "TestGeneratedTypedOutputRetentionFixture",

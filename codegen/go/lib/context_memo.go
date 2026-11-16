@@ -387,6 +387,7 @@ func (p *Parser) intern(key []byte) uint64 {
 // and level min. When r is a leader that grows there, it returns the seed, which the call reads
 // whatever its variable values; the seed is valid until the next growth begins.
 func (p *Parser) ctxEnter(c *ctxCallState, r *Rule, min int) *ctxResult {
+	p.use(FeatureLeftRecursion)
 	gp := p.gammaAt(p.Pos, r.Cycle)
 	*c = ctxCallState{gp: gp}
 	if gp == len(p.gamma) {
@@ -995,6 +996,7 @@ func (g *growState) growKey() growKey { return growKey{g.rule, g.min} }
 // the body is evaluated repeatedly, and the result at the point where the match stops growing is
 // adopted.
 func (p *Parser) growBegin(r *Rule, min int) growState {
+	p.use(FeatureLeftRecursion)
 	// One compute unit before each evaluation of the body, the seed's included.
 	p.Spend()
 	g := growState{rule: int32(r.Id), min: int32(min), start: p.Pos, rec: len(p.Recovered), gi: len(p.gamma)}

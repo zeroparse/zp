@@ -11,7 +11,7 @@
 #	hack/test-reference-tags.sh [tag...]
 #
 # Without arguments it checks every tag of the tree: each zp_ tag named in a build constraint except zp_long, the
-# long test tier. It rejects a given tag that no build constraint names, so a misspelt tag cannot pass as the
+# long test tier, and zp_feature_witness, which the tests of generated parsers set themselves. It rejects a given tag that no build constraint names, so a misspelt tag cannot pass as the
 # default build. It exits non-zero when a tag fails to build or pass. A test whose feature a tag removes skips
 # under that tag. The run takes tens of minutes.
 set -u
@@ -22,7 +22,7 @@ constrained() { # constrained [grep flags]: the Go files whose build constraint 
 if [ $# -gt 0 ]; then
 	tags="$*"
 else
-	tags=$(constrained '^//go:build .*zp_' | xargs grep -h '^//go:build' | grep -o 'zp_[a-z0-9_]*' | sort -u | grep -v '^zp_long$')
+	tags=$(constrained '^//go:build .*zp_' | xargs grep -h '^//go:build' | grep -o 'zp_[a-z0-9_]*' | sort -u | grep -v -e '^zp_long$' -e '^zp_feature_witness$')
 fi
 [ -n "$tags" ] || { echo "test-reference-tags: no reference tags found" >&2; exit 1; }
 for t in $tags; do
