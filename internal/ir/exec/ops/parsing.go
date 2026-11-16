@@ -338,19 +338,40 @@ ended, and the examined end of a Document parse.`,
 		Reads: []string{Growth, Rules}, Writes: []string{Growth}, NoReturn: true, Cost: exec.Cost{Const: 1, Terms: []exec.CostTerm{{Coef: 1, Quantity: QPresent}}},
 		Contract: `Starts the growth of the leader at the binding level min at the position from a failure,
 charging one unit: the growth is in a context when other leaders of its cycle grow at the position.`})
+	add(&exec.Op{Name: "grow.ctx", Component: Growth, Params: []exec.Param{exec.P("g", grow)}, Results: []exec.Type{exec.TBool},
+		Reads: []string{Growth},
+		Contract: `Reports whether the growth g memoizes its steps in its context (grow.next and grow.step): when
+other leaders of its cycle grow at its position, unless the parse keeps no results in contexts. A
+growth that does not takes its steps with grow.longer and grow.adopt.`})
+	add(&exec.Op{Name: "grow.longer", Component: Growth, Params: []exec.Param{exec.P("g", grow), exec.P("ok", exec.TBool)},
+		Results: []exec.Type{exec.TBool}, Reads: []string{Growth, Pos},
+		Contract: `Reports whether a step of the growth g with success ok, ending at the position, matched more
+than the seed: it succeeded, and the seed failed or ends before the position.`,
+		Requires: `grow.ctx(g) is false.`})
+	add(&exec.Op{Name: "grow.adopt", Component: Growth, Params: []exec.Param{exec.P("g", grow), exec.P("value", value)},
+		Reads: []string{Growth}, Writes: append([]string{Growth, Rec}, regs...), NoReturn: true,
+		Cost:     exec.Cost{Const: 1, Terms: []exec.CostTerm{{Coef: 1, Quantity: QSegs}}},
+		Contract: `Adopts the successful step of the growth g that ends at the position, with its value, as the
+seed of g, charging one unit: the seed holds the errors that the step recovered, as rec.since returns
+them for the mark that the growth took when it began. The position then returns to the start of the
+growth, and the entries after that mark are dropped.`,
+		Requires: `grow.ctx(g) is false and grow.longer(g, true) holds.`})
 	add(&exec.Op{Name: "grow.next", Component: Growth, Params: []exec.Param{exec.P("g", grow)}, Results: []exec.Type{exec.TBool},
 		Reads: []string{Growth}, Writes: append([]string{Growth}, regs...), NoReturn: true,
 		Cost: exec.Cost{Terms: []exec.CostTerm{{Coef: 1, Quantity: QSteps}, {Coef: 1, Quantity: QTable}, {Coef: 1, Quantity: QDeps}, {Coef: 1, Quantity: QMerge}, {Coef: 1, Quantity: QRun}}},
-		Contract: `Reports whether the body must be evaluated for the next step of the growth g. In a context
-it first takes the steps that the memoized steps and jumps of the context give, and starts recording
-what the step it reports depends on.`})
+		Contract: `Reports whether the body must be evaluated for the next step of the growth g. It first takes the
+steps that the memoized steps and jumps of the context give, and starts recording what the step it
+reports depends on.`,
+		Requires: `grow.ctx(g) holds.`})
 	add(&exec.Op{Name: "grow.step", Component: Growth, Params: []exec.Param{exec.P("g", grow), exec.P("value", value),
 		exec.P("ok", exec.TBool)}, Reads: []string{Growth}, Writes: append([]string{Growth, Rec}, regs...), NoReturn: true,
 		Cost: exec.Cost{Const: 66, Terms: []exec.CostTerm{{Coef: 1, Quantity: QMerge}, {Coef: 1, Quantity: QSegs}, {Coef: 2, Quantity: QDeps}, {Coef: 1, Quantity: QTable}, {Coef: 1, Quantity: QRun}}},
-		Contract: `Receives the result of a step of the growth g: adopts it as the seed, charging one unit, and
-returns to the start of the growth if the match grew, dropping the entries after the mark that the
-growth took when it began, and otherwise ends the growth. A step that succeeded holds the errors it
-recovered as the list that rec.since returns for that mark; a step that failed holds none.`})
+		Contract: `Receives the result of a step of the growth g: keeps it in the context, adopts it as the seed,
+charging one unit, and returns to the start of the growth if the match grew, dropping the entries after
+the mark that the growth took when it began, and otherwise ends the growth. A step that succeeded
+holds the errors it recovered as the list that rec.since returns for that mark; a step that failed
+holds none.`,
+		Requires: `grow.ctx(g) holds.`})
 	add(&exec.Op{Name: "grow.end", Component: Growth, Params: []exec.Param{exec.P("g", grow)}, Results: []exec.Type{res},
 		Reads: []string{Growth}, Writes: append([]string{Growth, Rec}, regs...), NoReturn: true, Cost: exec.Cost{Terms: []exec.CostTerm{{Coef: 1, Quantity: QRun}, {Coef: 1, Quantity: QErrs}}},
 		Contract: `Ends the growth g and returns its last seed: the position moves to its end, and its recovered
