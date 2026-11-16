@@ -74,7 +74,7 @@ There are two intermediate representations.
 
 The terms are fixed. A set of operations is a dialect: the Flow dialect, the Action dialect, the Exec dialect. A state
 of a program is a stage: Code IR at the Flow stage and Code IR at the Exec stage, or the Flow stage and the Exec stage
-where the context is clear. Neither stage is a representation of its own. "The abstract machine" is the parser machine
+where the context is clear. A stage is a state of a Code IR module. "The abstract machine" is the parser machine
 that the Exec dialect defines; "the VM" is only the bytecode VM.
 
 ```mermaid
@@ -114,8 +114,6 @@ flowchart TD
   kinds of types with their struct fields and zero values, the initial values of variables and the start rules. It is
   built at compile time from Core IR and Code IR, and a compiled file is its serialization. It holds no grammar AST, no
   type checker and no compile options, so loading a compiled file does not use the compiler.
-- There is no "checked program" layer. Its content is divided among the semantic model, Core IR and the runtime
-  program, and each piece of knowledge has one home.
 
 ### The Middle End
 
@@ -324,7 +322,7 @@ library is not imported. The passes that run on the Exec stage before any host l
 
 ### Placement Principles
 
-- **`pkg/compiler` makes executable artifacts from a grammar, and nothing else.** Lint, sampling and edit fuzzing each
+- **`pkg/compiler` makes executable artifacts from a grammar.** Lint, sampling and edit fuzzing each
   have their own vocabulary (check names and severities, generation options, the format of an edit sequence), so each
   is a small, cohesive package of its own.
 - **The grammar AST is in `pkg/grammar`.** The JSON form is a public contract of the specification, and the AST is its
@@ -448,8 +446,8 @@ flowchart TD
   - The front end imports no middle end, backend, analysis or language server; the middle end imports no backend,
     analysis or language server; a backend imports no analysis or language server.
   - The utility packages (`internal/diagnostic`, `internal/cancel`, `internal/cliflag`) may import `pkg/grammar`,
-    because diagnostics carry source positions. `internal/fixture` is not a utility: it is a tool that uses
-    `pkg/compiler`, in the layer of the public tool packages.
+    because diagnostics carry source positions. `internal/fixture` is a tool that uses `pkg/compiler`, in the
+    layer of the public tool packages.
   - Only the commands and `internal/testing` import `internal/lsp/**`. Of the non-test packages, only those inside
     `internal/testing` import `internal/testing/**`.
 - **How it is enforced.** A test in `internal/testing` runs the dependency listing of the Go tool for every package under

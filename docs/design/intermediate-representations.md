@@ -46,8 +46,7 @@ flowchart TD
 
 The split keeps two kinds of reasoning apart. Whether a rewrite preserves what the grammar means is a question about
 grammars and is answered once, on Core IR, where it is easy to state. How to turn the result into fast code is a
-question about control and about a particular runtime, and is answered on Code IR, which no longer has to be correct
-about grammars. A new target that reuses Core IR inherits the rewrites; a change to how loops are written does not touch
+question about control and about a particular runtime, and is answered on Code IR, whose rewrites rely on the meaning that Core IR has already fixed. A new target that reuses Core IR inherits the rewrites; a change to how loops are written does not touch
 them.
 
 Code IR is one representation: one structure of modules, functions, statements and expressions, one verifier, one

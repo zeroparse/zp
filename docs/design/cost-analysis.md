@@ -118,7 +118,7 @@ Three properties define its character.
   position and the variables it reads) is recognized from its body and its calls are compared by position.
 
 The classifier uses the analysis by default. The argument that the classification stays sound with it is a sketch, and
-[record 069](records/069-exclusion-analysis.md#soundness) states what it does not yet cover. Until a proof exists, the
+[record 069](records/069-exclusion-analysis.md#soundness) states the cases its argument covers. Beyond them, the
 evidence is differential: random grammars that the classifier calls linear are measured, with a family built to share
 prefixes, separators, trivia calls and lookaheads.
 
@@ -148,9 +148,9 @@ input. [Run Sites](../../spec/runtime/parsing.md#run-sites) is the contract and
 [optimization 133](../optimizations/133-run-records-of-restarted-repetitions.md) is the measurement.
 
 Run records and the classifier meet at one point: a repetition that records is not a scanning source, because its second
-walk costs a constant. The engine implements and uses run records. The classifier does not yet count them, because the
-bounds they give have no proof yet; it keeps the marking behind a switch that the tests and the measurements turn on, so
-the classes users see do not move until the classifier's use of run sites is proved. The design records say which further stages (records for the
+walk costs a constant. The engine implements and uses run records. The classifier counts them only once the bounds they give are
+proved; until then the marking is kept behind a switch that the tests and the measurements turn on, so the classes users
+see do not move. The design records say which further stages (records for the
 Operators Rule, a size argument for copying, runs in the generated runtimes) are still to do.
 
 ## Where the Pieces Are

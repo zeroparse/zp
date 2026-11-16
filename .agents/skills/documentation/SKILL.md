@@ -23,6 +23,9 @@ description: Maintain ZeroParse user documentation, contracts, design records an
   They contain no code (no listings, signatures or struct and function names; the reference docs cover code), and they
   describe language-specific parts in terms of the host language, the language of the generated parser, naming Go and
   TypeScript only as current instances.
+  Design pages describe what the target has; they do not deny what the target lacks (no "there is no layer",
+  "nothing else", "not a utility"). Keep the negative statements that are contracts the target enforces, such as
+  "the runtime never links the compiler".
 - Style: follow `docs/documentation-style.md` for page kinds, link directions,
   titles and headings, voice and terms, openings, and examples. The site tests
   enforce link directions and heading capitalization.

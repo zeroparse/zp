@@ -37,8 +37,7 @@ The packages grew with the features, and four problems follow from how they grew
 - One place for the public Go API, with a stable-in-intent contract, apart from everything internal.
 - A runtime that cannot depend on the compiler, enforced mechanically.
 - Every piece of knowledge has one home, and each structure has one printer and one verifier. A rule's policy flags and
-  site numbers come from Core IR facts. There is no "checked program" layer: its content lives in the semantic model,
-  Core IR and the runtime program.
+  site numbers come from Core IR facts.
 - A pass model that every pipeline shares, so that a pass says what it needs, what it keeps and when it applies.
 
 ## Non-Goals
@@ -113,7 +112,7 @@ compiler side. The rules, which a test enforces, are these.
    - The front end imports no middle end, backend, analysis tool or language server; the middle end imports no backend,
      analysis tool or language server; a backend imports no analysis tool or language server.
    - The utility packages (diagnostics, cancellation and command-line flag names) may import `pkg/grammar`, because
-     diagnostics carry source positions. The fixture suite of `zp test` is not a utility: it is a tool that uses the
+     diagnostics carry source positions. The fixture suite of `zp test` is a tool that uses the
      compiler, in the same layer as the public tool packages.
    - Only the commands and the repository's test support import `internal/lsp/**`, and only test support imports
      `internal/testing/**` from non-test code.

@@ -127,8 +127,8 @@ preserves, and the analyses it needs and keeps. The table is in the order the pi
 | 8 | slots | Locals share a slot only when their types are equal and their live ranges do not overlap | Liveness |
 | 9 | outline (module) | The same behavior; enabled by the size profile | Structural hashes |
 
-The Flow stage is not a control-flow graph: a pass that needs one asks the analysis manager for a graph view, so the form
-that is printed and verified stays structured. After each pass, the Flow verifier runs: it checks the structure, the
+The Flow stage stays structured: a pass that needs a control-flow graph asks the analysis manager for a graph view, so the
+form that is printed and verified is the structured one. After each pass, the Flow verifier runs: it checks the structure, the
 variables, one runtime per function, the budget invariants, recorded reads under a Document, and that a traced parse
 does not read in place.
 
@@ -232,15 +232,14 @@ Each host language has its own passes on the Exec stage, registered in the same 
 after the dialect-independent passes and before printing. The printer prints the legalized Exec stage as it is, and does
 not carry transformations as string processing or regeneration.
 
-The passes below are the examples of the two host languages of today. A host language that lacks a feature has no pass
-for it.
+The passes below are the examples of the two host languages of today. Each host language registers only the passes its features need.
 
 - **Shared by the host languages**, in the dialect-independent passes: specialization and simplification, dead store
   elimination, reachability after printing, and sharing of identical helpers and literal tables.
 - **Go only**: legalizing the scope of `goto` and of declarations (locals are enclosed so that no `goto` jumps over a
   declaration), grouping variable declarations, encoding terminal regions as tables, turning literal comparisons into a
   `switch`, comparing fields in typed Go, removing unused helpers, and adjusting the shape of Operators Rule loops.
-- **TypeScript only**: structuring with labeled blocks and `for(;;)` (there is no `goto`, so an exit is a labeled break),
+- **TypeScript only**: structuring with labeled blocks and `for(;;)` (an exit from a loop is a labeled break),
   outlining large frame functions, its own decision on sharing literal tables, and specializing the conversion to typed
   values.
 
