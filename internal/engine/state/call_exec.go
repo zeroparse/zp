@@ -70,7 +70,10 @@ func (p *Parser) Call(r *Rule, min int) (*core.Node, bool) {
 // Printed from Exec IR function firstCall of internal/ir/exec/core.
 func (p *Parser) FirstCall(r *Rule) bool {
 	s := r.Seen
-	return p.DeferMemo && s >= 0 && p.memoFirstCall(p.Pos, s)
+	if !(p.DeferMemo && s >= 0) {
+		return false
+	}
+	return p.memoFirstCall(p.Pos, s)
 }
 
 // callDoc is engineCall for a parse that reads a Document. Under the default limit, what a
