@@ -6,8 +6,8 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/core"
-	"zeroparse.dev/zp/internal/codegentest"
 	"zeroparse.dev/zp/internal/engine/state"
+	"zeroparse.dev/zp/internal/testing/codegentest"
 )
 
 // TestUnsetFieldsReadZero pins the value of each field type that a constructor left unset, on every

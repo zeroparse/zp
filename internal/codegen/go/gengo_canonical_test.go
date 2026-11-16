@@ -5,7 +5,7 @@ import (
 	"strings"
 	"testing"
 
-	"zeroparse.dev/zp/internal/codegentest"
+	"zeroparse.dev/zp/internal/testing/codegentest"
 )
 
 // TestCanonicalValues checks the canonical forms on hand-written values: a pair of values that

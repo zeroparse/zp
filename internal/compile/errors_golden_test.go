@@ -6,8 +6,8 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/internal/desugar"
-	"zeroparse.dev/zp/internal/factstest"
 	"zeroparse.dev/zp/internal/syntax"
+	"zeroparse.dev/zp/internal/testing/factstest"
 )
 
 // TestErrorsGolden pins the error lists of grammars with errors of several kinds: type errors

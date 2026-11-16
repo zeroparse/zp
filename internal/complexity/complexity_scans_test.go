@@ -9,8 +9,8 @@ import (
 	"zeroparse.dev/zp/internal/grammaranalysis"
 
 	"zeroparse.dev/zp/grammar"
-	"zeroparse.dev/zp/internal/starttest"
 	"zeroparse.dev/zp/internal/syntax"
+	"zeroparse.dev/zp/internal/testing/starttest"
 )
 
 // TestRunFlow checks the algebra of the transfer functions of the run length: a bound stays a bound

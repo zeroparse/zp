@@ -6,7 +6,7 @@ import (
 	"strings"
 	"testing"
 
-	"zeroparse.dev/zp/internal/codegentest"
+	"zeroparse.dev/zp/internal/testing/codegentest"
 )
 
 // TestFlowNodeDocumentMutants checks that the checks notice a Flow build that reads input in place in a

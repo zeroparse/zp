@@ -14,8 +14,8 @@ import (
 
 	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/codegen"
-	"zeroparse.dev/zp/internal/codegentest"
 	genopt "zeroparse.dev/zp/internal/ir/opt"
+	"zeroparse.dev/zp/internal/testing/codegentest"
 )
 
 // optimizationCases are grammars on which the optimizations of lean typed Go act, with inputs at their

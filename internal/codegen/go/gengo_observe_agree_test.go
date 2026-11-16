@@ -14,8 +14,8 @@ import (
 
 	"zeroparse.dev/zp/core"
 	"zeroparse.dev/zp/internal/codegen"
-	"zeroparse.dev/zp/internal/codegentest"
 	"zeroparse.dev/zp/internal/engine"
+	"zeroparse.dev/zp/internal/testing/codegentest"
 )
 
 // The engine and the generated Go parsers report the calls of a parse with the same events and add them

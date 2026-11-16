@@ -9,7 +9,7 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/internal/codegen/go/lib"
-	"zeroparse.dev/zp/internal/codegentest"
+	"zeroparse.dev/zp/internal/testing/codegentest"
 )
 
 func TestMain(m *testing.M) {

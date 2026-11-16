@@ -7,7 +7,7 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/internal/codegen"
-	"zeroparse.dev/zp/internal/codegentest"
+	"zeroparse.dev/zp/internal/testing/codegentest"
 )
 
 // The default budget of a generated stream follows the furthest position the parser demands, so that

@@ -6,8 +6,8 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/internal/codegen"
-	"zeroparse.dev/zp/internal/codegentest"
 	genopt "zeroparse.dev/zp/internal/ir/opt"
+	"zeroparse.dev/zp/internal/testing/codegentest"
 )
 
 // tsModes are the ways a TypeScript parser is generated, which take different routes.

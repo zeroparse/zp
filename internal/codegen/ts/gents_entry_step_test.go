@@ -4,7 +4,7 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/internal/codegen"
-	"zeroparse.dev/zp/internal/codegentest"
+	"zeroparse.dev/zp/internal/testing/codegentest"
 )
 
 // A rule call costs one step at its entry. A rule that reads no captures and takes callBody's unmemoized

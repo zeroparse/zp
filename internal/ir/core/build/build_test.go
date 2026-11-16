@@ -8,9 +8,9 @@ import (
 
 	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/compile"
-	"zeroparse.dev/zp/internal/compiletest"
 	"zeroparse.dev/zp/internal/ir/core"
 	"zeroparse.dev/zp/internal/ir/core/build"
+	"zeroparse.dev/zp/internal/testing/compiletest"
 )
 
 func TestCoreBuildShapes(t *testing.T) {

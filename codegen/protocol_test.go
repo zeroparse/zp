@@ -14,7 +14,7 @@ import (
 	"zeroparse.dev/zp/codegen"
 	"zeroparse.dev/zp/engine"
 	igen "zeroparse.dev/zp/internal/codegen"
-	"zeroparse.dev/zp/internal/codegentest"
+	"zeroparse.dev/zp/internal/testing/codegentest"
 )
 
 func TestMain(m *testing.M) {

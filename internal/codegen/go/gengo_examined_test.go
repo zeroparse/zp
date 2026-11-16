@@ -13,8 +13,8 @@ import (
 
 	"zeroparse.dev/zp/core"
 	"zeroparse.dev/zp/internal/codegen"
-	"zeroparse.dev/zp/internal/codegentest"
 	"zeroparse.dev/zp/internal/engine"
+	"zeroparse.dev/zp/internal/testing/codegentest"
 )
 
 // The examined end of a call in an observed parse is exact: every unit of input that can change the

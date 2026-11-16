@@ -118,13 +118,13 @@ var layout = []place{
 	{pkg: "internal/value", target: "internal/runtime/nodes"},
 
 	// Test support.
-	{pkg: "internal/codegentest", target: "internal/testing/codegentest"},
-	{pkg: "internal/compiletest", target: "internal/testing/compiletest"},
-	{pkg: "internal/complexitytest", target: "internal/testing/complexitytest"},
-	{pkg: "internal/enginetest", target: "internal/testing/enginetest"},
-	{pkg: "internal/factstest", target: "internal/testing/factstest"},
-	{pkg: "internal/recoveryquality", target: "internal/testing/recoveryquality"},
-	{pkg: "internal/starttest", target: "internal/testing/starttest"},
+	{pkg: "internal/testing/codegentest", target: "internal/testing/codegentest"},
+	{pkg: "internal/testing/compiletest", target: "internal/testing/compiletest"},
+	{pkg: "internal/testing/complexitytest", target: "internal/testing/complexitytest"},
+	{pkg: "internal/testing/enginetest", target: "internal/testing/enginetest"},
+	{pkg: "internal/testing/factstest", target: "internal/testing/factstest"},
+	{pkg: "internal/testing/recoveryquality", target: "internal/testing/recoveryquality"},
+	{pkg: "internal/testing/starttest", target: "internal/testing/starttest"},
 	// The printer tests of the Exec dialect are test support of the back ends.
 	{pkg: "internal/ir/exec/printtest", target: "internal/testing/exectest"},
 	{pkg: "internal/testing/...", target: "internal/testing"},

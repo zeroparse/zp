@@ -6,7 +6,7 @@ import (
 
 	"zeroparse.dev/zp/internal/bytecode"
 	"zeroparse.dev/zp/internal/compile"
-	"zeroparse.dev/zp/internal/enginetest"
+	"zeroparse.dev/zp/internal/testing/enginetest"
 )
 
 // TestModuleZeroDescriptorValidation checks that a module whose zero descriptors are not well formed

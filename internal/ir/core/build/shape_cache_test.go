@@ -7,9 +7,9 @@ import (
 	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/check"
 	"zeroparse.dev/zp/internal/compile"
-	"zeroparse.dev/zp/internal/compiletest"
-	"zeroparse.dev/zp/internal/factstest"
 	"zeroparse.dev/zp/internal/grammaranalysis"
+	"zeroparse.dev/zp/internal/testing/compiletest"
+	"zeroparse.dev/zp/internal/testing/factstest"
 )
 
 // TestShapeCacheFacts checks that the shape cache the build uses gives every expression of every

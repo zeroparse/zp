@@ -13,8 +13,8 @@ import (
 	"zeroparse.dev/zp/core"
 	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/bytecode"
-	"zeroparse.dev/zp/internal/codegentest"
 	"zeroparse.dev/zp/internal/engine/state"
+	"zeroparse.dev/zp/internal/testing/codegentest"
 )
 
 // moduleRuleNames returns the names of the rules of m in order, each once: value-free twins follow

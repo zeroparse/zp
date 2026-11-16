@@ -9,8 +9,8 @@ import (
 	"unicode/utf8"
 
 	"zeroparse.dev/zp/core"
-	"zeroparse.dev/zp/internal/codegentest"
 	"zeroparse.dev/zp/internal/engine/state"
+	"zeroparse.dev/zp/internal/testing/codegentest"
 )
 
 // traceLines parses input with a trace and returns one line per event:

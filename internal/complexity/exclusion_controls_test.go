@@ -5,8 +5,8 @@ import (
 	"zeroparse.dev/zp/internal/complexity"
 
 	"zeroparse.dev/zp/engine"
-	"zeroparse.dev/zp/internal/complexitytest"
-	"zeroparse.dev/zp/internal/starttest"
+	"zeroparse.dev/zp/internal/testing/complexitytest"
+	"zeroparse.dev/zp/internal/testing/starttest"
 )
 
 // TestExclusionControls classifies the complexity controls with the defaults of the classifier

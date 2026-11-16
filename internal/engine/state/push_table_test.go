@@ -6,8 +6,8 @@ import (
 
 	"zeroparse.dev/zp/core"
 	"zeroparse.dev/zp/internal/compile"
-	"zeroparse.dev/zp/internal/compiletest"
 	"zeroparse.dev/zp/internal/ir/exec/conform"
+	"zeroparse.dev/zp/internal/testing/compiletest"
 )
 
 // TestEngineValuePushTable runs the push table (conform.PushCases) on the engine's compositions push and

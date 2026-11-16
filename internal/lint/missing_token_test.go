@@ -4,8 +4,8 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/internal/engine"
-	"zeroparse.dev/zp/internal/starttest"
 	"zeroparse.dev/zp/internal/syntax"
+	"zeroparse.dev/zp/internal/testing/starttest"
 )
 
 func TestMissingTokenDoesNotProveAChoiceShadowed(t *testing.T) {

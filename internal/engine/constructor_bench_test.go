@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"testing"
 
-	"zeroparse.dev/zp/internal/codegentest"
 	"zeroparse.dev/zp/internal/compile"
+	"zeroparse.dev/zp/internal/testing/codegentest"
 )
 
 // BenchmarkNodeListConstruction compares explicit element types with the

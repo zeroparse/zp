@@ -6,9 +6,9 @@ import (
 	"zeroparse.dev/zp/core"
 	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/codegen"
-	"zeroparse.dev/zp/internal/codegentest"
 	"zeroparse.dev/zp/internal/compile"
 	"zeroparse.dev/zp/internal/engine"
+	"zeroparse.dev/zp/internal/testing/codegentest"
 )
 
 func TestSourceGroupsExecutableParity(t *testing.T) {

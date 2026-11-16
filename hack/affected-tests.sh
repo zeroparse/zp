@@ -34,8 +34,8 @@ while i < len(s):
 rel = {p: os.path.relpath(o["Dir"], root) for p, o in pk.items()}
 bydir = {r: p for p, r in rel.items()}
 HEAVY = ["internal/codegen", "internal/codegen/go", "internal/codegen/ts", "internal/engine", "codegen/go/lib",
-         "internal/complexitytest", "spec/language", "codegen", "bench", "internal/compile"]
-HEAVY_TRIG = ("codegen/go/lib/", "codegen/ts/lib/", "core/", "internal/codegentest/")
+         "internal/testing/complexitytest", "spec/language", "codegen", "bench", "internal/compile"]
+HEAVY_TRIG = ("codegen/go/lib/", "codegen/ts/lib/", "core/", "internal/testing/codegentest/")
 rev = {p: set() for p in pk}
 for p, o in pk.items():
     for q in (o.get("Imports") or []) + (o.get("TestImports") or []) + (o.get("XTestImports") or []):

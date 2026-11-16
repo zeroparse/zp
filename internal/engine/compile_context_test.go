@@ -10,10 +10,10 @@ import (
 	"zeroparse.dev/zp/internal/diagnostic"
 
 	"zeroparse.dev/zp/grammar"
-	"zeroparse.dev/zp/internal/codegentest"
 	"zeroparse.dev/zp/internal/compile"
 	ir "zeroparse.dev/zp/internal/ir/core"
 	corebuild "zeroparse.dev/zp/internal/ir/core/build"
+	"zeroparse.dev/zp/internal/testing/codegentest"
 )
 
 // Cancel at a deterministic poll, without timing or global compiler hooks.

@@ -6,7 +6,7 @@ import (
 
 	"zeroparse.dev/zp/internal/codegen"
 	"zeroparse.dev/zp/internal/codegen/ts"
-	"zeroparse.dev/zp/internal/codegentest"
+	"zeroparse.dev/zp/internal/testing/codegentest"
 )
 
 // TestMissingTokensInsertionOnlyLeftRecursionRejected checks that a grammar whose left recursion

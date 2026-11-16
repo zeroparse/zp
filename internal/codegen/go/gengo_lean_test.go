@@ -12,9 +12,9 @@ import (
 	"zeroparse.dev/zp/core"
 	"zeroparse.dev/zp/internal/codegen"
 	"zeroparse.dev/zp/internal/codegen/go"
-	"zeroparse.dev/zp/internal/codegentest"
 	"zeroparse.dev/zp/internal/compile"
 	"zeroparse.dev/zp/internal/engine"
+	"zeroparse.dev/zp/internal/testing/codegentest"
 )
 
 // External rule-table entry and nested direct calls must count the same rule

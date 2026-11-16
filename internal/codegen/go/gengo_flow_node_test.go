@@ -10,8 +10,8 @@ import (
 
 	"zeroparse.dev/zp/internal/codegen"
 	"zeroparse.dev/zp/internal/codegen/go"
-	"zeroparse.dev/zp/internal/codegentest"
 	"zeroparse.dev/zp/internal/compile"
+	"zeroparse.dev/zp/internal/testing/codegentest"
 )
 
 // The rules of the Node table are printed from Flow IR (the lean value-free rules by the same route

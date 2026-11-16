@@ -7,7 +7,7 @@ import (
 	"regexp"
 	"testing"
 
-	"zeroparse.dev/zp/internal/codegentest"
+	"zeroparse.dev/zp/internal/testing/codegentest"
 )
 
 // hotInline lists the methods and functions that generated parsers call on their hot paths. A

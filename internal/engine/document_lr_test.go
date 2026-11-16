@@ -4,9 +4,9 @@ import (
 	"strings"
 	"testing"
 
-	"zeroparse.dev/zp/internal/codegentest"
 	"zeroparse.dev/zp/internal/compile"
 	"zeroparse.dev/zp/internal/engine/state"
+	"zeroparse.dev/zp/internal/testing/codegentest"
 )
 
 // TestDocumentSeedDependentResultsNotInMemo checks the invariant that lets a Document keep its

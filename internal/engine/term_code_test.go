@@ -9,8 +9,8 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/internal/bytecode"
-	"zeroparse.dev/zp/internal/codegentest"
 	"zeroparse.dev/zp/internal/engine/vm"
+	"zeroparse.dev/zp/internal/testing/codegentest"
 )
 
 // cloneTerms returns a copy of the term code ts that shares no slice with it.

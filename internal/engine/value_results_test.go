@@ -4,8 +4,8 @@ import (
 	"strings"
 	"testing"
 
-	"zeroparse.dev/zp/internal/codegentest"
 	"zeroparse.dev/zp/internal/compile"
+	"zeroparse.dev/zp/internal/testing/codegentest"
 )
 
 func TestValueResultsAcrossBackends(t *testing.T) {

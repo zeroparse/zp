@@ -8,8 +8,8 @@ import (
 	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/codegen"
 	"zeroparse.dev/zp/internal/codegen/go"
-	"zeroparse.dev/zp/internal/codegentest"
 	"zeroparse.dev/zp/internal/compile"
+	"zeroparse.dev/zp/internal/testing/codegentest"
 )
 
 // hasCaptureOfRepeat reports a capture of a repetition in e, the shape that Core IR projects in the Node table.

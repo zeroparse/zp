@@ -8,7 +8,7 @@ import (
 
 	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/compile"
-	"zeroparse.dev/zp/internal/compiletest"
+	"zeroparse.dev/zp/internal/testing/compiletest"
 	"zeroparse.dev/zp/schema"
 )
 

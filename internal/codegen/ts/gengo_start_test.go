@@ -7,7 +7,7 @@ import (
 	"zeroparse.dev/zp/internal/syntax"
 
 	"zeroparse.dev/zp/internal/codegen"
-	"zeroparse.dev/zp/internal/codegentest"
+	"zeroparse.dev/zp/internal/testing/codegentest"
 )
 
 // startEntryWant is what the interpreter reports for each of startEntryNames, one line each.

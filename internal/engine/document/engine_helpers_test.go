@@ -16,8 +16,8 @@ import (
 	"zeroparse.dev/zp/internal/compile"
 	. "zeroparse.dev/zp/internal/engine"
 	"zeroparse.dev/zp/internal/engine/state"
-	"zeroparse.dev/zp/internal/starttest"
 	"zeroparse.dev/zp/internal/syntax"
+	"zeroparse.dev/zp/internal/testing/starttest"
 )
 
 // The tests in this file's package parse with the engine's programs. These helpers are the

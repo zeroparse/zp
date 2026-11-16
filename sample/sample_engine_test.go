@@ -5,8 +5,8 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/engine"
-	"zeroparse.dev/zp/internal/codegentest"
-	"zeroparse.dev/zp/internal/starttest"
+	"zeroparse.dev/zp/internal/testing/codegentest"
+	"zeroparse.dev/zp/internal/testing/starttest"
 	"zeroparse.dev/zp/sample"
 )
 

@@ -9,9 +9,9 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/internal/codegen"
-	"zeroparse.dev/zp/internal/codegentest"
 	"zeroparse.dev/zp/internal/engine"
 	"zeroparse.dev/zp/internal/syntax"
+	"zeroparse.dev/zp/internal/testing/codegentest"
 )
 
 // TestGeneratedParsersMatchEngine checks that generated parsers return the same results as the engine:

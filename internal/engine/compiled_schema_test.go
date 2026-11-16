@@ -12,9 +12,9 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/internal/bytecode"
-	"zeroparse.dev/zp/internal/codegentest"
 	"zeroparse.dev/zp/internal/compile"
 	ischema "zeroparse.dev/zp/internal/schema"
+	"zeroparse.dev/zp/internal/testing/codegentest"
 )
 
 // schemaJSON exports the schema of p for start, or every rule with allRules, as canonical JSON.

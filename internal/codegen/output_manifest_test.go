@@ -15,7 +15,7 @@ import (
 
 	"zeroparse.dev/zp/codegen"
 	"zeroparse.dev/zp/engine"
-	"zeroparse.dev/zp/internal/codegentest"
+	"zeroparse.dev/zp/internal/testing/codegentest"
 )
 
 // manifestFile is the checked-in manifest of the generated output of manifestGrammars in every

@@ -3,7 +3,7 @@
 package engine
 
 import (
-	"zeroparse.dev/zp/internal/codegentest"
+	"zeroparse.dev/zp/internal/testing/codegentest"
 
 	"testing"
 

@@ -6,7 +6,7 @@ import (
 
 	"zeroparse.dev/zp/internal/bytecode"
 	"zeroparse.dev/zp/internal/compile"
-	"zeroparse.dev/zp/internal/compiletest"
+	"zeroparse.dev/zp/internal/testing/compiletest"
 )
 
 // A module whose rule converts its value to a type that is not a named node type is rejected.

@@ -10,8 +10,8 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/internal/codegen"
-	"zeroparse.dev/zp/internal/codegentest"
 	"zeroparse.dev/zp/internal/ir/exec/conform"
+	"zeroparse.dev/zp/internal/testing/codegentest"
 )
 
 // castScript checks the cases of cases.json on the TypeScript library (Parser.fieldConforms, printed from the

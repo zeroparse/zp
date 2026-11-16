@@ -6,7 +6,7 @@ import (
 
 	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/compile"
-	"zeroparse.dev/zp/internal/compiletest"
+	"zeroparse.dev/zp/internal/testing/compiletest"
 )
 
 // compileStatic compiles g as the engine does, without building matchers.

@@ -4,13 +4,13 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/internal/compile"
-	"zeroparse.dev/zp/internal/compiletest"
-	"zeroparse.dev/zp/internal/factstest"
 	"zeroparse.dev/zp/internal/frontend"
 	"zeroparse.dev/zp/internal/ir/core"
 	"zeroparse.dev/zp/internal/ir/core/build"
 	"zeroparse.dev/zp/internal/ir/core/facts"
 	"zeroparse.dev/zp/internal/syntax"
+	"zeroparse.dev/zp/internal/testing/compiletest"
+	"zeroparse.dev/zp/internal/testing/factstest"
 )
 
 // variants are the compiler options that change the Core IR of a grammar.

@@ -9,7 +9,7 @@ import (
 	"sync/atomic"
 	"testing"
 
-	"zeroparse.dev/zp/internal/codegentest"
+	"zeroparse.dev/zp/internal/testing/codegentest"
 )
 
 // TestTermChargeGoldensDetectBrokenCharges checks that the term charge goldens notice generated Go that

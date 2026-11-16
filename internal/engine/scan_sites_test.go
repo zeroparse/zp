@@ -12,9 +12,9 @@ import (
 
 	"zeroparse.dev/zp/core"
 	"zeroparse.dev/zp/internal/bytecode"
-	"zeroparse.dev/zp/internal/codegentest"
 	"zeroparse.dev/zp/internal/compile"
 	"zeroparse.dev/zp/internal/engine/state"
+	"zeroparse.dev/zp/internal/testing/codegentest"
 )
 
 // scanSiteGrammars are the grammars with scan sites of the tests of all targets.

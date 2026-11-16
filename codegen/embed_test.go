@@ -9,7 +9,7 @@ import (
 
 	"zeroparse.dev/zp/codegen"
 	"zeroparse.dev/zp/engine"
-	"zeroparse.dev/zp/internal/codegentest"
+	"zeroparse.dev/zp/internal/testing/codegentest"
 )
 
 // TestGenerateGoEmbeddedPackageBuilds generates a parser with the library embedded, as zp gen does

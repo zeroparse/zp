@@ -5,16 +5,16 @@ import (
 
 	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/compile"
-	"zeroparse.dev/zp/internal/compiletest"
-	"zeroparse.dev/zp/internal/factstest"
 	"zeroparse.dev/zp/internal/ir/core"
 	"zeroparse.dev/zp/internal/ir/core/build"
 	"zeroparse.dev/zp/internal/ir/core/facts"
+	"zeroparse.dev/zp/internal/testing/compiletest"
+	"zeroparse.dev/zp/internal/testing/factstest"
 )
 
 // TestFactsGolden computes the facts of every corpus grammar on its Core IR module, with the
 // rules' policies cleared so that no fact is read back from compilation, and compares them byte
-// for byte with the pinned facts (internal/factstest).
+// for byte with the pinned facts (internal/testing/factstest).
 func TestFactsGolden(t *testing.T) {
 	t.Parallel()
 	for _, path := range factstest.Corpus {

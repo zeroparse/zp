@@ -2,7 +2,7 @@ package codegen_test
 
 import (
 	"zeroparse.dev/zp/engine"
-	"zeroparse.dev/zp/internal/starttest"
+	"zeroparse.dev/zp/internal/testing/starttest"
 )
 
 // compileTestSource compiles ZeroParse source as engine.CompileSource does, for a test whose subject is

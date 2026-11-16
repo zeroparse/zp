@@ -9,8 +9,8 @@ import (
 	"strings"
 	"testing"
 
-	"zeroparse.dev/zp/internal/factstest"
 	"zeroparse.dev/zp/internal/syntax"
+	"zeroparse.dev/zp/internal/testing/factstest"
 )
 
 // TestLintGolden pins the findings, with the cost classification, of the grammars in testdata and

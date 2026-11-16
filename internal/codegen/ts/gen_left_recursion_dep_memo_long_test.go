@@ -9,7 +9,7 @@ import (
 	"time"
 
 	"zeroparse.dev/zp/internal/codegen"
-	"zeroparse.dev/zp/internal/codegentest"
+	"zeroparse.dev/zp/internal/testing/codegentest"
 )
 
 // depMemoTSMutations are the changes of the TypeScript library for the negative controls of

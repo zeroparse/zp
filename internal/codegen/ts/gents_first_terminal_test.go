@@ -3,7 +3,7 @@ package tsgen_test
 import (
 	"testing"
 
-	"zeroparse.dev/zp/internal/codegentest"
+	"zeroparse.dev/zp/internal/testing/codegentest"
 )
 
 // TestGeneratedTSLookaheadHasNoFirstTerminal checks that a generated TypeScript parser does not

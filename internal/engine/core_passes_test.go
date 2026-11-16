@@ -4,9 +4,9 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/internal/codegen/go"
-	"zeroparse.dev/zp/internal/codegentest"
 	"zeroparse.dev/zp/internal/ir/core"
 	irbuild "zeroparse.dev/zp/internal/ir/core/build"
+	"zeroparse.dev/zp/internal/testing/codegentest"
 )
 
 // coreBreak is a negative control: a pass broken on purpose, which the comparison with the frozen

@@ -10,8 +10,8 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/internal/codegen"
-	"zeroparse.dev/zp/internal/codegentest"
 	"zeroparse.dev/zp/internal/syntax"
+	"zeroparse.dev/zp/internal/testing/codegentest"
 )
 
 // Generated Go parsers enter only start rules, by name or by default, with the interpreter's errors.

@@ -6,10 +6,10 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/internal/compile"
-	"zeroparse.dev/zp/internal/compiletest"
-	"zeroparse.dev/zp/internal/factstest"
 	"zeroparse.dev/zp/internal/ir/core"
 	"zeroparse.dev/zp/internal/ir/core/build"
+	"zeroparse.dev/zp/internal/testing/compiletest"
+	"zeroparse.dev/zp/internal/testing/factstest"
 )
 
 // TestTwinBodies checks that the value-free twin of every rule of the corpus grammars has the

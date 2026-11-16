@@ -11,8 +11,8 @@ import (
 	"time"
 
 	"zeroparse.dev/zp/core"
-	"zeroparse.dev/zp/internal/codegentest"
 	"zeroparse.dev/zp/internal/engine/state"
+	"zeroparse.dev/zp/internal/testing/codegentest"
 )
 
 // docLines is a grammar of the class Linear whose rules are all transient, so that a fresh parse does

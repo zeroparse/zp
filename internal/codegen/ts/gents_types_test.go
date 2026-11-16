@@ -11,7 +11,7 @@ import (
 
 	"zeroparse.dev/zp/internal/codegen"
 	"zeroparse.dev/zp/internal/codegen/ts"
-	"zeroparse.dev/zp/internal/codegentest"
+	"zeroparse.dev/zp/internal/testing/codegentest"
 )
 
 func runTypedTSFixture(t *testing.T, src, consumer string, opts codegen.GenOptions, keep string) {

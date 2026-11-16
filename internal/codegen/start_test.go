@@ -6,10 +6,10 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/internal/codegen"
-	"zeroparse.dev/zp/internal/codegentest"
 	"zeroparse.dev/zp/internal/desugar"
 	"zeroparse.dev/zp/internal/engine"
 	"zeroparse.dev/zp/internal/syntax"
+	"zeroparse.dev/zp/internal/testing/codegentest"
 )
 
 // A hidden rule cannot be a start rule: @start on it is an error at the

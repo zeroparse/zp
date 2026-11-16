@@ -11,9 +11,9 @@ import (
 
 	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/codegen"
-	"zeroparse.dev/zp/internal/codegentest"
 	"zeroparse.dev/zp/internal/compile"
 	"zeroparse.dev/zp/internal/syntax"
+	"zeroparse.dev/zp/internal/testing/codegentest"
 )
 
 // documentEdit is an edit of a Document in the script of TestTSDocumentMatchesFreshParse: [Start,End)

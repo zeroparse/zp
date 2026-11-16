@@ -9,7 +9,7 @@ import (
 
 	"zeroparse.dev/zp/engine"
 	"zeroparse.dev/zp/internal/compile"
-	"zeroparse.dev/zp/internal/compiletest"
+	"zeroparse.dev/zp/internal/testing/compiletest"
 )
 
 // TestBodyEvaluationsReplay checks, on the sample inputs of the grammars in testdata/grammars and

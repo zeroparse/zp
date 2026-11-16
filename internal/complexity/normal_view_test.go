@@ -7,9 +7,9 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/grammar"
-	"zeroparse.dev/zp/internal/factstest"
 	"zeroparse.dev/zp/internal/grammaranalysis"
 	"zeroparse.dev/zp/internal/syntax"
+	"zeroparse.dev/zp/internal/testing/factstest"
 )
 
 // viewOf returns the view of the body of rule main of src with opts, and the rewrites of each

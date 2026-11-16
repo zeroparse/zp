@@ -8,8 +8,8 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/internal/compile"
-	"zeroparse.dev/zp/internal/starttest"
 	"zeroparse.dev/zp/internal/syntax"
+	"zeroparse.dev/zp/internal/testing/starttest"
 )
 
 // nestingRestarts are grammars whose cost is quadratic because a unit restarts a nesting: the

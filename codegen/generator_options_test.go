@@ -4,9 +4,9 @@ import (
 	"reflect"
 	"testing"
 
-	"zeroparse.dev/zp/internal/codegentest"
 	"zeroparse.dev/zp/internal/compile"
-	"zeroparse.dev/zp/internal/compiletest"
+	"zeroparse.dev/zp/internal/testing/codegentest"
+	"zeroparse.dev/zp/internal/testing/compiletest"
 )
 
 // TestGeneratorRecognizerCarriesEveryOption compiles a grammar for the generators with each

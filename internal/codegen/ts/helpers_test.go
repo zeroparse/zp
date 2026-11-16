@@ -3,7 +3,7 @@ package tsgen_test
 import (
 	"zeroparse.dev/zp/internal/compile"
 	"zeroparse.dev/zp/internal/engine"
-	"zeroparse.dev/zp/internal/enginetest"
+	"zeroparse.dev/zp/internal/testing/enginetest"
 )
 
 // The tests of this package compile the grammars that they generate parsers for with the engine,

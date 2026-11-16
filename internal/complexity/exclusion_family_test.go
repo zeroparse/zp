@@ -6,8 +6,8 @@ import (
 
 	"zeroparse.dev/zp/engine"
 	"zeroparse.dev/zp/grammar"
-	"zeroparse.dev/zp/internal/complexitytest"
-	"zeroparse.dev/zp/internal/starttest"
+	"zeroparse.dev/zp/internal/testing/complexitytest"
+	"zeroparse.dev/zp/internal/testing/starttest"
 )
 
 // TestSharedContinuationsFlip checks that the classifier's use of the exclusion analysis changes

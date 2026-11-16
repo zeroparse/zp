@@ -5,9 +5,9 @@ import (
 
 	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/compile"
-	"zeroparse.dev/zp/internal/compiletest"
 	"zeroparse.dev/zp/internal/desugar"
 	"zeroparse.dev/zp/internal/diagnostic"
+	"zeroparse.dev/zp/internal/testing/compiletest"
 )
 
 // rejected are grammars that the compiler rejects for the errors that depend on the facts and on

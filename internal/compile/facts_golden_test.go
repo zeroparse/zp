@@ -5,13 +5,13 @@ import (
 
 	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/desugar"
-	"zeroparse.dev/zp/internal/factstest"
-	"zeroparse.dev/zp/internal/starttest"
 	"zeroparse.dev/zp/internal/syntax"
+	"zeroparse.dev/zp/internal/testing/factstest"
+	"zeroparse.dev/zp/internal/testing/starttest"
 )
 
 // TestFactsGolden pins the grammar facts that compilation computes for the repository's grammars
-// (internal/factstest).
+// (internal/testing/factstest).
 func TestFactsGolden(t *testing.T) {
 	t.Parallel()
 	for _, path := range factstest.Corpus {

@@ -5,9 +5,9 @@ import (
 
 	"zeroparse.dev/zp/core"
 	"zeroparse.dev/zp/internal/compile"
-	"zeroparse.dev/zp/internal/compiletest"
 	ir "zeroparse.dev/zp/internal/ir/core"
 	"zeroparse.dev/zp/internal/ir/exec/conform"
+	"zeroparse.dev/zp/internal/testing/compiletest"
 )
 
 // TestEngineValueIterTable runs the iteration table (conform.IterCases) on the engine's compositions itemAt and

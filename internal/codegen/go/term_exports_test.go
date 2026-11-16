@@ -11,7 +11,7 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/internal/codegen/go"
-	"zeroparse.dev/zp/internal/codegentest"
+	"zeroparse.dev/zp/internal/testing/codegentest"
 )
 
 // TestTermExportsGolden pins the identifiers of the library that exist only for the terms that

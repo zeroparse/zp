@@ -9,7 +9,7 @@ import (
 	"time"
 
 	"zeroparse.dev/zp/internal/codegen"
-	"zeroparse.dev/zp/internal/codegentest"
+	"zeroparse.dev/zp/internal/testing/codegentest"
 )
 
 // TestGeneratedTSLeftRecursionMemberMemoLinear checks that generated TypeScript parsers memoize

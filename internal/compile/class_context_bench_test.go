@@ -5,7 +5,7 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/grammar"
-	"zeroparse.dev/zp/internal/starttest"
+	"zeroparse.dev/zp/internal/testing/starttest"
 )
 
 func BenchmarkClassCompileCancellation(b *testing.B) {

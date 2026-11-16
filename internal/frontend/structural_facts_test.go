@@ -8,11 +8,11 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/internal/compile"
-	"zeroparse.dev/zp/internal/compiletest"
 	"zeroparse.dev/zp/internal/desugar"
-	"zeroparse.dev/zp/internal/factstest"
 	"zeroparse.dev/zp/internal/ir/core/build"
 	"zeroparse.dev/zp/internal/ir/core/facts"
+	"zeroparse.dev/zp/internal/testing/compiletest"
+	"zeroparse.dev/zp/internal/testing/factstest"
 )
 
 // TestStructuralInputFacts requires the untyped module that Run checks before compiling, built

@@ -12,7 +12,7 @@ import (
 	"time"
 
 	"zeroparse.dev/zp/internal/codegen"
-	"zeroparse.dev/zp/internal/codegentest"
+	"zeroparse.dev/zp/internal/testing/codegentest"
 )
 
 // depMemoTSCases returns the grammars of codegentest.DependencyMemoCases for seeds below seeds that

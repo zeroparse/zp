@@ -5,7 +5,7 @@ package gogen_test
 import (
 	"testing"
 
-	"zeroparse.dev/zp/internal/codegentest"
+	"zeroparse.dev/zp/internal/testing/codegentest"
 )
 
 // Every combination of entry points over the grammars whose typed entry points convert Nodes.

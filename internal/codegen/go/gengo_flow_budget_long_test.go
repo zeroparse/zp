@@ -6,7 +6,7 @@ import (
 	"bytes"
 	"testing"
 
-	"zeroparse.dev/zp/internal/codegentest"
+	"zeroparse.dev/zp/internal/testing/codegentest"
 )
 
 // TestFlowNodeBudgetMutants checks that the invariants and the golden of TestFlowNodeBudgetInvariants notice a

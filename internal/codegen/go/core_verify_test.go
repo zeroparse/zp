@@ -7,10 +7,10 @@ import (
 
 	"zeroparse.dev/zp/internal/codegen"
 	"zeroparse.dev/zp/internal/codegen/go"
-	"zeroparse.dev/zp/internal/codegentest"
 	"zeroparse.dev/zp/internal/ir/core"
 	"zeroparse.dev/zp/internal/ir/exec"
 	"zeroparse.dev/zp/internal/ir/pipeline"
+	"zeroparse.dev/zp/internal/testing/codegentest"
 )
 
 // brokenGuards is a pass that runs after guards and leaves the first literal guard it finds out of

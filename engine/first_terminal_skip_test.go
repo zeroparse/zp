@@ -4,7 +4,7 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/engine"
-	"zeroparse.dev/zp/internal/codegentest"
+	"zeroparse.dev/zp/internal/testing/codegentest"
 )
 
 // TestLookaheadHasNoFirstTerminal checks, on both engine backends, in a parse and a recognition,

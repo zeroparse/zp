@@ -1,0 +1,349 @@
+package complexitytest
+
+import (
+	"context"
+	"flag"
+	"fmt"
+	"math/rand/v2"
+	"strings"
+	"testing"
+
+	"zeroparse.dev/zp/engine"
+	"zeroparse.dev/zp/grammar"
+	"zeroparse.dev/zp/internal/complexity"
+	"zeroparse.dev/zp/internal/engine/state"
+	"zeroparse.dev/zp/internal/testing/starttest"
+)
+
+var differentialGrammars = flag.Int("differential", DefaultDifferentialGrammars, "number of random grammars TestLinearClaims generates")
+
+// differentialCap bounds the budget of one parse of TestLinearClaims. A parse of a linear grammar
+// stays far below it on the inputs of the test.
+const differentialCap = 4_000_000
+
+// differentialSizes are n of the series n, 2n, 4n of TestLinearClaims.
+var differentialSizes = double(512)
+
+// perByteLimit is the largest growth of the cost per input byte from the larger of the sizes n
+// and 2n to the size 4n for a grammar classified linear. Growth as n^k with k >= 1.27 exceeds it
+// even against 2n.
+const perByteLimit = 1.2
+
+// measuresLinear reports whether the series stays within the bound of linear cost: no point is
+// capped, and the cost per byte at the largest size grows by at most perByteLimit from the
+// smaller sizes. The slopes of Classify do not serve here: whether a parse of a random grammar
+// fails, which adds the cost of reporting the error, can change from one size to the next, and
+// the series then zigzags inside a linear bound.
+func measuresLinear(s Series) bool {
+	if s.CappedPoints() {
+		return false
+	}
+	perByte := func(i int) float64 { return float64(s.Costs[i].Steps) / float64(s.Sizes[i]+1) }
+	return perByte(2) <= perByteLimit*max(perByte(0), perByte(1))
+}
+
+// differentialInputs are the families of inputs of TestLinearClaims, over the alphabet of the
+// random grammars. The input of a size is a prefix of the input of a larger size: each family
+// repeats a unit, except the last, which takes prefixes of randomInput.
+var differentialInputs = []func(n int) string{
+	func(n int) string { return rep("a", n) },
+	func(n int) string { return rep("b", n) },
+	func(n int) string { return rep("ab", n/2) },
+	func(n int) string { return rep("aab", n/3) },
+	func(n int) string { return rep("a", n) + "c" },
+	func(n int) string { return rep("abc", n/3) },
+	func(n int) string { return randomInput[:n] },
+}
+
+// randomInput is a pseudo-random string over the alphabet abc, long enough for the largest size.
+var randomInput = func() string {
+	rng := rand.New(rand.NewPCG(7, 11))
+	var b strings.Builder
+	for range 4 * differentialSizes[2] {
+		b.WriteByte("abc"[rng.IntN(3)])
+	}
+	return b.String()
+}()
+
+// randomCostGrammar returns a random grammar over the alphabet abc with the start rule main.
+// The shapes are those of the measured families: choices whose alternatives share prefixes,
+// repetitions of them, scans, lookaheads, recursion in either direction, cuts and recovery;
+// repetitions with a minimum, of expressions that can match nothing; calls shared by alternatives
+// after a common prefix; and the rules s of type string and l of type []string, whose actions copy,
+// pass on, index, measure and compare the values of their recursions.
+func randomCostGrammar(rng *rand.Rand) string {
+	pick := func(xs ...string) string { return xs[rng.IntN(len(xs))] }
+	atom := func() string {
+		return pick(`"a"`, `"b"`, `"c"`, `"ab"`, `"aa"`, `[a-b]`, `[^c]`, `.`,
+			`"a"*`, `[ab]*`, `"b"+`, "r1", "r2", "r3", "r1", "r2", "r3", "s", "l")
+	}
+	var expr func(depth int) string
+	expr = func(depth int) string {
+		if depth <= 0 || rng.IntN(4) == 0 {
+			return atom()
+		}
+		parts := func() []string {
+			ps := make([]string, 2+rng.IntN(2))
+			for i := range ps {
+				ps[i] = expr(depth - 1)
+			}
+			return ps
+		}
+		switch rng.IntN(13) {
+		case 0, 1, 2:
+			ps := parts()
+			if rng.IntN(8) == 0 {
+				ps[rng.IntN(len(ps))] += " #cut"
+			}
+			return "(" + strings.Join(ps, " ") + ")"
+		case 3, 4, 5:
+			return "(" + strings.Join(parts(), " / ") + ")"
+		case 6:
+			return "(" + expr(depth-1) + ")" + pick("*", "+", "?")
+		case 7:
+			return pick("!", "&") + "(" + expr(depth-1) + ")"
+		case 8:
+			return "(" + expr(depth-1) + ") #recover(skip=" + pick("[a-b]+", "[^c]", `"c"`) + ")"
+		case 9:
+			// A repetition with a minimum, often of an expression that can match nothing: it stops
+			// at its first empty iteration, so it can fail after that or an earlier iteration
+			// scanned.
+			return "(" + pick(`"a"*`, `[ab]*`, `&("a"*)`, `&[ab]*`, `"b"?`, expr(depth-1)) + ") " + pick("#repeat(2)", "#repeat(3)", "#repeat(3, 5)")
+		case 10:
+			// A call shared by alternatives that start alike, not at their start.
+			pre, call := pick(`"a"`, `"ab"`, `[ab]`), pick("r1", "r2", "r3", "s", "l")
+			return "(" + pre + " " + call + " " + expr(depth-1) + " / " + pre + " " + call + " " + expr(depth-1) + ")"
+		case 11:
+			// A predicate on the size of a capture, often of a value, and what follows it.
+			return "(x:(" + pick(expr(depth-1), "s", "l") + ")" + pick("", " #atomic") + " {len($x) > 1} " + atom() + ")"
+		}
+		return "(" + expr(depth-1) + ") #atomic"
+	}
+	// The alternatives of s and l recurse after a prefix, which can match nothing.
+	prefix := func() string { return pick(`"a"`, `"b"`, `"("`, expr(1)) }
+	str := []string{
+		`x:s => $x + "a"`,
+		`x:s => $x`,
+		`x:s => "a"`,
+		`x:s y:s {$x == $y} => $x`,
+		`x:s {$x != "a"} => $x`,
+		`x:s {len($x) > 0} => "a"`,
+		`x:s {len($x) > 0} => $x`,
+		`x:l => $x[0]`,
+		`x:l => $x[0] + "b"`,
+		`x:s => text($x)`,
+	}
+	list := []string{
+		`x:l => list($x[0] + "a")`,
+		`x:l => concat(list("a"), $x)`,
+		`x:l => $x`,
+		`x:l {len($x) > 0} => list("a")`,
+		`x:l {len($x) > 0} => $x`,
+		`x:l y:l {$x[0] == $y[0]} => $x`,
+		`x:s => list($x)`,
+		`x:s => list($x + "c")`,
+	}
+	rule := func(name, typ string, alts []string, base ...string) string {
+		var as []string
+		for range 1 + rng.IntN(3) {
+			as = append(as, "("+prefix()+" "+alts[rng.IntN(len(alts))]+")")
+		}
+		as = append(as, "("+pick(base...)+")")
+		return fmt.Sprintf("rule %s %s = %s\n", name, typ, strings.Join(as, " / "))
+	}
+	var b strings.Builder
+	if rng.IntN(3) == 0 {
+		fmt.Fprintf(&b, "rule main = %s $$\n", expr(2))
+	} else {
+		fmt.Fprintf(&b, "rule main = (%s / .)* $$\n", expr(2))
+	}
+	for _, r := range []string{"r1", "r2", "r3"} {
+		fmt.Fprintf(&b, "rule %s = %s\n", r, expr(3))
+	}
+	b.WriteString(rule("s", "string", str, `"c" => "c"`, `t:[ab]* => text($t)`, `"" => ""`))
+	b.WriteString(rule("l", "[]string", list, `"c" => list("c")`, `x:s => list($x)`, `"" => list("")`))
+	return b.String()
+}
+
+// randomStartCycleGrammar returns a random grammar over the alphabet abc whose start rule main,
+// the only rule marked @start, lies on a cycle of one to three rules, each called from one place
+// in the grammar: main calls r1, r1 calls r2 and the last rule calls main. Each call is plain, in
+// an option, a repetition with or without bounds, a lookahead or a recovery, or in the operand of
+// an Operators Rule, and each body is a choice that can be repeated, so a call can be evaluated
+// more than once in an evaluation of its caller.
+func randomStartCycleGrammar(rng *rand.Rand) string {
+	pick := func(xs ...string) string { return xs[rng.IntN(len(xs))] }
+	names := []string{"main", "r1", "r2"}[:1+rng.IntN(3)]
+	var b strings.Builder
+	for i, name := range names {
+		callee := names[(i+1)%len(names)]
+		call := pick(callee, callee+"?", callee+"*", callee+"+", "("+callee+")#repeat(1,2)",
+			"("+callee+")#repeat(0,3)", "("+callee+")#repeat(2,2)", "&("+callee+")",
+			"("+callee+") #recover(skip="+pick(`"c"`, "[ab]+")+")")
+		if name == "main" {
+			b.WriteString("@start\n")
+		}
+		if i > 0 && rng.IntN(5) == 0 {
+			fmt.Fprintf(&b, "rule %s = #operators {\n    operand (\"a\" %s \"b\" / \"c\")\n    level add { infix left \"a\" }\n}\n", name, call)
+			continue
+		}
+		body := fmt.Sprintf(`("a" %s "b" / "a")`, call) + pick("", "", "#repeat(1,2)", "#repeat(1,3)", "#repeat(0,2)", "*", "+", "?")
+		fmt.Fprintf(&b, "rule %s = %s%s\n", name, body, pick("", "", " t", " $$"))
+	}
+	b.WriteString("rule t = [ab] t / \"\"\n")
+	return b.String()
+}
+
+// randomNestedScanGrammar returns a random grammar over the alphabet abc of two or three rules,
+// main, r1 and r2, each a repetition of a choice that tries an alternative "a" X "b" before "a".
+// X calls the next rule, mostly, or the rule itself, or, in the last rule, mostly the memoized
+// rule t, plainly, in an option or in a bounded repetition. The inner rules are called from one
+// place, so each iteration of a repetition of their caller evaluates their own repetitions again,
+// from the next position, over the input that the earlier iteration examined, unless the
+// alternatives commit; the "a" with which both alternatives begin makes the comparison look inside
+// the called rule, and an inner rule that ends with $$ fails only after its repetition.
+func randomNestedScanGrammar(rng *rand.Rand) string {
+	pick := func(xs ...string) string { return xs[rng.IntN(len(xs))] }
+	names := []string{"main", "r1", "r2"}[:2+rng.IntN(2)]
+	var b strings.Builder
+	b.WriteString("@start\n")
+	for i, name := range names {
+		callee := pick(name, "t", "t")
+		if i+1 < len(names) {
+			callee = pick(names[i+1], names[i+1], names[i+1], name, "t")
+		}
+		call := pick(callee, callee, callee, "("+callee+")#repeat(0,2)", callee+"?")
+		rep, tail := pick("+", "*", "+", "#repeat(2,2)", "?"), pick(` "a"*`, " $$", "")
+		if i > 0 {
+			rep, tail = pick("*", "+", "*", "#repeat(0,3)", ""), pick(" $$", " $$", "", ` "a"*`)
+		}
+		fmt.Fprintf(&b, "rule %s = (\"a\" %s \"b\" / \"a\")%s%s\n", name, call, rep, tail)
+	}
+	b.WriteString("rule t = \"a\" t / \"c\"\n")
+	return b.String()
+}
+
+// linearClaims generates count random grammars of randomCostGrammar, count/4 each of
+// randomStartCycleGrammar and randomNestedScanGrammar, and SharedContinuationCount(count) of
+// SharedContinuationGrammars, keeps those that compile, and checks every one that claimsLinear
+// classifies as linear against the measured cost on the input families on the closure and bytecode
+// backends (those of SharedContinuationInputs for the last family). It returns the number of
+// grammars checked, the number of them from SharedContinuationGrammars, and the failures; it stops
+// at the first failure if firstOnly is set.
+func linearClaims(t *testing.T, count int, claimsLinear func(*grammar.Grammar) bool, firstOnly bool) (checked, checkedShared int, failures []string) {
+	t.Helper()
+	rng := rand.New(rand.NewPCG(3, 5))
+	cycles := rand.New(rand.NewPCG(13, 17))
+	nested := rand.New(rand.NewPCG(19, 23))
+	shared := SharedContinuationGrammars(SharedContinuationCount(count))
+	for n := range count + 2*(count/4) + SharedContinuationCount(count) {
+		var src string
+		inputs := differentialInputs
+		switch {
+		case n < count:
+			src = randomCostGrammar(rng)
+		case n < count+count/4:
+			src = randomStartCycleGrammar(cycles)
+		case n < count+2*(count/4):
+			src = randomNestedScanGrammar(nested)
+		default:
+			src = shared[n-count-2*(count/4)]
+			inputs = SharedContinuationInputs
+		}
+		g, err := engine.ParseGrammar(src)
+		if err != nil {
+			t.Fatalf("generated grammar %d does not parse: %v\n%s", n, err, src)
+		}
+		g = starttest.MarkAll(g)
+		p, err := engine.Compile(g, "main")
+		if err != nil {
+			continue // left recursion without a base case, a repetition of nothing and the like
+		}
+		if !claimsLinear(g) {
+			continue
+		}
+		checked++
+		if n >= count+2*(count/4) {
+			checkedShared++
+		}
+		if !state.BudgetControlsEnabled {
+			continue // the claim is counted, but the reference build cannot measure it
+		}
+	measure:
+		for _, backend := range []engine.Backend{engine.Closure, engine.Bytecode} {
+			for i, build := range inputs {
+				s := Series{Sizes: differentialSizes}
+				for _, size := range differentialSizes {
+					c, err := StepsLenient(p, build(size), backend, differentialCap)
+					if err != nil {
+						t.Fatalf("grammar %d, %v, input %d, size %d: %v\n%s", n, backend, i, size, err, src)
+					}
+					s.Costs = append(s.Costs, c)
+				}
+				if !measuresLinear(s) {
+					failures = append(failures, fmt.Sprintf("grammar %d, %v, input %d: steps %v, slopes %.2f\n%s",
+						n, backend, i, s.Costs, s.Slopes(), src))
+					if firstOnly {
+						return checked, checkedShared, failures
+					}
+					break measure
+				}
+			}
+		}
+	}
+	return checked, checkedShared, failures
+}
+
+// TestLinearClaims checks the claims of linear cost of the classifier against measurement: every
+// random grammar that the classifier classifies as linear, with or without an environment bound,
+// measures linear on every input family. Run with -differential=5000 for a longer search.
+func TestLinearClaims(t *testing.T) {
+	t.Parallel()
+	count := *differentialGrammars
+	if reduced() {
+		count /= 4
+	}
+	checked, checkedShared, failures := linearClaims(t, count, func(g *grammar.Grammar) bool {
+		c, err := complexity.ClassifyComplexity(context.Background(), g, "main")
+		if err != nil {
+			t.Fatal(err)
+		}
+		return c.Class == ClassLinear || c.Class == ClassLinearEnv
+	}, false)
+	for _, f := range failures {
+		t.Errorf("classified linear, measured otherwise: %s", f)
+	}
+	// The check is only as strong as the claims it sees.
+	if min := count / 10; checked < min {
+		t.Errorf("%d grammars classified linear, want at least %d", checked, min)
+	}
+	shared := SharedContinuationCount(count)
+	if min := shared / 10; checkedShared < min {
+		t.Errorf("%d shared continuations classified linear, want at least %d", checkedShared, min)
+	}
+	t.Logf("%d of %d grammars classified linear, %d of the %d shared continuations", checked, count+2*(count/4)+shared, checkedShared, shared)
+}
+
+// TestLinearClaimsNegativeControl checks that TestLinearClaims can fail: with a classifier that
+// claims linear cost for the grammars that the classifier classifies as polynomial or exponential,
+// some random grammar measures otherwise.
+func TestLinearClaimsNegativeControl(t *testing.T) {
+	t.Parallel()
+	skipWithoutBudget(t)
+	count := *differentialGrammars
+	if reduced() {
+		count /= 4
+	}
+	_, _, failures := linearClaims(t, count, func(g *grammar.Grammar) bool {
+		c, err := complexity.ClassifyComplexity(context.Background(), g, "main")
+		if err != nil {
+			t.Fatal(err)
+		}
+		return c.Class == ClassPoly || c.Class == ClassExp
+	}, true)
+	if len(failures) == 0 {
+		t.Error("no grammar classified polynomial or exponential measures otherwise than linear: the differential test cannot fail")
+	} else {
+		t.Logf("the first grammar that measures otherwise: %s", failures[0])
+	}
+}

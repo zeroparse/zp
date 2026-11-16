@@ -8,12 +8,12 @@ import (
 
 	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/compile"
-	"zeroparse.dev/zp/internal/compiletest"
 	"zeroparse.dev/zp/internal/diagnostic"
-	"zeroparse.dev/zp/internal/factstest"
 	"zeroparse.dev/zp/internal/ir/core"
 	"zeroparse.dev/zp/internal/ir/core/build"
 	"zeroparse.dev/zp/internal/ir/core/facts"
+	"zeroparse.dev/zp/internal/testing/compiletest"
+	"zeroparse.dev/zp/internal/testing/factstest"
 )
 
 // bindingCases are grammars whose only error is a binding before a left-recursive call of a rule

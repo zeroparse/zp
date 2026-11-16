@@ -8,8 +8,8 @@ import (
 	"zeroparse.dev/zp/internal/complexity"
 
 	"zeroparse.dev/zp/engine"
-	"zeroparse.dev/zp/internal/complexitytest"
-	"zeroparse.dev/zp/internal/starttest"
+	"zeroparse.dev/zp/internal/testing/complexitytest"
+	"zeroparse.dev/zp/internal/testing/starttest"
 )
 
 // sureGrammar writes random rules over the forms that can fail further than where they stand.

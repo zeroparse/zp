@@ -6,7 +6,7 @@ import (
 
 	"zeroparse.dev/zp/internal/bytecode"
 	"zeroparse.dev/zp/internal/compile"
-	"zeroparse.dev/zp/internal/compiletest"
+	"zeroparse.dev/zp/internal/testing/compiletest"
 )
 
 // TestModuleDisassembly checks the disassembly of the match code of a module as the compiler

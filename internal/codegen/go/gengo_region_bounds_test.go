@@ -4,8 +4,8 @@ import (
 	"math"
 	"testing"
 
-	"zeroparse.dev/zp/internal/codegentest"
-	"zeroparse.dev/zp/internal/complexitytest"
+	"zeroparse.dev/zp/internal/testing/codegentest"
+	"zeroparse.dev/zp/internal/testing/complexitytest"
 )
 
 // TestRegionBoundsGenerated measures the controls of the region bound in generated parsers, which

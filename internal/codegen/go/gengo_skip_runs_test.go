@@ -12,8 +12,8 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/internal/codegen"
-	"zeroparse.dev/zp/internal/codegentest"
-	"zeroparse.dev/zp/internal/complexitytest"
+	"zeroparse.dev/zp/internal/testing/codegentest"
+	"zeroparse.dev/zp/internal/testing/complexitytest"
 )
 
 // skipRunsGoBin returns the go command for the tests that build generated parsers, or skips.

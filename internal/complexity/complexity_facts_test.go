@@ -11,9 +11,9 @@ import (
 
 	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/compile"
-	"zeroparse.dev/zp/internal/factstest"
-	"zeroparse.dev/zp/internal/starttest"
 	"zeroparse.dev/zp/internal/syntax"
+	"zeroparse.dev/zp/internal/testing/factstest"
+	"zeroparse.dev/zp/internal/testing/starttest"
 )
 
 // classifierCorpus returns the sources of the grammars the classifier's tests read: the pinned

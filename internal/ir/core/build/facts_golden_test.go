@@ -6,15 +6,15 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/internal/compile"
-	"zeroparse.dev/zp/internal/compiletest"
-	"zeroparse.dev/zp/internal/factstest"
 	"zeroparse.dev/zp/internal/ir/core"
 	"zeroparse.dev/zp/internal/ir/core/build"
+	"zeroparse.dev/zp/internal/testing/compiletest"
+	"zeroparse.dev/zp/internal/testing/factstest"
 )
 
 // TestCoreFactsGolden compares the rule facts that Core IR's analysis computes on the module of
 // every corpus grammar (the nullability and the first terminal of each rule's body) with the
-// facts that compilation pins (internal/factstest): they must agree on every rule.
+// facts that compilation pins (internal/testing/factstest): they must agree on every rule.
 func TestCoreFactsGolden(t *testing.T) {
 	var diffs strings.Builder
 	for _, path := range factstest.Corpus {

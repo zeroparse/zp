@@ -5,10 +5,10 @@ import (
 	"strings"
 	"testing"
 
-	"zeroparse.dev/zp/internal/codegentest"
 	"zeroparse.dev/zp/internal/compile"
 	. "zeroparse.dev/zp/internal/engine"
 	"zeroparse.dev/zp/internal/engine/document"
+	"zeroparse.dev/zp/internal/testing/codegentest"
 )
 
 // memberDocumentDiffers parses each input of the case with a Document on every backend: twice

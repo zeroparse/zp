@@ -11,8 +11,8 @@ import (
 	"weak"
 
 	"zeroparse.dev/zp/core"
-	"zeroparse.dev/zp/internal/codegentest"
 	"zeroparse.dev/zp/internal/engine/state"
+	"zeroparse.dev/zp/internal/testing/codegentest"
 )
 
 type streamControlRetentionSentinel struct{ data [128]byte }

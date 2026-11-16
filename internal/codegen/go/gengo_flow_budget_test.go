@@ -15,7 +15,7 @@ import (
 	"unicode/utf8"
 
 	"zeroparse.dev/zp/internal/codegen"
-	"zeroparse.dev/zp/internal/codegentest"
+	"zeroparse.dev/zp/internal/testing/codegentest"
 )
 
 // The Node and recognizer tables of a parser with budget controls are printed from Flow IR, which makes

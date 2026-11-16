@@ -10,8 +10,8 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/internal/codegen"
-	"zeroparse.dev/zp/internal/codegentest"
 	"zeroparse.dev/zp/internal/ir/exec/conform"
+	"zeroparse.dev/zp/internal/testing/codegentest"
 )
 
 // hullScript makes the tuples and lists of cases.json on the TypeScript library (fxTuple of tsCompose and

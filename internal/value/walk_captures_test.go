@@ -6,7 +6,7 @@ import (
 
 	"zeroparse.dev/zp/core"
 	"zeroparse.dev/zp/internal/compile"
-	"zeroparse.dev/zp/internal/enginetest"
+	"zeroparse.dev/zp/internal/testing/enginetest"
 )
 
 // TestWalkHiddenCaptures checks that Walk visits only the public fields of a node: without

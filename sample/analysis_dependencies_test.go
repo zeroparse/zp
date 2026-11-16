@@ -10,7 +10,7 @@ import (
 
 	"zeroparse.dev/zp/engine"
 	"zeroparse.dev/zp/grammar"
-	"zeroparse.dev/zp/internal/starttest"
+	"zeroparse.dev/zp/internal/testing/starttest"
 )
 
 func analysisChain(n int, leafFirst bool) string {

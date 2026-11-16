@@ -8,9 +8,9 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/core"
-	"zeroparse.dev/zp/internal/codegentest"
 	"zeroparse.dev/zp/internal/compile"
 	"zeroparse.dev/zp/internal/engine/state"
+	"zeroparse.dev/zp/internal/testing/codegentest"
 )
 
 // runSiteGrammars are grammars with run sites (compile/run_sites.go): repetitions outside skip
@@ -350,7 +350,7 @@ func TestRunSitesBoundValueControls(t *testing.T) {
 			}
 			// (The closure backend does not charge the iterations of plain loops over literals, so
 			// only the bytecode backends show that the control is quadratic without records; the
-			// controls of internal/complexitytest measure it on all three.)
+			// controls of internal/testing/complexitytest measure it on all three.)
 			if _, err := plain.ParseWith("main", c.Input, o); b != Closure && !errors.Is(err, core.ErrLimit) {
 				t.Errorf("%s, %s: the parse with plain repetitions fits the budget", c.Name, b)
 			}

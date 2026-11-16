@@ -5,9 +5,9 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/internal/compile"
-	"zeroparse.dev/zp/internal/compiletest"
 	ir "zeroparse.dev/zp/internal/ir/core"
 	"zeroparse.dev/zp/internal/ir/core/build"
+	"zeroparse.dev/zp/internal/testing/compiletest"
 )
 
 // BenchmarkBytecodeLowering isolates the construction of the module, match code and term code, from

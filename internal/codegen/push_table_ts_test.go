@@ -10,8 +10,8 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/internal/codegen"
-	"zeroparse.dev/zp/internal/codegentest"
 	"zeroparse.dev/zp/internal/ir/exec/conform"
+	"zeroparse.dev/zp/internal/testing/codegentest"
 )
 
 // pushScript runs the calls of calls.json on the printed methods termPush and termPushItems of the TypeScript

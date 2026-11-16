@@ -7,9 +7,9 @@ import (
 	"zeroparse.dev/zp/internal/cancel"
 
 	"zeroparse.dev/zp/grammar"
-	"zeroparse.dev/zp/internal/codegentest"
 	"zeroparse.dev/zp/internal/compile"
 	"zeroparse.dev/zp/internal/desugar"
+	"zeroparse.dev/zp/internal/testing/codegentest"
 )
 
 func TestNormalizationContextParity(t *testing.T) {
