@@ -939,6 +939,69 @@ $w_i$, nested at most $|\text{rules}|$ deep, so the frames started after the
 end of $w_i$ at $p$ are at most a constant. So $k - i$ is at most a
 constant. $\square$
 
+**Outer links across runs.** Let $l < l'$ be leaf links of $\sigma$ at $q$
+whose shared call is the first, both at one position $p$, so that $w_l$ and
+$w_{l'}$ start at $p$, and let both leave frames, with $Y_l$, $Y_{l'}$,
+$\pi_l$ and $\pi_{l'}$ as in the proof above, which uses of the links $i$ to
+$k$ for these only that the unit of the link starts at $p$ and that from its
+end the parser starts no evaluation before $p$ until the next activation.
+Let both be outer, with $\pi_l = \pi_{l'}$. Then $Y_{l'}$ encloses $w_l$, or
+$Y_{l'}$ starts after $e'_l$ ends and an index $j$ with $l < j < l'$ has
+$\alpha_j$ inside $Y_{l'}$ and $w_j$ starting no later than $Y_{l'}$, so
+before $p$.
+
+*Proof.* $Y_{l'}$ holds $w_{l'}$, which contains $\alpha_{l'-1}$, and
+$\alpha_{l'-1}$ starts no earlier than $\alpha_l$, which starts after $w_l$
+ends, so $Y_{l'}$ is in progress after $w_l$ ends. It was not started inside
+$w_l$, since an evaluation started inside $w_l$ ends inside it. If it was
+started before $w_l$ ended, it was started before $w_l$ and encloses it.
+Otherwise it was started after $w_l$ ended. From the end of $w_l$ to the
+start of $\alpha_l$ the parser starts no evaluation before $p$ (*Restarts*,
+*Dropped steps*), and while $e'_l = P_l$ is in progress it starts only
+evaluations inside the body of $R$, which calls no rule, at $p$ or later. As
+$Y_{l'}$ starts before $p$, it starts after $e'_l$ ends. Let $j$ be the least
+index whose $\alpha_j$ starts after $Y_{l'}$ starts. $\alpha_l$ starts before
+$Y_{l'}$ and $\alpha_{l'-1}$ after it, so $l < j \le l' - 1$. $\alpha_j$
+starts no later than $\alpha_{l'-1}$, which lies in $Y_{l'}$, so it starts
+while $Y_{l'}$ is in progress and lies inside it. $w_j$ contains
+$\alpha_{j-1}$, which starts before $Y_{l'}$, so $w_j$ started before
+$Y_{l'}$; it ends before $\alpha_j$ starts, so it does not enclose $Y_{l'}$,
+and it ended before $Y_{l'}$ started. From the end of $w_j$ to the start of
+$\alpha_j$ the parser starts no evaluation before the start of $w_j$
+(*Restarts*, *Dropped steps*), so $w_j$ starts no later than $Y_{l'}$, before
+$p$. $\square$
+
+Two outer links through one call place of which the later $Y$ does not
+enclose the earlier unit therefore have between them an index whose unit
+starts before $p$, which is free, linked by a memoized link, linked by a leaf
+link whose shared call is not the first, or linked by a leaf link at a
+position before $p$; none of these lies in a run of consecutive leaf links at
+$p$ whose shared call is the first, so the two lie in different runs. The
+other case is the one that *Nesting at one end* rules out, with $Y_{l'}$ as
+$X$ and $Y_l$ as $T$. So outside that case the outer links at $p$ through
+one call place are at most one in each run, and the argument of the claim above does not
+bound them without a bound on the runs. The second case occurs in a grammar
+that the conditions accept:
+
+```zp
+@start
+rule main = &B B / S ws "!"
+rule B = Y ws "x"
+rule Y = S (ws ";")?
+rule S = "a"+
+rule ws = [ ]*
+```
+
+On `a`s followed by spaces and `!`, the lookahead evaluates `B`, whose call
+of `Y` ends at the first space $p$, where the option fails after `ws` and
+`B` calls `ws` again after leaving `Y`: a leaf link at $p$ through the call
+of `Y` in `B`, outer, since `Y` starts at $0$. The lookahead fails, the
+entry of `B` made inside it does not answer the call of `B` outside it, and
+that call evaluates `Y` again from $0$, which gives a second outer link
+through the same call place. The index between them is the memoized link of
+the two evaluations of `B`, whose unit, the expression of the lookahead,
+starts at $0$.
+
 **Calls of scan-only rules.** Let the rule $r$ of the links $i$ to $k$ be a
 scan-only rule ([Conditions for Linear
 Cost](../runtime/parsing.md#conditions-for-linear-cost)) that is not memoized
@@ -5358,10 +5421,13 @@ condition of the cost view that the [Cost View](cost-view.md) proof leaves open.
    so the runs cannot be counted by those links. Across such links, two outer
    links $l < l'$ at one position $p$ through one call place still contradict
    the sharing of their call when $Y_{l'}$ encloses $w_l$: *Nesting at one end*
-   applies with $Y_{l'}$ as $X$ and $Y_l$ as $T$, with its open points. Open is
-   the case where the parser starts $Y_{l'}$ after $e'_l$; then the unit of the
-   restarts of some activation between them starts before $p$ and encloses
-   $e'_l$. Second, the leaf links when the shared call follows other
+   applies with $Y_{l'}$ as $X$ and $Y_l$ as $T$, with its open points. In the
+   other case the parser starts $Y_{l'}$ after $e'_l$, and an index between
+   them has its unit before $p$, so the two links lie in different runs
+   (*Outer links across runs*), which occurs in a grammar that the conditions
+   accept; so the outer links do not bound the runs, and the count of the
+   runs, of the heads that start before the position of the scan and of the
+   activations that one head holds stays open. Second, the leaf links when the shared call follows other
    shared calls: the continuation then leaves frames at the ends of the
    shared calls before the call, at positions before the scan, and between
    them, as in `e = "(" (e R "x" / e) / "."` with `R = [ ]*`, where the call
