@@ -77,4 +77,10 @@ the parse runs in the missing-token mode and the rule or a rule it calls can ins
 		Contract: `Records again the tokens that the call of entry e inserted and the errors it recovered, as
 rec.add does for the errors outside the missing-token mode.`,
 		Requires: `The parse runs in the missing-token mode.`})
+	m.AddOp(&exec.Op{Name: "missing.replayResult", Component: Rec, Params: []exec.Param{exec.P("s", exec.THandle(Res))},
+		Writes: []string{Rec}, Features: miss, NoReturn: true,
+		Cost: exec.Cost{Terms: []exec.CostTerm{{Coef: 1, Quantity: QTokens}, {Coef: 1, Quantity: QErrs}}},
+		Contract: `Records again the tokens that the call of the result s that a context kept inserted and the
+errors it recovered, as missing.replay does for a memo entry.`,
+		Requires: `The parse runs in the missing-token mode.`})
 }

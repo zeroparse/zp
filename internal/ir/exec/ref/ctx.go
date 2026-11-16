@@ -53,6 +53,9 @@ type CtxResult struct {
 	silent         bool
 	far            int64
 	kept           *ExpKept
+	// seed is the tokens that the call of the result inserted in the missing-token mode, which no
+	// operation of the model records yet: a result replays only its errors.
+	seed []missingToken
 }
 
 // ctxRes returns the CtxResult handle a, nil for the null result, which the model returns as nil, as
@@ -500,7 +503,7 @@ const (
 func (m *Model) allowsCtx(o *exec.Op, args []any) bool {
 	s := &m.ctx
 	switch o.Name {
-	case "ctx.ok", "ctx.value", "ctx.replay":
+	case "ctx.ok", "ctx.value", "ctx.end", "ctx.errs", "ctx.far", "ctx.expected", "ctx.examined", "ctx.before":
 		return ctxRes(args[0]) != nil
 	case "ctx.lookup":
 		c := args[0].(*CtxState)
@@ -639,9 +642,22 @@ func (m *Model) callCtx(o *exec.Op, args []any) ([]any, bool) {
 		return []any{ctxRes(args[0]).ok}, true
 	case "ctx.value":
 		return []any{ctxRes(args[0]).value}, true
-	case "ctx.replay":
-		m.ctxReplay(ctxRes(args[0]), args[1].(bool))
-		return nil, true
+	case "ctx.end":
+		return []any{ctxRes(args[0]).end}, true
+	case "ctx.errs":
+		// A list of no errors has no identity of its own: the model returns the null handle for it.
+		if l, _ := ctxRes(args[0]).errs.(*ErrList); l != nil && l.n > 0 {
+			return []any{l}, true
+		}
+		return []any{nil}, true
+	case "ctx.far":
+		return []any{ctxRes(args[0]).far}, true
+	case "ctx.expected":
+		return []any{ctxRes(args[0]).kept}, true
+	case "ctx.examined":
+		return []any{ctxRes(args[0]).examined}, true
+	case "ctx.before":
+		return []any{ctxRes(args[0]).from < args[1].(int64)}, true
 	case "ctx.allows":
 		c, e := args[0].(*CtxState), args[1].(*Entry)
 		return []any{!c.ctx || c.present&presentWide == 0 && c.present&^e.present == 0}, true
@@ -713,69 +729,6 @@ func (m *Model) ctxPop(c *CtxState) int64 {
 	return CtxStoreCtx
 }
 
-// ctxReplay applies the result r as the call that it records would have: a reuse in the call
-// bookkeeping, its expectations unless it is a seed, and on success the position and the recovered
-// errors.
-func (m *Model) ctxReplay(r *CtxResult, seed bool) {
-	if m.cfg.Document {
-		m.doc.examined = max(m.doc.examined, r.examined)
-		m.doc.low = min(m.doc.low, r.from)
-		m.doc.reused++
-	}
-	if !seed {
-		m.replayExpected(r.far, r.kept, true)
-	}
-	if !r.ok {
-		return
-	}
-	m.regs["pos"] = r.end
-	if l, ok := r.errs.(*ErrList); ok && l.n > 0 {
-		m.rec = append(slices.Clip(m.rec), l)
-	}
-}
-
-// replayExpected records the expectations of k at far as the composition that merges a kept set does,
-// and returns the units it charges. Unless apply is set it changes nothing and only counts them.
-func (m *Model) replayExpected(far int64, k *ExpKept, apply bool) int64 {
-	if k == nil {
-		return 0
-	}
-	units := int64(0)
-	s := &m.exp
-	cur := expRecord{far: s.cur.far, ids: slices.Clone(s.cur.ids)}
-	for _, id := range k.ids {
-		units++
-		if m.silent() || far < cur.far {
-			continue
-		}
-		if far > cur.far {
-			cur = expRecord{far: far}
-		}
-		if m.cfg.NoExpectations {
-			if len(cur.ids) == 0 {
-				if apply {
-					s.write(0)
-				}
-				cur.ids = append(cur.ids, Placeholder)
-			}
-			continue
-		}
-		if slices.Contains(cur.ids, id) {
-			units += int64(slices.Index(cur.ids, id)) + 1
-			continue
-		}
-		units += int64(len(cur.ids))
-		if apply {
-			s.write(len(cur.ids))
-		}
-		cur.ids = append(cur.ids, id)
-	}
-	if apply && (cur.far != s.cur.far || len(cur.ids) != len(s.cur.ids)) {
-		s.cur = cur
-	}
-	return units
-}
-
 // clone returns a copy of s that operations change apart from s.
 func (s *ctxModel) clone() ctxModel {
 	c := ctxModel{growths: slices.Clone(s.growths), looks: slices.Clone(s.looks), guard: slices.Clone(s.guard), keyCost: s.keyCost,
@@ -820,21 +773,6 @@ func (m *Model) ctxQuantity(name string, o *exec.Op, args []any) (int64, bool) {
 		m.callCtx(o, args)
 		return m.ctx.presentUnits, true
 	case "ctx.lookup", "ctx.keep", "ctx.pop", "ctx.done":
-	case "ctx.replay":
-		r := ctxRes(args[0])
-		switch name {
-		case ops.QMerge:
-			if args[1].(bool) {
-				return 0, true
-			}
-			return m.replayExpected(r.far, r.kept, false), true
-		case ops.QErrs:
-			if l, ok := r.errs.(*ErrList); ok && r.ok {
-				return int64(l.n), true
-			}
-			return 0, true
-		}
-		return 0, false
 	default:
 		return 0, false
 	}

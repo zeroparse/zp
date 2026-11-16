@@ -297,7 +297,6 @@ docs/design/records/065-exec-ir-parser-vm.md	unexport	operatorsRuleBuild	1
 docs/design/records/065-exec-ir-parser-vm.md	unexport	operatorsRuleExpr	1
 docs/design/records/065-exec-ir-parser-vm.md	unexport	operatorsRuleNud	1
 docs/design/records/065-exec-ir-parser-vm.md	unexport	pruneStreamMemo	1
-docs/design/records/065-exec-ir-parser-vm.md	unexport	replayCtx	1
 docs/design/records/065-exec-ir-parser-vm.md	unexport	seenPageArena	1
 docs/design/records/065-exec-ir-parser-vm.md	unexport	setCapture	1
 docs/design/records/065-exec-ir-parser-vm.md	unexport	streamCommit	3

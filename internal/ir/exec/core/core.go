@@ -138,11 +138,31 @@ func Build() *Module {
 	// hit set, the result of the begin of a split call (callBegin).
 	exit := func(b *Builder, v, ok Expr) { b.Return(v, ok) }
 	hit := func(b *Builder, v, ok Expr) { b.Return(v, ok, BoolC(true)) }
-	// replay returns through exit the result s that the context of the call keeps (a seed if seed is
-	// set), applied as the call that it records would have.
-	replay := func(b *Builder, s Expr, seed bool, exit func(b *Builder, v, ok Expr)) {
-		b.Do("ctx.replay", s, BoolC(seed))
+	// replay returns through exit the result s that the context of the call at start keeps (a seed if
+	// seed is set), applied as the call that it records would have, as reuse applies a memo entry:
+	// observed reports the reuse, the Document bookkeeping extends the examined input of the call to the
+	// result's, and the expectations of a result that is not a seed are merged. A result does not move
+	// after an edit: it lives within one parse.
+	replay := func(b *Builder, s Expr, seed bool, doc docMode, observed Expr, exit func(b *Builder, v, ok Expr)) {
+		b.If(observed, func(b *Builder) { b.Do("obs.memoHit") })
+		tracking(b, doc, func(b *Builder) {
+			b.Do("doc.touch", C("ctx.examined", s))
+			inDocument(b, doc, func(b *Builder) {
+				b.If(C("ctx.before", s, L("start")), func(b *Builder) { b.Do("doc.touchFrom", Add(L("start"), Int(-1))) })
+				b.Do("doc.reused")
+			})
+		})
+		if !seed {
+			b.Do("mergeKept", C("ctx.far", s), C("ctx.expected", s))
+		}
 		b.If(Not(C("ctx.ok", s)), func(b *Builder) { exit(b, Null(value), BoolC(false)) })
+		b.SetReg(ops.Pos, C("ctx.end", s))
+		if doc == engineDoc {
+			b.IfElse(And(F(ops.Missing), C("missing.active")), func(b *Builder) { b.Do("missing.replayResult", s) },
+				func(b *Builder) { b.Do("rec.add", C("ctx.errs", s)) })
+		} else {
+			b.Do("rec.add", C("ctx.errs", s))
+		}
 		exit(b, C("ctx.value", s), BoolC(true))
 	}
 	// reuse returns through exit a result that the call at start may reuse: the seed of the rule if it
@@ -157,9 +177,14 @@ func Build() *Module {
 	// finish restores from oldExamined and oldLow.
 	reuse := func(b *Builder, level Expr, doc docMode, exit func(b *Builder, v, ok Expr)) {
 		b.Let("env", C("env.key", r))
+		// The node call that leaves observed parses to the tracked path reports no reuse itself.
+		var observed Expr = F(ops.Observe)
+		if doc == typedTrack {
+			observed = observedHere
+		}
 		cs := b.LetN([]string{"c", "seed"}, C("ctx.enter", r, level))
 		c := cs[0]
-		b.If(C("ctx.found", cs[1]), func(b *Builder) { replay(b, cs[1], true, exit) })
+		b.If(C("ctx.found", cs[1]), func(b *Builder) { replay(b, cs[1], true, doc, observed, exit) })
 		b.LetN([]string{"e", "found"}, C("memo.lookup", id, L("start"), level, L("env"), C("rule.docOnlyMemo", r)))
 		e := L("e")
 		reusable := And(And(L("found"), C("ctx.allows", c, e)), Bin("||", Not(C("memo.silent", e)), silent))
@@ -173,10 +198,6 @@ func Build() *Module {
 			reusable = And(reusable, Not(And(F(ops.Missing), C("missing.recompute", r))))
 		}
 		b.If(reusable, func(b *Builder) {
-			observed := F(ops.Observe)
-			if doc == typedTrack {
-				observed = observedHere
-			}
 			b.If(observed, func(b *Builder) { b.Do("obs.memoHit") })
 			// A Document parse tracks the examined end, so its bookkeeping nests in the tracking: a parse
 			// that tracks nothing tests once, as before a parse could track without a Document.
@@ -204,7 +225,7 @@ func Build() *Module {
 		})
 		b.If(C("ctx.active", c), func(b *Builder) {
 			held := b.Let("held", C("ctx.lookup", c, r, level, L("env")))
-			b.If(C("ctx.found", held), func(b *Builder) { replay(b, held, false, exit) })
+			b.If(C("ctx.found", held), func(b *Builder) { replay(b, held, false, doc, observed, exit) })
 		})
 		b.Let("rec", C("rec.mark"))
 		b.Do("ctx.push", c)
