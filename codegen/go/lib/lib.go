@@ -579,7 +579,7 @@ func resolveDepth(depth uint64, def int) (int, error) {
 // observability, which is the one that calls the observation.
 func (o *parseOptions) validateObservation(g *grammar) error {
 	ob := &o.observe
-	if !g.Observable && (ob.trace != nil || ob.profile != nil || ob.rules != nil || ob.maxDepth != 0) {
+	if !g.Observable && (ob.trace != nil || ob.profile != nil || ob.extras != nil && (ob.extras.rules != nil || ob.extras.maxDepth != 0)) {
 		return fmt.Errorf("trace and profile options are only supported by a parser generated with observability")
 	}
 	return nil

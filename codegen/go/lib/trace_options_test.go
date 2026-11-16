@@ -111,10 +111,10 @@ func TestTraceOptionComposition(t *testing.T) {
 	first, second := defaults, defaults
 	WithProfile(&pb)(&first)
 	WithProfile(&pc)(&second)
-	if len(defaults.observe.more) != 3 || len(first.observe.more) != 4 || len(second.observe.more) != 4 {
+	if len(defaults.observe.extras.more) != 3 || len(first.observe.extras.more) != 4 || len(second.observe.extras.more) != 4 {
 		t.Fatal("profiles added to a copy of the defaults")
 	}
-	if first.observe.more[3] != &pb || second.observe.more[3] != &pc {
+	if first.observe.extras.more[3] != &pb || second.observe.extras.more[3] != &pc {
 		t.Error("a parse's profile was replaced by one that another parse added to the defaults")
 	}
 }

@@ -8,15 +8,16 @@ import (
 // every backend shares. The engine re-exports them under the same names for the package engine.
 
 type (
-	Backend      = state.Backend
-	ParseOptions = state.ParseOptions
-	TraceKind    = state.TraceKind
-	TraceEvent   = state.TraceEvent
-	GNode        = state.GNode
-	Tuple        = state.Tuple
-	List         = state.List
-	Struct       = state.Struct
-	ErrorValue   = state.ErrorValue
+	Backend        = state.Backend
+	ParseOptions   = state.ParseOptions
+	TraceSelection = state.TraceSelection
+	TraceKind      = state.TraceKind
+	TraceEvent     = state.TraceEvent
+	GNode          = state.GNode
+	Tuple          = state.Tuple
+	List           = state.List
+	Struct         = state.Struct
+	ErrorValue     = state.ErrorValue
 )
 
 const (

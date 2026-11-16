@@ -185,7 +185,8 @@ func (d *Document) parseWithCapture(o state.ParseOptions, capture func(*state.Pa
 		c.AttachMemory(p)
 	}
 	if o.Traced() {
-		p.SetTrace(&o)
+		p.SetTrace(o.Trace, o.Profiles)
+		p.SelectTrace(o.TraceSelection)
 		defer p.CloseTrace()
 	}
 	c.Check()

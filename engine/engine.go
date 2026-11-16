@@ -204,14 +204,25 @@ func WithTrace(f func(TraceEvent)) ParseOption {
 // WithProfile records.
 func WithTraceFilter(rules ...string) ParseOption {
 	names := slices.Clone(rules)
-	return func(o *engine.ParseOptions) { o.TraceRules = names }
+	return func(o *engine.ParseOptions) { traceSelection(o).Rules = names }
 }
 
 // WithTraceMaxDepth limits the events that the trace functions receive to the calls at most n deep,
 // counting the start rule as 1. Zero or a negative n sets no limit. The last WithTraceMaxDepth of a
 // parse applies. It does not change the parse or what WithProfile records.
 func WithTraceMaxDepth(n int) ParseOption {
-	return func(o *engine.ParseOptions) { o.TraceMaxDepth = n }
+	return func(o *engine.ParseOptions) { traceSelection(o).MaxDepth = n }
+}
+
+// traceSelection gives o a copy of its trace selection to change and returns it: the selection of a
+// Document's defaults is shared with each of its parses.
+func traceSelection(o *engine.ParseOptions) *engine.TraceSelection {
+	s := new(engine.TraceSelection)
+	if o.TraceSelection != nil {
+		*s = *o.TraceSelection
+	}
+	o.TraceSelection = s
+	return s
 }
 
 // WithDiagnosticCallback reports each committed #recover error during ParseStream or Iterate,

@@ -39,11 +39,9 @@ type ParseOptions struct {
 	// Profiles record the rule calls of the parse (see core.ProfileRecorder): each records an event
 	// before Trace handles it. A profiled parse is traced (Traced).
 	Profiles []*core.Profile
-	// TraceRules, if not empty, limits the events Trace receives to the calls of these rules and the
-	// calls nested in them; TraceMaxDepth, if positive, to the calls at most that deep. Neither
-	// changes the parse or what Profiles record.
-	TraceRules    []string
-	TraceMaxDepth int
+	// TraceSelection, if not nil, limits the events that Trace receives. It is nil for a parse that
+	// selects no events, so that the selection costs an unobserved parse one pointer of options.
+	TraceSelection *TraceSelection
 	// DiagnosticCallback receives committed recoveries during stream parsing, immediately before
 	// the corresponding element. It is invalid for batch parses and Documents.
 	DiagnosticCallback func(*core.SyntaxError) error
@@ -64,6 +62,16 @@ type ParseOptions struct {
 	// compare the traces of generated parsers with, which record no examined range outside a
 	// Document parse.
 	ContextMemoUnexamined bool
+}
+
+// TraceSelection selects the events of a parse that the trace function receives. Neither field
+// changes the parse or what the profiles record. Options replace a TraceSelection instead of
+// changing it: a Document's defaults share theirs with each parse.
+type TraceSelection struct {
+	// Rules, if not empty, selects the calls of these rules and the calls nested in them.
+	Rules []string
+	// MaxDepth, if positive, selects the calls at most that deep; the start rule has depth 1.
+	MaxDepth int
 }
 
 // Traced reports whether the parse reports its rule calls: to a trace function or to profiles.

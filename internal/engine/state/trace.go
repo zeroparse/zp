@@ -171,25 +171,34 @@ type tracedCallState struct {
 	selected bool
 }
 
-// SetTrace makes the parse report its rule calls to the trace function of o, as its trace rules and
-// depth limit select them, and record them in its profiles (nothing if o is not Traced). CloseTrace
-// ends the recording when the parse returns.
-func (p *Parser) SetTrace(o *ParseOptions) {
-	if !o.Traced() {
+// SetTrace makes the parse report its rule calls to fn and record them in profiles (nothing if fn is
+// nil and there are no profiles); SelectTrace then limits what fn receives. CloseTrace ends the
+// recording when the parse returns.
+func (p *Parser) SetTrace(fn func(TraceEvent), profiles []*core.Profile) {
+	if fn == nil && len(profiles) == 0 {
 		return
 	}
-	t := &Tracer{p: p, fn: o.Trace, maxDepth: o.TraceMaxDepth}
-	if len(o.TraceRules) != 0 {
-		t.rules = make(map[string]bool, len(o.TraceRules))
-		for _, name := range o.TraceRules {
-			t.rules[name] = true
-		}
-	}
-	for _, pr := range o.Profiles {
+	t := &Tracer{p: p, fn: fn}
+	for _, pr := range profiles {
 		t.profiles = append(t.profiles, pr.Recorder())
 	}
 	p.Tr = t
 	p.NoPlain = true
+}
+
+// SelectTrace limits the events that the trace function given to SetTrace receives to those that s
+// selects (all if s is nil). It is apart from SetTrace so that SetTrace stays small enough to
+// inline into the parse entry points.
+func (p *Parser) SelectTrace(s *TraceSelection) {
+	if t := p.Tr; s != nil && t != nil {
+		t.maxDepth = s.MaxDepth
+		if len(s.Rules) != 0 {
+			t.rules = make(map[string]bool, len(s.Rules))
+			for _, name := range s.Rules {
+				t.rules[name] = true
+			}
+		}
+	}
 }
 
 // CloseTrace ends the recording of the parse's profiles (calls that began and did not complete

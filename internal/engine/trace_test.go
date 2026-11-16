@@ -106,7 +106,7 @@ func parseSpend(prog *Program, start, input string, o ParseOptions) (parseBudget
 	p.Expectations = o.Expectations
 	p.MaxDepth, _ = state.DepthLimit(o, o.Backend) // the options of these tests are valid
 	p.DeferMemo = true
-	p.SetTrace(&ParseOptions{Trace: o.Trace})
+	p.SetTrace(o.Trace, nil)
 	n, err := target.Run(p, o.Backend, start)
 	if o.Recognize {
 		n = nil

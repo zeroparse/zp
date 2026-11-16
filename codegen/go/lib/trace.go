@@ -38,8 +38,8 @@ func WithProfile(profile *core.Profile) ParseOption {
 		case o.observe.profile == nil:
 			o.observe.profile = profile
 		default:
-			// Clip: the options of a Document's defaults are shared by its parses.
-			o.observe.more = append(slices.Clip(o.observe.more), profile)
+			x := o.observe.withExtras()
+			x.more = append(slices.Clip(x.more), profile)
 		}
 	}
 }
@@ -49,25 +49,42 @@ func WithProfile(profile *core.Profile) ParseOption {
 // WithTraceFilter applies.
 func WithTraceFilter(rules ...string) ParseOption {
 	names := append([]string(nil), rules...)
-	return func(o *parseOptions) { o.observe.rules = names }
+	return func(o *parseOptions) { o.observe.withExtras().rules = names }
 }
 
 // WithTraceMaxDepth limits delivered events, counting the start rule as one.
 // Zero and negative values leave delivery unlimited; parsing is unaffected. The
 // last WithTraceMaxDepth applies.
 func WithTraceMaxDepth(n int) ParseOption {
-	return func(o *parseOptions) { o.observe.maxDepth = n }
+	return func(o *parseOptions) { o.observe.withExtras().maxDepth = n }
 }
 
 // observeOptions are the parse options that select an observation: the trace
-// function (the trace functions of the options in order), the profiles (profile,
-// then more), the trace filter and the depth limit.
+// function (the trace functions of the options in order), the first profile and
+// the rarer options, which an unobserved parse carries as one nil pointer.
 type observeOptions struct {
-	trace    func(core.TraceEvent)
-	profile  *core.Profile
+	trace   func(core.TraceEvent)
+	profile *core.Profile
+	extras  *observeExtras
+}
+
+// observeExtras are the profiles after the first, the trace filter and the
+// depth limit. Options replace them instead of changing them, since a
+// Document's defaults share them with each parse.
+type observeExtras struct {
 	more     []*core.Profile
 	rules    []string
 	maxDepth int
+}
+
+// withExtras gives o a copy of its extras to change and returns it.
+func (o *observeOptions) withExtras() *observeExtras {
+	x := new(observeExtras)
+	if o.extras != nil {
+		*x = *o.extras
+	}
+	o.extras = x
+	return x
 }
 
 // newObservation returns the observation that o selects for one parse, or nil.
@@ -76,18 +93,21 @@ func newObservation(o *observeOptions, silent *int) *observation {
 	if o.trace == nil && o.profile == nil {
 		return nil
 	}
-	out := &observation{trace: o.trace, maxDepth: o.maxDepth, silent: silent}
+	out := &observation{trace: o.trace, silent: silent}
 	out.profiles = out.one[:0]
 	if o.profile != nil {
 		out.profiles = append(out.profiles, o.profile.Recorder())
 	}
-	for _, pr := range o.more {
-		out.profiles = append(out.profiles, pr.Recorder())
-	}
-	if len(o.rules) != 0 {
-		out.rules = make(map[string]bool, len(o.rules))
-		for _, name := range o.rules {
-			out.rules[name] = true
+	if x := o.extras; x != nil {
+		out.maxDepth = x.maxDepth
+		for _, pr := range x.more {
+			out.profiles = append(out.profiles, pr.Recorder())
+		}
+		if len(x.rules) != 0 {
+			out.rules = make(map[string]bool, len(x.rules))
+			for _, name := range x.rules {
+				out.rules[name] = true
+			}
 		}
 	}
 	return out

@@ -65,7 +65,8 @@ func (prog *Program) ParseWith(start, input string, o ParseOptions) (n *core.Nod
 		p.Missing, p.MissingLen = &state.MissingTokenState{Limit: o.MissingTokens}, 0
 	}
 	if o.Traced() {
-		p.SetTrace(&o)
+		p.SetTrace(o.Trace, o.Profiles)
+		p.SelectTrace(o.TraceSelection)
 		defer p.CloseTrace()
 	}
 	n, err = active.Run(p, o.Backend, start)
@@ -454,7 +455,8 @@ func (prog *Program) ParseStreamWith(start string, r io.Reader, emit func(*core.
 	}
 	p.Descs = prog.descs(o.Backend, optionsFamily(o))
 	if o.Traced() {
-		p.SetTrace(&o)
+		p.SetTrace(o.Trace, o.Profiles)
+		p.SelectTrace(o.TraceSelection)
 		defer p.CloseTrace()
 	}
 	defer func() {

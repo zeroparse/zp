@@ -28,7 +28,7 @@ var (
 	discardRun       = engineObservationRun{"./internal/engine", "TestProfileStreamMemory", ""}
 	engineOptionsRun = engineObservationRun{"./engine", "TestTraceOptions", ""}
 	// The generated parsers of the agreement use a copy of the library that the overlay does not
-	// change, so the library's trace options are checked by its own tests.
+	// change; a mutant of the library changes that copy too (agreeLibPatchEnv).
 	libOptionsRun = engineObservationRun{"./codegen/go/lib", "TestTraceOption(Selection|Composition)", ""}
 )
 
@@ -60,30 +60,34 @@ var engineObservationMutants = []engineObservationMutant{
 		runs: []engineObservationRun{expecting(engineOptionsRun, "the second profile")}},
 	{name: "generated trace filter ignored", file: "codegen/go/lib/trace.go",
 		old: "return len(o.rules) == 0 || o.rules[rule] ||", new: "return len(o.rules) >= 0 || o.rules[rule] ||",
-		runs: []engineObservationRun{expecting(libOptionsRun, "pair and nested: got")}},
+		runs: []engineObservationRun{expecting(agreementRun, "generated: the trace filter"), expecting(libOptionsRun, "pair and nested: got")}},
 	{name: "generated depth limit ignored", file: "codegen/go/lib/trace.go",
 		old: "if o.trace == nil || !selected || o.maxDepth > 0 && e.Depth > o.maxDepth {", new: "if o.trace == nil || !selected {",
-		runs: []engineObservationRun{expecting(libOptionsRun, "depth: got")}},
+		runs: []engineObservationRun{expecting(agreementRun, "generated: the trace filter"), expecting(libOptionsRun, "depth: got")}},
 	{name: "generated keeps the last trace function", file: "codegen/go/lib/trace.go",
 		old: "\t\t\t\tprev(e)\n", new: "\t\t\t\t_ = prev\n",
-		runs: []engineObservationRun{expecting(libOptionsRun, "trace functions received")}},
+		runs: []engineObservationRun{expecting(agreementRun, "generated: the second trace function"), expecting(libOptionsRun, "trace functions received")}},
 	{name: "generated keeps the last profile", file: "codegen/go/lib/trace.go",
-		old: "o.observe.more = append(slices.Clip(o.observe.more), profile)", new: "o.observe.more, o.observe.profile = slices.Clip(o.observe.more), profile",
-		runs: []engineObservationRun{expecting(libOptionsRun, "profiles recorded")}},
+		old: "x.more = append(slices.Clip(x.more), profile)", new: "x.more, o.observe.profile = slices.Clip(x.more), profile",
+		runs: []engineObservationRun{expecting(agreementRun, "generated: the second profile"), expecting(libOptionsRun, "profiles recorded")}},
 	{name: "generated Document parses share added profiles", file: "codegen/go/lib/trace.go",
-		old: "o.observe.more = append(slices.Clip(o.observe.more), profile)", new: "_ = slices.Clip[[]int]\n\t\t\to.observe.more = append(o.observe.more, profile)",
+		old: "x.more = append(slices.Clip(x.more), profile)", new: "_ = slices.Clip[[]int]\n\t\t\tx.more = append(x.more, profile)",
 		runs: []engineObservationRun{expecting(libOptionsRun, "was replaced")}},
 	// The control changes nothing that the tests observe: they must pass with it, so that what makes the
 	// other mutants fail is their change, not the overlay.
 	{name: "control", file: "internal/engine/state/trace.go",
 		old: "\tt.exp = nil\n", new: "\tt.exp = nil\n\t_ = t\n",
 		runs: []engineObservationRun{agreementRun, discardRun, engineOptionsRun, libOptionsRun}},
+	{name: "library control", file: "codegen/go/lib/trace.go",
+		old: "\tx := new(observeExtras)\n", new: "\tx := new(observeExtras)\n\t_ = x\n",
+		runs: []engineObservationRun{agreementRun, libOptionsRun}},
 }
 
 // TestEngineObservationMutants checks that the agreement of the engine's observations with the generated
 // parsers' and the bound on the profile of a stream notice an engine that leaves out the examined end of a
-// memo hit, inverts Lookahead or keeps the profile's records of discarded input, and that the tests of the
-// trace options notice either producer getting one of them wrong.
+// memo hit, inverts Lookahead or keeps the profile's records of discarded input, and that the agreement and
+// the tests of the trace options notice either producer getting one of them wrong. A mutant of the library
+// also changes the copy of it that the agreement's generated parsers import.
 func TestEngineObservationMutants(t *testing.T) {
 	t.Parallel()
 	if testing.Short() {
@@ -119,6 +123,10 @@ func TestEngineObservationMutants(t *testing.T) {
 				cmd.Dir = root
 				// The tests run in the module itself, as go test runs them here.
 				cmd.Env = append(os.Environ(), "GOTOOLCHAIN=local", "GOFLAGS=")
+				if strings.HasPrefix(m.file, "codegen/go/lib/") {
+					patch, _ := json.Marshal(struct{ File, Old, New string }{m.file, m.old, m.new})
+					cmd.Env = append(cmd.Env, agreeLibPatchEnv+"="+string(patch))
+				}
 				out, err := cmd.CombinedOutput()
 				switch {
 				case r.want == "" && err != nil:

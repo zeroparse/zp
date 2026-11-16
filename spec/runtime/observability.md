@@ -28,6 +28,14 @@ Several `WithProfile`
 options compose too: each profile records the whole parse. A nil function or
 profile is ignored.
 
+Trace functions are callbacks of the caller, outside the budget. A
+cancellation of the parse's context that a trace function makes takes effect
+no later than the next observation of the context
+([Reservations and Interruptions](parsing.md#reservations-and-interruptions)).
+A parser with limit controls MAY observe the context earlier, including
+between two trace functions of the same event; the functions after that
+observation then do not receive the event.
+
 `WithTraceFilter` and `WithTraceMaxDepth` select the events that the trace
 functions receive; they apply to all of them. A call is selected by the filter
 if its rule is one of the named rules or the call is nested in a selected call;

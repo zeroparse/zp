@@ -355,6 +355,42 @@ type agreeReport struct {
 	Err             string
 }
 
+// agreeLibPatchEnv names the environment variable through which the mutants of
+// TestEngineObservationMutants change the library of the generated parsers: a JSON object with the
+// file of the library (relative to the module root) and the text to replace (Old) with New. The go
+// command's overlay does not reach the copy of the library that the probes import.
+const agreeLibPatchEnv = "ZP_AGREE_LIB_PATCH"
+
+// agreeLib returns the library that the probes import: the copy of the library, changed as
+// agreeLibPatchEnv says if it is set.
+func agreeLib(t *testing.T) string {
+	t.Helper()
+	spec := os.Getenv(agreeLibPatchEnv)
+	if spec == "" {
+		return codegentest.LibCopy()
+	}
+	var m struct{ File, Old, New string }
+	if err := json.Unmarshal([]byte(spec), &m); err != nil {
+		t.Fatalf("%s: %v", agreeLibPatchEnv, err)
+	}
+	dir, name := filepath.Split(filepath.FromSlash(m.File))
+	if filepath.ToSlash(filepath.Clean(dir)) != "codegen/go/lib" {
+		t.Fatalf("%s: %s is not a file of the library", agreeLibPatchEnv, m.File)
+	}
+	patched := 0
+	lib := codegentest.LibCopyWith(t, func(file, src string) string {
+		if file != name {
+			return src
+		}
+		patched += strings.Count(src, m.Old)
+		return strings.Replace(src, m.Old, m.New, 1)
+	}, nil)
+	if patched != 1 {
+		t.Fatalf("%s: %q occurs %d times in %s", agreeLibPatchEnv, m.Old, patched, m.File)
+	}
+	return lib
+}
+
 // agreeMaxDepth is the depth limit of the filtered parses of the agreement.
 const agreeMaxDepth = 3
 
@@ -370,7 +406,7 @@ func runAgreeProbes(t *testing.T, cases []codegentest.Case) []agreeReport {
 			t.Fatal(err)
 		}
 	}
-	write("go.mod", []byte(codegentest.GoModAt("agreeprobe", codegentest.LibCopy())))
+	write("go.mod", []byte(codegentest.GoModAt("agreeprobe", agreeLib(t))))
 	var imports, entries strings.Builder
 	var inputs [][][]byte
 	for i, c := range cases {
@@ -480,7 +516,9 @@ func engineObservation(t *testing.T, prog *engine.Program, r agreeReport, in str
 	traced := o
 	traced.Trace = func(e core.TraceEvent) { events = append(events, e) }
 	traced.Profiles = []*core.Profile{&prof}
-	traced.TraceRules, traced.TraceMaxDepth = rules, maxDepth
+	if rules != nil || maxDepth != 0 {
+		traced.TraceSelection = &engine.TraceSelection{Rules: rules, MaxDepth: maxDepth}
+	}
 	var err error
 	switch r.Entry {
 	case "parse", "recognize":
