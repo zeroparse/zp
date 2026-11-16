@@ -160,9 +160,8 @@ The operations of the component `call`.
 
 | Declaration | State | Cost | Contract |
 |:--|:--|:--|:--|
-| `transitional op call.tracked() bool [document]` | reads call | `0` | Reports whether a rule call takes the target's tracked path: in a Document parse, and in the node runtime also in an observed parse. |
-| `transitional op call.track(r Rule, min int) (Value, bool) [document] noreturn` | writes call, pos, silent | `0` | Calls the rule at the binding level min on the target's tracked path and returns its result. |
-| `transitional op call.trackBody(r Rule, inv Body) (Value, bool) [document] noreturn` | writes call, pos, silent | `0` | Calls the rule through the invocation inv on the target's tracked path and returns its result. |
+| `transitional op call.tracked() bool [document]` | reads call | `0` | Reports whether a rule call of the engine takes its traced path: in a traced parse, for a call that the traced path has not yet entered. |
+| `transitional op call.track(r Rule, min int) (Value, bool) [document] noreturn` | writes call, pos, silent | `0` | Calls the rule at the binding level min on the engine's traced path and returns its result. |
 | `op doc.examinedBegin() int [document]` | reads call, pos; writes call | `0` | Starts measuring how far an observed call examines the input: the examined end of the call starts at the position. Returns the enclosing call's examined end, for doc.examinedEnd. The call itself, and any memo entry it reads or records, extends the end as in an unobserved parse, so that observation does not change reuse. Requires: The parse tracks the examined input (doc.tracking). |
 | `op doc.examinedEnd(enclosing int) int [document]` | reads call; writes call | `0` | Ends measuring the examined end of an observed call and merges it into the enclosing one; returns the call's examined end: one past the last unit that the call's result depends on. Requires: enclosing is the result of the matching doc.examinedBegin. |
 | `op doc.enter(pos int) (int, int) [document]` | reads call; writes call | `0` | Begins a rule call at pos in a Document parse: returns the examined input of the enclosing call, its end and its start, and starts the call's examined input as the empty range at pos: a call has examined nothing when it begins, and each read extends the range by exactly what it examined. Requires: The parse reads a Document. |
@@ -175,7 +174,6 @@ The operations of the component `call`.
 | `op doc.examined() int [document]` | reads call | `0` | Returns the examined end of the current call: the exact end of the input it examined so far, exclusive. Requires: The parse tracks the examined input (doc.tracking). |
 | `op doc.reused() [document]` | writes call | `0` | Counts a reused memo entry in the statistics of the Document. Requires: The parse reads a Document. |
 | `op doc.evaluated() [document]` | writes call | `0` | Counts an evaluated rule body in the statistics of the Document. Requires: The parse reads a Document. |
-| `transitional op call.body(r Rule, min int) (Value, bool) noreturn` | writes call, pos, silent | `0` | Calls the rule at the binding level min without observation: the call, or the plain invocation, that the target's observed function wraps. |
 
 ## Observation
 

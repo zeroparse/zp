@@ -13,10 +13,11 @@ The call protocol of a rule: deferred memoization, the memo with its reuse condi
 | Declaration | Meaning |
 |:--|:--|
 | `func firstCall(r Rule) bool` | Records a call of the memoized rule r at the position and reports whether its memoization is deferred, so that the call is not memoized: in a parse that defers memoization (seen.defers), for a rule with a seen index (rule.seen), as seen.first decides. A result is reused only when a rule is called again at a position, which is rare, so deferring memoization to the second call saves a memo entry for each position where the rule is called once, and evaluates the body of a rule at most twice per position, binding level and combination of variable values. |
-| `func call(r Rule, min int) (Value, bool) [document, observe, typed, budget]` | Calls rule r at binding level min: unmemoized while its memoization is deferred, and otherwise through the memo and the dependency memo of left-recursion contexts, growing the seed of a left-recursion leader. |
+| `func call(r Rule, min int) (Value, bool) [document, observe, typed, budget]` | Calls rule r at binding level min: unmemoized while its memoization is deferred, and otherwise through the memo and the dependency memo of left-recursion contexts, growing the seed of a left-recursion leader. A call that is also the entry of Document parses first hands a Document parse to its tracked path (typedDocument for typed values), and for nodes an observed parse too (tracked). |
 | `func callMemo(r Rule, inv Body) (Value, bool) [document, observe, typed]` | The memoized part of a rule call, for the rule r at binding level 0 invoked by inv: the rule is called at the position again, or its memoization is no longer deferred. |
 | `func grow(r Rule, min int) (Value, bool) [typed]` | Grows the seed of a left-recursive leader from a failure: it evaluates the body again while the match gets longer, and returns the last longer result. |
-| `func observed(r Rule, min int) (Value, bool) [document, observe]` | A rule call in an observed parse: it reports the call to the observation, with how far it examined the input in a Document parse, around the call without observation. |
+| `func observed(r Rule, min int) (Value, bool) [document, observe, typed]` | A rule call in an observed parse: it reports the call to the observation, with how far it examined the input in a Document parse, around the call without observation: the typed call, which observes nothing itself, or the node call of the tracked path without observation. |
+| `func observedPlain(r Rule, min int) (Value, bool) [document, observe]` | The plain invocation of a rule in an observed parse: it reports the invocation to the observation as observed reports a call. |
 | `func unmemoized(r Rule, min int) (Value, bool)` | Calls rule r at binding level min without memo bookkeeping, as call does while the rule's memoization is deferred: its expectations need no isolation, and a failure restores the position and the recovered errors. |
 | `func memoized(r Rule, min int) (Value, bool) [document, observe, budget]` | Calls rule r at binding level min through the memo, as call does once the rule's memoization is no longer deferred, with the observation of a reuse and, in a Document parse, the bookkeeping of how far each call examined the input. |
 | `func document(r Rule, min int) (Value, bool) [document, budget]` | A rule call in a Document parse, which memoizes the rules that the Document reuses and records the input each call examined. The enclosing call's examined input is restored however the call ends, an interruption included, so that a parse after it starts from the state it would start from otherwise. |
@@ -134,10 +135,11 @@ row includes what its backends print into packages of their own.
 | Composition | Generated Go, nodes | Generated Go, typed values | The engine | TypeScript |
 |:--|:--|:--|:--|:--|
 | firstCall | `[]` | `[]` | `[]` | `[]` |
-| call | `[budget, document]` | `[budget, document, observe, typed]` |  | `[budget, observe]` |
+| call | `[budget, document, observe]` | `[budget, document, observe, typed]` |  | `[budget, observe]` |
 | callMemo |  | `[document, observe, typed]` |  |  |
 | grow | `[]` | `[typed]` | `[]` | `[]` |
-| observed | `[document, observe]` | `[document, observe]` |  |  |
+| observed | `[document, observe]` | `[document, observe, typed]` |  |  |
+| observedPlain | `[document, observe]` | `[document, observe]` |  |  |
 | unmemoized | `[]` |  |  | `[]` |
 | memoized | `[budget, document, observe]` |  |  | `[document, observe]` |
 | document | `[budget, document]` |  |  | `[document]` |

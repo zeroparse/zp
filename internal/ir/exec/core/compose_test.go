@@ -253,6 +253,16 @@ func (m *machine) Call(o *exec.Op, args []any) []any {
 		r.runs++
 		v, ok := r.body(m)
 		return []any{v, ok}
+	case "rule.invokePlain":
+		// A plain invocation fails at its start, without the errors it recovered.
+		r, start, rec := args[0].(*trule), m.pos(), len(m.rec)
+		r.runs++
+		v, ok := r.body(m)
+		if !ok {
+			m.setPos(start)
+			m.rec = m.rec[:rec]
+		}
+		return []any{v, ok}
 	case "env.key":
 		return []any{int64(0)}
 	case "rec.mark":
@@ -378,11 +388,6 @@ func (m *machine) Call(o *exec.Op, args []any) []any {
 	case "memo.examine":
 		m.examined[entryOf(args[0])] = args[2].(int64)
 		return nil
-	case "call.body":
-		r := args[0].(*trule)
-		r.runs++
-		v, ok := r.body(m)
-		return []any{v, ok}
 	case "ctx.enter":
 		m.ctx.ops = append(m.ctx.ops, "enter")
 		return []any{&m.ctx, m.ctx.seed}
@@ -769,36 +774,43 @@ func TestCallLookaheadStates(t *testing.T) {
 	})
 }
 
-// TestObserved checks that an observed call reports its beginning and its end to the observation,
+// TestObserved checks that an observed call, and an observed plain invocation, reports its beginning and its end to the observation,
 // with its outcome, its end and how far its call examined the input, which joins the examined end
 // of the enclosing call.
 func TestObserved(t *testing.T) {
 	mod := Build()
-	f := composition(t, mod, "observed", ops.Document, ops.Observe)
-	for _, ok := range []bool{true, false} {
-		t.Run(fmt.Sprint(ok), func(t *testing.T) {
-			m := newMachine()
-			m.examinedEnd = 12
-			var at int64 = -1
-			r := &trule{id: 2, body: func(m *machine) (any, bool) {
-				at = m.examinedEnd
-				m.events = append(m.events, "body")
-				m.advance(2)
-				m.examinedEnd = 9
-				return "v", ok
-			}}
-			v, got := callAt(t, mod, m, f, r, 3)
-			if got != ok || (ok && v != "v") || r.runs != 1 {
-				t.Errorf("%v %v after %d evaluations, want the body's result after one", v, got, r.runs)
-			}
-			want := []string{"enter 2 at 3 level 0", "body", fmt.Sprintf("exit %v at 5 examined 9", ok)}
-			if !slices.Equal(m.events, want) {
-				t.Errorf("observed %q, want %q", m.events, want)
-			}
-			if at != 3 || m.examinedEnd != 12 {
-				t.Errorf("the body began with the examined end %d and the call left %d, want 3 and 12", at, m.examinedEnd)
-			}
-		})
+	for _, name := range []string{"observed", "observedPlain"} {
+		f := composition(t, mod, name, ops.Document, ops.Observe)
+		for _, ok := range []bool{true, false} {
+			t.Run(fmt.Sprint(name, " ", ok), func(t *testing.T) {
+				m := newMachine()
+				m.examinedEnd = 12
+				var at int64 = -1
+				r := &trule{id: 2, body: func(m *machine) (any, bool) {
+					at = m.examinedEnd
+					m.events = append(m.events, "body")
+					m.advance(2)
+					m.examinedEnd = 9
+					return "v", ok
+				}}
+				v, got := callAt(t, mod, m, f, r, 3)
+				if got != ok || (ok && v != "v") || r.runs != 1 {
+					t.Errorf("%v %v after %d evaluations, want the body's result after one", v, got, r.runs)
+				}
+				// The call without observation restores the position of a failure.
+				end := 3
+				if ok {
+					end = 5
+				}
+				want := []string{"enter 2 at 3 level 0", "body", fmt.Sprintf("exit %v at %d examined 9", ok, end)}
+				if !slices.Equal(m.events, want) {
+					t.Errorf("observed %q, want %q", m.events, want)
+				}
+				if at != 3 || m.examinedEnd != 12 {
+					t.Errorf("the body began with the examined end %d and the call left %d, want 3 and 12", at, m.examinedEnd)
+				}
+			})
+		}
 	}
 }
 
@@ -935,13 +947,10 @@ func TestTrackedPath(t *testing.T) {
 		if c.observed {
 			wantEvents = 6 // the enter and exit of each call
 		}
-		// The observed call evaluates the body itself (call.body); otherwise a deferred rule is
-		// stored on its second call and reused on its third, and a Document memoizes on the first.
+		// Observation changes no call: a deferred rule is stored on its second call and reused on its
+		// third, and a Document memoizes on the first.
 		wantStored, wantRuns, wantSpends := []bool{false, true, false}, 2, 3
-		switch {
-		case c.observed:
-			wantStored, wantRuns, wantSpends = []bool{false, false, false}, 3, 0
-		case c.document:
+		if c.document {
 			wantStored, wantRuns = []bool{true, false, false}, 1
 		}
 		if len(m.events) != wantEvents || !slices.Equal(stored, wantStored) || r.runs != wantRuns || m.spends != wantSpends {
