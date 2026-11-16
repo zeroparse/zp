@@ -100,8 +100,8 @@ compiler side. The rules, which a test enforces, are these.
    - `internal/pass` imports no other package of the module.
    - The IR packages (Core IR and Code IR with its dialects) import only IR packages, `internal/pass`, the cancellation
      helper and `pkg/grammar`. Inside them, the Code IR base imports no dialect; the Flow dialect imports the base and
-     Core IR (for immediates) only; the Action dialect and the Exec dialect import the base only, and the packages under Exec may also import Exec and
-     Action. Only the lowerings of the middle end and the checks that span dialects import more than one dialect.
+     Core IR (for immediates) only; the Action dialect and the Exec dialect import the base only, and the packages
+     under Exec may also import Exec and Action. Only the lowerings of the middle end and the checks that span dialects import more than one dialect.
    - The front end imports no middle end, backend, analysis tool or language server; the middle end imports no backend,
      analysis tool or language server; a backend imports no analysis tool or language server.
    - Only the commands and the repository's test support import `internal/lsp/**`, and only test support imports
