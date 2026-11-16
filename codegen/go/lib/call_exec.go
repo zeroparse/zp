@@ -114,7 +114,7 @@ func (p *Parser) Call(r *Rule, min int) (*core.Node, bool) {
 // Printed from Exec IR function firstCall of internal/ir/exec/core.
 func (p *Parser) FirstCall(r *Rule) bool {
 	s := r.Seen
-	if !((p.Stream == nil && p.Document == nil) && s >= 0) {
+	if !(p.deferMemo && s >= 0) {
 		return false
 	}
 	return p.seenFirst(s, p.Pos)
@@ -132,7 +132,7 @@ func (p *Parser) FirstCall(r *Rule) bool {
 // Printed from Exec IR function firstCall of internal/ir/exec/core.
 func (p *TParser) firstCall(r *TRule) bool {
 	s := r.Seen
-	if !((p.Stream == nil && p.Document == nil) && s >= 0) {
+	if !(p.deferMemo && s >= 0) {
 		return false
 	}
 	return p.seenFirst(s, p.Pos)

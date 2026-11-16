@@ -49,6 +49,7 @@ func newRuleMachine(cfg ref.Config, controlled bool) conform.Impl {
 		base.p.Stream = &streamInput{}
 	}
 	base.p.track = cfg.Document || cfg.Observed
+	base.p.setDeferMemo()
 	m := &ruleMachine{docMachine: &docMachine{rtMachine: base}, specs: cfg.RuleSpecs, evals: map[int64]int64{}}
 	scriptRules(base.env.rules, cfg, m.evaluate)
 	if controlled {
