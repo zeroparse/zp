@@ -483,6 +483,12 @@ var tsTarget = &Target{
 				a[0], a[1], a[2], a[3], a[4], a[8], a[6], a[7], a[9], a[10], a[11])
 		case "grow.begin":
 			return fmt.Sprintf("this.growBegin(%s, %s)", a[0], a[1])
+		case "grow.ctx":
+			return a[0] + ".ctx"
+		case "grow.longer":
+			return fmt.Sprintf("this.growLonger(%s, %s)", a[0], a[1])
+		case "grow.adopt":
+			return fmt.Sprintf("this.growAdopt(%s, %s)", a[0], a[1])
 		case "grow.next":
 			return "this.growNext(" + a[0] + ")"
 		case "grow.step":

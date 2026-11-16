@@ -1049,6 +1049,39 @@ transitional op grow.begin(r Rule, min int) Grow
     // Starts the growth of the leader at the binding level min at the position from a failure,
     // charging one unit: the growth is in a context when other leaders of its cycle grow at the position.
 
+transitional op grow.ctx(g Grow) bool
+  component growth
+  reads growth
+  cost <= 0
+  contract:
+    // Reports whether the growth g memoizes its steps in its context (grow.next and grow.step): when
+    // other leaders of its cycle grow at its position, unless the parse keeps no results in contexts. A
+    // growth that does not takes its steps with grow.longer and grow.adopt.
+
+transitional op grow.longer(g Grow, ok bool) bool
+  component growth
+  reads growth, pos
+  cost <= 0
+  contract:
+    // Reports whether a step of the growth g with success ok, ending at the position, matched more
+    // than the seed: it succeeded, and the seed failed or ends before the position.
+  requires:
+    // grow.ctx(g) is false.
+
+transitional op grow.adopt(g Grow, value Value)
+  component growth
+  reads growth
+  writes growth, recovered, pos, silent
+  noreturn
+  cost <= 1 + 1*segs
+  contract:
+    // Adopts the successful step of the growth g that ends at the position, with its value, as the
+    // seed of g, charging one unit: the seed holds the errors that the step recovered, as rec.since returns
+    // them for the mark that the growth took when it began. The position then returns to the start of the
+    // growth, and the entries after that mark are dropped.
+  requires:
+    // grow.ctx(g) is false and grow.longer(g, true) holds.
+
 transitional op grow.next(g Grow) bool
   component growth
   reads growth
@@ -1056,9 +1089,11 @@ transitional op grow.next(g Grow) bool
   noreturn
   cost <= 0 + 1*steps + 1*table + 1*deps + 1*merge + 1*run
   contract:
-    // Reports whether the body must be evaluated for the next step of the growth g. In a context
-    // it first takes the steps that the memoized steps and jumps of the context give, and starts recording
-    // what the step it reports depends on.
+    // Reports whether the body must be evaluated for the next step of the growth g. It first takes the
+    // steps that the memoized steps and jumps of the context give, and starts recording what the step it
+    // reports depends on.
+  requires:
+    // grow.ctx(g) holds.
 
 transitional op grow.step(g Grow, value Value, ok bool)
   component growth
@@ -1067,10 +1102,13 @@ transitional op grow.step(g Grow, value Value, ok bool)
   noreturn
   cost <= 66 + 1*merge + 1*segs + 2*deps + 1*table + 1*run
   contract:
-    // Receives the result of a step of the growth g: adopts it as the seed, charging one unit, and
-    // returns to the start of the growth if the match grew, dropping the entries after the mark that the
-    // growth took when it began, and otherwise ends the growth. A step that succeeded holds the errors it
-    // recovered as the list that rec.since returns for that mark; a step that failed holds none.
+    // Receives the result of a step of the growth g: keeps it in the context, adopts it as the seed,
+    // charging one unit, and returns to the start of the growth if the match grew, dropping the entries after
+    // the mark that the growth took when it began, and otherwise ends the growth. A step that succeeded
+    // holds the errors it recovered as the list that rec.since returns for that mark; a step that failed
+    // holds none.
+  requires:
+    // grow.ctx(g) holds.
 
 transitional op grow.end(g Grow) CtxResult
   component growth

@@ -281,7 +281,7 @@ context keeps is a composition, as the reuse of a memo entry is: accessors of th
 `ctx.far`, `ctx.expected`, and in a Document parse `ctx.examined` and `ctx.before`) feed the operations of the
 call bookkeeping, the expectations, the position and the recovered errors, so each part is held to its own
 component's model and charges what that part charges. An operation that writes components other than its own
-(`grow.step` and `grow.end`) is modelled as the composition of those components' models that its contract names,
+(`grow.adopt`, `grow.step` and `grow.end`) is modelled as the composition of those components' models that its contract names,
 and it stops being transitional only once every component it writes has a model. The growth loop (the steps, jumps and runs of a
 growth in a context, and the canonical identities of equal seeds) builds on the same state and stays transitional
 until it has a model of its own, and so does keeping the result of a leader, which is the last result of its
@@ -354,7 +354,7 @@ recovered errors stops being valid where an edit would move it. The operations a
 of each error and of each list compared after every write, on generated Go and the engine; TypeScript stays on its
 parity tests. The operations of the missing-token mode, which only the engine has, have a reference model of the tokens
 a parse inserts and conformance cases that compare them after each write, on the engine; a rule that can insert a token
-is not memoized in that mode. The growth operations `grow.step` and `grow.end` stay transitional: they record a seed's
+is not memoized in that mode. The growth operations `grow.adopt`, `grow.step` and `grow.end` stay transitional: they record a seed's
 errors again, a write to the recovered errors from another component that the verifier allows only for transitional
 operations, and where that write belongs depends on the design of the left-recursion context, which also replays a
 call's errors and is not settled. *Target*: the representation of entries and lists, the scratch a stream keeps, and
