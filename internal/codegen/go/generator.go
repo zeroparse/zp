@@ -262,15 +262,16 @@ func generateOnce(g *grammar.Grammar, c codegen.Compiler, opts codegen.GenOption
 	}
 	fmt.Fprintf(&genGo.Init, "\tzpGrammar.Starts = %s\n", goStrings(prog.StartRules))
 	fmt.Fprintf(&genGo.Init, "\tzpGrammar.DefaultStart = %q\n", prog.DefaultStartRule)
+	features, err := codegen.ParserFeatures(prog, rec, opts, settings)
+	if err != nil {
+		return nil, err
+	}
 	if opts.FeatureWitness {
-		features, err := codegen.ParserFeatures(prog, rec, opts, settings)
-		if err != nil {
-			return nil, err
-		}
+		witnessed := features
 		if h.Features != nil {
-			features = h.Features(features)
+			witnessed = h.Features(witnessed)
 		}
-		fmt.Fprintf(&genGo.Init, "\tzpGrammar.WitnessFeatures(%d) // %s\n", features, features)
+		fmt.Fprintf(&genGo.Init, "\tzpGrammar.WitnessFeatures(%d) // %s\n", witnessed, witnessed)
 	}
 	if !opts.TypedOnly {
 		genGo.writeDescs(opts)
@@ -452,7 +453,14 @@ func ParseRule(name, input string, opts ...ParseOption) (*Node, error) {
 		files = append(files, codegen.GeneratedFile{Path: "types/types.go", Content: typesFile})
 	}
 	if opts.Lib == codegen.LibEmbed {
-		rt, err := libFiles(opts)
+		var roots, users [][]byte
+		for _, f := range files {
+			roots = append(roots, f.Content)
+			if f.Path != "parser.go" {
+				users = append(users, f.Content)
+			}
+		}
+		rt, err := embeddedLib(opts, features, settings.On(codegen.UsedFeatures), roots, users)
 		if err != nil {
 			return nil, err
 		}

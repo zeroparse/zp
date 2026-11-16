@@ -869,7 +869,7 @@ func (p *Parser) replayCtx(e *ctxResult, seed bool) {
 	p.Observation.memoHit()
 	p.documentTouch(e.examined)
 	p.documentTouchFrom(p.Pos - 1)
-	if p.Document != nil {
+	if usedFeatures&featureDocument != 0 && p.Document != nil {
 		p.Document.stats.Reused++
 	}
 	if !seed {

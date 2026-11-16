@@ -415,7 +415,7 @@ func saturatingAdd(a, b uint64) uint64 {
 // SpendRead charges the read of n units. It records no input: in a Document parse each matcher
 // records the exact end of what it read itself (documentTouch).
 func (p *Parser) SpendRead(n uint64) {
-	if p.Control != nil {
+	if usedFeatures&featureBudget != 0 && p.Control != nil {
 		p.Control.Charge(n)
 	}
 }
@@ -434,7 +434,7 @@ func (p *Parser) setControlledSource(s string) {
 	n, valid := 0, true
 	// Outside a Document, charge the control directly: SpendRead is too large to inline.
 	c := p.Control
-	if p.Document != nil {
+	if usedFeatures&featureDocument != 0 && p.Document != nil {
 		c = nil
 	}
 	// Each of the two passes charges one unit per byte of the source: outside a Document in
@@ -522,7 +522,7 @@ func (p *Parser) setControlledSource(s string) {
 }
 
 func (p *Parser) literalHasReplacement(rs []rune) bool {
-	if p.Control != nil {
+	if usedFeatures&featureBudget != 0 && p.Control != nil {
 		return p.literalHasReplacementControlled(rs)
 	}
 	return slices.Contains(rs, utf8.RuneError)
@@ -644,13 +644,13 @@ func (p *Parser) RejectBudgetClass(ch rune, c *BudgetClass) bool {
 const spendValueChunk = 128
 
 func (p *Parser) spendValue(n int) {
-	if p.Control != nil {
+	if usedFeatures&featureBudget != 0 && p.Control != nil {
 		p.Control.Charge(uint64(n))
 	}
 }
 
 func (p *Parser) compareText(l, r string) int {
-	if p.Control != nil {
+	if usedFeatures&featureBudget != 0 && p.Control != nil {
 		return p.compareTextControlled(l, r)
 	}
 	return strings.Compare(l, r)
@@ -747,7 +747,7 @@ func checkedTextSize(size, width int) int {
 }
 
 func copySpend[T any](p *Parser, dst, src []T) {
-	if p.Control != nil {
+	if usedFeatures&featureBudget != 0 && p.Control != nil {
 		copyBudgetControlled(p, dst, src)
 		return
 	}
@@ -786,7 +786,7 @@ func (p *Parser) chargeValues(n int) {
 }
 
 func appendSpend[T any](p *Parser, dst, src []T) []T {
-	if p.Control != nil {
+	if usedFeatures&featureBudget != 0 && p.Control != nil {
 		return appendBudgetControlled(p, dst, src)
 	}
 	return append(dst, src...)
@@ -807,7 +807,7 @@ func appendBudgetControlled[T any](p *Parser, dst, src []T) []T {
 // remain nonpreemptible.
 // Published or memoized errors must never be passed to this helper.
 func (p *Parser) sortExpected(values []string) {
-	if p.Control != nil {
+	if usedFeatures&featureBudget != 0 && p.Control != nil {
 		p.sortExpectedControlled(values)
 		return
 	}
@@ -860,7 +860,7 @@ func (p *Parser) sortExpectedControlled(values []string) {
 // Public post-return Error/Message calls remain caller spend. The local builder
 // owns its immutable output and is never pooled or written after return.
 func (p *Parser) RecoveryErrorText(e *core.SyntaxError) string {
-	if p.Control != nil {
+	if usedFeatures&featureBudget != 0 && p.Control != nil {
 		return p.recoveryErrorTextControlled(e)
 	}
 	return e.Error()
@@ -1095,7 +1095,7 @@ func (p *Parser) bindControlled(slot int, val any) {
 }
 
 func clearSpend[T any](p *Parser, values []T) {
-	if p.Control != nil {
+	if usedFeatures&featureBudget != 0 && p.Control != nil {
 		clearBudgetControlled(p, values)
 		return
 	}
@@ -1137,7 +1137,7 @@ func (p *Parser) memoGet(rule, pos, min int, key []any, docOnly bool) *memoEntry
 			return nil
 		}
 	}
-	if p.Control != nil {
+	if usedFeatures&featureBudget != 0 && p.Control != nil {
 		return p.memoGetControlled(rule, pos, min, key, docOnly)
 	}
 	e := p.memo.get(rule, pos, min, key)
@@ -1214,7 +1214,7 @@ func (p *Parser) memoPut(rule, pos, min int, key []any, docOnly bool, e *memoEnt
 			return
 		}
 	}
-	if p.Control != nil {
+	if usedFeatures&featureBudget != 0 && p.Control != nil {
 		p.memoPutControlled(rule, pos, min, key, docOnly, e)
 		return
 	}
@@ -1362,7 +1362,7 @@ func (p *Parser) controlledFirstCallPrepare(r *Rule) {
 // Graph helpers account for normal construction and capture restoration.
 // Release/recycle, DropKids/DropTrail and arena reset remain unconditional.
 func (p *Parser) valueField(fs coreimpl.Fields, name string) (any, bool) {
-	if p.Control != nil {
+	if usedFeatures&featureBudget != 0 && p.Control != nil {
 		return p.valueFieldControlled(fs, name)
 	}
 	return fs.Get(name)
@@ -1378,7 +1378,7 @@ func (p *Parser) valueFieldControlled(fs coreimpl.Fields, name string) (any, boo
 	return nil, false
 }
 func (p *Parser) setValueField(fs *coreimpl.Fields, name string, v any) {
-	if p.Control != nil {
+	if usedFeatures&featureBudget != 0 && p.Control != nil {
 		p.setValueFieldControlled(fs, name, v)
 		return
 	}
@@ -1425,7 +1425,7 @@ func (p *Parser) actionErrorText(parts ...string) string {
 // evalErrorValue returns the failure of a term with the message that format makes of args, which a
 // composition returns (see termError).
 func (p *Parser) evalErrorValue(format string, args ...any) evalError {
-	if p != nil && p.Control != nil {
+	if p != nil && usedFeatures&featureBudget != 0 && p.Control != nil {
 		return p.evalErrorfControlled(format, args...)
 	}
 	return evalError{fmt.Sprintf(format, args...)}

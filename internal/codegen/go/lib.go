@@ -204,15 +204,38 @@ func addLibDecls(info *libInfo, f *goast.File, pkg string) error {
 	return nil
 }
 
-// libFiles returns the copy of the library that LibEmbed writes, in internal/libgo. The copy
-// imports core and core/impl of this module, as generated code does.
+// libFiles returns the copy of the library that LibOnly writes, in internal/libgo: the whole
+// library, since it serves a parser generated earlier. The copy imports core and core/impl of this
+// module, as generated code does.
 func libFiles(opts codegen.GenOptions) ([]codegen.GeneratedFile, error) {
 	info, err := loadLib(opts)
 	if err != nil {
 		return nil, err
 	}
+	return copyLib(opts, info.files)
+}
+
+// embeddedLib returns the copy of the library that LibEmbed writes for a parser with the features fs
+// whose own files are roots, of which api are those its users call: with prune (the optimization used-features), only what the parser can
+// run (pruneLib), otherwise the whole library.
+func embeddedLib(opts codegen.GenOptions, fs codegen.FeatureSet, prune bool, roots, api [][]byte) ([]codegen.GeneratedFile, error) {
+	info, err := loadLib(opts)
+	if err != nil {
+		return nil, err
+	}
+	files := info.files
+	if prune {
+		if files, err = pruneLib(files, fs, roots, api); err != nil {
+			return nil, fmt.Errorf("the copy of the library: %w", err)
+		}
+	}
+	return copyLib(opts, files)
+}
+
+// copyLib returns files as the files of the copy of the library.
+func copyLib(opts codegen.GenOptions, files []libFile) ([]codegen.GeneratedFile, error) {
 	var out []codegen.GeneratedFile
-	for _, f := range info.files {
+	for _, f := range files {
 		data := f.data
 		if opts.FeatureWitness {
 			// The copy of a parser that records its features checks them whatever the build tags.
