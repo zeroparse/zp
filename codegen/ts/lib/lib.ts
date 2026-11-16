@@ -1269,23 +1269,27 @@ function observers<T>(value: T | readonly (T | null)[] | null | undefined, is: (
 }
 
 // run parses the whole input of the grammar g with rule r of a rule table with seen rules that have rule.seen set.
-// With document set, it parses with the parser of a Document parse (DocumentParser).
+// With document set, it parses with the parser of a Document parse (DocumentParser); with trace
+// functions or profiles and no document, with the parser of an observed parse (ObservedParser).
 export function run(g: Grammar, r: Rule, seen: number, input: string | Uint8Array, unit: Unit | undefined, maxDepth = g.maxDepth, control: BudgetControl | null = null, traceOptions: ResolvedParseOptions | null = null, document: DocumentMemo | null = null): ParseResult {
   let p: Parser | null = null;
   try {
     // Made inside the try, so that decoding the input fails as parsing does.
     const u = unit === Bytes ? Bytes : CodePoints;
+    const observed = traceOptions !== null && (traceOptions.traces.length !== 0 || traceOptions.profiles.length !== 0);
     if (document !== null) {
       const d = new DocumentParser(g, input, u, seen, maxDepth, control);
       d.memoState = document;
       d.slots = document.slots;
       document.pending = 0;
       p = d;
+    } else if (observed) {
+      p = new ObservedParser(g, input, u, seen, maxDepth, control);
     } else {
       p = new Parser(g, input, u, seen, maxDepth, control);
     }
     p.expectations = traceOptions?.expectations === true;
-    if (traceOptions !== null && (traceOptions.traces.length !== 0 || traceOptions.profiles.length !== 0)) p.observation = new Observation(traceOptions, p);
+    if (observed) p.observation = new Observation(traceOptions!, p);
     if (document === null) return result(p, p.call(r, 0));
     const d = p as DocumentParser;
     const res = publishDocumentResult(result(d, d.call(r, 0)));
@@ -2042,9 +2046,9 @@ export interface MemoEntry {
   // present is the set of leaders (Rule.leaderBit) that grew at the position when the result of a
   // rule of a cycle was evaluated; it answers a call where no other leader grows (memoAllows).
   present: number;
-  // examined is the end of the input that the call examined in a Document parse, and from where
-  // that input starts: noRecord outside a Document parse, fromPos at the position of the entry,
-  // fromBefore one unit before it. pinned means an edit before the entry removes it.
+  // examined is the end of the input that the call examined in a Document or observed parse, and
+  // from where that input starts: noRecord outside a Document parse, fromPos at the position of the
+  // entry, fromBefore one unit before it. pinned means an edit before the entry removes it.
   examined: number;
   from: number;
   pinned: boolean;
@@ -2065,8 +2069,8 @@ export function newEntry(node: R, ok: boolean, end: number, silent: boolean, err
 export const noExp: number[] = [];
 
 // SkipRecord is what the rest of a walk of a skip-run site from a position did: where it ended, and
-// its farthest failure and the expectations there (see skipBegin), and in a Document parse the end of
-// the input it examined.
+// its farthest failure and the expectations there (see skipBegin), and in a Document or observed
+// parse the end of the input it examined.
 interface SkipRecord {
   end: number;
   far: number;
@@ -2084,8 +2088,9 @@ const SCAN_HOT_SPAN = 16;
 interface ScanRecord {
   end: number;
   count: number;
-  // examined is, in a Document parse, the end of the input that the walk examined after scanReach;
-  // decoding the last characters it matched may examine input past the character where it fails.
+  // examined is, in a Document or observed parse, the end of the input that the walk examined after
+  // scanReach; decoding the last characters it matched may examine input past the character where
+  // it fails.
   examined: number;
   kids: (Node | null)[] | null;
 }
@@ -2306,7 +2311,8 @@ function foldASCII(r: number): number {
 // failSeed is the identity of the failure that every growth starts from.
 const failSeed = 1;
 
-// The value of an observation for which no outcome is memoized. Outcomes are 0 and 1.
+// The value of an observation for which no outcome is memoized. Outcomes are not negative
+// (Parser.obsOutcome).
 const obsNone = -1;
 
 // The kinds of dependencies: a seed read (idx is its index in gamma, val its identity), the outcome
@@ -2327,19 +2333,21 @@ export const storeMemo = 1;
 export const storeCtx = 2;
 
 // CtxResult is a result that a context keeps: a seed, the result of a growth step, or the result of
-// a call that read a seed.
+// a call that read a seed. examined is the examined end of a parse that tracks it (Parser.track),
+// and 0 in any other parse.
 export interface CtxResult {
   node: R;
   errs: Errs;
   expected: number[];
   end: number;
   far: number;
+  examined: number;
   ok: boolean;
   silent: boolean;
 }
 
-export function newCtxResult(node: R, end: number, silent: boolean, errs: Errs, far: number, expected: number[]): CtxResult {
-  return { node, errs, expected, end, far, ok: node !== undefined, silent };
+export function newCtxResult(node: R, end: number, silent: boolean, errs: Errs, far: number, expected: number[], examined: number): CtxResult {
+  return { node, errs, expected, end, far, examined, ok: node !== undefined, silent };
 }
 
 // CtxCall is the context of a memoized call of a rule of a cycle (Parser.ctxEnter): the index in
@@ -2429,6 +2437,7 @@ interface CtxSlot {
   id: number;
   far: number;
   exp: number[];
+  examined: number;
   silent: boolean;
   env: Value[] | null;
   deps: Sdep[];
@@ -2436,7 +2445,7 @@ interface CtxSlot {
 }
 
 function newSlot(e: CtxResult | null, id: number, env: Value[] | null): CtxSlot {
-  return { e, id, far: 0, exp: noExp, silent: false, env, deps: noSdeps, next: null };
+  return { e, id, far: 0, exp: noExp, examined: 0, silent: false, env, deps: noSdeps, next: null };
 }
 
 // JumpRec takes a growth from a seed to the seed at the end of a run of steps that read no other
@@ -2446,6 +2455,7 @@ interface JumpRec {
   id: number;
   far: number;
   exp: number[];
+  examined: number;
   silent: boolean;
   deps: Sdep[];
 }
@@ -2467,9 +2477,9 @@ interface CtxTable {
 
 // GrowState is the state of the growth of a leader: its key, start and recovered errors, its index
 // in gamma and that of the first growth of its cycle at the position, whether it grows in a context
-// (whose steps are memoized with the present set present), whether it is done, the expectation mark
-// of the step being evaluated in a context, and the steps since the last step that read a seed other
-// than the leader's own.
+// (whose steps are memoized with the present set present), whether it is done, the examined end and
+// the expectation mark of the step being evaluated in a context, and the steps since the last step
+// that read a seed other than the leader's own.
 export interface GrowState {
   rule: number;
   min: number;
@@ -2480,6 +2490,7 @@ export interface GrowState {
   ctx: boolean;
   present: number;
   done: boolean;
+  savedExamined: number;
   exp: number;
   run: RunStep[];
 }
@@ -2489,6 +2500,7 @@ interface RunStep {
   seed: number;
   far: number;
   exp: number[];
+  examined: number;
   silent: boolean;
   deps: Sdep[];
 }
@@ -2563,14 +2575,16 @@ export class Parser {
   silent = 0;
   // The dependency memo of left recursion (see CtxCall): the growths in progress, the frames that
   // record dependencies and their dependencies, the dependencies a call ended (ctxPop), the tables
-  // of the contexts, the lookaheads in progress (their sites, -1 for one that records nothing), the
-  // lookahead sites whose outcomes are being looked up (obsValue), and the last seed identity.
+  // of the contexts, the lookaheads in progress (their sites, -1 for one that records nothing, and the
+  // examined ends from before them), the lookahead sites whose outcomes are being looked up
+  // (obsValue), and the last seed identity.
   gamma: GrowRec[] = [];
   depFrames: DepFrame[] = [];
   deps: Dep[] = [];
   popped: Dep[] = [];
   ctxs: CtxTable[] = [];
   looks: number[] = [];
+  lookExamined: number[] = [];
   foundSet: CtxSet | null = null; // the set of the result that ctxFind last returned
   obsGuard: number[] = [];
   seedSeq = 0;
@@ -2617,8 +2631,12 @@ export class Parser {
   skipHitRec: SkipRecord | null = null;
   // skipExamined is the examined input of the enclosing call (docExamined) while a recording visit runs.
   skipExamined = 0;
-  // docExamined and docLow bound the input that the active rule call of a Document parse examined,
-  // [docLow, docExamined). Outside a Document parse nothing reads them.
+  // track reports a parse that records how far each call examined the input: a Document parse
+  // (DocumentParser) or an observed one (ObservedParser), whose parsers read through the primitives
+  // of TrackedParser.
+  track = false;
+  // docExamined is the end of the input that the active rule call examined in a parse that tracks it;
+  // docLow is the start of that input in a Document parse. Other parses read neither.
   docExamined = 0;
   docLow = 0;
 
@@ -2645,7 +2663,7 @@ export class Parser {
   heldBytes(): number {
     const slots = this.kidStack.length + this.saved.length + this.trail.length + this.exp.length + this.isoStack.length +
       this.recovered.length + this.gamma.length + this.depFrames.length + this.deps.length + this.popped.length +
-      this.ctxs.length + this.looks.length + this.obsGuard.length + this.skipVisits.length + this.scanCold.length;
+      this.ctxs.length + this.looks.length + this.lookExamined.length + this.obsGuard.length + this.skipVisits.length + this.scanCold.length;
     return 8 * slots;
   }
   // retyped is the operation node.convert: retypeNode, counting the copy it makes.
@@ -3153,8 +3171,9 @@ export class Parser {
     this.frame[slot] = v;
   }
 
-  // documentTouch records, in a Document parse, that the active rule call examined the input before
-  // end; documentTouchFrom extends that input back to from. Other parses record nothing.
+  // documentTouch records, in a Document or observed parse, that the active rule call examined the
+  // input before end; documentTouchFrom extends that input back to from in a Document parse. Other
+  // parses record nothing.
   documentTouch(end: number): void {
     void end;
   }
@@ -3326,9 +3345,9 @@ export class Parser {
     return rec.count;
   }
 
-  // scanExaminedBegin starts measuring, in a Document parse, the input that the rest of a walk that
-  // records itself examines; scanExaminedEnd returns its end and restores that of the enclosing call
-  // (0 outside a Document parse).
+  // scanExaminedBegin starts measuring, in a Document or observed parse, the input that the rest of
+  // a walk that records itself examines; scanExaminedEnd returns its end and restores that of the
+  // enclosing call (0 in any other parse).
   scanExaminedBegin(): void {}
 
   scanExaminedEnd(): number {
@@ -3669,14 +3688,9 @@ export class Parser {
 
   // --- Rule calls ---
 
-  // call calls rule r at level min.
+  // call calls rule r at level min. The parsers of Document and observed parses override it.
   call(r: Rule, min: number): R {
-    const o = this.observation;
-    if (o === null) return this.callBody(r, min);
-    o.enter(r.name, this.pos, min);
-    const v = this.callBody(r, min);
-    o.exit(v !== undefined, this.pos);
-    return v;
+    return this.callBody(r, min);
   }
 
   // callBody calls rule r at binding level min: unmemoized while its memoization is deferred, and
@@ -3687,7 +3701,6 @@ export class Parser {
     this.spend();
     const start = this.pos;
     if (!r.memo && !r.leader || this.firstCall(r)) {
-      // Unmemoized call: no memo bookkeeping, and expectations need no isolation.
       if (r.scope.length === 0) {
         v = this.invokePlainBody(r, min);
         return v;
@@ -3701,12 +3714,9 @@ export class Parser {
       return v;
     }
     const env = this.envValues(r.vars);
-    // The context of the call: the growths of the rule's cycle at the position, and the seed of the
-    // rule's own growth there, which the call reads.
     let c = noCtx;
     let seed: CtxResult | null = null;
     if (r.cycle !== 0 && this.gamma.length !== 0) {
-      this.alloc(objectBytes(5));
       c = newCtxCall();
       seed = this.ctxEnter(c, r, min);
     }
@@ -3717,11 +3727,9 @@ export class Parser {
       }
       return seed!.node;
     }
-    // See the engine's callBegin: an entry computed inside a lookahead answers only calls inside one.
     const e = this.memoGet(r.id, start, min, env);
     const found = e !== null;
     if (found && memoAllows(c, e.present) && (!e.silent || this.silent > 0)) {
-      this.observation?.memoHit();
       this.mergeKept(e.far, e.expected);
       if (!e.ok) {
         return undefined;
@@ -3742,7 +3750,6 @@ export class Parser {
     }
     const rec = this.recovered.length;
     this.ctxPush(c);
-    // The memoized result includes the expectations recorded in this call.
     const mFar = this.farthest;
     const mBase = this.expBase;
     this.expBase = this.expTop;
@@ -3762,8 +3769,6 @@ export class Parser {
     this.expBase = mBase;
     this.farthest = mFar;
     const kept = this.keep(innerFrom, innerTo);
-    // The result goes to the memo, or to the table of its context if it read a seed or observed a
-    // lookahead that did.
     const store = this.ctxPop(c);
     if (store === storeMemo) {
       const entry = newEntry(v, v !== undefined, this.pos, this.silent > 0, this.recSince(rec));
@@ -3772,8 +3777,7 @@ export class Parser {
       entry.far = far;
       entry.expected = kept;
     } else if (store === storeCtx) {
-      this.alloc(objectBytes(7));
-      this.ctxKeep(c, r.id, start, min, env, newCtxResult(v, this.pos, this.silent > 0, this.recSince(rec), far, kept));
+      this.ctxKeep(c, r.id, start, min, env, newCtxResult(v, this.pos, this.silent > 0, this.recSince(rec), far, kept, this.examinedNow()));
     }
     this.ctxDone(c);
     this.mergeExpected(far, innerFrom, innerTo);
@@ -3963,7 +3967,7 @@ export class Parser {
   // env in the table of the context c, with the dependencies that ctxPop ended.
   ctxKeep(c: CtxCall, rule: number, start: number, min: number, env: Value[] | null, res: CtxResult): void {
     const sd = this.stored(this.popped);
-    this.alloc(objectBytes(8));
+    this.alloc(objectBytes(9));
     this.ctxStore(start, c.gp, headKey(ctxCallKind, rule, min, c.present), sd, newSlot(res, 0, env));
   }
 
@@ -4299,10 +4303,28 @@ export class Parser {
     return !silent || this.silent > 0;
   }
 
+  // examinedNow returns the examined end of the current evaluation in a parse that tracks it, and 0
+  // in any other parse.
+  examinedNow(): number {
+    return this.track ? this.docExamined : 0;
+  }
+
+  // obsOutcome encodes the outcome of a lookahead at pos whose expression matched if ok and whose
+  // examined end is examined (pos in a parse that does not track it): equal values are equal outcomes
+  // with equal examined ends. A lookahead examines from its position on (lookBegin), so examined is not
+  // before pos and the outcome is not negative.
+  obsOutcome(ok: boolean, pos: number, examined: number): number {
+    return (examined - pos) * 2 + (ok ? 1 : 0);
+  }
+
   // replayCtx applies a result that a context kept, or a seed (seed), as the call that it records
-  // would have.
+  // would have, with the input it examined. A result does not record whether it examined the unit
+  // before its position, so in a Document parse that unit counts as examined (as in the Go runtime's
+  // replayCtx, which explains why that is conservative).
   replayCtx(e: CtxResult, seed: boolean): void {
     this.observation?.memoHit();
+    this.documentTouch(e.examined);
+    this.documentTouchFrom(this.pos - 1);
     if (!seed) {
       this.mergeKept(e.far, e.expected);
     }
@@ -4325,6 +4347,11 @@ export class Parser {
     const g = this.gamma.length;
     if (f.pos === this.pos && f.gp < g && this.gamma[g - 1]!.pos === this.pos && this.gamma[g - 1]!.cycle === this.gamma[f.gp]!.cycle) {
       this.looks.push(site);
+      if (this.track) {
+        // The examined end of the lookahead is part of its observation.
+        this.lookExamined.push(this.docExamined);
+        this.docExamined = this.pos;
+      }
       this.pushFrame(this.pos, f.gp);
       return;
     }
@@ -4341,6 +4368,11 @@ export class Parser {
       return;
     }
     const { f, deps: ds } = this.popFrame();
+    let examined = f.pos;
+    if (this.track) {
+      examined = this.docExamined;
+      this.docExamined = Math.max(this.lookExamined.pop()!, this.docExamined);
+    }
     let read = false;
     for (const d of ds) {
       if (d.kind === depSeed) {
@@ -4352,11 +4384,10 @@ export class Parser {
       this.mergeDeps(ds);
       return;
     }
-    // Without Documents, the outcome is whether the expression matched.
-    const val = ok ? 1 : 0;
+    const val = this.obsOutcome(ok, f.pos, examined);
     const present = this.presentOf(f.gp);
     const sd = this.stored(ds);
-    this.alloc(objectBytes(8));
+    this.alloc(objectBytes(9));
     this.ctxStore(f.pos, f.gp, headKey(ctxLookKind, site, 0, present), sd, newSlot(null, val, null));
     const out: Dep[] = [{ kind: depObs, idx: site, d: f.depth, val }];
     for (const d of ds) {
@@ -4373,9 +4404,9 @@ export class Parser {
     const start = this.pos;
     const gi = this.gamma.length;
     const gp = this.gammaAt(start, r.cycle);
-    const g: GrowState = { rule: r.id, min, start, rec: this.recovered.length, gi, gp, ctx: false, present: 0, done: false, exp: 0, run: [] };
-    this.alloc(objectBytes(7) + objectBytes(7));
-    this.gamma.push({ rule: r.id, min, pos: start, cycle: r.cycle, bit: r.leaderBit, idx: r.leaderIndex, seed: newCtxResult(undefined, start, false, noErrs, 0, noExp), id: failSeed });
+    const g: GrowState = { rule: r.id, min, start, rec: this.recovered.length, gi, gp, ctx: false, present: 0, done: false, savedExamined: 0, exp: 0, run: [] };
+    this.alloc(objectBytes(7) + objectBytes(8));
+    this.gamma.push({ rule: r.id, min, pos: start, cycle: r.cycle, bit: r.leaderBit, idx: r.leaderIndex, seed: newCtxResult(undefined, start, false, noErrs, 0, noExp, this.examinedNow()), id: failSeed });
     if (gp < gi) {
       // The present set of the steps includes the leader's own growth.
       g.present = this.presentOf(gp);
@@ -4399,6 +4430,8 @@ export class Parser {
       if (j !== null) {
         this.replayDeps(g.start, g.gp, g.present, j.deps);
         this.mergeKept(j.far, j.exp);
+        this.documentTouch(j.examined);
+        this.documentTouchFrom(g.start - 1); // conservative, like the touch of replayCtx
         this.setSeed(g, j.end, j.id);
         continue;
       }
@@ -4406,13 +4439,20 @@ export class Parser {
       if (s !== null && this.reusable(s.silent)) {
         this.replayDeps(g.start, g.gp, g.present, s.deps);
         this.mergeKept(s.far, s.exp);
-        if (!this.advance(g, s.e!, s.id, { seed: id, far: s.far, exp: s.exp, silent: s.silent, deps: s.deps })) {
+        // A step taken from the context records what it examined, like every other reuse.
+        this.documentTouch(s.examined);
+        this.documentTouchFrom(g.start - 1); // conservative, like the touch of replayCtx
+        if (!this.advance(g, s.e!, s.id, { seed: id, far: s.far, exp: s.exp, examined: s.examined, silent: s.silent, deps: s.deps })) {
           return false;
         }
         continue;
       }
-      // Evaluate the step, with its own frame and expectations.
+      // Evaluate the step, with its own frame, examined end and expectations.
       this.pushFrame(g.start, g.gp);
+      if (this.track) {
+        g.savedExamined = this.docExamined;
+        this.docExamined = g.start;
+      }
       g.exp = this.isolate();
       return true;
     }
@@ -4429,8 +4469,8 @@ export class Parser {
         return;
       }
       this.spend();
-      this.alloc(objectBytes(7));
-      rec.seed = newCtxResult(v, this.pos, false, this.recSince(g.rec), 0, noExp);
+      this.alloc(objectBytes(8));
+      rec.seed = newCtxResult(v, this.pos, false, this.recSince(g.rec), 0, noExp, this.examinedNow());
       rec.id = this.nextSeedID();
       this.pos = g.start;
       this.recovered.length = g.rec;
@@ -4440,20 +4480,25 @@ export class Parser {
     const ds = this.popFrame().deps;
     const far = this.unisolate(g.exp);
     const exp = this.isoIds;
+    const examined = this.examinedNow();
     this.mergeKept(far, exp);
-    this.alloc(objectBytes(7));
-    let res = newCtxResult(v, ok ? this.pos : g.start, this.silent > 0, ok ? this.recSince(g.rec) : noErrs, 0, noExp);
+    if (this.track) {
+      this.docExamined = Math.max(g.savedExamined, this.docExamined);
+    }
+    this.alloc(objectBytes(8));
+    let res = newCtxResult(v, ok ? this.pos : g.start, this.silent > 0, ok ? this.recSince(g.rec) : noErrs, 0, noExp, examined);
     const c = this.canonicalSeed(g, res);
     res = c.e;
     const sd = this.stored(ds);
-    this.alloc(objectBytes(8));
+    this.alloc(objectBytes(9));
     const slot = newSlot(res, c.id, null);
     slot.far = far;
     slot.exp = exp;
+    slot.examined = examined;
     slot.silent = this.silent > 0;
     this.ctxStore(g.start, g.gp, headKey(ctxStepKind, g.rule, g.min, g.present), sd, slot);
     this.mergeDeps(ds);
-    this.advance(g, res, c.id, { seed: id, far, exp, silent: this.silent > 0, deps: sd });
+    this.advance(g, res, c.id, { seed: id, far, exp, examined, silent: this.silent > 0, deps: sd });
   }
 
   // nextSeedID returns a new seed identity.
@@ -4532,8 +4577,8 @@ export class Parser {
       t.jumps = new Map();
     }
     const cur = this.gamma[g.gi]!;
-    this.alloc(objectBytes(6));
-    let acc: JumpRec = { end: cur.seed, id: cur.id, far: -1, exp: noExp, silent: false, deps: noSdeps };
+    this.alloc(objectBytes(7));
+    let acc: JumpRec = { end: cur.seed, id: cur.id, far: -1, exp: noExp, examined: g.start, silent: false, deps: noSdeps };
     for (let i = g.run.length - 1; i >= 0; i--) {
       const s = g.run[i]!;
       this.spend();
@@ -4544,6 +4589,7 @@ export class Parser {
       } else if (s.far === acc.far) {
         acc.exp = this.unionExpected(acc.exp, s.exp);
       }
+      acc.examined = Math.max(acc.examined, s.examined);
       acc.silent = acc.silent || s.silent;
       acc.deps = mergeSdeps(acc.deps, s.deps);
       const k = jumpKey(g, s.seed);
@@ -4644,7 +4690,7 @@ export class Parser {
     const c = t.canon.get(ck);
     if (c !== undefined) {
       const budget = { n: 64 };
-      if (c.e.errs === null && this.nodesEqual(c.e.node ?? null, e.node ?? null, budget)) {
+      if (c.e.examined === e.examined && c.e.errs === null && this.nodesEqual(c.e.node ?? null, e.node ?? null, budget)) {
         return c;
       }
     }
@@ -4709,7 +4755,6 @@ export class Parser {
       this.tooDeep();
     }
     const start = this.pos;
-    this.observation?.evaluated();
     let v = r.body(this, min);
     if (r.rec) this.depth--;
     this.frame = prevFrame;
@@ -4726,16 +4771,8 @@ export class Parser {
   // frame (the body never writes one, so the caller's stays current), with the failure handling of
   // call.
   invokePlain(r: Rule, min: number): R {
-    const o = this.observation;
-    if (o === null) {
-      this.spend();
-      return this.invokePlainBody(r, min);
-    }
-    o.enter(r.name, this.pos, min);
     this.spend();
-    const v = this.invokePlainBody(r, min);
-    o.exit(v !== undefined, this.pos);
-    return v;
+    return this.invokePlainBody(r, min);
   }
 
   // invokePlainBody is invokePlain without the step of the entry, which the caller charges.
@@ -4749,7 +4786,6 @@ export class Parser {
     if (r.rec && ++this.depth > this.maxDepth) {
       this.tooDeep();
     }
-    this.observation?.evaluated();
     let v = r.body(this, min);
     if (r.rec) this.depth--;
     this.cut = prevCut;
@@ -5369,48 +5405,16 @@ export class Parser {
 }
 
 /**
- * DocumentParser is the parser of a Document parse: every rule call takes callDocument, which
- * memoizes the rules that the Document memoizes (Rule.docMemo) from their first call, and records the
- * input that each call examined, [docLow, docExamined), with its memo entry. The batch Parser stays
- * without this bookkeeping.
+ * TrackedParser is the parser of a parse that records how far each rule call examined the input
+ * (Parser.track): its terminals record exactly what they examine in docExamined. The parsers of
+ * Document parses (DocumentParser) and of observed parses (ObservedParser) extend it; the batch Parser
+ * stays without this bookkeeping.
  */
-export class DocumentParser extends Parser {
-  // memoState is the memo that the Document keeps between parses, with what edits did to it.
-  memoState: DocumentMemo = new DocumentMemo();
-  // evaluated and reused count the rule evaluations and the reused results of the parse.
-  evaluated = 0;
-  reused = 0;
-
-  override call(r: Rule, min: number): R {
-    const o = this.observation;
-    this.spend();
-    if (o === null) return this.callDocument(r, min);
-    o.enter(r.name, this.pos, min);
-    const v = this.callDocument(r, min);
-    o.exit(v !== undefined, this.pos);
-    return v;
-  }
-
-  override invokePlain(r: Rule, min: number): R {
-    return this.call(r, min);
-  }
-
-  override invoke(r: Rule, min: number): R {
-    this.evaluated++;
-    return super.invoke(r, min);
-  }
-
-  override invokePlainBody(r: Rule, min: number): R {
-    this.evaluated++;
-    return super.invokePlainBody(r, min);
-  }
+export class TrackedParser extends Parser {
+  override track = true;
 
   override documentTouch(end: number): void {
     if (end > this.docExamined) this.docExamined = end;
-  }
-
-  override documentTouchFrom(from: number): void {
-    if (from < this.docLow) this.docLow = from;
   }
 
   // scanExamined is the examined end of the enclosing call while the rest of a scan walk that records
@@ -5426,12 +5430,6 @@ export class DocumentParser extends Parser {
     const x = this.docExamined;
     this.docExamined = Math.max(this.scanExamined, x);
     return x;
-  }
-
-  // documentTouchLine records that a line start test at the position examined the unit before it.
-  documentTouchLine(): void {
-    if (this.pos > this.docExamined) this.docExamined = this.pos;
-    if (this.pos - 1 < this.docLow) this.docLow = this.pos - 1;
   }
 
   // The terminals record exactly the input they examine: the units that decoding a character
@@ -5469,6 +5467,12 @@ export class DocumentParser extends Parser {
     return v;
   }
 
+  // documentTouchLine records that a line start test at the position examined the unit before it.
+  documentTouchLine(): void {
+    if (this.pos > this.docExamined) this.docExamined = this.pos;
+    this.documentTouchFrom(this.pos - 1);
+  }
+
   override atLineStart(): boolean {
     this.documentTouchLine();
     return super.atLineStart();
@@ -5479,11 +5483,220 @@ export class DocumentParser extends Parser {
     return super.atEnd();
   }
 
-  // A result that a context kept was made inside the growth of its leader, whose call examined what
-  // the result did; the unit before the position counts as examined, since the result does not record
-  // whether it examined it.
+  // callUnmemoized calls rule r at binding level min without memo bookkeeping, as call does while the
+  // rule's memoization is deferred: its expectations need no isolation, and a failure restores the
+  // position and the recovered errors.
+  callUnmemoized(r: Rule, min: number): R {
+    let v: R = null;
+    const start = this.pos;
+    if (r.scope.length === 0) {
+      v = this.invokePlainBody(r, min);
+      return v;
+    }
+    const rec = this.recovered.length;
+    v = this.invoke(r, min);
+    if (v === undefined) {
+      this.pos = start;
+      this.recovered.length = rec;
+    }
+    return v;
+  }
+}
+
+/**
+ * ObservedParser is the parser of an observed parse that reads no Document: every rule call reports
+ * to the observation with the end of the input it examined, which the parse tracks, and a reused
+ * result reports the end stored with it.
+ */
+export class ObservedParser extends TrackedParser {
+  // A call's examined input starts empty, and the enclosing call's examined end then includes the
+  // call's: the call reports what it examined itself.
+  override call(r: Rule, min: number): R {
+    const o = this.observation!;
+    o.enter(r.name, this.pos, min);
+    const enclosing = this.docExamined;
+    this.docExamined = this.pos;
+    this.spend();
+    const v = !r.memo && !r.leader || this.firstCall(r) ? this.callUnmemoized(r, min) : this.callTracked(r, min);
+    const examined = this.docExamined;
+    this.docExamined = Math.max(enclosing, examined);
+    o.exit(v !== undefined, this.pos, examined);
+    return v;
+  }
+
+  override invokePlain(r: Rule, min: number): R {
+    const o = this.observation!;
+    o.enter(r.name, this.pos, min);
+    const enclosing = this.docExamined;
+    this.docExamined = this.pos;
+    this.spend();
+    const v = this.invokePlainBody(r, min);
+    const examined = this.docExamined;
+    this.docExamined = Math.max(enclosing, examined);
+    o.exit(v !== undefined, this.pos, examined);
+    return v;
+  }
+
+  // observePlain is the observed call of the plain function body of the rule name, which generated
+  // code calls directly in a parse without observation.
+  observePlain(name: string, body: (p: Parser) => R): R {
+    const o = this.observation!;
+    o.enter(name, this.pos, 0);
+    o.evaluated();
+    const enclosing = this.docExamined;
+    this.docExamined = this.pos;
+    const v = body(this);
+    const examined = this.docExamined;
+    this.docExamined = Math.max(enclosing, examined);
+    o.exit(v !== undefined, this.pos, examined);
+    return v;
+  }
+
+  override invoke(r: Rule, min: number): R {
+    this.observation!.evaluated();
+    return super.invoke(r, min);
+  }
+
+  override invokePlainBody(r: Rule, min: number): R {
+    this.observation!.evaluated();
+    return super.invokePlainBody(r, min);
+  }
+
+  // callTracked calls rule r at binding level min through the memo, as call does once the rule's
+  // memoization is no longer deferred, with the observation of a reuse and, in a Document parse, the
+  // bookkeeping of how far each call examined the input.
+  callTracked(r: Rule, min: number): R {
+    let v: R = null;
+    let fm: bigint = 0n;
+    void fm;
+    const start = this.pos;
+    const env = this.envValues(r.vars);
+    let c = noCtx;
+    let seed: CtxResult | null = null;
+    if (r.cycle !== 0 && this.gamma.length !== 0) {
+      c = newCtxCall();
+      seed = this.ctxEnter(c, r, min);
+    }
+    if (seed !== null) {
+      this.replayCtx(seed!, true);
+      if (!seed!.ok) {
+        return undefined;
+      }
+      return seed!.node;
+    }
+    const e = this.memoGet(r.id, start, min, env);
+    const found = e !== null;
+    if (found && memoAllows(c, e.present) && (!e.silent || this.silent > 0)) {
+      this.observation?.memoHit();
+      this.documentTouch(e!.examined);
+      this.mergeKept(e.far, e.expected);
+      if (!e.ok) {
+        return undefined;
+      }
+      this.pos = e.end;
+      this.recAdd(e.errs);
+      return e.node;
+    }
+    if (c.ctx) {
+      const held = this.ctxLookup(c, r.id, min, env);
+      if (held !== null) {
+        this.replayCtx(held!, false);
+        if (!held!.ok) {
+          return undefined;
+        }
+        return held!.node;
+      }
+    }
+    const rec = this.recovered.length;
+    this.ctxPush(c);
+    const mFar = this.farthest;
+    const mBase = this.expBase;
+    this.expBase = this.expTop;
+    this.farthest = start;
+    if (r.leader) {
+      v = this.grow(r, min);
+    } else {
+      v = this.invoke(r, min);
+      if (v === undefined) {
+        this.recovered.length = rec;
+      }
+    }
+    const far = this.farthest;
+    const innerFrom = this.expBase;
+    const innerTo = this.expTop;
+    this.expTop = this.expBase;
+    this.expBase = mBase;
+    this.farthest = mFar;
+    const kept = this.keep(innerFrom, innerTo);
+    const store = this.ctxPop(c);
+    if (store === storeMemo) {
+      const entry = newEntry(v, v !== undefined, this.pos, this.silent > 0, this.recSince(rec));
+      this.memoPut(r.id, start, min, env, entry);
+      entry.present = c.present;
+      entry.far = far;
+      entry.expected = kept;
+      entry.examined = this.docExamined;
+    } else if (store === storeCtx) {
+      this.ctxKeep(c, r.id, start, min, env, newCtxResult(v, this.pos, this.silent > 0, this.recSince(rec), far, kept, this.examinedNow()));
+    }
+    this.ctxDone(c);
+    this.mergeExpected(far, innerFrom, innerTo);
+    if (v === undefined) {
+      this.pos = start;
+    }
+    return v;
+  }
+}
+
+/**
+ * DocumentParser is the parser of a Document parse: every rule call takes callDocument, which
+ * memoizes the rules that the Document memoizes (Rule.docMemo) from their first call, and records the
+ * input that each call examined, [docLow, docExamined), with its memo entry.
+ */
+export class DocumentParser extends TrackedParser {
+  // memoState is the memo that the Document keeps between parses, with what edits did to it.
+  memoState: DocumentMemo = new DocumentMemo();
+  // evaluated and reused count the rule evaluations and the reused results of the parse.
+  evaluated = 0;
+  reused = 0;
+
+  override call(r: Rule, min: number): R {
+    const o = this.observation;
+    this.spend();
+    if (o === null) return this.callDocument(r, min);
+    o.enter(r.name, this.pos, min);
+    // callDocument restores the enclosing call's examined input; the call's own is what it leaves
+    // from the position on.
+    const enclosing = this.docExamined;
+    this.docExamined = this.pos;
+    const v = this.callDocument(r, min);
+    const examined = this.docExamined;
+    this.docExamined = Math.max(enclosing, examined);
+    o.exit(v !== undefined, this.pos, examined);
+    return v;
+  }
+
+  override invokePlain(r: Rule, min: number): R {
+    return this.call(r, min);
+  }
+
+  override invoke(r: Rule, min: number): R {
+    this.evaluated++;
+    this.observation?.evaluated();
+    return super.invoke(r, min);
+  }
+
+  override invokePlainBody(r: Rule, min: number): R {
+    this.evaluated++;
+    this.observation?.evaluated();
+    return super.invokePlainBody(r, min);
+  }
+
+  override documentTouchFrom(from: number): void {
+    if (from < this.docLow) this.docLow = from;
+  }
+
   override replayCtx(e: CtxResult, seed: boolean): void {
-    this.documentTouchFrom(this.pos - 1);
     this.reused++;
     super.replayCtx(e, seed);
   }
@@ -5539,26 +5752,6 @@ export class DocumentParser extends Parser {
   }
 
 
-  // callUnmemoized calls rule r at binding level min without memo bookkeeping, as call does while the
-  // rule's memoization is deferred: its expectations need no isolation, and a failure restores the
-  // position and the recovered errors.
-  callUnmemoized(r: Rule, min: number): R {
-    let v: R = null;
-    const start = this.pos;
-    if (r.scope.length === 0) {
-      v = this.invokePlainBody(r, min);
-      return v;
-    }
-    const rec = this.recovered.length;
-    v = this.invoke(r, min);
-    if (v === undefined) {
-      this.pos = start;
-      this.recovered.length = rec;
-    }
-    return v;
-  }
-
-
   // callMemo calls rule r at binding level min through the memo, as call does once the rule's
   // memoization is no longer deferred, with the observation of a reuse and, in a Document parse, the
   // bookkeeping of how far each call examined the input.
@@ -5583,7 +5776,7 @@ export class DocumentParser extends Parser {
     }
     const e = this.memoGet(r.id, start, min, env);
     const found = e !== null;
-    if (found && memoAllows(c, e.present) && (!e.silent || this.silent > 0) && (!true || this.documentMove(e))) {
+    if (found && memoAllows(c, e.present) && (!e.silent || this.silent > 0) && this.documentMove(e)) {
       this.observation?.memoHit();
       this.documentTouch(e!.examined);
       if (e!.from === fromBefore) {
@@ -5643,7 +5836,7 @@ export class DocumentParser extends Parser {
         entry.pinned = true;
       }
     } else if (store === storeCtx) {
-      this.ctxKeep(c, r.id, start, min, env, newCtxResult(v, this.pos, this.silent > 0, this.recSince(rec), far, kept));
+      this.ctxKeep(c, r.id, start, min, env, newCtxResult(v, this.pos, this.silent > 0, this.recSince(rec), far, kept, this.examinedNow()));
     }
     this.ctxDone(c);
     this.mergeExpected(far, innerFrom, innerTo);

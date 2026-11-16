@@ -103,8 +103,8 @@ const tsProfileTestHooks = `
 const profileProbes:Observation[]=[];
 const profileRecorders:ProfileRecorder[]=[];
 const profileOptions:ResolvedParseOptions[]=[];
-const originalProfileCall=Parser.prototype.call;
-Parser.prototype.call=function(r:Rule,min:number):R {
+const originalProfileCall=ObservedParser.prototype.call;
+ObservedParser.prototype.call=function(r:Rule,min:number):R {
  if(this.observation!==null){profileProbes.push(this.observation);profileRecorders.push(...((this.observation as unknown as {recorders:ProfileRecorder[]|null}).recorders??[]))}
  return originalProfileCall.call(this,r,min);
 };

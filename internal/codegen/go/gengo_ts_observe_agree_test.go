@@ -18,27 +18,19 @@ import (
 // The generated TypeScript parsers report the calls of a parse with the events of the engine and the
 // generated Go parsers, in the same JSON shape, and add them to profiles of the same shape. The test here
 // compares them with the engine as TestEngineObservationsAgreeWithGenerated compares the generated Go
-// parsers, on Parse, Recognize and the parse of a Document, in both position units.
-//
-// TODO(examined): generated TypeScript does not yet report examined ends: its events have Examined 0 and
-// its profiles no examined input. Until it does, the comparison leaves out the examined ends (Examined of
-// the events; examined, wasted and longestFail of the profiles), and a call that only the TypeScript
-// parser makes counts as failing within its first character whenever it fails. The edit entry, whose
-// relation (sameCallExamined) compares only examined ends, waits for them too.
+// parsers, on Parse, Recognize, the parse of a Document and its parse after an edit, in both position
+// units, examined ends included.
 
-// tsReferenceUnexamined makes the engine reference leave the examined range out of the identities of
-// its dependency memo (ParseOptions.ContextMemoUnexamined): generated TypeScript records no examined
-// range, so its growth steps and lookahead outcomes in a left-recursion context are identified
-// without one. TODO(examined): compare with the default engine once TypeScript records the range.
-const tsReferenceUnexamined = true
-
-// tsAgreeConsumer runs the generated TypeScript parsers g<i>.ts on the inputs (base64) in the file of
-// its first argument and prints, for each input, unit and entry, one JSON report in the shape of
-// agreeReport. Each parse is observed by two trace functions and two profiles, given as arrays with a
+// tsAgreeConsumer runs the generated TypeScript parsers g<i>.ts on the inputs in the file of its first
+// argument and prints, for each input, unit and entry, one JSON report in the shape of agreeReport.
+// Each input is its text, the range of its middle character in code points and in bytes, and that
+// character (texts in base64, as tsAgreeInput makes them), which the edit entry replaces by itself in a
+// Document parsed once before. Each parse is observed by two trace functions and two profiles, given as arrays with a
 // null entry that must be ignored; the same parse, observed again, has the trace filter Filter and the
 // depth limit MAXDEPTH. The document entry gives the first trace function and profile, and the trace
 // filter "main" with the depth limit 1, as the defaults of the Document, and the others in the call of
-// its parse, which add to those defaults and replace the filter and the limit.
+// its parse, which add to those defaults and replace the filter and the limit. The edit entry gives all
+// of them in the call of the parse after the edit.
 const tsAgreeConsumer = `import { readFileSync } from "node:fs";
 
 const inputs = JSON.parse(readFileSync(process.argv[2], "utf8"));
@@ -61,23 +53,34 @@ for (let i = 0; i < inputs.length; i++) {
       const { document, error } = m.createDocument(x, defaults);
       return error !== null ? error : document.parse(call).error;
     }, false]);
+    entries.push(["edit", (x, defaults, call, edit) => {
+      const { unit, ...options } = defaults;
+      const { document, error } = m.createDocument(x, { unit });
+      if (error !== null) return error;
+      document.parse();
+      const [start, end] = unit === m.Bytes ? edit.bytes : edit.cps;
+      const err = document.edit(start, end, edit.ch);
+      if (err !== null) return err;
+      return document.parse({ ...options, ...call }).error;
+    }, true]);
   }
   for (let j = 0; j < inputs[i].length; j++) {
-    const x = new Uint8Array(Buffer.from(inputs[i][j], "base64"));
+    const x = new Uint8Array(Buffer.from(inputs[i][j].text, "base64"));
+    const edit = { cps: inputs[i][j].cps, bytes: inputs[i][j].bytes, ch: new Uint8Array(Buffer.from(inputs[i][j].ch, "base64")) };
     for (const unit of [m.CodePoints, m.Bytes]) {
       for (const [entry, run, single] of entries) {
         const events = [], second = [], prof = new m.Profile(), prof2 = new m.Profile();
         const f1 = (e) => { events.push(e); }, f2 = (e) => { second.push(e); };
         const err = single
-          ? run(x, { unit, trace: [f1, null, f2], profile: [prof, null, prof2] }, {})
-          : run(x, { unit, trace: f1, profile: prof }, { trace: [f2], profile: prof2 });
+          ? run(x, { unit, trace: [f1, null, f2], profile: [prof, null, prof2] }, {}, edit)
+          : run(x, { unit, trace: f1, profile: prof }, { trace: [f2], profile: prof2 }, edit);
         const filter = ["main", "no such rule"];
         const first = events.find((e) => e.depth === 2);
         if (first !== undefined) filter[0] = first.rule;
         const filtered = [], filteredProf = new m.Profile();
         const f = (e) => { filtered.push(e); };
-        if (single) run(x, { unit, trace: f, profile: filteredProf, traceRules: filter, traceMaxDepth: maxDepth }, {});
-        else run(x, { unit, trace: f, profile: filteredProf, traceRules: ["main"], traceMaxDepth: 1 }, { traceRules: filter, traceMaxDepth: maxDepth });
+        if (single) run(x, { unit, trace: f, profile: filteredProf, traceRules: filter, traceMaxDepth: maxDepth }, {}, edit);
+        else run(x, { unit, trace: f, profile: filteredProf, traceRules: ["main"], traceMaxDepth: 1 }, { traceRules: filter, traceMaxDepth: maxDepth }, edit);
         console.log(JSON.stringify({
           Case: i, Input: j, Bytes: unit === m.Bytes, Entry: entry,
           Events: events, Profile: untimed(prof), Second: second, Profile2: untimed(prof2),
@@ -88,6 +91,15 @@ for (let i = 0; i < inputs.length; i++) {
   }
 }
 `
+
+// tsAgreeInput is an input of tsAgreeConsumer: its text, and the range of its middle character in code
+// points and in bytes with that character (middleChar), which the edit entry replaces.
+type tsAgreeInput struct {
+	Text  []byte `json:"text"`
+	CPs   [2]int `json:"cps"`
+	Bytes [2]int `json:"bytes"`
+	Ch    []byte `json:"ch"`
+}
 
 // runTSAgreeProbes generates the TypeScript parsers of the cases with observability, the recognizer and
 // Document where it can, changed as codegentest.TSLibPatchEnv says, and returns the reports of
@@ -101,7 +113,7 @@ func runTSAgreeProbes(t *testing.T, node string, cases []codegentest.Case) []agr
 		}
 	}
 	write("package.json", []byte(`{"type": "module"}`+"\n"))
-	var inputs [][][]byte
+	var inputs [][]tsAgreeInput
 	for i, c := range cases {
 		g, err := parseTest(c.Src)
 		if err != nil {
@@ -112,9 +124,11 @@ func runTSAgreeProbes(t *testing.T, node string, cases []codegentest.Case) []agr
 			t.Fatalf("%s: %v", c.Name, err)
 		}
 		write(fmt.Sprintf("g%d.ts", i), codegentest.PatchTSLib(t, code))
-		var in [][]byte
+		var in []tsAgreeInput
 		for _, s := range c.Inputs {
-			in = append(in, []byte(s))
+			pos, end, ch := middleChar(s, core.CodePoints)
+			bpos, bend, _ := middleChar(s, core.Bytes)
+			in = append(in, tsAgreeInput{Text: []byte(s), CPs: [2]int{pos, end}, Bytes: [2]int{bpos, bend}, Ch: []byte(ch)})
 		}
 		inputs = append(inputs, in)
 	}
@@ -138,29 +152,6 @@ func runTSAgreeProbes(t *testing.T, node string, cases []codegentest.Case) []agr
 		reports = append(reports, r)
 	}
 	return reports
-}
-
-// withoutExamined returns a copy of evs with the examined ends left out (see TODO(examined)).
-func withoutExamined(evs []core.TraceEvent) []core.TraceEvent {
-	out := make([]core.TraceEvent, len(evs))
-	for i, e := range evs {
-		e.Examined = 0
-		out[i] = e
-	}
-	return out
-}
-
-// profileWithoutExamined returns a copy of s with the counts of the examined input left out (see
-// TODO(examined)).
-func profileWithoutExamined(s core.ProfileSnapshot) core.ProfileSnapshot {
-	s.Examined = 0
-	rules := make([]core.RuleProfile, len(s.Rules))
-	for i, r := range s.Rules {
-		r.Examined, r.Wasted, r.LongestFail, r.LongestFailAt = 0, 0, 0, core.CallSite{}
-		rules[i] = r
-	}
-	s.Rules = rules
-	return s
 }
 
 // tsAgreementMismatches checks each report of the TypeScript parsers against the same parse on each
@@ -193,24 +184,37 @@ func tsAgreementMismatches(t *testing.T, cases []codegentest.Case, reports []agr
 			diffs[r.Entry] = append(diffs[r.Entry], where+": "+msg)
 		}
 		for _, b := range []engine.Backend{engine.Closure, engine.Bytecode, engine.BytecodeIterative} {
-			events, snap, err := engineObservation(t, prog, r, in, b, nil, 0, tsReferenceUnexamined)
+			events, snap, err := engineObservation(t, prog, r, in, b, nil, 0)
 			where := fmt.Sprintf("%s %v", where, b)
 			if (err == nil) != (r.Err == "<nil>") {
 				diffs[r.Entry] = append(diffs[r.Entry], fmt.Sprintf("%s: engine error %v, typescript %s", where, err, r.Err))
 				continue
 			}
-			filtered, _, _ := engineObservation(t, prog, r, in, b, r.Filter, agreeMaxDepth, tsReferenceUnexamined)
+			filtered, _, _ := engineObservation(t, prog, r, in, b, r.Filter, agreeMaxDepth)
 			st.filtered += len(filtered)
 			if len(filtered) > 0 && len(filtered) < len(events) {
 				st.partial++
 			}
-			aside, msg := callsAgreeOn(events, r.Events, in, unit, false)
+			if r.Entry == "edit" {
+				n, d := sameCallExamined(events, r.Events)
+				st.compared += n
+				for _, msg := range d {
+					diffs[r.Entry] = append(diffs[r.Entry], where+": "+msg)
+				}
+				if swapped := swapGrowthExamined(events); swapped != nil && len(d) == 0 {
+					st.swaps++
+					if _, d := sameCallExamined(swapped, r.Events); len(d) == 0 {
+						diffs[r.Entry] = append(diffs[r.Entry], where+": swapped examined ends of growth steps not told apart")
+					}
+				}
+				continue
+			}
+			aside, msg := callsAgree(events, r.Events, in, unit)
 			if msg == "" {
-				aside.a, aside.b = withoutExamined(aside.a), withoutExamined(aside.b)
-				msg = profilesAgree(profileWithoutExamined(snap), profileWithoutExamined(r.Profile), aside)
+				msg = profilesAgree(snap, r.Profile, aside)
 			}
 			if msg == "" {
-				if _, m := callsAgreeOn(filtered, r.Filtered, in, unit, false); m != "" {
+				if _, m := callsAgree(filtered, r.Filtered, in, unit); m != "" {
 					msg = "filtered: " + m
 				}
 			}
@@ -238,9 +242,10 @@ func tsAgreementMismatches(t *testing.T, cases []codegentest.Case, reports []agr
 
 // TestTSObservationsAgreeWithEngine checks the events and profiles of the generated TypeScript parsers
 // against those of every engine backend (callsAgree, profilesAgree) on Parse, Recognize and the parse of
-// a Document, in both units, and that they honor several trace functions and profiles, given as arrays
-// or as the defaults of a Document and its parse, and the trace filter and depth limit, given in a
-// parse or replacing the defaults of a Document (optionsHonored).
+// a Document, and the events of the parse of a Document after an edit (sameCallExamined), in both units,
+// and that they honor several trace functions and profiles, given as arrays or as the defaults of a
+// Document and its parse, and the trace filter and depth limit, given in a parse or replacing the
+// defaults of a Document (optionsHonored).
 func TestTSObservationsAgreeWithEngine(t *testing.T) {
 	t.Parallel()
 	if testing.Short() {
@@ -250,11 +255,17 @@ func TestTSObservationsAgreeWithEngine(t *testing.T) {
 	codegentest.NeedsBudgetControls(t)
 	cases := examinedCases(t)
 	diffs, stats := tsAgreementMismatches(t, cases, runTSAgreeProbes(t, node, cases))
-	for _, entry := range []string{"parse", "recognize", "document"} {
+	for _, entry := range []string{"parse", "recognize", "document", "edit"} {
 		st := stats[entry]
 		if st == nil || st.compared == 0 {
 			t.Errorf("no event of %s compared", entry)
 			st = &agreementStats{}
+		}
+		if entry == "edit" {
+			if st.swaps == 0 {
+				t.Error("no edit observation had growth steps to swap")
+			}
+			t.Logf("edit: %d observations with swapped growth steps told apart", st.swaps)
 		}
 		t.Logf("%s: %d reports, %d events compared; %d skipped events paired, %d unpaired; %d calls of the engine only, %d of the TypeScript parser only",
 			entry, st.reports, st.compared, st.paired, st.unpaired, st.engineOnly, st.generatedOnly)
