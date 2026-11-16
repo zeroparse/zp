@@ -39,13 +39,15 @@ var layout = []place{
 	{pkg: "lint", target: "pkg/lint"},
 	{pkg: "query", target: "pkg/runtime/query"},
 	{pkg: "sample", target: "pkg/sample"},
+	// The fixture suites of zp test are a tool over the compiler, in the layer of the public tool
+	// packages, though internal.
+	{pkg: "internal/fixture", target: "internal/fixture"},
 	{pkg: "schema", target: "pkg/runtime/schema"},
 
 	// Utilities of the compiler side.
 	{pkg: "internal/cancel", target: "internal/cancel"},
 	{pkg: "internal/cliflag", target: "internal/cliflag"},
 	{pkg: "internal/diag", target: "internal/diagnostic"},
-	{pkg: "internal/fixture", target: "internal/fixture"},
 
 	// Front end.
 	{pkg: "internal/frontend", target: "internal/frontend"},
@@ -300,7 +302,7 @@ func layerOf(t string) layer {
 		return layerRuntime
 	case under(t, "cmd"):
 		return layerCmd
-	case under(t, "pkg/compiler"), under(t, "pkg/lint"), under(t, "pkg/sample"), under(t, "pkg/editfuzz"):
+	case under(t, "pkg/compiler"), under(t, "pkg/lint"), under(t, "pkg/sample"), under(t, "pkg/editfuzz"), under(t, "internal/fixture"):
 		return layerPublic
 	case under(t, "pkg/grammar"):
 		return layerGrammar
@@ -320,7 +322,7 @@ func layerOf(t string) layer {
 		return layerIR
 	case under(t, "internal/pass"):
 		return layerPass
-	case under(t, "internal/diagnostic"), under(t, "internal/cancel"), under(t, "internal/cliflag"), under(t, "internal/fixture"):
+	case under(t, "internal/diagnostic"), under(t, "internal/cancel"), under(t, "internal/cliflag"):
 		return layerUtil
 	case under(t, "internal/testing"):
 		return layerTesting
@@ -330,7 +332,8 @@ func layerOf(t string) layer {
 
 // layerArrows are the arrows of the layer graph: each layer imports the layers that it points
 // to and, through them, every layer below. Every compiler-side layer may import the runtime
-// side and the utilities, which import only the grammar AST (the positions of diagnostics).
+// side and, except the grammar AST, the utilities, which import only the grammar AST (the
+// positions of diagnostics).
 var layerArrows = map[layer][]layer{
 	layerCmd:      {layerPublic, layerLSP},
 	layerPublic:   {layerDriver},
@@ -349,8 +352,8 @@ func layerImports(a, b layer) bool {
 	switch {
 	case a == layerTesting, a == layerOutside:
 		return true // test support and the packages outside the graph may import any layer
-	case b == layerRuntime, b == layerUtil:
-		return true
+	case b == layerRuntime, b == layerUtil && a != layerGrammar:
+		return true // the grammar AST is below the utilities
 	}
 	seen := map[layer]bool{}
 	var reach func(l layer) bool

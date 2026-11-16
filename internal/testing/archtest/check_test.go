@@ -187,7 +187,11 @@ func check(graphs []*graph, gens []generatedParser) *report {
 			var dialects []string
 			for _, b := range g.pkgs[a].Imports {
 				if pb, ok := places[b]; ok && inModule(b) {
-					if d := dialectOf(pb.target); d != "" && d != dialectOf(pa.target) && !slices.Contains(dialects, d) {
+					d := dialectOf(pb.target)
+					if d == "action" && under(pa.target, "internal/ir/code/exec") {
+						continue // the Exec dialect builds on the Action dialect (the dialect clause checks which packages may)
+					}
+					if d != "" && d != dialectOf(pa.target) && !slices.Contains(dialects, d) {
 						dialects = append(dialects, d)
 					}
 				}
