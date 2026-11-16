@@ -3,7 +3,7 @@ package complexitytest
 import (
 	"strings"
 
-	"zeroparse.dev/zp/internal/complexity"
+	"zeroparse.dev/zp/internal/analysis/complexity"
 )
 
 // The classes that the complexity classifier assigns to a start rule.

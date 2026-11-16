@@ -13,7 +13,7 @@ import (
 	"context"
 
 	"zeroparse.dev/zp/grammar"
-	impl "zeroparse.dev/zp/internal/lint"
+	impl "zeroparse.dev/zp/internal/analysis/lint"
 )
 
 // Severity tells how likely a finding is to be a mistake.

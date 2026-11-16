@@ -93,7 +93,7 @@ var nestingHooks = []struct {
 // keeps the linear grammars of the same shapes linear. It classifies them without scan sites.
 func TestNestingRestarts(t *testing.T) {
 	withoutScanSites(t)
-	calc, err := os.ReadFile("../../examples/calculator/calc_lr.zp")
+	calc, err := os.ReadFile("../../../examples/calculator/calc_lr.zp")
 	if err != nil {
 		t.Fatal(err)
 	}

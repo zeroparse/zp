@@ -15,7 +15,7 @@ import (
 
 	"zeroparse.dev/zp/codegen"
 	"zeroparse.dev/zp/engine"
-	"zeroparse.dev/zp/internal/complexity"
+	"zeroparse.dev/zp/internal/analysis/complexity"
 )
 
 var updateTriage = flag.Bool("update-triage", false, "rewrite the cause lists in testdata/triage")

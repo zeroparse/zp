@@ -5,7 +5,7 @@ import (
 	"math/rand/v2"
 	"strings"
 	"testing"
-	"zeroparse.dev/zp/internal/complexity"
+	"zeroparse.dev/zp/internal/analysis/complexity"
 
 	"zeroparse.dev/zp/engine"
 	"zeroparse.dev/zp/internal/testing/complexitytest"

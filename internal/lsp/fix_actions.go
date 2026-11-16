@@ -9,8 +9,8 @@ import (
 	"strconv"
 	"strings"
 
+	"zeroparse.dev/zp/internal/analysis/lint"
 	"zeroparse.dev/zp/internal/desugar"
-	"zeroparse.dev/zp/internal/lint"
 )
 
 // A lint fix is offered for a finding only when lint.Rewrites proves its kind of change, and then

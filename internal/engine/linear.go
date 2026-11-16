@@ -7,8 +7,8 @@ import (
 	"strconv"
 
 	"zeroparse.dev/zp/grammar"
+	"zeroparse.dev/zp/internal/analysis/complexity"
 	"zeroparse.dev/zp/internal/cancel"
-	"zeroparse.dev/zp/internal/complexity"
 	"zeroparse.dev/zp/internal/desugar"
 	"zeroparse.dev/zp/internal/diagnostic"
 )

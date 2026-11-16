@@ -11,7 +11,7 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/grammar"
-	"zeroparse.dev/zp/internal/complexity"
+	"zeroparse.dev/zp/internal/analysis/complexity"
 	"zeroparse.dev/zp/internal/ir/core"
 	"zeroparse.dev/zp/internal/syntax"
 	"zeroparse.dev/zp/internal/testing/factstest"
@@ -25,7 +25,7 @@ func corpus(t *testing.T) map[string]string {
 	for _, p := range factstest.Corpus {
 		srcs[p] = factstest.Read(t, p)
 	}
-	for _, pattern := range []string{"../../testdata/grammars/*/*.zp", "../../examples/*/*.zp"} {
+	for _, pattern := range []string{"../../../testdata/grammars/*/*.zp", "../../../examples/*/*.zp"} {
 		paths, err := filepath.Glob(pattern)
 		if err != nil {
 			t.Fatal(err)
@@ -35,7 +35,7 @@ func corpus(t *testing.T) map[string]string {
 			if err != nil {
 				t.Fatal(err)
 			}
-			srcs[strings.TrimPrefix(p, "../../")] = string(b)
+			srcs[strings.TrimPrefix(p, "../../../")] = string(b)
 		}
 	}
 	return srcs

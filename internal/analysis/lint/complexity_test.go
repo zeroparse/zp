@@ -7,7 +7,7 @@ import (
 	"strings"
 	"testing"
 
-	"zeroparse.dev/zp/internal/complexity"
+	"zeroparse.dev/zp/internal/analysis/complexity"
 	"zeroparse.dev/zp/internal/syntax"
 )
 
@@ -77,7 +77,7 @@ func TestExampleClassifications(t *testing.T) {
 		{"outline/outline.zp", complexity.ClassUnknown, 3},
 	} {
 		t.Run(tc.file, func(t *testing.T) {
-			src, err := os.ReadFile("../../examples/" + tc.file)
+			src, err := os.ReadFile("../../../examples/" + tc.file)
 			if err != nil {
 				t.Fatal(err)
 			}

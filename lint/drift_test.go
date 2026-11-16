@@ -4,7 +4,7 @@ import (
 	"reflect"
 	"testing"
 
-	impl "zeroparse.dev/zp/internal/lint"
+	impl "zeroparse.dev/zp/internal/analysis/lint"
 )
 
 // TestMirrorsImplementation checks that the public types, which are copies of the types of the

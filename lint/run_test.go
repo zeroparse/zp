@@ -9,7 +9,7 @@ import (
 	"time"
 
 	"zeroparse.dev/zp/engine"
-	"zeroparse.dev/zp/internal/complexity"
+	"zeroparse.dev/zp/internal/analysis/complexity"
 	"zeroparse.dev/zp/lint"
 )
 

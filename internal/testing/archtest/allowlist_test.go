@@ -12,7 +12,7 @@ var allowlist = []string{
 	"rule 1: internal/engine -> grammar",
 	"rule 1: internal/engine -> internal/cancel",
 	"rule 1: internal/engine -> internal/compile",
-	"rule 1: internal/engine -> internal/complexity",
+	"rule 1: internal/engine -> internal/analysis/complexity",
 	"rule 1: internal/engine -> internal/desugar",
 	"rule 1: internal/engine -> internal/diagnostic",
 	"rule 1: internal/engine -> internal/engine/closure",

@@ -11,9 +11,9 @@ import (
 	"zeroparse.dev/zp/internal/diagnostic"
 
 	"zeroparse.dev/zp/grammar"
+	"zeroparse.dev/zp/internal/analysis/lint"
 	"zeroparse.dev/zp/internal/engine"
 	"zeroparse.dev/zp/internal/frontend"
-	"zeroparse.dev/zp/internal/lint"
 	"zeroparse.dev/zp/internal/syntax"
 )
 

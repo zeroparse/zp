@@ -620,7 +620,7 @@ func TestExclusionReport(t *testing.T) {
 		"examples/outline/outline.zp", "testdata/grammars/json/json.zp",
 	}
 	for i := range files {
-		files[i] = "../../" + files[i]
+		files[i] = "../../../" + files[i]
 	}
 	if only := os.Getenv("ZP_EXCLUSION_ONLY"); only != "" {
 		files = strings.Split(only, ",")

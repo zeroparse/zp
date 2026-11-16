@@ -6,7 +6,7 @@ import (
 	"regexp"
 	"strings"
 
-	"zeroparse.dev/zp/internal/complexity"
+	"zeroparse.dev/zp/internal/analysis/complexity"
 )
 
 // A TriageGrammar is a bundled grammar whose causes are sorted into triage groups.

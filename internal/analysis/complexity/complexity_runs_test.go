@@ -48,7 +48,7 @@ func TestRunSitesMatchClassifier(t *testing.T) {
 		"testdata/grammars/golang/golang.zp", "testdata/grammars/python/python.zp", "testdata/grammars/typescript/typescript.zp",
 		"testdata/grammars/xml/xml.zp", "testdata/grammars/yaml/yaml.zp", "examples/minilang/minilang.zp", "examples/outline/outline.zp",
 	} {
-		src, err := os.ReadFile("../../" + name)
+		src, err := os.ReadFile("../../../" + name)
 		if err != nil {
 			t.Fatal(err)
 		}

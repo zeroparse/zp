@@ -10,7 +10,7 @@ import (
 
 	"zeroparse.dev/zp/engine"
 	"zeroparse.dev/zp/grammar"
-	"zeroparse.dev/zp/internal/complexity"
+	"zeroparse.dev/zp/internal/analysis/complexity"
 	"zeroparse.dev/zp/internal/engine/state"
 	"zeroparse.dev/zp/internal/testing/starttest"
 )

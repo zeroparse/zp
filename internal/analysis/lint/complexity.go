@@ -5,7 +5,7 @@ import (
 	"fmt"
 
 	"zeroparse.dev/zp/grammar"
-	"zeroparse.dev/zp/internal/complexity"
+	"zeroparse.dev/zp/internal/analysis/complexity"
 )
 
 // complexity runs the checks that come from the classification of the cost of the grammar g as

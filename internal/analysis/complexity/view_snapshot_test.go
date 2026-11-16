@@ -11,7 +11,7 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/grammar"
-	"zeroparse.dev/zp/internal/complexity"
+	"zeroparse.dev/zp/internal/analysis/complexity"
 	"zeroparse.dev/zp/internal/grammaranalysis"
 )
 

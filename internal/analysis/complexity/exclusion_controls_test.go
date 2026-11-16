@@ -2,7 +2,7 @@ package complexity_test
 
 import (
 	"testing"
-	"zeroparse.dev/zp/internal/complexity"
+	"zeroparse.dev/zp/internal/analysis/complexity"
 
 	"zeroparse.dev/zp/engine"
 	"zeroparse.dev/zp/internal/testing/complexitytest"

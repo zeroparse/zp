@@ -38,7 +38,7 @@ func TestComplexityMemoPolicy(t *testing.T) {
 	for i, src := range complexityMemoSources {
 		srcs[string(rune('a'+i))] = src
 	}
-	for _, pattern := range []string{"../../testdata/grammars/*/*.zp", "../../examples/*/*.zp"} {
+	for _, pattern := range []string{"../../../testdata/grammars/*/*.zp", "../../../examples/*/*.zp"} {
 		paths, err := filepath.Glob(pattern)
 		if err != nil {
 			t.Fatal(err)
@@ -659,7 +659,7 @@ func TestGrowingBindingsAlone(t *testing.T) {
 		"inline action": "var s string = \"a\"\nrule main = r $$\nrule r = ((\"x\" {s := s + s})* => 1) \"y\"\n",
 		"variables":     "var s string = \"a\"\nvar t string\nrule main = (\"x\" {t := t + t} {s := s + s + \"b\"})* $$\n",
 	}
-	for _, pattern := range []string{"../../testdata/grammars/*/*.zp", "../../examples/*/*.zp"} {
+	for _, pattern := range []string{"../../../testdata/grammars/*/*.zp", "../../../examples/*/*.zp"} {
 		paths, err := filepath.Glob(pattern)
 		if err != nil {
 			t.Fatal(err)

@@ -99,8 +99,8 @@ var layout = []place{
 	{pkg: "internal/ir/opt", target: "internal/driver"},
 
 	// Analysis and the grammar LSP.
-	{pkg: "internal/complexity", target: "internal/analysis/complexity"},
-	{pkg: "internal/lint", target: "internal/analysis/lint"},
+	{pkg: "internal/analysis/complexity", target: "internal/analysis/complexity"},
+	{pkg: "internal/analysis/lint", target: "internal/analysis/lint"},
 	// lsp splits into internal/lsp/protocol and internal/lsp/zpls.
 	{pkg: "internal/lsp", target: "internal/lsp/zpls"},
 

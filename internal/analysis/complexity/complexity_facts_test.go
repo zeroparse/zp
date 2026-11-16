@@ -24,7 +24,7 @@ func classifierCorpus(t *testing.T) map[string]string {
 	for _, p := range factstest.Corpus {
 		srcs[p] = factstest.Read(t, p)
 	}
-	for _, pattern := range []string{"../../testdata/grammars/*/*.zp", "../../examples/*/*.zp"} {
+	for _, pattern := range []string{"../../../testdata/grammars/*/*.zp", "../../../examples/*/*.zp"} {
 		paths, err := filepath.Glob(pattern)
 		if err != nil {
 			t.Fatal(err)
@@ -34,7 +34,7 @@ func classifierCorpus(t *testing.T) map[string]string {
 			if err != nil {
 				t.Fatal(err)
 			}
-			srcs[strings.TrimPrefix(p, "../../")] = string(b)
+			srcs[strings.TrimPrefix(p, "../../../")] = string(b)
 		}
 	}
 	return srcs

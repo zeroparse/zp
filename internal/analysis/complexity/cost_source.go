@@ -62,7 +62,7 @@ func classifierRules(g *grammar.Grammar, control *cancel.Control) (*grammar.Gram
 
 // NormalView returns the grammar that the compiler runs for g, with inline actions lowered and
 // attributes normalized, and with the bodies of its rules replaced by those of their cost view
-// (internal/complexity). With matching, the view also drops labels and inlines the calls that P1
+// (internal/analysis/complexity). With matching, the view also drops labels and inlines the calls that P1
 // allows: it then keeps only what a parse matches and where it ends (≡E), which is what an
 // analysis of matching, such as the exclusion of alternatives, needs. Without matching it is the
 // view that the complexity classifier reads. g must compile.

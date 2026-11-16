@@ -250,7 +250,7 @@ func prepareClassifierWith(g *grammar.Grammar, start string, control *cancel.Con
 	return k, names, nil
 }
 
-// newViewClassifier returns a classifier of the cost view of rules (internal/complexity) from
+// newViewClassifier returns a classifier of the cost view of rules (internal/analysis/complexity) from
 // start, with the rule facts rf of rules. What the runtime decides by the grammar as it is written
 // stays decided by rules: the left-recursion cycles and their leaders, the memoized rules, the
 // variables that key the memo, and the run sites.

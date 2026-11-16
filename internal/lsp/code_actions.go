@@ -6,8 +6,8 @@ import (
 	"fmt"
 	"strings"
 
+	"zeroparse.dev/zp/internal/analysis/lint"
 	"zeroparse.dev/zp/internal/frontend"
-	"zeroparse.dev/zp/internal/lint"
 )
 
 type findingData struct {
