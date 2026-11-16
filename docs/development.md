@@ -5,9 +5,9 @@ This document describes the repository layout and architecture, how to run tests
 ## Directory Layout
 
 > [!WARNING]
-> The package layout is being migrated to the target that [Architecture](design/architecture.md#the-go-packages)
-> describes; its [Migration](design/architecture.md#migration) section lists the stages. This section and the next
-> name the paths of the tree as it is, which the tests and commands below use, and they change as the stages land.
+> The code is being migrated to the target that [Architecture](design/architecture.md#the-go-packages) describes and
+> still differs from it in places. This section and the next name the paths of the tree as it is, which the tests and
+> commands below use.
 
 | Path | Contents |
 |:--|:--|
@@ -57,7 +57,7 @@ This document describes the repository layout and architecture, how to run tests
 | `docs/cookbook/` | Recipes: complete, runnable solutions to concrete tasks ([index](cookbook/README.md)) |
 | `docs/why-zeroparse.md`, `docs/strategy.md` | Project positioning: [who ZeroParse is for and how it compares](why-zeroparse.md), and the [project strategy](strategy.md) with its tracks and targets |
 | `docs/documentation-style.md` | How the documentation is organized and written: page kinds, link directions, titles, voice and examples |
-| `docs/design/` | How the system is built: [architecture](design/architecture.md), with the target package layout and the stages of its migration, and [Core IR and Code IR](design/intermediate-representations.md) |
+| `docs/design/` | How the system is built: [architecture](design/architecture.md), with the target package layout, the [pass pipeline](design/pass-pipeline.md) and [Core IR and Code IR](design/intermediate-representations.md) |
 | `docs/design/records/` | Design records; [template](design/records/000-template.md) for new proposals |
 | `docs/optimizations/` | Numbered optimization history, measured evidence and backend applicability ([catalog](optimizations/README.md)); measurement method and latest analysis remain in [performance.md](performance.md) |
 

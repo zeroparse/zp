@@ -6,14 +6,12 @@ dialects, and how optimization works on them. It omits field tables, node invent
 starting with the package comments of the IR packages, is their source of truth. Nothing here is a public API.
 
 > [!WARNING]
-> The package layout is being migrated to the architecture this page describes, so parts of the current code still
-> differ from it. In particular, Flow and Exec are still implemented as separate representations, not yet as dialects
-> of one Code IR, and the specifications still describe them that way; [Migration](architecture.md#migration) lists the
-> stages that reach the target.
+> The code is being migrated to the architecture this page describes and still differs from it in places. The package
+> comments describe the code as it is.
 
 The whole system is in [Architecture](architecture.md). The exact definitions are in the
 [Core IR Specification](../../spec/core-ir/README.md), including the [text form](../../spec/core-ir/text-form.md),
-which prints the module of this page's example in full, the [Flow specification](../../spec/flow-ir/README.md), which
+which prints a module in full, the [Flow specification](../../spec/flow-ir/README.md), which
 defines every statement and expression of a rule's body, and the [Exec specification](../../spec/exec-ir/README.md),
 which defines the abstract machine, every operation with its contract, the compositions and their lowering, passes and
 printing. The reasons behind the levels are in [record 062](records/062-backend-independent-optimization-ir.md), the
@@ -35,7 +33,7 @@ flowchart TD
   comp["Compositions of the abstract machine"] --> exec
   exec --> xp["Passes: specialize, simplify, legalize per language"]
   xp --> exec
-  exec --> out["Printers: Go and TypeScript source"]
+  exec --> out["Printers: host-language source"]
 ```
 
 | | Core IR | Code IR at the Flow stage | Code IR at the Exec stage |
@@ -128,88 +126,20 @@ repetition of a character class into a scan is safe because it consumes the same
 records the same expectation when it stops.
 
 The order passes run in, which are enabled, and how they are configured are declarations of the pipeline that the
-driver runs; [the optimization pipeline](optimization-pipeline.md) explains declared passes, the analysis manager,
+driver runs; [the pass pipeline](pass-pipeline.md) explains declared passes, the analysis manager,
 profiles and a flag per optimization.
 
-### A Worked Example
+### Examples of Rewrites
 
-A grammar with a rule that matches optional whitespace and one that reads a name:
+Take a rule that reads an item and then an optional separator, where the separator is a choice between two literals.
+Analysis computes the first terminal of each literal, and each alternative of the choice gains a guard that is that
+terminal: when the guard rejects the next character, the alternative would have failed there anyway, with the same
+expectation. In a rule that reads a name made of letters under the atomic marker, the value-free repetition of the
+letter class becomes a scan. A value-free rule that matches optional whitespace is called in its value-free twin, and
+the twin's repetition becomes a scan over the whitespace class; the value-building sibling of the twin is unchanged.
 
-```zp
-package list
-
-type Item = { Name node[string] }
-
-@start
-rule main = items:item+ $$
-
-rule item Item = ws n:name ("," / ";")? => Item{Name: $n}
-
-rule name node[string] = [a-z]+ #atomic
-
-rule ws = [ \t]*
-```
-
-The module as elaborated from the grammar, for the rules `item`, `name` and the value-free twin of `ws` (rules 0
-and 3 are left out), printed by the Core IR printer:
-
-```text
-rule 1 item memo transient scope=[n] => Item{Name: $0:n}!
-  seq
-    call 4:ws
-    capture 0 n
-      call 2:name
-    opt
-      choice
-        alt
-          lit ","
-        alt
-          lit ";"
-rule 2 name want memo transient plain scope-value(k=1,mode=1)
-  text
-    repeat 1 -1 scan-site=1
-      class [a-z]
-rule 4 ws memo transient plain novalue
-  repeat 0 -1 scan-site=3
-    class [\u0020\u0009]
-```
-
-After analysis, guards and scans, the same rules read:
-
-```text
-rule 1 item memo transient scope=[n] => Item{Name: $0:n}!
-  seq
-    call 4:ws
-    capture 0 n
-      call 2:name
-    opt
-      choice
-        alt guard=','
-          lit ","
-        alt guard=';'
-          lit ";"
-rule 2 name want memo transient plain scope-value(k=1,mode=1)
-  text
-    scan [a-z] 1 -1 scan-site=1
-rule 4 ws memo transient plain novalue
-  scan [\u0020\u0009] 0 -1 scan-site=3
-```
-
-Analysis also attaches the attributes that the printer shows in brackets. For the choice of `item` they are:
-
-```text
-choice [consume,fail,expect]
-  alt guard=','
-    lit "," [first=',' consume,fail,expect]
-  alt guard=';'
-    lit ";" [first=';' consume,fail,expect]
-```
-
-Each alternative of the choice gained a guard, which is the first terminal that analysis computed for its literal. In
-`name`, the value-free repetition `[a-z]+` under `#atomic` became a scan. `item` calls the value-free twin of `ws`, rule
-4, because it wants no value there, and the twin's repetition became a scan over the whitespace class; the twin's
-value-building sibling, rule 3, is unchanged. Before analysis a node carries only whether its value is wanted and its
-shape; nullability, first terminals and effects appear once analysis has run. None of the rewrites changes what any input
+Before analysis a node carries only whether its value is wanted and its shape; nullability, first terminals and effects
+are attributes that the printed module shows once analysis has run. None of these rewrites changes what any input
 consumes or expects.
 
 ## The Flow Stage
@@ -228,7 +158,7 @@ threading of failure paths, where to charge, sharing slots between locals, and o
 obligation, the property it preserves, and the features under which it applies, and the Flow verifier runs after it:
 structure, variables, one runtime per function, the budget invariants, recorded reads under a Document and no in-place
 reads in a traced parse. The passes, their order and their obligations are listed in
-[Architecture](architecture.md#the-middle-end).
+[the pass pipeline](pass-pipeline.md#the-flow-passes).
 
 A charge of one step is one reservation of one unit, so a printer that charges several steps, or the code points of a
 literal, with one call keeps them separate reservations: the runtime reserves a run that fits at once and, when the run
@@ -271,19 +201,19 @@ across dialects.
 - **The VM** takes Code IR at the Flow stage: `vmlower` selects instructions almost one for one from Flow operations,
   with superinstructions for calls of compositions and for common match patterns. The compositions are native in the VM
   and checked by the conformance suite.
-- **Generated Go and TypeScript** take Code IR at the Exec stage, after the shared passes and the passes of each
+- **Generated parsers in each host language** take Code IR at the Exec stage, after the dialect-independent passes and the passes of that host
   language that legalize and optimize it, and print it as structured source. The printers print the compositions of the
   runtimes too, so the rules of a generated parser and the shared mechanisms they call come from the same
   representation.
 - **A future LLVM backend** lowers the Exec stage to LLVM IR.
 
-The VM, Go, TypeScript and LLVM therefore take grammar code from one Code IR, and charging and the propagation of
+The VM, every host language and a future LLVM backend therefore take grammar code from one Code IR, and charging and the propagation of
 options cannot drift between two lowerings of grammar code.
 
 ## Related Topics
 
 - [Architecture](architecture.md): the stages around these representations, the backends and the packages.
-- [The optimization pipeline](optimization-pipeline.md): how the passes are declared, configured and verified.
+- [The pass pipeline](pass-pipeline.md): how the passes are declared, configured and verified.
 - [Record 072](records/072-release-package-layout.md): one Code IR with three dialects, and the alternatives.
 - [Record 065](records/065-exec-ir-parser-vm.md): the abstract machine, its operations, compositions and conformance suite.
 - [Record 062](records/062-backend-independent-optimization-ir.md): why the levels exist and the rewrites with their obligations.

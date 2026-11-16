@@ -19,6 +19,10 @@ description: Maintain ZeroParse user documentation, contracts, design records an
 - Development: `docs/development.md` and `docs/site.md` cover contribution and
   site workflows. `docs/performance.md` and `docs/optimizations/` hold method,
   applicability and evidence. `docs/benchmarks.md` is generated.
+- Design pages (`docs/design/`) describe only the target architecture; migration plans live in the issue tracker.
+  They contain no code (no listings, signatures or struct and function names; the reference docs cover code), and they
+  describe language-specific parts in terms of the host language, the language of the generated parser, naming Go and
+  TypeScript only as current instances.
 - Style: follow `docs/documentation-style.md` for page kinds, link directions,
   titles and headings, voice and terms, openings, and examples. The site tests
   enforce link directions and heading capitalization.
