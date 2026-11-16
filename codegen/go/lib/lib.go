@@ -334,6 +334,9 @@ type grammar struct {
 	NoBudgetControls bool
 	// MaxDepth is the default maximum nesting of recursive rule calls.
 	maxDepth int
+	// features are the features the generator found for the parser, with featureWitnessed, when the
+	// parser records them for the check of use (WitnessFeatures).
+	features Feature
 	// initEnv is the environment every parse starts from, with each variable bound to its
 	// initial value. A variable's slot is its position in varNames, and envDepth is the depth of
 	// the environment (envDepthOf the number of variables).
@@ -557,6 +560,14 @@ func ResolveOptions(g *grammar, opts []ParseOption) (parseOptions, error) {
 	}
 	if err := o.validateObservation(g); err != nil {
 		return o, err
+	}
+	if witnessFeatures {
+		if o.observe.trace != nil || o.observe.profile != nil {
+			useFeature(g, FeatureObserve)
+		}
+		if o.context != nil || !limitsDisabled(o.limits) {
+			useFeature(g, FeatureBudget)
+		}
 	}
 	return o, nil
 }
@@ -1375,6 +1386,9 @@ var noVals [16]any
 // envValues returns the current values of the variables in slots (nil for a slot below zero, an
 // undeclared variable).
 func (p *Parser) envValues(slots []int) []any {
+	if len(slots) > 0 {
+		p.use(FeatureVars)
+	}
 	if p.Control != nil {
 		return p.controlledEnvValues(slots)
 	}
@@ -1778,6 +1792,7 @@ func (e *Env) setLeaf(i int, v any) *Env {
 // bind rebinds the variable in slot i, copying the path to the slot and preserving saved
 // environments. Binding the value it has already is a no-op.
 func (p *Parser) bind(slot int, val any) {
+	p.use(FeatureVars)
 	if p.Control != nil {
 		p.bindControlled(slot, val)
 		return
@@ -2714,6 +2729,7 @@ func RenamedExpected(p *Parser, expected []ExpID, name ExpID) []ExpID {
 // RecoverAttr records the error of a failing m, skips what skip matches and returns an Error
 // node. It fails without recovering when skip fails or skips nothing.
 func (p *Parser) RecoverAttr(m, skip matcher, build bool) (*core.Node, bool) {
+	p.use(FeatureRecovery)
 	m0 := p.Mark()
 	v, ok, far, expected := p.tracked(m)
 	if ok {
@@ -3008,6 +3024,7 @@ func (p *Parser) convertOperator(r *Rule, v *core.Node) *core.Node {
 }
 
 func (p *Parser) operatorsRuleBuild(r *Rule, a *operatorsRuleAttempt, lhs, rhs *core.Node) *core.Node {
+	p.use(FeatureOperators)
 	if r.Novalue {
 		return nil
 	}
