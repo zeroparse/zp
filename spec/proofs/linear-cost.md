@@ -1664,13 +1664,25 @@ at their start, which *Memoized links keep positions* leaves out, and each
 activation that case 5 or a dropped step at the position of its growth repeats. For a leaf link $j$ whose shared call is the first, so that
 $w_j$ starts at $p_j$, a head that holds $\alpha_j$ starts at $p_j$ or before
 it. The heads that start at $p_j$ are of the classes at $p_j$, one head each.
-Those that start before $p_j$ enclose $w_j$, and the frames between are left at
-$p_j$; for two of them, the later is in progress at the earlier's activation
-and encloses it, or it starts after that activation and strictly encloses
-$e'_i$ for a memoized link $i$ between the two. This alternative is stated
-here without its proof, which would rest on the restarts and the claim above.
-Its proof, a bound on these heads and a bound on the activations that one head
-holds are part of step 1 of [Open Steps](#open-steps).
+Those that start before $p_j$ enclose $w_j$: such a head $H$ contains $P_j$, so
+it started before $\alpha_j$; from the end of $w_j$ to $\alpha_j$ the parser
+starts no evaluation before $p_j$ (*Restarts*), so $H$ started before $w_j$
+ended, and not inside $w_j$, since an evaluation started inside $w_j$ ends
+inside it, while $P_j$ starts after $w_j$ ends. As $\alpha_j$ lies in the own
+region of $H$, no call of a rule that the parse memoizes lies between $H$ and
+$P_j$. For two such heads, $H$ holding $\alpha_j$ and $H'$ holding
+$\alpha_{j'}$ with $j < j'$, either $H'$ started before $\alpha_j$ and then
+encloses it, since $\alpha_j$ lies in a call of $R$, which calls no rule, or
+$H'$ started after $\alpha_j$ ended. In the second case $H'$ encloses $w_{j'}$
+and with it $\alpha_{j'-1}$, so $j' - 1 > j$, and the least $i > j$ with
+$\alpha_i$ inside $H'$ has $\alpha_{i-1}$ before $H'$ and $i < j'$. That $i$ is
+free, or linked by a leaf link whose unit $H'$ does not enclose, or linked by a
+memoized link; in the last case, under the hypotheses of *Links lead to
+repeated evaluations* and outside cases (a) and (b) of the covered keys, $H'$
+is not $e'_i$ and does not lie inside it (*Nothing in a memoized link is a
+head*), so it strictly encloses $e'_i$. A bound on these heads and a bound on
+the activations that one head holds are part of step 1 of [Open
+Steps](#open-steps).
 
 **Activations held by heads.** Let no link of $\sigma$ at $q$ have case (a) or
 (b) of the covered keys on its path, and let every free $\alpha_i$ other than $\alpha_1$ be the
@@ -5340,7 +5352,16 @@ condition of the cost view that the [Cost View](cost-view.md) proof leaves open.
    is not a head through the end of its body. The heads that start at the
    position of the scan are bounded by the classes there (*Memoized links keep
    positions*); those that start before it, and the activations that one head
-   holds, are not. Second, the leaf links when the shared call follows other
+   holds, are not. *Calls that call no rule* bounds only a run of consecutive
+   leaf links whose shared call is the first, and the runs start after free activations and links of
+   other kinds, which include the memoized links that the heads bound in turn,
+   so the runs cannot be counted by those links. Across such links, two outer
+   links $l < l'$ at one position $p$ through one call place still contradict
+   the sharing of their call when $Y_{l'}$ encloses $w_l$: *Nesting at one end*
+   applies with $Y_{l'}$ as $X$ and $Y_l$ as $T$, with its open points. Open is
+   the case where the parser starts $Y_{l'}$ after $e'_l$; then the unit of the
+   restarts of some activation between them starts before $p$ and encloses
+   $e'_l$. Second, the leaf links when the shared call follows other
    shared calls: the continuation then leaves frames at the ends of the
    shared calls before the call, at positions before the scan, and between
    them, as in `e = "(" (e R "x" / e) / "."` with `R = [ ]*`, where the call
