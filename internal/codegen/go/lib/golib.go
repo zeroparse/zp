@@ -376,9 +376,8 @@ func goTarget(s goSpec) *gogen.Target {
 		case "budget.freeEnd":
 			return "p.Control.FreeEnd(" + a[0] + ")"
 		case "seen.defers":
-			// A Document parse memoizes on the first call; the typed library's Document parse sets the
-			// node Document too.
-			return "(p.Stream == nil && p.Document == nil)"
+			// Set once at the start of a parse: a stream or a Document parse memoizes on the first call.
+			return "p.deferMemo"
 		case "seen.first":
 			return "p.seenFirst(" + a[0] + ", " + a[1] + ")"
 		case "rule.memo":

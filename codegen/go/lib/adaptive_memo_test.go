@@ -31,7 +31,7 @@ func TestAdaptiveMemoCounters(t *testing.T) {
 				{"rescale above threshold", maxCalls, 1 << 27, true, 1 << 30, 1<<26 + 1, true},
 			} {
 				t.Run(tc.name, func(t *testing.T) {
-					p := Parser{memo: memoTable{stride: 1, sparse: mode == "sparse"}}
+					p := Parser{memo: memoTable{stride: 1, sparse: mode == "sparse"}, deferMemo: true}
 					r := &Rule{Seen: 0}
 					if tc.repeat {
 						if p.memo.sparse {
