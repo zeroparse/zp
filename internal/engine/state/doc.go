@@ -1,18 +1,18 @@
-// Package core is the part of the parse runtime that every backend of the engine shares: the
+// Package state is the part of the parse runtime that every backend of the engine shares: the
 // parser state (Parser), its input, memo table, expectation record, capture frames, values,
 // compute limits, tracing and stream state, and the protocol by which rules are called and grown.
-// It also declares the parse options, results, errors and trace events that the engine re-exports.
+// The result, error, limit and trace types it uses are those of the public package core.
 //
 // # Backends
 //
-// A backend runs rule bodies; core runs everything around them. A backend provides:
+// A backend runs rule bodies; state runs everything around them. A backend provides:
 //
 //   - a body for every rule it runs (Rule.Body). A body matches at p.Pos and returns the value
 //     and whether it matched; on failure the position is unspecified, as for a Matcher, and the
 //     caller restores it. Rule.Act, Rule.Value and the other executable fields of Rule are set by
 //     the backend that built the rule;
 //   - optionally, state it keeps beside the parser for a parse, such as the stacks of a VM, as a
-//     BackendState in Parser.Backend. Core calls it where it lets go of parse state
+//     BackendState in Parser.Backend. The package calls it where it lets go of parse state
 //     (BackendState.SplitChunks, BackendState.ClearInactive); a Document keeps it from one parse
 //     to the next (BackendState.Keep, BackendState.Attach, BackendState.Release). A backend
 //     installs its state when a parse first needs it and finds it again through Parser.Backend.
