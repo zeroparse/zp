@@ -4,6 +4,10 @@
 - **Author**: @ornew
 - **Date**: 2026-11-16
 
+> [!WARNING]
+> The package layout is being migrated to the target this record decides, so parts of the current code still differ
+> from it. [Migration](../architecture.md#migration) lists the stages that reach the target.
+
 ## Summary
 
 ZeroParse is released with one package layout. A public layer `pkg/` is the only Go API, the runtime side of the module
@@ -143,7 +147,7 @@ asks for through the analysis manager, and the front end does not return them.
 flowchart TD
   cmd["cmd/zp, cmd/playground"] --> pub["pkg/compiler, pkg/lint, pkg/sample, pkg/editfuzz"]
   pub --> driver["internal/driver"]
-  cmd --> fixture["fixture suites of zp test"] --> driver
+  cmd --> fixture["fixture suites of zp test"] --> pub
   driver --> backend["internal/backend: closure, vmlower, llvm (future), codegen/{common, golang, typescript}"]
   driver --> middle["internal/middleend: corepass, flowlower, flowpass, execlower, codepass"]
   driver --> front["internal/frontend: parser, desugar, check, types, astfacts, elaborate, schemaexport"]
@@ -153,7 +157,12 @@ flowchart TD
   ir --> pass["internal/pass: Manager, AnalysisManager, Registry"]
   util["utilities: diagnostics, cancellation, command-line flag names"] --> gram["pkg/grammar"]
   ir --> gram
-  cmd --> analysis["internal/analysis: lint, complexity; internal/lsp"]
+  cmd --> lsp["internal/lsp: protocol, zpls"] --> analysis["internal/analysis: lint, complexity"]
+  driver --> analysis
+  analysis --> backend
+  backend --> middle
+  middle --> front
+  front --> gram
   driver --> rt["internal/runtime: program, state, document, vm, engine, nodes, limits"]
 ```
 
@@ -269,7 +278,7 @@ with their content, prerequisites and acceptance checks, are in [Migration](../a
 - **S0.** Enforce the dependency rule: the import-graph test with the allowlist of today's violations.
 - **S1.** Correct the documents that describe the tree, and record this layout.
 - **S2.** Reorganize the front end, analysis and test support; the semantic-model part of the compile package moves into
-  the checker and the type model.
+  the checker and the type model, and the builder of Core IR moves to `elaborate` with them.
 - **S3.** Reorganize the IR and the passes: `internal/pass` with a generic registry, driving in `internal/driver`, the
   Exec infrastructure as the Code IR base, `corepass`, `flowlower` and `codepass`, the rename of the Core IR `Term` to
   `ActionExpr`, and the `-print-after` stage `build` renamed to `core`.
