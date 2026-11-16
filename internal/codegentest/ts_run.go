@@ -531,3 +531,32 @@ func TSOutputsWithin(t *testing.T, node string, cases []Case, bundles [][]byte, 
 	}
 	return string(out), elapsed, stopped
 }
+
+// TSLibPatchEnv names the environment variable through which the mutants of the observation tests
+// change the library of generated TypeScript parsers: a JSON object with the file of the library
+// (relative to the module root, under codegen/ts/lib) and the text to replace (Old) with New. The
+// library reaches generated code embedded in the generator, which the go command's overlay does not
+// change, so the tests that run generated TypeScript apply the patch to the code they generate
+// (PatchTSLib).
+const TSLibPatchEnv = "ZP_TS_LIB_PATCH"
+
+// PatchTSLib returns the generated TypeScript code src, which holds the library once, changed as
+// TSLibPatchEnv says if it is set. It fails t unless Old occurs exactly once in src.
+func PatchTSLib(t testing.TB, src []byte) []byte {
+	t.Helper()
+	spec := os.Getenv(TSLibPatchEnv)
+	if spec == "" {
+		return src
+	}
+	var m struct{ File, Old, New string }
+	if err := json.Unmarshal([]byte(spec), &m); err != nil {
+		t.Fatalf("%s: %v", TSLibPatchEnv, err)
+	}
+	if !strings.HasPrefix(m.File, "codegen/ts/lib/") {
+		t.Fatalf("%s: %s is not a file of the TypeScript library", TSLibPatchEnv, m.File)
+	}
+	if n := strings.Count(string(src), m.Old); n != 1 {
+		t.Fatalf("%s: %q occurs %d times in the generated code", TSLibPatchEnv, m.Old, n)
+	}
+	return []byte(strings.Replace(string(src), m.Old, m.New, 1))
+}

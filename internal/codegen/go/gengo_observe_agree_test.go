@@ -37,6 +37,11 @@ import (
 //
 // It returns the calls it set aside and the first difference.
 func callsAgree(a, b []core.TraceEvent, in string, unit core.PositionUnit) (aside setAside, msg string) {
+	return callsAgreeOn(a, b, in, unit, true)
+}
+
+// callsAgreeOn is callsAgree, which compares the examined ends of paired calls only with examined set.
+func callsAgreeOn(a, b []core.TraceEvent, in string, unit core.PositionUnit, examined bool) (aside setAside, msg string) {
 	subtree := func(evs []core.TraceEvent, i int) (end int, exit core.TraceEvent, ok bool) {
 		depth := 0
 		for k := i; k < len(evs); k++ {
@@ -96,7 +101,7 @@ func callsAgree(a, b []core.TraceEvent, in string, unit core.PositionUnit) (asid
 				if x.Matched != y.Matched || x.End != y.End || x.Memo != y.Memo || x.Evals != y.Evals || x.Lookahead != y.Lookahead || x.ReusedElements != y.ReusedElements {
 					return aside, fmt.Sprintf("exit of %s@%d: %s, %s", x.Rule, x.Pos, exitFields(x), exitFields(y))
 				}
-				if x.Examined != y.Examined {
+				if examined && x.Examined != y.Examined {
 					return aside, fmt.Sprintf("examined end of %s@%d: %d, %d", x.Rule, x.Pos, x.Examined, y.Examined)
 				}
 			}
@@ -524,12 +529,14 @@ func middleChar(in string, unit core.PositionUnit) (int, int, string) {
 }
 
 // engineObservation runs the parse of the report r on the engine with the backend b, the trace filter
-// rules and the depth limit maxDepth, and returns its events, its profile and its error.
-func engineObservation(t *testing.T, prog *engine.Program, r agreeReport, in string, b engine.Backend, rules []string, maxDepth int) ([]core.TraceEvent, core.ProfileSnapshot, error) {
+// rules and the depth limit maxDepth, and returns its events, its profile and its error. With
+// unexamined, the engine leaves the examined range out of the identities in its dependency memo
+// (ParseOptions.ContextMemoUnexamined), as a producer that records no such range does.
+func engineObservation(t *testing.T, prog *engine.Program, r agreeReport, in string, b engine.Backend, rules []string, maxDepth int, unexamined bool) ([]core.TraceEvent, core.ProfileSnapshot, error) {
 	t.Helper()
 	var events []core.TraceEvent
 	var prof core.Profile
-	o := engine.ParseOptions{Expectations: true, Backend: b, Unit: core.CodePoints, Recognize: r.Entry == "recognize"}
+	o := engine.ParseOptions{Expectations: true, Backend: b, Unit: core.CodePoints, Recognize: r.Entry == "recognize", ContextMemoUnexamined: unexamined}
 	if r.Bytes {
 		o.Unit = core.Bytes
 	}
@@ -717,13 +724,13 @@ func agreementMismatches(t *testing.T, cases []codegentest.Case, reports []agree
 			diffs[r.Entry] = append(diffs[r.Entry], where+": "+msg)
 		}
 		for _, b := range []engine.Backend{engine.Closure, engine.Bytecode, engine.BytecodeIterative} {
-			events, snap, err := engineObservation(t, prog, r, in, b, nil, 0)
+			events, snap, err := engineObservation(t, prog, r, in, b, nil, 0, false)
 			where := fmt.Sprintf("%s %v", where, b)
 			if (err == nil) != (r.Err == "<nil>") {
 				diffs[r.Entry] = append(diffs[r.Entry], fmt.Sprintf("%s: engine error %v, generated %s", where, err, r.Err))
 				continue
 			}
-			filtered, filteredSnap, _ := engineObservation(t, prog, r, in, b, r.Filter, agreeMaxDepth)
+			filtered, filteredSnap, _ := engineObservation(t, prog, r, in, b, r.Filter, agreeMaxDepth, false)
 			if msg := optionsHonored("engine", events, snap, events, snap, r.Filter, filtered, filteredSnap); msg != "" {
 				diffs[r.Entry] = append(diffs[r.Entry], where+": "+msg)
 				continue

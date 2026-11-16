@@ -29,9 +29,11 @@ export class ParseInterruptionError extends Error {
 export interface ParseInterruptionError { readonly cause: unknown }
 
 export interface ResolvedParseOptions {
-  profile: Profile | null;
+  // profiles and traces hold the profiles and trace functions of the options in order, nulls left
+  // out; an unobserved invocation has the shared empty arrays noProfiles and noTraces.
+  profiles: readonly Profile[];
   profileClock: (() => number) | null;
-  trace: ((event: TraceEvent) => void) | null;
+  traces: readonly TraceFunction[];
   traceRules: readonly string[];
   readonly traceMaxDepth: number;
   readonly unit: Unit;
