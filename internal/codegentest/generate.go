@@ -74,6 +74,7 @@ func GenerateRaw(t testing.TB, g *grammar.Grammar, opts codegen.GenOptions) ([]c
 		t.Fatal("codegentest.Compile is not set: the test package must set it before generating")
 	}
 	opts.VerifyEachPass = true
+	opts.FeatureWitness = true
 	opts = WithLib(opts)
 	if opts.Lib == codegen.LibOnly {
 		return gogen.Generate(g, Compile, opts)

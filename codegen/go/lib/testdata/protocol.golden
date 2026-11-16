@@ -1,6 +1,17 @@
-protocol 18
+protocol 19
 const BaseString untyped int = 0
 const ExpFar ExpID = 536870912
+const FeatureBudget Feature = 8
+const FeatureDocument Feature = 1
+const FeatureLeftRecursion Feature = 32
+const FeatureMemo Feature = 16
+const FeatureObserve Feature = 4
+const FeatureOperators Feature = 128
+const FeatureRecovery Feature = 64
+const FeatureScanSites Feature = 1024
+const FeatureSkipRuns Feature = 512
+const FeatureStream Feature = 2
+const FeatureVars Feature = 256
 const IdAny ExpID = 0
 const IdBeginInput ExpID = 1
 const IdBeginLine ExpID = 3
@@ -340,6 +351,7 @@ method (*grammar) SetVars([]string, []any)
 method (*grammar) Share(*grammar)
 method (*grammar) StartError(string) error
 method (*grammar) StartRule(string) (*Rule, error)
+method (*grammar) WitnessFeatures(Feature)
 method (*observation) Enter(string, int, int)
 method (*observation) Evaluated()
 method (*observation) Exit(bool, int, int)
@@ -365,6 +377,7 @@ type Env struct{}
 type Error struct{Span; Message string}
 type ExpID int32
 type ExpMark struct{}
+type Feature uint32
 type FieldType struct{Kind byte; Name string; Elem *FieldType; Alts []*FieldType; Text string}
 type Mark struct{Pos int; Trail int}
 type OperatorsRule struct{Skip matcher; Operands []*OperatorsRuleLine; Prefix []*OperatorsRuleOp; Led []*OperatorsRuleOp}

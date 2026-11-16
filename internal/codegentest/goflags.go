@@ -8,9 +8,11 @@ import (
 // SetGoFlags sets the GOFLAGS of the test process, which the go commands it runs inherit, for
 // building generated programs: -trimpath, so that their builds in fresh temporary directories share
 // the build cache, -mod=mod, so that the temporary modules that replace this module resolve it
-// without a go.sum.
+// without a go.sum, and the tag zp_feature_witness, so that every generated parser checks that its
+// parses use only the library features that the generator's analysis found
+// (codegen.GenOptions.FeatureWitness).
 func SetGoFlags() {
-	os.Setenv("GOFLAGS", strings.TrimSpace(os.Getenv("GOFLAGS")+" -trimpath -mod=mod"))
+	os.Setenv("GOFLAGS", strings.TrimSpace(os.Getenv("GOFLAGS")+" -trimpath -mod=mod -tags=zp_feature_witness"))
 }
 
 // SetGoCache points the build cache of the go commands that the test process runs at a fresh

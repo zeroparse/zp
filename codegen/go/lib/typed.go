@@ -1035,6 +1035,7 @@ func (p *TParser) examine(e *tmemoEntry, end int) {
 }
 
 func (p *TParser) memoGet(rule, pos, min int, env []any, docOnly bool) *tmemoEntry {
+	p.use(FeatureMemo)
 	if p.Control != nil {
 		return p.memoGetControlled(rule, pos, min, env, docOnly)
 	}
@@ -1774,6 +1775,7 @@ func (p *TParser) DiagnosticAttr(m tmatcher, name ExpID) (any, bool) {
 }
 
 func (p *TParser) RecoverAttr(m, skip tmatcher, build bool) (any, bool) {
+	p.use(FeatureRecovery)
 	m0 := p.Mark()
 	v, ok, far, expected := p.tracked(m)
 	if ok {
@@ -2058,6 +2060,7 @@ func (p *TParser) lineValue(r *TRule, l *TOperatorsRuleLine, f *TCaptureFrame, v
 // operatorsRuleBuild applies the operator of a to lhs, which starts at lstart if it is not a node,
 // and rhs. Besides the value it returns where the value starts, as operatorsRuleNud does.
 func (p *TParser) operatorsRuleBuild(r *TRule, a *toperatorsRuleAttempt, lhs any, lstart int, rhs any) (any, int) {
+	p.use(FeatureOperators)
 	if r.Novalue {
 		return nil, a.start
 	}

@@ -57,6 +57,9 @@ type Hooks struct {
 	// Generator receives the generator of the pass that writes the output, before it prints, so
 	// that the test can build the Core IR of the same options (Generator.TypedCore).
 	Generator func(*Generator)
+	// Features replaces the features that a parser generated with FeatureWitness records (a negative
+	// control of the analysis).
+	Features func(codegen.FeatureSet) codegen.FeatureSet
 	// Reach receives the result of the first pass of GenerateParser, before the second pass; a test
 	// removes a root from it to show that the output then fails.
 	Reach func(*liveRules)
@@ -259,6 +262,16 @@ func generateOnce(g *grammar.Grammar, c codegen.Compiler, opts codegen.GenOption
 	}
 	fmt.Fprintf(&genGo.Init, "\tzpGrammar.Starts = %s\n", goStrings(prog.StartRules))
 	fmt.Fprintf(&genGo.Init, "\tzpGrammar.DefaultStart = %q\n", prog.DefaultStartRule)
+	if opts.FeatureWitness {
+		features, err := codegen.ParserFeatures(prog, rec, opts, settings)
+		if err != nil {
+			return nil, err
+		}
+		if h.Features != nil {
+			features = h.Features(features)
+		}
+		fmt.Fprintf(&genGo.Init, "\tzpGrammar.WitnessFeatures(Feature(%d)) // %s\n", features, features)
+	}
 	if !opts.TypedOnly {
 		genGo.writeDescs(opts)
 	}

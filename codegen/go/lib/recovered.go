@@ -121,6 +121,7 @@ func (p *Parser) recAdd(e recEntry) {
 
 // PushRecovered records the error e that a recovery made (rec.push). Generated parsers call it.
 func (p *Parser) PushRecovered(e *core.SyntaxError) {
+	p.use(FeatureRecovery)
 	p.Recovered = append(p.Recovered, recEntry{err: e})
 }
 
