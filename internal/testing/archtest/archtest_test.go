@@ -164,7 +164,7 @@ func TestNegativeControls(t *testing.T) {
 	addEdge(mod("internal/ir/flow"), mod("internal/ir/exec/ops"))             // code/flow
 	addEdge(mod("internal/ir/exec/ops"), mod("internal/ir/exec/core"))        // code/exec
 	addEdge(mod("internal/ir/exec/core"), mod("internal/ir/core"))            // the packages under code/exec
-	addEdge(mod("bench/report"), mod("internal/lsp"))                         // internal/lsp
+	addEdge(mod("bench/report"), mod("internal/lsp/zpls"))                    // internal/lsp
 	addEdge(mod("internal/analysis/lint"), mod("internal/testing/starttest")) // internal/testing
 	addEdge(mod("grammar"), mod("internal/diagnostic"))                       // the utilities are above the grammar AST
 	// Rule 2: edges against the arrows of the layer graph (TestLayerGraph checks every pair).
@@ -224,7 +224,7 @@ func TestNegativeControls(t *testing.T) {
 		{"rule 2: internal/ir/flow -> internal/ir/exec/ops", []string{"within internal/ir, code/flow imports only code and ir/core (internal/ir/code/flow -> internal/ir/code/exec)"}},
 		{"rule 2: internal/ir/exec/ops -> internal/ir/exec/core", []string{"within internal/ir, code/exec imports only code (internal/ir/code/exec -> internal/ir/code/exec/compose)"}},
 		{"rule 2: internal/ir/exec/core -> internal/ir/core", []string{"within internal/ir, the packages under code/exec import only code, code/exec and code/action (internal/ir/code/exec/compose -> internal/ir/core)"}},
-		{"rule 2: bench/report -> internal/lsp", []string{"only cmd/** and internal/testing/** import internal/lsp/** (bench/report -> internal/lsp/zpls)"}},
+		{"rule 2: bench/report -> internal/lsp/zpls", []string{"only cmd/** and internal/testing/** import internal/lsp/** (bench/report -> internal/lsp/zpls)"}},
 		{"rule 2: internal/analysis/lint -> internal/testing/starttest", []string{"only internal/testing/** imports internal/testing/** outside tests (internal/analysis/lint -> internal/testing/starttest)"}},
 		{"rule 2: grammar -> internal/diagnostic", []string{"the grammar layer does not import the utility layer (pkg/grammar -> internal/diagnostic)"}},
 		{"rule 2: internal/frontend/desugar -> internal/ir/exec/lower", []string{"the front end layer does not import the middle end layer"}},
@@ -269,7 +269,7 @@ func TestLayerGraph(t *testing.T) {
 	g := loadAll(t)[0].clone()
 	// One package of each layer.
 	rep := map[layer]string{
-		layerCmd: "cmd/zp", layerPublic: "lint", layerLSP: "internal/lsp", layerDriver: "internal/ir/opt",
+		layerCmd: "cmd/zp", layerPublic: "lint", layerLSP: "internal/lsp/zpls", layerDriver: "internal/ir/opt",
 		layerAnalysis: "internal/analysis/lint", layerBackend: "internal/codegen", layerMiddle: "internal/ir/flow/lower",
 		layerFront: "internal/frontend/desugar", layerIR: "internal/ir/core", layerPass: "internal/ir/pipeline",
 		layerGrammar: "grammar", layerUtil: "internal/diagnostic", layerTesting: "internal/testing/starttest",

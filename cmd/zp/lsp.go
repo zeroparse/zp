@@ -5,7 +5,7 @@ import (
 	"io"
 	"runtime/debug"
 
-	"zeroparse.dev/zp/internal/lsp"
+	"zeroparse.dev/zp/internal/lsp/zpls"
 )
 
 // lspCmd runs the language server on standard input and output until the client exits.
@@ -24,5 +24,5 @@ func lspCmd(args []string, stdin io.Reader, stdout io.Writer) error {
 	if info, ok := debug.ReadBuildInfo(); ok {
 		version = info.Main.Version
 	}
-	return lsp.Serve(stdin, stdout, version)
+	return zpls.Serve(stdin, stdout, version)
 }

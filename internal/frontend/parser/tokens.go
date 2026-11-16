@@ -8,7 +8,7 @@ import (
 )
 
 // This file exposes the lexer and an error-tolerant parse to tools that work on source as it is
-// being edited, such as the language server (internal/lsp).
+// being edited, such as the language server (internal/lsp/zpls).
 
 // TokenKind is the kind of a Token.
 type TokenKind int
