@@ -3,7 +3,7 @@ package compile
 import (
 	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/cancel"
-	"zeroparse.dev/zp/internal/check"
+	"zeroparse.dev/zp/internal/frontend/check"
 )
 
 // checkProgram is the program as the checker reads it (check.Program).

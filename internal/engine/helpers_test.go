@@ -7,8 +7,8 @@ import (
 	"strings"
 	"testing"
 	"unicode/utf8"
+	irbuild "zeroparse.dev/zp/internal/frontend/elaborate"
 	ir "zeroparse.dev/zp/internal/ir/core"
-	irbuild "zeroparse.dev/zp/internal/ir/core/build"
 
 	"zeroparse.dev/zp/core"
 	"zeroparse.dev/zp/core/impl"

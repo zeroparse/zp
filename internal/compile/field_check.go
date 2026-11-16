@@ -3,10 +3,10 @@ package compile
 import (
 	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/bytecode"
-	"zeroparse.dev/zp/internal/types"
+	"zeroparse.dev/zp/internal/frontend/types"
 )
 
-// The field types live in internal/types; these aliases keep the packages that name them
+// The field types live in internal/frontend/types; these aliases keep the packages that name them
 // through compile building and go with the other type aliases.
 
 type FieldType = types.FieldType

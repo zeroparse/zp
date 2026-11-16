@@ -4,8 +4,8 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/internal/codegen/go"
+	irbuild "zeroparse.dev/zp/internal/frontend/elaborate"
 	"zeroparse.dev/zp/internal/ir/core"
-	irbuild "zeroparse.dev/zp/internal/ir/core/build"
 	"zeroparse.dev/zp/internal/testing/codegentest"
 )
 

@@ -3,7 +3,7 @@ package complexity
 import (
 	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/compile"
-	"zeroparse.dev/zp/internal/grammaranalysis"
+	"zeroparse.dev/zp/internal/frontend/astfacts"
 )
 
 // Reused skips.
@@ -25,7 +25,7 @@ import (
 func reusedSkip(skip grammar.Expr) ([]*grammar.Repeat, bool) {
 	var sites []*grammar.Repeat
 	ok, inside := true, map[grammar.Expr]bool{}
-	grammaranalysis.WalkExpr(skip, func(x grammar.Expr) {
+	astfacts.WalkExpr(skip, func(x grammar.Expr) {
 		if inside[x] {
 			return
 		}
@@ -33,8 +33,8 @@ func reusedSkip(skip grammar.Expr) ([]*grammar.Repeat, bool) {
 		case *grammar.Repeat:
 			if x.Max < 0 {
 				sites = append(sites, x)
-				ok = ok && constantInput(x.Expr) && !grammaranalysis.HasLooseCut(x.Expr)
-				grammaranalysis.WalkExpr(x.Expr, func(y grammar.Expr) { inside[y] = true })
+				ok = ok && constantInput(x.Expr) && !astfacts.HasLooseCut(x.Expr)
+				astfacts.WalkExpr(x.Expr, func(y grammar.Expr) { inside[y] = true })
 			}
 		default:
 			ok = ok && !costly(x)
@@ -47,7 +47,7 @@ func reusedSkip(skip grammar.Expr) ([]*grammar.Repeat, bool) {
 // input: e has no unbounded repetition and nothing that costly reports.
 func constantInput(e grammar.Expr) bool {
 	ok := true
-	grammaranalysis.WalkExpr(e, func(x grammar.Expr) {
+	astfacts.WalkExpr(e, func(x grammar.Expr) {
 		if r, isRep := x.(*grammar.Repeat); isRep {
 			ok = ok && r.Max >= 0
 			return

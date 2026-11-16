@@ -4,7 +4,7 @@ import (
 	"strings"
 	"testing"
 
-	"zeroparse.dev/zp/internal/desugar"
+	"zeroparse.dev/zp/internal/frontend/desugar"
 	"zeroparse.dev/zp/internal/syntax"
 )
 

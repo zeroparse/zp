@@ -19,8 +19,8 @@ import (
 	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/cancel"
 	"zeroparse.dev/zp/internal/compile"
-	"zeroparse.dev/zp/internal/desugar"
 	"zeroparse.dev/zp/internal/frontend"
+	"zeroparse.dev/zp/internal/frontend/desugar"
 )
 
 // Severity tells how likely a finding is to be a mistake.

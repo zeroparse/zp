@@ -4,9 +4,9 @@ import (
 	"maps"
 	"slices"
 	"unicode/utf8"
-	"zeroparse.dev/zp/internal/check"
 	"zeroparse.dev/zp/internal/compile"
-	"zeroparse.dev/zp/internal/grammaranalysis"
+	"zeroparse.dev/zp/internal/frontend/astfacts"
+	"zeroparse.dev/zp/internal/frontend/check"
 
 	"zeroparse.dev/zp/grammar"
 )
@@ -346,7 +346,7 @@ func (d *intDomain) inputs(b *binding) valueSet {
 func blockBefore(e grammar.Expr, b *grammar.Bind) ([]grammar.Term, bool) {
 	var out []grammar.Term
 	found := false
-	grammaranalysis.WalkExpr(e, func(x grammar.Expr) {
+	astfacts.WalkExpr(e, func(x grammar.Expr) {
 		p, ok := x.(*grammar.Predicate)
 		if !ok || found {
 			return
@@ -413,9 +413,9 @@ func (d *intDomain) after(e grammar.Expr, x valueSet) valueSet {
 // bindsVar reports whether e binds the variable in its own body, outside the rules that it calls.
 func (d *intDomain) bindsVar(e grammar.Expr) bool {
 	found := false
-	grammaranalysis.WalkExpr(e, func(x grammar.Expr) {
+	astfacts.WalkExpr(e, func(x grammar.Expr) {
 		if p, ok := x.(*grammar.Predicate); ok {
-			grammaranalysis.WalkTerm(p.Term, func(t grammar.Term) {
+			astfacts.WalkTerm(p.Term, func(t grammar.Term) {
 				if bd, ok := t.(*grammar.Bind); ok && bd.Name == d.v {
 					found = true
 				}

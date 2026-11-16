@@ -3,7 +3,7 @@ package complexity
 import (
 	"fmt"
 	"slices"
-	"zeroparse.dev/zp/internal/grammaranalysis"
+	"zeroparse.dev/zp/internal/frontend/astfacts"
 
 	"zeroparse.dev/zp/grammar"
 )
@@ -231,7 +231,7 @@ func (x excl) cheap(e grammar.Expr) bool {
 // continuation evaluates has no first evaluation to charge to.
 func (x excl) freshAll(e grammar.Expr) bool {
 	ok := true
-	grammaranalysis.WalkExpr(e, func(y grammar.Expr) {
+	astfacts.WalkExpr(e, func(y grammar.Expr) {
 		if x.k.srcExprs[y] {
 			ok = false
 		}
@@ -247,7 +247,7 @@ func (x excl) freshAll(e grammar.Expr) bool {
 // no more than a constant or what the calls cost the first time.
 func (x excl) cheapAll(e grammar.Expr) bool {
 	ok := true
-	grammaranalysis.WalkExpr(e, func(y grammar.Expr) {
+	astfacts.WalkExpr(e, func(y grammar.Expr) {
 		if x.k.srcExprs[y] {
 			ok = false
 		}
@@ -627,7 +627,7 @@ func (x excl) sameSym(a, b grammar.Expr) bool {
 // one.
 func (x excl) pure(e grammar.Expr) bool {
 	ok := true
-	grammaranalysis.WalkExpr(e, func(y grammar.Expr) {
+	astfacts.WalkExpr(e, func(y grammar.Expr) {
 		switch y := y.(type) {
 		case *grammar.Ref:
 			if !x.env && len(x.k.vars[y.Name]) > 0 || x.k.an.Cyclic[y.Name] {
@@ -1409,9 +1409,9 @@ func (k *classifier) unitDecided(u *unit, conts []contSpec) (ok bool, why string
 // contains a binding outside the rules that it calls, whose bindings end with the call.
 func binds(e grammar.Expr) bool {
 	found := false
-	grammaranalysis.WalkExpr(e, func(y grammar.Expr) {
+	astfacts.WalkExpr(e, func(y grammar.Expr) {
 		if p, ok := y.(*grammar.Predicate); ok {
-			grammaranalysis.WalkTerm(p.Term, func(t grammar.Term) {
+			astfacts.WalkTerm(p.Term, func(t grammar.Term) {
 				if _, ok := t.(*grammar.Bind); ok {
 					found = true
 				}

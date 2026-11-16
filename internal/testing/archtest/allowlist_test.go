@@ -13,7 +13,7 @@ var allowlist = []string{
 	"rule 1: internal/engine -> internal/cancel",
 	"rule 1: internal/engine -> internal/compile",
 	"rule 1: internal/engine -> internal/analysis/complexity",
-	"rule 1: internal/engine -> internal/desugar",
+	"rule 1: internal/engine -> internal/frontend/desugar",
 	"rule 1: internal/engine -> internal/diagnostic",
 	"rule 1: internal/engine -> internal/engine/closure",
 	"rule 1: internal/engine -> internal/ir/core",
@@ -27,7 +27,7 @@ var allowlist = []string{
 	"rule 1: internal/engine/vm -> grammar",
 	"rule 1: internal/engine/vm -> internal/compile",
 	"rule 1: internal/engine/vm -> internal/ir/core",
-	"rule 1: internal/engine/vm -> internal/ir/core/build",
+	"rule 1: internal/engine/vm -> internal/frontend/elaborate",
 
 	// The front end computes the rule facts of the Core IR. The IR regroup (S3) moves the facts
 	// to corepass analyses, and the driver asks for them.

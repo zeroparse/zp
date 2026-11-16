@@ -7,11 +7,11 @@ import (
 	"strings"
 	"unicode/utf8"
 	"zeroparse.dev/zp/internal/cancel"
-	"zeroparse.dev/zp/internal/check"
 	"zeroparse.dev/zp/internal/compile"
+	"zeroparse.dev/zp/internal/frontend/check"
 
 	"zeroparse.dev/zp/grammar"
-	"zeroparse.dev/zp/internal/desugar"
+	"zeroparse.dev/zp/internal/frontend/desugar"
 )
 
 // ComplexityClass is the class of the cost of a parse from a start rule (see "Classification" in

@@ -5,7 +5,7 @@ import (
 	"strings"
 	"testing"
 	"unicode/utf8"
-	"zeroparse.dev/zp/internal/check"
+	"zeroparse.dev/zp/internal/frontend/check"
 )
 
 // Compare the capture merger with the join, including values whose top-level optional/union

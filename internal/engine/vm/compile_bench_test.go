@@ -5,8 +5,8 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/internal/compile"
+	"zeroparse.dev/zp/internal/frontend/elaborate"
 	ir "zeroparse.dev/zp/internal/ir/core"
-	"zeroparse.dev/zp/internal/ir/core/build"
 	"zeroparse.dev/zp/internal/testing/compiletest"
 )
 
@@ -24,7 +24,7 @@ func BenchmarkBytecodeLowering(b *testing.B) {
 				b.Fatal(err)
 			}
 			p := compiletest.Program(b, string(source), compile.Options{})
-			m, err := build.CoreControlled(p, nil)
+			m, err := elaborate.CoreControlled(p, nil)
 			if err != nil {
 				b.Fatal(err)
 			}

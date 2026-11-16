@@ -8,8 +8,8 @@ import (
 	"zeroparse.dev/zp/internal/cancel"
 	"zeroparse.dev/zp/internal/compile"
 	"zeroparse.dev/zp/internal/engine/state"
+	"zeroparse.dev/zp/internal/frontend/elaborate"
 	ir "zeroparse.dev/zp/internal/ir/core"
-	"zeroparse.dev/zp/internal/ir/core/build"
 	"zeroparse.dev/zp/internal/value"
 )
 
@@ -19,7 +19,7 @@ import (
 // cancel.Cancellation. The module returned does not keep control. A failure is an internal error:
 // the program compiled, so its Core IR builds.
 func Core(prog *compile.Program, control *cancel.Control) (*ir.Module, error) {
-	m, err := build.CoreControlled(prog, control)
+	m, err := elaborate.CoreControlled(prog, control)
 	if err != nil {
 		return nil, fmt.Errorf("internal error: Core IR: %w", err)
 	}

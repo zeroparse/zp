@@ -4,7 +4,7 @@ import (
 	"math/bits"
 	"slices"
 	"unicode/utf8"
-	"zeroparse.dev/zp/internal/grammaranalysis"
+	"zeroparse.dev/zp/internal/frontend/astfacts"
 
 	"zeroparse.dev/zp/grammar"
 )
@@ -91,7 +91,7 @@ func (k *classifier) regionFree(name string) bool {
 			return false
 		}
 		free := true
-		grammaranalysis.WalkExpr(d.Expr, func(e grammar.Expr) {
+		astfacts.WalkExpr(d.Expr, func(e grammar.Expr) {
 			// Attribute normalization has made `#recover` and `#stream` attributed expressions, and
 			// the lowering of inline actions has made them rules with actions, so no recovery,
 			// stream or inline action node is left here.
@@ -626,7 +626,7 @@ func isCheck(e grammar.Expr) bool {
 		return false
 	}
 	pure := true
-	grammaranalysis.WalkExpr(n.Expr, func(x grammar.Expr) {
+	astfacts.WalkExpr(n.Expr, func(x grammar.Expr) {
 		switch x.(type) {
 		case *grammar.Literal, *grammar.CharClass, *grammar.Any, *grammar.Seq, *grammar.Choice, *grammar.Group,
 			*grammar.Optional, *grammar.Repeat:

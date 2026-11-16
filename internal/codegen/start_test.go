@@ -6,8 +6,8 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/internal/codegen"
-	"zeroparse.dev/zp/internal/desugar"
 	"zeroparse.dev/zp/internal/engine"
+	"zeroparse.dev/zp/internal/frontend/desugar"
 	"zeroparse.dev/zp/internal/syntax"
 	"zeroparse.dev/zp/internal/testing/codegentest"
 )

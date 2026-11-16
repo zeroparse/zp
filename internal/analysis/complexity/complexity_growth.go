@@ -2,8 +2,8 @@ package complexity
 
 import (
 	"maps"
-	"zeroparse.dev/zp/internal/check"
-	"zeroparse.dev/zp/internal/grammaranalysis"
+	"zeroparse.dev/zp/internal/frontend/astfacts"
+	"zeroparse.dev/zp/internal/frontend/check"
 
 	"zeroparse.dev/zp/grammar"
 )
@@ -302,7 +302,7 @@ func readsElem(t grammar.Term, env growthEnv, shadow []string) bool {
 
 func readsParam(t grammar.Term, env growthEnv, shadow []string, pred func(growthShape) bool) bool {
 	found := false
-	grammaranalysis.WalkTerm(t, func(x grammar.Term) {
+	astfacts.WalkTerm(t, func(x grammar.Term) {
 		c, ok := x.(*grammar.CaptureRef)
 		if !ok {
 			return
@@ -483,7 +483,7 @@ func (k *classifier) growthOf(t grammar.Term, env growthEnv, tc termCtx) (growth
 // to the largest size degree of those values, and at least n.
 func (k *classifier) readsOutside(t grammar.Term, env growthEnv, tc termCtx) lin {
 	d := 1
-	grammaranalysis.WalkTerm(t, func(x grammar.Term) {
+	astfacts.WalkTerm(t, func(x grammar.Term) {
 		switch x := x.(type) {
 		case *grammar.CaptureRef:
 			_, inEnv := env[x.Name]
@@ -657,7 +657,7 @@ func (k *classifier) joinsOnce(body grammar.Term, s string) (rest []grammar.Term
 // readsName reports whether t reads the capture or parameter name.
 func readsName(t grammar.Term, name string) bool {
 	found := false
-	grammaranalysis.WalkTerm(t, func(x grammar.Term) {
+	astfacts.WalkTerm(t, func(x grammar.Term) {
 		if c, ok := x.(*grammar.CaptureRef); ok && c.Name == name {
 			found = true
 		}

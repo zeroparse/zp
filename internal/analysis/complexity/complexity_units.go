@@ -5,7 +5,7 @@ import (
 	"maps"
 	"slices"
 	"zeroparse.dev/zp/internal/compile"
-	"zeroparse.dev/zp/internal/grammaranalysis"
+	"zeroparse.dev/zp/internal/frontend/astfacts"
 
 	"zeroparse.dev/zp/grammar"
 )
@@ -181,7 +181,7 @@ func (k *classifier) walkRule(r *grammar.RuleDef) {
 
 func (k *classifier) collectCaptures(r *grammar.RuleDef) {
 	m := map[string][]grammar.Expr{}
-	grammaranalysis.WalkExpr(r.Expr, func(e grammar.Expr) {
+	astfacts.WalkExpr(r.Expr, func(e grammar.Expr) {
 		if cp, ok := e.(*grammar.Capture); ok {
 			m[cp.Name] = append(m[cp.Name], cp.Expr)
 		}
@@ -694,7 +694,7 @@ func (k *classifier) walkOperators(pr *grammar.OperatorsRule, c wctx) {
 // or an Operators Rule in it, without following calls.
 func (k *classifier) containsSourceSyntactic(e grammar.Expr) bool {
 	found := false
-	grammaranalysis.WalkExpr(e, func(x grammar.Expr) {
+	astfacts.WalkExpr(e, func(x grammar.Expr) {
 		switch x := x.(type) {
 		case *grammar.Repeat:
 			found = found || x.Max < 0

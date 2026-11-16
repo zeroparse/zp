@@ -11,10 +11,10 @@ import (
 	"zeroparse.dev/zp/internal/bytecode"
 	"zeroparse.dev/zp/internal/cancel"
 	"zeroparse.dev/zp/internal/compile"
-	"zeroparse.dev/zp/internal/desugar"
 	"zeroparse.dev/zp/internal/engine/closure"
 	"zeroparse.dev/zp/internal/engine/state"
 	"zeroparse.dev/zp/internal/engine/vm"
+	"zeroparse.dev/zp/internal/frontend/desugar"
 	ir "zeroparse.dev/zp/internal/ir/core"
 )
 

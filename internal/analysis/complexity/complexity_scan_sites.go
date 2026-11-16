@@ -2,9 +2,9 @@ package complexity
 
 import (
 	"zeroparse.dev/zp/grammar"
-	"zeroparse.dev/zp/internal/check"
 	"zeroparse.dev/zp/internal/compile"
-	"zeroparse.dev/zp/internal/grammaranalysis"
+	"zeroparse.dev/zp/internal/frontend/astfacts"
+	"zeroparse.dev/zp/internal/frontend/check"
 )
 
 // scanOnly reports whether a call of the rule name pays at most a constant when it is evaluated
@@ -53,7 +53,7 @@ func (k *classifier) scanOnlyRule(name string) bool {
 		return false
 	}
 	ok := true
-	grammaranalysis.WalkExprWithPoll(def.Expr, func(x grammar.Expr) {
+	astfacts.WalkExprWithPoll(def.Expr, func(x grammar.Expr) {
 		switch x := x.(type) {
 		case *grammar.Recovery, *grammar.OperatorsRule, *grammar.Stream:
 			ok = false

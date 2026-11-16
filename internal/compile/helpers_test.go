@@ -6,7 +6,7 @@ import (
 	"zeroparse.dev/zp/internal/cancel"
 
 	"zeroparse.dev/zp/grammar"
-	"zeroparse.dev/zp/internal/desugar"
+	"zeroparse.dev/zp/internal/frontend/desugar"
 	"zeroparse.dev/zp/internal/syntax"
 )
 

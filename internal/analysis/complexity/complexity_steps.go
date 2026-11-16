@@ -3,7 +3,7 @@ package complexity
 import (
 	"fmt"
 	"zeroparse.dev/zp/internal/compile"
-	"zeroparse.dev/zp/internal/grammaranalysis"
+	"zeroparse.dev/zp/internal/frontend/astfacts"
 
 	"zeroparse.dev/zp/grammar"
 )
@@ -115,7 +115,7 @@ func (k *classifier) tailFailsAfterSource(t *cont) *source {
 // in e, or the source of a rule that e calls.
 func (k *classifier) sourceIn(e grammar.Expr) *source {
 	var found *source
-	grammaranalysis.WalkExpr(e, func(x grammar.Expr) {
+	astfacts.WalkExpr(e, func(x grammar.Expr) {
 		if found != nil {
 			return
 		}

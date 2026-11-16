@@ -7,8 +7,8 @@ import (
 	"zeroparse.dev/zp/core"
 	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/compile"
-	"zeroparse.dev/zp/internal/desugar"
 	"zeroparse.dev/zp/internal/engine/state"
+	"zeroparse.dev/zp/internal/frontend/desugar"
 	"zeroparse.dev/zp/internal/testing/codegentest"
 )
 

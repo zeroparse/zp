@@ -3,7 +3,7 @@ package complexity
 import (
 	"fmt"
 	"strings"
-	"zeroparse.dev/zp/internal/grammaranalysis"
+	"zeroparse.dev/zp/internal/frontend/astfacts"
 
 	"zeroparse.dev/zp/grammar"
 )
@@ -154,7 +154,7 @@ func (k *classifier) exprShape(e grammar.Expr, rule string) growthShape {
 		return k.ruleShape(x.Name)
 	}
 	out := ownShape
-	grammaranalysis.WalkExpr(e, func(y grammar.Expr) {
+	astfacts.WalkExpr(e, func(y grammar.Expr) {
 		if y == e {
 			return
 		}
@@ -404,7 +404,7 @@ func (k *classifier) ownExpr(e grammar.Expr, rule string, own map[string]bool) b
 	ok := true
 	var visit func(e grammar.Expr, look bool)
 	visit = func(e grammar.Expr, look bool) {
-		grammaranalysis.WalkExpr(e, func(x grammar.Expr) {
+		astfacts.WalkExpr(e, func(x grammar.Expr) {
 			if !ok {
 				return
 			}
@@ -443,9 +443,9 @@ func (k *classifier) lookCaptures(rule string) map[string]bool {
 	}
 	s := map[string]bool{}
 	if r := k.byName[rule]; r != nil {
-		grammaranalysis.WalkExpr(r.Expr, func(x grammar.Expr) {
+		astfacts.WalkExpr(r.Expr, func(x grammar.Expr) {
 			if a, ok := x.(*grammar.And); ok {
-				grammaranalysis.WalkExpr(a.Expr, func(y grammar.Expr) {
+				astfacts.WalkExpr(a.Expr, func(y grammar.Expr) {
 					if c, ok := y.(*grammar.Capture); ok {
 						s[c.Name] = true
 					}
@@ -548,13 +548,13 @@ func (k *classifier) ruleLooks(r *grammar.RuleDef) bool {
 // value that can hold one.
 func (k *classifier) exprLooks(e grammar.Expr, rule string) bool {
 	found := false
-	grammaranalysis.WalkExpr(e, func(x grammar.Expr) {
+	astfacts.WalkExpr(e, func(x grammar.Expr) {
 		if found {
 			return
 		}
 		switch x := x.(type) {
 		case *grammar.And:
-			grammaranalysis.WalkExpr(x.Expr, func(y grammar.Expr) {
+			astfacts.WalkExpr(x.Expr, func(y grammar.Expr) {
 				if y, ok := y.(*grammar.Capture); ok && !k.bounded(y.Expr) {
 					found = true
 				}
@@ -572,7 +572,7 @@ func (k *classifier) exprLooks(e grammar.Expr, rule string) bool {
 // lookahead: it reads one, a capture whose value can hold one, or the matched values by index.
 func (k *classifier) termLooks(t grammar.Term, rule string) bool {
 	found := false
-	grammaranalysis.WalkTerm(t, func(x grammar.Term) {
+	astfacts.WalkTerm(t, func(x grammar.Term) {
 		if found {
 			return
 		}
@@ -640,7 +640,7 @@ func (w *ownWalk) recCapture(name string) bool {
 	}
 	found := false
 	for _, e := range exprs {
-		grammaranalysis.WalkExpr(e, func(x grammar.Expr) {
+		astfacts.WalkExpr(e, func(x grammar.Expr) {
 			if r, ok := x.(*grammar.Ref); ok && w.k.byName[r.Name] != nil && w.k.onRecursion(w.rule, r.Name) {
 				found = true
 			}
@@ -652,7 +652,7 @@ func (w *ownWalk) recCapture(name string) bool {
 // readsRec reports whether t reads a capture that can hold a call on a recursion with the rule.
 func (w *ownWalk) readsRec(t grammar.Term) bool {
 	found := false
-	grammaranalysis.WalkTerm(t, func(x grammar.Term) {
+	astfacts.WalkTerm(t, func(x grammar.Term) {
 		switch x := x.(type) {
 		case *grammar.CaptureRef:
 			if !x.Param && w.recCapture(x.Name) {

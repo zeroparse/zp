@@ -14,7 +14,7 @@ import (
 	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/compile"
 	"zeroparse.dev/zp/internal/engine"
-	ischema "zeroparse.dev/zp/internal/schema"
+	"zeroparse.dev/zp/internal/frontend/schemaexport"
 	"zeroparse.dev/zp/internal/syntax"
 	"zeroparse.dev/zp/internal/testing/codegentest"
 	"zeroparse.dev/zp/internal/testing/compiletest"
@@ -158,7 +158,7 @@ func OutputSchema(p *engine.Program, start string, allRules bool) (*schema.Outpu
 	if err != nil {
 		return nil, err
 	}
-	return ischema.Export(sp, start, allRules)
+	return schemaexport.Export(sp, start, allRules)
 }
 
 // Result parses input from main with o and returns the result, or the error prefixed "error: ".

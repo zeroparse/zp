@@ -5,7 +5,7 @@ import (
 
 	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/frontend"
-	"zeroparse.dev/zp/internal/grammaranalysis"
+	"zeroparse.dev/zp/internal/frontend/astfacts"
 )
 
 // runContext lints g, which the front end checked to the result res, from start.
@@ -99,7 +99,7 @@ func (c *lintControl) expressionArgs(a *grammar.Attribute) []grammar.Expr {
 	if c == nil {
 		return a.ExpressionArgs()
 	}
-	return grammaranalysis.ExpressionArgsWithPoll(a, c.poll)
+	return astfacts.ExpressionArgsWithPoll(a, c.poll)
 }
 
 func (c *lintControl) formatExpr(e grammar.Expr) string {
@@ -115,9 +115,9 @@ func (c *lintControl) formatExpr(e grammar.Expr) string {
 
 func (c *lintControl) formatTerm(t grammar.Term) string {
 	if c == nil {
-		return grammar.FormatTerm(grammaranalysis.UngroupTerm(t))
+		return grammar.FormatTerm(astfacts.UngroupTerm(t))
 	}
-	t = grammaranalysis.UngroupTermWithPoll(t, c.poll)
+	t = astfacts.UngroupTermWithPoll(t, c.poll)
 	result, err := grammar.FormatTermContext(c.ctx, t)
 	if err != nil {
 		panic(lintCancellation{err})

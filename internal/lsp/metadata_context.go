@@ -7,7 +7,7 @@ import (
 	"zeroparse.dev/zp/internal/diagnostic"
 
 	"zeroparse.dev/zp/grammar"
-	"zeroparse.dev/zp/internal/grammaranalysis"
+	"zeroparse.dev/zp/internal/frontend/astfacts"
 )
 
 // Keep the cancellation sentinel inside the metadata invocation, before the
@@ -92,7 +92,7 @@ func (control *renderControl) expressionArgs(a *grammar.Attribute) []grammar.Exp
 	if control == nil {
 		return a.ExpressionArgs()
 	}
-	return grammaranalysis.ExpressionArgsWithPoll(a, control.poll)
+	return astfacts.ExpressionArgsWithPoll(a, control.poll)
 }
 
 func (a *analysis) collect()                { a.collectControlled(nil) }

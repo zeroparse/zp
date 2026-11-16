@@ -6,7 +6,7 @@ import (
 	"zeroparse.dev/zp/internal/compile"
 
 	"zeroparse.dev/zp/grammar"
-	"zeroparse.dev/zp/internal/grammaranalysis"
+	"zeroparse.dev/zp/internal/frontend/astfacts"
 )
 
 // Bounded scans (see "Conditions for Linear Cost" in spec/runtime/parsing.md and Lemma 13 of
@@ -371,7 +371,7 @@ func (k *classifier) sureOf(e grammar.Expr) charset {
 
 // looseCut reports whether e has a cut that commits the choice, option or repetition around it.
 func (k *classifier) looseCut(e grammar.Expr) bool {
-	return grammaranalysis.HasLooseCutWithPoll(e, k.control.Poll)
+	return astfacts.HasLooseCutWithPoll(e, k.control.Poll)
 }
 
 // sure returns characters on which e surely consumes: an evaluation of e where the next character

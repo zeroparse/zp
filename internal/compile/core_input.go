@@ -1,16 +1,16 @@
 package compile
 
-import "zeroparse.dev/zp/internal/ir/core/build"
+import "zeroparse.dev/zp/internal/frontend/elaborate"
 
 // CoreInput returns the rules and declarations of the program as the Core IR builder reads them
-// (build.Program).
-func (p *Program) CoreInput() *build.Input {
-	in := &build.Input{Types: p.Types, Vars: p.Vars, ByName: map[string]*build.Rule{}}
+// (elaborate.Program).
+func (p *Program) CoreInput() *elaborate.Input {
+	in := &elaborate.Input{Types: p.Types, Vars: p.Vars, ByName: map[string]*elaborate.Rule{}}
 	all := append(append([]*Rule(nil), p.RuleList...), p.Twins...)
-	in.Rules = make([]*build.Rule, len(all))
-	byRule := make(map[*Rule]*build.Rule, len(all))
+	in.Rules = make([]*elaborate.Rule, len(all))
+	byRule := make(map[*Rule]*elaborate.Rule, len(all))
 	for i, r := range all {
-		br := &build.Rule{ID: r.ID, Name: r.Name, Where: r.Where, Def: r.Def, Body: r.BodyExpr(), Action: r.Action, NodeType: r.NodeType,
+		br := &elaborate.Rule{ID: r.ID, Name: r.Name, Where: r.Where, Def: r.Def, Body: r.BodyExpr(), Action: r.Action, NodeType: r.NodeType,
 			Memo: r.Memo, Transient: r.Transient, Plain: r.Plain, Rec: r.Rec, Leader: r.Leader, Splice: r.Splice, Novalue: r.Novalue,
 			Lean: r.Lean, Seen: r.Seen, Vars: r.Vars}
 		if r.PredCaps != nil {
@@ -33,5 +33,5 @@ func (p *Program) CoreInput() *build.Input {
 	return in
 }
 
-// MissingTokens reports that the grammar uses #missing (build.Program).
+// MissingTokens reports that the grammar uses #missing (elaborate.Program).
 func (p *Program) MissingTokens() bool { return p.HasMissing }

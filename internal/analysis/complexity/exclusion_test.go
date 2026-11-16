@@ -12,7 +12,7 @@ import (
 	"time"
 
 	"zeroparse.dev/zp/grammar"
-	"zeroparse.dev/zp/internal/grammaranalysis"
+	"zeroparse.dev/zp/internal/frontend/astfacts"
 	"zeroparse.dev/zp/internal/syntax"
 	"zeroparse.dev/zp/internal/testing/starttest"
 )
@@ -75,7 +75,7 @@ func TestDecideAlt(t *testing.T) {
 		k.computeBounded()
 		k.computeFirst()
 		var ch *grammar.Choice
-		grammaranalysis.WalkExpr(k.byName["main"].Expr, func(x grammar.Expr) {
+		astfacts.WalkExpr(k.byName["main"].Expr, func(x grammar.Expr) {
 			if y, ok := x.(*grammar.Choice); ok && ch == nil {
 				ch = y
 			}
@@ -128,7 +128,7 @@ func TestDecideAltTrivia(t *testing.T) {
 			k.computeBounded()
 			k.computeFirst()
 			var ch *grammar.Choice
-			grammaranalysis.WalkExpr(k.byName["main"].Expr, func(x grammar.Expr) {
+			astfacts.WalkExpr(k.byName["main"].Expr, func(x grammar.Expr) {
 				if y, ok := x.(*grammar.Choice); ok && ch == nil {
 					ch = y
 				}
@@ -351,7 +351,7 @@ func TestDecideAltVariables(t *testing.T) {
 		k.computeBounded()
 		k.computeFirst()
 		var ch *grammar.Choice
-		grammaranalysis.WalkExpr(k.byName["main"].Expr, func(x grammar.Expr) {
+		astfacts.WalkExpr(k.byName["main"].Expr, func(x grammar.Expr) {
 			if y, ok := x.(*grammar.Choice); ok && ch == nil {
 				ch = y
 			}
@@ -575,7 +575,7 @@ func exclusionStats(g *grammar.Grammar, start string) (exclStats, error) {
 		if !k.reach[r.Name] {
 			continue
 		}
-		grammaranalysis.WalkExpr(r.Expr, func(e grammar.Expr) {
+		astfacts.WalkExpr(r.Expr, func(e grammar.Expr) {
 			ch, ok := e.(*grammar.Choice)
 			if !ok || len(ch.Alts) < 2 {
 				return

@@ -3,7 +3,7 @@ package engine
 import (
 	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/compile"
-	ischema "zeroparse.dev/zp/internal/schema"
+	"zeroparse.dev/zp/internal/frontend/schemaexport"
 	"zeroparse.dev/zp/schema"
 )
 
@@ -34,5 +34,5 @@ func outputSchemaPrototype(p *Program, start string, allRules bool) (*schema.Out
 	if err != nil {
 		return nil, err
 	}
-	return ischema.Export(sp, start, allRules)
+	return schemaexport.Export(sp, start, allRules)
 }

@@ -3,7 +3,7 @@ package compile
 import (
 	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/cancel"
-	"zeroparse.dev/zp/internal/grammaranalysis"
+	"zeroparse.dev/zp/internal/frontend/astfacts"
 )
 
 // Skip-run sites.
@@ -129,7 +129,7 @@ func skipOf(e grammar.Expr) grammar.Expr {
 // escapingCut reports whether e has a #cut outside every choice, option, repetition and lookahead
 // in it: one that applies to the choice, option or repetition around e. The skip of a #recover runs
 // in the scope of the #recover, so a cut in it counts.
-func escapingCut(e grammar.Expr) bool { return grammaranalysis.HasLooseCut(e) }
+func escapingCut(e grammar.Expr) bool { return astfacts.HasLooseCut(e) }
 
 // readsOrBindsVariable reports whether the predicate term t reads or binds a variable.
 func readsOrBindsVariable(t grammar.Term) bool {

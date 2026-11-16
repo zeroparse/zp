@@ -5,7 +5,7 @@ import (
 
 	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/cancel"
-	"zeroparse.dev/zp/internal/grammaranalysis"
+	"zeroparse.dev/zp/internal/frontend/astfacts"
 )
 
 // PredicateCaptures tells which captures of a rule body record their values in a program that
@@ -154,7 +154,7 @@ func reachingCaptures(e grammar.Expr, before captureSet, read map[*grammar.Captu
 	case *grammar.Attributed:
 		after := reachingCaptures(e.Expr, before, read, control)
 		for _, at := range e.Attrs {
-			for _, arg := range grammaranalysis.ExpressionArgsWithPoll(at, control.Poll) {
+			for _, arg := range astfacts.ExpressionArgsWithPoll(at, control.Poll) {
 				after = after.union(reachingCaptures(arg, before.union(after), read, control))
 			}
 		}

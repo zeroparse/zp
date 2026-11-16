@@ -3,7 +3,7 @@ package complexity
 import (
 	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/compile"
-	"zeroparse.dev/zp/internal/grammaranalysis"
+	"zeroparse.dev/zp/internal/frontend/astfacts"
 )
 
 // A unit restarts the input that a scanning source inside it examined only when it fails after
@@ -18,7 +18,7 @@ func (k *classifier) containsSource(e grammar.Expr) bool {
 		return v
 	}
 	found := false
-	grammaranalysis.WalkExpr(e, func(x grammar.Expr) {
+	astfacts.WalkExpr(e, func(x grammar.Expr) {
 		if found {
 			return
 		}

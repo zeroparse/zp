@@ -8,8 +8,8 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/internal/compile"
-	"zeroparse.dev/zp/internal/desugar"
-	"zeroparse.dev/zp/internal/ir/core/build"
+	"zeroparse.dev/zp/internal/frontend/desugar"
+	"zeroparse.dev/zp/internal/frontend/elaborate"
 	"zeroparse.dev/zp/internal/ir/core/facts"
 	"zeroparse.dev/zp/internal/testing/compiletest"
 	"zeroparse.dev/zp/internal/testing/factstest"
@@ -52,7 +52,7 @@ func structuralInputFacts(t *testing.T, path string) int {
 		if err != nil {
 			continue
 		}
-		typed, err := build.CoreFrom(prog, nil)
+		typed, err := elaborate.CoreFrom(prog, nil)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -62,7 +62,7 @@ func structuralInputFacts(t *testing.T, path string) int {
 		}
 		defs, _ := desugar.UniqueRules(canon.Grammar, nil)
 		in := compile.StructuralInput(canon.Grammar, defs, canon.Starts)
-		untyped, err := build.Structural(in, nil)
+		untyped, err := elaborate.Structural(in, nil)
 		if err != nil {
 			t.Fatalf("%s: %v", name, err)
 		}

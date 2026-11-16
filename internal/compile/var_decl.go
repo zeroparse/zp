@@ -3,10 +3,10 @@ package compile
 import (
 	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/bytecode"
-	"zeroparse.dev/zp/internal/check"
+	"zeroparse.dev/zp/internal/frontend/check"
 )
 
-// The variable table lives in internal/check; these aliases keep the packages that name it through
+// The variable table lives in internal/frontend/check; these aliases keep the packages that name it through
 // compile building and go with the other aliases.
 
 type (

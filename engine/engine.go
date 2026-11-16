@@ -15,8 +15,8 @@ import (
 	"zeroparse.dev/zp/core"
 	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/engine"
+	"zeroparse.dev/zp/internal/frontend/schemaexport"
 	"zeroparse.dev/zp/internal/limits"
-	ischema "zeroparse.dev/zp/internal/schema"
 	"zeroparse.dev/zp/internal/syntax"
 	"zeroparse.dev/zp/schema"
 )
@@ -674,7 +674,7 @@ func (d *Document) CacheStats() core.CacheStats { return d.doc.CacheStats() }
 
 // ErrSchemaUnavailable reports that checked grammar metadata is unavailable.
 // In particular, a parser loaded from a compiled file cannot export a schema.
-var ErrSchemaUnavailable = ischema.ErrUnavailable
+var ErrSchemaUnavailable = schemaexport.ErrUnavailable
 
 type schemaOptions struct{ allRules bool }
 
@@ -709,5 +709,5 @@ func outputSchemaPrototype(prog *engine.Program, start string, allRules bool) (*
 	if err != nil {
 		return nil, err
 	}
-	return ischema.Export(sp, start, allRules)
+	return schemaexport.Export(sp, start, allRules)
 }

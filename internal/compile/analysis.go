@@ -6,7 +6,7 @@ import (
 	"zeroparse.dev/zp/internal/cancel"
 
 	"zeroparse.dev/zp/grammar"
-	"zeroparse.dev/zp/internal/grammaranalysis"
+	"zeroparse.dev/zp/internal/frontend/astfacts"
 )
 
 // Analysis is the result of static analysis across rules.
@@ -130,9 +130,9 @@ func analyzeMode(rules []*grammar.RuleDef, control *cancel.Control, insertion bo
 			}
 		}
 		if control == nil {
-			a.Succeeding = grammaranalysis.SucceedingRules(rules, a.Cyclic)
+			a.Succeeding = astfacts.SucceedingRules(rules, a.Cyclic)
 		} else {
-			a.Succeeding = grammaranalysis.SucceedingRulesWithPoll(rules, a.Cyclic, control.Poll)
+			a.Succeeding = astfacts.SucceedingRulesWithPoll(rules, a.Cyclic, control.Poll)
 		}
 		next := map[string][]string{}
 		changed := false
@@ -403,17 +403,17 @@ func ruleVariablesControlled(rules []*grammar.RuleDef, control *cancel.Control) 
 	return out
 }
 
-// walkExprControlled is grammaranalysis.WalkExprWithPoll polling control.
+// walkExprControlled is astfacts.WalkExprWithPoll polling control.
 func walkExprControlled(e grammar.Expr, f func(grammar.Expr), control *cancel.Control) {
 	if control == nil {
-		grammaranalysis.WalkExpr(e, f)
+		astfacts.WalkExpr(e, f)
 		return
 	}
-	grammaranalysis.WalkExprWithPoll(e, f, control.Poll)
+	astfacts.WalkExprWithPoll(e, f, control.Poll)
 }
 
-// WalkTerm is grammaranalysis.WalkTerm.
-func WalkTerm(t grammar.Term, f func(grammar.Term)) { grammaranalysis.WalkTerm(t, f) }
+// WalkTerm is astfacts.WalkTerm.
+func WalkTerm(t grammar.Term, f func(grammar.Term)) { astfacts.WalkTerm(t, f) }
 
 // Tarjan returns the strongly connected components of the graph of edges, starting from the
 // rules in order. A component comes after every component it reaches, so callees come before
@@ -636,13 +636,13 @@ func ruleUsesPositions(r *grammar.RuleDef, control *cancel.Control) bool {
 // AlwaysSucceeds preserves the ordinary proof and shares the invocation control.
 func (a *Analysis) AlwaysSucceeds(e grammar.Expr) bool {
 	if a.Control == nil {
-		return grammaranalysis.AlwaysSucceeds(e, a.Succeeding)
+		return astfacts.AlwaysSucceeds(e, a.Succeeding)
 	}
-	return grammaranalysis.AlwaysSucceedsWithPoll(e, a.Succeeding, a.Control.Poll)
+	return astfacts.AlwaysSucceedsWithPoll(e, a.Succeeding, a.Control.Poll)
 }
 
-// WalkExpr is grammaranalysis.WalkExpr.
-func WalkExpr(e grammar.Expr, f func(grammar.Expr)) { grammaranalysis.WalkExpr(e, f) }
+// WalkExpr is astfacts.WalkExpr.
+func WalkExpr(e grammar.Expr, f func(grammar.Expr)) { astfacts.WalkExpr(e, f) }
 
 // WalkRuleTerms visits every term in a rule's action and predicates, including Operators Rule
 // operand and operator actions.

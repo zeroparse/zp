@@ -6,13 +6,13 @@ import (
 	"sync"
 	"zeroparse.dev/zp/core/impl"
 	"zeroparse.dev/zp/internal/cancel"
-	"zeroparse.dev/zp/internal/check"
 	"zeroparse.dev/zp/internal/diagnostic"
+	"zeroparse.dev/zp/internal/frontend/check"
 	"zeroparse.dev/zp/internal/ir/core"
 
 	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/bytecode"
-	"zeroparse.dev/zp/internal/desugar"
+	"zeroparse.dev/zp/internal/frontend/desugar"
 	"zeroparse.dev/zp/internal/value"
 )
 

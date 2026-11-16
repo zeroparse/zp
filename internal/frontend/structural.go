@@ -6,10 +6,10 @@ import (
 	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/cancel"
 	"zeroparse.dev/zp/internal/compile"
-	"zeroparse.dev/zp/internal/desugar"
 	"zeroparse.dev/zp/internal/diagnostic"
+	"zeroparse.dev/zp/internal/frontend/desugar"
+	"zeroparse.dev/zp/internal/frontend/elaborate"
 	"zeroparse.dev/zp/internal/ir/core"
-	"zeroparse.dev/zp/internal/ir/core/build"
 	"zeroparse.dev/zp/internal/ir/core/facts"
 )
 
@@ -26,7 +26,7 @@ func structuralErrors(g *grammar.Grammar, opts compile.Options, names desugar.In
 	defs, _ := desugar.UniqueRules(canon.Grammar, control)
 	in := compile.StructuralInput(canon.Grammar, defs, canon.Starts)
 	origin := map[core.Node]grammar.Expr{}
-	m, err := build.Structural(in, origin)
+	m, err := elaborate.Structural(in, origin)
 	if err != nil {
 		return nil
 	}

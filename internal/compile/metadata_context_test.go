@@ -5,7 +5,7 @@ import (
 	"errors"
 	"testing"
 	"zeroparse.dev/zp/internal/cancel"
-	"zeroparse.dev/zp/internal/check"
+	"zeroparse.dev/zp/internal/frontend/check"
 
 	"zeroparse.dev/zp/grammar"
 )

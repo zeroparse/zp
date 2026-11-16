@@ -2,8 +2,8 @@ package compile
 
 import (
 	"zeroparse.dev/zp/grammar"
-	"zeroparse.dev/zp/internal/check"
-	"zeroparse.dev/zp/internal/desugar"
+	"zeroparse.dev/zp/internal/frontend/check"
+	"zeroparse.dev/zp/internal/frontend/desugar"
 )
 
 // walker walks the rule bodies of a program for the compiler: it checks them, reports the errors,

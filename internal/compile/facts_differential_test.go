@@ -8,8 +8,8 @@ import (
 
 	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/compile"
+	"zeroparse.dev/zp/internal/frontend/elaborate"
 	"zeroparse.dev/zp/internal/ir/core"
-	"zeroparse.dev/zp/internal/ir/core/build"
 	"zeroparse.dev/zp/internal/ir/core/facts"
 	"zeroparse.dev/zp/internal/testing/compiletest"
 	"zeroparse.dev/zp/internal/testing/factstest"
@@ -39,7 +39,7 @@ func TestFactsDifferential(t *testing.T) {
 		compiled++
 		want := factstest.Render(compile.ProgramFacts(prog))
 		origin := map[core.Node]grammar.Expr{}
-		m, err := build.CoreFrom(prog, origin)
+		m, err := elaborate.CoreFrom(prog, origin)
 		if err != nil {
 			t.Fatalf("seed %d: %v\n%s", seed, err, src)
 		}

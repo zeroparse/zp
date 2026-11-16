@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"strings"
 	"testing"
-	"zeroparse.dev/zp/internal/check"
-	"zeroparse.dev/zp/internal/types"
+	"zeroparse.dev/zp/internal/frontend/check"
+	"zeroparse.dev/zp/internal/frontend/types"
 )
 
 func TestRuleTypeWithPollParity(t *testing.T) {

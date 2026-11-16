@@ -11,8 +11,8 @@ import (
 
 	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/compile"
+	corebuild "zeroparse.dev/zp/internal/frontend/elaborate"
 	ir "zeroparse.dev/zp/internal/ir/core"
-	corebuild "zeroparse.dev/zp/internal/ir/core/build"
 	"zeroparse.dev/zp/internal/testing/codegentest"
 )
 

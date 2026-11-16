@@ -2,8 +2,8 @@ package gogen
 
 import (
 	"zeroparse.dev/zp/grammar"
+	irbuild "zeroparse.dev/zp/internal/frontend/elaborate"
 	"zeroparse.dev/zp/internal/ir/core"
-	irbuild "zeroparse.dev/zp/internal/ir/core/build"
 )
 
 // TypedCore builds the Core IR of the typed Go rules and runs the pipeline of Core passes on it:

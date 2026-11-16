@@ -1,10 +1,10 @@
 package compile
 
-import "zeroparse.dev/zp/internal/types"
+import "zeroparse.dev/zp/internal/frontend/types"
 
-// The type model lives in internal/types. These aliases keep the packages that name it through
+// The type model lives in internal/frontend/types. These aliases keep the packages that name it through
 // compile building while their files are being changed elsewhere; they go when those packages
-// import internal/types directly.
+// import internal/frontend/types directly.
 
 type (
 	Ty       = types.Ty

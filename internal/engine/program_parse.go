@@ -10,9 +10,9 @@ import (
 
 	"zeroparse.dev/zp/core"
 	"zeroparse.dev/zp/internal/compile"
-	"zeroparse.dev/zp/internal/desugar"
 	"zeroparse.dev/zp/internal/engine/state"
 	"zeroparse.dev/zp/internal/engine/vm"
+	"zeroparse.dev/zp/internal/frontend/desugar"
 	ir "zeroparse.dev/zp/internal/ir/core"
 )
 

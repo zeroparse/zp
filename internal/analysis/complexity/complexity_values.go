@@ -6,10 +6,10 @@ import (
 	"slices"
 	"sort"
 	"strings"
-	"zeroparse.dev/zp/internal/check"
 	"zeroparse.dev/zp/internal/compile"
-	"zeroparse.dev/zp/internal/grammaranalysis"
-	"zeroparse.dev/zp/internal/types"
+	"zeroparse.dev/zp/internal/frontend/astfacts"
+	"zeroparse.dev/zp/internal/frontend/check"
+	"zeroparse.dev/zp/internal/frontend/types"
 
 	"zeroparse.dev/zp/grammar"
 )
@@ -479,7 +479,7 @@ func (k *classifier) foldRuns(list grammar.Term, tc termCtx) int {
 		return tc.runs
 	}
 	own := len(tc.elems) > 0
-	grammaranalysis.WalkTerm(list, func(x grammar.Term) {
+	astfacts.WalkTerm(list, func(x grammar.Term) {
 		switch x := x.(type) {
 		case *grammar.CaptureRef:
 			if !slices.Contains(tc.elems, x.Name) {
@@ -719,7 +719,7 @@ func (k *classifier) sizeOfAny(t grammar.Term, tc termCtx) content {
 	var c content
 	outer := false
 	{
-		grammaranalysis.WalkTerm(t, func(x grammar.Term) {
+		astfacts.WalkTerm(t, func(x grammar.Term) {
 			switch x := x.(type) {
 			case *grammar.CaptureRef:
 				if p, ok := tc.params[x.Name]; ok && (x.Param || tc.lambda) {
@@ -782,7 +782,7 @@ func (k *classifier) termExprs(t grammar.Term, tc termCtx) (exprs []grammar.Expr
 				}
 			}
 			found := false
-			grammaranalysis.WalkExpr(e, func(x grammar.Expr) {
+			astfacts.WalkExpr(e, func(x grammar.Expr) {
 				if cp, isCap := x.(*grammar.Capture); isCap && cp.Name == name {
 					exprs = append(exprs, cp.Expr)
 					found = true
@@ -827,9 +827,9 @@ func (k *classifier) inLook(t grammar.Term, tc termCtx) bool {
 					e = d.Expr
 				}
 			}
-			grammaranalysis.WalkExpr(e, func(x grammar.Expr) {
+			astfacts.WalkExpr(e, func(x grammar.Expr) {
 				if and, isAnd := x.(*grammar.And); isAnd {
-					grammaranalysis.WalkExpr(and.Expr, func(y grammar.Expr) {
+					astfacts.WalkExpr(and.Expr, func(y grammar.Expr) {
 						if cp, isCap := y.(*grammar.Capture); isCap && cp.Name == name {
 							found = true
 						}
@@ -939,7 +939,7 @@ func (k *classifier) deepSize(e grammar.Expr, tc termCtx, name string) content {
 	look := k.exprLooks(e, tc.rule)
 	c := content{unbounded: !k.bounded(e) || look, look: look}
 	found := false
-	grammaranalysis.WalkExpr(e, func(x grammar.Expr) {
+	astfacts.WalkExpr(e, func(x grammar.Expr) {
 		if r, ok := x.(*grammar.Ref); ok && k.byName[r.Name] != nil && k.onRecursion(tc.rule, r.Name) {
 			found = true
 		}
@@ -1101,7 +1101,7 @@ func times(n int) string {
 func (k *classifier) termVars(t grammar.Term, rule string) map[string]bool {
 	out := map[string]bool{}
 	ruleVars := func(e grammar.Expr) {
-		grammaranalysis.WalkExpr(e, func(x grammar.Expr) {
+		astfacts.WalkExpr(e, func(x grammar.Expr) {
 			if r, ok := x.(*grammar.Ref); ok {
 				for _, v := range k.vars[r.Name] {
 					out[v] = true
@@ -1109,7 +1109,7 @@ func (k *classifier) termVars(t grammar.Term, rule string) map[string]bool {
 			}
 		})
 	}
-	grammaranalysis.WalkTerm(t, func(x grammar.Term) {
+	astfacts.WalkTerm(t, func(x grammar.Term) {
 		switch x := x.(type) {
 		case *grammar.VarRef:
 			out[x.Name] = true
@@ -1127,7 +1127,7 @@ func (k *classifier) termVars(t grammar.Term, rule string) map[string]bool {
 // constant reports whether t reads nothing that the input can change.
 func constant(t grammar.Term) bool {
 	ok := true
-	grammaranalysis.WalkTerm(t, func(x grammar.Term) {
+	astfacts.WalkTerm(t, func(x grammar.Term) {
 		switch x.(type) {
 		case *grammar.VarRef, *grammar.CaptureRef, *grammar.Member:
 			ok = false
@@ -1227,7 +1227,7 @@ func (k *classifier) reachingCall(e grammar.Expr, rule string, strict bool) *gra
 			}
 		default:
 			if !strict {
-				grammaranalysis.WalkExpr(e, func(y grammar.Expr) {
+				astfacts.WalkExpr(e, func(y grammar.Expr) {
 					if r, ok := y.(*grammar.Ref); ok && found == nil && k.byName[r.Name] != nil && k.reachable(r.Name)[rule] {
 						found = r
 					}
@@ -1351,9 +1351,9 @@ func (k *classifier) canHoldNonEmpty(b *binding) bool {
 // bindsNonEmpty reports whether e has a binding of v to a value that can be non-empty.
 func (k *classifier) bindsNonEmpty(e grammar.Expr, v string) bool {
 	found := false
-	grammaranalysis.WalkExpr(e, func(x grammar.Expr) {
+	astfacts.WalkExpr(e, func(x grammar.Expr) {
 		if p, ok := x.(*grammar.Predicate); ok {
-			grammaranalysis.WalkTerm(p.Term, func(t grammar.Term) {
+			astfacts.WalkTerm(p.Term, func(t grammar.Term) {
 				if bd, ok := t.(*grammar.Bind); ok && bd.Name == v && k.canBeNonEmpty(bd.Value, v) {
 					found = true
 				}

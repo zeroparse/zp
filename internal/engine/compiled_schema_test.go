@@ -13,7 +13,7 @@ import (
 
 	"zeroparse.dev/zp/internal/bytecode"
 	"zeroparse.dev/zp/internal/compile"
-	ischema "zeroparse.dev/zp/internal/schema"
+	"zeroparse.dev/zp/internal/frontend/schemaexport"
 	"zeroparse.dev/zp/internal/testing/codegentest"
 )
 
@@ -35,7 +35,7 @@ func schemaJSON(t *testing.T, p *Program, start string, allRules bool) string {
 // grammar.
 func wantSchemaNeedsSource(t *testing.T, err error) {
 	t.Helper()
-	if !errors.Is(err, ischema.ErrUnavailable) || !strings.Contains(err.Error(), "export the schema from the grammar source") {
+	if !errors.Is(err, schemaexport.ErrUnavailable) || !strings.Contains(err.Error(), "export the schema from the grammar source") {
 		t.Fatalf("schema of a loaded program: %v", err)
 	}
 }

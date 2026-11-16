@@ -5,7 +5,7 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/grammar"
-	"zeroparse.dev/zp/internal/desugar"
+	"zeroparse.dev/zp/internal/frontend/desugar"
 )
 
 var normalizationBenchmarkGrammar *grammar.Grammar

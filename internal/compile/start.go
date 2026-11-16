@@ -5,7 +5,7 @@ import (
 	"slices"
 
 	"zeroparse.dev/zp/internal/bytecode"
-	"zeroparse.dev/zp/internal/desugar"
+	"zeroparse.dev/zp/internal/frontend/desugar"
 )
 
 // CheckStart reports why name cannot begin a parse of prog: it is empty and there is no default

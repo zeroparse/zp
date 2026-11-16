@@ -5,8 +5,8 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/internal/compile"
+	"zeroparse.dev/zp/internal/frontend/elaborate"
 	"zeroparse.dev/zp/internal/ir/core"
-	"zeroparse.dev/zp/internal/ir/core/build"
 	"zeroparse.dev/zp/internal/ir/core/facts"
 	"zeroparse.dev/zp/internal/testing/compiletest"
 	"zeroparse.dev/zp/internal/testing/factstest"
@@ -81,7 +81,7 @@ func moduleFacts(t *testing.T, path string) (*core.Module, *facts.Facts) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	m, err := build.CoreFrom(prog, nil)
+	m, err := elaborate.CoreFrom(prog, nil)
 	if err != nil {
 		t.Fatal(err)
 	}

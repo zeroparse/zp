@@ -12,9 +12,9 @@ import (
 	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/cancel"
 	"zeroparse.dev/zp/internal/compile"
-	"zeroparse.dev/zp/internal/desugar"
+	"zeroparse.dev/zp/internal/frontend/desugar"
+	"zeroparse.dev/zp/internal/frontend/elaborate"
 	"zeroparse.dev/zp/internal/ir/core"
-	"zeroparse.dev/zp/internal/ir/core/build"
 	"zeroparse.dev/zp/internal/ir/core/facts"
 )
 
@@ -51,7 +51,7 @@ func Run(g *grammar.Grammar, opts compile.Options, control *cancel.Control) (*Re
 // the program for its own use and must not compile the grammar twice.
 func FromProgram(prog *compile.Program, control *cancel.Control) (*Result, error) {
 	origin := map[core.Node]grammar.Expr{}
-	m, err := build.CoreFrom(prog, origin)
+	m, err := elaborate.CoreFrom(prog, origin)
 	if err != nil {
 		return nil, err
 	}

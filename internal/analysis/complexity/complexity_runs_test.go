@@ -6,8 +6,8 @@ import (
 
 	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/compile"
-	"zeroparse.dev/zp/internal/desugar"
-	"zeroparse.dev/zp/internal/grammaranalysis"
+	"zeroparse.dev/zp/internal/frontend/astfacts"
+	"zeroparse.dev/zp/internal/frontend/desugar"
 	"zeroparse.dev/zp/internal/syntax"
 )
 
@@ -68,7 +68,7 @@ func TestRunSitesMatchClassifier(t *testing.T) {
 		}
 		classifier := 0
 		for _, r := range rules {
-			grammaranalysis.WalkExpr(r.Expr, func(x grammar.Expr) {
+			astfacts.WalkExpr(r.Expr, func(x grammar.Expr) {
 				if rep, ok := x.(*grammar.Repeat); ok && !compile.IsScan(rep) && k.runSite(rep) {
 					classifier++
 				}

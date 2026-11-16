@@ -2,8 +2,8 @@ package engine
 
 import (
 	"zeroparse.dev/zp/internal/compile"
-	"zeroparse.dev/zp/internal/desugar"
 	"zeroparse.dev/zp/internal/engine/state"
+	"zeroparse.dev/zp/internal/frontend/desugar"
 )
 
 // Static returns the static program that p runs: the checked grammar, its rules and their facts,

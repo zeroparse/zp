@@ -5,7 +5,7 @@ import (
 
 	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/compile"
-	"zeroparse.dev/zp/internal/grammaranalysis"
+	"zeroparse.dev/zp/internal/frontend/astfacts"
 	"zeroparse.dev/zp/internal/testing/compiletest"
 )
 
@@ -63,7 +63,7 @@ func TestReusedSkipSites(t *testing.T) {
 			var marked []*grammar.Repeat
 			var skipExpr grammar.Expr
 			for _, r := range prog.RuleList {
-				grammaranalysis.WalkExpr(r.Def.Expr, func(x grammar.Expr) {
+				astfacts.WalkExpr(r.Def.Expr, func(x grammar.Expr) {
 					if s := skipOf(x); s != nil {
 						skipExpr = s
 					}

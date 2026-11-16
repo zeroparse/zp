@@ -5,8 +5,8 @@ import (
 	"slices"
 
 	"zeroparse.dev/zp/grammar"
-	"zeroparse.dev/zp/internal/desugar"
 	"zeroparse.dev/zp/internal/frontend"
+	"zeroparse.dev/zp/internal/frontend/desugar"
 )
 
 // A Rewrite is a change to the source of a grammar that fixes a finding without changing what the

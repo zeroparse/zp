@@ -11,7 +11,7 @@ import (
 	"unicode/utf8"
 
 	"zeroparse.dev/zp/grammar"
-	"zeroparse.dev/zp/internal/check"
+	"zeroparse.dev/zp/internal/frontend/check"
 	"zeroparse.dev/zp/internal/syntax"
 	"zeroparse.dev/zp/internal/testing/starttest"
 )

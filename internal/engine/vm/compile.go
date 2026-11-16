@@ -9,8 +9,8 @@ import (
 	"zeroparse.dev/zp/internal/bytecode"
 	"zeroparse.dev/zp/internal/compile"
 	"zeroparse.dev/zp/internal/engine/state"
+	"zeroparse.dev/zp/internal/frontend/elaborate"
 	ir "zeroparse.dev/zp/internal/ir/core"
-	"zeroparse.dev/zp/internal/ir/core/build"
 )
 
 // Compile compiles the program prog to a bytecode module: it builds the program's Core IR, runs
@@ -22,7 +22,7 @@ func Compile(prog *compile.Program) (*bytecode.Module, error) {
 	if prog.HasMissing {
 		return nil, compile.MissingUnsupported("bytecode module construction")
 	}
-	m, err := build.CoreControlled(prog, nil)
+	m, err := elaborate.CoreControlled(prog, nil)
 	if err != nil {
 		return nil, fmt.Errorf("internal error: Core IR: %w", err)
 	}

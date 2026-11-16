@@ -7,7 +7,7 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/grammar"
-	"zeroparse.dev/zp/internal/grammaranalysis"
+	"zeroparse.dev/zp/internal/frontend/astfacts"
 	"zeroparse.dev/zp/internal/syntax"
 	"zeroparse.dev/zp/internal/testing/factstest"
 )
@@ -44,13 +44,13 @@ func builtTexts(t *testing.T, src string, opts Options) map[string]string {
 	orig := map[grammar.Expr]bool{}
 	got := map[string]string{}
 	for _, r := range source {
-		grammaranalysis.WalkExpr(r.Expr, func(x grammar.Expr) { orig[x] = true })
+		astfacts.WalkExpr(r.Expr, func(x grammar.Expr) { orig[x] = true })
 	}
 	for _, r := range rules {
 		if r.Name != "main" {
 			continue
 		}
-		grammaranalysis.WalkExpr(r.Expr, func(x grammar.Expr) {
+		astfacts.WalkExpr(r.Expr, func(x grammar.Expr) {
 			if !orig[x] {
 				got[grammar.FormatExpr(x)] = text[x]
 			}
@@ -174,9 +174,9 @@ func TestNormalViewText(t *testing.T) {
 		t.Run(c.body, func(t *testing.T) {
 			_, source, rules, text := testView(t, "rule main = "+c.body+"\n", Options{})
 			orig := map[grammar.Expr]bool{}
-			grammaranalysis.WalkExpr(source[0].Expr, func(x grammar.Expr) { orig[x] = true })
+			astfacts.WalkExpr(source[0].Expr, func(x grammar.Expr) { orig[x] = true })
 			got := map[string]string{}
-			grammaranalysis.WalkExpr(rules[0].Expr, func(x grammar.Expr) {
+			astfacts.WalkExpr(rules[0].Expr, func(x grammar.Expr) {
 				if orig[x] {
 					return
 				}
@@ -205,7 +205,7 @@ func TestNormalViewCutKeepsTuple(t *testing.T) {
 			_, _, rules, _ := testView(t, c.src, Options{})
 			got := 0
 			for _, r := range rules {
-				grammaranalysis.WalkExpr(r.Expr, func(x grammar.Expr) {
+				astfacts.WalkExpr(r.Expr, func(x grammar.Expr) {
 					if s, ok := x.(*grammar.Seq); ok && len(s.Items) == 1 {
 						got++
 					}

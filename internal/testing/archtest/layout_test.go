@@ -54,16 +54,16 @@ var layout = []place{
 	{pkg: "internal/syntax", target: "internal/frontend/parser"},
 	{pkg: "internal/syntax/sourceast", target: "internal/frontend/parser"},
 	{pkg: "internal/syntax/grammarparser/...", target: "internal/frontend/parser/zpparser", generated: true},
-	{pkg: "internal/desugar", target: "internal/frontend/desugar"},
+	{pkg: "internal/frontend/desugar", target: "internal/frontend/desugar"},
 	// compile splits into the semantic model (internal/frontend/check and types), Core
 	// construction (internal/frontend/elaborate), rule facts and site numbers
 	// (internal/middleend/corepass) and the run-time program (internal/runtime/program).
 	{pkg: "internal/compile", target: "internal/frontend/check"},
-	{pkg: "internal/check", target: "internal/frontend/check"},
-	{pkg: "internal/types", target: "internal/frontend/types"},
-	{pkg: "internal/grammaranalysis", target: "internal/frontend/astfacts"},
-	{pkg: "internal/ir/core/build", target: "internal/frontend/elaborate"},
-	{pkg: "internal/schema", target: "internal/frontend/schemaexport"},
+	{pkg: "internal/frontend/check", target: "internal/frontend/check"},
+	{pkg: "internal/frontend/types", target: "internal/frontend/types"},
+	{pkg: "internal/frontend/astfacts", target: "internal/frontend/astfacts"},
+	{pkg: "internal/frontend/elaborate", target: "internal/frontend/elaborate"},
+	{pkg: "internal/frontend/schemaexport", target: "internal/frontend/schemaexport"},
 
 	// Intermediate representations and the pass framework.
 	{pkg: "internal/ir/pipeline", target: "internal/pass"},

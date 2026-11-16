@@ -18,7 +18,7 @@ import (
 	"zeroparse.dev/zp/internal/codegen/go"
 	"zeroparse.dev/zp/internal/codegen/ts"
 	"zeroparse.dev/zp/internal/compile"
-	"zeroparse.dev/zp/internal/desugar"
+	"zeroparse.dev/zp/internal/frontend/desugar"
 )
 
 // Generator generates the source code of parsers in one language.

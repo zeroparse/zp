@@ -8,7 +8,7 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/internal/compile"
-	ischema "zeroparse.dev/zp/internal/schema"
+	"zeroparse.dev/zp/internal/frontend/schemaexport"
 	"zeroparse.dev/zp/schema"
 )
 
@@ -114,7 +114,7 @@ rule unused = "z"`)
 		}
 	}
 	// A program without the grammar has no metadata to export from.
-	if _, err := outputSchemaPrototype(newProgram(&compile.Program{}, nil, nil), "main", false); !errors.Is(err, ischema.ErrUnavailable) {
+	if _, err := outputSchemaPrototype(newProgram(&compile.Program{}, nil, nil), "main", false); !errors.Is(err, schemaexport.ErrUnavailable) {
 		t.Fatal(err)
 	}
 }

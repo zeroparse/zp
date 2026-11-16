@@ -9,8 +9,8 @@ import (
 	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/analysis/complexity"
 	"zeroparse.dev/zp/internal/cancel"
-	"zeroparse.dev/zp/internal/desugar"
 	"zeroparse.dev/zp/internal/diagnostic"
+	"zeroparse.dev/zp/internal/frontend/desugar"
 )
 
 // linearRewrites is the recipe that shows how to rewrite the constructs whose cost the classifier

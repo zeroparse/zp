@@ -5,8 +5,8 @@ import (
 
 	"zeroparse.dev/zp/internal/compile"
 	"zeroparse.dev/zp/internal/frontend"
+	"zeroparse.dev/zp/internal/frontend/elaborate"
 	"zeroparse.dev/zp/internal/ir/core"
-	"zeroparse.dev/zp/internal/ir/core/build"
 	"zeroparse.dev/zp/internal/ir/core/facts"
 	"zeroparse.dev/zp/internal/syntax"
 	"zeroparse.dev/zp/internal/testing/compiletest"
@@ -41,7 +41,7 @@ func TestRunMatchesCompile(t *testing.T) {
 				if err != nil {
 					continue // the grammar does not compile with this variant
 				}
-				want, err := build.CoreFrom(prog, nil)
+				want, err := elaborate.CoreFrom(prog, nil)
 				if err != nil {
 					t.Fatal(err)
 				}

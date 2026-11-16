@@ -12,7 +12,7 @@ import (
 
 	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/analysis/complexity"
-	"zeroparse.dev/zp/internal/grammaranalysis"
+	"zeroparse.dev/zp/internal/frontend/astfacts"
 )
 
 var update = flag.Bool("update", false, "rewrite testdata/cost-view.golden")
@@ -82,7 +82,7 @@ func viewSnapshot(source, rules []*grammar.RuleDef, text map[grammar.Expr]string
 	b.WriteString("\n")
 	src := map[grammar.Expr]bool{}
 	for _, r := range source {
-		grammaranalysis.WalkExpr(r.Expr, func(x grammar.Expr) { src[x] = true })
+		astfacts.WalkExpr(r.Expr, func(x grammar.Expr) { src[x] = true })
 	}
 	for i, r := range rules {
 		if r.Expr == source[i].Expr {
@@ -90,7 +90,7 @@ func viewSnapshot(source, rules []*grammar.RuleDef, text map[grammar.Expr]string
 		}
 		fmt.Fprintf(&b, "rule %s = %s\n", r.Name, grammar.FormatExpr(r.Expr))
 		var built []string
-		grammaranalysis.WalkExpr(r.Expr, func(x grammar.Expr) {
+		astfacts.WalkExpr(r.Expr, func(x grammar.Expr) {
 			if src[x] {
 				return
 			}

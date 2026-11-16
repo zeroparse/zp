@@ -3,7 +3,7 @@ package complexity
 import (
 	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/compile"
-	"zeroparse.dev/zp/internal/grammaranalysis"
+	"zeroparse.dev/zp/internal/frontend/astfacts"
 )
 
 // Run sites in the classifier (see Run Sites in spec/runtime/parsing.md).
@@ -18,7 +18,7 @@ var runSitesOn = false
 // runSite reports whether the repetition e is a run site: the records of its walks can be keyed by
 // position, and its element costs a constant outside the calls it makes.
 func (k *classifier) runSite(e *grammar.Repeat) bool {
-	if !runSitesOn || e.Max >= 0 || grammaranalysis.HasLooseCut(e.Expr) {
+	if !runSitesOn || e.Max >= 0 || astfacts.HasLooseCut(e.Expr) {
 		return false
 	}
 	if v, ok := k.runMemo[e]; ok {
@@ -31,7 +31,7 @@ func (k *classifier) runSite(e *grammar.Repeat) bool {
 			k.baseRuns = newClassifierOf(k.g, k.base, k.base, k.facts, k.start, k.control)
 			k.baseRepeats = map[*grammar.Repeat]bool{}
 			for _, r := range k.base {
-				grammaranalysis.WalkExpr(r.Expr, func(x grammar.Expr) {
+				astfacts.WalkExpr(r.Expr, func(x grammar.Expr) {
 					if rep, ok := x.(*grammar.Repeat); ok {
 						k.baseRepeats[rep] = true
 					}
@@ -58,7 +58,7 @@ func (k *classifier) runSite(e *grammar.Repeat) bool {
 		return false
 	}
 	ok := true
-	grammaranalysis.WalkExpr(e.Expr, func(x grammar.Expr) {
+	astfacts.WalkExpr(e.Expr, func(x grammar.Expr) {
 		if !ok {
 			return
 		}
@@ -92,7 +92,7 @@ func (k *classifier) badRules() {
 		if k.an.Cyclic[r.Name] {
 			k.runBad[r.Name] = true
 		}
-		grammaranalysis.WalkExpr(r.Expr, func(x grammar.Expr) {
+		astfacts.WalkExpr(r.Expr, func(x grammar.Expr) {
 			switch x := x.(type) {
 			case *grammar.Stream:
 				k.runBad[r.Name] = true

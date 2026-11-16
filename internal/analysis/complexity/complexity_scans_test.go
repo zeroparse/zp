@@ -6,7 +6,7 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/internal/cancel"
-	"zeroparse.dev/zp/internal/grammaranalysis"
+	"zeroparse.dev/zp/internal/frontend/astfacts"
 
 	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/syntax"
@@ -65,7 +65,7 @@ func boundedScans(t *testing.T, src string) map[string]bool {
 	var scans []*grammar.Repeat
 	for _, r := range k.rules {
 		if r.Name != "main" {
-			grammaranalysis.WalkExpr(r.Expr, func(e grammar.Expr) {
+			astfacts.WalkExpr(r.Expr, func(e grammar.Expr) {
 				if x, ok := e.(*grammar.Repeat); ok && k.srcExprs[x] && k.again[x] != nil {
 					scans = append(scans, x)
 				}

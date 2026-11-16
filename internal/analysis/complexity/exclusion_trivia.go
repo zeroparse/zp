@@ -4,7 +4,7 @@ import (
 	"maps"
 	"slices"
 	"strings"
-	"zeroparse.dev/zp/internal/grammaranalysis"
+	"zeroparse.dev/zp/internal/frontend/astfacts"
 
 	"zeroparse.dev/zp/grammar"
 )
@@ -92,13 +92,13 @@ func (k *classifier) triviaWhy(name string) string {
 	for _, v := range k.vars[name] {
 		reads[v] = true
 	}
-	grammaranalysis.WalkExpr(def.Expr, func(e grammar.Expr) {
+	astfacts.WalkExpr(def.Expr, func(e grammar.Expr) {
 		switch e := e.(type) {
 		case *grammar.Cut:
 			// A cut of the body itself can commit the repetition, which then fails.
 			note("#cut", name)
 		case *grammar.Predicate:
-			grammaranalysis.WalkTerm(e.Term, func(t grammar.Term) {
+			astfacts.WalkTerm(e.Term, func(t grammar.Term) {
 				if b, ok := t.(*grammar.Bind); ok && reads[b.Name] {
 					note("binds a variable that it reads", name)
 				}
@@ -113,7 +113,7 @@ func (k *classifier) triviaWhy(name string) string {
 		if k.an.Cyclic[n] {
 			note("left recursion", n)
 		}
-		grammaranalysis.WalkExpr(d.Expr, func(e grammar.Expr) {
+		astfacts.WalkExpr(d.Expr, func(e grammar.Expr) {
 			switch e := e.(type) {
 			case *grammar.InlineAction:
 				note("action", n)

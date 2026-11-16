@@ -3,13 +3,13 @@ package compile
 import (
 	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/cancel"
-	"zeroparse.dev/zp/internal/check"
 	"zeroparse.dev/zp/internal/diagnostic"
+	"zeroparse.dev/zp/internal/frontend/check"
 )
 
-// The checker lives in internal/check. These aliases and forwarders keep the packages that name it
+// The checker lives in internal/frontend/check. These aliases and forwarders keep the packages that name it
 // through compile building; they go with the rename freeze, when those packages import
-// internal/check directly.
+// internal/frontend/check directly.
 
 type (
 	TypeInfo       = check.TypeInfo

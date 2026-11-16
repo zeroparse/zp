@@ -5,7 +5,7 @@ import (
 	"unicode/utf8"
 
 	"zeroparse.dev/zp/grammar"
-	"zeroparse.dev/zp/internal/grammaranalysis"
+	"zeroparse.dev/zp/internal/frontend/astfacts"
 )
 
 // analysis holds what the checks need to know about a grammar. Every property is either an
@@ -672,7 +672,7 @@ func (a *analysis) fails(e grammar.Expr, t string) bool {
 // expression around e: one that is not inside a choice, repetition, optional expression or
 // lookahead of its own (which stop it), or in another rule (cuts do not cross rules).
 func hasLooseCut(e grammar.Expr) bool {
-	return grammaranalysis.HasLooseCut(e)
+	return astfacts.HasLooseCut(e)
 }
 
 // hasPrefixFold reports whether s begins with p when the ASCII letters of both are compared in
@@ -1188,16 +1188,16 @@ func analysisExpr(e grammar.Expr, control *lintControl) grammar.Expr {
 // alwaysSucceeds preserves the ordinary proof and shares the invocation control.
 func (a *analysis) alwaysSucceeds(e grammar.Expr) bool {
 	if a.control == nil {
-		return grammaranalysis.AlwaysSucceeds(e, a.engineSucceeding)
+		return astfacts.AlwaysSucceeds(e, a.engineSucceeding)
 	}
-	return grammaranalysis.AlwaysSucceedsWithPoll(e, a.engineSucceeding, a.control.poll)
+	return astfacts.AlwaysSucceedsWithPoll(e, a.engineSucceeding, a.control.poll)
 }
 
 func (a *analysis) hasLooseCut(e grammar.Expr) bool {
 	if a.control == nil {
 		return hasLooseCut(e)
 	}
-	return grammaranalysis.HasLooseCutWithPoll(e, a.control.poll)
+	return astfacts.HasLooseCutWithPoll(e, a.control.poll)
 }
 
 func walkExpr(e grammar.Expr, f func(grammar.Expr)) {
