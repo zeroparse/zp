@@ -935,9 +935,13 @@ func (mc *Machine) step(vm *Program, b *vmBody, resume, rok bool, rv *core.Node)
 				if rep.scan && rep.hit {
 					kids = mc.scans[len(mc.scans)-1].kids // (shared with the record; no element came after it)
 				} else {
-					kids = p.Nodes(len(mc.vals) - rep.base)
+					// Taking the n gathered elements off is one reservation of 2n units, as Parser.Kids makes.
+					n := len(mc.vals) - rep.base
+					kids = p.Nodes(n)
+					if n > 0 {
+						p.SpendValue(2 * n)
+					}
 					for k := range kids {
-						p.Spend()
 						kids[k] = asNodeValue(mc.vals[rep.base+k])
 					}
 				}

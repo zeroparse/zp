@@ -474,18 +474,24 @@ func (p *Parser) skipClose() {
 
 // SkipEnd ends the walk and records the rest of it from each position it visited recording.
 func (p *Parser) SkipEnd() {
-	p.skipEnd()
+	p.skipEnd(false)
 	p.walk().vals = p.walk().vals[:0]
 	p.skipN--
 }
 
 // SkipEndList ends a walk begun with SkipBeginList as SkipEnd does, and returns the list node of
 // the values of its iterations for the range from start to the current position, or nil if build
-// is false. The list may share its elements with the lists of other walks. Clearing the gathered
-// values is charged if chargeClear is set, as the closure backend charges clearing its element stack;
-// the bytecode machine pops its elements uncharged.
+// is false. The list may share its elements with the lists of other walks. Taking the n values that
+// the walk gathered off into the list is one reservation of 2n units, made before any of them moves,
+// as Parser.Kids makes for a repetition that keeps no records; the elements that a reused record
+// adds after them are charged as copies where they are copied. Without a list, dropping the gathered
+// values is charged if chargeClear is set, as the closure backend charges dropping its element
+// stack; the bytecode machine pops its elements uncharged.
 func (p *Parser) SkipEndList(start int, build, chargeClear bool) *core.Node {
-	p.skipEnd()
+	if n := len(p.walk().vals); build && n > 0 {
+		p.SpendValue(2 * n)
+	}
+	p.skipEnd(build)
 	w := p.walk()
 	var kids []*core.Node
 	if build {
@@ -493,10 +499,10 @@ func (p *Parser) SkipEndList(start int, build, chargeClear bool) *core.Node {
 			kids = w.buf.a[w.lo:len(w.buf.a):len(w.buf.a)]
 		} else {
 			kids = p.Nodes(len(w.vals))
-			CopySpend(p, kids, w.vals)
+			copy(kids, w.vals)
 		}
 	}
-	if chargeClear {
+	if chargeClear && !build {
 		ClearSpend(p, w.vals)
 	} else {
 		clear(w.vals)
@@ -509,7 +515,9 @@ func (p *Parser) SkipEndList(start int, build, chargeClear bool) *core.Node {
 	return p.NewNode(value.Data{Kind: coreimpl.ListKind, Start: int32(start), End: int32(p.Pos), Children: kids, Fresh: true})
 }
 
-func (p *Parser) skipEnd() {
+// skipEnd ends the walk and records the rest of it from each position it visited recording. paid
+// says that the move of the gathered values into the list has been charged (SkipEndList).
+func (p *Parser) skipEnd(paid bool) {
 	w := p.walk()
 	if !w.on {
 		return
@@ -528,7 +536,7 @@ func (p *Parser) skipEnd() {
 		endEnv, tail = w.hit.env, w.hit.vals
 	}
 	if w.build && (len(vs) > 0 || w.hitOK) {
-		w.buf, w.lo = p.placeVals(w.vals, tail)
+		w.buf, w.lo = p.placeVals(w.vals, tail, paid)
 		w.placed = true
 	}
 	switch {
@@ -584,9 +592,16 @@ func (p *Parser) skipLink(w *skipWalk, r *skipRecord, v skipVisit, rest *RecEntr
 // placeVals returns a buffer and an index in it from which vals, then the elements of tail, are
 // laid out. It writes vals in place before the tail where the buffer has room there that no record
 // refers to, and otherwise copies the tail with room to spare, so that a walk that goes on to
-// reach a record again finds it.
-func (p *Parser) placeVals(vals []*core.Node, tail valSuffix) (*valBuf, int) {
+// reach a record again finds it. The copy of vals is charged unless paid says that it has been.
+func (p *Parser) placeVals(vals []*core.Node, tail valSuffix, paid bool) (*valBuf, int) {
 	n := len(vals)
+	place := func(dst []*core.Node) {
+		if paid {
+			copy(dst, vals)
+		} else {
+			CopySpend(p, dst, vals)
+		}
+	}
 	if n == 0 && tail.buf != nil {
 		return tail.buf, tail.i
 	}
@@ -595,7 +610,7 @@ func (p *Parser) placeVals(vals []*core.Node, tail valSuffix) (*valBuf, int) {
 		tl = len(tail.buf.a) - tail.i
 		if tail.i == tail.buf.lo && tail.i >= n {
 			b := tail.buf
-			CopySpend(p, b.a[tail.i-n:tail.i], vals)
+			place(b.a[tail.i-n : tail.i])
 			b.lo = tail.i - n
 			return b, b.lo
 		}
@@ -606,7 +621,7 @@ func (p *Parser) placeVals(vals []*core.Node, tail valSuffix) (*valBuf, int) {
 	}
 	a := make([]*core.Node, slack+n+tl)
 	p.skipBytes += uint64(len(a)) * ptrBytes
-	CopySpend(p, a[slack:], vals)
+	place(a[slack:])
 	if tl > 0 {
 		CopySpend(p, a[slack+n:], tail.buf.a[tail.i:])
 	}

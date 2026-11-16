@@ -91,6 +91,16 @@ rule main = #operators {
 		window:  [2]uint64{1, 153}, tsWindow: [2]uint64{1, 153},
 		lists: []uint64{300},
 	},
+	{
+		// The list of a repetition of five elements, which grammar code gathers and takes off with
+		// 10 units.
+		name:    "repetition",
+		grammar: "@start\nrule main = [a-z]*",
+		input:   "abcde",
+		max:     60,
+		window:  [2]uint64{1, 23}, tsWindow: [2]uint64{10, 23},
+		lists: []uint64{10},
+	},
 }
 
 func limitReport(err error, used, requested uint64, isLimit bool) string {
