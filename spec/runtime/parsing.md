@@ -1215,11 +1215,11 @@ The conditions below use these terms.
   that can examine the input before its left call on some paths and not on
   others, such as `({ok} "z")? E "!"`, is checked as both, as a growing unit
   and as an alternative that is not growing. A unit that follows something
-  that can match without consuming input can be reached in both ways, such as
+  that can match nothing can be reached in both ways, such as
   the alternative `E` in `E = "y"? (E / "z") "q" / "x"`: without the `"y"` it
   is a growing unit, and after the `"y"` its call is at a new position, where
-  it reads no seed. The same holds when the part that can match without
-  consuming input is before a call of the unit's rule, in the body of the rule
+  it reads no seed. The same holds when the part that can match nothing
+  is before a call of the unit's rule, in the body of the rule
   that calls it, as for `f` in `r = "y"? f "q" / "x"; f = r / "z"`, or before a
   call of a rule that reaches it through left calls. Such a unit is checked as
   both, as a growing unit and as an alternative that is not growing. In each step of a growth after
@@ -1242,7 +1242,7 @@ The conditions below use these terms.
   failed seed, so for a unit of a leader this check follows only the paths
   that examine the input before a left call of that leader, from there. A unit of another rule of the cycle is checked as an alternative that
   is not growing also when a call that is not a left call, or one after
-  something that can match without consuming input, evaluates its rule,
+  something that can match nothing, evaluates its rule,
   directly or through left calls of rules of the cycle other than leaders:
   that call evaluates the unit once more, outside the steps, where the leader
   that its left call reaches grows and gives its final result.
@@ -1318,15 +1318,21 @@ The conditions below use these terms.
   the seed.
 - An expression **can match nothing** when its form allows it, whether or not
   an evaluation of it ever succeeds without consuming input. This holds of
-  `""`, a lookahead, a predicate, an option, a cut, an anchor, a literal
-  marked `#missing`, a repetition with a minimum of 0 or of an expression that
-  can match nothing, a sequence whose parts all can, a choice with an
-  alternative that can, an Operators Rule with an `operand` item that can, a
-  call of a rule whose body can, and a group, a capture, a `#recover` or any
-  other wrapper whose expression can. A character class, `.`, a literal that
-  is not empty and not marked `#missing`, and a `_|_` of the normal view
-  cannot. So `{ false }`, `!""` and `("a" / "") &"a"` can match nothing,
-  although no evaluation of any of them succeeds without consuming input.
+  `""`, `_`, a lookahead, a predicate, an option, a cut, an anchor, a literal
+  marked `#missing`, a repetition with a minimum of 0, or of 1 and an
+  expression that can match nothing, a sequence whose parts all can, a choice
+  with an alternative that can, an Operators Rule with an `operand` item that
+  can, a call of a rule whose body can, and a group, a capture, a `#recover`
+  or any other wrapper whose expression can. A character class, `.`, a literal
+  that is not empty and not marked `#missing`, a repetition with a minimum of
+  2 or more, and a `_|_` of the normal view cannot: the first iteration that
+  consumes no input ends a repetition and counts once
+  ([Repetition](../language/parser-expressions.md#repetition)), so
+  `("q" / "") #repeat(2,)` needs input. The rules whose calls can match
+  nothing are the least set closed under these clauses, so a call of
+  `Q = Q "q" / "q"` cannot. So `{ false }`, `!""` and `("a" / "") &"a"` can
+  match nothing, although no evaluation of any of them succeeds without
+  consuming input.
 - A unit and a continuation **share** a call when, at the position where the
   unit starts examining the input, both evaluate the same call before
   anything else that examines the input, directly or as the first thing that
@@ -1370,7 +1376,7 @@ The conditions below use these terms.
   evaluates first. This holds for a body that is the Operators Rule alone or
   under attributes other than `#recover` and `#missing`, which change what
   the parser does when the body fails. Because the parser continues when the
-  `skip` does not match, a `skip` that cannot match without consuming input is
+  `skip` does not match, a `skip` that cannot match nothing is
   optional wherever it is tried, before an operand or an operator part, and
   the first characters there include those of what follows it. A call
   of any other rule is not shared, because evaluating its body again also
@@ -1390,9 +1396,8 @@ The conditions below use these terms.
   the call of the one around it, with all of those calls ending where the
   innermost one ends. A call `t` of a rule `Y` from a rule `Z` of its
   recursion does so when `Y` is in the smallest set of rules of the
-  recursion that contains `Z` when what follows `t` can match without
-  consuming input, each rule that calls a rule of the set at a call that
-  what can match without consuming input follows, and each rule with a unit
+  recursion that contains `Z` when what follows `t` can match nothing, each rule that calls
+  a rule of the set at a call that what can match nothing follows, and each rule with a unit
   that condition 2 below checks and a continuation that share calls, as below or as the comparison of a
   decided unit passes them alike, one of which, in the unit, is `t` itself
   or a call in the body that `t` evaluates, which the unit reaches by
@@ -1463,8 +1468,8 @@ The conditions below use these terms.
   evaluated at the same position on that input, fails, examines nothing more,
   or evaluates a negative lookahead `!K` where `K` is known to match, before
   it reaches the end of `w`. Along a path, an expression that cannot examine
-  the next character of `w` and can match without consuming input is passed
-  over, and one that cannot match without consuming input fails there; a
+  the next character of `w` and can match nothing is passed
+  over, and one that cannot match nothing fails there; a
   literal, a character class or `.` consumes the characters of `w` that it
   matches, and a literal fails where it differs from `w`; `!K` where `K` is
   known to fail is passed over. `K` is evaluated only when it is a choice of
@@ -1581,7 +1586,7 @@ The conditions below use these terms.
     reaches no scanning source.
 
   A **trivia rule** is a rule whose body is a greedy repetition `X*`, atomic or
-  not, where `X` cannot match without consuming input, and that neither it nor
+  not, where `X` cannot match nothing, and that neither it nor
   a rule that it calls runs an action or contains `#recover`, an attributed
   expression, a stream, an Operators Rule or a call of a left-recursion cycle,
   whose body binds no variable that it reads and has no `#cut` of its own. A
@@ -1977,14 +1982,16 @@ these, each only under the conditions given here and below.
 | N5 | `&&X` and `!&X` by `&X` and `!X`, `&!X` by `!X`, `!!X` by `&X` | `!!X` only when `X` makes no binding outside the rules it calls |
 | N6 | a cut that ends an alternative of a choice, every loose cut of the last alternative of a choice outside the skips of recoveries, and a recovery of an expression that always succeeds, by nothing | a sequence left with one item or none becomes the item, or `_` for none, only when the alternative is free; otherwise it stays a sequence of the item, or of `_`. A recovery is dropped only when its expression is free |
 | N8 | a run of two or more alternatives that each match one character (a class without negation, or a case-sensitive literal of one code point, neither of which matches U+FFFD) by one class of their characters | none |
-| N9 | `X* X*` and `X+ X*` by the first repetition, `X X*` by `X+`, and `X? X*`, for an `X` that cannot match without consuming input, by `X*` | `X` repeats safely; both items are free |
-| N10 | `(X*)*`, `(X+)*` and `(X*)+` by `X*`, and `(X?)*`, for an `X` that cannot match without consuming input, by `X*` | `X` repeats safely; the outer repetition is free |
-| N11 | `X* (Y X*)*` by `(X / Y)*`, and `X* (X / Y ...)*` by `(X / Y ...)*` | `X` cannot match without consuming input, has no loose cut and repeats safely; `Y` has no loose cut and makes no binding outside the rules it calls; both items are free |
+| N9 | `X* X*` and `X+ X*` by the first repetition, `X X*` by `X+`, and `X? X*`, for an `X` that cannot match nothing, by `X*` | `X` repeats safely; both items are free |
+| N10 | `(X*)*`, `(X+)*` and `(X*)+` by `X*`, and `(X?)*`, for an `X` that cannot match nothing, by `X*` | `X` repeats safely; the outer repetition is free |
+| N11 | `X* (Y X*)*` by `(X / Y)*`, and `X* (X / Y ...)*` by `(X / Y ...)*` | `X` cannot match nothing, has no loose cut and repeats safely; `Y` has no loose cut and makes no binding outside the rules it calls; both items are free |
 | N12 | `!X X` by `_|_`; a run of two or more adjacent alternatives of at least two items each that begin with the same item by their longest shared prefix followed by the choice of what follows it in each | `!X X` only when `X` is a bounded terminal and the sequence is free of value conditions; a run only when the prefix as a whole is evaluated again cheaply, no alternative of the run has a loose cut, and the choice is free of value conditions and no alternative of the run is observed |
 | (choice of one) | a choice left with one alternative by that alternative | the choice is free and the alternative is not observed, or the alternative has the same value alone; never when the alternative has a loose cut, in which case the choice stays as written, with none of the rewrites of its parts |
 
 In these conditions:
 
+- In N9, N10 and N11, whether `X` can match nothing is decided without token
+  insertion: a literal marked `#missing` counts there as one that cannot.
 - A **loose cut** of an expression is a cut in it that would commit a
   choice, option or repetition around the expression ([Cut](../language/parser-expressions.md#cut)).
 - An expression **always succeeds** when the classifier shows that it matches
