@@ -122,9 +122,11 @@ func classChars(c *grammar.CharClass) charset {
 }
 
 // nullable reports whether e can succeed without consuming input when token insertion is enabled,
-// as the nullable rules (nullRule) are: a literal with #missing can be inserted, a repetition of a
-// nullable element is nullable whatever its minimum, and a #recover is nullable as its body (the
-// skip runs only when the body fails, and an empty skip does not recover).
+// as the nullable rules (nullRule) are: a literal with #missing can be inserted, a repetition is
+// nullable when its minimum is 0, or 1 with a nullable element (the first iteration that consumes
+// nothing ends the repetition and counts once, so a larger minimum needs input), and a #recover is
+// nullable as its body (the skip runs only when the body fails, and an empty skip does not
+// recover).
 func (k *classifier) nullable(e grammar.Expr) bool {
 	k.control.Poll()
 	switch e := e.(type) {
@@ -154,7 +156,7 @@ func (k *classifier) nullable(e grammar.Expr) bool {
 		}
 		return false
 	case *grammar.Repeat:
-		return e.Min == 0 || e.Max == 0 || k.nullable(e.Expr)
+		return e.Min == 0 || e.Min == 1 && k.nullable(e.Expr)
 	case *grammar.Group:
 		return k.nullable(e.Expr)
 	case *grammar.Capture:

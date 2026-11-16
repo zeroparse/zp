@@ -1054,3 +1054,37 @@ func TestExclusionBudget(t *testing.T) {
 		t.Logf("n %d: %v", c.n, time.Since(start))
 	}
 }
+
+// TestLookaheadRepetitionMinimum checks that a repetition of an expression that can match nothing
+// can itself match nothing only with a minimum of 0 or 1, the same inline as through a rule call:
+// the first iteration that consumes nothing ends the repetition and counts once, so a larger
+// minimum needs input. A positive lookahead of a repetition that cannot match nothing and whose
+// first character is not "m" decides the later alternative; one that can decides nothing, and the
+// shared repetition R then makes the unit not committing.
+func TestLookaheadRepetitionMinimum(t *testing.T) {
+	for _, c := range []struct {
+		rep  string
+		want ComplexityClass
+	}{
+		{`#repeat(2,)`, ClassLinear},
+		{`#repeat(2)`, ClassLinear},
+		{`#repeat(3)`, ClassLinear},
+		{`#repeat(1,)`, ClassUnknown},
+		{`#repeat(1)`, ClassUnknown},
+		{`#repeat(0,)`, ClassUnknown},
+	} {
+		body := `("q" / "") ` + c.rep
+		for _, form := range []struct{ name, k, extra string }{
+			{"inline", body, ""},
+			{"call", "Q", "rule Q = " + body + "\n"},
+		} {
+			t.Run(c.rep+"/"+form.name, func(t *testing.T) {
+				src := "@start\nrule main = \"k\" R \"n\" &(" + form.k + ") \"m\" / [kK] R \"n\" \"m\" / P\n" +
+					"rule P = (\" \" \" \")* R \"?\"\nrule R = [ ]*\n" + form.extra
+				if got := classifySource(t, src).Class; got != c.want {
+					t.Errorf("class %v, want %v\n%s", got, c.want, src)
+				}
+			})
+		}
+	}
+}
