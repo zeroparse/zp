@@ -164,7 +164,7 @@ func RunParseStreamWithBudget(r *Rule, reader io.Reader, emit func(*core.Node, *
 	p.Expectations = o.expectations
 	p.Control = o.control
 	p.Observation = newObservation(&o.observe, &p.Silent)
-	if p.Observation != nil {
+	if usedFeatures&featureObserve != 0 && p.Observation != nil {
 		defer p.releaseObservation()
 	}
 	p.setTracking()
@@ -260,7 +260,7 @@ func (p *Parser) streamRelease() {
 		// for them: their bytes are returned, except those of the expectation chunk in use and
 		// the frame chunk kept.
 		p.memUsed = uint64(cap(p.arena))*expIDBytes + uint64(cap(p.frameSlab))*frameBytes
-		if p.Control != nil {
+		if usedFeatures&featureBudget != 0 && p.Control != nil {
 			// The text snapshot in use stays held; the values before it were delivered.
 			p.Control.values = 0
 			if s.text.source != "" {
@@ -296,7 +296,7 @@ func (p *Parser) streamSettleErrors() {
 		p.Recovered = nil
 	}
 	s.diagnosed, s.diagnosedSkip, s.diagnosedList = 0, 0, nil
-	if p.Control != nil {
+	if usedFeatures&featureBudget != 0 && p.Control != nil {
 		// With a diagnostic limit, the errors are now held by the tail, which counts
 		// those it keeps; without one, Recovered keeps them and errs keeps counting them.
 		p.Control.errs = 0
@@ -884,7 +884,7 @@ func (p *Parser) streamText(start, end int) string {
 		*c = snap
 		return snap.source[:end-start]
 	}
-	if p.Control != nil {
+	if usedFeatures&featureBudget != 0 && p.Control != nil {
 		// An interruption while filling must not leave partial offsets in
 		// the snapshot in use, so a controlled parse fills separate storage.
 		snap.offsets = make([]int32, snap.end-snap.base+1)
@@ -912,13 +912,13 @@ func (p *Parser) streamCopy(start, end int) string {
 	s := p.Stream
 	start, end = start-s.base, end-s.base
 	if p.unit == core.Bytes {
-		if p.Control != nil {
+		if usedFeatures&featureBudget != 0 && p.Control != nil {
 			p.Control.Charge(uint64(end - start))
 		}
 		p.chargeValueBytes(end - start)
 		return string(s.bs[start:end])
 	}
-	if p.Control != nil {
+	if usedFeatures&featureBudget != 0 && p.Control != nil {
 		p.Control.Charge(2 * uint64(end-start))
 	}
 	text := string(s.in[start:end])
