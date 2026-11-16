@@ -461,6 +461,8 @@ func engineTarget() *gogen.Target {
 			return fmt.Sprintf("if p.Missing != nil {\np.ResetMissing(%s)\n}", a[0])
 		case "missing.replay":
 			return fmt.Sprintf("p.ReplayMissing(p.MissingSeedEvents(%s), %[1]s.Errs)", a[0])
+		case "missing.replayResult":
+			return fmt.Sprintf("p.ReplayMissing(p.MissingSeedEvents(%s.e), %[1]s.e.Errs)", a[0])
 		case "exp.isolate":
 			return "p.Isolate(" + a[0] + ")"
 		case "exp.unisolate":
@@ -557,8 +559,18 @@ func engineTarget() *gogen.Target {
 			return a[0] + ".e.Ok"
 		case "ctx.value":
 			return a[0] + ".e.Node"
-		case "ctx.replay":
-			return fmt.Sprintf("p.ctxReplay(%s, %s)", a[0], a[1])
+		case "ctx.end":
+			return a[0] + ".e.End"
+		case "ctx.errs":
+			return a[0] + ".e.Errs"
+		case "ctx.far":
+			return a[0] + ".e.Far"
+		case "ctx.expected":
+			return a[0] + ".e.Expected"
+		case "ctx.examined":
+			return a[0] + ".e.Examined"
+		case "ctx.before":
+			return a[0] + ".e.From < " + a[1]
 		case "ctx.allows":
 			return fmt.Sprintf("(!%s.ctx || p.ctxAllows(&%[1]s, %s))", a[0], a[1])
 		case "ctx.active":

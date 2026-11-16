@@ -46,10 +46,11 @@ func (p *Parser) Call(r *Rule, min int) (*core.Node, bool) {
 		seed = p.ctxEnter(&c, r, min)
 	}
 	if seed != nil {
-		p.replayCtx(seed, true)
 		if !seed.ok {
 			return nil, false
 		}
+		p.Pos = seed.end
+		p.recAdd(seed.errs)
 		return seed.node, true
 	}
 	e := p.memoGet(r.Id, start, min, env, (r.DocMemo && !r.Memo && !r.Leader))
@@ -66,10 +67,12 @@ func (p *Parser) Call(r *Rule, min int) (*core.Node, bool) {
 	if c.ctx {
 		held := p.ctxLookup(&c, r.Id, min, env)
 		if held != nil {
-			p.replayCtx(held, false)
+			p.MergeExpected(held.far, held.expected)
 			if !held.ok {
 				return nil, false
 			}
+			p.Pos = held.end
+			p.recAdd(held.errs)
 			return held.node, true
 		}
 	}
@@ -336,10 +339,15 @@ func (p *TParser) callBody(r *TRule, min int) (any, bool) {
 		seed = p.ctxEnter(&c, r.Rule, min)
 	}
 	if seed != nil {
-		p.replayCtx(seed, true)
+		p.Observation.memoHit()
+		if p.track {
+			p.documentTouch(seed.examined)
+		}
 		if !seed.ok {
 			return nil, false
 		}
+		p.Pos = seed.end
+		p.recAdd(seed.errs)
 		return seed.val, true
 	}
 	e := p.memoGet(r.Id, start, min, env, (r.DocMemo && !r.Memo && !r.Leader))
@@ -360,10 +368,16 @@ func (p *TParser) callBody(r *TRule, min int) (any, bool) {
 	if c.ctx {
 		held := p.ctxLookup(&c, r.Id, min, env)
 		if held != nil {
-			p.replayCtx(held, false)
+			p.Observation.memoHit()
+			if p.track {
+				p.documentTouch(held.examined)
+			}
+			p.MergeExpected(held.far, held.expected)
 			if !held.ok {
 				return nil, false
 			}
+			p.Pos = held.end
+			p.recAdd(held.errs)
 			return held.val, true
 		}
 	}
@@ -420,10 +434,15 @@ func (p *TParser) CallMemo(r *TRule, inv func(*TParser) (any, bool)) (any, bool)
 		seed = p.ctxEnter(&c, r.Rule, 0)
 	}
 	if seed != nil {
-		p.replayCtx(seed, true)
+		p.Observation.memoHit()
+		if p.track {
+			p.documentTouch(seed.examined)
+		}
 		if !seed.ok {
 			return nil, false
 		}
+		p.Pos = seed.end
+		p.recAdd(seed.errs)
 		return seed.val, true
 	}
 	e := p.memoGet(r.Id, start, 0, env, (r.DocMemo && !r.Memo && !r.Leader))
@@ -444,10 +463,16 @@ func (p *TParser) CallMemo(r *TRule, inv func(*TParser) (any, bool)) (any, bool)
 	if c.ctx {
 		held := p.ctxLookup(&c, r.Id, 0, env)
 		if held != nil {
-			p.replayCtx(held, false)
+			p.Observation.memoHit()
+			if p.track {
+				p.documentTouch(held.examined)
+			}
+			p.MergeExpected(held.far, held.expected)
 			if !held.ok {
 				return nil, false
 			}
+			p.Pos = held.end
+			p.recAdd(held.errs)
 			return held.val, true
 		}
 	}
@@ -630,13 +655,24 @@ func (p *Parser) callMemo(r *Rule, min int) (*core.Node, bool) {
 		seed = p.ctxEnter(&c, r, min)
 	}
 	if seed != nil {
-		p.replayCtx(seed, true)
+		p.Observation.memoHit()
+		if p.track {
+			p.documentTouch(seed.examined)
+			if p.Document != nil {
+				if true {
+					p.documentTouchFrom(start + -1)
+				}
+				p.Document.stats.Reused++
+			}
+		}
 		if !seed.ok {
 			if !(fm == uint64(18446744073709551615)) {
 				p.Control.FreeEnd(fm)
 			}
 			return nil, false
 		}
+		p.Pos = seed.end
+		p.recAdd(seed.errs)
 		if !(fm == uint64(18446744073709551615)) {
 			p.Control.FreeEnd(fm)
 		}
@@ -672,13 +708,25 @@ func (p *Parser) callMemo(r *Rule, min int) (*core.Node, bool) {
 	if c.ctx {
 		held := p.ctxLookup(&c, r.Id, min, env)
 		if held != nil {
-			p.replayCtx(held, false)
+			p.Observation.memoHit()
+			if p.track {
+				p.documentTouch(held.examined)
+				if p.Document != nil {
+					if true {
+						p.documentTouchFrom(start + -1)
+					}
+					p.Document.stats.Reused++
+				}
+			}
+			p.MergeExpected(held.far, held.expected)
 			if !held.ok {
 				if !(fm == uint64(18446744073709551615)) {
 					p.Control.FreeEnd(fm)
 				}
 				return nil, false
 			}
+			p.Pos = held.end
+			p.recAdd(held.errs)
 			if !(fm == uint64(18446744073709551615)) {
 				p.Control.FreeEnd(fm)
 			}
@@ -813,13 +861,20 @@ func (p *TParser) DocumentCall(r *TRule, min int, inv func(*TParser) (any, bool)
 		seed = p.ctxEnter(&c, r.Rule, min)
 	}
 	if seed != nil {
-		p.replayCtx(seed, true)
+		p.Observation.memoHit()
+		p.documentTouch(seed.examined)
+		if true {
+			p.documentTouchFrom(start + -1)
+		}
+		p.Document.stats.Reused++
 		if !seed.ok {
 			if !(fm == uint64(18446744073709551615)) {
 				p.Control.FreeEnd(fm)
 			}
 			return nil, false
 		}
+		p.Pos = seed.end
+		p.recAdd(seed.errs)
 		if !(fm == uint64(18446744073709551615)) {
 			p.Control.FreeEnd(fm)
 		}
@@ -851,13 +906,21 @@ func (p *TParser) DocumentCall(r *TRule, min int, inv func(*TParser) (any, bool)
 	if c.ctx {
 		held := p.ctxLookup(&c, r.Id, min, env)
 		if held != nil {
-			p.replayCtx(held, false)
+			p.Observation.memoHit()
+			p.documentTouch(held.examined)
+			if true {
+				p.documentTouchFrom(start + -1)
+			}
+			p.Document.stats.Reused++
+			p.MergeExpected(held.far, held.expected)
 			if !held.ok {
 				if !(fm == uint64(18446744073709551615)) {
 					p.Control.FreeEnd(fm)
 				}
 				return nil, false
 			}
+			p.Pos = held.end
+			p.recAdd(held.errs)
 			if !(fm == uint64(18446744073709551615)) {
 				p.Control.FreeEnd(fm)
 			}

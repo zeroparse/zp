@@ -274,13 +274,21 @@ none.`})
 		Contract: `Returns whether the result s succeeded.`})
 	m.AddOp(&exec.Op{Name: "ctx.value", Component: Growth, Params: resArg, Results: []exec.Type{value}, Reads: []string{Growth},
 		Contract: `Returns the value of the result s.`})
-	add(&exec.Op{Name: "ctx.replay", Component: Growth, Params: append(resArg, exec.P("seed", exec.TBool)),
-		Reads: []string{Growth}, Writes: append([]string{Growth, Rec}, regs...), NoReturn: true, Cost: exec.Cost{Terms: []exec.CostTerm{{Coef: 1, Quantity: QMerge}, {Coef: 1, Quantity: QErrs}}},
-		Contract: `Applies the result s as the call that it records would have: counts a reuse, extends the
-examined end of a Document parse to the result's, adds its expectations unless it is a seed, and on success moves
-the position to its end and records its recovered errors again. Outside the missing-token mode it
-records them as rec.add does, as one entry that shares their list, at no cost; in that mode it records
-them as missing.replay does, one by one when the tokens they inserted repeat.`})
+	m.AddOp(&exec.Op{Name: "ctx.end", Component: Growth, Params: resArg, Results: []exec.Type{exec.TInt}, Reads: []string{Growth},
+		Contract: `Returns the end of the match of the result s; for a failure, the position of its call.`})
+	m.AddOp(&exec.Op{Name: "ctx.errs", Component: Growth, Params: resArg, Results: []exec.Type{errs}, Reads: []string{Growth},
+		Contract: `Returns the recovered errors of the result s.`})
+	m.AddOp(&exec.Op{Name: "ctx.far", Component: Growth, Params: resArg, Results: []exec.Type{exec.TInt}, Reads: []string{Growth},
+		Contract: `Returns the farthest position of the expectations kept with the result s.`})
+	m.AddOp(&exec.Op{Name: "ctx.expected", Component: Growth, Params: resArg, Results: []exec.Type{kept}, Reads: []string{Growth},
+		Contract: `Returns the expectations kept with the result s.`})
+	m.AddOp(&exec.Op{Name: "ctx.examined", Component: Growth, Params: resArg, Results: []exec.Type{exec.TInt},
+		Reads: []string{Growth}, Features: []string{Document},
+		Contract: `Returns the examined end that the parse recorded with the result s, or 0 if it recorded none.`})
+	m.AddOp(&exec.Op{Name: "ctx.before", Component: Growth, Params: append(resArg, exec.P("pos", exec.TInt)),
+		Results: []exec.Type{exec.TBool}, Reads: []string{Growth}, Features: []string{Document},
+		Contract: `Reports whether the input that the result s, kept for a call at pos, examined starts before pos;
+true if the parse did not record where it starts.`})
 	m.AddOp(&exec.Op{Name: "ctx.allows", Component: Growth, Params: append([]exec.Param{ctxArg}, entryArg...),
 		Results: []exec.Type{exec.TBool}, Reads: []string{Growth, Memo},
 		Contract: `Reports whether the call with the context state c may reuse the memo entry e: always outside a

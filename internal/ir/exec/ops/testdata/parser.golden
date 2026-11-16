@@ -904,18 +904,50 @@ op ctx.value(s CtxResult) Value
   contract:
     // Returns the value of the result s.
 
-transitional op ctx.replay(s CtxResult, seed bool)
+op ctx.end(s CtxResult) int
   component growth
   reads growth
-  writes growth, recovered, pos, silent
-  noreturn
-  cost <= 0 + 1*merge + 1*errs
+  cost <= 0
   contract:
-    // Applies the result s as the call that it records would have: counts a reuse, extends the
-    // examined end of a Document parse to the result's, adds its expectations unless it is a seed, and on success moves
-    // the position to its end and records its recovered errors again. Outside the missing-token mode it
-    // records them as rec.add does, as one entry that shares their list, at no cost; in that mode it records
-    // them as missing.replay does, one by one when the tokens they inserted repeat.
+    // Returns the end of the match of the result s; for a failure, the position of its call.
+
+op ctx.errs(s CtxResult) Errs
+  component growth
+  reads growth
+  cost <= 0
+  contract:
+    // Returns the recovered errors of the result s.
+
+op ctx.far(s CtxResult) int
+  component growth
+  reads growth
+  cost <= 0
+  contract:
+    // Returns the farthest position of the expectations kept with the result s.
+
+op ctx.expected(s CtxResult) ExpKept
+  component growth
+  reads growth
+  cost <= 0
+  contract:
+    // Returns the expectations kept with the result s.
+
+op ctx.examined(s CtxResult) int
+  component growth
+  reads growth
+  features document
+  cost <= 0
+  contract:
+    // Returns the examined end that the parse recorded with the result s, or 0 if it recorded none.
+
+op ctx.before(s CtxResult, pos int) bool
+  component growth
+  reads growth
+  features document
+  cost <= 0
+  contract:
+    // Reports whether the input that the result s, kept for a call at pos, examined starts before pos;
+    // true if the parse did not record where it starts.
 
 op ctx.allows(c Ctx, e Entry) bool
   component growth
@@ -1667,6 +1699,18 @@ op missing.replay(e Entry)
   contract:
     // Records again the tokens that the call of entry e inserted and the errors it recovered, as
     // rec.add does for the errors outside the missing-token mode.
+  requires:
+    // The parse runs in the missing-token mode.
+
+op missing.replayResult(s CtxResult)
+  component recovered
+  writes recovered
+  features missing
+  noreturn
+  cost <= 0 + 1*tokens + 1*errs
+  contract:
+    // Records again the tokens that the call of the result s that a context kept inserted and the
+    // errors it recovered, as missing.replay does for a memo entry.
   requires:
     // The parse runs in the missing-token mode.
 

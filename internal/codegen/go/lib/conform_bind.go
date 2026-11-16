@@ -222,8 +222,8 @@ func GoOprBindings() (string, error) {
 // ctxBindingOps are the operations of the dependency memo of left recursion that conformance cases
 // cover.
 var ctxBindingOps = []string{
-	"ctx.enter", "ctx.found", "ctx.ok", "ctx.value", "ctx.replay", "ctx.allows", "ctx.active",
-	"ctx.lookup", "ctx.push", "ctx.pop", "ctx.storeMemo", "ctx.storeCtx", "memo.setPresent",
+	"ctx.enter", "ctx.found", "ctx.ok", "ctx.value", "ctx.end", "ctx.errs", "ctx.far", "ctx.expected",
+	"ctx.allows", "ctx.active", "ctx.lookup", "ctx.push", "ctx.pop", "ctx.storeMemo", "ctx.storeCtx", "memo.setPresent",
 	"ctx.keep", "ctx.done",
 }
 

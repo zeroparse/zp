@@ -165,6 +165,14 @@ func (c ctxConv) FromImpl(v reflect.Value) (any, bool) {
 	switch x := v.Interface().(type) {
 	case ctxCallState:
 		return &ctxBox{x}, true
+	case []ExpID:
+		return c.m.keptHandle(x), true
+	case recEntry:
+		// A list of no errors has no identity of its own, as the model's null handle.
+		if x.none() {
+			return nil, true
+		}
+		return c.m.lists.handle(x), true
 	}
 	return nil, false
 }

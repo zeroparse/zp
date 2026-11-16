@@ -49,7 +49,7 @@ func TestCrossComponentWriters(t *testing.T) {
 			}
 		}
 	}
-	want := []string{"ctx.replay writes " + Rec, "grow.step writes " + Rec, "grow.end writes " + Rec}
+	want := []string{"grow.step writes " + Rec, "grow.end writes " + Rec}
 	if !slices.Equal(got, want) {
 		t.Errorf("cross-component writers:\n got %q\nwant %q", got, want)
 	}

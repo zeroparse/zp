@@ -39,10 +39,36 @@ func (p *Parser) confCtxValue(s ctxHit) *core.Node {
 	return r
 }
 
-// confCtxReplay runs ctx.replay for the conformance suite.
-// Printed from Exec IR function confCtxReplay of internal/ir/exec/core.
-func (p *Parser) confCtxReplay(s ctxHit, seed bool) {
-	p.ctxReplay(s, seed)
+// confCtxEnd runs ctx.end for the conformance suite.
+// Printed from Exec IR function confCtxEnd of internal/ir/exec/core.
+func (p *Parser) confCtxEnd(s ctxHit) int {
+	var r int
+	r = s.e.End
+	return r
+}
+
+// confCtxErrs runs ctx.errs for the conformance suite.
+// Printed from Exec IR function confCtxErrs of internal/ir/exec/core.
+func (p *Parser) confCtxErrs(s ctxHit) RecEntry {
+	var r RecEntry
+	r = s.e.Errs
+	return r
+}
+
+// confCtxFar runs ctx.far for the conformance suite.
+// Printed from Exec IR function confCtxFar of internal/ir/exec/core.
+func (p *Parser) confCtxFar(s ctxHit) int {
+	var r int
+	r = s.e.Far
+	return r
+}
+
+// confCtxExpected runs ctx.expected for the conformance suite.
+// Printed from Exec IR function confCtxExpected of internal/ir/exec/core.
+func (p *Parser) confCtxExpected(s ctxHit) []ExpID {
+	var r []ExpID
+	r = s.e.Expected
+	return r
 }
 
 // confCtxAllows runs ctx.allows for the conformance suite.
@@ -143,7 +169,10 @@ func confCtxBindings(p *Parser) map[string]any {
 		"ctx.found":       p.confCtxFound,
 		"ctx.ok":          p.confCtxOk,
 		"ctx.value":       p.confCtxValue,
-		"ctx.replay":      p.confCtxReplay,
+		"ctx.end":         p.confCtxEnd,
+		"ctx.errs":        p.confCtxErrs,
+		"ctx.far":         p.confCtxFar,
+		"ctx.expected":    p.confCtxExpected,
 		"ctx.allows":      p.confCtxAllows,
 		"ctx.active":      p.confCtxActive,
 		"ctx.lookup":      p.confCtxLookup,

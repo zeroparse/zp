@@ -456,8 +456,14 @@ var tsTarget = &Target{
 			return a[0] + "!.ok"
 		case "ctx.value":
 			return a[0] + "!.node"
-		case "ctx.replay":
-			return fmt.Sprintf("this.replayCtx(%s!, %s)", a[0], a[1])
+		case "ctx.end", "ctx.errs", "ctx.far", "ctx.expected":
+			return a[0] + "!." + strings.TrimPrefix(c.Callee, "ctx.")
+		case "ctx.examined":
+			// The library records no examined input with a kept result: one is made inside the growth of
+			// its leader, whose call examined what the result did.
+			return "0"
+		case "ctx.before":
+			return "true"
 		case "ctx.allows":
 			return fmt.Sprintf("memoAllows(%s, %s.present)", a[0], a[1])
 		case "ctx.active":

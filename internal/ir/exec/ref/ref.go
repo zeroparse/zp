@@ -612,12 +612,14 @@ func (m *Model) Call(o *exec.Op, args []any) []any {
 		m.rec = append(m.rec[:args[0].(int64):args[0].(int64)], l)
 		return []any{l}
 	case "rec.add":
-		if l := args[0].(*ErrList); l.n > 0 {
+		// The null handle is the list of no errors, as a result that recorded none keeps it.
+		if l, _ := args[0].(*ErrList); l != nil && l.n > 0 {
 			m.rec = append(slices.Clip(m.rec), l)
 		}
 		return nil
 	case "rec.none":
-		return []any{args[0].(*ErrList).n == 0}
+		l, _ := args[0].(*ErrList)
+		return []any{l == nil || l.n == 0}
 	case "stream.settleErrors":
 		m.rec = nil
 		return nil

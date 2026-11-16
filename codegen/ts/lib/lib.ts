@@ -2279,7 +2279,9 @@ export const storeMemo = 1;
 export const storeCtx = 2;
 
 // CtxResult is a result that a context keeps: a seed, the result of a growth step, or the result of
-// a call that read a seed.
+// a call that read a seed. It was made inside the growth of its leader, whose call examined what
+// the result did: it records no examined input, and a Document parse that reuses it counts the unit
+// before the position as examined, since the result does not record whether it examined it.
 export interface CtxResult {
   node: R;
   errs: Errs;
@@ -3643,104 +3645,7 @@ export class Parser {
   // otherwise through the memo and the dependency memo of left-recursion contexts, growing the seed of
   // a left-recursion leader.
   callBody(r: Rule, min: number): R {
-    let v: R = null;
-    this.spend();
-    const start = this.pos;
-    if (!r.memo && !r.leader || this.firstCall(r)) {
-      // Unmemoized call: no memo bookkeeping, and expectations need no isolation.
-      if (r.scope.length === 0) {
-        v = this.invokePlainBody(r, min);
-        return v;
-      }
-      const rec = this.recovered.length;
-      v = this.invoke(r, min);
-      if (v === undefined) {
-        this.pos = start;
-        this.recovered.length = rec;
-      }
-      return v;
-    }
-    const env = this.envValues(r.vars);
-    // The context of the call: the growths of the rule's cycle at the position, and the seed of the
-    // rule's own growth there, which the call reads.
-    let c = noCtx;
-    let seed: CtxResult | null = null;
-    if (r.cycle !== 0 && this.gamma.length !== 0) {
-      this.alloc(objectBytes(5));
-      c = newCtxCall();
-      seed = this.ctxEnter(c, r, min);
-    }
-    if (seed !== null) {
-      this.replayCtx(seed!, true);
-      if (!seed!.ok) {
-        return undefined;
-      }
-      return seed!.node;
-    }
-    // See the engine's callBegin: an entry computed inside a lookahead answers only calls inside one.
-    const e = this.memoGet(r.id, start, min, env);
-    const found = e !== null;
-    if (found && memoAllows(c, e.present) && (!e.silent || this.silent > 0)) {
-      this.observation?.memoHit();
-      this.mergeKept(e.far, e.expected);
-      if (!e.ok) {
-        return undefined;
-      }
-      this.pos = e.end;
-      this.recAdd(e.errs);
-      return e.node;
-    }
-    if (c.ctx) {
-      const held = this.ctxLookup(c, r.id, min, env);
-      if (held !== null) {
-        this.replayCtx(held!, false);
-        if (!held!.ok) {
-          return undefined;
-        }
-        return held!.node;
-      }
-    }
-    const rec = this.recovered.length;
-    this.ctxPush(c);
-    // The memoized result includes the expectations recorded in this call.
-    const mFar = this.farthest;
-    const mBase = this.expBase;
-    this.expBase = this.expTop;
-    this.farthest = start;
-    if (r.leader) {
-      v = this.grow(r, min);
-    } else {
-      v = this.invoke(r, min);
-      if (v === undefined) {
-        this.recovered.length = rec;
-      }
-    }
-    const far = this.farthest;
-    const innerFrom = this.expBase;
-    const innerTo = this.expTop;
-    this.expTop = this.expBase;
-    this.expBase = mBase;
-    this.farthest = mFar;
-    const kept = this.keep(innerFrom, innerTo);
-    // The result goes to the memo, or to the table of its context if it read a seed or observed a
-    // lookahead that did.
-    const store = this.ctxPop(c);
-    if (store === storeMemo) {
-      const entry = newEntry(v, v !== undefined, this.pos, this.silent > 0, this.recSince(rec));
-      this.memoPut(r.id, start, min, env, entry);
-      entry.present = c.present;
-      entry.far = far;
-      entry.expected = kept;
-    } else if (store === storeCtx) {
-      this.alloc(objectBytes(7));
-      this.ctxKeep(c, r.id, start, min, env, newCtxResult(v, this.pos, this.silent > 0, this.recSince(rec), far, kept));
-    }
-    this.ctxDone(c);
-    this.mergeExpected(far, innerFrom, innerTo);
-    if (v === undefined) {
-      this.pos = start;
-    }
-    return v;
+    throw new Error("the printed method replaces this one");
   }
 
   // grow grows the seed of a left-recursive leader from a failure: it evaluates the body again while
@@ -4257,19 +4162,6 @@ export class Parser {
   // expectations, only calls inside one.
   reusable(silent: boolean): boolean {
     return !silent || this.silent > 0;
-  }
-
-  // replayCtx applies a result that a context kept, or a seed (seed), as the call that it records
-  // would have.
-  replayCtx(e: CtxResult, seed: boolean): void {
-    this.observation?.memoHit();
-    if (!seed) {
-      this.mergeKept(e.far, e.expected);
-    }
-    if (e.ok) {
-      this.pos = e.end;
-      this.recAdd(e.errs);
-    }
   }
 
   // lookBegin starts a lookahead of the given site. In a context at the current position, the
@@ -5439,15 +5331,6 @@ export class DocumentParser extends Parser {
     return super.atEnd();
   }
 
-  // A result that a context kept was made inside the growth of its leader, whose call examined what
-  // the result did; the unit before the position counts as examined, since the result does not record
-  // whether it examined it.
-  override replayCtx(e: CtxResult, seed: boolean): void {
-    this.documentTouchFrom(this.pos - 1);
-    this.reused++;
-    super.replayCtx(e, seed);
-  }
-
   // A lookup or a store stamps the entry as current in the text of this parse (MemoEntry.seen).
   override memoGet(rule: number, pos: number, min: number, env: Value[] | null): MemoEntry | null {
     const e = super.memoGet(rule, pos, min, env);
@@ -5518,99 +5401,11 @@ export class DocumentParser extends Parser {
     return v;
   }
 
-
   // callMemo calls rule r at binding level min through the memo, as call does once the rule's
   // memoization is no longer deferred, with the observation of a reuse and, in a Document parse, the
   // bookkeeping of how far each call examined the input.
   callMemo(r: Rule, min: number): R {
-    let v: R = null;
-    let fm: bigint = 0n;
-    void fm;
-    const start = this.pos;
-    const env = this.envValues(r.vars);
-    let c = noCtx;
-    let seed: CtxResult | null = null;
-    if (r.cycle !== 0 && this.gamma.length !== 0) {
-      c = newCtxCall();
-      seed = this.ctxEnter(c, r, min);
-    }
-    if (seed !== null) {
-      this.replayCtx(seed!, true);
-      if (!seed!.ok) {
-        return undefined;
-      }
-      return seed!.node;
-    }
-    const e = this.memoGet(r.id, start, min, env);
-    const found = e !== null;
-    if (found && memoAllows(c, e.present) && (!e.silent || this.silent > 0) && (!true || this.documentMove(e))) {
-      this.observation?.memoHit();
-      this.documentTouch(e!.examined);
-      if (e!.from === fromBefore) {
-        this.documentTouchFrom(start + -1);
-      }
-      this.reused++;
-      this.mergeKept(e.far, e.expected);
-      if (!e.ok) {
-        return undefined;
-      }
-      this.pos = e.end;
-      this.recAdd(e.errs);
-      return e.node;
-    }
-    if (c.ctx) {
-      const held = this.ctxLookup(c, r.id, min, env);
-      if (held !== null) {
-        this.replayCtx(held!, false);
-        if (!held!.ok) {
-          return undefined;
-        }
-        return held!.node;
-      }
-    }
-    const rec = this.recovered.length;
-    this.ctxPush(c);
-    const mFar = this.farthest;
-    const mBase = this.expBase;
-    this.expBase = this.expTop;
-    this.farthest = start;
-    if (r.leader) {
-      v = this.grow(r, min);
-    } else {
-      v = this.invoke(r, min);
-      if (v === undefined) {
-        this.recovered.length = rec;
-      }
-    }
-    const far = this.farthest;
-    const innerFrom = this.expBase;
-    const innerTo = this.expTop;
-    this.expTop = this.expBase;
-    this.expBase = mBase;
-    this.farthest = mFar;
-    const kept = this.keep(innerFrom, innerTo);
-    const store = this.ctxPop(c);
-    if (store === storeMemo) {
-      const entry = newEntry(v, v !== undefined, this.pos, this.silent > 0, this.recSince(rec));
-      this.memoPut(r.id, start, min, env, entry);
-      entry.present = c.present;
-      entry.far = far;
-      entry.expected = kept;
-      entry.examined = this.docExamined;
-      entry.from = this.docLow < start ? fromBefore : fromPos;
-      entry.pinned = false;
-      if (r.positional) {
-        entry.pinned = true;
-      }
-    } else if (store === storeCtx) {
-      this.ctxKeep(c, r.id, start, min, env, newCtxResult(v, this.pos, this.silent > 0, this.recSince(rec), far, kept));
-    }
-    this.ctxDone(c);
-    this.mergeExpected(far, innerFrom, innerTo);
-    if (v === undefined) {
-      this.pos = start;
-    }
-    return v;
+    throw new Error("the printed method replaces this one");
   }
 }
 

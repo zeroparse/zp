@@ -172,6 +172,14 @@ func (c ctxConv) FromImpl(v reflect.Value) (any, bool) {
 		if x.e == nil {
 			return nil, true
 		}
+	case []ExpID:
+		return c.m.keptHandle(x), true
+	case RecEntry:
+		// A list of no errors has no identity of its own, as the model's null handle.
+		if x.None() {
+			return nil, true
+		}
+		return c.m.handle(x), true
 	}
 	return nil, false
 }
