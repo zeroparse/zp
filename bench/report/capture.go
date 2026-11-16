@@ -105,6 +105,9 @@ func parserGenArgs(root, name string) ([]string, error) { return probe.GenTSArgs
 
 // captureSizes records, for each parser of sizeParsers, the size of the generated Go parser.go,
 // of a binary that calls its ParseValue (built with -trimpath and stripped of symbols and DWARF), of
+// the copy of the library that the parser generated with -lib embed carries and of the binary
+// built from that parser (the whole library, which -no-opt used-features copies, is recorded once
+// as parser "runtime"), of
 // the generated TypeScript parser.ts and of that file compressed with gzip -9. The embedded
 // TypeScript runtime is common to all parsers and is recorded once as parser "runtime".
 func captureSizes(root, commit, work string) ([]byte, error) {
@@ -130,6 +133,33 @@ func captureSizes(root, commit, work string) ([]byte, error) {
 			return nil, err
 		}
 		fmt.Fprintf(&b, "size %s go-binary %d\n", name, bin)
+		// The same parser with its own copy of the library, narrowed to its features.
+		embedDir := filepath.Join(work, "gen-embed-"+name)
+		if err := probe.GenerateGo(root, zpBin, embedDir, name, "-lib", "embed"); err != nil {
+			return nil, err
+		}
+		lib, err := dirGoSize(filepath.Join(embedDir, "internal", "libgo"))
+		if err != nil {
+			return nil, err
+		}
+		fmt.Fprintf(&b, "size %s go-lib %d\n", name, lib)
+		bin, err = buildBinary(root, work, "embed-"+name, embedDir)
+		if err != nil {
+			return nil, err
+		}
+		fmt.Fprintf(&b, "size %s go-binary-embed %d\n", name, bin)
+		if name == sizeParsers[0] {
+			// The whole library, which every copy had before it was narrowed.
+			fullDir := filepath.Join(work, "gen-full-"+name)
+			if err := probe.GenerateGo(root, zpBin, fullDir, name, "-lib", "embed", "-no-opt", "used-features"); err != nil {
+				return nil, err
+			}
+			full, err := dirGoSize(filepath.Join(fullDir, "internal", "libgo"))
+			if err != nil {
+				return nil, err
+			}
+			fmt.Fprintf(&b, "size runtime go-lib %d\n", full)
+		}
 		args, err := parserGenArgs(root, name)
 		if err != nil {
 			return nil, err
@@ -152,6 +182,25 @@ func captureSizes(root, commit, work string) ([]byte, error) {
 		}
 	}
 	return b.Bytes(), nil
+}
+
+// dirGoSize returns the total size of the Go files of a directory.
+func dirGoSize(dir string) (int, error) {
+	entries, err := os.ReadDir(dir)
+	if err != nil {
+		return 0, err
+	}
+	n := 0
+	for _, e := range entries {
+		if !e.IsDir() && strings.HasSuffix(e.Name(), ".go") {
+			info, err := e.Info()
+			if err != nil {
+				return 0, err
+			}
+			n += int(info.Size())
+		}
+	}
+	return n, nil
 }
 
 // sizeOfFile returns the size of a file and of its gzip -9 compression.
