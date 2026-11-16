@@ -398,7 +398,9 @@ rule letter Word = t:("é") #atomic => Word{Text: text($t)}`)
 	if err != nil {
 		t.Fatal(err)
 	}
-	code, err := codegentest.GenerateCode(t, g, codegen.GenOptions{Package: "nilpublication", Start: "main", Types: true})
+	// Every feature (used-features off): the consumer replaces the start rule with code that records
+	// recovered errors, which the grammar has none of.
+	code, err := codegentest.GenerateCode(t, g, codegen.GenOptions{Package: "nilpublication", Start: "main", Types: true, NoOpt: []string{codegen.UsedFeatures}})
 	if err != nil {
 		t.Fatal(err)
 	}

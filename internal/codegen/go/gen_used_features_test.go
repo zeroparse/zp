@@ -38,11 +38,10 @@ func TestUsedFeaturesEmbedParity(t *testing.T) {
 			t.Run(name, func(t *testing.T) {
 				t.Parallel()
 				o := mode.opts
-				o.Lib = codegen.LibEmbed
 				if off {
 					o.NoOpt = []string{codegen.UsedFeatures}
 				}
-				codegentest.GeneratedParsersCorpus(t, goBin, codegentest.UsedFeatureCases(), o)
+				codegentest.GeneratedParsersEmbedCorpus(t, goBin, codegentest.UsedFeatureCases(), o)
 			})
 		}
 	}
