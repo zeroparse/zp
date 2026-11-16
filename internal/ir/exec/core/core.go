@@ -285,7 +285,8 @@ func Build() *Module {
 
 	firstCall := m.AddFunc("firstCall", []Param{P("r", rule)}, []Type{TBool}, nil, func(b *Builder) {
 		b.Let("s", C("rule.seen", r))
-		b.Return(And(And(C("seen.defers"), Bin(">=", L("s"), Int(0))), C("seen.first", L("s"), R(ops.Pos))))
+		b.If(Not(And(C("seen.defers"), Bin(">=", L("s"), Int(0)))), func(b *Builder) { b.Return(BoolC(false)) })
+		b.Return(C("seen.first", L("s"), R(ops.Pos)))
 	})
 	firstCall.Doc = `firstCall records a call of the memoized rule r at the position and reports whether its
 memoization is deferred, in which case the call is not memoized. A result is reused only when the rule

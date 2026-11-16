@@ -114,7 +114,10 @@ func (p *Parser) Call(r *Rule, min int) (*core.Node, bool) {
 // Printed from Exec IR function firstCall of internal/ir/exec/core.
 func (p *Parser) FirstCall(r *Rule) bool {
 	s := r.Seen
-	return (p.Stream == nil && p.Document == nil) && s >= 0 && p.seenFirst(s, p.Pos)
+	if !((p.Stream == nil && p.Document == nil) && s >= 0) {
+		return false
+	}
+	return p.seenFirst(s, p.Pos)
 }
 
 // firstCall records a call of the memoized rule r at the position and reports whether its
@@ -129,7 +132,10 @@ func (p *Parser) FirstCall(r *Rule) bool {
 // Printed from Exec IR function firstCall of internal/ir/exec/core.
 func (p *TParser) firstCall(r *TRule) bool {
 	s := r.Seen
-	return (p.Stream == nil && p.Document == nil) && s >= 0 && p.seenFirst(s, p.Pos)
+	if !((p.Stream == nil && p.Document == nil) && s >= 0) {
+		return false
+	}
+	return p.seenFirst(s, p.Pos)
 }
 
 // grow grows the seed of a left-recursive leader from a failure: it evaluates the body again while
