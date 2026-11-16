@@ -54,7 +54,7 @@ func schemaTieBuild(t *testing.T, root string) (string, error) {
 	goBin := filepath.Join(runtime.GOROOT(), "bin", "go")
 	cmd := exec.Command(goBin, "build", "-trimpath", "./...")
 	cmd.Dir = root
-	cmd.Env = append(os.Environ(), "GOWORK=off", "GOFLAGS=")
+	cmd.Env = append(os.Environ(), "GOWORK=off", "GOFLAGS="+codegentest.WitnessTags)
 	out, err := cmd.CombinedOutput()
 	return string(out), err
 }

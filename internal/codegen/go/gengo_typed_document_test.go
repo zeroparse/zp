@@ -87,7 +87,7 @@ func TestTypedDocumentConversionBudget(t *testing.T) {
 	}
 	cmd := exec.Command("go", "test", "./...")
 	cmd.Dir = dir
-	cmd.Env = append(os.Environ(), "GOTOOLCHAIN=local", "GOFLAGS=-mod=mod -trimpath")
+	cmd.Env = append(os.Environ(), "GOTOOLCHAIN=local", codegentest.GoFlagsEnv)
 	if out, err := cmd.CombinedOutput(); err != nil {
 		t.Fatalf("generated typed Document build/test: %v\n%s", err, out)
 	}
@@ -157,7 +157,7 @@ func TestNilAndRecovery(t *testing.T) {
 	}
 	cmd := exec.Command("go", "test", "./...")
 	cmd.Dir = dir
-	cmd.Env = append(os.Environ(), "GOTOOLCHAIN=local", "GOFLAGS=-mod=mod -trimpath")
+	cmd.Env = append(os.Environ(), "GOTOOLCHAIN=local", codegentest.GoFlagsEnv)
 	if out, err := cmd.CombinedOutput(); err != nil {
 		t.Fatalf("generated typed Document nil/recovery build/test: %v\n%s", err, out)
 	}
@@ -222,7 +222,7 @@ func anysF(xs []First) []any { out := []any{}; for _, x := range xs { out = appe
 	}
 	cmd := exec.Command("go", "test", "./...")
 	cmd.Dir = dir
-	cmd.Env = append(os.Environ(), "GOTOOLCHAIN=local", "GOFLAGS=-mod=mod -trimpath")
+	cmd.Env = append(os.Environ(), "GOTOOLCHAIN=local", codegentest.GoFlagsEnv)
 	if out, err := cmd.CombinedOutput(); err != nil {
 		t.Fatalf("generated typed Document with an open union: %v\n%s", err, out)
 	}
@@ -277,7 +277,7 @@ func TestCollision(t *testing.T) {
 	}
 	cmd := exec.Command("go", "test", "./...")
 	cmd.Dir = dir
-	cmd.Env = append(os.Environ(), "GOTOOLCHAIN=local", "GOFLAGS=-mod=mod -trimpath")
+	cmd.Env = append(os.Environ(), "GOTOOLCHAIN=local", codegentest.GoFlagsEnv)
 	if out, err := cmd.CombinedOutput(); err != nil {
 		t.Fatalf("generated typed Document collision build/test: %v\n%s", err, out)
 	}
@@ -334,7 +334,7 @@ func TestCollision(t *testing.T) {
 	}
 	cmd := exec.Command("go", "test", "./...")
 	cmd.Dir = dir
-	cmd.Env = append(os.Environ(), "GOTOOLCHAIN=local", "GOFLAGS=-mod=mod -trimpath")
+	cmd.Env = append(os.Environ(), "GOTOOLCHAIN=local", codegentest.GoFlagsEnv)
 	if out, err := cmd.CombinedOutput(); err != nil {
 		t.Fatalf("generated observed Document collision build/test: %v\n%s", err, out)
 	}

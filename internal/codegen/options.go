@@ -101,8 +101,10 @@ type GenOptions struct {
 	KeepUnreachable bool
 	// KeepComments keeps the comments of unexported generated code, which tests read as route markers.
 	KeepComments bool
-	// FeatureWitness makes the generated Go parser check, in a build with the tag zp_feature_witness,
-	// that every library feature a parse uses is in the parser's analysed FeatureSet (for tests).
+	// FeatureWitness makes the generated Go parser check that every library feature a parse uses is in
+	// the parser's analysed FeatureSet (for tests). The parser builds only with the tag
+	// zp_feature_witness, which declares the check in the library, unless it carries its own copy of
+	// the library (LibEmbed, LibOnly), whose check is then on in every build.
 	FeatureWitness bool
 	// DisableKeepNodes leaves the Node rule functions out of a typed-only parser that needs them
 	// (a negative control for tests).

@@ -94,7 +94,7 @@ func sharingPackages(t *testing.T, tests map[string]string) {
 	}
 	cmd := exec.Command("go", "test", "-count=1", "-v", "./...")
 	cmd.Dir = dir
-	cmd.Env = append(os.Environ(), "GOTOOLCHAIN=local", "GOFLAGS=-mod=mod -trimpath")
+	cmd.Env = append(os.Environ(), "GOTOOLCHAIN=local", codegentest.GoFlagsEnv)
 	out, err := cmd.CombinedOutput()
 	if err != nil {
 		t.Fatalf("shared typed Document: %v\n%s", err, out)

@@ -151,7 +151,7 @@ type skipWalk struct {
 
 // SkipBegin starts a walk of the site at the current position.
 func (p *Parser) SkipBegin(site int) {
-	p.use(FeatureSkipRuns)
+	p.use(featureSkipRuns)
 	w := &p.skip
 	i := 2 * site
 	if p.Silent > 0 {
