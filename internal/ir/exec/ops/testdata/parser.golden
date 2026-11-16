@@ -847,7 +847,7 @@ op exp.copy(s ExpSet) ExpKept
   requires:
     // s has at least one expectation, and exp.setAt may read each of them.
 
-transitional op memo.far(e Entry) int
+op memo.far(e Entry) int
   component memo
   reads memo
   cost <= 0
@@ -856,7 +856,7 @@ transitional op memo.far(e Entry) int
   requires:
     // memo.setExpected recorded expectations with e.
 
-transitional op memo.expected(e Entry) ExpKept
+op memo.expected(e Entry) ExpKept
   component memo
   reads memo
   cost <= 0
@@ -865,7 +865,7 @@ transitional op memo.expected(e Entry) ExpKept
   requires:
     // memo.setExpected recorded expectations with e.
 
-transitional op memo.setExpected(e Entry, far int, k ExpKept)
+op memo.setExpected(e Entry, far int, k ExpKept)
   component memo
   writes memo
   cost <= 0

@@ -146,6 +146,12 @@ func expMutants() map[string]mutant {
 			}
 			return nil
 		}},
+		"far is one past the recorded position": {op: "memo.far", edit: func(m *ref.Model, a []any) []any {
+			return []any{expCall(m, "memo.far", a...)[0].(int64) + 1}
+		}},
+		"expected returns the set kept last": {op: "memo.expected", edit: func(m *ref.Model, a []any) []any {
+			return expCall(m, "exp.last")
+		}},
 	}
 }
 
