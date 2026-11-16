@@ -1410,9 +1410,9 @@ $\alpha_j$, and *Repeats inside a growth* of Lemma 5 applies to them. In its
 second case, where $\alpha_j$ follows no read of the seed of $S$, the
 sequence of the activations of $\sigma$ at $q$ leaves $\alpha_j$ out, so
 that case does not arise for $\alpha_j$. In its first case $\alpha_j$
-follows a read of the seed of $S$, and so lies in no evaluation in $S$ that
-follows no read, and it starts at or after the end of that seed, which is
-at or after $\bar{s}$ (*Restarts*): the parser reaches it through that read,
+follows a read of the seed of $S$ and starts at or after the end of that
+seed, which is at or after $\bar{s}$ (*Restarts*): the parser reaches it
+through that read,
 in the evaluation from $\bar{s}$ of $\hat{\kappa}$, which goes on at the end
 of the body of a leader through the reads of the seed, as in the claim above
 and in that first case. Outside case 5, the argument of *Repeats* then
