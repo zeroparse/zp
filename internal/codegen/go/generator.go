@@ -1294,7 +1294,7 @@ func (g *Generator) first(e grammar.Expr, depth int, seen map[string]bool) (stri
 			}
 			return cond, g.Desc(compile.LiteralDesc(e)), depth, true
 		}
-		return fmt.Sprintf("ch == %d", r), g.Desc(strconv.Quote(e.Value)), depth, true
+		return fmt.Sprintf("ch == %d", r), g.Desc(compile.LiteralDesc(e)), depth, true
 	case *grammar.CharClass:
 		return NegateCondition(g.ControlledClassReject(e)), g.Desc(compile.CharClassString(e)), depth, true
 	case *grammar.Seq:
