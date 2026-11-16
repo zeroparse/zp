@@ -20,9 +20,8 @@ import (
 // stores it with memoPut as the call does. A stream parse also provides the pruning of its memo.
 
 type rtMachine struct {
-	p     *Parser
-	vals  map[int64][]any
-	rules []*Rule
+	p    *Parser
+	vals map[int64][]any
 	// metered reports a parse with budget controls, whose charges the suite checks.
 	metered bool
 	env     rtEnv
@@ -174,9 +173,6 @@ func newRTMachine(cfg ref.Config, controlled, sparse, stream bool) conform.Impl 
 	}
 	p.memo.stride, p.memo.sparse = cfg.Rules, sparse
 	m := &rtMachine{p: p, vals: map[int64][]any{}, metered: controlled, lists: recHandles{}}
-	for i := range cfg.Rules {
-		m.rules = append(m.rules, &Rule{Seen: i})
-	}
 	m.env.setUp(p, cfg)
 	if controlled {
 		limit := cfg.Limit
@@ -278,8 +274,7 @@ func (m *rtMachine) Call(o *exec.Op, args []any) (res []any) {
 	case "memo.floor":
 		return []any{int64(p.Stream.memoBase)}
 	case "seen.first":
-		p.Pos = i(1)
-		return []any{p.FirstCall(m.rules[i(0)])}
+		return []any{p.confSeenFirst(i(0), i(1))}
 	case "budget.charge":
 		p.Control.Charge(args[0].(uint64))
 		return nil
@@ -688,8 +683,7 @@ func TestExecConformanceDetectsBrokenLib(t *testing.T) {
 		}},
 		// A first-call record that drops the rule from the bit index (every rule shares one bit).
 		"seen ignores the rule": {op: "seen.first", call: func(m *rtMachine, args []any) []any {
-			m.p.Pos = int(args[1].(int64))
-			return []any{m.p.FirstCall(m.rules[0])}
+			return []any{m.p.confSeenFirst(0, int(args[1].(int64)))}
 		}},
 		// A lookup that forgets the level, as a key without Min would.
 		"lookup ignores the level": {op: "memo.lookup", call: func(m *rtMachine, args []any) []any {

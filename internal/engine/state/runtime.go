@@ -464,22 +464,6 @@ func (p *Parser) Memoizes(r *Rule) bool {
 	return r.Leader || p.memoized(r)
 }
 
-// FirstCall reports whether this is the first call of the memoized rule r at the current
-// position, in which case the call is not memoized, and records the call. A result is reused only
-// when the rule is called again at the same position, which in practice is rare: memoizing every
-// first call cost a memo entry per call for nothing. Deferring memoization to the second call
-// evaluates the body of a rule at most twice per position, binding level and combination of variable
-// values. That bounds how often a rule body runs, not the time of a parse: loops inside a body,
-// left-recursion growth and variable environments do work that the memo does not share (see "Time and
-// Memory" in spec/runtime/parsing.md).
-// Left-recursion leaders are always memoized (the memo drives the growing of the seed).
-func (p *Parser) FirstCall(r *Rule) bool {
-	if !p.DeferMemo || r.Seen < 0 {
-		return false
-	}
-	return p.memoFirstCall(p.Pos, r.Seen)
-}
-
 // replayEntry applies a reused result as the call that it records would have: its examined
 // input, expectations and recovered errors, and its end.
 func (p *Parser) replayEntry(e *MemoEntry) {

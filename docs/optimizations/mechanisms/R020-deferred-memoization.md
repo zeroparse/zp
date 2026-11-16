@@ -38,10 +38,11 @@ isolate later sparse storage; unadapted LR cost was 20–33%.
 Evidence records: [018](../018-memoizing-from-the-second-call-at-a-position.md),
 [021](../021-changes-18-and-19-in-the-generated-parsers.md).
 
-Source owners: [`parser.firstCall`](../../../internal/engine/state/runtime.go),
-[`memoTable.firstCall`](../../../internal/engine/state/memo.go), [`generated
-FirstCall`](../../../codegen/go/lib/lib.go), [`TypeScript
-firstCall`](../../../codegen/ts/lib/lib.ts).
+Source owners: the `firstCall` composition of Exec IR, which every runtime prints, over
+each runtime's record of a call:
+[`memoTable.firstCall`](../../../internal/engine/state/memo.go) in the engine, the [generated Go
+library](../../../codegen/go/lib/lib.go) and the [TypeScript
+library](../../../codegen/ts/lib/lib.ts).
 
 The [comparison policy](../../design/records/024-optimization-mechanism-controls.md)
 distinguishes same-source controls, historical changes and full checkpoints.

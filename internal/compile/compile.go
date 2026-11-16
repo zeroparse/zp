@@ -188,7 +188,7 @@ type Rule struct {
 	// the incremental Document) (transientRules).
 	Transient bool
 	// Seen is the rule's index among the rules whose memoization is deferred to the second call at a
-	// position (parser.firstCall), or -1.
+	// position (rule.seen, the firstCall composition), or -1.
 	Seen int
 	// Plain reports that the rule is never memoized except by Document and has no captures, so
 	// call runs it with invokePlain (the inlined rules of the closure backend call InvokePlain directly).

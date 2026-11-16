@@ -990,6 +990,15 @@ func (p *printer) binary(x *exec.Binary, outer int) string {
 	plain := func() string {
 		return paren(p.expr(x.X, n)+" "+op+" "+p.expr(x.Y, n+1), n, outer)
 	}
+	if op == "&&" {
+		// An operand that the target library prints as true leaves the other alone.
+		if p.expr(x.X, n) == "true" {
+			return p.expr(x.Y, outer)
+		}
+		if p.expr(x.Y, n+1) == "true" {
+			return p.expr(x.X, outer)
+		}
+	}
 	switch op {
 	case "===", "!==", "<", "<=", ">", ">=", "&&", "||":
 		return plain()

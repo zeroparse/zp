@@ -151,11 +151,6 @@ node runtime also in an observed parse.`})
 		Results: result, Writes: append([]string{Call}, regs...), Features: []string{Document}, NoReturn: true,
 		Contract: `Calls the rule through the invocation inv on the target's tracked path and returns its
 result.`})
-	add(&exec.Op{Name: "call.first", Component: Call, Params: ruleArg, Results: []exec.Type{exec.TBool},
-		Reads: []string{Call}, Writes: []string{Call}, NoReturn: true, Cost: m.Op("seen.first").Cost,
-		Contract: `Records a call of the rule at the position and reports whether its memoization is deferred:
-seen.first for a rule whose memoization the target defers, false for one it memoizes eagerly (in a
-stream, or for a rule without a seen index).`})
 
 	for _, a := range []struct{ name, doc string }{
 		{"rule.memo", "Reports whether the rule is memoized. A parse in the missing-token mode memoizes no rule that can insert a missing token."},
@@ -170,6 +165,11 @@ stream, or for a rule without a seen index).`})
 	}
 	m.AddOp(&exec.Op{Name: "rule.id", Component: Rules, Params: ruleArg, Results: []exec.Type{exec.TInt},
 		Contract: `Returns the rule's index, the rule of its memo keys.`})
+	m.AddOp(&exec.Op{Name: "rule.seen", Component: Rules, Params: ruleArg, Results: []exec.Type{exec.TInt},
+		Contract: `Returns the rule's index among the rules whose memoization a parse may defer to their second
+call at a position (seen.first), or -1 for a rule without one: a rule that a parse from scratch
+does not memoize, and a leader of a left-recursive cycle. The rules with an index are numbered from 0
+in the order of their indexes (rule.id).`})
 	body := exec.Cost{Terms: []exec.CostTerm{{Coef: 1, Quantity: QBody}}}
 	invoke := exec.Cost{Const: 1, Terms: []exec.CostTerm{{Coef: 1, Quantity: QCaptures}, {Coef: 1, Quantity: QCaptureFields}, {Coef: 1, Quantity: QBody}}}
 	m.AddOp(&exec.Op{Name: "rule.invoke", Component: Rules, Params: call, Results: result, Writes: append([]string{Rules}, regs...),
@@ -263,9 +263,6 @@ and the memory it takes as the target accounts it.`})
 		Writes: []string{Memo},
 		Contract: `Records the expectations k at far of the call that computed entry e. When memo.splice moves e,
 far moves with it, by the same amount as its end.`})
-	add(&exec.Op{Name: "memo.forgetDoc", Component: Memo, Params: entryArg, Writes: []string{Memo}, Features: []string{Document},
-		Contract: `Forgets the Document record of the entry e, which the call replaces, where the target keeps
-the records beside the entries.`})
 	ctxArg := exec.P("c", ctx)
 	resArg := []exec.Param{exec.P("s", res)}
 	m.AddOp(&exec.Op{Name: "ctx.enter", Component: Growth, Params: call, Results: []exec.Type{ctx, res},

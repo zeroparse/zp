@@ -29,6 +29,7 @@ var tsSpecs = []struct {
 	doc  bool
 }{
 	{fn: "call", on: []string{ops.Observe, ops.Budget}, name: "callBody"},
+	{fn: "firstCall", name: "firstCall"},
 	{fn: "document", on: []string{ops.Document}, name: "callDocument", doc: true},
 	{fn: "unmemoized", name: "callUnmemoized", doc: true},
 	{fn: "memoized", on: []string{ops.Document, ops.Observe}, name: "callMemo", doc: true},
@@ -387,9 +388,11 @@ var tsTarget = &Target{
 				return "this.spend()"
 			}
 			return "this.spendUnits(Number(" + a[0] + "))"
-		case "call.first":
-			return "this.firstCall(" + a[0] + ")"
-		case "rule.memo", "rule.leader", "rule.id":
+		case "seen.defers":
+			return "true" // the Parser parses neither streams nor Documents (DocumentParser takes callDocument)
+		case "seen.first":
+			return "this.seenFirst(" + a[0] + ", " + a[1] + ")"
+		case "rule.memo", "rule.leader", "rule.id", "rule.seen":
 			return a[0] + "." + strings.TrimPrefix(c.Callee, "rule.")
 		case "rule.docOnlyMemo":
 			return "false" // TypeScript has no Documents: no rule is memoized by a Document alone

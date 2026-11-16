@@ -42,6 +42,10 @@ var goSpecs = []goSpec{
 	// Parser.Call takes the tracked path for observation and Documents, so it neither observes nor
 	// reads a Document itself.
 	{fn: "call", on: []string{ops.Document, ops.Budget}, name: "Call"},
+	// The deferral of memoization: the node library's is the one that generated parsers call, also for
+	// the typed library's rules; the typed library's compositions call their own, of a typed rule.
+	{fn: "firstCall", name: "FirstCall"},
+	{fn: "firstCall", typed: true, name: "firstCall"},
 	{fn: "grow", name: "grow"},
 	// The expectation record: the form of a parse with limit controls or a Document, and the form of
 	// an ordinary parse with its slow path.
@@ -187,7 +191,7 @@ func goTarget(s goSpec) *gogen.Target {
 		ops.Obj: "*core.Node", ops.Name: "string", ops.Str: "string", ops.Act: "*ActCtx", ops.Fail: "any", ops.Elem: "*core.Node",
 		ops.NodeType: "*nodeTypeKinds", ops.FType: "*FieldType",
 	}
-	names := map[string]string{"streamEmit": "EmitStream", "streamCommit": "streamCommit", "streamsIn": "StreamsIn", "call": "Call", "grow": "grow", "unmemoized": "callUnmemoized", "memoized": "callMemo",
+	names := map[string]string{"streamEmit": "EmitStream", "streamCommit": "streamCommit", "streamsIn": "StreamsIn", "call": "Call", "firstCall": "FirstCall", "grow": "grow", "unmemoized": "callUnmemoized", "memoized": "callMemo",
 		"document": "callDocument", "body": "callBody", "observed": "callObserved", "expectSlow": "expectOrdinarySlow", "expect": "Expect", "mergeExpected": "MergeExpected", "keep": "Keep",
 		// A kept set is a slice like the set of an isolation, so MergeExpected merges both.
 		"mergeKept": "MergeExpected"}
@@ -212,7 +216,7 @@ func goTarget(s goSpec) *gogen.Target {
 		handles[ops.Term] = "func(*TActCtx) (any, any)"
 		handles[ops.Seq], handles[ops.Obj], handles[ops.Act], handles[ops.Elem] = "[]any", "TVal", "*TActCtx", "any"
 		handles[ops.NodeType] = "uint16"
-		names = map[string]string{"call": "callBody", "callMemo": "CallMemo", "grow": "grow", "keep": "Keep",
+		names = map[string]string{"call": "callBody", "firstCall": "firstCall", "callMemo": "CallMemo", "grow": "grow", "keep": "Keep",
 			"mergeExpected": "MergeExpected", "mergeKept": "MergeExpected"}
 		for _, s := range goOperatorSpecs {
 			names[s.fn] = s.name
@@ -371,8 +375,12 @@ func goTarget(s goSpec) *gogen.Target {
 			return "p.Control.FreeBegin(" + a[0] + ")"
 		case "budget.freeEnd":
 			return "p.Control.FreeEnd(" + a[0] + ")"
-		case "call.first":
-			return "p.FirstCall(" + rule(a[0]) + ")"
+		case "seen.defers":
+			// A Document parse memoizes on the first call; the typed library's Document parse sets the
+			// node Document too.
+			return "(p.Stream == nil && p.Document == nil)"
+		case "seen.first":
+			return "p.seenFirst(" + a[0] + ", " + a[1] + ")"
 		case "rule.memo":
 			return a[0] + ".Memo"
 		case "rule.leader":
@@ -387,6 +395,8 @@ func goTarget(s goSpec) *gogen.Target {
 			return a[0] + ".Positional"
 		case "rule.id":
 			return a[0] + ".Id"
+		case "rule.seen":
+			return a[0] + ".Seen"
 		case "rule.invoke":
 			return fmt.Sprintf("p.invoke(%s, %s)", a[0], a[1])
 		case "rule.invokePlain":
@@ -497,8 +507,6 @@ func goTarget(s goSpec) *gogen.Target {
 			return a[0] + ".examined"
 		case "doc.evaluated":
 			return "p.Document.stats.Evaluated++"
-		case "memo.forgetDoc":
-			return "delete(p.TypedDocument.meta, " + a[0] + ")"
 		case "doc.reused":
 			return "p.Document.stats.Reused++"
 		case "memo.examine":

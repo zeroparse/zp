@@ -159,6 +159,24 @@ func ruleMutants() map[string]*ruleMutant {
 		"id is one more": {op: "rule.id", edit: func(m *ruleMutant, a []any) []any {
 			return []any{m.call("rule.id", a...)[0].(int64) + 1}
 		}},
+		"seen is the rule's identifier": {op: "rule.seen", edit: func(m *ruleMutant, a []any) []any {
+			return []any{m.call("rule.id", a...)[0].(int64)}
+		}},
+		"seen counts leaders": {op: "rule.seen", edit: func(m *ruleMutant, a []any) []any {
+			if !m.spec(a).Memo {
+				return []any{int64(-1)}
+			}
+			n := int64(0)
+			for _, s := range m.cfg.RuleSpecs[:a[0].(ref.RuleRef).Index] {
+				if s.Memo {
+					n++
+				}
+			}
+			return []any{n}
+		}},
+		"defers is negated": {op: "seen.defers", edit: func(m *ruleMutant, a []any) []any {
+			return []any{!m.call("seen.defers")[0].(bool)}
+		}},
 		"invoke evaluates at level 0": {op: "rule.invoke", edit: func(m *ruleMutant, a []any) []any {
 			return m.call("rule.invoke", a[0], int64(0))
 		}},
@@ -241,6 +259,16 @@ func TestRuleMutantsFail(t *testing.T) {
 				t.Error("no randomized case detected the mutant")
 			}
 		})
+	}
+}
+
+// TestSeenDefersStreamMutantFails is the negative control of seen.defers in a stream parse: the model
+// that defers memoization in a stream parse fails a handwritten case. Randomized cases parse no stream,
+// whose input the operations of the bodies would read on a target.
+func TestSeenDefersStreamMutantFails(t *testing.T) {
+	mu := &ruleMutant{op: "seen.defers", edit: func(m *ruleMutant, a []any) []any { return []any{!m.cfg.Document} }}
+	if handwritten, _ := ruleFails(ruleSuite("seen.defers ignores streams", false, mu)); !handwritten {
+		t.Error("no handwritten case detected the mutant")
 	}
 }
 

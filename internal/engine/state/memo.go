@@ -22,7 +22,7 @@ type MemoTable struct {
 	// Document edits splice positions in and out at the gap, slots[gap:gap+GapLen] (in Document
 	// tables, where base is 0): moving it costs only the distance to the next edit.
 	Gap, GapLen int
-	// Seen is a bit set of the (position, rule) pairs called once (parser.firstCall), with stride
+	// Seen is a bit set of the (position, rule) pairs called once (seen.first), with stride
 	// bits per position. It is used only by whole-input parses, so base is 0.
 	Seen   []uint64
 	Stride int

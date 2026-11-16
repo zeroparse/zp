@@ -41,6 +41,7 @@ var engineOn = []string{ops.Document, ops.Missing, ops.Budget}
 // engineSpecs are the functions of the engine that the compositions replace.
 var engineSpecs = []goSpec{
 	{fn: "engineCall", on: engineOn, name: "Call"},
+	{fn: "firstCall", name: "FirstCall"},
 	{fn: "engineCallDoc", on: engineOn, name: "callDoc"},
 	{fn: "callBegin", on: engineOn, name: "CallBegin"},
 	{fn: "callEnd", on: engineOn, name: "CallEnd"},
@@ -230,7 +231,7 @@ func engineTarget() *gogen.Target {
 		ops.Obj: "*core.Node", ops.Name: "string", ops.Str: "string", ops.Act: "*EvalCtx", ops.Fail: "error", ops.Elem: "*core.Node",
 		ops.NodeType: "*value.NodeTypeKinds", ops.FType: "*compile.FieldType",
 	}
-	names := map[string]string{"engineCall": "Call", "engineCallDoc": "callDoc", "callBegin": "CallBegin", "callEnd": "CallEnd", "grow": "grow",
+	names := map[string]string{"engineCall": "Call", "engineCallDoc": "callDoc", "firstCall": "FirstCall", "callBegin": "CallBegin", "callEnd": "CallEnd", "grow": "grow",
 		"expect": "Expect", "keep": "Keep",
 		// A kept set is a slice like the set of an isolation, so MergeExpected merges both.
 		"mergeKept": "MergeExpected", "mergeExpected": "MergeExpected"}
@@ -410,8 +411,10 @@ func engineTarget() *gogen.Target {
 			return "p.Tr != nil && p.tracing()"
 		case "call.track":
 			return fmt.Sprintf("p.tracedCall(%s, %s)", a[0], a[1])
-		case "call.first":
-			return "p.FirstCall(" + a[0] + ")"
+		case "seen.defers":
+			return "p.DeferMemo"
+		case "seen.first":
+			return "p.memoFirstCall(" + a[1] + ", " + a[0] + ")"
 		case "call.state":
 			return "&CallState{}"
 		case "call.save":
@@ -434,6 +437,8 @@ func engineTarget() *gogen.Target {
 			return a[0] + ".Positional"
 		case "rule.id":
 			return a[0] + ".ID"
+		case "rule.seen":
+			return a[0] + ".Seen"
 		case "rule.invoke":
 			return fmt.Sprintf("p.invoke(%s, %s)", a[0], a[1])
 		case "rule.invokePlain":

@@ -255,7 +255,12 @@ always sound. *Shared*: keys, the entry attributes, which entry a lookup returns
 slot arrays or maps, chaining, slab allocation and free lists, entry layout and packing. The adaptive policy of
 deferred memoization (per-rule counters and the switch to eager memoization) is part of its contract, because
 it decides how many bodies run, which `Evaluated` reports; *shared*: the policy and its thresholds; *target*:
-dense or sparse pages, word size, counter width.
+dense or sparse pages, word size, counter width. Whether a call defers is a composition over operations under
+conformance: whether the parse defers at all (a stream or Document parse memoizes on the first call), the rule's
+index among the rules that may defer, and the record of the call; the runtimes and generated parsers call its
+printed form. A target that keeps records beside the entries, as a typed Document keeps the input each entry
+examined, drops the record of an entry that a store replaces as part of the store: the replaced entry is not
+used after it, so the record is memory and not state that a case could observe.
 
 **Left-recursion contexts and growth.** The dependency memo of
 [Evaluations of Rules](../../../spec/runtime/parsing.md#evaluations-of-rules) has a reference model of its state:
