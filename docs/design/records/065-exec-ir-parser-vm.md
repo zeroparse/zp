@@ -373,8 +373,8 @@ a value of that kind or a test for one.
 stack of the elements of the lists and tuples being made: `act.push`, `act.pushAll` and `term.keep` (for `filter`)
 push on it, a list or a tuple takes its elements off it in one piece when it is made (`term.elemsAbove`), and
 `term.kids` and `term.dropKids` mark it and drop what a failed term left. Taking an element off charges a unit, as
-dropping it does, besides the unit for copying it, so that a term that makes a list of n elements pays 2n for
-taking them off on every target. It is not
+dropping it does, besides the unit for copying it, so that making a list of n elements costs 2n for taking them
+off on every target, whether a term or grammar code (the list of a repetition) makes it. It is not
 a host operation's private state, since the engine's grammar code collects the elements of a repetition on the same
 stack, above the elements it finds, and the charge of a drop is observable. The component `made` is the list of the
 structs that terms and actions made: `act.made` records one, `term.created` and `term.dropCreated` mark the list and
@@ -471,7 +471,7 @@ because the call or the step around it has paid. By it, an empty memo key costs 
 each value it reads and each node on the path to that value, a capture write costs nothing where `frame.undo` costs
 one unit for each write it undoes, forgetting the values of a term costs one unit for each value, and taking the n
 elements of a list or a tuple off the elements gathered costs 2n, one unit for copying each and one for taking it off,
-as for dropping it, reserved at once before any element moves, on every target. Four charges do not follow the rule yet, and the targets
+as for dropping it, reserved at once before any element moves, on every target and for grammar code too. Four charges do not follow the rule yet, and the targets
 differ on them until they are settled:
 
 - `frame.open` charges one unit for each slot in TypeScript, and nothing in Go and the engine, within its bound

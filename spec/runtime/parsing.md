@@ -2397,9 +2397,12 @@ time, also where it charges several of them together; a failure there reports
 reservation, such as a chunk of the preparation of the input, the copy of a text
 or an operation on a list, is reserved at once, and a failure there reports the
 whole reservation in `Requested` and the units before it in `Used`. Taking the
-n elements of a list or a tuple that a term makes off the values gathered for
-it is one reservation of 2n units, one for copying each element and one for taking it
-off, made before any element moves, however long the list. Where two
+n elements of a list or a tuple off the values gathered for it is one
+reservation of 2n units, one for copying each element and one for taking it
+off, made before any element moves, however long the list, whether a term makes
+the list or the parse builds it, as for the list of a repetition. A list that
+reuses the elements kept in the record of an earlier walk (see Scan Sites)
+takes off only the elements gathered before them. Where two
 backends make the same charges, they report the same `Used` and `Requested`.
 
 ### Memory Limit

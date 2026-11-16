@@ -12,8 +12,8 @@ import (
 // TestLimitErrorAgreementMutants checks that TestLimitErrorAgreement notices a backend that reports a
 // run of units as one reservation: generated Go whose Take reserves its units at once, and generated
 // TypeScript whose run of units is charged as one reservation; and one that splits the reservation of
-// a list take-off: generated Go and TypeScript that reserve the copy and the take-off apart, and
-// generated Go that reserves it chunk by chunk.
+// a list take-off, of a term's list and of a repetition's: generated Go and TypeScript that reserve
+// the copy and the take-off apart, and generated Go that reserves it chunk by chunk.
 func TestLimitErrorAgreementMutants(t *testing.T) {
 	t.Parallel()
 	codegentest.NeedsBudgetControls(t)
@@ -60,32 +60,37 @@ func TestLimitErrorAgreementMutants(t *testing.T) {
 				}
 				return strings.Replace(src, kids, split, 1)
 			}, nil)
-			c := cases["list"]
+			// A term's list and a repetition's list; only the long list is longer than a chunk.
+			cs := []limitAgreementCase{cases["list"], cases["repetition"]}
 			if name == "list take-off by chunks" {
-				c = cases["long list"]
+				cs = []limitAgreementCase{cases["long list"]}
 			}
-			node, typed := generatedGoLimitReports(t, c, runtime)
-			for _, size := range c.lists {
-				if listReservationMissing(node, size) && listReservationMissing(typed, size) {
-					return
+			for _, c := range cs {
+				node, typed := generatedGoLimitReports(t, c, runtime)
+				caught := false
+				for _, size := range c.lists {
+					caught = caught || listReservationMissing(node, size) && listReservationMissing(typed, size)
+				}
+				if !caught {
+					t.Errorf("%s: generated Go with the %s still makes each list take-off one reservation", c.name, name)
 				}
 			}
-			t.Errorf("generated Go with the %s still makes each list take-off one reservation", name)
 		})
 	}
 	t.Run("TypeScript list take-off as two reservations", func(t *testing.T) {
 		t.Parallel()
 		codegentest.NeedsBudgetControls(t)
 		const kids = "if (n > 0) c.charge(2 * n);"
-		c := cases["list"]
-		ts := generatedTSLimitReports(t, c, func(b string) string {
-			if !strings.Contains(b, kids) {
-				t.Fatal("the reservation of a list take-off is not in the TypeScript runtime")
+		for _, c := range []limitAgreementCase{cases["list"], cases["repetition"]} {
+			ts := generatedTSLimitReports(t, c, func(b string) string {
+				if !strings.Contains(b, kids) {
+					t.Fatal("the reservation of a list take-off is not in the TypeScript runtime")
+				}
+				return strings.Replace(b, kids, "if (n > 0) { c.charge(n); c.charge(n); }", 1)
+			})
+			if !listReservationMissing(ts, c.lists[0]) {
+				t.Errorf("%s: generated TypeScript with a list take-off as two reservations still makes it one", c.name)
 			}
-			return strings.Replace(b, kids, "if (n > 0) { c.charge(n); c.charge(n); }", 1)
-		})
-		if !listReservationMissing(ts, c.lists[0]) {
-			t.Error("generated TypeScript with a list take-off as two reservations still makes it one")
 		}
 	})
 	t.Run("TypeScript run as one reservation", func(t *testing.T) {
