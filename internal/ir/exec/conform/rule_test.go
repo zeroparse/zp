@@ -49,7 +49,7 @@ var ruleModule = RuleModule()
 // ruleSuite is a suite of the rules over the model, broken by mu if it is not nil, and of a target
 // whose Document parse takes the call protocol if callMemo.
 func ruleSuite(name string, callMemo bool, mu *ruleMutant) Suite {
-	return Suite{Name: name, Ops: append(append(append(append([]string{}, RuleOps...), RuleCaseOps...), DocOps...), append(RuleMissingOps, "budget.charge", "budget.used")...),
+	return Suite{Name: name, Ops: append(append(append(append([]string{RuleRunOp}, RuleOps...), RuleCaseOps...), DocOps...), append(RuleMissingOps, "budget.charge", "budget.used")...),
 		DocCallMemo: callMemo, New: func(c ref.Config) Impl {
 			if mu == nil {
 				return modelImpl{ref.New(c)}
@@ -63,7 +63,7 @@ func ruleSuite(name string, callMemo bool, mu *ruleMutant) Suite {
 // randomRule returns the randomized case of the rules with the seed: every third parse reads a
 // Document.
 func randomRule(seed uint64) Case {
-	return RandomRule("random", rand.New(rand.NewPCG(seed, 9)), append(append(append([]string{}, RuleOps...), RuleCaseOps...), RuleMissingOps...), 60, seed%3 == 2)
+	return RandomRule("random", rand.New(rand.NewPCG(seed, 9)), append(append(append([]string{RuleRunOp}, RuleOps...), RuleCaseOps...), RuleMissingOps...), 60, seed%3 == 2)
 }
 
 func TestRuleCasesVerify(t *testing.T) {
@@ -115,7 +115,7 @@ func TestRandomRuleCasesUseTheOperations(t *testing.T) {
 	for seed := range uint64(300) {
 		walkCalls(randomRule(seed).Func.Body, func(x *exec.Call) { counts[x.Callee]++ })
 	}
-	for _, name := range RuleOps {
+	for _, name := range append([]string{RuleRunOp}, RuleOps...) {
 		if counts[name] < 100 {
 			t.Errorf("randomized cases call %s %d times", name, counts[name])
 		}
@@ -126,7 +126,7 @@ func TestRandomRuleCasesUseTheOperations(t *testing.T) {
 // apart: the model of either kind of target fails the suite of the other.
 func TestDocCallMemoDiffers(t *testing.T) {
 	for _, callMemo := range []bool{false, true} {
-		s := Suite{Name: "other", Ops: append(append(append([]string{}, RuleOps...), RuleCaseOps...), DocOps...), DocCallMemo: callMemo, New: func(c ref.Config) Impl {
+		s := Suite{Name: "other", Ops: append(append(append([]string{RuleRunOp}, RuleOps...), RuleCaseOps...), DocOps...), DocCallMemo: callMemo, New: func(c ref.Config) Impl {
 			c.DocCallMemo = !callMemo
 			return modelImpl{ref.New(c)}
 		}}
@@ -240,6 +240,42 @@ func ruleMutants() map[string]*ruleMutant {
 			r := m.call("rule.invoke", a...)
 			if !r[1].(bool) {
 				m.regs[ops.Pos] = start
+			}
+			return r
+		}},
+		"run stays at the start of a match": {op: RuleRunOp, edit: func(m *ruleMutant, a []any) []any {
+			start := pos(m)
+			r := m.call(RuleRunOp, a...)
+			if r[1].(bool) {
+				m.regs[ops.Pos] = start
+			}
+			return r
+		}},
+		"run drops the errors of a failure": {op: RuleRunOp, edit: func(m *ruleMutant, a []any) []any {
+			mark := m.call("rec.mark")[0]
+			r := m.call(RuleRunOp, a...)
+			if !r[1].(bool) {
+				m.call("rec.truncate", mark)
+			}
+			return r
+		}},
+		"run takes a nesting level for every rule": {op: RuleRunOp, edit: func(m *ruleMutant, a []any) []any {
+			m.call("depth.enter")
+			r := m.call(RuleRunOp, a...)
+			m.call("depth.exit")
+			return r
+		}},
+		"run counts the evaluation": {op: RuleRunOp, edit: func(m *ruleMutant, a []any) []any {
+			r := m.call(RuleRunOp, a...)
+			if m.call("doc.active")[0].(bool) {
+				m.call("doc.evaluated")
+			}
+			return r
+		}},
+		"run makes one value for every match": {op: RuleRunOp, edit: func(m *ruleMutant, a []any) []any {
+			r := m.call(RuleRunOp, a...)
+			if r[1].(bool) {
+				r[0] = sharedValue
 			}
 			return r
 		}},

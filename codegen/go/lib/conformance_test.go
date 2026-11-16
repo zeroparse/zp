@@ -21,7 +21,7 @@ func TestMain(m *testing.M) {
 
 // libOverlay writes a go build overlay (go help build, -overlay) that adds the tests of
 // testdata/conformance and the conformance bindings that the library's printer prints
-// (libgo.GoExpBindings, libgo.GoTypedExpBindings, libgo.GoDocBindings, libgo.GoRuleBindings, libgo.GoOprBindings,
+// (libgo.GoExpBindings, libgo.GoTypedExpBindings, libgo.GoDocBindings, libgo.GoRuleBindings, libgo.GoTypedRuleBindings, libgo.GoOprBindings,
 // libgo.GoCtxBindings, libgo.GoFrameBindings, libgo.GoTypedFrameBindings, libgo.GoTermStateBindings,
 // libgo.GoTypedTermStateBindings, libgo.GoObsBindings) to the
 // library package, and returns its path. The tests bind the operations to unexported code of the
@@ -77,6 +77,7 @@ func libOverlay(t *testing.T, mutate func(name, src string) string) string {
 		"frame_bind_exec_test.go":  libgogen.GoFrameBindings,
 		"tframe_bind_exec_test.go": libgogen.GoTypedFrameBindings,
 		"rule_bind_exec_test.go":   libgogen.GoRuleBindings,
+		"trule_bind_exec_test.go":  libgogen.GoTypedRuleBindings,
 		"terms_bind_exec_test.go":  libgogen.GoTermStateBindings,
 		"tterms_bind_exec_test.go": libgogen.GoTypedTermStateBindings,
 		libgogen.GoObsBindingsFile: libgogen.GoObsBindings,
@@ -119,7 +120,7 @@ func TestLibExecConformance(t *testing.T) {
 	if err != nil {
 		t.Fatalf("go test: %v\n%s", err, out)
 	}
-	for _, name := range []string{"TestExecConformance", "TestExecConformanceDetectsBrokenLib", "TestExecConformanceDetectsBrokenTypedLib", "TestExecConformanceRule", "TestExecConformanceRuleDetectsBrokenLib", "TestExecConformanceRuleDetectsCharges", "TestExecConformanceObs", "TestExecConformanceObsDetectsBrokenLib", "TestExecConformanceExp", "TestExecConformanceExpDetectsBrokenLib", "TestExecConformanceTypedExpDetectsBrokenLib", "TestExecConformanceExpDetectsCharges", "TestExecConformanceDoc", "TestExecConformanceDocDetectsBrokenLib", "TestExecConformanceOpr", "TestExecConformanceOprDetectsBrokenLib", "TestExecConformanceCtx", "TestExecConformanceCtxDetectsBrokenLib", "TestExecConformanceFrame", "TestExecConformanceFrameDetectsBrokenLib", "TestExecConformanceTermState", "TestExecConformanceTermStateDetectsBrokenLib", "TestValueConformance", "TestValueConformanceDetectsBrokenLib", "TestValueBoxedOperands", "TestValueBoxedStringCharges", "TestValueCompareStrings", "TestValueMemberTable", "TestValueBuiltinTable", "TestValueStructTable", "TestValueHullTable", "TestValueIterTable", "TestValuePushTable", "TestValueCastTable"} {
+	for _, name := range []string{"TestExecConformance", "TestExecConformanceDetectsBrokenLib", "TestExecConformanceDetectsBrokenTypedLib", "TestExecConformanceRule", "TestExecConformanceRuleDetectsBrokenLib", "TestExecConformanceRuleDetectsCharges", "TestExecConformanceTypedRule", "TestExecConformanceTypedRuleDetectsBrokenLib", "TestExecConformanceTypedRuleDetectsCharges", "TestExecConformanceObs", "TestExecConformanceObsDetectsBrokenLib", "TestExecConformanceExp", "TestExecConformanceExpDetectsBrokenLib", "TestExecConformanceTypedExpDetectsBrokenLib", "TestExecConformanceExpDetectsCharges", "TestExecConformanceDoc", "TestExecConformanceDocDetectsBrokenLib", "TestExecConformanceOpr", "TestExecConformanceOprDetectsBrokenLib", "TestExecConformanceCtx", "TestExecConformanceCtxDetectsBrokenLib", "TestExecConformanceFrame", "TestExecConformanceFrameDetectsBrokenLib", "TestExecConformanceTermState", "TestExecConformanceTermStateDetectsBrokenLib", "TestValueConformance", "TestValueConformanceDetectsBrokenLib", "TestValueBoxedOperands", "TestValueBoxedStringCharges", "TestValueCompareStrings", "TestValueMemberTable", "TestValueBuiltinTable", "TestValueStructTable", "TestValueHullTable", "TestValueIterTable", "TestValuePushTable", "TestValueCastTable"} {
 		if !strings.Contains(string(out), "--- PASS: "+name+" ") {
 			t.Errorf("go test did not run %s:\n%s", name, out)
 		}

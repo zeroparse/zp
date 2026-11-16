@@ -330,9 +330,10 @@ transitional until the scripted-rule model covers them. *Target*: the representa
 
 **Rules.** What the grammar says of a rule (whether a parse from scratch or a Document parse memoizes it, whether it
 leads a cycle, its captures, whether its results depend on positions) and the evaluation of its body are the operations
-of the component `rules` other than `rule.run` (`rule.memo`, `rule.leader`, `rule.plain`, their Document forms,
-`rule.positional`, `rule.id`, `rule.invoke` and `rule.invokePlain`), with a reference model and conformance cases that
-run on generated Go and the engine. The body is the grammar's code, which the machine does not model: a case states what
+of the component `rules` (`rule.memo`, `rule.leader`, `rule.plain`, their Document forms, `rule.positional`, `rule.id`,
+`rule.invoke`, `rule.invokePlain`, and `rule.run`, which runs the invocation of a body that a generated typed call
+passes), with a reference model and conformance cases that run on generated Go, typed and node, and the engine; only the
+typed runtime passes invocations, so `rule.run` runs there alone. The body is the grammar's code, which the machine does not model: a case states what
 each evaluation of a body does (its charges, the errors it recovers, how far it examines the input, where it ends and
 whether it matches), and the model and each target run that script, the target through a rule whose body calls the
 target's own operations, so that compositions that call rules can be checked without a grammar. A call charges one unit,

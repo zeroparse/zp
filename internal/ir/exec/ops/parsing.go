@@ -186,7 +186,7 @@ position and without the errors it recovered on failure; in the missing-token mo
 removes the missing tokens that the body inserted, as missing.reset does. The evaluation counts, and
 the unit of the call comes before the nesting level, as in rule.invoke.`,
 		Requires: `rule.plain is true of r.`})
-	add(&exec.Op{Name: "rule.run", Component: Rules, Params: []exec.Param{exec.P("inv", bodyH)}, Results: result,
+	m.AddOp(&exec.Op{Name: "rule.run", Component: Rules, Params: []exec.Param{exec.P("inv", bodyH)}, Results: result,
 		Writes: append([]string{Rules}, regs...), NoReturn: true, Cost: body,
 		Contract: `Runs the invocation inv of a rule at binding level 0 and returns its result; on failure the
 position is unspecified. The evaluation does not count in the statistics of a Document parse, which
