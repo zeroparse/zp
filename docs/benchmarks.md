@@ -180,23 +180,25 @@ Each figure is the median of 3 runs of `bench/ts-parse.mjs`, one fresh process p
 ### Generated Parser Size
 
 Sizes of the parsers generated from `testdata/grammars/` with the options of `testdata/grammars/generate.txt`
-(commit f75c30592, go1.27.1). "Go source" is the generated `parser.go`; "Go binary" is a program that
+(commit 14dda7a2c, go1.27.1). "Go source" is the generated `parser.go`; "Go binary" is a program that
 calls the parser's `ParseValue`, built with `-trimpath -ldflags="-s -w"`, so it includes the ZeroParse runtime and the
-parser's types. "TypeScript" is the generated `parser.ts`, raw and compressed with `gzip -9`; it imports the embedded
-runtime, which is the same for every parser and weighs 275 KB (71.6 KB gzipped).
+parser's types. With `-lib embed` instead, a parser carries its own copy of the library, which keeps only the code
+the parser can run: "Go library copy" is the source of that copy (the whole library weighs 468 KB),
+and "Go binary, embed" is the same program built with it. "TypeScript" is the generated `parser.ts`, raw and compressed
+with `gzip -9`; it imports the embedded runtime, which is the same for every parser and weighs 275 KB (71.7 KB gzipped).
 
-| Parser | Go source | Go binary | TypeScript | TypeScript, gzip -9 |
-|:--|--:|--:|--:|--:|
-| json | 61.6 KB | 2.36 MB | 56.7 KB | 8.50 KB |
-| csv | 28.2 KB | 2.32 MB | 31.1 KB | 6.53 KB |
-| xml | 326 KB | 2.98 MB | 280 KB | 30.9 KB |
-| yaml | 580 KB | 3.36 MB | 532 KB | 51.5 KB |
-| cel | 119 KB | 2.51 MB | 175 KB | 20.2 KB |
-| cue | 439 KB | 3.09 MB | 559 KB | 60.5 KB |
-| golang | 629 KB | 3.45 MB | 828 KB | 80.4 KB |
-| python | 744 KB | 3.84 MB | 912 KB | 102 KB |
-| typescript | 1.09 MB | 4.94 MB | 1.47 MB | 139 KB |
-| duckdb | 1.85 MB | 6.29 MB | 2.52 MB | 188 KB |
+| Parser | Go source | Go binary | Go library copy | Go binary, embed | TypeScript | TypeScript, gzip -9 |
+|:--|--:|--:|--:|--:|--:|--:|
+| json | 61.4 KB | 2.37 MB | 436 KB | 2.37 MB | 56.8 KB | 8.53 KB |
+| csv | 28.1 KB | 2.34 MB | 435 KB | 2.32 MB | 31.1 KB | 6.54 KB |
+| xml | 325 KB | 2.99 MB | 441 KB | 2.99 MB | 281 KB | 31.1 KB |
+| yaml | 578 KB | 3.37 MB | 442 KB | 3.37 MB | 533 KB | 51.7 KB |
+| cel | 119 KB | 2.53 MB | 394 KB | 2.48 MB | 176 KB | 20.4 KB |
+| cue | 439 KB | 3.11 MB | 396 KB | 3.05 MB | 561 KB | 60.7 KB |
+| golang | 629 KB | 3.48 MB | 395 KB | 3.38 MB | 832 KB | 81.1 KB |
+| python | 744 KB | 3.87 MB | 396 KB | 3.77 MB | 916 KB | 102 KB |
+| typescript | 1.09 MB | 5.00 MB | 396 KB | 4.86 MB | 1.48 MB | 141 KB |
+| duckdb | 1.85 MB | 6.32 MB | 396 KB | 6.11 MB | 2.54 MB | 191 KB |
 
 ## All Results
 

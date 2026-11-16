@@ -10,8 +10,8 @@
 //	results.txt      raw `go test -bench` output of the Go benchmarks
 //	results-ts.txt   parse, typed and recognition times of the generated TypeScript parsers under Node
 //	                 (bench/ts-parse.mjs, one fresh process per measurement)
-//	results-size.txt sizes of the generated Go and TypeScript parsers: parser.go, a built binary,
-//	                 parser.ts and its gzip -9 compression
+//	results-size.txt sizes of the generated Go and TypeScript parsers: parser.go, a built binary, the
+//	                 library copy of -lib embed and its binary, parser.ts and its gzip -9 compression
 //
 // -capture selects the parts to capture (go, ts, size; default all) and keeps the files of the others.
 // The document is rendered from the files and the template benchmarks.md.tmpl; it holds results only
