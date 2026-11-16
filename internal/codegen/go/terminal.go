@@ -186,7 +186,7 @@ func (t *terminalProgram) emit(e grammar.Expr) {
 		}
 		t.code = append(t.code, terminalLiteral, 4)
 		t.word(i)
-		t.word(int(g.Desc(strconv.Quote(e.Value))))
+		t.word(int(g.Desc(compile.LiteralDesc(e))))
 	case *grammar.CharClass:
 		t.code = append(t.code, terminalClass, 4)
 		t.word(t.class(e))
@@ -264,7 +264,7 @@ func (t *terminalProgram) first(e grammar.Expr) (*grammar.CharClass, compile.Exp
 			break
 		}
 		r, _ := utf8.DecodeRuneInString(e.Value)
-		return &grammar.CharClass{Ranges: []grammar.CharRange{{Lo: r, Hi: r}}}, g.Desc(strconv.Quote(e.Value)), true
+		return &grammar.CharClass{Ranges: []grammar.CharRange{{Lo: r, Hi: r}}}, g.Desc(compile.LiteralDesc(e)), true
 	case *grammar.CharClass:
 		return e, g.Desc(compile.CharClassString(e)), true
 	case *grammar.Seq:
