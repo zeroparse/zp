@@ -213,10 +213,31 @@ func libFiles(opts codegen.GenOptions) ([]codegen.GeneratedFile, error) {
 	}
 	var out []codegen.GeneratedFile
 	for _, f := range info.files {
-		out = append(out, codegen.GeneratedFile{Path: path.Join(embeddedLibDir, f.name), Content: []byte(codegen.Header() + "\n" + string(f.data))})
+		data := f.data
+		if opts.FeatureWitness {
+			// The copy of a parser that records its features checks them whatever the build tags.
+			switch f.name {
+			case witnessOffFile:
+				continue
+			case witnessOnFile:
+				if !bytes.Contains(data, []byte(witnessConstraint)) {
+					return nil, fmt.Errorf("the library file %s lacks the constraint %q", witnessOnFile, witnessConstraint)
+				}
+				data = bytes.Replace(data, []byte(witnessConstraint), nil, 1)
+			}
+		}
+		out = append(out, codegen.GeneratedFile{Path: path.Join(embeddedLibDir, f.name), Content: []byte(codegen.Header() + "\n" + string(data))})
 	}
 	return out, nil
 }
+
+// The files of the library that turn the check of the features of a parser (GenOptions.FeatureWitness)
+// on and off, and the build constraint that selects the first.
+const (
+	witnessOnFile     = "features_witness.go"
+	witnessOffFile    = "features_nowitness.go"
+	witnessConstraint = "//go:build zp_feature_witness\n"
+)
 
 // embeddedLibDir is the directory of the copy of the library in a package generated with LibEmbed.
 const embeddedLibDir = "internal/libgo"

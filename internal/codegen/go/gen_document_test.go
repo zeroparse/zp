@@ -148,7 +148,7 @@ func TestGeneratedDocumentCloneCyclicAndSharedSlices(t *testing.T) {
 	}
 	cmd := exec.Command("go", "test", "./...")
 	cmd.Dir = dir
-	cmd.Env = append(os.Environ(), "GOTOOLCHAIN=local", "GOFLAGS=-mod=mod -trimpath")
+	cmd.Env = append(os.Environ(), "GOTOOLCHAIN=local", codegentest.GoFlagsEnv)
 	if out, err := cmd.CombinedOutput(); err != nil {
 		t.Fatalf("generated Document build/test: %v\n%s", err, out)
 	}

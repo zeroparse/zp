@@ -59,7 +59,7 @@ rule main Pair = a:"a" => Pair{TName: "n", TText: "t", TKids: "k", TStruct: "s",
 	for _, args := range [][]string{{"vet", "./..."}, {"test", "./..."}} {
 		cmd := exec.Command("go", args...)
 		cmd.Dir = dir
-		cmd.Env = append(os.Environ(), "GOTOOLCHAIN=local", "GOFLAGS=-mod=mod -trimpath")
+		cmd.Env = append(os.Environ(), "GOTOOLCHAIN=local", codegentest.GoFlagsEnv)
 		if out, err := cmd.CombinedOutput(); err != nil {
 			t.Fatalf("go %s: %v\n%s", args[0], err, out)
 		}

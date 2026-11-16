@@ -85,7 +85,7 @@ func protocolBuild(t *testing.T, files, libFiles []codegen.File, lib string, cor
 	write("p/go.mod", []byte("module example.com/proto\n\ngo 1.27.1\n\nrequire zeroparse.dev/zp v0.0.0\n\nreplace zeroparse.dev/zp => ../zp\n"))
 	cmd := exec.Command("go", "build", "./...")
 	cmd.Dir = filepath.Join(dir, "p")
-	cmd.Env = append(os.Environ(), "GOTOOLCHAIN=local", "GOFLAGS=-mod=mod -trimpath", "GOWORK=off")
+	cmd.Env = append(os.Environ(), "GOTOOLCHAIN=local", codegentest.GoFlagsEnv, "GOWORK=off")
 	out, err := cmd.CombinedOutput()
 	return string(out), err
 }

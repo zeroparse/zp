@@ -129,7 +129,7 @@ func testGeneratedGoStartRules(t *testing.T) {
 			}
 			cmd := exec.Command(goBin, "run", ".")
 			cmd.Dir = dir
-			cmd.Env = append(os.Environ(), "GOFLAGS=-mod=mod -trimpath", "GOTOOLCHAIN=local")
+			cmd.Env = append(os.Environ(), codegentest.GoFlagsEnv, "GOTOOLCHAIN=local")
 			var stderr strings.Builder
 			cmd.Stderr = &stderr
 			out, err := cmd.Output()

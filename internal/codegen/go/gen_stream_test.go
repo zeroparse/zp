@@ -520,7 +520,7 @@ func main() {
 	write("runs.json", string(data))
 	cmd := exec.Command(goBin, "run", ".", "runs.json")
 	cmd.Dir = dir
-	cmd.Env = append(os.Environ(), "GOFLAGS=-mod=mod -trimpath", "GOTOOLCHAIN=local")
+	cmd.Env = append(os.Environ(), codegentest.GoFlagsEnv, "GOTOOLCHAIN=local")
 	out, err := cmd.CombinedOutput()
 	if err != nil {
 		t.Fatalf("go run: %v\n%s", err, out)
@@ -818,7 +818,7 @@ func main() {
 	write("runs.json", string(data))
 	cmd := exec.Command(goBin, "run", ".", "runs.json")
 	cmd.Dir = dir
-	cmd.Env = append(os.Environ(), "GOFLAGS=-mod=mod -trimpath", "GOTOOLCHAIN=local")
+	cmd.Env = append(os.Environ(), codegentest.GoFlagsEnv, "GOTOOLCHAIN=local")
 	out, err := cmd.CombinedOutput()
 	if err != nil {
 		t.Fatalf("go run: %v\n%s", err, out)

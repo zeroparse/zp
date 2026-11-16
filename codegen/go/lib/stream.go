@@ -128,7 +128,7 @@ func (r *streamReader) Read(dst []byte) (int, error) {
 // RunParseStream is for generated parsers; not a stable API.
 func RunParseStream(r *Rule, reader io.Reader, emit func(*core.Node) error, opts []ParseOption) error {
 	if witnessFeatures {
-		useFeature(r.g, FeatureStream)
+		useFeature(r.g, featureStream)
 	}
 	var e func(*core.Node, *BudgetControl) error
 	if emit != nil {
@@ -143,7 +143,7 @@ func RunParseStream(r *Rule, reader io.Reader, emit func(*core.Node) error, opts
 // RunParseStreamWithBudget is for generated parsers; not a stable API.
 func RunParseStreamWithBudget(r *Rule, reader io.Reader, emit func(*core.Node, *BudgetControl) error, opts []ParseOption) (err error) {
 	if witnessFeatures {
-		useFeature(r.g, FeatureStream)
+		useFeature(r.g, featureStream)
 	}
 	o, err := ResolveOptions(r.g, append(opts[:len(opts):len(opts)], streaming))
 	if err != nil {
