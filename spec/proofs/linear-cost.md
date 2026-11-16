@@ -1448,8 +1448,9 @@ $E_2$ left no entry that answers that call, and reach $q$ in that later
 evaluation. When $E_2$ holds
 $\alpha_j$, $Y_{l'}$, which holds it too, lies inside $E_2$ or encloses it.
 The claim above treats $Y_{l'}$ inside a body evaluation of $E_2$ other than
-as that body evaluation. Not shown are the case in which $Y_{l'}$ is the body
-evaluation of $E_2$, so that $c$ is the call at $\pi_{l'}$, and the case in
+as that body evaluation, and the claim below part of the case in which
+$Y_{l'}$ is the body evaluation of $E_2$, so that $c$ is the call at
+$\pi_{l'}$. Not shown are the rest of that case and the case in
 which $Y_{l'}$ encloses $E_2$, as the body evaluation of a call with which
 $\hat{\kappa}$ starts and whose body evaluates $c$ first. Nor is the case shown
 in which $Y_{l'}$ contains $e'_j$ and is not $e'_j$, nor the case of a growth
@@ -1457,6 +1458,45 @@ step around $Y_l$ that is dropped, nor the second form of the claim, in which
 the part of $w_j$ after its read of the seed takes the place of $w_j$ and is
 checked from the end of the seed as a growing unit, as in the first case of
 *Dropped steps*.
+
+**The frame of an outer link as the later evaluation of a shared call.** In
+the application above, let $Y_{l'}$ be the body evaluation of $E_2$, so that
+the call of $c$ in $\hat{\kappa}$ is $\pi_{l'}$ and its rule is the rule $Y$
+of $Y_{l'}$. Then $E_1$ succeeds and ends at $p$, and $Y_l$ is the body
+evaluation of $E_1$, lies inside a body evaluation of $E_1$ other than as
+it, or contains $E_1$ and is not its body evaluation. In the second case,
+this is the case that *Nesting at one end* rules out, with $E_1$ as $X$ and
+$Y_l$ as $T$, unless $r$ is a scan-only rule.
+
+*Proof.* $Y_{l'}$ is no growth step, since the parser leaves it at $p$ from
+the end of $w_{l'}$ to $e'_{l'}$ (*Outer links across runs*), so it is the
+only body evaluation of $E_2$, and it succeeds and ends at $p$, where the
+link $l'$ leaves it; so $E_2$ succeeds and ends at $p$. $E_1$ is an evaluation
+of the same call at the same position, and has the same result (case 2), so
+it succeeds and ends at $p$ too. $E_1$ and $Y_l$ both contain
+$\alpha_{l-1}$, so one contains the other, which gives the three cases. In the
+second, $E_1$ is an evaluation of a call of $Y$, and the calls from $E_1$ down
+to $Y_l$ lead from $Y$ to the caller of $\pi_l$, which calls $Y$ at $\pi_l$,
+so $Y$ is of the recursion of $\pi_l$. $E_1$ succeeds and ends at $p$, and
+$Y_l$, an evaluation of $\pi_l$ inside $E_1$ other than $E_1$, starts before
+$p$, ends at $p$ and holds $\alpha_{l-1}$, a successful activation of the
+scanning source $\sigma$. These are the hypotheses of *Nesting at one end*
+with $E_1$ as $X$ and $Y_l$ as $T$, which give that $\pi_l$ nests at one end
+under its hypotheses on the dropped steps and the alike calls and apart from
+its open points. The continuation of $w_l$ then reaches the call of $r$
+after leaving the body of $Y_l$ through $\pi_l$, in what follows $\pi_l$, so
+the call is not shared unless $r$ is a scan-only rule, as in the proof of
+*Memoized links to the frame of an outer link*. $\square$
+
+The first and third cases are not shown. In the first, the unit makes its
+call of $c$ at $\pi_l$ too, so the parser evaluates the call place $\pi_l$ at
+the start of $Y_{l'}$ once inside $w_{\bar{m}}$ and once more in
+$\hat{\kappa}$, and the argument above, which needs an evaluation of a call
+of $Y$ around $Y_l$ other than $Y_l$, does not apply to $E_1$. In the third,
+the unit reaches its call of $c$ inside $Y_l$. As in *Memoized links to the
+frame of an outer link*, *Calls of scan-only rules* treats a scan-only $r$ in
+a parse with the records of scan sites, and no claim treats it in a parse
+without them.
 
 **Calls of scan-only rules.** Let the rule $r$ of the links $i$ to $k$ be a
 scan-only rule ([Conditions for Linear
@@ -5988,8 +6028,14 @@ condition of the cost view that the [Cost View](cost-view.md) proof leaves open.
    holds it if the two evaluations of the call meet the hypotheses of
    *Evaluated pairs of a shared call*; that neither is in a context of
    growths, and the hypothesis on the growths open at their position, are not
-   shown. Nor are the cases in which that frame is the body evaluation of the
-   later evaluation of the call or encloses it, or in which the continuation
+   shown. When that frame is the body evaluation of the later evaluation of
+   the call and the frame of the earlier outer link lies inside a body
+   evaluation of the earlier one other than as it, *Nesting at one end* rules
+   the case out, apart from a scan-only rule of the scan (*The frame of an outer link as the later evaluation
+   of a shared call*); not shown are the cases in which the frame of the
+   earlier outer link is the body evaluation of the earlier evaluation or
+   contains it, in which the frame of the later outer link encloses the later
+   evaluation of the call, or in which the continuation
    reaches the activation of the index in a later evaluation of the call. A later
    evaluation that lies inside that frame, an index that is free and one
    linked by a leaf link at a position before the scan are not treated. So the outer links do not bound the
