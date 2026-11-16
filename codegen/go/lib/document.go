@@ -510,6 +510,7 @@ func DocumentParseConverted[T any](d *documentState, o parseOptions, convert fun
 	}
 	p.Document, p.memo = d, d.memo
 	p.setTracking()
+	p.setDeferMemo()
 	d.pending = 0
 	o.control.attachMemory(p)
 	d.stats = documentStats{}

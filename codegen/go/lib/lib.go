@@ -709,6 +709,7 @@ func parseResolvedSpend(r *Rule, input string, o parseOptions) (n *core.Node, er
 	o.control.attachMemory(p)
 	p.Observation = newObservation(&o.observe, &p.Silent)
 	p.setTracking()
+	p.setDeferMemo()
 	p.MaxDepth = o.maxDepth
 	if o.unit == core.Bytes {
 		p.unit, p.bs, p.n = core.Bytes, input, len(input)
@@ -802,6 +803,10 @@ type Parser struct {
 	// track reports that the parse tracks the examined end of each rule call (docExamined): a
 	// Document parse, which reuses results by it, or an observed parse, which reports it (setTracking).
 	track bool
+	// deferMemo reports that the parse defers the memoization of a rule to its second call at a
+	// position (seen.defers): a parse of a whole input from scratch, neither a stream nor a Document
+	// parse (setDeferMemo).
+	deferMemo bool
 	// Document is set only by the private incremental runner.
 	Document *documentState
 	// docExamined is the exact end of the input that the active rule call of a parse that tracks it
@@ -2106,6 +2111,11 @@ func (p *Parser) releaseObservation() {
 	p.Observation.release()
 	p.Observation = nil
 	p.setTracking()
+}
+
+// setDeferMemo sets deferMemo from the stream and the Document of the parse.
+func (p *Parser) setDeferMemo() {
+	p.deferMemo = p.Stream == nil && p.Document == nil
 }
 
 // setTracking sets track from the Document and the observation of the parse.

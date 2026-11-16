@@ -703,6 +703,7 @@ func (p *TParser) run(r *TRule, input string, o parseOptions, ext any) (v any, e
 		p.Document = p.TypedDocument.owner
 	}
 	p.setTracking()
+	p.setDeferMemo()
 	r = r.forParse(p.Parser)
 	p.memo.sparse = p.memo.stride > 64 && p.n > 1024
 	defer func() {

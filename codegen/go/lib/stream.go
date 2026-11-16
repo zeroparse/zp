@@ -165,6 +165,7 @@ func RunParseStreamWithBudget(r *Rule, reader io.Reader, emit func(*core.Node, *
 	p.Stream = &streamInput{reader: bufio.NewReader(reader), baseLine: 1, baseCol: 1, Emit: emit, diagnostic: o.diagnostic, start: r.Id}
 	p.Stream.tail.limit = o.diagnosticLimit
 	p.Stream.maxInput = o.maxInput
+	p.setDeferMemo()
 	o.control.attachMemory(p)
 	p.Control.Check()
 	_, ok := p.Call(r.forParse(p), 0)

@@ -41,7 +41,7 @@ func TestSparseMemoBoundariesAndReset(t *testing.T) {
 
 func TestSparseMemoPoolReuse(t *testing.T) {
 	for _, typed := range []bool{false, true} {
-		p := &Parser{memo: memoTable{stride: 65, sparse: true}}
+		p := &Parser{memo: memoTable{stride: 65, sparse: true}, deferMemo: true}
 		r := &Rule{Seen: 64}
 		p.Pos = 1024
 		if !p.FirstCall(r) || p.FirstCall(r) {
@@ -69,7 +69,7 @@ func TestSparseMemoPoolReuse(t *testing.T) {
 			}
 			continue
 		}
-		p.memo.stride, p.memo.sparse, p.Pos = 65, true, 1024
+		p.memo.stride, p.memo.sparse, p.Pos, p.deferMemo = 65, true, 1024, true
 		if !p.FirstCall(r) {
 			t.Fatal("page bit or eager decision survived pool reset")
 		}
@@ -126,7 +126,7 @@ func TestSparseMemoTypedRetentionAndTrimming(t *testing.T) {
 		if dir.last != nil || dir.at != 0 || len(dir.pages) != 0 || dir.pages[:1][0] != nil || chunk[0][0] != 0 || p.memo.bitPages.n != 0 || p.memo.calls[0] != (seenCalls{}) {
 			t.Fatal("retained sparse scratch preserved first-call state")
 		}
-		p.n, p.memo.stride, p.memo.sparse, p.Pos = limit, 65, true, 0
+		p.n, p.memo.stride, p.memo.sparse, p.Pos, p.deferMemo = limit, 65, true, 0, true
 		if !p.FirstCall(&Rule{Seen: 0}) || p.FirstCall(&Rule{Seen: 0}) {
 			t.Fatal("retained sparse scratch changed first/repeated decisions")
 		}
@@ -138,7 +138,7 @@ func TestSparseMemoTypedRetentionAndTrimming(t *testing.T) {
 		if p.memo.pages != nil || p.memo.bitPages.chunks != nil {
 			t.Fatal("small typed parse retained the preceding large sparse cache")
 		}
-		p.n, p.memo.stride, p.memo.sparse, p.Pos = limit, 65, true, 0
+		p.n, p.memo.stride, p.memo.sparse, p.Pos, p.deferMemo = limit, 65, true, 0, true
 		if !p.FirstCall(&Rule{Seen: 0}) || p.FirstCall(&Rule{Seen: 0}) {
 			t.Fatal("trimmed sparse scratch changed first/repeated decisions")
 		}
