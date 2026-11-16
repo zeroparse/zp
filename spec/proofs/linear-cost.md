@@ -446,7 +446,8 @@ sources has examined input. Condition 2 makes it committing. $\square$
 **Dropped steps.** Let the evaluation $w$ of the restarts be a dropped step of
 a growth $G$ of a leader $R$ at $p$, whose seed ends at $e \le q$. From the end
 of $G$ to the start of $\alpha'$, the parser starts no evaluation at a position
-before $e$, and it evaluates from $e$ what follows the calls that start $G$, the
+before $e$, apart from the later steps of the growths that enclose $G$ and what
+they evaluate at the positions of their growths, as in the restarts, and it evaluates from $e$ what follows the calls that start $G$, the
 continuations of a step of $G$ after the first as a unit
 ([Conditions for Linear Cost](../runtime/parsing.md#conditions-for-linear-cost),
 condition 2). One of three cases holds.
@@ -470,9 +471,11 @@ condition 2). One of three cases holds.
 that step as its result, so $G$ ends when $w$ does, at $e$. Let $v$ be the
 first evaluation in progress that started before $e$ and fails after the end
 of $G$ and before $\alpha'$. Every evaluation that starts after the end of $G$
-and before the failure of $v$ starts at $e$ or later, since the parser goes on
-at $e$ and a dropped step that starts in that time returns it to the end of
-its own seed, which is not before the start of its growth. So $v$ started
+and before the failure of $v$ starts at $e$ or later, apart from the later
+steps of the growths that enclose $G$ and what they evaluate at the positions
+of their growths, since the parser goes on at $e$ and a dropped step that
+starts in that time returns it to the end of its own seed, which is not before
+the start of its growth. So $v$ started
 before the end of $G$ and encloses $G$; it does not enclose $\alpha'$, so it
 lies on the path from $N$ to $w$, where no evaluation fails. So there is no
 such $v$. The parser goes on at $e$ after the call that started $G$: a call of
@@ -842,6 +845,87 @@ $\alpha_i$, would lie in $e_k$, which ended before $e'_k$ started, and so before
 $\alpha_i$ started. So the links that use one rule, position and level have
 distinct $e'_i$, none of which is the earliest of the evaluations. $\square$
 
+**Growths around a leaf link.** Let the rule $r$ of the $l$-th link call no
+rule, let $e_l$ and $e'_l$ start at $p$, and let $w_l$ start at $p$, at the end
+of its seed when it is a step of a growth after the first (*Dropped steps*).
+Let $N_l$ be the innermost evaluation that contains $\alpha_{l-1}$ and
+$\alpha_l$, and let $\bar{w}$ be the first abandoned evaluation below $N_l$ on
+the path to $\alpha_{l-1}$: $w_l$, or a dropped step that holds it in the
+second case of *Dropped steps*. Let no body evaluation that the parser leaves
+at $p$ from the end of $w_l$ to the start of $e'_l$ be a growth step. Then
+$N_l$ is no growth, no step of a growth on the path from $N_l$ down to $w_l$
+ends before $\alpha_l$ starts, and from the end of $w_l$ to the start of
+$\alpha_l$ the parser starts no evaluation at a position before $p$.
+
+*Proof.* Call the growths on the path from $N_l$ down to $w_l$, $N_l$ included
+when it is a growth and the growth of which $\bar{w}$ is a step excluded, the
+growths around $w_l$. Each has one step on the path, which contains $w_l$; the
+evaluations on the path other than $w_l$ and $\bar{w}$ succeed and are not
+abandoned (*Restarts*, *Dropped steps*), so that step is kept, and a later
+step of its growth starts only after it ends. When $\bar{w}$ is a dropped step,
+dropping it returns the parser to the end of its seed, which is no earlier
+than $p$, the start of $w_l$, nor than the end of an evaluation on the path
+inside $\bar{w}$, since those succeed and lie in its result, which is no longer
+than its seed. As the proofs of the restarts and of *Dropped steps* show, from
+the end of $w_l$ the parser returns to a position before one where it is only
+through the abandonment of an evaluation that started before that position and
+is in progress, which encloses $w_l$ and so lies on the path, or through a
+later step of a growth around $w_l$ and what that step evaluates at the
+position of its growth.
+
+Suppose that a step on the path of a growth around $w_l$ ends before
+$\alpha_l$ starts. These steps nest, so those that do form the inner part of
+their chain: $S_0, \ldots, S_m$, from the inside out, steps of the growths
+$G_0, \ldots, G_m$. $e'_l$ starts after each of them ends: it contains
+$\alpha_l$ and starts after the end of $w_l$, so it does not enclose $S_k$, and
+if it started inside $S_k$ it would end inside $S_k$, before $\alpha_l$. Until
+$S_0$ ends, no later step of a growth around $w_l$ starts, since each starts
+only after the step of its growth on the path, which contains $S_0$, ends, and
+the only abandoned evaluation on the path is $\bar{w}$, after which the parser
+is at $p$ or later. So the parser starts no evaluation before $p$ from the end
+of $w_l$ until $S_0$ ends, and $S_0$ ends at $p$ or later. The parser leaves
+$S_0$ after the end of $w_l$ and before $e'_l$ starts, so by the hypothesis
+not at $p$: $S_0$ ends after $p$. For $k \ge 1$, $G_{k-1}$ lies in $S_k$, and
+it ends at the end of the seed of its last step, which is no earlier than the
+end of the result of $S_{k-1}$, a kept step, since the seeds of a growth grow
+longer. From the end of $G_{k-1}$ until $S_k$ ends, the parser returns before
+that position only through the dropping of $\bar{w}$, when $\bar{w}$ encloses
+$G_{k-1}$, which leaves it no earlier than the end of $G_{k-1}$, or through a
+later step of a growth around $w_l$ that encloses $G_{k-1}$, whose step on the
+path contains $S_k$ and so has not ended. So $S_k$ ends no earlier than
+$G_{k-1}$, and so after $p$. Let $H = G_m$.
+
+If $e'_l$ did not lie in $H$, it would start after $H$ ends, no earlier than
+the end of $S_m$, so after $p$, and up to $\alpha_l$ the parser would return
+before the end of $H$ only through the dropping of $\bar{w}$, which leaves it
+no earlier than the end of $H$, or through a later step of a growth around
+$w_l$ that encloses $H$, whose step on the path is none of the $S_k$ and so
+does not end before $\alpha_l$; $e'_l$ would not start at $p$. So $e'_l$, and
+with it $\alpha_l$, lies in a later step of $H$, and $\alpha_{l-1}$, in $w_l$,
+lies in $S_m$. $H$ contains both, so $N_l$ lies in $H$, and $H$ lies on the
+path from $N_l$ down: $H$ is $N_l$, a growth, with $\alpha_{l-1}$ and
+$\alpha_l$ in different steps. Both activations are in the sequence, so the
+first case of *Repeats inside a growth* of Lemma 5 holds: the path to
+$\alpha_l$ goes on, in its step, from the end of a read of the growing result
+that succeeds, or of a call whose result includes one, which ends at or after
+the end of the seed of that step, and so no earlier than the end of the result
+of $S_m$, after $p$. $e'_l$, an evaluation of $r$, which calls no rule,
+contains neither, so it lies after them on the path and starts at or after
+that end, not at $p$. So no step on the path of a growth around $w_l$ ends
+before $\alpha_l$ starts.
+
+If $N_l$ were a growth, its step that holds $\alpha_{l-1}$ would lie on the
+path and end before its later step that holds $\alpha_l$ starts; so it is
+none, and no later step of a growth around $w_l$ starts before $\alpha_l$.
+By the second paragraph, the parser then starts no evaluation before $p$ from
+the end of $w_l$ to the start of $\alpha_l$. $\square$
+
+The hypothesis holds for every link of a run of *Calls that call no rule*
+below, whose hypothesis covers the time from the end of each unit of the run
+to the later evaluation of its link. Without it, the restarts leave open that
+a later step of a growth around the unit starts before $p$ before the next
+activation, as their exception states.
+
 **Calls that call no rule.** Let the rule $r$ of the links $i$ to $k$ call no
 rule, read no variable and not be memoized at its calls, let the shared
 call of each link be the first call that its unit and continuation share, and
@@ -859,7 +943,7 @@ $p$ as a unit, at the end of its seed. It returns the parser to $p$ when it is
 dropped, so for $l > i$ the hypothesis leaves it out, as a growth step left at
 $p$. When $w_i$ is one, the proof uses of it only what it uses of a unit at
 $p$: that it starts there as a unit and that from its end the parser starts
-no evaluation before $p$ until $\alpha_i$ (*Dropped steps*). An evaluation that
+no evaluation before $p$ until $\alpha_i$ (*Growths around a leaf link*). An evaluation that
 the step starts before $p$ lies inside it and ends before it. Call the body evaluations in progress the frames. Let $N_l$
 be the innermost evaluation that contains $\alpha_{l-1}$ and $\alpha_l$. Since
 $w_l$ is the first abandoned evaluation below $N_l$ on the path to
@@ -905,8 +989,8 @@ then reaches $e'_l$. The link is **outer** when $Y_l$ starts before $p$, and
 inside $Y_l$ and so starts at $p$.
 
 From the end of $w_i$ to $e'_k$ the parser starts no evaluation at a position
-before $p$: it starts none from the end of each $w_j$ to $e'_j$ (*Restarts*,
-since $w_j$ starts at $p$), and from $e'_j = e_{j+1}$ to the end of $w_{j+1}$
+before $p$: it starts none from the end of each $w_j$ to $e'_j$ (*Growths
+around a leaf link*, whose hypothesis the one here gives), and from $e'_j = e_{j+1}$ to the end of $w_{j+1}$
 it is inside $w_{j+1}$, which starts at $p$.
 
 *Outer links.* Let $l < l'$ be outer links with $\pi_l = \pi_{l'}$. $Y_{l'}$ starts before $p$ and is
@@ -965,9 +1049,13 @@ constant. $\square$
 **Outer links across runs.** Let $l < l'$ be leaf links of $\sigma$ at $q$
 whose shared call is the first, both at one position $p$, so that $w_l$ and
 $w_{l'}$ start at $p$, and let both leave frames, with $Y_l$, $Y_{l'}$,
-$\pi_l$ and $\pi_{l'}$ as in the proof above, which uses of the links $i$ to
+$\pi_l$ and $\pi_{l'}$ as in the proof above. Let no body evaluation that
+the parser leaves or starts at $p$ from the end of $w_l$ to $e'_l$, or from the
+end of $w_{l'}$ to $e'_{l'}$, be a growth step or in a context of growths, as in
+a run of *Calls that call no rule*; the proof above uses of the links $i$ to
 $k$ for these only that the unit of the link starts at $p$ and that from its
-end the parser starts no evaluation before $p$ until the next activation.
+end the parser starts no evaluation before $p$ until the next activation,
+which *Growths around a leaf link* gives under this hypothesis.
 Let both be outer, with $\pi_l = \pi_{l'}$. Then $Y_{l'}$ encloses $w_l$, or
 $Y_{l'}$ starts after $e'_l$ ends and an index $j$ with $l < j < l'$ has
 $\alpha_j$ inside $Y_{l'}$ and $w_j$ starting at a position no later than
@@ -979,9 +1067,9 @@ ends, so $Y_{l'}$ is in progress after $w_l$ ends. It was not started inside
 $w_l$, since an evaluation started inside $w_l$ ends inside it. If it was
 started before $w_l$ ended, it was started before $w_l$ and encloses it.
 Otherwise it was started after $w_l$ ended. From the end of $w_l$ to the
-start of $\alpha_l$ the parser starts no evaluation before $p$ (*Restarts*,
-*Dropped steps*), and while $e'_l = P_l$ is in progress it starts only
-evaluations inside the body of $R$, which calls no rule, at $p$ or later. As
+start of $\alpha_l$ the parser starts no evaluation before $p$ (*Growths
+around a leaf link*), and while $e'_l$ is in progress it starts only
+evaluations inside the body of $r$, which calls no rule, at $p$ or later. As
 $Y_{l'}$ starts before $p$, it starts after $e'_l$ ends. Let $j$ be the least
 index whose $\alpha_j$ starts after $Y_{l'}$ starts. $\alpha_l$ starts before
 $Y_{l'}$ and $\alpha_{l'-1}$ after it, so $l < j \le l' - 1$. $\alpha_j$
@@ -990,9 +1078,27 @@ while $Y_{l'}$ is in progress and lies inside it. $w_j$ contains
 $\alpha_{j-1}$, which starts before $Y_{l'}$, so $w_j$ started before
 $Y_{l'}$; it ends before $\alpha_j$ starts, so it does not enclose $Y_{l'}$,
 and it ended before $Y_{l'}$ started. From the end of $w_j$ to the start of
-$\alpha_j$ the parser starts no evaluation before the start of $w_j$
-(*Restarts*, *Dropped steps*), so $w_j$ starts at a position no later than
-the start of $Y_{l'}$, before $p$. $\square$
+$\alpha_j$ the parser starts no evaluation before the start $s_j$ of $w_j$
+apart from the exception of the restarts (*Restarts*, *Dropped steps*), so
+$Y_{l'}$ starts at $s_j$ or later unless it lies in that exception. $Y_{l'}$ is
+no growth step, since the parser leaves it at $p$ from the end of $w_{l'}$ to
+$e'_{l'}$. If it lay in a part that a later step of a growth $G$ on the path
+from $N_j$ down to $w_j$ evaluates at the position of $G$, then $\alpha_j$,
+inside $Y_{l'}$, would lie in that later step, and $\alpha_{j-1}$, inside
+$w_j$, in an earlier step, so $N_j$ would be $G$, and the first case of
+*Repeats inside a growth* of Lemma 5 would hold: the path to $\alpha_j$ would
+go on, in its step, from the end of a read of the growing result that
+succeeds, or of a call whose result includes one, which ends no earlier than
+the end of the seed of the step after the one that holds $w_j$, and so no
+earlier than $s_j$. $Y_{l'}$ lies on that path. It does not contain that read
+or call: it would then start at the position of $G$, where its step starts,
+reach the read and be reached from the start of the step without consuming
+input, so its rule would be of the cycle of $G$, and $Y_{l'}$, which $G$ is in
+progress around at its position, would be in a context of growths, which the
+hypothesis excludes. So $Y_{l'}$ lies after that read or call on the path and
+starts at or after its end, at $s_j$ or later, and does not lie in a part that
+goes on from the end of no such read. In both cases $w_j$ starts at a position
+no later than the start of $Y_{l'}$, before $p$. $\square$
 
 A frame that a link $m$ leaves succeeds and is no dropped step: it lies on
 the path from $N_m$ to $\alpha_{m-1}$ above $w_m$, the first abandoned
@@ -1001,11 +1107,13 @@ $p$, that growth would go on after it with another step from its own
 position, before $p$, since a growth ends only with a dropped step; the
 parser would start that step before $\alpha_m$, after the end of $w_m$, which
 starts at $p$. *Restarts* allows this for a growth on the path down to $w_m$,
-which a growth around the frame is, so that neither $Y_l$ nor $Y_{l'}$ is a
-growth step is not shown, and neither is that from the end of $w_l$ the parser
-starts no evaluation before $p$ until $\alpha_l$ outside such later steps,
-which the claim above uses; the uses below of these two facts hold only for
-frames that are no growth steps and links whose units no such growth encloses.
+which a growth around the frame is, and the hypothesis of the claim above
+excludes it for $Y_l$ and $Y_{l'}$: each is left at $p$ after the end of the
+unit of its link and before its later evaluation, so neither is a growth
+step, and *Growths around a leaf link* gives that from the end of $w_l$ the
+parser starts no evaluation before $p$ until $\alpha_l$. The uses below of
+these two facts hold for links that meet that hypothesis, as the links of a
+run of *Calls that call no rule* do.
 
 Two outer links through one call place of which the later $Y$ does not
 enclose the earlier unit therefore have between them an index whose unit
@@ -1139,7 +1247,11 @@ sequence of the activations of $\sigma$ at $q$ leaves out the activation at
 $q$ of that call. Let $m$ be the least index
 after $l$ whose unit starts before $p$, so that $m \le j$. From the end of
 $w_l$ to the start of $\alpha_{m-1}$ the parser starts no evaluation before
-$p$ (*Restarts* and *Dropped steps* for each index between), so $w_m$, which
+$p$ (*Growths around a leaf link* for $l$, and *Restarts* and *Dropped
+steps* for each index between, whose unit starts at $p$, outside the exception
+of the restarts; that no later step of a growth around such a unit starts
+before $p$ before the next activation is shown only for an index linked by a
+link that meets the hypothesis of *Growths around a leaf link*), so $w_m$, which
 contains $\alpha_{m-1}$, started before $w_l$ ended and encloses $Y_l$, as
 $w_j$ does above. Here $m < j$, and $w_j$, which contains $\alpha_{j-1}$, starts
 after $w_m$ ends: the parser returns before $p$ after $\alpha_l$ through a
@@ -5686,9 +5798,10 @@ condition of the cost view that the [Cost View](cost-view.md) proof leaves open.
    links $l < l'$ at one position $p$ through one call place still contradict
    the sharing of their call when $Y_{l'}$ encloses $w_l$: *Nesting at one end*
    applies with $Y_{l'}$ as $X$ and $Y_l$ as $T$, under its hypotheses and
-   with its open points, when neither frame is a growth step and no growth
-encloses the unit of a link, which is not shown (*Restarts* lets later steps
-of such a growth start before the position of the scan). In the
+   with its open points, when both links meet the hypothesis on growth steps
+   of *Calls that call no rule*, which keeps both frames from being growth
+   steps and the later steps of the growths around the units from starting
+   before the position of the scan (*Growths around a leaf link*). In the
    other case the parser starts $Y_{l'}$ after $e'_l$, and an index between
    them has its unit before $p$, so the two links lie in different runs
    (*Outer links across runs*), which occurs in a grammar that the conditions
@@ -5705,7 +5818,10 @@ of such a growth start before the position of the scan). In the
    the activation of that call (*Memoized links to the frame of an outer
    link*); what else that unit examines there is not determined, since a unit
    that decides its continuations compares each way through a call of a rule
-   on its own. When the unit of the index starts after the unit of the earlier
+   on its own. That the parser starts nothing before the position of the scan
+   from the earlier outer link to the first later index whose unit starts
+   before it is shown only when the indices between are linked by links that
+   meet that hypothesis. When the unit of the index starts after the unit of the earlier
    outer link ends, it lies in a continuation of the last unit before it that
    encloses the frame of the earlier link, if no growth step around that frame
    is dropped (*The last unit around the earlier frame*). That the later outer
