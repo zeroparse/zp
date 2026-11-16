@@ -625,8 +625,6 @@ var tsDocTarget = func() *Target {
 			return a[0] + ".pinned = true"
 		case "memo.examine":
 			return fmt.Sprintf("%[1]s.examined = %[3]s;\n%[1]s.from = %[2]s ? fromBefore : fromPos;\n%[1]s.pinned = false", a[0], a[1], a[2])
-		case "call.tracked":
-			return "false"
 		}
 		return tsTarget.Op(c, a)
 	}

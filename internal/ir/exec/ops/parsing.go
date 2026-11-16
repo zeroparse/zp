@@ -142,15 +142,11 @@ that read a seed), or the last result of a growth.`)
 
 	add(&exec.Op{Name: "call.tracked", Component: Call, Results: []exec.Type{exec.TBool}, Reads: []string{Call},
 		Features: []string{Document},
-		Contract: `Reports whether a rule call takes the target's tracked path: in a Document parse, and in the
-node runtime also in an observed parse.`})
+		Contract: `Reports whether a rule call of the engine takes its traced path: in a traced parse, for a call
+that the traced path has not yet entered.`})
 	add(&exec.Op{Name: "call.track", Component: Call, Params: call, Results: result, Writes: append([]string{Call}, regs...),
 		Features: []string{Document}, NoReturn: true,
-		Contract: `Calls the rule at the binding level min on the target's tracked path and returns its result.`})
-	add(&exec.Op{Name: "call.trackBody", Component: Call, Params: []exec.Param{exec.P("r", rule), exec.P("inv", bodyH)},
-		Results: result, Writes: append([]string{Call}, regs...), Features: []string{Document}, NoReturn: true,
-		Contract: `Calls the rule through the invocation inv on the target's tracked path and returns its
-result.`})
+		Contract: `Calls the rule at the binding level min on the engine's traced path and returns its result.`})
 
 	for _, a := range []struct{ name, doc string }{
 		{"rule.memo", "Reports whether the rule is memoized. A parse in the missing-token mode memoizes no rule that can insert a missing token."},
@@ -416,11 +412,6 @@ so far, exclusive.`, Requires: `The parse tracks the examined input (doc.trackin
 		Contract: `Counts a reused memo entry in the statistics of the Document.`, Requires: inDoc})
 	m.AddOp(&exec.Op{Name: "doc.evaluated", Component: Call, Writes: []string{Call}, Features: doc,
 		Contract: `Counts an evaluated rule body in the statistics of the Document.`, Requires: inDoc})
-	add(&exec.Op{Name: "call.body", Component: Call, Params: call, Results: result, Writes: append([]string{Call}, regs...),
-		NoReturn: true,
-		Contract: `Calls the rule at the binding level min without observation: the call, or the plain invocation,
-that the target's observed function wraps.`})
-
 	// The host operations of the stream window.
 	streamWindow(m, value)
 	documentMove(m)

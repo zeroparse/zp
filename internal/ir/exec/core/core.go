@@ -60,12 +60,32 @@ func Build() *Module {
 		b.If(F(ops.Budget), func(b *Builder) { b.Do("budget.charge", U64(1)) })
 	}
 
-	// tracked leaves the call protocol for the target's tracked path.
-	tracked := func(b *Builder, track *Call) {
-		b.If(And(F(ops.Document), C("call.tracked")), func(b *Builder) {
-			b.SetN(pair, track)
+	// leave returns the result of the call c from the call protocol.
+	leave := func(c *Call) func(b *Builder) {
+		return func(b *Builder) {
+			b.SetN(pair, c)
 			ret(b)
+		}
+	}
+	// tracked leaves the call protocol of a rule call that is also the entry of Document parses for
+	// the tracked path: the typed call of a Document parse for typedDocument, which takes the invocation
+	// inv; the node call of a Document or an observed parse for tracked, which observes the call and
+	// keeps the Document's bookkeeping (a node call at binding level 0 passes no invocation).
+	tracked := func(b *Builder, level, inv Expr) {
+		b.IfElse(F(ops.Typed), func(b *Builder) {
+			b.If(And(F(ops.Document), C("doc.active")), leave(C("typedDocument", r, level, inv)))
+		}, func(b *Builder) {
+			b.If(F(ops.Document), func(b *Builder) {
+				b.If(Bin("||", C("obs.active"), C("doc.active")), leave(C("tracked", r, level)))
+			})
 		})
+	}
+	// observedHere reports whether a call that leaves its parse to tracked can run in an observed parse:
+	// the node call with Document bookkeeping hands every observed parse to the tracked path.
+	observedHere := And(F(ops.Observe), Bin("||", F(ops.Typed), Not(F(ops.Document))))
+	// engineTracked leaves the engine's call protocol for its traced path.
+	engineTracked := func(b *Builder) {
+		b.If(And(F(ops.Document), C("call.tracked")), leave(C("call.track", r, L("min"))))
 	}
 	// inDocument adds the Document bookkeeping body as doc tells.
 	inDocument := func(b *Builder, doc docMode, body func(b *Builder)) {
@@ -153,7 +173,11 @@ func Build() *Module {
 			reusable = And(reusable, Not(And(F(ops.Missing), C("missing.recompute", r))))
 		}
 		b.If(reusable, func(b *Builder) {
-			b.If(F(ops.Observe), func(b *Builder) { b.Do("obs.memoHit") })
+			observed := F(ops.Observe)
+			if doc == typedTrack {
+				observed = observedHere
+			}
+			b.If(observed, func(b *Builder) { b.Do("obs.memoHit") })
 			// A Document parse tracks the examined end, so its bookkeeping nests in the tracking: a parse
 			// that tracks nothing tests once, as before a parse could track without a Document.
 			tracking(b, doc, func(b *Builder) {
@@ -300,7 +324,7 @@ rule without a seen index and an eager rule are memoized at once.`
 	call := m.AddFunc("call", []Param{P("r", rule), P("min", TInt)}, result,
 		[]string{ops.Document, ops.Observe, ops.Typed, ops.Budget}, func(b *Builder) {
 			locals(b)
-			tracked(b, C("call.track", r, L("min")))
+			tracked(b, L("min"), Null(THandle(ops.Body)))
 			charge(b)
 			b.Let("start", R(ops.Pos))
 			b.If(Bin("||", And(Not(C("rule.memo", r)), Not(C("rule.leader", r))), C("firstCall", r)), func(b *Builder) { unmemoized(b, false) })
@@ -310,12 +334,14 @@ rule without a seen index and an eager rule are memoized at once.`
 		})
 	call.Doc = `call calls rule r at binding level min: unmemoized while its memoization is deferred, and
 otherwise through the memo and the dependency memo of left-recursion contexts, growing the seed of
-a left-recursion leader.`
+a left-recursion leader. A call that is also the entry of Document
+parses first hands a Document parse to its tracked path (typedDocument for typed values), and for
+nodes an observed parse too (tracked).`
 
 	callMemo := m.AddFunc("callMemo", []Param{P("r", rule), P("inv", THandle(ops.Body))}, result,
 		[]string{ops.Document, ops.Observe, ops.Typed}, func(b *Builder) {
 			locals(b)
-			tracked(b, C("call.trackBody", r, L("inv")))
+			tracked(b, Int(0), L("inv"))
 			b.Let("start", R(ops.Pos))
 			reuse(b, Int(0), typedTrack, exit)
 			evaluate(b, Int(0), func(b *Builder) { b.SetN(pair, C("rule.run", L("inv"))) })
@@ -338,17 +364,30 @@ the rule is called at the position again, or its memoization is no longer deferr
 	grow.Doc = `grow grows the seed of a left-recursive leader from a failure: it evaluates the body again while
 the match gets longer, and returns the last longer result.`
 
-	observed := m.AddFunc("observed", []Param{P("r", rule), P("min", TInt)}, result,
-		[]string{ops.Document, ops.Observe}, func(b *Builder) {
+	// observe reports the call that body makes to the observation, with how far it examined the input.
+	observe := func(body func(b *Builder)) func(b *Builder) {
+		return func(b *Builder) {
+			locals(b)
 			b.Do("obs.enter", r, R(ops.Pos), L("min"))
 			b.Let("h", C("doc.examinedBegin"))
-			b.LetN([]string{"v", "ok"}, C("call.body", r, L("min")))
+			body(b)
 			b.Let("x", C("doc.examinedEnd", L("h")))
 			b.Do("obs.exit", L("ok"), R(ops.Pos), L("x"))
-			b.Return(L("v"), L("ok"))
-		})
+			ret(b)
+		}
+	}
+	observed := m.AddFunc("observed", []Param{P("r", rule), P("min", TInt)}, result,
+		[]string{ops.Document, ops.Observe, ops.Typed}, observe(func(b *Builder) {
+			b.IfElse(F(ops.Typed), func(b *Builder) { b.SetN(pair, C("call", r, L("min"))) },
+				func(b *Builder) { b.SetN(pair, C("body", r, L("min"))) })
+		}))
 	observed.Doc = `observed is a rule call in an observed parse: it reports the call to the observation, with how
-far it examined the input, around the call without observation.`
+far it examined the input, around the call without observation: the typed call, which observes nothing
+itself, or the node call of the tracked path without observation.`
+	observedPlain := m.AddFunc("observedPlain", []Param{P("r", rule), P("min", TInt)}, result,
+		[]string{ops.Document, ops.Observe}, observe(func(b *Builder) { b.SetN(pair, C("rule.invokePlain", r, L("min"))) }))
+	observedPlain.Doc = `observedPlain is the plain invocation of rule r at binding level min in an observed parse: it
+reports the invocation to the observation as observed reports a call.`
 	callUnmemoized := m.AddFunc("unmemoized", []Param{P("r", rule), P("min", TInt)}, result, nil, func(b *Builder) {
 		b.Var("v", value)
 		b.Var("ok", TBool)
@@ -501,7 +540,7 @@ dependencies send it, and restores the state from before the call.`
 			// A parse from scratch calls the plain body of a plain rule directly, so the unit of the call
 			// protocol is Document work there; for any other rule it counts.
 			work(b, C("rule.docPlain", r), charge)
-			tracked(b, C("call.track", r, L("min")))
+			engineTracked(b)
 			b.Let("start", R(ops.Pos))
 			// The memo protocol (the deferral, the begin and the end of the call) of a rule that only a
 			// Document parse memoizes is Document work: a parse from scratch does not memoize the rule, so it has
