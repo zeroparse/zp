@@ -8,6 +8,11 @@ engine keeps so that some of the rest stop being a problem. The contract that a 
 [record 064](records/064-grammar-complexity.md), [record 069](records/069-exclusion-analysis.md) and
 [record 067](records/067-repetition-run-records.md).
 
+> [!WARNING]
+> The package layout is being migrated to the architecture that [Architecture](architecture.md) describes, so parts of
+> the current code still differ from what this page names: the packages listed under
+> [Where the Pieces Are](#where-the-pieces-are) are the target, and some of them have not moved yet.
+
 ## The Problem
 
 Memoization bounds how often a rule body runs at one position, and that is not the same as linear time. A repetition
@@ -153,10 +158,13 @@ Operators Rule, a size argument for copying, runs in the generated runtimes) are
 
 | Piece | Where | Contract |
 |:--|:--|:--|
-| Normal view | `internal/complexity/view*.go` | the laws of [grammar-laws](../../spec/proofs/grammar-laws.md), [cost view](../../spec/core-ir/cost-view.md) |
-| Classifier | `internal/complexity/complexity*.go` | [Classification](../../spec/runtime/parsing.md#classification), [linear-cost](../../spec/proofs/linear-cost.md) |
-| Exclusion analysis | `internal/complexity/exclusion*.go` | [record 069](records/069-exclusion-analysis.md) |
-| Run sites | `internal/compile/run_sites.go`, `internal/engine/state/` | [Run Sites](../../spec/runtime/parsing.md#run-sites), [run-sites](../../spec/proofs/run-sites.md) |
+| Normal view | The cost view, a Core IR module derived by the laws, in `internal/analysis/complexity` | the laws of [grammar-laws](../../spec/proofs/grammar-laws.md), [cost view](../../spec/core-ir/cost-view.md) |
+| Classifier | `internal/analysis/complexity`, reached through `Classify` in `pkg/lint` and the `super-linear` check | [Classification](../../spec/runtime/parsing.md#classification), [linear-cost](../../spec/proofs/linear-cost.md) |
+| Exclusion analysis | `internal/analysis/complexity` | [record 069](records/069-exclusion-analysis.md) |
+| Run sites | The site numbers are an analysis on Core IR in `internal/middleend/corepass`, shared through the analysis manager; the run records are kept by the shared parser state in `internal/runtime/state` | [Run Sites](../../spec/runtime/parsing.md#run-sites), [run-sites](../../spec/proofs/run-sites.md) |
+
+The cost view is a module of its own, apart from the Core module that the optimizations rewrite, because the proofs of
+the classification speak about the view; [Architecture](architecture.md#static-analysis) places it among the tools.
 
 ## Related Topics
 

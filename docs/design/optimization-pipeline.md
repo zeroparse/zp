@@ -1,15 +1,22 @@
 # The Optimization Pipeline
 
-A parser that `zp gen` writes is faster than the plain translation of its grammar because the generator rewrites the
-grammar before it prints it. This page explains how those rewrites are organized: declared passes that a small manager
-runs, a registry that gives each optimization a name, profiles that choose values for the names, and a verifier that
-checks the result. The rewrites themselves, and the proof that each is safe, are in
-[Core, Flow and Exec IR](intermediate-representations.md); the decision and its alternatives are
-[record 063](records/063-configurable-optimization-pass-pipeline.md).
+A parser that ZeroParse produces is faster than the plain translation of its grammar because the compiler rewrites the
+grammar on its way to every backend. This page explains how those rewrites are organized: declared passes that a
+manager runs, an analysis manager that computes and caches what the passes need, a registry that gives each
+optimization a name, profiles that choose values for the names, and verifiers that check the result. The rewrites
+themselves, and why each is safe, are in [Core IR and Code IR](intermediate-representations.md); the decisions and their
+alternatives are [record 063](records/063-configurable-optimization-pass-pipeline.md) and
+[record 072](records/072-release-package-layout.md).
+
+> [!WARNING]
+> The package layout is being migrated to the architecture this page describes, so parts of the current code still
+> differ from it: the generic pass infrastructure, the analysis manager, the Flow passes and the language passes are
+> introduced in stages, and some decisions this page places in passes are still made by the lowering or the printers.
+> [Migration](architecture.md#migration) lists the stages.
 
 ## Why a Pipeline
 
-Without a structure, every optimization is a function that the generator calls at the right moment, and the right
+Without a structure, every optimization is a function that the compiler calls at the right moment, and the right
 moment is knowledge that lives in the calling code: this rewrite needs the first characters of each alternative, that
 one makes those facts stale, a third is only sound when the parser reports no events. Three things then go wrong
 silently.
@@ -26,79 +33,86 @@ A pass is a value, not just a function. It declares:
 
 - its **name**, which is also the name of the flag that turns it off, of the dump that shows its result and of the error
   that names it when it fails;
-- the **analyses it requires** and the analyses it **invalidates**;
 - the passes it must **follow**, for passes that share no data and that an analysis would not order;
-- when it **applies**: a pass is sound only in some generation modes, and one that does not apply never runs, whatever its
-  flag says;
-- its **obligation**, one sentence that says what it preserves. For every pass here that is the contract of a rewrite:
-  the input consumed, the expectations recorded and the values built stay the same.
+- when it **applies**: a set of features (budget controls, Documents, tracing and the like). Core IR has no mode, so a
+  Core pass that applies to every build declares no feature; a pass that does not apply never runs, whatever its flag
+  says;
+- its **obligation**, one sentence that says what it preserves: for a rewrite, the input consumed, the expectations
+  recorded and the values built stay the same;
+- the **analyses it asks for**, and the analyses it **preserves**.
 
-The manager does the bookkeeping that the callers used to do. Every analysis starts stale. Before a pass runs, the manager
-computes the analyses it requires if they are stale. After the pass, it marks the analyses the pass invalidates as stale.
-So a pass that needs the first characters of every alternative gets them, once, however the passes before it changed the
-module, and a pass that does not need them never pays for them.
+A pass runs on one unit of IR and returns the new unit with the set of analyses it preserved. The manager runs the
+enabled passes of a pipeline in order, invalidates what each pass did not preserve, and on request verifies and dumps
+after each pass. One generic manager, in `internal/pass`, runs every pipeline: Core, Flow, Exec and the pipeline of each
+target language.
+
+The declarations are checked before anything runs: names are non-empty and distinct, every requested analysis has a
+key, and every pass named in a `follow` list precedes the pass that names it. A declaration that cannot be satisfied is
+an error of every run, before any pass runs.
+
+## Analyses
+
+An analysis is computed when a pass asks for it and is cached until it is invalidated, so a pass that needs the first
+characters of every alternative gets them, once, however the passes before it changed the module, and a pass that does
+not need them never pays for them. The rules of the analysis manager are chosen so that a mistake fails safe:
+
+- What a pass preserves **defaults to nothing**. A pass that forgets to declare what it keeps invalidates every
+  analysis, which costs time but never gives a stale answer.
+- An analysis that used another analysis is invalidated with it, transitively. An analysis that depends on itself is an
+  error.
+- A transform that returns a different IR value invalidates the whole cache; a preserved set has meaning only for a
+  rewrite of the same unit.
+- A failed analysis returns an error. It never degrades silently into a weaker answer.
+- Analysis keys are registered by name, and a second key of the same name is rejected, so two analyses cannot share a
+  cache entry by accident.
+
+The attributes on Core nodes (nullability, first sets, effects) are not cached analyses: they are invariants of the IR,
+stored on the nodes and checked by the verifier. What the manager caches is derived results that are not written into
+the IR: rule facts, site numbers, the call graph, the cost view, lookahead sets, liveness and the control-flow views
+that some Flow passes use. The optimization passes, the linter, the complexity classifier and the generators share them,
+so a fact has one implementation.
+
+## The Pipelines
 
 ```mermaid
 flowchart LR
-  B[Build Core IR] --> T[terminals]
-  T --> G[guards]
-  G --> S[scans]
-  S --> C[class-runs]
-  C --> V[Verify]
-  A[(attributes)] -.computed when required.-> G
-  A -.computed when required.-> V
+  E[Elaborate Core IR] --> CP[Core passes]
+  CP --> FL[flowlower]
+  FL --> FP[Flow passes]
+  FP --> VL[vmlower]
+  FP --> EL[execlower]
+  EL --> XP[Shared passes]
+  XP --> LP[Language passes]
+  LP --> PR[Print]
+  AM[(Analysis manager)] -.asked for.-> CP
+  AM -.asked for.-> FP
+  AM -.asked for.-> XP
 ```
 
-The passes of Core IR are `terminals` (value-free choices of literals and classes become one program), `guards` (an
-alternative is skipped when the next character cannot start it), `scans` (a value-free repetition of a class runs as a
-scan) and `class-runs` (consecutive classes run as one). They share one analysis, `attributes`: for every node, whether
-it can match the empty string, the set of characters it can start with and its effects. `terminals`, `scans` and
-`class-runs` replace nodes, so they invalidate it; `guards` reads it.
+- **Core passes** rewrite meaning-preserving forms and compute the facts: guard sets, first sets, effects, rule
+  policies, normalization, and turning a value-free repetition of a class into a scan. They know nothing of the mode.
+- **Flow passes** make the control-level decisions, in this order: call specialization, inlining, dispatch, the form
+  of a match, removal of saves that no failure path reads, merging and threading of failure paths, charge placement,
+  slot sharing and outlining. Their obligations are listed in [Architecture](architecture.md#the-middle-end). Their
+  applicability is where the features matter: a rewrite is sound for a parser only if the parser does not observe what
+  the rewrite removes, so a match form that skips charging input does not apply under a budget or a Document, and a form
+  that hides rule entries does not apply when the parser is traced.
+- **Shared passes** on the Exec stage specialize functions for the features of a build, simplify, remove dead stores and
+  share identical helpers and literal tables. They depend only on the reads and writes of operations.
+- **Language passes** legalize and optimize the Exec stage for Go or TypeScript before it is printed, such as the scope
+  of `goto` in Go or labeled blocks in TypeScript, typed field comparison in Go and literal comparisons as a `switch`.
 
-The package `internal/ir/pipeline` is generic: it knows nothing about Core IR, only about passes, analyses and an
-ordered list. Flow IR declares a pipeline of its own on the same manager. Its unit is one lowered function (a rule, a
-framed body, a line of an Operators Rule or an outlined node), and its verifier is the Flow verifier. Every function that a
-generator prints from Flow IR runs through it after the lowering, so a pass placed there reaches every backend that prints
-from Flow IR. The lowering has already verified the function, so a run in which no Flow pass runs does not verify it again.
-Exec IR declares a third pipeline the same way, with the module that the lowering of one Flow function makes as its
-unit and the Exec verifier after its passes; the generators run it on every function they print from Exec IR. The Flow
-pipeline has no pass yet: the representation choices that the lowering makes from Core effects (what to save and
-restore at a backtracking point, which variables and blocks to use) are the candidates. Flow and Exec passes are flags of
-kinds of their own in the registry, and every pass name differs from the others, so one name selects one pass in the
-flags and in the dumps.
-
-`Validate` checks the declarations before anything runs: names are non-empty and distinct, every required analysis can be
-computed, and every pass named in a `follow` list precedes the pass that names it. A declaration that cannot be
-satisfied is an error of every run, before any pass runs.
-
-## Modes: Where a Pass Is Sound
-
-A rewrite is sound for a parser only if the parser does not observe what the rewrite removes. The mode of a generation
-carries the facts that applicability depends on.
-
-| Mode fact | Meaning | Passes it governs |
-|:--|:--|:--|
-| Lean | the module is the typed rules of a parser that prints bodies in the ordinary form: no budget controls and no Documents | `terminals`, `class-runs`: budget controls and Documents charge for the input they read, which these rewrites would skip |
-| Ordinary | the parser prints bodies in the ordinary form | the guarded-class variant of `guards` |
-| Observe | the parser reports the rules it enters and the alternatives that guards skip | `terminals`: the program of a terminal does not report them |
-
-A pass that does not apply is not an error. Asking for `-no-opt terminals` on a parser where it never applied does
-nothing, and that is the right answer: the flag says what the user does not want, not what must have happened.
+Lowerings are not passes. `flowlower`, `execlower` and `vmlower` change the dialect and have postconditions of their own,
+so they run between pipelines.
 
 ## The Registry
 
-An optimization is a **flag** with a name in one registry (`internal/ir/opt`), which sits beside the IR pipelines rather
-than in a generator, so that every backend that lowers from the IR reads the same flags. The same package holds the driver
-that runs the pipelines under a set of flags: it turns passes off by name, verifies after each pass on request and writes
-the dumps that `-print-after` selects. Passes are not the only optimizations, and
-the registry gives all of them the same interface. A flag has a kind, which says what it changes.
-
-| Kind | What it changes | Examples |
-|:--|:--|:--|
-| Pass | a pass over Core IR, or a variant of one | `terminals`, `guards`, `guarded-classes`, `scans`, `class-runs` |
-| Lowering | an option of the lowering from Core IR to Flow or Exec IR | `inline-literals`, `class-tables`, `text-dispatch`, `field-compare` |
-| Printer | what the Go and TypeScript printers emit | `method-sharing`, `literal-sharing` |
-| Runtime | a control of the runtime structures that the printers emit | `typed-object-slabs`, `typed-list-slabs`, `sparse-memo` |
+An optimization is a **flag** with a name in one registry, the generic `Registry` of `internal/pass`. Each pipeline
+registers its own passes in the definition of the pipeline (name, description, default and applicability), and the
+controls of printers and libraries are registered with the kind `library` by the code generators that own them. No name
+is declared in two places, and every name differs from the others, so one name selects one pass in the flags and in the
+dumps. A flag has a kind, which says what it changes: a pass of one of the pipelines, or a library control (the runtime
+structures and helpers that the printers emit, such as allocating typed objects in slabs or sparse memo tables).
 
 A flag is on or off, or it has an integer parameter, where 0 turns it off. The registry checks itself: names and
 descriptions exist and are unique, a value is 0 or 1 unless the flag takes a count, and a flag that **changes the output**
@@ -115,7 +129,10 @@ mechanism. A flag is how an optimization becomes something that can be measured 
 
 ## Profiles
 
-A profile is a preset: a name for fixed values of flags, with no logic of its own.
+A profile is a preset: a name for fixed values of flags, with no logic of its own. A user chooses it through the public
+option `Optimize` of `pkg/compiler` (`Speed`, `Memory` or `Size`, with overrides of flags), and the same setting applies to
+every backend: the closure backend, the VM and the generators. The table from profile names to values is in
+`internal/driver`, which resolves the setting once and passes it to every pipeline.
 
 | Profile | For | Differs from the default by |
 |:--|:--|:--|
@@ -135,22 +152,23 @@ is an error that lists the valid names.
 
 ## Verification and Dumps
 
-After the passes, the manager runs the verifier of the representation (for Core IR, the checks listed in
-[What the Verifier Guarantees](intermediate-representations.md#what-the-verifier-guarantees)), after making the analyses
-it reads valid. By default it runs once, at the end. That tells a user that something broke, and not which pass broke it,
-so a run can verify after **every** pass: the error then names the first pass that left the module invalid. Tests and
-diagnosis ask for this; it costs generation time and changes no output.
+After a pass, the manager can run the verifier of the stage: for Core IR, the checks listed in
+[What the Verifier Guarantees](intermediate-representations.md#what-the-verifier-guarantees); for the Flow stage, the
+structure, the variables, one runtime per function, the budget invariants, recorded reads under a Document and no
+in-place reads in a traced parse; after `execlower`, that no Flow operation remains. By default each verifier runs once,
+at the end of its pipeline. That tells a user that something broke, and not which pass broke it, so a run can verify
+after **every** pass: the error then names the first pass that left the module invalid. Tests and diagnosis ask for
+this; it costs compile time and changes no output.
 
-A run can also **dump** the module as text: after the build, and after each pass that ran. `zp gen -print-after guards`
-(or `all`) prints the Core IR after the named passes to standard error. The names follow the order the steps run in:
-`build`, the Core passes, then `flow` (each Flow function as the lowering made it) and the Flow passes, then `exec`
-(each Exec function as lowered from Flow IR) and the Exec passes. A pass that did not apply prints nothing, which is
-itself information: the dump is the way to see why an optimization did not happen for a parser.
+A run can also **dump** the module as text after a stage or after a pass. `zp gen -print-after` takes the stage names
+`core`, `flow` and `exec` and the names of passes (or `all`), and prints to standard error. A pass that did not apply
+prints nothing, which is itself information: the dump is the way to see why an optimization did not happen for a
+parser.
 
 ```mermaid
 flowchart TD
   P[Profile] --> O[-opt] --> N[-no-opt] --> S[Settings]
-  S --> M[Mode and flags]
+  S --> M[Features and flags]
   M --> R[Run the applicable enabled passes]
   R --> D{Dump or verify each?}
   D -- yes --> X[Dump text, verify after the pass]
@@ -164,10 +182,12 @@ flowchart TD
 - It does not prove a rewrite. Each pass states its obligation, and the proof sits beside the rewrite and in the
   differential tests against the reference backend.
 - It does not order passes by cost or by guess. The order is declared, and the manager checks that the declaration holds.
+- It does not lower. A lowering changes the dialect and is a step of its own between pipelines.
 
 ## Related Topics
 
-- [Core, Flow and Exec IR](intermediate-representations.md): the representations the passes work on and the rewrites.
+- [Core IR and Code IR](intermediate-representations.md): the representations the passes work on and the rewrites.
+- [Architecture](architecture.md): the pass model in the package layout, with the driver flow.
 - [Record 063](records/063-configurable-optimization-pass-pipeline.md): the decision, the alternatives and the status.
 - [Code Generation](../guide/code-generation.md#optimizations): the flags of `zp gen`, with their defaults.
 - [Optimization catalog](../optimizations/README.md): the measured mechanisms and their controls.

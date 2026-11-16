@@ -4,6 +4,11 @@ This document describes the repository layout and architecture, how to run tests
 
 ## Directory Layout
 
+> [!WARNING]
+> The package layout is being migrated to the target that [Architecture](design/architecture.md#the-go-packages)
+> describes; its [Migration](design/architecture.md#migration) section lists the stages. This section and the next
+> name the paths of the tree as it is, which the tests and commands below use, and they change as the stages land.
+
 | Path | Contents |
 |:--|:--|
 | `engine/` | Public API that compiles and runs parsers at run time (`ParseGrammar`, `Compile`, `CompileSource`, `Parser.Parse`, `Document`, and others), which joins the engine to the output schema (`Parser.OutputSchema`), with its behavior tests (package `engine_test`) |
@@ -30,13 +35,13 @@ This document describes the repository layout and architecture, how to run tests
 | `internal/value/` | The engine's access to the representation of `core.Node` (`D`) and the node helpers that only the engine needs |
 | `internal/limits/` | Defaults of the limits of a parse invocation and overflow-safe budget arithmetic, shared by the parser, the Document and package `query` |
 | `internal/bytecode/` | The bytecode instruction set and module, its disassembly, the encoding of modules in compiled grammars and the validation of loaded modules |
-| `internal/codegen/` | What the Go and TypeScript generators share: generation options, the library mode of generated Go parsers, generated files, and the generator state both print with (the program and rule being printed, the expectation table, shared names, the Flow IR state of recognizer rules and the action value resolver) |
+| `internal/codegen/` | What the Go and TypeScript generators share: generation options, the library mode of generated Go parsers, generated files, and the generator state both print with (the program and rule being printed, the expectation table, shared names, the Flow state of recognizer rules and the action value resolver) |
 | `codegen/go/lib/` | Library of generated Go parsers, imported by them or copied into them (`zeroparse.dev/zp/codegen/go/lib`); it depends only on `core` |
 | `core/` | The types that the engine and generated Go parsers share: nodes with their JSON form, traversal and cursors, the stream iterator, limits and their errors, position units, syntax errors, edits and statistics (`zeroparse.dev/zp/core`) |
 | `core/impl/` | The representation of `core.Node` that the parsers build and read; not a stable API |
-| `internal/codegen/go/` | Go generator: prints the parser, its types package and the library copy from the compiled program and Exec IR, and leaves out what the entry points cannot reach |
-| `internal/codegen/ts/` | TypeScript generator: prints the parser, its types and its library file from the compiled program and Exec IR |
-| `internal/ir/` | The internal representations between a compiled program and generated code: `core/` (Core IR, its builder in `core/build/` and its passes), `flow/` (Flow IR, and in `flow/lower/` its lowering and which compiled rules it lowers), `exec/` (Exec IR: the operations of the parser VM in `exec/ops/`, the compositions in `exec/core/` and their Go library printing in `exec/libgo/`, the lowering from Flow IR in `exec/lower/`, the passes in `exec/pass/`, the Go and TypeScript printers in `exec/gogen/` and `exec/tsgen/`, the specification-table reader of their tests in `exec/spectest/`, and the reference models and conformance suite in `exec/ref/` and `exec/conform/`) and `pipeline/` (the runner of declared passes). See [Core, Flow and Exec IR](design/intermediate-representations.md) |
+| `internal/codegen/go/` | Go generator: prints the parser, its types package and the library copy from the compiled program and the Exec form, and leaves out what the entry points cannot reach |
+| `internal/codegen/ts/` | TypeScript generator: prints the parser, its types and its library file from the compiled program and the Exec form |
+| `internal/ir/` | The internal representations between a compiled program and generated code: `core/` (Core IR, its builder in `core/build/`, its facts in `core/facts/` and its passes), `flow/` (the Flow form, which the target layout makes the Flow dialect of Code IR, and in `flow/lower/` the lowering from Core IR and which compiled rules it lowers), `exec/` (the Exec form, which becomes the Code IR base and the Exec dialect: the operations of the abstract machine in `exec/ops/`, the compositions in `exec/core/`, the lowering from the Flow form in `exec/lower/`, the passes in `exec/pass/`, the printer test support in `exec/printtest/`, the specification-table reader of the tests in `exec/spectest/`, and the reference models and conformance suite in `exec/ref/` and `exec/conform/`) and `pipeline/` (the runner of declared passes). See [Core IR and Code IR](design/intermediate-representations.md) |
 | `internal/ir/opt/` | The registry of the optimizations (flags with a kind and a `speed` value) and of the `speed`, `memory` and `size` profiles, and the driver that runs the IR pass pipelines under them with their dumps and verification |
 | `codegen/ts/lib/` | Source of `lib.ts`, the library that generated TypeScript parsers import (joined from `lib.ts`, `budget.ts`, `trace.ts` and `profile.ts`) |
 | `cmd/zp/` | Command-line tool |
@@ -52,7 +57,7 @@ This document describes the repository layout and architecture, how to run tests
 | `docs/cookbook/` | Recipes: complete, runnable solutions to concrete tasks ([index](cookbook/README.md)) |
 | `docs/why-zeroparse.md`, `docs/strategy.md` | Project positioning: [who ZeroParse is for and how it compares](why-zeroparse.md), and the [project strategy](strategy.md) with its tracks and targets |
 | `docs/documentation-style.md` | How the documentation is organized and written: page kinds, link directions, titles, voice and examples |
-| `docs/design/` | How the system is built today: [architecture](design/architecture.md) and [Core, Flow and Exec IR](design/intermediate-representations.md) |
+| `docs/design/` | How the system is built: [architecture](design/architecture.md), with the target package layout and the stages of its migration, and [Core IR and Code IR](design/intermediate-representations.md) |
 | `docs/design/records/` | Design records; [template](design/records/000-template.md) for new proposals |
 | `docs/optimizations/` | Numbered optimization history, measured evidence and backend applicability ([catalog](optimizations/README.md)); measurement method and latest analysis remain in [performance.md](performance.md) |
 
@@ -60,12 +65,9 @@ A generator program that renders one set of files lives beside them and is run b
 
 ## Architecture
 
-```text
-.zp ──syntax.Parse──▶ grammar.Grammar ──engine.Compile──▶ engine.Program ──Parse──▶ Node
-                         ▲      │                              │      ▲
-              JSON ──────┘      └── grammar.Format ──▶ .zp   │      └── LoadProgram ── .zpc
-                                                               └── MarshalBinary ──▶ .zpc
-```
+The architecture (the execution model, the pipeline from the grammar AST through Core IR and Code IR to the backends,
+the tools, the package layout with its import rules and the pass model) is in
+[Architecture](design/architecture.md). The table below maps its parts to the files of the current tree.
 
 | Component | Main files | Responsibility |
 |:--|:--|:--|
@@ -101,7 +103,7 @@ for backend scope, cleanup and measured costs.
 
 Generated Go and TypeScript parsers embed their library. Generated TypeScript depends on nothing else, and generated
 Go only on the package `core` and the standard library. Generated Go
-and TypeScript rules are built as Core IR, lowered to Flow IR and then to Exec IR, which the printers print ([design 062](design/records/062-backend-independent-optimization-ir.md), [design 065](design/records/065-exec-ir-parser-vm.md)): in Go, lean value-free rules are direct rules and the others framed bodies the runtime calls; typed Go also emits inferred Go types
+and TypeScript rules are built as Core IR, lowered to the Flow form and then to the Exec form, which the printers print ([design 062](design/records/062-backend-independent-optimization-ir.md), [design 065](design/records/065-exec-ir-parser-vm.md)): in Go, lean value-free rules are direct rules and the others framed bodies the runtime calls; typed Go also emits inferred Go types
 and `ParseValue`/`ParseRuleValue` for configured-start and named rules
 ([design 029](design/records/029-typed-named-rule-parsing.md)). Generation defaults (`MaxDepth` of `codegen.Go` and `codegen.TypeScript`, `gen -max-depth`) and invocation-local depth
 options are implemented ([design 022](design/records/022-generated-parser-depth-limits.md)); Go entry points accept
@@ -205,7 +207,7 @@ The tests that build generated parsers (in `internal/codegen/go`, `internal/code
 |:--|:--|:--|
 | Tests that build fixtures and check their behavior, output or equivalence with the engine | Both forms, as the subtests `controls` and `ordinary` | The test body runs under `codegentest.EachMode`, as the test's last statement; the two subtests run in parallel |
 | Tests that pass a control option (`WithContext`, `WithLimits`) | With controls only | `codegentest.NeedsBudgetControls` |
-| Tests of output that exists only without limit controls (terminal programs, the Flow IR recognizer and Node rules, choice guards) | Without controls only | `codegentest.PinOrdinary` |
+| Tests of output that exists only without limit controls (terminal programs, the Flow recognizer and Node rules, choice guards) | Without controls only | `codegentest.PinOrdinary` |
 | Tests that do not build fixtures | Not form-specific | |
 
 Each test records its form by name and its subtests inherit it, so tests of either form can run in parallel. A test that builds a fixture without any of these fails the run when it finishes, because it would check one form only. `go test ./...` therefore covers both forms and needs no setting.
@@ -224,7 +226,7 @@ inputs, retained results, and error/retry reuse in both position units.
 
 The TypeScript generator's test needs Node.js 22.18 or later (`node`) and, for its type check, `tsc`; it is skipped when they are missing.
 The generated TypeScript has the same two forms, chosen by `-limits`. The TypeScript tests generate the form without limit controls unless the test passes a control option (`signal`, `limits.compute`), which generates with `LimitControls`. `TestGeneratedTSParsersMatchEngine` compares both forms with the engine, and `gents_budget_forms_test.go` checks that the plain form has no charge, no control option and no cancellation export, and that the controlled form accepts the options.
-TypeScript is printed from the same Flow IR as Go (`internal/codegen/ts/flow.go`, `internal/codegen/ts/outline.go`); `TestGeneratedTSPrintsLeanRulesFromFlow` and the frozen decision goldens cover what is chosen, and a rule that Flow IR does not print fails generation.
+TypeScript is printed from the same Flow form as Go (`internal/codegen/ts/flow.go`, `internal/codegen/ts/outline.go`); `TestGeneratedTSPrintsLeanRulesFromFlow` and the frozen decision goldens cover what is chosen, and a rule that the Flow form does not print fails generation.
 
 `lint` tests every check with positive and negative cases, lints every example grammar against a hand-checked list of findings, and `TestSoundness` checks the certain findings against the engine on random grammars, exhaustively over short inputs (`-soundness=N` for a longer run).
 
