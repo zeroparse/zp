@@ -22,7 +22,8 @@ standalone generated Go Node parsers. Generation uses
 parsers trace `Parse`, `ParseRule` and `Recognize`. Events cover actual plain,
 direct, general, memoized and left-recursive calls, plus first-character
 dispatch skips only where the generated call site can identify the target.
-`ExaminedKnown` is false in batch parses. Named filters include descendants; unknown
+Exit events report the call's exact examined end in `Examined`, in batch and
+Document parses alike. Named filters include descendants; unknown
 names select nothing. The start rule has depth one, and nonpositive maximum
 depth is unlimited. Callback panics propagate unchanged after cleanup, while
 aborted parses may omit exits. Go Node and typed batch packages also expose the
@@ -110,8 +111,7 @@ type TraceEvent struct {
     End int            // exit only
     Memo bool          // exit only; true when a memo result was reused
     Evals int          // exit only; includes left-recursive growth evaluations
-    Examined int       // exit only; exclusive end in this parse's position unit
-    ExaminedKnown bool // false when the generated path cannot account for it
+    Examined int       // exit only; exact exclusive end in this parse's position unit
     SkipReason string  // skipped only, for example "first-character"
 }
 
@@ -168,9 +168,8 @@ and `Evals=0`; nested calls from earlier parses are not replayed. Generated
 Documents do not resume repetition bodies, so there is no `ReusedElements`
 counter.
 
-Exit events of Document parses report `ExaminedKnown=true`, with `Examined`
-set to the examined end the Document keeps for edit reuse: one past the last
-input unit whose content the call, or a call or memo result it used, could
+In a Document parse, an exit event's `Examined` is the examined end the
+Document keeps for edit reuse: one past the last input unit whose content the call, or a call or memo result it used, could
 have observed. A call that records a memo result reports the end stored with
 it, and a memo hit reports the stored end it reuses. Each wrapper starts the
 call's end at its position and merges it back into the caller's afterwards, so

@@ -149,8 +149,8 @@ rule part W = t:("input, o.unit, o.maxDepth, control)") #atomic => W{Text: text(
 const tsTraceTestHooks = `
 // Test-only hooks keep private exception and observer teardown checks concrete.
 const traceProbes: Observation[]=[];
-const originalTraceCall=Parser.prototype.call;
-Parser.prototype.call=function(r:Rule,min:number):R {
+const originalTraceCall=ObservedParser.prototype.call;
+ObservedParser.prototype.call=function(r:Rule,min:number):R {
  if(this.observation!==null)traceProbes.push(this.observation);
  return originalTraceCall.call(this,r,min);
 };

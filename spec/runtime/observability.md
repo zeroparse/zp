@@ -359,8 +359,12 @@ JSON key there, so an event serializes with `JSON.stringify` as a Go event
 does: `kind` is `"enter"`, `"exit"` or `"skipped"`, and `skipReason` is
 `"first-character"` on a skipped event and `""` otherwise. Positions use the
 selected unit. Each trace function receives a copy of its own, which it may
-keep or change without changing the parse or later events. A Document parse
-reports its calls as
+keep or change without changing the parse or later events. Every exit event
+MUST report in `examined` the call's exact examined end, as
+[Engine Tracing](#engine-tracing) defines it, in the selected unit; an observed
+parse therefore compares examined ranges where
+[Evaluations of Rules](parsing.md#evaluations-of-rules) requires them. A
+Document parse reports its calls as
 [Generated Go Document Tracing and Profiling](#generated-go-document-tracing-and-profiling)
 defines, and so does its `Examined`.
 

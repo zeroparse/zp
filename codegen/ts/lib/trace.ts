@@ -82,7 +82,7 @@ export class Observation {
     return this.rules === null || this.rules.has(rule) || (this.stack[this.stack.length - 1]?.selected ?? false);
   }
 
-  private deliver(kind: TraceKind, call: ObservationCall, matched = false, end = 0, skipReason: SkipReason = ""): void {
+  private deliver(kind: TraceKind, call: ObservationCall, matched = false, end = 0, examined = 0, skipReason: SkipReason = ""): void {
     const recorders = this.recorders;
     const traced = call.selected && (this.maxDepth <= 0 || call.depth <= this.maxDepth);
     if (recorders === null && !traced) return;
@@ -90,7 +90,7 @@ export class Observation {
     // mutate its copy without changing later events, other functions' copies or call counts.
     const event: TraceEvent = {
       kind, rule: call.rule, level: call.level, depth: call.depth, pos: call.pos, lookahead: call.lookahead,
-      matched, end, memo: call.memo, evals: call.evals, reusedElements: 0, examined: 0, skipReason,
+      matched, end, memo: call.memo, evals: call.evals, reusedElements: 0, examined, skipReason,
     };
     if (recorders !== null) for (const r of recorders) r.record(event);
     if (!traced) return;
@@ -124,13 +124,15 @@ export class Observation {
     if (call !== undefined) call.memo = true;
   }
 
-  exit(matched: boolean, end: number): void {
-    this.deliver("exit", this.stack.pop()!, matched, end);
+  // exit ends the innermost call, which matched to end if matched and examined the input before
+  // examined.
+  exit(matched: boolean, end: number, examined: number): void {
+    this.deliver("exit", this.stack.pop()!, matched, end, examined);
   }
 
   skipped(rule: string, pos: number, level: number): void {
     this.deliver("skipped", { rule, pos, level, depth: this.stack.length + 1, lookahead: this.parser!.silent > 0,
-      selected: this.selected(rule), evals: 0, memo: false }, false, 0, "first-character");
+      selected: this.selected(rule), evals: 0, memo: false }, false, 0, 0, "first-character");
   }
 }
 
