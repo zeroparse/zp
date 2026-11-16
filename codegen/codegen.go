@@ -369,6 +369,7 @@ func check(g *grammar.Grammar, opts compile.Options, flags []compile.RuleFlags) 
 //
 //go:embed go/lib/budget.go go/lib/budget_memory.go go/lib/call_exec.go go/lib/chunk.go
 //go:embed go/lib/class.go go/lib/context_memo.go go/lib/document.go go/lib/expected.go
+//go:embed go/lib/features.go go/lib/features_nowitness.go go/lib/features_witness.go
 //go:embed go/lib/fieldcheck.go go/lib/lib.go go/lib/memo_index.go go/lib/node_build.go
 //go:embed go/lib/node_rep.go go/lib/operators_exec.go go/lib/protocol.go
 //go:embed go/lib/recovered.go go/lib/scan_sites.go go/lib/skip_runs.go go/lib/stream.go
