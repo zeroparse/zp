@@ -1514,6 +1514,40 @@ frame of an outer link*, *Calls of scan-only rules* treats a scan-only $r$ in
 a parse with the records of scan sites, and no claim treats it in a parse
 without them.
 
+Whenever $Y_{l'}$ is the body evaluation of $E_2$, the two hypotheses on the
+growths that the application above leaves open hold for $E_2$. $Y_{l'}$ is its
+only body evaluation, and the parser leaves it at $p$ from the end of $w_{l'}$
+to $e'_{l'}$, so it is in no context of growths (*Outer links across runs*).
+If $E_2$ read a growth of a leader $L$ that was open at its start, the growth
+would be at the position of $E_2$ and $Y$ of the cycle of $L$ ([Lemma 2 of the
+memoization proof](memoization.md#lemma-2-reading-an-open-growth)), and
+$Y_{l'}$ would be a body evaluation of a rule of that cycle at the position of
+a growth of the cycle in progress, in a context of growths. So $E_2$ reads no
+growth open at its start. In the first case the same holds for $E_1$, whose
+only body evaluation $Y_l$ the parser leaves at $p$ from the end of $w_l$ to
+$e'_l$. There $E_1$ and $E_2$ meet the hypotheses of *Evaluated pairs of a
+shared call*: every growth at their position open at the start of one is read
+by neither, since a growth that one of them reads, open at the start of the
+other, is still open at its start. So, outside cases (a) and (b) of the
+covered keys on the path of the pair, no head holds an activation that starts
+while $E_2$ is in progress (*Outer links inside a memoized link*), but
+$\alpha_{l'}$ starts after $Y_{l'}$ ends, and so after $E_2$ ends, and the
+first case stays open.
+
+In the first case the parse evaluates three calls of $Y$ at the start of
+$Y_{l'}$ that the memo answers none of: $E_1$, $e_j$ and $E_2$, in this order,
+since $e_j$ holds $\alpha_{j-1}$, which starts after $\alpha_l$ and so after
+$E_1$ ends. When the three have one variant and one binding level and none is
+in a context of growths, which holds of $E_1$ and $E_2$ above, $e_j$ is
+evaluated after $E_1$ ends, so $E_1$ stored no entry that answers $e_j$, and
+$E_2$ after $e_j$ ends, so $e_j$ stored none that answers $E_2$. $e_j$ is not
+the first call of its variant at the position, so it stores a result, which answers $E_2$
+unless $e_j$ is inside a lookahead and $E_2$ outside them ([Evaluations of
+Rules](../runtime/parsing.md#evaluations-of-rules)). An entry of $E_1$ would
+then answer $e_j$, inside a lookahead, so $E_1$ is the first call of its variant
+at the position and stores no result. Otherwise their variants or binding levels differ,
+or $e_j$ is in a context of growths.
+
 **Calls of scan-only rules.** Let the rule $r$ of the links $i$ to $k$ be a
 scan-only rule ([Conditions for Linear
 Cost](../runtime/parsing.md#conditions-for-linear-cost)) that is not memoized
@@ -6052,8 +6086,10 @@ condition of the cost view that the [Cost View](cost-view.md) proof leaves open.
    scan sites, which no claim treats (*The frame of an outer link as the later
    evaluation of a shared call*); not shown are the cases in
    which the frame of the earlier outer link is the body evaluation of the
-   earlier evaluation, in which the frame of the later outer link encloses the later
-   evaluation of the call, or in which the continuation
+   earlier evaluation, where the two evaluations meet the hypotheses of
+   *Evaluated pairs of a shared call* but the later outer activation starts
+   after the later one ends, in which the frame of the later outer link
+   encloses the later evaluation of the call, or in which the continuation
    reaches the activation of the index in a later evaluation of the call. A later
    evaluation that lies inside that frame, an index that is free and one
    linked by a leaf link at a position before the scan are not treated. So the outer links do not bound the
