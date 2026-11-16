@@ -1327,12 +1327,12 @@ The conditions below use these terms.
   when, through each of them, it evaluates the call before anything else
   that examines the input or examines nothing more there, as at the end of
   the expression of a lookahead or of the parse and at a check for the end of
-  the input; a lookahead there examines the input. In `main = Y "b" / B`, with
+  the input; a lookahead or a dead symbol (below) there examines the input. In `main = Y "b" / B`, with
   `B = Y ws "x"` and `Y = "a"+ (ws ";")?`, the option in `Y` shares no call with
   what follows it, which is `"b"` through one call of `Y` and `ws "x"`
-  through the other. A unit that decides its continuation (below) is
-  compared with each of those ways on its own, and can be committing without
-  a shared call. A rule memoized in every parse is memoized at each of its
+  through the other. A unit that decides every one of its continuations
+  (below) is compared with each of those ways on its own, and can be
+  committing without a shared call. A rule memoized in every parse is memoized at each of its
   calls, and a rule of a left-recursion cycle other than a leader at a call
   that is not a left call. A call of a rule of a left-recursion cycle is
   shared only when the two calls lie in the same growths of that cycle:
@@ -1470,8 +1470,9 @@ The conditions below use these terms.
   excluded at the start of a unit that begins with `"let" !idchar`, and a
   continuation `"=" !"="` at the start of an operator part `"=="` with its
   right operand.
-  A unit that is not a lookahead is also committing for a continuation that
-  it **decides**. A **path** of an expression is a sequence of symbols, each a
+  A unit that is not a lookahead is also committing when it **decides**
+  every one of its continuations; one that decides some of them and commits
+  against the others in the ways above is not. A **path** of an expression is a sequence of symbols, each a
   call, a literal, a character class, `.` or a lookahead, such that every
   evaluation of the expression that succeeds succeeds on the symbols of one
   path in order, each starting where the one before it ended; an expression

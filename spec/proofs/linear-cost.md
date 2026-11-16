@@ -1077,7 +1077,7 @@ starts. Unless the sequence leaves it out, it would be an activation of the
 sequence between $\alpha_{j-1}$ and $\alpha_j$. Nothing more follows of what
 $w_j$ does after $e_j$: the unit $w_{l'}$ need not share the call of $r$ with
 its continuation through every call of $Y$, since it can be committing by
-deciding its continuation, which compares each way through a call of $Y$ on
+deciding its continuations, which compares each way through a call of $Y$ on
 its own ([Conditions for Linear
 Cost](../runtime/parsing.md#conditions-for-linear-cost)), so what follows the
 call in $w_j$ that makes $e_j$ can examine the input at $p$ and fail there.
@@ -1099,10 +1099,14 @@ and $Y_l$ as $T$, which give that $\pi_l$ nests at one end under its
 hypotheses on the dropped steps and the alike calls and apart from its open
 points; the continuation of $w_l$ then reaches the call of $r$ after leaving
 the body of $Y_l$, in what follows $\pi_l$, so the call is not shared unless
-$r$ is a scan-only rule, which *Calls of scan-only rules* treats. $\square$
+$r$ is a scan-only rule. *Calls of scan-only rules* treats that rule in a
+parse with the records of scan sites, which this claim excludes, so a
+scan-only $r$ in a parse without them is not treated here. $\square$
 
 So the case $e'_j = Y_{l'}$ that remains is that of a unit $w_j$ that starts
-after $w_l$ ends and evaluates no call of $r$ at $p$ after $e_j$. Let $m$ be the least index
+after $w_l$ ends and evaluates no call of $r$ at $p$ after $e_j$, unless the
+sequence of the activations of $\sigma$ at $q$ leaves out the activation at
+$q$ of that call. Let $m$ be the least index
 after $l$ whose unit starts before $p$, so that $m \le j$. From the end of
 $w_l$ to the start of $\alpha_{m-1}$ the parser starts no evaluation before
 $p$ (*Restarts* and *Dropped steps* for each index between), so $w_m$, which
@@ -5607,12 +5611,13 @@ condition of the cost view that the [Cost View](cost-view.md) proof leaves open.
    grammar. When that later evaluation ends before the later outer link and is
    the frame that the later outer link leaves, a unit of the index that
    starts before the unit of the earlier outer link ends meets *Nesting at
-   one end*, and in a parse that keeps no records of scan sites the unit of
+   one end*, apart from a scan-only rule of the scan in a parse without
+   records of scan sites, which no claim treats, and in a parse that keeps no records of scan sites the unit of
    the index evaluates no call of the rule of the scan at the position of the
    scan after its shared call, unless the sequence of activations leaves out
    the activation of that call (*Memoized links to the frame of an outer
    link*); what else that unit examines there is not determined, since a unit
-   that decides its continuation compares each way through a call of a rule
+   that decides its continuations compares each way through a call of a rule
    on its own. When the unit of the index starts after the unit of the earlier
    outer link ends, it lies in a continuation of the last unit before it that
    encloses the frame of the earlier link, if no growth step around that frame
