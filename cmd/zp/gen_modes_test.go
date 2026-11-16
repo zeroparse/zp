@@ -39,6 +39,21 @@ func hasLibFiles(files []string) bool {
 	return false
 }
 
+// afterOnly returns the generated files that a generation with only leaves when files were there:
+// the files of the parser stay, and the library is the whole one, libFiles, which may have files
+// that a copy narrowed to a parser left out.
+func afterOnly(files, libFiles []string) []string {
+	var out []string
+	for _, f := range files {
+		if !strings.HasPrefix(f, "internal/libgo/") {
+			out = append(out, f)
+		}
+	}
+	out = append(out, libFiles...)
+	slices.Sort(out)
+	return out
+}
+
 // TestGenModesReplaceEachOther checks which files a generation in each library mode writes and
 // removes: embed and import own parser.go, api.go and internal/libgo, while only owns
 // internal/libgo alone and never touches the parser.
@@ -110,12 +125,15 @@ func TestGenModesReplaceEachOther(t *testing.T) {
 			t.Errorf("types/types.go: %q, %v", data, err)
 		}
 	})
+	whole := t.TempDir()
+	gen(t, whole, only...)
+	libFiles := listGenerated(t, whole)
 	t.Run("only keeps types/types.go", func(t *testing.T) {
 		dir := t.TempDir()
 		gen(t, dir, append([]string{"-types"}, embed...)...)
 		before := listGenerated(t, dir)
 		gen(t, dir, only...)
-		if after := listGenerated(t, dir); !slices.Equal(before, after) || !slices.Contains(after, "types/types.go") {
+		if after := listGenerated(t, dir); !slices.Equal(afterOnly(before, libFiles), after) || !slices.Contains(after, "types/types.go") {
 			t.Errorf("only changed the files: before %v, after %v", before, after)
 		}
 	})
@@ -133,7 +151,7 @@ func TestGenModesReplaceEachOther(t *testing.T) {
 			t.Fatal(err)
 		}
 		gen(t, dir, only...)
-		if after := listGenerated(t, dir); !slices.Equal(before, after) {
+		if after := listGenerated(t, dir); !slices.Equal(afterOnly(before, libFiles), after) {
 			t.Errorf("only changed the files: before %v, after %v", before, after)
 		}
 		if now, err := os.ReadFile(filepath.Join(dir, "parser.go")); err != nil || string(now) != string(parser) {
