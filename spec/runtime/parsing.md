@@ -2401,7 +2401,7 @@ n elements of a list or a tuple off the values gathered for it is one
 reservation of 2n units, one for copying each element and one for taking it
 off, made before any element moves, however long the list, whether a term makes
 the list or the parse builds it, as for the list of a repetition. A list that
-reuses the elements kept in the record of an earlier walk (see Scan Sites)
+reuses the elements kept in the record of an earlier walk ([Scan Sites](#scan-sites))
 takes off only the elements gathered before them. Where two
 backends make the same charges, they report the same `Used` and `Requested`.
 
