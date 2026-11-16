@@ -1400,6 +1400,9 @@ func (p *TParser) InvokePlain(r *TRule, min int) (any, bool) {
 
 // invokePlainBody is InvokePlain without observation.
 func (p *TParser) invokePlainBody(r *TRule, min int) (any, bool) {
+	if p.TypedDocument != nil {
+		p.Document.stats.Evaluated++
+	}
 	start, rec, trail := p.Pos, len(p.Recovered), len(p.Trail)
 	prevEnv, prevCut := p.Env, p.Cut
 	p.Cut = false
