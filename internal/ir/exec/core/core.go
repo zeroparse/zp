@@ -196,8 +196,7 @@ func Build() *Module {
 	// and returns the result.
 	//
 	// With doc, a call in a Document parse also records with its entry the input it examined, and
-	// pins the entry of a rule whose results depend on positions. With typed Document bookkeeping, the record of the entry that the call replaces is
-	// forgotten, so that it does not keep the entry alive.
+	// pins the entry of a rule whose results depend on positions.
 	finish := func(b *Builder, level Expr, doc docMode) {
 		c := L("c")
 		if doc == nodeDoc || doc == typedDoc {
@@ -207,9 +206,6 @@ func Build() *Module {
 		b.Let("kept", C("keep", L("inner")))
 		b.Let("store", C("ctx.pop", c))
 		b.IfElse(Eq(L("store"), C("ctx.storeMemo")), func(b *Builder) {
-			if doc == typedDoc {
-				b.If(L("found"), func(b *Builder) { b.Do("memo.forgetDoc", L("e")) })
-			}
 			entry := b.Let("entry", C("memo.store", id, L("start"), level, L("env"), L("ok"), R(ops.Pos), silent,
 				L("v"), C("rec.since", L("rec")), C("rule.docOnlyMemo", r)))
 			b.Do("memo.setPresent", entry, c)
@@ -287,13 +283,26 @@ func Build() *Module {
 	}
 	invoke := func(b *Builder) { b.SetN(pair, C("rule.invoke", r, L("min"))) }
 
+	firstCall := m.AddFunc("firstCall", []Param{P("r", rule)}, []Type{TBool}, nil, func(b *Builder) {
+		b.Let("s", C("rule.seen", r))
+		b.Return(And(And(C("seen.defers"), Bin(">=", L("s"), Int(0))), C("seen.first", L("s"), R(ops.Pos))))
+	})
+	firstCall.Doc = `firstCall records a call of the memoized rule r at the position and reports whether its
+memoization is deferred, in which case the call is not memoized. A result is reused only when the rule
+is called again at the same position, which in practice is rare, so memoizing every first call would
+cost a memo entry per call for nothing. Deferring memoization to the second call evaluates the body of
+a rule at most twice per position, binding level and combination of variable values. That bounds how
+often a rule body runs, not the time of a parse: loops inside a body, left-recursion growth and
+variable environments do work that the memo does not share. A parse that memoizes on the first call, a
+rule without a seen index and an eager rule are memoized at once.`
+
 	call := m.AddFunc("call", []Param{P("r", rule), P("min", TInt)}, result,
 		[]string{ops.Document, ops.Observe, ops.Typed, ops.Budget}, func(b *Builder) {
 			locals(b)
 			tracked(b, C("call.track", r, L("min")))
 			charge(b)
 			b.Let("start", R(ops.Pos))
-			b.If(Bin("||", And(Not(C("rule.memo", r)), Not(C("rule.leader", r))), C("call.first", r)), func(b *Builder) { unmemoized(b, false) })
+			b.If(Bin("||", And(Not(C("rule.memo", r)), Not(C("rule.leader", r))), C("firstCall", r)), func(b *Builder) { unmemoized(b, false) })
 			reuse(b, L("min"), typedTrack, exit)
 			evaluate(b, L("min"), invoke)
 			finish(b, L("min"), typedTrack)
@@ -499,7 +508,7 @@ dependencies send it, and restores the state from before the call.`
 			// the copy and the replay of recovered errors included, except the work of moving an entry and its
 			// value after an edit, which opens its own region.
 			work(b, C("rule.docOnlyMemo", r), func(b *Builder) {
-				b.Set("direct", Bin("||", And(Not(C("rule.memo", r)), Not(C("rule.leader", r))), C("call.first", r)))
+				b.Set("direct", Bin("||", And(Not(C("rule.memo", r)), Not(C("rule.leader", r))), C("firstCall", r)))
 			})
 			b.If(L("direct"), func(b *Builder) {
 				unmemoized(b, true)
@@ -530,7 +539,7 @@ the call) of a rule that a parse from scratch does not memoize.`
 	body := m.AddFunc("body", []Param{P("r", rule), P("min", TInt)}, result, []string{ops.Document, ops.Budget}, func(b *Builder) {
 		charge(b)
 		b.If(And(F(ops.Document), C("doc.active")), func(b *Builder) { ret2(b, C("document", r, L("min"))) })
-		b.If(Bin("||", And(Not(C("rule.memo", r)), Not(C("rule.leader", r))), C("call.first", r)), func(b *Builder) {
+		b.If(Bin("||", And(Not(C("rule.memo", r)), Not(C("rule.leader", r))), C("firstCall", r)), func(b *Builder) {
 			ret2(b, C("unmemoized", r, L("min")))
 		})
 		ret2(b, C("memoized", r, L("min")))

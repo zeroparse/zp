@@ -64,6 +64,23 @@ type ruleState struct {
 	log   []string
 }
 
+// SeenIndex returns the index that rule.seen reports for the rule with the index, of the rules specs:
+// its position among the rules that a parse from scratch memoizes and that lead no left-recursive
+// cycle, or -1 for a rule that is not one of them.
+func SeenIndex(specs []RuleSpec, index int64) int64 {
+	seen := func(i int64) bool { return int(i) < len(specs) && specs[i].Memo && !specs[i].Leader }
+	if !seen(index) {
+		return -1
+	}
+	n := int64(0)
+	for i := range index {
+		if seen(i) {
+			n++
+		}
+	}
+	return n
+}
+
 // spec returns the RuleSpec of the rule with the index.
 func (m *Model) spec(index int64) RuleSpec {
 	if int(index) < len(m.cfg.RuleSpecs) {
@@ -125,6 +142,8 @@ func (m *Model) callRule(o *exec.Op, args []any) ([]any, bool) {
 		return flag(func(s RuleSpec) bool { return s.Positional })
 	case "rule.id":
 		return []any{args[0].(RuleRef).Index}, true
+	case "rule.seen":
+		return []any{SeenIndex(m.cfg.RuleSpecs, args[0].(RuleRef).Index)}, true
 	case "rule.invoke":
 		m.chargeCall()
 		v, ok := m.evaluate(args[0].(RuleRef).Index, args[1].(int64), true)

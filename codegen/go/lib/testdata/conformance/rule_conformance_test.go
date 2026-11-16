@@ -44,6 +44,10 @@ func newRuleMachine(cfg ref.Config, controlled bool) conform.Impl {
 	if cfg.Document {
 		base.p.Document = &documentState{}
 	}
+	if cfg.Stream {
+		// The cases of a stream parse read only seen.defers and the rules' descriptors.
+		base.p.Stream = &streamInput{}
+	}
 	base.p.track = cfg.Document || cfg.Observed
 	m := &ruleMachine{docMachine: &docMachine{rtMachine: base}, specs: cfg.RuleSpecs, evals: map[int64]int64{}}
 	scriptRules(base.env.rules, cfg, m.evaluate)
@@ -66,6 +70,7 @@ func scriptRules(rules []*Rule, cfg ref.Config, eval func(index int64, p *Parser
 		}
 		r.Id, r.Name = i, ref.RuleName(int64(i))
 		r.Memo, r.DocMemo, r.Leader, r.Positional, r.Rec = s.Memo, s.DocMemo, s.Leader, s.Positional, s.Rec
+		r.Seen = int(ref.SeenIndex(cfg.RuleSpecs, int64(i)))
 		r.Scope = nil
 		for k := range s.Captures {
 			r.Scope = append(r.Scope, ref.CaptureName(k))
@@ -152,6 +157,10 @@ func (m *ruleMachine) Call(o *exec.Op, args []any) (res []any) {
 		return []any{p.confRulePositional(rule())}
 	case "rule.id":
 		return []any{int64(p.confRuleId(rule()))}
+	case "rule.seen":
+		return []any{int64(p.confRuleSeen(rule()))}
+	case "seen.defers":
+		return []any{p.confSeenDefers()}
 	case "rule.invoke":
 		return invoke(p.confRuleInvoke)
 	case "rule.invokePlain":
@@ -173,7 +182,7 @@ func (m *ruleMachine) Call(o *exec.Op, args []any) (res []any) {
 
 // ruleLibOps are the operations of the rules that the library provides, with the doc operations.
 var ruleLibOps = append([]string{"rule.memo", "rule.leader", "rule.plain", "rule.docMemo", "rule.docOnlyMemo",
-	"rule.positional", "rule.id", "rule.invoke", "rule.invokePlain", "depth.enter", "depth.exit", "depth.current",
+	"rule.positional", "rule.id", "rule.seen", "rule.invoke", "rule.invokePlain", "seen.defers", "depth.enter", "depth.exit", "depth.current",
 	"rec.mark", "rec.truncate"}, conform.DocOps...)
 
 // ruleSuites are the suites of the library's operations of the rules. The controlled suite checks the
@@ -241,6 +250,11 @@ func TestExecConformanceRuleDetectsBrokenLib(t *testing.T) {
 		"rule.id is the index of the rule after it": func(m *ruleMachine, args []any) []any {
 			return []any{int64(args[0].(*Rule).Id + 1)}
 		},
+		"rule.seen is the rule's index": func(m *ruleMachine, args []any) []any {
+			return []any{int64(args[0].(*Rule).Id)}
+		},
+		"seen.defers ignores the Document": func(m *ruleMachine, args []any) []any { return []any{m.p.Stream == nil} },
+		"seen.defers ignores streams":      func(m *ruleMachine, args []any) []any { return []any{m.p.Document == nil} },
 		"rule.invoke runs the body without its own frame": func(m *ruleMachine, args []any) []any {
 			p := m.p
 			p.Pos = int(m.regs[ops.Pos].(int64))
@@ -272,6 +286,42 @@ func TestExecConformanceRuleDetectsBrokenLib(t *testing.T) {
 		})
 	}
 }
+
+// TestExecConformanceRuleDetectsCharges is the negative control of the charges: the library whose
+// rule.seen or seen.defers charges a unit fails the controlled suite on the bound.
+func TestExecConformanceRuleDetectsCharges(t *testing.T) {
+	variants := map[string]func(m *ruleMachine, args []any) []any{
+		"rule.seen charges a unit": func(m *ruleMachine, args []any) []any {
+			m.p.Spend()
+			return []any{int64(m.p.confRuleSeen(args[0].(*Rule)))}
+		},
+		"seen.defers charges a unit": func(m *ruleMachine, args []any) []any {
+			m.p.Spend()
+			return []any{m.p.confSeenDefers()}
+		},
+	}
+	for name, v := range variants {
+		t.Run(name, func(t *testing.T) {
+			op := strings.Fields(name)[0]
+			s := ruleSuites()[1]
+			s.Name = name
+			s.New = func(c ref.Config) conform.Impl {
+				return meteredBrokenRule{brokenRule{newRuleMachine(c, true).(meteredRule).ruleMachine, op, v}}
+			}
+			fails, _ := ruleConformanceFailures(s, 30, 60)
+			if len(fails) == 0 {
+				t.Fatal("no case detected the charge")
+			}
+			if msg := fails[0].Error(); !strings.Contains(msg, "more than the bound") {
+				t.Fatalf("the first failure is not the charge: %s", msg)
+			}
+		})
+	}
+}
+
+type meteredBrokenRule struct{ brokenRule }
+
+func (m meteredBrokenRule) Used() uint64 { return m.p.Control.budgetUsed() }
 
 // brokenRule is the library with one operation of the rules replaced.
 type brokenRule struct {

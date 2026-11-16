@@ -38,6 +38,8 @@ type Config struct {
 	NoExpectations bool
 	// Document makes a Document parse (doc.active is true).
 	Document bool
+	// Stream makes a stream parse, which memoizes a rule on its first call (seen.defers is false).
+	Stream bool
 	// Oprs are the Operators Rules of a case, the rules of the indexes of RuleRef for the operations
 	// of the Operators Rule family.
 	Oprs []OprRule
@@ -548,6 +550,8 @@ func (m *Model) Call(o *exec.Op, args []any) []any {
 		return []any{args[0].(*Entry).errs}
 	case "seen.first":
 		return []any{m.first(args[0].(int64), args[1].(int64))}
+	case "seen.defers":
+		return []any{!m.cfg.Document && !m.cfg.Stream}
 	case "budget.charge":
 		n := args[0].(uint64)
 		if m.Exceeds(n) {

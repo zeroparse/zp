@@ -60,6 +60,14 @@ func (p *Parser) confRuleId(r *Rule) int {
 	return res
 }
 
+// confRuleSeen runs rule.seen for the conformance suite.
+// Printed from Exec IR function confRuleSeen of internal/ir/exec/core.
+func (p *Parser) confRuleSeen(r *Rule) int {
+	var res int
+	res = r.Seen
+	return res
+}
+
 // confRuleInvoke runs rule.invoke for the conformance suite.
 // Printed from Exec IR function confRuleInvoke of internal/ir/exec/core.
 func (p *Parser) confRuleInvoke(r *Rule, min int) (*core.Node, bool) {
@@ -72,4 +80,20 @@ func (p *Parser) confRuleInvoke(r *Rule, min int) (*core.Node, bool) {
 func (p *Parser) confRuleInvokePlain(r *Rule, min int) (*core.Node, bool) {
 	r0, r1 := p.InvokePlain(r, min)
 	return r0, r1
+}
+
+// confSeenDefers runs seen.defers for the conformance suite.
+// Printed from Exec IR function confSeenDefers of internal/ir/exec/core.
+func (p *Parser) confSeenDefers() bool {
+	var r bool
+	r = p.DeferMemo
+	return r
+}
+
+// confSeenFirst runs seen.first for the conformance suite.
+// Printed from Exec IR function confSeenFirst of internal/ir/exec/core.
+func (p *Parser) confSeenFirst(rule int, pos int) bool {
+	var r bool
+	r = p.memoFirstCall(pos, rule)
+	return r
 }

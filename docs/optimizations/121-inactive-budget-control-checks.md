@@ -24,7 +24,7 @@ of two strings, in the helper that appends the elements concat copies, which cha
 read, which charges the fields it scans, and in the error constructor, which charges the pieces of
 a message.
 
-`FirstCall` runs the ordinary body itself after `controlledFirstCallPrepare`, which does the
+The record of a first call runs the ordinary body itself after `controlledFirstCallPrepare`, which does the
 controlled charges and growth, so a controlled parse executes the same steps. The Operators
 Rule loop of both runtimes replays the recovered errors of an operator match only when there are
 some (an empty append changes nothing).
