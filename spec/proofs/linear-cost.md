@@ -1355,26 +1355,94 @@ through $\rho$, a read of the seed in a later step of $G$, so it lies in the
 evaluation from $\bar{s}$ of the continuation, which is the second form of the
 claim. $\square$
 
-Let $\bar{\kappa}$ be that continuation. What remains of this case is to place
-$w_j$, or $e_j$, inside the evaluation in $\bar{\kappa}$ of a call $c$ that
-$w_{\bar{m}}$ and $\bar{\kappa}$ share and whose evaluation in $w_{\bar{m}}$ contains
-$Y_l$, and then to rule the case out through the memo: the two evaluations of
-$c$ are of one call and both are evaluated, so with one variant and outside
-contexts of growths the earlier one is inside a lookahead and the later one
-outside them (*Answered calls*); the call of $e_j$ inside the later one has a
-counterpart inside the earlier one, which leaves an entry that answers $e_j$
-when $e_j$ is inside a lookahead, and otherwise the entry of $e_j$ answers
-the call of $e'_j$, outside cases (a) and (b) of the covered keys. This is not
-shown: $\bar{\kappa}$ need not be the continuation $\kappa_{\bar{m}}$ of the link
-$\bar{m}$, so the pair need not be that link; $w_j$ can enclose the evaluation of
-$c$ rather than lie inside it; the variants of the calls can differ, and an
-entry of one variant answers no call of the other; and the evaluation of the
-key that the covered keys give can be in a context of growths, where it
-stores no entry. Nor is the case shown in which $Y_{l'}$ contains $e'_j$ and
-is not $e'_j$, nor the case of a growth step around $Y_l$ that is dropped,
-nor the second form of the claim, in which the part of $w_j$ after its read
-of the seed takes the place of $w_j$ and is checked from the end of the seed
-as a growing unit, as in the first case of *Dropped steps*.
+The proof goes on to the start of $\alpha_j$: from the end of $w_{\bar{m}}$ to
+the start of $\alpha_j$ the parser starts no evaluation at a position before
+$\bar{s}$ apart from the same exception. Let $v$ be as in the proof, abandoned
+before $\alpha_j$ starts in place of before $w_j$ starts. It ends before
+$\alpha_j$ starts, so $k < j$, and $k = j - 1$ is the one new case: the first
+abandoned evaluation on the path from $N_j$ to $\alpha_{j-1}$ then encloses $v$
+and with it $Y_l$, and it contains $\alpha_{j-1}$, so by the hypothesis it is
+no dropped step and is $w_j$, which does not enclose $Y_l$. So, outside that
+exception, each evaluation that the parser starts from the end of $w_{\bar{m}}$
+to the start of $\alpha_j$ starts at $\bar{s}$ or later, and one that is still
+in progress when $\alpha_j$ starts lies, with $\alpha_j$, in the evaluation
+from $\bar{s}$ of the continuation $\hat{\kappa}$ of $w_{\bar{m}}$ that the
+parser evaluates there the last time before $\alpha_j$, as in *Direct
+activations*. $\hat{\kappa}$ need not be the continuation whose evaluation
+holds $w_j$: $w_j$ can start at $\bar{s}$ and be the evaluation of an earlier
+continuation from there.
+
+**Frames around the frame of an outer link.** Let a link $l'$ of a run of
+*Calls that call no rule* leave frames, and let an evaluation $E$ of a call
+hold $Y_{l'}$ inside one of its body evaluations, other than as that body
+evaluation. Then $E$ holds $e'_{l'}$, and with it $\alpha_{l'}$. If $E$ is the
+later evaluation $E_2$ of a pair that meets the hypotheses of *Evaluated pairs
+of a shared call*, then, outside cases (a) and (b) of the covered keys on the
+path of that pair, no head holds $\alpha_{l'}$.
+
+*Proof.* Let $B$ be the body evaluation of $E$ that holds $Y_{l'}$. It is not
+$Y_{l'}$, so it encloses $Y_{l'}$, which encloses $w_{l'}$, and the parser
+leaves it after it leaves $Y_{l'}$, after the end of $w_{l'}$. Suppose that $B$
+ended before $e'_{l'}$ started. $B$ contains $\alpha_{l'-1}$, which lies in
+$w_{l'}$, and not $e'_{l'}$, and $N_{l'}$ contains both (*Calls that call no
+rule*), so $B$ lies inside
+$N_{l'}$. $B$ would then be a frame that encloses $w_{l'}$ inside $N_{l'}$ and
+that the parser leaves from the end of $w_{l'}$ to $e'_{l'}$, a frame that the
+link leaves, and the link would leave it after $Y_{l'}$, which is the last
+frame that it leaves. So $B$ is in progress when $e'_{l'}$ starts. $B$ started
+before $Y_{l'}$, and so before $e'_{l'}$, so $e'_{l'}$ starts while $B$ is in
+progress, lies inside $B$ and so inside $E$, and $\alpha_{l'}$ lies in
+$e'_{l'}$. When $E$ is $E_2$, $\alpha_{l'}$ starts while $E_2$ is in progress,
+and the claim of *Outer links inside a memoized link* for an evaluated pair in
+the place of $e'_j$ gives the rest. $\square$
+
+The claim needs nothing of the index $j$ or of the units between the two
+outer links: every frame that encloses $Y_{l'}$ and is not $Y_{l'}$ is still in
+progress at $\alpha_{l'}$. In the case $e'_j = Y_{l'}$ above, outside case 5
+and unless $\alpha_j$ lies in the exception of the restarts for the growths
+that enclose $w_{\bar{m}}$, the argument of *Repeats* applies to $w_{\bar{m}}$
+and $\hat{\kappa}$, with $\alpha_{l-1}$, which lies in $Y_l$ inside
+$w_{\bar{m}}$, in the place of $\alpha$, and $\alpha_j$, which the parser
+reaches in the evaluation of $\hat{\kappa}$ from $\bar{s}$ without returning
+before $\bar{s}$, in the place of $\alpha'$: $\alpha_{l-1}$ lies in the
+evaluation $E_1$ inside $w_{\bar{m}}$ of a call $c$ that $w_{\bar{m}}$ and
+$\hat{\kappa}$ share. Let $E_2$ be the first evaluation of $c$ that
+$\hat{\kappa}$ makes at the same position (case 2). When $E_2$ holds
+$Y_{l'}$ other than as its body evaluation, the claim above applies to
+$E_2$, and some of the
+hypotheses of the evaluated pairs follow. $w_{\bar{m}}$ is a committing unit
+(*Restarts*), since the proof of *The last unit around the earlier frame*
+shows that it is the first abandoned evaluation on its path and no dropped
+step. The rule of $c$ calls a rule, since its body evaluation holds $Y_{l'}$,
+another body evaluation, so the call is shared only as a call of a rule that
+reads no variable and that the parse memoizes at both calls. The memo answers
+neither call: $E_1$ holds $\alpha_{l-1}$ and $E_2$ holds $Y_{l'}$, and a call
+that the memo answers holds no evaluation. Two hypotheses are not shown:
+that neither $E_1$ nor $E_2$ is in a context of growths, since the hypothesis
+of *Outer links across runs* concerns only the
+evaluations that the parser leaves or starts at $p$ between a unit and the
+later evaluation of its link, which neither is; and that each growth at their
+position that is open at the start of one is open at the start of both or read
+by neither.
+
+What remains of this case, besides those two hypotheses, is where $Y_{l'}$
+lies against $E_2$. $E_2$ need not hold $\alpha_j$: the argument places
+$\alpha_{l-1}$ in $E_1$, not $\alpha_j$ in $E_2$, and after a path through
+$E_2$ fails, $\hat{\kappa}$ can evaluate $c$ again at its position, when
+$E_2$ left no entry that answers that call, and reach $q$ in that later
+evaluation. When $E_2$ holds
+$\alpha_j$, $Y_{l'}$, which holds it too, lies inside $E_2$ or encloses it.
+The claim above treats $Y_{l'}$ inside a body evaluation of $E_2$ other than
+as that body evaluation. Not shown are the case in which $Y_{l'}$ is the body
+evaluation of $E_2$, so that $c$ is the call at $\pi_{l'}$, and the case in
+which $Y_{l'}$ encloses $E_2$, as the body evaluation of a call with which
+$\hat{\kappa}$ starts and whose body evaluates $c$ first. Nor is the case shown
+in which $Y_{l'}$ contains $e'_j$ and is not $e'_j$, nor the case of a growth
+step around $Y_l$ that is dropped, nor the second form of the claim, in which
+the part of $w_j$ after its read of the seed takes the place of $w_j$ and is
+checked from the end of the seed as a growing unit, as in the first case of
+*Dropped steps*, nor an $\alpha_j$ in the exception of the restarts for the
+growths that enclose $w_{\bar{m}}$.
 
 **Calls of scan-only rules.** Let the rule $r$ of the links $i$ to $k$ be a
 scan-only rule ([Conditions for Linear
@@ -5895,11 +5963,20 @@ condition of the cost view that the [Cost View](cost-view.md) proof leaves open.
    encloses the frame of the earlier link, or, in the second form, only its
    part after its read of the seed of a later growth step lies there, if no
    growth step around that frame is dropped (*The last unit around the earlier
-   frame*); the second form is not followed further. That the later outer
-   activation then lies in the later evaluation of a pair of evaluations of a
-   call that the two share, which keeps it from every head (*Evaluated pairs
-   of a shared call*), is not shown; the memo need not answer either
-   evaluation of such a call, since a first evaluation may leave no result. A later
+   frame*); the second form is not followed further. When the frame of the
+   later outer link is the later evaluation of the memoized link of the
+   index, the earlier outer activation lies in the evaluation, inside that
+   last unit, of a call that the unit shares with the continuation that holds
+   the index's later activation. When the frame of the later outer link lies
+   inside a body evaluation of the later evaluation of that call, other than
+   as that body evaluation, the later outer activation lies in that later
+   evaluation too (*Frames around the frame of an outer link*), and no head
+   holds it if the two evaluations of the call meet the hypotheses of
+   *Evaluated pairs of a shared call*; that neither is in a context of
+   growths, and the hypothesis on the growths open at their position, are not
+   shown. Nor are the cases in which that frame is the body evaluation of the
+   later evaluation of the call or encloses it, or in which the continuation
+   reaches the activation of the index in a later evaluation of the call. A later
    evaluation that lies inside that frame, an index that is free and one
    linked by a leaf link at a position before the scan are not treated. So the outer links do not bound the
    runs, and the count of the
