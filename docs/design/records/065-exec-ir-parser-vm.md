@@ -293,7 +293,11 @@ target. The observable contract of the record is the farthest position and the e
 which error messages expose. A reference model states it, and the operations of the record are under
 conformance: handwritten and randomized cases and a negative control of broken models run on the engine
 and the generated Go runtime through bindings that each target's printer prints from the operations, so
-that the suite runs the code the compositions run. TypeScript implements the same operations and stays on
+that the suite runs the code the compositions run. The operations of the memo that keep the expectations of an
+entry with it (`memo.far`, `memo.expected`, `memo.setExpected`) belong to the same model: an edit moves the far
+position with the entry, and their cases also run on the typed generated Go runtime, whose entries differ from
+the node runtime's. Negative controls break each of them and make each charge a unit its bound does not allow.
+TypeScript implements the same operations and stays on
 its parity tests, as [Completion](#completion) records. A set that `unisolate` returns may stay where the record
 grows next, so the model allows reading an entry of it only until a write reaches that entry's place, which
 merging the set entry by entry respects. *Target*: membership filters, stack layout, where kept sets live

@@ -212,6 +212,16 @@ func TestEngineExpConformanceDetectsBrokenEngine(t *testing.T) {
 		"exp.isolate keeps the farthest position": func(m *expMachine, args []any) []any {
 			return []any{&markHandle{m.p.Isolate(m.p.Farthest)}}
 		},
+		"memo.far reads the end of the entry": func(m *expMachine, args []any) []any {
+			return []any{int64(args[0].(*MemoEntry).End)}
+		},
+		"memo.expected returns the set kept last": func(m *expMachine, args []any) []any {
+			return []any{m.keptHandle(m.p.LastKept)}
+		},
+		"memo.setExpected keeps the far position": func(m *expMachine, args []any) []any {
+			args[0].(*MemoEntry).Expected = m.kept[args[2].(keptID)]
+			return nil
+		},
 	}
 	for name, v := range variants {
 		t.Run(name, func(t *testing.T) {
@@ -238,4 +248,42 @@ func (b brokenExp) Call(o *exec.Op, args []any) []any {
 		return b.call(b.expMachine, args)
 	}
 	return b.expMachine.Call(o, args)
+}
+
+// brokenExpCharge is the metered engine whose op charges one unit beyond its work.
+type brokenExpCharge struct {
+	meteredExp
+	op string
+}
+
+func (b brokenExpCharge) Call(o *exec.Op, args []any) []any {
+	res := b.meteredExp.Call(o, args)
+	if o.Name == b.op {
+		b.p.Control.Charge(1)
+	}
+	return res
+}
+
+// TestEngineExpConformanceDetectsCharges is the negative control of the charges: the metered engine whose
+// operation of the memo's expectations charges a unit, which its cost bound does not allow, fails the
+// suite.
+func TestEngineExpConformanceDetectsCharges(t *testing.T) {
+	if !BudgetControlsEnabled {
+		t.Skip("budget controls are unavailable in the reference build")
+	}
+	for _, op := range []string{"memo.far", "memo.expected", "memo.setExpected"} {
+		t.Run(op+" charges a unit", func(t *testing.T) {
+			s := expSuites()[1]
+			s.New = func(c ref.Config) conform.Impl {
+				return brokenExpCharge{newExpMachine(c, true).(meteredExp), op}
+			}
+			fails, _ := expConformanceFailures(s, 10, 150)
+			if len(fails) == 0 {
+				t.Fatal("no case detected the charge")
+			}
+			if msg := fails[0].Error(); !strings.Contains(msg, "more than the bound") {
+				t.Fatalf("the first failure is not the charge: %s", msg)
+			}
+		})
+	}
 }

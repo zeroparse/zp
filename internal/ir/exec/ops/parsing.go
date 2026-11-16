@@ -253,13 +253,13 @@ that exp.copy made last and returns it. The copy is charged as the target charge
 and the memory it takes as the target accounts it.`})
 
 	entryArg := []exec.Param{exec.P("e", entry)}
-	add(&exec.Op{Name: "memo.far", Component: Memo, Params: entryArg, Results: []exec.Type{exec.TInt}, Reads: []string{Memo},
+	m.AddOp(&exec.Op{Name: "memo.far", Component: Memo, Params: entryArg, Results: []exec.Type{exec.TInt}, Reads: []string{Memo},
 		Requires: `memo.setExpected recorded expectations with e.`,
 		Contract: `Returns the farthest position of the expectations of entry e.`})
-	add(&exec.Op{Name: "memo.expected", Component: Memo, Params: entryArg, Results: []exec.Type{kept}, Reads: []string{Memo},
+	m.AddOp(&exec.Op{Name: "memo.expected", Component: Memo, Params: entryArg, Results: []exec.Type{kept}, Reads: []string{Memo},
 		Requires: `memo.setExpected recorded expectations with e.`,
 		Contract: `Returns the expectations of entry e.`})
-	add(&exec.Op{Name: "memo.setExpected", Component: Memo, Params: append(entryArg, exec.P("far", exec.TInt), exec.P("k", kept)),
+	m.AddOp(&exec.Op{Name: "memo.setExpected", Component: Memo, Params: append(entryArg, exec.P("far", exec.TInt), exec.P("k", kept)),
 		Writes: []string{Memo},
 		Contract: `Records the expectations k at far of the call that computed entry e. When memo.splice moves e,
 far moves with it, by the same amount as its end.`})
