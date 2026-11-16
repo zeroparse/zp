@@ -782,8 +782,8 @@ evaluation of `s`, inside the unit `s "w"`, whose continuation
 `s ":" R "y"` shares the call of `s` at $0$. The memo answers that call, and
 the next activation at the space lies in the call of `R` that `main` makes
 after `:`, in no evaluation of `s`. The conditions accept the grammar, and on `.:` followed
-by $2k$ spaces and `y`, the compute is $8k + 121$ for $k$ from $500$ to
-$4000$.
+by $2k$ spaces and `y`, the compute of a recognition on the closure backend
+is $16k + 121$ for $k$ from $500$ to $4000$.
 
 So the successful activations of $\sigma$ at $q$, $\alpha_1, \alpha_2, \ldots$
 in the order in which they start, outside case 5, the third case of *Dropped
@@ -1060,30 +1060,27 @@ $e'_j$ and is not $e'_j$.
 **Memoized links to the frame of an outer link.** In the second case of
 *Outer links across runs*, let the index $j$ there be linked by a memoized
 link with $e'_j = Y_{l'}$, at a position $s_0 < p$, and let the parse keep no
-records of scan sites. Then, after $e_j$ ends, $w_j$ examines no input, and
-if $w_j$ starts before $w_l$ ends, this is the case that *Nesting at one end*
+records of scan sites. Then, after $e_j$ ends, $w_j$ evaluates no call of
+$r$ at $p$, unless the sequence of the activations of $\sigma$ at $q$ leaves
+out the activation at $q$ of that call, and if $w_j$ starts before $w_l$ ends, this is the case that *Nesting at one end*
 rules out, with $e_j$ as $X$ and $Y_l$ as $T$.
 
 *Proof.* $e_j$ and $e'_j$ are evaluations of one call of the rule $Y$ of
 $Y_{l'}$ at $s_0$, and $e'_j$ ends at $p$, where the link $l'$ leaves it, so
-$e_j$ ends at $p$ too (case 2). The unit $w_{l'}$ starts at $p$ inside
-$Y_{l'}$, and $\kappa_{l'}$ leaves the frames up to $Y_{l'}$ through the ends
-of their bodies and evaluates the call of $r$ before anything else that
-examines the input, since that call is the first that the two share. That
-continuation goes on, through the end of the body of $Y$, at every call of
-$Y$, the call in $w_j$ that makes $e_j$ included, and shares the call of $r$
-with the unit through each of them ([Conditions for Linear
-Cost](../runtime/parsing.md#conditions-for-linear-cost)). So what follows that
-call in $w_j$ evaluates a call of $r$ before anything else that examines the
-input, or examines nothing. If $w_j$ evaluated $r$ at $p$ after $e_j$, that
-evaluation would make the activations of $e'_{l'}$, which evaluates $r$ at
-$p$ on the same input, since $r$ calls no rule and reads no variable; one of
-them would start at $q$ after $\alpha_{j-1}$, which lies in $e_j$, and before
-$Y_{l'}$ starts, since $w_j$ ends before then, so it would be an
-activation at $q$ between $\alpha_{j-1}$ and $\alpha_j$, which starts after
-$Y_{l'}$ starts. So $w_j$ examines no input after $e_j$: it fails at $p$
-before it examines input, or it reaches its end there, as the expression of
-a lookahead does.
+$e_j$ ends at $p$ too (case 2). If $w_j$ evaluated $r$ at $p$ after $e_j$,
+that evaluation would make the activations of $e'_{l'}$, which evaluates $r$
+at $p$ on the same input, since $r$ calls no rule and reads no variable; one
+of them, which succeeds as $\alpha_{l'}$ does, would start at $q$ after
+$\alpha_{j-1}$, which lies in $e_j$, and before $Y_{l'}$ starts, since $w_j$
+ends before then, and so before $\alpha_j$, which starts after $Y_{l'}$
+starts. Unless the sequence leaves it out, it would be an activation of the
+sequence between $\alpha_{j-1}$ and $\alpha_j$. Nothing more follows of what
+$w_j$ does after $e_j$: the unit $w_{l'}$ need not share the call of $r$ with
+its continuation through every call of $Y$, since it can be committing by
+deciding its continuation, which compares each way through a call of $Y$ on
+its own ([Conditions for Linear
+Cost](../runtime/parsing.md#conditions-for-linear-cost)), so what follows the
+call in $w_j$ that makes $e_j$ can examine the input at $p$ and fail there.
 
 Let $w_j$ start before $w_l$ ends. It is in progress at $\alpha_{j-1}$, which
 starts no earlier than $\alpha_l$, after $w_l$ ends, and it was not started
@@ -1095,7 +1092,7 @@ from before $p$ to $p$, lies in none of them and is not evaluated before
 $e_j$; it does not start after $e_j$ ends, since $e_j$ contains
 $\alpha_{j-1}$, which starts after $Y_l$ ends. So $Y_l$ lies inside $e_j$, and
 is not $e_j$. $e_j$ succeeds and ends at $p$, and $Y_l$ is an evaluation of
-$\pi_l$ that starts before $p$, ends at $p$ and holds $\alpha_{l-1}$; $Y$
+$\pi_l$ that starts before $p$, ends at $p$ and contains $\alpha_{l-1}$; $Y$
 reaches the caller of $\pi_l$, which calls $Y$, so $Y$ is of the recursion of
 $\pi_l$. These are the hypotheses of *Nesting at one end* with $e_j$ as $X$
 and $Y_l$ as $T$, which give that $\pi_l$ nests at one end under its
@@ -1105,14 +1102,14 @@ the body of $Y_l$, in what follows $\pi_l$, so the call is not shared unless
 $r$ is a scan-only rule, which *Calls of scan-only rules* treats. $\square$
 
 So the case $e'_j = Y_{l'}$ that remains is that of a unit $w_j$ that starts
-after $w_l$ ends and examines no input after $e_j$. Let $m$ be the least index
+after $w_l$ ends and evaluates no call of $r$ at $p$ after $e_j$. Let $m$ be the least index
 after $l$ whose unit starts before $p$, so that $m \le j$. From the end of
 $w_l$ to the start of $\alpha_{m-1}$ the parser starts no evaluation before
 $p$ (*Restarts* and *Dropped steps* for each index between), so $w_m$, which
 contains $\alpha_{m-1}$, started before $w_l$ ended and encloses $Y_l$, as
 $w_j$ does above. Here $m < j$, and $w_j$, which contains $\alpha_{j-1}$, starts
 after $w_m$ ends: the parser returns before $p$ after $\alpha_l$ through a
-unit $w_m$ that holds the link $l$, as the expression of the lookahead `&B`
+unit $w_m$ that contains $Y_l$ and $\alpha_l$, as the expression of the lookahead `&B`
 does in `main = &B "b" &Y B / P`, with the other rules as above and
 `S = [ab]+`. That expression does not commit against `"b" &Y B`, and the
 conditions reject the grammar; that $w_m$ never commits in this case is not
@@ -5552,11 +5549,17 @@ condition of the cost view that the [Cost View](cost-view.md) proof leaves open.
    is still in progress at the later outer link, no head holds the activation
    of the later link (*Outer links inside a memoized link*), which covers that
    grammar. When that later evaluation ends before the later outer link and is
-   the frame that the later outer link leaves, the unit of the index examines
-   no input after its shared call, and a unit that starts before the unit of
-   the earlier outer link ends meets *Nesting at one end* (*Memoized links to the frame
-   of an outer link*); a unit that starts after it, with the unit that then
-   holds the earlier link and returns the parser before the scan, a later
+   the frame that the later outer link leaves, a unit of the index that
+   starts before the unit of the earlier outer link ends meets *Nesting at
+   one end*, and in a parse that keeps no records of scan sites the unit of
+   the index evaluates no call of the rule of the scan at the position of the
+   scan after its shared call, unless the sequence of activations leaves out
+   the activation of that call (*Memoized links to the frame of an outer
+   link*); what else that unit examines there is not determined, since a unit
+   that decides its continuation compares each way through a call of a rule
+   on its own. A unit of the index that starts after the unit of the earlier
+   outer link ends, with the unit that then contains the earlier link and
+   returns the parser before the scan, a later
    evaluation that lies inside that frame, an index that is free and one
    linked by a leaf link at a position before the scan are not treated. So the outer links do not bound the
    runs, and the count of the
