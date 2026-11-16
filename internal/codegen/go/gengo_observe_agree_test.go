@@ -37,6 +37,11 @@ import (
 //
 // It returns the calls it set aside and the first difference.
 func callsAgree(a, b []core.TraceEvent, in string, unit core.PositionUnit) (aside setAside, msg string) {
+	return callsAgreeOn(a, b, in, unit, true)
+}
+
+// callsAgreeOn is callsAgree, which compares the examined ends of paired calls only with examined set.
+func callsAgreeOn(a, b []core.TraceEvent, in string, unit core.PositionUnit, examined bool) (aside setAside, msg string) {
 	subtree := func(evs []core.TraceEvent, i int) (end int, exit core.TraceEvent, ok bool) {
 		depth := 0
 		for k := i; k < len(evs); k++ {
@@ -96,7 +101,7 @@ func callsAgree(a, b []core.TraceEvent, in string, unit core.PositionUnit) (asid
 				if x.Matched != y.Matched || x.End != y.End || x.Memo != y.Memo || x.Evals != y.Evals || x.Lookahead != y.Lookahead || x.ReusedElements != y.ReusedElements {
 					return aside, fmt.Sprintf("exit of %s@%d: %s, %s", x.Rule, x.Pos, exitFields(x), exitFields(y))
 				}
-				if x.Examined != y.Examined {
+				if examined && x.Examined != y.Examined {
 					return aside, fmt.Sprintf("examined end of %s@%d: %d, %d", x.Rule, x.Pos, x.Examined, y.Examined)
 				}
 			}
@@ -661,6 +666,9 @@ type agreementStats struct {
 	// filtered counts the events of the engine's filtered parses; partial, the parses whose filter and
 	// depth limit left out some events but not all.
 	filtered, partial int
+	// known counts the observations of the TypeScript agreement that differ in a known divergence, by
+	// case.
+	known map[string]int
 }
 
 // optionsHonored checks the observation of one producer with several trace functions and profiles and
