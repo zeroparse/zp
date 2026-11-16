@@ -168,13 +168,15 @@ Each figure is the median of {{runs "TS/Parse/JSON"}} runs of `bench/ts-parse.mj
 Sizes of the parsers generated from `testdata/grammars/` with the options of `testdata/grammars/generate.txt`
 (commit {{meta "size.commit"}}, {{meta "size.go"}}). "Go source" is the generated `parser.go`; "Go binary" is a program that
 calls the parser's `ParseValue`, built with `-trimpath -ldflags="-s -w"`, so it includes the ZeroParse runtime and the
-parser's types. "TypeScript" is the generated `parser.ts`, raw and compressed with `gzip -9`; it imports the embedded
-runtime, which is the same for every parser and weighs {{sizeOf "runtime" "ts-raw"}} ({{sizeOf "runtime" "ts-gzip"}} gzipped).
+parser's types. With `-lib embed` instead, a parser carries its own copy of the library, which keeps only the code
+the parser can run: "Go library copy" is the source of that copy (the whole library weighs {{sizeOf "runtime" "go-lib"}}),
+and "Go binary, embed" is the same program built with it. "TypeScript" is the generated `parser.ts`, raw and compressed
+with `gzip -9`; it imports the embedded runtime, which is the same for every parser and weighs {{sizeOf "runtime" "ts-raw"}} ({{sizeOf "runtime" "ts-gzip"}} gzipped).
 
-| Parser | Go source | Go binary | TypeScript | TypeScript, gzip -9 |
-|:--|--:|--:|--:|--:|
+| Parser | Go source | Go binary | Go library copy | Go binary, embed | TypeScript | TypeScript, gzip -9 |
+|:--|--:|--:|--:|--:|--:|--:|
 {{- range sizeParsers}}
-| {{.}} | {{sizeOf . "go-source"}} | {{sizeOf . "go-binary"}} | {{sizeOf . "ts-raw"}} | {{sizeOf . "ts-gzip"}} |
+| {{.}} | {{sizeOf . "go-source"}} | {{sizeOf . "go-binary"}} | {{sizeOf . "go-lib"}} | {{sizeOf . "go-binary-embed"}} | {{sizeOf . "ts-raw"}} | {{sizeOf . "ts-gzip"}} |
 {{- end}}
 
 {{end -}}
