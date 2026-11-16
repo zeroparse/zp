@@ -186,28 +186,6 @@ func (p *Parser) ctxLookup(c *CtxState, r *Rule, min int, kv KeyVals) ctxHit {
 	return ctxHit{e: s.e}
 }
 
-// ctxReplay applies the result h as the call that it records would have; a seed adds no
-// expectations and is never moved.
-func (p *Parser) ctxReplay(h ctxHit, seed bool) {
-	e := h.e
-	if !seed {
-		p.replayEntry(e)
-		return
-	}
-	p.touch(e.Examined)
-	p.lw = Min2(p.lw, e.From)
-	p.Stats.Reused++
-	if !e.Ok {
-		return
-	}
-	p.Pos = e.End
-	if p.Missing == nil {
-		p.recAdd(e.Errs)
-	} else {
-		p.ReplayMissing(p.MissingSeedEvents(e), e.Errs)
-	}
-}
-
 // ctxPop ends recording the dependencies of the evaluation of a call in a context and returns
 // where its result goes: storeMemo for a result that read no seed, storeCtx for one that did or
 // whose context's present set has no word of bits (presentWide), and storeNowhere for a call whose

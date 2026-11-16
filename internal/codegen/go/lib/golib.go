@@ -511,8 +511,11 @@ func goTarget(s goSpec) *gogen.Target {
 			return a[0] + ".ok"
 		case "ctx.value":
 			return a[0] + "." + valueField
-		case "ctx.replay":
-			return fmt.Sprintf("p.replayCtx(%s, %s)", a[0], a[1])
+		case "ctx.end", "ctx.errs", "ctx.far", "ctx.expected", "ctx.examined":
+			return a[0] + "." + strings.TrimPrefix(c.Callee, "ctx.")
+		case "ctx.before":
+			// The library does not record where the input that a kept result examined starts.
+			return "true"
 		case "ctx.allows":
 			return fmt.Sprintf("%s.memoAllows(%s.present)", a[0], a[1])
 		case "ctx.active":

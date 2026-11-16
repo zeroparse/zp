@@ -18,8 +18,8 @@ import (
 
 // CtxOps are the operations of the dependency memo that cases for the reference model cover.
 var CtxOps = []string{
-	"ctx.enter", "ctx.found", "ctx.ok", "ctx.value", "ctx.replay", "ctx.allows", "ctx.active",
-	"ctx.lookup", "ctx.push", "ctx.pop", "ctx.storeMemo", "ctx.storeCtx", "memo.setPresent",
+	"ctx.enter", "ctx.found", "ctx.ok", "ctx.value", "ctx.end", "ctx.errs", "ctx.far", "ctx.expected",
+	"ctx.allows", "ctx.active", "ctx.lookup", "ctx.push", "ctx.pop", "ctx.storeMemo", "ctx.storeCtx", "memo.setPresent",
 	"ctx.keep", "ctx.done",
 }
 
@@ -29,7 +29,7 @@ var CtxTestOps = []string{ref.CtxGrowOp, ref.CtxReseedOp, ref.CtxUngrowOp, ref.C
 // CtxSupportOps are the operations that cases of the family call to make the entries, errors and
 // expectations they pass: the implementation provides them besides CtxOps and CtxTestOps.
 var CtxSupportOps = []string{"memo.store", "rec.mark", "rec.push", "rec.since", "exp.isolate", "exp.add",
-	"exp.unisolate", "exp.copy", "exp.empty", "exp.count", "rec.truncate"}
+	"exp.unisolate", "exp.copy", "exp.empty", "exp.count", "exp.keptCount", "rec.none", "rec.truncate"}
 
 // CtxSuiteOps returns the operations that a suite of the family provides.
 func CtxSuiteOps() []string {
@@ -145,22 +145,20 @@ func CtxCases() []Case {
 		b.Assert(exec.C("ctx.found", s), "the leader that grows reads its seed")
 		b.Assert(exec.C("ctx.ok", s), "which matched")
 		b.Let("v", exec.C("ctx.value", s))
-		b.Do("ctx.replay", s, t)
-		b.Assert(eq(exec.R(ops.Pos), i(3)), "replaying the seed moves to its end")
-		b.SetReg(ops.Pos, i(0))
+		b.Assert(eq(exec.C("ctx.end", s), i(3)), "and ends at its end")
+		b.Assert(eq(exec.C("ctx.far", s), i(0)), "with no expectations")
 		cb, sb := enter(b, "cb", ctxLeaderB)
 		b.Assert(exec.Not(exec.C("ctx.found", sb)), "another leader of the cycle does not grow")
 		b.Assert(exec.C("ctx.active", cb), "but is in the context")
 		_, s1 := enter(b, "c1", ctxLeaderA)
 		b.Assert(exec.Not(exec.C("ctx.found", exec.C("ctx.lookup", cb, rule(ctxLeaderB), i(0), exec.C(ValuesOp, i(0))))),
 			"nothing is kept yet")
-		b.Do("ctx.replay", s1, t)
+		b.Assert(eq(exec.C("ctx.end", s1), i(3)), "the seed is the same at every call")
 		b.Do(ref.CtxReseedOp, f, i(0), i(8))
 		b.SetReg(ops.Pos, i(0))
 		_, s2 := enter(b, "c2", ctxLeaderA)
 		b.Assert(exec.Not(exec.C("ctx.ok", s2)), "the new seed failed")
-		b.Do("ctx.replay", s2, t)
-		b.Assert(eq(exec.R(ops.Pos), i(0)), "and replaying it stays")
+		b.Assert(eq(exec.C("ctx.end", s2), i(0)), "and ends at its position")
 		b.Do(ref.CtxUngrowOp)
 		_, s3 := enter(b, "c3", ctxLeaderA)
 		b.Assert(exec.Not(exec.C("ctx.found", s3)), "after the growth there is no seed")
@@ -183,9 +181,10 @@ func CtxCases() []Case {
 		b.Assert(exec.C("ctx.found", h), "the kept result holds while the seed is the same")
 		b.Assert(exec.C("ctx.ok", h), "it matched")
 		b.Let("hv", exec.C("ctx.value", h))
-		b.Do("ctx.replay", h, f)
-		b.Assert(eq(exec.R(ops.Pos), i(4)), "replaying moves to its end")
-		b.SetReg(ops.Pos, i(0))
+		b.Assert(eq(exec.C("ctx.end", h), i(4)), "it ends where it was kept")
+		b.Assert(exec.Not(exec.C("rec.none", exec.C("ctx.errs", h))), "with its errors")
+		b.Assert(eq(exec.C("ctx.far", h), i(4)), "its expectations are as far as kept")
+		b.Assert(eq(exec.C("exp.keptCount", exec.C("ctx.expected", h)), i(0)), "and there are none")
 		c3, _ := enter(b, "c3", ctxMember)
 		b.Assert(exec.Not(exec.C("ctx.found", exec.C("ctx.lookup", c3, rule(ctxMember), i(0), exec.C(ValuesOp, i(2))))),
 			"another key has no result")
@@ -270,8 +269,8 @@ func CtxCases() []Case {
 		b.Do("ctx.done", c)
 		c2, _ := enter(b, "c2", ctxMember)
 		h := b.Let("h", exec.C("ctx.lookup", c2, rule(ctxMember), i(0), exec.C(ValuesOp, i(0))))
-		b.Do("ctx.replay", h, f)
-		b.Assert(eq(exec.C("exp.count"), i(2)), "replaying a result adds its expectations")
+		b.Assert(eq(exec.C("ctx.far", h), i(0)), "a kept result has the farthest position of its expectations")
+		b.Assert(eq(exec.C("exp.keptCount", exec.C("ctx.expected", h)), i(2)), "and its expectations")
 	})
 	add("ctx_wide_edge", func(b *exec.Builder) {
 		grow(b, ctxEdgeLead, 0, true, 1, 7)
@@ -413,7 +412,8 @@ func RandomCtx(name string, rng *rand.Rand, n int) Case {
 			if res, _, _ := call("ctx.found", []any{cs[1]}, cx[1]); res[0].(bool) {
 				call("ctx.ok", []any{cs[1]}, cx[1])
 				call("ctx.value", []any{cs[1]}, cx[1])
-				call("ctx.replay", []any{cs[1], true}, cx[1], exec.BoolC(true))
+				call("ctx.end", []any{cs[1]}, cx[1])
+				call("ctx.errs", []any{cs[1]}, cx[1])
 				setReg(ops.Pos, start)
 				return
 			}
@@ -428,10 +428,11 @@ func RandomCtx(name string, rng *rand.Rand, n int) Case {
 				if res, _, _ := call("ctx.found", []any{h[0]}, hx[0]); res[0].(bool) {
 					call("ctx.ok", []any{h[0]}, hx[0])
 					call("ctx.value", []any{h[0]}, hx[0])
-					if regs[ops.Silent].(int64) == 0 {
-						call("ctx.replay", []any{h[0], false}, hx[0], exec.BoolC(false))
-						call("exp.count", nil)
-					}
+					call("ctx.end", []any{h[0]}, hx[0])
+					call("ctx.errs", []any{h[0]}, hx[0])
+					call("ctx.far", []any{h[0]}, hx[0])
+					k, kx, _ := call("ctx.expected", []any{h[0]}, hx[0])
+					call("exp.keptCount", []any{k[0]}, kx[0])
 					setReg(ops.Pos, start)
 					return
 				}

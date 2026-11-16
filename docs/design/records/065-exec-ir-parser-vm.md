@@ -276,11 +276,13 @@ than a set indexes is not kept. The `ctx` operations have this model and conform
 and generated Go. The cases do not run the growth loop: operations that exist only for conformance install a
 growth with a seed and identity that the case chooses, change the seed of the innermost growth, end it (dropping
 the table it began), and begin and end a lookahead through each target's own lookahead entry points, so that the
-`ctx` operations are checked apart from how growth steps compute identities. An operation that writes components
-other than its own (`ctx.replay`, later `grow.step` and `grow.end`) is modelled as the composition of those
-components' models that its contract names: the reuse count and examined input of the call bookkeeping, the merge
-of the expectations, the position and the recovered-error entry; it charges what those parts charge, and it stops
-being transitional only once every component it writes has a model. The growth loop (the steps, jumps and runs of a
+`ctx` operations are checked apart from how growth steps compute identities. The reuse of a result that a
+context keeps is a composition, as the reuse of a memo entry is: accessors of the result (`ctx.end`, `ctx.errs`,
+`ctx.far`, `ctx.expected`, and in a Document parse `ctx.examined` and `ctx.before`) feed the operations of the
+call bookkeeping, the expectations, the position and the recovered errors, so each part is held to its own
+component's model and charges what that part charges. An operation that writes components other than its own
+(`grow.step` and `grow.end`) is modelled as the composition of those components' models that its contract names,
+and it stops being transitional only once every component it writes has a model. The growth loop (the steps, jumps and runs of a
 growth in a context, and the canonical identities of equal seeds) builds on the same state and stays transitional
 until it has a model of its own, and so does keeping the result of a leader, which is the last result of its
 growth; the missing-token mode, in which no result in a context is memoized, and Document parses are outside the
@@ -710,8 +712,8 @@ move to Exec IR at once while mechanisms move one at a time.
    with an empty memo before the counter overflows. The reference model keeps the far position of an expectation
    record with `memo.setExpected`, not with `memo.splice`, and the random conformance cases generate entries with
    recovered errors. Mutating the runtime shows what the tests pin: dropping the shared-node path of a move fails
-   the runtime tests of moved values, and so does dropping the line-start touch of a skip run (`SkipHit`). Dropping the touch of the unit before a result that a left-recursion context replays (`replayCtx`,
-   `growNext`) changes only the counts of reuse: a context lasts as long as the first growth of its leader, every
+   the runtime tests of moved values, and so does dropping the line-start touch of a skip run (`SkipHit`). Dropping the touch of the unit before a result that a left-recursion context keeps (its reuse in the call
+   compositions, `growNext`) changes only the counts of reuse: a context lasts as long as the first growth of its leader, every
    result in it was made inside that growth, and its frames already hold what the result read before its position, so
    the touch is conservative and stays. On generated Go, in interleaved
    runs, `BenchmarkIncremental/generated/document` takes 58% less time and `BenchmarkIncrementalLong/generated` 4%

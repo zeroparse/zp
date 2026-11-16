@@ -65,6 +65,15 @@ const (
 
 // ctxResult is a result that a context keeps: a seed, the result of a growth step, or the result of
 // a call that read a seed. It holds a node (Parser) or a typed value (TParser).
+//
+// A result does not record whether it examined the unit before its position, so in a Document parse
+// a call that reuses it counts that unit as examined. The touch is conservative: no result differs
+// from a parse from scratch without it (a Document that omits it, here and in growNext, differs in
+// its counts of reuse only). A context lasts as long as the first growth of its leader, and every
+// result in it was made inside that growth, in frames that are the leader's own or inside it, whose
+// examined input then holds whatever the result read before its position. The calls that reuse a
+// result read a seed of the context, so their results stay in the context too; the memo entry of the
+// leader is the only one that such a reuse can reach, and it was made by those frames.
 type ctxResult struct {
 	node     *core.Node
 	val      any
@@ -853,33 +862,6 @@ func (p *Parser) reusable(silent bool) bool {
 	return !silent || p.Silent > 0
 }
 
-// replayCtx applies a result that a context kept, or a seed (seed), as the call that it records
-// would have. A result does not record whether it examined the unit before its position, so in a
-// Document parse that unit counts as examined.
-//
-// The touch of that unit is conservative: no result differs from a parse from scratch without it
-// (a Document that omits it, here and in growNext, differs in its counts of reuse only). A context
-// lasts as long as the first growth of its leader, and every result in it was made inside that
-// growth, in frames that are the leader's own or inside it, whose examined input then holds
-// whatever the result read before its position. The calls that replay a result read a seed of the
-// context, so their results stay in the context too; the memo entry of the leader is the only one
-// that a replay can reach, and it was made by those frames.
-func (p *Parser) replayCtx(e *ctxResult, seed bool) {
-	p.Observation.memoHit()
-	p.documentTouch(e.examined)
-	p.documentTouchFrom(p.Pos - 1)
-	if p.Document != nil {
-		p.Document.stats.Reused++
-	}
-	if !seed {
-		p.MergeExpected(e.far, e.expected)
-	}
-	if e.ok {
-		p.Pos = e.end
-		p.recAdd(e.errs)
-	}
-}
-
 // LookBegin starts a lookahead of the given site. In a context at the current position, the
 // lookahead records what it reads, so that a result that depends on it records its outcome
 // instead of the seeds it read (LookEnd). Where no frame records dependencies, a lookahead records
@@ -1038,7 +1020,7 @@ func (p *Parser) growNext(g *growState) bool {
 			p.replayDeps(g.start, g.gp, g.present, j.deps)
 			p.MergeExpected(j.far, j.exp)
 			p.documentTouch(j.examined)
-			p.documentTouchFrom(g.start - 1) // conservative, like the touch of replayCtx
+			p.documentTouchFrom(g.start - 1) // conservative, like the reuse of a ctxResult
 			p.setSeed(g, j.end, j.id)
 			continue
 		}
@@ -1050,7 +1032,7 @@ func (p *Parser) growNext(g *growState) bool {
 			// grammars known to reach it, the call that memoized the step already recorded as much in the
 			// same frame, but that is not proven in general.
 			p.documentTouch(s.examined)
-			p.documentTouchFrom(g.start - 1) // conservative, like the touch of replayCtx
+			p.documentTouchFrom(g.start - 1) // conservative, like the reuse of a ctxResult
 			if !p.advance(g, s.e, s.id, runStep{seed: id, far: s.far, exp: s.exp, examined: s.examined, silent: s.silent, deps: s.deps}) {
 				return false
 			}
