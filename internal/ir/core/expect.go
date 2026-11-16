@@ -13,12 +13,7 @@ var FixedDescs = []string{"any character", "beginning of input", "end of input",
 
 // LiteralDesc is the expectation text of a literal, as written: a case-insensitive literal keeps its
 // suffix i.
-func LiteralDesc(e *grammar.Literal) string {
-	if e.IgnoreCase {
-		return strconv.Quote(e.Value) + "i"
-	}
-	return strconv.Quote(e.Value)
-}
+func LiteralDesc(e *grammar.Literal) string { return grammar.LiteralText(e.Value, e.IgnoreCase) }
 
 // CharClassString returns the character class as grammar syntax writes it, which names the class
 // in expectations.

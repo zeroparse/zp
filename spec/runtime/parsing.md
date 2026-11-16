@@ -206,6 +206,15 @@ and anchors (`beginning of input`, `end of input`, `beginning of line`,
   literals (starting with `"`), then the character classes (starting with `[`).
   Within each group they are in the byte order of their text. `Expected` holds
   them all in this order.
+- The text of a literal item is the literal as the grammar writes it, so it can be copied
+  back into a grammar unchanged. It is enclosed in double quotes. The quote and the backslash
+  are written `\"` and `\\`, and line feed, tab and carriage return `\n`, `\t` and `\r`. A
+  character that is not a Unicode letter, mark, number, punctuation or symbol, and is not the space
+  U+0020, is written `\u{h}`, with its code point in lowercase hexadecimal digits and no
+  leading zeros; this covers the other control characters, `\0` as `\u{0}`, separators, format and
+  unassigned characters. Every other character, ASCII or not, stands for itself. A
+  case-insensitive literal keeps its suffix `i` directly after the closing quote
+  (`"select"i`). For example, the literal `"\u{1F600}\0"i` is shown as `"😀\u{0}"i`.
 - The message lists at most the first ten items. A longer list is cut after the
   tenth and ends with `, ... and N more`, where `N` is the number of items left
   out:

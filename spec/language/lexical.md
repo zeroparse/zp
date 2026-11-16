@@ -116,7 +116,9 @@ in `"x"ia` the identifier `ia` is a rule reference. Folding is ASCII only: `A`-`
 and `a`-`z` match each other, and every other character matches only itself, so
 `"é"i` matches `é` and not `É`. A suffix inside the [`#ignorecase`](pragmas.md#ignorecase)
 pragma is redundant and allowed. An expectation shows a case-insensitive literal
-with its suffix, as written: `"select"i`.
+with its suffix: `"select"i`; the
+[text of a literal](../runtime/parsing.md#syntax-errors) in an expectation is defined with the
+syntax errors.
 
 ### Character Classes
 

@@ -18,13 +18,23 @@ func TestGeneratedLongExpectedLists(t *testing.T) {
 	codegentest.EachMode(t, testGeneratedLongExpectedLists)
 }
 
-func testGeneratedLongExpectedLists(t *testing.T) {
+func testGeneratedLongExpectedLists(t *testing.T) { checkGeneratedCase(t, "long expected lists") }
+
+// TestGeneratedLiteralExpectedText checks that generated Go parsers, untyped and typed, and generated
+// TypeScript parsers print the text of literal expected items, escaped, non-ASCII and
+// case-insensitive, as the engine does.
+func TestGeneratedLiteralExpectedText(t *testing.T) {
+	t.Parallel()
+	codegentest.EachMode(t, func(t *testing.T) { checkGeneratedCase(t, "literal expected text") })
+}
+
+func checkGeneratedCase(t *testing.T, name string) {
 	if testing.Short() {
 		t.Skip("builds generated consumers")
 	}
 	var cases []codegentest.Case
 	for _, c := range codegentest.GenCorpus(t) {
-		if c.Name == "long expected lists" {
+		if c.Name == name {
 			cases = append(cases, c)
 		}
 	}
