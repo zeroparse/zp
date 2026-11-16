@@ -1398,10 +1398,25 @@ the place of $e'_j$ gives the rest. $\square$
 
 The claim needs nothing of the index $j$ or of the units between the two
 outer links: every frame that encloses $Y_{l'}$ and is not $Y_{l'}$ is still in
-progress at $\alpha_{l'}$. In the case $e'_j = Y_{l'}$ above, outside case 5
-and unless $\alpha_j$ lies in the exception of the restarts for the growths
-that enclose $w_{\bar{m}}$, the argument of *Repeats* applies to $w_{\bar{m}}$
-and $\hat{\kappa}$, with $\alpha_{l-1}$, which lies in $Y_l$ inside
+progress at $\alpha_{l'}$.
+
+In the case $e'_j = Y_{l'}$ above, $\alpha_j$ is reached through no
+evaluation of the exception of the restarts for the growths that enclose
+$w_{\bar{m}}$ that follows no read of the seed of its step. Let $\alpha_j$
+lie in a later step $S$ of such a growth $G$. $\alpha_{l-1}$, inside
+$w_{\bar{m}}$, lies in the step of $G$ that holds $w_{\bar{m}}$, an earlier
+one, so $G$ is the innermost evaluation that contains $\alpha_{l-1}$ and
+$\alpha_j$, and *Repeats inside a growth* of Lemma 5 applies to them. In its
+second case, where $\alpha_j$ follows no read of the seed of $S$, the
+sequence of the activations of $\sigma$ at $q$ leaves $\alpha_j$ out, so
+that case does not arise for $\alpha_j$. In its first case $\alpha_j$
+follows a read of the seed of $S$, and so lies in no evaluation in $S$ that
+follows no read, and it starts at or after the end of that seed, which is
+at or after $\bar{s}$ (*Restarts*): the parser reaches it through that read,
+in the evaluation from $\bar{s}$ of $\hat{\kappa}$, which goes on at the end
+of the body of a leader through the reads of the seed, as in the claim above
+and in that first case. Outside case 5, the argument of *Repeats* then
+applies to $w_{\bar{m}}$ and $\hat{\kappa}$, with $\alpha_{l-1}$, which lies in $Y_l$ inside
 $w_{\bar{m}}$, in the place of $\alpha$, and $\alpha_j$, which the parser
 reaches in the evaluation of $\hat{\kappa}$ from $\bar{s}$ without returning
 before $\bar{s}$, in the place of $\alpha'$: $\alpha_{l-1}$ lies in the
@@ -1441,8 +1456,7 @@ in which $Y_{l'}$ contains $e'_j$ and is not $e'_j$, nor the case of a growth
 step around $Y_l$ that is dropped, nor the second form of the claim, in which
 the part of $w_j$ after its read of the seed takes the place of $w_j$ and is
 checked from the end of the seed as a growing unit, as in the first case of
-*Dropped steps*, nor an $\alpha_j$ in the exception of the restarts for the
-growths that enclose $w_{\bar{m}}$.
+*Dropped steps*.
 
 **Calls of scan-only rules.** Let the rule $r$ of the links $i$ to $k$ be a
 scan-only rule ([Conditions for Linear
