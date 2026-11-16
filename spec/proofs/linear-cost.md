@@ -996,14 +996,17 @@ that the conditions accept:
 
 ```zp
 @start
-rule main = &B B / S ws "!"
+rule main = &B B / P
+rule P = (" " " ")* ws "?"
 rule B = Y ws "x"
 rule Y = S (ws ";")?
 rule S = "a"+
 rule ws = [ ]*
 ```
 
-On `a`s followed by spaces and `x`, the lookahead evaluates `B`, whose call
+`P` evaluates `ws` after any number of spaces, with a space next, so the
+repetition of `ws` is no bounded scan; without `P` it would be one, and the
+claims above would not concern it. On `a`s followed by spaces and `x`, the lookahead evaluates `B`, whose call
 of `Y` ends at the first space $p$, where the option fails after `ws` and
 `B` calls `ws` again after leaving `Y`: a leaf link at $p$ through the call
 of `Y` in `B`, outer, since `Y` starts at $0$. The lookahead succeeds and
