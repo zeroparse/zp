@@ -1432,4 +1432,4 @@ fail:
 
 const _ = types.ZPSchema_fc736caa271f00e2
 
-const _ = rt.Protocol19
+const _ = rt.Protocol18

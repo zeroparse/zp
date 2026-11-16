@@ -8,7 +8,6 @@ import (
 	"strings"
 	"testing"
 
-	libgo "zeroparse.dev/zp/codegen/go/lib"
 	"zeroparse.dev/zp/internal/codegen"
 	gogen "zeroparse.dev/zp/internal/codegen/go"
 	"zeroparse.dev/zp/internal/codegentest"
@@ -161,16 +160,6 @@ func TestAnalyzeFeatures(t *testing.T) {
 		}
 		if got != tc.want {
 			t.Errorf("%q %+v: features %q, want %q", tc.src, tc.opts, got, tc.want)
-		}
-	}
-	lib := []libgo.Feature{libgo.FeatureDocument, libgo.FeatureStream, libgo.FeatureObserve, libgo.FeatureBudget, libgo.FeatureMemo,
-		libgo.FeatureLeftRecursion, libgo.FeatureRecovery, libgo.FeatureOperators, libgo.FeatureVars, libgo.FeatureSkipRuns, libgo.FeatureScanSites}
-	if len(lib) != len(codegen.FeatureNames()) {
-		t.Fatalf("the library declares %d features, the analysis %d", len(lib), len(codegen.FeatureNames()))
-	}
-	for i, f := range lib {
-		if uint32(f) != 1<<i {
-			t.Errorf("library feature %d (%s) is %#x, want %#x", i, codegen.FeatureNames()[i], uint32(f), 1<<i)
 		}
 	}
 }

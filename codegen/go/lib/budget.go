@@ -1129,7 +1129,7 @@ func (p *Parser) controlledEnvValues(slots []int) []any {
 }
 
 func (p *Parser) memoGet(rule, pos, min int, key []any, docOnly bool) *memoEntry {
-	p.use(FeatureMemo)
+	p.use(featureMemo)
 	if p.Stream != nil {
 		// A call at a position before the pruned memo needs no entry (a
 		// start rule called at 0).

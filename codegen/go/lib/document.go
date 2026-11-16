@@ -40,7 +40,7 @@ func (d *Document) EndParse() { d.parsing = false }
 // MakeDocument is for generated parsers; not a stable API.
 func MakeDocument(root *Rule, text string, opts []ParseOption) (d *Document, err error) {
 	if witnessFeatures {
-		useFeature(root.g, FeatureDocument)
+		useFeature(root.g, featureDocument)
 	}
 	o, err := ResolveOptions(root.g, opts)
 	if err != nil {

@@ -270,7 +270,7 @@ func generateOnce(g *grammar.Grammar, c codegen.Compiler, opts codegen.GenOption
 		if h.Features != nil {
 			features = h.Features(features)
 		}
-		fmt.Fprintf(&genGo.Init, "\tzpGrammar.WitnessFeatures(Feature(%d)) // %s\n", features, features)
+		fmt.Fprintf(&genGo.Init, "\tzpGrammar.WitnessFeatures(%d) // %s\n", features, features)
 	}
 	if !opts.TypedOnly {
 		genGo.writeDescs(opts)

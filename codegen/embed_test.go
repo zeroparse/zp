@@ -79,7 +79,7 @@ func TestEmbedded(t *testing.T) {
 	for _, args := range [][]string{{"vet", "./..."}, {"test", "-count=1", "./..."}} {
 		cmd := exec.Command("go", args...)
 		cmd.Dir = dir
-		cmd.Env = append(os.Environ(), "GOTOOLCHAIN=local", "GOFLAGS=-mod=mod -trimpath", "GOWORK=off")
+		cmd.Env = append(os.Environ(), "GOTOOLCHAIN=local", codegentest.GoFlagsEnv, "GOWORK=off")
 		if out, err := cmd.CombinedOutput(); err != nil {
 			t.Fatalf("go %s: %v\n%s", args[0], err, out)
 		}
