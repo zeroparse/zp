@@ -180,10 +180,10 @@ chosen from Flow operations almost one for one, with superinstruction selection:
 instruction and common match patterns fuse into high-level ones. A mark that names a set of state to save maps to the
 choice instruction, a sound over-approximation. The compositions are native in the VM and checked by the Exec
 conformance suite. The reason is that the VM, Go, TypeScript and a future LLVM backend then all take grammar code from
-one Code IR, so charging, options and recovery cannot drift between two lowerings of grammar code. Go and TypeScript are
-produced from the Exec stage after language-specific passes that legalize and optimize it for the target, then printed.
-The closure backend deliberately does not share this lowering: it is built from Core IR so that a bug in the lowering
-shows up as a difference between backends.
+one Code IR, so charging and option propagation cannot drift between two lowerings of grammar code. Go and TypeScript
+are produced from the Exec stage after language-specific passes that legalize and optimize it for the target, then
+printed. The closure backend deliberately does not share this lowering: it is built from Core IR so that a bug in the
+lowering shows up as a difference between backends.
 
 ### The Pass Model
 
@@ -217,12 +217,12 @@ A pass is a named unit with a declared shape, and a manager runs a list of them.
 - **Action expressions.** The grammar AST uses `ActionExpr` and `ActionGroup`, the JSON field is `"action"`, the syntax
   symbol is `=> expr`, and Core IR uses `ActionExpr`: all match the specification's Action Expression.
 - **Recognition.** Recognizing input decides, without building a tree, whether the input matches the grammar, and
-  returns
-  the same success and the same syntax errors (recovered ones included) as a parse. Predicates, and the actions that
-  predicates read, run; the runtime errors of other actions and the conversion to typed values are not checked, so a
-  recognition can succeed where a parse fails. It is expressed only by `Parser.Recognize` and the command
-  `parse -recognize`; there is no option that switches a parse into a recognition, and generated parsers offer the same
-  choice. "Validate" and "validation" mean only the structural check of an artifact (a grammar AST, a schema, a module).
+  returns the same success and the same syntax errors (recovered ones included) as a parse. Predicates, and the actions
+  that predicates read, run; the runtime errors of other actions and the conversion to typed values are not checked, so
+  a recognition can succeed where a parse fails. It is expressed only by `Parser.Recognize` and the command `parse
+  -recognize`; there is no option that switches a parse into a recognition, and generated parsers offer the same
+  choice. "Validate" and "validation" mean only the structural check of an artifact (a grammar AST, a schema, a
+  module).
 
 ## Implementation Sequence
 
@@ -240,11 +240,12 @@ numbers give the landing order, except where a stage says it can run in parallel
    declaration table) moves into the checker and the type model.
 4. **Reorganize the IR and the passes.** Make the pass infrastructure `internal/pass` with a generic registry that each
    pipeline fills, and move driving into `internal/driver`; make the Exec infrastructure the Code IR base and put the
-   operation table, the compositions and the reference models, conformance and printing tests under the Exec dialect;
-   move Core passes and facts to `corepass`, the Core-to-Flow lowering to `flowlower` and the shared passes to
-   `codepass`; rename the Core IR `Term` to `ActionExpr` and `terms` in the Core IR specification to `actions`; and
-   rename the `-print-after` stage `build` to `core`, with no alias. Flow and its lowering stay where they are until the
-   dialect stage.
+   operation table, the compositions and the reference models and conformance suite under the Exec dialect, keep the
+   spec tests there, and move the printer test support under `internal/testing` (it calls passes, so it is test support
+   and not part of the dialect); move Core passes and facts to `corepass`, the Core-to-Flow lowering to `flowlower` and
+   the shared passes to `codepass`; rename the Core IR `Term` to `ActionExpr` and `terms` in the Core IR specification
+   to `actions`; and rename the `-print-after` stage `build` to `core`, with no alias. Flow and its lowering stay where
+   they are until the dialect stage.
 5. **Unify the rule facts.** The generators and the engine read policy flags and site numbers from Core facts, and the
    grammar-AST analysis they duplicated is removed. Its differential tests become unit tests of the Core facts.
 6. **Implement the analysis manager** in `internal/pass`, move the Core pipeline onto it, and share facts among lint,
@@ -266,20 +267,17 @@ numbers give the landing order, except where a stage says it can run in parallel
     to Action operations; replace the copying from Flow to Exec with the complete lowering and drive the transitional
     operations to zero; type the immediates; and write the Code IR specification with the dialects as its parts.
 11. **Publish the runtime and compiler packages**, together with the recognition term. Split the shared result types
-    into
-    `pkg/runtime` and its subpackages, add the generated-parser library and its embedded copy, `pkg/bytecode`,
-    `pkg/runtime/vm` and `pkg/compiler` (VM-based `Compile`, reference parser, generation and `Marshal` with
-    `Optimize` for every backend), and remove the old public packages. Generated parsers must satisfy rule 1a, and the
-    ready-made parsers are regenerated and their hand-written tests adjusted with the owner's approval of each landing.
-    The recognition term lands with it: `parse -recognize`, `Parser.Recognize` as the only form, and the definition in
-    the glossary and the recognition guide.
+    into `pkg/runtime` and its subpackages, add the generated-parser library and its embedded copy, `pkg/bytecode`,
+    `pkg/runtime/vm` and `pkg/compiler` (VM-based `Compile`, reference parser, generation and `Marshal` with `Optimize`
+    for every backend), and remove the old public packages. Generated parsers must satisfy rule 1a, and the ready-made
+    parsers are regenerated and their hand-written tests adjusted with the owner's approval of each landing. The
+    recognition term lands with it: `parse -recognize`, `Parser.Recognize` as the only form, and the definition in the
+    glossary and the recognition guide.
 12. **Move control-level decisions into Flow passes** (terminals, class runs and guarded classes and the lowering
-    options
-    leave Core; charge merging moves from the printer to the charge pass) and register language-specific legalization
-    and optimization in the language pipelines.
+    options leave Core; charge merging moves from the printer to the charge pass) and register language-specific
+    legalization and optimization in the language pipelines.
 13. **Select bytecode from the Flow stage**, and remove the bytecode generation that starts from Core. The switch
-    happens
-    only when the size of compiled files and the throughput of the VM are within the noise of the previous
+    happens only when the size of compiled files and the throughput of the VM are within the noise of the previous
     construction (at least twenty interleaved rounds); until then instruction selection is improved.
 
 Stages 3 to 5 and 8 do not change names that the ready-made parsers import; stage 11 changes the import paths of
