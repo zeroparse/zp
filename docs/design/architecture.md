@@ -77,9 +77,10 @@ the shared parts of the generated runtimes come from the same representation. Op
 meaning of the grammar are rewrites of Core IR; the choice of loops and branches is made when lowering to Flow IR;
 passes on Exec IR keep the behavior of a function while removing what a build does not need. The reasoning and the
 contracts are in [Core, Flow and Exec IR](intermediate-representations.md). Only some backends use these
-representations: the closure backend is built from Core IR, so a Core IR change reaches it, while the bytecode compiler
-still works from the program, so a Core IR change does not by itself change every backend; [record 062](records/062-backend-independent-optimization-ir.md) states the intended
-reach and [record 065](records/065-exec-ir-parser-vm.md) the design of Exec IR.
+representations: the closure backend and the bytecode compiler are built from Core IR, so a Core IR change reaches them
+directly, and it reaches the generators through Flow and Exec IR; [record 062](records/062-backend-independent-optimization-ir.md) states the intended
+reach and [record 065](records/065-exec-ir-parser-vm.md) the design of Exec IR. The layout that the packages are
+moving toward is in [record 072](records/072-release-package-layout.md).
 
 ## Values, Documents and Streams
 
@@ -126,7 +127,8 @@ contract is [Observability](../../spec/runtime/observability.md).
 |:--|:--|
 | Grammar syntax, text and JSON forms | `internal/syntax/`, `grammar/` |
 | Desugaring: inline actions to hidden rules, attribute normalization, start rules | `internal/desugar/` |
-| Compilation, analysis, checking and the bytecode compiler | `internal/compile/`; the type model the checker uses in `internal/types/` |
+| Compilation, analysis and checking | `internal/compile/`; the type model the checker uses in `internal/types/` |
+| The bytecode compiler, which emits a module from Core IR built from the program | `internal/engine/vm/` |
 | The front end: a grammar checked to its program, Core IR and facts, which the analysis tools read without a runtime backend | `internal/frontend/`; the program comes from checking in `internal/compile/`, which also lowers it to closures; the generators read the checked program from there |
 | The parser runtime: compilation entry points, streams and limit controls, over the backends and the Document | `internal/engine/` |
 | The parse state that every backend shares, and what a backend provides | `internal/engine/state/` |
