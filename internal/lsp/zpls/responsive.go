@@ -7,6 +7,8 @@ import (
 	"io"
 	"strings"
 	"sync"
+
+	"zeroparse.dev/zp/internal/lsp/protocol"
 )
 
 // The actor alone mutates documents and writes protocol output. Analysis and
@@ -23,7 +25,7 @@ type responsiveActor struct {
 }
 
 type snapshotRequest struct {
-	message  incoming
+	message  protocol.Incoming
 	snapshot analysisSnapshot
 	ctx      context.Context
 	cancel   context.CancelFunc
@@ -32,7 +34,7 @@ type snapshotRequest struct {
 type snapshotResponse struct {
 	request *snapshotRequest
 	value   any
-	err     *rpcError
+	err     *protocol.RPCError
 }
 type readResult struct {
 	body []byte
@@ -72,7 +74,7 @@ func (s *Server) runResponsive() error {
 	incomingMessages := make(chan readResult)
 	go func() {
 		for {
-			body, err := readMessage(s.in)
+			body, err := protocol.ReadMessage(s.in)
 			select {
 			case incomingMessages <- readResult{body, err}:
 			case <-ctx.Done():
@@ -82,7 +84,7 @@ func (s *Server) runResponsive() error {
 				return
 			}
 			// Once exit is read, do not begin another potentially blocking read.
-			var message incoming
+			var message protocol.Incoming
 			if json.Unmarshal(body, &message) == nil && message.Method == "exit" {
 				return
 			}
@@ -98,9 +100,9 @@ func (s *Server) runResponsive() error {
 				}
 				return read.err
 			}
-			var message incoming
+			var message protocol.Incoming
 			if err := json.Unmarshal(read.body, &message); err != nil {
-				if err := s.out.reply(nil, nil, &rpcError{Code: codeParseError, Message: "invalid JSON: " + err.Error()}); err != nil {
+				if err := s.out.Reply(nil, nil, &protocol.RPCError{Code: protocol.CodeParseError, Message: "invalid JSON: " + err.Error()}); err != nil {
 					return err
 				}
 				continue
@@ -164,32 +166,32 @@ func requestKey(id json.RawMessage) string {
 	return "number:" + strings.TrimSpace(string(id))
 }
 
-func (a *responsiveActor) handle(message *incoming) error {
+func (a *responsiveActor) handle(message *protocol.Incoming) error {
 	s := a.server
 	if message.JSONRPC != "2.0" || s.state != stateInitialized {
 		return s.handle(message)
 	}
-	if !message.hasID() && message.Method == "$/cancelRequest" {
+	if !message.HasID() && message.Method == "$/cancelRequest" {
 		var params struct {
 			ID json.RawMessage `json:"id"`
 		}
 		if json.Unmarshal(message.Params, &params) == nil {
 			if request := a.requests[requestKey(params.ID)]; request != nil {
-				return a.finish(request, nil, &rpcError{Code: codeRequestCancelled, Message: "request cancelled"})
+				return a.finish(request, nil, &protocol.RPCError{Code: protocol.CodeRequestCancelled, Message: "request cancelled"})
 			}
 		}
 		return nil
 	}
-	if message.hasID() && message.Method == "shutdown" {
+	if message.HasID() && message.Method == "shutdown" {
 		for _, request := range a.requests {
-			if err := a.finish(request, nil, &rpcError{Code: codeRequestCancelled, Message: "server shutting down"}); err != nil {
+			if err := a.finish(request, nil, &protocol.RPCError{Code: protocol.CodeRequestCancelled, Message: "server shutting down"}); err != nil {
 				return err
 			}
 		}
 		s.queue.cancel()
 		return s.handle(message)
 	}
-	if !message.hasID() || !strings.HasPrefix(message.Method, "textDocument/") && message.Method != "codeAction/resolve" {
+	if !message.HasID() || !strings.HasPrefix(message.Method, "textDocument/") && message.Method != "codeAction/resolve" {
 		return s.handle(message)
 	}
 	if _, ok := requestHandlers[message.Method]; !ok {
@@ -197,29 +199,29 @@ func (a *responsiveActor) handle(message *incoming) error {
 	}
 	// A code action to resolve names its document in the data the server gave it.
 	var params struct {
-		TextDocument textDocumentIdentifier `json:"textDocument"`
-		Data         *findingData           `json:"data"`
+		TextDocument protocol.TextDocumentIdentifier `json:"textDocument"`
+		Data         *findingData                    `json:"data"`
 	}
 	if err := decode(message.Params, &params); err != nil {
-		return s.out.reply(message.ID, nil, err)
+		return s.out.Reply(message.ID, nil, err)
 	}
 	uri := params.TextDocument.URI
 	if message.Method == "codeAction/resolve" {
 		if params.Data == nil {
-			return s.out.reply(message.ID, nil, &rpcError{Code: codeInvalidParams, Message: "code action without data"})
+			return s.out.Reply(message.ID, nil, &protocol.RPCError{Code: protocol.CodeInvalidParams, Message: "code action without data"})
 		}
 		uri = params.Data.URI
 	}
 	d, err := s.doc(uri)
 	if err != nil {
-		return s.out.reply(message.ID, nil, err)
+		return s.out.Reply(message.ID, nil, err)
 	}
 	key := requestKey(message.ID)
 	if a.requests[key] != nil {
-		return s.out.reply(message.ID, nil, &rpcError{Code: codeInvalidRequest, Message: "request ID already in flight"})
+		return s.out.Reply(message.ID, nil, &protocol.RPCError{Code: protocol.CodeInvalidRequest, Message: "request ID already in flight"})
 	}
 	if len(a.requests) >= responsiveMaxRequests {
-		return s.out.reply(message.ID, nil, &rpcError{Code: codeServerCancelled, Message: "server request capacity reached"})
+		return s.out.Reply(message.ID, nil, &protocol.RPCError{Code: protocol.CodeServerCancelled, Message: "server request capacity reached"})
 	}
 	ctx, cancel := context.WithCancel(a.ctx)
 	request := &snapshotRequest{message: *message, snapshot: d.snapshot(), ctx: ctx, cancel: cancel}
@@ -243,7 +245,7 @@ func (a *responsiveActor) start(request *snapshotRequest) {
 		return
 	}
 	if d.an.text != d.text {
-		_ = a.finish(request, nil, &rpcError{Code: codeContentModified, Message: "current document analysis unavailable"})
+		_ = a.finish(request, nil, &protocol.RPCError{Code: protocol.CodeContentModified, Message: "current document analysis unavailable"})
 		return
 	}
 	copyDocument := *d
@@ -271,7 +273,7 @@ func (a *responsiveActor) complete(result snapshotResponse) error {
 		d := a.server.docs[result.request.snapshot.URI]
 		if d == nil || !matchesSnapshot(d.snapshot(), result.request.snapshot) {
 			result.value = nil
-			result.err = &rpcError{Code: codeContentModified, Message: "document changed during request"}
+			result.err = &protocol.RPCError{Code: protocol.CodeContentModified, Message: "document changed during request"}
 		}
 		if err := a.finish(result.request, result.value, result.err); err != nil {
 			return err
@@ -292,33 +294,33 @@ func (a *responsiveActor) complete(result snapshotResponse) error {
 	return nil
 }
 
-func runSnapshotRequest(worker *Server, request *snapshotRequest) (value any, rerr *rpcError) {
+func runSnapshotRequest(worker *Server, request *snapshotRequest) (value any, rerr *protocol.RPCError) {
 	defer func() {
 		if recover() != nil {
 			value = nil
-			rerr = &rpcError{Code: codeInternalError, Message: "request worker failed"}
+			rerr = &protocol.RPCError{Code: protocol.CodeInternalError, Message: "request worker failed"}
 		}
 	}()
 	if request.ctx.Err() != nil {
-		return nil, &rpcError{Code: codeRequestCancelled, Message: "request cancelled"}
+		return nil, &protocol.RPCError{Code: protocol.CodeRequestCancelled, Message: "request cancelled"}
 	}
 	if requestHook != nil {
 		requestHook(request.ctx, request.message.Method)
 	}
 	if request.ctx.Err() != nil {
-		return nil, &rpcError{Code: codeRequestCancelled, Message: "request cancelled"}
+		return nil, &protocol.RPCError{Code: protocol.CodeRequestCancelled, Message: "request cancelled"}
 	}
 	return worker.request(&request.message)
 }
 
-func (a *responsiveActor) finish(request *snapshotRequest, value any, rerr *rpcError) error {
+func (a *responsiveActor) finish(request *snapshotRequest, value any, rerr *protocol.RPCError) error {
 	key := requestKey(request.message.ID)
 	if a.requests[key] != request {
 		return nil
 	}
 	delete(a.requests, key)
 	request.cancel()
-	err := a.server.out.reply(request.message.ID, value, rerr)
+	err := a.server.out.Reply(request.message.ID, value, rerr)
 	if err != nil && a.writeErr == nil {
 		a.writeErr = err
 	}
@@ -328,7 +330,7 @@ func (a *responsiveActor) finish(request *snapshotRequest, value any, rerr *rpcE
 func (a *responsiveActor) invalidate(uri string) {
 	for _, request := range a.requests {
 		if request.snapshot.URI == uri {
-			_ = a.finish(request, nil, &rpcError{Code: codeContentModified, Message: "document changed during request"})
+			_ = a.finish(request, nil, &protocol.RPCError{Code: protocol.CodeContentModified, Message: "document changed during request"})
 		}
 	}
 }

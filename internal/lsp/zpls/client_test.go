@@ -8,6 +8,8 @@ import (
 	"sort"
 	"testing"
 	"time"
+
+	"zeroparse.dev/zp/internal/lsp/protocol"
 )
 
 // testClient talks to a server running in the same process over pipes.
@@ -51,7 +53,7 @@ func newServer(t *testing.T) *testClient {
 	go func() {
 		r := bufio.NewReader(cr)
 		for {
-			body, err := readMessage(r)
+			body, err := protocol.ReadMessage(r)
 			if err != nil {
 				close(c.msgs)
 				return
@@ -170,10 +172,10 @@ func (c *testClient) requestInto(method string, params, v any) {
 }
 
 // requestError sends a request and returns its error, failing if it succeeds.
-func (c *testClient) requestError(method string, params any) rpcError {
+func (c *testClient) requestError(method string, params any) protocol.RPCError {
 	c.t.Helper()
 	m := c.call(method, params)
-	var e rpcError
+	var e protocol.RPCError
 	if err := json.Unmarshal(m["error"], &e); err != nil || e.Code == 0 {
 		c.t.Fatalf("%s: expected an error, got %v", method, m)
 	}
@@ -244,17 +246,19 @@ func docParams(uri string) map[string]any {
 }
 
 // applyEdits applies non-overlapping edits to text.
-func applyEdits(text string, edits []TextEdit) string {
+func applyEdits(text string, edits []protocol.TextEdit) string {
 	sort.Slice(edits, func(i, j int) bool {
 		a, b := edits[i].Range.Start, edits[j].Range.Start
 		return a.Line > b.Line || a.Line == b.Line && a.Character > b.Character
 	})
 	for _, e := range edits {
 		r := e.Range
-		text = applyChange(text, contentChange{Range: &r, Text: e.NewText})
+		text = applyChange(text, protocol.ContentChange{Range: &r, Text: e.NewText})
 	}
 	return text
 }
 
 // rng is a compact way to write a range in tests.
-func rng(l1, c1, l2, c2 int) Range { return Range{Position{l1, c1}, Position{l2, c2}} }
+func rng(l1, c1, l2, c2 int) protocol.Range {
+	return protocol.Range{Start: protocol.Position{Line: l1, Character: c1}, End: protocol.Position{Line: l2, Character: c2}}
+}

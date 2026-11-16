@@ -10,6 +10,7 @@ import (
 	"unicode/utf8"
 
 	"zeroparse.dev/zp/grammar"
+	"zeroparse.dev/zp/internal/lsp/protocol"
 )
 
 func TestTextIndexPositions(t *testing.T) {
@@ -18,19 +19,19 @@ func TestTextIndexPositions(t *testing.T) {
 	idx := newTextIndex(text)
 	for _, tc := range []struct {
 		off int
-		pos Position
+		pos protocol.Position
 	}{
-		{0, Position{0, 0}},
-		{1, Position{0, 1}},  // é
-		{3, Position{0, 2}},  // 😀
-		{7, Position{0, 4}},  // b
-		{8, Position{0, 5}},  // \r
-		{10, Position{1, 0}}, // 名
-		{13, Position{1, 1}}, // \r (a line terminator on its own)
-		{14, Position{2, 0}}, // x
-		{16, Position{3, 0}}, // empty line
-		{17, Position{4, 0}},
-		{21, Position{4, 4}}, // end of text
+		{0, protocol.Position{Line: 0, Character: 0}},
+		{1, protocol.Position{Line: 0, Character: 1}},  // é
+		{3, protocol.Position{Line: 0, Character: 2}},  // 😀
+		{7, protocol.Position{Line: 0, Character: 4}},  // b
+		{8, protocol.Position{Line: 0, Character: 5}},  // \r
+		{10, protocol.Position{Line: 1, Character: 0}}, // 名
+		{13, protocol.Position{Line: 1, Character: 1}}, // \r (a line terminator on its own)
+		{14, protocol.Position{Line: 2, Character: 0}}, // x
+		{16, protocol.Position{Line: 3, Character: 0}}, // empty line
+		{17, protocol.Position{Line: 4, Character: 0}},
+		{21, protocol.Position{Line: 4, Character: 4}}, // end of text
 	} {
 		if got := idx.position(tc.off); got != tc.pos {
 			t.Errorf("position(%d) = %v, want %v", tc.off, got, tc.pos)
@@ -40,20 +41,20 @@ func TestTextIndexPositions(t *testing.T) {
 		}
 	}
 	// Offsets inside a character or a line terminator.
-	for off, want := range map[int]Position{
-		9: {0, 5}, // between \r and \n
+	for off, want := range map[int]protocol.Position{
+		9: {Line: 0, Character: 5}, // between \r and \n
 	} {
 		if got := idx.position(off); got != want {
 			t.Errorf("position(%d) = %v, want %v", off, got, want)
 		}
 	}
 	// Positions that are not on a character boundary or past the end of a line.
-	for pos, want := range map[Position]int{
-		{0, 3}:  3,  // between the two units of 😀: its start
-		{0, 99}: 8,  // past the end of the line: before \r\n
-		{1, 99}: 13, // before the lone \r
-		{9, 0}:  21, // past the last line
-		{-1, 0}: 0,
+	for pos, want := range map[protocol.Position]int{
+		{Line: 0, Character: 3}:  3,  // between the two units of 😀: its start
+		{Line: 0, Character: 99}: 8,  // past the end of the line: before \r\n
+		{Line: 1, Character: 99}: 13, // before the lone \r
+		{Line: 9, Character: 0}:  21, // past the last line
+		{Line: -1, Character: 0}: 0,
 	} {
 		if got := idx.offset(pos); got != want {
 			t.Errorf("offset(%v) = %d, want %d", pos, got, want)
@@ -93,7 +94,7 @@ func TestTextIndexZPPositions(t *testing.T) {
 		t.Errorf("past the end of a line that ends with \\r: %d", got)
 	}
 	// The x after the lone \r is on LSP line 2.
-	if got := idx.position(idx.zpOffset(grammar.Pos{Line: 3, Col: 1})); got != (Position{2, 0}) {
+	if got := idx.position(idx.zpOffset(grammar.Pos{Line: 3, Col: 1})); got != (protocol.Position{Line: 2, Character: 0}) {
 		t.Errorf("x at %v", got)
 	}
 }
@@ -101,20 +102,20 @@ func TestTextIndexZPPositions(t *testing.T) {
 func TestApplyChange(t *testing.T) {
 	text := "rule a = \"😀\" b\nrule b = \"x\""
 	for _, tc := range []struct {
-		r    *Range
+		r    *protocol.Range
 		new  string
 		want string
 	}{
 		{nil, "all", "all"},
-		{&Range{Position{0, 5}, Position{0, 6}}, "名前", "rule 名前 = \"😀\" b\nrule b = \"x\""},
+		{&protocol.Range{Start: protocol.Position{Line: 0, Character: 5}, End: protocol.Position{Line: 0, Character: 6}}, "名前", "rule 名前 = \"😀\" b\nrule b = \"x\""},
 		// After 😀 (two UTF-16 units).
-		{&Range{Position{0, 12}, Position{0, 12}}, "!", "rule a = \"😀!\" b\nrule b = \"x\""},
+		{&protocol.Range{Start: protocol.Position{Line: 0, Character: 12}, End: protocol.Position{Line: 0, Character: 12}}, "!", "rule a = \"😀!\" b\nrule b = \"x\""},
 		// Across the line break.
-		{&Range{Position{0, 14}, Position{1, 4}}, "c\nrule", "rule a = \"😀\" c\nrule b = \"x\""},
+		{&protocol.Range{Start: protocol.Position{Line: 0, Character: 14}, End: protocol.Position{Line: 1, Character: 4}}, "c\nrule", "rule a = \"😀\" c\nrule b = \"x\""},
 		// Reversed range.
-		{&Range{Position{1, 4}, Position{0, 14}}, "", "rule a = \"😀\"  b = \"x\""},
+		{&protocol.Range{Start: protocol.Position{Line: 1, Character: 4}, End: protocol.Position{Line: 0, Character: 14}}, "", "rule a = \"😀\"  b = \"x\""},
 	} {
-		if got := applyChange(text, contentChange{Range: tc.r, Text: tc.new}); got != tc.want {
+		if got := applyChange(text, protocol.ContentChange{Range: tc.r, Text: tc.new}); got != tc.want {
 			t.Errorf("%v %q: got %q, want %q", tc.r, tc.new, got, tc.want)
 		}
 	}
@@ -133,7 +134,7 @@ func TestMinimalEdit(t *testing.T) {
 	} {
 		idx := newTextIndex(tc.old)
 		e := minimalEdit(idx, tc.old, tc.new)
-		if got := applyChange(tc.old, contentChange{Range: &e.Range, Text: e.NewText}); got != tc.new {
+		if got := applyChange(tc.old, protocol.ContentChange{Range: &e.Range, Text: e.NewText}); got != tc.new {
 			t.Errorf("%q -> %q: edit %+v gives %q", tc.old, tc.new, e, got)
 		}
 	}
@@ -142,7 +143,7 @@ func TestMinimalEdit(t *testing.T) {
 // The straightforward conversions, which walk each line from its start, are the reference for the
 // indexed ones.
 
-func naiveOffset(t *textIndex, p Position) int {
+func naiveOffset(t *textIndex, p protocol.Position) int {
 	if p.Line < 0 {
 		return 0
 	}
@@ -161,7 +162,7 @@ func naiveOffset(t *textIndex, p Position) int {
 	return off
 }
 
-func naivePosition(t *textIndex, off int) Position {
+func naivePosition(t *textIndex, off int) protocol.Position {
 	off = max(0, min(off, len(t.text)))
 	line := sort.Search(len(t.lines), func(i int) bool { return t.lines[i] > off }) - 1
 	off = min(off, t.lineEnd(line))
@@ -174,7 +175,7 @@ func naivePosition(t *textIndex, off int) Position {
 		col += utf16Len(r)
 		i += size
 	}
-	return Position{Line: line, Character: col}
+	return protocol.Position{Line: line, Character: col}
 }
 
 func naiveZPOffset(t *textIndex, p grammar.Pos) int {
@@ -218,7 +219,7 @@ func TestTextIndexMatchesNaive(t *testing.T) {
 			if got, want := idx.position(off), naivePosition(idx, off); got != want {
 				t.Fatalf("text %q: position(%d) = %v, want %v", text, off, got, want)
 			}
-			p := Position{Line: rnd.IntN(len(idx.lines)+1) - rnd.IntN(2), Character: rnd.IntN(1000)}
+			p := protocol.Position{Line: rnd.IntN(len(idx.lines)+1) - rnd.IntN(2), Character: rnd.IntN(1000)}
 			if got, want := idx.offset(p), naiveOffset(idx, p); got != want {
 				t.Fatalf("text %q: offset(%v) = %d, want %d", text, p, got, want)
 			}

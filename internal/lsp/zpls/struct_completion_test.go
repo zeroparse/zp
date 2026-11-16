@@ -3,6 +3,8 @@ package zpls
 import (
 	"strings"
 	"testing"
+
+	"zeroparse.dev/zp/internal/lsp/protocol"
 )
 
 func TestStructDeclarationCompletionProtocol(t *testing.T) {
@@ -50,9 +52,9 @@ func assertStructCompletion(t *testing.T, source string, fieldName, snippets boo
 	const uri = "file:///struct-completion.zp"
 	c.open(uri, source)
 	position := newTextIndex(source).position(off)
-	var got completionList
+	var got protocol.CompletionList
 	c.requestInto("textDocument/completion", at(uri, position.Line, position.Character), &got)
-	items := map[string]CompletionItem{}
+	items := map[string]protocol.CompletionItem{}
 	for _, item := range got.Items {
 		items[item.Label] = item
 	}
@@ -66,11 +68,11 @@ func assertStructCompletion(t *testing.T, source string, fieldName, snippets boo
 		t.Fatalf("field snippet present=%v, want %v: %+v", ok, fieldName, got.Items)
 	}
 	if fieldName {
-		if item.Kind != completionKindSnippet {
+		if item.Kind != protocol.CompletionKindSnippet {
 			t.Errorf("field item kind=%d", item.Kind)
 		}
 		if snippets {
-			if item.InsertText != "${1:FieldName} ${2:Type}" || item.InsertTextFormat != insertSnippet {
+			if item.InsertText != "${1:FieldName} ${2:Type}" || item.InsertTextFormat != protocol.InsertSnippet {
 				t.Errorf("field snippet: %+v", item)
 			}
 		} else if item.InsertText != "" || item.InsertTextFormat != 0 {
@@ -93,9 +95,9 @@ func TestStructDeclarationCompletionPreservesConstructors(t *testing.T) {
 	source = strings.Replace(source, "|", "", 1)
 	c.open(uri, source)
 	position := newTextIndex(source).position(off)
-	var got completionList
+	var got protocol.CompletionList
 	c.requestInto("textDocument/completion", at(uri, position.Line, position.Character), &got)
-	if len(got.Items) != 1 || got.Items[0].Label != "Count" || got.Items[0].InsertText != "Count: $1" || got.Items[0].InsertTextFormat != insertSnippet {
+	if len(got.Items) != 1 || got.Items[0].Label != "Count" || got.Items[0].InsertText != "Count: $1" || got.Items[0].InsertTextFormat != protocol.InsertSnippet {
 		t.Fatalf("constructor completion changed: %+v", got.Items)
 	}
 }

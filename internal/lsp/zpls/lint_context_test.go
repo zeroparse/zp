@@ -9,6 +9,7 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/internal/analysis/lint"
+	"zeroparse.dev/zp/internal/lsp/protocol"
 )
 
 type lspLintPollContext struct {
@@ -114,14 +115,14 @@ func TestResponsiveLintMappingCancellationProtocol(t *testing.T) {
 	asyncRequest(c, 701, "textDocument/documentSymbol", docParams(uri))
 	c.notify("$/cancelRequest", map[string]any{"id": 701})
 	// The actor must process change and cancellation while mapping is blocked.
-	assertResponseError(t, c.response("701"), codeRequestCancelled)
+	assertResponseError(t, c.response("701"), protocol.CodeRequestCancelled)
 	releaseWorker()
 	diagnostics := c.diagnostics(uri)
 	if diagnostics.Version == nil || *diagnostics.Version != 2 || len(diagnostics.Diagnostics) != 0 {
 		t.Fatalf("obsolete/partial lint publication: %+v", diagnostics)
 	}
 	// The former version's 512 warnings must never precede this current result.
-	var symbols []DocumentSymbol
+	var symbols []protocol.DocumentSymbol
 	c.requestInto("textDocument/documentSymbol", docParams(uri), &symbols)
 	if len(symbols) != 1 || symbols[0].Name != "main" {
 		t.Fatalf("latest analysis unavailable: %+v", symbols)

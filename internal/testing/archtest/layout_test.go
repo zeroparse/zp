@@ -101,7 +101,8 @@ var layout = []place{
 	// Analysis and the grammar LSP.
 	{pkg: "internal/analysis/complexity", target: "internal/analysis/complexity"},
 	{pkg: "internal/analysis/lint", target: "internal/analysis/lint"},
-	// zpls still holds the JSON-RPC and LSP messages, which split off to internal/lsp/protocol.
+	// The base protocol (JSON-RPC framing) and the LSP message types; zpls keeps the server.
+	{pkg: "internal/lsp/protocol", target: "internal/lsp/protocol"},
 	{pkg: "internal/lsp/zpls", target: "internal/lsp/zpls"},
 
 	// Runtime side.

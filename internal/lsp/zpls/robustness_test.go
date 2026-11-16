@@ -4,6 +4,8 @@ import (
 	"strings"
 	"testing"
 	"unicode/utf16"
+
+	"zeroparse.dev/zp/internal/lsp/protocol"
 )
 
 // Regression tests for input that broke the server.
@@ -144,7 +146,7 @@ func TestLoneCarriageReturns(t *testing.T) {
 	if messages(d) != "undefined rule x" || d[0].Range != rng(2, 11, 2, 12) {
 		t.Errorf("diagnostics %+v", d)
 	}
-	var syms []DocumentSymbol
+	var syms []protocol.DocumentSymbol
 	c.requestInto("textDocument/documentSymbol", docParams(uri), &syms)
 	if len(syms) != 2 || syms[0].SelectionRange != rng(2, 5, 2, 6) || syms[1].Range != rng(3, 0, 3, 13) {
 		t.Errorf("symbols %+v", syms)
@@ -177,7 +179,7 @@ func TestFailedAnalysis(t *testing.T) {
 	if d := c.open("file:///new.zp", "rule BOOM = x"); messages(d) != want {
 		t.Errorf("diagnostics %+v", d)
 	}
-	var syms []DocumentSymbol
+	var syms []protocol.DocumentSymbol
 	c.requestInto("textDocument/documentSymbol", docParams("file:///new.zp"), &syms)
 	if len(syms) != 0 {
 		t.Errorf("symbols %+v", syms)
@@ -193,7 +195,7 @@ func TestFailedAnalysis(t *testing.T) {
 	if len(syms) != 2 || syms[1].Name != "main" {
 		t.Errorf("symbols %+v", syms)
 	}
-	var locs []Location
+	var locs []protocol.Location
 	c.requestInto("textDocument/definition", at(uri, 2, 12), &locs)
 	if len(locs) != 1 || locs[0].Range != rng(0, 5, 0, 6) {
 		t.Errorf("definition %+v", locs)
@@ -202,7 +204,7 @@ func TestFailedAnalysis(t *testing.T) {
 	if r := c.request("textDocument/formatting", docParams(uri)); string(r) != "[]" {
 		t.Errorf("formatting %s", r)
 	}
-	if e := c.requestError("textDocument/prepareRename", at(uri, 2, 12)); e.Code != codeRequestFailed {
+	if e := c.requestError("textDocument/prepareRename", at(uri, 2, 12)); e.Code != protocol.CodeRequestFailed {
 		t.Errorf("prepareRename %+v", e)
 	}
 	// Once the text analyzes again, everything is back.

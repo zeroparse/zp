@@ -9,6 +9,8 @@ import (
 	"strconv"
 	"testing"
 	"time"
+
+	"zeroparse.dev/zp/internal/lsp/protocol"
 )
 
 // editorSession drives a responsive server the way an editor does while a user types: one
@@ -132,7 +134,7 @@ func (s *editorSession) record(m map[string]json.RawMessage) {
 	}
 	reply := editorReply{at: now}
 	if m["error"] != nil {
-		var e rpcError
+		var e protocol.RPCError
 		_ = json.Unmarshal(m["error"], &e)
 		reply.code = e.Code
 	}
@@ -165,7 +167,7 @@ func (s *editorSession) typeText(keystrokes int, interval time.Duration) (last t
 		version := i + 2
 		s.write(map[string]any{"jsonrpc": "2.0", "method": "textDocument/didChange", "params": map[string]any{
 			"textDocument":   map[string]any{"uri": s.uri, "version": version},
-			"contentChanges": []map[string]any{{"range": Range{Start: Position{Line: 0, Character: 3 + i}, End: Position{Line: 0, Character: 3 + i}}, "text": "x"}},
+			"contentChanges": []map[string]any{{"range": protocol.Range{Start: protocol.Position{Line: 0, Character: 3 + i}, End: protocol.Position{Line: 0, Character: 3 + i}}, "text": "x"}},
 		}})
 		last, finalVersion = time.Now(), version
 		if tokens >= 0 {
@@ -243,11 +245,11 @@ func runEditorSession(t *testing.T, text string, keystrokes int, interval time.D
 		switch reply.code {
 		case 0:
 			result.Results++
-		case codeContentModified:
+		case protocol.CodeContentModified:
 			result.ContentModified++
-		case codeRequestCancelled:
+		case protocol.CodeRequestCancelled:
 			result.Cancelled++
-		case codeServerCancelled:
+		case protocol.CodeServerCancelled:
 			result.Rejected++
 		default:
 			t.Errorf("unexpected error code %d", reply.code)

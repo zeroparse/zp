@@ -1,9 +1,13 @@
 package zpls
 
-import "encoding/json"
+import (
+	"encoding/json"
 
-func (s *Server) semanticTokens(params json.RawMessage) (any, *rpcError) {
-	return renderRequest(s.requestContext, func(control *renderControl) (any, *rpcError) {
+	"zeroparse.dev/zp/internal/lsp/protocol"
+)
+
+func (s *Server) semanticTokens(params json.RawMessage) (any, *protocol.RPCError) {
+	return renderRequest(s.requestContext, func(control *renderControl) (any, *protocol.RPCError) {
 		return s.semanticTokensControlled(params, control)
 	})
 }

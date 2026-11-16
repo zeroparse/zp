@@ -12,6 +12,7 @@ import (
 	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/engine"
 	"zeroparse.dev/zp/internal/frontend/parser"
+	"zeroparse.dev/zp/internal/lsp/protocol"
 )
 
 // A render control belongs to one analysis or immutable-snapshot request. It is
@@ -22,12 +23,12 @@ type renderControl struct {
 }
 type renderCancellation struct{ err error }
 
-func renderRequest(ctx context.Context, action func(*renderControl) (any, *rpcError)) (result any, rerr *rpcError) {
+func renderRequest(ctx context.Context, action func(*renderControl) (any, *protocol.RPCError)) (result any, rerr *protocol.RPCError) {
 	if ctx == nil {
 		return action(nil)
 	}
 	if err := ctx.Err(); err != nil {
-		return nil, &rpcError{Code: codeRequestCancelled, Message: "request cancelled"}
+		return nil, &protocol.RPCError{Code: protocol.CodeRequestCancelled, Message: "request cancelled"}
 	}
 	if ctx.Done() == nil {
 		return action(nil)
@@ -35,7 +36,7 @@ func renderRequest(ctx context.Context, action func(*renderControl) (any, *rpcEr
 	defer func() {
 		if failure := recover(); failure != nil {
 			if _, ok := failure.(renderCancellation); ok {
-				result, rerr = nil, &rpcError{Code: codeRequestCancelled, Message: "request cancelled"}
+				result, rerr = nil, &protocol.RPCError{Code: protocol.CodeRequestCancelled, Message: "request cancelled"}
 			} else {
 				panic(failure)
 			}

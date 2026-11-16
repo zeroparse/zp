@@ -12,6 +12,8 @@ import (
 	"sync/atomic"
 	"testing"
 	"time"
+
+	"zeroparse.dev/zp/internal/lsp/protocol"
 )
 
 // cancelTrial runs work with a context that is cancelled after delay and reports how long work
@@ -122,8 +124,8 @@ func TestCancelLatencyProbe(t *testing.T) {
 			}
 			work := func(ctx context.Context) error {
 				s := &Server{docs: map[string]*document{uri: {uri: uri, text: text, version: 1, generation: 1, an: a}}, state: stateInitialized, requestContext: ctx}
-				_, rerr := s.request(&incoming{JSONRPC: "2.0", ID: json.RawMessage("1"), Method: method, Params: raw})
-				if rerr != nil && rerr.Code == codeRequestCancelled {
+				_, rerr := s.request(&protocol.Incoming{JSONRPC: "2.0", ID: json.RawMessage("1"), Method: method, Params: raw})
+				if rerr != nil && rerr.Code == protocol.CodeRequestCancelled {
 					return context.Canceled
 				}
 				if rerr != nil {

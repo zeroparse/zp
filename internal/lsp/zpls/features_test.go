@@ -12,6 +12,7 @@ import (
 
 	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/frontend/parser"
+	"zeroparse.dev/zp/internal/lsp/protocol"
 )
 
 func TestDiagnostics(t *testing.T) {
@@ -63,7 +64,7 @@ func TestDiagnostics(t *testing.T) {
 			uri := "file:///" + strings.ReplaceAll(tc.name, " ", "_") + ".zp"
 			got := c.open(uri, tc.text)
 			for i := range tc.want {
-				tc.want[i].Severity, tc.want[i].Source = severityError, "zp"
+				tc.want[i].Severity, tc.want[i].Source = protocol.SeverityError, "zp"
 			}
 			if len(got) != len(tc.want) || len(got) > 0 && !reflect.DeepEqual(got, tc.want) {
 				t.Errorf("got  %+v\nwant %+v", got, tc.want)
@@ -120,7 +121,7 @@ func TestIncrementalChanges(t *testing.T) {
 	if d := change(c, uri, 4, edit(1, 22, 2, 10, "")); len(d) != 0 {
 		t.Errorf("after deleting the line: %+v", d)
 	}
-	var syms []DocumentSymbol
+	var syms []protocol.DocumentSymbol
 	c.requestInto("textDocument/documentSymbol", docParams(uri), &syms)
 	if len(syms) != 1 || syms[0].Name != "main" || syms[0].Range != rng(0, 0, 1, 22) {
 		t.Errorf("symbols %+v", syms)
@@ -137,7 +138,7 @@ func TestIncrementalChanges(t *testing.T) {
 	if d := c.diagnostics(uri); len(d.Diagnostics) != 0 || d.Version != nil {
 		t.Errorf("after close: %+v", d)
 	}
-	if e := c.requestError("textDocument/documentSymbol", docParams(uri)); e.Code != codeRequestFailed {
+	if e := c.requestError("textDocument/documentSymbol", docParams(uri)); e.Code != protocol.CodeRequestFailed {
 		t.Errorf("closed document: %+v", e)
 	}
 	c.exit()
@@ -145,7 +146,7 @@ func TestIncrementalChanges(t *testing.T) {
 
 func formatDoc(c *testClient, uri, text string) string {
 	c.t.Helper()
-	var edits []TextEdit
+	var edits []protocol.TextEdit
 	c.requestInto("textDocument/formatting", map[string]any{
 		"textDocument": map[string]any{"uri": uri},
 		"options":      map[string]any{"tabSize": 2, "insertSpaces": true},
@@ -209,55 +210,55 @@ func TestDefinitionAndReferences(t *testing.T) {
 	if d := c.open(uri, navSrc); len(d) != 0 {
 		t.Fatalf("diagnostics %+v", d)
 	}
-	numDef := Location{URI: uri, Range: rng(8, 5, 8, 8)}
-	pairType := Location{URI: uri, Range: rng(2, 5, 2, 9)}
+	numDef := protocol.Location{URI: uri, Range: rng(8, 5, 8, 8)}
+	pairType := protocol.Location{URI: uri, Range: rng(2, 5, 2, 9)}
 	for _, tc := range []struct {
 		line, char int
-		want       []Location
+		want       []protocol.Location
 	}{
-		{12, 14, []Location{numDef}},                            // l:num
-		{12, 17, []Location{numDef}},                            // just after l:num
-		{12, 26, []Location{numDef}},                            // r:num after the emoji
-		{14, 21, []Location{numDef}},                            // (pair / num)
-		{8, 6, []Location{numDef}},                              // the definition itself
-		{12, 34, []Location{pairType}},                          // new Pair
-		{6, 11, []Location{pairType}},                           // type Any = Pair
-		{3, 10, []Location{{URI: uri, Range: rng(1, 5, 1, 8)}}}, // Left Num
-		{12, 12, nil},                                           // the capture label l
-		{0, 3, nil},                                             // a comment
+		{12, 14, []protocol.Location{numDef}},                            // l:num
+		{12, 17, []protocol.Location{numDef}},                            // just after l:num
+		{12, 26, []protocol.Location{numDef}},                            // r:num after the emoji
+		{14, 21, []protocol.Location{numDef}},                            // (pair / num)
+		{8, 6, []protocol.Location{numDef}},                              // the definition itself
+		{12, 34, []protocol.Location{pairType}},                          // new Pair
+		{6, 11, []protocol.Location{pairType}},                           // type Any = Pair
+		{3, 10, []protocol.Location{{URI: uri, Range: rng(1, 5, 1, 8)}}}, // Left Num
+		{12, 12, nil}, // the capture label l
+		{0, 3, nil},   // a comment
 	} {
-		var got []Location
+		var got []protocol.Location
 		c.requestInto("textDocument/definition", at(uri, tc.line, tc.char), &got)
 		if !reflect.DeepEqual(got, tc.want) {
 			t.Errorf("definition at %d:%d: got %+v, want %+v", tc.line, tc.char, got, tc.want)
 		}
 	}
 
-	refs := func(line, char int, decl bool) []Range {
-		var locs []Location
+	refs := func(line, char int, decl bool) []protocol.Range {
+		var locs []protocol.Location
 		p := at(uri, line, char)
 		p["context"] = map[string]any{"includeDeclaration": decl}
 		c.requestInto("textDocument/references", p, &locs)
-		var rs []Range
+		var rs []protocol.Range
 		for _, l := range locs {
 			rs = append(rs, l.Range)
 		}
 		return rs
 	}
-	if got, want := refs(8, 6, true), []Range{rng(8, 5, 8, 8), rng(12, 14, 12, 17), rng(12, 25, 12, 28), rng(14, 20, 14, 23)}; !reflect.DeepEqual(got, want) {
+	if got, want := refs(8, 6, true), []protocol.Range{rng(8, 5, 8, 8), rng(12, 14, 12, 17), rng(12, 25, 12, 28), rng(14, 20, 14, 23)}; !reflect.DeepEqual(got, want) {
 		t.Errorf("references of num: %v", got)
 	}
-	if got, want := refs(12, 26, false), []Range{rng(12, 14, 12, 17), rng(12, 25, 12, 28), rng(14, 20, 14, 23)}; !reflect.DeepEqual(got, want) {
+	if got, want := refs(12, 26, false), []protocol.Range{rng(12, 14, 12, 17), rng(12, 25, 12, 28), rng(14, 20, 14, 23)}; !reflect.DeepEqual(got, want) {
 		t.Errorf("references of num without the declaration: %v", got)
 	}
 	// The type Num and the rule num are different names.
-	if got, want := refs(1, 6, true), []Range{rng(1, 5, 1, 8), rng(3, 10, 3, 13), rng(4, 11, 4, 14), rng(6, 18, 6, 21), rng(8, 9, 8, 12), rng(8, 37, 8, 40)}; !reflect.DeepEqual(got, want) {
+	if got, want := refs(1, 6, true), []protocol.Range{rng(1, 5, 1, 8), rng(3, 10, 3, 13), rng(4, 11, 4, 14), rng(6, 18, 6, 21), rng(8, 9, 8, 12), rng(8, 37, 8, 40)}; !reflect.DeepEqual(got, want) {
 		t.Errorf("references of Num: %v", got)
 	}
 
-	var hs []documentHighlight
+	var hs []protocol.DocumentHighlight
 	c.requestInto("textDocument/documentHighlight", at(uri, 14, 14), &hs)
-	if len(hs) != 2 || hs[0].Range != rng(12, 5, 12, 9) || hs[0].Kind != highlightWrite || hs[1].Kind != highlightRead {
+	if len(hs) != 2 || hs[0].Range != rng(12, 5, 12, 9) || hs[0].Kind != protocol.HighlightWrite || hs[1].Kind != protocol.HighlightRead {
 		t.Errorf("highlights %+v", hs)
 	}
 	c.exit()
@@ -267,12 +268,12 @@ func TestDocumentSymbols(t *testing.T) {
 	c := newInitialized(t)
 	uri := "file:///sym.zp"
 	c.open(uri, navSrc)
-	var syms []DocumentSymbol
+	var syms []protocol.DocumentSymbol
 	c.requestInto("textDocument/documentSymbol", docParams(uri), &syms)
 	type sym struct {
 		Name, Detail string
 		Kind         int
-		Range, Sel   Range
+		Range, Sel   protocol.Range
 		Children     int
 	}
 	var got []sym
@@ -283,15 +284,15 @@ func TestDocumentSymbols(t *testing.T) {
 		}
 	}
 	want := []sym{
-		{"Num", "struct", symbolKindStruct, rng(1, 0, 1, 26), rng(1, 5, 1, 8), 1},
-		{"  Text", "string", symbolKindField, rng(1, 13, 1, 24), rng(1, 13, 1, 17), 0},
-		{"Pair", "struct", symbolKindStruct, rng(2, 0, 5, 1), rng(2, 5, 2, 9), 2},
-		{"  Left", "Num", symbolKindField, rng(3, 4, 3, 13), rng(3, 4, 3, 8), 0},
-		{"  Right", "*Num", symbolKindField, rng(4, 4, 4, 14), rng(4, 4, 4, 9), 0},
-		{"Any", "~ Pair | Num", symbolKindInterface, rng(6, 0, 6, 21), rng(6, 5, 6, 8), 0},
-		{"num", "Num", symbolKindFunction, rng(8, 0, 8, 56), rng(8, 5, 8, 8), 0},
-		{"pair", "Pair", symbolKindFunction, rng(12, 0, 12, 58), rng(12, 5, 12, 9), 0},
-		{"main", "node[(pair | Num,)]", symbolKindFunction, rng(13, 0, 14, 27), rng(14, 5, 14, 9), 0},
+		{"Num", "struct", protocol.SymbolKindStruct, rng(1, 0, 1, 26), rng(1, 5, 1, 8), 1},
+		{"  Text", "string", protocol.SymbolKindField, rng(1, 13, 1, 24), rng(1, 13, 1, 17), 0},
+		{"Pair", "struct", protocol.SymbolKindStruct, rng(2, 0, 5, 1), rng(2, 5, 2, 9), 2},
+		{"  Left", "Num", protocol.SymbolKindField, rng(3, 4, 3, 13), rng(3, 4, 3, 8), 0},
+		{"  Right", "*Num", protocol.SymbolKindField, rng(4, 4, 4, 14), rng(4, 4, 4, 9), 0},
+		{"Any", "~ Pair | Num", protocol.SymbolKindInterface, rng(6, 0, 6, 21), rng(6, 5, 6, 8), 0},
+		{"num", "Num", protocol.SymbolKindFunction, rng(8, 0, 8, 56), rng(8, 5, 8, 8), 0},
+		{"pair", "Pair", protocol.SymbolKindFunction, rng(12, 0, 12, 58), rng(12, 5, 12, 9), 0},
+		{"main", "node[(pair | Num,)]", protocol.SymbolKindFunction, rng(13, 0, 14, 27), rng(14, 5, 14, 9), 0},
 	}
 	if !reflect.DeepEqual(got, want) {
 		t.Errorf("got\n%+v\nwant\n%+v", got, want)
@@ -306,9 +307,9 @@ func TestDocumentSymbols(t *testing.T) {
 	c.exit()
 }
 
-func hoverText(c *testClient, uri string, line, char int) (string, *Range) {
+func hoverText(c *testClient, uri string, line, char int) (string, *protocol.Range) {
 	c.t.Helper()
-	var h *hover
+	var h *protocol.Hover
 	c.requestInto("textDocument/hover", at(uri, line, char), &h)
 	if h == nil {
 		return "", nil
@@ -329,7 +330,7 @@ func TestHover(t *testing.T) {
 	for _, tc := range []struct {
 		line, char int
 		want       string
-		r          Range
+		r          protocol.Range
 	}{
 		{12, 6, "```zp\nrule pair Pair\n```\n\n*Inferred type.*\n\nTwo numbers\nwith an emoji.", rng(12, 5, 12, 9)},
 		{14, 13, "```zp\nrule pair Pair\n```\n\n*Inferred type.*\n\nTwo numbers\nwith an emoji.", rng(14, 13, 14, 17)},
@@ -384,7 +385,7 @@ func TestRename(t *testing.T) {
 	c := newInitialized(t)
 	uri := "file:///rename.zp"
 	c.open(uri, navSrc)
-	var prep *prepareRenameResult
+	var prep *protocol.PrepareRenameResult
 	c.requestInto("textDocument/prepareRename", at(uri, 12, 26), &prep)
 	if prep == nil || prep.Range != rng(12, 25, 12, 28) || prep.Placeholder != "num" {
 		t.Errorf("prepareRename %+v", prep)
@@ -397,14 +398,14 @@ func TestRename(t *testing.T) {
 		p["newName"] = name
 		return p
 	}
-	var we workspaceEdit
+	var we protocol.WorkspaceEdit
 	c.requestInto("textDocument/rename", rename(12, 26, "sum"), &we)
 	got := applyEdits(navSrc, we.Changes[uri])
 	want := strings.NewReplacer("rule num Num", "rule sum Num", "l:num", "l:sum", "r:num", "r:sum", "/ num)", "/ sum)").Replace(navSrc)
 	if got != want {
 		t.Errorf("rename num: got\n%s", got)
 	}
-	we = workspaceEdit{}
+	we = protocol.WorkspaceEdit{}
 	c.requestInto("textDocument/rename", rename(6, 12, "Couple"), &we)
 	if got := applyEdits(navSrc, we.Changes[uri]); got != strings.ReplaceAll(navSrc, "Pair", "Couple") {
 		t.Errorf("rename Pair: got\n%s", got)
@@ -427,7 +428,7 @@ func TestRename(t *testing.T) {
 		}
 	}
 	for _, name := range strings.Fields("infix level operand operators package postfix prefix rule skip struct terminal type") {
-		we = workspaceEdit{}
+		we = protocol.WorkspaceEdit{}
 		c.requestInto("textDocument/rename", rename(12, 26, name), &we)
 		got := applyEdits(navSrc, we.Changes[uri])
 		if _, err := parser.Parse(got); err != nil {
@@ -451,7 +452,7 @@ func TestRename(t *testing.T) {
 
 func completionLabels(c *testClient, uri string, line, char int) []string {
 	c.t.Helper()
-	var list completionList
+	var list protocol.CompletionList
 	c.requestInto("textDocument/completion", at(uri, line, char), &list)
 	var labels []string
 	for _, it := range list.Items {
@@ -552,15 +553,15 @@ func TestCompletion(t *testing.T) {
 	}
 	// Items carry the rule's type and documentation, and snippets for functions.
 	c.open("file:///items.zp", "// The digits.\nrule num = [0-9]+\n@start\nrule main = num")
-	var list completionList
+	var list protocol.CompletionList
 	c.requestInto("textDocument/completion", at("file:///items.zp", 3, 14), &list)
-	var num CompletionItem
+	var num protocol.CompletionItem
 	for _, it := range list.Items {
 		if it.Label == "num" {
 			num = it
 		}
 	}
-	if num.Kind != completionKindFunction || num.Detail != "node[[]node[string]]" || num.Documentation == nil || num.Documentation.Value != "The digits." {
+	if num.Kind != protocol.CompletionKindFunction || num.Detail != "node[[]node[string]]" || num.Documentation == nil || num.Documentation.Value != "The digits." {
 		t.Errorf("item %+v", num)
 	}
 	c.exit()
@@ -647,7 +648,7 @@ func TestFilterBuiltinHoverAndCompletion(t *testing.T) {
 	completionURI := "file:///filter-completion.zp"
 	completionSource := `rule main = "x" => fi`
 	c.open(completionURI, completionSource)
-	var completions completionList
+	var completions protocol.CompletionList
 	c.requestInto("textDocument/completion", at(completionURI, 0, len([]rune(completionSource))), &completions)
 	for _, item := range completions.Items {
 		if item.Label == "filter" {
@@ -681,8 +682,8 @@ func semanticTokenTexts(t *testing.T, c *testClient, uri, src string) []string {
 		}
 		line += res.Data[i]
 		char += res.Data[i+1]
-		start := idx.offset(Position{line, char})
-		end := idx.offset(Position{line, char + res.Data[i+2]})
+		start := idx.offset(protocol.Position{Line: line, Character: char})
+		end := idx.offset(protocol.Position{Line: line, Character: char + res.Data[i+2]})
 		var mods []string
 		for b, m := range semanticTokenModifiers {
 			if res.Data[i+4]&(1<<b) != 0 {
@@ -789,15 +790,15 @@ func TestReservedTypeReferences(t *testing.T) {
 	if !slices.ContainsFunc(d, func(x Diagnostic) bool { return strings.Contains(x.Message, "not supported yet") }) {
 		t.Fatalf("diagnostics %+v", d)
 	}
-	var locs []Location
+	var locs []protocol.Location
 	p := at(uri, 0, 6)
 	p["context"] = map[string]any{"includeDeclaration": true}
 	c.requestInto("textDocument/references", p, &locs)
-	var got []Range
+	var got []protocol.Range
 	for _, l := range locs {
 		got = append(got, l.Range)
 	}
-	if want := []Range{rng(0, 5, 0, 8), rng(1, 14, 1, 17), rng(1, 22, 1, 25), rng(1, 36, 1, 39)}; !reflect.DeepEqual(got, want) {
+	if want := []protocol.Range{rng(0, 5, 0, 8), rng(1, 14, 1, 17), rng(1, 22, 1, 25), rng(1, 36, 1, 39)}; !reflect.DeepEqual(got, want) {
 		t.Errorf("references of Num: %v", got)
 	}
 	c.exit()

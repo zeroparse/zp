@@ -11,6 +11,7 @@ import (
 
 	"zeroparse.dev/zp/internal/analysis/lint"
 	"zeroparse.dev/zp/internal/frontend/desugar"
+	"zeroparse.dev/zp/internal/lsp/protocol"
 )
 
 // A lint fix is offered for a finding only when lint.Rewrites proves its kind of change, and then
@@ -21,7 +22,7 @@ import (
 // lintFix is a proven change for one finding.
 type lintFix struct {
 	title string
-	edit  TextEdit
+	edit  protocol.TextEdit
 }
 
 // lintFixer finds the fix of a diagnostic of one document. It computes the findings and their
@@ -191,7 +192,7 @@ func (d *document) verifiedFix(ctx context.Context, findings []lint.Finding, i i
 	if err := ctx.Err(); err != nil {
 		return lintFix{}, false
 	}
-	return lintFix{title: title, edit: TextEdit{Range: a.idx.rangeOf(start, end), NewText: rw.NewText}}, true
+	return lintFix{title: title, edit: protocol.TextEdit{Range: a.idx.rangeOf(start, end), NewText: rw.NewText}}, true
 }
 
 // lookaheadSpan widens the span of a removed lookahead over the blanks after it, when blanks or the

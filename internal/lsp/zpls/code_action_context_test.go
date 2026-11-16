@@ -7,6 +7,8 @@ import (
 	"strings"
 	"sync"
 	"testing"
+
+	"zeroparse.dev/zp/internal/lsp/protocol"
 )
 
 func TestCodeActionResponsesControlledParity(t *testing.T) {
@@ -70,7 +72,7 @@ func TestCodeActionRequestsCancelAndRetry(t *testing.T) {
 			}
 			for _, at := range []int{1, 2, max(2, count.checks/2), count.checks} {
 				got, gerr := codeActionServer(tc.a, formatContext(t, at), tc.enabled, tc.explain, tc.edit).request(tc.msg)
-				if got != nil || gerr == nil || gerr.Code != codeRequestCancelled {
+				if got != nil || gerr == nil || gerr.Code != protocol.CodeRequestCancelled {
 					t.Fatalf("check%d: partial response %T/%+v", at, got, gerr)
 				}
 			}
@@ -93,7 +95,7 @@ func TestCodeActionInteriorWalksCancel(t *testing.T) {
 			only[i] = "refactor"
 		}
 		msg := codeActionMessage(d.Range, []Diagnostic{d}, only)
-		assertOccurrencePhaseCancels(t, 2, func(c *renderControl) (any, *rpcError) {
+		assertOccurrencePhaseCancels(t, 2, func(c *renderControl) (any, *protocol.RPCError) {
 			return codeActionServer(a, c.ctx, true, true, true).codeActionsControlled(msg.Params, c)
 		})
 	})
@@ -111,7 +113,7 @@ func TestCodeActionInteriorWalksCancel(t *testing.T) {
 			t.Fatal(err)
 		}
 		msg := codeActionMessage(d.Range, codeActionSupplied(d, 4096, false), nil)
-		assertOccurrencePhaseCancels(t, count.checks+2, func(c *renderControl) (any, *rpcError) {
+		assertOccurrencePhaseCancels(t, count.checks+2, func(c *renderControl) (any, *protocol.RPCError) {
 			return codeActionServer(a, c.ctx, true, true, false).codeActionsControlled(msg.Params, c)
 		})
 	})
@@ -120,11 +122,11 @@ func TestCodeActionInteriorWalksCancel(t *testing.T) {
 		// cannot hide a missing check in the preceding token walk.
 		long := analyze("@start\nrule main = " + strings.Repeat("\"a\" ", 4096) + "\n// lint:ignore\n")
 		doc := codeActionServer(long, nil, true, true, true).docs[codeActionURI]
-		target := Diagnostic{Code: "unused-capture", Range: Range{Start: Position{Line: 2}}}
-		assertOccurrencePhaseCancels(t, 3, func(c *renderControl) (any, *rpcError) {
+		target := Diagnostic{Code: "unused-capture", Range: protocol.Range{Start: protocol.Position{Line: 2}}}
+		assertOccurrencePhaseCancels(t, 3, func(c *renderControl) (any, *protocol.RPCError) {
 			edit, ok := doc.suppressionEdit(c.ctx, target, c)
 			return struct {
-				Edit TextEdit
+				Edit protocol.TextEdit
 				OK   bool
 			}{edit, ok}, nil
 		})
@@ -147,12 +149,12 @@ func TestCodeActionCandidateCancellationUnwinds(t *testing.T) {
 	s := codeActionServer(a, ctx, true, true, true)
 	msg := codeActionMessage(target.Range, []Diagnostic{target}, nil)
 	completed := false
-	got, err := renderRequest(ctx, func(c *renderControl) (any, *rpcError) {
+	got, err := renderRequest(ctx, func(c *renderControl) (any, *protocol.RPCError) {
 		value, rerr := s.codeActionsControlled(msg.Params, c)
 		completed = true
 		return value, rerr
 	})
-	if !entered || completed || got != nil || err == nil || err.Code != codeRequestCancelled {
+	if !entered || completed || got != nil || err == nil || err.Code != protocol.CodeRequestCancelled {
 		t.Fatalf("entered=%v phase completed=%v result=%T error=%+v", entered, completed, got, err)
 	}
 	analyzeHook = nil
@@ -197,7 +199,7 @@ func TestCodeActionInteriorPreservesForeignPanic(t *testing.T) {
 			t.Fatalf("foreign panic changed: %v", got)
 		}
 	}()
-	renderRequest(pc, func(c *renderControl) (any, *rpcError) {
+	renderRequest(pc, func(c *renderControl) (any, *protocol.RPCError) {
 		return codeActionServer(a, pc, true, true, true).codeActionsControlled(msg.Params, c)
 	})
 	t.Fatal("foreign panic was swallowed")
@@ -260,9 +262,9 @@ func TestCodeActionRequestProtocolInvalidation(t *testing.T) {
 				}
 				asyncRequest(c, 100, msg.Method, params)
 				awaitBarrier(t, started)
-				code := codeRequestCancelled
+				code := protocol.CodeRequestCancelled
 				if change {
-					code = codeContentModified
+					code = protocol.CodeContentModified
 					c.notify("textDocument/didChange", map[string]any{"textDocument": map[string]any{"uri": codeActionURI, "version": 2}, "contentChanges": []any{map[string]any{"text": strings.Replace(codeActionSource("\n"), `b:"b"`, `b:"c"`, 1)}}})
 				} else {
 					c.notify("$/cancelRequest", map[string]any{"id": 100})

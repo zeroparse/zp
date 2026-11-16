@@ -7,6 +7,7 @@ import (
 	"unicode/utf8"
 
 	"zeroparse.dev/zp/grammar"
+	"zeroparse.dev/zp/internal/lsp/protocol"
 )
 
 // Positions are converted through byte offsets in the document text. Three kinds of positions
@@ -162,7 +163,7 @@ func (t *textIndex) lineEnd(i int) int {
 // the end of the line, and one after the last line is the end of the text. A position in the
 // middle of a character (between the two code units of a surrogate pair) is the start of the
 // character.
-func (t *textIndex) offset(p Position) int {
+func (t *textIndex) offset(p protocol.Position) int {
 	if p.Line < 0 {
 		return 0
 	}
@@ -175,19 +176,19 @@ func (t *textIndex) offset(p Position) int {
 }
 
 // position returns the LSP position of the byte offset off.
-func (t *textIndex) position(off int) Position {
+func (t *textIndex) position(off int) protocol.Position {
 	off = max(0, min(off, len(t.text)))
 	line := sort.Search(len(t.lines), func(i int) bool { return t.lines[i] > off }) - 1
 	// An offset inside a line terminator ("\r\n") is the end of the line.
 	off = min(off, t.lineEnd(line))
 	u0, _ := t.count(t.lines[line])
 	u1, _ := t.count(off)
-	return Position{Line: line, Character: u1 - u0}
+	return protocol.Position{Line: line, Character: u1 - u0}
 }
 
 // rangeOf returns the LSP range of the byte offsets [start, end).
-func (t *textIndex) rangeOf(start, end int) Range {
-	return Range{Start: t.position(start), End: t.position(end)}
+func (t *textIndex) rangeOf(start, end int) protocol.Range {
+	return protocol.Range{Start: t.position(start), End: t.position(end)}
 }
 
 // zpOffset returns the byte offset of the ZeroParse position p. A column after the end of its line
@@ -217,7 +218,7 @@ func utf16Len(r rune) int {
 
 // applyChange applies a content change to text and returns the new text. A change without a range
 // replaces the whole text.
-func applyChange(text string, c contentChange) string {
+func applyChange(text string, c protocol.ContentChange) string {
 	if c.Range == nil {
 		return c.Text
 	}
@@ -237,7 +238,7 @@ func applyChange(text string, c contentChange) string {
 // change, or one at the start of the text, is located in the index of the text before the pending
 // changes and spliced together with them in one copy. A change in any other order first applies
 // the pending changes and indexes the result.
-func applyChanges(text string, changes []contentChange) string {
+func applyChanges(text string, changes []protocol.ContentChange) string {
 	type splice struct {
 		start, end int
 		text       string
@@ -292,7 +293,7 @@ func applyChanges(text string, changes []contentChange) string {
 // terminators end by limit: offsets in a line depend only on its start and on its end, which is
 // before its terminator. A change after a lone "\r" can make it part of "\r\n", but the line still
 // ends before the "\r".
-func (t *textIndex) unchangedBefore(r Range, limit int) bool {
+func (t *textIndex) unchangedBefore(r protocol.Range, limit int) bool {
 	line := max(r.Start.Line, r.End.Line)
 	if line < 0 {
 		return true // the start of the text

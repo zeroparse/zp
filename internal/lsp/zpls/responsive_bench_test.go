@@ -15,6 +15,8 @@ import (
 	"sync"
 	"testing"
 	"time"
+
+	"zeroparse.dev/zp/internal/lsp/protocol"
 )
 
 // BenchmarkF08Analyze compares the same successful compilation with and without
@@ -324,7 +326,7 @@ func BenchmarkF08ProtocolCancel(b *testing.B) {
 	b.StartTimer() // Setup ended with the timer stopped; B.Loop requires it running.
 	for b.Loop() {
 		b.StopTimer()
-		id := peer.send("textDocument/hover", map[string]any{"textDocument": map[string]any{"uri": "file:///cancel-benchmark.zp"}, "position": Position{Line: 1, Character: 5}}, true)
+		id := peer.send("textDocument/hover", map[string]any{"textDocument": map[string]any{"uri": "file:///cancel-benchmark.zp"}, "position": protocol.Position{Line: 1, Character: 5}}, true)
 		<-active
 		b.StartTimer()
 		cancelAt := time.Now()
@@ -333,8 +335,8 @@ func BenchmarkF08ProtocolCancel(b *testing.B) {
 		repliedAt := time.Now()
 		synthetic := <-stopped
 		b.StopTimer()
-		var cancellation rpcError
-		if string(response.ID) != strconv.Itoa(id) || json.Unmarshal(response.Error, &cancellation) != nil || cancellation.Code != codeRequestCancelled {
+		var cancellation protocol.RPCError
+		if string(response.ID) != strconv.Itoa(id) || json.Unmarshal(response.Error, &cancellation) != nil || cancellation.Code != protocol.CodeRequestCancelled {
 			b.Fatalf("unexpected cancellation reply: id=%s error=%s", response.ID, response.Error)
 		}
 		responseTime += repliedAt.Sub(cancelAt)
@@ -363,7 +365,7 @@ type f08SyntheticStop struct {
 type f08BenchmarkPeer struct {
 	b         *testing.B
 	input     *bufio.Reader
-	output    *conn
+	output    *protocol.Conn
 	readPipe  *io.PipeReader
 	writePipe *io.PipeWriter
 	done      chan error
@@ -374,7 +376,7 @@ type f08BenchmarkPeer struct {
 func newF08BenchmarkPeer(b *testing.B) *f08BenchmarkPeer {
 	reader, serverOutput := io.Pipe()
 	serverInput, writer := io.Pipe()
-	peer := &f08BenchmarkPeer{b: b, input: bufio.NewReader(reader), output: &conn{w: writer}, readPipe: reader, writePipe: writer, done: make(chan error, 1)}
+	peer := &f08BenchmarkPeer{b: b, input: bufio.NewReader(reader), output: protocol.NewConn(writer), readPipe: reader, writePipe: writer, done: make(chan error, 1)}
 	go func() {
 		err := Serve(serverInput, serverOutput, "benchmark")
 		serverOutput.Close()
@@ -398,18 +400,18 @@ func (p *f08BenchmarkPeer) send(method string, params any, request bool) int {
 		id = p.nextID
 		message["id"] = id
 	}
-	if err := p.output.write(message); err != nil {
+	if err := p.output.Write(message); err != nil {
 		p.b.Fatal(err)
 	}
 	return id
 }
 
-func (p *f08BenchmarkPeer) receive() incoming {
-	body, err := readMessage(p.input)
+func (p *f08BenchmarkPeer) receive() protocol.Incoming {
+	body, err := protocol.ReadMessage(p.input)
 	if err != nil {
 		p.b.Fatal(err)
 	}
-	var message incoming
+	var message protocol.Incoming
 	if err := json.Unmarshal(body, &message); err != nil {
 		p.b.Fatal(err)
 	}

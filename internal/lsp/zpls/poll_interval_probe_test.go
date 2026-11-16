@@ -12,6 +12,8 @@ import (
 	"strings"
 	"testing"
 	"time"
+
+	"zeroparse.dev/zp/internal/lsp/protocol"
 )
 
 // pollRecorder is a never-cancelled context that records the wall-clock interval between
@@ -218,7 +220,7 @@ func TestPollIntervalProbe(t *testing.T) {
 			}
 			longest, polls := shortestLongest(func(ctx context.Context) {
 				s := &Server{docs: map[string]*document{uri: {uri: uri, text: text, version: 1, generation: 1, an: a}}, state: stateInitialized, requestContext: ctx}
-				if _, rerr := s.request(&incoming{JSONRPC: "2.0", ID: json.RawMessage("1"), Method: method, Params: raw}); rerr != nil {
+				if _, rerr := s.request(&protocol.Incoming{JSONRPC: "2.0", ID: json.RawMessage("1"), Method: method, Params: raw}); rerr != nil {
 					t.Fatal(name, method, rerr.Message)
 				}
 			})
@@ -253,6 +255,6 @@ func pollProbeRequests(text string) map[string]any {
 		"textDocument/prepareRename":       at,
 		"textDocument/references":          map[string]any{"textDocument": document, "position": position, "context": map[string]any{"includeDeclaration": true}},
 		"textDocument/rename":              map[string]any{"textDocument": document, "position": position, "newName": best + "Renamed"},
-		"textDocument/codeAction":          map[string]any{"textDocument": document, "range": Range{End: end}, "context": map[string]any{"diagnostics": []any{}}},
+		"textDocument/codeAction":          map[string]any{"textDocument": document, "range": protocol.Range{End: end}, "context": map[string]any{"diagnostics": []any{}}},
 	}
 }

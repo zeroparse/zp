@@ -8,6 +8,8 @@ import (
 	"os"
 	"strings"
 	"testing"
+
+	"zeroparse.dev/zp/internal/lsp/protocol"
 )
 
 var renderBenchmarkResult any
@@ -41,7 +43,7 @@ func renderBenchmarkInputs(tb testing.TB) map[string]string {
 	return sources
 }
 
-func renderBenchmarkRequest(a *analysis, method string) *incoming {
+func renderBenchmarkRequest(a *analysis, method string) *protocol.Incoming {
 	p := docParams("file:///render.zp")
 	if method != "textDocument/documentSymbol" {
 		off := 0
@@ -60,7 +62,7 @@ func renderBenchmarkRequest(a *analysis, method string) *incoming {
 		p["position"] = a.idx.position(off)
 	}
 	params, _ := json.Marshal(p)
-	return &incoming{Method: method, Params: params}
+	return &protocol.Incoming{Method: method, Params: params}
 }
 
 func renderBenchmarkServer(a *analysis, ctx context.Context, rich bool) *Server {
@@ -95,7 +97,7 @@ func BenchmarkRequestRendering(b *testing.B) {
 						s := renderBenchmarkServer(a, ctx, rich)
 						b.ReportAllocs()
 						for b.Loop() {
-							var err *rpcError
+							var err *protocol.RPCError
 							renderBenchmarkResult, err = s.request(msg)
 							if err != nil {
 								b.Fatal(err)

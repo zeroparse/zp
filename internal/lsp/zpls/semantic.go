@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 
 	"zeroparse.dev/zp/internal/frontend/parser"
+	"zeroparse.dev/zp/internal/lsp/protocol"
 )
 
 // Semantic tokens tell rule names, type names, captures and fields apart, which a TextMate grammar
@@ -44,9 +45,9 @@ type semClass struct {
 	mods int
 }
 
-func (s *Server) semanticTokensControlled(params json.RawMessage, control *renderControl) (any, *rpcError) {
+func (s *Server) semanticTokensControlled(params json.RawMessage, control *renderControl) (any, *protocol.RPCError) {
 	control.poll()
-	var p documentFormattingParams
+	var p protocol.DocumentFormattingParams
 	if err := decode(params, &p); err != nil {
 		return nil, err
 	}

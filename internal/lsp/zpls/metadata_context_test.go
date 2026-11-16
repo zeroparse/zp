@@ -11,6 +11,7 @@ import (
 	"testing"
 	"time"
 	"zeroparse.dev/zp/internal/diagnostic"
+	"zeroparse.dev/zp/internal/lsp/protocol"
 
 	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/frontend/parser"
@@ -187,7 +188,7 @@ func TestMetadataInteriorCancellation(t *testing.T) {
 	t.Run("diagnostic-sort", func(t *testing.T) {
 		a := newAnalysis("")
 		for i := range n {
-			a.diags = append(a.diags, Diagnostic{Range: Range{Start: Position{Line: n - i}}})
+			a.diags = append(a.diags, Diagnostic{Range: protocol.Range{Start: protocol.Position{Line: n - i}}})
 		}
 		assertMetadataPhaseCancels(t, a.sortDiagnostics)
 	})
@@ -195,7 +196,7 @@ func TestMetadataInteriorCancellation(t *testing.T) {
 func TestMetadataStableOrdering(t *testing.T) {
 	a := newAnalysis("")
 	a.occs = []occurrence{{name: "second", start: 2}, {name: "first", start: 1}, {name: "tie", start: 1}}
-	a.diags = []Diagnostic{{Message: "second", Range: Range{Start: Position{Line: 2}}}, {Message: "first", Range: Range{Start: Position{Line: 1}}}, {Message: "tie", Range: Range{Start: Position{Line: 1}}}}
+	a.diags = []Diagnostic{{Message: "second", Range: protocol.Range{Start: protocol.Position{Line: 2}}}, {Message: "first", Range: protocol.Range{Start: protocol.Position{Line: 1}}}, {Message: "tie", Range: protocol.Range{Start: protocol.Position{Line: 1}}}}
 	if err := runMetadataContext(formatContext(t, 0), func(c *renderControl) error {
 		a.sortOccurrences(c)
 		a.sortDiagnostics(c)

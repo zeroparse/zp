@@ -7,6 +7,7 @@ import (
 
 	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/frontend/parser"
+	"zeroparse.dev/zp/internal/lsp/protocol"
 )
 
 // Completion works on tokens rather than on the grammar: the definition being written usually
@@ -14,7 +15,7 @@ import (
 // (a type, a parsing expression, an action, an attribute, ...) is found from the tokens before it,
 // and the names offered are those that rule and type declare anywhere in the file.
 
-func (s *Server) completionControlled(params json.RawMessage, control *renderControl) (any, *rpcError) {
+func (s *Server) completionControlled(params json.RawMessage, control *renderControl) (any, *protocol.RPCError) {
 	control.poll()
 	d, off, err := s.position(params)
 	if err != nil {
@@ -32,12 +33,12 @@ func (s *Server) completionControlled(params json.RawMessage, control *renderCon
 		// Without snippets, insert the label.
 		for i := range items {
 			control.poll()
-			if items[i].InsertTextFormat == insertSnippet {
+			if items[i].InsertTextFormat == protocol.InsertSnippet {
 				items[i].InsertText, items[i].InsertTextFormat = "", 0
 			}
 		}
 	}
-	return completionList{Items: items}, nil
+	return protocol.CompletionList{Items: items}, nil
 }
 
 func (a *analysis) isPunct(i int, text string) bool {
@@ -130,9 +131,9 @@ func terminatedControlled(raw string, close byte, from int, control *renderContr
 }
 
 // complete returns the completion items at the byte offset off.
-func (a *analysis) completeControlled(off int, control *renderControl) []CompletionItem {
+func (a *analysis) completeControlled(off int, control *renderControl) []protocol.CompletionItem {
 	control.poll()
-	items := []CompletionItem{}
+	items := []protocol.CompletionItem{}
 	// i is the last token that starts before off.
 	i := sort.Search(len(a.toks), func(i int) bool { return a.toks[i].start >= off }) - 1
 	if i >= 0 && a.insideControlled(a.toks[i], off, control) {
@@ -249,7 +250,7 @@ func (a *analysis) completeControlled(off int, control *renderControl) []Complet
 		for _, v := range sortedKeysControlled(a.vars, control) {
 			control.poll()
 			if !hidden[v] {
-				items = append(items, CompletionItem{Label: v, Kind: completionKindVariable, Detail: "variable"})
+				items = append(items, protocol.CompletionItem{Label: v, Kind: protocol.CompletionKindVariable, Detail: "variable"})
 			}
 		}
 		return append(items, params...)
@@ -309,13 +310,13 @@ func (a *analysis) attributeArgumentsControlled(prev int, control *renderControl
 	return false, false
 }
 
-func (a *analysis) valueItemsControlled(control *renderControl) []CompletionItem {
+func (a *analysis) valueItemsControlled(control *renderControl) []protocol.CompletionItem {
 	control.poll()
 	items := append(builtinFuncItems(), a.typeItemsControlled(true, control)...)
 	items = append(items, keywordItems(termKeywords)...)
 	for _, v := range sortedKeysControlled(a.vars, control) {
 		control.poll()
-		items = append(items, CompletionItem{Label: v, Kind: completionKindVariable, Detail: "variable"})
+		items = append(items, protocol.CompletionItem{Label: v, Kind: protocol.CompletionKindVariable, Detail: "variable"})
 	}
 	return items
 }
@@ -433,9 +434,9 @@ func (a *analysis) inValueControlled(prev int, control *renderControl) bool {
 
 // captureItems returns the capture labels of the definition that token i is in, for completion
 // after "$".
-func (a *analysis) captureItemsControlled(i int, control *renderControl) []CompletionItem {
+func (a *analysis) captureItemsControlled(i int, control *renderControl) []protocol.CompletionItem {
 	control.poll()
-	items := []CompletionItem{}
+	items := []protocol.CompletionItem{}
 	first := i
 	for first >= 0 && !a.isDefKeyword(first) {
 		control.poll()
@@ -448,7 +449,7 @@ func (a *analysis) captureItemsControlled(i int, control *renderControl) []Compl
 	add := func(name, detail string) {
 		if control.isIdentifier(name) && !seen[name] {
 			seen[name] = true
-			items = append(items, CompletionItem{Label: name, Kind: completionKindVariable, Detail: detail})
+			items = append(items, protocol.CompletionItem{Label: name, Kind: protocol.CompletionKindVariable, Detail: detail})
 		}
 	}
 	scope := a.inlineScopes(first, control)
@@ -542,9 +543,9 @@ func (a *analysis) inlineScopes(first int, control *renderControl) []int {
 // labels; another receiver, such as a lambda parameter over a repetition, those inside the
 // labelled groups of the definition and those of the rules repeated directly after a label. Typing a name after
 // the "." still finds them.
-func (a *analysis) captureMemberItems(dot int, control *renderControl) []CompletionItem {
+func (a *analysis) captureMemberItems(dot int, control *renderControl) []protocol.CompletionItem {
 	control.poll()
-	items := []CompletionItem{}
+	items := []protocol.CompletionItem{}
 	first := dot
 	for first >= 0 && !a.isDefKeyword(first) {
 		control.poll()
@@ -554,7 +555,7 @@ func (a *analysis) captureMemberItems(dot int, control *renderControl) []Complet
 		return items
 	}
 	seen := map[string]bool{}
-	add := func(found []CompletionItem) {
+	add := func(found []protocol.CompletionItem) {
 		for _, it := range found {
 			control.poll()
 			if !seen[it.Label] {
@@ -605,7 +606,7 @@ func (a *analysis) captureMemberItems(dot int, control *renderControl) []Complet
 				case a.isPunct(k, ")"):
 					depth--
 				case a.isLabel(k, control):
-					add([]CompletionItem{{Label: a.toks[k].Text, Kind: completionKindVariable, Detail: "capture"}})
+					add([]protocol.CompletionItem{{Label: a.toks[k].Text, Kind: protocol.CompletionKindVariable, Detail: "capture"}})
 				}
 			}
 		}
@@ -630,9 +631,9 @@ func (a *analysis) isLabel(i int, control *renderControl) bool {
 
 // paramItems returns the parameters of the lambdas, (a, b) =>, whose bodies token i is in: a body
 // runs from its => to the "," or closing bracket of the brackets the lambda is in.
-func (a *analysis) paramItems(i int, control *renderControl) []CompletionItem {
+func (a *analysis) paramItems(i int, control *renderControl) []protocol.CompletionItem {
 	control.poll()
-	items := []CompletionItem{}
+	items := []protocol.CompletionItem{}
 	first := i
 	for first >= 0 && !a.isDefKeyword(first) {
 		control.poll()
@@ -667,7 +668,7 @@ func (a *analysis) paramItems(i int, control *renderControl) []CompletionItem {
 		for _, n := range names {
 			if control.isIdentifier(n) && !seen[n] {
 				seen[n] = true
-				items = append(items, CompletionItem{Label: n, Kind: completionKindVariable, Detail: "parameter"})
+				items = append(items, protocol.CompletionItem{Label: n, Kind: protocol.CompletionKindVariable, Detail: "parameter"})
 			}
 		}
 	}
@@ -715,42 +716,42 @@ func (a *analysis) declarationsControlled(kind symKind, control *renderControl) 
 	return out
 }
 
-func keywordItems(words []string) []CompletionItem {
-	var items []CompletionItem
+func keywordItems(words []string) []protocol.CompletionItem {
+	var items []protocol.CompletionItem
 	for _, w := range words {
-		items = append(items, CompletionItem{Label: w, Kind: completionKindKeyword, SortText: "9" + w})
+		items = append(items, protocol.CompletionItem{Label: w, Kind: protocol.CompletionKindKeyword, SortText: "9" + w})
 	}
 	return items
 }
 
-func directiveItems(list []builtin) []CompletionItem {
-	var items []CompletionItem
+func directiveItems(list []builtin) []protocol.CompletionItem {
+	var items []protocol.CompletionItem
 	for _, b := range list {
-		items = append(items, CompletionItem{Label: b.name, Kind: completionKindProperty, Detail: b.signature,
-			Documentation: &markupContent{Kind: "markdown", Value: b.doc},
-			InsertText:    b.snippet, InsertTextFormat: insertSnippet})
+		items = append(items, protocol.CompletionItem{Label: b.name, Kind: protocol.CompletionKindProperty, Detail: b.signature,
+			Documentation: &protocol.MarkupContent{Kind: "markdown", Value: b.doc},
+			InsertText:    b.snippet, InsertTextFormat: protocol.InsertSnippet})
 	}
 	return items
 }
 
-func builtinFuncItems() []CompletionItem {
-	var items []CompletionItem
+func builtinFuncItems() []protocol.CompletionItem {
+	var items []protocol.CompletionItem
 	for _, b := range builtinFuncs {
-		items = append(items, CompletionItem{Label: b.name, Kind: completionKindFunction, Detail: b.signature,
-			Documentation: &markupContent{Kind: "markdown", Value: b.doc},
-			InsertText:    b.snippet, InsertTextFormat: insertSnippet})
+		items = append(items, protocol.CompletionItem{Label: b.name, Kind: protocol.CompletionKindFunction, Detail: b.signature,
+			Documentation: &protocol.MarkupContent{Kind: "markdown", Value: b.doc},
+			InsertText:    b.snippet, InsertTextFormat: protocol.InsertSnippet})
 	}
 	return items
 }
 
 // memberItems returns the fields every node has and the fields of the struct types that parse.
-func (a *analysis) memberItemsControlled(control *renderControl) []CompletionItem {
+func (a *analysis) memberItemsControlled(control *renderControl) []protocol.CompletionItem {
 	control.poll()
-	var items []CompletionItem
+	var items []protocol.CompletionItem
 	for _, b := range builtinMembers {
 		control.poll()
-		items = append(items, CompletionItem{Label: b.name, Kind: completionKindField, Detail: b.signature,
-			Documentation: &markupContent{Kind: "markdown", Value: b.doc}, SortText: "9" + b.name})
+		items = append(items, protocol.CompletionItem{Label: b.name, Kind: protocol.CompletionKindField, Detail: b.signature,
+			Documentation: &protocol.MarkupContent{Kind: "markdown", Value: b.doc}, SortText: "9" + b.name})
 	}
 	seen := map[string]bool{}
 	for _, d := range a.defs {
@@ -766,7 +767,7 @@ func (a *analysis) memberItemsControlled(control *renderControl) []CompletionIte
 			control.poll()
 			if !seen[f.Name] {
 				seen[f.Name] = true
-				items = append(items, CompletionItem{Label: f.Name, Kind: completionKindField,
+				items = append(items, protocol.CompletionItem{Label: f.Name, Kind: protocol.CompletionKindField,
 					Detail: d.name + "." + f.Name + " " + control.formatType(f.Type)})
 			}
 		}
@@ -774,18 +775,18 @@ func (a *analysis) memberItemsControlled(control *renderControl) []CompletionIte
 	return items
 }
 
-func (a *analysis) ruleItemsControlled(control *renderControl) []CompletionItem {
+func (a *analysis) ruleItemsControlled(control *renderControl) []protocol.CompletionItem {
 	control.poll()
-	var items []CompletionItem
+	var items []protocol.CompletionItem
 	for _, n := range a.declarationsControlled(kindRule, control) {
 		control.poll()
-		it := CompletionItem{Label: n.name, Kind: completionKindFunction}
+		it := protocol.CompletionItem{Label: n.name, Kind: protocol.CompletionKindFunction}
 		if d := a.rules[n.name]; d != nil {
 			if t, _, ok := a.ruleTypeControlled(d, control); ok {
 				it.Detail = t
 			}
 			if d.doc != "" {
-				it.Documentation = &markupContent{Kind: "markdown", Value: d.doc}
+				it.Documentation = &protocol.MarkupContent{Kind: "markdown", Value: d.doc}
 			}
 		}
 		items = append(items, it)
@@ -795,22 +796,22 @@ func (a *analysis) ruleItemsControlled(control *renderControl) []CompletionItem 
 
 // typeItems returns the types declared in the file and the built-in types; with structsOnly, only
 // the struct types (for constructors).
-func (a *analysis) typeItemsControlled(structsOnly bool, control *renderControl) []CompletionItem {
+func (a *analysis) typeItemsControlled(structsOnly bool, control *renderControl) []protocol.CompletionItem {
 	control.poll()
-	var items []CompletionItem
+	var items []protocol.CompletionItem
 	for _, n := range a.declarationsControlled(kindType, control) {
 		control.poll()
 		if structsOnly && n.spec != "struct" {
 			continue
 		}
-		it := CompletionItem{Label: n.name, Kind: completionKindClass, Detail: n.spec}
+		it := protocol.CompletionItem{Label: n.name, Kind: protocol.CompletionKindClass, Detail: n.spec}
 		if n.spec == "struct" {
-			it.Kind = completionKindStruct
+			it.Kind = protocol.CompletionKindStruct
 		}
 		if d := a.types[n.name]; d != nil {
 			_, it.Detail = typeSymbolKindControlled(d.typ, control)
 			if d.doc != "" {
-				it.Documentation = &markupContent{Kind: "markdown", Value: d.doc}
+				it.Documentation = &protocol.MarkupContent{Kind: "markdown", Value: d.doc}
 			}
 		}
 		items = append(items, it)
@@ -820,8 +821,8 @@ func (a *analysis) typeItemsControlled(structsOnly bool, control *renderControl)
 	}
 	for _, b := range builtinTypes {
 		control.poll()
-		items = append(items, CompletionItem{Label: b.name, Kind: completionKindClass, Detail: "built-in type",
-			Documentation: &markupContent{Kind: "markdown", Value: b.doc}, SortText: "9" + b.name})
+		items = append(items, protocol.CompletionItem{Label: b.name, Kind: protocol.CompletionKindClass, Detail: "built-in type",
+			Documentation: &protocol.MarkupContent{Kind: "markdown", Value: b.doc}, SortText: "9" + b.name})
 	}
 	return items
 }

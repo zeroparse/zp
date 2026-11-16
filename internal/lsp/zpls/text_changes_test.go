@@ -5,6 +5,8 @@ import (
 	"math/rand/v2"
 	"strings"
 	"testing"
+
+	"zeroparse.dev/zp/internal/lsp/protocol"
 )
 
 // TestApplyChangesMatchesSequential compares applyChanges with applying each change in turn, on
@@ -25,10 +27,10 @@ func TestApplyChangesMatchesSequential(t *testing.T) {
 		text := random(r, r.IntN(24))
 		lines := strings.Count(text, "\n") + strings.Count(text, "\r") + 1
 		line := lines + 1
-		var changes []contentChange
+		var changes []protocol.ContentChange
 		for range 1 + r.IntN(6) {
 			if r.IntN(20) == 0 {
-				changes = append(changes, contentChange{Text: random(r, r.IntN(6))})
+				changes = append(changes, protocol.ContentChange{Text: random(r, r.IntN(6))})
 				continue
 			}
 			if r.IntN(4) == 0 {
@@ -36,12 +38,12 @@ func TestApplyChangesMatchesSequential(t *testing.T) {
 			} else {
 				line -= r.IntN(3) // moving up, sometimes on the same line
 			}
-			start := Position{line - r.IntN(2), r.IntN(6) - 1}
-			end := Position{line, r.IntN(6) - 1}
+			start := protocol.Position{Line: line - r.IntN(2), Character: r.IntN(6) - 1}
+			end := protocol.Position{Line: line, Character: r.IntN(6) - 1}
 			if r.IntN(8) == 0 {
 				start, end = end, start
 			}
-			changes = append(changes, contentChange{Range: &Range{start, end}, Text: random(r, r.IntN(3))})
+			changes = append(changes, protocol.ContentChange{Range: &protocol.Range{Start: start, End: end}, Text: random(r, r.IntN(3))})
 		}
 		want := text
 		for _, c := range changes {
@@ -53,7 +55,7 @@ func TestApplyChangesMatchesSequential(t *testing.T) {
 	}
 }
 
-func describeChanges(changes []contentChange) string {
+func describeChanges(changes []protocol.ContentChange) string {
 	var b strings.Builder
 	for _, c := range changes {
 		if c.Range == nil {

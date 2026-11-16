@@ -5,22 +5,24 @@ import (
 	"strings"
 	"unicode"
 	"unicode/utf8"
+
+	"zeroparse.dev/zp/internal/lsp/protocol"
 )
 
 // documentation negotiates the formats explicitly advertised by the client.
 // Clients without format support receive plaintext, as required by LSP.
-func documentationControlled(text string, formats []string, control *renderControl) markupContent {
+func documentationControlled(text string, formats []string, control *renderControl) protocol.MarkupContent {
 	control.poll()
 	for _, format := range formats {
 		control.poll()
 		switch format {
 		case "markdown":
-			return markupContent{Kind: "markdown", Value: text}
+			return protocol.MarkupContent{Kind: "markdown", Value: text}
 		case "plaintext":
-			return markupContent{Kind: "plaintext", Value: plainDocumentationControlled(text, control)}
+			return protocol.MarkupContent{Kind: "plaintext", Value: plainDocumentationControlled(text, control)}
 		}
 	}
-	return markupContent{Kind: "plaintext", Value: plainDocumentationControlled(text, control)}
+	return protocol.MarkupContent{Kind: "plaintext", Value: plainDocumentationControlled(text, control)}
 }
 
 // plainDocumentation renders the markup emitted by ZeroParse's documentation builders.

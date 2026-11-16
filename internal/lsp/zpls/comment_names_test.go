@@ -5,6 +5,8 @@ import (
 	"reflect"
 	"strings"
 	"testing"
+
+	"zeroparse.dev/zp/internal/lsp/protocol"
 )
 
 func commentedNamesSource(typeGap, defGap, newGap, typeName, ruleName string) string {
@@ -33,7 +35,7 @@ func TestNamesAcrossComments(t *testing.T) {
 				}
 			}
 			idx := newTextIndex(src)
-			rangeAt := func(marker, name string) Range {
+			rangeAt := func(marker, name string) protocol.Range {
 				i := strings.Index(src, marker)
 				if i < 0 {
 					t.Fatalf("missing marker %q", marker)
@@ -46,28 +48,28 @@ func TestNamesAcrossComments(t *testing.T) {
 			boxAnnotation := rangeAt("Box = helper", "Box")
 			boxNew := rangeAt("Box{", "Box")
 			helperRef := rangeAt("helper =>", "helper")
-			var syms []DocumentSymbol
+			var syms []protocol.DocumentSymbol
 			c.requestInto("textDocument/documentSymbol", docParams(uri), &syms)
 			var names []string
-			var selections []Range
+			var selections []protocol.Range
 			for _, s := range syms {
 				names = append(names, s.Name)
 				selections = append(selections, s.SelectionRange)
 			}
-			if !reflect.DeepEqual(names, []string{"Box", "helper", "main"}) || !reflect.DeepEqual(selections, []Range{boxDef, helperDef, mainDef}) {
+			if !reflect.DeepEqual(names, []string{"Box", "helper", "main"}) || !reflect.DeepEqual(selections, []protocol.Range{boxDef, helperDef, mainDef}) {
 				t.Errorf("symbols = %v %v; want Box/helper/main at actual names", names, selections)
 			}
 			for _, point := range []struct {
-				r, def Range
+				r, def protocol.Range
 				text   string
 			}{
 				{boxDef, boxDef, "type Box ="}, {boxNew, boxDef, "type Box ="},
 				{helperDef, helperDef, "rule helper"}, {helperRef, helperDef, "rule helper"},
 				{mainDef, mainDef, "rule main Box"},
 			} {
-				var got []Location
+				var got []protocol.Location
 				c.requestInto("textDocument/definition", at(uri, point.r.Start.Line, point.r.Start.Character), &got)
-				if !reflect.DeepEqual(got, []Location{{URI: uri, Range: point.def}}) {
+				if !reflect.DeepEqual(got, []protocol.Location{{URI: uri, Range: point.def}}) {
 					t.Errorf("definition at %+v: %+v", point.r, got)
 				}
 				text, r := hoverText(c, uri, point.r.Start.Line, point.r.Start.Character)
@@ -79,23 +81,23 @@ func TestNamesAcrossComments(t *testing.T) {
 				}
 			}
 			for _, symbol := range []struct {
-				at      Range
+				at      protocol.Range
 				name    string
-				refs    []Range
+				refs    []protocol.Range
 				renamed string
 			}{
-				{boxNew, "Crate", []Range{boxDef, boxAnnotation, boxNew}, commentedNamesSource(tc.typeGap, tc.defGap, tc.newGap, "Crate", "helper")},
-				{helperDef, "word", []Range{helperDef, helperRef}, commentedNamesSource(tc.typeGap, tc.defGap, tc.newGap, "Box", "word")},
+				{boxNew, "Crate", []protocol.Range{boxDef, boxAnnotation, boxNew}, commentedNamesSource(tc.typeGap, tc.defGap, tc.newGap, "Crate", "helper")},
+				{helperDef, "word", []protocol.Range{helperDef, helperRef}, commentedNamesSource(tc.typeGap, tc.defGap, tc.newGap, "Box", "word")},
 			} {
 				for _, decl := range []bool{false, true} {
 					p := at(uri, symbol.at.Start.Line, symbol.at.Start.Character)
 					p["context"] = map[string]any{"includeDeclaration": decl}
-					var got []Location
+					var got []protocol.Location
 					c.requestInto("textDocument/references", p, &got)
-					var want []Location
+					var want []protocol.Location
 					for i, r := range symbol.refs {
 						if decl || i > 0 {
-							want = append(want, Location{URI: uri, Range: r})
+							want = append(want, protocol.Location{URI: uri, Range: r})
 						}
 					}
 					if !reflect.DeepEqual(got, want) {
@@ -104,7 +106,7 @@ func TestNamesAcrossComments(t *testing.T) {
 				}
 				p := at(uri, symbol.at.Start.Line, symbol.at.Start.Character)
 				p["newName"] = symbol.name
-				var we workspaceEdit
+				var we protocol.WorkspaceEdit
 				c.requestInto("textDocument/rename", p, &we)
 				if got := applyEdits(src, we.Changes[uri]); got != symbol.renamed {
 					t.Errorf("rename %s:\n%s\nwant:\n%s", symbol.name, got, symbol.renamed)
@@ -125,7 +127,7 @@ func TestCommentNameAtEOF(t *testing.T) {
 		if d := c.open(uri, src); len(d) == 0 {
 			t.Fatal("incomplete source has no diagnostics")
 		}
-		var syms []DocumentSymbol
+		var syms []protocol.DocumentSymbol
 		c.requestInto("textDocument/documentSymbol", docParams(uri), &syms)
 		if len(syms) != 1 || syms[0].Name != "good" {
 			t.Errorf("incomplete source symbols: %+v", syms)

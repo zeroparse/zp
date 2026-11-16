@@ -10,6 +10,7 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/internal/frontend/parser"
+	"zeroparse.dev/zp/internal/lsp/protocol"
 )
 
 func renderFixture(fields int) string {
@@ -57,7 +58,7 @@ func TestRenderRequestsContextParity(t *testing.T) {
 		for _, rich := range []bool{false, true} {
 			params := renderParams(a, method)
 			ordinary := renderServer(a, nil, rich, rich, rich)
-			msg := &incoming{Method: method, Params: params}
+			msg := &protocol.Incoming{Method: method, Params: params}
 			want, werr := ordinary.request(msg)
 			if werr != nil {
 				t.Fatal(werr)
@@ -85,7 +86,7 @@ func TestRenderRequestsCancellationDiscardsResponses(t *testing.T) {
 	for _, method := range []string{"textDocument/documentSymbol", "textDocument/hover", "textDocument/completion"} {
 		for _, rich := range []bool{false, true} {
 			t.Run(fmt.Sprintf("%s/%v", method, rich), func(t *testing.T) {
-				msg := &incoming{Method: method, Params: renderParams(a, method)}
+				msg := &protocol.Incoming{Method: method, Params: renderParams(a, method)}
 				count := formatContext(t, 0)
 				if _, err := renderServer(a, count, rich, rich, rich).request(msg); err != nil || count.checks < 4 {
 					t.Fatalf("insufficient fixture checks=%d error=%+v", count.checks, err)
@@ -94,7 +95,7 @@ func TestRenderRequestsCancellationDiscardsResponses(t *testing.T) {
 				// operation rather than relying on a previous invocation's last check.
 				for _, at := range []int{1, 2, count.checks / 2} {
 					got, err := renderServer(a, formatContext(t, at), rich, rich, rich).request(msg)
-					if got != nil || err == nil || err.Code != codeRequestCancelled {
+					if got != nil || err == nil || err.Code != protocol.CodeRequestCancelled {
 						t.Fatalf("check%d: partial result %T / %+v", at, got, err)
 					}
 				}
@@ -126,12 +127,12 @@ func TestRenderInnerWalksCancellation(t *testing.T) {
 	for name, phase := range phases {
 		t.Run(name, func(t *testing.T) {
 			completed := false
-			got, err := renderRequest(formatContext(t, 2), func(c *renderControl) (any, *rpcError) {
+			got, err := renderRequest(formatContext(t, 2), func(c *renderControl) (any, *protocol.RPCError) {
 				phase(c)
 				completed = true
 				return "partial", nil
 			})
-			if completed || got != nil || err == nil || err.Code != codeRequestCancelled {
+			if completed || got != nil || err == nil || err.Code != protocol.CodeRequestCancelled {
 				t.Fatalf("walk completed=%v: %v/%+v", completed, got, err)
 			}
 		})
@@ -165,8 +166,8 @@ func TestRenderDocumentationAndIdentifierParity(t *testing.T) {
 	}
 }
 func TestRenderFinalCheckAndForeignPanic(t *testing.T) {
-	got, err := renderRequest(formatContext(t, 2), func(*renderControl) (any, *rpcError) { return "ready", nil })
-	if got != nil || err == nil || err.Code != codeRequestCancelled {
+	got, err := renderRequest(formatContext(t, 2), func(*renderControl) (any, *protocol.RPCError) { return "ready", nil })
+	if got != nil || err == nil || err.Code != protocol.CodeRequestCancelled {
 		t.Fatalf("final check=%v/%+v", got, err)
 	}
 	marker := &struct{}{}
@@ -175,7 +176,7 @@ func TestRenderFinalCheckAndForeignPanic(t *testing.T) {
 			t.Fatalf("foreign panic changed: %v", got)
 		}
 	}()
-	renderRequest(formatContext(t, 0), func(*renderControl) (any, *rpcError) { panic(marker) })
+	renderRequest(formatContext(t, 0), func(*renderControl) (any, *protocol.RPCError) { panic(marker) })
 }
 func TestRenderSharedAnalysis(t *testing.T) {
 	a := analyze(renderFixture(32))
@@ -184,7 +185,7 @@ func TestRenderSharedAnalysis(t *testing.T) {
 	}
 	var wg sync.WaitGroup
 	for _, method := range []string{"textDocument/documentSymbol", "textDocument/hover", "textDocument/completion"} {
-		msg := &incoming{Method: method, Params: renderParams(a, method)}
+		msg := &protocol.Incoming{Method: method, Params: renderParams(a, method)}
 		for range 4 {
 			ctx, cancel := context.WithCancel(context.Background())
 			t.Cleanup(cancel)

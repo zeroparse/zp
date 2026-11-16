@@ -9,6 +9,7 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/internal/frontend/parser"
+	"zeroparse.dev/zp/internal/lsp/protocol"
 )
 
 func TestSemanticResponsesControlledParity(t *testing.T) {
@@ -68,7 +69,7 @@ func TestSemanticRequestsCancelAndRetry(t *testing.T) {
 			}
 			for _, at := range []int{1, 2, count.checks / 2, count.checks} {
 				got, gerr := semanticServer(a, formatContext(t, at)).request(msg)
-				if got != nil || gerr == nil || gerr.Code != codeRequestCancelled {
+				if got != nil || gerr == nil || gerr.Code != protocol.CodeRequestCancelled {
 					t.Fatalf("check%d returned %T/%+v", at, got, gerr)
 				}
 			}
@@ -115,24 +116,24 @@ func semanticBodyPrefixChecks(t *testing.T, a *analysis, i int, includeHeader bo
 func TestSemanticInteriorWalksCancel(t *testing.T) {
 	t.Run("multiline", func(t *testing.T) {
 		a := analyze("/*😀\n" + strings.Repeat("line\n\n", 2048) + "*/")
-		assertOccurrencePhaseCancels(t, 2, func(c *renderControl) (any, *rpcError) { return a.semanticTokensControlled(c), nil })
+		assertOccurrencePhaseCancels(t, 2, func(c *renderControl) (any, *protocol.RPCError) { return a.semanticTokensControlled(c), nil })
 	})
 	t.Run("occurrence-cursor", func(t *testing.T) {
 		a := &analysis{toks: []token{{Token: parser.Token{Kind: parser.TokenIdent, Text: "tail"}, start: 8192, end: 8196}}}
 		for i := range 4096 {
 			a.occs = append(a.occs, occurrence{start: i * 2, end: i*2 + 1})
 		}
-		assertOccurrencePhaseCancels(t, 2, func(c *renderControl) (any, *rpcError) { return a.semanticTokensControlled(c), nil })
+		assertOccurrencePhaseCancels(t, 2, func(c *renderControl) (any, *protocol.RPCError) { return a.semanticTokensControlled(c), nil })
 	})
 	t.Run("backward-body", func(t *testing.T) {
 		a := analyze(strings.Repeat("x ", 1024) + "infix left")
 		i := semanticLastIdent(t, a, "left")
-		assertOccurrencePhaseCancels(t, 2, func(c *renderControl) (any, *rpcError) { return a.inOperatorsBody(i, c), nil })
+		assertOccurrencePhaseCancels(t, 2, func(c *renderControl) (any, *protocol.RPCError) { return a.inOperatorsBody(i, c), nil })
 	})
 	t.Run("previous-comment", func(t *testing.T) {
 		a := analyze("foo " + strings.Repeat("/*c*/ ", 1024) + "left")
 		i := semanticLastIdent(t, a, "left")
-		assertOccurrencePhaseCancels(t, 2, func(c *renderControl) (any, *rpcError) {
+		assertOccurrencePhaseCancels(t, 2, func(c *renderControl) (any, *protocol.RPCError) {
 			occ := 0
 			value, _ := a.classify(i, &occ, c)
 			return value, nil
@@ -142,13 +143,13 @@ func TestSemanticInteriorWalksCancel(t *testing.T) {
 		a := analyze("rule expr " + strings.Repeat("T ", 1024) + "= #operators { infix left")
 		i := semanticLastIdent(t, a, "left")
 		at := semanticBodyPrefixChecks(t, a, i, false) + 2
-		assertOccurrencePhaseCancels(t, at, func(c *renderControl) (any, *rpcError) { return a.inOperatorsBody(i, c), nil })
+		assertOccurrencePhaseCancels(t, at, func(c *renderControl) (any, *protocol.RPCError) { return a.inOperatorsBody(i, c), nil })
 	})
 	t.Run("forward-body", func(t *testing.T) {
 		a := analyze(semanticOperatorsSource(1024))
 		i := semanticLastIdent(t, a, "left")
 		at := semanticBodyPrefixChecks(t, a, i, true) + 2
-		assertOccurrencePhaseCancels(t, at, func(c *renderControl) (any, *rpcError) { return a.inOperatorsBody(i, c), nil })
+		assertOccurrencePhaseCancels(t, at, func(c *renderControl) (any, *protocol.RPCError) { return a.inOperatorsBody(i, c), nil })
 	})
 }
 
@@ -198,9 +199,9 @@ func TestSemanticRequestProtocolInvalidation(t *testing.T) {
 			}
 			asyncRequest(c, 100, msg.Method, params)
 			awaitBarrier(t, started)
-			code := codeRequestCancelled
+			code := protocol.CodeRequestCancelled
 			if change {
-				code = codeContentModified
+				code = protocol.CodeContentModified
 				text = semanticDenseSource(32)
 				c.notify("textDocument/didChange", map[string]any{"textDocument": map[string]any{"uri": semanticURI, "version": 2}, "contentChanges": []any{map[string]any{"text": text}}})
 			} else {
@@ -229,6 +230,6 @@ func TestSemanticInteriorPreservesForeignPanic(t *testing.T) {
 			t.Fatalf("foreign panic changed: %v", got)
 		}
 	}()
-	renderRequest(&occurrencePanicContext{Context: ctx, marker: marker}, func(c *renderControl) (any, *rpcError) { return a.semanticTokensControlled(c), nil })
+	renderRequest(&occurrencePanicContext{Context: ctx, marker: marker}, func(c *renderControl) (any, *protocol.RPCError) { return a.semanticTokensControlled(c), nil })
 	t.Fatal("foreign panic was swallowed")
 }

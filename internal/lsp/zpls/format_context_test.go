@@ -7,6 +7,8 @@ import (
 	"reflect"
 	"strings"
 	"testing"
+
+	"zeroparse.dev/zp/internal/lsp/protocol"
 )
 
 // Done is non-nil so the formatting operation uses its controlled traversal.
@@ -61,7 +63,7 @@ func TestFormatEditsContextCancellationReturnsNoEdits(t *testing.T) {
 	s := &Server{requestContext: formatContext(t, 3), docs: map[string]*document{uri: {uri: uri, an: a}}}
 	params, _ := json.Marshal(docParams(uri))
 	got, err := s.formatting(params)
-	if got != nil || err == nil || err.Code != codeRequestCancelled {
+	if got != nil || err == nil || err.Code != protocol.CodeRequestCancelled {
 		t.Fatalf("request returned %+v / %+v", got, err)
 	}
 }

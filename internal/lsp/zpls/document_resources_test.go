@@ -8,6 +8,8 @@ import (
 	"strconv"
 	"testing"
 	"time"
+
+	"zeroparse.dev/zp/internal/lsp/protocol"
 )
 
 type documentResourceResult struct {
@@ -55,7 +57,7 @@ func runDocumentResourceCase(t *testing.T, n int, responsive, measure bool) docu
 	for i := range n {
 		burst = append(burst, map[string]any{"jsonrpc": "2.0", "method": "textDocument/didChange", "params": map[string]any{
 			"textDocument":   map[string]any{"uri": uri(i), "version": 2},
-			"contentChanges": []map[string]any{{"range": Range{}, "text": "// changed\n"}},
+			"contentChanges": []map[string]any{{"range": protocol.Range{}, "text": "// changed\n"}},
 		}})
 	}
 	burst = append(burst, map[string]any{"jsonrpc": "2.0", "id": 7000, "method": "textDocument/hover", "params": at(uri(n-1), 2, 5)})
@@ -97,7 +99,7 @@ func runDocumentResourceCase(t *testing.T, n int, responsive, measure bool) docu
 	// A reply after the closes orders them; notifications before it are discarded.
 	closes = append(closes, map[string]any{"jsonrpc": "2.0", "id": 7001, "method": "resource/sequence"})
 	written = sendAll(c, closes)
-	assertResponseError(t, c.response("7001"), codeMethodNotFound)
+	assertResponseError(t, c.response("7001"), protocol.CodeMethodNotFound)
 	if err := <-written; err != nil {
 		t.Fatal(err)
 	}

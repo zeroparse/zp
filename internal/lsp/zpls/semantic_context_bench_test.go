@@ -7,6 +7,8 @@ import (
 	"os"
 	"strings"
 	"testing"
+
+	"zeroparse.dev/zp/internal/lsp/protocol"
 )
 
 const semanticURI = "file:///semantic.zp"
@@ -17,9 +19,9 @@ func semanticServer(a *analysis, ctx context.Context) *Server {
 	return &Server{docs: map[string]*document{semanticURI: {uri: semanticURI, text: a.text, an: a}}, state: stateInitialized, requestContext: ctx}
 }
 
-func semanticMessage() *incoming {
+func semanticMessage() *protocol.Incoming {
 	params, _ := json.Marshal(docParams(semanticURI))
-	return &incoming{Method: "textDocument/semanticTokens/full", Params: params}
+	return &protocol.Incoming{Method: "textDocument/semanticTokens/full", Params: params}
 }
 
 func semanticDenseSource(count int) string {
@@ -76,7 +78,7 @@ func BenchmarkSemanticRequests(b *testing.B) {
 				s := semanticServer(a, ctx)
 				b.ReportAllocs()
 				for b.Loop() {
-					var err *rpcError
+					var err *protocol.RPCError
 					semanticBenchmarkResult, err = s.request(msg)
 					if err != nil {
 						b.Fatal(err)

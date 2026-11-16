@@ -7,6 +7,8 @@ import (
 	"fmt"
 	"strings"
 	"testing"
+
+	"zeroparse.dev/zp/internal/lsp/protocol"
 )
 
 const occurrenceURI = "file:///occurrences.zp"
@@ -21,7 +23,7 @@ func occurrenceServer(a *analysis, ctx context.Context) *Server {
 	return &Server{docs: map[string]*document{occurrenceURI: {uri: occurrenceURI, text: a.text, an: a}}, state: stateInitialized, requestContext: ctx}
 }
 
-func occurrenceMessage(method string, position Position, include bool, newName string) *incoming {
+func occurrenceMessage(method string, position protocol.Position, include bool, newName string) *protocol.Incoming {
 	params := map[string]any{"textDocument": map[string]any{"uri": occurrenceURI}, "position": position}
 	if method == "references" {
 		params["context"] = map[string]any{"includeDeclaration": include}
@@ -30,7 +32,7 @@ func occurrenceMessage(method string, position Position, include bool, newName s
 		params["newName"] = newName
 	}
 	data, _ := json.Marshal(params)
-	return &incoming{Method: "textDocument/" + method, Params: data}
+	return &protocol.Incoming{Method: "textDocument/" + method, Params: data}
 }
 
 func BenchmarkOccurrenceRequests(b *testing.B) {
@@ -46,7 +48,7 @@ func BenchmarkOccurrenceRequests(b *testing.B) {
 			{"rename", "rename", "renamed"},
 			{"rename-long", "rename", strings.Repeat("x", 65536)},
 		} {
-			msg := occurrenceMessage(operation.method, Position{Line: 1, Character: 5}, true, operation.newName)
+			msg := occurrenceMessage(operation.method, protocol.Position{Line: 1, Character: 5}, true, operation.newName)
 			for _, active := range []bool{false, true} {
 				b.Run(fmt.Sprintf("refs%d/%s/active=%t", count, operation.name, active), func(b *testing.B) {
 					var ctx context.Context
@@ -58,7 +60,7 @@ func BenchmarkOccurrenceRequests(b *testing.B) {
 					s := occurrenceServer(a, ctx)
 					b.ReportAllocs()
 					for b.Loop() {
-						var err *rpcError
+						var err *protocol.RPCError
 						occurrenceBenchmarkResult, err = s.request(msg)
 						if err != nil {
 							b.Fatal(err)
@@ -73,7 +75,7 @@ func BenchmarkOccurrenceRequests(b *testing.B) {
 type occurrenceResponseCase struct {
 	name string
 	a    *analysis
-	msg  *incoming
+	msg  *protocol.Incoming
 }
 
 // Use only the existing request API so this corpus can also run at the parent
@@ -83,7 +85,7 @@ func occurrenceResponseCorpus() []occurrenceResponseCase {
 	a := analyze(src)
 	var cases []occurrenceResponseCase
 	add := func(name string, a *analysis, method string, line, char int, include bool, newName string) {
-		cases = append(cases, occurrenceResponseCase{name, a, occurrenceMessage(method, Position{Line: line, Character: char}, include, newName)})
+		cases = append(cases, occurrenceResponseCase{name, a, occurrenceMessage(method, protocol.Position{Line: line, Character: char}, include, newName)})
 	}
 	for _, method := range []string{"references", "documentHighlight", "prepareRename", "rename"} {
 		add(method+"/declaration", a, method, 2, 6, true, "renamed")
@@ -106,8 +108,8 @@ func occurrenceResponseCorpus() []occurrenceResponseCase {
 	add("rename/used-undefined-rule", analyze("rule atom = missing\n"), "rename", 0, 6, true, "missing")
 	add("rename/used-undefined-type", analyze("type T ~ Missing\nrule a = \"a\"\n"), "rename", 0, 6, true, "Missing")
 	for _, method := range []string{"references", "documentHighlight", "prepareRename", "rename"} {
-		cases = append(cases, occurrenceResponseCase{method + "/missing-params", a, &incoming{Method: "textDocument/" + method}})
-		msg := occurrenceMessage(method, Position{}, true, "renamed")
+		cases = append(cases, occurrenceResponseCase{method + "/missing-params", a, &protocol.Incoming{Method: "textDocument/" + method}})
+		msg := occurrenceMessage(method, protocol.Position{}, true, "renamed")
 		msg.Params = json.RawMessage(strings.ReplaceAll(string(msg.Params), occurrenceURI, "file:///unknown.zp"))
 		cases = append(cases, occurrenceResponseCase{method + "/unknown-document", a, msg})
 	}
@@ -115,11 +117,11 @@ func occurrenceResponseCorpus() []occurrenceResponseCase {
 	return cases
 }
 
-func occurrenceResponseJSON(tb testing.TB, value any, err *rpcError) []byte {
+func occurrenceResponseJSON(tb testing.TB, value any, err *protocol.RPCError) []byte {
 	tb.Helper()
 	data, jerr := json.Marshal(struct {
 		Result any
-		Error  *rpcError
+		Error  *protocol.RPCError
 	}{value, err})
 	if jerr != nil {
 		tb.Fatal(jerr)

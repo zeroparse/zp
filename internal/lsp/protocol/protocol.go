@@ -1,4 +1,6 @@
-package zpls
+// Package protocol implements the base protocol of the Language Server Protocol, JSON-RPC 2.0 framing
+// with Content-Length headers, and the subset of its message types that the server uses.
+package protocol
 
 // The subset of the Language Server Protocol (version 3.17) types that the server uses.
 
@@ -21,70 +23,54 @@ type Location struct {
 	Range Range  `json:"range"`
 }
 
-type textDocumentIdentifier struct {
+type TextDocumentIdentifier struct {
 	URI string `json:"uri"`
 }
 
-type textDocumentItem struct {
+type TextDocumentItem struct {
 	URI        string `json:"uri"`
 	LanguageID string `json:"languageId"`
 	Version    int    `json:"version"`
 	Text       string `json:"text"`
 }
 
-type versionedTextDocumentIdentifier struct {
+type VersionedTextDocumentIdentifier struct {
 	URI     string `json:"uri"`
 	Version int    `json:"version"`
 }
 
-type textDocumentPositionParams struct {
-	TextDocument textDocumentIdentifier `json:"textDocument"`
+type TextDocumentPositionParams struct {
+	TextDocument TextDocumentIdentifier `json:"textDocument"`
 	Position     Position               `json:"position"`
 }
 
-type didOpenParams struct {
-	TextDocument textDocumentItem `json:"textDocument"`
+type DidOpenParams struct {
+	TextDocument TextDocumentItem `json:"textDocument"`
 }
 
-// contentChange is a change of a document: Text replaces Range, or the whole document if Range is
+// ContentChange is a change of a document: Text replaces Range, or the whole document if Range is
 // nil.
-type contentChange struct {
+type ContentChange struct {
 	Range *Range `json:"range"`
 	Text  string `json:"text"`
 }
 
-type didChangeParams struct {
-	TextDocument   versionedTextDocumentIdentifier `json:"textDocument"`
-	ContentChanges []contentChange                 `json:"contentChanges"`
+type DidChangeParams struct {
+	TextDocument   VersionedTextDocumentIdentifier `json:"textDocument"`
+	ContentChanges []ContentChange                 `json:"contentChanges"`
 }
 
-type didSaveParams struct {
-	TextDocument textDocumentIdentifier `json:"textDocument"`
+type DidSaveParams struct {
+	TextDocument TextDocumentIdentifier `json:"textDocument"`
 	Text         *string                `json:"text"`
 }
 
-type didCloseParams struct {
-	TextDocument textDocumentIdentifier `json:"textDocument"`
+type DidCloseParams struct {
+	TextDocument TextDocumentIdentifier `json:"textDocument"`
 }
 
-// severityError is the severity of diagnostics (all of them are errors).
-const severityError = 1
-
-// Diagnostic is a problem in a document.
-type Diagnostic struct {
-	Range    Range        `json:"range"`
-	Severity int          `json:"severity"`
-	Source   string       `json:"source"`
-	Message  string       `json:"message"`
-	Code     string       `json:"code,omitempty"`
-	Data     *findingData `json:"data,omitempty"`
-}
-
-type publishDiagnosticsParams struct {
-	URI         string       `json:"uri"`
-	Version     *int         `json:"version,omitempty"`
-	Diagnostics []Diagnostic `json:"diagnostics"`
-}
+// SeverityError is the severity of diagnostics (all of them are errors).
+const SeverityError = 1
 
 // TextEdit replaces Range with NewText.
 type TextEdit struct {
@@ -92,45 +78,45 @@ type TextEdit struct {
 	NewText string `json:"newText"`
 }
 
-type documentFormattingParams struct {
-	TextDocument textDocumentIdentifier `json:"textDocument"`
+type DocumentFormattingParams struct {
+	TextDocument TextDocumentIdentifier `json:"textDocument"`
 }
 
-type referenceParams struct {
-	TextDocument textDocumentIdentifier `json:"textDocument"`
+type ReferenceParams struct {
+	TextDocument TextDocumentIdentifier `json:"textDocument"`
 	Position     Position               `json:"position"`
 	Context      struct {
 		IncludeDeclaration bool `json:"includeDeclaration"`
 	} `json:"context"`
 }
 
-type renameParams struct {
-	TextDocument textDocumentIdentifier `json:"textDocument"`
+type RenameParams struct {
+	TextDocument TextDocumentIdentifier `json:"textDocument"`
 	Position     Position               `json:"position"`
 	NewName      string                 `json:"newName"`
 }
 
-type workspaceEdit struct {
+type WorkspaceEdit struct {
 	Changes map[string][]TextEdit `json:"changes"`
 }
 
-type prepareRenameResult struct {
+type PrepareRenameResult struct {
 	Range       Range  `json:"range"`
 	Placeholder string `json:"placeholder"`
 }
 
 // Symbol kinds.
 const (
-	symbolKindClass     = 5
-	symbolKindField     = 8
-	symbolKindInterface = 11
-	symbolKindFunction  = 12
-	symbolKindString    = 15
-	symbolKindStruct    = 23
+	SymbolKindClass     = 5
+	SymbolKindField     = 8
+	SymbolKindInterface = 11
+	SymbolKindFunction  = 12
+	SymbolKindString    = 15
+	SymbolKindStruct    = 23
 )
 
-// symbolInformation is a symbol of a document outline for clients without hierarchical symbols.
-type symbolInformation struct {
+// SymbolInformation is a symbol of a document outline for clients without hierarchical symbols.
+type SymbolInformation struct {
 	Name          string   `json:"name"`
 	Kind          int      `json:"kind"`
 	Location      Location `json:"location"`
@@ -147,54 +133,54 @@ type DocumentSymbol struct {
 	Children       []DocumentSymbol `json:"children,omitempty"`
 }
 
-type markupContent struct {
+type MarkupContent struct {
 	Kind  string `json:"kind"`
 	Value string `json:"value"`
 }
 
-type hover struct {
-	Contents markupContent `json:"contents"`
+type Hover struct {
+	Contents MarkupContent `json:"contents"`
 	Range    *Range        `json:"range,omitempty"`
 }
 
 // Completion item kinds.
 const (
-	completionKindFunction = 3
-	completionKindField    = 5
-	completionKindVariable = 6
-	completionKindClass    = 7
-	completionKindProperty = 10
-	completionKindKeyword  = 14
-	completionKindSnippet  = 15
-	completionKindStruct   = 22
+	CompletionKindFunction = 3
+	CompletionKindField    = 5
+	CompletionKindVariable = 6
+	CompletionKindClass    = 7
+	CompletionKindProperty = 10
+	CompletionKindKeyword  = 14
+	CompletionKindSnippet  = 15
+	CompletionKindStruct   = 22
 )
 
-// insertSnippet is the format of insert text in the snippet syntax.
-const insertSnippet = 2
+// InsertSnippet is the format of insert text in the snippet syntax.
+const InsertSnippet = 2
 
 // CompletionItem is a completion proposal.
 type CompletionItem struct {
 	Label            string         `json:"label"`
 	Kind             int            `json:"kind,omitempty"`
 	Detail           string         `json:"detail,omitempty"`
-	Documentation    *markupContent `json:"documentation,omitempty"`
+	Documentation    *MarkupContent `json:"documentation,omitempty"`
 	SortText         string         `json:"sortText,omitempty"`
 	InsertText       string         `json:"insertText,omitempty"`
 	InsertTextFormat int            `json:"insertTextFormat,omitempty"`
 }
 
-type completionList struct {
+type CompletionList struct {
 	IsIncomplete bool             `json:"isIncomplete"`
 	Items        []CompletionItem `json:"items"`
 }
 
 // Document highlight kinds.
 const (
-	highlightRead  = 2
-	highlightWrite = 3
+	HighlightRead  = 2
+	HighlightWrite = 3
 )
 
-type documentHighlight struct {
+type DocumentHighlight struct {
 	Range Range `json:"range"`
 	Kind  int   `json:"kind"`
 }

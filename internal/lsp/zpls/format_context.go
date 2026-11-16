@@ -6,12 +6,13 @@ import (
 	"unicode/utf8"
 
 	"zeroparse.dev/zp/grammar"
+	"zeroparse.dev/zp/internal/lsp/protocol"
 )
 
 // Formatting has two potentially large phases: AST printing and deriving a
 // minimal edit in the client's original newline convention. Neither publishes
 // partial output when the request is cancelled.
-func formatEditsContext(ctx context.Context, a *analysis) ([]TextEdit, error) {
+func formatEditsContext(ctx context.Context, a *analysis) ([]protocol.TextEdit, error) {
 	if err := ctx.Err(); err != nil {
 		return nil, err
 	}
@@ -22,7 +23,7 @@ func formatEditsContext(ctx context.Context, a *analysis) ([]TextEdit, error) {
 		if err := ctx.Err(); err != nil {
 			return nil, err
 		}
-		return []TextEdit{}, nil
+		return []protocol.TextEdit{}, nil
 	}
 	out, err := grammar.FormatContext(ctx, a.g)
 	if err != nil {
@@ -43,9 +44,9 @@ func formatEditsContext(ctx context.Context, a *analysis) ([]TextEdit, error) {
 		return nil, err
 	}
 	if edit.Range.Start == edit.Range.End && edit.NewText == "" {
-		return []TextEdit{}, nil
+		return []protocol.TextEdit{}, nil
 	}
-	return []TextEdit{edit}, nil
+	return []protocol.TextEdit{edit}, nil
 }
 
 func lineEndContext(ctx context.Context, text string) (string, error) {
@@ -91,11 +92,11 @@ func formatNewlinesContext(ctx context.Context, text, nl string) (string, error)
 	return out.String(), nil
 }
 
-func minimalEditContext(ctx context.Context, idx *textIndex, old, new string) (TextEdit, error) {
+func minimalEditContext(ctx context.Context, idx *textIndex, old, new string) (protocol.TextEdit, error) {
 	p, limit := 0, min(len(old), len(new))
 	for p < limit {
 		if err := ctx.Err(); err != nil {
-			return TextEdit{}, err
+			return protocol.TextEdit{}, err
 		}
 		end := min(p+4096, limit)
 		if old[p:end] == new[p:end] {
@@ -111,7 +112,7 @@ func minimalEditContext(ctx context.Context, idx *textIndex, old, new string) (T
 		p--
 		if p%4096 == 0 {
 			if err := ctx.Err(); err != nil {
-				return TextEdit{}, err
+				return protocol.TextEdit{}, err
 			}
 		}
 	}
@@ -121,7 +122,7 @@ func minimalEditContext(ctx context.Context, idx *textIndex, old, new string) (T
 	n, limit := 0, min(len(old)-p, len(new)-p)
 	for n < limit {
 		if err := ctx.Err(); err != nil {
-			return TextEdit{}, err
+			return protocol.TextEdit{}, err
 		}
 		end := min(n+4096, limit)
 		if old[len(old)-end:len(old)-n] == new[len(new)-end:len(new)-n] {
@@ -137,7 +138,7 @@ func minimalEditContext(ctx context.Context, idx *textIndex, old, new string) (T
 		n--
 		if n%4096 == 0 {
 			if err := ctx.Err(); err != nil {
-				return TextEdit{}, err
+				return protocol.TextEdit{}, err
 			}
 		}
 	}
@@ -145,7 +146,7 @@ func minimalEditContext(ctx context.Context, idx *textIndex, old, new string) (T
 		n--
 	}
 	if err := ctx.Err(); err != nil {
-		return TextEdit{}, err
+		return protocol.TextEdit{}, err
 	}
-	return TextEdit{Range: idx.rangeOf(p, len(old)-n), NewText: new[p : len(new)-n]}, nil
+	return protocol.TextEdit{Range: idx.rangeOf(p, len(old)-n), NewText: new[p : len(new)-n]}, nil
 }

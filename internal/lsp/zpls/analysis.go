@@ -9,6 +9,7 @@ import (
 	"sync"
 	"unicode/utf8"
 	"zeroparse.dev/zp/internal/diagnostic"
+	"zeroparse.dev/zp/internal/lsp/protocol"
 
 	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/analysis/lint"
@@ -143,7 +144,7 @@ func failedAnalysis(text string, good *analysis, err error) *analysis {
 	}
 	a.publicationDiags = nil
 	a.syntaxErrs = parser.ErrorList{&parser.Error{Msg: msg}}
-	a.diags = []Diagnostic{{Range: Range{}, Severity: severityError, Source: "zp", Message: msg}}
+	a.diags = []Diagnostic{{Range: protocol.Range{}, Severity: protocol.SeverityError, Source: "zp", Message: msg}}
 	return &a
 }
 
@@ -205,8 +206,8 @@ func analyzeContext(ctx context.Context, text string) (*analysis, error) {
 // diagnostic says how many more there are. (The parser limits the number of syntax errors.)
 const maxCompileErrors = 100
 
-func (a *analysis) diag(r Range, msg string) {
-	a.diags = append(a.diags, Diagnostic{Range: r, Severity: severityError, Source: "zp", Message: msg})
+func (a *analysis) diag(r protocol.Range, msg string) {
+	a.diags = append(a.diags, Diagnostic{Range: r, Severity: protocol.SeverityError, Source: "zp", Message: msg})
 }
 
 // compileContext records ordinary compile errors; cancellation publishes neither
@@ -248,7 +249,7 @@ func compileContextSafely(ctx context.Context, g *grammar.Grammar) (prog *engine
 // errorRange returns the range to report an error at pos at: the token at pos, or else the
 // character at pos. The compiler reports errors about a definition at its keyword; with
 // definitions set, they are reported at its name instead.
-func (a *analysis) errorRangeControlled(pos grammar.Pos, definitions bool, control *renderControl) Range {
+func (a *analysis) errorRangeControlled(pos grammar.Pos, definitions bool, control *renderControl) protocol.Range {
 	control.poll()
 	off := a.idx.zpOffset(pos)
 	if definitions {

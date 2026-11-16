@@ -7,6 +7,8 @@ import (
 	"fmt"
 	"strings"
 	"testing"
+
+	"zeroparse.dev/zp/internal/lsp/protocol"
 )
 
 const codeActionURI = "file:///code-action.zp"
@@ -41,9 +43,9 @@ func codeActionTarget(tb testing.TB, a *analysis) Diagnostic {
 	tb.Fatal("missing unused-capture diagnostic")
 	return Diagnostic{}
 }
-func codeActionMessage(r Range, diagnostics []Diagnostic, only []string) *incoming {
-	params, _ := json.Marshal(map[string]any{"textDocument": textDocumentIdentifier{URI: codeActionURI}, "range": r, "context": map[string]any{"diagnostics": diagnostics, "only": only}})
-	return &incoming{Method: "textDocument/codeAction", Params: params}
+func codeActionMessage(r protocol.Range, diagnostics []Diagnostic, only []string) *protocol.Incoming {
+	params, _ := json.Marshal(map[string]any{"textDocument": protocol.TextDocumentIdentifier{URI: codeActionURI}, "range": r, "context": map[string]any{"diagnostics": diagnostics, "only": only}})
+	return &protocol.Incoming{Method: "textDocument/codeAction", Params: params}
 }
 func codeActionSupplied(d Diagnostic, count int, match bool) []Diagnostic {
 	out := make([]Diagnostic, count)
@@ -62,14 +64,14 @@ func codeActionSupplied(d Diagnostic, count int, match bool) []Diagnostic {
 type codeActionCase struct {
 	name                   string
 	a                      *analysis
-	msg                    *incoming
+	msg                    *protocol.Incoming
 	enabled, explain, edit bool
 }
 
 func codeActionResponseCorpus(tb testing.TB) []codeActionCase {
 	tb.Helper()
 	var cases []codeActionCase
-	add := func(name string, a *analysis, msg *incoming, enabled, explain, edit bool) {
+	add := func(name string, a *analysis, msg *protocol.Incoming, enabled, explain, edit bool) {
 		cases = append(cases, codeActionCase{name, a, msg, enabled, explain, edit})
 	}
 	var a *analysis
@@ -115,7 +117,7 @@ func codeActionResponseCorpus(tb testing.TB) []codeActionCase {
 		add("only/"+only, a, codeActionMessage(target.Range, []Diagnostic{target}, []string{only}), true, true, true)
 	}
 	add("no-diagnostics", a, codeActionMessage(target.Range, nil, nil), true, true, true)
-	add("outside-range", a, codeActionMessage(Range{Start: Position{Line: 100}, End: Position{Line: 101}}, []Diagnostic{target}, nil), true, true, true)
+	add("outside-range", a, codeActionMessage(protocol.Range{Start: protocol.Position{Line: 100}, End: protocol.Position{Line: 101}}, []Diagnostic{target}, nil), true, true, true)
 	add("late-match", a, codeActionMessage(target.Range, codeActionSupplied(target, 128, true), nil), true, true, true)
 	for _, fixture := range []struct{ name, text string }{
 		{"existing-ignore-text", "@start\nrule main = (\n a:\"lint:ignore\" b:\"b\"\n) => $a"},
@@ -131,7 +133,7 @@ func codeActionResponseCorpus(tb testing.TB) []codeActionCase {
 	if len(ds) == 0 {
 		tb.Fatal("missing unreachable-rule diagnostic")
 	}
-	add("declaration-wide", b, codeActionMessage(Range{End: Position{Line: 100}}, ds, nil), true, true, true)
+	add("declaration-wide", b, codeActionMessage(protocol.Range{End: protocol.Position{Line: 100}}, ds, nil), true, true, true)
 	for _, text := range []string{"rule main = )", "@start\nrule main = missing"} {
 		b := codeActionAnalysis(tb, text)
 		add("invalid/"+text, b, codeActionMessage(target.Range, []Diagnostic{target}, nil), true, true, true)
@@ -188,7 +190,7 @@ func codeActionBenchmarkCases(tb testing.TB) []codeActionCase {
 	}
 	many := codeActionAnalysis(tb, text.String())
 	ds := codeActionServer(many, nil, true, true, false).docs[codeActionURI].lintDiagnostics()
-	cases = append(cases, codeActionCase{"findings128", many, codeActionMessage(Range{End: Position{Line: 1000}}, ds, nil), true, true, false})
+	cases = append(cases, codeActionCase{"findings128", many, codeActionMessage(protocol.Range{End: protocol.Position{Line: 1000}}, ds, nil), true, true, false})
 	return cases
 }
 
@@ -209,7 +211,7 @@ func BenchmarkCodeActionRequests(b *testing.B) {
 				s := codeActionServer(tc.a, ctx, tc.enabled, tc.explain, tc.edit)
 				b.ReportAllocs()
 				for b.Loop() {
-					var err *rpcError
+					var err *protocol.RPCError
 					codeActionBenchmarkResult, err = s.request(tc.msg)
 					if err != nil {
 						b.Fatal(err)

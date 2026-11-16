@@ -6,6 +6,8 @@ import (
 	"strconv"
 	"strings"
 	"testing"
+
+	"zeroparse.dev/zp/internal/lsp/protocol"
 )
 
 func TestLifecycle(t *testing.T) {
@@ -35,13 +37,13 @@ func TestLifecycle(t *testing.T) {
 		t.Errorf("initialize result %+v", init)
 	}
 	c.notify("initialized", map[string]any{})
-	if e := c.requestError("initialize", map[string]any{}); e.Code != codeInvalidRequest {
+	if e := c.requestError("initialize", map[string]any{}); e.Code != protocol.CodeInvalidRequest {
 		t.Errorf("second initialize: %+v", e)
 	}
 	if r := c.request("shutdown", nil); string(r) != "null" {
 		t.Errorf("shutdown result %s", r)
 	}
-	if e := c.requestError("textDocument/hover", at("file:///a.zp", 0, 0)); e.Code != codeInvalidRequest {
+	if e := c.requestError("textDocument/hover", at("file:///a.zp", 0, 0)); e.Code != protocol.CodeInvalidRequest {
 		t.Errorf("request after shutdown: %+v", e)
 	}
 	c.notify("exit", nil)
@@ -50,7 +52,7 @@ func TestLifecycle(t *testing.T) {
 
 func TestRequestBeforeInitialize(t *testing.T) {
 	c := newServer(t)
-	if e := c.requestError("textDocument/hover", at("file:///a.zp", 0, 0)); e.Code != codeServerNotInitialized {
+	if e := c.requestError("textDocument/hover", at("file:///a.zp", 0, 0)); e.Code != protocol.CodeServerNotInitialized {
 		t.Errorf("error %+v", e)
 	}
 	// Notifications before initialize are dropped: no diagnostics are published for this document.
@@ -61,7 +63,7 @@ func TestRequestBeforeInitialize(t *testing.T) {
 	if diags := c.open("file:///late.zp", "@start\nrule main = \"a\""); len(diags) != 0 {
 		t.Errorf("diagnostics %v", diags)
 	}
-	if e := c.requestError("textDocument/hover", at("file:///early.zp", 0, 0)); e.Code != codeRequestFailed {
+	if e := c.requestError("textDocument/hover", at("file:///early.zp", 0, 0)); e.Code != protocol.CodeRequestFailed {
 		t.Errorf("hover on a document opened before initialize: %+v", e)
 	}
 	c.exit()
@@ -79,8 +81,8 @@ func TestMalformedMessages(t *testing.T) {
 	// Invalid JSON: a parse error with a null id, and the server goes on.
 	c.sendRaw(`{"jsonrpc": "2.0", "id": 1, "method": `)
 	m := c.next()
-	var e rpcError
-	if json.Unmarshal(m["error"], &e); e.Code != codeParseError || string(m["id"]) != "null" {
+	var e protocol.RPCError
+	if json.Unmarshal(m["error"], &e); e.Code != protocol.CodeParseError || string(m["id"]) != "null" {
 		t.Errorf("invalid JSON: %v", m)
 	}
 	// A batch is not supported.
@@ -91,13 +93,13 @@ func TestMalformedMessages(t *testing.T) {
 	// Not JSON-RPC 2.0.
 	c.sendRaw(`{"jsonrpc": "1.0", "id": 7, "method": "shutdown"}`)
 	m = c.next()
-	if json.Unmarshal(m["error"], &e); e.Code != codeInvalidRequest || string(m["id"]) != "7" {
+	if json.Unmarshal(m["error"], &e); e.Code != protocol.CodeInvalidRequest || string(m["id"]) != "7" {
 		t.Errorf("wrong version: %v", m)
 	}
 	// A request without a method.
 	c.sendRaw(`{"jsonrpc": "2.0", "id": "x"}`)
 	m = c.next()
-	if json.Unmarshal(m["error"], &e); e.Code != codeInvalidRequest || string(m["id"]) != `"x"` {
+	if json.Unmarshal(m["error"], &e); e.Code != protocol.CodeInvalidRequest || string(m["id"]) != `"x"` {
 		t.Errorf("no method: %v", m)
 	}
 	// A response from the client and unknown notifications are ignored.
@@ -105,16 +107,16 @@ func TestMalformedMessages(t *testing.T) {
 	c.notify("$/cancelRequest", map[string]any{"id": 1})
 	c.notify("workspace/didChangeConfiguration", map[string]any{"settings": nil})
 	c.notify("textDocument/didOpen", "not an object")
-	if e := c.requestError("no/such/method", nil); e.Code != codeMethodNotFound {
+	if e := c.requestError("no/such/method", nil); e.Code != protocol.CodeMethodNotFound {
 		t.Errorf("unknown method: %+v", e)
 	}
-	if e := c.requestError("textDocument/hover", nil); e.Code != codeInvalidParams {
+	if e := c.requestError("textDocument/hover", nil); e.Code != protocol.CodeInvalidParams {
 		t.Errorf("missing params: %+v", e)
 	}
-	if e := c.requestError("textDocument/hover", map[string]any{"textDocument": 1}); e.Code != codeInvalidParams {
+	if e := c.requestError("textDocument/hover", map[string]any{"textDocument": 1}); e.Code != protocol.CodeInvalidParams {
 		t.Errorf("invalid params: %+v", e)
 	}
-	if e := c.requestError("textDocument/hover", at("file:///closed.zp", 0, 0)); e.Code != codeRequestFailed {
+	if e := c.requestError("textDocument/hover", at("file:///closed.zp", 0, 0)); e.Code != protocol.CodeRequestFailed {
 		t.Errorf("document not open: %+v", e)
 	}
 	// A string id is echoed back.
@@ -165,9 +167,9 @@ func TestInputEndsBeforeExit(t *testing.T) {
 
 func TestClientCapabilities(t *testing.T) {
 	src := "type P = { A node[string] }\nrule a = x:\"a\" => len($x)"
-	completion := func(c *testClient) CompletionItem {
+	completion := func(c *testClient) protocol.CompletionItem {
 		t.Helper()
-		var list completionList
+		var list protocol.CompletionList
 		c.requestInto("textDocument/completion", at("file:///caps.zp", 1, 19), &list)
 		for _, it := range list.Items {
 			if it.Label == "len" {
@@ -175,16 +177,16 @@ func TestClientCapabilities(t *testing.T) {
 			}
 		}
 		t.Fatalf("no len in %+v", list)
-		return CompletionItem{}
+		return protocol.CompletionItem{}
 	}
 
 	// A client with snippets and hierarchical symbols.
 	c := newInitialized(t)
 	c.open("file:///caps.zp", src)
-	if it := completion(c); it.InsertText != "len($1)" || it.InsertTextFormat != insertSnippet {
+	if it := completion(c); it.InsertText != "len($1)" || it.InsertTextFormat != protocol.InsertSnippet {
 		t.Errorf("with snippets: %+v", it)
 	}
-	var syms []DocumentSymbol
+	var syms []protocol.DocumentSymbol
 	c.requestInto("textDocument/documentSymbol", docParams("file:///caps.zp"), &syms)
 	if len(syms) != 2 || len(syms[0].Children) != 1 {
 		t.Errorf("hierarchical symbols %+v", syms)
@@ -193,7 +195,7 @@ func TestClientCapabilities(t *testing.T) {
 
 	// A client without them.
 	c = newServer(t)
-	if e := c.requestError("initialize", map[string]any{"capabilities": "none"}); e.Code != codeInvalidParams {
+	if e := c.requestError("initialize", map[string]any{"capabilities": "none"}); e.Code != protocol.CodeInvalidParams {
 		t.Errorf("initialize with invalid params: %+v", e)
 	}
 	var init struct {
@@ -210,13 +212,13 @@ func TestClientCapabilities(t *testing.T) {
 	if it := completion(c); it.InsertText != "" || it.InsertTextFormat != 0 {
 		t.Errorf("without snippets: %+v", it)
 	}
-	var flat []symbolInformation
+	var flat []protocol.SymbolInformation
 	c.requestInto("textDocument/documentSymbol", docParams("file:///caps.zp"), &flat)
 	uri := "file:///caps.zp"
-	want := []symbolInformation{
-		{Name: "P", Kind: symbolKindStruct, Location: Location{URI: uri, Range: rng(0, 0, 0, 27)}},
-		{Name: "A", Kind: symbolKindField, Location: Location{URI: uri, Range: rng(0, 11, 0, 25)}, ContainerName: "P"},
-		{Name: "a", Kind: symbolKindFunction, Location: Location{URI: uri, Range: rng(1, 0, 1, 25)}},
+	want := []protocol.SymbolInformation{
+		{Name: "P", Kind: protocol.SymbolKindStruct, Location: protocol.Location{URI: uri, Range: rng(0, 0, 0, 27)}},
+		{Name: "A", Kind: protocol.SymbolKindField, Location: protocol.Location{URI: uri, Range: rng(0, 11, 0, 25)}, ContainerName: "P"},
+		{Name: "a", Kind: protocol.SymbolKindFunction, Location: protocol.Location{URI: uri, Range: rng(1, 0, 1, 25)}},
 	}
 	if !reflect.DeepEqual(flat, want) {
 		t.Errorf("flat symbols\ngot  %+v\nwant %+v", flat, want)

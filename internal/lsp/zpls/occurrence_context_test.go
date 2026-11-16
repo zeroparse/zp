@@ -7,6 +7,8 @@ import (
 	"strings"
 	"sync"
 	"testing"
+
+	"zeroparse.dev/zp/internal/lsp/protocol"
 )
 
 func TestOccurrenceResponsesControlledParity(t *testing.T) {
@@ -42,7 +44,7 @@ func TestOccurrenceRequestsCancelAndRetry(t *testing.T) {
 	before := append([]occurrence(nil), a.occs...)
 	for _, method := range []string{"references", "documentHighlight", "prepareRename", "rename"} {
 		t.Run(method, func(t *testing.T) {
-			msg := occurrenceMessage(method, Position{Line: 1, Character: 5}, true, "renamed")
+			msg := occurrenceMessage(method, protocol.Position{Line: 1, Character: 5}, true, "renamed")
 			value, err := occurrenceServer(a, nil).request(msg)
 			want := occurrenceResponseJSON(t, value, err)
 			count := formatContext(t, 0)
@@ -54,7 +56,7 @@ func TestOccurrenceRequestsCancelAndRetry(t *testing.T) {
 			}
 			for _, at := range []int{1, 2, max(2, count.checks/2), count.checks} {
 				got, gerr := occurrenceServer(a, formatContext(t, at)).request(msg)
-				if got != nil || gerr == nil || gerr.Code != codeRequestCancelled {
+				if got != nil || gerr == nil || gerr.Code != protocol.CodeRequestCancelled {
 					t.Fatalf("check%d: partial response %T/%+v", at, got, gerr)
 				}
 			}
@@ -71,34 +73,36 @@ func TestOccurrenceRequestsCancelAndRetry(t *testing.T) {
 	}
 }
 
-func assertOccurrencePhaseCancels(t *testing.T, at int, phase func(*renderControl) (any, *rpcError)) {
+func assertOccurrencePhaseCancels(t *testing.T, at int, phase func(*renderControl) (any, *protocol.RPCError)) {
 	t.Helper()
 	completed := false
-	got, err := renderRequest(formatContext(t, at), func(c *renderControl) (any, *rpcError) {
+	got, err := renderRequest(formatContext(t, at), func(c *renderControl) (any, *protocol.RPCError) {
 		value, rerr := phase(c)
 		completed = true
 		return value, rerr
 	})
-	if completed || got != nil || err == nil || err.Code != codeRequestCancelled {
+	if completed || got != nil || err == nil || err.Code != protocol.CodeRequestCancelled {
 		t.Fatalf("phase completed=%v result=%T error=%+v", completed, got, err)
 	}
 }
 
 func TestOccurrenceInteriorWalksCancel(t *testing.T) {
 	a := analyze(occurrenceSource(4096))
-	o, ok := a.occurrenceAt(a.idx.offset(Position{Line: 1, Character: 5}))
+	o, ok := a.occurrenceAt(a.idx.offset(protocol.Position{Line: 1, Character: 5}))
 	if !ok {
 		t.Fatal("missing occurrence")
 	}
 	t.Run("collect", func(t *testing.T) {
-		assertOccurrencePhaseCancels(t, 2, func(c *renderControl) (any, *rpcError) { return a.occurrencesOfControlled(o, c), nil })
+		assertOccurrencePhaseCancels(t, 2, func(c *renderControl) (any, *protocol.RPCError) { return a.occurrencesOfControlled(o, c), nil })
 	})
 	t.Run("unused-name", func(t *testing.T) {
-		assertOccurrencePhaseCancels(t, 2, func(c *renderControl) (any, *rpcError) { return nil, a.checkUnusedControlled(kindRule, "renamed", c) })
+		assertOccurrencePhaseCancels(t, 2, func(c *renderControl) (any, *protocol.RPCError) {
+			return nil, a.checkUnusedControlled(kindRule, "renamed", c)
+		})
 	})
 	t.Run("new-name", func(t *testing.T) {
 		empty := &analysis{}
-		assertOccurrencePhaseCancels(t, 2, func(c *renderControl) (any, *rpcError) {
+		assertOccurrencePhaseCancels(t, 2, func(c *renderControl) (any, *protocol.RPCError) {
 			return nil, empty.checkNewNameControlled(kindRule, "old", strings.Repeat("a", 4096), c)
 		})
 	})
@@ -116,9 +120,9 @@ func TestOccurrenceInteriorWalksCancel(t *testing.T) {
 				}
 			}
 			a.occurrencesOfControlled(o, c)
-			msg := occurrenceMessage(method, Position{Line: 1, Character: 5}, true, "renamed")
+			msg := occurrenceMessage(method, protocol.Position{Line: 1, Character: 5}, true, "renamed")
 			s := occurrenceServer(a, nil)
-			assertOccurrencePhaseCancels(t, count.checks+2, func(c *renderControl) (any, *rpcError) {
+			assertOccurrencePhaseCancels(t, count.checks+2, func(c *renderControl) (any, *protocol.RPCError) {
 				switch method {
 				case "references":
 					return s.referencesControlled(msg.Params, c)
@@ -136,7 +140,7 @@ func TestOccurrenceRequestsShareAnalysis(t *testing.T) {
 	a := analyze(occurrenceSource(512))
 	var wg sync.WaitGroup
 	for _, method := range []string{"references", "documentHighlight", "prepareRename", "rename"} {
-		msg := occurrenceMessage(method, Position{Line: 1, Character: 5}, true, "renamed")
+		msg := occurrenceMessage(method, protocol.Position{Line: 1, Character: 5}, true, "renamed")
 		for range 4 {
 			ctx, cancel := context.WithCancel(context.Background())
 			t.Cleanup(cancel)
@@ -173,16 +177,16 @@ func TestOccurrenceRequestProtocolInvalidation(t *testing.T) {
 			c := newResponsiveClient(t, false)
 			defer func() { releaseWorker(); c.exit() }()
 			c.open(occurrenceURI, occurrenceSource(2048))
-			msg := occurrenceMessage("rename", Position{Line: 1, Character: 5}, true, "renamed")
+			msg := occurrenceMessage("rename", protocol.Position{Line: 1, Character: 5}, true, "renamed")
 			var params map[string]any
 			if err := json.Unmarshal(msg.Params, &params); err != nil {
 				t.Fatal(err)
 			}
 			asyncRequest(c, 100, msg.Method, params)
 			awaitBarrier(t, started)
-			code := codeRequestCancelled
+			code := protocol.CodeRequestCancelled
 			if change {
-				code = codeContentModified
+				code = protocol.CodeContentModified
 				c.notify("textDocument/didChange", map[string]any{"textDocument": map[string]any{"uri": occurrenceURI, "version": 2}, "contentChanges": []any{map[string]any{"text": occurrenceSource(32)}}})
 			} else {
 				c.notify("$/cancelRequest", map[string]any{"id": 100})
@@ -190,7 +194,7 @@ func TestOccurrenceRequestProtocolInvalidation(t *testing.T) {
 			assertResponseError(t, c.response("100"), code)
 			releaseWorker()
 			// A successful retry and orderly shutdown catch duplicate old replies.
-			var edits workspaceEdit
+			var edits protocol.WorkspaceEdit
 			c.requestInto(msg.Method, params, &edits)
 			want := 2049
 			if change {
@@ -227,7 +231,7 @@ func TestOccurrenceInteriorPreservesForeignPanic(t *testing.T) {
 			t.Fatalf("foreign panic changed: %v", got)
 		}
 	}()
-	renderRequest(&occurrencePanicContext{Context: ctx, marker: marker}, func(c *renderControl) (any, *rpcError) {
+	renderRequest(&occurrencePanicContext{Context: ctx, marker: marker}, func(c *renderControl) (any, *protocol.RPCError) {
 		return a.occurrencesOfControlled(a.occs[0], c), nil
 	})
 	t.Fatal("foreign panic was swallowed")

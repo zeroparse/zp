@@ -8,6 +8,8 @@ import (
 	"sync"
 	"sync/atomic"
 	"testing"
+
+	"zeroparse.dev/zp/internal/lsp/protocol"
 )
 
 // The calling test is the actor: no event loop concurrently reads its maps.
@@ -18,7 +20,7 @@ func TestResponsiveCancelledTailsKeepNewRequestsPending(t *testing.T) {
 	const uri = "file:///queue.zp"
 	const source = `rule main = "a"`
 	d := &document{uri: uri, version: 1, text: source, an: analyze(source)}
-	s := &Server{out: &conn{w: io.Discard}, docs: map[string]*document{uri: d}, state: stateInitialized}
+	s := &Server{out: protocol.NewConn(io.Discard), docs: map[string]*document{uri: d}, state: stateInitialized}
 	a := &responsiveActor{server: s, ctx: ctx, cancel: cancel, requests: map[string]*snapshotRequest{}, results: make(chan snapshotResponse, 64), slots: make(chan struct{}, 4)}
 	started := make(chan struct{}, 4)
 	tails := make(chan struct{}, 4)
@@ -36,7 +38,7 @@ func TestResponsiveCancelledTailsKeepNewRequestsPending(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		msg := incoming{JSONRPC: "2.0", ID: json.RawMessage(strconv.Itoa(id)), Method: "textDocument/hover", Params: raw}
+		msg := protocol.Incoming{JSONRPC: "2.0", ID: json.RawMessage(strconv.Itoa(id)), Method: "textDocument/hover", Params: raw}
 		if err := a.handle(&msg); err != nil {
 			t.Fatal(err)
 		}
@@ -48,7 +50,7 @@ func TestResponsiveCancelledTailsKeepNewRequestsPending(t *testing.T) {
 		awaitBarrier(t, started)
 	}
 	for _, r := range a.requests {
-		if err := a.finish(r, nil, &rpcError{Code: codeRequestCancelled}); err != nil {
+		if err := a.finish(r, nil, &protocol.RPCError{Code: protocol.CodeRequestCancelled}); err != nil {
 			t.Fatal(err)
 		}
 	}
@@ -116,7 +118,7 @@ func TestResponsivePendingRequestsResumeProtocol(t *testing.T) {
 				c.notify("$/cancelRequest", map[string]any{"id": id})
 			}
 			for id := 100; id < 104; id++ {
-				assertResponseError(t, c.response(strconv.Itoa(id)), codeRequestCancelled)
+				assertResponseError(t, c.response(strconv.Itoa(id)), protocol.CodeRequestCancelled)
 			}
 			for range 4 {
 				awaitBarrier(t, tails)
@@ -127,9 +129,9 @@ func TestResponsivePendingRequestsResumeProtocol(t *testing.T) {
 			asyncRequest(c, 201, "textDocument/hover", at(uri, 0, 5))
 			asyncRequest(c, 100, "textDocument/hover", at(uri, 0, 5))
 			c.notify("$/cancelRequest", map[string]any{"id": 201})
-			assertResponseError(t, c.response("201"), codeRequestCancelled)
+			assertResponseError(t, c.response("201"), protocol.CodeRequestCancelled)
 			asyncRequest(c, 9000, "queue/sequence", nil)
-			assertResponseError(t, c.response("9000"), codeMethodNotFound)
+			assertResponseError(t, c.response("9000"), protocol.CodeMethodNotFound)
 			hold.Store(false)
 			unblock()
 			seen := map[string]bool{}
@@ -178,7 +180,7 @@ func TestResponsivePendingInvalidationProtocol(t *testing.T) {
 		if id != "100" && id != "101" && id != "102" && id != "103" && id != "200" || seen[id] {
 			t.Fatalf("unexpected invalidation reply: %s", reply)
 		}
-		assertResponseError(t, reply, codeContentModified)
+		assertResponseError(t, reply, protocol.CodeContentModified)
 		seen[id] = true
 	}
 	unblock()
@@ -192,7 +194,7 @@ func TestResponsiveCancelledDispatchSkipsHandler(t *testing.T) {
 	requestHook = func(context.Context, string) { called = true }
 	defer func() { requestHook = nil }()
 	value, err := runSnapshotRequest(nil, &snapshotRequest{ctx: ctx})
-	if value != nil || err == nil || err.Code != codeRequestCancelled || called {
+	if value != nil || err == nil || err.Code != protocol.CodeRequestCancelled || called {
 		t.Fatalf("canceled dispatch value=%v error=%v called=%t", value, err, called)
 	}
 }

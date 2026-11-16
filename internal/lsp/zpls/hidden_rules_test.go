@@ -6,6 +6,8 @@ import (
 	"slices"
 	"strings"
 	"testing"
+
+	"zeroparse.dev/zp/internal/lsp/protocol"
 )
 
 // hiddenSrc has hidden rules (names that begin with "_") that are called, one with an action,
@@ -50,30 +52,30 @@ func TestHiddenRuleNavigation(t *testing.T) {
 		t.Errorf("unreachable rules = %q, want %q", unreachable, want)
 	}
 
-	spDecl := Location{URI: uri, Range: rng(0, 5, 0, 8)}
+	spDecl := protocol.Location{URI: uri, Range: rng(0, 5, 0, 8)}
 	for _, tc := range []struct {
 		name         string
 		line         int
 		nth          int
-		wantDef      Location
+		wantDef      protocol.Location
 		wantRefCount int
 	}{
 		{"_sp", 2, 1, spDecl, 3},
 		{"_sp", 2, 2, spDecl, 3},
 		{"_sp", 0, 1, spDecl, 3},
-		{"_tail", 2, 1, Location{URI: uri, Range: rng(4, 5, 4, 10)}, 2},
+		{"_tail", 2, 1, protocol.Location{URI: uri, Range: rng(4, 5, 4, 10)}, 2},
 		// Called inside the inline action's parentheses.
-		{"_num", 2, 1, Location{URI: uri, Range: rng(5, 5, 5, 9)}, 2},
+		{"_num", 2, 1, protocol.Location{URI: uri, Range: rng(5, 5, 5, 9)}, 2},
 	} {
 		line, char := hiddenAt(tc.line, tc.name, tc.nth)
-		var def []Location
+		var def []protocol.Location
 		c.requestInto("textDocument/definition", at(uri, line, char), &def)
-		if !reflect.DeepEqual(def, []Location{tc.wantDef}) {
+		if !reflect.DeepEqual(def, []protocol.Location{tc.wantDef}) {
 			t.Errorf("definition of %s at %d:%d = %+v, want %+v", tc.name, line, char, def, tc.wantDef)
 		}
 		params := at(uri, line, char)
 		params["context"] = map[string]any{"includeDeclaration": true}
-		var refs []Location
+		var refs []protocol.Location
 		c.requestInto("textDocument/references", params, &refs)
 		if len(refs) != tc.wantRefCount || !slices.Contains(refs, tc.wantDef) {
 			t.Errorf("references of %s = %+v, want %d including the declaration", tc.name, refs, tc.wantRefCount)
@@ -112,7 +114,7 @@ func TestHiddenRuleNavigation(t *testing.T) {
 	}
 
 	// Hidden rules are listed with the others.
-	var symbols []symbolInformation
+	var symbols []protocol.SymbolInformation
 	c.requestInto("textDocument/documentSymbol", docParams(uri), &symbols)
 	var names []string
 	for _, s := range symbols {
@@ -124,9 +126,9 @@ func TestHiddenRuleNavigation(t *testing.T) {
 
 	// A highlight marks the declaration as a write and each call as a read.
 	line, char := hiddenAt(2, "_sp", 2)
-	var highlights []documentHighlight
+	var highlights []protocol.DocumentHighlight
 	c.requestInto("textDocument/documentHighlight", at(uri, line, char), &highlights)
-	if len(highlights) != 3 || highlights[0].Kind != highlightWrite || highlights[1].Kind != highlightRead {
+	if len(highlights) != 3 || highlights[0].Kind != protocol.HighlightWrite || highlights[1].Kind != protocol.HighlightRead {
 		t.Errorf("highlights = %+v", highlights)
 	}
 	c.exit()
@@ -147,19 +149,19 @@ func TestHiddenRuleCompletionAndRename(t *testing.T) {
 		t.Errorf("completion offers _: %q", labels)
 	}
 
-	rename := func(line int, name string, nth int, to string) (string, *rpcError) {
+	rename := func(line int, name string, nth int, to string) (string, *protocol.RPCError) {
 		l, ch := hiddenAt(line, name, nth)
 		p := at(uri, l, ch)
 		p["newName"] = to
 		reply := c.call("textDocument/rename", p)
 		if reply["error"] != nil {
-			var e rpcError
+			var e protocol.RPCError
 			if err := json.Unmarshal(reply["error"], &e); err != nil {
 				t.Fatal(err)
 			}
 			return "", &e
 		}
-		var edit workspaceEdit
+		var edit protocol.WorkspaceEdit
 		if err := json.Unmarshal(reply["result"], &edit); err != nil {
 			t.Fatal(err)
 		}
@@ -243,14 +245,14 @@ func TestInlineActionDiagnostics(t *testing.T) {
 	}
 	c.request("initialize", map[string]any{"capabilities": capabilities})
 	src := "@start\nrule main = (\"a\" / \"ab\" => \"x\") (a:\"c\" \"d\" => \"y\")"
-	got := map[string]Range{}
+	got := map[string]protocol.Range{}
 	for _, d := range c.open("file:///inline-lint.zp", src) {
 		if strings.Contains(d.Message, "_main_") {
 			t.Errorf("a generated name in %+v", d)
 		}
 		got[d.Code] = d.Range
 	}
-	want := map[string]Range{
+	want := map[string]protocol.Range{
 		"shadowed-alternative": rng(1, 19, 1, 23),
 		"unused-capture":       rng(1, 33, 1, 34),
 	}

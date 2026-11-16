@@ -3,11 +3,12 @@ package zpls
 import (
 	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/frontend/parser"
+	"zeroparse.dev/zp/internal/lsp/protocol"
 )
 
 // contextualItems recognizes unfinished syntax without requiring the containing
 // declaration to have survived partial parsing.
-func (a *analysis) contextualItemsControlled(prev, off int, control *renderControl) ([]CompletionItem, bool) {
+func (a *analysis) contextualItemsControlled(prev, off int, control *renderControl) ([]protocol.CompletionItem, bool) {
 	control.poll()
 	var stack []int
 	for i := 0; i <= prev; i++ {
@@ -30,7 +31,7 @@ func (a *analysis) contextualItemsControlled(prev, off int, control *renderContr
 	if a.isPunct(open, "(") {
 		if a.isIdent(name, "recover") && a.isPunct(name-1, "#") && a.toks[name-1].end == a.toks[name].start && a.toks[name].end == a.toks[open].start {
 			if a.previousSignificantTokenControlled(prev, control) == open {
-				return []CompletionItem{{Label: "skip", Kind: completionKindProperty, Detail: "recovery parsing expression", InsertText: "skip=$1", InsertTextFormat: insertSnippet}}, true
+				return []protocol.CompletionItem{{Label: "skip", Kind: protocol.CompletionKindProperty, Detail: "recovery parsing expression", InsertText: "skip=$1", InsertTextFormat: protocol.InsertSnippet}}, true
 			}
 		}
 		if a.isIdent(name, "level") && a.toks[name].end == a.toks[open].start {
@@ -40,13 +41,13 @@ func (a *analysis) contextualItemsControlled(prev, off int, control *renderContr
 				return a.ruleItemsControlled(control), true
 			}
 			if a.isPunct(comma, ",") && comma <= prev {
-				var items []CompletionItem
+				var items []protocol.CompletionItem
 				if d := a.rules[a.toks[first].Text]; d != nil {
 					if op, _ := grammar.RuleOperators(d.rule.Expr); op != nil {
 						for _, level := range op.Levels {
 							control.poll()
 							if level.Name != "" {
-								items = append(items, CompletionItem{Label: level.Name, Kind: completionKindVariable, Detail: "binding level of " + d.name})
+								items = append(items, protocol.CompletionItem{Label: level.Name, Kind: protocol.CompletionKindVariable, Detail: "binding level of " + d.name})
 							}
 						}
 					}
@@ -65,9 +66,9 @@ func (a *analysis) contextualItemsControlled(prev, off int, control *renderContr
 			// physical newline. Open type groups are handled by the innermost
 			// parenthesis above, so their continuation is not a new field.
 			if last == open || a.isPunct(last, ";") || a.toks[last].End.Line < a.idx.position(off).Line+1 {
-				return append(a.typeItemsControlled(false, control), CompletionItem{
-					Label: "FieldName Type", Kind: completionKindSnippet, Detail: "struct field declaration",
-					InsertText: "${1:FieldName} ${2:Type}", InsertTextFormat: insertSnippet,
+				return append(a.typeItemsControlled(false, control), protocol.CompletionItem{
+					Label: "FieldName Type", Kind: protocol.CompletionKindSnippet, Detail: "struct field declaration",
+					InsertText: "${1:FieldName} ${2:Type}", InsertTextFormat: protocol.InsertSnippet,
 				}), true
 			}
 			return nil, false // The existing field-type completion handles this position.
@@ -102,11 +103,11 @@ func (a *analysis) contextualItemsControlled(prev, off int, control *renderContr
 			used[a.toks[i].Text] = true
 		}
 	}
-	var items []CompletionItem
+	var items []protocol.CompletionItem
 	for _, f := range st.Fields() {
 		control.poll()
 		if !used[f.Name] {
-			items = append(items, CompletionItem{Label: f.Name, Kind: completionKindField, Detail: control.formatType(f.Type), InsertText: f.Name + ": $1", InsertTextFormat: insertSnippet})
+			items = append(items, protocol.CompletionItem{Label: f.Name, Kind: protocol.CompletionKindField, Detail: control.formatType(f.Type), InsertText: f.Name + ": $1", InsertTextFormat: protocol.InsertSnippet})
 		}
 	}
 	return items, true

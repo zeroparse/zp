@@ -5,9 +5,11 @@ import (
 	"os"
 	"strings"
 	"testing"
+
+	"zeroparse.dev/zp/internal/lsp/protocol"
 )
 
-var formatBenchmarkEdits []TextEdit
+var formatBenchmarkEdits []protocol.TextEdit
 
 func BenchmarkFormatEditsCancellation(b *testing.B) {
 	sources := map[string]string{"long-literal-crlf": "rule main = \"" + strings.Repeat("x", 8192) + "\"\r\n"}

@@ -8,6 +8,7 @@ import (
 
 	"zeroparse.dev/zp/internal/analysis/lint"
 	"zeroparse.dev/zp/internal/frontend"
+	"zeroparse.dev/zp/internal/lsp/protocol"
 )
 
 type findingData struct {
@@ -18,8 +19,8 @@ type findingData struct {
 }
 
 type textDocumentEdit struct {
-	TextDocument versionedTextDocumentIdentifier `json:"textDocument"`
-	Edits        []TextEdit                      `json:"edits"`
+	TextDocument protocol.VersionedTextDocumentIdentifier `json:"textDocument"`
+	Edits        []protocol.TextEdit                      `json:"edits"`
 }
 
 type actionEdit struct {
@@ -167,11 +168,11 @@ func (d *document) lintDiagnostic(i int, f lint.Finding) Diagnostic {
 		Data: &findingData{URI: d.uri, Version: d.version, Generation: d.generation, Key: fmt.Sprintf("%d:%s", i, f.Check)}}
 }
 
-func (s *Server) codeActionsControlled(params json.RawMessage, control *renderControl) (any, *rpcError) {
+func (s *Server) codeActionsControlled(params json.RawMessage, control *renderControl) (any, *protocol.RPCError) {
 	control.poll()
 	var p struct {
-		TextDocument textDocumentIdentifier `json:"textDocument"`
-		Range        Range                  `json:"range"`
+		TextDocument protocol.TextDocumentIdentifier `json:"textDocument"`
+		Range        protocol.Range                  `json:"range"`
 		Context      struct {
 			Diagnostics []Diagnostic `json:"diagnostics"`
 			Only        []string     `json:"only"`
@@ -207,7 +208,7 @@ func (s *Server) codeActionsControlled(params json.RawMessage, control *renderCo
 	version := d.version
 	current, lintErr := d.lintDiagnosticsContext(ctx)
 	if lintErr != nil {
-		return nil, &rpcError{Code: codeRequestCancelled, Message: "request cancelled"}
+		return nil, &protocol.RPCError{Code: protocol.CodeRequestCancelled, Message: "request cancelled"}
 	}
 	var fixer *lintFixer
 	fixerDone := false
@@ -219,7 +220,7 @@ func (s *Server) codeActionsControlled(params json.RawMessage, control *renderCo
 	for _, diagnostic := range current {
 		control.poll()
 		if ctx.Err() != nil {
-			return nil, &rpcError{Code: codeRequestCancelled, Message: "request cancelled"}
+			return nil, &protocol.RPCError{Code: protocol.CodeRequestCancelled, Message: "request cancelled"}
 		}
 		if !rangesOverlap(p.Range, diagnostic.Range) {
 			continue
@@ -314,20 +315,20 @@ func (d *document) suppressionPlausible(diagnostic Diagnostic, control *renderCo
 	return true
 }
 
-func versionedEdit(uri string, version int, edit TextEdit) *actionEdit {
-	return &actionEdit{DocumentChanges: []textDocumentEdit{{TextDocument: versionedTextDocumentIdentifier{URI: uri, Version: version}, Edits: []TextEdit{edit}}}}
+func versionedEdit(uri string, version int, edit protocol.TextEdit) *actionEdit {
+	return &actionEdit{DocumentChanges: []textDocumentEdit{{TextDocument: protocol.VersionedTextDocumentIdentifier{URI: uri, Version: version}, Edits: []protocol.TextEdit{edit}}}}
 }
 
 // codeActionResolve computes the edit of a code action that listed none: the suppression or the
 // fix of one finding, with the same verification as when the actions are listed with their edits.
 // An action whose edit cannot be proven is returned without one, so applying it changes nothing.
-func (s *Server) codeActionResolve(params json.RawMessage) (any, *rpcError) {
-	return renderRequest(s.requestContext, func(control *renderControl) (any, *rpcError) {
+func (s *Server) codeActionResolve(params json.RawMessage) (any, *protocol.RPCError) {
+	return renderRequest(s.requestContext, func(control *renderControl) (any, *protocol.RPCError) {
 		return s.codeActionResolveControlled(params, control)
 	})
 }
 
-func (s *Server) codeActionResolveControlled(params json.RawMessage, control *renderControl) (any, *rpcError) {
+func (s *Server) codeActionResolveControlled(params json.RawMessage, control *renderControl) (any, *protocol.RPCError) {
 	control.poll()
 	data := &actionData{}
 	item := codeAction{Data: data}
@@ -342,7 +343,7 @@ func (s *Server) codeActionResolveControlled(params json.RawMessage, control *re
 	if ctx == nil {
 		ctx = context.Background()
 	}
-	cancelled := &rpcError{Code: codeRequestCancelled, Message: "request cancelled"}
+	cancelled := &protocol.RPCError{Code: protocol.CodeRequestCancelled, Message: "request cancelled"}
 	if !s.client.Experimental.ZP.LintDiagnostics || !s.client.Workspace.WorkspaceEdit.DocumentChanges {
 		return item, nil
 	}
@@ -377,25 +378,27 @@ func (s *Server) codeActionResolveControlled(params json.RawMessage, control *re
 	return item, nil
 }
 
-func rangesOverlap(a, b Range) bool {
-	before := func(a, b Position) bool { return a.Line < b.Line || a.Line == b.Line && a.Character < b.Character }
+func rangesOverlap(a, b protocol.Range) bool {
+	before := func(a, b protocol.Position) bool {
+		return a.Line < b.Line || a.Line == b.Line && a.Character < b.Character
+	}
 	return !before(a.End, b.Start) && !before(b.End, a.Start)
 }
 
 // suppressionEdit is deliberately conservative: validate the edited grammar and
 // verify that the targeted finding disappears. Human-readable Fix is never an edit.
-func (d *document) suppressionEdit(ctx context.Context, diagnostic Diagnostic, control *renderControl) (TextEdit, bool) {
+func (d *document) suppressionEdit(ctx context.Context, diagnostic Diagnostic, control *renderControl) (protocol.TextEdit, bool) {
 	control.poll()
 	if ctx.Err() != nil {
-		return TextEdit{}, false
+		return protocol.TextEdit{}, false
 	}
 	if diagnostic.Code == lint.CheckDirective {
-		return TextEdit{}, false
+		return protocol.TextEdit{}, false
 	}
 	a := d.analysis()
 	line := diagnostic.Range.Start.Line
 	if line < 0 || line >= len(a.idx.lines) {
-		return TextEdit{}, false
+		return protocol.TextEdit{}, false
 	}
 	start := a.idx.lines[line]
 	end := len(d.text)
@@ -406,11 +409,11 @@ func (d *document) suppressionEdit(ctx context.Context, diagnostic Diagnostic, c
 	for _, tok := range a.toks {
 		control.poll()
 		if tok.start < start && tok.end > start {
-			return TextEdit{}, false
+			return protocol.TextEdit{}, false
 		}
 	}
 	if strings.Contains(d.text[start:end], "lint:ignore") {
-		return TextEdit{}, false
+		return protocol.TextEdit{}, false
 	}
 	eol := "\n"
 	if strings.Contains(d.text, "\r\n") {
@@ -418,29 +421,29 @@ func (d *document) suppressionEdit(ctx context.Context, diagnostic Diagnostic, c
 	} else if strings.Contains(d.text, "\r") {
 		eol = "\r"
 	}
-	edit := TextEdit{Range: Range{Start: Position{Line: line}, End: Position{Line: line}}, NewText: "// lint:ignore " + diagnostic.Code + eol}
+	edit := protocol.TextEdit{Range: protocol.Range{Start: protocol.Position{Line: line}, End: protocol.Position{Line: line}}, NewText: "// lint:ignore " + diagnostic.Code + eol}
 	candidate, failure := analyzeContextSafely(ctx, d.text[:start]+edit.NewText+d.text[start:])
 	if failure != nil || candidate.prog == nil || len(candidate.syntaxErrs) > 0 {
-		return TextEdit{}, false
+		return protocol.TextEdit{}, false
 	}
 	if ctx.Err() != nil {
-		return TextEdit{}, false
+		return protocol.TextEdit{}, false
 	}
 	findings, lintErr := candidate.lintFindingsContext(ctx)
 	if lintErr != nil {
-		return TextEdit{}, false
+		return protocol.TextEdit{}, false
 	}
 	for i, finding := range findings {
 		if i%256 == 0 {
 			if ctx.Err() != nil {
-				return TextEdit{}, false
+				return protocol.TextEdit{}, false
 			}
 		}
 		if finding.Check == lint.CheckDirective && finding.Pos.Line == line+1 {
-			return TextEdit{}, false
+			return protocol.TextEdit{}, false
 		}
 		if finding.Check == diagnostic.Code && finding.Message == diagnostic.Message && candidate.errorRange(finding.Pos, false).Start.Line == line+1 {
-			return TextEdit{}, false
+			return protocol.TextEdit{}, false
 		}
 	}
 	// A directive before a declaration suppresses the whole rule. Do not offer
@@ -448,15 +451,15 @@ func (d *document) suppressionEdit(ctx context.Context, diagnostic Diagnostic, c
 	for i, def := range a.defs {
 		if i%256 == 0 {
 			if ctx.Err() != nil {
-				return TextEdit{}, false
+				return protocol.TextEdit{}, false
 			}
 		}
 		if def.kwStart >= start && def.kwStart < end {
-			return TextEdit{}, false
+			return protocol.TextEdit{}, false
 		}
 	}
 	if ctx.Err() != nil {
-		return TextEdit{}, false
+		return protocol.TextEdit{}, false
 	}
 	return edit, true
 }

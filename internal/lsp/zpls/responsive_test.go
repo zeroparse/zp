@@ -9,6 +9,8 @@ import (
 	"sync"
 	"testing"
 	"time"
+
+	"zeroparse.dev/zp/internal/lsp/protocol"
 )
 
 type cancelAnalysisOnCheck struct {
@@ -75,7 +77,7 @@ func asyncRequest(c *testClient, id int, method string, params any) {
 
 func assertResponseError(t *testing.T, response map[string]json.RawMessage, code int) {
 	t.Helper()
-	var got rpcError
+	var got protocol.RPCError
 	if err := json.Unmarshal(response["error"], &got); err != nil {
 		t.Fatalf("response=%v error=%v", response, err)
 	}
@@ -112,9 +114,9 @@ func TestResponsiveRequestCancellationProtocol(t *testing.T) {
 	asyncRequest(c, 100, "textDocument/hover", at(uri, 1, 5))
 	awaitBarrier(t, started)
 	c.notify("$/cancelRequest", map[string]any{"id": 100})
-	assertResponseError(t, c.response("100"), codeRequestCancelled)
+	assertResponseError(t, c.response("100"), protocol.CodeRequestCancelled)
 	// A subsequent request proves the cancelled worker cannot send a second reply.
-	var symbols []DocumentSymbol
+	var symbols []protocol.DocumentSymbol
 	c.requestInto("textDocument/documentSymbol", docParams(uri), &symbols)
 	if len(symbols) != 1 {
 		t.Fatalf("symbols=%+v", symbols)
@@ -145,7 +147,7 @@ func TestResponsiveAnalysisCoalescingProtocol(t *testing.T) {
 	// Cancelling a request waiting for analysis proves the actor processed both changes.
 	asyncRequest(c, 101, "textDocument/documentSymbol", docParams(uri))
 	c.notify("$/cancelRequest", map[string]any{"id": 101})
-	assertResponseError(t, c.response("101"), codeRequestCancelled)
+	assertResponseError(t, c.response("101"), protocol.CodeRequestCancelled)
 	releaseWorker()
 	diagnostics := c.diagnostics(uri)
 	if diagnostics.Version == nil || *diagnostics.Version != 3 || len(diagnostics.Diagnostics) != 0 {
@@ -155,7 +157,7 @@ func TestResponsiveAnalysisCoalescingProtocol(t *testing.T) {
 	if !strings.Contains(first, "first") || !strings.Contains(latest, "latest") {
 		t.Fatalf("analyzed %q then %q", first, latest)
 	}
-	var symbols []DocumentSymbol
+	var symbols []protocol.DocumentSymbol
 	c.requestInto("textDocument/documentSymbol", docParams(uri), &symbols)
 	if len(symbols) != 1 || symbols[0].Name != "latest" {
 		t.Fatalf("symbols=%+v", symbols)
@@ -235,7 +237,7 @@ func TestResponsiveCodeActionContentModifiedProtocol(t *testing.T) {
 	asyncRequest(c, 102, "textDocument/codeAction", map[string]any{"textDocument": map[string]any{"uri": uri}, "range": target.Range, "context": map[string]any{"diagnostics": []Diagnostic{target}}})
 	awaitBarrier(t, started)
 	c.notify("textDocument/didChange", map[string]any{"textDocument": map[string]any{"uri": uri, "version": 2}, "contentChanges": []any{map[string]any{"text": strings.Replace(source, "b:\"b\"", "b:\"c\"", 1)}}})
-	assertResponseError(t, c.response("102"), codeContentModified)
+	assertResponseError(t, c.response("102"), protocol.CodeContentModified)
 	releaseWorker()
 	current := c.diagnostics(uri)
 	if current.Version == nil || *current.Version != 2 {
@@ -262,7 +264,7 @@ func TestResponsiveFailedAnalysisDropsLintProtocol(t *testing.T) {
 	if len(current) != 1 || current[0].Source != "zp" || !strings.Contains(current[0].Message, "boom") {
 		t.Fatalf("stale lint after failure: %+v", current)
 	}
-	if err := c.requestError("textDocument/documentSymbol", docParams(uri)); err.Code != codeContentModified {
+	if err := c.requestError("textDocument/documentSymbol", docParams(uri)); err.Code != protocol.CodeContentModified {
 		t.Fatalf("old ranges reused: %+v", err)
 	}
 }
@@ -282,7 +284,7 @@ func TestResponsiveShutdownCancelsRequestProtocol(t *testing.T) {
 	asyncRequest(c, 103, "textDocument/hover", at(uri, 1, 5))
 	awaitBarrier(t, started)
 	asyncRequest(c, 104, "shutdown", nil)
-	assertResponseError(t, c.response("103"), codeRequestCancelled)
+	assertResponseError(t, c.response("103"), protocol.CodeRequestCancelled)
 	if response := c.response("104"); len(response["error"]) > 0 {
 		t.Fatalf("shutdown=%v", response)
 	}
@@ -345,9 +347,9 @@ func TestResponsiveRequestPrioritizesAnalysisProtocol(t *testing.T) {
 	asyncRequest(c, 101, "textDocument/documentSymbol", docParams("file:///requested.zp"))
 	// A reply to a later request proves the actor admitted the waiting request.
 	asyncRequest(c, 102, "sequence/unknown", nil)
-	assertResponseError(t, c.response("102"), codeMethodNotFound)
+	assertResponseError(t, c.response("102"), protocol.CodeMethodNotFound)
 	releaseWorker()
-	var symbols []DocumentSymbol
+	var symbols []protocol.DocumentSymbol
 	if err := json.Unmarshal(c.response("101")["result"], &symbols); err != nil || len(symbols) != 1 || symbols[0].Name != "requested" {
 		t.Fatalf("symbols=%+v error=%v", symbols, err)
 	}

@@ -9,12 +9,13 @@ import (
 
 	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/frontend/parser"
+	"zeroparse.dev/zp/internal/lsp/protocol"
 )
 
 // --- Formatting ---
 
-func (s *Server) formatting(params json.RawMessage) (any, *rpcError) {
-	var p documentFormattingParams
+func (s *Server) formatting(params json.RawMessage) (any, *protocol.RPCError) {
+	var p protocol.DocumentFormattingParams
 	if err := decode(params, &p); err != nil {
 		return nil, err
 	}
@@ -27,7 +28,7 @@ func (s *Server) formatting(params json.RawMessage) (any, *rpcError) {
 	}
 	edits, formatErr := formatEditsContext(s.requestContext, d.analysis())
 	if formatErr != nil {
-		return nil, &rpcError{Code: codeRequestCancelled, Message: "request cancelled"}
+		return nil, &protocol.RPCError{Code: protocol.CodeRequestCancelled, Message: "request cancelled"}
 	}
 	return edits, nil
 }
@@ -35,18 +36,18 @@ func (s *Server) formatting(params json.RawMessage) (any, *rpcError) {
 // formatEdits returns the edits that format the document like zp fmt: none if it does not
 // parse, because the formatter would drop the definitions with errors. The document keeps its line
 // ends: the formatted lines end like its first line ("\n", "\r\n" or "\r").
-func formatEdits(a *analysis) []TextEdit {
+func formatEdits(a *analysis) []protocol.TextEdit {
 	if len(a.syntaxErrs) > 0 {
-		return []TextEdit{}
+		return []protocol.TextEdit{}
 	}
 	out := grammar.Format(a.g)
 	if nl := lineEnd(a.text); nl != "\n" {
 		out = strings.ReplaceAll(out, "\n", nl)
 	}
 	if out == a.text {
-		return []TextEdit{}
+		return []protocol.TextEdit{}
 	}
-	return []TextEdit{minimalEdit(a.idx, a.text, out)}
+	return []protocol.TextEdit{minimalEdit(a.idx, a.text, out)}
 }
 
 // lineEnd returns the line end of the first line of text: "\n", "\r\n" or "\r" ("\n" if there is
@@ -66,7 +67,7 @@ func lineEnd(text string) string {
 // part between their common prefix and suffix, so that the editor keeps the cursor and the
 // unchanged lines as they are. The edit starts and ends on character boundaries, and not inside a
 // "\r\n".
-func minimalEdit(idx *textIndex, old, new string) TextEdit {
+func minimalEdit(idx *textIndex, old, new string) protocol.TextEdit {
 	p := 0
 	for p < len(old) && p < len(new) && old[p] == new[p] {
 		p++
@@ -87,12 +88,12 @@ func minimalEdit(idx *textIndex, old, new string) TextEdit {
 	if n > 0 && old[len(old)-n] == '\n' && len(old)-n > 0 && old[len(old)-n-1] == '\r' {
 		n--
 	}
-	return TextEdit{Range: idx.rangeOf(p, len(old)-n), NewText: new[p : len(new)-n]}
+	return protocol.TextEdit{Range: idx.rangeOf(p, len(old)-n), NewText: new[p : len(new)-n]}
 }
 
 // --- Navigation ---
 
-func (s *Server) definition(params json.RawMessage) (any, *rpcError) {
+func (s *Server) definition(params json.RawMessage) (any, *protocol.RPCError) {
 	d, off, err := s.position(params)
 	if err != nil {
 		return nil, err
@@ -109,7 +110,7 @@ func (s *Server) definition(params json.RawMessage) (any, *rpcError) {
 	if def == nil {
 		return nil, nil
 	}
-	return []Location{{URI: d.uri, Range: a.idx.rangeOf(def.nameStart, def.nameEnd)}}, nil
+	return []protocol.Location{{URI: d.uri, Range: a.idx.rangeOf(def.nameStart, def.nameEnd)}}, nil
 }
 
 // occurrencesOf returns the occurrences of the name of o, in source order.
@@ -125,9 +126,9 @@ func (a *analysis) occurrencesOfControlled(o occurrence, control *renderControl)
 	return out
 }
 
-func (s *Server) referencesControlled(params json.RawMessage, control *renderControl) (any, *rpcError) {
+func (s *Server) referencesControlled(params json.RawMessage, control *renderControl) (any, *protocol.RPCError) {
 	control.poll()
-	var p referenceParams
+	var p protocol.ReferenceParams
 	if err := decode(params, &p); err != nil {
 		return nil, err
 	}
@@ -140,17 +141,17 @@ func (s *Server) referencesControlled(params json.RawMessage, control *renderCon
 	if !ok {
 		return nil, nil
 	}
-	locs := []Location{}
+	locs := []protocol.Location{}
 	for _, x := range a.occurrencesOfControlled(o, control) {
 		control.poll()
 		if x.def == nil || p.Context.IncludeDeclaration {
-			locs = append(locs, Location{URI: d.uri, Range: a.idx.rangeOf(x.start, x.end)})
+			locs = append(locs, protocol.Location{URI: d.uri, Range: a.idx.rangeOf(x.start, x.end)})
 		}
 	}
 	return locs, nil
 }
 
-func (s *Server) documentHighlightControlled(params json.RawMessage, control *renderControl) (any, *rpcError) {
+func (s *Server) documentHighlightControlled(params json.RawMessage, control *renderControl) (any, *protocol.RPCError) {
 	control.poll()
 	d, off, err := s.position(params)
 	if err != nil {
@@ -161,23 +162,23 @@ func (s *Server) documentHighlightControlled(params json.RawMessage, control *re
 	if !ok {
 		return nil, nil
 	}
-	hs := []documentHighlight{}
+	hs := []protocol.DocumentHighlight{}
 	for _, x := range a.occurrencesOfControlled(o, control) {
 		control.poll()
-		kind := highlightRead
+		kind := protocol.HighlightRead
 		if x.def != nil {
-			kind = highlightWrite
+			kind = protocol.HighlightWrite
 		}
-		hs = append(hs, documentHighlight{Range: a.idx.rangeOf(x.start, x.end), Kind: kind})
+		hs = append(hs, protocol.DocumentHighlight{Range: a.idx.rangeOf(x.start, x.end), Kind: kind})
 	}
 	return hs, nil
 }
 
 // --- Document symbols ---
 
-func (s *Server) documentSymbolControlled(params json.RawMessage, control *renderControl) (any, *rpcError) {
+func (s *Server) documentSymbolControlled(params json.RawMessage, control *renderControl) (any, *protocol.RPCError) {
 	control.poll()
-	var p documentFormattingParams
+	var p protocol.DocumentFormattingParams
 	if err := decode(params, &p); err != nil {
 		return nil, err
 	}
@@ -190,13 +191,13 @@ func (s *Server) documentSymbolControlled(params json.RawMessage, control *rende
 		return syms, nil
 	}
 	// A flat list for clients without hierarchical symbols, with the fields after their struct.
-	flat := []symbolInformation{}
-	var add func(syms []DocumentSymbol, container string)
-	add = func(syms []DocumentSymbol, container string) {
+	flat := []protocol.SymbolInformation{}
+	var add func(syms []protocol.DocumentSymbol, container string)
+	add = func(syms []protocol.DocumentSymbol, container string) {
 		for _, sym := range syms {
 			control.poll()
-			flat = append(flat, symbolInformation{Name: sym.Name, Kind: sym.Kind,
-				Location: Location{URI: d.uri, Range: sym.Range}, ContainerName: container})
+			flat = append(flat, protocol.SymbolInformation{Name: sym.Name, Kind: sym.Kind,
+				Location: protocol.Location{URI: d.uri, Range: sym.Range}, ContainerName: container})
 			add(sym.Children, sym.Name)
 		}
 	}
@@ -204,18 +205,18 @@ func (s *Server) documentSymbolControlled(params json.RawMessage, control *rende
 	return flat, nil
 }
 
-func (a *analysis) symbolsControlled(control *renderControl) []DocumentSymbol {
+func (a *analysis) symbolsControlled(control *renderControl) []protocol.DocumentSymbol {
 	control.poll()
-	syms := []DocumentSymbol{}
+	syms := []protocol.DocumentSymbol{}
 	for _, d := range a.defs {
 		control.poll()
-		sym := DocumentSymbol{
+		sym := protocol.DocumentSymbol{
 			Name:           d.name,
 			Range:          a.idx.rangeOf(d.start, d.end),
 			SelectionRange: a.idx.rangeOf(d.nameStart, d.nameEnd),
 		}
 		if d.rule != nil {
-			sym.Kind = symbolKindFunction
+			sym.Kind = protocol.SymbolKindFunction
 			if t, _, ok := a.ruleTypeControlled(d, control); ok {
 				sym.Detail = t
 			}
@@ -234,18 +235,18 @@ func typeSymbolKindControlled(td grammar.TypeDecl, control *renderControl) (int,
 	control.poll()
 	switch spec := td.(type) {
 	case *grammar.TypeDef:
-		return symbolKindStruct, "struct"
+		return protocol.SymbolKindStruct, "struct"
 	case *grammar.TypeAlias:
-		return symbolKindInterface, "~ " + control.formatType(spec.Type)
+		return protocol.SymbolKindInterface, "~ " + control.formatType(spec.Type)
 	}
-	return symbolKindClass, ""
+	return protocol.SymbolKindClass, ""
 }
 
 // fieldSymbols returns the symbols of the fields of the struct type d: each spans from its name to
 // the last token before the next field (or the closing brace).
-func (a *analysis) fieldSymbolsControlled(d *definition, st *grammar.TypeDef, control *renderControl) []DocumentSymbol {
+func (a *analysis) fieldSymbolsControlled(d *definition, st *grammar.TypeDef, control *renderControl) []protocol.DocumentSymbol {
 	control.poll()
-	var out []DocumentSymbol
+	var out []protocol.DocumentSymbol
 	for k, f := range st.Fields() {
 		control.poll()
 		i, ok := a.tokenIndex(f.Diagnostic())
@@ -263,10 +264,10 @@ func (a *analysis) fieldSymbolsControlled(d *definition, st *grammar.TypeDef, co
 				last = j
 			}
 		}
-		out = append(out, DocumentSymbol{
+		out = append(out, protocol.DocumentSymbol{
 			Name:           f.Name,
 			Detail:         control.formatType(f.Type),
-			Kind:           symbolKindField,
+			Kind:           protocol.SymbolKindField,
 			Range:          a.idx.rangeOf(a.toks[i].start, a.toks[last].end),
 			SelectionRange: a.idx.rangeOf(a.toks[i].start, a.toks[i].end),
 		})
@@ -276,7 +277,7 @@ func (a *analysis) fieldSymbolsControlled(d *definition, st *grammar.TypeDef, co
 
 // --- Hover ---
 
-func (s *Server) hoverControlled(params json.RawMessage, control *renderControl) (any, *rpcError) {
+func (s *Server) hoverControlled(params json.RawMessage, control *renderControl) (any, *protocol.RPCError) {
 	control.poll()
 	d, off, err := s.position(params)
 	if err != nil {
@@ -288,7 +289,7 @@ func (s *Server) hoverControlled(params json.RawMessage, control *renderControl)
 		return nil, nil
 	}
 	r := a.idx.rangeOf(start, end)
-	return hover{Contents: documentationControlled(text, s.client.TextDocument.Hover.ContentFormat, control), Range: &r}, nil
+	return protocol.Hover{Contents: documentationControlled(text, s.client.TextDocument.Hover.ContentFormat, control), Range: &r}, nil
 }
 
 // hoverAt returns the hover text for the byte offset off and the span it is about.
@@ -393,7 +394,7 @@ func typeHoverControlled(d *definition, control *renderControl) string {
 
 // --- Rename ---
 
-func (s *Server) prepareRenameControlled(params json.RawMessage, control *renderControl) (any, *rpcError) {
+func (s *Server) prepareRenameControlled(params json.RawMessage, control *renderControl) (any, *protocol.RPCError) {
 	control.poll()
 	d, off, err := s.position(params)
 	if err != nil {
@@ -404,31 +405,31 @@ func (s *Server) prepareRenameControlled(params json.RawMessage, control *render
 	if rerr != nil || o == nil {
 		return nil, rerr
 	}
-	return prepareRenameResult{Range: a.idx.rangeOf(o.start, o.end), Placeholder: o.name}, nil
+	return protocol.PrepareRenameResult{Range: a.idx.rangeOf(o.start, o.end), Placeholder: o.name}, nil
 }
 
 // renameTarget returns the occurrence to rename at off, nil if there is no name there, or an
 // error that explains why the name cannot be renamed.
-func (a *analysis) renameTarget(off int) (*occurrence, *rpcError) {
+func (a *analysis) renameTarget(off int) (*occurrence, *protocol.RPCError) {
 	o, ok := a.occurrenceAt(off)
 	if !ok {
 		return nil, nil
 	}
 	if len(a.syntaxErrs) > 0 {
-		return nil, &rpcError{Code: codeRequestFailed, Message: "cannot rename while the file has syntax errors"}
+		return nil, &protocol.RPCError{Code: protocol.CodeRequestFailed, Message: "cannot rename while the file has syntax errors"}
 	}
 	if a.lookup(o.kind, o.name) == nil {
 		if o.kind == kindType && findBuiltin(builtinTypes, o.name) != nil {
-			return nil, &rpcError{Code: codeRequestFailed, Message: fmt.Sprintf("cannot rename the built-in type %s", o.name)}
+			return nil, &protocol.RPCError{Code: protocol.CodeRequestFailed, Message: fmt.Sprintf("cannot rename the built-in type %s", o.name)}
 		}
-		return nil, &rpcError{Code: codeRequestFailed, Message: fmt.Sprintf("%s %s is not defined", o.kind, o.name)}
+		return nil, &protocol.RPCError{Code: protocol.CodeRequestFailed, Message: fmt.Sprintf("%s %s is not defined", o.kind, o.name)}
 	}
 	return &o, nil
 }
 
-func (s *Server) renameControlled(params json.RawMessage, control *renderControl) (any, *rpcError) {
+func (s *Server) renameControlled(params json.RawMessage, control *renderControl) (any, *protocol.RPCError) {
 	control.poll()
-	var p renameParams
+	var p protocol.RenameParams
 	if err := decode(params, &p); err != nil {
 		return nil, err
 	}
@@ -447,19 +448,19 @@ func (s *Server) renameControlled(params json.RawMessage, control *renderControl
 	if err := a.checkNewNameControlled(o.kind, o.name, p.NewName, control); err != nil {
 		return nil, err
 	}
-	edits := []TextEdit{}
+	edits := []protocol.TextEdit{}
 	for _, x := range a.occurrencesOfControlled(*o, control) {
 		control.poll()
-		edits = append(edits, TextEdit{Range: a.idx.rangeOf(x.start, x.end), NewText: p.NewName})
+		edits = append(edits, protocol.TextEdit{Range: a.idx.rangeOf(x.start, x.end), NewText: p.NewName})
 	}
-	return workspaceEdit{Changes: map[string][]TextEdit{d.uri: edits}}, nil
+	return protocol.WorkspaceEdit{Changes: map[string][]protocol.TextEdit{d.uri: edits}}, nil
 }
 
 // checkNewName checks that the rule or type old can be renamed to name.
-func (a *analysis) checkNewNameControlled(kind symKind, old, name string, control *renderControl) *rpcError {
+func (a *analysis) checkNewNameControlled(kind symKind, old, name string, control *renderControl) *protocol.RPCError {
 	control.poll()
-	fail := func(format string, args ...any) *rpcError {
-		return &rpcError{Code: codeRequestFailed, Message: fmt.Sprintf(format, args...)}
+	fail := func(format string, args ...any) *protocol.RPCError {
+		return &protocol.RPCError{Code: protocol.CodeRequestFailed, Message: fmt.Sprintf(format, args...)}
 	}
 	if name == old {
 		return nil
@@ -495,12 +496,12 @@ func (a *analysis) checkNewNameControlled(kind symKind, old, name string, contro
 
 // checkUnused checks that name is not used in the namespace kind: renaming to the name of an
 // undefined rule or type would make its references refer to the renamed definition.
-func (a *analysis) checkUnusedControlled(kind symKind, name string, control *renderControl) *rpcError {
+func (a *analysis) checkUnusedControlled(kind symKind, name string, control *renderControl) *protocol.RPCError {
 	control.poll()
 	for _, o := range a.occs {
 		control.poll()
 		if o.kind == kind && o.name == name {
-			return &rpcError{Code: codeRequestFailed, Message: fmt.Sprintf("%s %s is used (but not defined) in the file", kind, name)}
+			return &protocol.RPCError{Code: protocol.CodeRequestFailed, Message: fmt.Sprintf("%s %s is used (but not defined) in the file", kind, name)}
 		}
 	}
 	return nil

@@ -5,6 +5,8 @@ import (
 	"reflect"
 	"strings"
 	"testing"
+
+	"zeroparse.dev/zp/internal/lsp/protocol"
 )
 
 func TestNegotiatedDocumentationProtocol(t *testing.T) {
@@ -17,7 +19,7 @@ func TestNegotiatedDocumentationProtocol(t *testing.T) {
 			defer c.exit()
 			uri := "file:///formats.zp"
 			c.open(uri, "rule main = helper\n// Uses `text`.\nrule helper = \"a\"")
-			var h hover
+			var h protocol.Hover
 			c.requestInto("textDocument/hover", at(uri, 0, 13), &h)
 			kind := "plaintext"
 			for _, f := range formats {
@@ -32,7 +34,7 @@ func TestNegotiatedDocumentationProtocol(t *testing.T) {
 			if kind == "plaintext" && strings.Contains(h.Contents.Value, "`") {
 				t.Fatalf("markup in plaintext: %q", h.Contents.Value)
 			}
-			var completions completionList
+			var completions protocol.CompletionList
 			c.requestInto("textDocument/completion", at(uri, 0, 18), &completions)
 			found := false
 			for _, item := range completions.Items {
@@ -70,7 +72,7 @@ func TestCompletionCurrentContextsProtocol(t *testing.T) {
 			source := strings.Replace(tc.source, "|", "", 1)
 			c.open(uri, source)
 			position := newTextIndex(source).position(off)
-			var got completionList
+			var got protocol.CompletionList
 			c.requestInto("textDocument/completion", at(uri, position.Line, position.Character), &got)
 			labels := map[string]bool{}
 			for _, item := range got.Items {
@@ -112,8 +114,8 @@ func TestCommentAssociativityCurrentSyntaxProtocol(t *testing.T) {
 				}
 				line += result.Data[i]
 				column += result.Data[i+1]
-				start := idx.offset(Position{line, column})
-				end := idx.offset(Position{line, column + result.Data[i+2]})
+				start := idx.offset(protocol.Position{Line: line, Character: column})
+				end := idx.offset(protocol.Position{Line: line, Character: column + result.Data[i+2]})
 				if source[start:end] == assoc && result.Data[i+3] == int(semKeyword) {
 					found = true
 				}
@@ -131,7 +133,7 @@ func TestCommentAssociativityCurrentSyntaxProtocol(t *testing.T) {
 
 func TestPlainDocumentationPreservesCode(t *testing.T) {
 	got := documentation("```zp\nrule main = \"*`*\"\n```\n\n*Inferred type.*\nUses `text`.\nstart_pos_name foo__bar__baz café_pos_nom\n__Strong__ and _emphasized_, plus `_literal_` and __start_pos_name__.", []string{"plaintext"})
-	want := markupContent{Kind: "plaintext", Value: "rule main = \"*`*\"\n\nInferred type.\nUses text.\nstart_pos_name foo__bar__baz café_pos_nom\nStrong and emphasized, plus _literal_ and start_pos_name."}
+	want := protocol.MarkupContent{Kind: "plaintext", Value: "rule main = \"*`*\"\n\nInferred type.\nUses text.\nstart_pos_name foo__bar__baz café_pos_nom\nStrong and emphasized, plus _literal_ and start_pos_name."}
 	if !reflect.DeepEqual(got, want) {
 		t.Fatalf("got %+v want %+v", got, want)
 	}
@@ -271,7 +273,7 @@ func TestLintDiagnosticsPrototypeIsOptIn(t *testing.T) {
 		t.Fatalf("changed default diagnostics: %+v", got)
 	}
 	var actions []codeAction
-	c.requestInto("textDocument/codeAction", map[string]any{"textDocument": map[string]any{"uri": uri}, "range": Range{}, "context": map[string]any{"diagnostics": []Diagnostic{}}}, &actions)
+	c.requestInto("textDocument/codeAction", map[string]any{"textDocument": map[string]any{"uri": uri}, "range": protocol.Range{}, "context": map[string]any{"diagnostics": []Diagnostic{}}}, &actions)
 	if len(actions) != 0 {
 		t.Fatalf("non-opt-in actions: %+v", actions)
 	}

@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"sort"
 	"zeroparse.dev/zp/internal/diagnostic"
+	"zeroparse.dev/zp/internal/lsp/protocol"
 
 	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/frontend/astfacts"
@@ -97,7 +98,7 @@ func (control *renderControl) expressionArgs(a *grammar.Attribute) []grammar.Exp
 
 func (a *analysis) collect()                { a.collectControlled(nil) }
 func (a *analysis) indexDeclarationStarts() { a.indexDeclarationStartsControlled(nil) }
-func (a *analysis) errorRange(pos grammar.Pos, definitions bool) Range {
+func (a *analysis) errorRange(pos grammar.Pos, definitions bool) protocol.Range {
 	return a.errorRangeControlled(pos, definitions, nil)
 }
 func (a *analysis) compileContext(ctx context.Context) error {

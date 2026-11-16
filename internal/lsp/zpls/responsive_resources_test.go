@@ -13,6 +13,8 @@ import (
 	"sync/atomic"
 	"testing"
 	"time"
+
+	"zeroparse.dev/zp/internal/lsp/protocol"
 )
 
 // This peer uses the production framing/actor and retains only a stable Server
@@ -30,14 +32,14 @@ func newResourcePeer(t *testing.T) *resourcePeer {
 	cr, sw := io.Pipe()
 	sr, cw := io.Pipe()
 	c := &testClient{t: t, w: cw, msgs: make(chan map[string]json.RawMessage, 100), done: make(chan error, 1)}
-	s := &Server{in: bufio.NewReader(sr), out: &conn{w: sw}, docs: map[string]*document{}, version: "resource-test"}
+	s := &Server{in: bufio.NewReader(sr), out: protocol.NewConn(sw), docs: map[string]*document{}, version: "resource-test"}
 	p := &resourcePeer{client: c, server: s, reader: cr}
 	go func() { err := s.run(); sw.Close(); sr.Close(); c.done <- err }()
 	go func() {
 		r := bufio.NewReader(cr)
 		defer close(c.msgs)
 		for {
-			body, err := readMessage(r)
+			body, err := protocol.ReadMessage(r)
 			if err != nil {
 				return
 			}
@@ -122,7 +124,7 @@ func runRequestResourceCase(t *testing.T, count, filters int, measure bool) requ
 		for i := range only {
 			only[i] = "quickfix.zp"
 		}
-		params = map[string]any{"textDocument": textDocumentIdentifier{URI: uri}, "range": Range{}, "context": map[string]any{"only": only, "diagnostics": []Diagnostic{}}}
+		params = map[string]any{"textDocument": protocol.TextDocumentIdentifier{URI: uri}, "range": protocol.Range{}, "context": map[string]any{"only": only, "diagnostics": []Diagnostic{}}}
 	}
 	raw, err := json.Marshal(params)
 	if err != nil {
@@ -133,7 +135,7 @@ func runRequestResourceCase(t *testing.T, count, filters int, measure bool) requ
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(body) > maxMessage {
+	if len(body) > protocol.MaxMessage {
 		t.Fatal("resource payload exceeds protocol limit")
 	}
 	result := requestResourceResult{Count: count, Filters: filters, Method: method, BodyBytes: len(body), ParamsBytes: len(raw), SourceBytes: len(source), SourceHash: fmt.Sprintf("%x", sha256.Sum256([]byte(source))), ParamsHash: fmt.Sprintf("%x", sha256.Sum256(raw))}
@@ -175,7 +177,7 @@ func runRequestResourceCase(t *testing.T, count, filters int, measure bool) requ
 	// A non-worker reply orders admission of every preceding request without
 	// observing the actor's mutable maps or changing request capacity.
 	asyncRequest(c, 9000, "resource/sequence", nil)
-	assertResponseError(t, c.response("9000"), codeMethodNotFound)
+	assertResponseError(t, c.response("9000"), protocol.CodeMethodNotFound)
 	if cap(peer.server.actor.slots) != 4 {
 		t.Fatalf("execution slots=%d want4", cap(peer.server.actor.slots))
 	}
@@ -185,7 +187,7 @@ func runRequestResourceCase(t *testing.T, count, filters int, measure bool) requ
 	}
 	if count == 64 {
 		asyncRequest(c, 200, method, json.RawMessage(raw))
-		assertResponseError(t, c.response("200"), codeServerCancelled)
+		assertResponseError(t, c.response("200"), protocol.CodeServerCancelled)
 		result.OverflowRejected = true
 	}
 	if measure {
@@ -197,7 +199,7 @@ func runRequestResourceCase(t *testing.T, count, filters int, measure bool) requ
 		c.notify("$/cancelRequest", map[string]any{"id": 100 + i})
 	}
 	for i := range count {
-		assertResponseError(t, c.response(strconv.Itoa(100+i)), codeRequestCancelled)
+		assertResponseError(t, c.response(strconv.Itoa(100+i)), protocol.CodeRequestCancelled)
 		result.CancelledResponses++
 	}
 	// Every admitted request has now been canceled and removed. No further
@@ -219,7 +221,7 @@ func runRequestResourceCase(t *testing.T, count, filters int, measure bool) requ
 		runtime.Gosched()
 	}
 	asyncRequest(c, 9001, "resource/sequence", nil)
-	assertResponseError(t, c.response("9001"), codeMethodNotFound)
+	assertResponseError(t, c.response("9001"), protocol.CodeMethodNotFound)
 	if measure {
 		result.Joined = requestResourceSample()
 	}

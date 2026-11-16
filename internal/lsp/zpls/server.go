@@ -16,12 +16,14 @@ import (
 	"fmt"
 	"io"
 	"slices"
+
+	"zeroparse.dev/zp/internal/lsp/protocol"
 )
 
 // Server is a language server for one client connection.
 type Server struct {
 	in   *bufio.Reader
-	out  *conn
+	out  *protocol.Conn
 	docs map[string]*document
 	// state is the stage of the connection.
 	state state
@@ -128,22 +130,22 @@ var ErrExitWithoutShutdown = errors.New("exit notification before shutdown")
 // requires, ErrExitWithoutShutdown if it did not, and an error if the input ends or cannot be read
 // as messages. version is reported to the client as the server's version.
 func Serve(r io.Reader, w io.Writer, version string) error {
-	s := &Server{in: bufio.NewReader(r), out: &conn{w: w}, docs: map[string]*document{}, version: version}
+	s := &Server{in: bufio.NewReader(r), out: protocol.NewConn(w), docs: map[string]*document{}, version: version}
 	return s.run()
 }
 
 func (s *Server) run() error {
 	for {
-		body, err := readMessage(s.in)
+		body, err := protocol.ReadMessage(s.in)
 		if err == io.EOF {
 			return errors.New("the input ended before the exit notification")
 		}
 		if err != nil {
 			return err
 		}
-		var msg incoming
+		var msg protocol.Incoming
 		if err := json.Unmarshal(body, &msg); err != nil {
-			if err := s.out.reply(nil, nil, &rpcError{Code: codeParseError, Message: "invalid JSON: " + err.Error()}); err != nil {
+			if err := s.out.Reply(nil, nil, &protocol.RPCError{Code: protocol.CodeParseError, Message: "invalid JSON: " + err.Error()}); err != nil {
 				return err
 			}
 			continue
@@ -164,63 +166,63 @@ func (s *Server) run() error {
 }
 
 // handle handles a message. It returns an error only if the response cannot be written.
-func (s *Server) handle(msg *incoming) error {
+func (s *Server) handle(msg *protocol.Incoming) error {
 	switch {
 	case msg.Method == "" && (len(msg.Result) > 0 || len(msg.Error) > 0):
 		return nil // a response; the server sends no requests, so there is nothing to do
-	case msg.Method == "" || msg.JSONRPC != "2.0" && msg.hasID():
-		return s.out.reply(msg.ID, nil, &rpcError{Code: codeInvalidRequest, Message: "invalid request"})
+	case msg.Method == "" || msg.JSONRPC != "2.0" && msg.HasID():
+		return s.out.Reply(msg.ID, nil, &protocol.RPCError{Code: protocol.CodeInvalidRequest, Message: "invalid request"})
 	case msg.JSONRPC != "2.0":
 		return nil // an invalid notification
-	case !msg.hasID():
+	case !msg.HasID():
 		s.notification(msg)
 		return nil
 	}
 	result, rerr := s.request(msg)
-	return s.out.reply(msg.ID, result, rerr)
+	return s.out.Reply(msg.ID, result, rerr)
 }
 
 // request handles a request and returns its result or error.
-func (s *Server) request(msg *incoming) (result any, rerr *rpcError) {
+func (s *Server) request(msg *protocol.Incoming) (result any, rerr *protocol.RPCError) {
 	defer func() {
 		if x := recover(); x != nil {
-			result, rerr = nil, &rpcError{Code: codeInternalError, Message: fmt.Sprintf("internal error: %v", x)}
+			result, rerr = nil, &protocol.RPCError{Code: protocol.CodeInternalError, Message: fmt.Sprintf("internal error: %v", x)}
 		}
 	}()
 	switch s.state {
 	case stateNew:
 		if msg.Method != "initialize" {
-			return nil, &rpcError{Code: codeServerNotInitialized, Message: "the server is not initialized"}
+			return nil, &protocol.RPCError{Code: protocol.CodeServerNotInitialized, Message: "the server is not initialized"}
 		}
 	case stateInitialized:
 		if msg.Method == "initialize" {
-			return nil, &rpcError{Code: codeInvalidRequest, Message: "the server is already initialized"}
+			return nil, &protocol.RPCError{Code: protocol.CodeInvalidRequest, Message: "the server is already initialized"}
 		}
 	case stateShutdown:
-		return nil, &rpcError{Code: codeInvalidRequest, Message: "the server is shut down"}
+		return nil, &protocol.RPCError{Code: protocol.CodeInvalidRequest, Message: "the server is shut down"}
 	}
 	h, ok := requestHandlers[msg.Method]
 	if !ok {
-		return nil, &rpcError{Code: codeMethodNotFound, Message: "method not found: " + msg.Method}
+		return nil, &protocol.RPCError{Code: protocol.CodeMethodNotFound, Message: "method not found: " + msg.Method}
 	}
 	return h(s, msg.Params)
 }
 
 // notification handles a notification. Errors are not reported: a notification has no response.
-func (s *Server) notification(msg *incoming) {
+func (s *Server) notification(msg *protocol.Incoming) {
 	defer func() { _ = recover() }()
 	if s.state != stateInitialized {
 		return // dropped before initialize and after shutdown
 	}
 	switch msg.Method {
 	case "textDocument/didOpen":
-		var p didOpenParams
+		var p protocol.DidOpenParams
 		if json.Unmarshal(msg.Params, &p) == nil {
 			s.docs[p.TextDocument.URI] = &document{uri: p.TextDocument.URI, version: p.TextDocument.Version, text: p.TextDocument.Text}
 			s.publish(s.docs[p.TextDocument.URI])
 		}
 	case "textDocument/didChange":
-		var p didChangeParams
+		var p protocol.DidChangeParams
 		if json.Unmarshal(msg.Params, &p) != nil {
 			return
 		}
@@ -232,7 +234,7 @@ func (s *Server) notification(msg *incoming) {
 		d.version, d.an = p.TextDocument.Version, nil
 		s.publish(d)
 	case "textDocument/didSave":
-		var p didSaveParams
+		var p protocol.DidSaveParams
 		if json.Unmarshal(msg.Params, &p) != nil {
 			return
 		}
@@ -243,7 +245,7 @@ func (s *Server) notification(msg *incoming) {
 			s.publish(d)
 		}
 	case "textDocument/didClose":
-		var p didCloseParams
+		var p protocol.DidCloseParams
 		if json.Unmarshal(msg.Params, &p) == nil && s.docs[p.TextDocument.URI] != nil {
 			if s.queue != nil {
 				s.queue.closeDocument(p.TextDocument.URI)
@@ -251,7 +253,7 @@ func (s *Server) notification(msg *incoming) {
 			}
 			delete(s.docs, p.TextDocument.URI)
 			// Clear the document's diagnostics.
-			_ = s.out.notify("textDocument/publishDiagnostics", publishDiagnosticsParams{URI: p.TextDocument.URI, Diagnostics: []Diagnostic{}})
+			_ = s.out.Notify("textDocument/publishDiagnostics", publishDiagnosticsParams{URI: p.TextDocument.URI, Diagnostics: []Diagnostic{}})
 		}
 	}
 }
@@ -282,10 +284,10 @@ func (s *Server) publishDiagnostics(uri string, version int, diags []Diagnostic)
 	if diags == nil {
 		diags = []Diagnostic{}
 	}
-	_ = s.out.notify("textDocument/publishDiagnostics", publishDiagnosticsParams{URI: uri, Version: &version, Diagnostics: diags})
+	_ = s.out.Notify("textDocument/publishDiagnostics", publishDiagnosticsParams{URI: uri, Version: &version, Diagnostics: diags})
 }
 
-type requestHandler func(s *Server, params json.RawMessage) (any, *rpcError)
+type requestHandler func(s *Server, params json.RawMessage) (any, *protocol.RPCError)
 
 var requestHandlers map[string]requestHandler
 
@@ -308,7 +310,7 @@ func init() {
 	}
 }
 
-func (s *Server) initialize(params json.RawMessage) (any, *rpcError) {
+func (s *Server) initialize(params json.RawMessage) (any, *protocol.RPCError) {
 	var p struct {
 		Capabilities clientCapabilities `json:"capabilities"`
 	}
@@ -352,35 +354,35 @@ func (s *Server) initialize(params json.RawMessage) (any, *rpcError) {
 	}, nil
 }
 
-func (s *Server) shutdown(json.RawMessage) (any, *rpcError) {
+func (s *Server) shutdown(json.RawMessage) (any, *protocol.RPCError) {
 	s.state = stateShutdown
 	return nil, nil
 }
 
 // decode decodes the parameters of a request into v.
-func decode(params json.RawMessage, v any) *rpcError {
+func decode(params json.RawMessage, v any) *protocol.RPCError {
 	if len(params) == 0 || string(params) == "null" {
-		return &rpcError{Code: codeInvalidParams, Message: "missing parameters"}
+		return &protocol.RPCError{Code: protocol.CodeInvalidParams, Message: "missing parameters"}
 	}
 	if err := json.Unmarshal(params, v); err != nil {
-		return &rpcError{Code: codeInvalidParams, Message: "invalid parameters: " + err.Error()}
+		return &protocol.RPCError{Code: protocol.CodeInvalidParams, Message: "invalid parameters: " + err.Error()}
 	}
 	return nil
 }
 
 // doc returns the open document uri.
-func (s *Server) doc(uri string) (*document, *rpcError) {
+func (s *Server) doc(uri string) (*document, *protocol.RPCError) {
 	d := s.docs[uri]
 	if d == nil {
-		return nil, &rpcError{Code: codeRequestFailed, Message: "document not open: " + uri}
+		return nil, &protocol.RPCError{Code: protocol.CodeRequestFailed, Message: "document not open: " + uri}
 	}
 	return d, nil
 }
 
 // position decodes text document position parameters and returns the document and the byte
 // offset of the position.
-func (s *Server) position(params json.RawMessage) (*document, int, *rpcError) {
-	var p textDocumentPositionParams
+func (s *Server) position(params json.RawMessage) (*document, int, *protocol.RPCError) {
+	var p protocol.TextDocumentPositionParams
 	if err := decode(params, &p); err != nil {
 		return nil, 0, err
 	}
