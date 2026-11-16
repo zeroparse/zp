@@ -591,8 +591,8 @@ transitional op call.tracked() bool
   features document
   cost <= 0
   contract:
-    // Reports whether a rule call takes the target's tracked path: in a Document parse, and in the
-    // node runtime also in an observed parse.
+    // Reports whether a rule call of the engine takes its traced path: in a traced parse, for a call
+    // that the traced path has not yet entered.
 
 transitional op call.track(r Rule, min int) (Value, bool)
   component call
@@ -601,17 +601,7 @@ transitional op call.track(r Rule, min int) (Value, bool)
   noreturn
   cost <= 0
   contract:
-    // Calls the rule at the binding level min on the target's tracked path and returns its result.
-
-transitional op call.trackBody(r Rule, inv Body) (Value, bool)
-  component call
-  writes call, pos, silent
-  features document
-  noreturn
-  cost <= 0
-  contract:
-    // Calls the rule through the invocation inv on the target's tracked path and returns its
-    // result.
+    // Calls the rule at the binding level min on the engine's traced path and returns its result.
 
 op rule.memo(r Rule) bool
   component rules
@@ -1231,15 +1221,6 @@ op doc.evaluated()
     // Counts an evaluated rule body in the statistics of the Document.
   requires:
     // The parse reads a Document.
-
-transitional op call.body(r Rule, min int) (Value, bool)
-  component call
-  writes call, pos, silent
-  noreturn
-  cost <= 0
-  contract:
-    // Calls the rule at the binding level min without observation: the call, or the plain invocation,
-    // that the target's observed function wraps.
 
 host op stream.emits() bool
   component window
