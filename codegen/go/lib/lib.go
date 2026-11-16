@@ -1000,7 +1000,7 @@ func decodedEnd(s string, pos, size int) int {
 
 // documentTouchFrom extends the input that the active rule call examined back to from.
 func (p *Parser) documentTouchFrom(from int) {
-	if p.Document != nil && from < p.docLow {
+	if usedFeatures&featureDocument != 0 && p.Document != nil && from < p.docLow {
 		p.docLow = from
 	}
 }
@@ -1010,7 +1010,7 @@ func (p *Parser) documentTouchLine() {
 	if p.track {
 		p.docExamined = max(p.docExamined, p.Pos)
 	}
-	if p.Document != nil {
+	if usedFeatures&featureDocument != 0 && p.Document != nil {
 		p.docLow = min(p.docLow, p.Pos-1)
 	}
 }
@@ -1075,7 +1075,7 @@ func (p *Parser) FirstCall(r *Rule) bool {
 	if p.Stream != nil {
 		return false // streams memoize on the first call, as the engine does
 	}
-	if p.Control != nil {
+	if usedFeatures&featureBudget != 0 && p.Control != nil {
 		p.controlledFirstCallPrepare(r)
 	}
 	if r.Seen < 0 {
@@ -1389,7 +1389,7 @@ func (p *Parser) envValues(slots []int) []any {
 	if len(slots) > 0 {
 		p.use(featureVars)
 	}
-	if p.Control != nil {
+	if usedFeatures&featureBudget != 0 && p.Control != nil {
 		return p.controlledEnvValues(slots)
 	}
 
@@ -1561,7 +1561,7 @@ func (p *Parser) fields(n int) coreimpl.Fields {
 // Kids returns p.KidStack[base:] as a child list and pops it. Under budget controls it reserves one unit
 // for each element it copies and one for each it takes off, in one reservation before it moves any.
 func (p *Parser) Kids(base int) []*core.Node {
-	if p.Control != nil {
+	if usedFeatures&featureBudget != 0 && p.Control != nil {
 		return p.kidsControlled(base)
 	}
 	ks := p.Nodes(len(p.KidStack) - base)
@@ -1793,7 +1793,7 @@ func (e *Env) setLeaf(i int, v any) *Env {
 // environments. Binding the value it has already is a no-op.
 func (p *Parser) bind(slot int, val any) {
 	p.use(featureVars)
-	if p.Control != nil {
+	if usedFeatures&featureBudget != 0 && p.Control != nil {
 		p.bindControlled(slot, val)
 		return
 	}
@@ -1806,7 +1806,7 @@ func (p *Parser) bind(slot int, val any) {
 
 // variable returns the value of the variable in slot i.
 func (p *Parser) variable(slot int) any {
-	if p.Control != nil {
+	if usedFeatures&featureBudget != 0 && p.Control != nil {
 		for l := 0; l <= p.envDepth; l++ {
 			p.Spend()
 		}
@@ -1836,7 +1836,7 @@ var offsLimit = 1<<31 - 1
 // setSource decodes the input s into code points and, if s is valid UTF-8, records the offset
 // table for token text, all in one pass (a U+FFFD that decodes from three bytes is valid).
 func (p *Parser) setSource(s string) {
-	if p.Control != nil {
+	if usedFeatures&featureBudget != 0 && p.Control != nil {
 		p.setControlledSource(s)
 		return
 	}
@@ -1892,7 +1892,7 @@ func (p *Parser) setSource(s string) {
 func (p *Parser) decodeSource() {
 	s := p.src
 	if s == "" {
-		if p.Control != nil {
+		if usedFeatures&featureBudget != 0 && p.Control != nil {
 			s = p.detachedText(0, p.n)
 		} else {
 			s = string(p.In[:p.n])
@@ -1907,7 +1907,7 @@ func (p *Parser) decodeSource() {
 		offs = make([]int32, 0, p.n+1)
 	}
 	for off := 0; off < len(s); {
-		if p.Control != nil {
+		if usedFeatures&featureBudget != 0 && p.Control != nil {
 			p.Control.Charge(uint64(min(spendValueChunk, len(s)-off)))
 		}
 		end := min(off+spendValueChunk, len(s))
@@ -1921,7 +1921,7 @@ func (p *Parser) decodeSource() {
 			off += size
 		}
 		// The last character may end past the chunk; charge the rest, so the table costs its bytes.
-		if p.Control != nil && off > end {
+		if usedFeatures&featureBudget != 0 && p.Control != nil && off > end {
 			p.Control.Charge(uint64(off - end))
 		}
 	}
@@ -1988,7 +1988,7 @@ func (p *Parser) PeekOrdinary() (rune, int, bool) {
 }
 
 func (p *Parser) unitLen(s string) int {
-	if p.Control != nil && p.unit != core.Bytes {
+	if usedFeatures&featureBudget != 0 && p.Control != nil && p.unit != core.Bytes {
 		count := 0
 		for off := 0; off < len(s); {
 			p.spendValue(min(utf8.UTFMax, len(s)-off))
@@ -2058,7 +2058,7 @@ func (p *Parser) Text(start, end int) string {
 	if p.wide != nil {
 		return p.src[p.wide[start]:p.wide[end]]
 	}
-	if p.Control != nil {
+	if usedFeatures&featureBudget != 0 && p.Control != nil {
 		return p.detachedText(start, end)
 	}
 	return string(p.In[start:end])
@@ -2067,7 +2067,7 @@ func (p *Parser) Text(start, end int) string {
 type fatal struct{ err error }
 
 func (p *Parser) MakeError(pos int, expected []ExpID) *core.SyntaxError {
-	if p.Control != nil {
+	if usedFeatures&featureBudget != 0 && p.Control != nil {
 		return p.makeControlledError(pos, expected)
 	}
 	e := &core.SyntaxError{Pos: pos}
@@ -2167,7 +2167,7 @@ func (p *Parser) invoke(r *Rule, min int) (*core.Node, bool) {
 // frame (the body never writes one, so the caller's stays current), with the failure handling of
 // call.
 func (p *Parser) InvokePlain(r *Rule, min int) (*core.Node, bool) {
-	if p.Observation != nil {
+	if usedFeatures&featureObserve != 0 && p.Observation != nil {
 		return p.invokePlainObserved(r, min)
 	}
 	return p.invokePlainBody(r, min)
@@ -2203,7 +2203,7 @@ func (p *Parser) invokePlainBody(r *Rule, min int) (*core.Node, bool) {
 // evaluating counts an evaluation of a rule body for the Document's statistics and the
 // observation.
 func (p *Parser) evaluating() {
-	if p.Document != nil {
+	if usedFeatures&featureDocument != 0 && p.Document != nil {
 		p.Document.stats.Evaluated++
 	}
 	p.Observation.Evaluated()

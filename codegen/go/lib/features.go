@@ -20,7 +20,16 @@ const (
 	featureVars
 	featureSkipRuns
 	featureScanSites
+
+	// allFeatures is every feature.
+	allFeatures = 1<<iota - 1
 )
+
+// usedFeatures are the features of the parser. Code that only a feature needs is guarded by
+// usedFeatures&featureX != 0, which the compiler folds. The library has every feature; the copy
+// that a parser carries has the features of its parser, and leaves out the code whose guard is
+// false and the declarations that only that code named.
+const usedFeatures = allFeatures
 
 // featureWitnessed marks the features of a grammar as recorded (WitnessFeatures, declared only with
 // the tag zp_feature_witness), so that a parser for which nothing was recorded is not checked.
