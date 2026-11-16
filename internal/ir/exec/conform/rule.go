@@ -38,6 +38,10 @@ var RuleOps = []string{
 	"rule.positional", "rule.id", "rule.seen", "rule.invoke", "rule.invokePlain", "seen.defers",
 }
 
+// RuleRunOp is the operation that runs the invocation of a rule's body that a generated call passes
+// (BodyOp), which only a target whose generated calls pass invocations provides.
+const RuleRunOp = "rule.run"
+
 // RuleCaseOps are the operations besides those of the rules that the cases of the rules call: the
 // nesting depth and the recovered errors, which an evaluation of a body changes.
 var RuleCaseOps = []string{"depth.enter", "depth.exit", "depth.current", "rec.mark", "rec.truncate"}
@@ -238,6 +242,39 @@ func RuleCases() []Case {
 		b.Assert(exec.BoolC(false), "the limits end the parse")
 	})
 
+	// The invocation that a generated call passes runs the body at binding level 0, in a frame of its
+	// own: it does not count in the statistics of a Document parse, whose caller counts it, and it
+	// leaves the errors of a failure to its caller.
+	runCfg := RuleConfig(ref.RuleSpec{Rec: true, Captures: 2, Body: []ref.Eval{
+		{OK: true, Len: 2, Charge: 1, Touch: 4, Captures: []int64{1}}, {Len: 1, Errs: []int64{3}}, ok(0),
+	}})
+	runCfg.Document = true
+	add("rule_run", runCfg, func(b *exec.Builder) {
+		b.SetReg(ops.Pos, i(1))
+		b.LetN([]string{"h", "l"}, exec.C("doc.enter", pos))
+		b.LetN([]string{"v1", "ok1"}, exec.C(RuleRunOp, exec.C(BodyOp, i(0))))
+		b.Assert(exec.And(exec.L("ok1"), exec.Eq(pos, i(3))), "a match moves the position to its end")
+		b.Assert(exec.Eq(exec.C("depth.current"), i(0)), "a rule on a cycle gives its nesting level back")
+		b.Assert(exec.Eq(exec.C("doc.examined"), i(5)), "the body extends the examined input")
+		b.LetN([]string{"v2", "ok2"}, exec.C("rule.run", exec.C(BodyOp, i(0))))
+		b.Assert(exec.Not(exec.L("ok2")), "the body's second evaluation fails")
+		b.Assert(exec.Eq(exec.C("rec.mark"), i(1)), "a failure leaves the errors it recovered to the caller")
+		b.SetReg(ops.Pos, i(3))
+		b.LetN([]string{"v3", "ok3"}, exec.C(RuleRunOp, exec.C(BodyOp, i(0))))
+		b.Assert(exec.And(exec.L("ok3"), exec.Eq(pos, i(3))), "an empty match leaves the position")
+		b.Assert(exec.Eq(exec.C(DocStatOp, i(1)), i(0)), "the invocation does not count in the Document")
+		b.Do("doc.leave", exec.L("h"), exec.L("l"))
+	})
+	runNesting := RuleConfig(ref.RuleSpec{Rec: true, Body: []ref.Eval{ok(1)}}, ref.RuleSpec{Body: []ref.Eval{ok(1)}})
+	runNesting.MaxDepth = 1
+	add("rule_run_nesting", runNesting, func(b *exec.Builder) {
+		b.Do("depth.enter")
+		b.LetN([]string{"v1", "ok1"}, exec.C("rule.run", exec.C(BodyOp, i(1))))
+		b.Assert(exec.Eq(exec.C("depth.current"), i(1)), "a rule on no cycle takes no nesting level")
+		b.LetN([]string{"v2", "ok2"}, exec.C("rule.run", exec.C(BodyOp, i(0))))
+		b.Assert(exec.BoolC(false), "the nesting limit ends the parse")
+	})
+
 	docCfg := RuleConfig(ref.RuleSpec{Body: []ref.Eval{{OK: true, Len: 2, Touch: 5}, {Len: 1, Touch: 1}}},
 		ref.RuleSpec{Body: []ref.Eval{{Touch: 3}}})
 	docCfg.Document = true
@@ -289,8 +326,8 @@ func RandomRuleConfig(rng *rand.Rand, document bool) ref.Config {
 	return cfg
 }
 
-// RandomRule returns a randomized case of n calls of the operations of the rules, depth.enter, depth.exit
-// and rec.mark that provided lists, drawn with rng, that meets every precondition, in the parse of RandomRuleConfig. In a
+// RandomRule returns a randomized case of n calls of the operations of the rules, RuleRunOp, depth.enter,
+// depth.exit and rec.mark that provided lists, drawn with rng, that meets every precondition, in the parse of RandomRuleConfig. In a
 // Document parse the calls run inside a rule call that doc.enter begins, and the case ends by reading
 // the statistics of the Document. A case ends at the call that ends the parse.
 func RandomRule(name string, rng *rand.Rand, provided []string, n int, document bool) Case {
@@ -315,8 +352,8 @@ func RandomRule(name string, rng *rand.Rand, provided []string, n int, document 
 	regs := map[string]any{ops.Pos: int64(0), ops.Silent: false}
 	mirror.UseRegisters(regs)
 	var choices []string
-	for _, o := range append(append([]string{}, RuleOps...), "rule.invoke", "rule.invoke", "rule.invokePlain", "depth.enter",
-		"depth.exit", "rec.mark", "rec.mark", "missing.mark") {
+	for _, o := range append(append([]string{}, RuleOps...), "rule.invoke", "rule.invoke", "rule.invokePlain", RuleRunOp,
+		RuleRunOp, "depth.enter", "depth.exit", "rec.mark", "rec.mark", "missing.mark") {
 		if slices.Contains(provided, o) {
 			choices = append(choices, o)
 		}
@@ -341,7 +378,11 @@ func RandomRule(name string, rng *rand.Rand, provided []string, n int, document 
 			o := m.Op(name)
 			var args []any
 			var exprs []exec.Expr
-			if len(o.Params) > 0 {
+			switch {
+			case name == RuleRunOp:
+				k := rng.Int64N(RuleRules)
+				args, exprs = append(args, ref.BodyRef{Index: k}), append(exprs, exec.C(BodyOp, exec.Int(k)))
+			case len(o.Params) > 0:
 				k := rng.Int64N(RuleRules)
 				args, exprs = append(args, ref.RuleRef{Index: k}), append(exprs, exec.C(RuleOp, exec.Int(k)))
 			}

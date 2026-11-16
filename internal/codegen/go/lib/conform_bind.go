@@ -301,6 +301,13 @@ func GoRuleBindings() (string, error) {
 	return bindingFile("libgo", ruleBindingOps, goTarget(goSpec{fn: "expect", name: "Expect"}), "")
 }
 
+// GoTypedRuleBindings returns the Go test file of the conformance bindings of the operations of the
+// rules for package libgo, for the typed library's TParser, with rule.run, which runs the invocation
+// that a generated typed call passes.
+func GoTypedRuleBindings() (string, error) {
+	return bindingFile("libgo", append(slices.Clone(ruleBindingOps), "rule.run"), goTarget(goSpec{fn: "reset", typed: true, name: "Reset"}), "")
+}
+
 // obsBindingOps are the operations of the observation of a parse.
 var obsBindingOps = []string{"obs.active", "obs.memoHit", "obs.enter", "obs.exit"}
 
