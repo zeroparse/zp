@@ -1,4 +1,4 @@
-// Package lint implements the grammar linter behind the public package zp/lint, which re-exports
+// Package lint implements the grammar linter behind the public package zp/pkg/lint, which re-exports
 // its types, and behind the language server. It reports likely mistakes in ZeroParse grammars:
 // rules and alternatives that can never match, expressions that have no effect, captures that are
 // never read, and grammar shapes that defeat incremental parsing.

@@ -6,7 +6,7 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/engine"
-	"zeroparse.dev/zp/sample"
+	"zeroparse.dev/zp/pkg/sample"
 )
 
 const settings = `rule main = pair ("," " "? pair)*
@@ -89,7 +89,7 @@ func ExampleGenerator_GenerateInvalid() {
 // that all backends agree, and that the generated inputs it is seeded with parse. Run it with
 // go test -fuzz=FuzzCalculator ./sample; go test runs it on the seeds only.
 func FuzzCalculator(f *testing.F) {
-	src, err := os.ReadFile("../examples/calculator/calc.zp")
+	src, err := os.ReadFile("../../examples/calculator/calc.zp")
 	if err != nil {
 		f.Fatal(err)
 	}

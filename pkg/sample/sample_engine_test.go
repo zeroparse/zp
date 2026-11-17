@@ -7,7 +7,7 @@ import (
 	"zeroparse.dev/zp/engine"
 	"zeroparse.dev/zp/internal/testing/codegentest"
 	"zeroparse.dev/zp/internal/testing/starttest"
-	"zeroparse.dev/zp/sample"
+	"zeroparse.dev/zp/pkg/sample"
 )
 
 // TestSampleCorpus generates inputs for every grammar of the test corpus with package sample and checks

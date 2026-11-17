@@ -12,9 +12,9 @@ import (
 	"strings"
 
 	"zeroparse.dev/zp/core"
-	"zeroparse.dev/zp/editfuzz"
 	"zeroparse.dev/zp/engine"
 	"zeroparse.dev/zp/internal/cliflag"
+	"zeroparse.dev/zp/pkg/editfuzz"
 )
 
 func editFuzzCmd(args []string, stdout io.Writer) error {

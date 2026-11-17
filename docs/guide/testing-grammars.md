@@ -434,7 +434,7 @@ package pairs_test
 import (
 	"testing"
 
-	"zeroparse.dev/zp/sample"
+	"zeroparse.dev/zp/pkg/sample"
 )
 
 // TestGeneratedInputs runs the checks on inputs generated from the grammar, and requires that they exercise
@@ -573,7 +573,7 @@ import (
 	"math/rand/v2"
 	"testing"
 
-	"zeroparse.dev/zp/sample"
+	"zeroparse.dev/zp/pkg/sample"
 )
 
 // TestDocumentMatchesFreshParse edits generated inputs at random and checks that reparsing the document gives the
@@ -624,7 +624,7 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/engine"
-	"zeroparse.dev/zp/sample"
+	"zeroparse.dev/zp/pkg/sample"
 )
 
 // TestLoadedMatchesCompiled checks that a grammar saved and loaded again behaves like the one compiled from source.

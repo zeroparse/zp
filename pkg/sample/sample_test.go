@@ -14,14 +14,14 @@ import (
 
 	"zeroparse.dev/zp/engine"
 	"zeroparse.dev/zp/internal/testing/starttest"
-	"zeroparse.dev/zp/sample"
+	"zeroparse.dev/zp/pkg/sample"
 )
 
 // exampleParsers compiles every grammar in examples/.
 func exampleParsers(t *testing.T) map[string]*engine.Parser {
 	t.Helper()
-	paths, err := filepath.Glob("../examples/*/*.zp")
-	more, err2 := filepath.Glob("../testdata/grammars/*/*.zp")
+	paths, err := filepath.Glob("../../examples/*/*.zp")
+	more, err2 := filepath.Glob("../../testdata/grammars/*/*.zp")
 	paths = append(paths, more...)
 	if err != nil || err2 != nil || len(paths) == 0 {
 		t.Fatalf("no example grammars: %v", err)
@@ -90,7 +90,7 @@ func TestExamplesParse(t *testing.T) {
 }
 
 // TestExamplesCoverage checks that coverage mode reaches most of each grammar of examples/, and logs
-// the coverage (go test -v ./sample -run Coverage). The grammars of testdata/grammars/ are left out: they follow
+// the coverage (go test -v ./pkg/sample -run Coverage). The grammars of testdata/grammars/ are left out: they follow
 // real languages, whose predicates and context the generator rarely satisfies by chance (50 inputs
 // cover 12% of the rules of the Go grammar), and their own tests check them.
 func TestExamplesCoverage(t *testing.T) {
@@ -120,7 +120,7 @@ func TestExamplesCoverage(t *testing.T) {
 // TestJSONAgreesWithEncodingJSON is a differential test: the JSON grammar of testdata/grammars/json and
 // encoding/json must accept the same inputs.
 func TestJSONAgreesWithEncodingJSON(t *testing.T) {
-	p := exampleParsers(t)[filepath.Join("..", "testdata", "grammars", "json", "json.zp")]
+	p := exampleParsers(t)[filepath.Join("..", "..", "testdata", "grammars", "json", "json.zp")]
 	g, err := sample.New(p, sample.WithSeed(1), sample.WithCoverage())
 	if err != nil {
 		t.Fatal(err)
@@ -147,7 +147,7 @@ func TestJSONAgreesWithEncodingJSON(t *testing.T) {
 
 func TestDeterminism(t *testing.T) {
 	ps := exampleParsers(t)
-	p := ps[filepath.Join("..", "testdata", "grammars", "json", "json.zp")]
+	p := ps[filepath.Join("..", "..", "testdata", "grammars", "json", "json.zp")]
 	gen := func(seed uint64) ([]string, []sample.Invalid) {
 		g, err := sample.New(p, sample.WithSeed(seed), sample.WithCoverage())
 		if err != nil {

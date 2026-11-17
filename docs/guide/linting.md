@@ -182,7 +182,7 @@ linear time even in a grammar declared `@linear`. The exact rules are in [Declar
 
 ## From Go
 
-Package `zeroparse.dev/zp/lint` lints from Go. A `lint.Config` holds the settings of a run, and its `Run`
+Package `zeroparse.dev/zp/pkg/lint` lints from Go. A `lint.Config` holds the settings of a run, and its `Run`
 method takes a context, a grammar AST and the start rule. It returns an error, and no findings, if the grammar
 does not compile or the context ends:
 

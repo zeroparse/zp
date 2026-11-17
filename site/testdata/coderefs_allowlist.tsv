@@ -94,10 +94,10 @@ docs/design/records/035-incremental-cache-controls.md	unexport	memoTable	1
 docs/design/records/036-stream-iteration-and-diagnostics.md	codelink	internal/engine/program_parse.go	1
 docs/design/records/036-stream-iteration-and-diagnostics.md	gofile	internal/engine/program_parse.go	1
 docs/design/records/037-replayable-edit-fuzzing.md	codelink	internal/engine/document/document.go	1
-docs/design/records/037-replayable-edit-fuzzing.md	codelink	sample/sample.go	1
+docs/design/records/037-replayable-edit-fuzzing.md	codelink	pkg/sample/sample.go	1
 docs/design/records/037-replayable-edit-fuzzing.md	gofile	internal/engine/document/document.go	1
 docs/design/records/037-replayable-edit-fuzzing.md	gofile	internal/engine/document_test.go	1
-docs/design/records/037-replayable-edit-fuzzing.md	gofile	sample/sample.go	1
+docs/design/records/037-replayable-edit-fuzzing.md	gofile	pkg/sample/sample.go	1
 docs/design/records/038-structured-output-schema.md	gofile	grammar/ast.go	1
 docs/design/records/038-structured-output-schema.md	gofile	internal/engine/compiled_schema_test.go	1
 docs/design/records/038-structured-output-schema.md	gofile	schema/output_schema_validate_bench_test.go	1
@@ -605,8 +605,8 @@ docs/optimizations/mechanisms/G020-lazy-backend-preparation.md	codelink	internal
 docs/optimizations/mechanisms/G020-lazy-backend-preparation.md	gofile	internal/compile/compile.go	1
 docs/optimizations/mechanisms/G020-lazy-backend-preparation.md	gofile	internal/engine/program.go	1
 docs/optimizations/mechanisms/G020-lazy-backend-preparation.md	gofile	internal/engine/program_parse.go	1
-docs/optimizations/mechanisms/G030-constructor-dependency-analysis.md	codelink	sample/analysis.go	1
-docs/optimizations/mechanisms/G030-constructor-dependency-analysis.md	gofile	sample/analysis.go	1
+docs/optimizations/mechanisms/G030-constructor-dependency-analysis.md	codelink	pkg/sample/analysis.go	1
+docs/optimizations/mechanisms/G030-constructor-dependency-analysis.md	gofile	pkg/sample/analysis.go	1
 docs/optimizations/mechanisms/G040-copy-on-change-attribute-normalization.md	codelink	internal/compile/compile.go	1
 docs/optimizations/mechanisms/G040-copy-on-change-attribute-normalization.md	gofile	internal/compile/compile.go	1
 docs/optimizations/mechanisms/G040-copy-on-change-attribute-normalization.md	unexport	normalizeAttributes	1

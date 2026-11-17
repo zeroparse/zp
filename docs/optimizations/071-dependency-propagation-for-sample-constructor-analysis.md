@@ -50,7 +50,7 @@
   parent on the same Go release. Independent source review checks CSR count/fill,
   cursor-buffer reuse, dependency completeness and bounded ring invariants.
 - Reproduce with
-  `go test ./sample -run '^$' -bench '^BenchmarkSampleAnalysis$' -benchtime=200ms -benchmem`.
+  `go test ./pkg/sample -run '^$' -bench '^BenchmarkSampleAnalysis$' -benchtime=200ms -benchmem`.
   Build parent/candidate binaries with the same benchmark source; restore only
   `sample/analysis.go` from `38b2ecb` through a Go overlay for the parent. Run
   five alternating pairs with no tests/builds/probes concurrently. Raw results

@@ -10,8 +10,8 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/core"
-	"zeroparse.dev/zp/editfuzz"
 	"zeroparse.dev/zp/engine"
+	"zeroparse.dev/zp/pkg/editfuzz"
 )
 
 const limitsGrammar = "@start\nrule main = [a-z]* $$"

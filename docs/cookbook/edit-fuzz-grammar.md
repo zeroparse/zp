@@ -75,7 +75,7 @@ import (
 
 	"zeroparse.dev/zp/engine"
 	"zeroparse.dev/zp/core"
-	"zeroparse.dev/zp/editfuzz"
+	"zeroparse.dev/zp/pkg/editfuzz"
 )
 
 //go:embed nested.zp

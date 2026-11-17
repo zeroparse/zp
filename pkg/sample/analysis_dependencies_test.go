@@ -201,9 +201,9 @@ func BenchmarkSampleAnalysis(b *testing.B) {
 	}
 	for _, name := range []string{"calculator", "minilang", "outline"} {
 		b.Run(name, func(b *testing.B) {
-			file := "../examples/" + name + "/" + name + ".zp"
+			file := "../../examples/" + name + "/" + name + ".zp"
 			if name == "calculator" {
-				file = "../examples/calculator/calc.zp"
+				file = "../../examples/calculator/calc.zp"
 			}
 			src, err := os.ReadFile(file)
 			if err != nil {

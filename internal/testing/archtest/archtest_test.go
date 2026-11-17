@@ -269,7 +269,7 @@ func TestLayerGraph(t *testing.T) {
 	g := loadAll(t)[0].clone()
 	// One package of each layer.
 	rep := map[layer]string{
-		layerCmd: "cmd/zp", layerPublic: "lint", layerLSP: "internal/lsp/zpls", layerDriver: "internal/ir/opt",
+		layerCmd: "cmd/zp", layerPublic: "pkg/lint", layerLSP: "internal/lsp/zpls", layerDriver: "internal/ir/opt",
 		layerAnalysis: "internal/analysis/lint", layerBackend: "internal/codegen", layerMiddle: "internal/ir/flow/lower",
 		layerFront: "internal/frontend/desugar", layerIR: "internal/ir/core", layerPass: "internal/ir/pipeline",
 		layerGrammar: "grammar", layerUtil: "internal/diagnostic", layerTesting: "internal/testing/starttest",

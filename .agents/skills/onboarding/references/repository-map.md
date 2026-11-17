@@ -14,7 +14,7 @@ before choosing an edit location:
 | Code generation entry points | `codegen/` (`codegen.Go`, `codegen.TypeScript`, embedding the library sources `codegen/go/lib/` and `codegen/ts/lib/`), `internal/codegen/` |
 | Output schema and structural queries | `pkg/runtime/schema/` (the types, their validation and `Compare`), `internal/frontend/schemaexport/` (the export), `pkg/runtime/query/` (the queries) |
 | Generated Go parser source | Generator `internal/codegen/go/generator.go` and library package `codegen/go/lib/` (imported or copied into generated parsers; depends only on `core/`); generated parsers under `internal/bench/parsers/` are outputs |
-| CLI, linter, editor service and sample generation | `cmd/zp/`, `lint/`, `internal/lsp/`, `sample/` |
+| CLI, linter, editor service and sample generation | `cmd/zp/`, `pkg/lint/`, `internal/lsp/`, `pkg/sample/` |
 | Grammars of ten languages, playground and site | `testdata/grammars/`, `cmd/playground/`, `site/` (ready-made parsers: the separate alpha-parsers repository) |
 
 Use [specification index](../../../../spec/README.md) for supported language and
