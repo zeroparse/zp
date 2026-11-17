@@ -2866,7 +2866,22 @@ by (I1), applied to the iterations that this walk would evaluate, that is
 what the walk of $\mathcal{R}$ leaves in that state; so the induction goes
 on past the walk, and the parse evaluates what
 $\mathcal{R}(x)$ evaluates except, besides the three kinds above, inside
-the iterations that a record answers. By [Lemma 1 of the memoization
+the iterations that a record answers. In a
+[Document](../runtime/documents.md) parse a walk that resumes a run
+reuses recorded iterations, each an activation that makes no call, and
+evaluates nothing inside them. By [Lemma 3 of the Documents
+proof](documents.md#lemma-3-resumed-runs), under the invariant of the
+memoization theorem for the evaluations completed before it, which the
+induction of that theorem gives, the walk visits the iterations that the
+walk of $\mathcal{R}$ visits, in the same order and with the same
+outcomes, each starting where the one before ended, and leaves the
+enclosing evaluation with the same record of failures and range; its
+element reads no variable and no capture from outside. So the induction
+goes on past each reused iteration, and the parse evaluates what
+$\mathcal{R}(x)$ evaluates except, besides the four kinds above, inside
+the iterations that a resumed walk reuses. A reused iteration is the
+evaluation of the parse whose counterpart is the iteration of
+$\mathcal{R}$ that it stands for. By [Lemma 1 of the memoization
 proof](memoization.md#lemma-1-context), the evaluation in $\mathcal{R}$ of a
 call that reads no growth open at its start depends only on its key and its
 lookahead state, and the state reaches no decision of the parser, so by the
@@ -2988,11 +3003,13 @@ inside a lookahead that it observed, or (c) the
 parse skips by the next character an alternative on the path, or (d), in a
 parse that keeps records, a record answers an iteration on the path: the
 walk of the parse whose counterpart evaluates that iteration took a record
-in its place. Case (c) does
+in its place, or (e), in a Document parse, an iteration on the path is
+one that a walk which resumes a run reuses. Case (c) does
 not arise when $z$ holds an activation in $\mathcal{R}$. Where a claim below
 leaves out cases (a) and (b), or supposes that neither arises, it does the
-same with case (d); *Heads in a parse that keeps records* below says where
-that case arises.
+same with cases (d) and (e); *Heads in a parse that keeps records* below says where
+case (d) arises, and where case (e) arises is part of the eighth part of
+step 8 of [Open Steps](#open-steps).
 
 *Proof.* By induction on the order in which the parse completes its
 evaluations. Each call $z'$ that the path below reaches in place of $z$ has the
@@ -3043,7 +3060,14 @@ that the parse answers have their counterparts in the parse
 walk inside $y'$ took a record: the walk leaves what its iterations would
 leave, (R1), and $y'$ reads the growths that it would read without the
 record, since no call inside an iteration reads a growth (*Growths lie
-outside the recorded walks*). $\square$
+outside the recorded walks*). In a Document parse that resumes runs the
+same holds of case (e): outside it no reused iteration lies on the path,
+and a walk inside $y'$ that resumed a run leaves what its iterations would
+leave ([Lemma 3 of the Documents proof](documents.md#lemma-3-resumed-runs)),
+and $y'$ reads the growths that it would read without the resumption, since
+the reused iterations read no growth open at their start in $\mathcal{R}$
+([Lemma 4](documents.md#lemma-4-recorded-iterations-read-no-open-growth)
+of that proof). $\square$
 
 **Steps with an empty seed.** Let a step of a growth $G$ of a leader $R$ at
 $p$ after the first have an empty seed, so that condition 2 takes it as a unit
@@ -10583,27 +10607,25 @@ theorem covers such a parse.
    would bound, are counted by no claim. Eighth, the parses that resume
    runs of a [Document](../runtime/documents.md). A walk that a Document
    resumes reuses recorded iterations, each an activation that makes no
-   call, so the parse evaluates nothing inside them, and *Counterparts in
-   the reference parse* and *Covered keys* do not list them among the
-   evaluations of $\mathcal{R}$ that the parse does not make, as they list
-   the iterations that a record answers, case (d). Nor does
-   *Counterparts* state that a resumed walk leaves what the walk of
-   $\mathcal{R}$ leaves, as (R1) states of a walk that takes a record,
-   which its induction needs to go on past the walk and 2 of *Restarts in
-   a parse that keeps records* needs too; [Lemma 3 of the Documents
-   proof](documents.md#lemma-3-resumed-runs) gives it, a resumed
-   repetition ending where it ends in $\mathcal{R}$, with the same value
-   and the outcome that its iterations record there. That outcome holds
-   the recovered errors, none, since a run is recorded only when no
-   recovered error remains at its end, and the farthest failure with its
-   expected items ([Outcomes](memoization.md#setting) of the memoization
-   proof); the element reads no variable and no capture from outside, so
-   there is no environment to
-   compare. This is to be carried into those claims. The claims that rest
-   on them are not shown of such a parse where a resumed iteration lies
-   on the paths that they follow. *Families in a parse that keeps
-   records* and *Families without the records* are stated for a parse
-   that resumes no run, and in a parse that resumes one the activations
-   that growth steps and evaluations in a context of growths own are not
-   bounded by them, inside the iterations of the walks of the sites that
-   keep records or outside.
+   call, so the parse evaluates nothing inside them. *Counterparts in the
+   reference parse* lists them among the evaluations of $\mathcal{R}$ that
+   the parse does not make and carries its induction past them by [Lemma 3
+   of the Documents proof](documents.md#lemma-3-resumed-runs), whose
+   outcome holds the recovered errors, none, since a run is recorded only
+   when no recovered error remains at its end, and the farthest failure
+   with its expected items ([Outcomes](memoization.md#setting) of the
+   memoization proof); and *Covered keys* has them as its case (e), which
+   the claims that leave out case (d) leave out too. Not shown is where
+   case (e) arises, as *Heads in a parse that keeps records* shows it for
+   case (d), nor are the claims that compare two evaluations of one class
+   or follow a path through a resumed walk read again for it: *Replays*,
+   *Replayed activations*, *Answered calls*, the claims from *Links lead to
+   repeated evaluations* to *Evaluated pairs of a shared call*, *Heads in a
+   parse that keeps records*, *Covered keys through records*, 2 of
+   *Restarts in a parse that keeps records*, the claims on leaf links and
+   on the scans in a parse that keeps records, and *Activations held by
+   heads*. *Families in a parse that keeps records* and *Families without
+   the records* are stated for a parse that resumes no run, and in a parse
+   that resumes one the activations that growth steps and evaluations in
+   a context of growths own are not bounded by them, inside the iterations
+   of the walks of the sites that keep records or outside.
