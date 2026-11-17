@@ -3057,10 +3057,15 @@ growth open at their start in the parse, and so in $\mathcal{R}$. A growth
 open at the start of $M$ is read in $\mathcal{R}(M)$ by a call or step that
 the parse evaluates inside $M$, or answers with the current result of that
 growth, and then $M$ reads it too; or inside a call $y$ that the parse answers
-from an entry, whose call read no growth open at its start ((S)), so that
-$\mathcal{R}(y)$, which takes its steps ([Lemma 3 of the memoization
-proof](memoization.md#lemma-3-answering-from-a-sound-entry)), reads only
-growths that start inside $y$, after the start of $M$; or inside a call or step
+from an entry, which reads no growth open at its start ([Lemma 3 of the
+memoization proof](memoization.md#lemma-3-answering-from-a-sound-entry),
+which applies to an entry of an earlier Document parse as to one that this
+parse stored: [Lemma 2 of the Documents
+proof](documents.md#lemma-2-carried-entries) and the remark after it keep
+such an entry sound for the current text, with a present set made as (S)
+states, and the theorem of that proof gives the conditions of the answer),
+so that $\mathcal{R}(y)$ reads only growths that start inside $y$, after
+the start of $M$; or inside a call or step
 that the parse answers from what it keeps or takes in a run of steps, which
 counts as reading what it reads in $\mathcal{R}$ ((D)), so that $M$ reads it
 too. In a parse that keeps records, no growth is read in $\mathcal{R}(M)$
@@ -4239,8 +4244,8 @@ $\mathcal{R}$ evaluates more than once because it stores nothing. It is a
 claim on $\mathcal{R}$ and uses of the parse only *Counterparts*, the
 claim above and, in 2, the first paragraph of the proof of *Replays*,
 that a call of the parse that reads no growth open at its start reads
-none in $\mathcal{R}$, which rests on (S), (D) and *Growths lie outside
-the recorded walks*. It uses neither the covered keys nor the
+none in $\mathcal{R}$, which rests on Lemma 3 of the memoization proof, (D)
+and *Growths lie outside the recorded walks*. It uses neither the covered keys nor the
 correspondence that *Replays* states, so none of the cases (a) to (d). Call a successful activation $\beta$ of $\sigma$ at $q$ in
 $\mathcal{R}$ **fresh** when its owner call is the evaluation where
 $\mathcal{R}$ begins, or is an evaluation in $\mathcal{R}$ of a key that
@@ -11838,7 +11843,7 @@ theorem covers such a parse.
    lookahead that a result kept in a context of growths observed. Such a link can lead to
    an activation held by a head. The activations include
    those of the copying operations, the units of the own spans that they read
-   (Lemma 6). Two points of the claims proved in step 1 are left to make
+   (Lemma 6). One point of the claims proved in step 1 is left to make
    precise. The covered keys list the ways in which the parse does not
    evaluate what the reference parse evaluates, among them the iterations
    that a record answers, their case (d), and *Heads in a parse that keeps
@@ -11846,10 +11851,7 @@ theorem covers such a parse.
    activation inside an iteration of a walk of a site that keeps records;
    the replays leave out the evaluations inside such iterations; what is
    then not shown of a parse that keeps records is in step 8. The
-   argument of the replays that a growth read in the reference parse inside $M$ is read
-   by $M$ must cover the calls
-   that an entry of an earlier Document parse answers, for which it cites (S)
-   of the memoization proof without showing that such an entry satisfies it. And the statement on twins that the counterparts take over is
+   statement on twins that the counterparts take over is
    tested on the Core IR of the generated parsers and on the calls and their
    outcomes in the engine, for rules on no cycle that read no variable, and
    not for the values that the captures of a twin build.
