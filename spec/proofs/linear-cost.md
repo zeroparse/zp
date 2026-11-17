@@ -761,7 +761,7 @@ part, under a hypothesis on the shared calls of a link. The
 other claims that count nothing, those that follow *Iterations at one
 scan*, and the claims of Lemma 5 other than the first case of *Repeats
 inside a growth* and those that *Families in a parse that keeps records*
-shows, have not been read again for such
+shows for a parse that resumes no run of a Document, have not been read again for such
 a parse (step 8 of [Open Steps](#open-steps)); *Families without the
 records* bounds the activations that growth steps and evaluations in a
 context of growths own in such a parse, when it resumes no run of a
@@ -7488,7 +7488,8 @@ evaluations in a context of growths own are at most a constant, apart from
 those kinds and the parts that that claim leaves.
 
 **Families in a parse that keeps records.** In a parse whose records are
-exact, (R1) of the [Setting](#setting), let an iteration **of the kind** be
+exact, (R1) of the [Setting](#setting), and that resumes no run of a
+[Document](../runtime/documents.md), let an iteration **of the kind** be
 an iteration of a walk of a site that keeps records, as in *Heads in a
 parse that keeps records*. Then *Covered growths*, *Repeats inside a
 family* and *Links lead to later growths* hold as stated, the last for an
@@ -7585,9 +7586,19 @@ place inside the earlier evaluation is then followed as for *Heads hold
 what later growths hold*, and the activation that $h$ holds there is
 outside. $\square$
 
+The claim asks that the parse resume no run. A walk that a Document
+resumes evaluates no element in the iterations that it reuses, and (P)
+says nothing of it, since it is no walk of a site that keeps records. A
+head can resume a run whole from a record of the previous parse, which
+the resumption removes from the records that the parse can resume
+([Work of a Document Parse](../runtime/documents.md#work-of-a-document-parse)),
+so a later growth of its key can evaluate the walk at the same place;
+the head then need not hold what that growth holds, and *Heads hold what
+later growths hold* is not shown for such a parse.
+
 So the count above holds of the successful activations of $\sigma$ at $q$
 that growth steps and evaluations in a context of growths own and that are
-outside, up to the bound of *Consecutive repeats inside a family* in a step
+outside, in a parse that resumes no run, up to the bound of *Consecutive repeats inside a family* in a step
 that the claims at $p$ do not leave out, which rests on the claims of this
 lemma before *Calls in a context of growths*, not read again for a parse
 that keeps records. It does not bound those inside the iterations of the
@@ -7755,12 +7766,12 @@ records the parse could take there.
 The claim leaves out a parse that resumes a run of a Document. Such a
 parse can resume a run whole from a record that it stored earlier
 ([Documents](../runtime/documents.md)), so whether it resumes a walk
-depends on the walks that it evaluated before, among them walks inside
-iterations that its records answer, and a parse without records of
-sites that resumes runs can resume a walk that the parse evaluates; one
-that resumes none evaluates elements that the parse never evaluates,
-and its stores of the calls made there have no counterpart in the
-parse. In a parse that resumes a run, the activations that growth steps
+depends on the walks that it evaluated before. A parse without records of
+sites evaluates the walks inside the iterations that the records of the
+parse answer, so if it resumes runs it can resume a walk that the parse
+evaluates; if it resumes none, it evaluates elements that the parse
+never evaluates, and its stores of the calls made there have no
+counterpart in the parse. In a parse that resumes a run, the activations that growth steps
 and evaluations in a context of growths own inside the iterations of the
 kind are therefore not bounded here, and step 8 of [Open
 Steps](#open-steps) lists them with the walks that a Document resumes.
@@ -10678,10 +10689,11 @@ theorem covers such a parse.
    resumes a run are walks without records, and so are the repetitions that
    are not restartable and that *Sites that are walked a constant number of
    times* does not cover; both stay under step 1. A parse that resumes a
-   run is also outside *Families without the records*, so in it the
-   activations that growth steps and evaluations in a context of growths
-   own inside the iterations of the walks of the sites that keep records
-   are not bounded. Fourth, the order of the
+   run is also outside *Families in a parse that keeps records* and
+   *Families without the records*, so in it the activations that growth
+   steps and evaluations in a context of growths own are not bounded by
+   those claims, inside the iterations of the walks of the sites that keep
+   records or outside. Fourth, the order of the
    bounds, which the theorem takes as a hypothesis (*Order* in Lemma 17):
    $B$, $A_u$ and $O$ must be bounded with no use of the iterations of the
    recorded walks, of the activations that do not succeed or of the
@@ -10725,7 +10737,8 @@ theorem covers such a parse.
    keeps records* shows the first case of *Repeats inside a growth* of
    Lemma 5, on which the claims on leaf links rest. *Families in a parse
    that keeps records* shows *Covered growths*, *Repeats inside a family*
-   and *Links lead to later growths* of such a parse, and *Heads hold what
+   and *Links lead to later growths* of such a parse that resumes no run
+   of a Document, and *Heads hold what
    later growths hold*, *Consecutive repeats inside a family* and *First
    activations of heads* for the activations that lie in no iteration of
    a walk of a site that keeps records, up to the claims at the position
@@ -10819,7 +10832,7 @@ theorem covers such a parse.
    nothing in a context of growths (*Families without the records*), so
    what is open of them is what is open of that count in such a parse,
    when the parse resumes no run of a Document; in a parse that resumes
-   one they are open, with the walks of the third part.
+   one they are open, as the third part states.
    The same holds of the units of a copying operation that is a scanning
    source, in an action or a predicate of the element or of a rule that it
    calls, which Lemma 6 counts through the count of Lemma 4, and of the
