@@ -77,7 +77,11 @@ reaches satisfies conditions 1 to 5, and an input of length $n$. Let $K$ and
 $L$ be as in [Classification](../runtime/parsing.md#classification), and
 $\hat{n} = n + 1$. The parse is the memoized parse of the
 [memoization proof](memoization.md#setting) with the memoization of
-[Evaluations of Rules](../runtime/parsing.md#evaluations-of-rules).
+[Evaluations of Rules](../runtime/parsing.md#evaluations-of-rules), whose
+memo stores the result of every evaluation of a memoized rule, or of its
+twin, at a position outside every context of growths except possibly the
+first, as [Conditions for Linear
+Cost](../runtime/parsing.md#conditions-for-linear-cost) requires.
 "A constant" below means a number that depends only on the grammar and the
 backend.
 
@@ -2964,6 +2968,74 @@ the $q$-frame but in $w_{i+1}$, which is abandoned, so they are not held
 to the match of the frame, and the claim does not exclude members of
 $B_{i+1}$ after its end. Nor does it bound the number of $q$-frames in $T$,
 and so the number of runs.
+
+**Consecutive restarts through frames.** Under the hypotheses of *Restarts
+through a frame*, let $i + 1$ be linked and $e_{i+1}$ an evaluation of a key.
+Let $e_i$ and $e'_i$ have one variant, the lookahead state of $e_i$ be no
+greater than that of $e'_i$, every growth at the position of the link $i$
+that is open at the start of $e_i$ or of $e'_i$ be open at the start of both
+or be read by neither, and no call be in a context of growths on the way
+from $e'_i$, itself included, down to $e_{i+1}$ or on the way from $\mathcal{R}(e_i)$, followed
+into earlier evaluations, down to the call that corresponds to $e_{i+1}$.
+Then $e'_{i+1}$ has the other variant than $e_{i+1}$, or is in a context of
+growths, or $e_{i+1}$ is in lookahead state $1$ and $e'_{i+1}$ in state $0$.
+
+*Proof.* By 1 and 2 of *Restarts through a frame*, $e_{i+1}$ lies strictly
+inside $e'_i$, and the link $i$ is memoized, its rule memoized at both calls.
+$e_{i+1}$ contains $\alpha_i$ (*Repeats*), so $\mathcal{R}(e_{i+1})$ holds
+the counterpart of $\alpha_i$ at some depth. The proof of *Links lead to
+repeated evaluations* then applies with $Z = e_{i+1}$: it uses of $Z$ only
+that it is an evaluation of a key made inside $e'_i$ whose counterpart holds
+the counterpart of $\alpha_i$, so that the call $z^\circ$ at the same place in
+$\mathcal{R}(e_i)$ has a key of the class of $e_{i+1}$, reads no growth open
+at its start and holds an activation at any depth, and case (c) of the
+covered keys does not arise. Case (a) does not arise, by the statement of
+that claim, and case (b) arises only at a call that the parse answers from
+what it keeps apart from the table, which it keeps only in a context of
+growths. So the parse made an evaluation $y$ of the key of $z^\circ$, which
+ended before $e_i$ ended, and the last paragraph of that proof gives $y$ a
+lookahead state no greater than that of $e_{i+1}$. The variant of each call
+on the two ways depends only on its place and on the variant of the body
+that makes it (*Counterparts*), and the way follows an answered call only
+into an earlier evaluation of its key, so with $e_i$ and $e'_i$ of one
+variant, $y$ has the variant of $e_{i+1}$, and its key is the key of
+$e_{i+1}$.
+
+$e_{i+1}$ starts after $e'_i$ starts, which is after $w_i$, which contains
+$e_i$, is abandoned, so after $y$ ends. $y$ and $e_{i+1}$ are outside every
+context of growths, on the two ways. Had $y$ stored its result, the memo
+would answer every later call with its key outside contexts of growths in
+its lookahead state or a greater one (*Answered calls*), $e_{i+1}$ among
+them, which the parse evaluates. So $y$ stored no result, and by the
+condition on the memo in [Conditions for Linear
+Cost](../runtime/parsing.md#conditions-for-linear-cost) it is the first
+evaluation of its variant at its position, and $e_{i+1}$, a later one there,
+stores its result in its lookahead state. $e'_{i+1}$ is the evaluation that
+$\kappa_{i+1}$ makes of the call of $e_{i+1}$ at the same position after
+$w_{i+1}$, which contains $e_{i+1}$, is abandoned (*Repeats*), a call of
+the same rule or of its twin with the same level restriction, of a rule that
+reads no variable, so with a key of the class of $e_{i+1}$. If it had the
+variant of $e_{i+1}$, were outside every context of growths and were in a
+lookahead state no smaller than that of $e_{i+1}$, the memo would answer it
+(*Answered calls*), while the parse evaluates it, since $i + 1$ is
+linked. $\square$
+
+Call a link **plain** when its evaluations have one variant and the earlier
+is in a lookahead state no greater than the later. When a run restarts
+through the $q$-frame of a plain link that meets the hypotheses above, the
+next link, if linked, is not plain, or its later evaluation is in a context
+of growths. So in a sequence of restarts through $q$-frames whose links all
+meet those hypotheses, with their later evaluations outside every context of
+growths, no two consecutive links are plain. The claim rests on the
+condition on the memo: the bound of Lemma 3 on the evaluations at one
+position, which holds whatever results are stored, gives none on such a
+sequence, whose frames can lie at distinct positions. The links that are not
+plain are not bounded here. The lookahead state of $e_{i+1}$ is that of
+$e'_i$, or $1$ when a lookahead lies between them, and that of $e'_{i+1}$ is
+that of $T$, or $1$ when a lookahead lies between them, so a link that is
+not plain by its lookahead states needs only a lookahead around the next
+unit that does not enclose the next frame; and the variant of $e_{i+1}$ depends on its place in
+the body of $e'_i$, that of $e'_{i+1}$ on its place below $T$.
 
 ## Lemma 5 (Growth)
 
@@ -6708,7 +6780,11 @@ condition of the cost view that the [Cost View](cost-view.md) proof leaves open.
    activation of its iteration is then held inside it when it is an
    evaluation of a key, and that the next run starts its
    later iterations at boundaries of its first link at or after the end of
-   the $q$-frame. Refinements, the number of
+   the $q$-frame. *Consecutive restarts through frames* shows, under the
+   hypotheses of that claim and the condition on the memo, that two consecutive links of restarts through
+   $q$-frames are not both plain, each with one variant and the earlier
+   evaluation in a lookahead state no greater than the later. Refinements,
+   the links that are not plain, the number of
    runs in one evaluation $T$ of a repetition, the number of repetition
    evaluations $T$ that reach $q$, the number of $q$-frame positions,
    iterations that hold more than one activation, and dropped steps,

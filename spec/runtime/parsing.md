@@ -456,7 +456,18 @@ the two the body is evaluated for. A rule and
 its value-free twin count as two rules, with memo entries of their own: an entry
 of one answers no call of the other. The twin is memoized exactly when its rule
 is, as the exceptions below decide for the rule, even where the twin is called
-from fewer places. A recognition builds values only for the rules that a call
+from fewer places. Of the evaluations of a memoized rule at a position outside
+every context of growths, only the first may leave no result in the memo,
+whatever its binding level, the values of its variables and its lookahead
+state, and the same holds of the evaluations of its twin: every later one
+stores its result, in the state, inside a lookahead or a `skip` or outside
+them, in which it is made. The
+result stays in the memo for the rest of the parse, except that a
+[stream](streaming.md) drops the results at positions before an element that
+it has delivered, where the parse makes no later call.
+[Conditions for Linear Cost](#conditions-for-linear-cost) takes this as a
+condition of its bound; which results are stored never changes the result of
+a parse. A recognition builds values only for the rules that a call
 inside a capture that a predicate can read reaches, directly or through other
 rules, and builds them there as a parse does, with their twins, even where no
 predicate reads the value of such a rule. A predicate can read a capture of its
@@ -1640,7 +1651,13 @@ The conditions below use these terms.
 A grammar's cost from a start rule is at most proportional to n, times a
 constant that depends only on the grammar, when every rule that the start rule
 reaches satisfies all of the following. The conditions are sufficient, not
-necessary.
+necessary. The bound also needs the memo to store results as
+[Evaluations of Rules](#evaluations-of-rules) describes: of the evaluations of
+a memoized rule, or of its twin, at a position outside every context of
+growths, only the first may leave no result.
+The reference implementation and the generated parsers store so in every
+parse. A mode that leaves other results out of the memo, such as one that
+evicts entries, gives no linear bound by these conditions, and has to say so.
 
 1. **Variables.** No binding of a variable reads, through any chain of
    bindings, captures and rule values, the variable's own earlier value, when

@@ -77,6 +77,11 @@ A rule that is called where no value is wanted can have a twin: a rule with the 
 has the policy NoValue, no type, the finish None and Want false. A node calls the twin instead of the rule where its own
 value is not wanted.
 
+A twin builds a value at no place where its rule builds none: in the twin's body a place builds a value only inside a
+capture, and in both bodies a capture builds the value of what it captures. So wherever the rule's body calls the twin
+of a rule, the twin's body calls that twin too; where the rule's body calls a rule, the twin's body calls that rule or
+its twin.
+
 ## Shape
 
 The shape of a node is the static form of the value it builds, so that the enclosing node can convert it where it takes

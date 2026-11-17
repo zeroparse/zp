@@ -553,4 +553,8 @@ alike.
 
 **Order of storing.** The theorem holds for every choice of which outcomes to
 store, so deferring memoization to the second call at a position, or not
-memoizing a rule that is called from one place, leaves the result unchanged.
+memoizing a rule that is called from one place, leaves the result unchanged. The
+[linear-cost proof](linear-cost.md) relies on one choice, which
+[Conditions for Linear Cost](../runtime/parsing.md#conditions-for-linear-cost)
+states as a condition of its bound: of the evaluations of a memoized rule at a
+position outside every context of growths, only the first leaves no result.
