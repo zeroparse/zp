@@ -20,10 +20,12 @@ if errors.Is(err, grammar.ErrCompiled) {
 
 The encoding is grammar syntax or JSON. `As` sets it explicitly, as in
 `grammar.FromString("", text).As(grammar.EncodingJSON)`; otherwise the extension of the name decides
-(`.zp` or `.json`), and then the content, where a leading brace means JSON. A reader is read in full
-when the source is loaded. Load's errors carry source positions but not the name of the source, so
+(`.zp` or `.json`), and then the content, which is JSON when its first character other than white
+space is `{`. A reader is read in full when the source is first loaded, and the source keeps what it
+read, so it can be loaded again. JSON is decoded strictly: an unknown field, a duplicate key or
+trailing data is an error. Load's errors carry source positions but not the name of the source, so
 a tool that reports them adds `Source.Name`. `grammar.Convert(source, grammar.EncodingJSON)` loads a
-source and writes it in the other encoding.
+source and writes it in the encoding given, here JSON, whatever the encoding of the source.
 
 ## Validate a Hand-Built Grammar
 

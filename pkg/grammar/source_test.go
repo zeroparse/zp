@@ -6,6 +6,7 @@ import (
 	"strings"
 	"testing"
 	"testing/fstest"
+	"testing/iotest"
 
 	"zeroparse.dev/zp/pkg/grammar"
 	"zeroparse.dev/zp/pkg/grammar/ast"
@@ -119,5 +120,47 @@ func TestValidateAndFormat(t *testing.T) {
 	}
 	if err := grammar.Validate(&ast.Grammar{File: ast.File{Decls: []ast.Decl{&ast.RuleDef{Name: "main"}}}}); err == nil {
 		t.Error("a rule without a body validated")
+	}
+}
+
+func TestLoadDecodesJSONStrictly(t *testing.T) {
+	data, err := grammar.Convert(grammar.FromString("p.zp", "rule main = \"a\" { true }\n"), grammar.EncodingJSON)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := grammar.Load(grammar.FromBytes("p.json", data)); err != nil {
+		t.Fatalf("the predicate: %v", err)
+	}
+	// An AST written before the action expression of a predicate was named "action" has the field
+	// "term", which Load reports by name rather than dropping.
+	old := strings.Replace(string(data), `"action"`, `"term"`, 1)
+	if old == string(data) {
+		t.Fatal("no action field")
+	}
+	_, err = grammar.Load(grammar.FromString("p.json", old))
+	if err == nil || !strings.Contains(err.Error(), `unknown field "term"`) {
+		t.Errorf("the old field: %v", err)
+	}
+	if _, err := grammar.Load(grammar.FromBytes("g.json", append(jsonOf(t), "{}"...))); err == nil {
+		t.Error("trailing data loaded")
+	}
+}
+
+func TestReaderSourceLoadsAgain(t *testing.T) {
+	s := grammar.FromReader("g.zp", strings.NewReader(src))
+	for i, c := range []grammar.Source{s, s, s.As(grammar.EncodingZP)} {
+		if got := loadedRules(t, c); len(got) != 1 || got[0] != "main" {
+			t.Errorf("load %d: rules %v", i, got)
+		}
+	}
+	data, err := grammar.Convert(s, grammar.EncodingJSON)
+	if err != nil || string(data) != string(jsonOf(t)) {
+		t.Errorf("convert after loads: %s, %v", data, err)
+	}
+	failing := grammar.FromReader("r.zp", iotest.ErrReader(errors.New("boom")))
+	for range 2 {
+		if _, err := grammar.Load(failing); err == nil || err.Error() != "boom" {
+			t.Errorf("read error: %v", err)
+		}
 	}
 }
