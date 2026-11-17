@@ -221,6 +221,9 @@ func layer2(a, b string) []string {
 		return nil
 	}
 	var broken []string
+	if a == "pkg/grammar/ast" {
+		broken = append(broken, "the grammar AST imports only the standard library")
+	}
 	if under(a, "internal/pass") && !under(b, "internal/pass") {
 		broken = append(broken, "internal/pass imports nothing of the module")
 	}
