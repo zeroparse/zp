@@ -37,6 +37,13 @@ rule x = "x" "y"?`, "xy,!z"},
 	{"line starts", `rule main = (l "!" / [ab\n])* $$ => 1
 rule l = (^ "a" / x)+ => 1
 rule x = "b" / "\n"`, "ab\n!z"},
+	{"operators in a called rule", `rule main = (a "!" / [xy+*!])* $$ => 1
+rule a = (e ";"?)+ => 1
+rule e = #operators {
+    operand "x" / "y"
+    level { infix left "+" }
+    level { infix right "*" }
+}`, "xy+*;!z"},
 }
 
 // RunValueGrammars are grammars whose run sites build values, capture and read variables in their
@@ -100,6 +107,13 @@ rule a = ("a" / "b")*`, "ab!?"},
 	{"lookahead walks before lists", `rule main = (!(a "?") !(a ",") &(x:a "!" { len($x) > 3 }) w / a "," / [ab!?,])* $$
 rule w = a "!"
 rule a = ("a" / "b")*`, "ab!?,"},
+	{"operators in a called rule", `rule main = (a "!" / [xy+*!])* $$
+rule a = (e ";"?)+
+rule e = #operators {
+    operand "x" / "y"
+    level { infix left "+" => $lhs }
+    level { infix right "*" => $rhs }
+}`, "xy+*;!z"},
 }
 
 // RunValueInputs are inputs, besides random ones, that reach what a grammar of RunValueGrammars is

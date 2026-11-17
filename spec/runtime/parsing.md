@@ -748,7 +748,7 @@ repetition for which all of the following hold:
   repeats a single character;
 - every rule its expression calls, directly or indirectly, is called without a
   level, is not in a left-recursion cycle and contains no `#stream`,
-  `#missing`, `#error` or `#diagnostic`;
+  `#missing`, `#error` or `#diagnostic`; it may be an Operators Rule;
 - it is restartable: it is in the expression of another repetition whose
   maximum is neither 0 nor 1, or in a rule that calls itself, directly or
   indirectly, or in a rule that such an expression or such a rule calls,
