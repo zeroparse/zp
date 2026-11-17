@@ -570,7 +570,7 @@ op rec.none(errs Errs) bool
   component recovered
   cost <= 0
   contract:
-    // Reports whether the list of errors is empty.
+    // Reports whether the list of errors is empty. The null handle is the empty list.
 
 op stream.settleErrors()
   component recovered

@@ -278,8 +278,11 @@ identity every failed seed shares, `grow.ctx` tells whether other leaders of its
 and outside a context the composition takes each step with `grow.longer` and `grow.adopt`, which adopts the step
 and its errors as a seed of a new identity and returns to the start, while the composition drops the errors (and
 in the engine's missing-token mode the tokens) that the step recorded. A seed that `grow.adopt` replaces is no
-longer a valid result, as a target may keep the seed in the record of the growth, and the charges of `grow.begin`
-and `grow.adopt` are checked to the unit. The cases do not run the growth in a context: operations that exist only
+longer a valid result, as a target may keep the seed in the record of the growth; the generated Go harness
+reserves room for the growth records, since that target keeps the seed in the record and a larger table would
+move it while a case still holds it. The engine's `grow` is specialized for `missing`, so that only the form
+that inserts missing tokens drops them after each adopted step. The charges of `grow.begin` and `grow.adopt`
+are checked to the unit. The cases do not run the growth in a context: operations that exist only
 for conformance install a growth with a seed and identity that the case chooses, change the seed of the innermost
 growth, end it (dropping the table it began), and begin and end a lookahead through each target's own lookahead
 entry points, so that the `ctx` operations are checked apart from how growth steps compute identities. The reuse of a result that a
