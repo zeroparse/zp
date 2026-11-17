@@ -73,7 +73,7 @@ type compiler struct {
 // termSite is a term of the module: the Core IR term, the slots of the frame it reads, and the
 // projected captures of the rule whose action it is (nil for every other term).
 type termSite struct {
-	term  ir.Term
+	term  ir.ActionExpr
 	scope []ir.Slot
 	proj  map[string]string
 }
@@ -271,7 +271,7 @@ func projections(body ir.Node) map[string]string {
 
 // term adds the term t, which reads the frame of the current scope, to the module and returns its
 // index; proj are the projected captures of the rule whose action t is.
-func (c *compiler) term(t ir.Term, proj map[string]string) int {
+func (c *compiler) term(t ir.ActionExpr, proj map[string]string) int {
 	c.terms = append(c.terms, termSite{term: t, scope: c.scope, proj: proj})
 	c.m.Terms = append(c.m.Terms, bytecode.Term{})
 	return len(c.m.Terms) - 1

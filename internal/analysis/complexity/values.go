@@ -30,7 +30,7 @@ func valueReaders(m *core.Module) *values {
 	for i, r := range m.Rules {
 		reads := map[string]bool{}
 		core.Walk(r.Body, func(n core.Node) {
-			var t core.Term
+			var t core.ActionExpr
 			switch n := n.(type) {
 			case *core.Pred:
 				t = n.Term
@@ -39,7 +39,7 @@ func valueReaders(m *core.Module) *values {
 			default:
 				return
 			}
-			core.WalkTerm(t, func(t core.Term) {
+			core.WalkActionExpr(t, func(t core.ActionExpr) {
 				if s, ok := t.(*core.SlotRef); ok {
 					reads[s.Name] = true
 				}

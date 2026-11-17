@@ -208,9 +208,9 @@ func (v *verifier) scope(scope []Slot) error {
 	return nil
 }
 
-func (v *verifier) term(t Term, scope []Slot) error {
+func (v *verifier) term(t ActionExpr, scope []Slot) error {
 	var err error
-	WalkTerm(t, func(x Term) {
+	WalkActionExpr(t, func(x ActionExpr) {
 		if err != nil {
 			return
 		}
@@ -218,7 +218,7 @@ func (v *verifier) term(t Term, scope []Slot) error {
 			err = slotErr(scope, s.Slot, s.Name)
 		}
 		if _, lambda := x.(*Lambda); v.m.Typed && !lambda && TypeOf(x) == nil {
-			err = fmt.Errorf("term %s has no type", TermString(x))
+			err = fmt.Errorf("term %s has no type", ActionExprString(x))
 		}
 	})
 	return err

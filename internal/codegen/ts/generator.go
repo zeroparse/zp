@@ -438,7 +438,7 @@ func tsActxParam(body string) string {
 
 // action emits a function that evaluates the term ct of Core IR (an action or a predicate) and
 // returns its name.
-func (g *Generator) action(ct core.Term, s *check.Scope, locals map[string]string) string {
+func (g *Generator) action(ct core.ActionExpr, s *check.Scope, locals map[string]string) string {
 	name := g.Name("a")
 	g.Methods.WriteString(g.actionFunc(name, ct, s, locals))
 	return name
@@ -716,7 +716,7 @@ func (g *Generator) operatorsRuleLine(e grammar.Expr, action grammar.Term, opera
 		if operator {
 			locals = map[string]string{"lhs": "c.lhs", "rhs": "c.rhs", "op": "c.op"}
 		}
-		var ct core.Term
+		var ct core.ActionExpr
 		if l != nil {
 			ct = l.Action
 		}

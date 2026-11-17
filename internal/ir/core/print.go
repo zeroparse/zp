@@ -71,7 +71,7 @@ func (p *printer) rule(r *Rule) {
 	}
 	switch r.Finish.Kind {
 	case FinishAction:
-		p.b.WriteString(" => " + TermString(r.Finish.Action))
+		p.b.WriteString(" => " + ActionExprString(r.Finish.Action))
 	case FinishSplice:
 		p.b.WriteString(" splice")
 	case FinishScope:
@@ -205,9 +205,9 @@ func (p *printer) node(n Node, d int) {
 			p.b.WriteString(" project=" + n.Project)
 		}
 	case *Pred:
-		p.line(d, "pred %s", TermString(n.Term))
+		p.line(d, "pred %s", ActionExprString(n.Term))
 	case *BindNode:
-		p.line(d, "bind %s = %s", n.Var, TermString(n.Term))
+		p.line(d, "bind %s = %s", n.Var, ActionExprString(n.Term))
 	case *Label:
 		if n.Diagnostic {
 			p.line(d, "diagnostic %q", p.exp(n.Exp))
@@ -255,7 +255,7 @@ func (p *printer) node(n Node, d int) {
 func (p *printer) opLine(d int, head string, l *OpLine) {
 	p.line(d, "%s scope=%v%s", head, SlotNames(l.Scope), shapeString(l.Shape))
 	if l.Action != nil {
-		p.b.WriteString(" => " + TermString(l.Action))
+		p.b.WriteString(" => " + ActionExprString(l.Action))
 	}
 	p.b.WriteString("\n")
 	p.node(l.Body, d+1)
@@ -367,8 +367,8 @@ func runeString(r rune) string {
 	return fmt.Sprintf("\\u%04x", r)
 }
 
-// TermString returns a text form of a term.
-func TermString(t Term) string {
+// ActionExprString returns a text form of an action expression.
+func ActionExprString(t ActionExpr) string {
 	switch t := t.(type) {
 	case nil:
 		return "<nil>"
@@ -384,11 +384,11 @@ func TermString(t Term) string {
 	case *VarRef:
 		return "var:" + t.Name
 	case *Member:
-		return TermString(t.X) + "." + t.Name
+		return ActionExprString(t.X) + "." + t.Name
 	case *New:
 		fs := make([]string, len(t.Fields))
 		for i, f := range t.Fields {
-			fs[i] = f.Name + ": " + TermString(f.Value)
+			fs[i] = f.Name + ": " + ActionExprString(f.Value)
 		}
 		s := t.Type + "{" + strings.Join(fs, ", ") + "}"
 		if t.Final {
@@ -396,22 +396,22 @@ func TermString(t Term) string {
 		}
 		return s
 	case *Convert:
-		return t.NodeType + "(" + TermString(t.X) + ")"
+		return t.NodeType + "(" + ActionExprString(t.X) + ")"
 	case *Tuple:
 		return "(" + termList(t.Elems) + ")"
 	case *Builtin:
 		return t.Func + "(" + termList(t.Args) + ")"
 	case *Lambda:
-		return "fn(" + strings.Join(t.Params, ", ") + ") " + TermString(t.Body)
+		return "fn(" + strings.Join(t.Params, ", ") + ") " + ActionExprString(t.Body)
 	case *Binary:
-		return "(" + TermString(t.L) + " " + t.Op + " " + TermString(t.R) + ")"
+		return "(" + ActionExprString(t.L) + " " + t.Op + " " + ActionExprString(t.R) + ")"
 	case *Unary:
-		return t.Op + TermString(t.X)
+		return t.Op + ActionExprString(t.X)
 	case *Cast:
 		if t.Check == nil {
-			return TermString(t.X) + ".(_)"
+			return ActionExprString(t.X) + ".(_)"
 		}
-		return TermString(t.X) + ".(" + fmt.Sprint(t.Check) + ")"
+		return ActionExprString(t.X) + ".(" + fmt.Sprint(t.Check) + ")"
 	}
 	return fmt.Sprintf("%T", t)
 }
@@ -423,10 +423,10 @@ func localName(t *Local) string {
 	return ""
 }
 
-func termList(ts []Term) string {
+func termList(ts []ActionExpr) string {
 	xs := make([]string, len(ts))
 	for i, t := range ts {
-		xs[i] = TermString(t)
+		xs[i] = ActionExprString(t)
 	}
 	return strings.Join(xs, ", ")
 }

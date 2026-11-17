@@ -124,8 +124,8 @@ rule pair P = n:[0-9]+ s:[a-z] => P{N: len($n), S: text($s)}
 		t.Errorf("element scope %s", got)
 	}
 	var terms []string
-	core.WalkTerm(main.Finish.Action, func(x core.Term) {
-		terms = append(terms, core.TermString(x)+" : "+typeString(core.TypeOf(x)))
+	core.WalkActionExpr(main.Finish.Action, func(x core.ActionExpr) {
+		terms = append(terms, core.ActionExprString(x)+" : "+typeString(core.TypeOf(x)))
 	})
 	if len(terms) == 0 || !strings.HasSuffix(terms[0], " : P") {
 		t.Errorf("action terms %v", terms)
@@ -279,7 +279,7 @@ rule item = v:"a"
 		t.Fatal(err)
 	}
 	got := map[string]string{}
-	core.WalkTerm(m.Rules[0].Finish.Action, func(t core.Term) {
+	core.WalkActionExpr(m.Rules[0].Finish.Action, func(t core.ActionExpr) {
 		if mem, ok := t.(*core.Member); ok {
 			got[mem.Name] = mem.Field
 		}

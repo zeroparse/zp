@@ -757,7 +757,7 @@ func singleChar(e grammar.Expr) bool {
 
 // term builds the term t in the scope s, with its checked type; env maps the names of lambda
 // parameters and Operators Rule locals in scope to their locals.
-func (b *coreBuilder) term(t grammar.Term, s *coreScope, env map[string]*core.Local) (core.Term, error) {
+func (b *coreBuilder) term(t grammar.Term, s *coreScope, env map[string]*core.Local) (core.ActionExpr, error) {
 	if g, ok := t.(*grammar.TermGroup); ok {
 		return b.term(g.Term, s, env)
 	}
@@ -773,8 +773,8 @@ func (b *coreBuilder) term(t grammar.Term, s *coreScope, env map[string]*core.Lo
 	return x, nil
 }
 
-func (b *coreBuilder) termNode(t grammar.Term, s *coreScope, env map[string]*core.Local) (core.Term, error) {
-	sub := func(x grammar.Term) (core.Term, error) { return b.term(x, s, env) }
+func (b *coreBuilder) termNode(t grammar.Term, s *coreScope, env map[string]*core.Local) (core.ActionExpr, error) {
+	sub := func(x grammar.Term) (core.ActionExpr, error) { return b.term(x, s, env) }
 	switch t := t.(type) {
 	case *grammar.IntLit:
 		return &core.Const{Value: t.Value}, nil

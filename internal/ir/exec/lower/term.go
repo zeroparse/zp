@@ -42,7 +42,7 @@ func (c TermConst) String() string {
 }
 
 // TermRead is the immediate operand of term.read: a ir.SlotRef, ir.Local or ir.VarRef.
-type TermRead struct{ Term ir.Term }
+type TermRead struct{ Term ir.ActionExpr }
 
 func (r TermRead) String() string {
 	switch t := r.Term.(type) {
@@ -165,9 +165,9 @@ type TermOptions struct {
 // built-in other than those of the language, one with arguments of the wrong number, a lambda that
 // is not the function argument of map, filter, foldl or foldr, or a parameter read outside the body
 // of its lambda.
-func Term(t ir.Term, o TermOptions) (*TermLowered, error) {
+func Term(t ir.ActionExpr, o TermOptions) (*TermLowered, error) {
 	if !wellFormed(t) {
-		return nil, fmt.Errorf("lower: a term that the front end does not build: %s", ir.TermString(t))
+		return nil, fmt.Errorf("lower: a term that the front end does not build: %s", ir.ActionExprString(t))
 	}
 	m, err := termModule()
 	if err != nil {
@@ -241,10 +241,10 @@ func checkTermSignature(m *code.Module, f *code.Func) error {
 // wellFormed reports whether t is a term that Term lowers: the built-ins of the language with their
 // arguments, lambdas only as their function arguments, and parameters only in the bodies of their
 // lambdas.
-func wellFormed(t ir.Term) bool {
+func wellFormed(t ir.ActionExpr) bool {
 	ok := true
 	args := map[*ir.Lambda]bool{} // the lambdas that are the function arguments of built-ins
-	ir.WalkTerm(t, func(x ir.Term) {
+	ir.WalkActionExpr(t, func(x ir.ActionExpr) {
 		switch x := x.(type) {
 		case *ir.Const, *ir.SlotRef, *ir.VarRef, *ir.Member, *ir.Binary, *ir.Unary, *ir.Convert, *ir.Cast,
 			*ir.Tuple, *ir.New, *ir.Local:
@@ -281,14 +281,14 @@ func wellFormed(t ir.Term) bool {
 
 // scoped reports whether every parameter that t reads is read in the body of its lambda; in holds
 // the lambdas that enclose t.
-func scoped(t ir.Term, in []*ir.Lambda) bool {
+func scoped(t ir.ActionExpr, in []*ir.Lambda) bool {
 	switch x := t.(type) {
 	case *ir.Local:
 		return x.Kind != ir.LocalParam || slices.Contains(in, x.Lambda)
 	case *ir.Lambda:
 		in = append(in[:len(in):len(in)], x)
 	}
-	for _, c := range ir.TermChildren(t) {
+	for _, c := range ir.ActionExprChildren(t) {
 		if !scoped(c, in) {
 			return false
 		}
@@ -297,13 +297,13 @@ func scoped(t ir.Term, in []*ir.Lambda) bool {
 }
 
 // plain reports whether t is not a lambda.
-func plain(t ir.Term) bool {
+func plain(t ir.ActionExpr) bool {
 	_, ok := t.(*ir.Lambda)
 	return !ok
 }
 
 // lambda reports whether t is a lambda with n parameters.
-func lambda(t ir.Term, n int) bool {
+func lambda(t ir.ActionExpr, n int) bool {
 	f, ok := t.(*ir.Lambda)
 	return ok && len(f.Params) == n
 }
@@ -479,7 +479,7 @@ func opCode(list []string, sym string) code.Expr {
 
 // value lowers t, appending the statements that compute its operands to b, and returns its value: a
 // local or the call of a leaf.
-func (l *termLowerer) value(b *code.Builder, t ir.Term) code.Expr {
+func (l *termLowerer) value(b *code.Builder, t ir.ActionExpr) code.Expr {
 	if l.steps {
 		b.Do(OpTermSpend)
 	}
@@ -613,7 +613,7 @@ func (l *termLowerer) value(b *code.Builder, t ir.Term) code.Expr {
 }
 
 // values lowers the terms ts in order and returns their values.
-func (l *termLowerer) values(b *code.Builder, ts []ir.Term) []code.Expr {
+func (l *termLowerer) values(b *code.Builder, ts []ir.ActionExpr) []code.Expr {
 	vals := make([]code.Expr, len(ts))
 	for i, t := range ts {
 		vals[i] = l.value(b, t)
@@ -869,14 +869,14 @@ func comparison(op string) bool {
 }
 
 // fieldRead reports whether t reads a field of a value, x.F, not a capture.
-func fieldRead(t ir.Term) bool {
+func fieldRead(t ir.ActionExpr) bool {
 	m, ok := t.(*ir.Member)
 	return ok && (m.Name == "" || m.Name[0] != '$')
 }
 
 // operand lowers t, an operand of a comparison (FieldCompare): a field read is read by
 // term.fieldOperand, any other term is a value.
-func (l *termLowerer) operand(b *code.Builder, t ir.Term) code.Expr {
+func (l *termLowerer) operand(b *code.Builder, t ir.ActionExpr) code.Expr {
 	if !fieldRead(t) {
 		return code.C(OpTermOperand, l.value(b, t))
 	}
@@ -890,12 +890,12 @@ func (l *termLowerer) operand(b *code.Builder, t ir.Term) code.Expr {
 
 // textMembership reports whether t compares the text of one capture with string literals,
 // text($x) == "a" || ..., with the capture and the distinct literals in the order written.
-func textMembership(t ir.Term) (ir.Term, []string, bool) {
-	var x ir.Term
+func textMembership(t ir.ActionExpr) (ir.ActionExpr, []string, bool) {
+	var x ir.ActionExpr
 	var name string
 	var lits []string
-	var walk func(ir.Term) bool
-	walk = func(t ir.Term) bool {
+	var walk func(ir.ActionExpr) bool
+	walk = func(t ir.ActionExpr) bool {
 		b, ok := t.(*ir.Binary)
 		if ok && b.Op == "||" {
 			return walk(b.L) && walk(b.R)
@@ -941,7 +941,7 @@ func textMembership(t ir.Term) (ir.Term, []string, bool) {
 }
 
 // textArg returns the argument of t if t is a call text(x).
-func textArg(t ir.Term) (ir.Term, bool) {
+func textArg(t ir.ActionExpr) (ir.ActionExpr, bool) {
 	if c, ok := t.(*ir.Builtin); ok && c.Func == "text" && len(c.Args) == 1 {
 		return c.Args[0], true
 	}

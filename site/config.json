@@ -407,7 +407,7 @@
       "first": [
         "spec/core-ir/modules.md",
         "spec/core-ir/nodes.md",
-        "spec/core-ir/terms.md",
+        "spec/core-ir/actions.md",
         "spec/core-ir/attributes.md",
         "spec/core-ir/invariants.md",
         "spec/core-ir/text-form.md",
@@ -638,6 +638,7 @@
   ],
   "redirects": {
     "/spec/pratt/": "/spec/language/operators-rule/",
+    "/spec/core-ir/terms/": "/spec/core-ir/actions/",
     "/docs/design/records/005-pratt-expressions/": "/docs/design/records/005-operators-rule/",
     "/docs/design/records/050-pratt-skip-control/": "/docs/design/records/050-operators-rule-skip-control/",
     "/docs/optimizations/009-value-free-pratt-lines-discarding-trivia-in-example-grammars-936857c/": "/docs/optimizations/009-value-free-operators-rule-lines-discarding-trivia-in-example-grammars-936857c/",

@@ -241,7 +241,7 @@ type OperatorsRule struct {
 type OpLine struct {
 	Body   Node
 	Scope  []Slot
-	Action Term
+	Action ActionExpr
 	// Shape is the shape of the line body's value.
 	Shape Shape
 }
@@ -281,14 +281,14 @@ type Capture struct {
 // Pred is a Predicate Action: it fails unless the term is true.
 type Pred struct {
 	base
-	Term Term
+	Term ActionExpr
 }
 
 // BindNode binds a variable to the value of a term.
 type BindNode struct {
 	base
 	Var  string
-	Term Term
+	Term ActionExpr
 }
 
 // Label is @error or @diagnostic: on failure, the expectations recorded inside are replaced by

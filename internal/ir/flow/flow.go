@@ -618,7 +618,7 @@ type Bind struct {
 // Eval is the value of the action Term of the function's rule, evaluated in the context C with
 // the captures Caps.
 type Eval struct {
-	Term core.Term
+	Term core.ActionExpr
 	C    *Var
 	Caps Captures
 }
@@ -857,8 +857,8 @@ func Uses(x Expr, f func(*Var)) {
 }
 
 // capUses calls f with the variables of caps that the term t reads.
-func capUses(t core.Term, caps Captures, f func(*Var)) {
-	core.WalkTerm(t, func(t core.Term) {
+func capUses(t core.ActionExpr, caps Captures, f func(*Var)) {
+	core.WalkActionExpr(t, func(t core.ActionExpr) {
 		if r, ok := t.(*core.SlotRef); ok && r.Slot < len(caps.Vars) && caps.Vars[r.Slot] != nil {
 			f(caps.Vars[r.Slot])
 		}

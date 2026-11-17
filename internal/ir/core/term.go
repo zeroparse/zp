@@ -1,8 +1,8 @@
 package core
 
-// Term is a term of the action language: an action, a predicate or the value of a binding, with
+// ActionExpr is an action expression: the expression of an action, a predicate or a binding, with
 // its names resolved and its checked type (TypeOf).
-type Term interface{ typ() *Type }
+type ActionExpr interface{ typ() *Type }
 
 // termBase holds the checked type of a term.
 type termBase struct{ t Type }
@@ -11,10 +11,10 @@ func (b *termBase) typ() *Type { return &b.t }
 
 // TypeOf returns the checked type of the term t: the type of its value, nil for a lambda, which
 // only built-ins call.
-func TypeOf(t Term) Type { return *t.typ() }
+func TypeOf(t ActionExpr) Type { return *t.typ() }
 
 // SetType sets the checked type of the term t.
-func SetType(t Term, typ Type) { *t.typ() = typ }
+func SetType(t ActionExpr, typ Type) { *t.typ() = typ }
 
 // Const is a constant: an int, a string, a bool or nil.
 type Const struct {
@@ -61,7 +61,7 @@ type VarRef struct {
 // Member reads a member of a value: a field or a node member ($o, .Start, ...).
 type Member struct {
 	termBase
-	X    Term
+	X    ActionExpr
 	Name string
 	// Field is the capture of the value that a projection of an element can stand for: the member
 	// name without its $ for a read of a capture (x.$f and x.f give f), and empty for a node member
@@ -85,14 +85,14 @@ type New struct {
 // FieldInit is a field given to New.
 type FieldInit struct {
 	Name  string
-	Value Term
+	Value ActionExpr
 }
 
 // Convert converts a value to a named node type.
 type Convert struct {
 	termBase
 	NodeType string
-	X        Term
+	X        ActionExpr
 	// Proven reports that the checker proved that every value of X converts.
 	Proven bool
 }
@@ -100,91 +100,91 @@ type Convert struct {
 // Tuple makes a tuple.
 type Tuple struct {
 	termBase
-	Elems []Term
+	Elems []ActionExpr
 }
 
 // Builtin calls a built-in function: len, text, foldl, foldr, map, filter, list or concat.
 type Builtin struct {
 	termBase
 	Func string
-	Args []Term
+	Args []ActionExpr
 }
 
 // Lambda is a function literal, an argument of a built-in.
 type Lambda struct {
 	termBase
 	Params []string
-	Body   Term
+	Body   ActionExpr
 }
 
 // Binary is a binary operation.
 type Binary struct {
 	termBase
 	Op   string
-	L, R Term
+	L, R ActionExpr
 }
 
 // Unary is a unary operation.
 type Unary struct {
 	termBase
 	Op string
-	X  Term
+	X  ActionExpr
 }
 
 // Cast converts a value to a checked type. Check and Key are the backend's handles to the
 // checked type and to the cast; Check is nil for a type that every value fits, which checks nothing.
 type Cast struct {
 	termBase
-	X         Term
+	X         ActionExpr
 	Check     any
 	Key       any
 	Line, Col int
 }
 
-// TermChildren returns the direct subterms of t.
-func TermChildren(t Term) []Term {
+// ActionExprChildren returns the direct subexpressions of t.
+func ActionExprChildren(t ActionExpr) []ActionExpr {
 	switch t := t.(type) {
 	case *Member:
-		return []Term{t.X}
+		return []ActionExpr{t.X}
 	case *New:
-		xs := make([]Term, len(t.Fields))
+		xs := make([]ActionExpr, len(t.Fields))
 		for i, f := range t.Fields {
 			xs[i] = f.Value
 		}
 		return xs
 	case *Convert:
-		return []Term{t.X}
+		return []ActionExpr{t.X}
 	case *Tuple:
 		return t.Elems
 	case *Builtin:
 		return t.Args
 	case *Lambda:
-		return []Term{t.Body}
+		return []ActionExpr{t.Body}
 	case *Binary:
-		return []Term{t.L, t.R}
+		return []ActionExpr{t.L, t.R}
 	case *Unary:
-		return []Term{t.X}
+		return []ActionExpr{t.X}
 	case *Cast:
-		return []Term{t.X}
+		return []ActionExpr{t.X}
 	}
 	return nil
 }
 
-// WalkTerm calls f for t and its subterms in preorder.
-func WalkTerm(t Term, f func(Term)) {
+// WalkActionExpr calls f for t and its subexpressions in preorder.
+func WalkActionExpr(t ActionExpr, f func(ActionExpr)) {
 	if t == nil {
 		return
 	}
 	f(t)
-	for _, c := range TermChildren(t) {
-		WalkTerm(c, f)
+	for _, c := range ActionExprChildren(t) {
+		WalkActionExpr(c, f)
 	}
 }
 
 // Raises reports whether evaluating t can end the parse with an error. Constants and reads of
 // slots, locals and variables cannot, nor can a conversion that the checker proved; every other
 // operation can (a missing field, a type error, a failed conversion or cast).
-func Raises(t Term) bool {
+func Raises(t ActionExpr) bool {
 	switch t := t.(type) {
 	case *Const, *SlotRef, *Local, *VarRef:
 		return false

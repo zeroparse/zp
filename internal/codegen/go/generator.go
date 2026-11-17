@@ -1451,7 +1451,7 @@ func (g *Generator) operatorsRuleLine(e grammar.Expr, action grammar.Term, opera
 		if operator {
 			locals = map[string]string{"lhs": "c.Lhs", "rhs": "c.Rhs", "op": "c.Op"}
 		}
-		var ct core.Term
+		var ct core.ActionExpr
 		if l != nil {
 			ct = l.Action
 		}

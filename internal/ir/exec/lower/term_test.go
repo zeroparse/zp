@@ -72,7 +72,7 @@ func TestTermDumpGolden(t *testing.T) {
 // the lines of Operators Rules, and the terms of predicates and bindings.
 func dumpTerms(t *testing.T, m *core.Module) string {
 	var b strings.Builder
-	dump := func(rule, what string, x core.Term) {
+	dump := func(rule, what string, x core.ActionExpr) {
 		if x == nil {
 			return
 		}
@@ -114,25 +114,25 @@ func TestTermRejectsMalformedTerms(t *testing.T) {
 	f := &core.Lambda{Params: []string{"e"}}
 	e := &core.Local{Kind: core.LocalParam, Name: "e", Lambda: f}
 	f.Body = e
-	mapped := &core.Builtin{Func: "map", Args: []core.Term{&core.Builtin{Func: "list", Args: []core.Term{one}}, f}}
-	for _, x := range []core.Term{
+	mapped := &core.Builtin{Func: "map", Args: []core.ActionExpr{&core.Builtin{Func: "list", Args: []core.ActionExpr{one}}, f}}
+	for _, x := range []core.ActionExpr{
 		e, // a parameter outside its lambda
 		&core.Binary{Op: "+", L: mapped, R: e},
-		&core.Builtin{Func: "nope", Args: []core.Term{one}},
-		&core.Builtin{Func: "len", Args: []core.Term{one, one}},
-		&core.Builtin{Func: "map", Args: []core.Term{one, one}},
+		&core.Builtin{Func: "nope", Args: []core.ActionExpr{one}},
+		&core.Builtin{Func: "len", Args: []core.ActionExpr{one, one}},
+		&core.Builtin{Func: "map", Args: []core.ActionExpr{one, one}},
 		&core.Lambda{Body: one},
 		&core.Binary{Op: "+", L: one, R: &core.Lambda{Params: []string{"e"}, Body: one}},
 	} {
 		if l, err := lower.Term(x, lower.TermOptions{}); err == nil || l != nil {
-			t.Errorf("Term(%s) = %v, %v; want an error", core.TermString(x), l, err)
+			t.Errorf("Term(%s) = %v, %v; want an error", core.ActionExprString(x), l, err)
 		}
 	}
-	if _, err := lower.Term(&core.Builtin{Func: "len", Args: []core.Term{one}}, lower.TermOptions{}); err != nil {
+	if _, err := lower.Term(&core.Builtin{Func: "len", Args: []core.ActionExpr{one}}, lower.TermOptions{}); err != nil {
 		t.Errorf("Term(len(1)): %v", err)
 	}
 	if _, err := lower.Term(mapped, lower.TermOptions{}); err != nil {
-		t.Errorf("Term(%s): %v", core.TermString(mapped), err)
+		t.Errorf("Term(%s): %v", core.ActionExprString(mapped), err)
 	}
 }
 
@@ -142,12 +142,12 @@ func TestTermRejectsMalformedTerms(t *testing.T) {
 // for the folds, and no other built-in takes one.
 func TestTermLowersNoFunctionValue(t *testing.T) {
 	one := &core.Const{Value: 1}
-	list := &core.Builtin{Func: "list", Args: []core.Term{one}}
+	list := &core.Builtin{Func: "list", Args: []core.ActionExpr{one}}
 	lambda := func(params ...string) *core.Lambda { return &core.Lambda{Params: params, Body: one} }
-	b := func(fn string, args ...core.Term) core.Term { return &core.Builtin{Func: fn, Args: args} }
+	b := func(fn string, args ...core.ActionExpr) core.ActionExpr { return &core.Builtin{Func: fn, Args: args} }
 	for _, c := range []struct {
 		name string
-		term core.Term
+		term core.ActionExpr
 		ok   bool
 	}{
 		{"len", b("len", one), true},
@@ -174,7 +174,7 @@ func TestTermLowersNoFunctionValue(t *testing.T) {
 	} {
 		l, err := lower.Term(c.term, lower.TermOptions{})
 		if (err == nil) != c.ok || (err == nil) != (l != nil) {
-			t.Errorf("%s: Term(%s) = %v, %v; want ok %v", c.name, core.TermString(c.term), l, err, c.ok)
+			t.Errorf("%s: Term(%s) = %v, %v; want ok %v", c.name, core.ActionExprString(c.term), l, err, c.ok)
 		}
 	}
 }

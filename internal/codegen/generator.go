@@ -198,7 +198,7 @@ type FlowState struct {
 
 // CoreAction returns the action of Core IR of the rule r, the term that its value is made of, or nil
 // if it has none or the table has no Core IR.
-func (g *Generator) CoreAction(r *compile.Rule) core.Term {
+func (g *Generator) CoreAction(r *compile.Rule) core.ActionExpr {
 	if g.Flow == nil || r.ID >= len(g.Flow.M.Rules) {
 		return nil
 	}

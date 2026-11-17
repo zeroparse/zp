@@ -82,21 +82,21 @@ func iterate(c *EvalCtx, cp *compile.Program, call string, x any) (any, error) {
 		l.Body = e
 		return l, e
 	}
-	var term ir.Term
+	var term ir.ActionExpr
 	switch call {
 	case conform.CallFoldl, conform.CallFoldr:
 		f, _ := lambda("acc", "e")
-		term = &ir.Builtin{Func: call, Args: []ir.Term{&ir.Const{Value: nil}, op("x"), f}}
+		term = &ir.Builtin{Func: call, Args: []ir.ActionExpr{&ir.Const{Value: nil}, op("x"), f}}
 	case conform.CallMap:
 		f, _ := lambda("e")
-		term = &ir.Builtin{Func: call, Args: []ir.Term{op("x"), f}}
+		term = &ir.Builtin{Func: call, Args: []ir.ActionExpr{op("x"), f}}
 	case conform.CallFilter:
 		f, e := lambda("e")
 		f.Body = &ir.Binary{Op: "==", L: e, R: &ir.Const{Value: 1}}
-		term = &ir.Builtin{Func: call, Args: []ir.Term{op("x"), f}}
+		term = &ir.Builtin{Func: call, Args: []ir.ActionExpr{op("x"), f}}
 	default: // conform.CallFilterSelf: the function returns the element, which is not a bool
 		f, _ := lambda("e")
-		term = &ir.Builtin{Func: conform.CallFilter, Args: []ir.Term{op("x"), f}}
+		term = &ir.Builtin{Func: conform.CallFilter, Args: []ir.ActionExpr{op("x"), f}}
 	}
 	prog, err := CompileTerm(term, TermEnv{Prog: cp, Scope: &compile.Scope{}})
 	if err != nil {

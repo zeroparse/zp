@@ -145,7 +145,7 @@ type termReg struct {
 // CompileTerm compiles the Core IR term t, which reads the frame of env.Scope: it lowers t to Exec IR
 // and translates the function into the instructions of a TermProgram. An error is an internal
 // error: a term that the front end does not build, or a lowering this translation does not know.
-func CompileTerm(t ir.Term, env TermEnv) (*TermProgram, error) {
+func CompileTerm(t ir.ActionExpr, env TermEnv) (*TermProgram, error) {
 	l, err := lower.Term(t, lower.TermOptions{Proj: env.Proj})
 	if err != nil {
 		return nil, err
@@ -153,11 +153,11 @@ func CompileTerm(t ir.Term, env TermEnv) (*TermProgram, error) {
 	c := &termCompiler{env: env, m: l.Module, locals: map[string]termReg{}, prog: &TermProgram{}}
 	for _, p := range l.Func.Locals {
 		if _, err := c.declare(p.Name, p.Type); err != nil {
-			return nil, fmt.Errorf("core: term %s: %w", ir.TermString(t), err)
+			return nil, fmt.Errorf("core: term %s: %w", ir.ActionExprString(t), err)
 		}
 	}
 	if err := c.block(l.Func.Body); err != nil {
-		return nil, fmt.Errorf("core: term %s: %w", ir.TermString(t), err)
+		return nil, fmt.Errorf("core: term %s: %w", ir.ActionExprString(t), err)
 	}
 	return c.prog, nil
 }

@@ -1209,11 +1209,11 @@ func (l *lowerer) projectRepeat(n *core.Repeat, fail *flow.Label) flow.Expr {
 
 // termCaps returns the captures of the scope s for a term, making the variables of the slots it
 // refers to; in a framed function, the term reads the current frame.
-func (l *lowerer) termCaps(t core.Term, s *scope) flow.Captures {
+func (l *lowerer) termCaps(t core.ActionExpr, s *scope) flow.Captures {
 	if l.frame {
 		return flow.Captures{Names: core.SlotNames(s.slots)}
 	}
-	core.WalkTerm(t, func(t core.Term) {
+	core.WalkActionExpr(t, func(t core.ActionExpr) {
 		if r, ok := t.(*core.SlotRef); ok {
 			l.capVar(s, r.Slot)
 		}
@@ -1273,7 +1273,7 @@ func (l *lowerer) finish(r *core.Rule, s *scope, body flow.Expr) {
 		case *core.New, *core.Convert:
 			// A struct made with the rule's range; structs made inside it are dropped.
 			nested := 0
-			core.WalkTerm(r.Finish.Action, func(t core.Term) {
+			core.WalkActionExpr(r.Finish.Action, func(t core.ActionExpr) {
 				switch t.(type) {
 				case *core.New, *core.Convert:
 					nested++

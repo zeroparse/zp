@@ -252,7 +252,7 @@ func (b *Builder) node(n ir.Node) state.Matcher {
 }
 
 // termSite makes the term program of a predicate or binding.
-func (b *Builder) termSite(t ir.Term) *termSite {
+func (b *Builder) termSite(t ir.ActionExpr) *termSite {
 	prog, err := b.term(t, nil)
 	if err != nil {
 		if b.err == nil {

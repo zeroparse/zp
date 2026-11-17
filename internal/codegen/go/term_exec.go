@@ -30,14 +30,14 @@ const (
 
 // loweredBody returns the body of a function that returns the value of the term t of Core IR and its
 // failure, printed from Exec IR. The scope s and the locals resolve the leaves (leaf).
-func (g *Generator) loweredBody(t irc.Term, s *check.Scope, locals map[string]string) string {
+func (g *Generator) loweredBody(t irc.ActionExpr, s *check.Scope, locals map[string]string) string {
 	return g.lowered(t, s, locals, "", false)
 }
 
 // loweredStmts returns the statements that compute the value of the term t into a local that they
 // declare, and the name of the local, as loweredBody does. The locals of the computation are scoped
 // to a block.
-func (g *Generator) loweredStmts(t irc.Term, s *check.Scope, locals map[string]string) (string, string) {
+func (g *Generator) loweredStmts(t irc.ActionExpr, s *check.Scope, locals map[string]string) (string, string) {
 	res := fmt.Sprintf("tr%d", g.LoweredTerms)
 	text := g.lowered(t, s, locals, res, false)
 	return fmt.Sprintf("var %s any\n{\n%s}\n", res, text), res
@@ -45,7 +45,7 @@ func (g *Generator) loweredStmts(t irc.Term, s *check.Scope, locals map[string]s
 
 // lowered prints the term t from Exec IR, into the local result if it is not empty; dispatch makes a
 // predicate that compares the text of a capture with literals test them at once (text-dispatch).
-func (g *Generator) lowered(t irc.Term, s *check.Scope, locals map[string]string, result string, dispatch bool) string {
+func (g *Generator) lowered(t irc.ActionExpr, s *check.Scope, locals map[string]string, result string, dispatch bool) string {
 	if t == nil {
 		panic(fmt.Errorf("rule %s: a term without Core IR", g.Cur.Name))
 	}
@@ -61,14 +61,14 @@ func (g *Generator) lowered(t irc.Term, s *check.Scope, locals map[string]string
 
 // actionBody returns the body of a function that returns the value of the term ct of Core IR and its
 // failure.
-func (g *Generator) actionBody(ct irc.Term, s *check.Scope, locals map[string]string) string {
+func (g *Generator) actionBody(ct irc.ActionExpr, s *check.Scope, locals map[string]string) string {
 	return g.loweredBody(ct, s, locals)
 }
 
 // predicate returns the body of the function of a predicate with the term ct of Core IR: a
 // membership of a captured text in literals tests them at once without limit controls
 // (text-dispatch).
-func (g *Generator) predicate(ct irc.Term, s *check.Scope) string {
+func (g *Generator) predicate(ct irc.ActionExpr, s *check.Scope) string {
 	return g.lowered(ct, s, nil, "", g.Opt.On("text-dispatch"))
 }
 

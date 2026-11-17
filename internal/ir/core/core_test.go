@@ -192,7 +192,7 @@ func TestAnalyzeScan(t *testing.T) {
 func TestAnalyzeRaises(t *testing.T) {
 	x := &SlotRef{Slot: 0, Name: "x"}
 	for _, c := range []struct {
-		term Term
+		term ActionExpr
 		want bool
 	}{
 		{&Const{Value: 1}, false},
@@ -206,10 +206,10 @@ func TestAnalyzeRaises(t *testing.T) {
 		r.Finish = Finish{Kind: FinishAction, Action: c.term}
 		analyzed(t, module(r))
 		if got := Raises(c.term); got != c.want {
-			t.Errorf("%s: raises %v, want %v", TermString(c.term), got, c.want)
+			t.Errorf("%s: raises %v, want %v", ActionExprString(c.term), got, c.want)
 		}
 		if got := r.Body.Attrs().Eff.Set&EffRaise != 0; got {
-			t.Errorf("%s: the body raises", TermString(c.term))
+			t.Errorf("%s: the body raises", ActionExprString(c.term))
 		}
 	}
 }
@@ -714,7 +714,7 @@ func TestVerifyAccepts(t *testing.T) {
 
 func TestPrint(t *testing.T) {
 	r := rule(0, "a", seq(&Capture{Slot: 0, Name: "x", Body: lit("a")}, &Opt{Body: &Cut{}}), "x")
-	r.Finish = Finish{Kind: FinishAction, Action: &Builtin{Func: "text", Args: []Term{&SlotRef{Slot: 0, Name: "x"}}}}
+	r.Finish = Finish{Kind: FinishAction, Action: &Builtin{Func: "text", Args: []ActionExpr{&SlotRef{Slot: 0, Name: "x"}}}}
 	m := analyzed(t, module(r))
 	got := Print(m, true)
 	want := `rule 0 a want scope=[x] => text($0:x)

@@ -532,7 +532,7 @@ func looseCut(n core.Node) bool {
 func (c *computer) positional() {
 	set := make([]bool, len(c.m.Rules))
 	for _, id := range c.order {
-		c.terms(c.m.Rules[id], func(t core.Term) {
+		c.terms(c.m.Rules[id], func(t core.ActionExpr) {
 			if m, ok := t.(*core.Member); ok && (m.Name == "Start" || m.Name == "End") {
 				set[id] = true
 			}
@@ -546,18 +546,18 @@ func (c *computer) positional() {
 
 // terms calls f for every term of the rule: its action, its predicates and bindings, and the actions
 // of its Operators Rule lines, with their subterms.
-func (c *computer) terms(r *core.Rule, f func(core.Term)) {
-	core.WalkTerm(r.Finish.Action, f)
+func (c *computer) terms(r *core.Rule, f func(core.ActionExpr)) {
+	core.WalkActionExpr(r.Finish.Action, f)
 	core.Walk(r.Body, func(n core.Node) {
 		c.control.Poll()
 		switch n := n.(type) {
 		case *core.Pred:
-			core.WalkTerm(n.Term, f)
+			core.WalkActionExpr(n.Term, f)
 		case *core.BindNode:
-			core.WalkTerm(n.Term, f)
+			core.WalkActionExpr(n.Term, f)
 		case *core.OperatorsRule:
 			for _, l := range n.Lines() {
-				core.WalkTerm(l.Action, f)
+				core.WalkActionExpr(l.Action, f)
 			}
 		}
 	})
@@ -631,7 +631,7 @@ func (c *computer) vars() {
 	direct := make([]map[string]bool, len(c.m.Rules))
 	some := false
 	for _, id := range c.order {
-		c.terms(c.m.Rules[id], func(t core.Term) {
+		c.terms(c.m.Rules[id], func(t core.ActionExpr) {
 			if v, ok := t.(*core.VarRef); ok {
 				if direct[id] == nil {
 					direct[id] = map[string]bool{}

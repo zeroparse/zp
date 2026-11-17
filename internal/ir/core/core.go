@@ -143,7 +143,7 @@ const (
 // Finish is how a rule makes its value.
 type Finish struct {
 	Kind   FinishKind
-	Action Term
+	Action ActionExpr
 	// Shape is the shape of the body's value (FinishScope).
 	Shape Shape
 	// NodeType, if not "", is the named node type the value is converted to.
