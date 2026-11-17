@@ -22,7 +22,8 @@ $c_{\min}$. By the conditions on run sites, $e$ contains no Operators Rule,
 `#stream`, `#missing`, `#error` or `#diagnostic`. Every repetition without an
 upper bound in $e$ is a run site or repeats a single character. Every rule
 that $e$ calls, directly or indirectly, is called without a level, is in no
-left-recursion cycle, and contains none of those constructs. No `#cut` in $e$
+left-recursion cycle, and contains no `#stream`, `#missing`, `#error` or
+`#diagnostic`; such a rule may be an Operators Rule. No `#cut` in $e$
 applies to $\sigma$. A parse with missing-token insertion keeps no records, so
 assume that this parse inserts none.
 
@@ -39,6 +40,10 @@ $\lambda$ and the input:
 - no rule that $e$ calls is in a left-recursion cycle, so no growth in progress
   outside $e$ changes what a call inside it returns, and a call of such a rule
   at $r$ does not reach $\sigma$ again at $r$ before it consumes input;
+- an Operators Rule that $e$ calls is called without a level, so it parses
+  the operators of all its levels, and what it gives at a position depends
+  only on the position, the environment, $\lambda$ and the input, as for any
+  other rule;
 - memoized results that $E(r, \eta)$ reads or stores change its cost, never
   what it gives ([Memoization](memoization.md)), and neither do the records
   of other sites, by Lemma 1 for them and by the

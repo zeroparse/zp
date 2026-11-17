@@ -23,7 +23,9 @@ import (
 //   - every unbounded repetition in its element is a run site, or repeats a single character;
 //   - it does not repeat a single character itself (a scan walks it);
 //   - every rule its element calls, directly or indirectly, is called without a level, is not
-//     left-recursive (a leader or member of a cycle), and contains none of the above;
+//     left-recursive (a leader or member of a cycle), and contains no #stream, #missing, #error or
+//     #diagnostic; it may be an Operators Rule, which, called without a level, parses all of its
+//     levels as a function of the position, the variables and the input;
 //   - it is restartable (RestartableRepeats): a repetition that no iteration can reach is walked
 //     from each position at most once, so no walk can reuse another's record.
 //
