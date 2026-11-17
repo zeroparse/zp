@@ -2792,8 +2792,8 @@ position $p_0$, and $T$ an evaluation of $t$ inside $X$, other than $X$, that
 starts before $p_0$, ends at $p_0$ and holds a successful activation of a
 scanning source other than a bounded scan. Let $T$ follow, in each dropped step
 of a growth on the path from $X$ to $T$, a read of the seed of that growth that
-succeeds, or a call whose result includes one, and let each kept step of
-such a growth after the one on the path match its result through a read of
+succeeds, or a call whose result includes one, and let each kept step of a
+growth on that path, after the step on the path, match its result through a read of
 the seed that succeeds outside every lookahead, or a call whose result
 includes one. Let two evaluations at one
 position of a call that a unit and a continuation share, or that the
@@ -2803,8 +2803,8 @@ evaluations of $Z$ nest without a bound through $t$, each in the call $t$ of
 the one around it, all of those calls ending at one position, each holding a
 successful activation of such a source, each dropped step of a growth
 between them holding the inner one after a read of its seed, and each kept
-step of such a growth after the one between them matching through a read of
-its seed, $t$ nests at one end: calls that start at that position nest
+step of a growth between them, after the step between them, matching through
+a read of its seed, $t$ nests at one end: calls that start at that position nest
 only through left recursion, which the growths bound, so some call $X$ starts
 before the position and holds another, $T$, that does too, and the claim gives
 $Y$ in $E_t$. A nesting through a part that a dropped step evaluates at the
