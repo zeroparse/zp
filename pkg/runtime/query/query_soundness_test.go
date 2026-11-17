@@ -9,7 +9,7 @@ import (
 	"zeroparse.dev/zp/internal/testing/codegentest"
 	"zeroparse.dev/zp/internal/testing/starttest"
 	"zeroparse.dev/zp/internal/value"
-	"zeroparse.dev/zp/query"
+	"zeroparse.dev/zp/pkg/runtime/query"
 )
 
 // queryShapeCase nests unions, optional values and lists of declared types.

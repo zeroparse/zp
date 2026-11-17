@@ -9,7 +9,7 @@ import (
 	"zeroparse.dev/zp/internal/compile"
 	"zeroparse.dev/zp/internal/engine"
 	"zeroparse.dev/zp/internal/testing/enginetest"
-	"zeroparse.dev/zp/schema"
+	"zeroparse.dev/zp/pkg/runtime/schema"
 )
 
 var outputSchemaExportSink *schema.Output

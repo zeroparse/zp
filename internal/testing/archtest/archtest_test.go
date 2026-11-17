@@ -145,7 +145,7 @@ func TestNegativeControls(t *testing.T) {
 	addEdge(mod("internal/limits"), mod("internal/ir/core"))
 	// Rule 1: a runtime-side package imports a third-party package.
 	g.pkgs["example.org/thirdparty"] = &pkg{ImportPath: "example.org/thirdparty"}
-	addEdge(mod("schema"), "example.org/thirdparty")
+	addEdge(mod("pkg/runtime/schema"), "example.org/thirdparty")
 	// Rule 1a: the library links the VM, so do the parsers generated with -lib import.
 	addEdge(mod("codegen/go/lib"), mod("internal/engine/vm"))
 	// Rule 1a: the node representation links the internal runtime, so do the parsers generated
@@ -207,8 +207,8 @@ func TestNegativeControls(t *testing.T) {
 		key   string
 		parts []string
 	}{
-		{"rule 1: internal/limits -> internal/ir/core", []string{"\tbreaks: the runtime side (internal/runtime/limits) imports only the runtime side, not internal/ir/core\n", "\tchain: query -> internal/limits -> internal/ir/core\n"}},
-		{"rule 1: schema -> example.org/thirdparty", []string{"\tbreaks: the runtime side imports no third-party package\n", "\tchain: schema -> example.org/thirdparty\n"}},
+		{"rule 1: internal/limits -> internal/ir/core", []string{"\tbreaks: the runtime side (internal/runtime/limits) imports only the runtime side, not internal/ir/core\n", "\tchain: pkg/runtime/query -> internal/limits -> internal/ir/core\n"}},
+		{"rule 1: pkg/runtime/schema -> example.org/thirdparty", []string{"\tbreaks: the runtime side imports no third-party package\n", "\tchain: pkg/runtime/schema -> example.org/thirdparty\n"}},
 		// One failure for the edge, listing the generated parsers that reach it.
 		{"rule 1a: codegen/go/lib -> internal/engine/vm", []string{
 			"pkg/runtime/golib imports only pkg/runtime and its input, value, value/impl, instrument and schema packages, not internal/runtime/vm",
@@ -273,7 +273,7 @@ func TestLayerGraph(t *testing.T) {
 		layerAnalysis: "internal/analysis/lint", layerBackend: "internal/codegen", layerMiddle: "internal/ir/flow/lower",
 		layerFront: "internal/frontend/desugar", layerIR: "internal/ir/core", layerPass: "internal/ir/pipeline",
 		layerGrammar: "grammar", layerUtil: "internal/diagnostic", layerTesting: "internal/testing/starttest",
-		layerOutside: "bench/report", layerRuntime: "query",
+		layerOutside: "bench/report", layerRuntime: "pkg/runtime/query",
 	}
 	below := []layer{layerDriver, layerAnalysis, layerBackend, layerMiddle, layerFront, layerIR, layerPass, layerGrammar}
 	allowed := map[layer][]layer{

@@ -10,7 +10,7 @@ import (
 	"strings"
 
 	"zeroparse.dev/zp/engine"
-	"zeroparse.dev/zp/schema"
+	"zeroparse.dev/zp/pkg/runtime/schema"
 )
 
 // schemaDiffOutput is the JSON document that zp schema diff -f json prints.

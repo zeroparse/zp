@@ -29,8 +29,8 @@ This document describes the repository layout and architecture, how to run tests
 | `internal/engine/closure/` | The closure backend: builds a closure graph for each rule body and evaluates actions on the grammar AST |
 | `internal/engine/vm/` | The bytecode backend: the recursive and iterative VMs, which run a compiled module over the same instruction loop |
 | `internal/engine/document/` | The incremental Document: edits and edit batches, reparsing that reuses what the edits did not touch, snapshots, change reports, diagnostics and the node cursor. It parses through a runner that `internal/engine` implements, and `internal/engine` re-exports its types |
-| `schema/` | Output schema: the description of the values a grammar can produce (`schema.Output`), its JSON form and validation, and `Compare`, which reports how two schemas differ and whether each change breaks a reader. Public package; it imports only the standard library |
-| `query/` | Structural queries: patterns that match values of parse results, checked against an output schema when they compile (`Compile`, `Prepare`, `Query.Matches`). Public package |
+| `pkg/runtime/schema/` | Output schema: the description of the values a grammar can produce (`schema.Output`), its JSON form and validation, and `Compare`, which reports how two schemas differ and whether each change breaks a reader. Public package; it imports only the standard library |
+| `pkg/runtime/query/` | Structural queries: patterns that match values of parse results, checked against an output schema when they compile (`Compile`, `Prepare`, `Query.Matches`). Public package |
 | `internal/frontend/schemaexport/` | The export of a checked program's output schema as a `schema.Output` |
 | `internal/value/` | The engine's access to the representation of `core.Node` (`D`) and the node helpers that only the engine needs |
 | `internal/limits/` | Defaults of the limits of a parse invocation and overflow-safe budget arithmetic, shared by the parser, the Document and package `query` |

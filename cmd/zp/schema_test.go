@@ -9,7 +9,7 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/engine"
-	"zeroparse.dev/zp/schema"
+	"zeroparse.dev/zp/pkg/runtime/schema"
 )
 
 const schemaGrammar = `type Pair = { Key node[string]; Value node[string] }

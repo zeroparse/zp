@@ -5,8 +5,8 @@ import (
 
 	"zeroparse.dev/zp/engine"
 	"zeroparse.dev/zp/internal/testing/starttest"
-	"zeroparse.dev/zp/query"
-	"zeroparse.dev/zp/schema"
+	"zeroparse.dev/zp/pkg/runtime/query"
+	"zeroparse.dev/zp/pkg/runtime/schema"
 )
 
 // compileTestSource compiles ZeroParse source as engine.CompileSource does, for a test whose subject is

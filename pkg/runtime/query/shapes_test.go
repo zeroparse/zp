@@ -7,8 +7,8 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/engine"
-	"zeroparse.dev/zp/query"
-	"zeroparse.dev/zp/schema"
+	"zeroparse.dev/zp/pkg/runtime/query"
+	"zeroparse.dev/zp/pkg/runtime/schema"
 )
 
 const queryShapeGrammar = `type Int = { Text string }

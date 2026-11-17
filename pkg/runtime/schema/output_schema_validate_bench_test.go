@@ -6,7 +6,7 @@ import (
 	"reflect"
 	"testing"
 
-	"zeroparse.dev/zp/schema"
+	"zeroparse.dev/zp/pkg/runtime/schema"
 )
 
 // outputSchemaUnvalidated has schema.Output's fields and JSON tags but no

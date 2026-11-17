@@ -18,7 +18,7 @@ import (
 	"zeroparse.dev/zp/internal/frontend/parser"
 	"zeroparse.dev/zp/internal/frontend/schemaexport"
 	"zeroparse.dev/zp/internal/limits"
-	"zeroparse.dev/zp/schema"
+	"zeroparse.dev/zp/pkg/runtime/schema"
 )
 
 // ParseGrammar parses ZeroParse source code into a grammar AST.

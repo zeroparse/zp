@@ -7,8 +7,8 @@ import (
 
 	"zeroparse.dev/zp/core"
 	"zeroparse.dev/zp/engine"
-	"zeroparse.dev/zp/query"
-	"zeroparse.dev/zp/schema"
+	"zeroparse.dev/zp/pkg/runtime/query"
+	"zeroparse.dev/zp/pkg/runtime/schema"
 )
 
 func TestOutputSchemaListQueries(t *testing.T) {

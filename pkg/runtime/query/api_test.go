@@ -12,8 +12,8 @@ import (
 	"zeroparse.dev/zp/core"
 	"zeroparse.dev/zp/engine"
 	"zeroparse.dev/zp/internal/value"
-	"zeroparse.dev/zp/query"
-	"zeroparse.dev/zp/schema"
+	"zeroparse.dev/zp/pkg/runtime/query"
+	"zeroparse.dev/zp/pkg/runtime/schema"
 )
 
 func TestPublicOutputSchema(t *testing.T) {

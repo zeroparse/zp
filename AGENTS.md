@@ -30,7 +30,7 @@ with implementation changes; regenerate generated files.
 ## Development and checks
 
 - Public APIs: `core/` (shared result types), `engine/` (which joins the runtime to the output schema),
-  `codegen/` (code generation), `schema/`, `query/`, `lint/`, `grammar/`, `sample/`, `editfuzz/`; parser/compiler: `internal/frontend/parser/`,
+  `codegen/` (code generation), `pkg/runtime/schema/`, `pkg/runtime/query/`, `lint/`, `grammar/`, `sample/`, `editfuzz/`; parser/compiler: `internal/frontend/parser/`,
   `internal/compile/`; runtime: `internal/engine/`; generators:
   `internal/codegen/`; grammars: `testdata/grammars/`; ready-made parsers: the separate
   `alpha-parsers` repository.

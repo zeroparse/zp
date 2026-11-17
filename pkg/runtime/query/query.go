@@ -16,7 +16,7 @@ import (
 	"zeroparse.dev/zp/core/impl"
 	"zeroparse.dev/zp/internal/limits"
 	"zeroparse.dev/zp/internal/value"
-	"zeroparse.dev/zp/schema"
+	"zeroparse.dev/zp/pkg/runtime/schema"
 )
 
 // Pattern is a programmatic structural pattern. Empty Type, Rule and Category are
