@@ -799,11 +799,11 @@ the activations outside the iterations of the walks of the sites that
 keep records, and not *Calls of scan-only rules* or *Seed reads*.
 *Activations that do not succeed in a parse that keeps records* there
 shows that claim and Lemma 10 of such a parse, and *Iterations at one
-scan in a parse that keeps records* shows *Iterations at one scan* in
-part, under a hypothesis on the shared calls of a link, and *Breaks,
+scan in a parse that keeps records* shows *Iterations at one scan*, with
+the shared calls that records leave unmade read in $\mathcal{R}$, and *Breaks,
 frames and own regions in a parse that keeps records or resumes runs* the
-claims that follow it, under that hypothesis and for the activations
-outside those iterations where the claim says so. *The position of a growth in a parse that keeps records or resumes runs*
+claims that follow it, with the hypotheses and cases that it states and
+for the activations outside those iterations where the claim says so. *The position of a growth in a parse that keeps records or resumes runs*
 in Lemma 5 shows the claims of that lemma at the position of a growth,
 and with them the second case of *Repeats inside a growth*, of such a
 parse, and *Reuse in a context* the bounds from *Calls in a context of
@@ -1485,10 +1485,11 @@ the activations outside the iterations of the walks of the sites that
 keep records, and not *Calls of scan-only rules* or *Seed reads*;
 *Activations that do not succeed in a parse that keeps records* shows
 that claim, and *Iterations at one scan in a parse that keeps records*
-shows *Iterations at one scan* in part, under a hypothesis on the shared
-calls of a link; that the claims after *Iterations at one scan* hold of
-it is left to be
-argued (step 8 of [Open Steps](#open-steps)). For the iterations of recorded
+shows *Iterations at one scan*, with the shared calls that records leave
+unmade read in $\mathcal{R}$; *Breaks, frames and own regions in a parse that
+keeps records or resumes runs* shows the claims after it, with the
+hypotheses and cases that it states (step 8 of [Open
+Steps](#open-steps)). For the iterations of recorded
 walks Lemma 17 makes the claims unnecessary.
 
 **Direct activations.** An activation of a scanning source $\sigma$ of the
@@ -5375,23 +5376,36 @@ the cases of a Document parse.
 **Iterations at one scan in a parse that keeps records.** In a parse
 whose records are exact, (R1) of the [Setting](#setting), let the
 iterations of $T$ be those that the parse evaluates; a reaching iteration
-is one of them, since it contains an activation. Then 1 and 3 of
-*Iterations at one scan* hold as stated, and so does the first statement
-of 2, that $e'_i$ lies inside $it_{k'}$ and $s_{k'} \le t_i$, for every
-link. Say that a link **meets the hypothesis** when no shared call of the
-unit $w_i$ up to the call of $e_i$ lies, in $w_i$ or on the way of
-$\kappa_i$ from its last start to $e'_i$, in an iteration that a record
-answers. The rest of 2 holds as stated for a link that meets the
-hypothesis, and 4 for a run all of whose links meet it, the link of each
-$i_a$ of the run. For the other links the rest of 2 is not shown, nor is
-4 for a run that holds one of them.
+is one of them, since it contains an activation. A shared call of $w_i$ can
+lie in an iteration that a record answers, in $w_i$ or on the way of
+$\kappa_i$ from its last start to $e'_i$, when the unit and its
+continuation begin with a repetition whose iterations hold their shared
+calls; the parse then makes no evaluation of it there. Read such a call as
+the evaluation of $\mathcal{R}$ at its place inside the counterpart in
+$\mathcal{R}$ of the walk that takes the record (*Counterparts in the
+reference parse*), and call it **unmade**. So the boundaries $B_i$ are the
+positions at which $w_i$ evaluates or answers the shared calls, or, for an
+unmade one, at which $\mathcal{R}(w_i)$ evaluates it; they are the same
+positions on the way of $\kappa_i$, where each shared call starts at the
+end of the one before (*Direct activations*, which holds of the parse). In
+4, read the hypotheses on growths and of no refinement with these
+evaluations: no growth lies on the path from $T$ down to the walk that takes
+the record, nor, in $\mathcal{R}$, from the counterpart of that walk down to
+an unmade call, and no shared call of $w_{i_{a+1}}$ before $e_{i_{a+1}}$
+lies inside the evaluation that $\kappa_{i_a}$ makes of a shared call of
+$w_{i_a}$ or inside the evaluation of $\mathcal{R}$ that stands for an
+unmade one, where an unmade call lies inside an evaluation of the parse
+when the walk that takes its record does. In a parse that keeps no record
+these are the hypotheses as stated. Then 1 to 4 of *Iterations at one scan*
+hold as stated, for every link and every run.
 
 *Proof.* When $T$ is a walk that takes a record, it evaluates its
 iterations first, each from the end of the one before, and after the
 record it evaluates none, so the iterations that it evaluates follow one
 another in time and in the input as those of a repetition without
 records do, and each of them but the last consumed input and succeeded
-(7 of *Restarts in a parse that keeps records*). The proof uses the
+(7 of *Restarts in a parse that keeps records*). A record of $T$ itself
+lies after $it_{k'}$, which $T$ evaluates. The proof uses the
 following of the parse.
 
 1. For 1: the order in which the parser starts the activations and the
@@ -5409,56 +5423,89 @@ following of the parse.
    two evaluations that contain $\alpha_i$ contains the other; and that
    the evaluated iterations of $T$ but the last end where the next
    starts, with starts that increase, which the paragraph above gives.
-3. For the rest of 2: that $e'_i$ starts after $w_i$ ends and inside $T$; that after
-   an iteration of $T$ ends the parser starts no evaluation before its
-   end until $\alpha_i$, which rests on where the parser goes back (1 of
-   that claim: a walk that takes a record adds no return); and, from
-   *Direct activations*, that from the last start of $\kappa_i$ to $e'_i$
-   the parser keeps the evaluations of $c_1, \ldots, c_{j-1}$ and
-   examines no other input. Under the hypothesis each of those calls is
-   evaluated, or answered by the memo, in $w_i$ and on that way, at the
-   positions and with the ends that the proof names. A walk that takes a
-   record on that way, outside the evaluations of those calls, moves the
-   parser over the input that the iterations
-   which the record answers would consume (3 of that claim), and those
-   iterations would consume it through shared calls, since that way
-   examines no other input; by the hypothesis no shared call lies in
-   them, so the record covers no input, and the parser moves from
-   $\tau_0$ to $t_i$ through the evaluations of the shared calls alone.
-   So an iteration of $T$ that ends in that time ends between two of
-   them, as the proof states.
+3. For the rest of 2: that $e'_i$ starts after $w_i$ ends and inside $T$;
+   that after an iteration of $T$ ends the parser starts no evaluation
+   before its end until $\alpha_i$, which rests on where the parser goes
+   back (1 of that claim: a walk that takes a record adds no return); and
+   that from the last start of $\kappa_i$ to $e'_i$ the parser moves
+   through the input only from one member of $B_i$ to another. Call a
+   **move** of a way an evaluation that it keeps of a shared call, a call
+   of one that the memo answers, or the part of a walk that takes a record
+   from the position of the record to its end, when the walk lies on the
+   way outside the evaluations of the shared calls. By *Direct
+   activations* every path of $\kappa_i$ that examines the input begins
+   with the shared calls, each with the result that it has in $w_i$; a
+   walk that takes a record on that way moves the parser over the input
+   that the iterations which the record answers would consume (3 of that
+   claim), and those iterations, which lie outside the evaluations of the
+   shared calls, would consume it through evaluations of whole shared
+   calls, the unmade ones, since that way examines no other input. The
+   record ends before $e'_i$ starts, since the walk evaluates nothing after
+   it and $e'_i$ is evaluated, so the unmade calls come before the call of
+   $e_i$. So the moves of $\kappa_i$ from its last start to $e'_i$ follow
+   one another, each starting where the one before ended, from $\tau_0$
+   to $t_i$, each from one member of $B_i$ to another, and the parser
+   starts no evaluation inside the span of a move but inside the
+   evaluation of a shared call: a walk that takes a record starts none
+   between the position of the record and its end. An iteration of $T$
+   that ends in that time contains every evaluation of a call that starts
+   in it and is contained in none, since its parent is $T$; and it
+   contains no walk on the way whose record it would cross, since such a
+   walk starts after the last start of $\kappa_i$, after $T$ started, and
+   so lies inside one iteration of $T$. So it ends between two moves, at a
+   position of $B_i$, as the proof states.
 4. For 4: the order of the evaluations that are kept before another,
-   which rests on where the parser goes back, as in 3; 2 of the claim,
-   under the hypothesis; and that the evaluations of the shared calls of
-   $w_{i_{a+1}}$ before $e_{i_{a+1}}$ and those that $\kappa_{i_a}$
-   keeps on its way to $e'_{i_a}$ are evaluations of calls that the parse
-   makes, which the hypothesis gives for both links, so for every pair
-   of consecutive links of the run when all its links meet it.
+   which rests on where the parser goes back, as in 3, and holds of the
+   walks on the two ways, which are evaluations of the parse, and of the
+   calls that the memo answers, which the parser passes at once; 2 of the
+   claim, by 3 above; and that a boundary $\tau'$ of $w_{i_{a+1}}$ lies
+   strictly inside the span of no move of $\kappa_{i_a}$ unless a shared
+   call of $w_{i_{a+1}}$ lies inside the evaluation of a shared call of
+   $w_{i_a}$, as the hypothesis of no refinement reads it. The moves of
+   $w_{i_{a+1}}$ before $e_{i_{a+1}}$, and its walks that take records
+   there, are kept before $e'_{i_a}$, as are the moves of $\kappa_{i_a}$
+   and its walks. Let $\tau'$ lie strictly inside the span of a move $c$ of
+   $\kappa_{i_a}$. If $\tau'$ is the start or the end of a move $d$ of
+   $w_{i_{a+1}}$ that is an evaluation or an answered call, $d$ and $c$, or
+   $d$ and the walk of $c$, nest or have spans in their order, and the
+   proof of 4 excludes all but $d$ inside the evaluation of a shared call
+   $c$; nothing lies inside a call that the memo answers. $d$ does not lie
+   inside a walk whose record $c$ is, since such a walk evaluates nothing
+   from the position of its record on, and its iterations before the
+   record end at or before that position. If $\tau'$ is the position of a
+   unmade call of $w_{i_{a+1}}$ inside the record of a walk $W'$, or the
+   position or the end of that record, then $W'$ and $c$, or $W'$ and the walk of $c$,
+   nest or have spans in their order in the same way: $W'$ inside the
+   evaluation of a shared call $c$ is a refinement as the hypothesis reads
+   it; $W'$ and the walk of $c$ nest only when they are one walk, since
+   one walk inside another lies in an iteration evaluated before the
+   record of the other; and when they are one walk, its unmade calls of
+   both units are evaluations of $\mathcal{R}$ inside the counterpart of
+   that walk, on the paths of iterations that succeed, so the proof of 4,
+   read in $\mathcal{R}$, where the hypothesis on growths covers the paths
+   below that counterpart, excludes all but an unmade call of
+   $w_{i_{a+1}}$ inside an unmade call of $w_{i_a}$, a refinement as the
+   hypothesis reads it. So every member of $B_{i_{a+1}}$ is a member of
+   $B_{i_a}$.
 
 The proof uses nothing else of the parse. $\square$
 
-Without the hypothesis, a shared call of $w_i$ can lie in an iteration
-that a record answers, in $w_i$ before $e_i$ or on the way of $\kappa_i$,
-when the unit and its continuation begin with a repetition whose
-iterations hold their shared calls. The boundaries $B_i$ are then
-positions at which the parse makes no evaluation of a call, and the
-hypothesis of no refinement in 4, which compares evaluations, is not
-stated for such a call. The claims that follow, from *Memoized breaks*
-to *Consecutive activations in one own region*, rest on 1 to 4; *Breaks,
-frames and own regions in a parse that keeps records or resumes runs*
-after them shows them of such a parse under the same hypothesis.
+The claims that follow, from *Memoized breaks* to *Consecutive activations
+in one own region*, rest on 1 to 4; *Breaks, frames and own regions in a
+parse that keeps records or resumes runs* after them shows them of such a
+parse.
 
 **Iterations at one scan in a parse that resumes runs.** In a
 [Document](../runtime/documents.md) parse whose records of sites, if it
 keeps any, are exact, (R1) of the [Setting](#setting), that resumes runs,
 let the iterations of $T$ be those that the parse makes, those that a
 resumed walk reuses included. Then *Iterations at one scan in a parse that
-keeps records* holds as stated, with a link that **meets the hypothesis**
-when no shared call of the unit $w_i$ up to the call of $e_i$ lies, in
-$w_i$ or on the way of $\kappa_i$ from its last start to $e'_i$, in an
-iteration that a record answers or that a resumed walk reuses. In a parse
-that keeps no record of any site, only the reused iterations enter the
-hypothesis.
+keeps records* holds as stated, with the shared calls that lie in an
+iteration that a resumed walk reuses as unmade too, each read as the
+evaluation of $\mathcal{R}$ at its place inside the counterpart of that
+iteration, and lying inside an evaluation of the parse when that iteration
+does; in the hypothesis on growths the path goes down to that iteration
+and, in $\mathcal{R}$, from its counterpart down to the call.
 
 *Proof.* A reused iteration contains no activation other than itself, so a
 reaching iteration is an evaluated iteration of $T$ or a reused iteration
@@ -5491,31 +5538,37 @@ that proof then hold of the parse as follows.
    iterations of $T$ given above.
 3. For the rest of 2: after an iteration of $T$ ends, the parser starts
    no evaluation before its end until $\alpha_i$, since a resumed walk
-   adds no return (1 of *Restarts in a parse that resumes runs*). Under
-   the hypothesis each of the calls $c_1, \ldots, c_{j-1}$ is evaluated,
-   or answered by the memo, in $w_i$ and on the way of $\kappa_i$, at the
-   positions and with the ends that the proof names. A resumed walk on
-   that way, outside the evaluations of those calls, moves the parser
-   over the input that the counterparts of the iterations that it reuses
-   consume (3 of that claim), and those would consume it through shared
-   calls, since that way examines no other input; by the hypothesis no
-   shared call lies in them, so they cover no input, and the parser moves
-   from $\tau_0$ to $t_i$ through the evaluations of the shared calls
-   alone.
+   adds no return (1 of *Restarts in a parse that resumes runs*). A reused
+   iteration on the way of $\kappa_i$ outside the evaluations of the
+   shared calls is a move, as the part of a walk after its record is: the
+   parser passes it at once and starts no evaluation inside it, and it
+   covers the input that its counterpart consumes (3 of that claim), which
+   that counterpart consumes through evaluations of whole shared calls,
+   the unmade ones, since that way examines no other input. A resumed
+   walk on the way lies inside one iteration of $T$, as a walk that takes
+   a record does, and the reused iterations that it holds come before
+   $e'_i$, which is evaluated. So the parser moves from $\tau_0$ to $t_i$
+   from one member of $B_i$ to another, and an iteration of $T$ that ends
+   in that time ends between two moves, as fact 3 of that proof states.
 4. For 4: the order of the evaluations that are kept before another, as
-   in 3, 2 of the claim under the hypothesis, and that the evaluations of
-   the shared calls of $w_{i_{a+1}}$ before $e_{i_{a+1}}$ and those that
-   $\kappa_{i_a}$ keeps on its way to $e'_{i_a}$ are evaluations of calls
-   that the parse makes, which the hypothesis gives for both links.
+   in 3, which holds of reused iterations, evaluations of the parse that
+   contain no evaluation; 2 of the claim by 3 above; and the argument of
+   fact 4 of that proof, with a reused iteration in place of the part of
+   a walk after its record. A move $d$ of $w_{i_{a+1}}$ nests with a
+   reused iteration $c$ of $\kappa_{i_a}$ only when the two are one
+   iteration, since nothing lies inside $c$; and when $\tau'$ is the
+   position of an unmade call of $w_{i_{a+1}}$ inside a reused iteration
+   $\iota'$, strictly inside the span of a move $c$ of $\kappa_{i_a}$,
+   then $\iota'$, kept before $e'_{i_a}$ as $c$ and its walk are, lies
+   inside the evaluation of a shared call $c$, a refinement as the
+   hypothesis reads it, or is $c$: it contains no move, and inside the
+   walk of $c$ it would be or lie in another iteration of that walk, whose
+   span does not overlap that of $c$. When it is $c$, the unmade calls of both
+   units are evaluations of $\mathcal{R}$ inside the counterpart of
+   $\iota'$, which succeeds, and the proof of 4 read in $\mathcal{R}$
+   excludes all but a refinement as the hypothesis reads it.
 
 The proof uses nothing else of the parse. $\square$
-
-Without the hypothesis, a shared call of $w_i$ can lie in a reused
-iteration as in an iteration that a record answers, and the claims from
-*Memoized breaks* to *Consecutive activations in one own region*, which
-rest on 1 to 4, are shown of a parse that resumes runs under the same
-hypothesis by *Breaks, frames and own regions in a parse that keeps
-records or resumes runs*.
 
 **Memoized breaks.** Under the hypotheses of *Iterations at one scan*, let
 $i$ be linked, let an evaluation from $it_{k'}$ down to $e'_i$ be abandoned,
@@ -6697,13 +6750,9 @@ one scan in a parse that keeps records* and *Iterations at one scan in a
 parse that resumes runs*. Call an activation **outside** when it is no
 iteration of the kind and no resumable iteration and lies inside none
 (*Heads in a parse that keeps records*, *Heads in a parse that resumes
-runs*). Say that an abandoned unit $v$ and a continuation $\kappa$ of it
-**meet the hypothesis** for an activation that $v$ holds when no call on
-the way of $\mathcal{R}(v)$ down to the counterpart of that activation
-that $v$ shares with $\kappa$ lies, in $v$ or on the way of $\kappa$ that
-the claim follows, in an iteration that a record answers or that a resumed
-walk reuses; for $w_i$, $\kappa_i$ and
-$\alpha_{i-1}$ this is the hypothesis on a link of those two claims. Then the
+runs*). Read the boundaries of a link, and the hypotheses of 4 of
+*Iterations at one scan*, as those two claims read them, with unmade
+calls. Then the
 claims from *Memoized breaks* to *Consecutive activations in one own region*
 hold as stated, and the remarks after them with them, a remark that counts
 the cases of a conclusion counting its one more case below with the others,
@@ -6711,11 +6760,9 @@ with case (d) and case (e) of the covered keys beside cases (a) and (b)
 where a claim leaves those out (*Covered keys*), and with the following
 hypotheses and changes.
 
-1. *Memoized breaks*: 2 for a link $i$ that meets the hypothesis, and 4 for
-   a run all of whose links meet it.
-2. *Restarts through a frame*: 4 for a sequence all of whose links meet the
-   hypothesis. In 2, case (d) or (e) arises only when $\alpha_i$ is not
-   outside.
+1. *Memoized breaks*: as stated, for every link and every run.
+2. *Restarts through a frame*: 4 for every sequence. In 2, case (d) or (e)
+   arises only when $\alpha_i$ is not outside.
 3. *Consecutive restarts through frames*: its conclusion has one more case,
    that $\alpha_i$ is not outside. The paragraph on three links holds when,
    beside its hypotheses, no call on the ways that it follows, followed into
@@ -6748,20 +6795,23 @@ hypotheses and changes.
    from $\mathcal{R}(e_{k+1})$ down to the call at the place of $h_m$,
    unless case (a) or (b) arises on that path followed through the records
    and the resumed runs.
-8. *Consecutive activations in one own region*: 3 and 4 when $w$ and
-   $\kappa$ meet the hypothesis for $\beta$, and in (ii) with its hypothesis
-   on the records read as: no record answers an iteration of $P^\circ$ that
-   contains the place of $\beta$ or is that place, and no resumed walk
-   reuses one that strictly contains it.
+8. *Consecutive activations in one own region*: in 3 the calls $c_1,
+   \ldots, c_j$ are read with unmade calls, as the boundaries of a link
+   are, and 3 has one more case, (iii): $\kappa$ passes $c$ at $p$ inside
+   an iteration that a record answers or that a resumed walk reuses, and
+   makes no evaluation $P^\circ$. In (ii) its hypothesis on the records is
+   read as: no record answers an iteration of $P^\circ$ that contains the
+   place of $\beta$ or is that place, and no resumed walk reuses one that
+   strictly contains it. 4 holds as stated, with $\tau_0, \ldots,
+   \tau_{x-1}$ read with unmade calls.
 
 In a Document parse a call of a transient rule that the memo answers is
 read in all of these claims as *Transient calls of a Document* in Lemma 3
 reads it, the evaluation $P^\circ$ of (ii) included, which then is the
 evaluation of $\mathcal{R}$ that the reading takes in its place, where no
 record answers an iteration and no walk resumes a run. So for a run whose
-activations are outside and whose links meet the hypothesis, and for two
-activations that one evaluation holds whose unit and continuation meet it,
-every statement and count of these claims is as in a parse in which every
+activations are outside, and for two activations that one evaluation holds
+outside case (iii), every statement and count of these claims is as in a parse in which every
 walk evaluates its iterations.
 
 *Proof.* The proofs use, of the parse, the following, beside facts of
@@ -6784,15 +6834,28 @@ the grammar and of the conditions.
   of them, so that *Units below the earlier evaluations* counts the
   iterations of $T$ after $I$ by those of $\mathcal{R}(T)$ after
   $\mathcal{R}(I)$, as it does.
-- The rest of 2 and 4 of *Iterations at one scan*, under the hypothesis,
-  as facts 3 and 4 of those proofs give them. *Memoized breaks* uses the
-  rest of 2 in its 2, for the link $i$, and the proof of 4 in its 4;
-  *Restarts through a frame* uses the proof of 4 in its 4; *Consecutive
+- The rest of 2 and 4 of *Iterations at one scan*, for every link and
+  run, as facts 3 and 4 of those proofs give them, with the moves of a
+  way. *Memoized breaks* uses the rest of 2 in its 2, for the link $i$:
+  $e_{i+1}$, an evaluation of the parse, starts inside no move: nothing
+  starts inside a record or a reused iteration, and an evaluation that
+  starts inside that of a shared call ends inside it, while $e_{i+1}$ is
+  in progress when $e'_i$ starts. So it starts between two moves, at a
+  member of $B_i$. It uses the proof of 4 in its
+  4, where the evaluation $x$ there is read as a move of $w_{i_{a+1}}$ or
+  the walk of an unmade call, kept before $e'_{i_a}$ as the proof states;
+  *Restarts through a frame* uses the proof of 4 in its 4. *Consecutive
   activations in one own region* uses the argument of the rest of 2 in its
-  4, and in its 3 that $\kappa$ makes the evaluations of $c_1, \ldots, c_j$
-  that it passes, each at the end of the one before, which the hypothesis
-  on $w$ and $\kappa$ gives as fact 3 gives it for a link. The other claims
-  use only the first statement of 2.
+  4, with the moves of $\kappa$ up to its evaluation of $c_x$. In its 3,
+  $\kappa$ passes $c_1, \ldots, c_j$ by moves, each at the end of the one
+  before (fact 3); an evaluation that it makes from its last start on
+  and that examines the input lies in the evaluation that it makes of one of them, since the moves cover the
+  input up to the end of the last and no evaluation starts inside a move
+  of another kind, or starts after $\kappa$ has passed all of them. So
+  $\beta'$, which the parse makes, is in case (i), or $\kappa$ passes $c$
+  before $\beta'$ starts, by an evaluation $P^\circ$, case (ii), or
+  inside an iteration that a record answers or a resumed walk reuses,
+  case (iii). The other claims use only the first statement of 2.
 - *Keys and classes*, *Own regions*, *Own expressions* and Lemma 3, which
   hold of every parse: an own region is the part of an evaluation outside
   its calls of memoized rules, and a record or a resumed walk only takes
@@ -6873,9 +6936,8 @@ outside, is an evaluation that *Replays* does not leave out in either kind
 of parse (*Replayed activations*). The rest of that proof uses Lemma 3 and
 that the links lie in distinct iterations.
 
-For 8, under the hypothesis on $w$ and $\kappa$ the last call that
-$\kappa$ evaluates before $\beta'$, in case (ii), is an evaluation
-$P^\circ$ that the parse makes, a body evaluation of $R$ or of its twin
+For 8, in case (ii) the last call that $\kappa$ passes before $\beta'$
+is an evaluation $P^\circ$ that the parse makes, a body evaluation of $R$ or of its twin
 (in a Document as the reading above takes it), and the parse evaluates in
 $P^\circ$ what $\mathcal{R}(P^\circ)$ evaluates apart from the iterations
 that a record answers and from the inside of those that a resumed walk
@@ -6885,8 +6947,8 @@ place of $\beta$, so the parse makes there the successful activation
 $\beta^\circ$ of $\sigma$ at $q$, and the rest of the proof of (ii) uses
 only the order of the evaluations and the own region of $H$. In 4 the
 argument of 2 of *Iterations at one scan* is the one that fact 3 of those
-proofs reads under the hypothesis, with $c_1, \ldots, c_x$ in place of the
-calls of a link.
+proofs reads with the moves of a way, with $c_1, \ldots, c_x$ in place of
+the calls of a link.
 
 Under the reading of the transient calls, the parse evaluates every call of
 a rule that it does not memoize, so the claims that say so hold as stated,
@@ -6894,11 +6956,14 @@ and the evaluation that the reading takes in place of an answered call is
 one of $\mathcal{R}$, which keeps no record and resumes no run. The proofs
 use nothing else of the parse. $\square$
 
-The claim leaves open what *Iterations at one scan in a parse that keeps
-records* and *Iterations at one scan in a parse that resumes runs* leave
-open: the links, and the pairs of activations that one evaluation holds,
-whose unit and continuation do not meet the hypothesis, and the runs that
-hold such a link. The one more cases, and the activations of 7 for which the
+The claim keeps two hypotheses on the records of its own: that of the
+paragraph on three links in 3, and that of 6 on the units below, which
+asks the parse to make the call $f$ that the proof of *Shared calls of the
+units below* names; neither rests on 2 or 4 of *Iterations at one scan*,
+and the cases outside them are not shown.
+Case (iii) of 8 is a pair of activations of $H$ between which a record or
+a resumed walk takes the place of the evaluation $P^\circ$ of $R$. The one
+more cases of 2 to 6, and the activations of 7 for which the
 claim is not shown, concern activations that are not outside, which
 *Replayed activations* leaves out as well; the sixth and the eighth parts
 of step 8 of [Open Steps](#open-steps) say how those are counted.
@@ -12071,20 +12136,20 @@ theorem covers such a parse.
    open parts of that count. *Activations that do
    not succeed in a parse that keeps records* shows that claim and Lemma
    10 of such a parse, and *Iterations at one scan in a parse that keeps
-   records* shows 1 and 3 of *Iterations at one scan* and the first
-   statement of 2 for every link, the rest of 2 for a link none of whose
-   shared calls lies in an iteration that a record answers, and 4 for a
-   run all of whose links are such. *Breaks, frames and own regions in a
+   records* shows *Iterations at one scan* for every link and every run,
+   a shared call that lies in an iteration that a record answers being
+   read as the evaluation of $\mathcal{R}$ at its place, in the boundaries
+   and in the hypotheses of 4. *Breaks, frames and own regions in a
    parse that keeps records or resumes runs* shows the claims that follow
    it, from *Memoized breaks* to *Consecutive activations in one own
-   region*, of such a parse for the links, and the pairs of activations
-   that one evaluation holds, whose unit and continuation meet that
-   hypothesis, and for the runs all of whose links do, with one more case
-   in some conclusions and some statements for the activations that are
-   no iterations of the kind and lie inside none, as it states, *Holders
-   of the later links* with records made as (M1) and (M2), which (R1) does
-   not state; the parts of these claims that rest on the rest of 2 and
-   on 4 for the other links stay open with those.
+   region*, of such a parse, with one more case in some conclusions and
+   some statements for the activations that are no iterations of the kind
+   and lie inside none, as it states, *Holders of the later links* with
+   records made as (M1) and (M2), which (R1) does not state, and two
+   hypotheses on the records of its own: in the paragraph on three links
+   of *Consecutive restarts through frames*, and in *Shared calls of the
+   units below*, whose call $f$ the parse must make; the cases outside
+   those two hypotheses are not shown.
    *The position of a growth in a parse that keeps records or resumes runs* shows the claims of Lemma 5
    at the position of a growth, from *Sources at fixed offsets* to
    *Decided units at the position of the growth*, and with them the second
@@ -12255,20 +12320,16 @@ theorem covers such a parse.
    and *Later leaf links in a parse that keeps records* show, with case
    (e) beside case (d), with records of sites or without, and
    *Iterations at one scan in a parse that resumes runs* shows what
-   *Iterations at one scan in a parse that keeps records* shows, under the
-   hypothesis that no shared call of a link lies in a reused iteration
-   either, and *Breaks, frames and own regions in a parse that keeps
+   *Iterations at one scan in a parse that keeps records* shows, with the
+   shared calls in reused iterations read in $\mathcal{R}$ as well, and
+   *Breaks, frames and own regions in a parse that keeps
    records or resumes runs* shows the claims from *Memoized breaks* to
    *Consecutive activations in one own region* of such a parse as of a
    parse that keeps records, with a resumable iteration beside an
    iteration of the kind, *Holders of the later links* with runs stored
-   and resumed as (N1) and (N2). Not shown of a parse that resumes runs, with
-   records of sites or without, are what the fifth part leaves of the
-   scans for a parse that keeps records: the rest of 2 of *Iterations at
-   one scan* for a link that does not meet that hypothesis, 4 for a run
-   that holds such a link, and the parts of the claims from *Memoized
-   breaks* to *Consecutive activations in one own region* that rest on
-   those. A later step of a
+   and resumed as (N1) and (N2), and with the two hypotheses on the
+   records that the fifth part names, read with resumed walks too. A
+   later step of a
    growth can resume a run that an earlier step of the same growth
    recorded at the same start, and so make fewer calls than that step in a
    part that reads no growing result; *Evaluations that read no growing
