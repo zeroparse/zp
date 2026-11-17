@@ -4349,7 +4349,80 @@ step for each rule that the memo answers afterwards; they are not read
 here for the first evaluations of the classes in $\mathcal{R}$, where
 freshness would take the place of the memo, and in the steps that they
 leave out a part at $p$ can reach a position far from $p$, so the growths
-at the positions before $q$ are not bounded in number by them.
+at the positions before $q$ are not bounded in number by them. *Fresh
+roots in one evaluation* below settles the second number for a source
+whose rule the parse memoizes, apart from case 5.
+
+**Fresh roots in one evaluation.** Let the parse memoize the rule $Q$ of
+$\sigma$, let $Q$ be no leader, and let $\sigma$ be no bounded scan, as
+in the claims from *Direct activations* on. For a leader $Q$ there is
+nothing to count here: an activation of $\sigma$ is then direct in a
+growth step, which owns it in the parse, and no memoized evaluation does
+(*Own regions*).
+
+1. A fresh activation of $\sigma$ is direct in its owner call, which is a
+   body evaluation of $Q$ or of its twin and no growth step.
+2. Of the fresh activations of $\sigma$ at $q$ that have one owner call,
+   every one after the first is an activation that a path that enters the
+   growth again leads to (case 5), from a unit that is abandoned in the
+   body of that evaluation, below every call.
+3. So the successful activations of $\sigma$ at $q$ that memoized
+   evaluations own are at most six times the sum of two numbers: the
+   classes of the keys of $Q$, at the positions at or before $q$, whose
+   first evaluation in $\mathcal{R}$ that reads no growth open at its
+   start is the owner call of a fresh root at $q$, with one more for the
+   evaluation where $\mathcal{R}$ begins, and the fresh roots at $q$ of
+   2 that case 5 leads to.
+
+*Proof.* 1\. Let $\beta$ be fresh, and let $E$ be the body evaluation of
+$Q$ or of its twin in which it is direct. $Q$ is no leader and a twin is
+on no cycle, so $E$ is no growth step. No evaluation made by a call lies
+between $E$ and $\beta$. If $E$ is the evaluation where $\mathcal{R}$
+begins, it is the owner call of $\beta$, since no evaluation made by a
+call contains $\beta$ inside it. Otherwise $E$ is made by a call of $Q$
+or of its twin, which the parse memoizes (Lemma 3 for the twin), so $E$
+is the innermost evaluation that contains $\beta$ and is made by a call
+of a rule that the parse memoizes: the owner call.
+
+2\. Let $\beta$ and $\beta'$ be two of them, $\beta$ first, with the owner
+call $E$. By 1 both are direct in $E$, which is no growth step, and they
+are successful activations of $\sigma$ that start at $q$. *Direct
+activations* holds of $\mathcal{R}$ (*Reference links*), so a path that
+enters the growth again leads from the abandoned unit to $\beta'$, and
+by its proof that unit lies in the body of $E$ below every call.
+
+3\. By 3 of *Fresh roots* the owned activations are at most six times the
+fresh roots at $q$ whose owner call has the class of a memoized
+evaluation of the parse. By 1 the owner call of each is a body evaluation
+of $Q$ or of its twin that holds it directly, so it starts at or before
+$q$, and it is the evaluation where $\mathcal{R}$ begins or the first
+evaluation in $\mathcal{R}$ of its class that reads no growth open at its
+start, by the definition of a fresh activation. A class has one such
+first evaluation, and by 2 the fresh roots at $q$ with one owner call are
+one and those that case 5 leads to. $\square$
+
+The claim says nothing of a source whose rule the parse does not
+memoize: its fresh activations lie in the own region of an evaluation of
+another rule, where two of them at one position can be direct in two
+body evaluations of the rule of the source. And it leaves the first
+number as it was: the positions $s \le q$ at which the first evaluation
+of a class of $Q$ holds a root at $q$ that a growth case makes. For a
+root of the second case of *Repeats inside a growth*, in a step $j'$ of
+a growth $g$ at $p$, that evaluation lies in step $j'$, since the root
+is direct in it and lies in $g$, which a call makes; it starts at a position from $p$ to $q$ and follows
+no read of the seed of that step, since an activation inside an
+evaluation that follows a read follows it too; and no evaluation of a
+key of its class that reads no growth open at its start starts before
+it, in an earlier step of $g$ or elsewhere in $\mathcal{R}$. When $q$ is at most a constant
+$c$ after $p$, those classes are the classes of $Q$ at $c + 1$
+positions. When it is farther, a bound needs both that few steps of one
+growth hold such an evaluation and that few growths at the positions
+before $q - c$ do, and the second is not a count of the steps of one
+growth: each such growth holds an earlier successful activation of
+$\sigma$ at $q$, in its step $j$, but that one need not be fresh, and
+$\mathcal{R}$ evaluates a class again in every growth that reaches it,
+so the classes of the owner calls of those earlier activations give no
+bound of the growths.
 
 **Leaf links in a parse that keeps records.** In a parse whose records are
 exact, (R1) of the [Setting](#setting), *Growths around a leaf link*,
@@ -10432,7 +10505,9 @@ theorem covers such a parse.
    before the position of the scan, whose first evaluation in
    $\mathcal{R}$ holds outside its calls of rules that the parse memoizes
    a root that those cases make, and the number of such roots at one
-   position in one such evaluation; the claims of Lemma 5 on the parts
+   position in one such evaluation, which *Fresh roots in one evaluation*
+   shows to be one beside those that case 5 leads to when the parse
+   memoizes the rule of the source; the claims of Lemma 5 on the parts
    that a step evaluates at the position of its growth are not read for
    those evaluations of $\mathcal{R}$, and leave out steps in which such
    a part reaches a position far from its growth. Open too are the leaf
