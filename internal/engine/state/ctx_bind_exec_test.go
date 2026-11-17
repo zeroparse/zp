@@ -134,7 +134,7 @@ func (p *Parser) confCtxStoreCtx() int {
 // confMemoSetPresent runs memo.setPresent for the conformance suite.
 // Printed from Exec IR function confMemoSetPresent of internal/ir/exec/core.
 func (p *Parser) confMemoSetPresent(e *MemoEntry, c CtxState) CtxState {
-	e.Present = c.present
+	e.Present |= c.present
 	return c
 }
 

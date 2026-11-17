@@ -178,7 +178,11 @@ the first entries of a long chain: a miss is always sound, since the rule is the
 		Results: []exec.Type{entry}, Reads: []string{Memo}, Writes: []string{Memo}, Cost: write,
 		Contract: `Stores a complete entry with the outcome ok, the end, whether it was computed in a silent
 context, its value and its recovered errors under the key, replacing the entry stored under the same
-key, and returns it. Entries under other keys are unchanged. With docOnly set, the key of a stored
+key, and returns it. The store never narrows the calls that the entry under the key answers: when
+a lookup would return that entry and it was computed outside a silent context while the new one is
+computed inside one, the store keeps it, stores nothing and returns it; otherwise the new entry
+starts with the present set of the entry it replaces if a lookup would return that one
+(memo.setPresent), and with none if not. Entries under other keys are unchanged. With docOnly set, the key of a stored
 entry matches only the key of a lookup with the same values (see memo.lookup), so the store replaces
 the entry of the same values only. A target that keeps records beside the entries (memo.examine) drops
 those of the entry that the store replaces.`,

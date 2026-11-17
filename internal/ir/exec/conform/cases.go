@@ -52,10 +52,24 @@ func Cases() []Case {
 			_, f := lookup(b, fmt.Sprint("o", i), fmt.Sprint("of", i), other)
 			b.Assert(exec.Not(f), "keys differing in values, rule, level or position are distinct")
 		}
+		// The store helper computes a failure in a silent context: it would narrow the entry, which
+		// stays, and the store returns it.
 		e2 := store(b, "e2", k, false, 5)
 		got2, _ := lookup(b, "got2", "f2", k)
-		b.Assert(exec.And(exec.Eq(got2, e2), exec.Not(exec.C("memo.ok", got2))), "a store replaces the entry under the same key")
-		b.Assert(exec.C("memo.silent", got2), "with its silent attribute")
+		b.Assert(exec.And(exec.And(exec.Eq(got2, e), exec.Eq(e2, e)), exec.C("memo.ok", got2)),
+			"a store in a silent context keeps the current entry computed outside one")
+		e3 := store(b, "e3", k, true, 7)
+		got3, _ := lookup(b, "got3", "f3", k)
+		b.Assert(exec.And(exec.Eq(got3, e3), exec.Eq(exec.C("memo.end", got3), exec.Int(7))), "a store replaces the entry under the same key")
+		k2 := key(1, 5, 0, 9)
+		store(b, "s1", k2, false, 5)
+		s2 := store(b, "s2", k2, false, 6)
+		got4, _ := lookup(b, "got4", "f4", k2)
+		b.Assert(exec.And(exec.Eq(got4, s2), exec.Eq(exec.C("memo.end", got4), exec.Int(6))), "a store replaces an entry of the same state")
+		b.Assert(exec.C("memo.silent", got4), "with its silent attribute")
+		s3 := store(b, "s3", k2, true, 8)
+		got5, _ := lookup(b, "got5", "f5", k2)
+		b.Assert(exec.And(exec.Eq(got5, s3), exec.Not(exec.C("memo.silent", got5))), "a store outside a silent context replaces a silent entry")
 	})
 
 	add("memo_many_positions", ref.Config{}, func(b *exec.Builder) {
