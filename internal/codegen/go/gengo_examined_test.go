@@ -328,8 +328,8 @@ func TestObservedExaminedEndsAreExact(t *testing.T) {
 // examinedExtras are shapes that reach records the library replays only on particular inputs:
 // a lookahead at the start of a member called where its leader grows, whose outcome a context keeps, a
 // recovery that ends its rule, whose skip walks the skip records serve, and a lookahead whose outcome is
-// the same for two seeds of a growth but examines a different extent, a reduced random cycle grammar
-// (304).
+// the same for two seeds of a growth but examines a different extent, reduced from random cycle grammar
+// 304.
 func examinedExtras() []codegentest.Case {
 	unit := strings.Repeat("a", 40) + "c" + strings.Repeat("a", 9) + "e" + strings.Repeat("a", 20) + "d"
 	return []codegentest.Case{
@@ -352,8 +352,8 @@ rule r2 = r0 "b" / !r1? / "a"`, Inputs: []string{"a", "aac", "acb", "aaac", "aca
 // examinedOnlyCases are shapes whose examined ends the exactness tests check, but whose other fields
 // producers do not yet report alike, so the observation agreement compares only their examined ends,
 // those of calls that cannot match included:
-// a growth whose last step, which does not grow, is taken from the context, a reduced random cycle
-// grammar (103). Its leader takes every growth step from the context and evaluates nothing, which the
+// a growth whose last step, which does not grow, is taken from the context, reduced from random cycle
+// grammar 103. Its leader takes every growth step from the context and evaluates nothing, which the
 // engine reports as Memo=true and generated parsers as Memo=false
 // (https://github.com/zeroparse/zp/issues/295).
 func examinedOnlyCases() []codegentest.Case {
