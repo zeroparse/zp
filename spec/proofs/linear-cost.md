@@ -10469,8 +10469,13 @@ theorem covers such a parse.
    a parse that keeps records* needs too; [Lemma 3 of the Documents
    proof](documents.md#lemma-3-resumed-runs) gives it, a resumed
    repetition ending where it ends in $\mathcal{R}$, with the same value
-   and the outcome that its iterations record there, and it is to be
-   carried into those claims. The claims that rest
+   and the outcome that its iterations record there. That outcome holds
+   the recovered errors, none, since a run is recorded only when no
+   recovered error remains at its end, and the farthest failure with its
+   expected items ([Outcomes](memoization.md#setting) of the memoization
+   proof); the element reads no variable and no capture from outside, so
+   there is no environment to
+   compare. This is to be carried into those claims. The claims that rest
    on them are not shown of such a parse where a resumed iteration lies
    on the paths that they follow. *Families in a parse that keeps
    records* and *Families without the records* are stated for a parse
