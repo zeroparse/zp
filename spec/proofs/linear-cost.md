@@ -3059,7 +3059,9 @@ result, and the memo would answer $e_{m+3}$ (*Answered calls*). They are
 one evaluation only when the parse answers a call on the way from
 $\mathcal{R}(e_{m+2})$ down to the call that corresponds to $e_{m+3}$, and
 then the first such call $u$ is above the lookahead between $e'_{m+2}$ and
-$e_{m+3}$, with an entry stored in state $1$. *Proof.* If the parse answers
+$e_{m+3}$, with an entry stored in state $1$.
+
+*Proof.* If the parse answers
 no call on that way, $y'$ is the evaluation of the key of $e_{m+3}$ that it
 makes inside $e_{m+2}$, which starts after $e_{m+1}$ ends, so $y' \ne y''$.
 Otherwise $u$ lies inside $e_{m+2}$, in state $1$, and an entry stored in
@@ -3067,16 +3069,21 @@ state $0$ or $1$ answers it. The call $\hat{u}$ at its place on the way from
 $e'_{m+2}$ down to $e_{m+3}$ has the key of $u$, since the two ways have one
 variant, and the parse evaluates it after $u$, since $e_{m+3}$ lies inside
 it. Were $\hat{u}$ in state $1$, or the entry stored in state $0$, the entry
-would answer $\hat{u}$ (*Answered calls*). $\square$ The condition on the
-memo does not rule this out: it lets the first evaluation of each rule, and
-of each twin, at each position leave no result or store it. So an evaluation
-of the key of $u$ inside the evaluation of the key of $e_{m+2}$ that the
-covered keys give before $e_{m+1}$ ends, the first of its rule at its
-position, can store its result, while the evaluation of the key of $e_{m+3}$
-inside it, the first of its rule at $t_{m+3}$, stores none. So the
-number of links in a row that are not plain is not bounded by the memo
-alone; a bound would rest on the activations that the frames hold, which
-the parse must evaluate and not answer.
+would answer $\hat{u}$ (*Answered calls*). $\square$
+
+The condition on the memo does not rule this case out: it lets the first
+evaluation of each rule, and of each twin, at each position leave no result
+or store it, a choice made for each rule and position on its own. So an
+evaluation of the key of $u$ inside the evaluation of the key of $e_{m+2}$
+that the covered keys give before $e_{m+1}$ ends, the first of the rule of
+$u$ at the position of $u$, can store its result, while the evaluation of
+the key of $e_{m+3}$ inside it, the first of the rule of $e_{m+3}$ at
+$t_{m+3}$, stores none: two first evaluations, of two rules or of one rule
+at two positions, with different choices. So the argument above does
+not bound, through the memo, the number of links in a row that are not
+plain; whether the memo alone bounds it is not shown, and a bound would rest
+on the activations that the frames hold, which the parse must evaluate and
+not answer.
 
 ## Lemma 5 (Growth)
 
