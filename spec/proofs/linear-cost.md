@@ -225,8 +225,8 @@ skips, whose walks Lemma 9 counts, that is a
 character, which a run site does not, and is no `#stream` repetition, in
 whatever rule it stands. A repetition in the body of a rule and its copy in
 the body of the twin of the rule are one site: its walks in both variants
-are walks of that site, as (R2) counts them, and a walk of either can take
-a record that a walk of the other made. The **element** of a site is
+are walks of that site, as (R2) counts them, whether or not an
+implementation keeps one table of records for both. The **element** of a site is
 the expression that it repeats. A candidate site is **free of the environment**
 as [Run Sites](../runtime/parsing.md#run-sites) defines it; a repetition of a
 single character is, since its element reads no variable.
