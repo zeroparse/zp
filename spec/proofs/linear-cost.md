@@ -3041,6 +3041,43 @@ not plain by its lookahead states needs only a lookahead around the next
 unit that does not enclose the next frame; and the variant of $e_{i+1}$ depends on its place in
 the body of $e'_i$, that of $e'_{i+1}$ on its place below $T$.
 
+Two consecutive links $m + 1$ and $m + 2$ that are not plain by their
+lookahead states, with $e_{m+1}$ and $e_{m+2}$ in state $1$ and $e'_{m+1}$ and
+$e'_{m+2}$ in state $0$, all of one variant, do not exclude, by the argument
+above, a third link $m + 3$ of that variant with $e_{m+3}$ in state $1$. Let the three be restarts through $q$-frames that
+meet the hypotheses of the claim above for $i = m$, $m + 1$ and $m + 2$, apart
+from the order of the lookahead states, and let no call on the ways below,
+followed into earlier evaluations, be in a context of growths or be answered
+from an entry of an earlier parse. The covered keys
+give two evaluations of the key of $e_{m+3}$ before it, in a state no greater
+than $1$, that of $e_{m+3}$: $y''$, before $e_{m+1}$ ends, through the
+counterparts in $\mathcal{R}(e_{m+1})$ of the calls from $e'_{m+1}$ down to
+$e_{m+2}$ and then of those from $e'_{m+2}$ down to $e_{m+3}$, and $y'$, before
+$e_{m+2}$ ends, through the latter alone. Were they distinct, the later would
+not be the first evaluation of its variant at $t_{m+3}$, it would store its
+result, and the memo would answer $e_{m+3}$ (*Answered calls*). They are
+one evaluation only when the parse answers a call on the way from
+$\mathcal{R}(e_{m+2})$ down to the call that corresponds to $e_{m+3}$, and
+then the first such call $u$ is above the lookahead between $e'_{m+2}$ and
+$e_{m+3}$, with an entry stored in state $1$. *Proof.* If the parse answers
+no call on that way, $y'$ is the evaluation of the key of $e_{m+3}$ that it
+makes inside $e_{m+2}$, which starts after $e_{m+1}$ ends, so $y' \ne y''$.
+Otherwise $u$ lies inside $e_{m+2}$, in state $1$, and an entry stored in
+state $0$ or $1$ answers it. The call $\hat{u}$ at its place on the way from
+$e'_{m+2}$ down to $e_{m+3}$ has the key of $u$, since the two ways have one
+variant, and the parse evaluates it after $u$, since $e_{m+3}$ lies inside
+it. Were $\hat{u}$ in state $1$, or the entry stored in state $0$, the entry
+would answer $\hat{u}$ (*Answered calls*). $\square$ The condition on the
+memo does not rule this out: it lets the first evaluation of each rule, and
+of each twin, at each position leave no result or store it. So an evaluation
+of the key of $u$ inside the evaluation of the key of $e_{m+2}$ that the
+covered keys give before $e_{m+1}$ ends, the first of its rule at its
+position, can store its result, while the evaluation of the key of $e_{m+3}$
+inside it, the first of its rule at $t_{m+3}$, stores none. So the
+number of links in a row that are not plain is not bounded by the memo
+alone; a bound would rest on the activations that the frames hold, which
+the parse must evaluate and not answer.
+
 ## Lemma 5 (Growth)
 
 *Outline.* Under conditions 2, 3 and 5, and with the growths at the calls
