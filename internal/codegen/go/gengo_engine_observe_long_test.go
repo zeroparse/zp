@@ -41,6 +41,10 @@ var (
 	tsOptionsRun   = engineObservationRun{"./internal/codegen/ts", "TestGeneratedTSObservationOptions", ""}
 )
 
+// lookaheadOutcomeKill is the difference that a lookahead outcome identified without its examined end
+// makes on the case of examinedExtras made for it.
+const lookaheadOutcomeKill = `lookahead outcomes of a growth that differ only in their examined ends "a" bytes=false parse closure: the first producer has enter of r2@0`
+
 func expecting(r engineObservationRun, want string) engineObservationRun { r.want = want; return r }
 
 var engineObservationMutants = []engineObservationMutant{
@@ -128,10 +132,11 @@ var engineObservationMutants = []engineObservationMutant{
 	{name: "typescript lookahead drops what it examined", file: "codegen/ts/lib/lib.ts",
 		old: "this.docExamined = Math.max(this.lookExamined.pop()!, this.docExamined);", new: "this.docExamined = this.lookExamined.pop()!;",
 		runs: []engineObservationRun{expecting(tsAgreementRun, "examined end of")}},
-	// A lookahead outcome taken for one of a different examined end skips the calls the lookahead makes.
+	// A lookahead outcome taken for one of a different examined end skips the calls the lookahead makes;
+	// the expected difference is that of the case made for it (examinedExtras), on its first input.
 	{name: "typescript lookahead outcomes identified without their examined ends", file: "codegen/ts/lib/lib.ts",
 		old: "return (examined - pos) * 2 + (ok ? 1 : 0);", new: "return ok ? 1 : 0;",
-		runs: []engineObservationRun{expecting(tsAgreementRun, "the first producer has")}},
+		runs: []engineObservationRun{expecting(tsAgreementRun, lookaheadOutcomeKill)}},
 	// examinedOnlyCases reaches the last step of a growth taken from the context.
 	{name: "typescript growth step taken from the context records nothing", file: "codegen/ts/lib/lib.ts",
 		old: "this.documentTouch(s.examined);", new: "void s;",
@@ -152,7 +157,7 @@ var engineObservationMutants = []engineObservationMutant{
 	// As for TypeScript, the outcome taken skips the calls of the lookahead.
 	{name: "generated lookahead outcomes identified without their examined ends", file: "codegen/go/lib/context_memo.go",
 		old: "\tv := uint64(hi) << 1\n", new: "\tv := uint64(0)\n",
-		runs: []engineObservationRun{expecting(agreementRun, "the first producer has")}},
+		runs: []engineObservationRun{expecting(agreementRun, lookaheadOutcomeKill)}},
 	{name: "typescript library control", file: "codegen/ts/lib/trace.ts",
 		old: "  release(): void {\n", new: "  release(): void {\n    void 0;\n",
 		runs: []engineObservationRun{tsAgreementRun, tsOptionsRun}},
