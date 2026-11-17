@@ -102,8 +102,12 @@ a record also notes whether the walk that made it built values. A walk that
 builds values finds only a record that notes values, and treats a slot whose
 record notes none as not recorded under its key; a walk that builds none
 takes a record of either kind and ignores its values, which the rest of its
-walk does not use. A walk that builds values stores records that note
-values, so a key holds a record without values at most until such a walk
+walk does not use. A key holds one record at a time. A walk that builds
+values stores records that note values, and a record that notes none never
+replaces one that notes values (a walk without values that records such a
+key, as in its first $c_{\min}$ iterations, leaves the record in place,
+which holds everything it would store besides the values, by Lemma 1). So a
+key holds a record without values at most until a walk that builds values
 records it, and each key is recorded at most twice: once by each kind of
 walk.
 

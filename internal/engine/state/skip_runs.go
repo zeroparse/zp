@@ -145,7 +145,8 @@ func (s *skipSlots) get(pos int, env *Env) skipRecord {
 	return skipRecord{state: skipVisited}
 }
 
-// put sets the slot of pos to r, which is visited or recorded. Room made for bits before base is as
+// put sets the slot of pos to r, which is visited or recorded; a record without values leaves one
+// with values in place. Room made for bits before base is as
 // large as the bits, so walks that start farther and farther back copy them a logarithmic number of
 // times.
 func (s *skipSlots) put(pos int, env *Env, r skipRecord) {
@@ -170,7 +171,14 @@ func (s *skipSlots) put(pos int, env *Env, r skipRecord) {
 		if s.recs == nil {
 			s.recs = make(map[skipKey]skipRecord)
 		}
-		s.recs[skipKey{pos, env}] = r
+		k := skipKey{pos, env}
+		if old, ok := s.recs[k]; ok && old.list && !r.list {
+			// A record with values serves the walks without values too, and holds what this one
+			// holds besides them (they rest on the same evaluations), so it stays: a key is
+			// recorded at most twice, once without values and then once with them.
+			return
+		}
+		s.recs[k] = r
 		s.expBytes += uint64(len(r.exp)) * expIDBytes
 	}
 }
