@@ -45,7 +45,7 @@ of unknown Type (`_`) is rejected, including when nested. `nil` is accepted
 only if the target element Type permits it. These are compile-time checks. The
 literal adds no primitive-list support and no filtering or narrowing operation.
 
-The source AST node is `ListConstructor{Elem TypeExpr, Items []Term}`. It
+The source AST node is `ListConstructor{Elem TypeExpr, Items []ActionExpr}`. It
 preserves the explicit element Type and items, including empty and nested
 constructors. After checking, it lowers to the existing `list()` runtime
 operation. The emitted bytecode remains ISA 3 for this list-only path, but the

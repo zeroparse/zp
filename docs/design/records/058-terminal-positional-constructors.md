@@ -35,7 +35,7 @@ rule normalized Int = n:digits => Int{text($n)}
 ### Syntax and Type Checking
 
 Use `T{arg, ...}` when `T` resolves to a terminal Type. The source AST node is
-`TerminalConstructor{Type string, Args []Term}` and preserves all supplied
+`TerminalConstructor{Type string, Args []ActionExpr}` and preserves all supplied
 arguments so that invalid arity can receive a positioned compile-time
  diagnostic. Exactly one argument is required. A known non-string argument is
 a compile-time error. An argument of unknown Type (`_`) is rejected with a hint to cast it,
