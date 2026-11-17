@@ -115,6 +115,16 @@ in $\mathcal{R}$ on $t_{k-1}$. Let edit $k$ be $[a, b)$ with $\delta$.
 Applying the edits when an entry is looked up applies the same rule in the
 same order, so it gives the same entry. $\square$
 
+The present set of a carried entry can be the union of the present sets of
+calls evaluated on earlier texts ((S) of the memoization proof), which
+[Lemma 3 of that proof](memoization.md#lemma-3-answering-from-a-sound-entry)
+uses through the steps of those calls: none of them calls at the key position
+a leader of the union. The edits that keep the entry keep that too. In both
+cases above, Lemma 1 matches the steps of the evaluation of each such call on
+$t_{k-1}$ one to one with those of an evaluation of the same call on $t_k$,
+calls included, at the position shifted by $\delta$, so a call that called no
+leader of the union at $p$ on $t_{k-1}$ calls none at $p + \delta$ on $t_k$.
+
 ## Lemma 3 (Resumed Runs)
 
 In a parse of $t_k$, let a repetition at $p$ resume a record, and let every

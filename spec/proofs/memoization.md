@@ -71,9 +71,12 @@ evaluating it, under these conditions:
   started is not stored in the table. This applies to every rule, including a
   leader that grew inside the growth of another leader. An entry records a
   present set $P$: that of the call that stored it, or the union of the
-  present sets of several calls of its key that $\mathcal{M}$ evaluated and
-  that read no growth open at their start, the call that stored it among
-  them. The second is how the engine keeps one entry for a key when a later
+  present sets of several calls of its key that $\mathcal{M}$ or an earlier
+  parse evaluated and that read no growth open at their start, the call that
+  stored it among them. For a call of an earlier parse, a
+  [Document](documents.md) parse on an earlier text, the
+  [Documents proof](documents.md#lemma-2-carried-entries) carries this over
+  to the current text. The second is how the engine keeps one entry for a key when a later
   call of the key stores: it keeps the outcome computed outside a lookahead,
   or the later one, with the union of the two present sets
   ([Evaluations of Rules](../runtime/parsing.md#evaluations-of-rules)).
