@@ -2911,8 +2911,11 @@ earlier, in lookahead states and variants that may differ. The evaluations in
 the own region of $M$ correspond one to one, in order, to those in the own
 region of $M_0$, apart from those inside an alternative that the parse skips by
 the next character in one of the two and evaluates in the other, which holds no
-activation, and, in a parse that keeps records, apart from those inside an
-iteration of a walk of a site that keeps records: each is an evaluation of the same expression at the same
+activation, in a parse that keeps records, apart from those inside an
+iteration of a walk of a site that keeps records, and, in a
+[Document](../runtime/documents.md) parse, apart from those inside an
+iteration of a walk of a repetition at which a walk of the parse resumes a
+run: each is an evaluation of the same expression at the same
 position, with the same success and end, and a call of a rule that the parse
 memoizes, which either evaluates or the memo answers, corresponds to a call
 with a key of the same class inside the same lookaheads of the body.
@@ -2931,7 +2934,12 @@ counts as reading what it reads in $\mathcal{R}$ ((D)), so that $M$ reads it
 too. In a parse that keeps records, no growth is read in $\mathcal{R}(M)$
 inside an iteration that a record answers, since no call of a rule of a
 cycle is made there (*Growths lie outside the recorded walks*, which
-follows Lemma 17). An alternative that the parse skips by the next character reads no growth
+follows Lemma 17). In a Document parse, no growth open at the start of $M$
+is read in $\mathcal{R}(M)$ inside an iteration that a resumed walk
+reuses: the growth is open at the start of that iteration too, which reads
+none open at its start in $\mathcal{R}$ ([Lemma
+4](documents.md#lemma-4-recorded-iterations-read-no-open-growth) of the
+Documents proof). An alternative that the parse skips by the next character reads no growth
 in $\mathcal{R}$: the only calls that it makes there are of rules that are not
 leaders, on the way to a terminal that fails at once (*Counterparts*). So their counterparts in $\mathcal{R}$ take the
 same steps up to the variants of their calls. Of two corresponding calls, one is
@@ -2952,7 +2960,25 @@ the same expressions, so a record answers neither, and the correspondence
 above holds of the two. A walk of such a site that lies in no such iteration is one of
 these evaluations, with the same success and end whether or not it takes a
 record, by (R1). Inside the iterations the correspondence can fail: one of
-the two walks can take a record where the other evaluates. $\square$
+the two walks can take a record where the other evaluates. In a Document
+parse the two own regions are those parts outside the iterations that a
+resumed walk reuses as well (*Counterparts*). An evaluation in the part of
+$\mathcal{R}(M)$ that lies in no iteration of a walk of a repetition at
+which a walk of the parse resumes a run corresponds, in the same steps, to
+one of $\mathcal{R}(M_0)$ that lies in none, since it is reached through
+the same expressions, so neither lies in an iteration that a resumed walk
+reuses, and the correspondence above holds of the two. A walk of such a
+repetition that lies in no such iteration is one of these evaluations,
+with the same success and end whether or not it resumes, and its
+iterations, reused or evaluated, are those of its counterpart, in order
+([Lemma 3 of the Documents proof](documents.md#lemma-3-resumed-runs) and
+its proof, through *Counterparts*), so they correspond one to one to the
+iterations of the other walk, each an evaluation of the element at the same
+position with the same success and end. Inside them the correspondence can
+fail: one of the two walks can reuse an iteration that the other
+evaluates, as when a head in lookahead state $0$ resumes a run whose
+walk a later evaluation of its class in lookahead state $1$ evaluates, a
+repetition resuming a record only outside a lookahead. $\square$
 
 **Replayed activations.** An activation held by a memoized evaluation $M$
 corresponds to an activation of the same source at the same position, which
@@ -2961,7 +2987,10 @@ activations held by $M$ correspond to distinct ones. In a parse that keeps
 records, this holds of the activations that are not iterations of a walk of
 a site that keeps records and lie inside none; by the claim *Growths lie outside the
 recorded walks*, which follows Lemma 17, every growth activation is one of
-these.
+these. In a [Document](../runtime/documents.md) parse, it holds of the
+activations that lie inside no iteration of a walk of a repetition at
+which a walk of the parse resumes a run, the iterations of such walks
+included.
 
 *Proof.* The activation lies in the own region of $M$, outside the alternatives
 that the parse skips in it or in the own region of $H$: the alternatives around
@@ -2969,7 +2998,12 @@ it hold an activation in $\mathcal{R}(M)$, and so in $\mathcal{R}(H)$, which
 takes the same steps (*Counterparts*). The replays then give the activation at
 the same place in the own region of $H$; in a parse that keeps records they
 give it for an activation outside the iterations of the walks of the sites
-that keep records, which is an evaluation that the replays do not leave out. $\square$
+that keep records, which is an evaluation that the replays do not leave out,
+and in a Document parse for one inside no iteration of a walk of a
+repetition at which a walk of the parse resumes a run, which they do not
+leave out either; an iteration of such a walk that lies in no such
+iteration corresponds to one of the walk at its place in $H$, which
+succeeds when it does, whether either is reused or evaluated. $\square$
 
 This claim counts nothing. *Activations held by heads* below sums it over the
 at most six memoized evaluations of a class, whether the head is a memoized
@@ -4609,7 +4643,15 @@ iterations themselves of a site that keeps records and is no recorded site
 of the parse, are not bounded here
 (step 8 of [Open Steps](#open-steps)); *Descent in the reference parse*
 above bounds, of the first, those that memoized evaluations own, by the
-roots of their counterparts in the reference parse.
+roots of their counterparts in the reference parse. In a
+[Document](../runtime/documents.md) parse, the factor six is likewise that
+of *Replayed activations*, so the bound is of the activations that lie
+inside no iteration of a walk of a repetition at which a walk of the parse
+resumes a run, and holds when case (e) of the covered keys, left out with
+case (d), arises on the path of no link; the activations inside such an
+iteration that memoized evaluations own are bounded by *Descent in the
+reference parse* and *Heads without the records*, which hold whatever
+runs the parse resumes.
 
 This gives the case that the comparison misses without the classes: in
 `main = (-r "x" / r "y")* $$; r = [a-c]* t?; t = "d"` on `abcy`, the first
@@ -10658,8 +10700,14 @@ theorem covers such a parse.
    the claims that leave out case (d) leave out too. Not shown is where
    case (e) arises, as *Heads in a parse that keeps records* shows it for
    case (d), nor are the claims that compare two evaluations of one class
-   or follow a path through a resumed walk read again for it: *Replays*,
-   *Replayed activations*, *Answered calls*, the claims from *Links lead to
+   or follow a path through a resumed walk read again for it.
+   *Replays* and *Replayed activations* are stated with the iterations of
+   the walks of the repetitions at which the parse resumes a run left out,
+   and of the activations inside them those that memoized evaluations own
+   are bounded by *Descent in the reference parse* and *Heads without the
+   records*; *Answered calls* holds as stated, since a resumed walk makes
+   no lookup and no store in the iterations that it reuses. Not read
+   again are the claims from *Links lead to
    repeated evaluations* to *Evaluated pairs of a shared call*, *Heads in a
    parse that keeps records*, *Covered keys through records*, *Restarts
    in a parse that keeps records*, whose 1 and 7 are stated of a walk that
