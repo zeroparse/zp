@@ -116,8 +116,8 @@ to equal results, is an instance too: it can only make $\mathcal{M}$ reuse less.
 records them, as [Evaluations of Rules](../runtime/parsing.md#evaluations-of-rules)
 lists: in every parse of the engine, whose traces report them, and in a
 [Document](../runtime/documents.md) parse or an
-[observed](../runtime/observability.md) parse of a generated Go parser. A parse that records
-no range may, in (D), take two observations to be the same when the
+[observed](../runtime/observability.md) parse of a generated Go or TypeScript parser. A parse
+that records no range may, in (D), take two observations to be the same when the
 expressions of both lookaheads matched or both failed, and two current results
 to be equal whatever their ranges. Lemma 4 asks nothing of ranges and gives
 $y$ its outcome all the same: an observed lookahead leaves nothing

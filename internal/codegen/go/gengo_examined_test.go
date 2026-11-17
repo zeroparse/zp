@@ -300,14 +300,14 @@ func examinedMismatches(t *testing.T, cases []codegentest.Case, reports []examin
 }
 
 // TestObservedExaminedEndsAreExact checks the examined ends of the observed parses of every route against
-// their references.
+// their references, on examinedCases and examinedOnlyCases.
 func TestObservedExaminedEndsAreExact(t *testing.T) {
 	t.Parallel()
 	if testing.Short() {
 		t.Skip("builds generated consumers")
 	}
 	codegentest.EachMode(t, func(t *testing.T) {
-		cases := examinedCases(t)
+		cases := append(examinedCases(t), examinedOnlyCases()...)
 		compared, diffs := examinedMismatches(t, cases, runExaminedProbes(t, cases, codegentest.LibCopy(), nil))
 		t.Logf("exits compared by entry: %v", compared)
 		for _, entry := range []string{"value", "parse", "recognize", "stream"} {
@@ -326,8 +326,10 @@ func TestObservedExaminedEndsAreExact(t *testing.T) {
 }
 
 // examinedExtras are shapes that reach records the library replays only on particular inputs:
-// a lookahead at the start of a member called where its leader grows, whose outcome a context keeps, and
-// a recovery that ends its rule, whose skip walks the skip records serve.
+// a lookahead at the start of a member called where its leader grows, whose outcome a context keeps, a
+// recovery that ends its rule, whose skip walks the skip records serve, and a lookahead whose outcome is
+// the same for two seeds of a growth but examines a different extent, a reduced random cycle grammar
+// (304).
 func examinedExtras() []codegentest.Case {
 	unit := strings.Repeat("a", 40) + "c" + strings.Repeat("a", 9) + "e" + strings.Repeat("a", 20) + "d"
 	return []codegentest.Case{
@@ -340,5 +342,26 @@ rule x = "b" #recover(skip=[ac]+)`, Inputs: []string{strings.Repeat(unit, 6), "b
 		{Name: "growth steps of a leader taken again from the context", Src: `rule main = a $$
 rule a = b "1" / b "2" / "a"
 rule b = a "x" / b "y" / "b"`, Inputs: []string{"b1", "by2", "ax2", "byy1x2", "b1x1y2", "ax1yx2", "byyyy1x2", "byyyyyy2x1"}},
+		{Name: "lookahead outcomes of a growth that differ only in their examined ends", Src: `rule main = r0 $$
+rule r0 = r2
+rule r1 = (r2 (r1 "b" "c" / r0) / &"b" r0) / "a"
+rule r2 = r0 "b" / !r1? / "a"`, Inputs: []string{"a", "aac", "acb", "aaac", "acabca", "acbccc"}},
+	}
+}
+
+// examinedOnlyCases are shapes whose examined ends the exactness tests check, but whose other fields
+// producers do not yet report alike, so the observation agreement compares only their examined ends,
+// those of calls that cannot match included:
+// a growth whose last step, which does not grow, is taken from the context, a reduced random cycle
+// grammar (103). Its leader takes every growth step from the context and evaluates nothing, which the
+// engine reports as Memo=true and generated parsers as Memo=false
+// (https://github.com/zeroparse/zp/issues/295).
+func examinedOnlyCases() []codegentest.Case {
+	return []codegentest.Case{
+		{Name: "last growth step taken from the context", Src: `rule main = r0
+rule r0 = r3 / r1 / "a"
+rule r1 = !("c" / r4)* / r0
+rule r3 = r0 r3 / r4
+rule r4 = &"c" (r1 / r4?)`, Inputs: []string{"a", "c", "cc", "ca", "b", "ac", "cbbcbcaa"}},
 	}
 }
