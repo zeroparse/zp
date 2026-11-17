@@ -81,7 +81,7 @@ the memoization proof, is evaluated again and repeats the first activation at
 the position in it; the memo bounds these for a
 memoized rule and the cycles of calls that nest at one end bound for a rule that
 calls no rule when the call is the first that the two share, and it shows,
-apart from three open points and two nestings that it excludes, through a
+apart from two nestings that it excludes, through a
 part that a dropped step evaluates before its read of the seed and through a
 later kept step that does not match its result through a read of its seed
 outside lookaheads, that evaluations of a call that nest without a
@@ -2137,8 +2137,8 @@ position before $p$; none of these lies in a run of consecutive leaf links at
 $p$ whose shared call is the first, so the two lie in different runs. The
 other case is the one that *Nesting at one end* rules out, with $Y_{l'}$ as
 $X$ and $Y_l$ as $T$, under its hypotheses on the dropped and the later
-kept steps of growths on the path between them and on the alike calls, and
-apart from the three points that it leaves open; this is not shown here. So outside that case the outer links at $p$ through
+kept steps of growths on the path between them; that those hold is not
+shown here. So outside that case the outer links at $p$ through
 one call place are at most one in each run, and the argument of the claim above does not
 bound them without a bound on the runs. The second case occurs in a grammar
 that the conditions accept:
@@ -2215,7 +2215,7 @@ records of scan sites. Then, after $e_j$ ends, $w_j$ evaluates no call of
 $r$ at $p$, unless the sequence of the activations of $\sigma$ at $q$ leaves
 out the activation at $q$ of that call, and if $w_j$ starts before $w_l$ ends, no evaluation inside $w_j$ outside the shared calls that it evaluates before $e_j$ fails before $e_j$ starts, and $Y_l$ lies in none of those shared calls, this is the case that
 *Nesting at one end* rules out, with $e_j$ as $X$ and $Y_l$ as $T$, under its
-hypotheses and apart from its open points, unless $r$
+hypotheses, unless $r$
 is a scan-only rule.
 
 *Proof.* $e_j$ and $e'_j$ are evaluations of one call of the rule $Y$ of
@@ -2253,8 +2253,7 @@ $\pi_l$ that starts before $p$, ends at $p$ and contains $\alpha_{l-1}$; $Y$
 reaches the caller of $\pi_l$, which calls $Y$, so $Y$ is of the recursion of
 $\pi_l$. These are the hypotheses of *Nesting at one end* with $e_j$ as $X$
 and $Y_l$ as $T$, which give that $\pi_l$ nests at one end under its
-hypotheses on the dropped and the later kept steps and the alike calls and apart from its open
-points; the continuation of $w_l$ then reaches the call of $r$ after leaving
+hypotheses on the dropped and the later kept steps; the continuation of $w_l$ then reaches the call of $r$ after leaving
 the body of $Y_l$, in what follows $\pi_l$, so the call is not shared unless
 $r$ is a scan-only rule. *Calls of scan-only rules* treats that rule in a
 parse with the records of scan sites, which this claim excludes, so a
@@ -2482,7 +2481,7 @@ evaluation of $E_1$, lies inside a body evaluation of $E_1$ other than as
 it, or contains $E_1$ and is not its body evaluation. In the second case,
 this is the case that *Nesting at one end* rules out, with $E_1$ as $X$ and
 $Y_l$ as $T$, and in the third, with $Y_l$ as $X$ and $E_1$ as $T$, under its
-hypotheses and apart from its open points, unless
+hypotheses, unless
 $r$ is a scan-only rule.
 
 *Proof.* $Y_{l'}$ is no growth step, since the parser leaves it at $p$ from
@@ -2499,8 +2498,7 @@ $Y_l$, an evaluation of $\pi_l$ inside $E_1$ other than $E_1$, starts before
 $p$, ends at $p$ and holds $\alpha_{l-1}$, a successful activation of the
 scanning source $\sigma$. These are the hypotheses of *Nesting at one end*
 with $E_1$ as $X$ and $Y_l$ as $T$, which give that $\pi_l$ nests at one end
-under its hypotheses on the dropped and the later kept steps and the alike calls and apart from
-its open points. The continuation of $w_l$ then reaches the call of $r$
+under its hypotheses on the dropped and the later kept steps. The continuation of $w_l$ then reaches the call of $r$
 after leaving the body of $Y_l$ through $\pi_l$, in what follows $\pi_l$, so
 the call is not shared unless $r$ is a scan-only rule, as in the proof of
 *Memoized links to the frame of an outer link*.
@@ -2516,7 +2514,7 @@ $c_1$. The call evaluation of $Y_l$, a call of $Y$, succeeds and ends at $p$,
 and $E_1$, an evaluation of $c_1$ inside it other than it, starts before $p$,
 ends at $p$ and holds $\alpha_{l-1}$. *Nesting at one end* with that call
 evaluation as $X$ and $E_1$ as $T$ gives that $c_1$ nests at one end, under
-the same hypotheses and open points, and the continuation of $w_l$ reaches
+the same hypotheses, and the continuation of $w_l$ reaches
 the call of $r$ after leaving $B_1$ through $c_1$, so again the call is not
 shared unless $r$ is a scan-only rule. $\square$
 
@@ -2788,6 +2786,46 @@ row, and through calls each followed in its caller by what matched without
 consuming input, which repeat no rule, since a repeated rule closes a cycle of
 such calls, which nests at one end and makes the rule nest.
 
+**Alike calls end alike.** Let a unit that condition 2 checks and a
+continuation of it each evaluate, at one position $q$, a call that the two
+share, or a symbol that the comparison of a decided unit passes alike. Then
+the two evaluations both fail or both succeed and end at one position.
+
+*Proof.* A shared literal, and equal literals, character classes or `.`
+passed alike, examine the same input at $q$, with the same case sensitivity,
+so they match it in both or in neither. A call is of one rule in both, with
+the same level restriction or with none, and has the same values of the
+variables that it reads: a shared call reads none, and a call passed alike
+that reads variables is called with the same ones on both sides. When its
+rule is on no left-recursion cycle, which every call that the comparison
+passes alike is, a trivia rule included, since neither it nor a rule that
+it calls contains a call of a cycle, or when no growth of the cycle of its
+rule is open at $q$, it reads no growth open at its start ([Lemma 2 of the
+memoization proof](memoization.md#lemma-2-reading-an-open-growth)), so the
+two calls have one key and, by [Lemma 1 of the memoization
+proof](memoization.md#lemma-1-context), their evaluations in
+$\mathcal{R}$ have the same success and end in either lookahead state. When
+its rule is of a cycle $C$ with a growth open at $q$, the definition of a
+shared call places the two calls in the same growths of $C$: neither is
+reached through a call of a rule of $C$ that the unit or the continuation
+starts with, nor after leaving the body of a rule of $C$. So both start in
+the steps that are in progress at the start of the unit, of the growths of
+$C$ open at $q$ then, and no other growth of $C$ is open at $q$ at either
+start: the continuation has left no body of a leader of $C$, so no such step
+has ended, and a step reads one current result throughout. The two calls
+then have one key and one context, the growths of $C$ open at $q$ with
+their current results. Their evaluations in $\mathcal{R}$ take the same
+steps by the comparison in the proof of [Lemma 4 of the memoization
+proof](memoization.md#lemma-4-answering-from-a-dependent-result): each
+growth that one reads is open in the other with the same current result,
+and each lookahead at $q$ within them is evaluated in both in that context,
+so by the same comparison of its expression, by induction on the nesting
+of lookaheads, it has the same observation in both. So they have the same
+success and end, in either lookahead state. In each case the evaluations of
+the parse have the success and the end of their counterparts in
+$\mathcal{R}$ (*Counterparts in the reference parse* below), which
+an outcome that agrees keeps. $\square$
+
 **Nesting at one end.** Let $t$ be a call of a rule $Y$ from a rule $Z$ of
 its recursion, and $E_t$ the smallest set of rules that the definition of a
 call that nests at one end ([Conditions for Linear
@@ -2801,10 +2839,8 @@ of a growth on the path from $X$ to $T$, a read of the seed of that growth that
 succeeds, or a call whose result includes one, and let each kept step of a
 growth on that path, after the step on the path, match its result through a read of
 the seed that succeeds outside every lookahead, or a call whose result
-includes one. Let two evaluations at one
-position of a call that a unit and a continuation share, or that the
-comparison of a decided unit passes alike, end at one position. Then $A$ is in
-$E_t$, except in the cases that the end of the proof leaves open. So when the
+includes one. Then $A$ is in
+$E_t$. So when the
 evaluations of $Z$ nest without a bound through $t$, each in the call $t$ of
 the one around it, all of those calls ending at one position, each holding a
 successful activation of such a source, each dropped step of a growth
@@ -2869,7 +2905,7 @@ the seed that the next kept step reads. For the unit that a dropped step of $G$ 
 goes on from $e$ after $G$ ends. $\kappa$ consumes the input from $s$ to $p_0$, so it
 begins with the calls that $w$ and $\kappa$ share or that the comparison passes
 alike, the **alike calls**, each starting at the end of the one before, which
-end at the same positions in $w$ and in $\kappa$. Those of them that start
+end at the same positions in $w$ and in $\kappa$ (*Alike calls end alike*). Those of them that start
 before $p_0$ lie in the match of $X$ in $\kappa$, so they end at or before
 $p_0$.
 
@@ -2878,7 +2914,19 @@ did, $w$ would examine, after the alike calls, the character at $u$, on its
 way to $T$ or in $T$, which consumes the input from its start to $p_0$, and
 $\kappa$, which reaches $p_0 > u$ after the alike calls, would consume that
 character too, which disjoint first characters exclude; and a unit has no
-scanning source after the alike calls only if $T$ there holds none. So $T$ is
+scanning source after the alike calls only if $T$ there holds none. When the
+words of $w$ exclude $\kappa$, the path of $w$ that leads to $T$, and through
+$T$ to its end, begins at $u$ with its word $W$ before any scanning source on
+it, so it matches $W$ there, and $p_0 \ge u + |W|$, since $T$ either starts
+after the word or begins with it and consumes the input from its start to
+$p_0$; on that input every path of $\kappa$ fails, examines nothing more or
+meets a known negative lookahead before $u + |W|$, as in the proof of
+*Direct activations*, yet $\kappa$ consumes the input from $u$ to $p_0$.
+When $w$ decides $\kappa$, the path of $w$ that leads to $T$ passes at $u$,
+after the symbols passed alike, its decisive symbol, on its way to $T$ or
+in $T$, and the path of $\kappa$, which consumes the input from $u$ to
+$p_0 > u$, passes its own there, and at most one of the two can pass at
+$u$. So $T$ is
 one of the alike calls, or lies inside one of them, or $w$ looks through it to
 reach them, which then lie in its body. In each of these cases the first
 alike call $S$ that ends at $p_0$ exists and starts before $p_0$:
@@ -2888,10 +2936,37 @@ alike call $S$ that ends at $p_0$ exists and starts before $p_0$:
   otherwise $T$ would consume, after the alike calls, the character where it
   ends, which $\kappa$ consumes too; $S$ is inside $T$, and $w$ reaches it by
   looking through $t$.
-- (c) $T$ lies inside an alike call, and no evaluation between them is
-  abandoned: that call ends at $p_0$, at the end of $T$, and is $S$. Its evaluation in $w$ succeeds,
-  ends at $p_0$ and holds $T$ with fewer calls between, so by induction its
+- (c) $T$ lies inside an alike call that ends at $p_0$, as it does when no
+  evaluation between them is abandoned, since it then ends at the end of
+  $T$: that call is $S$. Its evaluation in $w$ succeeds,
+  ends at $p_0$ and holds $T$ with fewer calls between, and the hypotheses
+  on the steps of growths hold on that part of the path, so by induction its
   rule $B$ is in $E_t$.
+- (d) $T$ lies inside an alike call $C$ that ends at a position
+  $e_C < p_0$, in $w$ and in $\kappa$ alike. Then an evaluation between them
+  is abandoned; let $a$ be the first on the path from $C$ down to $T$. It
+  holds the activation of $T$, so, as for $w$ above, it is a committing unit
+  that condition 2 checks, or a dropped step that *Dropped steps* replaces
+  by such a unit, which starts at a position $s_a$ with
+  $s_C \le s_a < p_0$, where $s_C$ is the start of $C$. The evaluations
+  from $C$ down to $a$ succeed and are kept, so after $a$ the parser
+  evaluates from $s_a$ a continuation of $a$ that ends $C$ at $e_C$, as
+  $\kappa$ ends $X$ above, and $\kappa$, after its call of the rule of $C$
+  at $s_C$, goes on from $e_C$ to $p_0$. Together they are a continuation
+  $\kappa'$ of $a$ by the grammar, through the end of the body of the rule
+  of $C$ and the call of that rule in $\kappa$, and $\kappa'$ consumes the
+  input from $s_a$ to $p_0$. Everything above from the start of $w$ on holds
+  with $a$ and $\kappa'$ in the place of $w$ and $\kappa$, and gives case
+  (a), (b), (c) or (d) for them. No alike call of the two straddles $e_C$,
+  since $\kappa'$ makes none there, so their $S$, which ends at $p_0$,
+  starts at or after $e_C$, and $\kappa'$ evaluates it in the part that
+  $\kappa$ evaluates: the call $K$ and the calls $Q_i$ below are those
+  through which $\kappa$ reaches it, and the rule of $K$ is in $E_t$ by the
+  third case of the definition for the unit $a$, in its form for a
+  continuation that left the body of the unit, whose evaluation, inside
+  that of $K$, contains that of $a$. Case (d) for $a$ and $\kappa'$ gives a
+  call inside $C$, on a shorter path to $T$, so it recurs a finite number of
+  times.
 
 $\kappa$ evaluates $S$ in the body of a call $K$ on the path from $X$ to $w$:
 the call whose body holds $w$, or one whose body $\kappa$ reaches by leaving
@@ -2917,24 +2992,7 @@ those of $Q_{m-1}$ to $Q_1$, each calling the next at such a call, and the
 rule of $K$; the rule of each $Q_i$ is of the recursion of $t$, since $K$
 reaches it and it reaches $B$, which reaches $Z$. The calls on the path from $X$ to
 $K$ end at $p_0$ in body evaluations that end at $p_0$, so the second case
-adds each rule above $K$, up to $A$.
-
-Three points of this proof are open. The hypothesis that the alike calls end
-at one position in both evaluations is what
-[Conditions for Linear Cost](../runtime/parsing.md#conditions-for-linear-cost)
-states for the shared calls and the comparison of a decided unit for the
-calls that it passes alike; inside a growth, two evaluations at the growing
-position of a call of a rule of the growing cycle can read different growing
-results, and that the shared calls of a unit and its continuation there end
-at one position is argued from the unit and the continuation starting in one
-step, where a read of the seed returns one seed, but not shown. The paragraph
-that places $T$ among the alike calls is written for disjoint first
-characters and for a unit without a scanning source after the alike calls;
-for words that exclude the continuation and for decided units, the proof of
-*Direct activations* shows the same for an activation after the word or the
-decisive symbol, and it must still be shown for the end of $T$. And when $T$
-lies inside an alike call in a unit abandoned inside it, that call can end
-before $p_0$, and the cases above do not apply.
+adds each rule above $K$, up to $A$. $\square$
 
 **Seed reads.** The following argues, without proving it, that the case of
 seed reads in the definition is the one that *Nesting at one end* gives inside
@@ -2950,8 +3008,8 @@ position, it is made by a call whose callee is a rule of the cycle, as a left
 call of a rule of the cycle starts no new evaluation at a new position. One of
 the finitely many call places, $t$, makes unboundedly many of them, and
 *Nesting at one end*, with $X$ an outer and $T$ an inner one of them, would put
-the callee of $t$ in $E_t$, so that $t$ nests at one end. Besides the open
-points of that claim, three of its hypotheses are not shown here. First, $X$
+the callee of $t$ in $E_t$, so that $t$ nests at one end. Three of its
+hypotheses are not shown here. First, $X$
 and $T$ must end at $p_0$, but the evaluations above are chosen because the
 current result of their leader ends at $p_0$, and a leader whose step at
 $p_0$ grows ends beyond $p_0$. Second, $T$ must follow a read of the seed in
@@ -4926,8 +4984,7 @@ the kind as in *Heads in a parse that keeps records*:
    with one reading: where an alike call, the call $S$ or a call through
    which $\kappa$ reaches $S$ lies in an iteration that a record answers,
    its end is the end of the evaluation that $\mathcal{R}$ makes of it
-   there, and the hypothesis that two evaluations of an alike call at one
-   position end at one position is made of that evaluation.
+   there, and *Alike calls end alike* is applied to that evaluation.
 2. *Frames around the frame of an outer link*, *Shared caller frames*,
    the statements on $E_2$ and on $F_2$ in the text after *The frame of an
    outer link as the later evaluation of a shared call*, and the statement
@@ -5062,14 +5119,12 @@ inside an iteration that the record answers. That end is read in
 $\mathcal{R}$: the walk of $\mathcal{R}$ in the state of that walk
 evaluates the iteration, with the same end of the walk (*Counterparts*),
 and the end of the call is the end of the evaluation that this walk of
-$\mathcal{R}$ makes of it. The hypothesis that two evaluations of an
-alike call at one position end at one position is then made of that
-evaluation and of the other evaluation of the call, or of its
+$\mathcal{R}$ makes of it. *Alike calls end alike* is then applied to
+that evaluation and to the other evaluation of the call, or to its
 counterpart in $\mathcal{R}$, which has the same end (2 of *Restarts in a
-parse that keeps records*). For a call that the unit and the
-continuation share, this is case 2 in $\mathcal{R}$, as in that point.
-For a call that the comparison of a decided unit passes alike, it is a
-further reading of the hypothesis, which the claim states. With the ends
+parse that keeps records*): its proof reads the ends in $\mathcal{R}$, for
+a call that the unit and the continuation share, as case 2 there, and for
+a call that the comparison of a decided unit passes alike. With the ends
 read so, the positions that the proof compares, the ends of the alike
 calls in $w$ and in $\kappa$, the end of $S$ at $p_0$ and the ends of
 $K$ and of the $Q_i$, are those of the input that the parser passes,
@@ -11865,8 +11920,7 @@ theorem covers such a parse.
    bound on the heads, so it cannot in turn bound the runs. Across such links, two outer
    links $l < l'$ at one position $p$ through one call place still contradict
    the sharing of their call when $Y_{l'}$ encloses $w_l$: *Nesting at one end*
-   applies with $Y_{l'}$ as $X$ and $Y_l$ as $T$, under its hypotheses and
-   with its open points, when both links meet the hypothesis on growth steps
+   applies with $Y_{l'}$ as $X$ and $Y_l$ as $T$, under its hypotheses, when both links meet the hypothesis on growth steps
    of *Calls that call no rule*, which keeps both frames from being growth
    steps and the later steps of the growths around the units from starting
    before the position of the scan (*Growths around a leaf link*). In the
@@ -11883,7 +11937,7 @@ theorem covers such a parse.
    link fails before that evaluation starts, and none of whose shared calls
    before that evaluation holds the frame of the earlier outer link, meets
    *Nesting at one end*, under its hypotheses on the dropped and the later
-   kept steps of growths and apart from its open points, apart from a scan-only rule of the scan in a parse without
+   kept steps of growths, apart from a scan-only rule of the scan in a parse without
    records of scan sites, which no claim treats, and in a parse that keeps no records of scan sites the unit of
    the index evaluates no call of the rule of the scan at the position of the
    scan after its shared call, unless the sequence of activations leaves out
@@ -11914,7 +11968,7 @@ theorem covers such a parse.
    evaluation of the earlier one other than as it, or contains the earlier
    one other than as its body evaluation, *Nesting at one end* rules the case
    out, under its hypotheses on the dropped and the later kept steps of
-   growths and apart from its open points, apart from a scan-only rule of the scan in a parse without records of
+   growths, apart from a scan-only rule of the scan in a parse without records of
    scan sites, which no claim treats (*The frame of an outer link as the later
    evaluation of a shared call*). Not shown is the case in
    which the frame of the earlier outer link is the body evaluation of the
@@ -12040,7 +12094,7 @@ theorem covers such a parse.
    *Nesting at one end* shows that evaluations of a call that nest without a
    bound and end at one position, through restarts as well, make the call
    nest at one end, which keeps the call of `R` in that grammar from being
-   shared, apart from the three points that it leaves open, a nesting
+   shared, apart from a nesting
    through a part that a dropped step evaluates at the position of its growth
    before a read of its seed, and a nesting through a growth whose later kept
    step matches its result without a read of its seed outside lookaheads,
@@ -12051,7 +12105,7 @@ theorem covers such a parse.
    step or an evaluation in a context of growths, which that claim leaves
    out, and for which the condition has its case of seed reads (*Seed
    reads*); that case is argued from *Nesting at one end* but not proved:
-   besides the three open points of that claim, it is not shown that the
+   it is not shown that the
    nested evaluations of a leader that it picks end at the position, since a
    leader whose current result ends there can grow beyond it, nor that each
    dropped step of a growth on the path between them holds the inner one after
@@ -12348,7 +12402,7 @@ theorem covers such a parse.
    heads that hold the activations of leaf links, some of them with case
    (d), one with one more exception, some for an activation outside the
    iterations of the walks of the sites that keep records, and *Nesting
-   at one end* with its hypothesis on the alike calls read in the
+   at one end* with *Alike calls end alike* read in the
    reference parse for a call that a record covers, as it states; *Calls of scan-only rules*,
    which rests on the Run Sites proof, and *Seed reads*, which proves
    nothing, are not among them. *Repeats inside a growth in a parse that
