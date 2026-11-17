@@ -176,3 +176,7 @@ const WalkListElement = core.WalkListElement
 // Callback errors return unchanged; Stop succeeds; Skip omits the value's descendants.
 // The graph must not be mutated concurrently. Walk does not mutate or retain it.
 func Walk(root *Node, visit func(WalkVisit) (WalkAction, error)) error { return core.Walk(root, visit) }
+
+// WithContext selects cooperative cancellation for one invocation.
+// A nil context is equivalent to context.Background.
+func WithContext(ctx context.Context) ParseOption { return rt.WithContext(ctx) }

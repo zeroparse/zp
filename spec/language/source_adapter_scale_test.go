@@ -1,12 +1,15 @@
 package language_test
 
 import (
+	"errors"
 	"os"
+	"runtime"
 	"strings"
+	"sync"
 	"testing"
-	"time"
 
-	"zeroparse.dev/zp/internal/frontend/parser"
+	"zeroparse.dev/zp/core"
+	"zeroparse.dev/zp/internal/frontend/parser/zpparser"
 	"zeroparse.dev/zp/spec/language/internal/classretry"
 )
 
@@ -14,12 +17,12 @@ import (
 // closed makes it try the group and then go on without it, so a source of many open brackets must not
 // make the skip grow faster than the source. A "[" that does not close on its line is a class that the
 // skip ends at the end of the line, unless it follows a name, ")" or "]", so the skip must not try the
-// class again from every later "[". These sources fail, and the parse time of 8 times as many brackets
-// is compared with the time of the first size. The generated parser of the grammar source keeps no
-// records of the walks that the engine reuses, so the grammar itself must keep the recovery linear.
-// The sources are parsed by parser.Parse, with the limits of the source APIs: the default limit on
-// the work of a generated parser would end a parse that grows faster than the source early, at a
-// cost that grows with the source, and hide the growth.
+// class again from every later "[". These sources fail, and the compute cost of 8 times as many brackets
+// is compared with the cost of the first size. The cost is the count of units that the generated parser
+// charges, not a time, so the result does not depend on the load of the machine. The generated parser of
+// the grammar source keeps no records of the walks that the engine reuses, so the grammar itself must
+// keep the recovery linear. The sources are parsed by the generated parser alone, with the options of the
+// source APIs; the lexer and the tree builder are outside this measure.
 var scaleSources = []struct {
 	name string
 	make func(n int) string
@@ -54,105 +57,99 @@ var scaleSources = []struct {
 	{"negations on lines in a value group", func(n int) string { return "rule a = x => (" + strings.Repeat("-\n", 4*n) + "1)" }},
 }
 
-// bestTime returns the least time over a few runs of run.
-func bestTime(run func()) time.Duration {
-	best := time.Duration(1 << 62)
-	for i := 0; i < 5; i++ {
-		start := time.Now()
-		run()
-		best = min(best, time.Since(start))
+// computeCost returns the compute units that a parse takes: the least Compute limit under which run
+// does not fail with a limit error. run parses with the given limit. The parser charges its work (input
+// units inspected, rule calls and loop iterations) to one counter and rejects the charge that passes
+// the limit, so the cost is exact and does not depend on the time or the load of the machine. A parse
+// that ends with another error, such as a syntax error, has completed.
+func computeCost(run func(limit uint64) error) uint64 {
+	completes := func(limit uint64) bool { return !errors.Is(run(limit), core.ErrLimit) }
+	hi := uint64(1 << 10)
+	for !completes(hi) {
+		hi *= 2
 	}
-	return best
+	lo := hi / 2 // lo fails, or is zero; hi completes
+	for hi-lo > 1 {
+		if mid := lo + (hi-lo)/2; completes(mid) {
+			hi = mid
+		} else {
+			lo = mid
+		}
+	}
+	return hi
 }
 
-// scaleFactor is how many times larger the big source is than the small one.
+// scaleFactor is how many times larger the big source is than the small one, and scaleLimit is the
+// largest ratio of their costs that counts as linear.
 const (
-	scaleFactor   = 8
-	scaleFloor    = 20 * time.Millisecond
-	scaleMaxSmall = 64000
+	scaleFactor = 8
+	scaleLimit  = 24
 )
 
-// scalesLinearly measures the work at a size and at scaleFactor times that size, and reports the ratio of
-// the two times. The work is linear if the ratio is about scaleFactor and quadratic if it is about its
-// square, so a ratio over 24 is a growth that is not linear. A time of a few milliseconds is mostly
-// noise, so the sizes double until the time of the big size is over scaleFloor, as far as scaleMaxSmall;
-// a family that stays under the floor there is reported as such and passes. Other work on the machine
-// slows a run, so the best of a few attempts counts: a quadratic time fails every attempt.
-func scalesLinearly(t *testing.T, small int, measure func(n int) time.Duration) (ratio float64, ok bool) {
+// scalesLinearly compares the cost of the work at a size and at scaleFactor times that size, and reports
+// the ratio of the two. The cost is linear if the ratio is about scaleFactor and quadratic if it is
+// about its square, so a ratio over scaleLimit, the middle of the two on a logarithmic scale, is a growth
+// that is not linear. The costs are counts of the parser, not times, so the ratio of a size is the same
+// on every run and under any load, and a single measure decides.
+func scalesLinearly(t *testing.T, small int, cost func(n int) uint64) (ratio float64, ok bool) {
 	t.Helper()
-	const attempts = 3
-	for attempt := 0; attempt < attempts; attempt++ {
-		a, b := measure(small), measure(small*scaleFactor)
-		for b <= scaleFloor && small < scaleMaxSmall {
-			small *= 2
-			a, b = measure(small), measure(small*scaleFactor)
-		}
-		ratio = float64(b) / float64(max(a, time.Microsecond))
-		t.Logf("%d: %v, %d: %v, ratio %.1f", small, a, small*scaleFactor, b, ratio)
-		if b <= scaleFloor {
-			t.Logf("the time of the big size is under %v at the largest size: nothing is measured", scaleFloor)
-			return ratio, true
-		}
-		if ratio <= 24 {
-			return ratio, true
-		}
-	}
-	return ratio, false
+	a, b := cost(small), cost(small*scaleFactor)
+	ratio = float64(b) / float64(max(a, 1))
+	t.Logf("%d: %d units, %d: %d units, ratio %.2f", small, a, small*scaleFactor, b, ratio)
+	return ratio, ratio <= scaleLimit
+}
+
+// sourceCost is the compute cost of the generated parser of ZeroParse sources on src, with the options
+// and the limits of the source APIs except for Compute.
+func sourceCost(src string) uint64 {
+	return computeCost(func(limit uint64) error {
+		_, err := zpparser.ParseValue(src, zpparser.WithExpectations(), zpparser.WithLimits(zpparser.Limits{Compute: limit}))
+		return err
+	})
 }
 
 func TestRecoveryScalesLinearly(t *testing.T) {
 	for _, c := range scaleSources {
 		t.Run(c.name, func(t *testing.T) {
-			ratio, ok := scalesLinearly(t, 2000, func(n int) time.Duration {
-				src := c.make(n)
-				return bestTime(func() { parser.Parse(src) })
-			})
+			ratio, ok := scalesLinearly(t, 2000, func(n int) uint64 { return sourceCost(c.make(n)) })
 			if !ok {
-				t.Errorf("the time grows %.1f times for %d times as many brackets in each attempt (limit 24)", ratio, scaleFactor)
+				t.Errorf("the cost grows %.1f times for %d times as many brackets (limit %d)", ratio, scaleFactor, scaleLimit)
 			}
 		})
 	}
 }
 
-// scaleSink keeps the work of the controls below from being removed.
-var scaleSink int
-
-func linearWork(n int) {
-	s := 0
-	for i := 0; i < 5000*n; i++ {
-		s += i ^ (i >> 3)
-	}
-	scaleSink = s
+func classRetryCost(t *testing.T, src string) uint64 {
+	t.Helper()
+	return computeCost(func(limit uint64) error {
+		_, err := classretry.Parse(src, classretry.WithLimits(core.Limits{Compute: limit}))
+		return err
+	})
 }
 
-func quadraticWork(n int) {
-	s := 0
+// synthetic costs of known growth, counted like the parser counts: one unit for each step.
+func linearSteps(n int) uint64 { return uint64(5 * n) }
+func quadraticSteps(n int) uint64 {
+	var s uint64
 	for i := 0; i < n; i++ {
-		for j := 0; j < n; j++ {
-			s += i ^ j
-		}
+		s += uint64(n)
 	}
-	scaleSink = s
+	return s
 }
 
-// TestScaleDetectorSeesQuadraticTime is the negative control of TestRecoveryScalesLinearly. A change of the
-// grammar that makes the recovery quadratic did not turn up: lookaheads to the end of the source that were
-// added to the recovery rules left the time of these sources linear. So the control applies the same
-// measure to work with a known growth: work that grows with the square of the size must be reported as a
-// failure, and linear work must not.
+// TestScaleDetectorSeesQuadraticTime is the negative control of TestRecoveryScalesLinearly: a change of
+// the grammar that makes the recovery quadratic did not turn up once, because the time of the sources
+// stayed linear. So the control applies the same measure to costs of a known growth: a cost that grows
+// with the square of the size must be reported as a failure, and a linear cost must not.
 func TestScaleDetectorSeesQuadraticTime(t *testing.T) {
-	measure := func(work func(n int)) func(n int) time.Duration {
-		return func(n int) time.Duration { return bestTime(func() { work(n) }) }
-	}
 	t.Run("quadratic", func(t *testing.T) {
-		ratio, ok := scalesLinearly(t, 2000, measure(quadraticWork))
-		if ok {
-			t.Errorf("quadratic work passed with ratio %.1f", ratio)
+		if ratio, ok := scalesLinearly(t, 2000, func(n int) uint64 { return quadraticSteps(n) }); ok {
+			t.Errorf("quadratic cost passed with ratio %.1f", ratio)
 		}
 	})
 	t.Run("linear", func(t *testing.T) {
-		if ratio, ok := scalesLinearly(t, 2000, measure(linearWork)); !ok {
-			t.Errorf("linear work failed with ratio %.1f", ratio)
+		if ratio, ok := scalesLinearly(t, 2000, func(n int) uint64 { return linearSteps(n) }); !ok {
+			t.Errorf("linear cost failed with ratio %.1f", ratio)
 		}
 	})
 }
@@ -160,56 +157,54 @@ func TestScaleDetectorSeesQuadraticTime(t *testing.T) {
 // TestScaleDetectorSeesGeneratedClassRetries is the negative control of TestRecoveryScalesLinearly on a
 // generated parser: the parser of a repetition that tries a class from every "[" and falls back to any
 // character, as the recovery of declarations did before it ended an open class at the end of its line,
-// takes time that grows with the square of the line, and the measure must report it.
+// takes a cost that grows with the square of the line, and the measure must report it. The same parser
+// on a line without "[" is the linear control: the class fails at its first character.
 func TestScaleDetectorSeesGeneratedClassRetries(t *testing.T) {
-	ratio, ok := scalesLinearly(t, 250, func(n int) time.Duration {
-		src := strings.Repeat("[", n) + "\n"
-		return bestTime(func() {
-			if _, err := classretry.Parse(src); err != nil {
-				t.Fatal(err)
-			}
-		})
+	t.Run("quadratic", func(t *testing.T) {
+		ratio, ok := scalesLinearly(t, 250, func(n int) uint64 { return classRetryCost(t, strings.Repeat("[", n)+"\n") })
+		if ok {
+			t.Errorf("class retries of the generated parser passed with ratio %.1f", ratio)
+		}
 	})
-	if ok {
-		t.Errorf("class retries of the generated parser passed with ratio %.1f", ratio)
+	t.Run("linear", func(t *testing.T) {
+		ratio, ok := scalesLinearly(t, 250, func(n int) uint64 { return classRetryCost(t, strings.Repeat("x", n)+"\n") })
+		if !ok {
+			t.Errorf("linear parse of the generated parser failed with ratio %.1f", ratio)
+		}
+	})
+}
+
+// TestScaleCostIgnoresLoad checks that the cost does not depend on the load: the cost of a parse is the
+// same while every CPU is busy with other work as when it is idle, so no run can fail by noise.
+func TestScaleCostIgnoresLoad(t *testing.T) {
+	src := "rule a = x" + strings.Repeat("[", 2000) + "\nrule b = c\n"
+	idle := sourceCost(src)
+	stop := make(chan struct{})
+	var wg sync.WaitGroup
+	for i := 0; i < 2*runtime.NumCPU(); i++ {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			for s := 0; ; s++ {
+				select {
+				case <-stop:
+					return
+				default:
+					scaleSink += s
+				}
+			}
+		}()
+	}
+	loaded := sourceCost(src)
+	close(stop)
+	wg.Wait()
+	if idle != loaded {
+		t.Errorf("cost %d when idle, %d under load", idle, loaded)
 	}
 }
 
-// TestScaleAttemptsAbsorbNoise checks the attempts of scalesLinearly with times that are given, not
-// measured: a linear run that another process slowed in the first two attempts passes in the third, and
-// quadratic times fail in all three whatever the noise.
-func TestScaleAttemptsAbsorbNoise(t *testing.T) {
-	const unit = 100 * time.Microsecond
-	run := func(sizeTime func(call, n int) time.Duration) (float64, bool) {
-		call := 0
-		return scalesLinearly(t, 2000, func(n int) time.Duration {
-			call++
-			return sizeTime(call, n)
-		})
-	}
-	t.Run("noisy linear", func(t *testing.T) {
-		// Calls 1 to 4 are the first two attempts, the big size of each slowed by 10 times.
-		if ratio, ok := run(func(call, n int) time.Duration {
-			d := time.Duration(n) * unit
-			if call <= 4 && n > 2000 {
-				d *= 10
-			}
-			return d
-		}); !ok {
-			t.Errorf("linear time with two noisy attempts failed with ratio %.1f", ratio)
-		}
-	})
-	t.Run("quadratic", func(t *testing.T) {
-		calls := 0
-		ratio, ok := run(func(call, n int) time.Duration {
-			calls = call
-			return time.Duration(n) * time.Duration(n) * unit / 2000
-		})
-		if ok || calls != 6 {
-			t.Errorf("quadratic time: ok %v after %d calls with ratio %.1f, want failure after 6 calls", ok, calls, ratio)
-		}
-	})
-}
+// scaleSink keeps the work of the load above from being removed.
+var scaleSink int
 
 // BenchmarkCanonicalFrontend parses grammars with the generated parser and builds the grammar from its
 // tree, which is the work of the generated frontend of ParseGrammar. The sources are valid, so the
