@@ -3682,11 +3682,12 @@ walk of a repetition, in its rule or in the twin, at which a walk of the
 parse resumes a run. In a Document parse whose records of sites are
 exact, (R1) of the [Setting](#setting), *Heads in a parse that keeps
 records* holds as stated, and the claims that it shows with case (d) of
-the covered keys hold with case (e) beside it; *Links lead to repeated
-evaluations*, and the two claims that rest on it, where the innermost
-evaluation that contains the two activations of a link is a growth, only
-where the first case of *Repeats inside a growth* of Lemma 5 holds of the
-parse, which is not shown of a parse that resumes runs. Case (e) arises
+the covered keys hold with case (e) beside it, apart from one case:
+*Links lead to repeated evaluations* and the claims that rest on it, from
+*Links to heads* to *Evaluated pairs of a shared call*, hold where the
+innermost evaluation that contains the two activations of a link is a
+growth only where the first case of *Repeats inside a growth* of Lemma 5
+holds of the parse, which is not shown of a parse that resumes runs. Case (e) arises
 only as 1 to 3 of that claim state of case (d), with a resumable iteration
 in place of an iteration of the kind. And *Memoized links keep positions*
 holds of an $\alpha_i$ that is no resumable iteration and lies inside
@@ -3721,12 +3722,13 @@ inside it, or one that contains $Z$, by the paragraph above. For
 and lie inside none. No resumed walk reuses an iteration on the path from
 $\mathcal{R}(e_i)$ to $\rho$, since $P_i$ would lie inside $e'_i$ in a
 resumable iteration. In $P$ the parse makes the counterpart of $\beta$,
-evaluated or reused, unless a resumed walk reuses an iteration inside
+unless a resumed walk reuses an iteration inside
 $\rho$ that contains $\beta$ other than as $\beta$ itself; that iteration
 would be resumable and would correspond, in the same steps, to an
-iteration that contains $\alpha_i$. So $P$ holds a successful activation
-of $\sigma$ at $q$, a reused iteration succeeding as its counterpart
-does. $\square$
+iteration that contains $\alpha_i$. And $\beta$ itself is not reused,
+since $\alpha_i$, an iteration of the same repetition, in the rule or in
+its twin, would then be resumable. So $P$ evaluates $\beta$ and holds a
+successful activation of $\sigma$ at $q$. $\square$
 
 So for the activations that are no resumable iterations and lie inside
 none, which are those of *Replayed activations* in a Document parse, no
