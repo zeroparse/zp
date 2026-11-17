@@ -6,8 +6,8 @@ import (
 	"fmt"
 	"io"
 	"strings"
+	"sync/atomic"
 	"testing"
-	"time"
 	"unicode/utf8"
 
 	"zeroparse.dev/zp/core"
@@ -15,6 +15,59 @@ import (
 	"zeroparse.dev/zp/internal/engine/state"
 	"zeroparse.dev/zp/internal/testing/codegentest"
 )
+
+// blockProbe wraps the reader of a stream parse and reports when the parser asks it for input after
+// arm. A parser that holds everything it needs to emit an item does not read, so a read after the
+// last byte that the test wrote means that the parser waits for future input or the end. The report
+// takes the place of a timer, whose verdict depends on the load of the machine: it comes when the
+// parser blocks, however long that takes, and never when the parser emits.
+type blockProbe struct {
+	r       io.Reader
+	armed   atomic.Bool
+	blocked chan struct{}
+}
+
+func newBlockProbe(r io.Reader) *blockProbe {
+	return &blockProbe{r: r, blocked: make(chan struct{}, 1)}
+}
+
+func (p *blockProbe) Read(b []byte) (int, error) {
+	if p.armed.Load() {
+		select {
+		case p.blocked <- struct{}{}:
+		default:
+		}
+	}
+	return p.r.Read(b)
+}
+
+// awaitEmitted returns the next value of emitted, which the parser sends from its callback, after
+// the probe was armed. It fails with what if the parser reads again, or stops (its result is on
+// done, and is put back for the caller), before it emitted: the callback runs before the parser
+// can read again, so a value that is not there when the probe reports was never going to come.
+func awaitEmitted[T any](t *testing.T, emitted <-chan T, probe *blockProbe, done chan error, what string) T {
+	t.Helper()
+	select {
+	case v := <-emitted:
+		return v
+	case err := <-done:
+		done <- err
+		select {
+		case v := <-emitted:
+			return v
+		default:
+			t.Fatalf("the stream ended before the item was emitted: %v", err)
+		}
+	case <-probe.blocked:
+		select {
+		case v := <-emitted:
+			return v
+		default:
+			t.Fatal(what)
+		}
+	}
+	panic("unreachable")
+}
 
 // failOnRead lets decode read buffered bytes but reports every attempt to
 // obtain unrelated data. The parser must not use read failures as EOF.
@@ -64,25 +117,22 @@ func TestOpenPipeStreamEmitsCompleteItem(t *testing.T) {
 					t.Run(fmt.Sprintf("%s/%s/%x/split%d", b, unit, s, split), func(t *testing.T) {
 						p := mustCompile(t, "rule main = item* #stream $$\nrule item = . \"\\n\"")
 						pr, pw := io.Pipe()
+						probe := newBlockProbe(pr)
 						emitted := make(chan string, 2)
 						done := make(chan error, 1)
 						go func() {
 							defer pr.Close() // Unblock a writer if parsing fails before all chunks arrive.
-							done <- p.ParseStreamWith("main", pr, func(n *core.Node) error { emitted <- codegentest.ResultJSON(n, nil); return nil }, ParseOptions{Backend: b, Unit: unit})
+							done <- p.ParseStreamWith("main", probe, func(n *core.Node) error { emitted <- codegentest.ResultJSON(n, nil); return nil }, ParseOptions{Backend: b, Unit: unit})
 						}()
 						t.Cleanup(func() {
 							pw.Close()
 							if t.Failed() {
 								pr.Close()
 							}
-							select {
-							case err := <-done:
-								if !t.Failed() && err != nil {
-									t.Errorf("stream completion: %v", err)
-								}
-							case <-time.After(2 * time.Second):
-								pr.Close()
-								t.Error("stream goroutine did not stop")
+							// The end of the input or the closed reader ends the parse; a parse that does not
+							// end is stopped by the test timeout, which names the goroutine.
+							if err := <-done; !t.Failed() && err != nil {
+								t.Errorf("stream completion: %v", err)
 							}
 							pr.Close()
 						})
@@ -96,18 +146,14 @@ func TestOpenPipeStreamEmitsCompleteItem(t *testing.T) {
 						if _, err := io.WriteString(pw, s[split:]+"\n"); err != nil {
 							t.Fatal(err)
 						}
+						probe.armed.Store(true)
 						want := ""
 						refErr := p.ParseStreamWith("main", strings.NewReader(s+"\n"), func(n *core.Node) error { want = codegentest.ResultJSON(n, nil); return nil }, ParseOptions{Unit: unit})
 						if refErr != nil {
 							t.Fatal(refErr)
 						}
-						select {
-						case got := <-emitted:
-							if got != want {
-								t.Fatalf("got %s want %s", got, want)
-							}
-						case <-time.After(time.Second):
-							t.Fatal("complete item waited for future bytes or EOF")
+						if got := awaitEmitted(t, emitted, probe, done, "complete item waited for future bytes or EOF"); got != want {
+							t.Fatalf("got %s want %s", got, want)
 						}
 						if err := pw.Close(); err != nil {
 							t.Fatal(err)

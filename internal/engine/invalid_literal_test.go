@@ -6,7 +6,6 @@ import (
 	"strconv"
 	"strings"
 	"testing"
-	"time"
 	"unicode/utf8"
 
 	"zeroparse.dev/zp/core"
@@ -126,42 +125,36 @@ func TestOpenPipeInvalidUTF8Literal(t *testing.T) {
 					prog := mustCompile(t, `rule main = item* #stream $$
 rule item = "�" "\n"`)
 					pr, pw := io.Pipe()
+					probe := newBlockProbe(pr)
 					done := make(chan error, 1)
 					emitted := make(chan *core.Node, 1)
 					go func() {
 						defer pr.Close()
-						done <- prog.ParseStreamWith("main", pr, func(n *core.Node) error { emitted <- n; return nil }, ParseOptions{Backend: backend, Unit: unit})
+						done <- prog.ParseStreamWith("main", probe, func(n *core.Node) error { emitted <- n; return nil }, ParseOptions{Backend: backend, Unit: unit})
 					}()
 					t.Cleanup(func() {
 						pw.Close()
 						if t.Failed() {
 							pr.Close()
 						}
-						select {
-						case err := <-done:
-							if !t.Failed() && err != nil {
-								t.Error(err)
-							}
-						case <-time.After(2 * time.Second):
-							pr.Close()
-							t.Error("stream did not stop")
+						// The end of the input or the closed reader ends the parse; a parse that does not
+						// end is stopped by the test timeout, which names the goroutine.
+						if err := <-done; !t.Failed() && err != nil {
+							t.Error(err)
 						}
 						pr.Close()
 					})
 					if _, err := io.WriteString(pw, input); err != nil {
 						t.Fatal(err)
 					}
-					select {
-					case n := <-emitted:
-						width := len(input)
-						if unit == core.CodePoints {
-							width = utf8.RuneCountInString(input)
-						}
-						if value.D(n).End != int32(width) {
-							t.Fatalf("end=%d want %d", value.D(n).End, width)
-						}
-					case <-time.After(time.Second):
-						t.Fatal("literal waited for future input or EOF")
+					probe.armed.Store(true)
+					n := awaitEmitted(t, emitted, probe, done, "literal waited for future input or EOF")
+					width := len(input)
+					if unit == core.CodePoints {
+						width = utf8.RuneCountInString(input)
+					}
+					if value.D(n).End != int32(width) {
+						t.Fatalf("end=%d want %d", value.D(n).End, width)
 					}
 				})
 			}
