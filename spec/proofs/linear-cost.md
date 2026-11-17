@@ -8845,7 +8845,8 @@ evaluations of the two other kinds with one image are at most a constant
 by (i) to (iii) of that proof. Any other body evaluation $e$ is of a rule
 that the parse does not memoize, in no context of growths, and lies, at a
 place, in the innermost evaluation $M$ of those kinds that contains it,
-or in the evaluation where the parse begins; the calls between $M$ and
+or in the evaluation where the parse begins, whose image is the evaluation
+where $\mathcal{P}$ begins, the only one of its kind; the calls between $M$ and
 $e$ are of rules that the parse does not memoize, and no step of a growth
 lies there. As in *Images of activations*, $\mathcal{P}$ evaluates at
 that place in the image of $M$ an evaluation with the steps of
@@ -8859,10 +8860,13 @@ image of at most a constant number of evaluations of the parse.
 
 The values that a copy reads are those of the evaluations that it reads,
 which are the same in $e$ and $\bar{e}$, those of the counterparts in
-$\mathcal{R}$: an answer from the memo gives the value of the evaluation
+$\mathcal{R}$: an answer from the memo or from a result or a step kept in a
+context, and a run of steps taken at once, give the value of the evaluation
 ([memoization
-theorem](memoization.md#theorem-memoization-never-changes-the-result)), a
-record leaves the values that the walk would leave, (R1), and so does a
+theorem](memoization.md#theorem-memoization-never-changes-the-result), with
+the [left-recursion proof](left-recursion.md) for the growths), a transient
+call that a Document answers is read as the evaluation of its counterpart
+(*Transient calls of a Document* in Lemma 3), a record leaves the values that the walk would leave, (R1), and so does a
 resumed run ([Lemma 3](documents.md#lemma-3-resumed-runs) of the Documents
 proof). The own spans and
 the iterations of the repetitions of the evaluations that the copy reads
