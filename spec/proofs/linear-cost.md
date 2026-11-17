@@ -6829,8 +6829,10 @@ the grammar and of the conditions.
 It remains to show where the one more cases arise. In *Restarts of the
 other kind*, let the first evaluation of $\mathcal{R}$ on the way from
 $\mathcal{R}(e_{k+1})$ down to $\gamma$ that has no counterpart in the
-parse be an iteration $\iota$ that a record answers, or one other than
-$\gamma$ that a resumed walk reuses; when the first is a call that the
+parse be an iteration $\iota$ that a record answers, or lie strictly
+inside an iteration $\iota$ other than $\gamma$ that a resumed walk reuses,
+which is an activation of the parse and so has a counterpart; when the
+first is a call that the
 parse answers, the claim treats it as it stands. That
 way and the way from $\mathcal{R}(e'_{k+1})$ down to the counterpart of
 $\alpha_{k+1}$ take the same steps, so an iteration $\iota'$ of the same
