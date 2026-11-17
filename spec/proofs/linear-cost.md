@@ -5077,11 +5077,20 @@ roots of their counterparts in the reference parse. In a
 [Document](../runtime/documents.md) parse, the factor six is likewise that
 of *Replayed activations*, so the bound is of the activations that lie
 inside no iteration of a walk of a repetition, in its rule or in the twin, at which a walk of the parse
-resumes a run, and holds when case (e) of the covered keys, left out with
-case (d), arises on the path of no link; the activations inside such an
-iteration that memoized evaluations own are bounded by *Descent in the
-reference parse* and *Heads without the records*, which hold whatever
-runs the parse resumes.
+resumes a run. By *Heads in a parse that resumes runs* no link of such an
+activation has case (e) of the covered keys on its path, and by *Covered
+keys through resumed runs* a free one whose reference link has it is held
+by no head unless case (a) or (b) arises on the path of that link
+followed through the records and the resumed runs, an iteration that
+comes from an earlier parse being case (a); the hypothesis on the free
+ones is then read with those paths. The claims on leaf links and on the
+scans that the bound uses hold of such a parse as *Leaf links in a parse
+that resumes runs* and *Iterations at one scan in a parse that resumes
+runs* show, with the parts that they leave open, as with records (step 8
+of [Open Steps](#open-steps)). The activations inside such an iteration
+that memoized evaluations own are bounded by *Descent in the reference
+parse* and *Heads without the records*, which hold whatever runs the
+parse resumes.
 
 This gives the case that the comparison misses without the classes: in
 `main = (-r "x" / r "y")* $$; r = [a-c]* t?; t = "d"` on `abcy`, the first
@@ -11229,8 +11238,10 @@ theorem covers such a parse.
    that hypothesis, 4 for a run that holds such a link, and the claims
    from *Memoized breaks* to *Consecutive activations in one own region*,
    which rest on 1 to 4 and are stated for a parse in which every walk
-   evaluates its iterations; *Activations held by heads* is stated for a
-   Document parse, but its reading there rests on them. Nor are the claims of Lemma 5 from *Covered growths* to *First
+   evaluates its iterations. *Activations held by heads* states its
+   reading for a Document parse with *Heads in a parse that resumes runs*,
+   *Covered keys through resumed runs* and the two claims above, and it is
+   open there only through these parts. Nor are the claims of Lemma 5 from *Covered growths* to *First
    activations of heads* shown of a parse that resumes a run, even one
    that keeps no record of any site: a head can resume a run whose walk a
    later growth of its key evaluates, and the second growth of
