@@ -10507,7 +10507,8 @@ theorem covers such a parse.
    a root that those cases make, and the number of such roots at one
    position in one such evaluation, which *Fresh roots in one evaluation*
    shows to be one beside those that case 5 leads to when the parse
-   memoizes the rule of the source; the claims of Lemma 5 on the parts
+   memoizes the rule of the source, that rule is no leader and the source
+   is no bounded scan; the claims of Lemma 5 on the parts
    that a step evaluates at the position of its growth are not read for
    those evaluations of $\mathcal{R}$, and leave out steps in which such
    a part reaches a position far from its growth. Open too are the leaf
