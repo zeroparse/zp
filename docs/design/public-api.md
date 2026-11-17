@@ -18,7 +18,9 @@ build on it, while `pkg/grammar` builds on the parser and the formatter.
 - A **grammar source** is one grammar input: a named value made from bytes, a string, a reader or a path in a file
   system (the constructors `FromBytes`, `FromString`, `FromReader` and `FromFS`), with an explicit or detected encoding
   (grammar syntax or JSON). Its fields are unexported, which guarantees that it has exactly one supplier. A reader is
-  read in full when the source is loaded, because a diagnostic needs the text of any line.
+  read in full when the source is first loaded, because a diagnostic needs the text of any line, and the source keeps
+  what it read, so it can be loaded again. JSON is decoded strictly: an unknown field is an error, so a renamed field
+  of an older AST is reported by name rather than dropped.
 - **Loading** a source gives the grammar AST. A program that builds an AST by hand can validate it. Formatting and
   conversion between the two encodings are in `pkg/grammar` too.
 - Action expressions have one name in the AST, in the JSON form and in the syntax: the name that the specification
