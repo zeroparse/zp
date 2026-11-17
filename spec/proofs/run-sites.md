@@ -1,6 +1,6 @@
 # Run Sites
 
-Arata Furukawa · Last revised 2026-11-09
+Arata Furukawa · Last revised 2026-11-17
 
 This proof covers the records of [run sites](../runtime/parsing.md#run-sites).
 A reused record gives what the rest of the walk would have given, in the
@@ -95,6 +95,18 @@ under its position alone. Two environment objects that are equal but distinct
 give distinct keys. Since that changes only which records a walk finds, never
 what one holds, the lemmas below hold for keys by object as stated.
 
+**Kinds.** The records of a site are kept apart for each lookahead state, so
+all the records that the walks of $(\sigma, \lambda)$ find were made by walks
+of $(\sigma, \lambda)$. A rule and its value-free twin walk the same site, so
+a record also notes whether the walk that made it built values. A walk that
+builds values finds only a record that notes values, and treats a slot whose
+record notes none as not recorded under its key; a walk that builds none
+takes a record of either kind and ignores its values, which the rest of its
+walk does not use. A walk that builds values stores records that note
+values, so a key holds a record without values at most until such a walk
+records it, and each key is recorded at most twice: once by each kind of
+walk.
+
 ## Lemma 1 (Exactness)
 
 For a site that is not free of the environment, every record stored under
@@ -121,9 +133,10 @@ environment that $E(r_m, \eta_m)$ left. The walk ends in one of two ways.
   visit $r_k$. Its record ends at $r_k$ in $\eta_k$ with the outcome, range and
   errors of $E(r_k, \eta_k)$ and no values, which is
   $\mathrm{Rest}(r_k, \eta_k)$.
-- At a position $r_{k+1}$ with a record found under its key. The record was
+- At a position $r_{k+1}$ with a record found under its key, which notes
+  values if the walk builds them (Kinds). The record was
   stored earlier, so it is $\mathrm{Rest}(r_{k+1}, \eta_{k+1})$ by the
-  induction hypothesis. For a site free of the environment it is
+  induction hypothesis, with its values when the walk builds them. For a site free of the environment it is
   $\mathrm{Rest}(r_{k+1})$, which is the same.
 
 The other records are stored from $r_k$ back to $r_j$. Each combines the
@@ -163,10 +176,10 @@ Fix a key class $\kappa$. For a site free of the environment, all walks of
 $(\sigma, \lambda)$ share one class. Otherwise, each environment object in
 which a walk visits a position is a class of its own. In a parse with $W$
 walks of $(\sigma, \lambda)$ while the site is hot, the element is evaluated
-in those walks at most $2(n + 1)$ times at positions whose slot is fresh or
-not yet recorded under $\kappa$, summed over the classes that occur, plus
+in those walks at most $3(n + 1)$ times at positions whose slot is fresh or
+not yet recorded under $\kappa$ for the kind of the walk (Kinds), summed over the classes that occur, plus
 $W (c_{\min} + 1)$ times. The walks look up at most
-$n + 1 + W (c_{\min} + 1)$ slots for each class and store at most as many
+$2(n + 1) + W (c_{\min} + 1)$ slots for each class and store at most as many
 records as they evaluate iterations while recording.
 
 *Proof.* The marks of visited positions are one bit for each position, for
@@ -186,7 +199,9 @@ in [Lemma 2](skip-runs.md#lemma-2-cost) of the Skip Runs proof.
    records, before the iteration at $r_m$ ends. The outer walk visits its later
    positions only after that, so it finds the inner walk's records under the
    same key. So each slot and class is evaluated this way at most once before
-   it is recorded: at most $n + 1$ evaluations per class.
+   it is recorded for each kind of walk, since a record that notes values
+   serves both kinds: at most $2(n + 1)$ evaluations per class, and at most
+   $n + 1$ when the walks of $(\sigma, \lambda)$ are of one kind.
 3. *A recording walk at a recorded slot.* This happens only within the first
    $c_{\min}$ iterations of the walk: at most $W c_{\min}$ evaluations.
 
@@ -195,8 +210,9 @@ follows it. Lookups precede evaluations of cases 2 and 3 or end a walk.
 $\square$
 
 For a site free of the environment there is one class, so the walks of
-$(\sigma, \lambda)$ evaluate the element at most $2(n + 1) + W(c_{\min} + 1)$
-times while hot. For a site that is not free of the environment, the bound
+$(\sigma, \lambda)$ evaluate the element at most $3(n + 1) + W(c_{\min} + 1)$
+times while hot, and at most $2(n + 1) + W(c_{\min} + 1)$ when they are of
+one kind. For a site that is not free of the environment, the bound
 grows with the number of environment objects in which its walks visit one
 position. Nothing bounds that number by the input: a binding before each walk
 makes a new object, and
