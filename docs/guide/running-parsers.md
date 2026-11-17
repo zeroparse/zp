@@ -39,7 +39,7 @@ From a checkout of the repository, `go run ./cmd/zp ...` is equivalent to `zp ..
                                                               compiled grammar (.zpc)
 ```
 
-- The **grammar AST** (package `grammar`) is the in-memory form of a grammar. It can come from ZeroParse source, from JSON, or
+- The **grammar AST** (package `ast`, under `pkg/grammar`) is the in-memory form of a grammar. It can come from ZeroParse source, from JSON, or
   be built by hand.
 - **Compiling** analyzes the AST, type-checks it (reporting grammar errors), and prepares it for execution. A
   `*engine.Parser` is the result: a compiled grammar plus a start rule.
