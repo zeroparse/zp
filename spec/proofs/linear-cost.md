@@ -748,8 +748,12 @@ parse that keeps records* there shows the claims from *Failure after a
 source* to *Memoized links* of such a parse, and *Heads in a parse that
 keeps records* those from *Answered calls* to *Evaluated pairs of a shared
 call*, with one more case of the covered keys, and *Leaf links in a parse
-that keeps records* and *Later leaf links in a parse that keeps records*
-the claims on leaf links other than *Calls of scan-only rules*. The
+that keeps records* the first four claims on leaf links, and *Later leaf
+links in a parse that keeps records* the claims on leaf links from *Memoized links to the frame of an outer
+link* to *Nesting at one end*, as that claim states them: some with
+case (d) of the covered keys, one with one more exception, some for
+the activations outside the iterations of the walks of the sites that
+keep records, and not *Calls of scan-only rules* or *Seed reads*. The
 other claims that count nothing have not been read again for such a parse
 (step 8 of [Open Steps](#open-steps)).
 
@@ -1397,8 +1401,12 @@ the sites that keep records; *Restarts in a parse that keeps records*
 shows the claims from *Failure after a source* to *Memoized links* of such
 a parse, *Heads in a parse that keeps records* those from *Answered
 calls* to *Evaluated pairs of a shared call*, and *Leaf links in a parse
-that keeps records* and *Later leaf links in a parse that keeps records*
-the claims on leaf links other than *Calls of scan-only rules*; that the other claims hold of
+that keeps records* the first four claims on leaf links, and *Later leaf
+links in a parse that keeps records* the claims on leaf links from *Memoized links to the frame of an outer
+link* to *Nesting at one end*, as that claim states them: some with
+case (d) of the covered keys, one with one more exception, some for
+the activations outside the iterations of the walks of the sites that
+keep records, and not *Calls of scan-only rules* or *Seed reads*; that the other claims hold of
 it is left to be
 argued (step 8 of [Open Steps](#open-steps)). For the iterations of recorded
 walks Lemma 17 makes the claims unnecessary.
@@ -1625,7 +1633,9 @@ The proofs use nothing else of the parse. $\square$
 
 The claim does not cover the claims on leaf links that follow; *Leaf
 links in a parse that keeps records* below treats the first four of them,
-and *Later leaf links in a parse that keeps records* the others. And it
+and *Later leaf links in a parse that keeps records* those from
+*Memoized links to the frame of an outer link* to *Nesting at one end*;
+*Calls of scan-only rules* and *Seed reads* are shown by neither. And it
 counts nothing: of the
 activations inside the iterations of the walks of the sites that keep
 records it gives the sequence $\alpha_1, \alpha_2, \ldots$ and its links, not
@@ -3505,7 +3515,8 @@ cover the claims on leaf links, nor the paragraph before it on the heads
 that hold the $\alpha_j$ of leaf links, which uses an argument of *The
 last unit around the earlier frame*; *Leaf links in a parse that keeps
 records* and *Later leaf links in a parse that keeps records* below treat
-those. Nor does it cover the claims that follow *Activations held by
+those, other than *Calls of scan-only rules* and *Seed reads*. Nor does it
+cover the claims that follow *Activations held by
 heads*.
 
 **Covered keys through records.** This claim uses, beyond (R1), how the
@@ -3755,8 +3766,9 @@ evaluation of the key lies, inside $e'_j$, in an iteration of the kind
 then lies in that iteration. $\square$
 
 The claim does not cover the claims on leaf links from *Memoized links
-to the frame of an outer link* on, which *Later leaf links in a parse
-that keeps records* below treats. The first case of *Repeats inside a
+to the frame of an outer link* on. *Later leaf links in a parse that
+keeps records* below treats those up to *Nesting at one end*, and not
+*Calls of scan-only rules* or *Seed reads*. The first case of *Repeats inside a
 growth* is shown of such a parse next.
 
 **Repeats inside a growth in a parse that keeps records.** In a parse
@@ -3822,8 +3834,13 @@ records are exact, (R1) of the [Setting](#setting), with an iteration of
 the kind as in *Heads in a parse that keeps records*:
 
 1. *The last unit around the earlier frame*, with the paragraph after it
-   that carries its proof on to the start of $\alpha_j$, *Caller frames in
-   a later step* and *Nesting at one end* hold as stated.
+   that carries its proof on to the start of $\alpha_j$, and *Caller
+   frames in a later step* hold as stated. So does *Nesting at one end*,
+   with one reading: where an alike call, the call $S$ or a call through
+   which $\kappa$ reaches $S$ lies in an iteration that a record answers,
+   its end is the end of the evaluation that $\mathcal{R}$ makes of it
+   there, and the hypothesis that two evaluations of an alike call at one
+   position end at one position is made of that evaluation.
 2. *Frames around the frame of an outer link*, *Shared caller frames*,
    the statements on $E_2$ and on $F_2$ in the text after *The frame of an
    outer link as the later evaluation of a shared call*, and the statement
@@ -3840,7 +3857,9 @@ the kind as in *Heads in a parse that keeps records*:
    out the activation at $q$ of that call, or a record answers, in the
    evaluation of that call, the iteration of $\sigma$ at $q$ or an
    iteration that contains it. Its second conclusion, on a unit $w_j$
-   that starts before $w_l$ ends, holds as stated in either case.
+   that starts before $w_l$ ends, holds as stated in either case. The
+   text after the claim that states the case which remains repeats the
+   first conclusion, and holds with the same exception.
 4. The paragraph after *Evaluated pairs of a shared call* on the heads
    that hold the activations of leaf links holds with two changes. The
    positions at which the body evaluations of $R$ that hold the
@@ -3852,7 +3871,9 @@ the kind as in *Heads in a parse that keeps records*:
    inside a memoized link* says that *Replayed activations* charges it to
    the head of its class when a memoized evaluation holds it. That holds
    of an activation that is no iteration of the kind and lies inside
-   none, as *Replayed activations* does.
+   none, as *Replayed activations* does. The paragraph after it, on a
+   memoized link whose later evaluation ends before $\alpha_{l'}$ starts,
+   that $e'_j$ is $Y_{l'}$ or lies strictly inside it, holds as stated.
 
 These claims keep the hypotheses, the cases that they leave unshown and
 the open points that they state without records. *Calls of scan-only
@@ -3944,14 +3965,40 @@ records*); the first characters of $w$ and of $\kappa$ after the alike
 calls, applied to the input that $T$ and $\kappa$ consume (3 of that
 claim); and, of each alike call and of each call $K$, $Q_1, \ldots, Q_m$
 through which $\kappa$ reaches $S$, where it ends and that what follows it
-matched without consuming input. Of the alike calls and of the $Q_i$ the
-proof uses the ends alone, and not that the parse evaluates them: the
-memo can answer such a call, and with records an iteration that holds
-one can be answered by a record, which by (R1) leaves the walk the end
-that it has when the iteration is evaluated. The call of case (c) holds
-$T$, and $K$ lies on the path from $X$ to $w$, so the parse evaluates
-both. The hypothesis on the ends of the alike calls is a hypothesis with
-records as without.
+matched without consuming input. Of the alike calls, of $S$ and of the
+$Q_i$ the proof uses the ends alone, and not that the parse evaluates
+them: the memo can answer such a call, and with records an iteration
+that holds one can be answered by a record, as when $\kappa$ begins with
+a run site of minimum 0 whose element begins with the shared call. (R1)
+gives the end of the walk that takes the record, not the end of a call
+inside an iteration that the record answers. That end is read in
+$\mathcal{R}$: the walk of $\mathcal{R}$ in the state of that walk
+evaluates the iteration, with the same end of the walk (*Counterparts*),
+and the end of the call is the end of the evaluation that this walk of
+$\mathcal{R}$ makes of it. The hypothesis that two evaluations of an
+alike call at one position end at one position is then made of that
+evaluation and of the other evaluation of the call, or of its
+counterpart in $\mathcal{R}$, which has the same end (2 of *Restarts in a
+parse that keeps records*). For a call that the unit and the
+continuation share, this is case 2 in $\mathcal{R}$, as in that point.
+For a call that the comparison of a decided unit passes alike, it is a
+further reading of the hypothesis, which the claim states. With the ends
+read so, the positions that the proof compares, the ends of the alike
+calls in $w$ and in $\kappa$, the end of $S$ at $p_0$ and the ends of
+$K$ and of the $Q_i$, are those of the input that the parser passes,
+whether it evaluates a call there or a record covers it (3 of that
+claim). The call of case (c) holds $T$, and $K$ lies on the path from
+$X$ to $w$, so the parse evaluates both.
+
+*The text after Outer links inside a memoized link.* The statement on an
+evaluated pair is treated above. That *Replayed activations* charges an
+activation held by a memoized evaluation that is no head to the head of
+its class is that claim, which with its *Replays* is stated of the
+activations that are no iterations of the kind and lie inside none (the
+text before *Direct activations*). The last paragraph, on $e'_j$ and
+$Y_{l'}$, uses which of two evaluations that contain $\alpha_j$ contains
+the other and that $Y_{l'}$ is the last frame that the link $l'$ leaves
+(2 of *Leaf links in a parse that keeps records*).
 
 *Memoized links to the frame of an outer link.* That $e_j$ ends at $p$
 is case 2. Suppose that $w_j$ evaluates $r$ at $p$ after $e_j$, in an
@@ -3980,7 +4027,8 @@ and that $w_j$ examines no input outside them before $e_j$, properties
 of the grammar applied to what the evaluations examine (5 of *Leaf links
 in a parse that keeps records*); and *Nesting at one end*. The text
 after the claim uses *Growths around a leaf link*, *Restarts* and
-*Dropped steps*, and the compute that it states of a grammar is a
+*Dropped steps*, and where it repeats the first conclusion, the exception
+above goes with it; the compute that it states of a grammar is a
 measurement of the engine as it is.
 
 *The heads that hold the activations of leaf links.* The first sentence
@@ -9635,8 +9683,10 @@ theorem covers such a parse.
    shows the other claims on leaf links, from *Memoized links to the frame
    of an outer link* to *Nesting at one end*, and the paragraph on the
    heads that hold the activations of leaf links, some of them with case
-   (d) or for an activation outside the iterations of the walks of the
-   sites that keep records, as it states; *Calls of scan-only rules*,
+   (d), one with one more exception, some for an activation outside the
+   iterations of the walks of the sites that keep records, and *Nesting
+   at one end* with its hypothesis on the alike calls read in the
+   reference parse for a call that a record covers, as it states; *Calls of scan-only rules*,
    which rests on the Run Sites proof, and *Seed reads*, which proves
    nothing, are not among them. *Repeats inside a growth in a parse that
    keeps records* shows the first case of *Repeats inside a growth* of
