@@ -6,7 +6,8 @@ explains the test layers. The root Go module, the ready-made parsers (the alpha-
 repository) and the site are separate modules: root tests cannot stand in for
 `hack/test-alpha-parsers.sh` or site checks. Generator or
 runtime changes require regeneration and checks of affected generated consumers;
-`AGENTS.md` gives the current required commands. `go generate ./spec/language` applies when
+`AGENTS.md` gives the gate levels (`hack/gate.sh`) and the agent scripts that run them in
+the right run class. `go generate ./spec/language` applies when
 the generated grammar-syntax page changes. Check the diff after generation so output
 and its source stay together.
 

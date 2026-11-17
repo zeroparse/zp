@@ -18,14 +18,12 @@ state directory below is disposable coordination scratch.
 
 ## Set up a machine
 
-1. Pick the state directory: `ZP_TEAM_STATE=${XDG_STATE_HOME:-$HOME/.local/state}/zp-team`,
-   and create `wt/`, `runs/` and `review/` in it.
-2. Copy the queue scripts (`benchlock.sh`, `benchstop.sh`, `testslot.sh`) from the "Team
-   workflow scripts" comment on [Issue #1](https://github.com/zeroparse/zp/issues/1) into
-   `$ZP_TEAM_STATE/bin/` and make them executable. They are coordination tools, not product
-   tooling, so they are kept out of the repository. They need zsh and perl.
-3. Create `$ZP_TEAM_STATE/landing-train.md` with the format line from
-   [landing train](references/landing-train.md).
+1. The state directory is `$ZP_AGENT_STATE` (default `${XDG_STATE_HOME:-$HOME/.local/state}/zp-team`,
+   written `$ZP_TEAM_STATE` in the references below). The scripts in `.agents/scripts/` create it,
+   its queue files and `wt/` on first use; `AGENTS.md` lists them with their usage. They need
+   `bash`, `git` and `perl`.
+2. Create `$ZP_AGENT_STATE/review/` for handovers, and `landing-train.md` with the format line
+   from [landing train](references/landing-train.md).
 
 Layout: `landing-train.md` (the live queue of candidates), `landing-train-archive.md` (history
 moved out of it), `runs/` (queue records; only the scripts write them), `review/<lane>/`

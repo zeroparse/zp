@@ -7,26 +7,24 @@ quiet machine. So runs fall into three classes.
 | Run | How |
 |:--|:--|
 | Docs, spec, site and skill checks (`cd site && go test -count=1 ./...`, the site build and check), `go vet`, deterministic count or charge probes that measure no time | Directly, throttled: `nice -n 15 env GOMAXPROCS=4 ...`. Never queue them. |
-| Targeted package tests while developing | Throttled through the test slots: `testslot.sh nice -n 15 env GOMAXPROCS=4 go test -p 2 -run '<tests>' -short <pkgs>` |
-| Whole packages of the large test suites (engine, codegen and complexity tests), the root suite, `-tags zp_long`, `go generate ./internal/codegen/... ./bench`, `hack/test-alpha-parsers.sh`, `hack/test-reference-tags.sh`, benchmarks and any timed run | Only through the queue: `benchlock.sh <tag> zsh -f -c 'cd <worktree> && ...'` |
+| Targeted package tests while developing | Throttled through the test slots: `.agents/scripts/testslot.sh nice -n 15 env GOMAXPROCS=4 go test -p 2 -run '<tests>' -short <pkgs>` |
+| Whole packages of the large test suites (engine, codegen and complexity tests), the root suite, `-tags zp_long`, `go generate ./internal/codegen/... ./bench`, `hack/test-alpha-parsers.sh`, `hack/test-reference-tags.sh`, benchmarks and any timed run | Only through the queue: `.agents/scripts/benchlock.sh <tag> zsh -f -c 'cd <worktree> && ...'` |
 
 Heavy test runs, including the root `go test ./...`, go only through the queue. Docs and site
 checks and count probes run directly, throttled.
 
 ## The queue
 
-- `benchlock.sh <tag> <command...>` waits for the shared heavy-run lock and then runs the
-  command in its own process group. While it waits or runs, its record is
-  `runs/<tag>.<pid>`, with the `state=`, `seq=` and `start=` fields. Waiters are served in
-  (start, seq) order. seq is unique, so the queue cannot deadlock. If the lock stays free for
-  300 s while jobs wait, a waiter takes it and logs a line to `benchlock-stalls.log`. Any line
-  in that log is a bug: report it with the line.
-- When anything is queued but no record says `state=running`, the queue is stuck. Inspect
-  it at once.
+- `.agents/scripts/benchlock.sh <tag> <command...>` waits for the shared heavy-run lock and
+  then runs the command in its own process group. Its record is `runs/<tag>.<pid>`; waiters are
+  served in (`start=`, `seq=`) order. A line in `benchlock-stalls.log` is a queue bug: report it.
+- `.agents/scripts/queue-status.sh` shows the queue and exits 1 when it is stuck (jobs queued,
+  none running) or a stall was logged. Inspect at once when it does.
+- `.agents/scripts/run-gate.sh LEVEL...` picks the run class of a `hack/gate.sh` level for you.
 - Use `zsh -f` for queued commands. A login shell profile can reset PATH and drop `node`.
   The TypeScript parity tests then fail with "Node is required", which is the environment,
   not the change.
-- Stop your own job with `benchstop.sh <tag>`. It signals only the recorded group. Never kill
+- Stop your own job with `.agents/scripts/benchstop.sh <tag>`. It signals only the recorded group. Never kill
   a process you did not start. Before any manual kill, confirm in the same command that the
   PID is still yours (`ps -o command= -p <pid>`), because PIDs are reused.
 - Priority: landing gates and checks that unblock another lane go before measurement

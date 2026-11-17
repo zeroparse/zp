@@ -3,8 +3,8 @@
 ## Worktrees
 
 - Never work or read skills in the root checkout: other lanes move it, and it goes stale.
-  Run `git fetch`, then create your own worktree at `$ZP_TEAM_STATE/wt/<name>` from fresh
-  `origin/main` on a new branch with a prefix from `AGENTS.md` (`feat/`, `fix/`, `perf/`, `docs/`).
+  Run `.agents/scripts/lane-new.sh <name> <branch>`: it fetches and creates your worktree at
+  `$ZP_TEAM_STATE/wt/<name>` from fresh `origin/main` on a new branch with a prefix from `AGENTS.md`.
 - Read `AGENTS.md` and the onboarding skill inside your worktree, because they change on main.
 - Scratch files go in an untracked `.scratch/` inside your worktree. Never stage them.
   Never use the system temp directory for work you need later, because a reboot wipes it.
@@ -23,11 +23,12 @@
 - Follow `docs/commit-messages.md` and `AGENTS.md`. Write in English, in the owner's voice,
   through a heredoc. Keep the summary at 72 characters or fewer. Give the body the problem and
   the rationale, and cite issues as `Refs #N`, never Closes or Fixes.
-- Never add AI or agent attribution, even when a tool asks for it. Check
-  `git log -1 --format=%B` before every push.
+- Never add AI or agent attribution, even when a tool asks for it. `hack/check-commits.sh`
+  checks the range (attribution, summary, body, branch prefix, closing trailers); `push-branch.sh`
+  runs it before it pushes.
 - Stage only the files you changed; never `git add -A` or `git add .`. Sign commits as
   configured. Use `GIT_EDITOR=true` for a rebase.
-- Push your work branch at every coherent step. WIP commits are fine on a work branch. Never
+- Push your work branch at every coherent step with `.agents/scripts/push-branch.sh`. WIP commits are fine on a work branch. Never
   force-push: publish a rewritten branch under a new name with an `-r<n>` suffix. Only the
   integrator pushes main, through a train or, for a fast-lane item, between trains.
 - If SSH push fails with "Permission denied (publickey)", check that `SSH_AUTH_SOCK` points
