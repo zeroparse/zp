@@ -334,28 +334,33 @@ ended, and the examined end of a Document parse.`,
 		NoReturn: true, Cost: exec.Cost{Terms: []exec.CostTerm{{Coef: 1, Quantity: QDeps}}},
 		Contract: `Passes the dependencies that ctx.pop ended to the evaluation that encloses the call.`})
 
-	add(&exec.Op{Name: "grow.begin", Component: Growth, Params: call, Results: []exec.Type{grow},
-		Reads: []string{Growth, Rules}, Writes: []string{Growth}, NoReturn: true, Cost: exec.Cost{Const: 1, Terms: []exec.CostTerm{{Coef: 1, Quantity: QPresent}}},
+	m.AddOp(&exec.Op{Name: "grow.begin", Component: Growth, Params: call, Results: []exec.Type{grow},
+		Reads: []string{Growth, Rules, Pos}, Writes: []string{Growth}, NoReturn: true, Cost: exec.Cost{Const: 1, Terms: []exec.CostTerm{{Coef: 1, Quantity: QPresent}}},
 		Contract: `Starts the growth of the leader at the binding level min at the position from a failure,
-charging one unit: the growth is in a context when other leaders of its cycle grow at the position.`})
-	add(&exec.Op{Name: "grow.ctx", Component: Growth, Params: []exec.Param{exec.P("g", grow)}, Results: []exec.Type{exec.TBool},
+charging one unit, and present for naming the present set of its context when it is in one: the growth
+becomes the innermost, with a failed seed that ends at the position. Every failed seed has the same
+identity, and every seed that grow.adopt or grow.step adopts has a new one. The growth is in a context
+when other leaders of its cycle grow at the position.`,
+		Requires: `r is a leader that does not grow at the position among the growths of its cycle there, and
+no growth of another cycle at the position is the innermost.`})
+	m.AddOp(&exec.Op{Name: "grow.ctx", Component: Growth, Params: []exec.Param{exec.P("g", grow)}, Results: []exec.Type{exec.TBool},
 		Reads: []string{Growth},
 		Contract: `Reports whether the growth g memoizes its steps in its context (grow.next and grow.step): when
 other leaders of its cycle grow at its position, unless the parse keeps no results in contexts. A
-growth that does not takes its steps with grow.longer and grow.adopt.`})
-	add(&exec.Op{Name: "grow.longer", Component: Growth, Params: []exec.Param{exec.P("g", grow), exec.P("ok", exec.TBool)},
+growth that does not takes its steps with grow.longer and grow.adopt.`,
+		Requires: `g is the innermost growth.`})
+	m.AddOp(&exec.Op{Name: "grow.longer", Component: Growth, Params: []exec.Param{exec.P("g", grow), exec.P("ok", exec.TBool)},
 		Results: []exec.Type{exec.TBool}, Reads: []string{Growth, Pos},
 		Contract: `Reports whether a step of the growth g with success ok, ending at the position, matched more
 than the seed: it succeeded, and the seed failed or ends before the position.`,
-		Requires: `grow.ctx(g) is false.`})
-	add(&exec.Op{Name: "grow.adopt", Component: Growth, Params: []exec.Param{exec.P("g", grow), exec.P("value", value)},
-		Reads: []string{Growth}, Writes: append([]string{Growth, Rec}, regs...), NoReturn: true,
-		Cost:     exec.Cost{Const: 1, Terms: []exec.CostTerm{{Coef: 1, Quantity: QSegs}}},
-		Contract: `Adopts the successful step of the growth g that ends at the position, with its value, as the
-seed of g, charging one unit: the seed holds the errors that the step recovered, as rec.since returns
-them for the mark that the growth took when it began. The position then returns to the start of the
-growth, and the entries after that mark are dropped.`,
-		Requires: `grow.ctx(g) is false and grow.longer(g, true) holds.`})
+		Requires: `g is the innermost growth, and grow.ctx(g) is false.`})
+	m.AddOp(&exec.Op{Name: "grow.adopt", Component: Growth, Params: []exec.Param{exec.P("g", grow), exec.P("value", value),
+		exec.P("errs", errs)}, Reads: []string{Growth, Rec}, Writes: []string{Growth, Pos}, NoReturn: true, Cost: exec.Cost{Const: 1},
+		Contract: `Adopts the successful step of the growth g that ends at the position, with its value and the
+errors errs that it recovered, as the seed of g with a new identity, charging one unit. In the missing-token mode the seed also holds
+the tokens that the step inserted. The seed it replaces is no longer a valid result. The position then
+returns to the start of the growth.`,
+		Requires: `g is the innermost growth, grow.ctx(g) is false and grow.longer(g, true) holds.`})
 	add(&exec.Op{Name: "grow.next", Component: Growth, Params: []exec.Param{exec.P("g", grow)}, Results: []exec.Type{exec.TBool},
 		Reads: []string{Growth}, Writes: append([]string{Growth}, regs...), NoReturn: true,
 		Cost: exec.Cost{Terms: []exec.CostTerm{{Coef: 1, Quantity: QSteps}, {Coef: 1, Quantity: QTable}, {Coef: 1, Quantity: QDeps}, {Coef: 1, Quantity: QMerge}, {Coef: 1, Quantity: QRun}}},

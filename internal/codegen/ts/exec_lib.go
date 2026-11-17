@@ -488,7 +488,7 @@ var tsTarget = &Target{
 		case "grow.longer":
 			return fmt.Sprintf("this.growLonger(%s, %s)", a[0], a[1])
 		case "grow.adopt":
-			return fmt.Sprintf("this.growAdopt(%s, %s)", a[0], a[1])
+			return fmt.Sprintf("this.growAdopt(%s, %s, %s)", a[0], a[1], a[2])
 		case "grow.next":
 			return "this.growNext(" + a[0] + ")"
 		case "grow.step":

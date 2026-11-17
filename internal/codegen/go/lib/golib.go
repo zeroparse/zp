@@ -570,7 +570,7 @@ func goTarget(s goSpec) *gogen.Target {
 		case "grow.longer":
 			return fmt.Sprintf("p.growLonger(&%s, %s)", a[0], a[1])
 		case "grow.adopt":
-			return fmt.Sprintf("p.growAdopt(&%s, %s)", a[0], step(a[1]))
+			return fmt.Sprintf("p.growAdopt(&%s, %s, %s)", a[0], step(a[1]), a[2])
 		case "grow.next":
 			return "p.growNext(&" + a[0] + ")"
 		case "grow.step":

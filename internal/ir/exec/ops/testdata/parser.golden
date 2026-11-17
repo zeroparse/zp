@@ -1039,17 +1039,23 @@ op ctx.done(c Ctx)
   contract:
     // Passes the dependencies that ctx.pop ended to the evaluation that encloses the call.
 
-transitional op grow.begin(r Rule, min int) Grow
+op grow.begin(r Rule, min int) Grow
   component growth
-  reads growth, rules
+  reads growth, rules, pos
   writes growth
   noreturn
   cost <= 1 + 1*present
   contract:
     // Starts the growth of the leader at the binding level min at the position from a failure,
-    // charging one unit: the growth is in a context when other leaders of its cycle grow at the position.
+    // charging one unit, and present for naming the present set of its context when it is in one: the growth
+    // becomes the innermost, with a failed seed that ends at the position. Every failed seed has the same
+    // identity, and every seed that grow.adopt or grow.step adopts has a new one. The growth is in a context
+    // when other leaders of its cycle grow at the position.
+  requires:
+    // r is a leader that does not grow at the position among the growths of its cycle there, and
+    // no growth of another cycle at the position is the innermost.
 
-transitional op grow.ctx(g Grow) bool
+op grow.ctx(g Grow) bool
   component growth
   reads growth
   cost <= 0
@@ -1057,8 +1063,10 @@ transitional op grow.ctx(g Grow) bool
     // Reports whether the growth g memoizes its steps in its context (grow.next and grow.step): when
     // other leaders of its cycle grow at its position, unless the parse keeps no results in contexts. A
     // growth that does not takes its steps with grow.longer and grow.adopt.
+  requires:
+    // g is the innermost growth.
 
-transitional op grow.longer(g Grow, ok bool) bool
+op grow.longer(g Grow, ok bool) bool
   component growth
   reads growth, pos
   cost <= 0
@@ -1066,21 +1074,21 @@ transitional op grow.longer(g Grow, ok bool) bool
     // Reports whether a step of the growth g with success ok, ending at the position, matched more
     // than the seed: it succeeded, and the seed failed or ends before the position.
   requires:
-    // grow.ctx(g) is false.
+    // g is the innermost growth, and grow.ctx(g) is false.
 
-transitional op grow.adopt(g Grow, value Value)
+op grow.adopt(g Grow, value Value, errs Errs)
   component growth
-  reads growth
-  writes growth, recovered, pos, silent
+  reads growth, recovered
+  writes growth, pos
   noreturn
-  cost <= 1 + 1*segs
+  cost <= 1
   contract:
-    // Adopts the successful step of the growth g that ends at the position, with its value, as the
-    // seed of g, charging one unit: the seed holds the errors that the step recovered, as rec.since returns
-    // them for the mark that the growth took when it began. The position then returns to the start of the
-    // growth, and the entries after that mark are dropped.
+    // Adopts the successful step of the growth g that ends at the position, with its value and the
+    // errors errs that it recovered, as the seed of g with a new identity, charging one unit. In the missing-token mode the seed also holds
+    // the tokens that the step inserted. The seed it replaces is no longer a valid result. The position then
+    // returns to the start of the growth.
   requires:
-    // grow.ctx(g) is false and grow.longer(g, true) holds.
+    // g is the innermost growth, grow.ctx(g) is false and grow.longer(g, true) holds.
 
 transitional op grow.next(g Grow) bool
   component growth

@@ -159,12 +159,16 @@ func (p *Parser) grow(r *Rule, min int) (*core.Node, bool) {
 			p.growStep(&g, v, nil, ok)
 		}
 	} else {
-		for {
-			v, ok := p.invoke(r, min)
-			if !p.growLonger(&g, ok) {
-				break
+		{
+			rec := len(p.Recovered)
+			for {
+				v, ok := p.invoke(r, min)
+				if !p.growLonger(&g, ok) {
+					break
+				}
+				p.growAdopt(&g, v, nil, p.recSince(rec))
+				p.Recovered = p.Recovered[:rec]
 			}
-			p.growAdopt(&g, v, nil)
 		}
 	}
 	best := p.growEnd(&g)
@@ -537,12 +541,16 @@ func (p *TParser) grow(r *TRule, min int) (any, bool) {
 			p.growStep(&g, nil, v, ok)
 		}
 	} else {
-		for {
-			v, ok := p.invoke(r, min)
-			if !p.growLonger(&g, ok) {
-				break
+		{
+			rec := len(p.Recovered)
+			for {
+				v, ok := p.invoke(r, min)
+				if !p.growLonger(&g, ok) {
+					break
+				}
+				p.growAdopt(&g, nil, v, p.recSince(rec))
+				p.Recovered = p.Recovered[:rec]
 			}
-			p.growAdopt(&g, nil, v)
 		}
 	}
 	best := p.growEnd(&g)

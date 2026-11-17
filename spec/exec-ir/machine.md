@@ -209,7 +209,7 @@ quantities are the following.
 | `run_search` | The number of bits of the count of old elements that the run has not passed: what a binary search for the next element inspects. |
 | `run` | For each step of the run of the growth that the call records as jumps (the steps since the last step that read another seed): one, one for each jump recorded before from its seed, and the expectations of its set when its farthest position is that of the steps after it. |
 | `seen_index` | The call's position times the number of rules plus its rule, divided by 64: the size of a record that keeps one bit per call in position order. |
-| `segs` | The number of entries of the recovered-error list after the mark of the call, or for grow.adopt and grow.step after the mark that the growth took when it began: errors that rec.push recorded and lists that rec.add recorded or rec.since put in their place. |
+| `segs` | The number of entries of the recovered-error list after the mark of the call, or for grow.step after the mark that the growth took when it began: errors that rec.push recorded and lists that rec.add recorded or rec.since put in their place. |
 | `seq_len` | The number of elements of the Seq argument of a primitive, which it copies. |
 | `set` | The number of expectations of the set that the call takes. |
 | `slot_growth` | The number of positions the memo covers from its floor before the call when storing at the call's position makes that number cross a power of two, and 0 otherwise: the copy that doubling a position-indexed table stands for. A target whose table keeps a gap for edits counts its slots, the gap among them. |
