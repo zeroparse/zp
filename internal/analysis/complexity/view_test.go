@@ -13,6 +13,7 @@ import (
 	"zeroparse.dev/zp/internal/analysis/complexity"
 	"zeroparse.dev/zp/internal/frontend/parser"
 	"zeroparse.dev/zp/internal/ir/core"
+	syntaxfmt "zeroparse.dev/zp/internal/syntax/fmt"
 	"zeroparse.dev/zp/internal/testing/factstest"
 	"zeroparse.dev/zp/pkg/grammar/ast"
 )
@@ -63,7 +64,7 @@ func viewSource(cs *complexity.CostSource) *complexity.Source {
 func formatRules(rules []*ast.RuleDef) string {
 	var b strings.Builder
 	for _, r := range rules {
-		fmt.Fprintf(&b, "%s = %s\n", r.Name, ast.FormatExpr(r.Expr))
+		fmt.Fprintf(&b, "%s = %s\n", r.Name, syntaxfmt.FormatExpr(r.Expr))
 	}
 	return b.String()
 }

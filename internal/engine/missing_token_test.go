@@ -12,6 +12,7 @@ import (
 	"zeroparse.dev/zp/core/impl"
 	"zeroparse.dev/zp/internal/compile"
 	"zeroparse.dev/zp/internal/engine/state"
+	"zeroparse.dev/zp/internal/syntax/fmt"
 	"zeroparse.dev/zp/internal/value"
 	"zeroparse.dev/zp/pkg/grammar/ast"
 	"zeroparse.dev/zp/pkg/runtime/schema"
@@ -313,7 +314,7 @@ rule main Root = x:(";" #missing) => Root{Token: $x}`
 	if err != nil {
 		t.Fatal(err)
 	}
-	formatted := ast.Format(g)
+	formatted := fmt.Format(g)
 	parsed, err := parseTest(formatted)
 	if err != nil {
 		t.Fatal(err)

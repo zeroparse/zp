@@ -4,6 +4,7 @@ import (
 	"strings"
 	"testing"
 
+	"zeroparse.dev/zp/internal/syntax/fmt"
 	"zeroparse.dev/zp/pkg/grammar/ast"
 )
 
@@ -207,7 +208,7 @@ func TestActionExpressionLayoutCloneAndJSON(t *testing.T) {
 	if copiedAfter == after || copiedAfter.After[0] == after.After[0] {
 		t.Fatal("after layout alias in clone")
 	}
-	if ast.Format(clone) != ast.Format(g) {
+	if fmt.Format(clone) != fmt.Format(g) {
 		t.Fatal("clone changed formatting")
 	}
 }
@@ -228,7 +229,7 @@ func TestActionExpressionWithoutLayout(t *testing.T) {
 		t.Fatal(err)
 	}
 	const want = "type S = {\n    A int\n}\n\nrule r = \"a\" => f(S{A: 1}, []S{S{A: 2}}, (1, 2))\n"
-	if got := ast.Format(bare); got != want {
+	if got := fmt.Format(bare); got != want {
 		t.Fatalf("got:\n%s\nwant:\n%s", got, want)
 	}
 }

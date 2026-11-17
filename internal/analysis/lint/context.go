@@ -5,6 +5,7 @@ import (
 
 	"zeroparse.dev/zp/internal/frontend"
 	"zeroparse.dev/zp/internal/frontend/astfacts"
+	"zeroparse.dev/zp/internal/syntax/fmt"
 	"zeroparse.dev/zp/pkg/grammar/ast"
 )
 
@@ -104,9 +105,9 @@ func (c *lintControl) expressionArgs(a *ast.Attribute) []ast.Expr {
 
 func (c *lintControl) formatExpr(e ast.Expr) string {
 	if c == nil {
-		return ast.FormatExpr(e)
+		return fmt.FormatExpr(e)
 	}
-	result, err := ast.FormatExprContext(c.ctx, e)
+	result, err := fmt.FormatExprContext(c.ctx, e)
 	if err != nil {
 		panic(lintCancellation{err})
 	}
@@ -115,10 +116,10 @@ func (c *lintControl) formatExpr(e ast.Expr) string {
 
 func (c *lintControl) formatTerm(t ast.Term) string {
 	if c == nil {
-		return ast.FormatTerm(astfacts.UngroupTerm(t))
+		return fmt.FormatTerm(astfacts.UngroupTerm(t))
 	}
 	t = astfacts.UngroupTermWithPoll(t, c.poll)
-	result, err := ast.FormatTermContext(c.ctx, t)
+	result, err := fmt.FormatTermContext(c.ctx, t)
 	if err != nil {
 		panic(lintCancellation{err})
 	}

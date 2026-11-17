@@ -4,6 +4,7 @@ import (
 	"slices"
 	"testing"
 
+	"zeroparse.dev/zp/internal/syntax/fmt"
 	"zeroparse.dev/zp/pkg/grammar/ast"
 )
 
@@ -44,9 +45,9 @@ func TestSkipSites(t *testing.T) {
 						if site := prog.SkipSite(rep); site != 0 {
 							n++
 							if site != n {
-								t.Errorf("site %s numbered %d, want %d", ast.FormatExpr(rep), site, n)
+								t.Errorf("site %s numbered %d, want %d", fmt.FormatExpr(rep), site, n)
 							}
-							got = append(got, ast.FormatExpr(rep))
+							got = append(got, fmt.FormatExpr(rep))
 						}
 					}
 				})

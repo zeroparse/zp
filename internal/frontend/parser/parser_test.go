@@ -6,6 +6,7 @@ import (
 	"strings"
 	"testing"
 
+	syntaxfmt "zeroparse.dev/zp/internal/syntax/fmt"
 	"zeroparse.dev/zp/pkg/grammar/ast"
 )
 
@@ -37,7 +38,7 @@ func TestParseExpr(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			if got := ast.FormatExpr(e); got != tc.want {
+			if got := syntaxfmt.FormatExpr(e); got != tc.want {
 				t.Errorf("got  %s\nwant %s", got, tc.want)
 			}
 		})
@@ -143,12 +144,12 @@ func TestFormatRoundTrip(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	src := ast.Format(g)
+	src := syntaxfmt.Format(g)
 	g2, err := Parse(src)
 	if err != nil {
 		t.Fatalf("%v\n%s", err, src)
 	}
-	if src2 := ast.Format(g2); src != src2 {
+	if src2 := syntaxfmt.Format(g2); src != src2 {
 		t.Errorf("not stable:\n%s\n---\n%s", src, src2)
 	}
 }
@@ -255,7 +256,7 @@ func TestExprPositions(t *testing.T) {
 		default:
 			t.Fatalf("unexpected %T", it)
 		}
-		got = append(got, fmt.Sprintf("%s@%d", ast.FormatExpr(it), pos.Col-len(ExprPrefix)))
+		got = append(got, fmt.Sprintf("%s@%d", syntaxfmt.FormatExpr(it), pos.Col-len(ExprPrefix)))
 	}
 	want := "&a@1 !b@4 c #atomic@9 -d@17 _@20 _|_@22 #cut@26 ^^@31 ^@34 $@36 $$@38 .@41 (x y)*@43 z+@50 (w)?@53 v #repeat(2)@58"
 	if s := strings.Join(got, " "); s != want {

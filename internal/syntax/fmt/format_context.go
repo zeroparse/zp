@@ -1,4 +1,4 @@
-package ast
+package fmt
 
 import (
 	"context"
@@ -6,6 +6,8 @@ import (
 	"sort"
 	"strings"
 	"unicode/utf8"
+
+	"zeroparse.dev/zp/pkg/grammar/ast"
 )
 
 // Format converts g to ZeroParse source code.
@@ -15,25 +17,25 @@ import (
 // trailing comments on consecutive lines are aligned. A grammar without such
 // layout information (for example, one decoded from JSON) is printed with a
 // blank line between definitions and one item per line in blocks.
-func Format(g *Grammar) string { return formatGrammar(g, nil) }
+func Format(g *ast.Grammar) string { return formatGrammar(g, nil) }
 
 // FormatType returns t in ZeroParse syntax.
-func FormatType(t TypeExpr) string { return formatType(t, nil) }
+func FormatType(t ast.TypeExpr) string { return formatType(t, nil) }
 
 // FormatContext is Format with cooperative cancellation during AST traversal,
 // layout processing and output construction. Cancellation returns an empty
 // string and ctx.Err(), never partial formatted source. The caller must not
 // mutate g during formatting. Individual allocations, concatenations and
 // comparisons may finish before cancellation is observed.
-func FormatContext(ctx context.Context, g *Grammar) (result string, err error) {
+func FormatContext(ctx context.Context, g *ast.Grammar) (result string, err error) {
 	if err := ctx.Err(); err != nil {
 		return "", err
 	}
 	if ctx.Done() == nil {
 		return Format(g), nil
 	}
-	defer recoverMetadata(&result, &err)
-	c := metadataControl{ctx: ctx}
+	defer recoverFormat(&result, &err)
+	c := formatControl{ctx: ctx}
 	result = formatGrammar(g, &c)
 	c.check()
 	return result, nil
@@ -41,15 +43,15 @@ func FormatContext(ctx context.Context, g *Grammar) (result string, err error) {
 
 // FormatExprContext is FormatExpr with the same cancellation contract as
 // FormatContext. The caller must not mutate e during formatting.
-func FormatExprContext(ctx context.Context, e Expr) (result string, err error) {
+func FormatExprContext(ctx context.Context, e ast.Expr) (result string, err error) {
 	if err := ctx.Err(); err != nil {
 		return "", err
 	}
 	if ctx.Done() == nil {
 		return FormatExpr(e), nil
 	}
-	defer recoverMetadata(&result, &err)
-	c := metadataControl{ctx: ctx}
+	defer recoverFormat(&result, &err)
+	c := formatControl{ctx: ctx}
 	result = formatExpr(e, precChoice, &c)
 	c.check()
 	return result, nil
@@ -57,15 +59,15 @@ func FormatExprContext(ctx context.Context, e Expr) (result string, err error) {
 
 // FormatTermContext is FormatTerm with the same cancellation contract as
 // FormatContext. The caller must not mutate t during formatting.
-func FormatTermContext(ctx context.Context, t Term) (result string, err error) {
+func FormatTermContext(ctx context.Context, t ast.Term) (result string, err error) {
 	if err := ctx.Err(); err != nil {
 		return "", err
 	}
 	if ctx.Done() == nil {
 		return FormatTerm(t), nil
 	}
-	defer recoverMetadata(&result, &err)
-	c := metadataControl{ctx: ctx}
+	defer recoverFormat(&result, &err)
+	c := formatControl{ctx: ctx}
 	result = formatTerm(t, 0, &c)
 	c.check()
 	return result, nil
@@ -73,23 +75,23 @@ func FormatTermContext(ctx context.Context, t Term) (result string, err error) {
 
 // FormatTypeContext is FormatType with the same cancellation contract as
 // FormatContext. The caller must not mutate t during formatting.
-func FormatTypeContext(ctx context.Context, t TypeExpr) (result string, err error) {
+func FormatTypeContext(ctx context.Context, t ast.TypeExpr) (result string, err error) {
 	if err := ctx.Err(); err != nil {
 		return "", err
 	}
 	if ctx.Done() == nil {
 		return FormatType(t), nil
 	}
-	defer recoverMetadata(&result, &err)
-	c := metadataControl{ctx: ctx}
+	defer recoverFormat(&result, &err)
+	c := formatControl{ctx: ctx}
 	result = formatType(t, &c)
 	c.check()
 	return result, nil
 }
 
-func expressionLayout(e Expr) bool { return expressionLayoutControlled(e, nil) }
+func expressionLayout(e ast.Expr) bool { return expressionLayoutControlled(e, nil) }
 
-func sortFormatKeys(keys []string, c *metadataControl) {
+func sortFormatKeys(keys []string, c *formatControl) {
 	if c == nil {
 		sort.Strings(keys)
 		return
@@ -99,7 +101,7 @@ func sortFormatKeys(keys []string, c *metadataControl) {
 
 // Large copies have their own byte checkpoints; small fragments share the AST
 // traversal's counter instead of calling Context.Err for every output token.
-func writeFormatString(b *strings.Builder, s string, c *metadataControl) {
+func writeFormatString(b *strings.Builder, s string, c *formatControl) {
 	if c == nil || len(s) <= 4096 {
 		b.WriteString(s)
 		return
@@ -112,7 +114,7 @@ func writeFormatString(b *strings.Builder, s string, c *metadataControl) {
 	}
 }
 
-func joinFormatParts(parts []string, sep string, c *metadataControl) string {
+func joinFormatParts(parts []string, sep string, c *formatControl) string {
 	if c == nil {
 		return strings.Join(parts, sep)
 	}
@@ -146,7 +148,7 @@ func joinFormatParts(parts []string, sep string, c *metadataControl) string {
 	return out.String()
 }
 
-func formatRuneCount(s string, c *metadataControl) int {
+func formatRuneCount(s string, c *formatControl) int {
 	if c == nil {
 		return utf8.RuneCountInString(s)
 	}
@@ -168,7 +170,7 @@ func formatRuneCount(s string, c *metadataControl) int {
 	return total
 }
 
-func hasFormatNewline(s string, c *metadataControl) bool {
+func hasFormatNewline(s string, c *formatControl) bool {
 	if c == nil {
 		return strings.ContainsAny(s, "\r\n")
 	}
@@ -182,7 +184,7 @@ func hasFormatNewline(s string, c *metadataControl) bool {
 	return strings.ContainsAny(s, "\r\n")
 }
 
-func trimFormatRight(s, cutset string, c *metadataControl) string {
+func trimFormatRight(s, cutset string, c *formatControl) string {
 	if c == nil || cutset != " " {
 		return strings.TrimRight(s, cutset)
 	}
@@ -196,7 +198,7 @@ func trimFormatRight(s, cutset string, c *metadataControl) string {
 	return s[:n]
 }
 
-func replaceFormatNewlines(s, old, new string, c *metadataControl) string {
+func replaceFormatNewlines(s, old, new string, c *formatControl) string {
 	if c == nil {
 		return strings.ReplaceAll(s, old, new)
 	}
@@ -237,8 +239,8 @@ func replaceFormatNewlines(s, old, new string, c *metadataControl) string {
 }
 
 // Keep the nil-control guard small enough to inline at ordinary formatter
-// call sites; the shared metadata counter remains out of that fast path.
-func pollFormat(c *metadataControl) {
+// call sites; the shared counter remains out of that fast path.
+func pollFormat(c *formatControl) {
 	if c != nil {
 		c.poll()
 	}
@@ -247,7 +249,7 @@ func pollFormat(c *metadataControl) {
 // Check between the copies made while recursive wrappers return, as well as
 // while descending into them. Evaluating s first leaves ordinary panic values
 // untouched and keeps the nil-control guard eligible for inlining.
-func finishFormat(s string, c *metadataControl) string {
+func finishFormat(s string, c *formatControl) string {
 	if c != nil {
 		c.poll()
 	}

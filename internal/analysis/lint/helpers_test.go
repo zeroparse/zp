@@ -7,6 +7,7 @@ import (
 	"zeroparse.dev/zp/internal/compile"
 	"zeroparse.dev/zp/internal/frontend"
 	"zeroparse.dev/zp/internal/frontend/parser"
+	"zeroparse.dev/zp/internal/syntax/fmt"
 	"zeroparse.dev/zp/pkg/grammar/ast"
 )
 
@@ -18,7 +19,7 @@ func checked(g *ast.Grammar) *frontend.Result {
 	if err == nil {
 		return res
 	}
-	text := ast.Format(g)
+	text := fmt.Format(g)
 	if i := strings.Index(text, "rule "); i >= 0 && !strings.Contains(text, "@start") {
 		text = text[:i] + "@start\n" + text[i:]
 	}

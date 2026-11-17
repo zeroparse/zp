@@ -9,6 +9,7 @@ import (
 	"zeroparse.dev/zp/internal/cancel"
 	"zeroparse.dev/zp/internal/compile"
 	"zeroparse.dev/zp/internal/frontend/check"
+	syntaxfmt "zeroparse.dev/zp/internal/syntax/fmt"
 
 	"zeroparse.dev/zp/internal/frontend/desugar"
 	"zeroparse.dev/zp/pkg/grammar/ast"
@@ -600,11 +601,11 @@ func (k *classifier) show(e ast.Expr) string {
 	if t, ok := k.viewText[e]; ok {
 		return abbreviate(t)
 	}
-	return abbreviate(ast.FormatExpr(e))
+	return abbreviate(syntaxfmt.FormatExpr(e))
 }
 
 func (k *classifier) showTerm(t ast.Term) string {
-	return abbreviate(ast.FormatTerm(t))
+	return abbreviate(syntaxfmt.FormatTerm(t))
 }
 
 // abbreviate collapses the white space of the source text s and shortens it to at most 40 bytes,

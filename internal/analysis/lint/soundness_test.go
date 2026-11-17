@@ -10,6 +10,7 @@ import (
 
 	"zeroparse.dev/zp/internal/engine"
 	"zeroparse.dev/zp/internal/frontend/parser"
+	syntaxfmt "zeroparse.dev/zp/internal/syntax/fmt"
 	"zeroparse.dev/zp/internal/testing/starttest"
 	"zeroparse.dev/zp/pkg/grammar/ast"
 )
@@ -85,7 +86,7 @@ func TestSoundness(t *testing.T) {
 					}
 					if got != want {
 						t.Fatalf("grammar %d: %v is wrong (fix: %v): on %q the grammar gives\n  %s\nbut with the change\n  %s\n%s\nchanged:\n%s",
-							n, f, fix, in, want, got, src, ast.Format(g2))
+							n, f, fix, in, want, got, src, syntaxfmt.Format(g2))
 					}
 				}
 			}

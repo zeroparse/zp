@@ -4,6 +4,7 @@ import (
 	"strings"
 	"testing"
 
+	"zeroparse.dev/zp/internal/syntax/fmt"
 	"zeroparse.dev/zp/pkg/grammar/ast"
 )
 
@@ -66,12 +67,12 @@ rule item = [a-z]`)
 	if inner, ok := outer.L.(*ast.Binary); !ok || inner.Op != "[]" {
 		t.Fatalf("inner %T", outer.L)
 	}
-	if got := ast.Format(g); !strings.Contains(got, "list($xs, $xs)[1][0]") {
+	if got := fmt.Format(g); !strings.Contains(got, "list($xs, $xs)[1][0]") {
 		t.Fatalf("formatted:\n%s", got)
 	}
 	// Parentheses that the source does not keep are added where "[" would not index.
 	for _, x := range []ast.Term{&ast.IntLit{Value: 1}, &ast.StringLit{Value: "a"}, &ast.New{Type: "T"}} {
-		formatted := ast.Format(&ast.Grammar{File: ast.File{Decls: []ast.Decl{&ast.RuleDef{Name: "main", Expr: &ast.Any{}, Action: &ast.Binary{Op: "[]", L: x, R: &ast.IntLit{Value: 0}}}}}})
+		formatted := fmt.Format(&ast.Grammar{File: ast.File{Decls: []ast.Decl{&ast.RuleDef{Name: "main", Expr: &ast.Any{}, Action: &ast.Binary{Op: "[]", L: x, R: &ast.IntLit{Value: 0}}}}}})
 		if !strings.Contains(formatted, ")[0]") {
 			t.Errorf("formatted %T index: %s", x, formatted)
 		}

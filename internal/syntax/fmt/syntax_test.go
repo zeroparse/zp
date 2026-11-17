@@ -1,4 +1,4 @@
-package ast_test
+package fmt_test
 
 import (
 	"bytes"
@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/engine"
+	"zeroparse.dev/zp/internal/syntax/fmt"
 	"zeroparse.dev/zp/internal/testing/starttest"
 	"zeroparse.dev/zp/pkg/grammar/ast"
 )
@@ -30,8 +31,8 @@ rule expr Node = #operators {
 	if err != nil {
 		t.Fatal(err)
 	}
-	beforeText := ast.Format(g)
-	out := ast.FormatSyntax(g)
+	beforeText := fmt.Format(g)
+	out := fmt.FormatSyntax(g)
 	for _, gone := range []string{"type Node", "rule main Node", "=>", "@error", "#recover", "x:"} {
 		if strings.Contains(out, gone) {
 			t.Errorf("kept %q:\n%s", gone, out)
@@ -43,14 +44,14 @@ rule expr Node = #operators {
 		}
 	}
 	after, _ := ast.MarshalJSON(g)
-	if !bytes.Equal(before, after) || ast.Format(g) != beforeText {
+	if !bytes.Equal(before, after) || fmt.Format(g) != beforeText {
 		t.Fatal("input AST mutated")
 	}
 	projected, err := engine.ParseGrammar(out)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if again := ast.FormatSyntax(projected); again != out {
+	if again := fmt.FormatSyntax(projected); again != out {
 		t.Fatalf("projection not stable:\n%s\n%s", out, again)
 	}
 }
@@ -66,7 +67,7 @@ func TestFormatSyntaxNormalizedPragmas(t *testing.T) {
 	}
 	normalized := p.Grammar()
 	before, _ := ast.MarshalJSON(normalized)
-	if out := ast.FormatSyntax(normalized); !strings.Contains(out, "#stream") {
+	if out := fmt.FormatSyntax(normalized); !strings.Contains(out, "#stream") {
 		t.Fatalf("normalized #stream lost: %s", out)
 	}
 	after, _ := ast.MarshalJSON(normalized)
@@ -82,7 +83,7 @@ rule value T = "x" => T{N: 1}`)
 	if err != nil {
 		t.Fatal(err)
 	}
-	out := ast.FormatSyntax(g)
+	out := fmt.FormatSyntax(g)
 	if !strings.Contains(out, "{$x.N == 1}") {
 		t.Fatalf("predicate lost: %s", out)
 	}
@@ -112,7 +113,7 @@ func TestFormatSyntaxGrouping(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			out := ast.FormatSyntax(g)
+			out := fmt.FormatSyntax(g)
 			if strings.TrimSpace(out) != tc.want {
 				t.Fatalf("got:\n%s\nwant:\n%s", out, tc.want)
 			}
@@ -120,7 +121,7 @@ func TestFormatSyntaxGrouping(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			if ast.FormatSyntax(projected) != out {
+			if fmt.FormatSyntax(projected) != out {
 				t.Fatal("projection not idempotent")
 			}
 			p, err := engine.Compile(starttest.MarkAll(projected), "main")
@@ -154,7 +155,7 @@ func TestFormatSyntaxGroupComments(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		out := ast.FormatSyntax(g)
+		out := fmt.FormatSyntax(g)
 		if strings.Count(out, "keep") != 1 {
 			t.Fatalf("group comment lost or duplicated: %s", out)
 		}
@@ -162,7 +163,7 @@ func TestFormatSyntaxGroupComments(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		if again := ast.FormatSyntax(projected); again != out {
+		if again := fmt.FormatSyntax(projected); again != out {
 			t.Fatalf("comment layout unstable:\n%s\n%s", out, again)
 		}
 	}

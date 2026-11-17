@@ -4,6 +4,7 @@ import (
 	"math"
 	"slices"
 	"zeroparse.dev/zp/internal/frontend/check"
+	"zeroparse.dev/zp/internal/syntax/fmt"
 
 	"zeroparse.dev/zp/pkg/grammar/ast"
 )
@@ -54,8 +55,8 @@ func guardOf(b *binding) guard {
 		r, ok := check.UngroupTerm(t).(*ast.VarRef)
 		return ok && r.Name == v
 	}
-	text := ast.FormatTerm(e)
-	isValue := func(t ast.Term) bool { return ast.FormatTerm(check.UngroupTerm(t)) == text }
+	text := fmt.FormatTerm(e)
+	isValue := func(t ast.Term) bool { return fmt.FormatTerm(check.UngroupTerm(t)) == text }
 	after, before := adjacentStatements(b)
 	for _, s := range after {
 		if bd, ok := s.(*ast.Bind); ok && bd.Name == v {

@@ -5,6 +5,7 @@ import (
 
 	"zeroparse.dev/zp/internal/compile"
 	"zeroparse.dev/zp/internal/frontend/astfacts"
+	"zeroparse.dev/zp/internal/syntax/fmt"
 	"zeroparse.dev/zp/internal/testing/compiletest"
 	"zeroparse.dev/zp/pkg/grammar/ast"
 )
@@ -84,7 +85,7 @@ func TestReusedSkipSites(t *testing.T) {
 			}
 			for i := range sites {
 				if sites[i] != marked[i] {
-					t.Errorf("repetition %s is not the site %s", ast.FormatExpr(sites[i]), ast.FormatExpr(marked[i]))
+					t.Errorf("repetition %s is not the site %s", fmt.FormatExpr(sites[i]), fmt.FormatExpr(marked[i]))
 				}
 			}
 		})

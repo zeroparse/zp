@@ -5,6 +5,7 @@ import (
 	"strings"
 	"testing"
 
+	syntaxfmt "zeroparse.dev/zp/internal/syntax/fmt"
 	"zeroparse.dev/zp/pkg/grammar/ast"
 )
 
@@ -215,7 +216,7 @@ func TestLineEnds(t *testing.T) {
 			continue
 		}
 		// The layout is the same: the comments are kept and the blank line too.
-		if got, want := ast.Format(g), "// first\nrule a = b // second\n\nrule b = \"x\"\n"; got != want {
+		if got, want := syntaxfmt.Format(g), "// first\nrule a = b // second\n\nrule b = \"x\"\n"; got != want {
 			t.Errorf("%q: formatted %q", nl, got)
 		}
 	}

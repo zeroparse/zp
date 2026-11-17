@@ -6,6 +6,7 @@ import (
 	"strconv"
 	"testing"
 
+	"zeroparse.dev/zp/internal/syntax/fmt"
 	"zeroparse.dev/zp/pkg/grammar/ast"
 )
 
@@ -45,7 +46,7 @@ rule main = "x" => Int{/* terminal */ Text: "0"}`,
 			if err != nil {
 				t.Fatal(err)
 			}
-			formatted := ast.Format(before)
+			formatted := fmt.Format(before)
 			after, err := Parse(formatted)
 			if err != nil {
 				t.Fatalf("formatted parse: %v\n%s", err, formatted)
@@ -53,11 +54,11 @@ rule main = "x" => Int{/* terminal */ Text: "0"}`,
 			if len(before.AllComments()) != len(after.AllComments()) {
 				t.Fatalf("comment count changed\n%s", formatted)
 			}
-			if second := ast.Format(after); second != formatted {
+			if second := fmt.Format(after); second != formatted {
 				t.Fatalf("formatting is not idempotent\nfirst:\n%s\nsecond:\n%s", formatted, second)
 			}
 			clone := before.Clone()
-			if cloned := ast.Format(clone); cloned != formatted {
+			if cloned := fmt.Format(clone); cloned != formatted {
 				t.Fatal("clone changed formatting")
 			}
 			want, got := sourceCommentOwnerPaths(t, before), sourceCommentOwnerPaths(t, after)
@@ -142,7 +143,7 @@ func TestInteriorLayoutJSONAndClone(t *testing.T) {
 		t.Fatal("clone changed original layout")
 	}
 	programmatic := &ast.Call{Func: "int", Args: []ast.Term{&ast.StringLit{Value: "1"}}}
-	if got := ast.FormatTerm(programmatic); got != `int("1")` {
+	if got := fmt.FormatTerm(programmatic); got != `int("1")` {
 		t.Fatal("nil-layout canonical fallback", got)
 	}
 }

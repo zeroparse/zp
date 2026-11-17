@@ -4,6 +4,7 @@ import (
 	"strings"
 	"testing"
 
+	"zeroparse.dev/zp/internal/syntax/fmt"
 	"zeroparse.dev/zp/pkg/grammar/ast"
 )
 
@@ -26,7 +27,7 @@ var v = 1 /* z */; rule r = "a" /* w */ ; rule ops = #operators { operand "n" /*
 	if err != nil {
 		t.Fatal(err)
 	}
-	out := ast.Format(decoded)
+	out := fmt.Format(decoded)
 	for _, c := range []string{"a", "x", "y", "z", "w", "e", "f", "g"} {
 		if !strings.Contains(out, "/* "+c+" */") {
 			t.Errorf("comment %q lost through JSON\n%s", c, out)
@@ -63,7 +64,7 @@ rule z = "z" /* z1 */ /* z2 */
 	if err != nil {
 		t.Fatal(err)
 	}
-	out := ast.Format(decoded)
+	out := fmt.Format(decoded)
 	for _, c := range []string{"a1 ", "x1 ", "y1 ", "w1 ", "e1 ", "f1 ", "g1 ", "z1 "} {
 		want := "/* " + c + "*/ /* " + c[:1] + "2 */"
 		if !strings.Contains(out, want) {

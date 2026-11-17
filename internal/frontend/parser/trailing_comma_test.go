@@ -4,6 +4,7 @@ import (
 	"strings"
 	"testing"
 
+	"zeroparse.dev/zp/internal/syntax/fmt"
 	"zeroparse.dev/zp/pkg/grammar/ast"
 )
 
@@ -158,7 +159,7 @@ func TestTrailingCommaNotSerialized(t *testing.T) {
 		t.Fatal(err)
 	}
 	const flat = "rule r = \"a\" => f(1, (2, 3), []int{4})\n"
-	if got := ast.Format(bare); got != flat {
+	if got := fmt.Format(bare); got != flat {
 		t.Fatalf("got:\n%s\nwant:\n%s", got, flat)
 	}
 }
@@ -244,7 +245,7 @@ func TestRepeatPragmaCommaIsNotTrailing(t *testing.T) {
 			if rep.Min != tc.min || rep.Max != tc.max {
 				t.Fatalf("bounds %d,%d, want %d,%d", rep.Min, rep.Max, tc.min, tc.max)
 			}
-			out := ast.Format(g)
+			out := fmt.Format(g)
 			if strings.Contains(out, "\n    ") {
 				t.Fatalf("broken into lines:\n%s", out)
 			}

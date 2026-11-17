@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/internal/frontend/parser"
+	"zeroparse.dev/zp/internal/syntax/fmt"
 	"zeroparse.dev/zp/pkg/grammar/ast"
 )
 
@@ -17,7 +18,7 @@ func TestReservedTypeSyntax(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	formatted := ast.Format(g)
+	formatted := fmt.Format(g)
 	if !strings.Contains(formatted, "type A ~ () | (B,) | (B, *C) | node[B] | []node[(B, C), D]") {
 		t.Fatalf("formatted:\n%s", formatted)
 	}
@@ -43,7 +44,7 @@ func TestReservedTypeSyntax(t *testing.T) {
 		t.Fatal(err)
 	}
 	// JSON keeps the tree but not the layout.
-	if got := ast.Format(back); !strings.HasPrefix(got, "type A ~ () | (B,) | (B, *C) | node[B] | []node[(B, C), D]\n") {
+	if got := fmt.Format(back); !strings.HasPrefix(got, "type A ~ () | (B,) | (B, *C) | node[B] | []node[(B, C), D]\n") {
 		t.Fatalf("JSON round trip:\n%s", got)
 	}
 
@@ -134,12 +135,12 @@ func TestReservedUnnamedStructType(t *testing.T) {
 		t.Fatal(err)
 	}
 	want := "type A ~ {} | { X int; Y *A } | []{\n    // the name\n    Name  string\n    Inner { V int }\n}\ntype T = {\n    F {}\n    G (int, { H int })\n}\nrule main = \"a\"\n"
-	formatted := ast.Format(g)
+	formatted := fmt.Format(g)
 	if formatted != want {
 		t.Fatalf("formatted:\n%s\nwant\n%s", formatted, want)
 	}
 	again, err := parser.Parse(formatted)
-	if err != nil || ast.Format(again) != formatted {
+	if err != nil || fmt.Format(again) != formatted {
 		t.Fatalf("formatting is not idempotent: %v", err)
 	}
 	u := g.Types()[0].(*ast.TypeAlias).Type.(*ast.JoinType)
@@ -157,7 +158,7 @@ func TestReservedUnnamedStructType(t *testing.T) {
 	// JSON carries the comment of the field, which takes the struct to lines.
 	// Without layout, the declarations are separated by blank lines.
 	wantJSON := strings.Replace(strings.Replace(want, "}\ntype T", "}\n\ntype T", 1), "}\nrule main", "}\n\nrule main", 1)
-	if got := ast.Format(back); got != wantJSON {
+	if got := fmt.Format(back); got != wantJSON {
 		t.Fatalf("JSON round trip:\n%s", got)
 	}
 	// Without comments the struct type stays on one line.
@@ -173,7 +174,7 @@ func TestReservedUnnamedStructType(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if got := ast.Format(back); !strings.HasPrefix(got, "type A ~ []{ Name string; Inner { V int } }\n") {
+	if got := fmt.Format(back); !strings.HasPrefix(got, "type A ~ []{ Name string; Inner { V int } }\n") {
 		t.Fatalf("JSON round trip without comments:\n%s", got)
 	}
 

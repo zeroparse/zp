@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/engine"
+	"zeroparse.dev/zp/internal/syntax/fmt"
 	"zeroparse.dev/zp/pkg/grammar/ast"
 )
 
@@ -40,9 +41,9 @@ func TestStructFieldSeparators(t *testing.T) {
 			if got := countStructFields(t, g); got != 2 {
 				t.Fatalf("hand-written frontend read %d fields, want 2", got)
 			}
-			formatted := ast.Format(g)
+			formatted := fmt.Format(g)
 			again, err := engine.ParseGrammar(formatted)
-			if err != nil || ast.Format(again) != formatted {
+			if err != nil || fmt.Format(again) != formatted {
 				t.Fatalf("formatting is not idempotent (%v):\n%s", err, formatted)
 			}
 			n, err := p.Parse(src)
@@ -67,7 +68,7 @@ func TestStructFieldSeparatorsFormatCanonically(t *testing.T) {
 		if err != nil {
 			t.Fatalf("%s: %v", name, err)
 		}
-		got := ast.Format(g)
+		got := fmt.Format(g)
 		if want == "" {
 			want = got
 		} else if got != want {
@@ -79,7 +80,7 @@ func TestStructFieldSeparatorsFormatCanonically(t *testing.T) {
 		if err != nil {
 			t.Fatalf("%s: %v", name, err)
 		}
-		if got := ast.Format(g); !strings.Contains(got, "{ A string; B int }") {
+		if got := fmt.Format(g); !strings.Contains(got, "{ A string; B int }") {
 			t.Fatalf("%s: one-line struct is not canonical:\n%s", name, got)
 		}
 	}

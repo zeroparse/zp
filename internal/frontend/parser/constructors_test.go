@@ -4,6 +4,7 @@ import (
 	"strings"
 	"testing"
 
+	"zeroparse.dev/zp/internal/syntax/fmt"
 	"zeroparse.dev/zp/pkg/grammar/ast"
 )
 
@@ -78,7 +79,7 @@ rule grouped = "x" => (
 		t.Fatalf("named-field constructor became %T", rules["fields"].Action)
 	}
 
-	formatted := ast.Format(g)
+	formatted := fmt.Format(g)
 	for _, want := range []string{
 		"type Pair = { Left []Foo; Right []Foo }",
 		"Pair{Left: []Foo{Foo{}}, Right: []Foo{Foo{}}}",
@@ -91,7 +92,7 @@ rule grouped = "x" => (
 	}
 	if again, err := Parse(formatted); err != nil {
 		t.Fatalf("formatted source does not parse: %v\n%s", err, formatted)
-	} else if out := ast.Format(again); out != formatted {
+	} else if out := fmt.Format(again); out != formatted {
 		t.Fatalf("format is not stable:\n%s\n%s", formatted, out)
 	}
 }

@@ -6,6 +6,7 @@ import (
 
 	"zeroparse.dev/zp/core"
 	"zeroparse.dev/zp/internal/compile"
+	"zeroparse.dev/zp/internal/syntax/fmt"
 	"zeroparse.dev/zp/internal/testing/codegentest"
 	"zeroparse.dev/zp/pkg/grammar/ast"
 )
@@ -58,9 +59,9 @@ func TestPredicateBlocksSourceAndSavedGrammar(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	formatted := ast.Format(g)
+	formatted := fmt.Format(g)
 	formattedGrammar, err := parseTest(formatted)
-	if err != nil || ast.Format(formattedGrammar) != formatted {
+	if err != nil || fmt.Format(formattedGrammar) != formatted {
 		t.Fatalf("formatter round trip: %v", err)
 	}
 	for _, original := range []*ast.Grammar{g, jsonActionBlockGrammar(t, g), formattedGrammar} {

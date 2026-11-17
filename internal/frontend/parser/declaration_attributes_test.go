@@ -4,6 +4,7 @@ import (
 	"strings"
 	"testing"
 
+	"zeroparse.dev/zp/internal/syntax/fmt"
 	"zeroparse.dev/zp/pkg/grammar/ast"
 )
 
@@ -138,7 +139,7 @@ func TestDeclarationAttributesFormat(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			got := ast.Format(g)
+			got := fmt.Format(g)
 			if got != tc.want {
 				t.Fatalf("got\n%s\nwant\n%s", got, tc.want)
 			}
@@ -170,7 +171,7 @@ func TestDeclarationAttributesJSONRoundTrip(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		if got := ast.Format(decoded); got != src {
+		if got := fmt.Format(decoded); got != src {
 			t.Errorf("got\n%s\nwant\n%s", got, src)
 		}
 	}
@@ -184,7 +185,7 @@ func TestDeclarationAttributesFormatWithoutLayout(t *testing.T) {
 		Name:  "a",
 		Expr:  &ast.Literal{Value: "x"},
 	}}}}
-	if got, want := ast.Format(g), "@start(default) @foo\nrule a = \"x\"\n"; got != want {
+	if got, want := fmt.Format(g), "@start(default) @foo\nrule a = \"x\"\n"; got != want {
 		t.Errorf("got\n%s\nwant\n%s", got, want)
 	}
 	if err := ast.Validate(g); err != nil {
@@ -275,7 +276,7 @@ func TestPackageAttributesFormat(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			if got := ast.Format(g); got != tc.want {
+			if got := fmt.Format(g); got != tc.want {
 				t.Fatalf("got\n%s\nwant\n%s", got, tc.want)
 			}
 			if problem := checkRandomFormat(tc.src, g); problem != "" {
@@ -301,7 +302,7 @@ func TestPackageAttributesFormat(t *testing.T) {
 		Pkg:   ast.Pkg{Attrs: []*ast.Attribute{{Name: "linear"}, {Name: "foo"}}, Name: "p"},
 		Decls: []ast.Decl{&ast.RuleDef{Name: "a", Expr: &ast.Literal{Value: "x"}}},
 	}}
-	if got, want := ast.Format(g), "@linear @foo\npackage p\n\nrule a = \"x\"\n"; got != want {
+	if got, want := fmt.Format(g), "@linear @foo\npackage p\n\nrule a = \"x\"\n"; got != want {
 		t.Errorf("got\n%s\nwant\n%s", got, want)
 	}
 	if err := ast.Validate(g); err != nil {

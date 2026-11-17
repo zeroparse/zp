@@ -7,6 +7,7 @@ import (
 	"strings"
 	"testing"
 
+	syntaxfmt "zeroparse.dev/zp/internal/syntax/fmt"
 	"zeroparse.dev/zp/pkg/grammar/ast"
 )
 
@@ -51,7 +52,7 @@ func jsonRoundTripProblem(tree *ast.Grammar) string {
 	if err != nil {
 		return "unmarshal: " + err.Error()
 	}
-	out := ast.Format(decoded)
+	out := syntaxfmt.Format(decoded)
 	again, err := Parse(out)
 	if err != nil {
 		return fmt.Sprintf("the result does not parse: %v\n%s", err, out)
@@ -62,7 +63,7 @@ func jsonRoundTripProblem(tree *ast.Grammar) string {
 	if diffs := ownerDiffs(tree, again); len(diffs) > 0 {
 		return "the owners changed\n" + strings.Join(diffs, "\n") + "\n" + out
 	}
-	if second := ast.Format(again); second != out {
+	if second := syntaxfmt.Format(again); second != out {
 		return "formatting is not idempotent\nfirst:\n" + out + "\nsecond:\n" + second
 	}
 	return ""
@@ -82,7 +83,7 @@ func lostComments(src string, tree *ast.Grammar) string {
 	if err != nil {
 		return err.Error()
 	}
-	out := ast.Format(decoded)
+	out := syntaxfmt.Format(decoded)
 	for _, m := range commentLabel.FindAllStringSubmatch(src, -1) {
 		if !regexp.MustCompile(`\b` + m[1] + `\b`).MatchString(out) {
 			return m[1]

@@ -8,6 +8,7 @@ import (
 	"zeroparse.dev/zp/internal/cancel"
 	"zeroparse.dev/zp/internal/ir/core"
 	"zeroparse.dev/zp/internal/ir/core/facts"
+	"zeroparse.dev/zp/internal/syntax/fmt"
 	"zeroparse.dev/zp/pkg/grammar/ast"
 )
 
@@ -105,10 +106,10 @@ func (v *View) textOf(n core.Node) string {
 		return t
 	}
 	if e, ok := v.Origin[n]; ok {
-		return ast.FormatExpr(e)
+		return fmt.FormatExpr(e)
 	}
 	if e, err := v.expr(n); err == nil {
-		return ast.FormatExpr(e)
+		return fmt.FormatExpr(e)
 	}
 	return ""
 }

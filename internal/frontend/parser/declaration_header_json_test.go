@@ -4,6 +4,7 @@ import (
 	"strings"
 	"testing"
 
+	"zeroparse.dev/zp/internal/syntax/fmt"
 	"zeroparse.dev/zp/pkg/grammar/ast"
 )
 
@@ -40,13 +41,13 @@ func TestDeclarationHeaderCommentsJSON(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			out := ast.Format(decoded)
+			out := fmt.Format(decoded)
 			for _, c := range tt.want {
 				if !strings.Contains(out, c) {
 					t.Errorf("comment %s lost through JSON\njson: %s\nout:\n%s", c, data, out)
 				}
 			}
-			if again := ast.Format(decoded); again != out {
+			if again := fmt.Format(decoded); again != out {
 				t.Errorf("Format is not stable")
 			}
 			// Formatting source moves a comment between a field name and its
@@ -56,12 +57,12 @@ func TestDeclarationHeaderCommentsJSON(t *testing.T) {
 			if err != nil {
 				t.Fatalf("output does not parse: %v\n%s", err, out)
 			}
-			once := ast.Format(reparsed)
+			once := fmt.Format(reparsed)
 			reparsed, err = Parse(once)
 			if err != nil {
 				t.Fatalf("formatted output does not parse: %v\n%s", err, once)
 			}
-			if twice := ast.Format(reparsed); twice != once {
+			if twice := fmt.Format(reparsed); twice != once {
 				t.Errorf("Format is not idempotent\nfirst:\n%s\nsecond:\n%s", once, twice)
 			}
 			for _, c := range tt.want {

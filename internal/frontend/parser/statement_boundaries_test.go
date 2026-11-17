@@ -4,7 +4,7 @@ import (
 	"strings"
 	"testing"
 
-	"zeroparse.dev/zp/pkg/grammar/ast"
+	"zeroparse.dev/zp/internal/syntax/fmt"
 )
 
 // A newline ends a statement, and an expression crosses a newline only inside
@@ -105,7 +105,7 @@ func TestBracketAfterBlock(t *testing.T) {
 		}
 		found := false
 		for _, r := range g.Rules() {
-			found = found || strings.Contains(ast.FormatExpr(r.Expr), "[a-z]")
+			found = found || strings.Contains(fmt.FormatExpr(r.Expr), "[a-z]")
 		}
 		if !found {
 			t.Errorf("%q: the character class is lost", src)

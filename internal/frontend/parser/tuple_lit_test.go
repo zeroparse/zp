@@ -4,6 +4,7 @@ import (
 	"strings"
 	"testing"
 
+	"zeroparse.dev/zp/internal/syntax/fmt"
 	"zeroparse.dev/zp/pkg/grammar/ast"
 )
 
@@ -54,7 +55,7 @@ rule multiline = "x" => (
 		t.Errorf("index operand is %T, want *ast.TupleLit", b.L)
 	}
 
-	formatted := ast.Format(g)
+	formatted := fmt.Format(g)
 	for _, want := range []string{
 		`=> ()`, `=> (1,)`, `=> (1)`, `=> (1, "a")`, `=> (1, (2, nil))`, `=> (1, 2)[0]`, `list((1, 2), ())`,
 		"=> (\n    1,\n    2,\n)",
@@ -67,7 +68,7 @@ rule multiline = "x" => (
 	if err != nil {
 		t.Fatalf("formatted source does not parse: %v\n%s", err, formatted)
 	}
-	if out := ast.Format(again); out != formatted {
+	if out := fmt.Format(again); out != formatted {
 		t.Fatalf("format is not stable:\n%s\n%s", formatted, out)
 	}
 }

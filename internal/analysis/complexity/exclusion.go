@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"slices"
 	"zeroparse.dev/zp/internal/frontend/astfacts"
+	syntaxfmt "zeroparse.dev/zp/internal/syntax/fmt"
 
 	"zeroparse.dev/zp/pkg/grammar/ast"
 )
@@ -617,7 +618,7 @@ func (x excl) sameSym(a, b ast.Expr) bool {
 		return ok
 	case *ast.Repeat:
 		b, ok := b.(*ast.Repeat)
-		return ok && (a == b || ast.FormatExpr(a) == ast.FormatExpr(b)) && x.pure(a)
+		return ok && (a == b || syntaxfmt.FormatExpr(a) == syntaxfmt.FormatExpr(b)) && x.pure(a)
 	}
 	return false
 }

@@ -1,4 +1,4 @@
-package ast_test
+package fmt_test
 
 import (
 	"context"
@@ -7,7 +7,7 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/internal/frontend/parser"
-	"zeroparse.dev/zp/pkg/grammar/ast"
+	"zeroparse.dev/zp/internal/syntax/fmt"
 )
 
 var formatBenchmarkOutput string
@@ -26,7 +26,7 @@ func BenchmarkGrammarFormatCancellation(b *testing.B) {
 		if err != nil {
 			b.Fatal(err)
 		}
-		want := ast.Format(g)
+		want := fmt.Format(g)
 		for _, active := range []bool{false, true} {
 			mode := "ordinary"
 			if active {
@@ -38,9 +38,9 @@ func BenchmarkGrammarFormatCancellation(b *testing.B) {
 				b.ReportAllocs()
 				for b.Loop() {
 					if active {
-						formatBenchmarkOutput, err = ast.FormatContext(ctx, g)
+						formatBenchmarkOutput, err = fmt.FormatContext(ctx, g)
 					} else {
-						formatBenchmarkOutput = ast.Format(g)
+						formatBenchmarkOutput = fmt.Format(g)
 					}
 					if err != nil {
 						b.Fatal(err)

@@ -9,6 +9,7 @@ import (
 	"zeroparse.dev/zp/core"
 	"zeroparse.dev/zp/internal/bytecode"
 	"zeroparse.dev/zp/internal/compile"
+	"zeroparse.dev/zp/internal/syntax/fmt"
 	"zeroparse.dev/zp/internal/testing/codegentest"
 	"zeroparse.dev/zp/pkg/grammar/ast"
 )
@@ -88,7 +89,7 @@ func TestCastSyntax(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	formatted := ast.Format(g)
+	formatted := fmt.Format(g)
 	for _, want := range []string{"$x.([]Foo | *Word).Start", "(1).(int)"} {
 		if !strings.Contains(formatted, want) {
 			t.Fatalf("formatted lacks %q:\n%s", want, formatted)

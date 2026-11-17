@@ -4,6 +4,7 @@ import (
 	"slices"
 	"testing"
 
+	"zeroparse.dev/zp/internal/syntax/fmt"
 	"zeroparse.dev/zp/pkg/grammar/ast"
 )
 
@@ -57,7 +58,7 @@ func TestTrailingCommentsRoundTripExactly(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			formatted := ast.Format(g)
+			formatted := fmt.Format(g)
 			if formatted != tc.want {
 				t.Fatalf("formatted:\n%s\nwant:\n%s", formatted, tc.want)
 			}
@@ -69,7 +70,7 @@ func TestTrailingCommentsRoundTripExactly(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			if owned := ast.Format(decoded); owned != tc.fromJSON {
+			if owned := fmt.Format(decoded); owned != tc.fromJSON {
 				t.Fatalf("formatted from JSON:\n%s\nwant:\n%s", owned, tc.fromJSON)
 			}
 			again, err := Parse(formatted)

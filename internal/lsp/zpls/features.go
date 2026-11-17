@@ -9,6 +9,7 @@ import (
 
 	"zeroparse.dev/zp/internal/frontend/parser"
 	"zeroparse.dev/zp/internal/lsp/protocol"
+	syntaxfmt "zeroparse.dev/zp/internal/syntax/fmt"
 	"zeroparse.dev/zp/pkg/grammar/ast"
 )
 
@@ -40,7 +41,7 @@ func formatEdits(a *analysis) []protocol.TextEdit {
 	if len(a.syntaxErrs) > 0 {
 		return []protocol.TextEdit{}
 	}
-	out := ast.Format(a.g)
+	out := syntaxfmt.Format(a.g)
 	if nl := lineEnd(a.text); nl != "\n" {
 		out = strings.ReplaceAll(out, "\n", nl)
 	}

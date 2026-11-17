@@ -7,6 +7,7 @@ import (
 	"strings"
 	"testing"
 
+	syntaxfmt "zeroparse.dev/zp/internal/syntax/fmt"
 	"zeroparse.dev/zp/pkg/grammar/ast"
 )
 
@@ -73,12 +74,12 @@ func TestFormatKeepsOwnersOfSharedLines(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			out := ast.Format(g)
+			out := syntaxfmt.Format(g)
 			again, err := Parse(out)
 			if err != nil {
 				t.Fatalf("output does not parse: %v\n%s", err, out)
 			}
-			if got := ast.Format(again); got != out {
+			if got := syntaxfmt.Format(again); got != out {
 				t.Errorf("Format is not idempotent\nfirst:\n%s\nsecond:\n%s", out, got)
 			}
 			want, got := commentOwners(t, g), commentOwners(t, again)
@@ -96,7 +97,7 @@ func TestFormatKeepsFieldGaps(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	out := ast.Format(g)
+	out := syntaxfmt.Format(g)
 	for _, want := range []string{"A /* x */ /* y */ int", "B /* z */ string"} {
 		if !strings.Contains(out, want) {
 			t.Errorf("missing %q\n%s", want, out)

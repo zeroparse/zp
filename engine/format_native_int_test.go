@@ -6,6 +6,7 @@ import (
 
 	"zeroparse.dev/zp/core"
 	"zeroparse.dev/zp/engine"
+	syntaxfmt "zeroparse.dev/zp/internal/syntax/fmt"
 	"zeroparse.dev/zp/pkg/grammar/ast"
 )
 
@@ -38,12 +39,12 @@ func TestFormatNativeMinimumRoundTrip(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			source := ast.Format(jsonAST)
+			source := syntaxfmt.Format(jsonAST)
 			sourceAST, err := engine.ParseGrammar(source)
 			if err != nil {
 				t.Fatalf("formatted source cannot be parsed: %v\n%s", err, source)
 			}
-			if again := ast.Format(sourceAST); again != source {
+			if again := syntaxfmt.Format(sourceAST); again != source {
 				t.Fatalf("format is not idempotent:\n%s\n%s", source, again)
 			}
 			for _, tree := range []*ast.Grammar{g, jsonAST, sourceAST} {
