@@ -572,13 +572,17 @@ func engineObservation(t *testing.T, prog *engine.Program, r agreeReport, in str
 // sameCallExamined is the relation between the events of two producers of a Document parse after an
 // edit that the section "Reported Calls" of the specification of tracing and profiling defines: the
 // engine may resume repetitions and reuse failed results, so the producers report different calls, but
-// of the calls with the same rule, position, level, depth, end and outcome, if both make any, both make
-// the same number, they pair one to one in the order they are made, and paired calls have the same
+// of the calls that can match with the same rule, position, level, depth, end and outcome, if both make
+// any, both make the same number, they pair one to one in the order they are made, and paired calls have the same
 // Examined. A producer can make such a call more
 // than once with different examined ends, within the growth of a left-recursive seed, because Examined
-// depends on the seed, which those fields leave out. It returns the number of exits compared and the
+// depends on the seed, which those fields leave out. A call that fails having examined no more than the
+// character at its position cannot match (callsAgree): a producer may skip it, so it is left out unless
+// cannotMatch is set, which compares those calls too where both producers make them, for parses whose
+// producers make the same such calls. The edit of the parse replaces a character of the input in with
+// itself, so in is also the input of the parse. It returns the number of exits compared and the
 // differences.
-func sameCallExamined(a, b []core.TraceEvent) (compared int, diffs []string) {
+func sameCallExamined(a, b []core.TraceEvent, in string, unit core.PositionUnit, cannotMatch bool) (compared int, diffs []string) {
 	type key struct {
 		rule                   string
 		level, depth, pos, end int
@@ -587,7 +591,7 @@ func sameCallExamined(a, b []core.TraceEvent) (compared int, diffs []string) {
 	ends := func(evs []core.TraceEvent) (map[key][]int, []key) {
 		m, order := map[key][]int{}, []key(nil)
 		for _, e := range evs {
-			if e.Kind == core.TraceExit {
+			if e.Kind == core.TraceExit && (cannotMatch || e.Matched || e.Examined > firstCharEnd(in, e.Pos, unit)) {
 				k := key{e.Rule, e.Level, e.Depth, e.Pos, e.End, e.Matched}
 				if m[k] == nil {
 					order = append(order, k)
@@ -614,8 +618,9 @@ func sameCallExamined(a, b []core.TraceEvent) (compared int, diffs []string) {
 
 // swapGrowthExamined returns a copy of evs in which the examined ends of the first two exits of one call
 // (the same rule, position, level, depth, end and outcome) that differ are swapped, or nil if no call
-// has two. Such exits are steps of the growth of a left-recursive seed.
-func swapGrowthExamined(evs []core.TraceEvent) []core.TraceEvent {
+// has two. Such exits are steps of the growth of a left-recursive seed. It leaves out the calls that
+// sameCallExamined leaves out.
+func swapGrowthExamined(evs []core.TraceEvent, in string, unit core.PositionUnit) []core.TraceEvent {
 	type key struct {
 		rule                   string
 		level, depth, pos, end int
@@ -623,7 +628,7 @@ func swapGrowthExamined(evs []core.TraceEvent) []core.TraceEvent {
 	}
 	first := map[key]int{}
 	for i, e := range evs {
-		if e.Kind != core.TraceExit {
+		if e.Kind != core.TraceExit || !e.Matched && e.Examined <= firstCharEnd(in, e.Pos, unit) {
 			continue
 		}
 		k := key{e.Rule, e.Level, e.Depth, e.Pos, e.End, e.Matched}
@@ -666,8 +671,8 @@ type agreementStats struct {
 // optionsHonored checks the observation of one producer with several trace functions and profiles and
 // with a trace filter: the second trace function and profile (second, prof2) received the parse as the
 // first did (events, prof), the filtered parse delivered the events that the filter rules and the depth
-// limit agreeMaxDepth select (codegentest.SelectedEvents), and its profile recorded the whole parse. It
-// returns the first difference.
+// limit agreeMaxDepth select (codegentest.SelectedEvents; no events are no events, however a producer
+// spells them), and its profile recorded the whole parse. It returns the first difference.
 func optionsHonored(producer string, events []core.TraceEvent, prof core.ProfileSnapshot, second []core.TraceEvent, prof2 core.ProfileSnapshot,
 	rules []string, filtered []core.TraceEvent, filteredProf core.ProfileSnapshot) string {
 	same := func(a, b any) bool {
@@ -680,7 +685,7 @@ func optionsHonored(producer string, events []core.TraceEvent, prof core.Profile
 		return fmt.Sprintf("%s: the second trace function received %d events, the first %d", producer, len(second), len(events))
 	case !same(prof, prof2):
 		return producer + ": the second profile differs from the first"
-	case !same(want, filtered):
+	case (len(want) > 0 || len(filtered) > 0) && !same(want, filtered):
 		return fmt.Sprintf("%s: the trace filter %q with depth limit %d delivered %d events, want %d", producer, rules, agreeMaxDepth, len(filtered), len(want))
 	case !same(prof, filteredProf):
 		return producer + ": the profile depends on the trace filter"
@@ -733,14 +738,14 @@ func agreementMismatches(t *testing.T, cases []codegentest.Case, reports []agree
 				st.partial++
 			}
 			if r.Entry == "edit" {
-				n, d := sameCallExamined(events, r.Events)
+				n, d := sameCallExamined(events, r.Events, in, unit, false)
 				st.compared += n
 				for _, msg := range d {
 					diffs[r.Entry] = append(diffs[r.Entry], where+": "+msg)
 				}
-				if swapped := swapGrowthExamined(events); swapped != nil && len(d) == 0 {
+				if swapped := swapGrowthExamined(events, in, unit); swapped != nil && len(d) == 0 {
 					st.swaps++
-					if _, d := sameCallExamined(swapped, r.Events); len(d) == 0 {
+					if _, d := sameCallExamined(swapped, r.Events, in, unit, false); len(d) == 0 {
 						diffs[r.Entry] = append(diffs[r.Entry], where+": swapped examined ends of growth steps not told apart")
 					}
 				}

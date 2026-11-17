@@ -269,16 +269,16 @@ process.stdout.write("ok\n");
 // library's profiling declarations.
 func TestGeneratedTSProfileNameCollisions(t *testing.T) {
 	t.Parallel()
-	runTSSplit(t, "type Profile = { Text string }\ntype ProfileSnapshot = { Text string }\ntype RuleProfile = { Text string }\ntype ProfileLocation = { Text string }\ntype SkipReasonCount = { Text string }\ntype ProfileObservation = { Text string }\ntype ProfileFrame = { Text string }\ntype ProfileData = { Text string }\ntype WeakMap = { Text string }\nrule main Profile = t:(part) #atomic => Profile{Text: text($t)}\nrule part Profile = t:(\"a\") #atomic => Profile{Text: text($t)}",
+	runTSSplit(t, "type Profile = { Text string }\ntype ProfileSnapshot = { Text string }\ntype RuleProfile = { Text string }\ntype CallSite = { Text string }\ntype SkipReasonCount = { Text string }\ntype ProfileRecorder = { Text string }\ntype ProfileFrame = { Text string }\ntype ProfileData = { Text string }\ntype TraceFunction = { Text string }\ntype SkipReason = { Text string }\ntype WeakMap = { Text string }\nrule main Profile = t:(part) #atomic => Profile{Text: text($t)}\nrule part Profile = t:(\"a\") #atomic => Profile{Text: text($t)}",
 		codegen.GenOptions{Start: "main", Types: true, Recognize: true, Observability: true}, `import {Profile, parseWithOptions, parseValueWithOptions} from "./parser.ts";
-import type {Profile as GrammarProfile, ProfileSnapshot, RuleProfile, ProfileLocation, SkipReasonCount, ProfileObservation, ProfileFrame, ProfileData, WeakMap} from "./types.ts";
+import type {Profile as GrammarProfile, ProfileSnapshot, RuleProfile, CallSite, SkipReasonCount, ProfileRecorder, ProfileFrame, ProfileData, TraceFunction, SkipReason, WeakMap} from "./types.ts";
 declare const process: {stdout: {write(s: string): void}};
-const names: [ProfileSnapshot|null, RuleProfile|null, ProfileLocation|null, SkipReasonCount|null, ProfileObservation|null, ProfileFrame|null, ProfileData|null, WeakMap|null] = [null, null, null, null, null, null, null, null];
+const names: [ProfileSnapshot|null, RuleProfile|null, CallSite|null, SkipReasonCount|null, ProfileRecorder|null, ProfileFrame|null, ProfileData|null, TraceFunction|null, SkipReason|null, WeakMap|null] = [null, null, null, null, null, null, null, null, null, null];
 const profile = new Profile();
 const r = parseWithOptions("a", {profile});
-const typed: GrammarProfile | null = parseValueWithOptions("a", {profile}).value;
+const typed: GrammarProfile | null = parseValueWithOptions("a", {profile: [profile]}).value;
 const snapshot = profile.snapshot();
-if (names.length !== 8 || r.error !== null || typed === null || snapshot.parses !== 2 || snapshot.entered < 2) throw new Error("profile " + JSON.stringify(snapshot));
+if (names.length !== 10 || r.error !== null || typed === null || snapshot.parses !== 2 || snapshot.entered < 2) throw new Error("profile " + JSON.stringify(snapshot));
 process.stdout.write("ok\n");
 `)
 }

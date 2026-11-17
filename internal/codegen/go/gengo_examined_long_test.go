@@ -41,6 +41,9 @@ var examinedMutants = []examinedMutant{
 		entries: []string{"parse"}},
 	{name: "a seed replay records nothing", file: "call_exec.go", old: "p.documentTouch(seed.examined)", new: "p.documentTouch(0)",
 		entries: []string{"parse"}},
+	// examinedOnlyCases reaches the last step of a growth taken from the context.
+	{name: "a growth step taken from the context records nothing", file: "context_memo.go", old: "\t\t\tp.documentTouch(s.examined)\n", new: "\t\t\t_ = s\n",
+		entries: []string{"parse"}},
 	{name: "a skip record reused records nothing", file: "skip_runs.go", old: "p.documentTouch(r.examined)", new: "p.documentTouch(0)",
 		entries: []string{"parse"}},
 	{name: "a lookahead drops what it examined", file: "context_memo.go", old: "p.docExamined = max(l.examined, p.docExamined)", new: "p.docExamined = l.examined",
@@ -96,8 +99,8 @@ func TestObservedExaminedEndsMutants(t *testing.T) {
 var examinedMutantShapes = regexp.MustCompile(`(?i)leader|recurs|look|recover|memo|cut|LR`)
 
 // examinedMutantCases are the cases the mutants run on: those of the generated corpus that
-// examinedMutantShapes selects, the shapes of the observation tests and the stream grammars, a
-// smaller set than examinedCases, as each mutant builds every case again.
+// examinedMutantShapes selects, the shapes of the observation tests, examinedExtras, examinedOnlyCases
+// and the stream grammars, fewer than the exactness test runs, as each mutant builds every case again.
 func examinedMutantCases(t *testing.T) []codegentest.Case {
 	t.Helper()
 	var cases []codegentest.Case
@@ -108,6 +111,7 @@ func examinedMutantCases(t *testing.T) []codegentest.Case {
 	}
 	cases = append(cases, observeShapes...)
 	cases = append(cases, examinedExtras()...)
+	cases = append(cases, examinedOnlyCases()...)
 	for _, c := range streamCases(t) {
 		if strings.Contains(c.Src, "#stream") && len(c.Inputs) > 0 {
 			cases = append(cases, c)

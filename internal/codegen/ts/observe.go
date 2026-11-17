@@ -14,13 +14,8 @@ func (g *Generator) tracePlainCall(r *compile.Rule, name string) string {
 	body := name + "ObservedBody"
 	fmt.Fprintf(&g.Methods, `// Observes one actual generated rule call.
 function %s(p: Parser): R {
-  const o = p.observation;
-  if (o === null) return %s(p);
-  o.enter(%s, p.pos, 0);
-  o.evaluated();
-  const v = %s(p);
-  o.exit(v !== undefined, p.pos);
-  return v;
+  if (p.observation === null) return %s(p);
+  return (p as ObservedParser).observePlain(%s, %s);
 }
 
 `, name, body, TsString(r.Name), body)
