@@ -10,7 +10,7 @@ and meaning.
 The repository holds a full grammar of the language, `zp.zp`, which is the input
 of the generated parser of grammar files. Its actions produce a typed source tree
 with comments, source forms, and recoverable error nodes. This tree is separate from
-the public `grammar.Grammar` AST.
+the public `ast.Grammar` AST.
 
 The grammar is checked by tests, which run both views on every
 `.zp` file of the repository and on every `zp` code block of the
