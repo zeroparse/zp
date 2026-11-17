@@ -1658,9 +1658,14 @@ a memoized rule, or of its twin, at a position outside every context of
 growths, only the first may leave no result.
 The reference implementation and the generated parsers store so in every
 parse outside the contexts of growths, apart from the entries that a
-Document keeps from earlier parses; this rests on reading their code, and no
-conformance test across the backends checks it yet. A mode that leaves other results out of the memo, such as one that
-evicts entries, gives no linear bound by these conditions, and has to say so.
+Document keeps from earlier parses. The conformance tests `TestMemoStorePolicy`
+(the engine's closure and bytecode backends, streams and Documents),
+`TestGeneratedStorePolicy` (generated Go, streams and Documents) and
+`TestGeneratedTSStorePolicy` (generated TypeScript, Documents) hold the evaluations
+of a rule to what a memo that stores every first call and one that defers each
+leave, and each has a mutant of the memo that it must fail. A mode that leaves
+other results out of the memo, such as one that evicts entries, gives no linear
+bound by these conditions, and has to say so.
 
 1. **Variables.** No binding of a variable reads, through any chain of
    bindings, captures and rule values, the variable's own earlier value, when
