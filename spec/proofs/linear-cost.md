@@ -81,7 +81,7 @@ the memoization proof, is evaluated again and repeats the first activation at
 the position in it; the memo bounds these for a
 memoized rule and the cycles of calls that nest at one end bound for a rule that
 calls no rule when the call is the first that the two share, and it shows,
-apart from four open points, that evaluations of a call that nest without a
+apart from three open points, that evaluations of a call that nest without a
 bound and end at one position make the call nest at one end. It proves the sum
 over the positions for the activations owned by memoized evaluations of the
 sources of rules that call a rule or are memoized at their calls, by charging
@@ -2132,9 +2132,9 @@ link whose shared call is not the first, or linked by a leaf link at a
 position before $p$; none of these lies in a run of consecutive leaf links at
 $p$ whose shared call is the first, so the two lie in different runs. The
 other case is the one that *Nesting at one end* rules out, with $Y_{l'}$ as
-$X$ and $Y_l$ as $T$, under its hypotheses on the dropped steps of growths
-on the path between them and on the alike calls, and apart from the four
-points that it leaves open; this is not shown here. So outside that case the outer links at $p$ through
+$X$ and $Y_l$ as $T$, under its hypotheses on the dropped and the later
+kept steps of growths on the path between them and on the alike calls, and
+apart from the three points that it leaves open; this is not shown here. So outside that case the outer links at $p$ through
 one call place are at most one in each run, and the argument of the claim above does not
 bound them without a bound on the runs. The second case occurs in a grammar
 that the conditions accept:
@@ -2248,7 +2248,7 @@ $\pi_l$ that starts before $p$, ends at $p$ and contains $\alpha_{l-1}$; $Y$
 reaches the caller of $\pi_l$, which calls $Y$, so $Y$ is of the recursion of
 $\pi_l$. These are the hypotheses of *Nesting at one end* with $e_j$ as $X$
 and $Y_l$ as $T$, which give that $\pi_l$ nests at one end under its
-hypotheses on the dropped steps and the alike calls and apart from its open
+hypotheses on the dropped and the later kept steps and the alike calls and apart from its open
 points; the continuation of $w_l$ then reaches the call of $r$ after leaving
 the body of $Y_l$, in what follows $\pi_l$, so the call is not shared unless
 $r$ is a scan-only rule. *Calls of scan-only rules* treats that rule in a
@@ -2493,7 +2493,7 @@ $Y_l$, an evaluation of $\pi_l$ inside $E_1$ other than $E_1$, starts before
 $p$, ends at $p$ and holds $\alpha_{l-1}$, a successful activation of the
 scanning source $\sigma$. These are the hypotheses of *Nesting at one end*
 with $E_1$ as $X$ and $Y_l$ as $T$, which give that $\pi_l$ nests at one end
-under its hypotheses on the dropped steps and the alike calls and apart from
+under its hypotheses on the dropped and the later kept steps and the alike calls and apart from
 its open points. The continuation of $w_l$ then reaches the call of $r$
 after leaving the body of $Y_l$ through $\pi_l$, in what follows $\pi_l$, so
 the call is not shared unless $r$ is a scan-only rule, as in the proof of
@@ -2792,18 +2792,28 @@ position $p_0$, and $T$ an evaluation of $t$ inside $X$, other than $X$, that
 starts before $p_0$, ends at $p_0$ and holds a successful activation of a
 scanning source other than a bounded scan. Let $T$ follow, in each dropped step
 of a growth on the path from $X$ to $T$, a read of the seed of that growth that
-succeeds, or a call whose result includes one, and let two evaluations at one
+succeeds, or a call whose result includes one, and let each kept step of
+such a growth after the one on the path match its result through a read of
+the seed that succeeds outside every lookahead, or a call whose result
+includes one. Let two evaluations at one
 position of a call that a unit and a continuation share, or that the
 comparison of a decided unit passes alike, end at one position. Then $A$ is in
 $E_t$, except in the cases that the end of the proof leaves open. So when the
 evaluations of $Z$ nest without a bound through $t$, each in the call $t$ of
 the one around it, all of those calls ending at one position, each holding a
-successful activation of such a source, and each dropped step of a growth
-between them holding the inner one after a read of its seed, $t$ nests at one end: calls that start at that position nest
+successful activation of such a source, each dropped step of a growth
+between them holding the inner one after a read of its seed, and each kept
+step of such a growth after the one between them matching through a read of
+its seed, $t$ nests at one end: calls that start at that position nest
 only through left recursion, which the growths bound, so some call $X$ starts
 before the position and holds another, $T$, that does too, and the claim gives
 $Y$ in $E_t$. A nesting through a part that a dropped step evaluates at the
-position of its growth before a read of its seed is left open.
+position of its growth before a read of its seed is left open, and so is one
+through a growth whose later kept step matches its result without its seed,
+reading it only inside a lookahead, as the second step of `E` does in
+`E = E "x" / &(E "b") "a" "b" "c" / "a"` on `abc`: that step matches `abc`
+from the position of the growth again, so the end of $X$ is not reached
+through the step that holds $T$.
 
 *Proof.* By induction on the number of calls on the path from $X$ to $T$.
 Each call on that path is of a rule of the recursion of $t$, since $A$
@@ -2839,11 +2849,12 @@ ends of the enclosing expressions and, at the end of a rule body, through the
 call of the rule, and ends $X$ at $p_0$, returning to no position before $s$
 in between apart from the exception of the restarts for the growths on the
 path from $X$ to $w$ (*Restarts*), whose later steps $\kappa$ goes on through
-at the reads of their seeds. That $X$ ends at $p_0$ through those reads is
-not shown when a later kept step of such a growth gives its result through an
-alternative whose every read of the seed is abandoned, as the second step of
-`E` does in
-`E = E "x" / &(E "b") "a" "b" "c" / "a"` on `abc`. For the unit that a dropped step of $G$ gives,
+at the reads of their seeds. $X$ ends at $p_0$ through those reads: the
+step on the path is kept, and each later kept step of its growth matches
+its result through a read of the seed, the result of the kept step before
+it, outside every lookahead, so the result of the growth holds that of the
+step on the path, and $\kappa$ goes on, after each restart, from the end of
+the seed that the next kept step reads. For the unit that a dropped step of $G$ gives,
 *Dropped steps* gives the same, with the continuation that it names, which
 goes on from $e$ after $G$ ends. $\kappa$ consumes the input from $s$ to $p_0$, so it
 begins with the calls that $w$ and $\kappa$ share or that the comparison passes
@@ -2898,11 +2909,7 @@ reaches it and it reaches $B$, which reaches $Z$. The calls on the path from $X$
 $K$ end at $p_0$ in body evaluations that end at $p_0$, so the second case
 adds each rule above $K$, up to $A$.
 
-Four points of this proof are open. That $X$ ends at $p_0$ through the reads
-of the seeds in the later steps of the growths between $X$ and $w$, and so
-through $\kappa$, is not shown when a later kept step gives its result through
-an alternative whose every read of the seed is abandoned, as inside a
-lookahead. The hypothesis that the alike calls end
+Three points of this proof are open. The hypothesis that the alike calls end
 at one position in both evaluations is what
 [Conditions for Linear Cost](../runtime/parsing.md#conditions-for-linear-cost)
 states for the shared calls and the comparison of a decided unit for the
@@ -2934,14 +2941,17 @@ call of a rule of the cycle starts no new evaluation at a new position. One of
 the finitely many call places, $t$, makes unboundedly many of them, and
 *Nesting at one end*, with $X$ an outer and $T$ an inner one of them, would put
 the callee of $t$ in $E_t$, so that $t$ nests at one end. Besides the open
-points of that claim, two of its hypotheses are not shown here. First, $X$
+points of that claim, three of its hypotheses are not shown here. First, $X$
 and $T$ must end at $p_0$, but the evaluations above are chosen because the
 current result of their leader ends at $p_0$, and a leader whose step at
 $p_0$ grows ends beyond $p_0$. Second, $T$ must follow a read of the seed in
 each dropped step of a growth on the path from $X$ to $T$, and that path lies
 inside growths: the claim allows the kept growth steps on it and those
 dropped steps, but a dropped step that holds $T$ in a part that it evaluates
-at the position of its growth is not excluded.
+at the position of its growth is not excluded. Third, each kept step of a
+growth on that path after the one that holds $T$ must match its result
+through a read of its seed outside lookaheads, and a step that reads it
+only inside a lookahead is not excluded.
 The claims above leave out the links between which the parser leaves or
 starts a growth step at the position, and so do not use this case.
 
@@ -12007,19 +12017,21 @@ theorem covers such a parse.
    *Nesting at one end* shows that evaluations of a call that nest without a
    bound and end at one position, through restarts as well, make the call
    nest at one end, which keeps the call of `R` in that grammar from being
-   shared, apart from the four points that it leaves open and a nesting
+   shared, apart from the three points that it leaves open, a nesting
    through a part that a dropped step evaluates at the position of its growth
-   before a read of its seed; what remains is
+   before a read of its seed, and a nesting through a growth whose later kept
+   step matches its result without its seed; what remains is
    to bound the frames left at the earlier positions by it. And the leaf links
    between which the parser leaves or starts, at their position, a growth
    step or an evaluation in a context of growths, which that claim leaves
    out, and for which the condition has its case of seed reads (*Seed
    reads*); that case is argued from *Nesting at one end* but not proved:
-   besides the four open points of that claim, it is not shown that the
+   besides the three open points of that claim, it is not shown that the
    nested evaluations of a leader that it picks end at the position, since a
    leader whose current result ends there can grow beyond it, nor that each
    dropped step of a growth on the path between them holds the inner one after
-   a read of its seed. Third, the
+   a read of its seed, nor that each later kept step of such a growth matches
+   its result through a read of its seed. Third, the
    memoized links that the comparison leaves out: in a Document parse, a link
    whose comparison meets an entry of an earlier parse that answers a call in
    a context of growths, or a call whose corresponding call in the later
