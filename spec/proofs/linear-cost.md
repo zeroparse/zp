@@ -753,9 +753,15 @@ links in a parse that keeps records* the claims on leaf links from *Memoized lin
 link* to *Nesting at one end*, as that claim states them: some with
 case (d) of the covered keys, one with one more exception, some for
 the activations outside the iterations of the walks of the sites that
-keep records, and not *Calls of scan-only rules* or *Seed reads*. The
-other claims that count nothing have not been read again for such a parse
-(step 8 of [Open Steps](#open-steps)).
+keep records, and not *Calls of scan-only rules* or *Seed reads*.
+*Activations that do not succeed in a parse that keeps records* there
+shows that claim and Lemma 10 of such a parse, and *Iterations at one
+scan in a parse that keeps records* shows *Iterations at one scan* in
+part, under a hypothesis on the shared calls of a link. The
+other claims that count nothing, those that follow *Iterations at one
+scan* and the claims of Lemma 5 other than the first case of *Repeats
+inside a growth*, have not been read again for such
+a parse (step 8 of [Open Steps](#open-steps)).
 
 **Sources without records.** $A_u$ counts the successful activations of the
 following, and the count of Lemma 4 is needed for them and for the growths
@@ -1406,7 +1412,11 @@ links in a parse that keeps records* the claims on leaf links from *Memoized lin
 link* to *Nesting at one end*, as that claim states them: some with
 case (d) of the covered keys, one with one more exception, some for
 the activations outside the iterations of the walks of the sites that
-keep records, and not *Calls of scan-only rules* or *Seed reads*; that the other claims hold of
+keep records, and not *Calls of scan-only rules* or *Seed reads*;
+*Activations that do not succeed in a parse that keeps records* shows
+that claim, and *Iterations at one scan in a parse that keeps records*
+shows *Iterations at one scan* in part, under a hypothesis on the shared
+calls of a link; that the claims after *Iterations at one scan* hold of
 it is left to be
 argued (step 8 of [Open Steps](#open-steps)). For the iterations of recorded
 walks Lemma 17 makes the claims unnecessary.
@@ -4288,11 +4298,15 @@ the cases of a Document parse.
 whose records are exact, (R1) of the [Setting](#setting), let the
 iterations of $T$ be those that the parse evaluates; a reaching iteration
 is one of them, since it contains an activation. Then 1 and 3 of
-*Iterations at one scan* hold as stated. 2 and 4 hold as stated for the
-links of which the following holds: no shared call of the unit $w_i$ up
-to the call of $e_i$ lies, in $w_i$ or on the way of $\kappa_i$ from its
-last start to $e'_i$, in an iteration that a record answers. For the
-other links 2 and 4 are not shown.
+*Iterations at one scan* hold as stated, and so does the first statement
+of 2, that $e'_i$ lies inside $it_{k'}$ and $s_{k'} \le t_i$, for every
+link. Say that a link **meets the hypothesis** when no shared call of the
+unit $w_i$ up to the call of $e_i$ lies, in $w_i$ or on the way of
+$\kappa_i$ from its last start to $e'_i$, in an iteration that a record
+answers. The rest of 2 holds as stated for a link that meets the
+hypothesis, and 4 for a run all of whose links meet it, the link of each
+$i_a$ of the run. For the other links the rest of 2 is not shown, nor is
+4 for a run that holds one of them.
 
 *Proof.* When $T$ is a walk that takes a record, it evaluates its
 iterations first, each from the end of the one before, and after the
@@ -4306,13 +4320,18 @@ following of the parse.
    iterations of $T$, that $T$ evaluates an iteration after $it_k$ only
    when $it_k$ succeeded, and *Restarts* and *Repeats*, which hold
    (*Restarts in a parse that keeps records*).
-2. For 3: that an evaluation which succeeds and is not abandoned lies in
+2. For 3: the first statement of 2, that $e'_i$ lies inside $it_{k'}$,
+   which uses only that $e'_i$ starts after $w_i$ ends and inside $T$,
+   that it contains $\alpha_i$ and that an evaluation of a call is no
+   iteration of $T$, and so holds for every link; in its second case,
+   *Repeats* and 1 of the claim, which hold as 1 above shows;
+   that an evaluation which succeeds and is not abandoned lies in
    the match of the one above it and ends no later (1 of that claim);
    that an iteration after $it_{k'}$ starts at or after its end; which of
    two evaluations that contain $\alpha_i$ contains the other; and that
    the evaluated iterations of $T$ but the last end where the next
    starts, with starts that increase, which the paragraph above gives.
-3. For 2: that $e'_i$ starts after $w_i$ ends and inside $T$; that after
+3. For the rest of 2: that $e'_i$ starts after $w_i$ ends and inside $T$; that after
    an iteration of $T$ ends the parser starts no evaluation before its
    end until $\alpha_i$, which rests on where the parser goes back (1 of
    that claim: a walk that takes a record adds no return); and, from
@@ -4335,7 +4354,8 @@ following of the parse.
    under the hypothesis; and that the evaluations of the shared calls of
    $w_{i_{a+1}}$ before $e_{i_{a+1}}$ and those that $\kappa_{i_a}$
    keeps on its way to $e'_{i_a}$ are evaluations of calls that the parse
-   makes, which the hypothesis gives for both links.
+   makes, which the hypothesis gives for both links, so for every pair
+   of consecutive links of the run when all its links meet it.
 
 The proof uses nothing else of the parse. $\square$
 
@@ -9693,9 +9713,10 @@ theorem covers such a parse.
    Lemma 5, on which the claims on leaf links rest. *Activations that do
    not succeed in a parse that keeps records* shows that claim and Lemma
    10 of such a parse, and *Iterations at one scan in a parse that keeps
-   records* shows 1 and 3 of *Iterations at one scan*, and 2 and 4 of it
-   for the links none of whose shared calls lies in an iteration that a
-   record answers. The claims that follow it, from *Memoized breaks* to
+   records* shows 1 and 3 of *Iterations at one scan* and the first
+   statement of 2 for every link, the rest of 2 for a link none of whose
+   shared calls lies in an iteration that a record answers, and 4 for a
+   run all of whose links are such. The claims that follow it, from *Memoized breaks* to
    *Consecutive activations in one own region*, and the
    other claims of Lemma 5, the bound of the second case of *Repeats
    inside a growth* among them,
