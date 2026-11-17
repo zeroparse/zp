@@ -221,7 +221,8 @@ zp convert [-to zp|json] [-o <file>] <grammar>
 ```
 
 Converts between ZeroParse source and the JSON form of the grammar AST. `-to` defaults to the other format (`.zp` becomes
-JSON, `.json` becomes ZeroParse source); a compiled grammar holds no source and is rejected. Without `-o`, the result goes to standard
+JSON, `.json` becomes ZeroParse source, and a file with another extension is JSON when its first character other than
+white space is `{`); a compiled grammar holds no source and is rejected. Without `-o`, the result goes to standard
 output. JSON carries the comments that declarations, struct fields and operators rule lines own, and converting it
 back to source writes them again, but it carries no layout and no other comments. Keep the
 `.zp` as the source of truth.
