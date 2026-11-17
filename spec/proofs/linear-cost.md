@@ -85,9 +85,9 @@ apart from two nestings that it leaves open, through a
 part that a dropped step evaluates before its read of the seed and through a
 later kept step that does not match its result through a read of its seed
 outside lookaheads, and apart from a unit that commits only by a negative
-lookahead on its own side, after which it bounds the iterations that each
-evaluation of a repetition makes after the inner evaluation and leaves the
-other kinds of scanning source open, that evaluations of a call that nest without a
+lookahead on its own side, after which it shows that what follows starts
+no repetition, skip expression or Operators Rule and leaves growths and
+copying operations open, that evaluations of a call that nest without a
 bound and end at one position make the call nest at one end. It proves the sum
 over the positions for the activations owned by memoized evaluations of the
 sources of rules that call a rule or are memoized at their calls, by charging
@@ -2043,7 +2043,7 @@ $\pi_l$ nests at one end. *Nesting at one end* below proves this in general,
 when abandoned evaluations lie on the path, under its hypotheses on the
 dropped and the later kept steps and apart from its case of a unit
 decided by a negative lookahead on its own side, which *Negative lookaheads
-at one end* treats instead: there the call can be shared, and that claim bounds only the iterations that succeed in each evaluation of a repetition that the continuation makes after the inner evaluation ends, while the number of those evaluations is open (step 1 of [Open Steps](#open-steps)). Outside that case, the continuation of $w_l$ reaches
+at one end* treats instead: there the call can be shared, but the continuation starts no activation of a repetition, a skip expression or an Operators Rule after the inner evaluation ends, and the growths and copying operations that it reaches there are open (step 1 of [Open Steps](#open-steps)). Outside that case, the continuation of $w_l$ reaches
 $e'_l$ in what follows $\pi_l$, after leaving the body of $Y_l$, so the call is
 not shared, against the choice of the link. So, outside that case, no two outer links have one
 call place, and the outer links are at most the number of call places.
@@ -2143,7 +2143,7 @@ position before $p$; none of these lies in a run of consecutive leaf links at
 $p$ whose shared call is the first, so the two lie in different runs. The
 other case is the one that *Nesting at one end* rules out, with $Y_{l'}$ as
 $X$ and $Y_l$ as $T$, under its hypotheses on the dropped and the later
-kept steps of growths on the path between them and apart from its case of a unit decided by a negative lookahead on its own side, which *Negative lookaheads at one end* treats instead: there the call can be shared, and that claim bounds only the iterations that succeed in each evaluation of a repetition that the continuation makes after the inner evaluation ends, while the number of those evaluations is open (step 1 of [Open Steps](#open-steps)); that those hold is not
+kept steps of growths on the path between them and apart from its case of a unit decided by a negative lookahead on its own side, which *Negative lookaheads at one end* treats instead: there the call can be shared, but the continuation starts no activation of a repetition, a skip expression or an Operators Rule after the inner evaluation ends, and the growths and copying operations that it reaches there are open (step 1 of [Open Steps](#open-steps)); that those hold is not
 shown here. So outside that case the outer links at $p$ through
 one call place are at most one in each run, and the argument of the claim above does not
 bound them without a bound on the runs. The second case occurs in a grammar
@@ -2221,7 +2221,7 @@ records of scan sites. Then, after $e_j$ ends, $w_j$ evaluates no call of
 $r$ at $p$, unless the sequence of the activations of $\sigma$ at $q$ leaves
 out the activation at $q$ of that call, and if $w_j$ starts before $w_l$ ends, no evaluation inside $w_j$ outside the shared calls that it evaluates before $e_j$ fails before $e_j$ starts, and $Y_l$ lies in none of those shared calls, this is the case that
 *Nesting at one end* rules out, with $e_j$ as $X$ and $Y_l$ as $T$, under its
-hypotheses and apart from its case of a unit decided by a negative lookahead on its own side, which *Negative lookaheads at one end* treats instead: there the call can be shared, and that claim bounds only the iterations that succeed in each evaluation of a repetition that the continuation makes after the inner evaluation ends, while the number of those evaluations is open (step 1 of [Open Steps](#open-steps)), unless $r$
+hypotheses and apart from its case of a unit decided by a negative lookahead on its own side, which *Negative lookaheads at one end* treats instead: there the call can be shared, but the continuation starts no activation of a repetition, a skip expression or an Operators Rule after the inner evaluation ends, and the growths and copying operations that it reaches there are open (step 1 of [Open Steps](#open-steps)), unless $r$
 is a scan-only rule.
 
 *Proof.* $e_j$ and $e'_j$ are evaluations of one call of the rule $Y$ of
@@ -2259,7 +2259,7 @@ $\pi_l$ that starts before $p$, ends at $p$ and contains $\alpha_{l-1}$; $Y$
 reaches the caller of $\pi_l$, which calls $Y$, so $Y$ is of the recursion of
 $\pi_l$. These are the hypotheses of *Nesting at one end* with $e_j$ as $X$
 and $Y_l$ as $T$, which give that $\pi_l$ nests at one end under its
-hypotheses on the dropped and the later kept steps and apart from its case of a unit decided by a negative lookahead on its own side, which *Negative lookaheads at one end* treats instead: there the call can be shared, and that claim bounds only the iterations that succeed in each evaluation of a repetition that the continuation makes after the inner evaluation ends, while the number of those evaluations is open (step 1 of [Open Steps](#open-steps)); outside that case, the continuation of $w_l$ then reaches the call of $r$ after leaving
+hypotheses on the dropped and the later kept steps and apart from its case of a unit decided by a negative lookahead on its own side, which *Negative lookaheads at one end* treats instead: there the call can be shared, but the continuation starts no activation of a repetition, a skip expression or an Operators Rule after the inner evaluation ends, and the growths and copying operations that it reaches there are open (step 1 of [Open Steps](#open-steps)); outside that case, the continuation of $w_l$ then reaches the call of $r$ after leaving
 the body of $Y_l$, in what follows $\pi_l$, so the call is not shared unless
 $r$ is a scan-only rule. *Calls of scan-only rules* treats that rule in a
 parse with the records of scan sites, which this claim excludes, so a
@@ -2487,7 +2487,7 @@ evaluation of $E_1$, lies inside a body evaluation of $E_1$ other than as
 it, or contains $E_1$ and is not its body evaluation. In the second case,
 this is the case that *Nesting at one end* rules out, with $E_1$ as $X$ and
 $Y_l$ as $T$, and in the third, with $Y_l$ as $X$ and $E_1$ as $T$, under its
-hypotheses and apart from its case of a unit decided by a negative lookahead on its own side, which *Negative lookaheads at one end* treats instead: there the call can be shared, and that claim bounds only the iterations that succeed in each evaluation of a repetition that the continuation makes after the inner evaluation ends, while the number of those evaluations is open (step 1 of [Open Steps](#open-steps)), unless
+hypotheses and apart from its case of a unit decided by a negative lookahead on its own side, which *Negative lookaheads at one end* treats instead: there the call can be shared, but the continuation starts no activation of a repetition, a skip expression or an Operators Rule after the inner evaluation ends, and the growths and copying operations that it reaches there are open (step 1 of [Open Steps](#open-steps)), unless
 $r$ is a scan-only rule.
 
 *Proof.* $Y_{l'}$ is no growth step, since the parser leaves it at $p$ from
@@ -2504,7 +2504,7 @@ $Y_l$, an evaluation of $\pi_l$ inside $E_1$ other than $E_1$, starts before
 $p$, ends at $p$ and holds $\alpha_{l-1}$, a successful activation of the
 scanning source $\sigma$. These are the hypotheses of *Nesting at one end*
 with $E_1$ as $X$ and $Y_l$ as $T$, which give that $\pi_l$ nests at one end
-under its hypotheses on the dropped and the later kept steps and apart from its case of a unit decided by a negative lookahead on its own side, which *Negative lookaheads at one end* treats instead: there the call can be shared, and that claim bounds only the iterations that succeed in each evaluation of a repetition that the continuation makes after the inner evaluation ends, while the number of those evaluations is open (step 1 of [Open Steps](#open-steps)). Outside that case, the continuation of $w_l$ then reaches the call of $r$
+under its hypotheses on the dropped and the later kept steps and apart from its case of a unit decided by a negative lookahead on its own side, which *Negative lookaheads at one end* treats instead: there the call can be shared, but the continuation starts no activation of a repetition, a skip expression or an Operators Rule after the inner evaluation ends, and the growths and copying operations that it reaches there are open (step 1 of [Open Steps](#open-steps)). Outside that case, the continuation of $w_l$ then reaches the call of $r$
 after leaving the body of $Y_l$ through $\pi_l$, in what follows $\pi_l$, so
 the call is not shared unless $r$ is a scan-only rule, as in the proof of
 *Memoized links to the frame of an outer link*.
@@ -2520,7 +2520,7 @@ $c_1$. The call evaluation of $Y_l$, a call of $Y$, succeeds and ends at $p$,
 and $E_1$, an evaluation of $c_1$ inside it other than it, starts before $p$,
 ends at $p$ and holds $\alpha_{l-1}$. *Nesting at one end* with that call
 evaluation as $X$ and $E_1$ as $T$ gives that $c_1$ nests at one end, under
-the same hypotheses and apart from its case of a unit decided by a negative lookahead on its own side, which *Negative lookaheads at one end* treats instead: there the call can be shared, and that claim bounds only the iterations that succeed in each evaluation of a repetition that the continuation makes after the inner evaluation ends, while the number of those evaluations is open (step 1 of [Open Steps](#open-steps)), and, outside that case, the continuation of $w_l$ reaches
+the same hypotheses and apart from its case of a unit decided by a negative lookahead on its own side, which *Negative lookaheads at one end* treats instead: there the call can be shared, but the continuation starts no activation of a repetition, a skip expression or an Operators Rule after the inner evaluation ends, and the growths and copying operations that it reaches there are open (step 1 of [Open Steps](#open-steps)), and, outside that case, the continuation of $w_l$ reaches
 the call of $r$ after leaving $B_1$ through $c_1$, so again the call is not
 shared unless $r$ is a scan-only rule. $\square$
 
@@ -3070,20 +3070,17 @@ be as in *Nesting at one end*, with $X$ an evaluation of a call of $Y$, and
 let a unit $v$ that its proof places on the path from $X$ to $T$, with the
 continuation $\kappa_v$ that it gives $v$, fall in its case of a unit
 decided only through a negative lookahead `!K` on its own side, which the
-path of $v$ that leads to $T$ passes at a position $u$. Let $c_K$ be one more than the largest number,
-over the alternatives of `K`, of their calls, classes and `.` and of the
-characters of their literals. Then, on what follows $t$ up to the end of
-$v$, along the path of $v$ that leads to $T$, the parser makes after $T$
-ends at most $c_K$ successful iterations in each evaluation of a repetition,
-counting only the iterations after $T$ ends, and every call that it makes
-there of a rule that `K` reaches contains no scanning source. So the
-continuation of a unit inside $T$ that leaves $T$ through $t$ at $p_0$, as
-in the claims that use *Nesting at one end*, reaches before $v$ ends an
-activation of a repetition only as one of at most $c_K$ such iterations.
-The other scanning sources that this continuation can reach there, growths,
-the skip expressions of `#recover`, the operators of an Operators Rule and
-copying operations, are not bounded here (step 1 of [Open
-Steps](#open-steps)).
+path of $v$ that leads to $T$ passes at a position $u$. Then, after $T$
+ends, on what follows $t$ up to the end of $v$, along the path of $v$ that
+leads to $T$, the parser starts no evaluation of a repetition without an
+upper bound, of the skip expression of a `#recover` or of an Operators Rule,
+an evaluation of a repetition that holds $t$ makes no iteration that
+succeeds after $T$ ends, and every call that the parser makes there of a
+rule that `K` reaches contains no scanning source. So the continuation of a
+unit inside $T$ that leaves $T$ through $t$ at $p_0$, as in the claims that
+use *Nesting at one end*, starts before $v$ ends no activation of a scanning
+source of these kinds. The growths and the copying operations that it can
+reach there are not bounded here (step 1 of [Open Steps](#open-steps)).
 
 *Proof.* The proof
 of *Nesting at one end* gives $\kappa_v$ as a continuation of $v$ by the
@@ -3119,8 +3116,7 @@ decisive symbol, which lies within three symbols, and parts from it at no
 symbol but `!K`, since a symbol at which it parted from the new continuation
 would part it from $\kappa_v$ too. Let $A_K$ be the alternative of `K` that
 the definition of that decisive symbol names for this continuation, which
-can differ from the one that it names for $\kappa_v$; it has at most
-$c_K - 1$ calls, classes, `.` and characters of literals. `!K` succeeds at
+can differ from the one that it names for $\kappa_v$. `!K` succeeds at
 $u$, so `K` fails there, and so does $A_K$, since no alternative of `K`
 before it has a cut that commits the choice. Each path that begins with
 $\lambda$ and goes on with a path of $\mu$ passes the symbols of $A_K$ in
@@ -3139,27 +3135,49 @@ of a literal, and every path of $\mu$ passes the rest of $A_K$ from $p_0$ in
 order. Along a beginning of a path of $\mu$ that the parser evaluates
 after $T$, in the same way, the symbols on that beginning that succeed pass a part of that rest whose
 symbols match where they matched; they pass a proper part, since otherwise
-$A_K$ would match at $u$. An iteration of a repetition that succeeds and
-consumes input passes at least one call, class or `.` of $A_K$ or one
-character of a literal, and an iteration that consumes nothing ends the
-repetition, so an evaluation of a repetition makes at most $c_K$
-iterations that succeed there after $T$ ends, the one in progress when $T$
-ends included; its iterations before $T$ ends are not counted. A call there that passes a call of $A_K$ alike is a call of a rule
-that `K` reaches, and when `!K` is on the side of the unit, `K` contains no
-scanning source. $\square$
+$A_K$ would match at $u$.
+
+A path passes the symbols of $A_K$ only through what the decision looks
+into: literals, classes, `.` and cheap alike calls pass them, a call that is
+not alike stands for the paths of its body, a lookahead is passed over when
+it costs a constant, and an option, choice or repetition is looked into only
+when all its parts are cheap ([Conditions for Linear
+Cost](../runtime/parsing.md#conditions-for-linear-cost)). A repetition
+without an upper bound is itself a scanning source, so it is not cheap and
+no path looks into it, and `#recover` and an Operators Rule end a path
+without deciding. So on each path of $\mu$ each of these lies after the
+symbols that pass the rest of $A_K$, and the parser starts one only after
+those symbols succeed, which they do not. A repetition that holds $t$ is
+evaluated again after the iteration in progress when $T$ ends, so on each
+path of $\mu$ it follows that iteration as such a symbol, and the iteration
+succeeds only where the symbols before it on the path succeed. A call there
+that passes a call of $A_K$ alike is a call of a rule that `K` reaches, and
+since `!K` is on the side of the unit, `K` contains no scanning source.
+$\square$
 
 The bound replaces, in this case, what $t$ nesting at one end gives in the
 claims that use it: a link whose unit lies in $T$ and whose continuation leaves
-$T$ through $t$ reaches its shared call in $\mu$, before $v$ ends, so the
-activation of the link, when its source is a repetition, is one of at most
-$c_K$ iterations after $T$ ends of the evaluation of a repetition that holds
-it. Both measured grammars above are linear: the
+$T$ through $t$ reaches its shared call in $\mu$, before $v$ ends, and the
+activation of the link in that call starts there after $T$ ends, so its
+source is a growth or a copying operation. So in this case nothing is
+charged to the evaluations of repetitions, and the case adds no edge to the
+order of the bounds of Lemma 4. Lemma 5 never meets it: every claim that
+uses this case is about leaf links, and for the growth activations that
+Lemma 5 counts every link is memoized and no leaf link arises. Both
+measured grammars above are linear: the
 first with `L = "(" L / "b"` in `K` and as the second alternative of `W` on
 `(`$^n$`bx`, and the second with `W = !(L "c" "z") E "z" / L` on
 `(`$^n$`bcq`, nest $n$ levels at $p_0$, and the compute grows in proportion
-to $n$. Charging these iterations to the evaluations of their repetitions
-within the order of the bounds of Lemma 4 is not shown here (step 1 of
-[Open Steps](#open-steps)).
+to $n$. The variants of the first with a repetition after the call of `E`
+in `W` and with `main` followed by the rest of the alternative of `K`, such
+as `W = !(L "c") E "c"* "c" / L`, `W = !(L "c" "d") E ("c" "d")* "c" "d" / L`
+and `W = !(L "c" "c" "c" "z") E [c]* "q" / L`, are classified unknown: the
+first alternative of `W` is not committing, since the repetition stops the
+comparison before the rest of the alternative of `K` is passed. The variants
+in which a repetition ends the first alternative, such as
+`W = !(L "c") E [c]* / L`, are classified linear without that alternative
+being decided, and on `(`$^n$`bx` they start the repetition $n$ times at
+$p_0$, with a compute that grows in proportion to $n$.
 
 **Seed reads.** The following argues, without proving it, that the case of
 seed reads in the definition is the one that *Nesting at one end* gives inside
@@ -12094,7 +12112,7 @@ theorem covers such a parse.
    bound on the heads, so it cannot in turn bound the runs. Across such links, two outer
    links $l < l'$ at one position $p$ through one call place still contradict
    the sharing of their call when $Y_{l'}$ encloses $w_l$: *Nesting at one end*
-   applies with $Y_{l'}$ as $X$ and $Y_l$ as $T$, under its hypotheses and apart from its case of a unit decided by a negative lookahead on its own side, which *Negative lookaheads at one end* treats instead: there the call can be shared, and that claim bounds only the iterations that succeed in each evaluation of a repetition that the continuation makes after the inner evaluation ends, while the number of those evaluations is open (step 1 of [Open Steps](#open-steps)), when both links meet the hypothesis on growth steps
+   applies with $Y_{l'}$ as $X$ and $Y_l$ as $T$, under its hypotheses and apart from its case of a unit decided by a negative lookahead on its own side, which *Negative lookaheads at one end* treats instead: there the call can be shared, but the continuation starts no activation of a repetition, a skip expression or an Operators Rule after the inner evaluation ends, and the growths and copying operations that it reaches there are open (step 1 of [Open Steps](#open-steps)), when both links meet the hypothesis on growth steps
    of *Calls that call no rule*, which keeps both frames from being growth
    steps and the later steps of the growths around the units from starting
    before the position of the scan (*Growths around a leaf link*). In the
@@ -12111,7 +12129,7 @@ theorem covers such a parse.
    link fails before that evaluation starts, and none of whose shared calls
    before that evaluation holds the frame of the earlier outer link, meets
    *Nesting at one end*, under its hypotheses on the dropped and the later
-   kept steps of growths and apart from its case of a unit decided by a negative lookahead on its own side, which *Negative lookaheads at one end* treats instead: there the call can be shared, and that claim bounds only the iterations that succeed in each evaluation of a repetition that the continuation makes after the inner evaluation ends, while the number of those evaluations is open (step 1 of [Open Steps](#open-steps)), apart from a scan-only rule of the scan in a parse without
+   kept steps of growths and apart from its case of a unit decided by a negative lookahead on its own side, which *Negative lookaheads at one end* treats instead: there the call can be shared, but the continuation starts no activation of a repetition, a skip expression or an Operators Rule after the inner evaluation ends, and the growths and copying operations that it reaches there are open (step 1 of [Open Steps](#open-steps)), apart from a scan-only rule of the scan in a parse without
    records of scan sites, which no claim treats, and in a parse that keeps no records of scan sites the unit of
    the index evaluates no call of the rule of the scan at the position of the
    scan after its shared call, unless the sequence of activations leaves out
@@ -12142,7 +12160,7 @@ theorem covers such a parse.
    evaluation of the earlier one other than as it, or contains the earlier
    one other than as its body evaluation, *Nesting at one end* rules the case
    out, under its hypotheses on the dropped and the later kept steps of
-   growths and apart from its case of a unit decided by a negative lookahead on its own side, which *Negative lookaheads at one end* treats instead: there the call can be shared, and that claim bounds only the iterations that succeed in each evaluation of a repetition that the continuation makes after the inner evaluation ends, while the number of those evaluations is open (step 1 of [Open Steps](#open-steps)), apart from a scan-only rule of the scan in a parse without records of
+   growths and apart from its case of a unit decided by a negative lookahead on its own side, which *Negative lookaheads at one end* treats instead: there the call can be shared, but the continuation starts no activation of a repetition, a skip expression or an Operators Rule after the inner evaluation ends, and the growths and copying operations that it reaches there are open (step 1 of [Open Steps](#open-steps)), apart from a scan-only rule of the scan in a parse without records of
    scan sites, which no claim treats (*The frame of an outer link as the later
    evaluation of a shared call*). Not shown is the case in
    which the frame of the earlier outer link is the body evaluation of the
@@ -12275,12 +12293,10 @@ theorem covers such a parse.
    reading it only inside a lookahead or only in an alternative that it
    abandons, and a pair of nested evaluations with a unit on the path between
    them that decides its continuation only through a negative lookahead on
-   its own side, where *Negative lookaheads at one end* bounds the
-   iterations of each evaluation of a repetition after the inner one by a
-   constant but the count of those evaluations is not placed in the order
-   of the bounds, and the growths, skip expressions, operators of an
-   Operators Rule and copying operations reached there are not bounded;
-   what remains is
+   its own side, where *Negative lookaheads at one end* shows that the
+   continuation starts no repetition, skip expression or Operators Rule
+   after the inner one, but the growths and copying operations reached
+   there are not bounded; what remains is
    to bound the frames left at the earlier positions by it. And the leaf links
    between which the parser leaves or starts, at their position, a growth
    step or an evaluation in a context of growths, which that claim leaves
