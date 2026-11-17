@@ -1,32 +1,54 @@
 # Building Grammars as ASTs and JSON
 
-Use package `grammar` when a tool builds a grammar in Go or loads its JSON
-representation. `engine.Compile` checks it and returns a parser; Go and
-TypeScript generation use the same compiler.
+Package `ast` (`zeroparse.dev/zp/pkg/grammar/ast`) is the grammar AST: use it when a tool builds
+a grammar in Go or reads its JSON representation. Package `grammar` (`zeroparse.dev/zp/pkg/grammar`)
+loads a grammar source in grammar syntax or JSON into the AST, and validates, formats and converts
+it. `engine.Compile` checks a grammar and returns a parser; Go and TypeScript generation use the
+same compiler.
+
+## Load a Grammar Source
+
+A grammar source is one named input, made from bytes, a string, a reader or a path in a file
+system:
+
+```go
+g, err := grammar.Load(grammar.FromFS(os.DirFS("grammars"), "json.zp"))
+if errors.Is(err, grammar.ErrCompiled) {
+    // A compiled grammar (.zpc) holds bytecode, not the grammar.
+}
+```
+
+The encoding is grammar syntax or JSON. `As` sets it explicitly, as in
+`grammar.FromString("", text).As(grammar.EncodingJSON)`; otherwise the extension of the name decides
+(`.zp` or `.json`), and then the content, where a leading brace means JSON. A reader is read in full
+when the source is loaded. Load's errors carry source positions but not the name of the source, so
+a tool that reports them adds `Source.Name`. `grammar.Convert(source, grammar.EncodingJSON)` loads a
+source and writes it in the other encoding.
 
 ## Validate a Hand-Built Grammar
 
 `grammar.Validate(g)` checks the structure before compilation or formatting.
-It returns the first `*grammar.ValidationError` without changing the AST:
+It returns the first `*ast.ValidationError` without changing the AST:
 
 ```go
-g := &grammar.Grammar{File: grammar.File{Decls: []grammar.Decl{
-    &grammar.RuleDef{Name: "main", Expr: &grammar.Optional{}},
+g := &ast.Grammar{File: ast.File{Decls: []ast.Decl{
+    &ast.RuleDef{Name: "main", Expr: &ast.Optional{}},
 }}}
 err := grammar.Validate(g)
-var problem *grammar.ValidationError
+var problem *ast.ValidationError
 if errors.As(err, &problem) {
     fmt.Println(problem.Path) // $.file.decls[0].expr.expr
 }
 ```
 
-Import `errors`, `fmt` and `zeroparse.dev/zp/grammar` for this snippet.
+Import `errors`, `fmt`, `zeroparse.dev/zp/pkg/grammar` and `zeroparse.dev/zp/pkg/grammar/ast`
+for this snippet. `grammar.Validate` is `ast.Validate`.
 `Path` uses JSON field names and zero-based indexes. `Pos` is the closest known
 diagnostic position. Source-parsed grammars carry source spans and comment
 ownership in `SourceInfo`; hand-built nodes may leave those fields zero-valued.
 `Msg` describes the problem.
 
-For large grammars, `grammar.ValidateContext(ctx, g)` performs the same
+For large grammars, `ast.ValidateContext(ctx, g)` performs the same
 structural checks and deterministic first-error traversal cooperatively. If it
 observes cancellation, it returns `ctx.Err()` instead of a partial validation
 diagnostic; validation does not modify the AST. Cancellation is not a hard
@@ -38,7 +60,7 @@ node collections, interfaces holding typed nil pointers, unsupported embedded
 node types, pointer cycles and malformed
 repetition and character-range bounds. A repetition's minimum must be nonnegative; a finite
 maximum must be at least the minimum. Any negative maximum means unbounded,
-as documented by `grammar.Repeat`. Shared subtrees, empty collections and
+as documented by `ast.Repeat`. Shared subtrees, empty collections and
 genuinely nil optional children remain allowed.
 
 A character range's `Lo` and `Hi` must be Unicode scalar values (0 through
@@ -49,7 +71,7 @@ existing meanings. Invalid endpoints are reported at paths such as
 compilation and generation. Remove unreachable surrogate exclusions from
 older grammars and recompile AST-bearing saved parsers that contain them.
 
-A matching `grammar.Literal.Value` uses its decoded Unicode rune sequence. Each malformed UTF-8 byte
+A matching `ast.Literal.Value` uses its decoded Unicode rune sequence. Each malformed UTF-8 byte
 becomes U+FFFD, so a value containing `"\xc3"` matches a replacement character and cannot match the
 leading byte of `"é"`. Both position units, saved modules and generated Go/TypeScript share this
 rule. Compile and generation derive matching data without rewriting the caller's AST; binary
@@ -71,7 +93,7 @@ or rejected bytecode.
 This is structural validation. It does not resolve names, check action types,
 validate attributes or enforce Operators Rule semantics; compile the grammar for those
 checks. It also does not validate source comments/layout or impose size or
-depth limits. `grammar.Format` and `grammar.MarshalJSON` expect structurally valid
+depth limits. `grammar.Format` and `ast.MarshalJSON` expect structurally valid
 input; call `Validate` or `ValidateContext` first for ASTs your tool constructs.
 Both validation functions walk iteratively, though later formatting,
 serialization and compilation have their own nesting costs. Do not mutate the
@@ -117,9 +139,9 @@ if err != nil {
 }
 ```
 
-`FormatExprContext`, `FormatTermContext` and `FormatTypeContext` provide the
+`FormatExprContext`, `FormatActionExprContext` and `FormatTypeContext` provide the
 same behavior for individual AST values. They produce the same text as
-`Format`, `FormatExpr`, `FormatTerm` and `FormatType`. If cancellation is
+`Format`, `FormatExpr`, `FormatActionExpr` and `FormatType`. If cancellation is
 observed, the result is an empty string and the context error; partial text is
 not returned. Keep the AST immutable for the duration of formatting.
 
@@ -159,7 +181,7 @@ allocation or string comparison may finish before cancellation is observed.
 
 ## Load JSON
 
-`grammar.UnmarshalJSON(data)` accepts exactly one complete JSON value,
+`ast.UnmarshalJSON(data)` accepts exactly one complete JSON value,
 followed by optional whitespace, and runs structural validation before
 returning a grammar. It rejects JSON `null` as a grammar, trailing values or
 garbage, and numeric fields that overflow their Go destination type.
@@ -170,9 +192,9 @@ The representation uses the AST fields' `json` tags. Each interface node has
 an `"@type"` member, such as `"RuleDef"` or `"Literal"`. Parsed source metadata
 is serialized under `source` (including `file.source` and `file.pkg.source`) or `skipSource`; formatter layout
 and exact comment tokens are omitted. Unknown fields are ignored and duplicate object keys
-follow `encoding/json`'s behavior. Use `grammar.DecodeJSON(data)` when the
+follow `encoding/json`'s behavior. Use `ast.DecodeJSON(data)` when the
 input should reject unknown fields and duplicate keys at every object. Its
-`*grammar.JSONDecodeError` reports a JSON path and zero-based byte offset for
+`*ast.JSONDecodeError` reports a JSON path and zero-based byte offset for
 those strictness errors; malformed JSON wraps the standard syntax error. Both
 entry points check one complete value and run structural validation, while
 `UnmarshalJSON` keeps the standard signature and is permissive: it ignores unknown fields.
@@ -187,12 +209,12 @@ repeated keyword keys.
 
 ## Read Source Metadata
 
-Source-bearing grammar nodes embed `grammar.SourceInfo` and satisfy
-`grammar.SourceNode`, so tools can inspect metadata without a type switch:
+Source-bearing grammar nodes embed `ast.SourceInfo` and satisfy
+`ast.SourceNode`, so tools can inspect metadata without a type switch:
 
 ```go
 func report(n any) {
-    if sourced, ok := n.(grammar.SourceNode); ok {
+    if sourced, ok := n.(ast.SourceNode); ok {
         source := sourced.Source()
         fmt.Println(source.Pos, source.End, source.LeadingComments)
         fmt.Println("diagnostic token:", source.Diagnostic())
@@ -221,7 +243,7 @@ Shared AST subtrees remain shared within the clone, and AST pointer cycles are
 preserved for `grammar.Validate` to report. Arbitrary application objects or
 cyclic attribute maps and slices are outside the clone contract.
 
-`engine.ParseGrammar` returns the source AST with its source metadata. By
+`grammar.Load` returns the source AST with its source metadata. By
 contrast, `Parser.Grammar()` exposes the normalized grammar retained by the
 compiled parser. Normalization can lower groups and pragmas, so that grammar is
 not a complete record of source documentation ownership. It may be the same AST
@@ -236,7 +258,7 @@ Keep the original parsed AST when a tool needs to preserve exact comment
 placement.
 
 For in-memory formatting, `SourceInfo.Layout` is a raw-only adjunct. Its
-`Before` field retains the `grammar.Comment` tokens at that syntax boundary;
+`Before` field retains the `ast.Comment` tokens at that syntax boundary;
 `PreviousLine` and `NextLine` preserve their line relationship to surrounding
 syntax, and `After` retains the comments between a list element and the comma
 that follows it. A nil layout uses canonical formatting. `Grammar.Clone()` copies the
@@ -255,7 +277,7 @@ every grammar form.
 Direct grammar JSON includes normalized source metadata. A compiled grammar
 (`.zpc`) holds bytecode only, with no tree, source positions or comments.
 
-Source-only syntax has dedicated AST nodes. An explicit Rule Expression grouping is `Group{Expr}`; formatting and JSON preserve the group, while compilation normalizes it away before matching. The source-aware AST retains the group body, closing-delimiter comments and layout. Parenthesized type and action expressions likewise use source-only `TypeGroup{Type}` and `TermGroup{Term}` nodes; `TypeGroup` implements `TypeExpr`, while the `TermGroup.Term` field has type `Term` and `TermGroup` implements `Term`. These groups preserve their delimiters and enclosed comments in source formatting. Their `OpenBreak`, `BodyBreak`, `CloseBreak` and `OneLine` fields retain raw line placement; `TupleLit`, `Call`, `New` and `ListConstructor` keep the comments at their delimiters in `OpenBreak`, `BodyBreak` and `CloseBreak`. A tuple, call, constructor, list constructor, tuple type, type application, attribute or lambda writes one element per line when it has a trailing comma (`TrailingComma`) or a comment that needs its own line, and is otherwise written on one line; the comma of a one-element tuple does not count. Compilation and generators lower the wrappers transparently before execution. JSON retains normalized source positions and ownership but omits formatter layout and exact raw comment tokens. A braced action sequence is `Block{Statements}`. A single-statement Predicate Action remains in `Predicate.Term`; a nonempty multi-statement block is represented by `Block{Statements}` and executes its statements in order, like adjacent Predicate Actions. Empty predicate blocks and braced Value Actions can be parsed, formatted and serialized, but semantic checking rejects them as unsupported.
+Source-only syntax has dedicated AST nodes. An explicit Rule Expression grouping is `Group{Expr}`; formatting and JSON preserve the group, while compilation normalizes it away before matching. The source-aware AST retains the group body, closing-delimiter comments and layout. Parenthesized type and action expressions likewise use source-only `TypeGroup{Type}` and `ActionGroup{Action}` nodes; `TypeGroup` implements `TypeExpr`, and `ActionGroup` implements `ActionExpr`, the interface of Action Expressions. These groups preserve their delimiters and enclosed comments in source formatting. Their `OpenBreak`, `BodyBreak`, `CloseBreak` and `OneLine` fields retain raw line placement; `TupleLit`, `Call`, `New` and `ListConstructor` keep the comments at their delimiters in `OpenBreak`, `BodyBreak` and `CloseBreak`. A tuple, call, constructor, list constructor, tuple type, type application, attribute or lambda writes one element per line when it has a trailing comma (`TrailingComma`) or a comment that needs its own line, and is otherwise written on one line; the comma of a one-element tuple does not count. Compilation and generators lower the wrappers transparently before execution. JSON retains normalized source positions and ownership but omits formatter layout and exact raw comment tokens. A braced action sequence is `Block{Statements}`. A single-statement Predicate Action remains in `Predicate.Action`; a nonempty multi-statement block is represented by `Block{Statements}` and executes its statements in order, like adjacent Predicate Actions. Empty predicate blocks and braced Value Actions can be parsed, formatted and serialized, but semantic checking rejects them as unsupported.
 
 Source `#` pragmas use dedicated expression nodes: `#repeat` is `Repeat`,
 `#atomic` is `Atomic`, `#recover` is `Recovery`, and `#stream` is `Stream`.

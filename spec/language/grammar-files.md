@@ -82,7 +82,7 @@ metadata objects. Comment grouping and node ownership follow
 JSON carries the comments that a node owns, as the normalized strings of its
 `source` object, and nothing else. `grammar.Format` writes them again for the
 nodes that stand on lines of their own when the grammar has no layout, as after
-`grammar.UnmarshalJSON` or when built by hand: the package clause, type, variable and
+`ast.UnmarshalJSON` or when built by hand: the package clause, type, variable and
 rule declarations, the fields of a struct type, and the `skip`, `operand`,
 `level` and operator lines of an operators rule. Detached paragraphs come first,
 each after a blank line, then the leading comments directly before the node; a
@@ -213,13 +213,13 @@ comment tokens and layout belong to `SourceInfo.Layout`.
 
 The public AST preserves explicit parentheses in type expressions as
 `TypeGroup{Type: ...}` and in action and predicate expressions as
-`TermGroup{Term: ...}`. Both nodes embed `SourceInfo`. A group is transparent
+`ActionGroup{Action: ...}`. Both nodes embed `SourceInfo`. A group is transparent
 to type resolution, value construction and predicate evaluation; it preserves
 the source form for inspection and formatting.
 
-`grammar.MarshalJSON` serializes these nodes as interface objects tagged with
-`"@type": "TypeGroup"` or `"@type": "TermGroup"`, including their `type` or
-`term` child and `source` metadata. The formatter's `OpenBreak`, `BodyBreak`,
+`ast.MarshalJSON` serializes these nodes as interface objects tagged with
+`"@type": "TypeGroup"` or `"@type": "ActionGroup"`, including their `type` or
+`action` child and `source` metadata. The formatter's `OpenBreak`, `BodyBreak`,
 `CloseBreak` and `OneLine` fields retain comment and layout details in memory
 but are excluded from JSON. Consequently, JSON preserves the explicit grouping
 and normalized source metadata, while formatting after JSON decoding may
@@ -581,7 +581,7 @@ non-whitespace data. JSON and hand-built ASTs must have nonnil required
 children and collection entries, and valid
 repetition bounds. Pointer cycles and typed nil interface nodes are rejected.
 The public `grammar.Validate` function checks this structure before semantic
-compilation. `grammar.ValidateContext(ctx, g)` checks the same structure and
+compilation. `ast.ValidateContext(ctx, g)` checks the same structure and
 error order, but may return `ctx.Err()` without a partial diagnostic when its
 context is canceled. Neither function changes the AST. Unknown JSON fields
 remain ignored.
@@ -589,8 +589,8 @@ remain ignored.
 ### Validation of a Grammar AST
 
 `grammar.Validate(g)` checks the structure of a grammar AST before compilation or
-formatting and returns the first `*grammar.ValidationError` in a deterministic
-traversal, without changing the AST. `grammar.ValidateContext(ctx, g)` performs the
+formatting and returns the first `*ast.ValidationError` in a deterministic
+traversal, without changing the AST. `ast.ValidateContext(ctx, g)` performs the
 same checks in the same order and returns `ctx.Err()`, without a partial
 diagnostic, if it observes cancellation. Cancellation is cooperative and is not a
 bound on latency. Both functions walk iteratively, impose no size or depth limit,
@@ -611,7 +611,7 @@ message `Msg`.
 Validation is structural. It does not resolve names, check the types of actions,
 validate attributes or enforce the semantics of an Operators Rule; compilation does.
 It does not validate comments or layout. Compilation and the generators run
-structural validation themselves. `grammar.Format` and `grammar.MarshalJSON` expect a structurally valid
+structural validation themselves. `grammar.Format` and `ast.MarshalJSON` expect a structurally valid
 AST.
 
 Both bytecode VMs and generated parsers treat any negative maximum as unbounded.
@@ -620,15 +620,15 @@ unbounded representation to the bytecode.
 
 ### Grammar JSON
 
-`grammar.MarshalJSON` serializes the AST using the `json` tags of its fields. Each
+`ast.MarshalJSON` serializes the AST using the `json` tags of its fields. Each
 interface node has an `"@type"` member such as `"RuleDef"` or `"Literal"`. Parsed
 metadata is written under `source` or `skipSource`; formatter layout
 and exact comment tokens are omitted.
 
 | Function | Behavior |
 |:--|:--|
-| `grammar.UnmarshalJSON(data)` | Accepts exactly one complete JSON value, optionally followed by white space, and runs structural validation. It rejects `null`, trailing values or other data, and numbers that overflow their Go destination. Unknown fields are ignored; duplicate keys follow `encoding/json` |
-| `grammar.DecodeJSON(data)` | As `UnmarshalJSON`, and also rejects unknown fields and duplicate keys at every object. A `*grammar.JSONDecodeError` reports the JSON path and the zero-based byte offset of such an error; malformed JSON wraps the standard syntax error |
+| `ast.UnmarshalJSON(data)` | Accepts exactly one complete JSON value, optionally followed by white space, and runs structural validation. It rejects `null`, trailing values or other data, and numbers that overflow their Go destination. Unknown fields are ignored; duplicate keys follow `encoding/json` |
+| `ast.DecodeJSON(data)` | As `UnmarshalJSON`, and also rejects unknown fields and duplicate keys at every object. A `*ast.JSONDecodeError` reports the JSON path and the zero-based byte offset of such an error; malformed JSON wraps the standard syntax error |
 
 A null field is reported by path (for example `$.file.decls[0].type.fields[0]`)
 and does not cause a panic during compilation.
@@ -652,7 +652,7 @@ Source-only syntax has dedicated nodes. An explicit Rule Expression group is
 `#` pragmas use `Repeat` (`#repeat`), `Atomic` (`#atomic`), `Recovery` (`#recover`)
 and `Stream` (`#stream`); compilation lowers recovery and streaming to their
 executable representation without changing the source AST. A braced action sequence
-is `Block{Statements}`: a single statement stays in `Predicate.Term`, and a nonempty
+is `Block{Statements}`: a single statement stays in `Predicate.Action`, and a nonempty
 multi-statement block executes its statements in order like adjacent Predicate
 Actions. Empty predicate blocks, braced Value Actions and `InlineAction` nodes can be
 parsed, formatted and serialized, but semantic checking or compilation rejects them
@@ -663,7 +663,7 @@ normalized ASTs are treated as immutable while a parser uses them, and
 
 ### Literal Matching Values
 
-A `grammar.Literal.Value` matches as its decoded sequence of runes, in which each
+A `ast.Literal.Value` matches as its decoded sequence of runes, in which each
 malformed UTF-8 byte becomes U+FFFD. A value that contains `"\xc3"` matches a
 replacement character and cannot match the leading byte of `"é"`. Both position
 units, saved modules and generated parsers share this rule. Compilation and
@@ -677,8 +677,8 @@ same literal matched.
 
 ### Context-Aware Formatting and Collection
 
-`grammar.FormatContext`, `FormatExprContext`, `FormatTermContext` and
-`FormatTypeContext` produce the same text as `Format`, `FormatExpr`, `FormatTerm` and
+`grammar.FormatContext`, `FormatExprContext`, `FormatActionExprContext` and
+`FormatTypeContext` produce the same text as `Format`, `FormatExpr`, `FormatActionExpr` and
 `FormatType`. On cancellation they return an empty string and the context error, never
 partial text. `Grammar.RulesContext`, `Grammar.AllCommentsContext`,
 `Grammar.TypesContext` and `Attribute.ExpressionArgsContext` return the contents of
