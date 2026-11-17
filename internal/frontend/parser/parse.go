@@ -162,7 +162,7 @@ var typeSpellings = map[string]string{
 // lexer around each error.
 type messages struct {
 	// toks are the tokens of the source, which are read only through at, so that every read is
-	// counted as the work of the builder (see charge).
+	// counted as the work of the builder (see work.go).
 	toks []token
 	pos  *sourceast.Positions
 	ends []bool // see lineEndsStatement
@@ -170,12 +170,6 @@ type messages struct {
 
 func newMessages(lx *lexed) *messages {
 	return &messages{toks: lx.toks, pos: sourceast.NewPositions(lx.src)}
-}
-
-// at returns the token i, and counts the read as a unit of builder work.
-func (m *messages) at(i int) *token {
-	charge(builderWork, 1)
-	return &m.toks[i]
 }
 
 // message is the message of a syntax error e. Without explicit messages, it lists what e expects,

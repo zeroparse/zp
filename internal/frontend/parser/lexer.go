@@ -98,7 +98,7 @@ var puncts = []string{
 type lexer struct {
 	ctx context.Context
 	// src is the source, which is read only through at and runes, so that every read is counted
-	// as the work of the lexer (see charge).
+	// as the work of the lexer (see work.go).
 	src       []rune
 	srcASCII  bool
 	i         int
@@ -128,18 +128,6 @@ type lexer struct {
 }
 
 func (l *lexer) pos() grammar.Pos { return grammar.Pos{Line: l.line, Col: l.col} }
-
-// at returns the code point at i of the source, and runes the code points from start to end. They
-// are the only reads of the source, and each code point they return counts as a unit of lexer work.
-func (l *lexer) at(i int) rune {
-	charge(lexerWork, 1)
-	return l.src[i]
-}
-
-func (l *lexer) runes(start, end int) []rune {
-	charge(lexerWork, end-start)
-	return l.src[start:end]
-}
 
 func (l *lexer) peekAt(k int) rune {
 	if l.i+k < len(l.src) {

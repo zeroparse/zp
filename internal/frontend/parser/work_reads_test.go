@@ -21,7 +21,7 @@ var countedFields = map[string]bool{"lexer.src": true, "canonical.src": true, "p
 var workReaders = map[string]bool{
 	"lexer.at": true, "lexer.runes": true,
 	"canonical.at": true, "canonical.runes": true,
-	"parser.at": true, "messages.at": true,
+	"parser.at": true, "parser.tok": true, "messages.at": true,
 	"messages.lineEndsStatement": true, // counts len(m.toks)
 }
 

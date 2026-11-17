@@ -284,8 +284,9 @@ code, a reference variant or the tests of the engine packages; a landing batch r
 The instrument tag `zp_workcount` counts the work of the lexer and the builder of the grammar source frontend
 (`internal/frontend/parser`): every code point that the lexer reads, and every code point, comment, comment gap
 and token that the builder, its layout replay and its error messages read. Each read goes through an accessor
-that charges a counter; in the default build the charge is an empty function that compiles to nothing, and
-`TestWorkReadsGoThroughAccessors` type-checks the package to keep every read on an accessor.
+that charges a counter under the tag; in the default build the accessors are plain reads and the charge is an
+empty function, so the build compiles as if there were no counter, and `TestWorkReadsGoThroughAccessors`
+type-checks the package to keep every read on an accessor.
 `TestSourceAPIWorkScalesLinearly` (in `spec/language`, under the tag) requires both counts to grow linearly with
 the source, which sees a quadratic loop that allocates nothing, and `TestSourceAPIWorkMutants` runs it under the
 tag on the source and on mutants that rescan the source or the tokens, which it must reject.

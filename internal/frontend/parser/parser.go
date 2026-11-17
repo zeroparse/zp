@@ -84,7 +84,7 @@ type parser struct {
 	// semi is the line break whose trailing comment was taken before a semicolon.
 	semi *grammar.LineBreak
 	// toks are the tokens of the source, which are read only through at, so that every read is
-	// counted as the work of the builder (see charge).
+	// counted as the work of the builder (see work.go).
 	toks []token
 	i    int
 	// inlined is one more than the index of the token whose inline gap was
@@ -117,14 +117,6 @@ type parser struct {
 // error.
 type bail struct{}
 
-// at returns the token i. It is the only read of the tokens, and each call counts as a unit of
-// builder work: the layout replay of the builder drives the parser (see layoutReplay).
-func (p *parser) at(i int) *token {
-	charge(builderWork, 1)
-	return &p.toks[i]
-}
-
-func (p *parser) tok() token { return *p.at(p.i) }
 func (p *parser) peek(k int) token {
 	if p.i+k < len(p.toks) {
 		return *p.at(p.i + k)

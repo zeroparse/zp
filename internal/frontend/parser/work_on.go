@@ -22,3 +22,40 @@ func ResetWork() {
 		work[k].Store(0)
 	}
 }
+
+// The accessors of work.go, which count what they read.
+
+func (l *lexer) at(i int) rune {
+	charge(lexerWork, 1)
+	return l.src[i]
+}
+
+func (l *lexer) runes(start, end int) []rune {
+	charge(lexerWork, end-start)
+	return l.src[start:end]
+}
+
+func (c *canonical) at(i int) rune {
+	charge(builderWork, 1)
+	return c.src[i]
+}
+
+func (c *canonical) runes(start, end int) []rune {
+	charge(builderWork, end-start)
+	return c.src[start:end]
+}
+
+func (p *parser) at(i int) *token {
+	charge(builderWork, 1)
+	return &p.toks[i]
+}
+
+func (p *parser) tok() token {
+	charge(builderWork, 1)
+	return p.toks[p.i]
+}
+
+func (m *messages) at(i int) *token {
+	charge(builderWork, 1)
+	return &m.toks[i]
+}

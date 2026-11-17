@@ -142,7 +142,7 @@ func (e treeError) Error() string { return string(e) }
 
 type canonical struct {
 	// src is the source, which is read only through at and runes, so that every read is counted as
-	// the work of the builder (see charge).
+	// the work of the builder (see work.go).
 	src  []rune
 	pos  *sourceast.Positions
 	errs errorList
@@ -182,19 +182,6 @@ func end(x ranged) int { _, e := x.Range(); return e }
 func (c *canonical) text(x ranged) string {
 	s, e := x.Range()
 	return string(c.runes(s, e))
-}
-
-// at returns the code point at i of the source, and runes the code points from start to end. They
-// are the only reads of the source, and each code point they return counts as a unit of builder
-// work.
-func (c *canonical) at(i int) rune {
-	charge(builderWork, 1)
-	return c.src[i]
-}
-
-func (c *canonical) runes(start, end int) []rune {
-	charge(builderWork, end-start)
-	return c.src[start:end]
 }
 
 // name returns the text of an identifier, or fails on a missing one.
