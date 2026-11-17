@@ -210,7 +210,7 @@ func ctxSuites() []conform.Suite {
 			Name:  fmt.Sprintf("engine ctx (controlled=%v)", controlled),
 			Ops:   names,
 			New:   func(c ref.Config) conform.Impl { return newCtxMachine(c, controlled) },
-			Exact: ctxExact,
+			Exact: exactCharges(ctxExact),
 		})
 	}
 	return suites
@@ -326,6 +326,9 @@ func (c chargedCtx) Call(o *exec.Op, args []any) []any {
 // TestEngineCtxConformanceDetectsCharges is the negative control of the charges of the growth: the engine with
 // grow.begin or grow.adopt charging no unit, or one more, fails the controlled suite.
 func TestEngineCtxConformanceDetectsCharges(t *testing.T) {
+	if !BudgetControlsEnabled {
+		t.Skip("the mutants change charges, and the reference build charges nothing")
+	}
 	for _, op := range ctxExact {
 		for _, more := range []bool{false, true} {
 			t.Run(fmt.Sprintf("%s more=%v", op, more), func(t *testing.T) {
