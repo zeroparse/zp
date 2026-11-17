@@ -762,7 +762,10 @@ other claims that count nothing, those that follow *Iterations at one
 scan*, and the claims of Lemma 5 other than the first case of *Repeats
 inside a growth* and those that *Families in a parse that keeps records*
 shows, have not been read again for such
-a parse (step 8 of [Open Steps](#open-steps)).
+a parse (step 8 of [Open Steps](#open-steps)); *Families without the
+records* bounds the activations that growth steps and evaluations in a
+context of growths own in such a parse by those of a parse that keeps no
+records, for which no such reading is needed.
 
 **Sources without records.** $A_u$ counts the successful activations of the
 following, and the count of Lemma 4 is needed for them and for the growths
@@ -7584,12 +7587,153 @@ outside, up to the bound of *Consecutive repeats inside a family* in a step
 that the claims at $p$ do not leave out, which rests on the claims of this
 lemma before *Calls in a context of growths*, not read again for a parse
 that keeps records. It does not bound those inside the iterations of the
-kind. The second growth of *Consecutive repeats inside a family* can take a
-record where the first evaluated, so it holds nothing at the place of
-$\alpha$ and the next activation there can lie in a later step; and a head
-can take a record where a later growth of its key evaluates, so it need
-not hold what that growth holds. Step 8 of [Open Steps](#open-steps)
-leaves them open.
+kind as it stands. The second growth of *Consecutive repeats inside a
+family* can take a record where the first evaluated, so it holds nothing at
+the place of $\alpha$ and the next activation there can lie in a later
+step; and a head can take a record where a later growth of its key
+evaluates, so it need not hold what that growth holds. The next claim
+bounds them, and the outside ones with them, by the same count in a parse
+that keeps no records.
+
+**Families without the records.** Call a rule **cycle-free** when no rule
+that it reaches, itself included, is a rule of a left-recursion cycle. Let
+the parse, whose records are exact, (R1) of the [Setting](#setting),
+reuse no result and no step kept in a context of growths, and let
+$\mathcal{P}$ be the parse of the same grammar and input, with the same
+entries from earlier parses, that keeps no record of any site, reuses
+nothing kept in a context of growths, stops at no limit, and stores the
+result of an evaluation of a rule that is not cycle-free exactly where
+the parse stores it. Then $\mathcal{P}$ is a parse of the
+[Setting](#setting), and every successful activation of a source $\sigma$
+at $q$ that a growth step or an evaluation in a context of growths owns in
+the parse has the counterpart of an activation of $\sigma$ at $q$ that
+succeeds in $\mathcal{P}$, owned there by the evaluation whose counterpart
+is that of the owner in the parse, in the family region of the outer
+growth whose counterpart is that of the one in the parse; distinct
+activations have distinct such activations.
+
+*Proof.* The rules that the element of a site that keeps records calls,
+directly or indirectly, are cycle-free: every rule that such a rule
+reaches is called by the element indirectly, and so is in no
+left-recursion cycle (*Growths lie outside the recorded walks*, whose
+proof shows this of every rule that the element calls, directly or
+indirectly). A cycle-free rule calls only cycle-free rules. So no call of
+a rule that is not cycle-free lies inside an iteration of the kind or
+inside the evaluation of a call of a cycle-free rule, at any depth; nor
+does a growth step, an evaluation in a context of growths or a growth,
+each of which is or is made by a call of a rule of a cycle.
+
+Call an evaluation $Y$ of $\mathcal{R}$ **framed** when no evaluation
+that contains it, itself included, is an iteration of a walk of a site
+that keeps records in the parse, and none that strictly contains it is
+the body evaluation of a call of a cycle-free rule that the parse
+memoizes. A framed $Y$ is **shared** when it is not
+itself the body evaluation of such a call. The first step is that the
+parse makes an evaluation whose counterpart is a shared $Y$ exactly when
+$\mathcal{P}$ makes one, and, when $Y$ is a call of a rule that is not
+cycle-free or that the parse does not memoize, the parse evaluates it,
+and does not answer it, exactly when $\mathcal{P}$ does. Each parse makes
+its evaluations in the order in which their counterparts start, since it
+evaluates what $\mathcal{R}$ evaluates except inside what it answers,
+skips or does not take (*Counterparts in the reference parse*); the proof
+is by induction on that order of $\mathcal{R}$. A parse makes an
+evaluation whose counterpart is $Y$ when it makes one whose counterpart is
+the evaluation $Y_0$ that immediately contains $Y$, evaluates it if it is
+a call, does not skip the alternative that holds $Y$ by the next
+character and, when $Y$ is a step of a growth, takes that step; and the
+outcomes of the evaluations of both parses are those of their counterparts
+up to what reaches no decision of the parser (*Counterparts in the
+reference parse*). If $Y$ is framed, so is $Y_0$, since every evaluation
+that contains $Y_0$ strictly contains $Y$. $Y_0$ is shared: were it the body
+evaluation of a call of a cycle-free rule that the parse memoizes, $Y$
+would lie strictly inside it. If $Y_0$ is a call, it is not of a
+cycle-free rule that the parse memoizes, since its body evaluation $Y$
+would then not be shared. So the induction hypothesis gives $Y_0$ to both
+parses or to neither, and evaluated by both or by neither when it is a
+call. The skip depends on the input alone. Whether a step of a growth is
+taken depends on the results of the earlier steps, which are those of
+their counterparts in both. Whether a call is evaluated depends, for a
+rule that the parse does not memoize, on nothing, since the memo never
+answers it; for a rule that is not cycle-free and that the parse
+memoizes, on the growths open at its position, which started at calls of
+rules of a cycle, and on the entries that the memo holds for its key in
+its lookahead state, which were stored by evaluations of calls of that
+rule or of its twin, or of growths of it, whose counterparts start before
+$Y$, or come from earlier parses. Those calls and growths are framed and
+shared by the paragraph above, so by the induction hypothesis both parses
+made the same of them before, with the outcomes of the same counterparts, and stored the same entries,
+$\mathcal{P}$ storing where the parse stores; with no reuse in a context
+of growths, nothing else decides the call.
+
+$\mathcal{P}$ is a parse of the [Setting](#setting): its records are
+exact, since it keeps none, and its memo meets the requirement of the
+Setting. For a rule that is not cycle-free, the evaluations of its calls
+and of its twin's calls are framed, so by the first step they are made in
+the same order in both parses, and $\mathcal{P}$ stores the result of
+every one of them that the parse stores, which is each one outside every
+context of growths except possibly the first of the rule and the first of
+its twin. For a cycle-free rule $\mathcal{P}$ follows the requirement of
+the Setting as it stands.
+
+Now let $G$ be a growth step or an evaluation in a context of growths of
+the parse that owns a successful activation $\alpha$ of $\sigma$ at $q$.
+$G$ is the body evaluation of a call of a rule of a cycle, so
+$\mathcal{R}(G)$ is framed and shared, and by the first step
+$\mathcal{P}$ makes an evaluation $G'$ whose counterpart is
+$\mathcal{R}(G)$, a growth step or an evaluation in a context of growths
+as $G$ is, since that depends on the rule, the call and the growths open
+at its position. A call that the parse evaluates strictly inside $G$ and
+around $\alpha$ is of a rule that the parse does not memoize: the body
+evaluation of a call of a rule that the parse memoizes is a memoized
+evaluation, a growth step or an evaluation in a context of growths
+(*Owners* in Lemma 4), and would lie strictly inside $G$ and
+contain $\alpha$, while $G$ is the innermost of those. Follow the path
+from $\mathcal{R}(G)$ down to the counterpart of $\alpha$; every
+evaluation on it is the counterpart of one of the parse inside $G$ that
+contains $\alpha$. Before the first iteration of the kind on the path, if
+there is one, every evaluation on it is framed and shared, since no call
+on it is of a rule that the parse memoizes, so $\mathcal{P}$ makes the
+counterpart of each by the first step, and evaluates each call among
+them. That iteration $\iota$ is one of a
+walk $W$ on that part, whose counterpart $\mathcal{P}$ evaluates with no
+record: it evaluates every iteration of the walk up to the end, at the
+positions where $\mathcal{R}(W)$ evaluates them, since each iteration has
+the outcome and the end of its counterpart, so it evaluates one whose
+counterpart is that of $\iota$. Below $\iota$ the evaluations on the path
+are evaluations of expressions, iterations of walks, which $\mathcal{P}$
+evaluates in full, and calls of rules that the parse does not memoize,
+which $\mathcal{P}$ evaluates; no alternative on the path is skipped by
+the next character, since the parse does not skip it; and no step of a
+growth lies there (*Growths lie outside the recorded walks*). So
+$\mathcal{P}$ evaluates an activation $\alpha'$ whose counterpart is that
+of $\alpha$: an activation of $\sigma$ at $q$ that succeeds, as its
+counterpart does. Between $G'$ and $\alpha'$ the calls are those of the
+path, of rules that the parse does not memoize, so $G'$ owns $\alpha'$.
+Let $g$ be the outer growth whose family region holds $\alpha$. The path
+from $\mathcal{R}(g)$ down to $\mathcal{R}(G)$ holds the counterparts of
+no memoized evaluation and of no growth at another position, by the
+definition of the family region, and of no iteration of the kind, which
+would contain $G$; so it is framed and shared, $\mathcal{P}$ makes the
+counterpart of each evaluation on it, of the same kind, and $\alpha'$
+lies in the family region of the growth $g'$ of $\mathcal{P}$ whose
+counterpart is $\mathcal{R}(g)$, an outer growth as $g$ is. Distinct activations of the parse have
+distinct counterparts, and so do their images. $\square$
+
+In $\mathcal{P}$ no iteration is of the kind, so every activation that a
+growth step or an evaluation in a context of growths owns there is
+outside, and the count above, the families, *Consecutive repeats inside a
+family* and *First activations of heads* with the claims at $p$ that they
+rest on, holds of $\mathcal{P}$ as of a parse without records. By the
+claim, the successful activations of $\sigma$ at $q$ that growth steps and
+evaluations in a context of growths own in the parse, inside the
+iterations of the kind or outside, are at most those of $\mathcal{P}$,
+with no reuse in a context of growths in either, as *Reuse in a context*
+requires of every bound of this lemma. So that count bounds them, apart
+from the kinds and the parts that it leaves, read in $\mathcal{P}$: the
+claim moves those open parts to a parse without records and adds none.
+The bound gives the parse no credit for its records: a walk that a growth
+step makes is counted in $\mathcal{P}$ with all its iterations, whatever
+records the parse could take there.
 
 The growth steps themselves remain. By *Calls in a context of growths* and
 *Growths inside a step*, the steps of the growths that are not outer are
@@ -10551,7 +10695,12 @@ theorem covers such a parse.
    later growths hold*, *Consecutive repeats inside a family* and *First
    activations of heads* for the activations that lie in no iteration of
    a walk of a site that keeps records, up to the claims at the position
-   of a growth that the count after them uses. *Activations that do
+   of a growth that the count after them uses. *Families without the
+   records* bounds every activation that a growth step or an evaluation in
+   a context of growths owns in such a parse, inside those iterations or
+   not, by one of a parse that keeps no records, so that count, with the
+   claims at the position of a growth, applies to them as in a parse
+   without records. *Activations that do
    not succeed in a parse that keeps records* shows that claim and Lemma
    10 of such a parse, and *Iterations at one scan in a parse that keeps
    records* shows 1 and 3 of *Iterations at one scan* and the first
@@ -10628,10 +10777,12 @@ theorem covers such a parse.
    that a step evaluates at the position of its growth are not read for
    those evaluations of $\mathcal{R}$, and leave out steps in which such
    a part reaches a position far from its growth. Open too are the leaf
-   reference links, which stay as the leaf links of step 1, and the
+   reference links, which stay as the leaf links of step 1. The
    activations inside the iterations that a growth step or an evaluation
-   in a context of growths owns, which the count of Lemma 5 does not bound
-   in such a parse (*Families in a parse that keeps records*).
+   in a context of growths owns are bounded, with those outside them, by
+   the count of Lemma 5 in a parse that keeps no records and reuses
+   nothing in a context of growths (*Families without the records*), so
+   what is open of them is what is open of that count in such a parse.
    The same holds of the units of a copying operation that is a scanning
    source, in an action or a predicate of the element or of a rule that it
    calls, which Lemma 6 counts through the count of Lemma 4, and of the
