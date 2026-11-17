@@ -6979,9 +6979,14 @@ at the decisive symbol or before it, after the symbols that it passed alike.
 Each of these is cheap, and by *Evaluations that read no growing result* below
 each costs a constant in every step that evaluates it alike apart from at most
 two for each key of a call memoized at the call that it makes, which the memo
-answers in the other steps; those calls start in the input that it examines,
-a constant number of positions, with the same values of the variables, so
-their keys are a constant number. The exception is a call of a rule that
+answers in the other steps. Those calls are a constant number: $u$ passes a
+constant number of cheap symbols, and each makes a constant number of calls
+outside the calls memoized at the call, as an expression without a
+scanning source, a call of a rule that calls no rule, a call that the memo
+answers or a call of a rule whose body is cheap in all its parts does, so
+one evaluation of $u$ makes a constant number of calls memoized at the
+call, and each is, in every step, the counterpart of a call at one place
+of one evaluation of $\mathcal{R}$, with one key in all of them. The exception is a call of a rule that
 calls no rule, which repeats its own scan;
 *Decided units at the position of the growth* below shows that such a call
 examines a constant amount of the input. $\square$
@@ -7614,11 +7619,15 @@ the enclosing evaluation, which only the decisions to reuse read.
    $\mathcal{R}(x)$ (*Counterparts in the reference parse*). A walk that
    takes a record reads no input of the iterations that the record
    answers, and a reused iteration is an activation that makes no call and
-   reads no input beyond what its counterpart reads. So $x$ reads no input
-   that $\mathcal{R}(x)$ does not read, and holds at a position no more
-   activations of a source than $\mathcal{R}(x)$ holds there, and a bound
-   on what $x$ examines that the proofs derive from the paths of 2 holds of
-   $x$. The lookups and records of a walk add to its cost what (R3) bounds
+   reads no input beyond what its counterpart reads. $\mathcal{R}$ has no
+   memo, so $\mathcal{R}(x)$ reads the whole bodies of the calls that the
+   parse answers; the comparison is made outside them. Outside the calls
+   memoized at the call, which 4 counts, $x$ reads only input that the
+   counterparts of what it makes read in $\mathcal{R}(x)$, each counterpart
+   distinct, and holds at a position no more activations of a source than
+   those counterparts hold there, so a bound on what $x$ examines that the
+   proofs derive from the paths of 2, with the calls that the memo answers
+   taken as cheap, holds of $x$. The lookups and records of a walk add to its cost what (R3) bounds
    for a recorded site, and for the other sites that keep records what the
    seventh part of step 8 of [Open Steps](#open-steps) leaves open, as
    everywhere in this proof.
