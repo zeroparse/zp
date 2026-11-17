@@ -101,15 +101,25 @@ rule b = "w" { n := 3 }`, "xyzw!?#"},
 rule main = ({ n := 1 } r "!" / { n := 5 } r "?" / [xyz!?])* $$
 rule r = e*
 rule e = "x" { n < 3 } / "y"`, "xyz!?"},
+	{"a binding that the element does not read", `var k int
+rule main = ({ k := 1 } r "!" / { k := 2 } r "?" / [xyzwv!?])* $$
+rule r = ("x" { k := 7 } / "y")* ({ k == 7 } "z" / { k == 2 } "w" / { k == 1 } "v")`, "xyzwv!?"},
+	{"a binding and a called rule that reads", `var n int
+var m int
+rule main = ({ n := 1 } r "!" / { n := 5 } r "?" / [xyz!?])* $$
+rule r = (e { m := 1 })* { m == 1 }
+rule e = "x" { n < 3 } / "y"`, "xyz!?"},
 }
 
 // runValueInputs are inputs, besides random ones, that reach what a grammar of runValueGrammars is
 // about: here a walk that a record of another environment would answer wrongly.
 var runValueInputs = map[string][]string{
-	"two environments at one position":    {"xxxq!", "xxxq?", "xxxq?xxxq!", "xxxxxq?!"},
-	"bindings that a record restores":     {"xxxw", "xxw", "xxxxw", "xxxw!xxw"},
-	"errors that a record replays":        {"xxxxxx!", "xxzxxx!", "xxxxzxx!xxxxx!", "xxxxxxx?"},
-	"a called rule that reads a variable": {"xxxx?", "xxxx!", "xyxx?", "xxxx?xxx!"},
+	"two environments at one position":         {"xxxq!", "xxxq?", "xxxq?xxxq!", "xxxxxq?!"},
+	"bindings that a record restores":          {"xxxw", "xxw", "xxxxw", "xxxw!xxw"},
+	"errors that a record replays":             {"xxxxxx!", "xxzxxx!", "xxxxzxx!xxxxx!", "xxxxxxx?"},
+	"a called rule that reads a variable":      {"xxxx?", "xxxx!", "xyxx?", "xxxx?xxx!"},
+	"a binding that the element does not read": {"yyxyv!", "yyyxyw?", "yyyxyyv!yyxyw?", "yyyv!", "yyxyz?"},
+	"a binding and a called rule that reads":   {"xxxx?", "xxxx!", "yxxx?", "xxxx?xxx!", "yyyy!"},
 }
 
 // hotSpans are the thresholds at which the differential tests of run sites run: the one of the
@@ -369,6 +379,8 @@ func TestRunSitesNegativeControls(t *testing.T) {
 	}{
 		{state.SkipIgnoreEnv, "two environments at one position"},
 		{state.SkipKeepEnv, "bindings that a record restores"},
+		{state.SkipKeepEnv, "a binding that the element does not read"},
+		{state.SkipNoHide, "a binding that the element does not read"},
 	} {
 		for _, g := range runValueGrammars {
 			if g.Name != tc.grammar {
@@ -411,6 +423,23 @@ func TestRunSitesNegativeControls(t *testing.T) {
 			}
 			compile.EnvFreeMutation = 0
 		}
+	}
+	// The variables that the called rules read key the records of a site that its own predicates
+	// keep from being free: a program that leaves them out of the key gives other results.
+	defer func() { compile.SiteVarsMutation = 0 }()
+	for _, g := range runValueGrammars {
+		if g.Name != "a binding and a called rule that reads" {
+			continue
+		}
+		compile.SiteVarsMutation = compile.SiteVarsReadCallees
+		prog := mustCompile(t, g.Src)
+		inputs := append(codegentest.SkipRunInputs(g.Alphabet, 300, rand.New(rand.NewSource(116))), runValueInputs[g.Name]...)
+		for _, b := range []Backend{Closure, Bytecode, BytecodeIterative} {
+			if diffs := skipRunMismatches(t, prog, inputs, b); len(diffs) == 0 {
+				t.Errorf("site variables mutation, %s: no difference on the inputs of %s", b, g.Name)
+			}
+		}
+		compile.SiteVarsMutation = 0
 	}
 }
 
@@ -502,5 +531,88 @@ func TestRunSitesDepthLimit(t *testing.T) {
 	}
 	if state.RunHotTurns.Load() == turns {
 		t.Error("no run site turned hot")
+	}
+}
+
+// TestRunSitesKeyedByValuesStayLinear checks the bounds that the linear-cost proof asks of the records
+// of run sites that are not free of the environment ((R2) and (R3) in its Setting), on every backend
+// and on loaded programs: the walks of such a site evaluate its element a number of times linear in
+// the input and the walks, for each combination of the values of the variables that the element
+// reads at one position, and take constant steps outside the iterations. Each case fits a budget
+// linear in the input, and a mutation that breaks the bound makes it exceed the budget:
+//   - walks in environments that hold equal values but were built apart share records; keyed by the
+//     environment as an object (SkipKeyByIdentity), they do not;
+//   - walks in environments that differ only in a variable that the element binds and does not read
+//     share records; keyed by that variable too (SiteVarsReadBinds), they do not;
+//   - a parse that makes a new key at every position looks each up in constant steps; looked up by
+//     comparison with every key made before (SkipLinearKeys), the lookups cost the square.
+func TestRunSitesKeyedByValuesStayLinear(t *testing.T) {
+	if !state.BudgetControlsEnabled {
+		t.Skip("budget controls are unavailable in the reference build")
+	}
+	defer func(n int) {
+		state.RunHotSpan, state.SkipRecordMutation, compile.SiteVarsMutation = n, 0, 0
+	}(state.RunHotSpan)
+	cases := []struct {
+		name, src, input string
+		span             int
+		mutation         int // of state.SkipRecordMutation
+		compileMutation  int // of compile.SiteVarsMutation
+	}{
+		{"equal environments built apart", `var m int
+rule main = (a / [xy!?])* $$
+rule a = { m := 1 } { m := 0 } w "!" / { m := 1 } { m := 0 } w "?"
+rule w = ("x" { m == 0 } / "yy")*`, strings.Repeat("x", 1000), state.RunHotSpan, state.SkipKeyByIdentity, 0},
+		{"another value of a variable that the element only binds", `var k int
+rule main = ({ k := k + 1 } (a / "x"))* $$
+rule a = ("x" { k := 0 } / "yy")* "!"`, strings.Repeat("x", 1000), state.RunHotSpan, 0, compile.SiteVarsReadBinds},
+		{"a new key at every position", `var k int
+rule main = ({ k := k + 1 } (a / [xy]))* $$
+rule a = w "!" / w "?"
+rule w = ("x" { k > 0 })*`, strings.Repeat("xy", 1000), 1, state.SkipLinearKeys, 0},
+	}
+	for _, c := range cases {
+		state.RunHotSpan = c.span
+		for _, mutated := range []bool{false, true} {
+			if mutated {
+				state.SkipRecordMutation, compile.SiteVarsMutation = c.mutation, c.compileMutation
+			}
+			prog := mustCompile(t, c.src)
+			v, ok := prog.SiteVars(prog.NumSkipSites + prog.NumRunSites)
+			if !ok {
+				t.Fatalf("%s: the run site is free of the environment", c.name)
+			}
+			// (The variable that the element only binds keys the records only under the mutation, and
+			// a loaded program, which would key them by every variable without the site table, keeps
+			// the table.)
+			if c.compileMutation != 0 && (len(v.Read) > 0) != mutated {
+				t.Fatalf("%s, mutated %v: variables %v", c.name, mutated, v)
+			}
+			data, err := prog.Marshal("", CompiledParse)
+			if err != nil {
+				t.Fatal(err)
+			}
+			loaded, _, err := LoadProgram(data)
+			if err != nil {
+				t.Fatal(err)
+			}
+			o := func(b Backend) ParseOptions {
+				return ParseOptions{Backend: b, Limits: core.Limits{Compute: 150 * uint64(len(c.input))}}
+			}
+			for _, b := range []Backend{Closure, Bytecode, BytecodeIterative} {
+				_, err := prog.ParseWith("main", c.input, o(b))
+				if over := errors.Is(err, core.ErrLimit); over != mutated {
+					t.Errorf("%s, %s, mutated %v: over the linear budget %v", c.name, b, mutated, over)
+				}
+				if b == Closure {
+					continue
+				}
+				_, err = loaded.ParseWith("main", c.input, o(b))
+				if over := errors.Is(err, core.ErrLimit); over != mutated {
+					t.Errorf("%s, %s, loaded program, mutated %v: over the linear budget %v", c.name, b, mutated, over)
+				}
+			}
+			state.SkipRecordMutation, compile.SiteVarsMutation = 0, 0
+		}
 	}
 }

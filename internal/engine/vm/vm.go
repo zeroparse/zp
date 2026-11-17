@@ -28,6 +28,10 @@ type Program struct {
 	descs    []string   // expectation table: fixedDescs followed by the string table (string i has index numFixedDescs+i)
 	// runSites holds, at the index of each REPEAT that a Document can resume, how to resume it.
 	runSites []*vmRunSite
+	// siteKeys holds, by site, the variables that key the records of the run sites that are not free
+	// of the environment (Module.Sites); allKey keys a site that the module says nothing of.
+	siteKeys map[int]*state.SiteKey
+	allKey   *state.SiteKey
 	// terms holds the programs of the module's terms (Module.Terms).
 	terms []*state.TermProgram
 	// nodeKinds holds the kinds of the module's named node types by the string index of their
@@ -39,6 +43,19 @@ type Program struct {
 	// leaving out the call protocol of state.Parser.Call: the rule is plain (core.Rule.Plain) and the
 	// program runs the inlined family (state.Inlined).
 	direct []bool
+}
+
+// siteKey returns the variables that key the records of the skip-run or run site (state.SiteKey):
+// none if keyed is false, the instruction marking the site free of the environment, those that the
+// module lists for the site, or else every variable.
+func (vm *Program) siteKey(site int, keyed bool) *state.SiteKey {
+	if !keyed {
+		return nil
+	}
+	if k := vm.siteKeys[site]; k != nil {
+		return k
+	}
+	return vm.allKey
 }
 
 // vmRunSite is a repetition that a Document can resume (state/resume.go): the REPEAT at ip, whose ITER
@@ -195,6 +212,13 @@ func buildVMProgram(m *bytecode.Module, terms []*state.TermProgram, f state.Fami
 	}
 	vm.nseen = compile.NumberSeen(statics)
 	compile.NumberLeaders(statics)
+	for _, x := range m.Sites {
+		if vm.siteKeys == nil {
+			vm.siteKeys = map[int]*state.SiteKey{}
+		}
+		vm.siteKeys[x.Site] = state.NewSiteKey(vtable.Slots(vm.names(x.Read)), vtable.Slots(vm.names(x.Bind)))
+	}
+	vm.allKey = state.AllVars(len(m.Vars))
 	vm.runSites = make([]*vmRunSite, len(m.Code))
 	for ip, in := range m.Code {
 		if in.Op == bytecode.OpRepeat || in.Op == bytecode.OpRepeatWide {
@@ -780,7 +804,7 @@ func (mc *Machine) step(vm *Program, b *vmBody, resume, rok bool, rv *core.Node)
 				min = int(m.Ints[in.A])
 			}
 			mc.reps = append(mc.reps, repState{min: min, max: -1, scope: -1, base: len(mc.vals), skip: true})
-			p.SkipBegin(int(in.B), in.C&2 == 0)
+			p.SkipBegin(int(in.B), vm.siteKey(int(in.B), in.C&2 == 0))
 		case bytecode.OpIter:
 			rep := &mc.reps[len(mc.reps)-1]
 			scanSite, runSite := 0, int(in.C)
@@ -818,10 +842,10 @@ func (mc *Machine) step(vm *Program, b *vmBody, resume, rok bool, rv *core.Node)
 					rep.cold, rep.coldStart, rep.site = true, p.Pos, runSite
 				case in.B&1 == 1:
 					rep.skip, rep.build = true, true
-					p.SkipBeginList(runSite, in.B&2 == 0)
+					p.SkipBeginList(runSite, vm.siteKey(runSite, in.B&2 == 0))
 				default:
 					rep.skip = true
-					p.SkipBegin(runSite, in.B&2 == 0)
+					p.SkipBegin(runSite, vm.siteKey(runSite, in.B&2 == 0))
 				}
 			}
 			if rep.skip {

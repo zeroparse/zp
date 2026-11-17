@@ -52,13 +52,13 @@ func TestStreamCommitDropsRecordsBeforeItsPosition(t *testing.T) {
 	p.Fill(2048)
 	s := &skipSlots{}
 	p.skipTables = []*skipSlots{s}
-	s.put(1023, nil, skipRecord{state: skipRecorded})
-	s.put(1024, nil, skipRecord{state: skipRecorded})
+	s.put(1023, 0, skipRecord{state: skipRecorded})
+	s.put(1024, 0, skipRecord{state: skipRecorded})
 	p.Commit(1024)
-	if got := s.get(1023, nil).state; got != skipFresh {
+	if got := s.get(1023, 0).state; got != skipFresh {
 		t.Errorf("the record before the commit has the state %d", got)
 	}
-	if got := s.get(1024, nil).state; got != skipRecorded {
+	if got := s.get(1024, 0).state; got != skipRecorded {
 		t.Errorf("the record at the commit has the state %d", got)
 	}
 }

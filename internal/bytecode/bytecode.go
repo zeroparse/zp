@@ -24,6 +24,9 @@ type Module struct {
 	Ints []int64
 	// Terms holds the term code of the actions, predicates and bindings.
 	Terms []Term
+	// Sites holds the variables of the run sites that are not free of the environment, in
+	// increasing order of their sites.
+	Sites []SiteInfo
 	// SourceInfo reports that the values record source information (Options.SourceInfo).
 	SourceInfo bool
 	// DefaultValue reports that value actions were dropped (Options.DefaultValue).
@@ -97,6 +100,18 @@ type VarInfo struct {
 	// Str is the string table index of the initial value of a string variable, and -1 for
 	// the other types.
 	Str int
+}
+
+// SiteInfo describes the variables of a run site that is not free of the environment (see "Run
+// Sites" in spec/runtime/parsing.md): its records are kept for the values of Read, and a walk that
+// takes one rebinds the variables of Bind that the rest of the recorded walk bound. A site whose
+// instruction does not mark it free and that has no SiteInfo is keyed by every variable.
+type SiteInfo struct {
+	Site int
+	// Read are the variables that the element of the site reads, in its predicates and in the
+	// rules it calls, directly or indirectly, and Bind those that its predicates bind (string
+	// table indices, sorted by name).
+	Read, Bind []int
 }
 
 // RuleInfo describes a rule.
@@ -321,4 +336,4 @@ func (o Op) String() string {
 // ISAVersion is the instruction set of the value model, the only one supported. Earlier
 // versions built the previous syntax trees, so their files are not loaded and need to be
 // compiled again.
-const ISAVersion = 35
+const ISAVersion = 36

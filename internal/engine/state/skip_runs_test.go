@@ -12,7 +12,7 @@ import (
 // and stops before its end if abort.
 func walkSkip(p *Parser, pos, n int, abort bool) {
 	p.Pos = pos
-	p.SkipBegin(1, false)
+	p.SkipBegin(1, nil)
 	for k := 0; ; k++ {
 		if k >= 1 && p.SkipHit() {
 			break
@@ -47,13 +47,13 @@ func TestSkipRunsAbortStoresNothing(t *testing.T) {
 	walkSkip(p, 0, 10, false) // plain: marks 0..9
 	s := p.skipTables[2]
 	for pos := 0; pos <= 10; pos++ {
-		if got := s.get(pos, nil).state; got != plain(pos) {
+		if got := s.get(pos, 0).state; got != plain(pos) {
 			t.Fatalf("after a plain walk, position %d has state %d", pos, got)
 		}
 	}
 	walkSkip(p, 2, 8, true) // recording from 2, stopped at 6
 	for pos := 0; pos <= 10; pos++ {
-		if got := s.get(pos, nil).state; got != plain(pos) {
+		if got := s.get(pos, 0).state; got != plain(pos) {
 			t.Fatalf("after a stopped recording walk, position %d has state %d", pos, got)
 		}
 	}
@@ -64,11 +64,11 @@ func TestSkipRunsAbortStoresNothing(t *testing.T) {
 		if pos >= 3 {
 			want = skipRecorded
 		}
-		if got := s.get(pos, nil).state; got != want {
+		if got := s.get(pos, 0).state; got != want {
 			t.Fatalf("after a recording walk from 3, position %d has state %d, want %d", pos, got, want)
 		}
-		if want == skipRecorded && s.get(pos, nil).end != 10 {
-			t.Fatalf("position %d records end %d, want 10", pos, s.get(pos, nil).end)
+		if want == skipRecorded && s.get(pos, 0).end != 10 {
+			t.Fatalf("position %d records end %d, want 10", pos, s.get(pos, 0).end)
 		}
 	}
 }
@@ -84,7 +84,7 @@ func TestSkipRunsAbortControl(t *testing.T) {
 	s := p.skipTables[2]
 	recorded := 0
 	for pos := 0; pos <= 10; pos++ {
-		if s.get(pos, nil).state == skipRecorded {
+		if s.get(pos, 0).state == skipRecorded {
 			recorded++
 		}
 	}

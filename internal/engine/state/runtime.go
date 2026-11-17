@@ -188,6 +188,8 @@ type Parser struct {
 	skipN      int
 	// runCold holds what the walks of each run site did before the site turned hot (skip_runs.go).
 	runCold []runCold
+	// siteKeys numbers the values of the variables that key the records of run sites (siteKey).
+	siteKeys map[keyLink]int32
 	// skipBytes counts the bytes of the element buffers and error lists of the skip-run records.
 	skipBytes uint64
 	// Scratch holds the pooled buffers the parser uses (AcquirePooledParser), or nil.

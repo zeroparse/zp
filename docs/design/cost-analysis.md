@@ -126,9 +126,9 @@ prefixes, separators, trivia calls and lookaheads.
 Some units are neither committing nor cheap. A scan really is read again. The engine can make that cheap if the second
 read is a lookup.
 
-A **run site** is a repetition that records, for each position (and environment) where a walk of its iterations began,
+A **run site** is a repetition that records, for each position (and the values of the variables its element reads) where a walk of its iterations began,
 where the walk ended and what it collected: the elements, the recovered errors, the farthest failure and the input it
-examined. A later walk that reaches a recorded position in the same environment takes the rest from the record instead of
+examined. A later walk that reaches a recorded position with the same values of those variables takes the rest from the record instead of
 walking again. The idea generalizes the skip runs of whitespace and comments to ordinary repetitions.
 
 A record may replace a walk only if the rest of the walk is a function of the position, the variables and the input, and

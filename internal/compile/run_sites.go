@@ -1,6 +1,8 @@
 package compile
 
 import (
+	"slices"
+
 	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/cancel"
 )
@@ -27,10 +29,12 @@ import (
 //   - it is restartable (RestartableRepeats): a repetition that no iteration can reach is walked
 //     from each position at most once, so no walk can reuse another's record.
 //
-// The records of a run site are keyed by the environment, and a walk that reuses one takes its end
-// environment, unless the site is free of the environment (envFree): then the rest of a walk from a
-// position is the same in every environment and leaves the environment as it found it, so its
-// records hold for every environment. Skip-run sites are free of it by their conditions.
+// The records of a run site are keyed by the values of the variables that its element reads, and a
+// walk that reuses one takes the values that the rest of the recorded walk bound the variables of
+// the element's own bindings to (SiteVars). A site free of the environment (envFree) reads and
+// binds none: the rest of a walk from a position is the same in every environment and leaves the
+// environment as it found it, so its records hold for every environment. Skip-run sites are free
+// of it by their conditions.
 
 // NoRunSites disables the marking of run sites when a program is compiled, for tests and
 // measurements that compare parses with and without them.
@@ -110,6 +114,11 @@ func (prog *Program) markRunSites(control *cancel.Control, defs []*grammar.RuleD
 			prog.runSites[rep] = site
 			if envFree(rep, readsVars) {
 				prog.markEnvFree(site)
+			} else {
+				if prog.siteVars == nil {
+					prog.siteVars = map[int]SiteVars{}
+				}
+				prog.siteVars[site] = siteVarsOf(rep, func(n string) []string { return prog.ByName[n].Vars })
 			}
 		}, control)
 	}
@@ -129,6 +138,82 @@ func (prog *Program) markEnvFree(site int) {
 		prog.envFree = append(prog.envFree, false)
 	}
 	prog.envFree[site] = true
+}
+
+// SiteVars are the variables of a run site that is not free of the environment.
+//
+// The rest of a walk from a position reads the variables in Read: those that the predicates of the
+// element read and those that the rules it calls read, directly or indirectly (Rule.Vars). A binding
+// made in a called rule is undone when the rule returns, so the rest of the walk is a function of
+// the position, the input and the values of Read, and its records are kept for those values: walks
+// in equal environments that were built apart share them, and walks in environments that differ in
+// variables outside Read do too. The rest of the walk changes only the variables in Bind, those that
+// the predicates of the element bind: a walk that takes a record takes the values that the rest of
+// the recorded walk bound them to and keeps the values of the others, among them the variables of
+// Bind that the rest of the recorded walk did not bind (state.SiteKey says how a walk tells them
+// apart). Both lists are sorted.
+type SiteVars struct {
+	Read, Bind []string
+}
+
+// SiteVars returns the variables of the run site, and false for a site free of the environment
+// (EnvFree) or one that is not a run site.
+func (prog *Program) SiteVars(site int) (SiteVars, bool) {
+	v, ok := prog.siteVars[site]
+	return v, ok
+}
+
+// SiteVarsMutation, when not zero, leaves a part out of SiteVars, for the mutation tests of run sites;
+// nothing else sets it.
+var SiteVarsMutation int
+
+// The parts that SiteVarsMutation changes.
+const (
+	SiteVarsReadCallees = 1 + iota // the variables that the called rules read are left out of Read
+	SiteVarsReadBinds              // Read holds the variables of Bind as well
+)
+
+// siteVarsOf returns the variables of the run site e (SiteVars); varsOf returns the variables that a
+// rule and the rules it calls read (Rule.Vars).
+func siteVarsOf(e *grammar.Repeat, varsOf func(rule string) []string) SiteVars {
+	read, bind := map[string]bool{}, map[string]bool{}
+	WalkExpr(e.Expr, func(x grammar.Expr) {
+		switch x := x.(type) {
+		case *grammar.Predicate:
+			WalkTerm(x.Term, func(t grammar.Term) {
+				switch t := t.(type) {
+				case *grammar.VarRef:
+					read[t.Name] = true
+				case *grammar.Bind:
+					bind[t.Name] = true
+				}
+			})
+		case *grammar.Ref:
+			if SiteVarsMutation != SiteVarsReadCallees {
+				for _, v := range varsOf(x.Name) {
+					read[v] = true
+				}
+			}
+		}
+	})
+	if SiteVarsMutation == SiteVarsReadBinds {
+		for v := range bind {
+			read[v] = true
+		}
+	}
+	return SiteVars{Read: sortedKeys(read), Bind: sortedKeys(bind)}
+}
+
+func sortedKeys(m map[string]bool) []string {
+	if len(m) == 0 {
+		return nil
+	}
+	out := make([]string, 0, len(m))
+	for k := range m {
+		out = append(out, k)
+	}
+	slices.Sort(out)
+	return out
 }
 
 // EnvFreeMutation, when not zero, leaves a part out of envFree, for the mutation tests of the

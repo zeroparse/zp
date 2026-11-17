@@ -770,23 +770,27 @@ the environment it began in. Its records are kept by position alone, and a
 walk that reuses one keeps its own environment. Skip-run sites are free of
 the environment by their conditions.
 
-The records of any other run site are kept for a position and the
-environment (the values of the variables) in which the walk started there,
-and a walk reuses one only in the same environment: a record for the same
-position in another environment is neither used nor replaced, so the
-environments of two walks at a position never share a record. Two
-environments are the same if they are the same object (bindings that leave a
-variable's value alone leave the environment as it is, and equal environments
-that were built separately differ). A walk under a freshly rebound but equal
-environment therefore does not reuse the records of a walk under the earlier
-one, and a grammar that rebinds a variable to the same new value at each
-position, and walks a site that is not free of the environment there, can
-cost more than linear in the input even when its sites keep records.
+The rest of a walk of any other run site from a position reads the variables
+that the predicates of its expression read and those that the rules it calls
+read, directly or indirectly, and changes only the variables that the
+predicates of its expression bind. Its records are kept for a position and the
+values of the variables it reads, at the start of the walk from that position,
+and a walk reuses one only where those values are equal: a record for the same
+position and other values is neither used nor replaced. Environments that
+hold equal values of these variables share the records, whether or not they
+were built apart and whatever the values of the other variables. So the walks
+of such a site at one position evaluate its expression once for each
+combination of the values that it reads there, as a memoized rule that reads
+variables is evaluated once for each combination of them.
 
 Besides what a record of a skip-run site holds, it holds
-- for a site that is not free of the environment, the environment at the end
-  of the rest of the walk, which the parse takes as its own when a walk reuses
-  the record;
+- for a site that is not free of the environment, the values that the rest
+  of the walk left in the variables that the predicates of its expression
+  bind, and which of them it bound: a walk that reuses the record binds those
+  to the values it left, and keeps the values of the others. A variable that
+  the expression binds and does not read can hold any value when a walk
+  reuses a record, so the record tells whether the rest of the walk bound it,
+  not only its value;
 - the elements of the rest of the walk, for a run site whose iterations have
   values: a walk that reuses the record lists them after its own elements. The
   list a walk returns and the records of its positions share one sequence of

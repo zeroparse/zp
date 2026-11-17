@@ -64,7 +64,7 @@ func (p *Parser) ScanHot(site int) bool {
 // ScanLookup returns the record of the walk of the hot site that began at start, if there is one.
 func (p *Parser) ScanLookup(site, start int) (skipRecord, bool) {
 	p.Spend()
-	rec := p.scanSlots(site).get(start, nil)
+	rec := p.scanSlots(site).get(start, 0)
 	if rec.state != skipRecorded {
 		return rec, false
 	}
@@ -117,7 +117,7 @@ func (p *Parser) ScanStore(site, start, examined, count int, kids []*core.Node) 
 	if kids != nil {
 		rec.vals = valSuffix{buf: &valBuf{a: kids}}
 	}
-	s.put(start, nil, rec)
+	s.put(start, 0, rec)
 }
 
 // EndScanWalk ends a walk of a scan site that reached its ScanHotSpan-th iteration: unless it took

@@ -111,6 +111,12 @@ func (w *Encoder) WriteModule(m *Module) {
 	for _, x := range m.Ints {
 		w.Body.Write(binary.AppendVarint(nil, x))
 	}
+	w.Uint(len(m.Sites))
+	for _, x := range m.Sites {
+		w.Int(x.Site)
+		w.ints(x.Read)
+		w.ints(x.Bind)
+	}
 	w.Uint(len(m.Terms))
 	for i := range m.Terms {
 		w.term(&m.Terms[i])
@@ -301,6 +307,11 @@ func (r *Decoder) ReadModule() *Module {
 	m.Ints = sized[int64](r, n, 1)
 	for i := 0; i < n && r.Err == nil; i++ {
 		m.Ints = append(m.Ints, r.int64())
+	}
+	n = r.Count()
+	m.Sites = sized[SiteInfo](r, n, 3)
+	for i := 0; i < n && r.Err == nil; i++ {
+		m.Sites = append(m.Sites, SiteInfo{Site: int(r.int32()), Read: r.ints(), Bind: r.ints()})
 	}
 	n = r.Count()
 	m.Terms = sized[Term](r, n, 6)
@@ -559,6 +570,17 @@ func ValidateModule(m *Module, fieldType func(text string) error) error {
 		opt("string", r.Where, len(m.Strings))
 		opt("operatorsRule", r.OperatorsRule, len(m.OperatorsRules))
 		for _, v := range r.Vars {
+			declared(v)
+		}
+	}
+	for i, x := range m.Sites {
+		if x.Site < 1 || i > 0 && x.Site <= m.Sites[i-1].Site {
+			fail("run site %d is out of order", x.Site)
+		}
+		for _, v := range x.Read {
+			declared(v)
+		}
+		for _, v := range x.Bind {
 			declared(v)
 		}
 	}

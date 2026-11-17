@@ -602,9 +602,9 @@ func (b *Builder) scanSiteList(m state.Matcher, elemValue func(*state.Parser, *c
 // record the rest of them from each position and reuse the records (state/skip_runs.go).
 func (b *Builder) skipRepeat(min int, m state.Matcher, skip int) state.Matcher {
 	charge := b.charges()
-	keyEnv := !b.prog.EnvFree(skip)
+	key := b.siteKey(skip)
 	return func(p *state.Parser) (*core.Node, bool) {
-		p.SkipBegin(skip, keyEnv)
+		p.SkipBegin(skip, key)
 		count := 0
 		for {
 			if charge {
@@ -634,19 +634,31 @@ func (b *Builder) skipRepeat(min int, m state.Matcher, skip int) state.Matcher {
 	}
 }
 
+// siteKey returns the variables that key the records of the skip-run or run site and that a walk
+// that takes one rebinds (compile.Program.SiteVars), nil for a site free of the environment.
+func (b *Builder) siteKey(site int) *state.SiteKey {
+	if b.prog.EnvFree(site) {
+		return nil
+	}
+	if v, ok := b.prog.SiteVars(site); ok {
+		return state.NewSiteKey(b.prog.Vars.Slots(v.Read), b.prog.Vars.Slots(v.Bind))
+	}
+	return state.AllVars(len(b.prog.Vars.All()))
+}
+
 // runRepeat is Repeat for the run site run (compile/run_sites.go): the walks of its iterations
 // record the rest of them from each position and reuse the records (state/skip_runs.go). The
 // iterations have a scope of their own where they capture; build says whether they have values,
 // which the walk gathers in a list.
 func (b *Builder) runRepeat(min int, m state.Matcher, elemValue func(*state.Parser, *core.Node, int) *core.Node, elemScope *check.Scope, ownScope, build bool, run int) state.Matcher {
 	charge := b.charges()
-	keyEnv := !b.prog.EnvFree(run)
+	key := b.siteKey(run)
 	return func(p *state.Parser) (*core.Node, bool) {
 		start := p.Pos
 		if build {
-			p.SkipBeginList(run, keyEnv)
+			p.SkipBeginList(run, key)
 		} else {
-			p.SkipBegin(run, keyEnv)
+			p.SkipBegin(run, key)
 		}
 		count := 0
 		for {

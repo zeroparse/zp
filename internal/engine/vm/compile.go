@@ -213,6 +213,11 @@ func (c *compiler) compile() {
 		}
 		c.m.Rules = append(c.m.Rules, ri)
 	}
+	for site := 1; site <= c.prog.NumSkipSites+c.prog.NumRunSites; site++ {
+		if v, ok := c.prog.SiteVars(site); ok {
+			c.m.Sites = append(c.m.Sites, bytecode.SiteInfo{Site: site, Read: c.strList(v.Read), Bind: c.strList(v.Bind)})
+		}
+	}
 	for i, r := range c.prog.RuleList {
 		if slices.Contains(c.prog.StartRules, r.Name) {
 			c.m.Starts = append(c.m.Starts, i)
