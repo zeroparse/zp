@@ -803,8 +803,12 @@ scan in a parse that keeps records* shows *Iterations at one scan* in
 part, under a hypothesis on the shared calls of a link, and *Breaks,
 frames and own regions in a parse that keeps records or resumes runs* the
 claims that follow it, under that hypothesis and for the activations
-outside those iterations where the claim says so. The claims of Lemma 5
-other than the first case of *Repeats inside a growth* and those that
+outside those iterations where the claim says so. *The position of a growth in a parse that keeps records or resumes runs*
+in Lemma 5 shows the claims of that lemma at the position of a growth,
+and with them the second case of *Repeats inside a growth*, of such a
+parse, and *Reuse in a context* the bounds from *Calls in a context of
+growths* to *Growths inside a step*. The claims of Lemma 5 other than
+those, the first case of *Repeats inside a growth* and those that
 *Families in a parse that keeps records* shows for a parse that resumes
 no run of a Document have not been read again for such
 a parse (step 8 of [Open Steps](#open-steps)); *Families in every parse*
@@ -4677,7 +4681,7 @@ leaving out the activations that follow no such read. That, for an
 activation which follows no such read, step $j'$ is one of a constant
 number of steps of its growth or $q$ lies at most a constant after $p$,
 rests on the claims of Lemma 5 before *Calls in a context of growths*,
-which have not been read again for a parse that keeps records.
+which *The position of a growth in a parse that keeps records or resumes runs* in Lemma 5 shows of such a parse.
 
 *Proof.* $\alpha$ and $\alpha'$ are activations, which the parse
 evaluates, and so are the steps that hold them. The proof of the first
@@ -4733,8 +4737,8 @@ step $j$ is kept, and when $\alpha'$ follows a read of the seed of step
 $j'$, the conclusion of its first case holds. That an activation which
 follows no such read lies in one of a constant number of steps of its
 growth, or at most a constant after $p$, rests, as there, on the claims of
-Lemma 5 before *Calls in a context of growths*, which have not been read
-again for such a parse.
+Lemma 5 before *Calls in a context of growths*, which *The position of a growth in a parse that keeps records or resumes runs*
+in Lemma 5 shows of such a parse.
 
 *Proof.* $\alpha$ and $\alpha'$ are activations that the parse makes,
 evaluated or reused, and a reused iteration contains no evaluation of the
@@ -6972,8 +6976,12 @@ symbol, so apart from the first three steps with a non-empty seed, the path of
 $g$ in the step passes its first three symbols, through the seed. $u$ then fails
 at the decisive symbol or before it, after the symbols that it passed alike.
 Each of these is cheap, and by *Evaluations that read no growing result* below
-each costs a constant in every step after the first two that evaluate it alike,
-except a call of a rule that calls no rule, which repeats its own scan;
+each costs a constant in every step that evaluates it alike apart from at most
+two for each key of a call memoized at the call that it makes, which the memo
+answers in the other steps; those calls start in the input that it examines,
+a constant number of positions, with the same values of the variables, so
+their keys are a constant number. The exception is a call of a rule that
+calls no rule, which repeats its own scan;
 *Decided units at the position of the growth* below shows that such a call
 examines a constant amount of the input. $\square$
 
@@ -7139,9 +7147,23 @@ step owns bound.
 **Evaluations that read no growing result.** Let $x$ be an evaluation at $p$,
 in a step of the growth at $p$, that calls no rule of the cycle at $p$. The
 steps that evaluate $x$ with the same values of the variables that it reads
-evaluate it alike: with the same outcome, over the same input and with the
-same calls, and from the third of them on the memo answers each call of $x$
-that is memoized at the call.
+evaluate it alike: with the same outcome and over the same input, and the
+counterparts of $x$ in $\mathcal{R}$ in those steps take the same steps, so
+that each call that $x$ makes in one of them is the counterpart of a call at
+one place of that evaluation of $\mathcal{R}$, with one key in all of them. A
+call of $x$ that is memoized at the call evaluates its body in at most two of
+those steps, the first two that make it, and the memo answers it in every
+later step that makes it. In a parse that keeps no records and resumes no run,
+$x$ makes in each of those steps every call of that evaluation of
+$\mathcal{R}$ outside the calls that the memo answers, so the memo answers
+each call of $x$ that is memoized at the call from the third of them on. In a
+parse that keeps records or resumes runs, the steps can differ in the calls
+that they make: $x$ makes none inside an iteration that a record answers or
+that a resumed walk reuses, so a walk of a later step that takes a record, or
+resumes a run, that a walk of an earlier step made evaluates nothing of the
+iterations that the record or the run stands for, while a walk of a later
+step that finds no record evaluates the iterations that a record answered in
+an earlier step.
 
 *Proof.* Only a call at $p$ of a rule of the cycle reads a growing result of
 the cycle at $p$ ([Lemma 2 of the memoization
@@ -7152,16 +7174,42 @@ another cycle reads only the growing results of its own cycle
 ([Evaluations of Rules](../runtime/parsing.md#evaluations-of-rules)), which
 belong to growths that were in progress when the growth at $p$ started and do
 not change before it ends. The steps evaluate $x$ in the same lookahead state,
-so with the same values of the variables everything that $x$ evaluates reads
-the same input, results and values in each of them. A call memoized at the
-call is outside every context of growths, and its result read no growing
-result that changes. It stores its result in the first of them, or, when that
-is the first call of its variant at its position, which may leave no result
-([Evaluations of Rules](../runtime/parsing.md#evaluations-of-rules)), in the
-second. A store never narrows the calls that the entry of its key answers,
-whether a later store under the key is made in a context of growths or in
-the other lookahead state (*Answered calls* in Lemma 4), so the memo answers
-the call in every later step. $\square$
+so with the same values of the variables everything that $\mathcal{R}$
+evaluates for $x$ reads the same input, results and values in each of them,
+and the counterparts of $x$ take the same steps, the current result of the
+growth at $p$, the only part of their state that differs, being read by none
+of them. By *Counterparts in the reference parse* in Lemma 4, in each step
+$x$ has the outcome of its counterpart, and each evaluation that it makes is
+the counterpart of one inside that counterpart, at the place that it has in
+$x$; the parse evaluates what the counterpart evaluates except inside the
+calls that it answers, the steps of growths that it does not evaluate, the
+alternatives that it skips by the next character, the iterations that a
+record answers, (R1), and those that a resumed walk reuses ([Lemma 3 of the
+Documents proof](documents.md#lemma-3-resumed-runs)), whatever made the
+record or stored the run, an earlier step of the same growth included.
+A call at one place of the counterpart has the same position, values,
+lookahead state and variant in every step, and so one key. In a parse that
+keeps no records and resumes no run, nothing but the answers of the memo
+takes evaluations out of $x$, so it makes every call of the counterpart
+outside the calls that the memo answers.
+
+A call memoized at the call is outside every context of growths, and its
+result read no growing result that changes. Of the evaluations of its key in
+one lookahead state outside every context of growths, only the first of its
+rule or twin at its position may leave no result, and every later one stores
+its result ([Evaluations of Rules](../runtime/parsing.md#evaluations-of-rules)),
+so the first step that makes it stores its result unless an entry answers it
+already, or, when that is the first evaluation of its rule or twin at its
+position, the second does. A store never narrows the calls that the entry of its key
+answers, whether a later store under the key is made in a context of growths
+or in the other lookahead state (*Answered calls* in Lemma 4), so the memo
+answers the call in every later step that makes it, and a step that makes no
+call of the key, because a record answers or a resumed walk reuses the
+iteration around it, changes nothing of that. In a parse that keeps no
+records and resumes no run every step makes each call of the counterpart
+that lies in no call that the memo answers, so a call of $x$ is made in the
+first two of the steps unless the memo answers a call around it there, and
+the memo answers it, or a call around it, from the third on. $\square$
 
 **Results that do not include the seed.** At most a constant number of the
 steps of a growth whose values of variables do not change have a result that
@@ -7385,9 +7433,9 @@ one of them.
   off the cycle and memoized at the call, it calls no rule of the cycle at $p$,
   since a rule reached from the cycle through left calls that reaches the
   cycle again through left calls is on it, and it reads no variable, so by
-  *Evaluations that read no growing result* the memo answers it in every step
-  after the first two that evaluate it, and $x$ is evaluated in two steps of
-  the growth at most. Otherwise its rule calls no rule, and $g$ evaluates $c_i$ at
+  *Evaluations that read no growing result* it evaluates its body in two steps
+  of the growth at most and the memo answers it in every other step that
+  makes it, so $x$ is evaluated in two steps of the growth at most. Otherwise its rule calls no rule, and $g$ evaluates $c_i$ at
   $p$ again in the same step, before its left call, which comes after $c_i$ in
   $g$ since $c_i$ examines input. That evaluation evaluates an evaluation $x'$
   of the expression of $x$ at $p$ again, over the same input and with the same
@@ -7427,8 +7475,9 @@ and consume nothing, since symbols passed alike evaluate alike at one
 position. So $C$ is a call at $p$, evaluated in each step in a body of the
 cycle or in a call at $p$ that is not memoized at the call. If $C$ is inside
 a call memoized at the call of a rule off the cycle, so is $V$, and by
-*Evaluations that read no growing result* the memo answers that call in every
-step after the first two that evaluate it. Otherwise the rule of $C$ calls no
+*Evaluations that read no growing result* that call evaluates its body in two
+steps at most and the memo answers it in every other step that makes it.
+Otherwise the rule of $C$ calls no
 rule and is not memoized, so by condition 3 it holds no scanning source, and
 $C$ examines what Lemma 1 bounds.
 
@@ -7524,6 +7573,86 @@ call of R contains no scanning source up to the end of the parse, so its cost
 is local cost of the body evaluations that it continues, which Lemma 1 counts.
 Leaving these paths out of condition 2 therefore adds a constant for each
 evaluation of A, beyond the steps that are counted here.
+
+**The position of a growth in a parse that keeps records or resumes runs.**
+In a parse whose records of sites, if it keeps any, are exact, (R1) of the
+[Setting](#setting), and that may resume runs of a
+[Document](../runtime/documents.md), the claims of this lemma from *Sources
+at fixed offsets* to *Decided units at the position of the growth*, and the
+paragraphs between and after them up to *Calls in a context of growths*,
+hold as stated. What they bound an evaluation to examine is the input that
+the evaluations inside it read, not the examined range that it records into
+the enclosing evaluation, which only the decisions to reuse read.
+
+*Proof.* The proofs use five kinds of facts about the parse.
+
+1. *Steps, seeds and reads.* That a growth drops at most its last step,
+   that the result of a kept step is the seed of the next, that the seeds
+   grow longer, and which evaluations are reads of the seed: 1 and 2 of
+   *Repeats inside a growth in a parse that keeps records* and of
+   *Repeats inside a growth in a parse that resumes runs*. No record
+   answers and no resumed walk reuses an iteration that holds a read of a
+   seed or a call of a rule of a cycle at $p$ that reads a growing result:
+   no such call lies in an iteration of a walk of a candidate site or of a
+   skip-run site (*Growths lie outside the recorded walks*), and a reused
+   iteration reads no growth open at its start (2 of the second of those
+   claims).
+2. *Outcomes, ends and paths.* The proofs follow the paths of a step at
+   $p$ by the success and the end of each evaluation on them, the first
+   characters, words and decisive symbols of the units and the input that
+   they consume. Every evaluation of the parse has the success and the end
+   of its counterpart in $\mathcal{R}$, a walk that takes a record or
+   resumes a run included, and the input from the start of an iteration
+   that a record answers or a resumed walk reuses to its end is the input
+   that its counterpart consumes (2 and 3 of *Restarts in a parse that
+   keeps records* and of *Restarts in a parse that resumes runs*). So a
+   step takes the paths that it takes without records and resumed runs,
+   and each argument on paths holds as stated.
+3. *What an evaluation examines.* Each evaluation that the parse makes
+   inside an evaluation $x$ is the counterpart of a distinct one inside
+   $\mathcal{R}(x)$ (*Counterparts in the reference parse*). A walk that
+   takes a record reads no input of the iterations that the record
+   answers, and a reused iteration is an activation that makes no call and
+   reads no input beyond what its counterpart reads. So $x$ reads no input
+   that $\mathcal{R}(x)$ does not read, and holds at a position no more
+   activations of a source than $\mathcal{R}(x)$ holds there, and a bound
+   on what $x$ examines that the proofs derive from the paths of 2 holds of
+   $x$. The lookups and records of a walk add to its cost what (R3) bounds
+   for a recorded site, and for the other sites that keep records what the
+   seventh part of step 8 of [Open Steps](#open-steps) leaves open, as
+   everywhere in this proof.
+4. *The memo.* Where the proofs let the memo answer a shared call the
+   second time, the two calls have one key, and their outcomes are those of
+   their counterparts in $\mathcal{R}$, which take the same steps
+   (*Counterparts in the reference parse*), whether or not either lies
+   where a record answers or a resumed walk reuses. Where they let the
+   memo answer a call in every step after the first two, *Evaluations that
+   read no growing result* gives, in every parse, at most two steps that
+   evaluate the body of each key, the memo answering the call in every
+   other step that makes it, so the steps that the claims leave out are
+   counted for each key, as they state. A path that enters the growth again
+   evaluates the scanning sources of its alternative $A$ only inside calls
+   memoized at the call, so no walk of $A$ outside them takes a record or
+   resumes a run, and the memo answers those calls as stated.
+5. *Values.* That the values of the variables, and the outcomes of the
+   predicates at $p$, change in a growth only through the bindings and
+   captures of *Values bound from a growing result*: the values that a
+   step reads are those of its counterpart (2), and a walk that takes a
+   record or resumes a run leaves the environment that it leaves without
+   them, (R1) and [Lemma 3 of the Documents
+   proof](documents.md#lemma-3-resumed-runs).
+
+A later step of a growth can resume a run that an earlier step recorded at
+the same start, or take a record that it made: by *Evaluations that read no
+growing result*, that step evaluates $x$ with the outcome and over the input
+of the earlier one, making fewer calls, which 3 and 4 allow. The proofs
+use nothing else of the parse. $\square$
+
+So the second case of *Repeats inside a growth* holds of such a parse as
+stated: its proof places $\alpha'$ in a part at $p$ that these claims
+bound, and *Repeats inside a growth in a parse that keeps records* and
+*Repeats inside a growth in a parse that resumes runs* give its first case.
+The count after that claim reads such a parse as it states.
 
 **Calls in a context of growths.** Let a growth of a leader $S$ be in progress
 at $p$. Every call at $p$ of a rule of its cycle made while it is in progress
@@ -7727,10 +7856,8 @@ evaluations examine, it takes results with different examined ranges as
 different too, and evaluates again what it could have reused. The bounds of
 this lemma on the evaluations, from *Calls in a context of growths* to
 *Growths inside a step*, hold in every parse, whatever it answers in
-contexts, except that for a parse that resumes runs of a
-[Document](../runtime/documents.md), *Evaluations that read no growing
-result*, on which *Growths inside a step* rests, does not hold as it
-stands, as the eighth part of step 8 of [Open Steps](#open-steps) states.
+contexts, whether it keeps records or resumes runs of a
+[Document](../runtime/documents.md) or not.
 The counts of the activations from *Repeats inside a family* to
 *First activations of heads* are made in a parse that answers nothing in
 contexts, and *Families in every parse* carries them to every parse, the
@@ -7739,7 +7866,9 @@ engine's parse included.
 *Proof.* *Calls in a context of growths* bounds the evaluations of a step by
 the calls of the bodies alone, in every parse. *Evaluations that read no growing result* rests
 on the memo, whose entries hold results that read no growing result and are
-found by their key, not by a comparison of results. The second and the third
+found by their key, not by a comparison of results, and on the counterparts
+of the evaluations in $\mathcal{R}$, which a record or a resumed walk changes
+only by taking whole iterations out of the parse, as that claim states. The second and the third
 kind of *Growths inside a step* bound the steps of a growth of $R$ by the
 length of its result, as every growth is bounded
 ([Evaluations of Rules](../runtime/parsing.md#evaluations-of-rules)), and charge
@@ -7754,7 +7883,13 @@ bounded as those kinds are, and the comparison changes the constant of the
 bound, not its form. An answer in a context, from the memo or from a kept
 result, and a run of steps taken at once take the place of the evaluations
 inside the answered call or the steps of the run, which these bounds count
-as if they were made, so they add to none of them. $\square$
+as if they were made, so they add to none of them. A record or a resumed walk
+takes whole iterations out of the parse and changes no outcome or end
+(*Counterparts in the reference parse*), and an iteration that it takes out
+holds no read of a seed (*The position of a growth in a parse that keeps
+records or resumes runs*), so these bounds, which count the evaluations of a
+step by the calls of the bodies and the steps of a growth by lengths and by
+those claims, hold with records and resumed runs as without them. $\square$
 
 The counts of the activations need more than that: where a parse answers a
 call in one growth and evaluates it in another, the activations inside it are
@@ -7832,15 +7967,29 @@ that lies in a step of a growth, on a path that goes on from the end of no
 growing result that succeeds, after an activation of $\sigma$ at $q$ in an earlier step of that
 growth. Two activations of the sequence whose innermost common evaluation is a
 growth are then in the first case, so the claims of Lemma 4 apply to them as
-to the others. This lemma counts the activations of the second case. In a step
+to the others. This lemma counts the activations of the second case, apart
+from those that memoized evaluations own in the steps that the claims at $p$
+leave out, as below. In a step
 that the claims at $p$ do not leave out, they lie in parts that examine at most
 a constant amount of the input, so they number at most a constant for each
 step. In the constant number of steps of a growth that the claims leave out,
 the parts that hold them read no growing result and are evaluated alike in
-every step that reaches them (*Evaluations that read no growing result*), so
-at each position they number at most a constant times what one evaluation of
-those parts holds there, which *Consecutive repeats inside a family* below
-bounds by a constant for each family of growths. Each of them follows an
+every step that reaches them (*Evaluations that read no growing result*): an
+activation that such a part holds in one of those steps is the counterpart of
+one at a place of a single evaluation of $\mathcal{R}$, the same in each step,
+and in a parse that keeps no records and resumes no run each of those steps
+holds the same ones outside the calls that the memo answers. So at each
+position those that growth steps and evaluations in a context of growths own
+number at most a constant times what one evaluation of those parts holds
+there outside its memoized evaluations, which *Consecutive repeats inside a
+family* below bounds by a constant for each family of growths; in a parse
+that keeps records or resumes runs, where a step can hold fewer of them than
+another, *Families in every parse* carries that count from a parse that keeps
+no records and resumes no run. Those that memoized evaluations own are
+counted with every activation that memoized evaluations own, by the count of
+Lemma 4, in which a root of the second case is among the open parts of step
+1 of [Open Steps](#open-steps) (the remark after *Fresh roots in one
+evaluation*). Each of them follows an
 activation of $\sigma$ at $q$ in an earlier step of the same growth, so a
 growth that holds one also holds one of the sequence, or one of case 5 or of
 the third case of *Dropped steps*, and they add no growth to the count over the
@@ -8268,8 +8417,8 @@ So the count above holds of the successful activations of $\sigma$ at $q$
 that growth steps and evaluations in a context of growths own and that are
 outside, in a parse that resumes no run, up to the bound of *Consecutive repeats inside a family* in a step
 that the claims at $p$ do not leave out, which rests on the claims of this
-lemma before *Calls in a context of growths*, not read again for a parse
-that keeps records. It does not bound those inside the iterations of the
+lemma before *Calls in a context of growths*, and these hold of a parse
+that keeps records (*The position of a growth in a parse that keeps records or resumes runs*). It does not bound those inside the iterations of the
 kind as it stands. The second growth of *Consecutive repeats inside a
 family* can take a record where the first evaluated, so it holds nothing at
 the place of $\alpha$ and the next activation there can lie in a later
@@ -8809,8 +8958,9 @@ of another cycle that the step starts at $p$ reads no growing result of the
 cycle of $g$, since a rule of another cycle reads only those of its own, and
 its call is in no context of growths ([Evaluations of
 Rules](../runtime/parsing.md#evaluations-of-rules)), so the memo stores its
-result and answers the call in the later steps, which make it in the same
-lookahead state. A growth of another leader of the cycle of $g$ that the step
+result and answers the call in every later step that makes it, in the same
+lookahead state, after the first two at most, whether or not an earlier step
+made it. A growth of another leader of the cycle of $g$ that the step
 starts at $p$ is of the first or the third kind of *Growths inside a step*,
 since a result of the second kind includes the growing result of $g$, so it
 has the result of an earlier growth that it takes again or one of a constant
@@ -11713,10 +11863,14 @@ theorem covers such a parse.
    of the later links* with records made as (M1) and (M2), which (R1) does
    not state; the parts of these claims that rest on the rest of 2 and
    on 4 for the other links stay open with those.
-   The other claims of Lemma 5, the bound of the second case of *Repeats
-   inside a growth* and the claims at the position of a growth among them,
-   have not been read again for a parse that keeps records, for the
-   sources without records or for the growths. Sixth, a source without
+   *The position of a growth in a parse that keeps records or resumes runs* shows the claims of Lemma 5
+   at the position of a growth, from *Sources at fixed offsets* to
+   *Decided units at the position of the growth*, and with them the second
+   case of *Repeats inside a growth*, of such a parse, and *Reuse in a
+   context* the bounds from *Calls in a context of growths* to *Growths
+   inside a step*. The other claims of Lemma 5 have not been read again
+   for a parse that keeps records, for the sources without records or for
+   the growths. Sixth, a source without
    records inside the element of a site that keeps records, or in
    a rule that the
    element calls: a `#recover` whose skip is not reused, a walk
@@ -11890,14 +12044,19 @@ theorem covers such a parse.
    one scan* for a link that does not meet that hypothesis, 4 for a run
    that holds such a link, and the parts of the claims from *Memoized
    breaks* to *Consecutive activations in one own region* that rest on
-   those. Nor are the bound of the
-   second case of *Repeats inside a growth* and the claims of Lemma 5
-   before *Calls in a context of growths*, on which it rests, read again
-   for such a parse, with records of sites or without: a later step of a
+   those. A later step of a
    growth can resume a run that an earlier step of the same growth
-   recorded at the same start, so that *Evaluations that read no growing
-   result*, which has a part that reads no growing result evaluated alike
-   in every step that reaches it, does not hold as it stands.
+   recorded at the same start, and so make fewer calls than that step in a
+   part that reads no growing result; *Evaluations that read no growing
+   result* is stated for that: the steps evaluate such a part with one
+   outcome over one input, with calls that are counterparts of those of one
+   evaluation of $\mathcal{R}$, and evaluate the body of each memoized call
+   in it in at most two of them. With it, *The position of a growth in a parse that keeps records or resumes runs*
+   shows the claims of Lemma 5 at the position of a growth, and the bound
+   of the second case of *Repeats inside a growth* that rests on them, of
+   such a parse, with records of sites or without, and *Reuse in a
+   context* the bounds from *Calls in a context of growths* to *Growths
+   inside a step*.
    *Activations held by heads* states its reading for a Document parse
    with *Heads in a parse that resumes runs* and *Covered keys through
    resumed runs*, and uses none of the claims on leaf links or on the
