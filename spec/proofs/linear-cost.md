@@ -2042,7 +2042,7 @@ $\pi_l$ nests at one end. *Nesting at one end* below proves this in general,
 when abandoned evaluations lie on the path, under its hypotheses on the
 dropped and the later kept steps and apart from its case of a unit
 decided by a negative lookahead on its own side, which *Negative lookaheads
-at one end* treats instead: there the call can be shared, but the continuation starts no activation of a scanning source other than a bounded scan after the inner evaluation ends, and the bounded scans that it starts there are counted by Lemma 13. Outside that case, the continuation of $w_l$ reaches
+at one end* treats instead: there the call can be shared, but the continuation starts no scanning source other than a bounded scan after the inner evaluation ends, outside memoized calls, and the bounded scans that it starts there are counted by Lemma 13. Outside that case, the continuation of $w_l$ reaches
 $e'_l$ in what follows $\pi_l$, after leaving the body of $Y_l$, so the call is
 not shared, against the choice of the link. So, outside that case, no two outer links have one
 call place, and the outer links are at most the number of call places.
@@ -2142,7 +2142,7 @@ position before $p$; none of these lies in a run of consecutive leaf links at
 $p$ whose shared call is the first, so the two lie in different runs. The
 other case is the one that *Nesting at one end* rules out, with $Y_{l'}$ as
 $X$ and $Y_l$ as $T$, under its hypotheses on the dropped and the later
-kept steps of growths on the path between them and apart from its case of a unit decided by a negative lookahead on its own side, which *Negative lookaheads at one end* treats instead: there the call can be shared, but the continuation starts no activation of a scanning source other than a bounded scan after the inner evaluation ends, and the bounded scans that it starts there are counted by Lemma 13; that those hold is not
+kept steps of growths on the path between them and apart from its case of a unit decided by a negative lookahead on its own side, which *Negative lookaheads at one end* treats instead: there the call can be shared, but the continuation starts no scanning source other than a bounded scan after the inner evaluation ends, outside memoized calls, and the bounded scans that it starts there are counted by Lemma 13; that those hold is not
 shown here. So outside that case the outer links at $p$ through
 one call place are at most one in each run, and the argument of the claim above does not
 bound them without a bound on the runs. The second case occurs in a grammar
@@ -2220,7 +2220,7 @@ records of scan sites. Then, after $e_j$ ends, $w_j$ evaluates no call of
 $r$ at $p$, unless the sequence of the activations of $\sigma$ at $q$ leaves
 out the activation at $q$ of that call, and if $w_j$ starts before $w_l$ ends, no evaluation inside $w_j$ outside the shared calls that it evaluates before $e_j$ fails before $e_j$ starts, and $Y_l$ lies in none of those shared calls, this is the case that
 *Nesting at one end* rules out, with $e_j$ as $X$ and $Y_l$ as $T$, under its
-hypotheses and apart from its case of a unit decided by a negative lookahead on its own side, which *Negative lookaheads at one end* treats instead: there the call can be shared, but the continuation starts no activation of a scanning source other than a bounded scan after the inner evaluation ends, and the bounded scans that it starts there are counted by Lemma 13, unless $r$
+hypotheses and apart from its case of a unit decided by a negative lookahead on its own side, which *Negative lookaheads at one end* treats instead: there the call can be shared, but the continuation starts no scanning source other than a bounded scan after the inner evaluation ends, outside memoized calls, and the bounded scans that it starts there are counted by Lemma 13, unless $r$
 is a scan-only rule.
 
 *Proof.* $e_j$ and $e'_j$ are evaluations of one call of the rule $Y$ of
@@ -2258,7 +2258,7 @@ $\pi_l$ that starts before $p$, ends at $p$ and contains $\alpha_{l-1}$; $Y$
 reaches the caller of $\pi_l$, which calls $Y$, so $Y$ is of the recursion of
 $\pi_l$. These are the hypotheses of *Nesting at one end* with $e_j$ as $X$
 and $Y_l$ as $T$, which give that $\pi_l$ nests at one end under its
-hypotheses on the dropped and the later kept steps and apart from its case of a unit decided by a negative lookahead on its own side, which *Negative lookaheads at one end* treats instead: there the call can be shared, but the continuation starts no activation of a scanning source other than a bounded scan after the inner evaluation ends, and the bounded scans that it starts there are counted by Lemma 13; outside that case, the continuation of $w_l$ then reaches the call of $r$ after leaving
+hypotheses on the dropped and the later kept steps and apart from its case of a unit decided by a negative lookahead on its own side, which *Negative lookaheads at one end* treats instead: there the call can be shared, but the continuation starts no scanning source other than a bounded scan after the inner evaluation ends, outside memoized calls, and the bounded scans that it starts there are counted by Lemma 13; outside that case, the continuation of $w_l$ then reaches the call of $r$ after leaving
 the body of $Y_l$, in what follows $\pi_l$, so the call is not shared unless
 $r$ is a scan-only rule. *Calls of scan-only rules* treats that rule in a
 parse with the records of scan sites, which this claim excludes, so a
@@ -2486,7 +2486,7 @@ evaluation of $E_1$, lies inside a body evaluation of $E_1$ other than as
 it, or contains $E_1$ and is not its body evaluation. In the second case,
 this is the case that *Nesting at one end* rules out, with $E_1$ as $X$ and
 $Y_l$ as $T$, and in the third, with $Y_l$ as $X$ and $E_1$ as $T$, under its
-hypotheses and apart from its case of a unit decided by a negative lookahead on its own side, which *Negative lookaheads at one end* treats instead: there the call can be shared, but the continuation starts no activation of a scanning source other than a bounded scan after the inner evaluation ends, and the bounded scans that it starts there are counted by Lemma 13, unless
+hypotheses and apart from its case of a unit decided by a negative lookahead on its own side, which *Negative lookaheads at one end* treats instead: there the call can be shared, but the continuation starts no scanning source other than a bounded scan after the inner evaluation ends, outside memoized calls, and the bounded scans that it starts there are counted by Lemma 13, unless
 $r$ is a scan-only rule.
 
 *Proof.* $Y_{l'}$ is no growth step, since the parser leaves it at $p$ from
@@ -2503,7 +2503,7 @@ $Y_l$, an evaluation of $\pi_l$ inside $E_1$ other than $E_1$, starts before
 $p$, ends at $p$ and holds $\alpha_{l-1}$, a successful activation of the
 scanning source $\sigma$. These are the hypotheses of *Nesting at one end*
 with $E_1$ as $X$ and $Y_l$ as $T$, which give that $\pi_l$ nests at one end
-under its hypotheses on the dropped and the later kept steps and apart from its case of a unit decided by a negative lookahead on its own side, which *Negative lookaheads at one end* treats instead: there the call can be shared, but the continuation starts no activation of a scanning source other than a bounded scan after the inner evaluation ends, and the bounded scans that it starts there are counted by Lemma 13. Outside that case, the continuation of $w_l$ then reaches the call of $r$
+under its hypotheses on the dropped and the later kept steps and apart from its case of a unit decided by a negative lookahead on its own side, which *Negative lookaheads at one end* treats instead: there the call can be shared, but the continuation starts no scanning source other than a bounded scan after the inner evaluation ends, outside memoized calls, and the bounded scans that it starts there are counted by Lemma 13. Outside that case, the continuation of $w_l$ then reaches the call of $r$
 after leaving the body of $Y_l$ through $\pi_l$, in what follows $\pi_l$, so
 the call is not shared unless $r$ is a scan-only rule, as in the proof of
 *Memoized links to the frame of an outer link*.
@@ -2519,7 +2519,7 @@ $c_1$. The call evaluation of $Y_l$, a call of $Y$, succeeds and ends at $p$,
 and $E_1$, an evaluation of $c_1$ inside it other than it, starts before $p$,
 ends at $p$ and holds $\alpha_{l-1}$. *Nesting at one end* with that call
 evaluation as $X$ and $E_1$ as $T$ gives that $c_1$ nests at one end, under
-the same hypotheses and apart from its case of a unit decided by a negative lookahead on its own side, which *Negative lookaheads at one end* treats instead: there the call can be shared, but the continuation starts no activation of a scanning source other than a bounded scan after the inner evaluation ends, and the bounded scans that it starts there are counted by Lemma 13, and, outside that case, the continuation of $w_l$ reaches
+the same hypotheses and apart from its case of a unit decided by a negative lookahead on its own side, which *Negative lookaheads at one end* treats instead: there the call can be shared, but the continuation starts no scanning source other than a bounded scan after the inner evaluation ends, outside memoized calls, and the bounded scans that it starts there are counted by Lemma 13, and, outside that case, the continuation of $w_l$ reaches
 the call of $r$ after leaving $B_1$ through $c_1$, so again the call is not
 shared unless $r$ is a scan-only rule. $\square$
 
@@ -3072,7 +3072,8 @@ decided only through a negative lookahead `!K` on its own side, which the
 path of $v$ that leads to $T$ passes at a position $u$. Then, after $T$
 ends, on what follows $t$ up to the end of $v$, along the path of $v$ that
 leads to $T$, the parser starts, directly or inside the calls that it
-makes there, no evaluation of a repetition without an upper bound that is
+makes there, apart from memoized calls inside the lookaheads that the
+decision passes over, no evaluation of a repetition without an upper bound that is
 not a bounded scan, of the skip expression of a `#recover` or of an
 Operators Rule, no growth of a left-recursion cycle and no copying operation
 that is a scanning source; an evaluation of a
@@ -3081,7 +3082,8 @@ $t$ makes no iteration that succeeds after $T$ ends; and every call that the
 parser makes there of a rule that `K` reaches contains no scanning source.
 So the continuation of a unit inside $T$ that leaves $T$ through $t$ at
 $p_0$, as in the claims that use *Nesting at one end*, starts before $v$
-ends no activation of a scanning source other than a bounded scan, and the
+ends no scanning source other than a bounded scan, outside the memoized
+calls in those lookaheads, and the
 bounded scans that it starts there are counted by Lemma 13.
 
 *Proof.* The proof
@@ -3104,11 +3106,20 @@ by the calls through which $\kappa_v$ leaves the bodies around $v$, follows
 the symbols of $\kappa_v$ to the end of that body, returns through $t$, and
 goes on with what follows $t$ in the body of $Z$, through the ends of the
 bodies and the calls by which the path of $v$ reaches $t$, and with the rest
-of $v$: call $\mu$ this part after $t$. After $T$ ends at $p_0$, the parser
-evaluates $\mu$ inside $v$, along beginnings of its paths. (It can also
-evaluate there parts of $v$ that do not follow $t$, when a unit between $v$
-and $T$ fails after $T$ ends and a choice tries its later alternative from
-its start, before $p_0$; the claim says nothing about those.) The unit
+of $v$: call $\mu$ this part after $t$. Where it returns through the end of
+a body that a step of a growth evaluates, $\mu$ also goes on from there, as
+the continuations of the conditions do, through the left call of the restart
+of that growth and what follows it in the body of the next step, and so on
+from the end of each such body. A left call of a restart consumes nothing
+on such a path: it reads the result of the step before, which ends where
+the path stands. After $T$ ends at $p_0$, the parser evaluates $\mu$ inside
+$v$, along beginnings of its paths, and the later steps of a growth that
+holds $t$ evaluate, after their left calls, the parts of $\mu$ that follow
+them. (It can also evaluate there parts of $v$ that do not follow $t$, when
+a unit between $v$ and $T$ fails after $T$ ends and a choice tries its later
+alternative from its start, before $p_0$, or when a step of a growth that
+holds $t$ fails or does not grow and the parser goes on after the result of
+the step before; the claim says nothing about those.) The unit
 decides this continuation too: it commits by deciding $\kappa_v$, which
 only a unit that is not a lookahead does, and such a unit commits that way
 only when it decides every one of its continuations ([Conditions for Linear
@@ -3151,19 +3162,26 @@ symbol ends a path, and a path that ends before it passes the rest of $A_K$
 does not meet the form. A repetition without an upper bound that is not
 a bounded scan is a scanning source of its own, so no path looks into it,
 and `#recover` and an Operators Rule end a path without deciding. A
-lookahead that a path passes over costs a constant, so it starts none of
-these sources. A growth starts only at a call of a rule of a
+lookahead that a path passes over costs a constant: it has no scanning
+source of its own, and each call in it reaches no scanning source or is
+memoized at the call. Such a memoized call evaluates its body at most a
+constant number of times at a position, and the sources in it are those of a memoized evaluation,
+which the claims on memoized links count, not this case. A growth starts only at a call of a rule of a
 left-recursion cycle. Such a call passes no symbol of $A_K$: it is not alike
 with one, since alike calls are calls of rules on no left-recursion cycle,
-and among the paths that it stands for is one that reaches, through left
-calls of the cycle and symbols that consume nothing, a call of the same
-rule facing the same symbol of $A_K$. The decision expands calls finitely,
-and a call whose expansion comes back to itself stops the check, so such a
-call ends the paths through it ([Conditions for Linear
-Cost](../runtime/parsing.md#conditions-for-linear-cost)). In a strict
-decision, which this form is, a predicate or a binding whose copying
-operation is a scanning source ends a path, as such a repetition does, and
-so does an action at the end of a rule body that the path passes; every
+and it stands for the paths of its body, among which is one that begins
+with the symbols, consuming nothing, before a left call of the cycle. If
+that path passes them, it reaches, through the left calls of the cycle, a
+call of the same rule facing the same symbol of $A_K$, and the decision,
+which expands calls finitely, stops the check at a call whose expansion
+comes back to itself; otherwise a symbol before the left call ends that path
+before it passes the rest of $A_K$. Either way the form is not met through
+such a call, so it lies after the rest of $A_K$ ([Conditions for Linear
+Cost](../runtime/parsing.md#conditions-for-linear-cost)). The conditions
+also require that in a strict decision, which this form is, a predicate or
+a binding whose copying operation is a scanning source end a path, as such
+a repetition does, and that an action at the end of a rule body that the
+path passes do so; every
 action ends a rule body, since an inline action is the body of a hidden
 rule ([Inline Value
 Actions](../language/actions.md#inline-value-actions)). This holds as well
@@ -3178,8 +3196,7 @@ $t$ is evaluated again after the iteration in progress when $T$ ends, so on
 each path of $\mu$ it follows that iteration as such a symbol, and the
 iteration succeeds only where the symbols before it on the path succeed;
 no path looks into such a repetition, since it is a scanning source of its
-own. The claim says nothing about the later steps of a growth that holds
-$t$. A call there
+own. A call there
 that passes a call of $A_K$ alike is a call of a rule that `K` reaches, and
 since `!K` is on the side of the unit, `K` contains no scanning source.
 $\square$
@@ -3188,7 +3205,9 @@ The bound replaces, in this case, what $t$ nesting at one end gives in the
 claims that use it: a link whose unit lies in $T$ and whose continuation leaves
 $T$ through $t$ reaches its shared call in $\mu$, before $v$ ends, and the
 activation of the link in that call starts there after $T$ ends, so its
-source is a bounded scan, which Lemma 13 counts wherever it occurs. So in
+source is a bounded scan, which Lemma 13 counts wherever it occurs, unless
+the call lies inside a memoized call in a lookahead that the decision
+passes over, whose evaluations the claims on memoized links count. So in
 this case nothing is charged to the evaluations of repetitions, and the case adds no edge to the
 order of the bounds of Lemma 4. Lemma 5 never meets it: every claim that
 uses this case is about leaf links, and for the growth activations that
@@ -3201,8 +3220,10 @@ to $n$. The variants of the first with a repetition after the call of `E`
 in `W` and with `main` followed by the rest of the alternative of `K`, such
 as `W = !(L "c") E "c"* "c" / L`, `W = !(L "c" "d") E ("c" "d")* "c" "d" / L`
 and `W = !(L "c" "c" "c" "z") E [c]* "q" / L`, are classified unknown: the
-first alternative of `W` is not committing, since the repetition stops the
-comparison before the rest of the alternative of `K` is passed. The variants
+first alternative of `W` is not committing. In the first two the repetition,
+which is not a bounded scan there, ends the paths before they pass the rest
+of the alternative of `K`, and in the third the path without an iteration
+of the repetition meets `"q"` where that rest has `"c"`. The variants
 in which a repetition ends the first alternative, such as
 `W = !(L "c") E [c]* / L`, are classified linear without that alternative
 being decided, and on `(`$^n$`bx` they start the repetition $n$ times at
@@ -3222,6 +3243,14 @@ is not a copying operation that is a scanning source, keeps the compute
 proportional to $n$. With the condition, the predicate ends the paths of
 the first alternative of `W` before they pass `L "z"`, and the alternative
 is not decided this way.
+
+A growth between the unit and $T$ is covered through the restarts. With
+`W = !(L "c") G "c" / L`, `G = G "c" R / E` and `R = [x]*`, classified
+linear, the step of each growth after the one that holds $t$ evaluates
+`"c"` at $p_0$ and fails before it reaches `R`, and on
+`(`$^n$`bx`$^n$ the compute grows in proportion to $n$. With
+`G = G R / E` instead, `R` ends the paths through the restart before they
+pass `"c"`, and the grammar is classified unknown.
 
 **Seed reads.** The following argues, without proving it, that the case of
 seed reads in the definition is the one that *Nesting at one end* gives inside
@@ -12156,7 +12185,7 @@ theorem covers such a parse.
    bound on the heads, so it cannot in turn bound the runs. Across such links, two outer
    links $l < l'$ at one position $p$ through one call place still contradict
    the sharing of their call when $Y_{l'}$ encloses $w_l$: *Nesting at one end*
-   applies with $Y_{l'}$ as $X$ and $Y_l$ as $T$, under its hypotheses and apart from its case of a unit decided by a negative lookahead on its own side, which *Negative lookaheads at one end* treats instead: there the call can be shared, but the continuation starts no activation of a scanning source other than a bounded scan after the inner evaluation ends, and the bounded scans that it starts there are counted by Lemma 13, when both links meet the hypothesis on growth steps
+   applies with $Y_{l'}$ as $X$ and $Y_l$ as $T$, under its hypotheses and apart from its case of a unit decided by a negative lookahead on its own side, which *Negative lookaheads at one end* treats instead: there the call can be shared, but the continuation starts no scanning source other than a bounded scan after the inner evaluation ends, outside memoized calls, and the bounded scans that it starts there are counted by Lemma 13, when both links meet the hypothesis on growth steps
    of *Calls that call no rule*, which keeps both frames from being growth
    steps and the later steps of the growths around the units from starting
    before the position of the scan (*Growths around a leaf link*). In the
@@ -12173,7 +12202,7 @@ theorem covers such a parse.
    link fails before that evaluation starts, and none of whose shared calls
    before that evaluation holds the frame of the earlier outer link, meets
    *Nesting at one end*, under its hypotheses on the dropped and the later
-   kept steps of growths and apart from its case of a unit decided by a negative lookahead on its own side, which *Negative lookaheads at one end* treats instead: there the call can be shared, but the continuation starts no activation of a scanning source other than a bounded scan after the inner evaluation ends, and the bounded scans that it starts there are counted by Lemma 13, apart from a scan-only rule of the scan in a parse without
+   kept steps of growths and apart from its case of a unit decided by a negative lookahead on its own side, which *Negative lookaheads at one end* treats instead: there the call can be shared, but the continuation starts no scanning source other than a bounded scan after the inner evaluation ends, outside memoized calls, and the bounded scans that it starts there are counted by Lemma 13, apart from a scan-only rule of the scan in a parse without
    records of scan sites, which no claim treats, and in a parse that keeps no records of scan sites the unit of
    the index evaluates no call of the rule of the scan at the position of the
    scan after its shared call, unless the sequence of activations leaves out
@@ -12204,7 +12233,7 @@ theorem covers such a parse.
    evaluation of the earlier one other than as it, or contains the earlier
    one other than as its body evaluation, *Nesting at one end* rules the case
    out, under its hypotheses on the dropped and the later kept steps of
-   growths and apart from its case of a unit decided by a negative lookahead on its own side, which *Negative lookaheads at one end* treats instead: there the call can be shared, but the continuation starts no activation of a scanning source other than a bounded scan after the inner evaluation ends, and the bounded scans that it starts there are counted by Lemma 13, apart from a scan-only rule of the scan in a parse without records of
+   growths and apart from its case of a unit decided by a negative lookahead on its own side, which *Negative lookaheads at one end* treats instead: there the call can be shared, but the continuation starts no scanning source other than a bounded scan after the inner evaluation ends, outside memoized calls, and the bounded scans that it starts there are counted by Lemma 13, apart from a scan-only rule of the scan in a parse without records of
    scan sites, which no claim treats (*The frame of an outer link as the later
    evaluation of a shared call*). Not shown is the case in
    which the frame of the earlier outer link is the body evaluation of the
