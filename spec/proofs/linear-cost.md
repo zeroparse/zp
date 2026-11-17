@@ -6725,8 +6725,11 @@ hypotheses and changes.
    $\alpha_m$ in $\mathcal{R}(f_m)$, that activation included, or a resumed
    walk reuses one that strictly contains it there; this arises only when
    $\alpha_m$ is not outside.
-7. *Holders of the later links*: for an $\alpha_m$ that is outside; the
-   parse then makes $h^\circ_m$ also when case (d) or (e) arises on the path
+7. *Holders of the later links*: for an $\alpha_m$ that is outside; when
+   the records of sites are made as (M1) and (M2) of *Covered keys through
+   records* and the runs are stored and resumed as (N1) and (N2) of
+   *Covered keys through resumed runs*, the parse
+   then makes $h^\circ_m$ also when case (d) or (e) arises on the path
    from $\mathcal{R}(e_{k+1})$ down to the call at the place of $h_m$,
    unless case (a) or (b) arises on that path followed through the records
    and the resumed runs.
@@ -11636,7 +11639,9 @@ theorem covers such a parse.
    that one evaluation holds, whose unit and continuation meet that
    hypothesis, and for the runs all of whose links do, with one more case
    in some conclusions and some statements for the activations that are
-   no iterations of the kind and lie inside none, as it states; the parts of these claims that rest on the rest of 2 and
+   no iterations of the kind and lie inside none, as it states, *Holders
+   of the later links* with records made as (M1) and (M2), which (R1) does
+   not state; the parts of these claims that rest on the rest of 2 and
    on 4 for the other links stay open with those.
    The other claims of Lemma 5, the bound of the second case of *Repeats
    inside a growth* and the claims at the position of a growth among them,
@@ -11803,7 +11808,8 @@ theorem covers such a parse.
    records or resumes runs* shows the claims from *Memoized breaks* to
    *Consecutive activations in one own region* of such a parse as of a
    parse that keeps records, with a resumable iteration beside an
-   iteration of the kind. Not shown of a parse that resumes runs, with
+   iteration of the kind, *Holders of the later links* with runs stored
+   and resumed as (N1) and (N2). Not shown of a parse that resumes runs, with
    records of sites or without, are what the fifth part leaves of the
    scans for a parse that keeps records: the rest of 2 of *Iterations at
    one scan* for a link that does not meet that hypothesis, 4 for a run
