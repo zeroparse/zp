@@ -59,3 +59,18 @@ func (l *linter) complexity(g *grammar.Grammar, start string) {
 		}
 	}
 }
+
+// Classify classifies the cost of the grammar g from the start rule start ("" selects the default
+// start rule) after it checks g with the front end, so that a grammar that does not compile, or a
+// start that is not a start rule of g, is an error and not a precondition. Cancellation of ctx
+// discards the result.
+func Classify(ctx context.Context, g *grammar.Grammar, start string) (*complexity.Complexity, error) {
+	res, err := checkGrammar(ctx, g)
+	if err != nil {
+		return nil, err
+	}
+	if start, err = resolveStart(res, start); err != nil {
+		return nil, err
+	}
+	return complexity.ClassifyComplexity(ctx, g, start)
+}

@@ -10,7 +10,7 @@ input. The linter finds them, and other likely mistakes, by reading the grammar 
 | Lint a grammar | `zp lint -g g.zp` | `lint.Config{}.Run(ctx, g, "main")` |
 | Machine-readable output | `-f json` | `[]lint.Finding` |
 | Turn checks off | `-disable check,...` | `lint.Config{Disable: []string{...}}` |
-| Classify the parse cost | `-classify` | `lint.Config{Classify: true}` |
+| Classify the parse cost | `-classify` | `lint.Classify(ctx, g, "main")`; `lint.Config{Classify: true}` for the hints |
 | Require linear cost | `@linear` in the grammar | `@linear` in the grammar |
 | Fail on warnings too | `-strict` | check `Finding.Severity` |
 | List the checks | `-list` | `lint.Checks()` |
@@ -224,6 +224,24 @@ func TestGrammarLint(t *testing.T) {
 ```
 
 `lint.Config{Classify: true}` reports the [`super-linear`](#super-linear) hints, as `-classify` does.
+
+`lint.Classify` takes the same arguments as `Run` and returns the classification itself: its `Class` (`lint.Linear`,
+`lint.LinearEnv`, `lint.Polynomial`, `lint.Unknown` or `lint.Exponential`), the degree of a polynomial class, the
+witnessed degree of an unknown one, and the witnesses and reasons as `lint.Cause` values with a kind, a rule, a
+position and a message. It is the classification that `-classify` prints, and like `Run` it returns an error if the
+grammar does not compile, the start rule is not one, or the context ends:
+
+```go
+c, err := lint.Classify(context.Background(), g, "main")
+if err != nil {
+	log.Fatal(err)
+}
+if c.Class != lint.Linear {
+	for _, cause := range c.Causes {
+		fmt.Printf("%d:%d: %s\n", cause.Pos.Line, cause.Pos.Col, cause.Message) // 3:10: the cost can grow as n^2 ...
+	}
+}
+```
 
 A grammar decoded from JSON has no source positions; its findings have the zero
 `Pos` and name the rule they are in.

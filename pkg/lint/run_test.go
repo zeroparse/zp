@@ -200,3 +200,46 @@ func TestRunDuplicateRule(t *testing.T) {
 		}
 	}
 }
+
+func TestClassify(t *testing.T) {
+	g, err := engine.ParseGrammar("@start\nrule main = (a / \"a\")* $$\nrule a = \"a\"* \"c\"\n")
+	if err != nil {
+		t.Fatal(err)
+	}
+	c, err := lint.Classify(context.Background(), g, "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if c.Class != lint.Polynomial || c.Degree != 2 || c.Class.String() != "polynomial" {
+		t.Fatalf("got class %v of degree %d", c.Class, c.Degree)
+	}
+	if len(c.Causes) != 1 || c.Causes[0].Kind != lint.CauseRestartedRepetition || c.Causes[0].Rule != "a" ||
+		c.Causes[0].Pos.Line != 3 || c.Causes[0].Pos.Col != 10 || !strings.Contains(c.Causes[0].Message, "n^2") {
+		t.Errorf("got causes %+v", c.Causes)
+	}
+
+	linear, err := engine.ParseGrammar("@start\nrule main = \"a\"*\n")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if c, err := lint.Classify(context.Background(), linear, "main"); err != nil || c.Class != lint.Linear || len(c.Causes) != 0 {
+		t.Errorf("got %+v, %v", c, err)
+	}
+
+	// A grammar that does not compile and a start that is not a start rule are errors.
+	bad, err := engine.ParseGrammar("@start\nrule main = y\n")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := lint.Classify(context.Background(), bad, ""); err == nil || !strings.Contains(err.Error(), "undefined rule y") {
+		t.Errorf("undefined rule: %v", err)
+	}
+	if _, err := lint.Classify(context.Background(), g, "a"); err == nil {
+		t.Error("a start that is not a start rule: no error")
+	}
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+	if _, err := lint.Classify(ctx, g, ""); !errors.Is(err, context.Canceled) {
+		t.Errorf("cancelled: %v", err)
+	}
+}
