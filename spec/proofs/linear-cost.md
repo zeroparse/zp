@@ -3632,11 +3632,14 @@ inside the evaluation $f'_m$ of a call that a unit below shares, from
 $t_{k+1}$ to $q$. Each unit below shares at most sixteen calls, but the units
 below are not bounded in number, and this proof does not bound the units
 below whose shared calls hold the later evaluations of links. *Holders of
-the later links* below shows that these links hold their activations only in
+the later links* below shows that those of these links that meet its
+hypotheses hold their activations only in
 evaluations whose class and position an evaluation made before $e_{k+1}$ ends
-has already, so that the run adds none. Three parts
+has already, so that the run adds none through them, and a bound on them
+follows from a bound on the heads that hold an activation at the position of
+the scan. Three parts
 stay open: a bound
-on the links of 2, at each of which a unit below evaluates a shared call as
+on the links of 2 beyond that reduction, at each of which a unit below evaluates a shared call as
 the twin and the continuation as the rule, or the reverse, or the unit below
 evaluates it inside a lookahead and the continuation outside every lookahead
 down to the call $\hat{g}$; the links of the second form of 1, leaf links of
@@ -3683,7 +3686,9 @@ memoizes its rule; and the evaluation of $z$ contains, at the place of $\rho$,
 a successful activation of $\sigma$ at $q$. By the hypothesis $z$ reads no
 growth open at its start. The parse makes $f_m$ inside $e_{k+1}$, so
 $\mathcal{R}(f_m)$, and $z$ with it, lies inside $\mathcal{R}(e_{k+1})$
-(*Counterparts*). The covered keys, with $e_{k+1}$ as $x$, then give an
+(*Counterparts*), so $z_m \ge t_{k+1}$, the position at which $e_{k+1}$
+starts, and $z_m \le q$, since the evaluation of $z$ holds an activation that
+consumes from $q$. The covered keys, with $e_{k+1}$ as $x$, then give an
 evaluation $h^\circ_m$ of the key of $z$ that the parse makes before
 $e_{k+1}$ ends; case (c) does not arise, since $z$ holds an activation in
 $\mathcal{R}$. $e_{k+1}$ ends before $I$ starts, and $h_m$ lies in $I_m$,
@@ -3707,7 +3712,7 @@ first form of 1 and of 2 that meet the hypotheses above number at most six
 times the classes and positions, from $t_{k+1}$ to $q$, of the evaluations of
 keys that the parse makes before $e_{k+1}$ ends and that hold a successful
 activation of $\sigma$ at $q$. The run adds none of these: each of its later
-links repeats, in a later evaluation of a class at a position, an activation
+links that meets the hypotheses repeats, in a later evaluation of a class at a position, an activation
 that an evaluation of that class at that position held before $e_{k+1}$
 ended, whether the pair that the link passes is plain or not, and however
 many units below lie on the way. The claim counts nothing, and it does not
@@ -3720,6 +3725,255 @@ position of the scan and hold an activation there, which step 1 of [Open
 Steps](#open-steps) leaves open. A bound on the links of 2 in a run is
 therefore no open part of its own: it follows, with the factor six, from a
 bound on those heads, and this claim gives no other.
+
+The claims above follow the sequence $\alpha_1, \alpha_2, \ldots$ of all the
+successful activations of $\sigma$ at $q$, whoever holds them. The three
+claims below count inside the own region of one memoized evaluation instead,
+for a source in a rule that calls no rule. In an own region no call is of a
+rule that the parse memoizes, so neither a memoized link nor a $q$-frame of
+such a rule lies in it. The claims reduce the activations that one evaluation
+holds to the iterations of one evaluation of a repetition, and show what
+joins two activations that one evaluation holds one after the other.
+
+**Own expressions.** Let $H$ be a memoized evaluation, of a rule $Q$ or of its
+twin. Of the calls in the own region of $H$ that are nested in one another,
+each made in the body evaluation of the one before, no two are of one rule, a
+rule and its twin counting as one rule, so at most $|\text{rules}|$ of them
+nest. The own region of $H$ is therefore an evaluation of the **own
+expression** of $Q$: the body of $Q$ in which, to that depth, each call of a
+rule that the parse does not memoize is replaced by the body of that rule.
+The own expression is finite, and its size depends only on the grammar. A
+**place** is an occurrence of an expression in it, a call of a rule that the
+parse does not memoize together with the body that replaces it being one
+place. Every evaluation in the own region of $H$ is an evaluation of one
+place, the outermost place, the body of $Q$, is evaluated once, by $H$, and
+every other evaluation is made by an evaluation of the place that directly
+encloses its place.
+
+*Proof.* A call in the own region is of a rule that the parse does not
+memoize, and each such call evaluates the body of its rule or of its twin
+once (Lemma 10). Suppose that two calls of such a chain are of one rule $X$.
+The rules of the calls from the first to the second form a cycle of calls
+$X = X_0, X_1, \ldots, X_m = X$, each $X_{i+1}$ called in the body of $X_i$.
+Each $X_i$ is not memoized and calls a rule, so by the first exception of
+[Evaluations of Rules](../runtime/parsing.md#evaluations-of-rules) it is
+called from at most one place in the grammar, and that place is the one in
+the body of the rule before it on the cycle. Take the first call of the chain
+whose rule is on the cycle. It is made in the body evaluation of the call
+before it on the chain, whose rule is not on the cycle, or in $H$. Its place
+is in the body of a rule of the cycle, so it is made in $H$, and $Q$ is a rule
+of the cycle. Then the parse does not memoize $Q$, so $H$ is the evaluation
+where the parse begins and $Q$ is a start rule that its own body calls through
+rules called from one place, which the parse memoizes by the same exception,
+a contradiction. So no rule occurs twice. The body of a twin is the body of its rule with, at
+each call, the rule or the twin (*Counterparts in the reference parse*), so
+the places of the two are the same. The rest follows from the definition of
+the own region: an evaluation in it other than $H$ is an evaluation of a part
+of the body of $Q$ or of a rule called in the own region, made by the
+evaluation of the expression of which it is a part, or, for a body, by its
+call. $\square$
+
+**Activations that one evaluation holds.** Let $R$ call no rule, and let $H$
+be a memoized evaluation of a rule $Q$ other than $R$ or of its twin. Let each
+place $x$ of the own expression of $Q$ that encloses a call of $R$ or is one
+be evaluated, in one evaluation of the place $y$ that directly encloses it,
+at most once, or at most $b$ times when $y$ is a repetition with an upper
+bound, or once in each iteration when $y$ is a repetition without one; this
+holds
+when the places that enclose a call of $R$ are bodies, sequences, choices,
+options, groups, captures, lookaheads and repetitions, and it leaves out the
+places inside an Operators Rule or a `#recover`. Let $I \ge 1$ be such that
+every evaluation, in the own region of $H$, of a repetition without an upper
+bound has at most $I$ iterations, the one that fails included, that contain a
+successful activation of $\sigma$ at $q$ held by $H$. Then, outside case 5,
+$H$ holds at most $c\, b^{D} I^{d}$ successful activations of $\sigma$ at $q$,
+where $c$ is the number of calls of $R$ in the own expression of $Q$, $D$ the
+greatest number of places that enclose one of them, and $d \le D$ the
+greatest number of repetitions without an upper bound among those; $c$, $b$,
+$D$ and $d$ depend only on the grammar. When $Q$ is $R$, $H$ holds at most
+one.
+
+*Proof.* A successful activation of $\sigma$ at $q$ held by $H$ is direct in
+a body evaluation of $R$ or of its twin in the own region of $H$, which is $H$
+when $Q$ is $R$ and otherwise the evaluation of a place that is a call of
+$R$. A body evaluation in an own region is no growth step (*Own regions*), so
+by *Direct activations*, outside case 5, at most one such activation is
+direct in it. This gives the last statement. For a place $x$, let $n(x)$ be
+the number of evaluations of $x$ in the own region of $H$ that contain such
+an activation. For the body of $Q$, $n = 1$ at most. Let $x$ be directly
+enclosed by $y$, and let $x$ enclose a call of $R$ or be one. Each evaluation
+of $x$ counted in $n(x)$ is made by an evaluation of $y$, which contains it
+and so is counted in $n(y)$. One evaluation of $y$ makes at most one
+evaluation of $x$, or at most $b$, or, when $y$ is a repetition without an
+upper bound, one in each iteration, of which at most $I$ contain such an
+activation. So $n(x) \le n(y)$, $n(x) \le b\, n(y)$ or $n(x) \le I\, n(y)$,
+and along the at most $D$ places that enclose a call of $R$, $n$ of that call
+is at most $b^{D} I^{d}$. The activations are at most the sum of $n$ over the
+$c$ calls of $R$. $\square$
+
+**Consecutive activations in one own region.** Let $R$ call no rule, let
+$\sigma$ be no bounded scan, and let $H$ be a memoized evaluation. Let $\beta$
+and $\beta'$ be successful activations of $\sigma$ at $q$ held by $H$, $\beta$
+first, such that no successful activation of $\sigma$ at $q$ that starts
+between them is held by $H$, and let no path that enters the growth again
+lead from the abandoned unit named below to $\beta'$ (case 5). Let $N$ be the
+innermost evaluation that contains both. Then:
+
+1. $N$ lies in the own region of $H$, and the first abandoned evaluation $w$
+   below $N$ on the path to $\beta$ is a committing unit in the own region of
+   $H$ that starts at a position $s \le q$. From the end of $w$ to the start
+   of $\beta'$ the parser starts no evaluation before $s$; the exception of
+   the restarts is empty.
+2. Let $\kappa$ be the continuation of $w$ that the parser evaluates from $s$
+   the last time before $\beta'$. Then $\beta$ is direct in the evaluation
+   $P$, inside $w$, of a call $c$ of $R$ or of its twin that $w$ and $\kappa$
+   share, at a position $p$ with $s \le p \le q$, and $R$ reads no variable.
+   So when $R$ reads a variable, $H$ holds at most one successful activation
+   of $\sigma$ at $q$ outside case 5.
+3. Let $c_1, \ldots, c_j = c$ be the calls that $w$ shares with $\kappa$ up
+   to $c$, evaluated in $w$ at $\tau_0 = s, \ldots, \tau_{j-1} = p$; $j \le
+   16$. Then one of two cases holds.
+   - (i) $\beta'$ is direct in the evaluation that $\kappa$ makes of one of
+     the calls $c_x$, $x \le j$, a call of $R$ or of its twin at
+     $\tau_{x-1} \le p$. When $x = j$, it is direct in an evaluation of the
+     call of $P$ at the position of $P$.
+   - (ii) $\kappa$ evaluates $c$ at $p$ in an evaluation $P^\circ$ that ends
+     before $\beta'$ starts. If no record of a scan site answers a walk of
+     $\sigma$ in $P^\circ$, then $P^\circ$ holds, at the place of $\beta$ in
+     $P$, a successful activation of $\sigma$ at $q$ that $H$ does not hold,
+     and $P^\circ$ lies inside the evaluation of a call of a rule that the
+     parse memoizes, made inside $N$ after $w$ ends.
+4. Let $\beta$ and $\beta'$ lie in different iterations $it$ and $it'$ of an
+   evaluation $T$ of a repetition. Then $N = T$ and $w$ lies strictly inside
+   $it$, and in case (i) every iteration of $T$ that ends after the last
+   start of $\kappa$ and before $\beta'$ starts ends at one of
+   $\tau_0, \ldots, \tau_{x-1}$; so $it'$ starts at one of these at most
+   sixteen positions.
+
+*Proof.* $H$ contains $\beta$ and $\beta'$, so $N$ is $H$ or lies inside it.
+An evaluation inside $H$ that contains $\beta$ is in the own region of $H$,
+since $\beta$ is in no call, made inside $H$, of a rule that the parse
+memoizes. So $N$ and every evaluation from $N$ down to $\beta$ are in the own
+region. A growth is the evaluation of a call of a leader, which the parse
+memoizes, so none of these is a growth or a growth step. The restarts
+therefore give $w$, which is no dropped step, so it is a unit that starts at
+$s \le q$, committing since $\sigma$ is no bounded scan, and since no growth
+lies on the path from $N$ down to $w$, their exception is empty. This is 1.
+
+$\beta$ and $\beta'$ are direct in body evaluations of $R$ or of its twin in
+the own region of $H$, which are no growth steps, and in different ones by
+*Direct activations*, outside case 5. So *Repeats* applies to them, with $w$
+and $\kappa$ as here: $\beta$ lies in the evaluation $e$, inside $w$, of a
+call that $w$ and $\kappa$ share, which starts at or before $q$. $e$ lies on
+the path from $w$ down to $\beta$, in the own region, so its rule is one that
+the parse does not memoize, and a shared call is of a rule that reads no
+variable and that is memoized at the call or calls no rule (condition 2, as in
+*Links to heads*). So the rule of $e$ calls no rule, the body evaluation in
+which $\beta$ is direct is the body evaluation of $e$, and the rule is $R$ or
+its twin, which reads no variable. $e$ starts at $p \ge s$, inside $w$. If
+$R$ reads a variable, no call of it is shared, so $H$ holds no two successful
+activations of $\sigma$ at $q$: of any two, the one that starts next after
+the earlier among those that $H$ holds would be a $\beta'$ for it. This is 2.
+
+For 3, the removal of the shared calls takes at most sixteen (condition 2),
+so $j \le 16$. Every path of $\kappa$ that examines the input begins with the
+shared calls, each with the result that it has in $w$ and each starting at
+the end of the one before (*Direct activations*, case 2). So an evaluation
+that the parser makes from the last start of $\kappa$ on and that examines
+the input lies in the evaluation that $\kappa$ makes of one of $c_1, \ldots,
+c_j$ at $\tau_0, \ldots, \tau_{j-1}$, or starts after $\kappa$ has evaluated
+all of them. $\beta'$ starts after that last start and examines the input.
+If it lies in the evaluation that $\kappa$ makes of $c_x$, that evaluation is
+in the own region of $H$, since it contains $\beta'$, so the rule of $c_x$ is
+not memoized by the parse and calls no rule, as for $e$ above; $\beta'$ is
+direct in its body evaluation, and its rule is $R$ or its twin. This is (i).
+Otherwise $\kappa$ evaluates $c_1, \ldots, c_j$ before $\beta'$ starts; the
+memo answers no call of $R$, which the parse does not memoize, so the last of
+these is a body evaluation $P^\circ$ of $R$ or of its twin at $p$, which ends
+before $\beta'$ starts. $P$ and $P^\circ$ are evaluations of calls of one
+rule, up to the variant, with one level restriction, at one position, and
+$R$ reads no variable and, calling no rule, is on no left-recursion cycle
+and reads no growth. So $\mathcal{R}(P)$ and $\mathcal{R}(P^\circ)$ take the
+same steps (*Counterparts in the reference parse*): the same expressions at
+the same positions with the same success and end. $\beta$ is the counterpart
+of a successful activation in $\mathcal{R}(P)$, so $\mathcal{R}(P^\circ)$
+holds one at the same place, in no alternative that the parse skips by the
+next character. $P^\circ$ makes no call, so the parse evaluates there what
+$\mathcal{R}(P^\circ)$ evaluates, apart from the iterations that a record of
+a scan site answers. Under the hypothesis on the records, $P^\circ$ holds a
+successful activation $\beta^\circ$ of $\sigma$ at $q$ at the place of
+$\beta$. It starts after $w$ ends, so after $\beta$, and before $\beta'$, so
+by the hypothesis on $\beta$ and $\beta'$ it is not held by $H$. $P^\circ$
+starts after $w$ ends and before $\beta'$, while $N$ is in progress, so it
+lies inside $N$, and inside $H$. Since $\beta^\circ$ is not in the own region
+of $H$, it lies in a call $g$, made inside $H$, of a rule that the parse
+memoizes, whose evaluation contains $P^\circ$. That evaluation does not
+contain $N$, which is in the own region, so it lies inside $N$. It is in
+progress when $P^\circ$ starts. Had it started before $w$ ended, it would
+contain $w$, which is in the own region, or have ended inside or before $w$.
+So $g$ is made after $w$ ends. This is (ii).
+
+For 4, $\beta$ and $\beta'$ lie in different children of $T$, and every
+evaluation that contains both contains $T$, so $N = T$. $T$ evaluates $it'$
+after $it$, so $it$ succeeded and is not the expression of a lookahead: it is
+not abandoned, and $w$ lies strictly inside it. The rest is the argument of 2
+of *Iterations at one scan*, which uses of its two activations only that they
+lie in different iterations of $T$, that $w$ is the first abandoned
+evaluation below $T$ on the path to the earlier one, and that the later one
+lies in the evaluation that $\kappa$ makes of a shared call, here $c_x$: after
+an iteration of $T$ ends, the parser starts no evaluation before its end
+until $\beta'$, and from the last start of $\kappa$ to its evaluation of
+$c_x$ the parser keeps the evaluations of $c_1, \ldots, c_{x-1}$ and examines
+no other input, so an iteration that ends in that time ends between two of
+them. $it'$ starts where the iteration before it ends. If that iteration ends
+after the last start of $\kappa$, it ends at one of these positions. If it
+ends before that start, $\kappa$ last starts while $it'$ is in progress, at
+$\tau_0 = s$, which is no later than the end of $it$, since the parser
+starts nothing before $s$ after $w$ ends, and no earlier than the start of
+$it'$, since the parser starts nothing before the end of an iteration after
+it ends; the start of $it'$ is no earlier than the end of $it$, so it is
+$\tau_0$. $\square$
+
+These claims prove no bound on the activations that one evaluation holds.
+With the second claim, such a bound follows from a bound $I$ on the
+iterations of one evaluation $T$ of a repetition in the own region that
+contain an activation held by $H$. Take two such iterations with no other
+between them, the last activation $\beta$ that $H$ holds in the earlier and
+the first, $\beta'$, in the later; no activation between them is held by $H$,
+so the third claim applies. Neither of its cases is bounded here. In case
+(i) the later iteration starts at one of at most sixteen positions that the
+unit of the earlier one fixes, but the unit of the later iteration fixes
+positions of its own, which need not be among those of the earlier when it
+shares a call or a literal inside the evaluation that the continuation makes
+of a shared call (the refinement of *Iterations at one scan*). In case (ii)
+the continuation reaches the call of $R$ through a call of a memoized rule
+with which it starts, so that an evaluation other than $H$, nested in $H$,
+holds the repeated activation; the claims above on $q$-frames and on the
+holders of the activations concern that evaluation and what the parser does
+after it. What the third claim adds is that these are the only two ways from
+one activation held by $H$ to the next, that both pass through an evaluation
+of $R$ at a position at which the abandoned unit evaluated a call of $R$
+that it shares with the continuation, and that in case (ii) the activation
+in between is held by another evaluation. The number of
+memoized evaluations that hold an activation of $\sigma$ at $q$ is not
+bounded by these claims either: it is the count of the heads of step 1 of
+[Open Steps](#open-steps).
+
+The three claims, and with them the leaf links, the runs, the $q$-frames and
+the count of the heads of step 1, concern only a source in a rule $R$ that
+calls no rule, which the parse does not memoize. They are needed because a
+call of $R$ is evaluated again wherever it is made again. Two properties of a
+parse would each take their place for such a source, and neither is assumed
+here. If the parse memoized $R$ at its calls, every link of $\sigma$ would be
+memoized, and *Links to heads* and *Activations held by heads*, which use
+none of the claims on leaf links, would apply to $\sigma$ as they do to a
+source in a rule that calls a rule. If at most a constant number of
+successful activations of $\sigma$ started at each position in every parse,
+as when a record covers every position that a walk of $\sigma$ has passed and
+a later walk that reaches such a position takes the recorded end, the count
+of the activations of $\sigma$ at $q$ would hold by that property alone. The
+hypothesis on the records in case (ii) marks where such a record enters: the
+evaluation $P^\circ$ then holds no activation at $q$.
 
 ## Lemma 5 (Growth)
 
@@ -7451,7 +7705,17 @@ condition of the cost view that the [Cost View](cost-view.md) proof leaves open.
    linked by a leaf link at a position before the scan are not treated. So the outer links do not bound the
    runs, and the count of the
    runs, of the heads that start before the position of the scan and of the
-   activations that one head holds stays open. Inside one evaluation of a
+   activations that one head holds stays open. For the last of these,
+   *Activations that one evaluation holds* reduces the activations that one
+   memoized evaluation holds, outside an Operators Rule and a `#recover`, to
+   the iterations of one evaluation of a repetition in its own region that
+   contain one, and *Consecutive activations in one own region* shows that
+   from one activation that the evaluation holds to the next the abandoned
+   unit shares a call of the rule of the source with its continuation, and
+   that the continuation evaluates that call again in the own region, or
+   inside a call of a memoized rule with which it starts, where another
+   evaluation holds the repeated activation; neither case is bounded. Inside
+   one evaluation of a
    repetition, *Iterations at one scan* bounds a run of linked reaching
    iterations at one position by the shared calls of its first unit, and
    charges an iteration whose linked evaluation it keeps to the position of
@@ -7494,7 +7758,7 @@ condition of the cost view that the [Cost View](cost-view.md) proof leaves open.
    links through the rule of the source; the others pass a pair that is not
    plain in this way, or meet a growth or an activation that the sequence
    leaves out. *Holders of the later links* shows that each link that passes
-   a pair that is not plain holds its activation in an evaluation whose class
+   a pair that is not plain and meets the hypotheses of that claim holds its activation in an evaluation whose class
    and position an evaluation made before the earlier evaluation of the first
    link ends has already, with an activation at the same place, so that the
    run adds no class and position of a holder and these links number at most
