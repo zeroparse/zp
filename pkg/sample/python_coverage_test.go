@@ -6,7 +6,7 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/engine"
-	"zeroparse.dev/zp/sample"
+	"zeroparse.dev/zp/pkg/sample"
 )
 
 // TestPythonCoverageFloor holds the coverage of the Python grammar, whose statements depend on
@@ -17,7 +17,7 @@ func TestPythonCoverageFloor(t *testing.T) {
 	if testing.Short() {
 		t.Skip("generates 50 Python inputs")
 	}
-	src, err := os.ReadFile("../testdata/grammars/python/python.zp")
+	src, err := os.ReadFile("../../testdata/grammars/python/python.zp")
 	if err != nil {
 		t.Fatal(err)
 	}
