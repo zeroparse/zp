@@ -764,8 +764,10 @@ inside a growth* and those that *Families in a parse that keeps records*
 shows, have not been read again for such
 a parse (step 8 of [Open Steps](#open-steps)); *Families without the
 records* bounds the activations that growth steps and evaluations in a
-context of growths own in such a parse by those of a parse that keeps no
-records, for which no such reading is needed.
+context of growths own in such a parse, when it resumes no run of a
+Document, by those of a parse that keeps no records, for which no such
+reading is needed, subject to the open parts of the count of Lemma 5 in
+that parse.
 
 **Sources without records.** $A_u$ counts the successful activations of the
 following, and the count of Lemma 4 is needed for them and for the growths
@@ -7542,9 +7544,11 @@ $\mathcal{R}(h)$ down to the place that corresponds to the counterpart of
 the activation of $g$, and, at each call or step $y$ that the parse does
 not evaluate, goes on from $\mathcal{R}(y')$, which takes the steps of
 $\mathcal{R}(y)$ outside the lookaheads that $y'$ observed. Each segment of that path, from $\mathcal{R}(h)$ or from an
-$\mathcal{R}(y')$, lies outside the lookaheads that $y'$ observed and goes
-through the expressions through which the evaluation that it continues
-reaches the counterpart of the activation of $g$, so by (P), applied to
+$\mathcal{R}(y')$, reaches the place that corresponds to the counterpart
+of the activation of $g$ through the expressions through which the
+matching evaluation inside $\mathcal{R}(g)$ reaches that counterpart, and
+each segment from an $\mathcal{R}(y')$ lies outside the lookaheads that
+$y'$ observed, so by (P), applied to
 each segment in turn, no iteration of the kind lies on any segment of that
 path, so no record answers an
 evaluation on it, and the parse evaluates every call and step on it that
@@ -7593,17 +7597,21 @@ the place of $\alpha$ and the next activation there can lie in a later
 step; and a head can take a record where a later growth of its key
 evaluates, so it need not hold what that growth holds. The next claim
 bounds them, and the outside ones with them, by the same count in a parse
-that keeps no records.
+that keeps no records, when the parse resumes no run of a Document.
 
 **Families without the records.** Call a rule **cycle-free** when no rule
 that it reaches, itself included, is a rule of a left-recursion cycle. Let
 the parse, whose records are exact, (R1) of the [Setting](#setting),
-reuse no result and no step kept in a context of growths, and let
-$\mathcal{P}$ be the parse of the same grammar and input, with the same
-entries from earlier parses, that keeps no record of any site, reuses
-nothing kept in a context of growths, stops at no limit, and stores the
-result of an evaluation of a rule that is not cycle-free exactly where
-the parse stores it. Then $\mathcal{P}$ is a parse of the
+reuse no result and no step kept in a context of growths, resume no run
+of a [Document](../runtime/documents.md) and stop at no limit, and let
+$\mathcal{P}$ be the parse of the same grammar and input, of the same
+kind, with the same entries from earlier parses, that memoizes the rules
+that the parse memoizes, keeps no record of any site, resumes no run,
+reuses nothing kept in a context of growths, stops at no limit, and
+stores the result of an evaluation of a rule that is not cycle-free
+exactly where the parse stores it. A Document memoizes the transient
+rules as well (Lemma 3), so $\mathcal{P}$ memoizes them when the parse
+does. Then $\mathcal{P}$ is a parse of the
 [Setting](#setting), and every successful activation of a source $\sigma$
 at $q$ that a growth step or an evaluation in a context of growths owns in
 the parse has the counterpart of an activation of $\sigma$ at $q$ that
@@ -7652,12 +7660,17 @@ would then not be shared. So the induction hypothesis gives $Y_0$ to both
 parses or to neither, and evaluated by both or by neither when it is a
 call. The skip depends on the input alone. Whether a step of a growth is
 taken depends on the results of the earlier steps, which are those of
-their counterparts in both. Whether a call is evaluated depends, for a
+their counterparts in both. With no reuse of a step kept in a context of
+growths, each parse evaluates every step that it takes and takes no run
+of steps at once, since a run is taken from kept steps (*Covered keys*).
+With no resumed run, a walk evaluates every iteration that no record
+answers, and $\mathcal{P}$ keeps no record. Whether a call is evaluated depends, for a
 rule that the parse does not memoize, on nothing, since the memo never
 answers it; for a rule that is not cycle-free and that the parse
 memoizes, on the growths open at its position, which started at calls of
 rules of a cycle, and on the entries that the memo holds for its key in
-its lookahead state, which were stored by evaluations of calls of that
+its lookahead state or in a smaller one, which can answer it by (L) of
+the [memoization proof](memoization.md#setting), and which were stored by evaluations of calls of that
 rule or of its twin, or of growths of it, whose counterparts start before
 $Y$, or come from earlier parses. Those calls and growths are framed and
 shared by the paragraph above, so by the induction hypothesis both parses
@@ -7708,7 +7721,11 @@ growth lies there (*Growths lie outside the recorded walks*). So
 $\mathcal{P}$ evaluates an activation $\alpha'$ whose counterpart is that
 of $\alpha$: an activation of $\sigma$ at $q$ that succeeds, as its
 counterpart does. Between $G'$ and $\alpha'$ the calls are those of the
-path, of rules that the parse does not memoize, so $G'$ owns $\alpha'$.
+path, of rules that the parse does not memoize, and none of their body
+evaluations is in a context of growths: whether one is depends only on
+its rule and the growths open at its position, which are those of its
+counterpart in both parses, and in the parse none is, since $G$ is the
+innermost owner of $\alpha$. So $G'$ owns $\alpha'$.
 Let $g$ be the outer growth whose family region holds $\alpha$. The path
 from $\mathcal{R}(g)$ down to $\mathcal{R}(G)$ holds the counterparts of
 no memoized evaluation and of no growth at another position, by the
@@ -7734,6 +7751,19 @@ claim moves those open parts to a parse without records and adds none.
 The bound gives the parse no credit for its records: a walk that a growth
 step makes is counted in $\mathcal{P}$ with all its iterations, whatever
 records the parse could take there.
+
+The claim leaves out a parse that resumes a run of a Document. Such a
+parse can resume a run whole from a record that it stored earlier
+([Documents](../runtime/documents.md)), so whether it resumes a walk
+depends on the walks that it evaluated before, among them walks inside
+iterations that its records answer, and a parse without records of
+sites that resumes runs can resume a walk that the parse evaluates; one
+that resumes none evaluates elements that the parse never evaluates,
+and its stores of the calls made there have no counterpart in the
+parse. In a parse that resumes a run, the activations that growth steps
+and evaluations in a context of growths own inside the iterations of the
+kind are therefore not bounded here, and step 8 of [Open
+Steps](#open-steps) lists them with the walks that a Document resumes.
 
 The growth steps themselves remain. By *Calls in a context of growths* and
 *Growths inside a step*, the steps of the growths that are not outer are
@@ -10647,7 +10677,11 @@ theorem covers such a parse.
    Third, the walks at which a Document
    resumes a run are walks without records, and so are the repetitions that
    are not restartable and that *Sites that are walked a constant number of
-   times* does not cover; both stay under step 1. Fourth, the order of the
+   times* does not cover; both stay under step 1. A parse that resumes a
+   run is also outside *Families without the records*, so in it the
+   activations that growth steps and evaluations in a context of growths
+   own inside the iterations of the walks of the sites that keep records
+   are not bounded. Fourth, the order of the
    bounds, which the theorem takes as a hypothesis (*Order* in Lemma 17):
    $B$, $A_u$ and $O$ must be bounded with no use of the iterations of the
    recorded walks, of the activations that do not succeed or of the
@@ -10697,10 +10731,11 @@ theorem covers such a parse.
    a walk of a site that keeps records, up to the claims at the position
    of a growth that the count after them uses. *Families without the
    records* bounds every activation that a growth step or an evaluation in
-   a context of growths owns in such a parse, inside those iterations or
-   not, by one of a parse that keeps no records, so that count, with the
-   claims at the position of a growth, applies to them as in a parse
-   without records. *Activations that do
+   a context of growths owns in such a parse that resumes no run of a
+   Document, inside those iterations or not, by one of a parse that keeps
+   no records, so that count, with the claims at the position of a
+   growth, applies to them as in a parse without records, subject to the
+   open parts of that count. *Activations that do
    not succeed in a parse that keeps records* shows that claim and Lemma
    10 of such a parse, and *Iterations at one scan in a parse that keeps
    records* shows 1 and 3 of *Iterations at one scan* and the first
@@ -10782,7 +10817,9 @@ theorem covers such a parse.
    in a context of growths owns are bounded, with those outside them, by
    the count of Lemma 5 in a parse that keeps no records and reuses
    nothing in a context of growths (*Families without the records*), so
-   what is open of them is what is open of that count in such a parse.
+   what is open of them is what is open of that count in such a parse,
+   when the parse resumes no run of a Document; in a parse that resumes
+   one they are open, with the walks of the third part.
    The same holds of the units of a copying operation that is a scanning
    source, in an action or a predicate of the element or of a rule that it
    calls, which Lemma 6 counts through the count of Lemma 4, and of the
