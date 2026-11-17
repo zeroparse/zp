@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"strings"
 
-	syntaxfmt "zeroparse.dev/zp/internal/syntax/fmt"
 	"zeroparse.dev/zp/pkg/grammar/ast"
 )
 
@@ -332,16 +331,84 @@ func (e *TermEnv) cast(c *ast.Cast, x V) V {
 	return x
 }
 
-// castName is the type of a cast as an error message shows it: as written, without the parentheses
-// that group the whole type.
+// castName is the type of a cast as an error message shows it: on one line, without the
+// parentheses that group the whole type.
 func castName(t ast.TypeExpr) string {
 	for {
 		g, ok := t.(*ast.TypeGroup)
 		if !ok {
-			return syntaxfmt.FormatType(t)
+			return typeText(t)
 		}
 		t = g.Type
 	}
+}
+
+// typeText is t in the source syntax on one line, without comments: the spelling of the formatter
+// for a type that has no layout. The IR does not import the formatter, which is a front-end
+// package.
+func typeText(t ast.TypeExpr) string {
+	list := func(ts []ast.TypeExpr) string {
+		parts := make([]string, len(ts))
+		for i, x := range ts {
+			parts[i] = typeText(x)
+		}
+		return strings.Join(parts, ", ")
+	}
+	// operand is an element of a list or optional type, or a member of a join, which a join or a
+	// meet inside it must group.
+	operand := func(x ast.TypeExpr) string {
+		switch x.(type) {
+		case *ast.JoinType, *ast.MeetType:
+			return "(" + typeText(x) + ")"
+		}
+		return typeText(x)
+	}
+	switch t := t.(type) {
+	case *ast.TypeGroup:
+		return "(" + typeText(t.Type) + ")"
+	case *ast.TypeRef:
+		return t.Name
+	case *ast.ListType:
+		return "[]" + operand(t.Elem)
+	case *ast.OptionalType:
+		return "*" + operand(t.Elem)
+	case *ast.JoinType:
+		parts := make([]string, len(t.Types))
+		for i, x := range t.Types {
+			if _, ok := x.(*ast.MeetType); ok {
+				parts[i] = typeText(x) // & binds tighter than |
+			} else {
+				parts[i] = operand(x)
+			}
+		}
+		return strings.Join(parts, " | ")
+	case *ast.MeetType:
+		parts := make([]string, len(t.Types))
+		for i, x := range t.Types {
+			parts[i] = typeText(x)
+			if _, ok := x.(*ast.JoinType); ok {
+				parts[i] = "(" + parts[i] + ")"
+			}
+		}
+		return strings.Join(parts, " & ")
+	case *ast.TupleType:
+		if len(t.Types) == 1 {
+			return "(" + typeText(t.Types[0]) + ",)" // (T) would be a group
+		}
+		return "(" + list(t.Types) + ")"
+	case *ast.StructType:
+		if len(t.Fields) == 0 {
+			return "{}"
+		}
+		parts := make([]string, len(t.Fields))
+		for i, f := range t.Fields {
+			parts[i] = f.Name + " " + typeText(f.Type)
+		}
+		return "{ " + strings.Join(parts, "; ") + " }"
+	case *ast.TypeApp:
+		return t.Name + "[" + list(t.Args) + "]"
+	}
+	return "?"
 }
 
 // typeName is the name of the type that the name n, written in a constructor, means: the name of the
@@ -424,7 +491,7 @@ func (e *TermEnv) admits(t ast.TypeExpr, x V) bool {
 			return x.Kind == KNode && e.admits(t.Args[0], x.nodeValue())
 		}
 	}
-	panic(fmt.Sprintf("ref: unsupported cast type %s", syntaxfmt.FormatType(t)))
+	panic(fmt.Sprintf("ref: unsupported cast type %s", typeText(t)))
 }
 
 func (e *TermEnv) all(xs []V, t ast.TypeExpr) bool {

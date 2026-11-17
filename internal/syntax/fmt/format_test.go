@@ -108,3 +108,19 @@ func TestFormatTrailingComma(t *testing.T) {
 		}
 	}
 }
+
+func TestTupleLitFormat(t *testing.T) {
+	for _, tc := range []struct {
+		term ast.Term
+		want string
+	}{
+		{&ast.TupleLit{Elems: []ast.Term{}}, "()"},
+		{&ast.TupleLit{Elems: []ast.Term{&ast.IntLit{Value: 1}}}, "(1,)"},
+		{&ast.TupleLit{Elems: []ast.Term{&ast.IntLit{Value: 1}, &ast.VarRef{Name: "x"}}}, "(1, x)"},
+		{&ast.Binary{Op: "[]", L: &ast.TupleLit{Elems: []ast.Term{&ast.IntLit{Value: 1}, &ast.IntLit{Value: 2}}}, R: &ast.IntLit{Value: 0}}, "(1, 2)[0]"},
+	} {
+		if got := FormatTerm(tc.term); got != tc.want {
+			t.Errorf("got %q, want %q", got, tc.want)
+		}
+	}
+}

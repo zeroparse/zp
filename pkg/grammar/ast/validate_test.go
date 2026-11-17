@@ -153,12 +153,15 @@ func TestValidateCyclesAndSharing(t *testing.T) {
 	assertValidationError(t, Validate(termGrammar(groupTerm)), "$.file.decls[0].action.term")
 	shared := &Optional{Expr: &Literal{Value: "a"}}
 	g := expressionGrammar(&Seq{Items: []Expr{shared, shared}})
-	before := Format(g)
+	before, err := MarshalJSON(g)
+	if err != nil {
+		t.Fatal(err)
+	}
 	if err := Validate(g); err != nil {
 		t.Fatal(err)
 	}
-	if Format(g) != before {
-		t.Fatal("validation mutated grammar")
+	if after, err := MarshalJSON(g); err != nil || string(after) != string(before) {
+		t.Fatalf("validation mutated grammar: %v", err)
 	}
 }
 
