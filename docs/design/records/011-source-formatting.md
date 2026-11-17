@@ -91,7 +91,7 @@ Comments in the other gaps still go to the line break nearest before them.
 An action block keeps the comment that ends the line of its `{` in `OpenBreak`, the comments around a `;` in the layout of the statements, and a statement that follows a `;` and a comment on its line stays on that line.
 A comment on the line of the last token before the `)` of a group, which trails that token, is kept in `Last` of the break before the `)`; the `Trailing` of that break is the comment after the `)`. This keeps the comment from moving across the tokens of a nested group.
 A declaration, field or package clause that starts on the closing line of a multi-line block comment keeps that comment as its own detached one: the formatter writes it on lines of its own, set off by blank lines, before the declaration.
-An index keeps the layout of its brackets in `OpenBreak`, `BodyBreak` and `CloseBreak`, as a `TermGroup` does.
+An index keeps the layout of its brackets in `OpenBreak`, `BodyBreak` and `CloseBreak`, as a `ActionGroup` does.
 
 Formatting is idempotent: formatting the output again gives the same text, because each recorded line break reproduces itself.
 Tests check this, and that every grammar in `examples/` reparses to the same AST (compared through JSON) with the same comments.
@@ -103,5 +103,5 @@ Tests check this, and that every grammar in `examples/` reparses to the same AST
 
 ## Limitations
 
-- A rule body keeps line breaks at its top-level choice and sequences. Source-only PEG, type and action group nodes preserve layout and comment ownership inside their explicit delimiters. `TypeGroup` and `TermGroup` keep raw line placement in `OpenBreak`, `BodyBreak`, `CloseBreak` and `OneLine`, separate from normalized `SourceInfo` ownership. Other internal line breaks, including those inside Operators Rule operands and operators, are joined, and comments there move to the nearest preceding line.
+- A rule body keeps line breaks at its top-level choice and sequences. Source-only PEG, type and action group nodes preserve layout and comment ownership inside their explicit delimiters. `TypeGroup` and `ActionGroup` keep raw line placement in `OpenBreak`, `BodyBreak`, `CloseBreak` and `OneLine`, separate from normalized `SourceInfo` ownership. Other internal line breaks, including those inside Operators Rule operands and operators, are joined, and comments there move to the nearest preceding line.
 - Alignment that `Format` does not produce itself (for example, aligned columns in Operators Rule levels) is not kept.

@@ -6,9 +6,9 @@
 
 ## Summary
 
-The source form `(expression => term)` is an inline grammar action. It behaves
+The source form `(expression => expr)` is an inline grammar action. It behaves
 exactly as a call of a hidden rule whose body is the expression and whose
-whole-rule action is the term, written at that position. The compiler lowers it
+whole-rule action is the action expression, written at that position. The compiler lowers it
 that way, so every backend runs it with the semantics of a rule.
 
 ```zp
@@ -23,12 +23,12 @@ rule item Expr = (n:number => $n) / (w:word => $w)
 rule main Main = item:item => Main{Value: $item}
 ```
 
-The whole-rule action remains `=> term` after the complete ordinary rule
+The whole-rule action remains `=> expr` after the complete ordinary rule
 expression. Operators Rule actions apply separately to operand and operator
 entries. Operator-entry actions keep their specialized `$lhs`, `$rhs` and `$op`
 context. A declaration-level action on an Operators Rule may be omitted or use
 the explicit `=> ...` default-CST form; any other action is rejected at compile
-time. Only a single-term Value Action can be inline; an inline braced Value
+time. Only a single-expression Value Action can be inline; an inline braced Value
 Action block is a compile-time error, as a whole-rule one is.
 
 ## Hidden rules
@@ -135,7 +135,7 @@ the corpus of generated parsers.
 - **A suffix on one primary.** It cannot name the complete preceding sequence as
   the reduction input.
 - **Braced local actions.** Braces overlap with type constructors and
-  declaration bodies. Parentheses delimit the expression and action term.
+  declaration bodies. Parentheses delimit the expression and the action expression.
 - **A dedicated instruction and backend support.** An inline instruction that
   reduces the wrapped value and clears the captures needs its own frame handling,
   capture rules and recovery behavior in each backend, and these rules differ
