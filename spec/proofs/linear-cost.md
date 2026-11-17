@@ -3558,15 +3558,20 @@ read them so):
   site that is not free of the environment, only in an environment in
   which the variables that the element reads have the values with which
   the iteration of (M1) began; where the walk of (M1) found the second
-  record, it found it in the environment that its iteration left. An
-  implementation may let a walk find fewer records than that: the engine
-  keeps the records of the walks inside lookaheads apart from those of the
-  walks outside them, and a walk of it that builds the list of the values
-  of its iterations finds only a record made by a walk that built them,
-  since a record made by a walk of a value-free twin holds no values, so
-  that a position has at most two records for one lookahead state and one
-  combination of those values, one with the values and one without. A
-  walk that builds no list finds either.
+  record, it found it in the environment that its iteration left. A walk
+  may find fewer records than that. By
+  [Run Sites](../runtime/parsing.md#run-sites) and the paragraph *Kinds*
+  of the [Run Sites proof](run-sites.md#lemma-2-cost-once-hot), the
+  records of the walks inside lookaheads are kept apart from those of the
+  walks outside them, a position has one record at a time for one
+  lookahead state and one key, which at a site that is not free of the
+  environment is the environment as an object and not the values in it,
+  and a walk whose iterations have values takes no record that a walk
+  without values made, which holds no elements: it records the position
+  again, and its record takes the place of that one. A record without
+  values never takes the place of one with them, so a key is recorded at
+  most twice. A walk whose iterations have no values takes a record of
+  either kind.
 
 An implementation that makes the records of such a site in another way
 needs the claim shown anew. A record of any other site answers no
@@ -4078,11 +4083,11 @@ the state of its slot: for each lookahead state the element is evaluated
 at a position at most once while its slot is fresh and once more before it
 is recorded ([Skip Runs](../runtime/parsing.md#skip-runs), and cases 1
 and 2 of [Lemma 2](run-sites.md#lemma-2-cost-once-hot) of the Run Sites
-proof, for the records of one key), and, where a walk that builds values
-finds only a record that holds them, (M2), once more by such a walk before
-the position has a record with values: the argument of case 2 holds of the
-records with values alone, so the two kinds of record of a position give
-at most three such evaluations for each lookahead state and key. They do not bound the iterations that
+proof, for the records of one key), and, where a walk whose iterations
+have values takes no record that a walk without values made, (M2), case 2
+of that lemma counts the second evaluation once for each of the two kinds
+of walk (its paragraph *Kinds*), which gives its bound of $3(n + 1)$ for
+a class in place of $2(n + 1)$. They do not bound the iterations that
 a walk evaluates whatever the slot holds, which those lemmas count for
 each walk and not for each position: its first iterations up to the
 minimum of the repetition, the last iteration of a walk that ends plain,
@@ -4091,206 +4096,20 @@ before the site turns hot
 ([Lemma 3](run-sites.md#lemma-3-cost-before-hot) of that proof). Nor do
 they bound the iterations of one class at a site whose records are kept
 under the environment as an object, where equal environments that are
-distinct share no record. *Owners in a parse that keeps records* below counts the activations
-inside the iterations in another way, by the memoized evaluations around
-them, and reduces the first three sorts to the classes of memoized
-evaluations that it calls raised. So, under the hypotheses of this claim, what remains of the sixth part
+distinct share no record. *Descent in the reference parse* below counts
+the activations inside the iterations in another way, by the memoized
+evaluations that own them, whatever the slots hold. So, under the hypotheses of this claim, what remains of the sixth part
 of step 8 for the activations that the iterations hold is, counted by the
 units, the number of
 the iterations of these four sorts that the parse evaluates in one
 class.
 
-**Owners in a parse that keeps records.** This claim counts by the
-memoized evaluations and their own regions (*Owners*), which hold the
-iterations of the kind inside them, and not by the units. It is for a
-parse whose records are exact, (R1), made as (M1) and (M2) state, and
-found as follows:
-
-- (M4) let a walk $V^\circ$ of a run site or of a skip-run site take a
-  record at a position $r'$, and let a later walk $V$ of that site, which
-  no Document resumes, stand at $r'$ before an iteration after $V^\circ$
-  took the record, in the lookahead state of $V^\circ$, having matched as
-  many iterations as $V^\circ$ had there, with the values that the
-  variables that the element reads had for $V^\circ$ there. Then $V$ takes
-  a record at $r'$, unless $V$ builds the list of the values of its
-  iterations and the record that $V^\circ$ took holds no values.
-
-The engine meets (M4) at a site whose records are kept by position alone:
-$V^\circ$ looked the slot up, so it had matched the minimum, its site was
-hot in its lookahead state and stays so, and the slot of $r'$ in that
-state is recorded; $V$ finds a slot that is not fresh, starts recording
-there if it was plain, and looks the slot up before its iteration
-([Skip Runs](../runtime/parsing.md#skip-runs),
-[Run Sites](../runtime/parsing.md#run-sites)); a stream drops a slot only
-before the input that it commits, where no walk stands again. At a site
-whose records are kept under the environment as an object, (M4) is shown
-only when the two walks stand at $r'$ in one environment object.
-
-Let $\alpha_1, \alpha_2, \ldots$ be the successful activations of $\sigma$
-at $q$ as in *Links to heads*. Call $\alpha_i$, $i \ge 2$, **tied** when
-the $i$-th link is memoized and meets the hypothesis of *Links lead to
-repeated evaluations* on the growths at its position, or when $i$ is free
-and $\alpha_i$ is the counterpart of an activation $\beta'$ of
-$\mathcal{R}$ that has a reference link of a rule that the parse
-memoizes.
-
-1. If the own region of an evaluation $U$ of the parse holds $\alpha_j$
-   and $\alpha_i$ with $j < i$, then $\alpha_i$ is not tied. So an
-   evaluation of a key holds at most one of the $\alpha_i$ that are
-   $\alpha_1$ or tied, and a memoized evaluation owns at most one.
-2. Let an evaluation $G$ of a key hold a tied $\alpha_i$. Then $G$ is not
-   the head of its class, unless case (a) or (b) of the covered keys
-   arises on the path of the link, or of the reference link, followed
-   through the records.
-3. Let $G$ and $\alpha_i$ be as in 2, outside those cases, and let no
-   evaluation of a key of the class of $G$ that starts before $G$ hold a
-   successful activation of $\sigma$ at $q$. Let $M^\circ$ be such an
-   earlier evaluation; there is one by 2. Then $M^\circ$ ended before $G$
-   started, and there are a walk $V^\circ$ in the own region of $M^\circ$
-   and the walk $V$ at the same place in the own region of $G$, walks of
-   one run site or skip-run site from one position, such that $V^\circ$
-   took a record at a position $r'$ and $V$ evaluated its iteration at a
-   position $r \ge r'$, an iteration that contains $\alpha_i$ or is the
-   iteration $\alpha_i$.
-4. In 3, under (M4), one of the following holds: $V$ is in another
-   lookahead state than $V^\circ$; $V$ builds the list of the values of
-   its iterations and the record that $V^\circ$ took holds none; or a
-   Document resumes $V$.
-
-*Proof.* 1\. Let $\alpha_i$ be tied by a memoized link. $e'_i$ is made by
-a call of a rule that the parse memoizes and contains $\alpha_i$, as $U$
-does, so the two nest. If $e'_i$ lay strictly inside $U$, $\alpha_i$
-would lie inside a call of a rule that the parse memoizes made inside
-$U$, outside the own region of $U$. So $U$ is $e'_i$ or lies inside it,
-and $e'_i$ contains $\alpha_j$. But $e'_i$ is made after the unit $w_i$
-is abandoned (*Repeats*), $w_i$ contains $\alpha_{i-1}$, and $\alpha_j$
-starts no later than $\alpha_{i-1}$ does, so $\alpha_j$ starts before
-$e'_i$ does. Let $\alpha_i$ be tied by the reference link
-$(e^k, e^{k\prime})$ of $\beta'$. The evaluations of the parse are
-counterparts of evaluations of $\mathcal{R}$, nested and ordered as
-$\mathcal{R}$ nests and orders them (*Heads in a parse that keeps
-records*). $e^{k\prime}$ and $\mathcal{R}(U)$ both contain $\beta'$. If
-$e^{k\prime}$ lay strictly inside $\mathcal{R}(U)$, it would contain the
-counterpart of $\alpha_i$, which the parse evaluates, so it would be the
-counterpart of an evaluation of the parse made inside $U$ by a call of a
-rule that the parse memoizes, around $\alpha_i$. So $\mathcal{R}(U)$ is
-$e^{k\prime}$ or lies inside it, and $e^{k\prime}$ contains the
-counterpart of $\alpha_j$, a successful activation of $\sigma$ at $q$
-that starts before $\beta'$ does. But $e^{k\prime}$ holds no such
-activation before $\beta'$ (the proof of *Reference links*). The second
-statement follows: an evaluation of a key holds what lies in its own
-region, and a memoized evaluation is an evaluation of a key that holds
-what it owns (*Keys and classes*).
-
-2\. The own region of $G$ holds $\alpha_i$, so by the proof of 1, with
-$U = G$, $G$ is $e'_i$ or lies inside it, or $\mathcal{R}(G)$ is
-$e^{k\prime}$ or lies inside it: $G$ is not the evaluation where the
-parse begins, which no call makes. For a memoized link this is the key case of the proof
-of 1 of *Links to the heads of units*, which uses of the unit only that
-it is $e'_i$ or lies inside it, which the own region gives as its region
-does, and that it holds $\alpha_i$ at some depth. For a reference link it
-is 3 of *Covered keys through records*.
-
-3\. $M^\circ$ and $G$ are evaluations of keys of one class, so
-$\mathcal{R}(M^\circ)$ and $\mathcal{R}(G)$ take the same steps up to the
-variants of their calls (*Counterparts*, as in the proof of *Replays*).
-$M^\circ$ does not contain $G$: if $\mathcal{R}(G)$ lay at a place
-strictly inside $\mathcal{R}(M^\circ)$, the evaluation at that place
-inside $\mathcal{R}(G)$ would take the steps of $\mathcal{R}(G)$ again,
-strictly inside it, and so on without end. $G$ starts after $M^\circ$ does, so $M^\circ$
-ended before $G$ started. Let $\beta^\circ$ be the evaluation at the
-place of the counterpart of $\alpha_i$ in $\mathcal{R}(M^\circ)$: a
-successful activation of $\sigma$ at $q$, reached from
-$\mathcal{R}(M^\circ)$ through the expressions through which the
-counterpart of $\alpha_i$ is reached from $\mathcal{R}(G)$, so through no
-call of a rule that the parse memoizes. The parse does not evaluate the
-counterpart of $\beta^\circ$, which would be a successful activation of
-$\sigma$ at $q$ in the own region of $M^\circ$, held by it. The evaluations of the parse are the counterparts of the
-evaluations of $\mathcal{R}$ that lie in no call or step that the parse
-answers, in no alternative that it skips and in no iteration that a
-record answers (*Heads in a parse that keeps records*). On the path from
-$\mathcal{R}(M^\circ)$ down to $\beta^\circ$, take the first evaluation
-that has no counterpart in the parse; $M^\circ$ is evaluated, so it lies
-below $\mathcal{R}(M^\circ)$. It is no call of a rule that the parse
-memoizes and no step of a growth, since the path holds none, and it lies
-in no alternative that the parse skips, which holds no activation
-(*Counterparts*). So it is an iteration $\iota$ that a record answers,
-$\beta^\circ$ or one that contains it, of a walk whose counterpart
-$V^\circ$ the parse evaluates in the own region of $M^\circ$, and
-$V^\circ$ took a record at a position $r'$ at or before the position $r$
-of $\iota$. Its site is a run site or a skip-run site when $\iota$
-contains $\beta^\circ$, which is then an activation other than $\iota$
-inside it, so that the site repeats no single character; when $\iota$ is
-$\beta^\circ$, the site is $\sigma$, and the statement is for a $\sigma$
-that is one. Let $V$ be the evaluation of the parse at the place of
-$V^\circ$ inside $G$: it is evaluated, since it contains $\alpha_i$, it
-is a walk of the same site from the same position, and it evaluates the
-iteration at the place of $\iota$, which is $\alpha_i$ or contains it and
-starts at $r$.
-
-4\. $\mathcal{R}(V^\circ)$ and $\mathcal{R}(V)$ take the same steps, so
-their iterations start at the same positions, and each iteration begins
-with the same values in the variables that the element reads: the keys
-of $M^\circ$ and $G$ hold the same values of the variables that their
-rule reads, in its body and through the rules that it calls, and the two
-evaluations bind the others alike. $V$ evaluates its iteration at
-$r \ge r'$, so it evaluated every iteration before $r'$ and stood at $r'$
-before an iteration, having matched as many iterations as $V^\circ$ had
-there, after $M^\circ$ ended, so after $V^\circ$ took its record. Were
-none of the three to hold, (M4) would make $V$ take a record at $r'$,
-and it would evaluate no iteration at $r$. $\square$
-
-So, under the hypotheses of *Activations held by the heads of units*,
-count the successful activations of $\sigma$ at $q$ that memoized
-evaluations own, inside the iterations of the kind or not. Those that are
-not tied are $\alpha_1$, the exceptions of 1 of that claim, and the
-activations that the list of the $\alpha_i$ leaves out. By 1 each
-memoized evaluation owns at most one that is tied, and a class has at
-most six memoized evaluations (Lemma 3), so the tied ones that memoized
-evaluations own are at most six
-times the classes that have an owner of one. In such a class take the
-first evaluation of a key that holds a successful activation of $\sigma$
-at $q$. Either it holds one that is not tied, or it is a $G$ of 3: by 2 it
-is not the head, and the evaluations of keys of its class before it hold
-none.
-Call the class **raised** then. The classes that are not raised are at
-most as many as the activations that are not tied, since their first
-holders are distinct and each holds one of its own. So:
-
-- the successful activations of $\sigma$ at $q$ that memoized
-  evaluations own are at most seven times those that are not tied, plus
-  six times the raised classes;
-- by 4, a class is raised only through a walk that could not take the
-  record that the walk at its place in an earlier evaluation of the class
-  took: a walk outside the lookaheads where the earlier one was inside
-  one, or the reverse, a walk that builds values where the earlier one
-  took a record without them, or a walk that a Document resumes.
-
-The count does not sort the iterations by what their slots hold. The
-first iterations of a walk up to the minimum, the last iteration of a
-walk that ends plain and the iterations of a walk made before the site
-turns hot are evaluated whatever the slot holds, and so are those of an
-ordinary repetition; 1 and 2 bound the activations inside them as they
-bound those inside an ordinary repetition, by the memoized evaluations
-around them, and a record enters only where it lets an earlier
-evaluation of a class skip what a later one evaluates. Were the records
-of a site found by every walk at their position, in either lookahead
-state and with or without values, no class would be raised outside the
-Document parses, and the count would be seven times the activations that
-are not tied. With the records kept apart as (M2) allows, the number of the
-raised classes is not bounded by this claim; *Descent in the reference
-parse* below bounds it by a count in $\mathcal{R}$, and the sixth part
-of step 8 of [Open Steps](#open-steps) states what stays open. The count leaves out the
-activations that no memoized evaluation owns, those owned by a growth
-step or by an evaluation in a context of growths, which Lemma 5 counts,
-and it rests on (M4), which is not shown of a site whose records are kept
-under the environment as an object.
-
-**Descent in the reference parse.** This claim bounds the raised classes
-of the claim above, and with them the activations inside the iterations
-of the kind, by a count in $\mathcal{R}$ alone. It uses of the records
+**Descent in the reference parse.** This claim bounds the activations
+that memoized evaluations own, those inside the iterations of the kind
+among them, by a count in $\mathcal{R}$ alone. It uses of the records
 only that they are exact, (R1), through *Counterparts*; it uses neither
-(M1), (M2) nor (M4), nor the covered keys. Let
+(M1) nor (M2), nor the covered keys, and it does not ask which records a
+walk finds. Let
 $\beta^1, \beta^2, \ldots$ be the successful activations of $\sigma$ at
 $q$ in $\mathcal{R}$, in the order in which they start. Call $\beta^m$ a
 **root** when $m = 1$ or when $\beta^m$ has no reference link of a rule
@@ -4360,8 +4179,7 @@ replay, and a record that one evaluation of a class takes and another
 does not changes nothing in it. The argument of 2 holds of every
 evaluation of a key and the activations in its own region, so the class
 of an evaluation of a key that holds a successful activation of $\sigma$
-at $q$ is the class of the owner call of a root, and the raised classes
-of the claim above at $q$ are at most the roots.
+at $q$ is the class of the owner call of a root.
 
 The roots are a count of $\mathcal{R}$, not of the parse. By *Reference
 links* and the claims that it rests on, $\beta^m$ with $m \ge 2$ has a
@@ -4383,7 +4201,141 @@ records are kept under the environment as an object included. Where they
 arise, the roots that they make in $\mathcal{R}$ can outnumber the
 activations that they make in the parse, since $\mathcal{R}$ evaluates
 what the parse answers; the number of the roots at $q$ whose descent
-holds a counterpart of an activation of the parse is not bounded here.
+holds a counterpart of an activation of the parse is not bounded here;
+*Fresh roots* below reduces it to a count that the evaluations which
+$\mathcal{R}$ repeats do not enter.
+
+**Fresh roots.** This claim removes from the count of the roots what
+$\mathcal{R}$ evaluates more than once because it stores nothing. It is a
+claim on $\mathcal{R}$ and uses of the parse only *Counterparts* and the
+claim above: neither the covered keys nor a replay, so none of the cases
+(a) to (d). Call a successful activation $\beta$ of $\sigma$ at $q$ in
+$\mathcal{R}$ **fresh** when its owner call is the evaluation where
+$\mathcal{R}$ begins, or is an evaluation in $\mathcal{R}$ of a key that
+reads no growth open at its start and no evaluation in $\mathcal{R}$ of a
+key of its class that reads no growth open at its start starts before it.
+An activation whose owner call is made by a call of a leader, or reads a
+growth open at its start, is not fresh.
+
+1. A fresh activation is a root.
+2. Let a memoized evaluation $M$ of the parse own a successful activation
+   $\alpha$ of $\sigma$ at $q$, and let $z_1$ be the first evaluation in
+   $\mathcal{R}$ of a key of the class of $M$ that reads no growth open at
+   its start, or the evaluation where $\mathcal{R}$ begins when $M$ is the
+   evaluation where the parse begins. Then $z_1$ holds, at the place where
+   $\mathcal{R}(M)$ holds the counterpart of $\alpha$, a fresh activation
+   $\beta^\circ$ of $\sigma$ at $q$ whose owner call is $z_1$.
+3. So the successful activations of $\sigma$ at $q$ that memoized
+   evaluations own are at most six times the fresh roots at $q$ whose
+   owner call has the class of a memoized evaluation of the parse.
+4. Let $y$ be an evaluation in $\mathcal{R}$ of a key, or a growth in
+   $\mathcal{R}$ of a key (*Families of growths* in Lemma 5), whose call
+   reads no growth open at its start, and let an evaluation in
+   $\mathcal{R}$ of a key of its class, or a growth in $\mathcal{R}$ of
+   its key, whose call reads none either, start before $y$. Then no fresh
+   activation whose owner call is a call lies in $y$.
+
+*Proof.* 1\. Let $\beta$ be fresh with the owner call $O$, and suppose
+that it has a reference link $(e^k, e^{k\prime})$ of a rule that the parse
+memoizes. If $O$ is the evaluation where $\mathcal{R}$ begins, no
+evaluation made by a call of a rule that the parse memoizes contains
+$\beta$, and $e^{k\prime}$ is one. Otherwise $e^{k\prime}$ is made by such
+a call and contains $\beta$, so $O$, the innermost such evaluation, is
+$e^{k\prime}$ or lies inside it. The proof of *Reference links lead to
+repeated evaluations* then applies with $O$ in the place of
+$\mathcal{R}(Z)$, of which it uses only that it is $e^{k\prime}$ or lies
+inside it and that its call reads no growth open at its start: the
+evaluation $z^\circ$ at the place of $O$ in $e^k$ is made by a call with a
+key of the class of $O$, reads no growth open at its start, and ends
+before $e^{k\prime}$ starts, so it starts before $O$, and $\beta$ is not
+fresh.
+
+2\. Let $M$ be made by a call. Its call reads no growth open at its start
+in the parse, and so in $\mathcal{R}$ (the proof of *Replays*), so
+$\mathcal{R}(M)$ is an evaluation in $\mathcal{R}$ of a key of the class
+of $M$ that reads none, and $z_1$ exists. $z_1$ and $\mathcal{R}(M)$ take
+the same steps up to the variants of their calls (*Counterparts*), so
+$z_1$ holds a successful activation $\beta^\circ$ of $\sigma$ at $q$ at
+the place of the counterpart of $\alpha$. $\mathcal{R}(M)$ is the owner
+call of that counterpart (the proof of 2 of the claim above), so no
+evaluation made by a call of a rule that the parse memoizes lies between
+them, and none lies between $z_1$ and $\beta^\circ$, where the calls are
+of the same rules or of their twins. So $z_1$ is the owner call of
+$\beta^\circ$, and $\beta^\circ$ is fresh by the choice of $z_1$. Let $M$
+be the evaluation where the parse begins. Then $\mathcal{R}(M)$ is the
+evaluation where $\mathcal{R}$ begins and is the owner call of the
+counterpart of $\alpha$, which is fresh.
+
+3\. By 2, each owned $\alpha$ has a fresh activation $\beta^\circ$, a root
+by 1, whose owner call has the class of the owner $M$ of $\alpha$, at the
+place of the counterpart of $\alpha$. If $\alpha$ and $\alpha'$, owned by
+$M$ and $M'$, have one $\beta^\circ$, then $M$ and $M'$ are evaluations
+of keys of the class of its owner call, or both are the evaluation where
+the parse begins, and the counterparts of $\alpha$ and $\alpha'$ lie at
+one place in $\mathcal{R}(M)$ and $\mathcal{R}(M')$; when $M = M'$ they
+are one evaluation, and so are $\alpha$ and $\alpha'$. A class has at
+most six memoized evaluations (Lemma 3), so at most six owned activations
+have one $\beta^\circ$.
+
+4\. Let $y_1$ be the earlier one. $y_1$ and $y$ take the same steps up to
+the variants of their calls (*Counterparts*; a leader has no twin, and
+two growths of one key take the same steps, as in *Heads hold what later
+growths hold*). $y_1$ does not contain $y$: if $y$ lay at a place strictly
+inside $y_1$, the evaluation at that place inside $y$ would take the steps
+of $y$ again, strictly inside it, and so on without end, while
+$\mathcal{R}$ makes finitely many evaluations, as the parse does. So $y_1$ ended
+before $y$ started. Let a fresh $\beta$ whose owner call $O$ is a call lie
+in $y$. $O$ is made by a call of a rule other than a leader, and $y$ is
+made by a call of a rule that the parse memoizes and contains $\beta$, so
+$O$ is $y$ or lies inside it. The evaluation $O_1$ at the place of $O$ in
+$y_1$ is made by a call with a key of the class of $O$. It reads no
+growth open at its start. A growth that started inside $y_1$, or $y_1$
+itself when it is a growth, corresponds to the growth at its place inside
+$y$, or to $y$, which is open at the start of $O$, and $O$, taking the
+steps of $O_1$, would read it, which it does not. A growth open at the
+start of $y_1$ is read by no evaluation inside $y_1$, whose call reads
+none. $O_1$ starts before $y_1$ ends, so before $O$ starts, and $\beta$
+is not fresh. $\square$
+
+By 4, the evaluations that $\mathcal{R}$ makes of a call that it has
+evaluated before with a key of the class, and the growths that it makes
+again at a call of a leader whose key it has grown, hold no fresh root
+with an owner call, whether the parse answers those calls or not: this is
+where the roots outnumber what the parse evaluates through the memo, and
+3 does not count it. An evaluation in a context of growths that
+$\mathcal{R}$ makes again in each step, or takes again where the parse
+reuses a result or a step kept in a context, reads a growth open at its
+start and is the owner call of no fresh root; a fresh root inside it lies
+in the first evaluation of the class of its owner call, which a later
+step or a later growth evaluates again and no longer first. So the count
+of 3 is a count of the classes: for each class of memoized evaluations of
+the parse, the roots at $q$ that the first evaluation of the class in
+$\mathcal{R}$ holds outside its calls of rules that the parse memoizes.
+The fresh roots are the activations of $\mathcal{R}$ that correspond to
+those that heads hold in the parse (*Activations held by heads*), with
+the first evaluation of a class in $\mathcal{R}$ in the place of the
+head, and they need no replay, so the iterations that a record answers
+and the entries and kept results of cases (a) and (b) do not enter.
+
+The fresh roots at $q$ are not bounded by this claim. For a source whose
+rule calls a rule or is memoized at its calls, a fresh root other than
+$\beta^1$ is led to by a dropped step at the position of its growth or by
+a path that enters a growth again, or is one of the activations that the
+restarts leave out (the paragraph before this claim). Two numbers are
+open for them: the classes, at the positions at or before $q$, whose
+first evaluation in $\mathcal{R}$ holds such a root at $q$ as its owner
+call, and the roots of that kind at $q$ that one such evaluation holds.
+For a root of the second case of *Repeats inside a growth*, in a step of
+a growth at $p$, the owner call lies inside that step on a path that
+follows no read of its seed, and is first of its class in $\mathcal{R}$.
+The claims of Lemma 5 that bound such parts, *Sources at fixed offsets*
+and *Failures at the position of the growth*, are proved of the parse,
+where they leave out a constant number of steps for each growth and one
+step for each rule that the memo answers afterwards; they are not read
+here for the first evaluations of the classes in $\mathcal{R}$, where
+freshness would take the place of the memo, and in the steps that they
+leave out a part at $p$ can reach a position far from $p$, so the growths
+at the positions before $q$ are not bounded in number by them.
 
 **Leaf links in a parse that keeps records.** In a parse whose records are
 exact, (R1) of the [Setting](#setting), *Growths around a leaf link*,
@@ -10446,19 +10398,9 @@ theorem covers such a parse.
    before the site turns hot
    ([Lemma 3](run-sites.md#lemma-3-cost-before-hot) of the Run Sites
    proof), and the iterations at a site whose
-   records are kept under the environment as an object. No claim bounds
-   those at one position, and the leaf links stay as in step 1.
-   *Owners in a parse that keeps records* counts the same activations by
-   the memoized evaluations that own them, for records that every later
-   walk in the same lookahead state finds, (M4) of that claim: at most
-   seven times those that no link and no reference link of a rule that
-   the parse memoizes leads to, plus six times the raised classes, the
-   classes of memoized evaluations in which a walk evaluates an iteration
-   that the walk at its place in an earlier evaluation of the class took
-   a record for. That covers the first three sorts of iterations above.
-   A class is raised only where the later walk could not take that
-   record: it is in the other lookahead state, it builds values and the
-   record holds none, or a Document resumes it. *Descent in the reference parse* bounds the activations that memoized
+   records are kept under the environment as an object. The claims on
+   the units do not bound those at one position, and the leaf links stay
+   as in step 1. *Descent in the reference parse* bounds the activations that memoized
    evaluations own, inside the iterations as outside and with (R1) alone,
    by six times the roots of their counterparts in $\mathcal{R}$: the
    first successful activation of the source at the position and those
@@ -10468,11 +10410,21 @@ theorem covers such a parse.
    growth, no path that enters a growth again and none of the cases that
    the restarts leave out leads to an activation at the position, that is
    six activations, whatever the slots hold and however the records are
-   keyed. What is open in this count is the number of the roots that
-   those cases make at one position and whose descent the parse
-   evaluates, the leaf reference links, which stay as the leaf links of
-   step 1, and the activations inside the iterations that a growth step
-   or an evaluation in a context of growths owns.
+   keyed. *Fresh roots* counts, of the roots, only those whose owner call
+   is the first evaluation of its class in $\mathcal{R}$, six owned
+   activations for each, so that what $\mathcal{R}$ evaluates again of a
+   call or a growth whose key it has evaluated adds nothing. What is open
+   in this count is the number of the classes, at the positions at or
+   before the position of the scan, whose first evaluation in
+   $\mathcal{R}$ holds outside its calls of rules that the parse memoizes
+   a root that those cases make, and the number of such roots at one
+   position in one such evaluation; the claims of Lemma 5 on the parts
+   that a step evaluates at the position of its growth are not read for
+   those evaluations of $\mathcal{R}$, and leave out steps in which such
+   a part reaches a position far from its growth. Open too are the leaf
+   reference links, which stay as the leaf links of step 1, and the
+   activations inside the iterations that a growth step or an evaluation
+   in a context of growths owns.
    The same holds of the units of a copying operation that is a scanning
    source, in an action or a predicate of the element or of a rule that it
    calls, which Lemma 6 counts through the count of Lemma 4, and of the
@@ -10501,9 +10453,11 @@ theorem covers such a parse.
    minimum of the repetition, a walk that ends plain its last iteration,
    and a walk made before the site turns hot all of its iterations
    ([Skip Runs](../runtime/parsing.md#skip-runs),
-   [Run Sites](../runtime/parsing.md#run-sites)). So neither the records
-   nor what is proved of Lemma 4 gives a count at one position of the
-   activations that the iterations hold. Seventh, a
+   [Run Sites](../runtime/parsing.md#run-sites)). So the records give no count at one position of the activations that
+   the iterations hold, and what is proved of Lemma 4 gives one only as
+   *Descent in the reference parse* and *Fresh roots* do: for the
+   activations that memoized evaluations own, by the roots, with the
+   parts stated above left open. Seventh, a
    candidate site that keeps records and is no recorded site of the parse,
    as a run site that is not free of the environment in the engine and a
    scan site in every implementation: its iterations are iterations of a
