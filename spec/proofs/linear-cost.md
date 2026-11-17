@@ -767,7 +767,8 @@ records* bounds the activations that growth steps and evaluations in a
 context of growths own in such a parse, when it resumes no run of a
 Document, by those of a parse that keeps no records, for which no such
 reading is needed, subject to the open parts of the count of Lemma 5 in
-that parse.
+that parse, and *Families without the records in a parse that resumes
+runs* bounds them by a constant times those when it resumes runs.
 
 **Sources without records.** $A_u$ counts the successful activations of the
 following, and the count of Lemma 4 is needed for them and for the growths
@@ -841,7 +842,9 @@ those that memoized evaluations own, inside the iterations as outside,
 through their counterparts in the reference parse, whatever the records
 answer, and *Families without the records* in Lemma 5 those that growth
 steps and evaluations in a context of growths own, in a parse that
-resumes no run of a Document; both leave the parts that step 8 states. The same holds of the iterations themselves of a candidate site
+resumes no run of a Document, and *Families without the records in a
+parse that resumes runs* those of a parse that resumes runs, up to a
+constant factor; both leave the parts that step 8 states. The same holds of the iterations themselves of a candidate site
 that keeps records and is no recorded site of the parse, which are
 activations of a source of this list: the count of Lemma 4 is not shown for
 them. Step 8 of [Open Steps](#open-steps) lists both, as its sixth
@@ -8076,13 +8079,15 @@ does not exclude the case. So the count of
 Lemma 5 holds of the outside activations of such a parse, apart from
 that exception, up to the bound of *Consecutive repeats inside a family* in a step that
 the claims at $p$ do not leave out, as with records. *Families without
-the records* is not shown of such a parse: the element of a repetition
-that a Document resumes can call rules of a cycle, so growth steps and
-evaluations in a context of growths can lie inside a resumable iteration,
-which its first step leaves out only for the sites that keep records;
-and a resumed walk stores no entry inside the iterations that it reuses,
-so a later evaluation of the same walk can evaluate calls that the parse
-$\mathcal{P}$ of that claim answers.
+the records* does not apply to such a parse as stated: the element of a
+repetition that a Document resumes can call rules of a cycle, so growth
+steps and evaluations in a context of growths can lie inside a resumable
+iteration, which its first step leaves out only for the sites that keep
+records; and a resumed walk stores no entry inside the iterations that
+it reuses, so a later evaluation can evaluate calls that the parse
+$\mathcal{P}$ of that claim answers. *Families without the records in a
+parse that resumes runs* below bounds them, the exception above
+included, with a constant factor.
 
 **Families without the records.** Call a rule **cycle-free** when no rule
 that it reaches, itself included, is a rule of a left-recursion cycle. Let
@@ -8245,10 +8250,171 @@ sites evaluates the walks inside the iterations that the records of the
 parse answer, so if it resumes runs it can resume a walk that the parse
 evaluates; if it resumes none, it evaluates elements that the parse
 never evaluates, and its stores of the calls made there have no
-counterpart in the parse. In a parse that resumes a run, the activations that growth steps
-and evaluations in a context of growths own inside the iterations of the
-kind are therefore not bounded here, and the eighth part of step 8 of
-[Open Steps](#open-steps) lists them.
+counterpart in the parse. So the one-to-one map of the claim does not
+carry over: a resumed walk stores no entry inside the iterations that it
+reuses, and a later call of the parse can evaluate what $\mathcal{P}$
+answers from an entry stored there. The next claim maps such a parse to
+$\mathcal{P}$ with a constant number of activations of the parse to
+each activation of $\mathcal{P}$.
+
+**Families without the records in a parse that resumes runs.** Let the
+parse be as in *Families without the records*, except that it is a
+[Document](../runtime/documents.md) parse that may resume runs, whose
+records of runs are stored and resumed as (N1) and (N2) of *Covered keys
+through resumed runs* read them, and let $\mathcal{P}$ be as there, a
+parse that resumes no run, except that it stores as follows in place of
+storing where the parse stores. Let both parses store the result of an
+evaluation of a rule that is not cycle-free that read no growing result
+wherever the memo can answer a later call of its key in the lookahead
+state and with the growths open where it was made, except possibly the
+first evaluation of its variant at its position outside every context of
+growths, and let whether the memo can answer a call there depend on the
+same things in both, as in the engine. Then $\mathcal{P}$ is a parse of the
+[Setting](#setting), and every successful activation $\alpha$ of a source
+$\sigma$ at $q$ that a growth step or an evaluation in a context of
+growths owns in the parse has an **image**: a successful activation of
+$\sigma$ at $q$ in $\mathcal{P}$ that a growth step or an evaluation in a
+context of growths owns there. Each activation of $\mathcal{P}$ is the
+image of at most a constant number of activations of the parse.
+
+*Proof.* $\mathcal{P}$ is a parse of the Setting as in *Families without
+the records*: it keeps no record and resumes no run, and stores where the
+Setting requires.
+
+*Images of owners.* Let $G$ be a growth step or an evaluation in a
+context of growths of the parse. Follow the path in $\mathcal{R}$ from
+the evaluation where $\mathcal{R}$ begins down to $\mathcal{R}(G)$.
+$\mathcal{P}$ evaluates every iteration on it, keeping no record and
+resuming no run, skips no alternative on it, since the skip depends on
+the input alone and the parse skips none, and takes the steps of growths
+that the parse takes, by their results, which are those of their
+counterparts (*Counterparts in the reference parse*). If $\mathcal{P}$
+evaluates every call and step on the path, the evaluation of
+$\mathcal{P}$ whose counterpart is $\mathcal{R}(G)$ is the **image**
+$G'$ of $G$. Otherwise let $y$ be the first call on it that
+$\mathcal{P}$ answers; the parse evaluates it, since it makes $G$. The
+answer is not the current result of an open growth, since
+$\mathcal{R}(y)$ would then make no call, and with no reuse in a context
+of growths $\mathcal{P}$ answers $y$ from an entry of the memo, whose result read no
+growing result and observed no lookahead that read one ([Evaluations of
+Rules](../runtime/parsing.md#evaluations-of-rules)). The entry does not
+come from an earlier parse: the parse holds the entries of earlier parses
+that $\mathcal{P}$ holds, and replaces one only with a store under its
+key that answers the calls in the state where it answered them (the
+proof of the claim of Lemma 3 on body evaluations), so it would answer
+the counterpart of $y$, which it evaluates, since it makes $G$. So the
+entry was stored by an evaluation $y_1$ of $\mathcal{P}$ of a call with
+the key of $y$, or of a growth of it, whose counterpart starts before
+that of $y$, and by the argument of [Lemma 4 of the memoization
+proof](memoization.md#lemma-4-answering-from-a-dependent-result), as in
+*Heads hold what later growths hold*, $\mathcal{R}(y)$ and
+$\mathcal{R}(y_1)$ take the same steps. The path goes on from
+$\mathcal{R}(y_1)$ to the place of $\mathcal{R}(G)$, and by induction on
+the order of $\mathcal{R}$, in which each such $y_1$ starts earlier, it
+reaches an evaluation $G'$ of $\mathcal{P}$, the image of $G$, such that
+$\mathcal{R}(G)$ and $\mathcal{R}(G')$ take the same steps.
+
+$G'$ is a growth step or an evaluation in a context of growths, as $G$
+is. A step of a growth of a leader at its position is matched by a step
+of the same rank of a growth of the same leader there, since a call of a
+leader that is evaluated grows. If $G$ is in a context of growths, a
+growth of its cycle is open at its position, and $G$ lies in a step of
+it; if the path reaches that step's place through no answered call, $G'$
+lies at the same position in a step of the image of that growth, and
+otherwise it lies inside an evaluation $y_1$ above whose entry, which
+answers a call in a context with that growth, was computed while at least
+that growth was in progress, at that position, so $G'$ is in a context of
+growths too.
+
+*Images of activations.* Let $G$ own $\alpha$. The calls on the path from
+$G$ down to $\alpha$ are of rules that the parse does not memoize, since
+$G$ is the innermost owner (*Owners* in Lemma 4), so $\mathcal{P}$, which
+memoizes the same rules, evaluates them; it evaluates every iteration on
+it and skips no alternative on it; and no step of a growth lies there,
+whose call, of a leader, would be memoized. So $\mathcal{P}$ evaluates,
+at the place of $\alpha$ in $G'$, an activation $\alpha'$ of $\sigma$ at
+$q$ that succeeds, as $\alpha$ does, the steps being the same: the
+**image** of $\alpha$. It is owned by $G'$ or by an evaluation between
+$G'$ and $\alpha'$ in a context of growths, a call of a rule that
+$\mathcal{P}$ does not memoize, which owns it only as a growth step or
+an evaluation in a context of growths. Two owners $G_1 \neq G_2$ whose
+images both contain $\alpha'$, at the places of activations that they
+own, have $G'_1 = G'_2$: were $G'_1$ strictly inside $G'_2$, it would be
+the body evaluation of a memoized call, or a step of a growth, on the
+path from $G'_2$ down to $\alpha'$, whose calls are of rules that are
+not memoized. So the activations of the parse with image $\alpha'$ are
+owned by owners with one image $G'$, one activation at the place of
+$\alpha'$ in each.
+
+*Owners with one image.* It remains to bound by a constant the owners
+$G$ of the parse with one image $G'$; they have the key of $G'$ and, for
+a step, its rank. A call $y$ above, which the parse evaluates and
+$\mathcal{P}$ answers, read no growing result, since $\mathcal{R}(y)$
+takes the steps of $\mathcal{R}(y_1)$, whose result read none; so it
+contains no evaluation that reads the growing result of a growth open at
+its start. Let $G$ be the body evaluation of a call $x$ or a step of a
+growth of $x$.
+
+(i) Let the result of $x$ read no growing result, and let the memo be
+able to answer a call of its key where $x$ is made. The parse evaluates
+$x$ only when no entry answers it, and then stores its result, unless
+$x$ is the first evaluation of its variant at its position, in the
+lookahead state of $x$ and with the growths open at its position; that
+entry answers every later call of the key in the same state or inside a
+lookahead and with a subset of those growths open. So the parse makes at
+most one more such evaluation of the key than there are pairs of a
+lookahead state and a set of leaders of the cycle of its rule, a
+constant, and a growth of each has one step of each rank: the owners of
+this kind with one image are at most that constant.
+
+(ii) Let $G$ read the growing result of a growth $h$ open at its start,
+the innermost such growth, so that $G$ lies in a step $H$ of $h$. No
+call between $H$ and $G$ is a $y$ above, since it would contain $G$,
+which reads the growing result of $h$, open at its start. So the path to
+$G'$ passes the image $H'$ of $H$, $G'$ lies at the place of $G$ in
+$H'$, and an owner with image $G'$ lies at that place, which a step
+holds once, in a step with image $H'$: the owners of this kind with
+image $G'$ are at most the steps with image $H'$.
+
+(iii) Otherwise the result of $x$ reads no growing result and the memo
+answers no call of its key where $x$ is made, which is then in a context
+of a growth $h$ open at its position $q$, the innermost, and lies in a
+step $H$ of $h$. If no $y$ lies between $H$ and $G$, $G'$ lies at the
+place of $G$ in the image $H'$ of $H$, and the owners so are at most the
+steps with image $H'$, as in (ii). Otherwise let $y$ be the last such
+call on the path, which (i) applies to: the parse makes at most a
+constant number of evaluations of the key of $y$ that $\mathcal{P}$
+answers, and below each of them one owner at the place of $G$. Its
+$y_1$ is a call at $q$ that contains $G'$ in $\mathcal{P}$; the calls at
+$q$ that contain one another inside a step at $q$ are of distinct
+variants, since a call of a rule at $q$ inside one of the same rule at
+$q$ would be a left call of a cycle through no leader, every left call
+of a leader there reading its growing result. So the owners so are at
+most the number of variants times that constant.
+
+In (ii) and (iii) the steps with image $H'$ are steps of growths at $q$
+of one leader, whose calls fall under (i), (ii) or (iii) in turn, and
+the growths open at $q$ in one context are of distinct leaders of one
+cycle, so (i) ends the descent after a constant number of levels, and
+the owners with one image are at most a constant.
+
+So each activation of $\mathcal{P}$ is the image of at most a constant
+number of activations of the parse. $\square$
+
+By the claim, the successful activations of $\sigma$ at $q$ that growth
+steps and evaluations in a context of growths own in such a parse,
+inside the iterations of the kind, inside resumable iterations or
+outside, are at most a constant times those of $\mathcal{P}$, with no
+reuse in a context of growths in either, and the count of Lemma 5 read
+in $\mathcal{P}$ bounds them as for a parse that resumes no run, apart
+from the kinds and the parts that it leaves. The constant is that of
+(i) and (ii), a function of the grammar alone. The claim compares the
+two parses; it does not show that the parse makes fewer evaluations than
+$\mathcal{P}$, though a resumed walk evaluates nothing in the iterations
+that it reuses: a call of the parse can evaluate what $\mathcal{P}$
+answers from an entry stored inside them, at most the constant of (i)
+times for each key, as an iteration that comes from an earlier parse
+whose entries lag behind by more than $T$ edits shows.
 
 The growth steps themselves remain. By *Calls in a context of growths* and
 *Growths inside a step*, the steps of the growths that are not outer are
@@ -11396,16 +11562,16 @@ theorem covers such a parse.
    that claim, a head that resumes a run whose walk a later growth of its
    key evaluates and the second growth of *Consecutive repeats inside a
    family* that resumes whole the run that the first recorded, are of
-   activations inside resumable iterations. *Families without the
-   records* is stated for a parse that resumes no run, and in a parse that
-   resumes one the activations that growth steps and evaluations in a
-   context of growths own and that are iterations of the kind or
-   resumable iterations, or lie inside one, are not bounded, nor is a
-   free outside activation whose first activation of a head *Families in
-   a parse that resumes runs* leaves out, where the path from the growth
-   that holds the earlier evaluation of its reference link down to that
-   evaluation passes an iteration that a resumed walk reuses: the element of a repetition that a Document resumes can call
-   rules of a cycle, and a resumed walk stores no entry inside the
-   iterations that it reuses, so a later walk of the same repetition can
-   evaluate calls that the parse without records and resumptions
-   answers.
+   activations inside resumable iterations; and the claim leaves out a
+   free outside activation where the path from the growth that holds the
+   earlier evaluation of its reference link down to that evaluation
+   passes an iteration that a resumed walk reuses. *Families without the
+   records in a parse that resumes runs* bounds all the activations that
+   growth steps and evaluations in a context of growths own in such a
+   parse, those left out above included, by a constant times those of the
+   parse without records and resumptions of *Families without the
+   records*, subject to the open parts of the count of Lemma 5 in that
+   parse. Its constant is a function of the grammar: a later call can
+   evaluate what that parse answers from an entry stored inside an
+   iteration that a resumed walk reuses, at most a constant number of
+   times for each key.
