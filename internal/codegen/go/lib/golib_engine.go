@@ -45,7 +45,7 @@ var engineSpecs = []goSpec{
 	{fn: "engineCallDoc", on: engineOn, name: "callDoc"},
 	{fn: "callBegin", on: engineOn, name: "CallBegin"},
 	{fn: "callEnd", on: engineOn, name: "CallEnd"},
-	{fn: "grow", name: "grow"},
+	{fn: "grow", on: []string{ops.Missing}, name: "grow"},
 	// The engine's backends record the examined input where they read it, so its expectations are
 	// specialized without the Document's touch of the unit at the expectation.
 	{fn: "expect", on: []string{ops.Budget}, name: "Expect"},
@@ -587,6 +587,12 @@ func engineTarget() *gogen.Target {
 			return "storeCtx"
 		case "grow.begin":
 			return fmt.Sprintf("p.GrowBegin(p.GrowKey(%s, %s), %[1]s)", a[0], a[1])
+		case "grow.ctx":
+			return a[0] + ".ctx"
+		case "grow.longer":
+			return fmt.Sprintf("p.growLonger(&%s, %s)", a[0], a[1])
+		case "grow.adopt":
+			return fmt.Sprintf("p.growAdopt(&%s, %s, %s)", a[0], a[1], a[2])
 		case "grow.next":
 			return "p.GrowNext(&" + a[0] + ")"
 		case "grow.step":

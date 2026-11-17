@@ -462,7 +462,7 @@ func (p *pair) Call(o *exec.Op, args []any) []any {
 	if len(shown) > 0 {
 		p.trace[len(p.trace)-1] += " -> " + strings.Join(shown, ", ")
 	}
-	if slices.Contains(o.Writes, ops.Memo) || slices.Contains(o.Writes, ops.Frames) {
+	if slices.Contains(o.Writes, ops.Memo) || slices.Contains(o.Writes, ops.Frames) || slices.Contains(o.Writes, ops.Growth) {
 		p.forgetDead()
 	}
 	return res

@@ -273,17 +273,26 @@ dependency sets in the order of their first store, each mapping the values of it
 reuse takes the first set whose dependencies all have values in the current context and, in it, the result of
 equal key values; a store of the same values and key replaces the result, and a result with more dependencies
 than a set indexes is not kept. The `ctx` operations have this model and conformance cases that run on the engine
-and generated Go. The cases do not run the growth loop: operations that exist only for conformance install a
-growth with a seed and identity that the case chooses, change the seed of the innermost growth, end it (dropping
-the table it began), and begin and end a lookahead through each target's own lookahead entry points, so that the
-`ctx` operations are checked apart from how growth steps compute identities. The reuse of a result that a
+and generated Go. So does the growth outside a context: `grow.begin` begins a growth with a failed seed, whose
+identity every failed seed shares, `grow.ctx` tells whether other leaders of its cycle grow at its position,
+and outside a context the composition takes each step with `grow.longer` and `grow.adopt`, which adopts the step
+and its errors as a seed of a new identity and returns to the start, while the composition drops the errors (and
+in the engine's missing-token mode the tokens) that the step recorded. A seed that `grow.adopt` replaces is no
+longer a valid result, as a target may keep the seed in the record of the growth; the generated Go harness
+reserves room for the growth records, since that target keeps the seed in the record and a larger table would
+move it while a case still holds it. The engine's `grow` is specialized for `missing`, so that only the form
+that inserts missing tokens drops them after each adopted step. The charges of `grow.begin` and `grow.adopt`
+are checked to the unit. The cases do not run the growth in a context: operations that exist only
+for conformance install a growth with a seed and identity that the case chooses, change the seed of the innermost
+growth, end it (dropping the table it began), and begin and end a lookahead through each target's own lookahead
+entry points, so that the `ctx` operations are checked apart from how growth steps compute identities. The reuse of a result that a
 context keeps is a composition, as the reuse of a memo entry is: accessors of the result (`ctx.end`, `ctx.errs`,
 `ctx.far`, `ctx.expected`, and in a Document parse `ctx.examined` and `ctx.before`) feed the operations of the
 call bookkeeping, the expectations, the position and the recovered errors, so each part is held to its own
 component's model and charges what that part charges. An operation that writes components other than its own
 (`grow.step` and `grow.end`) is modelled as the composition of those components' models that its contract names,
-and it stops being transitional only once every component it writes has a model. The growth loop (the steps, jumps and runs of a
-growth in a context, and the canonical identities of equal seeds) builds on the same state and stays transitional
+and it stops being transitional only once every component it writes has a model. The growth in a context (its steps,
+jumps and runs, and the canonical identities of equal seeds) builds on the same state and stays transitional
 until it has a model of its own, and so does keeping the result of a leader, which is the last result of its
 growth; the missing-token mode, in which no result in a context is memoized, and Document parses are outside the
 cases. One target charges for converting the dependencies that a frame ended into stored ones when the frame ends

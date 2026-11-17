@@ -155,7 +155,9 @@ func recovery(p *Parser, lists recHandles, o *exec.Op, args []any) ([]any, bool)
 		p.recAdd(args[0].(*errorList).e)
 		return nil, true
 	case "rec.none":
-		return []any{args[0].(*errorList).e.none()}, true
+		// The null handle is a list of no errors (ctx.errs).
+		l, _ := args[0].(*errorList)
+		return []any{l == nil || l.e.none()}, true
 	case "stream.settleErrors":
 		if p.Stream == nil {
 			p.Stream = &streamInput{}

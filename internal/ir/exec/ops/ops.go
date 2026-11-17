@@ -88,7 +88,7 @@ const (
 	// its entry inserted).
 	QTokens = "tokens"
 	// QSegs is the number of entries of the recovered-error list after the mark of the call, or for
-	// grow.step after the mark that the growth took when it began: errors that rec.push recorded and
+	// grow.adopt and grow.step after the mark that the growth took when it began: errors that rec.push recorded and
 	// lists that rec.add recorded or rec.since put in their place.
 	QSegs = "segs"
 	// QValueCompare is what comparing the value of the call with the one the slot holds inspects: two
@@ -341,7 +341,7 @@ made: later writes of the list do not change it.`, Requires: atMost})
 		Contract: `Records the errors of errs again, after the recovered errors, as one entry that shares
 errs; an empty list records nothing.`})
 	m.AddOp(&exec.Op{Name: "rec.none", Component: Rec, Params: []exec.Param{exec.P("errs", errs)}, Results: []exec.Type{exec.TBool},
-		Contract: `Reports whether the list of errors is empty.`})
+		Contract: `Reports whether the list of errors is empty. The null handle is the empty list.`})
 	m.AddOp(&exec.Op{Name: "stream.settleErrors", Component: Rec, Writes: []string{Rec}, Features: []string{Stream},
 		NoReturn: true, Cost: exec.Cost{Const: 16},
 		Contract: `Forgets the recovered errors, which were delivered and collected, and counts none as delivered.

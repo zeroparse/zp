@@ -256,6 +256,7 @@ var siteCost = map[string][]string{
 	"Parser.presentWide":           {ops.QPresent},
 	"Parser.intern":                {ops.QPresent},
 	"Parser.growStep":              {""},
+	"Parser.growAdopt":             {""},
 	"Parser.canonicalSeed":         {""},
 	"Parser.nodesEqual":            {""},
 	"Parser.valuesEqual":           {""},

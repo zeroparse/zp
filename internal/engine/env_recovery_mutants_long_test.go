@@ -85,9 +85,15 @@ func TestRecoveryMutantsFail(t *testing.T) {
 					"errs = errs[:0]\n\t\tif e := p.Recovered[p.Diagnosed]; e.err != nil {\n\t\t\terrs = append(errs, e.err)\n\t\t}"}},
 				"^TestStreamDiagnosticsOfSharedLists$", []string{"."}},
 		})
-		runPrintedMutants(t, "state/runtime.go", []printedMutant{
+		runPrintedMutants(t, "state/call_exec.go", []printedMutant{
 			{"a growth step keeps the errors of the step before",
-				[]printedEdit{{"\t\tp.Recovered = p.Recovered[:g.Rec]\n", ""}}, "^TestMissingTokensLeftRecursion$", []string{"."}},
+				[]printedEdit{{"\t\t\t\tp.growAdopt(&g, v, p.recSince(rec))\n\t\t\t\tp.Recovered = p.Recovered[:rec]\n", "\t\t\t\tp.growAdopt(&g, v, p.recSince(rec))\n"}},
+				"^TestMissingTokensLeftRecursion$", []string{"."}},
+		})
+		runPrintedMutants(t, "state/runtime.go", []printedMutant{
+			{"a growth step of the VM keeps the errors of the step before",
+				[]printedEdit{{"\t\tp.growAdopt(g, v, p.recSince(g.Rec))\n\t\tp.Recovered = p.Recovered[:g.Rec]\n", "\t\tp.growAdopt(g, v, p.recSince(g.Rec))\n"}},
+				"^TestBudgetDiagnosticRecoveredLists$", []string{"./vm"}},
 			{"a growth that grew keeps the errors of the step before",
 				[]printedEdit{{"\tp.Pos = g.start\n\tp.Recovered = p.Recovered[:g.Rec]\n\treturn true", "\tp.Pos = g.start\n\treturn true"}},
 				"^TestLeftRecursionDependencyMemoUnexamined$", []string{"."}},

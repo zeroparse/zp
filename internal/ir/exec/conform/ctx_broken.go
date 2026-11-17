@@ -44,6 +44,16 @@ func CtxBrokenOps() []OprBroken {
 	add("ctx.errs is none", "ctx.errs", func(call func(string, ...any) []any, a []any) []any {
 		return []any{nil}
 	})
+	add("grow.ctx is negated", "grow.ctx", func(call func(string, ...any) []any, a []any) []any {
+		return []any{!call("grow.ctx", a...)[0].(bool)}
+	})
+	add("grow.longer ignores the seed", "grow.longer", func(call func(string, ...any) []any, a []any) []any {
+		return []any{a[1].(bool)}
+	})
+	add("grow.adopt drops the errors", "grow.adopt", func(call func(string, ...any) []any, a []any) []any {
+		return call("grow.adopt", a[0], a[1], nil)
+	})
+	ignore("grow.adopt")
 	ignore("ctx.keep")
 	ignore("ctx.done")
 	ignore("memo.setPresent")

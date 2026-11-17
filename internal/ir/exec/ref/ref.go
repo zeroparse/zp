@@ -679,14 +679,16 @@ func (m *Model) envKey(r RuleRef) int64 {
 }
 
 // Dead reports whether the handle h is no longer valid: an entry that memo.prune or memo.splice
-// removed, or that memo.store replaced, or a frame that frame.close ended. An implementation may
-// reuse what a dead handle stood for.
+// removed, or that memo.store replaced, a frame that frame.close ended, or a seed that grow.adopt
+// replaced. An implementation may reuse what a dead handle stood for.
 func (m *Model) Dead(h any) bool {
 	switch x := h.(type) {
 	case *Entry:
 		return x.pruned
 	case *Frame:
 		return x.closed
+	case *CtxResult:
+		return x.dead
 	}
 	return false
 }

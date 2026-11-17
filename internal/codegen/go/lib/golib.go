@@ -565,6 +565,12 @@ func goTarget(s goSpec) *gogen.Target {
 			return "p.streamSettleErrors()"
 		case "grow.begin":
 			return fmt.Sprintf("p.growBegin(%s, %s)", rule(a[0]), a[1])
+		case "grow.ctx":
+			return a[0] + ".ctx"
+		case "grow.longer":
+			return fmt.Sprintf("p.growLonger(&%s, %s)", a[0], a[1])
+		case "grow.adopt":
+			return fmt.Sprintf("p.growAdopt(&%s, %s, %s)", a[0], step(a[1]), a[2])
 		case "grow.next":
 			return "p.growNext(&" + a[0] + ")"
 		case "grow.step":

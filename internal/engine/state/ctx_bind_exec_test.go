@@ -162,6 +162,37 @@ func (p *Parser) confCtxDone(c CtxState) CtxState {
 	return c
 }
 
+// confGrowBegin runs grow.begin for the conformance suite.
+// Printed from Exec IR function confGrowBegin of internal/ir/exec/core.
+func (p *Parser) confGrowBegin(r *Rule, min int) GrowState {
+	var res GrowState
+	res = p.GrowBegin(p.GrowKey(r, min), r)
+	return res
+}
+
+// confGrowCtx runs grow.ctx for the conformance suite.
+// Printed from Exec IR function confGrowCtx of internal/ir/exec/core.
+func (p *Parser) confGrowCtx(g GrowState) (bool, GrowState) {
+	var r bool
+	r = g.ctx
+	return r, g
+}
+
+// confGrowLonger runs grow.longer for the conformance suite.
+// Printed from Exec IR function confGrowLonger of internal/ir/exec/core.
+func (p *Parser) confGrowLonger(g GrowState, ok bool) (bool, GrowState) {
+	var r bool
+	r = p.growLonger(&g, ok)
+	return r, g
+}
+
+// confGrowAdopt runs grow.adopt for the conformance suite.
+// Printed from Exec IR function confGrowAdopt of internal/ir/exec/core.
+func (p *Parser) confGrowAdopt(g GrowState, value *core.Node, errs RecEntry) GrowState {
+	p.growAdopt(&g, value, errs)
+	return g
+}
+
 // confCtxBindings returns the bindings of p by the name of the operation.
 func confCtxBindings(p *Parser) map[string]any {
 	return map[string]any{
@@ -183,5 +214,9 @@ func confCtxBindings(p *Parser) map[string]any {
 		"memo.setPresent": p.confMemoSetPresent,
 		"ctx.keep":        p.confCtxKeep,
 		"ctx.done":        p.confCtxDone,
+		"grow.begin":      p.confGrowBegin,
+		"grow.ctx":        p.confGrowCtx,
+		"grow.longer":     p.confGrowLonger,
+		"grow.adopt":      p.confGrowAdopt,
 	}
 }

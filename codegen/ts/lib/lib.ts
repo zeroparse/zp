@@ -3667,15 +3667,30 @@ export class Parser {
   }
 
   // grow grows the seed of a left-recursive leader from a failure: it evaluates the body again while
-  // the match gets longer, and returns the last longer result.
+  // the match gets longer, and returns the last longer result. A growth in a context takes its steps
+  // through the context, which may give them without evaluating the body.
   grow(r: Rule, min: number): R {
     const g = this.growBegin(r, min);
-    for (;;) {
-      if (!this.growNext(g)) {
-        break;
+    if (g.ctx) {
+      for (;;) {
+        if (!this.growNext(g)) {
+          break;
+        }
+        const v = this.invoke(r, min);
+        this.growStep(g, v);
       }
-      const v = this.invoke(r, min);
-      this.growStep(g, v);
+    } else {
+      {
+        const rec = this.recovered.length;
+        for (;;) {
+          const v = this.invoke(r, min);
+          if (!this.growLonger(g, v !== undefined)) {
+            break;
+          }
+          this.growAdopt(g, v, this.recSince(rec));
+          this.recovered.length = rec;
+        }
+      }
     }
     const best = this.growEnd(g);
     return best!.ok ? best!.node : undefined;
@@ -4260,9 +4275,6 @@ export class Parser {
     if (g.done) {
       return false;
     }
-    if (!g.ctx) {
-      return true;
-    }
     for (;;) {
       const id = this.gamma[g.gi]!.id;
       const j = this.findJump(g, id);
@@ -4289,23 +4301,29 @@ export class Parser {
   }
 
   // growStep receives the result v of a step and adopts it as the seed if the match grew.
+  // growLonger reports whether a step of a growth outside a context, with success ok and ending at the
+  // position, matched more than the seed.
+  growLonger(g: GrowState, ok: boolean): boolean {
+    const best = this.gamma[g.gi]!.seed;
+    return ok && (!best.ok || this.pos > best.end);
+  }
+
+  // growAdopt adopts the successful longer step of a growth outside a context, with value v and the
+  // errors errs that it recovered, as its seed, and returns to the start of the growth. The caller
+  // drops the errors after the growth's mark.
+  growAdopt(g: GrowState, v: R, errs: Errs): void {
+    const rec = this.gamma[g.gi]!;
+    this.spend();
+    this.alloc(objectBytes(7));
+    rec.seed = newCtxResult(v, this.pos, false, errs, 0, noExp);
+    rec.id = this.nextSeedID();
+    this.pos = g.start;
+  }
+
+  // growStep receives the result of a step of a growth in a context and adopts it as the seed if the
+  // match grew.
   growStep(g: GrowState, v: R): void {
     const ok = v !== undefined;
-    if (!g.ctx) {
-      const rec = this.gamma[g.gi]!;
-      const best = rec.seed;
-      if (!ok || (best.ok && this.pos <= best.end)) {
-        g.done = true;
-        return;
-      }
-      this.spend();
-      this.alloc(objectBytes(7));
-      rec.seed = newCtxResult(v, this.pos, false, this.recSince(g.rec), 0, noExp);
-      rec.id = this.nextSeedID();
-      this.pos = g.start;
-      this.recovered.length = g.rec;
-      return;
-    }
     const id = this.gamma[g.gi]!.id;
     const ds = this.popFrame().deps;
     const far = this.unisolate(g.exp);

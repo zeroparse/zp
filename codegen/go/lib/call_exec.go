@@ -146,17 +146,33 @@ func (p *TParser) firstCall(r *TRule) bool {
 }
 
 // grow grows the seed of a left-recursive leader from a failure: it evaluates the body again while
-// the match gets longer, and returns the last longer result.
+// the match gets longer, and returns the last longer result. A growth in a context takes its steps
+// through the context, which may give them without evaluating the body. Outside a context, the form
+// specialized for missing also drops the tokens that each adopted step inserted.
 //
 // Printed from Exec IR function grow of internal/ir/exec/core.
 func (p *Parser) grow(r *Rule, min int) (*core.Node, bool) {
 	g := p.growBegin(r, min)
-	for {
-		if !p.growNext(&g) {
-			break
+	if g.ctx {
+		for {
+			if !p.growNext(&g) {
+				break
+			}
+			v, ok := p.invoke(r, min)
+			p.growStep(&g, v, nil, ok)
 		}
-		v, ok := p.invoke(r, min)
-		p.growStep(&g, v, nil, ok)
+	} else {
+		{
+			rec := len(p.Recovered)
+			for {
+				v, ok := p.invoke(r, min)
+				if !p.growLonger(&g, ok) {
+					break
+				}
+				p.growAdopt(&g, v, nil, p.recSince(rec))
+				p.Recovered = p.Recovered[:rec]
+			}
+		}
 	}
 	best := p.growEnd(&g)
 	return best.node, best.ok
@@ -517,17 +533,33 @@ func (p *TParser) CallMemo(r *TRule, inv func(*TParser) (any, bool)) (any, bool)
 }
 
 // grow grows the seed of a left-recursive leader from a failure: it evaluates the body again while
-// the match gets longer, and returns the last longer result.
+// the match gets longer, and returns the last longer result. A growth in a context takes its steps
+// through the context, which may give them without evaluating the body. Outside a context, the form
+// specialized for missing also drops the tokens that each adopted step inserted.
 //
 // Printed from Exec IR function grow of internal/ir/exec/core, specialized for typed.
 func (p *TParser) grow(r *TRule, min int) (any, bool) {
 	g := p.growBegin(r.Rule, min)
-	for {
-		if !p.growNext(&g) {
-			break
+	if g.ctx {
+		for {
+			if !p.growNext(&g) {
+				break
+			}
+			v, ok := p.invoke(r, min)
+			p.growStep(&g, nil, v, ok)
 		}
-		v, ok := p.invoke(r, min)
-		p.growStep(&g, nil, v, ok)
+	} else {
+		{
+			rec := len(p.Recovered)
+			for {
+				v, ok := p.invoke(r, min)
+				if !p.growLonger(&g, ok) {
+					break
+				}
+				p.growAdopt(&g, nil, v, p.recSince(rec))
+				p.Recovered = p.Recovered[:rec]
+			}
+		}
 	}
 	best := p.growEnd(&g)
 	return best.val, best.ok

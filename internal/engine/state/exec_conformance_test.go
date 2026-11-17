@@ -170,7 +170,9 @@ func (m *engineMachine) Call(o *exec.Op, args []any) (res []any) {
 		p.recAdd(args[0].(*errorList).e)
 		return nil
 	case "rec.none":
-		return []any{args[0].(*errorList).e.None()}
+		// The null handle is a list of no errors (ctx.errs).
+		l, _ := args[0].(*errorList)
+		return []any{l == nil || l.e.None()}
 	case "stream.settleErrors":
 		p.streamSettleErrors()
 		return nil
