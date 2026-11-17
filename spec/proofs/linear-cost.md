@@ -2810,25 +2810,33 @@ memoization proof](memoization.md#lemma-2-reading-an-open-growth)), so the
 two calls have one key and, by [Lemma 1 of the memoization
 proof](memoization.md#lemma-1-context), their evaluations in
 $\mathcal{R}$ have the same success and end in either lookahead state. When
-its rule is of a cycle $C$ with a growth open at $q$, the definition of a
-shared call places the two calls in the same growths of $C$: neither is
-reached through a call of a rule of $C$ that the unit or the continuation
-starts with, nor after leaving the body of a rule of $C$. So both start in
+its rule is of a cycle $\Gamma$ with a growth open at $q$, the definition of a
+shared call places the two calls in the same growths of $\Gamma$: neither is
+reached through a call of a rule of $\Gamma$ that the unit or the continuation
+starts with, nor after leaving the body of a rule of $\Gamma$. So both start in
 the steps that are in progress where the unit, after the shared calls
 before $q$ are removed, starts its remainder at $q$ (the clause on the calls
 that the two start with, read for that remainder), of the growths of
-$C$ open at $q$ then, and no other growth of $C$ is open at $q$ at either
-start: the continuation has left no body of a leader of $C$, so no such step
+$\Gamma$ open at $q$ then, and no other growth of $\Gamma$ is open at $q$ at either
+start: the continuation has left no body of a leader of $\Gamma$, so no such step
 has ended, and a step reads one current result throughout. For a
 continuation joined in case (d), whose part after $e_C$ runs in the
-evaluations of $\kappa$, a growth of $C$ open at $q$ around the call of
-one side only is opened by a call $D$ at $q$; it can be so only for
-$q = s_C = s_a = e_C$, where $C$ matched nothing, and then $D$ left-reaches
-the rule of $C$, which left-reaches the shared call, which left-reaches $D$,
-so the rule of $C$ is a rule of the cycle, and the joined continuation
-reaches the call after leaving its body, which the definition of a shared
-call excludes. The two calls
-then have one key and one context, the growths of $C$ open at $q$ with
+evaluations of $\kappa$, a growth of $\Gamma$ open at $q$ around the call of
+one side only is opened by a call $D$ at $q$ that encloses that call on its
+side and not the other. The shared call lies in the part after $e_C$, so
+$q \ge e_C$. On the side of $a$, $D$ encloses $a$ and starts at or before
+$s_a \le e_C \le q$; on the side of $\kappa$, $D$ encloses the call of the
+rule of $C$ that $\kappa$ makes at $s_C$ and starts at or before
+$s_C \le e_C \le q$. If $D$ lies strictly between $C$ and $a$, it is kept,
+its body ends before that of $C$ does, and the joined continuation leaves the
+body of its rule, a rule of $\Gamma$, on its way from $a$ to $e_C$, which the
+definition of a shared call excludes. Otherwise $D$ is $C$ or encloses it on
+one side, so it starts at or before $s_C$, and $q = s_C = s_a = e_C$, where
+$C$ matched nothing; then $D$ left-reaches the rule of $C$, which
+left-reaches the shared call, which left-reaches $D$, so the rule of $C$ is a
+rule of the cycle, and the joined continuation reaches the call after leaving
+its body, which the definition of a shared call excludes. The two calls
+then have one key and one context, the growths of $\Gamma$ open at $q$ with
 their current results. Their evaluations in $\mathcal{R}$ take the same
 steps by the comparison in the proof of [Lemma 4 of the memoization
 proof](memoization.md#lemma-4-answering-from-a-dependent-result): each
@@ -2875,15 +2883,28 @@ or only in an alternative that it abandons, as the second step of `E` does in
 `E = (E / "") "a" / "a" "b" "c"` on `abc`, where the first alternative reads
 the seed `a` and fails at `b`. Each of those steps matches `abc` from the
 position of the growth again, so the end of $X$ is not reached through the
-step that holds $T$. Also left open is a nesting step whose first abandoned
-evaluation $w$ below $X$ commits against what the parser evaluates after it
-only by deciding it through a negative lookahead `!K` on its own side: the
-rest of the other side must match `K`, but $\kappa$ need match only up to
-$p_0$, and `K` can fail beyond it. In
-`main = E "c"`, `E = "(" W / B`, `W = !("b" "c") E "c" / "b"`,
+step that holds $T$. Also left open is a pair $X$, $T$ for which a unit that the proof
+below places on the path from $X$ to $T$, with the continuation that it
+gives that unit, decides that continuation only through a negative lookahead
+`!K` on its own side: the path of the unit that leads to $T$ parts from the
+path that the continuation takes at `!K` and at no other decisive symbol.
+The units that the proof places are the first abandoned evaluation $w$ below
+$X$ with $\kappa$, the unit that *Dropped steps* gives in its place with the
+continuation that it names, the unit $a$ of case (d) with $\kappa'$, and
+these units of the claim applied again in case (c). The rest of the other side
+must match `K`, but the continuation need match only up to $p_0$, and `K` can
+fail beyond it. In `main = E "c"`, `E = "(" W / B`, `W = !("b" "c") E "c" / "b"`,
 `B = B "b" / "b"` on `(bx`, $X$ is `E` at 0 and ends at $p_0 = 2$, `!("b" "c")`
 passes, $T$ is `E` at 1, holds the growth of `B` and ends at 2, `"c"` fails and
-`W` ends through `"b"`; $E_t$ for the call of `E` in `W` is empty.
+`W` ends through `"b"`; $E_t$ for the call of `E` in `W` is empty. In
+`main = E "z"`, `E = C "c" "z" "y" / C "c" / B`, `C = "(" W`,
+`W = !("b" "c" "z") E "z" / "b"`, `B = B "c" / "b"` on `(bcq`, the unit is
+the $a$ of case (d): $X$ is `E` at 0 and ends at $p_0 = 3$; its first
+alternative shares `C` and `"c"` with the second and fails at `"z"`, so it
+commits by its shared calls; inside `C`, the first alternative of `W` at 1
+passes `!("b" "c" "z")` and holds $T$, `E` at 1, which ends at 3, and its
+continuation $\kappa'$, `"b"`, the end of `C` and `"c"`, consumes the input
+up to 3; $E_t$ is empty again.
 
 *Proof.* By induction on the number of calls on the path from $X$ to $T$.
 Each call on that path is of a rule of the recursion of $t$, since $A$
@@ -2937,8 +2958,12 @@ Below, the symbols that the comparison of a decided unit passes by the
 characters that they have in common (a literal that is a prefix of the
 other, literals equal up to case, overlapping classes, a literal and a class
 that contains its first character) count among the alike calls, each
-character as one: $\kappa$ succeeds, so both sides consume those characters
-at the same positions. $T$ does not start at or after the end $u$ of the alike calls in $w$. If it
+character as one: $\kappa$ succeeds, so it consumes those characters at
+the same positions, and so does $w$ where its symbol is a literal that is a
+prefix of the other side's; where it is a literal that differs in case or a
+class that only overlaps, $w$ can fail at that symbol, and then it does not
+reach $T$ after the symbol, so $T$ lies before it, among or inside the
+earlier alike calls, as below. $T$ does not start at or after the end $u$ of the alike calls in $w$. If it
 did, $w$ would examine, after the alike calls, the character at $u$, on its
 way to $T$ or in $T$, which consumes the input from its start to $p_0$, and
 $\kappa$, which reaches $p_0 > u$ after the alike calls, would consume that
@@ -3046,7 +3071,8 @@ call of a rule of the cycle starts no new evaluation at a new position. One of
 the finitely many call places, $t$, makes unboundedly many of them, and
 *Nesting at one end*, with $X$ an outer and $T$ an inner one of them, would put
 the callee of $t$ in $E_t$, so that $t$ nests at one end. Three of its
-hypotheses are not shown here. First, $X$
+hypotheses are not shown here, and its case of a unit decided by a negative
+lookahead on its own side is left aside as there. First, $X$
 and $T$ must end at $p_0$, but the evaluations above are chosen because the
 current result of their leader ends at $p_0$, and a leader whose step at
 $p_0$ grows ends beyond $p_0$. Second, $T$ must follow a read of the seed in
@@ -12142,14 +12168,16 @@ theorem covers such a parse.
    before a read of its seed, and a nesting through a growth whose later kept
    step matches its result without a read of its seed outside lookaheads,
    reading it only inside a lookahead or only in an alternative that it
-   abandons, and a nesting step through a unit that commits only by a
-   negative lookahead on its own side; what remains is
+   abandons, and a pair of nested evaluations with a unit on the path between
+   them that decides its continuation only through a negative lookahead on
+   its own side; what remains is
    to bound the frames left at the earlier positions by it. And the leaf links
    between which the parser leaves or starts, at their position, a growth
    step or an evaluation in a context of growths, which that claim leaves
    out, and for which the condition has its case of seed reads (*Seed
-   reads*); that case is argued from *Nesting at one end* but not proved:
-   it is not shown that the
+   reads*); that case is argued from *Nesting at one end*, apart from its
+   case of a unit decided by a negative lookahead on its own side, but not
+   proved: it is not shown that the
    nested evaluations of a leader that it picks end at the position, since a
    leader whose current result ends there can grow beyond it, nor that each
    dropped step of a growth on the path between them holds the inner one after
