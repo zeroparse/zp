@@ -119,7 +119,7 @@ compiler side. The rules, which a test enforces, are these.
      analysis tool or language server; a backend imports no analysis tool or language server.
    - The utility packages (diagnostics, cancellation and command-line flag names) may import the grammar AST, because
      diagnostics carry source positions. The grammar AST imports only the standard library, and `pkg/grammar` is in the
-     layer of the public tool packages. The fixture suite of `zp test` is a tool that uses the
+     layer of the public tool packages and imports only the parser, the formatter, the AST and the bytecode package. The fixture suite of `zp test` is a tool that uses the
      compiler, in the same layer as the public tool packages.
    - Only the commands and the repository's test support import the language server packages, and only test support imports
      the test-support packages from non-test code.

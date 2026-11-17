@@ -27,7 +27,7 @@ import (
 // static analysis, type checking, and compilation to bytecode.
 
 const (
-	compiledMagic   = "ZPC\x00"
+	compiledMagic   = bytecode.FileMagic
 	compiledVersion = 8
 )
 
@@ -89,7 +89,7 @@ var errSchemaNeedsSource = fmt.Errorf("%w: a compiled grammar holds no schema; e
 var ErrNotCompiled = errors.New("not a compiled ZeroParse grammar")
 
 // IsCompiled reports whether the data is in the compiled grammar format.
-func IsCompiled(data []byte) bool { return bytes.HasPrefix(data, []byte(compiledMagic)) }
+func IsCompiled(data []byte) bool { return bytecode.IsCompiled(data) }
 
 // Mode returns the mode of a program loaded from a compiled grammar, and false for a program
 // compiled from a grammar.

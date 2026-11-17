@@ -16,7 +16,7 @@ import (
 	"io/fs"
 	"path"
 
-	"zeroparse.dev/zp/internal/engine"
+	"zeroparse.dev/zp/internal/bytecode"
 	"zeroparse.dev/zp/internal/frontend/parser"
 	"zeroparse.dev/zp/pkg/grammar/ast"
 )
@@ -107,7 +107,7 @@ func (s Source) load() ([]byte, Encoding, error) {
 			return nil, 0, err
 		}
 	}
-	if engine.IsCompiled(data) {
+	if bytecode.IsCompiled(data) {
 		return nil, 0, ErrCompiled
 	}
 	return data, s.decide(data), nil
