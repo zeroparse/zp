@@ -57,14 +57,14 @@ func FormatExprContext(ctx context.Context, e ast.Expr) (result string, err erro
 	return result, nil
 }
 
-// FormatTermContext is FormatTerm with the same cancellation contract as
+// FormatActionExprContext is FormatActionExpr with the same cancellation contract as
 // FormatContext. The caller must not mutate t during formatting.
-func FormatTermContext(ctx context.Context, t ast.Term) (result string, err error) {
+func FormatActionExprContext(ctx context.Context, t ast.ActionExpr) (result string, err error) {
 	if err := ctx.Err(); err != nil {
 		return "", err
 	}
 	if ctx.Done() == nil {
-		return FormatTerm(t), nil
+		return FormatActionExpr(t), nil
 	}
 	defer recoverFormat(&result, &err)
 	c := formatControl{ctx: ctx}

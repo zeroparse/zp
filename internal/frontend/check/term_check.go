@@ -46,7 +46,7 @@ func (c *TermChecker) errorf(pos ast.Pos, format string, args ...any) {
 }
 
 // CheckTerm resolves the names in a value expression and reports statically detectable errors.
-func (c *TermChecker) CheckTerm(t ast.Term, s *Scope, locals []string) {
+func (c *TermChecker) CheckTerm(t ast.ActionExpr, s *Scope, locals []string) {
 	c.Control.Poll()
 	switch t := t.(type) {
 	case *ast.CaptureRef:

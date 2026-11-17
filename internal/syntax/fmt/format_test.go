@@ -14,7 +14,7 @@ func TestFormatSourceGroupOpeningComments(t *testing.T) {
 			open := &ast.LineBreak{Comments: []*ast.Comment{{Text: comment}}}
 			for _, out := range []string{
 				FormatType(&ast.TypeGroup{Type: &ast.TypeRef{Name: "T"}, OpenBreak: open, OneLine: oneLine}),
-				FormatTerm(&ast.TermGroup{Term: &ast.IntLit{Value: 1}, OpenBreak: open, OneLine: oneLine}),
+				FormatActionExpr(&ast.ActionGroup{Action: &ast.IntLit{Value: 1}, OpenBreak: open, OneLine: oneLine}),
 			} {
 				if strings.Count(out, comment) != 1 || !strings.HasPrefix(out, "(") || !strings.HasSuffix(out, ")") {
 					t.Fatalf("opening comment lost or duplicated: %q", out)
@@ -29,7 +29,7 @@ func TestFormatMinimumInteger(t *testing.T) {
 	minimum := &ast.IntLit{Value: -max - 1}
 	expr := "-" + strconv.Itoa(max) + " - 1"
 	for _, tc := range []struct {
-		term ast.Term
+		term ast.ActionExpr
 		want string
 	}{
 		{minimum, expr},
@@ -38,8 +38,8 @@ func TestFormatMinimumInteger(t *testing.T) {
 		{&ast.Binary{Op: "-", L: &ast.IntLit{Value: 1}, R: minimum}, "1 - (" + expr + ")"},
 		{&ast.Binary{Op: "*", L: minimum, R: &ast.IntLit{Value: 2}}, "(" + expr + ") * 2"},
 	} {
-		if got := FormatTerm(tc.term); got != tc.want {
-			t.Errorf("FormatTerm: got %q; want %q", got, tc.want)
+		if got := FormatActionExpr(tc.term); got != tc.want {
+			t.Errorf("FormatActionExpr: got %q; want %q", got, tc.want)
 		}
 	}
 }
@@ -56,12 +56,12 @@ func TestFormatMinusFragments(t *testing.T) {
 			t.Errorf("FormatExpr: got %q, want %q", got, tc.want)
 		}
 	}
-	for _, x := range []ast.Term{
+	for _, x := range []ast.ActionExpr{
 		&ast.Unary{Op: "-", X: &ast.IntLit{Value: 1}},
 		&ast.IntLit{Value: -1},
 	} {
-		if got := FormatTerm(&ast.Unary{Op: "-", X: x}); got != "- -1" {
-			t.Errorf("FormatTerm: got %q, want %q", got, "- -1")
+		if got := FormatActionExpr(&ast.Unary{Op: "-", X: x}); got != "- -1" {
+			t.Errorf("FormatActionExpr: got %q, want %q", got, "- -1")
 		}
 	}
 }
@@ -72,22 +72,22 @@ func TestFormatTrailingComma(t *testing.T) {
 	one, two := &ast.IntLit{Value: 1}, &ast.IntLit{Value: 2}
 	for _, tc := range []struct {
 		name string
-		term ast.Term
+		term ast.ActionExpr
 		want string
 	}{
-		{"call", &ast.Call{Func: "f", Args: []ast.Term{one, two}}, "f(1, 2)"},
-		{"call with a trailing comma", &ast.Call{Func: "f", Args: []ast.Term{one, two}, TrailingComma: true}, "f(\n    1,\n    2,\n)"},
-		{"constructor", &ast.New{Type: "N", Args: []ast.Term{one}}, "N{1}"},
-		{"constructor with a trailing comma", &ast.New{Type: "N", Args: []ast.Term{one}, TrailingComma: true}, "N{\n    1,\n}"},
-		{"list constructor", &ast.ListConstructor{Elem: &ast.TypeRef{Name: "int"}, Items: []ast.Term{one, two}}, "[]int{1, 2}"},
-		{"list constructor with a trailing comma", &ast.ListConstructor{Elem: &ast.TypeRef{Name: "int"}, Items: []ast.Term{one, two}, TrailingComma: true}, "[]int{\n    1,\n    2,\n}"},
-		{"tuple", &ast.TupleLit{Elems: []ast.Term{one, two}}, "(1, 2)"},
-		{"tuple with a trailing comma", &ast.TupleLit{Elems: []ast.Term{one, two}, TrailingComma: true}, "(\n    1,\n    2,\n)"},
-		{"tuple of one element", &ast.TupleLit{Elems: []ast.Term{one}}, "(1,)"},
-		{"tuple of one element with a trailing comma", &ast.TupleLit{Elems: []ast.Term{one}, TrailingComma: true}, "(1,)"},
-		{"nested", &ast.Call{Func: "f", Args: []ast.Term{&ast.TupleLit{Elems: []ast.Term{one, two}, TrailingComma: true}}}, "f(\n    (\n        1,\n        2,\n    ),\n)"},
+		{"call", &ast.Call{Func: "f", Args: []ast.ActionExpr{one, two}}, "f(1, 2)"},
+		{"call with a trailing comma", &ast.Call{Func: "f", Args: []ast.ActionExpr{one, two}, TrailingComma: true}, "f(\n    1,\n    2,\n)"},
+		{"constructor", &ast.New{Type: "N", Args: []ast.ActionExpr{one}}, "N{1}"},
+		{"constructor with a trailing comma", &ast.New{Type: "N", Args: []ast.ActionExpr{one}, TrailingComma: true}, "N{\n    1,\n}"},
+		{"list constructor", &ast.ListConstructor{Elem: &ast.TypeRef{Name: "int"}, Items: []ast.ActionExpr{one, two}}, "[]int{1, 2}"},
+		{"list constructor with a trailing comma", &ast.ListConstructor{Elem: &ast.TypeRef{Name: "int"}, Items: []ast.ActionExpr{one, two}, TrailingComma: true}, "[]int{\n    1,\n    2,\n}"},
+		{"tuple", &ast.TupleLit{Elems: []ast.ActionExpr{one, two}}, "(1, 2)"},
+		{"tuple with a trailing comma", &ast.TupleLit{Elems: []ast.ActionExpr{one, two}, TrailingComma: true}, "(\n    1,\n    2,\n)"},
+		{"tuple of one element", &ast.TupleLit{Elems: []ast.ActionExpr{one}}, "(1,)"},
+		{"tuple of one element with a trailing comma", &ast.TupleLit{Elems: []ast.ActionExpr{one}, TrailingComma: true}, "(1,)"},
+		{"nested", &ast.Call{Func: "f", Args: []ast.ActionExpr{&ast.TupleLit{Elems: []ast.ActionExpr{one, two}, TrailingComma: true}}}, "f(\n    (\n        1,\n        2,\n    ),\n)"},
 	} {
-		if got := FormatTerm(tc.term); got != tc.want {
+		if got := FormatActionExpr(tc.term); got != tc.want {
 			t.Errorf("%s: got %q, want %q", tc.name, got, tc.want)
 		}
 	}
@@ -111,15 +111,15 @@ func TestFormatTrailingComma(t *testing.T) {
 
 func TestTupleLitFormat(t *testing.T) {
 	for _, tc := range []struct {
-		term ast.Term
+		term ast.ActionExpr
 		want string
 	}{
-		{&ast.TupleLit{Elems: []ast.Term{}}, "()"},
-		{&ast.TupleLit{Elems: []ast.Term{&ast.IntLit{Value: 1}}}, "(1,)"},
-		{&ast.TupleLit{Elems: []ast.Term{&ast.IntLit{Value: 1}, &ast.VarRef{Name: "x"}}}, "(1, x)"},
-		{&ast.Binary{Op: "[]", L: &ast.TupleLit{Elems: []ast.Term{&ast.IntLit{Value: 1}, &ast.IntLit{Value: 2}}}, R: &ast.IntLit{Value: 0}}, "(1, 2)[0]"},
+		{&ast.TupleLit{Elems: []ast.ActionExpr{}}, "()"},
+		{&ast.TupleLit{Elems: []ast.ActionExpr{&ast.IntLit{Value: 1}}}, "(1,)"},
+		{&ast.TupleLit{Elems: []ast.ActionExpr{&ast.IntLit{Value: 1}, &ast.VarRef{Name: "x"}}}, "(1, x)"},
+		{&ast.Binary{Op: "[]", L: &ast.TupleLit{Elems: []ast.ActionExpr{&ast.IntLit{Value: 1}, &ast.IntLit{Value: 2}}}, R: &ast.IntLit{Value: 0}}, "(1, 2)[0]"},
 	} {
-		if got := FormatTerm(tc.term); got != tc.want {
+		if got := FormatActionExpr(tc.term); got != tc.want {
 			t.Errorf("got %q, want %q", got, tc.want)
 		}
 	}

@@ -61,7 +61,7 @@ func (prog *Program) markSkipSites(control *cancel.Control) {
 		walkExprControlled(e.Expr, func(x ast.Expr) {
 			switch x := x.(type) {
 			case *ast.Predicate:
-				if readsOrBindsVariable(x.Term) {
+				if readsOrBindsVariable(x.Action) {
 					ok = false
 				}
 			case *ast.Ref:
@@ -132,9 +132,9 @@ func skipOf(e ast.Expr) ast.Expr {
 func escapingCut(e ast.Expr) bool { return astfacts.HasLooseCut(e) }
 
 // readsOrBindsVariable reports whether the predicate term t reads or binds a variable.
-func readsOrBindsVariable(t ast.Term) bool {
+func readsOrBindsVariable(t ast.ActionExpr) bool {
 	found := false
-	WalkTerm(t, func(x ast.Term) {
+	WalkTerm(t, func(x ast.ActionExpr) {
 		switch x.(type) {
 		case *ast.VarRef, *ast.Bind:
 			found = true

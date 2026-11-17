@@ -144,13 +144,13 @@ func (c *walker) repeat(e *ast.Repeat, s *check.Scope, build bool) {
 
 // predicate checks a Predicate Action { ... } and walks it.
 func (c *walker) predicate(e *ast.Predicate, s *check.Scope) {
-	if a, ok := e.Term.(*ast.Bind); ok {
+	if a, ok := e.Action.(*ast.Bind); ok {
 		if c.Prog.Vars.Lookup(a.Name) == nil {
 			c.errorf(a.Diagnostic(), "undefined variable %s; declare it with var %s at the top level", a.Name, a.Name)
 		}
 		c.CheckTerm(a.Value, s, nil)
 	} else {
-		c.CheckTerm(e.Term, s, nil)
+		c.CheckTerm(e.Action, s, nil)
 	}
 }
 
@@ -279,7 +279,7 @@ var OperatorsRuleActionLocals = []string{OperatorsRuleValue}
 
 // operatorsRuleLine walks the line e of an Operators Rule and checks its action, whose locals are
 // locals, and returns the line's scope.
-func (c *walker) operatorsRuleLine(e ast.Expr, action ast.Term, locals []string) *check.Scope {
+func (c *walker) operatorsRuleLine(e ast.Expr, action ast.ActionExpr, locals []string) *check.Scope {
 	s := check.NewScope()
 	c.Expr(e, s, !c.rule.Novalue && !LeanLine(action, locals))
 	if action != nil && !c.rule.Novalue {
@@ -289,4 +289,4 @@ func (c *walker) operatorsRuleLine(e ast.Expr, action ast.Term, locals []string)
 }
 
 // LeanLine is check.LeanLine.
-func LeanLine(action ast.Term, locals []string) bool { return check.LeanLine(action, locals) }
+func LeanLine(action ast.ActionExpr, locals []string) bool { return check.LeanLine(action, locals) }

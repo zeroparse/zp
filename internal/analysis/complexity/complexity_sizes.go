@@ -77,7 +77,7 @@ func degShape(d [3]int) growthShape {
 }
 
 // valueShape bounds the value of t in the context tc, outside the steps of a fold.
-func (k *classifier) valueShape(t ast.Term, tc termCtx) growthShape {
+func (k *classifier) valueShape(t ast.ActionExpr, tc termCtx) growthShape {
 	g, _ := k.growthOf(t, nil, tc)
 	return g
 }
@@ -245,7 +245,7 @@ func (k *classifier) ruleShape(name string) growthShape {
 func (k *classifier) levelShape(r *ast.RuleDef) growthShape {
 	if ops, ok := r.Expr.(*ast.OperatorsRule); ok {
 		out := growthShape{S: lin{}, N: lin{}}
-		add := func(e ast.Expr, action ast.Term, def bool) {
+		add := func(e ast.Expr, action ast.ActionExpr, def bool) {
 			if action != nil && !def {
 				out = out.join(k.valueShape(action, termCtx{rule: r.Name}))
 			} else {
@@ -282,7 +282,7 @@ func (k *classifier) recOnce(rules []string) bool {
 				return false
 			}
 		}
-		var terms []ast.Term
+		var terms []ast.ActionExpr
 		if ops, ok := r.Expr.(*ast.OperatorsRule); ok {
 			for _, o := range ops.Operands {
 				terms = append(terms, o.Action)
@@ -312,10 +312,10 @@ func (k *classifier) recOnce(rules []string) bool {
 // recUses counts in w.rec the reads of captures that can hold a call on a recursion with the rule
 // in t, and reports false for such a read inside a lambda or in the list of a lambda, unless the
 // list is a capture of a repetition and the lambdas hold each element at most once.
-func (w *ownWalk) recUses(t ast.Term, inLambda bool) bool {
+func (w *ownWalk) recUses(t ast.ActionExpr, inLambda bool) bool {
 	ok := true
-	var visit func(t ast.Term, inLambda bool)
-	visit = func(t ast.Term, inLambda bool) {
+	var visit func(t ast.ActionExpr, inLambda bool)
+	visit = func(t ast.ActionExpr, inLambda bool) {
 		switch t := t.(type) {
 		case nil:
 		case *ast.CaptureRef:
@@ -570,9 +570,9 @@ func (k *classifier) exprLooks(e ast.Expr, rule string) bool {
 
 // termLooks reports whether the value of the term t in rule can hold a capture in a positive
 // lookahead: it reads one, a capture whose value can hold one, or the matched values by index.
-func (k *classifier) termLooks(t ast.Term, rule string) bool {
+func (k *classifier) termLooks(t ast.ActionExpr, rule string) bool {
 	found := false
-	astfacts.WalkTerm(t, func(x ast.Term) {
+	astfacts.WalkTerm(t, func(x ast.ActionExpr) {
 		if found {
 			return
 		}
@@ -620,7 +620,7 @@ type ownLam struct {
 }
 
 // ownTerm reports whether the term t in rule builds an own value when the rules in own are.
-func (k *classifier) ownTerm(t ast.Term, rule string, own map[string]bool) bool {
+func (k *classifier) ownTerm(t ast.ActionExpr, rule string, own map[string]bool) bool {
 	w := &ownWalk{k: k, rule: rule, own: own, rec: map[string]int{}, ok: true}
 	w.term(t, nil)
 	for _, n := range w.rec {
@@ -650,9 +650,9 @@ func (w *ownWalk) recCapture(name string) bool {
 }
 
 // readsRec reports whether t reads a capture that can hold a call on a recursion with the rule.
-func (w *ownWalk) readsRec(t ast.Term) bool {
+func (w *ownWalk) readsRec(t ast.ActionExpr) bool {
 	found := false
-	astfacts.WalkTerm(t, func(x ast.Term) {
+	astfacts.WalkTerm(t, func(x ast.ActionExpr) {
 		switch x := x.(type) {
 		case *ast.CaptureRef:
 			if !x.Param && w.recCapture(x.Name) {
@@ -663,7 +663,7 @@ func (w *ownWalk) readsRec(t ast.Term) bool {
 	return found
 }
 
-func (w *ownWalk) term(t ast.Term, lam *ownLam) {
+func (w *ownWalk) term(t ast.ActionExpr, lam *ownLam) {
 	if !w.ok || t == nil {
 		return
 	}
@@ -712,8 +712,8 @@ func (w *ownWalk) term(t ast.Term, lam *ownLam) {
 		if w.recCapture(t.Name) {
 			w.rec["$"+t.Name]++
 		}
-	case *ast.TermGroup:
-		w.term(t.Term, lam)
+	case *ast.ActionGroup:
+		w.term(t.Action, lam)
 	case *ast.Cast:
 		w.term(t.X, lam)
 	case *ast.Member:
@@ -797,7 +797,7 @@ func (w *ownWalk) term(t ast.Term, lam *ownLam) {
 
 // repCapture reports whether t is a capture of the rule of repetitions only, whose elements are
 // distinct matches.
-func (w *ownWalk) repCapture(t ast.Term) bool {
+func (w *ownWalk) repCapture(t ast.ActionExpr) bool {
 	r, ok := t.(*ast.CaptureRef)
 	if !ok || r.Param {
 		return false
@@ -831,8 +831,8 @@ func paramsOnce(lam *ast.Lambda, fold bool) bool {
 	}
 	var paths []string
 	ok := true
-	var visit func(t ast.Term)
-	visit = func(t ast.Term) {
+	var visit func(t ast.ActionExpr)
+	visit = func(t ast.ActionExpr) {
 		if p, isPath := paramPath(t, params); isPath {
 			paths = append(paths, p)
 			return
@@ -863,7 +863,7 @@ func paramsOnce(lam *ast.Lambda, fold bool) bool {
 
 // paramPath returns the member path of t, such as x.$a, when t is one of the parameters names or
 // a member of one.
-func paramPath(t ast.Term, names []string) (string, bool) {
+func paramPath(t ast.ActionExpr, names []string) (string, bool) {
 	switch t := t.(type) {
 	case *ast.CaptureRef:
 		return t.Name, t.Param && containsName(names, t.Name)
@@ -897,16 +897,16 @@ func (k *classifier) foldAccShape(call *ast.Call, lam *ast.Lambda, tc termCtx) g
 }
 
 // termChildren returns the terms directly inside t.
-func termChildren(t ast.Term) []ast.Term {
+func termChildren(t ast.ActionExpr) []ast.ActionExpr {
 	switch t := t.(type) {
-	case *ast.TermGroup:
-		return []ast.Term{t.Term}
+	case *ast.ActionGroup:
+		return []ast.ActionExpr{t.Action}
 	case *ast.Block:
 		return t.Statements
 	case *ast.Member:
-		return []ast.Term{t.X}
+		return []ast.ActionExpr{t.X}
 	case *ast.New:
-		out := append([]ast.Term(nil), t.Args...)
+		out := append([]ast.ActionExpr(nil), t.Args...)
 		for _, f := range t.Fields {
 			out = append(out, f.Value)
 		}
@@ -918,15 +918,15 @@ func termChildren(t ast.Term) []ast.Term {
 	case *ast.Call:
 		return t.Args
 	case *ast.Lambda:
-		return []ast.Term{t.Body}
+		return []ast.ActionExpr{t.Body}
 	case *ast.Binary:
-		return []ast.Term{t.L, t.R}
+		return []ast.ActionExpr{t.L, t.R}
 	case *ast.Unary:
-		return []ast.Term{t.X}
+		return []ast.ActionExpr{t.X}
 	case *ast.Cast:
-		return []ast.Term{t.X}
+		return []ast.ActionExpr{t.X}
 	case *ast.Bind:
-		return []ast.Term{t.Value}
+		return []ast.ActionExpr{t.Value}
 	}
 	return nil
 }

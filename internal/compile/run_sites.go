@@ -158,7 +158,7 @@ func envFree(e *ast.Repeat, readsVars func(rule string) bool) bool {
 	WalkExpr(e.Expr, func(x ast.Expr) {
 		switch x := x.(type) {
 		case *ast.Predicate:
-			free = free && !readsOrBindsVariable(x.Term)
+			free = free && !readsOrBindsVariable(x.Action)
 		case *ast.Ref:
 			free = free && (EnvFreeMutation == EnvFreeCalleesIgnore || !readsVars(x.Name))
 		}

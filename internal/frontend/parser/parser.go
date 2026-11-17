@@ -963,8 +963,8 @@ func (p *parser) declarationAttributes(keyword string) (attrs []*ast.Attribute, 
 	return attrs, breaks, p.lineBreak()
 }
 
-func (p *parser) actionTerm() (ast.Term, bool) {
-	var term ast.Term
+func (p *parser) actionTerm() (ast.ActionExpr, bool) {
+	var term ast.ActionExpr
 	defaultAction := p.accept("...")
 	if !defaultAction {
 		if p.is("{") {
@@ -1846,11 +1846,11 @@ func (p *parser) primary() (sourceResult ast.Expr) {
 			return group
 		case "{":
 			block := p.actionBlock()
-			var term ast.Term = block
+			var term ast.ActionExpr = block
 			if len(block.Statements) == 1 {
 				term = block.Statements[0]
 			}
-			return &ast.Predicate{SourceInfo: ast.SourceInfo{Pos: t.pos}, Term: term, OpenBreak: block.OpenBreak, Breaks: block.Breaks, CloseBreak: block.CloseBreak, OneLine: block.OneLine}
+			return &ast.Predicate{SourceInfo: ast.SourceInfo{Pos: t.pos}, Action: term, OpenBreak: block.OpenBreak, Breaks: block.Breaks, CloseBreak: block.CloseBreak, OneLine: block.OneLine}
 		case "#":
 			if p.isOperatorsStart() {
 				p.operatorsPlacementError()
@@ -1915,7 +1915,7 @@ func (p *parser) actionBlock() (sourceResult *ast.Block) {
 	outerLayout, outerDepth, outerStart := p.layout, p.layoutDepth, p.layoutStart
 	defer func() { p.layout, p.layoutDepth, p.layoutStart = outerLayout, outerDepth, outerStart }()
 	p.layout = false
-	block := &ast.Block{SourceInfo: ast.SourceInfo{Pos: p.expect("{").pos}, Statements: []ast.Term{}}
+	block := &ast.Block{SourceInfo: ast.SourceInfo{Pos: p.expect("{").pos}, Statements: []ast.ActionExpr{}}
 	lead := p.openLead()
 	// The comment at the end of the line of "{" stays with the block.
 	block.OpenBreak = &ast.LineBreak{}
@@ -1944,7 +1944,7 @@ func (p *parser) actionBlock() (sourceResult *ast.Block) {
 		}
 		restore := p.statement()
 		statementStart := p.i
-		var term ast.Term
+		var term ast.ActionExpr
 		if p.tok().kind == tIdent && p.peek(1).text == ":=" {
 			name := p.ident()
 			p.expect(":=")
@@ -1976,7 +1976,7 @@ func (p *parser) actionBlock() (sourceResult *ast.Block) {
 
 // --- Value expressions ---
 
-func (p *parser) term() (sourceResult ast.Term) {
+func (p *parser) term() (sourceResult ast.ActionExpr) {
 	sourceStart := p.i
 	defer func() {
 		if sourceResult != nil {
@@ -1993,7 +1993,7 @@ func (p *parser) term() (sourceResult ast.Term) {
 }
 
 // tryLambda parses a lambda if the input has the form (a, b) => body.
-func (p *parser) tryLambda() (sourceResult ast.Term) {
+func (p *parser) tryLambda() (sourceResult ast.ActionExpr) {
 	sourceStart := p.i
 	var layout *ast.SourceLayout
 	defer func() {
@@ -2082,7 +2082,7 @@ var binaryLevels = [][]string{
 	{"*", "/", "%"},
 }
 
-func (p *parser) binary(level int) (sourceResult ast.Term) {
+func (p *parser) binary(level int) (sourceResult ast.ActionExpr) {
 	sourceStart := p.i
 	defer func() {
 		if sourceResult != nil {
@@ -2123,7 +2123,7 @@ func contains(xs []string, x string) bool {
 	return false
 }
 
-func (p *parser) unary() (sourceResult ast.Term) {
+func (p *parser) unary() (sourceResult ast.ActionExpr) {
 	sourceStart := p.i
 	layout := p.takeTermLayout()
 	defer func() {
@@ -2204,7 +2204,7 @@ func captureMember(name string) bool {
 	return r != '$' && !unicode.IsUpper(r) // x.$y is parsed as the member $y
 }
 
-func (p *parser) termPrimary() (sourceResult ast.Term) {
+func (p *parser) termPrimary() (sourceResult ast.ActionExpr) {
 	sourceStart := p.i
 	defer func() {
 		if sourceResult != nil {
@@ -2276,15 +2276,15 @@ func (p *parser) termPrimary() (sourceResult ast.Term) {
 			p.next()
 			outer := p.cur
 			defer func() { p.cur = outer }()
-			g := &ast.TermGroup{OpenBreak: &ast.LineBreak{}}
+			g := &ast.ActionGroup{OpenBreak: &ast.LineBreak{}}
 			p.cur = g.OpenBreak
 			g.BodyBreak = p.lineBreak()
 			if p.is(")") {
 				return p.tupleLit(&ast.TupleLit{OpenBreak: g.OpenBreak, BodyBreak: g.BodyBreak}) // the unit ()
 			}
-			g.Term = p.term()
+			g.Action = p.term()
 			if p.is(",") {
-				return p.tupleLit(&ast.TupleLit{OpenBreak: g.OpenBreak, BodyBreak: g.BodyBreak, Elems: []ast.Term{g.Term}})
+				return p.tupleLit(&ast.TupleLit{OpenBreak: g.OpenBreak, BodyBreak: g.BodyBreak, Elems: []ast.ActionExpr{g.Action}})
 			}
 			g.CloseBreak = p.lineBreak()
 			g.OneLine = !p.multiline(open, p.i)
@@ -2298,7 +2298,7 @@ func (p *parser) termPrimary() (sourceResult ast.Term) {
 
 // tupleLit finishes a tuple value whose "(" and first element, if any, were read as a group's.
 // A trailing comma is optional, and required after a single element.
-func (p *parser) tupleLit(t *ast.TupleLit) ast.Term {
+func (p *parser) tupleLit(t *ast.TupleLit) ast.ActionExpr {
 	if len(t.Elems) > 0 {
 		p.takeAfterLayout(t.Elems[0])
 		for p.accept(",") {
@@ -2312,14 +2312,14 @@ func (p *parser) tupleLit(t *ast.TupleLit) ast.Term {
 			p.takeAfterLayout(x)
 		}
 	} else {
-		t.Elems = []ast.Term{}
+		t.Elems = []ast.ActionExpr{}
 	}
 	t.CloseBreak = p.lineBreak()
 	p.expect(")")
 	return t
 }
 
-func (p *parser) newTerm() (sourceResult ast.Term) {
+func (p *parser) newTerm() (sourceResult ast.ActionExpr) {
 	sourceStart := p.i
 	defer func() {
 		if sourceResult != nil {
@@ -2407,8 +2407,8 @@ func (p *parser) openList() (open, body *ast.LineBreak) {
 // listItems reads comma-separated expressions up to, not including, the
 // closing delimiter. A trailing comma is optional; trailing reports whether
 // the list has one.
-func (p *parser) listItems(closer string) (items []ast.Term, trailing bool) {
-	items = []ast.Term{}
+func (p *parser) listItems(closer string) (items []ast.ActionExpr, trailing bool) {
+	items = []ast.ActionExpr{}
 	for !p.is(closer) {
 		item := p.term()
 		items = append(items, item)

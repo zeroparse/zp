@@ -213,9 +213,9 @@ func coreNodes(r *core.Rule, f func(n core.Node)) { core.Walk(r.Body, f) }
 
 // opLines returns the lines of an Operators Rule with their grammar lines, in order: the skip
 // line, the operands and the operators.
-func opLines(o *core.OperatorsRule, e *ast.OperatorsRule) ([]*core.OpLine, []ast.Expr, []ast.Term) {
+func opLines(o *core.OperatorsRule, e *ast.OperatorsRule) ([]*core.OpLine, []ast.Expr, []ast.ActionExpr) {
 	var exprs []ast.Expr
-	var actions []ast.Term
+	var actions []ast.ActionExpr
 	if e.Skip != nil {
 		exprs, actions = append(exprs, e.Skip), append(actions, nil)
 	}

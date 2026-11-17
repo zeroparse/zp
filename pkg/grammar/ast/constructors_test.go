@@ -11,14 +11,14 @@ func TestConstructorJSONRoundTrip(t *testing.T) {
 	g := &Grammar{File: File{Decls: []Decl{
 		&RuleDef{Name: "list", Expr: &Literal{Value: "x"}, Action: &ListConstructor{
 			Elem: &ListType{Elem: &TypeRef{Name: "Foo"}},
-			Items: []Term{&ListConstructor{Elem: &TypeRef{Name: "Foo"}, Items: []Term{
+			Items: []ActionExpr{&ListConstructor{Elem: &TypeRef{Name: "Foo"}, Items: []ActionExpr{
 				&New{Type: "Int", Fields: []*FieldInit{{Name: "Text", Value: &StringLit{Value: "0"}}}},
 			}}},
 		}},
 		&RuleDef{Name: "args", Expr: &Literal{Value: "x"}, Action: &New{Type: "Int", Fields: []*FieldInit{
 			{Name: "Text", Value: &StringLit{Value: "a"}}, {Name: "Rest", Value: &StringLit{Value: "b"}},
 		}}},
-		&RuleDef{Name: "empty", Expr: &Literal{Value: "x"}, Action: &ListConstructor{Elem: &TypeRef{Name: "Foo"}, Items: []Term{}}},
+		&RuleDef{Name: "empty", Expr: &Literal{Value: "x"}, Action: &ListConstructor{Elem: &TypeRef{Name: "Foo"}, Items: []ActionExpr{}}},
 	}}}
 	data, err := MarshalJSON(g)
 	if err != nil {
@@ -39,16 +39,16 @@ func TestConstructorJSONRoundTrip(t *testing.T) {
 }
 
 func TestConstructorValidationChildrenAndCycles(t *testing.T) {
-	listGrammar := func(term Term) *Grammar {
+	listGrammar := func(term ActionExpr) *Grammar {
 		return termGrammar(term)
 	}
 	for _, tc := range []struct {
 		name string
-		term Term
+		term ActionExpr
 		path string
 	}{
-		{"missing list element type", &ListConstructor{Items: []Term{}}, "$.file.decls[0].action.elem"},
-		{"typed nil list item", &ListConstructor{Elem: &TypeRef{Name: "Foo"}, Items: []Term{(*StringLit)(nil)}}, "$.file.decls[0].action.items[0]"},
+		{"missing list element type", &ListConstructor{Items: []ActionExpr{}}, "$.file.decls[0].action.elem"},
+		{"typed nil list item", &ListConstructor{Elem: &TypeRef{Name: "Foo"}, Items: []ActionExpr{(*StringLit)(nil)}}, "$.file.decls[0].action.items[0]"},
 		{"typed nil field value", &New{Type: "Int", Fields: []*FieldInit{{Name: "Text", Value: (*StringLit)(nil)}}}, "$.file.decls[0].action.fields[0].value"},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
@@ -61,7 +61,7 @@ func TestConstructorValidationChildrenAndCycles(t *testing.T) {
 	}
 
 	cyclic := &ListConstructor{Elem: &TypeRef{Name: "Foo"}}
-	cyclic.Items = []Term{cyclic}
+	cyclic.Items = []ActionExpr{cyclic}
 	assertValidationError(t, Validate(listGrammar(cyclic)), "$.file.decls[0].action.items[0]")
 }
 

@@ -27,8 +27,8 @@ rule main (Alias) = v1:"x" => (
 	}
 	typ := g.Types()[1].(*ast.TypeAlias).Type.(*ast.TypeGroup)
 	innerType := typ.Type.(*ast.TypeGroup)
-	action := g.Rules()[0].Action.(*ast.TermGroup)
-	innerAction := action.Term.(*ast.TermGroup)
+	action := g.Rules()[0].Action.(*ast.ActionGroup)
+	innerAction := action.Action.(*ast.ActionGroup)
 	if innerType.LeadingComments != " type documentation\n" || !slices.Equal(innerType.TrailingComments, []string{" type tail\n"}) || innerAction.LeadingComments != " action documentation\n" || !slices.Equal(innerAction.TrailingComments, []string{" action tail\n"}) {
 		t.Fatalf("group ownership: %+v %+v", innerType.SourceInfo, innerAction.SourceInfo)
 	}
@@ -50,7 +50,7 @@ rule main (Alias) = v1:"x" => (
 		if mustJSON(t, decoded) != mustJSON(t, g) {
 			t.Fatal("JSON lost source group structure")
 		}
-		got := decoded.Rules()[0].Action.(*ast.TermGroup).Term.(*ast.TermGroup)
+		got := decoded.Rules()[0].Action.(*ast.ActionGroup).Action.(*ast.ActionGroup)
 		if !reflect.DeepEqual(got.SourceInfo, innerAction.SourceInfo) {
 			t.Fatal("JSON lost nested ownership")
 		}
@@ -61,7 +61,7 @@ rule main (Alias) = v1:"x" => (
 		t.Fatal(err)
 	}
 	gotType := reparsed.Types()[1].(*ast.TypeAlias).Type.(*ast.TypeGroup).Type.(*ast.TypeGroup)
-	gotAction := reparsed.Rules()[0].Action.(*ast.TermGroup).Term.(*ast.TermGroup)
+	gotAction := reparsed.Rules()[0].Action.(*ast.ActionGroup).Action.(*ast.ActionGroup)
 	if gotType.LeadingComments != innerType.LeadingComments || !slices.Equal(gotType.TrailingComments, innerType.TrailingComments) || gotAction.LeadingComments != innerAction.LeadingComments || !slices.Equal(gotAction.TrailingComments, innerAction.TrailingComments) {
 		t.Fatalf("owner paths changed:\n%s\n%+v %+v", out, gotType.SourceInfo, gotAction.SourceInfo)
 	}
@@ -97,8 +97,8 @@ func TestInlineGroupCommentOwnership(t *testing.T) {
 					group := g.Types()[0].(*ast.TypeAlias).Type.(*ast.TypeGroup)
 					return []ast.SourceInfo{group.SourceInfo, *group.Type.(ast.SourceNode).Source()}
 				}
-				group := g.Rules()[0].Action.(*ast.TermGroup)
-				return []ast.SourceInfo{group.SourceInfo, *group.Term.(ast.SourceNode).Source()}
+				group := g.Rules()[0].Action.(*ast.ActionGroup)
+				return []ast.SourceInfo{group.SourceInfo, *group.Action.(ast.SourceNode).Source()}
 			}
 			before := owners(g)
 			out := checkFormat(t, src)
