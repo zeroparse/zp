@@ -235,7 +235,8 @@ status 1, like any other failure.
 
 A <grammar> is ZeroParse source (.zp), a grammar in JSON (.json), or, for
 parse, trace, profile, explain and compile, a grammar compiled with zp
-compile (.zpc).
+compile (.zpc). A file with another extension is JSON when its first
+character other than white space is {, and ZeroParse source otherwise.
 
 Run "zp <command> -h" for the flags of a command.`
 
@@ -506,11 +507,14 @@ func convertCmd(args []string, stdout io.Writer) error {
 	case "json":
 		target = grammar.EncodingJSON
 	case "":
-		// The other encoding of the input.
-		if filepath.Ext(path) == ".json" {
+		// The other encoding of the input, decided as Load decides it.
+		from, err := fileSource(path).Decide()
+		if err != nil {
+			return sourceError(path, "convert", err)
+		}
+		target = grammar.EncodingJSON
+		if from == grammar.EncodingJSON {
 			target = grammar.EncodingZP
-		} else {
-			target = grammar.EncodingJSON
 		}
 	default:
 		return fmt.Errorf("convert: unknown format %q (want zp or json)", *to)

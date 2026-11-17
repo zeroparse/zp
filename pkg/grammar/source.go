@@ -100,6 +100,14 @@ func (s Source) Name() string { return s.name }
 // Encoding returns the encoding of s that As set, or EncodingAuto.
 func (s Source) Encoding() Encoding { return s.encoding }
 
+// Decide returns the encoding in which Load reads s: the one that As set, or else the one that
+// EncodingAuto decides from the name and the content. It reads s as Load does and returns the same
+// errors of reading, including ErrCompiled.
+func (s Source) Decide() (Encoding, error) {
+	_, e, err := s.load()
+	return e, err
+}
+
 // load reads s and decides its encoding.
 func (s Source) load() ([]byte, Encoding, error) {
 	var data []byte
