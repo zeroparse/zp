@@ -885,8 +885,10 @@ answer, and *Families in every parse* in Lemma 5 those that growth
 steps and evaluations in a context of growths own, up to a constant
 factor, against a parse that keeps no record, resumes no run and answers
 nothing in contexts; it leaves the parts that step 8 states. The units
-of the copying operations there are counted by the same claims, and the
-tries of an Operators Rule there add nothing open beyond step 3 (the
+of the copying operations there are counted by the same claims, the
+iterations of the evaluations that a copy reads, which a record can
+answer, by *Copies in every parse* in Lemma 5 against the same parse, and
+the tries of an Operators Rule there add nothing open beyond step 3 (the
 sixth part of step 8). What is said above of the activations of such a
 source holds of the iterations themselves of a candidate site
 that keeps records and is no recorded site of the parse, which are
@@ -8660,6 +8662,64 @@ answers from an entry stored inside them, at most the constant of (i)
 times for each key, as an iteration that comes from an earlier parse
 whose entries lag behind by more than $T$ edits shows.
 
+**Copies in every parse.** Let the parse and $\mathcal{P}$ be as in
+*Families in every parse*. Then every body evaluation $e$ of the parse has
+an image, an evaluation $e^*$ of $\mathcal{P}$ such that $\mathcal{R}(e)$
+and $\mathcal{R}(e^*)$ take the same steps, and each evaluation of
+$\mathcal{P}$ is the image of at most a constant number of evaluations of
+the parse. So a copying operation in the action or a predicate of $e$
+reads the values and the own spans that it reads in $e^*$, and the copies
+that the parse makes cost at most a constant times those that
+$\mathcal{P}$ makes, which Lemma 6 bounds in $\mathcal{P}$.
+
+*Proof.* The proof of *Images of owners* uses of $G$ only that the parse
+makes it, up to the paragraph on its kind, so it gives every body
+evaluation $e$ that the parse makes an evaluation $e^*$ of $\mathcal{P}$
+with the same steps, of the key of $e$, since the steps of the jumps and
+of the path below them are those of $\mathcal{R}$. Take that $e^*$ as
+the image when $e$ is the body evaluation of a call of a rule that the
+parse memoizes, a growth step or an evaluation in a context of growths.
+An evaluation of the first kind outside every context reads no growing
+result, by the paragraph after (iii) of *Families in every parse*, so the
+parse makes at most three of its key there, by the count of (i); the
+evaluations of the two other kinds with one image are at most a constant
+by (i) to (iii) of that proof. Any other body evaluation $e$ is of a rule
+that the parse does not memoize, in no context of growths, and lies, at a
+place, in the innermost evaluation $M$ of those kinds that contains it,
+or in the evaluation where the parse begins; the calls between $M$ and
+$e$ are of rules that the parse does not memoize, and no step of a growth
+lies there. As in *Images of activations*, $\mathcal{P}$ evaluates at
+that place in the image of $M$ an evaluation with the steps of
+$\mathcal{R}(e)$, its image, and distinct evaluations of the parse in one
+$M$ lie at distinct places. The images of such $M$ that contain one
+evaluation of $\mathcal{P}$ at such a place lie on one path down to it,
+on which every evaluation between them is in a context of growths of a
+rule that is not memoized, so they are fewer than $|\text{rules}|$, by
+the argument of *Images of activations*. So each evaluation of $\mathcal{P}$ is the
+image of at most a constant number of evaluations of the parse.
+
+The values that a copy reads are those of the evaluations that it reads,
+which are the same in $e$ and $e^*$, those of the counterparts in
+$\mathcal{R}$: an answer from the memo gives the value of the evaluation
+([memoization
+theorem](memoization.md#theorem-memoization-never-changes-the-result)), a
+record leaves the values that the walk would leave, (R1), and so does a
+resumed run ([Lemma 3](documents.md#lemma-3-resumed-runs) of the Documents
+proof). The own spans and
+the iterations of the repetitions of the evaluations that the copy reads
+are those of $\mathcal{R}(e)$ in both, so the size $\rho$ of Lemma 6 is
+the same. $\square$
+
+So the term of Lemma 6 for the iterations of the evaluations that a copy
+reads, which in the parse can be iterations that a record answers or a
+resumed walk reuses and so no activations of the parse, is counted in
+$\mathcal{P}$, which keeps no record and resumes no run, as activations of
+$\mathcal{P}$. A walk that takes a record can list elements that no walk
+of the parse evaluated, and a copy can read them any number of times; the
+claim bounds how often, by the evaluations of $\mathcal{P}$ that make the
+same copies, each of which evaluates those iterations or reads them from
+an evaluation that does.
+
 The growth steps themselves remain. By *Calls in a context of growths* and
 *Growths inside a step*, the steps of the growths that are not outer are
 charged to the outer growths whose families hold them, to the input that those
@@ -11708,8 +11768,13 @@ theorem covers such a parse.
    sources there, under the reading of Lemma 6 by which Lemma 4 counts it
    outside them. The rest of the sum of Lemma 6, the input of the matches
    that the parse keeps, which nest, and the iterations of the evaluations
-   that the operation reads, which are activations, uses nothing of the
-   records, and a reused iteration holds no copy. The tries of an
+   that the operation reads, which a record can answer, so that they are
+   no activations of the parse, is bounded through *Copies in every
+   parse*: the copies of the parse cost at most a constant times those of
+   a parse that keeps no record, resumes no run and answers nothing in
+   contexts, in which those iterations are activations, so that this term
+   adds no open part beyond those of that parse; a reused iteration holds
+   no copy. The tries of an
    Operators Rule called there step 3 is to bound by the operators that
    the rule applies and by its body evaluations. A bound of that form,
    shown evaluation by evaluation of the rule, holds inside the iterations
