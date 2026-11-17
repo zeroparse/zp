@@ -221,9 +221,12 @@ func generatedParsersOutputs(t *testing.T, goBin string, cases []Case, opts code
 		}
 		opts.Package, opts.Start, opts.Recognize = fmt.Sprintf("g%d", i), "main", true
 		if embed {
-			// The package carries its own copy of the library, as zp gen writes it.
+			// The package carries its own copy of the library, as zp gen writes it. Limit controls
+			// asked for by opts stay on whatever the fixture form, so that the budget code of a
+			// narrowed copy runs: the default compute limit gives every parse a budget control.
 			o := opts
-			o.Lib, o.Module, o.KeepComments, o.LimitControls = codegen.LibEmbed, "codegentest/"+o.Package, true, FixtureBudgetControls(t)
+			o.Lib, o.Module, o.KeepComments = codegen.LibEmbed, "codegentest/"+o.Package, true
+			o.LimitControls = FixtureBudgetControls(t) || opts.LimitControls
 			files, err := Generate(t, g, o)
 			if err != nil {
 				t.Fatalf("%s: %v", c.Name, err)
