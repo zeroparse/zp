@@ -205,7 +205,9 @@ func TestCompiledEarlierInstructionSet(t *testing.T) {
 }
 
 // TestCompiledCorruptionDoesNotPanic checks that loading corrupted data (with a valid checksum)
-// does not panic.
+// does not panic, and that parsing with a program it loads ends without overflowing the stack. The
+// parses have no compute limit, so that the nesting limit alone must end a recursion that does not
+// terminate, as in a build without budget controls.
 func TestCompiledCorruptionDoesNotPanic(t *testing.T) {
 	t.Parallel()
 	var seeds [][]byte
@@ -240,10 +242,10 @@ func TestCompiledCorruptionDoesNotPanic(t *testing.T) {
 			prog, start, err := LoadProgram(b)
 			if err == nil && start != "" {
 				// Non-terminating recursion, for example from corrupted left-recursion marks, fails at the
-				// nesting depth limit.
+				// nesting depth limit; a cycle of calls that would not count against it fails to load.
 				for _, b := range []Backend{Default, Bytecode, BytecodeIterative} {
 					for _, mode := range allModes {
-						prog.ParseWith(start, "1+2", servedBy(mode, ParseOptions{Backend: b, Limits: core.Limits{Depth: 1000}}))
+						prog.ParseWith(start, "1+2", servedBy(mode, ParseOptions{Backend: b, Limits: core.Limits{Depth: 1000, Compute: core.Unlimited}}))
 					}
 				}
 			}

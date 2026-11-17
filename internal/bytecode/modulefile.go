@@ -422,8 +422,9 @@ func (r *Decoder) termInstr() TermInstr {
 	return TermInstr{Op: op, Dst: ops[0], A: ops[1], B: ops[2], C: ops[3]}
 }
 
-// ValidateModule checks that every table and instruction reference in the module is in range
-// and that jumps go forward (only the NEXT of a repetition jumps backward).
+// ValidateModule checks that every table and instruction reference in the module is in range,
+// that jumps go forward (only the NEXT of a repetition jumps backward) and that every cycle of
+// rule calls passes through a rule marked Rec, so that the nesting limit bounds the recursion.
 // Recovery regions must not enclose a stream commitment. Other value-stack
 // and entry-stack invariants are not checked. fieldType checks the text of a field type, which
 // the type system above the module defines.
@@ -787,7 +788,121 @@ func ValidateModule(m *Module, fieldType func(text string) error) error {
 	if err != nil {
 		return err
 	}
+	if err := validateRecursion(m); err != nil {
+		return err
+	}
 	return ValidateStreamRecovery(m.Code)
+}
+
+// validateRecursion checks that every cycle of rule calls in the match code passes through a rule
+// marked Rec, whose entries count against the nesting limit (an Operators Rule expression counts
+// too, so its OPERATORS_RULE is no call here). A compiler marks every rule on a cycle of the call
+// graph, so a compiled module always passes; a module whose entry or CALL operand was changed can
+// call a rule from its own body through rules without the mark, a recursion that no limit but the
+// host stack ends. The jump targets are already checked.
+//
+// The check finds the strongly connected components of the graph whose nodes are the instructions
+// and the rules without Rec. An instruction leads to the next one (except RETURN and END, which end
+// a body) and to its jump target; a CALL of a rule without Rec leads to the rule, and the rule to
+// its entry. The successors over-approximate those of a run, which only adds edges inside the body
+// of a well-formed rule, which ends at its RETURN. A component with a rule node holds a cycle
+// through that rule.
+func validateRecursion(m *Module) error {
+	n := len(m.Code)
+	// succ returns the successors of node v, at most three.
+	succ := func(v int) (buf [3]int, k int) {
+		add := func(w int) { buf[k], k = w, k+1 }
+		if v >= n {
+			add(m.Rules[v-n].Entry)
+			return buf, k
+		}
+		x := &m.Code[v]
+		switch x.Op {
+		case OpReturn, OpEnd:
+			return buf, k
+		case OpCall:
+			if !m.Rules[x.A].Rec {
+				add(n + int(x.A))
+			}
+		case OpJump, OpChoice, OpCommit, OpRecover, OpEndRecover, OpIter, OpNext:
+			add(int(x.A))
+		case OpLook:
+			if x.B == 1 {
+				add(int(x.A))
+			}
+		case OpGuard:
+			add(int(x.C))
+		}
+		if v+1 < n {
+			add(v + 1)
+		}
+		return buf, k
+	}
+	// Tarjan's algorithm without host recursion: index[v] is 0 for an unvisited node and its visit
+	// order from 1 otherwise. The search starts at the rules, since a cycle through a rule is
+	// reachable from it.
+	total := n + len(m.Rules)
+	index, low := make([]int32, total), make([]int32, total)
+	onStack := make([]bool, total)
+	var stack []int
+	type frame struct{ v, next int } // next is the index of the next successor of v to follow
+	var calls []frame
+	var visits int32
+	visit := func(v int) {
+		visits++
+		index[v], low[v] = visits, visits
+		stack = append(stack, v)
+		onStack[v] = true
+		calls = append(calls, frame{v, 0})
+	}
+	for r := range m.Rules {
+		root := n + r
+		if m.Rules[r].Rec || index[root] != 0 {
+			continue
+		}
+		visit(root)
+		for len(calls) > 0 {
+			f := &calls[len(calls)-1]
+			if next, k := succ(f.v); f.next < k {
+				w := next[f.next]
+				f.next++
+				switch {
+				case index[w] == 0:
+					visit(w)
+				case onStack[w]:
+					low[f.v] = min(low[f.v], index[w])
+				}
+				continue
+			}
+			v := f.v
+			calls = calls[:len(calls)-1]
+			if len(calls) > 0 {
+				u := calls[len(calls)-1].v
+				low[u] = min(low[u], low[v])
+			}
+			if low[v] != index[v] {
+				continue
+			}
+			// v is the root of a component: pop it, and reject it if it is a cycle through a rule.
+			i := len(stack) - 1
+			for stack[i] != v {
+				i--
+			}
+			members := stack[i:]
+			stack = stack[:i]
+			for _, w := range members {
+				onStack[w] = false
+			}
+			if len(members) > 1 {
+				for _, w := range members {
+					if w >= n {
+						return fmt.Errorf("rule %q reaches a call of itself through rules not marked recursive", m.Strings[m.Rules[w-n].Name])
+					}
+				}
+			}
+		}
+	}
+	return nil
 }
 
 // ValidateStreamRecovery checks recovery boundaries in lexical bytecode order.
