@@ -170,7 +170,7 @@ promise enough layout information for lossless formatting after decode; a
 future lossless archive needs a separate layout representation. On an in-memory
 parsed AST, `grammar.Format` uses raw comments and layout metadata, does not
 reconstruct ownership from positions, and must not move comments between
-owners. Explicit `TypeGroup` and `TermGroup` source nodes keep comments and
+owners. Explicit `TypeGroup` and `ActionGroup` source nodes keep comments and
 boundary trivia inside parenthesized type and action expressions, distinguishing
 the grouped node from its enclosed child. The formatter must preserve those owner paths while printing
 parentheses. Parse/format/parse must preserve owner paths for supported nodes;
@@ -217,9 +217,9 @@ formatting concern. Keep bytecode and runtime parsing behavior unchanged.
 The first increment adds source spans and normalized ownership to the public AST,
 nested JSON and manual parser while preserving diagnostics through
 `DiagnosticPos`. The next increment must preserve parenthesized source structure
-with source-only `TypeGroup` and `TermGroup` nodes. `TypeGroup` implements
-`TypeExpr`; the `TermGroup.Term` field has type `Term`, and `TermGroup`
-implements `Term`. Their source spans include the opening and closing
+with source-only `TypeGroup` and `ActionGroup` nodes. `TypeGroup` implements
+`TypeExpr`; the `ActionGroup.Action` field has type `ActionExpr`, and `ActionGroup`
+implements `ActionExpr`. Their source spans include the opening and closing
 delimiters, while enclosed comments and layout stay owned within the group. Raw
 layout is stored separately in `OpenBreak`, `BodyBreak`, `CloseBreak` and
 `OneLine`; these fields preserve line placement around delimiters without
@@ -300,7 +300,7 @@ are an oracle for covered boundaries, not a substitute for that gate.
 ## Testing
 
 - Cover collector transitions, package/rule/field/list/expression owners, and
-  nested `TypeGroup`/`TermGroup` owners; verify transparent lowering and retained
+  nested `TypeGroup`/`ActionGroup` owners; verify transparent lowering and retained
   source parentheses/comments in the parsed AST,
   CR/LF/CRLF, blank-line boundaries, adjacent blocks, empty comments, EOF and
   closing delimiters with and without a next owner.
