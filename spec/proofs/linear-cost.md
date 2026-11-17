@@ -1575,8 +1575,9 @@ claims.
 
 The proofs use nothing else of the parse. $\square$
 
-The claim does not cover the claims on leaf links that follow; they have
-not been read again for a parse that keeps
+The claim does not cover the claims on leaf links that follow; *Leaf
+links in a parse that keeps records* below treats the first four of them,
+and the others have not been read again for a parse that keeps
 records (step 8 of [Open Steps](#open-steps)). And it counts nothing: of the
 activations inside the iterations of the walks of the sites that keep
 records it gives the sequence $\alpha_1, \alpha_2, \ldots$ and its links, not
@@ -3630,6 +3631,79 @@ path followed through the records is not examined here beyond what
 *Covered keys* states of them: the statement of *Links lead to repeated
 evaluations* on where case (a) arises is of the paths of links and is not
 extended to the paths followed through the records.
+
+**Leaf links in a parse that keeps records.** In a parse whose records are
+exact, (R1) of the [Setting](#setting), *Growths around a leaf link*,
+*Calls that call no rule* and *Outer links across runs* hold as stated,
+and *Outer links inside a memoized link* holds with case (d) of the
+covered keys beside cases (a) and (b), which arises there only for an
+activation that lies, inside $e'_j$, in an iteration of the kind. Where
+the innermost evaluation that contains the two activations of a link is a
+growth, the first three rest, as they do without records, on the first
+case of *Repeats inside a growth* of Lemma 5, which has not been read
+again for a parse that keeps records.
+
+*Proof.* The first three claims are about the activations
+$\alpha_1, \alpha_2, \ldots$, their links and units, and the frames, the
+body evaluations in progress, all of which the parse evaluates; an
+iteration that a record answers, and a call inside one, is none of them.
+Their proofs use the following of the parse.
+
+1. *Restarts*, *Dropped steps* and *Repeats*, which hold (*Restarts in a
+   parse that keeps records*), and with them where the parser goes back,
+   the exception of the restarts included, and the success and the end of
+   the evaluations on the path from $N_l$ down to an activation or a
+   frame, which are 1 and 2 of that claim.
+2. That an evaluation started inside another ends inside it, that a frame
+   is left once, and the order in which the parser starts and ends its
+   evaluations. A walk that takes a record starts no evaluation at a
+   position before the end of the record and ends none but itself.
+3. What a growth does: that a step is kept or dropped, that a later step
+   starts after the one before it ends, that the seeds grow longer, that a
+   growth ends only with a dropped step, which calls read a growth, and
+   how the parse answers or grows a call of a leader. A walk is no growth
+   and no step of one, and no growth step, no evaluation in a context of
+   growths and no call that starts a growth lies in an iteration of a
+   walk of a site that keeps records (*Growths lie outside the recorded
+   walks*), so a record answers none of them, and by (R1) a growth around
+   a walk that takes a record has the steps and the results that it has
+   when the walk evaluates its iterations.
+4. In *Calls that call no rule*, that a body evaluation reaches each place
+   of its body at $p$ at most a constant number of times. The evaluations
+   that a body evaluation of the parse makes are the counterparts of
+   distinct evaluations of its counterpart in $\mathcal{R}$, at the same
+   positions (*Counterparts*), so it reaches a place at $p$ no more often
+   than its counterpart does, and $\mathcal{R}$, which keeps no record,
+   is a parse of which the argument of that proof holds.
+5. Properties of the grammar, applied to what evaluations consume and
+   examine: that a unit whose first shared call is the call of the link
+   examines no input before it, that the continuation reaches the later
+   evaluation of the link without consuming input, that what follows a
+   call in a frame that ends where the call ended can match without
+   consuming input, and the definition of nesting at one end. By (R1) a
+   walk that takes a record ends where the walk that evaluated its
+   remaining iterations would end and examines what it would examine, so
+   each of these holds of an evaluation that contains such a walk as of
+   its counterpart in $\mathcal{R}$ (3 of *Restarts in a parse that keeps
+   records*).
+6. That $r$ calls no rule and reads no variable, so that the evaluation
+   of a call of $r$ that contains an activation is the innermost call
+   evaluation that contains it, and that while it is in progress the
+   parser starts only evaluations inside the body of $r$. Both are about
+   the evaluations that the parse makes.
+
+The proofs use nothing else of the parse. The proof of *Outer links
+inside a memoized link* uses that an evaluation of a key which holds an
+activation inside $e'_j$ is $e'_j$ or lies inside it, which is 2 above and
+the definition of an own region, and *Nothing in a memoized link is a
+head*, which holds with case (d), and that case arises only when the
+evaluation of the key lies, inside $e'_j$, in an iteration of the kind
+(*Heads in a parse that keeps records*); the activation that it holds
+then lies in that iteration. $\square$
+
+The claim does not cover what the text between these claims draws from
+*Nesting at one end* and *Replayed activations*, nor the claims on leaf
+links from *Memoized links to the frame of an outer link* on.
 
 **Activations held by heads.** Let no link of $\sigma$ at $q$ have case (a) or
 (b) of the covered keys on its path, and let every free $\alpha_i$ other than $\alpha_1$ be the
@@ -9194,8 +9268,11 @@ theorem covers such a parse.
    iteration of a walk that made a record, for records of run sites and of
    skip-run sites made as Skip Runs and Run Sites describe, (M1) and (M2)
    of that claim, which (R1) does not state; cases (a) and (b) are then
-   read on the path followed through the records. The claims on leaf links, from *Growths around
-   a leaf link* to *Seed reads*, the paragraph on the heads that hold the
+   read on the path followed through the records. *Leaf links in a parse
+   that keeps records* shows *Growths around a leaf link*, *Calls that call
+   no rule*, *Outer links across runs* and *Outer links inside a memoized
+   link* of such a parse. The other claims on leaf links,
+   from *Memoized links to the frame of an outer link* to *Seed reads*, the paragraph on the heads that hold the
    activations of leaf links, the claims that follow *Activations held by
    heads*, from *Iterations at one scan* on, and the claims of Lemma 5
    have not been read again for a parse that keeps records, for the
