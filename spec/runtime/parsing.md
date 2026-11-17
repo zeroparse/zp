@@ -744,8 +744,11 @@ repetition for which all of the following hold:
 - its expression contains no Operators Rule and no `#stream`, `#missing`,
   `#error` or `#diagnostic`; it may contain captures (which live in one
   iteration), actions, predicates, variables, `#recover` and calls;
-- every repetition without an upper bound in its expression is a run site or
-  repeats a single character;
+- every repetition without an upper bound in its expression, or in a rule its
+  expression calls, directly or indirectly, is a run site, a skip-run site or
+  repeats a single character; this includes the `skip` expressions of
+  `#recover`, so a recovery whose skip repeats without records keeps the
+  repetition from being a run site;
 - every rule its expression calls, directly or indirectly, is called without a
   level, is not in a left-recursion cycle and contains no `#stream`,
   `#missing`, `#error` or `#diagnostic`; it may be an Operators Rule;
