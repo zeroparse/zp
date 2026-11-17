@@ -16,22 +16,26 @@ type tsMethod struct {
 	Name, Text string
 }
 
-// tsSpecs are the methods of the TypeScript library that the compositions replace. The library's
-// call observes before callBody, and it has no streams. The methods with doc set belong to the
-// DocumentParser class, the parser of a Document parse: its call takes callDocument, which memoizes
-// the rules that the Document memoizes and records the input that each call examined. Its parses
-// charge Document work like any other work (no free regions): the call forms are specialized without
-// budget controls, and the expectation forms with the charges of the batch forms.
+// tsSpecs are the methods of the TypeScript library that the compositions replace. The library has
+// no streams. The batch Parser's callBody observes nothing: the parsers of observed and Document
+// parses override call. The methods of tsDocClass belong to the DocumentParser class, the
+// parser of a Document parse: its call takes callDocument, which memoizes the rules that the Document
+// memoizes and records the input that each call examined. Its parses charge Document work like any
+// other work (no free regions): the call forms are specialized without budget controls, and the
+// expectation forms with the charges of the batch forms. callTracked, of tsObsClass, is the
+// memoized call of the ObservedParser class, which records how far each call examined the input
+// without a Document; callUnmemoized belongs to TrackedParser, the class of both.
 var tsSpecs = []struct {
-	fn   string
-	on   []string
-	name string
-	doc  bool
+	fn     string
+	on     []string
+	name   string
+	target tsClass
 }{
-	{fn: "call", on: []string{ops.Observe, ops.Budget}, name: "callBody"},
-	{fn: "document", on: []string{ops.Document}, name: "callDocument", doc: true},
-	{fn: "unmemoized", name: "callUnmemoized", doc: true},
-	{fn: "memoized", on: []string{ops.Document, ops.Observe}, name: "callMemo", doc: true},
+	{fn: "call", on: []string{ops.Budget}, name: "callBody"},
+	{fn: "document", on: []string{ops.Document}, name: "callDocument", target: tsDocClass},
+	{fn: "unmemoized", name: "callUnmemoized", target: tsDocClass},
+	{fn: "memoized", on: []string{ops.Document, ops.Observe}, name: "callMemo", target: tsDocClass},
+	{fn: "memoized", on: []string{ops.Document, ops.Observe}, name: "callTracked", target: tsObsClass},
 	{fn: "grow", name: "grow"},
 	{fn: "expect", on: []string{ops.Budget}, name: "expect"},
 	{fn: "mergeKept", on: []string{ops.Budget}, name: "mergeKept"},
@@ -71,6 +75,16 @@ var tsSpecs = []struct {
 	{fn: "tupleConform", name: "tupleConform"},
 }
 
+// tsClass selects the target that prints a method of the library (tsSpecs): tsTarget, tsDocTarget or
+// tsObsTarget.
+type tsClass int
+
+const (
+	tsBatchClass tsClass = iota
+	tsDocClass
+	tsObsClass
+)
+
 // tsMethods returns the printed methods of the TypeScript library.
 func tsMethods() ([]tsMethod, error) {
 	m := core.Build()
@@ -81,8 +95,11 @@ func tsMethods() ([]tsMethod, error) {
 			return nil, err
 		}
 		t := tsTarget
-		if s.doc {
+		switch s.target {
+		case tsDocClass:
 			t = tsDocTarget
+		case tsObsClass:
+			t = tsObsTarget
 		}
 		src, err := Method(m, f, t)
 		if err != nil {
@@ -95,6 +112,10 @@ func tsMethods() ([]tsMethod, error) {
 				return nil, fmt.Errorf("tslib: the printed method %s has %d heads %q", s.name, strings.Count(src, head), head)
 			}
 			src = strings.Replace(src, head, "\n  "+s.name+"(", 1)
+			// The comment of the method names it too.
+			if doc := "  // " + printed + " "; strings.HasPrefix(src, doc) {
+				src = "  // " + s.name + " " + src[len(doc):]
+			}
 		}
 		out = append(out, tsMethod{Name: s.name, Text: src})
 	}
@@ -392,7 +413,7 @@ var tsTarget = &Target{
 		case "rule.memo", "rule.leader", "rule.id":
 			return a[0] + "." + strings.TrimPrefix(c.Callee, "rule.")
 		case "rule.docOnlyMemo":
-			return "false" // TypeScript has no Documents: no rule is memoized by a Document alone
+			return "false" // TypeScript memoizes the same rules in every parse: none is memoized by a Document alone
 		case "rule.plain":
 			return a[0] + ".scope.length === 0"
 		case "rule.invoke":
@@ -470,7 +491,7 @@ var tsTarget = &Target{
 		case "memo.setPresent":
 			return fmt.Sprintf("%s.present = %s.present", a[0], a[1])
 		case "ctx.keep":
-			return fmt.Sprintf("this.ctxKeep(%s, %s.id, %s, %s, %s, newCtxResult(%s, %s, %s, %s, %s, %s))",
+			return fmt.Sprintf("this.ctxKeep(%s, %s.id, %s, %s, %s, newCtxResult(%s, %s, %s, %s, %s, %s, this.examinedNow()))",
 				a[0], a[1], a[2], a[3], a[4], a[8], a[6], a[7], a[9], a[10], a[11])
 		case "grow.begin":
 			return fmt.Sprintf("this.growBegin(%s, %s)", a[0], a[1])
@@ -595,8 +616,7 @@ var tsDocTarget = func() *Target {
 		case "doc.active":
 			return "true"
 		case "doc.tracking":
-			// The TypeScript runtime tracks the examined input only in a Document parse, which these
-			// functions serve.
+			// These functions serve Document parses, which track the examined input.
 			return "true"
 		case "rule.docMemo", "rule.positional":
 			return a[0] + "." + strings.TrimPrefix(c.Callee, "rule.")
@@ -635,6 +655,24 @@ var tsDocTarget = func() *Target {
 			return fmt.Sprintf("this.docExamined = Math.max(%s, this.docExamined);\nif (%s < this.docLow) {\n  this.docLow = %[2]s;\n}", a[0], a[1]), true
 		}
 		return tsTarget.Stmt(c, a, dst, decl)
+	}
+	return &t
+}()
+
+// tsObsTarget is tsDocTarget in the methods of the ObservedParser class, the parser of an observed
+// parse without a Document: it tracks the examined end of each call, but has no Document bookkeeping.
+var tsObsTarget = func() *Target {
+	t := *tsDocTarget
+	t.Op = func(c *exec.Call, a []string) string {
+		switch c.Callee {
+		case "doc.active":
+			return "false"
+		case "memo.examine":
+			return fmt.Sprintf("%s.examined = %s", a[0], a[2])
+		case "doc.touchFrom", "doc.low", "doc.reused", "doc.move", "memo.before", "memo.pin":
+			panic("tsgen: the Document operation " + c.Callee + " in a method of an observed parse")
+		}
+		return tsDocTarget.Op(c, a)
 	}
 	return &t
 }()

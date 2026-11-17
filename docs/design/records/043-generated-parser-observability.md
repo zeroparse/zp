@@ -22,7 +22,8 @@ standalone generated Go Node parsers. Generation uses
 parsers trace `Parse`, `ParseRule` and `Recognize`. Events cover actual plain,
 direct, general, memoized and left-recursive calls, plus first-character
 dispatch skips only where the generated call site can identify the target.
-`ExaminedKnown` is false in batch parses. Named filters include descendants; unknown
+Exit events report the call's exact examined end in `Examined`, in batch and
+Document parses alike. Named filters include descendants; unknown
 names select nothing. The start rule has depth one, and nonpositive maximum
 depth is unlimited. Callback panics propagate unchanged after cleanup, while
 aborted parses may omit exits. Go Node and typed batch packages also expose the
@@ -43,28 +44,31 @@ differ. The typed package also exposes `Profile`.
 
 ### TypeScript Batch Trace
 
-Generation-time observability also supports TypeScript batch parsers, with or
-without `-types`, and with `-recognize` when recognition is generated. The
-generated module adds `trace`, `traceRules` and `traceMaxDepth` to
-`ParseOptions`; `parseWithOptions`, `parseRuleWithOptions` and
-`recognizeWithOptions` accept these options. With `-types`, the configured-start
-`parseValueWithOptions` does too. The legacy positional-unit APIs do not accept a
-trace callback, and TypeScript does not generate a separately named typed-rule
-API.
+Generation-time observability also supports TypeScript parsers, with or
+without `-types`, with `-recognize` when recognition is generated, and with
+`-document`. The generated module adds `trace`, `profile`, `traceRules` and
+`traceMaxDepth` to `ParseOptions`; `parseWithOptions`, `parseRuleWithOptions`,
+`recognizeWithOptions`, `parseValueWithOptions` with `-types`, and
+`createDocument` and a Document's parse with `-document` accept them. The
+positional-unit APIs do not accept them, and TypeScript does not generate a
+separately named typed-rule API.
 
-TypeScript exports `TraceKind` (`"enter" | "exit" | "skipped"`) and a
-`TraceEvent` with camel-case fields: `kind`, `rule`, `level`, `depth`, `pos`,
-`matched`, `end`, `memo`, `evals`, `examined`, `examinedKnown` and
-`skipReason`. Positions use the selected unit. As with generated Go,
-`examinedKnown` is always false, depth starts at one, and nonpositive
-`traceMaxDepth` is unlimited. An omitted or empty `traceRules` delivers all
-rules; a selected rule includes its descendants, and an unknown filter selects
-no rules. Events are copied snapshots, so callback
-mutation cannot change parser state. Callbacks run synchronously; thrown values
-are rethrown unchanged after cleanup, and aborted parses can omit exit events.
-Typed-result conversion does not create a separate rule event. TypeScript
-batch profiling is described below. TypeScript Document event tracing and
-examined-input metrics remain open.
+The options have one meaning in every producer. `trace` and `profile` take
+one value or an array: an array means what one Go `WithTrace` or `WithProfile`
+per entry means, so there are two spellings of one meaning rather than a
+TypeScript-specific composition rule. An options object holds one value per
+field, so the trace filter and the depth limit are single fields. A Document's
+parse adds its trace functions and profiles to the Document's defaults and
+replaces the filter or depth limit it gives, for that parse only.
+
+TypeScript events and profile snapshots have the shape of `core.TraceEvent`
+and `core.ProfileSnapshot`, with each field named as its JSON key, so the JSON
+of a TypeScript observation and that of a Go observation have the same keys;
+only profile times differ, in milliseconds from `performance.now()`. Events
+are copies, so callback mutation cannot change parser state. Callbacks run
+synchronously; thrown values are rethrown unchanged after cleanup, and aborted
+parses can omit exit events. Typed-result conversion does not create a
+separate rule event. TypeScript profiling is described below.
 
 ## Goals
 
@@ -107,8 +111,7 @@ type TraceEvent struct {
     End int            // exit only
     Memo bool          // exit only; true when a memo result was reused
     Evals int          // exit only; includes left-recursive growth evaluations
-    Examined int       // exit only; exclusive end in this parse's position unit
-    ExaminedKnown bool // false when the generated path cannot account for it
+    Examined int       // exit only; exact exclusive end in this parse's position unit
     SkipReason string  // skipped only, for example "first-character"
 }
 
@@ -165,9 +168,8 @@ and `Evals=0`; nested calls from earlier parses are not replayed. Generated
 Documents do not resume repetition bodies, so there is no `ReusedElements`
 counter.
 
-Exit events of Document parses report `ExaminedKnown=true`, with `Examined`
-set to the examined end the Document keeps for edit reuse: one past the last
-input unit whose content the call, or a call or memo result it used, could
+In a Document parse, an exit event's `Examined` is the examined end the
+Document keeps for edit reuse: one past the last input unit whose content the call, or a call or memo result it used, could
 have observed. A call that records a memo result reports the end stored with
 it, and a memo hit reports the stored end it reuses. Each wrapper starts the
 call's end at its position and merges it back into the caller's afterwards, so
@@ -220,39 +222,32 @@ full root, nested-module and site validation pass.
 
 ### TypeScript Batch Profiling
 
-With generation-time observability enabled, TypeScript batch parsers export
-`Profile` and `ProfileSnapshot`, and add `profile?: Profile | null` to
-`ParseOptions`. Pass a `Profile` to `parseWithOptions`, `parseRuleWithOptions`,
-`recognizeWithOptions`, or, with `-types`, `parseValueWithOptions`. Legacy
-positional-unit APIs do not accept a profile. Each invocation keeps private
-accounting state; the sink aggregates completed calls across invocations and
-retains no input, callback, parser history or per-call frames. A profile is not
-safe for concurrent use. `snapshot()` returns independent rule rows sorted by
-name, skip reasons sorted by reason, and an owned `maxEvalsAt` location for
-deterministic JSON serialization.
+With generation-time observability enabled, TypeScript parsers export
+`Profile`, `ProfileSnapshot`, `RuleProfile`, `CallSite` and `SkipReasonCount`,
+and accept a profile or an array of profiles in the `profile` option of the
+APIs that accept trace options. Each invocation keeps private accounting
+state, one recorder per profile; the sink aggregates completed calls across
+invocations and retains no input, callback, parser history or per-call frames.
+`snapshot()` returns independent rule rows sorted by name and skip reasons
+sorted by reason, for deterministic JSON serialization.
 
-Snapshot fields use camel case and correspond to the Go profile counters.
-`entered` includes calls that began; completed-call counters and timings omit
-unfinished calls. `examinedKnown` and `wastedKnown` are false because these
-ranges are unavailable. `time` and `selfTime` are milliseconds from the host's
-monotonic `performance.now()` clock; valid clocks with coarse resolution may
-produce zero durations. Root time excludes input setup,
-whole-input end checks and typed-result conversion; per-rule time counts
-recursive calls of that rule once per invocation, and `selfTime` excludes child
-time. Both include synchronous tracing callbacks. When the exit-time clock
-read succeeds, completed-call counters are published after an exit callback
-returns or throws. A snapshot made inside that callback may omit the current
-exit until it unwinds. Callback exceptions retain their original thrown value
-after cleanup; an enter callback exception does not synthesize an exit.
+The recorders follow the engine's: each event is recorded in every profile
+before the trace functions receive it, and the recorders resume timing after
+the functions return, so a snapshot inside an exit callback includes that call,
+an exit callback that throws still counts it, and the times exclude callback
+work. The trace filter and depth limit select only what the trace functions
+receive. `time` and `selfTime` are milliseconds from the host's monotonic
+`performance.now()` clock; valid clocks with coarse resolution may produce
+zero durations. Root time excludes input setup, whole-input end checks and
+typed-result conversion.
 
 Profiling requires the host's `performance.now()`. If it is unavailable,
 enabling a profile returns an `Error`; there is no `Date.now()` fallback.
 Clock access or invocation failures preserve the thrown value. Non-finite or
 backward clock readings fail explicitly and can leave a partial profile. If a
 trace callback and a later clock read both fail, the callback's original
-exception takes precedence and that exit may be omitted from the profile.
-The implementation uses no DOM types. Profile timing has been measured under
-Node 24.19; JavaScript allocations, retained
+exception takes precedence. The implementation uses no DOM types. Profile
+timing has been measured under Node 24.19; JavaScript allocations, retained
 heap, browser timing and other hosts remain unmeasured.
 
 ### Callback Failure, Cancellation and Lifecycle

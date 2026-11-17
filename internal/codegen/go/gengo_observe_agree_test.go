@@ -666,8 +666,8 @@ type agreementStats struct {
 // optionsHonored checks the observation of one producer with several trace functions and profiles and
 // with a trace filter: the second trace function and profile (second, prof2) received the parse as the
 // first did (events, prof), the filtered parse delivered the events that the filter rules and the depth
-// limit agreeMaxDepth select (codegentest.SelectedEvents), and its profile recorded the whole parse. It
-// returns the first difference.
+// limit agreeMaxDepth select (codegentest.SelectedEvents; no events are no events, however a producer
+// spells them), and its profile recorded the whole parse. It returns the first difference.
 func optionsHonored(producer string, events []core.TraceEvent, prof core.ProfileSnapshot, second []core.TraceEvent, prof2 core.ProfileSnapshot,
 	rules []string, filtered []core.TraceEvent, filteredProf core.ProfileSnapshot) string {
 	same := func(a, b any) bool {
@@ -680,7 +680,7 @@ func optionsHonored(producer string, events []core.TraceEvent, prof core.Profile
 		return fmt.Sprintf("%s: the second trace function received %d events, the first %d", producer, len(second), len(events))
 	case !same(prof, prof2):
 		return producer + ": the second profile differs from the first"
-	case !same(want, filtered):
+	case (len(want) > 0 || len(filtered) > 0) && !same(want, filtered):
 		return fmt.Sprintf("%s: the trace filter %q with depth limit %d delivered %d events, want %d", producer, rules, agreeMaxDepth, len(filtered), len(want))
 	case !same(prof, filteredProf):
 		return producer + ": the profile depends on the trace filter"

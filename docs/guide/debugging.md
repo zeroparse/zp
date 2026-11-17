@@ -648,17 +648,17 @@ const result = parseValueWithOptions(input, {
 `parseWithOptions`, `parseRuleWithOptions` and `recognizeWithOptions` accept the
 same trace options. With `-types`, the configured-start `parseValueWithOptions`
 does as well; TypeScript does not add a named typed-rule API. The
-positional-unit functions do not accept trace callbacks. `traceMaxDepth` must
-be a safe integer; zero and negative values mean unlimited depth. Events use
-camel-case fields and the selected position unit. The `"enter"` and `"exit"`
-kinds describe actual calls; `"skipped"` currently identifies first-character
-dispatch skips. Omitted or empty `traceRules` delivers all rules; a selected
-rule includes all descendant calls, while unknown rule names select none.
-`examinedKnown` is always false. Callback
-events are copied values, callbacks run synchronously, and thrown values
-propagate unchanged after cleanup. Typed conversion does not add a separate
-event, and an aborted parse may have no exit for active calls. Generated
-TypeScript traces do not promise event-for-event equivalence with the engine.
+positional-unit functions do not accept trace callbacks. The options mean what
+the Go options mean: `trace` takes one function or an array of them, each of
+which receives every selected event in order, as several `WithTrace` options
+do; `traceRules` is the trace filter and `traceMaxDepth` the depth limit, which
+must be a safe integer (zero and negative values mean unlimited depth). The
+events have the fields of the Go events, named as their JSON keys, so
+`JSON.stringify` of a TypeScript event and `json.Marshal` of a Go event give
+the same keys; positions use the selected unit. Generated TypeScript parsers
+report the calls they make as the engine and generated Go parsers do. Each
+callback receives its own copy of an event, callbacks run synchronously, and a
+thrown value propagates unchanged after cleanup.
 In focused synthetic runs,
 no-callback option APIs ranged from 0.991–1.044× ordinary time, while parse
 callback profiles ranged from 1.052–1.288× depending on workload and filter; paired
@@ -666,11 +666,16 @@ results were noisy and are not a general performance estimate. See
 [design 043](../design/records/043-generated-parser-observability.md#typescript-batch-measurements)
 for the measurement scope and limits.
 
+With `-document`, `createDocument(input, options)` keeps the observation options
+as defaults and a Document's `parse(options)` accepts them for one parse, with
+the rules of Go Documents: trace functions and profiles add to the defaults,
+and a trace filter or depth limit replaces the default for that parse only.
+
 #### Profiling Generated TypeScript Batch Parsers
 
 Generate with `-observability` to accept profiles: `Profile` and `ProfileSnapshot` are exported by every parser, but a
-parser generated without `-observability` returns an `Error` for the `profile` and `trace` options. Pass one profile to a per-call options API and read its owned snapshot after
-the parse:
+parser generated without `-observability` returns an `Error` for the `profile` and `trace` options. Pass a profile, or an
+array of profiles that each record the whole parse, to a per-call options API and read its owned snapshot after the parse:
 
 ```ts
 import { Profile, parseWithOptions } from "./pairs/parser.ts";
@@ -682,11 +687,11 @@ console.log(JSON.stringify(snapshot));
 ```
 
 The same option works with `parseRuleWithOptions`, `recognizeWithOptions` and, with `-types`, `parseValueWithOptions`.
-A `Profile` aggregates across parses but cannot be shared by concurrent calls, and a snapshot is a copy that later
-parses do not change. The counters are the camel-case counterparts of the generated Go profile; `time` and `selfTime`
-are in milliseconds, measured with the host's `performance.now()` clock, and the flags `examinedKnown`
-and `wastedKnown` are false. The [specification](../../spec/runtime/observability.md#generated-typescript-batch-profiling)
-defines every counter, including when a snapshot taken inside a trace callback leaves out the current call.
+A `Profile` aggregates across parses, and a snapshot is a copy that later parses do not change. The snapshot has the
+fields of the Go snapshot, named as their JSON keys, so the JSON of both has the same shape; only `time` and `selfTime`
+differ, in milliseconds measured with the host's `performance.now()` clock, without the time of trace callbacks. A trace
+filter or depth limit never changes what a profile records. The
+[specification](../../spec/runtime/observability.md#generated-typescript-tracing-and-profiling) defines every counter.
 
 Profiling requires `performance.now()`; without it, a profiled invocation returns an `Error`, and there is no
 `Date.now()` fallback. Profiled runs took 1.58 to 4.02 times as long as ordinary ones in focused Node 24.19
