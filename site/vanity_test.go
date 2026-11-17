@@ -24,7 +24,7 @@ func TestVanityPages(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	for _, name := range []string{"zp/index.html", "zp/cmd/zp/index.html", "zp/grammar/index.html", "zp/engine/index.html", "zp/core/index.html", "zp/codegen/index.html", "zp/codegen/go/lib/index.html", "alpha-parsers/index.html"} {
+	for _, name := range []string{"zp/index.html", "zp/cmd/zp/index.html", "zp/pkg/grammar/ast/index.html", "zp/engine/index.html", "zp/core/index.html", "zp/codegen/index.html", "zp/codegen/go/lib/index.html", "alpha-parsers/index.html"} {
 		if _, ok := pages[name]; !ok {
 			t.Errorf("missing vanity page %s", name)
 		}
@@ -132,7 +132,7 @@ func TestVanityDiscovery(t *testing.T) {
 	for _, c := range []struct{ importPath, prefix, repo string }{
 		{"zeroparse.dev/zp", "zeroparse.dev/zp", "https://github.com/zeroparse/zp"},
 		{"zeroparse.dev/zp/cmd/zp", "zeroparse.dev/zp", "https://github.com/zeroparse/zp"},
-		{"zeroparse.dev/zp/grammar", "zeroparse.dev/zp", "https://github.com/zeroparse/zp"},
+		{"zeroparse.dev/zp/pkg/grammar/ast", "zeroparse.dev/zp", "https://github.com/zeroparse/zp"},
 		{"zeroparse.dev/alpha-parsers", "zeroparse.dev/alpha-parsers", "https://github.com/zeroparse/alpha-parsers"},
 	} {
 		resp, err := http.Get(srv.URL + strings.TrimPrefix(c.importPath, vanityHost) + "?go-get=1")

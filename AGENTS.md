@@ -10,8 +10,8 @@ A test (`internal/testing/archtest`) fails when a path in backticks here does no
 
 - `spec/` normative specs; `docs/` guides, `docs/design/` (as implemented),
   `docs/design/records/` (decisions), `docs/optimizations/`, `docs/development.md`.
-- Public packages: `core/`, `engine/`, `codegen/`, `pkg/runtime/schema/`, `pkg/runtime/query/`, `lint/`, `grammar/`,
-  `sample/`, `editfuzz/` (release layout: `internal/testing/archtest/layout_test.go`).
+- Public packages: `core/`, `engine/`, `codegen/`, `pkg/runtime/schema/`, `pkg/runtime/query/`, `pkg/lint/`, `pkg/grammar/ast/`,
+  `pkg/sample/`, `pkg/editfuzz/` (release layout: `internal/testing/archtest/layout_test.go`).
 - `internal/` implementation; `cmd/zp/` CLI; `testdata/grammars/` corpus; `bench/`; `site/`
   (own Go module); `hack/` and `.agents/scripts/` scripts. Ready-made parsers: the separate
   alpha-parsers repository.
