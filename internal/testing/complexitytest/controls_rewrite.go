@@ -48,7 +48,7 @@ func rewriteControls() []Control {
 			Name: "Recovery skip walked in a called rule", Family: "E8 variant",
 			Source: "rule main = (x / \"a\")* $$\nrule x = (y #recover(skip=s)) \"c\"\nrule y = \"b\"\nrule s = [a]+\n",
 			Input:  func(n int) string { return rep("a", n) },
-			Sizes:  double(250), ShortSizes: double(100), Order: Poly(2), Class: ClassPoly,
+			Sizes:  double(250), ShortSizes: double(100), Order: Linear, Class: ClassPoly,
 		},
 		{
 			Name: "Rewrite: call the left-recursive rule once", Family: "rewrite", Positive: true,

@@ -25,7 +25,7 @@ main:
      1  CAPTURE    slot=0 pop
      2  STR        "=" build=0
      3  PUSHPOS    
-     4  SCAN       "[0-9]" min=1 max=-1
+     4  SCANSITE   "[0-9]" min=1 site=1
      5  ATOMIC     build=1
      6  CAPTURE    slot=1 pop
      7  GUARD      ";" depth=0 -> 11
@@ -37,7 +37,7 @@ main:
 key:
     13  PUSHPOS    
     14  LABEL      "expected a key"
-    15  SCANSITE   "[a-z]" min=1 site=1
+    15  SCANSITE   "[a-z]" min=1 site=3
     16  ENDLABEL   
     17  ATOMIC     build=1
     18  RETURN     

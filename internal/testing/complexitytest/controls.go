@@ -56,7 +56,12 @@ const regionGrammar = "rule main = (p \";\" ws)* $$\n" +
 // negative E8 controls (repeated, nested and alternating walks) are linear in measurement through
 // the records of skip runs, with classes that claim no linear cost, and so are E1, E7, E9 and the
 // controls of word exclusion and nested scans whose quadratic cost is a repetition that a failed
-// alternative walks again, through the records of run sites; E6 and E10 stay quadratic. The rebinding variants of E6 are positive
+// alternative walks again, through the records of run sites; E6 and E10 stay quadratic. The
+// negative controls whose growth restarts a repetition of one character class or any character,
+// in the families of growth steps, bounded scans, rescanned calls, word exclusion, region bounds,
+// shared literals and shared skips, and the recovery skip walked in a called rule, are linear in
+// measurement through the runs of scan sites, which every backend keeps; their classes are those
+// of a classifier that counts no records. The rebinding variants of E6 are positive
 // controls: a binding after the left call adds no growth, and the restart in E6 is the negative
 // control. Each source is a grammar from the measured families of the
 // grammar complexity design record; "main" is the start rule.
@@ -235,7 +240,7 @@ func Controls() []Control {
 			Name: "Operators Rule skip that must consume input, optional", Family: "shared skip",
 			Source: "rule main = (e \"(\")* $$\nrule e = #operators {\n    skip \" \"+\n    operand \"y\"\n    level { postfix \"(\" [^;]* \";\" }\n}\n",
 			Input:  func(n int) string { return rep("y(", n) },
-			Sizes:  double(200), ShortSizes: double(100), Order: Poly(2), Class: ClassPoly,
+			Sizes:  double(200), ShortSizes: double(100), Order: Linear, Class: ClassPoly,
 		},
 		// A call that the memo does not answer costs its scan each time. The continuation of a
 		// failed unit evaluates the shared call again at the same position: a bounded number of
@@ -325,7 +330,7 @@ func Controls() []Control {
 			Name: "Scan restarted by the next operator application", Family: "shared literals",
 			Source: "rule main = e $$\nrule e = #operators {\n    operand \".\"\n    level { postfix \"[\" R \"x\"\n        postfix \"[\" }\n}\nrule R = [\\[]*\n",
 			Input:  func(n int) string { return "." + rep("[", n) },
-			Sizes:  double(250), ShortSizes: double(100), Order: Poly(2), Class: ClassUnknown,
+			Sizes:  double(250), ShortSizes: double(100), Order: Linear, Class: ClassUnknown,
 		},
 		// Each nested evaluation of a left-recursive rule that ends at a position grows there, and
 		// each step of its growth scans what follows its seed again.
@@ -432,7 +437,7 @@ func Controls() []Control {
 			Name: "Keyword lookahead with a wider character set", Family: "word exclusion",
 			Source: "rule main = (s / \" \")* $$\nrule s = kw [a-z ]* \"q\" / id\nrule kw = \"let\" ![a-m]\nrule c = [a-z]\nrule id = !key c+\nrule key = (\"if\" / \"let\") !c\n",
 			Input:  func(n int) string { return rep("letz ", n) },
-			Sizes:  double(200), ShortSizes: double(100), Order: Poly(2), Class: ClassPoly,
+			Sizes:  double(200), ShortSizes: double(100), Order: Linear, Class: ClassPoly,
 		},
 		{
 			Name: "Operator part excluded by the text it consumes, safe", Family: "word exclusion", Positive: true,
@@ -462,7 +467,7 @@ func Controls() []Control {
 			Name: "Literal longer than the text", Family: "word exclusion",
 			Source: "rule main = (s / \" \")* $$\nrule s = \"let\" [a-z ]* \"q\" / \"lett\" [a-z]*\n",
 			Input:  func(n int) string { return rep("lett ", n) },
-			Sizes:  double(200), ShortSizes: double(100), Order: Poly(2), Class: ClassPoly,
+			Sizes:  double(200), ShortSizes: double(100), Order: Linear, Class: ClassPoly,
 		},
 		{
 			Name: "E2 cycle members behind a leader, safe", Family: "E2", Positive: true,
@@ -534,20 +539,20 @@ func Controls() []Control {
 			Name: "Growing unit restarted by the next step", Family: "growth steps",
 			Source: "rule main = a $$\nrule a = a sp [^!]* \"!\" / a sp / \"n\"\nrule sp = \"+\"\n",
 			Input:  func(n int) string { return "n" + rep("+", n) },
-			Sizes:  double(250), ShortSizes: double(100), Order: Poly(2), Class: ClassUnknown,
+			Sizes:  double(250), ShortSizes: double(100), Order: Linear, Class: ClassUnknown,
 		},
 		{
 			Name: "Growing unit restarted by the next step through a member", Family: "growth steps",
 			Source: "rule main = a $$\nrule a = c sp [^!]* \"!\" / c sp / \"n\"\nrule c = a\nrule sp = \"+\"\n",
 			Input:  func(n int) string { return "n" + rep("+", n) },
-			Sizes:  double(250), ShortSizes: double(100), Order: Poly(2), Class: ClassUnknown,
+			Sizes:  double(250), ShortSizes: double(100), Order: Linear, Class: ClassUnknown,
 		},
 		// The same restart when the two alternatives share a literal instead of a call.
 		{
 			Name: "Growing unit restarted by the next step after a shared literal", Family: "growth steps",
 			Source: "rule main = a $$\nrule a = c \"+\" [^!]* \"!\" / c \"+\" / \"n\"\nrule c = a\n",
 			Input:  func(n int) string { return "n" + rep("+", n) },
-			Sizes:  double(250), ShortSizes: double(100), Order: Poly(2), Class: ClassUnknown,
+			Sizes:  double(250), ShortSizes: double(100), Order: Linear, Class: ClassUnknown,
 		},
 		// The call of c after "(" is not a left call, so the left call of the leader in c starts
 		// a growth there, and the parser continues after it with "+" when the growth ends: the
@@ -557,13 +562,13 @@ func Controls() []Control {
 			Name: "Growing unit restarted after a growth that a member starts", Family: "growth steps",
 			Source: "rule main = c \"+\" [^!]* \"!\" / \"(\" c \"+\" / \"n\"\nrule c = main\n",
 			Input:  func(n int) string { return rep("(", n) + "n" + rep("+", n) },
-			Sizes:  double(100), ShortSizes: double(50), Order: Poly(2), Class: ClassUnknown,
+			Sizes:  double(100), ShortSizes: double(50), Order: Linear, Class: ClassUnknown,
 		},
 		{
 			Name: "Growing unit restarted after a growth that a member starts, to the end", Family: "growth steps",
 			Source: "rule main = a $$\nrule a = c \"+\" [^!]* \"!\" / \"(\" c \"+\" / \"n\"\nrule c = a\n",
 			Input:  func(n int) string { return rep("(", n) + "n" + rep("+", n) },
-			Sizes:  double(100), ShortSizes: double(50), Order: Poly(2), Class: ClassUnknown,
+			Sizes:  double(100), ShortSizes: double(50), Order: Linear, Class: ClassUnknown,
 		},
 		// The last alternative of c enters the growth where the first began, and each step of
 		// the growth evaluates the first again: its repetition after "(" scans the same input in
@@ -572,7 +577,7 @@ func Controls() []Control {
 			Name: "Growth restarting a scan at a fixed position", Family: "growth steps",
 			Source: "rule main = c $$\nrule c = \"(\" [a-z]* \"!\" / a / \"(\" [a-z]* \"?\"\nrule a = c \"+\" / \"n\" / \"(\" [a-z]* \"?\"\n",
 			Input:  func(n int) string { return "(" + rep("z", n) + "?" + rep("+", n) },
-			Sizes:  double(250), ShortSizes: double(100), Order: Poly(2), Class: ClassUnknown,
+			Sizes:  double(250), ShortSizes: double(100), Order: Linear, Class: ClassUnknown,
 		},
 		// The start rule is called only from its own body, but a parse can begin at it, so it is
 		// memoized (Evaluations of Rules): the second iteration of the repetition, which
@@ -890,13 +895,13 @@ func Controls() []Control {
 			Name: "Scanning lookahead of a later alternative", Family: "rescanned calls",
 			Source: "rule main = (e / \"a\")*\nrule e = \"a\" e \"x\" / !s \"b\" / \"c\"\nrule s = \"a\" [a-z]* \"!\"\n",
 			Input:  func(n int) string { return rep("a", n) + "c" },
-			Sizes:  double(250), ShortSizes: double(100), Order: Poly(2), Class: ClassUnknown,
+			Sizes:  double(250), ShortSizes: double(100), Order: Linear, Class: ClassUnknown,
 		},
 		{
 			Name: "Scanning first alternative of a later lookahead", Family: "rescanned calls",
 			Source: "rule main = (e / \"a\")*\nrule e = \"a\" e \"x\" / !(s / \"a\") \"b\" / \"c\"\nrule s = \"a\" [a-z]* \"!\"\n",
 			Input:  func(n int) string { return rep("a", n) + "c" },
-			Sizes:  double(250), ShortSizes: double(100), Order: Poly(2), Class: ClassUnknown,
+			Sizes:  double(250), ShortSizes: double(100), Order: Linear, Class: ClassUnknown,
 		},
 		// A repetition whose alphabet cannot extend what stands before it starts at one place of
 		// each run of its alphabet, and a constant number of evaluations start there: alternatives
@@ -933,7 +938,7 @@ func Controls() []Control {
 			Name: "Scan whose alphabet holds its opener", Family: "bounded scans",
 			Source: "rule main = t* $$\nrule t = \"<\" [^>]* \">\" / \"<\"\n",
 			Input:  func(n int) string { return rep("<", n) },
-			Sizes:  double(250), ShortSizes: double(100), Order: Poly(2), Class: ClassPoly,
+			Sizes:  double(250), ShortSizes: double(100), Order: Linear, Class: ClassPoly,
 		},
 		// A memo bounds the evaluations at one position, not the sum over the positions of a run:
 		// the alternative "." starts the scan at every digit, and each start scans to the end.
@@ -941,7 +946,7 @@ func Controls() []Control {
 			Name: "Memoized scan that each position starts", Family: "bounded scans",
 			Source: "rule main = (t \"y\" / t \"z\" / .)* $$\nrule t = d \"x\"\nrule d = [0-9]+\n",
 			Input:  func(n int) string { return rep("1", n) },
-			Sizes:  double(250), ShortSizes: double(100), Order: Poly(2), Class: ClassPoly,
+			Sizes:  double(250), ShortSizes: double(100), Order: Linear, Class: ClassPoly,
 		},
 		// A choice that fails after a cut tries no later alternative, so a repetition of it can stop
 		// where the next character is one that the later alternative takes: the run is not cleared,
@@ -950,19 +955,19 @@ func Controls() []Control {
 			Name: "Scan after a repetition that a cut stops", Family: "bounded scans",
 			Source: "rule main = (t (s \"z\")? \"a\")* \"aa\"? $$\nrule t = (\"aa\" #cut $$ / \"a\")*\nrule s = [a]+\n",
 			Input:  func(n int) string { return rep("a", n) },
-			Sizes:  double(250), ShortSizes: double(100), Order: Poly(2), Class: ClassUnknown,
+			Sizes:  double(250), ShortSizes: double(100), Order: Linear, Class: ClassUnknown,
 		},
 		{
 			Name: "Scan after a lookahead that a cut passes", Family: "bounded scans",
 			Source: "rule main = (!(\"aa\" #cut $$ / \"a\") (s \"z\")? \"a\")* \"aa\"? $$\nrule s = [a]+\n",
 			Input:  func(n int) string { return rep("a", n) },
-			Sizes:  double(250), ShortSizes: double(100), Order: Poly(2), Class: ClassUnknown,
+			Sizes:  double(250), ShortSizes: double(100), Order: Linear, Class: ClassUnknown,
 		},
 		{
 			Name: "Scan after a repetition of a rule with a cut", Family: "bounded scans",
 			Source: "rule main = (t (s \"z\")? \"a\")* \"aa\"? $$\nrule t = c*\nrule c = \"aa\" #cut $$ / \"a\"\nrule s = [a]+\n",
 			Input:  func(n int) string { return rep("a", n) },
-			Sizes:  double(250), ShortSizes: double(100), Order: Poly(2), Class: ClassUnknown,
+			Sizes:  double(250), ShortSizes: double(100), Order: Linear, Class: ClassUnknown,
 		},
 		// The call of t inside the growth of r reads the failing seed, so t* stops at once, whatever
 		// its rule would consume, and u scans from every position of the run.
@@ -979,7 +984,7 @@ func Controls() []Control {
 			Name: "Dropped growth step that scans", Family: "growth steps",
 			Source: "rule main = (S / [ac-z])* $$\nrule S = (S \"a\" / \"b\") T\nrule T = \"c\" / \"d\" [a-z]* \"!\"\n",
 			Input:  func(n int) string { return rep("bcad", n) },
-			Sizes:  double(250), ShortSizes: double(100), Order: Poly(2), Class: ClassUnknown,
+			Sizes:  double(250), ShortSizes: double(100), Order: Linear, Class: ClassUnknown,
 		},
 		// Without the scan in T no step can fail after a scanning source.
 		{
@@ -1012,7 +1017,7 @@ func Controls() []Control {
 			Name: "Scan behind a prefix with many starts", Family: "bounded scans",
 			Source: "rule main = (w sp \"!\" / [ab])* sp $$\nrule w = [ab]+\nrule sp = [ ]*\n",
 			Input:  func(n int) string { return rep("a", n) + rep(" ", n) },
-			Sizes:  double(250), ShortSizes: double(100), Order: Poly(2), Class: ClassPoly,
+			Sizes:  double(250), ShortSizes: double(100), Order: Linear, Class: ClassPoly,
 		},
 		// The blanks hold comments, so the run before them has no bound, but nothing outside them
 		// consumes a blank or a slash: no evaluation outside them starts inside their match, and the
@@ -1043,7 +1048,7 @@ func Controls() []Control {
 			Name: "Comments whose opener is a token", Family: "region bounds",
 			Source: "rule main = e $$\nrule e = \"<\" (ws \"!\" / \"\") e / \">\" ws\nrule ws = [ ]* (c [ ]*)*\nrule c = \"<\" [^>]* \">\"\n",
 			Input:  func(n int) string { return rep("<", n) + ">" },
-			Sizes:  double(250), ShortSizes: double(100), Order: Poly(2), Class: ClassPoly,
+			Sizes:  double(250), ShortSizes: double(100), Order: Linear, Class: ClassPoly,
 		},
 	}
 	return append(cs, rewriteControls()...)

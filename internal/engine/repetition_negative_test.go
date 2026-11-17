@@ -30,9 +30,10 @@ func TestNegativeRepetitionMaxima(t *testing.T) {
 		op        bytecode.Op
 	}{
 		{"ordinary", `rule main = "é"* $$`, bytecode.OpRepeat},
-		// The call of e keeps the repetitions plain scans rather than scan sites.
-		{"class scan", "rule main = [é]* #atomic e $$\nrule e = \"\"", bytecode.OpScan},
-		{"any scan", "rule main = .* #atomic e $$\nrule e = \"\"", bytecode.OpScan},
+		// #atomic drops the value of the repetition, which lowers to a value-free scan; a negative
+		// maximum is no upper bound, so it is a scan site, whose instruction has no maximum.
+		{"class scan", "rule main = [é]* #atomic e $$\nrule e = \"\"", bytecode.OpScanSite},
+		{"any scan", "rule main = .* #atomic e $$\nrule e = \"\"", bytecode.OpScanSite},
 		{"projection", `rule main = xs:(v:"é")* $$ => map($xs, (x) => x.$v)`, bytecode.OpRepeat},
 	} {
 		for _, maximum := range negativeMaxima() {
@@ -54,10 +55,10 @@ func TestNegativeRepetitionMaxima(t *testing.T) {
 					for _, in := range p.Module().Code {
 						if in.Op == c.op {
 							found = true
-							max := in.B
-							if c.op == bytecode.OpScan {
-								max = in.C
+							if c.op == bytecode.OpScanSite {
+								continue
 							}
+							max := in.B
 							if max != -1 {
 								t.Errorf("uncanonical maximum %d in %s", max, c.op)
 							}
