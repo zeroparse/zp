@@ -3094,7 +3094,9 @@ step of a growth on the way from $\mathcal{R}(e'_i)$ down to $\beta$, or it
 evaluates the activation whose counterpart is $\beta$ as one that the
 sequence $\alpha_1, \alpha_2, \ldots$ leaves out: of case 5, of the third
 case of *Dropped steps*, or a repeat at the position of a growth that
-*Repeats inside a growth* of Lemma 5 leaves out.
+*Repeats inside a growth* of Lemma 5 leaves out. The same holds for
+$\mathcal{R}(e_{i+1})$ and $e_{i+1}$ in place of $\mathcal{R}(e'_i)$ and
+$e'_i$.
 
 *Proof.* By 1 of *Iterations at one scan* applied to $it_{k'}$ and
 $it_{k''}$, $\alpha_i$ is the first activation in $it_{k'}$, and by the
@@ -3110,7 +3112,8 @@ the next character, and an alternative that contains $\beta$ is not skipped
 counterpart, so if it evaluated the activation whose counterpart is $\beta$,
 that activation would be a successful activation of $\sigma$ at $q$ inside
 $e'_i$, at a place other than that of $\alpha_i$, and so one that the
-sequence leaves out. $\square$
+sequence leaves out. The same argument applies to $e_{i+1}$, which contains
+$\alpha_i$ alone too. $\square$
 
 The claim is what *Positions of the holders* below uses to compare the
 activation that one restart enters with the one that the next restart
@@ -3251,8 +3254,8 @@ counterpart of $\alpha_k$, since at that place $\mathcal{R}(e'_{k+1})$ has
 $\beta_k$, which is not the counterpart of $\alpha_{k+1}$. Of the activations
 $\alpha_1, \alpha_2, \ldots$, $e_{k+1}$ contains $\alpha_k$ alone (*One
 activation in a frame* with $k$ in place of $i$, whose hypotheses hold by
-those of *Holders of the frames' activations*), and the proof of that claim
-applies to $e_{k+1}$ and $\gamma$ in place of $e'_i$ and $\beta$: the parse
+those of *Holders of the frames' activations*), and its statement for
+$\mathcal{R}(e_{k+1})$, with $\gamma$ in place of $\beta$, gives: the parse
 answers a call or leaves out a step of a growth on the way from
 $\mathcal{R}(e_{k+1})$ down to $\gamma$, or it evaluates the activation whose
 counterpart is $\gamma$ as one that the sequence leaves out.
@@ -3286,8 +3289,12 @@ state $1$ and $e'_{k+1}$ in state $0$. $\square$
 So a restart of the other kind has a link that is not plain, or a step of a
 growth left out or an activation that the sequence leaves out on the way to
 $\gamma$, and a run whose links meet the hypotheses of *Positions of the
-holders* and of this claim has $m$ at most six times one more than the number of its restarts of the
-latter two kinds and of its links that are not plain. The links that are not
+holders* and of this claim has $m$ at most six times one more than the number of its restarts with a
+step of a growth left out on the way to $\gamma$, of its restarts with an
+activation that the sequence leaves out at the place of $\gamma$, and of its
+links that are not plain. The bound is for runs in which no call that the
+parse makes on the way from $e_{k+1}$ down to the place of $\gamma$ is in a
+context of growths, the hypothesis of this claim. The links that are not
 plain are those that *Consecutive restarts through frames* leaves open, in
 either form, with two variants or with two lookahead states, and a bound on
 their number in a run is not shown here.
