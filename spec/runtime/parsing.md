@@ -439,10 +439,17 @@ exceptions below. A first evaluation may leave no result in the memo, except a
 growth of a leader, which stores its result as a later one does. A result
 computed inside a lookahead or the `skip` of an Operators Rule answers only the
 calls inside them, and a result computed outside them answers every call,
-whether or not it has recovered errors, so at most one evaluation in each of
-the two states stores a result. Whether a call is inside a lookahead or a
+whether or not it has recovered errors. Whether a call is inside a lookahead or a
 `skip` is thus part of the key of a result computed there, and not of one
-computed outside them. A rule without an action that is on no left-recursion
+computed outside them. The memo answers a call from one entry of its key. A store under a
+key whose entry the parse can use keeps one entry that answers every call
+that the entry or the new result answered: the result computed outside a
+lookahead if exactly one of the two was, and the new one otherwise, with the
+leaders recorded for both, as the item on contexts below describes. An entry that the
+parse cannot use, as one that lags behind too many edits of a
+[Document](documents.md), is replaced. So a store never narrows the calls
+that the entry of its key answers, and at most one evaluation in each of the
+two states, outside every context of growths, stores a result. A rule without an action that is on no left-recursion
 cycle can have a **value-free twin**, which matches as the rule does and builds
 no value of its own: it builds a value only inside a capture, and every
 capture in it builds the value of what it captures, as in the rule. It evaluates the
@@ -500,9 +507,16 @@ exceptions are these.
   A call there of a rule on none of their cycles is in no context of
   growths: the memo answers and stores it as any call outside a growth.
   Its result is the result of evaluating its body with the growing results
-  that they have reached. The call reuses a memoized result only if that
-  result read no growing result, observed no lookahead that read one, and was
-  computed while at least the growths of its context were in progress.
+  that they have reached. A memo entry records the leaders whose growths at
+  its position formed the context of the call that stored it, none for a call
+  outside every context, and a store that keeps one entry for two results
+  records the leaders of both. The memo stores a result only if it read no
+  growing result and observed no lookahead that read one; such a result is
+  the one that the call has outside every context, and its evaluation calls
+  no leader that it records at its position, so it is the result in any
+  context whose leaders it records. A call in a context reuses a memoized
+  result only if the entry records every leader whose growth is in its
+  context; a call outside every context does not look at the leaders.
   Otherwise it reuses a result computed in a context of the same growths only
   if every growing result that it read is equal to the one there now and every
   such lookahead has the same outcome. Where the parse records the input that
