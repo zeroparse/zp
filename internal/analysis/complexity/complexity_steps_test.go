@@ -115,6 +115,12 @@ func TestLateParts(t *testing.T) {
 		{"scan in a recovery skip", lateMain + "rule l = (l \"+\" / \"a\") \"b\" / \"a\" r\nrule r = (\"b\" \"+\" \"{\" \"!\") #recover(skip=(c / x)* \"}\") \"!\"\nrule c = \"a\" / \"b\" / \"+\" / \"{\"\nrule x = x \"#\" / \"#\"\n", ClassUnknown, "the late part of l", 0},
 		// A late part that is not the last alternative: the alternative after it fails too.
 		{"late part before the last alternative", lateMain + "rule l = (l \"+\" / \"a\") \"b\" / \"a\" z / \"q\"\n" + z, ClassUnknown, "the late part of l", 0},
+		// A left call of another leader of the cycle can match otherwise in each step: in the
+		// second step of l, m grows again from the seed of l, matches "ab+", "b" fails at "{",
+		// and "a" z, which the first step never reached, scans the rest of the input. The units
+		// of m and l reject the grammar as well.
+		{"after a left call of another leader", lateMain + "rule l = l \"y\" / m \"b\" / \"a\" z\nrule m = m \"x\" / l \"+\" / \"a\"\n" + z, ClassUnknown,
+			"the late part of l at 3:26 in rule l", 0},
 		// A late part that succeeds keeps the step, and its lookahead, which scans, is checked as
 		// the unit it is; the late part adds no degree to it.
 		{"kept step with a scanning lookahead", lateMain + "rule l = (l \"+\" / \"a\") \"b\" / \"a\" z\nrule z = \"b\" \"+\" \"{\" !([ab+{]* \"}\" \"!\")\n", ClassUnknown, "the late part of l", 2},
