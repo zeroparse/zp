@@ -1,6 +1,6 @@
 # Run Sites
 
-Arata Furukawa · Last revised 2026-11-09
+Arata Furukawa · Last revised 2026-11-17
 
 This proof covers the records of [run sites](../runtime/parsing.md#run-sites).
 A reused record gives what the rest of the walk would have given, in the
@@ -12,7 +12,8 @@ its length, and those lengths add up to the input plus a constant per walk
 of outcomes, ranges, slots and walks it uses. It differs from that proof where a
 run site differs from a skip-run site: the element calls rules, captures,
 builds values, recovers errors, reads and binds variables, and the walks of a
-site nest.
+site nest. [Scan Sites](#scan-sites) covers the runs of the repetitions of a single
+character, in Lemmas 4 to 7.
 
 ## Setting
 
@@ -269,176 +270,234 @@ sites, in every kind of parse they run:
   parse, and runs as an ordinary repetition, which the lemmas do not need.
   Every other site walks as in a fresh parse.
 
- Generated Go and TypeScript parsers keep records only for skip-run
-sites. Their run-site repetitions are ordinary repetitions, whose cost these
-lemmas do not bound.
+Generated Go and TypeScript parsers keep records only for skip-run sites and
+for the scan sites of [Scan Sites](#scan-sites). Their run-site repetitions
+are ordinary repetitions, whose cost these lemmas do not bound.
 
 ## Scan Sites
 
-This section covers the records of [scan sites](../runtime/parsing.md#scan-sites). Lemma 4 is the
-exactness of a reused record, Lemma 5 bounds what the records add to the cost of a parse, and Lemma 6
-bounds what evaluating a scan-only rule again at one position costs.
+This section covers the runs of [scan sites](../runtime/parsing.md#scan-sites). Lemma 4 is the
+exactness of a run that a walk takes, Lemma 5 bounds what the runs add to the steps of a parse,
+Lemma 6 bounds what evaluating a scan-only rule again at one position costs, and Lemma 7 bounds the
+iterations that the walks of a site evaluate.
 
 **Setting.** A scan site $\sigma$ repeats a character class $C$ (or any character) without an upper
-bound, with minimum $c_{\min}$, in a rule that calls no rule; it is neither a site of a skip run nor
-a `#stream` repetition. The iteration of $\sigma$ is the test of $C$ and nothing else: it calls no
-rule, binds and reads no variable, and has no predicate, lookahead, capture or action inside it,
-whatever the rule has around $\sigma$. So an iteration reads the one character at its position and
-nothing else, and no state of the parse outside the input and the position changes what it gives.
-What the rule does around $\sigma$ (a capture or label of it, an action that reads its list, a
-predicate, a lookahead, an attribute) runs after the walk or before it and sees only what the walk
-gives, so it is evaluated as without records once the walk gives the same. Positions are in the unit of the input
-(characters, or bytes when the unit is bytes), and a character of the input takes one or more units.
-For a position $r$ let $\mathrm{end}(r)$ be the least position $q \ge r$ at which the input holds no
-character of $C$ (the end of the input counts as such a position). The walk of $\sigma$ from $r$
-matches the characters that begin at $r, \dots, \mathrm{end}(r)$, up to $q = \mathrm{end}(r)$, and
-nothing else. Define $\mathrm{Rest}(r)$ as the tuple of
+bound, with minimum $c_{\min}$, in any rule; it is neither a site of a skip run nor a `#stream`
+repetition. The iteration of $\sigma$ is the test of $C$ and nothing else: it calls no rule, binds
+and reads no variable, and has no predicate, lookahead, capture or action inside it, whatever the
+rule has around $\sigma$. So an iteration reads the input from its position and nothing else, and no
+state of the parse outside the input and the position changes what it gives. What the rule does
+around $\sigma$ (a capture or label of it, an action that reads its list, a predicate, a lookahead,
+a call before or after it, an attribute) runs after the walk or before it and sees only what the walk
+gives, so it is evaluated as without records once the walk gives the same. Positions are in the unit
+of the input (characters, or bytes when the unit is bytes), and a character of the input takes one
+or more units. A parse with missing-token insertion keeps no runs, so assume it inserts none.
 
-- the end $q = \mathrm{end}(r)$, a position,
-- the number $k$ of characters matched (the iterations that succeed), which equals $q - r$ only when
-  every character takes one unit,
-- the examined range, which ends at the furthest position that an iteration examined: just after the
-  character at $q$ (or at the end of the input), since the iteration that fails at $q$ looks at that
+For a position $r$, the walk of $\sigma$ from $r$ decodes a character at $r$, then at the position
+after it, and so on; these positions are its **iteration starts**. Let $\mathrm{end}(r)$ be the first
+of them at which the input holds no character of $C$ (the end of the input counts as such a
+position). The walk matches the characters that begin at the iteration starts below
+$q = \mathrm{end}(r)$ and nothing else. Define $\mathrm{Rest}(r)$ as the tuple of
+
+- the end $q = \mathrm{end}(r)$, a position;
+- the number $k(r)$ of characters matched (the iterations that succeed), which equals $q - r$ only
+  when every character takes one unit;
+- the examined end $x(r)$, the furthest position that an iteration of the walk examined: just after
+  the character at $q$ (or the end of the input), since the iteration that fails at $q$ looks at that
   character and no later one, or further when an earlier iteration read an invalid byte of a
-  bytes-unit input together with the bytes that follow it. It is a function of $r$ and the input too,
-  and a record holds it whole, which the iteration at $q$ alone does not give,
-- the elements: one value for each of the $k$ characters, which depends on the character and its
-  position alone,
+  bytes-unit input together with the units that follow it;
+- the elements: one value for each of the $k(r)$ characters, which depends on the character and its
+  position alone;
 - the failure of the iteration at $q$: the expectation of $C$ at $q$.
 
-$\mathrm{Rest}(r)$ is a function of $r$ and the input alone, by the setting. A parse with missing-token
-insertion keeps no records, so assume it inserts none. The record holds $q$ and $k$ as separate fields,
-so nothing below derives one from the other.
+$\mathrm{Rest}(r)$ is a function of $r$ and the input alone, by the setting. A walk measures its
+examined range from its first character, and the parse joins it to the range examined before the
+walk, so only $x(r)$ matters.
+
+**Synchronization.** In a bytes-unit input, a position is **inside a character** when it lies
+strictly inside $[a, a + L)$ for a valid encoding of $L \ge 2$ units at $a$. A walk from a position
+that is not inside a character decodes every valid encoding that it meets whole and every other byte
+alone, so its iteration starts are exactly the positions from its start on that are not inside a
+character: all such walks agree on their iteration starts. A walk from a position inside a character
+$[a, a + L)$ reads the units of $(a, a + L)$ alone, as invalid bytes, and agrees with the others from
+$a + L$ on, at most three units after its start. So for two starts $r < r'$, every iteration start of
+the walk from $r$ at or after $r'$ is one of the walk from $r'$, and every iteration start of the walk
+from $r'$ at or after $r' + 3$ is one of the walk from $r$. In a code-point input every position is an
+iteration start of every walk that passes it, and no position is inside a character.
+
+**Runs.** A **run** of $\sigma$ in one value mode (whether its walks build a value) is a record of a
+first position $f$, an end $q$, an examined end $x$, for each iteration start $b$ of the run (those
+of the walk from $f$ below $q$) the count $k_b$ of characters from $b$ to $q$ (stored as the distance
+$q - b$ where every character takes one unit), and, for walks that build a value, the elements of
+those characters. A run **covers** the positions of $[f, q]$. A run is made, or changed, at exactly
+these points:
+
+- *Made.* A walk from $s$ at a hot site that has matched $T$ characters, took no run and probed no
+  covered position that is no iteration start of a run, and whose examined range is available, ends
+  at $q$ after $k$ characters and examined up to $x$. It makes the run with $f = s$, end $q$, examined
+  end $x$, the counts of its own iteration starts and its own elements. A walk that builds a value and
+  falls short of $c_{\min}$ makes it all the same.
+- *Extended.* A walk from $s < f$ that takes a run $\rho$ at an iteration start $b \ge f$ of $\rho$,
+  having matched $j$ characters from $s$, of which $j_0$ lie below $f$, extends $\rho$ when $f$ is
+  an iteration start of the walk: the first position becomes $s$, the counts of the walk's iteration
+  starts below $f$ are $k_f + j_0, \dots$, the elements of those characters are put before $\rho$'s,
+  and the examined end becomes the larger of $x$ and the walk's examined end so far.
+
+Nothing else changes a run, and no run is dropped in a parse, except that a stream drops the runs
+that end at or before the position it commits, from which no walk begins again. A run answers only a
+walk at a hot site that has matched $T$ characters and stands at a position $b$ that the run covers,
+and only when $b$ is an iteration start of the run and, in bytes, the walk began at least $8$ units
+($2\cdot$ the longest encoding) before $q$; it then answers with the count $k_b$, the end $q$, the
+examined end $x$ and the elements from $b$. Every iteration start $b$ that a run answers was
+evaluated by a walk that made or extended the run: by the walk that made it, for $b \ge$ the first
+position it had then, and otherwise by the walk that extended it over $b$.
 
 **Silence.** A lookahead only silences the expectations that a failed iteration reports
-(`Expect` returns when `Silent` is positive). The walk puts none of them into the record, and
-$\mathrm{Rest}(r)$ does not depend on them, so a walk in a lookahead and a walk outside it that begin
-at $r$ make equal records. This is why a site keeps one table of records for both (the hot state is kept
-apart for each, and decides only which walks look).
+(`Expect` returns when `Silent` is positive). A run holds none of them, and $\mathrm{Rest}(r)$ does
+not depend on them, so a walk inside a lookahead and a walk outside it make and extend the same runs.
+This is why a site keeps one table of runs for both in each value mode (the hot state is kept apart
+for each, and decides only which walks look).
 
 ## Lemma 4 (Exactness of Scan Records)
 
-Every record stored by $\sigma$ at $s$ equals $\mathrm{Rest}(s)$ without the failure, which a walk
-that takes the record derives again. A walk that takes the record at its $T$-th iteration ends where the
-walk that went on from there would end, with the same outcome, farthest failure and expectations,
-examined range, count and elements. No node that a record holds is changed after the record is made.
+Every run of $\sigma$ with first position $f$ and end $q$ has $q = \mathrm{end}(b)$ and holds
+$k_b = k(b)$ and the elements of $\mathrm{Rest}(b)$ for each of its iteration starts $b$, and an
+examined end $x$ with $x(b) \le x \le x(s)$ for every start $s$ of a walk that the run answers. A walk
+that takes the run ends where the walk that went on would end, with the same outcome, farthest
+failure and expectations, examined end, count and elements. No node that a run holds is changed after
+the run holds it.
 
-*Proof.* A walk of $\sigma$ that began at $s$ stores a record when it ends at $q$ after it matched at
-least $T$ characters, and only if the input it examined, up to just after $q$, is available (the parse
-has all of its input, or that range lies in the part of a stream that is loaded; the input is filled up
-to each character before it is examined, so the second always holds unless the input has ended, and the
-test only guards that). The iterations it ran are those of the definition, so the record holds
-$q = \mathrm{end}(s)$, the count $k$ of characters it matched (not $q - s$), the range it examined (the
-first $T$ iterations and the rest, whose union is the range of $\mathrm{Rest}(s)$) and the elements it
-built, which are $\mathrm{Rest}(s)$'s. The availability condition makes $q$ the same on any longer prefix
-of a stream: the character at $q$ is in the loaded input, so it is not in $C$ whatever follows. This
-proves the first claim.
+*Proof.* By induction on the steps that make and extend runs.
 
-A walk that began at $s$ and has matched $T$ characters is at $s'$, the position after those
-characters, and would go on to match the remaining $k - T$ characters and fail at $q$. Taking the record
-moves the position to $q$, examines the recorded range and sets the count to $k$ and the elements to the
-record's, which hold the first $T$ iterations' as well; they equal those the walk had built (the same
-characters at the same positions). The count is the stored $k$, which is the number of characters in
-$[s, q)$, so it is the count of the walk that went on, in every unit; no position is subtracted from
-another. The loop then runs the iteration at $q$, which fails there with the expectation of $C$ at $q$,
-or at the end of the input with that of the end, and examines that character: the outcome, farthest
-failure and expectations of the walk that went on. Examined ranges only grow, so touching the recorded
-range and then that of the iteration at $q$ gives the range of the walk that went on. The check of the
-minimum uses the count $k$. The walk that went on and the walk that took the record leave the same
-result.
+*Made.* The walk from $s$ ran the iterations of the definition, so $q = \mathrm{end}(s)$, which is
+$\mathrm{end}(b)$ for every iteration start $b$ of it below $q$; it counted its own characters, so the
+count from $b$ is $k(b)$; its elements are those of the characters at the same positions, which are
+those of $\mathrm{Rest}(b)$; and its examined end is $x(s) \ge x(b)$. The walk stores the run only if
+the input it examined is available (the parse has all of its input, or that range lies in the part
+of a stream that is loaded; the input is filled up to each character before it is examined, so this
+always holds unless the input has ended, and the test only guards it), so $q$ is the same on any
+longer prefix of a stream: the character at $q$ is in the loaded input and not in $C$, whatever
+follows.
 
-It remains that a node a record holds is not changed. The elements are nodes that the repetition made
-for the characters, and a rule changes a node only if the node is still fresh when it receives it as
-the value of its body, to label it or to attach captures; a node that the rule that made it may still
-change is final before another holder can see it, as the elements of the records of run sites are
-([Run Sites](../runtime/parsing.md#run-sites)). A walk marks every element final when it stores its record, before any other
-walk can reach the record, and a walk that takes a record gets elements that are final already. The
-element of a scan site is never the value of a rule body in any case: an iteration has no capture and
-no action, so the value that the walk gives is the list node that it makes, and what the rule makes of
-it is that list, a node that holds it, or the value of an action, which reads the elements and changes
-none of them; a capture of the list attaches to the list or to a node around it, never to an element. The list node is new for each walk (it is the node a rule labels) and holds the
-shared elements as children only. The same holds for the list node that a walk of a scan site makes at its end: it is made after the elements
-are marked, and shares nothing else. So the lists of two walks share nodes that nothing changes, and the
-sharing changes no list.
+*Extended.* The walk from $s < f$ reaches $b$, an iteration start of the run, and has evaluated the
+iterations at its own iteration starts below $b$. When $f$ is one of them, the walk from $s$ and the
+walk from $f$ have the same iteration starts from $f$ on, so the walk's iteration starts below $f$ are
+iteration starts of the walk from $s$ whose rest reaches $q$, and the count from each is $j_0$ minus
+the characters before it plus $k_f$, which is $k$ of that start; their elements are those of
+$\mathrm{Rest}$ at those positions. The new examined end is the larger of the run's and the walk's,
+which is at most $x(s)$, since the walk's iterations so far are those of the walk from $s$ and the
+run's iterations from $f$ on are too.
 
-Last, the sharing across [document](../runtime/documents.md) parses. The records are in the tables of
-one parse and are dropped with it; no record is carried to the next parse. What persists is a tree,
-whose lists may share elements. A reused tree is moved in place when an edit comes before
-it, and a node moves only if its generation is below the current one and takes the current one when it
-moves, so a node that two lists share moves once. Both lists cover the same range, as the walks began
-at one position and ended at one, so the shift that an edit gives to the one is the shift it gives to
-the other (the nodes of a reused result move together; an edit never falls inside the input that a
-reused result examined). The elements are not empty (a character is at least one unit), so none is
-copied as an empty node is, which would break the sharing, and the write of the moved pointer into the
-shared slice of children stores the pointer already there. The same sharing of elements between lists
-already happens for the nodes that rule memo entries and the records of run sites share. A parser
-generated as Go source moves a reused tree of a document by copying the nodes that move into new ones,
-so no node that two lists share is written in place. $\square$
+*Taking.* Let a walk from $s$ take the run at an iteration start $b$ after $j$ characters. The walk
+that went on from $b$ would match the $k(b) = k_b$ remaining characters, fail at $q$ with the
+expectation of $C$ at $q$, or that of the end of the input, and examine up to $x(s)$. Taking the run
+moves the position to $q$, sets the count to $j + k_b$, takes the elements from $b$, which equal those
+the walk would build (the same characters at the same positions) and, for the elements before $b$,
+the walk's own or the run's at the same positions, which are equal; then the loop runs the iteration
+at $q$, which fails there as the walk that went on would. For the examined end: the run's $x$ is at
+least $x(b)$, the end that the rest from $b$ examines, and the walk examined its own iterations below
+$b$. It remains that $x$ does not exceed what the walk that went on examines. In a code-point input
+an iteration examines its own character, so every iteration of the run's walks examines no further
+than $q + 1$, which the iteration at $q$ examines, and $x = x(b)$. In bytes, an iteration at $c$
+examines at most $c + 4$; the iterations of the run's walks at positions $c \ge s + 3$ in the stretch
+are iterations of the walk from $s$ when they are at or after $\max(s, f) + 3$, where $f$ is the
+first position of the run when it held them, and the others lie below $\max(s, f) + 3$, by synchronization, and
+examine at most $c + 4 < q$, since the walk began at least $8$ units below $q$ and a run's first
+position lies at least $T$ units below its end, while the walk that went on examines past $q$. So $x$ is at most what the walk that went on examines, and touching $x$ and then
+the range of the iteration at $q$ gives its examined end. The check of the minimum uses the count.
 
-Which positions have records, and the hot state of the site, decide only which walks find a record,
-never what a record holds, so none changes the result of a parse. A record is looked up and made only
-when no [document](../runtime/documents.md) run resumes the repetition, and the records last for one
+*Nodes.* The elements are nodes that the repetition made for the characters, and a rule changes a
+node only if the node is still fresh when it receives it as the value of its body, to label it or to
+attach captures. A walk marks its elements final when it makes a run or extends one with them, before
+any other walk can reach them, and a walk that takes a run gets elements that are final already. The
+element of a scan site is never the value of a rule body: an iteration has no capture and no action,
+so the value that the walk gives is the list node that it makes, and what the rule makes of it is that
+list, a node that holds it, or the value of an action, which reads the elements and changes none of
+them. The list node is new for each walk and holds the shared elements as children only. So the lists
+of two walks share nodes that nothing changes, and the sharing changes no list.
+
+Last, the sharing across [document](../runtime/documents.md) parses. The runs are in the tables of
+one parse and are dropped with it; no run is carried to the next parse. What persists is a tree,
+whose lists may share elements. A reused tree is moved in place when an edit comes before it, and a
+node moves only if its generation is below the current one and takes the current one when it moves,
+so a node that two lists share moves once. The shift that an edit gives to a node depends on the node
+alone, so it is the same whichever list it reaches it through (the nodes of a reused result move
+together; an edit never falls inside the input that a reused result examined). The elements are not
+empty (a character is at least one unit), so none is copied as an empty node is, which would break
+the sharing, and the write of the moved pointer into the shared slice of children stores the pointer
+already there. A parser generated as Go source moves a reused tree of a document by copying the nodes
+that move into new ones, so no node that two lists share is written in place, and a parser generated
+as TypeScript copies the elements of a run into the list of a walk that takes it after its first
+position. $\square$
+
+Which positions runs cover, and the hot state of the site, decide only which walks take a run, never
+what a run gives, so none changes the result of a parse. A run is looked up, made and extended only
+when no [document](../runtime/documents.md) run resumes the repetition, and the runs last for one
 parse.
 
 ## Lemma 5 (Cost of Scan Records)
 
-A parse with the records of scan sites charges at most two steps more for each walk of a scan site
-that reaches $T$ characters than the same parse without them, and no more for the other walks. So,
-where the walks charge their tests, its steps are at most $1 + 2/(T + 1)$ times those of the parse
-without them.
+A parse with the runs of scan sites charges at most two steps more for each walk of a scan site that
+reaches $T$ characters than the same parse without them, and no more for the other walks. So, where
+the walks charge their tests, its steps are at most $1 + 2/(T + 1)$ times those of the parse without
+them.
 
-*Proof.* By Lemma 4 a walk that takes a record ends where it would have ended, with the same count,
-elements, examined range and expectation, so the parse with records makes the same walks, at the
-same positions and in the same order, as the parse without them, and differs only inside the walks
-that reach $T$ characters. Without records a walk that matches $k$ characters charges one step for
-each test of a character, $k + 1$ in all. (A build that charges no test of a character charges
-only the steps of the records below, at most two for each walk, and the ratio is then not
-claimed.) With records a walk that matches fewer than $T$ characters
-is the same walk. A walk that reaches $T$ characters charges the first $T$ tests, then:
+*Proof.* By Lemma 4 a walk that takes a run ends where it would have ended, with the same count,
+elements, examined range and expectation, so the parse with runs makes the same walks, at the same
+positions and in the same order, as the parse without them, and differs only inside the walks that
+reach $T$ characters. Without runs a walk that matches $k$ characters charges one step for each test
+of a character, $k + 1$ in all. (A build that charges no test of a character charges only the steps
+of the runs below, at most two for each walk, and the ratio is then not claimed.) With runs a walk
+that matches fewer than $T$ characters is the same walk. A walk that reaches $T$ characters charges
+the first $T$ tests, then:
 
 - at a site that is not hot, nothing more than the rest of its tests: noting the walk in the cold
   state charges no step, so it costs $k + 1$;
-- at a hot site with a record of its start, one step for the lookup and one for the slot of the
-  record, and one for the test of the character at the recorded end, which fails, so it costs
-  $T + 3 \le k + 3$;
-- at a hot site with no record, one step for the lookup, the rest of its tests and one step for the
-  record that it makes, so it costs $k + 3$.
+- at a hot site, one step for the lookup; then, if it takes a run after $j \ge T$ characters, one
+  step for taking it and one for the test of the character at the run's end, which fails, so it
+  costs $j + 3 \le k + 3$; extending the run charges nothing;
+- at a hot site where it takes no run, the rest of its tests and one step for the run that it makes,
+  if it makes one, so it costs at most $k + 3$.
 
-These are the charges that [Scan Sites](../runtime/parsing.md#scan-sites) states for every
-backend that keeps records, and for parsers generated as Go or TypeScript source.
+A walk that builds a value and falls short of $c_{\min}$ makes its run without taking its elements off
+as a list, so it charges no more for them than the parse without runs charges for dropping them, which
+is at least nothing. These are the charges that [Scan Sites](../runtime/parsing.md#scan-sites) states
+for every backend that keeps runs, and for parsers generated as Go or TypeScript source.
 
-Each case costs at most $k + 3$, which is two steps above $k + 1$. A walk that reaches $T$ characters costs at least
-$T + 1$ steps without records, which gives the ratio. $\square$
-
-The bound is per walk, so it needs no count of the walks: the walks that start at different
-positions of one run, which find no record, each pay at most the two steps, and the cold state,
-kept apart for the walks inside lookaheads, only decides which walks look up.
+Each case costs at most $k + 3$, which is two steps above $k + 1$. A walk that reaches $T$ characters
+costs at least $T + 1$ steps without runs, which gives the ratio. $\square$
 
 ## Lemma 6 (Walks Again From One Start)
 
-Let a parse insert no missing tokens and resume no repetition of a document. For a scan site $\sigma$
-and a start $s$, at most three walks of $\sigma$ from $s$ in each mode match more than $T$
-characters and do not take a record, where the modes are the four pairs of whether the walk is
-inside a lookahead and whether it builds a value. Every other walk of $\sigma$ from $s$ costs at most
+Let a parse insert no missing tokens and resume no repetition of a document, and let no walk of the
+scan site $\sigma$ begin inside a character (always so in a code-point input). For $\sigma$ and a
+start $s$, at most three walks of $\sigma$ from $s$ in each mode match more than $T$
+characters and do not take a run, where the modes are the four pairs of whether the walk is inside a
+lookahead and whether it builds a value. Every other walk of $\sigma$ from $s$ costs at most
 $T + 3$ steps. So let $\rho$ be a scan-only rule
 ([Conditions for Linear Cost](../runtime/parsing.md#conditions-for-linear-cost)) and $p$ a position:
 all the evaluations of calls of $\rho$ at $p$ but a constant number cost at most a constant each, and
 each of the others costs at most $1 + 2/(T + 1)$ times what the first evaluation at $p$ would cost
-without records.
+without runs.
 
-*Proof.* A walk takes a record of $s$ when its site is hot in its lookahead state and the table of
-its value mode holds a record of $s$. The hot state of a pair of a site and a lookahead state only
-turns on, and the record of a start, once stored, stays for the parse, since the stream drops only the
-records of starts that no later walk reaches. A walk of $\sigma$ from $s$ that matches $T$ characters
-or more at a site that is not hot notes itself in the cold state: the furthest end becomes at least
-the end of the walk, $\mathrm{end}(s) \ge s + T$. So the next such walk from $s$ in the same
-lookahead state starts below the furthest end and walks $T$ characters below it, and turns the site
-hot. So at most two walks from $s$ in a mode find the site cold, and once it is hot, the first walk
-from $s$ without a record stores one, which every later walk from $s$ in the value mode takes:
-at most three walks in a mode take no record. A walk that takes one costs $T + 3$ steps by Lemma 5,
-and a walk that matches fewer than $T$ characters costs at most $T$.
+*Proof.* A walk of $\sigma$ from $s$ that matches $T$ characters or more at a site that is not hot
+notes itself in the cold state: the furthest end becomes at least the end of the walk,
+$\mathrm{end}(s) \ge s + T$. So the next such walk from $s$ in the same lookahead state starts below
+the furthest end and walks $T$ units below it, and turns the site hot; the hot state only turns on.
+So at most two walks from $s$ in a mode find the site cold. Once it is hot, the first walk from $s$
+that matches more than $T$ characters leaves $s$ covered in the table of its value mode: it makes a
+run from $s$, or takes a run, which covered its $T$-th iteration start and so covers $s$ already if
+it began at or after the run's first position and is extended back to $s$ otherwise (the run's first
+position is the start of a walk, which is not inside a character, so it is an iteration start of the
+walk from $s$). A covered position stays covered for the parse, since a stream drops only
+runs that end at or before the position it commits. Every later walk from $s$ in that value mode at
+the hot site then stands, after $T$ characters, at a covered iteration start of the walk from $s$,
+which is one of the run, as no start is inside a character, and began more than $8$ units below the run's end, so it
+takes the run: at most three walks in a mode take no run. A walk that takes one at its $T$-th
+character costs $T + 3$ steps by Lemma 5, and a walk that matches fewer than $T$ characters costs at
+most $T$.
 
-Since $\rho$ calls no rule and reads no variable, and the walks give what they give without records
+Since $\rho$ calls no rule and reads no variable, and the walks give what they give without runs
 (Lemma 4), every evaluation of $\rho$ at $p$ takes the same path through the body and gives the same
 result; only the expectations differ, which a lookahead silences. Every repetition without an upper
 bound in $\rho$ is a scan site and an iteration of a scan site calls nothing, so the path makes the
@@ -447,10 +506,58 @@ grammar (the product of the upper bounds of the bounded repetitions around each 
 the walks it is a finite expression that examines a constant amount of the input, with no scanning
 source other than the sites. So an evaluation costs a constant $c$ outside its walks. By the first
 part, at most $12w$ walks in all the evaluations at $p$ match more than $T$ characters and take no
-record, so at most $12w$ evaluations make such a walk. Every other evaluation costs at most
-$c + w(T + 3)$, and those that make one cost at most what the parse without records pays for the
+run, so at most $12w$ evaluations make such a walk. Every other evaluation costs at most
+$c + w(T + 3)$, and those that make one cost at most what the parse without runs pays for the
 evaluation, with the excess of Lemma 5, which is the same evaluation as the first at $p$. $\square$
 
-A parse with missing-token insertion keeps no records and is outside the classes. A document that
-resumes a repetition resumes it without records, as Lemma 4 states; the bound is for the walks that a
-parse makes. Walks from different starts each pay their own length, which this lemma does not bound.
+## Lemma 7 (Iterations of Scan Walks)
+
+Let a parse insert no missing tokens, let no walk of the scan site $\sigma$ begin inside a character
+(always so in a code-point input), and let $W$ be the number of walks of $\sigma$ that no
+[document](../runtime/documents.md) resumes. Those walks evaluate at most $6(n + 1) + (2T + 3)W$
+iterations of $\sigma$, and each of them makes at most three steps outside its iterations.
+
+*Proof.* Split the walks by the state of the site in their lookahead state when they reach their
+$T$-th character.
+
+- *Short walks.* Walks that match fewer than $T$ characters evaluate at most $T$ iterations each.
+- *Walks at a site that is not hot.* They are the walks of
+  [Lemma 3](#lemma-3-cost-before-hot) with $c_{\mathrm{hot}} = T$, in units: a walk tells the cold
+  state of itself only when it matched $T$ characters, at least $T$ units, and the state turns hot
+  when a walk walked $T$ units below the furthest end. A walk from $s$ that ends at $t$ evaluates at
+  most $t - s + 1$ iterations, so by the proof of that lemma the walks of one lookahead state before
+  it turns hot evaluate at most $2(n + 1) + (T + 1)W$ iterations: at most $4(n + 1) + (T + 1)W$ for
+  the two lookahead states.
+- *Walks at a hot site.* Such a walk evaluates its first $T$ iterations, then, before each further
+  iteration, looks at its position. If a run of its table covers the position, the position is an
+  iteration start of that run, as no start is inside a character, and the walk began at least $T \ge 8$
+  units below the run's end, so it takes the run and evaluates one more iteration, the test at the
+  end. Otherwise it evaluates the iteration at a position that no run of its table covers, and when
+  it ends, that position is covered: the walk makes a run from its start, or it takes a run later and
+  extends it back to its start, as the run's first position is an iteration start of the
+  walk. The input that a hot walk examines is always available, so it makes its run. A
+  position, once covered, stays covered for every walk that can reach it. So each position is
+  evaluated in this way at most once for each of the two tables of $\sigma$, and the hot walks
+  evaluate at most $2(n + 1) + (T + 1)W$ iterations.
+
+The sum is at most $6(n + 1) + (2T + 3)W$. Outside its iterations a walk makes at most the lookup,
+the taking of a run and the making of one, three steps (Lemma 5). $\square$
+
+A walk that a limit or a cancellation stops ends the parse. Looking up the run that covers a position
+takes constant time: a run covers at least $T + 1$ positions, so the 64 positions of a word of the
+table meet at most five runs, which the probe follows; making or extending a run changes the entries
+of its own positions alone. So the time of the walks of a site, outside their elements, is at most a
+constant times the bound of the lemma. A walk that builds a value lists its elements: the engine and a
+parser generated as Go source share the run's elements with the list, and a parser generated as
+TypeScript copies those after the first position of a run, and copies the elements of a run that it
+extends, which the lemma does not count.
+
+A walk that begins inside a character, which a parse reaches only after a terminal that matched part
+of an encoding in a bytes-unit input, still gives what it would without runs (Lemma 4), but a run
+whose first position is inside a character is not extended back over a walk that does not pass that
+position, and a walk from inside a character makes no run once it has passed a covered position that
+is no iteration start of a run, so Lemmas 6 and 7 do not bound its site.
+
+A parse with missing-token insertion keeps no runs and is outside the classes. A document that
+resumes a repetition resumes it without runs, as Lemma 4 states; the bounds are for the walks that a
+parse makes.

@@ -824,18 +824,20 @@ lookahead, a run site that the document can resume is resumed as before.
 ### Scan Sites
 
 A repetition of one character, as a run of blanks, is walked again by every
-failed alternative that leads back to its start, and its walk keeps no record
+failed alternative that leads back into it, and its walk keeps no record
 because a run site does not repeat a single character. A **scan site** is a
 repetition without an upper bound whose expression is a character class or any
-character, in a rule that calls no rule, unless it is a site of a
-[skip run](#skip-runs) or a `#stream` repetition. The rule may be called from any
+character, in any rule, unless it is a site of a [skip run](#skip-runs) or a
+`#stream` repetition. The rule may call other rules and be called from any
 number of places, and the repetition may stand under a capture, a label, an
-action or an attribute: an iteration tests one character and nothing else, so
-the walk from a start ends at a position, matches a number of characters,
-builds elements and examines a range of input that depend on the start and the
-input alone, whatever the rule does with them. A capture or an action reads only
-the list that the walk gives, and a predicate, lookahead or call around the
-repetition is evaluated as without records.
+action or an attribute: an iteration tests one character and nothing else. A
+**stretch** of a site is a longest range of the input whose characters are all
+of its class, together with the position after it, its **end**. A walk from any
+iteration start in a stretch ends at the end of the stretch, matches a number
+of characters, builds elements and examines a range of input that depend on its
+start and the input alone, whatever the rule does with them. A capture or an
+action reads only the list that the walk gives, and a predicate, lookahead or
+call around the repetition is evaluated as without records.
 
 A rule that matches input, calls no rule and is a **pure scan rule** has, in
 addition, all of the following:
@@ -853,64 +855,117 @@ restartable, so that it is a run site wherever the conditions of
 input range it examines depend on the position and the input alone, so its
 records need no environment.
 
+A scan site keeps **runs**. A run is a range of positions of one stretch, from
+its **first** position to the end of the stretch, which walks of the site have
+passed; every walk from an iteration start of the run ends at its end. A run
+holds what a later walk from any of its iteration starts cannot obtain without
+walking again:
+
+- the end of its stretch;
+- the number of characters from each iteration start to the end, which is the
+  distance in units where every character of the run takes one unit;
+- for walks that build a value, the elements of its characters;
+- the end of the range of input that its walks examined, each measured from
+  the walk's first character: just after the character at the end, or further
+  when a test of an earlier character examined units after it, as the test of
+  an invalid byte of a bytes-unit input can.
+
 A walk of a scan site charges and examines as an ordinary repetition for its
-first 16 characters, the constant `T` (which is not the hot span of run sites:
-a site turns hot after walks of `T` characters that overlap, as a run site does
-after its own hot span). If the site is hot, the walk that has matched `T`
-characters looks for the record of its start. A scan site keeps at most one
-record for a walk, at the start of the walk, and none for the positions inside
-it. A walk that builds a value and one that does not are recorded apart.
+first 16 characters, the constant `T`. A site turns **hot** as a run site does
+(see [Run Sites](#run-sites)), with `T` as its minimum length: the site keeps
+the furthest end of its walks of `T` characters or more, and turns hot when
+such a walk began below that end and walked `T` units of input below it.
+Whether a site is hot is kept apart for the walks inside lookaheads and those outside.
 
-A record holds what a later walk from its start cannot obtain without walking
-again:
+The **iteration starts** of a run are the positions at which the walks that
+made or extended it began an iteration: every position of the run in a
+code-point input, and in a bytes-unit input the positions where those walks
+decoded a character. At a hot site, the walk that has matched `T` characters
+charges one step for looking up the runs, and then, before each further
+iteration, looks at its position:
 
-- the position where the walk ended;
-- the number of characters it matched;
-- for a walk that builds a value, the elements;
-- the range of input the walk examined, which runs from the start to the
-  character whose test ended the walk, or further when a test of an earlier
-  character examined units after it, as the test of an invalid byte of a
-  bytes-unit input can. A parser whose test of a character examines no unit
-  after that character need not store it, since the walk that takes the record
-  makes the last test again and that test reaches furthest.
+- If the position is an iteration start of a run, the walk takes the rest from
+  the run, for one more step: it moves to the run's end, adds the run's number
+  of characters from that position to its own, takes the run's elements from
+  there, and examines the run's range. The test of the next character then
+  fails at the end as it did for the walks that the run recorded, and gives the
+  same expectation. If the walk began before the run's first position and its
+  own characters end there, it also extends the run back to its own start, for
+  no step: the walk's iteration starts become the run's, with the elements it
+  built, and the run's examined range becomes the larger of its own and the
+  walk's.
+- If a run covers the position but it is no iteration start of the run, the
+  walk goes on and makes no run. That happens only in a bytes-unit input, to a
+  walk that began inside the encoding of a character.
+- Otherwise the walk goes on.
 
-A walk that finds a record moves to the recorded end, takes the number of
-characters and the elements from the record, and examines the recorded range;
-the test of the next character fails there as it did when the walk was
-recorded, and gives the same expectation. Otherwise the walk goes on, and when
-it ends it makes the record. A record holds no expectation and no failure: the
-only ones a walk produces are those of that last test, which every walk makes.
-The lookup costs one step, the slot of a record that it finds one more, the
-record that a walk makes one, and the skipped characters nothing. A site has one
-table of records for the walks inside lookaheads and the walks outside them:
-a lookahead silences only the expectations, which the walk does not put in the
-record, so both make the same record. (Whether a site is hot is kept apart for
-the two.) A walk records only if the input it examined is available: the parse
-has all of its input, or the examined range lies in the part of a stream that
-has been read. The input is filled up to the character that a walk examines, so
-the range always lies in the part that has been read unless the input has ended,
-and the test is a safeguard only. A stream drops the records of the starts
-before the input it commits.
+A walk that took no run and met no position of the second case records
+itself, when it ends, as a new run from its start to its end, for one step;
+its iteration starts are those at which it tested a character that matched.
+Only these walks make runs and only the walks of the first case extend them,
+so a run answers a walk only at a position where an earlier walk of the same
+site and table began an iteration, with what that walk, together with the run
+it took, if any, evaluated from there. A walk records only if the input it
+examined is available: the parse has all of its input, or the examined range
+lies in the part of a stream that has been read. The input is filled up to the
+character that a walk examines, so the range always lies in the part that has
+been read unless the input has ended, and the test is a safeguard only. A run
+holds no expectation and no failure: the only ones a walk produces are those
+of its last test, which every walk makes.
 
-The elements of a record are shared with the lists of the walks that take them.
-They are final, as those of run sites are. A walk whose number of characters
-falls short of the repetition's minimum fails as it would without records.
+In a bytes-unit input a walk takes a run only if it began at least 8 units
+(twice the longest encoding of a character) before the run's end, so that the
+run's examined range is the walk's own; a walk that has matched `T` characters
+always has. Two walks over the same bytes that begin at different positions
+pass the same iteration starts after at most three units, since a byte inside
+the encoding of a character is read alone as an invalid one, so a walk that
+began inside the encoding of a character of a run, or a run made by such a
+walk, agrees with the run on the iteration starts from the walk's `T`-th
+character on.
+
+A site has one table of runs for the walks that build a value and one for those
+that do not, and each table serves the walks inside lookaheads and outside
+them: a lookahead silences only the expectations, which a run does not hold.
+The elements of a run are shared with the lists of the walks that take it, and
+are final, as those of run sites are. A walk whose number of characters falls
+short of the repetition's minimum fails as it would without records, and
+extends or makes a run as any other walk. When it makes a run, the values it
+gathered pass to the run for no charge, as those of an extending walk do,
+rather than being dropped (see [Default Limits](#default-limits)).
 
 A scan site that a [document](documents.md) resumes is resumed as before: a
-repetition that is resumed neither looks up nor makes records. That affects only
-cost and reuse, since every record is exact (see the proof). The records of scan
-sites last for one parse. A parse with missing-token insertion keeps no records
-of scan sites.
+repetition that is resumed neither looks up nor makes runs. That affects only
+cost and reuse, since every run is exact (see the proof). The runs of scan sites
+last for one parse, and a stream drops those that end at or before the
+position it commits. A parse with missing-token insertion keeps no runs of
+scan sites.
 
 A parse with scan sites gives the result of a parse without them, with the same
 expectations and examined ranges. The steps a parse charges exceed those of a
-parse without scan sites by at most two steps for each walk that reached
-`T` characters. A walk that starts at another position than a recorded start
-inside the same run does not reuse the record, and costs its own length.
+parse without scan sites by at most two steps for each walk that reached `T`
+characters. When no walk of a site begins inside the encoding of a character,
+which holds in every code-point input, a walk at a hot site iterates past its
+`T`-th character only at positions that no run of its table covers, and they
+are covered once it ends, so the walks of the site evaluate at most a constant times the input length plus
+a constant for each walk of iterations, whichever positions they begin at and
+in whatever order: walks that begin at successive positions of one stretch,
+from its start or from its end, cost one walk of the stretch between them.
 
-Parsers generated as Go or TypeScript source keep the records of scan sites as
+A table keeps, for the positions between the first and the last position that
+its runs cover, one bit for each position and four bytes for each 64 positions,
+in a window that grows by doubling, so at most three bits for each such
+position; and a record for each run, with four bytes for each position of a run
+whose characters take more than one unit. The elements of a run are those of
+the walks that made it.
+Looking up the run of a covered position follows the runs of its 64 positions,
+of which there are at most five, so a lookup takes constant time, and making or
+extending a run changes only the entries of its own positions.
+
+Parsers generated as Go or TypeScript source keep the runs of scan sites as
 this section describes, with the same `T` and the same charges; they keep no
-records of run sites.
+records of run sites. A TypeScript parser cannot share a part of an array, so a
+walk that takes a run from a position after its first copies the elements from
+there, and extending a run of a walk that builds a value copies its elements.
 
 ### Classes of Growth
 
@@ -1665,6 +1720,25 @@ parse outside the contexts of growths, apart from the entries that a
 Document keeps from earlier parses; this rests on reading their code, and no
 conformance test across the backends checks it yet. A mode that leaves other results out of the memo, such as one that
 evicts entries, gives no linear bound by these conditions, and has to say so.
+
+The bound counts the walks of some repetitions through their records instead.
+The [linear cost proof](../proofs/linear-cost.md#setting) counts the
+iterations of a repetition without an upper bound by the number of its walks,
+without condition 2, in a parse whose records of the repetition meet three
+conditions: (R1) a walk that takes a record leaves what the walk that
+evaluated its remaining iterations would leave, so that the parse gives what
+it gives without records; (R2) the walks of the repetition evaluate its
+element at most a constant times n, plus a constant for each walk; and (R3)
+outside the iterations that it evaluates, a walk makes at most a constant
+number of steps, and a constant more for each iteration, apart from the
+elements of a record that it copies behind its own. Every
+[scan site](#scan-sites) meets the three on every backend, in a parse that
+inserts no missing token and begins no walk of the site inside the encoding of
+a character, which every parse in code points does; so does a run site free
+of the environment on the backends of the engine (see the proof for the
+details). The classifier relies on this only for the calls of scan-only
+rules, which it counts as shared (see the first characters above), so a
+grammar can fail a condition below though its repetitions meet the three.
 
 1. **Variables.** No binding of a variable reads, through any chain of
    bindings, captures and rule values, the variable's own earlier value, when

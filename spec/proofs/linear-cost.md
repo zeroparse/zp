@@ -32,11 +32,12 @@ The theorem covers every parse whose records are exact, whatever its
 recorded sites are; which repetitions are recorded sites decides only which
 lemma counts them. As the [Setting](#setting) states under *Sites that meet
 the conditions*, (R2) and (R3) are shown for the run sites free of the
-environment in the parses of the three backends of the engine. They are not
-shown for a run site in a generated Go or TypeScript parser, for a run site
-that is not free of the environment, or for a repetition of a single
-character outside the reused skips and the `#stream` repetitions, in any
-backend. A parse that walks one of these is covered with that repetition
+environment in the parses of the three backends of the engine, and for the
+scan sites, the repetitions of a single character outside the skip-run sites
+and the `#stream` repetitions, in the parses of every implementation whose
+walks begin at no position inside the encoding of a character. They are not
+shown for a run site in a generated Go or TypeScript parser or for a run site
+that is not free of the environment. A parse that walks one of these is covered with that repetition
 among the sources without records, and so with the open parts of the count
 of Lemma 4 for it.
 
@@ -257,7 +258,8 @@ proof, every kind of parse that they run, of a loaded program, of a stream
 or of a Document, and [Lemma 1](run-sites.md#lemma-1-exactness) of that
 proof shows (R1) of them. The engine and the generated Go and TypeScript
 parsers keep records of [scan sites](../runtime/parsing.md#scan-sites), the
-repetitions of a single character in a rule that calls no rule, and
+repetitions of a single character without an upper bound in any rule, other
+than the skip-run sites and the `#stream` repetitions, and
 [Lemma 4](run-sites.md#lemma-4-exactness-of-scan-records) of that proof
 shows (R1) of them. A parse with missing-token insertion keeps no records
 and is outside this proof as it is outside the classes.
@@ -322,16 +324,21 @@ site of a parse depends on the records that the implementation keeps:
   distinct give distinct keys
   ([Lemma 2](run-sites.md#lemma-2-cost-once-hot) of that proof). (R2) is not
   shown for them.
-- *Repetitions of a single character.* In a rule that calls no rule, such a
-  repetition is a [scan site](../runtime/parsing.md#scan-sites), and the
-  engine and the generated Go and TypeScript parsers keep one record for a
-  walk of it, at the start of the walk. That does not give (R2): a walk that
-  starts at another position of the
-  same run finds no record and evaluates its own length
-  ([Scan Sites](../runtime/parsing.md#scan-sites)). In a rule that calls a
-  rule, a repetition of a single character keeps no record in any
-  implementation. (R2) is not shown for a repetition of a single character
-  in either case.
+- *Repetitions of a single character.* In any rule, such a repetition, other
+  than a skip-run site and a `#stream` repetition, is a
+  [scan site](../runtime/parsing.md#scan-sites), and the engine and the
+  generated Go and TypeScript parsers keep its walks as runs, which answer a
+  walk from every position at which an earlier walk began an iteration. In a
+  parse that inserts no missing token and whose walks of the site begin at no
+  position inside the encoding of a character, which holds of every parse in
+  code points, [Lemma 7](run-sites.md#lemma-7-iterations-of-scan-walks) of
+  the Run Sites proof shows (R2) and
+  [Lemma 5](run-sites.md#lemma-5-cost-of-scan-records) the steps of (R3)
+  outside the iterations. So, with $c_R$ at least the constants of those
+  lemmas, such a site is a recorded site of every such parse. A walk that
+  begins inside the encoding of a character, in a bytes-unit input, can pass
+  the positions of a run without taking it, and (R2) is not shown for a
+  parse with such walks.
 - *Generated parsers.* The generated Go and TypeScript parsers keep no
   record of a run site, whose repetition they evaluate as an ordinary one
   ([Scope](run-sites.md#scope) of the Run Sites proof). (R2) is not shown
@@ -340,12 +347,12 @@ site of a parse depends on the records that the implementation keeps:
 So a candidate site is shown to be a recorded site of a parse only when it
 is a run site free of the environment, which the instruction marks free
 where the program is loaded, and the parse is one of a backend of the engine
-in that Scope that inserts no missing token. No other candidate site is
+in that Scope that inserts no missing token, or when it is a scan site and
+the parse, of any implementation, inserts no missing token and begins no
+walk of it inside the encoding of a character. No other candidate site is
 shown to be a recorded site of any parse: a run site in a generated Go or
-TypeScript parser, a run site that is not free of the environment or that a
-loaded program does not mark free, and a repetition of a single character
-without an upper bound outside the reused skips and the `#stream`
-repetitions, in the engine or in a generated parser. A parse that walks
+TypeScript parser, and a run site that is not free of the environment or
+that a loaded program does not mark free. A parse that walks
 such a site is covered, with the site among the sources without records:
 its successful iterations are in $A_u$ of Lemma 17, and their bound rests on
 the count of Lemma 4 and on the parts of it that step 1 of
@@ -8829,10 +8836,10 @@ conditions* in the [Setting](#setting), a candidate site is shown to be
 recorded only when it is a run site free of the environment, marked free
 where the program is loaded, in a parse of a backend of the engine, in the
 [Scope](run-sites.md#scope) of the Run Sites proof and without missing-token
-insertion. A run site in a generated Go or TypeScript parser, a run site
-that is not free of the environment and a repetition of a single character
-without an upper bound outside the reused skips and the `#stream`
-repetitions, in any implementation, are not shown to be recorded, so for a
+insertion, or a scan site in a parse of any implementation without
+missing-token insertion that begins no walk of it inside the encoding of a
+character. A run site in a generated Go or TypeScript parser and a run site
+that is not free of the environment are not shown to be recorded, so for a
 parse that walks one of them the bound rests on the count of Lemma 4 for
 that repetition, with the parts that step 1 of [Open Steps](#open-steps)
 leaves open, and on the seventh part of step 8 where the repetition keeps
@@ -9444,7 +9451,7 @@ characters ([Skip Runs](skip-runs.md#lemma-1-exactness) and
 [cost once hot](run-sites.md#lemma-2-cost-once-hot), and a record of a scan site
 ([Exactness](run-sites.md#lemma-4-exactness-of-scan-records) and
 [Cost](run-sites.md#lemma-5-cost-of-scan-records)). The generated parsers keep
-records only for skip runs ([Scope](run-sites.md#scope)). So each of the
+records only for skip runs and scan sites ([Scope](run-sites.md#scope)). So each of the
 $q - p$ characters was examined by a step that $C$ counts, on every backend, and $q - p \le C$. Listing charges no Compute, so
 the lists that it visits are not units.
 By Lemma 14 listing $k$ recovered errors visits at most $2k$ lists, so listing
@@ -10030,12 +10037,13 @@ theorem covers such a parse.
    Seven parts are open. First, (R2) and (R3) are shown only for the sites
    that *Sites that meet the conditions* in the [Setting](#setting) names,
    the run sites free of the environment in the parses of the backends of
-   the engine, marked free where the program is loaded: for a site that is
-   not free, (R2) asks for records under the values that its element reads,
-   and for a repetition of a single character, for records that answer a
-   walk from every position that an earlier walk passed, in every rule, and
-   neither is shown of an implementation here, nor is (R2) for a run site in
-   a generated Go or TypeScript parser, which keeps no record of it. Each of
+   the engine, marked free where the program is loaded, and the scan sites
+   in the parses that begin no walk inside the encoding of a character: for
+   a site that is not free, (R2) asks for records under the values that its
+   element reads, which is not shown of an implementation here, nor is (R2)
+   for a run site in a generated Go or TypeScript parser, which keeps no
+   record of it, nor for a scan site in a bytes-unit parse with a walk that
+   begins inside the encoding of a character. Each of
    these is a source without records in the parses that walk it, under
    step 1 and the seventh part below. For a
    site that is not free,

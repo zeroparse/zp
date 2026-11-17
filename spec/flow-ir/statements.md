@@ -28,7 +28,9 @@ leaves empty is absent.
 | `SkipBegin` | Site | Begins a walk of the skip-run site Site at the position: the iterations of the repetition that follow are visits of the walk, until SkipEnd. |
 | `SkipVisit` |  | Ends the iteration of the walk before, if any, and begins one at the position. |
 | `SkipEnd` |  | Ends the iteration of the walk before, if any, ends the walk and records the rest of it from each position it visited. |
-| `ScanEnd` | Site, Start, Count | Ends a value-free walk of the scan site Site that began at Start and matched Count characters, at least the hot span of scan sites, at the position: unless the walk took the rest from a record, it records itself at a hot site, and otherwise notes the walk for the hot state of the site. |
+| `ScanBegin` | | Begins a walk of a scan site at the position, from which the walk measures the input it examines; the walk ends with `ScanEnd`, `ScanKids` or `ScanFail`. |
+| `ScanEnd` | Site, Start, Count | Ends a value-free walk of the scan site Site that began at Start and matched Count characters, at the position: for a walk of the hot span or more that took the rest from no run, it records itself as a run at a hot site if it probed no position of a run, and otherwise notes the walk for the hot state of the site. |
+| `ScanFail` | Site, Start, Base, Count | Ends a walk of the scan site Site that builds a value, which began at Start, gathered its elements above Base and matched Count characters, fewer than the minimum of its repetition: it ends the walk as `ScanKids` does, without making a list, and drops the elements; a walk that records itself moves them into the run without the charge of taking them off as a list. |
 | `Append` | Vals, X, Spread | Appends X to the list Vals; with Spread, the children of the tuple node X. |
 | `SetWhere` | Name | Names the rule whose action runs, for the messages of its errors. |
 | `DropCreated` | C | Drops the structs made since the context C began. |
