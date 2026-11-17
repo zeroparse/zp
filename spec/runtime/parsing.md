@@ -1539,7 +1539,10 @@ The conditions below use these terms.
   character classes, and a literal and a class that contains its first
   character are passed by the characters that they have in common, each step
   counting as one symbol; a call that is not alike stands for the paths of the
-  body of its rule, each of which must part.
+  body of its rule, each of which must part. Every decision expands calls
+  finitely: where the expansion of a call comes back to a call of the same
+  rule, directly or through other calls, the comparison stops there and the
+  unit decides nothing on that path.
   The decisive symbol is one on each side that cannot both match at the
   position: two symbols that are **disjoint**, which means that neither can
   match nothing and that no character is a first character of
@@ -1578,9 +1581,8 @@ The conditions below use these terms.
   call or a repetition of that side that does not pass the symbol of `A` at
   hand stands for its paths, each of which must pass the rest of `A`, and a
   lookahead of that side is passed over when it costs a constant. The check
-  expands calls finitely: where the expansion of a call comes back to a call
-  of the same rule, directly or through other calls, the check stops there,
-  and `!K` decides nothing on that path. The rest of
+  expands calls finitely, as every decision does: where the expansion comes
+  back to a call of the same rule, `!K` decides nothing on that path. The rest of
   the other side then matches only where `A` matches. When `!K` is on the side
   of the unit, which alone evaluates it, `K` contains no scanning source, and
   neither does a negative lookahead that a path of the unit passes before it
