@@ -31,7 +31,7 @@ const tsTypesSpecifier = "./types.ts"
 var tsPublicLib = strings.Fields(`
 	Value Unit CodePoints Bytes NodeField NodeJSON Node marshal SyntaxError SyntaxErrors ParseResult
 	ParseOptions Limits ParseInterruptionKind ParseInterruptionError Unlimited
-	TraceKind TraceEvent Profile ProfileLocation SkipReasonCount RuleProfile ProfileSnapshot`)
+	TraceKind TraceEvent TraceFunction SkipReason Profile CallSite SkipReasonCount RuleProfile ProfileSnapshot`)
 
 // tsPublicControls lists the library declarations of the limit controls that parser.ts re-exports
 // only with -limits.

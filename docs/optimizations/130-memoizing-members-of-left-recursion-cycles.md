@@ -196,11 +196,12 @@ result around it be kept under identities it did not read: random recovering cyc
 `baabcac` where generated parsers and the engine without examined ranges must accept it.
 
 The engine records the input that every evaluation examines, because its traces report it, so equal step results
-and equal lookahead outcomes also need equal examined ranges there. Generated Go records it only in Document parses
-and TypeScript never does; elsewhere they take a step or reuse an outcome that differs only in its examined range,
-which the engine evaluates again. The results are the same, but traces and evaluation counts can differ. The test that
-compares the traces of generated Go with the engine's runs the engine with a test option that leaves examined ranges
-out in the same way.
+and equal lookahead outcomes also need equal examined ranges there. Generated Go and TypeScript parsers record it only
+in Document parses and observed parses, whose traces report it; elsewhere they take a step or reuse an outcome that
+differs only in its examined range, which the engine evaluates again. The results are the same, and those parses report
+no traces whose evaluation counts could differ. The tests that compare the traces of generated parsers with the engine's
+therefore compare them with the engine as it is. A test option of the engine leaves examined ranges out, as an
+unobserved generated parse does, to check that the results do not depend on them.
 
 A differential test compares every engine backend with the engine's reference that evaluates every call in a
 context again, on the random grammars of 800 seeds: for each seed, a grammar of cycles with several leaders and

@@ -149,13 +149,13 @@ rule part W = t:("input, o.unit, o.maxDepth, control)") #atomic => W{Text: text(
 const tsTraceTestHooks = `
 // Test-only hooks keep private exception and observer teardown checks concrete.
 const traceProbes: Observation[]=[];
-const originalTraceCall=Parser.prototype.call;
-Parser.prototype.call=function(r:Rule,min:number):R {
+const originalTraceCall=ObservedParser.prototype.call;
+ObservedParser.prototype.call=function(r:Rule,min:number):R {
  if(this.observation!==null)traceProbes.push(this.observation);
  return originalTraceCall.call(this,r,min);
 };
 export function testReleased():boolean {
- const clean=traceProbes.every(o=>{const x=o as unknown as {callback:unknown;scope:unknown;rules:unknown;stack:unknown[]};return x.callback===null&&x.scope===null&&x.rules===null&&x.stack.length===0});
+ const clean=traceProbes.every(o=>{const x=o as unknown as {traces:unknown;recorders:unknown;scope:unknown;parser:unknown;rules:unknown;stack:unknown[]};return x.traces===null&&x.recorders===null&&x.scope===null&&x.parser===null&&x.rules===null&&x.stack.length===0});
  traceProbes.length=0;return clean;
 }
 export function testThrownValues():unknown[] {
@@ -170,7 +170,7 @@ function errorView(e:Error|null):unknown{return e===null?null:{name:e.name,messa
 function balanced(events:readonly p.TraceEvent[]):void {
  const stack:p.TraceEvent[]=[];
  for(const e of events){
-  check(!e.examinedKnown,"examined availability");
+  check(typeof e.lookahead==="boolean"&&e.reusedElements===0&&(e.kind==="skipped"||e.skipReason===""),"event fields");
   if(e.kind==="enter"){check(e.depth===stack.length+1,"enter depth");stack.push(e)}
   else if(e.kind==="exit"){
    const entry=stack.pop();check(entry!==undefined&&entry.rule===e.rule&&entry.pos===e.pos&&entry.level===e.level&&entry.depth===e.depth,"paired exit");

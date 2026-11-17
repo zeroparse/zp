@@ -10,6 +10,8 @@ import (
 	"runtime"
 	"strings"
 	"testing"
+
+	"zeroparse.dev/zp/internal/testing/codegentest"
 )
 
 // engineObservationRun is a test that an engine mutant runs, and what the test must then report (want),
@@ -33,6 +35,10 @@ var (
 	// The Documents of both producers, whose parses share the defaults' trace selection.
 	engineDocumentRun    = engineObservationRun{"./engine", "TestDocumentTraceSelection", ""}
 	generatedDocumentRun = engineObservationRun{"./internal/codegen/go", "TestGeneratedDocumentObservation", ""}
+	// The generated TypeScript parsers, whose library the go command's overlay does not reach: a mutant
+	// of it changes the code that the tests generate (codegentest.TSLibPatchEnv).
+	tsAgreementRun = engineObservationRun{"./internal/codegen/go", "TestTSObservationsAgreeWithEngine", ""}
+	tsOptionsRun   = engineObservationRun{"./internal/codegen/ts", "TestGeneratedTSObservationOptions", ""}
 )
 
 func expecting(r engineObservationRun, want string) engineObservationRun { r.want = want; return r }
@@ -84,6 +90,72 @@ var engineObservationMutants = []engineObservationMutant{
 		old:  "return func(o *parseOptions) { o.observe.withExtras().rules = names }",
 		new:  "return func(o *parseOptions) {\n\t\tif o.observe.extras == nil {\n\t\t\to.observe.extras = new(observeExtras)\n\t\t}\n\t\to.observe.extras.rules = names\n\t}",
 		runs: []engineObservationRun{expecting(generatedDocumentRun, "Parse 3 selected")}},
+	{name: "typescript trace filter ignored", file: "codegen/ts/lib/trace.ts",
+		old: "return this.rules === null || this.rules.has(rule) ||", new: "return true || this.rules.has(rule) ||",
+		runs: []engineObservationRun{expecting(tsAgreementRun, "typescript: the trace filter"), expecting(tsOptionsRun, "FAIL the trace filter leaves profiles whole")}},
+	{name: "typescript depth limit ignored", file: "codegen/ts/lib/trace.ts",
+		old: "const traced = call.selected && (this.maxDepth <= 0 || call.depth <= this.maxDepth);", new: "const traced = call.selected;",
+		runs: []engineObservationRun{expecting(tsAgreementRun, "typescript: the trace filter"), expecting(tsOptionsRun, "FAIL the depth limit leaves profiles whole")}},
+	{name: "typescript keeps the last trace function", file: "codegen/ts/lib/trace.ts",
+		old: "for (const trace of this.traces!) trace({ ...event });", new: "this.traces![this.traces!.length - 1]!({ ...event });",
+		runs: []engineObservationRun{expecting(tsAgreementRun, "typescript: the second trace function"), expecting(tsOptionsRun, "FAIL every trace function receives the whole parse")}},
+	{name: "typescript keeps the last profile", file: "codegen/ts/lib/trace.ts",
+		old: "o.profiles.map(profile => new ProfileRecorder(profile, o.profileClock!, o))", new: "[new ProfileRecorder(o.profiles[o.profiles.length - 1]!, o.profileClock!, o)]",
+		runs: []engineObservationRun{expecting(tsAgreementRun, "typescript: the second profile"), expecting(tsOptionsRun, "FAIL every profile receives the whole parse")}},
+	{name: "typescript profiles depend on the trace filter", file: "codegen/ts/lib/trace.ts",
+		old: "if (recorders !== null) for (const r of recorders) r.record(event);\n    if (!traced) return;", new: "if (!traced) return;\n    if (recorders !== null) for (const r of recorders) r.record(event);",
+		runs: []engineObservationRun{expecting(tsAgreementRun, "typescript: the profile depends on the trace filter"), expecting(tsOptionsRun, "FAIL the trace filter leaves profiles whole")}},
+	{name: "typescript Document parses change the defaults", file: "codegen/ts/lib/lib.ts",
+		old: "const out: { [key: string]: unknown } = { ...defaults, ...invocation };", new: "const out: { [key: string]: unknown } = Object.assign(defaults, invocation);",
+		runs: []engineObservationRun{expecting(tsOptionsRun, "FAIL a later parse has the defaults again")}},
+	// The records of the examined end in generated TypeScript: in its terminals, and those that the
+	// library replays for a result it reuses or keeps for a growth step or a lookahead.
+	{name: "typescript unrecorded character read", file: "codegen/ts/lib/lib.ts",
+		old: "this.documentTouch(this.pos + this.psize);", new: "void this.psize;",
+		runs: []engineObservationRun{expecting(tsAgreementRun, "examined end of")}},
+	{name: "typescript unrecorded literal match", file: "codegen/ts/lib/lib.ts",
+		old: "    if (v !== undefined) {\n      this.documentTouch(this.pos);\n      return v;", new: "    if (v !== undefined) {\n      return v;",
+		runs: []engineObservationRun{expecting(tsAgreementRun, "examined end of")}},
+	{name: "typescript memo hit records nothing", file: "codegen/ts/lib/lib.ts",
+		old: "this.documentTouch(e!.examined);\n      this.mergeKept(e.far, e.expected);", new: "this.mergeKept(e.far, e.expected);",
+		runs: []engineObservationRun{expecting(tsAgreementRun, "examined end of")}},
+	{name: "typescript context replay records nothing", file: "codegen/ts/lib/lib.ts",
+		old: "    this.observation?.memoHit();\n    this.documentTouch(e.examined);\n", new: "    this.observation?.memoHit();\n",
+		runs: []engineObservationRun{expecting(tsAgreementRun, "examined end of")}},
+	{name: "typescript skip record reused records nothing", file: "codegen/ts/lib/lib.ts",
+		old: "this.documentTouch(r.examined);", new: "this.documentTouch(0);",
+		runs: []engineObservationRun{expecting(tsAgreementRun, "examined end of")}},
+	{name: "typescript lookahead drops what it examined", file: "codegen/ts/lib/lib.ts",
+		old: "this.docExamined = Math.max(this.lookExamined.pop()!, this.docExamined);", new: "this.docExamined = this.lookExamined.pop()!;",
+		runs: []engineObservationRun{expecting(tsAgreementRun, "examined end of")}},
+	// A lookahead outcome taken for one of a different examined end skips the calls the lookahead makes.
+	{name: "typescript lookahead outcomes identified without their examined ends", file: "codegen/ts/lib/lib.ts",
+		old: "return (examined - pos) * 2 + (ok ? 1 : 0);", new: "return ok ? 1 : 0;",
+		runs: []engineObservationRun{expecting(tsAgreementRun, "the first producer has")}},
+	// examinedOnlyCases reaches the last step of a growth taken from the context.
+	{name: "typescript growth step taken from the context records nothing", file: "codegen/ts/lib/lib.ts",
+		old: "this.documentTouch(s.examined);", new: "void s;",
+		runs: []engineObservationRun{expecting(tsAgreementRun, "examined ends of")}},
+	// Two records of the examined end in a growth, in both libraries, are left without a mutant, as no parse
+	// can observe them: the touch of a jump's examined end (growNext) and the maximum that recordJumps takes
+	// for it. A jump
+	// stands for a run of steps that each grew the match, and every evaluation of the body at the growth's
+	// position follows the same path until it first reads the growing seed, so each of those steps read
+	// the seed of the step before it and examined at least as far. The jump's examined end is therefore
+	// that of its last step, which is the examined end of the seed it lands on. The growth then always
+	// takes one more step, as only a step that does not grow ends it, and that step reads the seed again,
+	// recording the same end through the replay of the seed. The touch keeps a jump a complete replay of
+	// the steps it stands for, as every other reuse is, at the cost of a maximum per step of a run.
+	{name: "typescript seeds identified without their examined ends", file: "codegen/ts/lib/lib.ts",
+		old: "c.e.examined === e.examined && ", new: "",
+		runs: []engineObservationRun{expecting(tsAgreementRun, "examined end of")}},
+	// As for TypeScript, the outcome taken skips the calls of the lookahead.
+	{name: "generated lookahead outcomes identified without their examined ends", file: "codegen/go/lib/context_memo.go",
+		old: "\tv := uint64(hi) << 1\n", new: "\tv := uint64(0)\n",
+		runs: []engineObservationRun{expecting(agreementRun, "the first producer has")}},
+	{name: "typescript library control", file: "codegen/ts/lib/trace.ts",
+		old: "  release(): void {\n", new: "  release(): void {\n    void 0;\n",
+		runs: []engineObservationRun{tsAgreementRun, tsOptionsRun}},
 	// The control changes nothing that the tests observe: they must pass with it, so that what makes the
 	// other mutants fail is their change, not the overlay.
 	{name: "control", file: "internal/engine/state/trace.go",
@@ -98,7 +170,8 @@ var engineObservationMutants = []engineObservationMutant{
 // parsers' and the bound on the profile of a stream notice an engine that leaves out the examined end of a
 // memo hit, inverts Lookahead or keeps the profile's records of discarded input, and that the agreement and
 // the tests of the trace options notice either producer getting one of them wrong. A mutant of the library
-// also changes the copy of it that the agreement's generated parsers import.
+// also changes the copy of it that the agreement's generated parsers import, and a mutant of the TypeScript
+// library the TypeScript parsers that the tests generate.
 func TestEngineObservationMutants(t *testing.T) {
 	t.Parallel()
 	if testing.Short() {
@@ -124,7 +197,13 @@ func TestEngineObservationMutants(t *testing.T) {
 			if err := os.WriteFile(mutated, []byte(strings.Replace(string(src), m.old, m.new, 1)), 0o644); err != nil {
 				t.Fatal(err)
 			}
-			overlay, _ := json.Marshal(map[string]map[string]string{"Replace": {path: mutated}})
+			replace := map[string]string{path: mutated}
+			ts := strings.HasPrefix(m.file, "codegen/ts/lib/")
+			if ts {
+				// The generator embeds the library, which the overlay does not reach.
+				replace = map[string]string{}
+			}
+			overlay, _ := json.Marshal(map[string]map[string]string{"Replace": replace})
 			overlayFile := filepath.Join(dir, "overlay.json")
 			if err := os.WriteFile(overlayFile, overlay, 0o644); err != nil {
 				t.Fatal(err)
@@ -137,6 +216,10 @@ func TestEngineObservationMutants(t *testing.T) {
 				if strings.HasPrefix(m.file, "codegen/go/lib/") {
 					patch, _ := json.Marshal(struct{ File, Old, New string }{m.file, m.old, m.new})
 					cmd.Env = append(cmd.Env, agreeLibPatchEnv+"="+string(patch))
+				}
+				if ts {
+					patch, _ := json.Marshal(struct{ File, Old, New string }{m.file, m.old, m.new})
+					cmd.Env = append(cmd.Env, codegentest.TSLibPatchEnv+"="+string(patch))
 				}
 				out, err := cmd.CombinedOutput()
 				switch {

@@ -509,8 +509,8 @@ exceptions are these.
   evaluations examine, equal growing results and equal outcomes also need
   equal examined ranges: in every parse of the engine, whose traces report the
   range, and in a [Document](documents.md) parse or an
-  [observed](observability.md) parse of a generated Go parser; a generated Go
-  parser in any other parse and a TypeScript parser compare no range. A
+  [observed](observability.md) parse of a generated Go or TypeScript parser;
+  a generated parser in any other parse compares no range. A
   result that read a growing result is kept only until the first growth of
   its context ends, and never enters the memo of a later parse.
   A lookahead counts as observed by its outcome only if nothing else of it
