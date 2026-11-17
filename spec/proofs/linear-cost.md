@@ -1664,6 +1664,68 @@ records it gives the sequence $\alpha_1, \alpha_2, \ldots$ and its links, not
 the bound of *Activations held by heads*, which rests on *Replayed
 activations*.
 
+**Restarts in a parse that resumes runs.** In a
+[Document](../runtime/documents.md) parse whose records of sites are exact,
+(R1) of the [Setting](#setting), the claims that *Restarts in a parse that
+keeps records* shows hold as stated when the parse resumes runs, and that
+claim holds of such a parse: of all its successful activations, the
+iterations that a resumed walk reuses among them.
+
+*Proof.* The proof of *Restarts in a parse that keeps records* uses its
+seven facts about the parse, and each holds of a walk that resumes a run.
+A resumed walk reuses the recorded iterations from its start on, then
+evaluates iterations as a repetition does, possibly none, and, across one
+edit, may reuse recorded iterations after them; it stops as a repetition
+does ([Documents](../runtime/documents.md)). By [Lemma 3 of the Documents
+proof](documents.md#lemma-3-resumed-runs) and its proof, the iterations
+that it reuses and evaluates are those that its counterpart in
+$\mathcal{R}$ visits, in the same order and with the same outcomes, each
+starting where the one before ended; an iteration that fails is not
+recorded, so it is one that the walk evaluates.
+
+1. *Where the parser goes back.* Across a reused iteration the parser
+   moves forward from its start to its end and starts no evaluation
+   between the two, so a resumed walk adds no return, and it ends at or
+   after the end of every iteration that it reuses or evaluates.
+2. *What evaluations give.* Every evaluation of the parse has the success
+   and the end of its counterpart in $\mathcal{R}$, a reused iteration and
+   the walk around it included (*Counterparts in the reference parse*,
+   which uses none of these claims).
+3. *What a unit can consume.* The input from the start of a reused
+   iteration to its end is the input that its counterpart consumes, so
+   the first characters and words that the proofs apply hold of it as of
+   the iterations that a walk evaluates.
+4. *The memo.* A resumed walk makes no lookup and no store in the
+   iterations that it reuses, and *Answered calls* holds as stated. A
+   reused iteration contains no activation other than itself, so an
+   evaluation that contains an activation other than itself is evaluated,
+   as the proof of *Memoized links* uses.
+5. *Failure after a source.* The claim is read in $\mathcal{R}$, as 5 of
+   that proof reads it, with the counterparts of 2.
+6. *Dropped steps.* A walk is no growth and no step of one, and the proof
+   uses 1 to 3 and the conclusion of *Failure after a source*, as 6 of that
+   proof does. A reused iteration is an activation that the parse makes,
+   and the three cases are told apart by the outcome of $w$ and by what
+   $w$ evaluates on the way to $\alpha$, which lies outside every reused
+   iteration other than $\alpha$ itself.
+7. *Operators Rules.* An evaluation of an Operators Rule inside a reused
+   iteration is not made, and one inside an iteration that the walk
+   evaluates is made whole; a resumed walk leaves the outcome and the end
+   of its counterpart (2). Each evaluation of a scanning source has at
+   most one activation that does not succeed, its last: the recorded
+   iterations start at increasing positions, each ending where the next
+   starts, so each reused iteration but the last recorded one consumed
+   input, and an iteration that consumed nothing, reused or evaluated,
+   ends the repetition, as it ends it in $\mathcal{R}$.
+
+The proofs use nothing else of the parse, so they apply, with a reused
+iteration as an activation that makes no call, to the parse with its
+records of sites and its resumed walks. $\square$
+
+The claim does not cover the claims on leaf links and the scans, nor
+*Activations held by heads*; the eighth part of step 8 of [Open
+Steps](#open-steps) lists them for a parse that resumes runs.
+
 **Growths around a leaf link.** Let the rule $r$ of the $l$-th link call no
 rule, let $e_l$ and $e'_l$ start at $p$, and let $w_l$ start at $p$, at the end
 of its seed when it is a step of a growth after the first (*Dropped steps*).
@@ -2914,8 +2976,7 @@ the next character in one of the two and evaluates in the other, which holds no
 activation, in a parse that keeps records, apart from those inside an
 iteration of a walk of a site that keeps records, and, in a
 [Document](../runtime/documents.md) parse, apart from those inside an
-iteration of a walk of a repetition at which a walk of the parse resumes a
-run: each is an evaluation of the same expression at the same
+iteration of a walk of a repetition, in its rule or in the twin, at which a walk of the parse resumes a run: each is an evaluation of the same expression at the same
 position, with the same success and end, and a call of a rule that the parse
 memoizes, which either evaluates or the memo answers, corresponds to a call
 with a key of the same class inside the same lookaheads of the body.
@@ -2963,8 +3024,7 @@ record, by (R1). Inside the iterations the correspondence can fail: one of
 the two walks can take a record where the other evaluates. In a Document
 parse the two own regions are those parts outside the iterations that a
 resumed walk reuses as well (*Counterparts*). An evaluation in the part of
-$\mathcal{R}(M)$ that lies in no iteration of a walk of a repetition at
-which a walk of the parse resumes a run corresponds, in the same steps, to
+$\mathcal{R}(M)$ that lies in no iteration of a walk of a repetition, in its rule or in the twin, at which a walk of the parse resumes a run corresponds, in the same steps, to
 one of $\mathcal{R}(M_0)$ that lies in none, since it is reached through
 the same expressions, so neither lies in an iteration that a resumed walk
 reuses, and the correspondence above holds of the two. A walk of such a
@@ -2987,9 +3047,8 @@ activations held by $M$ correspond to distinct ones. In a parse that keeps
 records, this holds of the activations that are not iterations of a walk of
 a site that keeps records and lie inside none; by the claim *Growths lie outside the
 recorded walks*, which follows Lemma 17, every growth activation is one of
-these. In a [Document](../runtime/documents.md) parse, it holds of the
-activations that lie inside no iteration of a walk of a repetition at
-which a walk of the parse resumes a run, the iterations of such walks
+these. In a [Document](../runtime/documents.md) parse, it holds of those
+among them that lie inside no iteration of a walk of a repetition, in its rule or in the twin, at which a walk of the parse resumes a run, the iterations of such walks
 included.
 
 *Proof.* The activation lies in the own region of $M$, outside the alternatives
@@ -3000,7 +3059,7 @@ the same place in the own region of $H$; in a parse that keeps records they
 give it for an activation outside the iterations of the walks of the sites
 that keep records, which is an evaluation that the replays do not leave out,
 and in a Document parse for one inside no iteration of a walk of a
-repetition at which a walk of the parse resumes a run, which they do not
+repetition, in its rule or in the twin, at which a walk of the parse resumes a run, which they do not
 leave out either; an iteration of such a walk that lies in no such
 iteration corresponds to one of the walk at its place in $H$, which
 succeeds when it does, whether either is reused or evaluated. $\square$
@@ -4646,7 +4705,7 @@ above bounds, of the first, those that memoized evaluations own, by the
 roots of their counterparts in the reference parse. In a
 [Document](../runtime/documents.md) parse, the factor six is likewise that
 of *Replayed activations*, so the bound is of the activations that lie
-inside no iteration of a walk of a repetition at which a walk of the parse
+inside no iteration of a walk of a repetition, in its rule or in the twin, at which a walk of the parse
 resumes a run, and holds when case (e) of the covered keys, left out with
 case (d), arises on the path of no link; the activations inside such an
 iteration that memoized evaluations own are bounded by *Descent in the
@@ -10702,24 +10761,30 @@ theorem covers such a parse.
    case (d), nor are the claims that compare two evaluations of one class
    or follow a path through a resumed walk read again for it.
    *Replays* and *Replayed activations* are stated with the iterations of
-   the walks of the repetitions at which the parse resumes a run left out,
+   the walks of the repetitions, in their rules or in the twins, at which the
+   parse resumes a run left out,
    and of the activations inside them those that memoized evaluations own
    are bounded by *Descent in the reference parse* and *Heads without the
    records*; *Answered calls* holds as stated, since a resumed walk makes
-   no lookup and no store in the iterations that it reuses. Not read
-   again are the claims from *Links lead to
+   no lookup and no store in the iterations that it reuses. *Restarts in
+   a parse that resumes runs* shows the claims that *Restarts in a parse
+   that keeps records* shows, from *Failure after a source* to *Memoized
+   links*, of a parse that resumes runs, with records of sites or
+   without. Not read again are the claims from *Links lead to
    repeated evaluations* to *Evaluated pairs of a shared call*, *Heads in a
-   parse that keeps records*, *Covered keys through records*, *Restarts
-   in a parse that keeps records*, whose 1 and 7 are stated of a walk that
-   takes a record, and the claims that rest on them, *Activations that do
-   not succeed in a parse that keeps records* and *Repeats inside a growth
-   in a parse that keeps records*, the claims on leaf links and on the
-   scans in a parse that keeps records, and *Activations held by heads*.
+   parse that keeps records*, *Covered keys through records*,
+   *Activations that do not succeed in a parse that keeps records* and
+   *Repeats inside a growth in a parse that keeps records*, which rest
+   also on the claims on leaf links, and the claims on leaf links and on
+   the scans in a parse that keeps records; *Activations held by heads*
+   is stated for a Document parse, but its reading there rests on those
+   claims.
    The same holds of a parse that resumes a run and keeps no record of
-   any site, for the claims of Lemma 4 from *Failure after a source* to
-   *Memoized links*, the claims on leaf links, *Iterations at one scan*
-   and the first case of *Repeats inside a growth* of Lemma 5, which are
-   stated for a parse in which every walk evaluates its iterations. Nor are the claims of Lemma 5 from *Covered growths* to *First
+   any site, for the claims on leaf links, *Iterations at one scan*, the
+   claims from *Memoized breaks* to *Consecutive activations in one own
+   region*, *Activations that do not succeed* and the first case of *Repeats
+   inside a growth* of Lemma 5, which are stated for a parse in which
+   every walk evaluates its iterations. Nor are the claims of Lemma 5 from *Covered growths* to *First
    activations of heads* shown of a parse that resumes a run, even one
    that keeps no record of any site: a head can resume a run whose walk a
    later growth of its key evaluates, and the second growth of
