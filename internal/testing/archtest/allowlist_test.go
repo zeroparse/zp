@@ -10,7 +10,7 @@ var allowlist = []string{
 	// and lower action expressions at run time: they read the checked program, the Core IR and
 	// the grammar AST. They go when the runtime gets a run-time program of its own and the
 	// compiler entry moves to the driver (the runtime separation stage, S5).
-	"rule 1: internal/engine -> grammar",
+	"rule 1: internal/engine -> pkg/grammar/ast",
 	"rule 1: internal/engine -> internal/cancel",
 	"rule 1: internal/engine -> internal/compile",
 	"rule 1: internal/engine -> internal/analysis/complexity",
@@ -20,7 +20,7 @@ var allowlist = []string{
 	"rule 1: internal/engine -> internal/backend/vmlower",
 	"rule 1: internal/engine -> internal/ir/core",
 	"rule 1: internal/engine/document -> internal/compile",
-	"rule 1: internal/engine/state -> grammar",
+	"rule 1: internal/engine/state -> pkg/grammar/ast",
 	"rule 1: internal/engine/state -> internal/compile",
 	"rule 1: internal/engine/state -> internal/ir/core",
 	"rule 1: internal/engine/state -> internal/ir/code",

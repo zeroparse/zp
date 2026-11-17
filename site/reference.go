@@ -28,7 +28,7 @@ type refPackage struct {
 var refPackages = []refPackage{
 	{dir: "engine", importPath: modulePath + "/engine", url: "reference/engine/", title: "Package zp/engine", label: "zp/engine"},
 	{dir: "core", importPath: modulePath + "/core", url: "reference/core/", title: "Package zp/core", label: "zp/core"},
-	{dir: "grammar", importPath: modulePath + "/grammar", url: "reference/grammar/", title: "Package zp/grammar", label: "zp/grammar"},
+	{dir: "pkg/grammar/ast", importPath: modulePath + "/pkg/grammar/ast", url: "reference/grammar/", title: "Package zp/pkg/grammar/ast", label: "zp/pkg/grammar/ast"},
 	{dir: "core/impl", importPath: modulePath + "/core/impl", url: "reference/coreimpl/", title: "Package zp/core/impl", label: "zp/core/impl"},
 	{dir: "codegen", importPath: modulePath + "/codegen", url: "reference/codegen/", title: "Package zp/codegen", label: "zp/codegen"},
 	{dir: "codegen/go/lib", importPath: modulePath + "/codegen/go/lib", url: "reference/libgo/", title: "Package zp/codegen/go/lib", label: "zp/codegen/go/lib"},

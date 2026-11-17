@@ -66,9 +66,12 @@ The sections below state each decision with its reason. The full package layout 
 Everything a user imports lives under `pkg/`; everything else is `internal/` or a command. The packages are cut by the
 vocabulary they own, not by the stage that implements them.
 
-- `pkg/grammar`: the grammar AST and its JSON form, loading, formatting and conversion. The AST follows the language,
-  which changes slowly, rather than an IR, which changes often, and the front end receives it as the grammar syntax tree
-  (GST). A grammar source is a value with a name and an encoding, made by one of the constructors (from bytes, a string, a
+- `pkg/grammar`: grammar sources, their loading, formatting and conversion; and below it `pkg/grammar/ast`, the grammar
+  AST and its JSON form. The AST follows the language, which changes slowly, rather than an IR, which changes often, and
+  the front end receives it as the grammar syntax tree (GST). The AST is a package of its own because loading needs the
+  parser of the front end and formatting needs the formatter, and both build or read the AST; so the AST imports only the
+  standard library, and `pkg/grammar` sits over the parser, the formatter and the AST, as `go/parser` and `go/printer`
+  sit over `go/ast`. A grammar source is a value with a name and an encoding, made by one of the constructors (from bytes, a string, a
   reader or a file-system path) and given an explicit encoding by a method. Loading reads grammar source and JSON and
   rejects a compiled file with an explicit error; the command line reads grammars through the same constructors. A
   grammar source is separate from the parse input, which has positions, streaming, edits and budgets; the two share only
@@ -108,14 +111,15 @@ compiler side. The rules, which a test enforces, are these.
 3. **Rule 2 (layers).**
    - `internal/pass` imports no other package of the module.
    - The IR packages (Core IR and Code IR with its dialects) import only IR packages, `internal/pass`, the cancellation
-     helper and `pkg/grammar`. Inside them, the Code IR base imports no dialect; the Flow dialect imports the base and
+     helper and the grammar AST (`pkg/grammar/ast`). Inside them, the Code IR base imports no dialect; the Flow dialect imports the base and
      Core IR (for immediates) only; the Action dialect and the Exec dialect import the base only, and the packages under
      Exec may also import Exec and Action. Only the lowerings of the middle end and the checks that span dialects import
      more than one dialect.
    - The front end imports no middle end, backend, analysis tool or language server; the middle end imports no backend,
      analysis tool or language server; a backend imports no analysis tool or language server.
-   - The utility packages (diagnostics, cancellation and command-line flag names) may import `pkg/grammar`, because
-     diagnostics carry source positions. The fixture suite of `zp test` is a tool that uses the
+   - The utility packages (diagnostics, cancellation and command-line flag names) may import the grammar AST, because
+     diagnostics carry source positions. The grammar AST imports only the standard library, and `pkg/grammar` is in the
+     layer of the public tool packages. The fixture suite of `zp test` is a tool that uses the
      compiler, in the same layer as the public tool packages.
    - Only the commands and the repository's test support import the language server packages, and only test support imports
      the test-support packages from non-test code.
@@ -142,7 +146,7 @@ asks for through the analysis manager, and the front end does not return them.
 
 ```mermaid
 flowchart TD
-  cmd["cmd/zp, cmd/playground"] --> pub["pkg/compiler, pkg/lint, pkg/sample, pkg/editfuzz"]
+  cmd["cmd/zp, cmd/playground"] --> pub["pkg/compiler, pkg/grammar, pkg/lint, pkg/sample, pkg/editfuzz"]
   pub --> driver["internal/driver"]
   cmd --> fixture["fixture suites of zp test"] --> pub
   driver --> backend["internal/backend: closure, vmlower, llvm (future), codegen: common and one package per host language"]
@@ -152,7 +156,7 @@ flowchart TD
   backend --> ir
   front --> ir
   ir --> pass["internal/pass: manager, analysis manager, registry"]
-  util["utilities: diagnostics, cancellation, command-line flag names"] --> gram["pkg/grammar"]
+  util["utilities: diagnostics, cancellation, command-line flag names"] --> gram["pkg/grammar/ast"]
   ir --> gram
   cmd --> lsp["internal/lsp: protocol, zpls"] --> analysis["internal/analysis: lint, complexity"]
   driver --> analysis
@@ -425,6 +429,12 @@ ordering and the required passes, is internal test support, outside the public A
   base with dialects states each of these once and lets a verifier check the relation between stages.
 - **Make Flow a control-flow graph.** Flow is a structured language over the shared base. A graph is built when a pass
   needs it, as an analysis, so that the representation that is printed and verified stays structured.
+- **The grammar AST and the operations on grammar sources in one package.** Loading needs the parser and formatting
+  needs the formatter, and both import the AST, so one package would be an import cycle unless the parser and the
+  formatter moved into it. Their entry points for the language server (partial parses, tokens, source errors) would then
+  be public API of the grammar package. An AST package that only aliases internal types would have no documentation of
+  its own fields. A public AST package below the grammar package keeps both the parser and the formatter internal and
+  documents the AST where it is defined.
 - **One public compiler package for every tool.** The linter, the sampler and the edit fuzzer would then share a package
   with options that have nothing in common. Small packages with their own vocabulary are easier to use and to keep
   stable.
