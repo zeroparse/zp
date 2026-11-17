@@ -3752,7 +3752,7 @@ encloses its place.
 
 *Proof.* A call in the own region is of a rule that the parse does not
 memoize, and each such call evaluates the body of its rule or of its twin
-once (Lemma 10). Suppose that two calls of such a chain are of one rule $X$.
+once. Suppose that two calls of such a chain are of one rule $X$.
 The rules of the calls from the first to the second form a cycle of calls
 $X = X_0, X_1, \ldots, X_m = X$, each $X_{i+1}$ called in the body of $X_i$.
 Each $X_i$ is not memoized and calls a rule, so by the first exception of
@@ -3762,7 +3762,8 @@ the body of the rule before it on the cycle. Take the first call of the chain
 whose rule is on the cycle. It is made in the body evaluation of the call
 before it on the chain, whose rule is not on the cycle, or in $H$. Its place
 is in the body of a rule of the cycle, so it is made in $H$, and $Q$ is a rule
-of the cycle. Then the parse does not memoize $Q$, so $H$ is the evaluation
+of the cycle. Every rule of the cycle is the rule of a call of the chain,
+which the parse does not memoize. Then the parse does not memoize $Q$, so $H$ is the evaluation
 where the parse begins and $Q$ is a start rule that its own body calls through
 rules called from one place, which the parse memoizes by the same exception,
 a contradiction. So no rule occurs twice. The body of a twin is the body of its rule with, at
@@ -3774,18 +3775,18 @@ evaluation of the expression of which it is a part, or, for a body, by its
 call. $\square$
 
 **Activations that one evaluation holds.** Let $R$ call no rule, and let $H$
-be a memoized evaluation of a rule $Q$ other than $R$ or of its twin. Let each
-place $x$ of the own expression of $Q$ that encloses a call of $R$ or is one
-be evaluated, in one evaluation of the place $y$ that directly encloses it,
-at most once, or at most $b$ times when $y$ is a repetition with an upper
-bound, or once in each iteration when $y$ is a repetition without one; this
-holds
-when the places that enclose a call of $R$ are bodies, sequences, choices,
-options, groups, captures, lookaheads and repetitions, and it leaves out the
-places inside an Operators Rule or a `#recover`. Let $I \ge 1$ be such that
+be a memoized evaluation of a rule $Q$ other than $R$ or of its twin. Let the
+places of the own expression of $Q$ that enclose a call of $R$ be bodies,
+sequences, choices, options, groups, captures, lookaheads and repetitions,
+none of them a place inside an Operators Rule or a `#recover`. Then each
+place $x$ that encloses a call of $R$ or is one is evaluated, in one
+evaluation of the place $y$ that directly encloses it, at most once, or at
+most $b$ times when $y$ is a repetition with an upper bound, or once in each
+iteration when $y$ is a repetition without one. Let $I \ge 1$ be such that
 every evaluation, in the own region of $H$, of a repetition without an upper
 bound has at most $I$ iterations, the one that fails included, that contain a
-successful activation of $\sigma$ at $q$ held by $H$. Then, outside case 5,
+successful activation of $\sigma$ at $q$ held by $H$. Then, outside case 5
+of *Direct activations*,
 $H$ holds at most $c\, b^{D} I^{d}$ successful activations of $\sigma$ at $q$,
 where $c$ is the number of calls of $R$ in the own expression of $Q$, $D$ the
 greatest number of places that enclose one of them, and $d \le D$ the
@@ -3946,8 +3947,9 @@ unit of the earlier one fixes, but the unit of the later iteration fixes
 positions of its own, which need not be among those of the earlier when it
 shares a call or a literal inside the evaluation that the continuation makes
 of a shared call (the refinement of *Iterations at one scan*). In case (ii)
-the continuation reaches the call of $R$ through a call of a memoized rule
-with which it starts, so that an evaluation other than $H$, nested in $H$,
+the claim proves only that the continuation's evaluation of the call of $R$
+lies in the evaluation of a call of a memoized rule made inside $N$ after
+the unit ends, so that an evaluation other than $H$, nested in $H$,
 holds the repeated activation; the claims above on $q$-frames and on the
 holders of the activations concern that evaluation and what the parser does
 after it. What the third claim adds is that these are the only two ways from
@@ -3973,7 +3975,7 @@ as when a record covers every position that a walk of $\sigma$ has passed and
 a later walk that reaches such a position takes the recorded end, the count
 of the activations of $\sigma$ at $q$ would hold by that property alone. The
 hypothesis on the records in case (ii) marks where such a record enters: the
-evaluation $P^\circ$ then holds no activation at $q$.
+evaluation $P^\circ$ may then hold no activation at $q$.
 
 ## Lemma 5 (Growth)
 
