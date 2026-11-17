@@ -3208,8 +3208,11 @@ $\mathcal{R}(e'_{k+1})$ contains, other than the counterpart of
 $\alpha_{k+1}$, and the hypotheses of *Restarts through a frame* hold for
 $k + 1$, since $k + 1 < i + m$. $\square$
 
-So along such a run the holder keeps its class and position across each
-restart at which the activation that the next frame enters lies at the place
+So along such a run, when the hypotheses above hold for every $k$ with
+$k + 1 < i + m$, each $e'_{k+1}$ an evaluation of a key with no step of a
+growth and no evaluation in a context of growths on the way from it, itself
+included, down to $\alpha_{k+1}$, the holder keeps its class and position
+across each restart at which the activation that the next frame enters lies at the place
 of the one that the earlier restart entered. The $h_k$ are distinct and at
 most six have keys of one class at one position, three for each variant
 (*Holders of the frames' activations*), so a stretch of the run with one
@@ -3218,8 +3221,76 @@ six times one more than the number of restarts of the other kind. At each of
 those, the way from $\mathcal{R}(e'_{k+1})$ down to $\beta_k$ is not run by
 the parse as an activation of the sequence: it answers a call on it, leaves
 out a step of a growth on it, or runs $\beta_k$ as an activation that the
-sequence leaves out. A bound on the number of such restarts in one run is not
-shown here.
+sequence leaves out. *Restarts of the other kind* below shows that such a
+restart has a link that is not plain, unless the parse leaves out a step of a
+growth on the way from $e_{k+1}$ to the place of the counterpart of
+$\alpha_{k+1}$, evaluates an activation that the sequence leaves out there, or
+makes a call on that way in a context of growths.
+
+**Restarts of the other kind.** Under the hypotheses of *Positions of the
+holders*, let $\beta_k$ not be the counterpart of $\alpha_{k+1}$, let $\gamma$
+be the activation of $\mathcal{R}(e_{k+1})$ at the place of the counterpart of
+$\alpha_{k+1}$ in $\mathcal{R}(e'_{k+1})$, and let no call that the parse makes
+on the way from $e_{k+1}$ down to that place be in a context of growths. Then
+$\gamma$ is a successful activation of $\sigma$ at $q$ other than the
+counterpart of $\alpha_k$, and the parse leaves out a step of a growth on the
+way from $\mathcal{R}(e_{k+1})$ down to $\gamma$, or evaluates the activation
+whose counterpart is $\gamma$ as one that the sequence $\alpha_1, \alpha_2,
+\ldots$ leaves out, as in *One activation in a frame*, or it answers a call
+$g$ on that way and evaluates the call $\hat{g}$ at the place of $g$ on the
+way from $e'_{k+1}$ down to $\alpha_{k+1}$. In the last case the link $k + 1$
+is not plain: $e_{k+1}$ and $e'_{k+1}$ have different variants, or $e_{k+1}$
+is in lookahead state $1$ and $e'_{k+1}$ in state $0$, with no lookahead
+between $e'_{k+1}$ and $\hat{g}$.
+
+*Proof.* As in the proof of *Positions of the holders*,
+$\mathcal{R}(e_{k+1})$ and $\mathcal{R}(e'_{k+1})$ take the same steps up to
+the variants of their calls, so $\gamma$, at the place of a successful
+activation of $\sigma$ at $q$, is one too. Its place is not that of the
+counterpart of $\alpha_k$, since at that place $\mathcal{R}(e'_{k+1})$ has
+$\beta_k$, which is not the counterpart of $\alpha_{k+1}$. Of the activations
+$\alpha_1, \alpha_2, \ldots$, $e_{k+1}$ contains $\alpha_k$ alone (*One
+activation in a frame* with $k$ in place of $i$, whose hypotheses hold by
+those of *Holders of the frames' activations*), and the proof of that claim
+applies to $e_{k+1}$ and $\gamma$ in place of $e'_i$ and $\beta$: the parse
+answers a call or leaves out a step of a growth on the way from
+$\mathcal{R}(e_{k+1})$ down to $\gamma$, or it evaluates the activation whose
+counterpart is $\gamma$ as one that the sequence leaves out.
+
+In the case of an answered call, let $g$ be the outermost call on that way
+that the parse answers, with no step of a growth left out above it, since
+otherwise the first case holds. Above $g$ it evaluates the counterparts of the
+evaluations on the way, so it makes $g$ at the place of its counterpart. The
+parse runs $\alpha_{k+1}$, so it answers no call on the way from $e'_{k+1}$
+down to $\alpha_{k+1}$, and, as in the proof of *Positions of the holders*,
+that way and the way from $\mathcal{R}(e_{k+1})$ down to $\gamma$ pass, call
+by call, calls at places that correspond, at the same positions and with keys
+of one class. So the parse evaluates a call $\hat{g}$ at the place of $g$, at
+the position of $g$, with a key of the class of the key of $g$, and the
+expressions from $e_{k+1}$ down to $g$ and from $e'_{k+1}$ down to $\hat{g}$
+are the same, so a lookahead lies between both pairs or neither. The variant
+of each call on the two ways depends only on its place and on the variant of
+the body that makes it (*Counterparts*), so when $e_{k+1}$ and $e'_{k+1}$ have
+one variant, $g$ and $\hat{g}$ have one key. $e_{k+1}$ lies inside
+$w_{k+1}$, which is abandoned before $\kappa_{k+1}$ makes $e'_{k+1}$
+(*Repeats*), so the parse makes $\hat{g}$ after it answers $g$, and neither
+is in a context of growths, by the hypotheses. Were the link $k + 1$ plain,
+$g$ and $\hat{g}$ would have one key and $\hat{g}$ a lookahead state no
+smaller than that of $g$: both are in state $1$ when a lookahead lies between,
+and otherwise in the states of $e_{k+1}$ and $e'_{k+1}$. The memo would then
+answer $\hat{g}$ (*Answered calls*), which the parse evaluates. So the link is
+not plain, and when its evaluations have one variant, $\hat{g}$ is in a
+smaller lookahead state than $g$: no lookahead lies between, $e_{k+1}$ is in
+state $1$ and $e'_{k+1}$ in state $0$. $\square$
+
+So a restart of the other kind has a link that is not plain, or a step of a
+growth left out or an activation that the sequence leaves out on the way to
+$\gamma$, and a run whose links meet the hypotheses of *Positions of the
+holders* and of this claim has $m$ at most six times one more than the number of its restarts of the
+latter two kinds and of its links that are not plain. The links that are not
+plain are those that *Consecutive restarts through frames* leaves open, in
+either form, with two variants or with two lookahead states, and a bound on
+their number in a run is not shown here.
 
 ## Lemma 5 (Growth)
 
@@ -6973,8 +7044,12 @@ condition of the cost view that the [Cost View](cost-view.md) proof leaves open.
    the evaluations that hold the activations of its links, and *Positions of
    the holders* keeps the holder at one class and position across each
    restart in which the next frame enters its activation at the place of the
-   earlier one; the positions of the holders, and so the restarts in which
-   the parse answers a call on the way to that place, stay open. Refinements,
+   earlier one, so that at most six links of a run share one class and
+   position of the holder, and *Restarts of the other kind* shows that every
+   other restart has a link that is not plain unless a step of a growth or an
+   activation that the sequence leaves out lies on the way to the place of
+   the next activation, so that $m$ is at most six times one more than the
+   number of such links and restarts in the run. Refinements,
    the links that are not plain, the number of
    runs in one evaluation $T$ of a repetition, the number of repetition
    evaluations $T$ that reach $q$, the number of $q$-frame positions,
