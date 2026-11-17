@@ -724,7 +724,7 @@ func (p *tsFlowPrinter) expr(x flow.Expr) string {
 		}
 		var desc compile.ExpID
 		if x.Lit.Text == "" {
-			desc = g.Desc(`""`)
+			desc = g.Desc(grammar.LiteralText("", false))
 		} else {
 			desc = p.desc(x.Lit.Exp)
 		}

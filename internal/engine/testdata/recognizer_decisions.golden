@@ -15072,18 +15072,25 @@ scan	1	1
 scan	2	1
 scan	3	0
 grammar	lean,controlled	"literal expected text"
-guard	0	1	1	0	0	"\"\\\"\""	184
-guard	0	10	1	0	0	"\"�\""	217
-guard	0	11	1	0	0	"\"Ab\"i"	238
-guard	0	12	1	0	0	"\"a\\\"b\"i"	238
-guard	0	2	1	0	0	"\"\\\\\""	233
-guard	0	3	1	0	0	"\"\\n\""	145
-guard	0	4	1	0	0	"\"\\t\""	230
-guard	0	5	1	0	0	"\"\\u{0}\""	144
-guard	0	6	1	0	0	"\"\\u{c}\\u{b}\""	169
-guard	0	7	1	0	0	"\"\\u{80}\""	177
-guard	0	8	1	0	0	"\"é\""	181
-guard	0	9	1	0	0	"\"😀\""	178
+guard	0	1	0	0	0	""	48
+guard	0	10	1	0	0	"\"é\""	181
+guard	0	11	1	0	0	"\"😀\""	178
+guard	0	12	1	0	0	"\"�\""	217
+guard	0	13	1	0	0	"\"p\""	160
+guard	0	14	1	0	0	"\"q\""	161
+guard	0	15	1	0	0	"\"r\""	162
+guard	0	16	1	0	0	"\"s\""	164
+guard	0	17	1	0	0	"\"t\""	165
+guard	0	18	1	0	0	"\"u\""	166
+guard	0	19	1	0	0	"\"Ab\"i"	238
+guard	0	20	1	0	0	"\"a\\\"b\"i"	238
+guard	0	3	1	0	0	"\"\\\"\""	184
+guard	0	4	1	0	0	"\"\\\\\""	233
+guard	0	5	1	0	0	"\"\\n\""	145
+guard	0	6	1	0	0	"\"\\t\""	230
+guard	0	7	1	0	0	"\"\\u{0}\""	144
+guard	0	8	1	0	0	"\"\\u{c}\\u{b}\""	169
+guard	0	9	1	0	0	"\"\\u{80}\""	177
 grammar	lean,controlled	"literal text different captures control"
 grammar	lean,controlled	"literal text missing capture"
 grammar	lean,controlled	"literal text mixed control"
