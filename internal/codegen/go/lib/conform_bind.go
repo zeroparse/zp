@@ -76,8 +76,9 @@ func expBindingOps() []string {
 }
 
 // bindings returns the module of the compositions with a binding function for each operation of
-// names, and the bindings in that order. A context state (ops.Ctx) is a value that the operations
-// change in place, so a binding returns each one it takes after its results, for the harness to keep.
+// names, and the bindings in that order. A context state (ops.Ctx) and a growth (ops.Grow) are values
+// that the operations change in place, so a binding returns each one it takes after its results, for
+// the harness to keep.
 func bindings(names []string) (*exec.Module, []*exec.Func) {
 	m := core.Build()
 	var fs []*exec.Func
@@ -86,7 +87,7 @@ func bindings(names []string) (*exec.Module, []*exec.Func) {
 		var states []exec.Expr
 		results := slices.Clone(o.Results)
 		for _, p := range o.Params {
-			if p.Type == exec.THandle(ops.Ctx) {
+			if isState(p.Type) {
 				states = append(states, exec.L(p.Name))
 				results = append(results, p.Type)
 			}
@@ -125,6 +126,10 @@ func bindings(names []string) (*exec.Module, []*exec.Func) {
 	}
 	return m, fs
 }
+
+// isState reports whether t is a handle that the targets hold by value and the operations change in
+// place: a context state or a growth.
+func isState(t exec.Type) bool { return t == exec.THandle(ops.Ctx) || t == exec.THandle(ops.Grow) }
 
 // bindingFile prints the bindings with the target t into a Go file of package pkg. A file of the
 // engine's package state or of the library imports the packages that it names.
@@ -219,12 +224,12 @@ func GoOprBindings() (string, error) {
 	return bindingFile("libgo", oprBindingDescriptorOps, goTarget(goSpec{fn: "expect", name: "Expect"}), "confOprBindings")
 }
 
-// ctxBindingOps are the operations of the dependency memo of left recursion that conformance cases
-// cover.
+// ctxBindingOps are the operations of the dependency memo of left recursion and of the growth outside
+// a context that conformance cases cover.
 var ctxBindingOps = []string{
 	"ctx.enter", "ctx.found", "ctx.ok", "ctx.value", "ctx.end", "ctx.errs", "ctx.far", "ctx.expected",
 	"ctx.allows", "ctx.active", "ctx.lookup", "ctx.push", "ctx.pop", "ctx.storeMemo", "ctx.storeCtx", "memo.setPresent",
-	"ctx.keep", "ctx.done",
+	"ctx.keep", "ctx.done", "grow.begin", "grow.ctx", "grow.longer", "grow.adopt",
 }
 
 // engineCtxBindingsFile is the file of the engine's conformance bindings of the dependency memo,

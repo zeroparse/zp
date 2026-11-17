@@ -11,9 +11,11 @@ import (
 
 // The reference model of the dependency memo of left recursion (the ctx operations): the growths in
 // progress, the dependency frames of the evaluations in a context and the tables of the contexts
-// (design 065, "Left-recursion contexts and growth"). Conformance cases install growths and begin and
-// end lookaheads with operations of their own (CtxGrow, CtxReseed, CtxUngrow, CtxLookBegin and
-// CtxLookEnd) instead of running the growth loop, so the seed identities are the cases'.
+// (design 065, "Left-recursion contexts and growth"), and the growth outside a context (grow.begin,
+// grow.ctx, grow.longer and grow.adopt). Conformance cases also install growths and begin and end
+// lookaheads with operations of their own (CtxGrow, CtxReseed, CtxUngrow, CtxLookBegin and
+// CtxLookEnd) instead of running the growth in a context, so the seed identities of those growths are
+// the cases'.
 
 // CtxRule is the left-recursion shape of the rule of a RuleRef index: its cycle (0 for none) and
 // whether it is a leader of the cycle.
@@ -56,6 +58,8 @@ type CtxResult struct {
 	// seed is the tokens that the call of the result inserted in the missing-token mode, which no
 	// operation of the model records yet: a result replays only its errors.
 	seed []missingToken
+	// dead marks a seed that grow.adopt replaced: an implementation may reuse its storage.
+	dead bool
 }
 
 // ctxRes returns the CtxResult handle a, nil for the null result, which the model returns as nil, as
@@ -113,7 +117,22 @@ type growthRec struct {
 	idx        int64
 	seed       *CtxResult
 	id         uint64
+	// serial tells the growths apart, so that a Grow handle names only the growth it began.
+	serial uint64
 }
+
+// GrowState is the model's Grow handle: the growth that grow.begin began, at index gi of the growths
+// in progress, whose context begins at index gp.
+type GrowState struct {
+	gi, gp int
+	start  int64
+	serial uint64
+}
+
+// failSeed is the identity of every failed seed of grow.begin. The identities of the seeds that
+// grow.adopt adopts count up from it, as the implementations count them, so that a case that also
+// gives growths identities of its own compares them with the same results on both.
+const failSeed uint64 = 1
 
 type ctxFrame struct {
 	pos       int64
@@ -169,6 +188,8 @@ type ctxModel struct {
 	tableUnits, depUnits, presentUnits int64
 	// keyCost is Model.keyCost: what comparing the key of a result inspects.
 	keyCost func(int64) int64
+	// serials counts the growths begun, seeds the seeds that grow.adopt adopted.
+	serials, seeds uint64
 }
 
 func (m *Model) ctxRule(r RuleRef) CtxRule {
@@ -504,7 +525,8 @@ func (m *Model) allowsCtx(o *exec.Op, args []any) bool {
 	s := &m.ctx
 	switch o.Name {
 	case "ctx.ok", "ctx.value", "ctx.end", "ctx.errs", "ctx.far", "ctx.expected", "ctx.examined", "ctx.before":
-		return ctxRes(args[0]) != nil
+		r := ctxRes(args[0])
+		return r != nil && !r.dead
 	case "ctx.lookup":
 		c := args[0].(*CtxState)
 		return c.ctx && !c.pushed
@@ -519,7 +541,7 @@ func (m *Model) allowsCtx(o *exec.Op, args []any) bool {
 	case "ctx.done":
 		c := args[0].(*CtxState)
 		return c.popped >= 0 && !c.done
-	case CtxGrowOp:
+	case CtxGrowOp, "grow.begin":
 		r := args[0].(RuleRef)
 		cr, pos := m.ctxRule(r), m.pos()
 		if !cr.Leader || cr.Cycle == 0 {
@@ -529,6 +551,14 @@ func (m *Model) allowsCtx(o *exec.Op, args []any) bool {
 			return false
 		}
 		return s.gammaFind(s.gammaAt(pos, cr.Cycle), growKey{r.Index, args[1].(int64)}) < 0
+	case "grow.ctx":
+		return s.innermost(args[0].(*GrowState))
+	case "grow.longer":
+		g := args[0].(*GrowState)
+		return s.innermost(g) && g.gp == g.gi
+	case "grow.adopt":
+		g := args[0].(*GrowState)
+		return s.innermost(g) && g.gp == g.gi && m.pos() >= g.start && s.longer(g, true, m.pos())
 	case CtxReseedOp:
 		return len(s.growths) > 0
 	case CtxUngrowOp:
@@ -550,8 +580,37 @@ func (m *Model) callCtx(o *exec.Op, args []any) ([]any, bool) {
 	case CtxGrowOp:
 		r := args[0].(RuleRef)
 		pos := m.pos()
+		s.serials++
 		s.growths = append(s.growths, growthRec{pos: pos, cycle: m.ctxRule(r).Cycle, key: growKey{r.Index, args[1].(int64)},
-			bit: m.leaderBit(r), idx: m.leaderIndex(r), id: uint64(args[4].(int64)), seed: &CtxResult{ok: args[2].(bool), end: args[3].(int64), examined: args[3].(int64), from: pos}})
+			bit: m.leaderBit(r), idx: m.leaderIndex(r), id: uint64(args[4].(int64)), serial: s.serials,
+			seed: &CtxResult{ok: args[2].(bool), end: args[3].(int64), examined: args[3].(int64), from: pos}})
+		return nil, true
+	case "grow.begin":
+		r := args[0].(RuleRef)
+		pos, cr := m.pos(), m.ctxRule(r)
+		s.serials++
+		g := &GrowState{gi: len(s.growths), gp: s.gammaAt(pos, cr.Cycle), start: pos, serial: s.serials}
+		s.growths = append(s.growths, growthRec{pos: pos, cycle: cr.Cycle, key: growKey{r.Index, args[1].(int64)},
+			bit: m.leaderBit(r), idx: m.leaderIndex(r), id: failSeed, serial: g.serial,
+			seed: &CtxResult{end: pos, examined: pos, from: pos}})
+		if g.gp < g.gi {
+			// The growth names the present set of its context, its own leader included.
+			s.present(g.gp)
+		}
+		return []any{g}, true
+	case "grow.ctx":
+		g := args[0].(*GrowState)
+		return []any{g.gp < g.gi}, true
+	case "grow.longer":
+		return []any{s.longer(args[0].(*GrowState), args[1].(bool), m.pos())}, true
+	case "grow.adopt":
+		g := args[0].(*GrowState)
+		s.seeds++
+		rec := &s.growths[g.gi]
+		rec.seed.dead = true
+		rec.seed = &CtxResult{ok: true, end: m.pos(), value: args[1], errs: args[2], examined: m.doc.examined, from: m.doc.low}
+		rec.id = failSeed + s.seeds
+		m.regs[ops.Pos] = g.start
 		return nil, true
 	case CtxReseedOp:
 		g := &s.growths[len(s.growths)-1]
@@ -713,6 +772,18 @@ func (m *Model) callCtx(o *exec.Op, args []any) ([]any, bool) {
 	return nil, false
 }
 
+// innermost reports whether g is the innermost growth in progress.
+func (s *ctxModel) innermost(g *GrowState) bool {
+	return g.gi == len(s.growths)-1 && s.growths[g.gi].serial == g.serial
+}
+
+// longer reports whether a step of the growth g with success ok that ends at pos matched more than its
+// seed.
+func (s *ctxModel) longer(g *GrowState, ok bool, pos int64) bool {
+	seed := s.growths[g.gi].seed
+	return ok && (!seed.ok || pos > seed.end)
+}
+
 func (m *Model) ctxPop(c *CtxState) int64 {
 	if !c.ctx {
 		return CtxStoreMemo
@@ -732,7 +803,7 @@ func (m *Model) ctxPop(c *CtxState) int64 {
 // clone returns a copy of s that operations change apart from s.
 func (s *ctxModel) clone() ctxModel {
 	c := ctxModel{growths: slices.Clone(s.growths), looks: slices.Clone(s.looks), guard: slices.Clone(s.guard), keyCost: s.keyCost,
-		wide: maps.Clone(s.wide)}
+		wide: maps.Clone(s.wide), serials: s.serials, seeds: s.seeds}
 	for _, f := range s.frames {
 		f.deps = slices.Clone(f.deps)
 		c.frames = append(c.frames, f)
@@ -763,7 +834,7 @@ func (m *Model) ctxQuantity(name string, o *exec.Op, args []any) (int64, bool) {
 		return 0, false
 	}
 	switch o.Name {
-	case "ctx.enter":
+	case "ctx.enter", "grow.begin":
 		if name != ops.QPresent {
 			return 0, false
 		}

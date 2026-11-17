@@ -295,7 +295,7 @@ func (p *Parser) CallEnd(r *Rule, st *CallState, v *core.Node, ok bool) (*core.N
 // the match gets longer, and returns the last longer result. A growth in a context takes its steps
 // through the context, which may give them without evaluating the body.
 //
-// Printed from Exec IR function grow of internal/ir/exec/core.
+// Printed from Exec IR function grow of internal/ir/exec/core, specialized for missing.
 func (p *Parser) grow(r *Rule, min int) (*core.Node, bool) {
 	g := p.GrowBegin(p.GrowKey(r, min), r)
 	if g.ctx {
@@ -307,12 +307,20 @@ func (p *Parser) grow(r *Rule, min int) (*core.Node, bool) {
 			p.GrowStep(&g, v, ok)
 		}
 	} else {
-		for {
-			v, ok := p.invoke(r, min)
-			if !p.growLonger(&g, ok) {
-				break
+		{
+			mm := p.missingMark()
+			rec := len(p.Recovered)
+			for {
+				v, ok := p.invoke(r, min)
+				if !p.growLonger(&g, ok) {
+					break
+				}
+				p.growAdopt(&g, v, p.recSince(rec))
+				p.Recovered = p.Recovered[:rec]
+				if p.Missing != nil {
+					p.ResetMissing(mm)
+				}
 			}
-			p.growAdopt(&g, v)
 		}
 	}
 	best := p.growEnd(r, &g)

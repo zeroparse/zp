@@ -622,9 +622,10 @@ func (p *Parser) growLonger(g *GrowState, ok bool) bool {
 	return ok && (!g.Best.Ok || p.Pos > g.Best.End)
 }
 
-// growAdopt adopts the successful longer step of a growth outside a context, with value v, as its
-// seed, and returns to the start of the growth.
-func (p *Parser) growAdopt(g *GrowState, v *core.Node) {
+// growAdopt adopts the successful longer step of a growth outside a context, with value v and the
+// errors errs that it recovered, as its seed, and returns to the start of the growth. The caller drops
+// the errors and the missing tokens after the growth's marks.
+func (p *Parser) growAdopt(g *GrowState, v *core.Node, errs RecEntry) {
 	p.Spend()
 	old := g.Best
 	g.Best = p.entry(g.inCtx)
@@ -632,17 +633,13 @@ func (p *Parser) growAdopt(g *GrowState, v *core.Node) {
 		// Only this growth holds its replaced seed.
 		p.Memo.Retire(old)
 	}
-	*g.Best = MemoEntry{Node: v, Ok: true, End: p.Pos, Examined: p.Hw, From: p.lw, Growing: true, Gen: p.Gen, Vgen: p.Gen, Errs: p.recSince(g.Rec)}
+	*g.Best = MemoEntry{Node: v, Ok: true, End: p.Pos, Examined: p.Hw, From: p.lw, Growing: true, Gen: p.Gen, Vgen: p.Gen, Errs: errs}
 	if p.Missing != nil {
 		p.RecordMissingSeed(g.Best, g.missing)
 	}
 	p.seedSeq++
 	p.Gamma[g.gi].seed, p.Gamma[g.gi].id = g.Best, p.seedSeq+failSeed
 	p.Pos = g.start
-	p.Recovered = p.Recovered[:g.Rec]
-	if p.Missing != nil {
-		p.ResetMissing(g.missing)
-	}
 }
 
 // GrowStep receives the body's result of a step and adopts it as the seed if the match grew. The
@@ -654,7 +651,11 @@ func (p *Parser) GrowStep(g *GrowState, v *core.Node, ok bool) {
 			g.done = true
 			return
 		}
-		p.growAdopt(g, v)
+		p.growAdopt(g, v, p.recSince(g.Rec))
+		p.Recovered = p.Recovered[:g.Rec]
+		if p.Missing != nil {
+			p.ResetMissing(g.missing)
+		}
 		return
 	}
 	id := p.Gamma[g.gi].id

@@ -1054,14 +1054,13 @@ func (p *Parser) growLonger(g *growState, ok bool) bool {
 }
 
 // growAdopt adopts the successful longer step of a growth outside a context, a node or a typed value,
-// as its seed, and returns to the start of the growth.
-func (p *Parser) growAdopt(g *growState, node *core.Node, val any) {
+// with the errors errs that it recovered, as its seed, and returns to the start of the growth. The
+// caller drops the errors after the growth's mark.
+func (p *Parser) growAdopt(g *growState, node *core.Node, val any, errs recEntry) {
 	p.Spend()
-	p.gamma[g.gi].inl = ctxResult{node: node, val: val, ok: true, end: p.Pos, examined: p.examinedNow(),
-		errs: p.recSince(g.rec)}
+	p.gamma[g.gi].inl = ctxResult{node: node, val: val, ok: true, end: p.Pos, examined: p.examinedNow(), errs: errs}
 	p.gamma[g.gi].id = p.nextSeedID()
 	p.Pos = g.start
-	p.Recovered = p.Recovered[:g.rec]
 }
 
 // growStep receives the result of a step of a growth in a context, a node or a typed value, and

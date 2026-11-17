@@ -3662,12 +3662,16 @@ export class Parser {
         this.growStep(g, v);
       }
     } else {
-      for (;;) {
-        const v = this.invoke(r, min);
-        if (!this.growLonger(g, v !== undefined)) {
-          break;
+      {
+        const rec = this.recovered.length;
+        for (;;) {
+          const v = this.invoke(r, min);
+          if (!this.growLonger(g, v !== undefined)) {
+            break;
+          }
+          this.growAdopt(g, v, this.recSince(rec));
+          this.recovered.length = rec;
         }
-        this.growAdopt(g, v);
       }
     }
     const best = this.growEnd(g);
@@ -4286,16 +4290,16 @@ export class Parser {
     return ok && (!best.ok || this.pos > best.end);
   }
 
-  // growAdopt adopts the successful longer step of a growth outside a context, with value v, as its
-  // seed, and returns to the start of the growth.
-  growAdopt(g: GrowState, v: R): void {
+  // growAdopt adopts the successful longer step of a growth outside a context, with value v and the
+  // errors errs that it recovered, as its seed, and returns to the start of the growth. The caller
+  // drops the errors after the growth's mark.
+  growAdopt(g: GrowState, v: R, errs: Errs): void {
     const rec = this.gamma[g.gi]!;
     this.spend();
     this.alloc(objectBytes(7));
-    rec.seed = newCtxResult(v, this.pos, false, this.recSince(g.rec), 0, noExp);
+    rec.seed = newCtxResult(v, this.pos, false, errs, 0, noExp);
     rec.id = this.nextSeedID();
     this.pos = g.start;
-    this.recovered.length = g.rec;
   }
 
   // growStep receives the result of a step of a growth in a context and adopts it as the seed if the
