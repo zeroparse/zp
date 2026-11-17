@@ -6720,10 +6720,14 @@ hypotheses and changes.
 5. *Restarts of the other kind*: its conclusion has that case beside the
    others, for the way from $\mathcal{R}(e_{k+1})$ down to $\gamma$, and it
    arises only when $\alpha_{k+1}$ is not outside.
-6. *Shared calls of the units below*: when each unit below $e_{k+1}$ that
-   the proof passes meets the hypothesis for $\alpha_k$ with the
-   continuation that $\mathcal{R}$ evaluates after the evaluation at its
-   place. Its case 3 has one more case: a record answers an iteration on the
+6. *Shared calls of the units below*: when, for each unit below $e_{k+1}$
+   that the proof passes, no call on the way of its counterpart down to the
+   counterpart of $\alpha_k$ that it shares with the continuation that
+   $\mathcal{R}$ evaluates after the evaluation at its place lies, in the
+   unit, in an iteration that a record answers or that a resumed walk
+   reuses: the half of the hypothesis on the unit, since that continuation
+   is an evaluation of $\mathcal{R}$, which the proof reads in
+   $\mathcal{R}$ alone. Its case 3 has one more case: a record answers an iteration on the
    way from $\mathcal{R}(e_{k+1})$ down to the activation at the place of
    $\alpha_m$ in $\mathcal{R}(f_m)$, that activation included, or a resumed
    walk reuses one that strictly contains it there; this arises only when
