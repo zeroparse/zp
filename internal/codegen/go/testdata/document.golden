@@ -133,6 +133,7 @@ corpus/0/line start	05dbbad66d6c8c8a8a456da2
 corpus/0/line start in a leader	5512972715ce7df95106647a
 corpus/0/line start in a member	0bae2484d83ab3df91bc827c
 corpus/0/line start in nested leaders	9699dccf61fe87f18ebd5af2
+corpus/0/literal expected text	a1a47a3bfe5712cb56894ab0
 corpus/0/literal text different captures control	7a3592cea9ccb3c9f21bab76
 corpus/0/literal text missing capture	843f1780d868607d4ff12b1e
 corpus/0/literal text mixed control	223146cef972168adb995c4e
@@ -332,7 +333,7 @@ corpus/0/typed/recovery_operatorsRule	0e7aedd1989496f957358f1c
 corpus/0/typed/recovery_optional_repetition	573fda0ffa8680d8e12fbd7a
 corpus/0/typed/recovery_typed_corpus	870ed28f578fc75079e13b88
 corpus/0/typed/recovery_zero_progress	ba5e273be54c05f5079e3412
-corpus/0/unicode scalar boundaries	661816959f8bb4bf0f94fe47
+corpus/0/unicode scalar boundaries	6f32f7beb519abdc5b5fd952
 corpus/0/unreachable LR alias tail	8da9ff7a8066f63e13422e4b
 corpus/0/unreachable LR tail	e1cacf2dc18d8e78a1e1ab90
 corpus/0/unreachable recovery chain	008d881909f5c474ede8fcdc
@@ -496,6 +497,7 @@ corpus/1/line start	05dbbad66d6c8c8a8a456da2
 corpus/1/line start in a leader	5512972715ce7df95106647a
 corpus/1/line start in a member	0bae2484d83ab3df91bc827c
 corpus/1/line start in nested leaders	9699dccf61fe87f18ebd5af2
+corpus/1/literal expected text	a1a47a3bfe5712cb56894ab0
 corpus/1/literal text different captures control	7a3592cea9ccb3c9f21bab76
 corpus/1/literal text missing capture	843f1780d868607d4ff12b1e
 corpus/1/literal text mixed control	223146cef972168adb995c4e
@@ -695,7 +697,7 @@ corpus/1/typed/recovery_operatorsRule	0e7aedd1989496f957358f1c
 corpus/1/typed/recovery_optional_repetition	573fda0ffa8680d8e12fbd7a
 corpus/1/typed/recovery_typed_corpus	870ed28f578fc75079e13b88
 corpus/1/typed/recovery_zero_progress	ba5e273be54c05f5079e3412
-corpus/1/unicode scalar boundaries	661816959f8bb4bf0f94fe47
+corpus/1/unicode scalar boundaries	6f32f7beb519abdc5b5fd952
 corpus/1/unreachable LR alias tail	8da9ff7a8066f63e13422e4b
 corpus/1/unreachable LR tail	e1cacf2dc18d8e78a1e1ab90
 corpus/1/unreachable recovery chain	008d881909f5c474ede8fcdc
@@ -731,21 +733,21 @@ corpus/1/wide unbounded minimum 4294967296	dc22f98e217c2a4badad7964
 corpus/1/wide unbounded minimum 9223372036854775807	dc22f98e217c2a4badad7964
 grammars/0/cel	1db67b96c3f1210917670c4b
 grammars/0/csv	783759e61a8e6ee45d0d1516
-grammars/0/cue	f84088cbaaa81fa77e67672b
+grammars/0/cue	438d4f830cb7a92c4d6fbb74
 grammars/0/duckdb	a6b2a3c8b832dc40490c7f28
-grammars/0/golang	41c2b650c474af9ac6b78249
+grammars/0/golang	8c3069015052c7c0c2d865bf
 grammars/0/json	291821d937575e0d69f1a40d
-grammars/0/python	4622e36909da4960aded9e7d
+grammars/0/python	976ddf1ce3fa0373ab18ec70
 grammars/0/typescript	86fdea154e7b156f9efb08ff
-grammars/0/xml	54066dc05fb980353b549b5b
+grammars/0/xml	bace603bae944ad2b9df3b0f
 grammars/0/yaml	68c4d212cc6e366859aa8719
 grammars/1/cel	1db67b96c3f1210917670c4b
 grammars/1/csv	783759e61a8e6ee45d0d1516
-grammars/1/cue	7a50273e0988c3fa5c51b825
+grammars/1/cue	b03a08bc2323885b79524140
 grammars/1/duckdb	208d27b28ccb1e34ad74db82
-grammars/1/golang	84b11dad08ab6378321f2296
+grammars/1/golang	4271c2e520fd54308f2297a1
 grammars/1/json	291821d937575e0d69f1a40d
-grammars/1/python	0a9456c38b23b37a519ededa
+grammars/1/python	9b1755bfa431b0328013f5b7
 grammars/1/typescript	3a60785f28f435661661e9cd
-grammars/1/xml	54066dc05fb980353b549b5b
+grammars/1/xml	bace603bae944ad2b9df3b0f
 grammars/1/yaml	0cd80eeee55606f14d9cd17c
