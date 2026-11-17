@@ -747,13 +747,13 @@ func TestNavigation(t *testing.T) {
 	if !strings.Contains(ordinaryReference, ">CLI Reference</a>") || strings.Contains(ordinaryReference, "Package ") {
 		t.Error("CLI should remain directly visible and package links should appear only inside Go API Reference")
 	}
-	if !strings.Contains(apiGroup[1], `aria-current="page">Package <code>zp/grammar</code>`) {
+	if !strings.Contains(apiGroup[1], `aria-current="page">Package <code>zp/pkg/grammar/ast</code>`) {
 		t.Error("current package is not marked within its Go API group")
 	}
 	for path, heading := range map[string]string{
 		"reference/index.html":         `<h1 id="api-reference">Go API Reference</h1>`,
 		"reference/engine/index.html":  `<h1 id="top">Package <code>zp/engine</code></h1>`,
-		"reference/grammar/index.html": `<h1 id="top">Package <code>zp/grammar</code></h1>`,
+		"reference/grammar/index.html": `<h1 id="top">Package <code>zp/pkg/grammar/ast</code></h1>`,
 		"reference/cli/index.html":     `<h1 id="top">CLI Reference</h1>`,
 	} {
 		content, err := os.ReadFile(filepath.Join(out, filepath.FromSlash(path)))
