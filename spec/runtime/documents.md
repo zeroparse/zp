@@ -402,7 +402,8 @@ narrows the calls that the entry it finds answers
 computed outside a lookahead and the new one inside one, it keeps that entry and
 links nothing, with the same charges. In the reference implementation it first
 applies to that entry the edits that it does not account for, as a lookup does;
-an entry that cannot take them is replaced. A store at a position
+an entry that cannot take them is replaced, and so is an entry whose value an
+edit shifted and the generated typed Go code cannot move. A store at a position
 beyond the slots of the memo table grows them: when the number of binary digits
 of the new length exceeds that of the old one, it charges the old length, and
 otherwise nothing.

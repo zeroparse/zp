@@ -1182,9 +1182,11 @@ func (p *TParser) memoPut(rule, pos, min int, env []any, docOnly bool, e *tmemoE
 	return e
 }
 
-// joinStored is Parser.joinStored for a typed parse.
+// joinStored is Parser.joinStored for a typed parse. In a typed Document, an entry whose value
+// cannot move with the edits since it was stored (typedDocumentState.move) answers no call, as in
+// CallBegin, so e replaces it.
 func (p *TParser) joinStored(x, e *tmemoEntry) *tmemoEntry {
-	if x == e {
+	if x == e || p.TypedDocument != nil && !p.TypedDocument.move(x) {
 		return e
 	}
 	if !x.silent && e.silent {
