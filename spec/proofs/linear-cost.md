@@ -84,7 +84,8 @@ calls no rule when the call is the first that the two share, and it shows,
 apart from two nestings that it leaves open, through a
 part that a dropped step evaluates before its read of the seed and through a
 later kept step that does not match its result through a read of its seed
-outside lookaheads, and apart from a unit that commits only by a negative
+outside lookaheads, which the conditions exclude apart from a growing unit
+that abandons the read and two narrower cases, and apart from a unit that commits only by a negative
 lookahead on its own side, after which it shows that what follows starts
 no scanning source other than a bounded scan, apart from memoized calls inside the lookaheads that the decision passes over, that evaluations of a call that nest without a
 bound and end at one position make the call nest at one end. It proves the sum
@@ -2888,7 +2889,11 @@ or only in an alternative that it abandons, as the second step of `E` does in
 `E = (E / "") "a" / "a" "b" "c"` on `abc`, where the first alternative reads
 the seed `a` and fails at `b`. Each of those steps matches `abc` from the
 position of the growth again, so the end of $X$ is not reached through the
-step that holds $T$. Also left aside is a pair $X$, $T$ for which a unit that the proof
+step that holds $T$. Their leaders contain no scanning source. The leader of a growth on
+the path from $X$ to $T$ does, since a step of it holds $T$, and for it
+*Later steps that abandon their reads of the seed* shows that the
+conditions exclude such a step outside the cases that it leaves open or
+aside, a growing unit that abandons the read among them. Also left aside is a pair $X$, $T$ for which a unit that the proof
 below places on the path from $X$ to $T$, with the continuation that it
 gives that unit, decides that continuation only through a negative lookahead
 `!K` on its own side: the path of the unit that leads to $T$ parts from the
@@ -3260,6 +3265,135 @@ linear, the step of each growth after the one that holds $t$ evaluates
 `G = G R / E` instead, `R` ends the paths through the restart before they
 pass `"c"`, and the grammar is classified unknown.
 
+**Later steps that abandon their reads of the seed.** Let $G$ be a growth
+at a position $q$ of a leader $R$ that contains a scanning source, and
+$\sigma'$ a step of $G$ after the first that is kept: its result, from $q$
+to $e'$, is longer than its seed, the result of the step before, which ends
+at $e_s < e'$. Let no read of the seed that succeeds lie in the match of
+$\sigma'$ outside every lookahead, nor inside a call whose result lies in
+that match. Then $\sigma'$ makes a read $\rho$ of the seed, which
+succeeds, and the first evaluation $U$ that is abandoned on the path from
+$\sigma'$ down to $\rho$, when it is not a dropped step of another growth,
+is a unit that condition 2 checks and that starts at $q$. When $U$ is not
+an alternative of a choice and reaches $\rho$ before it examines the input,
+the grammar fails condition 2. When condition 2 compares $U$ with the
+continuation $Q$ that $\sigma'$ evaluates from $q$ after $U$ is abandoned,
+as it does when $U$ examines the input before $\rho$ on its path to
+$\rho$, $U$ is not committing
+for $Q$, and the grammar fails condition 2, apart from two cases:
+
+- (1) the seed ends at or before the end $u$ of the calls that $U$ and $Q$
+  share at their starts, an empty seed and a shared read of the seed
+  included; for the words of $U$, at the end of the word of its path
+  through the seed; or no scanning source remains in $U$ after those
+  calls;
+- (2) $U$ decides $Q$ through a negative lookahead `!K` on its own side.
+
+Nor does the claim treat a $U$ that is an alternative of a choice and
+reaches $\rho$ before it examines the input, a growing unit, whose
+continuations condition 2 takes at the end of the seed and not from $q$:
+it compares the paths of $U$ through $\rho$ with the later growing units
+and with what follows the growth, and the later alternatives of the choice
+only with the paths that go on at the start of $U$ after a left call fails
+([Conditions for Linear Cost](../runtime/parsing.md#conditions-for-linear-cost)).
+
+*Proof.* Every read of the seed in $\sigma'$ is a call of $R$ at $q$ that
+returns the seed, a success. Only those reads answer otherwise in
+$\sigma'$ than in the first step of $G$, where they fail, so if $\sigma'$
+made none it would evaluate the body of $R$ as the first step does and end
+at the end of the first seed, which is no later than $e_s$. So it makes a
+read $\rho$, which succeeds, and $\rho$ lies neither in the match of
+$\sigma'$ outside lookaheads nor in a call whose result lies there, so an
+evaluation on the path from $\sigma'$ down to $\rho$ is abandoned: the
+expression of a lookahead, an evaluation that fails, or a dropped step of
+another growth, which the claim leaves aside. Each evaluation on that path
+contains $\rho$, which is at $q$, and starts no earlier than $\sigma'$,
+since positions do not decrease ([Growths of Left
+Recursion](../runtime/parsing.md#growths-of-left-recursion)); so each
+starts at $q$ and reaches $\rho$ without consuming input, and the calls
+among them, with $\rho$, are left calls of the cycle of $R$, which the
+analysis finds as calls before consuming input. $U$ contains a scanning
+source, since $\rho$ is a call of $R$. It is the expression of a lookahead,
+or it fails after $\rho$ succeeded, so after a call whose rule contains a
+scanning source; either way condition 2 checks it. When it is not an
+alternative of a choice and reaches $\rho$ before it examines the input,
+condition 2 rejects it as it rejects the lookahead `&E` that its text names
+([Conditions for Linear
+Cost](../runtime/parsing.md#conditions-for-linear-cost)).
+
+Otherwise let $Q$ be compared with $U$. The evaluations above $U$, up to
+$\sigma'$, succeed and are kept, so the choice of an alternative $U$ tries
+a later alternative, a cut in $U$ not having committed it, and $\sigma'$
+goes on from $q$ with $Q$, through the ends of the enclosing expressions,
+to $e'$: $Q$ consumes the input from $q$ to $e'$. Outside case (1),
+condition 2 holds for $U$ and $Q$ in none of its ways:
+
+- First characters. The calls that $U$ and $Q$ share at their starts end
+  at the same positions in both (*Alike calls end alike*), at $u < e_s$, and
+  $\rho$ is not among them. The read $\rho$ consumes the seed from $q$ to
+  $e_s$, so the path of $U$ through it consumes the character at $u$, which
+  is therefore a first character of $U$ after the shared calls, as the
+  seed's characters are of a growing unit in *Sources at fixed offsets*.
+  $Q$ consumes that character too, since after the shared calls it goes on
+  from $u$ to $e' > u$.
+- No scanning source remaining: excluded by case (1).
+- Words. The path of $U$ through $\rho$ that goes on, at $\rho$, along the
+  paths of the steps of $G$ whose results the seed holds, down to that of
+  the first step, consumes the seed. Every path of $U$ must have a word, so let this
+  one have a word $w$ after the shared calls: its literal is matched by the seed at $u$, and, outside case (1),
+  it ends before $e_s$, so the seed also passes the negative lookahead of
+  the word if it has one. The input at $u$ is then the input on which the
+  word is compared, and on it $Q$, from $u$, consumes past the end of $w$,
+  up to $e'$; so as in the proof of *Direct activations*, not every path of
+  $Q$ fails, examines nothing more or meets a known negative lookahead
+  before the end of $w$, and $w$ does not exclude $Q$.
+- Decisions, for a $U$ that is not a lookahead. Let $P$ be the path of $U$
+  that $\sigma'$ follows from $q$ down to its call $\rho$ of $R$, which
+  stands for the paths of the body of $R$, a rule on a left-recursion
+  cycle and so alike with nothing, and goes on in that body along the
+  path that $\sigma'$ follows from its start down to $U$, and then along
+  the first part of $P$ again, to a call of $R$ once more. Every symbol of
+  $P$ before that second call was evaluated in $\sigma'$ at $q$ and
+  succeeded there without consuming input. Compare $P$ with the path that
+  $Q$ follows. A symbol that $Q$ passes alike with one of these consumes
+  nothing either, so both sides stand at $q$ up to a decisive symbol, and
+  both pass it there: two disjoint symbols cannot, since the symbol of $P$
+  matched nothing and so can match nothing; nor can `&K` on either side
+  and the other side's next symbol, which either can match nothing or
+  consumes, at $q$, the character with which `K` matched; a dead symbol
+  passes nowhere, and $Q$ does not end the parse at $q$, since it goes on
+  to $e' > q$. A negative lookahead `!K` on the side of $Q$ needs the rest
+  of $P$ to pass the symbols of an alternative $A$ of `K`; if the symbols
+  of $P$ before its second call of $R$ pass all of them, $A$ matches at $q$
+  where those symbols matched, so `K` matches there, though `!K` succeeded
+  there in $Q$; otherwise the check reaches the second call of $R$. What
+  remains is `!K` on the side of $U$, case (2). So, outside case (2), $P$
+  reaches the second call of $R$ without parting from $Q$, and there the
+  expansion of the call $\rho$ comes back to a call of the same rule. The
+  decision expands calls finitely and stops the check at such a call, and
+  the unit decides nothing on that path ([Conditions for Linear
+  Cost](../runtime/parsing.md#conditions-for-linear-cost)). So $U$ does not
+  decide $Q$. $\square$
+
+The claim needs the finite reading for every decision, not only for the
+form of `!K`: without it the comparison would go on through the body of
+$R$, and a path of the unit whose symbols after its read of the seed part
+from those of $Q$ within three symbols would decide $Q$: in
+`E = (E / "") "a" / "a" "b" "c"`, the path of the first alternative that
+follows the first step, `"a"`, and then its own `"a"` parts from
+`"a" "b" "c"` at its second symbol. The cases are
+measured with `S = [x]*`, `main = E "!"` and the steps of `E` on `abc!`.
+`E = E "x" / &(E S "b") "a" "b" "c" / "a"` is classified unknown, the
+lookahead beginning with a left call; `E = Z (E S / "") "a" / "a" "b" "c"`
+with `Z = "z"?`, whose first alternative examines the input before its left
+call, is classified unknown, that alternative not being committing against
+the later one; and `E = (E S / "") "a" / "a" "b" "c"`, the same with a
+growing unit, is classified linear: in its second step the first
+alternative reads the seed `a`, fails at `b`, and the second matches `abc`
+from $q$. That grammar nests nothing, and no grammar in which the growing
+case nests the evaluations of a call without a bound has been built or
+measured.
+
 **Seed reads.** The following argues, without proving it, that the case of
 seed reads in the definition is the one that *Nesting at one end* gives inside
 growths. A left call $s$ from a rule of a left-recursion cycle to a rule
@@ -3288,7 +3422,8 @@ growth on that path after the one that holds $T$ must match its result
 through a read of its seed that succeeds outside every lookahead, or a call
 whose result includes one, and a step that reads it only inside a lookahead,
 or only in an alternative that it abandons, is not excluded (the two
-witnesses after *Nesting at one end*).
+witnesses after *Nesting at one end*), apart from what *Later steps that
+abandon their reads of the seed* excludes.
 The claims above leave out the links between which the parser leaves or
 starts a growth step at the position, and so do not use this case.
 
@@ -12372,7 +12507,13 @@ theorem covers such a parse.
    before a read of its seed, and a nesting through a growth whose later kept
    step matches its result without a read of its seed outside lookaheads,
    reading it only inside a lookahead or only in an alternative that it
-   abandons, and a pair of nested evaluations with a unit on the path between
+   abandons, which *Later steps that abandon their reads of the seed*
+   excludes apart from a growing unit that abandons the read, a dropped
+   step of another growth in its place, a seed that ends inside the calls
+   that the unit shares with what the step evaluates after it (an empty
+   seed included) or at the end of the word, a unit without a scanning
+   source after those calls, and a unit decided through a negative
+   lookahead on its own side; and apart from a pair of nested evaluations with a unit on the path between
    them that decides its continuation only through a negative lookahead on
    its own side, where *Negative lookaheads at one end* shows that the
    continuation starts no scanning source other than a bounded scan after
