@@ -139,7 +139,7 @@ The option callback receives a copied value event containing scalar/string field
 - A deferred-memo first evaluation produces an exit without a memo hit; a later lookup reports the memo event. Recognition events report recognition work without promising all actions are skipped: predicate-dependent actions and values still execute when required, as in ordinary recognition.
 - Typed direct Go and Node-conversion Go report the parser's rule execution. Typed conversion time and allocations are outside per-rule event time unless a future API explicitly adds a conversion event. TypeScript typed-result conversion has the same boundary.
 
-Generated backends can skip different candidate calls due to first-character dispatch and other generated specialization. Their event streams can differ in which `TraceSkipped` events are representable, and in the calls that cannot match; on every other call they agree with engine traces field for field, as the Reported Calls section of the observability specification defines. First-character trace differences between engine backends remain a separate limitation. Generated Go Document events report calls made during that invocation; a memo hit reports the reused call without replaying nested events from prior parses. Repetition-resumption events remain out of scope because generated Documents do not resume repetitions.
+Generated backends can skip different candidate calls due to first-character dispatch and other generated specialization. Their event streams can differ in which `TraceSkipped` events are representable, and in the calls that cannot match; on every other call they agree with engine traces field for field, as the Reported Calls section of the observability specification defines. Document parses after an edit are the exception the same section states: the engine can resume repetitions and reuse failed results, so only the examined ends of the calls that both producers make with the same outcome are equal. First-character trace differences between engine backends remain a separate limitation. Generated Go Document events report calls made during that invocation; a memo hit reports the reused call without replaying nested events from prior parses. Repetition-resumption events remain out of scope because generated Documents do not resume repetitions.
 
 ### Filtering and Profiling
 
@@ -479,7 +479,9 @@ after warmup. Inputs were JSON with 64 `éclair` records, XML with 64 items and
 a calculator expression with 32 repetitions; each fixture used both position
 units. Ratios compare profile mode with the separately generated ordinary
 package for the same grammar and workload. The table reports ranges across
-fixture/route medians, not a workload-wide estimate.
+fixture/route medians, not a workload-wide estimate. The measurements predate
+the recording of examined input in profiled parses, which adds work to every
+read and reuse of a profiled parse; they have not been repeated since.
 
 | API | Profile / ordinary time ratio |
 |:--|--:|

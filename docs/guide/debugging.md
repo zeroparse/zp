@@ -523,7 +523,10 @@ makes. They agree with engine traces, field for field, on every call that can
 match, and may differ only in calls that cannot: calls that first-character
 dispatch skips and calls that fail at their first character, as
 [Reported Calls](../../spec/runtime/observability.md#reported-calls) defines;
-their profiles agree in the same way. See [code generation](code-generation.md#the-zp-gen-command)
+their profiles agree in the same way. After an edit, a Document parse of the
+engine can resume repetitions and reuse failed results, so the producers report
+different calls; the calls that both make with the same outcome still examine
+the same input. See [code generation](code-generation.md#the-zp-gen-command)
 for the generation option. Focused synthetic measurements cover Go Node and
 typed batch parsers. Typed no-callback runs added about 48 B/op with unchanged allocation
 counts; callback cost depends on parser path and workload, and the measured
@@ -698,7 +701,7 @@ filter or depth limit never changes what a profile records. The
 
 Profiling requires `performance.now()`; without it, a profiled invocation returns an `Error`, and there is no
 `Date.now()` fallback. Profiled runs took 1.58 to 4.02 times as long as ordinary ones in focused Node 24.19
-measurements; see [design 043](../design/records/043-generated-parser-observability.md#typescript-profile-measurements) for the
+measurements taken before profiled parses recorded the input they examine; see [design 043](../design/records/043-generated-parser-observability.md#typescript-profile-measurements) for the
 conditions and limits. The specification covers clock failures and callback errors.
 
 ## Costs and Limits
