@@ -166,13 +166,23 @@ func (k *classifier) cycleSource(cycle int) *source {
 // Each tail is compared with the continuations on its own, as each growing alternative is: a
 // tail that examined input beyond its first character matched it, and a call that it shares with
 // a continuation is answered at the end of the seed for both.
+//
+// The strict analysis compares each set of paths with each continuation after the calls that both
+// share from their starts, which strip removes as committing does: a late part and the seed can
+// begin alike, as "a" z and "a" "b" do, where the rewrite of an ordinary choice would have taken
+// the shared start out of its alternatives.
 func (k *classifier) checkStepUnit(u *unit) {
 	for _, self := range k.selfPaths(u) {
-		if ok, what := k.committing(u, self, u.conts); !ok {
+		for _, cs := range u.conts {
+			ok, what := k.committing(u, self, []contSpec{cs})
+			if ok {
+				continue
+			}
 			if decidedUnitsOn {
+				s, c := k.strip(self, cs.paths, u)
 				tail := *u
-				tail.self = self
-				if decided, _ := k.unitDecided(&tail, u.conts); decided {
+				tail.self = s
+				if decided, _ := k.unitDecided(&tail, []contSpec{{paths: c, what: cs.what}}); decided {
 					continue
 				}
 			}

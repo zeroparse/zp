@@ -140,6 +140,10 @@ func TestLateParts(t *testing.T) {
 		{"late part committing against the seed", lateMain + "rule l = (l \"+\" / \"a\") \"b\" / \"q\" z\n" + z, ClassLinear, "", 0},
 		// A skip of single characters is a reused skip, whose records keep the parse linear.
 		{"reused skip", lateMain + "rule l = (l \"+\" / \"a\") \"b\" / \"a\" r\nrule r = (\"b\" \"+\" \"{\" \"!\") #recover(skip=[ab+{]* \"}\") \"!\"\n", ClassLinear, "", 0},
+		// The part and the seed begin alike with "a"; past it, the part fails on the seed followed
+		// by what follows l at "!", within the bound of the strict analysis, as an alternative that
+		// the rewrite left-factors would.
+		{"late part that parts from the seed after their shared start", "@start\nrule s = l \";\" $$\nrule l = (l \"+\" / \"a\") \"b\" / \"a\" z\nrule z = \"b\" \"+\" \"!\" [ab+{]* \"}\" \"!\"\n", ClassLinear, "", 0},
 		{"late part that cannot fail after its scan", lateMain + "rule l = (l \"+\" / \"a\") \"b\" / \"a\" z\nrule z = \"b\" \"+\" \"{\" [ab+{]*\n", ClassLinear, "", 0},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
