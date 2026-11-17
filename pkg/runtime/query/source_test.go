@@ -8,7 +8,7 @@ import (
 	"zeroparse.dev/zp/core/impl"
 	"zeroparse.dev/zp/engine"
 	"zeroparse.dev/zp/internal/value"
-	"zeroparse.dev/zp/query"
+	"zeroparse.dev/zp/pkg/runtime/query"
 )
 
 func TestStructuralQueryRuleNeedsSourceInfo(t *testing.T) {

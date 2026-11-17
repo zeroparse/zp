@@ -18,7 +18,7 @@ import (
 	"zeroparse.dev/zp/internal/frontend/schemaexport"
 	"zeroparse.dev/zp/internal/testing/codegentest"
 	"zeroparse.dev/zp/internal/testing/compiletest"
-	"zeroparse.dev/zp/schema"
+	"zeroparse.dev/zp/pkg/runtime/schema"
 )
 
 // UseEngine makes codegentest compile the grammars that tests generate parsers for with the engine,

@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"testing"
 
-	"zeroparse.dev/zp/schema"
+	"zeroparse.dev/zp/pkg/runtime/schema"
 )
 
 var schemaDiffBenchmarkSink *schema.Diff
