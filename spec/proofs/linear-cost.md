@@ -2966,7 +2966,18 @@ twin evaluates the body of its rule as the rule does: the same expressions at
 the same positions, with the same matches and ends, predicates and bindings
 that read the same values, and at each call the rule that the rule calls there
 or its twin. Only what a twin does not build differs, its value, which no call
-uses. A twin is on no left-recursion cycle, so it reads no growing result, and a
+uses. That its predicates and bindings read the same values follows from
+the clause of that statement on captures: in the body of a twin a place
+builds a value only inside a capture, and there every capture builds the
+value of what it captures as in the rule. A call inside such a capture
+therefore builds the value of the call at its place in the rule: a twin
+builds no value of its own, so where the rule's call builds one the
+twin's call is of the rule, made in the same state. By
+induction on the depth of the calls, and along the steps of one body
+evaluation, every capture of the twin's evaluation builds the value that
+the capture at its place in the rule's evaluation builds, from the same
+matches, so every predicate and binding of the twin reads the values that
+it reads in the rule, the values of the variables included. A twin is on no left-recursion cycle, so it reads no growing result, and a
 call of a rule of a cycle, which has no twin, is the same call in both. For an
 evaluation $x$ of the parse, of
 an expression, a call or a step of a growth, let $\mathcal{R}(x)$ be the
@@ -11851,10 +11862,13 @@ theorem covers such a parse.
    activation inside an iteration of a walk of a site that keeps records;
    the replays leave out the evaluations inside such iterations; what is
    then not shown of a parse that keeps records is in step 8. The
-   statement on twins that the counterparts take over is
-   tested on the Core IR of the generated parsers and on the calls and their
-   outcomes in the engine, for rules on no cycle that read no variable, and
-   not for the values that the captures of a twin build.
+   statement on twins that the counterparts take over is a requirement
+   on the implementation, from which *Counterparts in the reference
+   parse* derives the values that the predicates and bindings of a twin
+   read. It is tested on the Core IR of the generated parsers and on the
+   calls and their outcomes in the engine, for rules on no cycle that read
+   no variable, and not for the values that the captures of a twin build,
+   which is evidence for an implementation, not a step of this proof.
 2. **Continuations of growing units.** Lemma 5 bounds, in all but a constant
    number of steps of a growth, a unit followed by a growing unit with which it
    shares no call (*Sources at fixed offsets*), shows that a pair with a shared
