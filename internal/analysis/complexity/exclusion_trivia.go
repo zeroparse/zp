@@ -6,7 +6,7 @@ import (
 	"strings"
 	"zeroparse.dev/zp/internal/frontend/astfacts"
 
-	"zeroparse.dev/zp/grammar"
+	"zeroparse.dev/zp/pkg/grammar/ast"
 )
 
 // Trivia rules are rules whose shape lets the analysis compare their calls by position:
@@ -41,25 +41,25 @@ var (
 // repetition X* or an atomic X*, where X cannot match without consuming input. The unrolled form
 // X* (Y X*)* is the repetition (X / Y)* in the normal view (N11). After the repetition, X fails
 // where the last iteration stopped, so a second evaluation matches nothing as well.
-func (k *classifier) triviaParts(e grammar.Expr) []grammar.Expr {
+func (k *classifier) triviaParts(e ast.Expr) []ast.Expr {
 	e = triviaUnwrap(e)
-	if !star(e) || k.nullable(e.(*grammar.Repeat).Expr) {
+	if !star(e) || k.nullable(e.(*ast.Repeat).Expr) {
 		return nil
 	}
-	return []grammar.Expr{e.(*grammar.Repeat).Expr}
+	return []ast.Expr{e.(*ast.Repeat).Expr}
 }
 
-func star(e grammar.Expr) bool {
-	r, ok := e.(*grammar.Repeat)
+func star(e ast.Expr) bool {
+	r, ok := e.(*ast.Repeat)
 	return ok && r.Min == 0 && r.Max < 0
 }
 
-func triviaUnwrap(e grammar.Expr) grammar.Expr {
+func triviaUnwrap(e ast.Expr) ast.Expr {
 	for {
 		switch x := e.(type) {
-		case *grammar.Group:
+		case *ast.Group:
 			e = x.Expr
-		case *grammar.Atomic:
+		case *ast.Atomic:
 			e = x.Expr
 		default:
 			return e
@@ -92,14 +92,14 @@ func (k *classifier) triviaWhy(name string) string {
 	for _, v := range k.vars[name] {
 		reads[v] = true
 	}
-	astfacts.WalkExpr(def.Expr, func(e grammar.Expr) {
+	astfacts.WalkExpr(def.Expr, func(e ast.Expr) {
 		switch e := e.(type) {
-		case *grammar.Cut:
+		case *ast.Cut:
 			// A cut of the body itself can commit the repetition, which then fails.
 			note("#cut", name)
-		case *grammar.Predicate:
-			astfacts.WalkTerm(e.Term, func(t grammar.Term) {
-				if b, ok := t.(*grammar.Bind); ok && reads[b.Name] {
+		case *ast.Predicate:
+			astfacts.WalkTerm(e.Term, func(t ast.Term) {
+				if b, ok := t.(*ast.Bind); ok && reads[b.Name] {
 					note("binds a variable that it reads", name)
 				}
 			})
@@ -113,13 +113,13 @@ func (k *classifier) triviaWhy(name string) string {
 		if k.an.Cyclic[n] {
 			note("left recursion", n)
 		}
-		astfacts.WalkExpr(d.Expr, func(e grammar.Expr) {
+		astfacts.WalkExpr(d.Expr, func(e ast.Expr) {
 			switch e := e.(type) {
-			case *grammar.InlineAction:
+			case *ast.InlineAction:
 				note("action", n)
-			case *grammar.Attributed, *grammar.Recovery, *grammar.Stream, *grammar.OperatorsRule:
+			case *ast.Attributed, *ast.Recovery, *ast.Stream, *ast.OperatorsRule:
 				note("attributed, recovery, stream or Operators Rule", n)
-			case *grammar.Ref:
+			case *ast.Ref:
 				if e.Level != "" {
 					note("operator level call", n)
 				}
@@ -139,7 +139,7 @@ func (k *classifier) triviaWhy(name string) string {
 }
 
 // isTrivia reports whether r calls a trivia rule that the hooks enable.
-func (k *classifier) isTrivia(r *grammar.Ref) bool {
+func (k *classifier) isTrivia(r *ast.Ref) bool {
 	if !triviaOn && !triviaMemo || r.Level != "" || triviaOnly != nil && !triviaOnly[r.Name] {
 		return false
 	}
@@ -156,7 +156,7 @@ func (k *classifier) isTrivia(r *grammar.Ref) bool {
 
 // triviaCall reports whether s is a call of a trivia rule that the analysis relies on.
 func (x excl) triviaCall(s sym) bool {
-	r, ok := s.e.(*grammar.Ref)
+	r, ok := s.e.(*ast.Ref)
 	return triviaOn && ok && s.kind == symMatch && x.k.isTrivia(r)
 }
 
@@ -165,7 +165,7 @@ func (x excl) triviaCall(s sym) bool {
 // contain no scanning source, so Lemma 1 bounds them. A part that scans, such as a comment, can
 // scan an unterminated comment again before it fails.
 func (x excl) triviaSettles(s sym) bool {
-	for _, part := range x.k.triviaParts(x.k.byName[s.e.(*grammar.Ref).Name].Expr) {
+	for _, part := range x.k.triviaParts(x.k.byName[s.e.(*ast.Ref).Name].Expr) {
 		if x.k.containsSource(part) {
 			return false
 		}
@@ -178,7 +178,7 @@ func (x excl) triviaSettles(s sym) bool {
 // variables of p[i] unless a binding lies between them, which stops the dropping for a rule that
 // reads variables.
 func (x excl) collapseTrivia(p []sym, i int) []sym {
-	name := p[i].e.(*grammar.Ref).Name
+	name := p[i].e.(*ast.Ref).Name
 	reads := len(x.k.vars[name]) > 0
 	for m := i + 1; m < len(p); m++ {
 		switch p[m].kind {
@@ -190,7 +190,7 @@ func (x excl) collapseTrivia(p []sym, i int) []sym {
 		case symSkip, symEnv, symNot, symAnd, symUp:
 			continue
 		case symMatch:
-			if r, ok := p[m].e.(*grammar.Ref); ok && r.Name == name && r.Level == "" {
+			if r, ok := p[m].e.(*ast.Ref); ok && r.Name == name && r.Level == "" {
 				p = append(p[:m:m], p[m+1:]...)
 				m--
 				continue

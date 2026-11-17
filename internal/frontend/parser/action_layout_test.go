@@ -4,7 +4,7 @@ import (
 	"strings"
 	"testing"
 
-	"zeroparse.dev/zp/grammar"
+	"zeroparse.dev/zp/pkg/grammar/ast"
 )
 
 // Calls, constructors, list constructors and tuples own the layout of their
@@ -180,18 +180,18 @@ func TestActionExpressionLayoutCloneAndJSON(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	call := g.Rules()[0].Action.(*grammar.Call)
+	call := g.Rules()[0].Action.(*ast.Call)
 	if call.OpenBreak == nil || call.BodyBreak == nil || call.CloseBreak == nil {
 		t.Fatalf("call layout: %+v", call)
 	}
 	if len(call.BodyBreak.Comments) != 1 || call.BodyBreak.Comments[0].Text != "// lead" {
 		t.Fatalf("body comments: %+v", call.BodyBreak.Comments)
 	}
-	after := call.Args[0].(grammar.SourceNode).Source().Layout
+	after := call.Args[0].(ast.SourceNode).Source().Layout
 	if after == nil || len(after.After) != 1 || after.After[0].Text != "/* after */" {
 		t.Fatalf("comment after the first argument: %+v", after)
 	}
-	data, err := grammar.MarshalJSON(g)
+	data, err := ast.MarshalJSON(g)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -199,15 +199,15 @@ func TestActionExpressionLayoutCloneAndJSON(t *testing.T) {
 		t.Fatalf("layout serialized: %s", data)
 	}
 	clone := g.Clone()
-	copied := clone.Rules()[0].Action.(*grammar.Call)
+	copied := clone.Rules()[0].Action.(*ast.Call)
 	if copied.BodyBreak == call.BodyBreak || copied.BodyBreak.Comments[0] == call.BodyBreak.Comments[0] {
 		t.Fatal("body break alias in clone")
 	}
-	copiedAfter := copied.Args[0].(grammar.SourceNode).Source().Layout
+	copiedAfter := copied.Args[0].(ast.SourceNode).Source().Layout
 	if copiedAfter == after || copiedAfter.After[0] == after.After[0] {
 		t.Fatal("after layout alias in clone")
 	}
-	if grammar.Format(clone) != grammar.Format(g) {
+	if ast.Format(clone) != ast.Format(g) {
 		t.Fatal("clone changed formatting")
 	}
 }
@@ -219,16 +219,16 @@ func TestActionExpressionWithoutLayout(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	data, err := grammar.MarshalJSON(g)
+	data, err := ast.MarshalJSON(g)
 	if err != nil {
 		t.Fatal(err)
 	}
-	bare, err := grammar.UnmarshalJSON(data)
+	bare, err := ast.UnmarshalJSON(data)
 	if err != nil {
 		t.Fatal(err)
 	}
 	const want = "type S = {\n    A int\n}\n\nrule r = \"a\" => f(S{A: 1}, []S{S{A: 2}}, (1, 2))\n"
-	if got := grammar.Format(bare); got != want {
+	if got := ast.Format(bare); got != want {
 		t.Fatalf("got:\n%s\nwant:\n%s", got, want)
 	}
 }

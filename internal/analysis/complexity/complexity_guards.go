@@ -5,7 +5,7 @@ import (
 	"slices"
 	"zeroparse.dev/zp/internal/frontend/check"
 
-	"zeroparse.dev/zp/grammar"
+	"zeroparse.dev/zp/pkg/grammar/ast"
 )
 
 // guard is what the predicates next to a binding of an int variable test of the value that it
@@ -13,7 +13,7 @@ import (
 // binding, so a value that the guard rejects reaches no call and no later binding.
 type guard struct {
 	// tests are the tests after the binding that read only its variable and literals.
-	tests []grammar.Term
+	tests []ast.Term
 	// bounds holds every value that passes the tests after the binding and the tests before it.
 	bounds valueRange
 }
@@ -50,15 +50,15 @@ func (g guard) passes(v string, y int) bool {
 func guardOf(b *binding) guard {
 	g := guard{bounds: fullRange}
 	v, e := b.b.Name, check.UngroupTerm(b.b.Value)
-	isVar := func(t grammar.Term) bool {
-		r, ok := check.UngroupTerm(t).(*grammar.VarRef)
+	isVar := func(t ast.Term) bool {
+		r, ok := check.UngroupTerm(t).(*ast.VarRef)
 		return ok && r.Name == v
 	}
-	text := grammar.FormatTerm(e)
-	isValue := func(t grammar.Term) bool { return grammar.FormatTerm(check.UngroupTerm(t)) == text }
+	text := ast.FormatTerm(e)
+	isValue := func(t ast.Term) bool { return ast.FormatTerm(check.UngroupTerm(t)) == text }
 	after, before := adjacentStatements(b)
 	for _, s := range after {
-		if bd, ok := s.(*grammar.Bind); ok && bd.Name == v {
+		if bd, ok := s.(*ast.Bind); ok && bd.Name == v {
 			break
 		}
 		if readsOnly(s, v, nil) {
@@ -67,7 +67,7 @@ func guardOf(b *binding) guard {
 		}
 	}
 	for _, s := range before {
-		if _, ok := s.(*grammar.Bind); ok {
+		if _, ok := s.(*ast.Bind); ok {
 			break
 		}
 		g.bounds = g.bounds.meet(termBounds(s, isValue))
@@ -80,12 +80,12 @@ func guardOf(b *binding) guard {
 // its block, then those of the predicates next to the predicate of b in the sequence that holds
 // it, up to the first element on either side that is not a predicate. A predicate with attributes
 // counts when they are all @ attributes, which do not change matching.
-func adjacentStatements(b *binding) (after, before []grammar.Term) {
+func adjacentStatements(b *binding) (after, before []ast.Term) {
 	if b.p == nil {
 		return nil, nil
 	}
 	own := statements(b.p.Term)
-	i := slices.Index(own, grammar.Term(b.b))
+	i := slices.Index(own, ast.Term(b.b))
 	if i < 0 {
 		return nil, nil
 	}
@@ -121,12 +121,12 @@ func adjacentStatements(b *binding) (after, before []grammar.Term) {
 }
 
 // predicateOf returns the predicate that e is, through @ attributes, or nil.
-func predicateOf(e grammar.Expr) *grammar.Predicate {
+func predicateOf(e ast.Expr) *ast.Predicate {
 	for {
 		switch x := e.(type) {
-		case *grammar.Predicate:
+		case *ast.Predicate:
 			return x
-		case *grammar.Attributed:
+		case *ast.Attributed:
 			if !labelsOnly(x) {
 				return nil
 			}
@@ -139,7 +139,7 @@ func predicateOf(e grammar.Expr) *grammar.Predicate {
 
 // labelsOnly reports whether every attribute of e is an @ attribute, as @error and @diagnostic
 // are: they change diagnostics, not matching, backtracking or bindings.
-func labelsOnly(e *grammar.Attributed) bool {
+func labelsOnly(e *ast.Attributed) bool {
 	for _, a := range e.Attrs {
 		if a.Pragma {
 			return false
@@ -149,11 +149,11 @@ func labelsOnly(e *grammar.Attributed) bool {
 }
 
 // statements returns the statements of a predicate term: those of a block, or the term itself.
-func statements(t grammar.Term) []grammar.Term {
-	if blk, ok := t.(*grammar.Block); ok {
+func statements(t ast.Term) []ast.Term {
+	if blk, ok := t.(*ast.Block); ok {
 		return blk.Statements
 	}
-	return []grammar.Term{t}
+	return []ast.Term{t}
 }
 
 // valueRange is an inclusive range of ints. A bound beyond maxExact in magnitude stands for no
@@ -193,8 +193,8 @@ func rangeOf(lo, hi int) valueRange {
 // termBounds returns the range that t bounds the subject to when t is true: t is a comparison
 // with <, <=, >, >= or == of the subject with a constant int (see constInt), on either side, or a
 // conjunction with && of such tests and others, which do not bound it.
-func termBounds(t grammar.Term, subject func(grammar.Term) bool) valueRange {
-	bin, ok := check.UngroupTerm(t).(*grammar.Binary)
+func termBounds(t ast.Term, subject func(ast.Term) bool) valueRange {
+	bin, ok := check.UngroupTerm(t).(*ast.Binary)
 	if !ok {
 		return fullRange
 	}
@@ -226,7 +226,7 @@ func termBounds(t grammar.Term, subject func(grammar.Term) bool) valueRange {
 }
 
 // constInt returns the value of t when t is a constant int expression that eval knows.
-func constInt(t grammar.Term) (int, bool) {
+func constInt(t ast.Term) (int, bool) {
 	if !constant(t) {
 		return 0, false
 	}
@@ -238,15 +238,15 @@ func constInt(t grammar.Term) (int, bool) {
 // termRange returns a range that holds every int that t can give when the variable v holds a
 // value of xs: a literal is its value, v ranges over xs, len gives at least 0, unary -, + and *
 // combine the ranges of their operands, and any other term has no bound.
-func termRange(t grammar.Term, v string, xs valueSet) valueRange {
+func termRange(t ast.Term, v string, xs valueSet) valueRange {
 	switch t := t.(type) {
-	case *grammar.TermGroup:
+	case *ast.TermGroup:
 		return termRange(t.Term, v, xs)
-	case *grammar.IntLit:
+	case *ast.IntLit:
 		if n, ok := constInt(t); ok {
 			return valueRange{n, n}
 		}
-	case *grammar.VarRef:
+	case *ast.VarRef:
 		if t.Name == v && len(xs) > 0 {
 			lo, hi := math.MaxInt, math.MinInt
 			for x := range xs {
@@ -254,16 +254,16 @@ func termRange(t grammar.Term, v string, xs valueSet) valueRange {
 			}
 			return valueRange{lo, hi}
 		}
-	case *grammar.Call:
+	case *ast.Call:
 		if t.Func == "len" && len(t.Args) == 1 {
 			return valueRange{0, fullRange.hi}
 		}
-	case *grammar.Unary:
+	case *ast.Unary:
 		if t.Op == "-" {
 			r := termRange(t.X, v, xs)
 			return valueRange{-r.hi, -r.lo}
 		}
-	case *grammar.Binary:
+	case *ast.Binary:
 		l, r := termRange(t.L, v, xs), termRange(t.R, v, xs)
 		switch t.Op {
 		case "+":

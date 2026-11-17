@@ -5,12 +5,12 @@ import (
 	"testing"
 	"zeroparse.dev/zp/internal/diagnostic"
 
-	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/codegen"
 	"zeroparse.dev/zp/internal/compile"
 	"zeroparse.dev/zp/internal/engine"
 	"zeroparse.dev/zp/internal/testing/codegentest"
 	"zeroparse.dev/zp/internal/testing/starttest"
+	"zeroparse.dev/zp/pkg/grammar/ast"
 )
 
 const streamRecoveryError = "#recover cannot wrap a #stream repetition; recover inside each element instead"
@@ -48,11 +48,11 @@ func testStreamRecoveryRejected(t *testing.T) {
 			}
 		}
 	}
-	pos := grammar.Pos{Line: 3, Col: 10}
-	g := &grammar.Grammar{File: grammar.File{Decls: []grammar.Decl{&grammar.RuleDef{Name: "main", Expr: &grammar.Recovery{SourceInfo: grammar.SourceInfo{Pos: pos}, Expr: &grammar.Stream{Expr: &grammar.Repeat{
-		Expr: &grammar.Literal{Value: "ab"}, Min: 2, Max: 2,
+	pos := ast.Pos{Line: 3, Col: 10}
+	g := &ast.Grammar{File: ast.File{Decls: []ast.Decl{&ast.RuleDef{Name: "main", Expr: &ast.Recovery{SourceInfo: ast.SourceInfo{Pos: pos}, Expr: &ast.Stream{Expr: &ast.Repeat{
+		Expr: &ast.Literal{Value: "ab"}, Min: 2, Max: 2,
 	}},
-		Skip: &grammar.Repeat{Expr: &grammar.Any{}, Min: 0, Max: -1},
+		Skip: &ast.Repeat{Expr: &ast.Any{}, Min: 0, Max: -1},
 	}}}}}
 	starttest.MarkAll(g)
 	_, err := engine.Compile(g, compile.Options{})

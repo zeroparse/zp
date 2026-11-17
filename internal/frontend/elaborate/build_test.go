@@ -6,12 +6,12 @@ import (
 	"strings"
 	"testing"
 
-	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/compile"
 	"zeroparse.dev/zp/internal/frontend/elaborate"
 	"zeroparse.dev/zp/internal/frontend/types"
 	"zeroparse.dev/zp/internal/ir/core"
 	"zeroparse.dev/zp/internal/testing/compiletest"
+	"zeroparse.dev/zp/pkg/grammar/ast"
 )
 
 func TestCoreBuildShapes(t *testing.T) {
@@ -210,7 +210,7 @@ func TestFollowRepeatsThroughStream(t *testing.T) {
 rule main = inner $$
 rule inner = [a-z]* #stream
 `)
-	origin := map[core.Node]grammar.Expr{}
+	origin := map[core.Node]ast.Expr{}
 	m, err := elaborate.CoreFrom(prog, origin)
 	if err != nil {
 		t.Fatal(err)
@@ -229,8 +229,8 @@ rule inner = [a-z]* #stream
 	if !ok {
 		t.Fatalf("inner after scans: %T, want *core.Scan", m.Rules[1].Body)
 	}
-	if _, ok := origin[s].(*grammar.Repeat); !ok {
-		t.Errorf("origin of the scan: %T, want *grammar.Repeat", origin[s])
+	if _, ok := origin[s].(*ast.Repeat); !ok {
+		t.Errorf("origin of the scan: %T, want *ast.Repeat", origin[s])
 	}
 }
 
@@ -258,10 +258,10 @@ rule e = #operators {
 		t.Errorf("levels %v, want [1 0]", levels)
 	}
 	e := prog.CoreInput().Rules[1]
-	if _, err := elaborate.CallLevel(&grammar.Ref{Name: "e", Level: "power"}, e); err == nil {
+	if _, err := elaborate.CallLevel(&ast.Ref{Name: "e", Level: "power"}, e); err == nil {
 		t.Error("unknown level: no error")
 	}
-	if _, err := elaborate.CallLevel(&grammar.Ref{Name: "main", Level: "sum"}, prog.CoreInput().Rules[0]); err == nil {
+	if _, err := elaborate.CallLevel(&ast.Ref{Name: "main", Level: "sum"}, prog.CoreInput().Rules[0]); err == nil {
 		t.Error("level of a rule without levels: no error")
 	}
 }

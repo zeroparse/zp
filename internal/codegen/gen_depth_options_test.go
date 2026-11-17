@@ -6,10 +6,10 @@ import (
 	"strings"
 	"testing"
 
-	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/codegen"
 	"zeroparse.dev/zp/internal/engine"
 	"zeroparse.dev/zp/internal/testing/codegentest"
+	"zeroparse.dev/zp/pkg/grammar/ast"
 )
 
 func TestGeneratedMaxDepthValidation(t *testing.T) {
@@ -32,7 +32,7 @@ func testGeneratedMaxDepthValidation(t *testing.T) {
 		}
 	}
 	for _, ts := range []bool{false, true} {
-		generate := func(g *grammar.Grammar, opts codegen.GenOptions) ([]byte, error) {
+		generate := func(g *ast.Grammar, opts codegen.GenOptions) ([]byte, error) {
 			return codegentest.GenerateCode(t, g, opts)
 		}
 		if ts {

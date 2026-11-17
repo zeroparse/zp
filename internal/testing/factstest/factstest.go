@@ -17,9 +17,9 @@ import (
 	"strings"
 	"testing"
 
-	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/ir/core"
 	"zeroparse.dev/zp/internal/ir/core/facts"
+	"zeroparse.dev/zp/pkg/grammar/ast"
 )
 
 var update = flag.Bool("update-facts", false, "rewrite the grammar facts golden files")
@@ -313,7 +313,7 @@ func lineDiff(want, got string) string {
 // CoreRules returns the facts that internal/ir/core/facts computed for the rules of a module that
 // are not value-free twins, in the form Render writes. origin maps the module's nodes to the
 // expressions they were built from, which name the choices of the alternatives.
-func CoreRules(m *core.Module, f *facts.Facts, origin map[core.Node]grammar.Expr) []Rule {
+func CoreRules(m *core.Module, f *facts.Facts, origin map[core.Node]ast.Expr) []Rule {
 	twin := map[int]bool{}
 	for _, r := range m.Rules {
 		if r.Twin != nil {
@@ -343,7 +343,7 @@ func CoreRules(m *core.Module, f *facts.Facts, origin map[core.Node]grammar.Expr
 			if !ok {
 				return
 			}
-			pos := origin[c].(*grammar.Choice).Diagnostic()
+			pos := origin[c].(*ast.Choice).Diagnostic()
 			for i, alt := range c.Alts {
 				rule.Alts = append(rule.Alts, Alt{Line: pos.Line, Col: pos.Col, Index: i, First: terminal(alt.Body)})
 			}

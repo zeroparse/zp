@@ -3,30 +3,30 @@ package ref
 import (
 	"testing"
 
-	"zeroparse.dev/zp/grammar"
+	"zeroparse.dev/zp/pkg/grammar/ast"
 )
 
 // Terms built by hand: the package cannot depend on a grammar parser.
-func capt(n string) grammar.Term  { return &grammar.CaptureRef{Name: n} }
-func param(n string) grammar.Term { return &grammar.CaptureRef{Name: n, Param: true} }
-func vr(n string) grammar.Term    { return &grammar.VarRef{Name: n} }
-func ilit(i int) grammar.Term     { return &grammar.IntLit{Value: i} }
-func blit(b bool) grammar.Term    { return &grammar.BoolLit{Value: b} }
-func bin(op string, l, r grammar.Term) grammar.Term {
-	return &grammar.Binary{Op: op, L: l, R: r}
+func capt(n string) ast.Term  { return &ast.CaptureRef{Name: n} }
+func param(n string) ast.Term { return &ast.CaptureRef{Name: n, Param: true} }
+func vr(n string) ast.Term    { return &ast.VarRef{Name: n} }
+func ilit(i int) ast.Term     { return &ast.IntLit{Value: i} }
+func blit(b bool) ast.Term    { return &ast.BoolLit{Value: b} }
+func bin(op string, l, r ast.Term) ast.Term {
+	return &ast.Binary{Op: op, L: l, R: r}
 }
-func un(op string, x grammar.Term) grammar.Term { return &grammar.Unary{Op: op, X: x} }
-func fn(name string, args ...grammar.Term) grammar.Term {
-	return &grammar.Call{Func: name, Args: args}
+func un(op string, x ast.Term) ast.Term { return &ast.Unary{Op: op, X: x} }
+func fn(name string, args ...ast.Term) ast.Term {
+	return &ast.Call{Func: name, Args: args}
 }
-func lam(body grammar.Term, params ...string) grammar.Term {
-	return &grammar.Lambda{Params: params, Body: body}
+func lam(body ast.Term, params ...string) ast.Term {
+	return &ast.Lambda{Params: params, Body: body}
 }
-func mem(x grammar.Term, name string) grammar.Term { return &grammar.Member{X: x, Name: name} }
+func mem(x ast.Term, name string) ast.Term { return &ast.Member{X: x, Name: name} }
 
 // unknownTerms read the capture x, which the tests make unknown, the known capture xs (a list node
 // holding x and an int) and the variables v (unknown) and n (known).
-var unknownTerms = map[string]grammar.Term{
+var unknownTerms = map[string]ast.Term{
 	"x.Start":           mem(capt("x"), "Start"),
 	"x.$c":              mem(capt("x"), "$c"),
 	"len(x)":            fn("len", capt("x")),
@@ -34,9 +34,9 @@ var unknownTerms = map[string]grammar.Term{
 	"-x":                un("-", capt("x")),
 	"!x":                un("!", capt("x")),
 	"x + 1":             bin("+", capt("x"), ilit(1)),
-	"x == nil":          bin("==", capt("x"), &grammar.NilLit{}),
+	"x == nil":          bin("==", capt("x"), &ast.NilLit{}),
 	"x[0]":              bin("[]", capt("x"), ilit(0)),
-	"x.(int)":           &grammar.Cast{X: capt("x"), Type: &grammar.TypeRef{Name: "int"}},
+	"x.(int)":           &ast.Cast{X: capt("x"), Type: &ast.TypeRef{Name: "int"}},
 	"list(x)":           fn("list", capt("x")),
 	"len(list(x, 1))":   fn("len", fn("list", capt("x"), ilit(1))),
 	"foldl count xs":    fn("foldl", ilit(0), capt("xs"), lam(bin("+", param("a"), ilit(1)), "a", "s")),

@@ -5,8 +5,8 @@ import (
 
 	"zeroparse.dev/zp/core"
 	"zeroparse.dev/zp/core/impl"
-	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/value"
+	"zeroparse.dev/zp/pkg/grammar/ast"
 )
 
 // The value primitives of terms (the component values of ops.Parser) of the engine. The compositions of the operators in
@@ -200,6 +200,6 @@ func (c *EvalCtx) made(n *core.Node) { c.P.Created = append(c.P.Created, n) }
 
 // isStruct is the operation node.isStruct.
 func (p *Parser) isStruct(n *core.Node) bool {
-	_, ok := p.Prog.Types[n.Type()].(*grammar.TypeDef)
+	_, ok := p.Prog.Types[n.Type()].(*ast.TypeDef)
 	return ok
 }

@@ -9,11 +9,11 @@ import (
 	"strings"
 	"testing"
 
-	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/compile"
 	"zeroparse.dev/zp/internal/frontend/parser"
 	"zeroparse.dev/zp/internal/testing/factstest"
 	"zeroparse.dev/zp/internal/testing/starttest"
+	"zeroparse.dev/zp/pkg/grammar/ast"
 )
 
 // classifierCorpus returns the sources of the grammars the classifier's tests read: the pinned
@@ -41,7 +41,7 @@ func classifierCorpus(t *testing.T) map[string]string {
 }
 
 // testClassifierRules returns the rules the classifier reads for g (classifierRules).
-func testClassifierRules(t *testing.T, g *grammar.Grammar) (*grammar.Grammar, []*grammar.RuleDef) {
+func testClassifierRules(t *testing.T, g *ast.Grammar) (*ast.Grammar, []*ast.RuleDef) {
 	t.Helper()
 	g, rules, err := classifierRules(g, nil)
 	if err != nil {
@@ -56,7 +56,7 @@ func testClassifierRules(t *testing.T, g *grammar.Grammar) (*grammar.Grammar, []
 // compiler rejects (a predicate that reads a capture out of its scope), of which Core IR cannot
 // be built; for those it takes the analyses of the grammar, with the leaders and the rules off
 // every cycle that are not transient memoized (none of those grammars has #missing).
-func testRuleFacts(t *testing.T, g *grammar.Grammar, rules []*grammar.RuleDef) *ruleFacts {
+func testRuleFacts(t *testing.T, g *ast.Grammar, rules []*ast.RuleDef) *ruleFacts {
 	t.Helper()
 	canon, canonRules := testClassifierRules(t, g)
 	if rf, err := classifierFacts(canon, canonRules, nil); err == nil {
@@ -77,7 +77,7 @@ func testRuleFacts(t *testing.T, g *grammar.Grammar, rules []*grammar.RuleDef) *
 // line per rule, with the cycles numbered in the order of their first rule, so that two numberings
 // of the same cycles render alike. The memoized rules are checked against the compiled rules
 // instead (TestComplexityMemoPolicy).
-func renderRuleFacts(rules []*grammar.RuleDef, rf *ruleFacts) string {
+func renderRuleFacts(rules []*ast.RuleDef, rf *ruleFacts) string {
 	var b strings.Builder
 	cycles := map[int]int{}
 	for _, r := range rules {
@@ -99,7 +99,7 @@ func renderRuleFacts(rules []*grammar.RuleDef, rf *ruleFacts) string {
 }
 
 // astRuleFacts returns the rule facts of rules as the analyses of the grammar compute them.
-func astRuleFacts(rules []*grammar.RuleDef) *ruleFacts {
+func astRuleFacts(rules []*ast.RuleDef) *ruleFacts {
 	return &ruleFacts{an: compile.AnalyzeControlled(rules, nil), vars: compile.RuleVariables(rules)}
 }
 
@@ -115,7 +115,7 @@ func TestClassifierFactsMatchAnalysis(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			for _, g := range []*grammar.Grammar{parsed, starttest.MarkAll(parsed)} {
+			for _, g := range []*ast.Grammar{parsed, starttest.MarkAll(parsed)} {
 				g, rules := testClassifierRules(t, g)
 				rf := testRuleFacts(t, g, rules)
 				if got, want := renderRuleFacts(rules, rf), renderRuleFacts(rules, astRuleFacts(rules)); got != want {
@@ -150,7 +150,7 @@ func TestClassifierFactsDetectsDifference(t *testing.T) {
 			t.Errorf("a changed fact renders alike:\n%s", want)
 		}
 	}
-	if !slices.ContainsFunc(rules, func(r *grammar.RuleDef) bool { return rf.an.Leaders[r.Name] }) {
+	if !slices.ContainsFunc(rules, func(r *ast.RuleDef) bool { return rf.an.Leaders[r.Name] }) {
 		t.Errorf("the control grammar has no leader:\n%s", want)
 	}
 }

@@ -8,10 +8,10 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/core"
-	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/bytecode"
 	"zeroparse.dev/zp/internal/compile"
 	"zeroparse.dev/zp/internal/testing/codegentest"
+	"zeroparse.dev/zp/pkg/grammar/ast"
 )
 
 func negativeMaxima() []int {
@@ -38,7 +38,7 @@ func TestNegativeRepetitionMaxima(t *testing.T) {
 		for _, maximum := range negativeMaxima() {
 			t.Run(fmt.Sprintf("%s/%d", c.name, maximum), func(t *testing.T) {
 				g := codegentest.GrammarWithNegativeMaximum(t, c.src, maximum)
-				before, err := grammar.MarshalJSON(g)
+				before, err := ast.MarshalJSON(g)
 				if err != nil {
 					t.Fatal(err)
 				}
@@ -74,7 +74,7 @@ func TestNegativeRepetitionMaxima(t *testing.T) {
 					if err := compile.ValidateModule(p.Module()); err != nil {
 						t.Errorf("module: %v", err)
 					}
-					if ast := executableASTJSON(t, p.Grammar); ast != savedAST {
+					if tree := executableASTJSON(t, p.Grammar); tree != savedAST {
 						t.Fatal("compiled executable AST changed")
 					}
 					for _, mode := range allModes {
@@ -119,7 +119,7 @@ func TestNegativeRepetitionMaxima(t *testing.T) {
 						}
 					}
 				}
-				after, err := grammar.MarshalJSON(g)
+				after, err := ast.MarshalJSON(g)
 				if err != nil || string(after) != string(before) {
 					t.Fatalf("compiler mutated caller AST: %v", err)
 				}
@@ -130,12 +130,12 @@ func TestNegativeRepetitionMaxima(t *testing.T) {
 
 // Compiled ASTs preserve executable structure, not grammar source metadata.
 // Ignore only SourceInfo; all other serialized fields must still round-trip.
-func executableASTJSON(t testing.TB, g *grammar.Grammar) string {
+func executableASTJSON(t testing.TB, g *ast.Grammar) string {
 	t.Helper()
 	copy := g.Clone()
 	var strip func(reflect.Value)
 	strip = func(v reflect.Value) {
-		if v.Type() == reflect.TypeFor[grammar.SourceInfo]() {
+		if v.Type() == reflect.TypeFor[ast.SourceInfo]() {
 			v.SetZero()
 			return
 		}
@@ -159,7 +159,7 @@ func executableASTJSON(t testing.TB, g *grammar.Grammar) string {
 		}
 	}
 	strip(reflect.ValueOf(copy))
-	data, err := grammar.MarshalJSON(copy)
+	data, err := ast.MarshalJSON(copy)
 	if err != nil {
 		t.Fatal(err)
 	}

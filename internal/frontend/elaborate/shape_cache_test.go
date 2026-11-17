@@ -4,12 +4,12 @@ import (
 	"slices"
 	"testing"
 
-	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/compile"
 	"zeroparse.dev/zp/internal/frontend/astfacts"
 	"zeroparse.dev/zp/internal/frontend/check"
 	"zeroparse.dev/zp/internal/testing/compiletest"
 	"zeroparse.dev/zp/internal/testing/factstest"
+	"zeroparse.dev/zp/pkg/grammar/ast"
 )
 
 // TestShapeCacheFacts checks that the shape cache the build uses gives every expression of every
@@ -32,9 +32,9 @@ func TestShapeCacheFacts(t *testing.T) {
 	}
 	for name, prog := range progs {
 		chk := prog.Checker()
-		var exprs []grammar.Expr
+		var exprs []ast.Expr
 		for _, r := range prog.RuleList {
-			astfacts.WalkExpr(r.Def.Expr, func(e grammar.Expr) { exprs = append(exprs, e) })
+			astfacts.WalkExpr(r.Def.Expr, func(e ast.Expr) { exprs = append(exprs, e) })
 		}
 		if len(exprs) == 0 {
 			t.Fatalf("%s: no expressions", name)

@@ -1,8 +1,8 @@
 package desugar
 
 import (
-	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/cancel"
+	"zeroparse.dev/zp/pkg/grammar/ast"
 )
 
 // Copies use private destination storage, so cancellation never changes the
@@ -35,18 +35,18 @@ func normalizationClone[T any](src []T, control *cancel.Control) []T {
 }
 
 // appendNormalizedAttribute returns a copy of src with a appended, polling control while copying.
-func appendNormalizedAttribute(src []*grammar.Attribute, a *grammar.Attribute, control *cancel.Control) []*grammar.Attribute {
+func appendNormalizedAttribute(src []*ast.Attribute, a *ast.Attribute, control *cancel.Control) []*ast.Attribute {
 	if control == nil {
-		return append(append([]*grammar.Attribute(nil), src...), a)
+		return append(append([]*ast.Attribute(nil), src...), a)
 	}
 	control.Check()
-	out := make([]*grammar.Attribute, len(src)+1)
+	out := make([]*ast.Attribute, len(src)+1)
 	normalizationCopy(out, src, control)
 	out[len(src)] = a
 	return out
 }
 
-func appendNormalizedPredicates(dst, src []grammar.Expr, control *cancel.Control) []grammar.Expr {
+func appendNormalizedPredicates(dst, src []ast.Expr, control *cancel.Control) []ast.Expr {
 	if control == nil {
 		return append(dst, src...)
 	}

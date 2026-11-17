@@ -9,10 +9,10 @@ import (
 
 	"zeroparse.dev/zp/core"
 	"zeroparse.dev/zp/core/impl"
-	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/compile"
 	"zeroparse.dev/zp/internal/testing/codegentest"
 	"zeroparse.dev/zp/internal/value"
+	"zeroparse.dev/zp/pkg/grammar/ast"
 )
 
 // A shared AST leaf is first compiled value-free for a text struct rule, then
@@ -90,16 +90,16 @@ func TestBudgetPrimitiveASTAliases(t *testing.T) {
 
 // primitiveOf returns the leaf expression under the capture, group and #atomic of a text struct
 // rule body.
-func primitiveOf(e grammar.Expr) grammar.Expr {
+func primitiveOf(e ast.Expr) ast.Expr {
 	for {
 		switch x := e.(type) {
-		case *grammar.Capture:
+		case *ast.Capture:
 			e = x.Expr
-		case *grammar.Group:
+		case *ast.Group:
 			e = x.Expr
-		case *grammar.Atomic:
+		case *ast.Atomic:
 			e = x.Expr
-		case *grammar.Attributed:
+		case *ast.Attributed:
 			e = x.Expr
 		default:
 			return e

@@ -4,7 +4,7 @@ package state
 
 import (
 	"zeroparse.dev/zp/core"
-	"zeroparse.dev/zp/grammar"
+	"zeroparse.dev/zp/pkg/grammar/ast"
 )
 
 // confOprLed runs opr.led for the conformance suite.
@@ -75,7 +75,7 @@ func (p *Parser) confOprLevel(op *OperatorsRuleOp) int {
 // Printed from Exec IR function confOprInfix of internal/ir/exec/core.
 func (p *Parser) confOprInfix(op *OperatorsRuleOp) bool {
 	var r bool
-	r = op.Kind == grammar.Infix
+	r = op.Kind == ast.Infix
 	return r
 }
 
@@ -83,7 +83,7 @@ func (p *Parser) confOprInfix(op *OperatorsRuleOp) bool {
 // Printed from Exec IR function confOprPostfix of internal/ir/exec/core.
 func (p *Parser) confOprPostfix(op *OperatorsRuleOp) bool {
 	var r bool
-	r = op.Kind == grammar.Postfix
+	r = op.Kind == ast.Postfix
 	return r
 }
 
@@ -91,7 +91,7 @@ func (p *Parser) confOprPostfix(op *OperatorsRuleOp) bool {
 // Printed from Exec IR function confOprRight of internal/ir/exec/core.
 func (p *Parser) confOprRight(op *OperatorsRuleOp) bool {
 	var r bool
-	r = op.Assoc == grammar.AssocRight
+	r = op.Assoc == ast.AssocRight
 	return r
 }
 
@@ -99,7 +99,7 @@ func (p *Parser) confOprRight(op *OperatorsRuleOp) bool {
 // Printed from Exec IR function confOprNonAssoc of internal/ir/exec/core.
 func (p *Parser) confOprNonAssoc(op *OperatorsRuleOp) bool {
 	var r bool
-	r = op.Assoc == grammar.AssocNone
+	r = op.Assoc == ast.AssocNone
 	return r
 }
 

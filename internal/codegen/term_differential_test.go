@@ -15,13 +15,13 @@ import (
 	"unicode/utf8"
 
 	"zeroparse.dev/zp/core"
-	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/codegen"
 	"zeroparse.dev/zp/internal/compile"
 	"zeroparse.dev/zp/internal/engine"
 	"zeroparse.dev/zp/internal/engine/state"
 	"zeroparse.dev/zp/internal/ir/exec/ref"
 	"zeroparse.dev/zp/internal/testing/codegentest"
+	"zeroparse.dev/zp/pkg/grammar/ast"
 )
 
 // termDifferentialCases is the number of terms of each seed. The tests that run in the process
@@ -648,32 +648,32 @@ func testTermLoweringOptionsDetectBrokenTargets(t *testing.T) {
 
 // referenceTerm returns the term of the generated case: the action of the rule main, or the predicate
 // that precedes the optional "b".
-func referenceTerm(t *testing.T, c codegentest.TermCase) grammar.Term {
+func referenceTerm(t *testing.T, c codegentest.TermCase) ast.Term {
 	t.Helper()
 	g, err := parseTest(c.Src)
 	if err != nil {
 		t.Fatal(err)
 	}
-	var found grammar.Term
-	var walk func(e grammar.Expr)
-	walk = func(e grammar.Expr) {
+	var found ast.Term
+	var walk func(e ast.Expr)
+	walk = func(e ast.Expr) {
 		switch e := e.(type) {
-		case *grammar.Predicate:
+		case *ast.Predicate:
 			found = e.Term
-		case *grammar.Seq:
+		case *ast.Seq:
 			for _, x := range e.Items {
 				walk(x)
 			}
-		case *grammar.Choice:
+		case *ast.Choice:
 			for _, x := range e.Alts {
 				walk(x)
 			}
-		case *grammar.Group:
+		case *ast.Group:
 			walk(e.Expr)
 		}
 	}
 	for _, d := range g.File.Decls {
-		if r, ok := d.(*grammar.RuleDef); ok && r.Name == "main" {
+		if r, ok := d.(*ast.RuleDef); ok && r.Name == "main" {
 			if c.Kind == codegentest.TermAction {
 				return r.Action
 			}
@@ -728,7 +728,7 @@ func TestTermReferenceEvaluator(t *testing.T) {
 // held, by whether an input that ends in "b" parses. The parse records expectations if expectations is set. A
 // case that inserts missing tokens runs on the closure backend only, which backends lists first, with the
 // insertion enabled.
-func checkReference(t *testing.T, c codegentest.TermCase, prog *engine.Program, term grammar.Term, env *ref.TermEnv, unit core.PositionUnit, in string,
+func checkReference(t *testing.T, c codegentest.TermCase, prog *engine.Program, term ast.Term, env *ref.TermEnv, unit core.PositionUnit, in string,
 	expectations bool, backends ...engine.Backend) {
 	t.Helper()
 	v, msg := env.Eval(term)
@@ -801,8 +801,8 @@ func TestTermFixedReference(t *testing.T) {
 		}
 		var structs []string
 		for _, d := range g.File.Decls {
-			if td, ok := d.(*grammar.TypeDef); ok {
-				if _, ok := td.Type.(*grammar.StructType); ok {
+			if td, ok := d.(*ast.TypeDef); ok {
+				if _, ok := td.Type.(*ast.StructType); ok {
 					structs = append(structs, td.Name)
 				}
 			}

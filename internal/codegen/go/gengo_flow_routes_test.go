@@ -7,10 +7,10 @@ import (
 	"strings"
 	"testing"
 
-	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/codegen"
 	"zeroparse.dev/zp/internal/codegen/go"
 	"zeroparse.dev/zp/internal/testing/codegentest"
+	"zeroparse.dev/zp/pkg/grammar/ast"
 )
 
 // routeInputs are the inputs of each route grammar, by file name without the extension.
@@ -105,22 +105,22 @@ rule o = #operators {
     level { infix left "+" }
 }
 `
-	wrap := map[string]func(op grammar.Expr) grammar.Expr{
-		"leader body": func(op grammar.Expr) grammar.Expr { return op },
-		"recover body": func(op grammar.Expr) grammar.Expr {
-			return &grammar.Attributed{Expr: op, Attrs: []*grammar.Attribute{{Name: "recover", Pragma: true, KwArgs: map[string]any{"skip": &grammar.Literal{Value: "y"}}}}}
+	wrap := map[string]func(op ast.Expr) ast.Expr{
+		"leader body": func(op ast.Expr) ast.Expr { return op },
+		"recover body": func(op ast.Expr) ast.Expr {
+			return &ast.Attributed{Expr: op, Attrs: []*ast.Attribute{{Name: "recover", Pragma: true, KwArgs: map[string]any{"skip": &ast.Literal{Value: "y"}}}}}
 		},
-		"repetition": func(op grammar.Expr) grammar.Expr {
-			return &grammar.Repeat{Expr: &grammar.Capture{Name: "c", Expr: op}, Min: 0, Max: -1}
+		"repetition": func(op ast.Expr) ast.Expr {
+			return &ast.Repeat{Expr: &ast.Capture{Name: "c", Expr: op}, Min: 0, Max: -1}
 		},
-		"positive look": func(op grammar.Expr) grammar.Expr {
-			return &grammar.Seq{Items: []grammar.Expr{&grammar.And{Expr: op}, &grammar.Literal{Value: "x"}}}
+		"positive look": func(op ast.Expr) ast.Expr {
+			return &ast.Seq{Items: []ast.Expr{&ast.And{Expr: op}, &ast.Literal{Value: "x"}}}
 		},
-		"negative look": func(op grammar.Expr) grammar.Expr {
-			return &grammar.Seq{Items: []grammar.Expr{&grammar.Not{Expr: op}, &grammar.Literal{Value: "x"}}}
+		"negative look": func(op ast.Expr) ast.Expr {
+			return &ast.Seq{Items: []ast.Expr{&ast.Not{Expr: op}, &ast.Literal{Value: "x"}}}
 		},
-		"capture in negative look": func(op grammar.Expr) grammar.Expr {
-			return &grammar.Seq{Items: []grammar.Expr{&grammar.Not{Expr: &grammar.Capture{Name: "c", Expr: op}}, &grammar.Literal{Value: "x"}}}
+		"capture in negative look": func(op ast.Expr) ast.Expr {
+			return &ast.Seq{Items: []ast.Expr{&ast.Not{Expr: &ast.Capture{Name: "c", Expr: op}}, &ast.Literal{Value: "x"}}}
 		},
 	}
 	for _, src := range []string{
@@ -138,15 +138,15 @@ rule o = #operators {
 		if err != nil {
 			t.Fatal(err)
 		}
-		var op grammar.Expr
+		var op ast.Expr
 		for _, d := range g.File.Decls {
-			if rd, ok := d.(*grammar.RuleDef); ok && rd.Name == "o" {
+			if rd, ok := d.(*ast.RuleDef); ok && rd.Name == "o" {
 				op = rd.Expr
 			}
 		}
 		for _, d := range g.File.Decls {
-			if rd, ok := d.(*grammar.RuleDef); ok && rd.Name == "a" {
-				seq := rd.Expr.(*grammar.Choice).Alts[0].(*grammar.Seq)
+			if rd, ok := d.(*ast.RuleDef); ok && rd.Name == "a" {
+				seq := rd.Expr.(*ast.Choice).Alts[0].(*ast.Seq)
 				seq.Items[len(seq.Items)-1] = w(op)
 			}
 		}

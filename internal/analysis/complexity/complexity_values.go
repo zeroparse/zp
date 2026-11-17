@@ -11,16 +11,16 @@ import (
 	"zeroparse.dev/zp/internal/frontend/check"
 	"zeroparse.dev/zp/internal/frontend/types"
 
-	"zeroparse.dev/zp/grammar"
+	"zeroparse.dev/zp/pkg/grammar/ast"
 )
 
 // termCtx is the context of a value expression in the walk.
 type termCtx struct {
 	rule   string
 	c      wctx
-	pred   *grammar.Predicate // the predicate that holds the term, or nil for an action
+	pred   *ast.Predicate // the predicate that holds the term, or nil for an action
 	action bool
-	holder grammar.Expr // the inline action that holds the term, or nil
+	holder ast.Expr // the inline action that holds the term, or nil
 	// value reports a term whose value the value of the rule holds: an action of the rule, or an
 	// inline action that is its value, and the parts of such a term that its value holds.
 	value  bool
@@ -51,7 +51,7 @@ type param struct {
 	shape growthShape
 	sum   int
 	// elems are the expressions whose values are the elements of the list, when they are known.
-	elems []grammar.Expr
+	elems []ast.Expr
 	// look is set when the list can be a capture made in a positive lookahead, so that its
 	// elements hold input that the match does not consume.
 	look bool
@@ -60,9 +60,9 @@ type param struct {
 // binding is a binding of a variable in a predicate.
 type binding struct {
 	rule string
-	b    *grammar.Bind
+	b    *ast.Bind
 	c    wctx
-	p    *grammar.Predicate // the predicate that holds the binding
+	p    *ast.Predicate // the predicate that holds the binding
 }
 
 // content describes what a value can hold, for the copying operations that copy it.
@@ -188,43 +188,43 @@ var scalarOps = map[string]bool{"==": true, "!=": true, "<": true, "<=": true, "
 // is a range of the input, which costs a constant, though its size counts where it is copied.
 var copyFuncs = map[string]bool{"concat": true, "map": true, "filter": true, "len": true}
 
-func (k *classifier) walkTerm(t grammar.Term, tc termCtx) {
+func (k *classifier) walkTerm(t ast.Term, tc termCtx) {
 	if t == nil {
 		return
 	}
 	k.control.Poll()
 	switch t := t.(type) {
-	case *grammar.TermGroup:
+	case *ast.TermGroup:
 		k.walkTerm(t.Term, tc)
-	case *grammar.Block:
+	case *ast.Block:
 		for _, s := range t.Statements {
 			k.walkTerm(s, tc.part(false))
 		}
-	case *grammar.Bind:
+	case *ast.Bind:
 		k.binds = append(k.binds, &binding{rule: tc.rule, b: t, c: tc.c, p: tc.pred})
 		k.walkTerm(t.Value, tc.part(false))
-	case *grammar.Member:
+	case *ast.Member:
 		k.walkTerm(t.X, tc.part(false))
-	case *grammar.Cast:
+	case *ast.Cast:
 		k.walkTerm(t.X, tc)
-	case *grammar.Unary:
+	case *ast.Unary:
 		k.walkTerm(t.X, tc.part(false))
-	case *grammar.New:
+	case *ast.New:
 		for _, f := range t.Fields {
 			k.walkTerm(f.Value, tc)
 		}
 		for _, a := range t.Args {
 			k.walkTerm(a, tc)
 		}
-	case *grammar.TupleLit:
+	case *ast.TupleLit:
 		for _, x := range t.Elems {
 			k.walkTerm(x, tc)
 		}
-	case *grammar.ListConstructor:
+	case *ast.ListConstructor:
 		for _, x := range t.Items {
 			k.walkTerm(x, tc)
 		}
-	case *grammar.Binary:
+	case *ast.Binary:
 		if t.Op == "+" && !k.isInt(t.L, tc) && !k.isInt(t.R, tc) {
 			k.copyOp(t, termPosOf(t), tc)
 			// The joined operands are one operation; walk the terms below them.
@@ -249,10 +249,10 @@ func (k *classifier) walkTerm(t grammar.Term, tc termCtx) {
 		}
 		k.walkTerm(t.L, tc)
 		k.walkTerm(t.R, tc)
-	case *grammar.Call:
+	case *ast.Call:
 		for i, a := range t.Args {
 			held := tc.value && heldArg(t.Func, i)
-			if lam, ok := a.(*grammar.Lambda); ok {
+			if lam, ok := a.(*ast.Lambda); ok {
 				k.walkTerm(lam.Body, k.lambdaCtx(t, i, lam, tc).part(held))
 				continue
 			}
@@ -278,7 +278,7 @@ func (k *classifier) walkTerm(t grammar.Term, tc termCtx) {
 		case copyFuncs[t.Func]:
 			k.copyOp(t, termPosOf(t), tc)
 		}
-	case *grammar.Lambda:
+	case *ast.Lambda:
 		k.walkTerm(t.Body, tc)
 	}
 }
@@ -310,7 +310,7 @@ func heldArg(fn string, i int) bool {
 
 // mayBeString reports whether the value of t may be a string value rather than a node, a list or
 // a tuple. Without the type of t it may.
-func (k *classifier) mayBeString(t grammar.Term) bool {
+func (k *classifier) mayBeString(t ast.Term) bool {
 	if k.types == nil {
 		return true
 	}
@@ -353,7 +353,7 @@ func (k *classifier) stringIn(t types.Ty, seen map[string]bool) bool {
 // lambda: it does not repeat, a copy from outside it is not reported for each element, and the
 // accumulator of a fold holds what the initial value and the body can hold, at most a constant
 // multiple of their sizes.
-func (k *classifier) lambdaCtx(call *grammar.Call, i int, lam *grammar.Lambda, tc termCtx) termCtx {
+func (k *classifier) lambdaCtx(call *ast.Call, i int, lam *ast.Lambda, tc termCtx) termCtx {
 	params := map[string]param{}
 	for n, p := range tc.params {
 		params[n] = p
@@ -363,7 +363,7 @@ func (k *classifier) lambdaCtx(call *grammar.Call, i int, lam *grammar.Lambda, t
 	if fold {
 		list = 1
 	}
-	var listArg grammar.Term
+	var listArg ast.Term
 	if len(call.Args) > list {
 		listArg = call.Args[list]
 	}
@@ -375,10 +375,10 @@ func (k *classifier) lambdaCtx(call *grammar.Call, i int, lam *grammar.Lambda, t
 	// that is not bounded are distinct parts of it, each seen once; the elements of a bounded list
 	// are seen again whenever an enclosing lambda repeats.
 	var elem content
-	var elems []grammar.Expr
+	var elems []ast.Expr
 	if listArg != nil {
 		if bounded {
-			elem = k.sizeOf(&grammar.Member{X: listArg}, tc, textSize)
+			elem = k.sizeOf(&ast.Member{X: listArg}, tc, textSize)
 		} else {
 			elem = k.elemSize(listArg, tc)
 		}
@@ -461,7 +461,7 @@ func (k *classifier) lambdaCtx(call *grammar.Call, i int, lam *grammar.Lambda, t
 
 // ownExprs reports whether the value of a match of each of exprs, captured in rule, is own (see
 // complexity_sizes.go).
-func (k *classifier) ownExprs(exprs []grammar.Expr, rule string) bool {
+func (k *classifier) ownExprs(exprs []ast.Expr, rule string) bool {
 	for _, e := range exprs {
 		if !k.ownExpr(e, rule, k.ownRules()) {
 			return false
@@ -474,18 +474,18 @@ func (k *classifier) ownExprs(exprs []grammar.Expr, rule string) bool {
 // list in the context tc: the degree of the number of elements of the list of each lambda around
 // it over a list that is not bounded, but without the innermost of them when list reads only its
 // elements and they are own, since their sizes add up to at most the input over its evaluations.
-func (k *classifier) foldRuns(list grammar.Term, tc termCtx) int {
+func (k *classifier) foldRuns(list ast.Term, tc termCtx) int {
 	if tc.runs == 0 || list == nil {
 		return tc.runs
 	}
 	own := len(tc.elems) > 0
-	astfacts.WalkTerm(list, func(x grammar.Term) {
+	astfacts.WalkTerm(list, func(x ast.Term) {
 		switch x := x.(type) {
-		case *grammar.CaptureRef:
+		case *ast.CaptureRef:
 			if !slices.Contains(tc.elems, x.Name) {
 				own = false
 			}
-		case *grammar.VarRef:
+		case *ast.VarRef:
 			own = false
 		}
 	})
@@ -498,21 +498,21 @@ func (k *classifier) foldRuns(list grammar.Term, tc termCtx) int {
 
 // elemSize describes what the size of an element of the list t can depend on: anything that the
 // captures and variables that t reads can hold.
-func (k *classifier) elemSize(t grammar.Term, tc termCtx) content {
+func (k *classifier) elemSize(t ast.Term, tc termCtx) content {
 	saved, savedRepeat := tc.lambda, tc.repeat
 	tc.lambda, tc.repeat = false, false
-	c := k.sizeOf(&grammar.Member{X: t}, tc, textSize)
+	c := k.sizeOf(&ast.Member{X: t}, tc, textSize)
 	tc.lambda, tc.repeat = saved, savedRepeat
 	c.outer = false
 	return c
 }
 
 // joined flattens a join of strings with + into its operands.
-func (k *classifier) joined(t grammar.Term, acc []grammar.Term) []grammar.Term {
+func (k *classifier) joined(t ast.Term, acc []ast.Term) []ast.Term {
 	switch x := t.(type) {
-	case *grammar.TermGroup:
+	case *ast.TermGroup:
 		return k.joined(x.Term, acc)
-	case *grammar.Binary:
+	case *ast.Binary:
 		if x.Op == "+" {
 			return k.joined(x.R, k.joined(x.L, acc))
 		}
@@ -521,31 +521,31 @@ func (k *classifier) joined(t grammar.Term, acc []grammar.Term) []grammar.Term {
 }
 
 // isInt reports whether t is known to be an int.
-func (k *classifier) isInt(t grammar.Term, tc termCtx) bool {
+func (k *classifier) isInt(t ast.Term, tc termCtx) bool {
 	switch t := t.(type) {
-	case *grammar.IntLit:
+	case *ast.IntLit:
 		return true
-	case *grammar.TermGroup:
+	case *ast.TermGroup:
 		return k.isInt(t.Term, tc)
-	case *grammar.Unary:
+	case *ast.Unary:
 		return t.Op == "-"
-	case *grammar.Binary:
+	case *ast.Binary:
 		switch t.Op {
 		case "-", "*", "/", "%":
 			return true
 		case "+":
 			return k.isInt(t.L, tc) || k.isInt(t.R, tc)
 		}
-	case *grammar.Call:
+	case *ast.Call:
 		return t.Func == "len"
-	case *grammar.VarRef:
+	case *ast.VarRef:
 		return k.varType[t.Name] == "int"
-	case *grammar.CaptureRef:
+	case *ast.CaptureRef:
 		if p, ok := tc.params[t.Name]; ok && t.Param {
 			return p.int
 		}
-	case *grammar.Cast:
-		if r, ok := t.Type.(*grammar.TypeRef); ok {
+	case *ast.Cast:
+		if r, ok := t.Type.(*ast.TypeRef); ok {
 			return r.Name == "int"
 		}
 	}
@@ -562,20 +562,20 @@ const (
 )
 
 // sizeOf describes what the size of the value of t, measured in mode, can depend on.
-func (k *classifier) sizeOf(t grammar.Term, tc termCtx, mode sizeMode) content {
+func (k *classifier) sizeOf(t ast.Term, tc termCtx, mode sizeMode) content {
 	var c content
 	switch t := t.(type) {
-	case nil, *grammar.IntLit, *grammar.BoolLit, *grammar.NilLit, *grammar.StringLit, *grammar.Unary, *grammar.Lambda,
-		*grammar.New, *grammar.TupleLit, *grammar.ListConstructor:
+	case nil, *ast.IntLit, *ast.BoolLit, *ast.NilLit, *ast.StringLit, *ast.Unary, *ast.Lambda,
+		*ast.New, *ast.TupleLit, *ast.ListConstructor:
 		// Numbers, Booleans and structs are not strings or lists; a list literal has as many
 		// elements as it has items.
-	case *grammar.TermGroup:
+	case *ast.TermGroup:
 		return k.sizeOf(t.Term, tc, mode)
-	case *grammar.Cast:
+	case *ast.Cast:
 		return k.sizeOf(t.X, tc, mode)
-	case *grammar.VarRef:
+	case *ast.VarRef:
 		c = k.varSize(t.Name, tc, mode)
-	case *grammar.CaptureRef:
+	case *ast.CaptureRef:
 		if p, ok := tc.params[t.Name]; ok && (t.Param || tc.lambda) {
 			if p.acc {
 				c.acc = map[string]int{t.Name: 1}
@@ -596,7 +596,7 @@ func (k *classifier) sizeOf(t grammar.Term, tc termCtx, mode sizeMode) content {
 		// consume.
 		c.look = c.look || k.lookCaptures(tc.rule)[t.Name] && c.unbounded
 		c.outer = tc.repeat && c.unbounded
-	case *grammar.Member:
+	case *ast.Member:
 		exprs, param, ok := k.termExprs(t, tc)
 		if !ok {
 			return k.sizeOfAny(t, tc)
@@ -612,7 +612,7 @@ func (k *classifier) sizeOf(t grammar.Term, tc termCtx, mode sizeMode) content {
 		// a value captured in one.
 		c.look = c.look || k.inLook(t, tc) && c.unbounded
 		c.outer = tc.repeat && !param && c.unbounded
-	case *grammar.Binary:
+	case *ast.Binary:
 		switch {
 		case t.Op == "+":
 			if !k.isInt(t.L, tc) && !k.isInt(t.R, tc) {
@@ -625,7 +625,7 @@ func (k *classifier) sizeOf(t grammar.Term, tc termCtx, mode sizeMode) content {
 			// An element of a list, as x[i], can hold anything that the list can.
 			return k.sizeOfAny(t, tc)
 		}
-	case *grammar.Call:
+	case *ast.Call:
 		switch t.Func {
 		case "len", "list":
 			// An int, and a list with one element for each argument.
@@ -646,7 +646,7 @@ func (k *classifier) sizeOf(t grammar.Term, tc termCtx, mode sizeMode) content {
 				c.add(k.sizeOf(t.Args[0], tc, mode))
 			}
 			for i, a := range t.Args {
-				if lam, ok := a.(*grammar.Lambda); ok {
+				if lam, ok := a.(*ast.Lambda); ok {
 					c.add(k.sizeOf(lam.Body, k.lambdaCtx(t, i, lam, tc), mode))
 				}
 			}
@@ -662,7 +662,7 @@ func (k *classifier) sizeOf(t grammar.Term, tc termCtx, mode sizeMode) content {
 // varBind is a binding of a variable in the rule that holds it.
 type varBind struct {
 	rule string
-	b    *grammar.Bind
+	b    *ast.Bind
 }
 
 // varBinds returns the bindings of the variable v in all the rules.
@@ -670,8 +670,8 @@ func (k *classifier) varBinds(v string) []varBind {
 	if k.varBinding == nil {
 		k.varBinding = map[string][]varBind{}
 		for _, r := range k.rules {
-			compile.WalkRuleTerms(r, func(t grammar.Term) {
-				if b, ok := t.(*grammar.Bind); ok {
+			compile.WalkRuleTerms(r, func(t ast.Term) {
+				if b, ok := t.(*ast.Bind); ok {
 					k.varBinding[b.Name] = append(k.varBinding[b.Name], varBind{r.Name, b})
 				}
 			})
@@ -715,13 +715,13 @@ func (k *classifier) holder(rule string) string {
 
 // sizeOfAny describes the size of the value of t without looking at how it is built: anything
 // that the captures and variables it reads can hold.
-func (k *classifier) sizeOfAny(t grammar.Term, tc termCtx) content {
+func (k *classifier) sizeOfAny(t ast.Term, tc termCtx) content {
 	var c content
 	outer := false
 	{
-		astfacts.WalkTerm(t, func(x grammar.Term) {
+		astfacts.WalkTerm(t, func(x ast.Term) {
 			switch x := x.(type) {
-			case *grammar.CaptureRef:
+			case *ast.CaptureRef:
 				if p, ok := tc.params[x.Name]; ok && (x.Param || tc.lambda) {
 					if p.acc {
 						c.add(content{acc: map[string]int{x.Name: 1}})
@@ -742,7 +742,7 @@ func (k *classifier) sizeOfAny(t grammar.Term, tc termCtx) content {
 					c.look = c.look || k.lookCaptures(tc.rule)[x.Name] && d.unbounded
 					c.add(d)
 				}
-			case *grammar.VarRef:
+			case *ast.VarRef:
 				c.add(k.varSize(x.Name, tc, textSize))
 			}
 		})
@@ -755,17 +755,17 @@ func (k *classifier) sizeOfAny(t grammar.Term, tc termCtx) content {
 // termExprs returns the captured expressions whose values t can be: a capture, a member $y of
 // such a value, which is the value of a capture y inside it, or an element of a list whose
 // elements are known. param reports a value that comes from a lambda parameter.
-func (k *classifier) termExprs(t grammar.Term, tc termCtx) (exprs []grammar.Expr, param, ok bool) {
+func (k *classifier) termExprs(t ast.Term, tc termCtx) (exprs []ast.Expr, param, ok bool) {
 	switch t := t.(type) {
-	case *grammar.TermGroup:
+	case *ast.TermGroup:
 		return k.termExprs(t.Term, tc)
-	case *grammar.CaptureRef:
+	case *ast.CaptureRef:
 		if p, isParam := tc.params[t.Name]; isParam && (t.Param || tc.lambda) {
 			return p.elems, true, p.elems != nil && !p.acc
 		}
 		exprs := k.captures[tc.rule][t.Name]
 		return exprs, false, len(exprs) > 0
-	case *grammar.Member:
+	case *ast.Member:
 		if !strings.HasPrefix(t.Name, "$") {
 			return nil, false, false
 		}
@@ -776,14 +776,14 @@ func (k *classifier) termExprs(t grammar.Term, tc termCtx) (exprs []grammar.Expr
 		name := strings.TrimPrefix(t.Name, "$")
 		for _, e := range inner {
 			// The node of a call of a rule without an action holds the captures of its body.
-			if r, isRef := unwrapValue(e).(*grammar.Ref); isRef {
+			if r, isRef := unwrapValue(e).(*ast.Ref); isRef {
 				if d := k.byName[r.Name]; d != nil && d.Action == nil && !isOperators(d.Expr) {
 					e = d.Expr
 				}
 			}
 			found := false
-			astfacts.WalkExpr(e, func(x grammar.Expr) {
-				if cp, isCap := x.(*grammar.Capture); isCap && cp.Name == name {
+			astfacts.WalkExpr(e, func(x ast.Expr) {
+				if cp, isCap := x.(*ast.Capture); isCap && cp.Name == name {
 					exprs = append(exprs, cp.Expr)
 					found = true
 				}
@@ -802,16 +802,16 @@ func (k *classifier) termExprs(t grammar.Term, tc termCtx) (exprs []grammar.Expr
 // inLook reports whether the value of t can be captured in a positive lookahead, or be a part of
 // a value captured in one, so that it holds input that the match does not consume. A capture that
 // a rule returns is the size of that rule, which sizeOf follows.
-func (k *classifier) inLook(t grammar.Term, tc termCtx) bool {
+func (k *classifier) inLook(t ast.Term, tc termCtx) bool {
 	switch t := t.(type) {
-	case *grammar.TermGroup:
+	case *ast.TermGroup:
 		return k.inLook(t.Term, tc)
-	case *grammar.CaptureRef:
+	case *ast.CaptureRef:
 		if p, isParam := tc.params[t.Name]; isParam && (t.Param || tc.lambda) {
 			return p.look
 		}
 		return k.lookCaptures(tc.rule)[t.Name]
-	case *grammar.Member:
+	case *ast.Member:
 		if k.inLook(t.X, tc) {
 			return true
 		}
@@ -822,15 +822,15 @@ func (k *classifier) inLook(t grammar.Term, tc termCtx) bool {
 		name := strings.TrimPrefix(t.Name, "$")
 		found := false
 		for _, e := range inner {
-			if r, isRef := unwrapValue(e).(*grammar.Ref); isRef {
+			if r, isRef := unwrapValue(e).(*ast.Ref); isRef {
 				if d := k.byName[r.Name]; d != nil && d.Action == nil && !isOperators(d.Expr) {
 					e = d.Expr
 				}
 			}
-			astfacts.WalkExpr(e, func(x grammar.Expr) {
-				if and, isAnd := x.(*grammar.And); isAnd {
-					astfacts.WalkExpr(and.Expr, func(y grammar.Expr) {
-						if cp, isCap := y.(*grammar.Capture); isCap && cp.Name == name {
+			astfacts.WalkExpr(e, func(x ast.Expr) {
+				if and, isAnd := x.(*ast.And); isAnd {
+					astfacts.WalkExpr(and.Expr, func(y ast.Expr) {
+						if cp, isCap := y.(*ast.Capture); isCap && cp.Name == name {
 							found = true
 						}
 					})
@@ -844,18 +844,18 @@ func (k *classifier) inLook(t grammar.Term, tc termCtx) bool {
 
 // elemExprs returns the expressions whose values are the elements of the list t, or nil when
 // they are not known: t is the value of repetitions.
-func (k *classifier) elemExprs(t grammar.Term, tc termCtx) []grammar.Expr {
+func (k *classifier) elemExprs(t ast.Term, tc termCtx) []ast.Expr {
 	exprs, _, ok := k.termExprs(t, tc)
 	if !ok {
 		return nil
 	}
-	var out []grammar.Expr
+	var out []ast.Expr
 	for _, e := range exprs {
 		e = unwrapValue(e)
-		if o, isOpt := e.(*grammar.Optional); isOpt {
+		if o, isOpt := e.(*ast.Optional); isOpt {
 			e = unwrapValue(o.Expr)
 		}
-		r, isRep := e.(*grammar.Repeat)
+		r, isRep := e.(*ast.Repeat)
 		if !isRep {
 			return nil
 		}
@@ -866,14 +866,14 @@ func (k *classifier) elemExprs(t grammar.Term, tc termCtx) []grammar.Expr {
 
 // unwrapValue removes the groups, captures, discards and atomic expressions around e, which do not
 // change its value.
-func unwrapValue(e grammar.Expr) grammar.Expr {
+func unwrapValue(e ast.Expr) ast.Expr {
 	for {
 		switch x := e.(type) {
-		case *grammar.Group:
+		case *ast.Group:
 			e = x.Expr
-		case *grammar.Capture:
+		case *ast.Capture:
 			e = x.Expr
-		case *grammar.Atomic:
+		case *ast.Atomic:
 			e = x.Expr
 		default:
 			return e
@@ -883,30 +883,30 @@ func unwrapValue(e grammar.Expr) grammar.Expr {
 
 // exprSize describes what the size of the value of the captured expression e, measured in mode,
 // can depend on. name names the capture in witnesses.
-func (k *classifier) exprSize(e grammar.Expr, tc termCtx, mode sizeMode, name string) content {
+func (k *classifier) exprSize(e ast.Expr, tc termCtx, mode sizeMode, name string) content {
 	switch x := e.(type) {
-	case *grammar.Group:
+	case *ast.Group:
 		return k.exprSize(x.Expr, tc, mode, name)
-	case *grammar.Capture:
+	case *ast.Capture:
 		return k.exprSize(x.Expr, tc, mode, name)
-	case *grammar.Discard:
+	case *ast.Discard:
 		return k.exprSize(x.Expr, tc, mode, name)
-	case *grammar.Atomic:
+	case *ast.Atomic:
 		return k.exprSize(x.Expr, tc, mode, name)
-	case *grammar.Optional:
+	case *ast.Optional:
 		return k.exprSize(x.Expr, tc, mode, name)
-	case *grammar.Choice:
+	case *ast.Choice:
 		var c content
 		for _, alt := range x.Alts {
 			c.add(k.exprSize(alt, tc, mode, name))
 		}
 		return c
-	case *grammar.Repeat:
+	case *ast.Repeat:
 		if mode == listSize {
 			// A list with one element for each iteration.
 			return content{unbounded: x.Max < 0}
 		}
-	case *grammar.Ref:
+	case *ast.Ref:
 		if k.byName[x.Name] == nil {
 			return content{}
 		}
@@ -934,13 +934,13 @@ func (k *classifier) exprSize(e grammar.Expr, tc termCtx, mode sizeMode, name st
 
 // deepSize describes the size of the value of e without looking at how it is built: it can hold
 // anything that e matches or calls.
-func (k *classifier) deepSize(e grammar.Expr, tc termCtx, name string) content {
+func (k *classifier) deepSize(e ast.Expr, tc termCtx, name string) content {
 	k.lookedRules()
 	look := k.exprLooks(e, tc.rule)
 	c := content{unbounded: !k.bounded(e) || look, look: look}
 	found := false
-	astfacts.WalkExpr(e, func(x grammar.Expr) {
-		if r, ok := x.(*grammar.Ref); ok && k.byName[r.Name] != nil && k.onRecursion(tc.rule, r.Name) {
+	astfacts.WalkExpr(e, func(x ast.Expr) {
+		if r, ok := x.(*ast.Ref); ok && k.byName[r.Name] != nil && k.onRecursion(tc.rule, r.Name) {
 			found = true
 		}
 	})
@@ -986,8 +986,8 @@ func (k *classifier) includes(rule string, mode sizeMode) bool {
 	return v
 }
 
-func isOperators(e grammar.Expr) bool {
-	_, ok := e.(*grammar.OperatorsRule)
+func isOperators(e ast.Expr) bool {
+	_, ok := e.(*ast.OperatorsRule)
 	return ok
 }
 
@@ -998,12 +998,12 @@ type sizeKey struct {
 
 // copyOp checks a copying operation (condition 4) and records it as a scanning source when an
 // operand can be larger than a constant of the grammar.
-func (k *classifier) copyOp(t grammar.Term, pos grammar.Pos, tc termCtx) {
+func (k *classifier) copyOp(t ast.Term, pos ast.Pos, tc termCtx) {
 	k.copied(t, pos, tc, k.sizeOf(t, tc, textSize))
 }
 
 // copied checks the copying operation t, which copies a value of the size all.
-func (k *classifier) copied(t grammar.Term, pos grammar.Pos, tc termCtx, all content) {
+func (k *classifier) copied(t ast.Term, pos ast.Pos, tc termCtx, all content) {
 	text := k.showTerm(t)
 	worst := func(m map[string]int) (string, int) {
 		names := make([]string, 0, len(m))
@@ -1098,22 +1098,22 @@ func times(n int) string {
 
 // termVars returns the variables that the value of t can depend on: those it reads, and those
 // that the rules called in the captures it reads read.
-func (k *classifier) termVars(t grammar.Term, rule string) map[string]bool {
+func (k *classifier) termVars(t ast.Term, rule string) map[string]bool {
 	out := map[string]bool{}
-	ruleVars := func(e grammar.Expr) {
-		astfacts.WalkExpr(e, func(x grammar.Expr) {
-			if r, ok := x.(*grammar.Ref); ok {
+	ruleVars := func(e ast.Expr) {
+		astfacts.WalkExpr(e, func(x ast.Expr) {
+			if r, ok := x.(*ast.Ref); ok {
 				for _, v := range k.vars[r.Name] {
 					out[v] = true
 				}
 			}
 		})
 	}
-	astfacts.WalkTerm(t, func(x grammar.Term) {
+	astfacts.WalkTerm(t, func(x ast.Term) {
 		switch x := x.(type) {
-		case *grammar.VarRef:
+		case *ast.VarRef:
 			out[x.Name] = true
-		case *grammar.CaptureRef:
+		case *ast.CaptureRef:
 			if !x.Param {
 				for _, e := range k.captures[rule][x.Name] {
 					ruleVars(e)
@@ -1125,11 +1125,11 @@ func (k *classifier) termVars(t grammar.Term, rule string) map[string]bool {
 }
 
 // constant reports whether t reads nothing that the input can change.
-func constant(t grammar.Term) bool {
+func constant(t ast.Term) bool {
 	ok := true
-	astfacts.WalkTerm(t, func(x grammar.Term) {
+	astfacts.WalkTerm(t, func(x ast.Term) {
 		switch x.(type) {
-		case *grammar.VarRef, *grammar.CaptureRef, *grammar.Member:
+		case *ast.VarRef, *ast.CaptureRef, *ast.Member:
 			ok = false
 		}
 	})
@@ -1195,40 +1195,40 @@ func (k *classifier) reaches(b *binding, strict bool) (string, bool) {
 }
 
 // reachingCall returns a call in e that can reach rule again.
-func (k *classifier) reachingCall(e grammar.Expr, rule string, strict bool) *grammar.Ref {
-	var found *grammar.Ref
-	var visit func(e grammar.Expr)
-	visit = func(e grammar.Expr) {
+func (k *classifier) reachingCall(e ast.Expr, rule string, strict bool) *ast.Ref {
+	var found *ast.Ref
+	var visit func(e ast.Expr)
+	visit = func(e ast.Expr) {
 		if found != nil || e == nil {
 			return
 		}
 		switch x := e.(type) {
-		case *grammar.Ref:
+		case *ast.Ref:
 			if k.byName[x.Name] != nil && k.reachable(x.Name)[rule] {
 				found = x
 			}
-		case *grammar.Group:
+		case *ast.Group:
 			visit(x.Expr)
-		case *grammar.Optional:
+		case *ast.Optional:
 			visit(x.Expr)
-		case *grammar.Capture:
+		case *ast.Capture:
 			visit(x.Expr)
-		case *grammar.Discard:
+		case *ast.Discard:
 			visit(x.Expr)
-		case *grammar.Atomic:
+		case *ast.Atomic:
 			visit(x.Expr)
-		case *grammar.Seq:
+		case *ast.Seq:
 			for _, it := range x.Items {
 				visit(it)
 			}
-		case *grammar.Choice:
+		case *ast.Choice:
 			for _, alt := range x.Alts {
 				visit(alt)
 			}
 		default:
 			if !strict {
-				astfacts.WalkExpr(e, func(y grammar.Expr) {
-					if r, ok := y.(*grammar.Ref); ok && found == nil && k.byName[r.Name] != nil && k.reachable(r.Name)[rule] {
+				astfacts.WalkExpr(e, func(y ast.Expr) {
+					if r, ok := y.(*ast.Ref); ok && found == nil && k.byName[r.Name] != nil && k.reachable(r.Name)[rule] {
 						found = r
 					}
 				})
@@ -1294,7 +1294,7 @@ func (k *classifier) growingBindings() []GrowingBinding {
 		if _, ok := k.reaches(b, true); !ok || !k.canHoldNonEmpty(b) {
 			continue
 		}
-		out = append(out, GrowingBinding{Rule: b.rule, Pos: termPosOf(b.b), Var: b.b.Name, Text: grammar.FormatTerm(b.b)})
+		out = append(out, GrowingBinding{Rule: b.rule, Pos: termPosOf(b.b), Var: b.b.Name, Text: ast.FormatTerm(b.b)})
 	}
 	return out
 }
@@ -1308,7 +1308,7 @@ func (k *classifier) bindingDoubles(b *binding) bool {
 	}
 	n := 0
 	for _, x := range k.joined(b.b.Value, nil) {
-		if r, ok := check.UngroupTerm(x).(*grammar.VarRef); ok && r.Name == v {
+		if r, ok := check.UngroupTerm(x).(*ast.VarRef); ok && r.Name == v {
 			n++
 		}
 	}
@@ -1322,7 +1322,7 @@ func (k *classifier) canHoldNonEmpty(b *binding) bool {
 	v := b.b.Name
 	for _, d := range k.g.Vars() {
 		if d.Name == v {
-			if s, ok := d.Value.(*grammar.StringLit); ok && s.Value != "" {
+			if s, ok := d.Value.(*ast.StringLit); ok && s.Value != "" {
 				return true
 			}
 		}
@@ -1349,12 +1349,12 @@ func (k *classifier) canHoldNonEmpty(b *binding) bool {
 }
 
 // bindsNonEmpty reports whether e has a binding of v to a value that can be non-empty.
-func (k *classifier) bindsNonEmpty(e grammar.Expr, v string) bool {
+func (k *classifier) bindsNonEmpty(e ast.Expr, v string) bool {
 	found := false
-	astfacts.WalkExpr(e, func(x grammar.Expr) {
-		if p, ok := x.(*grammar.Predicate); ok {
-			astfacts.WalkTerm(p.Term, func(t grammar.Term) {
-				if bd, ok := t.(*grammar.Bind); ok && bd.Name == v && k.canBeNonEmpty(bd.Value, v) {
+	astfacts.WalkExpr(e, func(x ast.Expr) {
+		if p, ok := x.(*ast.Predicate); ok {
+			astfacts.WalkTerm(p.Term, func(t ast.Term) {
+				if bd, ok := t.(*ast.Bind); ok && bd.Name == v && k.canBeNonEmpty(bd.Value, v) {
 					found = true
 				}
 			})
@@ -1364,14 +1364,14 @@ func (k *classifier) bindsNonEmpty(e grammar.Expr, v string) bool {
 }
 
 // canBeNonEmpty reports whether t can be a non-empty string when v is empty.
-func (k *classifier) canBeNonEmpty(t grammar.Term, v string) bool {
+func (k *classifier) canBeNonEmpty(t ast.Term, v string) bool {
 	for _, x := range k.joined(t, nil) {
 		switch x := check.UngroupTerm(x).(type) {
-		case *grammar.StringLit:
+		case *ast.StringLit:
 			if x.Value != "" {
 				return true
 			}
-		case *grammar.VarRef:
+		case *ast.VarRef:
 			if x.Name != v {
 				return true
 			}

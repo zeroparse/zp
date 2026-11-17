@@ -7,11 +7,11 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/core"
-	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/bytecode"
 	"zeroparse.dev/zp/internal/compile"
 	"zeroparse.dev/zp/internal/testing/codegentest"
 	"zeroparse.dev/zp/internal/value"
+	"zeroparse.dev/zp/pkg/grammar/ast"
 )
 
 // constructorGrammar builds text structs in typed list constructors, through an alias too.
@@ -28,15 +28,15 @@ func TestTypedNodeConstructors(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	data, err := grammar.MarshalJSON(g)
+	data, err := ast.MarshalJSON(g)
 	if err != nil {
 		t.Fatal(err)
 	}
-	decoded, err := grammar.DecodeJSON(data)
+	decoded, err := ast.DecodeJSON(data)
 	if err != nil {
 		t.Fatal(err)
 	}
-	for _, input := range []*grammar.Grammar{g, decoded} {
+	for _, input := range []*ast.Grammar{g, decoded} {
 		p, err := Compile(input, compile.Options{})
 		if err != nil {
 			t.Fatal(err)
@@ -75,7 +75,7 @@ func TestTypedNodeConstructors(t *testing.T) {
 				}
 			}
 		}
-		unchanged, err := grammar.MarshalJSON(input)
+		unchanged, err := ast.MarshalJSON(input)
 		if err != nil || string(unchanged) != string(data) {
 			t.Fatalf("constructor compilation changed AST: %v", err)
 		}

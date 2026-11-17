@@ -4,7 +4,7 @@ package sourceast
 import (
 	"fmt"
 
-	"zeroparse.dev/zp/grammar"
+	"zeroparse.dev/zp/pkg/grammar/ast"
 )
 
 // Metadata is the offset representation of a canonical SourceMetadata value.
@@ -20,13 +20,13 @@ type Metadata struct {
 // Positions converts rune offsets using the manual frontend's newline policy.
 // A CRLF advances the line at LF; a lone CR advances it at CR.
 type Positions struct {
-	boundaries []grammar.Pos
+	boundaries []ast.Pos
 }
 
 func NewPositions(input string) *Positions {
 	rs := []rune(input)
-	p := &Positions{boundaries: make([]grammar.Pos, len(rs)+1)}
-	pos := grammar.Pos{Line: 1, Col: 1}
+	p := &Positions{boundaries: make([]ast.Pos, len(rs)+1)}
+	pos := ast.Pos{Line: 1, Col: 1}
 	p.boundaries[0] = pos
 	for i, r := range rs {
 		if r == '\n' || r == '\r' && (i+1 == len(rs) || rs[i+1] != '\n') {
@@ -42,7 +42,7 @@ func NewPositions(input string) *Positions {
 
 // At returns the position of the rune offset off, which may be the end of the
 // input.
-func (p *Positions) At(off int) grammar.Pos {
+func (p *Positions) At(off int) ast.Pos {
 	if off < 0 {
 		off = 0
 	}
@@ -54,11 +54,11 @@ func (p *Positions) At(off int) grammar.Pos {
 
 // Source converts a syntax span and retains its already-normalized comments.
 // Invalid offsets are rejected instead of producing misleading source data.
-func (p *Positions) Source(m Metadata) (grammar.SourceInfo, error) {
+func (p *Positions) Source(m Metadata) (ast.SourceInfo, error) {
 	if p == nil || m.Start < 0 || m.End < m.Start || m.End >= len(p.boundaries) {
-		return grammar.SourceInfo{}, fmt.Errorf("invalid source span [%d, %d)", m.Start, m.End)
+		return ast.SourceInfo{}, fmt.Errorf("invalid source span [%d, %d)", m.Start, m.End)
 	}
-	return grammar.SourceInfo{
+	return ast.SourceInfo{
 		Pos: p.boundaries[m.Start], End: p.boundaries[m.End],
 		LeadingComments: m.Leading, TrailingComments: append([]string(nil), m.Trailing...),
 		LeadingDetachedComments: append([]string(nil), m.Detached...),
@@ -68,7 +68,7 @@ func (p *Positions) Source(m Metadata) (grammar.SourceInfo, error) {
 // SetSpan copies a canonical syntax span without replacing existing ownership,
 // diagnostic positions, or formatter layout. This supports source forms whose
 // boundary ownership has not yet been added to the canonical grammar.
-func (p *Positions) SetSpan(dst *grammar.SourceInfo, start, end int) error {
+func (p *Positions) SetSpan(dst *ast.SourceInfo, start, end int) error {
 	if dst == nil {
 		return fmt.Errorf("nil source information for syntax span")
 	}
@@ -81,7 +81,7 @@ func (p *Positions) SetSpan(dst *grammar.SourceInfo, start, end int) error {
 }
 
 // PackageClause is the first supported source-AST adapter increment.
-func (p *Positions) PackageClause(g *grammar.Grammar, name string, m Metadata) error {
+func (p *Positions) PackageClause(g *ast.Grammar, name string, m Metadata) error {
 	if g == nil {
 		return fmt.Errorf("nil grammar for package clause")
 	}
@@ -117,8 +117,8 @@ type Item struct {
 // of the file. A nil element, such as a recovered error, owns nothing and leaves
 // its successor without leading groups. Comment text is copied as determined by
 // the grammar; no group moves between boundaries.
-func (p *Positions) Items(head Lead, items []*Item) ([]grammar.SourceInfo, error) {
-	out := make([]grammar.SourceInfo, len(items))
+func (p *Positions) Items(head Lead, items []*Item) ([]ast.SourceInfo, error) {
+	out := make([]ast.SourceInfo, len(items))
 	lead := head
 	for i, it := range items {
 		if it == nil {

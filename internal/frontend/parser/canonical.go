@@ -8,9 +8,9 @@ import (
 	"strconv"
 	"strings"
 
-	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/frontend/parser/sourceast"
 	"zeroparse.dev/zp/internal/frontend/parser/zpparser/types"
+	"zeroparse.dev/zp/pkg/grammar/ast"
 )
 
 // FromSourceTree builds the public grammar AST from the canonical source tree:
@@ -26,12 +26,12 @@ import (
 // errors of those checks, in the form of Parse, when the source is not a valid
 // grammar. The raw comment tokens and line breaks that Format reads are
 // replayed from the tokens of src (see layoutReplay).
-func FromSourceTree(src string, root *types.File) (*grammar.Grammar, error) {
+func FromSourceTree(src string, root *types.File) (*ast.Grammar, error) {
 	return lexSource(src).fromSourceTree(root)
 }
 
 // fromSourceTree is FromSourceTree with the tokens and lexical errors of lx.
-func (lx *lexed) fromSourceTree(root *types.File) (g *grammar.Grammar, err error) {
+func (lx *lexed) fromSourceTree(root *types.File) (g *ast.Grammar, err error) {
 	src := lx.src
 	c := &canonical{src: []rune(src), pos: sourceast.NewPositions(src)}
 	defer func() {
@@ -72,15 +72,15 @@ func (lx *lexed) fromSourceTree(root *types.File) (g *grammar.Grammar, err error
 // not make, in the declarations kept; the syntax errors are the caller's, in
 // the form of SourceErrors. root must come from a parse of src with the
 // default position unit.
-func FromPartialSourceTree(src string, root *types.File) (*grammar.Grammar, ErrorList) {
+func FromPartialSourceTree(src string, root *types.File) (*ast.Grammar, ErrorList) {
 	return lexSource(src).fromPartialSourceTree(root)
 }
 
 // fromPartialSourceTree is FromPartialSourceTree with the tokens of lx.
-func (lx *lexed) fromPartialSourceTree(root *types.File) (*grammar.Grammar, ErrorList) {
+func (lx *lexed) fromPartialSourceTree(root *types.File) (*ast.Grammar, ErrorList) {
 	src := lx.src
 	c := &canonical{src: []rune(src), pos: sourceast.NewPositions(src), partial: true}
-	g := &grammar.Grammar{}
+	g := &ast.Grammar{}
 	if root == nil {
 		return g, nil
 	}
@@ -92,7 +92,7 @@ func (lx *lexed) fromPartialSourceTree(root *types.File) (*grammar.Grammar, Erro
 		}
 	}
 	for _, d := range root.Decls {
-		var out grammar.Decl
+		var out ast.Decl
 		if c.try(func() { out = c.decl(d) }) {
 			g.File.Decls = append(g.File.Decls, out)
 		}
@@ -148,7 +148,7 @@ type canonical struct {
 	// hand-written parser completes them, and targets their source
 	// information; a nil target is a node that the AST does not keep.
 	nodes   []sourceast.Node
-	targets []*grammar.SourceInfo
+	targets []*ast.SourceInfo
 	events  []sourceast.Event // the backing array of the events of nodes
 	// comments are all the comments of the file in order, and gapList its
 	// comment gaps.
@@ -248,7 +248,7 @@ func (c *canonical) separators(off int, sep rune, most int) []int {
 }
 
 // add records a node, completed once, with the span of the events.
-func (c *canonical) add(target *grammar.SourceInfo, events ...sourceast.Event) int {
+func (c *canonical) add(target *ast.SourceInfo, events ...sourceast.Event) int {
 	// The events of all nodes share one backing array, so that a node does not allocate its own.
 	start := len(c.events)
 	c.events = append(c.events, events...)
@@ -258,7 +258,7 @@ func (c *canonical) add(target *grammar.SourceInfo, events ...sourceast.Event) i
 }
 
 // span records a node with the span of the tree value n.
-func (c *canonical) span(target *grammar.SourceInfo, n ranged) int {
+func (c *canonical) span(target *ast.SourceInfo, n ranged) int {
 	s, e := n.Range()
 	return c.add(target, sourceast.Event{Start: s, End: e})
 }
@@ -307,7 +307,7 @@ func isNil(x any) bool {
 
 // statement records the node of a statement or list element with span, the
 // body of the statement without its comments.
-func (c *canonical) statement(target *grammar.SourceInfo, span ranged, sep []int, comma bool) {
+func (c *canonical) statement(target *ast.SourceInfo, span ranged, sep []int, comma bool) {
 	if isNil(span) {
 		c.fail("the source tree has a syntax error in a statement")
 	}
@@ -331,8 +331,8 @@ func (c *canonical) errorRange(start, end int, msg string) {
 
 // File.
 
-func (c *canonical) file(root *types.File) *grammar.Grammar {
-	g := &grammar.Grammar{}
+func (c *canonical) file(root *types.File) *ast.Grammar {
+	g := &ast.Grammar{}
 	c.comments = root.Comments
 	c.gapList = c.gaps(root)
 	hasToken := false
@@ -411,7 +411,7 @@ func (c *canonical) tokensEnd(root *types.File) int {
 	return end
 }
 
-func (c *canonical) pkg(p *grammar.Pkg, n *types.Pkg) {
+func (c *canonical) pkg(p *ast.Pkg, n *types.Pkg) {
 	if n.Source == nil || isNil(n.Source.Span_) {
 		c.fail("the source tree has a syntax error in the package clause")
 	}
@@ -450,11 +450,11 @@ func (c *canonical) semicolons(span ranged) []int {
 	return c.separators(end(span), ';', 1<<30)
 }
 
-func (c *canonical) decl(d types.Decl) grammar.Decl {
+func (c *canonical) decl(d types.Decl) ast.Decl {
 	switch d := d.(type) {
 	case *types.TypeDef:
 		sep := c.semicolons(d.SourceSpan)
-		def := &grammar.TypeDef{Name: c.name(d.Name)}
+		def := &ast.TypeDef{Name: c.name(d.Name)}
 		name := d.Name
 		eq := c.nextToken(name.End)
 		def.HeaderComments = c.commentsIn(d.SourceSpan.Start+len("type"), name.Start)
@@ -473,7 +473,7 @@ func (c *canonical) decl(d types.Decl) grammar.Decl {
 		return def
 	case *types.TypeAlias:
 		sep := c.semicolons(d.SourceSpan)
-		alias := &grammar.TypeAlias{Name: c.name(d.Name)}
+		alias := &ast.TypeAlias{Name: c.name(d.Name)}
 		name := d.Name
 		if isNil(d.Type) {
 			c.fail("the source tree has a syntax error in a declaration")
@@ -488,7 +488,7 @@ func (c *canonical) decl(d types.Decl) grammar.Decl {
 		return alias
 	case *types.VarDef:
 		sep := c.semicolons(d.SourceSpan)
-		v := &grammar.VarDef{Name: c.name(d.Name)}
+		v := &ast.VarDef{Name: c.name(d.Name)}
 		name := d.Name
 		v.HeaderComments = c.commentsIn(d.SourceSpan.Start+len("var"), name.Start)
 		if !isNil(d.Type) {
@@ -507,8 +507,8 @@ func (c *canonical) decl(d types.Decl) grammar.Decl {
 	return nil
 }
 
-func (c *canonical) ruleDef(d *types.RuleDef, sep []int) *grammar.RuleDef {
-	rd := &grammar.RuleDef{Name: c.name(d.Name)}
+func (c *canonical) ruleDef(d *types.RuleDef, sep []int) *ast.RuleDef {
+	rd := &ast.RuleDef{Name: c.name(d.Name)}
 	attrs := d.Attrs
 	keyword := d.SourceSpan.Start
 	for _, attr := range attrs {
@@ -553,14 +553,14 @@ func (c *canonical) ruleDef(d *types.RuleDef, sep []int) *grammar.RuleDef {
 
 // Types.
 
-func (c *canonical) structType(n *types.StructType, start int) *grammar.StructType {
-	st := &grammar.StructType{Fields: nil}
+func (c *canonical) structType(n *types.StructType, start int) *ast.StructType {
+	st := &ast.StructType{Fields: nil}
 	for _, spec := range n.Fields {
 		f, ok := spec.(*types.Field)
 		if !ok || f == nil || f.SourceSpan == nil || isNil(f.Type) {
 			c.fail("the source tree has a syntax error in a struct field")
 		}
-		field := &grammar.Field{Name: c.name(f.Name)}
+		field := &ast.Field{Name: c.name(f.Name)}
 		field.HeaderComments = c.commentsIn(f.Name.End, start0(f.Type))
 		field.Type = c.typ(f.Type)
 		c.statement(&field.SourceInfo, f.SourceSpan, c.separators(f.SourceSpan.End, ';', 1), false)
@@ -573,8 +573,8 @@ func (c *canonical) structType(n *types.StructType, start int) *grammar.StructTy
 // start0 returns the start of a value of the tree that is known to be present.
 func start0(x any) int { return start(x.(ranged)) }
 
-func (c *canonical) types(list []types.Type) []grammar.TypeExpr {
-	var out []grammar.TypeExpr
+func (c *canonical) types(list []types.Type) []ast.TypeExpr {
+	var out []ast.TypeExpr
 	each(c, list, func(a types.Type) { out = append(out, c.typ(a)) })
 	return out
 }
@@ -589,10 +589,10 @@ func (c *canonical) typeName(name *types.Ident) {
 
 // typ builds a type expression: a types.Type, or the types.DefinedType of a
 // type definition.
-func (c *canonical) typ(n any) grammar.TypeExpr {
+func (c *canonical) typ(n any) ast.TypeExpr {
 	switch n := n.(type) {
 	case *types.TypeRef:
-		t := &grammar.TypeRef{Name: c.name(n.Name)}
+		t := &ast.TypeRef{Name: c.name(n.Name)}
 		if t.Name == "node" {
 			c.errs.add(c.pos.At(n.Name.Start), bareNode)
 		}
@@ -600,46 +600,46 @@ func (c *canonical) typ(n any) grammar.TypeExpr {
 		c.span(&t.SourceInfo, n)
 		return t
 	case *types.Bottom:
-		t := &grammar.TypeRef{Name: n.Value}
+		t := &ast.TypeRef{Name: n.Value}
 		c.span(&t.SourceInfo, n)
 		return t
 	case *types.TypeApp:
-		t := &grammar.TypeApp{Name: c.name(n.Name)}
+		t := &ast.TypeApp{Name: c.name(n.Name)}
 		c.typeName(n.Name)
 		t.Args = c.types(n.Args)
 		c.span(&t.SourceInfo, n)
 		return t
 	case *types.TypeGroup:
-		t := &grammar.TypeGroup{}
+		t := &ast.TypeGroup{}
 		t.Type = c.typ(n.Type)
 		c.span(&t.SourceInfo, n)
 		return t
 	case *types.TupleType:
-		t := &grammar.TupleType{}
+		t := &ast.TupleType{}
 		t.Types = c.types(n.Types)
 		c.span(&t.SourceInfo, n)
 		return t
 	case *types.StructType:
 		return c.structType(n, n.Start)
 	case *types.OptionalType:
-		t := &grammar.OptionalType{}
+		t := &ast.OptionalType{}
 		t.Elem = c.typ(n.Type)
 		c.span(&t.SourceInfo, n)
 		return t
 	case *types.ListType:
-		t := &grammar.ListType{}
+		t := &ast.ListType{}
 		t.Elem = c.typ(n.Type)
 		c.span(&t.SourceInfo, n)
 		return t
 	case *types.JoinType:
-		t := &grammar.JoinType{}
+		t := &ast.JoinType{}
 		for _, o := range flattenJoin(n) {
 			t.Types = append(t.Types, c.typ(o))
 		}
 		c.span(&t.SourceInfo, n)
 		return t
 	case *types.MeetType:
-		t := &grammar.MeetType{}
+		t := &ast.MeetType{}
 		for _, o := range flattenMeet(n) {
 			t.Types = append(t.Types, c.typ(o))
 		}
@@ -752,14 +752,14 @@ func (c *canonical) decode(n ranged, read func(*lexer)) {
 	l := &lexer{line: 1, col: 1, errs: &errorList{}, src: c.src[s:e]}
 	read(l)
 	origin := c.pos.At(s)
-	at := func(p grammar.Pos) grammar.Pos {
+	at := func(p ast.Pos) ast.Pos {
 		if !p.IsValid() {
 			return p
 		}
 		if p.Line == 1 {
-			return grammar.Pos{Line: origin.Line, Col: origin.Col + p.Col - 1}
+			return ast.Pos{Line: origin.Line, Col: origin.Col + p.Col - 1}
 		}
-		return grammar.Pos{Line: origin.Line + p.Line - 1, Col: p.Col}
+		return ast.Pos{Line: origin.Line + p.Line - 1, Col: p.Col}
 	}
 	for _, e := range l.errs.list {
 		c.errs.addRange(at(e.Pos), at(e.End), e.Msg)
@@ -767,8 +767,8 @@ func (c *canonical) decode(n ranged, read func(*lexer)) {
 }
 
 // literal builds the string literal n, with its suffix i.
-func (c *canonical) literal(n *types.String) *grammar.Literal {
-	lit := &grammar.Literal{}
+func (c *canonical) literal(n *types.String) *ast.Literal {
+	lit := &ast.Literal{}
 	c.decode(n, func(l *lexer) {
 		// The suffix i follows the closing quote, so the lexer stops there.
 		lit.Value = l.string()
@@ -779,12 +779,12 @@ func (c *canonical) literal(n *types.String) *grammar.Literal {
 
 // openLiteral builds the literal that the user is typing from the text that the recovery of a string
 // without a closing quote skipped, and reports the missing quote. It returns nil for any other error.
-func (c *canonical) openLiteral(n *types.Error) *grammar.Literal {
+func (c *canonical) openLiteral(n *types.Error) *ast.Literal {
 	s, _ := n.Range()
 	if !c.partial || s >= len(c.src) || c.src[s] != '"' {
 		return nil
 	}
-	lit := &grammar.Literal{}
+	lit := &ast.Literal{}
 	before := len(c.errs.list)
 	c.decode(n, func(l *lexer) { lit.Value = l.string() })
 	// The syntax error of the tree already reports the missing quote.

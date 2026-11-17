@@ -4,13 +4,13 @@ import (
 	"fmt"
 
 	"zeroparse.dev/zp/core/impl"
-	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/compile"
 	ir "zeroparse.dev/zp/internal/ir/core"
 	"zeroparse.dev/zp/internal/ir/exec"
 	"zeroparse.dev/zp/internal/ir/exec/lower"
 	"zeroparse.dev/zp/internal/ir/exec/ops"
 	"zeroparse.dev/zp/internal/value"
+	"zeroparse.dev/zp/pkg/grammar/ast"
 )
 
 // Terms of the engine lowered from Exec IR.
@@ -884,7 +884,7 @@ func (c *termCompiler) call(e *exec.Call, dst termReg) error {
 // cast returns the index of the cast x in the cast pool, adding it once: the check and the failure
 // of one cast share an entry.
 func (c *termCompiler) cast(x *ir.Cast) int32 {
-	tc := termCast{t: c.env.Prog.CastType(x.Key.(*grammar.Cast)), line: x.Line, col: x.Col}
+	tc := termCast{t: c.env.Prog.CastType(x.Key.(*ast.Cast)), line: x.Line, col: x.Col}
 	for i, y := range c.prog.casts {
 		if y == tc {
 			return int32(i)

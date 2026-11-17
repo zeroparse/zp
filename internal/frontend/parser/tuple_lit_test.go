@@ -4,7 +4,7 @@ import (
 	"strings"
 	"testing"
 
-	"zeroparse.dev/zp/grammar"
+	"zeroparse.dev/zp/pkg/grammar/ast"
 )
 
 // A tuple literal is written like a tuple type: () is the unit, (x,) has one element, and one
@@ -27,34 +27,34 @@ rule multiline = "x" => (
 	if err != nil {
 		t.Fatal(err)
 	}
-	actions := map[string]grammar.Term{}
+	actions := map[string]ast.Term{}
 	for _, d := range g.File.Decls {
-		if r, ok := d.(*grammar.RuleDef); ok {
+		if r, ok := d.(*ast.RuleDef); ok {
 			actions[r.Name] = r.Action
 		}
 	}
 	for name, want := range map[string]int{"unit": 0, "one": 1, "two": 2, "trailing": 2, "spaced": 2} {
-		tup, ok := actions[name].(*grammar.TupleLit)
+		tup, ok := actions[name].(*ast.TupleLit)
 		if !ok {
-			t.Fatalf("%s: action is %T, want *grammar.TupleLit", name, actions[name])
+			t.Fatalf("%s: action is %T, want *ast.TupleLit", name, actions[name])
 		}
 		if tup.Elems == nil || len(tup.Elems) != want {
 			t.Errorf("%s: %d elements (nil %v), want %d", name, len(tup.Elems), tup.Elems == nil, want)
 		}
 	}
-	if _, ok := actions["group"].(*grammar.TermGroup); !ok {
-		t.Errorf("group: action is %T, want *grammar.TermGroup", actions["group"])
+	if _, ok := actions["group"].(*ast.TermGroup); !ok {
+		t.Errorf("group: action is %T, want *ast.TermGroup", actions["group"])
 	}
-	if inner, ok := actions["spaced"].(*grammar.TupleLit).Elems[1].(*grammar.TupleLit); !ok || len(inner.Elems) != 2 {
+	if inner, ok := actions["spaced"].(*ast.TupleLit).Elems[1].(*ast.TupleLit); !ok || len(inner.Elems) != 2 {
 		t.Errorf("nested tuple lost: %#v", actions["spaced"])
 	}
-	if b, ok := actions["index"].(*grammar.Binary); !ok || b.Op != "[]" {
+	if b, ok := actions["index"].(*ast.Binary); !ok || b.Op != "[]" {
 		t.Errorf("index: action is %T", actions["index"])
-	} else if _, ok := b.L.(*grammar.TupleLit); !ok {
-		t.Errorf("index operand is %T, want *grammar.TupleLit", b.L)
+	} else if _, ok := b.L.(*ast.TupleLit); !ok {
+		t.Errorf("index operand is %T, want *ast.TupleLit", b.L)
 	}
 
-	formatted := grammar.Format(g)
+	formatted := ast.Format(g)
 	for _, want := range []string{
 		`=> ()`, `=> (1,)`, `=> (1)`, `=> (1, "a")`, `=> (1, (2, nil))`, `=> (1, 2)[0]`, `list((1, 2), ())`,
 		"=> (\n    1,\n    2,\n)",
@@ -67,7 +67,7 @@ rule multiline = "x" => (
 	if err != nil {
 		t.Fatalf("formatted source does not parse: %v\n%s", err, formatted)
 	}
-	if out := grammar.Format(again); out != formatted {
+	if out := ast.Format(again); out != formatted {
 		t.Fatalf("format is not stable:\n%s\n%s", formatted, out)
 	}
 }

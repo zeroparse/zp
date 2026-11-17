@@ -6,7 +6,7 @@ import (
 	"testing"
 	"unicode/utf8"
 
-	"zeroparse.dev/zp/grammar"
+	"zeroparse.dev/zp/pkg/grammar/ast"
 )
 
 func TestUnicodeScalarEscapes(t *testing.T) {
@@ -40,16 +40,16 @@ func TestUnicodeScalarEscapes(t *testing.T) {
 					t.Fatalf("valid scalar %U: %v", r, err)
 				}
 				switch e := e.(type) {
-				case *grammar.Literal:
+				case *ast.Literal:
 					if e.Value != string(r) {
 						t.Fatalf("%s: literal %q, want %q", source, e.Value, string(r))
 					}
-				case *grammar.CharClass:
-					if len(e.Ranges) != 1 || e.Ranges[0] != (grammar.CharRange{Lo: r, Hi: r}) {
+				case *ast.CharClass:
+					if len(e.Ranges) != 1 || e.Ranges[0] != (ast.CharRange{Lo: r, Hi: r}) {
 						t.Fatalf("%s: ranges %v", source, e.Ranges)
 					}
 				}
-				if _, err := ParseExpr(grammar.FormatExpr(e)); err != nil {
+				if _, err := ParseExpr(ast.FormatExpr(e)); err != nil {
 					t.Fatalf("valid scalar failed format round trip: %v", err)
 				}
 			}
@@ -60,7 +60,7 @@ func TestUnicodeScalarEscapes(t *testing.T) {
 func TestUnicodeScalarEscapeDiagnostic(t *testing.T) {
 	for _, escape := range []string{`\uD800`, `\u{110000}`, `\u{FFFFFFFF}`} {
 		_, errs := ParsePartial(`rule main = "😀` + escape + `"` + "\nrule after = \"ok\"")
-		if len(errs) != 1 || errs[0].Pos != (grammar.Pos{Line: 1, Col: 15}) || errs[0].End != (grammar.Pos{Line: 1, Col: 15 + len(escape)}) || !strings.Contains(errs[0].Msg, "invalid unicode escape") {
+		if len(errs) != 1 || errs[0].Pos != (ast.Pos{Line: 1, Col: 15}) || errs[0].End != (ast.Pos{Line: 1, Col: 15 + len(escape)}) || !strings.Contains(errs[0].Msg, "invalid unicode escape") {
 			t.Fatalf("%s: diagnostics %v", escape, errs)
 		}
 	}
@@ -68,9 +68,9 @@ func TestUnicodeScalarEscapeDiagnostic(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	cc := g.Rules()[0].Expr.(*grammar.Group).Expr.(*grammar.CharClass)
+	cc := g.Rules()[0].Expr.(*ast.Group).Expr.(*ast.CharClass)
 	cc.Ranges[0].Hi = 0xd800
-	if err, ok := grammar.Validate(g).(*grammar.ValidationError); !ok || err.Pos != (grammar.Pos{Line: 2, Col: 5}) {
+	if err, ok := ast.Validate(g).(*ast.ValidationError); !ok || err.Pos != (ast.Pos{Line: 2, Col: 5}) {
 		t.Fatalf("class range position was lost: %v", err)
 	}
 }

@@ -4,9 +4,9 @@ import (
 	"fmt"
 	"slices"
 
-	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/cancel"
 	"zeroparse.dev/zp/internal/diagnostic"
+	"zeroparse.dev/zp/pkg/grammar/ast"
 )
 
 // LinearAttribute is the name of the declaration attribute that declares linear cost: on the
@@ -16,18 +16,18 @@ const LinearAttribute = "linear"
 // IsLinear reports whether a is the declaration attribute @linear. The attribute only adds a check
 // of the grammar, so the analyses that treat a rule with declaration attributes apart do not count
 // it.
-func IsLinear(a *grammar.Attribute) bool { return !a.Pragma && a.Name == LinearAttribute }
+func IsLinear(a *ast.Attribute) bool { return !a.Pragma && a.Name == LinearAttribute }
 
 // LinearDeclarations reads the @linear declaration attributes of g. It returns whether the
 // package clause declares the whole grammar linear and the rules that declare themselves linear,
 // in declaration order. @linear takes no arguments and appears at most once on a declaration;
 // the package clause takes no other declaration attribute. Each violation is an error. The other
 // declaration attributes of rules are checked by ResolveStarts.
-func LinearDeclarations(g *grammar.Grammar, control *cancel.Control) (whole bool, rules []string, errs diagnostic.ErrorList) {
-	errorf := func(pos grammar.Pos, format string, args ...any) {
+func LinearDeclarations(g *ast.Grammar, control *cancel.Control) (whole bool, rules []string, errs diagnostic.ErrorList) {
+	errorf := func(pos ast.Pos, format string, args ...any) {
 		errs = append(errs, &diagnostic.Error{Pos: pos, Msg: fmt.Sprintf(format, args...)})
 	}
-	declared := func(attrs []*grammar.Attribute, what string, others bool) bool {
+	declared := func(attrs []*ast.Attribute, what string, others bool) bool {
 		found := false
 		for _, a := range attrs {
 			control.Poll()

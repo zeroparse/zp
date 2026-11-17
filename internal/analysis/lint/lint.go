@@ -16,11 +16,11 @@ import (
 	"slices"
 	"strings"
 
-	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/cancel"
 	"zeroparse.dev/zp/internal/compile"
 	"zeroparse.dev/zp/internal/frontend"
 	"zeroparse.dev/zp/internal/frontend/desugar"
+	"zeroparse.dev/zp/pkg/grammar/ast"
 )
 
 // Severity tells how likely a finding is to be a mistake.
@@ -65,7 +65,7 @@ func (s *Severity) UnmarshalText(text []byte) error {
 type Finding struct {
 	// Pos is where the problem is in the source. It is the zero Pos for a grammar without
 	// positions (decoded from JSON, or loaded from a compiled grammar).
-	Pos      grammar.Pos
+	Pos      ast.Pos
 	Severity Severity
 	// Check is the name of the check that reported the finding (see Checks).
 	Check string
@@ -160,7 +160,7 @@ type Config struct {
 // An empty start selects the default start rule. Run returns an error, and no findings, if g does
 // not compile, if start is not a start rule of g, if c.Disable names an unknown check, or if ctx
 // ends; cancellation stops both the compilation and the checks and discards all findings.
-func (c Config) Run(ctx context.Context, g *grammar.Grammar, start string) ([]Finding, error) {
+func (c Config) Run(ctx context.Context, g *ast.Grammar, start string) ([]Finding, error) {
 	opts, err := c.options()
 	if err != nil {
 		return nil, err
@@ -187,18 +187,18 @@ func resolveStart(res *frontend.Result, start string) (string, error) {
 // RunChecked lints the grammar g, whose front-end result is res, from the start rule start with
 // the default configuration. g must be the grammar res was built from and start one of its start
 // rules. It lets the language server lint a grammar it has already checked.
-func RunChecked(ctx context.Context, res *frontend.Result, g *grammar.Grammar, start string) ([]Finding, error) {
+func RunChecked(ctx context.Context, res *frontend.Result, g *ast.Grammar, start string) ([]Finding, error) {
 	return runContext(ctx, res, g, start, options{})
 }
 
 // RewritesChecked returns the Rewrites that prove findings (those of RunChecked on the same g),
 // with the front-end result res of g.
-func RewritesChecked(ctx context.Context, res *frontend.Result, g *grammar.Grammar, findings []Finding) ([]Rewrite, error) {
+func RewritesChecked(ctx context.Context, res *frontend.Result, g *ast.Grammar, findings []Finding) ([]Rewrite, error) {
 	return rewritesOf(ctx, res, g, findings)
 }
 
 // checkGrammar runs the front end on g. Cancellation discards the result and its errors.
-func checkGrammar(ctx context.Context, g *grammar.Grammar) (res *frontend.Result, err error) {
+func checkGrammar(ctx context.Context, g *ast.Grammar) (res *frontend.Result, err error) {
 	if err := ctx.Err(); err != nil {
 		return nil, err
 	}
@@ -244,7 +244,7 @@ type options struct {
 }
 
 // run lints g, which the front end checked to the result res, from start.
-func run(res *frontend.Result, g *grammar.Grammar, start string, opts options, control *lintControl) []Finding {
+func run(res *frontend.Result, g *ast.Grammar, start string, opts options, control *lintControl) []Finding {
 	control.check()
 	// Each inline action is a rule of its own with its captures and cuts: lint the grammar with
 	// them lowered to hidden rules, and report their findings as the inline actions written.
@@ -297,10 +297,10 @@ type linter struct {
 	opts     options
 	an       *analysis
 	findings []Finding
-	rule     *grammar.RuleDef // the rule being checked
+	rule     *ast.RuleDef // the rule being checked
 }
 
-func (l *linter) report(check string, sev Severity, pos grammar.Pos, fix, format string, args ...any) {
+func (l *linter) report(check string, sev Severity, pos ast.Pos, fix, format string, args ...any) {
 	control := l.control
 	control.poll()
 
@@ -338,7 +338,7 @@ func (l *linter) written(names *desugar.InlineActionNames) []Finding {
 }
 
 // eachRule calls f for every rule, with l.rule set to it.
-func (l *linter) eachRule(f func(r *grammar.RuleDef)) {
+func (l *linter) eachRule(f func(r *ast.RuleDef)) {
 	control := l.control
 	control.poll()
 
@@ -358,14 +358,14 @@ func (l *linter) eachRule(f func(r *grammar.RuleDef)) {
 //	                                               or the whole rule when it precedes a definition
 //	// lint:file-ignore check[,check...] [reason]  the whole grammar
 type directive struct {
-	c      *grammar.Comment
+	c      *ast.Comment
 	checks []string
 	file   bool
 	rule   string // set for a directive before a rule definition
 	used   bool
 }
 
-func parseDirective(c *grammar.Comment) *directive {
+func parseDirective(c *ast.Comment) *directive {
 	text := strings.TrimSpace(strings.TrimPrefix(c.Text, "//"))
 	kind, rest, _ := strings.Cut(text, " ")
 	if kind != "lint:ignore" && kind != "lint:file-ignore" {
@@ -393,12 +393,12 @@ func (d *directive) covers(f Finding) bool {
 
 // suppress removes the findings that directives suppress, and reports directives that are
 // malformed or suppress nothing.
-func (l *linter) suppress(g *grammar.Grammar) []Finding {
+func (l *linter) suppress(g *ast.Grammar) []Finding {
 	control := l.control
 	control.poll()
 
 	var ds []*directive
-	ruleOf := map[*grammar.Comment]string{}
+	ruleOf := map[*ast.Comment]string{}
 	for _, r := range control.rules(g) {
 		control.poll()
 		if r.Break != nil {

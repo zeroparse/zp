@@ -6,11 +6,11 @@ import (
 	"strings"
 	"testing"
 
-	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/compile"
 	"zeroparse.dev/zp/internal/frontend/check"
 	"zeroparse.dev/zp/internal/frontend/types"
 	"zeroparse.dev/zp/internal/testing/compiletest"
+	"zeroparse.dev/zp/pkg/grammar/ast"
 	"zeroparse.dev/zp/pkg/runtime/schema"
 )
 
@@ -82,14 +82,14 @@ func TestOutputSchemaInferredCaptureAndDynamic(t *testing.T) {
 }
 
 func TestOutputSchemaRejectsUnresolvedShapes(t *testing.T) {
-	p := &compile.Program{Model: &check.Model{Types: map[string]grammar.TypeDecl{"Known": &grammar.TypeDef{Name: "Known", Type: &grammar.StructType{}}}}}
+	p := &compile.Program{Model: &check.Model{Types: map[string]ast.TypeDecl{"Known": &ast.TypeDef{Name: "Known", Type: &ast.StructType{}}}}}
 	// The checker reports undefined names, which resolve to _ so that checking can go on; a
 	// checked program has none. *_ is _, since _ includes nil.
-	for _, expr := range []grammar.TypeExpr{
-		&grammar.TypeRef{Name: "UnknownShape"},
-		&grammar.ListType{Elem: &grammar.OptionalType{Elem: &grammar.TypeRef{Name: "UnknownShape"}}},
-		&grammar.JoinType{Types: []grammar.TypeExpr{&grammar.TypeRef{Name: "Known"}, &grammar.TypeRef{Name: "UnknownShape"}}},
-		&grammar.TypeGroup{},
+	for _, expr := range []ast.TypeExpr{
+		&ast.TypeRef{Name: "UnknownShape"},
+		&ast.ListType{Elem: &ast.OptionalType{Elem: &ast.TypeRef{Name: "UnknownShape"}}},
+		&ast.JoinType{Types: []ast.TypeExpr{&ast.TypeRef{Name: "Known"}, &ast.TypeRef{Name: "UnknownShape"}}},
+		&ast.TypeGroup{},
 	} {
 		shape, err := declared(p, expr)
 		if err != nil || shape.Kind != "top" && (shape.Kind != "list" || shape.Element.Kind != "top") {

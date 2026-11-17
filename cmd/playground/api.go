@@ -31,7 +31,7 @@ import (
 	"zeroparse.dev/zp/codegen"
 	"zeroparse.dev/zp/core"
 	"zeroparse.dev/zp/engine"
-	"zeroparse.dev/zp/grammar"
+	"zeroparse.dev/zp/pkg/grammar/ast"
 )
 
 // diagnostic is an error in a grammar. Line and Col are 1-based (Col counts code points) and are 0
@@ -237,7 +237,7 @@ var (
 // input does not compile the grammar again.
 type compiled struct {
 	src    string
-	g      *grammar.Grammar
+	g      *ast.Grammar
 	info   compileResult
 	parser *engine.Parser // nil if the grammar has errors
 	// variants are the parsers compiled with options, compiled when first requested.
@@ -290,7 +290,7 @@ func compileSource(src string) *compiled {
 		pos := r.Diagnostic()
 		ri := ruleInfo{Name: r.Name, Line: pos.Line, Col: pos.Col, Start: markedStart(r)}
 		if r.Type != nil {
-			ri.Type = grammar.FormatType(r.Type)
+			ri.Type = ast.FormatType(r.Type)
 		}
 		c.info.Rules = append(c.info.Rules, ri)
 	}
@@ -313,32 +313,32 @@ func compileInfo(src string) compileResult { return compileSource(src).info }
 
 // markedStart reports whether the rule is marked @start. In a grammar that compiles, these are
 // its start rules.
-func markedStart(r *grammar.RuleDef) bool {
-	return slices.ContainsFunc(r.Attrs, func(a *grammar.Attribute) bool { return !a.Pragma && a.Name == "start" })
+func markedStart(r *ast.RuleDef) bool {
+	return slices.ContainsFunc(r.Attrs, func(a *ast.Attribute) bool { return !a.Pragma && a.Name == "start" })
 }
 
-func describeType(t grammar.TypeDecl) typeInfo {
+func describeType(t ast.TypeDecl) typeInfo {
 	pos := t.Diagnostic()
 	ti := typeInfo{Name: t.DeclName(), Line: pos.Line, Col: pos.Col}
 	switch s := t.(type) {
-	case *grammar.TypeDef:
+	case *ast.TypeDef:
 		if s.Struct() == nil {
 			ti.Kind = "node"
-			ti.Spec = grammar.FormatType(s.Type)
+			ti.Spec = ast.FormatType(s.Type)
 			break
 		}
 		ti.Kind = "struct"
 		fields := make([]string, len(s.Fields()))
 		for i, f := range s.Fields() {
-			fields[i] = f.Name + " " + grammar.FormatType(f.Type)
+			fields[i] = f.Name + " " + ast.FormatType(f.Type)
 		}
 		ti.Spec = "{ " + strings.Join(fields, "; ") + " }"
 		if len(fields) == 0 {
 			ti.Spec = "{}"
 		}
-	case *grammar.TypeAlias:
+	case *ast.TypeAlias:
 		ti.Kind = "alias"
-		ti.Spec = grammar.FormatType(s.Type)
+		ti.Spec = ast.FormatType(s.Type)
 	}
 	return ti
 }
@@ -532,7 +532,7 @@ func format(src string) formatResult {
 		res.Diagnostics = diagnostics(err)
 		return res
 	}
-	res.Formatted = grammar.Format(g)
+	res.Formatted = ast.Format(g)
 	return res
 }
 

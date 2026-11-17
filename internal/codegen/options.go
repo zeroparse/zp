@@ -11,9 +11,9 @@ import (
 	"slices"
 	"strings"
 
-	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/compile"
 	"zeroparse.dev/zp/internal/ir/opt"
+	"zeroparse.dev/zp/pkg/grammar/ast"
 )
 
 // GenOptions configures code generation.
@@ -211,8 +211,8 @@ type GeneratedFile struct {
 
 // Describe returns the source form of the expression e for messages, or "" when it spans lines
 // or is longer than 100 bytes.
-func Describe(e grammar.Expr) string {
-	s := grammar.FormatExpr(e)
+func Describe(e ast.Expr) string {
+	s := ast.FormatExpr(e)
 	if strings.Contains(s, "\n") || len(s) > 100 {
 		return ""
 	}
@@ -222,4 +222,4 @@ func Describe(e grammar.Expr) string {
 // Compiler compiles a grammar for a generator. It returns the compiled program and a function
 // that returns the program of its recognizer (the program in which no rule builds a value),
 // which it compiles on first use.
-type Compiler func(g *grammar.Grammar, opts compile.Options) (prog *compile.Program, recognizer func() (*compile.Program, error), err error)
+type Compiler func(g *ast.Grammar, opts compile.Options) (prog *compile.Program, recognizer func() (*compile.Program, error), err error)

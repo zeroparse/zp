@@ -7,10 +7,10 @@ import (
 	"strings"
 	"unicode/utf8"
 
-	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/cancel"
 	"zeroparse.dev/zp/internal/ir/core"
 	"zeroparse.dev/zp/internal/ir/core/facts"
+	"zeroparse.dev/zp/pkg/grammar/ast"
 )
 
 // builder computes the view of a source module. It rewrites a rule body bottom up, again and again
@@ -726,7 +726,7 @@ func singleChars(n core.Node) ([]core.Range, bool) {
 func (b *builder) class(rs []core.Range) *core.Class {
 	rs = slices.Clone(rs)
 	slices.SortFunc(rs, func(x, y core.Range) int { return int(x.Lo) - int(y.Lo) })
-	var ranges []grammar.CharRange
+	var ranges []ast.CharRange
 	for _, r := range rs {
 		if r.Lo > r.Hi {
 			continue
@@ -735,9 +735,9 @@ func (b *builder) class(rs []core.Range) *core.Class {
 			ranges[n-1].Hi = max(ranges[n-1].Hi, r.Hi)
 			continue
 		}
-		ranges = append(ranges, grammar.CharRange{Lo: r.Lo, Hi: r.Hi})
+		ranges = append(ranges, ast.CharRange{Lo: r.Lo, Hi: r.Hi})
 	}
-	d := core.CharClassString(&grammar.CharClass{Ranges: ranges})
+	d := core.CharClassString(&ast.CharClass{Ranges: ranges})
 	m := b.view.Module
 	if b.classes == nil {
 		b.exps, b.classes = map[string]core.ExpID{}, map[string]*core.Class{}

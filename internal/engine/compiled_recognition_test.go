@@ -11,10 +11,10 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/core"
-	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/bytecode"
 	"zeroparse.dev/zp/internal/engine/state"
 	"zeroparse.dev/zp/internal/testing/codegentest"
+	"zeroparse.dev/zp/pkg/grammar/ast"
 )
 
 // moduleRuleNames returns the names of the rules of m in order, each once: value-free twins follow
@@ -191,8 +191,8 @@ func TestCompiledRecognitionASTSaveAfterClassMutation(t *testing.T) {
 	t.Parallel()
 	p := mustCompile(t, `rule main = [a-z]`)
 	p.Module() // Keep the compiled bytecode as it was before the AST change.
-	class := p.Grammar.Rules()[0].Expr.(*grammar.CharClass)
-	class.Ranges[0] = grammar.CharRange{Lo: 'z', Hi: 'a'}
+	class := p.Grammar.Rules()[0].Expr.(*ast.CharClass)
+	class.Ranges[0] = ast.CharRange{Lo: 'z', Hi: 'a'}
 	data, err := p.MarshalBinary("main")
 	if err != nil {
 		t.Fatal(err)

@@ -5,12 +5,12 @@ import (
 	"sync"
 	"testing"
 
-	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/codegen"
 	"zeroparse.dev/zp/internal/codegen/go"
 	irbuild "zeroparse.dev/zp/internal/frontend/elaborate"
 	"zeroparse.dev/zp/internal/ir/core"
 	"zeroparse.dev/zp/internal/testing/codegentest"
+	"zeroparse.dev/zp/pkg/grammar/ast"
 )
 
 // typedEnv returns the environment in which Generator.TypedCore runs the pipeline for g.
@@ -24,7 +24,7 @@ func typedEnv(g *gogen.Generator) *core.Env {
 
 // pipelinedTypedCore runs the pipeline on the typed rules of g.
 func pipelinedTypedCore(g *gogen.Generator, verifyEach bool) (*core.Module, error) {
-	m, err := irbuild.CoreFrom(g.Prog, map[core.Node]grammar.Expr{})
+	m, err := irbuild.CoreFrom(g.Prog, map[core.Node]ast.Expr{})
 	if err != nil {
 		return nil, err
 	}

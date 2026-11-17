@@ -7,11 +7,11 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/core"
-	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/codegen"
 	"zeroparse.dev/zp/internal/compile"
 	"zeroparse.dev/zp/internal/engine"
 	"zeroparse.dev/zp/internal/testing/codegentest"
+	"zeroparse.dev/zp/pkg/grammar/ast"
 )
 
 func TestOperatorsRuleExplicitDefaultAction(t *testing.T) {
@@ -33,11 +33,11 @@ func testOperatorsRuleExplicitDefaultAction(t *testing.T) {
 		if !g.Rules()[0].DefaultAction || g.Rules()[0].Action != nil {
 			t.Fatal("explicit default lost its AST representation")
 		}
-		data, err := grammar.MarshalJSON(g)
+		data, err := ast.MarshalJSON(g)
 		if err != nil {
 			t.Fatal(err)
 		}
-		g, err = grammar.UnmarshalJSON(data)
+		g, err = ast.UnmarshalJSON(data)
 		if err != nil {
 			t.Fatal(err)
 		}

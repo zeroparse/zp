@@ -3,10 +3,10 @@ package lint
 import (
 	"slices"
 
-	"zeroparse.dev/zp/grammar"
+	"zeroparse.dev/zp/pkg/grammar/ast"
 )
 
-func classAcceptsControlled(c *grammar.CharClass, r rune, control *lintControl) bool {
+func classAcceptsControlled(c *ast.CharClass, r rune, control *lintControl) bool {
 	if control == nil {
 		return classAccepts(c, r)
 	}
@@ -19,24 +19,24 @@ func classAcceptsControlled(c *grammar.CharClass, r rune, control *lintControl) 
 	return c.Negated
 }
 
-func normalizeControlled(rs []grammar.CharRange, control *lintControl) []grammar.CharRange {
+func normalizeControlled(rs []ast.CharRange, control *lintControl) []ast.CharRange {
 	if control == nil {
 		return normalize(rs)
 	}
-	var out []grammar.CharRange
+	var out []ast.CharRange
 	if len(rs) != 0 {
-		out = make([]grammar.CharRange, len(rs))
+		out = make([]ast.CharRange, len(rs))
 	}
 	for i, r := range rs {
 		control.poll()
 		out[i] = r
 	}
-	slices.SortFunc(out, func(a, b grammar.CharRange) int { control.poll(); return int(a.Lo - b.Lo) })
+	slices.SortFunc(out, func(a, b ast.CharRange) int { control.poll(); return int(a.Lo - b.Lo) })
 	return mergeRanges(out, control)
 }
 
-func mergeRanges(out []grammar.CharRange, control *lintControl) []grammar.CharRange {
-	var merged []grammar.CharRange
+func mergeRanges(out []ast.CharRange, control *lintControl) []ast.CharRange {
+	var merged []ast.CharRange
 	for _, r := range out {
 		control.poll()
 		if n := len(merged); n > 0 && r.Lo <= merged[n-1].Hi+1 {
@@ -48,7 +48,7 @@ func mergeRanges(out []grammar.CharRange, control *lintControl) []grammar.CharRa
 	return merged
 }
 
-func sameRangesControlled(x, y []grammar.CharRange, control *lintControl) bool {
+func sameRangesControlled(x, y []ast.CharRange, control *lintControl) bool {
 	if control == nil {
 		return sameRanges(x, y)
 	}

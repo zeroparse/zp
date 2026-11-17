@@ -3,10 +3,10 @@ package engine
 import (
 	"testing"
 
-	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/ir/core"
 	"zeroparse.dev/zp/internal/ir/flow"
 	flowlower "zeroparse.dev/zp/internal/ir/flow/lower"
+	"zeroparse.dev/zp/pkg/grammar/ast"
 )
 
 // TestFlowVerifiesCorpus lowers every typed rule of the corpus that Flow IR covers, from the Core
@@ -26,7 +26,7 @@ func TestFlowVerifiesCorpus(t *testing.T) {
 			lowered, framed, observed, skips := 0, 0, 0, 0
 			for _, gen := range coreGenerations(t, mode) {
 				g := gen.gen
-				m, err := g.TypedCore(map[core.Node]grammar.Expr{})
+				m, err := g.TypedCore(map[core.Node]ast.Expr{})
 				if err != nil {
 					t.Fatalf("%s: %v", gen.name, err)
 				}

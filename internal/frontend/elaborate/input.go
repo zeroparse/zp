@@ -1,9 +1,9 @@
 package elaborate
 
 import (
-	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/frontend/check"
 	"zeroparse.dev/zp/internal/frontend/types"
+	"zeroparse.dev/zp/pkg/grammar/ast"
 )
 
 // Program is the compiled program as the builder reads it. The builder depends on this interface
@@ -15,19 +15,19 @@ type Program interface {
 	// Checker returns the checker of the program's types.
 	Checker() *check.Checker
 	// ResolveCheck returns the type a cast checks, or nil if every value fits it.
-	ResolveCheck(t grammar.TypeExpr) types.Ty
+	ResolveCheck(t ast.TypeExpr) types.Ty
 	// CastPos returns the line and column of a cast, for the message of a failed check.
-	CastPos(t *grammar.Cast) (int, int)
+	CastPos(t *ast.Cast) (int, int)
 	// SkipSite returns the number of the #recover skip site of the repetition (core.Repeat.Site).
-	SkipSite(e *grammar.Repeat) int
+	SkipSite(e *ast.Repeat) int
 	// ScanSite returns the number of the scan site of the repetition (core.Repeat.ScanSite).
-	ScanSite(e *grammar.Repeat) int
+	ScanSite(e *ast.Repeat) int
 	// RunSite returns the number of the run site of the repetition (core.Repeat.Run).
-	RunSite(e *grammar.Repeat) int
+	RunSite(e *ast.Repeat) int
 	// Resumable reports whether a repetition of the element e can be resumed by a Document
 	// (core.Repeat.Resume), and Positional whether a rule e calls reads positions.
-	Resumable(e grammar.Expr) bool
-	Positional(e grammar.Expr) bool
+	Resumable(e ast.Expr) bool
+	Positional(e ast.Expr) bool
 	// MissingTokens reports that the grammar uses #missing (core.Label.MissingScope).
 	MissingTokens() bool
 }
@@ -41,7 +41,7 @@ type Input struct {
 	// ByName maps a name to the rule of that name (a twin has the name of its rule and is not in it).
 	ByName map[string]*Rule
 	// Types holds the type declarations of the grammar.
-	Types map[string]grammar.TypeDecl
+	Types map[string]ast.TypeDecl
 	// Vars holds the variable declarations, nil if there are none.
 	Vars *check.VarTable
 }
@@ -49,9 +49,9 @@ type Input struct {
 // PredCaps tells which captures of a value-free rule record their values.
 type PredCaps interface {
 	// Records reports whether the capture records its value.
-	Records(c *grammar.Capture) bool
+	Records(c *ast.Capture) bool
 	// Slotted reports whether a capture that records nothing still has the slot of its name.
-	Slotted(c *grammar.Capture) bool
+	Slotted(c *ast.Capture) bool
 }
 
 // Rule is a compiled rule as the builder reads it.
@@ -60,10 +60,10 @@ type Rule struct {
 	Name string
 	// Where, if not "", names the rule in the message of a failed action instead of Name.
 	Where string
-	Def   *grammar.RuleDef
+	Def   *ast.RuleDef
 	// Body is the expression the rule matches.
-	Body     grammar.Expr
-	Action   grammar.Term
+	Body     ast.Expr
+	Action   ast.Term
 	NodeType string
 	// Memo to Vars are the policy of the rule (core.Policy); Lean and Novalue decide whether the
 	// body builds its value.

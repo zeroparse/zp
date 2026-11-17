@@ -8,9 +8,9 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/core"
-	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/bytecode"
 	"zeroparse.dev/zp/internal/compile"
+	"zeroparse.dev/zp/pkg/grammar/ast"
 )
 
 // legacyStreamRecovery builds the bytecode emitted before recovery around a
@@ -31,11 +31,11 @@ func legacyStreamRecovery(t *testing.T, streamFirst bool) *Program {
 	if next != 1 {
 		t.Fatalf("legacy fixture has %d NEXT instructions", next)
 	}
-	a := p.Grammar.Rules()[0].Expr.(*grammar.Seq).Items[0].(*grammar.Attributed)
+	a := p.Grammar.Rules()[0].Expr.(*ast.Seq).Items[0].(*ast.Attributed)
 	// Mutate the normalized executable AST, which is the .zpc payload.
-	stream := &grammar.Attribute{Name: "stream", Pragma: true}
+	stream := &ast.Attribute{Name: "stream", Pragma: true}
 	if streamFirst {
-		a.Attrs = append([]*grammar.Attribute{stream}, a.Attrs...)
+		a.Attrs = append([]*ast.Attribute{stream}, a.Attrs...)
 	} else {
 		a.Attrs = append(a.Attrs, stream)
 	}

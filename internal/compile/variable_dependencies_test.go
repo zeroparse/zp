@@ -9,18 +9,18 @@ import (
 	"strings"
 	"testing"
 
-	"zeroparse.dev/zp/grammar"
+	"zeroparse.dev/zp/pkg/grammar/ast"
 )
 
 // ruleVariablesDFS retains the previous per-root closure as an independent
 // scheduling oracle. Missing rules have no direct reads or outgoing calls.
-func ruleVariablesDFS(rules []*grammar.RuleDef) map[string][]string {
+func ruleVariablesDFS(rules []*ast.RuleDef) map[string][]string {
 	direct := map[string]map[string]bool{}
 	calls := map[string][]string{}
 	for _, r := range rules {
 		set := map[string]bool{}
-		WalkRuleTerms(r, func(t grammar.Term) {
-			if v, ok := t.(*grammar.VarRef); ok {
+		WalkRuleTerms(r, func(t ast.Term) {
+			if v, ok := t.(*ast.VarRef); ok {
 				set[v.Name] = true
 			}
 		})
@@ -122,7 +122,7 @@ func TestVariableDependencyGrowingSets(t *testing.T) {
 			t.Fatalf("r0 only has %d variables", len(want["r0"]))
 		}
 		for seed := range int64(10) {
-			rules := append([]*grammar.RuleDef(nil), g.Rules()...)
+			rules := append([]*ast.RuleDef(nil), g.Rules()...)
 			rand.New(rand.NewSource(seed)).Shuffle(len(rules), func(i, j int) { rules[i], rules[j] = rules[j], rules[i] })
 			if got := RuleVariables(rules); !reflect.DeepEqual(got, want) {
 				t.Fatalf("cyclic=%v seed=%d: changed growing sets", cyclic, seed)
@@ -172,7 +172,7 @@ func TestVariableDependencyGraphs(t *testing.T) {
 			}
 		}
 		for seed := range int64(30) {
-			rules := append([]*grammar.RuleDef(nil), g.Rules()...)
+			rules := append([]*ast.RuleDef(nil), g.Rules()...)
 			rand.New(rand.NewSource(seed)).Shuffle(len(rules), func(i, j int) { rules[i], rules[j] = rules[j], rules[i] })
 			if got := RuleVariables(rules); !reflect.DeepEqual(got, want) {
 				t.Fatalf("cyclic=%v seed=%d: changed sets", cyclic, seed)

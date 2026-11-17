@@ -4,8 +4,8 @@ import (
 	"strings"
 	"testing"
 
-	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/testing/starttest"
+	"zeroparse.dev/zp/pkg/grammar/ast"
 )
 
 func TestActionBlocksUnsupported(t *testing.T) {
@@ -22,7 +22,7 @@ rule a = "x" => {x:=1; x<10; 2}`,
 		if err != nil {
 			t.Fatal(err)
 		}
-		for _, input := range []*grammar.Grammar{g, jsonActionBlockGrammar(t, g)} {
+		for _, input := range []*ast.Grammar{g, jsonActionBlockGrammar(t, g)} {
 			if _, err := compileStatic(input, Options{}, nil); err == nil || !strings.Contains(err.Error(), "action statement blocks are not implemented") {
 				t.Fatalf("%s: %v", src, err)
 			}
@@ -42,12 +42,12 @@ rule a = {x:=1} {x<10} "x"`, "type A = {}\nrule a = \"x\" => A{}", `rule a = "x"
 
 func TestSinglePredicateBlockAST(t *testing.T) {
 	t.Parallel()
-	g := &grammar.Grammar{File: grammar.File{Decls: []grammar.Decl{&grammar.RuleDef{Name: "main", Expr: &grammar.Predicate{Term: &grammar.Block{Statements: []grammar.Term{&grammar.BoolLit{Value: true}}}}}}}}
+	g := &ast.Grammar{File: ast.File{Decls: []ast.Decl{&ast.RuleDef{Name: "main", Expr: &ast.Predicate{Term: &ast.Block{Statements: []ast.Term{&ast.BoolLit{Value: true}}}}}}}}
 	starttest.MarkAll(g)
 	if _, err := compileStatic(jsonActionBlockGrammar(t, g), Options{}, nil); err != nil {
 		t.Fatal(err)
 	}
-	if _, ok := g.Rules()[0].Expr.(*grammar.Predicate).Term.(*grammar.Block); !ok {
+	if _, ok := g.Rules()[0].Expr.(*ast.Predicate).Term.(*ast.Block); !ok {
 		t.Fatal("compile mutated source AST")
 	}
 }

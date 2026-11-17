@@ -8,8 +8,8 @@ import (
 
 	"zeroparse.dev/zp/core"
 	"zeroparse.dev/zp/core/impl"
-	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/compile"
+	"zeroparse.dev/zp/pkg/grammar/ast"
 )
 
 // Value spend is charged like any other spend, though strings and collections can
@@ -221,7 +221,7 @@ func (p *Parser) SetValueField(fs *coreimpl.Fields, name string, v any) {
 	*fs = append(*fs, coreimpl.NodeField{Name: name, Value: v})
 }
 
-func (p *Parser) HasValueField(st *grammar.TypeDef, name string) bool {
+func (p *Parser) HasValueField(st *ast.TypeDef, name string) bool {
 	if !BudgetControlsEnabled || p.Control == nil {
 		return compile.FieldOf(st, name) != nil
 	}
@@ -247,13 +247,13 @@ func (p *Parser) VarValue(slot int) any {
 
 // Fusable is also called at runtime by closure actions, unlike the bytecode
 // compiler's setup-time analysis. Charge that runtime grammar walk as steps.
-func (p *Parser) Fusable(t *grammar.Call) bool {
+func (p *Parser) Fusable(t *ast.Call) bool {
 	if !BudgetControlsEnabled || p.Control == nil {
 		return compile.Fusable(t)
 	}
 	for _, a := range t.Args {
 		p.Spend()
-		call, ok := a.(*grammar.Call)
+		call, ok := a.(*ast.Call)
 		switch {
 		case ok && call.Func == "list", ok && call.Func == "map" && len(call.Args) == 2:
 		case ok && call.Func == "concat" && p.Fusable(call):

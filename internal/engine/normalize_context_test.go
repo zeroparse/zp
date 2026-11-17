@@ -6,10 +6,10 @@ import (
 	"testing"
 	"zeroparse.dev/zp/internal/cancel"
 
-	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/compile"
 	"zeroparse.dev/zp/internal/frontend/desugar"
 	"zeroparse.dev/zp/internal/testing/codegentest"
+	"zeroparse.dev/zp/pkg/grammar/ast"
 )
 
 func TestNormalizationContextParity(t *testing.T) {
@@ -33,7 +33,7 @@ rule main (Alias) = n:([0-9]+) => (T{Text: (text($n))})`,
 			if err != nil {
 				t.Fatal(err)
 			}
-			before, err := grammar.MarshalJSON(g)
+			before, err := ast.MarshalJSON(g)
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -45,7 +45,7 @@ rule main (Alias) = n:([0-9]+) => (T{Text: (text($n))})`,
 				if !reflect.DeepEqual(got, want) || !reflect.DeepEqual(gotErr, wantErr) {
 					t.Fatalf("context changed normalized result: %v / %v", gotErr, wantErr)
 				}
-				after, err := grammar.MarshalJSON(g)
+				after, err := ast.MarshalJSON(g)
 				if err != nil || string(after) != string(before) {
 					t.Fatalf("normalization changed source: %v", err)
 				}

@@ -5,12 +5,12 @@ import (
 	"strings"
 	"zeroparse.dev/zp/internal/cancel"
 
-	"zeroparse.dev/zp/grammar"
+	"zeroparse.dev/zp/pkg/grammar/ast"
 )
 
 // CharClassStringControlled is CharClassString polling control for cancellation; a nil control
 // never cancels.
-func CharClassStringControlled(e *grammar.CharClass, control *cancel.Control) string {
+func CharClassStringControlled(e *ast.CharClass, control *cancel.Control) string {
 	if control == nil {
 		return CharClassString(e)
 	}

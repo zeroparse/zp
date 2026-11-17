@@ -7,10 +7,10 @@ import (
 	"fmt"
 	"hash/crc32"
 
-	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/bytecode"
 	"zeroparse.dev/zp/internal/compile"
 	"zeroparse.dev/zp/internal/engine/vm"
+	"zeroparse.dev/zp/pkg/grammar/ast"
 )
 
 // The compiled grammar format (.zpc), specified in the File format section of
@@ -252,19 +252,19 @@ func moduleProgram(m *bytecode.Module) *Program {
 	for _, t := range m.Types {
 		if t.Node >= 0 {
 			// The run time needs only that the type is a node type.
-			prog.Types[m.Strings[t.Name]] = &grammar.TypeDef{Name: m.Strings[t.Name], Type: &grammar.TypeApp{Name: "node", Args: []grammar.TypeExpr{&grammar.TypeRef{Name: "_"}}}}
+			prog.Types[m.Strings[t.Name]] = &ast.TypeDef{Name: m.Strings[t.Name], Type: &ast.TypeApp{Name: "node", Args: []ast.TypeExpr{&ast.TypeRef{Name: "_"}}}}
 			continue
 		}
-		st := &grammar.StructType{}
+		st := &ast.StructType{}
 		z := &compile.StructZero{Zeros: map[string]string{}}
 		for i, f := range t.Fields {
 			name := m.Strings[f]
-			st.Fields = append(st.Fields, &grammar.Field{Name: name})
+			st.Fields = append(st.Fields, &ast.Field{Name: name})
 			z.Names = append(z.Names, name)
 			z.Zeros[name] = m.Strings[t.Zeros[i]]
 		}
 		prog.SetStructZero(m.Strings[t.Name], z)
-		prog.Types[m.Strings[t.Name]] = &grammar.TypeDef{Name: m.Strings[t.Name], Type: st}
+		prog.Types[m.Strings[t.Name]] = &ast.TypeDef{Name: m.Strings[t.Name], Type: st}
 	}
 	prog.Vars = compile.ModuleVarTable(m)
 	prog.StartRules, prog.DefaultStartRule = moduleStarts(m), moduleDefaultStart(m)

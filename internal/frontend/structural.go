@@ -3,7 +3,6 @@ package frontend
 import (
 	"slices"
 
-	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/cancel"
 	"zeroparse.dev/zp/internal/compile"
 	"zeroparse.dev/zp/internal/diagnostic"
@@ -11,6 +10,7 @@ import (
 	"zeroparse.dev/zp/internal/frontend/elaborate"
 	"zeroparse.dev/zp/internal/ir/core"
 	"zeroparse.dev/zp/internal/ir/core/facts"
+	"zeroparse.dev/zp/pkg/grammar/ast"
 )
 
 // structuralErrors returns the errors that depend on the facts of g: they read the structure of the
@@ -18,14 +18,14 @@ import (
 // if g cannot be built into such a module (the compiler then reports why); the errors are in the
 // order of Facts.Errors, with the names of the hidden rules that inline actions generate shown as
 // written.
-func structuralErrors(g *grammar.Grammar, opts compile.Options, names desugar.InlineNames, control *cancel.Control) diagnostic.ErrorList {
+func structuralErrors(g *ast.Grammar, opts compile.Options, names desugar.InlineNames, control *cancel.Control) diagnostic.ErrorList {
 	canon, err := compile.Canonicalize(g, opts, names, control)
 	if err != nil {
 		return nil
 	}
 	defs, _ := desugar.UniqueRules(canon.Grammar, control)
 	in := compile.StructuralInput(canon.Grammar, defs, canon.Starts)
-	origin := map[core.Node]grammar.Expr{}
+	origin := map[core.Node]ast.Expr{}
 	m, err := elaborate.Structural(in, origin)
 	if err != nil {
 		return nil
@@ -33,11 +33,11 @@ func structuralErrors(g *grammar.Grammar, opts compile.Options, names desugar.In
 	f := facts.Compute(m, control)
 	var out diagnostic.ErrorList
 	for _, e := range f.Errors(m, !opts.LeftRecursionBindings) {
-		var pos grammar.Pos
+		var pos ast.Pos
 		switch x := origin[e.Node].(type) {
-		case *grammar.Predicate:
-			pos = x.Term.(*grammar.Bind).Diagnostic()
-		case *grammar.Attributed:
+		case *ast.Predicate:
+			pos = x.Term.(*ast.Bind).Diagnostic()
+		case *ast.Attributed:
 			pos = x.Attrs[0].Diagnostic()
 		default:
 			pos = defs[e.Rule.ID].Diagnostic()
@@ -77,6 +77,6 @@ func mergeErrors(err error, factErrs diagnostic.ErrorList) error {
 }
 
 // before reports whether a comes before b in the source.
-func before(a, b grammar.Pos) bool {
+func before(a, b ast.Pos) bool {
 	return a.Line < b.Line || a.Line == b.Line && a.Col < b.Col
 }

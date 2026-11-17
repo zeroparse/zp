@@ -1,10 +1,10 @@
 package elaborate
 
 import (
-	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/frontend/check"
 	"zeroparse.dev/zp/internal/frontend/types"
 	"zeroparse.dev/zp/internal/ir/core"
+	"zeroparse.dev/zp/pkg/grammar/ast"
 )
 
 // Structural builds the untyped Core IR module of in: the control structure, the calls, the
@@ -12,20 +12,20 @@ import (
 // rule builds its value, no repetition projects, and a cast checks nothing. The facts of the
 // module (internal/ir/core/facts) read this structure only, so they are those of the typed module
 // of the same rules. If origin is not nil, it records the expression each node is built from.
-func Structural(in *Input, origin map[core.Node]grammar.Expr) (*core.Module, error) {
+func Structural(in *Input, origin map[core.Node]ast.Expr) (*core.Module, error) {
 	return coreModule(structural{in}, origin, false, nil)
 }
 
 // structural is the Program of a module built without a checker.
 type structural struct{ in *Input }
 
-func (s structural) CoreInput() *Input                    { return s.in }
-func (structural) Checker() *check.Checker                { return nil }
-func (structural) ResolveCheck(grammar.TypeExpr) types.Ty { return nil }
-func (structural) CastPos(*grammar.Cast) (int, int)       { return 0, 0 }
-func (structural) SkipSite(*grammar.Repeat) int           { return 0 }
-func (structural) ScanSite(*grammar.Repeat) int           { return 0 }
-func (structural) RunSite(*grammar.Repeat) int            { return 0 }
-func (structural) Resumable(grammar.Expr) bool            { return false }
-func (structural) Positional(grammar.Expr) bool           { return false }
-func (structural) MissingTokens() bool                    { return false }
+func (s structural) CoreInput() *Input                { return s.in }
+func (structural) Checker() *check.Checker            { return nil }
+func (structural) ResolveCheck(ast.TypeExpr) types.Ty { return nil }
+func (structural) CastPos(*ast.Cast) (int, int)       { return 0, 0 }
+func (structural) SkipSite(*ast.Repeat) int           { return 0 }
+func (structural) ScanSite(*ast.Repeat) int           { return 0 }
+func (structural) RunSite(*ast.Repeat) int            { return 0 }
+func (structural) Resumable(ast.Expr) bool            { return false }
+func (structural) Positional(ast.Expr) bool           { return false }
+func (structural) MissingTokens() bool                { return false }

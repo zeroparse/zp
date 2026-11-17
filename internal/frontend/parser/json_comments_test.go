@@ -3,7 +3,7 @@ package parser
 import (
 	"testing"
 
-	"zeroparse.dev/zp/grammar"
+	"zeroparse.dev/zp/pkg/grammar/ast"
 )
 
 // A grammar decoded from JSON has no layout, but JSON carries the comments the
@@ -43,15 +43,15 @@ rule ops = #operators {
 	if err != nil {
 		t.Fatal(err)
 	}
-	data, err := grammar.MarshalJSON(g)
+	data, err := ast.MarshalJSON(g)
 	if err != nil {
 		t.Fatal(err)
 	}
-	decoded, err := grammar.UnmarshalJSON(data)
+	decoded, err := ast.UnmarshalJSON(data)
 	if err != nil {
 		t.Fatal(err)
 	}
-	out := grammar.Format(decoded)
+	out := ast.Format(decoded)
 	again, err := Parse(out)
 	if err != nil {
 		t.Fatalf("the result does not parse: %v\n%s", err, out)
@@ -62,7 +62,7 @@ rule ops = #operators {
 	if diffs := ownerDiffs(g, again); len(diffs) > 0 {
 		t.Errorf("owners changed\n%v\n%s", diffs, out)
 	}
-	if second := grammar.Format(again); second != out {
+	if second := ast.Format(again); second != out {
 		t.Errorf("formatting is not idempotent\nfirst:\n%s\nsecond:\n%s", out, second)
 	}
 	if out != src {

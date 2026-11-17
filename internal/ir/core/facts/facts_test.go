@@ -3,13 +3,13 @@ package facts_test
 import (
 	"testing"
 
-	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/compile"
 	"zeroparse.dev/zp/internal/frontend/elaborate"
 	"zeroparse.dev/zp/internal/ir/core"
 	"zeroparse.dev/zp/internal/ir/core/facts"
 	"zeroparse.dev/zp/internal/testing/compiletest"
 	"zeroparse.dev/zp/internal/testing/factstest"
+	"zeroparse.dev/zp/pkg/grammar/ast"
 )
 
 // TestFactsGolden computes the facts of every corpus grammar on its Core IR module, with the
@@ -28,7 +28,7 @@ func TestFactsGolden(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			origin := map[core.Node]grammar.Expr{}
+			origin := map[core.Node]ast.Expr{}
 			m, err := elaborate.CoreFrom(prog, origin)
 			if err != nil {
 				t.Fatal(err)

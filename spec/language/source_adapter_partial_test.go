@@ -10,18 +10,18 @@ import (
 	"strings"
 	"testing"
 
-	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/frontend/parser"
+	"zeroparse.dev/zp/pkg/grammar/ast"
 )
 
 // partialCanonical parses src as the editor APIs do, with parser.ParsePartial: the declarations
 // that are complete, and the syntax errors followed by the errors of the checks.
-func partialCanonical(src string) (*grammar.Grammar, parser.ErrorList) {
+func partialCanonical(src string) (*ast.Grammar, parser.ErrorList) {
 	return parser.ParsePartial(src)
 }
 
 // declJSON returns the JSON form of every declaration of g by its kind, name and start.
-func declJSON(t *testing.T, g *grammar.Grammar) map[string]string {
+func declJSON(t *testing.T, g *ast.Grammar) map[string]string {
 	t.Helper()
 	out := map[string]string{}
 	if g == nil {
@@ -185,11 +185,11 @@ func TestPartialKeepsDeclarationsOfEditingStates(t *testing.T) {
 		var names []string
 		for _, d := range g.File.Decls {
 			switch d := d.(type) {
-			case *grammar.RuleDef:
+			case *ast.RuleDef:
 				names = append(names, d.Name)
-			case *grammar.TypeDef:
+			case *ast.TypeDef:
 				names = append(names, d.Name)
-			case *grammar.TypeAlias:
+			case *ast.TypeAlias:
 				names = append(names, d.Name)
 			}
 		}

@@ -6,13 +6,13 @@ import (
 	"unicode/utf8"
 	"zeroparse.dev/zp/internal/compile"
 
-	"zeroparse.dev/zp/grammar"
+	"zeroparse.dev/zp/pkg/grammar/ast"
 )
 
 // charset is a set of characters as sorted, disjoint, non-adjacent ranges. The classifier uses it
 // for the first characters of expressions, which it over-approximates: a character that an
 // expression can examine first is always in its set.
-type charset []grammar.CharRange
+type charset []ast.CharRange
 
 // maxChar is the largest character value. Input that is not valid UTF-8 decodes to characters
 // below it, so every character that a parse can examine is in [0, maxChar].
@@ -30,15 +30,15 @@ func (s charset) union(t charset) charset {
 	if len(s) == 0 {
 		return t
 	}
-	all := make([]grammar.CharRange, 0, len(s)+len(t))
+	all := make([]ast.CharRange, 0, len(s)+len(t))
 	all = append(append(all, s...), t...)
 	return normalizeRanges(all)
 }
 
 // normalizeRanges sorts rs and merges overlapping and adjacent ranges.
-func normalizeRanges(rs []grammar.CharRange) charset {
+func normalizeRanges(rs []ast.CharRange) charset {
 	rs = slices.Clone(rs)
-	slices.SortFunc(rs, func(a, b grammar.CharRange) int { return int(a.Lo) - int(b.Lo) })
+	slices.SortFunc(rs, func(a, b ast.CharRange) int { return int(a.Lo) - int(b.Lo) })
 	var out charset
 	for _, r := range rs {
 		if r.Lo > r.Hi {
@@ -76,14 +76,14 @@ func (s charset) complement() charset {
 	lo := rune(0)
 	for _, r := range s {
 		if r.Lo > lo {
-			out = append(out, grammar.CharRange{Lo: lo, Hi: r.Lo - 1})
+			out = append(out, ast.CharRange{Lo: lo, Hi: r.Lo - 1})
 		}
 		if r.Hi == maxChar {
 			return out
 		}
 		lo = r.Hi + 1
 	}
-	return append(out, grammar.CharRange{Lo: lo, Hi: maxChar})
+	return append(out, ast.CharRange{Lo: lo, Hi: maxChar})
 }
 
 func charOf(r rune) charset { return charset{{Lo: r, Hi: r}} }
@@ -92,9 +92,9 @@ func charOf(r rune) charset { return charset{{Lo: r, Hi: r}} }
 func asciiFold(r rune) charset {
 	switch {
 	case 'a' <= r && r <= 'z':
-		return normalizeRanges([]grammar.CharRange{{Lo: r, Hi: r}, {Lo: r - 'a' + 'A', Hi: r - 'a' + 'A'}})
+		return normalizeRanges([]ast.CharRange{{Lo: r, Hi: r}, {Lo: r - 'a' + 'A', Hi: r - 'a' + 'A'}})
 	case 'A' <= r && r <= 'Z':
-		return normalizeRanges([]grammar.CharRange{{Lo: r, Hi: r}, {Lo: r - 'A' + 'a', Hi: r - 'A' + 'a'}})
+		return normalizeRanges([]ast.CharRange{{Lo: r, Hi: r}, {Lo: r - 'A' + 'a', Hi: r - 'A' + 'a'}})
 	}
 	return charOf(r)
 }
@@ -102,7 +102,7 @@ func asciiFold(r rune) charset {
 // literalFirst is the first character of a literal, or the empty set for the empty literal. A
 // literal that holds a replacement character also matches input that is not valid UTF-8, which
 // decodes to that character.
-func literalFirst(l *grammar.Literal) charset {
+func literalFirst(l *ast.Literal) charset {
 	if l.Value == "" {
 		return nil
 	}
@@ -113,7 +113,7 @@ func literalFirst(l *grammar.Literal) charset {
 	return charOf(r)
 }
 
-func classChars(c *grammar.CharClass) charset {
+func classChars(c *ast.CharClass) charset {
 	s := normalizeRanges(c.Ranges)
 	if c.Negated {
 		return s.complement()
@@ -127,56 +127,56 @@ func classChars(c *grammar.CharClass) charset {
 // nothing ends the repetition and counts once, so a larger minimum needs input), and a #recover is
 // nullable as its body (the skip runs only when the body fails, and an empty skip does not
 // recover).
-func (k *classifier) nullable(e grammar.Expr) bool {
+func (k *classifier) nullable(e ast.Expr) bool {
 	k.control.Poll()
 	switch e := e.(type) {
 	case nil:
 		return true
-	case *grammar.Ref:
+	case *ast.Ref:
 		if e.Level == rhsLevel {
 			return k.operandsNullable(e.Name)
 		}
 		return k.nullRule[e.Name]
-	case *grammar.Literal:
+	case *ast.Literal:
 		return e.Value == ""
-	case *grammar.CharClass, *grammar.Any, *grammar.Bottom:
+	case *ast.CharClass, *ast.Any, *ast.Bottom:
 		return false
-	case *grammar.Seq:
+	case *ast.Seq:
 		for _, it := range e.Items {
 			if !k.nullable(it) {
 				return false
 			}
 		}
 		return true
-	case *grammar.Choice:
+	case *ast.Choice:
 		for _, alt := range e.Alts {
 			if k.nullable(alt) {
 				return true
 			}
 		}
 		return false
-	case *grammar.Repeat:
+	case *ast.Repeat:
 		return e.Min == 0 || e.Min == 1 && k.nullable(e.Expr)
-	case *grammar.Group:
+	case *ast.Group:
 		return k.nullable(e.Expr)
-	case *grammar.Capture:
+	case *ast.Capture:
 		return k.nullable(e.Expr)
-	case *grammar.Discard:
+	case *ast.Discard:
 		return k.nullable(e.Expr)
-	case *grammar.Atomic:
+	case *ast.Atomic:
 		return k.nullable(e.Expr)
-	case *grammar.Stream:
+	case *ast.Stream:
 		return k.nullable(e.Expr)
-	case *grammar.InlineAction:
+	case *ast.InlineAction:
 		return k.nullable(e.Expr)
-	case *grammar.Recovery:
+	case *ast.Recovery:
 		return k.nullable(e.Expr)
-	case *grammar.Attributed:
+	case *ast.Attributed:
 		if compile.HasPragma(e, "missing") {
 			return true
 		}
 		return k.nullable(e.Expr)
-	case *grammar.OperatorsRule:
+	case *ast.OperatorsRule:
 		for _, o := range e.Operands {
 			if k.nullable(o.Expr) {
 				return true
@@ -192,25 +192,25 @@ func (k *classifier) nullable(e grammar.Expr) bool {
 // beyond its start, as it consumes them or as a lookahead that it evaluates before it consumes
 // input examines them. Characters that follow e when it matches without consuming input are not
 // included; firstCont adds them.
-func (k *classifier) first(e grammar.Expr) charset {
+func (k *classifier) first(e ast.Expr) charset {
 	k.control.Poll()
 	switch e := e.(type) {
 	case nil:
 		return nil
-	case *grammar.Ref:
+	case *ast.Ref:
 		if e.Level == rhsLevel {
 			return k.operandFirst(e.Name)
 		}
 		return k.firstRule[e.Name]
-	case *grammar.Literal:
+	case *ast.Literal:
 		return literalFirst(e)
-	case *grammar.CharClass:
+	case *ast.CharClass:
 		return classChars(e)
-	case *grammar.Any:
+	case *ast.Any:
 		return allChars
-	case *grammar.EndLine:
+	case *ast.EndLine:
 		return lineBreakChars
-	case *grammar.Seq:
+	case *ast.Seq:
 		var s charset
 		for _, it := range e.Items {
 			s = s.union(k.first(it))
@@ -219,44 +219,44 @@ func (k *classifier) first(e grammar.Expr) charset {
 			}
 		}
 		return s
-	case *grammar.Choice:
+	case *ast.Choice:
 		var s charset
 		for _, alt := range e.Alts {
 			s = s.union(k.first(alt))
 		}
 		return s
-	case *grammar.Repeat:
+	case *ast.Repeat:
 		if e.Max == 0 {
 			return nil
 		}
 		return k.first(e.Expr)
-	case *grammar.Optional:
+	case *ast.Optional:
 		return k.first(e.Expr)
-	case *grammar.And:
+	case *ast.And:
 		return k.first(e.Expr)
-	case *grammar.Not:
+	case *ast.Not:
 		return k.first(e.Expr)
-	case *grammar.Group:
+	case *ast.Group:
 		return k.first(e.Expr)
-	case *grammar.Capture:
+	case *ast.Capture:
 		return k.first(e.Expr)
-	case *grammar.Discard:
+	case *ast.Discard:
 		return k.first(e.Expr)
-	case *grammar.Atomic:
+	case *ast.Atomic:
 		return k.first(e.Expr)
-	case *grammar.Stream:
+	case *ast.Stream:
 		return k.first(e.Expr)
-	case *grammar.InlineAction:
+	case *ast.InlineAction:
 		return k.first(e.Expr)
-	case *grammar.Recovery:
+	case *ast.Recovery:
 		return k.first(e.Expr).union(k.first(e.Skip))
-	case *grammar.Attributed:
+	case *ast.Attributed:
 		s := k.first(e.Expr)
 		if skip := compile.RecoverSkip(e); skip != nil {
 			s = s.union(k.first(skip))
 		}
 		return s
-	case *grammar.OperatorsRule:
+	case *ast.OperatorsRule:
 		return k.operatorsStart(e)
 	}
 	// Predicates, anchors other than $, cuts, the top and bottom expressions.
@@ -265,14 +265,14 @@ func (k *classifier) first(e grammar.Expr) charset {
 
 // operatorsStart is the first characters of an Operators Rule expression and of each right
 // operand: its skip, its operands and its prefix operator parts.
-func (k *classifier) operatorsStart(pr *grammar.OperatorsRule) charset {
+func (k *classifier) operatorsStart(pr *ast.OperatorsRule) charset {
 	s := k.first(pr.Skip)
 	for _, o := range pr.Operands {
 		s = s.union(k.first(o.Expr))
 	}
 	for _, l := range pr.Levels {
 		for _, op := range l.Operators {
-			if op.Kind == grammar.Prefix {
+			if op.Kind == ast.Prefix {
 				s = s.union(k.first(op.Expr))
 			}
 		}
@@ -294,17 +294,17 @@ func (k *classifier) operandsNullable(rule string) bool {
 }
 
 // operators returns the Operators Rule that is the body of rule, or nil.
-func (k *classifier) operators(rule string) *grammar.OperatorsRule {
+func (k *classifier) operators(rule string) *ast.OperatorsRule {
 	if r := k.byName[rule]; r != nil {
-		pr, _ := grammar.RuleOperators(ungroup(r.Expr))
+		pr, _ := ast.RuleOperators(ungroup(r.Expr))
 		return pr
 	}
 	return nil
 }
 
-func ungroup(e grammar.Expr) grammar.Expr {
+func ungroup(e ast.Expr) ast.Expr {
 	for {
-		g, ok := e.(*grammar.Group)
+		g, ok := e.(*ast.Group)
 		if !ok {
 			return e
 		}
@@ -326,48 +326,48 @@ func (k *classifier) computeFirst() {
 }
 
 // bounded reports whether every match of e is shorter than a constant of the grammar.
-func (k *classifier) bounded(e grammar.Expr) bool {
+func (k *classifier) bounded(e ast.Expr) bool {
 	k.control.Poll()
 	switch e := e.(type) {
-	case nil, *grammar.Literal, *grammar.CharClass, *grammar.Any, *grammar.Predicate, *grammar.Cut,
-		*grammar.Top, *grammar.Bottom, *grammar.BeginInput, *grammar.EndInput, *grammar.BeginLine,
-		*grammar.EndLine, *grammar.And, *grammar.Not:
+	case nil, *ast.Literal, *ast.CharClass, *ast.Any, *ast.Predicate, *ast.Cut,
+		*ast.Top, *ast.Bottom, *ast.BeginInput, *ast.EndInput, *ast.BeginLine,
+		*ast.EndLine, *ast.And, *ast.Not:
 		return true
-	case *grammar.Ref:
+	case *ast.Ref:
 		return e.Level != rhsLevel && k.boundedRule[e.Name]
-	case *grammar.Seq:
+	case *ast.Seq:
 		for _, it := range e.Items {
 			if !k.bounded(it) {
 				return false
 			}
 		}
 		return true
-	case *grammar.Choice:
+	case *ast.Choice:
 		for _, alt := range e.Alts {
 			if !k.bounded(alt) {
 				return false
 			}
 		}
 		return true
-	case *grammar.Repeat:
+	case *ast.Repeat:
 		return e.Max >= 0 && k.bounded(e.Expr)
-	case *grammar.Optional:
+	case *ast.Optional:
 		return k.bounded(e.Expr)
-	case *grammar.Group:
+	case *ast.Group:
 		return k.bounded(e.Expr)
-	case *grammar.Capture:
+	case *ast.Capture:
 		return k.bounded(e.Expr)
-	case *grammar.Discard:
+	case *ast.Discard:
 		return k.bounded(e.Expr)
-	case *grammar.Atomic:
+	case *ast.Atomic:
 		return k.bounded(e.Expr)
-	case *grammar.Stream:
+	case *ast.Stream:
 		return k.bounded(e.Expr)
-	case *grammar.InlineAction:
+	case *ast.InlineAction:
 		return k.bounded(e.Expr)
-	case *grammar.Recovery:
+	case *ast.Recovery:
 		return k.bounded(e.Expr) && k.bounded(e.Skip)
-	case *grammar.Attributed:
+	case *ast.Attributed:
 		if skip := compile.RecoverSkip(e); skip != nil && !k.bounded(skip) {
 			return false
 		}

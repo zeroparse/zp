@@ -6,7 +6,7 @@ import (
 	"sort"
 	"unicode"
 
-	"zeroparse.dev/zp/grammar"
+	"zeroparse.dev/zp/pkg/grammar/ast"
 )
 
 // inf is the height or length of an expression that can never match.
@@ -26,7 +26,7 @@ type target struct {
 	kind  int
 	rule  string
 	index int // alternative, operand or operator index
-	expr  grammar.Expr
+	expr  ast.Expr
 	// possible is false for targets that can never be part of a match: they can never match
 	// themselves, or only occur inside an expression that can never match ("(" ("a" / "b") _|_).
 	possible bool
@@ -34,10 +34,10 @@ type target struct {
 
 // ruleInfo is what the generator knows about a rule.
 type ruleInfo struct {
-	def           *grammar.RuleDef
+	def           *ast.RuleDef
 	makesNode     bool // the declared type is a named node type
 	index         int
-	operatorsRule *grammar.OperatorsRule
+	operatorsRule *ast.OperatorsRule
 	levels        map[string]int // level name -> index in operatorsRule.Levels
 	height        int            // minimal derivation height: nested rule calls needed to match it
 	length        int            // minimal length in bytes of a match
@@ -57,17 +57,17 @@ type info struct {
 	start   *ruleInfo
 	targets []target
 	// Target ids of the first alternative of each choice, of each Operators Rule operand and operator.
-	altBase  map[*grammar.Choice]int
-	operands map[*grammar.OperatorsRuleOperand]int
-	ops      map[*grammar.OperatorsRuleOperator]int
+	altBase  map[*ast.Choice]int
+	operands map[*ast.OperatorsRuleOperand]int
+	ops      map[*ast.OperatorsRuleOperator]int
 	// reachable[i] is true if the rule with index i can be called from the start rule in a context
 	// that can match; called[i] if it is called at all (outside negative lookaheads and #recover).
 	reachable, called []bool
-	reachMemo         map[grammar.Expr]bitset
-	captures          map[grammar.Expr]bool                      // memo of hasCaptures
-	classes           map[*grammar.CharClass][]grammar.CharRange // memo of classRanges
+	reachMemo         map[ast.Expr]bitset
+	captures          map[ast.Expr]bool                  // memo of hasCaptures
+	classes           map[*ast.CharClass][]ast.CharRange // memo of classRanges
 	// compared holds the captures of rule calls that a predicate in the same rule reads.
-	compared map[*grammar.Capture]bool
+	compared map[*ast.Capture]bool
 	// alphabet holds the literal strings and sample characters of the grammar, for mutations.
 	alphabet []string
 	// terms holds what predicates read of the grammar, and the declared variables with their initial
@@ -75,20 +75,20 @@ type info struct {
 	terms *terms
 }
 
-func analyze(g *grammar.Grammar, start string) *info {
+func analyze(g *ast.Grammar, start string) *info {
 	in := &info{
 		rules:     map[string]*ruleInfo{},
-		altBase:   map[*grammar.Choice]int{},
-		operands:  map[*grammar.OperatorsRuleOperand]int{},
-		ops:       map[*grammar.OperatorsRuleOperator]int{},
-		reachMemo: map[grammar.Expr]bitset{},
-		compared:  map[*grammar.Capture]bool{},
-		captures:  map[grammar.Expr]bool{},
-		classes:   map[*grammar.CharClass][]grammar.CharRange{},
+		altBase:   map[*ast.Choice]int{},
+		operands:  map[*ast.OperatorsRuleOperand]int{},
+		ops:       map[*ast.OperatorsRuleOperator]int{},
+		reachMemo: map[ast.Expr]bitset{},
+		compared:  map[*ast.Capture]bool{},
+		captures:  map[ast.Expr]bool{},
+		classes:   map[*ast.CharClass][]ast.CharRange{},
 	}
 	for i, r := range g.Rules() {
 		ri := &ruleInfo{def: r, index: i, height: inf, length: inf, stops: map[int]*operatorsRuleStop{}}
-		if pr, _ := grammar.RuleOperators(r.Expr); pr != nil {
+		if pr, _ := ast.RuleOperators(r.Expr); pr != nil {
 			ri.operatorsRule = pr
 			ri.levels = map[string]int{}
 			for j, l := range pr.Levels {
@@ -108,16 +108,16 @@ func analyze(g *grammar.Grammar, start string) *info {
 	}
 	// Targets inside rule bodies.
 	for _, ri := range in.order {
-		walk(ri.def.Expr, func(e grammar.Expr) {
+		walk(ri.def.Expr, func(e ast.Expr) {
 			switch e := e.(type) {
-			case *grammar.Ref:
+			case *ast.Ref:
 				ri.calls = append(ri.calls, e.Name)
-			case *grammar.Choice:
+			case *ast.Choice:
 				in.altBase[e] = len(in.targets)
 				for j, a := range e.Alts {
 					in.targets = append(in.targets, target{kind: targetAlt, rule: ri.def.Name, index: j, expr: a})
 				}
-			case *grammar.OperatorsRule:
+			case *ast.OperatorsRule:
 				for j, o := range e.Operands {
 					in.operands[o] = len(in.targets)
 					in.targets = append(in.targets, target{kind: targetOperand, rule: ri.def.Name, index: j, expr: o.Expr})
@@ -130,11 +130,11 @@ func analyze(g *grammar.Grammar, start string) *info {
 						j++
 					}
 				}
-			case *grammar.Literal:
+			case *ast.Literal:
 				if e.Value != "" {
 					in.alphabet = append(in.alphabet, e.Value)
 				}
-			case *grammar.CharClass:
+			case *ast.CharClass:
 				if !e.Negated {
 					for _, r := range e.Ranges {
 						in.alphabet = append(in.alphabet, string(r.Lo), string(r.Hi))
@@ -146,17 +146,17 @@ func analyze(g *grammar.Grammar, start string) *info {
 	in.alphabet = dedupe(in.alphabet)
 	for _, ri := range in.order {
 		read := map[string]bool{}
-		walk(ri.def.Expr, func(e grammar.Expr) {
-			if p, ok := e.(*grammar.Predicate); ok {
-				walkTerm(p.Term, func(t grammar.Term) {
-					if c, ok := t.(*grammar.CaptureRef); ok {
+		walk(ri.def.Expr, func(e ast.Expr) {
+			if p, ok := e.(*ast.Predicate); ok {
+				walkTerm(p.Term, func(t ast.Term) {
+					if c, ok := t.(*ast.CaptureRef); ok {
 						read[c.Name] = true
 					}
 				})
 			}
 		})
-		walk(ri.def.Expr, func(e grammar.Expr) {
-			if c, ok := e.(*grammar.Capture); ok && read[c.Name] {
+		walk(ri.def.Expr, func(e ast.Expr) {
+			if c, ok := e.(*ast.Capture); ok && read[c.Name] {
 				in.compared[c] = true
 			}
 		})
@@ -193,14 +193,14 @@ func analyze(g *grammar.Grammar, start string) *info {
 }
 
 // localTargets adds the targets inside e, not counting the rules it calls, to s.
-func (in *info) localTargets(e grammar.Expr, s bitset) {
-	walk(e, func(x grammar.Expr) {
+func (in *info) localTargets(e ast.Expr, s bitset) {
+	walk(e, func(x ast.Expr) {
 		switch x := x.(type) {
-		case *grammar.Choice:
+		case *ast.Choice:
 			for j := range x.Alts {
 				s.set(in.altBase[x] + j)
 			}
-		case *grammar.OperatorsRule:
+		case *ast.OperatorsRule:
 			for _, o := range x.Operands {
 				s.set(in.operands[o])
 			}
@@ -216,39 +216,39 @@ func (in *info) localTargets(e grammar.Expr, s bitset) {
 // alwaysMatches reports whether e matches at any position of any input, if only the empty string: an
 // optional expression, a repetition with minimum 0, and sequences and choices of such. Cuts (which can
 // make an optional expression fail), lookaheads and predicates make it false.
-func (in *info) alwaysMatches(e grammar.Expr) bool {
+func (in *info) alwaysMatches(e ast.Expr) bool {
 	switch e := e.(type) {
-	case *grammar.Top:
+	case *ast.Top:
 		return true
-	case *grammar.Literal:
+	case *ast.Literal:
 		return e.Value == ""
-	case *grammar.Optional:
+	case *ast.Optional:
 		return !in.hasCut(e.Expr)
-	case *grammar.Repeat:
+	case *ast.Repeat:
 		return e.Min == 0 && !in.hasCut(e.Expr) || e.Min == 1 && in.alwaysMatches(e.Expr)
-	case *grammar.Seq:
+	case *ast.Seq:
 		for _, it := range e.Items {
 			if !in.alwaysMatches(it) {
 				return false
 			}
 		}
 		return true
-	case *grammar.Choice:
+	case *ast.Choice:
 		for _, a := range e.Alts {
 			if in.alwaysMatches(a) {
 				return !in.hasCut(e)
 			}
 		}
 		return false
-	case *grammar.Atomic:
+	case *ast.Atomic:
 		return in.alwaysMatches(e.Expr)
-	case *grammar.Discard:
+	case *ast.Discard:
 		return in.alwaysMatches(e.Expr)
-	case *grammar.Capture:
+	case *ast.Capture:
 		return in.alwaysMatches(e.Expr)
-	case *grammar.Attributed:
+	case *ast.Attributed:
 		return in.alwaysMatches(e.Expr)
-	case *grammar.Ref:
+	case *ast.Ref:
 		ri := in.rules[e.Name]
 		if ri == nil || ri.operatorsRule != nil {
 			return false
@@ -271,14 +271,14 @@ func (in *info) alwaysMatches(e grammar.Expr) bool {
 
 // binds reports whether e makes captures or defines variables, not counting called rules (whose
 // captures and variables are not visible to the caller).
-func (in *info) binds(e grammar.Expr) bool {
+func (in *info) binds(e ast.Expr) bool {
 	b := false
-	walk(e, func(x grammar.Expr) {
+	walk(e, func(x ast.Expr) {
 		switch x := x.(type) {
-		case *grammar.Capture:
+		case *ast.Capture:
 			b = true
-		case *grammar.Predicate:
-			if _, ok := x.Term.(*grammar.Bind); ok {
+		case *ast.Predicate:
+			if _, ok := x.Term.(*ast.Bind); ok {
 				b = true
 			}
 		}
@@ -288,13 +288,13 @@ func (in *info) binds(e grammar.Expr) bool {
 
 // classRanges returns the code points that the class matches as sorted, disjoint ranges of valid code
 // points: the complement for a negated class, and without the surrogates, which no input can contain.
-func (in *info) classRanges(c *grammar.CharClass) []grammar.CharRange {
+func (in *info) classRanges(c *ast.CharClass) []ast.CharRange {
 	if rs, ok := in.classes[c]; ok {
 		return rs
 	}
-	rs := append([]grammar.CharRange(nil), c.Ranges...)
-	slices.SortFunc(rs, func(a, b grammar.CharRange) int { return cmp.Compare(a.Lo, b.Lo) })
-	var merged []grammar.CharRange
+	rs := append([]ast.CharRange(nil), c.Ranges...)
+	slices.SortFunc(rs, func(a, b ast.CharRange) int { return cmp.Compare(a.Lo, b.Lo) })
+	var merged []ast.CharRange
 	for _, r := range rs {
 		if n := len(merged); n > 0 && r.Lo <= merged[n-1].Hi+1 {
 			merged[n-1].Hi = max(merged[n-1].Hi, r.Hi)
@@ -303,23 +303,23 @@ func (in *info) classRanges(c *grammar.CharClass) []grammar.CharRange {
 		}
 	}
 	if c.Negated {
-		var comp []grammar.CharRange
+		var comp []ast.CharRange
 		next := rune(0)
 		for _, r := range merged {
 			if r.Lo > next {
-				comp = append(comp, grammar.CharRange{Lo: next, Hi: r.Lo - 1})
+				comp = append(comp, ast.CharRange{Lo: next, Hi: r.Lo - 1})
 			}
 			next = max(next, r.Hi+1)
 		}
 		if next <= unicode.MaxRune {
-			comp = append(comp, grammar.CharRange{Lo: next, Hi: unicode.MaxRune})
+			comp = append(comp, ast.CharRange{Lo: next, Hi: unicode.MaxRune})
 		}
 		merged = comp
 	}
-	var valid []grammar.CharRange
+	var valid []ast.CharRange
 	for _, r := range merged {
 		r.Hi = min(r.Hi, unicode.MaxRune)
-		for _, part := range []grammar.CharRange{{Lo: r.Lo, Hi: min(r.Hi, 0xD7FF)}, {Lo: max(r.Lo, 0xE000), Hi: r.Hi}} {
+		for _, part := range []ast.CharRange{{Lo: r.Lo, Hi: min(r.Hi, 0xD7FF)}, {Lo: max(r.Lo, 0xE000), Hi: r.Hi}} {
 			if part.Lo <= part.Hi {
 				valid = append(valid, part)
 			}
@@ -331,10 +331,10 @@ func (in *info) classRanges(c *grammar.CharClass) []grammar.CharRange {
 
 // hasCut reports whether e contains a cut, not counting called rules (a cut does not reach beyond its
 // rule).
-func (in *info) hasCut(e grammar.Expr) bool {
+func (in *info) hasCut(e ast.Expr) bool {
 	cut := false
-	walk(e, func(x grammar.Expr) {
-		if _, ok := x.(*grammar.Cut); ok {
+	walk(e, func(x ast.Expr) {
+		if _, ok := x.(*ast.Cut); ok {
 			cut = true
 		}
 	})
@@ -342,13 +342,13 @@ func (in *info) hasCut(e grammar.Expr) bool {
 }
 
 // hasCaptures reports whether e contains a capture, not counting called rules.
-func (in *info) hasCaptures(e grammar.Expr) bool {
+func (in *info) hasCaptures(e ast.Expr) bool {
 	if v, ok := in.captures[e]; ok {
 		return v
 	}
 	v := false
-	walk(e, func(x grammar.Expr) {
-		if _, ok := x.(*grammar.Capture); ok {
+	walk(e, func(x ast.Expr) {
+		if _, ok := x.(*ast.Capture); ok {
 			v = true
 		}
 	})
@@ -357,14 +357,14 @@ func (in *info) hasCaptures(e grammar.Expr) bool {
 }
 
 // reach returns the targets that generating e can exercise.
-func (in *info) reach(e grammar.Expr) bitset {
+func (in *info) reach(e ast.Expr) bitset {
 	if s, ok := in.reachMemo[e]; ok {
 		return s
 	}
 	s := newBitset(len(in.targets))
 	in.localTargets(e, s)
-	walk(e, func(x grammar.Expr) {
-		if r, ok := x.(*grammar.Ref); ok {
+	walk(e, func(x ast.Expr) {
+		if r, ok := x.(*ast.Ref); ok {
 			if ri := in.rules[r.Name]; ri != nil {
 				s.union(ri.reach)
 			}
@@ -376,45 +376,45 @@ func (in *info) reach(e grammar.Expr) bitset {
 
 // height returns the minimal number of nested rule calls needed to match e, or inf if e can never
 // match, using the current estimates of the rules' heights.
-func (in *info) height(e grammar.Expr) int {
+func (in *info) height(e ast.Expr) int {
 	switch e := e.(type) {
-	case *grammar.Ref:
+	case *ast.Ref:
 		if ri := in.rules[e.Name]; ri != nil && ri.height < inf {
 			return ri.height + 1
 		}
 		return inf
-	case *grammar.Bottom:
+	case *ast.Bottom:
 		return inf
-	case *grammar.Seq:
+	case *ast.Seq:
 		h := 0
 		for _, it := range e.Items {
 			h = max(h, in.height(it))
 		}
 		return h
-	case *grammar.Choice:
+	case *ast.Choice:
 		h := inf
 		for _, a := range e.Alts {
 			h = min(h, in.height(a))
 		}
 		return h
-	case *grammar.Repeat:
+	case *ast.Repeat:
 		if e.Min == 0 {
 			return 0
 		}
 		return in.height(e.Expr)
-	case *grammar.Optional, *grammar.Not:
+	case *ast.Optional, *ast.Not:
 		return 0
-	case *grammar.And:
+	case *ast.And:
 		return in.height(e.Expr)
-	case *grammar.Atomic:
+	case *ast.Atomic:
 		return in.height(e.Expr)
-	case *grammar.Discard:
+	case *ast.Discard:
 		return in.height(e.Expr)
-	case *grammar.Capture:
+	case *ast.Capture:
 		return in.height(e.Expr)
-	case *grammar.Attributed:
+	case *ast.Attributed:
 		return in.height(e.Expr)
-	case *grammar.OperatorsRule:
+	case *ast.OperatorsRule:
 		h := inf
 		for _, o := range e.Operands {
 			h = min(h, in.height(o.Expr))
@@ -425,49 +425,49 @@ func (in *info) height(e grammar.Expr) int {
 }
 
 // length returns the minimal length in bytes of a match of e, or inf if e can never match.
-func (in *info) length(e grammar.Expr) int {
+func (in *info) length(e ast.Expr) int {
 	switch e := e.(type) {
-	case *grammar.Ref:
+	case *ast.Ref:
 		if ri := in.rules[e.Name]; ri != nil {
 			return ri.length
 		}
 		return inf
-	case *grammar.Literal:
+	case *ast.Literal:
 		return len(e.Value)
-	case *grammar.CharClass, *grammar.Any:
+	case *ast.CharClass, *ast.Any:
 		return 1
-	case *grammar.Bottom:
+	case *ast.Bottom:
 		return inf
-	case *grammar.Seq:
+	case *ast.Seq:
 		l := 0
 		for _, it := range e.Items {
 			l = int(min(uint(inf), uint(l)+uint(in.length(it))))
 		}
 		return l
-	case *grammar.Choice:
+	case *ast.Choice:
 		l := inf
 		for _, a := range e.Alts {
 			l = min(l, in.length(a))
 		}
 		return l
-	case *grammar.Repeat:
+	case *ast.Repeat:
 		if e.Min == 0 {
 			return 0
 		}
 		// Clamp both nonnegative factors before multiplying: their product
 		// then fits int64 even when a native int is only 32 bits wide.
 		return int(min(int64(inf), int64(min(inf, e.Min))*int64(min(inf, in.length(e.Expr)))))
-	case *grammar.Optional, *grammar.Not, *grammar.And:
+	case *ast.Optional, *ast.Not, *ast.And:
 		return 0
-	case *grammar.Atomic:
+	case *ast.Atomic:
 		return in.length(e.Expr)
-	case *grammar.Discard:
+	case *ast.Discard:
 		return in.length(e.Expr)
-	case *grammar.Capture:
+	case *ast.Capture:
 		return in.length(e.Expr)
-	case *grammar.Attributed:
+	case *ast.Attributed:
 		return in.length(e.Expr)
-	case *grammar.OperatorsRule:
+	case *ast.OperatorsRule:
 		l := inf
 		for _, o := range e.Operands {
 			l = min(l, in.length(o.Expr))
@@ -503,13 +503,13 @@ func (in *info) possibleTargets() {
 			queue = append(queue, ri.index)
 		}
 	}
-	visit := func(e grammar.Expr) {
+	visit := func(e ast.Expr) {
 		switch e := e.(type) {
-		case *grammar.Ref:
+		case *ast.Ref:
 			if callee := in.rules[e.Name]; callee != nil {
 				enqueue(callee, callee.levels[e.Level]) // zero for unrestricted/ordinary calls
 			}
-		case *grammar.Choice:
+		case *ast.Choice:
 			for j, a := range e.Alts {
 				in.targets[in.altBase[e]+j].possible = in.height(a) < inf
 			}
@@ -531,7 +531,7 @@ func (in *info) possibleTargets() {
 		minLevel := states[i].minLevel
 		for l, level := range pr.Levels {
 			for _, op := range level.Operators {
-				if op.Kind == grammar.Prefix && in.height(op.Expr) < inf {
+				if op.Kind == ast.Prefix && in.height(op.Expr) < inf {
 					minLevel = min(minLevel, l+1)
 				}
 			}
@@ -543,7 +543,7 @@ func (in *info) possibleTargets() {
 		}
 		for l, level := range pr.Levels {
 			for _, op := range level.Operators {
-				if op.Kind != grammar.Prefix && l < minLevel {
+				if op.Kind != ast.Prefix && l < minLevel {
 					continue
 				}
 				in.targets[in.ops[op]].possible = in.height(op.Expr) < inf
@@ -577,35 +577,35 @@ func (in *info) closure(calls func(*ruleInfo) []string) []bool {
 
 // walkPossible is walk restricted to expressions that can match: it skips an expression that can never
 // match and everything inside it.
-func (in *info) walkPossible(e grammar.Expr, f func(grammar.Expr)) {
+func (in *info) walkPossible(e ast.Expr, f func(ast.Expr)) {
 	if e == nil || in.height(e) >= inf {
 		return
 	}
 	f(e)
 	switch e := e.(type) {
-	case *grammar.Seq:
+	case *ast.Seq:
 		for _, it := range e.Items {
 			in.walkPossible(it, f)
 		}
-	case *grammar.Choice:
+	case *ast.Choice:
 		for _, a := range e.Alts {
 			in.walkPossible(a, f)
 		}
-	case *grammar.Repeat:
+	case *ast.Repeat:
 		in.walkPossible(e.Expr, f)
-	case *grammar.Optional:
+	case *ast.Optional:
 		in.walkPossible(e.Expr, f)
-	case *grammar.And:
+	case *ast.And:
 		in.walkPossible(e.Expr, f)
-	case *grammar.Atomic:
+	case *ast.Atomic:
 		in.walkPossible(e.Expr, f)
-	case *grammar.Discard:
+	case *ast.Discard:
 		in.walkPossible(e.Expr, f)
-	case *grammar.Capture:
+	case *ast.Capture:
 		in.walkPossible(e.Expr, f)
-	case *grammar.Attributed:
+	case *ast.Attributed:
 		in.walkPossible(e.Expr, f)
-	case *grammar.OperatorsRule:
+	case *ast.OperatorsRule:
 		in.walkPossible(e.Skip, f)
 		for _, o := range e.Operands {
 			in.walkPossible(o.Expr, f)
@@ -620,39 +620,39 @@ func (in *info) walkPossible(e grammar.Expr, f func(grammar.Expr)) {
 
 // walk calls f for e and every parsing expression inside it that generation can produce: it does not
 // enter called rules, negative lookaheads or attribute arguments (the skip of #recover).
-func walk(e grammar.Expr, f func(grammar.Expr)) {
+func walk(e ast.Expr, f func(ast.Expr)) {
 	if e == nil {
 		return
 	}
 	f(e)
 	switch e := e.(type) {
-	case *grammar.Seq:
+	case *ast.Seq:
 		for _, it := range e.Items {
 			walk(it, f)
 		}
-	case *grammar.Choice:
+	case *ast.Choice:
 		for _, a := range e.Alts {
 			walk(a, f)
 		}
-	case *grammar.Repeat:
+	case *ast.Repeat:
 		walk(e.Expr, f)
-	case *grammar.Optional:
+	case *ast.Optional:
 		walk(e.Expr, f)
-	case *grammar.And:
+	case *ast.And:
 		walk(e.Expr, f)
-	case *grammar.Not:
+	case *ast.Not:
 		// Not walked: generation never produces what a negative lookahead matches.
-	case *grammar.Atomic:
+	case *ast.Atomic:
 		walk(e.Expr, f)
-	case *grammar.Discard:
+	case *ast.Discard:
 		walk(e.Expr, f)
-	case *grammar.Capture:
+	case *ast.Capture:
 		walk(e.Expr, f)
-	case *grammar.Attributed:
+	case *ast.Attributed:
 		// Attribute arguments (the skip of #recover) are not walked: valid inputs never
 		// exercise them.
 		walk(e.Expr, f)
-	case *grammar.OperatorsRule:
+	case *ast.OperatorsRule:
 		walk(e.Skip, f)
 		for _, o := range e.Operands {
 			walk(o.Expr, f)
@@ -708,36 +708,36 @@ func (s bitset) anyNotIn(a, b bitset) bool {
 }
 
 // walkTerm calls f for t and every term inside it.
-func walkTerm(t grammar.Term, f func(grammar.Term)) {
+func walkTerm(t ast.Term, f func(ast.Term)) {
 	if t == nil {
 		return
 	}
 	f(t)
 	switch t := t.(type) {
-	case *grammar.Member:
+	case *ast.Member:
 		walkTerm(t.X, f)
-	case *grammar.New:
+	case *ast.New:
 		for _, fi := range t.Fields {
 			walkTerm(fi.Value, f)
 		}
-	case *grammar.TupleLit:
+	case *ast.TupleLit:
 		for _, x := range t.Elems {
 			walkTerm(x, f)
 		}
-	case *grammar.Call:
+	case *ast.Call:
 		for _, a := range t.Args {
 			walkTerm(a, f)
 		}
-	case *grammar.Lambda:
+	case *ast.Lambda:
 		walkTerm(t.Body, f)
-	case *grammar.Binary:
+	case *ast.Binary:
 		walkTerm(t.L, f)
 		walkTerm(t.R, f)
-	case *grammar.Unary:
+	case *ast.Unary:
 		walkTerm(t.X, f)
-	case *grammar.Cast:
+	case *ast.Cast:
 		walkTerm(t.X, f)
-	case *grammar.Bind:
+	case *ast.Bind:
 		walkTerm(t.Value, f)
 	}
 }

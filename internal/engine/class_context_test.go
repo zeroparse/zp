@@ -12,28 +12,28 @@ import (
 	"zeroparse.dev/zp/internal/cancel"
 
 	"zeroparse.dev/zp/core"
-	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/compile"
 	"zeroparse.dev/zp/internal/engine/closure"
 	"zeroparse.dev/zp/internal/engine/state"
 	"zeroparse.dev/zp/internal/testing/starttest"
+	"zeroparse.dev/zp/pkg/grammar/ast"
 )
 
-func contextClassRanges() []grammar.CharRange {
-	rs := make([]grammar.CharRange, 4096)
+func contextClassRanges() []ast.CharRange {
+	rs := make([]ast.CharRange, 4096)
 	for i := range rs {
-		rs[i] = grammar.CharRange{Lo: rune(256 + i*2), Hi: rune(256 + i*2)}
+		rs[i] = ast.CharRange{Lo: rune(256 + i*2), Hi: rune(256 + i*2)}
 	}
 	return rs
 }
 
 func TestClassConstructionContextCancellation(t *testing.T) {
 	t.Parallel()
-	cl := &grammar.CharClass{Ranges: contextClassRanges()}
-	before := append([]grammar.CharRange(nil), cl.Ranges...)
-	var deep grammar.Expr = cl
+	cl := &ast.CharClass{Ranges: contextClassRanges()}
+	before := append([]ast.CharRange(nil), cl.Ranges...)
+	var deep ast.Expr = cl
 	for range 1024 {
-		deep = &grammar.Atomic{Expr: deep}
+		deep = &ast.Atomic{Expr: deep}
 	}
 	for _, phase := range []struct {
 		name string
@@ -63,11 +63,11 @@ func TestClassConstructionContextCancellation(t *testing.T) {
 
 func TestClassConstructionContextFacts(t *testing.T) {
 	t.Parallel()
-	cases := [][]grammar.CharRange{nil, {{Lo: 'a', Hi: 'z'}}, {{Lo: 'a', Hi: 'z'}, {Lo: 'β', Hi: 'β'}}, {{Lo: 'a', Hi: 'f'}, {Lo: '0', Hi: '9'}, {Lo: 'β', Hi: 'β'}, {Lo: '😀', Hi: '😀'}}}
+	cases := [][]ast.CharRange{nil, {{Lo: 'a', Hi: 'z'}}, {{Lo: 'a', Hi: 'z'}, {Lo: 'β', Hi: 'β'}}, {{Lo: 'a', Hi: 'f'}, {Lo: '0', Hi: '9'}, {Lo: 'β', Hi: 'β'}, {Lo: '😀', Hi: '😀'}}}
 	for i, rs := range cases {
 		for _, neg := range []bool{false, true} {
 			t.Run(fmt.Sprintf("%d/%t", i, neg), func(t *testing.T) {
-				cl := &grammar.CharClass{Ranges: rs, Negated: neg}
+				cl := &ast.CharClass{Ranges: rs, Negated: neg}
 				c := &cancel.Control{Ctx: context.Background()}
 				if got := compile.CharClassStringControlled(cl, c); got != compile.CharClassString(cl) {
 					t.Fatalf("descriptor %s", got)
@@ -96,14 +96,14 @@ func TestClassConstructionContextFacts(t *testing.T) {
 			})
 		}
 	}
-	cl := &grammar.CharClass{Ranges: []grammar.CharRange{{Lo: '-', Hi: '-'}, {Lo: '[', Hi: '['}, {Lo: ']', Hi: ']'}, {Lo: '^', Hi: '^'}, {Lo: '\\', Hi: '\\'}}}
+	cl := &ast.CharClass{Ranges: []ast.CharRange{{Lo: '-', Hi: '-'}, {Lo: '[', Hi: '['}, {Lo: ']', Hi: ']'}, {Lo: '^', Hi: '^'}, {Lo: '\\', Hi: '\\'}}}
 	if got := compile.CharClassStringControlled(cl, &cancel.Control{Ctx: context.Background()}); got != `[\-\[\]\^\\]` {
 		t.Fatalf("escaped descriptor %q", got)
 	}
 	rs := contextClassRanges()
-	cl = &grammar.CharClass{Ranges: rs}
+	cl = &ast.CharClass{Ranges: rs}
 	accept := closure.ClassAccept(cl)
-	rs[0] = grammar.CharRange{Lo: 'a', Hi: 'a'}
+	rs[0] = ast.CharRange{Lo: 'a', Hi: 'a'}
 	if !accept(&state.Parser{}, 256) || accept(&state.Parser{}, 'a') {
 		t.Fatal("matcher aliases source range slice")
 	}
@@ -112,15 +112,15 @@ func TestClassConstructionContextFacts(t *testing.T) {
 func TestClassConstructionCompileContextParity(t *testing.T) {
 	t.Parallel()
 	for _, shape := range []string{"single", "choice", "scan"} {
-		cl := &grammar.CharClass{Ranges: []grammar.CharRange{{Lo: 'a', Hi: 'f'}, {Lo: '0', Hi: '9'}, {Lo: 'β', Hi: 'β'}}}
-		var e grammar.Expr = cl
+		cl := &ast.CharClass{Ranges: []ast.CharRange{{Lo: 'a', Hi: 'f'}, {Lo: '0', Hi: '9'}, {Lo: 'β', Hi: 'β'}}}
+		var e ast.Expr = cl
 		if shape == "choice" {
-			e = &grammar.Choice{Alts: []grammar.Expr{cl, &grammar.Literal{Value: "z"}}}
+			e = &ast.Choice{Alts: []ast.Expr{cl, &ast.Literal{Value: "z"}}}
 		}
 		if shape == "scan" {
-			e = &grammar.Discard{Expr: &grammar.Repeat{Expr: cl, Min: 1, Max: -1}}
+			e = &ast.Discard{Expr: &ast.Repeat{Expr: cl, Min: 1, Max: -1}}
 		}
-		g := &grammar.Grammar{File: grammar.File{Decls: []grammar.Decl{&grammar.RuleDef{Name: "main", Expr: e}}}}
+		g := &ast.Grammar{File: ast.File{Decls: []ast.Decl{&ast.RuleDef{Name: "main", Expr: e}}}}
 		starttest.MarkAll(g)
 		for _, compiledRecognition := range []bool{false, true} {
 			a, err := Compile(g, compile.Options{Recognition: recognitionMode(compiledRecognition)})
@@ -174,8 +174,8 @@ func (c *classCompilationContext) Done() <-chan struct{} { return c.done }
 func classProgramWithoutContext(t *testing.T) (*Program, weak.Pointer[classCompilationContext]) {
 	ctx := &classCompilationContext{Context: context.Background(), done: make(chan struct{})}
 	ref := weak.Make(ctx)
-	cl := &grammar.CharClass{Ranges: []grammar.CharRange{{Lo: 'a', Hi: 'a'}, {Lo: 'b', Hi: 'b'}, {Lo: 'β', Hi: 'β'}}}
-	g := &grammar.Grammar{File: grammar.File{Decls: []grammar.Decl{&grammar.RuleDef{Name: "main", Expr: &grammar.Choice{Alts: []grammar.Expr{&grammar.Seq{Items: []grammar.Expr{cl, &grammar.EndInput{}}}, &grammar.Discard{Expr: &grammar.Repeat{Expr: cl, Min: 1, Max: -1}}}}}}}}
+	cl := &ast.CharClass{Ranges: []ast.CharRange{{Lo: 'a', Hi: 'a'}, {Lo: 'b', Hi: 'b'}, {Lo: 'β', Hi: 'β'}}}
+	g := &ast.Grammar{File: ast.File{Decls: []ast.Decl{&ast.RuleDef{Name: "main", Expr: &ast.Choice{Alts: []ast.Expr{&ast.Seq{Items: []ast.Expr{cl, &ast.EndInput{}}}, &ast.Discard{Expr: &ast.Repeat{Expr: cl, Min: 1, Max: -1}}}}}}}}
 	starttest.MarkAll(g)
 	p, err := CompileContext(ctx, g, compile.Options{})
 	if err != nil {

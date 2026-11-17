@@ -9,9 +9,9 @@ import (
 	"strings"
 	"testing"
 
-	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/codegen"
 	"zeroparse.dev/zp/internal/testing/codegentest"
+	"zeroparse.dev/zp/pkg/grammar/ast"
 )
 
 // Small tables cannot select sparse storage, so their default TypeScript
@@ -24,7 +24,7 @@ func TestGeneratedSparseMemoSmallTable(t *testing.T) {
 		t.Fatal(err)
 	}
 	for _, recognize := range []bool{false, true} {
-		for _, generate := range []func(*grammar.Grammar, codegen.GenOptions) ([]byte, error){codegentest.GenerateTSBundle} {
+		for _, generate := range []func(*ast.Grammar, codegen.GenOptions) ([]byte, error){codegentest.GenerateTSBundle} {
 			opts := codegen.GenOptions{Package: "smallmemo", Start: "main", Recognize: recognize}
 			code, err := generate(g, opts)
 			if err != nil {

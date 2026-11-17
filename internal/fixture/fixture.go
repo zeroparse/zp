@@ -18,7 +18,7 @@ import (
 
 	"zeroparse.dev/zp/core"
 	"zeroparse.dev/zp/engine"
-	"zeroparse.dev/zp/grammar"
+	"zeroparse.dev/zp/pkg/grammar/ast"
 )
 
 // FormatVersion is the only fixture format version understood by this package.
@@ -35,7 +35,7 @@ type Suite struct {
 	Cases       []Case   `json:"cases"`
 
 	path    string
-	grammar *grammar.Grammar
+	grammar *ast.Grammar
 	source  []byte
 }
 
@@ -351,7 +351,7 @@ func Load(path string) (*Suite, error) {
 		return nil, fmt.Errorf("%s: reading grammar: %w", path, err)
 	}
 	if strings.HasSuffix(grammarPath, ".json") {
-		suite.grammar, err = grammar.UnmarshalJSON(grammarBytes)
+		suite.grammar, err = ast.UnmarshalJSON(grammarBytes)
 	} else {
 		suite.grammar, err = engine.ParseGrammar(string(grammarBytes))
 	}

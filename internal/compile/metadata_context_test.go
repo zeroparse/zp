@@ -7,17 +7,17 @@ import (
 	"zeroparse.dev/zp/internal/cancel"
 	"zeroparse.dev/zp/internal/frontend/check"
 
-	"zeroparse.dev/zp/grammar"
+	"zeroparse.dev/zp/pkg/grammar/ast"
 )
 
 func TestCompileMetadataCollectionCancellation(t *testing.T) {
-	g := &grammar.Grammar{}
-	a := &grammar.Attribute{Name: "error"}
+	g := &ast.Grammar{}
+	a := &ast.Attribute{Name: "error"}
 	for range 1024 {
-		g.File.Decls = append(g.File.Decls, &grammar.TypeDef{Name: "T"}, &grammar.RuleDef{Name: "a"})
+		g.File.Decls = append(g.File.Decls, &ast.TypeDef{Name: "T"}, &ast.RuleDef{Name: "a"})
 		a.Args = append(a.Args, "label")
 	}
-	expr := &grammar.Attributed{Expr: &grammar.Literal{Value: "a"}, Attrs: []*grammar.Attribute{a}}
+	expr := &ast.Attributed{Expr: &ast.Literal{Value: "a"}, Attrs: []*ast.Attribute{a}}
 	for _, phase := range []struct {
 		name string
 		run  func(*cancel.Control)
@@ -45,18 +45,18 @@ func TestCompileMetadataCollectionCancellation(t *testing.T) {
 }
 
 func TestProjectionMetadataCancellation(t *testing.T) {
-	var expr grammar.Expr = &grammar.Literal{Value: "a"}
-	var term grammar.Term = &grammar.StringLit{Value: "a"}
+	var expr ast.Expr = &ast.Literal{Value: "a"}
+	var term ast.Term = &ast.StringLit{Value: "a"}
 	for range 1024 {
-		expr = &grammar.Optional{Expr: expr}
-		term = &grammar.Member{Name: "field", X: term}
+		expr = &ast.Optional{Expr: expr}
+		term = &ast.Member{Name: "field", X: term}
 	}
 	for _, phase := range []struct {
 		name string
 		run  func(*cancel.Control)
 	}{
 		{"candidate-walk", func(c *cancel.Control) {
-			ruleProjectionsControlled(NewProgram(nil), &Rule{Def: &grammar.RuleDef{Expr: expr}, Action: &grammar.StringLit{}}, c)
+			ruleProjectionsControlled(NewProgram(nil), &Rule{Def: &ast.RuleDef{Expr: expr}, Action: &ast.StringLit{}}, c)
 		}},
 	} {
 		t.Run(phase.name, func(t *testing.T) {
@@ -74,9 +74,9 @@ func TestProjectionMetadataCancellation(t *testing.T) {
 }
 
 func TestTypeCheckEmptyAttributeCancellation(t *testing.T) {
-	attrs := make([]*grammar.Attribute, 1024)
+	attrs := make([]*ast.Attribute, 1024)
 	for i := range attrs {
-		attrs[i] = &grammar.Attribute{Name: "error"}
+		attrs[i] = &ast.Attribute{Name: "error"}
 	}
 	control := &cancel.Control{Ctx: compileTestContext(t, 1)}
 	defer func() {
@@ -86,5 +86,5 @@ func TestTypeCheckEmptyAttributeCancellation(t *testing.T) {
 			t.Fatalf("empty attribute rows did not stop: %v", failure)
 		}
 	}()
-	check.PollPredicates(control, &grammar.Attributed{Expr: &grammar.Literal{Value: "a"}, Attrs: attrs})
+	check.PollPredicates(control, &ast.Attributed{Expr: &ast.Literal{Value: "a"}, Attrs: attrs})
 }

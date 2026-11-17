@@ -14,9 +14,9 @@ import (
 	"zeroparse.dev/zp/codegen"
 	"zeroparse.dev/zp/core"
 	"zeroparse.dev/zp/engine"
-	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/frontend/parser"
 	"zeroparse.dev/zp/internal/testing/codegentest"
+	"zeroparse.dev/zp/pkg/grammar/ast"
 )
 
 func sourceGrammar(t *testing.T) (*engine.Parser, string) {
@@ -86,7 +86,7 @@ func TestSourceGrammarMatchesDocumentation(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if blocks[0] != grammar.FormatSyntax(g) {
+	if blocks[0] != ast.FormatSyntax(g) {
 		t.Fatal("displayed simple grammar is stale")
 	}
 	tmpl, err := template.ParseFiles("syntax.md.tmpl")

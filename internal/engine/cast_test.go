@@ -7,10 +7,10 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/core"
-	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/bytecode"
 	"zeroparse.dev/zp/internal/compile"
 	"zeroparse.dev/zp/internal/testing/codegentest"
+	"zeroparse.dev/zp/pkg/grammar/ast"
 )
 
 func TestCastAcrossBackends(t *testing.T) {
@@ -88,7 +88,7 @@ func TestCastSyntax(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	formatted := grammar.Format(g)
+	formatted := ast.Format(g)
 	for _, want := range []string{"$x.([]Foo | *Word).Start", "(1).(int)"} {
 		if !strings.Contains(formatted, want) {
 			t.Fatalf("formatted lacks %q:\n%s", want, formatted)
@@ -97,13 +97,13 @@ func TestCastSyntax(t *testing.T) {
 	if _, err := parseTest(formatted); err != nil {
 		t.Fatalf("formatted grammar does not parse: %v", err)
 	}
-	member := g.Rules()[0].Action.(*grammar.Member)
-	if cast, ok := member.X.(*grammar.Cast); !ok || member.Name != "Start" {
+	member := g.Rules()[0].Action.(*ast.Member)
+	if cast, ok := member.X.(*ast.Cast); !ok || member.Name != "Start" {
 		t.Fatalf("cast %#v", member)
-	} else if _, ok := cast.Type.(*grammar.JoinType); !ok {
+	} else if _, ok := cast.Type.(*ast.JoinType); !ok {
 		t.Fatalf("cast type %#v", cast.Type)
 	}
-	if data, err := grammar.MarshalJSON(g); err != nil || !strings.Contains(string(data), "Cast") {
+	if data, err := ast.MarshalJSON(g); err != nil || !strings.Contains(string(data), "Cast") {
 		t.Fatalf("JSON AST: %v %s", err, data)
 	}
 

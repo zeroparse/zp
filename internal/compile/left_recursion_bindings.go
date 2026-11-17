@@ -3,7 +3,7 @@ package compile
 import (
 	"slices"
 
-	"zeroparse.dev/zp/grammar"
+	"zeroparse.dev/zp/pkg/grammar/ast"
 )
 
 // checkLeftRecursionBindings rejects a binding of a variable that a left-recursion cycle reads
@@ -16,7 +16,7 @@ import (
 // rule body. Bindings in a called rule end with the call, so they never reach a caller's calls.
 // The cycles and left calls are those of a, the analysis with or without insertion; reported holds
 // the bindings already reported, so that a binding is reported once over both analyses.
-func (c *Compiler) checkLeftRecursionBindings(a *Analysis, rules []*grammar.RuleDef, vars map[string][]string, reported map[*grammar.Bind]bool) {
+func (c *Compiler) checkLeftRecursionBindings(a *Analysis, rules []*ast.RuleDef, vars map[string][]string, reported map[*ast.Bind]bool) {
 	if len(a.Cycle) == 0 {
 		return
 	}
@@ -27,7 +27,7 @@ func (c *Compiler) checkLeftRecursionBindings(a *Analysis, rules []*grammar.Rule
 			continue
 		}
 		read := vars[r.Name]
-		a.leftBindings(r.Expr, nil, func(callee string, bound []*grammar.Bind) {
+		a.leftBindings(r.Expr, nil, func(callee string, bound []*ast.Bind) {
 			if k, ok := a.Cycle[callee]; !ok || k != cycle {
 				return
 			}
@@ -46,25 +46,25 @@ func (c *Compiler) checkLeftRecursionBindings(a *Analysis, rules []*grammar.Rule
 // before an expression following e. The result over-approximates: a binding in a choice
 // alternative or an optional counts even when input is consumed or the binding is undone before
 // the call runs.
-func (a *Analysis) leftBindings(e grammar.Expr, in []*grammar.Bind, visit func(string, []*grammar.Bind)) []*grammar.Bind {
+func (a *Analysis) leftBindings(e ast.Expr, in []*ast.Bind, visit func(string, []*ast.Bind)) []*ast.Bind {
 	a.Control.Poll()
 	switch e := e.(type) {
-	case *grammar.Ref:
+	case *ast.Ref:
 		visit(e.Name, in)
-	case *grammar.Predicate:
-		WalkTerm(e.Term, func(t grammar.Term) {
-			if b, ok := t.(*grammar.Bind); ok {
+	case *ast.Predicate:
+		WalkTerm(e.Term, func(t ast.Term) {
+			if b, ok := t.(*ast.Bind); ok {
 				in = append(slices.Clip(in), b)
 			}
 		})
-	case *grammar.Seq:
+	case *ast.Seq:
 		for _, it := range e.Items {
 			in = a.leftBindings(it, in, visit)
 			if !a.isNullable(it) {
 				break
 			}
 		}
-	case *grammar.Choice:
+	case *ast.Choice:
 		out := in
 		for _, alt := range e.Alts {
 			out = unionBinds(out, a.leftBindings(alt, in, visit))
@@ -73,7 +73,7 @@ func (a *Analysis) leftBindings(e grammar.Expr, in []*grammar.Bind, visit func(s
 			}
 		}
 		in = out
-	case *grammar.Repeat:
+	case *ast.Repeat:
 		if e.Max != 0 {
 			out := a.leftBindings(e.Expr, in, visit)
 			if a.isNullable(e.Expr) && len(out) > len(in) {
@@ -82,27 +82,27 @@ func (a *Analysis) leftBindings(e grammar.Expr, in []*grammar.Bind, visit func(s
 			}
 			in = out
 		}
-	case *grammar.Optional:
+	case *ast.Optional:
 		in = a.leftBindings(e.Expr, in, visit)
-	case *grammar.And:
+	case *ast.And:
 		// A positive lookahead returns to its start and keeps its bindings, so every binding
 		// in its body may run before what follows, even one after consumed input.
 		a.leftBindings(e.Expr, in, visit)
-		walkExprControlled(e.Expr, func(x grammar.Expr) {
-			if p, ok := x.(*grammar.Predicate); ok {
+		walkExprControlled(e.Expr, func(x ast.Expr) {
+			if p, ok := x.(*ast.Predicate); ok {
 				in = a.leftBindings(p, in, visit)
 			}
 		}, a.Control)
-	case *grammar.Not:
+	case *ast.Not:
 		// A negative lookahead succeeds only when its body fails, which undoes its bindings.
 		a.leftBindings(e.Expr, in, visit)
-	case *grammar.Atomic:
+	case *ast.Atomic:
 		in = a.leftBindings(e.Expr, in, visit)
-	case *grammar.Discard:
+	case *ast.Discard:
 		in = a.leftBindings(e.Expr, in, visit)
-	case *grammar.Capture:
+	case *ast.Capture:
 		in = a.leftBindings(e.Expr, in, visit)
-	case *grammar.Attributed:
+	case *ast.Attributed:
 		in = a.leftBindings(e.Expr, in, visit)
 		if !a.AlwaysSucceeds(e.Expr) {
 			for _, at := range e.Attrs {
@@ -113,7 +113,7 @@ func (a *Analysis) leftBindings(e grammar.Expr, in []*grammar.Bind, visit func(s
 				}
 			}
 		}
-	case *grammar.OperatorsRule:
+	case *ast.OperatorsRule:
 		if e.Skip != nil {
 			in = a.leftBindings(e.Skip, in, visit)
 		}
@@ -126,7 +126,7 @@ func (a *Analysis) leftBindings(e grammar.Expr, in []*grammar.Bind, visit func(s
 		}
 		for _, l := range e.Levels {
 			for _, op := range l.Operators {
-				if op.Kind == grammar.Prefix {
+				if op.Kind == ast.Prefix {
 					out = unionBinds(out, a.leftBindings(op.Expr, in, visit))
 				}
 			}
@@ -138,7 +138,7 @@ func (a *Analysis) leftBindings(e grammar.Expr, in []*grammar.Bind, visit func(s
 
 // unionBinds returns the bindings of a followed by those of b that a does not hold. Every list
 // extends a common prefix, so the result is small and keeps the order of discovery.
-func unionBinds(a, b []*grammar.Bind) []*grammar.Bind {
+func unionBinds(a, b []*ast.Bind) []*ast.Bind {
 	for _, x := range b {
 		if !slices.Contains(a, x) {
 			a = append(slices.Clip(a), x)

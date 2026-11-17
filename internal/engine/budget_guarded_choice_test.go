@@ -11,46 +11,46 @@ import (
 
 	"zeroparse.dev/zp/core"
 	"zeroparse.dev/zp/core/impl"
-	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/compile"
 	"zeroparse.dev/zp/internal/engine/state"
 	"zeroparse.dev/zp/internal/testing/starttest"
 	"zeroparse.dev/zp/internal/value"
+	"zeroparse.dev/zp/pkg/grammar/ast"
 )
 
 const budgetGuardedChoiceAlternatives = 512
 
-func budgetGuardedChoiceExpr() *grammar.Choice {
-	alts := make([]grammar.Expr, budgetGuardedChoiceAlternatives)
+func budgetGuardedChoiceExpr() *ast.Choice {
+	alts := make([]ast.Expr, budgetGuardedChoiceAlternatives)
 	for i := range alts {
-		alts[i] = &grammar.Literal{Value: string(rune(0x1000 + i))}
+		alts[i] = &ast.Literal{Value: string(rune(0x1000 + i))}
 	}
-	return &grammar.Choice{Alts: alts}
+	return &ast.Choice{Alts: alts}
 }
 
-func budgetGuardedChoiceProgram(t *testing.T) (*Program, *grammar.Choice) {
+func budgetGuardedChoiceProgram(t *testing.T) (*Program, *ast.Choice) {
 	t.Helper()
 	choice := budgetGuardedChoiceExpr()
-	return budgetGuardedChoiceProgramOf(t, choice, &grammar.Seq{Items: []grammar.Expr{
-		&grammar.Not{Expr: choice},
-		&grammar.Literal{Value: "z"},
+	return budgetGuardedChoiceProgramOf(t, choice, &ast.Seq{Items: []ast.Expr{
+		&ast.Not{Expr: choice},
+		&ast.Literal{Value: "z"},
 	}}), choice
 }
 
 // budgetGuardedChoiceValueProgram places the choice where it builds the value of main.
-func budgetGuardedChoiceValueProgram(t *testing.T) (*Program, *grammar.Choice) {
+func budgetGuardedChoiceValueProgram(t *testing.T) (*Program, *ast.Choice) {
 	t.Helper()
 	choice := budgetGuardedChoiceExpr()
 	return budgetGuardedChoiceProgramOf(t, choice, choice), choice
 }
 
 // budgetGuardedChoiceProgramOf compiles main = first / fallback, where first holds choice.
-func budgetGuardedChoiceProgramOf(t *testing.T, choice *grammar.Choice, first grammar.Expr) *Program {
+func budgetGuardedChoiceProgramOf(t *testing.T, choice *ast.Choice, first ast.Expr) *Program {
 	t.Helper()
-	main := &grammar.Choice{Alts: []grammar.Expr{first, &grammar.Ref{Name: "fallback"}}}
-	g := &grammar.Grammar{File: grammar.File{Decls: []grammar.Decl{
-		&grammar.RuleDef{Name: "main", Expr: main},
-		&grammar.RuleDef{Name: "fallback", Expr: &grammar.Literal{Value: "z"}},
+	main := &ast.Choice{Alts: []ast.Expr{first, &ast.Ref{Name: "fallback"}}}
+	g := &ast.Grammar{File: ast.File{Decls: []ast.Decl{
+		&ast.RuleDef{Name: "main", Expr: main},
+		&ast.RuleDef{Name: "fallback", Expr: &ast.Literal{Value: "z"}},
 	}}}
 	starttest.MarkAll(g)
 	prog, err := Compile(g, compile.Options{})
@@ -165,13 +165,13 @@ func TestBudgetGuardedChoicePassingMatcherCharge(t *testing.T) {
 	for _, unit := range []core.PositionUnit{core.Bytes, core.CodePoints} {
 		for _, skip := range []bool{false, true} {
 			t.Run(unit.String()+"/skip="+strconv.FormatBool(skip), func(t *testing.T) {
-				alts := []grammar.Expr{&grammar.Literal{Value: "z"}}
+				alts := []ast.Expr{&ast.Literal{Value: "z"}}
 				steps := uint64(2) // one peek and the literal probe, one unit each; a skipped alternative is free
 				if skip {
-					alts = append([]grammar.Expr{&grammar.Literal{Value: "x"}}, alts...)
+					alts = append([]ast.Expr{&ast.Literal{Value: "x"}}, alts...)
 				}
-				choice := &grammar.Choice{Alts: alts}
-				prog := compileExprProgram(t, &grammar.Not{Expr: choice})
+				choice := &ast.Choice{Alts: alts}
+				prog := compileExprProgram(t, &ast.Not{Expr: choice})
 				m := closureExprMatcher(t, prog.Static(), choice, false)
 				p := state.NewParser(&prog.sharedProgram, "z", unit, false)
 				p.Control = state.NewBudgetControl(nil, core.Limits{Compute: steps})
@@ -283,9 +283,9 @@ func budgetGuardedChoiceFatalAndRetry(t *testing.T, prog *Program, backend Backe
 }
 
 // compileExprProgram compiles the grammar whose start rule main is e.
-func compileExprProgram(t *testing.T, e grammar.Expr) *Program {
+func compileExprProgram(t *testing.T, e ast.Expr) *Program {
 	t.Helper()
-	g := &grammar.Grammar{File: grammar.File{Decls: []grammar.Decl{&grammar.RuleDef{Name: "main", Expr: e}}}}
+	g := &ast.Grammar{File: ast.File{Decls: []ast.Decl{&ast.RuleDef{Name: "main", Expr: e}}}}
 	starttest.MarkAll(g)
 	prog, err := Compile(g, compile.Options{})
 	if err != nil {

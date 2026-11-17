@@ -10,11 +10,11 @@ import (
 	"sync"
 	"testing"
 
-	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/analysis/complexity"
 	"zeroparse.dev/zp/internal/frontend/parser"
 	"zeroparse.dev/zp/internal/ir/core"
 	"zeroparse.dev/zp/internal/testing/factstest"
+	"zeroparse.dev/zp/pkg/grammar/ast"
 )
 
 // corpus returns the sources of the grammars the classifier's tests read: the pinned corpus, the
@@ -60,10 +60,10 @@ func viewSource(cs *complexity.CostSource) *complexity.Source {
 }
 
 // formatRules formats the body of each rule, one rule per line.
-func formatRules(rules []*grammar.RuleDef) string {
+func formatRules(rules []*ast.RuleDef) string {
 	var b strings.Builder
 	for _, r := range rules {
-		fmt.Fprintf(&b, "%s = %s\n", r.Name, grammar.FormatExpr(r.Expr))
+		fmt.Fprintf(&b, "%s = %s\n", r.Name, ast.FormatExpr(r.Expr))
 	}
 	return b.String()
 }
@@ -76,7 +76,7 @@ func innerAttrNodes(cs *complexity.CostSource) map[core.Node]bool {
 	inner := map[core.Node]bool{}
 	for _, r := range cs.Module.Rules {
 		core.Walk(r.Body, func(n core.Node) {
-			e, ok := cs.Origin[n].(*grammar.Attributed)
+			e, ok := cs.Origin[n].(*ast.Attributed)
 			if !ok || len(e.Attrs) < 2 {
 				return
 			}

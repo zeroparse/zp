@@ -4,7 +4,7 @@ import (
 	"strings"
 	"testing"
 
-	"zeroparse.dev/zp/grammar"
+	"zeroparse.dev/zp/pkg/grammar/ast"
 )
 
 // TestCommentsBeforeSemicolonJSON checks that a comment before a semicolon
@@ -18,15 +18,15 @@ var v = 1 /* z */; rule r = "a" /* w */ ; rule ops = #operators { operand "n" /*
 	if err != nil {
 		t.Fatal(err)
 	}
-	data, err := grammar.MarshalJSON(g)
+	data, err := ast.MarshalJSON(g)
 	if err != nil {
 		t.Fatal(err)
 	}
-	decoded, err := grammar.UnmarshalJSON(data)
+	decoded, err := ast.UnmarshalJSON(data)
 	if err != nil {
 		t.Fatal(err)
 	}
-	out := grammar.Format(decoded)
+	out := ast.Format(decoded)
 	for _, c := range []string{"a", "x", "y", "z", "w", "e", "f", "g"} {
 		if !strings.Contains(out, "/* "+c+" */") {
 			t.Errorf("comment %q lost through JSON\n%s", c, out)
@@ -55,15 +55,15 @@ rule z = "z" /* z1 */ /* z2 */
 	if err != nil {
 		t.Fatal(err)
 	}
-	data, err := grammar.MarshalJSON(g)
+	data, err := ast.MarshalJSON(g)
 	if err != nil {
 		t.Fatal(err)
 	}
-	decoded, err := grammar.UnmarshalJSON(data)
+	decoded, err := ast.UnmarshalJSON(data)
 	if err != nil {
 		t.Fatal(err)
 	}
-	out := grammar.Format(decoded)
+	out := ast.Format(decoded)
 	for _, c := range []string{"a1 ", "x1 ", "y1 ", "w1 ", "e1 ", "f1 ", "g1 ", "z1 "} {
 		want := "/* " + c + "*/ /* " + c[:1] + "2 */"
 		if !strings.Contains(out, want) {
@@ -86,10 +86,10 @@ func TestTrailingGroupsAcrossSemicolonJSON(t *testing.T) {
 			t.Fatal(err)
 		}
 		var got string
-		if r, ok := g.File.Decls[0].(*grammar.RuleDef); ok {
+		if r, ok := g.File.Decls[0].(*ast.RuleDef); ok {
 			got = strings.Join(r.TrailingComments, "")
-		} else if d, ok := g.File.Decls[0].(*grammar.TypeDef); ok {
-			got = strings.Join(d.Type.(*grammar.StructType).Fields[0].TrailingComments, "")
+		} else if d, ok := g.File.Decls[0].(*ast.TypeDef); ok {
+			got = strings.Join(d.Type.(*ast.StructType).Fields[0].TrailingComments, "")
 		}
 		if got != tc.want {
 			t.Errorf("%q: trailing %q, want %q", tc.src, got, tc.want)

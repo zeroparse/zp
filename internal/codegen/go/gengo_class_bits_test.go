@@ -4,8 +4,8 @@ import (
 	"testing"
 
 	zprt "zeroparse.dev/zp/codegen/go/lib"
-	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/codegen/go"
+	"zeroparse.dev/zp/pkg/grammar/ast"
 )
 
 // TestClassBits builds the library's Class from the generator's tables for classes whose ranges
@@ -13,7 +13,7 @@ import (
 // with the definition for every character up to U+0200.
 func TestClassBits(t *testing.T) {
 	t.Parallel()
-	ranges := [][]grammar.CharRange{
+	ranges := [][]ast.CharRange{
 		{{Lo: 0x3e, Hi: 0x41}, {Lo: 0x7e, Hi: 0x101}},
 		{{Lo: 0, Hi: 0}, {Lo: 63, Hi: 64}},
 		{{Lo: 0x7f, Hi: 0x80}},
@@ -23,7 +23,7 @@ func TestClassBits(t *testing.T) {
 	}
 	for _, rs := range ranges {
 		for _, neg := range []bool{false, true} {
-			e := &grammar.CharClass{Ranges: rs, Negated: neg}
+			e := &ast.CharClass{Ranges: rs, Negated: neg}
 			ascii, wide := gogen.ClassBits(e)
 			c := zprt.Class{ASCII: ascii, Wide: wide, Neg: neg}
 			for r := rune(0); r < 0x200; r++ {

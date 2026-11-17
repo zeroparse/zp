@@ -4,22 +4,22 @@ import (
 	"context"
 	"testing"
 
-	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/compile"
 	"zeroparse.dev/zp/internal/testing/compiletest"
+	"zeroparse.dev/zp/pkg/grammar/ast"
 )
 
 // compileStatic compiles g as the engine does, without building matchers.
-func compileStatic(g *grammar.Grammar) (*compile.Program, error) {
+func compileStatic(g *ast.Grammar) (*compile.Program, error) {
 	return compiletest.Compile(g, compile.Options{})
 }
 
 // skipOf returns the skip expression of e if e is an expression with #recover, or nil.
-func skipOf(e grammar.Expr) grammar.Expr {
+func skipOf(e ast.Expr) ast.Expr {
 	switch e := e.(type) {
-	case *grammar.Recovery:
+	case *ast.Recovery:
 		return e.Skip
-	case *grammar.Attributed:
+	case *ast.Attributed:
 		return compile.RecoverSkip(e)
 	}
 	return nil

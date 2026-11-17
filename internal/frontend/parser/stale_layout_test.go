@@ -4,7 +4,7 @@ import (
 	"strings"
 	"testing"
 
-	"zeroparse.dev/zp/grammar"
+	"zeroparse.dev/zp/pkg/grammar/ast"
 )
 
 // An attribute edited after it was read has no layout for the new arguments,
@@ -13,17 +13,17 @@ func TestEditedAttributeKeepsComments(t *testing.T) {
 	for _, tc := range []struct {
 		name string
 		in   string
-		edit func(a *grammar.Attribute)
+		edit func(a *ast.Attribute)
 		want string
 	}{
 		{"appended argument", "rule r = \"a\" @custom(1, /* a */ 2) \"b\"\n",
-			func(a *grammar.Attribute) { a.Args = append(a.Args, 3) },
+			func(a *ast.Attribute) { a.Args = append(a.Args, 3) },
 			"rule r = \"a\" @custom(\n    /* a */\n    1,\n    2,\n    3,\n) \"b\"\n"},
 		{"arguments removed", "rule r = \"a\" @custom(1, /* a */ 2) \"b\"\n",
-			func(a *grammar.Attribute) { a.Args = nil },
+			func(a *ast.Attribute) { a.Args = nil },
 			"rule r = \"a\" @custom(\n    /* a */\n) \"b\"\n"},
 		{"line comment", "rule r = \"a\" @custom(1, // a\n    2) \"b\"\n",
-			func(a *grammar.Attribute) { a.Args = append(a.Args, 3) },
+			func(a *ast.Attribute) { a.Args = append(a.Args, 3) },
 			"rule r = \"a\" @custom(\n    // a\n    1,\n    2,\n    3,\n) \"b\"\n"},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
@@ -31,9 +31,9 @@ func TestEditedAttributeKeepsComments(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			a := g.Rules()[0].Expr.(*grammar.Seq).Items[0].(*grammar.Attributed).Attrs[0]
+			a := g.Rules()[0].Expr.(*ast.Seq).Items[0].(*ast.Attributed).Attrs[0]
 			tc.edit(a)
-			got := grammar.Format(g)
+			got := ast.Format(g)
 			if got != tc.want {
 				t.Fatalf("got:\n%s\nwant:\n%s", got, tc.want)
 			}

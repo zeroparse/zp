@@ -7,7 +7,7 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/engine"
-	"zeroparse.dev/zp/grammar"
+	"zeroparse.dev/zp/pkg/grammar/ast"
 )
 
 func controlByName(t *testing.T, name string) Control {
@@ -91,7 +91,7 @@ func normalized(t *testing.T, src string) string {
 	for _, rd := range g.Rules() {
 		rd.Attrs = nil
 	}
-	return strings.ReplaceAll(grammar.Format(g), "\n\n", "\n") // blank lines are layout
+	return strings.ReplaceAll(ast.Format(g), "\n\n", "\n") // blank lines are layout
 }
 
 // TestRewriteRecipe checks that the recipe quotes the grammar of every control of Rewrites, so

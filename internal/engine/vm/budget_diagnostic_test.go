@@ -12,10 +12,10 @@ import (
 
 	"zeroparse.dev/zp/core"
 	"zeroparse.dev/zp/core/impl"
-	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/compile"
 	"zeroparse.dev/zp/internal/engine/state"
 	"zeroparse.dev/zp/internal/value"
+	"zeroparse.dev/zp/pkg/grammar/ast"
 )
 
 // TestBudgetDiagnosticRecoveredLists checks the lists of recovered errors under the controls: a
@@ -128,7 +128,7 @@ func TestBudgetDiagnosticRecoveredLists(t *testing.T) {
 					run = func() { p.GrowEnd(r, &g) }
 					completed = assertReplay
 				case "OperatorsRule snapshot", "iterative OperatorsRule snapshot":
-					op := &state.OperatorsRuleOp{Kind: grammar.Prefix, Line: &state.OperatorsRuleLine{Scope: &compile.Scope{}}}
+					op := &state.OperatorsRuleOp{Kind: ast.Prefix, Line: &state.OperatorsRuleLine{Scope: &compile.Scope{}}}
 					var best state.OperatorsRuleAttempt
 					if name == "OperatorsRule snapshot" {
 						steps++ // the operator that the match tries

@@ -9,10 +9,10 @@ import (
 	"zeroparse.dev/zp/internal/diagnostic"
 
 	"zeroparse.dev/zp/core"
-	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/codegen"
 	"zeroparse.dev/zp/internal/compile"
 	"zeroparse.dev/zp/internal/testing/codegentest"
+	"zeroparse.dev/zp/pkg/grammar/ast"
 )
 
 func TestInvalidCharacterClassEntryPoints(t *testing.T) {
@@ -21,10 +21,10 @@ func TestInvalidCharacterClassEntryPoints(t *testing.T) {
 }
 
 func testInvalidCharacterClassEntryPoints(t *testing.T) {
-	for _, cr := range []grammar.CharRange{{Lo: -1, Hi: 'z'}, {Lo: 'a', Hi: 0xd800}, {Lo: 0xdfff, Hi: utf8.MaxRune}, {Lo: 0, Hi: utf8.MaxRune + 1}, {Lo: 'z', Hi: 'a'}} {
+	for _, cr := range []ast.CharRange{{Lo: -1, Hi: 'z'}, {Lo: 'a', Hi: 0xd800}, {Lo: 0xdfff, Hi: utf8.MaxRune}, {Lo: 0, Hi: utf8.MaxRune + 1}, {Lo: 'z', Hi: 'a'}} {
 		t.Run(fmt.Sprintf("%x-%x", cr.Lo, cr.Hi), func(t *testing.T) {
-			cc := &grammar.CharClass{SourceInfo: grammar.SourceInfo{Pos: grammar.Pos{Line: 3, Col: 7}}, Ranges: []grammar.CharRange{cr}}
-			g := &grammar.Grammar{File: grammar.File{Decls: []grammar.Decl{&grammar.RuleDef{Name: "main", Expr: cc}}}}
+			cc := &ast.CharClass{SourceInfo: ast.SourceInfo{Pos: ast.Pos{Line: 3, Col: 7}}, Ranges: []ast.CharRange{cr}}
+			g := &ast.Grammar{File: ast.File{Decls: []ast.Decl{&ast.RuleDef{Name: "main", Expr: cc}}}}
 			for name, run := range map[string]func() error{
 				"compile":           func() error { _, err := Compile(g, compile.Options{}); return err },
 				"saved AST rebuild": func() error { _, err := build(g, compile.Options{}, []compile.RuleFlags{{}}); return err },
@@ -69,7 +69,7 @@ func TestUnicodeScalarRangeBackends(t *testing.T) {
 	for _, source := range []string{`rule main = [\u{0}-\u{10ffff}] $$`, `rule main = [\u{d7ff}-\u{e000}] $$`, `rule main = [^\u{d7ff}-\u{e000}] $$`} {
 		p := mustCompile(t, source)
 		g := mustParse(source)
-		cc := g.Rules()[0].Expr.(*grammar.Seq).Items[0].(*grammar.CharClass)
+		cc := g.Rules()[0].Expr.(*ast.Seq).Items[0].(*ast.CharClass)
 		for _, backend := range []Backend{Closure, Bytecode, BytecodeIterative} {
 			for _, unit := range []core.PositionUnit{core.Bytes, core.CodePoints} {
 				for _, r := range []rune{0, 'a', 0xd7fe, 0xd7ff, 0xe000, 0xe001, 0xfffd, 0xffff, 0x10000, utf8.MaxRune} {

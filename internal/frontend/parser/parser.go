@@ -7,15 +7,15 @@ import (
 	"unicode"
 	"unicode/utf8"
 
-	"zeroparse.dev/zp/grammar"
+	"zeroparse.dev/zp/pkg/grammar/ast"
 )
 
 // Error is a syntax error.
 type Error struct {
-	Pos grammar.Pos
+	Pos ast.Pos
 	// End is the position just after the text the error is about, when the lexer knows it (an
 	// escape sequence, a run of invalid characters), and the zero Pos otherwise.
-	End grammar.Pos
+	End ast.Pos
 	Msg string
 }
 
@@ -42,9 +42,9 @@ const maxNesting = 100 * maxLevels
 
 type errorList struct{ list ErrorList }
 
-func (e *errorList) add(pos grammar.Pos, msg string) { e.addRange(pos, grammar.Pos{}, msg) }
+func (e *errorList) add(pos ast.Pos, msg string) { e.addRange(pos, ast.Pos{}, msg) }
 
-func (e *errorList) addRange(pos, end grammar.Pos, msg string) {
+func (e *errorList) addRange(pos, end ast.Pos, msg string) {
 	// Report only the first error at a given position.
 	if n := len(e.list); n > 0 && e.list[n-1].Pos == pos {
 		return
@@ -61,7 +61,7 @@ func (e *errorList) addRange(pos, end grammar.Pos, msg string) {
 // ParseReference parses src with the hand-written recursive-descent parser. It is not a
 // frontend of any API: it is the reference that the differential tests of the generated
 // frontend (Parse) compare with.
-func ParseReference(src string) (*grammar.Grammar, error) {
+func ParseReference(src string) (*ast.Grammar, error) {
 	errs := &errorList{}
 	p := &parser{toks: lex(src, errs), errs: errs}
 	g := p.file()
@@ -74,7 +74,7 @@ func ParseReference(src string) (*grammar.Grammar, error) {
 // ParsePartialReference is ParsePartial with the hand-written parser (see ParseReference):
 // after an error it skips to the next rule or type, so the grammar holds the definitions that
 // parsed to the end.
-func ParsePartialReference(src string) (*grammar.Grammar, ErrorList) {
+func ParsePartialReference(src string) (*ast.Grammar, ErrorList) {
 	errs := &errorList{}
 	p := &parser{toks: lex(src, errs), errs: errs}
 	return p.file(), errs.list
@@ -82,7 +82,7 @@ func ParsePartialReference(src string) (*grammar.Grammar, ErrorList) {
 
 type parser struct {
 	// semi is the line break whose trailing comment was taken before a semicolon.
-	semi *grammar.LineBreak
+	semi *ast.LineBreak
 	toks []token
 	i    int
 	// inlined is one more than the index of the token whose inline gap was
@@ -95,7 +95,7 @@ type parser struct {
 	// cur is the line break most recently recorded. Comments that do not
 	// precede a recorded line break are added to it, because the formatter
 	// writes the tokens they follow on the line after it.
-	cur *grammar.LineBreak
+	cur *ast.LineBreak
 	// nest counts the choices being parsed with choice. Line breaks are
 	// recorded only outside them, in the top level of a rule body.
 	nest int
@@ -106,8 +106,8 @@ type parser struct {
 	layoutDepth    int
 	layoutStart    int
 	header         bool
-	headerComments []*grammar.Comment
-	headerPos      grammar.Pos
+	headerComments []*ast.Comment
+	headerPos      ast.Pos
 	recoveryStart  int
 }
 
@@ -157,7 +157,7 @@ func (p *parser) next() token {
 	return t
 }
 
-func (p *parser) appendComments(dst, comments []*grammar.Comment) []*grammar.Comment {
+func (p *parser) appendComments(dst, comments []*ast.Comment) []*ast.Comment {
 	return append(dst, comments...)
 }
 
@@ -211,7 +211,7 @@ func (p *parser) statement() func() {
 // takeRun returns the comment c at the end of the line of the token before t, together with the
 // comments after it on that line that all trail the same token (see collectComments), as one
 // comment. Those comments leave t.
-func (t *token) takeRun(c *grammar.Comment) *grammar.Comment {
+func (t *token) takeRun(c *ast.Comment) *ast.Comment {
 	if t.source == nil || t.source.run <= 1 || c != t.lineComment || len(t.comments) < t.source.run-1 {
 		return c
 	}
@@ -225,15 +225,15 @@ func (t *token) takeRun(c *grammar.Comment) *grammar.Comment {
 }
 
 // joinComments returns the comments a and b, which share a line, as one comment.
-func joinComments(a, b *grammar.Comment) *grammar.Comment {
-	run := func(c *grammar.Comment) []*grammar.Comment {
+func joinComments(a, b *ast.Comment) *ast.Comment {
+	run := func(c *ast.Comment) []*ast.Comment {
 		if len(c.Run) > 0 {
 			return c.Run
 		}
-		return []*grammar.Comment{c}
+		return []*ast.Comment{c}
 	}
-	return &grammar.Comment{Pos: a.Pos, End: b.End, Text: a.Text + " " + b.Text, Content: a.Content + b.Content, Blank: a.Blank,
-		Run: append(append([]*grammar.Comment(nil), run(a)...), run(b)...)}
+	return &ast.Comment{Pos: a.Pos, End: b.End, Text: a.Text + " " + b.Text, Content: a.Content + b.Content, Blank: a.Blank,
+		Run: append(append([]*ast.Comment(nil), run(a)...), run(b)...)}
 }
 
 // takeComments moves the comments before token i to the current line
@@ -260,7 +260,7 @@ func (p *parser) takeComments(i int) {
 // formatter may start a new line, with the comments before the token. A
 // comment at the end of the previous line becomes the trailing comment of
 // the line break recorded before.
-func (p *parser) lineBreak() *grammar.LineBreak {
+func (p *parser) lineBreak() *ast.LineBreak {
 	t := &p.toks[p.i]
 	c := t.lineComment
 	trails := c != nil && p.cur != nil && p.cur.Trailing == nil
@@ -268,7 +268,7 @@ func (p *parser) lineBreak() *grammar.LineBreak {
 	if trails || after {
 		c = t.takeRun(c)
 	}
-	b := &grammar.LineBreak{Comments: t.comments, Blank: t.blankBefore}
+	b := &ast.LineBreak{Comments: t.comments, Blank: t.blankBefore}
 	switch {
 	case trails:
 		p.cur.Trailing = c
@@ -278,7 +278,7 @@ func (p *parser) lineBreak() *grammar.LineBreak {
 		p.cur.Trailing = joinComments(p.cur.Trailing, c)
 		p.cur.TrailingEnds = c.End.Line < t.pos.Line
 	case c != nil:
-		b.Comments = p.appendComments([]*grammar.Comment{c}, b.Comments)
+		b.Comments = p.appendComments([]*ast.Comment{c}, b.Comments)
 	}
 	t.lineComment, t.comments = nil, nil
 	p.cur = b
@@ -293,7 +293,7 @@ func (p *parser) lineBreak() *grammar.LineBreak {
 // the token; with several, the first still trails the line before. A block
 // comment of one line between two tokens of that line is detached the same way. A closing
 // brace starts no statement, so the comment before it trails the last one.
-func (p *parser) statementBreak() *grammar.LineBreak {
+func (p *parser) statementBreak() *ast.LineBreak {
 	t := &p.toks[p.i]
 	c := t.lineComment
 	if c == nil || len(t.comments) != 0 || t.text == "}" || !strings.HasPrefix(c.Text, "/*") || c.End.Line != t.pos.Line {
@@ -308,7 +308,7 @@ func (p *parser) statementBreak() *grammar.LineBreak {
 	t.lineComment = nil
 	b := p.lineBreak()
 	c.Blank = true
-	b.Comments = append([]*grammar.Comment{c}, b.Comments...)
+	b.Comments = append([]*ast.Comment{c}, b.Comments...)
 	b.Blank = true
 	return b
 }
@@ -367,22 +367,22 @@ var keywords = map[string]bool{
 	"postfix": true, "infix": true,
 }
 
-func (p *parser) file() *grammar.Grammar {
-	g := &grammar.Grammar{}
+func (p *parser) file() *ast.Grammar {
+	g := &ast.Grammar{}
 
 	if p.is("package") || p.is("@") && p.attributesReach(p.i, "package", true) {
 		p.packageClause(&g.File.Pkg)
 	}
 	for p.tok().kind != tEOF {
 		start := p.i
-		var statement grammar.SourceNode
+		var statement ast.SourceNode
 		p.recoveryStart = start
 		func() {
 			defer p.recover()
 			switch {
 			case p.is("type"):
 				t := p.typeDecl()
-				statement = t.(grammar.SourceNode)
+				statement = t.(ast.SourceNode)
 				g.File.Decls = append(g.File.Decls, t)
 			case p.is("var"):
 				v := p.varDef()
@@ -416,7 +416,7 @@ func (p *parser) file() *grammar.Grammar {
 }
 
 // packageClause parses the package clause, with its declaration attributes.
-func (p *parser) packageClause(pkg *grammar.Pkg) {
+func (p *parser) packageClause(pkg *ast.Pkg) {
 	packageStart := p.i
 	pkg.Break = p.statementBreak()
 	parsed := false
@@ -538,7 +538,7 @@ func (p *parser) attributesReach(i int, keyword string, sameLine bool) bool {
 	return false
 }
 
-func (p *parser) typeDecl() (sourceResult grammar.TypeDecl) {
+func (p *parser) typeDecl() (sourceResult ast.TypeDecl) {
 	sourceStart := p.i
 	defer func() {
 		if sourceResult != nil {
@@ -555,16 +555,16 @@ func (p *parser) typeDecl() (sourceResult grammar.TypeDecl) {
 	defer func() {
 		p.header = false
 		switch d := sourceResult.(type) {
-		case *grammar.TypeDef:
+		case *ast.TypeDef:
 			d.HeaderComments = append(p.headerContents(headerFrom), d.HeaderComments...)
-		case *grammar.TypeAlias:
+		case *ast.TypeAlias:
 			d.HeaderComments = append(p.headerContents(headerFrom), d.HeaderComments...)
 		}
 	}()
 	name := p.ident()
-	info := grammar.SourceInfo{Pos: pos}
-	def := func(t grammar.TypeExpr) *grammar.TypeDef {
-		return &grammar.TypeDef{SourceInfo: info, Name: name.text, Type: t, Break: br}
+	info := ast.SourceInfo{Pos: pos}
+	def := func(t ast.TypeExpr) *ast.TypeDef {
+		return &ast.TypeDef{SourceInfo: info, Name: name.text, Type: t, Break: br}
 	}
 	specStart := p.i
 	switch {
@@ -579,7 +579,7 @@ func (p *parser) typeDecl() (sourceResult grammar.TypeDecl) {
 		}
 		p.header = false
 		p.layout, p.layoutDepth = false, 0
-		st := &grammar.StructType{}
+		st := &ast.StructType{}
 		st.Fields, st.CloseBreak, st.OneLine = p.structFields()
 		p.sourceNode(st, specStart)
 		return def(st)
@@ -591,7 +591,7 @@ func (p *parser) typeDecl() (sourceResult grammar.TypeDecl) {
 		p.next()
 		p.header = false
 		gap := p.gapContents()
-		app, _ := p.typeTerm().(*grammar.TypeApp)
+		app, _ := p.typeTerm().(*ast.TypeApp)
 		if app == nil || len(app.Args) != 1 {
 			p.errorf("a node type takes one type argument: type %s = node[T]", name.text)
 			panic(bail{})
@@ -605,14 +605,14 @@ func (p *parser) typeDecl() (sourceResult grammar.TypeDecl) {
 	case p.accept("~"):
 		p.header = false
 		gap := p.gapContents()
-		return &grammar.TypeAlias{SourceInfo: info, Name: name.text, HeaderComments: gap, Type: p.typeExpr(), Break: br}
+		return &ast.TypeAlias{SourceInfo: info, Name: name.text, HeaderComments: gap, Type: p.typeExpr(), Break: br}
 	default:
 		p.errorf("expected '=' or '~', found %s", p.tok())
 		panic(bail{})
 	}
 }
 
-func (p *parser) typeExpr() (sourceResult grammar.TypeExpr) {
+func (p *parser) typeExpr() (sourceResult ast.TypeExpr) {
 	sourceStart := p.i
 	defer func() {
 		if sourceResult != nil {
@@ -624,7 +624,7 @@ func (p *parser) typeExpr() (sourceResult grammar.TypeExpr) {
 	if !p.is("|") {
 		return t
 	}
-	u := &grammar.JoinType{Types: []grammar.TypeExpr{t}}
+	u := &ast.JoinType{Types: []ast.TypeExpr{t}}
 	for p.accept("|") {
 		u.Types = append(u.Types, p.typeMeet())
 	}
@@ -632,7 +632,7 @@ func (p *parser) typeExpr() (sourceResult grammar.TypeExpr) {
 }
 
 // typeMeet parses T & U, which binds tighter than |.
-func (p *parser) typeMeet() (sourceResult grammar.TypeExpr) {
+func (p *parser) typeMeet() (sourceResult ast.TypeExpr) {
 	sourceStart := p.i
 	defer func() {
 		if sourceResult != nil {
@@ -644,7 +644,7 @@ func (p *parser) typeMeet() (sourceResult grammar.TypeExpr) {
 	if !p.is("&") {
 		return t
 	}
-	m := &grammar.MeetType{Types: []grammar.TypeExpr{t}}
+	m := &ast.MeetType{Types: []ast.TypeExpr{t}}
 	for p.accept("&") {
 		m.Types = append(m.Types, p.typeTerm())
 	}
@@ -663,7 +663,7 @@ func (p *parser) enter() {
 
 func (p *parser) leave() { p.depth-- }
 
-func (p *parser) typeTerm() (sourceResult grammar.TypeExpr) {
+func (p *parser) typeTerm() (sourceResult ast.TypeExpr) {
 	sourceStart := p.i
 	defer func() {
 		if sourceResult != nil {
@@ -675,9 +675,9 @@ func (p *parser) typeTerm() (sourceResult grammar.TypeExpr) {
 	defer p.leave()
 	switch {
 	case p.accept("[]"):
-		return &grammar.ListType{Elem: p.typeTerm()}
+		return &ast.ListType{Elem: p.typeTerm()}
 	case p.accept("*"):
-		return &grammar.OptionalType{Elem: p.typeTerm()}
+		return &ast.OptionalType{Elem: p.typeTerm()}
 	case p.accept("("):
 		open := p.i - 1
 		outer, header := p.cur, p.header
@@ -685,7 +685,7 @@ func (p *parser) typeTerm() (sourceResult grammar.TypeExpr) {
 		// The comments inside the parentheses belong to the type, not to the
 		// header around it.
 		p.header = false
-		g := &grammar.TypeGroup{OpenBreak: &grammar.LineBreak{}}
+		g := &ast.TypeGroup{OpenBreak: &ast.LineBreak{}}
 		p.cur = g.OpenBreak
 		g.BodyBreak = p.lineBreak()
 		if p.is(")") {
@@ -704,12 +704,12 @@ func (p *parser) typeTerm() (sourceResult grammar.TypeExpr) {
 		outer, header := p.cur, p.header
 		defer func() { p.cur, p.header = outer, header }()
 		p.header = false
-		s := &grammar.StructType{}
+		s := &ast.StructType{}
 		s.Fields, s.CloseBreak, s.OneLine = p.structFields()
 		return s
 	case p.is("_|_"):
 		t := p.next()
-		return &grammar.TypeRef{SourceInfo: grammar.SourceInfo{Pos: t.pos}, Name: t.text}
+		return &ast.TypeRef{SourceInfo: ast.SourceInfo{Pos: t.pos}, Name: t.text}
 	}
 	name := p.ident()
 	if replacement, ok := valueTypeNames[name.text]; ok {
@@ -720,7 +720,7 @@ func (p *parser) typeTerm() (sourceResult grammar.TypeExpr) {
 	if p.is("[") {
 		// The lexer makes "[" a bracket only directly after the name: T[U].
 		p.next()
-		a := &grammar.TypeApp{SourceInfo: grammar.SourceInfo{Pos: name.pos}, Name: name.text}
+		a := &ast.TypeApp{SourceInfo: ast.SourceInfo{Pos: name.pos}, Name: name.text}
 		outer, header := p.cur, p.header
 		defer func() { p.cur, p.header = outer, header }()
 		p.header = false
@@ -742,11 +742,11 @@ func (p *parser) typeTerm() (sourceResult grammar.TypeExpr) {
 		p.expect("]")
 		return a
 	}
-	return &grammar.TypeRef{SourceInfo: grammar.SourceInfo{Pos: name.pos}, Name: name.text}
+	return &ast.TypeRef{SourceInfo: ast.SourceInfo{Pos: name.pos}, Name: name.text}
 }
 
 // structFields parses the braces and fields of a struct type: { A T; B U }.
-func (p *parser) structFields() (fields []*grammar.Field, closeBreak *grammar.LineBreak, oneLine bool) {
+func (p *parser) structFields() (fields []*ast.Field, closeBreak *ast.LineBreak, oneLine bool) {
 	open := p.i
 	p.expect("{")
 	lead := p.openLead()
@@ -766,7 +766,7 @@ func (p *parser) structFields() (fields []*grammar.Field, closeBreak *grammar.Li
 		fieldStart := p.i
 		fname := p.ident()
 		gap := p.takeGapContents()
-		field := &grammar.Field{SourceInfo: grammar.SourceInfo{Pos: fname.pos}, Name: fname.text, HeaderComments: gap, Type: p.typeExpr(), Break: fb}
+		field := &ast.Field{SourceInfo: ast.SourceInfo{Pos: fname.pos}, Name: fname.text, HeaderComments: gap, Type: p.typeExpr(), Break: fb}
 		p.source(field, fieldStart)
 		fields = append(fields, field)
 		restore()
@@ -783,8 +783,8 @@ func (p *parser) structFields() (fields []*grammar.Field, closeBreak *grammar.Li
 
 // tupleType finishes a tuple type whose "(" and first element, if any, were read as a group's.
 // A trailing comma is optional, and required after a single element.
-func (p *parser) tupleType(g *grammar.TypeGroup, first grammar.TypeExpr) grammar.TypeExpr {
-	t := &grammar.TupleType{OpenBreak: g.OpenBreak, BodyBreak: g.BodyBreak}
+func (p *parser) tupleType(g *ast.TypeGroup, first ast.TypeExpr) ast.TypeExpr {
+	t := &ast.TupleType{OpenBreak: g.OpenBreak, BodyBreak: g.BodyBreak}
 	if first != nil {
 		t.Types = append(t.Types, first)
 		p.takeAfterLayout(first)
@@ -805,17 +805,17 @@ func (p *parser) tupleType(g *grammar.TypeGroup, first grammar.TypeExpr) grammar
 }
 
 // typeElem parses an element of a list of types with the comments before it.
-func (p *parser) typeElem() grammar.TypeExpr {
+func (p *parser) typeElem() ast.TypeExpr {
 	layout := p.takeTermLayout()
 	x := p.typeExpr()
 	if layout != nil {
-		x.(grammar.SourceNode).Source().Layout = layout
+		x.(ast.SourceNode).Source().Layout = layout
 	}
 	return x
 }
 
 // varDef parses a variable definition: var Name [Type] [= Value].
-func (p *parser) varDef() (sourceResult *grammar.VarDef) {
+func (p *parser) varDef() (sourceResult *ast.VarDef) {
 	sourceStart := p.i
 	defer func() {
 		if sourceResult != nil {
@@ -832,7 +832,7 @@ func (p *parser) varDef() (sourceResult *grammar.VarDef) {
 	headerFrom := len(p.headerComments)
 	name := p.ident()
 	p.header = false
-	vd := &grammar.VarDef{SourceInfo: grammar.SourceInfo{Pos: pos}, Name: name.text, HeaderComments: p.headerContents(headerFrom), Break: br}
+	vd := &ast.VarDef{SourceInfo: ast.SourceInfo{Pos: pos}, Name: name.text, HeaderComments: p.headerContents(headerFrom), Break: br}
 	if !p.boundary() && p.tok().kind != tEOF && !p.is("=") && !p.is(";") {
 		vd.HeaderComments = append(vd.HeaderComments, p.gapContents()...)
 		vd.Type = p.typeExpr()
@@ -848,7 +848,7 @@ func (p *parser) varDef() (sourceResult *grammar.VarDef) {
 	return vd
 }
 
-func (p *parser) ruleDef() (sourceResult *grammar.RuleDef) {
+func (p *parser) ruleDef() (sourceResult *ast.RuleDef) {
 	sourceStart := p.i
 	defer func() {
 		if sourceResult != nil {
@@ -865,7 +865,7 @@ func (p *parser) ruleDef() (sourceResult *grammar.RuleDef) {
 	defer func() { p.header, p.layout, p.layoutDepth = false, false, 0 }()
 	headerFrom := len(p.headerComments)
 	name := p.ident()
-	rd := &grammar.RuleDef{SourceInfo: grammar.SourceInfo{Pos: pos}, Attrs: attrs, Name: name.text, Break: br, AttrBreaks: attrBreaks, KeywordBreak: keywordBreak}
+	rd := &ast.RuleDef{SourceInfo: ast.SourceInfo{Pos: pos}, Attrs: attrs, Name: name.text, Break: br, AttrBreaks: attrBreaks, KeywordBreak: keywordBreak}
 	if b := p.toks[keyword].source; len(attrs) > 0 && b != nil && b.hasNext {
 		// No source-bearing node starts at "rule" after attributes, so the
 		// declaration owns the comments before it.
@@ -922,10 +922,10 @@ func (p *parser) ruleDef() (sourceResult *grammar.RuleDef) {
 // "package". Several may share a line, and the last one ends its line. Each
 // attribute that starts a line after the first has a line break, and so does
 // the keyword after them.
-func (p *parser) declarationAttributes(keyword string) (attrs []*grammar.Attribute, breaks []*grammar.LineBreak, keywordBreak *grammar.LineBreak) {
+func (p *parser) declarationAttributes(keyword string) (attrs []*ast.Attribute, breaks []*ast.LineBreak, keywordBreak *ast.LineBreak) {
 	for p.is("@") {
-		var b *grammar.LineBreak
-		var gap []*grammar.Comment
+		var b *ast.LineBreak
+		var gap []*ast.Comment
 		if len(attrs) > 0 {
 			if p.atLineStart() {
 				b = p.lineBreak()
@@ -941,7 +941,7 @@ func (p *parser) declarationAttributes(keyword string) (attrs []*grammar.Attribu
 		}
 		attr := p.attribute()
 		if gap != nil {
-			attr.Layout = &grammar.SourceLayout{Before: gap}
+			attr.Layout = &ast.SourceLayout{Before: gap}
 		}
 		attrs = append(attrs, attr)
 	}
@@ -963,8 +963,8 @@ func (p *parser) declarationAttributes(keyword string) (attrs []*grammar.Attribu
 	return attrs, breaks, p.lineBreak()
 }
 
-func (p *parser) actionTerm() (grammar.Term, bool) {
-	var term grammar.Term
+func (p *parser) actionTerm() (ast.Term, bool) {
+	var term ast.Term
 	defaultAction := p.accept("...")
 	if !defaultAction {
 		if p.is("{") {
@@ -980,7 +980,7 @@ func (p *parser) actionTerm() (grammar.Term, bool) {
 	return term, defaultAction
 }
 
-func (p *parser) inlineChoice() (sourceResult grammar.Expr) {
+func (p *parser) inlineChoice() (sourceResult ast.Expr) {
 	sourceStart := p.i
 	defer func() {
 		if sourceResult != nil {
@@ -993,7 +993,7 @@ func (p *parser) inlineChoice() (sourceResult grammar.Expr) {
 		gap := p.takeCommentGap()
 		pos := p.next().pos
 		term, defaultAction := p.actionTerm()
-		a := &grammar.InlineAction{SourceInfo: grammar.SourceInfo{Pos: pos}, Expr: e, Action: term, DefaultAction: defaultAction}
+		a := &ast.InlineAction{SourceInfo: ast.SourceInfo{Pos: pos}, Expr: e, Action: term, DefaultAction: defaultAction}
 		if gap != nil {
 			layoutOf(a).OpGap = gap
 		}
@@ -1004,7 +1004,7 @@ func (p *parser) inlineChoice() (sourceResult grammar.Expr) {
 
 // bodyChoice parses the top-level choice of a rule body like choice, and
 // records the line breaks between its alternatives and sequence items.
-func (p *parser) bodyChoice() (sourceResult grammar.Expr) {
+func (p *parser) bodyChoice() (sourceResult ast.Expr) {
 	sourceStart := p.i
 	defer func() {
 		if sourceResult != nil {
@@ -1016,11 +1016,11 @@ func (p *parser) bodyChoice() (sourceResult grammar.Expr) {
 	if !p.is("/") {
 		return first
 	}
-	c := &grammar.Choice{Alts: []grammar.Expr{first}}
-	breaks := []*grammar.LineBreak{nil}
+	c := &ast.Choice{Alts: []ast.Expr{first}}
+	breaks := []*ast.LineBreak{nil}
 	broken := false
 	for !p.boundary() && p.is("/") {
-		var b *grammar.LineBreak
+		var b *ast.LineBreak
 		if p.atLineStart() {
 			b = p.lineBreak()
 			broken = true
@@ -1045,7 +1045,7 @@ func (p *parser) bodyChoice() (sourceResult grammar.Expr) {
 
 // bodySequence parses a sequence like sequence, and records the line breaks
 // between its items.
-func (p *parser) bodySequence() (sourceResult grammar.Expr) {
+func (p *parser) bodySequence() (sourceResult ast.Expr) {
 	sourceStart := p.i
 	defer func() {
 		if sourceResult != nil {
@@ -1053,11 +1053,11 @@ func (p *parser) bodySequence() (sourceResult grammar.Expr) {
 		}
 	}()
 
-	var items []grammar.Expr
-	var breaks []*grammar.LineBreak
+	var items []ast.Expr
+	var breaks []*ast.LineBreak
 	broken := false
 	for p.startsPrimary() {
-		var b *grammar.LineBreak
+		var b *ast.LineBreak
 		if len(items) > 0 && p.atLineStart() {
 			b = p.lineBreak()
 			broken = true
@@ -1072,7 +1072,7 @@ func (p *parser) bodySequence() (sourceResult grammar.Expr) {
 	case 1:
 		return items[0]
 	}
-	s := &grammar.Seq{Items: items}
+	s := &ast.Seq{Items: items}
 	if broken {
 		s.Breaks = breaks
 	}
@@ -1082,10 +1082,10 @@ func (p *parser) bodySequence() (sourceResult grammar.Expr) {
 // operatorsBody parses an Operators Rule and the #ignorecase pragma that may follow its block on
 // the same line. The pragma covers the literals of the whole rule; no other pragma is accepted
 // there.
-func (p *parser) operatorsBody() (sourceResult grammar.Expr) {
+func (p *parser) operatorsBody() (sourceResult ast.Expr) {
 	sourceStart := p.i - 2 // The caller consumed #operators.
 	start := p.toks[sourceStart].pos
-	var e grammar.Expr = p.operatorsRule()
+	var e ast.Expr = p.operatorsRule()
 	wrapped := false
 	for !p.boundary() && p.is("#") && !p.isCut() && !p.tok().lineBefore {
 		operator := p.takeInlineGap()
@@ -1095,8 +1095,8 @@ func (p *parser) operatorsBody() (sourceResult grammar.Expr) {
 		}
 		e = p.pragma(e, start)
 		wrapped = true
-		if a, ok := e.(*grammar.Attributed); ok && operator != nil {
-			a.Attrs[len(a.Attrs)-1].Layout = &grammar.SourceLayout{Before: operator}
+		if a, ok := e.(*ast.Attributed); ok && operator != nil {
+			a.Attrs[len(a.Attrs)-1].Layout = &ast.SourceLayout{Before: operator}
 		}
 	}
 	if wrapped {
@@ -1105,7 +1105,7 @@ func (p *parser) operatorsBody() (sourceResult grammar.Expr) {
 	return e
 }
 
-func (p *parser) operatorsRule() (sourceResult *grammar.OperatorsRule) {
+func (p *parser) operatorsRule() (sourceResult *ast.OperatorsRule) {
 	sourceStart := p.i - 2 // The caller consumed #operators.
 	defer func() {
 		if sourceResult != nil {
@@ -1113,7 +1113,7 @@ func (p *parser) operatorsRule() (sourceResult *grammar.OperatorsRule) {
 		}
 	}()
 
-	pr := &grammar.OperatorsRule{SourceInfo: grammar.SourceInfo{Pos: p.expect("{").pos}}
+	pr := &ast.OperatorsRule{SourceInfo: ast.SourceInfo{Pos: p.expect("{").pos}}
 	p.leadAfterOpen()
 	for {
 		b := p.statementBreak()
@@ -1122,7 +1122,7 @@ func (p *parser) operatorsRule() (sourceResult *grammar.OperatorsRule) {
 			break
 		}
 		itemStart := p.i
-		var itemSource *grammar.SourceInfo
+		var itemSource *ast.SourceInfo
 		restore := p.statement()
 		switch {
 		case p.accept("skip"):
@@ -1136,7 +1136,7 @@ func (p *parser) operatorsRule() (sourceResult *grammar.OperatorsRule) {
 			itemSource = &pr.SkipSource
 		case p.accept("operand"):
 			operandPos := p.toks[p.i-1].pos
-			o := &grammar.OperatorsRuleOperand{SourceInfo: grammar.SourceInfo{Pos: operandPos}, Expr: p.choice(), Break: b}
+			o := &ast.OperatorsRuleOperand{SourceInfo: ast.SourceInfo{Pos: operandPos}, Expr: p.choice(), Break: b}
 			if p.accept("=>") {
 				o.Action, o.DefaultAction = p.actionTerm()
 			}
@@ -1146,7 +1146,7 @@ func (p *parser) operatorsRule() (sourceResult *grammar.OperatorsRule) {
 		case p.accept("level"):
 			p.header = true
 			p.headerPos = p.toks[p.i-1].pos
-			l := &grammar.OperatorsRuleLevel{SourceInfo: grammar.SourceInfo{Pos: p.headerPos}, Break: b}
+			l := &ast.OperatorsRuleLevel{SourceInfo: ast.SourceInfo{Pos: p.headerPos}, Break: b}
 			if p.tok().kind == tIdent {
 				l.Name = p.ident().text
 			}
@@ -1204,7 +1204,7 @@ func (p *parser) itemEnd() {
 	}
 }
 
-func (p *parser) operatorsRuleOperator() (sourceResult *grammar.OperatorsRuleOperator) {
+func (p *parser) operatorsRuleOperator() (sourceResult *ast.OperatorsRuleOperator) {
 	sourceStart := p.i
 	defer func() {
 		if sourceResult != nil {
@@ -1214,23 +1214,23 @@ func (p *parser) operatorsRuleOperator() (sourceResult *grammar.OperatorsRuleOpe
 
 	defer p.statement()()
 	t := p.tok()
-	op := &grammar.OperatorsRuleOperator{SourceInfo: grammar.SourceInfo{Pos: t.pos}}
+	op := &ast.OperatorsRuleOperator{SourceInfo: ast.SourceInfo{Pos: t.pos}}
 	switch {
 	case p.accept("prefix"):
-		op.Kind = grammar.Prefix
+		op.Kind = ast.Prefix
 	case p.accept("postfix"):
-		op.Kind = grammar.Postfix
+		op.Kind = ast.Postfix
 	case p.accept("infix"):
 		p.header = true
 		p.headerPos = op.Pos
-		op.Kind = grammar.Infix
+		op.Kind = ast.Infix
 		switch {
 		case p.accept("left"):
-			op.Assoc = grammar.AssocLeft
+			op.Assoc = ast.AssocLeft
 		case p.accept("right"):
-			op.Assoc = grammar.AssocRight
+			op.Assoc = ast.AssocRight
 		case p.accept("none"):
-			op.Assoc = grammar.AssocNone
+			op.Assoc = ast.AssocNone
 		default:
 			p.errorf("expected 'left', 'right', or 'none', found %s", p.tok())
 			panic(bail{})
@@ -1249,7 +1249,7 @@ func (p *parser) operatorsRuleOperator() (sourceResult *grammar.OperatorsRuleOpe
 
 // --- Parser expressions ---
 
-func (p *parser) choice() (sourceResult grammar.Expr) {
+func (p *parser) choice() (sourceResult ast.Expr) {
 	sourceStart := p.i
 	defer func() {
 		if sourceResult != nil {
@@ -1265,7 +1265,7 @@ func (p *parser) choice() (sourceResult grammar.Expr) {
 	if !p.is("/") {
 		return first
 	}
-	c := &grammar.Choice{Alts: []grammar.Expr{first}}
+	c := &ast.Choice{Alts: []ast.Expr{first}}
 	for !p.boundary() && p.is("/") {
 		sep := p.takeCommentGap()
 		p.next()
@@ -1304,7 +1304,7 @@ func (p *parser) startsPrimary() bool {
 	return false
 }
 
-func (p *parser) sequence() (sourceResult grammar.Expr) {
+func (p *parser) sequence() (sourceResult ast.Expr) {
 	sourceStart := p.i
 	defer func() {
 		if sourceResult != nil {
@@ -1312,7 +1312,7 @@ func (p *parser) sequence() (sourceResult grammar.Expr) {
 		}
 	}()
 
-	var items []grammar.Expr
+	var items []ast.Expr
 	for p.startsPrimary() {
 		items = append(items, p.prefixed())
 	}
@@ -1323,10 +1323,10 @@ func (p *parser) sequence() (sourceResult grammar.Expr) {
 	case 1:
 		return items[0]
 	}
-	return &grammar.Seq{Items: items}
+	return &ast.Seq{Items: items}
 }
 
-func (p *parser) prefixed() (sourceResult grammar.Expr) {
+func (p *parser) prefixed() (sourceResult ast.Expr) {
 	sourceStart := p.i
 	defer func() {
 		if sourceResult != nil {
@@ -1346,30 +1346,30 @@ func (p *parser) prefixed() (sourceResult grammar.Expr) {
 	if t.kind == tIdent && p.peek(1).kind == tPunct && p.peek(1).text == ":" && !p.peek(1).spaceBefore {
 		p.ident()
 		p.next()
-		return &grammar.Capture{SourceInfo: grammar.SourceInfo{Pos: t.pos}, Name: t.text, Expr: p.operand()}
+		return &ast.Capture{SourceInfo: ast.SourceInfo{Pos: t.pos}, Name: t.text, Expr: p.operand()}
 	}
 	switch {
 	case p.accept("&"):
-		return &grammar.And{SourceInfo: grammar.SourceInfo{Pos: t.pos}, Expr: p.operand()}
+		return &ast.And{SourceInfo: ast.SourceInfo{Pos: t.pos}, Expr: p.operand()}
 	case p.accept("!"):
-		return &grammar.Not{SourceInfo: grammar.SourceInfo{Pos: t.pos}, Expr: p.operand()}
+		return &ast.Not{SourceInfo: ast.SourceInfo{Pos: t.pos}, Expr: p.operand()}
 	case p.is("-"):
 		p.next()
-		return &grammar.Discard{SourceInfo: grammar.SourceInfo{Pos: t.pos}, Expr: p.operand()}
+		return &ast.Discard{SourceInfo: ast.SourceInfo{Pos: t.pos}, Expr: p.operand()}
 	}
 	return p.suffixed()
 }
 
 // operand parses what follows a label or a prefix operator. The comments
 // between the two stay with the operand, whatever lines they stand on.
-func (p *parser) operand() grammar.Expr {
+func (p *parser) operand() ast.Expr {
 	lead := p.takeCommentGap()
 	e := p.prefixed()
 	p.leadOf(e, lead)
 	return e
 }
 
-func (p *parser) suffixed() (sourceResult grammar.Expr) {
+func (p *parser) suffixed() (sourceResult ast.Expr) {
 	sourceStart := p.i
 	defer func() {
 		if sourceResult != nil {
@@ -1380,8 +1380,8 @@ func (p *parser) suffixed() (sourceResult grammar.Expr) {
 	start := p.tok().pos
 	e := p.primary()
 	for !p.boundary() {
-		var operator []*grammar.Comment
-		var gap *grammar.Gap
+		var operator []*ast.Comment
+		var gap *ast.Gap
 		if p.is("*") || p.is("+") || p.is("?") {
 			gap = p.takeCommentGap()
 		} else if !p.is("@") && p.is("#") && !p.isCut() {
@@ -1389,38 +1389,38 @@ func (p *parser) suffixed() (sourceResult grammar.Expr) {
 		}
 		switch {
 		case p.accept("*"):
-			e = &grammar.Repeat{SourceInfo: grammar.SourceInfo{Pos: start}, Expr: e, Min: 0, Max: -1}
+			e = &ast.Repeat{SourceInfo: ast.SourceInfo{Pos: start}, Expr: e, Min: 0, Max: -1}
 		case p.accept("+"):
-			e = &grammar.Repeat{SourceInfo: grammar.SourceInfo{Pos: start}, Expr: e, Min: 1, Max: -1}
+			e = &ast.Repeat{SourceInfo: ast.SourceInfo{Pos: start}, Expr: e, Min: 1, Max: -1}
 		case p.accept("?"):
-			e = &grammar.Optional{SourceInfo: grammar.SourceInfo{Pos: start}, Expr: e}
+			e = &ast.Optional{SourceInfo: ast.SourceInfo{Pos: start}, Expr: e}
 		case p.is("#") && !p.isCut():
 			e = p.pragma(e, start)
-			if a, ok := e.(*grammar.Attributed); ok && operator != nil {
-				a.Attrs[len(a.Attrs)-1].Layout = &grammar.SourceLayout{Before: operator}
+			if a, ok := e.(*ast.Attributed); ok && operator != nil {
+				a.Attrs[len(a.Attrs)-1].Layout = &ast.SourceLayout{Before: operator}
 				operator = nil
 			}
 		case p.is("@"):
-			a, ok := e.(*grammar.Attributed)
+			a, ok := e.(*ast.Attributed)
 			if !ok {
-				a = &grammar.Attributed{Expr: e, Attrs: []*grammar.Attribute{}}
+				a = &ast.Attributed{Expr: e, Attrs: []*ast.Attribute{}}
 				e = a
 			}
 			for p.is("@") && !p.boundary() {
-				var b *grammar.LineBreak
+				var b *ast.LineBreak
 				if p.nest == 0 && p.atLineStart() {
 					b = p.lineBreak()
 				}
 				if b != nil || a.Breaks != nil {
 					p.appendAttributeBreak(a, b)
 				}
-				var gap []*grammar.Comment
+				var gap []*ast.Comment
 				if b == nil {
 					gap = p.takeInlineGap()
 				}
 				attr := p.attribute()
 				if gap != nil {
-					attr.Layout = &grammar.SourceLayout{Before: gap}
+					attr.Layout = &ast.SourceLayout{Before: gap}
 				}
 				a.Attrs = append(a.Attrs, attr)
 			}
@@ -1440,14 +1440,14 @@ func (p *parser) suffixed() (sourceResult grammar.Expr) {
 
 // appendAttributeBreak fills the absent breaks before a newly broken
 // attribute. A long same-line attribute run can make this gap large.
-func (p *parser) appendAttributeBreak(a *grammar.Attributed, b *grammar.LineBreak) {
-	a.Breaks = append(a.Breaks, make([]*grammar.LineBreak, len(a.Attrs)-len(a.Breaks))...)
+func (p *parser) appendAttributeBreak(a *ast.Attributed, b *ast.LineBreak) {
+	a.Breaks = append(a.Breaks, make([]*ast.LineBreak, len(a.Attrs)-len(a.Breaks))...)
 	a.Breaks = append(a.Breaks, b)
 }
 
 // pragma dispatches built-in grammar syntax. Its payload is not an attribute
 // argument list: each directive defines its own grammar and target.
-func (p *parser) pragma(e grammar.Expr, start grammar.Pos) (sourceResult grammar.Expr) {
+func (p *parser) pragma(e ast.Expr, start ast.Pos) (sourceResult ast.Expr) {
 	sourceStart := p.i
 	defer func() {
 		if sourceResult != nil {
@@ -1455,7 +1455,7 @@ func (p *parser) pragma(e grammar.Expr, start grammar.Pos) (sourceResult grammar
 		}
 	}()
 
-	var br *grammar.LineBreak
+	var br *ast.LineBreak
 	if p.nest == 0 && p.atLineStart() {
 		br = p.lineBreak()
 	}
@@ -1478,40 +1478,40 @@ func (p *parser) pragma(e grammar.Expr, start grammar.Pos) (sourceResult grammar
 			p.next()
 			p.expect(")")
 		}
-		return &grammar.Atomic{SourceInfo: grammar.SourceInfo{Pos: pos}, Expr: e, Break: br}
+		return &ast.Atomic{SourceInfo: ast.SourceInfo{Pos: pos}, Expr: e, Break: br}
 	case "stream":
 		if !p.boundary() && p.is("(") && !p.tok().spaceBefore {
 			p.next()
 			p.expect(")")
 		}
-		return &grammar.Stream{SourceInfo: grammar.SourceInfo{Pos: pos}, Expr: e, Break: br}
+		return &ast.Stream{SourceInfo: ast.SourceInfo{Pos: pos}, Expr: e, Break: br}
 	case "ignorecase":
 		if !p.boundary() && p.is("(") && !p.tok().spaceBefore {
 			p.errorf("#ignorecase takes no arguments")
 			panic(bail{})
 		}
-		result, ok := e.(*grammar.Attributed)
+		result, ok := e.(*ast.Attributed)
 		if !ok {
-			result = &grammar.Attributed{Expr: e}
+			result = &ast.Attributed{Expr: e}
 		}
 		if br != nil || result.Breaks != nil {
 			p.appendAttributeBreak(result, br)
 		}
-		result.Attrs = append(result.Attrs, &grammar.Attribute{SourceInfo: grammar.SourceInfo{Pos: pos}, Name: name, Pragma: true})
+		result.Attrs = append(result.Attrs, &ast.Attribute{SourceInfo: ast.SourceInfo{Pos: pos}, Name: name, Pragma: true})
 		return result
 	case "missing":
 		if !p.boundary() && p.is("(") && !p.tok().spaceBefore {
 			p.errorf("#missing takes no arguments")
 			panic(bail{})
 		}
-		result, ok := e.(*grammar.Attributed)
+		result, ok := e.(*ast.Attributed)
 		if !ok {
-			result = &grammar.Attributed{Expr: e}
+			result = &ast.Attributed{Expr: e}
 		}
 		if br != nil || result.Breaks != nil {
 			p.appendAttributeBreak(result, br)
 		}
-		result.Attrs = append(result.Attrs, &grammar.Attribute{SourceInfo: grammar.SourceInfo{Pos: pos}, Name: name, Pragma: true})
+		result.Attrs = append(result.Attrs, &ast.Attribute{SourceInfo: ast.SourceInfo{Pos: pos}, Name: name, Pragma: true})
 		return result
 	case "recover":
 		p.expect("(")
@@ -1524,7 +1524,7 @@ func (p *parser) pragma(e grammar.Expr, start grammar.Pos) (sourceResult grammar
 		p.leadOf(skip, lead)
 		closing := p.takeCommentGap()
 		p.expect(")")
-		r := &grammar.Recovery{SourceInfo: grammar.SourceInfo{Pos: pos}, Expr: e, Skip: skip, Break: br}
+		r := &ast.Recovery{SourceInfo: ast.SourceInfo{Pos: pos}, Expr: e, Skip: skip, Break: br}
 		if open != nil || eq != nil || closing != nil {
 			l := layoutOf(r)
 			l.Open, l.Eq, l.Close = open, eq, closing
@@ -1533,9 +1533,9 @@ func (p *parser) pragma(e grammar.Expr, start grammar.Pos) (sourceResult grammar
 	case "repeat":
 		p.expect("(")
 		// The comments between the tokens of the arguments stay there.
-		outer, stray := p.cur, &grammar.LineBreak{}
+		outer, stray := p.cur, &ast.LineBreak{}
 		p.cur = stray
-		sp := &grammar.RepeatSpelling{}
+		sp := &ast.RepeatSpelling{}
 		gap := func() { sp.Gaps = append(sp.Gaps, p.takeGap()) }
 		gap()
 		first := p.tok().kind == tInt || p.is("-")
@@ -1568,7 +1568,7 @@ func (p *parser) pragma(e grammar.Expr, start grammar.Pos) (sourceResult grammar
 			g := &sp.Gaps[len(sp.Gaps)-1]
 			g.Comments = append(g.Comments, stray.Comments...)
 		}
-		return &grammar.Repeat{SourceInfo: grammar.SourceInfo{Pos: start}, Expr: e, Min: min, Max: max, PragmaBreak: br, Spelling: sp}
+		return &ast.Repeat{SourceInfo: ast.SourceInfo{Pos: start}, Expr: e, Min: min, Max: max, PragmaBreak: br, Spelling: sp}
 	default:
 		p.errorf("unknown pragma #%s", name)
 		panic(bail{})
@@ -1673,7 +1673,7 @@ func (p *parser) repeatCount() int {
 	return value
 }
 
-func (p *parser) attribute() (sourceResult *grammar.Attribute) {
+func (p *parser) attribute() (sourceResult *ast.Attribute) {
 	sourceStart := p.i
 	defer func() {
 		if sourceResult != nil {
@@ -1686,14 +1686,14 @@ func (p *parser) attribute() (sourceResult *grammar.Attribute) {
 		p.errorf("attribute name must immediately follow '@'")
 		panic(bail{})
 	}
-	a := &grammar.Attribute{SourceInfo: grammar.SourceInfo{Pos: pos}, Name: p.ident().text}
+	a := &ast.Attribute{SourceInfo: ast.SourceInfo{Pos: pos}, Name: p.ident().text}
 	if !p.is("(") || p.tok().spaceBefore {
 		return a
 	}
 	p.next()
 	named := false
 	defer p.restoreBreak()()
-	list := &grammar.ListLayout{}
+	list := &ast.ListLayout{}
 	list.OpenBreak, list.BodyBreak = p.openList()
 	a.ArgsLayout = list
 	if p.is(")") {
@@ -1702,7 +1702,7 @@ func (p *parser) attribute() (sourceResult *grammar.Attribute) {
 		return a
 	}
 	for {
-		var layout *grammar.SourceLayout
+		var layout *ast.SourceLayout
 		if len(list.Elems) > 0 {
 			layout = p.takeTermLayout()
 		}
@@ -1766,13 +1766,13 @@ func (p *parser) attributeValue() any {
 		return -p.next().num
 	}
 	e := p.choice()
-	if literal, ok := e.(*grammar.Literal); ok {
+	if literal, ok := e.(*ast.Literal); ok {
 		return literal.Value
 	}
 	return e
 }
 
-func (p *parser) primary() (sourceResult grammar.Expr) {
+func (p *parser) primary() (sourceResult ast.Expr) {
 	sourceStart := p.i
 	defer func() {
 		if sourceResult != nil {
@@ -1788,9 +1788,9 @@ func (p *parser) primary() (sourceResult grammar.Expr) {
 		// with i, such as "x"ia, is a separate token and not a suffix.
 		if p.is("i") && !p.tok().spaceBefore && p.tok().kind == tIdent {
 			p.next()
-			return &grammar.Literal{SourceInfo: grammar.SourceInfo{Pos: t.pos}, Value: t.text, IgnoreCase: true}
+			return &ast.Literal{SourceInfo: ast.SourceInfo{Pos: t.pos}, Value: t.text, IgnoreCase: true}
 		}
-		return &grammar.Literal{SourceInfo: grammar.SourceInfo{Pos: t.pos}, Value: t.text}
+		return &ast.Literal{SourceInfo: ast.SourceInfo{Pos: t.pos}, Value: t.text}
 	case tCharClass:
 		p.next()
 		return t.cc
@@ -1798,7 +1798,7 @@ func (p *parser) primary() (sourceResult grammar.Expr) {
 
 		p.next()
 		if t.text == "_" {
-			return &grammar.Top{SourceInfo: grammar.SourceInfo{Pos: t.pos}}
+			return &ast.Top{SourceInfo: ast.SourceInfo{Pos: t.pos}}
 		}
 		if t.text == "level" && !p.boundary() && p.is("(") && !p.tok().spaceBefore {
 			p.next()
@@ -1806,27 +1806,27 @@ func (p *parser) primary() (sourceResult grammar.Expr) {
 			p.expect(",")
 			level := p.ident()
 			p.expect(")")
-			return &grammar.Ref{SourceInfo: grammar.SourceInfo{Pos: target.pos}, Name: target.text, Level: level.text}
+			return &ast.Ref{SourceInfo: ast.SourceInfo{Pos: target.pos}, Name: target.text, Level: level.text}
 		}
 		if !p.boundary() && p.is("(") && !p.tok().spaceBefore {
 			p.errorf("level calls use level(rule, name); separate a rule and a group with whitespace")
 			panic(bail{})
 		}
-		return &grammar.Ref{SourceInfo: grammar.SourceInfo{Pos: t.pos}, Name: t.text}
+		return &ast.Ref{SourceInfo: ast.SourceInfo{Pos: t.pos}, Name: t.text}
 	case tPunct:
 		switch t.text {
 		case "(":
 			open := p.i
 			p.next()
 			lead := p.openLead()
-			group := &grammar.Group{SourceInfo: grammar.SourceInfo{Pos: t.pos}, BodyBreak: p.lineBreak()}
+			group := &ast.Group{SourceInfo: ast.SourceInfo{Pos: t.pos}, BodyBreak: p.lineBreak()}
 			p.leadBreak(group.BodyBreak, lead)
 			group.Expr = p.bodyChoice()
 			if !p.boundary() && p.is("=>") {
 				gap := p.takeCommentGap()
 				pos := p.next().pos
 				action, defaultAction := p.actionTerm()
-				group.Expr = &grammar.InlineAction{SourceInfo: grammar.SourceInfo{Pos: pos}, Expr: group.Expr, Action: action, DefaultAction: defaultAction}
+				group.Expr = &ast.InlineAction{SourceInfo: ast.SourceInfo{Pos: pos}, Expr: group.Expr, Action: action, DefaultAction: defaultAction}
 				if gap != nil {
 					layoutOf(group.Expr).OpGap = gap
 				}
@@ -1846,11 +1846,11 @@ func (p *parser) primary() (sourceResult grammar.Expr) {
 			return group
 		case "{":
 			block := p.actionBlock()
-			var term grammar.Term = block
+			var term ast.Term = block
 			if len(block.Statements) == 1 {
 				term = block.Statements[0]
 			}
-			return &grammar.Predicate{SourceInfo: grammar.SourceInfo{Pos: t.pos}, Term: term, OpenBreak: block.OpenBreak, Breaks: block.Breaks, CloseBreak: block.CloseBreak, OneLine: block.OneLine}
+			return &ast.Predicate{SourceInfo: ast.SourceInfo{Pos: t.pos}, Term: term, OpenBreak: block.OpenBreak, Breaks: block.Breaks, CloseBreak: block.CloseBreak, OneLine: block.OneLine}
 		case "#":
 			if p.isOperatorsStart() {
 				p.operatorsPlacementError()
@@ -1862,29 +1862,29 @@ func (p *parser) primary() (sourceResult grammar.Expr) {
 					p.errorf("#cut takes no arguments")
 					panic(bail{})
 				}
-				return &grammar.Cut{SourceInfo: grammar.SourceInfo{Pos: t.pos}}
+				return &ast.Cut{SourceInfo: ast.SourceInfo{Pos: t.pos}}
 			}
 		case "--":
 			p.errorf("the cut is written #cut")
 			panic(bail{})
 		case "^^":
 			p.next()
-			return &grammar.BeginInput{SourceInfo: grammar.SourceInfo{Pos: t.pos}}
+			return &ast.BeginInput{SourceInfo: ast.SourceInfo{Pos: t.pos}}
 		case "^":
 			p.next()
-			return &grammar.BeginLine{SourceInfo: grammar.SourceInfo{Pos: t.pos}}
+			return &ast.BeginLine{SourceInfo: ast.SourceInfo{Pos: t.pos}}
 		case "$$":
 			p.next()
-			return &grammar.EndInput{SourceInfo: grammar.SourceInfo{Pos: t.pos}}
+			return &ast.EndInput{SourceInfo: ast.SourceInfo{Pos: t.pos}}
 		case "$":
 			p.next()
-			return &grammar.EndLine{SourceInfo: grammar.SourceInfo{Pos: t.pos}}
+			return &ast.EndLine{SourceInfo: ast.SourceInfo{Pos: t.pos}}
 		case "_|_":
 			p.next()
-			return &grammar.Bottom{SourceInfo: grammar.SourceInfo{Pos: t.pos}}
+			return &ast.Bottom{SourceInfo: ast.SourceInfo{Pos: t.pos}}
 		case ".":
 			p.next()
-			return &grammar.Any{SourceInfo: grammar.SourceInfo{Pos: t.pos}}
+			return &ast.Any{SourceInfo: ast.SourceInfo{Pos: t.pos}}
 		case "[":
 			p.errorf("a character class directly after a name, a capture, ')' or ']' is read as an index; write a space before it")
 			panic(bail{})
@@ -1895,7 +1895,7 @@ func (p *parser) primary() (sourceResult grammar.Expr) {
 }
 
 // actionBlock preserves future action statements without executing them.
-func (p *parser) actionBlock() (sourceResult *grammar.Block) {
+func (p *parser) actionBlock() (sourceResult *ast.Block) {
 	sourceStart := p.i
 	defer func() {
 		if sourceResult != nil {
@@ -1915,10 +1915,10 @@ func (p *parser) actionBlock() (sourceResult *grammar.Block) {
 	outerLayout, outerDepth, outerStart := p.layout, p.layoutDepth, p.layoutStart
 	defer func() { p.layout, p.layoutDepth, p.layoutStart = outerLayout, outerDepth, outerStart }()
 	p.layout = false
-	block := &grammar.Block{SourceInfo: grammar.SourceInfo{Pos: p.expect("{").pos}, Statements: []grammar.Term{}}
+	block := &ast.Block{SourceInfo: ast.SourceInfo{Pos: p.expect("{").pos}, Statements: []ast.Term{}}
 	lead := p.openLead()
 	// The comment at the end of the line of "{" stays with the block.
-	block.OpenBreak = &grammar.LineBreak{}
+	block.OpenBreak = &ast.LineBreak{}
 	p.cur = block.OpenBreak
 	// joined is set after a semicolon, when the next statement may follow on
 	// the same line.
@@ -1926,7 +1926,7 @@ func (p *parser) actionBlock() (sourceResult *grammar.Block) {
 	for {
 		// Comments between a semicolon and the statement after it, all on their
 		// line, stay there as the comments before that statement.
-		var gap []*grammar.Comment
+		var gap []*ast.Comment
 		var gapLine int
 		if joined && !p.is("}") {
 			if gap = p.takeInlineGap(); gap != nil {
@@ -1944,11 +1944,11 @@ func (p *parser) actionBlock() (sourceResult *grammar.Block) {
 		}
 		restore := p.statement()
 		statementStart := p.i
-		var term grammar.Term
+		var term ast.Term
 		if p.tok().kind == tIdent && p.peek(1).text == ":=" {
 			name := p.ident()
 			p.expect(":=")
-			term = &grammar.Bind{SourceInfo: grammar.SourceInfo{Pos: name.pos}, Name: name.text, Value: p.term()}
+			term = &ast.Bind{SourceInfo: ast.SourceInfo{Pos: name.pos}, Name: name.text, Value: p.term()}
 		} else {
 			term = p.term()
 		}
@@ -1970,13 +1970,13 @@ func (p *parser) actionBlock() (sourceResult *grammar.Block) {
 			p.errorf("expected a semicolon or newline between action statements")
 			panic(bail{})
 		}
-		p.sourceTrailing(term.(grammar.SourceNode).Source())
+		p.sourceTrailing(term.(ast.SourceNode).Source())
 	}
 }
 
 // --- Value expressions ---
 
-func (p *parser) term() (sourceResult grammar.Term) {
+func (p *parser) term() (sourceResult ast.Term) {
 	sourceStart := p.i
 	defer func() {
 		if sourceResult != nil {
@@ -1993,14 +1993,14 @@ func (p *parser) term() (sourceResult grammar.Term) {
 }
 
 // tryLambda parses a lambda if the input has the form (a, b) => body.
-func (p *parser) tryLambda() (sourceResult grammar.Term) {
+func (p *parser) tryLambda() (sourceResult ast.Term) {
 	sourceStart := p.i
-	var layout *grammar.SourceLayout
+	var layout *ast.SourceLayout
 	defer func() {
 		if sourceResult != nil {
 			p.sourceNode(sourceResult, sourceStart)
 			if layout != nil {
-				sourceResult.(grammar.SourceNode).Source().Layout = layout
+				sourceResult.(ast.SourceNode).Source().Layout = layout
 			}
 		}
 	}()
@@ -2040,10 +2040,10 @@ func (p *parser) tryLambda() (sourceResult grammar.Term) {
 	layout = p.takeTermLayout()
 	p.next() // "("
 	cur := p.cur
-	list := &grammar.ListLayout{}
+	list := &ast.ListLayout{}
 	list.OpenBreak, list.BodyBreak = p.openList()
 	for i := range params {
-		var elem *grammar.SourceLayout
+		var elem *ast.SourceLayout
 		if i > 0 {
 			elem = p.takeTermLayout()
 		}
@@ -2063,7 +2063,7 @@ func (p *parser) tryLambda() (sourceResult grammar.Term) {
 	p.cur = cur
 	if gap := p.takeCommentGap(); gap != nil {
 		if layout == nil {
-			layout = &grammar.SourceLayout{}
+			layout = &ast.SourceLayout{}
 		}
 		layout.OpGap = gap
 	}
@@ -2071,7 +2071,7 @@ func (p *parser) tryLambda() (sourceResult grammar.Term) {
 	outer := len(p.params)
 	p.params = append(p.params, params...)
 	defer func() { p.params = p.params[:outer] }()
-	return &grammar.Lambda{Params: params, Body: p.term(), TrailingComma: trailing, ParamsLayout: list}
+	return &ast.Lambda{Params: params, Body: p.term(), TrailingComma: trailing, ParamsLayout: list}
 }
 
 var binaryLevels = [][]string{
@@ -2082,7 +2082,7 @@ var binaryLevels = [][]string{
 	{"*", "/", "%"},
 }
 
-func (p *parser) binary(level int) (sourceResult grammar.Term) {
+func (p *parser) binary(level int) (sourceResult ast.Term) {
 	sourceStart := p.i
 	defer func() {
 		if sourceResult != nil {
@@ -2102,7 +2102,7 @@ func (p *parser) binary(level int) (sourceResult grammar.Term) {
 		operator := p.takeCommentGap()
 		p.next()
 		r := p.binary(level + 1)
-		l = &grammar.Binary{SourceInfo: grammar.SourceInfo{Pos: t.pos}, Op: t.text, L: l, R: r}
+		l = &ast.Binary{SourceInfo: ast.SourceInfo{Pos: t.pos}, Op: t.text, L: l, R: r}
 		p.sourceNode(l, sourceStart)
 		if operator != nil {
 			layoutOf(l).OpGap = operator
@@ -2123,7 +2123,7 @@ func contains(xs []string, x string) bool {
 	return false
 }
 
-func (p *parser) unary() (sourceResult grammar.Term) {
+func (p *parser) unary() (sourceResult ast.Term) {
 	sourceStart := p.i
 	layout := p.takeTermLayout()
 	defer func() {
@@ -2131,11 +2131,11 @@ func (p *parser) unary() (sourceResult grammar.Term) {
 			p.sourceNode(sourceResult, sourceStart)
 			if layout != nil {
 				// Keep the comments the result holds inside its own tokens.
-				if old := sourceResult.(grammar.SourceNode).Source().Layout; old != nil {
+				if old := sourceResult.(ast.SourceNode).Source().Layout; old != nil {
 					old.Before, old.PreviousLine, old.NextLine = layout.Before, layout.PreviousLine, layout.NextLine
 					layout = old
 				}
-				sourceResult.(grammar.SourceNode).Source().Layout = layout
+				sourceResult.(ast.SourceNode).Source().Layout = layout
 			}
 		}
 	}()
@@ -2144,14 +2144,14 @@ func (p *parser) unary() (sourceResult grammar.Term) {
 	defer p.leave()
 	t := p.tok()
 	if p.accept("-") || p.accept("!") {
-		return &grammar.Unary{SourceInfo: grammar.SourceInfo{Pos: t.pos}, Op: t.text, X: p.unary()}
+		return &ast.Unary{SourceInfo: ast.SourceInfo{Pos: t.pos}, Op: t.text, X: p.unary()}
 	}
 	x := p.termPrimary()
 	for !p.boundary() && (p.is(".") || p.is("[")) {
 		if t := p.next(); t.text == "[" {
 			// The lexer reads "[" as a bracket only directly after the indexed value.
 			outer := p.cur
-			index := &grammar.Binary{SourceInfo: grammar.SourceInfo{Pos: t.pos}, Op: "[]", L: x, OpenBreak: &grammar.LineBreak{}}
+			index := &ast.Binary{SourceInfo: ast.SourceInfo{Pos: t.pos}, Op: "[]", L: x, OpenBreak: &ast.LineBreak{}}
 			p.cur = index.OpenBreak
 			index.BodyBreak = p.lineBreak()
 			index.R = p.term()
@@ -2167,14 +2167,14 @@ func (p *parser) unary() (sourceResult grammar.Term) {
 			p.next()
 			typ := p.typeExpr()
 			p.expect(")")
-			x = &grammar.Cast{SourceInfo: grammar.SourceInfo{Pos: t.pos}, X: x, Type: typ}
+			x = &ast.Cast{SourceInfo: ast.SourceInfo{Pos: t.pos}, X: x, Type: typ}
 			p.sourceNode(x, sourceStart)
 			continue
 		}
 		if t := p.tok(); t.kind == tCapture && !p.boundary() {
 			// x.$y reads the capture y of the node x.
 			p.next()
-			x = &grammar.Member{SourceInfo: grammar.SourceInfo{Pos: t.pos}, X: x, Name: "$" + t.text}
+			x = &ast.Member{SourceInfo: ast.SourceInfo{Pos: t.pos}, X: x, Name: "$" + t.text}
 			p.sourceNode(x, sourceStart)
 			continue
 		}
@@ -2182,7 +2182,7 @@ func (p *parser) unary() (sourceResult grammar.Term) {
 		if captureMember(name.text) {
 			p.errs.addRange(name.pos, name.end, fmt.Sprintf("a capture is read with .$%s", name.text))
 		}
-		x = &grammar.Member{SourceInfo: grammar.SourceInfo{Pos: name.pos}, X: x, Name: name.text}
+		x = &ast.Member{SourceInfo: ast.SourceInfo{Pos: name.pos}, X: x, Name: name.text}
 		p.sourceNode(x, sourceStart)
 	}
 	if t := p.tok(); t.kind == tCharClass && !p.boundary() {
@@ -2204,7 +2204,7 @@ func captureMember(name string) bool {
 	return r != '$' && !unicode.IsUpper(r) // x.$y is parsed as the member $y
 }
 
-func (p *parser) termPrimary() (sourceResult grammar.Term) {
+func (p *parser) termPrimary() (sourceResult ast.Term) {
 	sourceStart := p.i
 	defer func() {
 		if sourceResult != nil {
@@ -2216,29 +2216,29 @@ func (p *parser) termPrimary() (sourceResult grammar.Term) {
 	switch t.kind {
 	case tInt:
 		p.next()
-		return &grammar.IntLit{Value: t.num}
+		return &ast.IntLit{Value: t.num}
 	case tString:
 		p.next()
-		return &grammar.StringLit{Value: t.text}
+		return &ast.StringLit{Value: t.text}
 	case tCapture:
 		p.next()
 		if slices.Contains(p.params, t.text) {
 			p.errs.addRange(t.pos, t.end, fmt.Sprintf("lambda parameters are written without $: write %s", t.text))
 		}
-		return &grammar.CaptureRef{SourceInfo: grammar.SourceInfo{Pos: t.pos}, Name: t.text}
+		return &ast.CaptureRef{SourceInfo: ast.SourceInfo{Pos: t.pos}, Name: t.text}
 	case tIndex:
 		p.next()
 		// The error fails the parse; the literal only keeps the term well formed.
 		p.errs.addRange(t.pos, t.end, fmt.Sprintf("a capture is read by name: label the element (x:...) and write $x instead of $%d", t.num))
-		return &grammar.IntLit{Value: t.num}
+		return &ast.IntLit{Value: t.num}
 	case tIdent:
 		switch t.text {
 		case "true", "false":
 			p.next()
-			return &grammar.BoolLit{Value: t.text == "true"}
+			return &ast.BoolLit{Value: t.text == "true"}
 		case "nil":
 			p.next()
-			return &grammar.NilLit{}
+			return &ast.NilLit{}
 		}
 		if (!p.layout || p.layoutDepth > 0 || !p.peek(1).lineBefore) && p.peek(1).kind == tPunct && p.peek(1).text == "{" {
 			return p.newTerm()
@@ -2246,7 +2246,7 @@ func (p *parser) termPrimary() (sourceResult grammar.Term) {
 		p.next()
 		if !p.boundary() && p.is("(") && !p.tok().spaceBefore {
 			p.next()
-			call := &grammar.Call{SourceInfo: grammar.SourceInfo{Pos: t.pos}, Func: t.text}
+			call := &ast.Call{SourceInfo: ast.SourceInfo{Pos: t.pos}, Func: t.text}
 			defer p.restoreBreak()()
 			call.OpenBreak, call.BodyBreak = p.openList()
 			call.Args, call.TrailingComma = p.listItems(")")
@@ -2256,13 +2256,13 @@ func (p *parser) termPrimary() (sourceResult grammar.Term) {
 		}
 		if slices.Contains(p.params, t.text) {
 			// A name in a call or a constructor is a function or a type, never a parameter.
-			return &grammar.CaptureRef{SourceInfo: grammar.SourceInfo{Pos: t.pos}, Name: t.text, Param: true}
+			return &ast.CaptureRef{SourceInfo: ast.SourceInfo{Pos: t.pos}, Name: t.text, Param: true}
 		}
-		return &grammar.VarRef{SourceInfo: grammar.SourceInfo{Pos: t.pos}, Name: t.text}
+		return &ast.VarRef{SourceInfo: ast.SourceInfo{Pos: t.pos}, Name: t.text}
 	case tPunct:
 		if t.text == "[]" {
 			p.next()
-			n := &grammar.ListConstructor{Elem: p.typeTerm()}
+			n := &ast.ListConstructor{Elem: p.typeTerm()}
 			p.expect("{")
 			defer p.restoreBreak()()
 			n.OpenBreak, n.BodyBreak = p.openList()
@@ -2276,15 +2276,15 @@ func (p *parser) termPrimary() (sourceResult grammar.Term) {
 			p.next()
 			outer := p.cur
 			defer func() { p.cur = outer }()
-			g := &grammar.TermGroup{OpenBreak: &grammar.LineBreak{}}
+			g := &ast.TermGroup{OpenBreak: &ast.LineBreak{}}
 			p.cur = g.OpenBreak
 			g.BodyBreak = p.lineBreak()
 			if p.is(")") {
-				return p.tupleLit(&grammar.TupleLit{OpenBreak: g.OpenBreak, BodyBreak: g.BodyBreak}) // the unit ()
+				return p.tupleLit(&ast.TupleLit{OpenBreak: g.OpenBreak, BodyBreak: g.BodyBreak}) // the unit ()
 			}
 			g.Term = p.term()
 			if p.is(",") {
-				return p.tupleLit(&grammar.TupleLit{OpenBreak: g.OpenBreak, BodyBreak: g.BodyBreak, Elems: []grammar.Term{g.Term}})
+				return p.tupleLit(&ast.TupleLit{OpenBreak: g.OpenBreak, BodyBreak: g.BodyBreak, Elems: []ast.Term{g.Term}})
 			}
 			g.CloseBreak = p.lineBreak()
 			g.OneLine = !p.multiline(open, p.i)
@@ -2298,7 +2298,7 @@ func (p *parser) termPrimary() (sourceResult grammar.Term) {
 
 // tupleLit finishes a tuple value whose "(" and first element, if any, were read as a group's.
 // A trailing comma is optional, and required after a single element.
-func (p *parser) tupleLit(t *grammar.TupleLit) grammar.Term {
+func (p *parser) tupleLit(t *ast.TupleLit) ast.Term {
 	if len(t.Elems) > 0 {
 		p.takeAfterLayout(t.Elems[0])
 		for p.accept(",") {
@@ -2312,14 +2312,14 @@ func (p *parser) tupleLit(t *grammar.TupleLit) grammar.Term {
 			p.takeAfterLayout(x)
 		}
 	} else {
-		t.Elems = []grammar.Term{}
+		t.Elems = []ast.Term{}
 	}
 	t.CloseBreak = p.lineBreak()
 	p.expect(")")
 	return t
 }
 
-func (p *parser) newTerm() (sourceResult grammar.Term) {
+func (p *parser) newTerm() (sourceResult ast.Term) {
 	sourceStart := p.i
 	defer func() {
 		if sourceResult != nil {
@@ -2331,27 +2331,27 @@ func (p *parser) newTerm() (sourceResult grammar.Term) {
 	p.expect("{")
 	defer p.restoreBreak()()
 	openBreak, bodyBreak := p.openList()
-	finish := func(n *grammar.New, trailing bool) {
+	finish := func(n *ast.New, trailing bool) {
 		n.OpenBreak, n.BodyBreak = openBreak, bodyBreak
 		n.CloseBreak, n.TrailingComma = p.lineBreak(), trailing
 		p.expect("}")
 	}
 	if !p.is("}") && !(p.tok().kind == tIdent && p.peek(1).text == ":") {
 		args, trailing := p.listItems("}")
-		n := &grammar.New{SourceInfo: grammar.SourceInfo{Pos: nameToken.pos}, Type: nameToken.text}
+		n := &ast.New{SourceInfo: ast.SourceInfo{Pos: nameToken.pos}, Type: nameToken.text}
 		finish(n, trailing)
 		// A positional constructor converts its value to a named node type.
 		n.Args = args
 		return n
 	}
-	n := &grammar.New{SourceInfo: grammar.SourceInfo{Pos: nameToken.pos}, Type: nameToken.text}
+	n := &ast.New{SourceInfo: ast.SourceInfo{Pos: nameToken.pos}, Type: nameToken.text}
 	trailing := false
 	for !p.is("}") {
 		fieldStart := p.i
 		layout := p.takeTermLayout()
 		name := p.ident()
 		p.expect(":")
-		field := &grammar.FieldInit{SourceInfo: grammar.SourceInfo{Pos: name.pos}, Name: name.text, Value: p.term()}
+		field := &ast.FieldInit{SourceInfo: ast.SourceInfo{Pos: name.pos}, Name: name.text, Value: p.term()}
 		p.source(field, fieldStart)
 		field.Layout = layout
 		n.Fields = append(n.Fields, field)
@@ -2377,7 +2377,7 @@ func (p *parser) restoreBreak() func() {
 // openLead takes the block comment after an opening delimiter that is followed
 // by a token on its line. It leads that token, so it goes with the comments
 // before it instead of trailing the line of the delimiter.
-func (p *parser) openLead() *grammar.Comment {
+func (p *parser) openLead() *ast.Comment {
 	t := &p.toks[p.i]
 	c := t.lineComment
 	if c == nil || !strings.HasPrefix(c.Text, "/*") || c.End.Line != t.pos.Line {
@@ -2388,9 +2388,9 @@ func (p *parser) openLead() *grammar.Comment {
 }
 
 // leadBreak puts the comment taken by openLead before the others in b.
-func (p *parser) leadBreak(b *grammar.LineBreak, c *grammar.Comment) {
+func (p *parser) leadBreak(b *ast.LineBreak, c *ast.Comment) {
 	if c != nil {
-		b.Comments = append([]*grammar.Comment{c}, b.Comments...)
+		b.Comments = append([]*ast.Comment{c}, b.Comments...)
 	}
 }
 
@@ -2398,8 +2398,8 @@ func (p *parser) leadBreak(b *grammar.LineBreak, c *grammar.Comment) {
 // The comment at the end of the delimiter's line is the trailing comment of the
 // opening break, and the comments before the first element belong to the body
 // break. Both stay with the list instead of the statement around it.
-func (p *parser) openList() (open, body *grammar.LineBreak) {
-	open = &grammar.LineBreak{}
+func (p *parser) openList() (open, body *ast.LineBreak) {
+	open = &ast.LineBreak{}
 	p.cur = open
 	return open, p.lineBreak()
 }
@@ -2407,8 +2407,8 @@ func (p *parser) openList() (open, body *grammar.LineBreak) {
 // listItems reads comma-separated expressions up to, not including, the
 // closing delimiter. A trailing comma is optional; trailing reports whether
 // the list has one.
-func (p *parser) listItems(closer string) (items []grammar.Term, trailing bool) {
-	items = []grammar.Term{}
+func (p *parser) listItems(closer string) (items []ast.Term, trailing bool) {
+	items = []ast.Term{}
 	for !p.is(closer) {
 		item := p.term()
 		items = append(items, item)
@@ -2430,21 +2430,21 @@ func (p *parser) listItems(closer string) (items []grammar.Term, trailing bool) 
 // before a closing delimiter stay with the delimiter's line break.
 func (p *parser) afterComma(node any, closer string) {
 	p.commaTrailing(node)
-	if x, ok := node.(grammar.SourceNode); ok {
+	if x, ok := node.(ast.SourceNode); ok {
 		p.afterCommaLayout(&x.Source().Layout, closer)
 	}
 }
 
 // afterCommaLayout is afterComma for the layout of an element, which may not
 // be a node.
-func (p *parser) afterCommaLayout(layout **grammar.SourceLayout, closer string) {
+func (p *parser) afterCommaLayout(layout **ast.SourceLayout, closer string) {
 	if p.header || p.is(closer) {
 		return
 	}
 	t := &p.toks[p.i]
 	cs := t.comments
 	if t.lineComment != nil {
-		cs = p.appendComments([]*grammar.Comment{t.lineComment}, cs)
+		cs = p.appendComments([]*ast.Comment{t.lineComment}, cs)
 	}
 	line := p.toks[p.i-1].end.Line
 	n := 0
@@ -2462,7 +2462,7 @@ func (p *parser) afterCommaLayout(layout **grammar.SourceLayout, closer string) 
 		return
 	}
 	if *layout == nil {
-		*layout = &grammar.SourceLayout{}
+		*layout = &ast.SourceLayout{}
 	}
 	(*layout).Trail = cs[:n:n]
 	t.lineComment, t.comments = nil, cs[n:]
@@ -2473,7 +2473,7 @@ func (p *parser) afterCommaLayout(layout **grammar.SourceLayout, closer string) 
 // trailing comment before the comma, which the same element claimed, as the
 // comment after a separator does.
 func (p *parser) commaTrailing(node any) {
-	if x, ok := node.(grammar.SourceNode); ok {
+	if x, ok := node.(ast.SourceNode); ok {
 		p.sourceTrailing(x.Source())
 	}
 }
@@ -2482,14 +2482,14 @@ func (p *parser) commaTrailing(node any) {
 // comma that follows it with the element, rather than promoting them to the
 // current line break, which would move them before the first element.
 func (p *parser) takeAfterLayout(node any) {
-	if x, ok := node.(grammar.SourceNode); ok {
+	if x, ok := node.(ast.SourceNode); ok {
 		p.takeAfter(&x.Source().Layout)
 	}
 }
 
 // takeAfter is takeAfterLayout for the layout of an element, which may not be
 // a node.
-func (p *parser) takeAfter(layout **grammar.SourceLayout) {
+func (p *parser) takeAfter(layout **ast.SourceLayout) {
 	if p.header || !p.is(",") {
 		return
 	}
@@ -2499,10 +2499,10 @@ func (p *parser) takeAfter(layout **grammar.SourceLayout) {
 	}
 	cs := t.comments
 	if t.lineComment != nil {
-		cs = p.appendComments([]*grammar.Comment{t.lineComment}, cs)
+		cs = p.appendComments([]*ast.Comment{t.lineComment}, cs)
 	}
 	if *layout == nil {
-		*layout = &grammar.SourceLayout{}
+		*layout = &ast.SourceLayout{}
 	}
 	(*layout).After = cs
 	(*layout).ElemLine, (*layout).AfterLine = p.toks[p.i-1].end.Line, t.pos.Line

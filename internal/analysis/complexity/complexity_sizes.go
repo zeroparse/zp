@@ -5,7 +5,7 @@ import (
 	"strings"
 	"zeroparse.dev/zp/internal/frontend/astfacts"
 
-	"zeroparse.dev/zp/grammar"
+	"zeroparse.dev/zp/pkg/grammar/ast"
 )
 
 // Size degrees of values. The bounds on folds and lambdas take the size of a value from the
@@ -77,14 +77,14 @@ func degShape(d [3]int) growthShape {
 }
 
 // valueShape bounds the value of t in the context tc, outside the steps of a fold.
-func (k *classifier) valueShape(t grammar.Term, tc termCtx) growthShape {
+func (k *classifier) valueShape(t ast.Term, tc termCtx) growthShape {
 	g, _ := k.growthOf(t, nil, tc)
 	return g
 }
 
 // outsideShape bounds the value of a capture or a lambda parameter t that a term reads from
 // outside the lambdas whose parameters growthOf follows.
-func (k *classifier) outsideShape(t *grammar.CaptureRef, tc termCtx) growthShape {
+func (k *classifier) outsideShape(t *ast.CaptureRef, tc termCtx) growthShape {
 	if p, ok := tc.params[t.Name]; ok && (t.Param || tc.lambda) {
 		if p.int {
 			return growthShape{}
@@ -119,49 +119,49 @@ func (k *classifier) captureShape(rule, name string) growthShape {
 // exprShape bounds the value of a match of e in rule. A repetition is a list with one element for
 // each iteration; a call has the value of its rule; any other match is a node, whose text is part
 // of the input and whose members are the values of the captures, calls and repetitions in it.
-func (k *classifier) exprShape(e grammar.Expr, rule string) growthShape {
+func (k *classifier) exprShape(e ast.Expr, rule string) growthShape {
 	k.control.Poll()
 	if k.ownExpr(e, rule, k.ownRules()) {
 		return ownShape
 	}
 	switch x := e.(type) {
-	case *grammar.Group:
+	case *ast.Group:
 		return k.exprShape(x.Expr, rule)
-	case *grammar.Capture:
+	case *ast.Capture:
 		return k.exprShape(x.Expr, rule)
-	case *grammar.Atomic:
+	case *ast.Atomic:
 		return k.exprShape(x.Expr, rule)
-	case *grammar.Discard:
+	case *ast.Discard:
 		return k.exprShape(x.Expr, rule)
-	case *grammar.Optional:
+	case *ast.Optional:
 		return k.exprShape(x.Expr, rule)
-	case *grammar.Choice:
+	case *ast.Choice:
 		out := growthShape{S: lin{}, N: lin{}}
 		for _, alt := range x.Alts {
 			out = out.join(k.exprShape(alt, rule))
 		}
 		return out
-	case *grammar.Repeat:
+	case *ast.Repeat:
 		el := k.exprShape(x.Expr, rule)
 		if x.Max >= 0 {
 			return growthShape{S: constLin(x.Max + 1).plus(el.S.times(constLin(x.Max))), N: constLin(x.Max), El: &el}
 		}
 		return growthShape{S: outsideLin.plus(el.S.times(outsideLin)), N: outsideLin, El: &el}
-	case *grammar.Ref:
+	case *ast.Ref:
 		if k.byName[x.Name] == nil {
 			return ownShape
 		}
 		return k.ruleShape(x.Name)
 	}
 	out := ownShape
-	astfacts.WalkExpr(e, func(y grammar.Expr) {
+	astfacts.WalkExpr(e, func(y ast.Expr) {
 		if y == e {
 			return
 		}
 		switch y := y.(type) {
-		case *grammar.Capture, *grammar.Ref, *grammar.Repeat:
+		case *ast.Capture, *ast.Ref, *ast.Repeat:
 			out = out.join(k.exprShape(y, rule))
-		case *grammar.InlineAction:
+		case *ast.InlineAction:
 			if y.Action != nil && !y.DefaultAction {
 				out = out.join(k.valueShape(y.Action, termCtx{rule: rule}))
 			}
@@ -242,10 +242,10 @@ func (k *classifier) ruleShape(name string) growthShape {
 
 // levelShape bounds the value of a call of r, with the values of the calls of the rules whose
 // shapes are being computed left out.
-func (k *classifier) levelShape(r *grammar.RuleDef) growthShape {
-	if ops, ok := r.Expr.(*grammar.OperatorsRule); ok {
+func (k *classifier) levelShape(r *ast.RuleDef) growthShape {
+	if ops, ok := r.Expr.(*ast.OperatorsRule); ok {
 		out := growthShape{S: lin{}, N: lin{}}
-		add := func(e grammar.Expr, action grammar.Term, def bool) {
+		add := func(e ast.Expr, action ast.Term, def bool) {
 			if action != nil && !def {
 				out = out.join(k.valueShape(action, termCtx{rule: r.Name}))
 			} else {
@@ -282,8 +282,8 @@ func (k *classifier) recOnce(rules []string) bool {
 				return false
 			}
 		}
-		var terms []grammar.Term
-		if ops, ok := r.Expr.(*grammar.OperatorsRule); ok {
+		var terms []ast.Term
+		if ops, ok := r.Expr.(*ast.OperatorsRule); ok {
 			for _, o := range ops.Operands {
 				terms = append(terms, o.Action)
 			}
@@ -312,24 +312,24 @@ func (k *classifier) recOnce(rules []string) bool {
 // recUses counts in w.rec the reads of captures that can hold a call on a recursion with the rule
 // in t, and reports false for such a read inside a lambda or in the list of a lambda, unless the
 // list is a capture of a repetition and the lambdas hold each element at most once.
-func (w *ownWalk) recUses(t grammar.Term, inLambda bool) bool {
+func (w *ownWalk) recUses(t ast.Term, inLambda bool) bool {
 	ok := true
-	var visit func(t grammar.Term, inLambda bool)
-	visit = func(t grammar.Term, inLambda bool) {
+	var visit func(t ast.Term, inLambda bool)
+	visit = func(t ast.Term, inLambda bool) {
 		switch t := t.(type) {
 		case nil:
-		case *grammar.CaptureRef:
+		case *ast.CaptureRef:
 			if !t.Param && w.recCapture(t.Name) {
 				ok = ok && !inLambda
 				w.rec["$"+t.Name]++
 			}
-		case *grammar.Call:
+		case *ast.Call:
 			fi := 1
 			if t.Func == "foldl" || t.Func == "foldr" {
 				fi = 2
 			}
 			for i, a := range t.Args {
-				if lam, isLam := a.(*grammar.Lambda); isLam {
+				if lam, isLam := a.(*ast.Lambda); isLam {
 					visit(lam.Body, true)
 					continue
 				}
@@ -374,9 +374,9 @@ func (k *classifier) ownRules() map[string]bool {
 }
 
 // ownRule reports whether the value of r is own when the rules in own are.
-func (k *classifier) ownRule(r *grammar.RuleDef, own map[string]bool) bool {
+func (k *classifier) ownRule(r *ast.RuleDef, own map[string]bool) bool {
 	k.control.Poll()
-	if ops, ok := r.Expr.(*grammar.OperatorsRule); ok {
+	if ops, ok := r.Expr.(*ast.OperatorsRule); ok {
 		for _, o := range ops.Operands {
 			if !k.ownExpr(o.Expr, r.Name, own) || o.Action != nil && !o.DefaultAction && !k.ownTerm(o.Action, r.Name, own) {
 				return false
@@ -400,26 +400,26 @@ func (k *classifier) ownRule(r *grammar.RuleDef, own map[string]bool) bool {
 // ownExpr reports whether the value of a match of e is own when the rules in own are: no capture
 // in a positive lookahead, which stays in effect over input that the match does not consume, is
 // part of it, and the actions and rules in it build own values.
-func (k *classifier) ownExpr(e grammar.Expr, rule string, own map[string]bool) bool {
+func (k *classifier) ownExpr(e ast.Expr, rule string, own map[string]bool) bool {
 	ok := true
-	var visit func(e grammar.Expr, look bool)
-	visit = func(e grammar.Expr, look bool) {
-		astfacts.WalkExpr(e, func(x grammar.Expr) {
+	var visit func(e ast.Expr, look bool)
+	visit = func(e ast.Expr, look bool) {
+		astfacts.WalkExpr(e, func(x ast.Expr) {
 			if !ok {
 				return
 			}
 			switch x := x.(type) {
-			case *grammar.Capture:
+			case *ast.Capture:
 				ok = !look
-			case *grammar.And:
+			case *ast.And:
 				if !look {
 					visit(x.Expr, true)
 				}
-			case *grammar.InlineAction:
+			case *ast.InlineAction:
 				ok = x.Action == nil || x.DefaultAction || k.ownTerm(x.Action, rule, own)
-			case *grammar.OperatorsRule:
+			case *ast.OperatorsRule:
 				ok = false
-			case *grammar.Ref:
+			case *ast.Ref:
 				// A lookahead discards the node of a rule it calls, so a capture in its body never
 				// reaches the value.
 				if _, known := own[x.Name]; known {
@@ -443,10 +443,10 @@ func (k *classifier) lookCaptures(rule string) map[string]bool {
 	}
 	s := map[string]bool{}
 	if r := k.byName[rule]; r != nil {
-		astfacts.WalkExpr(r.Expr, func(x grammar.Expr) {
-			if a, ok := x.(*grammar.And); ok {
-				astfacts.WalkExpr(a.Expr, func(y grammar.Expr) {
-					if c, ok := y.(*grammar.Capture); ok {
+		astfacts.WalkExpr(r.Expr, func(x ast.Expr) {
+			if a, ok := x.(*ast.And); ok {
+				astfacts.WalkExpr(a.Expr, func(y ast.Expr) {
+					if c, ok := y.(*ast.Capture); ok {
 						s[c.Name] = true
 					}
 				})
@@ -506,7 +506,7 @@ func (k *classifier) looks(rule string, mode sizeMode) bool {
 
 // ruleLooksIn reports whether the size of the value of r, measured in mode, can come from a
 // capture in a positive lookahead, when the sizes in k.sizes.looks can.
-func (k *classifier) ruleLooksIn(r *grammar.RuleDef, mode sizeMode) bool {
+func (k *classifier) ruleLooksIn(r *ast.RuleDef, mode sizeMode) bool {
 	tc := termCtx{rule: r.Name}
 	switch {
 	case isOperators(r.Expr):
@@ -520,9 +520,9 @@ func (k *classifier) ruleLooksIn(r *grammar.RuleDef, mode sizeMode) bool {
 
 // ruleLooks reports whether the value of r can hold a capture in a positive lookahead, when the
 // rules in lookedRules can.
-func (k *classifier) ruleLooks(r *grammar.RuleDef) bool {
+func (k *classifier) ruleLooks(r *ast.RuleDef) bool {
 	k.control.Poll()
-	if ops, ok := r.Expr.(*grammar.OperatorsRule); ok {
+	if ops, ok := r.Expr.(*ast.OperatorsRule); ok {
 		for _, o := range ops.Operands {
 			if k.exprLooks(o.Expr, r.Name) || o.Action != nil && !o.DefaultAction && k.termLooks(o.Action, r.Name) {
 				return true
@@ -546,22 +546,22 @@ func (k *classifier) ruleLooks(r *grammar.RuleDef) bool {
 // exprLooks reports whether the value of a match of e in rule can hold a capture in a positive
 // lookahead whose size is not bounded by a constant: e has such a capture, or calls or acts on a
 // value that can hold one.
-func (k *classifier) exprLooks(e grammar.Expr, rule string) bool {
+func (k *classifier) exprLooks(e ast.Expr, rule string) bool {
 	found := false
-	astfacts.WalkExpr(e, func(x grammar.Expr) {
+	astfacts.WalkExpr(e, func(x ast.Expr) {
 		if found {
 			return
 		}
 		switch x := x.(type) {
-		case *grammar.And:
-			astfacts.WalkExpr(x.Expr, func(y grammar.Expr) {
-				if y, ok := y.(*grammar.Capture); ok && !k.bounded(y.Expr) {
+		case *ast.And:
+			astfacts.WalkExpr(x.Expr, func(y ast.Expr) {
+				if y, ok := y.(*ast.Capture); ok && !k.bounded(y.Expr) {
 					found = true
 				}
 			})
-		case *grammar.Ref:
+		case *ast.Ref:
 			found = k.sizes.looked[x.Name]
-		case *grammar.InlineAction:
+		case *ast.InlineAction:
 			found = x.Action != nil && !x.DefaultAction && k.termLooks(x.Action, rule)
 		}
 	})
@@ -570,14 +570,14 @@ func (k *classifier) exprLooks(e grammar.Expr, rule string) bool {
 
 // termLooks reports whether the value of the term t in rule can hold a capture in a positive
 // lookahead: it reads one, a capture whose value can hold one, or the matched values by index.
-func (k *classifier) termLooks(t grammar.Term, rule string) bool {
+func (k *classifier) termLooks(t ast.Term, rule string) bool {
 	found := false
-	astfacts.WalkTerm(t, func(x grammar.Term) {
+	astfacts.WalkTerm(t, func(x ast.Term) {
 		if found {
 			return
 		}
 		switch x := x.(type) {
-		case *grammar.CaptureRef:
+		case *ast.CaptureRef:
 			if x.Param {
 				return
 			}
@@ -620,7 +620,7 @@ type ownLam struct {
 }
 
 // ownTerm reports whether the term t in rule builds an own value when the rules in own are.
-func (k *classifier) ownTerm(t grammar.Term, rule string, own map[string]bool) bool {
+func (k *classifier) ownTerm(t ast.Term, rule string, own map[string]bool) bool {
 	w := &ownWalk{k: k, rule: rule, own: own, rec: map[string]int{}, ok: true}
 	w.term(t, nil)
 	for _, n := range w.rec {
@@ -640,8 +640,8 @@ func (w *ownWalk) recCapture(name string) bool {
 	}
 	found := false
 	for _, e := range exprs {
-		astfacts.WalkExpr(e, func(x grammar.Expr) {
-			if r, ok := x.(*grammar.Ref); ok && w.k.byName[r.Name] != nil && w.k.onRecursion(w.rule, r.Name) {
+		astfacts.WalkExpr(e, func(x ast.Expr) {
+			if r, ok := x.(*ast.Ref); ok && w.k.byName[r.Name] != nil && w.k.onRecursion(w.rule, r.Name) {
 				found = true
 			}
 		})
@@ -650,11 +650,11 @@ func (w *ownWalk) recCapture(name string) bool {
 }
 
 // readsRec reports whether t reads a capture that can hold a call on a recursion with the rule.
-func (w *ownWalk) readsRec(t grammar.Term) bool {
+func (w *ownWalk) readsRec(t ast.Term) bool {
 	found := false
-	astfacts.WalkTerm(t, func(x grammar.Term) {
+	astfacts.WalkTerm(t, func(x ast.Term) {
 		switch x := x.(type) {
-		case *grammar.CaptureRef:
+		case *ast.CaptureRef:
 			if !x.Param && w.recCapture(x.Name) {
 				found = true
 			}
@@ -663,17 +663,17 @@ func (w *ownWalk) readsRec(t grammar.Term) bool {
 	return found
 }
 
-func (w *ownWalk) term(t grammar.Term, lam *ownLam) {
+func (w *ownWalk) term(t ast.Term, lam *ownLam) {
 	if !w.ok || t == nil {
 		return
 	}
 	k := w.k
 	switch t := t.(type) {
-	case *grammar.IntLit, *grammar.BoolLit, *grammar.NilLit, *grammar.StringLit, *grammar.Unary:
-	case *grammar.VarRef:
+	case *ast.IntLit, *ast.BoolLit, *ast.NilLit, *ast.StringLit, *ast.Unary:
+	case *ast.VarRef:
 		// The value of a variable is not part of the input the match consumes.
 		w.ok = false
-	case *grammar.CaptureRef:
+	case *ast.CaptureRef:
 		if lam != nil && t.Param {
 			switch {
 			case t.Name == lam.acc:
@@ -712,28 +712,28 @@ func (w *ownWalk) term(t grammar.Term, lam *ownLam) {
 		if w.recCapture(t.Name) {
 			w.rec["$"+t.Name]++
 		}
-	case *grammar.TermGroup:
+	case *ast.TermGroup:
 		w.term(t.Term, lam)
-	case *grammar.Cast:
+	case *ast.Cast:
 		w.term(t.X, lam)
-	case *grammar.Member:
+	case *ast.Member:
 		w.term(t.X, lam)
-	case *grammar.New:
+	case *ast.New:
 		for _, a := range t.Args {
 			w.term(a, lam)
 		}
 		for _, f := range t.Fields {
 			w.term(f.Value, lam)
 		}
-	case *grammar.TupleLit:
+	case *ast.TupleLit:
 		for _, x := range t.Elems {
 			w.term(x, lam)
 		}
-	case *grammar.ListConstructor:
+	case *ast.ListConstructor:
 		for _, x := range t.Items {
 			w.term(x, lam)
 		}
-	case *grammar.Binary:
+	case *ast.Binary:
 		switch {
 		case t.Op == "+":
 			w.term(t.L, lam)
@@ -744,7 +744,7 @@ func (w *ownWalk) term(t grammar.Term, lam *ownLam) {
 		default:
 			// An int or a Boolean.
 		}
-	case *grammar.Call:
+	case *ast.Call:
 		switch t.Func {
 		case "len":
 		case "text", "list", "concat":
@@ -797,21 +797,21 @@ func (w *ownWalk) term(t grammar.Term, lam *ownLam) {
 
 // repCapture reports whether t is a capture of the rule of repetitions only, whose elements are
 // distinct matches.
-func (w *ownWalk) repCapture(t grammar.Term) bool {
-	r, ok := t.(*grammar.CaptureRef)
+func (w *ownWalk) repCapture(t ast.Term) bool {
+	r, ok := t.(*ast.CaptureRef)
 	if !ok || r.Param {
 		return false
 	}
 	exprs := w.k.captures[w.rule][r.Name]
 	for _, e := range exprs {
 		for {
-			g, ok := e.(*grammar.Group)
+			g, ok := e.(*ast.Group)
 			if !ok {
 				break
 			}
 			e = g.Expr
 		}
-		if _, ok := e.(*grammar.Repeat); !ok {
+		if _, ok := e.(*ast.Repeat); !ok {
 			return false
 		}
 	}
@@ -822,7 +822,7 @@ func (w *ownWalk) repCapture(t grammar.Term) bool {
 // parameters other than the accumulator of a fold at most once: no member path of a parameter,
 // such as x or x.$a, is read twice or read with a path inside it. Distinct members of an element
 // of a repetition are disjoint parts of its match. fold says whether lam is the lambda of a fold.
-func paramsOnce(lam *grammar.Lambda, fold bool) bool {
+func paramsOnce(lam *ast.Lambda, fold bool) bool {
 	var params []string
 	for i, n := range lam.Params {
 		if i > 0 || !fold {
@@ -831,13 +831,13 @@ func paramsOnce(lam *grammar.Lambda, fold bool) bool {
 	}
 	var paths []string
 	ok := true
-	var visit func(t grammar.Term)
-	visit = func(t grammar.Term) {
+	var visit func(t ast.Term)
+	visit = func(t ast.Term) {
 		if p, isPath := paramPath(t, params); isPath {
 			paths = append(paths, p)
 			return
 		}
-		if c, isCall := t.(*grammar.Call); isCall {
+		if c, isCall := t.(*ast.Call); isCall {
 			fi := 1
 			if c.Func == "foldl" || c.Func == "foldr" {
 				fi = 2
@@ -863,11 +863,11 @@ func paramsOnce(lam *grammar.Lambda, fold bool) bool {
 
 // paramPath returns the member path of t, such as x.$a, when t is one of the parameters names or
 // a member of one.
-func paramPath(t grammar.Term, names []string) (string, bool) {
+func paramPath(t ast.Term, names []string) (string, bool) {
 	switch t := t.(type) {
-	case *grammar.CaptureRef:
+	case *ast.CaptureRef:
 		return t.Name, t.Param && containsName(names, t.Name)
-	case *grammar.Member:
+	case *ast.Member:
 		p, ok := paramPath(t.X, names)
 		return p + "." + t.Name, ok
 	}
@@ -885,7 +885,7 @@ func containsName(names []string, n string) bool {
 
 // foldAccShape returns the shape of the accumulator of the lambda of a fold call, whose degrees
 // the step matrix gives from the initial value and the list.
-func (k *classifier) foldAccShape(call *grammar.Call, lam *grammar.Lambda, tc termCtx) growthShape {
+func (k *classifier) foldAccShape(call *ast.Call, lam *ast.Lambda, tc termCtx) growthShape {
 	exp, deg, _, ok := k.foldDegrees(call, lam, tc)
 	if !ok {
 		return growthShape{}
@@ -897,36 +897,36 @@ func (k *classifier) foldAccShape(call *grammar.Call, lam *grammar.Lambda, tc te
 }
 
 // termChildren returns the terms directly inside t.
-func termChildren(t grammar.Term) []grammar.Term {
+func termChildren(t ast.Term) []ast.Term {
 	switch t := t.(type) {
-	case *grammar.TermGroup:
-		return []grammar.Term{t.Term}
-	case *grammar.Block:
+	case *ast.TermGroup:
+		return []ast.Term{t.Term}
+	case *ast.Block:
 		return t.Statements
-	case *grammar.Member:
-		return []grammar.Term{t.X}
-	case *grammar.New:
-		out := append([]grammar.Term(nil), t.Args...)
+	case *ast.Member:
+		return []ast.Term{t.X}
+	case *ast.New:
+		out := append([]ast.Term(nil), t.Args...)
 		for _, f := range t.Fields {
 			out = append(out, f.Value)
 		}
 		return out
-	case *grammar.TupleLit:
+	case *ast.TupleLit:
 		return t.Elems
-	case *grammar.ListConstructor:
+	case *ast.ListConstructor:
 		return t.Items
-	case *grammar.Call:
+	case *ast.Call:
 		return t.Args
-	case *grammar.Lambda:
-		return []grammar.Term{t.Body}
-	case *grammar.Binary:
-		return []grammar.Term{t.L, t.R}
-	case *grammar.Unary:
-		return []grammar.Term{t.X}
-	case *grammar.Cast:
-		return []grammar.Term{t.X}
-	case *grammar.Bind:
-		return []grammar.Term{t.Value}
+	case *ast.Lambda:
+		return []ast.Term{t.Body}
+	case *ast.Binary:
+		return []ast.Term{t.L, t.R}
+	case *ast.Unary:
+		return []ast.Term{t.X}
+	case *ast.Cast:
+		return []ast.Term{t.X}
+	case *ast.Bind:
+		return []ast.Term{t.Value}
 	}
 	return nil
 }

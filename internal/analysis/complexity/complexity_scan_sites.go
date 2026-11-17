@@ -1,10 +1,10 @@
 package complexity
 
 import (
-	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/compile"
 	"zeroparse.dev/zp/internal/frontend/astfacts"
 	"zeroparse.dev/zp/internal/frontend/check"
+	"zeroparse.dev/zp/pkg/grammar/ast"
 )
 
 // scanOnly reports whether a call of the rule name pays at most a constant when it is evaluated
@@ -39,7 +39,7 @@ func (k *classifier) scanOnlyRule(name string) bool {
 	if compile.NoScanSites || compile.NoRunSites {
 		return false
 	}
-	var def *grammar.RuleDef
+	var def *ast.RuleDef
 	rules := k.base
 	if rules == nil {
 		rules = k.rules
@@ -53,15 +53,15 @@ func (k *classifier) scanOnlyRule(name string) bool {
 		return false
 	}
 	ok := true
-	astfacts.WalkExprWithPoll(def.Expr, func(x grammar.Expr) {
+	astfacts.WalkExprWithPoll(def.Expr, func(x ast.Expr) {
 		switch x := x.(type) {
-		case *grammar.Recovery, *grammar.OperatorsRule, *grammar.Stream:
+		case *ast.Recovery, *ast.OperatorsRule, *ast.Stream:
 			ok = false
-		case *grammar.Attributed:
+		case *ast.Attributed:
 			ok = ok && !check.IsStream(x)
 		}
 	}, k.control.Poll)
-	compile.ScanSiteRepeats(def.Expr, k.control, func(_ *grammar.Repeat, site bool) { ok = ok && site })
+	compile.ScanSiteRepeats(def.Expr, k.control, func(_ *ast.Repeat, site bool) { ok = ok && site })
 	if !ok {
 		return false
 	}

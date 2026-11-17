@@ -1,6 +1,6 @@
 package complexity
 
-import "zeroparse.dev/zp/grammar"
+import "zeroparse.dev/zp/pkg/grammar/ast"
 
 // Values that hold one another. The size of a value that copies the value of a call on a
 // recursion with its rule adds up over the levels of the recursion (condition 4 of
@@ -13,25 +13,25 @@ import "zeroparse.dev/zp/grammar"
 
 // ruleValue reports whether the value of the inline action a in rule is the value of the rule: the
 // rule has no action, and a is its expression or an alternative of it, through groups.
-func (k *classifier) ruleValue(rule string, a *grammar.InlineAction) bool {
+func (k *classifier) ruleValue(rule string, a *ast.InlineAction) bool {
 	r := k.byName[rule]
 	if r == nil || r.Action != nil || isOperators(r.Expr) {
 		return false
 	}
-	var visit func(e grammar.Expr) bool
-	visit = func(e grammar.Expr) bool {
+	var visit func(e ast.Expr) bool
+	visit = func(e ast.Expr) bool {
 		switch x := e.(type) {
-		case *grammar.Group:
+		case *ast.Group:
 			return visit(x.Expr)
-		case *grammar.Atomic:
+		case *ast.Atomic:
 			return visit(x.Expr)
-		case *grammar.Choice:
+		case *ast.Choice:
 			for _, alt := range x.Alts {
 				if visit(alt) {
 					return true
 				}
 			}
-		case *grammar.InlineAction:
+		case *ast.InlineAction:
 			return x == a
 		}
 		return false
@@ -87,8 +87,8 @@ func (k *classifier) heldBy(x sizeKey) []sizeKey {
 	switch {
 	case r == nil:
 	case isOperators(r.Expr):
-		ops := r.Expr.(*grammar.OperatorsRule)
-		var actions []grammar.Term
+		ops := r.Expr.(*ast.OperatorsRule)
+		var actions []ast.Term
 		for _, o := range ops.Operands {
 			if o.Action != nil && !o.DefaultAction {
 				actions = append(actions, o.Action)
@@ -115,13 +115,13 @@ func (k *classifier) heldBy(x sizeKey) []sizeKey {
 
 // heldCalls returns the values of calls on a recursion with the rule of tc that the value of t,
 // measured in mode, holds.
-func (k *classifier) heldCalls(t grammar.Term, tc termCtx, mode sizeMode) []sizeKey {
+func (k *classifier) heldCalls(t ast.Term, tc termCtx, mode sizeMode) []sizeKey {
 	switch t := t.(type) {
-	case *grammar.TermGroup:
+	case *ast.TermGroup:
 		return k.heldCalls(t.Term, tc, mode)
-	case *grammar.Cast:
+	case *ast.Cast:
 		return k.heldCalls(t.X, tc, mode)
-	case *grammar.CaptureRef:
+	case *ast.CaptureRef:
 		if p, ok := tc.params[t.Name]; ok && (t.Param || tc.lambda) {
 			var out []sizeKey
 			for _, e := range p.elems {
@@ -139,7 +139,7 @@ func (k *classifier) heldCalls(t grammar.Term, tc termCtx, mode sizeMode) []size
 			out = append(out, k.heldExprCalls(e, tc, mode)...)
 		}
 		return out
-	case *grammar.Member:
+	case *ast.Member:
 		exprs, _, ok := k.termExprs(t, tc)
 		if !ok {
 			return nil
@@ -149,11 +149,11 @@ func (k *classifier) heldCalls(t grammar.Term, tc termCtx, mode sizeMode) []size
 			out = append(out, k.heldExprCalls(e, tc, mode)...)
 		}
 		return out
-	case *grammar.Binary:
+	case *ast.Binary:
 		if t.Op == "+" && !k.isInt(t.L, tc) && !k.isInt(t.R, tc) {
 			return append(k.heldCalls(t.L, tc, textSize), k.heldCalls(t.R, tc, textSize)...)
 		}
-	case *grammar.Call:
+	case *ast.Call:
 		var out []sizeKey
 		switch t.Func {
 		case "text":
@@ -185,12 +185,12 @@ func (k *classifier) heldCalls(t grammar.Term, tc termCtx, mode sizeMode) []size
 // heldLambdaCtx returns the context of the body of the lambda lam of the fold call: the parameter
 // for the element of the list stands for the expressions whose values the elements are, and the
 // accumulator for nothing, since the fold holds its initial value and the values of the lambda.
-func (k *classifier) heldLambdaCtx(call *grammar.Call, lam *grammar.Lambda, tc termCtx) termCtx {
+func (k *classifier) heldLambdaCtx(call *ast.Call, lam *ast.Lambda, tc termCtx) termCtx {
 	params := map[string]param{}
 	for n, p := range tc.params {
 		params[n] = p
 	}
-	var elems []grammar.Expr
+	var elems []ast.Expr
 	if len(call.Args) > 1 {
 		elems = k.elemExprs(call.Args[1], tc)
 	}
@@ -209,27 +209,27 @@ func (k *classifier) heldLambdaCtx(call *grammar.Call, lam *grammar.Lambda, tc t
 // match of e, measured in mode, holds: a call passes its value on through choices, options and
 // groups, and an inline action holds what its action holds. The node of a sequence holds the text
 // of the input that it matches, which does not grow with the values of its calls.
-func (k *classifier) heldExprCalls(e grammar.Expr, tc termCtx, mode sizeMode) []sizeKey {
+func (k *classifier) heldExprCalls(e ast.Expr, tc termCtx, mode sizeMode) []sizeKey {
 	switch x := e.(type) {
-	case *grammar.Group:
+	case *ast.Group:
 		return k.heldExprCalls(x.Expr, tc, mode)
-	case *grammar.Capture:
+	case *ast.Capture:
 		return k.heldExprCalls(x.Expr, tc, mode)
-	case *grammar.Atomic:
+	case *ast.Atomic:
 		return k.heldExprCalls(x.Expr, tc, mode)
-	case *grammar.Optional:
+	case *ast.Optional:
 		return k.heldExprCalls(x.Expr, tc, mode)
-	case *grammar.Choice:
+	case *ast.Choice:
 		var out []sizeKey
 		for _, alt := range x.Alts {
 			out = append(out, k.heldExprCalls(alt, tc, mode)...)
 		}
 		return out
-	case *grammar.InlineAction:
+	case *ast.InlineAction:
 		if x.Action != nil && !x.DefaultAction {
 			return k.heldCalls(x.Action, termCtx{rule: tc.rule}, mode)
 		}
-	case *grammar.Ref:
+	case *ast.Ref:
 		if k.byName[x.Name] != nil && k.onRecursion(tc.rule, x.Name) {
 			return []sizeKey{{x.Name, mode}}
 		}

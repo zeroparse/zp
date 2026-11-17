@@ -5,10 +5,10 @@
 package complexity
 
 import (
-	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/cancel"
 	"zeroparse.dev/zp/internal/ir/core"
 	"zeroparse.dev/zp/internal/ir/core/facts"
+	"zeroparse.dev/zp/pkg/grammar/ast"
 )
 
 // Law names a normalization rule of the cost view.
@@ -46,7 +46,7 @@ type Options struct {
 // grammar expression each of its nodes is built from, and the facts of the module.
 type Source struct {
 	Module *core.Module
-	Origin map[core.Node]grammar.Expr
+	Origin map[core.Node]ast.Expr
 	Facts  *facts.Facts
 }
 
@@ -57,7 +57,7 @@ type View struct {
 	Module *core.Module
 	// Origin is the origin map of the source: the expression of the grammar each shared node is
 	// built from. A node the view builds has none.
-	Origin map[core.Node]grammar.Expr
+	Origin map[core.Node]ast.Expr
 	// Text gives, for a node that the view builds, the source text of the expressions that it
 	// stands for, so that messages quote the grammar as it is written.
 	Text map[core.Node]string
@@ -105,10 +105,10 @@ func (v *View) textOf(n core.Node) string {
 		return t
 	}
 	if e, ok := v.Origin[n]; ok {
-		return grammar.FormatExpr(e)
+		return ast.FormatExpr(e)
 	}
 	if e, err := v.expr(n); err == nil {
-		return grammar.FormatExpr(e)
+		return ast.FormatExpr(e)
 	}
 	return ""
 }

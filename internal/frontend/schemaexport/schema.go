@@ -7,10 +7,10 @@ import (
 	"slices"
 	"sort"
 
-	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/compile"
 	"zeroparse.dev/zp/internal/frontend/check"
 	"zeroparse.dev/zp/internal/frontend/types"
+	"zeroparse.dev/zp/pkg/grammar/ast"
 	"zeroparse.dev/zp/pkg/runtime/schema"
 )
 
@@ -38,7 +38,7 @@ func Export(p *compile.Program, start string, allRules bool) (*schema.Output, er
 	}
 	all := map[string]schema.Type{}
 	for _, td := range p.Grammar.Types() {
-		spec, ok := td.(*grammar.TypeDef)
+		spec, ok := td.(*ast.TypeDef)
 		if !ok {
 			continue // aliases name other types
 		}
@@ -173,7 +173,7 @@ func cutPrefix(s, prefix string) (string, bool) {
 }
 
 // declared describes the type a field declares.
-func declared(p *compile.Program, t grammar.TypeExpr) (schema.Shape, error) {
+func declared(p *compile.Program, t ast.TypeExpr) (schema.Shape, error) {
 	k := &check.TypeResolver{Prog: p.Checker()}
 	return shapeOf(k.Resolve(t))
 }

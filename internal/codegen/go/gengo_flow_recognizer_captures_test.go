@@ -5,19 +5,19 @@ import (
 	"sync"
 	"testing"
 
-	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/codegen"
 	"zeroparse.dev/zp/internal/codegen/go"
 	"zeroparse.dev/zp/internal/compile"
 	"zeroparse.dev/zp/internal/testing/codegentest"
+	"zeroparse.dev/zp/pkg/grammar/ast"
 )
 
 // hasCaptureOfRepeat reports a capture of a repetition in e, the shape that Core IR projects in the Node table.
-func hasCaptureOfRepeat(e grammar.Expr) (capture, repeated bool) {
-	compile.WalkExpr(e, func(e grammar.Expr) {
-		if c, ok := e.(*grammar.Capture); ok {
+func hasCaptureOfRepeat(e ast.Expr) (capture, repeated bool) {
+	compile.WalkExpr(e, func(e ast.Expr) {
+		if c, ok := e.(*ast.Capture); ok {
 			capture = true
-			if _, ok := c.Expr.(*grammar.Repeat); ok {
+			if _, ok := c.Expr.(*ast.Repeat); ok {
 				repeated = true
 			}
 		}

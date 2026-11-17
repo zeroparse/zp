@@ -5,7 +5,6 @@ import (
 	"slices"
 	"strings"
 
-	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/compile"
 	"zeroparse.dev/zp/internal/frontend/check"
 	irbuild "zeroparse.dev/zp/internal/frontend/elaborate"
@@ -17,6 +16,7 @@ import (
 	flowlower "zeroparse.dev/zp/internal/ir/flow/lower"
 	"zeroparse.dev/zp/internal/ir/opt"
 	"zeroparse.dev/zp/internal/limits"
+	"zeroparse.dev/zp/pkg/grammar/ast"
 )
 
 // Generator is the state that the Go and TypeScript generators share: the program and rule being
@@ -67,7 +67,7 @@ type Generator struct {
 	Descs   []string
 	DescIDs map[string]compile.ExpID
 	// FieldTypes names the field type variable of each checked constructed field, result and cast (by
-	// *grammar.FieldInit or checkInfo.results key), numbered separately so that checks do not
+	// *ast.FieldInit or checkInfo.results key), numbered separately so that checks do not
 	// rename other generated names (codegen/go/lib/fieldcheck.go).
 	FieldTypes map[any]string
 	// fieldTypeKeys are the keys of fieldTypes in the order of their variables, for rollback.
@@ -189,7 +189,7 @@ func (g *Generator) Projections(r *compile.Rule) map[string]string {
 // FlowState holds the Core IR of the typed rules while they are printed from Flow IR.
 type FlowState struct {
 	M      *core.Module
-	Origin map[core.Node]grammar.Expr
+	Origin map[core.Node]ast.Expr
 	Opts   flowlower.Options
 	// Rules holds the rules of the program by ID, value-free twins included.
 	Rules []*compile.Rule
@@ -319,7 +319,7 @@ func FrameScope(c flow.Captures) *check.Scope {
 // step with them. Terminals and class runs apply only to lean typed rules (gogen.Generator.TypedCore):
 // the Node recognizer writes its terminals and classes as inline tests.
 func (g *Generator) StartRecFlow(rec *compile.Program) error {
-	origin := map[core.Node]grammar.Expr{}
+	origin := map[core.Node]ast.Expr{}
 	m, err := irbuild.CoreProjecting(rec, origin, g.Table != "recRules")
 	if err != nil {
 		return err

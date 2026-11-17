@@ -5,12 +5,12 @@ import (
 	"slices"
 	"strconv"
 
-	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/bytecode"
 	"zeroparse.dev/zp/internal/compile"
 	"zeroparse.dev/zp/internal/engine/state"
 	"zeroparse.dev/zp/internal/frontend/elaborate"
 	ir "zeroparse.dev/zp/internal/ir/core"
+	"zeroparse.dev/zp/pkg/grammar/ast"
 )
 
 // Compile compiles the program prog to a bytecode module: it builds the program's Core IR, runs
@@ -161,7 +161,7 @@ func b2i(b bool) int32 {
 // compile fills the module with the type, variable and rule tables and the code of the rules.
 func (c *compiler) compile() {
 	for _, td := range c.prog.Grammar.Types() {
-		spec, ok := td.(*grammar.TypeDef)
+		spec, ok := td.(*ast.TypeDef)
 		if !ok {
 			continue
 		}
@@ -711,17 +711,17 @@ func (c *compiler) operatorsRule(o *ir.OperatorsRule) int {
 	for _, op := range o.Ops {
 		oi := bytecode.OpInfo{ID: op.ID, Level: op.Level}
 		switch op.Kind {
-		case grammar.Prefix:
+		case ast.Prefix:
 			oi.Kind = bytecode.OperatorPrefix
-		case grammar.Postfix:
+		case ast.Postfix:
 			oi.Kind = bytecode.OperatorPostfix
 		default:
 			oi.Kind = bytecode.OperatorInfix
 		}
 		switch op.Assoc {
-		case grammar.AssocRight:
+		case ast.AssocRight:
 			oi.Assoc = bytecode.AssocRight
-		case grammar.AssocNone:
+		case ast.AssocNone:
 			oi.Assoc = bytecode.AssocNone
 		}
 		oi.Line = c.line(op.Line, true)

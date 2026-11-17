@@ -5,7 +5,7 @@ import (
 	"strings"
 	"testing"
 
-	"zeroparse.dev/zp/grammar"
+	"zeroparse.dev/zp/pkg/grammar/ast"
 )
 
 // Every comma-separated list keeps its comments with their owners and follows
@@ -44,11 +44,11 @@ func TestFormatListComments(t *testing.T) {
 		{"struct closing comment", "type T = { F (int, string) /* b */ }\n", "type T = { F (int, string) /* b */ }\n"},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
-			ast, err := Parse(tc.in)
+			tree, err := Parse(tc.in)
 			if err != nil {
 				t.Fatal(err)
 			}
-			if problem := checkRandomFormat(tc.in, ast); problem != "" {
+			if problem := checkRandomFormat(tc.in, tree); problem != "" {
 				t.Fatalf("%s", problem)
 			}
 			got := checkFormat(t, tc.in)
@@ -67,11 +67,11 @@ func TestFormatListComments(t *testing.T) {
 // A comment on a line after the comma's belongs to the next element or to
 // nothing, never to the element before the comma.
 func TestFormatListCommentOnLaterLine(t *testing.T) {
-	ast, err := Parse("rule r = \"a\" => f(1,\n\n    // r\n\n    2)\n")
+	tree, err := Parse("rule r = \"a\" => f(1,\n\n    // r\n\n    2)\n")
 	if err != nil {
 		t.Fatal(err)
 	}
-	arg := ast.Rules()[0].Action.(*grammar.Call).Args[0].(grammar.SourceNode).Source()
+	arg := tree.Rules()[0].Action.(*ast.Call).Args[0].(ast.SourceNode).Source()
 	if len(arg.TrailingComments) != 0 {
 		t.Fatalf("the first argument trails %q", arg.TrailingComments)
 	}

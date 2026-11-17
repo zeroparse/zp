@@ -3,8 +3,8 @@ package sample
 import (
 	"unicode/utf8"
 
-	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/ir/exec/ref"
+	"zeroparse.dev/zp/pkg/grammar/ast"
 )
 
 // Kinds of generated values (see val).
@@ -48,8 +48,8 @@ type variable struct {
 
 // zeroValue is the zero value of a variable or a field of the type t, Unknown where the generator
 // does not tell it.
-func zeroValue(t grammar.TypeExpr) ref.V {
-	if r, ok := t.(*grammar.TypeRef); ok {
+func zeroValue(t ast.TypeExpr) ref.V {
+	if r, ok := t.(*ast.TypeRef); ok {
 		switch r.Name {
 		case "int":
 			return ref.Int(0)
@@ -66,18 +66,18 @@ func zeroValue(t grammar.TypeExpr) ref.V {
 // the fields of its struct types, its aliases, and the initial values of its variables.
 type terms struct {
 	zeros   map[string]map[string]ref.V
-	aliases map[string]grammar.TypeExpr
+	aliases map[string]ast.TypeExpr
 	// nodeTypes are the named node types: the type definitions that are not struct types.
 	nodeTypes map[string]bool
 	initVars  *variable
 }
 
-func newTerms(g *grammar.Grammar) *terms {
-	t := &terms{zeros: map[string]map[string]ref.V{}, aliases: map[string]grammar.TypeExpr{}, nodeTypes: map[string]bool{}}
+func newTerms(g *ast.Grammar) *terms {
+	t := &terms{zeros: map[string]map[string]ref.V{}, aliases: map[string]ast.TypeExpr{}, nodeTypes: map[string]bool{}}
 	for _, d := range g.Types() {
 		switch d := d.(type) {
-		case *grammar.TypeDef:
-			if s, ok := d.Type.(*grammar.StructType); ok {
+		case *ast.TypeDef:
+			if s, ok := d.Type.(*ast.StructType); ok {
 				z := map[string]ref.V{}
 				for _, f := range s.Fields {
 					z[f.Name] = zeroValue(f.Type)
@@ -86,7 +86,7 @@ func newTerms(g *grammar.Grammar) *terms {
 			} else {
 				t.nodeTypes[d.Name] = true
 			}
-		case *grammar.TypeAlias:
+		case *ast.TypeAlias:
 			t.aliases[d.Name] = d.Type
 		}
 	}
@@ -118,7 +118,7 @@ func (*terms) vars(vs *variable) map[string]ref.V {
 
 // evaluate evaluates the term t with the reference evaluator. known is false when the value or the
 // failure depends on what the generator does not know, or when the evaluator does not model t.
-func evaluate(env *ref.TermEnv, t grammar.Term) (v ref.V, failed, known bool) {
+func evaluate(env *ref.TermEnv, t ast.Term) (v ref.V, failed, known bool) {
 	defer func() {
 		if recover() != nil {
 			v, failed, known = ref.Unknown, false, false
@@ -129,7 +129,7 @@ func evaluate(env *ref.TermEnv, t grammar.Term) (v ref.V, failed, known bool) {
 }
 
 // decide decides the predicate term t with the reference evaluator (see evaluate for known).
-func decide(env *ref.TermEnv, t grammar.Term) (holds, known bool) {
+func decide(env *ref.TermEnv, t ast.Term) (holds, known bool) {
 	defer func() {
 		if recover() != nil {
 			holds, known = false, false
@@ -207,8 +207,8 @@ func (g *gen) units(off int) int {
 // predicate evaluates the predicate e. It returns false only when the parser's predicate would
 // certainly fail; when the generator cannot tell, it returns true and leaves the decision to the
 // parser. A variable definition is returned as def.
-func (g *gen) predicate(e *grammar.Predicate) (ok bool, def *variable) {
-	if a, isBind := e.Term.(*grammar.Bind); isBind {
+func (g *gen) predicate(e *ast.Predicate) (ok bool, def *variable) {
+	if a, isBind := e.Term.(*ast.Bind); isBind {
 		v, failed, known := evaluate(g.env(), a.Value)
 		if known && failed {
 			return false, nil
@@ -222,14 +222,14 @@ func (g *gen) predicate(e *grammar.Predicate) (ok bool, def *variable) {
 // makesNode reports whether the rule's declared type is exactly a named node type, also through
 // aliases, which converts the value of the rule to a node of that type. Any other declared type,
 // a join included, leaves the value of the body as it is.
-func (t *terms) makesNode(def *grammar.RuleDef) bool {
+func (t *terms) makesNode(def *ast.RuleDef) bool {
 	ty := def.Type
 	for range len(t.aliases) + 1 {
 		switch x := ty.(type) {
-		case *grammar.TypeGroup:
+		case *ast.TypeGroup:
 			ty = x.Type
 			continue
-		case *grammar.TypeRef:
+		case *ast.TypeRef:
 			if a, ok := t.aliases[x.Name]; ok {
 				ty = a
 				continue

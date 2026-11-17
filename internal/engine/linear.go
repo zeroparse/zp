@@ -6,11 +6,11 @@ import (
 	"slices"
 	"strconv"
 
-	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/analysis/complexity"
 	"zeroparse.dev/zp/internal/cancel"
 	"zeroparse.dev/zp/internal/diagnostic"
 	"zeroparse.dev/zp/internal/frontend/desugar"
+	"zeroparse.dev/zp/pkg/grammar/ast"
 )
 
 // linearRewrites is the recipe that shows how to rewrite the constructs whose cost the classifier
@@ -47,7 +47,7 @@ func rewriteOf(k complexity.ComplexityCauseKind) (advice, link string) {
 // declared start whose class is not linear is an error at each cause and reason of its
 // classification, and, for the class linear given an environment bound, at each reason for the
 // bound. A grammar without @linear costs only a scan of its declaration attributes.
-func checkDeclaredLinear(g *grammar.Grammar, control *cancel.Control) error {
+func checkDeclaredLinear(g *ast.Grammar, control *cancel.Control) error {
 	whole, rules, errs := desugar.LinearDeclarations(g, control)
 	if len(errs) > 0 {
 		return errs // compilation reports them first; kept for a grammar that skipped it
@@ -55,19 +55,19 @@ func checkDeclaredLinear(g *grammar.Grammar, control *cancel.Control) error {
 	if !whole && len(rules) == 0 {
 		return nil
 	}
-	defs := map[string]*grammar.RuleDef{}
+	defs := map[string]*ast.RuleDef{}
 	for _, rd := range control.Rules(g) {
 		if _, ok := defs[rd.Name]; !ok {
 			defs[rd.Name] = rd
 		}
 	}
 	type key struct {
-		pos grammar.Pos
+		pos ast.Pos
 		msg string
 	}
 	seen := map[key]bool{}
 	var out diagnostic.ErrorList
-	check := func(subject string, at grammar.Pos, c *complexity.Complexity) {
+	check := func(subject string, at ast.Pos, c *complexity.Complexity) {
 		// report reports cause with format, whose verbs are the subject, the message of the cause,
 		// the advice and the link to the recipe's section for the kind of the cause. The advice is
 		// the section's, or advice when it is not empty.
@@ -118,7 +118,7 @@ func checkDeclaredLinear(g *grammar.Grammar, control *cancel.Control) error {
 		// A class other than linear has a cause or a reason; this is a guard, not a case.
 		out = append(out, &diagnostic.Error{Pos: at, Msg: fmt.Sprintf("%s is declared @linear, but its cost is %s (see %s)", subject, c.Class, linearRewrites)})
 	}
-	classify := func(g *grammar.Grammar, start string) (*complexity.Complexity, error) {
+	classify := func(g *ast.Grammar, start string) (*complexity.Complexity, error) {
 		return complexity.ClassifyComplexityControlled(g, start, control)
 	}
 	starts, _, _ := desugar.ResolveStarts(control.Rules(g), control)
@@ -159,20 +159,20 @@ func checkDeclaredLinear(g *grammar.Grammar, control *cancel.Control) error {
 // the copy from its default start rule classifies parsing that begins at rule. The rules of g are
 // shared, except that @start(default) is copied as @start: the start rules stay marked, so that
 // the analyses that set a marked rule apart see the rules as compiled.
-func startingAt(g *grammar.Grammar, rule string, defs map[string]*grammar.RuleDef) *grammar.Grammar {
+func startingAt(g *ast.Grammar, rule string, defs map[string]*ast.RuleDef) *ast.Grammar {
 	name := "linear_start"
 	for i := 2; defs[name] != nil; i++ {
 		name = "linear_start" + strconv.Itoa(i)
 	}
 	starting := *g
-	starting.File.Decls = make([]grammar.Decl, 0, len(g.File.Decls)+1)
+	starting.File.Decls = make([]ast.Decl, 0, len(g.File.Decls)+1)
 	for _, d := range g.File.Decls {
-		if rd, ok := d.(*grammar.RuleDef); ok && desugar.StartMarked(rd) {
+		if rd, ok := d.(*ast.RuleDef); ok && desugar.StartMarked(rd) {
 			unmarked := *rd
-			unmarked.Attrs = make([]*grammar.Attribute, len(rd.Attrs))
+			unmarked.Attrs = make([]*ast.Attribute, len(rd.Attrs))
 			for i, a := range rd.Attrs {
 				if !a.Pragma && a.Name == "start" {
-					a = &grammar.Attribute{SourceInfo: a.SourceInfo, Name: "start"}
+					a = &ast.Attribute{SourceInfo: a.SourceInfo, Name: "start"}
 				}
 				unmarked.Attrs[i] = a
 			}
@@ -180,10 +180,10 @@ func startingAt(g *grammar.Grammar, rule string, defs map[string]*grammar.RuleDe
 		}
 		starting.File.Decls = append(starting.File.Decls, d)
 	}
-	starting.File.Decls = append(starting.File.Decls, &grammar.RuleDef{
-		Attrs: []*grammar.Attribute{{Name: "start", Args: []any{&grammar.Ref{Name: "default"}}}},
+	starting.File.Decls = append(starting.File.Decls, &ast.RuleDef{
+		Attrs: []*ast.Attribute{{Name: "start", Args: []any{&ast.Ref{Name: "default"}}}},
 		Name:  name,
-		Expr:  &grammar.Ref{Name: rule},
+		Expr:  &ast.Ref{Name: rule},
 	})
 	return &starting
 }

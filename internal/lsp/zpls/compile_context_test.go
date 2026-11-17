@@ -7,9 +7,9 @@ import (
 	"strings"
 	"testing"
 
-	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/frontend/parser"
 	"zeroparse.dev/zp/internal/testing/starttest"
+	"zeroparse.dev/zp/pkg/grammar/ast"
 )
 
 type lspCompilePollContext struct {
@@ -54,14 +54,14 @@ func TestCompileCancellationDoesNotPublishDiagnostics(t *testing.T) {
 }
 
 func TestGrammarValidationCancellationDoesNotPublishDiagnostics(t *testing.T) {
-	items := make([]grammar.Expr, 1024)
+	items := make([]ast.Expr, 1024)
 	for i := range items {
-		items[i] = &grammar.Literal{Value: "a"}
+		items[i] = &ast.Literal{Value: "a"}
 	}
 	items[len(items)-1] = nil
 	a := newAnalysis(`rule main = "a"`)
-	a.g = starttest.MarkAll(&grammar.Grammar{File: grammar.File{Decls: []grammar.Decl{
-		&grammar.RuleDef{Name: "main", Expr: &grammar.Seq{Items: items}},
+	a.g = starttest.MarkAll(&ast.Grammar{File: ast.File{Decls: []ast.Decl{
+		&ast.RuleDef{Name: "main", Expr: &ast.Seq{Items: items}},
 	}}})
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
@@ -72,7 +72,7 @@ func TestGrammarValidationCancellationDoesNotPublishDiagnostics(t *testing.T) {
 	if a.prog != nil || len(a.diags) != 0 {
 		t.Fatalf("cancelled validation published a result: %v, %+v", a.prog, a.diags)
 	}
-	items[len(items)-1] = &grammar.Literal{Value: "a"}
+	items[len(items)-1] = &ast.Literal{Value: "a"}
 	if err := a.compileContext(context.Background()); err != nil || a.prog == nil || len(a.diags) != 0 {
 		t.Fatalf("later compilation failed: %v, %+v", err, a.diags)
 	}

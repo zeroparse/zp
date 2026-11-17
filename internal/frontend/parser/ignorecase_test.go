@@ -4,18 +4,18 @@ import (
 	"strings"
 	"testing"
 
-	"zeroparse.dev/zp/grammar"
+	"zeroparse.dev/zp/pkg/grammar/ast"
 )
 
 // ruleExpr returns the expression of the rule main of the parsed grammar.
-func ruleExpr(t *testing.T, src string) grammar.Expr {
+func ruleExpr(t *testing.T, src string) ast.Expr {
 	t.Helper()
 	g, err := Parse(src)
 	if err != nil {
 		t.Fatalf("%v\n%s", err, src)
 	}
 	for _, d := range g.File.Decls {
-		if rd, ok := d.(*grammar.RuleDef); ok && rd.Name == "main" {
+		if rd, ok := d.(*ast.RuleDef); ok && rd.Name == "main" {
 			return rd.Expr
 		}
 	}
@@ -24,7 +24,7 @@ func ruleExpr(t *testing.T, src string) grammar.Expr {
 }
 
 func TestIgnoreCaseSuffix(t *testing.T) {
-	lit, ok := ruleExpr(t, `rule main = "select"i`).(*grammar.Literal)
+	lit, ok := ruleExpr(t, `rule main = "select"i`).(*ast.Literal)
 	if !ok || lit.Value != "select" || !lit.IgnoreCase {
 		t.Fatalf("suffix literal: %#v", lit)
 	}
@@ -35,21 +35,21 @@ func TestIgnoreCaseSuffix(t *testing.T) {
 		"rule main = \"a\"i_\nrule i_ = \"x\"",
 		"rule main = \"a\"i2\nrule i2 = \"x\"",
 	} {
-		seq, ok := ruleExpr(t, src).(*grammar.Seq)
+		seq, ok := ruleExpr(t, src).(*ast.Seq)
 		if !ok || len(seq.Items) != 2 {
 			t.Fatalf("%q: not a sequence of two items", src)
 		}
-		if l, ok := seq.Items[0].(*grammar.Literal); !ok || l.IgnoreCase {
+		if l, ok := seq.Items[0].(*ast.Literal); !ok || l.IgnoreCase {
 			t.Fatalf("%q: first item %#v, want a case-sensitive literal", src, seq.Items[0])
 		}
-		if _, ok := seq.Items[1].(*grammar.Ref); !ok {
+		if _, ok := seq.Items[1].(*ast.Ref); !ok {
 			t.Fatalf("%q: second item %#v, want a reference", src, seq.Items[1])
 		}
 	}
 }
 
 func TestIgnoreCasePragma(t *testing.T) {
-	a, ok := ruleExpr(t, `rule main = ("a" "b") #ignorecase`).(*grammar.Attributed)
+	a, ok := ruleExpr(t, `rule main = ("a" "b") #ignorecase`).(*ast.Attributed)
 	if !ok || len(a.Attrs) != 1 || a.Attrs[0].Name != "ignorecase" || !a.Attrs[0].Pragma {
 		t.Fatalf("pragma: %#v", ruleExpr(t, `rule main = ("a" "b") #ignorecase`))
 	}
@@ -76,18 +76,18 @@ func TestIgnoreCaseFormatAndJSON(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	data, err := grammar.MarshalJSON(g)
+	data, err := ast.MarshalJSON(g)
 	if err != nil {
 		t.Fatal(err)
 	}
 	if !strings.Contains(string(data), `"ignoreCase": true`) {
 		t.Fatalf("JSON lacks the suffix flag:\n%s", data)
 	}
-	back, err := grammar.UnmarshalJSON(data)
+	back, err := ast.UnmarshalJSON(data)
 	if err != nil {
 		t.Fatal(err)
 	}
-	again, err := grammar.MarshalJSON(back)
+	again, err := ast.MarshalJSON(back)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -135,28 +135,28 @@ func TestIgnoreCaseOperatorsRulePragma(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	var body grammar.Expr
+	var body ast.Expr
 	for _, d := range g.File.Decls {
-		if rd, ok := d.(*grammar.RuleDef); ok && rd.Name == "main" {
+		if rd, ok := d.(*ast.RuleDef); ok && rd.Name == "main" {
 			body = rd.Expr
 		}
 	}
-	pr, attributed := grammar.RuleOperators(body)
+	pr, attributed := ast.RuleOperators(body)
 	if pr == nil || attributed == nil || len(attributed.Attrs) != 1 || attributed.Attrs[0].Name != "ignorecase" || !attributed.Attrs[0].Pragma {
 		t.Fatalf("body: %#v", body)
 	}
 	if out := checkFormat(t, src); out != src {
 		t.Fatalf("formatted output:\n%s\nwant:\n%s", out, src)
 	}
-	data, err := grammar.MarshalJSON(g)
+	data, err := ast.MarshalJSON(g)
 	if err != nil {
 		t.Fatal(err)
 	}
-	back, err := grammar.UnmarshalJSON(data)
+	back, err := ast.UnmarshalJSON(data)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if got, want := grammar.Format(back), grammar.Format(g); got != want || !strings.Contains(got, "} #ignorecase") {
+	if got, want := ast.Format(back), ast.Format(g); got != want || !strings.Contains(got, "} #ignorecase") {
 		t.Fatalf("formatted JSON round trip:\n%s\nwant:\n%s", got, want)
 	}
 	for _, bad := range []string{

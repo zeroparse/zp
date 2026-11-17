@@ -12,9 +12,9 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/core"
-	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/codegen"
 	"zeroparse.dev/zp/internal/testing/codegentest"
+	"zeroparse.dev/zp/pkg/grammar/ast"
 )
 
 // A LimitError of kind LimitCompute reports the reservation that failed and the units reserved before
@@ -217,7 +217,7 @@ func generatedTSLimitReports(t *testing.T, c limitAgreementCase, patch func(stri
 	script := strings.NewReplacer("MAX", fmt.Sprint(c.max), "INPUT", fmt.Sprintf("%q", c.input)).Replace(limitAgreementTSScript)
 	bundle := codegentest.GenerateTSBundle
 	if patch != nil {
-		bundle = func(g *grammar.Grammar, opts codegen.GenOptions) ([]byte, error) {
+		bundle = func(g *ast.Grammar, opts codegen.GenOptions) ([]byte, error) {
 			b, err := codegentest.GenerateTSBundle(g, opts)
 			return []byte(patch(string(b))), err
 		}

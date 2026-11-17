@@ -7,7 +7,7 @@ import (
 	"zeroparse.dev/zp/internal/compile"
 	"zeroparse.dev/zp/internal/frontend/astfacts"
 
-	"zeroparse.dev/zp/grammar"
+	"zeroparse.dev/zp/pkg/grammar/ast"
 )
 
 // endKind says what an evaluation examines after the last item of a continuation.
@@ -25,7 +25,7 @@ const (
 // cont is a continuation: the expressions that an evaluation evaluates next, in order. After its
 // items it continues with next, or, when next is nil, as end says.
 type cont struct {
-	items []grammar.Expr
+	items []ast.Expr
 	next  *cont
 	// end and rule mark the end of the body of rule after items. With a next, the path goes on
 	// after the call of rule with next (bodyThen), and the walkers pass the mark; without one, it
@@ -39,7 +39,7 @@ type cont struct {
 }
 
 // then returns the continuation that evaluates items and then c.
-func (c *cont) then(items ...grammar.Expr) *cont { return &cont{items: items, next: c} }
+func (c *cont) then(items ...ast.Expr) *cont { return &cont{items: items, next: c} }
 
 // rest returns the continuation after the first item of c.
 func (c *cont) rest() *cont {
@@ -49,10 +49,10 @@ func (c *cont) rest() *cont {
 // source is a scanning source.
 type source struct {
 	rule string
-	pos  grammar.Pos
+	pos  ast.Pos
 	what string
 	kind ComplexityCauseKind // the pattern of a cause that restarts the source
-	scan *grammar.Repeat     // the repetition that is the source, if one is
+	scan *ast.Repeat         // the repetition that is the source, if one is
 }
 
 func (s *source) String() string { return fmt.Sprintf("%s at %s", s.what, at(s.rule, s.pos)) }
@@ -60,7 +60,7 @@ func (s *source) String() string { return fmt.Sprintf("%s at %s", s.what, at(s.r
 // site is a call of a rule.
 type site struct {
 	caller, callee string
-	ref            *grammar.Ref
+	ref            *ast.Ref
 	cont           *cont // what follows the call
 	// mayStart: the call can run before its caller's body consumes input; mustStart: it always
 	// does.
@@ -100,8 +100,8 @@ type unit struct {
 	id    int
 	kind  unitKind
 	rule  string
-	expr  grammar.Expr // the expression that holds the unit, for its position
-	pos   grammar.Pos
+	expr  ast.Expr // the expression that holds the unit, for its position
+	pos   ast.Pos
 	self  []*cont
 	conts []contSpec
 	// repeated says why the construct that holds the unit is evaluated more than once in a parse,
@@ -112,7 +112,7 @@ type unit struct {
 	// afterInput marks a growing unit that the expressions before it can reach after consuming
 	// input, where its left call is an ordinary call and nothing grows.
 	afterInput bool
-	choice     *grammar.Choice
+	choice     *ast.Choice
 	index      int
 	after      *cont // what follows the choice
 	cycle      int
@@ -146,7 +146,7 @@ type wctx struct {
 }
 
 type seqFrame struct {
-	seq   *grammar.Seq
+	seq   *ast.Seq
 	index int
 }
 
@@ -157,10 +157,10 @@ func (c wctx) with(cn *cont) wctx { c.cont = cn; return c }
 // iteration of a scanning repetition still contains the source. Each repetition has one. The
 // walk marks e as a source before it first calls againOf(e), and leads and wordExcludes run after
 // every rule is walked, so the mark is never missed.
-func (k *classifier) againOf(e *grammar.Repeat) *grammar.Repeat {
+func (k *classifier) againOf(e *ast.Repeat) *ast.Repeat {
 	a := k.again[e]
 	if a == nil {
-		a = &grammar.Repeat{SourceInfo: e.SourceInfo, Expr: e.Expr, Min: 0, Max: -1}
+		a = &ast.Repeat{SourceInfo: e.SourceInfo, Expr: e.Expr, Min: 0, Max: -1}
 		k.again[e] = a
 	}
 	if k.srcExprs[e] {
@@ -171,7 +171,7 @@ func (k *classifier) againOf(e *grammar.Repeat) *grammar.Repeat {
 
 // walkRule walks the body and the action of a reachable rule, collecting call sites, scanning
 // sources, units, bindings and copying operations.
-func (k *classifier) walkRule(r *grammar.RuleDef) {
+func (k *classifier) walkRule(r *ast.RuleDef) {
 	c := wctx{rule: r.Name, cont: &cont{end: endRule, rule: r.Name}, mayStart: true, mustStart: true}
 	k.walk(r.Expr, c)
 	if r.Action != nil {
@@ -179,10 +179,10 @@ func (k *classifier) walkRule(r *grammar.RuleDef) {
 	}
 }
 
-func (k *classifier) collectCaptures(r *grammar.RuleDef) {
-	m := map[string][]grammar.Expr{}
-	astfacts.WalkExpr(r.Expr, func(e grammar.Expr) {
-		if cp, ok := e.(*grammar.Capture); ok {
+func (k *classifier) collectCaptures(r *ast.RuleDef) {
+	m := map[string][]ast.Expr{}
+	astfacts.WalkExpr(r.Expr, func(e ast.Expr) {
+		if cp, ok := e.(*ast.Capture); ok {
 			m[cp.Name] = append(m[cp.Name], cp.Expr)
 		}
 	})
@@ -190,7 +190,7 @@ func (k *classifier) collectCaptures(r *grammar.RuleDef) {
 }
 
 // addSource records a scanning source found in the walk.
-func (k *classifier) addSource(c wctx, pos grammar.Pos, kind ComplexityCauseKind, what string) *source {
+func (k *classifier) addSource(c wctx, pos ast.Pos, kind ComplexityCauseKind, what string) *source {
 	s := &source{rule: c.rule, pos: pos, what: what, kind: kind}
 	k.walked[c.rule] = append(k.walked[c.rule], s)
 	for _, u := range c.open {
@@ -222,7 +222,7 @@ func (k *classifier) settleSources() {
 	}
 }
 
-func (k *classifier) newUnit(kind unitKind, c wctx, e grammar.Expr, self []*cont, conts []contSpec) *unit {
+func (k *classifier) newUnit(kind unitKind, c wctx, e ast.Expr, self []*cont, conts []contSpec) *unit {
 	u := &unit{id: len(k.units), kind: kind, rule: c.rule, expr: e, pos: exprPos(e), self: self, conts: conts,
 		repeated: c.repeated, calls: map[string]bool{}}
 	for _, o := range c.open {
@@ -238,16 +238,16 @@ func (c wctx) push(u *unit) wctx {
 }
 
 // consumesNothing reports whether e never consumes input.
-func (k *classifier) consumesNothing(e grammar.Expr) bool {
+func (k *classifier) consumesNothing(e ast.Expr) bool {
 	switch e := e.(type) {
-	case *grammar.Predicate, *grammar.Cut, *grammar.Top, *grammar.Bottom, *grammar.BeginInput, *grammar.EndInput,
-		*grammar.BeginLine, *grammar.EndLine, *grammar.And, *grammar.Not:
+	case *ast.Predicate, *ast.Cut, *ast.Top, *ast.Bottom, *ast.BeginInput, *ast.EndInput,
+		*ast.BeginLine, *ast.EndLine, *ast.And, *ast.Not:
 		return true
-	case *grammar.Literal:
+	case *ast.Literal:
 		return e.Value == ""
-	case *grammar.Group:
+	case *ast.Group:
 		return k.consumesNothing(e.Expr)
-	case *grammar.Seq:
+	case *ast.Seq:
 		for _, it := range e.Items {
 			if !k.consumesNothing(it) {
 				return false
@@ -258,18 +258,18 @@ func (k *classifier) consumesNothing(e grammar.Expr) bool {
 	return false
 }
 
-func (k *classifier) walk(e grammar.Expr, c wctx) {
+func (k *classifier) walk(e ast.Expr, c wctx) {
 	k.control.Poll()
 	switch e.(type) {
-	case *grammar.Seq, *grammar.Choice, *grammar.Group, *grammar.Optional, *grammar.Capture, *grammar.Discard,
-		*grammar.Atomic, *grammar.Ref, *grammar.Predicate, *grammar.And:
+	case *ast.Seq, *ast.Choice, *ast.Group, *ast.Optional, *ast.Capture, *ast.Discard,
+		*ast.Atomic, *ast.Ref, *ast.Predicate, *ast.And:
 	default:
 		c.strictFrom = len(c.seqs)
 	}
 	switch e := e.(type) {
-	case *grammar.Ref:
+	case *ast.Ref:
 		k.walkRef(e, c)
-	case *grammar.Seq:
+	case *ast.Seq:
 		may, must := c.mayStart, c.mustStart
 		for i, it := range e.Items {
 			cc := c.with(c.cont.then(e.Items[i+1:]...))
@@ -279,7 +279,7 @@ func (k *classifier) walk(e grammar.Expr, c wctx) {
 			may = may && k.nullable(it)
 			must = must && k.consumesNothing(it)
 		}
-	case *grammar.Choice:
+	case *ast.Choice:
 		for i, alt := range e.Alts {
 			cc := c
 			if i < len(e.Alts)-1 {
@@ -296,13 +296,13 @@ func (k *classifier) walk(e grammar.Expr, c wctx) {
 				}
 				if s, cut := topCut(alt); cutPrefixesOn && !growing && len(conts) > 0 && cut > 0 {
 					prefix := s.Items[:cut]
-					u := k.newUnit(unitAlt, c, &grammar.Seq{SourceInfo: s.SourceInfo, Items: prefix},
+					u := k.newUnit(unitAlt, c, &ast.Seq{SourceInfo: s.SourceInfo, Items: prefix},
 						[]*cont{{items: prefix}}, conts)
 					u.choice, u.index, u.after = e, i, c.cont
 					k.walkCutSeq(s, c, u, cut)
 					continue
 				}
-				u := k.newUnit(unitAlt, c, alt, []*cont{{items: []grammar.Expr{alt}}}, conts)
+				u := k.newUnit(unitAlt, c, alt, []*cont{{items: []ast.Expr{alt}}}, conts)
 				u.choice, u.index, u.after = e, i, c.cont
 				if growing {
 					u.growing, u.cycle = true, k.an.Cycle[c.rule]
@@ -312,7 +312,7 @@ func (k *classifier) walk(e grammar.Expr, c wctx) {
 			}
 			k.walk(alt, cc)
 		}
-	case *grammar.Repeat:
+	case *ast.Repeat:
 		if e.Max == 0 {
 			return
 		}
@@ -320,7 +320,7 @@ func (k *classifier) walk(e grammar.Expr, c wctx) {
 			k.addSource(c, exprPos(e), CauseRestartedRepetition, "the repetition "+k.show(e)).scan = e
 			k.srcExprs[e] = true
 		}
-		u := k.newUnit(unitIteration, c, e, []*cont{{items: []grammar.Expr{e.Expr}}},
+		u := k.newUnit(unitIteration, c, e, []*cont{{items: []ast.Expr{e.Expr}}},
 			[]contSpec{{paths: []*cont{c.cont}, what: "what follows the repetition " + k.show(e)}})
 		k.leftUnit(u, c, e.Expr)
 		again := k.againOf(e)
@@ -331,48 +331,48 @@ func (k *classifier) walk(e grammar.Expr, c wctx) {
 			cc.repeated = "the repetition " + k.show(e) + " at " + at(c.rule, exprPos(e))
 		}
 		k.walk(e.Expr, cc)
-	case *grammar.Optional:
-		u := k.newUnit(unitOption, c, e, []*cont{{items: []grammar.Expr{e.Expr}}},
+	case *ast.Optional:
+		u := k.newUnit(unitOption, c, e, []*cont{{items: []ast.Expr{e.Expr}}},
 			[]contSpec{{paths: []*cont{c.cont}, what: "what follows the option " + k.show(e)}})
 		k.leftUnit(u, c, e.Expr)
 		k.walk(e.Expr, c.push(u))
-	case *grammar.And:
+	case *ast.And:
 		k.walkLookahead(e, e.Expr, c, false)
-	case *grammar.Not:
+	case *ast.Not:
 		k.walkLookahead(e, e.Expr, c, true)
-	case *grammar.Recovery:
+	case *ast.Recovery:
 		k.walkRecovery(e, e.Expr, e.Skip, c)
-	case *grammar.Attributed:
+	case *ast.Attributed:
 		if skip := compile.RecoverSkip(e); skip != nil {
 			k.walkRecovery(e, e.Expr, skip, c)
 			return
 		}
 		k.walk(e.Expr, c)
-	case *grammar.Group:
+	case *ast.Group:
 		k.walk(e.Expr, c)
-	case *grammar.Capture:
+	case *ast.Capture:
 		k.walk(e.Expr, c)
-	case *grammar.Discard:
+	case *ast.Discard:
 		k.walk(e.Expr, c)
-	case *grammar.Atomic:
+	case *ast.Atomic:
 		k.walk(e.Expr, c)
-	case *grammar.Stream:
+	case *ast.Stream:
 		k.walk(e.Expr, c)
-	case *grammar.InlineAction:
+	case *ast.InlineAction:
 		k.walk(e.Expr, c)
 		if e.Action != nil {
 			k.walkTerm(e.Action, termCtx{rule: c.rule, c: c, action: true, holder: e, value: k.ruleValue(c.rule, e)})
 		}
-	case *grammar.Predicate:
+	case *ast.Predicate:
 		k.walkTerm(e.Term, termCtx{rule: c.rule, c: c, pred: e})
-	case *grammar.OperatorsRule:
+	case *ast.OperatorsRule:
 		k.walkOperators(e, c)
 	}
 }
 
 // leftUnit marks a unit other than an alternative that begins with a left call: the classifier
 // analyzes growing units only as alternatives.
-func (k *classifier) leftUnit(u *unit, c wctx, e grammar.Expr) {
+func (k *classifier) leftUnit(u *unit, c wctx, e ast.Expr) {
 	if k.an.Cyclic[c.rule] && c.mayStart {
 		if k.startsWithLeftCall(c.rule, e, leftExamine) {
 			u.unsupported = u.kind.String() + " begins with a left call"
@@ -380,8 +380,8 @@ func (k *classifier) leftUnit(u *unit, c wctx, e grammar.Expr) {
 	}
 }
 
-func (k *classifier) walkLookahead(e, body grammar.Expr, c wctx, not bool) {
-	u := k.newUnit(unitLookahead, c, e, []*cont{{items: []grammar.Expr{body}}},
+func (k *classifier) walkLookahead(e, body ast.Expr, c wctx, not bool) {
+	u := k.newUnit(unitLookahead, c, e, []*cont{{items: []ast.Expr{body}}},
 		[]contSpec{{paths: []*cont{c.cont}, what: "what follows the lookahead " + k.show(e)}})
 	k.leftUnit(u, c, body)
 	cc := c.push(u).with(&cont{})
@@ -392,13 +392,13 @@ func (k *classifier) walkLookahead(e, body grammar.Expr, c wctx, not bool) {
 	k.walk(body, cc)
 }
 
-func (k *classifier) walkRecovery(e, base, skip grammar.Expr, c wctx) {
+func (k *classifier) walkRecovery(e, base, skip ast.Expr, c wctx) {
 	shared := reused(skip)
 	if !shared {
 		k.addSource(c, exprPos(e), CauseRecoverySkip, "the skip expression "+k.show(skip)+" of #recover")
 		k.srcExprs[e] = true
 	}
-	u := k.newUnit(unitRecover, c, e, []*cont{{items: []grammar.Expr{base}}},
+	u := k.newUnit(unitRecover, c, e, []*cont{{items: []ast.Expr{base}}},
 		[]contSpec{{paths: []*cont{c.cont.then(skip)}, what: "the skip expression " + k.show(skip)}})
 	k.leftUnit(u, c, base)
 	k.walk(base, c.push(u))
@@ -408,7 +408,7 @@ func (k *classifier) walkRecovery(e, base, skip grammar.Expr, c wctx) {
 	k.walk(skip, c)
 }
 
-func (k *classifier) walkRef(e *grammar.Ref, c wctx) {
+func (k *classifier) walkRef(e *ast.Ref, c wctx) {
 	if k.byName[e.Name] == nil {
 		return
 	}
@@ -435,13 +435,13 @@ func (k *classifier) walkRef(e *grammar.Ref, c wctx) {
 
 // topCut returns the top-level sequence of an alternative and the index of the first #cut in it,
 // or 0.
-func topCut(alt grammar.Expr) (*grammar.Seq, int) {
-	s, ok := ungroup(alt).(*grammar.Seq)
+func topCut(alt ast.Expr) (*ast.Seq, int) {
+	s, ok := ungroup(alt).(*ast.Seq)
 	if !ok {
 		return nil, 0
 	}
 	for i, it := range s.Items {
-		if _, ok := it.(*grammar.Cut); ok {
+		if _, ok := it.(*ast.Cut); ok {
 			return s, i
 		}
 	}
@@ -451,7 +451,7 @@ func topCut(alt grammar.Expr) (*grammar.Seq, int) {
 // walkCutSeq walks the top-level sequence of an alternative with a #cut at index cut: the items
 // before the cut are in the unit u, and the items after it are not, as a failure after the cut
 // fails the choice.
-func (k *classifier) walkCutSeq(e *grammar.Seq, c wctx, u *unit, cut int) {
+func (k *classifier) walkCutSeq(e *ast.Seq, c wctx, u *unit, cut int) {
 	may, must := c.mayStart, c.mustStart
 	inside := c.push(u)
 	for i, it := range e.Items {
@@ -470,13 +470,13 @@ func (k *classifier) walkCutSeq(e *grammar.Seq, c wctx, u *unit, cut int) {
 
 // cutCommits reports whether every way in which the alternative can fail lies after a #cut in it,
 // so that the later alternatives are not tried after it fails.
-func (k *classifier) cutCommits(alt grammar.Expr) bool {
-	s, ok := ungroup(alt).(*grammar.Seq)
+func (k *classifier) cutCommits(alt ast.Expr) bool {
+	s, ok := ungroup(alt).(*ast.Seq)
 	if !ok {
 		return false
 	}
 	for _, it := range s.Items {
-		if _, ok := it.(*grammar.Cut); ok {
+		if _, ok := it.(*ast.Cut); ok {
 			return true
 		}
 		if !k.an.AlwaysSucceeds(it) {
@@ -487,22 +487,22 @@ func (k *classifier) cutCommits(alt grammar.Expr) bool {
 }
 
 // firstEvaluated returns the call that e evaluates before anything else, or nil.
-func (k *classifier) firstEvaluated(e grammar.Expr) *grammar.Ref {
+func (k *classifier) firstEvaluated(e ast.Expr) *ast.Ref {
 	for {
 		switch x := e.(type) {
-		case *grammar.Ref:
+		case *ast.Ref:
 			return x
-		case *grammar.Group:
+		case *ast.Group:
 			e = x.Expr
-		case *grammar.Capture:
+		case *ast.Capture:
 			e = x.Expr
-		case *grammar.Discard:
+		case *ast.Discard:
 			e = x.Expr
-		case *grammar.Atomic:
+		case *ast.Atomic:
 			e = x.Expr
-		case *grammar.Stream:
+		case *ast.Stream:
 			e = x.Expr
-		case *grammar.Seq:
+		case *ast.Seq:
 			if len(x.Items) == 0 {
 				return nil
 			}
@@ -519,7 +519,7 @@ func (k *classifier) firstEvaluated(e grammar.Expr) *grammar.Ref {
 // rule can try at the same position, and by what follows the Operators Rule expression. Each of
 // those other items or parts goes on with its right operand, the operator parts and what follows
 // the rule.
-func (k *classifier) walkOperators(pr *grammar.OperatorsRule, c wctx) {
+func (k *classifier) walkOperators(pr *ast.OperatorsRule, c wctx) {
 	hasOps := false
 	for _, l := range pr.Levels {
 		hasOps = hasOps || len(l.Operators) > 0
@@ -536,8 +536,8 @@ func (k *classifier) walkOperators(pr *grammar.OperatorsRule, c wctx) {
 	if hasOps {
 		inside.repeated = "the Operators Rule at " + at(c.rule, exprPos(pr))
 	}
-	withSkip := func(e grammar.Expr, more ...grammar.Expr) *cont {
-		items := []grammar.Expr{}
+	withSkip := func(e ast.Expr, more ...ast.Expr) *cont {
+		items := []ast.Expr{}
 		if pr.Skip != nil {
 			items = append(items, k.skipItem(pr))
 		}
@@ -545,7 +545,7 @@ func (k *classifier) walkOperators(pr *grammar.OperatorsRule, c wctx) {
 	}
 	// instead is a path that the rule tries in place of a failed operand or operator part: after
 	// it, the rule goes on with its operator parts and then with what follows it, as end says.
-	instead := func(e grammar.Expr, more ...grammar.Expr) *cont {
+	instead := func(e ast.Expr, more ...ast.Expr) *cont {
 		c := withSkip(e, more...)
 		c.next = end
 		return c
@@ -553,7 +553,7 @@ func (k *classifier) walkOperators(pr *grammar.OperatorsRule, c wctx) {
 	// An Operators Rule is a whole rule body: what follows it is what follows the rule. The other
 	// operator parts that the rule can try after an operand are continuations of their own.
 	follow := contSpec{paths: []*cont{{end: endRule, rule: c.rule}}, what: "what follows the Operators Rule"}
-	rhs := &grammar.Ref{Name: c.rule, Level: rhsLevel}
+	rhs := &ast.Ref{Name: c.rule, Level: rhsLevel}
 	skipCalls := map[string]bool{}
 	if pr.Skip != nil {
 		for _, n := range compile.AllCalls(pr.Skip, nil) {
@@ -604,26 +604,26 @@ func (k *classifier) walkOperators(pr *grammar.OperatorsRule, c wctx) {
 	}
 	type part struct {
 		level int
-		op    *grammar.OperatorsRuleOperator
+		op    *ast.OperatorsRuleOperator
 	}
 	var parts []part
 	prefixes := false
 	for li, l := range pr.Levels {
 		for _, op := range l.Operators {
 			parts = append(parts, part{li, op})
-			prefixes = prefixes || op.Kind == grammar.Prefix
+			prefixes = prefixes || op.Kind == ast.Prefix
 		}
 	}
 	for _, p := range parts {
 		var self *cont
-		if p.op.Kind == grammar.Postfix {
+		if p.op.Kind == ast.Postfix {
 			self = withSkip(p.op.Expr)
 		} else {
 			self = withSkip(p.op.Expr, rhs)
 		}
 		var conts []contSpec
 		for _, q := range parts {
-			if q.op == p.op || (q.op.Kind == grammar.Prefix) != (p.op.Kind == grammar.Prefix) {
+			if q.op == p.op || (q.op.Kind == ast.Prefix) != (p.op.Kind == ast.Prefix) {
 				continue
 			}
 			// A sibling that succeeds is followed by its right operand and then by the operator
@@ -632,35 +632,35 @@ func (k *classifier) walkOperators(pr *grammar.OperatorsRule, c wctx) {
 			// `postfix "["`, R scans again after each "[". So the sibling is continued as far as
 			// the rule goes, then with what follows the rule.
 			sibling := instead(q.op.Expr, rhs)
-			if q.op.Kind == grammar.Postfix {
+			if q.op.Kind == ast.Postfix {
 				sibling = instead(q.op.Expr)
 			}
 			conts = append(conts, contSpec{paths: []*cont{sibling},
 				what: fmt.Sprintf("the operator part %s at %s", k.show(q.op.Expr), at(c.rule, exprPos(q.op.Expr)))})
 		}
-		if p.op.Kind == grammar.Prefix {
+		if p.op.Kind == ast.Prefix {
 			for _, o := range pr.Operands {
 				conts = append(conts, contSpec{paths: []*cont{instead(o.Expr)},
 					what: fmt.Sprintf("the operand %s at %s", k.show(o.Expr), at(c.rule, exprPos(o.Expr)))})
 			}
 		}
 		u := k.newUnit(unitOperator, c, p.op.Expr, []*cont{self}, append(conts, follow))
-		if p.op.Kind != grammar.Prefix {
+		if p.op.Kind != ast.Prefix {
 			k.retried = append(k.retried, retriedPart{u, c.rule, end})
 		}
 		applies := false
 		switch p.op.Kind {
-		case grammar.Prefix:
+		case ast.Prefix:
 			applies = true
-		case grammar.Infix:
+		case ast.Infix:
 			applies = prefixes
 			for _, q := range parts {
-				if q.op.Kind != grammar.Prefix && (q.level > p.level || q.level == p.level && p.op.Assoc == grammar.AssocRight) {
+				if q.op.Kind != ast.Prefix && (q.level > p.level || q.level == p.level && p.op.Assoc == ast.AssocRight) {
 					applies = true
 				}
 			}
 		}
-		if p.op.Kind != grammar.Postfix {
+		if p.op.Kind != ast.Postfix {
 			// The right operand parses operands again, and operators too when it can apply them.
 			if applies {
 				u.calls[c.rule] = true
@@ -677,8 +677,8 @@ func (k *classifier) walkOperators(pr *grammar.OperatorsRule, c wctx) {
 			u.src = &source{rule: c.rule, pos: exprPos(pr.Skip), what: "the skip expression " + k.show(pr.Skip)}
 		}
 		cc := enter(u)
-		cc.mayStart = c.mayStart && (p.op.Kind == grammar.Prefix || k.operandsNullable(c.rule))
-		if p.op.Kind == grammar.Postfix {
+		cc.mayStart = c.mayStart && (p.op.Kind == ast.Prefix || k.operandsNullable(c.rule))
+		if p.op.Kind == ast.Postfix {
 			cc.cont = end
 		} else {
 			cc.cont = end.then(rhs)
@@ -692,13 +692,13 @@ func (k *classifier) walkOperators(pr *grammar.OperatorsRule, c wctx) {
 
 // containsSourceSyntactic reports whether e has a repetition without an upper bound, a #recover
 // or an Operators Rule in it, without following calls.
-func (k *classifier) containsSourceSyntactic(e grammar.Expr) bool {
+func (k *classifier) containsSourceSyntactic(e ast.Expr) bool {
 	found := false
-	astfacts.WalkExpr(e, func(x grammar.Expr) {
+	astfacts.WalkExpr(e, func(x ast.Expr) {
 		switch x := x.(type) {
-		case *grammar.Repeat:
+		case *ast.Repeat:
 			found = found || x.Max < 0
-		case *grammar.Recovery, *grammar.OperatorsRule:
+		case *ast.Recovery, *ast.OperatorsRule:
 			found = true
 		}
 	})
@@ -751,12 +751,12 @@ func (k *classifier) opsAfter(rule string) charset {
 	var s charset
 	for _, l := range pr.Levels {
 		for _, op := range l.Operators {
-			if op.Kind == grammar.Prefix {
+			if op.Kind == ast.Prefix {
 				continue
 			}
-			items := []grammar.Expr{k.skipItem(pr), op.Expr}
-			if op.Kind == grammar.Infix {
-				items = append(items, &grammar.Ref{Name: rule, Level: rhsLevel})
+			items := []ast.Expr{k.skipItem(pr), op.Expr}
+			if op.Kind == ast.Infix {
+				items = append(items, &ast.Ref{Name: rule, Level: rhsLevel})
 			}
 			t, _ := k.firstItems(items)
 			s = s.union(t)
@@ -767,7 +767,7 @@ func (k *classifier) opsAfter(rule string) charset {
 
 // firstItems returns the first characters of the items in sequence and whether all can match
 // without consuming input.
-func (k *classifier) firstItems(items []grammar.Expr) (charset, bool) {
+func (k *classifier) firstItems(items []ast.Expr) (charset, bool) {
 	var s charset
 	for _, it := range items {
 		if it == nil {
@@ -903,8 +903,8 @@ func (k *classifier) followFor(cycle int, growth bool) func(string) charset {
 // after the call. A lead without a call is a path that examines input first or cannot be followed;
 // a lead that is done examines nothing more.
 type lead struct {
-	call *grammar.Ref
-	lit  *grammar.Literal
+	call *ast.Ref
+	lit  *ast.Literal
 	rest *cont
 	done bool
 	// up: the path reaches the lead after the end of a rule body, in what follows a call whose
@@ -935,7 +935,7 @@ func (k *classifier) sameGrowths(rule string, via *refList, left uint64) bool {
 
 // refList is a list of calls, the last one looked through first.
 type refList struct {
-	ref  *grammar.Ref
+	ref  *ast.Ref
 	next *refList
 }
 
@@ -1024,33 +1024,33 @@ func (k *classifier) leads(paths []*cont, from []lead, only *string, seen map[st
 			switch e := p.items[0].(type) {
 			case nil:
 				p = rest
-			case *grammar.Group:
+			case *ast.Group:
 				p = rest.then(e.Expr)
-			case *grammar.Capture:
+			case *ast.Capture:
 				p = rest.then(e.Expr)
-			case *grammar.Discard:
+			case *ast.Discard:
 				p = rest.then(e.Expr)
-			case *grammar.Atomic:
+			case *ast.Atomic:
 				p = rest.then(e.Expr)
-			case *grammar.Stream:
+			case *ast.Stream:
 				p = rest.then(e.Expr)
-			case *grammar.InlineAction:
+			case *ast.InlineAction:
 				p = rest.then(e.Expr)
-			case *grammar.Seq:
+			case *ast.Seq:
 				p = rest.then(e.Items...)
-			case *grammar.Attributed:
+			case *ast.Attributed:
 				if compile.RecoverSkip(e) != nil || compile.HasPragma(e, "missing") {
 					out = append(out, lead{})
 					return
 				}
 				p = rest.then(e.Expr)
-			case *grammar.Predicate, *grammar.Cut, *grammar.Top, *grammar.BeginInput, *grammar.BeginLine:
+			case *ast.Predicate, *ast.Cut, *ast.Top, *ast.BeginInput, *ast.BeginLine:
 				p = rest
-			case *grammar.EndInput:
+			case *ast.EndInput:
 				// At the end of the input nothing more is examined.
 				out = append(out, lead{done: true, up: up, via: st.via, left: st.left})
 				return
-			case *grammar.Literal:
+			case *ast.Literal:
 				if e.Value != "" {
 					if only == nil {
 						out = append(out, lead{lit: e, rest: rest, up: up, via: st.via, left: st.left})
@@ -1060,16 +1060,16 @@ func (k *classifier) leads(paths []*cont, from []lead, only *string, seen map[st
 					return
 				}
 				p = rest
-			case *grammar.Choice:
+			case *ast.Choice:
 				for _, alt := range e.Alts {
 					visit(rest.then(alt), st)
 				}
 				return
-			case *grammar.Optional:
+			case *ast.Optional:
 				visit(rest.then(e.Expr), st)
 				visit(rest, st)
 				return
-			case *grammar.Repeat:
+			case *ast.Repeat:
 				if e.Max == 0 {
 					p = rest
 					continue
@@ -1080,7 +1080,7 @@ func (k *classifier) leads(paths []*cont, from []lead, only *string, seen map[st
 					visit(rest, st)
 				}
 				return
-			case *grammar.Ref:
+			case *ast.Ref:
 				if k.byName[e.Name] == nil || e.Level == rhsLevel {
 					out = append(out, lead{})
 					return
@@ -1174,7 +1174,7 @@ func (k *classifier) nestsOps(rule string) bool {
 	}
 	for _, l := range pr.Levels {
 		for _, op := range l.Operators {
-			if op.Kind == grammar.Prefix || op.Kind == grammar.Infix && op.Assoc == grammar.AssocRight {
+			if op.Kind == ast.Prefix || op.Kind == ast.Infix && op.Assoc == ast.AssocRight {
 				return true
 			}
 		}
@@ -1197,12 +1197,12 @@ func (k *classifier) opsLeads(rule string, inner bool, visit func(*cont)) {
 	end := &cont{end: endOps, rule: rule, inner: inner}
 	for _, l := range pr.Levels {
 		for _, op := range l.Operators {
-			if op.Kind == grammar.Prefix {
+			if op.Kind == ast.Prefix {
 				continue
 			}
-			items := []grammar.Expr{k.skipItem(pr), op.Expr}
-			if op.Kind == grammar.Infix {
-				items = append(items, &grammar.Ref{Name: rule, Level: rhsLevel})
+			items := []ast.Expr{k.skipItem(pr), op.Expr}
+			if op.Kind == ast.Infix {
+				items = append(items, &ast.Ref{Name: rule, Level: rhsLevel})
 			}
 			visit(&cont{items: items, next: end})
 		}
@@ -1212,15 +1212,15 @@ func (k *classifier) opsLeads(rule string, inner bool, visit func(*cont)) {
 // operatorsBody returns the Operators Rule that is the body of rule, alone or under attributes
 // that change neither what it evaluates first nor where the parser continues after it fails, or
 // nil.
-func (k *classifier) operatorsBody(rule string) *grammar.OperatorsRule {
+func (k *classifier) operatorsBody(rule string) *ast.OperatorsRule {
 	body := ungroup(k.byName[rule].Expr)
-	if a, ok := body.(*grammar.Attributed); ok {
+	if a, ok := body.(*ast.Attributed); ok {
 		if compile.RecoverSkip(a) != nil || compile.HasPragma(a, "missing") {
 			return nil
 		}
 		body = ungroup(a.Expr)
 	}
-	pr, _ := body.(*grammar.OperatorsRule)
+	pr, _ := body.(*ast.OperatorsRule)
 	return pr
 }
 
@@ -1228,11 +1228,11 @@ func (k *classifier) operatorsBody(rule string) *grammar.OperatorsRule {
 // and operator part, and continues at the same position when the skip does not match, so a skip
 // that can match nothing stands for itself, and the first call that it evaluates is a call that the
 // path evaluates first; any other skip is optional.
-func (k *classifier) skipItem(pr *grammar.OperatorsRule) grammar.Expr {
+func (k *classifier) skipItem(pr *ast.OperatorsRule) ast.Expr {
 	if pr.Skip == nil || k.nullable(pr.Skip) {
 		return pr.Skip
 	}
-	return &grammar.Optional{Expr: pr.Skip}
+	return &ast.Optional{Expr: pr.Skip}
 }
 
 // operatorsLeads continues a path into the body of rule, the Operators Rule pr. The rule begins
@@ -1240,10 +1240,10 @@ func (k *classifier) skipItem(pr *grammar.OperatorsRule) grammar.Expr {
 // what every path through it evaluates first. After its operand the rule tries its operator
 // parts, then continues as after its calls: the path continues at the end of the rule body, which
 // includes the path that called it.
-func (k *classifier) operatorsLeads(pr *grammar.OperatorsRule, rule string, visit func(*cont)) {
+func (k *classifier) operatorsLeads(pr *ast.OperatorsRule, rule string, visit func(*cont)) {
 	end := &cont{end: endOps, rule: rule, inner: true}
-	start := func(e grammar.Expr, more ...grammar.Expr) {
-		items := []grammar.Expr{}
+	start := func(e ast.Expr, more ...ast.Expr) {
+		items := []ast.Expr{}
 		if pr.Skip != nil {
 			items = append(items, k.skipItem(pr))
 		}
@@ -1254,8 +1254,8 @@ func (k *classifier) operatorsLeads(pr *grammar.OperatorsRule, rule string, visi
 	}
 	for _, l := range pr.Levels {
 		for _, op := range l.Operators {
-			if op.Kind == grammar.Prefix {
-				start(op.Expr, &grammar.Ref{Name: rule, Level: rhsLevel})
+			if op.Kind == ast.Prefix {
+				start(op.Expr, &ast.Ref{Name: rule, Level: rhsLevel})
 			}
 		}
 	}
@@ -1450,36 +1450,36 @@ func (k *classifier) leftPaths(start *cont, cycle int, grower string) (paths, fi
 			}
 			rest := p.rest()
 			switch e := p.items[0].(type) {
-			case *grammar.Group:
+			case *ast.Group:
 				p = rest.then(e.Expr)
-			case *grammar.Capture:
+			case *ast.Capture:
 				p = rest.then(e.Expr)
-			case *grammar.Discard:
+			case *ast.Discard:
 				p = rest.then(e.Expr)
-			case *grammar.Atomic:
+			case *ast.Atomic:
 				p = rest.then(e.Expr)
-			case *grammar.Stream:
+			case *ast.Stream:
 				p = rest.then(e.Expr)
-			case *grammar.Seq:
+			case *ast.Seq:
 				if len(e.Items) == 0 {
 					first = append(first, rest)
 					return
 				}
 				p = rest.then(e.Items...)
-			case *grammar.Choice:
+			case *ast.Choice:
 				for _, alt := range e.Alts {
 					visit(rest.then(alt), depth)
 				}
 				return
-			case *grammar.Predicate, *grammar.Cut, *grammar.Top, *grammar.BeginInput, *grammar.EndInput,
-				*grammar.BeginLine, *grammar.EndLine:
+			case *ast.Predicate, *ast.Cut, *ast.Top, *ast.BeginInput, *ast.EndInput,
+				*ast.BeginLine, *ast.EndLine:
 				// Nothing is examined before a left call that follows: the growth goes on there.
 				if len(rest.items) == 0 {
 					first = append(first, rest)
 					return
 				}
 				p = rest
-			case *grammar.Ref:
+			case *ast.Ref:
 				if !k.an.Cyclic[e.Name] || k.an.Cycle[e.Name] != cycle || e.Level != "" {
 					if len(rest.items) > 0 && k.passesBefore(e, leftExamine) {
 						// A call that can match without examining the input: what follows it
@@ -1652,7 +1652,7 @@ func (k *classifier) growthStarts(cycle int) ([]contSpec, bool) {
 func (k *classifier) memberStarts(rule string, after *cont, cycle int) (paths []*cont, ok bool) {
 	ok = true
 	budget := leadBudget
-	inCycle := func(e grammar.Expr) bool {
+	inCycle := func(e ast.Expr) bool {
 		for _, n := range k.an.LeftCalls(e, nil) {
 			if k.an.Cyclic[n] && k.an.Cycle[n] == cycle {
 				return true
@@ -1678,29 +1678,29 @@ func (k *classifier) memberStarts(rule string, after *cont, cycle int) (paths []
 			}
 			rest := p.rest()
 			switch e := p.items[0].(type) {
-			case *grammar.Group:
+			case *ast.Group:
 				p = rest.then(e.Expr)
-			case *grammar.Capture:
+			case *ast.Capture:
 				p = rest.then(e.Expr)
-			case *grammar.Discard:
+			case *ast.Discard:
 				p = rest.then(e.Expr)
-			case *grammar.Atomic:
+			case *ast.Atomic:
 				p = rest.then(e.Expr)
-			case *grammar.Stream:
+			case *ast.Stream:
 				p = rest.then(e.Expr)
-			case *grammar.InlineAction:
+			case *ast.InlineAction:
 				p = rest.then(e.Expr)
-			case *grammar.Seq:
+			case *ast.Seq:
 				p = rest.then(e.Items...)
-			case *grammar.Choice:
+			case *ast.Choice:
 				for _, alt := range e.Alts {
 					visit(rest.then(alt), depth)
 				}
 				return
-			case *grammar.Optional:
+			case *ast.Optional:
 				visit(rest.then(e.Expr), depth)
 				p = rest
-			case *grammar.Ref:
+			case *ast.Ref:
 				if k.an.Cyclic[e.Name] && k.an.Cycle[e.Name] == cycle {
 					if e.Level != "" {
 						ok = false
@@ -1736,7 +1736,7 @@ func (k *classifier) memberStarts(rule string, after *cont, cycle int) (paths []
 	}
 	// after marks the end of the body itself when it is the end of rule (the step tails of a
 	// leader, or the start rule); otherwise the path marks it.
-	start := &cont{items: []grammar.Expr{k.byName[rule].Expr}, next: after}
+	start := &cont{items: []ast.Expr{k.byName[rule].Expr}, next: after}
 	if after.next != nil || after.end != endRule || after.rule != rule {
 		start = bodyThen(k.byName[rule], after)
 	}
@@ -1747,8 +1747,8 @@ func (k *classifier) memberStarts(rule string, after *cont, cycle int) (paths []
 // bodyThen returns the path that evaluates the body of r and then after, which follows the call
 // of r. The path marks the end of the body (cont.end and cont.rule with a next), which the walkers
 // of paths pass, so that bodyEnds can tell in whose body a path is.
-func bodyThen(r *grammar.RuleDef, after *cont) *cont {
-	return &cont{items: []grammar.Expr{r.Expr}, next: after, end: endRule, rule: r.Name}
+func bodyThen(r *ast.RuleDef, after *cont) *cont {
+	return &cont{items: []ast.Expr{r.Expr}, next: after, end: endRule, rule: r.Name}
 }
 
 // checkGrowth checks condition 3: no scanning source is evaluated at the position where a
@@ -1762,7 +1762,7 @@ func (k *classifier) checkGrowth() {
 			continue
 		}
 		cycle := k.an.Cycle[r.Name]
-		var visit func(e grammar.Expr) bool // returns whether e can match without consuming input
+		var visit func(e ast.Expr) bool // returns whether e can match without consuming input
 		report := func(s *source) {
 			if seen[s] {
 				return
@@ -1771,10 +1771,10 @@ func (k *classifier) checkGrowth() {
 			k.cause(CauseRegrowth, ClassPoly, 2, s.rule, s.pos, "%s: %s is evaluated in each step of the growth of the left-recursive rule %s, at the position where it grows",
 				degreeText(ClassPoly, 2), s, r.Name)
 		}
-		visit = func(e grammar.Expr) bool {
+		visit = func(e ast.Expr) bool {
 			k.control.Poll()
 			switch e := e.(type) {
-			case *grammar.Ref:
+			case *ast.Ref:
 				if k.byName[e.Name] == nil {
 					return true
 				}
@@ -1787,20 +1787,20 @@ func (k *classifier) checkGrowth() {
 					}
 				}
 				return k.nullable(e)
-			case *grammar.Seq:
+			case *ast.Seq:
 				for _, it := range e.Items {
 					if !visit(it) {
 						return false
 					}
 				}
 				return true
-			case *grammar.Choice:
+			case *ast.Choice:
 				null := false
 				for _, alt := range e.Alts {
 					null = visit(alt) || null
 				}
 				return null
-			case *grammar.Repeat:
+			case *ast.Repeat:
 				if e.Max == 0 {
 					return true
 				}
@@ -1812,43 +1812,43 @@ func (k *classifier) checkGrowth() {
 				}
 				visit(e.Expr)
 				return k.nullable(e)
-			case *grammar.Optional:
+			case *ast.Optional:
 				visit(e.Expr)
 				return true
-			case *grammar.And:
+			case *ast.And:
 				visit(e.Expr)
 				return true
-			case *grammar.Not:
+			case *ast.Not:
 				visit(e.Expr)
 				return true
-			case *grammar.Group:
+			case *ast.Group:
 				return visit(e.Expr)
-			case *grammar.Capture:
+			case *ast.Capture:
 				return visit(e.Expr)
-			case *grammar.Discard:
+			case *ast.Discard:
 				return visit(e.Expr)
-			case *grammar.Atomic:
+			case *ast.Atomic:
 				return visit(e.Expr)
-			case *grammar.Stream:
+			case *ast.Stream:
 				return visit(e.Expr)
-			case *grammar.InlineAction:
+			case *ast.InlineAction:
 				return visit(e.Expr)
-			case *grammar.Recovery:
+			case *ast.Recovery:
 				if !reused(e.Skip) {
 					report(k.sourceAt(r.Name, e, CauseRecoverySkip, "the skip expression "+k.show(e.Skip)+" of #recover"))
 				}
 				visit(e.Expr)
 				return k.nullable(e)
-			case *grammar.Attributed:
+			case *ast.Attributed:
 				if skip := compile.RecoverSkip(e); skip != nil && !reused(skip) {
 					report(k.sourceAt(r.Name, e, CauseRecoverySkip, "the skip expression "+k.show(skip)+" of #recover"))
 				}
 				visit(e.Expr)
 				return k.nullable(e)
-			case *grammar.OperatorsRule:
+			case *ast.OperatorsRule:
 				report(k.sourceAt(r.Name, e, CauseRegrowth, "the operators that the Operators Rule applies"))
 				return k.nullable(e)
-			case *grammar.Predicate:
+			case *ast.Predicate:
 				if s := k.predicateSource[e]; s != nil {
 					report(s)
 				}
@@ -1861,7 +1861,7 @@ func (k *classifier) checkGrowth() {
 }
 
 // sourceAt returns the source recorded at e, so that one cause is reported once.
-func (k *classifier) sourceAt(rule string, e grammar.Expr, kind ComplexityCauseKind, what string) *source {
+func (k *classifier) sourceAt(rule string, e ast.Expr, kind ComplexityCauseKind, what string) *source {
 	key := sourceKey{rule, exprPos(e), what}
 	if s := k.sourceIndex[key]; s != nil {
 		return s
@@ -1873,7 +1873,7 @@ func (k *classifier) sourceAt(rule string, e grammar.Expr, kind ComplexityCauseK
 
 type sourceKey struct {
 	rule string
-	pos  grammar.Pos
+	pos  ast.Pos
 	what string
 }
 
@@ -2076,7 +2076,7 @@ func (k *classifier) pathsContainSource(paths []*cont) bool {
 				if it == nil {
 					continue
 				}
-				if r, ok := it.(*grammar.Ref); ok && r.Level == rhsLevel {
+				if r, ok := it.(*ast.Ref); ok && r.Level == rhsLevel {
 					return true
 				}
 				if k.containsSource(it) {

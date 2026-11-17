@@ -4,7 +4,7 @@ import (
 	"slices"
 	"testing"
 
-	"zeroparse.dev/zp/grammar"
+	"zeroparse.dev/zp/pkg/grammar/ast"
 )
 
 // Every comment on the line of a node's last token trails it when a line break
@@ -14,7 +14,7 @@ func TestCommentsOnTheLineOfATokenAllTrailIt(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	fields := g.File.Decls[0].(*grammar.TypeDef).Type.(*grammar.StructType).Fields
+	fields := g.File.Decls[0].(*ast.TypeDef).Type.(*ast.StructType).Fields
 	if want := []string{" x ", " y "}; !slices.Equal(fields[0].TrailingComments, want) {
 		t.Errorf("A trails %q, want %q", fields[0].TrailingComments, want)
 	}
@@ -33,11 +33,11 @@ func TestCommentsBeforeATokenOnTheirLineDoNotJoinTheRun(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	items := g.Rules()[0].Expr.(*grammar.Seq).Items
-	if got := items[0].(grammar.SourceNode).Source().TrailingComments; !slices.Equal(got, []string{" p "}) {
+	items := g.Rules()[0].Expr.(*ast.Seq).Items
+	if got := items[0].(ast.SourceNode).Source().TrailingComments; !slices.Equal(got, []string{" p "}) {
 		t.Errorf("a trails %q, want one comment", got)
 	}
-	if got := items[1].(grammar.SourceNode).Source().LeadingComments; got != " q " {
+	if got := items[1].(ast.SourceNode).Source().LeadingComments; got != " q " {
 		t.Errorf("b leads %q, want q", got)
 	}
 }
@@ -57,19 +57,19 @@ func TestTrailingCommentsRoundTripExactly(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			formatted := grammar.Format(g)
+			formatted := ast.Format(g)
 			if formatted != tc.want {
 				t.Fatalf("formatted:\n%s\nwant:\n%s", formatted, tc.want)
 			}
-			data, err := grammar.MarshalJSON(g)
+			data, err := ast.MarshalJSON(g)
 			if err != nil {
 				t.Fatal(err)
 			}
-			decoded, err := grammar.UnmarshalJSON(data)
+			decoded, err := ast.UnmarshalJSON(data)
 			if err != nil {
 				t.Fatal(err)
 			}
-			if owned := grammar.Format(decoded); owned != tc.fromJSON {
+			if owned := ast.Format(decoded); owned != tc.fromJSON {
 				t.Fatalf("formatted from JSON:\n%s\nwant:\n%s", owned, tc.fromJSON)
 			}
 			again, err := Parse(formatted)
@@ -89,11 +89,11 @@ func TestTrailingCommentsAreAListInJSON(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	data, err := grammar.MarshalJSON(g)
+	data, err := ast.MarshalJSON(g)
 	if err != nil {
 		t.Fatal(err)
 	}
-	decoded, err := grammar.UnmarshalJSON(data)
+	decoded, err := ast.UnmarshalJSON(data)
 	if err != nil {
 		t.Fatal(err)
 	}

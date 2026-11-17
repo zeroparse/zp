@@ -1,8 +1,8 @@
 package complexity
 
 import (
-	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/compile"
+	"zeroparse.dev/zp/pkg/grammar/ast"
 )
 
 // --- Re-entry into a growth ---
@@ -79,7 +79,7 @@ func (k *classifier) fixedMemoized(cycle int) bool {
 
 // memoOnly reports whether e evaluates its scanning sources only inside calls that are memoized
 // at the call and read no variable, and makes no left call of the cycle.
-func (k *classifier) memoOnly(e grammar.Expr, cycle int) bool {
+func (k *classifier) memoOnly(e ast.Expr, cycle int) bool {
 	ok := true
 	k.visitFixed(e, cycle, false, &ok)
 	return ok
@@ -89,14 +89,14 @@ func (k *classifier) memoOnly(e grammar.Expr, cycle int) bool {
 // call and reads no variable. With leaders set, a left call of a leader of the cycle ends what it
 // checks, and it returns whether e always evaluates one; without it, a left call of the cycle
 // clears ok.
-func (k *classifier) visitFixed(e grammar.Expr, cycle int, leaders bool, ok *bool) bool {
+func (k *classifier) visitFixed(e ast.Expr, cycle int, leaders bool, ok *bool) bool {
 	k.control.Poll()
 	if !*ok {
 		return false
 	}
-	memoized := func(r *grammar.Ref) bool { return k.memoAt(r) && len(k.vars[r.Name]) == 0 }
+	memoized := func(r *ast.Ref) bool { return k.memoAt(r) && len(k.vars[r.Name]) == 0 }
 	switch e := e.(type) {
-	case *grammar.Ref:
+	case *ast.Ref:
 		if k.byName[e.Name] == nil {
 			return false
 		}
@@ -117,59 +117,59 @@ func (k *classifier) visitFixed(e grammar.Expr, cycle int, leaders bool, ok *boo
 		return false
 	}
 	switch e := e.(type) {
-	case *grammar.Seq:
+	case *ast.Seq:
 		for _, it := range e.Items {
 			if k.visitFixed(it, cycle, leaders, ok) {
 				return true
 			}
 		}
 		return false
-	case *grammar.Choice:
+	case *ast.Choice:
 		all := len(e.Alts) > 0
 		for _, alt := range e.Alts {
 			all = k.visitFixed(alt, cycle, leaders, ok) && all
 		}
 		return all
-	case *grammar.Repeat:
+	case *ast.Repeat:
 		if e.Max == 0 {
 			return false
 		}
 		read := k.visitFixed(e.Expr, cycle, leaders, ok)
 		return read && e.Min > 0
-	case *grammar.Optional:
+	case *ast.Optional:
 		k.visitFixed(e.Expr, cycle, leaders, ok)
 		return false
-	case *grammar.And:
+	case *ast.And:
 		k.visitFixed(e.Expr, cycle, leaders, ok)
 		return false
-	case *grammar.Not:
+	case *ast.Not:
 		k.visitFixed(e.Expr, cycle, leaders, ok)
 		return false
-	case *grammar.Group:
+	case *ast.Group:
 		return k.visitFixed(e.Expr, cycle, leaders, ok)
-	case *grammar.Capture:
+	case *ast.Capture:
 		return k.visitFixed(e.Expr, cycle, leaders, ok)
-	case *grammar.Discard:
+	case *ast.Discard:
 		return k.visitFixed(e.Expr, cycle, leaders, ok)
-	case *grammar.Atomic:
+	case *ast.Atomic:
 		return k.visitFixed(e.Expr, cycle, leaders, ok)
-	case *grammar.Stream:
+	case *ast.Stream:
 		return k.visitFixed(e.Expr, cycle, leaders, ok)
-	case *grammar.InlineAction:
+	case *ast.InlineAction:
 		return k.visitFixed(e.Expr, cycle, leaders, ok)
-	case *grammar.Recovery:
+	case *ast.Recovery:
 		read := k.visitFixed(e.Expr, cycle, leaders, ok)
 		k.visitFixed(e.Skip, cycle, false, ok)
 		return read
-	case *grammar.Attributed:
+	case *ast.Attributed:
 		read := k.visitFixed(e.Expr, cycle, leaders, ok)
 		if skip := compile.RecoverSkip(e); skip != nil {
 			k.visitFixed(skip, cycle, false, ok)
 			return false
 		}
 		return read
-	case *grammar.Literal, *grammar.CharClass, *grammar.Any, *grammar.Predicate, *grammar.Cut,
-		*grammar.Top, *grammar.BeginInput, *grammar.BeginLine, *grammar.EndInput:
+	case *ast.Literal, *ast.CharClass, *ast.Any, *ast.Predicate, *ast.Cut,
+		*ast.Top, *ast.BeginInput, *ast.BeginLine, *ast.EndInput:
 		return false
 	}
 	if k.containsSource(e) {
@@ -195,10 +195,10 @@ func (k *classifier) restBounded(paths []*cont) bool {
 				if it == nil {
 					continue
 				}
-				if _, ok := it.(*grammar.EndInput); ok {
+				if _, ok := it.(*ast.EndInput); ok {
 					return true
 				}
-				if r, ok := it.(*grammar.Ref); ok && r.Level == rhsLevel || k.containsSource(it) {
+				if r, ok := it.(*ast.Ref); ok && r.Level == rhsLevel || k.containsSource(it) {
 					return false
 				}
 			}

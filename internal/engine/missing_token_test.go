@@ -10,10 +10,10 @@ import (
 
 	"zeroparse.dev/zp/core"
 	"zeroparse.dev/zp/core/impl"
-	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/compile"
 	"zeroparse.dev/zp/internal/engine/state"
 	"zeroparse.dev/zp/internal/value"
+	"zeroparse.dev/zp/pkg/grammar/ast"
 	"zeroparse.dev/zp/pkg/runtime/schema"
 )
 
@@ -305,15 +305,15 @@ rule main Root = x:(";" #missing) => Root{Token: $x}`
 	if len(missingNodes(t, n)) != 1 {
 		t.Fatal("declared join lost Missing identity")
 	}
-	data, err := grammar.MarshalJSON(prog.Grammar)
+	data, err := ast.MarshalJSON(prog.Grammar)
 	if err != nil {
 		t.Fatal(err)
 	}
-	g, err := grammar.UnmarshalJSON(data)
+	g, err := ast.UnmarshalJSON(data)
 	if err != nil {
 		t.Fatal(err)
 	}
-	formatted := grammar.Format(g)
+	formatted := ast.Format(g)
 	parsed, err := parseTest(formatted)
 	if err != nil {
 		t.Fatal(err)

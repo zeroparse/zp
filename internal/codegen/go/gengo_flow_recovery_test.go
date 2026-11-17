@@ -6,20 +6,20 @@ import (
 	"sync"
 	"testing"
 
-	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/codegen"
 	"zeroparse.dev/zp/internal/codegen/go"
 	"zeroparse.dev/zp/internal/compile"
 	"zeroparse.dev/zp/internal/testing/codegentest"
+	"zeroparse.dev/zp/pkg/grammar/ast"
 )
 
 // hasRecovery reports a recovery in e, read from the expression itself.
-func hasRecovery(e grammar.Expr) (found bool) {
-	compile.WalkExpr(e, func(e grammar.Expr) {
+func hasRecovery(e ast.Expr) (found bool) {
+	compile.WalkExpr(e, func(e ast.Expr) {
 		switch e := e.(type) {
-		case *grammar.Recovery:
+		case *ast.Recovery:
 			found = true
-		case *grammar.Attributed:
+		case *ast.Attributed:
 			for _, a := range e.Attrs {
 				found = found || a.Name == "recover"
 			}

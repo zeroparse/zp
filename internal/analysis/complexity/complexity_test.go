@@ -10,10 +10,10 @@ import (
 	"testing"
 	"unicode/utf8"
 
-	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/frontend/check"
 	"zeroparse.dev/zp/internal/frontend/parser"
 	"zeroparse.dev/zp/internal/testing/starttest"
+	"zeroparse.dev/zp/pkg/grammar/ast"
 )
 
 // complexityMemoSources are grammars with the shapes that decide memoization: left-recursion
@@ -811,8 +811,8 @@ func TestSplicedLen(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			c := k.byName["main"].Expr.(*grammar.Seq).Items[0].(*grammar.Capture)
-			seq := check.UngroupExpr(c.Expr).(*grammar.Seq)
+			c := k.byName["main"].Expr.(*ast.Seq).Items[0].(*ast.Capture)
+			seq := check.UngroupExpr(c.Expr).(*ast.Seq)
 			got, ok := k.splicedLen(seq, map[string]bool{})
 			if ok != tc.bounded || got != tc.want {
 				t.Errorf("splicedLen = %d, %v; want %d, %v", got, ok, tc.want, tc.bounded)

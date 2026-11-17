@@ -12,10 +12,10 @@ import (
 	"sync/atomic"
 	"testing"
 
-	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/codegen"
 	genopt "zeroparse.dev/zp/internal/ir/opt"
 	"zeroparse.dev/zp/internal/testing/codegentest"
+	"zeroparse.dev/zp/pkg/grammar/ast"
 )
 
 // optimizationCases are grammars on which the optimizations of lean typed Go act, with inputs at their
@@ -193,7 +193,7 @@ func off(names ...string) codegen.GenOptions {
 
 // generateShowingIR returns the code of a parser and the Core IR after the guards pass, which shows
 // what the passes up to it did even where the code does not.
-func generateShowingIR(t *testing.T, g *grammar.Grammar, o codegen.GenOptions) ([]byte, string) {
+func generateShowingIR(t *testing.T, g *ast.Grammar, o codegen.GenOptions) ([]byte, string) {
 	t.Helper()
 	var ir strings.Builder
 	o.PrintAfter, o.PrintTo = "guards", &ir

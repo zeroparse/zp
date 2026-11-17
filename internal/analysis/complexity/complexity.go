@@ -10,8 +10,8 @@ import (
 	"zeroparse.dev/zp/internal/compile"
 	"zeroparse.dev/zp/internal/frontend/check"
 
-	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/frontend/desugar"
+	"zeroparse.dev/zp/pkg/grammar/ast"
 )
 
 // ComplexityClass is the class of the cost of a parse from a start rule (see "Classification" in
@@ -95,7 +95,7 @@ type ComplexityCause struct {
 	Degree int
 	// Rule is the rule that holds Pos.
 	Rule string
-	Pos  grammar.Pos
+	Pos  ast.Pos
 	// Message names the class and the witness (or, for the class unknown, the reason).
 	Message string
 }
@@ -105,7 +105,7 @@ type ComplexityCause struct {
 // check).
 type GrowingBinding struct {
 	Rule string
-	Pos  grammar.Pos
+	Pos  ast.Pos
 	// Var is the variable, and Text the binding as written.
 	Var, Text string
 }
@@ -144,7 +144,7 @@ type Complexity struct {
 // name that is not defined or not a start rule, is the error that parsing gives. It analyzes the grammar that the compiler runs: inline actions are
 // lowered to hidden rules and attributes are normalized. A non-nil control polls for
 // cancellation.
-func ClassifyComplexityControlled(g *grammar.Grammar, start string, control *cancel.Control) (*Complexity, error) {
+func ClassifyComplexityControlled(g *ast.Grammar, start string, control *cancel.Control) (*Complexity, error) {
 	k, names, err := prepareClassifier(g, start, control)
 	if err != nil {
 		return nil, err
@@ -162,7 +162,7 @@ func ClassifyComplexityControlled(g *grammar.Grammar, start string, control *can
 
 // GrowingBindingsControlled returns the Growing member of the classification of g from start, without the
 // rest of the classification, which costs more. It has the preconditions of ClassifyComplexity.
-func GrowingBindingsControlled(g *grammar.Grammar, start string, control *cancel.Control) ([]GrowingBinding, error) {
+func GrowingBindingsControlled(g *ast.Grammar, start string, control *cancel.Control) ([]GrowingBinding, error) {
 	k, names, err := prepareClassifier(g, start, control)
 	if err != nil {
 		return nil, err
@@ -175,7 +175,7 @@ func GrowingBindingsControlled(g *grammar.Grammar, start string, control *cancel
 // prepareTypedClassifier is prepareClassifier with the value types of the terms of g, which tell
 // a node from a string value. It compiles g, without building matchers, for them, and returns nil
 // if g does not compile.
-func prepareTypedClassifier(g *grammar.Grammar, start string, control *cancel.Control) (*classifier, desugar.InlineNames) {
+func prepareTypedClassifier(g *ast.Grammar, start string, control *cancel.Control) (*classifier, desugar.InlineNames) {
 	control.Check()
 	names := desugar.InlineNames{}
 	prog, err := compile.Check(g, compile.Options{}, nil, names, control)
@@ -197,7 +197,7 @@ func prepareTypedClassifier(g *grammar.Grammar, start string, control *cancel.Co
 
 // prepareClassifier lowers and normalizes g as the compiler does and returns a classifier of it
 // from start, with the names of the hidden rules of its inline actions.
-func prepareClassifier(g *grammar.Grammar, start string, control *cancel.Control) (*classifier, desugar.InlineNames, error) {
+func prepareClassifier(g *ast.Grammar, start string, control *cancel.Control) (*classifier, desugar.InlineNames, error) {
 	return prepareClassifierWith(g, start, control, newViewClassifier)
 }
 
@@ -206,11 +206,11 @@ func prepareClassifier(g *grammar.Grammar, start string, control *cancel.Control
 // that check how it compares the alternatives of a choice read the rules as written, since the
 // normal view left-factors alternatives that begin alike (N12) and leaves no shared prefix to
 // compare.
-func prepareBaseClassifier(g *grammar.Grammar, start string, control *cancel.Control) (*classifier, desugar.InlineNames, error) {
+func prepareBaseClassifier(g *ast.Grammar, start string, control *cancel.Control) (*classifier, desugar.InlineNames, error) {
 	return prepareClassifierWith(g, start, control, newClassifier)
 }
 
-func prepareClassifierWith(g *grammar.Grammar, start string, control *cancel.Control, build func(*grammar.Grammar, []*grammar.RuleDef, *ruleFacts, string, *cancel.Control) *classifier) (*classifier, desugar.InlineNames, error) {
+func prepareClassifierWith(g *ast.Grammar, start string, control *cancel.Control, build func(*ast.Grammar, []*ast.RuleDef, *ruleFacts, string, *cancel.Control) *classifier) (*classifier, desugar.InlineNames, error) {
 	control.Check()
 	names := desugar.InlineNames{}
 	if desugar.HasInlineAction(g, control) {
@@ -233,7 +233,7 @@ func prepareClassifierWith(g *grammar.Grammar, start string, control *cancel.Con
 		return nil, nil, errs
 	}
 	defined := func(name string) bool {
-		return slices.ContainsFunc(rules, func(rd *grammar.RuleDef) bool { return rd.Name == name })
+		return slices.ContainsFunc(rules, func(rd *ast.RuleDef) bool { return rd.Name == name })
 	}
 	if err := check.CheckStartName(starts, def, defined, start); err != nil {
 		return nil, nil, err
@@ -254,7 +254,7 @@ func prepareClassifierWith(g *grammar.Grammar, start string, control *cancel.Con
 // start, with the rule facts rf of rules. What the runtime decides by the grammar as it is written
 // stays decided by rules: the left-recursion cycles and their leaders, the memoized rules, the
 // variables that key the memo, and the run sites.
-func newViewClassifier(g *grammar.Grammar, rules []*grammar.RuleDef, rf *ruleFacts, start string, control *cancel.Control) *classifier {
+func newViewClassifier(g *ast.Grammar, rules []*ast.RuleDef, rf *ruleFacts, start string, control *cancel.Control) *classifier {
 	view, text, err := Build(rf.source, Options{}, control).GrammarText(rules)
 	if err != nil {
 		// Every node the view builds has a grammar spelling; an error is a defect of the view.
@@ -295,9 +295,9 @@ const rhsLevel = "\x00right operand"
 
 type classifier struct {
 	control *cancel.Control
-	g       *grammar.Grammar
-	rules   []*grammar.RuleDef
-	byName  map[string]*grammar.RuleDef
+	g       *ast.Grammar
+	rules   []*ast.RuleDef
+	byName  map[string]*ast.RuleDef
 	start   string
 	an      *compile.Analysis
 	facts   *ruleFacts         // the rule facts of the grammar, of which an is part
@@ -317,7 +317,7 @@ type classifier struct {
 	// members are the rules of left-recursion cycles, other than leaders, that are memoized at a
 	// call outside the growths of their cycle at its position; outside are those calls.
 	members map[string]bool
-	outside map[*grammar.Ref]bool
+	outside map[*ast.Ref]bool
 	// starters are the rules of cycles, other than leaders, whose left calls of leaders can start
 	// growths (startsGrowth); computed after the walk.
 	starters map[string]bool
@@ -347,10 +347,10 @@ type classifier struct {
 	growing         map[int]map[string]charset // FOLLOW without the seed reads of a cycle, by cycle
 	binds           []*binding
 	sourceIndex     map[sourceKey]*source
-	predicateSource map[*grammar.Predicate]*source
+	predicateSource map[*ast.Predicate]*source
 	repeatedRules   map[string]string
-	runMemo         map[*grammar.Repeat]bool
-	runRestart      map[*grammar.Repeat]bool
+	runMemo         map[*ast.Repeat]bool
+	runRestart      map[*ast.Repeat]bool
 	runBad          map[string]bool
 	includesMemo    map[sizeKey]bool
 	varBinding      map[string][]varBind // the bindings of each variable (see varBinds)
@@ -358,21 +358,21 @@ type classifier struct {
 	readingVars     map[string]bool      // the variables whose read sizeOf is following
 	feedsMemo       map[feedKey]bool
 	heldMemo        map[sizeKey][]sizeKey
-	sizes           sizeMemo              // the size degrees of the values of rules (complexity_sizes.go)
-	srcExprs        map[grammar.Expr]bool // the expressions that are scanning sources
-	failRule        map[string]bool       // rules that can fail after a scanning source examined input
-	srcMemo         map[grammar.Expr]bool
-	scanOnlyRules   map[string]bool                      // the rules for which scanOnly holds, once computed
-	again           map[*grammar.Repeat]*grammar.Repeat  // the rest of each repetition (againOf)
-	captures        map[string]map[string][]grammar.Expr // captured expressions by rule and name
+	sizes           sizeMemo          // the size degrees of the values of rules (complexity_sizes.go)
+	srcExprs        map[ast.Expr]bool // the expressions that are scanning sources
+	failRule        map[string]bool   // rules that can fail after a scanning source examined input
+	srcMemo         map[ast.Expr]bool
+	scanOnlyRules   map[string]bool                  // the rules for which scanOnly holds, once computed
+	again           map[*ast.Repeat]*ast.Repeat      // the rest of each repetition (againOf)
+	captures        map[string]map[string][]ast.Expr // captured expressions by rule and name
 
-	scanRun     map[*grammar.Repeat]int  // the longest run before each repetition (computeBoundedScans)
-	scanCounted map[*grammar.Repeat]bool // the repetitions with a constant number of evaluations at a position
-	regionScan  map[*grammar.Repeat]bool // the bodies of trivia rules with the region bound (regionScans)
-	stepRules   map[string]bool          // the rules called in a repetition that each step of a growth evaluates
-	sureMemo    map[grammar.Expr]charset // what sureOf has found
-	sureRule    map[string]charset       // what sure has found for the body of each rule
-	rigidRule   map[string]bool          // what rigid has found for the body of each rule
+	scanRun     map[*ast.Repeat]int  // the longest run before each repetition (computeBoundedScans)
+	scanCounted map[*ast.Repeat]bool // the repetitions with a constant number of evaluations at a position
+	regionScan  map[*ast.Repeat]bool // the bodies of trivia rules with the region bound (regionScans)
+	stepRules   map[string]bool      // the rules called in a repetition that each step of a growth evaluates
+	sureMemo    map[ast.Expr]charset // what sureOf has found
+	sureRule    map[string]charset   // what sure has found for the body of each rule
+	rigidRule   map[string]bool      // what rigid has found for the body of each rule
 
 	trivia map[string]bool // the trivia rules among the rules asked about (isTrivia)
 	// exclOverBudget counts the comparisons of the exclusion analysis that exceeded exclBudget
@@ -384,29 +384,29 @@ type classifier struct {
 	// base are the rules of the grammar when rules is a view of them, or nil. baseRuns is the
 	// classifier of base that decides the run sites (runSite), and baseRepeats are the repetitions
 	// of base.
-	base        []*grammar.RuleDef
+	base        []*ast.RuleDef
 	baseRuns    *classifier
-	baseRepeats map[*grammar.Repeat]bool
+	baseRepeats map[*ast.Repeat]bool
 	// viewText gives the text of the grammar that an expression of the view stands for.
-	viewText map[grammar.Expr]string
+	viewText map[ast.Expr]string
 }
 
-func newClassifier(g *grammar.Grammar, rules []*grammar.RuleDef, rf *ruleFacts, start string, control *cancel.Control) *classifier {
+func newClassifier(g *ast.Grammar, rules []*ast.RuleDef, rf *ruleFacts, start string, control *cancel.Control) *classifier {
 	return newClassifierOf(g, rules, rules, rf, start, control)
 }
 
 // newClassifierOf returns a classifier of the bodies of rules, which are those of base or a view
 // of them. The rule facts rf of base stand for the grammar: its analysis, its variables, its
 // memoization and its nullable rules.
-func newClassifierOf(g *grammar.Grammar, rules, base []*grammar.RuleDef, rf *ruleFacts, start string, control *cancel.Control) *classifier {
-	k := &classifier{control: control, g: g, rules: rules, start: start, byName: map[string]*grammar.RuleDef{},
+func newClassifierOf(g *ast.Grammar, rules, base []*ast.RuleDef, rf *ruleFacts, start string, control *cancel.Control) *classifier {
+	k := &classifier{control: control, g: g, rules: rules, start: start, byName: map[string]*ast.RuleDef{},
 		calls: map[string][]string{}, scc: map[string]int{}, recursive: map[string]bool{}, memo: map[string]bool{},
 		varType: map[string]string{}, nullRule: rf.nullable, firstRule: map[string]charset{},
 		boundedRule: map[string]bool{}, reachFrom: map[string]map[string]bool{}, local: map[string]*source{}, walked: map[string][]*source{},
 		ruleSrc: map[string]*source{}, follow: map[string]charset{}, growing: map[int]map[string]charset{},
-		captures: map[string]map[string][]grammar.Expr{}, sourceIndex: map[sourceKey]*source{},
-		predicateSource: map[*grammar.Predicate]*source{}, includesMemo: map[sizeKey]bool{}, feedsMemo: map[feedKey]bool{}, heldMemo: map[sizeKey][]sizeKey{},
-		srcExprs: map[grammar.Expr]bool{}, srcMemo: map[grammar.Expr]bool{}, again: map[*grammar.Repeat]*grammar.Repeat{}}
+		captures: map[string]map[string][]ast.Expr{}, sourceIndex: map[sourceKey]*source{},
+		predicateSource: map[*ast.Predicate]*source{}, includesMemo: map[sizeKey]bool{}, feedsMemo: map[feedKey]bool{}, heldMemo: map[sizeKey][]sizeKey{},
+		srcExprs: map[ast.Expr]bool{}, srcMemo: map[ast.Expr]bool{}, again: map[*ast.Repeat]*ast.Repeat{}}
 	for _, r := range rules {
 		k.byName[r.Name] = r
 	}
@@ -416,7 +416,7 @@ func newClassifierOf(g *grammar.Grammar, rules, base []*grammar.RuleDef, rf *rul
 	if len(base) != len(rules) || !slices.Equal(base, rules) {
 		k.base = base
 	}
-	k.outside = map[*grammar.Ref]bool{}
+	k.outside = map[*ast.Ref]bool{}
 	for _, r := range rules {
 		k.calls[r.Name] = compile.AllCallsControlled(r.Expr, nil, control)
 	}
@@ -434,7 +434,7 @@ func newClassifierOf(g *grammar.Grammar, rules, base []*grammar.RuleDef, rf *rul
 	}
 	if triviaMemo {
 		for _, r := range rules {
-			if k.isTrivia(&grammar.Ref{Name: r.Name}) {
+			if k.isTrivia(&ast.Ref{Name: r.Name}) {
 				k.memo[r.Name] = true
 			}
 		}
@@ -442,16 +442,16 @@ func newClassifierOf(g *grammar.Grammar, rules, base []*grammar.RuleDef, rf *rul
 	return k
 }
 
-func varTypeName(v *grammar.VarDef) string {
-	if t, ok := v.Type.(*grammar.TypeRef); ok {
+func varTypeName(v *ast.VarDef) string {
+	if t, ok := v.Type.(*ast.TypeRef); ok {
 		return t.Name
 	}
 	switch v.Value.(type) {
-	case *grammar.StringLit:
+	case *ast.StringLit:
 		return "string"
-	case *grammar.IntLit:
+	case *ast.IntLit:
 		return "int"
-	case *grammar.BoolLit:
+	case *ast.BoolLit:
 		return "bool"
 	}
 	return ""
@@ -480,13 +480,13 @@ func (k *classifier) reachable(from string) map[string]bool {
 
 // shareable reports whether a call of the rule is answered alike in a unit and its continuation:
 // the rule reads no variable and is memoized or calls no rule.
-func (k *classifier) shareable(r *grammar.Ref) bool {
+func (k *classifier) shareable(r *ast.Ref) bool {
 	return r.Level != rhsLevel && len(k.vars[r.Name]) == 0 && (k.memoAt(r) || len(k.calls[r.Name]) == 0)
 }
 
 // memoAt reports whether the memo answers the call r: the rule is memoized, or it is a member of a
 // cycle that is memoized and the call is outside the growths of its cycle at its position.
-func (k *classifier) memoAt(r *grammar.Ref) bool {
+func (k *classifier) memoAt(r *ast.Ref) bool {
 	return k.memo[r.Name] || k.members[r.Name] && k.outside[r]
 }
 
@@ -574,37 +574,37 @@ func (k *classifier) result() *Complexity {
 
 // --- Positions and descriptions ---
 
-func exprPos(e grammar.Expr) grammar.Pos {
-	if s, ok := e.(interface{ Source() *grammar.SourceInfo }); ok && s.Source() != nil {
+func exprPos(e ast.Expr) ast.Pos {
+	if s, ok := e.(interface{ Source() *ast.SourceInfo }); ok && s.Source() != nil {
 		return s.Source().Diagnostic()
 	}
-	return grammar.Pos{}
+	return ast.Pos{}
 }
 
-func termPosOf(t grammar.Term) grammar.Pos {
-	if s, ok := t.(interface{ Source() *grammar.SourceInfo }); ok && s.Source() != nil {
+func termPosOf(t ast.Term) ast.Pos {
+	if s, ok := t.(interface{ Source() *ast.SourceInfo }); ok && s.Source() != nil {
 		return s.Source().Diagnostic()
 	}
-	return grammar.Pos{}
+	return ast.Pos{}
 }
 
 // at describes a position in a rule, as "3:12 in rule A", or "rule A" without a position.
-func at(rule string, p grammar.Pos) string {
+func at(rule string, p ast.Pos) string {
 	if p.IsValid() {
 		return fmt.Sprintf("%d:%d in rule %s", p.Line, p.Col, rule)
 	}
 	return "rule " + rule
 }
 
-func (k *classifier) show(e grammar.Expr) string {
+func (k *classifier) show(e ast.Expr) string {
 	if t, ok := k.viewText[e]; ok {
 		return abbreviate(t)
 	}
-	return abbreviate(grammar.FormatExpr(e))
+	return abbreviate(ast.FormatExpr(e))
 }
 
-func (k *classifier) showTerm(t grammar.Term) string {
-	return abbreviate(grammar.FormatTerm(t))
+func (k *classifier) showTerm(t ast.Term) string {
+	return abbreviate(ast.FormatTerm(t))
 }
 
 // abbreviate collapses the white space of the source text s and shortens it to at most 40 bytes,
@@ -621,15 +621,15 @@ func abbreviate(s string) string {
 	return s[:n] + "..."
 }
 
-func (k *classifier) cause(kind ComplexityCauseKind, class ComplexityClass, degree int, rule string, pos grammar.Pos, format string, args ...any) {
+func (k *classifier) cause(kind ComplexityCauseKind, class ComplexityClass, degree int, rule string, pos ast.Pos, format string, args ...any) {
 	k.causes = append(k.causes, ComplexityCause{Kind: kind, Class: class, Degree: degree, Rule: rule, Pos: pos, Message: fmt.Sprintf(format, args...)})
 }
 
-func (k *classifier) reason(rule string, pos grammar.Pos, format string, args ...any) {
+func (k *classifier) reason(rule string, pos ast.Pos, format string, args ...any) {
 	k.reasons = append(k.reasons, ComplexityCause{Class: ClassUnknown, Rule: rule, Pos: pos, Message: fmt.Sprintf(format, args...)})
 }
 
-func (k *classifier) envCause(rule string, pos grammar.Pos, format string, args ...any) {
+func (k *classifier) envCause(rule string, pos ast.Pos, format string, args ...any) {
 	k.env = append(k.env, ComplexityCause{Kind: CauseDivergingBinding, Class: ClassLinearEnv, Rule: rule, Pos: pos, Message: fmt.Sprintf(format, args...)})
 }
 

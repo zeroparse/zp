@@ -4,7 +4,7 @@ import (
 	"slices"
 	"testing"
 
-	"zeroparse.dev/zp/grammar"
+	"zeroparse.dev/zp/pkg/grammar/ast"
 )
 
 // TestSkipSites checks which repetitions are skip-run sites: each condition of skip_sites.go
@@ -39,14 +39,14 @@ func TestSkipSites(t *testing.T) {
 			var got []string
 			n := 0
 			for _, r := range prog.RuleList {
-				WalkExpr(r.Def.Expr, func(x grammar.Expr) {
-					if rep, ok := x.(*grammar.Repeat); ok {
+				WalkExpr(r.Def.Expr, func(x ast.Expr) {
+					if rep, ok := x.(*ast.Repeat); ok {
 						if site := prog.SkipSite(rep); site != 0 {
 							n++
 							if site != n {
-								t.Errorf("site %s numbered %d, want %d", grammar.FormatExpr(rep), site, n)
+								t.Errorf("site %s numbered %d, want %d", ast.FormatExpr(rep), site, n)
 							}
-							got = append(got, grammar.FormatExpr(rep))
+							got = append(got, ast.FormatExpr(rep))
 						}
 					}
 				})

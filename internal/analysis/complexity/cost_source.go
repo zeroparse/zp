@@ -3,13 +3,13 @@ package complexity
 import (
 	"slices"
 
-	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/cancel"
 	"zeroparse.dev/zp/internal/compile"
 	"zeroparse.dev/zp/internal/frontend/desugar"
 	"zeroparse.dev/zp/internal/frontend/elaborate"
 	"zeroparse.dev/zp/internal/ir/core"
 	"zeroparse.dev/zp/internal/ir/core/facts"
+	"zeroparse.dev/zp/pkg/grammar/ast"
 )
 
 // CostSource is what the cost view of a grammar is built from: the rules that the complexity
@@ -17,16 +17,16 @@ import (
 // from, and the facts of the module. Rule i of Rules is rule i of Module.
 type CostSource struct {
 	// Grammar is the grammar with inline actions lowered and attributes normalized.
-	Grammar *grammar.Grammar
+	Grammar *ast.Grammar
 	// Rules are the unique rules of Grammar.
-	Rules  []*grammar.RuleDef
+	Rules  []*ast.RuleDef
 	Module *core.Module
-	Origin map[core.Node]grammar.Expr
+	Origin map[core.Node]ast.Expr
 	Facts  *facts.Facts
 }
 
 // NewCostSource returns the cost source of g, which must compile.
-func NewCostSource(g *grammar.Grammar, control *cancel.Control) (*CostSource, error) {
+func NewCostSource(g *ast.Grammar, control *cancel.Control) (*CostSource, error) {
 	g, rules, err := classifierRules(g, control)
 	if err != nil {
 		return nil, err
@@ -40,7 +40,7 @@ func NewCostSource(g *grammar.Grammar, control *cancel.Control) (*CostSource, er
 
 // classifierRules returns g with inline actions lowered and attributes normalized, and its unique
 // rules: the rules that the complexity classifier and the normal view read.
-func classifierRules(g *grammar.Grammar, control *cancel.Control) (*grammar.Grammar, []*grammar.RuleDef, error) {
+func classifierRules(g *ast.Grammar, control *cancel.Control) (*ast.Grammar, []*ast.RuleDef, error) {
 	control.Check()
 	if desugar.HasInlineAction(g, control) {
 		lowered, errs := desugar.LowerInlineActionsControlled(g, desugar.InlineNames{}, control)
@@ -66,7 +66,7 @@ func classifierRules(g *grammar.Grammar, control *cancel.Control) (*grammar.Gram
 // allows: it then keeps only what a parse matches and where it ends (≡E), which is what an
 // analysis of matching, such as the exclusion of alternatives, needs. Without matching it is the
 // view that the complexity classifier reads. g must compile.
-func NormalView(g *grammar.Grammar, matching bool, control *cancel.Control) (*grammar.Grammar, error) {
+func NormalView(g *ast.Grammar, matching bool, control *cancel.Control) (*ast.Grammar, error) {
 	cs, err := NewCostSource(g, control)
 	if err != nil {
 		return nil, err
@@ -77,14 +77,14 @@ func NormalView(g *grammar.Grammar, matching bool, control *cancel.Control) (*gr
 	if err != nil {
 		return nil, err
 	}
-	byName := map[string]*grammar.RuleDef{}
+	byName := map[string]*ast.RuleDef{}
 	for _, r := range rules {
 		byName[r.Name] = r
 	}
 	out := *cs.Grammar
 	out.File.Decls = slices.Clone(cs.Grammar.File.Decls)
 	for i, d := range out.File.Decls {
-		if r, ok := d.(*grammar.RuleDef); ok {
+		if r, ok := d.(*ast.RuleDef); ok {
 			out.File.Decls[i] = byName[r.Name]
 		}
 	}
@@ -94,14 +94,14 @@ func NormalView(g *grammar.Grammar, matching bool, control *cancel.Control) (*gr
 // costSource returns the untyped Core IR module of rules, the unique rules of g, whose start rules
 // are those marked @start, with the expression each node is built from and the facts of the
 // module: what the cost view is built from. Rule i of rules has ID i in the module.
-func costSource(g *grammar.Grammar, rules []*grammar.RuleDef, control *cancel.Control) (*Source, error) {
+func costSource(g *ast.Grammar, rules []*ast.RuleDef, control *cancel.Control) (*Source, error) {
 	var starts []string
 	for _, rd := range rules {
 		if desugar.StartMarked(rd) {
 			starts = append(starts, rd.Name)
 		}
 	}
-	origin := map[core.Node]grammar.Expr{}
+	origin := map[core.Node]ast.Expr{}
 	m, err := elaborate.Structural(compile.StructuralInput(g, rules, starts), origin)
 	if err != nil {
 		return nil, err

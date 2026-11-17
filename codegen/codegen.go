@@ -13,12 +13,12 @@ import (
 	"io"
 	"io/fs"
 
-	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/codegen"
 	"zeroparse.dev/zp/internal/codegen/go"
 	"zeroparse.dev/zp/internal/codegen/ts"
 	"zeroparse.dev/zp/internal/compile"
 	"zeroparse.dev/zp/internal/frontend/desugar"
+	"zeroparse.dev/zp/pkg/grammar/ast"
 )
 
 // Generator generates the source code of parsers in one language.
@@ -26,7 +26,7 @@ type Generator interface {
 	// Generate generates the files of a parser for g whose entry points parse from the rule
 	// start, which must be a start rule (a rule marked @start); an empty start selects the
 	// default start rule.
-	Generate(g *grammar.Grammar, start string) ([]File, error)
+	Generate(g *ast.Grammar, start string) ([]File, error)
 	// GenerateLib generates only the library, which does not depend on a grammar.
 	GenerateLib() ([]File, error)
 }
@@ -179,7 +179,7 @@ type Go struct {
 // code generated from the grammar, api.go, which re-exports the library names the parser's users
 // need, with Types types/types.go, the package Module/types that declares the Go types of the
 // grammar, and, with LibEmbed, the files of a copy of the library in internal/libgo.
-func (c Go) Generate(g *grammar.Grammar, start string) ([]File, error) {
+func (c Go) Generate(g *ast.Grammar, start string) ([]File, error) {
 	lib, err := c.Lib.internal()
 	if err != nil {
 		return nil, err
@@ -294,7 +294,7 @@ type TypeScript struct {
 //   - types.ts with Types, the declarations of the grammar's types, which parser.ts imports.
 //
 // Generated TypeScript parsers have no stream parsing.
-func (c TypeScript) Generate(g *grammar.Grammar, start string) ([]File, error) {
+func (c TypeScript) Generate(g *ast.Grammar, start string) ([]File, error) {
 	lib, err := c.Lib.internal()
 	if err != nil {
 		return nil, err
@@ -331,7 +331,7 @@ func (c TypeScript) GenerateLib() ([]File, error) {
 // compileForGenerator is the codegen.Compiler that the generators compile grammars with: it checks g
 // to its static program, which is all a generator reads, and checks the recognizer of the program
 // (as the engine's Program.Recognizer makes it) on first use. No backend of the engine is built.
-func compileForGenerator(g *grammar.Grammar, opts compile.Options) (*compile.Program, func() (*compile.Program, error), error) {
+func compileForGenerator(g *ast.Grammar, opts compile.Options) (*compile.Program, func() (*compile.Program, error), error) {
 	prog, err := check(g, opts, nil)
 	if err != nil {
 		return nil, nil, err
@@ -350,7 +350,7 @@ func compileForGenerator(g *grammar.Grammar, opts compile.Options) (*compile.Pro
 
 // check checks g with opts and, if not nil, the rule flags flags, naming the hidden rules of
 // inline actions in errors as written.
-func check(g *grammar.Grammar, opts compile.Options, flags []compile.RuleFlags) (*compile.Program, error) {
+func check(g *ast.Grammar, opts compile.Options, flags []compile.RuleFlags) (*compile.Program, error) {
 	names := desugar.InlineNames{}
 	prog, err := compile.Check(g, opts, flags, names, nil)
 	if err != nil {

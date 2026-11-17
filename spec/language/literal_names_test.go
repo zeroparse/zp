@@ -5,7 +5,7 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/engine"
-	"zeroparse.dev/zp/grammar"
+	"zeroparse.dev/zp/pkg/grammar/ast"
 )
 
 // literalNameSources declare a name that would hide the literal true, false or nil.
@@ -33,7 +33,7 @@ func TestLiteralNamesAreReserved(t *testing.T) {
 			if _, err := p.Parse(tc.src); err != nil {
 				t.Fatalf("canonical frontend rejects the source the hand-written one accepts: %v", err)
 			}
-			if err := grammar.Validate(g); err == nil || !strings.Contains(err.Error(), tc.want) {
+			if err := ast.Validate(g); err == nil || !strings.Contains(err.Error(), tc.want) {
 				t.Fatalf("Validate: got %v; want %q", err, tc.want)
 			}
 			if _, err := engine.CompileSource(tc.src, "main"); err == nil || !strings.Contains(err.Error(), tc.want) {
@@ -54,9 +54,9 @@ func TestLiteralNamesAreReserved(t *testing.T) {
 		}
 	}
 	// A grammar built by hand is validated like a parsed one.
-	lambda := &grammar.Lambda{Params: []string{"a", "true"}, Body: &grammar.IntLit{Value: 1}}
-	g := &grammar.Grammar{File: grammar.File{Decls: []grammar.Decl{&grammar.RuleDef{Name: "main", Expr: &grammar.Literal{Value: "a"}, Action: lambda}}}}
-	if err := grammar.Validate(g); err == nil || !strings.Contains(err.Error(), "parameter name true is reserved; it is a literal") {
+	lambda := &ast.Lambda{Params: []string{"a", "true"}, Body: &ast.IntLit{Value: 1}}
+	g := &ast.Grammar{File: ast.File{Decls: []ast.Decl{&ast.RuleDef{Name: "main", Expr: &ast.Literal{Value: "a"}, Action: lambda}}}}
+	if err := ast.Validate(g); err == nil || !strings.Contains(err.Error(), "parameter name true is reserved; it is a literal") {
 		t.Errorf("lambda built by hand: %v", err)
 	}
 	// Names that merely contain a literal are ordinary.
@@ -68,7 +68,7 @@ func TestLiteralNamesAreReserved(t *testing.T) {
 		if err != nil {
 			t.Fatalf("%s: %v", src, err)
 		}
-		if err := grammar.Validate(g); err != nil {
+		if err := ast.Validate(g); err != nil {
 			t.Errorf("%s: %v", src, err)
 		}
 	}

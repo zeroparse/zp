@@ -3,11 +3,11 @@ package compile
 import (
 	"testing"
 
-	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/frontend/desugar"
 	"zeroparse.dev/zp/internal/frontend/parser"
 	"zeroparse.dev/zp/internal/testing/factstest"
 	"zeroparse.dev/zp/internal/testing/starttest"
+	"zeroparse.dev/zp/pkg/grammar/ast"
 )
 
 // TestFactsGolden pins the grammar facts that compilation computes for the repository's grammars
@@ -35,7 +35,7 @@ func TestFactsGolden(t *testing.T) {
 // programFacts returns the facts of the program's rules: the flags compilation set and the
 // analysis it computed them from.
 func programFacts(prog *Program) []factstest.Rule {
-	defs := make([]*grammar.RuleDef, len(prog.RuleList))
+	defs := make([]*ast.RuleDef, len(prog.RuleList))
 	for i, r := range prog.RuleList {
 		defs[i] = r.Def
 	}
@@ -54,8 +54,8 @@ func programFacts(prog *Program) []factstest.Rule {
 			ins := prog.InsertionFlags[r.ID]
 			f.InsCycle, f.InsLeader, f.InsMember = ins.Cycle, ins.Leader, ins.Member
 		}
-		WalkExpr(r.Def.Expr, func(e grammar.Expr) {
-			c, ok := e.(*grammar.Choice)
+		WalkExpr(r.Def.Expr, func(e ast.Expr) {
+			c, ok := e.(*ast.Choice)
 			if !ok {
 				return
 			}
@@ -70,11 +70,11 @@ func programFacts(prog *Program) []factstest.Rule {
 	return out
 }
 
-func terminalFact(e grammar.Expr, depth int) factstest.Terminal {
+func terminalFact(e ast.Expr, depth int) factstest.Terminal {
 	switch e := e.(type) {
-	case *grammar.Literal:
+	case *ast.Literal:
 		return factstest.Terminal{Exp: LiteralDesc(e), Depth: depth}
-	case *grammar.CharClass:
+	case *ast.CharClass:
 		return factstest.Terminal{Exp: CharClassString(e), Depth: depth}
 	}
 	return factstest.Terminal{}

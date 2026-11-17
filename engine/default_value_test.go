@@ -10,14 +10,14 @@ import (
 
 	"zeroparse.dev/zp/core"
 	"zeroparse.dev/zp/engine"
-	"zeroparse.dev/zp/grammar"
+	"zeroparse.dev/zp/pkg/grammar/ast"
 )
 
 // stripActions returns g written without value actions and rule types, which it removes from the
 // JSON form of the grammar: a reference independent of the compiler's own pass.
-func stripActions(t *testing.T, g *grammar.Grammar) *grammar.Grammar {
+func stripActions(t *testing.T, g *ast.Grammar) *ast.Grammar {
 	t.Helper()
-	data, err := grammar.MarshalJSON(g)
+	data, err := ast.MarshalJSON(g)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -52,7 +52,7 @@ func stripActions(t *testing.T, g *grammar.Grammar) *grammar.Grammar {
 	if err != nil {
 		t.Fatal(err)
 	}
-	out, err := grammar.UnmarshalJSON(data)
+	out, err := ast.UnmarshalJSON(data)
 	if err != nil {
 		t.Fatal(err)
 	}

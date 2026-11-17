@@ -5,7 +5,7 @@ import (
 	"slices"
 	"zeroparse.dev/zp/internal/frontend/astfacts"
 
-	"zeroparse.dev/zp/grammar"
+	"zeroparse.dev/zp/pkg/grammar/ast"
 )
 
 // This file is the exclusion analysis over symbols, which the classifier uses as a cost argument:
@@ -80,7 +80,7 @@ const (
 // comes from.
 type sym struct {
 	kind symKind
-	e    grammar.Expr
+	e    ast.Expr
 	item int
 }
 
@@ -120,7 +120,7 @@ type excl struct {
 // body the path goes on, empty after the end of the parse. It is a symbol that consumes nothing
 // and tells nothing (symSkip), and does not count toward exclLen.
 type exitMark struct {
-	grammar.Bottom
+	ast.Bottom
 	rule, into string
 }
 
@@ -182,8 +182,8 @@ func (x excl) spend(n int) bool {
 // parts. After a symUp mark, a call that the memo does not answer and that scans is not cheap:
 // the nested evaluations repeat it once each, which no constant bounds, unless the rule's scanning
 // sources are all scan sites (scanOnly), whose records answer the repeated walks.
-func (x excl) cheap(e grammar.Expr) bool {
-	r, ok := e.(*grammar.Ref)
+func (x excl) cheap(e ast.Expr) bool {
+	r, ok := e.(*ast.Ref)
 	if !ok {
 		return !x.k.containsSource(e)
 	}
@@ -229,13 +229,13 @@ func (x excl) cheap(e grammar.Expr) bool {
 // reaches no scanning source (case 3). cheap is weaker: it bounds the second evaluation of a
 // symbol by what the unit paid for the first one at the same position, which a symbol that only the
 // continuation evaluates has no first evaluation to charge to.
-func (x excl) freshAll(e grammar.Expr) bool {
+func (x excl) freshAll(e ast.Expr) bool {
 	ok := true
-	astfacts.WalkExpr(e, func(y grammar.Expr) {
+	astfacts.WalkExpr(e, func(y ast.Expr) {
 		if x.k.srcExprs[y] {
 			ok = false
 		}
-		if r, isRef := y.(*grammar.Ref); isRef && !x.k.memoAt(r) && x.k.containsSource(r) {
+		if r, isRef := y.(*ast.Ref); isRef && !x.k.memoAt(r) && x.k.containsSource(r) {
 			ok = false
 		}
 	})
@@ -245,13 +245,13 @@ func (x excl) freshAll(e grammar.Expr) bool {
 // cheapAll reports whether every part of e is cheap: e has no scanning source of its own, and each
 // call in it is cheap. Evaluating e again at a position, or an attempt of it that fails, then costs
 // no more than a constant or what the calls cost the first time.
-func (x excl) cheapAll(e grammar.Expr) bool {
+func (x excl) cheapAll(e ast.Expr) bool {
 	ok := true
-	astfacts.WalkExpr(e, func(y grammar.Expr) {
+	astfacts.WalkExpr(e, func(y ast.Expr) {
 		if x.k.srcExprs[y] {
 			ok = false
 		}
-		if r, isRef := y.(*grammar.Ref); isRef && !x.cheap(r) {
+		if r, isRef := y.(*ast.Ref); isRef && !x.cheap(r) {
 			ok = false
 		}
 	})
@@ -261,11 +261,11 @@ func (x excl) cheapAll(e grammar.Expr) bool {
 // paths returns the paths of e: sequences of symbols such that every successful evaluation of e
 // evaluates, and succeeds on, the symbols of one of them in order. ok is false when there are more
 // than exclPaths of them.
-func (x excl) paths(e grammar.Expr, item int) (paths [][]sym, ok bool) {
+func (x excl) paths(e ast.Expr, item int) (paths [][]sym, ok bool) {
 	one := func(s sym) ([][]sym, bool) { return [][]sym{{s}}, true }
 	if x.strict {
 		switch e.(type) {
-		case *grammar.Choice, *grammar.Optional, *grammar.Repeat:
+		case *ast.Choice, *ast.Optional, *ast.Repeat:
 			if !x.cheapAll(e) {
 				y := x
 				y.env = true
@@ -287,49 +287,49 @@ func (x excl) paths(e grammar.Expr, item int) (paths [][]sym, ok bool) {
 }
 
 // pathsOf is paths without the check of strict mode on e itself.
-func (x excl) pathsOf(e grammar.Expr, item int) (paths [][]sym, ok bool) {
+func (x excl) pathsOf(e ast.Expr, item int) (paths [][]sym, ok bool) {
 	one := func(s sym) ([][]sym, bool) { return [][]sym{{s}}, true }
 	switch e := e.(type) {
 	case nil:
 		return [][]sym{nil}, true
-	case *grammar.Ref, *grammar.Literal, *grammar.CharClass, *grammar.Any:
+	case *ast.Ref, *ast.Literal, *ast.CharClass, *ast.Any:
 		return one(sym{symMatch, e, item})
-	case *grammar.Not:
+	case *ast.Not:
 		if binds(e.Expr) {
 			return [][]sym{{{symNot, e.Expr, item}, {symBind, e, item}}}, true
 		}
 		return one(sym{symNot, e.Expr, item})
-	case *grammar.And:
+	case *ast.And:
 		if binds(e.Expr) {
 			return [][]sym{{{symAnd, e.Expr, item}, {symBind, e, item}}}, true
 		}
 		return one(sym{symAnd, e.Expr, item})
-	case *grammar.Predicate:
+	case *ast.Predicate:
 		if binds(e) {
 			return one(sym{symBind, e, item})
 		}
 		return one(sym{symSkip, e, item})
-	case *grammar.Cut, *grammar.Top, *grammar.BeginInput, *grammar.EndInput,
-		*grammar.BeginLine, *grammar.EndLine:
+	case *ast.Cut, *ast.Top, *ast.BeginInput, *ast.EndInput,
+		*ast.BeginLine, *ast.EndLine:
 		return one(sym{symSkip, e, item})
-	case *grammar.Bottom:
+	case *ast.Bottom:
 		if x.strict && deadPathsOn {
 			return one(sym{symDead, e, item})
 		}
 		return nil, true
-	case *grammar.Group:
+	case *ast.Group:
 		return x.paths(e.Expr, item)
-	case *grammar.Capture:
+	case *ast.Capture:
 		return x.paths(e.Expr, item)
-	case *grammar.Discard:
+	case *ast.Discard:
 		return x.paths(e.Expr, item)
-	case *grammar.Atomic:
+	case *ast.Atomic:
 		return x.paths(e.Expr, item)
-	case *grammar.Stream:
+	case *ast.Stream:
 		return x.paths(e.Expr, item)
-	case *grammar.InlineAction:
+	case *ast.InlineAction:
 		return x.paths(e.Expr, item)
-	case *grammar.Seq:
+	case *ast.Seq:
 		paths = [][]sym{nil}
 		for _, it := range e.Items {
 			ps, ok := x.paths(it, item)
@@ -341,7 +341,7 @@ func (x excl) pathsOf(e grammar.Expr, item int) (paths [][]sym, ok bool) {
 			}
 		}
 		return paths, true
-	case *grammar.Choice:
+	case *ast.Choice:
 		for _, alt := range e.Alts {
 			ps, ok := x.paths(alt, item)
 			if !ok {
@@ -350,10 +350,10 @@ func (x excl) pathsOf(e grammar.Expr, item int) (paths [][]sym, ok bool) {
 			paths = append(paths, ps...)
 		}
 		return paths, len(paths) <= exclPaths
-	case *grammar.Optional:
+	case *ast.Optional:
 		ps, ok := x.paths(e.Expr, item)
 		return append([][]sym{nil}, ps...), ok && len(ps) < exclPaths
-	case *grammar.Repeat:
+	case *ast.Repeat:
 		if e.Max == 0 {
 			return [][]sym{nil}, true
 		}
@@ -373,7 +373,7 @@ func (x excl) pathsOf(e grammar.Expr, item int) (paths [][]sym, ok bool) {
 
 // repeatPaths returns the paths of a repetition: no iteration when its minimum is 0, and its
 // expression followed, when it can repeat, by a stop.
-func (x excl) repeatPaths(e *grammar.Repeat, item int) ([][]sym, bool) {
+func (x excl) repeatPaths(e *ast.Repeat, item int) ([][]sym, bool) {
 	{
 		ps, ok := x.paths(e.Expr, item)
 		if !ok {
@@ -394,7 +394,7 @@ func (x excl) repeatPaths(e *grammar.Repeat, item int) ([][]sym, bool) {
 // body returns the paths that a symbol stands for: the body of the rule of a call, or the paths of
 // a repetition.
 func (x excl) body(s sym) ([][]sym, bool) {
-	if r, ok := s.e.(*grammar.Repeat); ok {
+	if r, ok := s.e.(*ast.Repeat); ok {
 		return x.repeatPaths(r, s.item)
 	}
 	def, ok := x.inlinable(s.e)
@@ -472,8 +472,8 @@ func (x excl) contPaths(c *cont, depth int) ([][]sym, bool) {
 
 // Stops that end a continuation that the analysis follows no further, told apart for diagnostics.
 var (
-	stopFollow = &grammar.Bottom{} // more than x.follow rule or operator ends
-	stopLength = &grammar.Bottom{} // exclLen symbols
+	stopFollow = &ast.Bottom{} // more than x.follow rule or operator ends
+	stopLength = &ast.Bottom{} // exclLen symbols
 )
 
 // followPaths returns the paths of the continuation c, followed through as many ends as the
@@ -580,8 +580,8 @@ func (x excl) opsEndPaths(rule string, depth int) ([][]sym, bool) {
 // is not a rule of a left-recursion cycle. A callee that reads variables can be expanded too: every
 // successful evaluation follows one of the paths of its body, whatever the variables, and the
 // bindings in the body appear on the paths.
-func (x excl) inlinable(e grammar.Expr) (*grammar.RuleDef, bool) {
-	r, ok := e.(*grammar.Ref)
+func (x excl) inlinable(e ast.Expr) (*ast.RuleDef, bool) {
+	r, ok := e.(*ast.Ref)
 	if !ok || r.Level != "" {
 		return nil, false
 	}
@@ -597,27 +597,27 @@ func (x excl) inlinable(e grammar.Expr) (*grammar.RuleDef, bool) {
 // values of the variables that it reads, have one result. A rule that reads variables is equal to
 // itself only where x.env holds. Calls of rules of left-recursion cycles are left aside, as a call
 // inside a growth sees the seed of the growth.
-func (x excl) sameSym(a, b grammar.Expr) bool {
+func (x excl) sameSym(a, b ast.Expr) bool {
 	switch a := a.(type) {
-	case *grammar.Ref:
-		b, ok := b.(*grammar.Ref)
+	case *ast.Ref:
+		b, ok := b.(*ast.Ref)
 		// A right operand is parsed at the level of its operator, which the reference does not
 		// tell, so two of them are not equal.
 		return ok && a.Name == b.Name && a.Level == b.Level && a.Level != rhsLevel &&
 			(x.env || len(x.k.vars[a.Name]) == 0) &&
 			!x.k.an.Cyclic[a.Name]
-	case *grammar.Literal:
-		b, ok := b.(*grammar.Literal)
+	case *ast.Literal:
+		b, ok := b.(*ast.Literal)
 		return ok && a.Value == b.Value && a.IgnoreCase == b.IgnoreCase
-	case *grammar.CharClass:
-		b, ok := b.(*grammar.CharClass)
+	case *ast.CharClass:
+		b, ok := b.(*ast.CharClass)
 		return ok && classChars(a).equal(classChars(b))
-	case *grammar.Any:
-		_, ok := b.(*grammar.Any)
+	case *ast.Any:
+		_, ok := b.(*ast.Any)
 		return ok
-	case *grammar.Repeat:
-		b, ok := b.(*grammar.Repeat)
-		return ok && (a == b || grammar.FormatExpr(a) == grammar.FormatExpr(b)) && x.pure(a)
+	case *ast.Repeat:
+		b, ok := b.(*ast.Repeat)
+		return ok && (a == b || ast.FormatExpr(a) == ast.FormatExpr(b)) && x.pure(a)
 	}
 	return false
 }
@@ -625,15 +625,15 @@ func (x excl) sameSym(a, b grammar.Expr) bool {
 // pure reports whether e calls only rules that are not rules of left-recursion cycles, and read no
 // variable unless x.env holds, and has no predicate itself, so that its result at a position is
 // one.
-func (x excl) pure(e grammar.Expr) bool {
+func (x excl) pure(e ast.Expr) bool {
 	ok := true
-	astfacts.WalkExpr(e, func(y grammar.Expr) {
+	astfacts.WalkExpr(e, func(y ast.Expr) {
 		switch y := y.(type) {
-		case *grammar.Ref:
+		case *ast.Ref:
 			if !x.env && len(x.k.vars[y.Name]) > 0 || x.k.an.Cyclic[y.Name] {
 				ok = false
 			}
-		case *grammar.Predicate, *grammar.Recovery, *grammar.Attributed, *grammar.OperatorsRule, *grammar.Cut:
+		case *ast.Predicate, *ast.Recovery, *ast.Attributed, *ast.OperatorsRule, *ast.Cut:
 			ok = false
 		}
 	})
@@ -643,14 +643,14 @@ func (x excl) pure(e grammar.Expr) bool {
 // disjoint reports whether two expressions cannot both succeed at one position: each consumes a
 // first character, and their first characters are disjoint. Whichever fails, it fails at the
 // character at that position, which the other one would consume.
-func (x excl) disjoint(a, b grammar.Expr) bool {
+func (x excl) disjoint(a, b ast.Expr) bool {
 	return !x.k.nullable(a) && !x.k.nullable(b) && !x.k.first(a).intersects(x.k.first(b))
 }
 
 // litStep compares two literals at one position. When one is a prefix of the other it returns the
 // rest of the longer one, on the side of a (restA) or of b; excl reports that they cannot both
 // match.
-func litStep(a, b *grammar.Literal) (restA, restB *grammar.Literal, excl, ok bool) {
+func litStep(a, b *ast.Literal) (restA, restB *ast.Literal, excl, ok bool) {
 	if a.Value == "" || b.Value == "" {
 		return nil, nil, false, false
 	}
@@ -672,9 +672,9 @@ func litStep(a, b *grammar.Literal) (restA, restB *grammar.Literal, excl, ok boo
 	}
 	switch {
 	case len(av) < len(bv):
-		return nil, &grammar.Literal{Value: string(bv[n:]), IgnoreCase: b.IgnoreCase}, false, true
+		return nil, &ast.Literal{Value: string(bv[n:]), IgnoreCase: b.IgnoreCase}, false, true
 	case len(bv) < len(av):
-		return &grammar.Literal{Value: string(av[n:]), IgnoreCase: a.IgnoreCase}, nil, false, true
+		return &ast.Literal{Value: string(av[n:]), IgnoreCase: a.IgnoreCase}, nil, false, true
 	}
 	return nil, nil, false, true
 }
@@ -682,17 +682,17 @@ func litStep(a, b *grammar.Literal) (restA, restB *grammar.Literal, excl, ok boo
 // litInChar reports whether a literal and a symbol that matches one character from a class, or
 // any character, both match the first character of the literal wherever the literal matches. It
 // returns the rest of the literal, or nil when the literal has one character.
-func litInChar(l, c grammar.Expr) (rest *grammar.Literal, ok bool) {
-	lit, isLit := l.(*grammar.Literal)
+func litInChar(l, c ast.Expr) (rest *ast.Literal, ok bool) {
+	lit, isLit := l.(*ast.Literal)
 	if !isLit || lit.Value == "" {
 		return nil, false
 	}
 	switch c := c.(type) {
-	case *grammar.CharClass:
+	case *ast.CharClass:
 		if literalFirst(lit).intersects(classChars(c).complement()) {
 			return nil, false
 		}
-	case *grammar.Any:
+	case *ast.Any:
 	default:
 		return nil, false
 	}
@@ -700,7 +700,7 @@ func litInChar(l, c grammar.Expr) (rest *grammar.Literal, ok bool) {
 	if len(rs) == 1 {
 		return nil, true
 	}
-	return &grammar.Literal{Value: string(rs[1:]), IgnoreCase: lit.IgnoreCase}, true
+	return &ast.Literal{Value: string(rs[1:]), IgnoreCase: lit.IgnoreCase}, true
 }
 
 func foldASCII(r rune) rune {
@@ -937,8 +937,8 @@ func (x excl) excludes(s exclState) (ok bool, item, n int) {
 			s.i, s.j, s.steps = s.i+1, s.j+1, s.steps+1
 			continue
 		}
-		la, aLit := a.e.(*grammar.Literal)
-		lb, bLit := b.e.(*grammar.Literal)
+		la, aLit := a.e.(*ast.Literal)
+		lb, bLit := b.e.(*ast.Literal)
 		if aLit && bLit {
 			ra, rb, excl, ok := litStep(la, lb)
 			if !ok {
@@ -1009,7 +1009,7 @@ func (x excl) excludes(s exclState) (ok bool, item, n int) {
 		expandP := func() (bool, int, int) {
 			return x.expand(s, s.p, s.i, func(t *exclState, p []sym) {
 				t.p = p
-				if r, ok := a.e.(*grammar.Ref); ok {
+				if r, ok := a.e.(*ast.Ref); ok {
 					t.viaP = &refList{r, s.viaP}
 				}
 			})
@@ -1017,8 +1017,8 @@ func (x excl) excludes(s exclState) (ok bool, item, n int) {
 		expandQ := func() (bool, int, int) {
 			return x.expand(s, s.q, s.j, func(t *exclState, q []sym) { t.q = q })
 		}
-		if ra, ok := a.e.(*grammar.Ref); ok {
-			if rb, ok := b.e.(*grammar.Ref); ok && k.reachable(rb.Name)[ra.Name] && !k.reachable(ra.Name)[rb.Name] {
+		if ra, ok := a.e.(*ast.Ref); ok {
+			if rb, ok := b.e.(*ast.Ref); ok && k.reachable(rb.Name)[ra.Name] && !k.reachable(ra.Name)[rb.Name] {
 				expandP, expandQ = expandQ, expandP
 			}
 		}
@@ -1061,7 +1061,7 @@ func (x excl) stuck(p []sym, i int) bool {
 // input (restart): the body of the rule of the unit, or the body of the caller that the
 // continuation reached after it left that one, whose rule the next exit mark names.
 func (x excl) recordAlike(s exclState, a sym) {
-	r, ok := a.e.(*grammar.Ref)
+	r, ok := a.e.(*ast.Ref)
 	if x.owner == nil || !ok || !x.k.recursive[x.owner.rule] {
 		return
 	}
@@ -1132,13 +1132,13 @@ func (x excl) expand(s exclState, side []sym, idx int, set func(*exclState, []sy
 
 // implies reports whether every evaluation that succeeds on q also matches the lookahead body at
 // its start, so that a negative lookahead on the body fails there.
-func (x excl) implies(q []sym, body grammar.Expr) bool {
+func (x excl) implies(q []sym, body ast.Expr) bool {
 	_, _, ok := x.impliesAt(q, body)
 	return ok
 }
 
 // impliesAt is implies; end is the index of the last symbol of q that the match of body reads.
-func (x excl) impliesAt(q []sym, body grammar.Expr) (end, alt int, ok bool) {
+func (x excl) impliesAt(q []sym, body ast.Expr) (end, alt int, ok bool) {
 	paths, alts := x.exactPaths(body)
 	for i, kp := range paths {
 		if end, ok := x.matchesExact(q, 0, kp, 0); ok {
@@ -1150,7 +1150,7 @@ func (x excl) impliesAt(q []sym, body grammar.Expr) (end, alt int, ok bool) {
 
 // freshBefore reports whether the alternatives of the lookahead body before the alternative alt
 // (as exactPaths numbers them) cost a constant (freshAll).
-func (x excl) freshBefore(body grammar.Expr, alt int) bool {
+func (x excl) freshBefore(body ast.Expr, alt int) bool {
 	for _, e := range x.lookAlts(body)[:alt] {
 		if !x.freshAll(e) {
 			return false
@@ -1161,7 +1161,7 @@ func (x excl) freshBefore(body grammar.Expr, alt int) bool {
 
 // lookAlts returns the alternatives of a lookahead body, through calls that make up the whole
 // body.
-func (x excl) lookAlts(body grammar.Expr) []grammar.Expr {
+func (x excl) lookAlts(body ast.Expr) []ast.Expr {
 	for range exclInline {
 		def, ok := x.inlinable(ungroup(body))
 		if !ok {
@@ -1169,10 +1169,10 @@ func (x excl) lookAlts(body grammar.Expr) []grammar.Expr {
 		}
 		body = def.Expr
 	}
-	if c, ok := ungroup(body).(*grammar.Choice); ok {
+	if c, ok := ungroup(body).(*ast.Choice); ok {
 		return c.Alts
 	}
-	return []grammar.Expr{body}
+	return []ast.Expr{body}
 }
 
 // exactPaths returns the paths of a lookahead body for which a match of the path is a match of the
@@ -1181,30 +1181,30 @@ func (x excl) lookAlts(body grammar.Expr) []grammar.Expr {
 // or a nested choice can match where the body, which is greedy and ordered, does not. It stops
 // after an alternative with a cut that commits the choice: that alternative can fail after its cut
 // where a later one matches, and the body then fails without trying the later one.
-func (x excl) exactPaths(body grammar.Expr) (out [][]grammar.Expr, index []int) {
+func (x excl) exactPaths(body ast.Expr) (out [][]ast.Expr, index []int) {
 	alts := x.lookAlts(body)
 	for i, alt := range alts {
 		if i > 0 && x.k.looseCut(alts[i-1]) {
 			break
 		}
-		var p []grammar.Expr
+		var p []ast.Expr
 		ok := true
-		var add func(e grammar.Expr)
-		add = func(e grammar.Expr) {
+		var add func(e ast.Expr)
+		add = func(e ast.Expr) {
 			switch e := e.(type) {
-			case *grammar.Group:
+			case *ast.Group:
 				add(e.Expr)
-			case *grammar.Discard:
+			case *ast.Discard:
 				add(e.Expr)
-			case *grammar.Capture:
+			case *ast.Capture:
 				add(e.Expr)
-			case *grammar.Atomic:
+			case *ast.Atomic:
 				add(e.Expr)
-			case *grammar.Seq:
+			case *ast.Seq:
 				for _, it := range e.Items {
 					add(it)
 				}
-			case *grammar.Ref, *grammar.Literal, *grammar.CharClass, *grammar.Any:
+			case *ast.Ref, *ast.Literal, *ast.CharClass, *ast.Any:
 				p = append(p, e)
 			default:
 				ok = false
@@ -1221,7 +1221,7 @@ func (x excl) exactPaths(body grammar.Expr) (out [][]grammar.Expr, index []int) 
 // matchesExact reports whether every evaluation that succeeds on q matches the exact path kp at the
 // symbol j of q, where the symbols before j have matched what came before kp. In strict mode the
 // symbols that both evaluate are cheap.
-func (x excl) matchesExact(q []sym, j int, kp []grammar.Expr, depth int) (end int, ok bool) {
+func (x excl) matchesExact(q []sym, j int, kp []ast.Expr, depth int) (end int, ok bool) {
 	m := 0
 	for m < len(kp) {
 		var ok bool
@@ -1247,8 +1247,8 @@ func (x excl) matchesExact(q []sym, j int, kp []grammar.Expr, depth int) (end in
 			j, m = j+1, m+1
 			continue
 		}
-		la, aLit := a.(*grammar.Literal)
-		lb, bLit := b.(*grammar.Literal)
+		la, aLit := a.(*ast.Literal)
+		lb, bLit := b.(*ast.Literal)
 		if aLit && bLit {
 			ra, rb, excl, ok := litStep(la, lb)
 			if !ok || excl {
@@ -1259,7 +1259,7 @@ func (x excl) matchesExact(q []sym, j int, kp []grammar.Expr, depth int) (end in
 				q = replaced(q, j, sym{symMatch, ra, q[j].item})
 				m++
 			case rb != nil:
-				kp = append([]grammar.Expr{rb}, kp[m+1:]...)
+				kp = append([]ast.Expr{rb}, kp[m+1:]...)
 				m = 0
 				j++
 			default:
@@ -1268,8 +1268,8 @@ func (x excl) matchesExact(q []sym, j int, kp []grammar.Expr, depth int) (end in
 			continue
 		}
 		// A class of q that the class of the body contains matches it.
-		if ca, ok := a.(*grammar.CharClass); ok {
-			if cb, ok := b.(*grammar.CharClass); ok && !classChars(ca).intersects(classChars(cb).complement()) {
+		if ca, ok := a.(*ast.CharClass); ok {
+			if cb, ok := b.(*ast.CharClass); ok && !classChars(ca).intersects(classChars(cb).complement()) {
 				j, m = j+1, m+1
 				continue
 			}
@@ -1316,17 +1316,17 @@ type altDecision struct {
 }
 
 // topItems returns the top-level items of an alternative.
-func topItems(alt grammar.Expr) []grammar.Expr {
-	if s, ok := ungroup(alt).(*grammar.Seq); ok {
+func topItems(alt ast.Expr) []ast.Expr {
+	if s, ok := ungroup(alt).(*ast.Seq); ok {
 		return s.Items
 	}
-	return []grammar.Expr{alt}
+	return []ast.Expr{alt}
 }
 
 // decideAlt decides whether the alternative i of ch excludes every later alternative after a
 // prefix of its top-level items, examining at most maxK symbols. It is the analysis without the
 // strict conditions: it tells which choices are exclusive, not what a later alternative costs.
-func (k *classifier) decideAlt(ch *grammar.Choice, i, maxK int) altDecision {
+func (k *classifier) decideAlt(ch *ast.Choice, i, maxK int) altDecision {
 	x := newExcl(k, false, maxK)
 	items := topItems(ch.Alts[i])
 	d := altDecision{items: len(items)}
@@ -1407,12 +1407,12 @@ func (k *classifier) unitDecided(u *unit, conts []contSpec) (ok bool, why string
 
 // binds reports whether evaluating e can bind a variable in the scope that it is evaluated in: e
 // contains a binding outside the rules that it calls, whose bindings end with the call.
-func binds(e grammar.Expr) bool {
+func binds(e ast.Expr) bool {
 	found := false
-	astfacts.WalkExpr(e, func(y grammar.Expr) {
-		if p, ok := y.(*grammar.Predicate); ok {
-			astfacts.WalkTerm(p.Term, func(t grammar.Term) {
-				if _, ok := t.(*grammar.Bind); ok {
+	astfacts.WalkExpr(e, func(y ast.Expr) {
+		if p, ok := y.(*ast.Predicate); ok {
+			astfacts.WalkTerm(p.Term, func(t ast.Term) {
+				if _, ok := t.(*ast.Bind); ok {
 					found = true
 				}
 			})
@@ -1436,9 +1436,9 @@ func (x excl) no(tag string, a sym, b *sym) (bool, int, int) {
 
 // oneChar reports whether e matches exactly one character wherever it succeeds: a character class
 // or any character.
-func oneChar(e grammar.Expr) bool {
+func oneChar(e ast.Expr) bool {
 	switch e.(type) {
-	case *grammar.CharClass, *grammar.Any:
+	case *ast.CharClass, *ast.Any:
 		return true
 	}
 	return false

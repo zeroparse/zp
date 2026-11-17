@@ -7,13 +7,13 @@ import (
 	"strings"
 
 	"zeroparse.dev/zp/core/impl"
-	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/codegen"
 	"zeroparse.dev/zp/internal/compile"
 	"zeroparse.dev/zp/internal/frontend/check"
 	"zeroparse.dev/zp/internal/ir/core"
 	"zeroparse.dev/zp/internal/ir/flow"
 	flowlower "zeroparse.dev/zp/internal/ir/flow/lower"
+	"zeroparse.dev/zp/pkg/grammar/ast"
 )
 
 // Typed Go rules printed from Flow IR.
@@ -34,7 +34,7 @@ import (
 
 // startFlow builds the Core IR of the typed rules for printing them from Flow IR.
 func (g *Generator) startFlow() error {
-	origin := map[core.Node]grammar.Expr{}
+	origin := map[core.Node]ast.Expr{}
 	m, err := g.TypedCore(origin)
 	if err != nil {
 		return err
@@ -156,7 +156,7 @@ func (g *Generator) flowStreamBody(r *compile.Rule, scope *check.Scope) string {
 // on the shape of every capture, and the checker lets an action name only captures of its line. With budget
 // controls (Options.Budget) the method that holds the function charges its entry and the function charges
 // each iteration of a repetition, as Flow IR makes them explicit.
-func (g *Generator) flowOperatorsRuleBody(l *core.OpLine, e grammar.Expr, scope *check.Scope, build bool) string {
+func (g *Generator) flowOperatorsRuleBody(l *core.OpLine, e ast.Expr, scope *check.Scope, build bool) string {
 	if g.Flow == nil || l == nil || !flowlower.LineOK(e) || !flowlower.FramedBody(l.Body) {
 		return ""
 	}
@@ -422,10 +422,10 @@ func (p *flowPrinter) exp(id core.ExpID) string {
 func (p *flowPrinter) desc(id core.ExpID) compile.ExpID { return p.g.Desc(p.g.Flow.M.Exps[id]) }
 
 // grammarClass returns the character class expression of the class c.
-func grammarClass(c *core.Class) *grammar.CharClass {
-	e := &grammar.CharClass{Negated: c.Negated}
+func grammarClass(c *core.Class) *ast.CharClass {
+	e := &ast.CharClass{Negated: c.Negated}
 	for _, r := range c.Ranges {
-		e.Ranges = append(e.Ranges, grammar.CharRange{Lo: r.Lo, Hi: r.Hi})
+		e.Ranges = append(e.Ranges, ast.CharRange{Lo: r.Lo, Hi: r.Hi})
 	}
 	return e
 }
@@ -677,7 +677,7 @@ func (p *flowPrinter) not(x flow.Expr) string {
 		}
 		return fmt.Sprintf("!p.SkipTerminal(%s)", table)
 	case *flow.SkipClasses:
-		items := make([]grammar.Expr, len(x.Run.Classes))
+		items := make([]ast.Expr, len(x.Run.Classes))
 		for i, c := range x.Run.Classes {
 			items[i] = grammarClass(c)
 		}
@@ -690,7 +690,7 @@ func (p *flowPrinter) not(x flow.Expr) string {
 		defer p.caps(x.Caps)()
 		return fmt.Sprintf("!p.Predicate(func(c *TActCtx) (any, any) { %s })", g.predicate(x.Node.Term, check.NewScope()))
 	case *flow.Bind:
-		b := p.term(x.Node).(*grammar.Bind)
+		b := p.term(x.Node).(*ast.Bind)
 		if x.Caps.Vars == nil {
 			return fmt.Sprintf("!p.Bind(%d, func(c *%s) (any, any) { %s })", g.Prog.Vars.Index(b.Name), g.ctxType(), g.actionBody(x.Node.Term, codegen.FrameScope(x.Caps), nil))
 		}
@@ -701,8 +701,8 @@ func (p *flowPrinter) not(x flow.Expr) string {
 }
 
 // term returns the term of the grammar predicate that the node n is built from.
-func (p *flowPrinter) term(n core.Node) grammar.Term {
-	e, ok := p.g.Flow.Origin[n].(*grammar.Predicate)
+func (p *flowPrinter) term(n core.Node) ast.Term {
+	e, ok := p.g.Flow.Origin[n].(*ast.Predicate)
 	if !ok {
 		panic(fmt.Sprintf("flow printer: no grammar predicate for %T", n))
 	}

@@ -4,7 +4,7 @@ import (
 	"slices"
 	"testing"
 
-	"zeroparse.dev/zp/grammar"
+	"zeroparse.dev/zp/pkg/grammar/ast"
 )
 
 // TestPredicateCaptures checks which captures predicateCaptures finds a predicate can read: those
@@ -47,9 +47,9 @@ func TestPredicateCaptures(t *testing.T) {
 			t.Fatalf("%s: %v", c.body, err)
 		}
 		body := g.Rules()[0].Expr
-		var all []*grammar.Capture
-		walkExprControlled(body, func(x grammar.Expr) {
-			if cp, ok := x.(*grammar.Capture); ok {
+		var all []*ast.Capture
+		walkExprControlled(body, func(x ast.Expr) {
+			if cp, ok := x.(*ast.Capture); ok {
 				all = append(all, cp)
 			}
 		}, nil)

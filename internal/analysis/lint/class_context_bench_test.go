@@ -4,16 +4,16 @@ import (
 	"context"
 	"testing"
 
-	"zeroparse.dev/zp/grammar"
+	"zeroparse.dev/zp/pkg/grammar/ast"
 )
 
 func BenchmarkClassLintCancellation(b *testing.B) {
-	ranges := make([]grammar.CharRange, 512)
+	ranges := make([]ast.CharRange, 512)
 	for i := range ranges {
-		ranges[i] = grammar.CharRange{Lo: rune(256 + 2*(len(ranges)-i)), Hi: rune(256 + 2*(len(ranges)-i))}
+		ranges[i] = ast.CharRange{Lo: rune(256 + 2*(len(ranges)-i)), Hi: rune(256 + 2*(len(ranges)-i))}
 	}
-	class := &grammar.CharClass{Ranges: ranges}
-	g := &grammar.Grammar{File: grammar.File{Decls: []grammar.Decl{&grammar.RuleDef{Name: "main", Expr: &grammar.Choice{Alts: []grammar.Expr{class, &grammar.Literal{Value: "a"}, &grammar.CharClass{Ranges: ranges}}}}}}}
+	class := &ast.CharClass{Ranges: ranges}
+	g := &ast.Grammar{File: ast.File{Decls: []ast.Decl{&ast.RuleDef{Name: "main", Expr: &ast.Choice{Alts: []ast.Expr{class, &ast.Literal{Value: "a"}, &ast.CharClass{Ranges: ranges}}}}}}}
 	for _, controlled := range []bool{false, true} {
 		name := "ordinary"
 		if controlled {

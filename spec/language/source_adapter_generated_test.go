@@ -9,12 +9,12 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/core"
-	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/codegen"
 	"zeroparse.dev/zp/internal/compile"
 	"zeroparse.dev/zp/internal/engine"
 	"zeroparse.dev/zp/internal/testing/codegentest"
 	"zeroparse.dev/zp/internal/testing/compiletest"
+	"zeroparse.dev/zp/pkg/grammar/ast"
 )
 
 // TestGeneratedSourceParserMatchesEngine runs the canonical grammar as a generated Go parser on the
@@ -31,7 +31,7 @@ func TestGeneratedSourceParserMatchesEngine(t *testing.T) {
 		t.Skip("go command not found")
 	}
 	// The generator and the comparison compile with the engine, as the tests of the generator do.
-	codegentest.Compile = func(g *grammar.Grammar, opts compile.Options) (*compile.Program, func() (*compile.Program, error), error) {
+	codegentest.Compile = func(g *ast.Grammar, opts compile.Options) (*compile.Program, func() (*compile.Program, error), error) {
 		prog, err := engine.Compile(g, opts)
 		if err != nil {
 			return nil, nil, err

@@ -4,7 +4,6 @@ import (
 	"fmt"
 
 	"zeroparse.dev/zp/core"
-	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/cancel"
 	"zeroparse.dev/zp/internal/compile"
 	"zeroparse.dev/zp/internal/engine/state"
@@ -12,6 +11,7 @@ import (
 	"zeroparse.dev/zp/internal/frontend/elaborate"
 	ir "zeroparse.dev/zp/internal/ir/core"
 	"zeroparse.dev/zp/internal/value"
+	"zeroparse.dev/zp/pkg/grammar/ast"
 )
 
 // Core builds the Core IR of the program prog and optimizes it with the closure pipeline (guards
@@ -128,9 +128,9 @@ func (b *Builder) accept(c *ir.Class) func(*state.Parser, rune) bool {
 	if f, ok := b.accepts[c]; ok {
 		return f
 	}
-	cc := &grammar.CharClass{Negated: c.Negated}
+	cc := &ast.CharClass{Negated: c.Negated}
 	for _, r := range c.Ranges {
-		cc.Ranges = append(cc.Ranges, grammar.CharRange{Lo: r.Lo, Hi: r.Hi})
+		cc.Ranges = append(cc.Ranges, ast.CharRange{Lo: r.Lo, Hi: r.Hi})
 	}
 	f := ClassAccept(cc)
 	b.accepts[c] = f

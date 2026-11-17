@@ -3,7 +3,7 @@ package compile
 import (
 	"testing"
 
-	"zeroparse.dev/zp/grammar"
+	"zeroparse.dev/zp/pkg/grammar/ast"
 )
 
 func TestUnknownDeclarationAttribute(t *testing.T) {
@@ -18,7 +18,7 @@ func TestUnknownDeclarationAttribute(t *testing.T) {
 	}
 	// A declaration attribute is never a # pragma.
 	g := mustParse("rule a = \"x\"\n")
-	g.Rules()[0].Attrs = []*grammar.Attribute{{Name: "atomic", Pragma: true}}
+	g.Rules()[0].Attrs = []*ast.Attribute{{Name: "atomic", Pragma: true}}
 	if _, err := compileStatic(g, Options{}, nil); err == nil || err.Error() != "unknown declaration attribute #atomic" {
 		t.Errorf("pragma: %v", err)
 	}

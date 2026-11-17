@@ -3,12 +3,12 @@ package engine
 import (
 	"testing"
 	"zeroparse.dev/zp/core"
-	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/compile"
 	"zeroparse.dev/zp/internal/value"
+	"zeroparse.dev/zp/pkg/grammar/ast"
 )
 
-func classMembershipProgram(t *testing.T, expr grammar.Expr) *Program {
+func classMembershipProgram(t *testing.T, expr ast.Expr) *Program {
 	t.Helper()
 	g, err := parseTest("rule main = [a]\nrule e = \"\"") // e lets a rule that calls a rule hold a plain scan
 	if err != nil {
@@ -27,16 +27,16 @@ func TestClassMembershipBoundaries(t *testing.T) {
 	t.Parallel()
 	cases := []struct {
 		name      string
-		ranges    []grammar.CharRange
+		ranges    []ast.CharRange
 		hit, miss []rune
 	}{
-		{"one", []grammar.CharRange{{Lo: 'a', Hi: 'z'}}, []rune{'a', 'm', 'z'}, []rune{'`', '{', 128, 0x10000}},
-		{"two", []grammar.CharRange{{Lo: 'a', Hi: 'z'}, {Lo: 0x10000, Hi: 0x10002}}, []rune{'a', 'z', 0x10000, 0x10001, 0x10002}, []rune{'`', '{', 128, 0xffff, 0x10003}},
-		{"bitmap", []grammar.CharRange{{Lo: 63, Hi: 65}, {Lo: 127, Hi: 128}, {Lo: 0x10000, Hi: 0x10002}}, []rune{63, 64, 65, 127, 128, 0x10000, 0x10002}, []rune{62, 66, 126, 129, 0xffff, 0x10003}},
+		{"one", []ast.CharRange{{Lo: 'a', Hi: 'z'}}, []rune{'a', 'm', 'z'}, []rune{'`', '{', 128, 0x10000}},
+		{"two", []ast.CharRange{{Lo: 'a', Hi: 'z'}, {Lo: 0x10000, Hi: 0x10002}}, []rune{'a', 'z', 0x10000, 0x10001, 0x10002}, []rune{'`', '{', 128, 0xffff, 0x10003}},
+		{"bitmap", []ast.CharRange{{Lo: 63, Hi: 65}, {Lo: 127, Hi: 128}, {Lo: 0x10000, Hi: 0x10002}}, []rune{63, 64, 65, 127, 128, 0x10000, 0x10002}, []rune{62, 66, 126, 129, 0xffff, 0x10003}},
 	}
 	for _, tc := range cases {
 		for _, negated := range []bool{false, true} {
-			p := classMembershipProgram(t, &grammar.CharClass{Ranges: tc.ranges, Negated: negated})
+			p := classMembershipProgram(t, &ast.CharClass{Ranges: tc.ranges, Negated: negated})
 			for _, backend := range []Backend{Closure, Bytecode, BytecodeIterative} {
 				for _, unit := range []core.PositionUnit{core.CodePoints, core.Bytes} {
 					for _, c := range []struct {

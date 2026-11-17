@@ -5,11 +5,11 @@ import (
 	"sort"
 	"strings"
 
-	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/codegen"
 	"zeroparse.dev/zp/internal/compile"
 	"zeroparse.dev/zp/internal/frontend/check"
 	"zeroparse.dev/zp/internal/frontend/types"
+	"zeroparse.dev/zp/pkg/grammar/ast"
 )
 
 // Typed values of rules in the value model.
@@ -225,12 +225,12 @@ func (t *TypedGen) typedHelpers(b *strings.Builder, done *int) bool {
 }
 
 // streamValue returns the value type of the elements of the #stream repetition of the rule rd.
-func streamValue(p *compile.Program, rd *grammar.RuleDef) (types.Ty, bool) {
-	var rep *grammar.Repeat
-	compile.WalkExpr(rd.Expr, func(e grammar.Expr) {
-		if a, ok := e.(*grammar.Attributed); ok {
+func streamValue(p *compile.Program, rd *ast.RuleDef) (types.Ty, bool) {
+	var rep *ast.Repeat
+	compile.WalkExpr(rd.Expr, func(e ast.Expr) {
+		if a, ok := e.(*ast.Attributed); ok {
 			for _, at := range a.Attrs {
-				if r, ok := compile.SeeThrough(a.Expr).(*grammar.Repeat); ok && at.Name == "stream" {
+				if r, ok := compile.SeeThrough(a.Expr).(*ast.Repeat); ok && at.Name == "stream" {
 					rep = r
 				}
 			}
@@ -239,7 +239,7 @@ func streamValue(p *compile.Program, rd *grammar.RuleDef) (types.Ty, bool) {
 	if rep == nil {
 		return nil, false
 	}
-	v := &check.ValueInference{Prog: p.Checker(), Rules: map[string]*grammar.RuleDef{}, Out: map[string]types.Ty{}, Approx: map[string]types.Ty{}, Computing: map[string]bool{}, Quiet: true, Rule: rd}
+	v := &check.ValueInference{Prog: p.Checker(), Rules: map[string]*ast.RuleDef{}, Out: map[string]types.Ty{}, Approx: map[string]types.Ty{}, Computing: map[string]bool{}, Quiet: true, Rule: rd}
 	for _, r := range p.Grammar.Rules() {
 		v.Rules[r.Name] = r
 	}

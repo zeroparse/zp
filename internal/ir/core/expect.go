@@ -4,7 +4,7 @@ import (
 	"strconv"
 	"strings"
 
-	"zeroparse.dev/zp/grammar"
+	"zeroparse.dev/zp/pkg/grammar/ast"
 )
 
 // FixedDescs are the descriptions of the fixed expectations of the runtime, in ExpID order: Any
@@ -13,7 +13,7 @@ var FixedDescs = []string{"any character", "beginning of input", "end of input",
 
 // LiteralDesc is the expectation text of a literal, as written: a case-insensitive literal keeps its
 // suffix i.
-func LiteralDesc(e *grammar.Literal) string {
+func LiteralDesc(e *ast.Literal) string {
 	if e.IgnoreCase {
 		return strconv.Quote(e.Value) + "i"
 	}
@@ -22,7 +22,7 @@ func LiteralDesc(e *grammar.Literal) string {
 
 // CharClassString returns the character class as grammar syntax writes it, which names the class
 // in expectations.
-func CharClassString(e *grammar.CharClass) string {
+func CharClassString(e *ast.CharClass) string {
 	var b strings.Builder
 	b.WriteString("[")
 	if e.Negated {

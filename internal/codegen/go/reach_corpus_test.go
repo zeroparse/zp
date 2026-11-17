@@ -9,21 +9,21 @@ import (
 	"strings"
 	"testing"
 
-	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/codegen"
 	"zeroparse.dev/zp/internal/frontend/parser"
 	"zeroparse.dev/zp/internal/testing/codegentest"
+	"zeroparse.dev/zp/pkg/grammar/ast"
 )
 
 // parseNaturalStart parses src without starttest.MarkAll: only the rule main (or, without one, the
 // first rule that is not private) is a start rule, as in a grammar written for use. A grammar that
 // has attributes marks its own start rules.
-func parseNaturalStart(src string) (*grammar.Grammar, error) {
+func parseNaturalStart(src string) (*ast.Grammar, error) {
 	g, err := parser.Parse(src)
 	if err != nil {
 		return nil, err
 	}
-	var first, main *grammar.RuleDef
+	var first, main *ast.RuleDef
 	for _, rd := range g.Rules() {
 		if len(rd.Attrs) > 0 {
 			return g, nil
@@ -39,7 +39,7 @@ func parseNaturalStart(src string) (*grammar.Grammar, error) {
 		main = first
 	}
 	if main != nil {
-		main.Attrs = []*grammar.Attribute{{Name: "start"}}
+		main.Attrs = []*ast.Attribute{{Name: "start"}}
 	}
 	return g, nil
 }

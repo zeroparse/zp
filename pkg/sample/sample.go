@@ -38,8 +38,8 @@ import (
 	"strings"
 
 	"zeroparse.dev/zp/engine"
-	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/frontend/desugar"
+	"zeroparse.dev/zp/pkg/grammar/ast"
 )
 
 // Defaults of the options.
@@ -381,7 +381,7 @@ func (g *Generator) Coverage() Coverage {
 			c.AlternativesCovered++
 		} else {
 			c.MissedAlternatives = append(c.MissedAlternatives,
-				Alternative{Rule: g.names.Rule(t.rule), Kind: kinds[t.kind], Index: t.index, Expr: g.names.Expr(grammar.FormatExpr(t.expr))})
+				Alternative{Rule: g.names.Rule(t.rule), Kind: kinds[t.kind], Index: t.index, Expr: g.names.Expr(ast.FormatExpr(t.expr))})
 		}
 	}
 	return c

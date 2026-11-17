@@ -1,12 +1,12 @@
 package desugar
 
 import (
-	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/cancel"
 	"zeroparse.dev/zp/internal/frontend/astfacts"
+	"zeroparse.dev/zp/pkg/grammar/ast"
 )
 
-func predicateBlock(e *grammar.Predicate, block *grammar.Block, control *cancel.Control) grammar.Expr {
+func predicateBlock(e *ast.Predicate, block *ast.Block, control *cancel.Control) ast.Expr {
 	var poll func()
 	if control != nil {
 		poll = control.Poll
@@ -17,15 +17,15 @@ func predicateBlock(e *grammar.Predicate, block *grammar.Block, control *cancel.
 		copy.Term = astfacts.UngroupTermWithPoll(block.Statements[0], poll)
 		return &copy
 	}
-	items := make([]grammar.Expr, len(block.Statements))
+	items := make([]ast.Expr, len(block.Statements))
 	for i, statement := range block.Statements {
 		control.Poll()
-		items[i] = &grammar.Predicate{
-			SourceInfo: *statement.(grammar.SourceNode).Source(),
+		items[i] = &ast.Predicate{
+			SourceInfo: *statement.(ast.SourceNode).Source(),
 			Term:       astfacts.UngroupTermWithPoll(statement, poll),
 		}
 	}
-	return &grammar.Seq{
+	return &ast.Seq{
 		SourceInfo: e.SourceInfo,
 		Items:      items,
 	}
@@ -35,7 +35,7 @@ func predicateBlock(e *grammar.Predicate, block *grammar.Block, control *cancel.
 // list, and reports whether any block was expanded. normalized[i] is the normalized form of
 // source[i], and a normalized block is the sequence of its predicates. It returns normalized
 // itself when no block has more than one statement.
-func expandPredicateBlocks(source, normalized []grammar.Expr, control *cancel.Control) ([]grammar.Expr, bool) {
+func expandPredicateBlocks(source, normalized []ast.Expr, control *cancel.Control) ([]ast.Expr, bool) {
 	expanded := 0
 	for _, item := range source {
 		control.Poll()
@@ -47,11 +47,11 @@ func expandPredicateBlocks(source, normalized []grammar.Expr, control *cancel.Co
 		return normalized, false
 	}
 	control.Check()
-	items := make([]grammar.Expr, 0, len(normalized)+expanded)
+	items := make([]ast.Expr, 0, len(normalized)+expanded)
 	for i, item := range normalized {
 		control.Poll()
 		if predicateStatementCount(source[i]) > 1 {
-			items = appendNormalizedPredicates(items, item.(*grammar.Seq).Items, control)
+			items = appendNormalizedPredicates(items, item.(*ast.Seq).Items, control)
 		} else {
 			items = append(items, item)
 		}
@@ -59,12 +59,12 @@ func expandPredicateBlocks(source, normalized []grammar.Expr, control *cancel.Co
 	return items, true
 }
 
-func predicateStatementCount(expr grammar.Expr) int {
-	predicate, ok := expr.(*grammar.Predicate)
+func predicateStatementCount(expr ast.Expr) int {
+	predicate, ok := expr.(*ast.Predicate)
 	if !ok {
 		return 0
 	}
-	block, ok := predicate.Term.(*grammar.Block)
+	block, ok := predicate.Term.(*ast.Block)
 	if !ok {
 		return 0
 	}

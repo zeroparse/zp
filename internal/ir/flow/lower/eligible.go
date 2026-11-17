@@ -1,9 +1,9 @@
 package lower
 
 import (
-	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/compile"
 	"zeroparse.dev/zp/internal/ir/core"
+	"zeroparse.dev/zp/pkg/grammar/ast"
 )
 
 // The eligibility of the compiled rules for Flow IR: which rules and expressions are lowered as flat
@@ -12,17 +12,17 @@ import (
 
 // BodyOK reports whether Flow IR can lower the expression e in place. A cut is allowed if cuts is set
 // and a recovery attribute if recovery is set; an Operators Rule never is.
-func BodyOK(expr grammar.Expr, cuts, recovery bool) bool {
+func BodyOK(expr ast.Expr, cuts, recovery bool) bool {
 	ok := true
-	compile.WalkExpr(expr, func(e grammar.Expr) {
+	compile.WalkExpr(expr, func(e ast.Expr) {
 		switch e := e.(type) {
-		case *grammar.Cut:
+		case *ast.Cut:
 			if !cuts {
 				ok = false
 			}
-		case *grammar.OperatorsRule:
+		case *ast.OperatorsRule:
 			ok = false
-		case *grammar.Attributed:
+		case *ast.Attributed:
 			for _, a := range e.Attrs {
 				if a.Name == "recover" && !recovery {
 					ok = false
@@ -35,7 +35,7 @@ func BodyOK(expr grammar.Expr, cuts, recovery bool) bool {
 
 // LineOK reports whether the Operators Rule line e is a framed body that Flow IR can lower inside the
 // runtime-owned frame of its rule.
-func LineOK(e grammar.Expr) bool {
+func LineOK(e ast.Expr) bool {
 	return BodyOK(e, true, true)
 }
 
@@ -49,8 +49,8 @@ func RecEligible(r *compile.Rule) bool {
 		return false
 	}
 	ok := true
-	compile.WalkExpr(r.BodyExpr(), func(e grammar.Expr) {
-		if _, predicate := e.(*grammar.Predicate); predicate {
+	compile.WalkExpr(r.BodyExpr(), func(e ast.Expr) {
+		if _, predicate := e.(*ast.Predicate); predicate {
 			ok = false
 		}
 	})
@@ -94,15 +94,15 @@ func NodeFrameOK(r *compile.Rule, cr *core.Rule) bool {
 
 // capRefs calls f with the name of each capture the term t refers to outside lambdas that bind the
 // name.
-func capRefs(t grammar.Term, f func(name string)) {
-	var walk func(t grammar.Term, shadow map[string]bool)
-	walk = func(t grammar.Term, shadow map[string]bool) {
+func capRefs(t ast.Term, f func(name string)) {
+	var walk func(t ast.Term, shadow map[string]bool)
+	walk = func(t ast.Term, shadow map[string]bool) {
 		switch t := t.(type) {
-		case *grammar.CaptureRef:
+		case *ast.CaptureRef:
 			if !shadow[t.Name] {
 				f(t.Name)
 			}
-		case *grammar.Lambda:
+		case *ast.Lambda:
 			inner := map[string]bool{}
 			for k := range shadow {
 				inner[k] = true
@@ -112,43 +112,43 @@ func capRefs(t grammar.Term, f func(name string)) {
 			}
 			walk(t.Body, inner)
 		default:
-			termChildren(t, func(x grammar.Term) { walk(x, shadow) })
+			termChildren(t, func(x ast.Term) { walk(x, shadow) })
 		}
 	}
 	walk(t, map[string]bool{})
 }
 
 // termChildren calls f with the direct subterms of t.
-func termChildren(t grammar.Term, f func(grammar.Term)) {
+func termChildren(t ast.Term, f func(ast.Term)) {
 	switch t := t.(type) {
-	case *grammar.Member:
+	case *ast.Member:
 		f(t.X)
-	case *grammar.New:
+	case *ast.New:
 		for _, fi := range t.Fields {
 			f(fi.Value)
 		}
-	case *grammar.ListConstructor:
+	case *ast.ListConstructor:
 		for _, item := range t.Items {
 			f(item)
 		}
-	case *grammar.TupleLit:
+	case *ast.TupleLit:
 		for _, x := range t.Elems {
 			f(x)
 		}
-	case *grammar.Call:
+	case *ast.Call:
 		for _, a := range t.Args {
 			f(a)
 		}
-	case *grammar.Lambda:
+	case *ast.Lambda:
 		f(t.Body)
-	case *grammar.Binary:
+	case *ast.Binary:
 		f(t.L)
 		f(t.R)
-	case *grammar.Unary:
+	case *ast.Unary:
 		f(t.X)
-	case *grammar.Cast:
+	case *ast.Cast:
 		f(t.X)
-	case *grammar.Bind:
+	case *ast.Bind:
 		f(t.Value)
 	}
 }

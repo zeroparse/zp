@@ -11,11 +11,11 @@ import (
 
 	"zeroparse.dev/zp/core"
 	"zeroparse.dev/zp/core/impl"
-	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/bytecode"
 	"zeroparse.dev/zp/internal/compile"
 	"zeroparse.dev/zp/internal/engine/state"
 	"zeroparse.dev/zp/internal/value"
+	"zeroparse.dev/zp/pkg/grammar/ast"
 )
 
 func TestBudgetStateVMChildAssembly(t *testing.T) {
@@ -111,7 +111,7 @@ func TestBudgetStateOperatorsRuleFrameSnapshotAndRestoration(t *testing.T) {
 			p := stateBudgetParser(core.Limits{Compute: compute})
 			retained := value.Ptr(value.Data{Text: "retained", Fields: coreimpl.Fields{{Name: "keep", Value: "unchanged"}}})
 			before, _ := json.Marshal(retained)
-			op := &state.OperatorsRuleOp{Kind: grammar.Prefix, Line: &state.OperatorsRuleLine{Scope: &compile.Scope{Names: make([]string, 320)}}}
+			op := &state.OperatorsRuleOp{Kind: ast.Prefix, Line: &state.OperatorsRuleLine{Scope: &compile.Scope{Names: make([]string, 320)}}}
 			setup := func(f *state.Frame) {
 				for i := range f.Vals {
 					f.Vals[i] = retained

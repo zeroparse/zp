@@ -4,17 +4,17 @@ import (
 	"context"
 	"testing"
 
-	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/testing/starttest"
+	"zeroparse.dev/zp/pkg/grammar/ast"
 )
 
 func BenchmarkClassCompileCancellation(b *testing.B) {
-	ranges := make([]grammar.CharRange, 512)
+	ranges := make([]ast.CharRange, 512)
 	for i := range ranges {
-		ranges[i] = grammar.CharRange{Lo: rune(256 + 2*i), Hi: rune(256 + 2*i)}
+		ranges[i] = ast.CharRange{Lo: rune(256 + 2*i), Hi: rune(256 + 2*i)}
 	}
-	class := &grammar.CharClass{Ranges: ranges}
-	g := &grammar.Grammar{File: grammar.File{Decls: []grammar.Decl{&grammar.RuleDef{Name: "main", Expr: &grammar.Choice{Alts: []grammar.Expr{class, &grammar.Discard{Expr: &grammar.Repeat{Expr: class, Min: 1, Max: -1}}}}}}}}
+	class := &ast.CharClass{Ranges: ranges}
+	g := &ast.Grammar{File: ast.File{Decls: []ast.Decl{&ast.RuleDef{Name: "main", Expr: &ast.Choice{Alts: []ast.Expr{class, &ast.Discard{Expr: &ast.Repeat{Expr: class, Min: 1, Max: -1}}}}}}}}
 	starttest.MarkAll(g)
 	for _, controlled := range []bool{false, true} {
 		name := "ordinary"

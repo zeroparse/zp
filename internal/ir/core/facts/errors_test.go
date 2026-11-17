@@ -6,7 +6,6 @@ import (
 	"sync/atomic"
 	"testing"
 
-	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/compile"
 	"zeroparse.dev/zp/internal/diagnostic"
 	"zeroparse.dev/zp/internal/frontend/elaborate"
@@ -14,6 +13,7 @@ import (
 	"zeroparse.dev/zp/internal/ir/core/facts"
 	"zeroparse.dev/zp/internal/testing/compiletest"
 	"zeroparse.dev/zp/internal/testing/factstest"
+	"zeroparse.dev/zp/pkg/grammar/ast"
 )
 
 // bindingCases are grammars whose only error is a binding before a left-recursive call of a rule
@@ -48,7 +48,7 @@ func TestBindingErrorsMatchCompile(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			origin := map[core.Node]grammar.Expr{}
+			origin := map[core.Node]ast.Expr{}
 			m, err := elaborate.CoreFrom(prog, origin)
 			if err != nil {
 				t.Fatal(err)
@@ -56,7 +56,7 @@ func TestBindingErrorsMatchCompile(t *testing.T) {
 			f := facts.Compute(m, nil)
 			var got []string
 			for _, e := range f.Errors(m, true) {
-				p := origin[e.Node].(*grammar.Predicate).Term.(*grammar.Bind).Diagnostic()
+				p := origin[e.Node].(*ast.Predicate).Term.(*ast.Bind).Diagnostic()
 				got = append(got, fmt.Sprintf("%d:%d: %s", p.Line, p.Col, e.Msg))
 			}
 			if len(want) > 0 {

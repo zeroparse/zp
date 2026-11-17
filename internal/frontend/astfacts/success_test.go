@@ -6,7 +6,7 @@ import (
 	"reflect"
 	"testing"
 
-	"zeroparse.dev/zp/grammar"
+	"zeroparse.dev/zp/pkg/grammar/ast"
 )
 
 func proofJSON(t *testing.T, v any) string {
@@ -19,31 +19,31 @@ func proofJSON(t *testing.T, v any) string {
 }
 
 func TestPolledSuccessFacts(t *testing.T) {
-	committed := &grammar.Seq{Items: []grammar.Expr{&grammar.Cut{}, &grammar.Literal{Value: "a"}}}
+	committed := &ast.Seq{Items: []ast.Expr{&ast.Cut{}, &ast.Literal{Value: "a"}}}
 	for _, test := range []struct {
 		name         string
-		expr         grammar.Expr
+		expr         ast.Expr
 		success, cut bool
 	}{
-		{"empty", &grammar.Literal{}, true, false},
-		{"known call", &grammar.Ref{Name: "known"}, true, false},
-		{"level call", &grammar.Ref{Name: "known", Level: "named"}, false, false},
-		{"unknown call", &grammar.Ref{Name: "unknown"}, false, false},
+		{"empty", &ast.Literal{}, true, false},
+		{"known call", &ast.Ref{Name: "known"}, true, false},
+		{"level call", &ast.Ref{Name: "known", Level: "named"}, false, false},
+		{"unknown call", &ast.Ref{Name: "unknown"}, false, false},
 		{"committed failure", committed, false, true},
-		{"committed choice", &grammar.Choice{Alts: []grammar.Expr{committed, &grammar.Top{}}}, false, false},
-		{"committed optional", &grammar.Optional{Expr: committed}, false, false},
-		{"empty repeat", &grammar.Repeat{Expr: committed, Max: 0}, true, false},
-		{"larger minimum", &grammar.Repeat{Expr: &grammar.Top{}, Min: 2, Max: 3}, false, false},
-		{"negative failure", &grammar.Not{Expr: &grammar.Bottom{}}, true, false},
-		{"nested negative", &grammar.Not{Expr: &grammar.Not{Expr: &grammar.Top{}}}, true, false},
-		{"positive", &grammar.And{Expr: &grammar.Top{}}, true, false},
-		{"group", &grammar.Group{Expr: &grammar.Cut{}}, true, true},
-		{"capture", &grammar.Capture{Expr: &grammar.Cut{}}, true, true},
-		{"atomic", &grammar.Atomic{Expr: &grammar.Cut{}}, true, true},
-		{"discard", &grammar.Discard{Expr: &grammar.Cut{}}, true, true},
-		{"stream", &grammar.Stream{Expr: &grammar.Cut{}}, true, true},
-		{"recovery", &grammar.Recovery{Expr: &grammar.Bottom{}, Skip: &grammar.Cut{}}, false, true},
-		{"recovery attribute", &grammar.Attributed{Expr: &grammar.Top{}, Attrs: []*grammar.Attribute{{Name: "recover", KwArgs: map[string]any{"skip": &grammar.Cut{}}}}}, true, true},
+		{"committed choice", &ast.Choice{Alts: []ast.Expr{committed, &ast.Top{}}}, false, false},
+		{"committed optional", &ast.Optional{Expr: committed}, false, false},
+		{"empty repeat", &ast.Repeat{Expr: committed, Max: 0}, true, false},
+		{"larger minimum", &ast.Repeat{Expr: &ast.Top{}, Min: 2, Max: 3}, false, false},
+		{"negative failure", &ast.Not{Expr: &ast.Bottom{}}, true, false},
+		{"nested negative", &ast.Not{Expr: &ast.Not{Expr: &ast.Top{}}}, true, false},
+		{"positive", &ast.And{Expr: &ast.Top{}}, true, false},
+		{"group", &ast.Group{Expr: &ast.Cut{}}, true, true},
+		{"capture", &ast.Capture{Expr: &ast.Cut{}}, true, true},
+		{"atomic", &ast.Atomic{Expr: &ast.Cut{}}, true, true},
+		{"discard", &ast.Discard{Expr: &ast.Cut{}}, true, true},
+		{"stream", &ast.Stream{Expr: &ast.Cut{}}, true, true},
+		{"recovery", &ast.Recovery{Expr: &ast.Bottom{}, Skip: &ast.Cut{}}, false, true},
+		{"recovery attribute", &ast.Attributed{Expr: &ast.Top{}, Attrs: []*ast.Attribute{{Name: "recover", KwArgs: map[string]any{"skip": &ast.Cut{}}}}}, true, true},
 	} {
 		t.Run(test.name, func(t *testing.T) {
 			sure := map[string]bool{"known": true}
@@ -67,10 +67,10 @@ func TestPolledSuccessFacts(t *testing.T) {
 }
 
 func TestPolledSuccessFixedPoint(t *testing.T) {
-	rules := []*grammar.RuleDef{
-		{Name: "main", Expr: &grammar.Ref{Name: "later"}},
-		{Name: "later", Expr: &grammar.Top{}},
-		{Name: "cycle", Expr: &grammar.Top{}},
+	rules := []*ast.RuleDef{
+		{Name: "main", Expr: &ast.Ref{Name: "later"}},
+		{Name: "later", Expr: &ast.Top{}},
+		{Name: "cycle", Expr: &ast.Top{}},
 	}
 	cyclic := map[string]bool{"cycle": true}
 	polls := 0
@@ -82,25 +82,25 @@ func TestPolledSuccessFixedPoint(t *testing.T) {
 }
 
 func TestSharedProofCancellation(t *testing.T) {
-	tops, bottoms := make([]grammar.Expr, 1024), make([]grammar.Expr, 1024)
-	attrs := make([]*grammar.Attribute, 1024)
-	rules := make([]*grammar.RuleDef, 1024)
+	tops, bottoms := make([]ast.Expr, 1024), make([]ast.Expr, 1024)
+	attrs := make([]*ast.Attribute, 1024)
+	rules := make([]*ast.RuleDef, 1024)
 	cyclic := map[string]bool{}
 	for i := range tops {
-		tops[i], bottoms[i] = &grammar.Top{}, &grammar.Bottom{}
-		attrs[i] = &grammar.Attribute{Name: "error"}
+		tops[i], bottoms[i] = &ast.Top{}, &ast.Bottom{}
+		attrs[i] = &ast.Attribute{Name: "error"}
 		name := fmt.Sprint(i)
-		rules[i] = &grammar.RuleDef{Name: name, Expr: &grammar.Top{}}
+		rules[i] = &ast.RuleDef{Name: name, Expr: &ast.Top{}}
 		cyclic[name] = true // Excluded rules still require bounded polling.
 	}
 	for name, run := range map[string]func(func()){
-		"success": func(p func()) { AlwaysSucceedsWithPoll(&grammar.Seq{Items: tops}, nil, p) },
-		"failure": func(p func()) { AlwaysSucceedsWithPoll(&grammar.Not{Expr: &grammar.Choice{Alts: bottoms}}, nil, p) },
-		"cut":     func(p func()) { HasLooseCutWithPoll(&grammar.Seq{Items: tops}, p) },
+		"success": func(p func()) { AlwaysSucceedsWithPoll(&ast.Seq{Items: tops}, nil, p) },
+		"failure": func(p func()) { AlwaysSucceedsWithPoll(&ast.Not{Expr: &ast.Choice{Alts: bottoms}}, nil, p) },
+		"cut":     func(p func()) { HasLooseCutWithPoll(&ast.Seq{Items: tops}, p) },
 		"failure attributes": func(p func()) {
-			AlwaysSucceedsWithPoll(&grammar.Not{Expr: &grammar.Attributed{Expr: &grammar.Bottom{}, Attrs: attrs}}, nil, p)
+			AlwaysSucceedsWithPoll(&ast.Not{Expr: &ast.Attributed{Expr: &ast.Bottom{}, Attrs: attrs}}, nil, p)
 		},
-		"cut attributes": func(p func()) { HasLooseCutWithPoll(&grammar.Attributed{Expr: &grammar.Top{}, Attrs: attrs}, p) },
+		"cut attributes": func(p func()) { HasLooseCutWithPoll(&ast.Attributed{Expr: &ast.Top{}, Attrs: attrs}, p) },
 		"excluded rules": func(p func()) { SucceedingRulesWithPoll(rules, cyclic, p) },
 	} {
 		t.Run(name, func(t *testing.T) {

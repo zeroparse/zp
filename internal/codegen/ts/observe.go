@@ -3,8 +3,8 @@ package tsgen
 import (
 	"fmt"
 
-	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/compile"
+	"zeroparse.dev/zp/pkg/grammar/ast"
 )
 
 func (g *Generator) tracePlainCall(r *compile.Rule, name string) string {
@@ -27,27 +27,27 @@ function %s(p: Parser): R {
 	return body
 }
 
-func (g *Generator) traceSkipped(expr grammar.Expr) string {
+func (g *Generator) traceSkipped(expr ast.Expr) string {
 	if !g.Observability {
 		return ""
 	}
 	for {
 		switch e := expr.(type) {
-		case *grammar.Seq:
+		case *ast.Seq:
 			if len(e.Items) == 0 {
 				return ""
 			}
 			expr = e.Items[0]
-		case *grammar.Capture:
+		case *ast.Capture:
 			expr = e.Expr
-		case *grammar.Atomic:
+		case *ast.Atomic:
 			expr = e.Expr
-		case *grammar.Discard:
+		case *ast.Discard:
 			expr = e.Expr
-		case *grammar.Ref:
+		case *ast.Ref:
 			min := 0
 			if e.Level != "" {
-				for i, l := range g.Prog.ByName[e.Name].Def.Expr.(*grammar.OperatorsRule).Levels {
+				for i, l := range g.Prog.ByName[e.Name].Def.Expr.(*ast.OperatorsRule).Levels {
 					if l.Name == e.Level {
 						min = i
 					}

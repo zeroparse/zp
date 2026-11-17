@@ -348,13 +348,13 @@ func engineTarget() *gogen.Target {
 		case "opr.level":
 			return a[0] + ".Level"
 		case "opr.infix":
-			return a[0] + ".Kind == grammar.Infix"
+			return a[0] + ".Kind == ast.Infix"
 		case "opr.postfix":
-			return a[0] + ".Kind == grammar.Postfix"
+			return a[0] + ".Kind == ast.Postfix"
 		case "opr.right":
-			return a[0] + ".Assoc == grammar.AssocRight"
+			return a[0] + ".Assoc == ast.AssocRight"
 		case "opr.nonAssoc":
-			return a[0] + ".Assoc == grammar.AssocNone"
+			return a[0] + ".Assoc == ast.AssocNone"
 		case "opr.scope":
 			return "len(" + a[0] + ".Scope.Names)"
 		case "opr.hasSkip":
@@ -603,7 +603,7 @@ func engineTarget() *gogen.Target {
 		case "opr.hasSkip":
 			return a[0] + ".OperatorsRule.Skip == nil", true
 		case "opr.infix":
-			return a[0] + ".Kind != grammar.Infix", true
+			return a[0] + ".Kind != ast.Infix", true
 		case "rec.none":
 			return "!" + a[0] + ".None()", true
 		case "memo.pinned":
@@ -697,7 +697,7 @@ p.ctxKeep(&%s, %s, %s, %s, %s, e)`, a[8], a[5], a[6], a[7], a[9], a[10], a[11], 
 // engineImportPaths are the packages that the printed engine code may name, by package name.
 var engineImportPaths = []struct{ name, path string }{
 	{"compile", "zeroparse.dev/zp/internal/compile"},
-	{"grammar", "zeroparse.dev/zp/grammar"},
+	{"ast", "zeroparse.dev/zp/pkg/grammar/ast"},
 	{"value", "zeroparse.dev/zp/internal/value"},
 	{"coreimpl", "zeroparse.dev/zp/core/impl"},
 	{"core", "zeroparse.dev/zp/core"},

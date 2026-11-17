@@ -28,20 +28,20 @@ import (
 	"fmt"
 	"zeroparse.dev/zp/internal/cancel"
 
-	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/frontend/astfacts"
 	"zeroparse.dev/zp/internal/frontend/check"
 	"zeroparse.dev/zp/internal/frontend/desugar"
 	"zeroparse.dev/zp/internal/frontend/types"
 	"zeroparse.dev/zp/internal/ir/core"
 	"zeroparse.dev/zp/internal/value"
+	"zeroparse.dev/zp/pkg/grammar/ast"
 )
 
 // CoreFrom builds the Core IR of the program: its rules and then its value-free twins, each at
 // the position of its ID. Shapes are those of the value model (internal/compile/value_shape.go);
 // Analyze has not run. If origin is not nil, it records the expression each node is built from
 // (the innermost one, for nodes built from a chain of expressions).
-func CoreFrom(prog Program, origin map[core.Node]grammar.Expr) (*core.Module, error) {
+func CoreFrom(prog Program, origin map[core.Node]ast.Expr) (*core.Module, error) {
 	return CoreProjecting(prog, origin, true)
 }
 
@@ -56,13 +56,13 @@ func CoreControlled(prog Program, control *cancel.Control) (*core.Module, error)
 // CoreProjecting is CoreFrom; if project is false, no repetition gathers the values of a
 // capture (Rule.Projections is ignored), the shape of the values the recognizer's table
 // writes its actions for (the Go generator's projections).
-func CoreProjecting(prog Program, origin map[core.Node]grammar.Expr, project bool) (*core.Module, error) {
+func CoreProjecting(prog Program, origin map[core.Node]ast.Expr, project bool) (*core.Module, error) {
 	return coreModule(prog, origin, project, nil)
 }
 
 // coreModule builds the module of prog under control (nil for none). A program without a checker
 // (see Structural) builds an untyped module.
-func coreModule(prog Program, origin map[core.Node]grammar.Expr, project bool, control *cancel.Control) (*core.Module, error) {
+func coreModule(prog Program, origin map[core.Node]ast.Expr, project bool, control *cancel.Control) (*core.Module, error) {
 	in := prog.CoreInput()
 	all := in.Rules
 	b := &coreBuilder{prog: prog, in: in, chk: prog.Checker(), m: &core.Module{Rules: make([]*core.Rule, len(all))}, origin: origin,
@@ -101,7 +101,7 @@ func coreModule(prog Program, origin map[core.Node]grammar.Expr, project bool, c
 		b.m.Types = map[string]core.Type{}
 		k := &check.TypeResolver{Prog: b.chk}
 		for name := range in.Types {
-			b.m.Types[name] = k.ResolveNamed(name, grammar.Pos{})
+			b.m.Types[name] = k.ResolveNamed(name, ast.Pos{})
 		}
 	}
 	if in.Vars != nil {
@@ -124,9 +124,9 @@ type coreBuilder struct {
 	// proj holds the projected repetition captures of the rule being built (ruleProjections).
 	proj map[string]string
 	// final is the action whose value is the result of the rule or line being built.
-	final grammar.Term
+	final ast.Term
 	// origin, if not nil, records the expression each node is built from.
-	origin map[core.Node]grammar.Expr
+	origin map[core.Node]ast.Expr
 	// rec holds the checked types of the program, nil if it has none.
 	rec *check.ValueRecord
 	// shapes computes the shapes of the program's expressions, nil if it has no checker.
@@ -136,23 +136,23 @@ type coreBuilder struct {
 	classes map[string]*core.Class
 	// stream is the #stream of the rule being built that makes a Stream: its first #stream in
 	// walk order, if that one is at the top of the body (check.StreamTops), else nil.
-	stream grammar.Expr
+	stream ast.Expr
 	// looks is the number of lookaheads built (core.Look.Site).
 	looks int
 	// resumes is the number of resumable repetitions built (core.Repeat.Resume).
 	resumes int
 	// missing numbers the #missing attributes (core.Missing.Site).
-	missing map[*grammar.Attribute]int
+	missing map[*ast.Attribute]int
 	// streaming reports that the repetition being built delivers stream elements (core.Stream).
 	streaming bool
 }
 
 // callLevel returns the minimum binding level of a call of the rule r (core.Call.Level).
-func callLevel(e *grammar.Ref, r *Rule) (int, error) {
+func callLevel(e *ast.Ref, r *Rule) (int, error) {
 	if e.Level == "" {
 		return 0, nil
 	}
-	o, ok := r.Def.Expr.(*grammar.OperatorsRule)
+	o, ok := r.Def.Expr.(*ast.OperatorsRule)
 	if !ok {
 		return 0, fmt.Errorf("rule %s has no Operators Rule levels", e.Name)
 	}
@@ -176,7 +176,7 @@ func (b *coreBuilder) exp(d string) core.ExpID {
 }
 
 // class returns the class of a character class expression, interning it.
-func (b *coreBuilder) class(e *grammar.CharClass) *core.Class {
+func (b *coreBuilder) class(e *ast.CharClass) *core.Class {
 	d := core.CharClassString(e)
 	key := fmt.Sprint(e.Negated, e.Ranges, d)
 	if c, ok := b.classes[key]; ok {
@@ -199,7 +199,7 @@ type coreScope struct {
 }
 
 // scope returns a scope with the slots names for the scope body e.
-func (b *coreBuilder) scope(names []string, e grammar.Expr) *coreScope {
+func (b *coreBuilder) scope(names []string, e ast.Expr) *coreScope {
 	s := &coreScope{names: names}
 	if b.rec != nil {
 		s.types = b.rec.Scopes[e]
@@ -251,7 +251,7 @@ func (b *coreBuilder) rule(r *Rule) (*core.Rule, error) {
 	}
 	cr.Policy = core.Policy{Memo: r.Memo, Transient: r.Transient, Plain: r.Plain, Rec: r.Rec, Leader: r.Leader, Splice: r.Splice,
 		NoValue: r.Novalue, Seen: r.Seen, Vars: r.Vars}
-	if o, ok := r.Def.Expr.(*grammar.OperatorsRule); ok {
+	if o, ok := r.Def.Expr.(*ast.OperatorsRule); ok {
 		b.proj = nil
 		body, err := b.operatorsRule(o)
 		if err != nil {
@@ -310,7 +310,7 @@ func (b *coreBuilder) rule(r *Rule) (*core.Rule, error) {
 	return cr, nil
 }
 
-func (b *coreBuilder) operatorsRule(e *grammar.OperatorsRule) (*core.OperatorsRule, error) {
+func (b *coreBuilder) operatorsRule(e *ast.OperatorsRule) (*core.OperatorsRule, error) {
 	o := &core.OperatorsRule{}
 	var err error
 	if e.Skip != nil {
@@ -341,7 +341,7 @@ func (b *coreBuilder) operatorsRule(e *grammar.OperatorsRule) (*core.OperatorsRu
 
 // opLine builds an Operators Rule line, the skip line if skip. Lines whose value is unused are
 // matched without values, as are the skip line and all lines of a value-free rule.
-func (b *coreBuilder) opLine(e grammar.Expr, action grammar.Term, operator, skip bool) (*core.OpLine, error) {
+func (b *coreBuilder) opLine(e ast.Expr, action ast.Term, operator, skip bool) (*core.OpLine, error) {
 	var locals []string
 	if operator {
 		locals = []string{"lhs", "rhs", "op"}
@@ -372,7 +372,7 @@ func (b *coreBuilder) opLine(e grammar.Expr, action grammar.Term, operator, skip
 }
 
 // shape returns the static shape of the value of e.
-func (b *coreBuilder) shape(e grammar.Expr) core.Shape {
+func (b *coreBuilder) shape(e ast.Expr) core.Shape {
 	chk := b.chk
 	if chk == nil {
 		return core.Shape{} // an untyped module has no shapes
@@ -385,12 +385,12 @@ func (b *coreBuilder) shape(e grammar.Expr) core.Shape {
 // coreLayout returns the frame layout of a scope with the body e: the captures written in it in
 // the order they are first met, unreachable ones included, following the build policy of the
 // rule r with the projections proj.
-func coreLayout(r *Rule, proj map[string]string, e grammar.Expr, build bool) *coreScope {
+func coreLayout(r *Rule, proj map[string]string, e ast.Expr, build bool) *coreScope {
 	s := &coreScope{}
-	var visit func(grammar.Expr, bool)
-	visit = func(e grammar.Expr, build bool) {
+	var visit func(ast.Expr, bool)
+	visit = func(e ast.Expr, build bool) {
 		switch e := e.(type) {
-		case *grammar.Capture:
+		case *ast.Capture:
 			if !build && r.PredCaps != nil && !r.PredCaps.Records(e) {
 				if r.PredCaps.Slotted(e) {
 					s.slot(e.Name)
@@ -402,29 +402,29 @@ func coreLayout(r *Rule, proj map[string]string, e grammar.Expr, build bool) *co
 			if proj[e.Name] == "" {
 				visit(e.Expr, true)
 			}
-		case *grammar.Seq:
+		case *ast.Seq:
 			for _, it := range e.Items {
 				visit(it, build)
 			}
-		case *grammar.Choice:
+		case *ast.Choice:
 			for _, alt := range e.Alts {
 				visit(alt, build)
 			}
-		case *grammar.Repeat:
+		case *ast.Repeat:
 			if !check.ElementScoped(e.Expr) {
 				visit(e.Expr, build)
 			}
-		case *grammar.Optional:
+		case *ast.Optional:
 			visit(e.Expr, build)
-		case *grammar.And:
+		case *ast.And:
 			visit(e.Expr, build && check.HasCaptures(e.Expr))
-		case *grammar.Not:
+		case *ast.Not:
 			visit(e.Expr, false)
-		case *grammar.Atomic:
+		case *ast.Atomic:
 			visit(e.Expr, false)
-		case *grammar.Discard:
+		case *ast.Discard:
 			visit(e.Expr, false)
-		case *grammar.Attributed:
+		case *ast.Attributed:
 			visit(e.Expr, build)
 			for _, a := range e.Attrs {
 				if a.Name == "recover" {
@@ -440,14 +440,14 @@ func coreLayout(r *Rule, proj map[string]string, e grammar.Expr, build bool) *co
 
 // set sets the attributes of the node n built from the expression e that the builder sets: whether
 // its value is wanted, and its shape.
-func (b *coreBuilder) set(n core.Node, e grammar.Expr, want bool) core.Node {
+func (b *coreBuilder) set(n core.Node, e ast.Expr, want bool) core.Node {
 	a := n.Attrs()
 	a.Want, a.Shape = want, b.shape(e)
 	return n
 }
 
 // expr builds the expression e in the scope s; build reports whether its value is wanted.
-func (b *coreBuilder) expr(e grammar.Expr, s *coreScope, build bool) (core.Node, error) {
+func (b *coreBuilder) expr(e ast.Expr, s *coreScope, build bool) (core.Node, error) {
 	n, err := b.node(e, s, build)
 	if err == nil && b.origin != nil {
 		if _, ok := b.origin[n]; !ok {
@@ -457,20 +457,20 @@ func (b *coreBuilder) expr(e grammar.Expr, s *coreScope, build bool) (core.Node,
 	return n, err
 }
 
-func (b *coreBuilder) node(e grammar.Expr, s *coreScope, build bool) (core.Node, error) {
+func (b *coreBuilder) node(e ast.Expr, s *coreScope, build bool) (core.Node, error) {
 	b.m.Control.Poll()
 	switch e := e.(type) {
-	case *grammar.Literal:
+	case *ast.Literal:
 		n := &core.Lit{Text: value.LiteralValue(e.Value), Fold: e.IgnoreCase}
 		if n.Text != "" {
 			n.Exp = b.exp(core.LiteralDesc(e))
 		}
 		return b.set(n, e, build), nil
-	case *grammar.CharClass:
+	case *ast.CharClass:
 		return b.set(&core.ClassNode{Class: b.class(e)}, e, build), nil
-	case *grammar.Any:
+	case *ast.Any:
 		return b.set(&core.Any{}, e, build), nil
-	case *grammar.Ref:
+	case *ast.Ref:
 		r := b.in.ByName[e.Name]
 		if r == nil {
 			return nil, fmt.Errorf("undefined rule %s", e.Name)
@@ -483,7 +483,7 @@ func (b *coreBuilder) node(e grammar.Expr, s *coreScope, build bool) (core.Node,
 			r = r.Twin
 		}
 		return b.set(&core.Call{Rule: r.ID, Level: level}, e, build), nil
-	case *grammar.Seq:
+	case *ast.Seq:
 		n := &core.Seq{}
 		for _, it := range e.Items {
 			x, err := b.expr(it, s, build)
@@ -493,7 +493,7 @@ func (b *coreBuilder) node(e grammar.Expr, s *coreScope, build bool) (core.Node,
 			n.Items = append(n.Items, x)
 		}
 		return b.set(n, e, build), nil
-	case *grammar.Choice:
+	case *ast.Choice:
 		n := &core.Choice{}
 		for _, alt := range e.Alts {
 			x, err := b.expr(alt, s, build)
@@ -503,15 +503,15 @@ func (b *coreBuilder) node(e grammar.Expr, s *coreScope, build bool) (core.Node,
 			n.Alts = append(n.Alts, &core.Alt{Body: x})
 		}
 		return b.set(n, e, build), nil
-	case *grammar.Repeat:
+	case *ast.Repeat:
 		return b.repeat(e, s, build, "")
-	case *grammar.Optional:
+	case *ast.Optional:
 		x, err := b.expr(e.Expr, s, build)
 		if err != nil {
 			return nil, err
 		}
 		return b.set(&core.Opt{Body: x}, e, build), nil
-	case *grammar.And:
+	case *ast.And:
 		x, err := b.expr(e.Expr, s, build && check.HasCaptures(e.Expr))
 		if err != nil {
 			return nil, err
@@ -522,26 +522,26 @@ func (b *coreBuilder) node(e grammar.Expr, s *coreScope, build bool) (core.Node,
 		}
 		b.looks++
 		return b.set(&core.Look{Body: x, Site: b.looks}, e, false), nil
-	case *grammar.Not:
+	case *ast.Not:
 		x, err := b.expr(e.Expr, s, false)
 		if err != nil {
 			return nil, err
 		}
 		b.looks++
 		return b.set(&core.Look{Body: x, Neg: true, Site: b.looks}, e, false), nil
-	case *grammar.Atomic:
+	case *ast.Atomic:
 		x, err := b.expr(e.Expr, s, false)
 		if err != nil {
 			return nil, err
 		}
 		return b.set(&core.Text{Body: x}, e, build), nil
-	case *grammar.Discard:
+	case *ast.Discard:
 		x, err := b.expr(e.Expr, s, false)
 		if err != nil {
 			return nil, err
 		}
 		return b.set(&core.Drop{Body: x}, e, false), nil
-	case *grammar.Capture:
+	case *ast.Capture:
 		if pc := b.cur.PredCaps; !build && pc != nil && !pc.Records(e) {
 			// Captures that no predicate can read build nothing where no value is wanted; one of a
 			// name that a predicate reads keeps its slot, which it leaves unset.
@@ -553,7 +553,7 @@ func (b *coreBuilder) node(e grammar.Expr, s *coreScope, build bool) (core.Node,
 		slot := s.slot(e.Name)
 		n := &core.Capture{Slot: slot, Name: e.Name}
 		if field := b.proj[e.Name]; field != "" {
-			rep, ok := e.Expr.(*grammar.Repeat)
+			rep, ok := e.Expr.(*ast.Repeat)
 			if !ok {
 				return nil, fmt.Errorf("projected capture %s is not a repetition", e.Name)
 			}
@@ -573,22 +573,22 @@ func (b *coreBuilder) node(e grammar.Expr, s *coreScope, build bool) (core.Node,
 			n.Body = x
 		}
 		return b.set(n, e, build), nil
-	case *grammar.Cut:
+	case *ast.Cut:
 		return b.set(&core.Cut{}, e, build), nil
-	case *grammar.Top:
+	case *ast.Top:
 		return b.set(&core.Succeed{}, e, build), nil
-	case *grammar.Bottom:
+	case *ast.Bottom:
 		return b.set(&core.FailNode{}, e, build), nil
-	case *grammar.BeginInput:
+	case *ast.BeginInput:
 		return b.set(&core.Anchor{Kind: core.BeginInput}, e, build), nil
-	case *grammar.EndInput:
+	case *ast.EndInput:
 		return b.set(&core.Anchor{Kind: core.EndInput}, e, build), nil
-	case *grammar.BeginLine:
+	case *ast.BeginLine:
 		return b.set(&core.Anchor{Kind: core.BeginLine}, e, build), nil
-	case *grammar.EndLine:
+	case *ast.EndLine:
 		return b.set(&core.Anchor{Kind: core.EndLine}, e, build), nil
-	case *grammar.Predicate:
-		if a, ok := e.Term.(*grammar.Bind); ok {
+	case *ast.Predicate:
+		if a, ok := e.Term.(*ast.Bind); ok {
 			t, err := b.term(a.Value, s, nil)
 			if err != nil {
 				return nil, err
@@ -600,7 +600,7 @@ func (b *coreBuilder) node(e grammar.Expr, s *coreScope, build bool) (core.Node,
 			return nil, err
 		}
 		return b.set(&core.Pred{Term: t}, e, build), nil
-	case *grammar.Attributed:
+	case *ast.Attributed:
 		return b.attributed(e, len(e.Attrs)-1, s, build)
 	}
 	return nil, fmt.Errorf("unsupported expression %T", e)
@@ -608,9 +608,9 @@ func (b *coreBuilder) node(e grammar.Expr, s *coreScope, build bool) (core.Node,
 
 // firstStream returns the first #stream of body in walk order if it is at the top of body, else
 // nil.
-func firstStream(body grammar.Expr) grammar.Expr {
-	var first grammar.Expr
-	astfacts.WalkExpr(body, func(e grammar.Expr) {
+func firstStream(body ast.Expr) ast.Expr {
+	var first ast.Expr
+	astfacts.WalkExpr(body, func(e ast.Expr) {
 		if first == nil && check.IsStream(e) {
 			first = e
 		}
@@ -622,9 +622,9 @@ func firstStream(body grammar.Expr) grammar.Expr {
 }
 
 // attributed builds e under its attributes Attrs[:i+1], the last one outermost.
-func (b *coreBuilder) attributed(e *grammar.Attributed, i int, s *coreScope, build bool) (core.Node, error) {
+func (b *coreBuilder) attributed(e *ast.Attributed, i int, s *coreScope, build bool) (core.Node, error) {
 	if i < 0 {
-		if rep, ok := e.Expr.(*grammar.Repeat); ok && e == b.stream {
+		if rep, ok := e.Expr.(*ast.Repeat); ok && e == b.stream {
 			b.streaming = true
 			x, err := b.expr(rep, s, build)
 			b.streaming = false
@@ -652,7 +652,7 @@ func (b *coreBuilder) attributed(e *grammar.Attributed, i int, s *coreScope, bui
 			n.Exp = b.exp(desugar.AttributeMessage(a))
 		}
 		// The value of a label is that of its operand: the attributed expression once it recovers.
-		shaped := grammar.Expr(e.Expr)
+		shaped := ast.Expr(e.Expr)
 		if i == len(e.Attrs)-1 {
 			shaped = e
 		}
@@ -687,14 +687,14 @@ func (b *coreBuilder) attributed(e *grammar.Attributed, i int, s *coreScope, bui
 		if err != nil {
 			return nil, err
 		}
-		lit, ok := e.Expr.(*grammar.Literal)
+		lit, ok := e.Expr.(*ast.Literal)
 		if !ok || lit.Value == "" {
 			return nil, fmt.Errorf("#missing on %T, not a nonempty literal", e.Expr)
 		}
 		l := &core.Lit{Text: value.LiteralValue(lit.Value), Fold: lit.IgnoreCase, Exp: b.exp(core.LiteralDesc(lit))}
 		b.set(l, lit, x.Attrs().Want)
 		if b.missing == nil {
-			b.missing = map[*grammar.Attribute]int{}
+			b.missing = map[*ast.Attribute]int{}
 		}
 		site := b.missing[a]
 		if site == 0 {
@@ -710,7 +710,7 @@ func (b *coreBuilder) attributed(e *grammar.Attributed, i int, s *coreScope, bui
 
 // repeat builds a repetition; with field, a projected repetition gathering the values of the
 // capture field of its elements.
-func (b *coreBuilder) repeat(e *grammar.Repeat, s *coreScope, build bool, field string) (core.Node, error) {
+func (b *coreBuilder) repeat(e *ast.Repeat, s *coreScope, build bool, field string) (core.Node, error) {
 	n := &core.Repeat{Min: e.Min, Max: e.Max, Project: field, Site: b.prog.SkipSite(e), ScanSite: b.prog.ScanSite(e)}
 	stream := b.streaming
 	b.streaming = false
@@ -747,9 +747,9 @@ func (b *coreBuilder) repeat(e *grammar.Repeat, s *coreScope, build bool, field 
 }
 
 // singleChar reports that e is a character class or ".".
-func singleChar(e grammar.Expr) bool {
+func singleChar(e ast.Expr) bool {
 	switch e.(type) {
-	case *grammar.CharClass, *grammar.Any:
+	case *ast.CharClass, *ast.Any:
 		return true
 	}
 	return false
@@ -757,8 +757,8 @@ func singleChar(e grammar.Expr) bool {
 
 // term builds the term t in the scope s, with its checked type; env maps the names of lambda
 // parameters and Operators Rule locals in scope to their locals.
-func (b *coreBuilder) term(t grammar.Term, s *coreScope, env map[string]*core.Local) (core.Term, error) {
-	if g, ok := t.(*grammar.TermGroup); ok {
+func (b *coreBuilder) term(t ast.Term, s *coreScope, env map[string]*core.Local) (core.Term, error) {
+	if g, ok := t.(*ast.TermGroup); ok {
 		return b.term(g.Term, s, env)
 	}
 	x, err := b.termNode(t, s, env)
@@ -773,18 +773,18 @@ func (b *coreBuilder) term(t grammar.Term, s *coreScope, env map[string]*core.Lo
 	return x, nil
 }
 
-func (b *coreBuilder) termNode(t grammar.Term, s *coreScope, env map[string]*core.Local) (core.Term, error) {
-	sub := func(x grammar.Term) (core.Term, error) { return b.term(x, s, env) }
+func (b *coreBuilder) termNode(t ast.Term, s *coreScope, env map[string]*core.Local) (core.Term, error) {
+	sub := func(x ast.Term) (core.Term, error) { return b.term(x, s, env) }
 	switch t := t.(type) {
-	case *grammar.IntLit:
+	case *ast.IntLit:
 		return &core.Const{Value: t.Value}, nil
-	case *grammar.StringLit:
+	case *ast.StringLit:
 		return &core.Const{Value: t.Value}, nil
-	case *grammar.BoolLit:
+	case *ast.BoolLit:
 		return &core.Const{Value: t.Value}, nil
-	case *grammar.NilLit:
+	case *ast.NilLit:
 		return &core.Const{Value: nil}, nil
-	case *grammar.CaptureRef:
+	case *ast.CaptureRef:
 		if l, ok := env[t.Name]; ok {
 			ref := *l
 			return &ref, nil
@@ -794,16 +794,16 @@ func (b *coreBuilder) termNode(t grammar.Term, s *coreScope, env map[string]*cor
 			return nil, fmt.Errorf("capture %s is not in scope %v", t.Name, s.names)
 		}
 		return &core.SlotRef{Slot: slot, Name: t.Name}, nil
-	case *grammar.VarRef:
+	case *ast.VarRef:
 		return &core.VarRef{Name: t.Name}, nil
-	case *grammar.Member:
+	case *ast.Member:
 		x, err := sub(t.X)
 		if err != nil {
 			return nil, err
 		}
 		field, _ := check.ProjectionField(t.Name)
 		return &core.Member{X: x, Name: t.Name, Field: field}, nil
-	case *grammar.New:
+	case *ast.New:
 		if len(t.Args) != 0 {
 			x, err := sub(t.Args[0])
 			if err != nil {
@@ -820,11 +820,11 @@ func (b *coreBuilder) termNode(t grammar.Term, s *coreScope, env map[string]*cor
 			return &core.Convert{NodeType: n.Name, X: x, Proven: proven}, nil
 		}
 		name := t.Type
-		var spec *grammar.TypeDef
+		var spec *ast.TypeDef
 		if b.chk != nil {
 			name, spec = b.chk.StructType(t.Type)
 		}
-		n := &core.New{Type: name, Final: grammar.Term(t) == b.final}
+		n := &core.New{Type: name, Final: ast.Term(t) == b.final}
 		if b.chk != nil {
 			for _, f := range check.DefFields(spec) {
 				n.Declared = append(n.Declared, f.Name)
@@ -838,7 +838,7 @@ func (b *coreBuilder) termNode(t grammar.Term, s *coreScope, env map[string]*cor
 			n.Fields = append(n.Fields, core.FieldInit{Name: f.Name, Value: v})
 		}
 		return n, nil
-	case *grammar.ListConstructor:
+	case *ast.ListConstructor:
 		n := &core.Builtin{Func: "list"}
 		for _, x := range t.Items {
 			v, err := sub(x)
@@ -848,7 +848,7 @@ func (b *coreBuilder) termNode(t grammar.Term, s *coreScope, env map[string]*cor
 			n.Args = append(n.Args, v)
 		}
 		return n, nil
-	case *grammar.TupleLit:
+	case *ast.TupleLit:
 		n := &core.Tuple{}
 		for _, x := range t.Elems {
 			v, err := sub(x)
@@ -858,7 +858,7 @@ func (b *coreBuilder) termNode(t grammar.Term, s *coreScope, env map[string]*cor
 			n.Elems = append(n.Elems, v)
 		}
 		return n, nil
-	case *grammar.Call:
+	case *ast.Call:
 		n := &core.Builtin{Func: t.Func}
 		for _, a := range t.Args {
 			v, err := sub(a)
@@ -868,7 +868,7 @@ func (b *coreBuilder) termNode(t grammar.Term, s *coreScope, env map[string]*cor
 			n.Args = append(n.Args, v)
 		}
 		return n, nil
-	case *grammar.Lambda:
+	case *ast.Lambda:
 		l := &core.Lambda{Params: t.Params}
 		inner := make(map[string]*core.Local, len(env)+len(t.Params))
 		for k, v := range env {
@@ -883,7 +883,7 @@ func (b *coreBuilder) termNode(t grammar.Term, s *coreScope, env map[string]*cor
 		}
 		l.Body = body
 		return l, nil
-	case *grammar.Binary:
+	case *ast.Binary:
 		l, err := sub(t.L)
 		if err != nil {
 			return nil, err
@@ -893,13 +893,13 @@ func (b *coreBuilder) termNode(t grammar.Term, s *coreScope, env map[string]*cor
 			return nil, err
 		}
 		return &core.Binary{Op: t.Op, L: l, R: r}, nil
-	case *grammar.Unary:
+	case *ast.Unary:
 		x, err := sub(t.X)
 		if err != nil {
 			return nil, err
 		}
 		return &core.Unary{Op: t.Op, X: x}, nil
-	case *grammar.Cast:
+	case *ast.Cast:
 		x, err := sub(t.X)
 		if err != nil {
 			return nil, err
@@ -919,7 +919,7 @@ func (b *coreBuilder) termNode(t grammar.Term, s *coreScope, env map[string]*cor
 // FollowRepeats returns functions that, once the scan pass has run, give the scan that took the
 // place of each repetition with an origin the origin of the repetition. A scan that took the place
 // of a Stream gets the origin of the Stream's repetition.
-func FollowRepeats(m *core.Module, origin map[core.Node]grammar.Expr) []func() {
+func FollowRepeats(m *core.Module, origin map[core.Node]ast.Expr) []func() {
 	var out []func()
 	visit := func(at func() core.Node) {
 		rep, ok := at().(*core.Repeat)

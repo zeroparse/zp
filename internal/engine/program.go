@@ -7,7 +7,6 @@ import (
 	"sync"
 	"sync/atomic"
 
-	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/bytecode"
 	"zeroparse.dev/zp/internal/cancel"
 	"zeroparse.dev/zp/internal/compile"
@@ -16,6 +15,7 @@ import (
 	"zeroparse.dev/zp/internal/engine/vm"
 	"zeroparse.dev/zp/internal/frontend/desugar"
 	ir "zeroparse.dev/zp/internal/ir/core"
+	"zeroparse.dev/zp/pkg/grammar/ast"
 )
 
 // sharedProgram names the part of a program that every backend shares, so that Program embeds it
@@ -199,7 +199,7 @@ func (p *Program) DefaultValue() bool { return p.MakesDefaultValue }
 
 // SourceGrammar returns the grammar the program was compiled from: the grammar as written, without
 // the hidden rules that inline actions are lowered to.
-func (p *Program) SourceGrammar() *grammar.Grammar {
+func (p *Program) SourceGrammar() *ast.Grammar {
 	if p.Source != nil {
 		return p.Source
 	}
@@ -282,17 +282,17 @@ func (prog *Program) ShapeSignature(name string, poll func()) (string, bool) {
 func (prog *Program) ValueType(name string) (string, bool) { return prog.Static().ValueType(name) }
 
 // Compile compiles the grammar.
-func Compile(g *grammar.Grammar, opts Options) (*Program, error) {
+func Compile(g *ast.Grammar, opts Options) (*Program, error) {
 	return compileChecked(g, opts, nil)
 }
 
 // build builds a program from the grammar. If flags is not nil, it skips static analysis and
 // type checking and uses flags instead.
-func build(g *grammar.Grammar, opts compile.Options, flags []compile.RuleFlags) (*Program, error) {
+func build(g *ast.Grammar, opts compile.Options, flags []compile.RuleFlags) (*Program, error) {
 	return buildControlled(g, opts, flags, nil)
 }
 
-func buildControlled(g *grammar.Grammar, opts compile.Options, flags []compile.RuleFlags, control *cancel.Control) (*Program, error) {
+func buildControlled(g *ast.Grammar, opts compile.Options, flags []compile.RuleFlags, control *cancel.Control) (*Program, error) {
 	names := desugar.InlineNames{}
 	prog, err := compile.Check(g, opts, flags, names, control)
 	if err != nil {
@@ -304,7 +304,7 @@ func buildControlled(g *grammar.Grammar, opts compile.Options, flags []compile.R
 // compileChecked builds the program of g and checks its declarations of linear cost. The programs
 // that a compiled program builds again from its grammar, for other modes, skip the check, which
 // the first compilation made.
-func compileChecked(g *grammar.Grammar, opts compile.Options, control *cancel.Control) (*Program, error) {
+func compileChecked(g *ast.Grammar, opts compile.Options, control *cancel.Control) (*Program, error) {
 	prog, err := buildControlled(g, opts, nil, control)
 	if err != nil {
 		return nil, err
@@ -325,7 +325,7 @@ func compileChecked(g *grammar.Grammar, opts compile.Options, control *cancel.Co
 // and its passes, not the closures. Shared metadata and individual operations
 // still have uncancellable stretches.
 // This is not a wall-clock latency guarantee.
-func CompileContext(ctx context.Context, g *grammar.Grammar, opts Options) (prog *Program, err error) {
+func CompileContext(ctx context.Context, g *ast.Grammar, opts Options) (prog *Program, err error) {
 	if err := ctx.Err(); err != nil {
 		return nil, err
 	}

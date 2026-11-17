@@ -5,8 +5,8 @@ import (
 	"regexp"
 	"strings"
 
-	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/compile"
+	"zeroparse.dev/zp/pkg/grammar/ast"
 )
 
 // Flat and framed rules of the Node and recognizer tables, as the Flow IR printer shapes them.
@@ -179,10 +179,10 @@ func (g *Generator) leanRuleText(d *flatRule) string {
 	return b.String()
 }
 
-func exprRecovers(e grammar.Expr) bool {
+func exprRecovers(e ast.Expr) bool {
 	found := false
-	compile.WalkExpr(e, func(e grammar.Expr) {
-		if e, ok := e.(*grammar.Attributed); ok {
+	compile.WalkExpr(e, func(e ast.Expr) {
+		if e, ok := e.(*ast.Attributed); ok {
 			for _, a := range e.Attrs {
 				if a.Name == "recover" {
 					found = true

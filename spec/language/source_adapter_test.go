@@ -10,9 +10,9 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/core"
-	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/frontend/parser"
 	"zeroparse.dev/zp/internal/frontend/parser/zpparser"
+	"zeroparse.dev/zp/pkg/grammar/ast"
 )
 
 // The generated source parser, with its adapter, must build the grammar that
@@ -25,7 +25,7 @@ import (
 // parser of the canonical grammar with its limits and expectations and builds the public AST from
 // its typed values. It rejects a source with a parser.ErrorList: the lexical errors, then the
 // errors of the grammar or of the checks on the tree.
-func adaptCanonical(src string) (*grammar.Grammar, error) {
+func adaptCanonical(src string) (*ast.Grammar, error) {
 	return parser.Parse(src)
 }
 
@@ -68,7 +68,7 @@ func sourceErrorsOf(err error) ([]parser.SourceError, bool) {
 // grammarJSON returns the JSON form of g, indented one value to a line, and
 // then the Go type of every node the JSON does not name: the JSON of two nodes
 // that hold the same fields, like #atomic and #stream, is the same.
-func grammarJSON(t *testing.T, g *grammar.Grammar) []string {
+func grammarJSON(t *testing.T, g *ast.Grammar) []string {
 	t.Helper()
 	b, err := json.MarshalIndent(g, "", " ")
 	if err != nil {
@@ -135,7 +135,7 @@ func firstDifference(want, got []string) string {
 // such as adaptCanonical, disagree on src: one accepts it and the other does
 // not, or both accept it and build different ASTs. It returns "" when they
 // agree. Where both reject src, only the rejection is compared.
-func grammarDiff(t *testing.T, frontend func(string) (*grammar.Grammar, error), src string) string {
+func grammarDiff(t *testing.T, frontend func(string) (*ast.Grammar, error), src string) string {
 	t.Helper()
 	manual, merr := parser.ParseReference(src)
 	got, err := frontend(src)

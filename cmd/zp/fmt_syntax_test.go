@@ -6,7 +6,7 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/engine"
-	"zeroparse.dev/zp/grammar"
+	"zeroparse.dev/zp/pkg/grammar/ast"
 )
 
 func TestFmtSyntax(t *testing.T) {
@@ -16,7 +16,7 @@ rule main T = "x" #atomic @error(message="x") => T{}`
 	if err != nil {
 		t.Fatal(err)
 	}
-	want := grammar.FormatSyntax(g)
+	want := ast.FormatSyntax(g)
 	file := writeFile(t, "grammar.zp", src)
 	for _, args := range [][]string{{"fmt", "-syntax"}, {"fmt", "-syntax", file}} {
 		out, err := runCLI(t, src, args...)

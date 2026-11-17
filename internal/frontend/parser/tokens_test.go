@@ -5,7 +5,7 @@ import (
 	"strings"
 	"testing"
 
-	"zeroparse.dev/zp/grammar"
+	"zeroparse.dev/zp/pkg/grammar/ast"
 )
 
 func TestTokenize(t *testing.T) {
@@ -37,7 +37,7 @@ func TestTokenize(t *testing.T) {
 
 func TestTokenizeSkipsInvalidCharacters(t *testing.T) {
 	toks := Tokenize("a ` b")
-	if len(toks) != 2 || toks[0].Text != "a" || toks[1].Text != "b" || toks[1].Pos != (grammar.Pos{Line: 1, Col: 5}) {
+	if len(toks) != 2 || toks[0].Text != "a" || toks[1].Text != "b" || toks[1].Pos != (ast.Pos{Line: 1, Col: 5}) {
 		t.Errorf("got %+v", toks)
 	}
 }
@@ -118,7 +118,7 @@ func TestLongRunsOfInvalidCharacters(t *testing.T) {
 	junk := strings.Repeat("`'😀", 1<<19) // 2M characters
 	src := "rule a = \"x\"\n" + junk + "\nrule b = \"y\""
 	g, errs := ParsePartial(src)
-	if len(errs) != 1 || errs[0].Pos != (grammar.Pos{Line: 2, Col: 1}) || !strings.HasPrefix(errs[0].Msg, "unexpected characters") {
+	if len(errs) != 1 || errs[0].Pos != (ast.Pos{Line: 2, Col: 1}) || !strings.HasPrefix(errs[0].Msg, "unexpected characters") {
 		t.Errorf("errors %v", errs[:min(len(errs), 3)])
 	}
 	if len(g.Rules()) != 2 {
@@ -188,7 +188,7 @@ func TestErrorEnd(t *testing.T) {
 			continue
 		}
 		e := errs[0]
-		if e.Msg != tc.msg || e.Pos != (grammar.Pos{Line: tc.line, Col: tc.col}) || e.End != (grammar.Pos{Line: tc.line, Col: tc.end}) {
+		if e.Msg != tc.msg || e.Pos != (ast.Pos{Line: tc.line, Col: tc.col}) || e.End != (ast.Pos{Line: tc.line, Col: tc.end}) {
 			t.Errorf("%s: error %q at %v-%v, want %q at %d:%d-%d", tc.src, e.Msg, e.Pos, e.End, tc.msg, tc.line, tc.col, tc.end)
 		}
 	}
@@ -215,7 +215,7 @@ func TestLineEnds(t *testing.T) {
 			continue
 		}
 		// The layout is the same: the comments are kept and the blank line too.
-		if got, want := grammar.Format(g), "// first\nrule a = b // second\n\nrule b = \"x\"\n"; got != want {
+		if got, want := ast.Format(g), "// first\nrule a = b // second\n\nrule b = \"x\"\n"; got != want {
 			t.Errorf("%q: formatted %q", nl, got)
 		}
 	}

@@ -1,10 +1,10 @@
 package compile
 
 import (
-	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/bytecode"
 	"zeroparse.dev/zp/internal/frontend/check"
 	"zeroparse.dev/zp/internal/frontend/types"
+	"zeroparse.dev/zp/pkg/grammar/ast"
 )
 
 // ValidateModule checks the module m (bytecode.ValidateModule), with the field types parsed against
@@ -33,7 +33,7 @@ func ModuleTypeNames(m *bytecode.Module) map[string]bool {
 
 // ResolveCheck resolves a type for a cast, as a value type. It returns nil for _, which every
 // value fits.
-func (prog *Program) ResolveCheck(t grammar.TypeExpr) types.Ty {
+func (prog *Program) ResolveCheck(t ast.TypeExpr) types.Ty {
 	if t == nil {
 		return nil
 	}
@@ -44,7 +44,7 @@ func (prog *Program) ResolveCheck(t grammar.TypeExpr) types.Ty {
 }
 
 // CastType returns the type cast t checks its value against, or nil if every value fits it.
-func (prog *Program) CastType(t *grammar.Cast) *types.FieldType {
+func (prog *Program) CastType(t *ast.Cast) *types.FieldType {
 	if v, ok := prog.fieldTypes.Load(t); ok {
 		return v.(*types.FieldType)
 	}
@@ -58,7 +58,7 @@ func (prog *Program) CastType(t *grammar.Cast) *types.FieldType {
 
 // CastPos returns the grammar position of the cast t as line and column, or 0, 0 when the program
 // records no source information or the position is unknown.
-func (prog *Program) CastPos(t *grammar.Cast) (int, int) {
+func (prog *Program) CastPos(t *ast.Cast) (int, int) {
 	if !prog.RecordsSourceInfo {
 		return 0, 0
 	}

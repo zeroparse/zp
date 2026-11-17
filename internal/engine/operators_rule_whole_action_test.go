@@ -6,11 +6,11 @@ import (
 	"zeroparse.dev/zp/core"
 	"zeroparse.dev/zp/internal/diagnostic"
 
-	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/codegen"
 	"zeroparse.dev/zp/internal/compile"
 	"zeroparse.dev/zp/internal/testing/codegentest"
 	"zeroparse.dev/zp/internal/value"
+	"zeroparse.dev/zp/pkg/grammar/ast"
 )
 
 // Every compiler path accepts a whole-rule action of an Operators Rule, from source and from a
@@ -23,16 +23,16 @@ func TestOperatorsRuleWholeActionCompiles(t *testing.T) {
 func testOperatorsRuleWholeActionCompiles(t *testing.T) {
 	type outcome struct {
 		message string // the compile error, or "" if the action is valid
-		pos     grammar.Pos
+		pos     ast.Pos
 	}
 	for action, want := range map[string]outcome{
 		"nil":          {},
 		"$value":       {},
 		"(nil)":        {},
 		"($value)":     {},
-		"Unknown{}":    {"Unknown", grammar.Pos{Line: 3, Col: 6}},
-		"(Unknown{})":  {"Unknown", grammar.Pos{Line: 3, Col: 7}},
-		"$lhs":         {"undefined capture $lhs", grammar.Pos{Line: 3, Col: 6}},
+		"Unknown{}":    {"Unknown", ast.Pos{Line: 3, Col: 6}},
+		"(Unknown{})":  {"Unknown", ast.Pos{Line: 3, Col: 7}},
+		"$lhs":         {"undefined capture $lhs", ast.Pos{Line: 3, Col: 6}},
 		"text($value)": {},
 	} {
 		t.Run(action, func(t *testing.T) {
@@ -40,17 +40,17 @@ func testOperatorsRuleWholeActionCompiles(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			data, err := grammar.MarshalJSON(g)
+			data, err := ast.MarshalJSON(g)
 			if err != nil {
 				t.Fatal(err)
 			}
-			decoded, err := grammar.UnmarshalJSON(data)
+			decoded, err := ast.UnmarshalJSON(data)
 			if err != nil {
 				t.Fatal(err)
 			}
 			for _, input := range []struct {
 				name string
-				g    *grammar.Grammar
+				g    *ast.Grammar
 			}{{"source AST", g}, {"JSON AST", decoded}} {
 				t.Run(input.name, func(t *testing.T) {
 					for name, run := range map[string]func() error{
@@ -106,7 +106,7 @@ func testOperatorsRuleWholeActionCompiles(t *testing.T) {
 							}
 						})
 					}
-					unchanged, err := grammar.MarshalJSON(input.g)
+					unchanged, err := ast.MarshalJSON(input.g)
 					if err != nil || string(unchanged) != string(data) {
 						t.Fatalf("compile changed the input AST: %s, %v", unchanged, err)
 					}

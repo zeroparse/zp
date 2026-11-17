@@ -5,11 +5,11 @@ import (
 	"zeroparse.dev/zp/core/impl"
 	ir "zeroparse.dev/zp/internal/ir/core"
 
-	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/compile"
 	"zeroparse.dev/zp/internal/engine/state"
 	"zeroparse.dev/zp/internal/frontend/check"
 	"zeroparse.dev/zp/internal/value"
+	"zeroparse.dev/zp/pkg/grammar/ast"
 )
 
 // Builder builds the closure backend's form of a program from its Core IR (Build): a matcher per
@@ -115,7 +115,7 @@ func (b *Builder) operatorsRule(sr *compile.Rule, cr *ir.Rule, o *ir.OperatorsRu
 			return err
 		}
 		op := &state.OperatorsRuleOp{Id: x.ID, Kind: x.Kind, Assoc: x.Assoc, Level: x.Level, Line: pl}
-		if x.Kind == grammar.Prefix {
+		if x.Kind == ast.Prefix {
 			pr.Prefix = append(pr.Prefix, op)
 		} else {
 			pr.Led = append(pr.Led, op)

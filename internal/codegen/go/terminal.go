@@ -6,10 +6,10 @@ import (
 	"strings"
 	"unicode/utf8"
 
-	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/compile"
 	"zeroparse.dev/zp/internal/ir/core"
 	"zeroparse.dev/zp/internal/value"
+	"zeroparse.dev/zp/pkg/grammar/ast"
 )
 
 // Value-free terminal expressions in lean typed Go parsers.
@@ -36,17 +36,17 @@ const minTerminalLeaves = core.MinTerminalLeaves
 
 // terminalLeaves returns the number of literals and classes of e, and whether e is a terminal
 // expression containing a choice. It returns ok false for any other expression.
-func terminalLeaves(e grammar.Expr) (leaves int, choice, ok bool) {
+func terminalLeaves(e ast.Expr) (leaves int, choice, ok bool) {
 	switch e := e.(type) {
-	case *grammar.Literal:
+	case *ast.Literal:
 		if e.IgnoreCase {
 			// Terminal programs compare exact literals only; a folded literal takes the general path.
 			return 0, false, false
 		}
 		return 1, false, true
-	case *grammar.CharClass:
+	case *ast.CharClass:
 		return 1, false, true
-	case *grammar.Seq:
+	case *ast.Seq:
 		for _, it := range e.Items {
 			n, c, ok := terminalLeaves(it)
 			if !ok {
@@ -55,7 +55,7 @@ func terminalLeaves(e grammar.Expr) (leaves int, choice, ok bool) {
 			leaves, choice = leaves+n, choice || c
 		}
 		return leaves, choice, true
-	case *grammar.Choice:
+	case *ast.Choice:
 		for _, alt := range e.Alts {
 			n, _, ok := terminalLeaves(alt)
 			if !ok {
@@ -64,13 +64,13 @@ func terminalLeaves(e grammar.Expr) (leaves int, choice, ok bool) {
 			leaves += n
 		}
 		return leaves, true, true
-	case *grammar.Optional:
+	case *ast.Optional:
 		return terminalLeaves(e.Expr)
-	case *grammar.Not:
+	case *ast.Not:
 		return terminalLeaves(e.Expr)
-	case *grammar.Discard:
+	case *ast.Discard:
 		return terminalLeaves(e.Expr)
-	case *grammar.Atomic:
+	case *ast.Atomic:
 		return terminalLeaves(e.Expr)
 	}
 	return 0, false, false
@@ -79,7 +79,7 @@ func terminalLeaves(e grammar.Expr) (leaves int, choice, ok bool) {
 // terminalTable returns the package variable that holds e lowered to a TerminalProgram, if e is
 // a value-free terminal expression worth lowering in a lean typed parser, declaring it on first
 // use.
-func (g *Generator) terminalTable(e grammar.Expr) (string, bool) {
+func (g *Generator) terminalTable(e ast.Expr) (string, bool) {
 	if !g.leanTyped() || g.Observability || !g.Opt.On("terminals") {
 		return "", false
 	}
@@ -162,7 +162,7 @@ func (t *terminalProgram) close(at int) {
 	t.code[at+1] = uint16(n)
 }
 
-func (t *terminalProgram) class(e *grammar.CharClass) int {
+func (t *terminalProgram) class(e *ast.CharClass) int {
 	name := t.g.classTable(e)
 	if i, ok := t.classes[name]; ok {
 		return i
@@ -173,10 +173,10 @@ func (t *terminalProgram) class(e *grammar.CharClass) int {
 }
 
 // emit appends the operation of e.
-func (t *terminalProgram) emit(e grammar.Expr) {
+func (t *terminalProgram) emit(e ast.Expr) {
 	g := t.g
 	switch e := e.(type) {
-	case *grammar.Literal:
+	case *ast.Literal:
 		val := value.LiteralValue(e.Value)
 		i, ok := t.literals[val]
 		if !ok {
@@ -187,17 +187,17 @@ func (t *terminalProgram) emit(e grammar.Expr) {
 		t.code = append(t.code, terminalLiteral, 4)
 		t.word(i)
 		t.word(int(g.Desc(strconv.Quote(e.Value))))
-	case *grammar.CharClass:
+	case *ast.CharClass:
 		t.code = append(t.code, terminalClass, 4)
 		t.word(t.class(e))
 		t.word(int(g.Desc(compile.CharClassString(e))))
-	case *grammar.Seq:
+	case *ast.Seq:
 		at := t.open(terminalSeq)
 		for _, it := range e.Items {
 			t.emit(it)
 		}
 		t.close(at)
-	case *grammar.Choice:
+	case *ast.Choice:
 		at := t.open(terminalChoice)
 		run := 0
 		for run < len(e.Alts) {
@@ -236,17 +236,17 @@ func (t *terminalProgram) emit(e grammar.Expr) {
 			t.emit(alt)
 		}
 		t.close(at)
-	case *grammar.Optional:
+	case *ast.Optional:
 		at := t.open(terminalOptional)
 		t.emit(e.Expr)
 		t.close(at)
-	case *grammar.Not:
+	case *ast.Not:
 		at := t.open(terminalNot)
 		t.emit(e.Expr)
 		t.close(at)
-	case *grammar.Discard:
+	case *ast.Discard:
 		t.emit(e.Expr)
-	case *grammar.Atomic:
+	case *ast.Atomic:
 		t.emit(e.Expr)
 	default:
 		panic(fmt.Sprintf("terminalProgram.emit: %T", e))
@@ -256,24 +256,24 @@ func (t *terminalProgram) emit(e grammar.Expr) {
 // first returns the class and expectation of the guard of an alternative, as generator.first
 // finds them for a terminal expression: the first literal or class that the alternative must
 // match first, a literal standing for its first code point.
-func (t *terminalProgram) first(e grammar.Expr) (*grammar.CharClass, compile.ExpID, bool) {
+func (t *terminalProgram) first(e ast.Expr) (*ast.CharClass, compile.ExpID, bool) {
 	g := t.g
 	switch e := e.(type) {
-	case *grammar.Literal:
+	case *ast.Literal:
 		if e.Value == "" || e.IgnoreCase {
 			break
 		}
 		r, _ := utf8.DecodeRuneInString(e.Value)
-		return &grammar.CharClass{Ranges: []grammar.CharRange{{Lo: r, Hi: r}}}, g.Desc(strconv.Quote(e.Value)), true
-	case *grammar.CharClass:
+		return &ast.CharClass{Ranges: []ast.CharRange{{Lo: r, Hi: r}}}, g.Desc(strconv.Quote(e.Value)), true
+	case *ast.CharClass:
 		return e, g.Desc(compile.CharClassString(e)), true
-	case *grammar.Seq:
+	case *ast.Seq:
 		if len(e.Items) > 0 {
 			return t.first(e.Items[0])
 		}
-	case *grammar.Atomic:
+	case *ast.Atomic:
 		return t.first(e.Expr)
-	case *grammar.Discard:
+	case *ast.Discard:
 		return t.first(e.Expr)
 	}
 	return nil, 0, false
@@ -282,19 +282,19 @@ func (t *terminalProgram) first(e grammar.Expr) (*grammar.CharClass, compile.Exp
 // leadingClass returns the character class that e matches first and the expressions it then
 // matches in turn, if e is a class or a sequence that begins with one (through discards and
 // atomic groups, which match as their expressions in a terminal expression).
-func leadingClass(e grammar.Expr) (*grammar.CharClass, []grammar.Expr, bool) {
+func leadingClass(e ast.Expr) (*ast.CharClass, []ast.Expr, bool) {
 	switch e := e.(type) {
-	case *grammar.CharClass:
+	case *ast.CharClass:
 		return e, nil, true
-	case *grammar.Seq:
+	case *ast.Seq:
 		if len(e.Items) > 0 {
 			if c, rest, ok := leadingClass(e.Items[0]); ok {
 				return c, append(rest[:len(rest):len(rest)], e.Items[1:]...), true
 			}
 		}
-	case *grammar.Atomic:
+	case *ast.Atomic:
 		return leadingClass(e.Expr)
-	case *grammar.Discard:
+	case *ast.Discard:
 		return leadingClass(e.Expr)
 	}
 	return nil, nil, false

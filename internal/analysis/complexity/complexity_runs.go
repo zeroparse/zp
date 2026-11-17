@@ -1,9 +1,9 @@
 package complexity
 
 import (
-	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/compile"
 	"zeroparse.dev/zp/internal/frontend/astfacts"
+	"zeroparse.dev/zp/pkg/grammar/ast"
 )
 
 // Run sites in the classifier (see Run Sites in spec/runtime/parsing.md).
@@ -17,7 +17,7 @@ var runSitesOn = false
 
 // runSite reports whether the repetition e is a run site: the records of its walks can be keyed by
 // position, and its element costs a constant outside the calls it makes.
-func (k *classifier) runSite(e *grammar.Repeat) bool {
+func (k *classifier) runSite(e *ast.Repeat) bool {
 	if !runSitesOn || e.Max >= 0 || astfacts.HasLooseCut(e.Expr) {
 		return false
 	}
@@ -29,17 +29,17 @@ func (k *classifier) runSite(e *grammar.Repeat) bool {
 		// is one only if it is a run site of the grammar.
 		if k.baseRuns == nil {
 			k.baseRuns = newClassifierOf(k.g, k.base, k.base, k.facts, k.start, k.control)
-			k.baseRepeats = map[*grammar.Repeat]bool{}
+			k.baseRepeats = map[*ast.Repeat]bool{}
 			for _, r := range k.base {
-				astfacts.WalkExpr(r.Expr, func(x grammar.Expr) {
-					if rep, ok := x.(*grammar.Repeat); ok {
+				astfacts.WalkExpr(r.Expr, func(x ast.Expr) {
+					if rep, ok := x.(*ast.Repeat); ok {
 						k.baseRepeats[rep] = true
 					}
 				})
 			}
 		}
 		if k.runMemo == nil {
-			k.runMemo = map[*grammar.Repeat]bool{}
+			k.runMemo = map[*ast.Repeat]bool{}
 		}
 		k.runMemo[e] = k.baseRepeats[e] && k.baseRuns.runSite(e)
 		return k.runMemo[e]
@@ -47,34 +47,34 @@ func (k *classifier) runSite(e *grammar.Repeat) bool {
 	k.badRules()
 	if k.runRestart == nil {
 		names := make([]string, len(k.rules))
-		byName := map[string]grammar.Expr{}
+		byName := map[string]ast.Expr{}
 		for i, r := range k.rules {
 			names[i] = r.Name
 			byName[r.Name] = r.Expr
 		}
-		k.runRestart = compile.RestartableRepeats(names, func(n string) grammar.Expr { return byName[n] }, k.calls)
+		k.runRestart = compile.RestartableRepeats(names, func(n string) ast.Expr { return byName[n] }, k.calls)
 	}
 	if !k.runRestart[e] {
 		return false
 	}
 	ok := true
-	astfacts.WalkExpr(e.Expr, func(x grammar.Expr) {
+	astfacts.WalkExpr(e.Expr, func(x ast.Expr) {
 		if !ok {
 			return
 		}
 		switch x := x.(type) {
-		case *grammar.Repeat:
+		case *ast.Repeat:
 			ok = x.Max >= 0 || k.runSite(x)
-		case *grammar.OperatorsRule, *grammar.Stream:
+		case *ast.OperatorsRule, *ast.Stream:
 			ok = false
-		case *grammar.Attributed:
+		case *ast.Attributed:
 			ok = !compile.BlocksRunAttrs(x)
-		case *grammar.Ref:
+		case *ast.Ref:
 			ok = k.byName[x.Name] != nil && x.Level == "" && !k.runBad[x.Name]
 		}
 	})
 	if k.runMemo == nil {
-		k.runMemo = map[*grammar.Repeat]bool{}
+		k.runMemo = map[*ast.Repeat]bool{}
 	}
 	k.runMemo[e] = ok
 	return ok
@@ -92,11 +92,11 @@ func (k *classifier) badRules() {
 		if k.an.Cyclic[r.Name] {
 			k.runBad[r.Name] = true
 		}
-		astfacts.WalkExpr(r.Expr, func(x grammar.Expr) {
+		astfacts.WalkExpr(r.Expr, func(x ast.Expr) {
 			switch x := x.(type) {
-			case *grammar.Stream:
+			case *ast.Stream:
 				k.runBad[r.Name] = true
-			case *grammar.Attributed:
+			case *ast.Attributed:
 				if compile.BlocksRunAttrs(x) {
 					k.runBad[r.Name] = true
 				}

@@ -3,18 +3,18 @@ package ref
 import (
 	"testing"
 
-	"zeroparse.dev/zp/grammar"
+	"zeroparse.dev/zp/pkg/grammar/ast"
 )
 
-func cast(x grammar.Term, t grammar.TypeExpr) grammar.Term { return &grammar.Cast{X: x, Type: t} }
-func tref(n string) grammar.TypeExpr                       { return &grammar.TypeRef{Name: n} }
-func nodeOf(t grammar.TypeExpr) grammar.TypeExpr {
-	return &grammar.TypeApp{Name: "node", Args: []grammar.TypeExpr{t}}
+func cast(x ast.Term, t ast.TypeExpr) ast.Term { return &ast.Cast{X: x, Type: t} }
+func tref(n string) ast.TypeExpr               { return &ast.TypeRef{Name: n} }
+func nodeOf(t ast.TypeExpr) ast.TypeExpr {
+	return &ast.TypeApp{Name: "node", Args: []ast.TypeExpr{t}}
 }
 
 // partialTerms read the node p, whose value, type and captures the tests leave unknown (UnknownShape,
 // nil Caps), and the node q, whose captures are known.
-var partialTerms = map[string]grammar.Term{
+var partialTerms = map[string]ast.Term{
 	"p.Start":                mem(capt("p"), "Start"),
 	"p.End":                  mem(capt("p"), "End"),
 	"text(p)":                fn("text", capt("p")),
@@ -25,7 +25,7 @@ var partialTerms = map[string]grammar.Term{
 	"q.$c":                   mem(capt("q"), "$c"),
 	"q.$d":                   mem(capt("q"), "$d"),
 	"len(q)":                 fn("len", capt("q")),
-	"p == nil":               bin("==", capt("p"), &grammar.NilLit{}),
+	"p == nil":               bin("==", capt("p"), &ast.NilLit{}),
 	"p.(node[string])":       cast(capt("p"), nodeOf(tref("string"))),
 	"p.(N)":                  cast(capt("p"), tref("N")),
 	"p.(A)":                  cast(capt("p"), tref("A")),
@@ -33,9 +33,9 @@ var partialTerms = map[string]grammar.Term{
 	"p.(int)":                cast(capt("p"), tref("int")),
 	"foldl over p":           fn("foldl", ilit(0), capt("p"), lam(param("a"), "a", "s")),
 	"map over p":             fn("map", capt("p"), lam(param("s"), "s")),
-	"N{p}.(N)":               cast(&grammar.New{Type: "N", Args: []grammar.Term{capt("p")}}, tref("N")),
-	"A{s}.(N)":               cast(&grammar.New{Type: "A", Args: []grammar.Term{capt("s")}}, tref("N")),
-	"A{s}.(A)":               cast(&grammar.New{Type: "A", Args: []grammar.Term{capt("s")}}, tref("A")),
+	"N{p}.(N)":               cast(&ast.New{Type: "N", Args: []ast.Term{capt("p")}}, tref("N")),
+	"A{s}.(N)":               cast(&ast.New{Type: "A", Args: []ast.Term{capt("s")}}, tref("N")),
+	"A{s}.(A)":               cast(&ast.New{Type: "A", Args: []ast.Term{capt("s")}}, tref("A")),
 	"s.(B)":                  cast(capt("s"), tref("B")),
 	"s.(A)":                  cast(capt("s"), tref("A")),
 	"s.(node[string])":       cast(capt("s"), nodeOf(tref("string"))),
@@ -62,7 +62,7 @@ func partialEnv(p V) *TermEnv {
 	q.Caps = map[string]V{"c": Int(7)}
 	return &TermEnv{
 		Captures: map[string]V{"p": p, "q": q, "s": Node(StringNode, "x", 0, 1, nil, nil)},
-		Aliases:  map[string]grammar.TypeExpr{"A": &grammar.TypeGroup{Type: tref("N")}, "B": nodeOf(tref("string"))},
+		Aliases:  map[string]ast.TypeExpr{"A": &ast.TypeGroup{Type: tref("N")}, "B": nodeOf(tref("string"))},
 		End:      3,
 	}
 }

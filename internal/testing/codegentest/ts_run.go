@@ -17,11 +17,11 @@ import (
 	"unicode/utf8"
 
 	"zeroparse.dev/zp/core"
-	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/codegen"
 	"zeroparse.dev/zp/internal/codegen/ts"
 	"zeroparse.dev/zp/internal/compile"
 	"zeroparse.dev/zp/internal/testing/compiletest"
+	"zeroparse.dev/zp/pkg/grammar/ast"
 )
 
 // NodeTSArgs are the arguments that run a .ts script of a directory written by writeTSFiles.
@@ -45,7 +45,7 @@ var (
 // it: the three files in one scope (runtime, types, parser), without the imports between them. Test
 // hooks append code that reaches the library's internals and parsers' own names this way. The tests
 // of the real file split (gents_split_test.go) compile and run the files as they are written.
-func GenerateTSBundle(g *grammar.Grammar, opts codegen.GenOptions) ([]byte, error) {
+func GenerateTSBundle(g *ast.Grammar, opts codegen.GenOptions) ([]byte, error) {
 	files, err := GenerateTS(g, opts)
 	if err != nil {
 		return nil, err
@@ -54,7 +54,7 @@ func GenerateTSBundle(g *grammar.Grammar, opts codegen.GenOptions) ([]byte, erro
 }
 
 // GenerateTSBundleRaw is GenerateTSBundle with the options as given.
-func GenerateTSBundleRaw(g *grammar.Grammar, opts codegen.GenOptions) ([]byte, error) {
+func GenerateTSBundleRaw(g *ast.Grammar, opts codegen.GenOptions) ([]byte, error) {
 	files, err := GenerateTSRaw(g, opts)
 	if err != nil {
 		return nil, err
@@ -194,32 +194,32 @@ func DiffAt(a, b string) int {
 }
 
 // RunTSGrammarScript generates the TypeScript parser of g, runs script in Node with it and returns the output.
-func RunTSGrammarScript(t *testing.T, g *grammar.Grammar, script string) string {
+func RunTSGrammarScript(t *testing.T, g *ast.Grammar, script string) string {
 	t.Helper()
 	return RunTSGrammarScriptWith(t, g, script, codegen.GenOptions{Start: "main"})
 }
 
 // RunTSGrammarScriptWith is RunTSGrammarScript with the generator options opts.
-func RunTSGrammarScriptWith(t *testing.T, g *grammar.Grammar, script string, opts codegen.GenOptions) string {
+func RunTSGrammarScriptWith(t *testing.T, g *ast.Grammar, script string, opts codegen.GenOptions) string {
 	t.Helper()
 	return runTSGrammarScript(t, g, script, opts, GenerateTSBundle)
 }
 
 // RunTSGrammarScriptRaw is RunTSGrammarScriptWith with the options as given: the parser records
 // expectations only with opts.Expectations.
-func RunTSGrammarScriptRaw(t *testing.T, g *grammar.Grammar, script string, opts codegen.GenOptions) string {
+func RunTSGrammarScriptRaw(t *testing.T, g *ast.Grammar, script string, opts codegen.GenOptions) string {
 	t.Helper()
 	return runTSGrammarScript(t, g, script, opts, GenerateTSBundleRaw)
 }
 
 // RunTSGrammarScriptBundle is RunTSGrammarScriptWith with the bundle that bundle generates, such as
 // a patched GenerateTSBundle.
-func RunTSGrammarScriptBundle(t *testing.T, g *grammar.Grammar, script string, opts codegen.GenOptions, bundle func(*grammar.Grammar, codegen.GenOptions) ([]byte, error)) string {
+func RunTSGrammarScriptBundle(t *testing.T, g *ast.Grammar, script string, opts codegen.GenOptions, bundle func(*ast.Grammar, codegen.GenOptions) ([]byte, error)) string {
 	t.Helper()
 	return runTSGrammarScript(t, g, script, opts, bundle)
 }
 
-func runTSGrammarScript(t *testing.T, g *grammar.Grammar, script string, opts codegen.GenOptions, bundle func(*grammar.Grammar, codegen.GenOptions) ([]byte, error)) string {
+func runTSGrammarScript(t *testing.T, g *ast.Grammar, script string, opts codegen.GenOptions, bundle func(*ast.Grammar, codegen.GenOptions) ([]byte, error)) string {
 	t.Helper()
 	if testing.Short() {
 		t.Skip("runs generated code")

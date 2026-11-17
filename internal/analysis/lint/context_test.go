@@ -8,10 +8,10 @@ import (
 	"strings"
 	"testing"
 
-	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/engine"
 	"zeroparse.dev/zp/internal/frontend/parser"
 	"zeroparse.dev/zp/internal/testing/starttest"
+	"zeroparse.dev/zp/pkg/grammar/ast"
 )
 
 type lintPollContext struct {
@@ -35,7 +35,7 @@ func lintTestContext(t *testing.T, cancelAt int) *lintPollContext {
 	return &lintPollContext{Context: ctx, cancel: cancel, cancelAt: cancelAt}
 }
 
-func lintContextGrammar(t *testing.T, source string) *grammar.Grammar {
+func lintContextGrammar(t *testing.T, source string) *ast.Grammar {
 	t.Helper()
 	g, err := parser.Parse(source)
 	if err != nil {
@@ -90,20 +90,20 @@ func TestLintContextPhaseCancellation(t *testing.T) {
 			case "analysis":
 				testNewAnalysisControlled(g, control)
 			case "success-proof", "failure-proof", "cut-proof":
-				items := make([]grammar.Expr, 1024)
+				items := make([]ast.Expr, 1024)
 				for i := range items {
-					items[i] = &grammar.Top{}
+					items[i] = &ast.Top{}
 					if phase == "failure-proof" {
-						items[i] = &grammar.Bottom{}
+						items[i] = &ast.Bottom{}
 					}
 				}
 				controlled := &analysis{control: control}
 				if phase == "cut-proof" {
-					controlled.hasLooseCut(&grammar.Seq{Items: items})
+					controlled.hasLooseCut(&ast.Seq{Items: items})
 				} else if phase == "failure-proof" {
-					controlled.alwaysSucceeds(&grammar.Not{Expr: &grammar.Choice{Alts: items}})
+					controlled.alwaysSucceeds(&ast.Not{Expr: &ast.Choice{Alts: items}})
 				} else {
-					controlled.alwaysSucceeds(&grammar.Seq{Items: items})
+					controlled.alwaysSucceeds(&ast.Seq{Items: items})
 				}
 			case "dependency-graph":
 				edges := map[string][]string{}
@@ -112,9 +112,9 @@ func TestLintContextPhaseCancellation(t *testing.T) {
 				}
 				findCycleControlled("0", edges, control)
 			case "shadowed":
-				alts := make([]grammar.Expr, 1024)
+				alts := make([]ast.Expr, 1024)
 				for i := range alts {
-					alts[i] = &grammar.Literal{Value: "a"}
+					alts[i] = &ast.Literal{Value: "a"}
 				}
 				copyAnalysis := *an
 				copyAnalysis.control = control
@@ -123,7 +123,7 @@ func TestLintContextPhaseCancellation(t *testing.T) {
 			case "suppression":
 				findings := make([]Finding, 1024)
 				for i := range findings {
-					findings[i] = Finding{Check: CheckUnreachableRule, Pos: grammar.Pos{Line: 1, Col: 1}, Message: fmt.Sprint(i)}
+					findings[i] = Finding{Check: CheckUnreachableRule, Pos: ast.Pos{Line: 1, Col: 1}, Message: fmt.Sprint(i)}
 				}
 				l := &linter{control: control, an: an, findings: findings}
 				l.suppress(g)

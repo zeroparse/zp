@@ -2,22 +2,22 @@
 // compiler and linter. Unknown facts never justify excluding a rule call.
 package astfacts
 
-import "zeroparse.dev/zp/grammar"
+import "zeroparse.dev/zp/pkg/grammar/ast"
 
 // SucceedingRules finds ordinary, non-cyclic rules that cannot return a matching
 // failure. A recursive call can read a failing growth seed even when its rule's
 // body always succeeds, so cyclic rules are excluded. OperatorsRule calls are unknown.
-func SucceedingRules(rules []*grammar.RuleDef, cyclic map[string]bool) map[string]bool {
+func SucceedingRules(rules []*ast.RuleDef, cyclic map[string]bool) map[string]bool {
 	return succeedingRules(rules, cyclic, nil)
 }
 
 // SucceedingRulesWithPoll also polls during fixed-point passes, rule visits and
 // recursive proofs. The callback may panic to cancel; no partial map is returned.
-func SucceedingRulesWithPoll(rules []*grammar.RuleDef, cyclic map[string]bool, poll func()) map[string]bool {
+func SucceedingRulesWithPoll(rules []*ast.RuleDef, cyclic map[string]bool, poll func()) map[string]bool {
 	return succeedingRules(rules, cyclic, poll)
 }
 
-func succeedingRules(rules []*grammar.RuleDef, cyclic map[string]bool, poll func()) map[string]bool {
+func succeedingRules(rules []*ast.RuleDef, cyclic map[string]bool, poll func()) map[string]bool {
 	sure := map[string]bool{}
 	for changed := true; changed; {
 		if poll != nil {
@@ -39,37 +39,37 @@ func succeedingRules(rules []*grammar.RuleDef, cyclic map[string]bool, poll func
 // AlwaysSucceeds reports a sufficient proof that e cannot return a matching
 // failure, at any input position. Rule-action errors and execution limits abort
 // the parse instead of trying another alternative; they are not matching failure.
-func AlwaysSucceeds(e grammar.Expr, sure map[string]bool) bool {
+func AlwaysSucceeds(e ast.Expr, sure map[string]bool) bool {
 	return alwaysSucceeds(e, sure, nil)
 }
 
 // AlwaysSucceedsWithPoll also polls while traversing expressions, cut scopes and
 // attributes. The proof and its inputs are unchanged; callback panics propagate.
-func AlwaysSucceedsWithPoll(e grammar.Expr, sure map[string]bool, poll func()) bool {
+func AlwaysSucceedsWithPoll(e ast.Expr, sure map[string]bool, poll func()) bool {
 	return alwaysSucceeds(e, sure, poll)
 }
 
-func alwaysSucceeds(e grammar.Expr, sure map[string]bool, poll func()) bool {
+func alwaysSucceeds(e ast.Expr, sure map[string]bool, poll func()) bool {
 	if poll != nil {
 		poll()
 	}
 	switch e := e.(type) {
-	case *grammar.Group:
+	case *ast.Group:
 		return alwaysSucceeds(e.Expr, sure, poll)
-	case *grammar.Literal:
+	case *ast.Literal:
 		return e.Value == ""
-	case *grammar.Top, *grammar.Cut:
+	case *ast.Top, *ast.Cut:
 		return true
-	case *grammar.Ref:
+	case *ast.Ref:
 		return e.Level == "" && sure[e.Name]
-	case *grammar.Seq:
+	case *ast.Seq:
 		for _, it := range e.Items {
 			if !alwaysSucceeds(it, sure, poll) {
 				return false
 			}
 		}
 		return true
-	case *grammar.Choice:
+	case *ast.Choice:
 		for _, alt := range e.Alts {
 			if alwaysSucceeds(alt, sure, poll) {
 				return true
@@ -78,9 +78,9 @@ func alwaysSucceeds(e grammar.Expr, sure map[string]bool, poll func()) bool {
 				return false // It may fail after committing this choice.
 			}
 		}
-	case *grammar.Optional:
+	case *ast.Optional:
 		return !hasLooseCut(e.Expr, poll) || alwaysSucceeds(e.Expr, sure, poll)
-	case *grammar.Repeat:
+	case *ast.Repeat:
 		if e.Max == 0 {
 			return e.Min == 0
 		}
@@ -90,63 +90,63 @@ func alwaysSucceeds(e grammar.Expr, sure map[string]bool, poll func()) bool {
 		// Repetition ends after its first empty iteration, so an always
 		// succeeding body cannot prove larger minima.
 		return e.Min == 1 && alwaysSucceeds(e.Expr, sure, poll)
-	case *grammar.And:
+	case *ast.And:
 		return alwaysSucceeds(e.Expr, sure, poll)
-	case *grammar.Not:
+	case *ast.Not:
 		return alwaysFails(e.Expr, sure, poll)
-	case *grammar.Capture:
+	case *ast.Capture:
 		return alwaysSucceeds(e.Expr, sure, poll)
-	case *grammar.Atomic:
+	case *ast.Atomic:
 		return alwaysSucceeds(e.Expr, sure, poll)
-	case *grammar.Discard:
+	case *ast.Discard:
 		return alwaysSucceeds(e.Expr, sure, poll)
-	case *grammar.Stream:
+	case *ast.Stream:
 		return alwaysSucceeds(e.Expr, sure, poll)
-	case *grammar.Recovery:
+	case *ast.Recovery:
 		return alwaysSucceeds(e.Expr, sure, poll)
-	case *grammar.Attributed:
+	case *ast.Attributed:
 		return alwaysSucceeds(e.Expr, sure, poll)
 	}
 	return false
 }
 
-func alwaysFails(e grammar.Expr, sure map[string]bool, poll func()) bool {
+func alwaysFails(e ast.Expr, sure map[string]bool, poll func()) bool {
 	if poll != nil {
 		poll()
 	}
 	switch e := e.(type) {
-	case *grammar.Group:
+	case *ast.Group:
 		return alwaysFails(e.Expr, sure, poll)
-	case *grammar.Bottom:
+	case *ast.Bottom:
 		return true
-	case *grammar.Not:
+	case *ast.Not:
 		return alwaysSucceeds(e.Expr, sure, poll)
-	case *grammar.And:
+	case *ast.And:
 		return alwaysFails(e.Expr, sure, poll)
-	case *grammar.Seq:
+	case *ast.Seq:
 		for _, it := range e.Items {
 			if alwaysFails(it, sure, poll) {
 				return true
 			}
 		}
-	case *grammar.Choice:
+	case *ast.Choice:
 		for _, alt := range e.Alts {
 			if !alwaysFails(alt, sure, poll) {
 				return false
 			}
 		}
 		return true
-	case *grammar.Capture:
+	case *ast.Capture:
 		return alwaysFails(e.Expr, sure, poll)
-	case *grammar.Atomic:
+	case *ast.Atomic:
 		return alwaysFails(e.Expr, sure, poll)
-	case *grammar.Discard:
+	case *ast.Discard:
 		return alwaysFails(e.Expr, sure, poll)
-	case *grammar.Stream:
+	case *ast.Stream:
 		return alwaysFails(e.Expr, sure, poll)
-	case *grammar.Recovery:
+	case *ast.Recovery:
 		return false
-	case *grammar.Attributed:
+	case *ast.Attributed:
 		for _, at := range e.Attrs {
 			if poll != nil {
 				poll()
@@ -163,42 +163,42 @@ func alwaysFails(e grammar.Expr, sure map[string]bool, poll func()) bool {
 // HasLooseCut reports a cut that can commit the enclosing choice, optional or
 // repetition. Nested choices, optional expressions, repetitions, lookaheads and
 // rule calls delimit cuts.
-func HasLooseCut(e grammar.Expr) bool {
+func HasLooseCut(e ast.Expr) bool {
 	return hasLooseCut(e, nil)
 }
 
 // HasLooseCutWithPoll is HasLooseCut with polling at visited nodes and attributes.
 // It does not cross the cut boundaries that the ordinary proof excludes.
-func HasLooseCutWithPoll(e grammar.Expr, poll func()) bool {
+func HasLooseCutWithPoll(e ast.Expr, poll func()) bool {
 	return hasLooseCut(e, poll)
 }
 
-func hasLooseCut(e grammar.Expr, poll func()) bool {
+func hasLooseCut(e ast.Expr, poll func()) bool {
 	if poll != nil {
 		poll()
 	}
 	switch e := e.(type) {
-	case *grammar.Group:
+	case *ast.Group:
 		return hasLooseCut(e.Expr, poll)
-	case *grammar.Cut:
+	case *ast.Cut:
 		return true
-	case *grammar.Seq:
+	case *ast.Seq:
 		for _, it := range e.Items {
 			if hasLooseCut(it, poll) {
 				return true
 			}
 		}
-	case *grammar.Capture:
+	case *ast.Capture:
 		return hasLooseCut(e.Expr, poll)
-	case *grammar.Atomic:
+	case *ast.Atomic:
 		return hasLooseCut(e.Expr, poll)
-	case *grammar.Discard:
+	case *ast.Discard:
 		return hasLooseCut(e.Expr, poll)
-	case *grammar.Stream:
+	case *ast.Stream:
 		return hasLooseCut(e.Expr, poll)
-	case *grammar.Recovery:
+	case *ast.Recovery:
 		return hasLooseCut(e.Expr, poll) || hasLooseCut(e.Skip, poll)
-	case *grammar.Attributed:
+	case *ast.Attributed:
 		if hasLooseCut(e.Expr, poll) {
 			return true
 		}

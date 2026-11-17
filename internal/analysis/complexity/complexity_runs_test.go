@@ -4,11 +4,11 @@ import (
 	"os"
 	"testing"
 
-	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/compile"
 	"zeroparse.dev/zp/internal/frontend/astfacts"
 	"zeroparse.dev/zp/internal/frontend/desugar"
 	"zeroparse.dev/zp/internal/frontend/parser"
+	"zeroparse.dev/zp/pkg/grammar/ast"
 )
 
 // TestRunSitesInClassification checks that the classifier's marking of run sites is off by default,
@@ -68,8 +68,8 @@ func TestRunSitesMatchClassifier(t *testing.T) {
 		}
 		classifier := 0
 		for _, r := range rules {
-			astfacts.WalkExpr(r.Expr, func(x grammar.Expr) {
-				if rep, ok := x.(*grammar.Repeat); ok && !compile.IsScan(rep) && k.runSite(rep) {
+			astfacts.WalkExpr(r.Expr, func(x ast.Expr) {
+				if rep, ok := x.(*ast.Repeat); ok && !compile.IsScan(rep) && k.runSite(rep) {
 					classifier++
 				}
 			})

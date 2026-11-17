@@ -4,7 +4,7 @@ import (
 	"slices"
 	"zeroparse.dev/zp/internal/compile"
 
-	"zeroparse.dev/zp/grammar"
+	"zeroparse.dev/zp/pkg/grammar/ast"
 )
 
 // --- Exclusion by the leading text of a unit ---
@@ -68,30 +68,30 @@ func (k *classifier) unitWords(u []*cont) ([]word, bool) {
 			}
 			rest := p.rest()
 			switch e := p.items[0].(type) {
-			case *grammar.Group:
+			case *ast.Group:
 				p = rest.then(e.Expr)
-			case *grammar.Capture:
+			case *ast.Capture:
 				p = rest.then(e.Expr)
-			case *grammar.Discard:
+			case *ast.Discard:
 				p = rest.then(e.Expr)
-			case *grammar.Atomic:
+			case *ast.Atomic:
 				p = rest.then(e.Expr)
-			case *grammar.InlineAction:
+			case *ast.InlineAction:
 				p = rest.then(e.Expr)
-			case *grammar.Seq:
+			case *ast.Seq:
 				p = rest.then(e.Items...)
-			case *grammar.Choice:
+			case *ast.Choice:
 				for _, alt := range e.Alts {
 					visit(rest.then(alt))
 				}
 				return
-			case *grammar.Ref:
+			case *ast.Ref:
 				if !k.plainRef(e) {
 					ok = false
 					return
 				}
 				p = rest.then(k.byName[e.Name].Expr)
-			case *grammar.Literal:
+			case *ast.Literal:
 				if e.Value == "" || e.IgnoreCase {
 					ok = false
 					return
@@ -124,11 +124,11 @@ func (k *classifier) notAfter(p *cont) (charset, bool) {
 			continue
 		}
 		switch e := p.items[0].(type) {
-		case *grammar.Group:
+		case *ast.Group:
 			p = p.rest().then(e.Expr)
-		case *grammar.Seq:
+		case *ast.Seq:
 			p = p.rest().then(e.Items...)
-		case *grammar.Not:
+		case *ast.Not:
 			return k.oneChar(e.Expr)
 		default:
 			return nil, false
@@ -139,15 +139,15 @@ func (k *classifier) notAfter(p *cont) (charset, bool) {
 
 // oneChar returns the characters of e when e is a character class or a call of a rule whose body
 // is one.
-func (k *classifier) oneChar(e grammar.Expr) (charset, bool) {
+func (k *classifier) oneChar(e ast.Expr) (charset, bool) {
 	e = ungroup(e)
-	if r, ok := e.(*grammar.Ref); ok {
+	if r, ok := e.(*ast.Ref); ok {
 		if !k.plainRef(r) {
 			return nil, false
 		}
 		e = ungroup(k.byName[r.Name].Expr)
 	}
-	c, ok := e.(*grammar.CharClass)
+	c, ok := e.(*ast.CharClass)
 	if !ok {
 		return nil, false
 	}
@@ -159,7 +159,7 @@ func (k *classifier) oneChar(e grammar.Expr) (charset, bool) {
 // defensive: the body under a level restriction is an Operators Rule, whose start paths do not
 // depend on the level, and variables change matching only through predicates, which no word or
 // proven lookahead accepts. They keep the reasoning valid if either of those changes.
-func (k *classifier) plainRef(r *grammar.Ref) bool {
+func (k *classifier) plainRef(r *ast.Ref) bool {
 	return r.Level == "" && k.byName[r.Name] != nil && len(k.vars[r.Name]) == 0
 }
 
@@ -233,36 +233,36 @@ func (k *classifier) wordExcludes(paths []*cont, w word) bool {
 				continue
 			}
 			switch e := it.(type) {
-			case *grammar.Group:
+			case *ast.Group:
 				p = rest.then(e.Expr)
-			case *grammar.Capture:
+			case *ast.Capture:
 				p = rest.then(e.Expr)
-			case *grammar.Discard:
+			case *ast.Discard:
 				p = rest.then(e.Expr)
-			case *grammar.Atomic:
+			case *ast.Atomic:
 				p = rest.then(e.Expr)
-			case *grammar.Stream:
+			case *ast.Stream:
 				p = rest.then(e.Expr)
-			case *grammar.InlineAction:
+			case *ast.InlineAction:
 				p = rest.then(e.Expr)
-			case *grammar.Seq:
+			case *ast.Seq:
 				p = rest.then(e.Items...)
-			case *grammar.Attributed:
+			case *ast.Attributed:
 				if compile.RecoverSkip(e) != nil || compile.HasPragma(e, "missing") {
 					live = true
 					return
 				}
 				p = rest.then(e.Expr)
-			case *grammar.Choice:
+			case *ast.Choice:
 				for _, alt := range e.Alts {
 					visit(rest.then(alt), at)
 				}
 				return
-			case *grammar.Optional:
+			case *ast.Optional:
 				visit(rest.then(e.Expr), at)
 				visit(rest, at)
 				return
-			case *grammar.Repeat:
+			case *ast.Repeat:
 				if e.Max == 0 {
 					p = rest
 					continue
@@ -273,10 +273,10 @@ func (k *classifier) wordExcludes(paths []*cont, w word) bool {
 					visit(rest, at)
 				}
 				return
-			case *grammar.CharClass, *grammar.Any:
+			case *ast.CharClass, *ast.Any:
 				// The item matches the character of the text, which first has shown.
 				p, at = rest, at+1
-			case *grammar.Literal:
+			case *ast.Literal:
 				n, ok := matchText(e, w.text[at:])
 				switch {
 				case !ok:
@@ -286,7 +286,7 @@ func (k *classifier) wordExcludes(paths []*cont, w word) bool {
 					return
 				}
 				p, at = rest, at+n
-			case *grammar.Not:
+			case *ast.Not:
 				switch k.matchesWord(e.Expr, w, at) {
 				case wordMatches:
 					return
@@ -296,7 +296,7 @@ func (k *classifier) wordExcludes(paths []*cont, w word) bool {
 					live = true
 					return
 				}
-			case *grammar.Ref:
+			case *ast.Ref:
 				if !k.plainRef(e) {
 					live = true
 					return
@@ -320,7 +320,7 @@ func (k *classifier) wordExcludes(paths []*cont, w word) bool {
 
 // matchText matches the literal l at the start of text. It returns the length that l matches and
 // true, false when l fails within text, or -1 and true when the text ends before l does.
-func matchText(l *grammar.Literal, text []rune) (int, bool) {
+func matchText(l *ast.Literal, text []rune) (int, bool) {
 	if l.IgnoreCase {
 		return -1, true
 	}
@@ -351,18 +351,18 @@ const (
 // the parser reached it: no predicate, other lookahead, cut, recovery, action or level
 // restriction. The literals are tried in order against the text; a lookahead after the text
 // is known only when it has the characters that cannot follow the word.
-func (k *classifier) matchesWord(e grammar.Expr, w word, at int) wordOutcome {
+func (k *classifier) matchesWord(e ast.Expr, w word, at int) wordOutcome {
 	e, ok := k.wordBody(e)
 	if !ok {
 		return wordUnknown
 	}
 	var not charset
 	hasNot := false
-	if s, ok := e.(*grammar.Seq); ok {
+	if s, ok := e.(*ast.Seq); ok {
 		if len(s.Items) != 2 {
 			return wordUnknown
 		}
-		n, ok := ungroup(s.Items[1]).(*grammar.Not)
+		n, ok := ungroup(s.Items[1]).(*ast.Not)
 		if !ok {
 			return wordUnknown
 		}
@@ -374,8 +374,8 @@ func (k *classifier) matchesWord(e grammar.Expr, w word, at int) wordOutcome {
 			return wordUnknown
 		}
 	}
-	alts := []grammar.Expr{e}
-	if c, ok := e.(*grammar.Choice); ok {
+	alts := []ast.Expr{e}
+	if c, ok := e.(*ast.Choice); ok {
 		alts = c.Alts
 	}
 	text := w.text[at:]
@@ -384,7 +384,7 @@ func (k *classifier) matchesWord(e grammar.Expr, w word, at int) wordOutcome {
 		if !ok {
 			return wordUnknown
 		}
-		l, ok := alt.(*grammar.Literal)
+		l, ok := alt.(*ast.Literal)
 		if !ok || l.Value == "" || l.IgnoreCase {
 			return wordUnknown
 		}
@@ -411,16 +411,16 @@ func (k *classifier) matchesWord(e grammar.Expr, w word, at int) wordOutcome {
 
 // wordBody returns e through groups, captures, #atomic and calls of rules that read no variable
 // and have no level restriction.
-func (k *classifier) wordBody(e grammar.Expr) (grammar.Expr, bool) {
+func (k *classifier) wordBody(e ast.Expr) (ast.Expr, bool) {
 	for range len(k.rules) + 1 {
 		switch x := e.(type) {
-		case *grammar.Group:
+		case *ast.Group:
 			e = x.Expr
-		case *grammar.Capture:
+		case *ast.Capture:
 			e = x.Expr
-		case *grammar.Atomic:
+		case *ast.Atomic:
 			e = x.Expr
-		case *grammar.Ref:
+		case *ast.Ref:
 			if !k.plainRef(x) {
 				return nil, false
 			}

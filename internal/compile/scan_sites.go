@@ -1,9 +1,9 @@
 package compile
 
 import (
-	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/cancel"
 	"zeroparse.dev/zp/internal/frontend/desugar"
+	"zeroparse.dev/zp/pkg/grammar/ast"
 )
 
 // Scan sites.
@@ -31,7 +31,7 @@ import (
 var NoScanSites bool
 
 // scanRules returns the names of the pure scan rules, whose other repetitions are restartable.
-func (prog *Program) scanRules(control *cancel.Control, defs []*grammar.RuleDef, calls map[string][]string) map[string]bool {
+func (prog *Program) scanRules(control *cancel.Control, defs []*ast.RuleDef, calls map[string][]string) map[string]bool {
 	out := map[string]bool{}
 	if NoScanSites || NoRunSites {
 		return out
@@ -53,7 +53,7 @@ func (prog *Program) scanRules(control *cancel.Control, defs []*grammar.RuleDef,
 
 // markScanSites numbers the scan sites of the rules that call no rule.
 func (prog *Program) markScanSites(control *cancel.Control, calls map[string][]string) {
-	prog.scanRepeats = map[*grammar.Repeat]int{}
+	prog.scanRepeats = map[*ast.Repeat]int{}
 	if NoScanSites || NoRunSites {
 		return
 	}
@@ -61,7 +61,7 @@ func (prog *Program) markScanSites(control *cancel.Control, calls map[string][]s
 		if len(calls[r.Name]) != 0 {
 			continue
 		}
-		ScanSiteRepeats(r.Def.Expr, control, func(rep *grammar.Repeat, site bool) {
+		ScanSiteRepeats(r.Def.Expr, control, func(rep *ast.Repeat, site bool) {
 			if site && prog.skipSites[rep] == 0 {
 				prog.scanRepeats[rep] = prog.NumSkipSites + prog.NumRunSites + 1 + 2*prog.NumScanSites
 				prog.NumScanSites++
@@ -74,19 +74,19 @@ func (prog *Program) markScanSites(control *cancel.Control, calls map[string][]s
 // calls no rule, in order, with whether it is a scan site: it repeats a character class or any
 // character and does not deliver the elements of a #stream. A repetition in a #recover skip is
 // reported as a site; it is one unless it is a skip-run site, which records its walks as one.
-func ScanSiteRepeats(e grammar.Expr, control *cancel.Control, f func(rep *grammar.Repeat, site bool)) {
-	streamed := map[*grammar.Repeat]bool{}
-	walkExprControlled(e, func(x grammar.Expr) {
+func ScanSiteRepeats(e ast.Expr, control *cancel.Control, f func(rep *ast.Repeat, site bool)) {
+	streamed := map[*ast.Repeat]bool{}
+	walkExprControlled(e, func(x ast.Expr) {
 		switch x := x.(type) {
-		case *grammar.Attributed:
-			if rep, ok := x.Expr.(*grammar.Repeat); ok && IsStream(x) {
+		case *ast.Attributed:
+			if rep, ok := x.Expr.(*ast.Repeat); ok && IsStream(x) {
 				streamed[rep] = true
 			}
-		case *grammar.Stream:
-			if rep, ok := x.Expr.(*grammar.Repeat); ok {
+		case *ast.Stream:
+			if rep, ok := x.Expr.(*ast.Repeat); ok {
 				streamed[rep] = true
 			}
-		case *grammar.Repeat:
+		case *ast.Repeat:
 			if x.Max < 0 {
 				f(x, IsScan(x) && !streamed[x])
 			}
@@ -96,15 +96,15 @@ func ScanSiteRepeats(e grammar.Expr, control *cancel.Control, f func(rep *gramma
 
 // ScanSite returns the number of the scan site e, or 0 if e is not one; the walks that build a
 // value use the next number.
-func (prog *Program) ScanSite(e *grammar.Repeat) int { return prog.scanRepeats[e] }
+func (prog *Program) ScanSite(e *ast.Repeat) int { return prog.scanRepeats[e] }
 
 // pureScan reports whether e is made only of the forms of the body of a scan site.
-func pureScan(e grammar.Expr, control *cancel.Control) bool {
+func pureScan(e ast.Expr, control *cancel.Control) bool {
 	ok := true
-	walkExprControlled(e, func(x grammar.Expr) {
+	walkExprControlled(e, func(x ast.Expr) {
 		switch x.(type) {
-		case *grammar.Literal, *grammar.CharClass, *grammar.Any, *grammar.Seq, *grammar.Choice,
-			*grammar.Group, *grammar.Optional, *grammar.Repeat, *grammar.Discard:
+		case *ast.Literal, *ast.CharClass, *ast.Any, *ast.Seq, *ast.Choice,
+			*ast.Group, *ast.Optional, *ast.Repeat, *ast.Discard:
 		default:
 			ok = false
 		}
@@ -114,7 +114,7 @@ func pureScan(e grammar.Expr, control *cancel.Control) bool {
 
 // hasAttrsBesidesStart reports whether rd has an attribute or pragma other than @start and
 // @linear, which only add checks.
-func hasAttrsBesidesStart(rd *grammar.RuleDef) bool {
+func hasAttrsBesidesStart(rd *ast.RuleDef) bool {
 	for _, a := range rd.Attrs {
 		if (a.Pragma || a.Name != "start") && !desugar.IsLinear(a) {
 			return true

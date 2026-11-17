@@ -14,9 +14,9 @@ import (
 	"sync"
 	"testing"
 
-	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/codegen"
 	"zeroparse.dev/zp/internal/codegen/go"
+	"zeroparse.dev/zp/pkg/grammar/ast"
 )
 
 // The generated fixtures are built in two forms: with budget controls, so that the tests of
@@ -272,25 +272,25 @@ func WriteGenerated(t testing.TB, dir, module string, files []codegen.GeneratedF
 // codegentest/<pkg>, writes its files (parser.go, api.go and types/types.go) below dir/<pkg> in the
 // module of dir, and returns its parser.go. Unlike GenerateCode, it keeps the types package
 // apart, so that grammar types named like the names of the parser package compile.
-func GeneratePackage(t testing.TB, dir, pkg string, g *grammar.Grammar, opts codegen.GenOptions) string {
+func GeneratePackage(t testing.TB, dir, pkg string, g *ast.Grammar, opts codegen.GenOptions) string {
 	t.Helper()
 	return GeneratePackageIn(t, dir, "codegentest", pkg, g, opts)
 }
 
 // GeneratePackageIn is GeneratePackage for a test module whose path is root.
-func GeneratePackageIn(t testing.TB, dir, root, pkg string, g *grammar.Grammar, opts codegen.GenOptions) string {
+func GeneratePackageIn(t testing.TB, dir, root, pkg string, g *ast.Grammar, opts codegen.GenOptions) string {
 	t.Helper()
 	return generatePackage(t, dir, root, pkg, g, opts, Generate)
 }
 
 // GeneratePackageRaw is GeneratePackage with the options as given: the parser records
 // expectations only with opts.Expectations.
-func GeneratePackageRaw(t testing.TB, dir, pkg string, g *grammar.Grammar, opts codegen.GenOptions) string {
+func GeneratePackageRaw(t testing.TB, dir, pkg string, g *ast.Grammar, opts codegen.GenOptions) string {
 	t.Helper()
 	return generatePackage(t, dir, "codegentest", pkg, g, opts, GenerateRaw)
 }
 
-func generatePackage(t testing.TB, dir, root, pkg string, g *grammar.Grammar, opts codegen.GenOptions, generate func(testing.TB, *grammar.Grammar, codegen.GenOptions) ([]codegen.GeneratedFile, error)) string {
+func generatePackage(t testing.TB, dir, root, pkg string, g *ast.Grammar, opts codegen.GenOptions, generate func(testing.TB, *ast.Grammar, codegen.GenOptions) ([]codegen.GeneratedFile, error)) string {
 	t.Helper()
 	opts.Lib = codegen.LibImport
 	opts.LimitControls = FixtureBudgetControls(t)
@@ -318,7 +318,7 @@ func generatePackage(t testing.TB, dir, root, pkg string, g *grammar.Grammar, op
 
 // GenerateCode generates a parser that imports the library from this module and returns its
 // parser.go and api.go as one source file, which tests write as parser.go.
-func GenerateCode(t testing.TB, g *grammar.Grammar, opts codegen.GenOptions) ([]byte, error) {
+func GenerateCode(t testing.TB, g *ast.Grammar, opts codegen.GenOptions) ([]byte, error) {
 	opts.Lib = codegen.LibImport
 	opts.KeepComments = true
 	opts.LimitControls = FixtureBudgetControls(t)

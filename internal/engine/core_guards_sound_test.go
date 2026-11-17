@@ -8,11 +8,11 @@ import (
 	"testing"
 	"unicode/utf8"
 
-	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/codegen"
 	"zeroparse.dev/zp/internal/compile"
 	"zeroparse.dev/zp/internal/ir/core"
 	"zeroparse.dev/zp/internal/testing/codegentest"
+	"zeroparse.dev/zp/pkg/grammar/ast"
 )
 
 // The guards of the Core IR (core.Guards) skip an alternative of a choice when the next character
@@ -106,7 +106,7 @@ func guardProbes(t *testing.T, src string, cases []*coreGenCase) (*Program, []gu
 					if !ok || a.Guard == nil {
 						continue
 					}
-					text := grammar.FormatExpr(e)
+					text := ast.FormatExpr(e)
 					key := fmt.Sprintf("%s\x00%v", text, *a.Guard)
 					if !seen[key] {
 						seen[key] = true

@@ -7,8 +7,8 @@ import (
 	"zeroparse.dev/zp/internal/diagnostic"
 	"zeroparse.dev/zp/internal/lsp/protocol"
 
-	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/frontend/astfacts"
+	"zeroparse.dev/zp/pkg/grammar/ast"
 )
 
 // Keep the cancellation sentinel inside the metadata invocation, before the
@@ -89,7 +89,7 @@ func (a *analysis) sortDiagnostics(control *renderControl) {
 		return pi.Line < pj.Line || pi.Line == pj.Line && pi.Character < pj.Character
 	})
 }
-func (control *renderControl) expressionArgs(a *grammar.Attribute) []grammar.Expr {
+func (control *renderControl) expressionArgs(a *ast.Attribute) []ast.Expr {
 	if control == nil {
 		return a.ExpressionArgs()
 	}
@@ -98,7 +98,7 @@ func (control *renderControl) expressionArgs(a *grammar.Attribute) []grammar.Exp
 
 func (a *analysis) collect()                { a.collectControlled(nil) }
 func (a *analysis) indexDeclarationStarts() { a.indexDeclarationStartsControlled(nil) }
-func (a *analysis) errorRange(pos grammar.Pos, definitions bool) protocol.Range {
+func (a *analysis) errorRange(pos ast.Pos, definitions bool) protocol.Range {
 	return a.errorRangeControlled(pos, definitions, nil)
 }
 func (a *analysis) compileContext(ctx context.Context) error {

@@ -8,10 +8,10 @@ import (
 	"strings"
 	"testing"
 
-	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/engine"
 	"zeroparse.dev/zp/internal/frontend/parser"
 	"zeroparse.dev/zp/internal/testing/starttest"
+	"zeroparse.dev/zp/pkg/grammar/ast"
 )
 
 // lintSource lints src (which must compile) from the rule main and returns the findings as
@@ -22,7 +22,7 @@ func lintSource(t *testing.T, src string, opts options) ([]string, []Finding) {
 }
 
 // lintSourceWith is lintSource with the given parser.
-func lintSourceWith(t *testing.T, parse func(string) (*grammar.Grammar, error), src string, opts options) ([]string, []Finding) {
+func lintSourceWith(t *testing.T, parse func(string) (*ast.Grammar, error), src string, opts options) ([]string, []Finding) {
 	t.Helper()
 	g, err := parse(src)
 	if err != nil {
@@ -47,16 +47,16 @@ func lintSourceWith(t *testing.T, parse func(string) (*grammar.Grammar, error), 
 
 // markMain returns a copy of g with main marked @start, or nil if a rule of g declares a start
 // rule or g has no rule main.
-func markMain(g *grammar.Grammar) *grammar.Grammar {
+func markMain(g *ast.Grammar) *ast.Grammar {
 	for _, rd := range g.Rules() {
-		if slices.ContainsFunc(rd.Attrs, func(a *grammar.Attribute) bool { return !a.Pragma && a.Name == "start" }) {
+		if slices.ContainsFunc(rd.Attrs, func(a *ast.Attribute) bool { return !a.Pragma && a.Name == "start" }) {
 			return nil
 		}
 	}
 	c := g.Clone()
 	for _, rd := range c.Rules() {
 		if rd.Name == "main" {
-			rd.Attrs = append(rd.Attrs, &grammar.Attribute{Name: "start"})
+			rd.Attrs = append(rd.Attrs, &ast.Attribute{Name: "start"})
 			return c
 		}
 	}

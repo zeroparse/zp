@@ -8,10 +8,10 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/core"
-	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/bytecode"
 	"zeroparse.dev/zp/internal/compile"
 	"zeroparse.dev/zp/internal/testing/codegentest"
+	"zeroparse.dev/zp/pkg/grammar/ast"
 )
 
 // fieldCheckValueName names a value of fieldCheckValues as messages do, in the terms of the value
@@ -35,7 +35,7 @@ func TestConstructedFieldChecks(t *testing.T) {
 	for _, model := range []struct {
 		name    string
 		grammar func(string) string
-		parse   func(string) (*grammar.Grammar, error)
+		parse   func(string) (*ast.Grammar, error)
 		fields  map[string]string
 	}{
 		{"text struct", codegentest.FieldCheckGrammar, parseTest, codegentest.FieldCheckFields},
@@ -48,7 +48,7 @@ func TestConstructedFieldChecks(t *testing.T) {
 	}
 }
 
-func checkConstructedFieldType(t *testing.T, typ, src string, parseFn func(string) (*grammar.Grammar, error), fields map[string]string) {
+func checkConstructedFieldType(t *testing.T, typ, src string, parseFn func(string) (*ast.Grammar, error), fields map[string]string) {
 	yes, no := `"Text":"yes"`, `"Text":"no"`
 	{
 		{

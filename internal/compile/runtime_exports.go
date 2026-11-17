@@ -1,10 +1,10 @@
 package compile
 
 import (
-	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/bytecode"
 	"zeroparse.dev/zp/internal/frontend/check"
 	"zeroparse.dev/zp/internal/frontend/types"
+	"zeroparse.dev/zp/pkg/grammar/ast"
 )
 
 // Every declaration of this file exists only for the runtime side, which reads the checked
@@ -24,7 +24,7 @@ func NewScope() *Scope { return check.NewScope() }
 // program loaded from a compiled grammar. It exists only for the runtime side, which builds such
 // a program without naming the semantic model, and leaves when the runtime tables move to
 // internal/runtime/program.
-func NewProgram(g *grammar.Grammar) *Program {
+func NewProgram(g *ast.Grammar) *Program {
 	return &Program{Model: check.NewModel(g, nil), ByName: map[string]*Rule{}}
 }
 
@@ -55,11 +55,11 @@ func ModuleVarTable(m *bytecode.Module) *VarTable { return check.ModuleVarTable(
 
 // FieldOf is check.FieldOf. It exists only for the runtime side and leaves when the runtime tables
 // move to internal/runtime/program.
-func FieldOf(st *grammar.TypeDef, name string) *grammar.Field { return check.FieldOf(st, name) }
+func FieldOf(st *ast.TypeDef, name string) *ast.Field { return check.FieldOf(st, name) }
 
 // DefFields is check.DefFields. It exists only for the runtime side and leaves when the runtime
 // tables move to internal/runtime/program.
-func DefFields(spec *grammar.TypeDef) []*grammar.Field { return check.DefFields(spec) }
+func DefFields(spec *ast.TypeDef) []*ast.Field { return check.DefFields(spec) }
 
 // CapType is check.CapType. It exists only for the runtime side and leaves when the runtime tables
 // move to internal/runtime/program.

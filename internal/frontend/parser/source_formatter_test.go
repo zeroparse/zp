@@ -6,7 +6,7 @@ import (
 	"strconv"
 	"testing"
 
-	"zeroparse.dev/zp/grammar"
+	"zeroparse.dev/zp/pkg/grammar/ast"
 )
 
 func TestFormatInteriorCommentOwners(t *testing.T) {
@@ -45,7 +45,7 @@ rule main = "x" => Int{/* terminal */ Text: "0"}`,
 			if err != nil {
 				t.Fatal(err)
 			}
-			formatted := grammar.Format(before)
+			formatted := ast.Format(before)
 			after, err := Parse(formatted)
 			if err != nil {
 				t.Fatalf("formatted parse: %v\n%s", err, formatted)
@@ -53,11 +53,11 @@ rule main = "x" => Int{/* terminal */ Text: "0"}`,
 			if len(before.AllComments()) != len(after.AllComments()) {
 				t.Fatalf("comment count changed\n%s", formatted)
 			}
-			if second := grammar.Format(after); second != formatted {
+			if second := ast.Format(after); second != formatted {
 				t.Fatalf("formatting is not idempotent\nfirst:\n%s\nsecond:\n%s", formatted, second)
 			}
 			clone := before.Clone()
-			if cloned := grammar.Format(clone); cloned != formatted {
+			if cloned := ast.Format(clone); cloned != formatted {
 				t.Fatal("clone changed formatting")
 			}
 			want, got := sourceCommentOwnerPaths(t, before), sourceCommentOwnerPaths(t, after)
@@ -68,9 +68,9 @@ rule main = "x" => Int{/* terminal */ Text: "0"}`,
 	}
 }
 
-func sourceCommentOwnerPaths(t *testing.T, g *grammar.Grammar) map[string]any {
+func sourceCommentOwnerPaths(t *testing.T, g *ast.Grammar) map[string]any {
 	t.Helper()
-	data, err := grammar.MarshalJSON(g)
+	data, err := ast.MarshalJSON(g)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -114,11 +114,11 @@ func TestInteriorLayoutJSONAndClone(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	data, err := grammar.MarshalJSON(before)
+	data, err := ast.MarshalJSON(before)
 	if err != nil {
 		t.Fatal(err)
 	}
-	for _, decode := range []func([]byte) (*grammar.Grammar, error){grammar.UnmarshalJSON, grammar.DecodeJSON} {
+	for _, decode := range []func([]byte) (*ast.Grammar, error){ast.UnmarshalJSON, ast.DecodeJSON} {
 		decoded, err := decode(data)
 		if err != nil {
 			t.Fatal(err)
@@ -126,14 +126,14 @@ func TestInteriorLayoutJSONAndClone(t *testing.T) {
 		if !reflect.DeepEqual(sourceCommentOwnerPaths(t, before), sourceCommentOwnerPaths(t, decoded)) {
 			t.Fatal("JSON lost normalized owners")
 		}
-		arg := decoded.Rules()[0].Action.(*grammar.Call).Args[1]
-		if arg.(grammar.SourceNode).Source().Layout != nil {
+		arg := decoded.Rules()[0].Action.(*ast.Call).Args[1]
+		if arg.(ast.SourceNode).Source().Layout != nil {
 			t.Fatal("JSON serialized raw layout")
 		}
 	}
 	clone := before.Clone()
-	original := before.Rules()[0].Action.(*grammar.Call).Args[1].(grammar.SourceNode).Source().Layout
-	copied := clone.Rules()[0].Action.(*grammar.Call).Args[1].(grammar.SourceNode).Source().Layout
+	original := before.Rules()[0].Action.(*ast.Call).Args[1].(ast.SourceNode).Source().Layout
+	copied := clone.Rules()[0].Action.(*ast.Call).Args[1].(ast.SourceNode).Source().Layout
 	if original == copied || original.Before[0] == copied.Before[0] {
 		t.Fatal("layout alias in clone")
 	}
@@ -141,8 +141,8 @@ func TestInteriorLayoutJSONAndClone(t *testing.T) {
 	if original.Before[0].Text != "/* argument */" {
 		t.Fatal("clone changed original layout")
 	}
-	programmatic := &grammar.Call{Func: "int", Args: []grammar.Term{&grammar.StringLit{Value: "1"}}}
-	if got := grammar.FormatTerm(programmatic); got != `int("1")` {
+	programmatic := &ast.Call{Func: "int", Args: []ast.Term{&ast.StringLit{Value: "1"}}}
+	if got := ast.FormatTerm(programmatic); got != `int("1")` {
 		t.Fatal("nil-layout canonical fallback", got)
 	}
 }

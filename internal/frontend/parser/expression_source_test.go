@@ -4,10 +4,10 @@ import (
 	"strings"
 	"testing"
 
-	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/engine"
 	"zeroparse.dev/zp/internal/frontend/parser"
 	"zeroparse.dev/zp/internal/testing/starttest"
+	"zeroparse.dev/zp/pkg/grammar/ast"
 )
 
 func TestExpressionSourceRoundTrip(t *testing.T) {
@@ -29,23 +29,23 @@ func TestExpressionSourceRoundTrip(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			formatted := grammar.Format(g)
+			formatted := ast.Format(g)
 			g2, err := parser.Parse(formatted)
 			if err != nil {
 				t.Fatalf("formatted source invalid: %v\n%s", err, formatted)
 			}
-			if again := grammar.Format(g2); again != formatted {
+			if again := ast.Format(g2); again != formatted {
 				t.Fatalf("format is not stable:\n%s\n%s", formatted, again)
 			}
-			data, err := grammar.MarshalJSON(g)
+			data, err := ast.MarshalJSON(g)
 			if err != nil {
 				t.Fatal(err)
 			}
-			decoded, err := grammar.UnmarshalJSON(data)
+			decoded, err := ast.UnmarshalJSON(data)
 			if err != nil {
 				t.Fatal(err)
 			}
-			if _, err := parser.Parse(grammar.Format(decoded)); err != nil {
+			if _, err := parser.Parse(ast.Format(decoded)); err != nil {
 				t.Fatalf("JSON format invalid: %v", err)
 			}
 		})
@@ -108,7 +108,7 @@ func TestExpressionSourceHeaderComments(t *testing.T) {
 		if len(g.File.HeaderComments) != 1 {
 			t.Fatalf("header comments: %d", len(g.File.HeaderComments))
 		}
-		formatted := grammar.Format(g)
+		formatted := ast.Format(g)
 		again, parseErr := parser.Parse(formatted)
 		if parseErr != nil {
 			t.Fatalf("header format no longer parses: %v\n%s", parseErr, formatted)

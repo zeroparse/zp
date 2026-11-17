@@ -4,11 +4,11 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/core"
-	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/codegen"
 	"zeroparse.dev/zp/internal/compile"
 	"zeroparse.dev/zp/internal/engine"
 	"zeroparse.dev/zp/internal/testing/codegentest"
+	"zeroparse.dev/zp/pkg/grammar/ast"
 )
 
 func TestSourceGroupsExecutableParity(t *testing.T) {
@@ -35,7 +35,7 @@ rule number Alias = v1:[0-9]+ => Number{Text: text($v1)}
 	if err != nil {
 		t.Fatal(err)
 	}
-	before, err := grammar.MarshalJSON(g)
+	before, err := ast.MarshalJSON(g)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -43,7 +43,7 @@ rule number Alias = v1:[0-9]+ => Number{Text: text($v1)}
 	for _, fromJSON := range []bool{false, true} {
 		input := g
 		if fromJSON {
-			input, err = grammar.DecodeJSON(before)
+			input, err = ast.DecodeJSON(before)
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -70,7 +70,7 @@ rule number Alias = v1:[0-9]+ => Number{Text: text($v1)}
 			if err != nil {
 				t.Fatal(err)
 			}
-			for _, generate := range []func(*grammar.Grammar, codegen.GenOptions) ([]byte, error){func(g *grammar.Grammar, o codegen.GenOptions) ([]byte, error) {
+			for _, generate := range []func(*ast.Grammar, codegen.GenOptions) ([]byte, error){func(g *ast.Grammar, o codegen.GenOptions) ([]byte, error) {
 				return codegentest.GenerateCode(t, g, o)
 			}, codegentest.GenerateTSBundle} {
 				got, err := generate(input, opts)
@@ -86,7 +86,7 @@ rule number Alias = v1:[0-9]+ => Number{Text: text($v1)}
 				}
 			}
 		}
-		unchanged, err := grammar.MarshalJSON(input)
+		unchanged, err := ast.MarshalJSON(input)
 		if err != nil || string(unchanged) != string(before) {
 			t.Fatalf("source AST mutated: %v", err)
 		}

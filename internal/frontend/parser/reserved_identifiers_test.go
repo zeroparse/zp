@@ -4,7 +4,7 @@ import (
 	"strings"
 	"testing"
 
-	"zeroparse.dev/zp/grammar"
+	"zeroparse.dev/zp/pkg/grammar/ast"
 )
 
 func TestReservedIdentifierPrefix(t *testing.T) {
@@ -29,7 +29,7 @@ func TestReservedIdentifierPrefix(t *testing.T) {
 			if err != nil {
 				t.Fatalf("reserved name must remain parseable: %s: %v", src, err)
 			}
-			if err := grammar.Validate(g); err == nil || !strings.Contains(err.Error(), "reserved") {
+			if err := ast.Validate(g); err == nil || !strings.Contains(err.Error(), "reserved") {
 				t.Fatalf("reserved name must fail validation: %s: %v", src, err)
 			}
 			if _, errs := ParsePartial(src); len(errs) != 0 {
@@ -50,7 +50,7 @@ rule _expr = #operators { operand "x"; level tight { postfix "!" } }`} {
 		if err != nil {
 			t.Fatalf("%s: %v", src, err)
 		}
-		if err := grammar.Validate(g); err != nil {
+		if err := ast.Validate(g); err != nil {
 			t.Fatalf("%s: %v", src, err)
 		}
 	}

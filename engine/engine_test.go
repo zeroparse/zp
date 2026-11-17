@@ -10,8 +10,8 @@ import (
 
 	"zeroparse.dev/zp/core"
 	"zeroparse.dev/zp/engine"
-	"zeroparse.dev/zp/grammar"
 	iengine "zeroparse.dev/zp/internal/engine"
+	"zeroparse.dev/zp/pkg/grammar/ast"
 )
 
 func TestCompileSource(t *testing.T) {
@@ -43,9 +43,9 @@ rule main = k:[a-z]+ #atomic "=" v:[0-9]+ #atomic => Pair{Key: $k, Value: $v}`, 
 }
 
 func TestCompileAST(t *testing.T) {
-	g := &grammar.Grammar{File: grammar.File{Decls: []grammar.Decl{
-		&grammar.RuleDef{Attrs: []*grammar.Attribute{{Name: "start"}}, Name: "main", Expr: &grammar.Seq{Items: []grammar.Expr{
-			&grammar.Literal{Value: "a"}, &grammar.Literal{Value: "b"},
+	g := &ast.Grammar{File: ast.File{Decls: []ast.Decl{
+		&ast.RuleDef{Attrs: []*ast.Attribute{{Name: "start"}}, Name: "main", Expr: &ast.Seq{Items: []ast.Expr{
+			&ast.Literal{Value: "a"}, &ast.Literal{Value: "b"},
 		}}},
 	}}}
 	p, err := engine.Compile(g, "main", engine.WithSourceInfo())
@@ -144,9 +144,9 @@ rule key = [a-z]+ #atomic`, "main", engine.WithSourceInfo())
 	}
 	// The grammar stays with the source: a compiled grammar holds only bytecode.
 	if loaded.Grammar() != nil {
-		t.Errorf("grammar of a loaded parser %s", grammar.Format(loaded.Grammar()))
+		t.Errorf("grammar of a loaded parser %s", ast.Format(loaded.Grammar()))
 	}
-	if got := grammar.Format(p.Grammar()); !strings.Contains(got, "rule key = [a-z]+ #atomic") {
+	if got := ast.Format(p.Grammar()); !strings.Contains(got, "rule key = [a-z]+ #atomic") {
 		t.Errorf("grammar %s", got)
 	}
 	if mode, ok := loaded.CompiledMode(); !ok || mode != engine.CompiledParse {

@@ -3,8 +3,8 @@ package gogen
 import (
 	"fmt"
 
-	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/compile"
+	"zeroparse.dev/zp/pkg/grammar/ast"
 )
 
 func (g *Generator) tracePlainWrapper(r *compile.Rule, name string) string {
@@ -34,24 +34,24 @@ func %[1]s(p *%[2]s) (%[3]s, bool) {
 
 // A guard may suppress a whole sequence or a chain of rule references. Report
 // only its first identifiable rule call site, without inventing nested calls.
-func (g *Generator) traceSkip(expr grammar.Expr) string {
+func (g *Generator) traceSkip(expr ast.Expr) string {
 	if !g.Observability {
 		return ""
 	}
 	for {
 		switch e := expr.(type) {
-		case *grammar.Seq:
+		case *ast.Seq:
 			if len(e.Items) == 0 {
 				return ""
 			}
 			expr = e.Items[0]
-		case *grammar.Capture:
+		case *ast.Capture:
 			expr = e.Expr
-		case *grammar.Atomic:
+		case *ast.Atomic:
 			expr = e.Expr
-		case *grammar.Discard:
+		case *ast.Discard:
 			expr = e.Expr
-		case *grammar.Ref:
+		case *ast.Ref:
 			return fmt.Sprintf("\np.Observation.Skipped(%q, p.Pos, 0)\n", e.Name)
 		default:
 			return ""

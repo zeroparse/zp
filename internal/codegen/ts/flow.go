@@ -6,7 +6,6 @@ import (
 	"strconv"
 	"strings"
 
-	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/codegen"
 	"zeroparse.dev/zp/internal/compile"
 	"zeroparse.dev/zp/internal/frontend/check"
@@ -14,6 +13,7 @@ import (
 	"zeroparse.dev/zp/internal/ir/flow"
 	flowlower "zeroparse.dev/zp/internal/ir/flow/lower"
 	"zeroparse.dev/zp/internal/value"
+	"zeroparse.dev/zp/pkg/grammar/ast"
 )
 
 // Value-free rules of the TypeScript library printed from Flow IR.
@@ -815,7 +815,7 @@ func (p *tsFlowPrinter) expr(x flow.Expr) string {
 		if x.Caps.Vars != nil {
 			panic(tsFlowUnsupported("a bind that reads variables"))
 		}
-		b, ok := p.grammarTerm(x.Node).(*grammar.Bind)
+		b, ok := p.grammarTerm(x.Node).(*ast.Bind)
 		if !ok {
 			panic(tsFlowUnsupported("a bind without a grammar bind"))
 		}
@@ -924,8 +924,8 @@ func (p *tsFlowPrinter) scopeNames(n *flow.Names) string {
 
 // grammarTerm returns the term of the grammar predicate that the node n is built from, for the name
 // of the variable that a binding sets.
-func (p *tsFlowPrinter) grammarTerm(n core.Node) grammar.Term {
-	e, ok := p.g.Flow.Origin[n].(*grammar.Predicate)
+func (p *tsFlowPrinter) grammarTerm(n core.Node) ast.Term {
+	e, ok := p.g.Flow.Origin[n].(*ast.Predicate)
 	if !ok {
 		panic(tsFlowUnsupported(fmt.Sprintf("no grammar predicate for %T", n)))
 	}
@@ -945,7 +945,7 @@ func tsUnisolate(s *flow.Set) (*flow.Unisolate, bool) {
 // function and returns the call expression that runs it, or false if the printer does not print
 // the line. It sets scope to the capture scope of the line. With budget controls the library loop that
 // runs the line charges its entry and the function charges each iteration of a repetition.
-func (g *Generator) flowLine(l *core.OpLine, e grammar.Expr, scope *check.Scope, build bool) (string, bool) {
+func (g *Generator) flowLine(l *core.OpLine, e ast.Expr, scope *check.Scope, build bool) (string, bool) {
 	if g.Flow == nil || l == nil || !flowlower.LineOK(e) || !flowlower.FramedBody(l.Body) {
 		return "", false
 	}

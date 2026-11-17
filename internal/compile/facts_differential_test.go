@@ -6,13 +6,13 @@ import (
 	"strings"
 	"testing"
 
-	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/compile"
 	"zeroparse.dev/zp/internal/frontend/elaborate"
 	"zeroparse.dev/zp/internal/ir/core"
 	"zeroparse.dev/zp/internal/ir/core/facts"
 	"zeroparse.dev/zp/internal/testing/compiletest"
 	"zeroparse.dev/zp/internal/testing/factstest"
+	"zeroparse.dev/zp/pkg/grammar/ast"
 )
 
 // TestFactsDifferential compares the grammar facts that compilation computes with those that
@@ -38,7 +38,7 @@ func TestFactsDifferential(t *testing.T) {
 		}
 		compiled++
 		want := factstest.Render(compile.ProgramFacts(prog))
-		origin := map[core.Node]grammar.Expr{}
+		origin := map[core.Node]ast.Expr{}
 		m, err := elaborate.CoreFrom(prog, origin)
 		if err != nil {
 			t.Fatalf("seed %d: %v\n%s", seed, err, src)

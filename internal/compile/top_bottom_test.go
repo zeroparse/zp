@@ -4,7 +4,7 @@ import (
 	"strings"
 	"testing"
 
-	"zeroparse.dev/zp/grammar"
+	"zeroparse.dev/zp/pkg/grammar/ast"
 )
 
 func TestTopBottomTypes(t *testing.T) {
@@ -94,7 +94,7 @@ func TestTopBottomReportedOnce(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	g.Types()[0].(*grammar.TypeDef).Struct().Fields[0].Type = &grammar.MeetType{}
+	g.Types()[0].(*ast.TypeDef).Struct().Fields[0].Type = &ast.MeetType{}
 	if _, err := compileStatic(g, Options{}, nil); err != nil {
 		t.Fatal(err)
 	}

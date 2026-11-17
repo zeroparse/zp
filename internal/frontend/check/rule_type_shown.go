@@ -1,16 +1,16 @@
 package check
 
 import (
-	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/cancel"
 	"zeroparse.dev/zp/internal/frontend/types"
+	"zeroparse.dev/zp/pkg/grammar/ast"
 )
 
 // shownRuleTypes returns the type of each rule as Program.RuleType shows it: the declared type of
 // a rule with one, and otherwise the rule's value type, in which a reference to a rule with a
 // declared type is that type. A reference to a rule without one keeps the rule's name, which
 // keeps recursive and large values short.
-func shownRuleTypes(prog *Checker, rules []*grammar.RuleDef, values map[string]Ty, control *cancel.Control) map[string]Ty {
+func shownRuleTypes(prog *Checker, rules []*ast.RuleDef, values map[string]Ty, control *cancel.Control) map[string]Ty {
 	k := &TypeResolver{Prog: prog}
 	declared := map[string]Ty{}
 	for _, rd := range rules {

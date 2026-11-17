@@ -12,7 +12,6 @@ import (
 	"sync"
 	"unicode"
 
-	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/codegen"
 	"zeroparse.dev/zp/internal/compile"
 	"zeroparse.dev/zp/internal/frontend/check"
@@ -21,6 +20,7 @@ import (
 	"zeroparse.dev/zp/internal/ir/exec"
 	"zeroparse.dev/zp/internal/ir/flow"
 	"zeroparse.dev/zp/internal/ir/opt"
+	"zeroparse.dev/zp/pkg/grammar/ast"
 )
 
 // tsLibMarker starts the part of lib.ts in the TypeScript library that is copied into generated code.
@@ -41,7 +41,7 @@ const tsLibMarker = "// --- Library ---\n"
 // clear: a negative present set is the identity of a larger one (Parser.presentOf).
 const maxLeaderBits = 31
 
-func Generate(g *grammar.Grammar, c codegen.Compiler, opts codegen.GenOptions) ([]codegen.GeneratedFile, error) {
+func Generate(g *ast.Grammar, c codegen.Compiler, opts codegen.GenOptions) ([]codegen.GeneratedFile, error) {
 	return GenerateParser(g, c, opts, nil)
 }
 
@@ -58,7 +58,7 @@ type Hooks struct {
 }
 
 // GenerateParser generates the files of Generate with the hooks h, which may be nil.
-func GenerateParser(g *grammar.Grammar, c codegen.Compiler, opts codegen.GenOptions, h *Hooks) ([]codegen.GeneratedFile, error) {
+func GenerateParser(g *ast.Grammar, c codegen.Compiler, opts codegen.GenOptions, h *Hooks) ([]codegen.GeneratedFile, error) {
 	if h == nil {
 		h = &Hooks{}
 	}
@@ -458,7 +458,7 @@ func (g *Generator) rules() {
 	for _, r := range all {
 		s := check.NewScope()
 		scopes[r] = s
-		if _, ok := r.Def.Expr.(*grammar.OperatorsRule); !ok {
+		if _, ok := r.Def.Expr.(*ast.OperatorsRule); !ok {
 			g.Cur, g.Proj = r, g.Projections(r)
 			if call, ok := g.flowRule(r, s); ok {
 				bodies[r] = call
@@ -477,7 +477,7 @@ func (g *Generator) rules() {
 			continue
 		}
 		value := tsShaper(g.Prog, r.BodyExpr())
-		if _, ok := r.Def.Expr.(*grammar.OperatorsRule); ok {
+		if _, ok := r.Def.Expr.(*ast.OperatorsRule); ok {
 			value = 0 // the lines build the rule's value
 		}
 		fmt.Fprintf(init, "const %s = mkRule(%d, %s, %s, %d, %v, %v, %d, %v, %s);\n", g.ruleVar(r),
@@ -533,7 +533,7 @@ func (g *Generator) rules() {
 	}
 	fmt.Fprintf(init, "const %s = %d;\n", g.seenVar(), g.Prog.NSeen)
 	for _, r := range all {
-		if pr, ok := r.Def.Expr.(*grammar.OperatorsRule); ok {
+		if pr, ok := r.Def.Expr.(*ast.OperatorsRule); ok {
 			g.Cur = r
 			g.operatorsRule(r, pr)
 			if r.Action != nil && !r.Novalue {
@@ -564,7 +564,7 @@ func (g *Generator) rules() {
 	// Struct fields, used to detect references to undeclared fields at run time.
 	var names []string
 	for name, spec := range g.Prog.Types {
-		if td, ok := spec.(*grammar.TypeDef); ok && td.Struct() != nil {
+		if td, ok := spec.(*ast.TypeDef); ok && td.Struct() != nil {
 			names = append(names, name)
 		}
 	}
@@ -624,7 +624,7 @@ func (g *Generator) plainCall(r *compile.Rule, body string) {
 
 // tsShaper returns the library shaper of the expression e, its static shape (internal/compile/value_shape.go), packed
 // as the library's Shaper.
-func tsShaper(prog *compile.Program, e grammar.Expr) int {
+func tsShaper(prog *compile.Program, e ast.Expr) int {
 	s := int(compile.SingleModeOf(prog, e))<<2 | compile.ValuedCount(prog, e)<<5
 	if compile.IsElems(prog, e) {
 		s |= 1
@@ -638,7 +638,7 @@ func tsShaper(prog *compile.Program, e grammar.Expr) int {
 	return s
 }
 
-func (g *Generator) operatorsRule(r *compile.Rule, e *grammar.OperatorsRule) {
+func (g *Generator) operatorsRule(r *compile.Rule, e *ast.OperatorsRule) {
 	var b strings.Builder
 	fmt.Fprintf(&b, "%s.operatorsRule = {\n", g.ruleVar(r))
 	// The lines of the rule's Core IR, in the order of e, if the printer prints them from Flow IR.
@@ -679,7 +679,7 @@ func (g *Generator) operatorsRule(r *compile.Rule, e *grammar.OperatorsRule) {
 			}
 			s := fmt.Sprintf("    { id: %d, kind: %s, assoc: %s, level: %d, line: %s },\n", id, TsString(op.Kind), TsString(op.Assoc), i+1, g.operatorsRuleLine(op.Expr, op.Action, true, line))
 			id++
-			if op.Kind == grammar.Prefix {
+			if op.Kind == ast.Prefix {
 				prefix = append(prefix, s)
 			} else {
 				led = append(led, s)
@@ -695,7 +695,7 @@ func (g *Generator) operatorsRule(r *compile.Rule, e *grammar.OperatorsRule) {
 
 // operatorsRuleLine returns the line of an Operators Rule with the expression e and the action; l is
 // its Core IR if the printer prints it from Flow IR, or nil.
-func (g *Generator) operatorsRuleLine(e grammar.Expr, action grammar.Term, operator bool, l *core.OpLine) string {
+func (g *Generator) operatorsRuleLine(e ast.Expr, action ast.Term, operator bool, l *core.OpLine) string {
 	s := check.NewScope()
 	var locals []string
 	if operator {

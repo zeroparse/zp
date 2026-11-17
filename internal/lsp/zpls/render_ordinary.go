@@ -4,8 +4,8 @@ import (
 	"encoding/json"
 	"regexp"
 
-	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/lsp/protocol"
+	"zeroparse.dev/zp/pkg/grammar/ast"
 )
 
 func (s *Server) documentSymbol(params json.RawMessage) (any, *protocol.RPCError) {
@@ -16,10 +16,10 @@ func (s *Server) documentSymbol(params json.RawMessage) (any, *protocol.RPCError
 func (a *analysis) symbols() []protocol.DocumentSymbol {
 	return a.symbolsControlled(nil)
 }
-func typeSymbolKind(td *grammar.TypeDef) (int, string) {
+func typeSymbolKind(td *ast.TypeDef) (int, string) {
 	return typeSymbolKindControlled(td, nil)
 }
-func (a *analysis) fieldSymbols(d *definition, st *grammar.TypeDef) []protocol.DocumentSymbol {
+func (a *analysis) fieldSymbols(d *definition, st *ast.TypeDef) []protocol.DocumentSymbol {
 	return a.fieldSymbolsControlled(d, st, nil)
 }
 func (s *Server) hover(params json.RawMessage) (any, *protocol.RPCError) {

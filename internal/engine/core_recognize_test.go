@@ -4,13 +4,13 @@ import (
 	"fmt"
 	"testing"
 
-	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/codegen"
 	"zeroparse.dev/zp/internal/codegen/go"
 	"zeroparse.dev/zp/internal/compile"
 	irbuild "zeroparse.dev/zp/internal/frontend/elaborate"
 	"zeroparse.dev/zp/internal/ir/core"
 	"zeroparse.dev/zp/internal/testing/codegentest"
+	"zeroparse.dev/zp/pkg/grammar/ast"
 )
 
 // coreRecognizeCase builds the Core IR of the recognizer of the parser generated with Recognize,
@@ -21,7 +21,7 @@ func coreRecognizeCase(name, mode string, g *gogen.Generator) (*coreGenCase, err
 	if err != nil {
 		return nil, err
 	}
-	c := &coreGenCase{name: name, mode: mode, table: "recRules", golden: recognizerGolden, gen: g, origin: map[core.Node]grammar.Expr{}}
+	c := &coreGenCase{name: name, mode: mode, table: "recRules", golden: recognizerGolden, gen: g, origin: map[core.Node]ast.Expr{}}
 	c.rules = append(append([]*compile.Rule(nil), rec.RuleList...), rec.Twins...)
 	m, err := irbuild.CoreFrom(rec, c.origin)
 	if err != nil {

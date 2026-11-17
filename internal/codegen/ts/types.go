@@ -8,11 +8,11 @@ import (
 	"strings"
 
 	"zeroparse.dev/zp/core/impl"
-	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/codegen"
 	"zeroparse.dev/zp/internal/compile"
 	"zeroparse.dev/zp/internal/frontend/check"
 	"zeroparse.dev/zp/internal/frontend/types"
+	"zeroparse.dev/zp/pkg/grammar/ast"
 )
 
 // TsReservedTypes are the names types.ts declares itself, or imports. A grammar type with one of
@@ -70,7 +70,7 @@ func (g *Generator) typedTS(start *compile.Rule) (typesSrc, parser string, err e
 	open := []string{"RuntimeNode", "StringNode", "TNode<unknown>", "TypedValue[]", "RecoveredError", "number", "bigint", "string", "boolean", "null"}
 	for _, name := range t.all {
 		switch spec := g.Prog.Types[name].(type) {
-		case *grammar.TypeDef:
+		case *ast.TypeDef:
 			open = append(open, t.names[name])
 			if n, ok := g.Prog.NodeTypeOf(name); ok && spec.Struct() == nil {
 				under := strings.TrimSuffix(t.tsType(n.Underlying()), " | null")
@@ -85,8 +85,8 @@ func (g *Generator) typedTS(start *compile.Rule) (typesSrc, parser string, err e
 			}
 			b.WriteString("}\n\n")
 			t.recipe(types.NamedTy{Name: name, Kind: 's'})
-		case *grammar.TypeAlias:
-			fmt.Fprintf(&b, "/** Grammar alias %s = %s. */\nexport type %s = %s;\n\n", name, grammar.FormatType(spec.Type), t.names[name], t.tsType(t.info.Aliases[name]))
+		case *ast.TypeAlias:
+			fmt.Fprintf(&b, "/** Grammar alias %s = %s. */\nexport type %s = %s;\n\n", name, ast.FormatType(spec.Type), t.names[name], t.tsType(t.info.Aliases[name]))
 			t.recipe(t.info.Aliases[name])
 		}
 	}
@@ -130,7 +130,7 @@ func (g *Generator) typedTS(start *compile.Rule) (typesSrc, parser string, err e
 		fmt.Fprintf(&b, "  [%s, %d],\n", TsString(name), elemsID)
 	}
 	for _, name := range t.all {
-		if td, ok := g.Prog.Types[name].(*grammar.TypeDef); ok {
+		if td, ok := g.Prog.Types[name].(*ast.TypeDef); ok {
 			if n, ok := g.Prog.NodeTypeOf(name); ok && td.Struct() == nil {
 				fmt.Fprintf(&b, "  [%s, %d],\n", TsString(name), t.recipe(n))
 				continue

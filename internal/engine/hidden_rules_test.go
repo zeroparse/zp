@@ -4,9 +4,9 @@ import (
 	"strings"
 	"testing"
 
-	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/compile"
 	"zeroparse.dev/zp/internal/testing/codegentest"
+	"zeroparse.dev/zp/pkg/grammar/ast"
 )
 
 // The generated name of an inline action's rule never satisfies a reference: a reference resolves
@@ -54,8 +54,8 @@ rule _b = "b"`
 			if strings.HasPrefix(rd.Name, "_main") {
 				t.Errorf("%+v: the grammar as written has the generated rule %s", opts, rd.Name)
 			}
-			compile.WalkExpr(rd.Expr, func(e grammar.Expr) {
-				if _, ok := e.(*grammar.InlineAction); ok {
+			compile.WalkExpr(rd.Expr, func(e ast.Expr) {
+				if _, ok := e.(*ast.InlineAction); ok {
 					inline++
 				}
 			})

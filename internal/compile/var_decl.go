@@ -1,25 +1,25 @@
 package compile
 
 import (
-	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/frontend/check"
 	"zeroparse.dev/zp/internal/frontend/types"
+	"zeroparse.dev/zp/pkg/grammar/ast"
 )
 
 // constantValue returns the value of an initializer: an int, a string or a bool literal, or an
 // int literal with a minus sign. ok is false for any other expression.
-func constantValue(t grammar.Term) (v any, ok bool) {
+func constantValue(t ast.Term) (v any, ok bool) {
 	switch t := t.(type) {
-	case *grammar.TermGroup:
+	case *ast.TermGroup:
 		return constantValue(t.Term)
-	case *grammar.IntLit:
+	case *ast.IntLit:
 		return t.Value, true
-	case *grammar.StringLit:
+	case *ast.StringLit:
 		return t.Value, true
-	case *grammar.BoolLit:
+	case *ast.BoolLit:
 		return t.Value, true
-	case *grammar.Unary:
-		if lit, isInt := t.X.(*grammar.IntLit); isInt && t.Op == "-" {
+	case *ast.Unary:
+		if lit, isInt := t.X.(*ast.IntLit); isInt && t.Op == "-" {
 			return -lit.Value, true
 		}
 	}
@@ -27,10 +27,10 @@ func constantValue(t grammar.Term) (v any, ok bool) {
 }
 
 // declareVars records the variables of the grammar and reports the invalid declarations.
-func (c *Compiler) declareVars(g *grammar.Grammar) {
+func (c *Compiler) declareVars(g *ast.Grammar) {
 	for _, d := range g.File.Decls {
 		c.Control.Poll()
-		vd, ok := d.(*grammar.VarDef)
+		vd, ok := d.(*ast.VarDef)
 		if !ok {
 			continue
 		}
@@ -51,10 +51,10 @@ func (c *Compiler) declareVars(g *grammar.Grammar) {
 }
 
 // varDecl returns the declaration of vd, or nil after reporting why it is invalid.
-func (c *Compiler) varDecl(vd *grammar.VarDef) *check.VarDecl {
+func (c *Compiler) varDecl(vd *ast.VarDef) *check.VarDecl {
 	var typ types.BasicTy
 	if vd.Type != nil {
-		ref, ok := vd.Type.(*grammar.TypeRef)
+		ref, ok := vd.Type.(*ast.TypeRef)
 		if ok {
 			switch ref.Name {
 			case "int":
@@ -68,13 +68,13 @@ func (c *Compiler) varDecl(vd *grammar.VarDef) *check.VarDecl {
 			}
 		}
 		if !ok {
-			if ref, isRef := vd.Type.(*grammar.TypeRef); isRef {
+			if ref, isRef := vd.Type.(*ast.TypeRef); isRef {
 				if to, retired := check.RetiredTypeNames[ref.Name]; retired {
 					c.errorf(vd.Diagnostic(), "%s is not a type; write %s", ref.Name, to)
 					return nil
 				}
 			}
-			c.errorf(vd.Diagnostic(), "variable %s must have type int, string, or bool, got %s", vd.Name, grammar.FormatType(vd.Type))
+			c.errorf(vd.Diagnostic(), "variable %s must have type int, string, or bool, got %s", vd.Name, ast.FormatType(vd.Type))
 			return nil
 		}
 	}
@@ -85,7 +85,7 @@ func (c *Compiler) varDecl(vd *grammar.VarDef) *check.VarDecl {
 		}
 		return &check.VarDecl{Name: vd.Name, Typ: typ, Init: check.ZeroValue(typ)}
 	}
-	if _, isNil := vd.Value.(*grammar.NilLit); isNil {
+	if _, isNil := vd.Value.(*ast.NilLit); isNil {
 		c.errorf(check.TermPos(vd.Value, vd.Diagnostic()), "variable %s cannot be nil; its type is int, string, or bool", vd.Name)
 		return nil
 	}

@@ -6,48 +6,48 @@ import (
 
 	"zeroparse.dev/zp/core"
 	"zeroparse.dev/zp/engine"
-	"zeroparse.dev/zp/grammar"
+	"zeroparse.dev/zp/pkg/grammar/ast"
 )
 
 func TestFormatNativeMinimumRoundTrip(t *testing.T) {
 	max := int(^uint(0) >> 1)
-	minimum := &grammar.IntLit{Value: -max - 1}
+	minimum := &ast.IntLit{Value: -max - 1}
 	for _, tc := range []struct {
 		name string
-		term grammar.Term
+		term ast.Term
 		want int
 	}{
 		{"literal", minimum, minimum.Value},
-		{"negated", &grammar.Unary{Op: "-", X: minimum}, minimum.Value},
-		{"left addition", &grammar.Binary{Op: "+", L: minimum, R: &grammar.IntLit{Value: 1}}, minimum.Value + 1},
-		{"right subtraction", &grammar.Binary{Op: "-", L: &grammar.IntLit{Value: 1}, R: minimum}, minimum.Value + 1},
-		{"left division", &grammar.Binary{Op: "/", L: minimum, R: &grammar.IntLit{Value: 2}}, minimum.Value / 2},
-		{"right multiplication", &grammar.Binary{Op: "*", L: &grammar.IntLit{Value: 2}, R: minimum}, 0},
+		{"negated", &ast.Unary{Op: "-", X: minimum}, minimum.Value},
+		{"left addition", &ast.Binary{Op: "+", L: minimum, R: &ast.IntLit{Value: 1}}, minimum.Value + 1},
+		{"right subtraction", &ast.Binary{Op: "-", L: &ast.IntLit{Value: 1}, R: minimum}, minimum.Value + 1},
+		{"left division", &ast.Binary{Op: "/", L: minimum, R: &ast.IntLit{Value: 2}}, minimum.Value / 2},
+		{"right multiplication", &ast.Binary{Op: "*", L: &ast.IntLit{Value: 2}, R: minimum}, 0},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			g, err := engine.ParseGrammar("type N = { V int }\n@start\nrule main = \"é\" $$ => N{V: 0}")
 			if err != nil {
 				t.Fatal(err)
 			}
-			g.Rules()[0].Action.(*grammar.New).Fields[0].Value = tc.term
-			data, err := grammar.MarshalJSON(g)
+			g.Rules()[0].Action.(*ast.New).Fields[0].Value = tc.term
+			data, err := ast.MarshalJSON(g)
 			if err != nil {
 				t.Fatal(err)
 			}
-			jsonAST, err := grammar.UnmarshalJSON(data)
+			jsonAST, err := ast.UnmarshalJSON(data)
 			if err != nil {
 				t.Fatal(err)
 			}
-			source := grammar.Format(jsonAST)
+			source := ast.Format(jsonAST)
 			sourceAST, err := engine.ParseGrammar(source)
 			if err != nil {
 				t.Fatalf("formatted source cannot be parsed: %v\n%s", err, source)
 			}
-			if again := grammar.Format(sourceAST); again != source {
+			if again := ast.Format(sourceAST); again != source {
 				t.Fatalf("format is not idempotent:\n%s\n%s", source, again)
 			}
-			for _, ast := range []*grammar.Grammar{g, jsonAST, sourceAST} {
-				p, err := engine.Compile(ast, "main")
+			for _, tree := range []*ast.Grammar{g, jsonAST, sourceAST} {
+				p, err := engine.Compile(tree, "main")
 				if err != nil {
 					t.Fatal(err)
 				}

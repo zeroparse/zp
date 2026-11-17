@@ -9,8 +9,8 @@ import (
 	"time"
 	"unicode/utf8"
 
-	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/lsp/protocol"
+	"zeroparse.dev/zp/pkg/grammar/ast"
 )
 
 func TestTextIndexPositions(t *testing.T) {
@@ -67,34 +67,34 @@ func TestTextIndexZPPositions(t *testing.T) {
 	text := "a😀b\r\n名\rx\nz"
 	idx := newTextIndex(text)
 	for _, tc := range []struct {
-		pos grammar.Pos
+		pos ast.Pos
 		off int
 	}{
-		{grammar.Pos{Line: 1, Col: 1}, 0},
-		{grammar.Pos{Line: 1, Col: 2}, 1},
-		{grammar.Pos{Line: 1, Col: 3}, 5},
-		{grammar.Pos{Line: 1, Col: 4}, 6}, // \r
-		{grammar.Pos{Line: 2, Col: 1}, 8},
-		{grammar.Pos{Line: 2, Col: 2}, 11}, // the lone \r
-		{grammar.Pos{Line: 3, Col: 1}, 12}, // x, after the lone \r
-		{grammar.Pos{Line: 4, Col: 1}, 14},
-		{grammar.Pos{Line: 4, Col: 2}, 15},
+		{ast.Pos{Line: 1, Col: 1}, 0},
+		{ast.Pos{Line: 1, Col: 2}, 1},
+		{ast.Pos{Line: 1, Col: 3}, 5},
+		{ast.Pos{Line: 1, Col: 4}, 6}, // \r
+		{ast.Pos{Line: 2, Col: 1}, 8},
+		{ast.Pos{Line: 2, Col: 2}, 11}, // the lone \r
+		{ast.Pos{Line: 3, Col: 1}, 12}, // x, after the lone \r
+		{ast.Pos{Line: 4, Col: 1}, 14},
+		{ast.Pos{Line: 4, Col: 2}, 15},
 	} {
 		if got := idx.zpOffset(tc.pos); got != tc.off {
 			t.Errorf("zpOffset(%v) = %d, want %d", tc.pos, got, tc.off)
 		}
 	}
-	if got := idx.zpOffset(grammar.Pos{Line: 1, Col: 99}); got != 7 {
+	if got := idx.zpOffset(ast.Pos{Line: 1, Col: 99}); got != 7 {
 		t.Errorf("past the end of the line: %d", got)
 	}
-	if got := idx.zpOffset(grammar.Pos{Line: 9, Col: 1}); got != len(text) {
+	if got := idx.zpOffset(ast.Pos{Line: 9, Col: 1}); got != len(text) {
 		t.Errorf("past the last line: %d", got)
 	}
-	if got := idx.zpOffset(grammar.Pos{Line: 2, Col: 9}); got != 11 {
+	if got := idx.zpOffset(ast.Pos{Line: 2, Col: 9}); got != 11 {
 		t.Errorf("past the end of a line that ends with \\r: %d", got)
 	}
 	// The x after the lone \r is on LSP line 2.
-	if got := idx.position(idx.zpOffset(grammar.Pos{Line: 3, Col: 1})); got != (protocol.Position{Line: 2, Character: 0}) {
+	if got := idx.position(idx.zpOffset(ast.Pos{Line: 3, Col: 1})); got != (protocol.Position{Line: 2, Character: 0}) {
 		t.Errorf("x at %v", got)
 	}
 }
@@ -178,7 +178,7 @@ func naivePosition(t *textIndex, off int) protocol.Position {
 	return protocol.Position{Line: line, Character: col}
 }
 
-func naiveZPOffset(t *textIndex, p grammar.Pos) int {
+func naiveZPOffset(t *textIndex, p ast.Pos) int {
 	if p.Line < 1 {
 		return 0
 	}
@@ -223,7 +223,7 @@ func TestTextIndexMatchesNaive(t *testing.T) {
 			if got, want := idx.offset(p), naiveOffset(idx, p); got != want {
 				t.Fatalf("text %q: offset(%v) = %d, want %d", text, p, got, want)
 			}
-			pp := grammar.Pos{Line: rnd.IntN(len(idx.lines) + 1), Col: rnd.IntN(1000) + 1}
+			pp := ast.Pos{Line: rnd.IntN(len(idx.lines) + 1), Col: rnd.IntN(1000) + 1}
 			if got, want := idx.zpOffset(pp), naiveZPOffset(idx, pp); got != want {
 				t.Fatalf("text %q: zpOffset(%v) = %d, want %d", text, pp, got, want)
 			}

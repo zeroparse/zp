@@ -5,13 +5,13 @@ import (
 	"reflect"
 	"testing"
 
-	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/compile"
 	"zeroparse.dev/zp/internal/frontend/elaborate"
 	"zeroparse.dev/zp/internal/ir/core"
 	"zeroparse.dev/zp/internal/ir/core/facts"
 	"zeroparse.dev/zp/internal/testing/compiletest"
 	"zeroparse.dev/zp/internal/testing/factstest"
+	"zeroparse.dev/zp/pkg/grammar/ast"
 )
 
 // structuralInput returns the input of an untyped module of the rules of the compiled program:
@@ -129,7 +129,7 @@ func TestStructuralFactsNegative(t *testing.T) {
 	if !f.Rules[0].Cyclic() {
 		t.Fatal("rule a is not left-recursive")
 	}
-	in.Rules[0].Body = &grammar.Literal{Value: "x"}
+	in.Rules[0].Body = &ast.Literal{Value: "x"}
 	m2, err := elaborate.Structural(in, nil)
 	if err != nil {
 		t.Fatal(err)

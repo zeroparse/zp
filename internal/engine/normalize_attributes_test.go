@@ -5,11 +5,11 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/core"
-	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/compile"
 	"zeroparse.dev/zp/internal/engine/state"
 	"zeroparse.dev/zp/internal/frontend/desugar"
 	"zeroparse.dev/zp/internal/testing/codegentest"
+	"zeroparse.dev/zp/pkg/grammar/ast"
 )
 
 func TestNormalizationCopyOnChangeParity(t *testing.T) {
@@ -40,7 +40,7 @@ rule main (Alias) = {count := (1)} {(count == 1)} n:([0-9]+) => (Number{Text: (t
 			if err != nil {
 				t.Fatal(err)
 			}
-			before, err := grammar.MarshalJSON(g)
+			before, err := ast.MarshalJSON(g)
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -49,7 +49,7 @@ rule main (Alias) = {count := (1)} {(count == 1)} n:([0-9]+) => (Number{Text: (t
 			if !reflect.DeepEqual(gotErr, wantErr) || !reflect.DeepEqual(got, want) {
 				t.Fatalf("normalization differs: got %#v / %v; want %#v / %v", got, gotErr, want, wantErr)
 			}
-			after, err := grammar.MarshalJSON(g)
+			after, err := ast.MarshalJSON(g)
 			if err != nil || string(after) != string(before) {
 				t.Fatalf("source changed: %v", err)
 			}
@@ -90,7 +90,7 @@ rule main (Alias) = {count := (1)} {(count == 1)} n:([0-9]+) => (Number{Text: (t
 			for _, p := range []*Program{optimized, eager} {
 				_, _ = p.ParseWith("main", "ab", ParseOptions{Recognize: true})
 			}
-			after, err = grammar.MarshalJSON(g)
+			after, err = ast.MarshalJSON(g)
 			if err != nil || string(after) != string(before) {
 				t.Fatalf("compilation/backend initialization changed source: %v", err)
 			}

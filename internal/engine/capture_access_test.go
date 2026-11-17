@@ -7,10 +7,10 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/core"
-	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/bytecode"
 	"zeroparse.dev/zp/internal/compile"
 	"zeroparse.dev/zp/internal/testing/codegentest"
+	"zeroparse.dev/zp/pkg/grammar/ast"
 )
 
 func TestCaptureAccessAcrossBackends(t *testing.T) {
@@ -78,7 +78,7 @@ func TestCaptureAccessMatchesField(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	member := g.Rules()[0].Action.(*grammar.Call).Args[1].(*grammar.Lambda).Body.(*grammar.Member)
+	member := g.Rules()[0].Action.(*ast.Call).Args[1].(*ast.Lambda).Body.(*ast.Member)
 	member.Name = "y"
 	if _, err := Compile(g, compile.Options{}); err == nil || !strings.Contains(err.Error(), "read the capture with .$y") {
 		t.Fatalf("field access on a node: %v", err)
@@ -103,11 +103,11 @@ func TestCaptureAccessSyntax(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if got := grammar.Format(g); !strings.Contains(got, "i.$y.Start") {
+	if got := ast.Format(g); !strings.Contains(got, "i.$y.Start") {
 		t.Fatalf("formatted:\n%s", got)
 	}
-	body := g.Rules()[0].Action.(*grammar.Call).Args[1].(*grammar.Lambda).Body.(*grammar.Member)
-	if inner, ok := body.X.(*grammar.Member); !ok || inner.Name != "$y" || body.Name != "Start" {
+	body := g.Rules()[0].Action.(*ast.Call).Args[1].(*ast.Lambda).Body.(*ast.Member)
+	if inner, ok := body.X.(*ast.Member); !ok || inner.Name != "$y" || body.Name != "Start" {
 		t.Fatalf("access %#v", body)
 	}
 	program := mustCompile(t, `rule main = xs:(y:"a" "b")* $$ => $xs[0].$y`)

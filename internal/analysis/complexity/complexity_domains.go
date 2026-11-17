@@ -8,7 +8,7 @@ import (
 	"zeroparse.dev/zp/internal/frontend/astfacts"
 	"zeroparse.dev/zp/internal/frontend/check"
 
-	"zeroparse.dev/zp/grammar"
+	"zeroparse.dev/zp/pkg/grammar/ast"
 )
 
 // maxFiniteValues caps the number of values that finiteVars computes for one variable. The
@@ -86,18 +86,18 @@ func (k *classifier) finiteVars() finiteDomains {
 // constantValues returns a bound on the number of values of the variable v when its initial value
 // and every binding of it are constants, and whether they are: each constant term gives one value,
 // or none when its evaluation is an error, so the distinct terms bound the values.
-func constantValues(v *grammar.VarDef, binds []*binding) (int, bool) {
+func constantValues(v *ast.VarDef, binds []*binding) (int, bool) {
 	terms := map[string]bool{}
 	if v.Value == nil {
 		terms[""] = true
 	} else {
-		terms[grammar.FormatTerm(check.UngroupTerm(v.Value))] = true
+		terms[ast.FormatTerm(check.UngroupTerm(v.Value))] = true
 	}
 	for _, b := range binds {
 		if !constant(b.b.Value) {
 			return 0, false
 		}
-		terms[grammar.FormatTerm(check.UngroupTerm(b.b.Value))] = true
+		terms[ast.FormatTerm(check.UngroupTerm(b.b.Value))] = true
 	}
 	return len(terms), true
 }
@@ -106,7 +106,7 @@ func constantValues(v *grammar.VarDef, binds []*binding) (int, bool) {
 // bind a value other than its initial value, and two otherwise. A binding counts by its value
 // when that is a constant, binds nothing when it fails to evaluate, and counts as both values
 // otherwise.
-func finiteBool(v *grammar.VarDef, binds []*binding) int {
+func finiteBool(v *ast.VarDef, binds []*binding) int {
 	set := map[bool]bool{}
 	init := any(false)
 	if v.Value != nil {
@@ -139,7 +139,7 @@ type valueSet map[int]bool
 
 // lenOperand is an operand len($c) of a binding, with the bound on the length of the value of c.
 type lenOperand struct {
-	call *grammar.Call
+	call *ast.Call
 	max  int
 }
 
@@ -153,7 +153,7 @@ type intDomain struct {
 	lens   map[*binding][]lenOperand
 	opaque map[*binding]bool // bindings that read what eval does not know (see lenOperands)
 	guards map[*binding]guard
-	binds  map[*grammar.Bind]*binding
+	binds  map[*ast.Bind]*binding
 }
 
 // finiteInt reports whether the values of the int variable v form a set of at most
@@ -165,7 +165,7 @@ type intDomain struct {
 // that fails to evaluate, as by a division by zero, binds nothing. A binding that reads anything
 // else binds the values that its guard bounds (see guardOf); one whose values have no such bound
 // leaves the set unbounded.
-func (k *classifier) finiteInt(v *grammar.VarDef, binds []*binding) (int, bool) {
+func (k *classifier) finiteInt(v *ast.VarDef, binds []*binding) (int, bool) {
 	init := 0
 	if v.Value != nil {
 		r, res := eval(v.Value, domainEnv{v: v.Name})
@@ -176,7 +176,7 @@ func (k *classifier) finiteInt(v *grammar.VarDef, binds []*binding) (int, bool) 
 		init = x
 	}
 	d := &intDomain{k: k, v: v.Name, set: valueSet{init: true}, lens: map[*binding][]lenOperand{},
-		opaque: map[*binding]bool{}, guards: map[*binding]guard{}, binds: map[*grammar.Bind]*binding{}}
+		opaque: map[*binding]bool{}, guards: map[*binding]guard{}, binds: map[*ast.Bind]*binding{}}
 	for _, b := range binds {
 		ops, ok := k.lenOperands(b)
 		d.lens[b], d.opaque[b] = ops, !ok
@@ -257,7 +257,7 @@ func (d *intDomain) apply(b *binding, x int) ([]int, bool) {
 	lens := make([]int, len(ops))
 	var out []int
 	for {
-		env := domainEnv{v: d.v, x: x, lens: map[*grammar.Call]int{}}
+		env := domainEnv{v: d.v, x: x, lens: map[*ast.Call]int{}}
 		for i, op := range ops {
 			env.lens[op.call] = lens[i]
 		}
@@ -287,8 +287,8 @@ func (d *intDomain) apply(b *binding, x int) ([]int, bool) {
 func (k *classifier) lenOperands(b *binding) ([]lenOperand, bool) {
 	var ops []lenOperand
 	combos := 1
-	ok := readsOnly(b.b.Value, b.b.Name, func(c *grammar.Call) bool {
-		r, isRef := check.UngroupTerm(c.Args[0]).(*grammar.CaptureRef)
+	ok := readsOnly(b.b.Value, b.b.Name, func(c *ast.Call) bool {
+		r, isRef := check.UngroupTerm(c.Args[0]).(*ast.CaptureRef)
 		if !isRef || r.Param {
 			return false
 		}
@@ -343,20 +343,20 @@ func (d *intDomain) inputs(b *binding) valueSet {
 
 // blockBefore returns the statements before the binding b in the block of the predicate in e that
 // holds it as a statement or as its term, and whether e has such a predicate.
-func blockBefore(e grammar.Expr, b *grammar.Bind) ([]grammar.Term, bool) {
-	var out []grammar.Term
+func blockBefore(e ast.Expr, b *ast.Bind) ([]ast.Term, bool) {
+	var out []ast.Term
 	found := false
-	astfacts.WalkExpr(e, func(x grammar.Expr) {
-		p, ok := x.(*grammar.Predicate)
+	astfacts.WalkExpr(e, func(x ast.Expr) {
+		p, ok := x.(*ast.Predicate)
 		if !ok || found {
 			return
 		}
-		if p.Term == grammar.Term(b) {
+		if p.Term == ast.Term(b) {
 			found = true
 			return
 		}
-		if blk, ok := p.Term.(*grammar.Block); ok {
-			if i := slices.Index(blk.Statements, grammar.Term(b)); i >= 0 {
+		if blk, ok := p.Term.(*ast.Block); ok {
+			if i := slices.Index(blk.Statements, ast.Term(b)); i >= 0 {
 				out, found = blk.Statements[:i], true
 			}
 		}
@@ -369,38 +369,38 @@ func blockBefore(e grammar.Expr, b *grammar.Bind) ([]grammar.Term, bool) {
 // change nothing, and a call or a terminal keeps the values, since bindings in a called rule are
 // not visible to its caller. Any other expression that binds the variable can leave it with any
 // value of the set.
-func (d *intDomain) after(e grammar.Expr, x valueSet) valueSet {
+func (d *intDomain) after(e ast.Expr, x valueSet) valueSet {
 	switch e := e.(type) {
-	case *grammar.Predicate:
+	case *ast.Predicate:
 		return d.afterTerm(e.Term, x)
-	case *grammar.Group:
+	case *ast.Group:
 		return d.after(e.Expr, x)
-	case *grammar.Capture:
+	case *ast.Capture:
 		return d.after(e.Expr, x)
-	case *grammar.Discard:
+	case *ast.Discard:
 		return d.after(e.Expr, x)
-	case *grammar.Atomic:
+	case *ast.Atomic:
 		return d.after(e.Expr, x)
-	case *grammar.Attributed:
+	case *ast.Attributed:
 		if labelsOnly(e) {
 			return d.after(e.Expr, x)
 		}
-	case *grammar.Seq:
+	case *ast.Seq:
 		for _, it := range e.Items {
 			x = d.after(it, x)
 		}
 		return x
-	case *grammar.Choice:
+	case *ast.Choice:
 		out := valueSet{}
 		for _, alt := range e.Alts {
 			maps.Copy(out, d.after(alt, x))
 		}
 		return out
-	case *grammar.Optional:
+	case *ast.Optional:
 		out := maps.Clone(x)
 		maps.Copy(out, d.after(e.Expr, x))
 		return out
-	case *grammar.Not:
+	case *ast.Not:
 		// A negative lookahead undoes its bindings.
 		return x
 	}
@@ -411,12 +411,12 @@ func (d *intDomain) after(e grammar.Expr, x valueSet) valueSet {
 }
 
 // bindsVar reports whether e binds the variable in its own body, outside the rules that it calls.
-func (d *intDomain) bindsVar(e grammar.Expr) bool {
+func (d *intDomain) bindsVar(e ast.Expr) bool {
 	found := false
-	astfacts.WalkExpr(e, func(x grammar.Expr) {
-		if p, ok := x.(*grammar.Predicate); ok {
-			astfacts.WalkTerm(p.Term, func(t grammar.Term) {
-				if bd, ok := t.(*grammar.Bind); ok && bd.Name == d.v {
+	astfacts.WalkExpr(e, func(x ast.Expr) {
+		if p, ok := x.(*ast.Predicate); ok {
+			astfacts.WalkTerm(p.Term, func(t ast.Term) {
+				if bd, ok := t.(*ast.Bind); ok && bd.Name == d.v {
 					found = true
 				}
 			})
@@ -426,14 +426,14 @@ func (d *intDomain) bindsVar(e grammar.Expr) bool {
 }
 
 // afterTerm returns the values that the variable can hold after the predicate term t succeeds.
-func (d *intDomain) afterTerm(t grammar.Term, x valueSet) valueSet {
+func (d *intDomain) afterTerm(t ast.Term, x valueSet) valueSet {
 	switch t := t.(type) {
-	case *grammar.Block:
+	case *ast.Block:
 		for _, s := range t.Statements {
 			x = d.afterTerm(s, x)
 		}
 		return x
-	case *grammar.Bind:
+	case *ast.Bind:
 		if t.Name != d.v {
 			return x
 		}
@@ -459,25 +459,25 @@ func (d *intDomain) afterTerm(t grammar.Term, x valueSet) valueSet {
 // valueLen returns a bound on what len gives for the value of the captured expression e, and
 // whether it finds one: the length of the matched text in any position unit for a string node,
 // the number of elements for a tuple or list node or a list value, and 0 for nil.
-func (k *classifier) valueLen(e grammar.Expr, seen map[string]bool) (int, bool) {
+func (k *classifier) valueLen(e ast.Expr, seen map[string]bool) (int, bool) {
 	switch e := e.(type) {
-	case *grammar.Literal, *grammar.CharClass, *grammar.Any:
+	case *ast.Literal, *ast.CharClass, *ast.Any:
 		return textLen(e, k, seen)
-	case *grammar.Group:
+	case *ast.Group:
 		return k.valueLen(e.Expr, seen)
-	case *grammar.Capture:
+	case *ast.Capture:
 		return k.valueLen(e.Expr, seen)
-	case *grammar.Optional:
+	case *ast.Optional:
 		return k.valueLen(e.Expr, seen)
-	case *grammar.And:
+	case *ast.And:
 		return k.valueLen(e.Expr, seen)
-	case *grammar.Atomic:
+	case *ast.Atomic:
 		return textLen(e.Expr, k, seen)
-	case *grammar.Repeat:
+	case *ast.Repeat:
 		if e.Max >= 0 {
 			return e.Max, true
 		}
-	case *grammar.Choice:
+	case *ast.Choice:
 		m := 0
 		for _, alt := range e.Alts {
 			n, ok := k.valueLen(alt, seen)
@@ -487,7 +487,7 @@ func (k *classifier) valueLen(e grammar.Expr, seen map[string]bool) (int, bool) 
 			m = max(m, n)
 		}
 		return m, true
-	case *grammar.Seq:
+	case *ast.Seq:
 		// A tuple with at most one element for each item, where a plain group of a sequence
 		// and a call of a splice rule splice their elements into the tuple, or the value of a
 		// single item.
@@ -503,9 +503,9 @@ func (k *classifier) valueLen(e grammar.Expr, seen map[string]bool) (int, bool) 
 			m = max(m, n)
 		}
 		return m, true
-	case *grammar.Discard, *grammar.Predicate, *grammar.Not:
+	case *ast.Discard, *ast.Predicate, *ast.Not:
 		return 0, true
-	case *grammar.Ref:
+	case *ast.Ref:
 		// A rule on a recursion can have a bounded value, as one whose action reads only a
 		// bounded capture; a value that reaches its own rule again has no bound.
 		r := k.byName[e.Name]
@@ -530,7 +530,7 @@ func (k *classifier) valueLen(e grammar.Expr, seen map[string]bool) (int, bool) 
 // that body, and every other item, such as a capture, an option, a choice, a repetition or any
 // other call, adds one. It reports false if the items have no bound: a splice rule that calls
 // itself among its own items.
-func (k *classifier) splicedLen(e *grammar.Seq, seen map[string]bool) (int, bool) {
+func (k *classifier) splicedLen(e *ast.Seq, seen map[string]bool) (int, bool) {
 	n := 0
 	for _, it := range e.Items {
 		m, ok := k.itemLen(it, seen)
@@ -543,18 +543,18 @@ func (k *classifier) splicedLen(e *grammar.Seq, seen map[string]bool) (int, bool
 }
 
 // itemLen returns the number of tuple items that the sequence item it adds, as splicedLen counts.
-func (k *classifier) itemLen(it grammar.Expr, seen map[string]bool) (int, bool) {
+func (k *classifier) itemLen(it ast.Expr, seen map[string]bool) (int, bool) {
 	for {
 		switch x := check.UngroupExpr(it).(type) {
-		case *grammar.Seq:
+		case *ast.Seq:
 			return k.splicedLen(x, seen)
-		case *grammar.Attributed:
+		case *ast.Attributed:
 			// An attribute other than recovery only labels its expression (isSeqOf).
 			if check.Recovers(x) {
 				return 1, true
 			}
 			it = x.Expr
-		case *grammar.Ref:
+		case *ast.Ref:
 			if !check.IsSeqOf(k.spliceBody, x) {
 				return 1, true
 			}
@@ -574,7 +574,7 @@ func (k *classifier) itemLen(it grammar.Expr, seen map[string]bool) (int, bool) 
 
 // spliceBody returns the body of the rule name if it is a splice rule (Program.SpliceBody), as the
 // grammar writes it.
-func (k *classifier) spliceBody(name string) (grammar.Expr, bool) {
+func (k *classifier) spliceBody(name string) (ast.Expr, bool) {
 	if rd := k.byName[name]; rd != nil && compile.SpliceRule(rd) {
 		return rd.Expr, true
 	}
@@ -582,15 +582,15 @@ func (k *classifier) spliceBody(name string) (grammar.Expr, bool) {
 }
 
 // termLen bounds what len gives for the value of the action term t of rule.
-func (k *classifier) termLen(t grammar.Term, rule string, seen map[string]bool) (int, bool) {
+func (k *classifier) termLen(t ast.Term, rule string, seen map[string]bool) (int, bool) {
 	switch t := t.(type) {
-	case *grammar.TermGroup:
+	case *ast.TermGroup:
 		return k.termLen(t.Term, rule, seen)
-	case *grammar.StringLit:
+	case *ast.StringLit:
 		return len(t.Value), true
-	case *grammar.NilLit:
+	case *ast.NilLit:
 		return 0, true
-	case *grammar.CaptureRef:
+	case *ast.CaptureRef:
 		exprs := k.captures[rule][t.Name]
 		if t.Param || len(exprs) == 0 {
 			return 0, false
@@ -604,7 +604,7 @@ func (k *classifier) termLen(t grammar.Term, rule string, seen map[string]bool) 
 			m = max(m, n)
 		}
 		return m, true
-	case *grammar.Call:
+	case *ast.Call:
 		if t.Func == "list" {
 			return len(t.Args), true
 		}
@@ -614,34 +614,34 @@ func (k *classifier) termLen(t grammar.Term, rule string, seen map[string]bool) 
 
 // textLen bounds the length of the text that e matches, in any position unit: no unit counts more
 // positions for a character than the bytes of its UTF-8 encoding.
-func textLen(e grammar.Expr, k *classifier, seen map[string]bool) (int, bool) {
+func textLen(e ast.Expr, k *classifier, seen map[string]bool) (int, bool) {
 	switch e := e.(type) {
-	case *grammar.Literal:
+	case *ast.Literal:
 		if e.IgnoreCase {
 			return utf8.UTFMax * utf8.RuneCountInString(e.Value), true
 		}
 		return len(e.Value), true
-	case *grammar.CharClass, *grammar.Any:
+	case *ast.CharClass, *ast.Any:
 		return utf8.UTFMax, true
-	case *grammar.Predicate, *grammar.And, *grammar.Not, *grammar.Cut, *grammar.BeginInput, *grammar.EndInput,
-		*grammar.BeginLine, *grammar.EndLine:
+	case *ast.Predicate, *ast.And, *ast.Not, *ast.Cut, *ast.BeginInput, *ast.EndInput,
+		*ast.BeginLine, *ast.EndLine:
 		return 0, true
-	case *grammar.Group:
+	case *ast.Group:
 		return textLen(e.Expr, k, seen)
-	case *grammar.Capture:
+	case *ast.Capture:
 		return textLen(e.Expr, k, seen)
-	case *grammar.Discard:
+	case *ast.Discard:
 		return textLen(e.Expr, k, seen)
-	case *grammar.Atomic:
+	case *ast.Atomic:
 		return textLen(e.Expr, k, seen)
-	case *grammar.Optional:
+	case *ast.Optional:
 		return textLen(e.Expr, k, seen)
-	case *grammar.Repeat:
+	case *ast.Repeat:
 		if e.Max >= 0 {
 			n, ok := textLen(e.Expr, k, seen)
 			return e.Max * n, ok
 		}
-	case *grammar.Seq:
+	case *ast.Seq:
 		sum := 0
 		for _, it := range e.Items {
 			n, ok := textLen(it, k, seen)
@@ -651,7 +651,7 @@ func textLen(e grammar.Expr, k *classifier, seen map[string]bool) (int, bool) {
 			sum += n
 		}
 		return sum, true
-	case *grammar.Choice:
+	case *ast.Choice:
 		m := 0
 		for _, alt := range e.Alts {
 			n, ok := textLen(alt, k, seen)
@@ -661,7 +661,7 @@ func textLen(e grammar.Expr, k *classifier, seen map[string]bool) (int, bool) {
 			m = max(m, n)
 		}
 		return m, true
-	case *grammar.Ref:
+	case *ast.Ref:
 		r := k.byName[e.Name]
 		if r == nil || seen[e.Name] || k.recursive[e.Name] || isOperators(r.Expr) {
 			return 0, false
@@ -675,19 +675,19 @@ func textLen(e grammar.Expr, k *classifier, seen map[string]bool) (int, bool) {
 
 // readsOnly reports whether t is built from the variable v, int and bool literals, the operators
 // that eval knows, and the calls of len that operand accepts (none when operand is nil).
-func readsOnly(t grammar.Term, v string, operand func(*grammar.Call) bool) bool {
+func readsOnly(t ast.Term, v string, operand func(*ast.Call) bool) bool {
 	switch t := t.(type) {
-	case *grammar.IntLit, *grammar.BoolLit:
+	case *ast.IntLit, *ast.BoolLit:
 		return true
-	case *grammar.VarRef:
+	case *ast.VarRef:
 		return t.Name == v
-	case *grammar.TermGroup:
+	case *ast.TermGroup:
 		return readsOnly(t.Term, v, operand)
-	case *grammar.Unary:
+	case *ast.Unary:
 		return (t.Op == "-" || t.Op == "!") && readsOnly(t.X, v, operand)
-	case *grammar.Binary:
+	case *ast.Binary:
 		return intOps[t.Op] && readsOnly(t.L, v, operand) && readsOnly(t.R, v, operand)
-	case *grammar.Call:
+	case *ast.Call:
 		return operand != nil && t.Func == "len" && len(t.Args) == 1 && operand(t)
 	}
 	return false
@@ -700,7 +700,7 @@ var intOps = map[string]bool{"+": true, "-": true, "*": true, "/": true, "%": tr
 type domainEnv struct {
 	v    string
 	x    int
-	lens map[*grammar.Call]int
+	lens map[*ast.Call]int
 }
 
 // evalResult is the outcome of eval.
@@ -718,23 +718,23 @@ const maxExact = 1 << 53
 // eval evaluates t, which readsOnly accepts, in env, by the rules of the action
 // language: division truncates toward zero, the remainder has the sign of the dividend, and
 // dividing by zero is an error.
-func eval(t grammar.Term, env domainEnv) (any, evalResult) {
+func eval(t ast.Term, env domainEnv) (any, evalResult) {
 	switch t := t.(type) {
-	case *grammar.IntLit:
+	case *ast.IntLit:
 		return exact(t.Value)
-	case *grammar.BoolLit:
+	case *ast.BoolLit:
 		return t.Value, evalOK
-	case *grammar.VarRef:
+	case *ast.VarRef:
 		if t.Name == env.v {
 			return env.x, evalOK
 		}
-	case *grammar.Call:
+	case *ast.Call:
 		if n, ok := env.lens[t]; ok {
 			return n, evalOK
 		}
-	case *grammar.TermGroup:
+	case *ast.TermGroup:
 		return eval(t.Term, env)
-	case *grammar.Unary:
+	case *ast.Unary:
 		r, res := eval(t.X, env)
 		if res != evalOK {
 			return nil, res
@@ -749,7 +749,7 @@ func eval(t grammar.Term, env domainEnv) (any, evalResult) {
 				return !r, evalOK
 			}
 		}
-	case *grammar.Binary:
+	case *ast.Binary:
 		l, res := eval(t.L, env)
 		if res != evalOK {
 			return nil, res

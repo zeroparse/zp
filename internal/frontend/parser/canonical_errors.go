@@ -6,8 +6,8 @@ import (
 	"sort"
 	"strings"
 
-	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/frontend/parser/sourceast"
+	"zeroparse.dev/zp/pkg/grammar/ast"
 )
 
 // SourceError is a syntax error of the canonical grammar: the code point
@@ -65,7 +65,7 @@ func (lx *lexed) sourceErrors(errs []SourceError) ErrorList {
 	toks := lx.toks
 	rs := []rune(src)
 	pos := sourceast.NewPositions(src)
-	offsets := make(map[grammar.Pos]int, len(rs)+1)
+	offsets := make(map[ast.Pos]int, len(rs)+1)
 	for i := len(rs); i >= 0; i-- {
 		offsets[pos.At(i)] = i
 	}
@@ -75,7 +75,7 @@ func (lx *lexed) sourceErrors(errs []SourceError) ErrorList {
 	type span struct {
 		kind       tokenKind
 		text       string
-		pos        grammar.Pos
+		pos        ast.Pos
 		start, end int
 	}
 	var spans []span
@@ -85,7 +85,7 @@ func (lx *lexed) sourceErrors(errs []SourceError) ErrorList {
 		}
 	}
 	unterminated := -1
-	var unterminatedAt grammar.Pos
+	var unterminatedAt ast.Pos
 	for _, e := range out.list {
 		if e.Msg == "unterminated block comment" {
 			unterminated, unterminatedAt = offsets[e.Pos], e.Pos
@@ -228,6 +228,6 @@ func (lx *lexed) withoutInvalidCharacters() (string, bool) {
 	return string(rs), true
 }
 
-func posLess(a, b grammar.Pos) bool {
+func posLess(a, b ast.Pos) bool {
 	return a.Line < b.Line || a.Line == b.Line && a.Col < b.Col
 }

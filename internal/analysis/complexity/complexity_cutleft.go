@@ -1,8 +1,8 @@
 package complexity
 
 import (
-	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/compile"
+	"zeroparse.dev/zp/pkg/grammar/ast"
 )
 
 // checkCutLeftCalls rejects, in the rules of a cycle with more than one leader, a #cut that is
@@ -40,29 +40,29 @@ type cutLeftState struct {
 // the rule body, and whether e can evaluate a left call. A #cut commits the innermost enclosing
 // choice, option or repetition of the rule, through groups, captures, lookaheads and recoveries,
 // so only those three begin a new region for the left calls that a cut is passed after.
-func (k *classifier) cutLeftScan(rule string, e grammar.Expr, s cutLeftState) (start, found bool) {
+func (k *classifier) cutLeftScan(rule string, e ast.Expr, s cutLeftState) (start, found bool) {
 	k.control.Poll()
 	switch e := e.(type) {
 	case nil:
 		return s.start, false
-	case *grammar.Ref:
+	case *ast.Ref:
 		if k.an.Cyclic[e.Name] && k.sameCycle(rule, e.Name) && e.Level == "" {
 			return s.start && k.nullable(e), s.start
 		}
 		return s.start && k.nullable(e), false
-	case *grammar.Group:
+	case *ast.Group:
 		return k.cutLeftScan(rule, e.Expr, s)
-	case *grammar.Capture:
+	case *ast.Capture:
 		return k.cutLeftScan(rule, e.Expr, s)
-	case *grammar.Discard:
+	case *ast.Discard:
 		return k.cutLeftScan(rule, e.Expr, s)
-	case *grammar.Atomic:
+	case *ast.Atomic:
 		return k.cutLeftScan(rule, e.Expr, s)
-	case *grammar.Stream:
+	case *ast.Stream:
 		return k.cutLeftScan(rule, e.Expr, s)
-	case *grammar.InlineAction:
+	case *ast.InlineAction:
 		return k.cutLeftScan(rule, e.Expr, s)
-	case *grammar.Seq:
+	case *ast.Seq:
 		for _, it := range e.Items {
 			st, f := k.cutLeftScan(rule, it, s)
 			s.start = st
@@ -70,32 +70,32 @@ func (k *classifier) cutLeftScan(rule string, e grammar.Expr, s cutLeftState) (s
 			found = found || f
 		}
 		return s.start, found
-	case *grammar.Choice:
+	case *ast.Choice:
 		for _, alt := range e.Alts {
 			st, f := k.cutLeftScan(rule, alt, cutLeftState{start: s.start})
 			start = start || st
 			found = found || f
 		}
 		return start, found
-	case *grammar.Optional:
+	case *ast.Optional:
 		_, f := k.cutLeftScan(rule, e.Expr, cutLeftState{start: s.start})
 		return s.start, f
-	case *grammar.Repeat:
+	case *ast.Repeat:
 		st, f := k.cutLeftScan(rule, e.Expr, cutLeftState{start: s.start})
 		return s.start && (e.Min == 0 || st), f
-	case *grammar.Recovery:
+	case *ast.Recovery:
 		return k.cutLeftRecovery(rule, e.Expr, e.Skip, s)
-	case *grammar.Attributed:
+	case *ast.Attributed:
 		if skip := compile.RecoverSkip(e); skip != nil {
 			return k.cutLeftRecovery(rule, e.Expr, skip, s)
 		}
 		st, f := k.cutLeftScan(rule, e.Expr, s)
 		return st || (s.start && k.nullable(e)), f
-	case *grammar.And:
+	case *ast.And:
 		return k.cutLeftLookahead(rule, e, e.Expr, s)
-	case *grammar.Not:
+	case *ast.Not:
 		return k.cutLeftLookahead(rule, e, e.Expr, s)
-	case *grammar.Cut:
+	case *ast.Cut:
 		if s.left {
 			k.reason(rule, exprPos(e), "the #cut at %s is passed after a left call in a cycle with more than one leader, which the classifier does not analyze", at(rule, exprPos(e)))
 		}
@@ -106,7 +106,7 @@ func (k *classifier) cutLeftScan(rule string, e grammar.Expr, s cutLeftState) (s
 
 // cutLeftRecovery walks a recovery: its skip runs after its expression fails, at the start of the
 // expression or later, so a left call in the expression is earlier than a cut in the skip.
-func (k *classifier) cutLeftRecovery(rule string, expr, skip grammar.Expr, s cutLeftState) (start, found bool) {
+func (k *classifier) cutLeftRecovery(rule string, expr, skip ast.Expr, s cutLeftState) (start, found bool) {
 	st, f := k.cutLeftScan(rule, expr, s)
 	ss, fs := k.cutLeftScan(rule, skip, cutLeftState{start: s.start, left: s.left || f})
 	return st || ss, f || fs
@@ -115,7 +115,7 @@ func (k *classifier) cutLeftRecovery(rule string, expr, skip grammar.Expr, s cut
 // cutLeftLookahead walks a lookahead. The lookahead consumes no input, so what follows it begins
 // where it does; a lookahead whose expression can make a left call is reported, and so is each
 // such lookahead nested in it.
-func (k *classifier) cutLeftLookahead(rule string, e, body grammar.Expr, s cutLeftState) (start, found bool) {
+func (k *classifier) cutLeftLookahead(rule string, e, body ast.Expr, s cutLeftState) (start, found bool) {
 	if _, found = k.cutLeftScan(rule, body, s); found {
 		k.reason(rule, exprPos(e), "the lookahead %s at %s can make a left call in a cycle with more than one leader, which the classifier does not analyze", k.show(e), at(rule, exprPos(e)))
 	}

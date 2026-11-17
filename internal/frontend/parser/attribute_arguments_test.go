@@ -6,10 +6,10 @@ import (
 	"strings"
 	"testing"
 
-	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/engine"
 	"zeroparse.dev/zp/internal/frontend/parser"
 	"zeroparse.dev/zp/internal/testing/starttest"
+	"zeroparse.dev/zp/pkg/grammar/ast"
 )
 
 func TestRepetitionPragmaBounds(t *testing.T) {
@@ -29,24 +29,24 @@ func TestRepetitionPragmaBounds(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			assertBounds := func(g *grammar.Grammar) {
+			assertBounds := func(g *ast.Grammar) {
 				t.Helper()
-				rep := g.Rules()[0].Expr.(*grammar.Repeat)
+				rep := g.Rules()[0].Expr.(*ast.Repeat)
 				if rep.Min != tc.min || rep.Max != tc.max {
 					t.Fatalf("bounds %d,%d", rep.Min, rep.Max)
 				}
 			}
 			assertBounds(g)
-			before, err := grammar.MarshalJSON(g)
+			before, err := ast.MarshalJSON(g)
 			if err != nil {
 				t.Fatal(err)
 			}
-			decoded, err := grammar.UnmarshalJSON(before)
+			decoded, err := ast.UnmarshalJSON(before)
 			if err != nil {
 				t.Fatal(err)
 			}
 			assertBounds(decoded)
-			formatted := grammar.Format(decoded)
+			formatted := ast.Format(decoded)
 			reparsed, err := parser.Parse(formatted)
 			if err != nil {
 				t.Fatal(err)
@@ -56,11 +56,11 @@ func TestRepetitionPragmaBounds(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			rep := p.Grammar.Rules()[0].Expr.(*grammar.Repeat)
+			rep := p.Grammar.Rules()[0].Expr.(*ast.Repeat)
 			if rep.Min != tc.min || rep.Max != tc.max {
 				t.Fatalf("normalized bounds %d,%d", rep.Min, rep.Max)
 			}
-			after, _ := grammar.MarshalJSON(g)
+			after, _ := ast.MarshalJSON(g)
 			if !bytes.Equal(before, after) {
 				t.Fatal("compilation mutated source AST")
 			}
@@ -149,23 +149,23 @@ func TestAttributeScalarJSON(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	data, err := grammar.MarshalJSON(g)
+	data, err := ast.MarshalJSON(g)
 	if err != nil {
 		t.Fatal(err)
 	}
 	if !strings.Contains(string(data), `"kwArgs"`) {
 		t.Fatal("keyword arguments absent")
 	}
-	decoded, err := grammar.UnmarshalJSON(data)
+	decoded, err := ast.UnmarshalJSON(data)
 	if err != nil {
 		t.Fatal(err)
 	}
-	formatted := grammar.Format(decoded)
+	formatted := ast.Format(decoded)
 	g2, err := parser.Parse(formatted)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if grammar.FormatExpr(decoded.Rules()[0].Expr) != grammar.FormatExpr(g2.Rules()[0].Expr) {
+	if ast.FormatExpr(decoded.Rules()[0].Expr) != ast.FormatExpr(g2.Rules()[0].Expr) {
 		t.Fatalf("argument structure changed after formatting: %s", formatted)
 	}
 }
@@ -180,23 +180,23 @@ func TestAttributeOmittedSlots(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		a := g.Rules()[0].Expr.(*grammar.Attributed).Attrs[0]
+		a := g.Rules()[0].Expr.(*ast.Attributed).Attrs[0]
 		if !reflect.DeepEqual(a.Args, tc.want) {
 			t.Fatalf("%#v", a.Args)
 		}
-		data, err := grammar.MarshalJSON(g)
+		data, err := ast.MarshalJSON(g)
 		if err != nil {
 			t.Fatal(err)
 		}
-		decoded, err := grammar.DecodeJSON(data)
+		decoded, err := ast.DecodeJSON(data)
 		if err != nil {
 			t.Fatal(err)
 		}
-		again, err := parser.Parse(grammar.Format(decoded))
+		again, err := parser.Parse(ast.Format(decoded))
 		if err != nil {
 			t.Fatal(err)
 		}
-		if !reflect.DeepEqual(again.Rules()[0].Expr.(*grammar.Attributed).Attrs[0].Args, tc.want) {
+		if !reflect.DeepEqual(again.Rules()[0].Expr.(*ast.Attributed).Attrs[0].Args, tc.want) {
 			t.Fatal("lost slots")
 		}
 	}
@@ -213,16 +213,16 @@ func TestAttributeEmptySlotsAreErrors(t *testing.T) {
 func TestAttributeNativeIntegerRoundTrip(t *testing.T) {
 	maximum := int(^uint(0) >> 1)
 	minimum := -maximum - 1
-	g := &grammar.Grammar{File: grammar.File{Decls: []grammar.Decl{&grammar.RuleDef{
-		Name: "main", Expr: &grammar.Attributed{Expr: &grammar.Literal{Value: "a"},
-			Attrs: []*grammar.Attribute{{Name: "custom", Args: []any{minimum, maximum, -1}, KwArgs: map[string]any{"minimum": minimum}}}},
+	g := &ast.Grammar{File: ast.File{Decls: []ast.Decl{&ast.RuleDef{
+		Name: "main", Expr: &ast.Attributed{Expr: &ast.Literal{Value: "a"},
+			Attrs: []*ast.Attribute{{Name: "custom", Args: []any{minimum, maximum, -1}, KwArgs: map[string]any{"minimum": minimum}}}},
 	}}}}
-	source := grammar.Format(g)
+	source := ast.Format(g)
 	parsed, err := parser.Parse(source)
 	if err != nil {
 		t.Fatalf("formatted native integers: %v\n%s", err, source)
 	}
-	got := parsed.Rules()[0].Expr.(*grammar.Attributed).Attrs[0]
+	got := parsed.Rules()[0].Expr.(*ast.Attributed).Attrs[0]
 	if !reflect.DeepEqual(got.Args, []any{minimum, maximum, -1}) || got.KwArgs["minimum"] != minimum {
 		t.Fatalf("integer arguments changed: %+v", got)
 	}
@@ -233,18 +233,18 @@ func TestAttributeEqualsLiteralIsAnExpressionArgument(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	a := g.Rules()[0].Expr.(*grammar.Attributed).Attrs[0]
+	a := g.Rules()[0].Expr.(*ast.Attributed).Attrs[0]
 	if len(a.Args) != 1 || len(a.KwArgs) != 0 {
 		t.Fatalf("arguments: %+v", a)
 	}
-	seq, ok := a.Args[0].(*grammar.Seq)
+	seq, ok := a.Args[0].(*ast.Seq)
 	if !ok || len(seq.Items) != 2 {
 		t.Fatalf("argument: %#v", a.Args[0])
 	}
-	if ref, ok := seq.Items[0].(*grammar.Ref); !ok || ref.Name != "x" {
+	if ref, ok := seq.Items[0].(*ast.Ref); !ok || ref.Name != "x" {
 		t.Fatalf("reference: %#v", seq.Items[0])
 	}
-	if lit, ok := seq.Items[1].(*grammar.Literal); !ok || lit.Value != "=" {
+	if lit, ok := seq.Items[1].(*ast.Literal); !ok || lit.Value != "=" {
 		t.Fatalf("literal: %#v", seq.Items[1])
 	}
 }

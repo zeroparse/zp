@@ -8,7 +8,7 @@ package cancel
 import (
 	"context"
 
-	"zeroparse.dev/zp/grammar"
+	"zeroparse.dev/zp/pkg/grammar/ast"
 )
 
 // Cancellation is the panic value that unwinds cancelled work with its error. Only the entry
@@ -50,7 +50,7 @@ func (c *Control) Poll() {
 }
 
 // Rules returns the rule definitions of g, unwinding if the context ends while they are listed.
-func (c *Control) Rules(g *grammar.Grammar) []*grammar.RuleDef {
+func (c *Control) Rules(g *ast.Grammar) []*ast.RuleDef {
 	if c == nil {
 		return g.Rules()
 	}
@@ -62,7 +62,7 @@ func (c *Control) Rules(g *grammar.Grammar) []*grammar.RuleDef {
 }
 
 // Types returns the type declarations of g, unwinding if the context ends while they are listed.
-func (c *Control) Types(g *grammar.Grammar) []grammar.TypeDecl {
+func (c *Control) Types(g *ast.Grammar) []ast.TypeDecl {
 	if c == nil {
 		return g.Types()
 	}

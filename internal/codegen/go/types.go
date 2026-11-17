@@ -7,11 +7,11 @@ import (
 	"sort"
 	"strings"
 
-	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/codegen"
 	"zeroparse.dev/zp/internal/compile"
 	"zeroparse.dev/zp/internal/frontend/check"
 	"zeroparse.dev/zp/internal/frontend/types"
+	"zeroparse.dev/zp/pkg/grammar/ast"
 )
 
 // Typed values in generated parsers (GenOptions.Types).
@@ -467,13 +467,13 @@ func (t *TypedGen) Name() error {
 	sort.Strings(all)
 	for _, name := range all {
 		switch spec := t.G.Prog.Types[name].(type) {
-		case *grammar.TypeDef:
+		case *ast.TypeDef:
 			if spec.Struct() == nil {
 				t.NodeTypes = append(t.NodeTypes, name)
 				continue
 			}
 			t.structs = append(t.structs, name)
-		case *grammar.TypeAlias:
+		case *ast.TypeAlias:
 			if u, ok := t.Info.Aliases[name].(types.JoinTy); ok && t.nodeJoin(u) {
 				if _, dup := t.Joins[u.String()]; !dup {
 					t.Joins[u.String()] = name
@@ -950,7 +950,7 @@ func (t *TypedGen) plainField(x types.Ty) bool {
 
 // nodeMember reports whether the member access m reads only members of nodes and recovered values, never a
 // struct field (check.TypeInfo.NodeMembers).
-func (t *TypedGen) nodeMember(m *grammar.Member) bool {
+func (t *TypedGen) nodeMember(m *ast.Member) bool {
 	return t.Info.NodeMembers[m]
 }
 
@@ -1011,23 +1011,23 @@ func (t *TypedGen) fieldType(st, name string) (types.Ty, bool) {
 //     arguments), an argument of list, or the body of the function of map, for an element.
 //
 // Each place converts the value it holds to its type and nothing else reads it.
-func (t *TypedGen) transfers() map[*grammar.Member]bool {
+func (t *TypedGen) transfers() map[*ast.Member]bool {
 	rec := t.G.Prog.ValueRecord()
-	out := map[*grammar.Member]bool{}
+	out := map[*ast.Member]bool{}
 	if rec == nil {
 		return out
 	}
-	var into func(x grammar.Term, want types.Ty)
-	into = func(x grammar.Term, want types.Ty) {
+	var into func(x ast.Term, want types.Ty)
+	into = func(x ast.Term, want types.Ty) {
 		for {
-			g, ok := x.(*grammar.TermGroup)
+			g, ok := x.(*ast.TermGroup)
 			if !ok {
 				break
 			}
 			x = g.Term
 		}
 		switch x := x.(type) {
-		case *grammar.Member:
+		case *ast.Member:
 			st, ok := oneStruct(rec, rec.Terms[x.X])
 			if !ok {
 				return
@@ -1035,7 +1035,7 @@ func (t *TypedGen) transfers() map[*grammar.Member]bool {
 			if ft, ok := t.fieldType(st, x.Name); ok && ft.String() == want.String() {
 				out[x] = true
 			}
-		case *grammar.Call:
+		case *ast.Call:
 			l, ok := want.(types.ListTy)
 			if !ok {
 				return
@@ -1051,7 +1051,7 @@ func (t *TypedGen) transfers() map[*grammar.Member]bool {
 				}
 			case "map":
 				if len(x.Args) == 2 {
-					if f, ok := x.Args[1].(*grammar.Lambda); ok {
+					if f, ok := x.Args[1].(*ast.Lambda); ok {
 						into(f.Body, l.Elem)
 					}
 				}
@@ -1059,8 +1059,8 @@ func (t *TypedGen) transfers() map[*grammar.Member]bool {
 		}
 	}
 	for _, term := range t.actionTerms() {
-		compile.WalkTerm(term, func(y grammar.Term) {
-			n, ok := y.(*grammar.New)
+		compile.WalkTerm(term, func(y ast.Term) {
+			n, ok := y.(*ast.New)
 			if !ok {
 				return
 			}
@@ -1125,17 +1125,17 @@ func (t *TypedGen) fieldReads() map[string]bool {
 
 // fieldReadMembers returns the member accesses of actions and predicates whose name is that of a field of
 // a struct type and that are not reads of the range or the value of a node.
-func (t *TypedGen) fieldReadMembers() []*grammar.Member {
+func (t *TypedGen) fieldReadMembers() []*ast.Member {
 	fields := map[string]bool{}
 	for _, name := range t.structs {
 		for _, f := range t.Info.Fields[name] {
 			fields[f.Name] = true
 		}
 	}
-	var out []*grammar.Member
+	var out []*ast.Member
 	for _, x := range t.actionTerms() {
-		compile.WalkTerm(x, func(y grammar.Term) {
-			if m, ok := y.(*grammar.Member); ok && fields[m.Name] && !t.nodeMember(m) {
+		compile.WalkTerm(x, func(y ast.Term) {
+			if m, ok := y.(*ast.Member); ok && fields[m.Name] && !t.nodeMember(m) {
 				out = append(out, m)
 			}
 		})
@@ -1144,19 +1144,19 @@ func (t *TypedGen) fieldReadMembers() []*grammar.Member {
 }
 
 // actionTerms returns the terms of the actions and predicates of the grammar.
-func (t *TypedGen) actionTerms() []grammar.Term {
-	var terms []grammar.Term
-	var expr func(e grammar.Expr)
-	expr = func(e grammar.Expr) {
-		compile.WalkExpr(e, func(x grammar.Expr) {
+func (t *TypedGen) actionTerms() []ast.Term {
+	var terms []ast.Term
+	var expr func(e ast.Expr)
+	expr = func(e ast.Expr) {
+		compile.WalkExpr(e, func(x ast.Expr) {
 			switch x := x.(type) {
-			case *grammar.Predicate:
+			case *ast.Predicate:
 				terms = append(terms, x.Term)
-			case *grammar.InlineAction:
+			case *ast.InlineAction:
 				if x.Action != nil {
 					terms = append(terms, x.Action)
 				}
-			case *grammar.OperatorsRule:
+			case *ast.OperatorsRule:
 				for _, o := range x.Operands {
 					expr(o.Expr)
 					if o.Action != nil {

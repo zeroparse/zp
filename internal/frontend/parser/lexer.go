@@ -9,7 +9,7 @@ import (
 	"unicode"
 	"unicode/utf8"
 
-	"zeroparse.dev/zp/grammar"
+	"zeroparse.dev/zp/pkg/grammar/ast"
 )
 
 type tokenKind int
@@ -29,9 +29,9 @@ type token struct {
 	kind tokenKind
 	text string // identifier, punctuation, or string value
 	num  int
-	cc   *grammar.CharClass
-	pos  grammar.Pos
-	end  grammar.Pos // position just after the token
+	cc   *ast.CharClass
+	pos  ast.Pos
+	end  ast.Pos // position just after the token
 	// spaceBefore reports whether whitespace or a comment directly
 	// precedes the token.
 	spaceBefore bool
@@ -41,8 +41,8 @@ type token struct {
 	blankBefore bool
 	// lineComment is a comment on the line of the previous token, and
 	// comments are the following comments before this token.
-	lineComment *grammar.Comment
-	comments    []*grammar.Comment
+	lineComment *ast.Comment
+	comments    []*ast.Comment
 	// source is independent of the formatter trivia moved by the parser.
 	source *commentBoundary
 }
@@ -121,11 +121,11 @@ type lexer struct {
 	pendingPop      bool
 	reportedTooDeep bool
 	newlines        int // line breaks since the previous token or comment
-	lineComment     *grammar.Comment
-	comments        []*grammar.Comment
+	lineComment     *ast.Comment
+	comments        []*ast.Comment
 }
 
-func (l *lexer) pos() grammar.Pos { return grammar.Pos{Line: l.line, Col: l.col} }
+func (l *lexer) pos() ast.Pos { return ast.Pos{Line: l.line, Col: l.col} }
 
 func (l *lexer) peekAt(k int) rune {
 	if l.i+k < len(l.src) {
@@ -233,11 +233,11 @@ func (l *lexer) decodeRunes(src string) []rune {
 	return decoded
 }
 
-func (l *lexer) errorf(pos grammar.Pos, format string, args ...any) {
+func (l *lexer) errorf(pos ast.Pos, format string, args ...any) {
 	l.errs.add(pos, fmt.Sprintf(format, args...))
 }
 
-func (l *lexer) errorWithText(pos grammar.Pos, prefix, value string) {
+func (l *lexer) errorWithText(pos ast.Pos, prefix, value string) {
 	if l.ctx == nil {
 		l.errs.addRange(pos, l.pos(), prefix+value)
 		return
@@ -284,7 +284,7 @@ func lexContext(ctx context.Context, src string, errs *errorList) (toks []token,
 		l.src = l.decodeRunes(src)
 	}
 	l.checkCancel()
-	var previous grammar.Pos
+	var previous ast.Pos
 	for {
 		l.checkCancel()
 		t := l.next()
@@ -292,7 +292,7 @@ func lexContext(ctx context.Context, src string, errs *errorList) (toks []token,
 		if t.lineComment != nil || len(t.comments) != 0 {
 			cs := t.comments
 			if t.lineComment != nil {
-				cs = make([]*grammar.Comment, len(t.comments)+1)
+				cs = make([]*ast.Comment, len(t.comments)+1)
 				cs[0] = t.lineComment
 				for i, c := range t.comments {
 					if i&255 == 0 {
@@ -437,7 +437,7 @@ func (l *lexer) next() token {
 // mistaken for a valid ASCII prefix. Atoi accepts ASCII decimal digits only
 // and checks the implementation's int range. Invalid values are placeholders
 // in a partial AST, always accompanied by a diagnostic.
-func (l *lexer) decimal(pos grammar.Pos, kind, prefix string) (string, int) {
+func (l *lexer) decimal(pos ast.Pos, kind, prefix string) (string, int) {
 	start := l.i
 	for l.i < len(l.src) && unicode.IsDigit(l.src[l.i]) {
 		l.advance()
@@ -528,7 +528,7 @@ func (l *lexer) skipSpace() (space, newline bool) {
 		}
 		if r == '/' && (l.peekAt(1) == '/' || l.peekAt(1) == '*') {
 			space = true
-			c := &grammar.Comment{Pos: l.pos(), Blank: l.newlines >= 2}
+			c := &ast.Comment{Pos: l.pos(), Blank: l.newlines >= 2}
 			sameLine := l.newlines == 0 // the lines inside the comment do not count
 			start := l.i
 			block := l.peekAt(1) == '*'
@@ -617,7 +617,7 @@ func (l *lexer) hasPrefix(s string) bool {
 // escape reads the escape sequence after a backslash.
 // escapeError reports an error about the escape sequence that starts at start and ends at the
 // current position.
-func (l *lexer) escapeError(start grammar.Pos, format string, args ...any) {
+func (l *lexer) escapeError(start ast.Pos, format string, args ...any) {
 	l.errs.addRange(start, l.pos(), fmt.Sprintf(format, args...))
 }
 
@@ -730,10 +730,10 @@ func (l *lexer) string() string {
 	}
 }
 
-func (l *lexer) charClass() *grammar.CharClass {
+func (l *lexer) charClass() *ast.CharClass {
 	start := l.pos()
 	l.advance() // [
-	cc := &grammar.CharClass{SourceInfo: grammar.SourceInfo{Pos: start}}
+	cc := &ast.CharClass{SourceInfo: ast.SourceInfo{Pos: start}}
 	if l.peekAt(0) == '^' {
 		l.advance()
 		cc.Negated = true
@@ -772,7 +772,7 @@ func (l *lexer) charClass() *grammar.CharClass {
 				l.errorf(start, "invalid range %q-%q", lo, hi)
 			}
 		}
-		cc.Ranges = append(cc.Ranges, grammar.CharRange{Lo: lo, Hi: hi})
+		cc.Ranges = append(cc.Ranges, ast.CharRange{Lo: lo, Hi: hi})
 	}
 }
 
@@ -892,7 +892,7 @@ func (l *lexer) popPrefixes() {
 
 // open opens a level at pos. Once the source is reported as too deep, only delimiters are still
 // kept, which the closing ones match, so that operators without an end do not pile up.
-func (l *lexer) open(k level, pos grammar.Pos) {
+func (l *lexer) open(k level, pos ast.Pos) {
 	if k.delimiter() {
 		l.delimiters = append(l.delimiters, k)
 	} else if l.reportedTooDeep {
@@ -903,7 +903,7 @@ func (l *lexer) open(k level, pos grammar.Pos) {
 }
 
 // checkLevels reports the first place where more than maxLevels levels are open.
-func (l *lexer) checkLevels(n int, pos grammar.Pos) {
+func (l *lexer) checkLevels(n int, pos ast.Pos) {
 	if n > maxLevels && !l.reportedTooDeep {
 		l.reportedTooDeep = true
 		l.errs.add(pos, msgNestingTooDeep)

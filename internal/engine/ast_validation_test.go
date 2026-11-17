@@ -5,10 +5,10 @@ import (
 	"testing"
 	"zeroparse.dev/zp/internal/diagnostic"
 
-	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/codegen"
 	"zeroparse.dev/zp/internal/compile"
 	"zeroparse.dev/zp/internal/testing/codegentest"
+	"zeroparse.dev/zp/pkg/grammar/ast"
 )
 
 func TestMalformedASTEntryPointsAndPosition(t *testing.T) {
@@ -17,9 +17,9 @@ func TestMalformedASTEntryPointsAndPosition(t *testing.T) {
 }
 
 func testMalformedASTEntryPointsAndPosition(t *testing.T) {
-	e := &grammar.Optional{SourceInfo: grammar.SourceInfo{Pos: grammar.Pos{Line: 3, Col: 4}}}
+	e := &ast.Optional{SourceInfo: ast.SourceInfo{Pos: ast.Pos{Line: 3, Col: 4}}}
 	e.Expr = e
-	g := &grammar.Grammar{File: grammar.File{Decls: []grammar.Decl{&grammar.RuleDef{Name: "p", Expr: e}}}}
+	g := &ast.Grammar{File: ast.File{Decls: []ast.Decl{&ast.RuleDef{Name: "p", Expr: e}}}}
 	for name, run := range map[string]func() error{
 		"compile":           func() error { _, err := Compile(g, compile.Options{}); return err },
 		"saved AST rebuild": func() error { _, err := build(g, compile.Options{}, []compile.RuleFlags{{}}); return err },

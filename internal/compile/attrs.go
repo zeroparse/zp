@@ -1,6 +1,6 @@
 package compile
 
-import "zeroparse.dev/zp/grammar"
+import "zeroparse.dev/zp/pkg/grammar/ast"
 
 func validArg(attr, arg string) bool {
 	switch attr {
@@ -14,13 +14,13 @@ func validArg(attr, arg string) bool {
 	return true
 }
 
-func (c *Compiler) stringArg(a *grammar.Attribute, name string) (string, bool) {
+func (c *Compiler) stringArg(a *ast.Attribute, name string) (string, bool) {
 	v, ok := a.Arg(name)
 	if !ok {
 		c.errorf(a.Diagnostic(), "@%s requires a %s argument", a.Name, name)
 		return "", false
 	}
-	lit, ok := v.(*grammar.Literal)
+	lit, ok := v.(*ast.Literal)
 	if !ok {
 		c.errorf(a.Diagnostic(), "@%s: %s must be a string", a.Name, name)
 		return "", false

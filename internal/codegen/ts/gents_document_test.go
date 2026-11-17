@@ -9,11 +9,11 @@ import (
 	"testing"
 	"unicode/utf8"
 
-	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/codegen"
 	"zeroparse.dev/zp/internal/compile"
 	"zeroparse.dev/zp/internal/frontend/parser"
 	"zeroparse.dev/zp/internal/testing/codegentest"
+	"zeroparse.dev/zp/pkg/grammar/ast"
 )
 
 // documentEdit is an edit of a Document in the script of TestTSDocumentMatchesFreshParse: [Start,End)
@@ -246,7 +246,7 @@ console.log("stats " + JSON.stringify({ evaluated, reused, full, again }));
 	// run runs the script on the library that mutate changes, and returns the first difference from
 	// the engine.
 	run := func(mutate func(string) string) error {
-		out := codegentest.RunTSGrammarScriptBundle(t, g, script, opts, func(g *grammar.Grammar, opts codegen.GenOptions) ([]byte, error) {
+		out := codegentest.RunTSGrammarScriptBundle(t, g, script, opts, func(g *ast.Grammar, opts codegen.GenOptions) ([]byte, error) {
 			code, err := codegentest.GenerateTSBundle(g, opts)
 			if err != nil || mutate == nil {
 				return code, err
@@ -337,7 +337,7 @@ for (const [s, e, r] of [[0, 1, "s"], [4, 5, "x"]]) {
 `
 	want := "s12;? true {\"evaluated\":2,\"reused\":1}\ns12;x true {\"evaluated\":3,\"reused\":0}\n"
 	run := func(mutate func(string) string) string {
-		return codegentest.RunTSGrammarScriptBundle(t, g, script, codegen.GenOptions{Start: "main", Document: true}, func(g *grammar.Grammar, opts codegen.GenOptions) ([]byte, error) {
+		return codegentest.RunTSGrammarScriptBundle(t, g, script, codegen.GenOptions{Start: "main", Document: true}, func(g *ast.Grammar, opts codegen.GenOptions) ([]byte, error) {
 			code, err := codegentest.GenerateTSBundle(g, opts)
 			if err != nil || mutate == nil {
 				return code, err
@@ -459,7 +459,7 @@ for (const [text, s, e, r] of [` + strings.Join(js, ", ") + `]) {
 }
 `
 			run := func(mutate func(string) string) string {
-				return codegentest.RunTSGrammarScriptBundle(t, g, script, codegen.GenOptions{Start: "main", Document: true}, func(g *grammar.Grammar, opts codegen.GenOptions) ([]byte, error) {
+				return codegentest.RunTSGrammarScriptBundle(t, g, script, codegen.GenOptions{Start: "main", Document: true}, func(g *ast.Grammar, opts codegen.GenOptions) ([]byte, error) {
 					code, err := codegentest.GenerateTSBundle(g, opts)
 					if err != nil || mutate == nil {
 						return code, err

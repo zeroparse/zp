@@ -10,11 +10,11 @@ import (
 	"strings"
 	"testing"
 
-	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/codegen"
 	"zeroparse.dev/zp/internal/engine"
 	"zeroparse.dev/zp/internal/frontend/parser"
 	"zeroparse.dev/zp/internal/testing/codegentest"
+	"zeroparse.dev/zp/pkg/grammar/ast"
 )
 
 // documentStatsScript is the text of a Document and the edits of TestDocumentStatsAcrossTargets, in
@@ -120,7 +120,7 @@ for (const e of c.Edits) {
 
 // documentStatsGo runs the script data on the Document of the generated Go parser of g and returns
 // what it prints for each parse.
-func documentStatsGo(t *testing.T, g *grammar.Grammar, data string) string {
+func documentStatsGo(t *testing.T, g *ast.Grammar, data string) string {
 	t.Helper()
 	code, err := codegentest.GenerateCode(t, g, codegen.GenOptions{Package: "fixture", Start: "main", Document: true})
 	if err != nil {

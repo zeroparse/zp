@@ -7,9 +7,9 @@ import (
 	"testing"
 	"zeroparse.dev/zp/core"
 	"zeroparse.dev/zp/engine"
-	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/frontend/parser"
 	"zeroparse.dev/zp/internal/frontend/parser/sourceast"
+	"zeroparse.dev/zp/pkg/grammar/ast"
 )
 
 // The canonical grammar keeps every comment of the source with the gaps between
@@ -563,12 +563,12 @@ func (s *shaper) action(n *core.Node) {
 
 // nodeKey names a node by its kind and span; the span keeps nested nodes of one
 // kind apart.
-func nodeKey(kind string, s grammar.SourceInfo) string {
+func nodeKey(kind string, s ast.SourceInfo) string {
 	return fmt.Sprintf("%s@%d:%d-%d:%d", kind, s.Pos.Line, s.Pos.Col, s.End.Line, s.End.Col)
 }
 
 // canonicalNodes assigns source information to every node of the canonical tree.
-func canonicalNodes(t *testing.T, src string, root *core.Node) map[string]grammar.SourceInfo {
+func canonicalNodes(t *testing.T, src string, root *core.Node) map[string]ast.SourceInfo {
 	t.Helper()
 	s := &shaper{t: t, src: []rune(src)}
 	s.file(root)
@@ -576,7 +576,7 @@ func canonicalNodes(t *testing.T, src string, root *core.Node) map[string]gramma
 	if err != nil {
 		t.Fatal(err)
 	}
-	owners := map[string]grammar.SourceInfo{}
+	owners := map[string]ast.SourceInfo{}
 	for i, info := range infos {
 		if s.hidden[i] {
 			continue
@@ -592,11 +592,11 @@ func canonicalNodes(t *testing.T, src string, root *core.Node) map[string]gramma
 
 // manualNodes reads the source information of every node of the hand-written
 // parse. A node the parser never completed has no end and is skipped.
-func manualNodes(t *testing.T, g *grammar.Grammar) map[string]grammar.SourceInfo {
+func manualNodes(t *testing.T, g *ast.Grammar) map[string]ast.SourceInfo {
 	t.Helper()
-	owners := map[string]grammar.SourceInfo{}
-	sourceType := reflect.TypeOf(grammar.SourceInfo{})
-	add := func(kind string, s grammar.SourceInfo) {
+	owners := map[string]ast.SourceInfo{}
+	sourceType := reflect.TypeOf(ast.SourceInfo{})
+	add := func(kind string, s ast.SourceInfo) {
 		s.Layout = nil
 		if len(s.LeadingDetachedComments) == 0 {
 			s.LeadingDetachedComments = nil
@@ -631,13 +631,13 @@ func manualNodes(t *testing.T, g *grammar.Grammar) map[string]grammar.SourceInfo
 			}
 			if f := v.FieldByName("SourceInfo"); f.IsValid() && f.Type() == sourceType {
 				kind := v.Type().Name()
-				if c, ok := v.Interface().(grammar.CaptureRef); ok && c.Param {
+				if c, ok := v.Interface().(ast.CaptureRef); ok && c.Param {
 					kind = "VarRef"
 				}
-				add(kind, f.Interface().(grammar.SourceInfo))
+				add(kind, f.Interface().(ast.SourceInfo))
 			}
 			if v.Type().Name() == "OperatorsRule" {
-				if s := v.FieldByName("SkipSource").Interface().(grammar.SourceInfo); s.Pos.IsValid() {
+				if s := v.FieldByName("SkipSource").Interface().(ast.SourceInfo); s.Pos.IsValid() {
 					add("OperatorsSkip", s)
 				}
 			}
@@ -687,7 +687,7 @@ func compareNodes(t *testing.T, p *engine.Parser, name, src string) bool {
 	if reflect.DeepEqual(got, want) {
 		return true
 	}
-	keys := func(m map[string]grammar.SourceInfo) []string {
+	keys := func(m map[string]ast.SourceInfo) []string {
 		var ks []string
 		for k := range m {
 			ks = append(ks, k)

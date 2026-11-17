@@ -6,9 +6,9 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/core"
-	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/compile"
 	"zeroparse.dev/zp/internal/testing/codegentest"
+	"zeroparse.dev/zp/pkg/grammar/ast"
 )
 
 var compiledRecognitionLoadSink *Program
@@ -24,7 +24,7 @@ func mustMarshal(data []byte, err error) []byte {
 	return data
 }
 
-func compiledRecognitionBenchmarkGrammar(b *testing.B, ruleCount int) (*grammar.Grammar, *Program) {
+func compiledRecognitionBenchmarkGrammar(b *testing.B, ruleCount int) (*ast.Grammar, *Program) {
 	b.Helper()
 	var src strings.Builder
 	src.WriteString("rule main = ")

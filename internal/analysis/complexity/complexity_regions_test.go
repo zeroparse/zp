@@ -4,9 +4,9 @@ import (
 	"strings"
 	"testing"
 
-	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/frontend/parser"
 	"zeroparse.dev/zp/internal/testing/starttest"
+	"zeroparse.dev/zp/pkg/grammar/ast"
 )
 
 // regionCredit classifies src and reports whether the body of the trivia rule ws has the region
@@ -27,7 +27,7 @@ func regionCredit(t *testing.T, src string) bool {
 	if ws == nil {
 		t.Fatal("no rule ws")
 	}
-	rep, ok := triviaUnwrap(ws.Expr).(*grammar.Repeat)
+	rep, ok := triviaUnwrap(ws.Expr).(*ast.Repeat)
 	return ok && k.regionScan[rep]
 }
 

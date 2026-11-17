@@ -5,9 +5,9 @@ import (
 	"slices"
 	"strings"
 
-	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/cancel"
 	"zeroparse.dev/zp/internal/diagnostic"
+	"zeroparse.dev/zp/pkg/grammar/ast"
 )
 
 // ResolveStarts reads the declaration attributes of rules and returns the
@@ -17,14 +17,14 @@ import (
 // (which LinearDeclarations checks) is an error, and so is @start on a hidden
 // rule. A grammar needs a start rule;
 // with several, one of them must be the default.
-func ResolveStarts(rules []*grammar.RuleDef, control *cancel.Control) (starts []string, def string, errs diagnostic.ErrorList) {
-	errorf := func(pos grammar.Pos, format string, args ...any) {
+func ResolveStarts(rules []*ast.RuleDef, control *cancel.Control) (starts []string, def string, errs diagnostic.ErrorList) {
+	errorf := func(pos ast.Pos, format string, args ...any) {
 		errs = append(errs, &diagnostic.Error{Pos: pos, Msg: fmt.Sprintf(format, args...)})
 	}
-	var second *grammar.Attribute
+	var second *ast.Attribute
 	for _, rd := range rules {
 		control.Poll()
-		var start *grammar.Attribute
+		var start *ast.Attribute
 		isDefault := false
 		for _, a := range rd.Attrs {
 			control.Poll()
@@ -70,7 +70,7 @@ func ResolveStarts(rules []*grammar.RuleDef, control *cancel.Control) (starts []
 	switch {
 	case len(errs) > 0:
 	case len(starts) == 0:
-		var pos grammar.Pos
+		var pos ast.Pos
 		if len(rules) > 0 {
 			pos = rules[0].Diagnostic()
 		}
@@ -84,13 +84,13 @@ func ResolveStarts(rules []*grammar.RuleDef, control *cancel.Control) (starts []
 }
 
 // StartMarked reports whether rd is marked @start, so that a parse may begin at it.
-func StartMarked(rd *grammar.RuleDef) bool {
-	return slices.ContainsFunc(rd.Attrs, func(a *grammar.Attribute) bool { return !a.Pragma && a.Name == "start" })
+func StartMarked(rd *ast.RuleDef) bool {
+	return slices.ContainsFunc(rd.Attrs, func(a *ast.Attribute) bool { return !a.Pragma && a.Name == "start" })
 }
 
 // isDefaultArg reports whether the attribute argument is the bare identifier
 // default.
 func isDefaultArg(arg any) bool {
-	ref, ok := arg.(*grammar.Ref)
+	ref, ok := arg.(*ast.Ref)
 	return ok && ref.Name == "default" && ref.Level == ""
 }

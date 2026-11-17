@@ -8,16 +8,16 @@ import (
 	"strings"
 	"testing"
 
-	"zeroparse.dev/zp/grammar"
+	"zeroparse.dev/zp/pkg/grammar/ast"
 )
 
 func TestLintGroupUnwrapPhaseCancellation(t *testing.T) {
-	leaf := &grammar.Literal{Value: "a"}
-	var expr grammar.Expr = leaf
+	leaf := &ast.Literal{Value: "a"}
+	var expr ast.Expr = leaf
 	for range 1024 {
-		expr = &grammar.Group{Expr: expr}
+		expr = &ast.Group{Expr: expr}
 	}
-	before := expr.(*grammar.Group).Expr
+	before := expr.(*ast.Group).Expr
 	control := &lintControl{ctx: lintTestContext(t, 1)}
 	defer func() {
 		failure := recover()
@@ -25,7 +25,7 @@ func TestLintGroupUnwrapPhaseCancellation(t *testing.T) {
 		if !ok || !errors.Is(cancelled.err, context.Canceled) {
 			t.Fatalf("group unwrapping did not stop during left-call analysis: %v", failure)
 		}
-		if expr.(*grammar.Group).Expr != before || leaf.Value != "a" {
+		if expr.(*ast.Group).Expr != before || leaf.Value != "a" {
 			t.Fatal("cancellation changed the caller's expression")
 		}
 	}()
@@ -33,28 +33,28 @@ func TestLintGroupUnwrapPhaseCancellation(t *testing.T) {
 }
 
 func TestLintMetadataPhaseCancellation(t *testing.T) {
-	leaf := &grammar.Literal{Value: "a"}
-	var groups, wrappers, captures, sequences, optionals, repeats grammar.Expr = leaf, leaf, leaf, leaf, leaf, leaf
-	var typ grammar.TypeExpr = &grammar.TypeRef{Name: "Match"}
-	elems := make([]grammar.Expr, 1024)
-	attrs := make([]*grammar.Attribute, len(elems))
-	args := make([]grammar.Term, len(elems))
-	operands := make([]*grammar.OperatorsRuleOperand, len(elems))
+	leaf := &ast.Literal{Value: "a"}
+	var groups, wrappers, captures, sequences, optionals, repeats ast.Expr = leaf, leaf, leaf, leaf, leaf, leaf
+	var typ ast.TypeExpr = &ast.TypeRef{Name: "Match"}
+	elems := make([]ast.Expr, 1024)
+	attrs := make([]*ast.Attribute, len(elems))
+	args := make([]ast.Term, len(elems))
+	operands := make([]*ast.OperatorsRuleOperand, len(elems))
 	for i := range elems {
-		groups = &grammar.Group{Expr: groups}
-		wrappers = &grammar.Atomic{Expr: &grammar.Discard{Expr: wrappers}}
-		captures = &grammar.Capture{Name: "a", Expr: captures}
-		sequences = &grammar.Seq{Items: []grammar.Expr{sequences}}
-		optionals = &grammar.Optional{Expr: optionals}
-		repeats = &grammar.Repeat{Expr: repeats, Min: 1, Max: 1}
-		typ = &grammar.TypeGroup{Type: typ}
+		groups = &ast.Group{Expr: groups}
+		wrappers = &ast.Atomic{Expr: &ast.Discard{Expr: wrappers}}
+		captures = &ast.Capture{Name: "a", Expr: captures}
+		sequences = &ast.Seq{Items: []ast.Expr{sequences}}
+		optionals = &ast.Optional{Expr: optionals}
+		repeats = &ast.Repeat{Expr: repeats, Min: 1, Max: 1}
+		typ = &ast.TypeGroup{Type: typ}
 		elems[i] = leaf
-		attrs[i] = &grammar.Attribute{Name: "error"}
-		args[i] = &grammar.IntLit{Value: i}
-		operands[i] = &grammar.OperatorsRuleOperand{Expr: leaf, Action: args[i]}
+		attrs[i] = &ast.Attribute{Name: "error"}
+		args[i] = &ast.IntLit{Value: i}
+		operands[i] = &ast.OperatorsRuleOperand{Expr: leaf, Action: args[i]}
 	}
-	wide := &grammar.Seq{Items: elems}
-	term := &grammar.Call{Func: "list", Args: args}
+	wide := &ast.Seq{Items: elems}
+	term := &ast.Call{Func: "list", Args: args}
 	for _, phase := range []struct {
 		name string
 		run  func(*lintControl)
@@ -62,17 +62,17 @@ func TestLintMetadataPhaseCancellation(t *testing.T) {
 		{"groups", func(c *lintControl) { analysisExpr(groups, c) }},
 		{"wrappers", func(c *lintControl) { neutral(wrappers, true, c) }},
 		{"sequence-items", func(c *lintControl) { items(groups, true, c) }},
-		{"attributes", func(c *lintControl) { hasAttr(&grammar.Attributed{Expr: leaf, Attrs: attrs}, "recover", c) }},
+		{"attributes", func(c *lintControl) { hasAttr(&ast.Attributed{Expr: leaf, Attrs: attrs}, "recover", c) }},
 		{"position", func(c *lintControl) { posOfControlled(sequences, c) }},
 		{"visibility", func(c *lintControl) { visible(captures, c) }},
 		{"comparison-depth", func(c *lintControl) { same(optionals, optionals, false, c) }},
 		{"comparison-width", func(c *lintControl) { sameList(elems, elems, false, c) }},
 		{"predicate-search", func(c *lintControl) { hasPredicate(wide, c) }},
 		{"capture-search", func(c *lintControl) { hasCaptures(wide, c) }},
-		{"children", func(c *lintControl) { forChildren(wide, func(grammar.Expr) {}, c) }},
-		{"position-terms", func(c *lintControl) { positionRead(&grammar.RuleDef{Expr: leaf, Action: term}, c) }},
+		{"children", func(c *lintControl) { forChildren(wide, func(ast.Expr) {}, c) }},
+		{"position-terms", func(c *lintControl) { positionRead(&ast.RuleDef{Expr: leaf, Action: term}, c) }},
 		{"position-operands", func(c *lintControl) {
-			positionRead(&grammar.RuleDef{Expr: &grammar.OperatorsRule{Operands: operands}}, c)
+			positionRead(&ast.RuleDef{Expr: &ast.OperatorsRule{Operands: operands}}, c)
 		}},
 		{"repetition-search", func(c *lintControl) { anyRepeat(wide, c) }},
 		{"any-character-search", func(c *lintControl) { consumesAny(repeats, c) }},
@@ -94,34 +94,34 @@ func TestLintMetadataPhaseCancellation(t *testing.T) {
 
 func TestLintMetadataFacts(t *testing.T) {
 	control := &lintControl{ctx: lintTestContext(t, 0)}
-	pos := grammar.Pos{Line: 4, Col: 7}
-	leaf := &grammar.Literal{SourceInfo: grammar.SourceInfo{Pos: pos}, Value: "a"}
-	capture := &grammar.Capture{Name: "a", Expr: leaf}
-	wrapped := &grammar.Group{Expr: &grammar.Atomic{Expr: &grammar.Discard{Expr: capture}}}
+	pos := ast.Pos{Line: 4, Col: 7}
+	leaf := &ast.Literal{SourceInfo: ast.SourceInfo{Pos: pos}, Value: "a"}
+	capture := &ast.Capture{Name: "a", Expr: leaf}
+	wrapped := &ast.Group{Expr: &ast.Atomic{Expr: &ast.Discard{Expr: capture}}}
 	if got := neutral(wrapped, true, control); got != leaf {
 		t.Fatalf("neutral expression = %T, want original literal", got)
 	}
 	if got := neutral(wrapped, false, control); got != capture {
 		t.Fatalf("capture boundary = %T, want original capture", got)
 	}
-	recovery := &grammar.Recovery{Expr: leaf, Skip: &grammar.Any{}}
-	if got, ok := neutral(recovery, true, control).(*grammar.Attributed); !ok || got.Expr != leaf || got.Attrs[0].KwArgs["skip"] != recovery.Skip {
+	recovery := &ast.Recovery{Expr: leaf, Skip: &ast.Any{}}
+	if got, ok := neutral(recovery, true, control).(*ast.Attributed); !ok || got.Expr != leaf || got.Attrs[0].KwArgs["skip"] != recovery.Skip {
 		t.Fatalf("recovery boundary or skip expression lost: %#v", got)
 	}
-	if got := posOfControlled(&grammar.Seq{Items: []grammar.Expr{&grammar.Group{Expr: leaf}}}, control); got != pos {
+	if got := posOfControlled(&ast.Seq{Items: []ast.Expr{&ast.Group{Expr: leaf}}}, control); got != pos {
 		t.Fatalf("position = %v, want %v", got, pos)
 	}
-	if visible(&grammar.Discard{Expr: leaf}, control) || !visible(capture, control) {
+	if visible(&ast.Discard{Expr: leaf}, control) || !visible(capture, control) {
 		t.Fatal("metadata changed capture/discard visibility")
 	}
-	other := &grammar.Capture{Name: "b", Expr: leaf}
+	other := &ast.Capture{Name: "b", Expr: leaf}
 	if same(capture, other, false, control) || !same(capture, other, true, control) {
 		t.Fatal("comparison did not preserve capture-name policy")
 	}
-	if same(&grammar.Ref{Name: "a", Level: "first"}, &grammar.Ref{Name: "a", Level: "last"}, true, control) {
+	if same(&ast.Ref{Name: "a", Level: "first"}, &ast.Ref{Name: "a", Level: "last"}, true, control) {
 		t.Fatal("comparison ignored the selected operator level")
 	}
-	if !consumesAny(&grammar.Repeat{Expr: &grammar.Any{}, Min: 1, Max: -1}, control) {
+	if !consumesAny(&ast.Repeat{Expr: &ast.Any{}, Min: 1, Max: -1}, control) {
 		t.Fatal("any-character repetition was not recognized")
 	}
 }

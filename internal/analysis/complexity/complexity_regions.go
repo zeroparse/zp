@@ -6,7 +6,7 @@ import (
 	"unicode/utf8"
 	"zeroparse.dev/zp/internal/frontend/astfacts"
 
-	"zeroparse.dev/zp/grammar"
+	"zeroparse.dev/zp/pkg/grammar/ast"
 )
 
 // Region rules (see "Conditions for Linear Cost" in spec/runtime/parsing.md and Lemma 15 of
@@ -33,14 +33,14 @@ import (
 
 // regionScans returns the repetitions that are the bodies of trivia rules with the region bound.
 // It runs after the run analysis, whose open runs pick the candidates.
-func (k *classifier) regionScans() map[*grammar.Repeat]bool {
+func (k *classifier) regionScans() map[*ast.Repeat]bool {
 	regions := map[string]bool{} // the region rules; true for a trivia rule
 	for _, r := range k.rules {
 		k.control.Poll()
 		if !k.reach[r.Name] || r.Name == k.start || k.triviaParts(r.Expr) == nil || !k.regionFree(r.Name) {
 			continue
 		}
-		sigma := triviaUnwrap(r.Expr).(*grammar.Repeat)
+		sigma := triviaUnwrap(r.Expr).(*ast.Repeat)
 		if d, ok := k.scanRun[sigma]; ok && d >= runOpen && k.srcExprs[sigma] {
 			regions[r.Name] = true
 		}
@@ -60,10 +60,10 @@ func (k *classifier) regionScans() map[*grammar.Repeat]bool {
 			tried[n] = true
 		}
 	}
-	out := map[*grammar.Repeat]bool{}
+	out := map[*ast.Repeat]bool{}
 	for n, trivia := range regions {
 		if trivia {
-			out[triviaUnwrap(k.byName[n].Expr).(*grammar.Repeat)] = true
+			out[triviaUnwrap(k.byName[n].Expr).(*ast.Repeat)] = true
 		}
 	}
 	return out
@@ -91,14 +91,14 @@ func (k *classifier) regionFree(name string) bool {
 			return false
 		}
 		free := true
-		astfacts.WalkExpr(d.Expr, func(e grammar.Expr) {
+		astfacts.WalkExpr(d.Expr, func(e ast.Expr) {
 			// Attribute normalization has made `#recover` and `#stream` attributed expressions, and
 			// the lowering of inline actions has made them rules with actions, so no recovery,
 			// stream or inline action node is left here.
 			switch e := e.(type) {
-			case *grammar.Predicate, *grammar.Attributed, *grammar.OperatorsRule:
+			case *ast.Predicate, *ast.Attributed, *ast.OperatorsRule:
 				free = false
-			case *grammar.Ref:
+			case *ast.Ref:
 				if e.Level != "" {
 					free = false
 				}
@@ -266,8 +266,8 @@ func (b bitset) each(f func(int)) {
 // rule that two places call joins what follows both, which only adds paths.
 type prefixNFA struct {
 	k      *classifier
-	chars  []charset            // the characters of each position
-	lits   map[grammar.Expr]int // the first position of each terminal
+	chars  []charset        // the characters of each position
+	lits   map[ast.Expr]int // the first position of each terminal
 	rules  map[string]nfaInfo
 	next   []bitset
 	start  map[string]bitset  // the first positions of the body of each region
@@ -282,7 +282,7 @@ type nfaInfo struct {
 
 // regionNFA builds the automaton of the bodies of the regions names and the rules they reach.
 func (k *classifier) regionNFA(names []string, inner map[string]map[string]bool) *prefixNFA {
-	n := &prefixNFA{k: k, lits: map[grammar.Expr]int{}, rules: map[string]nfaInfo{}, start: map[string]bitset{}, opener: map[string]charset{}}
+	n := &prefixNFA{k: k, lits: map[ast.Expr]int{}, rules: map[string]nfaInfo{}, start: map[string]bitset{}, opener: map[string]charset{}}
 	var rules []string
 	seen := map[string]bool{}
 	for _, r := range names {
@@ -337,52 +337,52 @@ func (k *classifier) regionNFA(names []string, inner map[string]map[string]bool)
 }
 
 // number gives a position to each character of each terminal of e outside lookaheads.
-func (n *prefixNFA) number(e grammar.Expr) {
+func (n *prefixNFA) number(e ast.Expr) {
 	switch e := e.(type) {
-	case *grammar.Literal:
+	case *ast.Literal:
 		n.lits[e] = len(n.chars)
 		for _, c := range e.Value {
 			n.chars = append(n.chars, literalChar(e, c))
 		}
-	case *grammar.CharClass:
+	case *ast.CharClass:
 		n.lits[e] = len(n.chars)
 		n.chars = append(n.chars, classChars(e))
-	case *grammar.Any:
+	case *ast.Any:
 		n.lits[e] = len(n.chars)
 		n.chars = append(n.chars, allChars)
-	case *grammar.And, *grammar.Not, *grammar.Predicate:
+	case *ast.And, *ast.Not, *ast.Predicate:
 	default:
 		eachChild(e, n.number)
 	}
 }
 
 // eachChild calls f on the expressions directly inside e that it evaluates as parts of its match.
-func eachChild(e grammar.Expr, f func(grammar.Expr)) {
+func eachChild(e ast.Expr, f func(ast.Expr)) {
 	switch e := e.(type) {
-	case *grammar.Seq:
+	case *ast.Seq:
 		for _, it := range e.Items {
 			f(it)
 		}
-	case *grammar.Choice:
+	case *ast.Choice:
 		for _, alt := range e.Alts {
 			f(alt)
 		}
-	case *grammar.Repeat:
+	case *ast.Repeat:
 		f(e.Expr)
-	case *grammar.Optional:
+	case *ast.Optional:
 		f(e.Expr)
-	case *grammar.Group:
+	case *ast.Group:
 		f(e.Expr)
-	case *grammar.Capture:
+	case *ast.Capture:
 		f(e.Expr)
-	case *grammar.Discard:
+	case *ast.Discard:
 		f(e.Expr)
-	case *grammar.Atomic:
+	case *ast.Atomic:
 		f(e.Expr)
 	}
 }
 
-func literalChar(l *grammar.Literal, c rune) charset {
+func literalChar(l *ast.Literal, c rune) charset {
 	if l.IgnoreCase {
 		return asciiFold(c)
 	}
@@ -391,7 +391,7 @@ func literalChar(l *grammar.Literal, c rune) charset {
 
 // info returns the first and last positions of e and whether it can match the empty string; with
 // edges, it also adds the edges inside e.
-func (n *prefixNFA) info(e grammar.Expr, edges bool) nfaInfo {
+func (n *prefixNFA) info(e ast.Expr, edges bool) nfaInfo {
 	k := n.k
 	k.control.Poll()
 	empty := nfaInfo{newBitset(n.size), newBitset(n.size), true}
@@ -402,7 +402,7 @@ func (n *prefixNFA) info(e grammar.Expr, edges bool) nfaInfo {
 		return i
 	}
 	switch e := e.(type) {
-	case *grammar.Literal:
+	case *ast.Literal:
 		if e.Value == "" {
 			return empty
 		}
@@ -417,9 +417,9 @@ func (n *prefixNFA) info(e grammar.Expr, edges bool) nfaInfo {
 		i.last = newBitset(n.size)
 		i.last.set(p + m - 1)
 		return i
-	case *grammar.CharClass, *grammar.Any:
+	case *ast.CharClass, *ast.Any:
 		return one(n.lits[e])
-	case *grammar.Ref:
+	case *ast.Ref:
 		if r, ok := n.rules[e.Name]; ok {
 			return r
 		}
@@ -427,7 +427,7 @@ func (n *prefixNFA) info(e grammar.Expr, edges bool) nfaInfo {
 			return empty
 		}
 		return n.any()
-	case *grammar.Seq:
+	case *ast.Seq:
 		out := empty
 		out.first, out.last = newBitset(n.size), newBitset(n.size)
 		last := newBitset(n.size)
@@ -448,7 +448,7 @@ func (n *prefixNFA) info(e grammar.Expr, edges bool) nfaInfo {
 		}
 		out.last = last
 		return out
-	case *grammar.Choice:
+	case *ast.Choice:
 		out := nfaInfo{newBitset(n.size), newBitset(n.size), false}
 		for _, alt := range e.Alts {
 			i := n.info(alt, edges)
@@ -457,7 +457,7 @@ func (n *prefixNFA) info(e grammar.Expr, edges bool) nfaInfo {
 			out.null = out.null || i.null
 		}
 		return out
-	case *grammar.Repeat:
+	case *ast.Repeat:
 		if e.Max == 0 {
 			return empty
 		}
@@ -466,19 +466,19 @@ func (n *prefixNFA) info(e grammar.Expr, edges bool) nfaInfo {
 			i.last.each(func(p int) { n.next[p].or(i.first) })
 		}
 		return nfaInfo{i.first, i.last, e.Min == 0 || i.null}
-	case *grammar.Optional:
+	case *ast.Optional:
 		i := n.info(e.Expr, edges)
 		return nfaInfo{i.first, i.last, true}
-	case *grammar.Group:
+	case *ast.Group:
 		return n.info(e.Expr, edges)
-	case *grammar.Capture:
+	case *ast.Capture:
 		return n.info(e.Expr, edges)
-	case *grammar.Discard:
+	case *ast.Discard:
 		return n.info(e.Expr, edges)
-	case *grammar.Atomic:
+	case *ast.Atomic:
 		return n.info(e.Expr, edges)
-	case *grammar.And, *grammar.Not, *grammar.Predicate, *grammar.Cut, *grammar.Top, *grammar.Bottom,
-		*grammar.BeginInput, *grammar.EndInput, *grammar.BeginLine, *grammar.EndLine:
+	case *ast.And, *ast.Not, *ast.Predicate, *ast.Cut, *ast.Top, *ast.Bottom,
+		*ast.BeginInput, *ast.EndInput, *ast.BeginLine, *ast.EndLine:
 		return empty
 	}
 	// What (D) keeps out of a region: any characters.
@@ -524,17 +524,17 @@ func (n *prefixNFA) succ(s bitset) bitset {
 }
 
 // terminalChars returns the characters that a terminal consumes, one set for each character.
-func terminalChars(e grammar.Expr) []charset {
+func terminalChars(e ast.Expr) []charset {
 	switch e := e.(type) {
-	case *grammar.Literal:
+	case *ast.Literal:
 		var out []charset
 		for _, c := range e.Value {
 			out = append(out, literalChar(e, c))
 		}
 		return out
-	case *grammar.CharClass:
+	case *ast.CharClass:
 		return []charset{classChars(e)}
-	case *grammar.Any:
+	case *ast.Any:
 		return []charset{allChars}
 	}
 	return nil
@@ -583,7 +583,7 @@ func (k *classifier) regionGuards(regions map[string]bool, names []string, outer
 	g.entry[k.start] = g.none()
 	for g.changed = true; g.changed; {
 		g.changed = false
-		g.each(func(r *grammar.RuleDef) {
+		g.each(func(r *ast.RuleDef) {
 			if out := g.walk(r.Expr, g.entry[r.Name], nil).and(g.exit[r.Name]); !slices.Equal(out, g.exit[r.Name]) {
 				g.exit[r.Name] = out
 				g.changed = true
@@ -591,7 +591,7 @@ func (k *classifier) regionGuards(regions map[string]bool, names []string, outer
 		})
 	}
 	g.checking = true
-	g.each(func(r *grammar.RuleDef) {
+	g.each(func(r *ast.RuleDef) {
 		g.rule = r.Name
 		g.walk(r.Expr, g.entry[r.Name], nil)
 	})
@@ -599,7 +599,7 @@ func (k *classifier) regionGuards(regions map[string]bool, names []string, outer
 }
 
 // each calls f on the outer rules that are not regions, in the order of the grammar.
-func (g *guardPass) each(f func(*grammar.RuleDef)) {
+func (g *guardPass) each(f func(*ast.RuleDef)) {
 	for _, r := range g.k.rules {
 		if _, ok := g.regions[r.Name]; g.outer[r.Name] && !ok {
 			g.k.control.Poll()
@@ -620,16 +620,16 @@ func (g *guardPass) top() bitset {
 
 // isCheck reports whether e is a check: a negative lookahead of an expression of terminals that
 // calls no rule. A check is evaluated where it stands and examines a bounded amount of input.
-func isCheck(e grammar.Expr) bool {
-	n, ok := ungroup(e).(*grammar.Not)
+func isCheck(e ast.Expr) bool {
+	n, ok := ungroup(e).(*ast.Not)
 	if !ok {
 		return false
 	}
 	pure := true
-	astfacts.WalkExpr(n.Expr, func(x grammar.Expr) {
+	astfacts.WalkExpr(n.Expr, func(x ast.Expr) {
 		switch x.(type) {
-		case *grammar.Literal, *grammar.CharClass, *grammar.Any, *grammar.Seq, *grammar.Choice, *grammar.Group,
-			*grammar.Optional, *grammar.Repeat:
+		case *ast.Literal, *ast.CharClass, *ast.Any, *ast.Seq, *ast.Choice, *ast.Group,
+			*ast.Optional, *ast.Repeat:
 		default:
 			pure = false
 		}
@@ -639,19 +639,19 @@ func isCheck(e grammar.Expr) bool {
 
 // walk carries the state in through e and returns the state after it. next is the check that
 // follows e when e ends where the check is evaluated, or nil.
-func (g *guardPass) walk(e grammar.Expr, in bitset, next *grammar.Not) bitset {
+func (g *guardPass) walk(e ast.Expr, in bitset, next *ast.Not) bitset {
 	k := g.k
 	k.control.Poll()
 	switch e := e.(type) {
-	case *grammar.Literal, *grammar.CharClass, *grammar.Any:
+	case *ast.Literal, *ast.CharClass, *ast.Any:
 		if g.checking {
 			g.cross(e, in, next)
 		}
-		if l, ok := e.(*grammar.Literal); ok && l.Value == "" {
+		if l, ok := e.(*ast.Literal); ok && l.Value == "" {
 			return in
 		}
 		return g.none()
-	case *grammar.Ref:
+	case *ast.Ref:
 		if trivia, ok := g.regions[e.Name]; ok {
 			out := g.none()
 			if trivia {
@@ -667,12 +667,12 @@ func (g *guardPass) walk(e grammar.Expr, in bitset, next *grammar.Not) bitset {
 			g.changed = true
 		}
 		return g.exit[e.Name]
-	case *grammar.Seq:
+	case *ast.Seq:
 		for i, it := range e.Items {
-			var nx *grammar.Not
+			var nx *ast.Not
 			if i+1 < len(e.Items) {
 				if isCheck(e.Items[i+1]) {
-					nx = ungroup(e.Items[i+1]).(*grammar.Not)
+					nx = ungroup(e.Items[i+1]).(*ast.Not)
 				}
 			} else {
 				nx = next
@@ -680,15 +680,15 @@ func (g *guardPass) walk(e grammar.Expr, in bitset, next *grammar.Not) bitset {
 			in = g.walk(it, in, nx)
 		}
 		return in
-	case *grammar.Choice:
+	case *ast.Choice:
 		out := g.top()
 		for _, alt := range e.Alts {
 			out = out.and(g.walk(alt, in, next))
 		}
 		return out
-	case *grammar.Optional:
+	case *ast.Optional:
 		return in.and(g.walk(e.Expr, in, next))
-	case *grammar.Repeat:
+	case *ast.Repeat:
 		if e.Max == 0 {
 			return in
 		}
@@ -709,25 +709,25 @@ func (g *guardPass) walk(e grammar.Expr, in bitset, next *grammar.Not) bitset {
 			g.walk(e.Expr, s, nil)
 		}
 		return s
-	case *grammar.Group:
+	case *ast.Group:
 		return g.walk(e.Expr, in, next)
-	case *grammar.Capture:
+	case *ast.Capture:
 		return g.walk(e.Expr, in, next)
-	case *grammar.Discard:
+	case *ast.Discard:
 		return g.walk(e.Expr, in, next)
-	case *grammar.Atomic:
+	case *ast.Atomic:
 		return g.walk(e.Expr, in, next)
-	case *grammar.InlineAction:
+	case *ast.InlineAction:
 		return g.walk(e.Expr, in, next)
-	case *grammar.And:
+	case *ast.And:
 		g.walk(e.Expr, in, nil)
 		return in
-	case *grammar.Not:
+	case *ast.Not:
 		if !isCheck(e) {
 			g.walk(e.Expr, in, nil)
 		}
 		return in
-	case *grammar.Attributed:
+	case *ast.Attributed:
 		g.walk(e.Expr, in, nil)
 		for _, at := range e.Attrs {
 			for _, arg := range at.ExpressionArgs() {
@@ -735,14 +735,14 @@ func (g *guardPass) walk(e grammar.Expr, in bitset, next *grammar.Not) bitset {
 			}
 		}
 		return g.none()
-	case *grammar.Recovery:
+	case *ast.Recovery:
 		g.walk(e.Expr, in, nil)
 		g.walk(e.Skip, in, nil)
 		return g.none()
-	case *grammar.Stream:
+	case *ast.Stream:
 		g.walk(e.Expr, g.none(), nil)
 		return g.none()
-	case *grammar.OperatorsRule:
+	case *ast.OperatorsRule:
 		// Its parts follow one another in an order that the pass does not follow.
 		g.walk(e.Skip, g.none(), nil)
 		for _, o := range e.Operands {
@@ -763,7 +763,7 @@ func (g *guardPass) walk(e grammar.Expr, in bitset, next *grammar.Not) bitset {
 // region: (G1) a character of the opening characters of a region only as its first character, and
 // (G2) a first character of the region only where the region ended, or where the next character
 // cannot go on with the match of the region, or before a check that fails wherever it can.
-func (g *guardPass) cross(t grammar.Expr, in bitset, next *grammar.Not) {
+func (g *guardPass) cross(t ast.Expr, in bitset, next *ast.Not) {
 	cs := terminalChars(t)
 	if len(cs) == 0 {
 		return

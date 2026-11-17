@@ -12,11 +12,11 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/core"
-	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/bytecode"
 	"zeroparse.dev/zp/internal/compile"
 	"zeroparse.dev/zp/internal/testing/codegentest"
 	"zeroparse.dev/zp/internal/value"
+	"zeroparse.dev/zp/pkg/grammar/ast"
 )
 
 // TestCompiledRoundTrip checks that a program loaded from a compiled grammar returns the same
@@ -338,20 +338,20 @@ func grammarTypes(prog *Program) string {
 	var b strings.Builder
 	for _, s := range prog.Grammar.File.Decls {
 		switch s := s.(type) {
-		case grammar.TypeDecl:
+		case ast.TypeDecl:
 			fmt.Fprintf(&b, "type %s", s.DeclName())
 			switch spec := s.(type) {
-			case *grammar.TypeDef:
+			case *ast.TypeDef:
 				for _, f := range spec.Struct().Fields {
-					fmt.Fprintf(&b, " %s %s;", f.Name, grammar.FormatType(f.Type))
+					fmt.Fprintf(&b, " %s %s;", f.Name, ast.FormatType(f.Type))
 				}
-			case *grammar.TypeAlias:
-				b.WriteString(" ~ " + grammar.FormatType(spec.Type))
+			case *ast.TypeAlias:
+				b.WriteString(" ~ " + ast.FormatType(spec.Type))
 			}
 			b.WriteString("\n")
-		case *grammar.RuleDef:
+		case *ast.RuleDef:
 			if s.Type != nil {
-				fmt.Fprintf(&b, "rule %s %s\n", s.Name, grammar.FormatType(s.Type))
+				fmt.Fprintf(&b, "rule %s %s\n", s.Name, ast.FormatType(s.Type))
 			}
 		}
 	}

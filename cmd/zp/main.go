@@ -39,10 +39,10 @@ import (
 	"zeroparse.dev/zp/codegen"
 	"zeroparse.dev/zp/core"
 	"zeroparse.dev/zp/engine"
-	"zeroparse.dev/zp/grammar"
 	igen "zeroparse.dev/zp/internal/codegen"
 	iengine "zeroparse.dev/zp/internal/engine"
 	iropt "zeroparse.dev/zp/internal/ir/opt"
+	"zeroparse.dev/zp/pkg/grammar/ast"
 )
 
 const usage = `usage: zp <command> [flags] [arguments]
@@ -416,9 +416,9 @@ func formatSourceMode(name string, src []byte, write, list, syntaxOnly bool, std
 	}
 	var out string
 	if syntaxOnly {
-		out = grammar.FormatSyntax(g)
+		out = ast.FormatSyntax(g)
 	} else {
-		out = grammar.Format(g)
+		out = ast.Format(g)
 	}
 	changed := out != string(src)
 	if list && changed {
@@ -520,8 +520,8 @@ func convertCmd(args []string, stdout io.Writer) error {
 	}
 	var out []byte
 	if target == "zp" {
-		out = []byte(grammar.Format(g))
-	} else if out, err = grammar.MarshalJSON(g); err != nil {
+		out = []byte(ast.Format(g))
+	} else if out, err = ast.MarshalJSON(g); err != nil {
 		return err
 	}
 	if *output == "" {
@@ -563,7 +563,7 @@ func compiledNeedsSource(path, command string) error {
 
 // loadGrammar reads the grammar source at path for command, which needs the grammar itself and
 // so rejects a compiled grammar.
-func loadGrammar(path, command string) (*grammar.Grammar, error) {
+func loadGrammar(path, command string) (*ast.Grammar, error) {
 	data, err := os.ReadFile(path)
 	if err != nil {
 		return nil, err
@@ -571,9 +571,9 @@ func loadGrammar(path, command string) (*grammar.Grammar, error) {
 	if engine.IsCompiled(data) {
 		return nil, compiledNeedsSource(path, command)
 	}
-	var g *grammar.Grammar
+	var g *ast.Grammar
 	if strings.HasSuffix(path, ".json") {
-		g, err = grammar.UnmarshalJSON(data)
+		g, err = ast.UnmarshalJSON(data)
 	} else {
 		g, err = engine.ParseGrammar(string(data))
 	}

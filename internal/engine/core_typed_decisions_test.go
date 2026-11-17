@@ -9,10 +9,10 @@ import (
 	"strings"
 	"testing"
 
-	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/codegen/go"
 	"zeroparse.dev/zp/internal/compile"
 	"zeroparse.dev/zp/internal/testing/codegentest"
+	"zeroparse.dev/zp/pkg/grammar/ast"
 )
 
 // The lowering decisions of the Core IR passes over the corpus are frozen in two golden files:
@@ -67,11 +67,11 @@ var (
 )
 
 // typedDecisionsWalk returns the expressions of the rule's body in walk order, and their indexes.
-func typedDecisionsWalk(r *compile.Rule) ([]grammar.Expr, map[grammar.Expr]int) {
-	var exprs []grammar.Expr
-	idx := map[grammar.Expr]int{}
+func typedDecisionsWalk(r *compile.Rule) ([]ast.Expr, map[ast.Expr]int) {
+	var exprs []ast.Expr
+	idx := map[ast.Expr]int{}
 	if e := r.BodyExpr(); e != nil {
-		compile.WalkExpr(e, func(x grammar.Expr) {
+		compile.WalkExpr(e, func(x ast.Expr) {
 			if _, ok := idx[x]; !ok {
 				idx[x] = len(exprs)
 			}

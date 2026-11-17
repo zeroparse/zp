@@ -5,9 +5,9 @@ import (
 	"zeroparse.dev/zp/internal/analysis/complexity"
 
 	"zeroparse.dev/zp/engine"
-	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/testing/complexitytest"
 	"zeroparse.dev/zp/internal/testing/starttest"
+	"zeroparse.dev/zp/pkg/grammar/ast"
 )
 
 // TestSharedContinuationsFlip checks that the classifier's use of the exclusion analysis changes
@@ -21,7 +21,7 @@ func TestSharedContinuationsFlip(t *testing.T) {
 	linear := func(c complexity.ComplexityClass) bool {
 		return c == complexity.ClassLinear || c == complexity.ClassLinearEnv
 	}
-	classify := func(g *grammar.Grammar) complexity.ComplexityClass {
+	classify := func(g *ast.Grammar) complexity.ComplexityClass {
 		c, err := complexity.ClassifyComplexityControlled(g, "main", nil)
 		if err != nil {
 			t.Fatal(err)

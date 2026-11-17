@@ -3,7 +3,7 @@ package parser
 import (
 	"strings"
 	"testing"
-	"zeroparse.dev/zp/grammar"
+	"zeroparse.dev/zp/pkg/grammar/ast"
 )
 
 func TestActionBlocksSource(t *testing.T) {
@@ -18,32 +18,32 @@ func TestActionBlocksSource(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			if err := grammar.Validate(g); err != nil {
+			if err := ast.Validate(g); err != nil {
 				t.Fatal(err)
 			}
-			formatted := grammar.Format(g)
+			formatted := ast.Format(g)
 			g2, err := Parse(formatted)
 			if err != nil {
 				t.Fatalf("%v\n%s", err, formatted)
 			}
-			if next := grammar.Format(g2); next != formatted {
+			if next := ast.Format(g2); next != formatted {
 				t.Fatalf("unstable format:\n%s\n---\n%s", formatted, next)
 			}
 			if len(g.AllComments()) != len(g2.AllComments()) {
 				t.Fatalf("lost comments: %d -> %d", len(g.AllComments()), len(g2.AllComments()))
 			}
-			raw, err := grammar.MarshalJSON(g)
+			raw, err := ast.MarshalJSON(g)
 			if err != nil {
 				t.Fatal(err)
 			}
-			decoded, err := grammar.UnmarshalJSON(raw)
+			decoded, err := ast.UnmarshalJSON(raw)
 			if err != nil {
 				t.Fatal(err)
 			}
-			if err := grammar.Validate(decoded); err != nil {
+			if err := ast.Validate(decoded); err != nil {
 				t.Fatal(err)
 			}
-			if _, ok := g.Rules()[0].Action.(*grammar.Block); !ok {
+			if _, ok := g.Rules()[0].Action.(*ast.Block); !ok {
 				t.Fatal("action block not retained")
 			}
 		})
@@ -86,7 +86,7 @@ func TestGroupedMultilineTypeExpressions(t *testing.T) {
 			t.Errorf("rejected type expression %q: %v", src, err)
 			continue
 		}
-		formatted := grammar.Format(g)
+		formatted := ast.Format(g)
 		if _, err := Parse(formatted); err != nil {
 			t.Errorf("formatted type expression %q is invalid: %v", formatted, err)
 		}
@@ -114,14 +114,14 @@ rule expr = #operators {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if err := grammar.Validate(g); err != nil {
+	if err := ast.Validate(g); err != nil {
 		t.Fatal(err)
 	}
-	levels := g.Rules()[1].Expr.(*grammar.OperatorsRule).Levels
+	levels := g.Rules()[1].Expr.(*ast.OperatorsRule).Levels
 	if len(levels) != 3 || levels[0].Name != "" || levels[1].Name != "named" || levels[2].Name != "" {
 		t.Fatalf("unexpected level names: %+v", levels)
 	}
-	formatted := grammar.Format(g)
+	formatted := ast.Format(g)
 	if _, err := Parse(formatted); err != nil {
 		t.Fatalf("formatted levels are invalid: %v\n%s", err, formatted)
 	}
@@ -138,11 +138,11 @@ func TestContextualRuleIdentifiers(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	ref := g.Rules()[0].Expr.(*grammar.Ref)
+	ref := g.Rules()[0].Expr.(*ast.Ref)
 	if ref.Name != "expr" || ref.Level != "additive" || ref.Diagnostic().Col != 19 {
 		t.Fatalf("%+v", ref)
 	}
-	if got := grammar.FormatExpr(ref); got != "level(expr, additive)" {
+	if got := ast.FormatExpr(ref); got != "level(expr, additive)" {
 		t.Fatal(got)
 	}
 	if _, err := Parse(`rule main = expr(additive)`); err == nil || !strings.HasPrefix(err.Error(), "1:17: ") {
@@ -178,7 +178,7 @@ func TestOperatorsGroupedComments(t *testing.T) {
 				t.Fatalf("missing %s", text)
 			}
 		}
-		src = grammar.Format(g)
+		src = ast.Format(g)
 	}
 }
 
@@ -189,7 +189,7 @@ func TestContextualOperatorsLiteralBrace(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		src = grammar.Format(g)
+		src = ast.Format(g)
 	}
 }
 
@@ -213,6 +213,6 @@ func TestAttributeGroupedComments(t *testing.T) {
 				t.Fatalf("missing %s", text)
 			}
 		}
-		src = grammar.Format(g)
+		src = ast.Format(g)
 	}
 }

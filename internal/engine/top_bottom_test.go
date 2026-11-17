@@ -6,9 +6,9 @@ import (
 	"strings"
 	"testing"
 
-	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/compile"
 	"zeroparse.dev/zp/internal/testing/codegentest"
+	"zeroparse.dev/zp/pkg/grammar/ast"
 )
 
 func TestTopBottomAcrossBackends(t *testing.T) {
@@ -76,33 +76,33 @@ func TestTopBottomSyntax(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	formatted := grammar.Format(g)
+	formatted := ast.Format(g)
 	for _, want := range []string{"type A ~ []B & *C | _ & (D | B) | _|_", "type E ~ [](B & C) & *(B | C)", "$x.(_ & node[_])"} {
 		if !strings.Contains(formatted, want) {
 			t.Fatalf("formatted lacks %q:\n%s", want, formatted)
 		}
 	}
-	alias := g.Types()[0].(*grammar.TypeAlias).Type.(*grammar.JoinType)
+	alias := g.Types()[0].(*ast.TypeAlias).Type.(*ast.JoinType)
 	if len(alias.Types) != 3 {
 		t.Fatalf("union %#v", alias)
 	}
-	if m, ok := alias.Types[0].(*grammar.MeetType); !ok || len(m.Types) != 2 {
+	if m, ok := alias.Types[0].(*ast.MeetType); !ok || len(m.Types) != 2 {
 		t.Fatalf("meet %#v", alias.Types[0])
 	}
-	if b, ok := alias.Types[2].(*grammar.TypeRef); !ok || b.Name != "_|_" {
+	if b, ok := alias.Types[2].(*ast.TypeRef); !ok || b.Name != "_|_" {
 		t.Fatalf("bottom %#v", alias.Types[2])
 	}
 	// The JSON AST keeps meets and the top and bottom types; compiled files keep no types.
-	data, err := grammar.MarshalJSON(g)
+	data, err := ast.MarshalJSON(g)
 	if err != nil {
 		t.Fatal(err)
 	}
-	back, err := grammar.UnmarshalJSON(data)
+	back, err := ast.UnmarshalJSON(data)
 	if err != nil {
 		t.Fatal(err)
 	}
 	// JSON keeps the tree but not the layout, so compare a second encoding.
-	again, err := grammar.MarshalJSON(back)
+	again, err := ast.MarshalJSON(back)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -124,7 +124,7 @@ func TestTopBottomSyntax(t *testing.T) {
 	if again, err := loaded.MarshalBinary("main"); err != nil || !bytes.Equal(again, bin) {
 		t.Fatalf("compiled round trip differs: %v", err)
 	}
-	if got := grammar.Format(program.Grammar); !strings.Contains(got, "type A ~ []B & *C | _ & (D | B) | _|_") || !strings.Contains(got, "$x.(_ & node[_])") {
+	if got := ast.Format(program.Grammar); !strings.Contains(got, "type A ~ []B & *C | _ & (D | B) | _|_") || !strings.Contains(got, "$x.(_ & node[_])") {
 		t.Fatalf("source grammar:\n%s", got)
 	}
 }

@@ -10,20 +10,20 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/core"
-	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/bytecode"
 	"zeroparse.dev/zp/internal/engine/state"
 	"zeroparse.dev/zp/internal/value"
+	"zeroparse.dev/zp/pkg/grammar/ast"
 )
 
 const budgetClassRangeCount = 2048
 
-func budgetClassRanges(n int) []grammar.CharRange {
-	ranges := make([]grammar.CharRange, n)
+func budgetClassRanges(n int) []ast.CharRange {
+	ranges := make([]ast.CharRange, n)
 	for i := range ranges {
 		// Keep a one-code-point gap between ranges so normalization cannot merge them.
 		r := rune(0x10000 + 2*i)
-		ranges[i] = grammar.CharRange{Lo: r, Hi: r}
+		ranges[i] = ast.CharRange{Lo: r, Hi: r}
 	}
 	return ranges
 }
@@ -75,8 +75,8 @@ func TestBudgetClassLargeNonASCIIRangesAreCharged(t *testing.T) {
 	ranges := budgetClassRanges(budgetClassRangeCount)
 	late := string(ranges[len(ranges)-1].Lo)
 	gap := string(ranges[len(ranges)-1].Lo + 1)
-	positive := classMembershipProgram(t, &grammar.CharClass{Ranges: ranges})
-	negative := classMembershipProgram(t, &grammar.CharClass{Ranges: ranges, Negated: true})
+	positive := classMembershipProgram(t, &ast.CharClass{Ranges: ranges})
+	negative := classMembershipProgram(t, &ast.CharClass{Ranges: ranges, Negated: true})
 
 	for _, backend := range []Backend{Closure, Bytecode, BytecodeIterative} {
 		for _, unit := range []core.PositionUnit{core.CodePoints, core.Bytes} {
@@ -105,7 +105,7 @@ func TestBudgetClassRangeCancellationAndPoolRetry(t *testing.T) {
 	t.Parallel()
 	ranges := budgetClassRanges(budgetClassRangeCount)
 	input := string(ranges[len(ranges)-1].Lo)
-	p := classMembershipProgram(t, &grammar.CharClass{Ranges: ranges})
+	p := classMembershipProgram(t, &ast.CharClass{Ranges: ranges})
 
 	for _, backend := range []Backend{Closure, Bytecode, BytecodeIterative} {
 		for _, unit := range []core.PositionUnit{core.CodePoints, core.Bytes} {
@@ -157,17 +157,17 @@ func TestBudgetClassInterruptionBypassesChoiceAndRecovery(t *testing.T) {
 	t.Parallel()
 	ranges := budgetClassRanges(budgetClassRangeCount)
 	gap := string(ranges[len(ranges)-1].Lo + 1)
-	recoverClass := &grammar.Attributed{
-		Expr: &grammar.CharClass{Ranges: ranges},
-		Attrs: []*grammar.Attribute{{
+	recoverClass := &ast.Attributed{
+		Expr: &ast.CharClass{Ranges: ranges},
+		Attrs: []*ast.Attribute{{
 			Name:   "recover",
 			Pragma: true,
-			KwArgs: map[string]any{"skip": &grammar.Repeat{Expr: &grammar.Any{}, Min: 0, Max: -1}},
+			KwArgs: map[string]any{"skip": &ast.Repeat{Expr: &ast.Any{}, Min: 0, Max: -1}},
 		}},
 	}
-	p := classMembershipProgram(t, &grammar.Choice{Alts: []grammar.Expr{
+	p := classMembershipProgram(t, &ast.Choice{Alts: []ast.Expr{
 		recoverClass,
-		&grammar.Literal{Value: gap},
+		&ast.Literal{Value: gap},
 	}})
 
 	// Without an active control, the class miss is recovered and the grammar
@@ -187,13 +187,13 @@ func TestBudgetClassFastPathParity(t *testing.T) {
 	t.Parallel()
 	cases := []struct {
 		name  string
-		class *grammar.CharClass
+		class *ast.CharClass
 		input string
 	}{
-		{"single-range", &grammar.CharClass{Ranges: []grammar.CharRange{{Lo: 'a', Hi: 'z'}}}, "m"},
-		{"two-ranges", &grammar.CharClass{Ranges: []grammar.CharRange{{Lo: 'a', Hi: 'z'}, {Lo: 0x10000, Hi: 0x10000}}}, string(rune(0x10000))},
-		{"ascii-bitmap-and-slow-unicode", &grammar.CharClass{Ranges: []grammar.CharRange{{Lo: 'a', Hi: 'z'}, {Lo: 0x10000, Hi: 0x10000}, {Lo: 0x10002, Hi: 0x10002}}}, "m"},
-		{"negated-ascii-bitmap", &grammar.CharClass{Negated: true, Ranges: []grammar.CharRange{{Lo: 'a', Hi: 'z'}, {Lo: 0x10000, Hi: 0x10000}, {Lo: 0x10002, Hi: 0x10002}}}, "!"},
+		{"single-range", &ast.CharClass{Ranges: []ast.CharRange{{Lo: 'a', Hi: 'z'}}}, "m"},
+		{"two-ranges", &ast.CharClass{Ranges: []ast.CharRange{{Lo: 'a', Hi: 'z'}, {Lo: 0x10000, Hi: 0x10000}}}, string(rune(0x10000))},
+		{"ascii-bitmap-and-slow-unicode", &ast.CharClass{Ranges: []ast.CharRange{{Lo: 'a', Hi: 'z'}, {Lo: 0x10000, Hi: 0x10000}, {Lo: 0x10002, Hi: 0x10002}}}, "m"},
+		{"negated-ascii-bitmap", &ast.CharClass{Negated: true, Ranges: []ast.CharRange{{Lo: 'a', Hi: 'z'}, {Lo: 0x10000, Hi: 0x10000}, {Lo: 0x10002, Hi: 0x10002}}}, "!"},
 	}
 	for _, tc := range cases {
 		p := classMembershipProgram(t, tc.class)
@@ -221,34 +221,34 @@ func TestBudgetClassOptimizedRoutes(t *testing.T) {
 	ranges := budgetClassRanges(budgetClassRangeCount)
 	late := string(ranges[len(ranges)-1].Lo)
 	gap := string(ranges[len(ranges)-1].Lo + 1)
-	class := &grammar.CharClass{Ranges: ranges}
-	calling := func(e grammar.Expr) grammar.Expr {
-		return &grammar.Seq{Items: []grammar.Expr{e, &grammar.Ref{Name: "e"}}}
+	class := &ast.CharClass{Ranges: ranges}
+	calling := func(e ast.Expr) ast.Expr {
+		return &ast.Seq{Items: []ast.Expr{e, &ast.Ref{Name: "e"}}}
 	}
 	cases := []struct {
 		name  string
-		expr  grammar.Expr
+		expr  ast.Expr
 		input string
 		op    bytecode.Op
 	}{
-		{"guard-hit", &grammar.Choice{Alts: []grammar.Expr{class, &grammar.Literal{Value: gap}}}, late, bytecode.OpGuard},
-		{"guard-miss-fallback", &grammar.Choice{Alts: []grammar.Expr{class, &grammar.Literal{Value: gap}}}, gap, bytecode.OpGuard},
+		{"guard-hit", &ast.Choice{Alts: []ast.Expr{class, &ast.Literal{Value: gap}}}, late, bytecode.OpGuard},
+		{"guard-miss-fallback", &ast.Choice{Alts: []ast.Expr{class, &ast.Literal{Value: gap}}}, gap, bytecode.OpGuard},
 		// A repetition in a rule that calls no rule is a scan site; with the call of e it is a plain scan.
-		{"scan", calling(&grammar.Atomic{Expr: &grammar.Repeat{Expr: class, Min: 1, Max: -1}}), late, bytecode.OpScan},
-		{"negated-scan", calling(&grammar.Atomic{Expr: &grammar.Repeat{Expr: &grammar.CharClass{Ranges: ranges, Negated: true}, Min: 1, Max: -1}}), gap, bytecode.OpScan},
-		{"scan-site", &grammar.Atomic{Expr: &grammar.Repeat{Expr: class, Min: 1, Max: -1}}, late, bytecode.OpScanSite},
-		{"negated-scan-site", &grammar.Atomic{Expr: &grammar.Repeat{Expr: &grammar.CharClass{Ranges: ranges, Negated: true}, Min: 1, Max: -1}}, gap, bytecode.OpScanSite},
+		{"scan", calling(&ast.Atomic{Expr: &ast.Repeat{Expr: class, Min: 1, Max: -1}}), late, bytecode.OpScan},
+		{"negated-scan", calling(&ast.Atomic{Expr: &ast.Repeat{Expr: &ast.CharClass{Ranges: ranges, Negated: true}, Min: 1, Max: -1}}), gap, bytecode.OpScan},
+		{"scan-site", &ast.Atomic{Expr: &ast.Repeat{Expr: class, Min: 1, Max: -1}}, late, bytecode.OpScanSite},
+		{"negated-scan-site", &ast.Atomic{Expr: &ast.Repeat{Expr: &ast.CharClass{Ranges: ranges, Negated: true}, Min: 1, Max: -1}}, gap, bytecode.OpScanSite},
 	}
 	if strconv.IntSize == 64 {
 		// Construct a source-sized bound without a constant-to-int overflow on 32bit.
 		wide := uint64(1) << 32
 		cases = append(cases, struct {
 			name  string
-			expr  grammar.Expr
+			expr  ast.Expr
 			input string
 			op    bytecode.Op
 		}{
-			"wide-scan", &grammar.Atomic{Expr: &grammar.Repeat{Expr: class, Min: 1, Max: int(wide)}}, late, bytecode.OpScanWide,
+			"wide-scan", &ast.Atomic{Expr: &ast.Repeat{Expr: class, Min: 1, Max: int(wide)}}, late, bytecode.OpScanWide,
 		})
 	}
 	for _, tc := range cases {

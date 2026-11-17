@@ -11,13 +11,13 @@ import (
 	"testing"
 
 	"zeroparse.dev/zp/core"
-	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/bytecode"
 	"zeroparse.dev/zp/internal/compile"
 	. "zeroparse.dev/zp/internal/engine"
 	"zeroparse.dev/zp/internal/engine/state"
 	"zeroparse.dev/zp/internal/frontend/parser"
 	"zeroparse.dev/zp/internal/testing/starttest"
+	"zeroparse.dev/zp/pkg/grammar/ast"
 )
 
 // The tests in this file's package parse with the engine's programs. These helpers are the
@@ -139,7 +139,7 @@ func resultJSON(n *core.Node, err error) string {
 
 // parseTest parses ZeroParse source for a test whose subject is not start rules: unless the source
 // has declaration attributes, every rule becomes a start rule, the first one the default.
-func parseTest(src string) (*grammar.Grammar, error) {
+func parseTest(src string) (*ast.Grammar, error) {
 	g, err := parser.Parse(src)
 	return starttest.MarkAll(g), err
 }
@@ -156,7 +156,7 @@ func mustCompile(t *testing.T, src string, opts ...compile.Options) *Program {
 	return compileBare(t, src, o)
 }
 
-func mustParse(src string) *grammar.Grammar {
+func mustParse(src string) *ast.Grammar {
 	g, err := parseTest(src)
 	if err != nil {
 		panic(err)
@@ -173,15 +173,15 @@ func negativeMaxima() []int {
 	return values
 }
 
-func grammarWithNegativeMaximum(t testing.TB, src string, maximum int) *grammar.Grammar {
+func grammarWithNegativeMaximum(t testing.TB, src string, maximum int) *ast.Grammar {
 	t.Helper()
 	g, err := parseTest(src)
 	if err != nil {
 		t.Fatal(err)
 	}
 	for _, r := range g.Rules() {
-		compile.WalkExpr(r.Expr, func(e grammar.Expr) {
-			if rep, ok := e.(*grammar.Repeat); ok {
+		compile.WalkExpr(r.Expr, func(e ast.Expr) {
+			if rep, ok := e.(*ast.Repeat); ok {
 				rep.Max = maximum
 			}
 		})

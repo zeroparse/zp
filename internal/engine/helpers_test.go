@@ -12,7 +12,6 @@ import (
 
 	"zeroparse.dev/zp/core"
 	"zeroparse.dev/zp/core/impl"
-	"zeroparse.dev/zp/grammar"
 	"zeroparse.dev/zp/internal/compile"
 	"zeroparse.dev/zp/internal/engine/closure"
 	"zeroparse.dev/zp/internal/engine/state"
@@ -21,11 +20,12 @@ import (
 	"zeroparse.dev/zp/internal/testing/codegentest"
 	"zeroparse.dev/zp/internal/testing/starttest"
 	"zeroparse.dev/zp/internal/value"
+	"zeroparse.dev/zp/pkg/grammar/ast"
 )
 
 // parseTest parses ZeroParse source for a test whose subject is not start rules: unless the source
 // has declaration attributes, every rule becomes a start rule, the first one the default.
-func parseTest(src string) (*grammar.Grammar, error) {
+func parseTest(src string) (*ast.Grammar, error) {
 	g, err := parser.Parse(src)
 	return starttest.MarkAll(g), err
 }
@@ -144,7 +144,7 @@ func TestMain(m *testing.M) {
 
 func lines(s ...string) string { return strings.Join(s, "\n") }
 
-func mustParse(src string) *grammar.Grammar {
+func mustParse(src string) *ast.Grammar {
 	g, err := parseTest(src)
 	if err != nil {
 		panic(err)
@@ -304,7 +304,7 @@ func toCodePoints(input string, n *core.Node, err error) (*core.Node, error) {
 // closureExprMatcher returns the closure that the closure backend builds for the expression e of
 // the program prog, from the program's Core IR after the closure pipeline. The expression must be
 // one that a node of Core IR is built from.
-func closureExprMatcher(t *testing.T, prog *compile.Program, e grammar.Expr, plainDispatch bool) state.Matcher {
+func closureExprMatcher(t *testing.T, prog *compile.Program, e ast.Expr, plainDispatch bool) state.Matcher {
 	t.Helper()
 	m, found := closureExprCore(t, prog, e)
 	f, err := closure.Matcher(prog, m, found, nil, plainDispatch)
@@ -315,15 +315,15 @@ func closureExprMatcher(t *testing.T, prog *compile.Program, e grammar.Expr, pla
 }
 
 // closureExprNode returns the Core IR node, after the passes, that closureExprMatcher builds for e.
-func closureExprNode(t *testing.T, prog *compile.Program, e grammar.Expr) ir.Node {
+func closureExprNode(t *testing.T, prog *compile.Program, e ast.Expr) ir.Node {
 	t.Helper()
 	_, n := closureExprCore(t, prog, e)
 	return n
 }
 
-func closureExprCore(t *testing.T, prog *compile.Program, e grammar.Expr) (*ir.Module, ir.Node) {
+func closureExprCore(t *testing.T, prog *compile.Program, e ast.Expr) (*ir.Module, ir.Node) {
 	t.Helper()
-	origin := map[ir.Node]grammar.Expr{}
+	origin := map[ir.Node]ast.Expr{}
 	m, err := irbuild.CoreFrom(prog, origin)
 	if err != nil {
 		t.Fatal(err)

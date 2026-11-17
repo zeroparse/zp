@@ -6,7 +6,7 @@ import (
 	"strings"
 	"testing"
 
-	"zeroparse.dev/zp/grammar"
+	"zeroparse.dev/zp/pkg/grammar/ast"
 )
 
 func TestSourceGroups(t *testing.T) {
@@ -24,24 +24,24 @@ rule main (Alias) = v1:"x" => (
 	if err != nil {
 		t.Fatal(err)
 	}
-	typ := g.Types()[1].(*grammar.TypeAlias).Type.(*grammar.TypeGroup)
-	innerType := typ.Type.(*grammar.TypeGroup)
-	action := g.Rules()[0].Action.(*grammar.TermGroup)
-	innerAction := action.Term.(*grammar.TermGroup)
+	typ := g.Types()[1].(*ast.TypeAlias).Type.(*ast.TypeGroup)
+	innerType := typ.Type.(*ast.TypeGroup)
+	action := g.Rules()[0].Action.(*ast.TermGroup)
+	innerAction := action.Term.(*ast.TermGroup)
 	if innerType.LeadingComments != " type documentation\n" || !slices.Equal(innerType.TrailingComments, []string{" type tail\n"}) || innerAction.LeadingComments != " action documentation\n" || !slices.Equal(innerAction.TrailingComments, []string{" action tail\n"}) {
 		t.Fatalf("group ownership: %+v %+v", innerType.SourceInfo, innerAction.SourceInfo)
 	}
-	if typ.Pos != (grammar.Pos{Line: 2, Col: 14}) || typ.End != (grammar.Pos{Line: 5, Col: 2}) || action.Pos != (grammar.Pos{Line: 6, Col: 31}) || action.End != (grammar.Pos{Line: 9, Col: 2}) {
+	if typ.Pos != (ast.Pos{Line: 2, Col: 14}) || typ.End != (ast.Pos{Line: 5, Col: 2}) || action.Pos != (ast.Pos{Line: 6, Col: 31}) || action.End != (ast.Pos{Line: 9, Col: 2}) {
 		t.Fatalf("group spans: %+v %+v", typ.SourceInfo, action.SourceInfo)
 	}
 	if len(g.AllComments()) != 4 {
 		t.Fatalf("comments=%d", len(g.AllComments()))
 	}
-	data, err := grammar.MarshalJSON(g)
+	data, err := ast.MarshalJSON(g)
 	if err != nil {
 		t.Fatal(err)
 	}
-	for _, decode := range []func([]byte) (*grammar.Grammar, error){grammar.UnmarshalJSON, grammar.DecodeJSON} {
+	for _, decode := range []func([]byte) (*ast.Grammar, error){ast.UnmarshalJSON, ast.DecodeJSON} {
 		decoded, err := decode(data)
 		if err != nil {
 			t.Fatal(err)
@@ -49,7 +49,7 @@ rule main (Alias) = v1:"x" => (
 		if mustJSON(t, decoded) != mustJSON(t, g) {
 			t.Fatal("JSON lost source group structure")
 		}
-		got := decoded.Rules()[0].Action.(*grammar.TermGroup).Term.(*grammar.TermGroup)
+		got := decoded.Rules()[0].Action.(*ast.TermGroup).Term.(*ast.TermGroup)
 		if !reflect.DeepEqual(got.SourceInfo, innerAction.SourceInfo) {
 			t.Fatal("JSON lost nested ownership")
 		}
@@ -59,8 +59,8 @@ rule main (Alias) = v1:"x" => (
 	if err != nil {
 		t.Fatal(err)
 	}
-	gotType := reparsed.Types()[1].(*grammar.TypeAlias).Type.(*grammar.TypeGroup).Type.(*grammar.TypeGroup)
-	gotAction := reparsed.Rules()[0].Action.(*grammar.TermGroup).Term.(*grammar.TermGroup)
+	gotType := reparsed.Types()[1].(*ast.TypeAlias).Type.(*ast.TypeGroup).Type.(*ast.TypeGroup)
+	gotAction := reparsed.Rules()[0].Action.(*ast.TermGroup).Term.(*ast.TermGroup)
 	if gotType.LeadingComments != innerType.LeadingComments || !slices.Equal(gotType.TrailingComments, innerType.TrailingComments) || gotAction.LeadingComments != innerAction.LeadingComments || !slices.Equal(gotAction.TrailingComments, innerAction.TrailingComments) {
 		t.Fatalf("owner paths changed:\n%s\n%+v %+v", out, gotType.SourceInfo, gotAction.SourceInfo)
 	}
@@ -91,13 +91,13 @@ func TestInlineGroupCommentOwnership(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			owners := func(g *grammar.Grammar) []grammar.SourceInfo {
+			owners := func(g *ast.Grammar) []ast.SourceInfo {
 				if len(g.Types()) > 0 {
-					group := g.Types()[0].(*grammar.TypeAlias).Type.(*grammar.TypeGroup)
-					return []grammar.SourceInfo{group.SourceInfo, *group.Type.(grammar.SourceNode).Source()}
+					group := g.Types()[0].(*ast.TypeAlias).Type.(*ast.TypeGroup)
+					return []ast.SourceInfo{group.SourceInfo, *group.Type.(ast.SourceNode).Source()}
 				}
-				group := g.Rules()[0].Action.(*grammar.TermGroup)
-				return []grammar.SourceInfo{group.SourceInfo, *group.Term.(grammar.SourceNode).Source()}
+				group := g.Rules()[0].Action.(*ast.TermGroup)
+				return []ast.SourceInfo{group.SourceInfo, *group.Term.(ast.SourceNode).Source()}
 			}
 			before := owners(g)
 			out := checkFormat(t, src)
@@ -107,8 +107,8 @@ func TestInlineGroupCommentOwnership(t *testing.T) {
 			}
 			after := owners(again)
 			for i := range before {
-				before[i].Pos, before[i].End, before[i].DiagnosticPos = grammar.Pos{}, grammar.Pos{}, grammar.Pos{}
-				after[i].Pos, after[i].End, after[i].DiagnosticPos = grammar.Pos{}, grammar.Pos{}, grammar.Pos{}
+				before[i].Pos, before[i].End, before[i].DiagnosticPos = ast.Pos{}, ast.Pos{}, ast.Pos{}
+				after[i].Pos, after[i].End, after[i].DiagnosticPos = ast.Pos{}, ast.Pos{}, ast.Pos{}
 			}
 			if !reflect.DeepEqual(before, after) {
 				t.Fatalf("ownership changed: %+v -> %+v\n%s", before, after, out)
@@ -125,14 +125,14 @@ func TestMultilineFieldTypeIndentation(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if got := grammar.Format(g); got != want {
+	if got := ast.Format(g); got != want {
 		t.Fatalf("got\n%s\nwant\n%s", got, want)
 	}
 	g, err = Parse(want)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if got := grammar.Format(g); got != want {
+	if got := ast.Format(g); got != want {
 		t.Fatalf("not idempotent:\n%s", got)
 	}
 }
@@ -159,12 +159,12 @@ func TestTypeFormattingIdempotence(t *testing.T) {
 		if err != nil {
 			t.Fatalf("%q: %v", src, err)
 		}
-		once := grammar.Format(g)
+		once := ast.Format(g)
 		g, err = Parse(once)
 		if err != nil {
 			t.Fatalf("%q: formatted source does not parse: %v\n%s", src, err, once)
 		}
-		if twice := grammar.Format(g); twice != once || !strings.Contains(once, "/*") {
+		if twice := ast.Format(g); twice != once || !strings.Contains(once, "/*") {
 			t.Errorf("%q: not idempotent or comment lost:\n%s\nthen\n%s", src, once, twice)
 		}
 	}
