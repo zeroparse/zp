@@ -223,7 +223,10 @@ upper bound, and the iterations that it evaluates are its activations. A
 skips, whose walks Lemma 9 counts, that is a
 [run site](../runtime/parsing.md#run-sites), or that repeats a single
 character, which a run site does not, and is no `#stream` repetition, in
-whatever rule it stands. The **element** of a site is
+whatever rule it stands. A repetition in the body of a rule and its copy in
+the body of the twin of the rule are one site: its walks in both variants
+are walks of that site, as (R2) counts them, and a walk of either can take
+a record that a walk of the other made. The **element** of a site is
 the expression that it repeats. A candidate site is **free of the environment**
 as [Run Sites](../runtime/parsing.md#run-sites) defines it; a repetition of a
 single character is, since its element reads no variable.
