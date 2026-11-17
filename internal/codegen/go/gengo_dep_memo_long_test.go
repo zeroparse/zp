@@ -81,7 +81,7 @@ func TestGeneratedLeftRecursionDependencyMemoControls(t *testing.T) {
 	// bound that keeps the memory of their linkers in check. The library as it is runs first: its run time bounds those of the mutations, which may
 	// make the parsers exponential (the dependency cap does). A run stopped at the bound counts
 	// as a difference.
-	const flags = codegentest.GoFlags
+	flags := codegentest.GoFlags
 	want, took, stopped, err := depMemoOutcomes(t, goBin, pkgs, rt, "", flags, 0)
 	if err != nil || stopped {
 		t.Fatalf("GOFLAGS %q: the library as it is: stopped %v: %v", flags, stopped, err)
