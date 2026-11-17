@@ -180,6 +180,24 @@ indexes of longer chains. Calls outside a Document have none of these
 units, and the memoization, the evaluations and the other costs are those of
 the setting.
 
+**Answers in contexts.** [Evaluations of
+Rules](../runtime/parsing.md#evaluations-of-rules) lets a call in a context
+of growths reuse a memoized result only if the entry records every leader
+whose growth is in its context. The proof asks of a parse that answers a
+call in a context of growths from the memo at all the converse: it answers
+such a call from the entry of its key whenever that entry records every
+leader whose growth is in the context, was computed outside a lookahead or
+in the lookahead state of the call, and is not treated as absent. A parse
+that answers no call in a context from the memo, as the parse
+$\mathcal{P}$ of *Families in every parse* in Lemma 5, meets it too.
+Outside contexts of growths the memo answers every call that the entry of
+its key answers, as *Answered calls* in Lemma 4 uses. A parse of the engine
+without missing-token insertion is of the first kind: its lookup answers a
+call from every entry that it finds under these conditions, and the
+generated parsers print the same lookup from one function of the execution
+IR. With it, an answer in a context recurs: *Answered calls in contexts* in
+Lemma 4.
+
 **Input that a lookahead examines.** This proof counts each examination of
 the input once, for the terminal, character class or `.` that makes it,
 whether or not a lookahead encloses it. The cost of a lookahead itself is
@@ -3222,7 +3240,36 @@ makes an entry that answers a
 call stop answering the calls of its state, and an entry that answers a call
 outside lookaheads answers those inside them too. Entries
 stay until the end of the parse, apart from those that a stream discards before
-the elements it has delivered, where no later call is made. $\square$
+the elements it has delivered, where no later call is made. An entry of an
+earlier parse that answers a call has accounted, at that lookup, for every
+edit of the log ([Pending edits of a Document](#setting)), and no edit comes
+during a parse, so no later lookup of the parse treats it as absent: its lag
+counts the edits since it was last found, none, and a generated parser drops
+its memo only between parses. $\square$
+
+**Answered calls in contexts.** Once the memo answers a call in a context of
+growths from an entry, of this parse or, in a
+[Document](../runtime/documents.md), of an earlier one, it answers every later
+call with the same key in the same lookahead state or a greater one, outside
+contexts of growths or in a context all of whose leaders the entry recorded
+when it answered, which include the leaders of the context of the answered
+call.
+
+*Proof.* As for *Answered calls*. The entry that answered records every leader
+whose growth was in the context of the call, and was computed outside a
+lookahead or in its lookahead state, and the parse treats it as absent at no
+later lookup, by the last sentence of that proof, which covers an entry of an
+earlier parse. A store under the key keeps the join of the entry that a lookup
+finds and the new result, which records the leaders of both and keeps the
+result computed outside a lookahead if one of them was ([Setting](#setting),
+[Evaluations of Rules](../runtime/parsing.md#evaluations-of-rules)); so the
+entry of the key goes on recording every leader that it recorded, and goes on
+answering the calls of every lookahead state that it answered. By *Answers in
+contexts* in the [Setting](#setting) the memo answers from it every later call
+of the key in a context whose leaders it records, in a lookahead state that it
+answers, since the parse answers a call in a context from the memo at all,
+and by *Answered calls* every later call of the key outside contexts of
+growths. $\square$
 
 **Covered keys.** Let $x$ be an evaluation of the parse, a call or a step of a
 growth, and let $z$ be $\mathcal{R}(x)$ or a call inside it, of a rule that the
@@ -8726,7 +8773,9 @@ resumes no run, so its records are exact; it stores outside every context
 of growths where the Setting requires, which asks nothing of the calls in a
 context; and it answers fewer calls than the memo could, which the
 memoized parse of the [memoization proof](memoization.md#setting) may do,
-since it may answer a call from an entry but need not. So Lemmas 1 to 4
+since it may answer a call from an entry but need not; it answers every
+call outside contexts that the entry of its key answers, and no call in a
+context, as *Answers in contexts* in the Setting allows. So Lemmas 1 to 4
 and the claims of this lemma hold of it as of any parse of the Setting,
 those that ask a parse to answer nothing in contexts included. The two parses differ in two directions.
 Where the parse answers a call, in a context or outside, that
@@ -9173,21 +9222,34 @@ later call with its key at $\pi$, in the same lookahead state or a greater
 one (*Answered calls*). A step of the combination that does not make the
 call at $\pi$ answers a call or a step around it: from the memo, from a
 result kept in a context of growths, or by a run of steps taken at once.
-Such an answer is not required to recur: the parse may answer in a context
-and need not, so a later step can evaluate what an earlier one answered,
-and what the memo answers outside contexts is all that *Answered calls*
-holds fixed. But every such answer stands for an evaluation of the parse that
-ended before it, with the key of the answered call or, for a step, the same
-leader, position, level and current result, in the lookahead state of the
-answer or a smaller one, and whose counterpart in $\mathcal{R}$ takes the
-steps of that of the answered call or step (the proof of *Covered keys*,
-through [Lemmas 3](memoization.md#lemma-3-answering-from-a-sound-entry)
-and [4](memoization.md#lemma-4-answering-from-a-dependent-result) of the
-memoization proof). So that evaluation, at the place of $\pi$, made a call
-with the key of the call at $\pi$ or answered a call or a step around it in
-turn, and following these answers back in time reaches an evaluation that
-made a call with that key, in the lookahead state at $\pi$ or a smaller
-one. That call was in no context of growths. A growth of
+Let a step $k$ of the combination evaluate the call at $\pi$, so that it
+evaluates every call and step on the path down to $\pi$, and let an
+earlier step of the combination answer, outermost on the path, a call or
+step $y$ around $\pi$. The steps evaluate the path alike above $\pi$, so
+$k$ makes at the place of $y$ a call or step with the key of $y$, or for a
+step the same leader, position, level and current result, in the same
+lookahead state and in a context of the same growths. If the memo answered
+$y$, it answers that call in $k$ as well, from an entry of this parse or of
+an earlier one (*Answered calls* and *Answered calls in contexts* in
+Lemma 4), and $k$ makes no call at $\pi$; so $y$ is answered from a
+result kept in a context of growths or by a run of steps. Such an answer
+stands for an evaluation $y'$ of the parse that ended before it, with the
+key of $y$ and the leaders of its context or, for a step, the same leader,
+position, level and current result, in the lookahead state of the answer
+or a smaller one, and whose counterpart in $\mathcal{R}$ takes the steps
+of that of $y$ (the proof of *Covered keys*, through [Lemma
+4](memoization.md#lemma-4-answering-from-a-dependent-result) of the
+memoization proof). At the place of $\pi$, $y'$ made a call with the key
+of the call at $\pi$, or answered, outermost, a call or step $y''$ around
+that place. In the second case $k$ makes at the place of $y''$ a call or
+step with its key, in a lookahead state no smaller and in a context of the
+same growths: those open at the start of $y'$, which are those of $y$, and
+those that the calls and steps on the path below start, which both $y'$
+and $k$ evaluate. So $y''$ is not a memo answer either, by the argument
+for $y$, and stands for an earlier evaluation in turn. Following these
+answers back in time ends, at an evaluation that made a call with the key
+of the call at $\pi$, in the lookahead state at $\pi$ or a smaller one.
+That call was in no context of growths. A growth of
 the cycle of $g'$ open at $p'$ around it would lie inside one of the
 evaluations that the answers stand for, and so, through their steps, around
 $\pi$ in the step that starts $g'$; or it would lie around that evaluation,
@@ -9195,11 +9257,14 @@ a call or step at $p'$ made in its context, whose result answers only in a
 context of the same growths, so that it would be open around the answer
 too, on the path above $\pi$, which the steps of the combination evaluate
 alike. In the step that starts $g'$ no growth of its cycle is open at
-$p'$. So by the end of the first step of the combination a call
-with the key of the call at $\pi$ has been made outside every context, in a
-lookahead state no greater than that at $\pi$, and its growth has ended and
-stored its result; every later step that makes the call at $\pi$ is
-answered by the memo, whatever it answers around $\pi$. So the outer
+$p'$. So that call evaluated, or found in the memo, a growth of the key of
+the call at $\pi$ outside every context, which had stored its result
+before $k$ makes the call at $\pi$, and the memo answers the call there
+(*Answered calls*): $k$ does not start $g'$. So a step that starts $g'$
+at $\pi$ is preceded in the combination only by steps that made the call
+at $\pi$, and the first of those starts its growth or finds it in the
+memo, which then answers the call at $\pi$ in every later step: $g'$
+starts at $\pi$ only in the first step of the combination. So the outer
 growths on such paths that hold a successful growth activation start in at
 most one step of $g$ for each combination.
 
