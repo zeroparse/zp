@@ -7947,8 +7947,9 @@ to which nothing in the head corresponds, and *Heads hold what later
 growths hold* is not shown. And the first growth of *Consecutive repeats
 inside a family* can evaluate a walk and record its run, and the second
 resume the run whole from that record, so that it holds nothing at the
-place of $\alpha$. The eighth part of step 8 of [Open
-Steps](#open-steps) leaves such a parse open.
+place of $\alpha$. *Families in a parse that resumes runs* below leaves
+these activations out, as this claim leaves out those of the iterations
+of the kind.
 
 So the count above holds of the successful activations of $\sigma$ at $q$
 that growth steps and evaluations in a context of growths own and that are
@@ -7963,6 +7964,103 @@ step; and a head can take a record where a later growth of its key
 evaluates, so it need not hold what that growth holds. The next claim
 bounds them, and the outside ones with them, by the same count in a parse
 that keeps no records, when the parse resumes no run of a Document.
+
+**Families in a parse that resumes runs.** In a
+[Document](../runtime/documents.md) parse whose records of sites, if it
+keeps any, are exact, (R1) of the [Setting](#setting), that resumes runs,
+call an activation **outside** when it is no iteration of the kind and no
+resumable iteration (*Heads in a parse that resumes runs*) and lies
+inside none. Then *Repeats inside a family* holds as stated; *Covered
+growths* holds with the path followed through the records and the
+resumed runs, as in 2 of *Covered keys through resumed runs*;
+*Links lead to later growths* holds for an $\alpha_i$ that is outside,
+with that path from $\mathcal{R}(e_i)$; the remark after it holds with
+the paths of reference links followed so; and *Heads hold what later
+growths hold*, *Consecutive repeats inside a family* and *First
+activations of heads* hold for the activations that are outside, with
+consecutive activations and the first activation of a head taken among
+those activations. An iteration on such a path that comes from an
+earlier parse is case (a), as everywhere.
+
+*Proof.* The proof of *Families in a parse that keeps records* applies
+with the following changes. (P) holds with outside activations and with
+no iteration of the kind and no resumable iteration on the path from $Y$
+down to the place: an iteration of $\mathcal{R}$ that contains the
+counterpart of $\alpha$ is the counterpart of an iteration that the parse
+evaluates, of a walk of the same repetition, in its rule or in the twin,
+which contains $\alpha$ (the paragraph on the counterparts in the proof of
+*Heads in a parse that resumes runs*), so it is not resumable, the class
+being one of repetitions; and the iterations on the path of $Y$, which
+reaches the place through the same expressions, are iterations of the
+same repetitions, so none is resumable either, and no resumed walk reuses
+an evaluation on that path.
+
+*Covered growths.* A call of a leader can lie in a resumable iteration,
+since the element of a repetition that a Document resumes can call a rule
+of a cycle. At an iteration $\iota$ on the path that a resumed walk reuses
+and that comes from no earlier parse, 1 of *Covered keys through resumed
+runs* gives the iteration $\iota_0$, evaluated before the walk started,
+and the call at the place of $z$ in $\mathcal{R}(\iota_0)$, a call of the
+leader with the key of $z$, a leader having no twin, which reads no growth
+open at its start; the induction of *Covered growths* goes on from it, as
+2 of that claim goes on for the covered keys. Case (d) does not arise, as
+there.
+
+*Repeats inside a family.* Its proof uses the restarts, *Direct
+activations* and *Repeats*, which hold of every activation of such a
+parse, a reused iteration included (*Restarts in a parse that resumes
+runs*), the first case of *Repeats inside a growth*, which *Repeats
+inside a growth in a parse that resumes runs* shows, and which calls the
+family region evaluates and which the memo answers. A resumed walk reuses
+iterations, makes no call inside them and answers none, so the last is as
+without resumption.
+
+*Links lead to later growths.* $\mathcal{R}(e_i)$ and $\mathcal{R}(e'_i)$
+take the same steps by *Links lead to repeated evaluations*, with case (e)
+only when $Z$ lies inside $e'_i$ in a resumable iteration (*Heads in a
+parse that resumes runs*), and $Z$ holds $\alpha_i$, which is outside; and
+*Covered growths* applies to the call of a leader as above.
+
+*Heads hold what later growths hold.* By (P), applied to each segment of
+the path as there, no resumable iteration lies on that path, so no
+resumed walk reuses an evaluation on it, and the rest is as there.
+
+*Consecutive repeats inside a family.* Let $\alpha$ and $\alpha'$ be
+outside. Every evaluation on the path from the growth of $R$ in $w$ down
+to $\alpha$ contains $\alpha$, so none is a resumable iteration; the
+second growth of $R$ evaluates the evaluations at the same places, of the
+same expressions, so none of those is resumable either, and no resumed
+walk reuses them. A walk off that path has the success and the end of its
+counterpart in $\mathcal{R}$ whether or not it resumes a run (2 of
+*Restarts in a parse that resumes runs*), and the proof goes on as there.
+
+*First activations of heads.* For a linked $\alpha_j$ that is outside,
+*Links lead to later growths* applies as above. For a free one, the
+remark after that claim rests on *Heads in the reference parse* for
+growths of a key and on *Reference links lead to repeated evaluations*;
+followed through the records and the resumed runs, as 3 of *Covered keys
+through resumed runs* follows them, with *Covered growths* above for the
+growths of a key, they give the remark outside cases (a) and (b) on those
+paths. The path from $h$ to the place inside the earlier evaluation is
+then followed as for *Heads hold what later growths hold*, and the
+activation that $h$ holds there is outside. $\square$
+
+The two cases that the remark after *Families in a parse that keeps
+records* gives are of activations that are not outside: when a head
+resumes a run whose walk a later growth of its key evaluates, the
+iterations of that walk are resumable, and when the second growth of
+*Consecutive repeats inside a family* resumes the run that the first
+recorded, the iteration of the first that contains $\alpha$ is resumable.
+So the count of Lemma 5 holds of the outside activations of such a parse,
+up to the bound of *Consecutive repeats inside a family* in a step that
+the claims at $p$ do not leave out, as with records. *Families without
+the records* is not shown of such a parse: the element of a repetition
+that a Document resumes can call rules of a cycle, so growth steps and
+evaluations in a context of growths can lie inside a resumable iteration,
+which its first step leaves out only for the sites that keep records;
+and a resumed walk stores no entry inside the iterations that it reuses,
+so a later evaluation of the same walk can evaluate calls that the parse
+$\mathcal{P}$ of that claim answers.
 
 **Families without the records.** Call a rule **cycle-free** when no rule
 that it reaches, itself included, is a rule of a left-recursion cycle. Let
@@ -11267,16 +11365,21 @@ theorem covers such a parse.
    *Activations held by heads* states its reading for a Document parse
    with *Heads in a parse that resumes runs* and *Covered keys through
    resumed runs*, and uses none of the claims on leaf links or on the
-   scans. Nor are the claims of Lemma 5 from *Covered growths* to *First
-   activations of heads* shown of a parse that resumes a run, even one
-   that keeps no record of any site: a head can resume a run whose walk a
-   later growth of its key evaluates, and the second growth of
-   *Consecutive repeats inside a family* can resume whole the run that
-   the first recorded, which needs no record of a site (the remark after
-   *Families in a parse that keeps records*). *Families in a parse that
-   keeps records* and *Families without the records* are stated for a
-   parse that resumes no run, and in a parse that resumes one the
-   activations that growth steps and evaluations in a context of growths
-   own are not bounded by them or by the claims of Lemma 5 above, inside
-   the iterations of the walks of the sites that keep records or
-   outside.
+   scans. *Families in a parse that resumes runs* shows the claims of
+   Lemma 5 from *Covered growths* to *First activations of heads* of a
+   parse that resumes runs, with records of sites or without, for the
+   activations that are no iteration of the kind and no resumable
+   iteration and lie inside none, as *Families in a parse that keeps
+   records* shows them with records; the two cases of the remark after
+   that claim, a head that resumes a run whose walk a later growth of its
+   key evaluates and the second growth of *Consecutive repeats inside a
+   family* that resumes whole the run that the first recorded, are of
+   activations inside resumable iterations. *Families without the
+   records* is stated for a parse that resumes no run, and in a parse that
+   resumes one the activations inside the resumable iterations that
+   growth steps and evaluations in a context of growths own are not
+   bounded: the element of a repetition that a Document resumes can call
+   rules of a cycle, and a resumed walk stores no entry inside the
+   iterations that it reuses, so a later walk of the same repetition can
+   evaluate calls that the parse without records and resumptions
+   answers.
