@@ -3321,7 +3321,11 @@ at most $j_k + |W_k| + 1$ links after $k + 1$. Both $j_k$ and $|W_k|$ depend
 only on the grammar: each round of the removal of the shared calls takes one
 call from the start of every path of the unit and of the continuation, the
 classifier removes at most sixteen in this way (condition 2), and a word is a
-literal of the grammar.
+literal of the grammar. The calls that $v_k$ shares with $\kappa$ are the
+ones that the removal takes, and condition 2 compares what remains after
+them, so $j_k \le 16$; when the two share more, what remains begins with a
+call that both evaluate, and a unit committing by first characters needs
+that call to examine no input.
 
 *Proof.* As in the proof of *Positions of the holders*, $e_{k+1}$ and
 $e'_{k+1}$ are evaluations of keys of one class, so $\mathcal{R}(e_{k+1})$

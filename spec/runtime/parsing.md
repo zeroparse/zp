@@ -1462,7 +1462,9 @@ The conditions below use these terms.
   that the two share are removed from their starts, one after another, each
   at the end of the one before. At most sixteen are removed: when the two
   share more, what remains after sixteen is compared, and it begins with a
-  call that both evaluate. After
+  call that both evaluate. The removal also stops at a shared call that the
+  continuation evaluates again with a cost that nothing bounds, which then
+  begins what remains of both. After
   a committing unit is abandoned, nothing that the parser evaluates next
   consumes the character at which the unit and the continuation part, so
   nothing starts again inside the input that the unit examined after its
