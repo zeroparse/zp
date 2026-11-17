@@ -145,3 +145,5 @@ Adopted on every target, always on, with the single counted loop described above
 Not covered: repetitions of several characters or of single-character literals (`"x"*`, `(" " / "!")*`), which are
 not scan sites; the skip and leaf scans of an Operators Rule, which measure linear but which the classifier does not
 exempt; five of the 25 grammars, which measure linear but which the classifier leaves unknown.
+[Record 138](138-scan-interval-records.md) replaces the records of starts with runs that answer a walk from any
+position that an earlier walk passed, and widens the sites to every rule.
