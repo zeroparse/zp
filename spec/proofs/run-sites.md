@@ -45,7 +45,12 @@ $\lambda$ and the input:
   [Skip Runs](skip-runs.md#lemma-1-exactness) proof;
 - a value that $E(r, \eta)$ adds to the walk is final, since a node in a
   record is not changed by a later step
-  ([Run Sites](../runtime/parsing.md#run-sites)).
+  ([Run Sites](../runtime/parsing.md#run-sites));
+- a rule and its value-free twin match the same input in the same way
+  ([Value-free twins](../bytecode/README.md#rule-table)), so an evaluation of
+  $e$ in a walk of the twin gives what $E(r, \eta)$ gives apart from $v$:
+  the same outcome, end, farthest failure and expectations, range,
+  environment and errors.
 
 **Environments.** The site is **free of the environment** when $e$ has no
 predicate that reads or binds a variable, no inline action that reads one,

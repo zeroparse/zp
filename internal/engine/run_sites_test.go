@@ -105,7 +105,7 @@ rule e = "x" { n < 3 } / "y"`, "xyz!?"},
 rule y = a "?" => 1
 rule w = "a" a "!"
 rule a = ("a" / "b")*`, "ab!?"},
-	{"lookahead walks before lists", `rule main = (&(a "!") w / !(a "?") a "," / [ab!?,])* $$
+	{"lookahead walks before lists", `rule main = (!(a "?") !(a ",") &(x:a "!" { len($x) > 3 }) w / a "," / [ab!?,])* $$
 rule w = a "!"
 rule a = ("a" / "b")*`, "ab!?,"},
 }
@@ -379,6 +379,7 @@ func TestRunSitesNegativeControls(t *testing.T) {
 		{state.SkipIgnoreEnv, "two environments at one position"},
 		{state.SkipKeepEnv, "bindings that a record restores"},
 		{state.SkipAnyList, "walks of a value-free twin"},
+		{state.SkipAnyList, "lookahead walks before lists"},
 	} {
 		for _, g := range runValueGrammars {
 			if g.Name != tc.grammar {

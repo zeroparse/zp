@@ -172,11 +172,13 @@ func (s *skipSlots) put(pos int, env *Env, r skipRecord) {
 			s.recs = make(map[skipKey]skipRecord)
 		}
 		k := skipKey{pos, env}
-		if old, ok := s.recs[k]; ok && old.list && !r.list {
-			// A record with values serves the walks without values too, and holds what this one
-			// holds besides them (they rest on the same evaluations), so it stays: a key holds a
-			// record without values only until a walk with values records it, and never after.
-			return
+		if !r.list {
+			if old, ok := s.recs[k]; ok && old.list {
+				// A record with values serves the walks without values too, and holds what this one
+				// holds besides them (they rest on the same evaluations), so it stays: a key holds a
+				// record without values only until a walk with values records it, and never after.
+				return
+			}
 		}
 		s.recs[k] = r
 		s.expBytes += uint64(len(r.exp)) * expIDBytes
