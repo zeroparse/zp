@@ -8927,8 +8927,8 @@ starts $g$; it
    *Repeats inside a growth* holds for the step $\alpha$.
 3. In the second case of part 2, let the path read a growing result at $p$,
    and let the values of the variables not change in $g$. Then the steps of
-   $g$ that start an outer growth on such a path number at most a constant.
-   So the successful growth activations of a source at a position that lie
+   $g$ that start, on such a path, an outer growth that holds a successful
+   growth activation number at most a constant. So the successful growth activations of a source at a position that lie
    inside the one before them, in the order in which the successful growth
    activations of the source at that position start, number at most a
    constant times $K\hat{n}$, apart from those for which the conclusion of
@@ -8984,19 +8984,55 @@ that read no growing result*). So the alternatives that the path takes at $p$
 and the results that it reads there take a constant number of combinations
 over the steps of $g$, and each fixes where the path leaves $p$. What the path
 evaluates after that reads no growing result at $p$, so the steps evaluate it
-alike for one combination. The call that starts $g'$ is a call of a leader,
-which the parse memoizes, and no growth of its cycle is in progress at $p'$,
-since $g'$ is outer, so the call is in no context of growths: the memo stores
-the result of $g'$ when $g'$ ends and answers the call in every later step
-that makes it for the same combination. So the outer growths on such paths
-start in at most one step of $g$ for each combination.
+alike for one combination, up to the calls that a step answers where
+another evaluates them. Let a step of a combination start on the path an
+outer growth $g'$ that holds a successful growth activation, at a call at
+$p'$, and let $\pi$ be the place of that call on the path, one place in all
+the steps of the combination. The call is a call of a leader, which the
+parse memoizes, and no growth of its cycle is in progress at $p'$, since
+$g'$ is outer, so the call is in no context of growths: the memo stores the
+result of a growth that it starts when the growth ends, and answers every
+later call with its key at $\pi$, in the same lookahead state or a greater
+one (*Answered calls*). A step of the combination that does not make the
+call at $\pi$ answers a call or a step around it: from the memo, from a
+result kept in a context of growths, or by a run of steps taken at once.
+Such an answer is not required to recur: the parse may answer in a context
+and need not, so a later step can evaluate what an earlier one answered,
+and what the memo answers outside contexts is all that *Answered calls*
+holds fixed. But every such answer stands for an evaluation of the parse that
+ended before it, with the key of the answered call or, for a step, the same
+leader, position, level and current result, in the lookahead state of the
+answer or a smaller one, and whose counterpart in $\mathcal{R}$ takes the
+steps of that of the answered call or step (the proof of *Covered keys*,
+through [Lemmas 3](memoization.md#lemma-3-answering-from-a-sound-entry)
+and [4](memoization.md#lemma-4-answering-from-a-dependent-result) of the
+memoization proof). So that evaluation, at the place of $\pi$, made a call
+with the key of the call at $\pi$ or answered a call or a step around it in
+turn, and following these answers back in time reaches an evaluation that
+made a call with that key, in the lookahead state at $\pi$ or a smaller
+one. That call was in no context of growths. A growth of
+the cycle of $g'$ open at $p'$ around it would lie inside one of the
+evaluations that the answers stand for, and so, through their steps, around
+$\pi$ in the step that starts $g'$; or it would lie around that evaluation,
+a call or step at $p'$ made in its context, whose result answers only in a
+context of the same growths, so that it would be open around the answer
+too, on the path above $\pi$, which the steps of the combination evaluate
+alike. In the step that starts $g'$ no growth of its cycle is open at
+$p'$. So by the end of the first step of the combination a call
+with the key of the call at $\pi$ has been made outside every context, in a
+lookahead state no greater than that at $\pi$, and its growth has ended and
+stored its result; every later step that makes the call at $\pi$ is
+answered by the memo, whatever it answers around $\pi$. So the outer
+growths on such paths that hold a successful growth activation start in at
+most one step of $g$ for each combination.
 
 For the second sentence, let $\alpha'$ lie inside the activation $\alpha$
 before it, a step of an outer growth $g$. By part 2, the growth of $\alpha'$
 starts in $\alpha$ on a path of the second case or at $q$, where it is one of
 at most two for its key. If the path reads no growing result at $p$, the
 conclusion of *Repeats inside a growth* holds for $\alpha$. Otherwise
-$\alpha$ is one of the constant number of steps of $g$ above. Each $\alpha'$
+$\alpha$ is one of the constant number of steps of $g$ above, since the
+growth of $\alpha'$ holds $\alpha'$. Each $\alpha'$
 has one activation before it, so these $\alpha'$ number at most as many as
 those steps over all the outer growths and the outer growths at the
 positions, at most a constant times the number of outer growths, which part
@@ -9481,10 +9517,7 @@ as (N1) and (N2) of *Covered keys through resumed runs* read them:
    activation.
 2. The claims from *Growths at many positions* to *Answered places*, and
    the paragraphs between and after them, hold as stated, those that ask
-   the parse to answer nothing in contexts under that hypothesis, except
-   the first sentence of part 3 of *Growths at many positions*, which holds
-   for the outer growths that hold a successful growth activation, the only
-   ones that its second sentence counts. The family claims hold of the
+   the parse to answer nothing in contexts under that hypothesis. The family claims hold of the
    growth activations as the paragraph after *Second outer growths* applies
    them, whether or not the activations are outside in the sense of
    *Families in a parse that keeps records* and *Families in a parse that
@@ -9548,29 +9581,19 @@ $\mathcal{R}$ is taken out. In turn:
   combinations and the growths of the three kinds are as stated, the steps
   evaluating alike as *Evaluations that read no growing result* states it
   in every parse. Let a step of a combination start on the path an outer
-  growth $g'$ that holds a successful growth activation, at a call at a
-  position after $p$, and let $\pi$ be the place of that call in the
-  evaluation of $\mathcal{R}$ that the path makes, one place in all the
-  steps of the combination. Its evaluation there has one key in those
-  steps, reads no growth open at its start and holds that growth
-  activation, so by 1 no iteration around it is taken out of any of them:
-  in every step of the combination the parse makes the call at $\pi$ or
-  answers a call around it, as in a parse without records and resumed
-  runs. The call at $\pi$ lies in no context of growths, since $g'$ is
-  outer, so the memo stores the result of $g'$ when it ends and answers
-  the call at $\pi$ in every later step that makes it; a call around it
-  that the memo answers in one step it answers in every later one
-  (*Answered calls*). So the first step of the combination makes the call
-  at $\pi$ or answers a call around it, and every later step answers the
-  call at $\pi$ or a call around it: such growths start only in the first
-  step of each combination, and the second sentence,
-  which counts the steps that start a growth that holds the growth
-  activation $\alpha'$, holds as stated. The proof does not show the first
-  sentence for the outer growths that hold none: a step can reuse, in a
-  resumed walk, an iteration that holds a call that starts such a growth,
-  which (N1) allows when no step of the growth reaches a left call, and a
-  later step, which (N2) does not oblige to resume the same record, can
-  evaluate it and start the growth there for the first time.
+  growth $g'$ that holds a successful growth activation, and let $\pi$ be
+  the place of its call in the evaluation of $\mathcal{R}$ that the path
+  makes, one place in all the steps of the combination. Its evaluation
+  there has one key in those steps, reads no growth open at its start and
+  holds that growth activation, so by 1 no iteration around it is taken
+  out of any of them, nor around the place of a call with its key in an
+  evaluation that an answer around $\pi$ stands for, which takes the same
+  steps: at each such place the parse makes the call or answers a call or
+  a step around it, as in a parse without records and resumed runs. The
+  argument of the proof, which follows those answers back in time to a
+  call with the key of the call at $\pi$ made outside every context, then
+  applies as stated, and so does the second sentence, which counts the
+  steps that start a growth that holds the growth activation $\alpha'$.
 - *Restarts of growth activations*: its proof uses the abandoned evaluation
   $w$, the ends of the evaluations on the path from $N$ down to $\alpha$,
   which hold the growth of $\alpha$ and are evaluated, condition 2 through
@@ -12069,9 +12092,7 @@ theorem covers such a parse.
    context* the bounds from *Calls in a context of growths* to *Growths
    inside a step*. *Growth activations in a parse that keeps records or
    resumes runs* shows the claims from *Growths at many positions* to the
-   end of Lemma 5 of such a parse, the first sentence of part 3 of
-   *Growths at many positions* for the outer growths that hold a growth
-   activation, the only ones that the count uses, and the family claims
+   end of Lemma 5 of such a parse, and the family claims
    for the growth activations, so every claim of Lemma 5 is read for such
    a parse. Sixth, a source without
    records inside the element of a site that keeps records, or in
