@@ -83,6 +83,8 @@ func ParsePartialReference(src string) (*grammar.Grammar, ErrorList) {
 type parser struct {
 	// semi is the line break whose trailing comment was taken before a semicolon.
 	semi *grammar.LineBreak
+	// toks are the tokens of the source, which are read only through at, so that every read is
+	// counted as the work of the builder (see charge).
 	toks []token
 	i    int
 	// inlined is one more than the index of the token whose inline gap was
@@ -115,15 +117,22 @@ type parser struct {
 // error.
 type bail struct{}
 
-func (p *parser) tok() token { return p.toks[p.i] }
+// at returns the token i. It is the only read of the tokens, and each call counts as a unit of
+// builder work: the layout replay of the builder drives the parser (see layoutReplay).
+func (p *parser) at(i int) *token {
+	charge(builderWork, 1)
+	return &p.toks[i]
+}
+
+func (p *parser) tok() token { return *p.at(p.i) }
 func (p *parser) peek(k int) token {
 	if p.i+k < len(p.toks) {
-		return p.toks[p.i+k]
+		return *p.at(p.i + k)
 	}
-	return p.toks[len(p.toks)-1]
+	return *p.at(len(p.toks) - 1)
 }
 func (p *parser) next() token {
-	t := p.toks[p.i]
+	t := *p.at(p.i)
 	if p.header {
 		if t.lineComment != nil {
 			t.lineComment.Header = p.headerPos
@@ -177,7 +186,7 @@ func (p *parser) headerContents(from int) []string {
 // gapContents returns the normalized contents of the comments before the current token, the
 // comments of the gap that a declaration or field owns when no node starts there.
 func (p *parser) gapContents() []string {
-	t := p.toks[p.i]
+	t := *p.at(p.i)
 	var out []string
 	if t.lineComment != nil {
 		out = append(out, t.lineComment.Content)
@@ -192,7 +201,7 @@ func (p *parser) gapContents() []string {
 // so the comments leave the token.
 func (p *parser) takeGapContents() []string {
 	out := p.gapContents()
-	t := &p.toks[p.i]
+	t := p.at(p.i)
 	t.lineComment, t.comments = nil, nil
 	return out
 }
@@ -239,7 +248,7 @@ func joinComments(a, b *grammar.Comment) *grammar.Comment {
 // takeComments moves the comments before token i to the current line
 // break.
 func (p *parser) takeComments(i int) {
-	t := &p.toks[i]
+	t := p.at(i)
 	if p.cur != nil {
 		if t.lineComment != nil && t.kind == tPunct && t.text == ";" && p.cur.Trailing == nil {
 			// A comment before a semicolon trails the statement it ends; a comment after the
@@ -261,7 +270,7 @@ func (p *parser) takeComments(i int) {
 // comment at the end of the previous line becomes the trailing comment of
 // the line break recorded before.
 func (p *parser) lineBreak() *grammar.LineBreak {
-	t := &p.toks[p.i]
+	t := p.at(p.i)
 	c := t.lineComment
 	trails := c != nil && p.cur != nil && p.cur.Trailing == nil
 	after := c != nil && !trails && p.cur != nil && p.cur == p.semi && (c.End.Line < t.pos.Line || t.endsScope())
@@ -294,7 +303,7 @@ func (p *parser) lineBreak() *grammar.LineBreak {
 // comment of one line between two tokens of that line is detached the same way. A closing
 // brace starts no statement, so the comment before it trails the last one.
 func (p *parser) statementBreak() *grammar.LineBreak {
-	t := &p.toks[p.i]
+	t := p.at(p.i)
 	c := t.lineComment
 	if c == nil || len(t.comments) != 0 || t.text == "}" || !strings.HasPrefix(c.Text, "/*") || c.End.Line != t.pos.Line {
 		return p.lineBreak()
@@ -302,7 +311,7 @@ func (p *parser) statementBreak() *grammar.LineBreak {
 	// A block comment on one line is detached only between two tokens of that
 	// line, as after a semicolon; after an opening brace it leads the statement, and
 	// at the end of a line it trails the statement.
-	if c.Pos.Line == c.End.Line && (p.i == 0 || p.toks[p.i-1].end.Line != c.Pos.Line || p.toks[p.i-1].text == "{") {
+	if c.Pos.Line == c.End.Line && (p.i == 0 || p.at(p.i-1).end.Line != c.Pos.Line || p.at(p.i-1).text == "{") {
 		return p.lineBreak()
 	}
 	t.lineComment = nil
@@ -317,7 +326,7 @@ func (p *parser) statementBreak() *grammar.LineBreak {
 // token i up to token j.
 func (p *parser) multiline(i, j int) bool {
 	for k := i + 1; k <= j && k < len(p.toks); k++ {
-		if p.toks[k].lineBefore {
+		if p.at(k).lineBefore {
 			return true
 		}
 	}
@@ -407,10 +416,10 @@ func (p *parser) file() *grammar.Grammar {
 	}
 	g.File.EndBreak = p.lineBreak()
 	g.File.HeaderComments = p.headerComments
-	g.File.Pos = p.toks[0].pos
+	g.File.Pos = p.at(0).pos
 	g.File.End = g.File.Pos
 	if p.i > 0 {
-		g.File.End = p.toks[p.i-1].end
+		g.File.End = p.at(p.i - 1).end
 	}
 	return g
 }
@@ -428,7 +437,7 @@ func (p *parser) packageClause(pkg *grammar.Pkg) {
 	if !parsed {
 		return
 	}
-	if b := p.toks[p.i].source; len(pkg.Attrs) > 0 && b != nil && b.hasNext {
+	if b := p.at(p.i).source; len(pkg.Attrs) > 0 && b != nil && b.hasNext {
 		// No source-bearing node starts at "package" after attributes, so the
 		// clause owns the comments before it.
 		pkg.KeywordComments = b.leading
@@ -486,8 +495,8 @@ func (p *parser) recover() {
 	// reference before its '=' exposes the error. Recover its statement header
 	// rather than losing the following declaration from partial tooling.
 	for j := p.i - 1; j > p.recoveryStart; j-- {
-		t := p.toks[j]
-		if t.lineBefore && t.kind == tIdent && (t.text == "rule" || t.text == "type" || t.text == "var") && j+1 < len(p.toks) && p.toks[j+1].kind == tIdent {
+		t := *p.at(j)
+		if t.lineBefore && t.kind == tIdent && (t.text == "rule" || t.text == "type" || t.text == "var") && j+1 < len(p.toks) && p.at(j+1).kind == tIdent {
 			p.i = j
 			return
 		}
@@ -501,7 +510,7 @@ func (p *parser) recover() {
 // declaration: an "@" that starts a line and reaches a line that starts with
 // "rule" through attributes alone, without an "=" outside their parentheses.
 func (p *parser) attributesStart(i int) bool {
-	if t := p.toks[i]; t.kind != tPunct || t.text != "@" || !t.lineBefore {
+	if t := *p.at(i); t.kind != tPunct || t.text != "@" || !t.lineBefore {
 		return false
 	}
 	return p.attributesReach(i, "rule", false)
@@ -514,7 +523,7 @@ func (p *parser) attributesStart(i int) bool {
 func (p *parser) attributesReach(i int, keyword string, sameLine bool) bool {
 	depth := 0
 	for j := i + 1; j < len(p.toks); j++ {
-		t := p.toks[j]
+		t := *p.at(j)
 		switch {
 		case t.kind == tEOF:
 			return false
@@ -525,7 +534,7 @@ func (p *parser) attributesReach(i int, keyword string, sameLine bool) bool {
 			if t.kind != tPunct || t.text != "@" {
 				return false
 			}
-		case sameLine && depth == 0 && t.kind == tIdent && t.text == keyword && (p.toks[j-1].kind != tPunct || p.toks[j-1].text != "@"):
+		case sameLine && depth == 0 && t.kind == tIdent && t.text == keyword && (p.at(j-1).kind != tPunct || p.at(j-1).text != "@"):
 			return true
 		case t.kind == tPunct && t.text == "(":
 			depth++
@@ -866,7 +875,7 @@ func (p *parser) ruleDef() (sourceResult *grammar.RuleDef) {
 	headerFrom := len(p.headerComments)
 	name := p.ident()
 	rd := &grammar.RuleDef{SourceInfo: grammar.SourceInfo{Pos: pos}, Attrs: attrs, Name: name.text, Break: br, AttrBreaks: attrBreaks, KeywordBreak: keywordBreak}
-	if b := p.toks[keyword].source; len(attrs) > 0 && b != nil && b.hasNext {
+	if b := p.at(keyword).source; len(attrs) > 0 && b != nil && b.hasNext {
 		// No source-bearing node starts at "rule" after attributes, so the
 		// declaration owns the comments before it.
 		rd.KeywordComments = b.leading
@@ -1084,7 +1093,7 @@ func (p *parser) bodySequence() (sourceResult grammar.Expr) {
 // there.
 func (p *parser) operatorsBody() (sourceResult grammar.Expr) {
 	sourceStart := p.i - 2 // The caller consumed #operators.
-	start := p.toks[sourceStart].pos
+	start := p.at(sourceStart).pos
 	var e grammar.Expr = p.operatorsRule()
 	wrapped := false
 	for !p.boundary() && p.is("#") && !p.isCut() && !p.tok().lineBefore {
@@ -1126,7 +1135,7 @@ func (p *parser) operatorsRule() (sourceResult *grammar.OperatorsRule) {
 		restore := p.statement()
 		switch {
 		case p.accept("skip"):
-			pr.SkipSource.Pos = p.toks[p.i-1].pos
+			pr.SkipSource.Pos = p.at(p.i - 1).pos
 			if pr.Skip != nil {
 				p.errorf("duplicate skip")
 			}
@@ -1135,7 +1144,7 @@ func (p *parser) operatorsRule() (sourceResult *grammar.OperatorsRule) {
 			p.source(&pr.SkipSource, itemStart)
 			itemSource = &pr.SkipSource
 		case p.accept("operand"):
-			operandPos := p.toks[p.i-1].pos
+			operandPos := p.at(p.i - 1).pos
 			o := &grammar.OperatorsRuleOperand{SourceInfo: grammar.SourceInfo{Pos: operandPos}, Expr: p.choice(), Break: b}
 			if p.accept("=>") {
 				o.Action, o.DefaultAction = p.actionTerm()
@@ -1145,7 +1154,7 @@ func (p *parser) operatorsRule() (sourceResult *grammar.OperatorsRule) {
 			itemSource = o.Source()
 		case p.accept("level"):
 			p.header = true
-			p.headerPos = p.toks[p.i-1].pos
+			p.headerPos = p.at(p.i - 1).pos
 			l := &grammar.OperatorsRuleLevel{SourceInfo: grammar.SourceInfo{Pos: p.headerPos}, Break: b}
 			if p.tok().kind == tIdent {
 				l.Name = p.ident().text
@@ -1834,11 +1843,11 @@ func (p *parser) primary() (sourceResult grammar.Expr) {
 			}
 			// A comment on the line of the last token trails that token, whatever
 			// line breaks the group holds before it.
-			last := p.toks[p.i].lineComment
+			last := p.at(p.i).lineComment
 			if last != nil {
-				last = p.toks[p.i].takeRun(last)
+				last = p.at(p.i).takeRun(last)
 			}
-			p.toks[p.i].lineComment = nil
+			p.at(p.i).lineComment = nil
 			group.CloseBreak = p.lineBreak()
 			group.CloseBreak.Last = last
 			group.OneLine = !p.multiline(open, p.i)
@@ -1930,7 +1939,7 @@ func (p *parser) actionBlock() (sourceResult *grammar.Block) {
 		var gapLine int
 		if joined && !p.is("}") {
 			if gap = p.takeInlineGap(); gap != nil {
-				gapLine = p.toks[p.i-1].end.Line
+				gapLine = p.at(p.i - 1).end.Line
 			}
 		}
 		br := p.lineBreak()
@@ -2378,7 +2387,7 @@ func (p *parser) restoreBreak() func() {
 // by a token on its line. It leads that token, so it goes with the comments
 // before it instead of trailing the line of the delimiter.
 func (p *parser) openLead() *grammar.Comment {
-	t := &p.toks[p.i]
+	t := p.at(p.i)
 	c := t.lineComment
 	if c == nil || !strings.HasPrefix(c.Text, "/*") || c.End.Line != t.pos.Line {
 		return nil
@@ -2441,12 +2450,12 @@ func (p *parser) afterCommaLayout(layout **grammar.SourceLayout, closer string) 
 	if p.header || p.is(closer) {
 		return
 	}
-	t := &p.toks[p.i]
+	t := p.at(p.i)
 	cs := t.comments
 	if t.lineComment != nil {
 		cs = p.appendComments([]*grammar.Comment{t.lineComment}, cs)
 	}
-	line := p.toks[p.i-1].end.Line
+	line := p.at(p.i - 1).end.Line
 	n := 0
 	for n < len(cs) && cs[n].Pos.Line <= line {
 		n++
@@ -2493,7 +2502,7 @@ func (p *parser) takeAfter(layout **grammar.SourceLayout) {
 	if p.header || !p.is(",") {
 		return
 	}
-	t := &p.toks[p.i]
+	t := p.at(p.i)
 	if t.lineComment == nil && len(t.comments) == 0 {
 		return
 	}
@@ -2505,7 +2514,7 @@ func (p *parser) takeAfter(layout **grammar.SourceLayout) {
 		*layout = &grammar.SourceLayout{}
 	}
 	(*layout).After = cs
-	(*layout).ElemLine, (*layout).AfterLine = p.toks[p.i-1].end.Line, t.pos.Line
+	(*layout).ElemLine, (*layout).AfterLine = p.at(p.i-1).end.Line, t.pos.Line
 	t.lineComment, t.comments = nil, nil
 }
 

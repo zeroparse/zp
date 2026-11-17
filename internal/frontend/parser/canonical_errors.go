@@ -65,7 +65,10 @@ func (lx *lexed) sourceErrors(errs []SourceError) ErrorList {
 	toks := lx.toks
 	rs := []rune(src)
 	pos := sourceast.NewPositions(src)
+	// The loops over the code points and the tokens below count each step as builder work (see
+	// charge), as the reads of the builder do.
 	offsets := make(map[grammar.Pos]int, len(rs)+1)
+	charge(builderWork, len(rs)+1)
 	for i := len(rs); i >= 0; i-- {
 		offsets[pos.At(i)] = i
 	}
@@ -79,6 +82,7 @@ func (lx *lexed) sourceErrors(errs []SourceError) ErrorList {
 		start, end int
 	}
 	var spans []span
+	charge(builderWork, len(toks))
 	for _, t := range toks {
 		if t.kind != tEOF {
 			spans = append(spans, span{t.kind, t.text, t.pos, offsets[t.pos], offsets[t.end]})
@@ -97,6 +101,7 @@ func (lx *lexed) sourceErrors(errs []SourceError) ErrorList {
 	var open [][2]int
 	for _, e := range out.list {
 		if e.Msg == "unterminated string" || e.Msg == "unterminated character class" {
+			charge(builderWork, len(spans))
 			for _, sp := range spans {
 				if sp.pos == e.Pos {
 					open = append(open, [2]int{sp.start, sp.end})
@@ -107,6 +112,7 @@ func (lx *lexed) sourceErrors(errs []SourceError) ErrorList {
 	// lineStart reports whether span i is the first token of its line.
 	lineStart := func(i int) bool {
 		for j := spans[i].start - 1; j >= 0 && rs[j] != '\n'; j-- {
+			charge(builderWork, 1)
 			if rs[j] != ' ' && rs[j] != '\t' && rs[j] != '\r' {
 				return false
 			}
@@ -129,6 +135,7 @@ func (lx *lexed) sourceErrors(errs []SourceError) ErrorList {
 			return true
 		}
 		for j := i + 1; j < len(spans) && spans[j].pos.Line == spans[i].pos.Line; j++ {
+			charge(builderWork, 1)
 			if spans[j].kind != tPunct {
 				continue
 			}
@@ -157,14 +164,17 @@ func (lx *lexed) sourceErrors(errs []SourceError) ErrorList {
 		}
 		from := 0
 		for j := i - 1; j >= 0; j-- {
+			charge(builderWork, 1)
 			if declaration(j) {
 				from = spans[j].start
 				break
 			}
 		}
+		charge(builderWork, len(open))
 		return slices.ContainsFunc(open, func(r [2]int) bool { return r[0] > from && r[1] <= spans[i].start })
 	}
 	for _, e := range errs {
+		charge(builderWork, 1+len(open))
 		if slices.ContainsFunc(open, func(r [2]int) bool { return r[0] <= e.Offset && e.Offset <= r[1] }) {
 			continue
 		}
@@ -172,7 +182,10 @@ func (lx *lexed) sourceErrors(errs []SourceError) ErrorList {
 		// that contains it, or else the next one. Inside a string or a class the
 		// failure stays where it is.
 		at := pos.At(min(e.Offset, len(rs)))
-		k := sort.Search(len(spans), func(i int) bool { return spans[i].end > e.Offset })
+		k := sort.Search(len(spans), func(i int) bool {
+			charge(builderWork, 1)
+			return spans[i].end > e.Offset
+		})
 		switch {
 		case k < len(spans) && e.Offset < spans[k].start:
 			at = spans[k].pos
@@ -216,6 +229,7 @@ func (lx *lexed) withoutInvalidCharacters() (string, bool) {
 	rs := []rune(src)
 	pos := sourceast.NewPositions(src)
 	k := 0
+	charge(builderWork, len(rs)+len(runs))
 	for i := range rs {
 		at := pos.At(i)
 		for k < len(runs) && !posLess(at, runs[k].End) {

@@ -265,7 +265,7 @@ func (p *parser) sourceNode(node any, start int) {
 
 func (p *parser) source(node grammar.SourceNode, start int) {
 	s := node.Source()
-	pos := p.toks[start].pos
+	pos := p.at(start).pos
 	old := s.Diagnostic()
 	if old.IsValid() && old != pos {
 		s.DiagnosticPos = old
@@ -275,9 +275,9 @@ func (p *parser) source(node grammar.SourceNode, start int) {
 	s.Pos = pos
 	s.End = pos
 	if p.i > start {
-		s.End = p.toks[p.i-1].end
+		s.End = p.at(p.i - 1).end
 	}
-	if b := p.toks[start].source; b != nil && b.hasNext {
+	if b := p.at(start).source; b != nil && b.hasNext {
 		if b.leadingOwner != s {
 			if old := b.leadingOwner; old != nil {
 				old.LeadingComments, old.LeadingDetachedComments = "", nil
@@ -291,13 +291,13 @@ func (p *parser) source(node grammar.SourceNode, start int) {
 }
 
 func (p *parser) sourceTrailing(s *grammar.SourceInfo) {
-	if b := p.toks[p.i].source; b != nil && b.hasTrailing && b.trailingOwner != s {
+	if b := p.at(p.i).source; b != nil && b.hasTrailing && b.trailingOwner != s {
 		if old := b.trailingOwner; old != nil {
 			old.TrailingComments = nil
 		}
 		// The comments after a semicolon follow the ones before it, when the node owns them.
-		if p.i > 0 && p.toks[p.i-1].kind == tPunct && p.toks[p.i-1].text == ";" {
-			if before := p.toks[p.i-1].source; before != nil && before.trailingOwner == s {
+		if p.i > 0 && p.at(p.i-1).kind == tPunct && p.at(p.i-1).text == ";" {
+			if before := p.at(p.i - 1).source; before != nil && before.trailingOwner == s {
 				s.TrailingComments = append(s.TrailingComments, b.trailing...)
 				b.trailingOwner = s
 				return
@@ -316,7 +316,7 @@ func (p *parser) takeInlineGap() []*grammar.Comment {
 	if !p.inlineGap() {
 		return nil
 	}
-	t := &p.toks[p.i]
+	t := p.at(p.i)
 	cs := t.comments
 	if t.lineComment != nil {
 		cs = p.appendComments([]*grammar.Comment{t.lineComment}, cs)
@@ -332,11 +332,11 @@ func (p *parser) inlineGap() bool {
 	if p.header || p.i == 0 {
 		return false
 	}
-	t := &p.toks[p.i]
+	t := p.at(p.i)
 	if t.lineComment == nil && len(t.comments) == 0 {
 		return false
 	}
-	line := p.toks[p.i-1].end.Line
+	line := p.at(p.i - 1).end.Line
 	step := func(c *grammar.Comment) bool {
 		if !strings.HasPrefix(c.Text, "/*") || c.Pos.Line != line {
 			return false
@@ -363,7 +363,7 @@ func (p *parser) takeCommentGap() *grammar.Gap {
 	if p.header || p.i == 0 {
 		return nil
 	}
-	t := &p.toks[p.i]
+	t := p.at(p.i)
 	if t.lineComment == nil && len(t.comments) == 0 {
 		return nil
 	}
@@ -372,7 +372,7 @@ func (p *parser) takeCommentGap() *grammar.Gap {
 		cs = p.appendComments([]*grammar.Comment{t.lineComment}, cs)
 	}
 	t.lineComment, t.comments = nil, nil
-	return &grammar.Gap{Comments: cs, PreviousLine: p.toks[p.i-1].end.Line, NextLine: t.pos.Line}
+	return &grammar.Gap{Comments: cs, PreviousLine: p.at(p.i - 1).end.Line, NextLine: t.pos.Line}
 }
 
 // leadOf keeps the gap before the first token of e, if there is one.
@@ -409,12 +409,12 @@ func layoutOf(e any) *grammar.SourceLayout {
 // takeGap takes the comments before the current token, which lie between it
 // and the token before it, for a #repeat pragma.
 func (p *parser) takeGap() grammar.RepeatGap {
-	t := &p.toks[p.i]
+	t := p.at(p.i)
 	cs := t.comments
 	if t.lineComment != nil {
 		cs = p.appendComments([]*grammar.Comment{t.lineComment}, cs)
 	}
-	g := grammar.RepeatGap{Comments: cs, PrevLine: p.toks[p.i-1].end.Line, NextLine: t.pos.Line}
+	g := grammar.RepeatGap{Comments: cs, PrevLine: p.at(p.i - 1).end.Line, NextLine: t.pos.Line}
 	t.lineComment, t.comments = nil, nil
 	return g
 }
@@ -425,7 +425,7 @@ func (p *parser) takeTermLayout() *grammar.SourceLayout {
 	if p.header {
 		return nil
 	}
-	t := &p.toks[p.i]
+	t := p.at(p.i)
 	if t.lineComment == nil && len(t.comments) == 0 {
 		return nil
 	}
@@ -435,7 +435,7 @@ func (p *parser) takeTermLayout() *grammar.SourceLayout {
 	}
 	previous := 0
 	if p.i > 0 {
-		previous = p.toks[p.i-1].end.Line
+		previous = p.at(p.i - 1).end.Line
 	}
 	layout := &grammar.SourceLayout{Before: cs, PreviousLine: previous, NextLine: t.pos.Line}
 	t.lineComment, t.comments = nil, nil

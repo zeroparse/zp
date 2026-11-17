@@ -84,7 +84,7 @@ func (lx *lexed) fromPartialSourceTree(root *types.File) (*grammar.Grammar, Erro
 	if root == nil {
 		return g, nil
 	}
-	c.comments = root.Comments
+	c.setComments(root.Comments)
 	c.gapList = c.gaps(root)
 	if root.Pkg != nil {
 		if pkg, ok := root.Pkg.(*types.Pkg); ok && pkg != nil {
@@ -141,6 +141,8 @@ type treeError string
 func (e treeError) Error() string { return string(e) }
 
 type canonical struct {
+	// src is the source, which is read only through at and runes, so that every read is counted as
+	// the work of the builder (see charge).
 	src  []rune
 	pos  *sourceast.Positions
 	errs errorList
@@ -150,10 +152,13 @@ type canonical struct {
 	nodes   []sourceast.Node
 	targets []*grammar.SourceInfo
 	events  []sourceast.Event // the backing array of the events of nodes
-	// comments are all the comments of the file in order, and gapList its
-	// comment gaps.
+	// comments are all the comments of the file in source order (see
+	// setComments), and gapList its comment gaps in source order.
 	comments []types.Comment
 	gapList  []sourceast.Gap
+	// badComments is set when comments holds a comment with a syntax error or
+	// is out of order, which commentsIn fails on.
+	badComments bool
 	// params are the parameters of the lambdas that enclose the value being built.
 	params []string
 	// partial is set when the tree has recovered syntax errors: a nil gap is skipped.
@@ -176,7 +181,20 @@ func end(x ranged) int { _, e := x.Range(); return e }
 // text returns the source that x covers.
 func (c *canonical) text(x ranged) string {
 	s, e := x.Range()
-	return string(c.src[s:e])
+	return string(c.runes(s, e))
+}
+
+// at returns the code point at i of the source, and runes the code points from start to end. They
+// are the only reads of the source, and each code point they return counts as a unit of builder
+// work.
+func (c *canonical) at(i int) rune {
+	charge(builderWork, 1)
+	return c.src[i]
+}
+
+func (c *canonical) runes(start, end int) []rune {
+	charge(builderWork, end-start)
+	return c.src[start:end]
 }
 
 // name returns the text of an identifier, or fails on a missing one.
@@ -199,22 +217,22 @@ func isSpaceRune(r rune) bool {
 
 // nextToken returns the offset of the first token at or after off.
 func (c *canonical) nextToken(off int) int {
-	src := c.src
-	for off < len(src) {
+	n := len(c.src)
+	for off < n {
 		switch {
-		case isSpaceRune(src[off]):
+		case isSpaceRune(c.at(off)):
 			off++
-		case src[off] == '/' && off+1 < len(src) && src[off+1] == '/':
-			for off < len(src) && src[off] != '\n' && src[off] != '\r' {
+		case c.at(off) == '/' && off+1 < n && c.at(off+1) == '/':
+			for off < n && c.at(off) != '\n' && c.at(off) != '\r' {
 				off++
 			}
-		case src[off] == '/' && off+1 < len(src) && src[off+1] == '*':
+		case c.at(off) == '/' && off+1 < n && c.at(off+1) == '*':
 			depth := 0
-			for off < len(src) {
-				if src[off] == '/' && off+1 < len(src) && src[off+1] == '*' {
+			for off < n {
+				if c.at(off) == '/' && off+1 < n && c.at(off+1) == '*' {
 					depth++
 					off += 2
-				} else if src[off] == '*' && off+1 < len(src) && src[off+1] == '/' {
+				} else if c.at(off) == '*' && off+1 < n && c.at(off+1) == '/' {
 					depth--
 					off += 2
 					if depth == 0 {
@@ -238,7 +256,7 @@ func (c *canonical) separators(off int, sep rune, most int) []int {
 	var last []int
 	for n := 0; n < most; n++ {
 		at := c.nextToken(off)
-		if at >= len(c.src) || c.src[at] != sep {
+		if at >= len(c.src) || c.at(at) != sep {
 			break
 		}
 		off = at + 1
@@ -333,7 +351,7 @@ func (c *canonical) errorRange(start, end int, msg string) {
 
 func (c *canonical) file(root *types.File) *grammar.Grammar {
 	g := &grammar.Grammar{}
-	c.comments = root.Comments
+	c.setComments(root.Comments)
 	c.gapList = c.gaps(root)
 	hasToken := false
 	if root.Pkg != nil {
@@ -372,6 +390,7 @@ func (c *canonical) file(root *types.File) *grammar.Grammar {
 func (c *canonical) gaps(root *types.File) []sourceast.Gap {
 	gaps := make([]sourceast.Gap, 0, len(root.Gaps))
 	for _, g := range root.Gaps {
+		charge(builderWork, 1)
 		if g == nil {
 			if c.partial {
 				continue
@@ -405,7 +424,7 @@ func (c *canonical) tokensEnd(root *types.File) int {
 		}
 	}
 	end := len(c.src)
-	for end > 0 && isSpaceRune(c.src[end-1]) {
+	for end > 0 && isSpaceRune(c.at(end-1)) {
 		end--
 	}
 	return end
@@ -425,11 +444,9 @@ func (c *canonical) pkg(p *grammar.Pkg, n *types.Pkg) {
 		keyword = c.nextToken(end(n.Attrs[len(n.Attrs)-1]))
 		// No source-bearing node starts at "package" after attributes, so the
 		// clause owns the comments before it.
-		for _, g := range c.gapList {
-			if g.End == keyword && g.HasNext {
-				p.KeywordComments = g.Leading
-				p.KeywordDetachedComments = append([]string(nil), g.Detached...)
-			}
+		if g, ok := c.gapBefore(keyword); ok {
+			p.KeywordComments = g.Leading
+			p.KeywordDetachedComments = append([]string(nil), g.Detached...)
 		}
 	}
 	i := c.span(&p.SourceInfo, body)
@@ -518,11 +535,9 @@ func (c *canonical) ruleDef(d *types.RuleDef, sep []int) *grammar.RuleDef {
 		keyword = c.nextToken(attrs[len(attrs)-1].End)
 		// No source-bearing node starts at "rule" after attributes, so the
 		// declaration owns the comments before it.
-		for _, g := range c.gapList {
-			if g.End == keyword && g.HasNext {
-				rd.KeywordComments = g.Leading
-				rd.KeywordDetachedComments = append([]string(nil), g.Detached...)
-			}
+		if g, ok := c.gapBefore(keyword); ok {
+			rd.KeywordComments = g.Leading
+			rd.KeywordDetachedComments = append([]string(nil), g.Detached...)
 		}
 	}
 	name := d.Name
@@ -705,17 +720,64 @@ func (c *canonical) typeHeader(t types.Type, from int, gaps *[][2]int) int {
 	return end(r)
 }
 
-// commentsIn returns the contents of the comments between the offsets from and
-// to, one string for each.
-func (c *canonical) commentsIn(from, to int) []string {
-	var out []string
-	for _, cm := range c.comments {
+// setComments keeps the comments of the tree. commentsIn finds the comments of
+// a range by a binary search, which needs them in source order and apart; a
+// comment with a syntax error, or one that starts before the previous one ends,
+// sets badComments.
+func (c *canonical) setComments(list []types.Comment) {
+	c.comments = list
+	last := 0
+	for _, cm := range list {
+		charge(builderWork, 1)
 		r, ok := cm.(ranged)
 		if !ok || isNil(cm) {
-			c.fail("the source tree has a syntax error in a comment")
+			c.badComments = true
+			return
 		}
-		if s, e := r.Range(); s < from || e > to {
-			continue
+		s, e := r.Range()
+		if s < last {
+			c.badComments = true
+			return
+		}
+		last = e
+	}
+}
+
+// gapBefore returns the comment gap that ends at off and has a token after it,
+// the gap before the token at off, if there is one.
+func (c *canonical) gapBefore(off int) (gap sourceast.Gap, ok bool) {
+	k, _ := slices.BinarySearchFunc(c.gapList, off, func(g sourceast.Gap, off int) int {
+		charge(builderWork, 1)
+		return cmp.Compare(g.End, off)
+	})
+	for ; k < len(c.gapList) && c.gapList[k].End == off; k++ {
+		charge(builderWork, 1)
+		if c.gapList[k].HasNext {
+			gap, ok = c.gapList[k], true
+		}
+	}
+	return gap, ok
+}
+
+// commentsIn returns the contents of the comments between the offsets from and
+// to, one string for each. The comments are in source order and apart, so they
+// are those from the first that starts at from or later up to the first that
+// ends after to.
+func (c *canonical) commentsIn(from, to int) []string {
+	if c.badComments {
+		c.fail("the source tree has a syntax error in a comment")
+	}
+	k, _ := slices.BinarySearchFunc(c.comments, from, func(cm types.Comment, from int) int {
+		charge(builderWork, 1)
+		return cmp.Compare(start(cm.(ranged)), from)
+	})
+	var out []string
+	for ; k < len(c.comments); k++ {
+		charge(builderWork, 1)
+		cm := c.comments[k]
+		r := cm.(ranged)
+		if _, e := r.Range(); e > to {
+			break
 		}
 		if g, ok := cm.(*types.CommentGroup); ok {
 			for _, line := range g.Lines {
@@ -731,11 +793,11 @@ func (c *canonical) commentsIn(from, to int) []string {
 
 // commentContent returns the documentation text of the comment at the offsets.
 func (c *canonical) commentContent(start, end int) string {
-	raw := string(c.src[start:end])
+	raw := string(c.runes(start, end))
 	ending := ""
 	if strings.HasPrefix(raw, "//") && end < len(c.src) {
-		ending = string(c.src[end : end+1])
-		if c.src[end] == '\r' && end+1 < len(c.src) && c.src[end+1] == '\n' {
+		ending = string(c.runes(end, end+1))
+		if c.at(end) == '\r' && end+1 < len(c.src) && c.at(end+1) == '\n' {
 			ending = "\r\n"
 		}
 	}
@@ -749,7 +811,7 @@ func (c *canonical) commentContent(start, end int) string {
 // reports the errors it finds at their place in the whole source.
 func (c *canonical) decode(n ranged, read func(*lexer)) {
 	s, e := n.Range()
-	l := &lexer{line: 1, col: 1, errs: &errorList{}, src: c.src[s:e]}
+	l := &lexer{line: 1, col: 1, errs: &errorList{}, src: c.runes(s, e)}
 	read(l)
 	origin := c.pos.At(s)
 	at := func(p grammar.Pos) grammar.Pos {
@@ -781,7 +843,7 @@ func (c *canonical) literal(n *types.String) *grammar.Literal {
 // without a closing quote skipped, and reports the missing quote. It returns nil for any other error.
 func (c *canonical) openLiteral(n *types.Error) *grammar.Literal {
 	s, _ := n.Range()
-	if !c.partial || s >= len(c.src) || c.src[s] != '"' {
+	if !c.partial || s >= len(c.src) || c.at(s) != '"' {
 		return nil
 	}
 	lit := &grammar.Literal{}

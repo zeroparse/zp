@@ -24,7 +24,8 @@ import (
 // charges, not a time, so the result does not depend on the load of the machine. The generated parser of
 // the grammar source keeps no records of the walks that the engine reuses, so the grammar itself must
 // keep the recovery linear. The sources are parsed by the generated parser alone, with the options of the
-// source APIs; the lexer and the tree builder are outside this measure.
+// source APIs; the lexer and the tree builder are outside this measure, and TestSourceAPIWorkScalesLinearly
+// counts their work.
 var scaleSources = []struct {
 	name string
 	make func(n int) string
@@ -163,7 +164,8 @@ func TestRecoveryScalesLinearly(t *testing.T) {
 // again and the counters of the runtime are exact: one run gives the same count every time, whatever the
 // load. The test does not run in parallel, so that the counters hold the work of this goroutine. It does
 // not see a growth that allocates nothing, such as a loop that rescans the tokens; the compute cost
-// covers the generated parser, and the lexer and the builder have no counter of their work.
+// covers that in the generated parser, and the work counters of TestSourceAPIWorkScalesLinearly (a test of
+// the build with the tag zp_workcount) in the lexer and the builder.
 func allocCost(src string) (mallocs, bytes uint64) {
 	parser.Parse(src)
 	runtime.GC()

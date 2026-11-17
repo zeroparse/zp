@@ -361,11 +361,11 @@ func (r *layoutReplay) group(g *grammar.Group) {
 	} else {
 		r.bodyChoice(g.Expr)
 	}
-	last := p.toks[p.i].lineComment
+	last := p.at(p.i).lineComment
 	if last != nil {
-		last = p.toks[p.i].takeRun(last)
+		last = p.at(p.i).takeRun(last)
 	}
-	p.toks[p.i].lineComment = nil
+	p.at(p.i).lineComment = nil
 	g.CloseBreak = p.lineBreak()
 	g.CloseBreak.Last = last
 	g.OneLine = !p.multiline(open, p.i)
@@ -432,7 +432,7 @@ func (r *layoutReplay) actionBlock(t grammar.Term) (openBreak *grammar.LineBreak
 		var gapLine int
 		if joined && !p.is("}") {
 			if gap = p.takeInlineGap(); gap != nil {
-				gapLine = p.toks[p.i-1].end.Line
+				gapLine = p.at(p.i - 1).end.Line
 			}
 		}
 		br := p.lineBreak()

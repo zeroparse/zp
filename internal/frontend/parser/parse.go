@@ -161,6 +161,8 @@ var typeSpellings = map[string]string{
 // messages words the syntax errors of the generated parser for a source, with the tokens of the
 // lexer around each error.
 type messages struct {
+	// toks are the tokens of the source, which are read only through at, so that every read is
+	// counted as the work of the builder (see charge).
 	toks []token
 	pos  *sourceast.Positions
 	ends []bool // see lineEndsStatement
@@ -168,6 +170,12 @@ type messages struct {
 
 func newMessages(lx *lexed) *messages {
 	return &messages{toks: lx.toks, pos: sourceast.NewPositions(lx.src)}
+}
+
+// at returns the token i, and counts the read as a unit of builder work.
+func (m *messages) at(i int) *token {
+	charge(builderWork, 1)
+	return &m.toks[i]
 }
 
 // message is the message of a syntax error e. Without explicit messages, it lists what e expects,
@@ -198,19 +206,19 @@ func (m *messages) message(e *zpparser.SyntaxError) string {
 	}
 	i := m.tokenAt(e.Pos)
 	switch {
-	case typeSpellings[msg] != "" && i >= 1 && m.toks[i-1].kind == tIdent:
-		return fmt.Sprintf(typeSpellings[msg], m.toks[i-1].text)
-	case msg == "a capture is read with .$" && m.toks[i].kind == tIdent:
-		return msg + m.toks[i].text
-	case strings.HasPrefix(msg, "a capture is read by name") && m.toks[i].kind == tIndex:
-		return fmt.Sprintf("%s instead of $%d", msg, m.toks[i].num)
-	case msg == "unknown pragma" && i >= 2 && m.toks[i-1].kind == tIdent && m.toks[i-2].kind == tPunct && m.toks[i-2].text == "#":
-		return msg + " #" + m.toks[i-1].text
-	case strings.HasPrefix(msg, "expected a value") && i >= 1 && m.toks[i].lineBefore && m.toks[i].kind != tEOF &&
-		m.toks[i-1].kind == tPunct && (m.toks[i-1].text == "=>" || m.lineEndsStatement(i)):
+	case typeSpellings[msg] != "" && i >= 1 && m.at(i-1).kind == tIdent:
+		return fmt.Sprintf(typeSpellings[msg], m.at(i-1).text)
+	case msg == "a capture is read with .$" && m.at(i).kind == tIdent:
+		return msg + m.at(i).text
+	case strings.HasPrefix(msg, "a capture is read by name") && m.at(i).kind == tIndex:
+		return fmt.Sprintf("%s instead of $%d", msg, m.at(i).num)
+	case msg == "unknown pragma" && i >= 2 && m.at(i-1).kind == tIdent && m.at(i-2).kind == tPunct && m.at(i-2).text == "#":
+		return msg + " #" + m.at(i-1).text
+	case strings.HasPrefix(msg, "expected a value") && i >= 1 && m.at(i).lineBefore && m.at(i).kind != tEOF &&
+		m.at(i-1).kind == tPunct && (m.at(i-1).text == "=>" || m.lineEndsStatement(i)):
 		return "multiline expressions require their own open delimiter"
 	case expects(msg):
-		return msg + ", found " + m.toks[i].String()
+		return msg + ", found " + m.at(i).String()
 	}
 	return msg
 }
@@ -222,6 +230,7 @@ func (m *messages) lineEndsStatement(i int) bool {
 	if m.ends == nil {
 		m.ends = make([]bool, len(m.toks))
 		var open []string
+		charge(builderWork, len(m.toks))
 		for k, t := range m.toks {
 			m.ends[k] = len(open) == 0 || open[len(open)-1] == "{"
 			if t.kind == tPunct {
@@ -254,7 +263,7 @@ func expects(msg string) bool {
 func (m *messages) tokenAt(i int) int {
 	at := m.pos.At(i)
 	return sort.Search(len(m.toks)-1, func(k int) bool {
-		p := m.toks[k].pos
+		p := m.at(k).pos
 		return p.Line > at.Line || p.Line == at.Line && p.Col >= at.Col
 	})
 }
@@ -266,6 +275,7 @@ func deepestOpening(lx *lexed) int {
 	var lines []int // the offset of the start of each line
 	lines = append(lines, 0)
 	n := 0
+	charge(builderWork, len(lx.src)+len(lx.toks))
 	for _, r := range lx.src {
 		n++
 		if r == '\n' {

@@ -29,7 +29,8 @@ type layoutReplay struct {
 // frontend built from the source of the tokens toks, as Parse sets it.
 func replayLayout(toks []token, g *grammar.Grammar) {
 	r := &layoutReplay{p: &parser{toks: toks, errs: &errorList{}}, starts: make(map[grammar.Pos]int, len(toks)), ends: make(map[grammar.Pos]int, len(toks))}
-	for i, t := range r.p.toks {
+	charge(builderWork, len(toks))
+	for i, t := range toks {
 		r.starts[t.pos] = i
 		r.ends[t.end] = i
 	}

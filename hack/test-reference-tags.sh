@@ -3,8 +3,9 @@
 #
 # A reference tag (zp_budget_controls_reference, zp_reference_*, zp_snapshot_*_reference) selects the simpler or
 # the former form of a mechanism that the default build optimizes, for same-source comparisons; a candidate tag
-# (zp_snapshot_position_overlays) selects an opt-in representation that the default build has not adopted. The
-# default build does not compile the files of either, so a change to the engine or its tests can break a variant
+# (zp_snapshot_position_overlays) selects an opt-in representation that the default build has not adopted, and an
+# instrument tag (zp_workcount) counts work that the default build does not count. The
+# default build does not compile the files of any of them, so a change to the engine or its tests can break a variant
 # without failing the root suite. For each tag the script runs go vet and go test -short over the engine
 # packages, the public API tests and every other package with a file constrained by the tag:
 #

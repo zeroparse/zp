@@ -96,7 +96,9 @@ var puncts = []string{
 }
 
 type lexer struct {
-	ctx       context.Context
+	ctx context.Context
+	// src is the source, which is read only through at and runes, so that every read is counted
+	// as the work of the lexer (see charge).
 	src       []rune
 	srcASCII  bool
 	i         int
@@ -127,9 +129,21 @@ type lexer struct {
 
 func (l *lexer) pos() grammar.Pos { return grammar.Pos{Line: l.line, Col: l.col} }
 
+// at returns the code point at i of the source, and runes the code points from start to end. They
+// are the only reads of the source, and each code point they return counts as a unit of lexer work.
+func (l *lexer) at(i int) rune {
+	charge(lexerWork, 1)
+	return l.src[i]
+}
+
+func (l *lexer) runes(start, end int) []rune {
+	charge(lexerWork, end-start)
+	return l.src[start:end]
+}
+
 func (l *lexer) peekAt(k int) rune {
 	if l.i+k < len(l.src) {
-		return l.src[l.i+k]
+		return l.at(l.i + k)
 	}
 	return 0
 }
@@ -137,12 +151,12 @@ func (l *lexer) peekAt(k int) rune {
 // lineBreak reports whether the character at i ends a line: a line feed, or a carriage return
 // that no line feed follows ("\r\n" ends a line at its "\n").
 func (l *lexer) lineBreak(i int) bool {
-	r := l.src[i]
-	return r == '\n' || r == '\r' && (i+1 >= len(l.src) || l.src[i+1] != '\n')
+	r := l.at(i)
+	return r == '\n' || r == '\r' && (i+1 >= len(l.src) || l.at(i+1) != '\n')
 }
 
 func (l *lexer) advance() rune {
-	r := l.src[l.i]
+	r := l.at(l.i)
 	l.i++
 	if l.i&255 == 0 {
 		l.checkCancel()
@@ -176,7 +190,7 @@ func (l *lexer) cancelCheck() func() {
 
 func (l *lexer) runeString(start, end int) string {
 	if l.ctx == nil {
-		return string(l.src[start:end])
+		return string(l.runes(start, end))
 	}
 	var out strings.Builder
 	if l.srcASCII {
@@ -187,7 +201,7 @@ func (l *lexer) runeString(start, end int) string {
 			if (i-start)&255 == 0 {
 				l.checkCancel()
 			}
-			size := utf8.RuneLen(l.src[i])
+			size := utf8.RuneLen(l.at(i))
 			if size < 0 {
 				size = utf8.RuneLen(utf8.RuneError)
 			}
@@ -200,7 +214,7 @@ func (l *lexer) runeString(start, end int) string {
 		if (i-start)&255 == 0 {
 			l.checkCancel()
 		}
-		if r := l.src[i]; r >= 0 && r < utf8.RuneSelf {
+		if r := l.at(i); r >= 0 && r < utf8.RuneSelf {
 			out.WriteByte(byte(r))
 		} else {
 			out.WriteRune(r)
@@ -374,7 +388,7 @@ func (l *lexer) next() token {
 		t.kind = tEOF
 		return t
 	}
-	r := l.src[l.i]
+	r := l.at(l.i)
 	switch {
 	case r == '_' && l.peekAt(1) == '|' && l.peekAt(2) == '_':
 		l.advance()
@@ -390,7 +404,7 @@ func (l *lexer) next() token {
 		t.cc.Pos = t.pos
 	case isIdentStart(r):
 		start := l.i
-		for l.i < len(l.src) && isIdentPart(l.src[l.i]) {
+		for l.i < len(l.src) && isIdentPart(l.at(l.i)) {
 			l.advance()
 		}
 		t.kind, t.text = tIdent, l.runeString(start, l.i)
@@ -409,7 +423,7 @@ func (l *lexer) next() token {
 	case r == '$' && l.peekAt(1) != '$' && isIdentStart(l.peekAt(1)):
 		l.advance()
 		start := l.i
-		for l.i < len(l.src) && isIdentPart(l.src[l.i]) {
+		for l.i < len(l.src) && isIdentPart(l.at(l.i)) {
 			l.advance()
 		}
 		t.kind, t.text = tCapture, l.runeString(start, l.i)
@@ -439,7 +453,7 @@ func (l *lexer) next() token {
 // in a partial AST, always accompanied by a diagnostic.
 func (l *lexer) decimal(pos grammar.Pos, kind, prefix string) (string, int) {
 	start := l.i
-	for l.i < len(l.src) && unicode.IsDigit(l.src[l.i]) {
+	for l.i < len(l.src) && unicode.IsDigit(l.at(l.i)) {
 		l.advance()
 	}
 	text := l.runeString(start, l.i)
@@ -490,7 +504,7 @@ func init() {
 // startsToken reports whether a token starts at the current character, which is not white space
 // or a comment.
 func (l *lexer) startsToken() bool {
-	r := l.src[l.i]
+	r := l.at(l.i)
 	return isIdentStart(r) || unicode.IsDigit(r) || r == '"' || punctStart[r]
 }
 
@@ -498,14 +512,14 @@ func (l *lexer) startsToken() bool {
 // token, and reports the run as one error.
 func (l *lexer) skipInvalid() {
 	pos, start := l.pos(), l.i
-	for l.i < len(l.src) && !unicode.IsSpace(l.src[l.i]) && !l.startsToken() {
+	for l.i < len(l.src) && !unicode.IsSpace(l.at(l.i)) && !l.startsToken() {
 		l.advance()
 	}
 	if l.i-start == 1 {
-		l.errs.addRange(pos, l.pos(), fmt.Sprintf("unexpected character %q", l.src[start]))
+		l.errs.addRange(pos, l.pos(), fmt.Sprintf("unexpected character %q", l.at(start)))
 		return
 	}
-	s := string(l.src[start:min(l.i, start+10)])
+	s := string(l.runes(start, min(l.i, start+10)))
 	if l.i-start > 10 {
 		s += "..."
 	}
@@ -516,7 +530,7 @@ func (l *lexer) skipInvalid() {
 // skipped anything, and whether that included a line break.
 func (l *lexer) skipSpace() (space, newline bool) {
 	for l.i < len(l.src) {
-		r := l.src[l.i]
+		r := l.at(l.i)
 		if l.lineBreak(l.i) {
 			newline = true
 			l.newlines++
@@ -561,7 +575,7 @@ func (l *lexer) skipSpace() (space, newline bool) {
 				}
 			} else {
 				// A line comment ends before CR, LF, or CRLF.
-				for l.i < len(l.src) && l.src[l.i] != '\n' && l.src[l.i] != '\r' {
+				for l.i < len(l.src) && l.at(l.i) != '\n' && l.at(l.i) != '\r' {
 					l.advance()
 				}
 			}
@@ -569,8 +583,8 @@ func (l *lexer) skipSpace() (space, newline bool) {
 			c.Text = l.runeString(start, l.i)
 			ending := ""
 			if !block && l.i < len(l.src) {
-				ending = string(l.src[l.i : l.i+1])
-				if l.src[l.i] == '\r' && l.peekAt(1) == '\n' {
+				ending = string(l.runes(l.i, l.i+1))
+				if l.at(l.i) == '\r' && l.peekAt(1) == '\n' {
 					ending = "\r\n"
 				}
 			}
@@ -650,7 +664,7 @@ func (l *lexer) escape() rune {
 		var hex strings.Builder
 		if l.peekAt(0) == '{' {
 			l.advance()
-			for l.i < len(l.src) && l.src[l.i] != '}' {
+			for l.i < len(l.src) && l.at(l.i) != '}' {
 				hex.WriteRune(l.advance())
 			}
 			if l.i < len(l.src) {
@@ -714,7 +728,7 @@ func (l *lexer) string() string {
 	l.advance() // "
 	var b strings.Builder
 	for {
-		if l.i >= len(l.src) || l.src[l.i] == '\n' {
+		if l.i >= len(l.src) || l.at(l.i) == '\n' {
 			l.errorf(start, "unterminated string")
 			return b.String()
 		}
@@ -739,7 +753,7 @@ func (l *lexer) charClass() *grammar.CharClass {
 		cc.Negated = true
 	}
 	read := func() (rune, bool) {
-		if l.i >= len(l.src) || l.src[l.i] == '\n' {
+		if l.i >= len(l.src) || l.at(l.i) == '\n' {
 			return 0, false
 		}
 		r := l.advance()
@@ -749,11 +763,11 @@ func (l *lexer) charClass() *grammar.CharClass {
 		return r, true
 	}
 	for {
-		if l.i >= len(l.src) || l.src[l.i] == '\n' {
+		if l.i >= len(l.src) || l.at(l.i) == '\n' {
 			l.errorf(start, "unterminated character class")
 			return cc
 		}
-		if l.src[l.i] == ']' {
+		if l.at(l.i) == ']' {
 			l.advance()
 			if len(cc.Ranges) == 0 {
 				l.errorf(start, "empty character class")
@@ -784,7 +798,7 @@ func (l *lexer) minimumInteger() bool {
 		return false
 	}
 	for i, r := range minimumIntegerText {
-		if l.src[l.i+i] != r {
+		if l.at(l.i+i) != r {
 			return false
 		}
 	}

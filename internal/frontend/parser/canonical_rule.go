@@ -198,21 +198,21 @@ func (c *canonical) bracketBefore(off int) bool {
 	if off == 0 {
 		return false
 	}
-	switch r := c.src[off-1]; {
+	switch r := c.at(off - 1); {
 	case r == ')':
 		return true
 	case isIdentPart(r):
 		start := off
-		for start > 0 && isIdentPart(c.src[start-1]) {
+		for start > 0 && isIdentPart(c.at(start-1)) {
 			start--
 		}
-		if start == off-1 && start >= 2 && c.src[start-1] == '|' && c.src[start-2] == '_' {
+		if start == off-1 && start >= 2 && c.at(start-1) == '|' && c.at(start-2) == '_' {
 			return false // the token _|_
 		}
 		// The lexer reads leading digits as a number and what follows them as a
 		// name, so only a run of digits is not a name. The suffix i of a string
 		// is a name to the lexer too: "x"i[a] is an index.
-		for start < off && c.src[start] >= '0' && c.src[start] <= '9' {
+		for start < off && c.at(start) >= '0' && c.at(start) <= '9' {
 			start++
 		}
 		return start < off

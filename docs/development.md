@@ -281,6 +281,15 @@ every tag of the tree or the tags it is given; it rejects a tag that no build co
 feature a tag removes skips under that tag. The run takes tens of minutes: run it after changing budget-control
 code, a reference variant or the tests of the engine packages; a landing batch runs it when it touches such code.
 
+The instrument tag `zp_workcount` counts the work of the lexer and the builder of the grammar source frontend
+(`internal/frontend/parser`): every code point that the lexer reads, and every code point, comment, comment gap
+and token that the builder, its layout replay and its error messages read. Each read goes through an accessor
+that charges a counter; in the default build the charge is an empty function that compiles to nothing, and
+`TestWorkReadsGoThroughAccessors` type-checks the package to keep every read on an accessor.
+`TestSourceAPIWorkScalesLinearly` (in `spec/language`, under the tag) requires both counts to grow linearly with
+the source, which sees a quadratic loop that allocates nothing, and `TestSourceAPIWorkMutants` runs it under the
+tag on the source and on mutants that rescan the source or the tokens, which it must reject.
+
 GitHub Actions runs the root module, site tests, and
 Node.js/WebAssembly/generated-TypeScript checks as separate jobs. A newer run on the same branch or pull-request
 ref cancels the superseded run. CI uses Go 1.27.1, Node.js 22.18.0, CPython 3.14.0
