@@ -166,7 +166,7 @@ deletion that inserts nothing. So one edit joins at most two slots. A store of
 a rule that a parse from scratch memoizes too, under a key that the slot holds,
 adds no entry, and by induction on the edits a slot holds at most one entry
 under such a key plus one for each edit that joined slots into it, at most
-$E + 1$. A store of a rule that only a Document memoizes looks at the first 32
+$E + 1$. A store of a transient rule, whose results only a Document stores, looks at the first 32
 entries of the chain only, and when the key is not among them it adds an entry
 in front, so a chain of more than 32 entries can hold more entries under such a
 key. Only one entry under a key matters in a parse: a lookup returns the first
@@ -489,6 +489,25 @@ may leave no result, a result computed inside a lookahead or a `skip` answers
 only the calls inside them, and one computed outside them answers every call,
 so at most one evaluation in each of the two states stores a result, which
 gives the three evaluations.
+
+**Transient calls of a Document.** The claims of the lemmas below on
+activations, owners and own regions read a Document parse as if it evaluated
+every call of a transient rule: where the Document answers such a call from
+its memo, they take in its place the evaluation of its counterpart in the
+reference parse $\mathcal{R}$ (*Counterparts in the reference parse* in
+Lemma 4), with the activations in it and with the calls of memoized rules in
+it taken as answered. A parse from scratch evaluates every such call, and the
+answer gives the outcome of that evaluation ([memoization
+theorem](memoization.md#theorem-memoization-never-changes-the-result)), so
+the parse goes on after it as after the evaluation, and the activations that
+the Document makes are among those that this reading counts: it adds the
+activations inside the answered calls and drops none. A call of a memoized
+rule inside an answered call is not made, and a later call of its key that
+the Document then evaluates is an evaluation of the key that Lemma 3 counts
+as any other. So a sentence below that says that the memo never answers a
+call of a rule that the parse does not memoize, or that the parse evaluates
+such a call, states this reading; a bound on the activations that it counts
+bounds those that the Document makes.
 
 ## Lemma 17 (Recorded Walks)
 
@@ -2862,7 +2881,8 @@ no activation, and Lemma 12 counts it.
 
 The **own region** of a body evaluation is the part of it outside the calls of
 rules that the parse memoizes. The calls in it are of rules that the parse does
-not memoize, which the memo never answers. An activation owned by a memoized
+not memoize, which the memo never answers (in a Document as *Transient calls
+of a Document* in Lemma 3 reads it). An activation owned by a memoized
 evaluation lies in its own region: a call of a rule that the parse memoizes,
 made inside it, is answered, or evaluated as a memoized evaluation, as the
 growth steps of a leader or in a context of growths.
@@ -3033,7 +3053,8 @@ leaders, on the way to a terminal that fails at once (*Counterparts*). So their 
 same steps up to the variants of their calls. Of two corresponding calls, one is
 of a rule and the other of the same rule or of its twin, so the parse memoizes
 both or neither. In an own region every call is of a rule that the parse does
-not memoize, which it evaluates, so the own regions of $M$ and $M_0$ are the
+not memoize, which it evaluates (in a Document as *Transient calls of a
+Document* in Lemma 3 reads it), so the own regions of $M$ and $M_0$ are the
 counterparts of the parts of $\mathcal{R}(M)$ and $\mathcal{R}(M_0)$ outside
 their calls of rules that the parse memoizes and outside the alternatives that
 the parse skips, and those parts take the same steps. An alternative that the
@@ -4464,7 +4485,8 @@ the counterpart of $\alpha$: a successful activation of $\sigma$ at $q$
 in the own region of $\mathcal{R}(H)$. $\mathcal{X}$ makes, inside $H$,
 an evaluation whose counterpart is $\beta$. On the path from
 $\mathcal{R}(H)$ down to $\beta$ every call is of a rule that the parse
-does not memoize, which the memo never answers; no step of a growth lies
+does not memoize, which the memo never answers (in a Document as *Transient
+calls of a Document* in Lemma 3 reads it); no step of a growth lies
 there, since one lies inside the call of a leader, which the parse
 memoizes; no alternative on it is skipped, since each holds $\beta$; and
 $\mathcal{X}$ takes no record and resumes no walk. So $\mathcal{X}$
@@ -6547,7 +6569,8 @@ in the own region of $H$, since it contains $\beta'$, so the rule of $c_x$ is
 not memoized by the parse and calls no rule, as for $e$ above; $\beta'$ is
 direct in its body evaluation, and its rule is $R$ or its twin. This is (i).
 Otherwise $\kappa$ evaluates $c_1, \ldots, c_j$ before $\beta'$ starts; the
-memo answers no call of $R$, which the parse does not memoize, so the last of
+memo answers no call of $R$, which the parse does not memoize (in a Document
+as *Transient calls of a Document* in Lemma 3 reads it), so the last of
 these is a body evaluation $P^\circ$ of $R$ or of its twin at $p$, which ends
 before $\beta'$ starts. $P$ and $P^\circ$ are evaluations of calls of one
 rule, up to the variant, with one level restriction, at one position, and
@@ -7619,7 +7642,8 @@ an alternative on the path, which encloses an activation (*Counterparts*), and
 does not answer $y$ with the current result of an open growth, since
 $\mathcal{R}(y)$ would then make no call. The calls on the path are made at
 $p$, where $h$ is in their context, or are calls of rules that the parse does
-not memoize, which it never answers. So it answers $y$ from a result or a step
+not memoize, which it never answers (in a Document as *Transient calls of a
+Document* in Lemma 3 reads it). So it answers $y$ from a result or a step
 computed while at least the growths of the context of $y$ were in progress, or
 takes $y$ in a run of such steps ([Evaluations of
 Rules](../runtime/parsing.md#evaluations-of-rules)), and that result or step is
@@ -7755,7 +7779,8 @@ calls no rule. The second growth evaluates each of them again: a call at $p$
 in a context is answered only by a growing result, which would hold no
 activation, or by a result or a step kept in a context, which the parse does
 not reuse here, and a call of a rule that the parse does not memoize is never
-answered. The calls off that path have the same results in both growths, by
+answered (in a Document as *Transient calls of a Document* in Lemma 3 reads
+it). The calls off that path have the same results in both growths, by
 the [memoization
 theorem](memoization.md#theorem-memoization-never-changes-the-result) where
 the memo answers one of them, and the values of the variables do not change,
@@ -8113,9 +8138,9 @@ that the parse memoizes, keeps no record of any site, resumes no run,
 reuses nothing kept in a context of growths, stops at no limit, and
 stores the result of an evaluation of a rule that is not cycle-free
 exactly where the parse stores it. A Document also stores results of
-the transient rules, which Lemma 3 does not take as memoized;
-$\mathcal{P}$, of the same kind, stores and looks them up as the parse
-does. Then $\mathcal{P}$ is a parse of the
+the transient rules, which Lemma 3 does not take as memoized; the claim
+reads both parses as *Transient calls of a Document* in Lemma 3 does,
+evaluating every call of such a rule. Then $\mathcal{P}$ is a parse of the
 [Setting](#setting), and every successful activation of a source $\sigma$
 at $q$ that a growth step or an evaluation in a context of growths owns in
 the parse has the counterpart of an activation of $\sigma$ at $q$ that
@@ -8170,7 +8195,7 @@ of steps at once, since a run is taken from kept steps (*Covered keys*).
 With no resumed run, a walk evaluates every iteration that no record
 answers, and $\mathcal{P}$ keeps no record. Whether a call is evaluated depends, for a
 rule that the parse does not memoize, on nothing, since the memo never
-answers it; for a rule that is not cycle-free and that the parse
+answers it in that reading; for a rule that is not cycle-free and that the parse
 memoizes, on the growths open at its position, which started at calls of
 rules of a cycle, and on the entries that the memo holds for its key in
 its lookahead state or in a smaller one, which can answer it by (L) of
@@ -8349,7 +8374,8 @@ that position. Either way $G'$ is in a context of growths too.
 *Images of activations.* Let $G$ own $\alpha$. The calls on the path from
 $G$ down to $\alpha$ are of rules that the parse does not memoize, since
 $G$ is the innermost owner (*Owners* in Lemma 4), so $\mathcal{P}$, which
-memoizes the same rules, evaluates them; it evaluates every iteration on
+memoizes the same rules, evaluates them (in a Document as *Transient calls of
+a Document* in Lemma 3 reads it); it evaluates every iteration on
 it and skips no alternative on it; and no step of a growth lies there,
 whose call, of a leader, would be memoized. So $\mathcal{P}$ evaluates,
 at the place of $\alpha$ in $G'$, an activation $\alpha'$ of $\sigma$ at
@@ -9617,7 +9643,7 @@ Steps](#open-steps), as in Lemma 2.
 *Evaluations by call.* A rule $r$ that is not memoized is no leader, so it
 does not grow, and the memo of an ordinary parse answers no call of it. Each
 call of $r$ therefore evaluates its body at most once; a Document parse, which
-memoizes $r$, evaluates it no more often. Apart from its calls, the body of
+can answer a call of $r$ from its memo, evaluates it no more often. Apart from its calls, the body of
 $r$ is evaluated only when the parse begins at $r$: the parse of an operand
 inside an Operators Rule is part of the same call
 ([Whole-Rule Action](../language/operators-rule.md#whole-rule-action)), and
@@ -10322,8 +10348,8 @@ its creation, and so are their charges
 
 *The units that the default budget counts.* The default budget of a Document
 parse leaves out the Document units of Lemma 12 that the parse reserves in regions
-of Document work: the memo protocol of a call of a rule that only a Document memoizes
-(a transient rule, which a parse from scratch does not memoize), except a constant for each
+of Document work: the memo protocol of a call of a transient rule, whose results only a Document stores
+(a parse from scratch memoizes none of them), except a constant for each
 variable of the key of its lookups, the steps of the walk of the chain of memo entries at a
 position beyond the entry that answers, and the growth of the table in a lookup and a store, the
 edits that a lookup applies, the moves of reused values with the cleanup that ends them, the
@@ -10335,7 +10361,7 @@ rule that a parse from scratch memoizes too, with the unit of each lookup and st
 of the key of a lookup and its comparison with each entry of this parse that the walk compares it with, and the operations on the
 recovered errors of an entry, which Lemma 14 bounds by a constant times $C$. A comparison with an entry that is not current in this parse, one that an earlier text left in the chain and this parse has neither stored nor found to answer a lookup, is Document work, since a parse from scratch has no such entry. The comparison of two strings costs the length of
 the string, unless they are the same bytes of the same memory, which costs a constant. A lookup
-of a rule that only a Document memoizes compares the strings of the key by identity only, at a
+of a transient rule compares the strings of the key by identity only, at a
 constant for each variable of the key: a string that is equal but not identical is a miss, and a
 miss is sound, since the rule is then evaluated and that work counts as a parse from scratch counts it.
 So the work on the keys of this parse is not left out of the count: it
@@ -10356,7 +10382,7 @@ of a rule is the same in both parses, so the rules that both memoize have the sa
 stores. A first parse of a Document is the parse from scratch plus the Document work, and a parse
 after edits evaluates a call again where an entry lagged behind by more than 128 edits. This
 holds for the three backends of the engine and for generated Go, whose Documents memoize the
-same rules as a parse from scratch plus those that only a Document memoizes. So a Document parse
+same rules as a parse from scratch and also store the results of the transient rules. So a Document parse
 under the default budget is argued not to fail where the parse from scratch of its text does not.
 Its default budget, raised by the Document units, is at most that budget plus the bound on the
 Document units above (the terms $W$, $B$, $G$ and $Q$ are bounded by the retained state, not
@@ -10373,7 +10399,7 @@ of the parse reaches it. No lemma bounds $W$, $B$, $G$ or $Q$ by $n$, $K$ and $L
 [Open Steps](#open-steps). A chain has at most $E + 1$ entries under one key
 of a rule that a parse from scratch memoizes too ([Setting](#setting)), so $Q$ is
 at most $E + 1$ times the number of such keys at its position, plus the entries
-of rules that only a Document memoizes, which can be several under one key on a
+of the transient rules, which can be several under one key on a
 chain of more than 32 entries; these include keys of earlier texts, which the
 $K$ of the parse does not count. $G$ grows with deletions and shrinks with insertions.
 
