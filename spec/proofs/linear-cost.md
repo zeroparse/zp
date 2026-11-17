@@ -909,10 +909,11 @@ values are in no activation, and (R3) leaves them out. A walk that takes a
 record copies at most as many elements as the remaining iterations matched,
 which by (R1) are the iterations that the walk would evaluate without the
 record. So the suffix copies of a site are at most the iterations that the
-walks which take its records would evaluate in their place, and no claim of
-this proof counts those. They are not shown to be iterations of a parse
-that keeps no record of the site, since that parse is not shown to make the
-same walks. A call inside an iteration that a record answers is not made.
+walks which take its records would evaluate in their place. *Suffix copies
+in every parse* in Lemma 5 counts those as iterations of the parse
+$\mathcal{P}$ of *Families in every parse*, which keeps no record, through
+the evaluations that hold the walks, not through a parse that keeps no
+record of the site and makes the same walks, which is not shown. A call inside an iteration that a record answers is not made.
 The walk that made the record made that call in its own iteration at the
 same position, and when its evaluation was the first of its rule at the
 position, the memo need not have stored its result
@@ -1018,8 +1019,8 @@ character class or `.` examines a constant amount of the input. The growth
 of a cycle makes no steps of its own beyond the body evaluations of its steps,
 which Lemma 5 counts. A recorded walk also makes steps outside its
 iterations, to look up, store and take records; Lemma 17 counts them with
-the recorded walks, apart from the suffix copies, which no claim of this
-proof bounds (step 8 of [Open Steps](#open-steps)). So the claim of this lemma comes down to a bound on the
+the recorded walks, apart from the suffix copies, which *Suffix copies in
+every parse* in Lemma 5 counts. So the claim of this lemma comes down to a bound on the
 number of activations, and the scanned cost of each is a constant.
 
 **Failure after a source.** Condition 2 applies to a unit that can fail after
@@ -8974,6 +8975,51 @@ claim bounds how often, by the evaluations of $\mathcal{P}$ that make the
 same copies, each of which evaluates those iterations or reads them from
 an evaluation that does.
 
+**Suffix copies in every parse.** Let the parse and $\mathcal{P}$ be as in
+*Families in every parse*. Then the suffix copies of the walks of the parse
+that take records are at most a constant times the iterations of the walks
+of $\mathcal{P}$, which keeps no record: each walk $W$ of the parse that
+takes a record has an image, a walk $\bar{W}$ of $\mathcal{P}$ of the same
+repetition at the same position whose iterations are those of
+$\mathcal{R}(W)$, each walk of $\mathcal{P}$ is the image of at most a
+constant number of walks of the parse, and $W$ copies at most a constant
+times as many elements as $\bar{W}$ evaluates iterations after the position
+at which $W$ takes its record.
+
+*Proof.* Let $e$ be the body evaluation of the parse that contains $W$
+with no call between them, or the evaluation where the parse begins, and
+let $\bar{e}$ be its image (*Copies in every parse*), so that
+$\mathcal{R}(e)$ and $\mathcal{R}(\bar{e})$ take the same steps. $W$ is an
+evaluation of the parse inside $e$, so $\mathcal{R}(W)$ lies inside
+$\mathcal{R}(e)$ (*Counterparts in the reference parse*), and the
+evaluation at its place in $\mathcal{R}(\bar{e})$, which takes the same
+steps, evaluates the iterations of $\mathcal{R}(W)$. Between
+$\mathcal{R}(\bar{e})$ and it lies no call and so no step of a growth, it
+lies in no alternative that $\mathcal{P}$ skips, since it enters a
+repetition, and $\mathcal{P}$ takes no record and resumes no run; so
+$\mathcal{P}$ evaluates it, a walk $\bar{W}$ that evaluates every
+iteration of $\mathcal{R}(W)$ (*Counterparts*). Distinct walks of the
+parse inside one $e$ are distinct evaluations inside $\mathcal{R}(e)$,
+which correspond to distinct evaluations inside $\mathcal{R}(\bar{e})$,
+the counterparts of distinct walks of $\mathcal{P}$; and each $\bar{e}$ is
+the image of at most a constant number of evaluations $e$. By (R1) the
+record that $W$ takes at a position $u$ answers the iterations that the
+walk would evaluate from $u$ on, those of $\mathcal{R}(W)$ from $u$ on,
+which $\bar{W}$ evaluates, and $W$ copies at most a constant number of
+elements for each of them ([Run Sites](../runtime/parsing.md#run-sites),
+[Skip Runs](../runtime/parsing.md#skip-runs)). $\square$
+
+So the suffix copies are counted with the iterations of the walks of
+$\mathcal{P}$, whose sites keep no record there: they are sources without
+records of $\mathcal{P}$, whose successful iterations the count of Lemma 4
+bounds, with the open parts of step 1 for $\mathcal{P}$, and whose other
+iterations are one for each walk (*Activations that do not succeed*). The
+claim needs no comparison of the walks of the parse with those of a parse
+that keeps no record of the site: the parse with records can evaluate a
+call that the parse without them answers, and the reverse, but every walk
+of the parse has its image in $\mathcal{P}$ through the evaluation that
+holds it.
+
 The growth steps themselves remain. By *Calls in a context of growths* and
 *Growths inside a step*, the steps of the growths that are not outer are
 charged to the outer growths whose families hold them, to the input that those
@@ -10853,8 +10899,7 @@ units around it.
 
 When every rule that the start rule reaches satisfies conditions 1 to 5, every
 parse from the start rule whose records are exact, (R1) of the
-[Setting](#setting), has a cost,
-apart from the suffix copies of the walks that take records, of at most
+[Setting](#setting), has a cost of at most
 $c \cdot K \cdot (L + 1) \cdot (n + 1)$
 for a constant $c$, where $K$ is here the greater of the $K$ of
 [Classification](../runtime/parsing.md#classification) and $K_R$ of the
@@ -10898,7 +10943,10 @@ and 13 the successful activations other than the iterations of recorded
 walks are at most a constant times $K \hat{n}$, and by Lemma 17, with step 3
 for the tries of the Operators Rules, so are the iterations of the recorded
 walks, the recorded walks and the steps that they make outside their
-iterations and their suffix copies. The activations that do not succeed
+iterations other than their suffix copies. The suffix copies are at most a
+constant times the iterations of the walks of $\mathcal{P}$ (*Suffix copies
+in every parse* in Lemma 5), which the counts of Lemmas 4 and 10 in
+$\mathcal{P}$ bound in the same way. The activations that do not succeed
 follow from these and the body evaluations (*Activations that do not
 succeed* in Lemma 4). So the activations are at most a constant times $K \hat{n}$, and by Lemma 10 the
 body evaluations of the other rules are at most a constant times those two
@@ -10909,7 +10957,7 @@ which by [Evaluations of Rules](../runtime/parsing.md#evaluations-of-rules)
 costs in proportion to the size of its key: the number of variables that the
 rule reads, a constant, and the lengths of their string values, each at most
 $L$ by its definition; so each call costs at most a constant times $L + 1$.
-The scanned cost outside the suffix copies is at most a constant times the
+The scanned cost, the suffix copies included, is at most a constant times the
 activations and the recorded walks by Lemmas 4 and 17, plus
 what Lemma 5 adds, the walk cost is bounded by Lemma 9, and the values by
 Lemma 6. Each bound is a constant times $K (L + 1) \hat{n}$, so the sum is too.
@@ -12066,8 +12114,8 @@ theorem covers such a parse.
    classifier bounds on the view (or make the view keep the shape of every
    value that an action reads).
 8. **What the records leave.** The theorem assumes that the records are
-   exact, (R1) of the [Setting](#setting), and excludes the suffix copies.
-   Eight parts are open. First, (R2) and (R3) are shown only for the sites
+   exact, (R1) of the [Setting](#setting). Eight parts follow; all but
+   the second are open. First, (R2) and (R3) are shown only for the sites
    that *Sites that meet the conditions* in the [Setting](#setting) names,
    the run sites free of the environment in the parses of the backends of
    the engine, marked free where the program is loaded: for a site that is
@@ -12084,12 +12132,14 @@ theorem covers such a parse.
    the combinations among the calls at one position and not among the visits
    of walks, so the theorem states its bound with the greater of the two.
    Second, the suffix copies of the walks that take records and whose
-   iterations build values: they are at most the iterations that the walks which take the
-   records would evaluate in their place, and no claim counts those. The
-   parse that keeps no record of the site is not shown to make the same
-   walks, since a call inside an iteration that a record answers stores
-   nothing in the memo (*Sources without records* in Lemma 17), so the count
-   of step 1 for the site in that parse would not give them as it stands.
+   iterations build values: they are at most the iterations that the walks
+   which take the records would evaluate in their place, and *Suffix copies
+   in every parse* in Lemma 5 counts those as iterations of walks of the
+   parse $\mathcal{P}$ of *Families in every parse*, with the open parts of
+   step 1 for $\mathcal{P}$ and no part of their own; it needs no parse
+   that keeps no record of the site and makes the same walks, which is not
+   shown, since a call inside an iteration that a record answers stores
+   nothing in the memo (*Sources without records* in Lemma 17).
    Third, the walks at which a Document
    resumes a run are walks without records, and so are the repetitions that
    are not restartable and that *Sites that are walked a constant number of
@@ -12290,8 +12340,9 @@ theorem covers such a parse.
    walk of a site that keeps records, which *Replayed activations*, and so
    *Activations held by heads*, leaves out as it leaves out the activations
    of the sixth part, and the steps that its walks make outside their
-   iterations, the lookups, the stores and the suffix copies, which (R3)
-   would bound, are counted by no claim. Eighth, the parses that resume
+   iterations, the lookups and the stores, which (R3) would bound, are
+   counted by no claim; its suffix copies are counted as in the second
+   part. Eighth, the parses that resume
    runs of a [Document](../runtime/documents.md). A walk that a Document
    resumes reuses recorded iterations, each an activation that makes no
    call, so the parse evaluates nothing inside them. *Counterparts in the
